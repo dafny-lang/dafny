@@ -626,18 +626,24 @@ namespace Microsoft.Dafny {
       Contract.Requires(tp != null);
       string variance;
       switch (tp.VarianceSyntax) {
-        case TypeParameter.TPVarianceSyntax.Co:
+        case TypeParameter.TPVarianceSyntax.Covariant_Permissive:
+          variance = "*";
+          break;
+        case TypeParameter.TPVarianceSyntax.Covariant_Strict:
           variance = "+";
           break;
-        case TypeParameter.TPVarianceSyntax.Inv:
-          variance = "=";
+        case TypeParameter.TPVarianceSyntax.NonVariant_Permissive:
+          variance = "!";
           break;
-        case TypeParameter.TPVarianceSyntax.Contra:
+        case TypeParameter.TPVarianceSyntax.NonVariant_Strict:
+          variance = "";
+          break;
+        case TypeParameter.TPVarianceSyntax.Contravariance:
           variance = "-";
           break;
         default:
-          variance = "";
-          break;
+          Contract.Assert(false);  // unexpected VarianceSyntax
+          throw new cce.UnreachableException();
       }
       return variance + tp.Name + TPCharacteristicsSuffix(tp.Characteristics);
     }

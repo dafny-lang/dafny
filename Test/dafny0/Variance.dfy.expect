@@ -1,28 +1,50 @@
 // Variance.dfy
 
-datatype MyData<+A, =B, -C, D> = MakeA(A) | MakeB(B) | MakeC(C) | makeD(D)
 
-type Syn<X, -Y, Z> = MyData<X, Y, Z, Z>
+module VarianceChecks {
+  datatype MyData<+A, *B, !C, D, -E> = MakeA(A) | MakeB(B) | MakeC(C) | MakeD(D) | MakeE(E)
 
-type Cyn<M, -N> = MyData<int -> M, M, N -> int, N>
+  type Syn<X, -Y, Z> = MyData<X, Y, Z, Z, Z>
 
-class MyClass<=Inv> { }
+  type Cyn<M, -N> = MyData<int -> M, M, N -> int, N, N -> int>
 
-datatype CheckIt<+A> = Cons(A, MyData<int, int, int, int>) | Fn(int ~> A) | Nf(A ~> int) | Double((A ~> int) ~> int) | ToSet(real -> set<A>) | FromSet(set<A> ~> real) | Classy(MyClass<A>) | MakeA(MyData<A, int, int, int>) | MakeB(MyData<int, A, int, int>) | MakeC(MyData<int, int, A, int>) | MakeD(MyData<int, int, int, A>)
+  class MyClass<!Inv> { }
 
-class VaryingClass<A, B, C, +HotDog, D, -Whale> { }
-iterator VaryingIter<A(0), B(0), C(0), +HotDog(0), D(0), -Whale(0)>()
-{
+  datatype CheckIt<+A, *B, !C, D, -E> = Cons(A, MyData<int, int, int, int, int>) | Fn(int ~> A) | Nf(A ~> int) | Double((A ~> int) ~> int) | ToSet(real -> set<A>) | FromSet(set<A> ~> real) | Classy(MyClass<A>) | MakeA(MyData<A, int, int, int, int>) | MakeB(MyData<int, A, int, int, int>) | MakeC(MyData<int, int, A, int, int>) | MakeD(MyData<int, int, int, A, int>) | MakeE(MyData<int, int, int, int, A>) | CreateA(MyData<B, int, int, int, int>) | CreateB(MyData<int, B, int, int, int>) | CreateC(MyData<int, int, B, int, int>) | CreateD(MyData<int, int, int, B, int>) | CreateE(MyData<int, int, int, int, B>) | DoA(MyData<C, int, int, int, int>) | DoB(MyData<int, C, int, int, int>) | DoC(MyData<int, int, C, int, int>) | DoD(MyData<int, int, int, C, int>) | DoE(MyData<int, int, int, int, C>) | FabricateA(MyData<D, int, int, int, int>) | FabricateB(MyData<int, D, int, int, int>) | FabricateC(MyData<int, int, D, int, int>) | FabricateD(MyData<int, int, int, D, int>) | FabricateE(MyData<int, int, int, int, D>) | BorrowA(MyData<E, int, int, int, int>) | BorrowB(MyData<int, E, int, int, int>) | BorrowC(MyData<int, int, E, int, int>) | BorrowD(MyData<int, int, int, E, int>) | BorrowE(MyData<int, int, int, int, E>)
+
+  class VaryingClass<A, B, C, +HotDog, D, -Whale> {
+    var f: HotDog -> Whale
+
+    method M()
+    {
+      var g: HotDog -> Whale;
+    }
+  }
+  iterator VaryingIter<A(0), B(0), C(0), +HotDog(0), D(0), -Whale(0)>()
+  {
+  }
 }
-Variance.dfy(7,10): Error: formal type parameter 'C' is not used according to its variance specification
-Variance.dfy(19,7): Error: formal type parameter 'A' is not used according to its variance specification
-Variance.dfy(22,16): Error: formal type parameter 'A' is not used according to its variance specification
-Variance.dfy(23,19): Error: formal type parameter 'A' is not used according to its variance specification
+Variance.dfy(10,12): Error: formal type parameter 'E' is not used according to its variance specification
+Variance.dfy(21,9): Error: formal type parameter 'A' is not used according to its variance specification
+Variance.dfy(22,14): Error: formal type parameter 'A' is not used according to its variance specification (it is used left of an arrow) (perhaps try changing the declaration from '+A' to '*A')
+Variance.dfy(24,18): Error: formal type parameter 'A' is not used according to its variance specification
 Variance.dfy(25,21): Error: formal type parameter 'A' is not used according to its variance specification
-Variance.dfy(26,25): Error: formal type parameter 'A' is not used according to its variance specification
-Variance.dfy(27,29): Error: formal type parameter 'A' is not used according to its variance specification
-Variance.dfy(29,26): Error: a class only supports invariant type parameters
-Variance.dfy(29,36): Error: a class only supports invariant type parameters
-Variance.dfy(33,28): Error: a iterator only supports invariant type parameters
-Variance.dfy(33,38): Error: a iterator only supports invariant type parameters
-11 resolution/type errors detected in Variance.dfy
+Variance.dfy(27,23): Error: formal type parameter 'A' is not used according to its variance specification (it is used left of an arrow) (perhaps try changing the declaration from '+A' to '*A')
+Variance.dfy(28,27): Error: formal type parameter 'A' is not used according to its variance specification
+Variance.dfy(29,31): Error: formal type parameter 'A' is not used according to its variance specification
+Variance.dfy(30,35): Error: formal type parameter 'A' is not used according to its variance specification
+Variance.dfy(33,29): Error: formal type parameter 'B' is not used according to its variance specification
+Variance.dfy(34,33): Error: formal type parameter 'B' is not used according to its variance specification
+Variance.dfy(35,37): Error: formal type parameter 'B' is not used according to its variance specification
+Variance.dfy(42,28): Error: formal type parameter 'D' is not used according to its variance specification (it is used left of an arrow) (perhaps try declaring 'D' as '!D')
+Variance.dfy(43,32): Error: formal type parameter 'D' is not used according to its variance specification (it is used left of an arrow) (perhaps try declaring 'D' as '!D')
+Variance.dfy(45,40): Error: formal type parameter 'D' is not used according to its variance specification (it is used left of an arrow) (perhaps try declaring 'D' as '!D')
+Variance.dfy(46,21): Error: formal type parameter 'E' is not used according to its variance specification
+Variance.dfy(47,25): Error: formal type parameter 'E' is not used according to its variance specification
+Variance.dfy(48,29): Error: formal type parameter 'E' is not used according to its variance specification
+Variance.dfy(49,33): Error: formal type parameter 'E' is not used according to its variance specification
+Variance.dfy(52,28): Error: class declarations only support non-variant type parameters
+Variance.dfy(52,38): Error: class declarations only support non-variant type parameters
+Variance.dfy(60,30): Error: iterator declarations only support non-variant type parameters
+Variance.dfy(60,40): Error: iterator declarations only support non-variant type parameters
+23 resolution/type errors detected in Variance.dfy

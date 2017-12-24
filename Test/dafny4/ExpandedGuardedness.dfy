@@ -127,7 +127,7 @@ function method UpLet1(n: int): Stream<int>
 
 // ---------------------------------------------------
 
-codatatype Lang<S> = L(nullable: bool, deriv: S ~> Lang<S>)
+codatatype Lang<!S> = L(nullable: bool, deriv: S ~> Lang<S>)
 
 function method Nothing(): Lang
 {

@@ -3,10 +3,10 @@
 
 // ----- arrows with no read effects -------------------------------------
 
-type NoWitness_EffectlessArrow<A,B> = f: A ~> B  // error: cannot find witness
+type NoWitness_EffectlessArrow<!A,B> = f: A ~> B  // error: cannot find witness
   | forall a :: f.reads(a) == {}
 
-type NonGhost_EffectlessArrow<A,B> = f: A ~> B
+type NonGhost_EffectlessArrow<!A,B> = f: A ~> B
   | forall a :: f.reads(a) == {}
   witness EffectlessArrowWitness<A,B>
 
@@ -14,7 +14,7 @@ type NonGhost_EffectlessArrow<A,B> = f: A ~> B
 // be implemented, because there is no way to produce a B (for any B) in compiled code.
 function method EffectlessArrowWitness<A,B>(a: A): B
 
-type EffectlessArrow<A,B> = f: A ~> B
+type EffectlessArrow<!A,B> = f: A ~> B
   | forall a :: f.reads(a) == {}
   ghost witness GhostEffectlessArrowWitness<A,B>
 
@@ -74,7 +74,7 @@ predicate Total<A,B>(f: A ~> B)
   forall a :: f.reads(a) == {} && f.requires(a)
 }
 
-type TotalArrow<A,B> = f: EffectlessArrow<A,B>
+type TotalArrow<!A,B> = f: EffectlessArrow<A,B>
   | Total(f)
   ghost witness TotalWitness<A,B>
 
@@ -95,7 +95,7 @@ function TotalClientTwice(f: TotalArrow<int,int>, x: int): int
 
 // ----- inlined totality constraint -------------------------------------
 
-type DirectTotalArrow<A,B> = f: EffectlessArrow<A,B>
+type DirectTotalArrow<!A,B> = f: EffectlessArrow<A,B>
   | forall a :: f.requires(a)
   ghost witness TotalWitness<A,B>
 
@@ -123,7 +123,7 @@ predicate TruePre<A,B>(f: A ~> B)
   forall a :: f.requires(a)
 }
 
-type TwoPred_TotalArrow<A,B> = f: A ~> B
+type TwoPred_TotalArrow<!A,B> = f: A ~> B
   | EmptyReads(f) && TruePre(f)
   ghost witness TotalWitness<A,B>
 
@@ -135,7 +135,7 @@ function PartialFunction<A,B>(a: A): B
   var b: B :| true; b
 }
 
-type Bad_TwoPred_TotalArrow<A,B> = f: A ~> B
+type Bad_TwoPred_TotalArrow<!A,B> = f: A ~> B
   | EmptyReads(f) && TruePre(f)
   // cool: the type instantiation of "PartialFunction" below is inferred
   ghost witness PartialFunction  // error: the second conjunct of the constraint is not satisfied

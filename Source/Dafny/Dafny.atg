@@ -1402,25 +1402,20 @@ GenericParameters<.List<TypeParameter/*!*/>/*!*/ typeArgs, bool allowVariance.>
 = (. Contract.Requires(cce.NonNullElements(typeArgs));
      IToken/*!*/ id;
      TypeParameter.TypeParameterCharacteristics characteristics;
-     TypeParameter.TPVarianceSyntax variance = TypeParameter.TPVarianceSyntax.Unspecified;  // assignment is to please compiler
+     TypeParameter.TPVarianceSyntax variance = TypeParameter.TPVarianceSyntax.NonVariant_Strict;  // assignment is to please compiler
      characteristics = new TypeParameter.TypeParameterCharacteristics(false);
   .)
   // There's a subtle issue here.  The next things in the input could be a '<' followed by an '=' (and then an identifier).
   // This is legal (provided "allowVariance" is "true").  However, unless there's whitespace between the '<' and '=', the
   // scanner will read these two characters as a "<=" token.
-  ( "<"
-    [ Variance<out variance>  (. if (!allowVariance) { SemErr(t, "type-parameter variance is not allowed to be specified in this context"); } .)
-    ]
-  | "<="                      (. variance = TypeParameter.TPVarianceSyntax.Inv;
-                                 if (!allowVariance) { t.pos++; t.col++; t.val = "=";
-                                                       SemErr(t, "type-parameter variance is not allowed to be specified in this context"); }
-                              .)
-  )
+  "<"
+  [ Variance<out variance>  (. if (!allowVariance) { SemErr(t, "type-parameter variance is not allowed to be specified in this context"); } .)
+  ]
   NoUSIdent<out id>
   { TypeParameterCharacteristics<ref characteristics> }
   (. typeArgs.Add(new TypeParameter(id, id.val, variance, characteristics)); .)
   { ","
-    (. variance = TypeParameter.TPVarianceSyntax.Unspecified;
+    (. variance = TypeParameter.TPVarianceSyntax.NonVariant_Strict;
        characteristics = new TypeParameter.TypeParameterCharacteristics(false);
     .)
     [ Variance<out variance>  (. if (!allowVariance) { SemErr(t, "type-parameter variance is not allowed to be specified in this context"); } .)
@@ -1432,11 +1427,12 @@ GenericParameters<.List<TypeParameter/*!*/>/*!*/ typeArgs, bool allowVariance.>
   ">"
   .
 Variance<out TypeParameter.TPVarianceSyntax variance>
-= (. variance = TypeParameter.TPVarianceSyntax.Unspecified;  // never used; here just to please the C# compiler
+= (. variance = TypeParameter.TPVarianceSyntax.NonVariant_Strict;  // never used; here just to please the C# compiler
   .)
-  ( "+"  (. variance = TypeParameter.TPVarianceSyntax.Co; .)
-  | "="  (. variance = TypeParameter.TPVarianceSyntax.Inv; .)
-  | "-"  (. variance = TypeParameter.TPVarianceSyntax.Contra; .)
+  ( "*"  (. variance = TypeParameter.TPVarianceSyntax.Covariant_Permissive; .)
+  | "+"  (. variance = TypeParameter.TPVarianceSyntax.Covariant_Strict; .)
+  | "!"  (. variance = TypeParameter.TPVarianceSyntax.NonVariant_Permissive; .)
+  | "-"  (. variance = TypeParameter.TPVarianceSyntax.Contravariance; .)
   )
   .
 TypeParameterCharacteristics<ref TypeParameter.TypeParameterCharacteristics characteristics>

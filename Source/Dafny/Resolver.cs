@@ -2764,20 +2764,20 @@ namespace Microsoft.Dafny
         foreach (TopLevelDecl d in declarations) {
           if (d is IteratorDecl || d is ClassDecl) {
             foreach (var tp in d.TypeArgs) {
-              if (tp.Variance != TypeParameter.TPVariance.Inv) {
-                reporter.Error(MessageSource.Resolver, tp.tok, "a {0} only supports invariant type parameters", d.WhatKind);
+              if (tp.Variance != TypeParameter.TPVariance.Non) {
+                reporter.Error(MessageSource.Resolver, tp.tok, "{0} declarations only support non-variant type parameters", d.WhatKind);
               }
             }
           } else if (d is SubsetTypeDecl) {
             var dd = (SubsetTypeDecl)d;
-            CheckVariance(dd.Rhs);
+            CheckVariance(dd.Rhs, dd, TypeParameter.TPVariance.Co, false);
           } else if (d is NewtypeDecl) {
             var dd = (NewtypeDecl)d;
-            CheckVariance(dd.BaseType);
+            CheckVariance(dd.BaseType, dd, TypeParameter.TPVariance.Co, false);
           } else if (d is DatatypeDecl) {
             var dd = (DatatypeDecl)d;
             foreach (var ctor in dd.Ctors) {
-              ctor.Formals.Iter(formal => CheckVariance(formal.Type));
+              ctor.Formals.Iter(formal => CheckVariance(formal.Type, dd, TypeParameter.TPVariance.Co, false));
             }
           }
         }
@@ -3018,7 +3018,7 @@ namespace Microsoft.Dafny
             AddAssignableConstraint(tok, B[i], A[i], em);
             moreXConstraints = true;
           } else {
-            var em = new TypeConstraint.ErrorMsgWithBase(errMsg, "inv" + msgFormat, A[i], B[i]);
+            var em = new TypeConstraint.ErrorMsgWithBase(errMsg, "non" + msgFormat, A[i], B[i]);
             ConstrainSubtypeRelation_Equal(A[i], B[i], em);
           }
         }
@@ -3179,7 +3179,7 @@ namespace Microsoft.Dafny
           Contract.Assert(udt.TypeArgs.Count == cl.TypeArgs.Count);
           for (int i = 0; i < udt.TypeArgs.Count; i++) {
             var variance = cl.TypeArgs[i].Variance;
-            if (variance != TypeParameter.TPVariance.Inv) {
+            if (variance != TypeParameter.TPVariance.Non) {
               bool r, l, hr, hl;
               CheckEnds(udt.TypeArgs[i], out r, out l, out hr, out hl);
               if (variance == TypeParameter.TPVariance.Co) {
@@ -3919,7 +3919,7 @@ namespace Microsoft.Dafny
                 for (int i = 0; i < a.TypeArgs.Count; i++) {
                   resolver.AllXConstraints.Add(new XConstraint_EquatableArg(tok,
                     a.TypeArgs[i], b.TypeArgs[i],
-                    a is CollectionType || (cl != null && cl.TypeArgs[i].Variance != TypeParameter.TPVariance.Inv),
+                    a is CollectionType || (cl != null && cl.TypeArgs[i].Variance != TypeParameter.TPVariance.Non),
                     a.IsRefType,
                     errorMsg));
                   moreXConstraints = true;
@@ -3979,7 +3979,7 @@ namespace Microsoft.Dafny
                 for (int i = 0; i < a.TypeArgs.Count; i++) {
                   resolver.AllXConstraints.Add(new XConstraint_EquatableArg(tok,
                     a.TypeArgs[i], b.TypeArgs[i],
-                    a is CollectionType || (cl != null && cl.TypeArgs[i].Variance != TypeParameter.TPVariance.Inv),
+                    a is CollectionType || (cl != null && cl.TypeArgs[i].Variance != TypeParameter.TPVariance.Non),
                     false,
                     errorMsg));
                   moreXConstraints = true;
@@ -8029,11 +8029,7 @@ namespace Microsoft.Dafny
       Contract.Requires(ctor.EnclosingDatatype != null);
       Contract.Requires(dtTypeArguments != null);
       foreach (Formal p in ctor.Formals) {
-        // The following comment seems irrelevant, but a DatatypeCtor has nothing to do with the heap. So, then, why *is* it okay to pass a NoContext here? --KRML
-        // In the following, we pass in a NoContext, because any cycle formed by newtype constraints would have to
-        // involve a non-null object in order to get to the field and its type, and there is no way in a newtype constraint
-        // to obtain a non-null object.
-        ResolveType(p.tok, p.Type, new NoContext(ctor.EnclosingDatatype.Module), ResolveTypeOptionEnum.AllowPrefix, dtTypeArguments);
+        ResolveType(p.tok, p.Type, ctor.EnclosingDatatype, ResolveTypeOptionEnum.AllowPrefix, dtTypeArguments);
       }
     }
 
@@ -8508,8 +8504,15 @@ namespace Microsoft.Dafny
                 }
               }
               t.ResolvedClass = dd;
+            } else if (d is IndDatatypeDecl) {
+              var dd = (IndDatatypeDecl)d;
+              var caller = context as ICallable;
+              if (caller != null) {
+                caller.EnclosingModule.CallGraph.AddEdge(caller, dd);
+              }
+              t.ResolvedClass = d;
             } else {
-              // d is a class or datatype, and it may have type parameters
+              // d is a coinductive datatype or a class, and it may have type parameters
               t.ResolvedClass = d;
             }
             if (option.Opt == ResolveTypeOptionEnum.DontInfer) {
@@ -11126,40 +11129,58 @@ namespace Microsoft.Dafny
     /// "context == Co" says that "type" is allowed to vary in the positive direction.
     /// "context == Contra" says that "type" is allowed to vary in the negative direction.
     /// "context == Inv" says that "type" must not vary at all.
+    /// * "leftOfArrow" says that the context is to the left of some arrow
     /// </summary>
-    public void CheckVariance(Type type, TypeParameter.TPVariance context = TypeParameter.TPVariance.Co) {
+    public void CheckVariance(Type type, TopLevelDecl enclosingTypeDefinition, TypeParameter.TPVariance context, bool leftOfArrow) {
       Contract.Requires(type != null);
+      Contract.Requires(enclosingTypeDefinition != null);
 
-      type = type.NormalizeExpandKeepConstraints();  // we keep constraints, since subset types have their own type-parameter variance specifications
+      type = type.Normalize();  // we keep constraints, since subset types have their own type-parameter variance specifications; we also keep synonys, since that gives rise to better error messages
       if (type is BasicType) {
         // fine
       } else if (type is MapType) {
         var t = (MapType)type;
-        CheckVariance(t.Domain, context);
-        CheckVariance(t.Range, context);
+        CheckVariance(t.Domain, enclosingTypeDefinition, context, leftOfArrow);
+        CheckVariance(t.Range, enclosingTypeDefinition, context, leftOfArrow);
       } else if (type is CollectionType) {
         var t = (CollectionType)type;
-        CheckVariance(t.Arg, context);
+        CheckVariance(t.Arg, enclosingTypeDefinition, context, leftOfArrow);
       } else if (type is UserDefinedType) {
         var t = (UserDefinedType)type;
         if (t.ResolvedParam != null) {
-          if (t.ResolvedParam.Variance == TypeParameter.TPVariance.Inv) {
-            // fine, since nothing changes
-          } else if (t.ResolvedParam.Variance != context) {
+          if (t.ResolvedParam.Variance != TypeParameter.TPVariance.Non && t.ResolvedParam.Variance != context) {
             reporter.Error(MessageSource.Resolver, t.tok, "formal type parameter '{0}' is not used according to its variance specification", t.ResolvedParam.Name);
+          } else if (t.ResolvedParam.StrictVariance && leftOfArrow) {
+            string hint;
+            if (t.ResolvedParam.VarianceSyntax == TypeParameter.TPVarianceSyntax.NonVariant_Strict) {
+              hint = string.Format(" (perhaps try declaring '{0}' as '!{0}')", t.ResolvedParam.Name);
+            } else {
+              Contract.Assert(t.ResolvedParam.VarianceSyntax == TypeParameter.TPVarianceSyntax.Covariant_Strict);
+              hint = string.Format(" (perhaps try changing the declaration from '+{0}' to '*{0}')", t.ResolvedParam.Name);
+            }
+            reporter.Error(MessageSource.Resolver, t.tok, "formal type parameter '{0}' is not used according to its variance specification (it is used left of an arrow){1}", t.ResolvedParam.Name, hint);
           }
         } else {
           var resolvedClass = t.ResolvedClass;
           Contract.Assert(resolvedClass != null);  // follows from that the given type was successfully resolved
           Contract.Assert(resolvedClass.TypeArgs.Count == t.TypeArgs.Count);
+          if (leftOfArrow) {
+            // we have to be careful about uses of the type being defined
+            if (resolvedClass.Module == enclosingTypeDefinition.Module && resolvedClass is ICallable && enclosingTypeDefinition is ICallable) {
+              var callgraph = resolvedClass.Module.CallGraph;
+              if (callgraph.GetSCCRepresentative((ICallable)resolvedClass) == callgraph.GetSCCRepresentative((ICallable)enclosingTypeDefinition)) {
+                reporter.Error(MessageSource.Resolver, t.tok, "using the type being defined ('{0}') here violates strict positivity, that is, it would cause a logical inconsistency by defining a type whose cardinality exceeds itself (like the Continuum Transfunctioner, you might say its power would then be exceeded only by its mystery)", resolvedClass.Name);
+              }
+            }
+          }
           for (int i = 0; i < t.TypeArgs.Count; i++) {
             Type p = t.TypeArgs[i];
-            var pv = resolvedClass.TypeArgs[i].Variance;
-            if (context == TypeParameter.TPVariance.Inv || pv == TypeParameter.TPVariance.Inv) {
-              CheckVariance(p, TypeParameter.TPVariance.Inv);
-            } else {
-              CheckVariance(p, context == TypeParameter.TPVariance.Co ? pv : TypeParameter.Negate(pv));
-            }
+            var tpFormal = resolvedClass.TypeArgs[i];
+            CheckVariance(p, enclosingTypeDefinition,
+              context == TypeParameter.TPVariance.Non ? context :
+              context == TypeParameter.TPVariance.Co ? tpFormal.Variance :
+              TypeParameter.Negate(tpFormal.Variance),
+              leftOfArrow || !tpFormal.StrictVariance);
           }
         }
       } else {

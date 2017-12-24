@@ -129,56 +129,56 @@ module TpC refines OrigC {
 }
 
 module OrigD {
-  type T<+A,=B,-C,D,E,F>
+  type T<+A,!B,-C,D,E,F>
 }
 module TpD refines OrigD {
-  type T<=A,-B,+C,=D,-E,+F>  // error (x5): change in variance
+  type T<!A,-B,+C,!D,-E,+F>  // error (x5): change in variance
 }
 
 module OrigE {
-  type T<+A,=B,-C,D,E,F,W,X(==),Y,Z(0)>
+  type T<+A,!B,-C,D,E,F,W,X(==),Y,Z(0)>
   }
 module TpE refines OrigE {
-  class T<=A,-B,+C,=D,-E,+F,W(==),X,Y(0),Z>  // error (x9): various changes
+  class T<!A,-B,+C,!D,-E,+F,W(==),X,Y(0),Z>  // error (x9): various changes
   {
   }
 }
 
 module OrigF {
-  class T<+A,=B,-C,D,E,F,W,X(==),Y,Z(0)>
+  class T<+A,!B,-C,D,E,F,W,X(==),Y,Z(0)>
   {
   }
 }
 module TpF refines OrigF {
-  class T<=A,-B,+C,=D,-E,+F,W(==),X,Y(0),Z>  // error (x9): various changes
+  class T<!A,-B,+C,!D,-E,+F,W(==),X,Y(0),Z>  // error (x9): various changes
   {
   }
 }
 
 module OrigG {
-  type T<+A,=B,-C,D,E,F,W,X(==),Y,Z(0)>
+  type T<+A,!B,-C,D,E,F,W,X(==),Y,Z(0)>
 }
 module TpG refines OrigG {
-  datatype T<=A,-B,+C,=D,-E,+F,W(==),X,Y(0),Z> = Yup  // error (x9): various changes
+  datatype T<!A,-B,+C,!D,-E,+F,W(==),X,Y(0),Z> = Yup  // error (x9): various changes
 }
 
 module OrigH {
-  type T<+A,=B,-C,D,E,F,W,X(==),Y,Z(0)>
+  type T<+A,!B,-C,D,E,F,W,X(==),Y,Z(0)>
 }
 module TpH refines OrigH {
-  type T<=A,-B,+C,=D,-E,+F,W(==),X,Y(0),Z> = int  // error (x9): various changes
+  type T<!A,-B,+C,!D,-E,+F,W(==),X,Y(0),Z> = int  // error (x9): various changes
 }
 
 module OrigI {
-  type T<+A,=B,-C,D,E,F,W,X(==),Y,Z(0)>
+  type T<+A,!B,-C,D,E,F,W,X(==),Y,Z(0)>
 }
 module TpI refines OrigI {
-  type T<=A,-B,+C,=D,-E,+F,W(==),X,Y(0),Z> = u | 0 <= u  // error (x9): various changes
+  type T<!A,-B,+C,!D,-E,+F,W(==),X,Y(0),Z> = u | 0 <= u  // error (x9): various changes
 }
 
 module OrigJ {
   iterator S<A>()
-  iterator T<+A,=B,-C,D,E,F,W,X(==),Y,Z(0)>()
+  iterator T<+A,!B,-C,D,E,F,W,X(==),Y,Z(0)>()
   {
   }
 }
@@ -186,7 +186,7 @@ module TpJ refines OrigJ {
   iterator S<A,B>()
   // Note, type parameters of iterators are implicitly (0), so
   // the following line generates 7, not 9, errors
-  iterator T<=A,-B,+C,=D,-E,+F,W(==),X,Y(0),Z>()  // error (x7): various changes
+  iterator T<!A,-B,+C,!D,-E,+F,W(==),X,Y(0),Z>()  // error (x7): various changes
   {
   }
 }

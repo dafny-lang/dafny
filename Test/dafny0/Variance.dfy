@@ -1,35 +1,109 @@
 // RUN: %dafny /print:"%t.print" /dprint:- /env:0 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
-datatype MyData<+A, =B, -C, D> =
-  | MakeA(A)
-  | MakeB(B)
-  | MakeC(C)  // error: C is used in positive position
-  | makeD(D)
+module VarianceChecks {
+  datatype MyData<+A, *B, !C, D, -E> =
+    | MakeA(A)
+    | MakeB(B)
+    | MakeC(C)
+    | MakeD(D)
+    | MakeE(E)  // error: E is used in positive position
 
-type Syn<X, -Y, Z> = MyData<X, Y, Z, Z>
-type Cyn<M, -N> = MyData<int -> M, M, N -> int, N>
+  type Syn<X, -Y, Z> = MyData<X, Y, Z, Z, Z>  // BUG
+  type Cyn<M, -N> = MyData<int -> M, M, N -> int, N, N -> int>  // BUG
 
-class MyClass<=Inv> {
+  class MyClass<!Inv> {
+  }
+
+  datatype CheckIt<+A, *B, !C, D, -E> =
+    | Cons(A, MyData<int,int,int,int,int>)
+    | Fn(int ~> A)
+    | Nf(A ~> int)  // error: A is used in negative position
+    | Double((A ~> int) ~> int)  // error: A is not in a strict positive position
+    | ToSet(real -> set<A>)
+    | FromSet(set<A> ~> real)  // error: A is used in negative position
+    | Classy(MyClass<A>)  // error: + passed in as =
+    | MakeA(MyData<A,int,int,int,int>)
+    | MakeB(MyData<int,A,int,int,int>)  // error: + passed in as *
+    | MakeC(MyData<int,int,A,int,int>)  // error: + passed in as !
+    | MakeD(MyData<int,int,int,A,int>)  // error: + passed in as (default)
+    | MakeE(MyData<int,int,int,int,A>)  // error: + passed in as -
+    | CreateA(MyData<B,int,int,int,int>)
+    | CreateB(MyData<int,B,int,int,int>)
+    | CreateC(MyData<int,int,B,int,int>)  // error: * passed in as !
+    | CreateD(MyData<int,int,int,B,int>)  // error: * passed in as (default)
+    | CreateE(MyData<int,int,int,int,B>)  // error: * passed in as -
+    | DoA(MyData<C,int,int,int,int>)
+    | DoB(MyData<int,C,int,int,int>)
+    | DoC(MyData<int,int,C,int,int>)
+    | DoD(MyData<int,int,int,C,int>)
+    | DoE(MyData<int,int,int,int,C>)
+    | FabricateA(MyData<D,int,int,int,int>)
+    | FabricateB(MyData<int,D,int,int,int>)  // error: strict passed to context without strict restrictions
+    | FabricateC(MyData<int,int,D,int,int>)  // error: strict passed to context without strict restrictions
+    | FabricateD(MyData<int,int,int,D,int>)
+    | FabricateE(MyData<int,int,int,int,D>)  // error: strict passed to negative context
+    | BorrowA(MyData<E,int,int,int,int>)  // error: - passed in as +
+    | BorrowB(MyData<int,E,int,int,int>)  // error: - passed in as *
+    | BorrowC(MyData<int,int,E,int,int>)  // error: - passed in as !
+    | BorrowD(MyData<int,int,int,E,int>)  // error: - passed in as (default)
+    | BorrowE(MyData<int,int,int,int,E>)
+
+  class VaryingClass<A,B,C,+HotDog,D,-Whale>  // error (x2): all must be non-variant
+  {
+    var f: HotDog -> Whale  // not a problem here
+    method M() {
+      var g: HotDog -> Whale;  // not a problem here
+    }
+  }
+
+  iterator VaryingIter<A,B,C,+HotDog,D,-Whale>()  // error (x2): all must be non-variant
+  {
+  }
+  
+  /**** COMING SOON
+  datatype Dt = Ctor(Dt -> Dt)  // error: this would give rise to a logical inconsistency
+
+  datatype U0<!A> = U0(A -> bool)
+  type U1<A> = U0<A>
+  datatype U2 = MakeU2(U1<U2>)  // error: this would give rise to a logical inconsistency
+
+  type V0 = x: V2 | true
+  type V1 = V0
+  datatype V2 = Ctor(V1 --> bool)  // error: this would give rise to a logical inconsistency (BUG: missing error)
+
+  type W0 = W1
+  datatype W1 = Ctor(W0 --> bool)  // error: this would give rise to a logical inconsistency
+
+  datatype Z0 = Ctor(Z2 ~> bool)  // error: this would give rise to a logical inconsistency
+  type Z1 = Z0
+  datatype Z2 = Ctor(Z1)
+
+  datatype R0 = Ctor(R2 ~> bool)  // error: this would give rise to a logical inconsistency
+  type R1<X> = X
+  datatype R2 = Ctor(R1<R0>)
+  ****/
 }
 
-datatype CheckIt<+A> =
-  | Cons(A, MyData<int,int,int,int>)
-  | Fn(int ~> A)
-  | Nf(A ~> int)  // error: A is used in negative position
-  | Double((A ~> int) ~> int)
-  | ToSet(real -> set<A>)
-  | FromSet(set<A> ~> real)  // error: A is used in negative position
-  | Classy(MyClass<A>)  // error: + passed in as =
-  | MakeA(MyData<A,int,int,int>)
-  | MakeB(MyData<int,A,int,int>)  // error: + passed in as =
-  | MakeC(MyData<int,int,A,int>)  // error: + passed in as -
-  | MakeD(MyData<int,int,int,A>)  // error: + passed in as =
+/******* COMING SOON
+module DependencyChecks {
+  type Ti = x: Tj | true  // error: bad dependency cycle
+  type Tj = y: int | FTk(y)  // error (same as previous line)
+  predicate FTk(y: int) {
+    var i: Ti := 5;
+    i < 32
+  }
 
-class VaryingClass<A,B,C,+HotDog,D,-Whale>  // error (x2): all must be =
-{
-}
+  //type MeAndMyself = x: int | var m: MeAndMySelf := 5; m < 10
+  //type MeAndMyself'' = MeAndMyself'
+  //type MeAndMyself' = x: int | var m: MeAndMySelf'' := 5; m < 10
 
-iterator VaryingIter<A,B,C,+HotDog,D,-Whale>()  // error (x2): all must be =
-{
+  type Ti' = x: Tj' | true  // error: bad dependency cycle
+  type Tj' = y: int | FTk'(y)  // error (same as previous line)
+  predicate FTk'(y: int) {
+    var d: DtTj :| true;
+    d.x < 32
+  }
+  datatype DtTj = DtTj(x: Ti')
 }
+********/

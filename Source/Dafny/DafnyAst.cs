@@ -206,8 +206,8 @@ namespace Microsoft.Dafny {
       if (!ArrowTypeDecls.ContainsKey(arity)) {
         IToken tok = Token.NoToken;
         var tps = Util.Map(Enumerable.Range(0, arity + 1), x => x < arity ?
-          new TypeParameter(tok, "T" + x, TypeParameter.TPVarianceSyntax.Contra) :
-          new TypeParameter(tok, "R", TypeParameter.TPVarianceSyntax.Co));
+          new TypeParameter(tok, "T" + x, TypeParameter.TPVarianceSyntax.Contravariance) :
+          new TypeParameter(tok, "R", TypeParameter.TPVarianceSyntax.Covariant_Strict));
         var tys = tps.ConvertAll(tp => (Type)(new UserDefinedType(tp)));
         var args = Util.Map(Enumerable.Range(0, arity), i => new Formal(tok, "x" + i, tys[i], true, false));
         var argExprs = args.ConvertAll(a =>
@@ -234,8 +234,8 @@ namespace Microsoft.Dafny {
 
         // declaration of read-effect-free arrow-type, aka heap-independent arrow-type, aka partial-function arrow-type
         tps = Util.Map(Enumerable.Range(0, arity + 1), x => x < arity ?
-          new TypeParameter(tok, "T" + x, TypeParameter.TPVarianceSyntax.Contra) :
-          new TypeParameter(tok, "R", TypeParameter.TPVarianceSyntax.Co));
+          new TypeParameter(tok, "T" + x, TypeParameter.TPVarianceSyntax.Contravariance) :
+          new TypeParameter(tok, "R", TypeParameter.TPVarianceSyntax.Covariant_Strict));
         tys = tps.ConvertAll(tp => (Type)(new UserDefinedType(tp)));
         var id = new BoundVar(tok, "f", new ArrowType(tok, arrowDecl, tys));
         var partialArrow = new SubsetTypeDecl(tok, ArrowType.PartialArrowTypeName(arity),
@@ -247,8 +247,8 @@ namespace Microsoft.Dafny {
         // declaration of total arrow-type 
         
         tps = Util.Map(Enumerable.Range(0, arity + 1), x => x < arity ?
-          new TypeParameter(tok, "T" + x, TypeParameter.TPVarianceSyntax.Contra) :
-          new TypeParameter(tok, "R", TypeParameter.TPVarianceSyntax.Co));
+          new TypeParameter(tok, "T" + x, TypeParameter.TPVarianceSyntax.Contravariance) :
+          new TypeParameter(tok, "R", TypeParameter.TPVarianceSyntax.Covariant_Strict));
         tys = tps.ConvertAll(tp => (Type)(new UserDefinedType(tp)));
         id = new BoundVar(tok, "f", new UserDefinedType(tok, partialArrow.Name, partialArrow, tys));
         var totalArrow = new SubsetTypeDecl(tok, ArrowType.TotalArrowTypeName(arity),
@@ -1179,7 +1179,7 @@ namespace Microsoft.Dafny {
           case TypeParameter.TPVariance.Contra:
             allGood = IsSupertype(sub.TypeArgs[i], super.TypeArgs[i]);
             break;
-          case TypeParameter.TPVariance.Inv:
+          case TypeParameter.TPVariance.Non:
           default:  // "default" shouldn't ever happen
             allGood = Equal_Improved(super.TypeArgs[i], sub.TypeArgs[i]);
             break;
@@ -1515,7 +1515,7 @@ namespace Microsoft.Dafny {
           r.Add(b[i]);
         } else if (b[i].Normalize() is TypeProxy) {
           r.Add(a[i]);
-        } else if (directions[i] == TypeParameter.TPVariance.Inv) {
+        } else if (directions[i] == TypeParameter.TPVariance.Non) {
           if (a[i].Equals(b[i])) {
             r.Add(a[i]);
           } else {
@@ -2088,7 +2088,7 @@ namespace Microsoft.Dafny {
     public TypeParameter TypeArg;
     public Type ResolvedType;
     public SelfType() : base() {
-      TypeArg = new TypeParameter(Token.NoToken, "selfType", TypeParameter.TPVarianceSyntax.Unspecified);
+      TypeArg = new TypeParameter(Token.NoToken, "selfType", TypeParameter.TPVarianceSyntax.NonVariant_Strict);
     }
 
     [Pure]
@@ -3131,7 +3131,7 @@ namespace Microsoft.Dafny {
   public class OpaqueType_AsParameter : TypeParameter {
     public readonly List<TypeParameter> TypeArgs;
     public OpaqueType_AsParameter(IToken tok, string name, TypeParameterCharacteristics characteristics, List<TypeParameter> typeArgs)
-      : base(tok, name, TypeParameter.TPVarianceSyntax.Unspecified, characteristics) {
+      : base(tok, name, TypeParameter.TPVarianceSyntax.NonVariant_Strict, characteristics) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
       Contract.Requires(typeArgs != null);
@@ -3159,8 +3159,15 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public enum TPVarianceSyntax { Unspecified, Co, Inv, Contra }
-    public enum TPVariance { Co, Inv, Contra }
+    /// <summary>
+    /// NonVariant_Strict     (default) - non-variant, no uses left of an arrow
+    /// NonVariant_Permissive    !      - non-variant
+    /// Covariant_Strict         +      - co-variant, no uses left of an arrow
+    /// Covariant_Permissive     *      - co-variant
+    /// Contravarianct           -       - contra-variant
+    /// </summary>
+    public enum TPVarianceSyntax { NonVariant_Strict, NonVariant_Permissive, Covariant_Strict, Covariant_Permissive, Contravariance }
+    public enum TPVariance { Co, Non, Contra }
     public static TPVariance Negate(TPVariance v) {
       switch (v) {
         case TPVariance.Co:
@@ -3175,13 +3182,30 @@ namespace Microsoft.Dafny {
     public TPVariance Variance {
       get {
         switch (VarianceSyntax) {
-          case TPVarianceSyntax.Co:
+          case TPVarianceSyntax.Covariant_Strict:
+          case TPVarianceSyntax.Covariant_Permissive:
             return TPVariance.Co;
-          case TPVarianceSyntax.Unspecified:
-          case TPVarianceSyntax.Inv:
-            return TPVariance.Inv;
-          case TPVarianceSyntax.Contra:
+          case TPVarianceSyntax.NonVariant_Strict:
+          case TPVarianceSyntax.NonVariant_Permissive:
+            return TPVariance.Non;
+          case TPVarianceSyntax.Contravariance:
             return TPVariance.Contra;
+          default:
+            Contract.Assert(false);  // unexpected VarianceSyntax
+            throw new cce.UnreachableException();
+        }
+      }
+    }
+    public bool StrictVariance {
+      get {
+        switch (VarianceSyntax) {
+          case TPVarianceSyntax.Covariant_Strict:
+          case TPVarianceSyntax.NonVariant_Strict:
+            return true;
+          case TPVarianceSyntax.Covariant_Permissive:
+          case TPVarianceSyntax.NonVariant_Permissive:
+          case TPVarianceSyntax.Contravariance:
+            return false;
           default:
             Contract.Assert(false);  // unexpected VarianceSyntax
             throw new cce.UnreachableException();
@@ -3233,7 +3257,7 @@ namespace Microsoft.Dafny {
     }
 
     public TypeParameter(IToken tok, string name, int positionalIndex, ParentType parent)
-       : this(tok, name, TPVarianceSyntax.Unspecified)
+       : this(tok, name, TPVarianceSyntax.NonVariant_Strict)
     {
       PositionalIndex = positionalIndex;
       Parent = parent;
@@ -3926,7 +3950,7 @@ namespace Microsoft.Dafny {
     public readonly int Dims;
     public ArrayClassDecl(int dims, ModuleDefinition module, Attributes attrs)
     : base(Token.NoToken, BuiltIns.ArrayClassName(dims), module,
-      new List<TypeParameter>(new TypeParameter[]{ new TypeParameter(Token.NoToken, "arg", TypeParameter.TPVarianceSyntax.Unspecified) }),
+      new List<TypeParameter>(new TypeParameter[]{ new TypeParameter(Token.NoToken, "arg", TypeParameter.TPVarianceSyntax.NonVariant_Strict) }),
       new List<MemberDecl>(), attrs, null)
     {
       Contract.Requires(1 <= dims);
@@ -3958,7 +3982,7 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public abstract class DatatypeDecl : TopLevelDecl, RevealableTypeDecl
+  public abstract class DatatypeDecl : TopLevelDecl, RevealableTypeDecl, ICallable
   {
     public override bool CanBeRevealed() { return true; }
     public readonly List<DatatypeCtor> Ctors;
@@ -3987,6 +4011,26 @@ namespace Microsoft.Dafny {
     }
 
     TopLevelDecl RevealableTypeDecl.AsTopLevelDecl { get { return this; } }
+
+    bool ICodeContext.IsGhost { get { return true; } }
+    List<TypeParameter> ICodeContext.TypeArgs { get { return TypeArgs; } }
+    List<Formal> ICodeContext.Ins { get { return new List<Formal>(); } }
+    ModuleDefinition ICodeContext.EnclosingModule { get { return Module; } }
+    bool ICodeContext.MustReverify { get { return false; } }
+    bool ICodeContext.AllowsNontermination { get { return false; } }
+    IToken ICallable.Tok { get { return tok; } }
+    string ICallable.NameRelativeToModule { get { return Name; } }
+    Specification<Expression> ICallable.Decreases {
+      get {
+        // The resolver checks that a NewtypeDecl sits in its own SSC in the call graph.  Therefore,
+        // the question of what its Decreases clause is should never arise.
+        throw new cce.UnreachableException();
+      }
+    }
+    bool ICallable.InferredDecreases {
+      get { throw new cce.UnreachableException(); }  // see comment above about ICallable.Decreases
+      set { throw new cce.UnreachableException(); }  // see comment above about ICallable.Decreases
+    }
   }
 
   public class IndDatatypeDecl : DatatypeDecl, RevealableTypeDecl
@@ -4041,7 +4085,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(0 <= dims);
       var ts = new List<TypeParameter>();
       for (int i = 0; i < dims; i++) {
-        var tp = new TypeParameter(Token.NoToken, "T" + i, TypeParameter.TPVarianceSyntax.Co);
+        var tp = new TypeParameter(Token.NoToken, "T" + i, TypeParameter.TPVarianceSyntax.Covariant_Strict);
         tp.NecessaryForEqualitySupportOfSurroundingInductiveDatatype = true;
         ts.Add(tp);
       }
@@ -4126,7 +4170,7 @@ namespace Microsoft.Dafny {
     bool AllowsNontermination { get; }
   }
   /// <summary>
-  /// An ICallable is a Function, Method, IteratorDecl, or RedirectingTypeDecl.
+  /// An ICallable is a Function, Method, IteratorDecl, or (less fitting for the name ICallable) RedirectingTypeDecl or DatatypeDecl.
   /// </summary>
   public interface ICallable : ICodeContext
   {

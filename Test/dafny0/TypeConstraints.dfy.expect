@@ -469,10 +469,14 @@ module TypeParameters {
 
 module Datatypes {
   /* CALL GRAPH for module Datatypes:
-   * SCC at height 1:
+   * SCC at height 3:
    *   _default.P
-   * SCC at height 0:
+   * SCC at height 2:
+   *   Record
+   * SCC at height 1:
    *   _default.M
+   * SCC at height 0:
+   *   Color
    */
   datatype Color = Red | Green | Blue
 
@@ -671,12 +675,14 @@ module OtherTraitsAndClasses {
 
 module LetPatterns {
   /* CALL GRAPH for module LetPatterns:
-   * SCC at height 2:
-   *   _default.M
-   * SCC at height 1:
+   * SCC at height 3:
    *   _default.Q
-   * SCC at height 0:
+   * SCC at height 2:
    *   _default.P
+   * SCC at height 1:
+   *   _default.M
+   * SCC at height 0:
+   *   MyDt
    */
   datatype MyDt = AAA(x: int) | BBB(y: int)
 

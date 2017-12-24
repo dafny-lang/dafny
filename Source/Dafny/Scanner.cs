@@ -910,7 +910,7 @@ public class Scanner {
 			case 75:
 				{t.kind = 97; break;}
 			case 76:
-				{t.kind = 102; break;}
+				{t.kind = 101; break;}
 			case 77:
 				if (ch == '>') {AddCh(); goto case 78;}
 				else {goto case 0;}
@@ -926,29 +926,29 @@ public class Scanner {
 			case 82:
 				{t.kind = 122; break;}
 			case 83:
-				{t.kind = 123; break;}
-			case 84:
 				{t.kind = 124; break;}
-			case 85:
+			case 84:
 				{t.kind = 125; break;}
-			case 86:
+			case 85:
 				{t.kind = 126; break;}
-			case 87:
+			case 86:
 				{t.kind = 127; break;}
-			case 88:
+			case 87:
 				{t.kind = 128; break;}
-			case 89:
+			case 88:
 				{t.kind = 129; break;}
+			case 89:
+				{t.kind = 130; break;}
 			case 90:
-				{t.kind = 131; break;}
-			case 91:
 				{t.kind = 132; break;}
-			case 92:
+			case 91:
 				{t.kind = 133; break;}
-			case 93:
+			case 92:
 				{t.kind = 134; break;}
-			case 94:
+			case 93:
 				{t.kind = 135; break;}
+			case 94:
+				{t.kind = 136; break;}
 			case 95:
 				{t.kind = 137; break;}
 			case 96:
@@ -989,10 +989,10 @@ public class Scanner {
 				if (ch == '=') {AddCh(); goto case 83;}
 				else {t.kind = 79; break;}
 			case 107:
-				recEnd = pos; recKind = 136;
+				recEnd = pos; recKind = 102;
 				if (ch == '=') {AddCh(); goto case 45;}
 				else if (ch == 'i') {AddCh(); goto case 48;}
-				else {t.kind = 136; break;}
+				else {t.kind = 102; break;}
 			case 108:
 				recEnd = pos; recKind = 103;
 				if (ch == '-') {AddCh(); goto case 79;}
@@ -1011,13 +1011,13 @@ public class Scanner {
 				if (ch == '>') {AddCh(); goto case 88;}
 				else {t.kind = 80; break;}
 			case 112:
-				recEnd = pos; recKind = 101;
+				recEnd = pos; recKind = 123;
 				if (ch == '=') {AddCh(); goto case 113;}
-				else {t.kind = 101; break;}
+				else {t.kind = 123; break;}
 			case 113:
-				recEnd = pos; recKind = 130;
+				recEnd = pos; recKind = 131;
 				if (ch == '>') {AddCh(); goto case 86;}
-				else {t.kind = 130; break;}
+				else {t.kind = 131; break;}
 
     }
     t.val = new String(tval, 0, tlen);
