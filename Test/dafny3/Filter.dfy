@@ -53,7 +53,7 @@ lemma Lemma_InSubStream<T>(x: T, s: Stream<T>, u: Stream<T>)
   }
 }
 
-type Predicate<T> = T -> bool
+type Predicate<!T> = T -> bool
 
 copredicate AllP(s: Stream, P: Predicate)
 {
@@ -227,7 +227,7 @@ lemma FS_Pong<T>(s: Stream<T>, P: Predicate, x: T, k: nat)
 
 // ----- orderings ------
 
-type Ord<T> = T -> int
+type Ord<!T> = T -> int
 
 copredicate Increasing(s: Stream, ord: Ord)
 {

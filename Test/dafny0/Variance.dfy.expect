@@ -23,8 +23,46 @@ module VarianceChecks {
   iterator VaryingIter<A(0), B(0), C(0), +HotDog(0), D(0), -Whale(0)>()
   {
   }
+
+  datatype Dt = Ctor(Dt -> Dt)
+
+  datatype U0<!A> = U0(A -> bool)
+
+  type U1<!A> = U0<A>
+
+  datatype U2 = MakeU2(U1<U2>)
+
+  type V0 = x: V2
+    | true
+
+  type V1 = V0
+
+  datatype V2 = Ctor(V1 --> bool)
+
+  type W0 = W1
+
+  datatype W1 = Ctor(W0 --> bool)
+
+  datatype Z0 = Ctor(Z2 ~> bool)
+
+  type Z1 = Z0
+
+  datatype Z2 = Ctor(Z1)
+
+  datatype R0 = Ctor(R2 ~> bool)
+
+  type R1<X> = X
+
+  datatype R2 = Ctor(R1<R0>)
 }
 Variance.dfy(10,12): Error: formal type parameter 'E' is not used according to its variance specification
+Variance.dfy(12,33): Error: formal type parameter 'Y' is not used according to its variance specification
+Variance.dfy(12,36): Error: formal type parameter 'Z' is not used according to its variance specification (it is used left of an arrow) (perhaps try declaring 'Z' as '!Z')
+Variance.dfy(12,42): Error: formal type parameter 'Z' is not used according to its variance specification (it is used left of an arrow) (perhaps try declaring 'Z' as '!Z')
+Variance.dfy(13,37): Error: formal type parameter 'M' is not used according to its variance specification (it is used left of an arrow) (perhaps try declaring 'M' as '!M')
+Variance.dfy(13,40): Error: formal type parameter 'N' is not used according to its variance specification
+Variance.dfy(13,50): Error: formal type parameter 'N' is not used according to its variance specification
+Variance.dfy(13,53): Error: formal type parameter 'N' is not used according to its variance specification
 Variance.dfy(21,9): Error: formal type parameter 'A' is not used according to its variance specification
 Variance.dfy(22,14): Error: formal type parameter 'A' is not used according to its variance specification (it is used left of an arrow) (perhaps try changing the declaration from '+A' to '*A')
 Variance.dfy(24,18): Error: formal type parameter 'A' is not used according to its variance specification
@@ -47,4 +85,10 @@ Variance.dfy(52,28): Error: class declarations only support non-variant type par
 Variance.dfy(52,38): Error: class declarations only support non-variant type parameters
 Variance.dfy(60,30): Error: iterator declarations only support non-variant type parameters
 Variance.dfy(60,40): Error: iterator declarations only support non-variant type parameters
-23 resolution/type errors detected in Variance.dfy
+Variance.dfy(64,21): Error: using the type being defined ('Dt') here violates strict positivity, that is, it would cause a logical inconsistency by defining a type whose cardinality exceeds itself (like the Continuum Transfunctioner, you might say its power would then be exceeded only by its mystery)
+Variance.dfy(68,26): Error: using the type being defined ('U2') here violates strict positivity, that is, it would cause a logical inconsistency by defining a type whose cardinality exceeds itself (like the Continuum Transfunctioner, you might say its power would then be exceeded only by its mystery)
+Variance.dfy(72,21): Error: using the type being defined ('V1') here violates strict positivity, that is, it would cause a logical inconsistency by defining a type whose cardinality exceeds itself (like the Continuum Transfunctioner, you might say its power would then be exceeded only by its mystery)
+Variance.dfy(75,21): Error: using the type being defined ('W0') here violates strict positivity, that is, it would cause a logical inconsistency by defining a type whose cardinality exceeds itself (like the Continuum Transfunctioner, you might say its power would then be exceeded only by its mystery)
+Variance.dfy(77,21): Error: using the type being defined ('Z2') here violates strict positivity, that is, it would cause a logical inconsistency by defining a type whose cardinality exceeds itself (like the Continuum Transfunctioner, you might say its power would then be exceeded only by its mystery)
+Variance.dfy(81,21): Error: using the type being defined ('R2') here violates strict positivity, that is, it would cause a logical inconsistency by defining a type whose cardinality exceeds itself (like the Continuum Transfunctioner, you might say its power would then be exceeded only by its mystery)
+36 resolution/type errors detected in Variance.dfy

@@ -9,8 +9,8 @@ module VarianceChecks {
     | MakeD(D)
     | MakeE(E)  // error: E is used in positive position
 
-  type Syn<X, -Y, Z> = MyData<X, Y, Z, Z, Z>  // BUG
-  type Cyn<M, -N> = MyData<int -> M, M, N -> int, N, N -> int>  // BUG
+  type Syn<X, -Y, Z> = MyData<X, Y, Z, Z, Z>  // error (x3)
+  type Cyn<M, -N> = MyData<int -> M, M, N -> int, N, N -> int>  // error (x4)
 
   class MyClass<!Inv> {
   }
@@ -61,16 +61,15 @@ module VarianceChecks {
   {
   }
   
-  /**** COMING SOON
   datatype Dt = Ctor(Dt -> Dt)  // error: this would give rise to a logical inconsistency
 
   datatype U0<!A> = U0(A -> bool)
-  type U1<A> = U0<A>
+  type U1<!A> = U0<A>
   datatype U2 = MakeU2(U1<U2>)  // error: this would give rise to a logical inconsistency
 
   type V0 = x: V2 | true
   type V1 = V0
-  datatype V2 = Ctor(V1 --> bool)  // error: this would give rise to a logical inconsistency (BUG: missing error)
+  datatype V2 = Ctor(V1 --> bool)  // error: this would give rise to a logical inconsistency
 
   type W0 = W1
   datatype W1 = Ctor(W0 --> bool)  // error: this would give rise to a logical inconsistency
@@ -82,28 +81,28 @@ module VarianceChecks {
   datatype R0 = Ctor(R2 ~> bool)  // error: this would give rise to a logical inconsistency
   type R1<X> = X
   datatype R2 = Ctor(R1<R0>)
-  ****/
 }
 
-/******* COMING SOON
+/***** COMING SOON
 module DependencyChecks {
-  type Ti = x: Tj | true  // error: bad dependency cycle
-  type Tj = y: int | FTk(y)  // error (same as previous line)
-  predicate FTk(y: int) {
-    var i: Ti := 5;
+  type A = x: B | true  // error: bad dependency cycle
+  type B = y: int | F(y)  // error (same as previous line)
+  predicate F(y: int) {
+    var i: A := 5;
     i < 32
   }
 
   //type MeAndMyself = x: int | var m: MeAndMySelf := 5; m < 10
+    
   //type MeAndMyself'' = MeAndMyself'
   //type MeAndMyself' = x: int | var m: MeAndMySelf'' := 5; m < 10
 
-  type Ti' = x: Tj' | true  // error: bad dependency cycle
-  type Tj' = y: int | FTk'(y)  // error (same as previous line)
-  predicate FTk'(y: int) {
-    var d: DtTj :| true;
-    d.x < 32
+  datatype Q = Q(x: R)
+  type R = x: S | true  // error: bad dependency cycle
+  type S = y: int | G(y)  // error (same as previous line)
+  predicate G(y: int) {
+    var q: Q :| true;
+    q.x < 32
   }
-  datatype DtTj = DtTj(x: Ti')
 }
-********/
+*****/

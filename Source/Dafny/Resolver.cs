@@ -2775,6 +2775,23 @@ namespace Microsoft.Dafny
 
       if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
         // Check that type-parameter variance is respected in type definitions
+        // Start by forming equivalence classes of the types being defined. (The graph constructed here has more
+        // edges than the call graph.)
+        var typeDependencies = new Graph<TopLevelDecl>();
+        foreach (TopLevelDecl d in declarations) {
+          if (d is TypeSynonymDecl) {
+            var dd = (TypeSynonymDecl)d;
+            AddTypeDependencyEdges(dd, dd.Rhs, typeDependencies);
+          } else if (d is NewtypeDecl) {
+            var dd = (NewtypeDecl)d;
+            AddTypeDependencyEdges(dd, dd.BaseType, typeDependencies);
+          } else if (d is DatatypeDecl) {
+            var dd = (DatatypeDecl)d;
+            foreach (var ctor in dd.Ctors) {
+              ctor.Formals.Iter(formal => AddTypeDependencyEdges(dd, formal.Type, typeDependencies));
+            }
+          }
+        }
         foreach (TopLevelDecl d in declarations) {
           if (d is IteratorDecl || d is ClassDecl) {
             foreach (var tp in d.TypeArgs) {
@@ -2782,16 +2799,16 @@ namespace Microsoft.Dafny
                 reporter.Error(MessageSource.Resolver, tp.tok, "{0} declarations only support non-variant type parameters", d.WhatKind);
               }
             }
-          } else if (d is SubsetTypeDecl) {
-            var dd = (SubsetTypeDecl)d;
-            CheckVariance(dd.Rhs, dd, TypeParameter.TPVariance.Co, false);
+          } else if (d is TypeSynonymDecl) {
+            var dd = (TypeSynonymDecl)d;
+            CheckVariance(dd.Rhs, dd, TypeParameter.TPVariance.Co, false, typeDependencies);
           } else if (d is NewtypeDecl) {
             var dd = (NewtypeDecl)d;
-            CheckVariance(dd.BaseType, dd, TypeParameter.TPVariance.Co, false);
+            CheckVariance(dd.BaseType, dd, TypeParameter.TPVariance.Co, false, typeDependencies);
           } else if (d is DatatypeDecl) {
             var dd = (DatatypeDecl)d;
             foreach (var ctor in dd.Ctors) {
-              ctor.Formals.Iter(formal => CheckVariance(formal.Type, dd, TypeParameter.TPVariance.Co, false));
+              ctor.Formals.Iter(formal => CheckVariance(formal.Type, dd, TypeParameter.TPVariance.Co, false, typeDependencies));
             }
           }
         }
@@ -2861,6 +2878,19 @@ namespace Microsoft.Dafny
                 cl.Name, fieldWithoutKnownInitializer.Name, fieldWithoutKnownInitializer.Type);
             }
           }
+        }
+      }
+    }
+
+    private void AddTypeDependencyEdges(TopLevelDecl context, Type type, Graph<TopLevelDecl> typeDependencies) {
+      Contract.Requires(context != null);
+      Contract.Requires(type != null);
+      Contract.Requires(typeDependencies != null);
+      var udt = type as UserDefinedType;
+      if (udt != null && udt.ResolvedClass != null) {
+        typeDependencies.AddEdge(context, udt.ResolvedClass);
+        foreach (var arg in udt.TypeArgs) {
+          AddTypeDependencyEdges(context, arg, typeDependencies);
         }
       }
     }
@@ -8506,13 +8536,6 @@ namespace Microsoft.Dafny
                 }
               }
               t.ResolvedClass = dd;
-            } else if (d is IndDatatypeDecl) {
-              var dd = (IndDatatypeDecl)d;
-              var caller = context as ICallable;
-              if (caller != null) {
-                caller.EnclosingModule.CallGraph.AddEdge(caller, dd);
-              }
-              t.ResolvedClass = d;
             } else {
               // d is a coinductive datatype or a class, and it may have type parameters
               t.ResolvedClass = d;
@@ -11137,20 +11160,21 @@ namespace Microsoft.Dafny
     /// "context == Inv" says that "type" must not vary at all.
     /// * "leftOfArrow" says that the context is to the left of some arrow
     /// </summary>
-    public void CheckVariance(Type type, TopLevelDecl enclosingTypeDefinition, TypeParameter.TPVariance context, bool leftOfArrow) {
+    public void CheckVariance(Type type, TopLevelDecl enclosingTypeDefinition, TypeParameter.TPVariance context, bool leftOfArrow, Graph<TopLevelDecl> typeDependencies) {
       Contract.Requires(type != null);
       Contract.Requires(enclosingTypeDefinition != null);
+      Contract.Requires(typeDependencies != null);
 
       type = type.Normalize();  // we keep constraints, since subset types have their own type-parameter variance specifications; we also keep synonys, since that gives rise to better error messages
       if (type is BasicType) {
         // fine
       } else if (type is MapType) {
         var t = (MapType)type;
-        CheckVariance(t.Domain, enclosingTypeDefinition, context, leftOfArrow);
-        CheckVariance(t.Range, enclosingTypeDefinition, context, leftOfArrow);
+        CheckVariance(t.Domain, enclosingTypeDefinition, context, leftOfArrow, typeDependencies);
+        CheckVariance(t.Range, enclosingTypeDefinition, context, leftOfArrow, typeDependencies);
       } else if (type is CollectionType) {
         var t = (CollectionType)type;
-        CheckVariance(t.Arg, enclosingTypeDefinition, context, leftOfArrow);
+        CheckVariance(t.Arg, enclosingTypeDefinition, context, leftOfArrow, typeDependencies);
       } else if (type is UserDefinedType) {
         var t = (UserDefinedType)type;
         if (t.ResolvedParam != null) {
@@ -11172,11 +11196,8 @@ namespace Microsoft.Dafny
           Contract.Assert(resolvedClass.TypeArgs.Count == t.TypeArgs.Count);
           if (leftOfArrow) {
             // we have to be careful about uses of the type being defined
-            if (resolvedClass.Module == enclosingTypeDefinition.Module && resolvedClass is ICallable && enclosingTypeDefinition is ICallable) {
-              var callgraph = resolvedClass.Module.CallGraph;
-              if (callgraph.GetSCCRepresentative((ICallable)resolvedClass) == callgraph.GetSCCRepresentative((ICallable)enclosingTypeDefinition)) {
-                reporter.Error(MessageSource.Resolver, t.tok, "using the type being defined ('{0}') here violates strict positivity, that is, it would cause a logical inconsistency by defining a type whose cardinality exceeds itself (like the Continuum Transfunctioner, you might say its power would then be exceeded only by its mystery)", resolvedClass.Name);
-              }
+            if (typeDependencies.GetSCCRepresentative(resolvedClass) == typeDependencies.GetSCCRepresentative(enclosingTypeDefinition)) {
+              reporter.Error(MessageSource.Resolver, t.tok, "using the type being defined ('{0}') here violates strict positivity, that is, it would cause a logical inconsistency by defining a type whose cardinality exceeds itself (like the Continuum Transfunctioner, you might say its power would then be exceeded only by its mystery)", resolvedClass.Name);
             }
           }
           for (int i = 0; i < t.TypeArgs.Count; i++) {
@@ -11186,7 +11207,8 @@ namespace Microsoft.Dafny
               context == TypeParameter.TPVariance.Non ? context :
               context == TypeParameter.TPVariance.Co ? tpFormal.Variance :
               TypeParameter.Negate(tpFormal.Variance),
-              leftOfArrow || !tpFormal.StrictVariance);
+              leftOfArrow || !tpFormal.StrictVariance,
+              typeDependencies);
           }
         }
       } else {
