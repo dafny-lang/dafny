@@ -158,6 +158,9 @@ namespace DafnyLanguage
                   // m is Dafny.PrefixPredicate ? "prefix predicate" :  // this won't ever occur here
                   m is Dafny.Predicate ? "predicate" :
                   "function";
+                if (m.IsStatic && !(m.EnclosingClass is Dafny.DefaultClassDecl)) {
+                  nm = "static " + nm;
+                }
                 if (!m.IsGhost) {
                   nm += " method";
                 }
@@ -169,6 +172,9 @@ namespace DafnyLanguage
                   m is Dafny.Lemma ? "lemma" :
                   // m is Dafny.PrefixLemma ? "prefix lemma" :  // this won't ever occur here
                   "method";
+                if (m.IsStatic && !(m.EnclosingClass is Dafny.DefaultClassDecl)) {
+                  nm = "static " + nm;
+                }
                 if (m.IsGhost && !(m is Dafny.CoLemma)) {
                   nm = "ghost " + nm;
                 }

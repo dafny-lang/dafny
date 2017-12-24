@@ -6,66 +6,70 @@
 // of a version like this has been done by Hannes Mehnert, Filip Sieczkowski, Lars Birkedal, and
 // Peter Sestoft in separation logic using Coq.
 
-method Main()
-{
-  var t := new SnapTree.Tree.Empty();
-  ghost var pos := t.Insert(2);
-  pos := t.Insert(1);
-  pos := t.Insert(3);
-  pos := t.Insert(-15);
-  pos := t.Insert(0);
+module SnapTreeTestHarness {
+  import opened SnapTree
 
-  var s := t.CreateSnapshot();
-  ghost var sc := s.Contents;
-  var it := s.CreateIterator();
-  var more := it.MoveNext();
-  while more
-    invariant t.Valid() && !t.IsReadonly && it.Valid();
-    invariant more ==> 0 <= it.N < |it.Contents|;
-    invariant fresh(t.Repr) && fresh(it.IterRepr);
-    invariant t.MutableRepr <= t.Repr && it !in t.MutableRepr && t.MutableRepr !! it.T.Repr && t.Repr !! it.IterRepr;
-    invariant it.T == s && s.Valid();
-    invariant s.Contents == sc;  // this is not needed in the loop, but serves as an extra test case of the specifications
-    decreases |it.Contents| - it.N;
+  method Main()
   {
-    var x := it.Current();
-    print "Main iterates on ", x, "\n";
-    pos := t.Insert(x*3);
-    more := it.MoveNext();
+    var t := new SnapTree.Tree.Empty();
+    ghost var pos := t.Insert(2);
+    pos := t.Insert(1);
+    pos := t.Insert(3);
+    pos := t.Insert(-15);
+    pos := t.Insert(0);
+
+    var s := t.CreateSnapshot();
+    ghost var sc := s.Contents;
+    var it := s.CreateIterator();
+    var more := it.MoveNext();
+    while more
+      invariant t.Valid() && !t.IsReadonly && it.Valid();
+      invariant more ==> 0 <= it.N < |it.Contents|;
+      invariant fresh(t.Repr) && fresh(it.IterRepr);
+      invariant t.MutableRepr <= t.Repr && it !in t.MutableRepr && t.MutableRepr !! it.T.Repr && t.Repr !! it.IterRepr;
+      invariant it.T == s && s.Valid();
+      invariant s.Contents == sc;  // this is not needed in the loop, but serves as an extra test case of the specifications
+      decreases |it.Contents| - it.N;
+    {
+      var x := it.Current();
+      print "Main iterates on ", x, "\n";
+      pos := t.Insert(x*3);
+      more := it.MoveNext();
+    }
+    assert s.Contents == sc;  // this is not needed in the loop, but serves as an extra test case of the specifications
+    t.Print();
   }
-  assert s.Contents == sc;  // this is not needed in the loop, but serves as an extra test case of the specifications
-  t.Print();
-}
 
-method TestContents()  // this method tests Tree.Insert's specifications of Contents
-{
-  var t := new SnapTree.Tree.Empty();   assert t.Contents == [];
-  ghost var pos := t.Insert(2);         assert pos == 0 && t.Contents == [2];
+  method TestContents()  // this method tests Tree.Insert's specifications of Contents
+  {
+    var t := new SnapTree.Tree.Empty();   assert t.Contents == [];
+    ghost var pos := t.Insert(2);         assert pos == 0 && t.Contents == [2];
 
-  pos := t.Insert(1);
-  // Convince the verifier of the absurdity of pos==1
-  assert pos == 1 ==> t.Contents == [2,1];
-  ghost var hc := [2,1];
-  SnapTree.Tree.IsSortedProperty(hc);
-  assert hc[0] == 2 && hc[1] == 1 && !SnapTree.Tree.IsSorted(hc);
-  // So:
-  assert pos == 0 && t.Contents == [1, 2];
-}
+    pos := t.Insert(1);
+    // Convince the verifier of the absurdity of pos==1
+    assert pos == 1 ==> t.Contents == [2,1];
+    ghost var hc := [2,1];
+    SnapTree.Tree.IsSortedProperty(hc);
+    assert hc[0] == 2 && hc[1] == 1 && !SnapTree.Tree.IsSorted(hc);
+    // So:
+    assert pos == 0 && t.Contents == [1, 2];
+  }
 
-/*  The following method shows the problem of concurrent modifications and shows that the
- *  design of the snapshotable trees herein handle this correctly.  That is, after inserting
- *  into a tree that is being iterated, use of the associated iterator can no longer be
- *  proved to be correct.
- */
-method TestConcurrentModification(t: SnapTree.Tree)
-  requires t.Valid() && !t.IsReadonly;
-  modifies t.MutableRepr;
-{
-  var it := t.CreateIterator();
-  var more := it.MoveNext();
-  if more {
-    var pos := t.Insert(52);  // this modification of the collection renders all associated iterators invalid
-    more := it.MoveNext();  // error: operation t.Insert may have made this iterator invalid
+  /*  The following method shows the problem of concurrent modifications and shows that the
+   *  design of the snapshotable trees herein handle this correctly.  That is, after inserting
+   *  into a tree that is being iterated, use of the associated iterator can no longer be
+   *  proved to be correct.
+   */
+  method TestConcurrentModification(t: SnapTree.Tree)
+    requires t.Valid() && !t.IsReadonly;
+    modifies t.MutableRepr;
+  {
+    var it := t.CreateIterator();
+    var more := it.MoveNext();
+    if more {
+      var pos := t.Insert(52);  // this modification of the collection renders all associated iterators invalid
+      more := it.MoveNext();  // error: operation t.Insert may have made this iterator invalid
+    }
   }
 }
 
@@ -138,7 +142,7 @@ module SnapTree {
 
     constructor Empty()
       ensures Valid() && Contents == [] && !IsReadonly;
-      ensures MutableRepr <= Repr && fresh(Repr - {this});
+      ensures MutableRepr <= Repr && fresh(Repr);
     {
       new;
       Contents := [];
@@ -321,14 +325,7 @@ module SnapTree {
       ghost var L := if left == null then [] else left.Contents;
       ghost var R := if right == null then [] else right.Contents;
       Tree.SmallIsSorted([]);
-      assert Tree.IsSorted(L) && Tree.IsSorted(R);
-      assert Tree.AllBelow(L, x);
-      assert Tree.AllAbove(x, R);
-      assert Tree.SortedSplit(L, x, R);
-      assert SortedSplit(left, x, right);
-      assert Contents == CombineSplit(left, x, right);
       CombineSortedSplit(left, x, right);
-      assert Tree.IsSorted(Contents);
       reveal NodeValid();
     }
 
@@ -357,7 +354,7 @@ module SnapTree {
       }
     }
 
-    static method {:timeLimit 20} FunctionalInsert_Left(n: Node, x: int) returns (r: Node, ghost pos: int)
+    static method FunctionalInsert_Left(n: Node, x: int) returns (r: Node, ghost pos: int)
       requires n.NodeValid() && x < n.data;
       ensures r.NodeValid();
       ensures fresh(r.Repr - n.Repr);
@@ -373,12 +370,11 @@ module SnapTree {
       if left == n.left {
         r, pos := n, -1;
       } else {
-        assert n.left != null ==> left.Contents[..pos] == n.left.Contents[..pos] == n.Contents[..pos];
         r := new Node.Build(left, n.data, n.right);
       }
     }
 
-    static method {:timeLimit 30} FunctionalInsert_Right(n: Node, x: int) returns (r: Node, ghost pos: int)
+    static method FunctionalInsert_Right(n: Node, x: int) returns (r: Node, ghost pos: int)
       requires n.NodeValid() && n.data < x;
       ensures r.NodeValid();
       ensures fresh(r.Repr - n.Repr);
@@ -396,16 +392,6 @@ module SnapTree {
       } else {
         ghost var L := if n.left == null then [] else n.left.Contents;
         ghost var Llen := |L| + 1;
-        assert n.Contents == CombineSplit(n.left, n.data, n.right);
-        if n.right != null {
-          calc {
-            n.Contents[Llen..Llen + pos];
-            (L + [n.data] + n.right.Contents)[Llen..Llen + pos];
-            { assert |L + [n.data]| == Llen; }
-            n.right.Contents[..pos];
-          }
-          assert right.Contents[..pos] == n.right.Contents[..pos] == n.Contents[Llen..Llen + pos];
-        }
         pos := Llen + pos;
         r := new Node.Build(n.left, n.data, right);
       }
@@ -431,7 +417,7 @@ module SnapTree {
       }
     }
 
-    method {:timeLimit 20} MutatingInsert_Left(x: int) returns (ghost pos: int)
+    method MutatingInsert_Left(x: int) returns (ghost pos: int)
       requires NodeValid() && x < data;
       modifies Repr;
       ensures NodeValid() && fresh(Repr - old(Repr));
@@ -443,29 +429,20 @@ module SnapTree {
     {
       reveal NodeValid();
       ghost var R := if right == null then [] else right.Contents;
-      assert Tree.AllAbove(data, R);
-      assert Tree.AllAbove(x, R);
       Tree.SmallIsSorted([]);
-      assert Tree.IsSorted(R);
       if left == null {
         left := new Node.Init(x);
         pos := 0;
       } else {
         pos := left.MutatingInsert(x);
-        assert Tree.IsSorted(left.Contents);
       }
       Repr := Repr + left.Repr;
       Contents := left.Contents + [data] + R;
-      assert Tree.AllBelow(left.Contents, data);
-      assert Tree.AllAbove(data, R);
-      assert Tree.IsSorted(left.Contents);
-      assert Tree.IsSorted(R);
       Tree.SortCombineProperty(left.Contents, data, R);
-      assert Tree.IsSorted(Contents);
       reveal NodeValid();
     }
 
-    method {:timeLimit 25} MutatingInsert_Right(x: int) returns (ghost pos: int)
+    method MutatingInsert_Right(x: int) returns (ghost pos: int)
       requires NodeValid() && data < x;
       modifies Repr;
       ensures NodeValid() && fresh(Repr - old(Repr));
@@ -476,49 +453,22 @@ module SnapTree {
       decreases Repr, 0;
     {
       reveal NodeValid();
-      assert Contents == CombineSplit(left, data, right);
       ghost var L := if left == null then [] else left.Contents;
       ghost var Llen := |L| + 1;
-      assert Contents[..Llen] == L + [data];
       if right == null {
         right := new Node.Init(x);
         pos := Llen;
-        assert Contents == L + [data];
       } else {
         pos := right.MutatingInsert(x);
-        assert L == if left == null then [] else left.Contents;
-        assert data == old(data);
         if pos < 0 {
-          assert right.Contents == old(right.Contents);
         } else {
-          calc {
-            L + [data] + right.Contents;
-            // only the right part has changed
-            old(Contents[..Llen]) + right.Contents;
-            // result of the recursive call to right.MutatingInsert
-            old(Contents[..Llen]) + old(right.Contents[..pos] + [x] + right.Contents[pos..]);
-            // re-associate +
-            old(Contents[..Llen]) + old(right.Contents[..pos]) + [x] + old(right.Contents[pos..]);
-            { assert old(right.Contents[..pos]) == old(Contents[Llen..Llen+pos]); }
-            old(Contents[..Llen]) + old(Contents[Llen..Llen+pos]) + [x] + old(right.Contents[pos..]);
-            old(Contents[..Llen+pos]) + [x] + old(right.Contents[pos..]);
-            { assert old(right.Contents[pos..]) == old(Contents[Llen+pos..]); }
-            old(Contents[..Llen+pos]) + [x] + old(Contents[Llen+pos..]);
-          }
           pos := Llen + pos;
-          assert L + [data] + right.Contents == old(Contents[..pos] + [x] + Contents[pos..]);
         }
       }
       Repr := Repr + right.Repr;
       Contents := L + [data] + right.Contents;
-      assert left != null ==> Tree.AllBelow(left.Contents, data);
-      assert Tree.AllBelow([], data);
-      assert Tree.AllAbove(data, right.Contents);
-      assert left != null ==> Tree.IsSorted(left.Contents);
       Tree.SmallIsSorted([]);
-      assert Tree.IsSorted(right.Contents);
       Tree.SortCombineProperty(L, data, right.Contents);
-      assert Tree.IsSorted(Contents);
       reveal NodeValid();
     }
   }
@@ -628,7 +578,6 @@ module SnapTree {
       st := Cons(p, stIn);
 
       reveal p.NodeValid();
-      assert p.data == p.Contents[if p.left == null then 0 else |p.left.Contents|];  // lemma
       if p.left != null {
         st := Push(st, n, p.left, C, Nodes);
       }
@@ -662,9 +611,6 @@ module SnapTree {
           case Cons(p, rest) =>
             // lemmas:
             reveal p.NodeValid();
-            assert R(rest, N + 1 + if p.right==null then 0 else |p.right.Contents|, Contents, T.Repr);
-            ghost var k := if p.left==null then 0 else |p.left.Contents|;
-            assert p.Contents[k..] == [p.data] + p.Contents[k+1..];
 
             stack, N := rest, N+1;
 

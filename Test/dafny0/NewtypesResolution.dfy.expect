@@ -1,4 +1,4 @@
-NewtypesResolution.dfy(5,7): Error: Cycle among redirecting types (newtypes, subset types, type synonyms): MySynonym -> MyIntegerType_WellSupposedly -> MyNewType -> MySynonym
+NewtypesResolution.dfy(5,7): Error: Cycle among redirecting types (newtypes, subset types, type synonyms): MySynonym -> MyNewType -> MyIntegerType_WellSupposedly -> MySynonym
 NewtypesResolution.dfy(12,10): Error: newtypes must be based on some numeric type (got List<int>)
 NewtypesResolution.dfy(51,13): Error: arguments to <= must have a common supertype (got posReal and int32)
 NewtypesResolution.dfy(53,13): Error: arguments to > must have a common supertype (got posReal and real)
@@ -12,7 +12,7 @@ NewtypesResolution.dfy(75,8): Error: newtype constraint must be of type bool (in
 NewtypesResolution.dfy(77,10): Error: unresolved identifier: a
 NewtypesResolution.dfy(91,31): Error: old expressions are not allowed in this context
 NewtypesResolution.dfy(101,24): Error: Wrong number of type arguments (1 instead of 0) passed to newtype: N
-NewtypesResolution.dfy(105,10): Error: recursive dependency involving a newtype: _default.BadLemma -> Cycle
+NewtypesResolution.dfy(105,10): Error: recursive dependency involving a newtype: BadLemma -> Cycle
 NewtypesResolution.dfy(114,10): Error: recursive dependency involving a newtype: SelfCycle -> SelfCycle
 NewtypesResolution.dfy(120,21): Error: name of type (N9) is used as a variable
 NewtypesResolution.dfy(139,6): Error: RHS (of type int) not assignable to LHS (of type Int)

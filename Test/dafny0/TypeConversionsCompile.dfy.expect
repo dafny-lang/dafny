@@ -61,20 +61,22 @@ module _System {
 */
 
 /* CALL GRAPH for module _module:
+ * SCC at height 11:
+ *   Main
  * SCC at height 10:
- *   _default.Main
+ *   OrdinalTests
  * SCC at height 9:
- *   _default.OrdinalTests
- * SCC at height 8:
  *   array
- * SCC at height 7:
+ * SCC at height 8:
  *   int64
- * SCC at height 6:
+ * SCC at height 7:
  *   Abundance
+ * SCC at height 6:
+ *   Difficult
  * SCC at height 5:
- *   _default.PrintExpected
+ *   PrintExpected
  * SCC at height 4:
- *   _default.Print
+ *   Print
  * SCC at height 3:
  *   SmallReal
  * SCC at height 2:
@@ -146,9 +148,7 @@ method Main()
   PrintExpected(seven as bv32 as bv7, 127);
   PrintExpected(seven as bv67 as bv7, 127);
   PrintExpected(handful as real, 5.0);
-  if 14 as real as int as bv67 == 14 {
-    PrintExpected(14 as real as int as bv67 as EvenInt as SmallReal as Handful as bv7 as bv32 as int, 14);
-  }
+  Difficult();
   var a0: Abundance, a1: Abundance, a2: Abundance, lng: int64;
   var s: set<real> := {4.0, 6.3, r, 1000.2};
   var a: array<char> := new char[68];
@@ -164,6 +164,13 @@ method Main()
   OrdinalTests();
 }
 
+method Difficult()
+{
+  if 14 as real as int as bv67 == 14 {
+    PrintExpected(14 as real as int as bv67 as EvenInt as SmallReal as Handful as bv7 as bv32 as int, 14);
+  }
+}
+
 method OrdinalTests()
 {
   var ord: ORDINAL := 143;
@@ -176,7 +183,7 @@ method OrdinalTests()
   print ord.IsLimit, " ", ord.Offset, " ", ord.IsNat, "\n";
 }
 
-Dafny program verifier finished with 7 verified, 0 errors
+Dafny program verifier finished with 8 verified, 0 errors
 Program compiled successfully
 Running...
 

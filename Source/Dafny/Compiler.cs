@@ -861,13 +861,12 @@ namespace Microsoft.Dafny {
         } else if (member is ConstantField) {
           var cf = (ConstantField)member;
           if (cf.Rhs == null) {
-            Contract.Assert(!cf.IsStatic);  // module-level and static const's must have a RHS (enforced by parser)
+            Contract.Assert(!cf.IsStatic);  // as checked above, only instance members can be inherited
             Indent(indent, wr);
             wr.WriteLine("public {0} _{1} = {2};", TypeName(cf.Type, wr, cf.tok), cf.CompileName, DefaultValue(cf.Type, wr, cf.tok));
           }
           Indent(indent, wr);
-          wr.Write("public {2}{0} @{1}()", TypeName(cf.Type, wr, cf.tok), cf.CompileName, cf.IsStatic ? "static " : "");
-          wr.WriteLine("{");
+          wr.WriteLine("public {2}{0} @{1}() {{", TypeName(cf.Type, wr, cf.tok), cf.CompileName, cf.IsStatic ? "static " : "");
           if (cf.Rhs == null) {
             Indent(indent + IndentAmount, wr);
             wr.WriteLine("return _{0};", cf.CompileName);
@@ -910,8 +909,7 @@ namespace Microsoft.Dafny {
             var cf = f as ConstantField;
             if (cf != null && cf.IsStatic) {
               Indent(indent, wr);
-              wr.Write("public static {0} @{1}()", TypeName(cf.Type, wr, cf.tok), cf.CompileName);
-              wr.WriteLine("{");
+              wr.WriteLine("public static {0} @{1}() {{", TypeName(cf.Type, wr, cf.tok), cf.CompileName);
               if (cf.Rhs != null) {
                 CompileReturnBody(cf.Rhs, indent + IndentAmount, wr);
               } else {
@@ -940,8 +938,7 @@ namespace Microsoft.Dafny {
               wr.WriteLine("public {3}{0} _{1} = {2};", TypeName(cf.Type, wr, cf.tok), cf.CompileName, DefaultValue(cf.Type, wr, cf.tok), f.IsStatic ? "static " : "");
             }
             Indent(indent, wr);
-            wr.Write("public {2}{0} @{1}()", TypeName(cf.Type, wr, cf.tok), cf.CompileName, f.IsStatic ? "static " : "");
-            wr.WriteLine("{");
+            wr.WriteLine("public {2}{0} @{1}() {{", TypeName(cf.Type, wr, cf.tok), cf.CompileName, f.IsStatic ? "static " : "");
             if (cf.Rhs == null) {
               Indent(indent + IndentAmount, wr);
               wr.WriteLine("return _{0};", cf.CompileName);
@@ -957,7 +954,7 @@ namespace Microsoft.Dafny {
           var f = (Function)member;
           if (f.Body == null && !(c is TraitDecl && !f.IsStatic)) {
             // A (ghost or non-ghost) function must always have a body, except if it's an instance function in a trait.
-            if (forCompanionClass || Attributes.Contains(f.Attributes, "axiom") || Attributes.Contains(f.Attributes, "extern")) {
+            if (forCompanionClass || Attributes.Contains(f.Attributes, "axiom") || (!DafnyOptions.O.DisallowExterns && Attributes.Contains(f.Attributes, "extern"))) {
               // suppress error message (in the case of "forCompanionClass", the non-forCompanionClass call will produce the error message)
             } else {
               Error(f.tok, "Function {0} has no body", wr, f.FullName);
@@ -988,7 +985,7 @@ namespace Microsoft.Dafny {
           var m = (Method)member;
           if (m.Body == null && !(c is TraitDecl && !m.IsStatic)) {
             // A (ghost or non-ghost) method must always have a body, except if it's an instance method in a trait.
-            if (forCompanionClass || Attributes.Contains(m.Attributes, "axiom") || Attributes.Contains(m.Attributes, "extern")) {
+            if (forCompanionClass || Attributes.Contains(m.Attributes, "axiom") || (!DafnyOptions.O.DisallowExterns && Attributes.Contains(m.Attributes, "extern"))) {
               // suppress error message (in the case of "forCompanionClass", the non-forCompanionClass call will produce the error message)
             } else {
               Error(m.tok, "Method {0} has no body", wr, m.FullName);
@@ -1387,29 +1384,31 @@ namespace Microsoft.Dafny {
     /// <summary>
     /// Returns "true" if a value of type "type" can be initialized with the all-zero bit pattern.
     /// </summary>
-    public static bool HasZeroInitializer(Type type, Bpl.IToken tok) {
+    public static bool HasZeroInitializer(Type type) {
       Contract.Requires(type != null);
 
       bool hz, ik;
       string dv;
-      TypeInitialization(type, null, null, tok, out hz, out ik, out dv);
+      TypeInitialization(type, null, null, null, out hz, out ik, out dv);
       return hz;
     }
 
     /// <summary>
-    /// Returns "true" if "type" denotes a type for which a specific value (witness) is known.
+    /// Returns "true" if "type" denotes a type for which a specific compiled value (non-ghost witness) is known.
     /// </summary>
-    public static bool InitializerIsKnown(Type type, Bpl.IToken tok) {
+    public static bool InitializerIsKnown(Type type) {
       Contract.Requires(type != null);
 
       bool hz, ik;
       string dv;
-      TypeInitialization(type, null, null, tok, out hz, out ik, out dv);
+      TypeInitialization(type, null, null, null, out hz, out ik, out dv);
       return ik;
     }
 
     string DefaultValue(Type type, TextWriter wr, Bpl.IToken tok) {
       Contract.Requires(type != null);
+      Contract.Requires(wr != null);
+      Contract.Requires(tok != null);
       Contract.Ensures(Contract.Result<string>() != null);
 
       bool hz, ik;
@@ -1427,8 +1426,9 @@ namespace Microsoft.Dafny {
     ///                  type (not necessarily the same value as the zero initializer, if any, may give).
     ///                  If "compiler" is null, then "defaultValue" can return as anything.
     /// </summary>
-    static void TypeInitialization(Type type, Compiler/*?*/ compiler, TextWriter/*?*/ wr, Bpl.IToken tok, out bool hasZeroInitializer, out bool initializerIsKnown, out string defaultValue) {
+    static void TypeInitialization(Type type, Compiler/*?*/ compiler, TextWriter/*?*/ wr, Bpl.IToken/*?*/ tok, out bool hasZeroInitializer, out bool initializerIsKnown, out string defaultValue) {
       Contract.Requires(type != null);
+      Contract.Requires(compiler == null || (wr != null && tok != null));
       Contract.Ensures(!Contract.ValueAtReturn(out hasZeroInitializer) || Contract.ValueAtReturn(out initializerIsKnown));  // hasZeroInitializer ==> initializerIsKnown
       Contract.Ensures(compiler == null || Contract.ValueAtReturn(out defaultValue) != null);
 
@@ -1495,11 +1495,11 @@ namespace Microsoft.Dafny {
         var td = (NewtypeDecl)cl;
         if (td.Witness != null) {
           hasZeroInitializer = false;
-          initializerIsKnown = true;
+          initializerIsKnown = td.WitnessKind != SubsetTypeDecl.WKind.Ghost;
           defaultValue = compiler == null ? null : compiler.TypeName_UDT(udt.FullCompileName, udt.TypeArgs, wr, udt.tok) + ".Witness";
           return;
         } else if (td.NativeType != null) {
-          hasZeroInitializer = HasZeroInitializer(td.BaseType, udt.tok);
+          hasZeroInitializer = HasZeroInitializer(td.BaseType);
           initializerIsKnown = true;
           defaultValue = "0";
           return;
@@ -1512,7 +1512,7 @@ namespace Microsoft.Dafny {
         var td = (SubsetTypeDecl)cl;
         if (td.Witness != null) {
           hasZeroInitializer = false;
-          initializerIsKnown = true;
+          initializerIsKnown = td.WitnessKind != SubsetTypeDecl.WKind.Ghost;
           defaultValue = compiler == null ? null : compiler.TypeName_UDT(udt.FullCompileName, udt.TypeArgs, wr, udt.tok) + ".Witness";
           return;
         } else if (td.WitnessKind == SubsetTypeDecl.WKind.Special) {
@@ -2521,7 +2521,7 @@ namespace Microsoft.Dafny {
         if (tp.ArrayDimensions == null) {
           wr.Write("new {0}()", TypeName(tp.EType, wr, rhs.Tok));
         } else {
-          if (!HasZeroInitializer(tp.EType, rhs.Tok)) {
+          if (!HasZeroInitializer(tp.EType)) {
             wr.Write("Dafny.ArrayHelpers.InitNewArray{0}<{1}>", tp.ArrayDimensions.Count, TypeName(tp.EType, wr, rhs.Tok));
             wr.Write("(");
             wr.Write(DefaultValue(tp.EType, wr, rhs.Tok));
@@ -3006,6 +3006,7 @@ namespace Microsoft.Dafny {
         BinaryExpr e = (BinaryExpr)expr;
         string opString = null;
         string preOpString = "";
+        string postOpString = "";
         string callString = null;
         string staticCallString = null;
         bool reverseArguments = false;
@@ -3073,9 +3074,19 @@ namespace Microsoft.Dafny {
           case BinaryExpr.ResolvedOpcode.RightShift:
             opString = ">>"; convertE1_to_int = true; break;
           case BinaryExpr.ResolvedOpcode.Add:
-            opString = "+"; truncateResult = true; break;
+            opString = "+"; truncateResult = true;
+            if (expr.Type.IsCharType) {
+              preOpString = "(char)(";
+              postOpString = ")";
+            }
+            break;
           case BinaryExpr.ResolvedOpcode.Sub:
-            opString = "-"; truncateResult = true; break;
+            opString = "-"; truncateResult = true;
+            if (expr.Type.IsCharType) {
+              preOpString = "(char)(";
+              postOpString = ")";
+            }
+            break;
           case BinaryExpr.ResolvedOpcode.Mul:
             opString = "*"; truncateResult = true; break;
           case BinaryExpr.ResolvedOpcode.Div:
@@ -3174,12 +3185,14 @@ namespace Microsoft.Dafny {
           if (needsCast) {
             wr.Write(")");
           }
+          wr.Write(postOpString);
         } else if (callString != null) {
           wr.Write(preOpString);
           TrParenExpr(e0, wr, inLetExprBody);
           wr.Write(".@{0}(", callString);
           TrExpr(e1, wr, inLetExprBody);
           wr.Write(")");
+          wr.Write(postOpString);
         } else if (staticCallString != null) {
           wr.Write(preOpString);
           wr.Write("{0}(", staticCallString);
@@ -3187,6 +3200,7 @@ namespace Microsoft.Dafny {
           wr.Write(", ");
           TrExpr(e1, wr, inLetExprBody);
           wr.Write(")");
+          wr.Write(postOpString);
         }
         if (truncateResult && e.Type.IsBitVectorType) {
           BitvectorTruncation((BitvectorType)e.Type, wr, true, true);

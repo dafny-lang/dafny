@@ -97,10 +97,20 @@ function char#FromInt(int): char;
 function char#ToInt(char): int;  // inverse of char#FromInt
 axiom (forall ch: char ::
   { char#ToInt(ch) } 
-  char#FromInt(char#ToInt(ch)) == ch);
+  char#FromInt(char#ToInt(ch)) == ch &&
+  0 <= char#ToInt(ch) && char#ToInt(ch) < 65536);
 axiom (forall n: int ::
   { char#FromInt(n) }
   0 <= n && n < 65536 ==> char#ToInt(char#FromInt(n)) == n);
+
+function char#Plus(char, char): char;
+function char#Minus(char, char): char;
+axiom (forall a: char, b: char ::
+  { char#Plus(a, b) }
+  char#Plus(a, b) == char#FromInt(char#ToInt(a) + char#ToInt(b)));
+axiom (forall a: char, b: char ::
+  { char#Minus(a, b) }
+  char#Minus(a, b) == char#FromInt(char#ToInt(a) - char#ToInt(b)));
 
 // ---------------------------------------------------------------
 // -- References -------------------------------------------------

@@ -76,9 +76,10 @@ namespace DafnyLanguage
 
     [Import(typeof(IVsEditorAdaptersFactoryService))]
     internal IVsEditorAdaptersFactoryService editorFactory = null;
+
+    // Must hold strong reference to both of the following in order for DocumentSaved to work
     Events events;
     EnvDTE.DocumentEvents documentEvents;
-
 
     public void VsTextViewCreated(IVsTextView textViewAdapter) {
       IWpfTextView textView = editorFactory.GetWpfTextView(textViewAdapter);

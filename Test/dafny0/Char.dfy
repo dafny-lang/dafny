@@ -64,3 +64,38 @@ class CharChar {
     }
   }
 }
+
+// arithmetic with char's
+
+function toLower(ch: char): char
+{
+  if 'A' <= ch <= 'Z' then
+    ch - 'A' + 'a'
+  else
+    ch
+}
+
+function BadToLower_Overflow(ch: char): char
+{
+  if 'A' <= ch then
+    ch - 'A' + 'a'  // error: possible overvlow
+  else
+    ch
+}
+
+function BadToLower_Underflow(ch: char): char
+{
+  if ch <= 'Z' then
+    ch - 'A' + 'a'  // error: possible overvlow
+  else
+    ch
+}
+
+lemma AboutChar(ch: char, dh: char)
+  requires 'r' < dh < '\uabcd'
+  ensures ch == ch + '\0' == ch - '\0'
+  ensures dh - '\u0020' < dh
+  ensures dh + '\u0020' > dh
+  ensures '\n' + dh == dh + '\n'
+{
+}

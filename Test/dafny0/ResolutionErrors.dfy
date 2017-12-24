@@ -2230,3 +2230,93 @@ module DontQualifyWithNonNullTypeWhenYouMeanAClass {
     }
   }
 }
+
+module UninterpretedModuleLevelConst {
+  type Six = x | 6 <= x witness 6
+  type Odd = x | x % 2 == 1 ghost witness 7
+  const S: Six  // fine
+  const X: Odd  // error: the type of a non-ghost static const must have a known initializer
+
+  class MyClass { }
+  const Y: MyClass  // error: the type of a non-ghost static const must have a known (non-ghost) initializer
+  ghost const Y': MyClass  // fine, Y' is ghost
+
+  class AnotherClass {  // fine, the class itself is not required to have a constructor, because the bad fields are static
+    static const k := 18
+    static const W: MyClass  // error: the type of a non-ghost static const must have a known (non-ghost) initializer
+    static const U: Six  // fine, since Six has a non-ghost witness and thus has a known initializer
+    static const O: Odd  // error: the type of a non-ghost static const must have a known initializer
+    const u: Six
+  }
+
+  trait Trait {
+    static const k := 18
+    static const W: MyClass  // error: the type of a non-ghost static const must have a known (non-ghost) initializer
+    static const U: Six  // fine, since Six has a non-ghost witness and thus has a known initializer
+    static const O: Odd  // error: the type of a non-ghost static const must have a known initializer
+  }
+  class ClassyTrait extends Trait {  // fine, since the bad fields in Trait are static
+  }
+
+  trait InstanceConst {
+    const w: MyClass
+  }
+  class Instance extends InstanceConst {  // error: because of "w", must declare a constructor
+  }
+
+  trait GhostTr {
+    ghost const w: MyClass  // ghost, so no prob
+  }
+  class GhostCl extends GhostTr {
+    ghost const z: MyClass  // ghost, so no prob
+  }
+}
+
+module NonThisConstAssignments {
+  const X: int
+
+  class Cla {
+    constructor () {
+      X := 15;  // error: can never assign to static const (this used to crash)
+      Clb.Y := 15;  // error: can never assign to static const (this used to crash)
+    }
+  }
+
+  class Clb {
+    static const Y: int
+    constructor () {
+      Y := 15;  // error: cannot ever assign to a static const (this used to crash)
+    }
+  }
+
+  class Clc {
+    const Z: int
+    constructor (c: Clc) {
+      c.Z := 15;  // error: can assign to const only for 'this' (this used to crash)
+    }
+  }
+
+  class Cld {
+    const Z: int
+    constructor () {
+      Z := 15;
+    }
+  }
+}
+
+module ConstGhostRhs {
+  class S {
+    const m: int := n  // error: use of ghost to assign non-ghost field
+    ghost const n: int
+  }
+  const a: int := b  // error: use of ghost to assign non-ghost field
+  ghost const b: int
+
+  class S' {
+    ghost const m': int := n'
+    const n': int
+  }
+  ghost const a': int := b'
+  const b': int
+
+}

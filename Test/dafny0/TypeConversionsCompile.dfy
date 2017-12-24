@@ -56,9 +56,7 @@ method Main()
   PrintExpected(seven as bv32 as bv7, 127);
   PrintExpected(seven as bv67 as bv7, 127);
   PrintExpected(handful as real, 5.0);
-  if 14 as real as int as bv67 == 14 {  // help the verifier out, because Z3 doesn't know much about int/bv conversions
-    PrintExpected(14 as real as int as bv67 as EvenInt as SmallReal as Handful as bv7 as bv32 as int, 14);  // take that!
-  }
+  Difficult();
   // here are some cases whose compilation are optimized
   var a0: Abundance, a1: Abundance, a2: Abundance, lng: int64;
   var s := {4.0, 6.3, r, 1000.2};
@@ -74,6 +72,12 @@ method Main()
   print x, " ", handful, " ", a0, " ", w, "\n";
 
   OrdinalTests();
+}
+
+method Difficult() {  // this has been made a separate method, because it was taking too long with /allocated:1
+  if 14 as real as int as bv67 == 14 {  // help the verifier out, because Z3 doesn't know much about int/bv conversions
+    PrintExpected(14 as real as int as bv67 as EvenInt as SmallReal as Handful as bv7 as bv32 as int, 14);  // take that!
+  }
 }
 
 method OrdinalTests() {

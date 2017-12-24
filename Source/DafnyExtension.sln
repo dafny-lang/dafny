@@ -1,6 +1,8 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 2012
+# Visual Studio 15
+VisualStudioVersion = 15.0.27004.2006
+MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DafnyExtension", "DafnyExtension\DafnyExtension.csproj", "{6E9A5E14-0763-471C-A129-80A879D9E7BA}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DafnyMenu", "DafnyMenu\DafnyMenu.csproj", "{CA0848D3-3E4F-410E-8AC6-D6125A2B8E30}"
@@ -22,5 +24,8 @@ Global
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {23E90D89-70FD-4A2D-9809-98CEDA65ACD3}
 	EndGlobalSection
 EndGlobal

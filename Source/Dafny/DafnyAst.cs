@@ -3096,7 +3096,7 @@ namespace Microsoft.Dafny {
         if (compileName == null) {
           object externValue = "";
           string errorMessage = "";
-          bool isExternal = Attributes.ContainsMatchingValue(this.Attributes, "extern", ref externValue,
+          bool isExternal = !DafnyOptions.O.DisallowExterns && Attributes.ContainsMatchingValue(this.Attributes, "extern", ref externValue,
             new Attributes.MatchingValueOption[] { Attributes.MatchingValueOption.String },
             err => errorMessage = err);
           if (isExternal) {
@@ -3614,7 +3614,7 @@ namespace Microsoft.Dafny {
         if (compileName == null) {
           object externValue = "";
           string errorMessage = "";
-          bool isExternal = Attributes.ContainsMatchingValue(this.Attributes, "extern", ref externValue,
+          bool isExternal = !DafnyOptions.O.DisallowExterns && Attributes.ContainsMatchingValue(this.Attributes, "extern", ref externValue,
             new Attributes.MatchingValueOption[] { Attributes.MatchingValueOption.String },
             err => errorMessage = err);
           if (isExternal) {
@@ -4690,7 +4690,15 @@ namespace Microsoft.Dafny {
     public bool MustReverify { get { return false; } }
     public bool AllowsNontermination { get { throw new cce.UnreachableException(); } }
     public IToken Tok { get { return tok; } }
-    public string NameRelativeToModule { get { return EnclosingClass.Name + "." + Name; } }
+    public string NameRelativeToModule {
+      get {
+        if (EnclosingClass is DefaultClassDecl) {
+          return Name;
+        } else {
+          return EnclosingClass.Name + "." + Name;
+        }
+      }
+    }
     public Specification<Expression> Decreases { get { throw new cce.UnreachableException(); } }
     public bool InferredDecreases
     {
@@ -5462,7 +5470,15 @@ namespace Microsoft.Dafny {
     List<TypeParameter> ICodeContext.TypeArgs { get { return this.TypeArgs; } }
     List<Formal> ICodeContext.Ins { get { return this.Formals; } }
     IToken ICallable.Tok { get { return this.tok; } }
-    string ICallable.NameRelativeToModule { get { return EnclosingClass.Name + "." + Name; } }
+    string ICallable.NameRelativeToModule {
+      get {
+        if (EnclosingClass is DefaultClassDecl) {
+          return Name;
+        } else {
+          return EnclosingClass.Name + "." + Name;
+        }
+      }
+    }
     Specification<Expression> ICallable.Decreases { get { return this.Decreases; } }
     bool _inferredDecr;
     bool ICallable.InferredDecreases {
@@ -5726,7 +5742,15 @@ namespace Microsoft.Dafny {
     List<Formal> IMethodCodeContext.Outs { get { return this.Outs; } }
     Specification<FrameExpression> IMethodCodeContext.Modifies { get { return Mod; } }
     IToken ICallable.Tok { get { return this.tok; } }
-    string ICallable.NameRelativeToModule { get { return EnclosingClass.Name + "." + Name; } }
+    string ICallable.NameRelativeToModule {
+      get {
+        if (EnclosingClass is DefaultClassDecl) {
+          return Name;
+        } else {
+          return EnclosingClass.Name + "." + Name;
+        }
+      }
+    }
     Specification<Expression> ICallable.Decreases { get { return this.Decreases; } }
     bool _inferredDecr;
     bool ICallable.InferredDecreases {

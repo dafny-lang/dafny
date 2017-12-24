@@ -31,7 +31,7 @@ namespace DafnyLanguage.DafnyMenu
       base(null)
     {
       // Set the window title reading it from the resources.
-      this.Caption = "Boogie Verification Debugger";
+      this.Caption = "Verification Debugger";
       // Set the image that will appear on the tab of the window frame
       // when docked with an other window
       // The resource ID correspond to the one defined in the resx file

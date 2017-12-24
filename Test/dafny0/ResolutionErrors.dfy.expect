@@ -60,7 +60,7 @@ ResolutionErrors.dfy(430,12): Error: first argument to ==> must be of type bool 
 ResolutionErrors.dfy(430,12): Error: second argument to ==> must be of type bool (instead got int)
 ResolutionErrors.dfy(429,8): Error: first argument to ==> must be of type bool (instead got int)
 ResolutionErrors.dfy(429,8): Error: second argument to ==> must be of type bool (instead got int)
-ResolutionErrors.dfy(416,8): Error: type of + must be of a numeric type, a bitvector type, ORDINAL, a sequence type, or a set-like type (instead got bool)
+ResolutionErrors.dfy(416,8): Error: type of + must be of a numeric type, a bitvector type, ORDINAL, char, a sequence type, or a set-like type (instead got bool)
 ResolutionErrors.dfy(416,8): Error: arguments must have comparable types (got bool and int)
 ResolutionErrors.dfy(416,8): Error: arguments must have comparable types (got bool and int)
 ResolutionErrors.dfy(420,8): Error: arguments must have comparable types (got bool and int)
@@ -216,11 +216,11 @@ ResolutionErrors.dfy(1420,13): Error: arguments must have comparable types (got 
 ResolutionErrors.dfy(1432,9): Error: type of RHS of assign-such-that statement must be boolean (got int)
 ResolutionErrors.dfy(1431,11): Error: type of left argument to + (int) must agree with the result type (bool)
 ResolutionErrors.dfy(1431,11): Error: type of right argument to + (int) must agree with the result type (bool)
-ResolutionErrors.dfy(1431,11): Error: type of + must be of a numeric type, a bitvector type, ORDINAL, a sequence type, or a set-like type (instead got bool)
+ResolutionErrors.dfy(1431,11): Error: type of + must be of a numeric type, a bitvector type, ORDINAL, char, a sequence type, or a set-like type (instead got bool)
 ResolutionErrors.dfy(1433,13): Error: type of RHS of assign-such-that statement must be boolean (got int)
 ResolutionErrors.dfy(1436,15): Error: type of left argument to + (int) must agree with the result type (bool)
 ResolutionErrors.dfy(1436,15): Error: type of right argument to + (int) must agree with the result type (bool)
-ResolutionErrors.dfy(1436,15): Error: type of + must be of a numeric type, a bitvector type, ORDINAL, a sequence type, or a set-like type (instead got bool)
+ResolutionErrors.dfy(1436,15): Error: type of + must be of a numeric type, a bitvector type, ORDINAL, char, a sequence type, or a set-like type (instead got bool)
 ResolutionErrors.dfy(1479,20): Error: calls to methods with side-effects are not allowed inside a hint
 ResolutionErrors.dfy(1501,18): Error: a hint is not allowed to update heap locations
 ResolutionErrors.dfy(1502,23): Error: a hint is not allowed to update heap locations
@@ -351,4 +351,17 @@ ResolutionErrors.dfy(2204,15): Error: name of type (MyClass?) is used as a varia
 ResolutionErrors.dfy(2217,17): Error: To access members of class 'MyClass', write 'MyClass', not 'MyClass?'
 ResolutionErrors.dfy(2228,17): Error: name of type (MyClass) is used as a variable
 ResolutionErrors.dfy(2229,17): Error: name of type (MyClass?) is used as a variable
-350 resolution/type errors detected in ResolutionErrors.dfy
+ResolutionErrors.dfy(2246,17): Error: static non-ghost const field 'W' of type 'MyClass' (which does not have a default compiled value) must give a defining value
+ResolutionErrors.dfy(2248,17): Error: static non-ghost const field 'O' of type 'Odd' (which does not have a default compiled value) must give a defining value
+ResolutionErrors.dfy(2254,17): Error: static non-ghost const field 'W' of type 'MyClass' (which does not have a default compiled value) must give a defining value
+ResolutionErrors.dfy(2256,17): Error: static non-ghost const field 'O' of type 'Odd' (which does not have a default compiled value) must give a defining value
+ResolutionErrors.dfy(2264,8): Error: class 'Instance' with fields without known initializers, like 'w' of type 'MyClass', must declare a constructor
+ResolutionErrors.dfy(2238,8): Error: static non-ghost const field 'X' of type 'Odd' (which does not have a default compiled value) must give a defining value
+ResolutionErrors.dfy(2241,8): Error: static non-ghost const field 'Y' of type 'MyClass' (which does not have a default compiled value) must give a defining value
+ResolutionErrors.dfy(2280,6): Error: LHS of assignment must denote a mutable field
+ResolutionErrors.dfy(2281,10): Error: LHS of assignment must denote a mutable field
+ResolutionErrors.dfy(2288,6): Error: LHS of assignment must denote a mutable field
+ResolutionErrors.dfy(2295,8): Error: LHS of assignment must denote a mutable field of 'this'
+ResolutionErrors.dfy(2309,20): Error: ghost fields are allowed only in specification contexts
+ResolutionErrors.dfy(2312,18): Error: ghost fields are allowed only in specification contexts
+363 resolution/type errors detected in ResolutionErrors.dfy

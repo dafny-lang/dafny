@@ -78,19 +78,19 @@ module _System {
 
 /* CALL GRAPH for module _module:
  * SCC at height 9:
- *   _default.M5
+ *   M5
  * SCC at height 8:
- *   _default.M4
+ *   M4
  * SCC at height 7:
- *   _default.M3
+ *   M3
  * SCC at height 6:
- *   _default.M2
+ *   M2
  * SCC at height 5:
- *   _default.M1
+ *   M1
  * SCC at height 4:
- *   _default.M0
+ *   M0
  * SCC at height 3:
- *   _default.UseTheVars
+ *   UseTheVars
  * SCC at height 2:
  *   SmallReal
  * SCC at height 1:

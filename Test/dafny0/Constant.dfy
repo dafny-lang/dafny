@@ -44,6 +44,8 @@ method Main() {
   print ii.x0, " ", ii.x1, " ", ii.y2, " ", ii.y3, " ", ii.r, "\n";  // 93, 7, 89, 12, 8.54
 
   print mmgg, " ", UninterpretedStaticsTrait.mmtt, " ", UninterpretedStaticsClass.mmcc, "\n";
+
+  InitializationDependencies.PrintEm();
 }
 
 class C {
@@ -144,4 +146,77 @@ trait UninterpretedStaticsTrait {
 
 class UninterpretedStaticsClass extends UninterpretedStaticsTrait {
   static const mmcc: Six
+}
+
+// ---------- test type/allocation axiom of const fields --------
+
+type byte = x | 0 <= x < 256
+  
+class MyClass {
+  const B: array<byte>
+
+  method M()
+  {
+    var x: array?<byte> := B;
+    var y: array<byte> := x;  // this line generates a proof obligation, but it should pass
+  }
+}
+
+// ---------- static const fields in a generic class have its own axioms --------
+
+class MyOnePurposeClass {
+  static const z: int
+  static const w: int := 76
+  static const self: MyOnePurposeClass?
+}
+
+class MyGenericClass<X,Y> {
+  ghost static const x: X
+  ghost static const y: Y
+  static const z: int
+  static const w: int := 76
+  static const self: MyGenericClass?<X,Y>
+  static const almostSelf: MyGenericClass?<Y,X>
+  static const another: MyGenericClass?<byte,seq<X>>
+}
+
+// ---------- initialization dependencies --------
+
+module InitializationDependencies {
+  class C {
+    static const a: int := b
+    static const b: int := D.m
+    static const c: int := b
+  }
+
+  class D {
+    static const m: int := 20
+  }
+
+  class R {
+    const a: int := b + b
+    const b: int := this.m
+    const c: int := b
+
+    const m: int := 21
+
+    const n: int := F(b)
+    function method F(nn: int): int {
+      2 * nn + C.b
+    }
+  }
+
+  method PrintEm()
+  {
+    print C.a, " ";
+    print C.b, " ";
+    print C.c, "\n";
+    print D.m, "\n";
+    var r := new R;
+    print r.a, " ";
+    print r.b, " ";
+    print r.c, " ";
+    print r.m, "\n";
+    print r.n, "\n";
+  }
 }
