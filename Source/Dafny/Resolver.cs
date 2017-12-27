@@ -263,14 +263,14 @@ namespace Microsoft.Dafny
       basicTypeMembers[(int)BasicTypeVariety.IMap].Add(items.Name, iMapItems);
 
       List<Formal> formals = new List<Formal> { new Formal(Token.NoToken, "w", Type.Nat(), true, false, false) };
-      var rotateLeft = new SpecialFunction(Token.NoToken, "RotateLeft", false, false, false, new List<TypeParameter>(), formals, new SelfType(),
+      var rotateLeft = new SpecialFunction(Token.NoToken, "RotateLeft", prog.BuiltIns.SystemModule, false, false, false, new List<TypeParameter>(), formals, new SelfType(),
         new List<MaybeFreeExpression>(), new List<FrameExpression>(), new List<MaybeFreeExpression>(), new Specification<Expression>(new List<Expression>(), null), null, null, null);
       rotateLeft.AddVisibilityScope(prog.BuiltIns.SystemModule.VisibilityScope, false);
       basicTypeMembers[(int)BasicTypeVariety.Bitvector].Add(rotateLeft.Name, rotateLeft);
       builtIns.CreateArrowTypeDecl(formals.Count);
 
       formals = new List<Formal> { new Formal(Token.NoToken, "w", Type.Nat(), true, false, false) };
-      var rotateRight = new SpecialFunction(Token.NoToken, "RotateRight", false, false, false, new List<TypeParameter>(), formals, new SelfType(),
+      var rotateRight = new SpecialFunction(Token.NoToken, "RotateRight", prog.BuiltIns.SystemModule, false, false, false, new List<TypeParameter>(), formals, new SelfType(),
         new List<MaybeFreeExpression>(), new List<FrameExpression>(), new List<MaybeFreeExpression>(), new Specification<Expression>(new List<Expression>(), null), null, null, null);
       rotateLeft.AddVisibilityScope(prog.BuiltIns.SystemModule.VisibilityScope, false);
       basicTypeMembers[(int)BasicTypeVariety.Bitvector].Add(rotateRight.Name, rotateRight);
@@ -2002,7 +2002,7 @@ namespace Microsoft.Dafny
         }
       }
 
-      var typeRedirectionDependencies = new Graph<RedirectingTypeDecl>();
+      var typeRedirectionDependencies = new Graph<RedirectingTypeDecl>();  // this concerns the type directions, not their constraints (which are checked for cyclic dependencies later)
       foreach (TopLevelDecl d in ModuleDefinition.AllDeclarationsAndNonNullTypeDecls(declarations)) {
         Contract.Assert(d != null);
         allTypeParameters.PushMarker();
@@ -2097,9 +2097,9 @@ namespace Microsoft.Dafny
       // ----------------------------------------------------------------------------
 
       // Resolve the meat of classes and iterators, the definitions of type synonyms, and the type parameters of all top-level type declarations
-      // In the first two loops below, resolve the newtype/subset-type declarations and their constraint clauses, including filling in .ResolvedOp
-      // fields.  This is needed for the resolution of the other declarations, because those other declarations may invoke DiscoverBounds, which
-      // looks at the .Constraint field of any such types involved.
+      // In the first two loops below, resolve the newtype/subset-type declarations and their constraint clauses and const definitions, including
+      // filling in .ResolvedOp fields.  This is needed for the resolution of the other declarations, because those other declarations may invoke
+      // DiscoverBounds, which looks at the .Constraint or .Rhs field of any such types involved.
       // The third loop resolves the other declarations.  It also resolves any witness expressions of newtype/subset-type declarations.
       foreach (TopLevelDecl topd in declarations) {
         Contract.Assert(topd != null);
@@ -2159,10 +2159,33 @@ namespace Microsoft.Dafny
           scope.PopMarker();
           allTypeParameters.PopMarker();
         }
+        if (topd is ClassDecl) {
+          var cl = (ClassDecl)topd;
+          currentClass = cl;
+          foreach (MemberDecl member in cl.Members) {
+            Contract.Assert(VisibleInScope(member));
+            if (member is ConstantField) {
+              var field = (ConstantField)member;
+              var opts = new ResolveOpts(field, false);
+              ResolveAttributes(field.Attributes, field, opts);
+              // Resolve the value expression
+              if (field.Rhs != null) {
+                var ec = reporter.Count(ErrorLevel.Error);
+                ResolveExpression(field.Rhs, opts);
+                if (reporter.Count(ErrorLevel.Error) == ec) {
+                  // make sure initialization only refers to constant field or literal expression
+                  CheckConstantFieldInitialization(field, field.Rhs);
+                }
+              }
+              SolveAllTypeConstraints();
+            }
+          }
+          currentClass = null;
+        }
       }
       Contract.Assert(AllTypeConstraints.Count == 0);
       if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
-        // Check type inference, which also discovers bounds, in newtype/subset-type constraints
+        // Check type inference, which also discovers bounds, in newtype/subset-type constraints and const declarations
         foreach (TopLevelDecl topd in declarations) {
           TopLevelDecl d = topd is ClassDecl ? ((ClassDecl)topd).NonNullTypeDecl : topd;
           if (d is NewtypeDecl || d is SubsetTypeDecl) {
@@ -2172,6 +2195,15 @@ namespace Microsoft.Dafny
               ResolveTypeParameters(d.TypeArgs, false, d);
               CheckTypeInference(dd.Constraint, dd);
               allTypeParameters.PopMarker();
+            }
+          }
+          if (topd is ClassDecl) {
+            var cl = (ClassDecl)topd;
+            foreach (var member in cl.Members) {
+              var field = member as ConstantField;
+              if (field != null && field.Rhs != null) {
+                CheckTypeInference(field.Rhs, field);
+              }
             }
           }
         }
@@ -2211,6 +2243,13 @@ namespace Microsoft.Dafny
           } else if (d is ClassDecl) {
             var cl = (ClassDecl)d;
             ResolveClassMemberBodies(cl);
+          } else if (d is DatatypeDecl) {
+            var dt = (DatatypeDecl)d;
+            foreach (var ctor in dt.Ctors) {
+              foreach (var formal in ctor.Formals) {
+                AddTypeDependencyEdges((ICallable)d, formal.Type);
+              }
+            }
           }
         }
         allTypeParameters.PopMarker();
@@ -2717,9 +2756,9 @@ namespace Microsoft.Dafny
         // Check that fixpoint-predicates are not recursive with non-fixpoint-predicate functions (and only
         // with fixpoint-predicates of the same polarity), and
         // check that colemmas are not recursive with non-colemma methods.
-        // Also, check that newtypes and subset types sit in their own SSC.
+        // Also, check that the constraints of newtypes/subset-types do not depend on the type itself.
         // And check that const initializers are not cyclic.
-        var constCycleRepresentatives = new HashSet<ICallable>();
+        var cycleErrorHasBeenReported = new HashSet<ICallable>();
         foreach (var d in declarations) {
           if (d is ClassDecl) {
             foreach (var member in ((ClassDecl)d).Members) {
@@ -2742,28 +2781,29 @@ namespace Microsoft.Dafny
                 var cf = (ConstantField)member;
                 if (cf.EnclosingModule.CallGraph.GetSCCSize(cf) != 1) {
                   var r = cf.EnclosingModule.CallGraph.GetSCCRepresentative(cf);
-                  if (constCycleRepresentatives.Contains(r)) {
+                  if (cycleErrorHasBeenReported.Contains(r)) {
                     // An error has already been reported for this cycle, so don't report another.
                     // Note, the representative, "r", may itself not be a const.
                   } else {
-                    constCycleRepresentatives.Add(r);
+                    cycleErrorHasBeenReported.Add(r);
                     var cycle = Util.Comma(" -> ", cf.EnclosingModule.CallGraph.GetSCC(cf), clbl => clbl.NameRelativeToModule);
                     reporter.Error(MessageSource.Resolver, cf.tok, "const definition contains a cycle: " + cycle);
                   }
                 }
               }
             }
-          } else if (d is SubsetTypeDecl) {
-            var dd = (SubsetTypeDecl)d;
-            if (dd.Module.CallGraph.GetSCCSize(dd) != 1) {
-              var cycle = Util.Comma(" -> ", dd.Module.CallGraph.GetSCC(dd), clbl => clbl.NameRelativeToModule);
-              reporter.Error(MessageSource.Resolver, dd.tok, "recursive dependency involving a subset type: " + cycle);
-            }
-          } else if (d is NewtypeDecl) {
-            var dd = (NewtypeDecl)d;
-            if (dd.Module.CallGraph.GetSCCSize(dd) != 1) {
-              var cycle = Util.Comma(" -> ", dd.Module.CallGraph.GetSCC(dd), clbl => clbl.NameRelativeToModule);
-              reporter.Error(MessageSource.Resolver, dd.tok, "recursive dependency involving a newtype: " + cycle);
+          } else if (d is SubsetTypeDecl || d is NewtypeDecl) {
+            var dd = (RedirectingTypeDecl)d;
+            if (d.Module.CallGraph.GetSCCSize(dd) != 1) {
+              var r = d.Module.CallGraph.GetSCCRepresentative(dd);
+              if (cycleErrorHasBeenReported.Contains(r)) {
+                // An error has already been reported for this cycle, so don't report another.
+                // Note, the representative, "r", may itself not be a const.
+              } else {
+                cycleErrorHasBeenReported.Add(r);
+                var cycle = Util.Comma(" -> ", d.Module.CallGraph.GetSCC(dd), clbl => clbl.NameRelativeToModule);
+                reporter.Error(MessageSource.Resolver, d.tok, "recursive constraint dependency involving a {0}: {1}", d.WhatKind, cycle);
+              }
             }
           }
         }
@@ -2892,6 +2932,24 @@ namespace Microsoft.Dafny
         foreach (var arg in udt.TypeArgs) {
           AddTypeDependencyEdges(context, arg, typeDependencies);
         }
+      }
+    }
+
+    /// <summary>
+    /// Add edges to the callgraph.
+    /// </summary>
+    private void AddTypeDependencyEdges(ICodeContext context, Type type) {
+      Contract.Requires(type != null);
+      Contract.Requires(context != null);
+      var caller = context as ICallable;
+      if (caller != null && type is NonProxyType) {
+        type.ForeachTypeComponent(ty => {
+          var udt = ty as UserDefinedType;
+          var cl = udt == null ? null : udt.ResolvedClass as ICallable;
+          if (cl != null) {
+            caller.EnclosingModule.CallGraph.AddEdge(caller, cl);
+          }
+        });
       }
     }
 
@@ -7290,24 +7348,11 @@ namespace Microsoft.Dafny
       currentClass = cl;
       foreach (MemberDecl member in cl.Members) {
         Contract.Assert(VisibleInScope(member));
-        if (member is Field) {
-          // const fields are ICodeContext's
-          var opts = new ResolveOpts(member as ICodeContext ?? new NoContext(currentClass.Module), false);
+        if (member is ConstantField) {
+          // don't do anything here, because const fields have already been resolved
+        } else if (member is Field) {
+          var opts = new ResolveOpts(new NoContext(currentClass.Module), false);
           ResolveAttributes(member.Attributes, member, opts);
-          
-          if (member is ConstantField) {
-            // Resolve the value expression
-            var field = (ConstantField)member;
-            if (field.Rhs != null) {
-              var ec = reporter.Count(ErrorLevel.Error);
-              ResolveExpression(field.Rhs, opts);
-              if (reporter.Count(ErrorLevel.Error) == ec) {
-                // make sure initialization only refers to constant field or literal expression
-                CheckConstantFieldInitialization(field, field.Rhs);
-              }
-            }
-            SolveAllTypeConstraints();
-          }
         } else if (member is Function) {
           var f = (Function)member;
           var ec = reporter.Count(ErrorLevel.Error);
@@ -7753,6 +7798,7 @@ namespace Microsoft.Dafny
       foreach (Formal p in f.Formals) {
         ScopePushAndReport(scope, p, "parameter");
         ResolveType(p.tok, p.Type, f, option, f.TypeArgs);
+        AddTypeDependencyEdges(f, p.Type);
       }
       if (f.Result != null) {
         ScopePushAndReport(scope, f.Result, "parameter/return");
@@ -7760,6 +7806,7 @@ namespace Microsoft.Dafny
       } else {
         ResolveType(f.tok, f.ResultType, f, option, f.TypeArgs);
       }
+      AddTypeDependencyEdges(f, f.ResultType);
       scope.PopMarker();
     }
 
@@ -7903,11 +7950,13 @@ namespace Microsoft.Dafny
       foreach (Formal p in m.Ins) {
         ScopePushAndReport(scope, p, "parameter");
         ResolveType(p.tok, p.Type, m, option, m.TypeArgs);
+        AddTypeDependencyEdges(m, p.Type);
       }
       // resolve out-parameters
       foreach (Formal p in m.Outs) {
         ScopePushAndReport(scope, p, "parameter");
         ResolveType(p.tok, p.Type, m, option, m.TypeArgs);
+        AddTypeDependencyEdges(m, p.Type);
       }
       scope.PopMarker();
       TeardownMinimumSignatureScope(m);
@@ -8514,28 +8563,24 @@ namespace Microsoft.Dafny
               t.ResolvedParam = dd.TheType;
               // resolve like a type parameter, and it may have type parameters if it's an opaque type
               t.ResolvedClass = d;  // Store the decl, so the compiler will generate the fully qualified name
-            } else if (d is SubsetTypeDecl) {
-              var dd = (SubsetTypeDecl)d;
+            } else if (d is SubsetTypeDecl || d is NewtypeDecl) {
+              var dd = (RedirectingTypeDecl)d;
               var caller = context as ICallable;
-              if (caller != null && !(caller is SpecialFunction)) {
+              if (caller != null && !(d is SubsetTypeDecl && caller is SpecialFunction)) {
                 caller.EnclosingModule.CallGraph.AddEdge(caller, dd);
-                if (caller == dd) {
+                if (caller == d) {
                   // detect self-loops here, since they don't show up in the graph's SSC methods
-                  reporter.Error(MessageSource.Resolver, dd.tok, "recursive dependency involving a subset type: {0} -> {0}", dd.Name);
+                  reporter.Error(MessageSource.Resolver, d.tok, "recursive constraint dependency involving a {0}: {1} -> {1}", d.WhatKind, d.Name);
                 }
               }
-              t.ResolvedClass = dd;
-            } else if (d is NewtypeDecl) {
-              var dd = (NewtypeDecl)d;
+              t.ResolvedClass = d;
+            } else if (d is DatatypeDecl) {
+              var dd = (DatatypeDecl)d;
               var caller = context as ICallable;
               if (caller != null) {
                 caller.EnclosingModule.CallGraph.AddEdge(caller, dd);
-                if (caller == dd) {
-                  // detect self-loops here, since they don't show up in the graph's SSC methods
-                  reporter.Error(MessageSource.Resolver, dd.tok, "recursive dependency involving a newtype: {0} -> {0}", dd.Name);
-                }
               }
-              t.ResolvedClass = dd;
+              t.ResolvedClass = d;
             } else {
               // d is a coinductive datatype or a class, and it may have type parameters
               t.ResolvedClass = d;
@@ -11838,6 +11883,7 @@ namespace Microsoft.Dafny
             var v = lhs.Var;
             ScopePushAndReport(scope, v, "let-variable");
             ResolveType(v.tok, v.Type, opts.codeContext, ResolveTypeOptionEnum.InferTypeProxies, null);
+            AddTypeDependencyEdges(opts.codeContext, v.Type);
           }
           foreach (var rhs in e.RHSs) {
             ResolveExpression(rhs, opts);
@@ -12606,6 +12652,7 @@ namespace Microsoft.Dafny
         // this is a simple resolution
         var v = pat.Var;
         ResolveType(v.tok, v.Type, context, ResolveTypeOptionEnum.InferTypeProxies, null);
+        AddTypeDependencyEdges(context, v.Type);
         // Note, the following type constraint checks that the RHS type can be assigned to the new variable on the left. In particular, it
         // does not check that the entire RHS can be assigned to something of the type of the pattern on the left.  For example, consider
         // a type declared as "datatype Atom<T> = MakeAtom(T)", where T is an invariant type argument.  Suppose the RHS has type Atom<nat>

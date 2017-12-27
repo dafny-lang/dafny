@@ -67,10 +67,6 @@ module VarianceChecks {
   type U1<!A> = U0<A>
   datatype U2 = MakeU2(U1<U2>)  // error: this would give rise to a logical inconsistency
 
-  type V0 = x: V2 | true
-  type V1 = V0
-  datatype V2 = Ctor(V1 --> bool)  // error: this would give rise to a logical inconsistency
-
   type W0 = W1
   datatype W1 = Ctor(W0 --> bool)  // error: this would give rise to a logical inconsistency
 
@@ -83,26 +79,34 @@ module VarianceChecks {
   datatype R2 = Ctor(R1<R0>)
 }
 
-/***** COMING SOON
+module Depen {
+  type V0 = x: V2 | true  // error: recursive definition in constraint of subset type
+  type V1 = V0
+  datatype V2 = Ctor(V1 --> bool)
+}
+  
 module DependencyChecks {
   type A = x: B | true  // error: bad dependency cycle
-  type B = y: int | F(y)  // error (same as previous line)
+  type B = y: int | F(y)
   predicate F(y: int) {
     var i: A := 5;
     i < 32
   }
 
-  //type MeAndMyself = x: int | var m: MeAndMySelf := 5; m < 10
-    
-  //type MeAndMyself'' = MeAndMyself'
-  //type MeAndMyself' = x: int | var m: MeAndMySelf'' := 5; m < 10
-
   datatype Q = Q(x: R)
   type R = x: S | true  // error: bad dependency cycle
-  type S = y: int | G(y)  // error (same as previous line)
+  type S = y: int | G(y)
   predicate G(y: int) {
     var q: Q :| true;
     q.x < 32
   }
 }
-*****/
+
+module MoreDependencyCycles {
+  //type MeAndMyself = x: int | var m: MeAndMySelf := 5; m < 10  // error: cyclic dependency in constraint
+
+  //type MeAndMyself'' = MeAndMyself'
+  //type MeAndMyself' = x: int | var m: MeAndMySelf'' := 5; m < 10  // error: cyclic dependency in constraint
+
+  // type A = x: A | true
+}

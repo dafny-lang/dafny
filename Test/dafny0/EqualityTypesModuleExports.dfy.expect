@@ -27,14 +27,17 @@ EqualityTypesModuleExports.dfy(154,8): Error: type parameter (A) passed to type 
 EqualityTypesModuleExports.dfy(155,8): Error: type parameter (A) passed to type Co must support equality (got Noeq)
 EqualityTypesModuleExports.dfy(156,8): Error: type parameter (A) passed to type Syn must support equality (got Noeq)
 EqualityTypesModuleExports.dfy(157,8): Error: type parameter (A) passed to type SubsetCo must support equality (got Noeq)
+EqualityTypesModuleExports.dfy(149,7): Error: recursive constraint dependency involving a subset type: SubsetCo -> Co
 EqualityTypesModuleExports.dfy(174,8): Error: type parameter (A) passed to type MyClass must support equality (got Noeq)
 EqualityTypesModuleExports.dfy(175,8): Error: type parameter (A) passed to type Dt must support equality (got Noeq)
 EqualityTypesModuleExports.dfy(176,8): Error: type parameter (A) passed to type Co must support equality (got Noeq)
 EqualityTypesModuleExports.dfy(177,8): Error: type parameter (A) passed to type Syn must support equality (got Noeq)
 EqualityTypesModuleExports.dfy(178,8): Error: type parameter (A) passed to type SubsetCo must support equality (got Noeq)
+EqualityTypesModuleExports.dfy(170,7): Error: recursive constraint dependency involving a subset type: SubsetCo -> Co
 EqualityTypesModuleExports.dfy(188,22): Error: set argument type must support equality (got A) (perhaps try declaring type parameter 'A' on line 188 as 'A(==)', which says it can only be instantiated with a type that supports equality)
 EqualityTypesModuleExports.dfy(189,24): Error: iset argument type must support equality (got A) (perhaps try declaring type parameter 'A' on line 189 as 'A(==)', which says it can only be instantiated with a type that supports equality)
 EqualityTypesModuleExports.dfy(195,8): Error: type parameter (A) passed to type MyClass must support equality (got Noeq)
+EqualityTypesModuleExports.dfy(191,7): Error: recursive constraint dependency involving a subset type: SubsetCo -> Co
 EqualityTypesModuleExports.dfy(214,7): Error: type 'Opa', which does not support equality, is used to refine an opaque type with equality support
 EqualityTypesModuleExports.dfy(230,8): Error: type parameter (A) passed to type S must support equality (got GGG.Opa'<int>)
 EqualityTypesModuleExports.dfy(231,8): Error: type parameter (A) passed to type S must support equality (got GGG.Syn'<int>)
@@ -47,4 +50,4 @@ EqualityTypesModuleExports.dfy(283,7): Error: type 'A' declared as supporting eq
 EqualityTypesModuleExports.dfy(298,7): Error: type 'ExportedType' declared as supporting equality, but the RHS type (PrivateType<A>) does not
 EqualityTypesModuleExports.dfy(346,4): Error: == can only be applied to expressions of types that support equality (got List<A>)
 EqualityTypesModuleExports.dfy(366,9): Warning: note, this export set is empty (did you perhaps forget the 'provides' or 'reveals' keyword?)
-48 resolution/type errors detected in EqualityTypesModuleExports.dfy
+51 resolution/type errors detected in EqualityTypesModuleExports.dfy

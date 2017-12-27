@@ -123,3 +123,89 @@ module H { // self cycles are checked earlier
   const ur: int := ur  // error: cycle
 }
 
+module I {
+  newtype A = x: int | F(x)  // error: recursive dependency: A, F
+  function F(x: int): bool
+  {
+    var b: A :| true;
+    b == b
+  }
+}
+
+module J {
+  newtype A = x: int | F(x)  // error: recursive dependency: A, F, B
+  function F(x: int): bool
+  {
+    var b: B :| true;
+    b == b
+  }
+  type B = a:A | true  // (note, no duplicate error message here)
+}
+
+module K {
+  newtype A = x: int | var l := F(x); true  // error: recursive dependency: A, F, B
+  function F(x: int): bool
+  {
+    var b: B := 6;
+    b == b
+  }
+  type B = A
+}
+
+module L {
+  newtype A = x: int | F(x)  // error: recursive dependency: A, F, B
+  function F(x: int): bool
+  {
+    var b: B :| true;
+    b == b
+  }
+  datatype B = Ctor(A)
+}
+
+module M {
+  newtype A = x: int | F(x)  // error: recursive dependency: A, F, B, C
+  function F(x: int): bool
+  {
+    var b: B :| true;
+    b == b
+  }
+  datatype B = Ctor(C, B) | Nil
+  type C = A
+}
+
+module N {
+  predicate Cmp(x: int, y: int) { x < y }
+
+  // here comes a long recursive definition of the constraints
+  newtype A = x: int | Cmp(x, b)  // error: recursive dependency: A, b, MakeC, C, D, E, f, G, H, I, j, K, L, M, n, MakeA
+  const b := var c := MakeC(); if c == c then 5 else 7
+  function method MakeC(): C
+  type C = D
+  datatype D = Ctor(E)
+  type E = x: int | f(x)
+  predicate f(x: int)
+  {
+    var g: G :| true;  // function -> codatatype
+    x % 3 == 0
+  }
+  codatatype G = CoCtor(H)
+  type H = I
+  type I = x: int | j(x)
+  predicate j(x: int)
+  {
+    var k: (bool, K) :| true;
+    x % 5 == 0
+  }
+  type K = (L, (), int)
+  datatype L = LCtor((M, real))
+  type M = x: int | x < n
+  const n := var o: (bv5, A) := (2, MakeA()); 300
+  function method MakeA(): A
+}
+
+module O {
+  type A = (B, C)  // error: cyclic types
+  type B = (C, D)
+  type C = (D, A)
+  type D = (A, B)
+}

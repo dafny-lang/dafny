@@ -4522,17 +4522,22 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public class SpecialFunction : Function
+  public class SpecialFunction : Function, ICodeContext, ICallable
   {
-    public SpecialFunction(IToken tok, string name, bool hasStaticKeyword, bool isProtected, bool isGhost,
+    readonly ModuleDefinition Module;
+    public SpecialFunction(IToken tok, string name, ModuleDefinition module, bool hasStaticKeyword, bool isProtected, bool isGhost,
                     List<TypeParameter> typeArgs, List<Formal> formals, Type resultType,
                     List<MaybeFreeExpression> req, List<FrameExpression> reads, List<MaybeFreeExpression> ens, Specification<Expression> decreases,
                     Expression body, Attributes attributes, IToken signatureEllipsis)
       : base(tok, name, hasStaticKeyword, isProtected, isGhost, typeArgs, formals, null, resultType, req, reads, ens, decreases, body, attributes, signatureEllipsis) 
-    { }
-  }
+    {
+      Module = module;
+    }
+    ModuleDefinition ICodeContext.EnclosingModule { get { return this.Module; } }
+    string ICallable.NameRelativeToModule { get { return Name; } }
+    }
 
-  public class SpecialField : Field
+    public class SpecialField : Field
   {
     public readonly string CompiledName;
     public readonly string PreString;

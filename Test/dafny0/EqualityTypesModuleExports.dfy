@@ -146,7 +146,7 @@ module BBB {
   datatype Dt<A> = Dt(s: set<A>)
   codatatype Co<A> = Co(s: iset<A>, more: SubsetCo<A>)
   type Syn<A> = Dt<A>
-  type SubsetCo<A> = co: Co<A> | true
+  type SubsetCo<A> = co: Co<A> | true  // error: Co and subset type SubsetCo have a mutual dependency
   type Noeq = int -> int
 
   method Test() {
@@ -167,7 +167,7 @@ module CCC {
   datatype Dt<A(==)> = Dt(s: set<A>)
   codatatype Co<A> = Co(s: iset<A>, more: SubsetCo<A>)
   type Syn<A> = Dt<A>
-  type SubsetCo<A> = co: Co<A> | true
+  type SubsetCo<A> = co: Co<A> | true  // error: Co and subset type SubsetCo have a mutual dependency
   type Noeq = int -> int
 
   method Test() {
@@ -188,7 +188,7 @@ module DDD {
   datatype Dt<A> = Dt(s: set<A>)  // error: A is not inferred to be (==), so set<A> is not allowed
   codatatype Co<A> = Co(s: iset<A>, more: SubsetCo<A>)  // error: A is not inferred to be (==), so iset<A> is not allowed
   type Syn<A> = Dt<A>
-  type SubsetCo<A> = co: Co<A> | true
+  type SubsetCo<A> = co: Co<A> | true  // error: Co and subset type SubsetCo have a mutual dependency
   type Noeq = int -> int
 
   method Test() {

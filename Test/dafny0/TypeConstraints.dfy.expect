@@ -7,19 +7,25 @@ TypeConstraints.dfy(81,6): Error: RHS (of type int) not assignable to LHS (of ty
 TypeConstraints.dfy(77,6): Error: RHS (of type int) not assignable to LHS (of type MyInt)
 TypeConstraints.dfy(94,8): Error: the type of this local variable is underspecified
 TypeConstraints.dfy(94,11): Error: the type of this local variable is underspecified
-TypeConstraints.dfy(94,14): Error: the type of this local variable is underspecified
-TypeConstraints.dfy(134,16): Error: type of + must be of a numeric type, a bitvector type, ORDINAL, char, a sequence type, or a set-like type (instead got bool)
-TypeConstraints.dfy(145,16): Error: type of + must be of a numeric type, a bitvector type, ORDINAL, char, a sequence type, or a set-like type (instead got C?)
-TypeConstraints.dfy(143,16): Error: type of + must be of a numeric type, a bitvector type, ORDINAL, char, a sequence type, or a set-like type (instead got map<bool, int>)
-TypeConstraints.dfy(147,16): Error: type of + must be of a numeric type, a bitvector type, ORDINAL, char, a sequence type, or a set-like type (instead got C)
-TypeConstraints.dfy(174,6): Error: RHS (of type C) not assignable to LHS (of type R)
-TypeConstraints.dfy(180,6): Error: RHS (of type object) not assignable to LHS (of type C)
-TypeConstraints.dfy(186,6): Error: RHS (of type object) not assignable to LHS (of type R)
+TypeConstraints.dfy(102,11): Error: type of + must be of a numeric type, a bitvector type, ORDINAL, char, a sequence type, or a set-like type (instead got bool)
+TypeConstraints.dfy(136,16): Error: type of + must be of a numeric type, a bitvector type, ORDINAL, char, a sequence type, or a set-like type (instead got bool)
+TypeConstraints.dfy(147,16): Error: type of + must be of a numeric type, a bitvector type, ORDINAL, char, a sequence type, or a set-like type (instead got C?)
+TypeConstraints.dfy(145,16): Error: type of + must be of a numeric type, a bitvector type, ORDINAL, char, a sequence type, or a set-like type (instead got map<bool, int>)
+TypeConstraints.dfy(149,16): Error: type of + must be of a numeric type, a bitvector type, ORDINAL, char, a sequence type, or a set-like type (instead got C)
+TypeConstraints.dfy(176,6): Error: RHS (of type C) not assignable to LHS (of type R)
+TypeConstraints.dfy(182,6): Error: RHS (of type object) not assignable to LHS (of type C)
+TypeConstraints.dfy(188,6): Error: RHS (of type object) not assignable to LHS (of type R)
 // TypeConstraints.dfy
 
 /*
 module _System {
   /* CALL GRAPH for module _System:
+   * SCC at height 2:
+   *   RotateRight
+   * SCC at height 1:
+   *   RotateLeft
+   * SCC at height 0:
+   *   nat
    */
   type string(==) = seq<char>
 
@@ -203,14 +209,16 @@ module PL {
 
 module PlusTests {
   /* CALL GRAPH for module PlusTests:
-   * SCC at height 5:
-   *   Plus4
-   * SCC at height 4:
-   *   Plus3
-   * SCC at height 3:
-   *   Plus2
-   * SCC at height 2:
-   *   Plus1
+   */
+  method Plus0()
+  {
+    var a, b, c;
+    a := b + c;
+  }
+}
+
+module PlusTests' {
+  /* CALL GRAPH for module PlusTests':
    * SCC at height 1:
    *   Plus5
    * SCC at height 0:
@@ -219,14 +227,11 @@ module PlusTests {
   newtype MyInt = x: int
     | true
 
-  method Plus0()
-  {
-    var a, b, c;
-  }
-
   method Plus1()
   {
     var a: bool;
+    var b: bool, c: bool;
+    a := b + c;
     a := true;
   }
 
@@ -464,15 +469,21 @@ module TypeParameters {
     var h': H, h'': H;
     h' := h;
     h := h'';
+    var r: C<real, real>;
+    r := c1;
   }
 }
 
 module Datatypes {
   /* CALL GRAPH for module Datatypes:
-   * SCC at height 1:
+   * SCC at height 3:
    *   P
-   * SCC at height 0:
+   * SCC at height 2:
+   *   Record
+   * SCC at height 1:
    *   M
+   * SCC at height 0:
+   *   Color
    */
   datatype Color = Red | Green | Blue
 
@@ -671,12 +682,14 @@ module OtherTraitsAndClasses {
 
 module LetPatterns {
   /* CALL GRAPH for module LetPatterns:
-   * SCC at height 2:
-   *   M
-   * SCC at height 1:
+   * SCC at height 3:
    *   Q
-   * SCC at height 0:
+   * SCC at height 2:
    *   P
+   * SCC at height 1:
+   *   M
+   * SCC at height 0:
+   *   MyDt
    */
   datatype MyDt = AAA(x: int) | BBB(y: int)
 

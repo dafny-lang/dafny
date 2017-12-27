@@ -89,15 +89,17 @@ method PlainLiterals() {
   var r := 0.0;
 }
 }
-module PlusTests {  
+module PlusTests {
   method Plus0() {
-    var a, b, c;
-//SOON:    a := b + c;  // error: underspecified type
+    var a, b, c;  // error (x2): underspecified type
+    a := b + c;
   }
+}
+module PlusTests' {
   method Plus1() {
     var a;
-//SOON:    var b, c;
-//SOON:    a := b + c;  // error: invalid arguments to +
+    var b, c;
+    a := b + c;  // error: invalid arguments to +
     a := true;
   }
   method Plus2() {
@@ -248,8 +250,8 @@ module TypeParameters {  // and opaque types
     h' := h;
     h := h'';
 
-    // SOON: var r: C;  // type parameters inferred
-    // SOON: r := c1;
+    var r: C;  // type parameters inferred
+    r := c1;
   }
 }
   

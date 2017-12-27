@@ -3,6 +3,12 @@
 /*
 module _System {
   /* CALL GRAPH for module _System:
+   * SCC at height 2:
+   *   RotateRight
+   * SCC at height 1:
+   *   RotateLeft
+   * SCC at height 0:
+   *   nat
    */
   type string(==) = seq<char>
 
@@ -61,60 +67,62 @@ module _System {
 */
 
 /* CALL GRAPH for module _module:
- * SCC at height 26:
+ * SCC at height 27:
  *   M
- * SCC at height 25:
+ * SCC at height 26:
  *   Main
- * SCC at height 24:
+ * SCC at height 25:
  *   Rotates
- * SCC at height 23:
- *   PrintRotates
- * SCC at height 22:
+ * SCC at height 24:
  *   Shifts
- * SCC at height 21:
- *   PrintShifts
- * SCC at height 20:
+ * SCC at height 23:
  *   Handful
- * SCC at height 19:
+ * SCC at height 22:
  *   TestCompilationTruncations
- * SCC at height 18:
+ * SCC at height 21:
  *   P2
- * SCC at height 17:
+ * SCC at height 20:
  *   M0
- * SCC at height 16:
+ * SCC at height 19:
  *   M1
- * SCC at height 15:
+ * SCC at height 18:
  *   M6
- * SCC at height 14:
+ * SCC at height 17:
  *   M8
- * SCC at height 13:
+ * SCC at height 16:
  *   M15
- * SCC at height 12:
+ * SCC at height 15:
  *   M16
- * SCC at height 11:
+ * SCC at height 14:
  *   M31
- * SCC at height 10:
+ * SCC at height 13:
  *   M32
- * SCC at height 9:
+ * SCC at height 12:
  *   M33
- * SCC at height 8:
+ * SCC at height 11:
  *   M53
- * SCC at height 7:
+ * SCC at height 10:
  *   M64
- * SCC at height 6:
+ * SCC at height 9:
  *   M67
- * SCC at height 5:
+ * SCC at height 8:
  *   Bv0Stuff
- * SCC at height 4:
+ * SCC at height 7:
  *   SummoTests
- * SCC at height 3:
+ * SCC at height 6:
  *   Unary
- * SCC at height 2:
+ * SCC at height 5:
  *   DoArith32
- * SCC at height 1:
+ * SCC at height 4:
  *   Arithmetic
- * SCC at height 0:
+ * SCC at height 3:
  *   BitwiseOperations
+ * SCC at height 2:
+ *   PrintRotates
+ * SCC at height 1:
+ *   PrintShifts
+ * SCC at height 0:
+ *   string
  */
 newtype Handful = x: int
   | 0 <= x < 80

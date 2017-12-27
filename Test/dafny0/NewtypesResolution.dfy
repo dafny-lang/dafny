@@ -273,11 +273,11 @@ module Regression {
 }
 
 module CycleViaConstraintsOrWitnesses {
-  type AA = a: int | true witness var b: BB := 0; if b < 100 then 0 else 2  // error: cycle
-  type BB = b: int | var a: CC := 0; a < 1  // error: cycle
-  type CC = c: int | forall d: DD :: d == d  // error: cycle
-  newtype DD = d: int | true witness var e: EE := 0; if e < 100 then 0 else 2  // error: cycle
-  newtype EE = e: int | var a: AA := 0; a < 1  // error: cycle
+  type AA = a: int | true witness var b: BB := 0; if b < 100 then 0 else 2  // error: cycle (AA, BB, CC, DD, EE)
+  type BB = b: int | var a: CC := 0; a < 1
+  type CC = c: int | forall d: DD :: d == d
+  newtype DD = d: int | true witness var e: EE := 0; if e < 100 then 0 else 2
+  newtype EE = e: int | var a: AA := 0; a < 1
 }
 
 module BigOrdinals {
