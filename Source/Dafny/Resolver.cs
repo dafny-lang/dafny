@@ -10523,7 +10523,7 @@ namespace Microsoft.Dafny
       }
     }
 
-    MemberDecl ResolveMember(IToken tok, Type receiverType, string memberName, out NonProxyType nptype, bool classMembersOnly = false) {
+    MemberDecl ResolveMember(IToken tok, Type receiverType, string memberName, out NonProxyType nptype) {
       Contract.Requires(tok != null);
       Contract.Requires(receiverType != null);
       Contract.Requires(memberName != null);
@@ -10547,19 +10547,7 @@ namespace Microsoft.Dafny
           if (memberName == "_ctor") {
             reporter.Error(MessageSource.Resolver, tok, "{0} {1} does not have an anonymous constructor", cd.WhatKind, cd.Name);
           } else {
-            // search the static members of the enclosing module or its imports
-            if (!classMembersOnly && moduleInfo.StaticMembers.TryGetValue(memberName, out member)) {
-              Contract.Assert(member.IsStatic); // moduleInfo.StaticMembers is supposed to contain only static members of the module's implicit class _default
-              if (member is AmbiguousMemberDecl) {
-                var ambiguousMember = (AmbiguousMemberDecl)member;
-                reporter.Error(MessageSource.Resolver, tok, "The name {0} ambiguously refers to a static member in one of the modules {1} (try qualifying the member name with the module name)", memberName, ambiguousMember.ModuleNames());
-              } else {
-                nptype = GetReceiverType(tok, member);
-                return member;
-              }
-            } else {
-              reporter.Error(MessageSource.Resolver, tok, "member {0} does not exist in {2} {1}", memberName, cd.Name, cd.WhatKind);
-            }
+            reporter.Error(MessageSource.Resolver, tok, "member {0} does not exist in {2} {1}", memberName, cd.Name, cd.WhatKind);
           }
           nptype = null;
           return null;
@@ -13123,9 +13111,8 @@ namespace Microsoft.Dafny
         }
       } else if (lhs != null) {
         // ----- 4. Look up name in the type of the Lhs
-        bool classMemberOnly = UserDefinedType.DenotesClass(expr.Lhs.Type) != null;
         NonProxyType nptype;
-        member = ResolveMember(expr.tok, expr.Lhs.Type, name, out nptype, classMemberOnly);
+        member = ResolveMember(expr.tok, expr.Lhs.Type, name, out nptype);
         if (member != null) {
           Expression receiver;
           if (!member.IsStatic) {
