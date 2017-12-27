@@ -102,11 +102,26 @@ module DependencyChecks {
   }
 }
 
-module MoreDependencyCycles {
-  //type MeAndMyself = x: int | var m: MeAndMySelf := 5; m < 10  // error: cyclic dependency in constraint
+module Cycle0 {
+  // The following produces two error messages (sigh)
+  type B = x: B | true  // error: cycle
+}
 
-  //type MeAndMyself'' = MeAndMyself'
-  //type MeAndMyself' = x: int | var m: MeAndMySelf'' := 5; m < 10  // error: cyclic dependency in constraint
+module Cycle1 {
+  type A = x: int | var a: A :| true; P(x)  // error: cycle
+  predicate P(x: int)
+}
 
-  // type A = x: A | true
+module Cycle2 {
+  type C = x: int | f(x) == f(x)  // error: cycle
+  function f(x: int): C
+}
+
+module MoreDependencyCycles0 {
+  type MeAndMyself = x: int | var m: MeAndMyself := 5; m < 10  // error: cyclic dependency in constraint
+}
+
+module MoreDependencyCycles1 {
+  type MeAndMyself'' = MeAndMyself'
+  type MeAndMyself' = x: int | var m: MeAndMyself'' := 5; m < 10  // error: cyclic dependency in constraint
 }

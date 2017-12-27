@@ -86,7 +86,35 @@ module DependencyChecks {
   }
 }
 
-module MoreDependencyCycles {
+module Cycle0 {
+  type B = x: B
+    | true
+}
+
+module Cycle1 {
+  type A = x: int
+    | var a: A :| true; P(x)
+
+  predicate P(x: int)
+}
+
+module Cycle2 {
+  type C = x: int
+    | f(x) == f(x)
+
+  function f(x: int): C
+}
+
+module MoreDependencyCycles0 {
+  type MeAndMyself = x: int
+    | var m: MeAndMyself := 5; m < 10
+}
+
+module MoreDependencyCycles1 {
+  type MeAndMyself'' = MeAndMyself'
+
+  type MeAndMyself' = x: int
+    | var m: MeAndMyself'' := 5; m < 10
 }
 Variance.dfy(10,12): Error: formal type parameter 'E' is not used according to its variance specification
 Variance.dfy(12,33): Error: formal type parameter 'Y' is not used according to its variance specification
@@ -126,4 +154,10 @@ Variance.dfy(77,21): Error: using the type being defined ('R2') here violates st
 Variance.dfy(83,7): Error: recursive constraint dependency involving a subset type: V1 -> V2 -> V0
 Variance.dfy(89,7): Error: recursive constraint dependency involving a subset type: F -> B -> A
 Variance.dfy(97,7): Error: recursive constraint dependency involving a subset type: G -> S -> R -> Q
-38 resolution/type errors detected in Variance.dfy
+Variance.dfy(107,7): Error: recursive constraint dependency involving a subset type: B -> B
+Variance.dfy(107,7): Error: Cycle among redirecting types (newtypes, subset types, type synonyms): B -> B
+Variance.dfy(111,7): Error: recursive constraint dependency involving a subset type: A -> A
+Variance.dfy(116,7): Error: recursive constraint dependency involving a subset type: C -> f
+Variance.dfy(121,7): Error: recursive constraint dependency involving a subset type: MeAndMyself -> MeAndMyself
+Variance.dfy(126,7): Error: recursive constraint dependency involving a subset type: MeAndMyself' -> MeAndMyself''
+44 resolution/type errors detected in Variance.dfy
