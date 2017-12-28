@@ -278,6 +278,7 @@ namespace Microsoft.Dafny {
           PrintDatatype((DatatypeDecl)d, indent);
         } else if (d is IteratorDecl) {
           var iter = (IteratorDecl)d;
+          if (i++ != 0) { wr.WriteLine(); }
           PrintIteratorSignature(iter, indent);
 
           if (iter.Body != null) {
@@ -1041,6 +1042,10 @@ namespace Microsoft.Dafny {
       if (characteristics.MustSupportZeroInitialization) {
         var prefix = s == null ? "" : s + ",";
         s = prefix + "0";
+      }
+      if (characteristics.DisallowReferenceTypes) {
+        var prefix = s == null ? "" : s + ",";
+        s = prefix + "!new";
       }
       if (s == null) {
         return "";

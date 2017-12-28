@@ -2578,6 +2578,10 @@ ref Attributes readsAttrs, ref Attributes modAttrs, ref Attributes decrAttrs) {
 			 SemErr(t, "unexpected TPCharOption");
 			}
 			
+		} else if (la.kind == 102) {
+			Get();
+			Expect(98);
+			characteristics.DisallowReferenceTypes = true; 
 		} else SynErr(196);
 	}
 

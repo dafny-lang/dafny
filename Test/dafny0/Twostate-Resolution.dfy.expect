@@ -124,6 +124,7 @@ module G {
   class C {
     var f: int
   }
+
   iterator Iter(c: C)
     requires c != null
     requires P()
@@ -193,6 +194,7 @@ module H {
       ghost var q: () -> bool := YY.Sp;
     }
   }
+
   iterator Iter(c: C)
     requires c != null
     yield ensures P()

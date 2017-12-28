@@ -1448,13 +1448,14 @@ TypeParameterCharacteristics<ref TypeParameter.TypeParameterCharacteristics char
   ")"
   .
 TPCharOption<ref TypeParameter.TypeParameterCharacteristics characteristics>
-= ( "=="    (. characteristics.EqualitySupport = TypeParameter.EqualitySupportValue.Required; .)
-  | digits  (. if (t.val == "0") {
-                 characteristics.MustSupportZeroInitialization = true;
-               } else {
-                 SemErr(t, "unexpected TPCharOption");
-               }
-            .)
+= ( "=="       (. characteristics.EqualitySupport = TypeParameter.EqualitySupportValue.Required; .)
+  | digits     (. if (t.val == "0") {
+                    characteristics.MustSupportZeroInitialization = true;
+                  } else {
+                    SemErr(t, "unexpected TPCharOption");
+                  }
+               .)
+  | "!" "new"  (. characteristics.DisallowReferenceTypes = true; .)
   )
   .
 /*------------------------------------------------------------------------*/
