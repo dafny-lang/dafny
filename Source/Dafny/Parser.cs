@@ -1629,6 +1629,10 @@ int StringToInt(string s, int defaultValue, string errString) {
 		Attributes attrs = null;
 		IToken/*!*/ id;  Type/*!*/ ty;
 		Expression e = null;
+		if (moduleLevelDecl && dmod.StaticToken != null) {
+		 errors.Warning(dmod.StaticToken, "module-level const declarations are always non-instance, so the 'static' keyword is not allowed here");
+		 dmod.IsStatic = false;
+		}
 		CheckDeclModifiers(dmod, "Fields", AllowedDeclModifiers.Ghost | AllowedDeclModifiers.Static);
 		
 		while (!(la.kind == 0 || la.kind == 59)) {SynErr(177); Get();}

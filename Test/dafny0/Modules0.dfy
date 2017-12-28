@@ -334,6 +334,7 @@ module TopLevelStatics {
   { 0 }
   static method M()  // error/warning: static keyword does not belong here
   { }
+  static const x: int  // error/warning: static keyword does not belong here
 }
 
 module Library {
