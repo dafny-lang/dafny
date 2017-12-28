@@ -1,5 +1,4 @@
-// XFAIL: *
-// RUN: %dafny /compile:0 /dprint:"%t.dprint" /vcsMaxKeepGoingSplits:10 /autoTriggers:0 "%s" > "%t"
+// RUN: %dafny /compile:0 /dprint:"%t.dprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 class BreadthFirstSearch<Vertex(==)>
@@ -45,7 +44,7 @@ class BreadthFirstSearch<Vertex(==)>
   {
     var V, C, N := {source}, {source}, {};
     ghost var Processed, paths := {}, map[source := Nil];
-    assert domain(paths) == {source};
+    assert paths.Keys == {source};
     // V - all encountered vertices
     // Processed - vertices reachable from "source" is at most "d" steps
     // C - unprocessed vertices reachable from "source" in "d" steps 
@@ -63,7 +62,7 @@ class BreadthFirstSearch<Vertex(==)>
       invariant Processed !! C !! N;  // Processed, C, and N are mutually disjoint
       // "paths" records a path for every encountered vertex
       invariant ValidMap(source, paths);
-      invariant V == domain(paths);
+      invariant V == paths.Keys;
       // shortest paths for vertices in C have length d, and for vertices in N
       // have length d+1
       invariant forall x :: x in C ==> length(Find(source, x, paths)) == d;
@@ -214,9 +213,9 @@ class BreadthFirstSearch<Vertex(==)>
                            paths: map<Vertex, List<Vertex>>, v: Vertex, pathToV: List<Vertex>) 
                returns (newPaths: map<Vertex, List<Vertex>>)
     requires ValidMap(source, paths);
-    requires vSuccs !! domain(paths);
+    requires vSuccs !! paths.Keys;
     requires forall succ :: succ in vSuccs ==> IsPath(source, succ, Cons(v, pathToV));
-    ensures ValidMap(source, newPaths) && domain(newPaths) == domain(paths) + vSuccs;
+    ensures ValidMap(source, newPaths) && newPaths.Keys == paths.Keys + vSuccs;
     ensures forall x :: x in paths ==> 
                         Find(source, x, paths) == Find(source, x, newPaths);
     ensures forall x :: x in vSuccs ==> Find(source, x, newPaths) == Cons(v, pathToV);
@@ -226,15 +225,10 @@ class BreadthFirstSearch<Vertex(==)>
     } else {
       var succ :| succ in vSuccs;
       newPaths := paths[succ := Cons(v, pathToV)];
-      assert domain(newPaths) == domain(paths) + {succ};
+      assert newPaths.Keys == paths.Keys + {succ};
       newPaths := UpdatePaths(vSuccs - {succ}, source, newPaths, v, pathToV);
     }
   }
-}
-
-function domain<T, U>(m: map<T, U>): set<T>
-{
-  set t | t in m
 }
 
 datatype List<T> = Nil | Cons(head: T, tail: List)
