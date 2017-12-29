@@ -4088,7 +4088,7 @@ namespace Microsoft.Dafny
             }
           case "ModifiesFrame": {
               var u = Types[1].NormalizeExpand();  // eventual ref type
-              var collType = t.AsCollectionType;
+              var collType = t is MapType ? null : t.AsCollectionType;
               if (collType != null) {
                 t = collType.Arg.NormalizeExpand();
               }
@@ -4119,7 +4119,7 @@ namespace Microsoft.Dafny
               if (arrTy != null) {
                 t = arrTy.Result.NormalizeExpand();
               }
-              var collType = t.AsCollectionType;
+              var collType = t is MapType ? null : t.AsCollectionType;
               if (collType != null) {
                 t = collType.Arg.NormalizeExpand();
               }
