@@ -1,0 +1,54 @@
+
+Dafny program verifier finished with 2 verified, 0 errors
+Program compiled successfully
+Running...
+
+map[Record.Make(null, null, __default.Class, 5, 10) := (8.0 / 10.0), Record.Make(null, null, __default.Class, 4, 11) := (1.0 / 10.0), Record.Make(null, null, __default.Class, 8, 12) := (1.0 / 10.0)]
+(5, null)
+(5, null, 2)
+{(5, null)}
+{(5, null, 2)}
+{null}
+[null]
+multiset{} multiset{null} multiset{null, null}
+map[5 := null]
+map[null := 5]
+{{null}} multiset{{null}} [{null}] map[{null} := {null}]
+{multiset{null}} multiset{multiset{null}} [multiset{null}] map[multiset{null} := multiset{null}]
+{[null]} multiset{[null]} [[null]] map[[null] := [null]]
+{map[null := null]} multiset{map[null := null]} [map[null := null]] map[map[null := null] := map[null := null]]
+False False True True
+True True False
+True False
+True False
+False
+False False
+False False
+True True
+
+Dafny program verifier finished with 2 verified, 0 errors
+Program compiled successfully
+Running...
+
+map[Record.Make(null, null, __default.Class, 8, 12) := (1.0 / 10.0), Record.Make(null, null, __default.Class, 4, 11) := (1.0 / 10.0), Record.Make(null, null, __default.Class, 5, 10) := (8.0 / 10.0)]
+(5, null)
+(5, null, 2)
+{(5, null)}
+{(5, null, 2)}
+{null}
+[null]
+multiset{} multiset{null} multiset{null, null}
+map[5 := null]
+map[null := 5]
+{{null}} multiset{{null}} [{null}] map[{null} := {null}]
+{multiset{null}} multiset{multiset{null}} [multiset{null}] map[multiset{null} := multiset{null}]
+{[null]} multiset{[null]} [[null]] map[[null] := [null]]
+{map[null := null]} multiset{map[null := null]} [map[null := null]] map[map[null := null] := map[null := null]]
+False False True True
+True True False
+True False
+True False
+False
+False False
+False False
+True True

@@ -453,7 +453,7 @@ namespace Microsoft.Dafny {
           if (!arg.IsGhost) {
             string nm = FormalName(arg, i);
             if (arg.Type.IsDatatype || arg.Type.IsTypeParameter || arg.Type.SupportsEquality) {
-              wr.Write(" && this.@{0}.Equals(oth.@{0})", nm);
+              wr.Write(" && Dafny.Helpers.AreEqual(this.@{0}, oth.@{0})", nm);
             } else {
               wr.Write(" && this.@{0} == oth.@{0}", nm);
             }
@@ -471,7 +471,7 @@ namespace Microsoft.Dafny {
         foreach (Formal arg in ctor.Formals) {
           if (!arg.IsGhost) {
             string nm = FormalName(arg, i);
-            Indent(ind + IndentAmount, wr); wr.WriteLine("hash = ((hash << 5) + hash) + ((ulong)this.@{0}.GetHashCode());", nm);
+            Indent(ind + IndentAmount, wr); wr.WriteLine("hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this.@{0}));", nm);
             i++;
           }
         }
@@ -496,7 +496,7 @@ namespace Microsoft.Dafny {
                 if (i != 0) {
                   Indent(ind + IndentAmount, wr); wr.WriteLine("{0} += \", \";", tempVar);
                 }
-                Indent(ind + IndentAmount, wr); wr.WriteLine("{0} += @{1}.ToString();", tempVar, FormalName(arg, i));
+                Indent(ind + IndentAmount, wr); wr.WriteLine("{0} += Dafny.Helpers.ToString(this.@{1});", tempVar, FormalName(arg, i));
                 i++;
               }
             }
@@ -3468,7 +3468,7 @@ namespace Microsoft.Dafny {
         //       }
         //     }
         //   }
-        //   return Dafny.Map<U, V>.FromElements(_coll);
+        //   return Dafny.Map<U, V>.FromCollection(_coll);
         // })()
         Contract.Assert(e.Bounds != null);  // the resolver would have insisted on finding bounds
         var domtypeName = TypeName(e.Type.AsMapType.Domain, wr, e.tok);
