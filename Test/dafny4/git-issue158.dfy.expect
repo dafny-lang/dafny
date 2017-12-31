@@ -3,7 +3,9 @@ Dafny program verifier finished with 2 verified, 0 errors
 Program compiled successfully
 Running...
 
-map[Record.Make(null, null, __default.Class, 5, 10) := (8.0 / 10.0), Record.Make(null, null, __default.Class, 4, 11) := (1.0 / 10.0), Record.Make(null, null, __default.Class, 8, 12) := (1.0 / 10.0)]
+map[Record.Make(null, null, __default.Class, 5, 10) := (8.0 / 10.0)]
+map[Record.Make(null, null, __default.Class, 4, 11) := (1.0 / 10.0)]
+map[Record.Make(null, null, __default.Class, 8, 12) := (1.0 / 10.0)]
 (5, null)
 (5, null, 2)
 {(5, null)}
@@ -30,7 +32,9 @@ Dafny program verifier finished with 2 verified, 0 errors
 Program compiled successfully
 Running...
 
-map[Record.Make(null, null, __default.Class, 8, 12) := (1.0 / 10.0), Record.Make(null, null, __default.Class, 4, 11) := (1.0 / 10.0), Record.Make(null, null, __default.Class, 5, 10) := (8.0 / 10.0)]
+map[Record.Make(null, null, __default.Class, 5, 10) := (8.0 / 10.0)]
+map[Record.Make(null, null, __default.Class, 4, 11) := (1.0 / 10.0)]
+map[Record.Make(null, null, __default.Class, 8, 12) := (1.0 / 10.0)]
 (5, null)
 (5, null, 2)
 {(5, null)}

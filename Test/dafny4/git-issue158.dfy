@@ -18,7 +18,9 @@ method Main()
                 Make(null,null,a2,4,11) := 0.1,
                 Make(null,null,a3,8,12) := 0.1
                 ];
-  print c, "\n";
+  print map r | r in c && r.4 == 10 :: c[r], "\n";
+  print map r | r in c && r.4 == 11 :: c[r], "\n";
+  print map r | r in c && r.4 == 12 :: c[r], "\n";
   More(null);
   EvenMore(null);
   AndThenSome(null);
