@@ -1025,10 +1025,13 @@ axiom (forall<T> s: Seq T, n: int, k: int ::
   0 <= n && n <= k && k < Seq#Length(s) ==>
     Seq#Index(Seq#Drop(s,n), k-n) == Seq#Index(s, k));
 
-axiom (forall<T> s, t: Seq T ::
-  { Seq#Append(s, t) }
-  Seq#Take(Seq#Append(s, t), Seq#Length(s)) == s &&
-  Seq#Drop(Seq#Append(s, t), Seq#Length(s)) == t);
+axiom (forall<T> s, t: Seq T, n: int ::
+  { Seq#Take(Seq#Append(s, t), n) }
+  { Seq#Drop(Seq#Append(s, t), n) }
+  n == Seq#Length(s)
+  ==>
+  Seq#Take(Seq#Append(s, t), n) == s &&
+  Seq#Drop(Seq#Append(s, t), n) == t);
 
 function Seq#FromArray(h: Heap, a: ref): Seq Box;
 axiom (forall h: Heap, a: ref ::
