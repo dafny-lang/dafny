@@ -92,7 +92,7 @@ function G(d: Data): int
 
 datatype Tree<T> = Leaf(T) | Branch(Tree<T>, Tree<T>)
 
-class DatatypeInduction<T> {
+class DatatypeInduction<T(!new)> {
   function LeafCount<G>(tree: Tree<G>): int
   {
     match tree

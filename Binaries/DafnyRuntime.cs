@@ -1034,6 +1034,9 @@ namespace Dafny
         }
       }
     }
+    public static IEnumerable<T> SingleValue<T>(T e) {
+      yield return e;
+    }
     // pre: b != 0
     // post: result == a/b, as defined by Euclidean Division (http://en.wikipedia.org/wiki/Modulo_operation)
     public static sbyte EuclideanDivision_sbyte(sbyte a, sbyte b) {

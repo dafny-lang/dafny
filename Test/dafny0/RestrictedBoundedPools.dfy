@@ -1,4 +1,3 @@
-// XFAIL: *
 // RUN: %dafny /compile:0 /dprint:"%t.dprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
@@ -6,6 +5,7 @@ module Methods_EverythingGoes {
   predicate R<Y>(y: Y) { true }
 
   type Opaque(==)
+  type OpaqueNoAlloc(!new)
 
   class Cell {
     var data: int
@@ -16,6 +16,12 @@ module Methods_EverythingGoes {
   method M0()
     requires forall x: Opaque :: R(x)  // error: may seem innocent enough, but it quantifies over all Opaque
 
+  method M0'()
+    requires forall x: Opaque :: allocated(x) ==> R(x)  // fine
+
+  method M0''()
+    requires forall x: OpaqueNoAlloc :: R(x)  // fine
+
   method E0()
     requires exists x: Opaque :: R(x)  // error: may seem innocent enough, but it quantifies over all Opaque
 
@@ -24,6 +30,9 @@ module Methods_EverythingGoes {
 
   method E1<X>()
     requires exists x: X :: R(x)  // error: may seem innocent enough, but it quantifies over all X
+
+  method E2<X(!new)>()
+    requires exists x: X :: R(x)  // fine
 
   method M2()
     requires forall c: Cell :: R(c)  // error: quantifies over all references
@@ -134,6 +143,7 @@ module OtherComprehensions {
   predicate R<Y>(y: Y) { true }
   
   type Opaque(==)
+  type OpaqueNoAlloc(!new)
 
   class Cell {
     var data: int
@@ -142,15 +152,22 @@ module OtherComprehensions {
   datatype List<G> = Nil | Cons(G, List<G>)
 
   method M0() {
-    assert {} == set o: Opaque | R(o);  // error: may be infinite
+    assert {} == set o: Opaque | R(o);  // error (x2): may be infinite, and depends on alloc
   }
 
   method M1() {
-    assert iset{} == iset o: Opaque | R(o);
+    if
+    case true =>
+      assert iset{} == iset o: Opaque | R(o);  // error: o depends on alloc
+    case true =>
+      assert iset{} == iset o: Opaque | allocated(o) && R(o);  // fine
+      assert {} == set o: Opaque | allocated(o) && R(o);  // this is also finite
+    case true =>
+      assert iset{} == iset o: OpaqueNoAlloc | R(o);  // fine
   }
 
-  method M2() returns (s: iset<Opaque>) {
-    s := iset o: Opaque | R(o);  // error: not compilable, for may be infinite
+  method M2() returns (s: iset<OpaqueNoAlloc>) {
+    s := iset o: OpaqueNoAlloc | R(o);  // error: not compilable, for may be infinite
   }
 
   function F0(): int
@@ -172,7 +189,7 @@ module OtherComprehensions {
   }
 
   function H0<G>(): (s: iset<List<G>>)
-    ensures s == iset xs: List<G> | R(xs)  // error: may involve references (hmm, could this be allowed?)
+    ensures s == iset xs: List<G> | R(xs)  // error: may involve references
   {
     iset{}
   }
@@ -184,13 +201,13 @@ module OtherComprehensions {
   }
 }
 
-module Allocated {
+module Allocated0 {
   class Cell {
     var data: int
   }
 
   method M0() {
-    assert forall c: Cell :: c.data < 100;
+    assert forall c: Cell :: c.data < 100;  // error: depends on alloc
   }
 
   method M1() {
@@ -208,6 +225,12 @@ module Allocated {
   ghost method N2() returns (s: set<Cell>) {
     s := set c: Cell | allocated(c) && c.data < 100;  // fine: this is finite and need not be compiled
   }
+}
+
+module Allocated1 {
+  class Cell {
+    var data: int
+  }
 
   function F(): set<Cell> {
     set c: Cell | allocated(c) && c.data < 100  // error: function not allowed to depend on allocation state
@@ -220,21 +243,23 @@ module Allocated {
 
   twostate function TS0(c: Cell, new d: Cell): bool
   {
-    allocated(c)  // this is always true
+    allocated(d)  // error: even though this is always true, it is not allowed (when the function definition axiom
+                  // is applied in a reachable heap, but that's not guarantted)
   }
 
   twostate function TS1(c: Cell, new d: Cell): bool
   {
-    allocated(d)  // this is always true
+    allocated(d)  // error: even though this is always true, it is not allowed (when the function definition axiom
+                  // is applied in a reachable heap, but that's not guarantted)
   }
 
   twostate function TS2(c: Cell, new d: Cell): bool
   {
-    old(allocated(d))  // this value depends on the pre-state, but it's allowed in any case
+    old(allocated(d))  // this value depends on the pre-state, but it's allowed in any case because the pre-state is non-variant in the frame axiom
   }
 
   twostate function TS3(c: Cell, new d: Cell): bool
   {
-    fresh(d)  // this value depends on the pre-state, but it's allowed in any case
+    fresh(d)  // this value depends on the pre-state, but it's allowed in any case because the pre-state is non-variant in the frame axiom
   }
 }

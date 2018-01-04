@@ -855,6 +855,18 @@ namespace Microsoft.Dafny {
       }
     }
 
+    public bool IsAllocFree {
+      get {
+        if (IsRefType) {
+          return false;
+        } else if (IsTypeParameter) {
+          return AsTypeParameter.Characteristics.DisallowReferenceTypes;
+        } else {
+          return TypeArgs.All(ta => ta.IsAllocFree);
+        }
+      }
+    }
+
     public CollectionType AsCollectionType { get { return NormalizeExpand() as CollectionType; } }
     public SetType AsSetType { get { return NormalizeExpand() as SetType; } }
     public MultiSetType AsMultiSetType { get { return NormalizeExpand() as MultiSetType; } }
@@ -6617,12 +6629,8 @@ namespace Microsoft.Dafny {
     // invariant Bounds == null || MissingBounds == null;
     public class WiggleWaggleBound : ComprehensionExpr.BoundedPool
     {
-      public override bool IsFinite {
-        get { return false; }
-      }
-      public override int Preference() {
-        return 0;
-      }
+      public override PoolVirtues Virtues => PoolVirtues.Enumerable | PoolVirtues.IndependentOfAlloc | PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc;
+      public override int Preference() => 1;
     }
 
     /// <summary>
@@ -9571,8 +9579,6 @@ namespace Microsoft.Dafny {
     public readonly Attributes Attributes;
     public List<ComprehensionExpr.BoundedPool> Constraint_Bounds;  // initialized and filled in by resolver; null for Exact=true and for when expression is in a ghost context
     // invariant Constraint_Bounds == null || Constraint_Bounds.Count == BoundVars.Count;
-    public List<IVariable> Constraint_MissingBounds;  // filled in during resolution; remains "null" if Exact==true or if bounds can be found
-    // invariant Constraint_Bounds == null || Constraint_MissingBounds == null;
     private Expression translationDesugaring;  // filled in during translation, lazily; to be accessed only via Translation.LetDesugaring; always null when Exact==true
     private Translator lastTranslatorUsed; // avoid clashing desugaring between translators
 
@@ -9675,23 +9681,66 @@ namespace Microsoft.Dafny {
     public Attributes Attributes;
 
     public abstract class BoundedPool {
-      public virtual bool IsFinite {
-        get { return true; }  // most bounds are finite
-      }
+      [Flags]
+      public enum PoolVirtues { None = 0, Finite = 1, Enumerable = 2, IndependentOfAlloc = 4, IndependentOfAlloc_or_ExplicitAlloc = 8 }
+      public abstract PoolVirtues Virtues { get; }
+      /// <summary>
+      /// A higher preference is better.
+      /// A preference below 2 is a last-resort bounded pool. Bounds discovery will not consider
+      /// such a pool to be final until there are no other choices.
+      /// 
+      /// For easy reference, here is the BoundedPool hierarchy and their preference levels:
+      /// 
+      /// 0: AllocFreeBoundedPool
+      /// 0: ExplicitAllocatedBoundedPool
+      /// 0: RefBoundedPool
+      /// 
+      /// 1: WiggleWaggleBound
+      /// 
+      /// 2: SuperSetBoundedPool
+      /// 
+      /// 3: SubSetBoundedPool
+      /// 3: IntBoundedPool
+      /// 
+      /// 4: CharBoundedPool
+      /// 
+      /// 5: BoolBoundedPool
+      /// 5: DatatypeBoundedPool
+      /// 
+      /// 10: CollectionBoundedPool
+      ///     - SetBoundedPool
+      ///     - MapBoundedPool
+      ///     - SeqBoundedPool
+      /// 
+      /// 20: ExactBoundedPool
+      /// </summary>
       public abstract int Preference(); // higher is better
       
-      public static BoundedPool GetBest(List<BoundedPool> bounds, bool onlyFiniteBounds) {
+      public static BoundedPool GetBest(List<BoundedPool> bounds, PoolVirtues requiredVirtues) {
         Contract.Requires(bounds != null);
         bounds = CombineIntegerBounds(bounds);
         BoundedPool best = null;
         foreach (var bound in bounds) {
-          if (!onlyFiniteBounds || bound.IsFinite) {
+          if ((bound.Virtues & requiredVirtues) == requiredVirtues) {
             if (best == null || bound.Preference() > best.Preference()) {
               best = bound;
             }
           }
         }
         return best;
+      }
+      public static List<VT> MissingBounds<VT>(List<VT> vars, List<BoundedPool> bounds, PoolVirtues requiredVirtues = PoolVirtues.None) where VT : IVariable {
+        Contract.Requires(vars != null);
+        Contract.Requires(bounds != null);
+        Contract.Requires(vars.Count == bounds.Count);
+        Contract.Ensures(Contract.Result<List<VT>>() != null);
+        var missing = new List<VT>();
+        for (var i = 0; i < vars.Count; i++) {
+          if (bounds[i] == null || (bounds[i].Virtues & requiredVirtues) != requiredVirtues) {
+            missing.Add(vars[i]);
+          }
+        }
+        return missing;
       }
       static List<BoundedPool> CombineIntegerBounds(List<BoundedPool> bounds) {
         var lowerBounds = new List<IntBoundedPool>();
@@ -9728,21 +9777,18 @@ namespace Microsoft.Dafny {
         Contract.Requires(e != null);
         E = e;
       }
-      public override int Preference() {
-        return 20;  // the best of all bounds
-      }
+      public override PoolVirtues Virtues => PoolVirtues.Finite | PoolVirtues.Enumerable | PoolVirtues.IndependentOfAlloc | PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc;
+      public override int Preference() => 20;  // the best of all bounds
     }
     public class BoolBoundedPool : BoundedPool
     {
-      public override int Preference() {
-        return 5;
-      }
+      public override PoolVirtues Virtues => PoolVirtues.Finite | PoolVirtues.Enumerable | PoolVirtues.IndependentOfAlloc | PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc;
+      public override int Preference() => 5;
     }
     public class CharBoundedPool : BoundedPool
     {
-      public override int Preference() {
-        return 4;
-      }
+      public override PoolVirtues Virtues => PoolVirtues.Finite | PoolVirtues.Enumerable | PoolVirtues.IndependentOfAlloc | PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc;
+      public override int Preference() => 4;
     }
     public class RefBoundedPool : BoundedPool
     {
@@ -9750,104 +9796,132 @@ namespace Microsoft.Dafny {
       public RefBoundedPool(Type t) {
         Type = t;
       }
-      public override int Preference() {
-        return 2;
+      public override PoolVirtues Virtues => PoolVirtues.Finite;
+      public override int Preference() => 0;
+    }
+    public class AllocFreeBoundedPool : BoundedPool
+    {
+      public Type Type;
+      public AllocFreeBoundedPool(Type t) {
+        Type = t;
       }
+      public override PoolVirtues Virtues {
+        get {
+          if (Type.IsRefType) {
+            return PoolVirtues.Finite | PoolVirtues.IndependentOfAlloc | PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc;
+          } else {
+            return PoolVirtues.IndependentOfAlloc | PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc;
+          }
+        }
+      }
+      public override int Preference() => 0;
+    }
+    public class ExplicitAllocatedBoundedPool : BoundedPool
+    {
+      public ExplicitAllocatedBoundedPool() {
+      }
+      public override PoolVirtues Virtues => PoolVirtues.Finite | PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc;
+      public override int Preference() => 0;
     }
     public class IntBoundedPool : BoundedPool
     {
       public readonly Expression LowerBound;
       public readonly Expression UpperBound;
       public IntBoundedPool(Expression lowerBound, Expression upperBound) {
+        Contract.Requires(lowerBound != null || upperBound != null);
         LowerBound = lowerBound;
         UpperBound = upperBound;
       }
-      public override bool IsFinite {
+      public override PoolVirtues Virtues {
         get {
-          return LowerBound != null && UpperBound != null;
+          if (LowerBound != null && UpperBound != null) {
+            return PoolVirtues.Finite | PoolVirtues.Enumerable | PoolVirtues.IndependentOfAlloc | PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc;
+          } else {
+            return PoolVirtues.Enumerable | PoolVirtues.IndependentOfAlloc | PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc;
+          }
         }
       }
-      public override int Preference() {
-        return 1;
-      }
+      public override int Preference() => 3;
     }
     public abstract class CollectionBoundedPool : BoundedPool
     {
       public readonly bool ExactTypes;
-      public CollectionBoundedPool(bool exactTypes) {
+      public readonly bool IsFiniteCollection;
+      public CollectionBoundedPool(bool exactTypes, bool isFiniteCollection) {
         ExactTypes = exactTypes;
+        IsFiniteCollection = isFiniteCollection;
       }
-      public override int Preference() {
-        return 10;
+      public override PoolVirtues Virtues {
+        get {
+          var v = PoolVirtues.IndependentOfAlloc;
+          if (IsFiniteCollection) {
+            v |= PoolVirtues.Finite;
+            if (ExactTypes) {
+              v |= PoolVirtues.Enumerable | PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc;
+            }
+          }
+          return v;
+        }
       }
+      public override int Preference() => 10;
     }
     public class SetBoundedPool : CollectionBoundedPool
     {
       public readonly Expression Set;
-      public SetBoundedPool(Expression set, bool exactTypes) : base(exactTypes) { Set = set; }
+      public SetBoundedPool(Expression set, bool exactTypes, bool isFiniteCollection) : base(exactTypes, isFiniteCollection) { Set = set; }
     }
     public class SubSetBoundedPool : BoundedPool
     {
       public readonly Expression UpperBound;
-      public SubSetBoundedPool(Expression set) { UpperBound = set; }
-      public override int Preference() {
-        return 1;
+      public readonly bool IsFiniteCollection;
+      public SubSetBoundedPool(Expression set, bool isFiniteCollection) {
+        UpperBound = set;
+        IsFiniteCollection = isFiniteCollection;
       }
+      public override PoolVirtues Virtues {
+        get {
+          if (IsFiniteCollection) {
+            return PoolVirtues.Finite | PoolVirtues.Enumerable | PoolVirtues.IndependentOfAlloc | PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc;
+          } else {
+            // it's still enumerable, because at run time, all sets are finite after all
+            return PoolVirtues.Enumerable | PoolVirtues.IndependentOfAlloc | PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc;
+          }
+        }
+      }
+      public override int Preference() => 3;
     }
     public class SuperSetBoundedPool : BoundedPool
     {
       public readonly Expression LowerBound;
       public SuperSetBoundedPool(Expression set) { LowerBound = set; }
-      public override int Preference() {
-        return 0;
-      }
-      public override bool IsFinite {
-        get { return false; }
-      }
+      public override int Preference() => 2;
+      public override PoolVirtues Virtues => PoolVirtues.None;
     }
     public class MapBoundedPool : CollectionBoundedPool
     {
       public readonly Expression Map;
-      public MapBoundedPool(Expression map, bool exactTypes) : base(exactTypes) { Map = map; }
+      public MapBoundedPool(Expression map, bool exactTypes, bool isFiniteCollection) : base(exactTypes, isFiniteCollection) { Map = map; }
     }
     public class SeqBoundedPool : CollectionBoundedPool
     {
       public readonly Expression Seq;
-      public SeqBoundedPool(Expression seq, bool exactTypes) : base(exactTypes) { Seq = seq; }
+      public SeqBoundedPool(Expression seq, bool exactTypes) : base(exactTypes, true) { Seq = seq; }
     }
     public class DatatypeBoundedPool : BoundedPool
     {
       public readonly DatatypeDecl Decl;
       public DatatypeBoundedPool(DatatypeDecl d) { Decl = d; }
-      public override int Preference() {
-        return 5;
-      }
+      public override PoolVirtues Virtues => PoolVirtues.Finite | PoolVirtues.Enumerable | PoolVirtues.IndependentOfAlloc | PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc;
+      public override int Preference() => 5;
     }
 
     public List<BoundedPool> Bounds;  // initialized and filled in by resolver
     // invariant Bounds == null || Bounds.Count == BoundVars.Count;
-    public List<BoundVar> MissingBounds;  // filled in during resolution; remains "null" if bounds can be found
-    // invariant Bounds == null || MissingBounds == null;
 
     public List<BoundVar> UncompilableBoundVars() {
-      var bvs = new List<BoundVar>();
-      if (MissingBounds != null) {
-        bvs.AddRange(MissingBounds);
-      }
-      if (Bounds != null) {
-        Contract.Assert(Bounds.Count == BoundVars.Count);
-        for (int i = 0; i < Bounds.Count; i++) {
-          var bound = Bounds[i];
-          if (bound is RefBoundedPool) {
-            // yes, this is in principle a bound, but it's not one we'd like to compile
-            bvs.Add(BoundVars[i]);
-          } else if (bound is CollectionBoundedPool && !((CollectionBoundedPool)bound).ExactTypes) {
-            // non-exact types would require a run-time type test, which is not possible in C#
-            bvs.Add(BoundVars[i]);
-          }
-        }
-      }
-      return bvs;
+      Contract.Ensures(Contract.Result<List<BoundVar>>() != null);
+      var v = BoundedPool.PoolVirtues.Finite | BoundedPool.PoolVirtues.Enumerable;
+      return ComprehensionExpr.BoundedPool.MissingBounds(BoundVars, Bounds, v);
     }
 
     public ComprehensionExpr(IToken tok, List<BoundVar> bvars, Expression range, Expression term, Attributes attrs)

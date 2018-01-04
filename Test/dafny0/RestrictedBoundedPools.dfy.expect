@@ -1,15 +1,32 @@
-RestrictedBoundedPools.dfy(68,4): Error: a quantifier involved in a function definition is not allowed to depend on the set of allocated references; Dafny's heuristics can't figure out a bound for the values of 'x'
-RestrictedBoundedPools.dfy(73,4): Error: a quantifier involved in a function definition is not allowed to depend on the set of allocated references; Dafny's heuristics can't figure out a bound for the values of 'x'
-RestrictedBoundedPools.dfy(78,4): Error: a quantifier involved in a function definition is not allowed to depend on the set of allocated references; Dafny's heuristics can't figure out a bound for the values of 'x'
-RestrictedBoundedPools.dfy(83,4): Error: a quantifier involved in a function definition is not allowed to depend on the set of allocated references; Dafny's heuristics can't figure out a bound for the values of 'x'
-RestrictedBoundedPools.dfy(88,4): Error: a quantifier involved in a function definition is not allowed to depend on the set of allocated references; Dafny's heuristics can't figure out a bound for the values of 'c'
-RestrictedBoundedPools.dfy(103,4): Error: a quantifier involved in a function definition is not allowed to depend on the set of allocated references; Dafny's heuristics can't figure out a bound for the values of 'xs'
-RestrictedBoundedPools.dfy(113,4): Error: a quantifier involved in a function definition is not allowed to depend on the set of allocated references; Dafny's heuristics can't figure out a bound for the values of 'xs'
-RestrictedBoundedPools.dfy(123,4): Error: a quantifier involved in a function definition is not allowed to depend on the set of allocated references; Dafny's heuristics can't figure out a bound for the values of 'xs'
-RestrictedBoundedPools.dfy(144,17): Error: a set comprehension must produce a finite set, but Dafny's heuristics can't figure out how to produce a bounded set of values for 'o'
-RestrictedBoundedPools.dfy(152,9): Error: iset comprehensions in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce or compile a bounded set of values for 'o'
-RestrictedBoundedPools.dfy(156,23): Error: a set comprehension involved in a function definition is not allowed to depend on the set of allocated references; Dafny's heuristics can't figure out a bound for the values of 'o'
-RestrictedBoundedPools.dfy(168,23): Error: a set comprehension involved in a function definition is not allowed to depend on the set of allocated references; Dafny's heuristics can't figure out a bound for the values of 'xs'
-RestrictedBoundedPools.dfy(174,17): Error: a set comprehension involved in a function definition is not allowed to depend on the set of allocated references; Dafny's heuristics can't figure out a bound for the values of 'xs'
-RestrictedBoundedPools.dfy(180,23): Error: a set comprehension involved in a function definition is not allowed to depend on the set of allocated references; Dafny's heuristics can't figure out a bound for the values of 'xs'
-14 resolution/type errors detected in RestrictedBoundedPools.dfy
+RestrictedBoundedPools.dfy(17,13): Error: a quantifier must restrict its bound variables to allocated values (perhaps add an explicit 'allocated(x)' to the range or declare its type, 'Opaque', as 'Opaque(!new)')
+RestrictedBoundedPools.dfy(26,13): Error: a quantifier must restrict its bound variables to allocated values (perhaps add an explicit 'allocated(x)' to the range or declare its type, 'Opaque', as 'Opaque(!new)')
+RestrictedBoundedPools.dfy(29,13): Error: a quantifier must restrict its bound variables to allocated values (perhaps add an explicit 'allocated(x)' to the range or declare its type, 'X', as 'X(!new)')
+RestrictedBoundedPools.dfy(32,13): Error: a quantifier must restrict its bound variables to allocated values (perhaps add an explicit 'allocated(x)' to the range or declare its type, 'X', as 'X(!new)')
+RestrictedBoundedPools.dfy(38,13): Error: a quantifier must restrict its bound variables to allocated values (perhaps add an explicit 'allocated(c)' to the range)
+RestrictedBoundedPools.dfy(47,13): Error: a quantifier must restrict its bound variables to allocated values (perhaps add an explicit 'allocated(xs)' to the range)
+RestrictedBoundedPools.dfy(53,13): Error: a quantifier must restrict its bound variables to allocated values (perhaps add an explicit 'allocated(xs)' to the range)
+RestrictedBoundedPools.dfy(59,13): Error: a quantifier must restrict its bound variables to allocated values (perhaps add an explicit 'allocated(xs)' to the range)
+RestrictedBoundedPools.dfy(78,4): Error: a quantifier must restrict its bound variables to allocated values (perhaps add an explicit 'allocated(x)' to the range or declare its type, 'Opaque', as 'Opaque(!new)')
+RestrictedBoundedPools.dfy(83,4): Error: a quantifier must restrict its bound variables to allocated values (perhaps add an explicit 'allocated(x)' to the range or declare its type, 'Opaque', as 'Opaque(!new)')
+RestrictedBoundedPools.dfy(88,4): Error: a quantifier must restrict its bound variables to allocated values (perhaps add an explicit 'allocated(x)' to the range or declare its type, 'X', as 'X(!new)')
+RestrictedBoundedPools.dfy(93,4): Error: a quantifier must restrict its bound variables to allocated values (perhaps add an explicit 'allocated(x)' to the range or declare its type, 'X', as 'X(!new)')
+RestrictedBoundedPools.dfy(98,4): Error: a quantifier must restrict its bound variables to allocated values (perhaps add an explicit 'allocated(c)' to the range)
+RestrictedBoundedPools.dfy(113,4): Error: a quantifier must restrict its bound variables to allocated values (perhaps add an explicit 'allocated(xs)' to the range)
+RestrictedBoundedPools.dfy(123,4): Error: a quantifier must restrict its bound variables to allocated values (perhaps add an explicit 'allocated(xs)' to the range)
+RestrictedBoundedPools.dfy(133,4): Error: a quantifier must restrict its bound variables to allocated values (perhaps add an explicit 'allocated(xs)' to the range)
+RestrictedBoundedPools.dfy(155,17): Error: a set comprehension must restrict its bound variables to allocated values (perhaps add an explicit 'allocated(o)' to the range or declare its type, 'Opaque', as 'Opaque(!new)')
+RestrictedBoundedPools.dfy(155,17): Error: a set comprehension must produce a finite set, but Dafny's heuristics can't figure out how to produce a bounded set of values for 'o'
+RestrictedBoundedPools.dfy(161,23): Error: a set comprehension must restrict its bound variables to allocated values (perhaps add an explicit 'allocated(o)' to the range or declare its type, 'Opaque', as 'Opaque(!new)')
+RestrictedBoundedPools.dfy(170,9): Error: iset comprehensions in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce or compile a bounded set of values for 'o'
+RestrictedBoundedPools.dfy(174,23): Error: a set comprehension must restrict its bound variables to allocated values (perhaps add an explicit 'allocated(o)' to the range or declare its type, 'Opaque', as 'Opaque(!new)')
+RestrictedBoundedPools.dfy(186,23): Error: a set comprehension must restrict its bound variables to allocated values (perhaps add an explicit 'allocated(xs)' to the range)
+RestrictedBoundedPools.dfy(192,17): Error: a set comprehension must restrict its bound variables to allocated values (perhaps add an explicit 'allocated(xs)' to the range)
+RestrictedBoundedPools.dfy(198,23): Error: a set comprehension must restrict its bound variables to allocated values (perhaps add an explicit 'allocated(xs)' to the range)
+RestrictedBoundedPools.dfy(210,11): Error: a quantifier must restrict its bound variables to allocated values (perhaps add an explicit 'allocated(c)' to the range)
+RestrictedBoundedPools.dfy(218,9): Error: a set comprehension must restrict its bound variables to allocated values (perhaps add an explicit 'allocated(c)' to the range)
+RestrictedBoundedPools.dfy(222,9): Error: set comprehensions in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce or compile a bounded set of values for 'c'
+RestrictedBoundedPools.dfy(236,18): Error: a function definition is not allowed to depend on the set of allocated references
+RestrictedBoundedPools.dfy(241,4): Error: a function definition is not allowed to depend on the set of allocated references
+RestrictedBoundedPools.dfy(246,4): Error: a function definition is not allowed to depend on the set of allocated references
+RestrictedBoundedPools.dfy(252,4): Error: a function definition is not allowed to depend on the set of allocated references
+31 resolution/type errors detected in RestrictedBoundedPools.dfy

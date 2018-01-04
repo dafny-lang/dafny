@@ -5,7 +5,7 @@
 // They are defined in refinement modules below.
 abstract module M0 {
   /******* State *******/
-  type State
+  type State(!new)
   function DomSt(st: State): set<Path>
   function GetSt(p: Path, st: State): Artifact
     requires p in DomSt(st);
@@ -244,7 +244,7 @@ abstract module M0 {
 
   datatype Reason = rCompatibility | rValidity | rInconsistentCache
 
-  type Path(==)
+  type Path(==,!new)
   function Loc(cmd: string, deps: set<Path>, exp: string): Path
 
   type Artifact
