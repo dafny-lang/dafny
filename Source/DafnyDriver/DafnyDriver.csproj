@@ -196,5 +196,5 @@
   <PropertyGroup>
     <CodeContractsInstallDir Condition="'$(CodeContractsInstallDir)'==''">C:\Program Files (x86)\Microsoft\Contracts\</CodeContractsInstallDir>
   </PropertyGroup>
-  <Import Condition="'$(CodeContractsImported)' != 'true' AND '$(DontImportCodeContracts)' != 'true'" Project="$(CodeContractsInstallDir)MsBuild\v14.0\Microsoft.CodeContracts.targets" />
+  <Import Condition="'$(CodeContractsImported)' != 'true' AND '$(DontImportCodeContracts)' != 'true' AND Exists($(CodeContractsInstallDir))" Project="$(CodeContractsInstallDir)MsBuild\v14.0\Microsoft.CodeContracts.targets" />
 </Project>

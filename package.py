@@ -67,8 +67,8 @@ DESTINATION_DIRECTORY = path.join(ROOT_DIRECTORY, DESTINATION_DIRECTORY)
 CACHE_DIRECTORY = path.join(DESTINATION_DIRECTORY, "cache")
 
 MONO = sys.platform not in ("win32", "cygwin")
-DLL_PDB_EXT = ".dll.mdb" if MONO else ".pdb"
-EXE_PDB_EXT = ".exe.mdb" if MONO else ".pdb"
+DLL_PDB_EXT = ".pdb"
+EXE_PDB_EXT = ".pdb"
 ARCHIVE_FNAMES = ([dll + ".dll" for dll in DLLs] + [dll + DLL_PDB_EXT for dll in DLLs] +
                   [exe + ".exe" for exe in EXEs] + [exe + EXE_PDB_EXT for exe in EXEs] +
                   ETCs)
@@ -183,12 +183,14 @@ def run(cmd):
 def build():
     os.chdir(ROOT_DIRECTORY)
     flush("  - Building")
-    builder = "xbuild" if MONO else "msbuild"
+    builder = "msbuild"
     try:
         run([builder, "Source/Dafny.sln", "/p:Configuration=Checked", "/p:Platform=Any CPU", "/t:Clean"])
         run([builder, "Source/Dafny.sln", "/p:Configuration=Checked", "/p:Platform=Any CPU", "/t:Rebuild"])
     except FileNotFoundError:
-        flush("Could not find '{}'! On Windows, you need to run this from the VS native tools command prompt.".format(builder))
+        flush("Could not find '{}'!".format(builder))
+        flush("On Windows, you need to run this from the VS native tools command prompt.")
+        flush("On Mac/Linux, you might need a more recent version of Mono.")
         sys.exit(1)
 
 def pack(releases):
