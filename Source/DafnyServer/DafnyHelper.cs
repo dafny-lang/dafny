@@ -71,7 +71,7 @@ namespace Microsoft.Dafny {
       return true;
     }
 
-    private bool BoogieOnce(Bpl.Program boogieProgram) {
+    private bool BoogieOnce(string moduleName, Bpl.Program boogieProgram) {
       if (boogieProgram.Resolve() == 0 && boogieProgram.Typecheck() == 0) { //FIXME ResolveAndTypecheck?
         ExecutionEngine.EliminateDeadVariables(boogieProgram);
         ExecutionEngine.CollectModSets(boogieProgram);
@@ -79,7 +79,7 @@ namespace Microsoft.Dafny {
         ExecutionEngine.Inline(boogieProgram);
 
         //NOTE: We could capture errors instead of printing them (pass a delegate instead of null)
-        switch (ExecutionEngine.InferAndVerify(boogieProgram, new PipelineStatistics(), "ServerProgram", null, DateTime.UtcNow.Ticks.ToString())) {
+        switch (ExecutionEngine.InferAndVerify(boogieProgram, new PipelineStatistics(), "ServerProgram_" + moduleName, null, DateTime.UtcNow.Ticks.ToString())) {
           case PipelineOutcome.Done:
           case PipelineOutcome.VerificationCompleted:
             return true;
@@ -92,7 +92,7 @@ namespace Microsoft.Dafny {
     private bool Boogie() {
       var isVerified = true;
       foreach (var boogieProgram in boogiePrograms) {
-        isVerified = isVerified && BoogieOnce(boogieProgram.Item2);
+        isVerified = isVerified && BoogieOnce(boogieProgram.Item1, boogieProgram.Item2);
       }
       return isVerified;
     }
@@ -117,7 +117,7 @@ namespace Microsoft.Dafny {
           var counterExampleProvider = new CounterExampleProvider();
           foreach (var boogieProgram in boogiePrograms) {
             RemoveExistingModel();
-            BoogieOnce(boogieProgram.Item2);
+            BoogieOnce(boogieProgram.Item1, boogieProgram.Item2);
             var model = counterExampleProvider.LoadCounterModel();
             Console.WriteLine("COUNTEREXAMPLE_START " + ConvertToJson(model) + " COUNTEREXAMPLE_END");
           }
@@ -138,7 +138,7 @@ namespace Microsoft.Dafny {
 
       if (Parse() && Resolve() && Translate()) {
         foreach (var boogieProgram in boogiePrograms) {
-          BoogieOnce(boogieProgram.Item2);
+          BoogieOnce(boogieProgram.Item1, boogieProgram.Item2);
 
           foreach (var impl in boogieProgram.Item2.Implementations) {
             using (StreamWriter sw = new StreamWriter(fname + impl.Name + ".dot")) {

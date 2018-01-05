@@ -1,0 +1,16 @@
+# Reading from git-issue143.transcript
+
+Verifying Impl$$_1_B.__default.Bar ...
+  [1 proof obligation]  error
+Cache.dfy(9,21): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+Verification completed successfully!
+[SUCCESS] [[DAFNY-SERVER: EOM]]
+
+Verifying Impl$$_1_B.__default.Bar ...
+  [1 proof obligation]  verified
+Verification completed successfully!
+[SUCCESS] [[DAFNY-SERVER: EOM]]
+Verification completed successfully!
+[SUCCESS] [[DAFNY-SERVER: EOM]]
