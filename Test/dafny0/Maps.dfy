@@ -152,7 +152,8 @@ method m12()
 }
 
 function domain<U, V>(m: map<U,V>): set<U>
-   ensures forall i :: i in domain(m) <==> i in m;
+   ensures forall i :: i in domain(m) ==> i in m
+   ensures forall i :: i in domain(m) <== i in m
 {
    set s | s in m
 }
@@ -167,7 +168,9 @@ method m13()
 
 function union<U, V>(m: map<U,V>, m': map<U,V>): map<U,V>
    requires m !! m';
-   ensures forall i :: i in union(m, m') <==> i in m || i in m';
+   // ensures forall i :: i in union(m, m') <==> i in m || i in m'
+   ensures forall i :: i in union(m, m') ==> i in m.Keys + m'.Keys
+   ensures forall i :: i in union(m, m') <== i in m.Keys + m'.Keys
    ensures forall i :: i in m ==> union(m, m')[i] == m[i];
    ensures forall i :: i in m' ==> union(m, m')[i] == m'[i];
 {

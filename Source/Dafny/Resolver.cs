@@ -5321,7 +5321,6 @@ namespace Microsoft.Dafny
           string what = null;
           Expression whereToLookForBounds = null;
           var polarity = true;
-          var mustBeFinite = false;
           if (e is QuantifierExpr) {
             what = "quantifier";
             whereToLookForBounds = ((QuantifierExpr)e).LogicalBody();
@@ -5329,44 +5328,25 @@ namespace Microsoft.Dafny
           } else if (e is SetComprehension) {
             what = "set comprehension";
             whereToLookForBounds = e.Range;
-            mustBeFinite = ((SetComprehension)e).Finite;
           } else if (e is MapComprehension) {
             what = "map comprehension";
             whereToLookForBounds = e.Range;
-            mustBeFinite = ((MapComprehension)e).Finite;
           } else {
             Contract.Assume(e is LambdaExpr);  // otherwise, unexpected ComprehensionExpr
           }
           if (whereToLookForBounds != null) {
-            e.Bounds = DiscoverBestBounds_MultipleVars_AllowReordering(e.BoundVars, whereToLookForBounds, polarity,
-              mustBeFinite ? ComprehensionExpr.BoundedPool.PoolVirtues.Finite : ComprehensionExpr.BoundedPool.PoolVirtues.None);
-#if SOON_CONSIDER_A
+            e.Bounds = DiscoverBestBounds_MultipleVars_AllowReordering(e.BoundVars, whereToLookForBounds, polarity, ComprehensionExpr.BoundedPool.PoolVirtues.None);
             if (2 <= DafnyOptions.O.Allocated && codeContext is Function) {
               // functions are not allowed to depend on the set of allocated objects
               foreach (var bv in ComprehensionExpr.BoundedPool.MissingBounds(e.BoundVars, e.Bounds, ComprehensionExpr.BoundedPool.PoolVirtues.IndependentOfAlloc)) {
                 var msgFormat = "a {0} involved in a function definition is not allowed to depend on the set of allocated references; Dafny's heuristics can't figure out a bound for the values of '{1}'";
                 if (bv.Type.IsTypeParameter) {
                   var tp = bv.Type.AsTypeParameter;
-                  Contract.Assert(!tp.Characteristics.DisallowReferenceTypes);  // otherwise, this bound variable should not have ended up among the missing bounds
                   msgFormat += " (perhaps declare its type, '{2}', as '{2}(!new)')";
                 }
                 resolver.reporter.Error(MessageSource.Resolver, e, msgFormat, what, bv.Name, bv.Type);
               }
             }
-#endif
-#if SOON_CONSIDER_B
-            foreach (var bv in ComprehensionExpr.BoundedPool.MissingBounds(e.BoundVars, e.Bounds, ComprehensionExpr.BoundedPool.PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc)) {
-              var msgFormat = "a {0} must restrict its bound variables to allocated values";
-              msgFormat += " (perhaps add an explicit 'allocated({1})' to the range";
-              if (bv.Type.IsTypeParameter) {
-                var tp = bv.Type.AsTypeParameter;
-                Contract.Assert(!tp.Characteristics.DisallowReferenceTypes);  // otherwise, this bound variable should not have ended up among the missing bounds
-                msgFormat += " or declare its type, '{2}', as '{2}(!new)'";
-              }
-              msgFormat += ")";
-              resolver.reporter.Error(MessageSource.Resolver, e, msgFormat, what, bv.Name, bv.Type);
-            }
-#endif
             if ((e is SetComprehension && ((SetComprehension)e).Finite) || (e is MapComprehension && ((MapComprehension)e).Finite)) {
               // the comprehension had better produce a finite set
               if (e is SetComprehension && e.Type.HasFinitePossibleValues) {
@@ -13835,8 +13815,10 @@ namespace Microsoft.Dafny
           } else if (orig != null && me == null) {
             meBetter = -1; break; // end game
           } else if (orig != null && me != null) {
-            var diff = me.Preference() - orig.Preference();
-            meBetter += diff < 0 ? -1 : 0 < diff ? 1 : 0;
+            if ((orig.Virtues & ComprehensionExpr.BoundedPool.PoolVirtues.Finite) != 0) { meBetter--; }
+            if ((orig.Virtues & ComprehensionExpr.BoundedPool.PoolVirtues.Enumerable) != 0) { meBetter--; }
+            if ((me.Virtues & ComprehensionExpr.BoundedPool.PoolVirtues.Finite) != 0) { meBetter++; }
+            if ((me.Virtues & ComprehensionExpr.BoundedPool.PoolVirtues.Enumerable) != 0) { meBetter++; }
           }
         }
         if (meBetter > 0) {
@@ -13882,13 +13864,15 @@ namespace Microsoft.Dafny
         var bounds = DiscoverAllBounds_Aux_SingleVar(bvars, j, expr, polarity, knownBounds);
         knownBounds[j] = ComprehensionExpr.BoundedPool.GetBest(bounds, requiredVirtues);
 #if DEBUG_PRINT
-        var ib = knownBounds[j] as ComprehensionExpr.IntBoundedPool;
-        var lo = ib == null || ib.LowerBound == null ? "" : Printer.ExprToString(ib.LowerBound);
-        var hi = ib == null || ib.UpperBound == null ? "" : Printer.ExprToString(ib.UpperBound);
-        if (knownBounds[j] is ComprehensionExpr.SetBoundedPool) {
+        if (knownBounds[j] is ComprehensionExpr.IntBoundedPool) {
+          var ib = (ComprehensionExpr.IntBoundedPool)knownBounds[j];
+          var lo = ib.LowerBound == null ? "" : Printer.ExprToString(ib.LowerBound);
+          var hi = ib.UpperBound == null ? "" : Printer.ExprToString(ib.UpperBound);
+          Console.WriteLine("DEBUG: Bound for var {3}, {0}:  {1} .. {2}", bvars[j].Name, lo, hi, j);
+        } else if (knownBounds[j] is ComprehensionExpr.SetBoundedPool) {
           Console.WriteLine("DEBUG: Bound for var {2}, {0}:  in {1}", bvars[j].Name, Printer.ExprToString(((ComprehensionExpr.SetBoundedPool)knownBounds[j]).Set), j);
         } else {
-          Console.WriteLine("DEBUG: Bound for var {3}, {0}:  {1} .. {2}", bvars[j].Name, lo, hi, j);
+          Console.WriteLine("DEBUG: Bound for var {2}, {0}:  {1}", bvars[j].Name, knownBounds[j], j);
         }
 #endif
       }
@@ -13981,7 +13965,7 @@ namespace Microsoft.Dafny
             }
             break;
           case BinaryExpr.ResolvedOpcode.InMap:
-            if (whereIsBv == 0 && e1.Type.AsMapType.Finite) {
+            if (whereIsBv == 0) {
               bounds.Add(new ComprehensionExpr.MapBoundedPool(e1, e0.Type.Equals(e1.Type.AsMapType.Arg), e1.Type.AsMapType.Finite));
             }
             break;
@@ -14009,6 +13993,16 @@ namespace Microsoft.Dafny
               } else {  // E <= bv
                 bounds.Add(new ComprehensionExpr.IntBoundedPool(e0, null));
               }
+            }
+            break;
+          case BinaryExpr.ResolvedOpcode.RankLt:
+            if (whereIsBv == 0) {
+              bounds.Add(new ComprehensionExpr.DatatypeInclusionBoundedPool(e0.Type.IsIndDatatype));
+            }
+            break;
+          case BinaryExpr.ResolvedOpcode.RankGt:
+            if (whereIsBv == 1) {
+              bounds.Add(new ComprehensionExpr.DatatypeInclusionBoundedPool(e1.Type.IsIndDatatype));
             }
             break;
           default:

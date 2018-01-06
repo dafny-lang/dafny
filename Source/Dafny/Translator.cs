@@ -17041,6 +17041,8 @@ namespace Microsoft.Dafny {
           return new ComprehensionExpr.SeqBoundedPool(Substitute(b.Seq), b.ExactTypes);
         } else if (bound is ComprehensionExpr.DatatypeBoundedPool) {
           return bound;  // nothing to substitute
+        } else if (bound is ComprehensionExpr.DatatypeInclusionBoundedPool) {
+          return bound;  // nothing to substitute
         } else if (bound is ComprehensionExpr.AllocFreeBoundedPool) {
           return bound;  // nothing to substitute
         } else if (bound is ComprehensionExpr.ExplicitAllocatedBoundedPool) {

@@ -243,7 +243,7 @@ module TwoLayers
 
 datatype List<T> = Nil | Cons(T, List)
 predicate InList<T>(x: T, xs: List<T>)
-predicate Subset(xs: List, ys: List) 
+predicate Subset<T(!new)>(xs: List, ys: List) 
 {
   forall x :: InList(x, xs) ==> InList(x, ys)
 }

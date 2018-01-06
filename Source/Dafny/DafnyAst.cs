@@ -9697,6 +9697,7 @@ namespace Microsoft.Dafny {
       /// 1: WiggleWaggleBound
       /// 
       /// 2: SuperSetBoundedPool
+      /// 2: DatatypeInclusionBoundedPool
       /// 
       /// 3: SubSetBoundedPool
       /// 
@@ -9913,6 +9914,13 @@ namespace Microsoft.Dafny {
       public DatatypeBoundedPool(DatatypeDecl d) { Decl = d; }
       public override PoolVirtues Virtues => PoolVirtues.Finite | PoolVirtues.Enumerable | PoolVirtues.IndependentOfAlloc | PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc;
       public override int Preference() => 8;
+    }
+    public class DatatypeInclusionBoundedPool : BoundedPool
+    {
+      public readonly bool IsIndDatatype;
+      public DatatypeInclusionBoundedPool(bool isIndDatatype) : base() { IsIndDatatype = isIndDatatype; }
+      public override PoolVirtues Virtues => (IsIndDatatype ? PoolVirtues.Finite : PoolVirtues.None) | PoolVirtues.IndependentOfAlloc | PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc;
+      public override int Preference() => 2;
     }
 
     public List<BoundedPool> Bounds;  // initialized and filled in by resolver
