@@ -9963,9 +9963,6 @@ namespace Microsoft.Dafny {
       if (exists.Bounds != null) {
         ex.Bounds = exists.Bounds.ConvertAll(bound => s.SubstituteBoundedPool(bound));
       }
-      if (exists.MissingBounds != null) {
-        ex.MissingBounds = exists.MissingBounds.ConvertAll(bv => var4var[bv]);
-      }
       return ex;
     }
 
@@ -10097,7 +10094,6 @@ namespace Microsoft.Dafny {
         yield return lit;
       }
 
-      var missingBounds = new List<BoundVar>();
       var bounds = Resolver.DiscoverAllBounds_SingleVar(x, expr);
       foreach (var bound in bounds) {
         if (bound is ComprehensionExpr.IntBoundedPool) {
@@ -10131,6 +10127,8 @@ namespace Microsoft.Dafny {
               yield return el;
             }
           }
+        } else if (bound is ComprehensionExpr.ExactBoundedPool) {
+          yield return ((ComprehensionExpr.ExactBoundedPool)bound).E;
         }
       }
     }
@@ -14449,10 +14447,10 @@ namespace Microsoft.Dafny {
               var h = BplBoundVar(e.Refresh("q$heap#", translator.CurrentIdGenerator), predef.HeapType, bvars);
               bodyEtran = new ExpressionTranslator(bodyEtran, h);
               antecedent = BplAnd(new List<Bpl.Expr> {
-              antecedent,
-              translator.FunctionCall(e.tok, BuiltinFunction.IsGoodHeap, null, h),
-              translator.HeapSameOrSucc(initEtran.HeapExpr, h)  // initHeapForAllStmt
-            });
+                antecedent,
+                translator.FunctionCall(e.tok, BuiltinFunction.IsGoodHeap, null, h),
+                translator.HeapSameOrSucc(initEtran.HeapExpr, h)  // initHeapForAllStmt
+              });
             }
 
             antecedent = BplAnd(antecedent, bodyEtran.TrBoundVariables(e.BoundVars, bvars, false, FrugalHeapUse)); // initHeapForAllStmt
@@ -17023,27 +17021,33 @@ namespace Microsoft.Dafny {
           return bound;  // nothing to substitute
         } else if (bound is ComprehensionExpr.CharBoundedPool) {
           return bound;  // nothing to substitute
-        } else if (bound is ComprehensionExpr.RefBoundedPool) {
-          return bound;  // nothing to substitute
         } else if (bound is ComprehensionExpr.IntBoundedPool) {
           var b = (ComprehensionExpr.IntBoundedPool)bound;
           return new ComprehensionExpr.IntBoundedPool(b.LowerBound == null ? null : Substitute(b.LowerBound), b.UpperBound == null ? null : Substitute(b.UpperBound));
         } else if (bound is ComprehensionExpr.SetBoundedPool) {
           var b = (ComprehensionExpr.SetBoundedPool)bound;
-          return new ComprehensionExpr.SetBoundedPool(Substitute(b.Set), b.ExactTypes);
+          return new ComprehensionExpr.SetBoundedPool(Substitute(b.Set), b.ExactTypes, b.IsFiniteCollection);
         } else if (bound is ComprehensionExpr.SubSetBoundedPool) {
           var b = (ComprehensionExpr.SubSetBoundedPool)bound;
-          return new ComprehensionExpr.SubSetBoundedPool(Substitute(b.UpperBound));
+          return new ComprehensionExpr.SubSetBoundedPool(Substitute(b.UpperBound), b.IsFiniteCollection);
         } else if (bound is ComprehensionExpr.SuperSetBoundedPool) {
           var b = (ComprehensionExpr.SuperSetBoundedPool)bound;
           return new ComprehensionExpr.SuperSetBoundedPool(Substitute(b.LowerBound));
         } else if (bound is ComprehensionExpr.MapBoundedPool) {
           var b = (ComprehensionExpr.MapBoundedPool)bound;
-          return new ComprehensionExpr.MapBoundedPool(Substitute(b.Map), b.ExactTypes);
+          return new ComprehensionExpr.MapBoundedPool(Substitute(b.Map), b.ExactTypes, b.IsFiniteCollection);
         } else if (bound is ComprehensionExpr.SeqBoundedPool) {
           var b = (ComprehensionExpr.SeqBoundedPool)bound;
           return new ComprehensionExpr.SeqBoundedPool(Substitute(b.Seq), b.ExactTypes);
         } else if (bound is ComprehensionExpr.DatatypeBoundedPool) {
+          return bound;  // nothing to substitute
+        } else if (bound is ComprehensionExpr.DatatypeInclusionBoundedPool) {
+          return bound;  // nothing to substitute
+        } else if (bound is ComprehensionExpr.AllocFreeBoundedPool) {
+          return bound;  // nothing to substitute
+        } else if (bound is ComprehensionExpr.ExplicitAllocatedBoundedPool) {
+          return bound;  // nothing to substitute
+        } else if (bound is AssignSuchThatStmt.WiggleWaggleBound) {
           return bound;  // nothing to substitute
         } else {
           Contract.Assume(false);  // unexpected ComprehensionExpr.BoundedPool

@@ -139,7 +139,7 @@ function method OnlyDs(): Lang<char>
   L(true, ch => if ch == 'd' || ch == 'D' then OnlyDs() else Nothing())
 }
 
-copredicate TotalLang<S>(l: Lang<S>)
+copredicate TotalLang<S(!new)>(l: Lang<S>)
   reads *
 {
   forall s: S :: l.deriv.reads(s) == {} && l.deriv.requires(s) && TotalLang(l.deriv(s))
@@ -157,7 +157,7 @@ colemma OnlyDsTotal()
   OnlyDsTotal();
 }
 
-copredicate TotalLang_Nat<S>[nat](l: Lang<S>)
+copredicate TotalLang_Nat<S(!new)>[nat](l: Lang<S>)
   reads *
 {
   forall s: S :: l.deriv.reads(s) == {} && l.deriv.requires(s) && TotalLang_Nat(l.deriv(s))
@@ -186,7 +186,7 @@ colemma OnlyDsTotal_Nat[nat]()
 
 codatatype IMLang<S> = IML(nullable: bool, deriv: imap<S, IMLang<S>>)
 
-function IMNothing(): IMLang
+function IMNothing<S(!new)>(): IMLang
 {
   IML(false, imap s {:nowarn} :: IMNothing())
 }

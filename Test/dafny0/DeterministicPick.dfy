@@ -37,7 +37,7 @@ module Attempt_Smallest refines Specification {
 
 module AnotherTest {
   function method PickFromSingleton<U>(s: set<U>): U
-    requires exists y :: s == {y}
+    requires exists y :: y in s && s == {y}
   {
     var x :| x in s; x
   }

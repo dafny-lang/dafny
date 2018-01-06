@@ -795,7 +795,7 @@ module GenericPick {
     var x :| x in s; x
   }
   function MultisetPick3<U>(s: multiset<U>): U
-    requires exists x :: s[x] > 0
+    requires exists x :: x in s && s[x] > 0
   {
     var x :| x in s; x
   }

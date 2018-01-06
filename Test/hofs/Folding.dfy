@@ -44,7 +44,7 @@ function method foldr<A,B>(f: (A,B) -> B, b: B, xs: List<A>): B
 
 // The following predicate says that "inv" is invariant under "stp".
 // "stp" is really just a relational version of the function "f" passed to fold.
-predicate InvR<A,B>(inv: (List<A>,B) -> bool, stp: (A,B,B) -> bool)
+predicate InvR<A(!new),B(!new)>(inv: (List<A>,B) -> bool, stp: (A,B,B) -> bool)
 {
   forall x, xs, b, b' ::
   inv(xs, b) && stp(x, b, b') ==> inv(Cons(x, xs), b')
@@ -145,7 +145,7 @@ function method foldl<A,B>(f: (B,A) -> B, b: B, xs: List<A>): B
 
 // InvL is like InvR above, but the implication goes from larger lists to smaller ones (which is
 // in the opposite direction from in InvR).
-predicate InvL<A,B>(inv: (B,List<A>) -> bool, stp: (B,A,B) -> bool)
+predicate InvL<A(!new),B(!new)>(inv: (B,List<A>) -> bool, stp: (B,A,B) -> bool)
 {
   forall x, xs, b, b' ::
   inv(b, Cons(x, xs)) && stp(b, x, b') ==> inv(b', xs)

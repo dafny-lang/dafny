@@ -68,7 +68,7 @@ method Main()
 
 // ----- totality constraint by predicate Total -------------------------------------
 
-predicate Total<A,B>(f: A ~> B)
+predicate Total<A(!new),B>(f: A ~> B)  // (is this (!new) really necessary?)
   reads f.reads
 {
   forall a :: f.reads(a) == {} && f.requires(a)
@@ -111,13 +111,13 @@ function DirectTotalClientTwice(f: DirectTotalArrow<int,int>, x: int): int
 
 // ----- using two predicates, and showing which conjunct of constraint is violated ------
 
-predicate EmptyReads<A,B>(f: A ~> B)
+predicate EmptyReads<A(!new),B>(f: A ~> B)  // (is this (!new) really necessary?)
   reads f.reads
 {
   forall a :: f.reads(a) == {}
 }
 
-predicate TruePre<A,B>(f: A ~> B)
+predicate TruePre<A(!new),B>(f: A ~> B)  // (is this (!new) really necessary?)
   reads f.reads
 {
   forall a :: f.requires(a)
