@@ -969,8 +969,17 @@ namespace Dafny
       }
       return frall;
     }
+    public static bool QuantSingle<U>(U u, bool frall, System.Predicate<U> pred) {
+      return pred(u);
+    }
     public static bool QuantSet<U>(Dafny.Set<U> set, bool frall, System.Predicate<U> pred) {
       foreach (var u in set.Elements) {
+        if (pred(u) != frall) { return !frall; }
+      }
+      return frall;
+    }
+    public static bool QuantSubSets<U>(Dafny.Set<U> set, bool frall, System.Predicate<Dafny.Set<U>> pred) {
+      foreach (var u in set.AllSubsets) {
         if (pred(u) != frall) { return !frall; }
       }
       return frall;

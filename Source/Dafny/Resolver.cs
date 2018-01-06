@@ -5320,7 +5320,8 @@ namespace Microsoft.Dafny
           // apply bounds discovery to quantifiers, finite sets, and finite maps
           string what = null;
           Expression whereToLookForBounds = null;
-          bool polarity = true;
+          var polarity = true;
+          var mustBeFinite = false;
           if (e is QuantifierExpr) {
             what = "quantifier";
             whereToLookForBounds = ((QuantifierExpr)e).LogicalBody();
@@ -5328,14 +5329,32 @@ namespace Microsoft.Dafny
           } else if (e is SetComprehension) {
             what = "set comprehension";
             whereToLookForBounds = e.Range;
+            mustBeFinite = ((SetComprehension)e).Finite;
           } else if (e is MapComprehension) {
             what = "map comprehension";
             whereToLookForBounds = e.Range;
+            mustBeFinite = ((MapComprehension)e).Finite;
           } else {
             Contract.Assume(e is LambdaExpr);  // otherwise, unexpected ComprehensionExpr
           }
           if (whereToLookForBounds != null) {
-            e.Bounds = DiscoverBestBounds_MultipleVars(e.BoundVars, whereToLookForBounds, polarity, ComprehensionExpr.BoundedPool.PoolVirtues.None);
+            e.Bounds = DiscoverBestBounds_MultipleVars_AllowReordering(e.BoundVars, whereToLookForBounds, polarity,
+              mustBeFinite ? ComprehensionExpr.BoundedPool.PoolVirtues.Finite : ComprehensionExpr.BoundedPool.PoolVirtues.None);
+#if SOON_CONSIDER_A
+            if (2 <= DafnyOptions.O.Allocated && codeContext is Function) {
+              // functions are not allowed to depend on the set of allocated objects
+              foreach (var bv in ComprehensionExpr.BoundedPool.MissingBounds(e.BoundVars, e.Bounds, ComprehensionExpr.BoundedPool.PoolVirtues.IndependentOfAlloc)) {
+                var msgFormat = "a {0} involved in a function definition is not allowed to depend on the set of allocated references; Dafny's heuristics can't figure out a bound for the values of '{1}'";
+                if (bv.Type.IsTypeParameter) {
+                  var tp = bv.Type.AsTypeParameter;
+                  Contract.Assert(!tp.Characteristics.DisallowReferenceTypes);  // otherwise, this bound variable should not have ended up among the missing bounds
+                  msgFormat += " (perhaps declare its type, '{2}', as '{2}(!new)')";
+                }
+                resolver.reporter.Error(MessageSource.Resolver, e, msgFormat, what, bv.Name, bv.Type);
+              }
+            }
+#endif
+#if SOON_CONSIDER_B
             foreach (var bv in ComprehensionExpr.BoundedPool.MissingBounds(e.BoundVars, e.Bounds, ComprehensionExpr.BoundedPool.PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc)) {
               var msgFormat = "a {0} must restrict its bound variables to allocated values";
               msgFormat += " (perhaps add an explicit 'allocated({1})' to the range";
@@ -5347,6 +5366,7 @@ namespace Microsoft.Dafny
               msgFormat += ")";
               resolver.reporter.Error(MessageSource.Resolver, e, msgFormat, what, bv.Name, bv.Type);
             }
+#endif
             if ((e is SetComprehension && ((SetComprehension)e).Finite) || (e is MapComprehension && ((MapComprehension)e).Finite)) {
               // the comprehension had better produce a finite set
               if (e is SetComprehension && e.Type.HasFinitePossibleValues) {
@@ -11582,7 +11602,11 @@ namespace Microsoft.Dafny
             // the argument is allowed to have any type at all
             expr.Type = Type.Bool;
             if (opts.codeContext is Function && !opts.InsideOld) {
-              reporter.Error(MessageSource.Resolver, expr, "a function definition is not allowed to depend on the set of allocated references");
+              if (DafnyOptions.O.Allocated < 2) {
+                // Allow explicit mention of "allocated" for /allocated:{0,1}. This seems to be how these modes were designed, but it isn't sound with the frame axioms that are generated.
+              } else {
+                reporter.Error(MessageSource.Resolver, expr, "a function definition is not allowed to depend on the set of allocated references");
+              }
             }
           break;
           default:
@@ -13787,56 +13811,88 @@ namespace Microsoft.Dafny
       return GetSignatureExt(sig, useCompileSignatures);
     }
 
+    public static List<ComprehensionExpr.BoundedPool> DiscoverBestBounds_MultipleVars_AllowReordering<VT>(List<VT> bvars, Expression expr, bool polarity, ComprehensionExpr.BoundedPool.PoolVirtues requiredVirtues) where VT : IVariable {
+      Contract.Requires(bvars != null);
+      Contract.Requires(expr != null);
+      Contract.Ensures(Contract.Result<List<ComprehensionExpr.BoundedPool>>() != null);
+      var bounds = DiscoverBestBounds_MultipleVars(bvars, expr, polarity, requiredVirtues);
+      if (bvars.Count > 1) {
+        // It may be helpful to try all permutations (or, better yet, to use an algorithm that keeps track of the dependencies
+        // and discovers good bounds more efficiently). However, all permutations would be expensive. Therefore, we try just one
+        // other permutation, namely the reversal "bvars". This covers the important case where there are two bound variables
+        // that work out in the opposite order. It also covers one more case for the (probably rare) case of there being more
+        // than two bound variables.
+        var bvarsMissyElliott = new List<VT>(bvars);  // make a copy
+        bvarsMissyElliott.Reverse();  // and then flip it and reverse it, Ti esrever dna ti pilf nwod gniht ym tup I
+        var boundsMissyElliott = DiscoverBestBounds_MultipleVars(bvarsMissyElliott, expr, polarity, requiredVirtues);
+        // Figure out which one seems best
+        var meBetter = 0;
+        for (int i = 0; i < bvars.Count; i++) {
+          var orig = bounds[i];
+          var me = boundsMissyElliott[i];
+          if (orig == null && me != null) {
+            meBetter = 1; break; // end game
+          } else if (orig != null && me == null) {
+            meBetter = -1; break; // end game
+          } else if (orig != null && me != null) {
+            var diff = me.Preference() - orig.Preference();
+            meBetter += diff < 0 ? -1 : 0 < diff ? 1 : 0;
+          }
+        }
+        if (meBetter > 0) {
+          // yes, this reordering seems to have been better
+          bvars.Reverse();
+          return boundsMissyElliott;
+        }
+      }
+      return bounds;
+    }
+
     /// <summary>
     /// For a list of variables "bvars", returns a list of best bounds, subject to the constraint "requiredVirtues", for each respective variable.
     /// If no bound matching "requiredVirtues" is found for a variable "v", then the bound for "v" in the returned list is set to "null".
     /// </summary>
     public static List<ComprehensionExpr.BoundedPool> DiscoverBestBounds_MultipleVars<VT>(List<VT> bvars, Expression expr, bool polarity, ComprehensionExpr.BoundedPool.PoolVirtues requiredVirtues) where VT : IVariable {
+      Contract.Requires(bvars != null);
+      Contract.Requires(expr != null);
+      Contract.Ensures(Contract.Result<List<ComprehensionExpr.BoundedPool>>() != null);
       foreach (var bv in bvars) {
         var c = GetImpliedTypeConstraint(bv, bv.Type);
         expr = polarity ? Expression.CreateAnd(c, expr) : Expression.CreateImplies(c, expr);
       }
-      List<ComprehensionExpr.BoundedPool> knownBounds = null;
-      var orgCount = bvars.Count;
-      var bests = new List<ComprehensionExpr.BoundedPool>();
-      // compute the bounds of the BV until no new information is obtained.
-      while (true) {
-        var all = DiscoverAllBounds_Aux_MultipleVars(bvars, expr, polarity, knownBounds);
-        bests = all.ConvertAll(tup => ComprehensionExpr.BoundedPool.GetBest(tup.Item2, requiredVirtues));
-        // check to see if we found new bounds in this iteration
-        int count = 0;
-        // figure out how many bounds are not determined yet.
-        for (int i = 0; i < bests.Count; i++) {
-          if (bests[i] == null || bests[i].Preference() < 2) {
-            count++;
-          }
-        }
-        // if there are bounds that are not determined yet and the number of undetermined bounds
-        // changed, we will need to do another iteration.
-        if (count > 0 && count != orgCount) {
-          knownBounds = bests;
-          orgCount = count;
-        } else {
-          break;
-        }
-      }
+      var bests = DiscoverAllBounds_Aux_MultipleVars(bvars, expr, polarity, requiredVirtues);
       return bests;
     }
 
     public static List<ComprehensionExpr.BoundedPool> DiscoverAllBounds_SingleVar<VT>(VT v, Expression expr) where VT : IVariable {
       expr = Expression.CreateAnd(GetImpliedTypeConstraint(v, v.Type), expr);
-      return DiscoverAllBounds_Aux_SingleVar(new List<VT> { v }, 0, expr, true, null);
+      return DiscoverAllBounds_Aux_SingleVar(new List<VT> { v }, 0, expr, true, new List<ComprehensionExpr.BoundedPool>() { null });
     }
 
-    private static List<Tuple<VT, List<ComprehensionExpr.BoundedPool>>> DiscoverAllBounds_Aux_MultipleVars<VT>(List<VT> bvars, Expression expr, bool polarity, List<ComprehensionExpr.BoundedPool> knownBounds) where VT : IVariable {
+    private static List<ComprehensionExpr.BoundedPool> DiscoverAllBounds_Aux_MultipleVars<VT>(List<VT> bvars, Expression expr, bool polarity, ComprehensionExpr.BoundedPool.PoolVirtues requiredVirtues) where VT : IVariable {
       Contract.Requires(bvars != null);
       Contract.Requires(expr != null);
-      var bb = new List<Tuple<VT, List<ComprehensionExpr.BoundedPool>>>();
+      Contract.Ensures(Contract.Result<List<ComprehensionExpr.BoundedPool>>() != null);
+      Contract.Ensures(Contract.Result<List<ComprehensionExpr.BoundedPool>>().Count == bvars.Count);
+      var knownBounds = new List<ComprehensionExpr.BoundedPool>();
       for (var j = 0; j < bvars.Count; j++) {
-        var bounds = DiscoverAllBounds_Aux_SingleVar(bvars, j, expr, polarity, knownBounds);
-        bb.Add(new Tuple<VT, List<ComprehensionExpr.BoundedPool>>(bvars[j], bounds));
+        knownBounds.Add(null);
       }
-      return bb;
+      for (var j = bvars.Count; 0 <= --j; ) {  // important to go backwards, because DiscoverAllBounds_Aux_SingleVar assumes "knownBounds" has been filled in for higher-indexed variables
+        var bounds = DiscoverAllBounds_Aux_SingleVar(bvars, j, expr, polarity, knownBounds);
+        knownBounds[j] = ComprehensionExpr.BoundedPool.GetBest(bounds, requiredVirtues);
+#if DEBUG_PRINT
+        var ib = knownBounds[j] as ComprehensionExpr.IntBoundedPool;
+        var lo = ib == null || ib.LowerBound == null ? "" : Printer.ExprToString(ib.LowerBound);
+        var hi = ib == null || ib.UpperBound == null ? "" : Printer.ExprToString(ib.UpperBound);
+        if (knownBounds[j] is ComprehensionExpr.SetBoundedPool) {
+          Console.WriteLine("DEBUG: Bound for var {2}, {0}:  in {1}", bvars[j].Name, Printer.ExprToString(((ComprehensionExpr.SetBoundedPool)knownBounds[j]).Set), j);
+        } else {
+          Console.WriteLine("DEBUG: Bound for var {3}, {0}:  {1} .. {2}", bvars[j].Name, lo, hi, j);
+        }
+#endif
+      }
+      return knownBounds;
     }
 
     /// <summary>
@@ -13846,6 +13902,8 @@ namespace Microsoft.Dafny
       Contract.Requires(bvars != null);
       Contract.Requires(0 <= j && j < bvars.Count);
       Contract.Requires(expr != null);
+      Contract.Requires(knownBounds != null);
+      Contract.Requires(knownBounds.Count == bvars.Count);
       var bv = bvars[j];
       var bounds = new List<ComprehensionExpr.BoundedPool>();
 
@@ -13854,10 +13912,6 @@ namespace Microsoft.Dafny
         bounds.Add(new ComprehensionExpr.BoolBoundedPool());
       } else if (bv.Type.IsCharType) {
         bounds.Add(new ComprehensionExpr.CharBoundedPool());
-#if OLD_STUFF
-      } else if (bv.Type.IsRefType) {
-        bounds.Add(new ComprehensionExpr.RefBoundedPool(bv.Type));
-#endif
       } else if (bv.Type.IsIndDatatype && bv.Type.AsIndDatatype.HasFinitePossibleValues) {
         bounds.Add(new ComprehensionExpr.DatatypeBoundedPool(bv.Type.AsIndDatatype));
       } else if (bv.Type.IsNumericBased(Type.NumericPersuation.Int)) {
@@ -13933,19 +13987,8 @@ namespace Microsoft.Dafny
             break;
           case BinaryExpr.ResolvedOpcode.EqCommon:
           case BinaryExpr.ResolvedOpcode.SetEq:
-#if OLD_BEFORE_EXACT
-            // TODO: Use the new ComprehensionExpr.ExactBoundedPool
-            if (bv.Type.IsNumericBased(Type.NumericPersuation.Int)) {
-              var otherOperand = whereIsBv == 0 ? e1 : e0;
-              bounds.Add(new ComprehensionExpr.IntBoundedPool(otherOperand, Expression.CreateIncrement(otherOperand, 1)));
-            } else if (bv.Type is SetType) {
-              var otherOperand = whereIsBv == 0 ? e1 : e0;
-              bounds.Add(new ComprehensionExpr.SubSetBoundedPool(otherOperand, bv.Type.AsSetType.Finite));
-            }
-#else
             var otherOperand = whereIsBv == 0 ? e1 : e0;
             bounds.Add(new ComprehensionExpr.ExactBoundedPool(otherOperand));
-#endif
             break;
           case BinaryExpr.ResolvedOpcode.Gt:
           case BinaryExpr.ResolvedOpcode.Ge:
@@ -14019,10 +14062,12 @@ namespace Microsoft.Dafny
     /// Ensures that the resulting "e0" and "e1" are not ConcreteSyntaxExpression's.
     /// </summary>
     static int SanitizeForBoundDiscovery<VT>(List<VT> boundVars, int bvi, BinaryExpr.ResolvedOpcode op, List<ComprehensionExpr.BoundedPool> knownBounds, ref Expression e0, ref Expression e1) where VT : IVariable {
-      Contract.Requires(e0 != null);
-      Contract.Requires(e1 != null);
       Contract.Requires(boundVars != null);
       Contract.Requires(0 <= bvi && bvi < boundVars.Count);
+      Contract.Requires(knownBounds != null);
+      Contract.Requires(knownBounds.Count == boundVars.Count);
+      Contract.Requires(e0 != null);
+      Contract.Requires(e1 != null);
       Contract.Ensures(Contract.Result<int>() < 2);
       Contract.Ensures(!(Contract.ValueAtReturn(out e0) is ConcreteSyntaxExpression));
       Contract.Ensures(!(Contract.ValueAtReturn(out e1) is ConcreteSyntaxExpression));
@@ -14069,9 +14114,11 @@ namespace Microsoft.Dafny
               if (!FreeVariables(bin.E1).Contains(bv)) {
                 thisSide = bin.E0.Resolved;
                 thatSide = new BinaryExpr(bin.tok, BinaryExpr.Opcode.Sub, thatSide, bin.E1);
-              } else {
+              } else if (!FreeVariables(bin.E0).Contains(bv)) {
                 thisSide = bin.E1.Resolved;
                 thatSide = new BinaryExpr(bin.tok, BinaryExpr.Opcode.Sub, thatSide, bin.E0);
+              } else {
+                break;  // done simplifying
               }
               ((BinaryExpr)thatSide).ResolvedOp = BinaryExpr.ResolvedOpcode.Sub;
               thatSide.Type = bin.Type;
@@ -14083,7 +14130,7 @@ namespace Microsoft.Dafny
                 thisSide = bin.E0.Resolved;
                 thatSide = new BinaryExpr(bin.tok, BinaryExpr.Opcode.Add, thatSide, bin.E1);
                 ((BinaryExpr)thatSide).ResolvedOp = BinaryExpr.ResolvedOpcode.Add;
-              } else {
+              } else if (!FreeVariables(bin.E0).Contains(bv)) {
                 // In principle, change to "-B op C-A" and then to "B dualOp A-C".  But since we don't want
                 // to change "op", we instead end with "A-C op B" and switch the mapping of thisSide/thatSide
                 // to e0/e1 (by inverting "whereIsBv").
@@ -14091,6 +14138,8 @@ namespace Microsoft.Dafny
                 thatSide = new BinaryExpr(bin.tok, BinaryExpr.Opcode.Sub, bin.E0, thatSide);
                 ((BinaryExpr)thatSide).ResolvedOp = BinaryExpr.ResolvedOpcode.Sub;
                 whereIsBv = 1 - whereIsBv;
+              } else {
+                break;  // done simplifying
               }
               thatSide.Type = bin.Type;
 
@@ -14103,6 +14152,8 @@ namespace Microsoft.Dafny
         default:
           break;
       }
+      // our transformation above maintained the following invariant:
+      Contract.Assert(!FreeVariables(thatSide).Contains(bv));
 
       // Now, see if the interesting side is simply bv itself
       if (thisSide is IdentifierExpr && ((IdentifierExpr)thisSide).Var == bv) {
@@ -14112,12 +14163,42 @@ namespace Microsoft.Dafny
         return -1;
       }
 
-      // Finally, check that the other side does not contain "bv" or any of the bound variables
-      // listed after "bv" in the quantifier that is not bounded.
-      var fv = FreeVariables(thatSide);
-      for (int i = bvi; i < boundVars.Count; i++) {
-        if (fv.Contains(boundVars[i]) && (knownBounds == null || knownBounds[i] == null)) {
-          return -1;
+      // Finally, check the bound variables of "thatSide". We allow "thatSide" to
+      // depend on bound variables that are listed before "bv" (that is, a bound variable
+      // "boundVars[k]" where "k < bvi"). By construction, "thatSide" does not depend
+      // on "bv". Generally, for any bound variable "bj" that is listed after "bv"
+      // (that is, "bj" is some "boundVars[j]" where "bvi < j"), we do not allow
+      // "thatSide" to depend on "bv", but there is an important exception:
+      // If
+      //   *  "op" makes "thatSide" denote an integer upper bound on "bv" (or, analogously,
+      //      a integer lower bound),
+      //   *  "thatSide" depends on "bj",
+      //   *  "thatSide" is monotonic in "bj",
+      //   *  "bj" has a known integer upper bound "u",
+      //   *  "u" does not depend on "bv" or any bound variable listed after "bv"
+      //      (from the way we're constructing bounds, we already know that "u"
+      //      does not depend on "bj" or any bound variable listed after "bj")
+      // then we can substitute "u" for "bj" in "thatSide".
+      // By going from right to left, we can make the rule above slightly more
+      // liberal by considering a cascade of substitutions.
+      var fvThatSide = FreeVariables(thatSide);
+      for (int j = boundVars.Count; bvi + 1 <= --j; ) {
+        if (fvThatSide.Contains(boundVars[j])) {
+          if (knownBounds[j] is ComprehensionExpr.IntBoundedPool) {
+            var jBounds = (ComprehensionExpr.IntBoundedPool)knownBounds[j];
+            Expression u = null;
+            if (op == BinaryExpr.ResolvedOpcode.Lt || op == BinaryExpr.ResolvedOpcode.Le) {
+              u = whereIsBv == 0 ? jBounds.UpperBound : jBounds.LowerBound;
+            } else if (op == BinaryExpr.ResolvedOpcode.Gt || op == BinaryExpr.ResolvedOpcode.Ge) {
+              u = whereIsBv == 0 ? jBounds.LowerBound : jBounds.UpperBound;
+            }
+            if (u != null && !FreeVariables(u).Contains(bv) && IsMonotonic(u, boundVars[j], true)) {
+              thatSide = Translator.Substitute(thatSide, boundVars[j], u);
+              fvThatSide = FreeVariables(thatSide);
+              continue;
+            }
+          }
+          return -1;  // forget about "bv OP thatSide"
         }
       }
 
@@ -14128,6 +14209,28 @@ namespace Microsoft.Dafny
         e0 = thatSide; e1 = thisSide;
       }
       return whereIsBv;
+    }
+
+    /// <summary>
+    /// If "position", then returns "true" if "x" occurs only positively in "expr".
+    /// If "!position", then returns "true" if "x" occurs only negatively in "expr".
+    /// </summary>
+    public static bool IsMonotonic(Expression expr, IVariable x, bool position) {
+      Contract.Requires(expr != null && expr.Type != null);
+      Contract.Requires(x != null);
+
+      if (expr is IdentifierExpr) {
+        var e = (IdentifierExpr)expr;
+        return e.Var != x || position;
+      } else if (expr is BinaryExpr) {
+        var e = (BinaryExpr)expr;
+        if (e.ResolvedOp == BinaryExpr.ResolvedOpcode.Add) {
+          return IsMonotonic(e.E0, x, position) && IsMonotonic(e.E1, x, position);
+        } else if (e.ResolvedOp == BinaryExpr.ResolvedOpcode.Sub) {
+          return IsMonotonic(e.E0, x, position) && IsMonotonic(e.E1, x, !position);
+        }
+      }
+      return !FreeVariables(expr).Contains(x);
     }
 
     /// <summary>

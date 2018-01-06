@@ -1,14 +1,14 @@
-set-compr.dfy(25,7): Error: set comprehensions in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce or compile a bounded set of values for 'o'
-set-compr.dfy(34,16): Error: a set comprehension involved in a function definition is not allowed to depend on the set of allocated references; Dafny's heuristics can't figure out a bound for the values of 'o'
-set-compr.dfy(35,15): Error: a set comprehension involved in a function definition is not allowed to depend on the set of allocated references; Dafny's heuristics can't figure out a bound for the values of 'o'
-set-compr.dfy(36,8): Error: a set comprehension involved in a function definition is not allowed to depend on the set of allocated references; Dafny's heuristics can't figure out a bound for the values of 'o'
-set-compr.dfy(37,12): Error: a set comprehension involved in a function definition is not allowed to depend on the set of allocated references; Dafny's heuristics can't figure out a bound for the values of 'o'
-set-compr.dfy(39,10): Error: a set comprehension involved in a function definition is not allowed to depend on the set of allocated references; Dafny's heuristics can't figure out a bound for the values of 'o'
-set-compr.dfy(46,16): Error: a set comprehension involved in a function definition is not allowed to depend on the set of allocated references; Dafny's heuristics can't figure out a bound for the values of 'o'
-set-compr.dfy(47,15): Error: a set comprehension involved in a function definition is not allowed to depend on the set of allocated references; Dafny's heuristics can't figure out a bound for the values of 'o'
-set-compr.dfy(48,8): Error: a set comprehension involved in a function definition is not allowed to depend on the set of allocated references; Dafny's heuristics can't figure out a bound for the values of 'o'
-set-compr.dfy(49,12): Error: a set comprehension involved in a function definition is not allowed to depend on the set of allocated references; Dafny's heuristics can't figure out a bound for the values of 'o'
-set-compr.dfy(51,10): Error: a set comprehension involved in a function definition is not allowed to depend on the set of allocated references; Dafny's heuristics can't figure out a bound for the values of 'o'
-set-compr.dfy(65,6): Error: Assignment to non-ghost variable is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)
-set-compr.dfy(79,6): Error: Assignment to non-ghost variable is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)
+set-compr.dfy(28,9): Error: set comprehensions in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce or compile a bounded set of values for 'o'
+set-compr.dfy(39,34): Error: a function definition is not allowed to depend on the set of allocated references
+set-compr.dfy(41,26): Error: a function definition is not allowed to depend on the set of allocated references
+set-compr.dfy(40,33): Error: a function definition is not allowed to depend on the set of allocated references
+set-compr.dfy(42,30): Error: a function definition is not allowed to depend on the set of allocated references
+set-compr.dfy(44,28): Error: a function definition is not allowed to depend on the set of allocated references
+set-compr.dfy(51,34): Error: a function definition is not allowed to depend on the set of allocated references
+set-compr.dfy(53,26): Error: a function definition is not allowed to depend on the set of allocated references
+set-compr.dfy(52,33): Error: a function definition is not allowed to depend on the set of allocated references
+set-compr.dfy(54,30): Error: a function definition is not allowed to depend on the set of allocated references
+set-compr.dfy(56,28): Error: a function definition is not allowed to depend on the set of allocated references
+set-compr.dfy(74,8): Error: Assignment to non-ghost variable is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)
+set-compr.dfy(88,8): Error: Assignment to non-ghost variable is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)
 13 resolution/type errors detected in set-compr.dfy

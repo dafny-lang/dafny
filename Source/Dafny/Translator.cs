@@ -10094,7 +10094,6 @@ namespace Microsoft.Dafny {
         yield return lit;
       }
 
-      var missingBounds = new List<BoundVar>();
       var bounds = Resolver.DiscoverAllBounds_SingleVar(x, expr);
       foreach (var bound in bounds) {
         if (bound is ComprehensionExpr.IntBoundedPool) {
@@ -10128,6 +10127,8 @@ namespace Microsoft.Dafny {
               yield return el;
             }
           }
+        } else if (bound is ComprehensionExpr.ExactBoundedPool) {
+          yield return ((ComprehensionExpr.ExactBoundedPool)bound).E;
         }
       }
     }
@@ -14446,10 +14447,10 @@ namespace Microsoft.Dafny {
               var h = BplBoundVar(e.Refresh("q$heap#", translator.CurrentIdGenerator), predef.HeapType, bvars);
               bodyEtran = new ExpressionTranslator(bodyEtran, h);
               antecedent = BplAnd(new List<Bpl.Expr> {
-              antecedent,
-              translator.FunctionCall(e.tok, BuiltinFunction.IsGoodHeap, null, h),
-              translator.HeapSameOrSucc(initEtran.HeapExpr, h)  // initHeapForAllStmt
-            });
+                antecedent,
+                translator.FunctionCall(e.tok, BuiltinFunction.IsGoodHeap, null, h),
+                translator.HeapSameOrSucc(initEtran.HeapExpr, h)  // initHeapForAllStmt
+              });
             }
 
             antecedent = BplAnd(antecedent, bodyEtran.TrBoundVariables(e.BoundVars, bvars, false, FrugalHeapUse)); // initHeapForAllStmt
@@ -17019,8 +17020,6 @@ namespace Microsoft.Dafny {
         } else if (bound is ComprehensionExpr.BoolBoundedPool) {
           return bound;  // nothing to substitute
         } else if (bound is ComprehensionExpr.CharBoundedPool) {
-          return bound;  // nothing to substitute
-        } else if (bound is ComprehensionExpr.RefBoundedPool) {
           return bound;  // nothing to substitute
         } else if (bound is ComprehensionExpr.IntBoundedPool) {
           var b = (ComprehensionExpr.IntBoundedPool)bound;

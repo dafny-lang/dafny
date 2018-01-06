@@ -1,3 +1,4 @@
+// XFAIL: *
 // RUN: %dafny /compile:0 /dprint:"%t.dprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
@@ -14,7 +15,7 @@ module Methods_EverythingGoes {
   datatype List<G> = Nil | Cons(G, List<G>)
 
   method M0()
-    requires forall x: Opaque :: R(x)  // error: may seem innocent enough, but it quantifies over all Opaque
+    requires forall x: Opaque :: R(x)  // borderline: may seem innocent enough, but it quantifies over all Opaque
 
   method M0'()
     requires forall x: Opaque :: allocated(x) ==> R(x)  // fine
@@ -23,19 +24,19 @@ module Methods_EverythingGoes {
     requires forall x: OpaqueNoAlloc :: R(x)  // fine
 
   method E0()
-    requires exists x: Opaque :: R(x)  // error: may seem innocent enough, but it quantifies over all Opaque
+    requires exists x: Opaque :: R(x)  // borderline: may seem innocent enough, but it quantifies over all Opaque
 
   method M1<X>()
-    requires forall x: X :: R(x)  // error: may seem innocent enough, but it quantifies over all X
+    requires forall x: X :: R(x)  // borderline: may seem innocent enough, but it quantifies over all X
 
   method E1<X>()
-    requires exists x: X :: R(x)  // error: may seem innocent enough, but it quantifies over all X
+    requires exists x: X :: R(x)  // borderline: may seem innocent enough, but it quantifies over all X
 
   method E2<X(!new)>()
     requires exists x: X :: R(x)  // fine
 
   method M2()
-    requires forall c: Cell :: R(c)  // error: quantifies over all references
+    requires forall c: Cell :: R(c)  // borderline: quantifies over all references
 
   method M2'(S: set<Cell>)
     requires forall c: Cell :: c in S ==> R(c)  // fine
@@ -44,19 +45,19 @@ module Methods_EverythingGoes {
     requires forall xs: List<nat> :: R(xs)  // fine (no issues of allocation here)
 
   method M4()
-    requires forall xs: List<Cell> :: R(xs)  // error: involves references
+    requires forall xs: List<Cell> :: R(xs)  // borderline: involves references
 
   method M4'(S: set<List<Cell>>)
     requires forall xs: List<Cell> :: xs in S ==> R(xs)  // fine
 
   method M5<H>()
-    requires forall xs: List<H> :: R(xs)  // error: may involved allocation state
+    requires forall xs: List<H> :: R(xs)  // borderline: may involved allocation state
 
   method M5'<H(==)>(S: set<List<H>>)
     requires forall xs: List<H> :: xs in S ==> R(xs)  // fine
 
   method M6()
-    requires forall xs: List<Opaque> :: R(xs)  // error: may involved allocation state
+    requires forall xs: List<Opaque> :: R(xs)  // borderline: may involved allocation state
 
   method M6'(S: set<List<Opaque>>)
     requires forall xs: List<Opaque> :: xs in S ==> R(xs)  // fine
@@ -158,7 +159,7 @@ module OtherComprehensions {
   method M1() {
     if
     case true =>
-      assert iset{} == iset o: Opaque | R(o);  // error: o depends on alloc
+      assert iset{} == iset o: Opaque | R(o);  // borderline: o depends on alloc
     case true =>
       assert iset{} == iset o: Opaque | allocated(o) && R(o);  // fine
       assert {} == set o: Opaque | allocated(o) && R(o);  // this is also finite
@@ -167,7 +168,7 @@ module OtherComprehensions {
   }
 
   method M2() returns (s: iset<OpaqueNoAlloc>) {
-    s := iset o: OpaqueNoAlloc | R(o);  // error: not compilable, for may be infinite
+    s := iset o: OpaqueNoAlloc | R(o);  // error: not compilable (too awkward)
   }
 
   function F0(): int
@@ -207,7 +208,7 @@ module Allocated0 {
   }
 
   method M0() {
-    assert forall c: Cell :: c.data < 100;  // error: depends on alloc
+    assert forall c: Cell :: c.data < 100;  // borderline: depends on alloc
   }
 
   method M1() {

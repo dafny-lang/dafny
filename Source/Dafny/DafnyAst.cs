@@ -9693,26 +9693,27 @@ namespace Microsoft.Dafny {
       /// 
       /// 0: AllocFreeBoundedPool
       /// 0: ExplicitAllocatedBoundedPool
-      /// 0: RefBoundedPool
       /// 
       /// 1: WiggleWaggleBound
       /// 
       /// 2: SuperSetBoundedPool
       /// 
       /// 3: SubSetBoundedPool
-      /// 3: IntBoundedPool
       /// 
-      /// 4: CharBoundedPool
+      /// 4: IntBoundedPool with one bound
+      /// 5: IntBoundedPool with both bounds
+      /// 5: CharBoundedPool
       /// 
-      /// 5: BoolBoundedPool
-      /// 5: DatatypeBoundedPool
+      /// 8: DatatypeBoundedPool
       /// 
       /// 10: CollectionBoundedPool
       ///     - SetBoundedPool
       ///     - MapBoundedPool
       ///     - SeqBoundedPool
       /// 
-      /// 20: ExactBoundedPool
+      /// 14: BoolBoundedPool
+      /// 
+      /// 15: ExactBoundedPool
       /// </summary>
       public abstract int Preference(); // higher is better
       
@@ -9778,26 +9779,17 @@ namespace Microsoft.Dafny {
         E = e;
       }
       public override PoolVirtues Virtues => PoolVirtues.Finite | PoolVirtues.Enumerable | PoolVirtues.IndependentOfAlloc | PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc;
-      public override int Preference() => 20;  // the best of all bounds
+      public override int Preference() => 15;  // the best of all bounds
     }
     public class BoolBoundedPool : BoundedPool
     {
       public override PoolVirtues Virtues => PoolVirtues.Finite | PoolVirtues.Enumerable | PoolVirtues.IndependentOfAlloc | PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc;
-      public override int Preference() => 5;
+      public override int Preference() => 14;
     }
     public class CharBoundedPool : BoundedPool
     {
       public override PoolVirtues Virtues => PoolVirtues.Finite | PoolVirtues.Enumerable | PoolVirtues.IndependentOfAlloc | PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc;
-      public override int Preference() => 4;
-    }
-    public class RefBoundedPool : BoundedPool
-    {
-      public Type Type;
-      public RefBoundedPool(Type t) {
-        Type = t;
-      }
-      public override PoolVirtues Virtues => PoolVirtues.Finite;
-      public override int Preference() => 0;
+      public override int Preference() => 5;
     }
     public class AllocFreeBoundedPool : BoundedPool
     {
@@ -9841,7 +9833,7 @@ namespace Microsoft.Dafny {
           }
         }
       }
-      public override int Preference() => 3;
+      public override int Preference() => LowerBound != null && UpperBound != null ? 5 : 4;
     }
     public abstract class CollectionBoundedPool : BoundedPool
     {
@@ -9895,7 +9887,15 @@ namespace Microsoft.Dafny {
       public readonly Expression LowerBound;
       public SuperSetBoundedPool(Expression set) { LowerBound = set; }
       public override int Preference() => 2;
-      public override PoolVirtues Virtues => PoolVirtues.None;
+      public override PoolVirtues Virtues {
+        get {
+          if (LowerBound.Type.IsAllocFree) {
+            return PoolVirtues.IndependentOfAlloc | PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc;
+          } else {
+            return PoolVirtues.None;
+          }
+        }
+      }
     }
     public class MapBoundedPool : CollectionBoundedPool
     {
@@ -9912,7 +9912,7 @@ namespace Microsoft.Dafny {
       public readonly DatatypeDecl Decl;
       public DatatypeBoundedPool(DatatypeDecl d) { Decl = d; }
       public override PoolVirtues Virtues => PoolVirtues.Finite | PoolVirtues.Enumerable | PoolVirtues.IndependentOfAlloc | PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc;
-      public override int Preference() => 5;
+      public override int Preference() => 8;
     }
 
     public List<BoundedPool> Bounds;  // initialized and filled in by resolver
