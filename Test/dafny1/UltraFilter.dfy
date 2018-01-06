@@ -3,7 +3,7 @@
 
 // ultra filter
 
-type G(==,!new)
+type G(==)
 
 predicate IsFilter(f: set<set<G>>, S: set<G>)
 {

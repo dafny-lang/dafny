@@ -69,7 +69,7 @@ function flatten(x: List<List>): List
 // The algorithm
 
 // Everything is parametric in G and key
-type G(!new)
+type G
 function method key(g: G): int
 
 predicate method Below(a: G, b: G)

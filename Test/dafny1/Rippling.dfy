@@ -160,42 +160,42 @@ function last(xs: List): Nat
     case Cons(z, zs) => last(ys)
 }
 
-function apply(f: FunctionValue, xs: List): List
+function apply(f: Nat -> Nat, xs: List): List
 {
   match xs
   case Nil => Nil
-  case Cons(y, ys) => Cons(Apply(f, y), apply(f, ys))
+  case Cons(y, ys) => Cons(f(y), apply(f, ys))
 }
 
 // In the following two functions, parameter "p" stands for a predicate:  applying p and
 // getting Zero means "false" and getting anything else means "true".
 
-function takeWhileAlways(p: FunctionValue, xs: List): List
+function takeWhileAlways(p: Nat -> Nat, xs: List): List
 {
   match xs
   case Nil => Nil
   case Cons(y, ys) =>
-    if Apply(p, y) != Zero
+    if p(y) != Zero
     then Cons(y, takeWhileAlways(p, ys))
     else Nil
 }
 
-function dropWhileAlways(p: FunctionValue, xs: List): List
+function dropWhileAlways(p: Nat -> Nat, xs: List): List
 {
   match xs
   case Nil => Nil
   case Cons(y, ys) =>
-    if Apply(p, y) != Zero
+    if p(y) != Zero
     then dropWhileAlways(p, ys)
     else Cons(y, ys)
 }
 
-function filter(p: FunctionValue, xs: List): List
+function filter(p: Nat -> Nat, xs: List): List
 {
   match xs
   case Nil => Nil
   case Cons(y, ys) =>
-    if Apply(p, y) != Zero
+    if p(y) != Zero
     then Cons(y, filter(p, ys))
     else filter(p, ys)
 }
@@ -280,21 +280,20 @@ function mirror(t: Tree): Tree
 
 // Function parameters
 
-// Dafny currently does not support passing functions as arguments.  To simulate
-// arbitrary functions, the following type and Apply function play the role of
-// applying some prescribed function (here, a value of the type)
-// to some argument.
-
-type FunctionValue
-function Apply(f: FunctionValue, x: Nat): Nat  // this function is left uninterpreted
-
 // The following functions stand for the constant "false" and "true" functions,
 // respectively.
 
-function AlwaysFalseFunction(): FunctionValue
-  ensures forall n :: Apply(AlwaysFalseFunction(), n) == Zero;
-function AlwaysTrueFunction(): FunctionValue
-  ensures forall n :: Apply(AlwaysTrueFunction(), n) != Zero;
+function AlwaysFalseFunction(): Nat -> Nat { n => Zero }
+function AlwaysTrueFunction(): Nat -> Nat { n => Suc(Zero) }
+
+lemma AboutAlwaysFalseFunction()
+  ensures forall n :: AlwaysFalseFunction()(n) == Zero
+{
+}
+lemma AboutAlwaysTrueFunction()
+  ensures forall n :: AlwaysTrueFunction()(n) != Zero
+{
+}
 
 // -----------------------------------------------------------------------------------
 // The theorems to be proved
@@ -515,7 +514,7 @@ lemma P42()
 {
 }
 
-lemma P43(p: FunctionValue)
+lemma P43(p: Nat -> Nat)
   ensures forall xs :: concat(takeWhileAlways(p, xs), dropWhileAlways(p, xs)) == xs;
 {
 }

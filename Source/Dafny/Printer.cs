@@ -1033,7 +1033,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    string TPCharacteristicsSuffix(TypeParameter.TypeParameterCharacteristics characteristics) {
+    public static string TPCharacteristicsSuffix(TypeParameter.TypeParameterCharacteristics characteristics) {
       string s = null;
       if (characteristics.EqualitySupport == TypeParameter.EqualitySupportValue.Required ||
         (characteristics.EqualitySupport == TypeParameter.EqualitySupportValue.InferredRequired && DafnyOptions.O.DafnyPrintResolvedFile != null)) {
