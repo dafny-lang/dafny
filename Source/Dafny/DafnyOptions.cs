@@ -548,6 +548,8 @@ namespace Microsoft.Dafny
                 Warning: this option should be chosen consistently across
                 an entire project; it would be unsound to use different
                 defaults for different files or modules within a project.
+                And even so, modes /allocated:0 and /allocated:1 let functions
+                depend on the allocation state, which is not sound in general.
                 0 - Nowhere (never assume/assert allocated(x) by default).
                 1 - Assume allocated(x) only for non-ghost variables and fields
                     (these assumptions are free, since non-ghost variables
