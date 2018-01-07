@@ -3,10 +3,10 @@
 
 // ----- arrows with no read effects -------------------------------------
 
-type NoWitness_EffectlessArrow<!A,B> = f: A ~> B  // error: cannot find witness
+type NoWitness_EffectlessArrow<!A(!new),B> = f: A ~> B  // error: cannot find witness
   | forall a :: f.reads(a) == {}
 
-type NonGhost_EffectlessArrow<!A,B> = f: A ~> B
+type NonGhost_EffectlessArrow<!A(!new),B> = f: A ~> B
   | forall a :: f.reads(a) == {}
   witness EffectlessArrowWitness<A,B>
 
@@ -14,7 +14,7 @@ type NonGhost_EffectlessArrow<!A,B> = f: A ~> B
 // be implemented, because there is no way to produce a B (for any B) in compiled code.
 function method EffectlessArrowWitness<A,B>(a: A): B
 
-type EffectlessArrow<!A,B> = f: A ~> B
+type EffectlessArrow<!A(!new),B> = f: A ~> B
   | forall a :: f.reads(a) == {}
   ghost witness GhostEffectlessArrowWitness<A,B>
 
@@ -95,7 +95,7 @@ function TotalClientTwice(f: TotalArrow<int,int>, x: int): int
 
 // ----- inlined totality constraint -------------------------------------
 
-type DirectTotalArrow<!A,B> = f: EffectlessArrow<A,B>
+type DirectTotalArrow<!A(!new),B> = f: EffectlessArrow<A,B>
   | forall a :: f.requires(a)
   ghost witness TotalWitness<A,B>
 

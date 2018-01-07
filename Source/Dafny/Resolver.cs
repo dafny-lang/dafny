@@ -2174,10 +2174,15 @@ namespace Microsoft.Dafny
                 ResolveExpression(field.Rhs, opts);
                 if (reporter.Count(ErrorLevel.Error) == ec) {
                   // make sure initialization only refers to constant field or literal expression
-                  CheckConstantFieldInitialization(field, field.Rhs);
+                  if (CheckIsConstantExpr(field, field.Rhs)) {
+                    AddAssignableConstraint(field.tok, field.Type, field.Rhs.Type, "type for constant '" + field.Name + "' is '{0}', but its initialization value type is '{1}'");
+                  }
                 }
               }
               SolveAllTypeConstraints();
+              if (!CheckTypeInference_Visitor.IsDetermined(field.Type.NormalizeExpand())) {
+                reporter.Error(MessageSource.Resolver, field.tok, "const field's type is not fully determined");
+              }
             }
           }
           currentClass = null;
@@ -2203,6 +2208,9 @@ namespace Microsoft.Dafny
               var field = member as ConstantField;
               if (field != null && field.Rhs != null) {
                 CheckTypeInference(field.Rhs, field);
+                if (!field.IsGhost) {
+                  CheckIsCompilable(field.Rhs);
+                }
               }
             }
           }
@@ -5336,15 +5344,16 @@ namespace Microsoft.Dafny
           }
           if (whereToLookForBounds != null) {
             e.Bounds = DiscoverBestBounds_MultipleVars_AllowReordering(e.BoundVars, whereToLookForBounds, polarity, ComprehensionExpr.BoundedPool.PoolVirtues.None);
-            if (2 <= DafnyOptions.O.Allocated && codeContext is Function) {
+            if (2 <= DafnyOptions.O.Allocated && (codeContext is Function || codeContext is ConstantField || codeContext is RedirectingTypeDecl)) {
               // functions are not allowed to depend on the set of allocated objects
               foreach (var bv in ComprehensionExpr.BoundedPool.MissingBounds(e.BoundVars, e.Bounds, ComprehensionExpr.BoundedPool.PoolVirtues.IndependentOfAlloc)) {
-                var msgFormat = "a {0} involved in a function definition is not allowed to depend on the set of allocated references; Dafny's heuristics can't figure out a bound for the values of '{1}'";
+                var msgFormat = "a {0} involved in a {3} definition is not allowed to depend on the set of allocated references; Dafny's heuristics can't figure out a bound for the values of '{1}'";
                 if (bv.Type.IsTypeParameter) {
                   var tp = bv.Type.AsTypeParameter;
                   msgFormat += " (perhaps declare its type, '{2}', as '{2}(!new)')";
                 }
-                resolver.reporter.Error(MessageSource.Resolver, e, msgFormat, what, bv.Name, bv.Type);
+                var declKind = codeContext is RedirectingTypeDecl ? ((RedirectingTypeDecl)codeContext).WhatKind : ((MemberDecl)codeContext).WhatKind;
+                resolver.reporter.Error(MessageSource.Resolver, e, msgFormat, what, bv.Name, bv.Type, declKind);
               }
             }
             if ((e is SetComprehension && ((SetComprehension)e).Finite) || (e is MapComprehension && ((MapComprehension)e).Finite)) {
@@ -7329,17 +7338,6 @@ namespace Microsoft.Dafny
         Contract.Assert(AllTypeConstraints.Count == 0);
       }
       currentClass = null;
-    }
-
-    void CheckConstantFieldInitialization(ConstantField field, Expression expr) {
-      Contract.Requires(field != null);
-      Contract.Requires(expr != null);
-      if (CheckIsConstantExpr(field, expr)) {
-        AddAssignableConstraint(field.tok, field.Type, expr.Type, "type for constant '" + field.Name + "' is '{0}', but its initialization value type is '{1}'");
-      }
-      if (!field.IsGhost) {
-        CheckIsCompilable(expr);
-      }
     }
 
     /// <summary>

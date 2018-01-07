@@ -14,7 +14,7 @@ method Main() {
 }
 
 method M0() returns (b: bool) {
-//  b := forall i, j | j <= i <= 100 && i <= j < 100 :: true;  // this bogus cyclic dependency was once allowed
+//  b := forall i, j | j <= i <= 100 && i <= j < 100 :: true;  // see dafny0/ResolutionErrors.dfy
 }
 
 predicate method F(i: int, j: int) { true }
@@ -34,7 +34,7 @@ method M3() returns (b: bool) {
 }
 
 method M4() returns (b: bool) {
-//  b := forall j,i :: 0 <= i < 100 && j in S(i) ==> F(i,j);  // this bogus cyclic dependency was once allowed
+//  b := forall i, j :: j <= i < 100 && j in S(i) ==> F(i,j);  // see dafny0/ResolutionErrors.dfy
 }
 
 function method Triple(i: int, j: int, k: int): int
