@@ -373,11 +373,18 @@ ResolutionErrors.dfy(2341,34): Error: a set comprehension involved in a subset t
 ResolutionErrors.dfy(2339,22): Error: a set comprehension involved in a const field definition is not allowed to depend on the set of allocated references; Dafny's heuristics can't figure out a bound for the values of 'c'
 ResolutionErrors.dfy(2339,22): Error: set comprehensions in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce or compile a bounded set of values for 'c'
 ResolutionErrors.dfy(2346,19): Error: a set comprehension involved in a predicate definition is not allowed to depend on the set of allocated references; Dafny's heuristics can't figure out a bound for the values of 'c'
-ResolutionErrors.dfy(2352,18): Error: a quantifier involved in a const field definition is not allowed to depend on the set of allocated references; Dafny's heuristics can't figure out a bound for the values of 'k'
-ResolutionErrors.dfy(2352,18): Error: quantifiers in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce or compile a bounded set of values for 'k'
-ResolutionErrors.dfy(2355,30): Error: a quantifier involved in a newtype definition is not allowed to depend on the set of allocated references; Dafny's heuristics can't figure out a bound for the values of 'k'
-ResolutionErrors.dfy(2356,28): Error: a quantifier involved in a subset type definition is not allowed to depend on the set of allocated references; Dafny's heuristics can't figure out a bound for the values of 'k'
-ResolutionErrors.dfy(2354,16): Error: a quantifier involved in a const field definition is not allowed to depend on the set of allocated references; Dafny's heuristics can't figure out a bound for the values of 'k'
-ResolutionErrors.dfy(2354,16): Error: quantifiers in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce or compile a bounded set of values for 'k'
-ResolutionErrors.dfy(2361,32): Error: a function definition is not allowed to depend on the set of allocated references
-379 resolution/type errors detected in ResolutionErrors.dfy
+ResolutionErrors.dfy(2352,37): Error: a const field definition is not allowed to depend on the set of allocated references
+ResolutionErrors.dfy(2352,10): Error: const field's type is not fully determined
+ResolutionErrors.dfy(2355,49): Error: a newtype definition is not allowed to depend on the set of allocated references
+ResolutionErrors.dfy(2356,47): Error: a subset type definition is not allowed to depend on the set of allocated references
+ResolutionErrors.dfy(2354,35): Error: a const field definition is not allowed to depend on the set of allocated references
+ResolutionErrors.dfy(2354,8): Error: const field's type is not fully determined
+ResolutionErrors.dfy(2361,32): Error: a predicate definition is not allowed to depend on the set of allocated references
+ResolutionErrors.dfy(2367,41): Error: a const field definition is not allowed to depend on the set of allocated references
+ResolutionErrors.dfy(2367,10): Error: const field's type is not fully determined
+ResolutionErrors.dfy(2370,53): Error: a newtype definition is not allowed to depend on the set of allocated references
+ResolutionErrors.dfy(2371,51): Error: a subset type definition is not allowed to depend on the set of allocated references
+ResolutionErrors.dfy(2369,39): Error: a const field definition is not allowed to depend on the set of allocated references
+ResolutionErrors.dfy(2369,8): Error: const field's type is not fully determined
+ResolutionErrors.dfy(2376,36): Error: a predicate definition is not allowed to depend on the set of allocated references
+386 resolution/type errors detected in ResolutionErrors.dfy

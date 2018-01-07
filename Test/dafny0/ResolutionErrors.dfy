@@ -2349,9 +2349,9 @@ module AllocDepend1 {
 
 module AllocDepend2 {
   class Klass {
-    const z := if exists k: Klass :: allocated(k) then 3 else 4  // error (x2): condition depends on alloc; not compilable
+    const z := if exists k: Klass :: allocated(k) then 3 else 4  // error (x2): condition depends on alloc
   }
-  const y := if exists k: Klass :: allocated(k) then 3 else 4  // error (x2): condition depends on alloc; not compilable
+  const y := if exists k: Klass :: allocated(k) then 3 else 4  // error (x2): condition depends on alloc
   newtype byte = x | x < 5 || exists k: Klass :: allocated(k)  // error: condition not allowed to depend on alloc
   type small = x | x < 5 || exists k: Klass :: allocated(k)  // error: condition not allowed to depend on alloc
 }
@@ -2359,5 +2359,20 @@ module AllocDepend3 {
   class Klass { }
   predicate method P(x: int) {
     x < 5 || exists k: Klass :: allocated(k)  // error: function not allowed to depend on alloc
+  }
+}
+
+module AllocDepend4 {
+  class Xlass {
+    const z := if var k: Xlass? := null; allocated(k) then 3 else 4  // error (x2): condition depends on alloc
+  }
+  const y := if var k: Xlass? := null; allocated(k) then 3 else 4  // error (x2): condition depends on alloc
+  newtype byte = x | x < 5 || var k: Xlass? := null; allocated(k)  // error: condition not allowed to depend on alloc
+  type small = x | x < 5 || var k: Xlass? := null; allocated(k)  // error: condition not allowed to depend on alloc
+}
+module AllocDepend5 {
+  class Xlass { }
+  predicate method P(x: int) {
+    x < 5 || var k: Xlass? := null; allocated(k)  // error: function not allowed to depend on alloc
   }
 }

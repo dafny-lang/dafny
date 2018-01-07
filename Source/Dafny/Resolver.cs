@@ -11579,12 +11579,10 @@ namespace Microsoft.Dafny
           case UnaryOpExpr.Opcode.Allocated:
             // the argument is allowed to have any type at all
             expr.Type = Type.Bool;
-            if (opts.codeContext is Function && !opts.InsideOld) {
-              if (DafnyOptions.O.Allocated < 2) {
-                // Allow explicit mention of "allocated" for /allocated:{0,1}. This seems to be how these modes were designed, but it isn't sound with the frame axioms that are generated.
-              } else {
-                reporter.Error(MessageSource.Resolver, expr, "a function definition is not allowed to depend on the set of allocated references");
-              }
+            if (2 <= DafnyOptions.O.Allocated &&
+              ((opts.codeContext is Function && !opts.InsideOld) || opts.codeContext is ConstantField || opts.codeContext is RedirectingTypeDecl)) {
+              var declKind = opts.codeContext is RedirectingTypeDecl ? ((RedirectingTypeDecl)opts.codeContext).WhatKind : ((MemberDecl)opts.codeContext).WhatKind;
+              reporter.Error(MessageSource.Resolver, expr, "a {0} definition is not allowed to depend on the set of allocated references", declKind);
             }
           break;
           default:
