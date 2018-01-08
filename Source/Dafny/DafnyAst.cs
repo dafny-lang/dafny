@@ -276,10 +276,12 @@ namespace Microsoft.Dafny {
       // forall x0,x1,x2 :: f.requires(x0,x1,x2)
       var bvs = new List<BoundVar>();
       var args = new List<Expression>();
+      var bounds = new List<ComprehensionExpr.BoundedPool>();
       for (int i = 0; i < tps.Count - 1; i++) {
         var bv = new BoundVar(tok, "x" + i, new UserDefinedType(tps[i]));
         bvs.Add(bv);
         args.Add(new IdentifierExpr(tok, bv));
+        bounds.Add(new ComprehensionExpr.SpecialAllocIndependenceAllocatedBoundedPool());
       }
       var fn = new MemberSelectExpr(tok, f, member.Name) {
         Member = member,
@@ -294,8 +296,7 @@ namespace Microsoft.Dafny {
         body = Expression.CreateEq(body, emptySet, member.ResultType);
       }
       if (tps.Count > 1) {
-        body = new ForallExpr(tok, bvs, null, body, null);
-        body.Type = Type.Bool;  // resolve here
+        body = new ForallExpr(tok, bvs, null, body, null) { Type = Type.Bool, Bounds = bounds };
       }
       return body;
     }
@@ -9693,6 +9694,7 @@ namespace Microsoft.Dafny {
       /// 
       /// 0: AllocFreeBoundedPool
       /// 0: ExplicitAllocatedBoundedPool
+      /// 0: SpecialAllocIndependenceAllocatedBoundedPool
       /// 
       /// 1: WiggleWaggleBound
       /// 
@@ -9743,6 +9745,12 @@ namespace Microsoft.Dafny {
           }
         }
         return missing;
+      }
+      public static List<bool> HasBounds(List<BoundedPool> bounds, PoolVirtues requiredVirtues = PoolVirtues.None) {
+        Contract.Requires(bounds != null);
+        Contract.Ensures(Contract.Result<List<bool>>() != null);
+        Contract.Ensures(Contract.Result<List<bool>>().Count == bounds.Count);
+        return bounds.ConvertAll(bound => bound != null && (bound.Virtues & requiredVirtues) == requiredVirtues);
       }
       static List<BoundedPool> CombineIntegerBounds(List<BoundedPool> bounds) {
         var lowerBounds = new List<IntBoundedPool>();
@@ -9814,6 +9822,13 @@ namespace Microsoft.Dafny {
       public ExplicitAllocatedBoundedPool() {
       }
       public override PoolVirtues Virtues => PoolVirtues.Finite | PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc;
+      public override int Preference() => 0;
+    }
+    public class SpecialAllocIndependenceAllocatedBoundedPool : BoundedPool
+    {
+      public SpecialAllocIndependenceAllocatedBoundedPool() {
+      }
+      public override PoolVirtues Virtues => PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc;
       public override int Preference() => 0;
     }
     public class IntBoundedPool : BoundedPool

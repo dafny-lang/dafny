@@ -4037,12 +4037,14 @@ namespace Microsoft.Dafny {
           }
 
           var parBoundVars = new List<BoundVar>();
+          var parBounds = new List<ComprehensionExpr.BoundedPool>();
           var substMap = new Dictionary<IVariable, Expression>();
           foreach (var iv in inductionVars) {
             BoundVar bv;
             IdentifierExpr ie;
             CloneVariableAsBoundVar(iv.tok, iv, "$ih#" + iv.Name, out bv, out ie);
             parBoundVars.Add(bv);
+            parBounds.Add(new ComprehensionExpr.SpecialAllocIndependenceAllocatedBoundedPool());  // record that we don't want alloc antecedents for these variables
             substMap.Add(iv, ie);
           }
 
@@ -4091,7 +4093,7 @@ namespace Microsoft.Dafny {
           // All done, so put the two pieces together
           builder.Add(new Bpl.IfCmd(m.tok, null, definedness.Collect(m.tok), null, exporter.Collect(m.tok)));
 #else
-          TrForallStmtCall(m.tok, parBoundVars, parRange, decrCheck, null, recursiveCall, null, builder, localVariables, etran);
+          TrForallStmtCall(m.tok, parBoundVars, parBounds, parRange, decrCheck, null, recursiveCall, null, builder, localVariables, etran);
 #endif
         }
         // translate the body of the method
@@ -7229,7 +7231,8 @@ namespace Microsoft.Dafny {
         var rhs = Substitute(e.RHSs[0], null, substMap);
         if (checkRhs) {
           CheckWellformed(rhs, options, locals, builder, etran);
-          GenerateAndCheckGuesses(e.tok, lhsVars, e.RHSs[0], TrTrigger(etran, e.Attributes, e.tok), builder, etran);
+          var bounds = lhsVars.ConvertAll(v => (ComprehensionExpr.BoundedPool)new ComprehensionExpr.SpecialAllocIndependenceAllocatedBoundedPool());  // indicate "no alloc" (is this what we want?)
+          GenerateAndCheckGuesses(e.tok, lhsVars, bounds, e.RHSs[0], TrTrigger(etran, e.Attributes, e.tok), builder, etran);
         }
         builder.Add(TrAssumeCmd(e.tok, etran.TrExpr(rhs)));
         var letBody = Substitute(e.Body, null, substMap);
@@ -9392,7 +9395,7 @@ namespace Microsoft.Dafny {
             }
           }
 
-          GenerateAndCheckGuesses(s.Tok, bvars, Substitute(s.Expr, null, substMap), TrTrigger(etran, s.Attributes, s.Tok, substMap), builder, etran);
+          GenerateAndCheckGuesses(s.Tok, bvars, s.Bounds, Substitute(s.Expr, null, substMap), TrTrigger(etran, s.Attributes, s.Tok, substMap), builder, etran);
         }
         // End by doing the assume
         builder.Add(TrAssumeCmd(s.Tok, etran.TrExpr(s.Expr)));
@@ -9614,12 +9617,12 @@ namespace Microsoft.Dafny {
           } else {
             var s0 = (CallStmt)s.S0;
             if (Attributes.Contains(s.Attributes, "_trustWellformed")) {
-              TrForallStmtCall(s.Tok, s.BoundVars, s.Range, null, s.ForallExpressions, s0, null, builder, locals, etran);
+              TrForallStmtCall(s.Tok, s.BoundVars, s.Bounds, s.Range, null, s.ForallExpressions, s0, null, builder, locals, etran);
             } else {
               var definedness = new BoogieStmtListBuilder(this);
               DefineFuelConstant(stmt.Tok, stmt.Attributes, definedness, etran);
               var exporter = new BoogieStmtListBuilder(this);
-              TrForallStmtCall(s.Tok, s.BoundVars, s.Range, null, s.ForallExpressions, s0, definedness, exporter, locals, etran);
+              TrForallStmtCall(s.Tok, s.BoundVars, s.Bounds, s.Range, null, s.ForallExpressions, s0, definedness, exporter, locals, etran);
               // All done, so put the two pieces together
               builder.Add(new Bpl.IfCmd(s.Tok, null, definedness.Collect(s.Tok), null, exporter.Collect(s.Tok)));
             }
@@ -9864,9 +9867,10 @@ namespace Microsoft.Dafny {
       }
     }
 
-    private void GenerateAndCheckGuesses(IToken tok, List<BoundVar> bvars, Expression expr, Trigger triggers, BoogieStmtListBuilder builder, ExpressionTranslator etran) {
+    private void GenerateAndCheckGuesses(IToken tok, List<BoundVar> bvars, List<ComprehensionExpr.BoundedPool> bounds, Expression expr, Trigger triggers, BoogieStmtListBuilder builder, ExpressionTranslator etran) {
       Contract.Requires(tok != null);
       Contract.Requires(bvars != null);
+      Contract.Requires(bounds != null);
       Contract.Requires(expr != null);
       Contract.Requires(builder != null);
       Contract.Requires(etran != null);
@@ -9886,8 +9890,12 @@ namespace Microsoft.Dafny {
         }
         body = BplAnd(typeConstraints, body);
         if (undetermined.Count != 0) {
+          List<bool> freeOfAlloc = null;
+          if (FrugalHeapUseX) {
+            freeOfAlloc = ComprehensionExpr.BoundedPool.HasBounds(bounds, ComprehensionExpr.BoundedPool.PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc);
+          }
           var bvs = new List<Variable>();
-          var typeAntecedent = etran.TrBoundVariables(undetermined, bvs);
+          var typeAntecedent = etran.TrBoundVariables(undetermined, bvs, false, freeOfAlloc);
           body = new Bpl.ExistsExpr(tok, bvs, triggers, BplAnd(typeAntecedent, body));
         }
         w = BplOr(body, w);
@@ -10344,8 +10352,12 @@ namespace Microsoft.Dafny {
       Bpl.IdentifierExpr f = new Bpl.IdentifierExpr(s.Tok, fVar);
       Bpl.Expr heapOF = ExpressionTranslator.ReadHeap(s.Tok, etran.HeapExpr, o, f);
       Bpl.Expr oldHeapOF = ExpressionTranslator.ReadHeap(s.Tok, prevHeap, o, f);
+      List<bool> freeOfAlloc = null;
+      if (FrugalHeapUseX) {
+        freeOfAlloc = ComprehensionExpr.BoundedPool.HasBounds(s.Bounds, ComprehensionExpr.BoundedPool.PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc);
+      }
       List<Variable> xBvars = new List<Variable>();
-      var xBody = etran.TrBoundVariables(s.BoundVars, xBvars);
+      var xBody = etran.TrBoundVariables(s.BoundVars, xBvars, false, freeOfAlloc);
       xBody = BplAnd(xBody, prevEtran.TrExpr(s.Range));
       Bpl.Expr xObj, xField;
       GetObjFieldDetails(s0.Lhs.Resolved, prevEtran, out xObj, out xField);
@@ -10364,7 +10376,7 @@ namespace Microsoft.Dafny {
           Contract.Assert(term != null);
           var e0 = ((BinaryExpr)term).E0.Resolved;
           var e1 = ((BinaryExpr)term).E1;
-          qq = TrForall_NewValueAssumption(expr.tok, expr.BoundVars, expr.Range, e0, e1, expr.Attributes, etran, prevEtran);
+          qq = TrForall_NewValueAssumption(expr.tok, expr.BoundVars, expr.Bounds, expr.Range, e0, e1, expr.Attributes, etran, prevEtran);
           updater.Add(TrAssumeCmd(s.Tok, qq));
         }
       } 
@@ -10381,17 +10393,22 @@ namespace Microsoft.Dafny {
     ///   G             is rhs
     /// If lhsAsTrigger is true, then use the LHS of the equality above as the trigger; otherwise, don't specify any trigger.
     /// </summary>
-    private Bpl.Expr TrForall_NewValueAssumption(IToken tok, List<BoundVar> boundVars, Expression range, Expression lhs, Expression rhs, Attributes attributes, ExpressionTranslator etran, ExpressionTranslator prevEtran) {
+    private Bpl.Expr TrForall_NewValueAssumption(IToken tok, List<BoundVar> boundVars, List<ComprehensionExpr.BoundedPool> bounds, Expression range, Expression lhs, Expression rhs, Attributes attributes, ExpressionTranslator etran, ExpressionTranslator prevEtran) {
       Contract.Requires(tok != null);
       Contract.Requires(boundVars != null);
+      Contract.Requires(!FrugalHeapUseX || bounds != null);
       Contract.Requires(range != null);
       Contract.Requires(lhs != null);
       Contract.Requires(rhs != null);
       Contract.Requires(etran != null);
       Contract.Requires(prevEtran != null);
 
+      List<bool> freeOfAlloc = null;
+      if (FrugalHeapUseX) {
+        freeOfAlloc = ComprehensionExpr.BoundedPool.HasBounds(bounds, ComprehensionExpr.BoundedPool.PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc);
+      }
       var xBvars = new List<Variable>();
-      Bpl.Expr xAnte = etran.TrBoundVariables(boundVars, xBvars);
+      Bpl.Expr xAnte = etran.TrBoundVariables(boundVars, xBvars, false, freeOfAlloc);
       xAnte = BplAnd(xAnte, prevEtran.TrExpr(range));
       var g = prevEtran.TrExpr(rhs);
       Bpl.Expr obj, field;
@@ -10421,10 +10438,11 @@ namespace Microsoft.Dafny {
 
     delegate Bpl.Expr ExpressionConverter(Dictionary<IVariable, Expression> substMap, ExpressionTranslator etran);
 
-    void TrForallStmtCall(IToken tok, List<BoundVar> boundVars, Expression range, ExpressionConverter additionalRange, List<Expression> forallExpressions, CallStmt s0,
+    void TrForallStmtCall(IToken tok, List<BoundVar> boundVars, List<ComprehensionExpr.BoundedPool> bounds, Expression range, ExpressionConverter additionalRange, List<Expression> forallExpressions, CallStmt s0,
       BoogieStmtListBuilder definedness, BoogieStmtListBuilder exporter, List<Variable> locals, ExpressionTranslator etran) {
       Contract.Requires(tok != null);
       Contract.Requires(boundVars != null);
+      Contract.Requires(bounds != null);
       Contract.Requires(range != null);
       // additionalRange is allowed to be null
       Contract.Requires(s0 != null);
@@ -10460,8 +10478,12 @@ namespace Microsoft.Dafny {
           // Note, it would be nicer (and arguably more appropriate) to do a SetupBoundVarsAsLocals
           // here (rather than a TrBoundVariables).  However, there is currently no way to apply
           // a substMap to a statement (in particular, to s.Body), so that doesn't work here.
+          List<bool> freeOfAlloc = null;
+          if (FrugalHeapUseX) {
+            freeOfAlloc = ComprehensionExpr.BoundedPool.HasBounds(bounds, ComprehensionExpr.BoundedPool.PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc);
+          }
           List<Variable> bvars = new List<Variable>();
-          var ante = etran.TrBoundVariables(boundVars, bvars, true);
+          var ante = etran.TrBoundVariables(boundVars, bvars, true, freeOfAlloc);
           locals.AddRange(bvars);
           var havocIds = new List<Bpl.IdentifierExpr>();
           foreach (Bpl.Variable bv in bvars) {
@@ -10611,8 +10633,12 @@ namespace Microsoft.Dafny {
         // Note, it would be nicer (and arguably more appropriate) to do a SetupBoundVarsAsLocals
         // here (rather than a TrBoundVariables).  However, there is currently no way to apply
         // a substMap to a statement (in particular, to s.Body), so that doesn't work here.
+        List<bool> freeOfAlloc = null;
+        if (FrugalHeapUseX) {
+          freeOfAlloc = ComprehensionExpr.BoundedPool.HasBounds(s.Bounds, ComprehensionExpr.BoundedPool.PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc);
+        }
         var bVars = new List<Variable>();
-        var typeAntecedent = etran.TrBoundVariables(s.BoundVars, bVars, true);
+        var typeAntecedent = etran.TrBoundVariables(s.BoundVars, bVars, true, freeOfAlloc);
         locals.AddRange(bVars);
         var havocIds = new List<Bpl.IdentifierExpr>();
         foreach (Bpl.Variable bv in bVars) {
@@ -14457,7 +14483,11 @@ namespace Microsoft.Dafny {
               });
             }
 
-            antecedent = BplAnd(antecedent, bodyEtran.TrBoundVariables(e.BoundVars, bvars, false, FrugalHeapUse)); // initHeapForAllStmt
+            List<bool> freeOfAlloc = null;
+            if (FrugalHeapUseX) {
+              freeOfAlloc = ComprehensionExpr.BoundedPool.HasBounds(e.Bounds, ComprehensionExpr.BoundedPool.PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc);
+            }
+            antecedent = BplAnd(antecedent, bodyEtran.TrBoundVariables(e.BoundVars, bvars, false, freeOfAlloc)); // initHeapForAllStmt
 
             Bpl.QKeyValue kv = TrAttributes(e.Attributes, "trigger");
             Bpl.Trigger tr = translator.TrTrigger(bodyEtran, e.Attributes, e.tok, bvars, null, null);
@@ -14476,6 +14506,10 @@ namespace Microsoft.Dafny {
           }
         } else if (expr is SetComprehension) {
           var e = (SetComprehension)expr;
+          List<bool> freeOfAlloc = null;
+          if (FrugalHeapUseX) {
+            freeOfAlloc = ComprehensionExpr.BoundedPool.HasBounds(e.Bounds, ComprehensionExpr.BoundedPool.PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc);
+          }
           // Translate "set xs | R :: T" into:
           //     lambda y: BoxType :: (exists xs :: CorrectType(xs) && R && y==Box(T))
           // or if "T" is "xs", then:
@@ -14487,13 +14521,17 @@ namespace Microsoft.Dafny {
             // lambda y: BoxType :: CorrectType(y) && R[xs := yUnboxed]
             var bv = e.BoundVars[0];
             Bpl.Expr typeAntecedent = translator.MkIsBox(new Bpl.IdentifierExpr(expr.tok, yVar), bv.Type);
+            if (freeOfAlloc != null && !freeOfAlloc[0]) {
+              var isAlloc = translator.MkIsAlloc(new Bpl.IdentifierExpr(expr.tok, yVar), bv.Type, HeapExpr);
+              typeAntecedent = BplAnd(typeAntecedent, isAlloc);
+            }
             var yUnboxed = translator.UnboxIfBoxed(new Bpl.IdentifierExpr(expr.tok, yVar), bv.Type);
             var range = Translator.Substitute(e.Range, bv, new BoogieWrapper(yUnboxed, bv.Type));
             lbody = BplAnd(typeAntecedent, TrExpr(range));
           } else {
             // lambda y: BoxType :: (exists xs :: CorrectType(xs) && R && y==Box(T))
             List<Variable> bvars = new List<Variable>();
-            Bpl.Expr typeAntecedent = TrBoundVariables(e.BoundVars, bvars);
+            Bpl.Expr typeAntecedent = TrBoundVariables(e.BoundVars, bvars, false, freeOfAlloc);
 
             var eq = Bpl.Expr.Eq(y, BoxIfNecessary(expr.tok, TrExpr(e.Term), e.Term.Type));
             var ebody = Bpl.Expr.And(BplAnd(typeAntecedent, TrExpr(e.Range)), eq);
@@ -14511,7 +14549,11 @@ namespace Microsoft.Dafny {
           //          type)".
           List<Variable> bvars = new List<Variable>();
           var bv = e.BoundVars[0];
-          TrBoundVariables(e.BoundVars, bvars);
+          List<bool> freeOfAlloc = null;
+          if (FrugalHeapUseX) {
+            freeOfAlloc = ComprehensionExpr.BoundedPool.HasBounds(e.Bounds, ComprehensionExpr.BoundedPool.PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc);
+          }
+          TrBoundVariables(e.BoundVars, bvars, false, freeOfAlloc);
 
           Bpl.QKeyValue kv = TrAttributes(e.Attributes, "trigger");
 
@@ -14601,6 +14643,8 @@ namespace Microsoft.Dafny {
       }
 
       private Expr TrLambdaExpr(LambdaExpr e) {
+        Contract.Requires(e != null);
+
         var bvars = new List<Bpl.Variable>();
 
         var varNameGen = translator.CurrentIdGenerator.NestedFreshIdGenerator("$l#");
@@ -14695,11 +14739,14 @@ namespace Microsoft.Dafny {
         return TrBoundVariables(boundVars, bvars, false);
       }
 
-      public Bpl.Expr TrBoundVariables(List<BoundVar/*!*/> boundVars, List<Variable> bvars, bool translateAsLocals, bool skipAllocation = false) {
+      public Bpl.Expr TrBoundVariables(List<BoundVar/*!*/> boundVars, List<Variable> bvars, bool translateAsLocals, List<bool>/*?*/ freeOfAlloc = null) {
         Contract.Requires(boundVars != null);
+        Contract.Requires(bvars != null);
+        Contract.Requires(freeOfAlloc == null || freeOfAlloc.Count == boundVars.Count);
         Contract.Ensures(Contract.Result<Bpl.Expr>() != null);
 
         Bpl.Expr typeAntecedent = Bpl.Expr.True;
+        var i = 0;
         foreach (BoundVar bv in boundVars) {
           var tid = new Bpl.TypedIdent(bv.tok, bv.AssignUniqueName(translator.currentDeclaration.IdGenerator), translator.TrType(bv.Type));
           Bpl.Variable bvar;
@@ -14709,10 +14756,12 @@ namespace Microsoft.Dafny {
             bvar = new Bpl.BoundVariable(bv.tok, tid);
           }
           bvars.Add(bvar);
-          Bpl.Expr wh = translator.GetWhereClause(bv.tok, new Bpl.IdentifierExpr(bv.tok, bvar), bv.Type, this, NOALLOC);
+          var useAlloc = freeOfAlloc == null || freeOfAlloc[i] ? NOALLOC : ISALLOC;
+          Bpl.Expr wh = translator.GetWhereClause(bv.tok, new Bpl.IdentifierExpr(bv.tok, bvar), bv.Type, this, useAlloc);
           if (wh != null) {
             typeAntecedent = BplAnd(typeAntecedent, wh);
           }
+          i++;
         }
         return typeAntecedent;
       }
@@ -14921,13 +14970,18 @@ namespace Microsoft.Dafny {
           //     CorrectType(elmt) && R[xs := elmt]
           if (compr.TermIsSimple) {
             // CorrectType(elmt) && R[xs := elmt]
+            // Note, we can always use NOALLOC here.
             Bpl.Expr typeAntecedent = translator.GetWhereClause(compr.tok, elmt, compr.BoundVars[0].Type, this, NOALLOC) ?? Bpl.Expr.True;
             var range = Translator.Substitute(compr.Range, compr.BoundVars[0], new BoogieWrapper(elmt, compr.BoundVars[0].Type));
             return BplAnd(typeAntecedent, TrExpr(range));
           } else {
             // exists xs :: CorrectType(xs) && R && elmt==T
+            List<bool> freeOfAlloc = null;
+            if (FrugalHeapUseX) {
+              freeOfAlloc = ComprehensionExpr.BoundedPool.HasBounds(compr.Bounds, ComprehensionExpr.BoundedPool.PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc);
+            }
             var bvars = new List<Variable>();
-            Bpl.Expr typeAntecedent = TrBoundVariables(compr.BoundVars, bvars) ?? Bpl.Expr.True;
+            Bpl.Expr typeAntecedent = TrBoundVariables(compr.BoundVars, bvars, false, freeOfAlloc) ?? Bpl.Expr.True;
             var eq = Bpl.Expr.Eq(elmtBox, BoxIfNecessary(compr.tok, TrExpr(compr.Term), compr.Term.Type));
             var ebody = Bpl.Expr.And(BplAnd(typeAntecedent, TrExpr(compr.Range)), eq);
             var triggers = translator.TrTrigger(this, compr.Attributes, compr.tok);
@@ -16098,7 +16152,7 @@ namespace Microsoft.Dafny {
           }
           ihBody = Bpl.Expr.Imp(less, ihBody);
           List<Variable> bvars = new List<Variable>();
-          Bpl.Expr typeAntecedent = etran.TrBoundVariables(kvars, bvars);
+          Bpl.Expr typeAntecedent = etran.TrBoundVariables(kvars, bvars);  // no need to use allocation antecedent here, because the well-founded less-than ordering assures kk are allocated
           Bpl.Expr ih;
           var tr = TrTrigger(etran, e.Attributes, expr.tok, substMap);
           ih = new Bpl.ForallExpr(expr.tok, bvars, tr, Bpl.Expr.Imp(typeAntecedent, ihBody));
@@ -16126,8 +16180,12 @@ namespace Microsoft.Dafny {
             caseProduct = newCases;
             i++;
           }
+          List<bool> freeOfAlloc = null;
+          if (FrugalHeapUseX) {
+            freeOfAlloc = ComprehensionExpr.BoundedPool.HasBounds(e.Bounds, ComprehensionExpr.BoundedPool.PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc);
+          }
           bvars = new List<Variable>();
-          typeAntecedent = etran.TrBoundVariables(e.BoundVars, bvars);
+          typeAntecedent = etran.TrBoundVariables(e.BoundVars, bvars, false, freeOfAlloc);
           foreach (var kase in caseProduct) {
             var ante = BplAnd(BplAnd(typeAntecedent, ih), kase);
             var etranBody = etran.LayerOffset(1);
@@ -16466,7 +16524,8 @@ namespace Microsoft.Dafny {
     public static bool NonGhostsUseHeap { get { return DafnyOptions.O.Allocated == 1 || DafnyOptions.O.Allocated == 2; } }
     public static bool AlwaysUseHeap { get { return DafnyOptions.O.Allocated == 2; } }
     public static bool CommonHeapUse { get { return DafnyOptions.O.Allocated >= 2; } }
-    public static bool FrugalHeapUse { get { return DafnyOptions.O.Allocated == 3; } }
+    public static bool FrugalHeapUse { get { return DafnyOptions.O.Allocated >= 3; } }
+    public static bool FrugalHeapUseX { get { return DafnyOptions.O.Allocated == 4; } }
 
     public static bool UsesHeap(Expression expr) {
       UsesHeapVisitor visitor = new UsesHeapVisitor();
@@ -16613,6 +16672,7 @@ namespace Microsoft.Dafny {
           var newTerm = Substitute(e.Term);
           var newBoundVars = new List<BoundVar>();
           newBoundVars.AddRange(e.BoundVars);
+          var newBounds = e.Bounds == null ? null : e.Bounds.ConvertAll(bound => SubstituteBoundedPool(bound));
           if (newRange != e.Range || newTerm != e.Term) {
             if (expr is ForallExpr) {
               foreach (KeyValuePair<Expression, IdentifierExpr> entry in usedSubstMap) {
@@ -16624,8 +16684,9 @@ namespace Microsoft.Dafny {
                   newRange = newExpr;
                 }
                 newBoundVars.Add((BoundVar)entry.Value.Var);
+                newBounds.Add(new ComprehensionExpr.ExactBoundedPool(entry.Key));
               }
-              newExpr = new ForallExpr(expr.tok, ((QuantifierExpr)expr).TypeArgs, newBoundVars, newRange, newTerm, newAttrs);
+              newExpr = new ForallExpr(expr.tok, ((QuantifierExpr)expr).TypeArgs, newBoundVars, newRange, newTerm, newAttrs) { Bounds = newBounds };
             } else if (expr is ExistsExpr) {
               foreach (KeyValuePair<Expression, IdentifierExpr> entry in usedSubstMap) {
                 newExpr = new BinaryExpr(expr.tok, BinaryExpr.ResolvedOpcode.EqCommon, entry.Value, entry.Key);
@@ -16636,8 +16697,9 @@ namespace Microsoft.Dafny {
                   newRange = newExpr;
                 }
                 newBoundVars.Add((BoundVar)entry.Value.Var);
+                newBounds.Add(new ComprehensionExpr.ExactBoundedPool(entry.Key));
               }
-              newExpr = new ExistsExpr(expr.tok, ((QuantifierExpr)expr).TypeArgs, newBoundVars, newRange, newTerm, newAttrs);
+              newExpr = new ExistsExpr(expr.tok, ((QuantifierExpr)expr).TypeArgs, newBoundVars, newRange, newTerm, newAttrs) { Bounds = newBounds };
             }
             usedSubstMap.Clear();
           }
@@ -17052,6 +17114,8 @@ namespace Microsoft.Dafny {
         } else if (bound is ComprehensionExpr.ExplicitAllocatedBoundedPool) {
           return bound;  // nothing to substitute
         } else if (bound is AssignSuchThatStmt.WiggleWaggleBound) {
+          return bound;  // nothing to substitute
+        } else if (bound is ComprehensionExpr.SpecialAllocIndependenceAllocatedBoundedPool) {
           return bound;  // nothing to substitute
         } else {
           Contract.Assume(false);  // unexpected ComprehensionExpr.BoundedPool

@@ -302,7 +302,7 @@ namespace Microsoft.Dafny
         }
 
         case "allocated": {
-            ps.GetNumericArgument(ref Allocated, 4);
+            ps.GetNumericArgument(ref Allocated, 5);
             return true;
         }
 
@@ -559,6 +559,8 @@ namespace Microsoft.Dafny
                     even bound variables in quantifiers.  This option is
                     the easiest to use for heapful code.
                 3 - (default) Frugal use of heap parameters.
+                4 - mode 3 but with alloc antecedents when ranges don't imply
+                    allocatedness.
   /ironDafny    Enable experimental features needed to support Ironclad/Ironfleet. Use of
                 these features may cause your code to become incompatible with future
                 releases of Dafny.

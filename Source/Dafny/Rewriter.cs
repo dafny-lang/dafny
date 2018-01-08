@@ -111,6 +111,7 @@ namespace Microsoft.Dafny
             List<Expression> exprList = new List<Expression>();
             ForallExpr expr = new ForallExpr(s.Tok, s.BoundVars, s.Range, term, s.Attributes);
             expr.Type = Type.Bool; // resolve here
+            expr.Bounds = s.Bounds;
             exprList.Add(expr);
             s.ForallExpressions = exprList;
           } else if (s.Kind == ForallStmt.BodyKind.Assign) {
@@ -191,6 +192,7 @@ namespace Microsoft.Dafny
                 if (!usedInversion) {
                   var expr = new ForallExpr(s.Tok, s.BoundVars, s.Range, new BinaryExpr(s.Tok, BinaryExpr.ResolvedOpcode.EqCommon, lhs, rhs), s.Attributes);
                   expr.Type = Type.Bool; // resolve here
+                  expr.Bounds = s.Bounds;
                   exprList.Add(expr);
                 }
                 s.ForallExpressions = exprList;
@@ -212,6 +214,7 @@ namespace Microsoft.Dafny
             List<Expression> exprList = new List<Expression>();
             ForallExpr expr = new ForallExpr(s.Tok, s.BoundVars, s.Range, term, s.Attributes);
             expr.Type = Type.Bool; // resolve here
+            expr.Bounds = s.Bounds;
             exprList.Add(expr);
             s.ForallExpressions = exprList;
           } else {
