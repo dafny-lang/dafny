@@ -10174,6 +10174,10 @@ namespace Microsoft.Dafny {
         var empty = new SeqDisplayExpr(tok, new List<Expression>());
         empty.Type = typ;
         return empty;
+      } else if (typ is MapType) {
+        var empty = new MapDisplayExpr(tok, ((MapType)typ).Finite, new List<ExpressionPair>());
+        empty.Type = typ;
+        return empty;
       } else if (typ is ArrowType) {
         // TODO: do better than just returning null
         return null;
