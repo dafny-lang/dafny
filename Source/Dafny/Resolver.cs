@@ -2427,7 +2427,8 @@ namespace Microsoft.Dafny
               }
             }
           }
-          reporter.Info(MessageSource.Resolver, com.tok, string.Format("{0} specialized for {1}", com.PrefixLemma.Name, Util.Comma(focalPredicates, p => p.Name)));
+          reporter.Info(MessageSource.Resolver, com.tok,
+            string.Format("{0} with focal predicate{2} {1}", com.PrefixLemma.Name, Util.Comma(focalPredicates, p => p.Name), focalPredicates.Count == 1 ? "" : "s"));
           // Compute the statement body of the prefix lemma
           Contract.Assume(prefixLemma.Body == null);  // this is not supposed to have been filled in before
           if (com.Body != null) {
@@ -6009,6 +6010,16 @@ namespace Microsoft.Dafny
       }
     }
 
+
+    void KNatMismatchError(IToken tok, string contextName, FixpointPredicate.KType contextK, FixpointPredicate.KType calleeK) {
+      var hint = contextK == FixpointPredicate.KType.Unspecified ? string.Format(" (perhaps try declaring '{0}' as '{0}[nat]')", contextName) : "";
+      reporter.Error(MessageSource.Resolver, tok,
+        "this call does not type check, because the context uses a _k parameter of type {0} whereas the callee uses a _k parameter of type {1}{2}",
+        contextK == FixpointPredicate.KType.Nat ? "nat" : "ORDINAL",
+        calleeK == FixpointPredicate.KType.Nat ? "nat" : "ORDINAL",
+        hint);
+    }
+
     class FixpointPredicateChecks_Visitor : FindFriendlyCalls_Visitor
     {
       readonly FixpointPredicate context;
@@ -6026,6 +6037,8 @@ namespace Microsoft.Dafny
             // we're looking at a recursive call
             if (!(context is InductivePredicate ? e.Function is InductivePredicate : e.Function is CoPredicate)) {
               resolver.reporter.Error(MessageSource.Resolver, e, "a recursive call from {0} {1} can go only to other {1}s", article, context.WhatKind);
+            } else if (context.KNat != ((FixpointPredicate)e.Function).KNat) {
+              resolver.KNatMismatchError(e.tok, context.Name, context.TypeOfK, ((FixpointPredicate)e.Function).TypeOfK);
             } else if (cp != CallingPosition.Positive) {
               var msg = string.Format("{0} {1} can be called recursively only in positive positions", article, context.WhatKind);
               if (cp == CallingPosition.Neither) {
@@ -14786,12 +14799,7 @@ namespace Microsoft.Dafny
             var fexp = (FunctionCallExpr)expr;
             if (IsCoContext ? fexp.Function is CoPredicate : fexp.Function is InductivePredicate) {
               if (Context.KNat != ((FixpointPredicate)fexp.Function).KNat) {
-                var hint = Context.TypeOfK == FixpointPredicate.KType.Unspecified ? string.Format(" (perhaps try declaring '{0}' as '{0}[nat]')", Context.Name) : "";
-                resolver.reporter.Error(MessageSource.Resolver, expr.tok,
-                  "this call does not type check, because the context uses a _k parameter of type {0} whereas the callee uses a _k parameter of type {1}{2}",
-                  Context.KNat? "nat" : "ORDINAL",
-                  ((FixpointPredicate)fexp.Function).KNat ? "nat" : "ORDINAL",
-                  hint);
+                resolver.KNatMismatchError(expr.tok, Context.Name, Context.TypeOfK, ((FixpointPredicate)fexp.Function).TypeOfK);
               } else {
                 friendlyCalls.Add(fexp);
               }

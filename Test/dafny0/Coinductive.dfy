@@ -287,3 +287,45 @@ module InductivePredicateResolutionErrors {
   }
 }
 
+
+// --------------- calls between [ORDINAL] and [nat] --------------------------
+
+// predicate-to-predicate call
+module TypeOfK_Pred_to_Pred {
+  inductive predicate A[ORDINAL](x: int) {
+    B(x)  // error: cannot call from [ORDINAL] to [nat]
+  }
+  inductive predicate B[nat](x: int) {
+    A(x)  // error: cannot call from [nat] to [ORDINAL]
+  }
+}
+
+// lemma-to-predicate call
+module TypeOfK_Lemma_to_Pred {
+  inductive predicate E[ORDINAL](x: int)
+  inductive lemma LE[nat](x: int)
+    requires E(x)  // error: cannot call from [nat] to [ORDINAL]
+  {
+  }
+
+  inductive predicate F[nat](x: int)
+  inductive lemma LF[ORDINAL](x: int)
+    requires F(x)  // error: cannot call from [ORDINAL] to [nat]
+  {
+  }
+}
+
+// lemma-to-lemma call
+module TypeOfK_Lemma_to_Lemma {
+  inductive lemma G[ORDINAL](x: int)
+    ensures x == 8
+  {
+    H(x);  // error: cannot call from [ORDINAL] to [nat]
+  }
+
+  inductive lemma H[nat](x: int)
+    ensures x == 8
+  {
+    G(x);  // error: cannot call from [nat] to [ORDINAL]
+  }
+}
