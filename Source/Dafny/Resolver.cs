@@ -6864,19 +6864,6 @@ namespace Microsoft.Dafny
                 resolver.reporter.Info(MessageSource.Resolver, s.Tok, "ensures " + Printer.ExprToString(p));
               }
             }
-
-            // Take the opportunity here to strengthen the range of the "forall" statement with the precondition of
-            // the call, suitably substituted with the actual parameters.
-            if (Attributes.Contains(s.Attributes, "_autorequires")) {
-              var range = s.Range;
-              foreach (var req in cs.Method.Req) {
-                if (!req.IsFree) {
-                  var p = substituter.Substitute(req.E);  // substitute the call's actuals for the method's formals
-                  range = Expression.CreateAnd(range, p);
-                }
-              }
-              s.Range = range;
-            }
           }
         }
       }
@@ -14798,7 +14785,7 @@ namespace Microsoft.Dafny
           if (cp == CallingPosition.Positive) {
             var fexp = (FunctionCallExpr)expr;
             if (IsCoContext ? fexp.Function is CoPredicate : fexp.Function is InductivePredicate) {
-              if (Context.KNat!= ((FixpointPredicate)fexp.Function).KNat) {
+              if (Context.KNat != ((FixpointPredicate)fexp.Function).KNat) {
                 var hint = Context.TypeOfK == FixpointPredicate.KType.Unspecified ? string.Format(" (perhaps try declaring '{0}' as '{0}[nat]')", Context.Name) : "";
                 resolver.reporter.Error(MessageSource.Resolver, expr.tok,
                   "this call does not type check, because the context uses a _k parameter of type {0} whereas the callee uses a _k parameter of type {1}{2}",
