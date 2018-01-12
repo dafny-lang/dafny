@@ -257,3 +257,17 @@ inductive lemma {:induction false} BadNatMonotonic3[nat](c: cmd, s: state, t: st
       BadNatMonotonic3(c, s', t);
     }
 }
+
+// ---------- coinductive ----------
+  
+copredicate CoBigStep(c: cmd, s: state, t: state)
+{
+  match c
+  case Inc =>
+    t == s + 1
+  case Seq(c0, c1) =>
+    exists s' :: CoBigStep(c0, s, s') && CoBigStep(c1, s', t)
+  case Repeat(body) =>
+    s == t ||
+    exists s' :: CoBigStep(body, s, s') && CoBigStep(c, s', t)
+}

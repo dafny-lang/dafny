@@ -5926,11 +5926,13 @@ namespace Microsoft.Dafny
     class FindFriendlyCalls_Visitor : ResolverTopDownVisitor<CallingPosition>
     {
       public readonly bool IsCoContext;
-      public FindFriendlyCalls_Visitor(Resolver resolver, bool co)
+      public readonly bool ContinuityIsImportant;
+      public FindFriendlyCalls_Visitor(Resolver resolver, bool co, bool continuityIsImportant)
         : base(resolver)
       {
         Contract.Requires(resolver != null);
         this.IsCoContext = co;
+        this.ContinuityIsImportant = continuityIsImportant;
       }
 
       protected override bool VisitOneExpr(Expression expr, ref CallingPosition cp) {
@@ -5986,11 +5988,13 @@ namespace Microsoft.Dafny
           var e = (QuantifierExpr)expr;
           Contract.Assert(e.SplitQuantifier == null); // No split quantifiers during resolution
           var cpos = IsCoContext ? cp : Invert(cp);
-          if ((cpos == CallingPosition.Positive && e is ExistsExpr) || (cpos == CallingPosition.Negative && e is ForallExpr)) {
-            if (e.Bounds.Exists(bnd => bnd == null || (bnd.Virtues & ComprehensionExpr.BoundedPool.PoolVirtues.Finite) == 0)) {
-              // To ensure continuity of fixpoint predicates, don't allow calls under an existential (resp. universal) quantifier
-              // for co-predicates (resp. inductive predicates).
-              cp = CallingPosition.Neither;
+          if (ContinuityIsImportant) {
+            if ((cpos == CallingPosition.Positive && e is ExistsExpr) || (cpos == CallingPosition.Negative && e is ForallExpr)) {
+              if (e.Bounds.Exists(bnd => bnd == null || (bnd.Virtues & ComprehensionExpr.BoundedPool.PoolVirtues.Finite) == 0)) {
+                // To ensure continuity of fixpoint predicates, don't allow calls under an existential (resp. universal) quantifier
+                // for co-predicates (resp. inductive predicates).
+                cp = CallingPosition.Neither;
+              }
             }
           }
           Visit(e.LogicalBody(), cp);
@@ -6024,7 +6028,7 @@ namespace Microsoft.Dafny
     {
       readonly FixpointPredicate context;
       public FixpointPredicateChecks_Visitor(Resolver resolver, FixpointPredicate context)
-        : base(resolver, context is CoPredicate) {
+        : base(resolver, context is CoPredicate, context.KNat) {
         Contract.Requires(resolver != null);
         Contract.Requires(context != null);
         this.context = context;
@@ -6041,10 +6045,11 @@ namespace Microsoft.Dafny
               resolver.KNatMismatchError(e.tok, context.Name, context.TypeOfK, ((FixpointPredicate)e.Function).TypeOfK);
             } else if (cp != CallingPosition.Positive) {
               var msg = string.Format("{0} {1} can be called recursively only in positive positions", article, context.WhatKind);
-              if (cp == CallingPosition.Neither) {
+              if (ContinuityIsImportant && cp == CallingPosition.Neither) {
                 // this may be inside an non-friendly quantifier
                 msg += string.Format(" and cannot sit inside an unbounded {0} quantifier", context is InductivePredicate ? "universal" : "existential");
               } else {
+                // we don't care about the continuity restriction or
                 // the fixpoint-call is not inside an quantifier, so don't bother mentioning the part of existentials/universals in the error message
               }
               resolver.reporter.Error(MessageSource.Resolver, e, msg);
@@ -14781,7 +14786,7 @@ namespace Microsoft.Dafny
       readonly ISet<Expression> friendlyCalls;
       readonly FixpointLemma Context;
       public CollectFriendlyCallsInSpec_Visitor(Resolver resolver, ISet<Expression> friendlyCalls, bool co, FixpointLemma context)
-        : base(resolver, co)
+        : base(resolver, co, context.KNat)
       {
         Contract.Requires(resolver != null);
         Contract.Requires(friendlyCalls != null);
