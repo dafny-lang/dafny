@@ -1273,6 +1273,10 @@ int StringToInt(string s, int defaultValue, string errString) {
 			} else SynErr(167);
 		}
 		if (td == null) {
+		 if (module is DefaultModuleDecl) {
+		   // opaque type declarations at the very outermost program scope get an automatic (!new)
+		   characteristics.DisallowReferenceTypes = true;
+		 }
 		 td = new OpaqueTypeDecl(id, id.val, module, characteristics, typeArgs, attrs);
 		}
 		

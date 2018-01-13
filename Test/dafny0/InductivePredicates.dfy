@@ -247,3 +247,37 @@ module TargetedMonotonicity {
     // take that!
   }
 }
+
+module SomeCoolDisjunctionTests {
+  inductive predicate P[ORDINAL](x: int)
+  {
+    Q(x)
+  }
+
+  inductive predicate Q[ORDINAL](x: int)
+  {
+    P(x)
+  }
+
+  inductive lemma L[ORDINAL](x: int)
+    requires P(x) || Q(x)
+    ensures false  // fine
+  {
+  }
+
+  inductive predicate Pn[nat](x: int)
+  {
+    Qn(x)
+  }
+
+  inductive predicate Qn[nat](x: int)
+  {
+    Pn(x)
+  }
+
+  inductive lemma Ln[nat](x: int)
+    requires Pn(x) || Qn(x)
+    ensures false  // fine
+  {
+  }
+}

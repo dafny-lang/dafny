@@ -1253,6 +1253,10 @@ OtherTypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl t
     )
   ]
                              (. if (td == null) {
+                                  if (module is DefaultModuleDecl) {
+                                    // opaque type declarations at the very outermost program scope get an automatic (!new)
+                                    characteristics.DisallowReferenceTypes = true;
+                                  }
                                   td = new OpaqueTypeDecl(id, id.val, module, characteristics, typeArgs, attrs);
                                 }
                              .)

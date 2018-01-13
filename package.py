@@ -15,7 +15,10 @@ import zipfile
 # Configuration
 
 ## Where do we fetch the list of releases from?
-RELEASES_URL = "https://api.github.com/repos/Z3Prover/z3/releases/latest"
+## Get the latest release like this:
+## RELEASES_URL = "https://api.github.com/repos/Z3Prover/z3/releases/latest"
+## Get a specific release like this:
+RELEASES_URL = "https://api.github.com/repos/Z3Prover/z3/releases/tags/z3-4.5.0"
 ## How do we extract info from the name of a release file?
 RELEASE_REGEXP = re.compile(r"^(?P<directory>z3-[0-9\.]+-(?P<platform>x86|x64)-(?P<os>[a-z0-9\.\-]+)).zip$", re.IGNORECASE)
 

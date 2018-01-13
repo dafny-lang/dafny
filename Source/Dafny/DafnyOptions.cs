@@ -302,7 +302,7 @@ namespace Microsoft.Dafny
         }
 
         case "allocated": {
-            ps.GetNumericArgument(ref Allocated, 4);
+            ps.GetNumericArgument(ref Allocated, 5);
             return true;
         }
 
@@ -548,6 +548,8 @@ namespace Microsoft.Dafny
                 Warning: this option should be chosen consistently across
                 an entire project; it would be unsound to use different
                 defaults for different files or modules within a project.
+                And even so, modes /allocated:0 and /allocated:1 let functions
+                depend on the allocation state, which is not sound in general.
                 0 - Nowhere (never assume/assert allocated(x) by default).
                 1 - Assume allocated(x) only for non-ghost variables and fields
                     (these assumptions are free, since non-ghost variables
@@ -557,6 +559,8 @@ namespace Microsoft.Dafny
                     even bound variables in quantifiers.  This option is
                     the easiest to use for heapful code.
                 3 - (default) Frugal use of heap parameters.
+                4 - mode 3 but with alloc antecedents when ranges don't imply
+                    allocatedness.
   /ironDafny    Enable experimental features needed to support Ironclad/Ironfleet. Use of
                 these features may cause your code to become incompatible with future
                 releases of Dafny.

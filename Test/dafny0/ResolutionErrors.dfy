@@ -2320,3 +2320,59 @@ module ConstGhostRhs {
   const b': int
 
 }
+
+module Regression15 {
+  predicate method F(i: int, j: int) { true }
+  function method S(i: int): set<int> { {i} }
+  method M0() returns (b: bool) {
+    b := forall i, j | j <= i <= 100 && i <= j < 100 :: true;  // error: this bogus cyclic dependency was once allowed
+  }
+  method M4() returns (b: bool) {
+    b := forall i, j :: j <= i < 100 && j in S(i) ==> F(i,j);  // error: this bogus cyclic dependency was once allowed
+  }
+}
+
+module AllocDepend0 {
+  class Class {
+    const z := if {} == set c: Class | true then 5 else 4  // error (x2): condition depends on alloc; not compilable
+  }
+  const y := if {} == set c: Class | true then 5 else 4  // error (x2): condition depends on alloc; not compilable
+  newtype byte = x | x < 5 || {} == set c: Class | true  // error: condition not allowed to depend on alloc
+  type small = x | x < 5 || {} == set c: Class | true  // error: condition not allowed to depend on alloc
+}
+module AllocDepend1 {
+  class Class { }
+  predicate method P(x: int) {
+    x < 5 || {} == set c: Class | true  // error: function not allowed to depend on alloc
+  }
+}
+
+module AllocDepend2 {
+  class Klass {
+    const z := if exists k: Klass :: allocated(k) then 3 else 4  // error (x2): condition depends on alloc
+  }
+  const y := if exists k: Klass :: allocated(k) then 3 else 4  // error (x2): condition depends on alloc
+  newtype byte = x | x < 5 || exists k: Klass :: allocated(k)  // error: condition not allowed to depend on alloc
+  type small = x | x < 5 || exists k: Klass :: allocated(k)  // error: condition not allowed to depend on alloc
+}
+module AllocDepend3 {
+  class Klass { }
+  predicate method P(x: int) {
+    x < 5 || exists k: Klass :: allocated(k)  // error: function not allowed to depend on alloc
+  }
+}
+
+module AllocDepend4 {
+  class Xlass {
+    const z := if var k: Xlass? := null; allocated(k) then 3 else 4  // error (x2): condition depends on alloc
+  }
+  const y := if var k: Xlass? := null; allocated(k) then 3 else 4  // error (x2): condition depends on alloc
+  newtype byte = x | x < 5 || var k: Xlass? := null; allocated(k)  // error: condition not allowed to depend on alloc
+  type small = x | x < 5 || var k: Xlass? := null; allocated(k)  // error: condition not allowed to depend on alloc
+}
+module AllocDepend5 {
+  class Xlass { }
+  predicate method P(x: int) {
+    x < 5 || var k: Xlass? := null; allocated(k)  // error: function not allowed to depend on alloc
+  }
+}

@@ -111,6 +111,7 @@ namespace Microsoft.Dafny
             List<Expression> exprList = new List<Expression>();
             ForallExpr expr = new ForallExpr(s.Tok, s.BoundVars, s.Range, term, s.Attributes);
             expr.Type = Type.Bool; // resolve here
+            expr.Bounds = s.Bounds;
             exprList.Add(expr);
             s.ForallExpressions = exprList;
           } else if (s.Kind == ForallStmt.BodyKind.Assign) {
@@ -191,6 +192,7 @@ namespace Microsoft.Dafny
                 if (!usedInversion) {
                   var expr = new ForallExpr(s.Tok, s.BoundVars, s.Range, new BinaryExpr(s.Tok, BinaryExpr.ResolvedOpcode.EqCommon, lhs, rhs), s.Attributes);
                   expr.Type = Type.Bool; // resolve here
+                  expr.Bounds = s.Bounds;
                   exprList.Add(expr);
                 }
                 s.ForallExpressions = exprList;
@@ -204,6 +206,17 @@ namespace Microsoft.Dafny
               argsSubstMap.Add(s0.Method.Ins[i], s0.Args[i]);
             }
             var substituter = new Translator.AlphaConverting_Substituter(s0.Receiver, argsSubstMap, s0.MethodSelect.TypeArgumentSubstitutions());
+            // Strengthen the range of the "forall" statement with the precondition of the call, suitably substituted with the actual parameters.
+            if (Attributes.Contains(s.Attributes, "_autorequires")) {
+              var range = s.Range;
+              foreach (var req in s0.Method.Req) {
+                if (!req.IsFree) {
+                  var p = substituter.Substitute(req.E);  // substitute the call's actuals for the method's formals
+                  range = Expression.CreateAnd(range, p);
+                }
+              }
+              s.Range = range;
+            }
             // substitute the call's actuals for the method's formals
             Expression term = s0.Method.Ens.Count != 0 ? substituter.Substitute(s0.Method.Ens[0].E) : Expression.CreateBoolLiteral(s.Tok, true);
             for (int i = 1; i < s0.Method.Ens.Count; i++) {
@@ -212,6 +225,7 @@ namespace Microsoft.Dafny
             List<Expression> exprList = new List<Expression>();
             ForallExpr expr = new ForallExpr(s.Tok, s.BoundVars, s.Range, term, s.Attributes);
             expr.Type = Type.Bool; // resolve here
+            expr.Bounds = s.Bounds;
             exprList.Add(expr);
             s.ForallExpressions = exprList;
           } else {

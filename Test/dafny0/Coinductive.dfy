@@ -95,7 +95,7 @@ module CoPredicateResolutionErrors {
     && (Even(s) <==> Even(s))  // error (x2): recursive copredicate calls allowed only in positive positions
   }
 
-  copredicate CP(i: int)
+  copredicate CP[nat](i: int)
   {
     CP(i) &&
     !CP(i) &&  // error: not in a positive position
@@ -232,7 +232,7 @@ module InductivePredicateResolutionErrors {
       h < 0 && !NegatedCoLetSuchThat(s.tail)  // this is fine for a coinductive predicate
   }
 
-  inductive predicate CP(i: int)
+  inductive predicate CP[nat](i: int)
   {
     CP(i) &&
     !CP(i) &&  // error: not in a positive position
@@ -287,3 +287,74 @@ module InductivePredicateResolutionErrors {
   }
 }
 
+
+// --------------- calls between [ORDINAL] and [nat] --------------------------
+
+// predicate-to-predicate call
+module TypeOfK_Pred_to_Pred {
+  inductive predicate A[ORDINAL](x: int) {
+    B(x)  // error: cannot call from [ORDINAL] to [nat]
+  }
+  inductive predicate B[nat](x: int) {
+    A(x)  // error: cannot call from [nat] to [ORDINAL]
+  }
+}
+
+// lemma-to-predicate call
+module TypeOfK_Lemma_to_Pred {
+  inductive predicate E[ORDINAL](x: int)
+  inductive lemma LE[nat](x: int)
+    requires E(x)  // error: cannot call from [nat] to [ORDINAL]
+  {
+  }
+
+  inductive predicate F[nat](x: int)
+  inductive lemma LF[ORDINAL](x: int)
+    requires F(x)  // error: cannot call from [ORDINAL] to [nat]
+  {
+  }
+}
+
+// lemma-to-lemma call
+module TypeOfK_Lemma_to_Lemma {
+  inductive lemma G[ORDINAL](x: int)
+    ensures x == 8
+  {
+    H(x);  // error: cannot call from [ORDINAL] to [nat]
+  }
+
+  inductive lemma H[nat](x: int)
+    ensures x == 8
+  {
+    G(x);  // error: cannot call from [nat] to [ORDINAL]
+  }
+}
+
+module Continuity {
+  datatype cmd = Inc | Seq(cmd, cmd) | Repeat(cmd)
+  type state = int
+
+  copredicate BigStep(c: cmd, s: state, t: state)
+  {
+    match c
+    case Inc =>
+      t == s + 1
+    case Seq(c0, c1) =>
+      exists s' :: BigStep(c0, s, s') && BigStep(c1, s', t)  // fine
+    case Repeat(body) =>
+      s == t ||
+      exists s' :: BigStep(body, s, s') && BigStep(c, s', t)  // fine
+  }
+
+  copredicate NatBigStep[nat](c: cmd, s: state, t: state)
+  {
+    match c
+    case Inc =>
+      t == s + 1
+    case Seq(c0, c1) =>
+      exists s' :: NatBigStep(c0, s, s') && NatBigStep(c1, s', t)  // error (x2): continuity violation
+    case Repeat(body) =>
+      s == t ||
+      exists s' :: NatBigStep(body, s, s') && NatBigStep(c, s', t)  // error (x2): continuity violation
+  }
+}

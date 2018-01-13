@@ -151,11 +151,11 @@ namespace DafnyLanguage
             // iterators already get a hover text that shows the class desugaring, so that hover text shows the type parameters
           } else if (d is OpaqueTypeDecl) {
             IdRegion.Add(newRegions, program, d.tok,
-              string.Format("{0} {1}{2}", d.WhatKind, d.Name, ((OpaqueTypeDecl)d).MustSupportEquality ? "(==)" : ""),
+              string.Format("{0} {1}{2}", d.WhatKind, d.Name, Printer.TPCharacteristicsSuffix(((OpaqueTypeDecl)d).Characteristics)),
               d.TypeArgs);
           } else if (d is TypeSynonymDecl) {  // also covers SubsetTypeDecl
             IdRegion.Add(newRegions, program, d.tok,
-              string.Format("{0} {1}{2}", d.WhatKind, d.Name, ((TypeSynonymDecl)d).MustSupportEquality ? "(==)" : ""),
+              string.Format("{0} {1}{2}", d.WhatKind, d.Name, Printer.TPCharacteristicsSuffix(((TypeSynonymDecl)d).Characteristics)),
               d.TypeArgs);
           } else {
             IdRegion.Add(newRegions, program, d.tok, string.Format("{0} {1}", d.WhatKind, d.Name), d.TypeArgs);

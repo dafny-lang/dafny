@@ -1746,15 +1746,17 @@ namespace Microsoft.Dafny {
         if (s.AssumeToken != null) {
           // Note, a non-ghost AssignSuchThatStmt may contain an assume
           Error(s.AssumeToken, "an assume statement cannot be compiled", wr);
-        } else if (s.MissingBounds != null) {
-          foreach (var bv in s.MissingBounds) {
-            Error(s.Tok, "this assign-such-that statement is too advanced for the current compiler; Dafny's heuristics cannot find any bound for variable '{0}'", wr, bv.Name);
-          }
         } else {
-          Contract.Assert(s.Bounds != null);  // follows from s.MissingBounds == null
-          TrAssignSuchThat(indent,
-            s.Lhss.ConvertAll(lhs => ((IdentifierExpr)lhs.Resolved).Var),  // the resolver allows only IdentifierExpr left-hand sides
-            s.Expr, s.Bounds, s.Tok.line, wr, false);
+          var lhss = s.Lhss.ConvertAll(lhs => ((IdentifierExpr)lhs.Resolved).Var);  // the resolver allows only IdentifierExpr left-hand sides
+          var missingBounds = ComprehensionExpr.BoundedPool.MissingBounds(lhss, s.Bounds, ComprehensionExpr.BoundedPool.PoolVirtues.Enumerable);
+          if (missingBounds.Count != 0) {
+            foreach (var bv in missingBounds) {
+              Error(s.Tok, "this assign-such-that statement is too advanced for the current compiler; Dafny's heuristics cannot find any bound for variable '{0}'", wr, bv.Name);
+            }
+          } else {
+            Contract.Assert(s.Bounds != null);
+            TrAssignSuchThat(indent, lhss, s.Expr, s.Bounds, s.Tok.line, wr, false);
+          }
         }
 
       } else if (stmt is CallStmt) {
@@ -1981,12 +1983,23 @@ namespace Microsoft.Dafny {
             var high = SubstituteBound(b, s.Bounds, s.BoundVars, i, false);
             TrExpr(high, wr, false);
             wr.Write(")) { ");
+          } else if (bound is ComprehensionExpr.ExactBoundedPool) {
+            var b = (ComprehensionExpr.ExactBoundedPool)bound;
+            Indent(ind, wr);
+            wr.Write("foreach (var {0} in Dafny.Helpers.SingleValue<{1}>(", bv.CompileName, TypeName(b.E.Type, wr, b.E.tok));
+            TrExpr(b.E, wr, false);
+            wr.WriteLine(")) {");
           } else if (bound is ComprehensionExpr.SetBoundedPool) {
             var b = (ComprehensionExpr.SetBoundedPool)bound;
             Indent(ind, wr);
             wr.Write("foreach (var @{0} in (", bv.CompileName);
             TrExpr(b.Set, wr, false);
             wr.Write(").Elements) { ");
+          } else if (bound is ComprehensionExpr.SubSetBoundedPool) {
+            var b = (ComprehensionExpr.SubSetBoundedPool)bound;
+            wr.Write("foreach (var @{0} in (", bv.CompileName);
+            TrExpr(b.UpperBound, wr, false);
+            wr.Write(").AllSubsets) {");
           } else if (bound is ComprehensionExpr.SeqBoundedPool) {
             var b = (ComprehensionExpr.SeqBoundedPool)bound;
             Indent(ind, wr);
@@ -2183,7 +2196,7 @@ namespace Microsoft.Dafny {
       var iterLimit = "_iterLimit_" + c;
 
       int ind = indent;
-      bool needIterLimit = lhss.Count != 1 && bounds.Exists(bnd => !bnd.IsFinite);
+      bool needIterLimit = lhss.Count != 1 && bounds.Exists(bnd => (bnd.Virtues & ComprehensionExpr.BoundedPool.PoolVirtues.Finite) == 0);
       if (needIterLimit) {
         Indent(indent, wr);
         wr.WriteLine("for (var {0} = new BigInteger(5); ; {0} *= 2) {{", iterLimit);
@@ -2192,6 +2205,7 @@ namespace Microsoft.Dafny {
 
       for (int i = 0; i < n; i++, ind += IndentAmount) {
         var bound = bounds[i];
+        Contract.Assert((bound.Virtues & ComprehensionExpr.BoundedPool.PoolVirtues.Enumerable) != 0);  // if we have got this far, it must be an enumerable bound
         var bv = lhss[i];
         if (needIterLimit) {
           Indent(ind, wr);
@@ -2221,9 +2235,14 @@ namespace Microsoft.Dafny {
           } else {
             TrExpr(b.UpperBound, wr, inLetExprBody);
           }
-          wr.WriteLine(")) {{ @{1} = {0};", tmpVar, bv.CompileName);
+          wr.WriteLine(")) {{ @{0} = {1};", bv.CompileName, tmpVar);
         } else if (bound is AssignSuchThatStmt.WiggleWaggleBound) {
-          wr.WriteLine("foreach (var {0} in Dafny.Helpers.AllIntegers) {{ @{1} = {0};", tmpVar, bv.CompileName);
+          wr.WriteLine("foreach (var {1} in Dafny.Helpers.AllIntegers) {{ @{0} = {1};", bv.CompileName, tmpVar);
+        } else if (bound is ComprehensionExpr.ExactBoundedPool) {
+          var b = (ComprehensionExpr.ExactBoundedPool)bound;
+          wr.Write("foreach (var {0} in Dafny.Helpers.SingleValue<{1}>(", tmpVar, TypeName(b.E.Type, wr, b.E.tok));
+          TrExpr(b.E, wr, inLetExprBody);
+          wr.WriteLine(")) {{ @{0} = {1};", bv.CompileName, tmpVar);
         } else if (bound is ComprehensionExpr.SetBoundedPool) {
           var b = (ComprehensionExpr.SetBoundedPool)bound;
           wr.Write("foreach (var {0} in (", tmpVar);
@@ -3258,8 +3277,9 @@ namespace Microsoft.Dafny {
           //        return E;
           //      })
           Contract.Assert(e.RHSs.Count == 1);  // checked by resolution
-          if (e.Constraint_MissingBounds != null) {
-            foreach (var bv in e.Constraint_MissingBounds) {
+          var missingBounds = ComprehensionExpr.BoolBoundedPool.MissingBounds(e.BoundVars.ToList<BoundVar>(), e.Constraint_Bounds, ComprehensionExpr.BoundedPool.PoolVirtues.Enumerable);
+          if (missingBounds.Count != 0) {
+            foreach (var bv in missingBounds) {
               Error(e.tok, "this let-such-that expression is too advanced for the current compiler; Dafny's heuristics cannot find any bound for variable '{0}'", wr, bv.Name);
             }
           } else {
@@ -3337,10 +3357,20 @@ namespace Microsoft.Dafny {
             var high = SubstituteBound(b, e.Bounds, e.BoundVars, i, false);
             TrExpr(high, wr, inLetExprBody);
             wr.Write(", ");
+          } else if (bound is ComprehensionExpr.ExactBoundedPool) {
+            var b = (ComprehensionExpr.ExactBoundedPool)bound;
+            wr.Write("Dafny.Helpers.QuantSingle<{0}>(", TypeName(b.E.Type, wr, b.E.tok));
+            TrExpr(b.E, wr, inLetExprBody);
+            wr.WriteLine(", ");
           } else if (bound is ComprehensionExpr.SetBoundedPool) {
             var b = (ComprehensionExpr.SetBoundedPool)bound;
             wr.Write("Dafny.Helpers.QuantSet(");
             TrExpr(b.Set, wr, inLetExprBody);
+            wr.Write(", ");
+          } else if (bound is ComprehensionExpr.SubSetBoundedPool) {
+            var b = (ComprehensionExpr.SubSetBoundedPool)bound;
+            wr.Write("Dafny.Helpers.QuantSubSets(");
+            TrExpr(b.UpperBound, wr, inLetExprBody);
             wr.Write(", ");
           } else if (bound is ComprehensionExpr.MapBoundedPool) {
             var b = (ComprehensionExpr.MapBoundedPool)bound;
@@ -3415,12 +3445,24 @@ namespace Microsoft.Dafny {
             wr.Write(", ");
             TrExpr(b.UpperBound, wr, inLetExprBody);
             wr.Write(")) { ");
+          } else if (bound is ComprehensionExpr.ExactBoundedPool) {
+            var b = (ComprehensionExpr.ExactBoundedPool)bound;
+            var tmpVar = idGenerator.FreshId("_set_compr_");
+            wr.Write("foreach (var @{0} in Dafny.Helpers.SingleValue<{1}>(", tmpVar, TypeName(b.E.Type, wr, b.E.tok));
+            TrExpr(b.E, wr, inLetExprBody);
+            wr.Write(")) {{ {0} @{1} = ({0}){2}; ", TypeName(bv.Type, wr, bv.tok), bv.CompileName, tmpVar);
           } else if (bound is ComprehensionExpr.SetBoundedPool) {
             var b = (ComprehensionExpr.SetBoundedPool)bound;
             var tmpVar = idGenerator.FreshId("_set_compr_");
             wr.Write("foreach (var @{0} in (", tmpVar);
             TrExpr(b.Set, wr, inLetExprBody);
             wr.Write(").Elements) {{ {0} @{1} = ({0}){2}; ", TypeName(bv.Type, wr, bv.tok), bv.CompileName, tmpVar);
+          } else if (bound is ComprehensionExpr.SubSetBoundedPool) {
+            var b = (ComprehensionExpr.SubSetBoundedPool)bound;
+            var tmpVar = idGenerator.FreshId("_set_compr_");
+            wr.Write("foreach (var @{0} in (", tmpVar);
+            TrExpr(b.UpperBound, wr, inLetExprBody);
+            wr.Write(").AllSubsets) {{ {0} @{1} = ({0}){2};", TypeName(bv.Type, wr, bv.tok), bv.CompileName, tmpVar);
           } else if (bound is ComprehensionExpr.MapBoundedPool) {
             var b = (ComprehensionExpr.MapBoundedPool)bound;
             var tmpVar = idGenerator.FreshId("_map_compr_");
@@ -3495,11 +3537,21 @@ namespace Microsoft.Dafny {
           wr.Write(", ");
           TrExpr(b.UpperBound, wr, inLetExprBody);
           wr.Write(")) { ");
+        } else if (bound is ComprehensionExpr.ExactBoundedPool) {
+          var b = (ComprehensionExpr.ExactBoundedPool)bound;
+          wr.Write("foreach (var @{0} in Dafny.Helpers.SingleValue<{1}>(", bv.CompileName, TypeName(b.E.Type, wr, b.E.tok));
+          TrExpr(b.E, wr, inLetExprBody);
+          wr.Write(")) {");
         } else if (bound is ComprehensionExpr.SetBoundedPool) {
           var b = (ComprehensionExpr.SetBoundedPool)bound;
           wr.Write("foreach (var @{0} in (", bv.CompileName);
           TrExpr(b.Set, wr, inLetExprBody);
           wr.Write(").Elements) { ");
+        } else if (bound is ComprehensionExpr.SubSetBoundedPool) {
+          var b = (ComprehensionExpr.SubSetBoundedPool)bound;
+          wr.Write("foreach (var @{0} in (", bv.CompileName);
+          TrExpr(b.UpperBound, wr, inLetExprBody);
+          wr.Write(").AllSubsets) {");
         } else if (bound is ComprehensionExpr.MapBoundedPool) {
           var b = (ComprehensionExpr.MapBoundedPool)bound;
           wr.Write("foreach (var @{0} in (", bv.CompileName);
@@ -3511,7 +3563,6 @@ namespace Microsoft.Dafny {
           TrExpr(b.Seq, wr, inLetExprBody);
           wr.Write(").Elements) { ");
         } else {
-          // TODO: handle ComprehensionExpr.SubSetBoundedPool
           Contract.Assert(false); throw new cce.UnreachableException();  // unexpected BoundedPool type
         }
         wr.Write("if (");
