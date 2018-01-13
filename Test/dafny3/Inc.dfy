@@ -271,3 +271,50 @@ copredicate CoBigStep(c: cmd, s: state, t: state)
     s == t ||
     exists s' :: CoBigStep(body, s, s') && CoBigStep(c, s', t)
 }
+
+colemma FromAndToAnywhere(s: state, t: state)
+  ensures CoBigStep(Repeat(Seq(Inc, Inc)), s, t)
+{
+  if s == t {
+  } else {
+    var s', s'' := s + 1, s + 2;
+    calc {
+      CoBigStep#[_k](Repeat(Seq(Inc, Inc)), s, t);
+    <==
+      CoBigStep(Seq(Inc, Inc), s, s'') && CoBigStep(Repeat(Seq(Inc, Inc)), s'', t);
+    <==  { FromAndToAnywhere(s'', t); }
+      CoBigStep(Seq(Inc, Inc), s, s'');
+    <==  { StepIncInc(s); }
+      true;
+    }
+  }
+}
+
+lemma StepIncInc(s: state)
+  ensures CoBigStep(Seq(Inc, Inc), s, s+2)
+{
+  calc {
+    CoBigStep(Seq(Inc, Inc), s, s+2);
+  <==
+    CoBigStep(Inc, s, s+1) && CoBigStep(Inc, s+1, s+2);
+  }
+}
+
+lemma CoMonotonic(c: cmd, s: state, t: state)
+  requires CoBigStep(c, s, t)
+  ensures s <= t  // this does not hold, but it is masked already by the error below
+{
+  match c
+  case Inc =>
+  case Seq(c0, c1) =>
+    var s' :| CoBigStep(c0, s, s') && CoBigStep(c1, s', t);
+    CoMonotonic(c0, s, s');
+    CoMonotonic(c1, s', t);
+  case Repeat(body) =>
+    if s == t{
+    } else {
+      var s' :| CoBigStep(body, s, s') && CoBigStep(c, s', t);
+      CoMonotonic(body, s, s');
+      CoMonotonic(c, s', t);  // error (x2): cannot prove termination
+    }
+}
