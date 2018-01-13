@@ -426,7 +426,11 @@ namespace Microsoft.Dafny.Triggers {
     private static bool ShallowEq(MemberSelectExpr expr1, MemberSelectExpr expr2) {
       return expr1.MemberName == expr2.MemberName &&
              expr1.Member == expr2.Member &&
-             TriggerUtils.SameLists(expr1.TypeApplication, expr2.TypeApplication, Microsoft.Dafny.Type.Equals);
+             TriggerUtils.SameLists(expr1.TypeApplication, expr2.TypeApplication, TypeEq);
+    }
+
+    internal static bool TypeEq(Type type1, Type type2) {
+      return type1.Equals(type2);
     }
 
     private static bool ShallowEq(SeqDisplayExpr expr1, SeqDisplayExpr expr2) {
@@ -491,7 +495,7 @@ namespace Microsoft.Dafny.Triggers {
         // Implied by Ctor equality: expr1.MemberName == expr2.MemberName &&
              expr1.Ctor == expr2.Ctor &&
         // Contextual information: expr1.IsCoCall == expr2.IsCoCall &&
-             TriggerUtils.SameLists(expr1.InferredTypeArgs, expr2.InferredTypeArgs, Microsoft.Dafny.Type.Equals);
+             TriggerUtils.SameLists(expr1.InferredTypeArgs, expr2.InferredTypeArgs, TypeEq);
     }
 
     private static bool ShallowEq(StringLiteralExpr expr1, StringLiteralExpr expr2) {
