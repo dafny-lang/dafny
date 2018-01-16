@@ -22,7 +22,7 @@ Here are some ways to get started with Dafny:
 * 4-part course on the _Basics of specification and verification of code_:
   - Lecture 0: [Pre- and postconditions](https://youtu.be/oLS_y842fMc) (19:08)
   - Lecture 1: [Invariants](https://youtu.be/J0FGb6PyO_k) (20:56)
-  - Lecture 2: [Binary search](https://youtu.be/-_tx31k7yn4) (21:14)
+  - Lecture 2: [Binary search](https://youtu.be/-_tx3lk7yn4) (21:14)
   - Lecture 3: [Dutch National Flag algorithm](https://youtu.be/dQC5m-GZYbk) (20:33)
 * New overview article: [Accessible Software Verification with Dafny](https://www.computer.org/csdl/mags/so/2017/06/mso2017060094-abs.html), IEEE Software, Nov/Dec 2017
 * [Online tutorial](http://rise4fun.com/Dafny/tutorial/guide), focusing mostly on simple imperative programs 
