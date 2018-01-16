@@ -1410,13 +1410,13 @@ namespace Microsoft.Dafny {
       } else if (a is BigOrdinalType) {
         return b is BigOrdinalType;
       } else if (a is SetType) {
-        return b is SetType && (a.IsISetType || !b.IsISetType);
+        return b is SetType && Equal_Improved(a.TypeArgs[0], b.TypeArgs[0]) && (a.IsISetType == b.IsISetType);
       } else if (a is SeqType) {
-        return b is SeqType;
+        return b is SeqType && Equal_Improved(a.TypeArgs[0], b.TypeArgs[0]);
       } else if (a is MultiSetType) {
-        return b is MultiSetType;
+        return b is MultiSetType && Equal_Improved(a.TypeArgs[0], b.TypeArgs[0]);
       } else if (a is MapType) {
-        return b is MapType && (a.IsIMapType || !b.IsIMapType);
+        return b is MapType && Equal_Improved(a.TypeArgs[0], b.TypeArgs[0]) && Equal_Improved(a.TypeArgs[1], b.TypeArgs[1]) && (a.IsIMapType == b.IsIMapType);
       } else if (a is ArrowType) {
         var asuper = (ArrowType)a;
         var asub = b as ArrowType;

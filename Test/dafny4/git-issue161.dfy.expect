@@ -1,0 +1,5 @@
+git-issue161.dfy(5,23): Error: shared destructors must have the same type, but 'val' has type 'string' in constructor 'Var' and type 'int' in constructor 'Const'
+git-issue161.dfy(8,23): Error: shared destructors must have the same type, but 'val' has type 'seq<string>' in constructor 'Var' and type 'seq<int>' in constructor 'Const'
+git-issue161.dfy(11,23): Error: shared destructors must have the same type, but 'val' has type 'iset<string>' in constructor 'Var' and type 'set<string>' in constructor 'Const'
+git-issue161.dfy(14,23): Error: shared destructors must have the same type, but 'val' has type 'set<string>' in constructor 'Var' and type 'iset<string>' in constructor 'Const'
+4 resolution/type errors detected in git-issue161.dfy
