@@ -9368,7 +9368,6 @@ namespace Microsoft.Dafny
           }
         }
       }
-      Type type = new InferredTypeProxy();
       bool keepOrigToken = true;
       foreach (MatchCaseStmt mc in s.Cases) {
         if (mc.Arguments != null) {
@@ -9398,6 +9397,7 @@ namespace Microsoft.Dafny
           List<Statement> body = mc.Body;
           for (int i = mc.CasePatterns.Count - 1; i >= 0; i--) {
             string name = "_ms#" + i;
+            Type type = new InferredTypeProxy();
             BoundVar sourceVar = new BoundVar(new MatchCaseToken(mc.tok), name, type);
             var pat = mc.CasePatterns[i];
             if (pat.Var != null) {
@@ -12340,7 +12340,6 @@ namespace Microsoft.Dafny
         }
       }
 
-      Type type = new InferredTypeProxy();
       bool keepOrigToken = true;
       foreach (MatchCaseExpr mc in me.Cases) {
         if (mc.Arguments != null) {
@@ -12369,6 +12368,7 @@ namespace Microsoft.Dafny
           Expression body = mc.Body;
           for (int i = mc.CasePatterns.Count-1; i>=0; i--) { 
             string name = "_ms#" + i;
+            Type type = new InferredTypeProxy();
             BoundVar sourceVar = new BoundVar(new MatchCaseToken(me.tok), name, type);
             var pat = mc.CasePatterns[i];
             if (pat.Var != null) {
