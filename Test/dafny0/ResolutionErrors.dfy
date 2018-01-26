@@ -2386,7 +2386,7 @@ module AbstemiousCompliance {
 
   function {:abstemious} Id(t: EnormousTree): EnormousTree
   {
-    t  // error: an abstemious function must return with a co-constructor
+    t  // to be abstemious, a parameter is as good as a co-constructor
   }
 
   function {:abstemious} IdGood(t: EnormousTree): EnormousTree
@@ -2445,14 +2445,14 @@ module AbstemiousCompliance {
 
   function {:abstemious} Select(b: bool, t: EnormousTree, u: EnormousTree): EnormousTree
   {
-    if b then t else u  // error: this is not allowed
+    if b then t else u  // abstemious yes: parameters are as good as a co-constructors
   }
 
   function {:abstemious} Select'(b: bool, t: EnormousTree, u: EnormousTree): EnormousTree
   {
     if b then
-      Node(t.left, t.val, t.right)  // fine, then
+      Node(t.left, t.val, t.right)  // fine, too
     else
-      Node(u.left, u.val, u.right)  // fine, then
+      Node(u.left, u.val, u.right)  // fine, too
   }
 }

@@ -15135,6 +15135,12 @@ namespace Microsoft.Dafny
       } else if (expr is LetExpr) {
         var e = (LetExpr)expr;
         return GuaranteedCoCtorsAux(e.Body);
+      } else if (expr is IdentifierExpr) {
+        var e = (IdentifierExpr)expr;
+        if (e.Type.IsCoDatatype && e.Var is Formal) {
+          // even though this is not a co-constructor, count this as 1, since that's what we would have done if it were, e.g., "Cons(s.head, s.tail)" instead of "s"
+          return 1;
+        }
       }
       return 0;
     }
