@@ -6841,6 +6841,9 @@ namespace Microsoft.Dafny {
                   Contract.Assert(false);  // unexpected CoCallResolution
                   goto case FunctionCallExpr.CoCallResolution.No;  // please the compiler
               }
+              if (e.CoCallHint != null) {
+                hint = hint == null ? e.CoCallHint : string.Format("{0}; {1}", hint, e.CoCallHint);
+              }
               CheckCallTermination(expr.tok, contextDecreases, calleeDecreases, allowance, e.Receiver, substMap, e.TypeArgumentSubstitutions,
                 etran, etran, builder, codeContext.InferredDecreases, hint);
             }
@@ -16823,6 +16826,7 @@ namespace Microsoft.Dafny {
             FunctionCallExpr newFce = new FunctionCallExpr(expr.tok, e.Name, receiver, e.OpenParen, newArgs);
             newFce.Function = e.Function;  // resolve on the fly (and set newFce.Type below, at end)
             newFce.CoCall = e.CoCall;  // also copy the co-call status
+            newFce.CoCallHint = e.CoCallHint;  // and any co-call hint
             newFce.TypeArgumentSubstitutions = newTypeInstantiation;
             newExpr = newFce;
           }

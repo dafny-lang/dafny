@@ -9045,6 +9045,7 @@ namespace Microsoft.Dafny {
       NoBecauseRecursiveCallsInDestructiveContext
     }
     public CoCallResolution CoCall = CoCallResolution.No;  // indicates whether or not the call is a co-recursive call; filled in by resolution
+    public string CoCallHint = null;  // possible additional hint that can be used in verifier error message, filled in by resolver
 
     [ContractInvariantMethod]
     void ObjectInvariant() {

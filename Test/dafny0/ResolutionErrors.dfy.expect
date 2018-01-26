@@ -387,4 +387,12 @@ ResolutionErrors.dfy(2371,51): Error: a subset type definition is not allowed to
 ResolutionErrors.dfy(2369,39): Error: a const field definition is not allowed to depend on the set of allocated references
 ResolutionErrors.dfy(2369,8): Error: const field's type is not fully determined
 ResolutionErrors.dfy(2376,36): Error: a predicate definition is not allowed to depend on the set of allocated references
-386 resolution/type errors detected in ResolutionErrors.dfy
+ResolutionErrors.dfy(2383,25): Error: the value returned by an abstemious function must come from invoking a co-constructor
+ResolutionErrors.dfy(2387,25): Error: the value returned by an abstemious function must come from invoking a co-constructor
+ResolutionErrors.dfy(2419,25): Error: the value returned by an abstemious function must come from invoking a co-constructor
+ResolutionErrors.dfy(2426,32): Error: an abstemious function is allowed to invoke a codatatype destructor only on its parameters
+ResolutionErrors.dfy(2431,12): Error: an abstemious function is allowed to codatatype-match only on its parameters
+ResolutionErrors.dfy(2438,9): Error: an abstemious function is not only allowed to check codatatype equality
+ResolutionErrors.dfy(2440,14): Error: an abstemious function is not only allowed to check codatatype equality
+ResolutionErrors.dfy(2446,25): Error: the value returned by an abstemious function must come from invoking a co-constructor
+394 resolution/type errors detected in ResolutionErrors.dfy

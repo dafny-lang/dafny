@@ -2691,6 +2691,19 @@ namespace Microsoft.Dafny
             }
           }
         }
+        // Check that functions claiming to be abstemious really are
+        foreach (var fn in ModuleDefinition.AllFunctions(declarations)) {
+          if (fn.Body != null) {
+            var abstemious = true;
+            if (Attributes.ContainsBool(fn.Attributes, "abstemious", ref abstemious) && abstemious) {
+              if (CoCallResolution.GuaranteedCoCtors(fn) == 0) {
+                reporter.Error(MessageSource.Resolver, fn, "the value returned by an abstemious function must come from invoking a co-constructor");
+              } else {
+                CheckDestructsAreAbstemiousCompliant(fn.Body);
+              }
+            }
+          }
+        }
         // Check that all == and != operators in non-ghost contexts are applied to equality-supporting types.
         // Note that this check can only be done after determining which expressions are ghosts.
         foreach (var d in declarations) {
@@ -2912,6 +2925,48 @@ namespace Microsoft.Dafny
           }
         }
       }
+    }
+
+    private void CheckDestructsAreAbstemiousCompliant(Expression expr) {
+      Contract.Assert(expr != null);
+      expr = expr.Resolved;
+      if (expr is MemberSelectExpr) {
+        var e = (MemberSelectExpr)expr;
+        if (e.Member.EnclosingClass is CoDatatypeDecl) {
+          var ide = Expression.StripParens(e.Obj).Resolved as IdentifierExpr;
+          if (ide != null && ide.Var is Formal) {
+            // cool
+          } else {
+            reporter.Error(MessageSource.Resolver, expr, "an abstemious function is allowed to invoke a codatatype destructor only on its parameters");
+          }
+          return;
+        }
+      } else if (expr is MatchExpr) {
+        var e = (MatchExpr)expr;
+        if (e.Source.Type.IsCoDatatype) {
+          var ide = Expression.StripParens(e.Source).Resolved as IdentifierExpr;
+          if (ide != null && ide.Var is Formal) {
+            // cool; fall through to check match branches
+          } else {
+            reporter.Error(MessageSource.Resolver, e.Source, "an abstemious function is allowed to codatatype-match only on its parameters");
+            return;
+          }
+        }
+      } else if (expr is BinaryExpr) {
+        var e = (BinaryExpr)expr;
+        if (e.ResolvedOp == BinaryExpr.ResolvedOpcode.EqCommon || e.ResolvedOp == BinaryExpr.ResolvedOpcode.NeqCommon) {
+          if (e.E0.Type.IsCoDatatype) {
+            reporter.Error(MessageSource.Resolver, expr, "an abstemious function is not only allowed to check codatatype equality");
+            return;
+          }
+        }
+      } else if (expr is StmtExpr) {
+        var e = (StmtExpr)expr;
+        // ignore the statement part
+        CheckDestructsAreAbstemiousCompliant(e.E);
+        return;
+      }
+      expr.SubExpressions.Iter(CheckDestructsAreAbstemiousCompliant);
     }
 
     /// <summary>
@@ -7679,6 +7734,8 @@ namespace Microsoft.Dafny
         case "autocontracts":
           return host is ClassDecl;
         case "autoreq":
+          return host is Function;
+        case "abstemious":
           return host is Function;
         default:
           return false;
@@ -14877,7 +14934,7 @@ namespace Microsoft.Dafny
     /// not considered an asset, and any immediately enclosing co-constructor is passed in as a non-null "coContext" anyway.
     /// "coContext" is non-null if the immediate context is a co-constructor.
     /// </summary>
-    void CheckCoCalls(Expression expr, int destructionLevel, DatatypeValue coContext, List<CoCallInfo> coCandidates) {
+    void CheckCoCalls(Expression expr, int destructionLevel, DatatypeValue coContext, List<CoCallInfo> coCandidates, Function functionYouMayWishWereAbstemious = null) {
       Contract.Requires(expr != null);
       Contract.Requires(0 <= destructionLevel);
       Contract.Requires(coCandidates != null);
@@ -14896,7 +14953,7 @@ namespace Microsoft.Dafny
         var e = (MemberSelectExpr)expr;
         if (e.Member.EnclosingClass is CoDatatypeDecl) {
           int dl = destructionLevel == int.MaxValue ? int.MaxValue : destructionLevel + 1;
-          CheckCoCalls(e.Obj, dl, null, coCandidates);
+          CheckCoCalls(e.Obj, dl, coContext, coCandidates);
           return;
         }
       } else if (expr is BinaryExpr) {
@@ -14932,22 +14989,37 @@ namespace Microsoft.Dafny
         return;
       } else if (expr is FunctionCallExpr) {
         var e = (FunctionCallExpr)expr;
-        // First, consider the arguments of the call, making sure that they do not include calls within the recursive cluster.
-        // (Note, if functions could have a "destruction level" declaration that promised to only destruct its arguments by
-        // so much, then some recursive calls within the cluster could be allowed.)
-        foreach (var arg in e.Args) {
-          CheckCoCalls(arg, int.MaxValue, null, coCandidates);
+        // First, consider the arguments of the call, making sure that they do not include calls within the recursive cluster,
+        // unless the callee is abstemious.
+        var abstemious = true;
+        if (!Attributes.ContainsBool(e.Function.Attributes, "abstemious", ref abstemious)) {
+          abstemious = false;
+        }
+        Contract.Assert(e.Args.Count == e.Function.Formals.Count);
+        for (var i = 0; i < e.Args.Count; i++) {
+          var arg = e.Args[i];
+          if (!e.Function.Formals[i].Type.IsCoDatatype) {
+            CheckCoCalls(arg, int.MaxValue, null, coCandidates);
+          } else if (abstemious) {
+            CheckCoCalls(arg, 0, coContext, coCandidates);
+          } else {
+            // don't you wish the callee were abstemious
+            CheckCoCalls(arg, int.MaxValue, null, coCandidates, e.Function);
+          }
         }
         // Second, investigate the possibility that this call itself may be a candidate co-call
         if (e.Name != "requires" && ModuleDefinition.InSameSCC(currentFunction, e.Function)) {
           // This call goes to another function in the same recursive cluster
-          if (destructionLevel > 0) {
+          if (destructionLevel != 0 && GuaranteedCoCtors(e.Function) <= destructionLevel) {
             // a potentially destructive context
             HasIntraClusterCallsInDestructiveContexts = true;  // this says we found an intra-cluster call unsuitable for recursion, if there were any co-recursive calls
             if (!dealsWithCodatatypes) {
               e.CoCall = FunctionCallExpr.CoCallResolution.No;
             } else {
               e.CoCall = FunctionCallExpr.CoCallResolution.NoBecauseRecursiveCallsAreNotAllowedInThisContext;
+              if (functionYouMayWishWereAbstemious != null) {
+                e.CoCallHint = string.Format("perhaps try declaring function '{0}' with '{{:abstemious}}'", functionYouMayWishWereAbstemious.Name);
+              }
             }
           } else if (coContext == null) {
             // no immediately enclosing co-constructor
@@ -15024,6 +15096,47 @@ namespace Microsoft.Dafny
       foreach (var ee in expr.SubExpressions) {
         CheckCoCalls(ee, destructionLevel, null, coCandidates);
       }
+    }
+
+    public static int GuaranteedCoCtors(Function function) {
+      Contract.Requires(function != null);
+      return function.Body != null ? GuaranteedCoCtorsAux(function.Body) : 0;
+    }
+
+    private static int GuaranteedCoCtorsAux(Expression expr) {
+      Contract.Requires(expr != null);
+      expr = expr.Resolved;
+      if (expr is DatatypeValue) {
+        var e = (DatatypeValue)expr;
+        if (e.Ctor.EnclosingDatatype is CoDatatypeDecl) {
+          var minOfArgs = int.MaxValue;  // int.MaxValue means: not yet encountered a formal whose type is a co-datatype
+          Contract.Assert(e.Arguments.Count == e.Ctor.Formals.Count);
+          for (var i = 0; i < e.Arguments.Count; i++) {
+            if (e.Ctor.Formals[i].Type.IsCoDatatype) {
+              var n = GuaranteedCoCtorsAux(e.Arguments[i]);
+              minOfArgs = Math.Min(minOfArgs, n);
+            }
+          }
+          return minOfArgs == int.MaxValue ? 1 : 1 + minOfArgs;
+        }
+      } else if (expr is ITEExpr) {
+        var e = (ITEExpr)expr;
+        var thn = GuaranteedCoCtorsAux(e.Thn);
+        var els = GuaranteedCoCtorsAux(e.Els);
+        return thn < els ? thn : els;
+      } else if (expr is MatchExpr) {
+        var e = (MatchExpr)expr;
+        var min = int.MaxValue;
+        foreach (var kase in e.Cases) {
+          var n = GuaranteedCoCtorsAux(kase.Body);
+          min = Math.Min(min, n);
+        }
+        return min == int.MaxValue ? 0 : min;
+      } else if (expr is LetExpr) {
+        var e = (LetExpr)expr;
+        return GuaranteedCoCtorsAux(e.Body);
+      }
+      return 0;
     }
   }
 

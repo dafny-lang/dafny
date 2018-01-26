@@ -2376,3 +2376,83 @@ module AllocDepend5 {
     x < 5 || var k: Xlass? := null; allocated(k)  // error: function not allowed to depend on alloc
   }
 }
+
+module AbstemiousCompliance {
+  codatatype EnormousTree<X> = Node(left: EnormousTree, val: X, right: EnormousTree)
+
+  function {:abstemious} Five(): int {
+    5  // error: an abstemious function must return with a co-constructor
+  }
+
+  function {:abstemious} Id(t: EnormousTree): EnormousTree
+  {
+    t  // error: an abstemious function must return with a co-constructor
+  }
+
+  function {:abstemious} IdGood(t: EnormousTree): EnormousTree
+  {
+    match t
+    case Node(l, x, r) => Node(l, x, r)
+  }
+
+  function {:abstemious} AlsoGood(t: EnormousTree): EnormousTree
+  {
+    Node(t.left, t.val, t.right)
+  }
+
+  function {:abstemious} UniformTree<X>(x: X): EnormousTree<X>
+  {
+    Node(UniformTree(x), x, UniformTree(x))
+  }
+
+  function {:abstemious} AlternatingTree<X>(x: X, y: X): EnormousTree<X>
+  {
+    Node(AlternatingTree(y, x), x, AlternatingTree(y, x))
+  }
+
+  function {:abstemious} AnotherAlternatingTree<X>(x: X, y: X): EnormousTree<X>
+  {
+    var t := Node(AlternatingTree(x, y), y, AlternatingTree(x, y));
+    Node(t, x, t)
+  }
+
+  function {:abstemious} NonObvious<X>(x: X): EnormousTree<X>
+  {
+    AlternatingTree(x, x)  // error: does not return with a co-constructor
+  }
+
+  function {:abstemious} BadDestruct(t: EnormousTree): EnormousTree
+  {
+    Node(t.left, t.val, t.right.right)  // error: cannot destruct t.right
+  }
+
+  function {:abstemious} BadMatch(t: EnormousTree): EnormousTree
+  {
+    match t.right  // error: cannot destruct t.right
+    case Node(a, x, b) =>
+      Node(a, x, b)
+  }
+
+  function {:abstemious} BadEquality(t: EnormousTree, u: EnormousTree, v: EnormousTree): EnormousTree
+  {
+    if t == u then  // error: cannot co-compare
+      Node(t.left, t.val, t.right)
+    else if u != v then  // error: cannot co-compare
+      Node(u.left, u.val, u.right)
+    else
+      Node(v.left, v.val, v.right)
+  }
+
+  function {:abstemious} Select(b: bool, t: EnormousTree, u: EnormousTree): EnormousTree
+  {
+    if b then t else u  // error: this is not allowed
+  }
+
+  function {:abstemious} Select'(b: bool, t: EnormousTree, u: EnormousTree): EnormousTree
+  {
+    if b then
+      Node(t.left, t.val, t.right)  // fine, then
+    else
+      Node(u.left, u.val, u.right)  // fine, then
+  }
+}
