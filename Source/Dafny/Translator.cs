@@ -16477,7 +16477,10 @@ namespace Microsoft.Dafny {
         fvs.Add(e.Var);
         return;
       } else if (expr is MemberSelectExpr) {
-        usesHeap = true;
+        var e = (MemberSelectExpr)expr;
+        if (e.Obj.Type.IsRefType && !(e.Member is ConstantField)) {
+          usesHeap = true;
+        }
       } else if (expr is SeqSelectExpr) {
         var e = (SeqSelectExpr)expr;
         if (e.Seq.Type.IsArrayType) {
