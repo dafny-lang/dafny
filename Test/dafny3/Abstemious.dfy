@@ -183,37 +183,26 @@ lemma StraightFibonacci_Correct(n: nat, k: nat)
 {
 }
 
-/*
 lemma Fib_Correct(n: nat)
   ensures nth(n, Fib()) == nfib(n)
 {
-  if n == 0 {
-    calc {
-      nth(0, Fib());
-      Fib().head;
-      0;
-      nfib(0);
-    }
-  } else if n == 1 {
-    calc {
-      nth(1, Fib());
-      nth(0, Fib().tail);
-      Fib().tail.head;
-      1;
-      nfib(1);
-    }
+  if n < 2 {
   } else {
+    var F  := Fib();
     calc {
-      nth(n, Fib());
-      nth(n, Cons(0, Cons(1, add(Fib(), Fib().tail))));
+      nth(n, F);
+    ==
+      nth(n-2, F.tail.tail);
+    ==
       nth(n-2, add(Fib(), Fib().tail));
     ==  { add_Correct(n-2, Fib(), Fib().tail); }
       nth(n-2, Fib()) + nth(n-2, Fib().tail);
+    ==
       nth(n-2, Fib()) + nth(n-1, Fib());
     ==  { Fib_Correct(n-2); Fib_Correct(n-1); }
       nfib(n-2) + nfib(n-1);
+    ==
       nfib(n);
     }
   }
 }
-*/

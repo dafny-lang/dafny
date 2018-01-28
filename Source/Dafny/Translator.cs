@@ -2604,7 +2604,8 @@ namespace Microsoft.Dafny {
       // TODO(namin) Is checking f.Reads.Count==0 excluding Valid() of BinaryTree in the right way?
       //             I don't see how this in the decreasing clause would help there.
       // danr: Let's create the literal function axioms if there is an arrow type in the signature
-      if (!(f is FixpointPredicate) && (f.Reads.Count == 0 || f.Formals.Exists(a => a.Type.IsArrowType))) {
+      if (!(f is FixpointPredicate) && f.CoClusterTarget == Function.CoCallClusterInvolvement.None &&
+        (f.Reads.Count == 0 || f.Formals.Exists(a => a.Type.IsArrowType))) {
         var FVs = new HashSet<IVariable>();
         foreach (var e in f.Decreases.Expressions) {
           ComputeFreeVariables(e, FVs);
