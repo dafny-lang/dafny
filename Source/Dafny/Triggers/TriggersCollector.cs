@@ -197,7 +197,7 @@ namespace Microsoft.Dafny.Triggers {
 
       if (expr is LetExpr) {
         var le = (LetExpr)expr;
-        if (le.LHSs.All(p => p.Var != null)) {
+        if (le.LHSs.All(p => p.Var != null) && le.Exact) {
           // Inline the let expression before doing trigger selection.
           annotation = Annotate(Translator.InlineLet(le));
         }
