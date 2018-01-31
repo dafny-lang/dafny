@@ -16971,7 +16971,10 @@ namespace Microsoft.Dafny {
             if (rhs == e.RHSs[0] && body == e.Body) {
               return e;
             }
-            var newLet = new SubstLetExpr(e.tok, e.LHSs, new List<Expression>{ rhs }, body, e.Exact, e, substMap, typeMap);
+            // keep copies of the substitution maps so we can reuse them at desugaring time
+            var newSubstMap = new Dictionary<IVariable, Expression>(substMap);
+            var newTypeMap = new Dictionary<TypeParameter, Type>(typeMap);
+            var newLet = new SubstLetExpr(e.tok, e.LHSs, new List<Expression>{ rhs }, body, e.Exact, e, newSubstMap, newTypeMap);
             newExpr = newLet;
           }
 

@@ -200,6 +200,12 @@ class TrickySubstitution {
     g
   }
 
+  // let-such-thats inside quantifiers must have quantified vars substituted correctly
+  predicate F5(n: int)
+  {
+    forall i :: 0 < i < n ==> var j, k :| k <= j < i; k <= j < i
+  }
+
   method M(x: int)
     requires this.v + x == 3 && this.w == 2;
     modifies this;
