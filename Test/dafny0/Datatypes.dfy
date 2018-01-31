@@ -377,3 +377,48 @@ module LetPatterns {
     var w := v + var AAA(u) := m; u;  // error: m may not be an AAA
   }
 }
+
+module Exhaustiveness {
+  datatype Color = A | B | C
+
+  method M(c: Color)
+  {
+    if c == A {
+    } else if c == B {
+    } else if c == C {
+    } else {
+      assert false;  // works because "c" is a parameter
+    }
+  }
+
+  method P(s: seq<Color>, i: int)
+    requires 0 <= i < |s|
+  {
+    var c := s[i];
+    if c == A {
+    } else if c == B {
+    } else if c == C {
+    } else {
+      assert false;  // used to fails :(, but now works :)
+    }
+  }
+
+  method Q(s: seq<Color>, i: int)
+    requires 0 <= i < |s|
+  {
+    var c := s[i];
+    match c  // exhaustiveness is known because of the "match" statement
+    case A =>
+    case B =>
+    case C =>
+  }
+
+  method R(s: seq<Color>, i: int)
+    requires 0 <= i < |s|
+  {
+    var c := s[i];
+    if c != A && c != B && c != C {
+      assert false;  // used to fails :(, but now works :)
+    }
+  }
+}

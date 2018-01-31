@@ -6983,6 +6983,21 @@ namespace Microsoft.Dafny {
               }
             }
             break;
+          case BinaryExpr.ResolvedOpcode.EqCommon:
+          case BinaryExpr.ResolvedOpcode.NeqCommon: {
+              CheckWellformed(e.E1, options, locals, builder, etran);
+              var dt = e.E0.Type.AsDatatype;
+              if (dt != null) {
+                var funcID = new Bpl.FunctionCall(new Bpl.IdentifierExpr(expr.tok, "$IsA#" + dt.FullSanitizedName, Bpl.Type.Bool));
+                if (!(e.E0.Resolved is DatatypeValue)) {
+                  builder.Add(TrAssumeCmd(expr.tok, new Bpl.NAryExpr(expr.tok, funcID, new List<Bpl.Expr> { etran.TrExpr(e.E0) })));
+                }
+                if (!(e.E1.Resolved is DatatypeValue)) {
+                  builder.Add(TrAssumeCmd(expr.tok, new Bpl.NAryExpr(expr.tok, funcID, new List<Bpl.Expr> { etran.TrExpr(e.E1) })));
+                }
+              }
+            }
+            break;
           default:
             CheckWellformed(e.E1, options, locals, builder, etran);
             break;
