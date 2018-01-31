@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:0 /dprint:"%t.dprint" /autoTriggers:1 "%s" > "%t"
+// RUN: %dafny /compile:0 /dprint:"%t.dprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // Imported from bug 76. LitInt would be triggered on, causing matching failures.

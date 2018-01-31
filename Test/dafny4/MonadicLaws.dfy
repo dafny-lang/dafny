@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:0 /rprint:"%t.rprint" /autoTriggers:1 "%s" > "%t"
+// RUN: %dafny /compile:0 /rprint:"%t.rprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // Monadic Laws

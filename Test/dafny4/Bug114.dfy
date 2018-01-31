@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:0  /autoTriggers:1 "%s" > "%t"
+// RUN: %dafny /compile:0 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 function f1(d:int):map<int,int>

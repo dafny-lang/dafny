@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:0 /dprint:"%t.dprint" /autoTriggers:1 /printTooltips "%s" > "%t"
+// RUN: %dafny /compile:0 /dprint:"%t.dprint" /printTooltips "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 predicate A(x: bool, y: bool) { x }

@@ -1,4 +1,4 @@
-// RUN: %dafny  /autoTriggers:1 /compile:0 "%s" > "%t"
+// RUN: %dafny /compile:0 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 predicate P(e:int, p:int) { true }

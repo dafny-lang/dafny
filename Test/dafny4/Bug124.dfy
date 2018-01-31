@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:0 /autoTriggers:1 /noNLarith  "%s" > "%t"
+// RUN: %dafny /compile:0 /noNLarith  "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 function power(n:nat, e:nat) : int

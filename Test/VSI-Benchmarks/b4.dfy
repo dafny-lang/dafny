@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:0 /autoTriggers:1 "%s" > "%t"
+// RUN: %dafny /compile:0 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // Note: We are using the built-in equality to compare keys.
