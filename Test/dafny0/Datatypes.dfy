@@ -421,4 +421,41 @@ module Exhaustiveness {
       assert false;  // used to fails :(, but now works :)
     }
   }
+
+  method AltIf(s: seq<Color>, i: int)
+    requires 0 <= i < |s|
+  {
+    var c := s[i];
+    if
+    case c == A =>
+    case c == B =>
+    case c == C =>
+  }
+
+  method ClassicLoop(s: seq<Color>, i: int)
+    requires 0 <= i < |s|
+    decreases *
+  {
+    var c := s[i];
+    while c == A || c == B || c == C
+      decreases *
+    {
+    }
+    assert false;  // fine, since we never get here (which is known by the exhaustiveness property of datatypes)
+  }
+
+  method AltLoop(s: seq<Color>, i: int)
+    requires 0 <= i < |s|
+    decreases *
+  {
+    var c := s[i];
+    while
+      decreases *
+    {
+    case c == A =>
+    case c == B =>
+    case c == C =>
+    }
+    assert false;  // fine, since we never get here (which is known by the exhaustiveness property of datatypes)
+  }
 }

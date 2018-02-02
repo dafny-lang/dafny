@@ -5921,12 +5921,11 @@ namespace Microsoft.Dafny {
         BinaryExpr e = (BinaryExpr)expr;
         Bpl.Expr t0 = CanCallAssumption(e.E0, etran);
         Bpl.Expr t1 = CanCallAssumption(e.E1, etran);
-        BinaryExpr be;
         Bpl.Expr antecedent;
         switch (e.ResolvedOp) {
           case BinaryExpr.ResolvedOpcode.And:
-          case BinaryExpr.ResolvedOpcode.Imp:
-              be = e.E0 as BinaryExpr;
+          case BinaryExpr.ResolvedOpcode.Imp: {
+              var be = e.E0 as BinaryExpr;
               if (be != null && (be.ResolvedOp == BinaryExpr.ResolvedOpcode.And ||
                 be.ResolvedOp == BinaryExpr.ResolvedOpcode.Imp ||
                 be.ResolvedOp == BinaryExpr.ResolvedOpcode.Or)) {
@@ -5935,18 +5934,35 @@ namespace Microsoft.Dafny {
                 antecedent = etran.TrExpr(e.E0);
               }
               t1 = BplImp(antecedent, t1);
-            break;
-          case BinaryExpr.ResolvedOpcode.Or:
-            be = e.E0 as BinaryExpr;
-            if (be != null && (be.ResolvedOp == BinaryExpr.ResolvedOpcode.And ||
-              be.ResolvedOp == BinaryExpr.ResolvedOpcode.Imp ||
-              be.ResolvedOp == BinaryExpr.ResolvedOpcode.Or)) {
-                antecedent = BplAnd(CanCallAssumption(be.E1, etran), Bpl.Expr.Not(etran.TrExpr(be.E1)));
-            } else {
-              antecedent = Bpl.Expr.Not(etran.TrExpr(e.E0));
             }
-            t1 = BplImp(antecedent, t1);
             break;
+          case BinaryExpr.ResolvedOpcode.Or: {
+              var be = e.E0 as BinaryExpr;
+              if (be != null && (be.ResolvedOp == BinaryExpr.ResolvedOpcode.And ||
+                be.ResolvedOp == BinaryExpr.ResolvedOpcode.Imp ||
+                be.ResolvedOp == BinaryExpr.ResolvedOpcode.Or)) {
+                antecedent = BplAnd(CanCallAssumption(be.E1, etran), Bpl.Expr.Not(etran.TrExpr(be.E1)));
+              } else {
+                antecedent = Bpl.Expr.Not(etran.TrExpr(e.E0));
+              }
+              t1 = BplImp(antecedent, t1);
+            }
+            break;
+          case BinaryExpr.ResolvedOpcode.EqCommon:
+          case BinaryExpr.ResolvedOpcode.NeqCommon: {
+              Bpl.Expr r = Bpl.Expr.True;
+              var dt = e.E0.Type.AsDatatype;
+              if (dt != null) {
+                var funcID = new Bpl.FunctionCall(new Bpl.IdentifierExpr(expr.tok, "$IsA#" + dt.FullSanitizedName, Bpl.Type.Bool));
+                if (!(e.E0.Resolved is DatatypeValue)) {
+                  r = BplAnd(r, new Bpl.NAryExpr(expr.tok, funcID, new List<Bpl.Expr> { etran.TrExpr(e.E0) }));
+                }
+                if (!(e.E1.Resolved is DatatypeValue)) {
+                  r = BplAnd(r, new Bpl.NAryExpr(expr.tok, funcID, new List<Bpl.Expr> { etran.TrExpr(e.E1) }));
+                }
+              }
+              return BplAnd(r, BplAnd(t0, t1));
+            }
           default:
             break;
         }
@@ -6980,21 +6996,6 @@ namespace Microsoft.Dafny {
               } else {
                 builder.Add(Assert(expr.tok, Bpl.Expr.Le(Bpl.Expr.Literal(0), etran.TrExpr(e.E1)), "shift amount must be non-negative", options.AssertKv));
                 builder.Add(Assert(expr.tok, Bpl.Expr.Le(etran.TrExpr(e.E1), Bpl.Expr.Literal(w)), upperMsg, options.AssertKv));
-              }
-            }
-            break;
-          case BinaryExpr.ResolvedOpcode.EqCommon:
-          case BinaryExpr.ResolvedOpcode.NeqCommon: {
-              CheckWellformed(e.E1, options, locals, builder, etran);
-              var dt = e.E0.Type.AsDatatype;
-              if (dt != null) {
-                var funcID = new Bpl.FunctionCall(new Bpl.IdentifierExpr(expr.tok, "$IsA#" + dt.FullSanitizedName, Bpl.Type.Bool));
-                if (!(e.E0.Resolved is DatatypeValue)) {
-                  builder.Add(TrAssumeCmd(expr.tok, new Bpl.NAryExpr(expr.tok, funcID, new List<Bpl.Expr> { etran.TrExpr(e.E0) })));
-                }
-                if (!(e.E1.Resolved is DatatypeValue)) {
-                  builder.Add(TrAssumeCmd(expr.tok, new Bpl.NAryExpr(expr.tok, funcID, new List<Bpl.Expr> { etran.TrExpr(e.E1) })));
-                }
               }
             }
             break;
@@ -10932,11 +10933,12 @@ namespace Microsoft.Dafny {
 
       // build the negation of the disjunction of all guards (that is, the conjunction of their negations)
       Bpl.Expr noGuard = Bpl.Expr.True;
+      var b = new BoogieStmtListBuilder(this);
       foreach (var g in guards) {
+        b.Add(TrAssumeCmd(g.tok, CanCallAssumption(g, etran)));
         noGuard = BplAnd(noGuard, Bpl.Expr.Not(etran.TrExpr(g)));
       }
 
-      var b = new BoogieStmtListBuilder(this);
       var elseTok = elseCase0 != null ? elseCase0.tok : elseCase1.tok;
       b.Add(TrAssumeCmd(elseTok, noGuard));
       if (elseCase0 != null) {
