@@ -2113,10 +2113,10 @@ OneStmt<out Statement/*!*/ s>
   | CalcStmt<out s>
   | ModifyStmt<out s>
   | "label"                            (. x = t; .)
-    NoUSIdent<out id> ":"
+    LabelIdent<out id> ":"
     OneStmt<out s>                     (. s.Labels = new LList<Label>(new Label(x, id.val), s.Labels); .)
   | "break"                            (. x = t; breakCount = 1; label = null; .)
-    ( NoUSIdent<out id>                    (. label = id.val; .)
+    ( LabelIdent<out id>               (. label = id.val; .)
     | { "break"                        (. breakCount++; .)
       }
     )
@@ -3851,6 +3851,13 @@ MemberBindingUpdate<out IToken id, out Expression e>
   )
   ":="
   Expression<out e, true, true>
+  .
+
+LabelIdent<out IToken id>
+= (. id = null; /* to please compiler */ .)
+  ( WildIdent<out id, false>
+  | digits         (. id = t; .)
+  )
   .
 
 // Identifier, disallowing leading underscores
