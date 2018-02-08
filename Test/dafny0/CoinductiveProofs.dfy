@@ -234,3 +234,84 @@ function G(s: IList): int
     assert s == ICons(a, b);
     0
 }
+
+// ---- inductive predicate, automatic inductive lemma and the corresponding manually stated and proved lemmas
+
+inductive predicate AllNeg(x: int)
+{
+  x == 0 || AllNeg(x+1)
+}
+
+inductive lemma AllNeg_Correct(x: int)
+  requires AllNeg(x)
+  ensures x <= 0
+{
+}
+
+lemma AllNeg_Correct_All(x: int)
+  requires AllNeg(x)
+  ensures x <= 0
+{
+  var k: ORDINAL :| AllNeg#[k](x);
+  AllNeg_Correct'(k, x);
+}
+
+lemma AllNeg_Correct'(k: ORDINAL, x: int)
+  requires AllNeg#[k](x)
+  ensures x <= 0
+{
+  if x == 0 {
+  } else if k.Offset == 0 {
+    var k': ORDINAL :| k' < k && AllNeg#[k'](x);
+    AllNeg_Correct'(k', x);
+  } else {
+    AllNeg_Correct'(k-1, x+1);
+  }
+}
+
+lemma AllNeg_JustTesting(x: int)
+  requires AllNeg(x)
+{
+  assert exists k: ORDINAL :: AllNeg#[k](x);
+}
+
+// ---- coinductive predicate, automatic colemma and the corresponding manually stated and proved lemmas
+
+copredicate OnlyOddNegs(x: int)
+{
+  x != -2 && OnlyOddNegs(x+2)
+}
+
+colemma OnlyOddNegs_Correct(x: int)
+  requires 0 <= x || x % 2 == 1
+  ensures OnlyOddNegs(x)
+{
+}
+
+lemma OnlyOddNegs_Correct_All(x: int)
+  requires 0 <= x || x % 2 == 1
+  ensures OnlyOddNegs(x)
+{
+  forall k: ORDINAL {
+    OnlyOddNegs_Correct'(k, x);
+  }
+}
+
+lemma OnlyOddNegs_Correct'(k: ORDINAL, x: int)
+  requires 0 <= x || x % 2 == 1
+  ensures OnlyOddNegs#[k](x)
+{
+  if k.Offset == 0 {
+    forall k': ORDINAL | k' < k {
+      OnlyOddNegs_Correct'(k', x);
+    }
+  } else {
+    OnlyOddNegs_Correct'(k-1, x+2);
+  }
+}
+
+lemma OnlyOddNegs_JustTesting(x: int)
+  requires OnlyOddNegs(x)
+{
+  assert forall k: ORDINAL :: OnlyOddNegs#[k](x);
+}
