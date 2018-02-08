@@ -5377,7 +5377,7 @@ namespace Microsoft.Dafny
           foreach (var bv in e.BoundVars) {
             if (!IsDetermined(bv.Type.Normalize())) {
               resolver.reporter.Error(MessageSource.Resolver, bv.tok, "type of bound variable '{0}' could not be determined; please specify the type explicitly", bv.Name);
-            } else {
+            } else if (codeContext is FixpointPredicate) {
               CheckContainsNoOrdinal(bv.tok, bv.Type, string.Format("type of bound variable '{0}' is not allowed to use type ORDINAL", bv.Name));
             }
           }

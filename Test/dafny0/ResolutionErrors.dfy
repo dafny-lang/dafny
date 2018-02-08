@@ -2112,7 +2112,7 @@ module GhostWitness {
   }
 }
 
-module BigOrdinalRestrictions {
+module BigOrdinalRestrictions {  // also see BigOrdinalRestrictionsExtremePred below
   method Test() {
     var st: set<ORDINAL>;  // error: cannot use ORDINAL as type argument
     var p: (int, ORDINAL);  // error: cannot use ORDINAL as type argument
@@ -2122,12 +2122,12 @@ module BigOrdinalRestrictions {
     f := F'<(char,ORDINAL)>();  // error: cannot use ORDINAL as type argument
     var lambda := F'<ORDINAL>;  // error: cannot use ORDINAL as type argument
     ParameterizedMethod(o);  // error: cannot use ORDINAL as type argument
-    assert forall r: ORDINAL :: P(r);  // error: cannot quantify over ORDINAL
-    assert forall r: (ORDINAL, int) :: F(r.1) < 8;  // error: cannot use ORDINAL as type argument
-    assert exists x: int, r: ORDINAL, y: char :: P(r) && F(x) == F(y);  // error: cannot quantify over ORDINAL
-    var s := set r: ORDINAL | r in {};  // error (x2): cannot use ORDINAL as type argument (to set)
-    var s' := set r: ORDINAL | true :: 'G';  // error: cannot use ORDINAL as type of bound variable
-    ghost var m := imap r: ORDINAL :: 10;  // error (x2): cannot use ORDINAL as type argument (to imap)
+    assert forall r: ORDINAL :: P(r);
+    assert forall r: (ORDINAL, int) :: F(r.1) < 8;
+    assert exists x: int, r: ORDINAL, y: char :: P(r) && F(x) == F(y);
+    var s := set r: ORDINAL | r in {};  // error: cannot use ORDINAL as type argument (to set)
+    var s' := set r: ORDINAL | true :: 'G';
+    ghost var m := imap r: ORDINAL :: 10;
     var sq := [o, o];  // error: cannot use ORDINAL as type argument (to seq)
     var mp0 := map[o := 'G'];  // error: cannot use ORDINAL as type argument (to map)
     var mp1 := map['G' := o];  // error: cannot use ORDINAL as type argument (to map)
@@ -2139,11 +2139,11 @@ module BigOrdinalRestrictions {
     var ti': (ORDINAL, ORDINAL) :| assume true;  // error (x4): ORDINAL cannot be a type argument
     var lstLocal := var lst: ORDINAL :| lst == 15; lst;
     var lstLocal' := var lst: (ORDINAL, int) :| lst == (15, 15); lst.1;  // error: ORDINAL cannot be a type argument
-    if yt: ORDINAL :| yt == 16 {  // error: cannot quantify over ORDINAL
+    if yt: ORDINAL :| yt == 16 {
       ghost var pg := P(yt);
     }
     if {
-      case zt: ORDINAL :| zt == 180 =>  // error: cannot quantify over ORDINAL
+      case zt: ORDINAL :| zt == 180 =>
         ghost var pg := P(zt);
     }
     forall om: ORDINAL  // allowed
@@ -2455,4 +2455,53 @@ module AbstemiousCompliance {
     else
       Node(u.left, u.val, u.right)  // fine, too
   }
+}
+
+module BigOrdinalRestrictionsExtremePred {
+  inductive predicate Test() {
+    var st: set<ORDINAL> := {};  // error: cannot use ORDINAL as type argument
+    var p: (int, ORDINAL) := (0,0);  // error: cannot use ORDINAL as type argument
+    var o: ORDINAL := 0;  // okay
+    ghost var f := F(o);  // error: cannot use ORDINAL as type argument 
+    var f := F'<ORDINAL>();  // error: cannot use ORDINAL as type argument
+    var f := F'<(char,ORDINAL)>();  // error: cannot use ORDINAL as type argument
+    var lambda := F'<ORDINAL>;  // error: cannot use ORDINAL as type argument
+    ParameterizedLemma(o);  // error: cannot use ORDINAL as type argument
+    assert forall r: ORDINAL :: P(r);  // error: cannot quantify over ORDINAL here
+    assert forall r: (ORDINAL, int) :: F(r.1) < 8;  // error: cannot quantify over ORDINAL here
+    assert exists x: int, r: ORDINAL, y: char :: P(r) && F(x) == F(y);  // error: cannot quantify over ORDINAL here
+    var s := set r: ORDINAL | r in {};  // error (x2): cannot use ORDINAL as type argument (to set)
+    var s' := set r: ORDINAL | true :: 'G';  // error: cannot use ORDINAL here
+    ghost var m := imap r: ORDINAL :: 10;  // error (x2): cannot use ORDINAL here
+    var sq := [o, o];  // error: cannot use ORDINAL as type argument (to seq)
+    var mp0 := map[o := 'G'];  // error: cannot use ORDINAL as type argument (to map)
+    var mp1 := map['G' := o];  // error: cannot use ORDINAL as type argument (to map)
+    var w := var h: ORDINAL := 100; h + 40;  // okay
+    var w': (int, ORDINAL) := (8,8);  // error: cannot use ORDINAL as type argument
+    var u: ORDINAL :| u == 15;
+    var ti: ORDINAL :| true;
+    var u': (ORDINAL, int) :| u' == (15, 15);  // error (x2): ORDINAL cannot be a type argument
+    var ti': (ORDINAL, ORDINAL) :| true;  // error (x2): ORDINAL cannot be a type argument
+    var lstLocal := var lst: ORDINAL :| lst == 15; lst;
+    var lstLocal' := var lst: (ORDINAL, int) :| lst == (15, 15); lst.1;  // error: ORDINAL cannot be a type argument
+    var gr := if yt: ORDINAL :| yt == 16 then
+      ghost var pg := P(yt); 5
+    else
+      7;
+    calc {
+      100;
+    ==  {
+          forall om: ORDINAL  // allowed
+            ensures om < om+1
+          {
+          }
+        }
+      100;
+    }
+    true
+  }
+  function F<G>(g: G): int
+  function F'<G>(): int
+  lemma ParameterizedLemma<G>(g: G)
+  predicate P(g: ORDINAL)
 }

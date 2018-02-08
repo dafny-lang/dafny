@@ -322,13 +322,7 @@ ResolutionErrors.dfy(2121,9): Error: type argument to function call 'F'' (for ty
 ResolutionErrors.dfy(2122,9): Error: type argument to function call 'F'' (for type variable 'G') is not allowed to use type ORDINAL
 ResolutionErrors.dfy(2123,18): Error: type 'ORDINAL' to the function 'F'' is not allowed to use ORDINAL
 ResolutionErrors.dfy(2124,4): Error: type 'ORDINAL' to the method 'ParameterizedMethod' is not allowed to use ORDINAL
-ResolutionErrors.dfy(2125,18): Error: type of bound variable 'r' is not allowed to use type ORDINAL
-ResolutionErrors.dfy(2126,18): Error: type of bound variable 'r' is not allowed to use type ORDINAL
-ResolutionErrors.dfy(2127,26): Error: type of bound variable 'r' is not allowed to use type ORDINAL
-ResolutionErrors.dfy(2128,17): Error: type of bound variable 'r' is not allowed to use type ORDINAL
 ResolutionErrors.dfy(2128,8): Error: an ORDINAL type is not allowed to be used as a type argument
-ResolutionErrors.dfy(2129,18): Error: type of bound variable 'r' is not allowed to use type ORDINAL
-ResolutionErrors.dfy(2130,24): Error: type of bound variable 'r' is not allowed to use type ORDINAL
 ResolutionErrors.dfy(2130,14): Error: an ORDINAL type is not allowed to be used as a type argument
 ResolutionErrors.dfy(2131,8): Error: an ORDINAL type is not allowed to be used as a type argument
 ResolutionErrors.dfy(2132,8): Error: an ORDINAL type is not allowed to be used as a type argument
@@ -341,8 +335,6 @@ ResolutionErrors.dfy(2139,8): Error: an ORDINAL type is not allowed to be used a
 ResolutionErrors.dfy(2139,8): Error: an ORDINAL type is not allowed to be used as a type argument
 ResolutionErrors.dfy(2139,8): Error: an ORDINAL type is not allowed to be used as a type argument
 ResolutionErrors.dfy(2141,25): Error: an ORDINAL type is not allowed to be used as a type argument
-ResolutionErrors.dfy(2142,7): Error: type of bound variable 'yt' is not allowed to use type ORDINAL
-ResolutionErrors.dfy(2146,11): Error: type of bound variable 'zt' is not allowed to use type ORDINAL
 ResolutionErrors.dfy(2167,36): Error: Name of yield-parameter is used by another member of the iterator: u
 ResolutionErrors.dfy(2168,37): Error: Name of implicit yield-history variable 'u' is already used by another member of the iterator
 ResolutionErrors.dfy(2192,15): Error: To access members of class 'MyClass', write 'MyClass', not 'MyClass?'
@@ -393,4 +385,28 @@ ResolutionErrors.dfy(2426,32): Error: an abstemious function is allowed to invok
 ResolutionErrors.dfy(2431,12): Error: an abstemious function is allowed to codatatype-match only on its parameters
 ResolutionErrors.dfy(2438,9): Error: an abstemious function is not only allowed to check codatatype equality
 ResolutionErrors.dfy(2440,14): Error: an abstemious function is not only allowed to check codatatype equality
-392 resolution/type errors detected in ResolutionErrors.dfy
+ResolutionErrors.dfy(2465,19): Error: type argument to function call 'F' (for type variable 'G') is not allowed to use type ORDINAL
+ResolutionErrors.dfy(2466,13): Error: type argument to function call 'F'' (for type variable 'G') is not allowed to use type ORDINAL
+ResolutionErrors.dfy(2467,13): Error: type argument to function call 'F'' (for type variable 'G') is not allowed to use type ORDINAL
+ResolutionErrors.dfy(2468,18): Error: type 'ORDINAL' to the function 'F'' is not allowed to use ORDINAL
+ResolutionErrors.dfy(2473,17): Error: type of bound variable 'r' is not allowed to use type ORDINAL
+ResolutionErrors.dfy(2474,18): Error: type of bound variable 'r' is not allowed to use type ORDINAL
+ResolutionErrors.dfy(2475,24): Error: type of bound variable 'r' is not allowed to use type ORDINAL
+ResolutionErrors.dfy(2486,25): Error: an ORDINAL type is not allowed to be used as a type argument
+ResolutionErrors.dfy(2487,17): Error: type of bound variable 'yt' is not allowed to use type ORDINAL
+ResolutionErrors.dfy(2484,8): Error: an ORDINAL type is not allowed to be used as a type argument
+ResolutionErrors.dfy(2484,8): Error: an ORDINAL type is not allowed to be used as a type argument
+ResolutionErrors.dfy(2483,8): Error: an ORDINAL type is not allowed to be used as a type argument
+ResolutionErrors.dfy(2480,8): Error: an ORDINAL type is not allowed to be used as a type argument
+ResolutionErrors.dfy(2478,8): Error: an ORDINAL type is not allowed to be used as a type argument
+ResolutionErrors.dfy(2477,8): Error: an ORDINAL type is not allowed to be used as a type argument
+ResolutionErrors.dfy(2476,8): Error: an ORDINAL type is not allowed to be used as a type argument
+ResolutionErrors.dfy(2475,14): Error: an ORDINAL type is not allowed to be used as a type argument
+ResolutionErrors.dfy(2473,8): Error: an ORDINAL type is not allowed to be used as a type argument
+ResolutionErrors.dfy(2472,26): Error: type of bound variable 'r' is not allowed to use type ORDINAL
+ResolutionErrors.dfy(2471,18): Error: type of bound variable 'r' is not allowed to use type ORDINAL
+ResolutionErrors.dfy(2470,18): Error: type of bound variable 'r' is not allowed to use type ORDINAL
+ResolutionErrors.dfy(2469,4): Error: type 'ORDINAL' to the lemma 'ParameterizedLemma' is not allowed to use ORDINAL
+ResolutionErrors.dfy(2463,8): Error: an ORDINAL type is not allowed to be used as a type argument
+ResolutionErrors.dfy(2462,8): Error: an ORDINAL type is not allowed to be used as a type argument
+408 resolution/type errors detected in ResolutionErrors.dfy

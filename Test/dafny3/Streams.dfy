@@ -79,8 +79,8 @@ lemma Theorem0_Ind(k: nat, M: Stream<X>)
 }
 lemma Theorem0_AutoInd(k: nat, M: Stream<X>)
   ensures map_fg(M) ==#[k] map_f(map_g(M));
-// {  // TODO: this is not working yet, apparently
-// }
+{
+}
 
 // map f (append M N) = append (map f M) (map f N)
 colemma Theorem1(M: Stream<X>, N: Stream<X>)
@@ -120,11 +120,11 @@ lemma Theorem1_Ind(k: nat, M: Stream<X>, N: Stream<X>)
 }
 lemma Theorem1_AutoInd(k: nat, M: Stream<X>, N: Stream<X>)
   ensures map_f(append(M, N)) ==#[k] append(map_f(M), map_f(N));
-// {  // TODO: this is not working yet, apparently
-// }
+{
+}
 lemma Theorem1_AutoForall()
 {
-//  assert forall k: nat, M, N :: map_f(append(M, N)) ==#[k] append(map_f(M), map_f(N));  // TODO: this is not working yet, apparently
+  // assert forall k: nat, M, N :: map_f(append(M, N)) ==#[k] append(map_f(M), map_f(N));  // TODO: this is not working yet, apparently
 }
 
 // append NIL M = M
