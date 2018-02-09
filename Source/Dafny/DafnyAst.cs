@@ -4691,7 +4691,7 @@ namespace Microsoft.Dafny {
     public override string WhatKind { get { return "const field"; } }
     public readonly Expression Rhs;
     public ConstantField(IToken tok, string name, Expression/*?*/ rhs, bool hasStaticKeyword, bool isGhost, Type type, Attributes attributes)
-      : base(tok, name, name, "", "", hasStaticKeyword, isGhost, false, false, type, attributes)
+      : base(tok, name, NonglobalVariable.CompilerizeName(name), "", "", hasStaticKeyword, isGhost, false, false, type, attributes)
     {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);

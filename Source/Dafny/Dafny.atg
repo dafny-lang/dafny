@@ -1522,7 +1522,7 @@ MethodDecl<DeclModifierData dmod, bool allowConstructor, bool isWithinAbstractMo
   )                                 (. keywordToken = t; 
                                        CheckDeclModifiers(dmod, caption, allowed); .)
   { Attribute<ref attrs> }
-  [ NoUSIdent<out id>               (. hasName = true; .)
+  [ FuMe_Ident<out id>               (. hasName = true; .)
   ]
   (. if (!hasName) {
        id = keywordToken;
@@ -1776,7 +1776,7 @@ TypeAndToken<out IToken tok, out Type ty, bool inExpressionContext>
                                     .)
   | (. Expression e; .)
     NameSegmentForTypeName<out e, inExpressionContext>  (. tok = t; .)
-    { "." ident                      (. tok = t; List<Type> typeArgs; .)
+    { "." TypeNameOrCtorSuffix<out tok>       (. List<Type> typeArgs; .)
       OptGenericInstantiation<out typeArgs, inExpressionContext>
       (. e = new ExprDotName(tok, e, tok.val, typeArgs); .)
     }
@@ -1866,7 +1866,7 @@ FunctionDecl<DeclModifierData dmod, bool isWithinAbstractModule, out Function/*!
        CheckDeclModifiers(dmod, caption, allowed);
     .)
     { Attribute<ref attrs> }
-    NoUSIdent<out id>
+    FuMe_Ident<out id>
     (
       [ GenericParameters<typeArgs, false> ]
       Formals<true, isFunctionMethod, isTwoState, formals>
@@ -1923,7 +1923,7 @@ FunctionDecl<DeclModifierData dmod, bool isWithinAbstractModule, out Function/*!
          AllowedDeclModifiers.AlreadyGhost | AllowedDeclModifiers.Static | AllowedDeclModifiers.Protected);
     .)
     { Attribute<ref attrs> }
-    NoUSIdent<out id>
+    FuMe_Ident<out id>
     (
       [ GenericParameters<typeArgs, false> ]
       [ KType<ref kType> ]
@@ -3854,8 +3854,20 @@ MemberBindingUpdate<out IToken id, out Expression e>
   .
 
 LabelIdent<out IToken id>
-= (. id = null; /* to please compiler */ .)
-  ( WildIdent<out id, false>
+= (. id = Token.NoToken; .)
+  ( NoUSIdent<out id>
+  | digits         (. id = t; .)
+  )
+  .
+FuMe_Ident<out IToken id>
+= (. id = Token.NoToken; .)
+  ( NoUSIdent<out id>
+  | digits         (. id = t; .)
+  )
+  .
+TypeNameOrCtorSuffix<out IToken id>
+= (. id = Token.NoToken; .)
+  ( ident          (. id = t; .)
   | digits         (. id = t; .)
   )
   .
