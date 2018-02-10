@@ -277,3 +277,18 @@ module FilledInTypeParameters {
     var m: seq<Co> := iter.s;
   }
 }
+
+module CheckEndOfScopeForDominatingLabels {
+  iterator Iter() yields (y: int) {
+    label 0:
+    yield 500;
+    label 1:
+    yield 700;
+  }
+  iterator Iter'() yields (y: int) {
+    label 0:  // same label as in Iter; should be fine, of course (but once upon a time wasn't)
+    yield 500;
+    label 1:
+    yield 700;
+  }
+}

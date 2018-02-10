@@ -5905,8 +5905,8 @@ namespace Microsoft.Dafny {
         MultiSetFormingExpr e = (MultiSetFormingExpr)expr;
         return CanCallAssumption(e.E, etran);
       } else if (expr is OldExpr) {
-        OldExpr e = (OldExpr)expr;
-        return CanCallAssumption(e.E, etran.Old);
+        var e = (OldExpr)expr;
+        return CanCallAssumption(e.E, e.AtLabel == null ? etran.Old : etran.OldAt(e.AtLabel));
       } else if (expr is UnchangedExpr) {
         var e = (UnchangedExpr)expr;
         Bpl.Expr be = Bpl.Expr.True;
@@ -6003,7 +6003,7 @@ namespace Microsoft.Dafny {
           foreach (var bv in e.BoundVars) {
             // create a call to $let$x(g)
             var args = info.SkolemFunctionArgs(bv, this, etran);
-            var call = new BoogieFunctionCall(bv.tok, info.SkolemFunctionName(bv), info.UsesHeap, info.UsesOldHeap, args.Item1, args.Item2);
+            var call = new BoogieFunctionCall(bv.tok, info.SkolemFunctionName(bv), info.UsesHeap, info.UsesOldHeap, info.UsesHeapAt, args.Item1, args.Item2);
             call.Type = bv.Type;
             substMap.Add(bv, call);
           }
@@ -6897,7 +6897,7 @@ namespace Microsoft.Dafny {
         MultiSetFormingExpr e = (MultiSetFormingExpr)expr;
         CheckWellformed(e.E, options, locals, builder, etran);
       } else if (expr is OldExpr) {
-        OldExpr e = (OldExpr)expr;
+        var e = (OldExpr)expr;
         // Anything read inside the 'old' expressions depends only on the old heap, which isn't included in the
         // frame axiom.  In other words, 'old' expressions have no dependencies on the current heap.  Therefore,
         // we turn off any reads checks for "e.E".
@@ -7245,6 +7245,7 @@ namespace Microsoft.Dafny {
         //   assume RHS(b);
         //   CheckWellformed(Body(b));
         //   If non-ghost:  var b' where typeAntecedent; assume RHS(b'); assert Body(b) == Body(b');
+        //   assume CanCall
         Contract.Assert(e.RHSs.Count == 1);  // this is true of all successfully resolved let-such-that expressions
         List<BoundVar> lhsVars = e.BoundVars.ToList<BoundVar>();
         var substMap = SetupBoundVarsAsLocals(lhsVars, builder, locals, etran);
@@ -7268,6 +7269,10 @@ namespace Microsoft.Dafny {
           var eq = Expression.CreateEq(letBody, letBody_prime, e.Body.Type);
           builder.Add(Assert(e.tok, etran.TrExpr(eq), "to be compilable, the value of a let-such-that expression must be uniquely determined"));
         }
+        // assume $let$canCall(g);
+        LetDesugaring(e);  // call LetDesugaring to prepare the desugaring and populate letSuchThatExprInfo with something for e
+        var info = letSuchThatExprInfo[e];
+        builder.Add(new Bpl.AssumeCmd(e.tok, info.CanCallFunctionCall(this, etran)));
         // If we are supposed to assume "result" to equal this expression, then use the body of the let-such-that, not the generated $let#... function
         if (result != null) {
           Contract.Assert(resultType != null);
@@ -9293,7 +9298,7 @@ namespace Microsoft.Dafny {
       } else if (stmt is BreakStmt) {
         AddComment(builder, stmt, "break statement");
         var s = (BreakStmt)stmt;
-        builder.Add(new GotoCmd(s.Tok, new List<String> { "after_" + s.TargetStmt.Labels.Data.AssignUniqueId("after_", CurrentIdGenerator) }));
+        builder.Add(new GotoCmd(s.Tok, new List<String> { "after_" + s.TargetStmt.Labels.Data.AssignUniqueId(CurrentIdGenerator) }));
       } else if (stmt is ReturnStmt) {
         var s = (ReturnStmt)stmt;
         AddComment(builder, stmt, "return statement");
@@ -9951,9 +9956,14 @@ namespace Microsoft.Dafny {
       Contract.Requires(locals != null);
       Contract.Requires(etran != null);
       foreach (Statement ss in stmts) {
+        for (var l = ss.Labels; l != null; l = l.Next) {
+          var heapAt = new Bpl.LocalVariable(ss.Tok, new Bpl.TypedIdent(ss.Tok, "$Heap_at_" + l.Data.AssignUniqueId(CurrentIdGenerator), predef.HeapType));
+          locals.Add(heapAt);
+          builder.Add(Bpl.Cmd.SimpleAssign(ss.Tok, new Bpl.IdentifierExpr(ss.Tok, heapAt), etran.HeapExpr));
+        }
         TrStmt(ss, builder, locals, etran);
         if (ss.Labels != null) {
-          builder.AddLabelCmd("after_" + ss.Labels.Data.AssignUniqueId("after_", CurrentIdGenerator));
+          builder.AddLabelCmd("after_" + ss.Labels.Data.AssignUniqueId(CurrentIdGenerator));
         }
       }
     }
@@ -12604,14 +12614,15 @@ namespace Microsoft.Dafny {
           {
             var FVs = new HashSet<IVariable>();
             bool usesHeap = false, usesOldHeap = false;
+            var FVsHeapAt = new HashSet<Label>();
             Type usesThis = null;
-            ComputeFreeVariables(e.RHSs[0], FVs, ref usesHeap, ref usesOldHeap, ref usesThis);
+            ComputeFreeVariables(e.RHSs[0], FVs, ref usesHeap, ref usesOldHeap, FVsHeapAt, ref usesThis);
             foreach (var bv in e.BoundVars) {
               FVs.Remove(bv);
             }
             var FTVs = new HashSet<TypeParameter>();
             ComputeFreeTypeVariables(e.RHSs[0], FTVs);
-            info = new LetSuchThatExprInfo(e.tok, letSuchThatExprInfo.Count, FVs.ToList(), FTVs.ToList(), usesHeap, usesOldHeap, usesThis, currentDeclaration);
+            info = new LetSuchThatExprInfo(e.tok, letSuchThatExprInfo.Count, FVs.ToList(), FTVs.ToList(), usesHeap, usesOldHeap, FVsHeapAt, usesThis, currentDeclaration);
             letSuchThatExprInfo.Add(e, info);
           }
 
@@ -12664,7 +12675,7 @@ namespace Microsoft.Dafny {
                 }
               }
             }
-            var i = info.FTVs.Count + (info.UsesHeap ? 1 : 0) + (info.UsesOldHeap ? 1 : 0);
+            var i = info.FTVs.Count + (info.UsesHeap ? 1 : 0) + (info.UsesOldHeap ? 1 : 0) + info.UsesHeapAt.Count;
             Expression receiverReplacement;
             if (info.ThisType == null) {
               receiverReplacement = null;
@@ -12690,7 +12701,7 @@ namespace Microsoft.Dafny {
             var rhss = new List<Expression>();
             foreach (var bv in e.BoundVars) {
               var args = info.SkolemFunctionArgs(bv, this, etran);
-              var rhs = new BoogieFunctionCall(bv.tok, info.SkolemFunctionName(bv), info.UsesHeap, info.UsesOldHeap, args.Item1, args.Item2);
+              var rhs = new BoogieFunctionCall(bv.tok, info.SkolemFunctionName(bv), info.UsesHeap, info.UsesOldHeap, info.UsesHeapAt, args.Item1, args.Item2);
               rhs.Type = bv.Type;
               rhss.Add(rhs);
             }
@@ -12713,10 +12724,11 @@ namespace Microsoft.Dafny {
       public readonly List<Type> FTV_Types;
       public readonly bool UsesHeap;
       public readonly bool UsesOldHeap;
+      public readonly List<Label> UsesHeapAt;
       public readonly Type ThisType;  // null if 'this' is not used
       public LetSuchThatExprInfo(IToken tok, int uniqueLetId,
       List<IVariable> freeVariables, List<TypeParameter> freeTypeVars,
-      bool usesHeap, bool usesOldHeap, Type thisType, Declaration currentDeclaration) {
+      bool usesHeap, bool usesOldHeap, ISet<Label> usesHeapAt, Type thisType, Declaration currentDeclaration) {
         Tok = tok;
         LetId = uniqueLetId;
         FTVs = freeTypeVars;
@@ -12728,8 +12740,14 @@ namespace Microsoft.Dafny {
           idExpr.Var = v; idExpr.Type = v.Type;  // resolve here
           FV_Exprs.Add(idExpr);
         }
+#if IGNORE_USES_HEAP
         UsesHeap = true;  // note, we ignore "usesHeap" and always record it as "true", because various type antecedents need access to the heap (hopefully, this is okay in the contexts in which the let-such-that expression is used)
+#else
+        UsesHeap = usesHeap;
+#endif
         UsesOldHeap = usesOldHeap;
+        // we convert the set of heap-at variables to a list here, once and for all; the order itself is not material, what matters is that we always use the same order
+        UsesHeapAt = new List<Label>(usesHeapAt);
         ThisType = thisType;
       }
       public LetSuchThatExprInfo(LetSuchThatExprInfo template, Translator translator,
@@ -12746,6 +12764,7 @@ namespace Microsoft.Dafny {
         FV_Exprs = template.FV_Exprs.ConvertAll(e => Translator.Substitute(e, null, substMap, typeMap));
         UsesHeap = template.UsesHeap;
         UsesOldHeap = template.UsesOldHeap;
+        UsesHeapAt = template.UsesHeapAt;
         ThisType = template.ThisType;
       }
       public Tuple<List<Expression>, List<Type>> SkolemFunctionArgs(BoundVar bv, Translator translator, ExpressionTranslator etran) {
@@ -12775,6 +12794,11 @@ namespace Microsoft.Dafny {
         }
         if (UsesOldHeap) {
           gExprs.Add(etran.Old.HeapExpr);
+        }
+        foreach (var heapAtLabel in UsesHeapAt) {
+          Bpl.Expr ve;
+          var bv = BplBoundVar("$Heap_at_" + heapAtLabel.AssignUniqueId(translator.CurrentIdGenerator), translator.predef.HeapType, out ve);
+          gExprs.Add(ve);
         }
         if (ThisType != null) {
           var th = new Bpl.IdentifierExpr(Tok, etran.This, translator.predef.RefType);
@@ -12817,6 +12841,17 @@ namespace Microsoft.Dafny {
           var nv = NewVar("$heap$old", translator.predef.HeapType, wantFormals);
           vv.Add(nv);
           if (etran != null) {
+            var isGoodHeap = translator.FunctionCall(Tok, BuiltinFunction.IsGoodHeap, null, new Bpl.IdentifierExpr(Tok, nv));
+            typeAntecedents = BplAnd(typeAntecedents, isGoodHeap);
+          }
+        }
+        foreach (var heapAtLabel in UsesHeapAt) {
+          var nv = NewVar("$Heap_at_" + heapAtLabel.AssignUniqueId(translator.CurrentIdGenerator), translator.predef.HeapType, wantFormals);
+          vv.Add(nv);
+          if (etran != null) {
+            // TODO: It's not clear to me that $IsGoodHeap predicates are needed for these axioms. (Same comment applies above for $heap$old.)
+            // But $HeapSucc relations among the various heap variables appears not needed for either soundness or completeness, since the
+            // let-such-that functions will always be invoked on arguments for which these properties are known.
             var isGoodHeap = translator.FunctionCall(Tok, BuiltinFunction.IsGoodHeap, null, new Bpl.IdentifierExpr(Tok, nv));
             typeAntecedents = BplAnd(typeAntecedents, isGoodHeap);
           }
@@ -12881,17 +12916,20 @@ namespace Microsoft.Dafny {
       public readonly string FunctionName;
       public readonly bool UsesHeap;
       public readonly bool UsesOldHeap;
+      public readonly List<Label> HeapAtLabels;
       public readonly List<Type> TyArgs; // Note: also has a bunch of type arguments
       public readonly List<Expression> Args;
-      public BoogieFunctionCall(IToken tok, string functionName, bool usesHeap, bool usesOldHeap, List<Expression> args, List<Type> tyArgs)
+      public BoogieFunctionCall(IToken tok, string functionName, bool usesHeap, bool usesOldHeap, List<Label> heapAtLabels, List<Expression> args, List<Type> tyArgs)
         : base(tok)
       {
         Contract.Requires(tok != null);
         Contract.Requires(functionName != null);
+        Contract.Requires(heapAtLabels != null);
         Contract.Requires(args != null);
         FunctionName = functionName;
         UsesHeap = usesHeap;
         UsesOldHeap = usesOldHeap;
+        HeapAtLabels = heapAtLabels;
         Args = args;
         TyArgs = tyArgs;
       }
@@ -13404,6 +13442,13 @@ namespace Microsoft.Dafny {
         }
       }
 
+      public ExpressionTranslator OldAt(Label label) {
+        Contract.Requires(label != null);
+        Contract.Ensures(Contract.Result<ExpressionTranslator>() != null);
+        var heapAt = new Bpl.IdentifierExpr(Token.NoToken, "$Heap_at_" + label.AssignUniqueId(translator.CurrentIdGenerator), predef.HeapType);
+        return new ExpressionTranslator(translator, predef, heapAt, This, applyLimited_CurrentFunction, layerInterCluster, layerIntraCluster, modifiesFrame, stripLits);
+      }
+
       public bool UsesOldHeap {
         get {
           return HeapExpr is Bpl.OldExpr;
@@ -13616,6 +13661,11 @@ namespace Microsoft.Dafny {
           }
           if (e.UsesOldHeap) {
             args.Add(Old.HeapExpr);
+          }
+          foreach (var heapAtLabel in e.HeapAtLabels) {
+            Bpl.Expr ve;
+            var bv = BplBoundVar("$Heap_at_" + heapAtLabel.AssignUniqueId(translator.CurrentIdGenerator), translator.predef.HeapType, out ve);
+            args.Add(ve);
           }
           foreach (var arg in e.Args) {
             args.Add(TrExpr(arg));
@@ -13970,8 +14020,8 @@ namespace Microsoft.Dafny {
           }
 
         } else if (expr is OldExpr) {
-          OldExpr e = (OldExpr)expr;
-          return Old.TrExpr(e.E);
+          var e = (OldExpr)expr;
+          return e.AtLabel == null ? Old.TrExpr(e.E) : OldAt(e.AtLabel).TrExpr(e.E);
 
         } else if (expr is UnchangedExpr) {
           var e = (UnchangedExpr)expr;
@@ -16033,7 +16083,7 @@ namespace Microsoft.Dafny {
 
       } else if (expr is OldExpr) {
         var e = (OldExpr)expr;
-        return TrSplitExpr(e.E, splits, position, heightLimit, inlineProtectedFunctions, apply_induction, etran.Old);
+        return TrSplitExpr(e.E, splits, position, heightLimit, inlineProtectedFunctions, apply_induction, e.AtLabel == null ? etran.Old : etran.OldAt(e.AtLabel));
 
       } else if (expr is FunctionCallExpr && position) {
         var fexp = (FunctionCallExpr)expr;
@@ -16292,7 +16342,7 @@ namespace Microsoft.Dafny {
     }
 
     // Using an empty set of old expressions is ok here; the only uses of the triggersCollector will be to check for trigger killers.
-    Triggers.TriggersCollector triggersCollector = new Triggers.TriggersCollector(new HashSet<Expression>());
+    Triggers.TriggersCollector triggersCollector = new Triggers.TriggersCollector(new Dictionary<Expression, HashSet<OldExpr>>());
 
     private bool CanSafelySubstitute(ISet<IVariable> protectedVariables, IVariable variable, Expression substitution) {
       return !(protectedVariables.Contains(variable) && triggersCollector.IsTriggerKiller(substitution));
@@ -16480,9 +16530,10 @@ namespace Microsoft.Dafny {
       Contract.Requires(fvs != null);
       bool dontCare0 = false, dontCare1 = false;
       Type dontCareT = null;
-      ComputeFreeVariables(expr, fvs, ref dontCare0, ref dontCare1, ref dontCareT);
+      var dontCareHeapAt = new HashSet<Label>();
+      ComputeFreeVariables(expr, fvs, ref dontCare0, ref dontCare1, dontCareHeapAt, ref dontCareT);
     }
-    public static void ComputeFreeVariables(Expression expr, ISet<IVariable> fvs, ref bool usesHeap, ref bool usesOldHeap, ref Type usesThis) {
+    public static void ComputeFreeVariables(Expression expr, ISet<IVariable> fvs, ref bool usesHeap, ref bool usesOldHeap, ISet<Label> freeHeapAtVariables, ref Type usesThis) {
       Contract.Requires(expr != null);
 
       if (expr is ThisExpr) {
@@ -16526,11 +16577,21 @@ namespace Microsoft.Dafny {
       // visit subexpressions
       bool uHeap = false, uOldHeap = false;
       Type uThis = null;
-      expr.SubExpressions.Iter(ee => ComputeFreeVariables(ee, fvs, ref uHeap, ref uOldHeap, ref uThis));
+      expr.SubExpressions.Iter(ee => ComputeFreeVariables(ee, fvs, ref uHeap, ref uOldHeap, freeHeapAtVariables, ref uThis));
       Contract.Assert(usesThis == null || uThis == null || usesThis.Equals(uThis));
       usesThis = usesThis ?? uThis;
-      usesHeap |= uHeap;
-      usesOldHeap |= expr is OldExpr ? uHeap | uOldHeap : uOldHeap;
+      var asOldExpr = expr as OldExpr;
+      if (asOldExpr != null && asOldExpr.AtLabel == null) {
+        usesOldHeap |= uHeap | uOldHeap;
+      } else if (asOldExpr != null) {
+        if (uHeap) {  // if not, then there was no real point in using an "old" expression
+          freeHeapAtVariables.Add(asOldExpr.AtLabel);
+        }
+        usesOldHeap |= uOldHeap;
+      } else {
+        usesHeap |= uHeap;
+        usesOldHeap |= uOldHeap;
+      }
 
       if (expr is LetExpr) {
         var e = (LetExpr)expr;
@@ -16558,9 +16619,10 @@ namespace Microsoft.Dafny {
         return true;
       }
       bool usesHeap = false, usesOldHeap = false;
+      var FVsHeapAt = new HashSet<Label>();
       Type usesThis = null;
-      ComputeFreeVariables(expr, new HashSet<IVariable>(), ref usesHeap, ref usesOldHeap, ref usesThis);
-      return usesHeap || usesOldHeap || usesThis != null;
+      ComputeFreeVariables(expr, new HashSet<IVariable>(), ref usesHeap, ref usesOldHeap, FVsHeapAt, ref usesThis);
+      return usesHeap || usesOldHeap || FVsHeapAt.Count != 0 || usesThis != null;
     }
 
     class UsesHeapVisitor : BottomUpVisitor
@@ -16870,14 +16932,14 @@ namespace Microsoft.Dafny {
           }
 
         } else if (expr is OldExpr) {
-          OldExpr e = (OldExpr)expr;
+          var e = (OldExpr)expr;
           // Note, it is up to the caller to avoid variable capture.  In most cases, this is not a
           // problem, since variables have unique declarations.  However, it is an issue if the substitution
           // takes place inside an OldExpr.  In those cases (see LetExpr), the caller can use a
           // BoogieWrapper before calling Substitute.
           Expression se = Substitute(e.E);
           if (se != e.E) {
-            newExpr = new OldExpr(expr.tok, se);
+            newExpr = new OldExpr(expr.tok, se, e.At) { AtLabel = e.AtLabel };
           }
         } else if (expr is UnchangedExpr) {
           var e = (UnchangedExpr)expr;
@@ -17090,7 +17152,7 @@ namespace Microsoft.Dafny {
             newArgs.Add(newArg);
           }
           if (anythingChanged) {
-            newExpr = new BoogieFunctionCall(e.tok, e.FunctionName, e.UsesHeap, e.UsesOldHeap, newArgs, newTyArgs);
+            newExpr = new BoogieFunctionCall(e.tok, e.FunctionName, e.UsesHeap, e.UsesOldHeap, e.HeapAtLabels, newArgs, newTyArgs);
           }
 
         } else {

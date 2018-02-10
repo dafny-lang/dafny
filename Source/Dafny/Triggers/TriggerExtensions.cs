@@ -49,7 +49,7 @@ namespace Microsoft.Dafny.Triggers {
     }
 
     internal static IEnumerable<Expression> AllSubExpressions(this Expression expr, bool wrapOld, bool strict, bool inlineLets = false) {
-      bool isOld = expr is OldExpr;
+      var isOld = expr is OldExpr ? new HashSet<OldExpr>() { expr as OldExpr } : null;
 
       if (inlineLets && expr is LetExpr && ((LetExpr)expr).IsInlineable()) {
         var le = (LetExpr)expr;
@@ -63,13 +63,17 @@ namespace Microsoft.Dafny.Triggers {
 
       foreach (var subexpr in expr.SubExpressions) {
         foreach (var r_subexpr in AllSubExpressions(subexpr, wrapOld, false, inlineLets)) {
-          yield return TriggerUtils.MaybeWrapInOld(r_subexpr, isOld);
+          foreach (var e in TriggerUtils.MaybeWrapInOld(r_subexpr, isOld)) {
+            yield return e;
+          }
         }
       }
 
       if (expr is StmtExpr) {
         foreach (var r_subexpr in AllSubExpressions(((StmtExpr)expr).S, wrapOld, false, inlineLets)) {
-          yield return TriggerUtils.MaybeWrapInOld(r_subexpr, isOld);
+          foreach (var e in TriggerUtils.MaybeWrapInOld(r_subexpr, isOld)) {
+            yield return e;
+          }
         }
       }
 

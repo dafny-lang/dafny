@@ -352,3 +352,21 @@ module PatternsWithExplicitTypes {
     var Pair(xx: int, yy) := p;
   }
 }
+
+// ----------------------------------
+
+module CanCallRegressionTests {
+  class C {
+    var x: int
+
+    function method Id(c: C): C { c }
+
+    method M()
+    {
+      assert Id(this) == this;
+      var e := Id(this).x;
+      assert (var c: C :| c == this; c) == this;
+      var d := (var c: C :| c == this; c).x;  // this once used to fail with a non-deref error, because of a missing CanCall assumption
+    }
+  }
+}

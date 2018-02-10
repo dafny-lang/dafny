@@ -2020,8 +2020,13 @@ namespace Microsoft.Dafny {
         wr.Write(")");
 
       } else if (expr is OldExpr) {
-        wr.Write("old(");
-        PrintExpression(((OldExpr)expr).E, false);
+        var e = (OldExpr)expr;
+        wr.Write("old");
+        if (e.At != null) {
+          wr.Write("@{0}", e.At);
+        }
+        wr.Write("(");
+        PrintExpression(e.E, false);
         wr.Write(")");
 
       } else if (expr is UnchangedExpr) {

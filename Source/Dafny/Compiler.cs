@@ -1680,7 +1680,7 @@ namespace Microsoft.Dafny {
       } else if (stmt is BreakStmt) {
         var s = (BreakStmt)stmt;
         Indent(indent, wr);
-        wr.WriteLine("goto after_{0};", s.TargetStmt.Labels.Data.AssignUniqueId("after_", idGenerator));
+        wr.WriteLine("goto after_{0};", s.TargetStmt.Labels.Data.AssignUniqueId(idGenerator));
       } else if (stmt is ProduceStmt) {
         var s = (ProduceStmt)stmt;
         if (s.hiddenUpdate != null)
@@ -2578,7 +2578,7 @@ namespace Microsoft.Dafny {
         writer.Write(wr.ToString());
         if (ss.Labels != null) {
           Indent(indent, writer);  // labels are not indented as much as the statements
-          writer.WriteLine("after_{0}: ;", ss.Labels.Data.AssignUniqueId("after_", idGenerator));
+          writer.WriteLine("after_{0}: ;", ss.Labels.Data.AssignUniqueId(idGenerator));
         }
       }
     }

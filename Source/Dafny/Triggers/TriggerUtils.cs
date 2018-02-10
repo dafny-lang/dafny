@@ -267,13 +267,17 @@ namespace Microsoft.Dafny.Triggers {
       return PrepareExprForInclusionInTrigger(expr, out _);
     }
 
-    internal static Expression MaybeWrapInOld(Expression expr, bool wrap) {
-      if (wrap && !(expr is NameSegment) && !(expr is IdentifierExpr)) {
-        var newExpr = new OldExpr(expr.tok, expr);
-        newExpr.Type = expr.Type;
-        return newExpr;
+    internal static IEnumerable<Expression> MaybeWrapInOld(Expression expr, HashSet<OldExpr>/*?*/ wrap) {
+      Contract.Requires(expr != null);
+      Contract.Requires(wrap == null || wrap.Count != 0);
+      if (wrap != null && !(expr is NameSegment) && !(expr is IdentifierExpr)) {
+        foreach (var w in wrap) {
+          var newExpr = new OldExpr(expr.tok, expr, w.At) { AtLabel = w.AtLabel };
+          newExpr.Type = expr.Type;
+          yield return newExpr;
+        }
       } else {
-        return expr;
+        yield return expr;
       }
     }
   }

@@ -144,16 +144,16 @@ namespace Microsoft.Dafny.Triggers {
   }
 
   internal class TriggerAnnotationsCache {
-    public readonly HashSet<Expression> exprsInOldContext;
+    public readonly Dictionary<Expression, HashSet<OldExpr>> exprsInOldContext;
     public readonly Dictionary<Expression, TriggerAnnotation> annotations;
 
     /// <summary>
     /// For certain operations, the TriggersCollector class needs to know whether 
-    /// an particular expression is under an old(...) wrapper. This is in particular 
-    /// true for generating trigger terms (but it is not for checking wehter something 
+    /// a particular expression is under an old(...) wrapper. This is in particular 
+    /// true for generating trigger terms (but it is not for checking whether something 
     /// is a trigger killer, so passing an empty set here for that case would be fine.
     /// </summary>
-    public TriggerAnnotationsCache(HashSet<Expression> exprsInOldContext) {
+    public TriggerAnnotationsCache(Dictionary<Expression, HashSet<OldExpr>> exprsInOldContext) {
       this.exprsInOldContext = exprsInOldContext;
       annotations = new Dictionary<Expression, TriggerAnnotation>();
     }
@@ -162,7 +162,7 @@ namespace Microsoft.Dafny.Triggers {
   internal class TriggersCollector {
     TriggerAnnotationsCache cache;
 
-    internal TriggersCollector(HashSet<Expression> exprsInOldContext) {
+    internal TriggersCollector(Dictionary<Expression, HashSet<OldExpr>> exprsInOldContext) {
       this.cache = new TriggerAnnotationsCache(exprsInOldContext);
     }
 
@@ -296,16 +296,32 @@ namespace Microsoft.Dafny.Triggers {
     }
     private TriggerAnnotation AnnotatePotentialCandidate(Expression expr) {
       bool expr_is_killer = false;
-      var new_expr = TriggerUtils.MaybeWrapInOld(TriggerUtils.PrepareExprForInclusionInTrigger(expr, out expr_is_killer), cache.exprsInOldContext.Contains(expr));
-      var new_term = new TriggerTerm { Expr = new_expr, OriginalExpr = expr, Variables = CollectVariables(expr) };
-
-      List<TriggerTerm> collected_terms = CollectExportedCandidates(expr);
-      var children_contain_killers = CollectIsKiller(expr);
-
-      if (!children_contain_killers) {
-        // Add only if the children are not killers; the head has been cleaned up into non-killer form
-        collected_terms.Add(new_term);
+      HashSet<OldExpr> oldExprSet;
+      if (cache.exprsInOldContext.TryGetValue(expr, out oldExprSet)) {
+        // oldExpr has been set to the value found
+      } else {
+        oldExprSet = null;
       }
+      var new_exprs = TriggerUtils.MaybeWrapInOld(TriggerUtils.PrepareExprForInclusionInTrigger(expr, out expr_is_killer), oldExprSet);
+      // We expect there to be at least one "new_exprs".
+      // We also expect that the computation of new_term.Variables, collected_terms, and children_contain_killers will be the
+      // same for each of the "new_exprs".
+      // Therefore, we use the values of these variables from the last iteration in the expression that is ultimately returned.
+      TriggerTerm new_term = null;
+      List<TriggerTerm> collected_terms = null;
+      var children_contain_killers = false;
+      foreach (var new_expr in new_exprs) {
+        new_term = new TriggerTerm { Expr = new_expr, OriginalExpr = expr, Variables = CollectVariables(expr) };
+
+        collected_terms = CollectExportedCandidates(expr);
+        children_contain_killers = CollectIsKiller(expr);
+
+        if (!children_contain_killers) {
+          // Add only if the children are not killers; the head has been cleaned up into non-killer form
+          collected_terms.Add(new_term);
+        }
+      }
+      Contract.Assert(new_term != null);  // this checks our assumption that "new_exprs" contains at least one value.
 
       // This new node is a killer if its children were killers, or if it's non-cleaned-up head is a killer
       return new TriggerAnnotation(children_contain_killers || expr_is_killer, new_term.Variables, collected_terms);

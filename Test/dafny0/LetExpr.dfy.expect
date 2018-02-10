@@ -40,8 +40,8 @@ Execution trace:
     (0,0): anon0
     (0,0): anon10_Then
 
-Dafny program verifier finished with 28 verified, 11 errors
+Dafny program verifier finished with 29 verified, 11 errors
 LetExpr.dfy.tmp.dprint.dfy(97,4): Warning: /!\ No terms found to trigger on.
-LetExpr.dfy.tmp.dprint.dfy(195,2): Warning: /!\ No terms found to trigger on.
+LetExpr.dfy.tmp.dprint.dfy(214,2): Warning: /!\ No terms found to trigger on.
 
 Dafny program verifier finished with 0 verified, 0 errors

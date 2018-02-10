@@ -301,16 +301,16 @@ module MiscMore {
       label DuplicateLabel: x := x + 1;
     }
     label DuplicateLabel: x := x + 1;
-    label DuplicateLabel: {
+    label DuplicateLabel': {
       label AnotherLabel:
-      label DuplicateLabel:  // error: duplicate label
+      label DuplicateLabel':  // error: duplicate label (shadowed by enclosing label)
       label OneMoreTime:
       x := x + 1;
     }
-    label DuplicateLabel:
-    label DuplicateLabel:  // error: duplicate label
+    label DuplicateLabel'':
+    label DuplicateLabel'':  // error: duplicate label (shadowed by enclosing label)
     x := x + 1;
-    label DuplicateLabel: x := x + 1;
+    label DuplicateLabel'': x := x + 1;  // error: duplicate label (shadowed by dominating label)
   }
 
   // --------------- constructors -------------------------------------
@@ -2504,4 +2504,102 @@ module BigOrdinalRestrictionsExtremePred {
   function F'<G>(): int
   lemma ParameterizedLemma<G>(g: G)
   predicate P(g: ORDINAL)
+}
+
+// ----- label domination -----
+
+module LabelDomination {
+  method DuplicateLabels(n: int) {
+    var x;
+    if (n < 7) {
+      label L: x := x + 1;
+    } else {
+      label L: x := x + 1;
+    }
+    assert old@L(true);  // error: L is not available here
+    label L: x := x + 1;
+    assert old@L(true);
+    label L: x := x + 1;  // error: duplicate label
+    assert old@L(true);
+
+    {
+      label K:
+      x := x + 1;
+    }
+    assert old@K(true);
+    label K:  // error: duplicate label
+    assert old@K(true);
+  }
+
+  datatype Color = A | B | C
+  method Branches(n: int, c: Color) {
+    var x: int;
+    if n < 2 {
+      label X: x := x + 1;
+    } else if n < 4 {
+      label X: x := x + 1;
+    } else {
+      label X: x := x + 1;
+    }
+    if * {
+      label X: x := x + 1;
+    } else {
+      label X: x := x + 1;
+    }
+
+    if {
+      case true =>
+        label X: x := x + 1;
+      case true =>
+        label X: x := x + 1;
+    }
+
+    var i := 0;
+    while i < x {
+      label X: x := x + 1;
+      i := i + 1;
+    }
+
+    i := 0;
+    while {
+      case i < x =>
+        label X: x := x + 1;
+        i := i + 1;
+      case i < x =>
+        label X: x := x + 1;
+        i := i + 1;
+    }
+
+    match c {
+      case A =>
+        label X: x := x + 1;
+      case B =>
+        label X: x := x + 1;
+      case C =>
+        label X: x := x + 1;
+    }
+
+    label X: x := x + 1;  // all okay
+  }
+
+  method A0() {
+    label Q:
+    assert true;
+  }
+  method A1() {
+    label Q:
+    assert true;
+  }
+
+  class MyClass {
+    var x: int
+    method LabelNotInScope(y: int) {
+      if y < 5 {
+        label Treasure:
+        assert true;
+      }
+      assert old(x) == old@Treasure(x);  // error: no label Treasure in scope
+      assert 10 == old@WonderfulLabel(x);  // error: no label WonderfulLabel in scope
+    }
+  }
 }

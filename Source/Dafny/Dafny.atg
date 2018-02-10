@@ -3246,8 +3246,9 @@ ConstAtomExpression<out Expression e, bool allowSemi, bool allowLambda>
       { "," FrameExpression<out fe, false, false>   (. mod.Add(fe); .)
       }
     ")"                                        (. e = new UnchangedExpr(x, mod); .)
-  | "old"                                      (. x = t; .)
-    "(" Expression<out e, true, true> ")"      (. e = new OldExpr(x, e); .)
+  | "old"                                      (. x = t; IToken oldAt = null; .)
+    [ "@" LabelIdent<out oldAt> ]
+    "(" Expression<out e, true, true> ")"      (. e = new OldExpr(x, e, oldAt?.val); .)
   | "|"                                        (. x = t; .)
       Expression<out e, true, true, false>     (. e = new UnaryOpExpr(x, UnaryOpExpr.Opcode.Cardinality, e); .)
     "|"

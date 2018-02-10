@@ -6118,11 +6118,11 @@ namespace Microsoft.Dafny {
     public readonly IToken Tok;
     public readonly string Name;
     string uniqueId = null;
-    public string AssignUniqueId(string prefix, FreshIdGenerator idGen)
+    public string AssignUniqueId(FreshIdGenerator idGen)
     {
       if (uniqueId == null)
       {
-        uniqueId = idGen.FreshNumericId(prefix);
+        uniqueId = idGen.FreshNumericId("label");
       }
       return uniqueId;
     }
@@ -9119,18 +9119,21 @@ namespace Microsoft.Dafny {
   {
     [Peer]
     public readonly Expression E;
+    public readonly string At;
+    public Label AtLabel;  // filled in during resolution; after that, At==null iff AtLabel==null
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(E != null);
     }
 
     [Captured]
-    public OldExpr(IToken tok, Expression expr)
+    public OldExpr(IToken tok, Expression expr, string at = null)
       : base(tok) {
       Contract.Requires(tok != null);
       Contract.Requires(expr != null);
       cce.Owner.AssignSame(this, expr);
       E = expr;
+      At = at;
     }
 
     public override IEnumerable<Expression> SubExpressions {

@@ -132,7 +132,7 @@ namespace Microsoft.Dafny.Triggers
 
   class MatchingLoopRewriter
   {
-    TriggersCollector triggersCollector = new Triggers.TriggersCollector(new HashSet<Expression>());
+    TriggersCollector triggersCollector = new Triggers.TriggersCollector(new Dictionary<Expression, HashSet<OldExpr>>());
     Dictionary<Expression, IdentifierExpr> substMap;
     Dictionary<Expression, IdentifierExpr> usedMap;
 

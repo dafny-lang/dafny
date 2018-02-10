@@ -35,6 +35,7 @@ ResolutionErrors.dfy(281,14): Error: ghost-context break statement is not allowe
 ResolutionErrors.dfy(286,10): Error: return statement is not allowed in this context (because it is guarded by a specification-only expression)
 ResolutionErrors.dfy(306,6): Error: label shadows an enclosing label
 ResolutionErrors.dfy(311,4): Error: duplicate label
+ResolutionErrors.dfy(313,4): Error: label shadows a dominating label
 ResolutionErrors.dfy(337,6): Error: when allocating an object of type 'ClassWithConstructor', one of its constructor methods must be called
 ResolutionErrors.dfy(338,6): Error: when allocating an object of type 'ClassWithConstructor', one of its constructor methods must be called
 ResolutionErrors.dfy(340,11): Error: a constructor is allowed to be called only when an object is being allocated
@@ -409,4 +410,9 @@ ResolutionErrors.dfy(2470,18): Error: type of bound variable 'r' is not allowed 
 ResolutionErrors.dfy(2469,4): Error: type 'ORDINAL' to the lemma 'ParameterizedLemma' is not allowed to use ORDINAL
 ResolutionErrors.dfy(2463,8): Error: an ORDINAL type is not allowed to be used as a type argument
 ResolutionErrors.dfy(2462,8): Error: an ORDINAL type is not allowed to be used as a type argument
-408 resolution/type errors detected in ResolutionErrors.dfy
+ResolutionErrors.dfy(2601,23): Error: no label 'Treasure' in scope at this time
+ResolutionErrors.dfy(2602,19): Error: no label 'WonderfulLabel' in scope at this time
+ResolutionErrors.dfy(2519,11): Error: no label 'L' in scope at this time
+ResolutionErrors.dfy(2522,4): Error: label shadows a dominating label
+ResolutionErrors.dfy(2530,4): Error: label shadows a dominating label
+414 resolution/type errors detected in ResolutionErrors.dfy

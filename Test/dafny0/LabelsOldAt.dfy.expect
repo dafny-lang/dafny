@@ -1,0 +1,14 @@
+LabelsOldAt.dfy(33,13): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon7_Then
+    (0,0): anon2
+    (0,0): anon8_Then
+    (0,0): anon4
+    (0,0): anon9_Then
+    (0,0): anon6
+LabelsOldAt.dfy(55,11): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+
+Dafny program verifier finished with 0 verified, 2 errors
