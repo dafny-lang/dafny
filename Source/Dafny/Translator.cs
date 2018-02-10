@@ -1074,19 +1074,10 @@ namespace Microsoft.Dafny {
                                 continue;
                               }
                               //this adds: axiom TraitParent(class.A) == class.J; Where A extends J
-#if OLD_CODE
-                              Bpl.TypedIdent trait_id = new Bpl.TypedIdent(traitObj.tok, string.Format("class.{0}", traitObj.FullSanitizedName), predef.ClassNameType);
-                              Bpl.Constant trait = new Bpl.Constant(traitObj.tok, trait_id, true);
-#else
                               Bpl.Constant trait = GetClass(traitObj);
-#endif
                               Bpl.Expr traitId_expr = new Bpl.IdentifierExpr(traitObj.tok, trait);
 
-#if OLD_CODE
-                              var id = new Bpl.IdentifierExpr(c.tok, string.Format("class.{0}", c.FullSanitizedName), predef.ClassNameType);
-#else
                               var id = new Bpl.IdentifierExpr(c.tok, GetClass(c));
-#endif
                               var funCallExpr = FunctionCall(c.tok, BuiltinFunction.TraitParent, null, id);
                               var traitParentAxiom = new Bpl.Axiom(c.tok, Bpl.Expr.Eq(funCallExpr, traitId_expr));
 
@@ -1095,11 +1086,7 @@ namespace Microsoft.Dafny {
                         }
                         else
                         {
-#if OLD_CODE
-                          var id = new Bpl.IdentifierExpr(c.tok, string.Format("class.{0}", c.FullSanitizedName), predef.ClassNameType);
-#else
                           var id = new Bpl.IdentifierExpr(c.tok, GetClass(c));
-#endif
                           var funCallExpr = FunctionCall(c.tok, BuiltinFunction.TraitParent, null, id);
                           var traitParentAxiom = new Bpl.Axiom(c.tok, Bpl.Expr.Eq(funCallExpr, predef.NoTraitAtAll));
 
@@ -12740,11 +12727,7 @@ namespace Microsoft.Dafny {
           idExpr.Var = v; idExpr.Type = v.Type;  // resolve here
           FV_Exprs.Add(idExpr);
         }
-#if IGNORE_USES_HEAP
-        UsesHeap = true;  // note, we ignore "usesHeap" and always record it as "true", because various type antecedents need access to the heap (hopefully, this is okay in the contexts in which the let-such-that expression is used)
-#else
         UsesHeap = usesHeap;
-#endif
         UsesOldHeap = usesOldHeap;
         // we convert the set of heap-at variables to a list here, once and for all; the order itself is not material, what matters is that we always use the same order
         UsesHeapAt = new List<Label>(usesHeapAt);
@@ -14025,7 +14008,7 @@ namespace Microsoft.Dafny {
 
         } else if (expr is UnchangedExpr) {
           var e = (UnchangedExpr)expr;
-          return translator.FrameCondition(e.tok, e.Frame, false, Resolver.FrameExpressionUse.Unchanged, Old, this, this);
+          return translator.FrameCondition(e.tok, e.Frame, false, Resolver.FrameExpressionUse.Unchanged, e.AtLabel == null ? Old : OldAt(e.AtLabel), this, this);
 
         } else if (expr is UnaryOpExpr) {
           var e = (UnaryOpExpr)expr;
@@ -15923,7 +15906,7 @@ namespace Microsoft.Dafny {
           // split into a number of UnchangeExpr's, one for each FrameExpression
           foreach (var fe in e.Frame) {
             var tok = new NestedToken(e.tok, fe.tok);
-            Expression ee = new UnchangedExpr(tok, new List<FrameExpression> { fe });
+            Expression ee = new UnchangedExpr(tok, new List<FrameExpression> { fe }, e.At) { AtLabel = e.AtLabel };
             ee.Type = Type.Bool;  // resolve here
             TrSplitExpr(ee, splits, position, heightLimit, inlineProtectedFunctions, apply_induction, etran);
           }
@@ -16567,7 +16550,14 @@ namespace Microsoft.Dafny {
           usesHeap = true;
         }
       } else if (expr is UnchangedExpr) {
-        usesOldHeap = true;
+        var e = (UnchangedExpr)expr;
+        if (e.AtLabel == null) {
+          usesOldHeap = true;
+        } else {
+          freeHeapAtVariables.Add(e.AtLabel);
+        }
+      } else if (expr is ApplyExpr) {
+        usesHeap = true;  // because the translation of an ApplyExpr always throws in the heap variable
       } else if (expr is UnaryOpExpr && ((UnaryOpExpr)expr).Op == UnaryOpExpr.Opcode.Fresh) {
         usesOldHeap = true;
       } else if (expr is UnaryOpExpr && ((UnaryOpExpr)expr).Op == UnaryOpExpr.Opcode.Allocated) {
@@ -16953,7 +16943,7 @@ namespace Microsoft.Dafny {
             fr.Add(fefe);
           }
           if (anythingChanged) {
-            newExpr = new UnchangedExpr(e.tok, fr);
+            newExpr = new UnchangedExpr(e.tok, fr, e.At) { AtLabel = e.AtLabel };
           }
         } else if (expr is MultiSetFormingExpr) {
           var e = (MultiSetFormingExpr)expr;

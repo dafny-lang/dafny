@@ -3,6 +3,7 @@
 
 class C {
   var x: int
+  var z: int
 
   method M()
     requires x == 6
@@ -53,5 +54,33 @@ class C {
     assert o == var six :| six == 6; six;
     assert o == 18 - var twelve :| twelve == 12; twelve;
     assert whoKnows;  // error: no evidence that it holds (or doesn't hold)
+  }
+
+  method Unchanged(y: int, c: C, d: C)
+    modifies this, c, d
+  {
+    if y < 5 {
+      x := x + 1;
+      assert c != this ==> unchanged(c);
+    } else {
+      c.x := c.x + 2;
+      assert c != this ==> unchanged(this);
+    }
+    label Middle:
+    d.x := d.x + 1;
+    label End:
+    if
+    case d != this && d != c =>
+      assert unchanged@Middle(this, c);
+    case d != this =>
+      assert unchanged@Middle(`x);
+    case d != c =>
+      assert unchanged@Middle(`x);  // error: the value of this.x may indeed have changed
+    case d != c =>
+      assert unchanged@Middle({c});
+      assert unchanged@Middle({this,d}`z);
+      assert unchanged({this,d}`z);
+    case true =>
+      assert unchanged@End({c,d});
   }
 }

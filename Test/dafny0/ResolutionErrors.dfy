@@ -2593,13 +2593,21 @@ module LabelDomination {
 
   class MyClass {
     var x: int
-    method LabelNotInScope(y: int) {
+    method LabelNotInScope_Old(y: int) {
       if y < 5 {
         label Treasure:
         assert true;
       }
       assert old(x) == old@Treasure(x);  // error: no label Treasure in scope
       assert 10 == old@WonderfulLabel(x);  // error: no label WonderfulLabel in scope
+    }
+    method LabelNotInScope_Unchanged(y: int) {
+      if y < 5 {
+        label Treasure:
+        assert true;
+      }
+      assert unchanged@Treasure(`x);  // error: no label Treasure in scope
+      assert unchanged@WonderfulLabel(this);  // error: no label WonderfulLabel in scope
     }
   }
 }

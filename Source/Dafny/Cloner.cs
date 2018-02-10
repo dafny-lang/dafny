@@ -349,7 +349,7 @@ namespace Microsoft.Dafny
 
       } else if (expr is UnchangedExpr) {
         var e = (UnchangedExpr)expr;
-        return new UnchangedExpr(Tok(e.tok), e.Frame.ConvertAll(CloneFrameExpr));
+        return new UnchangedExpr(Tok(e.tok), e.Frame.ConvertAll(CloneFrameExpr), e.At);
 
       } else if (expr is UnaryOpExpr) {
         var e = (UnaryOpExpr)expr;

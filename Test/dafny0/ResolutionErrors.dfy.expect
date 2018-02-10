@@ -412,7 +412,9 @@ ResolutionErrors.dfy(2463,8): Error: an ORDINAL type is not allowed to be used a
 ResolutionErrors.dfy(2462,8): Error: an ORDINAL type is not allowed to be used as a type argument
 ResolutionErrors.dfy(2601,23): Error: no label 'Treasure' in scope at this time
 ResolutionErrors.dfy(2602,19): Error: no label 'WonderfulLabel' in scope at this time
+ResolutionErrors.dfy(2609,13): Error: no label 'Treasure' in scope at this time
+ResolutionErrors.dfy(2610,13): Error: no label 'WonderfulLabel' in scope at this time
 ResolutionErrors.dfy(2519,11): Error: no label 'L' in scope at this time
 ResolutionErrors.dfy(2522,4): Error: label shadows a dominating label
 ResolutionErrors.dfy(2530,4): Error: label shadows a dominating label
-414 resolution/type errors detected in ResolutionErrors.dfy
+416 resolution/type errors detected in ResolutionErrors.dfy

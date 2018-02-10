@@ -11637,6 +11637,11 @@ namespace Microsoft.Dafny
         var e = (UnchangedExpr)expr;
         if (!opts.twoState) {
           reporter.Error(MessageSource.Resolver, expr, "unchanged expressions are not allowed in this context");
+        } else if (e.At != null) {
+          e.AtLabel = dominatingStatementLabels.Find(e.At);
+          if (e.AtLabel == null) {
+            reporter.Error(MessageSource.Resolver, expr, "no label '{0}' in scope at this time", e.At);
+          }
         }
         foreach (var fe in e.Frame) {
           ResolveFrameExpression(fe, FrameExpressionUse.Unchanged, opts.codeContext);

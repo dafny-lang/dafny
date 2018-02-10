@@ -2031,7 +2031,11 @@ namespace Microsoft.Dafny {
 
       } else if (expr is UnchangedExpr) {
         var e = (UnchangedExpr)expr;
-        wr.Write("unchanged(");
+        wr.Write("unchanged");
+        if (e.At != null) {
+          wr.Write("@{0}", e.At);
+        }
+        wr.Write("(");
         PrintFrameExpressionList(e.Frame);
         wr.Write(")");
 

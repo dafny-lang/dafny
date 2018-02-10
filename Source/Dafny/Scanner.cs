@@ -609,7 +609,7 @@ public class Scanner {
 			case "fresh": t.kind = 149; break;
 			case "allocated": t.kind = 150; break;
 			case "unchanged": t.kind = 151; break;
-			case "old": t.kind = 152; break;
+			case "old": t.kind = 153; break;
 			default: break;
 		}
   }
@@ -959,9 +959,9 @@ public class Scanner {
 			case 99:
 				{t.kind = 144; break;}
 			case 100:
-				recEnd = pos; recKind = 153;
+				recEnd = pos; recKind = 152;
 				if (ch == '"') {AddCh(); goto case 29;}
-				else {t.kind = 153; break;}
+				else {t.kind = 152; break;}
 			case 101:
 				recEnd = pos; recKind = 24;
 				if (ch == ':') {AddCh(); goto case 32;}
