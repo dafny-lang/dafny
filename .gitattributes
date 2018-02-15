@@ -20,6 +20,10 @@
 *.bat eol=crlf
 *.transcript eol=crlf
 
+#Needs to be lr
+Binaries/dafny text eol=lf
+Binaries/dafny-server text eol=lf
+
 #Never convert these
 *.dll binary
 *.exe binary
