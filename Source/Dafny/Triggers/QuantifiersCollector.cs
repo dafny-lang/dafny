@@ -53,18 +53,7 @@ namespace Microsoft.Dafny.Triggers {
         }
       }
 
-      bool shouldContinue = true;
-      if (expr is LetExpr) {
-        var le = (LetExpr)expr;
-        if (le.LHSs.All(p => p.Var != null) && le.Exact) {
-          // inline this let-expr and visit the resulting expression rather than continuing this visitor
-          var newExpr = Translator.InlineLet(le);
-          this.Visit(newExpr, enclosingOldContext);
-          shouldContinue = false;
-        }
-      }
-
-      return shouldContinue;
+      return true;
     }
 
     protected override bool VisitOneStmt(Statement stmt, ref OldExpr/*?*/ st) {
