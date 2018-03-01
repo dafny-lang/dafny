@@ -1,0 +1,2 @@
+git-issue182.dfy(5,8): Error: Postcondition must be a boolean (got () -> bool)
+1 resolution/type errors detected in git-issue182.dfy
