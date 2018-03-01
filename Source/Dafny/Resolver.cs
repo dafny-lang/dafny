@@ -13342,7 +13342,7 @@ namespace Microsoft.Dafny
       bool isFunctionReturnValue = true;
       // if the call is in post-condition and it is calling itself, and the arguments matches
       // formal parameter, then it denotes function return value.
-      if (opts.isPostCondition && opts.codeContext == fn) {
+      if (args != null && opts.isPostCondition && opts.codeContext == fn) {
         foreach (var arg in args) {
           if (arg is NameSegment) {
             var name = ((NameSegment)arg).Name;
