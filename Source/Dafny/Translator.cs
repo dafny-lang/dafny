@@ -15894,7 +15894,16 @@ namespace Microsoft.Dafny {
       } else if (expr is LetExpr) {
         var e = (LetExpr)expr;
         if (e.Exact) {
-          return TrSplitExpr(etran.GetSubstitutedBody(e), splits, position, heightLimit, inlineProtectedFunctions, apply_induction, etran);
+          // The RHS of the let get substituted into the body of the let. Unfortunately, what gets substituted
+          // is not exactly the original Dafny RHS, but instead of Boogie.Expr-wrapped translation of the
+          // Dafny RHS. At this point in the translation, we don't know where the substitution is going to
+          // end up, and in particular we don't know if it will end up in a spot where TrSplitExpr would like
+          // to increase the Layer offset or not. In fact, different substitutions of the same let variable
+          // may end up needing different Layer constants. The following code will always bump the Layer
+          // offset in the RHS. This seems likely to be desireable in many cases, because the LetExpr sits
+          // in a position that TrSplitExpr is invoked.
+          var b = etran.LayerOffset(1).GetSubstitutedBody(e);
+          return TrSplitExpr(b, splits, position, heightLimit, inlineProtectedFunctions, apply_induction, etran);
         } else {
           var d = LetDesugaring(e);
           return TrSplitExpr(d, splits, position, heightLimit, inlineProtectedFunctions, apply_induction, etran);
