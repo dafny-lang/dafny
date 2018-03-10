@@ -684,7 +684,21 @@ namespace Microsoft.Dafny {
       }
 
       Bpl.Program prelude;
-      int errorCount = BplParser.Parse(preludePath, (List<string>)null, out prelude);
+      var defines = new List<string>();
+      if (6 <= DafnyOptions.O.ArithMode) {
+        defines.Add("ARITH_DISTR");
+      }
+      if (7 <= DafnyOptions.O.ArithMode) {
+        defines.Add("ARITH_MUL_DIV_MOD");
+      }
+      if (8 <= DafnyOptions.O.ArithMode) {
+        defines.Add("ARITH_MUL_SIGN");
+      }
+      if (9 <= DafnyOptions.O.ArithMode) {
+        defines.Add("ARITH_MUL_COMM");
+        defines.Add("ARITH_MUL_ASSOC");
+      }
+      int errorCount = BplParser.Parse(preludePath, defines, out prelude);
       if (prelude == null || errorCount > 0) {
         return null;
       } else {
@@ -14222,8 +14236,10 @@ namespace Microsoft.Dafny {
                 return TrToFunctionCall(expr.tok, "ORD#Plus", predef.BigOrdinalType, e0, e1, liftLit);
               } else if (e.E0.Type.IsCharType) {
                 return TrToFunctionCall(expr.tok, "char#Plus", predef.CharType, e0, e1, liftLit);
-              } else if (DafnyOptions.O.DisableNLarith && !isReal) {
+              } else if (!isReal && DafnyOptions.O.DisableNLarith) {
                 return TrToFunctionCall(expr.tok, "INTERNAL_add_boogie", Bpl.Type.Int, e0, e1, liftLit);
+              } else if (!isReal && (DafnyOptions.O.ArithMode == 2 || 5 <= DafnyOptions.O.ArithMode)) {
+                return TrToFunctionCall(expr.tok, "Add", Bpl.Type.Int, oe0, oe1, liftLit);
               } else {
                 typ = isReal ? Bpl.Type.Real : Bpl.Type.Int;
                 bOpcode = BinaryOperator.Opcode.Add;
@@ -14236,8 +14252,10 @@ namespace Microsoft.Dafny {
                 return TrToFunctionCall(expr.tok, "ORD#Minus", predef.BigOrdinalType, e0, e1, liftLit);
               } else if (e.E0.Type.IsCharType) {
                 return TrToFunctionCall(expr.tok, "char#Minus", predef.CharType, e0, e1, liftLit);
-              } else if (DafnyOptions.O.DisableNLarith && !isReal) {
+              } else if (!isReal && DafnyOptions.O.DisableNLarith) {
                 return TrToFunctionCall(expr.tok, "INTERNAL_sub_boogie", Bpl.Type.Int, e0, e1, liftLit);
+              } else if (!isReal && (DafnyOptions.O.ArithMode == 2 || 5 <= DafnyOptions.O.ArithMode)) {
+                return TrToFunctionCall(expr.tok, "Sub", Bpl.Type.Int, oe0, oe1, liftLit);
               } else {
                 typ = isReal ? Bpl.Type.Real : Bpl.Type.Int;
                 bOpcode = BinaryOperator.Opcode.Sub;
@@ -14246,8 +14264,10 @@ namespace Microsoft.Dafny {
             case BinaryExpr.ResolvedOpcode.Mul:
               if (0 <= bvWidth) {
                 return TrToFunctionCall(expr.tok, "mul_bv" + bvWidth, translator.BplBvType(bvWidth), e0, e1, liftLit);
-              } else if (DafnyOptions.O.DisableNLarith && !isReal) {
+              } else if (!isReal && DafnyOptions.O.DisableNLarith) {
                 return TrToFunctionCall(expr.tok, "INTERNAL_mul_boogie", Bpl.Type.Int, e0, e1, liftLit);
+              } else if (!isReal && DafnyOptions.O.ArithMode != 0 && DafnyOptions.O.ArithMode != 3) {
+                return TrToFunctionCall(expr.tok, "Mul", Bpl.Type.Int, oe0, oe1, liftLit);
               } else {
                 typ = isReal ? Bpl.Type.Real : Bpl.Type.Int;
                 bOpcode = BinaryOperator.Opcode.Mul;
@@ -14256,8 +14276,10 @@ namespace Microsoft.Dafny {
             case BinaryExpr.ResolvedOpcode.Div:
               if (0 <= bvWidth) {
                 return TrToFunctionCall(expr.tok, "div_bv" + bvWidth, translator.BplBvType(bvWidth), e0, e1, liftLit);
-              } else if (DafnyOptions.O.DisableNLarith && !isReal) {
+              } else if (!isReal && DafnyOptions.O.DisableNLarith && !isReal) {
                 return TrToFunctionCall(expr.tok, "INTERNAL_div_boogie", Bpl.Type.Int, e0, e1, liftLit);
+              } else if (!isReal && DafnyOptions.O.ArithMode != 0 && DafnyOptions.O.ArithMode != 3) {
+                return TrToFunctionCall(expr.tok, "Div", Bpl.Type.Int, e0, oe1, liftLit);
               } else if (isReal) {
                 typ = Bpl.Type.Real;
                 bOpcode = BinaryOperator.Opcode.RealDiv;
@@ -14272,6 +14294,8 @@ namespace Microsoft.Dafny {
                 return TrToFunctionCall(expr.tok, "mod_bv" + bvWidth, translator.BplBvType(bvWidth), e0, e1, liftLit);
               } else if (DafnyOptions.O.DisableNLarith && !isReal) {
                 return TrToFunctionCall(expr.tok, "INTERNAL_mod_boogie", Bpl.Type.Int, e0, e1, liftLit);
+              } else if (!isReal && DafnyOptions.O.ArithMode != 0 && DafnyOptions.O.ArithMode != 3) {
+                return TrToFunctionCall(expr.tok, "Mod", Bpl.Type.Int, e0, oe1, liftLit);
               } else {
                 typ = isReal ? Bpl.Type.Real : Bpl.Type.Int;
                 bOpcode = BinaryOperator.Opcode.Mod;

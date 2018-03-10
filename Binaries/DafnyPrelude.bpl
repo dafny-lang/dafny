@@ -1314,4 +1314,39 @@ function {:never_pattern true} INTERNAL_le_boogie(x:int, y:int) : bool { x <= y 
 function {:never_pattern true} INTERNAL_gt_boogie(x:int, y:int) : bool { x > y }
 function {:never_pattern true} INTERNAL_ge_boogie(x:int, y:int) : bool { x >= y }
 
+function Mul(x, y: int): int { x * y }
+function Div(x, y: int): int { x div y }
+function Mod(x, y: int): int { x mod y }
+function Add(x, y: int): int { x + y }
+function Sub(x, y: int): int { x - y }
+
+#if ARITH_DISTR
+axiom (forall x, y, z: int ::
+  { Mul(Add(x, y), z) }  
+  Mul(Add(x, y), z) == Add(Mul(x, z), Mul(y, z)));
+axiom (forall x, y, z: int ::
+  { Mul(Sub(x, y), z) }  
+  Mul(Sub(x, y), z) == Sub(Mul(x, z), Mul(y, z)));
+#endif
+#if ARITH_MUL_DIV_MOD
+axiom (forall x, y: int ::
+  { Mul(x, y), Div(x, y), Mod(x, y) }
+  Mul(Div(x, y), y) + Mod(x, y) == y);
+#endif
+#if ARITH_MUL_SIGN
+axiom (forall x, y: int ::
+  { Mul(x, y) }   
+  ((0 <= x && 0 <= y) || (x <= 0 && y <= 0) ==> 0 <= Mul(x, y)));
+#endif
+#if ARITH_MUL_COMM
+axiom (forall x, y: int ::
+  { Mul(x, y) }
+  Mul(x, y) == Mul(y, x));
+#endif
+#if ARITH_MUL_ASSOC
+axiom (forall x, y, z: int ::
+  { Mul(x, Mul(y, z)) }
+  Mul(x, Mul(y, z)) == Mul(Mul(x, y),z ));
+#endif
+
 // -------------------------------------------------------------------------

@@ -284,11 +284,17 @@ namespace Microsoft.Dafny.Triggers {
         case BinaryExpr.ResolvedOpcode.Gt:
         case BinaryExpr.ResolvedOpcode.Add:
         case BinaryExpr.ResolvedOpcode.Sub:
+          if (!isReal && !e.E0.Type.IsBitVectorType && !e.E0.Type.IsBigOrdinalType && DafnyOptions.O.DisableNLarith) {
+            return true;
+          }
+          break;
         case BinaryExpr.ResolvedOpcode.Mul:
         case BinaryExpr.ResolvedOpcode.Div:
         case BinaryExpr.ResolvedOpcode.Mod:
-          if (!isReal && !e.E0.Type.IsBitVectorType && !e.E0.Type.IsBigOrdinalType && DafnyOptions.O.DisableNLarith) {
-            return true;
+          if (!isReal && !e.E0.Type.IsBitVectorType && !e.E0.Type.IsBigOrdinalType) {
+            if (DafnyOptions.O.DisableNLarith || (DafnyOptions.O.ArithMode != 0 && DafnyOptions.O.ArithMode != 3)) {
+              return true;
+            }
           }
           break;
       }
