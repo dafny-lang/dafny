@@ -740,10 +740,9 @@ namespace Microsoft.Dafny {
           type = pt.T;
           continue;
         }
+
         var scope = Type.GetScope();
         var rtd = type.AsRevealableType;
-
-
         if (rtd != null) {
           var udt = (UserDefinedType)type;
 
@@ -756,10 +755,9 @@ namespace Microsoft.Dafny {
             }
           }
 
-
           if (rtd.IsRevealedInScope(scope)) {
             if (rtd is TypeSynonymDecl && (!(rtd is SubsetTypeDecl) || !keepConstraints)) {
-              type = ((TypeSynonymDecl)rtd).RhsWithArgument(udt.TypeArgs);
+              type = ((TypeSynonymDecl)rtd).RhsWithArgumentIgnoringScope(udt.TypeArgs);
               continue;
             } else {
               return type;
@@ -771,7 +769,6 @@ namespace Microsoft.Dafny {
 
         //A hidden type may become visible in another scope
         var isyn = type.AsInternalTypeSynonym;
-
         if (isyn != null) {
           Contract.Assert(isyn.IsVisibleInScope(scope));
           if (isyn.IsRevealedInScope(scope)) {
@@ -4823,6 +4820,7 @@ namespace Microsoft.Dafny {
       var d = rtd.AsTopLevelDecl;
       Contract.Assert(tsdMap.ContainsKey(d));
       var typeSynonym = tsdMap[d];
+      Contract.Assert(typeSynonym.TypeArgs.Count == args.Count);
       return new UserDefinedType(typeSynonym.tok, typeSynonym.Name, typeSynonym, args);
     }
 
@@ -4947,9 +4945,26 @@ namespace Microsoft.Dafny {
       Rhs = rhs;
     }
     /// <summary>
-    /// Returns the declared .Rhs but with formal type arguments replaced by the given actuals.
+    /// Return .Rhs instantiated with "typeArgs", but only look at the part of .Rhs that is in scope.
     /// </summary>
     public Type RhsWithArgument(List<Type> typeArgs) {
+      Contract.Requires(typeArgs != null);
+      Contract.Requires(typeArgs.Count == TypeArgs.Count);
+      var scope = Type.GetScope();
+      var rtd = Rhs.AsRevealableType;
+      if (rtd != null) {
+        Contract.Assume(rtd.AsTopLevelDecl.IsVisibleInScope(scope));
+        if (!rtd.IsRevealedInScope(scope)) {
+          // type is actually hidden in this scope
+          return rtd.SelfSynonym(typeArgs);
+        }
+      }
+      return RhsWithArgumentIgnoringScope(typeArgs);
+    }
+    /// <summary>
+    /// Returns the declared .Rhs but with formal type arguments replaced by the given actuals.
+    /// </summary>
+    public Type RhsWithArgumentIgnoringScope(List<Type> typeArgs) {
       Contract.Requires(typeArgs != null);
       Contract.Requires(typeArgs.Count == TypeArgs.Count);
       // Instantiate with the actual type arguments

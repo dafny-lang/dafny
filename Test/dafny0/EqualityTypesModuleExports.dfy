@@ -374,3 +374,28 @@ module AHarmlessMistake {
   export G
   function F(x: int): int { x }
 }
+
+// -----------------------------------------------
+// Some regression tests for scoping
+
+module ScopeRegressions {
+  module A {
+    import B
+
+    type AType = b: B.BType |
+      P(b) ghost witness var h: B.BType :| true; h
+
+    predicate P(b: B.BType) { true }
+
+    method M(a: AType) returns (b: B.BType)
+    {
+      // The following assignment once didn't use to type check properly
+      b := a;
+    }
+  }
+  module B {
+    // To the outside world, "BType" is just an opaque type
+    export provides BType
+    datatype BType = X | Y
+  }
+}
