@@ -220,3 +220,13 @@ module InitializationDependencies {
     print r.n, "\n";
   }
 }
+
+module A {
+  const x: int := 100
+}
+module B refines A {
+  ghost const x: int
+  lemma TestRhsIsInherited() {
+    assert x == 100;
+  }
+}

@@ -209,3 +209,60 @@ module O {
   type C = (D, A)
   type D = (A, B)
 }
+
+module P {
+  type G
+  const g: G  // error: unknown how to initialize a "G"
+}
+
+abstract module Q {
+  type G
+  const g: G  // fine, because, unlike module P, Q is an abstract module (but see non-abstract module R0 below)
+  const k: int
+}
+
+module R0 refines Q {
+  // error: unknown how to initialize "g", which is a "G"
+}
+
+module R1 refines Q {
+  type G = real  // specify G
+  // now, it is known how to initialize "g", so inherited definition of "g" is fine
+}
+
+module R2 refines Q {
+  type G = real  // specify G
+  const g: G := 3.14  // specify g, all good
+  const k: int := 100
+}
+
+module S {
+  class MyClass {
+    var a: int
+    const b: int
+    static const u: real
+    const v: real
+  }
+  const k: int
+  const l: int
+  const m: int := 15
+  const x: int := 200
+  const y := 800
+  const z: int
+}
+
+module T refines S {
+  class MyClass {
+    const a: int  // error: cannot change a "var" to a "const"
+    var b: int  // error: cannot change a "const" to a "var"
+    const u: real  // error: cannot change from static to non-static
+    static const v: real  // error: cannot change from non-static to static
+  }
+  const k := 100  // it's okay to omit the type of "k"
+  type MyInt = int
+  const l: MyInt := 100  // error: type must be syntactically the same as in "S"
+  const m: int := 17  // error: cannot re-supply a RHS
+  ghost const x: int  // this ghostified field inherits the RHS from above
+  const y: int  // error: there must be more of a change to allow a re-declaration
+  const z := 2.7  // error: bad type for the RHS
+}

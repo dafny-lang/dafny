@@ -568,12 +568,39 @@ namespace Microsoft.Dafny
           nw.Members.Add(nwMember);
         } else {
           var nwMember = nw.Members[index];
-          if (nwMember is Field) {
-            if (member is Field && TypesAreSyntacticallyEqual(((Field)nwMember).Type, ((Field)member).Type)) {
-              if (member.IsGhost || !nwMember.IsGhost)
-                reporter.Error(MessageSource.RefinementTransformer, nwMember, "a field re-declaration ({0}) must be to ghostify the field", nwMember.Name, nw.Name);
-            } else {
+          if (nwMember is ConstantField) {
+            var newConst = (ConstantField)nwMember;
+            var origConst = member as ConstantField;
+            if (origConst == null) {
+              reporter.Error(MessageSource.RefinementTransformer, nwMember, "a const declaration ({0}) in a refining class ({1}) must replace a const in the refinement base", nwMember.Name, nw.Name);
+            } else if (!(newConst.Type is InferredTypeProxy) && !TypesAreSyntacticallyEqual(newConst.Type, origConst.Type)) {
+              reporter.Error(MessageSource.RefinementTransformer, nwMember, "the type of a const declaration ({0}) in a refining class ({1}) must be syntactically the same as for the const being refined", nwMember.Name, nw.Name);
+            } else if (newConst.Rhs != null && origConst.Rhs != null) {
+              reporter.Error(MessageSource.RefinementTransformer, nwMember, "a const re-declaration ({0}) can give an initializing expression only if the const in the refinement base does not", nwMember.Name);
+            } else if (newConst.HasStaticKeyword != origConst.HasStaticKeyword) {
+              reporter.Error(MessageSource.RefinementTransformer, nwMember, "a const in a refining module cannot be changed from static to non-static or vice versa: {0}", nwMember.Name);
+            } else if (origConst.IsGhost && !newConst.IsGhost) {
+              reporter.Error(MessageSource.RefinementTransformer, nwMember, "a const re-declaration ({0}) is not allowed to un-ghostify the const", nwMember.Name);
+            } else if (newConst.Rhs == null && origConst.IsGhost == newConst.IsGhost) {
+              reporter.Error(MessageSource.RefinementTransformer, nwMember, "a const re-declaration ({0}) must be to ghostify the const{1}", nwMember.Name, origConst.Rhs == null ? " or to provide an initializing expression" : "");
+            }
+            nwMember.RefinementBase = member;
+            // we may need to clone the given const declaration if either its type or initializing expression was omitted
+            if (origConst != null) {
+              if ((!(origConst.Type is InferredTypeProxy) && newConst.Type is InferredTypeProxy) || (origConst.Rhs != null && newConst.Rhs == null)) {
+                var typ = newConst.Type is InferredTypeProxy ? refinementCloner.CloneType(origConst.Type) : newConst.Type;
+                var rhs = newConst.Rhs ?? origConst.Rhs;
+                nw.Members[index] = new ConstantField(newConst.tok, newConst.Name, rhs, newConst.HasStaticKeyword, newConst.IsGhost, typ, newConst.Attributes);
+              }
+            }
+
+          } else if (nwMember is Field) {
+            if (!(member is Field) || member is ConstantField) {
               reporter.Error(MessageSource.RefinementTransformer, nwMember, "a field declaration ({0}) in a refining class ({1}) must replace a field in the refinement base", nwMember.Name, nw.Name);
+            } else if (!TypesAreSyntacticallyEqual(((Field)nwMember).Type, ((Field)member).Type)) {
+              reporter.Error(MessageSource.RefinementTransformer, nwMember, "a field declaration ({0}) in a refining class ({1}) must repeat the syntactically same type as the field has in the refinement base", nwMember.Name, nw.Name);
+            } else if (member.IsGhost || !nwMember.IsGhost) {
+              reporter.Error(MessageSource.RefinementTransformer, nwMember, "a field re-declaration ({0}) must be to ghostify the field", nwMember.Name);
             }
             nwMember.RefinementBase = member;
 

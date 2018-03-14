@@ -25,4 +25,14 @@ ConstantErrors.dfy(156,10): Error: recursive constraint dependency involving a n
 ConstantErrors.dfy(166,10): Error: recursive constraint dependency involving a newtype: F -> A -> C -> B
 ConstantErrors.dfy(180,10): Error: recursive constraint dependency involving a newtype: MakeC -> b -> A -> MakeA -> n -> M -> L -> K -> j -> I -> H -> G -> f -> E -> D -> C
 ConstantErrors.dfy(207,7): Error: Cycle among redirecting types (newtypes, subset types, type synonyms): A -> B -> C -> D -> A
-27 resolution/type errors detected in ConstantErrors.dfy
+ConstantErrors.dfy(215,8): Error: static non-ghost const field 'g' of type 'G' (which does not have a default compiled value) must give a defining value
+ConstantErrors.dfy[R0](220,8): Error: static non-ghost const field 'g' of type 'G' (which does not have a default compiled value) must give a defining value
+ConstantErrors.dfy(256,10): Error: a const declaration (a) in a refining class (MyClass) must replace a const in the refinement base
+ConstantErrors.dfy(257,8): Error: a field declaration (b) in a refining class (MyClass) must replace a field in the refinement base
+ConstantErrors.dfy(258,10): Error: a const in a refining module cannot be changed from static to non-static or vice versa: u
+ConstantErrors.dfy(259,17): Error: a const in a refining module cannot be changed from static to non-static or vice versa: v
+ConstantErrors.dfy(263,8): Error: the type of a const declaration (l) in a refining class (_default) must be syntactically the same as for the const being refined
+ConstantErrors.dfy(264,8): Error: a const re-declaration (m) can give an initializing expression only if the const in the refinement base does not
+ConstantErrors.dfy(266,8): Error: a const re-declaration (y) must be to ghostify the const
+ConstantErrors.dfy(267,8): Error: type for constant 'z' is 'int', but its initialization value type is 'real'
+37 resolution/type errors detected in ConstantErrors.dfy
