@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 MONO=$(which mono)
-DAFNY=$(dirname "${BASH_SOURCE[0]}")/Dafny.exe
+DAFNY=$(dirname `readlink -f "${BASH_SOURCE[0]}"`)/Dafny.exe
 
 if [[ ! -x "$MONO" ]]; then
     echo "Error: Dafny requires Mono to run on non-Windows systems."
