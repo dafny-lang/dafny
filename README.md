@@ -8,7 +8,7 @@ Dafny is a programming language with a program verifier. As you type in your pro
 
 # Try Dafny
 
-The easiest way to get started with Dafny is to use [rise4fun](http://rise4fun.com/dafny), where you can write and verify Dafny programs without having install anything. On rise4fun, you will also find the online Dafny tutorial.
+The easiest way to get started with Dafny is to use [rise4fun](http://rise4fun.com/dafny), where you can write and verify Dafny programs without having install anything. On [rise4fun](http://rise4fun.com/dafny), you will also find the online Dafny tutorial.
 
 # Setup
 
@@ -54,4 +54,4 @@ This project has adopted the [Microsoft Open Source Code of Conduct](https://ope
 
 # License
 
-Dafny itself is licensed under the MIT license. (See LICENSE.txt in the root directory for details.) The subdirectory third_party contains third party material; see NOTICES.txt for more details.
+Dafny itself is licensed under the MIT license. (See LICENSE.txt in the root directory for details.) The subdirectory `third_party` contains third party material; see NOTICES.txt for more details.
