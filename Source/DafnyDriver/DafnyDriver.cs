@@ -318,13 +318,17 @@ namespace Microsoft.Dafny
       {
         case PipelineOutcome.VerificationCompleted:
           WriteStatss(statss);
-          if ((DafnyOptions.O.Compile && verified && CommandLineOptions.Clo.ProcsToCheck == null) || DafnyOptions.O.ForceCompile)
-            compiled = CompileDafnyProgram(dafnyProgram, resultFileName, otherFileNames);
+          if ((DafnyOptions.O.Compile && verified && CommandLineOptions.Clo.ProcsToCheck == null) || DafnyOptions.O.ForceCompile) {
+            compiled = CompileDafnyProgram(dafnyProgram, resultFileName, otherFileNames, true);
+          } else if ((2 <= DafnyOptions.O.SpillTargetCode && verified && CommandLineOptions.Clo.ProcsToCheck == null) || 3 <= DafnyOptions.O.SpillTargetCode) {
+            compiled = CompileDafnyProgram(dafnyProgram, resultFileName, otherFileNames, false);
+          }
           break;
         case PipelineOutcome.Done:
           WriteStatss(statss);
-          if (DafnyOptions.O.ForceCompile)
-            compiled = CompileDafnyProgram(dafnyProgram, resultFileName, otherFileNames);
+          if (DafnyOptions.O.ForceCompile || 3 <= DafnyOptions.O.SpillTargetCode) {
+            compiled = CompileDafnyProgram(dafnyProgram, resultFileName, otherFileNames, DafnyOptions.O.ForceCompile);
+          }
           break;
         default:
           // error has already been reported to user
@@ -429,8 +433,13 @@ namespace Microsoft.Dafny
       return targetFilename;
     }
 
+    /// <summary>
+    /// Generate a C# program from the Dafny program and, if "invokeCsCompiler" is "true", invoke
+    /// the C# compiler to compile it.
+    /// </summary>
     public static bool CompileDafnyProgram(Dafny.Program dafnyProgram, string dafnyProgramName,
-                                           ReadOnlyCollection<string> otherFileNames, TextWriter outputWriter = null)
+                                           ReadOnlyCollection<string> otherFileNames, bool invokeCsCompiler,
+                                           TextWriter outputWriter = null)
     {
       Contract.Requires(dafnyProgram != null);
 
@@ -450,13 +459,13 @@ namespace Microsoft.Dafny
 
       // blurt out the code to a file, if requested, or if other files were specified for the C# command line.
       string targetFilename = null;
-      if (DafnyOptions.O.SpillTargetCode || (otherFileNames.Count > 0))
+      if (DafnyOptions.O.SpillTargetCode > 0 || otherFileNames.Count > 0)
       {
         targetFilename = WriteDafnyProgramToFile(dafnyProgramName, csharpProgram, completeProgram, outputWriter);
       }
 
       // compile the program into an assembly
-      if (!completeProgram)
+      if (!completeProgram || !invokeCsCompiler)
       {
         // don't compile
         return false;

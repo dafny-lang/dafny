@@ -65,7 +65,7 @@ namespace Microsoft.Dafny
     public string DafnyPrintCompiledFile = null;
     public bool ForceCompile = false;
     public bool RunAfterCompile = false;
-    public bool SpillTargetCode = false;
+    public int SpillTargetCode = 0;  // [0..4]
     public bool DisallowIncludes = false;
     public bool DisallowExterns = false;
     public bool DisableNLarith = false;
@@ -175,8 +175,8 @@ namespace Microsoft.Dafny
 
         case "spillTargetCode": {
             int spill = 0;
-            if (ps.GetNumericArgument(ref spill, 2)) {
-              SpillTargetCode = spill != 0;  // convert to a boolean
+            if (ps.GetNumericArgument(ref spill, 4)) {
+              SpillTargetCode = spill;
             }
             return true;
           }
@@ -469,7 +469,16 @@ namespace Microsoft.Dafny
   /spillTargetCode:<n>
                 0 (default) - don't write the compiled Dafny program (but
                     still compile it, if /compile indicates to do so)
-                1 - write the compiled Dafny program as a .cs file
+                1 - write the compiled Dafny program as a .cs file, if it
+                    is being compiled
+                2 - write the compiled Dafny program as a .cs file, provided
+                    it passes the verifier, regardless of /compile setting
+                3 - write the compiled Dafny program as a .cs file, regardless
+                    of verification outcome and /compile setting
+                NOTE: If there are .cs or .dll files on the command line, then
+                the compiled Dafny program will also be written. More precisely,
+                such files on the command line implies /spillTargetCode:1 (or
+                higher, if manually specified).
   /out:<file>
                 filename and location for the generated .cs, .dll or .exe files 
   /dafnycc      Disable features not supported by DafnyCC
