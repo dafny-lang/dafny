@@ -144,7 +144,9 @@ class Release:
                     fileinfo = zipfile.ZipInfo(fname, time.localtime(os.stat(fpath).st_mtime)[:6])
                     if any(fnmatch(fname, pattern) for pattern in UNIX_EXECUTABLES):
                         # http://stackoverflow.com/questions/434641/
-                        fileinfo.external_attr = 0o777 << 16
+                        fileinfo.external_attr = 0o100755 << 16
+                    if self.os != "win":
+                        fileinfo.create_system = 3  # lie about this zip file's source OS to preserve permissions
                     contents = open(fpath, mode='rb').read()
                     fileinfo.compress_type = zipfile.ZIP_DEFLATED
                     fileinfo.filename = Release.zipify_path(path.join(DAFNY_PACKAGE_PREFIX, fname))
