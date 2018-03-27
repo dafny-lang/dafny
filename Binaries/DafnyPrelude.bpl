@@ -902,7 +902,7 @@ function Seq#Length<T>(Seq T): int;
 axiom (forall<T> s: Seq T :: { Seq#Length(s) } 0 <= Seq#Length(s));
 
 function Seq#Empty<T>(): Seq T;
-axiom (forall<T> :: Seq#Length(Seq#Empty(): Seq T) == 0);
+axiom (forall<T> :: { Seq#Empty(): Seq T } Seq#Length(Seq#Empty(): Seq T) == 0);
 axiom (forall<T> s: Seq T :: { Seq#Length(s) }
   (Seq#Length(s) == 0 ==> s == Seq#Empty())
 // The following would be a nice fact to include, because it would enable verifying the
@@ -926,7 +926,8 @@ axiom (forall<T> s: Seq T, val: T ::
   Seq#Build_inv0(Seq#Build(s, val)) == s &&
   Seq#Build_inv1(Seq#Build(s, val)) == val);
 
-axiom (forall<T> s: Seq T, v: T :: { Seq#Length(Seq#Build(s,v)) }
+axiom (forall<T> s: Seq T, v: T ::
+  { Seq#Build(s,v) }
   Seq#Length(Seq#Build(s,v)) == 1 + Seq#Length(s));
 axiom (forall<T> s: Seq T, i: int, v: T :: { Seq#Index(Seq#Build(s,v), i) }
   (i == Seq#Length(s) ==> Seq#Index(Seq#Build(s,v), i) == v) &&
