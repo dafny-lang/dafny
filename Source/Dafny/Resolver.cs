@@ -9430,8 +9430,8 @@ namespace Microsoft.Dafny
         var udt = s.Source.Type.NormalizeExpand() as UserDefinedType;
         foreach (Type typeArg in udt.TypeArgs) {
           var t = PartiallyResolveTypeForMemberSelection(s.Tok, typeArg).NormalizeExpand() as UserDefinedType;
-          if (t != null) {
-            dtd = cce.NonNull((DatatypeDecl)t.ResolvedClass);
+          if (t != null && t.ResolvedClass is DatatypeDecl) {
+            dtd = (DatatypeDecl)t.ResolvedClass;
             ctorsList.Add(datatypeCtors[dtd]);
           } else {
             ctorsList.Add(new Dictionary<string, DatatypeCtor>());

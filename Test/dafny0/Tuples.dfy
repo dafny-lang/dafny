@@ -32,3 +32,27 @@ method N(x: int, y: int)
     assert k1.2 == 120;
   }
 }
+
+module Regression {
+  datatype MyDt = A | B | C
+  class MyClass { }
+  type MySynonym = int
+
+  method M(tuple: (int, MyDt))
+  {
+    match tuple
+    case (x, y) =>
+  }
+
+  method P(tuple: (MyClass, MyDt))
+  {
+    match tuple  // regression: this once used to crash
+    case (x, y) =>
+  }
+
+  method Q(tuple: (MySynonym, MyDt))
+  {
+    match tuple
+    case (x, y) =>
+  }
+}
