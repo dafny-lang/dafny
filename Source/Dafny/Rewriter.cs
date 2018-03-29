@@ -1485,13 +1485,13 @@ namespace Microsoft.Dafny
 
   class MatchCaseExprSubstituteCloner : Cloner
   {
-    private List<Tuple<CasePattern, BoundVar>> patternSubst;
+    private List<Tuple<CasePattern<BoundVar>, BoundVar>> patternSubst;
     private BoundVar oldvar;
     private BoundVar var;
 
     // the cloner is called after resolving the body of matchexpr, trying
     // to replace casepattern in the body that has been replaced by bv
-    public MatchCaseExprSubstituteCloner(List<Tuple<CasePattern, BoundVar>> subst) {
+    public MatchCaseExprSubstituteCloner(List<Tuple<CasePattern<BoundVar>, BoundVar>> subst) {
       this.patternSubst = subst;
       this.oldvar = null;
       this.var = null;
@@ -1526,7 +1526,7 @@ namespace Microsoft.Dafny
 
     public override Expression CloneApplySuffix(ApplySuffix e) {
       // if the ApplySuffix matches the CasePattern, then replace it with the BoundVar.
-      CasePattern cp = null;
+      CasePattern<BoundVar> cp = null;
       BoundVar bv = null;
       if (FindMatchingPattern(e, out cp, out bv)) {
         if (bv.tok is MatchCaseToken) {
@@ -1541,7 +1541,7 @@ namespace Microsoft.Dafny
       }
     }
 
-    private bool FindMatchingPattern(ApplySuffix e, out CasePattern pattern, out BoundVar bv) {
+    private bool FindMatchingPattern(ApplySuffix e, out CasePattern<BoundVar> pattern, out BoundVar bv) {
       pattern = null;
       bv = null;
       if (patternSubst == null) {
@@ -1552,8 +1552,8 @@ namespace Microsoft.Dafny
         return false;
       }
       string applyName = ((NameSegment)lhs).Name;
-      foreach (Tuple<CasePattern, BoundVar> pair in patternSubst) {
-        CasePattern cp = pair.Item1;
+      foreach (Tuple<CasePattern<BoundVar>, BoundVar> pair in patternSubst) {
+        var cp = pair.Item1;
         string ctorName = cp.Id;
         if (!(applyName.Equals(ctorName)) || (e.Args.Count != cp.Arguments.Count)) {
           continue;

@@ -2439,13 +2439,13 @@ namespace Microsoft.Dafny {
       return parenPairs != 0 && (expr is NameSegment || expr is ExprDotName);
     }
 
-    void PrintCasePattern(CasePattern pat) {
+    void PrintCasePattern<VT>(CasePattern<VT> pat) where VT: IVariable {
       Contract.Requires(pat != null);
       var v = pat.Var;
       if (v != null) {
         wr.Write(v.DisplayName);
-        if (v.Type is NonProxyType || DafnyOptions.O.DafnyPrintResolvedFile != null) {
-          PrintType(": ", v.Type);
+        if (v.OptionalType is NonProxyType || DafnyOptions.O.DafnyPrintResolvedFile != null) {
+          PrintType(": ", v.OptionalType);
         }
       } else {
         if (pat.Id.StartsWith(BuiltIns.TupleTypeCtorNamePrefix)) {

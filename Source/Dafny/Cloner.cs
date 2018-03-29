@@ -208,6 +208,22 @@ namespace Microsoft.Dafny
       return bvNew;
     }
 
+    public VT CloneIVariable<VT>(VT v) where VT: IVariable {
+      var iv = (IVariable)v;
+      if (iv is Formal) {
+        iv = CloneFormal((Formal)iv);
+      } else if (iv is BoundVar) {
+        iv = CloneBoundVar((BoundVar)iv);
+      } else if (iv is LocalVariable) {
+        var local = (LocalVariable)iv;
+        iv = new LocalVariable(Tok(local.Tok), Tok(local.EndTok), local.Name, CloneType(local.OptionalType), local.IsGhost);
+      } else {
+        Contract.Assume(false);  // unexpected IVariable
+        iv = null;  // please compiler
+      }
+      return (VT)iv;
+    }
+
     public Specification<Expression> CloneSpecExpr(Specification<Expression> spec) {
       var ee = spec.Expressions == null ? null : spec.Expressions.ConvertAll(CloneExpr);
       return new Specification<Expression>(ee, CloneAttributes(spec.Attributes));
@@ -454,14 +470,14 @@ namespace Microsoft.Dafny
         return new ApplySuffix(Tok(e.tok), CloneExpr(e.Lhs), e.Args.ConvertAll(CloneExpr));
     }
 
-    public virtual CasePattern CloneCasePattern(CasePattern pat) {
+    public virtual CasePattern<VT> CloneCasePattern<VT>(CasePattern<VT> pat) where VT: IVariable {
       Contract.Requires(pat != null);
       if (pat.Var != null) {
-        return new CasePattern(pat.tok, CloneBoundVar(pat.Var));
+        return new CasePattern<VT>(pat.tok, CloneIVariable(pat.Var));
       } else if (pat.Arguments == null) {
-        return new CasePattern(pat.tok, pat.Id, null);
+        return new CasePattern<VT>(pat.tok, pat.Id, null);
       } else {
-        return new CasePattern(pat.tok, pat.Id, pat.Arguments.ConvertAll(CloneCasePattern));
+        return new CasePattern<VT>(pat.tok, pat.Id, pat.Arguments.ConvertAll(CloneCasePattern));
       }
     }
 
@@ -1290,15 +1306,15 @@ namespace Microsoft.Dafny
       return new_t;
     }
 
-    public override CasePattern CloneCasePattern(CasePattern pat) {
+    public override CasePattern<VT> CloneCasePattern<VT>(CasePattern<VT> pat) {
       if (pat.Var != null) {
-        var newPat = new CasePattern(pat.tok, CloneBoundVar(pat.Var));
+        var newPat = new CasePattern<VT>(pat.tok, CloneIVariable(pat.Var));
         newPat.AssembleExpr(null);
         return newPat;
       } else {
         var newArgs = pat.Arguments == null ? null : pat.Arguments.ConvertAll(CloneCasePattern);
         var patE = (DatatypeValue)pat.Expr;
-        var newPat = new CasePattern(pat.tok, pat.Id, newArgs);
+        var newPat = new CasePattern<VT>(pat.tok, pat.Id, newArgs);
         newPat.Ctor = pat.Ctor;
         newPat.AssembleExpr(patE.InferredTypeArgs.ConvertAll(CloneType));
         return newPat;

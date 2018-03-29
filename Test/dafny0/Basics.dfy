@@ -597,3 +597,17 @@ module AssumeTypeAssumptions {
     a[j] := new Cell<U>(u1);
   }
 }
+
+// ------------- the variables introduced by a LetStmt are mutable, like other local variables --
+
+module LetStmtHasMutableVariables {
+  method M() {
+    var e := var (x,y) := (16,17); x+y;
+    assert e == 33;
+  }
+  method P() {
+    var (x,y) := (16,17);
+    x, y := y, x;
+    assert x == 17 && y == 16;
+  }
+}

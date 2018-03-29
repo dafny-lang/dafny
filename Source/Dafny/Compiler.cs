@@ -1093,7 +1093,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    void TrCasePatternOpt(CasePattern pat, Expression rhs, string rhs_string, int indent, TextWriter wr, bool inLetExprBody) {
+    void TrCasePatternOpt<VT>(CasePattern<VT> pat, Expression rhs, string rhs_string, int indent, TextWriter wr, bool inLetExprBody) where VT: IVariable {
       Contract.Requires(pat != null);
       Contract.Requires(pat.Var != null || rhs != null);
       if (pat.Var != null) {
@@ -1104,7 +1104,7 @@ namespace Microsoft.Dafny {
         var bv = pat.Var;
         if (!bv.IsGhost) {
           Indent(indent, wr);
-          wr.Write("{0} {1} = ", TypeName(bv.Type, wr, bv.tok), "@" + bv.CompileName);
+          wr.Write("{0} {1} = ", TypeName(bv.Type, wr, bv.Tok), "@" + bv.CompileName);
           if (rhs != null) {
             TrExpr(rhs, wr, inLetExprBody);
           } else {
@@ -3724,7 +3724,7 @@ namespace Microsoft.Dafny {
       return null;
     }
 
-    int TrCasePattern(CasePattern pat, string rhsString, Type bodyType, TextWriter wr) {
+    int TrCasePattern(CasePattern<BoundVar> pat, string rhsString, Type bodyType, TextWriter wr) {
       Contract.Requires(pat != null);
       Contract.Requires(rhsString != null);
       int c = 0;

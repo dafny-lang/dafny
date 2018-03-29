@@ -6138,7 +6138,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    void AddCasePatternVarSubstitutions(CasePattern pat, Bpl.Expr rhs, Dictionary<IVariable, Expression> substMap) {
+    void AddCasePatternVarSubstitutions(CasePattern<BoundVar> pat, Bpl.Expr rhs, Dictionary<IVariable, Expression> substMap) {
       Contract.Requires(pat != null);
       Contract.Requires(rhs != null);
       Contract.Requires(substMap != null);
@@ -6157,7 +6157,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    void CheckCasePatternShape(CasePattern pat, Bpl.Expr rhs, IToken rhsTok, Type rhsType, BoogieStmtListBuilder builder) {
+    void CheckCasePatternShape<VT>(CasePattern<VT> pat, Bpl.Expr rhs, IToken rhsTok, Type rhsType, BoogieStmtListBuilder builder) where VT: IVariable {
       Contract.Requires(pat != null);
       Contract.Requires(rhs != null);
       Contract.Requires(rhsTok != null);
@@ -9895,14 +9895,14 @@ namespace Microsoft.Dafny {
         }
       } else if (stmt is LetStmt) {
         var s = (LetStmt)stmt;
-        foreach (var bv in s.BoundVars) {
-          Bpl.LocalVariable bvar = new Bpl.LocalVariable(bv.Tok, new Bpl.TypedIdent(bv.Tok, bv.AssignUniqueName(currentDeclaration.IdGenerator), TrType(bv.Type)));
+        foreach (var local in s.LocalVars) {
+          Bpl.LocalVariable bvar = new Bpl.LocalVariable(local.Tok, new Bpl.TypedIdent(local.Tok, local.AssignUniqueName(currentDeclaration.IdGenerator), TrType(local.Type)));
           locals.Add(bvar);
           var bIe = new Bpl.IdentifierExpr(bvar.tok, bvar);
-          builder.Add(new Bpl.HavocCmd(bv.Tok, new List<Bpl.IdentifierExpr> { bIe }));
-          Bpl.Expr wh = GetWhereClause(bv.Tok, bIe, bv.Type, etran, isAllocContext.Var(stmt.IsGhost, bv));
+          builder.Add(new Bpl.HavocCmd(local.Tok, new List<Bpl.IdentifierExpr> { bIe }));
+          Bpl.Expr wh = GetWhereClause(local.Tok, bIe, local.Type, etran, isAllocContext.Var(stmt.IsGhost, local));
           if (wh != null) {
-            builder.Add(TrAssumeCmd(bv.Tok, wh));
+            builder.Add(TrAssumeCmd(local.Tok, wh));
           }
         }
         var varNameGen = CurrentIdGenerator.NestedFreshIdGenerator("let#");
@@ -12971,7 +12971,7 @@ namespace Microsoft.Dafny {
       public Dictionary<IVariable, Expression> substMap;
       public Dictionary<TypeParameter, Type> typeMap;
 
-      public SubstLetExpr(IToken tok, List<CasePattern> lhss, List<Expression> rhss, Expression body, bool exact,
+      public SubstLetExpr(IToken tok, List<CasePattern<BoundVar>> lhss, List<Expression> rhss, Expression body, bool exact,
          LetExpr orgExpr, Dictionary<IVariable, Expression> substMap, Dictionary<TypeParameter, Type> typeMap) 
         : base(tok, lhss, rhss, body, exact) 
       {
@@ -17296,9 +17296,9 @@ namespace Microsoft.Dafny {
       /// undoing these changes once the updated 'substMap' has been used.
       /// If no changes are necessary, the list returned is exactly 'patterns' and 'substMap' is unchanged.
       /// </summary>
-      protected virtual List<CasePattern> CreateCasePatternSubstitutions(List<CasePattern> patterns) {
+      protected virtual List<CasePattern<BoundVar>> CreateCasePatternSubstitutions(List<CasePattern<BoundVar>> patterns) {
         bool anythingChanged = false;
-        var newPatterns = new List<CasePattern>();
+        var newPatterns = new List<CasePattern<BoundVar>>();
         foreach (var pat in patterns) {
           var newPat = SubstituteCasePattern(pat);
           newPatterns.Add(newPat);
@@ -17308,7 +17308,7 @@ namespace Microsoft.Dafny {
         }
         return anythingChanged ? newPatterns : patterns;
       }
-      CasePattern SubstituteCasePattern(CasePattern pat) {
+      CasePattern<BoundVar> SubstituteCasePattern(CasePattern<BoundVar> pat) {
         Contract.Requires(pat != null);
         if (pat.Var != null) {
           var bv = pat.Var;
@@ -17320,13 +17320,13 @@ namespace Microsoft.Dafny {
             ie.Var = newBv;  // resolve here
             ie.Type = newBv.Type;  // resolve here
             substMap.Add(bv, ie);
-            var newPat = new CasePattern(pat.tok, newBv);
+            var newPat = new CasePattern<BoundVar>(pat.tok, newBv);
             newPat.AssembleExpr(null);
             return newPat;
           }
         } else if (pat.Arguments != null) {
           bool anythingChanged = false;
-          var newArgs = new List<CasePattern>();
+          var newArgs = new List<CasePattern<BoundVar>>();
           foreach (var arg in pat.Arguments) {
             var newArg = SubstituteCasePattern(arg);
             newArgs.Add(newArg);
@@ -17336,7 +17336,7 @@ namespace Microsoft.Dafny {
           }
           if (anythingChanged) {
             var patE = (DatatypeValue)pat.Expr;
-            var newPat = new CasePattern(pat.tok, pat.Id, newArgs);
+            var newPat = new CasePattern<BoundVar>(pat.tok, pat.Id, newArgs);
             newPat.Ctor = pat.Ctor;
             newPat.AssembleExpr(patE.InferredTypeArgs.ConvertAll(tp => Resolver.SubstType(tp, typeMap)));
             return newPat;

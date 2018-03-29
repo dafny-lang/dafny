@@ -429,7 +429,7 @@ namespace DafnyLanguage
                 if (method != null) {
                   if (method is Constructor) {
                     // call token starts at the beginning of "new C()", so we need to add 4 to the length.
-                    RecordUseAndDef(prog, call.Tok, method.EnclosingClass.Name.Length+4, method.EnclosingClass.tok);
+                    RecordUseAndDef(prog, call.Tok, method.EnclosingClass.Name.Length + 4, method.EnclosingClass.tok);
                   } else {
                     RecordUseAndDef(prog, call.Tok, method.Name.Length, method.tok);
                   }
@@ -443,6 +443,11 @@ namespace DafnyLanguage
         }
         // we're done, so don't do the sub-statements/expressions again
         return;
+      } else if (stmt is LetStmt) {
+        var s = (LetStmt)stmt;
+        foreach (var local in s.LHS.Vars) {
+          IdRegion.Add(regions, prog, local.Tok, local, true, (ICallable)null, module);
+        }
       } else if (stmt is ForallStmt) {
         var s = (ForallStmt)stmt;
         s.BoundVars.ForEach(bv => IdRegion.Add(regions, prog, bv.tok, bv, true, (ICallable)null, module));

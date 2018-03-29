@@ -5111,6 +5111,9 @@ namespace Microsoft.Dafny {
     Type Type {
       get;
     }
+    Type OptionalType {
+      get;
+    }
     bool IsMutable {
       get;
     }
@@ -5153,6 +5156,12 @@ namespace Microsoft.Dafny {
       }
     }
     public Type Type {
+      get {
+        Contract.Ensures(Contract.Result<Type>() != null);
+        throw new NotImplementedException();  // this getter implementation is here only so that the Ensures contract can be given here
+      }
+    }
+    public Type OptionalType {
       get {
         Contract.Ensures(Contract.Result<Type>() != null);
         throw new NotImplementedException();  // this getter implementation is here only so that the Ensures contract can be given here
@@ -5274,6 +5283,9 @@ namespace Microsoft.Dafny {
         Contract.Ensures(Contract.Result<Type>() != null);
         return type.Normalize();
       }
+    }
+    Type IVariable.OptionalType {
+      get { return Type; }  // same as Type for NonglobalVariable
     }
     public abstract bool IsMutable {
       get;
@@ -6590,10 +6602,10 @@ namespace Microsoft.Dafny {
 
   public class LetStmt : Statement 
   {
-    public readonly CasePattern LHS;
+    public readonly CasePattern<LocalVariable> LHS;
     public readonly Expression RHS;
 
-    public LetStmt(IToken tok, IToken endTok, CasePattern lhs, Expression rhs)
+    public LetStmt(IToken tok, IToken endTok, CasePattern<LocalVariable> lhs, Expression rhs)
       : base(tok, endTok) {
       LHS = lhs;
       RHS = rhs;
@@ -6604,13 +6616,11 @@ namespace Microsoft.Dafny {
         foreach (var e in Attributes.SubExpressions(Attributes)) {
           yield return e;
         }
-        
         yield return RHS;
-        
       }
     }
 
-    public IEnumerable<BoundVar> BoundVars {
+    public IEnumerable<LocalVariable> LocalVars {
       get {
         foreach (var bv in LHS.Vars) {
           yield return bv;
@@ -6871,6 +6881,7 @@ namespace Microsoft.Dafny {
       }
     }
     public readonly Type OptionalType;  // this is the type mentioned in the declaration, if any
+    Type IVariable.OptionalType { get { return this.OptionalType; } }
     internal Type type;  // this is the declared or inferred type of the variable; it is non-null after resolution (even if resolution fails)
     public Type Type {
       get {
@@ -7701,7 +7712,7 @@ namespace Microsoft.Dafny {
       this.body = body;
     }
 
-    public MatchCaseStmt(IToken tok, string id, [Captured] List<CasePattern> cps, [Captured] List<Statement> body)
+    public MatchCaseStmt(IToken tok, string id, [Captured] List<CasePattern<BoundVar>> cps, [Captured] List<Statement> body)
       : base(tok, id, cps) {
       Contract.Requires(tok != null);
       Contract.Requires(id != null);
@@ -8305,7 +8316,7 @@ namespace Microsoft.Dafny {
     /// <summary>
     /// Create a let expression with a resolved type and fresh variables
     /// </summary>
-    public static Expression CreateLet(IToken tok, List<CasePattern> LHSs, List<Expression> RHSs, Expression body, bool exact) {
+    public static Expression CreateLet(IToken tok, List<CasePattern<BoundVar>> LHSs, List<Expression> RHSs, Expression body, bool exact) {
       Contract.Requires(tok  != null);
       Contract.Requires(LHSs != null && RHSs != null);
       Contract.Requires(LHSs.Count == RHSs.Count);
@@ -9610,7 +9621,7 @@ namespace Microsoft.Dafny {
 
   public class LetExpr : Expression, IAttributeBearingDeclaration
   {
-    public readonly List<CasePattern> LHSs;
+    public readonly List<CasePattern<BoundVar>> LHSs;
     public readonly List<Expression> RHSs;
     public readonly Expression Body;
     public readonly bool Exact;  // Exact==true means a regular let expression; Exact==false means an assign-such-that expression
@@ -9633,7 +9644,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public LetExpr(IToken tok, List<CasePattern> lhss, List<Expression> rhss, Expression body, bool exact, Attributes attrs = null)
+    public LetExpr(IToken tok, List<CasePattern<BoundVar>> lhss, List<Expression> rhss, Expression body, bool exact, Attributes attrs = null)
       : base(tok) {
       LHSs = lhss;
       RHSs = rhss;
@@ -10376,18 +10387,18 @@ namespace Microsoft.Dafny {
   /// which it is; in this case, Var is non-null, because this is the only place where Var.IsGhost
   /// is recorded by the parser.
   /// </summary>
-  public class CasePattern
+  public class CasePattern<VT> where VT : IVariable
   {
     public readonly IToken tok;
     public readonly string Id;
     // After successful resolution, exactly one of the following two fields is non-null.
     public DatatypeCtor Ctor;  // finalized by resolution (null if the pattern is a bound variable)
-    public BoundVar Var;  // finalized by resolution (null if the pattern is a constructor)  Invariant:  Var != null ==> Arguments == null
-    public readonly List<CasePattern> Arguments;
+    public VT Var;  // finalized by resolution (null if the pattern is a constructor)  Invariant:  Var != null ==> Arguments == null
+    public readonly List<CasePattern<VT>> Arguments;
 
     public Expression Expr;  // an r-value version of the CasePattern; filled in by resolution
 
-    public CasePattern(IToken tok, string id, [Captured] List<CasePattern> arguments) {
+    public CasePattern(IToken tok, string id, [Captured] List<CasePattern<VT>> arguments) {
       Contract.Requires(tok != null);
       Contract.Requires(id != null);
       this.tok = tok;
@@ -10395,7 +10406,7 @@ namespace Microsoft.Dafny {
       Arguments = arguments;
     }
 
-    public CasePattern(IToken tok, BoundVar bv) {
+    public CasePattern(IToken tok, VT bv) {
       Contract.Requires(tok != null);
       Contract.Requires(bv != null);
       this.tok = tok;
@@ -10421,7 +10432,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public IEnumerable<BoundVar> Vars {
+    public IEnumerable<VT> Vars {
       get {
         if (Var != null) {
           yield return Var;
@@ -10444,7 +10455,7 @@ namespace Microsoft.Dafny {
     public readonly string Id;
     public DatatypeCtor Ctor;  // filled in by resolution
     public List<BoundVar> Arguments; // created by the resolver.
-    public List<CasePattern> CasePatterns; // generated from parsers. It should be converted to List<BoundVar> during resolver. Invariant:  CasePatterns != null ==> Arguments == null
+    public List<CasePattern<BoundVar>> CasePatterns; // generated from parsers. It should be converted to List<BoundVar> during resolver. Invariant:  CasePatterns != null ==> Arguments == null
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(tok != null);
@@ -10461,7 +10472,7 @@ namespace Microsoft.Dafny {
       this.Arguments = arguments;
     }
 
-    public MatchCase(IToken tok, string id, [Captured] List<CasePattern> cps) {
+    public MatchCase(IToken tok, string id, [Captured] List<CasePattern<BoundVar>> cps) {
       Contract.Requires(tok != null);
       Contract.Requires(id != null);
       Contract.Requires(cce.NonNullElements(cps));
@@ -10488,7 +10499,7 @@ namespace Microsoft.Dafny {
       this.body = body;
     }
 
-    public MatchCaseExpr(IToken tok, string id, [Captured] List<CasePattern> cps, Expression body)
+    public MatchCaseExpr(IToken tok, string id, [Captured] List<CasePattern<BoundVar>> cps, Expression body)
       : base(tok, id, cps)
     {
       Contract.Requires(tok != null);

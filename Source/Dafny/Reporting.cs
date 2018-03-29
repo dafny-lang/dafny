@@ -93,11 +93,11 @@ namespace Microsoft.Dafny {
       Error(source, s.Tok, msg, args);
     }
 
-    public void Error(MessageSource source, NonglobalVariable v, string msg, params object[] args) {
+    public void Error(MessageSource source, IVariable v, string msg, params object[] args) {
       Contract.Requires(v != null);
       Contract.Requires(msg != null);
       Contract.Requires(args != null);
-      Error(source, v.tok, msg, args);
+      Error(source, v.Tok, msg, args);
     }
 
     public void Error(MessageSource source, Expression e, string msg, params object[] args) {

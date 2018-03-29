@@ -5327,8 +5327,8 @@ namespace Microsoft.Dafny
           }
         } else if (stmt is LetStmt) {
           var s = (LetStmt)stmt;
-          s.BoundVars.Iter(bv => CheckTypeIsDetermined(bv.tok, bv.Type, "bound variable"));
-          s.BoundVars.Iter(bv => CheckTypeArgsContainNoOrdinal(bv.tok, bv.Type));
+          s.LocalVars.Iter(local => CheckTypeIsDetermined(local.Tok, local.Type, "local variable"));
+          s.LocalVars.Iter(local => CheckTypeArgsContainNoOrdinal(local.Tok, local.Type));
 
         } else if (stmt is ForallStmt) {
           var s = (ForallStmt)stmt;
@@ -6213,7 +6213,7 @@ namespace Microsoft.Dafny
           }
         } else if (stmt is LetStmt) {
           var s = (LetStmt)stmt;
-          foreach (var v in s.BoundVars) {
+          foreach (var v in s.LocalVars) {
             CheckEqualityTypes_Type(v.Tok, v.Type);
           }
         } else if (stmt is AssignStmt) {
@@ -6681,11 +6681,11 @@ namespace Microsoft.Dafny
         } else if (stmt is LetStmt) {
           var s = (LetStmt)stmt;
           if (mustBeErasable) {
-            foreach (var bv in s.BoundVars) {
-              bv.IsGhost = true;
+            foreach (var local in s.LocalVars) {
+              local.IsGhost = true;
             }
           }
-          s.IsGhost = s.BoundVars.All(v => v.IsGhost);
+          s.IsGhost = s.LocalVars.All(v => v.IsGhost);
 
         } else if (stmt is AssignStmt) {
           var s = (AssignStmt)stmt;
@@ -8891,8 +8891,16 @@ namespace Microsoft.Dafny
         }
       } else if (stmt is LetStmt) {
         LetStmt s = (LetStmt)stmt;
+        foreach (var local in s.LocalVars) {
+          int prevErrorCount = reporter.Count(ErrorLevel.Error);
+          ResolveType(local.Tok, local.OptionalType, codeContext, ResolveTypeOptionEnum.InferTypeProxies, null);
+          if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
+            local.type = local.OptionalType;
+          } else {
+            local.type = new InferredTypeProxy();
+          }
+        }
         ResolveExpression(s.RHS, new ResolveOpts(codeContext, true));
-
         ResolveCasePattern(s.LHS, s.RHS.Type, codeContext);
         // Check for duplicate names now, because not until after resolving the case pattern do we know if identifiers inside it refer to bound variables or nullary constructors
         var c = 0;
@@ -9312,7 +9320,7 @@ namespace Microsoft.Dafny
       }
 
       // convert CasePattern in MatchCaseExpr to BoundVar and flatten the MatchCaseExpr.
-      List<Tuple<CasePattern, BoundVar>> patternSubst = new List<Tuple<CasePattern, BoundVar>>(); 
+      List<Tuple<CasePattern<BoundVar>, BoundVar>> patternSubst = new List<Tuple<CasePattern<BoundVar>, BoundVar>>(); 
       if (dtd != null) {
         DesugarMatchCaseStmt(s, dtd, patternSubst, codeContext);
       }
@@ -9379,7 +9387,7 @@ namespace Microsoft.Dafny
         // substitute body to replace the case pat with v. This needs to happen
         // after the body is resolved so we can scope the bv correctly.
         if (patternSubst.Count > 0) {
-          MatchCaseExprSubstituteCloner cloner = new MatchCaseExprSubstituteCloner(patternSubst);
+          var cloner = new MatchCaseExprSubstituteCloner(patternSubst);
           List<Statement> list = new List<Statement>();
           foreach (Statement ss in mc.Body) {
             Statement clone = cloner.CloneStmt(ss);
@@ -9417,7 +9425,7 @@ namespace Microsoft.Dafny
      *       case Nil => y
      *       case Cons(z, zs) => last(ys)
      */
-    void DesugarMatchCaseStmt(MatchStmt s, DatatypeDecl dtd, List<Tuple<CasePattern, BoundVar>> patterns, ICodeContext codeContext) {
+    void DesugarMatchCaseStmt(MatchStmt s, DatatypeDecl dtd, List<Tuple<CasePattern<BoundVar>, BoundVar>> patterns, ICodeContext codeContext) {
       Contract.Assert(dtd != null);
       Dictionary<string, DatatypeCtor> ctors = datatypeCtors[dtd];
       if (ctors == null) {
@@ -9455,11 +9463,11 @@ namespace Microsoft.Dafny
           scope.PushMarker();
           if (s.Source.Type.AsDatatype is TupleTypeDecl) {
             int i = 0;
-            foreach (CasePattern pat in mc.CasePatterns) {
+            foreach (var pat in mc.CasePatterns) {
               FindDuplicateIdentifier(pat, ctorsList[i++], true);
             }
           } else {
-            foreach (CasePattern pat in mc.CasePatterns) {
+            foreach (var pat in mc.CasePatterns) {
               FindDuplicateIdentifier(pat, ctors, true);
             }
           }
@@ -9475,7 +9483,7 @@ namespace Microsoft.Dafny
               arguments.Insert(0, v);
             } else {
               body = DesugarMatchCasePattern(mc, pat, sourceVar, body, keepOrigToken);
-              patterns.Add(new Tuple<CasePattern, BoundVar>(pat, sourceVar));
+              patterns.Add(new Tuple<CasePattern<BoundVar>, BoundVar>(pat, sourceVar));
               arguments.Insert(0, sourceVar);
             }
           }
@@ -9524,7 +9532,7 @@ namespace Microsoft.Dafny
       }
     }
 
-    void FindDuplicateIdentifier(CasePattern pat, Dictionary<string, DatatypeCtor> ctors, bool topLevel) {
+    void FindDuplicateIdentifier<VT>(CasePattern<VT> pat, Dictionary<string, DatatypeCtor> ctors, bool topLevel) where VT: IVariable {
       Contract.Assert(ctors != null);
       DatatypeCtor ctor = null;
       // Find the constructor in the given datatype
@@ -9532,11 +9540,11 @@ namespace Microsoft.Dafny
       if (pat.Var == null || (pat.Var != null && pat.Var.Type is TypeProxy)) {
         if (ctors.TryGetValue(pat.Id, out ctor)) {
           pat.Ctor = ctor;
-          pat.Var = null;
+          pat.Var = default(VT);
         }
       }
       if (pat.Var != null) {
-        BoundVar v = pat.Var;
+        IVariable v = pat.Var;
         if (topLevel) {
           ScopePushAndReport(scope, v, "parameter");
         } else {
@@ -9551,14 +9559,14 @@ namespace Microsoft.Dafny
         }
       } else {
         if (pat.Arguments != null) {
-          foreach (CasePattern cp in pat.Arguments) {
+          foreach (CasePattern<VT> cp in pat.Arguments) {
             FindDuplicateIdentifier(cp, ctors, false);
           }
         }
       }
     }
 
-    List<Statement> DesugarMatchCasePattern(MatchCaseStmt mc, CasePattern pat, BoundVar v, List<Statement> body, bool keepToken) {
+    List<Statement> DesugarMatchCasePattern(MatchCaseStmt mc, CasePattern<BoundVar> pat, BoundVar v, List<Statement> body, bool keepToken) {
       // convert 
       //    case Cons(y, Cons(z, zs)) => body
       // to
@@ -9567,7 +9575,7 @@ namespace Microsoft.Dafny
 
       Expression source = new NameSegment(new AutoGeneratedToken(pat.tok), v.Name, null);
       List<MatchCaseStmt> cases = new List<MatchCaseStmt>();
-      cases.Add(new MatchCaseStmt(pat.tok, pat.Id, pat.Arguments == null ? new List<CasePattern>() : pat.Arguments, body));
+      cases.Add(new MatchCaseStmt(pat.tok, pat.Id, pat.Arguments == null ? new List<CasePattern<BoundVar>>() : pat.Arguments, body));
       List<Statement> list = new List<Statement>();
       if (!keepToken) {
         AutoGeneratedTokenCloner cloner = new AutoGeneratedTokenCloner();
@@ -12256,8 +12264,8 @@ namespace Microsoft.Dafny
 
         DatatypeValue ctor_call = new DatatypeValue(tok, ctor.EnclosingDatatype.Name, ctor.Name, ctor_args);
 
-        CasePattern tmpVarPat = new CasePattern(tok, tmpVarBv);
-        LetExpr let = new LetExpr(tok, new List<CasePattern>() { tmpVarPat }, new List<Expression>() { root }, ctor_call, true);
+        var tmpVarPat = new CasePattern<BoundVar>(tok, tmpVarBv);
+        LetExpr let = new LetExpr(tok, new List<CasePattern<BoundVar>>() { tmpVarPat }, new List<Expression>() { root }, ctor_call, true);
 
         ResolveExpression(let, opts);
         return let;
@@ -12308,7 +12316,7 @@ namespace Microsoft.Dafny
       }
 
       // convert CasePattern in MatchCaseExpr to BoundVar and flatten the MatchCaseExpr.
-      List<Tuple<CasePattern, BoundVar>> patternSubst = new List<Tuple<CasePattern, BoundVar>>(); 
+      List<Tuple<CasePattern<BoundVar>, BoundVar>> patternSubst = new List<Tuple<CasePattern<BoundVar>, BoundVar>>(); 
       if (dtd != null) {
         DesugarMatchCaseExpr(me, dtd, patternSubst, opts.codeContext);
       }
@@ -12372,7 +12380,7 @@ namespace Microsoft.Dafny
         // substitute body to replace the case pat with v. This needs to happen
         // after the body is resolved so we can scope the bv correctly.
         if (patternSubst.Count > 0) {
-          MatchCaseExprSubstituteCloner cloner = new MatchCaseExprSubstituteCloner(patternSubst);
+          var cloner = new MatchCaseExprSubstituteCloner(patternSubst);
           mc.UpdateBody(cloner.CloneExpr(mc.Body));
           // resolve it again since we just cloned it.
           ResolveExpression(mc.Body, opts);
@@ -12407,7 +12415,7 @@ namespace Microsoft.Dafny
      *       case Nil => y
      *       case Cons(z, zs) => last(ys)
      * */
-    void DesugarMatchCaseExpr(MatchExpr me, DatatypeDecl dtd, List<Tuple<CasePattern, BoundVar>> patterns, ICodeContext codeContext) {
+    void DesugarMatchCaseExpr(MatchExpr me, DatatypeDecl dtd, List<Tuple<CasePattern<BoundVar>, BoundVar>> patterns, ICodeContext codeContext) {
       Contract.Assert(dtd != null);
       Dictionary<string, DatatypeCtor> ctors = datatypeCtors[dtd];
       if (ctors == null) {
@@ -12444,11 +12452,11 @@ namespace Microsoft.Dafny
           scope.PushMarker();
           if (me.Source.Type.AsDatatype is TupleTypeDecl) {
             int i = 0;
-            foreach (CasePattern pat in mc.CasePatterns) {
+            foreach (var pat in mc.CasePatterns) {
               FindDuplicateIdentifier(pat, ctorsList[i++], true);
             }
           } else {
-            foreach (CasePattern pat in mc.CasePatterns) {
+            foreach (var pat in mc.CasePatterns) {
               FindDuplicateIdentifier(pat, ctors, true);
             }
           }
@@ -12464,7 +12472,7 @@ namespace Microsoft.Dafny
               arguments.Insert(0, v);
             } else {
               body = DesugarMatchCasePattern(mc, pat, sourceVar, body, keepOrigToken);
-              patterns.Add(new Tuple<CasePattern, BoundVar>(pat, sourceVar));
+              patterns.Add(new Tuple<CasePattern<BoundVar>, BoundVar>(pat, sourceVar));
               arguments.Insert(0, sourceVar);
             }
           }
@@ -12513,7 +12521,7 @@ namespace Microsoft.Dafny
       }
     }
 
-    Expression DesugarMatchCasePattern(MatchCaseExpr mc, CasePattern pat, BoundVar v, Expression body, bool keepToken) {
+    Expression DesugarMatchCasePattern(MatchCaseExpr mc, CasePattern<BoundVar> pat, BoundVar v, Expression body, bool keepToken) {
       // convert 
       //    case Cons(y, Cons(z, zs)) => body
       // to
@@ -12522,7 +12530,7 @@ namespace Microsoft.Dafny
 
       Expression source = new NameSegment(new AutoGeneratedToken(pat.tok), v.Name, null);
       List<MatchCaseExpr> cases = new List<MatchCaseExpr>(); 
-      cases.Add(new MatchCaseExpr(pat.tok, pat.Id, pat.Arguments == null ? new List<CasePattern>() : pat.Arguments, body));
+      cases.Add(new MatchCaseExpr(pat.tok, pat.Id, pat.Arguments == null ? new List<CasePattern<BoundVar>>() : pat.Arguments, body));
       if (!keepToken) {
         AutoGeneratedTokenCloner cloner = new AutoGeneratedTokenCloner();
         source = cloner.CloneExpr(source);
@@ -12649,7 +12657,7 @@ namespace Microsoft.Dafny
       mc.UpdateBody(clone);
     }
 
-    void ResolveCasePattern(CasePattern pat, Type sourceType, ICodeContext context) {
+    void ResolveCasePattern<VT>(CasePattern<VT> pat, Type sourceType, ICodeContext context) where VT: IVariable {
       Contract.Requires(pat != null);
       Contract.Requires(sourceType != null);
       Contract.Requires(context != null);
@@ -12667,7 +12675,7 @@ namespace Microsoft.Dafny
         if (pat.Var == null || (pat.Var != null && pat.Var.Type is TypeProxy)) {
           if (datatypeCtors[dtd].TryGetValue(pat.Id, out ctor)) {
             pat.Ctor = ctor;
-            pat.Var = null;
+            pat.Var = default(VT);
           }
         }
       }
@@ -12675,14 +12683,14 @@ namespace Microsoft.Dafny
       if (pat.Var != null) {
         // this is a simple resolution
         var v = pat.Var;
-        ResolveType(v.tok, v.Type, context, ResolveTypeOptionEnum.InferTypeProxies, null);
+        ResolveType(v.Tok, v.Type, context, ResolveTypeOptionEnum.InferTypeProxies, null);
         AddTypeDependencyEdges(context, v.Type);
         // Note, the following type constraint checks that the RHS type can be assigned to the new variable on the left. In particular, it
         // does not check that the entire RHS can be assigned to something of the type of the pattern on the left.  For example, consider
         // a type declared as "datatype Atom<T> = MakeAtom(T)", where T is an invariant type argument.  Suppose the RHS has type Atom<nat>
         // and that the LHS is the pattern MakeAtom(x: int).  This is okay, despite the fact that Atom<nat> is not assignable to Atom<int>.
         // The reason is that the purpose of the pattern on the left is really just to provide a skeleton to introduce bound variables in.
-        AddAssignableConstraint(v.tok, v.Type, sourceType, "type of corresponding source/RHS ({1}) does not match type of bound variable ({0})");
+        AddAssignableConstraint(v.Tok, v.Type, sourceType, "type of corresponding source/RHS ({1}) does not match type of bound variable ({0})");
         pat.AssembleExpr(null);
         return;
       }
