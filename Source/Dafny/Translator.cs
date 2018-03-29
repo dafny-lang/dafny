@@ -688,13 +688,13 @@ namespace Microsoft.Dafny {
       if (6 <= DafnyOptions.O.ArithMode) {
         defines.Add("ARITH_DISTR");
       }
-      if (7 <= DafnyOptions.O.ArithMode) {
+      if (8 <= DafnyOptions.O.ArithMode) {
         defines.Add("ARITH_MUL_DIV_MOD");
       }
-      if (8 <= DafnyOptions.O.ArithMode) {
+      if (9 <= DafnyOptions.O.ArithMode) {
         defines.Add("ARITH_MUL_SIGN");
       }
-      if (9 <= DafnyOptions.O.ArithMode) {
+      if (10 <= DafnyOptions.O.ArithMode) {
         defines.Add("ARITH_MUL_COMM");
         defines.Add("ARITH_MUL_ASSOC");
       }
@@ -5964,6 +5964,33 @@ namespace Microsoft.Dafny {
               }
               return BplAnd(r, BplAnd(t0, t1));
             }
+          case BinaryExpr.ResolvedOpcode.Mul:
+            if (7 <= DafnyOptions.O.ArithMode) {
+              if (e.E0.Type.IsNumericBased(Type.NumericPersuation.Int) && !DafnyOptions.O.DisableNLarith) {
+                // Produce a useful fact about the associativity of multiplication. It is a bit dicey to do as an axiom.
+                // Change (k*A)*B or (A*k)*B into (A*B)*k, where k is a numeric literal
+                var left = e.E0.Resolved as BinaryExpr;
+                if (left != null && left.ResolvedOp == BinaryExpr.ResolvedOpcode.Mul) {
+                  Bpl.Expr r = Bpl.Expr.True;
+                  if (left.E0.Resolved is LiteralExpr) {
+                    // (K*A)*B == (A*B)*k
+                    var y = Expression.CreateMul(Expression.CreateMul(left.E1, e.E1), left.E0);
+                    var eq = Expression.CreateEq(e, y, e.E0.Type);
+                    r = BplAnd(r, etran.TrExpr(eq));
+                  }
+                  if (left.E1.Resolved is LiteralExpr) {
+                    // (A*k)*B == (A*B)*k
+                    var y = Expression.CreateMul(Expression.CreateMul(left.E0, e.E1), left.E1);
+                    var eq = Expression.CreateEq(e, y, e.E0.Type);
+                    r = BplAnd(r, etran.TrExpr(eq));
+                  }
+                  if (r != Bpl.Expr.True) {
+                    return r;
+                  }
+                }
+              }
+            }
+            break;
           default:
             break;
         }

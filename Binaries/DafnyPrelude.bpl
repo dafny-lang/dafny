@@ -1323,16 +1323,21 @@ function Sub(x, y: int): int { x - y }
 
 #if ARITH_DISTR
 axiom (forall x, y, z: int ::
-  { Mul(Add(x, y), z) }  
+  { Mul(Add(x, y), z) }
   Mul(Add(x, y), z) == Add(Mul(x, z), Mul(y, z)));
-axiom (forall x, y, z: int ::
-  { Mul(Sub(x, y), z) }  
-  Mul(Sub(x, y), z) == Sub(Mul(x, z), Mul(y, z)));
+axiom (forall x,y,z: int ::
+  { Mul(x, Add(y, z)) }
+  Mul(x, Add(y, z)) == Add(Mul(x, y), Mul(x, z)));
+//axiom (forall x, y, z: int ::
+//  { Mul(Sub(x, y), z) }  
+//  Mul(Sub(x, y), z) == Sub(Mul(x, z), Mul(y, z)));
 #endif
 #if ARITH_MUL_DIV_MOD
 axiom (forall x, y: int ::
-  { Mul(x, y), Div(x, y), Mod(x, y) }
-  Mul(Div(x, y), y) + Mod(x, y) == y);
+  { Div(x, y), Mod(x, y) }
+  { Mul(Div(x, y), y) }
+  y != 0 ==>
+  Mul(Div(x, y), y) + Mod(x, y) == x);
 #endif
 #if ARITH_MUL_SIGN
 axiom (forall x, y: int ::
@@ -1347,7 +1352,7 @@ axiom (forall x, y: int ::
 #if ARITH_MUL_ASSOC
 axiom (forall x, y, z: int ::
   { Mul(x, Mul(y, z)) }
-  Mul(x, Mul(y, z)) == Mul(Mul(x, y),z ));
+  Mul(x, Mul(y, z)) == mul(mul(x, y), z));
 #endif
 
 // -------------------------------------------------------------------------

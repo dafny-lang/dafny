@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:0 /arith:0 "%s" > "%t"
+// RUN: %dafny /compile:0 /arith:2 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // Proof of the Lucas theorem, following the structure of a HOL-Light
@@ -74,14 +74,9 @@ lemma Lucas_Binary(a: nat, b: nat)
 {
   if a == 0 {
   } else {
-    var a' := a - 1;
-    calc {
-      binom(2*a, 2*b + 1);
-    ==  // def. a'
-      binom(2*a' + 1 + 1, 2*b + 1);
-    ==  // def. binom
-      binom(2*a' + 1, 2*b + 1) + binom(2*a' + 1, 2*b);
-    }
+    var a', b' := a - 1, b - 1;
+    assert binom(2*a, 2*b + 1) == binom(2*a' + 1, 2*b + 1) + binom(2*a' + 1, 2*b);
+    assert b != 0 ==> binom(2*a, 2*b) == binom(2*a' + 1, 2*b) + binom(2*a' + 1, 2*b' + 1);
     assert EVEN(binom(2*a' + 1, 2*b + 1)) == EVEN(binom(a', b));
     assert EVEN(binom(2*a' + 1, 2*b)) == EVEN(binom(a', b));
   }
@@ -95,7 +90,8 @@ lemma Lucas_Binary'(a: nat, b: nat)
   ensures binom(2*a + 1, 2*b + 1) % 2 == binom(a, b) % 2
 {
   if a != 0 {
-    var a' := a - 1;
+    var a', b' := a - 1, b - 1;
+    assert b != 0 ==> binom(2*a, 2*b) == binom(2*a' + 1, 2*b) + binom(2*a' + 1, 2*b' + 1);
     assert binom(2*a' + 1, 2*b) % 2 == binom(a', b) % 2;
     assert binom(2*a' + 1, 2*b + 1) % 2 == binom(a', b) % 2;
   }

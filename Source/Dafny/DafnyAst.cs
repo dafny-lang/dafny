@@ -7974,6 +7974,21 @@ namespace Microsoft.Dafny {
       return s;
     }
 
+    /// <summary>
+    /// Create a resolved expression of the form "e0 * e1"
+    /// </summary>
+    public static Expression CreateMul(Expression e0, Expression e1) {
+      Contract.Requires(e0 != null);
+      Contract.Requires(e1 != null);
+      Contract.Requires(
+        (e0.Type.IsNumericBased(Type.NumericPersuation.Int) && e1.Type.IsNumericBased(Type.NumericPersuation.Int)) ||
+        (e0.Type.IsNumericBased(Type.NumericPersuation.Real) && e1.Type.IsNumericBased(Type.NumericPersuation.Real)));
+      Contract.Ensures(Contract.Result<Expression>() != null);
+      var s = new BinaryExpr(e0.tok, BinaryExpr.Opcode.Mul, e0, e1);
+      s.ResolvedOp = BinaryExpr.ResolvedOpcode.Mul;  // resolve here
+      s.Type = e0.Type.NormalizeExpand();  // resolve here
+      return s;
+    }
 
     /// <summary>
     /// Create a resolved expression of the form "CVT(e0) - CVT(e1)", where "CVT" is either "int" (if
