@@ -2498,7 +2498,13 @@ namespace Microsoft.Dafny {
           Indent(indent, wr);
           TrParenExpr(s.Receiver, wr, false);
         }
-        wr.Write(".@{0}(", s.Method.CompileName);
+        wr.Write(".@{0}", s.Method.CompileName);
+        if (s.Method.TypeArgs.Count != 0) {
+          var typeSubst = s.MethodSelect.TypeArgumentSubstitutions();
+          List<Type> typeArgs = s.Method.TypeArgs.ConvertAll(ta => typeSubst[ta]);
+          wr.Write("<" + TypeNames(typeArgs, wr, s.Tok) + ">");
+        }
+        wr.Write("(");
 
         string sep = "";
         for (int i = 0; i < s.Method.Ins.Count; i++) {

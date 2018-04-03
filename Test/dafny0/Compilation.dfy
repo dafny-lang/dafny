@@ -266,6 +266,7 @@ method Main()
 {
   CoRecursion.TestMain();
   EqualityTests.TestMain();
+  TypeInstantiations.TestMain();
 }
 
 // ------------------------------------------------------------------
@@ -377,5 +378,42 @@ class DigitUnderscore_Names_Functions_and_Methods {
   method Regression(u: real) returns (v: real)
   {
     v := u * x';
+  }
+}
+
+// -------------------------------------------------
+// once buggy for method calls
+
+module TypeInstantiations {
+  function method F<G>(): int { 56 }
+  function method H<G>(g: G): int { 57 }
+  method M<G>() returns (r: int) { r := 100; }
+  method N<G>(g: G) returns (r: int) { r := 101; }
+
+  class GenCl<U> {
+    static function method Static<G>(): int { 58 }
+    function method Inst<G>(): int { 59 }
+    static method Ms<G>() returns (r: int) { r := 102; }
+    method Mi<G>() returns (r: int) { r := 103; }
+  }
+
+  method TestMain() {
+    var x := F<char>();
+    var ch: char;
+    var y := H(ch);
+    print x, " ", y, "\n";
+
+    var a0 := GenCl<char>.Static<real>();
+    var cl := new GenCl<char>;
+    var a1 := cl.Inst<real>();
+    print a0, " ", a1, "\n";
+
+    x := M<char>();
+    y := N(ch);
+    print x, " ", y, "\n";
+
+    a0 := GenCl<char>.Ms<real>();
+    a1 := cl.Mi<real>();
+    print a0, " ", a1, "\n";
   }
 }
