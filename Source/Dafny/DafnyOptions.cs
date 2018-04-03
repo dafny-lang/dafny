@@ -69,7 +69,7 @@ namespace Microsoft.Dafny
     public bool DisallowIncludes = false;
     public bool DisallowExterns = false;
     public bool DisableNLarith = false;
-    public int ArithMode = 0;  // [0..10]
+    public int ArithMode = 1;  // [0..10]
     public string AutoReqPrintFile = null;
     public bool ignoreAutoReq = false;
     public bool AllowGlobals = false;
@@ -505,9 +505,9 @@ namespace Microsoft.Dafny
                 (This switch will perhaps be replaced by /arith in the future.
                 For now, it takes precedence of /arith.)
   /arith:<n>    (Experimental switch. Its options may change.)
-                0 (default) - Use Boogie/Z3 built-ins for all arithmetic operations.
-                1 - Like 0, but introduce symbolic synonyms for *,/,%, and allow these
-                    operators to be used in triggers.
+                0 - Use Boogie/Z3 built-ins for all arithmetic operations.
+                1 (default) - Like 0, but introduce symbolic synonyms for *,/,%, and
+                    allow these operators to be used in triggers.
                 2 - Like 1, but introduce symbolic synonyms also for +,-.
                 3 - Turn off non-linear arithmetic in the SMT solver. Still,
                     use Boogie/Z3 built-in symbols for all arithmetic operations.

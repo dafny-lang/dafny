@@ -129,7 +129,7 @@ transcript(10,27): Error: invalid LogicalExpression
 Verification completed successfully!
 [SUCCESS] [[DAFNY-SERVER: EOM]]
 transcript(5,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
-transcript(10,9): Warning: /!\ No terms found to trigger on.
+transcript(10,9): Info: Selected triggers: {x' * x'}
 
 Verifying Impl$$_module.__default.M_k ...
   [1 proof obligation]  error
@@ -139,14 +139,14 @@ Execution trace:
 Verification completed successfully!
 [SUCCESS] [[DAFNY-SERVER: EOM]]
 transcript(5,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
-transcript(10,9): Warning: /!\ No terms found to trigger on.
+transcript(10,9): Info: Selected triggers: {x' * x'}
 
 Verifying Impl$$_module.__default.M_k ...
   [1 proof obligation]  verified
 Verification completed successfully!
 [SUCCESS] [[DAFNY-SERVER: EOM]]
 transcript(5,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
-transcript(10,9): Warning: /!\ No terms found to trigger on.
+transcript(10,9): Info: Selected triggers: {x' * x'}
 
 Verifying Impl$$_module.__default.M_k ...
 Retrieving cached verification result for implementation Impl$$_module.__default.M_k...
@@ -158,14 +158,14 @@ transcript(12,0): Error: invalid UpdateStmt
 Verification completed successfully!
 [SUCCESS] [[DAFNY-SERVER: EOM]]
 transcript(5,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
-transcript(10,9): Warning: /!\ No terms found to trigger on.
+transcript(10,9): Info: Selected triggers: {x' * x'}
 
 Verifying Impl$$_module.__default.M_k ...
   [1 proof obligation]  verified
 Verification completed successfully!
 [SUCCESS] [[DAFNY-SERVER: EOM]]
 transcript(5,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
-transcript(10,9): Warning: /!\ No terms found to trigger on.
+transcript(10,9): Info: Selected triggers: {x' * x'}
 
 Verifying Impl$$_module.__default.M_k ...
 Retrieving cached verification result for implementation Impl$$_module.__default.M_k...
@@ -229,10 +229,10 @@ transcript(5,0): Warning: module-level methods are always non-instance, so the '
 transcript(15,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
 transcript(24,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
 transcript(33,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
-transcript(10,9): Warning: /!\ No terms found to trigger on.
-transcript(20,9): Warning: /!\ No terms found to trigger on.
-transcript(29,9): Warning: /!\ No terms found to trigger on.
-transcript(38,9): Warning: /!\ No terms found to trigger on.
+transcript(10,9): Info: Selected triggers: {x' * x'}
+transcript(20,9): Info: Selected triggers: {x' * x'}
+transcript(29,9): Info: Selected triggers: {x' * x'}
+transcript(38,9): Info: Selected triggers: {x' * x'}
 
 Verifying Impl$$_module.__default.M_k ...
 Retrieving cached verification result for implementation Impl$$_module.__default.M_k...
@@ -252,10 +252,10 @@ transcript(5,0): Warning: module-level methods are always non-instance, so the '
 transcript(15,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
 transcript(24,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
 transcript(33,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
-transcript(10,9): Warning: /!\ No terms found to trigger on.
-transcript(20,9): Warning: /!\ No terms found to trigger on.
-transcript(29,9): Warning: /!\ No terms found to trigger on.
-transcript(38,9): Warning: /!\ No terms found to trigger on.
+transcript(10,9): Info: Selected triggers: {x' * x'}
+transcript(20,9): Info: Selected triggers: {x' * x'}
+transcript(29,9): Info: Selected triggers: {x' * x'}
+transcript(38,9): Info: Selected triggers: {x' * x'}
 
 Verifying Impl$$_module.__default.M_k ...
 Retrieving cached verification result for implementation Impl$$_module.__default.M_k...
@@ -278,9 +278,9 @@ transcript(5,0): Warning: module-level methods are always non-instance, so the '
 transcript(15,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
 transcript(24,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
 transcript(33,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
-transcript(10,9): Warning: /!\ No terms found to trigger on.
-transcript(20,9): Warning: /!\ No terms found to trigger on.
-transcript(29,9): Warning: /!\ No terms found to trigger on.
+transcript(10,9): Info: Selected triggers: {x' * x'}
+transcript(20,9): Info: Selected triggers: {x' * x'}
+transcript(29,9): Info: Selected triggers: {x' * x'}
 transcript(38,9): Warning: /!\ No terms found to trigger on.
 
 Verifying Impl$$_module.__default.M_k ...
@@ -313,9 +313,9 @@ transcript(5,0): Warning: module-level methods are always non-instance, so the '
 transcript(15,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
 transcript(24,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
 transcript(33,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
-transcript(10,9): Warning: /!\ No terms found to trigger on.
-transcript(20,9): Warning: /!\ No terms found to trigger on.
-transcript(29,9): Warning: /!\ No terms found to trigger on.
+transcript(10,9): Info: Selected triggers: {x' * x'}
+transcript(20,9): Info: Selected triggers: {x' * x'}
+transcript(29,9): Info: Selected triggers: {x' * x'}
 transcript(38,9): Warning: /!\ No terms found to trigger on.
 
 Verifying Impl$$_module.__default.M_k ...
@@ -341,9 +341,9 @@ transcript(5,0): Warning: module-level methods are always non-instance, so the '
 transcript(15,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
 transcript(24,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
 transcript(33,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
-transcript(10,9): Warning: /!\ No terms found to trigger on.
-transcript(20,9): Warning: /!\ No terms found to trigger on.
-transcript(29,9): Warning: /!\ No terms found to trigger on.
+transcript(10,9): Info: Selected triggers: {x' * x'}
+transcript(20,9): Info: Selected triggers: {x' * x'}
+transcript(29,9): Info: Selected triggers: {x' * x'}
 transcript(38,9): Warning: /!\ No terms found to trigger on.
 
 Verifying Impl$$_module.__default.M_k ...
@@ -366,9 +366,9 @@ transcript(5,0): Warning: module-level methods are always non-instance, so the '
 transcript(15,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
 transcript(24,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
 transcript(33,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
-transcript(10,9): Warning: /!\ No terms found to trigger on.
-transcript(20,9): Warning: /!\ No terms found to trigger on.
-transcript(29,9): Warning: /!\ No terms found to trigger on.
+transcript(10,9): Info: Selected triggers: {x' * x'}
+transcript(20,9): Info: Selected triggers: {x' * x'}
+transcript(29,9): Info: Selected triggers: {x' * x'}
 transcript(38,9): Warning: /!\ No terms found to trigger on.
 
 Verifying Impl$$_module.__default.M_k ...
@@ -413,9 +413,9 @@ transcript(5,0): Warning: module-level methods are always non-instance, so the '
 transcript(15,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
 transcript(24,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
 transcript(33,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
-transcript(10,9): Warning: /!\ No terms found to trigger on.
-transcript(20,9): Warning: /!\ No terms found to trigger on.
-transcript(29,9): Warning: /!\ No terms found to trigger on.
+transcript(10,9): Info: Selected triggers: {x' * x'}
+transcript(20,9): Info: Selected triggers: {x' * x'}
+transcript(29,9): Info: Selected triggers: {x' * x'}
 transcript(38,9): Warning: /!\ No terms found to trigger on.
 
 Verifying Impl$$_module.__default.M_k ...
@@ -459,9 +459,9 @@ transcript(5,0): Warning: module-level methods are always non-instance, so the '
 transcript(15,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
 transcript(24,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
 transcript(33,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
-transcript(10,9): Warning: /!\ No terms found to trigger on.
-transcript(20,9): Warning: /!\ No terms found to trigger on.
-transcript(29,9): Warning: /!\ No terms found to trigger on.
+transcript(10,9): Info: Selected triggers: {x' * x'}
+transcript(20,9): Info: Selected triggers: {x' * x'}
+transcript(29,9): Info: Selected triggers: {x' * x'}
 transcript(38,9): Warning: /!\ No terms found to trigger on.
 
 Verifying Impl$$_module.__default.M_k ...
@@ -484,9 +484,9 @@ transcript(5,0): Warning: module-level methods are always non-instance, so the '
 transcript(15,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
 transcript(24,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
 transcript(33,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
-transcript(10,9): Warning: /!\ No terms found to trigger on.
-transcript(20,9): Warning: /!\ No terms found to trigger on.
-transcript(29,9): Warning: /!\ No terms found to trigger on.
+transcript(10,9): Info: Selected triggers: {x' * x'}
+transcript(20,9): Info: Selected triggers: {x' * x'}
+transcript(29,9): Info: Selected triggers: {x' * x'}
 transcript(38,9): Warning: /!\ No terms found to trigger on.
 
 Verifying Impl$$_module.__default.M_k ...

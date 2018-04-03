@@ -1,4 +1,3 @@
-Maps.dfy(147,12): Warning: /!\ No terms found to trigger on.
 Maps.dfy(78,7): Error: element may not be in domain
 Execution trace:
     (0,0): anon0
