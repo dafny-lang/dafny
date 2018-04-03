@@ -1,5 +1,7 @@
 TailCalls.dfy(110,14): Error: the recursive call to '_ctor' is not tail recursive, because the assignment of the LHS happens after the call
+TailCalls.dfy(126,19): Error: the recursive call to 'Compute' is not tail recursive because the actual type parameter is not the formal type parameter 'G'
+TailCalls.dfy(139,17): Error: the recursive call to 'Run' is not tail recursive because the actual type parameter 1 is not the formal type parameter 'G'
 TailCalls.dfy(21,16): Error: this recursive call is not recognized as being tail recursive, because it is followed by non-ghost code
 TailCalls.dfy(38,24): Error: sorry, tail-call optimizations are not supported for mutually recursive methods
 TailCalls.dfy(43,24): Error: sorry, tail-call optimizations are not supported for mutually recursive methods
-4 resolution/type errors detected in TailCalls.dfy
+6 resolution/type errors detected in TailCalls.dfy

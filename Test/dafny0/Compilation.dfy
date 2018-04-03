@@ -267,6 +267,7 @@ method Main()
   CoRecursion.TestMain();
   EqualityTests.TestMain();
   TypeInstantiations.TestMain();
+  TailRecursionWhereTypeParametersChange.TestMain();
 }
 
 // ------------------------------------------------------------------
@@ -415,5 +416,32 @@ module TypeInstantiations {
     a0 := GenCl<char>.Ms<real>();
     a1 := cl.Mi<real>();
     print a0, " ", a1, "\n";
+  }
+}
+
+// -------------------------------------------------
+// once buggy -- tail recursion where type parameters change
+
+module TailRecursionWhereTypeParametersChange {
+  method TestMain() {
+    Compute<real>(5);  // expected output: 0.0 False False
+  }
+
+  // Ostensibly, this looks like a tail recursive method. However, a
+  // recursive call that changes the type arguments cannot be compiled
+  // using a tail-recursive goto. Therefore, this method is rejected
+  // as tail recursive (which means that, for a large enough "n", it
+  // can run out of stack space).
+  method Compute<G(0)>(n: nat)
+  {
+    if n == 0 {
+      print "\n";
+    } else if n % 2 == 0 {
+      Compute<bool>(n-1);
+    } else {
+      var g: G;
+      print g, " ";
+      Compute<G>(n-1);
+    }
   }
 }

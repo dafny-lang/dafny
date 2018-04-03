@@ -5804,6 +5804,22 @@ namespace Microsoft.Dafny
               }
             }
           }
+          // Moreover, it can be considered a tail recursive call only if the type parameters are the same
+          // as in the caller.
+          var classTypeParameterCount = s.Method.EnclosingClass.TypeArgs.Count;
+          Contract.Assert(s.MethodSelect.TypeApplication.Count == classTypeParameterCount + s.Method.TypeArgs.Count);
+          for (int i = 0; i < s.Method.TypeArgs.Count; i++) {
+            var formal = s.Method.TypeArgs[i];
+            var actual = s.MethodSelect.TypeApplication[classTypeParameterCount + i].AsTypeParameter;
+            if (formal != actual) {
+              if (reportErrors) {
+                reporter.Error(MessageSource.Resolver, s.Tok,
+                  "the recursive call to '{0}' is not tail recursive because the actual type parameter{1} is not the formal type parameter '{2}'",
+                  s.Method.Name, s.Method.TypeArgs.Count == 1 ? "" : " " + i, formal.Name);
+              }
+              return TailRecursionStatus.NotTailRecursive;
+            }
+          }
           tailCall = s;
           return TailRecursionStatus.TailCallSpent;
         }

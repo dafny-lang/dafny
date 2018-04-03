@@ -111,3 +111,32 @@ class TailConstructorRegressionTest
     }
   }
 }
+
+class TailConstructorRegressionTest'
+{
+  method {:tailrecursion} Compute<G(0)>(n: nat)
+  {
+    if n == 0 {
+      print "\n";
+    } else if n % 2 == 1 {
+      var g: G;
+      print g, " ";
+      Compute<G>(n-1);
+    } else {
+      Compute<bool>(n-1);  // error: not a tail call, because the type parameters don't match
+    }
+  }
+
+  method {:tailrecursion} Run<H,G(0)>(n: nat)
+  {
+    if n == 0 {
+      print "\n";
+    } else if n % 2 == 1 {
+      var g: G;
+      print g, " ";
+      Run<H,G>(n-1);
+    } else {
+      Run<H,bool>(n-1);  // error: not a tail call, because the type parameters don't match
+    }
+  }
+}

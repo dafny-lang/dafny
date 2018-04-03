@@ -1,5 +1,5 @@
 
-Dafny program verifier finished with 28 verified, 0 errors
+Dafny program verifier finished with 30 verified, 0 errors
 Program compiled successfully
 Running...
 
@@ -18,3 +18,4 @@ given array is non-null
 58 59
 100 101
 102 103
+0.0 False False 
