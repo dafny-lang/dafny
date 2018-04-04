@@ -2638,3 +2638,35 @@ module Initialization {
     g := GimmieOne<Yt<GW>>();  // error: cannot pass Yt<GW> to a (0)-parameter
   }
 }
+
+// ----------------- regression tests ----------------------------------------------------
+
+module FreshTypeInferenceRegression {
+  class MyClass {
+    method M(N: nat)
+    {
+      var i, os := 0, {};
+      while i < N
+        invariant fresh(os)
+        invariant forall o :: o in os ==> fresh(o.inner)  // error: type of "o" not yet known (this once caused a crash)
+      {
+        var o := new Outer();
+        os, i := os + {o}, i + 1;
+      }
+    }
+  }
+
+  class Outer {
+    const inner: Inner
+    constructor ()
+      ensures fresh(inner)
+    {
+      inner := new Inner();
+    }
+  }
+
+  class Inner {
+    constructor ()
+  }
+}
+  

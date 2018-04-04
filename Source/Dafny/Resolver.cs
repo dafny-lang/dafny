@@ -10952,7 +10952,7 @@ namespace Microsoft.Dafny
       }
       foreach (var xc in AllXConstraints) {
         var xc0 = xc.Types[0].Normalize();
-        if (xc.ConstraintName == "Assignable" && xc0 == proxy || xc0.TypeArgs.Exists(ta => ta.Normalize() == proxy)) {
+        if (xc.ConstraintName == "Assignable" && (xc0 == proxy || xc0.TypeArgs.Exists(ta => ta.Normalize() == proxy))) {
           GetRelatedTypeProxies(xc.Types[1], proxies);
         } else if (xc.ConstraintName == "Innable" && xc.Types[1].Normalize() == proxy) {
           GetRelatedTypeProxies(xc.Types[0], proxies);
