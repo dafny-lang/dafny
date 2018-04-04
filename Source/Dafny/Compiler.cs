@@ -1384,12 +1384,24 @@ namespace Microsoft.Dafny {
     /// <summary>
     /// Returns "true" if a value of type "type" can be initialized with the all-zero bit pattern.
     /// </summary>
+    public static bool HasSimpleZeroInitializer(Type type) {
+      Contract.Requires(type != null);
+
+      bool hs, hz, ik;
+      string dv;
+      TypeInitialization(type, null, null, null, out hs, out hz, out ik, out dv);
+      return hs;
+    }
+
+    /// <summary>
+    /// Returns "true" if a value of type "type" can be initialized with the all-zero bit pattern or by calling the type's _DafnyDefaultValue method.
+    /// </summary>
     public static bool HasZeroInitializer(Type type) {
       Contract.Requires(type != null);
 
-      bool hz, ik;
+      bool hs, hz, ik;
       string dv;
-      TypeInitialization(type, null, null, null, out hz, out ik, out dv);
+      TypeInitialization(type, null, null, null, out hs, out hz, out ik, out dv);
       return hz;
     }
 
@@ -1399,9 +1411,9 @@ namespace Microsoft.Dafny {
     public static bool InitializerIsKnown(Type type) {
       Contract.Requires(type != null);
 
-      bool hz, ik;
+      bool hs, hz, ik;
       string dv;
-      TypeInitialization(type, null, null, null, out hz, out ik, out dv);
+      TypeInitialization(type, null, null, null, out hs, out hz, out ik, out dv);
       return ik;
     }
 
@@ -1411,24 +1423,27 @@ namespace Microsoft.Dafny {
       Contract.Requires(tok != null);
       Contract.Ensures(Contract.Result<string>() != null);
 
-      bool hz, ik;
+      bool hs, hz, ik;
       string dv;
-      TypeInitialization(type, this, wr, tok, out hz, out ik, out dv);
+      TypeInitialization(type, this, wr, tok, out hs, out hz, out ik, out dv);
       return dv;
     }
 
     /// <summary>
     /// This method returns three things about the given type. Since the three things are related,
     /// it makes sense to compute them side by side.
-    ///   hasZeroInitializer - "true" if a value of type "type" can be initialized with the all-zero bit pattern.
+    ///   hasZeroInitializer - "true" if a value of type "type" can be initialized with the all-zero bit pattern or
+    ///                        by calling the type's _DafnyDefaultValue method.
+    ///   hasSimpleZeroInitializer - "true" if a value of type "type" can be initialized with the all-zero bit pattern.
     ///   initializerIsKnown - "true" if "type" denotes a type for which a specific value (witness) is known.
     ///   defaultValue - If "compiler" is non-null, "defaultValue" is the C# representation of one possible value of the
     ///                  type (not necessarily the same value as the zero initializer, if any, may give).
     ///                  If "compiler" is null, then "defaultValue" can return as anything.
     /// </summary>
-    static void TypeInitialization(Type type, Compiler/*?*/ compiler, TextWriter/*?*/ wr, Bpl.IToken/*?*/ tok, out bool hasZeroInitializer, out bool initializerIsKnown, out string defaultValue) {
+    static void TypeInitialization(Type type, Compiler/*?*/ compiler, TextWriter/*?*/ wr, Bpl.IToken/*?*/ tok, out bool hasSimpleZeroInitializer, out bool hasZeroInitializer, out bool initializerIsKnown, out string defaultValue) {
       Contract.Requires(type != null);
       Contract.Requires(compiler == null || (wr != null && tok != null));
+      Contract.Ensures(!Contract.ValueAtReturn(out hasSimpleZeroInitializer) || Contract.ValueAtReturn(out hasZeroInitializer));  // hasSimpleZeroInitializer ==> hasZeroInitializer 
       Contract.Ensures(!Contract.ValueAtReturn(out hasZeroInitializer) || Contract.ValueAtReturn(out initializerIsKnown));  // hasZeroInitializer ==> initializerIsKnown
       Contract.Ensures(compiler == null || Contract.ValueAtReturn(out defaultValue) != null);
 
@@ -1439,33 +1454,39 @@ namespace Microsoft.Dafny {
       }
 
       if (xType is BoolType) {
+        hasSimpleZeroInitializer = true;
         hasZeroInitializer = true;
         initializerIsKnown = true;
         defaultValue = "false";
         return;
       } else if (xType is CharType) {
+        hasSimpleZeroInitializer = true;
         hasZeroInitializer = true;
         initializerIsKnown = true;
         defaultValue = "'D'";
         return;
       } else if (xType is IntType || xType is BigOrdinalType) {
+        hasSimpleZeroInitializer = true;
         hasZeroInitializer = true;
         initializerIsKnown = true;
         defaultValue = "BigInteger.Zero";
         return;
       } else if (xType is RealType) {
+        hasSimpleZeroInitializer = true;
         hasZeroInitializer = true;
         initializerIsKnown = true;
         defaultValue = "Dafny.BigRational.ZERO";
         return;
       } else if (xType is BitvectorType) {
         var t = (BitvectorType)xType;
+        hasSimpleZeroInitializer = true;
         hasZeroInitializer = true;
         initializerIsKnown = true;
         defaultValue = t.NativeType != null ? "0" : "BigInteger.Zero";
         return;
       } else if (xType is CollectionType) {
-        hasZeroInitializer = false;
+        hasSimpleZeroInitializer = false;
+        hasZeroInitializer = true;
         initializerIsKnown = true;
         defaultValue = compiler == null ? null : compiler.TypeName(xType, wr, tok) + ".Empty";
         return;
@@ -1473,17 +1494,19 @@ namespace Microsoft.Dafny {
 
       var udt = (UserDefinedType)xType;
       if (udt.ResolvedParam != null) {
+        hasSimpleZeroInitializer = false;
         hasZeroInitializer = udt.ResolvedParam.Characteristics.MustSupportZeroInitialization;
         initializerIsKnown = hasZeroInitializer;
         // If the module is complete, we expect "udt.ResolvedClass == null" at this time. However, it could be that
         // the compiler has already generated an error about this type not being compilable, in which case
         // "udt.ResolvedClass" might be non-null here.
-        defaultValue = compiler == null ? null : "default(" + compiler.TypeName_UDT(udt.FullCompileName, udt.TypeArgs, wr, udt.tok) + ")";
+        defaultValue = compiler == null ? null : "Dafny.Helpers.Default<" + compiler.TypeName_UDT(udt.FullCompileName, udt.TypeArgs, wr, udt.tok) + ">()";
         return;
       }
       var cl = udt.ResolvedClass;
       Contract.Assert(cl != null);
       if (cl is OpaqueTypeDecl) {
+        hasSimpleZeroInitializer = false;
         hasZeroInitializer = ((OpaqueTypeDecl)cl).TheType.Characteristics.MustSupportZeroInitialization;
         initializerIsKnown = hasZeroInitializer;
         // The compiler should never need to know a "defaultValue" for an opaque type, but this routine may
@@ -1494,23 +1517,27 @@ namespace Microsoft.Dafny {
       } else if (cl is NewtypeDecl) {
         var td = (NewtypeDecl)cl;
         if (td.Witness != null) {
+          hasSimpleZeroInitializer = false;
           hasZeroInitializer = false;
           initializerIsKnown = td.WitnessKind != SubsetTypeDecl.WKind.Ghost;
           defaultValue = compiler == null ? null : compiler.TypeName_UDT(udt.FullCompileName, udt.TypeArgs, wr, udt.tok) + ".Witness";
           return;
         } else if (td.NativeType != null) {
-          hasZeroInitializer = HasZeroInitializer(td.BaseType);
+          bool ik;
+          string dv;
+          TypeInitialization(td.BaseType, null, null, null, out hasSimpleZeroInitializer, out hasZeroInitializer, out ik, out dv);
           initializerIsKnown = true;
           defaultValue = "0";
           return;
         } else {
           Contract.Assert(td.WitnessKind != SubsetTypeDecl.WKind.Special);  // this value is never used with NewtypeDecl
-          TypeInitialization(td.BaseType, compiler, wr, udt.tok, out hasZeroInitializer, out initializerIsKnown, out defaultValue);
+          TypeInitialization(td.BaseType, compiler, wr, udt.tok, out hasSimpleZeroInitializer, out hasZeroInitializer, out initializerIsKnown, out defaultValue);
           return;
         }
       } else if (cl is SubsetTypeDecl) {
         var td = (SubsetTypeDecl)cl;
         if (td.Witness != null) {
+          hasSimpleZeroInitializer = false;
           hasZeroInitializer = false;
           initializerIsKnown = td.WitnessKind != SubsetTypeDecl.WKind.Ghost;
           defaultValue = compiler == null ? null : compiler.TypeName_UDT(udt.FullCompileName, udt.TypeArgs, wr, udt.tok) + ".Witness";
@@ -1520,6 +1547,7 @@ namespace Microsoft.Dafny {
           Contract.Assert(ArrowType.IsPartialArrowTypeName(td.Name) || ArrowType.IsTotalArrowTypeName(td.Name) || td is NonNullTypeDecl);
           if (ArrowType.IsPartialArrowTypeName(td.Name)) {
             // partial arrow
+            hasSimpleZeroInitializer = true;
             hasZeroInitializer = true;
             initializerIsKnown = true;
             defaultValue = compiler == null ? null : string.Format("(({0})null)", compiler.TypeName(type, wr, udt.tok));
@@ -1528,9 +1556,10 @@ namespace Microsoft.Dafny {
             // total arrow
             Contract.Assert(udt.TypeArgs.Count == td.TypeArgs.Count);
             Contract.Assert(1 <= udt.TypeArgs.Count);  // the return type is one of the type arguments
+            hasSimpleZeroInitializer = false;
             hasZeroInitializer = false;
-            bool hz;
-            TypeInitialization(udt.TypeArgs.Last(), compiler, wr, udt.tok, out hz, out initializerIsKnown, out defaultValue);
+            bool hs, hz;
+            TypeInitialization(udt.TypeArgs.Last(), compiler, wr, udt.tok, out hs, out hz, out initializerIsKnown, out defaultValue);
             if (compiler != null && defaultValue != null) {
               // return the lambda expression ((Ty0 x0, Ty1 x1, Ty2 x2) => defaultValue)
               defaultValue = string.Format("(({0}) => {1})",
@@ -1540,6 +1569,7 @@ namespace Microsoft.Dafny {
             return;
           } else if (((NonNullTypeDecl)td).Class is ArrayClassDecl) {
             // non-null array type; we know how to initialize them
+            hasSimpleZeroInitializer = false;
             hasZeroInitializer = false;
             initializerIsKnown = true;
             Contract.Assert(udt.TypeArgs.Count == 1);
@@ -1548,6 +1578,7 @@ namespace Microsoft.Dafny {
               Util.Comma(arrayClass.Dims, _ => "0"));
           } else {
             // non-null (non-array) type
+            hasSimpleZeroInitializer = false;
             hasZeroInitializer = false;
             initializerIsKnown = false;  // (this could be improved in some cases)
             // even though the type doesn't necessarily have a known initializer, it could be that the the compiler needs to
@@ -1556,10 +1587,11 @@ namespace Microsoft.Dafny {
             return;
           }
         } else {
-          TypeInitialization(td.RhsWithArgument(udt.TypeArgs), compiler, wr, udt.tok, out hasZeroInitializer, out initializerIsKnown, out defaultValue);
+          TypeInitialization(td.RhsWithArgument(udt.TypeArgs), compiler, wr, udt.tok, out hasSimpleZeroInitializer, out hasZeroInitializer, out initializerIsKnown, out defaultValue);
           return;
         }
       } else if (cl is TypeSynonymDeclBase) {
+        hasSimpleZeroInitializer = false;
         hasZeroInitializer = ((TypeSynonymDeclBase)cl).Characteristics.MustSupportZeroInitialization;
         initializerIsKnown = hasZeroInitializer;
         // The compiler should never need to know a "defaultValue" for a(n internal) type synonym, but this routine may
@@ -1568,13 +1600,15 @@ namespace Microsoft.Dafny {
         defaultValue = null;
         return;
       } else if (cl is ClassDecl) {
+        hasSimpleZeroInitializer = true;
         hasZeroInitializer = true;
         initializerIsKnown = true;
         defaultValue = compiler == null ? null : string.Format("({0})null", compiler.TypeName(xType, wr, udt.tok));
         return;
       } else if (cl is DatatypeDecl) {
         // --- hasZeroInitializer ---
-        hasZeroInitializer = false;  // TODO: improve this one
+        hasSimpleZeroInitializer = false;  // TODO: improve this one in special cases where one of the datatype values can be represented by "null"
+        hasZeroInitializer = false;  // TODO: improve this one by laying down a _DafnyDefaultValue method when it's possible
         // --- initializerIsKnown ---
         if (cl is CoDatatypeDecl) {
           // The constructors of a codatatype may use type arguments that are not "smaller" than "type",
@@ -1593,11 +1627,8 @@ namespace Microsoft.Dafny {
             if (formal.IsGhost) {
               continue;
             }
-            bool hz, ik;
-            string dv;
             var ty = Resolver.SubstType(formal.Type, subst);
-            TypeInitialization(ty, compiler, wr, udt.tok, out hz, out ik, out dv);
-            if (!ik) {
+            if (!InitializerIsKnown(ty)) {
               initializerIsKnown = false;
               break;
             }
@@ -2545,26 +2576,24 @@ namespace Microsoft.Dafny {
         TypeRhs tp = (TypeRhs)rhs;
         if (tp.ArrayDimensions == null) {
           wr.Write("new {0}()", TypeName(tp.EType, wr, rhs.Tok));
-        } else {
-          if (!HasZeroInitializer(tp.EType)) {
-            wr.Write("Dafny.ArrayHelpers.InitNewArray{0}<{1}>", tp.ArrayDimensions.Count, TypeName(tp.EType, wr, rhs.Tok));
-            wr.Write("(");
-            wr.Write(DefaultValue(tp.EType, wr, rhs.Tok));
-            foreach (Expression dim in tp.ArrayDimensions) {
-              wr.Write(", ");
-              TrParenExpr(dim, wr, false);
-            }
-            wr.Write(")");
-          } else {
-            wr.Write("new {0}", TypeName(tp.EType, wr, rhs.Tok));
-            string prefix = "[";
-            foreach (Expression dim in tp.ArrayDimensions) {
-              wr.Write("{0}(int)", prefix);
-              TrParenExpr(dim, wr, false);
-              prefix = ", ";
-            }
-            wr.Write("]");
+        } else if (tp.ElementInit != null || tp.InitDisplay != null || HasSimpleZeroInitializer(tp.EType)) {
+          wr.Write("new {0}", TypeName(tp.EType, wr, rhs.Tok));
+          string prefix = "[";
+          foreach (Expression dim in tp.ArrayDimensions) {
+            wr.Write("{0}(int)", prefix);
+            TrParenExpr(dim, wr, false);
+            prefix = ", ";
           }
+          wr.Write("]");
+        } else {
+          wr.Write("Dafny.ArrayHelpers.InitNewArray{0}<{1}>", tp.ArrayDimensions.Count, TypeName(tp.EType, wr, rhs.Tok));
+          wr.Write("(");
+          wr.Write(DefaultValue(tp.EType, wr, rhs.Tok));
+          foreach (Expression dim in tp.ArrayDimensions) {
+            wr.Write(", ");
+            TrParenExpr(dim, wr, false);
+          }
+          wr.Write(")");
         }
       }
     }

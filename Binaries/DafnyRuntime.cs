@@ -109,6 +109,10 @@ namespace Dafny
     }
 #endif
 
+    public static Set<T> _DafnyDefaultValue() {
+      return Empty;
+    }
+
     /// <summary>
     /// This is an inefficient iterator for producing all subsets of "this".
     /// </summary>
@@ -397,6 +401,10 @@ namespace Dafny
       return new MultiSet<T>(d, containsNull ? BigInteger.One : BigInteger.Zero);
     }
 
+    public static MultiSet<T> _DafnyDefaultValue() {
+      return Empty;
+    }
+
     public bool Equals(MultiSet<T> other) {
       return other.IsSubsetOf(this) && this.IsSubsetOf(other);
     }
@@ -615,6 +623,10 @@ namespace Dafny
     public long LongLength {
       get { return dict.Count + (hasNullValue ? 1 : 0); }
     }
+    public static Map<U, V> _DafnyDefaultValue() {
+      return Empty;
+    }
+
     public bool Equals(Map<U, V> other) {
       if (hasNullValue != other.hasNullValue || dict.Count != other.dict.Count) {
         return false;
@@ -748,7 +760,7 @@ namespace Dafny
     }
   }
 
-    public class Sequence<T>
+  public class Sequence<T>
   {
     readonly T[] elmts;
     public Sequence(T[] ee) {
@@ -764,6 +776,9 @@ namespace Dafny
     }
     public static Sequence<char> FromString(string s) {
       return new Sequence<char>(s.ToCharArray());
+    }
+    public static Sequence<T> _DafnyDefaultValue() {
+      return Empty;
     }
     public int Length {
       get { return elmts.Length; }
@@ -924,6 +939,16 @@ namespace Dafny
     }
     public static string ToString<G>(G g) {
       return g == null ? "null" : g.ToString();
+    }
+    public static G Default<G>() {
+      System.Type ty = typeof(G);
+      System.Reflection.MethodInfo mInfo = ty.GetMethod("_DafnyDefaultValue");
+      if (mInfo != null) {
+        G g = (G)mInfo.Invoke(null, null);
+        return g;
+      } else {
+        return default(G);
+      }
     }
     public static System.Predicate<BigInteger> PredicateConverter_byte(System.Predicate<byte> pred) {
       return x => pred((byte)x);

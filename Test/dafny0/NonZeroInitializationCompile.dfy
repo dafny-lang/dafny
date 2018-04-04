@@ -56,4 +56,60 @@ method Main()
   print "cl { u: ", cl.u, ", x: ", cl.x, ", r: ", cl.r, ", nes: ", cl.nes, " }\n";
   var cl' := new MyClassWithCtor.Init(20);
   print "cl' { u: ", cl'.u, ", x: ", cl'.x, ", ': ", cl'.r, ", nes: ", cl'.nes, " }\n";
+  AdvancedZeroInitialization.Test(0);
+  AdvancedZeroInitialization.Test(1);
+}
+
+module AdvancedZeroInitialization {
+  datatype Dt = MakeDt(x: int, s: seq<int>)
+  datatype Yt<Y> = MakeYt(x: int, y: Y)
+
+  // return the default value of an uninitialized local/out-parameter
+  method MyMethod0<G(0)>(g: G) returns (h: G) {
+  }
+  // return the default value of an array element
+  method MyMethod1<G(0)>(g: G) returns (h: G) {
+    var a := new G[8];
+    h := a[3];
+  }
+
+  method MyMethodSelect<G(0)>(which: int, g: G) returns (h: G)
+    requires which == 0 || which == 1
+  {
+    if
+    case which == 0 => h := MyMethod0(g);
+    case which == 1 => h := MyMethod1(g);
+  }
+
+  method Test(which: int)
+    requires which == 0 || which == 1
+  {
+    var x: real;
+    var x' := MyMethodSelect(which, x);
+
+    var ch: char;
+    var ch' := MyMethodSelect(which, ch);
+
+    var s: set<real>;
+    var s' := MyMethodSelect(which, s);
+
+    var d: Dt;
+    //var d' := MyMethodSelect(which, d);
+
+    var y: Yt<seq<int>>;
+    //var y' := MyMethodSelect(which, y);
+
+    print "\n";
+    print "x: real :: ", x, " versus ", x', "\n";
+    print "ch: char :: ", PrCh(ch), " versus ", PrCh(ch'), "\n";
+    print "s: set :: ", s, " versus ", s', "\n";
+    print "d: Dt :: ", d, /*" versus ", d',*/ "\n";
+    print "y: Yt<seq> :: ", y, /*" versus ", y',*/ "\n";
+  }
+  // print '\0' in a way that git doesn't freak out about
+  function method PrCh(ch: char): string {
+    if ch == '\0' then "'\\0'"
+    else if ch == 'D' then "'D'"
+    else "'(other char)'"
+  }
 }
