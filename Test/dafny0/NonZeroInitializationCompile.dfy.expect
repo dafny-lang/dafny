@@ -1,5 +1,5 @@
 
-Dafny program verifier finished with 12 verified, 0 errors
+Dafny program verifier finished with 13 verified, 0 errors
 Program compiled successfully
 Running...
 
@@ -14,11 +14,13 @@ cl' { u: 12, x: 0, ': (314.0 / 100.0), nes: {57, 20} }
 x: real :: 0.0 versus 0.0
 ch: char :: 'D' versus '\0'
 s: set :: {} versus {}
-d: Dt :: _0_AdvancedZeroInitialization_Compile.Dt.MakeDt(0, [])
-y: Yt<seq> :: _0_AdvancedZeroInitialization_Compile.Yt.MakeYt(0, [])
+d: Xt :: _0_AdvancedZeroInitialization_Compile.Xt.MakeXt(0, []) versus _0_AdvancedZeroInitialization_Compile.Xt.MakeXt(0, [])
+y: Yt<seq> :: _0_AdvancedZeroInitialization_Compile.Yt.MakeYt(0, []) versus _0_AdvancedZeroInitialization_Compile.Yt.MakeYt(0, [])
+z: Yt<Even> :: _0_AdvancedZeroInitialization_Compile.Yt.MakeYt(0, 0) versus _0_AdvancedZeroInitialization_Compile.Yt.MakeYt(0, 0)
 
 x: real :: 0.0 versus 0.0
 ch: char :: 'D' versus '\0'
 s: set :: {} versus {}
-d: Dt :: _0_AdvancedZeroInitialization_Compile.Dt.MakeDt(0, [])
-y: Yt<seq> :: _0_AdvancedZeroInitialization_Compile.Yt.MakeYt(0, [])
+d: Xt :: _0_AdvancedZeroInitialization_Compile.Xt.MakeXt(0, []) versus _0_AdvancedZeroInitialization_Compile.Xt.MakeXt(0, [])
+y: Yt<seq> :: _0_AdvancedZeroInitialization_Compile.Yt.MakeYt(0, []) versus _0_AdvancedZeroInitialization_Compile.Yt.MakeYt(0, [])
+z: Yt<Even> :: _0_AdvancedZeroInitialization_Compile.Yt.MakeYt(0, 0) versus _0_AdvancedZeroInitialization_Compile.Yt.MakeYt(0, 0)

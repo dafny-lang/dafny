@@ -1608,9 +1608,9 @@ namespace Microsoft.Dafny {
       } else if (cl is DatatypeDecl) {
         // --- hasZeroInitializer ---
         hasSimpleZeroInitializer = false;  // TODO: improve this one in special cases where one of the datatype values can be represented by "null"
-        hasZeroInitializer = false;  // TODO: improve this one by laying down a _DafnyDefaultValue method when it's possible
         // --- initializerIsKnown ---
         if (cl is CoDatatypeDecl) {
+          hasZeroInitializer = false;  // TODO: improve this one by laying down a _DafnyDefaultValue method when it's possible
           // The constructors of a codatatype may use type arguments that are not "smaller" than "type",
           // in which case recursing on the types of the constructor's formals may lead to an infinite loop
           // here.  If this were important, the code here could be changed to detect such loop, which would
@@ -1618,21 +1618,10 @@ namespace Microsoft.Dafny {
           // has a zero initializer.
           initializerIsKnown = hasZeroInitializer;
         } else {
-          DatatypeCtor defaultCtor = ((IndDatatypeDecl)cl).DefaultCtor;
+          var defaultCtor = ((IndDatatypeDecl)cl).DefaultCtor;
           var subst = Resolver.TypeSubstitutionMap(cl.TypeArgs, udt.TypeArgs);
-          // Compute:
-          //   initializerIsKnown = defaultCtor.Formals.TrueForAll(formal => formal.IsGhost || InitializerIsKnown(Resolver.SubstType(formal.Type, subst)));
-          initializerIsKnown = true;
-          foreach (var formal in defaultCtor.Formals) {
-            if (formal.IsGhost) {
-              continue;
-            }
-            var ty = Resolver.SubstType(formal.Type, subst);
-            if (!InitializerIsKnown(ty)) {
-              initializerIsKnown = false;
-              break;
-            }
-          }
+          hasZeroInitializer = defaultCtor.Formals.TrueForAll(formal => formal.IsGhost || HasZeroInitializer(Resolver.SubstType(formal.Type, subst)));
+          initializerIsKnown = defaultCtor.Formals.TrueForAll(formal => formal.IsGhost || InitializerIsKnown(Resolver.SubstType(formal.Type, subst)));
         }
         // --- defaultValue ---
         if (compiler == null) {

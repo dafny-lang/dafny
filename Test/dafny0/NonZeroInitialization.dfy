@@ -43,3 +43,17 @@ type ListFour<G> = xs: List<set<G>> | 4 <= Length(xs) witness Cons({}, Cons({}, 
 type ListFour'<G> = xs: ListTwo<G> | 4 <= Length(xs) witness Cons({}, Cons({}, Cons({}, Cons({}, Nil))))
 
 // TODO: what about the case where a constraint is excluded because of "provides"?
+
+datatype Yt<Y> = MakeYt(x: int, y: Y)
+type Even = x | x % 2 == 0
+type Odd = x | x % 2 == 1 witness 17
+type GW = x | x % 2 == 1 ghost witness 17
+method DefiniteAssignmentViolation() returns (e: Yt<Even>, o: Yt<Odd>, g: Yt<GW>)
+{
+}  // error: must assign to 'g' (but 'e' and 'o' can be handled by the compiler)
+method ArrayElementInitViolation() returns (e: array<Yt<Even>>, o: array<Yt<Odd>>, g: array<Yt<GW>>)
+{
+  e := new Yt<Even>[20];
+  o := new Yt<Odd>[20];
+  g := new Yt<GW>[20];  // error: must give array-element initializer
+}

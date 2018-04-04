@@ -61,8 +61,9 @@ method Main()
 }
 
 module AdvancedZeroInitialization {
-  datatype Dt = MakeDt(x: int, s: seq<int>)
+  datatype Xt = MakeXt(x: int, s: seq<int>)
   datatype Yt<Y> = MakeYt(x: int, y: Y)
+  type Even = x | x % 2 == 0
 
   // return the default value of an uninitialized local/out-parameter
   method MyMethod0<G(0)>(g: G) returns (h: G) {
@@ -93,18 +94,22 @@ module AdvancedZeroInitialization {
     var s: set<real>;
     var s' := MyMethodSelect(which, s);
 
-    var d: Dt;
-    //var d' := MyMethodSelect(which, d);
+    var d: Xt;
+    var d' := MyMethodSelect(which, d);
 
     var y: Yt<seq<int>>;
-    //var y' := MyMethodSelect(which, y);
+    var y' := MyMethodSelect(which, y);
+
+    var z: Yt<Even>;
+    var z' := MyMethodSelect(which, z);
 
     print "\n";
     print "x: real :: ", x, " versus ", x', "\n";
     print "ch: char :: ", PrCh(ch), " versus ", PrCh(ch'), "\n";
     print "s: set :: ", s, " versus ", s', "\n";
-    print "d: Dt :: ", d, /*" versus ", d',*/ "\n";
-    print "y: Yt<seq> :: ", y, /*" versus ", y',*/ "\n";
+    print "d: Xt :: ", d, " versus ", d', "\n";
+    print "y: Yt<seq> :: ", y, " versus ", y', "\n";
+    print "z: Yt<Even> :: ", z, " versus ", z', "\n";
   }
   // print '\0' in a way that git doesn't freak out about
   function method PrCh(ch: char): string {

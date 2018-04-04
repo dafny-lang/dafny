@@ -42,5 +42,11 @@ NonZeroInitialization.dfy(39,5): Error: cannot find witness that shows type is i
 Execution trace:
     (0,0): anon0
     (0,0): anon4_Else
+NonZeroInitialization.dfy(53,0): Error: out-parameter 'g', which is subject to definite-assignment rules, might not have been defined at this return point
+Execution trace:
+    (0,0): anon0
+NonZeroInitialization.dfy(58,7): Error: unless an initializer is provided for the array elements, a new array of 'Yt<GW>' must have empty size
+Execution trace:
+    (0,0): anon0
 
-Dafny program verifier finished with 8 verified, 11 errors
+Dafny program verifier finished with 11 verified, 13 errors

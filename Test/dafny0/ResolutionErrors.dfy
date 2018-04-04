@@ -1937,10 +1937,10 @@ module ZI {
     P(y);  // error: type of argument is expected to support zero initialization
   }
 
-  datatype List<T> = Nil | Cons(T, List<T>)  // this type COULD support zero initialization, regardless of T
+  datatype List<T> = Nil | Cons(T, List<T>)
   method M1<G,H(0)>(xs: List<G>, ys: List<H>) {
-    P(xs);  // error: type of argument is expected to support zero initialization
-    P(ys);  // error: type of argument is expected to support zero initialization
+    P(xs);  // yay, type of argument does support zero initialization
+    P(ys);  // yay, type of argument does support zero initialization
   }
 
   class Cls {
@@ -2033,7 +2033,7 @@ module ZI_RefinementConcrete1 refines ZI_RefinementAbstract {
 
   method P<G(0)>(g: G)
   method M(m: Z.RGB, n: Z.XYZ) {
-    P(m);  // error: Z.RGB is not known to support zero initialization (wish that this weren't so)
+    P(m);
     P(n);  // error: Z.XYZ is not known to support zero initialization
   }
 
@@ -2609,5 +2609,32 @@ module LabelDomination {
       assert unchanged@Treasure(`x);  // error: no label Treasure in scope
       assert unchanged@WonderfulLabel(this);  // error: no label WonderfulLabel in scope
     }
+  }
+}
+
+// ----- bad use of types without zero initializers -----
+
+module Initialization {
+  datatype Yt<Y> = MakeYt(x: int, y: Y)
+  type Even = x | x % 2 == 0
+  type Odd = x | x % 2 == 1 witness 17
+  type GW = x | x % 2 == 1 ghost witness 17
+  method DefiniteAssignmentViolation() returns (e: Yt<Even>, o: Yt<Odd>, g: Yt<GW>)
+  {
+  }  // no resolution errors (but verification errors, see NonZeroInitialization.dfy)
+  method ArrayElementInitViolation() returns (e: array<Yt<Even>>, o: array<Yt<Odd>>, g: array<Yt<GW>>)
+  {
+    e := new Yt<Even>[20];
+    o := new Yt<Odd>[20];
+    g := new Yt<GW>[20];
+  }  // no resolution errors (but verification errors, see NonZeroInitialization.dfy)
+  method GimmieOne<G(0)>() returns (g: G)
+  {
+  }
+  method TypeParamViolation() returns (e: Yt<Even>, o: Yt<Odd>, g: Yt<GW>)
+  {
+    e := GimmieOne<Yt<Even>>();
+    o := GimmieOne<Yt<Odd>>();  // error: cannot pass Yt<Odd> to a (0)-parameter
+    g := GimmieOne<Yt<GW>>();  // error: cannot pass Yt<GW> to a (0)-parameter
   }
 }
