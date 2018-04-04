@@ -3854,7 +3854,7 @@ namespace Microsoft.Dafny
             satisfied = t.IsNumericBased() || t.IsBitVectorType || t is SetType || t is MultiSetType;
             break;
           case "IntOrORDINAL":
-            if (t is NonProxyType) {
+            if (!(t is TypeProxy)) {
               if (TernaryExpr.PrefixEqUsesNat) {
                 satisfied = t.IsNumericBased(Type.NumericPersuation.Int);
               } else {
@@ -3906,7 +3906,7 @@ namespace Microsoft.Dafny
             satisfied = t.IsCoDatatype;
             break;
           case "Indexable":
-            if (t is NonProxyType) {
+            if (!(t is TypeProxy)) {
               satisfied = t is SeqType || t is MultiSetType || t is MapType || (t.IsArrayType && t.AsArrayType.Dims == 1);
             } else {
               // t is a proxy, but perhaps it stands for something between "object" and "array<?>".  If so, we can add a constraint
@@ -3926,7 +3926,7 @@ namespace Microsoft.Dafny
             }
             break;
           case "MultiIndexable":
-            if (t is NonProxyType) {
+            if (!(t is TypeProxy)) {
               satisfied = t is SeqType || (t.IsArrayType && t.AsArrayType.Dims == 1);
             } else {
               // t is a proxy, but perhaps it stands for something between "object" and "array<?>".  If so, we can add a constraint

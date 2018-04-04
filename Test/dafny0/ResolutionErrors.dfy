@@ -2669,4 +2669,12 @@ module FreshTypeInferenceRegression {
     constructor ()
   }
 }
-  
+
+module RegressionTest {
+  class Cache<X> {
+    method Lookup(K: X) returns (V: X)
+    {
+      V := Cache[K];  // error: Cache is not a field but a type
+    }
+  }
+}
