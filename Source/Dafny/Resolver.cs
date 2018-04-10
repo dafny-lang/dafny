@@ -14084,6 +14084,9 @@ namespace Microsoft.Dafny
             break;
           case BinaryExpr.ResolvedOpcode.EqCommon:
           case BinaryExpr.ResolvedOpcode.SetEq:
+          case BinaryExpr.ResolvedOpcode.SeqEq:
+          case BinaryExpr.ResolvedOpcode.MultiSetEq:
+          case BinaryExpr.ResolvedOpcode.MapEq:
             var otherOperand = whereIsBv == 0 ? e1 : e0;
             bounds.Add(new ComprehensionExpr.ExactBoundedPool(otherOperand));
             break;

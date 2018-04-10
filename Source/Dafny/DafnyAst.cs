@@ -8136,7 +8136,7 @@ namespace Microsoft.Dafny {
       } else if (ty is SeqType) {
         eq.ResolvedOp = BinaryExpr.ResolvedOpcode.SeqEq;
       } else if (ty is MultiSetType) {
-        eq.ResolvedOp = BinaryExpr.ResolvedOpcode.InMultiSet;
+        eq.ResolvedOp = BinaryExpr.ResolvedOpcode.MultiSetEq;
       } else if (ty is MapType) {
         eq.ResolvedOp = BinaryExpr.ResolvedOpcode.MapEq;
       } else {

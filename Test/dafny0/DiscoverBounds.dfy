@@ -34,6 +34,11 @@ method Main()
   b := forall u': Upper :: true ==> P(u' as int);
   b := forall l': Lower :: l' < 20 ==> P(l' as int);
   b := forall j': Int :: -3 <= j' < 7 ==> P(j' as int);
+
+  var x0, x1, x2, x3, x4, x5 := OtherEq(false, {}, [], map[198 := 200], multiset{}, iset{}, imap[]);
+  print x0, " ", x1, " ", x2, " ", x3, " ", x4, " ", x5, "\n";
+  x0, x1, x2, x3, x4, x5 := OtherEq(true, {}, [], map[198 := 200], multiset{}, iset{}, imap[]);
+  print x0, " ", x1, " ", x2, " ", x3, " ", x4, " ", x5, "\n";
 }
 
 predicate method P(x: int)
@@ -46,21 +51,22 @@ predicate method Q(r: real)
   r / 2.0 <= r
 }
 
-method OtherEq<U,V>(s: set<int>, t: seq<real>, u: map<U,V>, v: multiset<char>, w: iset<bv12>, x: imap<bv28,int>)
+method OtherEq<U,V(==)>(b: bool, s: set<int>, t: seq<real>, u: map<U,V>, v: multiset<char>, w: iset<bv12>, x: imap<bv28,int>)
+  returns (s': set<int>, t': seq<real>, u': map<U,V>, v': multiset<char>, w': iset<bv12>, x': imap<bv28,int>)
 {
-  if * {
-    var s' :| s' == s;
-//    var t' :| t' == t;  // TODO: use an ExactBoundedPool and compile this
-//    var u' :| u' == u;  // TODO: use an ExactBoundedPool and compile this
-//    var v' :| v' == v;  // TODO: use an ExactBoundedPool and compile this
-    var w' :| w' == w;
-//    var x' :| x' == x;  // TODO: use an ExactBoundedPool and compile this
+  if b {
+    s' :| s' == s;
+    t' :| t' == t;
+    u' :| u' == u;
+    v' :| v' == v;
+    w' :| w' == w;
+    x' :| x' == x;
   } else {
-    var s'' := var s' :| s' == s; s';
-    // TODO: var t'' := var t' :| t' == t; t';
-    // TODO: var u'' := var u' :| u' == u; u';
-    // TODO: var v'' := var v' :| v' == v; v';
-    var w'' := var w' :| w' == w; w';
-    // TODO: var x'' := var x' :| x' == x; x';
+    s' := var s'' :| s'' == s; s'';
+    t' := var t'' :| t'' == t; t'';
+    u' := var u'' :| u'' == u; u'';
+    v' := var v'' :| v'' == v; v'';
+    w' := var w'' :| w'' == w; w'';
+    x' := var x'' :| x'' == x; x'';
   }
 }
