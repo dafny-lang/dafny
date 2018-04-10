@@ -798,10 +798,6 @@ namespace Microsoft.Dafny {
     /// </summary>
     [Pure]
     public abstract bool Equals(Type that);
-    /// <summary>
-    /// Returns whether or not "this" is a supertype of "that", modulo proxies and type synonyms, but treating subset types as different.
-    /// </summary>
-    public abstract bool IsSupertypeOf_WithSubsetTypes(Type that);
 
     public bool IsBoolType { get { return NormalizeExpand() is BoolType; } }
     public bool IsCharType { get { return NormalizeExpand() is CharType; } }
@@ -1968,9 +1964,6 @@ namespace Microsoft.Dafny {
   /// </summary>
   public abstract class ArtificialType : Type
   {
-    public override bool IsSupertypeOf_WithSubsetTypes(Type that) {
-      return Equals(that);
-    }
   }
   /// <summary>
   /// The type "IntVarietiesSupertype" is used to denote a decimal-less number type, namely an int-based type
@@ -2006,9 +1999,6 @@ namespace Microsoft.Dafny {
 
   public abstract class BasicType : NonProxyType
   {
-    public override bool IsSupertypeOf_WithSubsetTypes(Type that) {
-      return Equals(that);
-    }
   }
 
   public class BoolType : BasicType {
@@ -2039,9 +2029,6 @@ namespace Microsoft.Dafny {
       return "int";
     }
     public override bool Equals(Type that) {
-      return that.IsIntegerType;
-    }
-    public override bool IsSupertypeOf_WithSubsetTypes(Type that) {
       return that.IsIntegerType;
     }
   }
@@ -2107,10 +2094,6 @@ namespace Microsoft.Dafny {
     }
     public override bool Equals(Type that) {
       return that.NormalizeExpand() is SelfType;
-    }
-
-    public override bool IsSupertypeOf_WithSubsetTypes(Type that) {
-      return Equals(that);
     }
   }
 
@@ -2321,13 +2304,6 @@ namespace Microsoft.Dafny {
       var t = that.NormalizeExpand() as SetType;
       return t != null && Finite == t.Finite && Arg.Equals(t.Arg);
     }
-    public override bool IsSupertypeOf_WithSubsetTypes(Type that) {
-#if I_CHANGED_THE_FOLLOWING
-      var t = that.NormalizeExpandKeepConstraints() as SetType;
-#endif
-      var t = that.NormalizeExpand() as SetType;
-      return t != null && Finite == t.Finite && Arg.IsSupertypeOf_WithSubsetTypes(t.Arg);
-    }
     public override bool SupportsEquality {
       get {
         // Sets always support equality, because there is a check that the set element type always does.
@@ -2345,10 +2321,6 @@ namespace Microsoft.Dafny {
       var t = that.NormalizeExpand() as MultiSetType;
       return t != null && Arg.Equals(t.Arg);
     }
-    public override bool IsSupertypeOf_WithSubsetTypes(Type that) {
-      var t = that.NormalizeExpandKeepConstraints() as MultiSetType;
-      return t != null && Arg.IsSupertypeOf_WithSubsetTypes(t.Arg);
-    }
     public override bool SupportsEquality {
       get {
         // Multisets always support equality, because there is a check that the set element type always does.
@@ -2364,10 +2336,6 @@ namespace Microsoft.Dafny {
     public override bool Equals(Type that) {
       var t = that.NormalizeExpand() as SeqType;
       return t != null && Arg.Equals(t.Arg);
-    }
-    public override bool IsSupertypeOf_WithSubsetTypes(Type that) {
-      var t = that.NormalizeExpandKeepConstraints() as SeqType;
-      return t != null && Arg.IsSupertypeOf_WithSubsetTypes(t.Arg);
     }
     public override bool SupportsEquality {
       get {
@@ -2410,10 +2378,6 @@ namespace Microsoft.Dafny {
     public override bool Equals(Type that) {
       var t = that.NormalizeExpand() as MapType;
       return t != null && Finite == t.Finite && Arg.Equals(t.Arg) && Range.Equals(t.Range);
-    }
-    public override bool IsSupertypeOf_WithSubsetTypes(Type that) {
-      var t = that.NormalizeExpandKeepConstraints() as MapType;
-      return t != null && Finite == t.Finite && Arg.IsSupertypeOf_WithSubsetTypes(t.Arg) && Range.IsSupertypeOf_WithSubsetTypes(t.Range);
     }
     public override bool SupportsEquality {
       get {
@@ -2632,48 +2596,6 @@ namespace Microsoft.Dafny {
         }
       } else {
         return i.Equals(that);
-      }
-    }
-    public override bool IsSupertypeOf_WithSubsetTypes(Type that) {
-      var i = NormalizeExpandKeepConstraints();
-      if (i is UserDefinedType) {
-        var ii = (UserDefinedType)i;
-        var t = that.NormalizeExpandKeepConstraints() as UserDefinedType;
-        if (t == null || ii.ResolvedParam != t.ResolvedParam) {
-          return false;
-        } else if (ii.ResolvedClass != t.ResolvedClass) {
-          var tsubset = t.ResolvedClass as SubsetTypeDecl;
-          if (tsubset == null) {
-            return false;
-          } else {
-            return IsSupertypeOf_WithSubsetTypes(tsubset.RhsWithArgument(t.TypeArgs));
-          }
-        } else {
-          Contract.Assert(ii.TypeArgs.Count == t.TypeArgs.Count);  // the have the same class, and therefore will also have the same number of type arguments
-          for (int j = 0; j < ii.TypeArgs.Count; j++) {
-            var a0 = ii.TypeArgs[j];
-            var a1 = t.TypeArgs[j];
-            if (IsRefType) {
-              // invariant
-              if (!a0.IsSupertypeOf_WithSubsetTypes(a1) || !a1.IsSupertypeOf_WithSubsetTypes(a0)) {
-                return false;
-              }
-            } else if (this is ArrowType && j < ii.TypeArgs.Count-1) {
-              // contravariant
-              if (!a1.IsSupertypeOf_WithSubsetTypes(a0)) {
-                return false;
-              }
-            } else {
-              // covariant
-              if (!a0.IsSupertypeOf_WithSubsetTypes(a1)) {
-                return false;
-              }
-            }
-          }
-          return true;
-        }
-      } else {
-        return i.IsSupertypeOf_WithSubsetTypes(that);
       }
     }
 
@@ -2941,15 +2863,6 @@ namespace Microsoft.Dafny {
         return u != null && object.ReferenceEquals(i, u);
       } else {
         return i.Equals(that);
-      }
-    }
-    public override bool IsSupertypeOf_WithSubsetTypes(Type that) {
-      var i = NormalizeExpandKeepConstraints();
-      if (i is TypeProxy) {
-        var u = that.NormalizeExpand() as TypeProxy;
-        return u != null && object.ReferenceEquals(i, u);
-      } else {
-        return i.IsSupertypeOf_WithSubsetTypes(that);
       }
     }
 
@@ -8705,9 +8618,6 @@ namespace Microsoft.Dafny {
 
     public abstract class ResolverType : Type
     {
-      public override bool IsSupertypeOf_WithSubsetTypes(Type that) {
-        return Equals(that);
-      }
     }
     public class ResolverType_Module : ResolverType
     {
