@@ -482,7 +482,10 @@ axiom(forall h, k : Heap, bx : Box, t : Ty ::
 // No axioms for $Is and $IsBox since they don't talk about the heap.
 
 const unique alloc: Field bool;
-axiom FDim(alloc) == 0 && !$IsGhostField(alloc);  // treat as non-ghost field, because it cannot be changed by ghost code
+const unique allocName: NameFamily;
+axiom FDim(alloc) == 0 &&
+  DeclName(alloc) == allocName &&
+  !$IsGhostField(alloc);  // treat as non-ghost field, because it cannot be changed by ghost code
 
 // ---------------------------------------------------------------
 // -- Arrays -----------------------------------------------------

@@ -130,14 +130,61 @@ module TypeOfThis {
     }
   }
 }
+
+module Regression {
+  class A {
+    var b: bool
+    var y: int
+
+    constructor Make0()
+      ensures b == false
+    {
+      b := false;
+    }
+
+    constructor Make1()
+      ensures b == true
+    {
+      b := true;
+    }
+
+    constructor Make2()
+    {
+      b := false;
+      new;
+      assert !b;
+    }
+
+    constructor Make3()
+      ensures b == false && y == 65
+    {
+      b := false;
+      y := 65;
+      new;
+      assert !b;
+      assert y == 65;
+    }
+
+    constructor Make4(bb: bool, yy: int)
+      ensures b == bb && y == yy
+    {
+      b, y := bb, yy;
+    }
+  }
+}
 method Main()
 {
   var m := new M0.MyClass.Init(20);
   print m.a, ", ", m.b, ", ", m.c, "\n";
+  var r0 := new Regression.A.Make0();
+  var r1 := new Regression.A.Make1();
+  assert r0.b != r1.b;
+  print r0.b, ", ", r1.b, "\n";
 }
 
-Dafny program verifier finished with 11 verified, 0 errors
+Dafny program verifier finished with 16 verified, 0 errors
 Program compiled successfully
 Running...
 
 37, 17, (314.0 / 100.0)
+False, True

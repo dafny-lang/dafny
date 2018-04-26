@@ -4,6 +4,10 @@
 method Main() {
   var m := new M0.MyClass.Init(20);
   print m.a, ", ", m.b, ", ", m.c, "\n";
+  var r0 := new Regression.A.Make0();
+  var r1 := new Regression.A.Make1();
+  assert r0.b != r1.b;
+  print r0.b, ", ", r1.b, "\n";
 }
 
 module M0 {
@@ -129,3 +133,44 @@ module TypeOfThis {
     }
   }
 }
+
+module Regression {
+  class A {
+    var b: bool
+    var y: int
+
+    constructor Make0()
+      ensures b == false  // regression test: this didn't used to be provable :O
+    {
+      b := false;
+    }
+    constructor Make1()
+      ensures b == true
+    {
+      b := true;
+    }
+    constructor Make2()
+    {
+      b := false;
+      new;  // this sets "alloc" to "true", and the verifier previously was not
+            // able to distinguish the internal field "alloc" from other boolean
+            // fields
+      assert !b;  // regression test: this didn't used to be provable :O
+    }
+    constructor Make3()
+      ensures b == false && y == 65
+    {
+      b := false;
+      y := 65;
+      new;
+      assert !b;  // regression test: this didn't used to be provable :O
+      assert y == 65;
+    }
+    constructor Make4(bb: bool, yy: int)
+      ensures b == bb && y == yy
+    {
+      b, y := bb, yy;
+    }
+  }
+}
+
