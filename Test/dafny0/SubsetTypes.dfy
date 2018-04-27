@@ -185,3 +185,127 @@ module SoftCasts {
       g := z => n;
   }
 }
+
+module AssignmentsFromNewAllocation {
+  // Many of the tests in this module are regression tests
+  class Person { }
+  class Cell<T> { }
+
+  method J(N: nat, p: Person) {
+    var a: array<Person?>;
+    var b: array<Person>;
+    if * {
+      var c;
+      c := new Person[0](_ => null);  // fine
+      c := new Person[1](_ => null);  // error: null is not a Person
+    }
+    a := new Person?[N](_ => p);
+    a := new Person?[N](_ => null);
+    b := new Person[N](_ => p);
+    b := new Person[N](_ => null);  // error: null is not a Person
+  }
+
+  method K(p: Person) returns (a: array<Person?>, b: array<Person>) {
+    if * {
+      a := new Person[0];  // error: cannot assign array<Person> to array<Person?>
+    } else if * {
+      a := new Person[100](_ => p);  // error: ditto
+    } else if * {
+      a := new Person[] [p, p];  // error: ditto
+    } else if * {
+      a := b;  // error: ditto
+    }
+  }
+
+  method L(p: Person) returns (a: array<Person?>, b: array<Person>) {
+    if * {
+      b := new Person?[100];  // error: cannot assign array<Person?> to array<Person>
+    } else if * {
+      b := new Person?[100](_ => p);  // error: ditto
+    } else if * {
+      b := new Person?[] [p, p];  // error: ditto
+    } else if * {
+      b := a;  // error: ditto
+    }
+  }
+
+  method M(N: nat, p: Person) {
+    var a: array<Person?>;
+    var b: array<Person>;
+    if * {
+      a := b;  // error
+    } else if * {
+      b := a;  // error
+    } else if * {
+      a := new Person?[N](_ => p);
+      b := a;  // error
+    } else if * {
+      a := new Person[N](_ => p);  // error: cannot assign array<Person> to array<Person?>
+    } else if * {
+      b := new Person?[N](_ => p);  // error: cannot assign array<Person?> to array<Person>
+    }
+  }
+
+  method N(p: Person) returns (a: array<Person>, b: array<Person?>)
+  {
+    var c := new Person[1] [p];
+    var d := new Person?[1];
+    if * {
+      assume b.Length == 0;  // the next line is an error even in this case
+      a := b;  // error
+    } else if * {
+      assume a.Length == 0;  // the next line is an error even in this case
+      b := a;  // error
+    } else if * {
+      a := c;
+      b := c;  // error
+    } else if * {
+      b := d;
+      a := d;  // error
+    }
+  }
+
+  // unlike array, seq is co-variant in its argument type
+  method O(p: Person) returns (a: seq<Person>, b: seq<Person?>)
+  {
+    var c: seq<Person> := [p];
+    var d: seq<Person?> := [p];
+    var e: seq<Person?> := [null];
+    if * {
+      assume |b| == 0;
+      a := b;  // fine, given the previous line
+    } else if * {
+      b := a;
+    } else if * {
+      a := b;  // error
+    } else if * {
+      a := c;
+      b := c;
+    } else if * {
+      b := d;
+      a := d;
+    } else if * {
+      b := e;
+      a := e;  // error
+    }
+  }
+
+  method P(cc: Cell<Person?>, dd: Cell<Person>)
+  {
+    var c: Cell<Person?>;
+    var d: Cell<Person>;
+    if * {
+      c := new Cell<Person?>;
+    } else if * {
+      d := new Cell<Person?>;  // error: Cell<Person?> is not assignable to Cell<Person>
+    } else if * {
+      c := new Cell<Person>;  // error: Cell<Person> is not assignable to Cell<Person?>
+    } else if * {
+      d := new Cell<Person>;
+    } else if * {
+      c := dd;  // error: Cell<Person> is not assignable to Cell<Person?>
+    } else if * {
+      d := cc;  // error: Cell<Person?> is not assignable to Cell<Person>
+    }
+  }
+}

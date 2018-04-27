@@ -83,7 +83,7 @@ class {:autocontracts} ExtensibleArray<T> {
       elements[length - M] := t;
     } else {
       if more == null {
-        more := new ExtensibleArray<array<T>>.Init();
+        more := new ExtensibleArray.Init();
         Repr := Repr + {more} + more.Repr;
       }
       // "elements" is full, so move it into "more" and allocate a new array
@@ -100,7 +100,7 @@ class {:autocontracts} ExtensibleArray<T> {
 }
 
 method Main() {
-  var a := new ExtensibleArray<int>.Init();
+  var a := new ExtensibleArray.Init();
   var n := 0;
   while n < 256*256+600
     invariant a.Valid() && fresh(a.Repr)
