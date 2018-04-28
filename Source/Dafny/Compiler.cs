@@ -452,10 +452,10 @@ namespace Microsoft.Dafny {
         foreach (Formal arg in ctor.Formals) {
           if (!arg.IsGhost) {
             string nm = FormalName(arg, i);
-            if (arg.Type.IsDatatype || arg.Type.IsTypeParameter || arg.Type.SupportsEquality) {
-              wr.Write(" && Dafny.Helpers.AreEqual(this.@{0}, oth.@{0})", nm);
-            } else {
+            if (IsDirectlyComparable(arg.Type)) {
               wr.Write(" && this.@{0} == oth.@{0}", nm);
+            } else {
+              wr.Write(" && Dafny.Helpers.AreEqual(this.@{0}, oth.@{0})", nm);
             }
             i++;
           }
@@ -1355,6 +1355,11 @@ namespace Microsoft.Dafny {
         s += "<" + TypeNames(typeArgs, wr, tok) + ">";
       }
       return s;
+    }
+
+    static bool IsDirectlyComparable(Type t) {
+      Contract.Requires(t != null);
+      return t.IsBoolType || t.IsCharType || t.IsIntegerType || t.IsRealType || t.AsNewtype != null || t.IsBitVectorType || t.IsBigOrdinalType || t.IsRefType;
     }
 
     bool ComplicatedTypeParameterForCompilation(Type t) {
@@ -3078,10 +3083,10 @@ namespace Microsoft.Dafny {
                 // For example, Dafny allows x==y if x:array<T> and y:array<int> and T is some
                 // type parameter.
                 opString = "== (object)";
-              } else if (e.E0.Type.IsDatatype || e.E0.Type.IsTypeParameter || e.E0.Type.SupportsEquality) {
-                callString = "Equals";
-              } else {
+              } else if (IsDirectlyComparable(e.E0.Type)) {
                 opString = "==";
+              } else {
+                callString = "Equals";
               }
               break;
             }
@@ -3091,11 +3096,11 @@ namespace Microsoft.Dafny {
                 // For example, Dafny allows x==y if x:array<T> and y:array<int> and T is some
                 // type parameter.
                 opString = "!= (object)";
-              } else if (e.E0.Type.IsDatatype || e.E0.Type.IsTypeParameter || e.E0.Type.SupportsEquality) {
+              } else if (IsDirectlyComparable(e.E0.Type)) {
+                opString = "!=";
+              } else {
                 preOpString = "!";
                 callString = "Equals";
-              } else {
-                opString = "!=";
               }
               break;
             }

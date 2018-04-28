@@ -166,7 +166,11 @@ lemma Same2<T>(pat: seq<T>, a: seq<T>)
     if pat[1..] <= a[1..] {
     } else {
       var k :| 0 <= k < |pat[1..]| && pat[1..][..k] + pat[1..][k+1..] <= a[1..];
-      assert 0 <= k+1 < |pat| && pat[..k+1] + pat[k+2..] <= a;
+      calc {
+        pat[1..][..k] + pat[1..][k+1..] <= a[1..];
+      ==
+        pat[..k+1] + pat[k+2..] <= a;
+      }
     }
   } else {
     Same2_Prefix(pat[1..], a);
