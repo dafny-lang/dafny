@@ -83,10 +83,12 @@ method TestD() {
 }
 
 method TestE() {
-  var a: array2<int> := new int[3,2];
-  var b: array?<array2<int>> := new array2<int>[5];
-  b := new array2<int>[5][a, a, a, a, a];
-  b := new array2<int>[5](_ => a);
-  var c: array3<array?<array2<int>>> := new array?<array2<int>>[5,4,3];
-  c := new array?<array2<int>>[5,4,3]((_,_,_) => b);
+  var a: array2?<int> := new int[3,2];
+  var b: array?<array2?<int>> := new array2?<int>[5];
+  b := new array2?<int>[5][a, a, a, a, a];
+  b := new array2?<int>[5](_ => a);
+  var c: array3?<array?<array2?<int>>> := new array?<array2?<int>>[5,4,3];
+  c := new array?<array2?<int>>[5,4,3]((_,_,_) => b);
+  var d: array15?<int>;
+  var e: array16<int>;
 }

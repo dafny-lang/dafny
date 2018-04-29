@@ -579,6 +579,7 @@ bool IsType(ref IToken pt) {
       pt = scanner.Peek();
       return true;
     case _arrayToken:
+    case _arrayToken_q:
     case _bvToken:
     case _set:
     case _iset:
@@ -645,7 +646,7 @@ int StringToInt(string s, int defaultValue, string errString) {
       defaultValue = int.Parse(s);
     }
   } catch (System.OverflowException) {
-    SemErr(string.Format("sorry, {0}  ({1}) are not supported", errString, s));
+    SemErr(string.Format("sorry, {0} ({1}) are not supported", errString, s));
   }
   return defaultValue;
 }
@@ -667,11 +668,12 @@ CHARACTERS
   nonidchar = ANY - idchar.
   /* exclude the characters in 'array' and '\'' */
   nondigitMinusABTick = nondigit - 'a' - 'b' - '\''.
+  nondigitMinusQuery = nondigit - '?'.
   idcharMinusA = idchar - 'a'.
   idcharMinusR = idchar - 'r'.
   idcharMinusY = idchar - 'y'.
   idcharMinusV = idchar - 'v'.
-  idcharMinusPosDigit = idchar - posDigit.
+  idcharMinusPosDigitMinusQuery = idchar - posDigit - '?'.
   idcharMinusTick = idchar - '\''.
   /* string literals */
   charChar = ANY - '\'' - '\\' - cr - lf.
@@ -685,8 +687,10 @@ TOKENS
         |  'a' 'r' [ idcharMinusR {idchar} ]  /* etc. */
         |  'a' 'r' 'r' [ idcharMinusA {idchar} ]
         |  'a' 'r' 'r' 'a' [ idcharMinusY {idchar} ]
-        |  'a' 'r' 'r' 'a' 'y' idcharMinusPosDigit {idchar}
-        |  'a' 'r' 'r' 'a' 'y' posDigit {idchar} nondigit {idchar}
+        |  'a' 'r' 'r' 'a' 'y' idcharMinusPosDigitMinusQuery {idchar}
+        |  'a' 'r' 'r' 'a' 'y' '?' idchar {idchar}
+        |  'a' 'r' 'r' 'a' 'y' posDigit {digit} nondigitMinusQuery {idchar}
+        |  'a' 'r' 'r' 'a' 'y' posDigit {digit} '?' idchar {idchar}
         |  'b' [ idcharMinusV {idchar} ]
         |  'b' 'v' [ nondigit {idchar} ]
         |  'b' 'v' '0' idchar {idchar}
@@ -699,6 +703,7 @@ TOKENS
   hexdigits = "0x" hexdigit {['_'] hexdigit}.
   decimaldigits = digit {['_'] digit} '.' digit {['_'] digit}.
   arrayToken = "array" [posDigit {digit}].
+  arrayToken_q = "array" [posDigit {digit}] '?'.
   bvToken = "bv" ( '0' | posDigit {digit} ).
   bool = "bool".
   char = "char".
@@ -1758,8 +1763,16 @@ TypeAndToken<out IToken tok, out Type ty, bool inExpressionContext>
                                     .)
   | arrayToken                      (. tok = t; .)
     OptGenericInstantiation<out gt, inExpressionContext>
-                                    (. int dims = StringToInt(tok.val.Substring(5), 1, "arrays of that many dimensions");
+                                    (. var dimString = tok.val.Substring(5);
+                                       int dims = StringToInt(dimString, 1, "arrays of that many dimensions");
                                        ty = theBuiltIns.ArrayType(tok, dims, gt, true);
+                                    .)
+  | arrayToken_q                    (. tok = t; .)
+    OptGenericInstantiation<out gt, inExpressionContext>
+                                    (. var dimString = tok.val.Substring(5);
+                                       dimString = dimString.Substring(0, dimString.Length - 1);
+                                       int dims = StringToInt(dimString, 1, "arrays of that many dimensions");
+                                       ty = theBuiltIns.ArrayType(tok, dims, gt, true, true);
                                     .)
   | "("                             (. tok = t; tupleArgTypes = new List<Type>(); .)
     [ Type<out ty>                  (. tupleArgTypes.Add(ty); .)
