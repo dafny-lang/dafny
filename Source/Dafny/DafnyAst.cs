@@ -7834,6 +7834,15 @@ namespace Microsoft.Dafny {
         type = value.Normalize();
       }
     }
+    /// <summary>
+    /// This method can be used when .Type has been found to be erroneous and its current value
+    /// would be unexpected by the rest of the resolver. This method then sets .Type to a neutral
+    /// value.
+    /// </summary>
+    public void ResetTypeAssignment() {
+      Contract.Requires(WasResolved());
+      type = new InferredTypeProxy();
+    }
 #if TEST_TYPE_SYNONYM_TRANSPARENCY
     public void DebugTest_ChangeType(Type ty) {
       Contract.Requires(WasResolved());  // we're here to set it again

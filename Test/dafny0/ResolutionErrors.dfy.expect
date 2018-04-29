@@ -206,14 +206,10 @@ ResolutionErrors.dfy(1412,11): Error: name of module (Y) is used as a variable
 ResolutionErrors.dfy(1412,16): Error: name of module (Y) is used as a variable
 ResolutionErrors.dfy(1413,11): Error: name of type (X) is used as a variable
 ResolutionErrors.dfy(1414,11): Error: name of module (Y) is used as a variable
-ResolutionErrors.dfy(1413,13): Error: second argument to "in" must be a set, multiset, or sequence with elements of type #type, or a map with domain #type (instead got map<real, string>) (expecting element type to be assignable to real (got #type))
-ResolutionErrors.dfy(1414,13): Error: second argument to "in" must be a set, multiset, or sequence with elements of type #module, or a map with domain #module (instead got map<real, string>) (expecting element type to be assignable to real (got #module))
 ResolutionErrors.dfy(1419,16): Error: name of type (X) is used as a variable
 ResolutionErrors.dfy(1420,16): Error: name of module (Y) is used as a variable
 ResolutionErrors.dfy(1421,4): Error: name of type (X) is used as a variable
 ResolutionErrors.dfy(1422,4): Error: name of module (Y) is used as a variable
-ResolutionErrors.dfy(1419,13): Error: arguments must have comparable types (got int and #type)
-ResolutionErrors.dfy(1420,13): Error: arguments must have comparable types (got int and #module)
 ResolutionErrors.dfy(1432,9): Error: type of RHS of assign-such-that statement must be boolean (got int)
 ResolutionErrors.dfy(1431,11): Error: type of left argument to + (int) must agree with the result type (bool)
 ResolutionErrors.dfy(1431,11): Error: type of right argument to + (int) must agree with the result type (bool)
@@ -418,5 +414,5 @@ ResolutionErrors.dfy(2637,27): Error: type parameter (G) passed to method Gimmie
 ResolutionErrors.dfy(2638,26): Error: type parameter (G) passed to method GimmieOne must support zero initialization (got Yt<GW>)
 ResolutionErrors.dfy(2651,50): Error: type of the receiver is not fully determined at this program point
 ResolutionErrors.dfy(2677,11): Error: name of type (Cache) is used as a variable
-ResolutionErrors.dfy(2677,16): Error: element selection requires a sequence, array, multiset, or map (got #type)
-418 resolution/type errors detected in ResolutionErrors.dfy
+ResolutionErrors.dfy(2677,17): Error: incorrect type for selection into ? (got X)
+414 resolution/type errors detected in ResolutionErrors.dfy

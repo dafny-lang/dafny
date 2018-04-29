@@ -11487,8 +11487,10 @@ namespace Microsoft.Dafny
         ResolveNameSegment(e, true, null, opts, false);
         if (e.Type is Resolver_IdentifierExpr.ResolverType_Module) {
           reporter.Error(MessageSource.Resolver, e.tok, "name of module ({0}) is used as a variable", e.Name);
+          e.ResetTypeAssignment();  // the rest of type checking assumes actual types
         } else if (e.Type is Resolver_IdentifierExpr.ResolverType_Type) {
           reporter.Error(MessageSource.Resolver, e.tok, "name of type ({0}) is used as a variable", e.Name);
+          e.ResetTypeAssignment();  // the rest of type checking assumes actual types
         }
 
       } else if (expr is ExprDotName) {
@@ -11496,8 +11498,10 @@ namespace Microsoft.Dafny
         ResolveDotSuffix(e, true, null, opts, false);
         if (e.Type is Resolver_IdentifierExpr.ResolverType_Module) {
           reporter.Error(MessageSource.Resolver, e.tok, "name of module ({0}) is used as a variable", e.SuffixName);
+          e.ResetTypeAssignment();  // the rest of type checking assumes actual types
         } else if (e.Type is Resolver_IdentifierExpr.ResolverType_Type) {
           reporter.Error(MessageSource.Resolver, e.tok, "name of type ({0}) is used as a variable", e.SuffixName);
+          e.ResetTypeAssignment();  // the rest of type checking assumes actual types
         }
 
       } else if (expr is ApplySuffix) {
