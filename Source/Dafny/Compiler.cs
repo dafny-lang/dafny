@@ -1264,6 +1264,7 @@ namespace Microsoft.Dafny {
         return TypeName(type, wr, tok);
       }
     }
+
     string TypeName(Type type, TextWriter wr, Bpl.IToken tok) {
       Contract.Requires(type != null);
       Contract.Ensures(Contract.Result<string>() != null);
@@ -1297,11 +1298,9 @@ namespace Microsoft.Dafny {
         ArrayClassDecl at = xType.AsArrayType;
         Contract.Assert(at != null);  // follows from type.IsArrayType
         Type elType = UserDefinedType.ArrayElementType(xType);
-        string name = TypeName(elType, wr, tok) + "[";
-        for (int i = 1; i < at.Dims; i++) {
-          name += ",";
-        }
-        return name + "]";
+        string typeNameSansBrackets, brackets;
+        TypeName_SplitArrayName(elType, wr, tok, out typeNameSansBrackets, out brackets);
+        return typeNameSansBrackets + TypeNameArrayBrackets(at.Dims) + brackets;
       } else if (xType is UserDefinedType) {
         var udt = (UserDefinedType)xType;
         var s = udt.FullCompileName;
@@ -1342,6 +1341,34 @@ namespace Microsoft.Dafny {
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected type
       }
+    }
+
+    /// <summary>
+    /// Note, C# reverses the order of brackets in array type names.
+    /// </summary>
+    void TypeName_SplitArrayName(Type type, TextWriter wr, Bpl.IToken tok, out string typeNameSansBrackets, out string brackets) {
+      Contract.Requires(type != null);
+
+      var xType = type.NormalizeExpand();
+      if (xType.IsArrayType) {
+        ArrayClassDecl at = xType.AsArrayType;
+        Contract.Assert(at != null);  // follows from type.IsArrayType
+        Type elType = UserDefinedType.ArrayElementType(xType);
+        TypeName_SplitArrayName(elType, wr, tok, out typeNameSansBrackets, out brackets);
+        brackets = TypeNameArrayBrackets(at.Dims) + brackets;
+      } else {
+        typeNameSansBrackets = TypeName(type, wr, tok);
+        brackets = "";
+      }
+    }
+
+    string TypeNameArrayBrackets(int dims) {
+      Contract.Requires(0 <= dims);
+      var name = "[";
+      for (int i = 1; i < dims; i++) {
+        name += ",";
+      }
+      return name + "]";
     }
 
     string TypeName_UDT(string fullCompileName, List<Type> typeArgs, TextWriter wr, Bpl.IToken tok) {
@@ -1579,8 +1606,13 @@ namespace Microsoft.Dafny {
             initializerIsKnown = true;
             Contract.Assert(udt.TypeArgs.Count == 1);
             var arrayClass = (ArrayClassDecl)((NonNullTypeDecl)td).Class;
-            defaultValue = compiler == null ? null : string.Format("new {0}[{1}]", compiler.TypeName(udt.TypeArgs[0], wr, udt.tok),
-              Util.Comma(arrayClass.Dims, _ => "0"));
+            if (compiler == null) {
+              defaultValue = null;
+            } else {
+              string typeNameSansBrackets, brackets;
+              compiler.TypeName_SplitArrayName(udt.TypeArgs[0], wr, udt.tok, out typeNameSansBrackets, out brackets);
+              defaultValue = string.Format("new {0}[{1}]{2}", typeNameSansBrackets, Util.Comma(arrayClass.Dims, _ => "0"), brackets);
+            }
           } else {
             // non-null (non-array) type
             hasSimpleZeroInitializer = false;
@@ -2571,14 +2603,16 @@ namespace Microsoft.Dafny {
         if (tp.ArrayDimensions == null) {
           wr.Write("new {0}()", TypeName(tp.EType, wr, rhs.Tok));
         } else if (tp.ElementInit != null || tp.InitDisplay != null || HasSimpleZeroInitializer(tp.EType)) {
-          wr.Write("new {0}", TypeName(tp.EType, wr, rhs.Tok));
+          string typeNameSansBrackets, brackets;
+          TypeName_SplitArrayName(tp.EType, wr, rhs.Tok, out typeNameSansBrackets, out brackets);
+          wr.Write("new {0}", typeNameSansBrackets);
           string prefix = "[";
           foreach (Expression dim in tp.ArrayDimensions) {
             wr.Write("{0}(int)", prefix);
             TrParenExpr(dim, wr, false);
             prefix = ", ";
           }
-          wr.Write("]");
+          wr.Write("]{0}", brackets);
         } else {
           wr.Write("Dafny.ArrayHelpers.InitNewArray{0}<{1}>", tp.ArrayDimensions.Count, TypeName(tp.EType, wr, rhs.Tok));
           wr.Write("(");
