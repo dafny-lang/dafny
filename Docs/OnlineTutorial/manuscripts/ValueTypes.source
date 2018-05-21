@@ -1,0 +1,562 @@
+<h1>Value Types</h1>
+
+<p>Value types are types which represent some information that does not depend on
+the state of the heap. These values have a mathematical flair: they cannot be modified
+once they are created. Examples include sequences and sets. You don't <em>change</em> a
+set the way you might change an index into an array. Rather, to insert an element into
+as set, you would construct the <em>union</em> of the original set and the singleton set
+containing the new element. The old set is still around, of course. This lack of a dependence
+on the heap makes value types especially useful in specification.
+</p>
+<p>This is not to say that you can't update things with value types in them. Variable that contain
+a value type can be updated to have a new value of that type. It is just that any other variables or
+fields with the same set will keep their old value. Value types can contain references to
+the heap, as in the ubiquitous <c>set<object></c>. In this case, the information in the value type
+is <em>which objects are in the set</em>, which does not depend on the values of any fields stored in
+those objects, for example. Further, all of Dafny's value types can be stored in fields on the heap,
+and used in real code in addition to specifications. Dafny's built in value types are sets, sequences, multisets, and maps.
+</p>
+<h2>Sets</h2>
+
+<p>Sets of various types form one of the core tools of verification for Dafny.
+Sets represent an orderless collection of elements, without repetition. Like
+sequences, sets are immutable value types. This allows them to be used easily
+in annotations, without involving the heap, as a set cannot be modified once
+it has been created. A set has the type:
+</p>
+<snippet>   set<int></snippet>
+
+<p>for a set of integers, for example. In general, sets can be of almost any type, including objects. Concrete sets can be specified by using display notation:</p>
+<listing>
+   var s1 := {}; // the empty set
+   var s2 := {1, 2, 3}; // set contains exactly 1, 2, and 3
+   assert s2 == {1,1,2,3,3,3,3}; // same as before
+   var s3, s4 := {1,2}, {1,4};
+<editor/>
+method()
+{
+   var s1 := {}; // the empty set
+   var s2 := {1, 2, 3}; // set contains exactly 1, 2, and 3
+   assert s2 == {1,1,2,3,3,3,3}; // same as before
+   var s3, s4 := {1,2}, {1,4};
+}
+</listing>
+<p>
+The set formed by the display is the expected set, containing just
+the elements specified. Above we also see that equality is defined
+for sets. Two sets are equal if they have exactly the same elements.
+New sets can be created from existing ones using the common set operations:
+</p>
+<listing>
+   assert s2 + s4 == {1,2,3,4}; // set union
+   assert s2 * s3 == {1,2} && s2 * s4 == {1}; // set intersection
+   assert s2 - s3 == {3}; // set difference
+<editor/>
+method m ()
+{
+   var s1 := {};
+   var s2 := {1, 2, 3};
+   var s3, s4 := {1,2}, {1,4};
+   assert s2 + s4 == {1,2,3,4}; // set union
+   assert s2 * s3 == {1,2} && s2 * s4 == {1}; // set intersection
+   assert s2 - s3 == {3}; // set difference
+}
+</listing>
+<p>
+Note that because sets can only contain at most one of each element,
+the union does not count repeated elements more than once. These 
+operators will result in a finite set if both operands are finite,
+so they cannot generate an infinite set. Unlike the arithmetic 
+operators, the set operators are always defined. In addition to set
+forming operators, there are comparison operators with their usual
+meanings:
+</p>
+<listing>
+   assert {1} <= {1, 2} && {1, 2} <= {1, 2}; // subset
+   assert {} < {1, 2} && !({1} < {1}); // strict, or proper, subset
+   assert !({1, 2} <= {1, 4}) && !({1, 4} <= {1, 4}); // no relation
+   assert {1, 2} == {1, 2} && {1, 3} != {1, 2}; // equality and non-equality
+<editor/>
+method m()
+{
+   assert {1} <= {1, 2} && {1, 2} <= {1, 2}; // subset
+   assert {} < {1, 2} && !({1} < {1}); // strict, or proper, subset
+   assert !({1, 2} <= {1, 4}) && !({1, 4} <= {1, 4}); // no relation
+   assert {1, 2} == {1, 2} && {1, 3} != {1, 2}; // equality and non-equality
+}
+</listing>
+<p>Sets, like sequences, support the <c>in</c> and <c>!in</c> operators, to
+test element membership. For example:
+</p>
+<listing>
+   assert 5 in {1,3,4,5};
+   assert 1 in {1,3,4,5};
+   assert 2 !in {1,3,4,5};
+   assert forall x :: x !in {};
+<editor/>
+method m()
+{
+   assert 5 in {1,3,4,5};
+   assert 1 in {1,3,4,5};
+   assert 2 !in {1,3,4,5};
+   assert forall x :: x !in {};
+}
+</listing>
+<p>
+Sets are used in several annotations, including reads and modifies
+clauses. In this case, they can be sets of a specific object type
+(like <c>Nodes</c> in a linked list), or they can be sets of the 
+generic reference type <c>object</c>. Despite its name, this can point to
+any object or array. This is useful to bundle up all of the locations
+that a function or method might read or write when they can be different types.
+</p>
+
+<p>When used in a decreases clause, sets are ordered by subset. This is unlike
+sequences, which are ordered by length only. In order for sets to be used in
+decreases clauses, the successive values must be "related" in some sense, which
+usually implies that they are recursively calculated, or similar.</p>
+<p>This requirement comes from the fact that there is no way to get the cardinality
+(size) of a set in Dafny. The size is guaranteed to be some finite natural, but it is inaccessible.
+You can test if the set is empty by comparing it to the empty set (<c>s == {}</c> is true if and
+only if <c>s</c> has no elements.)
+</p>
+
+<p>
+A useful way to create sets is using a set comprehension. This defines a new set by including <c>f(x)</c>
+in the set for all <c>x</c> of type <c>T</c> that satisfy <c>p(x)</c>:</p>
+<snippet>   set x: T | p(x) :: f(x) </snippet>
+<p>
+This defines a set in a manner reminiscent of a universal quantifier (<c>forall</c>). As with quanifiers,
+the type can usually be inferred. In contrast to quantifiers, the bar syntax (<c>|</c>) is required to
+seperate the predicate (<c>p</c>) from the bound variable (<c>x</c>). The type of the elements of the resulting set is
+the type of the return value of <c>f(x)</c>. The values in the constructed set are the return values of <c>f(x)</c>:
+<c>x</c> itself acts only as a bridge between the predicate <c>p</c> and the function <c>f</c>. It
+usually has the same type as the resulting set, but it does not need to. As an example:</p>
+
+<listing>
+   assert (set x | x in {0,1,2} :: x * 1) == {0,1,2};
+<editor/>
+method m()
+{
+   assert (set x | x in {0,1,2} :: x * 1) == {0,1,2};
+}
+</listing>
+
+<p>If the function is the identity, then the expression can be written with a particularly nice form:</p>
+
+<listing>
+   assert (set x | x in {0,1,2,3,4,5} && x < 3) == {0,1,2};
+<editor/>
+method m()
+{
+   assert (set x | x in {0,1,2,3,4,5} && x < 3) == {0,1,2};
+}
+</listing>
+
+<p>General, non-identity functions in set comprehensions confuse Dafny easily. For example,
+the following is true, but Dafny cannot prove it:</p>
+
+<listing>
+   assert (set x | x in {0,1,2} :: x + 1) == {1,2,3};
+<editor/>
+method m()
+{
+   assert (set x | x in {0,1,2} :: x + 1) == {1,2,3};
+}
+</listing>
+
+<p>This mechanism has the potential to create an infinite set, which is not allowed in Dafny.
+To prevent this, Dafny employs heuristics in an attempt to prove that that the resulting 
+set will be finite. When creating sets of integers, this can be done by bounding the integers
+in at least one clause of the predicate (something like <c>0 <= x < n</c>). Requiring a bound
+variable to be in an existing set also works, as in <c>x in {0,1,2}</c> from above. This works
+only when the inclusion part is conjuncted (<c>&&</c>'ed) with the rest of the predicate, as it
+needs to limit the possible values to consider.
+</p>
+
+
+
+<h2>Sequences</h2>
+
+<p>Sequences are a built-in Dafny type representing an ordered
+list. They can be used to represent many ordered collections, including lists,
+queues, stacks, etc. Sequences are an immutable value type: they cannot be
+modified once they are created. In this sense, they are similar to strings in
+languages like Java and Python, except they can be sequences of arbitrary
+types, rather than only characters. Sequence types are written:</p>
+
+<snippet>
+   seq<int>
+</snippet>
+
+<p>for a sequence of integers, for example. (Note a known bug
+in Dafny prevents you from creating sequences of naturals, <c>nat</c>.)
+For example, this function takes a sequence as a parameter:</p>
+
+<listing>
+function sorted(s: seq<int>): bool
+{
+   forall i,j :: 0 <= i < j < |s| ==> s[i] <= s[j]
+}
+</listing>
+
+<p>The length of a sequence is written <c>|s|</c>, as in the above quantifier. Specific elements of a
+sequence are accessed using the same square bracket syntax as arrays. Note also
+that the function does not require a reads clause to access the sequence. That
+is because sequences are not stored on the heap; they are values, so functions
+don't need to declare when they are accessing them. The most powerful property
+of sequences is the fact that annotations and functions can create and
+manipulate them. For example, another way of expressing sorted-ness is
+recursive: if the first element is smaller than the rest, and the rest is
+sorted, then the whole array is sorted:</p>
+
+<listing>
+function sorted2(s: seq<int>): bool
+{
+   0 < |s| ==> (forall i :: 0 < i < |s| ==> s[0] <= s[i]) &&
+               sorted2(s[1..])
+}
+</listing>
+
+
+<p>The notation <c>s[1..]</c>
+is <em>slicing</em> the sequence. It means starting at the first element, take
+elements until you reach the end. This does not modify s, as sequences are
+immutable. Rather, it creates a new sequence which has all the same elements in
+the same order, except for the first one. This is similar to addition of
+integers in that the original values are not changed, just new ones created.
+The slice notation is:</p>
+
+<snippet>
+   s[i..j]
+</snippet>
+
+<p>where <c>0 <= i <= j <= |s|</c>. Dafny will enforce these index bounds. The resulting sequence
+will have exactly <c>j-i</c> elements, and will start with the element <c>s[i]</c> and
+continue sequentially through the sequence, if the result is non-empty. This
+means that the element at index <c>j</c> is excluded from the slice, which mirrors the
+same half-open interval used for regular indexing.</p>
+
+<p>Sequences can also be constructed from their elements, using <em>display notation</em>:</p>
+
+<snippet>
+   var s := [1, 2, 3];
+</snippet>
+
+<p>Here we have a integer sequence variable in some imperative
+code containing the elements 1,2, and 3. Type inference has been used here to
+get the fact that the sequence is one of integers. This notation allows us to
+construct empty sequences and singleton sequences:</p>
+
+<snippet>
+   [] // the empty sequence, which can be a sequence of any type
+   [true] // a singleton sequence of type seq<bool>
+</snippet>
+
+<p>Slice notation and display notation can be used to check
+properties of sequences:</p>
+
+<listing>
+   var s := [1, 2, 3, 4, 5];
+   assert s[|s|-1] == 5; //access the last element
+   assert s[|s|-1..|s|] == [5]; //slice just the last element, as a singleton
+   assert s[1..] == [2, 3, 4, 5]; // everything but the first
+   assert s[..|s|-1] == [1, 2, 3, 4]; // everything but the last
+   assert s == s[0..] == s[..|s|] == s[0..|s|] == s[..]; // the whole sequence
+<editor/>
+method m()
+{
+   var s := [1, 2, 3, 4, 5];
+   assert s[|s|-1] == 5; //access the last element
+   assert s[|s|-1..|s|] == [5]; //slice just the last element, as a singleton
+   assert s[1..] == [2, 3, 4, 5]; // everything but the first
+   assert s[..|s|-1] == [1, 2, 3, 4]; // everything but the last
+   assert s == s[0..] == s[..|s|] == s[0..|s|]; // the whole sequence
+}
+</listing>
+
+<p>By far the most common operations on sequences are getting
+the first and last elements, and getting everything but the first and last
+elements, as these are often used in recursive functions, such as <c>sorted2</c>
+above. In addition to being deconstructed by being accessed or sliced, sequences
+can also be concatenated, using the plus (<c>+</c>) symbol:</p>
+
+<listing>
+   assert [1,2,3] == [1] + [2,3];
+   assert s == s + [];
+   assert forall i :: 0 <= i <= |s| ==> s == s[..i] + s[i..];
+<editor/>
+method m()
+{
+   var s := [1, 2, 3, 4, 5];
+   assert [1,2,3] == [1] + [2,3];
+   assert s == s + [];
+   assert forall i :: 0 <= i <= |s| ==> s == s[..i] + s[i..];
+}
+</listing>
+
+<p>The second assertion gives a relationship between
+concatenation and slicing. Because the slicing operation is exclusive on one
+side and inclusive on the other, the element appears in the concatenation
+exactly once, as it should. Note that the concatenation operation is
+associative:</p>
+
+<listing>
+   assert forall a: seq<int>, b: seq<int>, c: seq<int> ::
+      (a + b) + c == a + (b + c);
+<editor/>
+method m()
+{
+   assert forall a: seq<int>, b: seq<int>, c: seq<int> ::
+      (a + b) + c == a + (b + c);
+}
+</listing>
+
+<p>but that the Z3 theorem prover will not realize this unless
+it is prompted with an assertion stating that fact (see Lemmas/Induction for
+more information on why this is necessary).</p>
+
+<p>Sequences also support the <c>in</c> and <c>!in</c> operators, which test
+for containment within a sequence:</p>
+
+<listing>
+   assert 5 in s; // using s from before
+   assert 0 !in s;
+<editor/>
+method m()
+{
+   var s := [1, 2, 3, 4, 5];
+   assert 5 in s;
+   assert 0 !in s;
+}
+</listing>
+
+<p>This also allows us an alternate means of quantifying over
+the elements of a sequence, when we don't care about the index. For example, we
+can require that a sequence only contains elements which are indices into the
+sequence:</p>
+
+<listing>
+   var p := [2,3,1,0];
+   assert forall i :: i in p ==> 0 <= i < |s|;
+<editor/>
+method m()
+{
+   var p := [2,3,1,0];
+   assert forall i :: i in p ==> 0 <= i < |s|;
+}
+</listing>
+
+<p>This is a property of each individual element of the
+sequence. If we wanted to relate multiple elements to each other, we would need
+to quantify over the indices, as in the first example.</p>
+
+<p>Sometimes we would like to emulate the updatable nature of
+arrays using sequences. While we can't change the original sequence, we can
+create a new sequence with the same elements everywhere except for the updated
+element:</p>
+
+
+<listing>
+   s[i := v] // replace index i by v in seq s
+<editor/>
+method m()
+{
+   var s := [1,2,3,4];
+   assert s[2 := 6] == [1,2,6,4];
+}
+</listing>
+
+<p>Of course, the index <c>i</c> has to be an index into the array. This syntax is just
+a shortcut for an operation that can be done with regular slicing and access operations.
+Can you fill in the code below that does this?</p>
+
+<listing>
+function update(s: seq<int>, i: int, v: int): seq<int>
+   requires 0 <= index < |s|;
+   ensures update(s, i, v) == s[i := v];
+{
+   // open in the editor to see the answer.
+}
+<editor/>
+function update(s: seq<int>, i: int, v: int): seq<int>
+   requires 0 <= index < |s|;
+   ensures update(s, i, v) == s[i := v];
+{
+   s[..i] + [v] + s[i+1..]
+   // This works by concatenating everything that doesn't
+   // change with the singleton of the new value.
+}
+</listing>
+
+<p>You can also form a sequence from the elements of an array. This is done
+using the same "slice" notation as above:</p>
+
+<listing>
+   var a := new int[3]; // 3 element array of ints
+   a[0], a[1], a[2] := 0, 3, -1;
+   var s := a[..];
+   assert s == [0, 3, -1];
+<editor/>
+method m()
+{
+   var a := new int[3]; // 3 element array of ints
+   a[0], a[1], a[2] := 0, 3, -1;
+   var s := a[..];
+   assert s == [0, 3, -1];
+}
+</listing>
+
+<p>To get just part of the array, the bounds can be given just like in a regular
+slicing operation:</p>
+
+<listing>
+   assert a[1..] == [3, -1];
+   assert a[..1] == [0];
+   assert a[1..2] == [3];
+<editor/>
+method m()
+{
+   var a := new int[3]; // 3 element array of ints
+   a[0], a[1], a[2] := 0, 3, -1;
+   assert a[1..] == [3, -1];
+   assert a[..1] == [0];
+   assert a[1..2] == [3];
+}
+</listing>
+
+<p>Because sequences support <c>in</c> and <c>!in</c>, this operation gives us
+an easy way to express the "element not in array" property, turning:  
+</p>
+<snippet>forall k :: 0 <= k < a.Length ==> elem != a[k]</snippet>
+<p>into:</p>
+<snippet>elem !in a[..]</snippet>
+<p>Further, bounds are easily included:</p>
+<snippet>
+  forall k :: 0 <= k < i ==> elem != a[k]</snippet>
+<p>is the same as</p>
+<snippet>elem !in a[..i]</snippet>
+
+<h2>Multisets</h2>
+
+<p>Multisets are like sets in almost every way, except that they keep track of how
+many copies of each element they have. This makes them particularly useful for storing
+the set of elements in an array, for example, where the number of copies of each element is the same.</p>
+<p>The multiset type is almost the same as sets:</p>
+<snippet>
+   multiset<int>
+</snippet>
+<p>Similarly, to give a multiset literal, you write curly braces, except preceeded by the <c>multiset</c> keyword:</p>
+<snippet>
+  multiset{3,5,7,3}
+</snippet>
+<p>Be careful! <c>multiset({3,3})</c> is not a multiset literal with two 3's. The braces have to be
+adjacent to the keyword for it to work as you would expect.
+</p>
+<p>Like sets, multisets are unordered. However, because they keep track of how many of each
+element they have, the above literal actually has two 3's in it.</p>
+
+<p>Many of the operations defined on sets are also available for multisets. You can use <c>in</c> to
+test whether some element is in a multiset (in means that it has at least one member of the given value). Multiset union
+(<c>+</c>) means take elements from both, and add them up. So if one multiset has two 3's and another has one, then their multiset
+union would have a total of three 3's. The multiset difference (<c>-</c>) works similarly, in that the duplicity of the elements
+(i.e. how many of each element are in the multiset) matters. So the following:
+</p>
+<listing>
+  assert (multiset{1,1,1} - multiset{1,1}) == multiset{1};
+<editor/>
+method test()
+{
+   assert (multiset{1,1,1} - multiset{1,1}) == multiset{1};
+}
+</listing>
+<p>holds, because we start with three 1's, then take away two to be left with one.</p>
+
+<p>Multiset disjoint (<c>!!</c>) works as expected, and is true if and only if the two multisets have no members in common.
+Also, two multisets are equal if they have exactly the same count of each element.
+</p>
+
+<p>Finally, multisets can be created from both sequences and sets by using multiset with parentheses: </p>
+<listing>
+  assert multiset([1,1]) == multiset{1,1};
+  assert multiset({1,1}) == multiset{1};
+<editor/>
+method test()
+{
+   assert multiset([1,1]) == multiset{1,1};
+   assert multiset({1,1}) == multiset{1};
+}
+</listing>
+<p>Both of these assertions are correct because the multiset of a sequence considers each element seperately,
+whereas a set only has at most one of each element. Dafny lets you write <c>{1,1}</c>, but this is the same
+as <c>{1}</c>, because duplicates are ignored. Thus when making a multiset from a set, each element in the
+multiset will have duplicity exactly one. Making multisets from sequences is particularly useful, as when
+combined with the slice of an array, allows you to talk about the set of elements in an array (as in <c>multiset(a[..])</c>),
+which is very helpful in verifying sorting algorithms and some data structures.
+</p>
+<h2>Maps</h2>
+<p>Maps in Dafny represent <em>associative arrays</em>. Unlike the other types so far, they take two types:
+the <em>key</em> type, and the <em>value</em> type.
+Values can be retrieved, or looked up, based on the key. A map type is written:
+</p>
+<snippet>
+  map<U, V>
+</snippet>
+<p>where <c>U</c> is the key type and <c>V</c> is the value type. For example, we can have a map from integers
+to integers as <c>map<int, int></c>. A literal of this type might be <c>map[4 := 5, 5 := 6]</c>. This map
+associates 4 with 5 and 5 with 6. You can access the value for a given key with <c>m[key]</c>, if <c>m</c> is a
+map and <c>key</c> is a key. So we could write:
+<listing>
+  var m := map[4 := 5, 5 := 6]
+  assert m[4] == 5;
+<editor/>
+method test() {
+  var m := map[4 := 5, 5 := 6]
+  assert m[4] == 5;
+}
+</listing>
+</p>
+<p>This is because 4, taken as a key into <c>m</c>, produces 5. We also know that <c>m[5] == 6</c>, as this is
+the other mapping.
+</p>
+<p>Each map has a <em>domain</em>, which are all of the keys for which that map has values. It is not well formed
+to ask a map for keys outside its domain. So <c>m[7]</c> doesn't make any sense, because <c>m</c> does not define
+any value for 7. To test whether a key is in the domain of a map, you can use the <c>in</c> operator. For example,
+<c>4 in m</c> and <c>5 in m</c>, but <c>7 !in m</c>. With quantifiers, you can say that the domain is some set, as
+in <c>forall i :: i in m <==> 0 <= i < 100</c> (which is true when <c>m</c>'s domain is exactly the numbers 0-99).
+In addition, two maps are disjoint (<c>!!</c>) if their domains taken as sets are disjoint. If two maps are disjoint,
+then their map union (<c>+</c>) is defined and has a domain which is the union of both original domains and assigns
+keys to the same value as in the original maps.
+</p>
+
+<p>If <c>m</c> is a map, then <c>m[i := j]</c> is a new map which is the result of adding <c>i</c> to the domain of <c>m</c> and 
+then associating the key <c>i</c> with the value <c>j</c>. If <c>i</c> already had a value, then it is overridden in
+the new map. This also means that when using map literals, it is permissible to repeat a key, but then the first value will be
+overridden. So <c>map[3 := 5, 3 := 4] == map[3 := 4]</c>. Note that two maps are equal if they have the same domain, and they
+map equal keys to equal values. Also, the domain of a map must always be finite.
+</p>
+<p>Like sets, maps have a map comprehension. The syntax is almost the same as for sets:</p>
+
+<snippet>  map i: T | p(i) :: f(i)</snippet>
+<p>The difference is that <c>i</c> is the key, and it is mapped to <c>f(i)</c>. <c>p(i)</c> is used to determine what the domain
+of the new map is. So:
+</p>
+<listing>
+  map i | 0 <= i < 10 :: 2*i
+<editor/>
+method test() {
+  var m := map i | 0 <= i < 10 :: 2*i;
+}
+</listing>
+<p>is a map which take the numbers 0-9 to their doubles. This is also how you can remove a key from a map. For example, this expression
+removes the key 3 from an <c>int</c> to <c>int</c> map <c>m</c>:
+</p>
+<listing>
+  map i | i in m && i != 3 :: m[i]
+<editor/>
+method test() {
+  var m := map[3 := 5, 4 := 6, 1 := 4];
+  var l := map i | i in m && i != 3 :: m[i];
+  assert l == map[4:= 6, 1 := 4];
+}
+</listing>
