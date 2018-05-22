@@ -37,3 +37,9 @@ Test/**/Output/
 Test/server/model.bvd
 Test/dafny0/Extern.cs
 Test/desktop/*
+
+Docs/OnlineTutorial/DocumentationTransducer.exe
+Docs/OnlineTutorial/DocumentationTransducer.pdb
+Docs/OnlineTutorial/DocumentationTransducer/obj
+Docs/OnlineTutorial/manuscripts/*.htm
+Docs/OnlineTutorial/manuscripts/*.*.dfy
