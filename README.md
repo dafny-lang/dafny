@@ -6,6 +6,11 @@ Dafny is a programming language with a program verifier. As you type in your pro
 * This site, which includes sources, [binary downloads](https://github.com/Microsoft/dafny/releases) for Windows, Mac, GNU/Linux, and FreeBSD, sources, and the issue tracker (old issues are on [codeplex](https://dafny.codeplex.com/workitem/list/basic)).
 * The [Rise4fun site](http://rise4fun.com/dafny), where you can verify Dafny programs in your web browser.
 
+# Community
+
+You can ask questions about Dafny on [Stack Overflow](https://stackoverflow.com/questions/tagged/dafny) or participate in general discussion on the [mailing list](https://groups.google.com/d/forum/dafny-discuss
+).
+
 # Try Dafny
 
 The easiest way to get started with Dafny is to use [rise4fun](http://rise4fun.com/dafny), where you can write and verify Dafny programs without having install anything. On [rise4fun](http://rise4fun.com/dafny), you will also find the online Dafny tutorial.
