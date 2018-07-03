@@ -10,7 +10,7 @@ method M(a: int, b: int) {
 }
 
 method M_assert_exists(a: int, b: int) {
-  assert exists s :: b != 0 ==> s == a / b && Q(s);  // WISH
+  assert exists s :: (b != 0 ==> s == a / b && Q(s));  // WISH
 }
 
 method N(a: int, b: int)

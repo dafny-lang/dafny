@@ -5427,6 +5427,17 @@ namespace Microsoft.Dafny
             }
           }
 
+
+          if (e is ExistsExpr && e.Range == null) {
+            var binBody = ((ExistsExpr)e).Term as BinaryExpr;
+            if (binBody != null && binBody.Op == BinaryExpr.Opcode.Imp) {  // check Op, not ResolvedOp, in order to distinguish ==> and <==
+              // apply the wisdom of Claude Marche: issue a warning here
+              resolver.reporter.Warning(MessageSource.Resolver, e.tok,
+                "the quantifier has the form 'exists x :: A ==> B', which most often is a typo for 'exists x :: A && B'; " +
+                "if you think otherwise, rewrite as 'exists x :: (A ==> B)' or 'exists x :: !A || B' to suppress this warning");
+            }
+          }
+
         } else if (expr is MemberSelectExpr) {
           var e = (MemberSelectExpr)expr;
           if (e.Member is Function || e.Member is Method) {

@@ -2678,3 +2678,37 @@ module RegressionTest {
     }
   }
 }
+
+module ExistsImpliesWarning {
+  method M(a: array<int>, b: array<int>)
+    requires a.Length == b.Length
+    requires exists i :: 0 <= i < a.Length ==> a[i] == b[i]  // warning
+    requires exists i :: true && (0 <= i < a.Length ==> a[i] == b[i])
+    requires exists i :: (0 <= i < a.Length ==> a[i] == b[i])
+    requires exists i | 0 <= i < a.Length :: true ==> a[i] == b[i]
+    requires exists i | 0 <= i < a.Length :: a[i] == b[i]
+    requires exists i | 0 <= i < a.Length ==> a[i] == b[i] :: true
+    requires exists i :: !(0 <= i < a.Length) || a[i] == b[i]
+    requires exists i :: a[i] == b[i] <== 0 <= i < a.Length  // warning
+    requires exists i :: !(0 <= i < a.Length && a[i] != b[i])
+    requires exists i :: 0 <= i < a.Length && a[i] == b[i]
+    requires exists i :: true ==> (0 <= i < a.Length && a[i] == b[i])  // warning
+  {
+  }
+
+  method N(a: array<int>, b: array<int>)
+    requires a.Length == b.Length
+    requires forall i :: 0 <= i < a.Length ==> a[i] == b[i]
+    requires forall i :: true && (0 <= i < a.Length ==> a[i] == b[i])
+    requires forall i :: (0 <= i < a.Length ==> a[i] == b[i])
+    requires forall i | 0 <= i < a.Length :: true ==> a[i] == b[i]
+    requires forall i | 0 <= i < a.Length :: a[i] == b[i]
+    requires forall i | 0 <= i < a.Length ==> a[i] == b[i] :: true
+    requires forall i :: !(0 <= i < a.Length) || a[i] == b[i]
+    requires forall i :: a[i] == b[i] <== 0 <= i < a.Length
+    requires forall i :: !(0 <= i < a.Length && a[i] != b[i])
+    requires forall i :: 0 <= i < a.Length && a[i] == b[i]
+    requires forall i :: true ==> (0 <= i < a.Length && a[i] == b[i])
+  {
+  }
+}
