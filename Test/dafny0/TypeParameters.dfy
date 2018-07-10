@@ -349,3 +349,36 @@ module ArrayTypeMagic {
   datatype Cell<T> = Mk(T)
   datatype DList<T,U> = Nil(Cell) | Cons(T, U, DList)
 }
+
+// -------------- regression test for parsing ------
+
+module ParseGenerics {
+  function F<X>(x: X): int
+
+  type MyType
+
+  ghost method M() {
+    var pair := (F<MyType>, 5);  // previously, this had not parsed
+    var pair' := ((F<MyType>), 5);  // this was a workaround
+  }
+
+  datatype List<Y> = Nil | Cons(Y, List)
+  
+  function Many(n: List): int
+  {
+    match n
+    case Nil => 18
+    case Cons(_, tail) => Many(tail)
+  }
+
+  lemma TestA(u: real) {
+    var xs := Cons(u, Cons(u, Cons(u, Cons(u, Nil))));
+    assert Many(xs) == 18;  // error: would not to unroll the function more
+  }
+
+  lemma TestB(u: real) {
+    var xs := Cons(u, Cons(u, Cons(u, Cons(u, Nil))));
+    // the following attribute previously caused a parsing error
+    assert {:fuel Many<real>, 10} Many(xs) == 18;  // yes
+  }
+}

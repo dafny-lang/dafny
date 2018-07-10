@@ -589,6 +589,7 @@ bool IsGenericInstantiation(bool inExpressionContext) {
     case _closeparen:
     case _rbracket:
     case _rbrace:
+    case _comma:
     case _semi:
     case _then:
     case _else:
