@@ -5775,7 +5775,11 @@ namespace Microsoft.Dafny {
       Reset();
     }
 
-    Bpl.Expr CtorInvocation(MatchCase mc, ExpressionTranslator etran, List<Variable> locals, BoogieStmtListBuilder localTypeAssumptions, IsAllocType isAlloc) {
+    /// <summary>
+    /// If "declareLocals" is "false", then the locals are added only if they are new, that is, if
+    /// they don't already exist in "locals".
+    /// </summary>
+    Bpl.Expr CtorInvocation(MatchCase mc, ExpressionTranslator etran, List<Variable> locals, BoogieStmtListBuilder localTypeAssumptions, IsAllocType isAlloc, bool declareLocals = true) {
       Contract.Requires(mc != null);
       Contract.Requires(etran != null);
       Contract.Requires(locals != null);
@@ -5786,8 +5790,14 @@ namespace Microsoft.Dafny {
       List<Bpl.Expr> args = new List<Bpl.Expr>();
       for (int i = 0; i < mc.Arguments.Count; i++) {
         BoundVar p = mc.Arguments[i];
-        Bpl.Variable local = new Bpl.LocalVariable(p.tok, new Bpl.TypedIdent(p.tok, p.AssignUniqueName(currentDeclaration.IdGenerator), TrType(p.Type)));
-        locals.Add(local);
+        var nm = p.AssignUniqueName(currentDeclaration.IdGenerator);
+        Bpl.Variable local = declareLocals ? null : locals.FirstOrDefault(v => v.Name == nm);  // find previous local
+        if (local == null) {
+          local = new Bpl.LocalVariable(p.tok, new Bpl.TypedIdent(p.tok, nm, TrType(p.Type)));
+          locals.Add(local);
+        } else {
+          Contract.Assert(Bpl.Type.Equals(local.TypedIdent.Type, TrType(p.Type)));
+        }
         Type t = mc.Ctor.Formals[i].Type;
         var pIsAlloc = (isAlloc == ISALLOC) ? isAllocContext.Var(p) : NOALLOC;
         Bpl.Expr wh = GetWhereClause(p.tok, new Bpl.IdentifierExpr(p.tok, local), p.Type, etran, pIsAlloc);
@@ -7187,7 +7197,7 @@ namespace Microsoft.Dafny {
         for (int i = me.Cases.Count; 0 <= --i; ) {
           MatchCaseExpr mc = me.Cases[i];
           BoogieStmtListBuilder b = new BoogieStmtListBuilder(this);
-          Bpl.Expr ct = CtorInvocation(mc, etran, locals, b, NOALLOC);
+          Bpl.Expr ct = CtorInvocation(mc, etran, locals, b, NOALLOC, false);
           // generate:  if (src == ctor(args)) { assume args-is-well-typed; mc.Body is well-formed; assume Result == TrExpr(case); } else ...
           CheckWellformedWithResult(mc.Body, options, result, resultType, locals, b, etran);
           ifCmd = new Bpl.IfCmd(mc.tok, Bpl.Expr.Eq(src, ct), b.Collect(mc.tok), ifCmd, els);
