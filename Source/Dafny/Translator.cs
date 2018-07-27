@@ -2046,7 +2046,10 @@ namespace Microsoft.Dafny {
             // The following call has the side effect of idempotently creating and adding the function to the sink's top-level declarations
             Contract.Assert(currentModule == null);
             currentModule = f.EnclosingClass.Module;
+            var oldFuelContext = fuelContext;
+            fuelContext = FuelSetting.NewFuelContext(f);
             var boogieFunction = GetReadonlyField(f);
+            fuelContext = oldFuelContext;
             currentModule = null;
             AddAllocationAxiom(f, c);
           } else {
