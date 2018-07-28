@@ -358,6 +358,7 @@ namespace Microsoft.Dafny
       }
 
       rewriters.Add(new InductionRewriter(reporter));
+      rewriters.Add(new SimplifyingRewriter(this.reporter));
 
       systemNameInfo = RegisterTopLevelDecls(prog.BuiltIns.SystemModule, false);
       prog.CompileModules.Add(prog.BuiltIns.SystemModule);
