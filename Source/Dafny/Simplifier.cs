@@ -82,6 +82,9 @@ namespace Microsoft.Dafny {
       if (res is Some<R>) {
         return ((Some<R>)res).val;
       }
+      if (e is ConcreteSyntaxExpression) {
+        return Visit(e.Resolved, st);
+      }
       // A hacky way to do double dispatch without enumerating all the subclasses
       // of Expression:
       var method = from m in GetType().GetMethods()
