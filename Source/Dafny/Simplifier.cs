@@ -347,6 +347,7 @@ namespace Microsoft.Dafny {
       bool changed = false;
       List<Expression> newLhss = VisitExprs(s.Lhss, st, ref changed);
       List<AssignmentRhs> newRhss = new List<AssignmentRhs>();
+      List<Statement> newResolved = VisitStmts(s.ResolvedStatements, st, ref changed);
       foreach (var rhs in s.Rhss) {
         var newRhs = VisitAssignmentRhs(rhs, st);
         if (newRhs != rhs) {
@@ -357,6 +358,9 @@ namespace Microsoft.Dafny {
       if (changed) {
         var res = new UpdateStmt(s.Tok, s.EndTok, newLhss, newRhss, s.CanMutateKnownState);
         CopyCommon(res, s);
+        foreach (var resolved in newResolved) {
+          res.ResolvedStatements.Add(resolved);
+        }
         return res;
       }
       return s;
