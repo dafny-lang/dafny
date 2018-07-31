@@ -552,7 +552,6 @@ namespace Microsoft.Dafny {
       }
     }
 
-    // FIXME: rewrite this using a visitor
     internal Expression SimplifyInExpr(Expression e) {
       var sv = new SimplifyInExprVisitor(simplifierFuncs, simplifierLemmas);
       return sv.Visit(e, null);
