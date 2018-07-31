@@ -264,12 +264,19 @@ namespace Microsoft.Dafny {
         try {
           return (R) methods[0].Invoke(this, new object[]{s, st});
         } catch(TargetInvocationException tie) {
-          throw tie.InnerException;
+          // Since we use UnificationErrors to signal unification failure we
+          // need to rethrow it here for callers to be able to catch it.
+          if (tie.InnerException is UnificationError) {
+            throw tie.InnerException;
+          }
+          // Otherwise it's useful to get the original exception for debugging
+          // purposes
+          throw tie;
         }
       }
     }
 
-    public Option<R> VisitOneStmt(Statement s, S st) {
+    public virtual Option<R> VisitOneStmt(Statement s, S st) {
       return new None<R>();
     }
   }
@@ -308,8 +315,9 @@ namespace Microsoft.Dafny {
         var res = new VarDeclStmt(s.Tok, s.EndTok, s.Locals, (ConcreteUpdateStatement)newUpd);
         CopyCommon(res, s);
         return res;
+      } else {
+        return s;
       }
-      return s;
     }
 
     internal Expression VisitExpr(Expression e, object st) {
@@ -346,6 +354,7 @@ namespace Microsoft.Dafny {
     public Statement Visit(UpdateStmt s, object st) {
       bool changed = false;
       List<Expression> newLhss = VisitExprs(s.Lhss, st, ref changed);
+      Contract.Assert(newLhss.Count == s.Lhss.Count);
       List<AssignmentRhs> newRhss = new List<AssignmentRhs>();
       List<Statement> newResolved = VisitStmts(s.ResolvedStatements, st, ref changed);
       foreach (var rhs in s.Rhss) {
@@ -355,6 +364,7 @@ namespace Microsoft.Dafny {
         }
         newRhss.Add(newRhs);
       }
+      Contract.Assert(newRhss.Count == s.Rhss.Count);
       if (changed) {
         var res = new UpdateStmt(s.Tok, s.EndTok, newLhss, newRhss, s.CanMutateKnownState);
         CopyCommon(res, s);
@@ -455,6 +465,11 @@ namespace Microsoft.Dafny {
       } else {
         return s;
       }
+    }
+
+    public override Option<Statement> VisitOneStmt(Statement s, object st) {
+      SimplifyingRewriter.DebugMsg($"Visiting statement {Printer.StatementToString(s)}");
+      return new None<Statement>();
     }
   }
 
