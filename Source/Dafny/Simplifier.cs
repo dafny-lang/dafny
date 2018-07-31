@@ -28,6 +28,47 @@ namespace Microsoft.Dafny {
     }
   }
 
+  public class TypeVisitor<R, S> {
+    internal Func<Type, R> defaultRet;
+    public TypeVisitor(Func<Type, R> defaultRet) {
+      this.defaultRet = defaultRet;
+    }
+    public virtual R Visit(Type t, S st) {
+      var res = VisitOneType(t, st);
+      if (res is Some<R>) {
+        return ((Some<R>)res).val;
+      }
+      var method = from m in GetType().GetMethods()
+        where m.Name == "Visit"
+        && m.GetParameters().Length==2
+        && t.GetType().IsAssignableFrom(m.GetParameters()[0].ParameterType)
+        && typeof(S).IsAssignableFrom(m.GetParameters()[1].ParameterType)
+        && m.ReturnType == typeof(R)
+        select m;
+      var methods = method.ToList();
+      if (methods.Count() == 0) {
+        // Console.WriteLine("No suitable method for expression of type: " + e.GetType());
+        return this.defaultRet(t);
+      } else if (methods.Count() > 1) {
+        throw new System.ArgumentException("More than one visit method for: " + t.GetType());
+      } else {
+        try {
+          return (R) methods[0].Invoke(this, new object[]{t, st});
+        } catch(TargetInvocationException tie) {
+          throw tie.InnerException;
+        }
+      }
+    }
+
+    public virtual Option<R> VisitOneType(Type t, S st) {
+      return new None<R>();
+    }
+
+    public virtual R Visit(InferredTypeProxy itp, S st) {
+      return Visit(itp.NormalizeExpandKeepConstraints(), st);
+    }
+  }
+
   // A generic expression visitor parameterized in result and state type
   public class ExpressionVisitor<R, S> {
 
@@ -435,6 +476,117 @@ namespace Microsoft.Dafny {
     }
   }
 
+  public class TypeUnificationError: UnificationError
+  {
+    public TypeUnificationError(String msg):
+      base(msg) {
+    }
+
+    public TypeUnificationError(String prefix, Type pattern, Type target):
+      base(prefix + ": " + pattern + ", " + target)
+    {
+    }
+
+    public TypeUnificationError(Type pattern, Type target):
+      base("Can't unify " + target + " with pattern " + pattern)
+    {
+
+    }
+  }
+
+  internal class TypeUnifier : TypeVisitor<object, Type>
+  {
+    Dictionary<TypeParameter, Type> typeMap;
+
+    public TypeUnifier(Dictionary<TypeParameter, Type> typeMap)
+      : base(e => throw new TypeUnificationError("Unhandled type: " + e))
+    {
+      this.typeMap = typeMap;
+    }
+
+    public override Option<object> VisitOneType(Type t, Type target) {
+      if (t.TypeArgs.Count != target.TypeArgs.Count) {
+        throw new TypeUnificationError("Types have different number of type arguments",
+                                       t, target);
+      }
+      for (int i = 0; i < t.TypeArgs.Count; i++) {
+        Visit(t.TypeArgs[i], target.TypeArgs[i]);
+      }
+      return new None<object>();
+    }
+
+    internal void AddTypeBinding(TypeParameter tp, Type t) {
+      if (typeMap.ContainsKey(tp)) {
+        var val = typeMap[tp];
+        if (!val.Equals(t)) {
+          throw new UnificationError("Conflicting type binding for " + tp + ": " + val + " & " + t);
+        }
+      } else {
+        typeMap.Add(tp, t);
+      }
+    }
+
+    public object Visit(UserDefinedType t, Type target) {
+      if (t.ResolvedParam != null) {
+        AddTypeBinding(t.ResolvedParam, target);
+      } else {
+        Contract.Assert(t.ResolvedClass != null);
+        if (!(target is UserDefinedType)) {
+          throw new TypeUnificationError(t, target);
+        }
+        var ut = (UserDefinedType) target;
+        if (ut.ResolvedClass == null || !t.ResolvedClass.Equals(ut.ResolvedClass)) {
+          throw new TypeUnificationError(t, target);
+        }
+      }
+      return null;
+    }
+
+    public object Visit(IntType bt, Type target) {
+      if (!target.Equals(bt)) {
+        throw new TypeUnificationError(bt, target);
+      }
+      return null;
+    }
+
+    public object Visit(RealType bt, Type target) {
+      if (!target.Equals(bt)) {
+        throw new TypeUnificationError(bt, target);
+      }
+      return null;
+    }
+
+    public object Visit(CharType bt, Type target) {
+      if (!target.Equals(bt)) {
+        throw new TypeUnificationError(bt, target);
+      }
+      return null;
+    }
+
+    public object Visit(BoolType bt, Type target) {
+      if (!target.Equals(bt)) {
+        throw new TypeUnificationError(bt, target);
+      }
+      return null;
+    }
+
+    public object Visit(CollectionType ct, Type target) {
+      if ((ct is SetType) && !(target is SetType)) {
+        throw new TypeUnificationError(ct, target);
+      }
+      else if ((ct is SeqType) && !(target is SeqType)) {
+        throw new TypeUnificationError(ct, target);
+      }
+      else if ((ct is MapType) && !(target is MapType)) {
+        throw new TypeUnificationError(ct, target);
+      }
+      else if ((ct is MultiSetType) && !(target is MultiSetType)) {
+        throw new TypeUnificationError(ct, target);
+      }
+      return null;
+    }
+  }
+
   // Visitor for trying to unify an expression with a pattern
   // Throws a UnificationError if unification fails.
   internal class UnificationVisitor : ExpressionVisitor<object, Expression>
@@ -496,17 +648,6 @@ namespace Microsoft.Dafny {
       }
     }
 
-    internal void AddTypeBinding(TypeParameter tp, Type t) {
-      if (typeMap.ContainsKey(tp)) {
-        var val = typeMap[tp];
-        if (!val.Equals(t)) {
-          throw new UnificationError("Conflicting type binding for " + tp + ": " + val + " & " + t);
-        }
-      } else {
-        typeMap.Add(tp, t);
-      }
-    }
-
     public object Visit(IdentifierExpr e, Expression target) {
       if (IsBound(e.Var)) {
         if (!(target is IdentifierExpr)) {
@@ -561,20 +702,19 @@ namespace Microsoft.Dafny {
         throw new UnificationError("Different type parameters to function: ", fc, target);
       }
       foreach (var key in fctarget.TypeArgumentSubstitutions.Keys) {
-        var lhsType = fc.TypeArgumentSubstitutions[key];
-        if ((lhsType is UserDefinedType) && ((UserDefinedType)lhsType).ResolvedParam != null) {
-          var ut = (UserDefinedType)lhsType;
-          AddTypeBinding(ut.ResolvedParam, fctarget.TypeArgumentSubstitutions[key]);
-        } else {
-          // FIXME: proper using unification procedure for types.
-          throw new UnificationError("Only fully polymorphic simplification lemmas supported at the moment", fc, fctarget);
-        }
+        var typeUnifier = new TypeUnifier(typeMap);
+        typeUnifier.Visit(fc.TypeArgumentSubstitutions[key]
+                          .NormalizeExpandKeepConstraints(),
+                          fctarget.TypeArgumentSubstitutions[key]
+                          .NormalizeExpandKeepConstraints());
       }
+
       for (int i = 0; i < fc.Args.Count; i++) {
         Visit(fc.Args[i].Resolved, fctarget.Args[i].Resolved);
       }
       return null;
     }
+
 
     public object Visit(BinaryExpr be, Expression target) {
       if (!(target is BinaryExpr)) {
