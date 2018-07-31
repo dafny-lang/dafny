@@ -74,6 +74,7 @@ namespace Microsoft.Dafny {
     public virtual Option<R> VisitOneExpr(Expression e, S st) {
       return new None<R>();
     }
+
   }
 
   // A visitor for transforming expressions. Since expression fields are
@@ -181,6 +182,231 @@ namespace Microsoft.Dafny {
         return res;
       }
       return dv;
+    }
+  }
+
+  public class StatementVisitor<R, S>
+  {
+    internal Func<Statement, R> defaultRet;
+    public StatementVisitor() :
+      this(s => default(R)) {
+    }
+
+    public StatementVisitor(Func<Statement, R> defaultRet) {
+      this.defaultRet = defaultRet;
+    }
+
+    public R Visit(Statement s, S st) {
+      Contract.Assert(s != null);
+      var res = VisitOneStmt(s, st);
+      if (res is Some<R>) {
+        return ((Some<R>)res).val;
+      }
+      var method = from m in GetType().GetMethods()
+        where m.Name == "Visit"
+        && m.GetParameters().Length==2
+        && s.GetType().IsAssignableFrom(m.GetParameters()[0].ParameterType)
+        && typeof(S).IsAssignableFrom(m.GetParameters()[1].ParameterType)
+        && m.ReturnType == typeof(R)
+        select m;
+      Contract.Assert(method != null);
+      var methods = method.ToList();
+      if (methods.Count() == 0) {
+        // Console.WriteLine("No suitable method for statement of type: " + s.GetType());
+        return this.defaultRet(s);
+      } else if (methods.Count() > 1) {
+        throw new System.ArgumentException("More than one visit method for: " + s.GetType());
+      } else {
+        //try {
+          return (R) methods[0].Invoke(this, new object[]{s, st});
+        //} catch(TargetInvocationException tie) {
+          //throw tie.InnerException;
+        //}
+      }
+    }
+
+    public Option<R> VisitOneStmt(Statement s, S st) {
+      return new None<R>();
+    }
+  }
+
+  public class StatementTransformer: StatementVisitor<Statement, object>
+  {
+    ExpressionTransformer et = null;
+    public StatementTransformer(ExpressionTransformer et) :
+      base(s => s)
+    {
+      this.et = et;
+    }
+    public Statement Visit(IfStmt s, object st) {
+      Expression newGuard = VisitExpr(s.Guard, st);
+      var newThn = Visit(s.Thn, st);
+      Contract.Assert(newThn is BlockStmt);
+      var newEls = Visit(s.Els, st);
+      if (newGuard != s.Guard || newThn != s.Thn || newEls != s.Els) {
+        var res = new IfStmt(s.Tok, s.EndTok, s.IsBindingGuard, newGuard, (BlockStmt)newThn, newEls);
+        CopyCommon(res, s);
+        return res;
+      }
+      return s;
+    }
+
+    internal void CopyCommon(Statement to, Statement fro) {
+      to.IsGhost = fro.IsGhost;
+      to.Labels = fro.Labels;
+      to.Attributes = fro.Attributes;
+    }
+
+    public Statement Visit(VarDeclStmt s, object st) {
+      var newUpd = Visit(s.Update, st);
+      Contract.Assert(newUpd is ConcreteUpdateStatement);
+      if (newUpd != s.Update) {
+        var res = new VarDeclStmt(s.Tok, s.EndTok, s.Locals, (ConcreteUpdateStatement)newUpd);
+        CopyCommon(res, s);
+        return res;
+      }
+      return s;
+    }
+
+    internal Expression VisitExpr(Expression e, object st) {
+      SimplifyingRewriter.DebugExpression("StatementTransformer: visiting expression: ", e);
+      if (et != null) {
+        return et.Visit(e, st);
+      } else {
+        return e;
+      }
+    }
+
+    public AssignmentRhs VisitAssignmentRhs(AssignmentRhs rhs, object st) {
+      AssignmentRhs newRhs = rhs;
+      if (rhs is ExprRhs) {
+        var erhs = (ExprRhs) rhs;
+        var newRhsExpr = VisitExpr(erhs.Expr, st);
+        newRhs = new ExprRhs(newRhsExpr);
+      }
+      // FIXME: handle the other cases for AssignmentRhs
+      return newRhs;
+    }
+
+    // FIXME: should probably move this to ExpressionVisitor
+    internal List<Expression> VisitExprs(List<Expression> exprs, object st, ref bool changed) {
+      List<Expression> newExprs = new List<Expression>();
+      foreach (var expr in exprs) {
+        var newExpr = VisitExpr(expr, st);
+        if (newExpr != expr) { changed = true; }
+        newExprs.Add(newExpr);
+      }
+      return newExprs;
+    }
+
+    public Statement Visit(UpdateStmt s, object st) {
+      bool changed = false;
+      List<Expression> newLhss = VisitExprs(s.Lhss, st, ref changed);
+      List<AssignmentRhs> newRhss = new List<AssignmentRhs>();
+      foreach (var rhs in s.Rhss) {
+        var newRhs = VisitAssignmentRhs(rhs, st);
+        if (newRhs != rhs) {
+          changed = true;
+        }
+        newRhss.Add(newRhs);
+      }
+      if (changed) {
+        var res = new UpdateStmt(s.Tok, s.EndTok, newLhss, newRhss, s.CanMutateKnownState);
+        CopyCommon(res, s);
+        return res;
+      }
+      return s;
+    }
+
+    public Statement Visit(AssignStmt s, object st) {
+      var newLhs = VisitExpr(s.Lhs, st);
+      var newRhs = VisitAssignmentRhs(s.Rhs, st);
+      if (newLhs != s.Lhs || newRhs != s.Rhs) {
+        var res = new AssignStmt(s.Tok, s.EndTok, newLhs, newRhs);
+        CopyCommon(res, s);
+        return res;
+      }
+      return s;
+    }
+
+    public Statement Visit(PrintStmt s, object st) {
+      bool changed = false;
+      List<Expression> newArgs = VisitExprs(s.Args, st, ref changed);
+      if (changed) {
+        var res = new PrintStmt(s.Tok, s.EndTok, newArgs);
+        CopyCommon(res, s);
+        return res;
+      } else {
+        return s;
+      }
+    }
+
+    public Statement Visit(AssumeStmt s, object st) {
+      var newExpr = VisitExpr(s.Expr, st);
+      if (newExpr != s.Expr) {
+        var res = new AssumeStmt(s.Tok, s.EndTok, newExpr, s.Attributes);
+        CopyCommon(res, s);
+        return res;
+      } else {
+        return s;
+      }
+    }
+
+    public Statement Visit(AssertStmt s, object st) {
+      var newExpr = VisitExpr(s.Expr, st);
+      BlockStmt newProof;
+      if (s.Proof == null) {
+        newProof = null;
+      } else {
+        var np = Visit(s.Proof, st);
+        Contract.Assert(np is BlockStmt);
+        newProof = (BlockStmt)np;
+      }
+      if (newExpr != s.Expr || newProof != s.Proof) {
+        var res = new AssertStmt(s.Tok, s.EndTok, newExpr, newProof, s.Attributes);
+        CopyCommon(res, s);
+        return res;
+      } else {
+        return s;
+      }
+    }
+
+    internal List<Statement> VisitStmts(List<Statement> stmts, object st, ref bool changed) {
+      List<Statement> newStmts = new List<Statement>();
+      foreach (var stmt in stmts) {
+        var newStmt = Visit(stmt, st);
+        if (newStmt != stmt) { changed = true; }
+        newStmts.Add(newStmt);
+      }
+      return newStmts;
+    }
+
+    public Statement Visit(BlockStmt s, object st) {
+      Contract.Assert(s != null);
+      Contract.Assert(s.Body != null);
+      bool changed = false;
+      var newStmts = VisitStmts(s.Body, st, ref changed);
+      if (changed) {
+        var res = new BlockStmt(s.Tok, s.EndTok, newStmts);
+        CopyCommon(res, s);
+        return res;
+      } else {
+        return s;
+      }
+    }
+
+    public Statement Visit(CallStmt s, object st) {
+      bool changed = false;
+      List<Expression> newLhss = VisitExprs(s.Lhs, st, ref changed);
+      List<Expression> newArgs = VisitExprs(s.Args, st, ref changed);
+      // FIXME: visit memberselectexpr as well
+      if (changed) {
+        var res = new CallStmt(s.Tok, s.EndTok, newLhss, s.MethodSelect, newArgs);
+        CopyCommon(res, s);
+        return res;
+      } else {
+        return s;
+      }
     }
   }
 
@@ -519,6 +745,7 @@ namespace Microsoft.Dafny {
         var expr = e;
         // Keep trying to simplify until we (hopefully) reach a fixpoint
         // FIXME: add parameter to control maximum simplification steps?
+        DebugExpression("Simplifying expression: ", e);
         while(true) {
           var sv = new SimplificationVisitor(simplifierLemmas);
           var simplified = sv.Visit(expr, null);
@@ -552,15 +779,32 @@ namespace Microsoft.Dafny {
       }
     }
 
-    internal Expression SimplifyInExpr(Expression e) {
+    protected Expression SimplifyInExpr(Expression e) {
       var sv = new SimplifyInExprVisitor(simplifierFuncs, simplifierLemmas);
       return sv.Visit(e, null);
     }
 
+    internal Statement SimplifyInStmt(Statement stmt) {
+      var exprVis = new SimplifyInExprVisitor(simplifierFuncs, simplifierLemmas);
+      var stmtSimplifyVis = new StatementTransformer(exprVis);
+      return stmtSimplifyVis.Visit(stmt, null);
+    }
+
     internal void SimplifyCalls(ModuleDefinition m) {
-      foreach (Function fun in ModuleDefinition.AllFunctions(m.TopLevelDecls)) {
-        if (fun.Body is ConcreteSyntaxExpression) {
-          ((ConcreteSyntaxExpression)fun.Body).ResolvedExpression = SimplifyInExpr(fun.Body.Resolved);
+      foreach (var callable in ModuleDefinition.AllCallables(m.TopLevelDecls)) {
+        if (callable is Function) {
+          Function fun = (Function) callable;
+          if (fun.Body is ConcreteSyntaxExpression) {
+            ((ConcreteSyntaxExpression)fun.Body).ResolvedExpression = SimplifyInExpr(fun.Body.Resolved);
+          }
+        } else if (callable is Method) {
+          Method meth = (Method) callable;
+          if (meth.Body != null) {
+            var newBody = SimplifyInStmt(meth.Body);
+            Contract.Assert(newBody is BlockStmt);
+            meth.Body = (BlockStmt)newBody;
+            DebugMsg($"New body for {meth.Name}: {Printer.StatementToString(meth.Body)}");
+          }
         }
       }
     }
