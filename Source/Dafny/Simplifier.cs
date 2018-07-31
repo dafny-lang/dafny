@@ -609,7 +609,9 @@ namespace Microsoft.Dafny {
     }
   }
 
-  internal class ExpressionEqualityVisitor: ExpressionVisitor<bool, Expression>
+  // FIXME: We may want to move this to DafnyAst if needed by another class
+  // as well.
+  public class ExpressionEqualityVisitor: ExpressionVisitor<bool, Expression>
   {
     public ExpressionEqualityVisitor(bool def): base(e => def) {
     }
