@@ -660,7 +660,7 @@ namespace Microsoft.Dafny {
                 ((BinaryExpr)l.Ens[0].E).Op == BinaryExpr.Opcode.Eq) {
               simplifierLemmas.Add(l);
             } else {
-              // Console.WriteLine("Simplification lemma not a single equality: " + l);
+              DebugMsg("Simplification lemma not a single equality: " + l);
             }
           }
         }
@@ -669,22 +669,17 @@ namespace Microsoft.Dafny {
 
     // FIXME: use Dafny's logging functions instead
     public static void DebugMsg(String s) {
+      if (!DafnyOptions.O.SimpTrace) {
+        return;
+      }
       Console.WriteLine(s);
     }
 
     public static void DebugExpression(String prefix, Expression e, bool subexps=false) {
-      Console.WriteLine(prefix + Printer.ExprToString(e) + "[" + e.GetType() + "]");
-      if (e is FunctionCallExpr) {
-        var fc = (FunctionCallExpr)e;
-        foreach (var item in fc.TypeArgumentSubstitutions) {
-          Console.WriteLine(item.Key.FullName() + "] " + item.Key.GetHashCode() + "] |-> " + item.Value + "[" + item.Value.GetType() + "]");
-          if (item.Value is UserDefinedType) {
-            var ut = (UserDefinedType) item.Value;
-            Console.WriteLine(prefix + "; " + item.Value + " is user defined; ResolvedParam: " + ut.ResolvedParam +
-                              "[" + ut.ResolvedParam.GetHashCode() + "]");
-          }
-        }
+      if (!DafnyOptions.O.SimpTrace) {
+        return;
       }
+      Console.WriteLine(prefix + Printer.ExprToString(e) + "[" + e.GetType() + "]");
       if (subexps) {
         foreach (var subexp in e.SubExpressions) {
           DebugExpression("\t" + prefix, subexp.Resolved, subexps);
@@ -698,7 +693,9 @@ namespace Microsoft.Dafny {
         var uf = new UnificationVisitor();
         uf.Visit(pattern.Resolved, target);
         return uf;
-      } catch(UnificationError) {
+      } catch(UnificationError ue) {
+        DebugMsg($"Unification of {Printer.ExprToString(pattern)} and " +
+                 $"{Printer.ExprToString(target)} failed with:\n{ue}");
         return null;
       }
     }
@@ -755,12 +752,14 @@ namespace Microsoft.Dafny {
             expr = simplified;
           }
         }
+        DebugExpression("Simplification result: ", expr, true);
         return expr;
       }
 
       public override Expression Visit(FunctionCallExpr fc, object st) {
+        DebugExpression($"Visiting function call to {fc.Function.Name}", fc);
         if (simplifierFuncs.Contains(fc.Function)) {
-          //DebugMsg("Found call to simplifier: " + Printer.ExprToString(fc));
+          DebugMsg("Found call to simplifier: " + Printer.ExprToString(fc));
           List<Expression> newArgs = new List<Expression>();
           foreach (var arg in fc.Args) {
             newArgs.Add(Simplify(arg));
@@ -776,6 +775,11 @@ namespace Microsoft.Dafny {
         } else {
           return fc;
         }
+      }
+
+      public override Option<Expression> VisitOneExpr(Expression e, object st) {
+        DebugExpression("SimplifyInExprVisitor called: ", e);
+        return new None<Expression>();
       }
     }
 
