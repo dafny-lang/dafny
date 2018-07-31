@@ -609,6 +609,28 @@ namespace Microsoft.Dafny {
     }
   }
 
+  internal class ExpressionEqualityVisitor: ExpressionVisitor<bool, Expression>
+  {
+    public ExpressionEqualityVisitor(bool def): base(e => def) {
+    }
+
+    public bool Visit(LiteralExpr e, Expression rhs) {
+      if (!(rhs is LiteralExpr)) { return false; }
+      return ((LiteralExpr)rhs).Value.Equals(e.Value);
+    }
+
+    // FIXME: handle other cases
+
+    public override Option<bool> VisitOneExpr(Expression e, Expression rhs) {
+      // If they're the same reference, they are definitely equal:
+      if (e.Equals(rhs)) {
+        return new Some<bool>(true);
+      }
+      return new None<bool>();
+    }
+
+  }
+
   // Visitor for trying to unify an expression with a pattern
   // Throws a UnificationError if unification fails.
   internal class UnificationVisitor : ExpressionVisitor<object, Expression>
@@ -659,10 +681,17 @@ namespace Microsoft.Dafny {
       return null;
     }
 
+    // FIXME: move this function elsewhere
+    public static bool ExpressionsEqual(Expression e1, Expression e2) {
+      return new ExpressionEqualityVisitor(false).Visit(e1, e2);
+    }
+
     internal void AddBinding(IVariable x, Expression e) {
-      if (map.ContainsKey(x)) {
-        var val = map[x];
-        if (!val.Equals(e)) {
+      Expression val;
+      if (map.TryGetValue(x, out val)) {
+        if (!ExpressionsEqual(e, val)) {
+          SimplifyingRewriter.DebugMsg($"Conflicting binding for {x.Name}" +
+                                       $": {Printer.ExprToString(val)} & {Printer.ExprToString(e)}");
           throw new UnificationError("Conflicting binding for " + x + ": " + val + " & " + e);
         }
       } else {
@@ -680,7 +709,9 @@ namespace Microsoft.Dafny {
           throw new UnificationError(e, target);
         }
       } else {
+        // SimplifyingRewriter.DebugMsg($"Trying to add binding {e.Var.Name} |-> {Printer.ExprToString(target)}");
         AddBinding(e.Var, target);
+        // SimplifyingRewriter.DebugMsg("Binding succeeded");
       }
       return null;
     }
@@ -852,12 +883,14 @@ namespace Microsoft.Dafny {
     // Returns null iff unification failed.
     internal static UnificationVisitor UnifiesWith(Expression target, Expression pattern) {
       try {
+        DebugExpression("Trying to unify: ", target);
+        DebugExpression("with pattern: ", pattern);
         var uf = new UnificationVisitor();
         uf.Visit(pattern.Resolved, target);
         return uf;
       } catch(UnificationError ue) {
-        DebugMsg($"Unification of {Printer.ExprToString(pattern)} and " +
-                 $"{Printer.ExprToString(target)} failed with:\n{ue}");
+        //DebugMsg($"Unification of {Printer.ExprToString(pattern)} and " +
+        //         $"{Printer.ExprToString(target)} failed with:\n{ue}");
         return null;
       }
     }
