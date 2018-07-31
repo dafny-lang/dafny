@@ -261,11 +261,11 @@ namespace Microsoft.Dafny {
       } else if (methods.Count() > 1) {
         throw new System.ArgumentException("More than one visit method for: " + s.GetType());
       } else {
-        //try {
+        try {
           return (R) methods[0].Invoke(this, new object[]{s, st});
-        //} catch(TargetInvocationException tie) {
-          //throw tie.InnerException;
-        //}
+        } catch(TargetInvocationException tie) {
+          throw tie.InnerException;
+        }
       }
     }
 
