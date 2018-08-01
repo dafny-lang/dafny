@@ -18,10 +18,6 @@ lemma {:simp} proj0_simp<S, T>(x: S, y: T)
   ensures (x, y).0 == x
 {}
 
-lemma {:simp} Foo_dest_x_simp(x: int, y: int)
-  ensures FooC(x, y).x == x
-{}
-
 datatype Foo = FooC(x: int, y: int)
 
 ghost method letTest() {

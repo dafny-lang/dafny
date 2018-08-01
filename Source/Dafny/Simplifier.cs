@@ -1045,7 +1045,7 @@ namespace Microsoft.Dafny {
             return rewritten;
           }
         }
-        // Rewrite constructor queries
+        // Rewrite constructor fields
         if (e is MemberSelectExpr) {
           var ms = (MemberSelectExpr) e;
           if (ms.Obj is DatatypeValue) {
@@ -1056,6 +1056,17 @@ namespace Microsoft.Dafny {
               if (ctor.QueryField.Equals(ms.Member)) {
                 var newExpr = Expression.CreateBoolLiteral(ms.tok, ctor.Equals(obj.Ctor));
                 return new Some<Expression>(newExpr);
+              }
+            }
+            // Check if we are projecting to a concrete field of the constructor
+            // This is also implementable from within dafny by adding a lemma
+            // for each field of each constructor, but we don't want the user
+            // to have to write all that boilerplate.
+            Contract.Assert(obj.Ctor.Destructors.Count == obj.Arguments.Count);
+            for (int i = 0; i < obj.Ctor.Destructors.Count; i++) {
+              var dtor = obj.Ctor.Destructors[i];
+              if (dtor.Equals(ms.Member)) {
+                return new Some<Expression>(obj.Arguments[i]);
               }
             }
           }
