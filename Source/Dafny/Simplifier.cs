@@ -900,7 +900,8 @@ namespace Microsoft.Dafny {
               var br = (BinaryExpr)l.Ens[0].E;
               simplifierRules.Add(new RewriteRule(br.E0, br.E1));
             } else {
-              DebugMsg("Simplification lemma not a single equality: " + l);
+              reporter.Error(MessageSource.Simplifier, l,
+                             "A simplification lemma must have exactly one equality as ensures clause");
             }
           }
         }
