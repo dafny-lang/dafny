@@ -24,6 +24,6 @@ lemma {:simp} Foo_dest_x_simp(x: int, y: int)
 
 datatype Foo = FooC(x: int, y: int)
 
-method letTest() {
+ghost method letTest() {
   assert simp(Foo(var FooC(a, b) := FooC(7, 8); a)) == 42;
 }

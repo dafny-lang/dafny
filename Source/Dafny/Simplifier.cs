@@ -935,6 +935,7 @@ namespace Microsoft.Dafny {
     internal class SimplificationVisitor: ExpressionTransformer
     {
       HashSet<Lemma> simplifierLemmas;
+      bool inGhost;
 
       internal static Expression WarnUnhandledCase(Expression e) {
         DebugMsg("[SimplificationVisitor] unhandled expression type: " +
@@ -942,9 +943,10 @@ namespace Microsoft.Dafny {
         return e;
       }
 
-      public SimplificationVisitor(HashSet<Lemma> simplifierLemmas) :
+      public SimplificationVisitor(HashSet<Lemma> simplifierLemmas, bool inGhost) :
         base(e => WarnUnhandledCase(e)) {
         this.simplifierLemmas = simplifierLemmas;
+        this.inGhost = inGhost;
       }
 
       internal Expression CallDestructor(IToken tok, DatatypeDestructor dest, Expression val) {
@@ -990,7 +992,7 @@ namespace Microsoft.Dafny {
         // TODO: make inlining lets configurable once we support different
         // sets of simplification rules (then one can add a special simplification set)
         // containing just this rule that users can request where needed
-        if (e is LetExpr) {
+        if (e is LetExpr && inGhost) {
           DebugExpression("Inlining LetExpr: ", e);
           var newE = InlineLet((LetExpr)e);
           if (newE != e) {
@@ -1020,6 +1022,7 @@ namespace Microsoft.Dafny {
     {
       HashSet<Function> simplifierFuncs;
       HashSet<Lemma> simplifierLemmas;
+      bool inGhost;
 
       internal static Expression WarnUnhandledCase(Expression e) {
         DebugMsg("[SimplifyInExprVisitor] unhandled expression type" +
@@ -1027,10 +1030,12 @@ namespace Microsoft.Dafny {
         return e;
       }
 
-      public SimplifyInExprVisitor(HashSet<Function> simplifierFuncs, HashSet<Lemma> simplifierLemmas) :
+      public SimplifyInExprVisitor(HashSet<Function> simplifierFuncs, HashSet<Lemma> simplifierLemmas,
+                                   bool inGhost) :
         base(e => WarnUnhandledCase(e)) {
         this.simplifierFuncs = simplifierFuncs;
         this.simplifierLemmas = simplifierLemmas;
+        this.inGhost = inGhost;
       }
 
       internal Expression Simplify(Expression e) {
@@ -1039,7 +1044,7 @@ namespace Microsoft.Dafny {
         // FIXME: add parameter to control maximum simplification steps?
         DebugExpression("Simplifying expression: ", e);
         while(true) {
-          var sv = new SimplificationVisitor(simplifierLemmas);
+          var sv = new SimplificationVisitor(simplifierLemmas, inGhost);
           var simplified = sv.Visit(expr, null);
           if (simplified == expr) {
             break;
@@ -1078,13 +1083,13 @@ namespace Microsoft.Dafny {
       }
     }
 
-    protected Expression SimplifyInExpr(Expression e) {
-      var sv = new SimplifyInExprVisitor(simplifierFuncs, simplifierLemmas);
+    protected Expression SimplifyInExpr(Expression e, bool inGhost) {
+      var sv = new SimplifyInExprVisitor(simplifierFuncs, simplifierLemmas, inGhost);
       return sv.Visit(e, null);
     }
 
-    internal Statement SimplifyInStmt(Statement stmt) {
-      var exprVis = new SimplifyInExprVisitor(simplifierFuncs, simplifierLemmas);
+    internal Statement SimplifyInStmt(Statement stmt, bool inGhost) {
+      var exprVis = new SimplifyInExprVisitor(simplifierFuncs, simplifierLemmas, inGhost);
       var stmtSimplifyVis = new StatementTransformer(exprVis);
       return stmtSimplifyVis.Visit(stmt, null);
     }
@@ -1094,12 +1099,13 @@ namespace Microsoft.Dafny {
         if (callable is Function) {
           Function fun = (Function) callable;
           if (fun.Body is ConcreteSyntaxExpression) {
-            ((ConcreteSyntaxExpression)fun.Body).ResolvedExpression = SimplifyInExpr(fun.Body.Resolved);
+            ((ConcreteSyntaxExpression)fun.Body).ResolvedExpression =
+              SimplifyInExpr(fun.Body.Resolved, fun.IsGhost);
           }
         } else if (callable is Method) {
           Method meth = (Method) callable;
           if (meth.Body != null) {
-            var newBody = SimplifyInStmt(meth.Body);
+            var newBody = SimplifyInStmt(meth.Body, meth.IsGhost);
             Contract.Assert(newBody is BlockStmt);
             meth.Body = (BlockStmt)newBody;
             DebugMsg($"New body for {meth.Name}: {Printer.StatementToString(meth.Body)}");

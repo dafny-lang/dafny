@@ -14,6 +14,6 @@ lemma {:simp} Foo_42(x: int)
   reveal Foo();
 }
 
-method letTest() {
+ghost method letTest() {
   assert simp(Foo(var a, b := 7, 8; a)) == 42;
 }

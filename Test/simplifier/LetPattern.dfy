@@ -19,6 +19,6 @@ lemma {:simp} proj0_simp<S, T>(x: S, y: T)
 {
 }
 
-method letTest() {
+ghost method letTest() {
   assert simp(Foo(var (a, b) := (7, 8); a)) == 42;
 }
