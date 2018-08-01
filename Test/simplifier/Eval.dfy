@@ -121,10 +121,6 @@ lemma {:simp} Eval_Var_simp(x: Var, ctx: Context)
 
 
 ghost method test(x: int) {
-  forall ctx: Context ensures true {
-    assert simp(Eval(Add(Lit(4), Lit(3)), ctx)) == 7;
-  }
-
   assert simp(var ctx := Cons(Pair("x", x), LNil); Eval(Add(Var("x"), Add(Var("x"), Var("x"))), ctx)) ==
   3 * x;
 }
