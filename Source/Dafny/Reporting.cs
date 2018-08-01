@@ -13,6 +13,7 @@ namespace Microsoft.Dafny {
   public enum MessageSource {
     Parser, Resolver, Translator, Rewriter, Other,
     RefinementTransformer,
+    Simplifier,
     Cloner,
     Compiler
   }

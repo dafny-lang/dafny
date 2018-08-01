@@ -885,7 +885,7 @@ namespace Microsoft.Dafny {
           Function f = (Function) decl;
           if (Attributes.Contains(f.Attributes, "simplifier")) {
             if (Attributes.Contains(f.Attributes, "simp")) {
-              reporter.Error(MessageSource.Rewriter, f,
+              reporter.Error(MessageSource.Simplifier, f,
                              "Function cannot be both a simplifier and a simplification target");
             }
             simplifierFuncs.Add(f);
