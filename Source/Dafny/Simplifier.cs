@@ -541,7 +541,7 @@ namespace Microsoft.Dafny {
       this.typeMap = typeMap;
     }
 
-    public override Option<object> VisitOneType(Type t, Type target) {
+    internal void UnifyTypeArgs(Type t, Type target) {
       if (t.TypeArgs.Count != target.TypeArgs.Count) {
         throw new TypeUnificationError("Types have different number of type arguments",
                                        t, target);
@@ -549,6 +549,18 @@ namespace Microsoft.Dafny {
       for (int i = 0; i < t.TypeArgs.Count; i++) {
         Visit(t.TypeArgs[i], target.TypeArgs[i]);
       }
+    }
+
+    public override Option<object> VisitOneType(Type t, Type target) {
+      if (t is UserDefinedType) {
+        var ut = (UserDefinedType)t;
+        if (ut.ResolvedParam != null) {
+          // We don't need to unify the type arguments if the pattern is a
+          // type parameter
+          return new None<object>();
+        }
+      }
+      UnifyTypeArgs(t, target);
       return new None<object>();
     }
 
