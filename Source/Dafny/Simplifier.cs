@@ -74,17 +74,27 @@ namespace Microsoft.Dafny {
   public class ExpressionVisitor<R, S> {
 
     internal Func<Expression, R> defaultRet;
-    public ExpressionVisitor(Func<Expression, R> defaultRet) {
+    // This is a bit of an ad-hoc extension to handle StmtExprs in the
+    // unification visitor to avoid having to call this function on each
+    // recursive call.
+    internal Func<S, S> transformState;
+
+    public ExpressionVisitor(Func<Expression, R> defaultRet, Func<S, S> transformState=null) {
       this.defaultRet = defaultRet;
+      if (transformState == null) {
+        this.transformState = (s) => s;
+      } else {
+        this.transformState = transformState;
+      }
     }
 
     public virtual R Visit(Expression e, S st) {
-      Option<R> res = VisitOneExpr(e, st);
+      Option<R> res = VisitOneExpr(e, transformState(st));
       if (res is Some<R>) {
         return ((Some<R>)res).val;
       }
       if (e is ConcreteSyntaxExpression) {
-        return Visit(e.Resolved, st);
+        return Visit(e.Resolved, transformState(st));
       }
       // A hacky way to do double dispatch without enumerating all the subclasses
       // of Expression:
@@ -103,7 +113,7 @@ namespace Microsoft.Dafny {
         throw new System.ArgumentException("More than one visit method for: " + e.GetType());
       } else {
         try {
-          return (R) methods[0].Invoke(this, new object[]{e, st});
+          return (R) methods[0].Invoke(this, new object[]{e, transformState(st)});
         } catch(TargetInvocationException tie) {
           throw tie.InnerException;
         }
@@ -235,6 +245,20 @@ namespace Microsoft.Dafny {
         var res = new MemberSelectExpr(e.tok, newObj, (Field)e.Member);
         res.Type = e.Type;
         res.TypeApplication = e.TypeApplication;
+        return res;
+      } else {
+        return e;
+      }
+    }
+
+    public virtual Expression Visit(StmtExpr e, object st) {
+      // FIXME:
+      // For now, we don't visit the statement part, since this isn't really
+      // necessary for the simplification cases we care about... I hope
+      var newE = Visit(e.E, st);
+      if (newE != e.E) {
+        var res = new StmtExpr(e.tok, e.S, newE);
+        res.Type = e.Type;
         return res;
       } else {
         return e;
@@ -688,8 +712,21 @@ namespace Microsoft.Dafny {
     internal Dictionary<TypeParameter, Type> typeMap =
       new Dictionary<TypeParameter, Type>();
 
+    // I'm not sure if we need to do more here to take the statement part of
+    // a StmtExpr into account when rewriting; currently we just drop
+    // the statement part in unification, since the patterns (i.e. the RHS of
+    // simplification rules) will probably never contain StmtExprs anyway.
+    public static Expression UnwrapStmtExpr(Expression e) {
+      if (e is StmtExpr) {
+        return UnwrapStmtExpr(((StmtExpr)e).E);
+      } else {
+        return e;
+      }
+    }
+
     public UnificationVisitor()
-      : base(e => throw new UnificationError("Unhandled expression type: " + e.GetType()))
+      : base(e => throw new UnificationError("Unhandled expression type: " + e.GetType()),
+             UnwrapStmtExpr)
     {
       this.boundVars = new Stack<HashSet<IVariable>>();
     }
