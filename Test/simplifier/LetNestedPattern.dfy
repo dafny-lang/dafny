@@ -14,10 +14,6 @@ lemma {:simp} Foo_42(x: int)
   reveal Foo();
 }
 
-lemma {:simp} proj0_simp<S, T>(x: S, y: T)
-  ensures (x, y).0 == x
-{}
-
 datatype ADT = FooC(x: int, y: int)
 
 ghost method letTest() {
