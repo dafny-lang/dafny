@@ -1045,6 +1045,21 @@ namespace Microsoft.Dafny {
             return rewritten;
           }
         }
+        // Rewrite constructor queries
+        if (e is MemberSelectExpr) {
+          var ms = (MemberSelectExpr) e;
+          if (ms.Obj is DatatypeValue) {
+            var obj = (DatatypeValue)ms.Obj;
+            // Check if member we selected is the query field of one of the
+            // constructors:
+            foreach (var ctor in obj.Ctor.EnclosingDatatype.Ctors) {
+              if (ctor.QueryField.Equals(ms.Member)) {
+                var newExpr = Expression.CreateBoolLiteral(ms.tok, ctor.Equals(obj.Ctor));
+                return new Some<Expression>(newExpr);
+              }
+            }
+          }
+        }
         // inline function calls to functions that have simp attribute
         if (e is FunctionCallExpr) {
           var fc = (FunctionCallExpr)e;
