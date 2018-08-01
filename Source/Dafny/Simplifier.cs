@@ -1000,7 +1000,7 @@ namespace Microsoft.Dafny {
             return new Some<Expression>(newE);
           }
         }
-        // try to rewrite equalities to false
+        // try to rewrite comparisons between literals
         if (e is BinaryExpr) {
           var br = (BinaryExpr)e;
           // TODO: set/map/multiset literals are not LiteralExprs, so we need to handle these specially
@@ -1026,6 +1026,7 @@ namespace Microsoft.Dafny {
             } else if (neqOps.Contains(br.ResolvedOp)) {
               return new Some<Expression>(Expression.CreateBoolLiteral(br.tok, !v1.Equals(v2)));
             }
+            // TODO: other comparison operations
           }
         }
         foreach (var simpLem in simplifierLemmas) {
