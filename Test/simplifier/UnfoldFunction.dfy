@@ -14,18 +14,21 @@ lemma {:simp} Foo_42(x: int)
   reveal Foo();
 }
 
-function method {:simp} const7(): int
+function method {:simp} {:opaque} const7(): int
 {
   7
 }
 
-function method {:simp} const7P<T>(x: T): int
+function method {:simp} {:opaque} const7P<T>(x: T): int
 {
   7
 }
+
+function method {:simp} {:opaque} id(x: int): int { x }
 
 method test<S>(x: S) {
   assert simp(Foo(const7())) == 42;
   assert simp(Foo(const7P(x))) == 42;
+  assert simp(Foo(id(7))) == 42;
 }
 
