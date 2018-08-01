@@ -870,15 +870,23 @@ namespace Microsoft.Dafny {
       Contract.Requires(reporter != null);
     }
 
-    protected HashSet<Function> simplifierFuncs = new HashSet<Function>();
-    protected HashSet<Lemma> simplifierLemmas = new HashSet<Lemma>();
+    HashSet<Function> simplifierFuncs = new HashSet<Function>();
+    HashSet<RewriteRule> simplifierRules = new HashSet<RewriteRule>();
+
+    internal Lemma GenerateDefinitionLemma(Function f) {
+      return null; // tbd
+    }
 
     internal void FindSimplificationCallables(ModuleDefinition m) {
+      List<Lemma> defLemmas = new List<Lemma>();
       foreach (var decl in ModuleDefinition.AllCallables(m.TopLevelDecls)) {
         if (decl is Function) {
           Function f = (Function) decl;
+          // TODO: throw error if both attributes are present on a lemma
           if (Attributes.Contains(f.Attributes, "simplifier")) {
             simplifierFuncs.Add(f);
+          } else if (Attributes.Contains(f.Attributes, "simp")) {
+            defLemmas.Add(GenerateDefinitionLemma(f));
           }
         }
         else if (decl is Lemma) {
@@ -887,7 +895,8 @@ namespace Microsoft.Dafny {
             if (l.Ens.Count() == 1 &&
                 l.Ens[0].E is BinaryExpr &&
                 ((BinaryExpr)l.Ens[0].E).Op == BinaryExpr.Opcode.Eq) {
-              simplifierLemmas.Add(l);
+              var br = (BinaryExpr)l.Ens[0].E;
+              simplifierRules.Add(new RewriteRule(br.E0, br.E1));
             } else {
               DebugMsg("Simplification lemma not a single equality: " + l);
             }
@@ -934,7 +943,7 @@ namespace Microsoft.Dafny {
 
     internal class SimplificationVisitor: ExpressionTransformer
     {
-      HashSet<Lemma> simplifierLemmas;
+      HashSet<RewriteRule> simplifierLemmas;
       bool inGhost;
 
       internal static Expression WarnUnhandledCase(Expression e) {
@@ -943,7 +952,7 @@ namespace Microsoft.Dafny {
         return e;
       }
 
-      public SimplificationVisitor(HashSet<Lemma> simplifierLemmas, bool inGhost) :
+      public SimplificationVisitor(HashSet<RewriteRule> simplifierLemmas, bool inGhost) :
         base(e => WarnUnhandledCase(e)) {
         this.simplifierLemmas = simplifierLemmas;
         this.inGhost = inGhost;
@@ -1030,14 +1039,11 @@ namespace Microsoft.Dafny {
           }
         }
         foreach (var simpLem in simplifierLemmas) {
-          // if (simpLem.TypeArgs.Count
-          // TODO: insert contract calls that lemma is equality
-          var eq = (BinaryExpr)simpLem.Ens[0].E;
-          var uv = UnifiesWith(e.Resolved, eq.E0.Resolved);
+          var uv = UnifiesWith(e.Resolved, simpLem.Lhs);
           if (uv != null) {
             // DebugMsg(e.Resolved + " unifies with " + eq.E0.Resolved);
             // FIXME: check that we don't need the receiverParam argument
-            var res = Translator.Substitute(eq.E1.Resolved, null, uv.GetSubstMap, uv.GetTypeSubstMap);
+            var res = Translator.Substitute(simpLem.Rhs, null, uv.GetSubstMap, uv.GetTypeSubstMap);
             return new Some<Expression>(res);
           }
         }
@@ -1050,7 +1056,7 @@ namespace Microsoft.Dafny {
     internal class SimplifyInExprVisitor : ExpressionTransformer
     {
       HashSet<Function> simplifierFuncs;
-      HashSet<Lemma> simplifierLemmas;
+      HashSet<RewriteRule> simplifierRules;
       bool inGhost;
 
       internal static Expression WarnUnhandledCase(Expression e) {
@@ -1059,11 +1065,11 @@ namespace Microsoft.Dafny {
         return e;
       }
 
-      public SimplifyInExprVisitor(HashSet<Function> simplifierFuncs, HashSet<Lemma> simplifierLemmas,
+      public SimplifyInExprVisitor(HashSet<Function> simplifierFuncs, HashSet<RewriteRule> simplifierRules,
                                    bool inGhost) :
         base(e => WarnUnhandledCase(e)) {
         this.simplifierFuncs = simplifierFuncs;
-        this.simplifierLemmas = simplifierLemmas;
+        this.simplifierRules = simplifierRules;
         this.inGhost = inGhost;
       }
 
@@ -1073,7 +1079,7 @@ namespace Microsoft.Dafny {
         // FIXME: add parameter to control maximum simplification steps?
         DebugExpression("Simplifying expression: ", e);
         while(true) {
-          var sv = new SimplificationVisitor(simplifierLemmas, inGhost);
+          var sv = new SimplificationVisitor(simplifierRules, inGhost);
           var simplified = sv.Visit(expr, null);
           if (simplified == expr) {
             break;
@@ -1113,12 +1119,12 @@ namespace Microsoft.Dafny {
     }
 
     protected Expression SimplifyInExpr(Expression e, bool inGhost) {
-      var sv = new SimplifyInExprVisitor(simplifierFuncs, simplifierLemmas, inGhost);
+      var sv = new SimplifyInExprVisitor(simplifierFuncs, simplifierRules, inGhost);
       return sv.Visit(e, null);
     }
 
     internal Statement SimplifyInStmt(Statement stmt, bool inGhost) {
-      var exprVis = new SimplifyInExprVisitor(simplifierFuncs, simplifierLemmas, inGhost);
+      var exprVis = new SimplifyInExprVisitor(simplifierFuncs, simplifierRules, inGhost);
       var stmtSimplifyVis = new StatementTransformer(exprVis);
       return stmtSimplifyVis.Visit(stmt, null);
     }
@@ -1146,6 +1152,15 @@ namespace Microsoft.Dafny {
     internal override void PostResolve(ModuleDefinition m) {
       FindSimplificationCallables(m);
       SimplifyCalls(m);
+    }
+  }
+
+  internal class RewriteRule {
+    public readonly Expression Lhs;
+    public readonly Expression Rhs;
+    public RewriteRule(Expression lhs, Expression rhs) {
+      this.Lhs = lhs;
+      this.Rhs = rhs;
     }
   }
 }
