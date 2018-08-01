@@ -424,6 +424,8 @@ namespace Microsoft.Dafny {
     }
 
     public Statement Visit(AssertStmt s, object st) {
+      Contract.Assert(s != null);
+      Contract.Assert(s.Expr != null);
       var newExpr = VisitExpr(s.Expr, st);
       BlockStmt newProof;
       if (s.Proof == null) {
@@ -866,27 +868,27 @@ namespace Microsoft.Dafny {
   }
 
   public class SimplifyingRewriter : IRewriter {
-    internal SimplifyingRewriter(ErrorReporter reporter) : base(reporter) {
-      Contract.Requires(reporter != null);
-    }
-
+    ErrorReporter reporter;
     HashSet<Function> simplifierFuncs = new HashSet<Function>();
     HashSet<RewriteRule> simplifierRules = new HashSet<RewriteRule>();
 
-    internal Lemma GenerateDefinitionLemma(Function f) {
-      return null; // tbd
+    internal SimplifyingRewriter(ErrorReporter reporter) : base(reporter) {
+      Contract.Requires(reporter != null);
+      this.reporter = reporter;
     }
 
+
     internal void FindSimplificationCallables(ModuleDefinition m) {
-      List<Lemma> defLemmas = new List<Lemma>();
+      List<RewriteRule> defRules = new List<RewriteRule>();
       foreach (var decl in ModuleDefinition.AllCallables(m.TopLevelDecls)) {
         if (decl is Function) {
           Function f = (Function) decl;
-          // TODO: throw error if both attributes are present on a lemma
           if (Attributes.Contains(f.Attributes, "simplifier")) {
+            if (Attributes.Contains(f.Attributes, "simp")) {
+              reporter.Error(MessageSource.Rewriter, f,
+                             "Function cannot be both a simplifier and a simplification target");
+            }
             simplifierFuncs.Add(f);
-          } else if (Attributes.Contains(f.Attributes, "simp")) {
-            defLemmas.Add(GenerateDefinitionLemma(f));
           }
         }
         else if (decl is Lemma) {
@@ -1036,6 +1038,23 @@ namespace Microsoft.Dafny {
               return new Some<Expression>(Expression.CreateBoolLiteral(br.tok, !v1.Equals(v2)));
             }
             // TODO: other comparison operations
+          }
+        }
+        // inline function calls to functions that have simp attribute
+        if (e is FunctionCallExpr) {
+          var fc = (FunctionCallExpr)e;
+          // TODO: make "simp" a constant
+          if (Attributes.Contains(fc.Function.Attributes, "simp")) {
+            Dictionary<IVariable, Expression> substMap = new Dictionary<IVariable, Expression>();
+            Contract.Assert(fc.Args.Count == fc.Function.Formals.Count);
+            for (int i = 0; i < fc.Args.Count; i++) {
+              var formal = fc.Function.Formals[i];
+              var formalVar = new BoundVar(fc.tok, formal.Name, formal.Type);
+              substMap.Add(formalVar, fc.Args[i]);
+            }
+            var substitutedBody = Translator.Substitute(fc.Function.Body, null, substMap,
+                                                        fc.TypeArgumentSubstitutions);
+            return new Some<Expression>(substitutedBody);
           }
         }
         foreach (var simpLem in simplifierLemmas) {
