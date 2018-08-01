@@ -868,15 +868,12 @@ namespace Microsoft.Dafny {
   }
 
   public class SimplifyingRewriter : IRewriter {
-    ErrorReporter reporter;
     HashSet<Function> simplifierFuncs = new HashSet<Function>();
     HashSet<RewriteRule> simplifierRules = new HashSet<RewriteRule>();
 
     internal SimplifyingRewriter(ErrorReporter reporter) : base(reporter) {
       Contract.Requires(reporter != null);
-      this.reporter = reporter;
     }
-
 
     internal void FindSimplificationCallables(ModuleDefinition m) {
       List<RewriteRule> defRules = new List<RewriteRule>();
