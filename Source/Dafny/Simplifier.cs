@@ -1000,6 +1000,26 @@ namespace Microsoft.Dafny {
             return new Some<Expression>(newE);
           }
         }
+        // try to rewrite equalities to false
+        if (e is BinaryExpr) {
+          var br = (BinaryExpr)e;
+          List<BinaryExpr.ResolvedOpcode> eqOps =
+            new List<BinaryExpr.ResolvedOpcode> {
+            BinaryExpr.ResolvedOpcode.EqCommon,
+            BinaryExpr.ResolvedOpcode.SeqEq,
+            // BinaryExpr.ResolvedOpcode.SetEq,
+            // BinaryExpr.ResolvedOpcode.MapEq,
+            // BinaryExpr.ResolvedOpcode.MultiSetEq
+          };
+          // TODO: set/map/multiset literals are not LiteralExprs, so we need to handle these specially
+          if (br.E0 is LiteralExpr && br.E1 is LiteralExpr &&
+              br.E0.Type.Equals(br.E1.Type) &&
+              eqOps.Contains(br.ResolvedOp)) {
+            var v1 = ((LiteralExpr)(br.E0)).Value;
+            var v2 = ((LiteralExpr)(br.E1)).Value;
+            return new Some<Expression>(Expression.CreateBoolLiteral(br.tok, v1.Equals(v2)));
+          }
+        }
         foreach (var simpLem in simplifierLemmas) {
           // if (simpLem.TypeArgs.Count
           // TODO: insert contract calls that lemma is equality
