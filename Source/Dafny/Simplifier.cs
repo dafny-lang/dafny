@@ -987,8 +987,14 @@ namespace Microsoft.Dafny {
       HashSet<Function> simplifierFuncs;
       HashSet<Lemma> simplifierLemmas;
 
+      internal static Expression WarnUnhandledCase(Expression e) {
+        DebugMsg("[SimplifyInExprVisitor] unhandled expression type" +
+                 $"{Printer.ExprToString(e)}[{e.GetType()}]");
+        return e;
+      }
+
       public SimplifyInExprVisitor(HashSet<Function> simplifierFuncs, HashSet<Lemma> simplifierLemmas) :
-        base(e => e) {
+        base(e => WarnUnhandledCase(e)) {
         this.simplifierFuncs = simplifierFuncs;
         this.simplifierLemmas = simplifierLemmas;
       }
