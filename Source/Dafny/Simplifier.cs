@@ -5,6 +5,7 @@ using System.Numerics;
 using System.Diagnostics.Contracts;
 using System.Reflection;
 using System.Text;
+using Microsoft.Boogie;
 
 namespace Microsoft.Dafny {
 
@@ -900,12 +901,69 @@ namespace Microsoft.Dafny {
     internal class SimplificationVisitor: ExpressionTransformer
     {
       HashSet<Lemma> simplifierLemmas;
+
+      internal static Expression WarnUnhandledCase(Expression e) {
+        DebugMsg("[SimplificationVisitor] unhandled expression type: " +
+                 $"{Printer.ExprToString(e)}[{e.GetType()}]");
+        return e;
+      }
+
       public SimplificationVisitor(HashSet<Lemma> simplifierLemmas) :
-        base(e => e) {
+        base(e => WarnUnhandledCase(e)) {
         this.simplifierLemmas = simplifierLemmas;
       }
 
+      internal Expression CallDestructor(IToken tok, DatatypeDestructor dest, Expression val) {
+        return new MemberSelectExpr(tok, val, dest);
+      }
+      // The wrapper parameter indicates what projection of the right-hand side we need
+      // to use in the substitution; for example, when binding var (x, y) := e, we need
+      // to replace x by e.0, but we no longer no that once we recurse into the CasePattern
+      // representing (x, y).
+      void BuildSubstMap(CasePattern<BoundVar> cp, Expression rhs,
+                         Func<Expression, Expression> wrapper, SubstMap substMap,
+                         IToken tok) {
+        if (cp.Ctor is null) {
+          // The binding is just to a normal variable instead of a pattern.
+          Contract.Assert(cp.Var != null);
+          substMap.Add(cp.Var, wrapper(rhs));
+        } else {
+          Contract.Assert(cp.Arguments.Count == cp.Ctor.Destructors.Count);
+          for (int i = 0; i < cp.Arguments.Count; i++) {
+            var arg = cp.Arguments[i];
+            var dest = cp.Ctor.Destructors[i];
+            Func<Expression, Expression> newWrapper = expr => CallDestructor(tok, dest, expr);
+            BuildSubstMap(arg, rhs, expr => newWrapper(wrapper(expr)), substMap, tok);
+          }
+        }
+      }
+      internal Expression InlineLet(LetExpr e) {
+        DebugExpression("Let expression: ", e);
+        Contract.Assert(e.LHSs.Count == e.RHSs.Count);
+        Dictionary<IVariable, Expression> substMap = new Dictionary<IVariable, Expression>();
+        for (int i = 0; i < e.LHSs.Count; i++) {
+          var lhs = e.LHSs[i];
+          var rhs = e.RHSs[i];
+          BuildSubstMap(lhs, rhs, expr => expr, substMap, e.tok);
+        }
+        // TODO: double-check receiverParam argument to Substitute
+        var newBody = Translator.Substitute(e.Body, null, substMap);
+        return newBody;
+      }
+
+
       public override Option<Expression> VisitOneExpr(Expression e, object st) {
+        // TODO: make inlining lets configurable once we support different
+        // sets of simplification rules (then one can add a special simplification set)
+        // containing just this rule that users can request where needed
+        if (e is LetExpr) {
+          DebugExpression("Inlining LetExpr: ", e);
+          var newE = InlineLet((LetExpr)e);
+          if (newE != e) {
+            DebugExpression("Inlined result: ", newE);
+            return new Some<Expression>(newE);
+          }
+        }
         foreach (var simpLem in simplifierLemmas) {
           // if (simpLem.TypeArgs.Count
           // TODO: insert contract calls that lemma is equality
