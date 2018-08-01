@@ -827,6 +827,27 @@ namespace Microsoft.Dafny {
       return null;
     }
 
+    public object Visit(MemberSelectExpr e, Expression target) {
+      Contract.Assert(e.Member != null);
+      if (!(target is MemberSelectExpr)) {
+        throw new UnificationError(e, target);
+      }
+      var t = (MemberSelectExpr)target;
+      Visit(e.Obj.Resolved, t.Obj.Resolved);
+      if (!e.Member.Equals(t.Member)) {
+        throw new UnificationError(e, t);
+      }
+      // Should we use TypeArgumentSubstitutions here instead?
+      if (e.TypeApplication.Count != t.TypeApplication.Count) {
+        throw new UnificationError("Different number of type arguments: ", e, t);
+      }
+      for (int i = 0; i < e.TypeApplication.Count; i++) {
+        TypeUnifier tu = new TypeUnifier(typeMap);
+        tu.Visit(e.TypeApplication[i], t.TypeApplication[i]);
+      }
+      return null;
+    }
+
     public override object Visit(ConcreteSyntaxExpression e, Expression target) {
       return Visit(e.Resolved, target.Resolved);
     }
@@ -890,6 +911,7 @@ namespace Microsoft.Dafny {
         DebugExpression("with pattern: ", pattern);
         var uf = new UnificationVisitor();
         uf.Visit(pattern.Resolved, target);
+        DebugMsg("Unification succeeded");
         return uf;
       } catch(UnificationError ue) {
         //DebugMsg($"Unification of {Printer.ExprToString(pattern)} and " +
