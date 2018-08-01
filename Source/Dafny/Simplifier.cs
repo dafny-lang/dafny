@@ -1105,6 +1105,7 @@ namespace Microsoft.Dafny {
 
     internal class SimplifyInExprVisitor : ExpressionTransformer
     {
+      ErrorReporter reporter;
       HashSet<Function> simplifierFuncs;
       HashSet<RewriteRule> simplifierRules;
       bool inGhost;
@@ -1115,9 +1116,12 @@ namespace Microsoft.Dafny {
         return e;
       }
 
-      public SimplifyInExprVisitor(HashSet<Function> simplifierFuncs, HashSet<RewriteRule> simplifierRules,
+      public SimplifyInExprVisitor(ErrorReporter reporter,
+                                   HashSet<Function> simplifierFuncs,
+                                   HashSet<RewriteRule> simplifierRules,
                                    bool inGhost) :
         base(e => WarnUnhandledCase(e)) {
+        this.reporter = reporter;
         this.simplifierFuncs = simplifierFuncs;
         this.simplifierRules = simplifierRules;
         this.inGhost = inGhost;
@@ -1138,6 +1142,7 @@ namespace Microsoft.Dafny {
           }
         }
         DebugExpression("Simplification result: ", expr, true);
+        reporter.Info(MessageSource.Simplifier, e.tok, $"Simplified to {Printer.ExprToString(expr)}");
         return expr;
       }
 
@@ -1169,12 +1174,12 @@ namespace Microsoft.Dafny {
     }
 
     protected Expression SimplifyInExpr(Expression e, bool inGhost) {
-      var sv = new SimplifyInExprVisitor(simplifierFuncs, simplifierRules, inGhost);
+      var sv = new SimplifyInExprVisitor(reporter, simplifierFuncs, simplifierRules, inGhost);
       return sv.Visit(e, null);
     }
 
     internal Statement SimplifyInStmt(Statement stmt, bool inGhost) {
-      var exprVis = new SimplifyInExprVisitor(simplifierFuncs, simplifierRules, inGhost);
+      var exprVis = new SimplifyInExprVisitor(reporter, simplifierFuncs, simplifierRules, inGhost);
       var stmtSimplifyVis = new StatementTransformer(exprVis);
       return stmtSimplifyVis.Visit(stmt, null);
     }
