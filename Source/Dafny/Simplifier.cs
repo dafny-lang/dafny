@@ -877,7 +877,7 @@ namespace Microsoft.Dafny {
       foreach (var decl in ModuleDefinition.AllCallables(m.TopLevelDecls)) {
         if (decl is Function) {
           Function f = (Function) decl;
-          if (Attributes.Contains(f.Attributes, "simp")) {
+          if (Attributes.Contains(f.Attributes, "simplifier")) {
             simplifierFuncs.Add(f);
           }
         }

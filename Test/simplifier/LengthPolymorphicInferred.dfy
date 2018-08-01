@@ -3,7 +3,7 @@
 
 datatype List<S> = Nil | Cons(car: S, cdr: List<S>)
 
-function {:simp} simp<X>(x: X): X { x }
+function {:simplifier} simp<X>(x: X): X { x }
 
 function method {:opaque} Length<U>(xs: List<U>): nat
 {

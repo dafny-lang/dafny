@@ -1,7 +1,7 @@
 // RUN: %dafny /compile:0 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
-function method {:simp} simp<T>(x: T): T
+function method {:simplifier} simp<T>(x: T): T
 {
   x
 }
