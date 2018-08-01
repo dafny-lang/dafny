@@ -228,6 +228,18 @@ namespace Microsoft.Dafny {
       }
       return dv;
     }
+
+    public virtual Expression Visit(MemberSelectExpr e, object st) {
+      var newObj = Visit(e.Obj, st);
+      if (newObj != e.Obj) {
+        var res = new MemberSelectExpr(e.tok, newObj, (Field)e.Member);
+        res.Type = e.Type;
+        res.TypeApplication = e.TypeApplication;
+        return res;
+      } else {
+        return e;
+      }
+    }
   }
 
   public class StatementVisitor<R, S>
