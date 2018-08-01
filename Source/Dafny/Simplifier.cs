@@ -996,7 +996,7 @@ namespace Microsoft.Dafny {
         return newBody;
       }
 
-      internal Option<Expression> RewriteComparison(BinaryExpr br) {
+      internal Option<Expression> RewriteBinaryExpr(BinaryExpr br) {
         // TODO: set/map/multiset literals are not LiteralExprs, so we need to handle these specially
         if (br.E0 is LiteralExpr && br.E1 is LiteralExpr &&
             br.E0.Type.Equals(br.E1.Type)) {
@@ -1020,7 +1020,35 @@ namespace Microsoft.Dafny {
           } else if (neqOps.Contains(br.ResolvedOp)) {
             return new Some<Expression>(Expression.CreateBoolLiteral(br.tok, !v1.Equals(v2)));
           }
-          // TODO: other comparison operations
+          if (v1 is BigInteger && v2 is BigInteger) {
+            var i1 = (BigInteger)v1;
+            var i2 = (BigInteger)v2;
+            switch(br.ResolvedOp) {
+              // Use braces around the cases so we can reuse newExpr as a variable name
+              case BinaryExpr.ResolvedOpcode.Add: {
+                // TODO: check if we need to do something special for negative numbers
+                // like in Expression.CreateIntLiteral
+                var newExpr = new LiteralExpr(br.tok, i1 + i2);
+                newExpr.Type = br.Type;
+                return new Some<Expression>(newExpr);
+              }
+              case BinaryExpr.ResolvedOpcode.Sub: {
+                var newExpr = new LiteralExpr(br.tok, i1 - i2);
+                newExpr.Type = br.Type;
+                return new Some<Expression>(newExpr);
+              }
+              case BinaryExpr.ResolvedOpcode.Mul: {
+                var newExpr = new LiteralExpr(br.tok, i1 * i2);
+                newExpr.Type = br.Type;
+                return new Some<Expression>(newExpr);
+              }
+              case BinaryExpr.ResolvedOpcode.Div: {
+                var newExpr = new LiteralExpr(br.tok, i1 / i2);
+                newExpr.Type = br.Type;
+                return new Some<Expression>(newExpr);
+              }
+            }
+          }
         }
         return new None<Expression>();
       }
@@ -1040,7 +1068,7 @@ namespace Microsoft.Dafny {
         }
         // try to rewrite comparisons between literals
         if (e is BinaryExpr) {
-          var rewritten = RewriteComparison((BinaryExpr)e);
+          var rewritten = RewriteBinaryExpr((BinaryExpr)e);
           if (rewritten is Some<Expression>) {
             return rewritten;
           }
