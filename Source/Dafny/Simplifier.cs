@@ -1127,9 +1127,7 @@ namespace Microsoft.Dafny {
             Dictionary<IVariable, Expression> substMap = new Dictionary<IVariable, Expression>();
             Contract.Assert(fc.Args.Count == fc.Function.Formals.Count);
             for (int i = 0; i < fc.Args.Count; i++) {
-              var formal = fc.Function.Formals[i];
-              var formalVar = new BoundVar(fc.tok, formal.Name, formal.Type);
-              substMap.Add(formalVar, fc.Args[i]);
+              substMap.Add(fc.Function.Formals[i], fc.Args[i]);
             }
             var substitutedBody = Translator.Substitute(fc.Function.Body, null, substMap,
                                                         fc.TypeArgumentSubstitutions);
