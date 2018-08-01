@@ -482,6 +482,22 @@ namespace Microsoft.Dafny {
       }
     }
 
+    public Statement Visit(ForallStmt s, object st) {
+      // TODO: transform ensures/requires clauses as well
+      var newBody = Visit(s.Body, st);
+      if (newBody != s) {
+        var res = new ForallStmt(s.Tok, s.EndTok, s.BoundVars, s.Attributes, s.Range, s.Ens, newBody);
+        CopyCommon(res, s);
+        res.CanConvert = s.CanConvert;
+        res.Bounds = s.Bounds;
+        res.Kind = s.Kind;
+        res.ForallExpressions = s.ForallExpressions;
+        return res;
+      } else {
+        return s;
+      }
+    }
+
     public override Option<Statement> VisitOneStmt(Statement s, object st) {
       SimplifyingRewriter.DebugMsg($"Visiting statement {Printer.StatementToString(s)}");
       return new None<Statement>();
