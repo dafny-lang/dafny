@@ -1047,6 +1047,14 @@ namespace Microsoft.Dafny {
                 newExpr.Type = br.Type;
                 return new Some<Expression>(newExpr);
               }
+              case BinaryExpr.ResolvedOpcode.Le:
+                return new Some<Expression>(Expression.CreateBoolLiteral(br.tok, i1 <= i2));
+              case BinaryExpr.ResolvedOpcode.Lt:
+                return new Some<Expression>(Expression.CreateBoolLiteral(br.tok, i1 < i2));
+              case BinaryExpr.ResolvedOpcode.Gt:
+                return new Some<Expression>(Expression.CreateBoolLiteral(br.tok, i1 > i2));
+              case BinaryExpr.ResolvedOpcode.Ge:
+                return new Some<Expression>(Expression.CreateBoolLiteral(br.tok, i1 >= i2));
             }
           }
         }
