@@ -1003,21 +1003,29 @@ namespace Microsoft.Dafny {
         // try to rewrite equalities to false
         if (e is BinaryExpr) {
           var br = (BinaryExpr)e;
-          List<BinaryExpr.ResolvedOpcode> eqOps =
-            new List<BinaryExpr.ResolvedOpcode> {
-            BinaryExpr.ResolvedOpcode.EqCommon,
-            BinaryExpr.ResolvedOpcode.SeqEq,
-            // BinaryExpr.ResolvedOpcode.SetEq,
-            // BinaryExpr.ResolvedOpcode.MapEq,
-            // BinaryExpr.ResolvedOpcode.MultiSetEq
-          };
           // TODO: set/map/multiset literals are not LiteralExprs, so we need to handle these specially
           if (br.E0 is LiteralExpr && br.E1 is LiteralExpr &&
-              br.E0.Type.Equals(br.E1.Type) &&
-              eqOps.Contains(br.ResolvedOp)) {
+              br.E0.Type.Equals(br.E1.Type)) {
+            List<BinaryExpr.ResolvedOpcode> eqOps =
+              new List<BinaryExpr.ResolvedOpcode> {
+              BinaryExpr.ResolvedOpcode.EqCommon,
+              BinaryExpr.ResolvedOpcode.SeqEq,
+              // BinaryExpr.ResolvedOpcode.SetEq,
+              // BinaryExpr.ResolvedOpcode.MapEq,
+              // BinaryExpr.ResolvedOpcode.MultiSetEq
+            };
+            List<BinaryExpr.ResolvedOpcode> neqOps =
+              new List<BinaryExpr.ResolvedOpcode> {
+              BinaryExpr.ResolvedOpcode.NeqCommon,
+              BinaryExpr.ResolvedOpcode.SeqNeq,
+            };
             var v1 = ((LiteralExpr)(br.E0)).Value;
             var v2 = ((LiteralExpr)(br.E1)).Value;
-            return new Some<Expression>(Expression.CreateBoolLiteral(br.tok, v1.Equals(v2)));
+            if (eqOps.Contains(br.ResolvedOp)) {
+              return new Some<Expression>(Expression.CreateBoolLiteral(br.tok, v1.Equals(v2)));
+            } else if (neqOps.Contains(br.ResolvedOp)) {
+              return new Some<Expression>(Expression.CreateBoolLiteral(br.tok, !v1.Equals(v2)));
+            }
           }
         }
         foreach (var simpLem in simplifierLemmas) {
