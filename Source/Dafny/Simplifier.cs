@@ -368,7 +368,7 @@ namespace Microsoft.Dafny {
     }
 
     internal Expression VisitExpr(Expression e, object st) {
-      SimplifyingRewriter.DebugExpression("StatementTransformer: visiting expression: ", e);
+      // SimplifyingRewriter.DebugExpression("StatementTransformer: visiting expression: ", e);
       if (et != null) {
         return et.Visit(e, st);
       } else {
@@ -533,7 +533,7 @@ namespace Microsoft.Dafny {
     }
 
     public override Option<Statement> VisitOneStmt(Statement s, object st) {
-      SimplifyingRewriter.DebugMsg($"Visiting statement {Printer.StatementToString(s)}");
+      // SimplifyingRewriter.DebugMsg($"Visiting statement {Printer.StatementToString(s)}");
       return new None<Statement>();
     }
   }
@@ -1028,14 +1028,14 @@ namespace Microsoft.Dafny {
         if (pattern.WasResolved()) {
           pattern = pattern.Resolved;
         }
-        DebugExpression("Trying to unify: ", target);
-        DebugExpression("with pattern: ", pattern);
+        // DebugExpression("Trying to unify: ", target);
+        // DebugExpression("with pattern: ", pattern);
         var uf = new UnificationVisitor();
         uf.Visit(pattern, target);
-        DebugMsg("Unification succeeded");
+        // DebugMsg("Unification succeeded");
         if (DafnyOptions.O.SimpTrace) {
           foreach (var item in uf.GetSubstMap) {
-            DebugMsg($"\t{item.Key} |-> {Printer.ExprToString(item.Value)}");
+            //DebugMsg($"\t{item.Key} |-> {Printer.ExprToString(item.Value)}");
           }
         }
         return uf;
@@ -1342,7 +1342,7 @@ namespace Microsoft.Dafny {
       }
 
       public override Option<Expression> VisitOneExpr(Expression e, object st) {
-        DebugExpression("SimplifyInExprVisitor called: ", e);
+        // DebugExpression("SimplifyInExprVisitor called: ", e);
         return new None<Expression>();
       }
     }
@@ -1417,8 +1417,10 @@ namespace Microsoft.Dafny {
           if (meth.Body != null) {
             var newBody = SimplifyInStmt(meth.Body, meth.IsGhost);
             Contract.Assert(newBody is BlockStmt);
+            if (newBody != meth.Body) {
+              DebugMsg($"New body for {meth.Name}: {Printer.StatementToString(newBody)}");
+            }
             meth.Body = (BlockStmt)newBody;
-            DebugMsg($"New body for {meth.Name}: {Printer.StatementToString(meth.Body)}");
           }
         }
       }
