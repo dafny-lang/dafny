@@ -874,7 +874,7 @@ namespace Microsoft.Dafny {
         throw new UnificationError(be, target);
       }
       var btarget = (BinaryExpr)target;
-      if (!btarget.ResolvedOp.Equals(btarget.ResolvedOp)) {
+      if (!btarget.ResolvedOp.Equals(be.ResolvedOp)) {
         throw new UnificationError(be, target);
       }
       Visit(be.E0, btarget.E0);
