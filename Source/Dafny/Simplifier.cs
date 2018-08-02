@@ -271,6 +271,10 @@ namespace Microsoft.Dafny {
         return e;
       }
     }
+
+    public virtual Expression Visit(LiteralExpr e, object st) {
+      return e;
+    }
   }
 
   public class StatementVisitor<R, S>
