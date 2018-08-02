@@ -956,6 +956,18 @@ namespace Microsoft.Dafny {
               reporter.Error(MessageSource.Simplifier, f,
                              "Function cannot be both a simplifier and a simplification target");
             }
+            if (f.Formals.Count != 1) {
+              reporter.Error(MessageSource.Simplifier, f, "A simplifier function must take exactly one argument (and be an identity function)");
+            }
+            // TODO: Ensure that body is just the single formal parameter
+            if (f.Body == null) {
+              reporter.Error(MessageSource.Simplifier, f, "A simplifier function must have a body (and be an identity function)");
+            }
+            Contract.Assert(f.Body.Resolved != null);
+            var ie = f.Body.Resolved as IdentifierExpr;
+            if (ie == null || !ie.Var.Equals(f.Formals[0])) {
+              reporter.Error(MessageSource.Simplifier, f, "A simplifier function must be an identity function");
+            }
             simplifierFuncs.Add(f);
           }
         }
@@ -1253,19 +1265,10 @@ namespace Microsoft.Dafny {
 
       public override Expression Visit(FunctionCallExpr fc, object st) {
         DebugExpression($"Visiting function call to {fc.Function.Name}", fc);
-        if (simplifierFuncs.Contains(fc.Function)) {
+        if (IsSimplifierCall(fc)) {
           DebugMsg("Found call to simplifier: " + Printer.ExprToString(fc));
-          List<Expression> newArgs = new List<Expression>();
-          foreach (var arg in fc.Args) {
-            newArgs.Add(Simplify(arg));
-          }
-          var res = new FunctionCallExpr(fc.tok, fc.Name, fc.Receiver, fc.OpenParen, newArgs);
-          res.Type = fc.Type;
-          res.Function = fc.Function;
-          res.TypeArgumentSubstitutions = fc.TypeArgumentSubstitutions;
-          res.CoCall = fc.CoCall;
-          res.CoCallHint = fc.CoCallHint;
-          // DebugExpression("Simplification result: ", res, true);
+          Contract.Assert(fc.Args.Count == 1);
+          var res  = Simplify(fc.Args[0]);
           return res;
         } else {
           return fc;
