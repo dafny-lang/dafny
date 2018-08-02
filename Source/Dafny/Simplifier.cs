@@ -1314,8 +1314,13 @@ namespace Microsoft.Dafny {
             expr = simplified;
           }
         }
-        DebugExpression("Simplification result: ", expr, true);
-        reporter.Info(MessageSource.Simplifier, e.tok, $"Simplified to {Printer.ExprToString(expr)}");
+        var msg = $"Simplified to {Printer.ExprToString(expr)}";
+        DebugMsg(msg);
+        if (DafnyOptions.O.SimpTrace) {
+          reporter.Warning(MessageSource.Simplifier, e.tok, msg);
+        } else {
+          reporter.Info(MessageSource.Simplifier, e.tok, msg);
+        }
         return expr;
       }
 
