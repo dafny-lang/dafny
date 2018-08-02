@@ -118,7 +118,10 @@ namespace Microsoft.Dafny {
         try {
           return (R) methods[0].Invoke(this, new object[]{e, transformState(st)});
         } catch(TargetInvocationException tie) {
-          throw tie.InnerException;
+          if (tie.InnerException is UnificationError) {
+            throw tie.InnerException;
+          }
+          throw tie;
         }
       }
     }
@@ -376,7 +379,7 @@ namespace Microsoft.Dafny {
       AssignmentRhs newRhs = rhs;
       if (rhs is ExprRhs) {
         var erhs = (ExprRhs) rhs;
-        var newRhsExpr = VisitExpr(erhs.Expr, st);
+        var newRhsExpr = VisitExpr(erhs.Expr.Resolved, st);
         newRhs = new ExprRhs(newRhsExpr);
       }
       // FIXME: handle the other cases for AssignmentRhs
@@ -788,6 +791,15 @@ namespace Microsoft.Dafny {
     }
 
     public object Visit(IdentifierExpr e, Expression target) {
+      if (e.DontUnify) {
+        var iet = target as IdentifierExpr;
+        // in this case, the LHS might not be resolved, so we need to
+        // syntactically check the name; I'm not sure if there's a better option here.
+        if (iet == null || !iet.Name.Equals(e.Name)) {
+          throw new UnificationError(e, target);
+        }
+        return null;
+      }
       if (IsBound(e.Var)) {
         if (!(target is IdentifierExpr)) {
           throw new UnificationError(e, target);
@@ -1000,6 +1012,7 @@ namespace Microsoft.Dafny {
       if (!DafnyOptions.O.SimpTrace) {
         return;
       }
+      Contract.Assert(e != null);
       Console.WriteLine(prefix + Printer.ExprToString(e) + "[" + e.GetType() + "]");
       if (subexps) {
         foreach (var subexp in e.SubExpressions) {
@@ -1011,11 +1024,19 @@ namespace Microsoft.Dafny {
     // Returns null iff unification failed.
     internal static UnificationVisitor UnifiesWith(Expression target, Expression pattern) {
       try {
+        if (pattern.WasResolved()) {
+          pattern = pattern.Resolved;
+        }
         DebugExpression("Trying to unify: ", target);
         DebugExpression("with pattern: ", pattern);
         var uf = new UnificationVisitor();
-        uf.Visit(pattern.Resolved, target);
+        uf.Visit(pattern, target);
         DebugMsg("Unification succeeded");
+        if (DafnyOptions.O.SimpTrace) {
+          foreach (var item in uf.GetSubstMap) {
+            DebugMsg($"\t{item.Key} |-> {Printer.ExprToString(item.Value)}");
+          }
+        }
         return uf;
       } catch(UnificationError ue) {
         //DebugMsg($"Unification of {Printer.ExprToString(pattern)} and " +
@@ -1027,6 +1048,7 @@ namespace Microsoft.Dafny {
     internal class SimplificationVisitor: ExpressionTransformer
     {
       HashSet<RewriteRule> simplifierLemmas;
+      HashSet<RewriteRule> localRules;
       bool inGhost;
 
       internal static Expression WarnUnhandledCase(Expression e) {
@@ -1035,9 +1057,10 @@ namespace Microsoft.Dafny {
         return e;
       }
 
-      public SimplificationVisitor(HashSet<RewriteRule> simplifierLemmas, bool inGhost) :
+      public SimplificationVisitor(HashSet<RewriteRule> simplifierLemmas, HashSet<RewriteRule> localRules, bool inGhost) :
         base(e => WarnUnhandledCase(e)) {
         this.simplifierLemmas = simplifierLemmas;
+        this.localRules = localRules;
         this.inGhost = inGhost;
       }
 
@@ -1205,27 +1228,59 @@ namespace Microsoft.Dafny {
             return new Some<Expression>(substitutedBody);
           }
         }
-        foreach (var simpLem in simplifierLemmas) {
-          var uv = UnifiesWith(e.Resolved, simpLem.Lhs);
-          if (uv != null) {
-            // DebugMsg(e.Resolved + " unifies with " + eq.E0.Resolved);
-            // FIXME: check that we don't need the receiverParam argument
-            var res = Translator.Substitute(simpLem.Rhs, null, uv.GetSubstMap, uv.GetTypeSubstMap);
-            return new Some<Expression>(res);
+        foreach (var simpLem in localRules) {
+          var simped = TrySimplify(e, simpLem) as Some<Expression>;
+          if (simped != null) {
+            return simped;
           }
+        }
+        foreach (var simpLem in simplifierLemmas) {
+          var simped = TrySimplify(e, simpLem) as Some<Expression>;
+          if (simped != null) {
+            return simped;
+          }
+        }
+        return new None<Expression>();
+      }
+
+      internal Option<Expression> TrySimplify(Expression e, RewriteRule rr) {
+        var uv = UnifiesWith(e.Resolved, rr.Lhs);
+        if (uv != null) {
+          // DebugMsg(e.Resolved + " unifies with " + eq.E0.Resolved);
+          // FIXME: check that we don't need the receiverParam argument
+          var res = Translator.Substitute(rr.Rhs, null, uv.GetSubstMap, uv.GetTypeSubstMap);
+          return new Some<Expression>(res);
         }
         return new None<Expression>();
       }
 
     }
 
-
     internal class SimplifyInExprVisitor : ExpressionTransformer
     {
       ErrorReporter reporter;
       HashSet<Function> simplifierFuncs;
       HashSet<RewriteRule> simplifierRules;
+      HashSet<RewriteRule> localRewriteRules;
       bool inGhost;
+
+      // Remove all local rewrite rules where v occurs on right-hand side
+      public void VariableChanged(IVariable v) {
+        List<RewriteRule> invalidRules = new List<RewriteRule>();
+        foreach (var lrule in localRewriteRules) {
+          var fvs = Translator.ComputeFreeVariables(lrule.Rhs);
+          if (fvs.Contains(v)) {
+            invalidRules.Add(lrule);
+          }
+        }
+        foreach (var irule in invalidRules) {
+          localRewriteRules.Remove(irule);
+        }
+      }
+
+      public void AddLocalRewriteRule(RewriteRule rr) {
+        localRewriteRules.Add(rr);
+      }
 
       internal static Expression WarnUnhandledCase(Expression e) {
         DebugMsg("[SimplifyInExprVisitor] unhandled expression type" +
@@ -1242,6 +1297,7 @@ namespace Microsoft.Dafny {
         this.simplifierFuncs = simplifierFuncs;
         this.simplifierRules = simplifierRules;
         this.inGhost = inGhost;
+        this.localRewriteRules = new HashSet<RewriteRule>();
       }
 
       internal Expression Simplify(Expression e) {
@@ -1250,7 +1306,7 @@ namespace Microsoft.Dafny {
         // FIXME: add parameter to control maximum simplification steps?
         DebugExpression("Simplifying expression: ", e);
         while(true) {
-          var sv = new SimplificationVisitor(simplifierRules, inGhost);
+          var sv = new SimplificationVisitor(simplifierRules, localRewriteRules, inGhost);
           var simplified = sv.Visit(expr, null);
           if (simplified == expr) {
             break;
@@ -1261,6 +1317,10 @@ namespace Microsoft.Dafny {
         DebugExpression("Simplification result: ", expr, true);
         reporter.Info(MessageSource.Simplifier, e.tok, $"Simplified to {Printer.ExprToString(expr)}");
         return expr;
+      }
+
+      public bool IsSimplifierCall(FunctionCallExpr fc) {
+        return simplifierFuncs.Contains(fc.Function);
       }
 
       public override Expression Visit(FunctionCallExpr fc, object st) {
@@ -1281,6 +1341,52 @@ namespace Microsoft.Dafny {
       }
     }
 
+    internal class SimplifyInStmtVisitor : StatementTransformer
+    {
+      SimplifyInExprVisitor sv;
+      ErrorReporter reporter;
+      public SimplifyInStmtVisitor(ErrorReporter reporter, SimplifyInExprVisitor et):
+        base(et) {
+        this.sv = et;
+        this.reporter = reporter;
+      }
+
+      public override Statement Visit(AssignStmt s, object st) {
+        // Take care not to call the simplifier twice here; instead
+        // call base method, assuming it'll simplify the right-hand side,
+        // then extract the result
+        var res = base.Visit(s, st);
+        // to a simple variable
+        var ie = s.Lhs as IdentifierExpr;
+        // TODO: support patterns here
+        if (ie == null) {
+          return res;
+        }
+        // and the right-hand side is a simplifier call:
+        var erhs = s.Rhs as ExprRhs;
+        if (erhs == null || erhs.Expr == null || erhs.Expr.Resolved == null) {
+          return res;
+        }
+        var fc = (s.Rhs as ExprRhs).Expr.Resolved as FunctionCallExpr;
+        if (fc == null || !sv.IsSimplifierCall(fc)) {
+          return res;
+        }
+        var simplified = res as AssignStmt;
+        Contract.Assert(simplified != null && simplified.Rhs is ExprRhs);
+        var newRhs = ((ExprRhs)simplified.Rhs).Expr;
+        var msg =
+          $"Adding local simplifier rule: {ie.Var.Name} |-> " +
+          $"{Printer.ExprToString(newRhs)}";
+        reporter.Warning(MessageSource.Simplifier, s.Tok, msg);
+        DebugMsg(msg);
+        var varExpr = (new Cloner()).CloneExpr(ie) as IdentifierExpr;
+        varExpr.DontUnify = true;
+        sv.AddLocalRewriteRule(new RewriteRule(varExpr, newRhs));
+        return simplified;
+      }
+
+    }
+
     protected Expression SimplifyInExpr(Expression e, bool inGhost) {
       var sv = new SimplifyInExprVisitor(reporter, simplifierFuncs, simplifierRules, inGhost);
       return sv.Visit(e, null);
@@ -1288,7 +1394,7 @@ namespace Microsoft.Dafny {
 
     internal Statement SimplifyInStmt(Statement stmt, bool inGhost) {
       var exprVis = new SimplifyInExprVisitor(reporter, simplifierFuncs, simplifierRules, inGhost);
-      var stmtSimplifyVis = new StatementTransformer(exprVis);
+      var stmtSimplifyVis = new SimplifyInStmtVisitor(reporter, exprVis);
       return stmtSimplifyVis.Visit(stmt, null);
     }
 

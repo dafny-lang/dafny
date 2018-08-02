@@ -8574,6 +8574,12 @@ namespace Microsoft.Dafny {
     }
 
     public readonly string Name;
+    // This field is a hack to allow rewrite rules for local variable
+    // definitions in the simplifier.
+    //
+    // TODO: find a better place to store this information (a proxy object
+    // maybe?)
+    public bool DontUnify;
     public IVariable Var;  // filled in by resolution
 
     public IdentifierExpr(IToken tok, string name)
@@ -8581,6 +8587,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
       Name = name;
+      DontUnify = false;
     }
     /// <summary>
     /// Constructs a resolved IdentifierExpr.
