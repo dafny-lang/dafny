@@ -1377,7 +1377,7 @@ namespace Microsoft.Dafny {
         var msg =
           $"Adding local simplifier rule: {ie.Var.Name} |-> " +
           $"{Printer.ExprToString(newRhs)}";
-        reporter.Warning(MessageSource.Simplifier, s.Tok, msg);
+        reporter.Info(MessageSource.Simplifier, s.Tok, msg);
         DebugMsg(msg);
         var varExpr = (new Cloner()).CloneExpr(ie) as IdentifierExpr;
         varExpr.DontUnify = true;
