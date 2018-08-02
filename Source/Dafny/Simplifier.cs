@@ -329,7 +329,7 @@ namespace Microsoft.Dafny {
     {
       this.et = et;
     }
-    public Statement Visit(IfStmt s, object st) {
+    public virtual Statement Visit(IfStmt s, object st) {
       Expression newGuard = VisitExpr(s.Guard, st);
       var newThn = Visit(s.Thn, st);
       Contract.Assert(newThn is BlockStmt);
@@ -351,7 +351,7 @@ namespace Microsoft.Dafny {
       to.Attributes = fro.Attributes;
     }
 
-    public Statement Visit(VarDeclStmt s, object st) {
+    public virtual Statement Visit(VarDeclStmt s, object st) {
       var newUpd = Visit(s.Update, st);
       Contract.Assert(newUpd is ConcreteUpdateStatement);
       if (newUpd != s.Update) {
@@ -372,7 +372,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public AssignmentRhs VisitAssignmentRhs(AssignmentRhs rhs, object st) {
+    public virtual AssignmentRhs VisitAssignmentRhs(AssignmentRhs rhs, object st) {
       AssignmentRhs newRhs = rhs;
       if (rhs is ExprRhs) {
         var erhs = (ExprRhs) rhs;
@@ -384,7 +384,7 @@ namespace Microsoft.Dafny {
     }
 
     // FIXME: should probably move this to ExpressionVisitor
-    internal List<Expression> VisitExprs(List<Expression> exprs, object st, ref bool changed) {
+    internal virtual List<Expression> VisitExprs(List<Expression> exprs, object st, ref bool changed) {
       List<Expression> newExprs = new List<Expression>();
       foreach (var expr in exprs) {
         var newExpr = VisitExpr(expr, st);
@@ -394,7 +394,7 @@ namespace Microsoft.Dafny {
       return newExprs;
     }
 
-    public Statement Visit(UpdateStmt s, object st) {
+    public virtual Statement Visit(UpdateStmt s, object st) {
       bool changed = false;
       List<Expression> newLhss = VisitExprs(s.Lhss, st, ref changed);
       Contract.Assert(newLhss.Count == s.Lhss.Count);
@@ -419,7 +419,7 @@ namespace Microsoft.Dafny {
       return s;
     }
 
-    public Statement Visit(AssignStmt s, object st) {
+    public virtual Statement Visit(AssignStmt s, object st) {
       var newLhs = VisitExpr(s.Lhs, st);
       var newRhs = VisitAssignmentRhs(s.Rhs, st);
       if (newLhs != s.Lhs || newRhs != s.Rhs) {
@@ -430,7 +430,7 @@ namespace Microsoft.Dafny {
       return s;
     }
 
-    public Statement Visit(PrintStmt s, object st) {
+    public virtual Statement Visit(PrintStmt s, object st) {
       bool changed = false;
       List<Expression> newArgs = VisitExprs(s.Args, st, ref changed);
       if (changed) {
@@ -442,7 +442,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public Statement Visit(AssumeStmt s, object st) {
+    public virtual Statement Visit(AssumeStmt s, object st) {
       var newExpr = VisitExpr(s.Expr, st);
       if (newExpr != s.Expr) {
         var res = new AssumeStmt(s.Tok, s.EndTok, newExpr, s.Attributes);
@@ -453,7 +453,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public Statement Visit(AssertStmt s, object st) {
+    public virtual Statement Visit(AssertStmt s, object st) {
       Contract.Assert(s != null);
       Contract.Assert(s.Expr != null);
       var newExpr = VisitExpr(s.Expr, st);
@@ -474,7 +474,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    internal List<Statement> VisitStmts(List<Statement> stmts, object st, ref bool changed) {
+    internal virtual List<Statement> VisitStmts(List<Statement> stmts, object st, ref bool changed) {
       List<Statement> newStmts = new List<Statement>();
       foreach (var stmt in stmts) {
         var newStmt = Visit(stmt, st);
@@ -484,7 +484,7 @@ namespace Microsoft.Dafny {
       return newStmts;
     }
 
-    public Statement Visit(BlockStmt s, object st) {
+    public virtual Statement Visit(BlockStmt s, object st) {
       Contract.Assert(s != null);
       Contract.Assert(s.Body != null);
       bool changed = false;
@@ -498,7 +498,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public Statement Visit(CallStmt s, object st) {
+    public virtual Statement Visit(CallStmt s, object st) {
       bool changed = false;
       List<Expression> newLhss = VisitExprs(s.Lhs, st, ref changed);
       List<Expression> newArgs = VisitExprs(s.Args, st, ref changed);
@@ -512,7 +512,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public Statement Visit(ForallStmt s, object st) {
+    public virtual Statement Visit(ForallStmt s, object st) {
       // TODO: transform ensures/requires clauses as well
       var newBody = Visit(s.Body, st);
       if (newBody != s) {
