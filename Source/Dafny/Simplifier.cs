@@ -94,6 +94,9 @@ namespace Microsoft.Dafny {
         return ((Some<R>)res).val;
       }
       if (e is ConcreteSyntaxExpression) {
+        if (((ConcreteSyntaxExpression)e).ResolvedExpression == null) {
+          return defaultRet(e);
+        }
         return Visit(e.Resolved, transformState(st));
       }
       // A hacky way to do double dispatch without enumerating all the subclasses
@@ -330,7 +333,10 @@ namespace Microsoft.Dafny {
       Expression newGuard = VisitExpr(s.Guard, st);
       var newThn = Visit(s.Thn, st);
       Contract.Assert(newThn is BlockStmt);
-      var newEls = Visit(s.Els, st);
+      Statement newEls = null;
+      if (s.Els != null) {
+        newEls = Visit(s.Els, st);
+      }
       if (newGuard != s.Guard || newThn != s.Thn || newEls != s.Els) {
         var res = new IfStmt(s.Tok, s.EndTok, s.IsBindingGuard, newGuard, (BlockStmt)newThn, newEls);
         CopyCommon(res, s);
