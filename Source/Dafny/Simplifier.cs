@@ -380,7 +380,7 @@ namespace Microsoft.Dafny {
       AssignmentRhs newRhs = rhs;
       if (rhs is ExprRhs) {
         var erhs = (ExprRhs) rhs;
-        var newRhsExpr = VisitExpr(erhs.Expr.Resolved, st);
+        var newRhsExpr = VisitExpr(erhs.Expr, st);
         newRhs = new ExprRhs(newRhsExpr);
       }
       // FIXME: handle the other cases for AssignmentRhs
