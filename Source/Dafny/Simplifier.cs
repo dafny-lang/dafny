@@ -5,6 +5,7 @@ using System.Numerics;
 using System.Diagnostics.Contracts;
 using System.Reflection;
 using System.Text;
+using System.Diagnostics;
 using Microsoft.Boogie;
 
 namespace Microsoft.Dafny {
@@ -1423,9 +1424,23 @@ namespace Microsoft.Dafny {
       }
     }
 
+    internal static long MeasureTime<T>(T t, Action<T> act) {
+      var stopWatch = new Stopwatch();
+      stopWatch.Start();
+      act(t);
+      stopWatch.Stop();
+      return stopWatch.ElapsedMilliseconds;
+    }
+
     internal override void PostResolve(ModuleDefinition m) {
-      FindSimplificationCallables(m);
-      SimplifyCalls(m);
+      var time = MeasureTime(m, me => {
+          FindSimplificationCallables(me);
+          SimplifyCalls(me);
+        });
+      if (DafnyOptions.O.SimpTrace) {
+        var msg = $"Simplification took {((double)time)/1000}s";
+        reporter.Warning(MessageSource.Simplifier, m.BodyStartTok, msg);
+      }
     }
   }
 
