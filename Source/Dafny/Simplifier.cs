@@ -1361,8 +1361,8 @@ namespace Microsoft.Dafny {
           // Rewrite constructor fields
           PerfTimers.StartTimer("MemberSelectExpr");
           var ms = (MemberSelectExpr) e;
-          if (ms.Obj is DatatypeValue) {
-            var obj = (DatatypeValue)ms.Obj;
+          if (ms.Obj.Resolved is DatatypeValue) {
+            var obj = (DatatypeValue)ms.Obj.Resolved;
             // Check if member we selected is the query field of one of the
             // constructors:
             foreach (var ctor in obj.Ctor.EnclosingDatatype.Ctors) {
