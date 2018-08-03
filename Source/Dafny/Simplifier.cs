@@ -1289,7 +1289,7 @@ namespace Microsoft.Dafny {
           if (simped != null) {
             s.Stop();
             var t = s.ElapsedMilliseconds;
-            SimplifyingRewriter.errReporter.Warning(MessageSource.Simplifier, e.tok, $"Found matching rule on {ruleNo}th try after {((double)(s.ElapsedMilliseconds))/1000}s");
+            DebugMsg($"Found matching rule on {ruleNo}th try after {((double)(s.ElapsedMilliseconds))/1000}s");
             PerfTimers.RuleFindingTimes.Add(t);
             subtermFound(null);
             PerfTimers.RuleUse("local");

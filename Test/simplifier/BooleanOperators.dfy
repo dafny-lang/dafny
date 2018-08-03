@@ -13,14 +13,6 @@ lemma {:simp} Foo42()
   reveal Foo();
 }
 
-lemma {:simp} IfTrue_simp<T>(x: T, y: T)
-  ensures (if true then x else y) == x
-{}
-
-lemma {:simp} IfFalse_simp<T>(x: T, y: T)
-  ensures (if false then x else y) == y
-{}
-
 method g(x: bool)
 {
   assert simp(Foo(if true && false then 8 else 7)) == 42;

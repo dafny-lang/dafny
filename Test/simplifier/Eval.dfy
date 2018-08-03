@@ -14,16 +14,6 @@ lemma {:simp} Foo_42(x: int)
   reveal Foo();
 }
 
-lemma {:simp} IfTrue_simp<T>(x: bool, thn: T, els: T)
-  ensures (if true then thn else els) == thn
-{
-}
-
-lemma {:simp} IfFalse_simp<T>(x: bool, thn: T, els: T)
-  ensures (if false then thn else els) == els
-{
-}
-
 datatype List<T> = Cons(car: T, cdr: List<T>) | LNil
 predicate method InList<T(==)>(l: List<T>, x: T)
   decreases l

@@ -14,16 +14,6 @@ lemma {:simp} Foo_42(x: int)
   reveal Foo();
 }
 
-lemma {:simp} IfTrue_simp<T>(x: bool, thn: T, els: T)
-  ensures (if true then thn else els) == thn
-{
-}
-
-lemma {:simp} IfFalse_simp<T>(x: bool, thn: T, els: T)
-  ensures (if false then thn else els) == els
-{
-}
-
 method test() {
   assert simp(Foo(if 1 < 2 then 7 else 8)) == 42;
   assert simp(Foo(if 3 < 2 then 8 else 7)) == 42;
