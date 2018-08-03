@@ -108,6 +108,8 @@ namespace Microsoft.Dafny {
       } */
       // A hacky way to do double dispatch without enumerating all the subclasses
       // of Expression:
+      //PerfTimers.StartTimer("Reflection");
+      /*
       var method = from m in GetType().GetMethods()
         where m.Name == "Visit"
         && m.GetParameters().Length==2
@@ -116,6 +118,51 @@ namespace Microsoft.Dafny {
         && m.ReturnType == typeof(R)
         select m;
       var methods = method.ToList();
+      */
+      PerfTimers.StartTimer("DynamicDispatch");
+      if (e is StringLiteralExpr) {
+        PerfTimers.StopTimer("DynamicDispatch");
+        return Visit((StringLiteralExpr)e, st);
+      } else if (e is BinaryExpr) {
+        PerfTimers.StopTimer("DynamicDispatch");
+        return Visit((BinaryExpr)e, st);
+      } else if (e is LiteralExpr) {
+        PerfTimers.StopTimer("DynamicDispatch");
+        return Visit((LiteralExpr)e, st);
+      } else if (e is UnaryOpExpr) {
+        PerfTimers.StopTimer("DynamicDispatch");
+        return Visit((UnaryOpExpr)e, st);
+      } else if (e is FunctionCallExpr) {
+        PerfTimers.StopTimer("DynamicDispatch");
+        return Visit((FunctionCallExpr)e, st);
+      } else if (e is LetExpr) {
+        PerfTimers.StopTimer("DynamicDispatch");
+        return Visit((LetExpr)e, st);
+      } else if (e is StmtExpr) {
+        PerfTimers.StopTimer("DynamicDispatch");
+        return Visit((StmtExpr)e, st);
+      } else if (e is IdentifierExpr) {
+        PerfTimers.StopTimer("DynamicDispatch");
+        return Visit((IdentifierExpr)e, st);
+      } else if (e is TernaryExpr) {
+        PerfTimers.StopTimer("DynamicDispatch");
+        return Visit((TernaryExpr)e, st);
+      } else if (e is ITEExpr) {
+        PerfTimers.StopTimer("DynamicDispatch");
+        return Visit((ITEExpr)e, st);
+      } else if (e is DatatypeValue) {
+        PerfTimers.StopTimer("DynamicDispatch");
+        return Visit((DatatypeValue)e, st);
+      } else if (e is MemberSelectExpr) {
+        PerfTimers.StopTimer("DynamicDispatch");
+        return Visit((MemberSelectExpr)e, st);
+      } else {
+        PerfTimers.StopTimer("DynamicDispatch");
+        Contract.Assert(false, $"Unhandled expression type {Printer.ExprToString(e)}" +
+                        $" [{e.GetType()}]");
+        return this.defaultRet(e);
+      }
+      /*
       if (methods.Count() == 0) {
         // Console.WriteLine("No suitable method for expression of type: " + e.GetType());
         return this.defaultRet(e);
@@ -130,7 +177,7 @@ namespace Microsoft.Dafny {
           }
           throw tie;
         }
-      }
+      } */
     }
 
     public virtual R Visit(ConcreteSyntaxExpression e, S st) {
@@ -141,6 +188,54 @@ namespace Microsoft.Dafny {
 
     public virtual Option<R> VisitOneExpr(Expression e, S st) {
       return new None<R>();
+    }
+
+    public virtual R Visit(StringLiteralExpr e, S st) {
+      return defaultRet(e);
+    }
+
+    public virtual R Visit(BinaryExpr e, S st) {
+      return defaultRet(e);
+    }
+
+    public virtual R Visit(LiteralExpr e, S st) {
+      return defaultRet(e);
+    }
+
+    public virtual R Visit(UnaryOpExpr e, S st) {
+      return defaultRet(e);
+    }
+
+    public virtual R Visit(FunctionCallExpr e, S st) {
+      return defaultRet(e);
+    }
+
+    public virtual R Visit(LetExpr e, S st) {
+      return defaultRet(e);
+    }
+
+    public virtual R Visit(StmtExpr e, S st) {
+      return defaultRet(e);
+    }
+
+    public virtual R Visit(IdentifierExpr e, S st) {
+      return defaultRet(e);
+    }
+
+    public virtual R Visit(TernaryExpr e, S st) {
+      return defaultRet(e);
+    }
+
+    public virtual R Visit(ITEExpr e, S st) {
+      return defaultRet(e);
+    }
+
+    public virtual R Visit(DatatypeValue e, S st) {
+      return defaultRet(e);
+    }
+
+    public virtual R Visit(MemberSelectExpr e, S st) {
+      return defaultRet(e);
     }
 
   }
@@ -171,7 +266,7 @@ namespace Microsoft.Dafny {
       return e;
     }
 
-    public virtual Expression Visit(UnaryOpExpr e, object st) {
+    public override Expression Visit(UnaryOpExpr e, object st) {
       var eNew = Visit(e.E, st);
       if (e != eNew) {
         var res = new UnaryOpExpr(e.tok, e.Op, eNew);
@@ -181,7 +276,7 @@ namespace Microsoft.Dafny {
       return e;
     }
 
-    public virtual Expression Visit(TernaryExpr e, object st) {
+    public override Expression Visit(TernaryExpr e, object st) {
       var e0 = Visit(e.E0, st);
       var e1 = Visit(e.E1, st);
       var e2 = Visit(e.E2, st);
@@ -193,7 +288,7 @@ namespace Microsoft.Dafny {
       return e;
     }
 
-    public virtual Expression Visit(ITEExpr e, object st) {
+    public override Expression Visit(ITEExpr e, object st) {
       var e0 = Visit(e.Test, st);
       var e1 = Visit(e.Thn, st);
       var e2 = Visit(e.Els, st);
@@ -205,7 +300,7 @@ namespace Microsoft.Dafny {
       return e;
     }
 
-    public virtual Expression Visit(FunctionCallExpr e, object st) {
+    public override Expression Visit(FunctionCallExpr e, object st) {
       List<Expression> newArgs = new List<Expression>();
       bool changed = false;
       foreach (var arg in e.Args) {
@@ -227,11 +322,11 @@ namespace Microsoft.Dafny {
       return e;
     }
 
-    public virtual Expression Visit(IdentifierExpr e, object st) {
+    public override Expression Visit(IdentifierExpr e, object st) {
       return e;
     }
 
-    public virtual Expression Visit(DatatypeValue dv, object st) {
+    public override Expression Visit(DatatypeValue dv, object st) {
       List<Expression> newArgs = new List<Expression>();
       bool changed = false;
       foreach (var arg in dv.Arguments) {
@@ -252,7 +347,7 @@ namespace Microsoft.Dafny {
       return dv;
     }
 
-    public virtual Expression Visit(MemberSelectExpr e, object st) {
+    public override Expression Visit(MemberSelectExpr e, object st) {
       var newObj = Visit(e.Obj, st);
       if (newObj != e.Obj) {
         var res = new MemberSelectExpr(e.tok, newObj, (Field)e.Member);
@@ -264,7 +359,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public virtual Expression Visit(StmtExpr e, object st) {
+    public override Expression Visit(StmtExpr e, object st) {
       // FIXME:
       // For now, we don't visit the statement part, since this isn't really
       // necessary for the simplification cases we care about... I hope
@@ -282,7 +377,7 @@ namespace Microsoft.Dafny {
       return e;
     } */
 
-    public virtual Expression Visit(LiteralExpr e, object st) {
+    public override Expression Visit(LiteralExpr e, object st) {
       return e;
     }
   }
@@ -707,7 +802,7 @@ namespace Microsoft.Dafny {
     public ExpressionEqualityVisitor(bool def): base(e => def) {
     }
 
-    public bool Visit(LiteralExpr e, Expression rhs) {
+    public override bool Visit(LiteralExpr e, Expression rhs) {
       if (!(rhs is LiteralExpr)) { return false; }
       return ((LiteralExpr)rhs).Value.Equals(e.Value);
     }
@@ -776,7 +871,7 @@ namespace Microsoft.Dafny {
       return false;
     }
 
-    public object Visit(TernaryExpr e, Expression target) {
+    public override object Visit(TernaryExpr e, Expression target) {
       if (!(target is TernaryExpr)) {
         throw new UnificationError(e, target);
       }
@@ -805,7 +900,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public object Visit(IdentifierExpr e, Expression target) {
+    public override object Visit(IdentifierExpr e, Expression target) {
       if (e.DontUnify) {
         var iet = target as IdentifierExpr;
         // in this case, the LHS might not be resolved, so we need to
@@ -831,7 +926,7 @@ namespace Microsoft.Dafny {
       return null;
     }
 
-    public object Visit(ITEExpr e, Expression target) {
+    public override object Visit(ITEExpr e, Expression target) {
       if (!(target is ITEExpr)) {
         throw new UnificationError(e, target);
       }
@@ -855,7 +950,7 @@ namespace Microsoft.Dafny {
       return true;
     }
 
-    public object Visit(FunctionCallExpr fc, Expression target) {
+    public override object Visit(FunctionCallExpr fc, Expression target) {
       if (!(target is FunctionCallExpr)) {
         throw new UnificationError("Target not a function(" + target.GetType() + ")",
                                     fc, target);
@@ -884,7 +979,7 @@ namespace Microsoft.Dafny {
     }
 
 
-    public object Visit(BinaryExpr be, Expression target) {
+    public override object Visit(BinaryExpr be, Expression target) {
       if (!(target is BinaryExpr)) {
         throw new UnificationError(be, target);
       }
@@ -897,7 +992,7 @@ namespace Microsoft.Dafny {
       return null;
     }
 
-    public object Visit(LiteralExpr le, Expression target) {
+    public override object Visit(LiteralExpr le, Expression target) {
       if (!(target is LiteralExpr)) {
         throw new UnificationError(le, target);
       }
@@ -907,7 +1002,7 @@ namespace Microsoft.Dafny {
       return null;
     }
 
-    public object Visit(UnaryOpExpr ue, Expression target) {
+    public override object Visit(UnaryOpExpr ue, Expression target) {
       if (!(target is UnaryOpExpr)) {
         throw new UnificationError(ue, target);
       }
@@ -919,7 +1014,7 @@ namespace Microsoft.Dafny {
       return null;
     }
 
-    public object Visit(DatatypeValue dv, Expression target) {
+    public override object Visit(DatatypeValue dv, Expression target) {
       if (!(target is DatatypeValue)) {
         throw new UnificationError(dv, target);
       }
@@ -939,7 +1034,7 @@ namespace Microsoft.Dafny {
       return null;
     }
 
-    public object Visit(MemberSelectExpr e, Expression target) {
+    public override object Visit(MemberSelectExpr e, Expression target) {
       Contract.Assert(e.Member != null);
       if (!(target is MemberSelectExpr)) {
         throw new UnificationError(e, target);
