@@ -56,4 +56,5 @@ method g(x: bool)
   assert simp(Foo(if false || false then 8 else 7)) == 42;
   assert simp(Foo(if true || x then 7 else 8)) == 42;
   assert simp(Foo(if x || true then 7 else 8)) == 42;
+
 }

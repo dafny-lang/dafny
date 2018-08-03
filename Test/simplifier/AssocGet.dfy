@@ -17,6 +17,9 @@ function method {:opaque} AssocGet<T(==),U>(l: List<Pair<T,U>>, x: T): Option<U>
     AssocGet(l.cdr, x)
 }
 
+lemma {:simp} IfTrue_simp<T>(x: T, y: T)
+  ensures (if true then x else y) == x
+{}
 lemma {:simp} AssocGet_Cons<K, V>(x: K, v: V, ps: List<Pair<K, V>>, k: K)
   ensures
   AssocGet(Cons(Pair(x, v), ps), k) ==

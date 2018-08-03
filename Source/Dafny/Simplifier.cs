@@ -100,6 +100,12 @@ namespace Microsoft.Dafny {
         }
         return Visit(e.Resolved, transformState(st));
       }
+      /*
+      if (e is StringLiteralExpr) {
+        return Visit((StringLiteralExpr)e, st);
+      } else if (e is LiteralExpr) {
+        return Visit((LiteralExpr)e, st);
+      } */
       // A hacky way to do double dispatch without enumerating all the subclasses
       // of Expression:
       var method = from m in GetType().GetMethods()
@@ -113,7 +119,7 @@ namespace Microsoft.Dafny {
       if (methods.Count() == 0) {
         // Console.WriteLine("No suitable method for expression of type: " + e.GetType());
         return this.defaultRet(e);
-      } else if (methods.Count() > 1) {
+      } if (methods.Count() > 1) {
         throw new System.ArgumentException("More than one visit method for: " + e.GetType());
       } else {
         try {
@@ -271,6 +277,10 @@ namespace Microsoft.Dafny {
         return e;
       }
     }
+
+    /* public virtual Expression Visit(StringLiteralExpr e, object st) {
+      return e;
+    } */
 
     public virtual Expression Visit(LiteralExpr e, object st) {
       return e;
@@ -957,14 +967,20 @@ namespace Microsoft.Dafny {
 
   public class SimplifyingRewriter : IRewriter {
     HashSet<Function> simplifierFuncs = new HashSet<Function>();
-    HashSet<RewriteRule> simplifierRules = new HashSet<RewriteRule>();
+    RuleSet simplifierRules = new RuleSet();
+    public static SimplifyingRewriter S;
+    public static Dictionary<Expression, Expression> Simplifications =
+      new Dictionary<Expression, Expression>();
+    public static ErrorReporter errReporter;
 
     internal SimplifyingRewriter(ErrorReporter reporter) : base(reporter) {
       Contract.Requires(reporter != null);
+      SimplifyingRewriter.errReporter = reporter;
+      S = this;
     }
 
     internal void FindSimplificationCallables(ModuleDefinition m) {
-      List<RewriteRule> defRules = new List<RewriteRule>();
+      RuleSet defRules = new RuleSet();
       foreach (var decl in ModuleDefinition.AllCallables(m.TopLevelDecls)) {
         if (decl is Function) {
           Function f = (Function) decl;
@@ -995,7 +1011,7 @@ namespace Microsoft.Dafny {
                 l.Ens[0].E is BinaryExpr &&
                 ((BinaryExpr)l.Ens[0].E).Op == BinaryExpr.Opcode.Eq) {
               var br = (BinaryExpr)l.Ens[0].E;
-              simplifierRules.Add(new RewriteRule(br.E0, br.E1));
+              simplifierRules.AddRule(new RewriteRule(br.E0, br.E1));
             } else {
               reporter.Error(MessageSource.Simplifier, l,
                              "A simplification lemma must have exactly one equality as ensures clause");
@@ -1052,17 +1068,17 @@ namespace Microsoft.Dafny {
 
     internal class SimplificationVisitor: ExpressionTransformer
     {
-      HashSet<RewriteRule> simplifierLemmas;
-      HashSet<RewriteRule> localRules;
+      RuleSet simplifierLemmas;
+      RuleSet localRules;
       bool inGhost;
 
       internal static Expression WarnUnhandledCase(Expression e) {
-        DebugMsg("[SimplificationVisitor] unhandled expression type: " +
-                 $"{Printer.ExprToString(e)}[{e.GetType()}]");
+        // DebugMsg("[SimplificationVisitor] unhandled expression type: " +
+        //          $"{Printer.ExprToString(e)}[{e.GetType()}]");
         return e;
       }
 
-      public SimplificationVisitor(HashSet<RewriteRule> simplifierLemmas, HashSet<RewriteRule> localRules, bool inGhost) :
+      public SimplificationVisitor(RuleSet simplifierLemmas, RuleSet localRules, bool inGhost) :
         base(e => WarnUnhandledCase(e)) {
         this.simplifierLemmas = simplifierLemmas;
         this.localRules = localRules;
@@ -1094,7 +1110,7 @@ namespace Microsoft.Dafny {
         }
       }
       internal Expression InlineLet(LetExpr e) {
-        DebugExpression("Let expression: ", e);
+        // DebugExpression("Let expression: ", e);
         Contract.Assert(e.LHSs.Count == e.RHSs.Count);
         Dictionary<IVariable, Expression> substMap = new Dictionary<IVariable, Expression>();
         for (int i = 0; i < e.LHSs.Count; i++) {
@@ -1178,10 +1194,12 @@ namespace Microsoft.Dafny {
         // sets of simplification rules (then one can add a special simplification set)
         // containing just this rule that users can request where needed
         if (e is LetExpr && inGhost) {
-          DebugExpression("Inlining LetExpr: ", e);
+          // DebugExpression("Inlining LetExpr: ", e);
+          PerfTimers.StartTimer(PerfTimers.LET_INLINING);
           var newE = InlineLet((LetExpr)e);
+          PerfTimers.StopTimer(PerfTimers.LET_INLINING);
           if (newE != e) {
-            DebugExpression("Inlined result: ", newE);
+            // DebugExpression("Inlined result: ", newE);
             return new Some<Expression>(newE);
           }
         }
@@ -1233,24 +1251,40 @@ namespace Microsoft.Dafny {
             return new Some<Expression>(substitutedBody);
           }
         }
-        foreach (var simpLem in localRules) {
+        int ruleNo = 0;
+        PerfTimers.Timers[PerfTimers.FIND_RULE].Start();
+        foreach (var simpLem in localRules.Rules()) {
+          ruleNo++;
+          PerfTimers.TriedRules++;
           var simped = TrySimplify(e, simpLem) as Some<Expression>;
           if (simped != null) {
+            SimplifyingRewriter.errReporter.Warning(MessageSource.Simplifier, e.tok, $"Found matching rule on {ruleNo}th try");
             return simped;
           }
         }
-        foreach (var simpLem in simplifierLemmas) {
+        PerfTimers.Timers[PerfTimers.FIND_RULE].Start();
+        // As a heuristic we sort the simplifier lemmas by "similarity" to the
+        // expression we are looking at; we use number of shared constructor and
+        // function applications as a proxy for likelihood to match this.
+        foreach (var simpLem in simplifierLemmas.RulesFor(e)) {
+          ruleNo++;
+          PerfTimers.TriedRules++;
           var simped = TrySimplify(e, simpLem) as Some<Expression>;
           if (simped != null) {
+            SimplifyingRewriter.errReporter.Warning(MessageSource.Simplifier, e.tok, $"Found matching rule on {ruleNo}th try");
             return simped;
           }
         }
+        PerfTimers.Timers[PerfTimers.FIND_RULE].Stop();
         return new None<Expression>();
       }
 
       internal Option<Expression> TrySimplify(Expression e, RewriteRule rr) {
+        PerfTimers.Timers[PerfTimers.UNIFICATION].Start();
         var uv = UnifiesWith(e.Resolved, rr.Lhs);
+        PerfTimers.Timers[PerfTimers.UNIFICATION].Stop();
         if (uv != null) {
+          PerfTimers.Timers[PerfTimers.FIND_RULE].Stop();
           // DebugMsg(e.Resolved + " unifies with " + eq.E0.Resolved);
           // FIXME: check that we don't need the receiverParam argument
           var res = Translator.Substitute(rr.Rhs, null, uv.GetSubstMap, uv.GetTypeSubstMap);
@@ -1259,57 +1293,67 @@ namespace Microsoft.Dafny {
         return new None<Expression>();
       }
 
+
     }
 
     internal class SimplifyInExprVisitor : ExpressionTransformer
     {
       ErrorReporter reporter;
       HashSet<Function> simplifierFuncs;
-      HashSet<RewriteRule> simplifierRules;
-      HashSet<RewriteRule> localRewriteRules;
+      RuleSet simplifierRules;
+      RuleSet localRewriteRules;
       bool inGhost;
 
       // Remove all local rewrite rules where v occurs on right-hand side
       public void VariableChanged(IVariable v) {
         List<RewriteRule> invalidRules = new List<RewriteRule>();
-        foreach (var lrule in localRewriteRules) {
+        foreach (var lrule in localRewriteRules.Rules()) {
           var fvs = Translator.ComputeFreeVariables(lrule.Rhs);
           if (fvs.Contains(v)) {
             invalidRules.Add(lrule);
           }
         }
         foreach (var irule in invalidRules) {
-          localRewriteRules.Remove(irule);
+          localRewriteRules.RemoveRule(irule);
         }
       }
 
       public void AddLocalRewriteRule(RewriteRule rr) {
-        localRewriteRules.Add(rr);
+        localRewriteRules.AddRule(rr);
       }
 
       internal static Expression WarnUnhandledCase(Expression e) {
-        DebugMsg("[SimplifyInExprVisitor] unhandled expression type" +
-                 $"{Printer.ExprToString(e)}[{e.GetType()}]");
+        // DebugMsg("[SimplifyInExprVisitor] unhandled expression type" +
+        //          $"{Printer.ExprToString(e)}[{e.GetType()}]");
         return e;
       }
 
       public SimplifyInExprVisitor(ErrorReporter reporter,
                                    HashSet<Function> simplifierFuncs,
-                                   HashSet<RewriteRule> simplifierRules,
+                                   RuleSet simplifierRules,
                                    bool inGhost) :
         base(e => WarnUnhandledCase(e)) {
         this.reporter = reporter;
         this.simplifierFuncs = simplifierFuncs;
         this.simplifierRules = simplifierRules;
         this.inGhost = inGhost;
-        this.localRewriteRules = new HashSet<RewriteRule>();
+        this.localRewriteRules = new RuleSet();
       }
 
       internal Expression Simplify(Expression e) {
+        Expression result;
+        if (SimplifyingRewriter.Simplifications.TryGetValue(e, out result)) {
+          DebugMsg("using memoized result");
+          return result;
+        }
         var expr = e;
         // Keep trying to simplify until we (hopefully) reach a fixpoint
         // FIXME: add parameter to control maximum simplification steps?
-        DebugExpression("Simplifying expression: ", e);
+        var exprStr = Printer.ExprToString(e);
+        if (exprStr.Count() >= 100) {
+          exprStr = exprStr.Substring(0, 100);
+        }
+        DebugMsg($"Simplifying expression: {exprStr}");
         while(true) {
           var sv = new SimplificationVisitor(simplifierRules, localRewriteRules, inGhost);
           var simplified = sv.Visit(expr, null);
@@ -1326,6 +1370,7 @@ namespace Microsoft.Dafny {
         } else {
           reporter.Info(MessageSource.Simplifier, e.tok, msg);
         }
+        SimplifyingRewriter.Simplifications[e] = expr;
         return expr;
       }
 
@@ -1334,9 +1379,9 @@ namespace Microsoft.Dafny {
       }
 
       public override Expression Visit(FunctionCallExpr fc, object st) {
-        DebugExpression($"Visiting function call to {fc.Function.Name}", fc);
+        // DebugExpression($"Visiting function call to {fc.Function.Name}", fc);
         if (IsSimplifierCall(fc)) {
-          DebugMsg("Found call to simplifier: " + Printer.ExprToString(fc));
+          // DebugMsg("Found call to simplifier: " + Printer.ExprToString(fc));
           Contract.Assert(fc.Args.Count == 1);
           var res  = Simplify(fc.Args[0]);
           return res;
@@ -1446,16 +1491,125 @@ namespace Microsoft.Dafny {
       if (DafnyOptions.O.SimpTrace) {
         var msg = $"Simplification took {((double)time)/1000}s";
         reporter.Warning(MessageSource.Simplifier, m.BodyStartTok, msg);
+        foreach (var item in PerfTimers.Timers) {
+          reporter.Warning(MessageSource.Simplifier, m.BodyStartTok,
+                        $"Time spent in {item.Key}: {((double)(item.Value.ElapsedMilliseconds))/1000}s");
+        }
+
+        DebugMsg($"~{PerfTimers.TriedRules} unsuccessful rule matching attempts");
       }
     }
+  }
+
+  internal class DeclFinder : TopDownVisitor<HashSet<Declaration>>  {
+    protected override bool VisitOneExpr(Expression e, ref HashSet<Declaration> st) {
+      if (e is ConcreteSyntaxExpression) {
+        return VisitOneExpr(e.Resolved, ref st);
+      }
+      var fc = e as FunctionCallExpr;
+      var dv = e as DatatypeValue;
+      if (fc != null) {
+        st.Add(fc.Function);
+      } else if (dv != null) {
+        st.Add(dv.Ctor);
+      }
+      return true;
+    }
+
+    public static HashSet<Declaration> FindDecls(Expression e) {
+      PerfTimers.StartTimer("FindDecls");
+      var res = new HashSet<Declaration>();
+      var dv = new DeclFinder();
+      dv.Visit(e, res);
+      PerfTimers.StopTimer("FindDecls");
+      return res;
+    }
+  }
+
+  internal class RuleSet {
+    // internal Dictionary<Declaration, HashSet<RewriteRule>> declRules;
+    // internal HashSet<RewriteRule> otherRules;
+
+    internal List<RewriteRule> rules;
+    public RuleSet() {
+      // declRules = new Dictionary<Declaration, HashSet<RewriteRule>>();
+      rules = new List<RewriteRule>();
+    }
+
+    public void AddRule(RewriteRule rr) {
+      rules.Add(rr);
+    }
+
+    public void RemoveRule(RewriteRule rr) {
+      rules.Remove(rr);
+    }
+
+    public IEnumerable<RewriteRule> Rules() {
+      return rules;
+    }
+
+    public IEnumerable<RewriteRule> RulesFor(Expression e) {
+      var decls = DeclFinder.FindDecls(e);
+      return rules.OrderByDescending<RewriteRule, int>(rr => decls.Intersect(rr.LhsDecls).Count());
+    }
+
   }
 
   internal class RewriteRule {
     public readonly Expression Lhs;
     public readonly Expression Rhs;
+    internal HashSet<Declaration> lhsDecls = null;
     public RewriteRule(Expression lhs, Expression rhs) {
       this.Lhs = lhs;
       this.Rhs = rhs;
     }
+
+    public HashSet<Declaration> LhsDecls {
+      get {
+        if (lhsDecls != null) {
+          return lhsDecls;
+        }
+        lhsDecls = DeclFinder.FindDecls(Lhs);
+        return lhsDecls;
+      }
+    }
+  }
+
+  internal class PerfTimers
+  {
+    public const String FIND_RULE = "findRule";
+    public const String LET_INLINING = "letInlining";
+    public const String UNIFICATION = "unification";
+    public static int TriedRules = 0;
+    public static Dictionary<String, Stopwatch> Timers = new Dictionary<String, Stopwatch> {
+      { FIND_RULE, new Stopwatch() },
+      { LET_INLINING, new Stopwatch() },
+      { UNIFICATION, new Stopwatch() }
+    };
+
+    internal static Stopwatch EnsureTimer(String s) {
+      Stopwatch t;
+
+      if (!Timers.TryGetValue(s, out t)) {
+        var res = new Stopwatch();
+        Timers.Add(s, res);
+        return res;
+      } else {
+        return t;
+      }
+    }
+
+    public static void StartTimer(String s) {
+      EnsureTimer(s).Start();
+    }
+
+    public static void StopTimer(String s) {
+      EnsureTimer(s).Stop();
+    }
+
+    public static long ElapsedMillis(String s) {
+      return EnsureTimer(s).ElapsedMilliseconds;
+    }
+
   }
 }
