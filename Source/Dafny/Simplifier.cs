@@ -74,19 +74,21 @@ namespace Microsoft.Dafny {
   // A generic expression visitor parameterized in result and state type
   public class ExpressionVisitor<R, S> {
 
-    internal Func<Expression, R> defaultRet;
     // This is a bit of an ad-hoc extension to handle StmtExprs in the
     // unification visitor to avoid having to call this function on each
     // recursive call.
     internal Func<S, S> transformState;
 
-    public ExpressionVisitor(Func<Expression, R> defaultRet, Func<S, S> transformState=null) {
-      this.defaultRet = defaultRet;
+    public ExpressionVisitor(Func<S, S> transformState=null) {
       if (transformState == null) {
         this.transformState = (s) => s;
       } else {
         this.transformState = transformState;
       }
+    }
+
+    public virtual R VisitDefault(Expression e, S st) {
+      return default(R);
     }
 
     public virtual R Visit(Expression e, S st) {
@@ -96,7 +98,7 @@ namespace Microsoft.Dafny {
       }
       if (e is ConcreteSyntaxExpression) {
         if (((ConcreteSyntaxExpression)e).ResolvedExpression == null) {
-          return defaultRet(e);
+          return VisitDefault(e, st);
         }
         return Visit(e.Resolved, transformState(st));
       }
@@ -160,7 +162,7 @@ namespace Microsoft.Dafny {
         PerfTimers.StopTimer("DynamicDispatch");
         Contract.Assert(false, $"Unhandled expression type {Printer.ExprToString(e)}" +
                         $" [{e.GetType()}]");
-        return this.defaultRet(e);
+        return VisitDefault(e, st);
       }
       /*
       if (methods.Count() == 0) {
@@ -191,51 +193,51 @@ namespace Microsoft.Dafny {
     }
 
     public virtual R Visit(StringLiteralExpr e, S st) {
-      return defaultRet(e);
+      return VisitDefault(e, st);
     }
 
     public virtual R Visit(BinaryExpr e, S st) {
-      return defaultRet(e);
+      return VisitDefault(e, st);
     }
 
     public virtual R Visit(LiteralExpr e, S st) {
-      return defaultRet(e);
+      return VisitDefault(e, st);
     }
 
     public virtual R Visit(UnaryOpExpr e, S st) {
-      return defaultRet(e);
+      return VisitDefault(e, st);
     }
 
     public virtual R Visit(FunctionCallExpr e, S st) {
-      return defaultRet(e);
+      return VisitDefault(e, st);
     }
 
     public virtual R Visit(LetExpr e, S st) {
-      return defaultRet(e);
+      return VisitDefault(e, st);
     }
 
     public virtual R Visit(StmtExpr e, S st) {
-      return defaultRet(e);
+      return VisitDefault(e, st);
     }
 
     public virtual R Visit(IdentifierExpr e, S st) {
-      return defaultRet(e);
+      return VisitDefault(e, st);
     }
 
     public virtual R Visit(TernaryExpr e, S st) {
-      return defaultRet(e);
+      return VisitDefault(e, st);
     }
 
     public virtual R Visit(ITEExpr e, S st) {
-      return defaultRet(e);
+      return VisitDefault(e, st);
     }
 
     public virtual R Visit(DatatypeValue e, S st) {
-      return defaultRet(e);
+      return VisitDefault(e, st);
     }
 
     public virtual R Visit(MemberSelectExpr e, S st) {
-      return defaultRet(e);
+      return VisitDefault(e, st);
     }
 
   }
@@ -245,8 +247,12 @@ namespace Microsoft.Dafny {
   // part of it.
   public class ExpressionTransformer: ExpressionVisitor<Expression, object>
   {
-    public ExpressionTransformer(Func<Expression, Expression> defaultRet):
-      base(defaultRet) {
+    public ExpressionTransformer()
+    {
+    }
+
+    public override Expression VisitDefault(Expression e, object st) {
+      return e;
     }
 
     public override Expression Visit(BinaryExpr e, object st) {
@@ -799,7 +805,13 @@ namespace Microsoft.Dafny {
   // as well.
   public class ExpressionEqualityVisitor: ExpressionVisitor<bool, Expression>
   {
-    public ExpressionEqualityVisitor(bool def): base(e => def) {
+    bool def;
+    public ExpressionEqualityVisitor(bool def) {
+      this.def = def;
+    }
+
+    public override bool VisitDefault(Expression e, Expression rhs) {
+      return def;
     }
 
     public override bool Visit(LiteralExpr e, Expression rhs) {
@@ -844,10 +856,13 @@ namespace Microsoft.Dafny {
     }
 
     public UnificationVisitor()
-      : base(e => throw new UnificationError("Unhandled expression type: " + e.GetType()),
-             UnwrapStmtExpr)
+      : base(UnwrapStmtExpr)
     {
       this.boundVars = new Stack<HashSet<IVariable>>();
+    }
+
+    public override object VisitDefault(Expression e, Expression target) {
+      throw new UnificationError("Unhandled expression type: " + e.GetType());
     }
 
     public SubstMap GetSubstMap {
@@ -1169,7 +1184,7 @@ namespace Microsoft.Dafny {
       int subtermNo = 0;
       bool anyChange;
 
-      internal static Expression WarnUnhandledCase(Expression e) {
+      public override Expression VisitDefault(Expression e, object st) {
         // DebugMsg("[SimplificationVisitor] unhandled expression type: " +
         //          $"{Printer.ExprToString(e)}[{e.GetType()}]");
         return e;
@@ -1561,7 +1576,7 @@ namespace Microsoft.Dafny {
         localRewriteRules.AddRule(rr);
       }
 
-      internal static Expression WarnUnhandledCase(Expression e) {
+      public override Expression VisitDefault(Expression e, object st) {
         // DebugMsg("[SimplifyInExprVisitor] unhandled expression type" +
         //          $"{Printer.ExprToString(e)}[{e.GetType()}]");
         return e;
@@ -1570,8 +1585,8 @@ namespace Microsoft.Dafny {
       public SimplifyInExprVisitor(ErrorReporter reporter,
                                    HashSet<Function> simplifierFuncs,
                                    RuleSet simplifierRules,
-                                   bool inGhost) :
-        base(e => WarnUnhandledCase(e)) {
+                                   bool inGhost)
+      {
         this.reporter = reporter;
         this.simplifierFuncs = simplifierFuncs;
         this.simplifierRules = simplifierRules;
