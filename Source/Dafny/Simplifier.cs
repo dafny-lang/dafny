@@ -249,7 +249,7 @@ namespace Microsoft.Dafny {
       base(defaultRet) {
     }
 
-    public virtual Expression Visit(BinaryExpr e, object st) {
+    public override Expression Visit(BinaryExpr e, object st) {
       var lhs = Visit(e.E0, st);
       var rhs = Visit(e.E1, st);
       if (lhs != e.E0 || rhs != e.E1) {
@@ -1395,7 +1395,12 @@ namespace Microsoft.Dafny {
           PerfTimers.TriedRules++;
           var simped = TrySimplify(e, simpLem) as Some<Expression>;
           if (simped != null) {
-            SimplifyingRewriter.errReporter.Warning(MessageSource.Simplifier, e.tok, $"Found matching rule on {ruleNo}th try");
+            s.Stop();
+            var t = s.ElapsedMilliseconds;
+            SimplifyingRewriter.errReporter.Warning(MessageSource.Simplifier, e.tok, $"Found matching rule on {ruleNo}th try after {((double)(s.ElapsedMilliseconds))/1000}s");
+            PerfTimers.RuleFindingTimes.Add(t);
+            subtermFound(null);
+            PerfTimers.RuleUse("local");
             return simped;
           }
         }
@@ -1408,7 +1413,12 @@ namespace Microsoft.Dafny {
           PerfTimers.TriedRules++;
           var simped = TrySimplify(e, simpLem) as Some<Expression>;
           if (simped != null) {
-            SimplifyingRewriter.errReporter.Warning(MessageSource.Simplifier, e.tok, $"Found matching rule on {ruleNo}th try");
+            s.Stop();
+            var t = s.ElapsedMilliseconds;
+            SimplifyingRewriter.errReporter.Warning(MessageSource.Simplifier, e.tok, $"Found matching rule on {ruleNo}th try after {((double)(s.ElapsedMilliseconds))/1000}s");
+            PerfTimers.RuleFindingTimes.Add(t);
+            subtermFound(null);
+            PerfTimers.RuleUse("global");
             return simped;
           }
         }
@@ -1417,8 +1427,10 @@ namespace Microsoft.Dafny {
       }
 
       internal Option<Expression> TrySimplify(Expression e, RewriteRule rr) {
+        // Stopwatch s = new Stopwatch();
         PerfTimers.Timers[PerfTimers.UNIFICATION].Start();
         var uv = UnifiesWith(e.Resolved, rr.Lhs);
+        PerfTimers.UnificationAttempts++;
         PerfTimers.Timers[PerfTimers.UNIFICATION].Stop();
         if (uv != null) {
           PerfTimers.Timers[PerfTimers.FIND_RULE].Stop();
@@ -1637,11 +1649,28 @@ namespace Microsoft.Dafny {
         var msg = $"Simplification took {((double)time)/1000}s";
         reporter.Warning(MessageSource.Simplifier, m.BodyStartTok, msg);
         foreach (var item in PerfTimers.Timers) {
+          long perc = item.Value.ElapsedMilliseconds / time;
           reporter.Warning(MessageSource.Simplifier, m.BodyStartTok,
-                        $"Time spent in {item.Key}: {((double)(item.Value.ElapsedMilliseconds))/1000}s");
+                        $"Time spent in {item.Key}: {((double)(item.Value.ElapsedMilliseconds))/1000}s ({perc})");
         }
 
         DebugMsg($"~{PerfTimers.TriedRules} unsuccessful rule matching attempts");
+        var avg = PerfTimers.RuleFindingTimes.Average();
+        DebugMsg($"Identifying correct rule took {avg}ms on average");
+        DebugMsg($"Performed {PerfTimers.RuleFindingTimes.Count} rewrites");
+        DebugMsg($"Rules match {PerfTimers.MatchingSubtermNos.Average()}th subterm on average");
+        DebugMsg($"Unification attemps: {PerfTimers.UnificationAttempts}");
+        var univTime = PerfTimers.Timers[PerfTimers.UNIFICATION].ElapsedMilliseconds;
+        double univAvg = ((double)univTime) / ((double)(PerfTimers.UnificationAttempts));
+        DebugMsg($"Average unification time: {univAvg}ms");
+        DebugMsg("## Rule Use");
+        double numRules = PerfTimers.Rules.Values.Sum();
+        foreach (var item in PerfTimers.Rules) {
+          double perc = item.Value / numRules;
+          DebugMsg($"  {item.Key}: {item.Value} ({perc}%)");
+        }
+        var cnt = simplifierRules.Rules().Count();
+        DebugMsg($"Number of simplification rules: {cnt}");
       }
     }
   }
@@ -1694,8 +1723,9 @@ namespace Microsoft.Dafny {
     }
 
     public IEnumerable<RewriteRule> RulesFor(Expression e) {
-      var decls = DeclFinder.FindDecls(e);
-      return rules.OrderByDescending<RewriteRule, int>(rr => decls.Intersect(rr.LhsDecls).Count());
+      // var decls = DeclFinder.FindDecls(e);
+      // return rules.OrderByDescending<RewriteRule, int>(rr => decls.Intersect(rr.LhsDecls).Count());
+      return rules;
     }
 
   }
@@ -1725,7 +1755,11 @@ namespace Microsoft.Dafny {
     public const String FIND_RULE = "findRule";
     public const String LET_INLINING = "letInlining";
     public const String UNIFICATION = "unification";
-    public static int TriedRules = 0;
+    public static long TriedRules = 0;
+    public static long UnificationAttempts = 0;
+    public static List<long> RuleFindingTimes = new List<long>();
+    public static List<long> MatchingSubtermNos = new List<long>();
+    public static Dictionary<String, long> Rules = new Dictionary<String, long>();
     public static Dictionary<String, Stopwatch> Timers = new Dictionary<String, Stopwatch> {
       { FIND_RULE, new Stopwatch() },
       { LET_INLINING, new Stopwatch() },
@@ -1741,6 +1775,14 @@ namespace Microsoft.Dafny {
         return res;
       } else {
         return t;
+      }
+    }
+
+    public static void RuleUse(String s) {
+      if (!Rules.ContainsKey(s)) {
+        Rules[s] = 1;
+      } else {
+        Rules[s]++;
       }
     }
 
