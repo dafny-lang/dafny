@@ -1161,16 +1161,167 @@ namespace Microsoft.Dafny {
       }
     }
 
-    internal class NormalizationVisitor: ExpressionTransformer
+    internal class RewriteVisitor: ExpressionTransformer
     {
+      RuleSet simplifierLemmas;
+      RuleSet localRules;
       bool inGhost;
-      public NormalizationVisitor(bool inGhost) :
-        base(e => e)
-      {
-        this.inGhost = inGhost;
+      int subtermNo = 0;
+      bool anyChange;
+
+      internal static Expression WarnUnhandledCase(Expression e) {
+        // DebugMsg("[SimplificationVisitor] unhandled expression type: " +
+        //          $"{Printer.ExprToString(e)}[{e.GetType()}]");
+        return e;
       }
 
+      public RewriteVisitor(RuleSet simplifierLemmas, RuleSet localRules, bool inGhost) :
+        base(e => WarnUnhandledCase(e)) {
+        this.simplifierLemmas = simplifierLemmas;
+        this.localRules = localRules;
+        this.inGhost = inGhost;
+        this.anyChange = false;
+      }
+
+      public void Reset() { anyChange = false; }
+
+      public bool AnyChange {
+        get {
+          return anyChange;
+        }
+      }
+
+      public enum Mode {
+        NORMALIZE, REWRITE, UNFOLD
+      }
+
+      public Mode RewriteMode;
+
+      internal Expression UnfoldFunction(FunctionCallExpr fc) {
+        PerfTimers.StartTimer("InlineFunction");
+        Dictionary<IVariable, Expression> substMap = new Dictionary<IVariable, Expression>();
+        Contract.Assert(fc.Args.Count == fc.Function.Formals.Count);
+        for (int i = 0; i < fc.Args.Count; i++) {
+          substMap.Add(fc.Function.Formals[i], fc.Args[i]);
+        }
+        var substitutedBody = Translator.Substitute(fc.Function.Body, null, substMap,
+                                                    fc.TypeArgumentSubstitutions);
+        PerfTimers.RuleUse("inline");
+        PerfTimers.StopTimer("InlineFunction");
+        // DebugMsg($"Unfolding function {fc.Function.Name} to {Printer.ExprToString(substitutedBody)}");
+        return substitutedBody;
+      }
+
+      internal Option<Expression> Unfold(Expression e, object st) {
+        if (e is FunctionCallExpr) {
+          var fc = (FunctionCallExpr)e;
+          // TODO: make "simp" a constant
+          if (Attributes.Contains(fc.Function.Attributes, "simp")) {
+            anyChange = true;
+            return new Some<Expression>(UnfoldFunction(fc));
+          }
+        }
+        return new None<Expression>();
+      }
+
+
+
       public override Option<Expression> VisitOneExpr(Expression e, object st) {
+        // TODO: make inlining lets configurable once we support different
+        // sets of simplification rules (then one can add a special simplification set)
+        // containing just this rule that users can request where needed
+        Option<Expression> res = null;
+        switch (RewriteMode) {
+          case Mode.NORMALIZE:
+            PerfTimers.StartTimer("Normalize");
+            res = Normalize(e, st);
+            PerfTimers.StopTimer("Normalize");
+            break;
+          case Mode.REWRITE:
+            PerfTimers.StartTimer("Rewrite");
+            res = Rewrite(e, st);
+            PerfTimers.StopTimer("Rewrite");
+            break;
+          case Mode.UNFOLD:
+            PerfTimers.StartTimer("Unfold");
+            res = Unfold(e, st);
+            PerfTimers.StopTimer("Unfold");
+            break;
+        }
+        if (res is Some<Expression>) {
+          //DebugMsg($"Rewriting[{RewriteMode}]..");
+          anyChange = true;
+        }
+        return res;
+      }
+
+      internal Option<Expression> TrySimplify(Expression e, RewriteRule rr) {
+        // Stopwatch s = new Stopwatch();
+        PerfTimers.Timers[PerfTimers.UNIFICATION].Start();
+        var uv = UnifiesWith(e.Resolved, rr.Lhs);
+        PerfTimers.UnificationAttempts++;
+        PerfTimers.Timers[PerfTimers.UNIFICATION].Stop();
+        if (uv != null) {
+          PerfTimers.Timers[PerfTimers.FIND_RULE].Stop();
+          // DebugMsg(e.Resolved + " unifies with " + eq.E0.Resolved);
+          // FIXME: check that we don't need the receiverParam argument
+          var res = Translator.Substitute(rr.Rhs, null, uv.GetSubstMap, uv.GetTypeSubstMap);
+          return new Some<Expression>(res);
+        }
+        return new None<Expression>();
+      }
+
+      public Option<Expression> Rewrite(Expression e, object st) {
+        subtermNo++;
+        Action<object> subtermFound = (o => {
+            PerfTimers.MatchingSubtermNos.Add(subtermNo);
+            DebugMsg($"Successful rewrite in subterm {subtermNo}");
+            subtermNo = 0;
+          });
+        Stopwatch s = new Stopwatch();
+        s.Start();
+        int ruleNo = 0;
+        PerfTimers.Timers[PerfTimers.FIND_RULE].Start();
+        foreach (var simpLem in localRules.Rules()) {
+          ruleNo++;
+          PerfTimers.TriedRules++;
+          var simped = TrySimplify(e, simpLem) as Some<Expression>;
+          if (simped != null) {
+            s.Stop();
+            var t = s.ElapsedMilliseconds;
+            SimplifyingRewriter.errReporter.Warning(MessageSource.Simplifier, e.tok, $"Found matching rule on {ruleNo}th try after {((double)(s.ElapsedMilliseconds))/1000}s");
+            PerfTimers.RuleFindingTimes.Add(t);
+            subtermFound(null);
+            PerfTimers.RuleUse("local");
+            return simped;
+          }
+        }
+        PerfTimers.Timers[PerfTimers.FIND_RULE].Start();
+        // As a heuristic we sort the simplifier lemmas by "similarity" to the
+        // expression we are looking at; we use number of shared constructor and
+        // function applications as a proxy for likelihood to match this.
+        foreach (var simpLem in simplifierLemmas.RulesFor(e)) {
+          ruleNo++;
+          PerfTimers.TriedRules++;
+          var simped = TrySimplify(e, simpLem) as Some<Expression>;
+          if (simped != null) {
+            s.Stop();
+            var t = s.ElapsedMilliseconds;
+            DebugMsg($"Found matching rule on {ruleNo}th try after {((double)(s.ElapsedMilliseconds))/1000}s");
+            PerfTimers.RuleFindingTimes.Add(t);
+            subtermFound(null);
+            PerfTimers.RuleUse("global");
+            return simped;
+          }
+        }
+        return Unfold(e, st);
+        // PerfTimers.Timers[PerfTimers.FIND_RULE].Stop();
+        // // inline function calls to functions that have simp attribute
+        // return new None<Expression>();
+      }
+
+      public Option<Expression> Normalize(Expression e, object st) {
+        var ite = e as ITEExpr;
         if (e is LetExpr && inGhost) {
           // DebugExpression("Inlining LetExpr: ", e);
           PerfTimers.StartTimer(PerfTimers.LET_INLINING);
@@ -1181,19 +1332,33 @@ namespace Microsoft.Dafny {
             PerfTimers.RuleUse("let");
             return new Some<Expression>(newE);
           }
-        }
-        // try to rewrite comparisons between literals
-        if (e is BinaryExpr) {
+        } else if (e is BinaryExpr) {
+          // try to rewrite comparisons between literals
           PerfTimers.StartTimer("RewriteBinaryExpr");
           var rewritten = RewriteBinaryExpr((BinaryExpr)e);
           PerfTimers.StopTimer("RewriteBinaryExpr");
           if (rewritten is Some<Expression>) {
-            PerfTimers.RuleUse("let");
+            PerfTimers.RuleUse("RewriteBinaryExpr");
             return rewritten;
           }
-        }
-        // Rewrite constructor fields
-        if (e is MemberSelectExpr) {
+        } else if (e is UnaryOpExpr) {
+          var uo = (UnaryOpExpr)e;
+          if (uo.E is LiteralExpr) {
+            var v1 = ((LiteralExpr)uo.E).Value;
+            if ((v1 is bool) && uo.Op == UnaryOpExpr.Opcode.Not) {
+              return new Some<Expression>(Expression.CreateBoolLiteral(uo.tok, !((bool)v1)));
+            }
+          }
+        } else if (ite != null && ite.Test is LiteralExpr) {
+          var guard = ite.Test as LiteralExpr;
+          if ((bool)guard.Value) {
+            return new Some<Expression>(ite.Thn);
+          } else {
+            return new Some<Expression>(ite.Els);
+          }
+            // ifs with literal booleans as guards
+        } else if (e is MemberSelectExpr) {
+          // Rewrite constructor fields
           PerfTimers.StartTimer("MemberSelectExpr");
           var ms = (MemberSelectExpr) e;
           if (ms.Obj is DatatypeValue) {
@@ -1223,24 +1388,6 @@ namespace Microsoft.Dafny {
             }
           }
           PerfTimers.StopTimer("MemberSelectExpr");
-        }
-        // inline function calls to functions that have simp attribute
-        if (e is FunctionCallExpr) {
-          var fc = (FunctionCallExpr)e;
-          // TODO: make "simp" a constant
-          if (Attributes.Contains(fc.Function.Attributes, "simp")) {
-            PerfTimers.StartTimer("InlineFunction");
-            Dictionary<IVariable, Expression> substMap = new Dictionary<IVariable, Expression>();
-            Contract.Assert(fc.Args.Count == fc.Function.Formals.Count);
-            for (int i = 0; i < fc.Args.Count; i++) {
-              substMap.Add(fc.Function.Formals[i], fc.Args[i]);
-            }
-            var substitutedBody = Translator.Substitute(fc.Function.Body, null, substMap,
-                                                        fc.TypeArgumentSubstitutions);
-            PerfTimers.RuleUse("inline");
-            PerfTimers.StopTimer("InlineFunction");
-            return new Some<Expression>(substitutedBody);
-          }
         }
         return new None<Expression>();
       }
@@ -1285,6 +1432,44 @@ namespace Microsoft.Dafny {
 
       internal Option<Expression> RewriteBinaryExpr(BinaryExpr br) {
         // TODO: set/map/multiset literals are not LiteralExprs, so we need to handle these specially
+        if (br.ResolvedOp == BinaryExpr.ResolvedOpcode.And ||
+            br.ResolvedOp == BinaryExpr.ResolvedOpcode.Or) {
+          var l1 = br.E0 as LiteralExpr;
+          var l2 = br.E1 as LiteralExpr;
+          if (l1 != null) {
+            var b1 = (bool)l1.Value;
+            if (br.ResolvedOp == BinaryExpr.ResolvedOpcode.And) {
+              if (b1) {
+                return new Some<Expression>(br.E1);
+              } else {
+                return new Some<Expression>(Expression.CreateBoolLiteral(br.tok, false));
+              }
+            } else {
+              if (b1) {
+                return new Some<Expression>(Expression.CreateBoolLiteral(br.tok, true));
+              } else {
+                return new Some<Expression>(br.E1);
+              }
+            }
+          } else if (l2 != null) {
+            var b2 = (bool)l2.Value;
+            if (br.ResolvedOp == BinaryExpr.ResolvedOpcode.And) {
+              if (b2) {
+                return new Some<Expression>(br.E0);
+              } else {
+                return new Some<Expression>(Expression.CreateBoolLiteral(br.tok, false));
+              }
+            } else {
+              if (b2) {
+                return new Some<Expression>(Expression.CreateBoolLiteral(br.tok, true));
+              } else {
+                return new Some<Expression>(br.E0);
+              }
+            }
+          } else {
+            return new None<Expression>();
+          }
+        }
         if (br.E0 is LiteralExpr && br.E1 is LiteralExpr &&
             br.E0.Type.Equals(br.E1.Type)) {
           List<BinaryExpr.ResolvedOpcode> eqOps =
@@ -1348,107 +1533,6 @@ namespace Microsoft.Dafny {
         return new None<Expression>();
       }
 
-      public static Expression Normalize(Expression e, bool inGhost) {
-        var nv = new NormalizationVisitor(inGhost);
-        return nv.Visit(e, null);
-      }
-
-    }
-
-    internal class RewriteVisitor: ExpressionTransformer
-    {
-      RuleSet simplifierLemmas;
-      RuleSet localRules;
-      bool inGhost;
-      int subtermNo = 0;
-
-      internal static Expression WarnUnhandledCase(Expression e) {
-        // DebugMsg("[SimplificationVisitor] unhandled expression type: " +
-        //          $"{Printer.ExprToString(e)}[{e.GetType()}]");
-        return e;
-      }
-
-      public RewriteVisitor(RuleSet simplifierLemmas, RuleSet localRules, bool inGhost) :
-        base(e => WarnUnhandledCase(e)) {
-        this.simplifierLemmas = simplifierLemmas;
-        this.localRules = localRules;
-        this.inGhost = inGhost;
-      }
-
-
-      public override Option<Expression> VisitOneExpr(Expression e, object st) {
-        // TODO: make inlining lets configurable once we support different
-        // sets of simplification rules (then one can add a special simplification set)
-        // containing just this rule that users can request where needed
-        subtermNo++;
-        Action<object> subtermFound = (o => {
-            PerfTimers.MatchingSubtermNos.Add(subtermNo);
-            DebugMsg($"Successful rewrite in subterm {subtermNo}");
-            subtermNo = 0;
-          });
-        Stopwatch s = new Stopwatch();
-        s.Start();
-        int ruleNo = 0;
-        PerfTimers.Timers[PerfTimers.FIND_RULE].Start();
-        foreach (var simpLem in localRules.Rules()) {
-          ruleNo++;
-          PerfTimers.TriedRules++;
-          var simped = TrySimplify(e, simpLem) as Some<Expression>;
-          if (simped != null) {
-            s.Stop();
-            var t = s.ElapsedMilliseconds;
-            SimplifyingRewriter.errReporter.Warning(MessageSource.Simplifier, e.tok, $"Found matching rule on {ruleNo}th try after {((double)(s.ElapsedMilliseconds))/1000}s");
-            PerfTimers.RuleFindingTimes.Add(t);
-            subtermFound(null);
-            PerfTimers.RuleUse("local");
-            return simped;
-          }
-        }
-        PerfTimers.Timers[PerfTimers.FIND_RULE].Start();
-        // As a heuristic we sort the simplifier lemmas by "similarity" to the
-        // expression we are looking at; we use number of shared constructor and
-        // function applications as a proxy for likelihood to match this.
-        foreach (var simpLem in simplifierLemmas.RulesFor(e)) {
-          ruleNo++;
-          PerfTimers.TriedRules++;
-          var simped = TrySimplify(e, simpLem) as Some<Expression>;
-          if (simped != null) {
-            s.Stop();
-            var t = s.ElapsedMilliseconds;
-            SimplifyingRewriter.errReporter.Warning(MessageSource.Simplifier, e.tok, $"Found matching rule on {ruleNo}th try after {((double)(s.ElapsedMilliseconds))/1000}s");
-            PerfTimers.RuleFindingTimes.Add(t);
-            subtermFound(null);
-            PerfTimers.RuleUse("global");
-            return simped;
-          }
-        }
-        PerfTimers.Timers[PerfTimers.FIND_RULE].Stop();
-        return new None<Expression>();
-      }
-
-      internal Option<Expression> TrySimplify(Expression e, RewriteRule rr) {
-        // Stopwatch s = new Stopwatch();
-        PerfTimers.Timers[PerfTimers.UNIFICATION].Start();
-        var uv = UnifiesWith(e.Resolved, rr.Lhs);
-        PerfTimers.UnificationAttempts++;
-        PerfTimers.Timers[PerfTimers.UNIFICATION].Stop();
-        if (uv != null) {
-          PerfTimers.Timers[PerfTimers.FIND_RULE].Stop();
-          // DebugMsg(e.Resolved + " unifies with " + eq.E0.Resolved);
-          // FIXME: check that we don't need the receiverParam argument
-          var res = Translator.Substitute(rr.Rhs, null, uv.GetSubstMap, uv.GetTypeSubstMap);
-          return new Some<Expression>(res);
-        }
-        return new None<Expression>();
-      }
-
-      public static Expression Rewrite(Expression e, RuleSet simplifierRules,
-                                        RuleSet localRules, bool inGhost) {
-        var rv = new RewriteVisitor(simplifierRules, localRules, inGhost);
-        return rv.Visit(e, null);
-      }
-
-
     }
 
     internal class SimplifyInExprVisitor : ExpressionTransformer
@@ -1504,21 +1588,39 @@ namespace Microsoft.Dafny {
         var expr = e;
         // Keep trying to simplify until we (hopefully) reach a fixpoint
         // FIXME: add parameter to control maximum simplification steps?
-        var exprStr = Printer.ExprToString(e);
+        var exprStr = Printer.ExprToString(expr);
         if (exprStr.Count() >= 100) {
           exprStr = exprStr.Substring(0, 100);
         }
-        DebugMsg($"Simplifying expression: {exprStr}");
+        DebugMsg($"Simplifying expression: {exprStr}...");
+        var rewriter = new RewriteVisitor(simplifierRules, localRewriteRules, inGhost);
         while(true) {
-          var normalized = NormalizationVisitor.Normalize(expr, inGhost);
-          // var sv = RewriteVisitor.(simplifierRules, localRewriteRules, inGhost);
-          var simplified = RewriteVisitor.Rewrite(normalized, simplifierRules,
-                                                  localRewriteRules, inGhost);
-          if (simplified == expr) {
-            break;
-          } else {
-            expr = simplified;
+          exprStr = Printer.ExprToString(expr);
+          if (exprStr.Count() >= 100) {
+            exprStr = exprStr.Substring(0, 100);
           }
+          DebugMsg($"Simplifying expression: {exprStr}...");
+          rewriter.Reset();
+          rewriter.RewriteMode = RewriteVisitor.Mode.NORMALIZE;
+          var normalized = rewriter.Visit(expr, null);
+          if (rewriter.AnyChange) {
+            expr = normalized;
+            continue;
+          }
+          rewriter.Reset();
+          rewriter.RewriteMode = RewriteVisitor.Mode.REWRITE;
+          var rewritten = rewriter.Visit(normalized, null);
+          if (rewriter.AnyChange) {
+            expr = rewritten;
+            continue;
+          }
+          rewriter.Reset();
+          rewriter.RewriteMode = RewriteVisitor.Mode.UNFOLD;
+          var unfolded = rewriter.Visit(rewritten, null);
+          if (!rewriter.AnyChange || unfolded == rewritten) {
+            break;
+          }
+          expr = unfolded;
         }
         var msg = $"Simplified to {Printer.ExprToString(expr)}";
         DebugMsg(msg);

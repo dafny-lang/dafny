@@ -21,30 +21,6 @@ lemma {:simp} IfFalse_simp<T>(x: T, y: T)
   ensures (if false then x else y) == y
 {}
 
-lemma {:simp} AndFalse_simp1(x: bool)
-  ensures (x && false) == false
-{}
-
-lemma {:simp} AndFalse_simp2(x: bool)
-  ensures (false && x) == false
-{}
-
-lemma {:simp} AndTrue_simp()
-  ensures (true && true) == true
-{}
-
-lemma {:simp} OrTrue_simp1(x: bool)
-  ensures (x || true) == true
-{}
-
-lemma {:simp} OrTrue_simp2(x: bool)
-  ensures (true || x) == true
-{}
-
-lemma {:simp} OrFalse_simp()
-  ensures (false || false) == false
-{}
-
 method g(x: bool)
 {
   assert simp(Foo(if true && false then 8 else 7)) == 42;
