@@ -1161,23 +1161,88 @@ namespace Microsoft.Dafny {
       }
     }
 
-    internal class SimplificationVisitor: ExpressionTransformer
+    internal class NormalizationVisitor: ExpressionTransformer
     {
-      RuleSet simplifierLemmas;
-      RuleSet localRules;
       bool inGhost;
-
-      internal static Expression WarnUnhandledCase(Expression e) {
-        // DebugMsg("[SimplificationVisitor] unhandled expression type: " +
-        //          $"{Printer.ExprToString(e)}[{e.GetType()}]");
-        return e;
+      public NormalizationVisitor(bool inGhost) :
+        base(e => e)
+      {
+        this.inGhost = inGhost;
       }
 
-      public SimplificationVisitor(RuleSet simplifierLemmas, RuleSet localRules, bool inGhost) :
-        base(e => WarnUnhandledCase(e)) {
-        this.simplifierLemmas = simplifierLemmas;
-        this.localRules = localRules;
-        this.inGhost = inGhost;
+      public override Option<Expression> VisitOneExpr(Expression e, object st) {
+        if (e is LetExpr && inGhost) {
+          // DebugExpression("Inlining LetExpr: ", e);
+          PerfTimers.StartTimer(PerfTimers.LET_INLINING);
+          var newE = InlineLet((LetExpr)e);
+          PerfTimers.StopTimer(PerfTimers.LET_INLINING);
+          if (newE != e) {
+            // DebugExpression("Inlined result: ", newE);
+            PerfTimers.RuleUse("let");
+            return new Some<Expression>(newE);
+          }
+        }
+        // try to rewrite comparisons between literals
+        if (e is BinaryExpr) {
+          PerfTimers.StartTimer("RewriteBinaryExpr");
+          var rewritten = RewriteBinaryExpr((BinaryExpr)e);
+          PerfTimers.StopTimer("RewriteBinaryExpr");
+          if (rewritten is Some<Expression>) {
+            PerfTimers.RuleUse("let");
+            return rewritten;
+          }
+        }
+        // Rewrite constructor fields
+        if (e is MemberSelectExpr) {
+          PerfTimers.StartTimer("MemberSelectExpr");
+          var ms = (MemberSelectExpr) e;
+          if (ms.Obj is DatatypeValue) {
+            var obj = (DatatypeValue)ms.Obj;
+            // Check if member we selected is the query field of one of the
+            // constructors:
+            foreach (var ctor in obj.Ctor.EnclosingDatatype.Ctors) {
+              if (ctor.QueryField.Equals(ms.Member)) {
+                var newExpr = Expression.CreateBoolLiteral(ms.tok, ctor.Equals(obj.Ctor));
+                PerfTimers.RuleUse("ctor?");
+                PerfTimers.StopTimer("MemberSelectExpr");
+                return new Some<Expression>(newExpr);
+              }
+            }
+            // Check if we are projecting to a concrete field of the constructor
+            // This is also implementable from within dafny by adding a lemma
+            // for each field of each constructor, but we don't want the user
+            // to have to write all that boilerplate.
+            Contract.Assert(obj.Ctor.Destructors.Count == obj.Arguments.Count);
+            for (int i = 0; i < obj.Ctor.Destructors.Count; i++) {
+              var dtor = obj.Ctor.Destructors[i];
+              if (dtor.Equals(ms.Member)) {
+                PerfTimers.RuleUse("dtor");
+                PerfTimers.StopTimer("MemberSelectExpr");
+                return new Some<Expression>(obj.Arguments[i]);
+              }
+            }
+          }
+          PerfTimers.StopTimer("MemberSelectExpr");
+        }
+        // inline function calls to functions that have simp attribute
+        if (e is FunctionCallExpr) {
+          var fc = (FunctionCallExpr)e;
+          // TODO: make "simp" a constant
+          if (Attributes.Contains(fc.Function.Attributes, "simp")) {
+            PerfTimers.StartTimer("InlineFunction");
+            Dictionary<IVariable, Expression> substMap = new Dictionary<IVariable, Expression>();
+            Contract.Assert(fc.Args.Count == fc.Function.Formals.Count);
+            for (int i = 0; i < fc.Args.Count; i++) {
+              substMap.Add(fc.Function.Formals[i], fc.Args[i]);
+            }
+            var substitutedBody = Translator.Substitute(fc.Function.Body, null, substMap,
+                                                        fc.TypeArgumentSubstitutions);
+            PerfTimers.RuleUse("inline");
+            PerfTimers.StopTimer("InlineFunction");
+            return new Some<Expression>(substitutedBody);
+          }
+        }
+        return new None<Expression>();
       }
 
       internal Expression CallDestructor(IToken tok, DatatypeDestructor dest, Expression val) {
@@ -1283,69 +1348,46 @@ namespace Microsoft.Dafny {
         return new None<Expression>();
       }
 
+      public static Expression Normalize(Expression e, bool inGhost) {
+        var nv = new NormalizationVisitor(inGhost);
+        return nv.Visit(e, null);
+      }
+
+    }
+
+    internal class RewriteVisitor: ExpressionTransformer
+    {
+      RuleSet simplifierLemmas;
+      RuleSet localRules;
+      bool inGhost;
+      int subtermNo = 0;
+
+      internal static Expression WarnUnhandledCase(Expression e) {
+        // DebugMsg("[SimplificationVisitor] unhandled expression type: " +
+        //          $"{Printer.ExprToString(e)}[{e.GetType()}]");
+        return e;
+      }
+
+      public RewriteVisitor(RuleSet simplifierLemmas, RuleSet localRules, bool inGhost) :
+        base(e => WarnUnhandledCase(e)) {
+        this.simplifierLemmas = simplifierLemmas;
+        this.localRules = localRules;
+        this.inGhost = inGhost;
+      }
+
 
       public override Option<Expression> VisitOneExpr(Expression e, object st) {
         // TODO: make inlining lets configurable once we support different
         // sets of simplification rules (then one can add a special simplification set)
         // containing just this rule that users can request where needed
-        if (e is LetExpr && inGhost) {
-          // DebugExpression("Inlining LetExpr: ", e);
-          PerfTimers.StartTimer(PerfTimers.LET_INLINING);
-          var newE = InlineLet((LetExpr)e);
-          PerfTimers.StopTimer(PerfTimers.LET_INLINING);
-          if (newE != e) {
-            // DebugExpression("Inlined result: ", newE);
-            return new Some<Expression>(newE);
-          }
-        }
-        // try to rewrite comparisons between literals
-        if (e is BinaryExpr) {
-          var rewritten = RewriteBinaryExpr((BinaryExpr)e);
-          if (rewritten is Some<Expression>) {
-            return rewritten;
-          }
-        }
-        // Rewrite constructor fields
-        if (e is MemberSelectExpr) {
-          var ms = (MemberSelectExpr) e;
-          if (ms.Obj is DatatypeValue) {
-            var obj = (DatatypeValue)ms.Obj;
-            // Check if member we selected is the query field of one of the
-            // constructors:
-            foreach (var ctor in obj.Ctor.EnclosingDatatype.Ctors) {
-              if (ctor.QueryField.Equals(ms.Member)) {
-                var newExpr = Expression.CreateBoolLiteral(ms.tok, ctor.Equals(obj.Ctor));
-                return new Some<Expression>(newExpr);
-              }
-            }
-            // Check if we are projecting to a concrete field of the constructor
-            // This is also implementable from within dafny by adding a lemma
-            // for each field of each constructor, but we don't want the user
-            // to have to write all that boilerplate.
-            Contract.Assert(obj.Ctor.Destructors.Count == obj.Arguments.Count);
-            for (int i = 0; i < obj.Ctor.Destructors.Count; i++) {
-              var dtor = obj.Ctor.Destructors[i];
-              if (dtor.Equals(ms.Member)) {
-                return new Some<Expression>(obj.Arguments[i]);
-              }
-            }
-          }
-        }
-        // inline function calls to functions that have simp attribute
-        if (e is FunctionCallExpr) {
-          var fc = (FunctionCallExpr)e;
-          // TODO: make "simp" a constant
-          if (Attributes.Contains(fc.Function.Attributes, "simp")) {
-            Dictionary<IVariable, Expression> substMap = new Dictionary<IVariable, Expression>();
-            Contract.Assert(fc.Args.Count == fc.Function.Formals.Count);
-            for (int i = 0; i < fc.Args.Count; i++) {
-              substMap.Add(fc.Function.Formals[i], fc.Args[i]);
-            }
-            var substitutedBody = Translator.Substitute(fc.Function.Body, null, substMap,
-                                                        fc.TypeArgumentSubstitutions);
-            return new Some<Expression>(substitutedBody);
-          }
-        }
+        subtermNo++;
+        Action<object> subtermFound = (o => {
+            PerfTimers.MatchingSubtermNos.Add(subtermNo);
+            DebugMsg($"Successful rewrite in subterm {subtermNo}");
+            subtermNo = 0;
+          });
+        Stopwatch s = new Stopwatch();
+        s.Start();
         int ruleNo = 0;
         PerfTimers.Timers[PerfTimers.FIND_RULE].Start();
         foreach (var simpLem in localRules.Rules()) {
@@ -1386,6 +1428,12 @@ namespace Microsoft.Dafny {
           return new Some<Expression>(res);
         }
         return new None<Expression>();
+      }
+
+      public static Expression Rewrite(Expression e, RuleSet simplifierRules,
+                                        RuleSet localRules, bool inGhost) {
+        var rv = new RewriteVisitor(simplifierRules, localRules, inGhost);
+        return rv.Visit(e, null);
       }
 
 
@@ -1450,8 +1498,10 @@ namespace Microsoft.Dafny {
         }
         DebugMsg($"Simplifying expression: {exprStr}");
         while(true) {
-          var sv = new SimplificationVisitor(simplifierRules, localRewriteRules, inGhost);
-          var simplified = sv.Visit(expr, null);
+          var normalized = NormalizationVisitor.Normalize(expr, inGhost);
+          // var sv = RewriteVisitor.(simplifierRules, localRewriteRules, inGhost);
+          var simplified = RewriteVisitor.Rewrite(normalized, simplifierRules,
+                                                  localRewriteRules, inGhost);
           if (simplified == expr) {
             break;
           } else {
