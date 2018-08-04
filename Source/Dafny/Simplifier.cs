@@ -1229,7 +1229,7 @@ namespace Microsoft.Dafny {
         RewriteMode = Mode.NORMALIZE;
         while (true) {
           Reset();
-          var newExpr = Visit(e, null);
+          var newExpr = Visit(expr, null);
           if (!AnyChange) {
             break;
           }
@@ -1741,32 +1741,17 @@ namespace Microsoft.Dafny {
           }
           DebugMsg($"Simplifying expression: {exprStr}...");
           rewriter.Reset();
-          rewriter.RewriteMode = RewriteVisitor.Mode.NORMALIZE;
-          var normalized = rewriter.Visit(expr, null);
-          if (rewriter.AnyChange) {
-            expr = normalized;
-            continue;
-          }
-          rewriter.Reset();
+          expr = rewriter.FullyNormalize(expr);
+          // DebugMsg("Done normalizing");
           PerfTimers.StartTimer("Tag");
-          tagger.Visit(normalized, null);
+          tagger.Visit(expr, null);
           PerfTimers.StopTimer("Tag");
           rewriter.RewriteMode = RewriteVisitor.Mode.REWRITE;
-          var rewritten = rewriter.Visit(normalized, null);
-          if (rewriter.AnyChange) {
-            expr = rewritten;
-            continue;
-          }
-          rewriter.Reset();
-          PerfTimers.StartTimer("Tag");
-          tagger.Visit(rewritten, null);
-          PerfTimers.StopTimer("Tag");
-          rewriter.RewriteMode = RewriteVisitor.Mode.UNFOLD;
-          var unfolded = rewriter.Visit(rewritten, null);
-          if (!rewriter.AnyChange || unfolded == rewritten) {
+          var exprNew = rewriter.Visit(expr, null);
+          if (!rewriter.AnyChange || expr == exprNew) {
             break;
           }
-          expr = unfolded;
+          expr = exprNew;
         }
         var msg = $"Simplified to {Printer.ExprToString(expr)}";
         DebugMsg(msg);
