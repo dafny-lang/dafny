@@ -7788,7 +7788,7 @@ namespace Microsoft.Dafny {
   public abstract class Expression
   {
     public readonly IToken tok;
-    public int Tag;
+    public object Tag = null;
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(tok != null);

@@ -1276,7 +1276,17 @@ namespace Microsoft.Dafny {
           // DebugExpression("Trying to unify: ", target);
           // DebugExpression("with pattern: ", pattern);
           // Fail early without a lot of dynamic type checks
-          if (target.Tag != pattern.Tag) {
+
+          //if (pattern is FunctionCallExpr || pattern is DatatypeValue){
+          //  if (pattern.Tag == null)  {
+          //    DebugMsg("Found untagged expression");
+          //  } else {
+          //    DebugMsg("Found tagged expression");
+          //  }
+          //}
+          if (target.Tag != null && pattern.Tag != null &&
+              target.Tag != pattern.Tag) {
+            // DebugMsg($"Skipping unification since tags don't match: {((ExpressionTag)(target.Tag)).Name()} & {((ExpressionTag)(pattern.Tag)).Name()}");
             return false;
           }
           uv.Reset();
@@ -1642,6 +1652,7 @@ namespace Microsoft.Dafny {
       }
     }
 
+
     internal class SimplifyInExprVisitor : ExpressionTransformer
     {
       ErrorReporter reporter;
@@ -1717,7 +1728,11 @@ namespace Microsoft.Dafny {
         }
         DebugMsg($"Simplifying expression: {exprStr}...");
         var rewriter = new RewriteVisitor(simplifierRules, localRewriteRules, inGhost);
+        var tagger = new ExpressionTagger();
         while(true) {
+          PerfTimers.StartTimer("Tag");
+          tagger.Visit(expr, null);
+          PerfTimers.StopTimer("Tag");
           exprStr = Printer.ExprToString(expr);
           if (exprStr.Count() >= 100) {
             exprStr = exprStr.Substring(0, 100);
@@ -1731,6 +1746,9 @@ namespace Microsoft.Dafny {
             continue;
           }
           rewriter.Reset();
+          PerfTimers.StartTimer("Tag");
+          tagger.Visit(normalized, null);
+          PerfTimers.StopTimer("Tag");
           rewriter.RewriteMode = RewriteVisitor.Mode.REWRITE;
           var rewritten = rewriter.Visit(normalized, null);
           if (rewriter.AnyChange) {
@@ -1738,6 +1756,9 @@ namespace Microsoft.Dafny {
             continue;
           }
           rewriter.Reset();
+          PerfTimers.StartTimer("Tag");
+          tagger.Visit(rewritten, null);
+          PerfTimers.StopTimer("Tag");
           rewriter.RewriteMode = RewriteVisitor.Mode.UNFOLD;
           var unfolded = rewriter.Visit(rewritten, null);
           if (!rewriter.AnyChange || unfolded == rewritten) {
@@ -1938,12 +1959,15 @@ namespace Microsoft.Dafny {
     // internal HashSet<RewriteRule> otherRules;
 
     internal List<RewriteRule> rules;
+    internal ExpressionTagger tagger;
     public RuleSet() {
       // declRules = new Dictionary<Declaration, HashSet<RewriteRule>>();
       rules = new List<RewriteRule>();
+      tagger = new ExpressionTagger();
     }
 
     public void AddRule(RewriteRule rr) {
+      tagger.Visit(rr.Lhs, null);
       rules.Add(rr);
     }
 
@@ -1961,6 +1985,76 @@ namespace Microsoft.Dafny {
       // return rules;
     }
 
+  }
+
+  // This is a "summary" of the expression for unification
+  // storing the outermost type of the expression and
+  // its name if applicable
+  internal abstract class ExpressionTag {
+    public abstract String Name();
+  }
+
+  internal class DatatypeValueTag : ExpressionTag {
+    DatatypeCtor ctor;
+    public DatatypeValueTag(DatatypeCtor ctor) {
+      this.ctor = ctor;
+    }
+
+    public override String Name() {
+      return $"DatatypeValueTag({ctor.Name}[{ctor.GetHashCode()}]) [{this.GetHashCode()}]";
+    }
+  }
+
+  internal class FunctionCallTag : ExpressionTag {
+    Function f;
+    public FunctionCallTag(Function f) {
+      this.f = f;
+    }
+    public override String Name() {
+      return $"FunctionCallTag({f.Name}[{f.GetHashCode()}]) [{this.GetHashCode()}]";
+    }
+  }
+
+  internal class TagFactory {
+    internal static Dictionary<DatatypeCtor, ExpressionTag> dtTags =
+      new Dictionary<DatatypeCtor, ExpressionTag>();
+    internal static Dictionary<Function, ExpressionTag> fcTags =
+      new Dictionary<Function, ExpressionTag>();
+
+    internal static V GetOrCreate<K, V>(Dictionary<K, V> dict, K k,
+                                        Func<K, V> create) {
+      V res;
+      if (dict.TryGetValue(k, out res)) {
+        return res;
+      } else {
+        res = create(k);
+        dict[k] = res;
+        return res;
+      }
+    }
+
+    public static ExpressionTag TagExpression(Expression e) {
+      var dv = e as DatatypeValue;
+      var fc = e as FunctionCallExpr;
+      if (dv != null) {
+        return GetOrCreate(dtTags, dv.Ctor, ct => new DatatypeValueTag(ct));
+      } else if (fc != null) {
+        return GetOrCreate(fcTags, fc.Function, f => new FunctionCallTag(f));
+      }
+      return null;
+    }
+  }
+
+  internal class ExpressionTagger : TopDownVisitor<object>
+  {
+    protected override bool VisitOneExpr(Expression e, ref object st) {
+      if (e.Tag == null) {
+        e.Tag = TagFactory.TagExpression(e);
+        return true;
+      } else {
+        return true;
+      }
+    }
   }
 
   internal class RewriteRule {
