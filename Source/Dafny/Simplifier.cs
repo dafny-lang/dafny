@@ -1264,6 +1264,8 @@ namespace Microsoft.Dafny {
         if (res is Some<Expression>) {
           //DebugMsg($"Rewriting[{RewriteMode}]..");
           anyChange = true;
+          var resExpr = (res as Some<Expression>).val;
+          // return new Some<Expression>(Visit(resExpr, st));
         }
         return res;
       }
@@ -2033,13 +2035,17 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public static ExpressionTag TagExpression(Expression e) {
+    public static object TagExpression(Expression e) {
       var dv = e as DatatypeValue;
       var fc = e as FunctionCallExpr;
       if (dv != null) {
         return GetOrCreate(dtTags, dv.Ctor, ct => new DatatypeValueTag(ct));
       } else if (fc != null) {
         return GetOrCreate(fcTags, fc.Function, f => new FunctionCallTag(f));
+      } else {
+        if (!(e is IdentifierExpr)) {
+          return e.GetType();
+        }
       }
       return null;
     }
