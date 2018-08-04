@@ -855,6 +855,11 @@ namespace Microsoft.Dafny {
       }
     }
 
+    public void Reset() {
+      map = new Dictionary<IVariable, Expression>();
+      typeMap = new Dictionary<TypeParameter, Type>();
+    }
+
     public UnificationVisitor()
       : base(UnwrapStmtExpr)
     {
@@ -1152,30 +1157,6 @@ namespace Microsoft.Dafny {
       }
     }
 
-    // Returns null iff unification failed.
-    internal static UnificationVisitor UnifiesWith(Expression target, Expression pattern) {
-      try {
-        if (pattern.WasResolved()) {
-          pattern = pattern.Resolved;
-        }
-        // DebugExpression("Trying to unify: ", target);
-        // DebugExpression("with pattern: ", pattern);
-        var uf = new UnificationVisitor();
-        uf.Visit(pattern, target);
-        // DebugMsg("Unification succeeded");
-        if (DafnyOptions.O.SimpTrace) {
-          foreach (var item in uf.GetSubstMap) {
-            //DebugMsg($"\t{item.Key} |-> {Printer.ExprToString(item.Value)}");
-          }
-        }
-        return uf;
-      } catch(UnificationError ue) {
-        //DebugMsg($"Unification of {Printer.ExprToString(pattern)} and " +
-        //         $"{Printer.ExprToString(target)} failed with:\n{ue}");
-        return null;
-      }
-    }
-
     internal class RewriteVisitor: ExpressionTransformer
     {
       RuleSet simplifierLemmas;
@@ -1183,6 +1164,7 @@ namespace Microsoft.Dafny {
       bool inGhost;
       int subtermNo = 0;
       bool anyChange;
+      UnificationVisitor uv;
 
       public override Expression VisitDefault(Expression e, object st) {
         // DebugMsg("[SimplificationVisitor] unhandled expression type: " +
@@ -1190,12 +1172,13 @@ namespace Microsoft.Dafny {
         return e;
       }
 
-      public RewriteVisitor(RuleSet simplifierLemmas, RuleSet localRules, bool inGhost) :
-        base(e => WarnUnhandledCase(e)) {
+      public RewriteVisitor(RuleSet simplifierLemmas, RuleSet localRules, bool inGhost)
+      {
         this.simplifierLemmas = simplifierLemmas;
         this.localRules = localRules;
         this.inGhost = inGhost;
         this.anyChange = false;
+        uv = new UnificationVisitor();
       }
 
       public void Reset() { anyChange = false; }
@@ -1240,6 +1223,21 @@ namespace Microsoft.Dafny {
       }
 
 
+      public Expression FullyNormalize(Expression e) {
+        var expr = e;
+        var oldMode = RewriteMode;
+        RewriteMode = Mode.NORMALIZE;
+        while (true) {
+          Reset();
+          var newExpr = Visit(e, null);
+          if (!AnyChange) {
+            break;
+          }
+          expr = newExpr;
+        }
+        RewriteMode = oldMode;
+        return expr;
+      }
 
       public override Option<Expression> VisitOneExpr(Expression e, object st) {
         // TODO: make inlining lets configurable once we support different
@@ -1270,13 +1268,40 @@ namespace Microsoft.Dafny {
         return res;
       }
 
+      internal bool UnifiesWith(Expression target, Expression pattern) {
+        try {
+          if (pattern.WasResolved()) {
+            pattern = pattern.Resolved;
+          }
+          // DebugExpression("Trying to unify: ", target);
+          // DebugExpression("with pattern: ", pattern);
+          // Fail early without a lot of dynamic type checks
+          if (target.Tag != pattern.Tag) {
+            return false;
+          }
+          uv.Reset();
+          uv.Visit(pattern, target);
+          // DebugMsg("Unification succeeded");
+          //if (DafnyOptions.O.SimpTrace) {
+          //  foreach (var item in uv.GetSubstMap) {
+          //    //DebugMsg($"\t{item.Key} |-> {Printer.ExprToString(item.Value)}");
+          //  }
+          //}
+          return true;
+        } catch(UnificationError ue) {
+          //DebugMsg($"Unification of {Printer.ExprToString(pattern)} and " +
+          //         $"{Printer.ExprToString(target)} failed with:\n{ue}");
+          return false;
+        }
+      }
+
       internal Option<Expression> TrySimplify(Expression e, RewriteRule rr) {
         // Stopwatch s = new Stopwatch();
         PerfTimers.Timers[PerfTimers.UNIFICATION].Start();
-        var uv = UnifiesWith(e.Resolved, rr.Lhs);
+        var unifies = UnifiesWith(e.Resolved, rr.Lhs);
         PerfTimers.UnificationAttempts++;
         PerfTimers.Timers[PerfTimers.UNIFICATION].Stop();
-        if (uv != null) {
+        if (unifies) {
           PerfTimers.Timers[PerfTimers.FIND_RULE].Stop();
           // DebugMsg(e.Resolved + " unifies with " + eq.E0.Resolved);
           // FIXME: check that we don't need the receiverParam argument
@@ -1304,6 +1329,7 @@ namespace Microsoft.Dafny {
           if (simped != null) {
             s.Stop();
             var t = s.ElapsedMilliseconds;
+            PerfTimers.RuleAttempts.Add(ruleNo);
             DebugMsg($"Found matching rule on {ruleNo}th try after {((double)(s.ElapsedMilliseconds))/1000}s");
             PerfTimers.RuleFindingTimes.Add(t);
             subtermFound(null);
@@ -1322,6 +1348,7 @@ namespace Microsoft.Dafny {
           if (simped != null) {
             s.Stop();
             var t = s.ElapsedMilliseconds;
+            PerfTimers.RuleAttempts.Add(ruleNo);
             DebugMsg($"Found matching rule on {ruleNo}th try after {((double)(s.ElapsedMilliseconds))/1000}s");
             PerfTimers.RuleFindingTimes.Add(t);
             subtermFound(null);
@@ -1371,7 +1398,7 @@ namespace Microsoft.Dafny {
           } else {
             return new Some<Expression>(ite.Els);
           }
-            // ifs with literal booleans as guards
+          // ifs with literal booleans as guards
         } else if (e is MemberSelectExpr) {
           // Rewrite constructor fields
           PerfTimers.StartTimer("MemberSelectExpr");
@@ -1548,6 +1575,69 @@ namespace Microsoft.Dafny {
         return new None<Expression>();
       }
 
+      public Expression FullySimplify(Expression e, object st) {
+        var expr = e;
+        var oldMode = RewriteMode;
+        while (true) {
+          Reset();
+          RewriteMode = Mode.NORMALIZE;
+          var normalized = Visit(expr, st);
+          if (AnyChange) {
+            expr = normalized;
+            continue;
+          }
+          Reset();
+          RewriteMode = Mode.REWRITE;
+          expr = Visit(normalized, st);
+          if (!AnyChange) {
+            break;
+          }
+        }
+        return expr;
+      }
+
+    }
+
+    internal class SimplificationVisitor : ExpressionTransformer
+    {
+      RuleSet simplifierRules;
+      RuleSet localRules;
+      bool inGhost;
+      Func<Expression, Expression> defRet;
+      RewriteVisitor rv;
+      public bool Matched;
+
+      public RewriteVisitor Rewriter {
+        get {
+          return rv;
+        }
+      }
+
+      public override Expression VisitDefault(Expression e, object st) {
+        return rv.FullySimplify(e, st);
+      }
+      public SimplificationVisitor(RuleSet simplifierRules, RuleSet localRules, bool inGhost)
+      {
+        this.simplifierRules = simplifierRules;
+        this.localRules = localRules;
+        this.inGhost = inGhost;
+        rv = new RewriteVisitor(simplifierRules, localRules, inGhost);
+      }
+
+      public override Expression Visit(ITEExpr e, object st) {
+        Matched = true;
+        var newTest = rv.FullySimplify(e.Test, st);
+        var litTest = newTest as LiteralExpr;
+        if (litTest != null && (litTest.Value is bool)) {
+          if ((bool)litTest.Value) {
+            return Visit(e.Thn, st);
+          } else {
+            return Visit(e.Els, st);
+          }
+        } else {
+          return rv.FullySimplify(e, null);
+        }
+      }
     }
 
     internal class SimplifyInExprVisitor : ExpressionTransformer
@@ -1600,6 +1690,22 @@ namespace Microsoft.Dafny {
           DebugMsg("using memoized result");
           return result;
         }
+        /*
+          var sv = new SimplificationVisitor(simplifierRules, localRewriteRules, inGhost);
+          sv.Matched = false;
+          result = sv.Visit(e, null);
+          if (!sv.Matched) {
+          result = sv.Rewriter.FullySimplify(e, null);
+          }
+          var msg = $"Simplified to {Printer.ExprToString(result)}";
+          DebugMsg(msg);
+          if (DafnyOptions.O.SimpTrace) {
+          reporter.Warning(MessageSource.Simplifier, e.tok, msg);
+          } else {
+          reporter.Info(MessageSource.Simplifier, e.tok, msg);
+          }
+          SimplifyingRewriter.Simplifications[e] = result;
+          return result; */
         var expr = e;
         // Keep trying to simplify until we (hopefully) reach a fixpoint
         // FIXME: add parameter to control maximum simplification steps?
@@ -1768,22 +1874,30 @@ namespace Microsoft.Dafny {
         foreach (var item in PerfTimers.Timers) {
           long perc = item.Value.ElapsedMilliseconds / time;
           reporter.Warning(MessageSource.Simplifier, m.BodyStartTok,
-                        $"Time spent in {item.Key}: {((double)(item.Value.ElapsedMilliseconds))/1000}s ({perc})");
+                           $"Time spent in {item.Key}: {((double)(item.Value.ElapsedMilliseconds))/1000}s ({perc})");
         }
 
         DebugMsg($"~{PerfTimers.TriedRules} unsuccessful rule matching attempts");
-        var avg = PerfTimers.RuleFindingTimes.Average();
+        var ruleAvg = (PerfTimers.RuleAttempts.Count > 0 ? PerfTimers.RuleAttempts.Average() : 0);
+        DebugMsg($"On average {ruleAvg}th rule matched");
+        var avg = (PerfTimers.RuleFindingTimes.Count > 0 ? PerfTimers.RuleFindingTimes.Average() :
+                   0);
         DebugMsg($"Identifying correct rule took {avg}ms on average");
         DebugMsg($"Performed {PerfTimers.RuleFindingTimes.Count} rewrites");
-        DebugMsg($"Rules match {PerfTimers.MatchingSubtermNos.Average()}th subterm on average");
+        var subTermAvg = (PerfTimers.MatchingSubtermNos.Count != 0 ?
+                          PerfTimers.MatchingSubtermNos.Average() : 0);
+        DebugMsg($"Rules match {subTermAvg}th subterm on average");
         DebugMsg($"Unification attemps: {PerfTimers.UnificationAttempts}");
         var univTime = PerfTimers.Timers[PerfTimers.UNIFICATION].ElapsedMilliseconds;
-        double univAvg = ((double)univTime) / ((double)(PerfTimers.UnificationAttempts));
+        double univAvg =
+          (PerfTimers.UnificationAttempts != 0 ?
+           ((double)univTime) / ((double)(PerfTimers.UnificationAttempts)) :
+           0);
         DebugMsg($"Average unification time: {univAvg}ms");
         DebugMsg("## Rule Use");
         double numRules = PerfTimers.Rules.Values.Sum();
         foreach (var item in PerfTimers.Rules) {
-          double perc = item.Value / numRules;
+          double perc = (numRules != 0 ? (item.Value / numRules) : 0);
           DebugMsg($"  {item.Key}: {item.Value} ({perc}%)");
         }
         var cnt = simplifierRules.Rules().Count();
@@ -1840,9 +1954,9 @@ namespace Microsoft.Dafny {
     }
 
     public IEnumerable<RewriteRule> RulesFor(Expression e) {
-      // var decls = DeclFinder.FindDecls(e);
-      // return rules.OrderByDescending<RewriteRule, int>(rr => decls.Intersect(rr.LhsDecls).Count());
-      return rules;
+      var decls = DeclFinder.FindDecls(e);
+      return rules.OrderByDescending<RewriteRule, int>(rr => decls.Intersect(rr.LhsDecls).Count());
+      // return rules;
     }
 
   }
@@ -1876,6 +1990,7 @@ namespace Microsoft.Dafny {
     public static long UnificationAttempts = 0;
     public static List<long> RuleFindingTimes = new List<long>();
     public static List<long> MatchingSubtermNos = new List<long>();
+    public static List<long> RuleAttempts = new List<long>();
     public static Dictionary<String, long> Rules = new Dictionary<String, long>();
     public static Dictionary<String, Stopwatch> Timers = new Dictionary<String, Stopwatch> {
       { FIND_RULE, new Stopwatch() },
