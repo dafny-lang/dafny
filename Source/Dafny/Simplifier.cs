@@ -1305,7 +1305,9 @@ namespace Microsoft.Dafny {
           PerfTimers.Timers[PerfTimers.FIND_RULE].Stop();
           // DebugMsg(e.Resolved + " unifies with " + eq.E0.Resolved);
           // FIXME: check that we don't need the receiverParam argument
+          PerfTimers.StartTimer("Substitute");
           var res = Translator.Substitute(rr.Rhs, null, uv.GetSubstMap, uv.GetTypeSubstMap);
+          PerfTimers.StopTimer("Substitute");
           return new Some<Expression>(res);
         }
         return new None<Expression>();
