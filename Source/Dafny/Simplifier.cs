@@ -1165,6 +1165,8 @@ namespace Microsoft.Dafny {
       int subtermNo = 0;
       bool anyChange;
       UnificationVisitor uv;
+      HashSet<Tuple<Expression, Expression>> doesntUnify =
+        new HashSet<Tuple<Expression, Expression>>();
 
       public override Expression VisitDefault(Expression e, object st) {
         // DebugMsg("[SimplificationVisitor] unhandled expression type: " +
@@ -1271,9 +1273,14 @@ namespace Microsoft.Dafny {
       }
 
       internal bool UnifiesWith(Expression target, Expression pattern) {
+        Tuple<Expression, Expression> exprPair = null;
         try {
           if (pattern.WasResolved()) {
             pattern = pattern.Resolved;
+          }
+          exprPair = Tuple.Create(target, pattern);
+          if (doesntUnify.Contains(exprPair)) {
+            return false;
           }
           // DebugExpression("Trying to unify: ", target);
           // DebugExpression("with pattern: ", pattern);
@@ -1303,6 +1310,7 @@ namespace Microsoft.Dafny {
         } catch(UnificationError ue) {
           //DebugMsg($"Unification of {Printer.ExprToString(pattern)} and " +
           //         $"{Printer.ExprToString(target)} failed with:\n{ue}");
+          doesntUnify.Add(exprPair);
           return false;
         }
       }
