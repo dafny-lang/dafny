@@ -158,6 +158,9 @@ namespace Microsoft.Dafny {
       } else if (e is MemberSelectExpr) {
         PerfTimers.StopTimer("DynamicDispatch");
         return Visit((MemberSelectExpr)e, st);
+      } else if (e is ApplyExpr) {
+        PerfTimers.StopTimer("DynamicDispatch");
+        return Visit((ApplyExpr)e, st);
       } else {
         PerfTimers.StopTimer("DynamicDispatch");
         Contract.Assert(false, $"Unhandled expression type {Printer.ExprToString(e)}" +
@@ -180,6 +183,9 @@ namespace Microsoft.Dafny {
           throw tie;
         }
       } */
+    }
+    public virtual R Visit(ApplyExpr e, S st) {
+      return VisitDefault(e, st);
     }
 
     public virtual R Visit(ConcreteSyntaxExpression e, S st) {
@@ -363,6 +369,10 @@ namespace Microsoft.Dafny {
       } else {
         return e;
       }
+    }
+
+    public override Expression Visit(ApplyExpr e, object st) {
+      return Visit(e.Resolved, st);
     }
 
     public override Expression Visit(StmtExpr e, object st) {
