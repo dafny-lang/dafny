@@ -877,7 +877,7 @@ namespace Microsoft.Dafny {
     }
 
     public override object VisitDefault(Expression e, Expression target) {
-      throw new UnificationError("Unhandled expression type: " + e.GetType());
+      throw new System.ArgumentException("Unhandled expression type: " + e.GetType());
     }
 
     public SubstMap GetSubstMap {
@@ -1017,8 +1017,8 @@ namespace Microsoft.Dafny {
       if (!btarget.ResolvedOp.Equals(be.ResolvedOp)) {
         throw new UnificationError(be, target);
       }
-      Visit(be.E0, btarget.E0);
-      Visit(be.E1, btarget.E1);
+      Visit(be.E0.Resolved, btarget.E0.Resolved);
+      Visit(be.E1.Resolved, btarget.E1.Resolved);
       return null;
     }
 
@@ -1040,7 +1040,7 @@ namespace Microsoft.Dafny {
       if (!ue.Op.Equals(utarget.Op)) {
         throw new UnificationError("Different unary operator: ", ue, target);
       }
-      Visit(ue.E, utarget.E);
+      Visit(ue.E.Resolved, utarget.E.Resolved);
       return null;
     }
 
@@ -1088,6 +1088,11 @@ namespace Microsoft.Dafny {
     public override object Visit(ConcreteSyntaxExpression e, Expression target) {
       return Visit(e.Resolved, target.Resolved);
     }
+
+    public override object Visit(ApplyExpr e, Expression target) {
+      return Visit(e.Resolved, target.Resolved);
+    }
+
   }
 
   public class SimplifyingRewriter : IRewriter {
@@ -1228,6 +1233,8 @@ namespace Microsoft.Dafny {
           // TODO: make "simp" a constant
           if (Attributes.Contains(fc.Function.Attributes, "simp")) {
             anyChange = true;
+            // PerfTimers.MatchingSubtermNos.Add(subtermNo);
+            subtermNo = 0;
             return new Some<Expression>(UnfoldFunction(fc));
           }
         }
