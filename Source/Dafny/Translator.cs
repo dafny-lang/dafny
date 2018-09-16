@@ -16812,7 +16812,7 @@ namespace Microsoft.Dafny {
       public override Expression Substitute(Expression expr) {
         IdentifierExpr ie;
         if (exprSubstMap.TryGetValue(expr, out ie)) {
-          usedSubstMap.Add(expr, ie);
+          usedSubstMap[expr] = ie;
           return cce.NonNull(ie);
         }
         if (expr is QuantifierExpr) {

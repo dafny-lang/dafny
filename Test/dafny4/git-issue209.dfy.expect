@@ -1,0 +1,17 @@
+git-issue209.dfy(5,19): Error: index out of range
+Execution trace:
+    (0,0): anon0
+    (0,0): anon8_Else
+git-issue209.dfy(5,31): Error: index out of range
+Execution trace:
+    (0,0): anon0
+    (0,0): anon8_Else
+    (0,0): anon9_Then
+git-issue209.dfy(5,44): Error: index out of range
+Execution trace:
+    (0,0): anon0
+    (0,0): anon8_Else
+    (0,0): anon9_Then
+    (0,0): anon10_Then
+
+Dafny program verifier finished with 0 verified, 3 errors
