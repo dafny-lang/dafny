@@ -1901,7 +1901,9 @@ namespace Microsoft.Dafny {
     internal override void PostResolve(ModuleDefinition m) {
       var time = MeasureTime(m, me => {
           FindSimplificationCallables(me);
-          SimplifyCalls(me);
+          if (simplifierFuncs.Count > 0) {
+            SimplifyCalls(me);
+          }
         });
       if (DafnyOptions.O.SimpTrace) {
         var msg = $"Simplification took {((double)time)/1000}s";
