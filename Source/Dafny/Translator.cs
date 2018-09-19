@@ -16800,19 +16800,35 @@ namespace Microsoft.Dafny {
     }
 
     public class ExprSubstituter : Substituter {
-      readonly Dictionary<Expression, IdentifierExpr> exprSubstMap;
-      Dictionary<Expression, IdentifierExpr> usedSubstMap;
+      readonly List<Tuple<Expression, IdentifierExpr>> exprSubstMap;
+      List<Tuple<Expression, IdentifierExpr>> usedSubstMap;
 
-      public ExprSubstituter(Dictionary<Expression, IdentifierExpr> exprSubstMap)
+      public ExprSubstituter(List<Tuple<Expression, IdentifierExpr>> exprSubstMap)
         : base(null, new Dictionary<IVariable, Expression>(), new Dictionary<TypeParameter,Type>()) {
         this.exprSubstMap = exprSubstMap;
-        this.usedSubstMap = new Dictionary<Expression, IdentifierExpr>();
+        this.usedSubstMap = new List<Tuple<Expression, IdentifierExpr>>();
+      }
+
+      public bool TryGetExprSubst(Expression expr, out IdentifierExpr ie) {
+        var entry = usedSubstMap.Find(x => Triggers.ExprExtensions.ExpressionEq(expr, x.Item1));
+        if (entry != null) {
+          ie = entry.Item2;
+          return true;
+        }
+        entry = exprSubstMap.Find(x => Triggers.ExprExtensions.ExpressionEq(expr, x.Item1));
+        if (entry != null) {
+          usedSubstMap.Add(entry);
+          ie = entry.Item2;
+          return true;
+        } else {
+          ie = null;
+          return false;
+        }
       }
 
       public override Expression Substitute(Expression expr) {
         IdentifierExpr ie;
-        if (exprSubstMap.TryGetValue(expr, out ie)) {
-          usedSubstMap[expr] = ie;
+        if (TryGetExprSubst(expr, out ie)) {
           return cce.NonNull(ie);
         }
         if (expr is QuantifierExpr) {
@@ -16826,29 +16842,29 @@ namespace Microsoft.Dafny {
           var newBounds = e.Bounds == null ? null : e.Bounds.ConvertAll(bound => SubstituteBoundedPool(bound));
           if (newRange != e.Range || newTerm != e.Term) {
             if (expr is ForallExpr) {
-              foreach (KeyValuePair<Expression, IdentifierExpr> entry in usedSubstMap) {
-                newExpr = new BinaryExpr(expr.tok, BinaryExpr.ResolvedOpcode.EqCommon, entry.Value, entry.Key);
+              foreach (var entry in usedSubstMap) {
+                newExpr = new BinaryExpr(expr.tok, BinaryExpr.ResolvedOpcode.EqCommon, entry.Item2, entry.Item1);
                 if (newRange == null) {
                   newRange = newExpr;
                 } else {
                   newTerm = new BinaryExpr(expr.tok, BinaryExpr.ResolvedOpcode.Imp, newRange, newTerm);
                   newRange = newExpr;
                 }
-                newBoundVars.Add((BoundVar)entry.Value.Var);
-                newBounds.Add(new ComprehensionExpr.ExactBoundedPool(entry.Key));
+                newBoundVars.Add((BoundVar)entry.Item2.Var);
+                newBounds.Add(new ComprehensionExpr.ExactBoundedPool(entry.Item1));
               }
               newExpr = new ForallExpr(expr.tok, ((QuantifierExpr)expr).TypeArgs, newBoundVars, newRange, newTerm, newAttrs) { Bounds = newBounds };
             } else if (expr is ExistsExpr) {
-              foreach (KeyValuePair<Expression, IdentifierExpr> entry in usedSubstMap) {
-                newExpr = new BinaryExpr(expr.tok, BinaryExpr.ResolvedOpcode.EqCommon, entry.Value, entry.Key);
+              foreach (var entry in usedSubstMap) {
+                newExpr = new BinaryExpr(expr.tok, BinaryExpr.ResolvedOpcode.EqCommon, entry.Item2, entry.Item1);
                 if (newRange == null) {
                   newRange = newExpr;
                 } else {
                   newTerm = new BinaryExpr(expr.tok, BinaryExpr.ResolvedOpcode.And, newRange, newTerm);
                   newRange = newExpr;
                 }
-                newBoundVars.Add((BoundVar)entry.Value.Var);
-                newBounds.Add(new ComprehensionExpr.ExactBoundedPool(entry.Key));
+                newBoundVars.Add((BoundVar)entry.Item2.Var);
+                newBounds.Add(new ComprehensionExpr.ExactBoundedPool(entry.Item1));
               }
               newExpr = new ExistsExpr(expr.tok, ((QuantifierExpr)expr).TypeArgs, newBoundVars, newRange, newTerm, newAttrs) { Bounds = newBounds };
             }

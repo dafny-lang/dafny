@@ -133,8 +133,7 @@ namespace Microsoft.Dafny.Triggers
   class MatchingLoopRewriter
   {
     TriggersCollector triggersCollector = new Triggers.TriggersCollector(new Dictionary<Expression, HashSet<OldExpr>>());
-    Dictionary<Expression, IdentifierExpr> substMap;
-    Dictionary<Expression, IdentifierExpr> usedMap;
+    List<Tuple<Expression, IdentifierExpr>> substMap;
 
     public QuantifierExpr RewriteMatchingLoops(QuantifierWithTriggers q)
     {
@@ -143,20 +142,19 @@ namespace Microsoft.Dafny.Triggers
       //    assert forall i :: 0 <= i < a.Length-1 ==> a[i] <= a[i+1];
       // after: 
       //    assert forall i,j :: j == i+1 ==> 0 <= i < a.Length-1 ==> a[i] <= a[j];
-      substMap = new Dictionary<Expression, IdentifierExpr>();
-      usedMap = new Dictionary<Expression, IdentifierExpr>();
+      substMap = new List<Tuple<Expression, IdentifierExpr>>();
       foreach (var m in q.LoopingMatches) {
         var e = m.OriginalExpr;
         if (TriggersCollector.IsPotentialTriggerCandidate(e) && triggersCollector.IsTriggerKiller(e)) {
           foreach (var sub in e.SubExpressions) {
             if (triggersCollector.IsTriggerKiller(sub) && (!TriggersCollector.IsPotentialTriggerCandidate(sub))) {
-              IdentifierExpr ie;
-              if (!substMap.TryGetValue(sub, out ie)) {
+              var entry = substMap.Find(x => ExprExtensions.ExpressionEq(sub, x.Item1));
+              if (entry == null) {
                 var newBv = new BoundVar(sub.tok, "_t#" + substMap.Count, sub.Type);
-                ie = new IdentifierExpr(sub.tok, newBv.Name);
+                var ie = new IdentifierExpr(sub.tok, newBv.Name);
                 ie.Var = newBv;
                 ie.Type = newBv.Type;
-                substMap[sub] = ie;
+                substMap.Add(new Tuple<Expression,IdentifierExpr>(sub, ie));
               }
             }
           }
