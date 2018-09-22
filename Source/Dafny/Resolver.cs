@@ -14086,7 +14086,7 @@ namespace Microsoft.Dafny
             break;
           case BinaryExpr.ResolvedOpcode.InMultiSet:
             if (whereIsBv == 0) {
-              bounds.Add(new ComprehensionExpr.SetBoundedPool(e1, e0.Type.Equals(e1.Type.AsMultiSetType.Arg), true));
+              bounds.Add(new ComprehensionExpr.MultiSetBoundedPool(e1, e0.Type.Equals(e1.Type.AsMultiSetType.Arg)));
             }
             break;
           case BinaryExpr.ResolvedOpcode.InSeq:

@@ -2052,6 +2052,12 @@ namespace Microsoft.Dafny {
             wr.Write("foreach (var @{0} in (", bv.CompileName);
             TrExpr(b.Set, wr, false);
             wr.Write(").Elements) { ");
+          } else if (bound is ComprehensionExpr.MultiSetBoundedPool) {
+            var b = (ComprehensionExpr.MultiSetBoundedPool)bound;
+            Indent(ind, wr);
+            wr.Write("foreach (var @{0} in (", bv.CompileName);
+            TrExpr(b.MultiSet, wr, false);
+            wr.Write(").Elements) { ");
           } else if (bound is ComprehensionExpr.SubSetBoundedPool) {
             var b = (ComprehensionExpr.SubSetBoundedPool)bound;
             wr.Write("foreach (var @{0} in (", bv.CompileName);
@@ -2304,6 +2310,11 @@ namespace Microsoft.Dafny {
           var b = (ComprehensionExpr.SetBoundedPool)bound;
           wr.Write("foreach (var {0} in (", tmpVar);
           TrExpr(b.Set, wr, inLetExprBody);
+          wr.WriteLine(").Elements) {{ @{0} = {1};", bv.CompileName, tmpVar);
+        } else if (bound is ComprehensionExpr.MultiSetBoundedPool) {
+          var b = (ComprehensionExpr.MultiSetBoundedPool)bound;
+          wr.Write("foreach (var {0} in (", tmpVar);
+          TrExpr(b.MultiSet, wr, inLetExprBody);
           wr.WriteLine(").Elements) {{ @{0} = {1};", bv.CompileName, tmpVar);
         } else if (bound is ComprehensionExpr.SubSetBoundedPool) {
           var b = (ComprehensionExpr.SubSetBoundedPool)bound;
@@ -3430,6 +3441,11 @@ namespace Microsoft.Dafny {
             wr.Write("Dafny.Helpers.QuantSet(");
             TrExpr(b.Set, wr, inLetExprBody);
             wr.Write(", ");
+          } else if (bound is ComprehensionExpr.MultiSetBoundedPool) {
+            var b = (ComprehensionExpr.MultiSetBoundedPool)bound;
+            wr.Write("Dafny.Helpers.QuantMultiSet(");
+            TrExpr(b.MultiSet, wr, inLetExprBody);
+            wr.Write(", ");
           } else if (bound is ComprehensionExpr.SubSetBoundedPool) {
             var b = (ComprehensionExpr.SubSetBoundedPool)bound;
             wr.Write("Dafny.Helpers.QuantSubSets(");
@@ -3519,6 +3535,12 @@ namespace Microsoft.Dafny {
             var tmpVar = idGenerator.FreshId("_set_compr_");
             wr.Write("foreach (var @{0} in (", tmpVar);
             TrExpr(b.Set, wr, inLetExprBody);
+            wr.Write(").Elements) {{ {0} @{1} = ({0}){2}; ", TypeName(bv.Type, wr, bv.tok), bv.CompileName, tmpVar);
+          } else if (bound is ComprehensionExpr.MultiSetBoundedPool) {
+            var b = (ComprehensionExpr.MultiSetBoundedPool)bound;
+            var tmpVar = idGenerator.FreshId("_multiset_compr_");
+            wr.Write("foreach (var @{0} in (", tmpVar);
+            TrExpr(b.MultiSet, wr, inLetExprBody);
             wr.Write(").Elements) {{ {0} @{1} = ({0}){2}; ", TypeName(bv.Type, wr, bv.tok), bv.CompileName, tmpVar);
           } else if (bound is ComprehensionExpr.SubSetBoundedPool) {
             var b = (ComprehensionExpr.SubSetBoundedPool)bound;
@@ -3610,6 +3632,11 @@ namespace Microsoft.Dafny {
           var b = (ComprehensionExpr.SetBoundedPool)bound;
           wr.Write("foreach (var @{0} in (", bv.CompileName);
           TrExpr(b.Set, wr, inLetExprBody);
+          wr.Write(").Elements) { ");
+        } else if (bound is ComprehensionExpr.MultiSetBoundedPool) {
+          var b = (ComprehensionExpr.MultiSetBoundedPool)bound;
+          wr.Write("foreach (var @{0} in (", bv.CompileName);
+          TrExpr(b.MultiSet, wr, inLetExprBody);
           wr.Write(").Elements) { ");
         } else if (bound is ComprehensionExpr.SubSetBoundedPool) {
           var b = (ComprehensionExpr.SubSetBoundedPool)bound;

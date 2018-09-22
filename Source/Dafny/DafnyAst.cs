@@ -9880,6 +9880,11 @@ namespace Microsoft.Dafny {
         }
       }
     }
+    public class MultiSetBoundedPool : CollectionBoundedPool
+    {
+      public readonly Expression MultiSet;
+      public MultiSetBoundedPool(Expression multiset, bool exactTypes) : base(exactTypes, true) { MultiSet = multiset; }
+    }
     public class MapBoundedPool : CollectionBoundedPool
     {
       public readonly Expression Map;

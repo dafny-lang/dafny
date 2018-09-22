@@ -553,6 +553,17 @@ namespace Dafny
         }
       }
     }
+
+    public IEnumerable<T> ElementsWithoutDuplicates {
+      get {
+        if (!occurrencesOfNull.IsZero) {
+          yield return default(T);
+        }
+        foreach (var item in dict) {
+          yield return item.Key;
+        }
+      }
+    }
   }
 
   public class Map<U, V>
@@ -999,6 +1010,12 @@ namespace Dafny
     }
     public static bool QuantSet<U>(Dafny.Set<U> set, bool frall, System.Predicate<U> pred) {
       foreach (var u in set.Elements) {
+        if (pred(u) != frall) { return !frall; }
+      }
+      return frall;
+    }
+    public static bool QuantMultiSet<U>(Dafny.MultiSet<U> multiset, bool frall, System.Predicate<U> pred) {
+      foreach (var u in multiset.ElementsWithoutDuplicates) {
         if (pred(u) != frall) { return !frall; }
       }
       return frall;

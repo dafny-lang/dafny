@@ -1459,7 +1459,7 @@ namespace Microsoft.Dafny {
           sink.AddTopLevelDeclaration(new Bpl.Axiom(ctor.tok, q, "Constructor injectivity"));
 
           if (dt is IndDatatypeDecl) {
-            var argType = arg.Type.NormalizeExpandKeepConstraints();
+            var argType = arg.Type.NormalizeExpandKeepConstraints();  // TODO: keep constraints -- really?  Write a test case
             if (argType.IsDatatype || argType.IsTypeParameter) {
               // for datatype:             axiom (forall params :: {#dt.ctor(params)} DtRank(params_i) < DtRank(#dt.ctor(params)));
               // for type-parameter type:  axiom (forall params :: {#dt.ctor(params)} BoxRank(params_i) < DtRank(#dt.ctor(params)));
@@ -1492,7 +1492,7 @@ namespace Microsoft.Dafny {
                 var ct = FunctionCall(ctor.tok, ctor.FullName, predef.DatatypeType, args);
                 var rhs = FunctionCall(ctor.tok, BuiltinFunction.DtRank, null, ct);
                 q = new Bpl.ForallExpr(ctor.tok, bvs, new Trigger(lhs.tok, true, new List<Bpl.Expr> { seqIndex, ct }), Bpl.Expr.Imp(ante, Bpl.Expr.Lt(lhs, rhs)));
-                sink.AddTopLevelDeclaration(new Bpl.Axiom(ctor.tok, q));
+                sink.AddTopLevelDeclaration(new Bpl.Axiom(ctor.tok, q, "Inductive seq element rank"));
               }
 
               // axiom (forall params {#dt.ctor(params)} :: SeqRank(arg) < DtRank(#dt.ctor(params)));
@@ -1519,7 +1519,7 @@ namespace Microsoft.Dafny {
               var rhs = FunctionCall(ctor.tok, BuiltinFunction.DtRank, null, ct);
               var trigger = new Bpl.Trigger(ctor.tok, true, new List<Bpl.Expr> { inSet, ct });
               q = new Bpl.ForallExpr(ctor.tok, bvs, trigger, Bpl.Expr.Imp(inSet, Bpl.Expr.Lt(lhs, rhs)));
-              sink.AddTopLevelDeclaration(new Bpl.Axiom(ctor.tok, q, "Inductive set rank"));
+              sink.AddTopLevelDeclaration(new Bpl.Axiom(ctor.tok, q, "Inductive set element rank"));
             } else if (argType is MultiSetType) {
               // axiom (forall params, d: Datatype {arg[d], #dt.ctor(params)} :: 0 < arg[d] ==> DtRank(d) < DtRank(#dt.ctor(params)));
               // that is:
@@ -1535,7 +1535,49 @@ namespace Microsoft.Dafny {
               var rhs = FunctionCall(ctor.tok, BuiltinFunction.DtRank, null, ct);
               var trigger = new Bpl.Trigger(ctor.tok, true, new List<Bpl.Expr> { inMultiset, ct });
               q = new Bpl.ForallExpr(ctor.tok, bvs, trigger, Bpl.Expr.Imp(ante, Bpl.Expr.Lt(lhs, rhs)));
-              sink.AddTopLevelDeclaration(new Bpl.Axiom(ctor.tok, q, "Inductive multiset rank"));
+              sink.AddTopLevelDeclaration(new Bpl.Axiom(ctor.tok, q, "Inductive multiset element rank"));
+            } else if (argType is MapType) {
+              var finite = ((MapType)argType).Finite;
+              {
+                // axiom (forall params, d: DatatypeType
+                //   { Map#Domain(arg)[$Box(d)], #dt.ctor(params) }
+                //   Map#Domain(arg)[$Box(d)] ==> DtRank(d) < DtRank(#dt.ctor(params)));
+                CreateBoundVariables(ctor.Formals, out bvs, out args);
+                var dVar = new Bpl.BoundVariable(arg.tok, new Bpl.TypedIdent(arg.tok, "d", predef.DatatypeType));
+                bvs.Add(dVar);
+                var ie = new Bpl.IdentifierExpr(arg.tok, dVar);
+                var f = finite ? BuiltinFunction.MapDomain : BuiltinFunction.IMapDomain;
+                var domain = FunctionCall(arg.tok, f, predef.MapType(arg.tok, finite, predef.BoxType, predef.BoxType), args[i]);
+                var inDomain = Bpl.Expr.SelectTok(arg.tok, domain, FunctionCall(arg.tok, BuiltinFunction.Box, null, ie));
+                var lhs = FunctionCall(ctor.tok, BuiltinFunction.DtRank, null, ie);
+                var ct = FunctionCall(ctor.tok, ctor.FullName, predef.DatatypeType, args);
+                var rhs = FunctionCall(ctor.tok, BuiltinFunction.DtRank, null, ct);
+                var trigger = new Bpl.Trigger(ctor.tok, true, new List<Bpl.Expr> { inDomain, ct });
+                q = new Bpl.ForallExpr(ctor.tok, bvs, trigger, Bpl.Expr.Imp(inDomain, Bpl.Expr.Lt(lhs, rhs)));
+                sink.AddTopLevelDeclaration(new Bpl.Axiom(ctor.tok, q, "Inductive map key rank"));
+              }
+              {
+                // axiom(forall params, bx: Box ::
+                //   { Map#Elements(arg)[bx], #dt.ctor(params) }
+                //   Map#Domain(arg)[bx] ==> DtRank($Unbox(Map#Elements(arg)[bx]): DatatypeType) < DtRank(#dt.ctor(params)));
+                CreateBoundVariables(ctor.Formals, out bvs, out args);
+                var bxVar = new Bpl.BoundVariable(arg.tok, new Bpl.TypedIdent(arg.tok, "bx", predef.BoxType));
+                bvs.Add(bxVar);
+                var ie = new Bpl.IdentifierExpr(arg.tok, bxVar);
+                var f = finite ? BuiltinFunction.MapDomain : BuiltinFunction.IMapDomain;
+                var domain = FunctionCall(arg.tok, f, predef.MapType(arg.tok, finite, predef.BoxType, predef.BoxType), args[i]);
+                var inDomain = Bpl.Expr.SelectTok(arg.tok, domain, ie);
+                var ef = finite ? BuiltinFunction.MapElements : BuiltinFunction.IMapElements;
+                var element = FunctionCall(arg.tok, ef, predef.MapType(arg.tok, finite, predef.BoxType, predef.BoxType), args[i]);
+                var elmt = Bpl.Expr.SelectTok(arg.tok, element, ie);
+                var unboxElmt = FunctionCall(arg.tok, BuiltinFunction.Unbox, predef.DatatypeType, elmt);
+                var lhs = FunctionCall(ctor.tok, BuiltinFunction.DtRank, null, unboxElmt);
+                var ct = FunctionCall(ctor.tok, ctor.FullName, predef.DatatypeType, args);
+                var rhs = FunctionCall(ctor.tok, BuiltinFunction.DtRank, null, ct);
+                var trigger = new Bpl.Trigger(ctor.tok, true, new List<Bpl.Expr> { inDomain, ct });
+                q = new Bpl.ForallExpr(ctor.tok, bvs, trigger, Bpl.Expr.Imp(inDomain, Bpl.Expr.Lt(lhs, rhs)));
+                sink.AddTopLevelDeclaration(new Bpl.Axiom(ctor.tok, q, "Inductive map value rank"));
+              }
             }
           }
         }
@@ -10265,6 +10307,19 @@ namespace Microsoft.Dafny {
               yield return maplet.A;
             }
           }
+        } else if (bound is ComprehensionExpr.MultiSetBoundedPool) {
+          var st = ((ComprehensionExpr.MultiSetBoundedPool)bound).MultiSet.Resolved;
+          if (st is DisplayExpression) {
+            var display = (DisplayExpression)st;
+            foreach (var el in display.Elements) {
+              yield return el;
+            }
+          } else if (st is MapDisplayExpr) {
+            var display = (MapDisplayExpr)st;
+            foreach (var maplet in display.Elements) {
+              yield return maplet.A;
+            }
+          }
         } else if (bound is ComprehensionExpr.SeqBoundedPool) {
           var sq = ((ComprehensionExpr.SeqBoundedPool)bound).Seq.Resolved;
           var display = sq as DisplayExpression;
@@ -17390,6 +17445,9 @@ namespace Microsoft.Dafny {
         } else if (bound is ComprehensionExpr.SetBoundedPool) {
           var b = (ComprehensionExpr.SetBoundedPool)bound;
           return new ComprehensionExpr.SetBoundedPool(Substitute(b.Set), b.ExactTypes, b.IsFiniteCollection);
+        } else if (bound is ComprehensionExpr.MultiSetBoundedPool) {
+          var b = (ComprehensionExpr.MultiSetBoundedPool)bound;
+          return new ComprehensionExpr.MultiSetBoundedPool(Substitute(b.MultiSet), b.ExactTypes);
         } else if (bound is ComprehensionExpr.SubSetBoundedPool) {
           var b = (ComprehensionExpr.SubSetBoundedPool)bound;
           return new ComprehensionExpr.SubSetBoundedPool(Substitute(b.UpperBound), b.IsFiniteCollection);
