@@ -1897,8 +1897,7 @@ namespace Microsoft.Dafny {
       return "$PrefixEq#" + codecl.FullSanitizedName;
     }
 
-    void CreateBoundVariables(List<Formal/*!*/>/*!*/ formals, out List<Variable>/*!*/ bvs, out List<Bpl.Expr/*!*/>/*!*/ args)
-    {
+    void CreateBoundVariables<VT>(List<VT> formals, out List<Variable> bvs, out List<Bpl.Expr> args) where VT : IVariable {
       Contract.Requires(formals != null);
       Contract.Ensures(Contract.ValueAtReturn(out bvs).Count == Contract.ValueAtReturn(out args).Count);
       Contract.Ensures(Contract.ValueAtReturn(out bvs) != null);
@@ -1907,12 +1906,12 @@ namespace Microsoft.Dafny {
       var varNameGen = CurrentIdGenerator.NestedFreshIdGenerator("a#");
       bvs = new List<Variable>();
       args = new List<Bpl.Expr>();
-      foreach (Formal arg in formals) {
+      foreach (var arg in formals) {
         Contract.Assert(arg != null);
         var nm = varNameGen.FreshId(string.Format("#{0}#", bvs.Count));
-        Bpl.Variable bv = new Bpl.BoundVariable(arg.tok, new Bpl.TypedIdent(arg.tok, nm, TrType(arg.Type)));
+        Bpl.Variable bv = new Bpl.BoundVariable(arg.Tok, new Bpl.TypedIdent(arg.Tok, nm, TrType(arg.Type)));
         bvs.Add(bv);
-        args.Add(new Bpl.IdentifierExpr(arg.tok, bv));
+        args.Add(new Bpl.IdentifierExpr(arg.Tok, bv));
       }
     }
 
@@ -6105,6 +6104,41 @@ namespace Microsoft.Dafny {
         if (e.Range != null) {
           canCall = BplAnd(CanCallAssumption(e.Range, etran), BplImp(etran.TrExpr(e.Range), canCall));
         }
+        if (expr is MapComprehension mc && mc.TermLeft != null) {
+          canCall = BplAnd(canCall, CanCallAssumption(mc.TermLeft, etran));
+
+          // The translation of "map x,y | R(x,y) :: F(x,y) := G(x,y)" makes use of projection
+          // functions project_x,project_y.  These are functions defined here by the following axiom:
+          //     forall x,y :: R(x,y) ==> var x',y' := project_x(F(x,y)),project_y(F(x,y)); R(x',y') && F(x',y') == F(x,y)
+          // that is (without the let expression):
+          //     forall x,y :: R(x,y) ==> R(project_x(F(x,y)), project_y(F(x,y))) && F(project_x(F(x,y)), project_y(F(x,y))) == F(x,y)
+          // The triggers for the quantification are:
+          //     { project_x(F(x,y)) } { project_y(F(x,y)) }
+          List<Bpl.Variable> bvs;
+          List<Bpl.Expr> args;
+          CreateBoundVariables(mc.BoundVars, out bvs, out args);
+          Contract.Assert(mc.BoundVars.Count == bvs.Count);
+          CreateMapComprehensionProjectionFunctions(mc);
+          Contract.Assert(mc.ProjectionFunctions != null);
+          Contract.Assert(mc.ProjectionFunctions.Count == mc.BoundVars.Count);
+          var substMap = new Dictionary<IVariable, Expression>();
+          for (var i = 0; i < mc.BoundVars.Count; i++) {
+            substMap.Add(mc.BoundVars[i], new BoogieWrapper(args[i], mc.BoundVars[i].Type));
+          }
+          var R = etran.TrExpr(Substitute(mc.Range, null, substMap));
+          var F = etran.TrExpr(Substitute(mc.TermLeft, null, substMap));
+          substMap = new Dictionary<IVariable, Expression>();
+          Bpl.Trigger trig = null;
+          for (var i = 0; i < mc.BoundVars.Count; i++) {
+            var p = new Bpl.NAryExpr(mc.tok, new Bpl.FunctionCall(mc.ProjectionFunctions[i]), new List<Bpl.Expr> { F });
+            substMap.Add(e.BoundVars[i], new BoogieWrapper(p, e.BoundVars[i].Type));
+            trig = new Bpl.Trigger(mc.tok, true, new List<Bpl.Expr> { p }, trig);
+          }
+          var Rprime = etran.TrExpr(Substitute(mc.Range, null, substMap));
+          var Fprime = etran.TrExpr(Substitute(mc.TermLeft, null, substMap));
+          var defn = BplForall(bvs, trig, BplImp(R, BplAnd(Rprime, Bpl.Expr.Eq(F, Fprime))));
+          canCall = BplAnd(canCall, defn);
+        }
         // Create a list of all possible bound variables
         var bvarsAndAntecedents = etran.TrBoundVariables_SeparateWhereClauses(e.BoundVars);
         if (q != null) {
@@ -7078,6 +7112,10 @@ namespace Microsoft.Dafny {
         var e = (ComprehensionExpr)expr;
         var q = e as QuantifierExpr;
         var lam = e as LambdaExpr;
+        var mc = e as MapComprehension;
+        if (mc != null && mc.TermLeft == null) {
+          mc = null;  // mc will be non-null when "e" is a general map comprehension
+        }
 
         // This is a WF check, so we look at the original quantifier, not the split one.
         // This ensures that cases like forall x :: x != null && f(x.a) do not fail to verify.
@@ -7093,6 +7131,10 @@ namespace Microsoft.Dafny {
         var substMap = SetupBoundVarsAsLocals(e.BoundVars, builder, locals, etran, typeMap);
         var s = new Substituter(null, substMap, typeMap);
         var body = Substitute(e.Term, null, substMap, typeMap);
+        var bodyLeft = mc != null ? Substitute(mc.TermLeft, null, substMap, typeMap) : null;
+        var substMapPrime = mc != null ? SetupBoundVarsAsLocals(e.BoundVars, builder, locals, etran, typeMap, "#prime") : null;
+        var bodyLeftPrime = mc != null ? Substitute(mc.TermLeft, null, substMapPrime, typeMap) : null;
+        var bodyPrime = mc != null ? Substitute(e.Term, null, substMapPrime, typeMap) : null;
         List<FrameExpression> reads = null;
 
         var newOptions = options;
@@ -7133,9 +7175,33 @@ namespace Microsoft.Dafny {
             guard = etran.TrExpr(range);
           }
 
+          if (mc != null) {
+            Contract.Assert(bodyLeft != null);
+            BplIfIf(e.tok, guard != null, guard, newBuilder, b => {
+              CheckWellformed(bodyLeft, newOptions, locals, b, newEtran);
+            });
+          }
           BplIfIf(e.tok, guard != null, guard, newBuilder, b => {
             CheckWellformed(body, newOptions, locals, b, newEtran);
           });
+
+          if (mc != null) {
+            Contract.Assert(substMapPrime != null);
+            Contract.Assert(bodyLeftPrime != null);
+            Contract.Assert(bodyPrime != null);
+            Bpl.Expr guardPrime = null;
+            if (guard != null) {
+              Contract.Assert(e.Range != null);
+              var rangePrime = Substitute(e.Range, null, substMapPrime);
+              guardPrime = etran.TrExpr(rangePrime);
+            }
+            BplIfIf(e.tok, guard != null, BplAnd(guard, guardPrime), newBuilder, b => {
+              var different = BplOr(
+                Bpl.Expr.Neq(etran.TrExpr(bodyLeft), etran.TrExpr(bodyLeftPrime)),
+                Bpl.Expr.Eq(etran.TrExpr(body), etran.TrExpr(bodyPrime)));
+              b.Add(Assert(mc.TermLeft.tok, different, "key expressions may be referring to the same value"));
+            });
+          }
 
           if (lam != null) {
             // assume false (heap was havoced inside an if)
@@ -11351,7 +11417,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    Dictionary<IVariable, Expression> SetupBoundVarsAsLocals(List<BoundVar> boundVars, BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran, Dictionary<TypeParameter, Type> typeMap = null) {
+    Dictionary<IVariable, Expression> SetupBoundVarsAsLocals(List<BoundVar> boundVars, BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran, Dictionary<TypeParameter, Type> typeMap = null, string nameSuffix = null) {
       Contract.Requires(boundVars != null);
       Contract.Requires(builder != null);
       Contract.Requires(locals != null);
@@ -11362,7 +11428,7 @@ namespace Microsoft.Dafny {
       }
       var substMap = new Dictionary<IVariable, Expression>();
       foreach (BoundVar bv in boundVars) {
-        LocalVariable local = new LocalVariable(bv.tok, bv.tok, bv.Name, Resolver.SubstType(bv.Type, typeMap), bv.IsGhost);
+        LocalVariable local = new LocalVariable(bv.tok, bv.tok, nameSuffix == null ? bv.Name : bv.Name + nameSuffix, Resolver.SubstType(bv.Type, typeMap), bv.IsGhost);
         local.type = local.OptionalType;  // resolve local here
         IdentifierExpr ie = new IdentifierExpr(local.Tok, local.AssignUniqueName(currentDeclaration.IdGenerator));
         ie.Var = local; ie.Type = ie.Var.Type;  // resolve ie here
@@ -12619,6 +12685,27 @@ namespace Microsoft.Dafny {
 
       return TrAssumeCmd(tok, FunctionCall(tok, BuiltinFunction.IsGoodHeap, null, etran.HeapExpr));
     }
+
+    /// <summary>
+    /// Idempotently fills in "mc.ProjectionFunctions"
+    /// </summary>
+    void CreateMapComprehensionProjectionFunctions(MapComprehension mc) {
+      Contract.Requires(mc != null && mc.TermLeft != null);
+      if (mc.ProjectionFunctions == null) {
+        var varNameGen = CurrentIdGenerator.NestedFreshIdGenerator(string.Format("map$project${0}#", projectionFunctionCount));
+        projectionFunctionCount++;
+        mc.ProjectionFunctions = new List<Bpl.Function>();
+        foreach (var bv in mc.BoundVars) {
+          var arg = BplFormalVar(null, TrType(mc.TermLeft.Type), false);
+          var res = BplFormalVar(null, TrType(bv.Type), true);
+          var projectFn = new Bpl.Function(mc.tok, varNameGen.FreshId(string.Format("#{0}#", bv.Name)), new List<Variable>() { arg }, res);
+          mc.ProjectionFunctions.Add(projectFn);
+          sink.AddTopLevelDeclaration(projectFn);
+        }
+      }
+    }
+
+    int projectionFunctionCount = 0;
 
     /// <summary>
     /// Fills in, if necessary, the e.translationDesugaring field, and returns it.
@@ -14663,9 +14750,19 @@ namespace Microsoft.Dafny {
 
         } else if (expr is MapComprehension) {
           var e = (MapComprehension)expr;
-          // Translate "map x | R :: T" into
-          // Map#Glue(lambda y: BoxType :: [unbox(y)/x]R,
-          //          lambda y: BoxType :: [unbox(y)/x]T,
+          // Translate "map x,y | R(x,y) :: F(x,y) := G(x,y)" into
+          // Map#Glue(lambda w: BoxType :: exists x,y :: R(x,y) && unbox(w) == F(x,y),
+          //          lambda w: BoxType :: G(project_x(unbox(w)), project_y(unbox(w))),
+          //          type)".
+          // where project_x and project_y are functions defined (elsewhere, in CanCallAssumption) by the following axiom:
+          //     forall x,y :: R(x,y) ==> var x',y' := project_x(unbox(F(x,y))),project_y(unbox(F(x,y))); R(x',y') && F(x',y') == F(x,y)
+          // that is (without the let expression):
+          //     forall x,y :: R(x,y) ==> R(project_x(unbox(F(x,y))), project_y(unbox(F(x,y)))) && F(project_x(unbox(F(x,y))), project_y(unbox(F(x,y)))) == F(x,y)
+          //
+          // In the common case where F(x,y) is omitted (in which case the list of bound variables is restricted to length 1):
+          // Translate "map x | R(x) :: G(x)" into
+          // Map#Glue(lambda w: BoxType :: R(unbox(w)),
+          //          lambda w: BoxType :: G(unbox(w)),
           //          type)".
           List<Variable> bvars = new List<Variable>();
           var bv = e.BoundVars[0];
@@ -14677,23 +14774,50 @@ namespace Microsoft.Dafny {
 
           Bpl.QKeyValue kv = TrAttributes(e.Attributes, "trigger");
 
-          var yVar = new Bpl.BoundVariable(expr.tok, new Bpl.TypedIdent(expr.tok, translator.CurrentIdGenerator.FreshId("$y#"), predef.BoxType));
+          var wVar = new Bpl.BoundVariable(expr.tok, new Bpl.TypedIdent(expr.tok, translator.CurrentIdGenerator.FreshId("$w#"), predef.BoxType));
 
-          Bpl.Expr unboxy = translator.UnboxIfBoxed(new Bpl.IdentifierExpr(expr.tok, yVar), bv.Type);
-          Bpl.Expr typeAntecedent = translator.GetWhereClause(bv.tok, unboxy, bv.Type, this, NOALLOC);
+          Bpl.Expr unboxw = translator.UnboxIfBoxed(new Bpl.IdentifierExpr(expr.tok, wVar), bv.Type);
+          Bpl.Expr typeAntecedent = translator.GetWhereClause(bv.tok, unboxw, bv.Type, this, NOALLOC);
 
+          Bpl.Expr keys, values;
+          if (e.TermLeft == null) {
+            var subst = new Dictionary<IVariable,Expression>();
+            subst.Add(e.BoundVars[0], new BoogieWrapper(unboxw, e.BoundVars[0].Type));
 
-          Dictionary<IVariable, Expression> subst = new Dictionary<IVariable,Expression>();
-          subst.Add(e.BoundVars[0], new BoogieWrapper(unboxy,e.BoundVars[0].Type));
+            var ebody = BplAnd(typeAntecedent ?? Bpl.Expr.True, TrExpr(Translator.Substitute(e.Range, null, subst)));
+            keys = new Bpl.LambdaExpr(e.tok, new List<TypeVariable>(), new List<Variable> { wVar }, kv, ebody);
+            ebody = TrExpr(Translator.Substitute(e.Term, null, subst));
+            values = new Bpl.LambdaExpr(e.tok, new List<TypeVariable>(), new List<Variable> { wVar }, kv, BoxIfNecessary(expr.tok, ebody, e.Term.Type));
+          } else {
+            List<Bpl.Variable> bvs;
+            List<Bpl.Expr> args;
+            translator.CreateBoundVariables(e.BoundVars, out bvs, out args);
+            Contract.Assert(e.BoundVars.Count == bvs.Count);
+            var subst = new Dictionary<IVariable, Expression>();
+            for (var i = 0; i < e.BoundVars.Count; i++) {
+              subst.Add(e.BoundVars[i], new BoogieWrapper(args[i], e.BoundVars[i].Type));
+            }
+            var rr = TrExpr(Translator.Substitute(e.Range, null, subst));
+            var ff = TrExpr(Translator.Substitute(e.TermLeft, null, subst));
+            var exst_body = BplAnd(rr, Bpl.Expr.Eq(unboxw, ff));
+            var ebody = BplAnd(typeAntecedent ?? Bpl.Expr.True, new Bpl.ExistsExpr(e.tok, bvs, exst_body));
+            keys = new Bpl.LambdaExpr(e.tok, new List<TypeVariable>(), new List<Variable> { wVar }, kv, ebody);
 
-          var ebody = BplAnd(typeAntecedent ?? Bpl.Expr.True, TrExpr(Translator.Substitute(e.Range, null, subst)));
-          Bpl.Expr l1 = new Bpl.LambdaExpr(e.tok, new List<TypeVariable>(), new List<Variable> { yVar }, kv, ebody);
-          ebody = TrExpr(Translator.Substitute(e.Term, null, subst));
-          Bpl.Expr l2 = new Bpl.LambdaExpr(e.tok, new List<TypeVariable>(), new List<Variable> { yVar }, kv, BoxIfNecessary(expr.tok, ebody, e.Term.Type));
+            translator.CreateMapComprehensionProjectionFunctions(e);
+            Contract.Assert(e.ProjectionFunctions != null && e.ProjectionFunctions.Count == e.BoundVars.Count);
+            subst = new Dictionary<IVariable, Expression>();
+            for (var i = 0; i < e.BoundVars.Count; i++) {
+              var p = new Bpl.NAryExpr(e.tok, new Bpl.FunctionCall(e.ProjectionFunctions[i]), new List<Bpl.Expr> { unboxw });
+              var prj = new BoogieWrapper(p, e.BoundVars[i].Type);
+              subst.Add(e.BoundVars[i], prj);
+            }
+            ebody = TrExpr(Translator.Substitute(e.Term, null, subst));
+            values = new Bpl.LambdaExpr(e.tok, new List<TypeVariable>(), new List<Variable> { wVar }, kv, BoxIfNecessary(expr.tok, ebody, e.Term.Type));
+          }
 
           bool finite = e.Finite;
           var f = finite ? BuiltinFunction.MapGlue : BuiltinFunction.IMapGlue;
-          return translator.FunctionCall(e.tok, f, null, l1, l2, translator.TypeToTy(expr.Type));
+          return translator.FunctionCall(e.tok, f, null, keys, values, translator.TypeToTy(expr.Type));
 
         } else if (expr is LambdaExpr) {
           var e = (LambdaExpr)expr;
@@ -17172,7 +17296,9 @@ namespace Microsoft.Dafny {
             if (e is SetComprehension) {
               newExpr = new SetComprehension(expr.tok, ((SetComprehension)e).Finite, newBoundVars, newRange, newTerm, newAttrs);
             } else if (e is MapComprehension) {
-              newExpr = new MapComprehension(expr.tok, ((MapComprehension)e).Finite, newBoundVars, newRange, newTerm, newAttrs);
+              var mc = (MapComprehension)e;
+              var newTermLeft = mc.TermLeft == null ? null : Substitute(mc.TermLeft);
+              newExpr = new MapComprehension(expr.tok, mc.Finite, newBoundVars, newRange, newTermLeft, newTerm, newAttrs);
             } else if (expr is ForallExpr) {
               newExpr = new ForallExpr(expr.tok, ((QuantifierExpr)expr).TypeArgs, newBoundVars, newRange, newTerm, newAttrs);
             } else if (expr is ExistsExpr) {
@@ -17957,12 +18083,12 @@ namespace Microsoft.Dafny {
     }
 
     // Makes a formal variable
-    static Bpl.Formal BplFormalVar(string name, Bpl.Type ty, bool incoming) {
+    static Bpl.Formal BplFormalVar(string/*?*/ name, Bpl.Type ty, bool incoming) {
       Bpl.Expr _scratch;
       return BplFormalVar(name, ty, incoming, out _scratch);
     }
 
-    static Bpl.Formal BplFormalVar(string name, Bpl.Type ty, bool incoming, out Bpl.Expr e) {
+    static Bpl.Formal BplFormalVar(string/*?*/ name, Bpl.Type ty, bool incoming, out Bpl.Expr e) {
       Bpl.Formal res;
       if (name == null) {
         name = Bpl.TypedIdent.NoName;

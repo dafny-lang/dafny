@@ -10105,16 +10105,32 @@ namespace Microsoft.Dafny {
   public class MapComprehension : ComprehensionExpr
   {
     public readonly bool Finite;
+    public readonly Expression TermLeft;
 
-    public MapComprehension(IToken tok, bool finite, List<BoundVar> bvars, Expression range, Expression term, Attributes attrs)
-      : base(tok, bvars, range, term, attrs) {
+    public List<Boogie.Function> ProjectionFunctions;  // filled in during translation (and only for general map comprehensions where "TermLeft != null")
+
+    public MapComprehension(IToken tok, bool finite, List<BoundVar> bvars, Expression range, Expression/*?*/ termLeft, Expression termRight, Attributes attrs)
+      : base(tok, bvars, range, termRight, attrs) {
       Contract.Requires(tok != null);
       Contract.Requires(cce.NonNullElements(bvars));
       Contract.Requires(1 <= bvars.Count);
       Contract.Requires(range != null);
-      Contract.Requires(term != null);
+      Contract.Requires(termRight != null);
+      Contract.Requires(termLeft != null || bvars.Count == 1);
 
       Finite = finite;
+      TermLeft = termLeft;
+    }
+
+    public override IEnumerable<Expression> SubExpressions {
+      get {
+        foreach (var e in Attributes.SubExpressions(Attributes)) {
+          yield return e;
+        }
+        if (Range != null) { yield return Range; }
+        if (TermLeft != null) { yield return TermLeft; }
+        yield return Term;
+      }
     }
   }
 

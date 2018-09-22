@@ -1,8 +1,63 @@
+Maps.dfy(200,11): Warning: /!\ No terms found to trigger on.
 Maps.dfy(78,7): Error: element may not be in domain
 Execution trace:
     (0,0): anon0
 Maps.dfy(128,12): Error: assertion violation
 Execution trace:
     (0,0): anon0
+Maps.dfy(220,36): Error: key expressions may be referring to the same value
+Execution trace:
+    (0,0): anon0
+    (0,0): anon41_Then
+    (0,0): anon42_Then
+    (0,0): anon43_Then
+    (0,0): anon44_Then
+    (0,0): anon45_Then
+Maps.dfy(226,36): Error: key expressions may be referring to the same value
+Execution trace:
+    (0,0): anon0
+    (0,0): anon56_Then
+    (0,0): anon57_Then
+    (0,0): anon58_Then
+    (0,0): anon59_Then
+    (0,0): anon60_Then
+Maps.dfy(232,37): Error: key expressions may be referring to the same value
+Execution trace:
+    (0,0): anon0
+    (0,0): anon17_Then
+    (0,0): anon18_Then
+    (0,0): anon19_Then
+    (0,0): anon20_Then
+    (0,0): anon21_Then
+Maps.dfy(234,24): Error: key expressions may be referring to the same value
+Execution trace:
+    (0,0): anon0
+    (0,0): anon17_Else
+    (0,0): anon22_Then
+    (0,0): anon23_Then
+    (0,0): anon24_Then
+Maps.dfy(241,41): Error: possible violation of function precondition
+Maps.dfy(215,13): Related location
+Execution trace:
+    (0,0): anon0
+    (0,0): anon21_Then
+    (0,0): anon22_Then
+    (0,0): anon23_Then
+    (0,0): anon24_Then
+Maps.dfy(243,36): Error: possible violation of function precondition
+Maps.dfy(215,13): Related location
+Execution trace:
+    (0,0): anon0
+    (0,0): anon26_Then
+    (0,0): anon27_Then
+    (0,0): anon28_Then
+Maps.dfy(243,37): Error: key expressions may be referring to the same value
+Execution trace:
+    (0,0): anon0
+    (0,0): anon26_Then
+    (0,0): anon27_Then
+    (0,0): anon28_Then
+    (0,0): anon29_Then
+    (0,0): anon30_Then
 
-Dafny program verifier finished with 18 verified, 2 errors
+Dafny program verifier finished with 19 verified, 9 errors

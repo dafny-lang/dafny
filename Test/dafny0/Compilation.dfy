@@ -268,6 +268,7 @@ method Main()
   EqualityTests.TestMain();
   TypeInstantiations.TestMain();
   TailRecursionWhereTypeParametersChange.TestMain();
+  GeneralMaps.Test();
 }
 
 // ------------------------------------------------------------------
@@ -443,5 +444,20 @@ module TailRecursionWhereTypeParametersChange {
       print g, " ";
       Compute<G>(n-1);
     }
+  }
+}
+
+// -------------------------------------------------
+
+module GeneralMaps {
+  method Test() {
+    var m := map x | 2 <= x < 6 :: x+1;
+    print m, "\n";
+    m := map y | 2 <= y < 6 :: y+1 := y+3;
+    print m, "\n";
+    m := map y | 2 <= y < 6 :: y+1 := 10;
+    print m.Items, "\n";
+    print m.Keys, "\n";
+    print m.Values, "\n";
   }
 }

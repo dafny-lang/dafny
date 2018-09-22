@@ -1369,7 +1369,11 @@ namespace Microsoft.Dafny
         // Translate "map x | R :: T" into
         // See LetExpr for issues with the e.Range
         //reqs.AddRange(generateAutoReqs(e.Range));        
-        var auto_reqs = generateAutoReqs(e.Term);
+        var auto_reqs = new List<Expression>();
+        if (e.TermLeft != null) {
+          auto_reqs.AddRange(generateAutoReqs(e.TermLeft));
+        }
+        auto_reqs.AddRange(generateAutoReqs(e.Term));
         if (auto_reqs.Count > 0) {
           reqs.Add(Expression.CreateQuantifier(new ForallExpr(e.tok, new List<TypeParameter>(), e.BoundVars, e.Range, andify(e.Term.tok, auto_reqs), e.Attributes), true));
         }

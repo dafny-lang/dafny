@@ -1,5 +1,5 @@
 
-Dafny program verifier finished with 30 verified, 0 errors
+Dafny program verifier finished with 31 verified, 0 errors
 Program compiled successfully
 Running...
 
@@ -19,3 +19,8 @@ given array is non-null
 100 101
 102 103
 0.0 False False 
+map[2 := 3, 3 := 4, 4 := 5, 5 := 6]
+map[3 := 5, 4 := 6, 5 := 7, 6 := 8]
+{(3, 10), (4, 10), (5, 10), (6, 10)}
+{3, 4, 5, 6}
+{10}

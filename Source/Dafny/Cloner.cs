@@ -411,7 +411,8 @@ namespace Microsoft.Dafny
             Contract.Assert(false); throw new cce.UnreachableException();  // unexpected quantifier expression
           }
         } else if (e is MapComprehension) {
-          return new MapComprehension(tk, ((MapComprehension)e).Finite, bvs, range, term, CloneAttributes(e.Attributes));
+          var mc = (MapComprehension)e;
+          return new MapComprehension(tk, mc.Finite, bvs, range, mc.TermLeft == null ? null : CloneExpr(mc.TermLeft), term, CloneAttributes(e.Attributes));
         } else if (e is LambdaExpr) {
           var l = (LambdaExpr)e;
           return new LambdaExpr(tk, bvs, range, l.Reads.ConvertAll(CloneFrameExpr), term);

@@ -2318,8 +2318,12 @@ namespace Microsoft.Dafny {
         }
         PrintAttributes(e.Attributes);
         wr.Write(" | ");
-        PrintExpression(e.Range, !parensNeeded && isFollowedBySemicolon);
+        PrintExpression(e.Range, false);
         wr.Write(" :: ");
+        if (e.TermLeft != null) {
+          PrintExpression(e.TermLeft, false);
+          wr.Write(" := ");
+        }
         PrintExpression(e.Term, !parensNeeded && isFollowedBySemicolon);
         if (parensNeeded) { wr.Write(")"); }
 

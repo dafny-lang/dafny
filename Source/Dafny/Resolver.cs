@@ -12023,9 +12023,7 @@ namespace Microsoft.Dafny
         var e = (MapComprehension)expr;
         int prevErrorCount = reporter.Count(ErrorLevel.Error);
         scope.PushMarker();
-        if (e.BoundVars.Count != 1) {
-          reporter.Error(MessageSource.Resolver, e.tok, "a map comprehension must have exactly one bound variable.");
-        }
+        Contract.Assert(e.BoundVars.Count == 1 || (1 < e.BoundVars.Count && e.TermLeft != null));
         foreach (BoundVar v in e.BoundVars) {
           ScopePushAndReport(scope, v, "bound-variable");
           ResolveType(v.tok, v.Type, opts.codeContext, ResolveTypeOptionEnum.InferTypeProxies, null);
@@ -12037,12 +12035,16 @@ namespace Microsoft.Dafny
         ResolveExpression(e.Range, opts);
         Contract.Assert(e.Range.Type != null);  // follows from postcondition of ResolveExpression
         ConstrainTypeExprBool(e.Range, "range of comprehension must be of type bool (instead got {0})");
+        if (e.TermLeft != null) {
+          ResolveExpression(e.TermLeft, opts);
+          Contract.Assert(e.TermLeft.Type != null);  // follows from postcondition of ResolveExpression
+        }
         ResolveExpression(e.Term, opts);
         Contract.Assert(e.Term.Type != null);  // follows from postcondition of ResolveExpression
 
         ResolveAttributes(e.Attributes, e, opts);
         scope.PopMarker();
-        expr.Type = new MapType(e.Finite, e.BoundVars[0].Type, e.Term.Type);
+        expr.Type = new MapType(e.Finite, e.TermLeft != null ? e.TermLeft.Type : e.BoundVars[0].Type, e.Term.Type);
 
       } else if (expr is LambdaExpr) {
         var e = (LambdaExpr)expr;
@@ -14861,7 +14863,7 @@ namespace Microsoft.Dafny
         return !e.Finite || e.UncompilableBoundVars().Count != 0 || (e.Range != null && UsesSpecFeatures(e.Range)) || (e.Term != null && UsesSpecFeatures(e.Term));
       } else if (expr is MapComprehension) {
         var e = (MapComprehension)expr;
-        return !e.Finite || e.UncompilableBoundVars().Count != 0 || UsesSpecFeatures(e.Range) || UsesSpecFeatures(e.Term);
+        return !e.Finite || e.UncompilableBoundVars().Count != 0 || UsesSpecFeatures(e.Range) || (e.TermLeft != null && UsesSpecFeatures(e.TermLeft)) || UsesSpecFeatures(e.Term);
       } else if (expr is LambdaExpr) {
         var e = (LambdaExpr)expr;
         return UsesSpecFeatures(e.Term);
@@ -15143,6 +15145,9 @@ namespace Microsoft.Dafny
           CheckCoCalls(e.Range, int.MaxValue, null, coCandidates);
         }
         // allow co-calls in the term
+        if (e.TermLeft != null) {
+          CheckCoCalls(e.TermLeft, destructionLevel, coContext, coCandidates);
+        }
         CheckCoCalls(e.Term, destructionLevel, coContext, coCandidates);
         return;
       } else if (expr is OldExpr) {

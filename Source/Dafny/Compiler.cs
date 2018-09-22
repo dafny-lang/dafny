@@ -3585,6 +3585,7 @@ namespace Microsoft.Dafny {
         Contract.Assert(e.Bounds.Count == n && n == 1);
         var bound = e.Bounds[0];
         var bv = e.BoundVars[0];
+        Contract.Assume(e.BoundVars.Count == 1);  // TODO: implement the case where e.BoundVars.Count > 1
         if (bound is ComprehensionExpr.BoolBoundedPool) {
           wr.Write("foreach (var @{0} in Dafny.Helpers.AllBooleans) {{ ", bv.CompileName);
         } else if (bound is ComprehensionExpr.CharBoundedPool) {
@@ -3631,7 +3632,13 @@ namespace Microsoft.Dafny {
         wr.Write("if (");
         TrExpr(e.Range, wr, inLetExprBody);
         wr.Write(") { ");
-        wr.Write("{0}.Add(new Dafny.Pair<{1},{2}>(@{3},", collection_name, domtypeName, rantypeName, bv.CompileName);
+        wr.Write("{0}.Add(new Dafny.Pair<{1},{2}>(", collection_name, domtypeName, rantypeName);
+        if (e.TermLeft == null) {
+          wr.Write("@{0}", bv.CompileName);
+        } else {
+          TrExpr(e.TermLeft, wr, inLetExprBody);
+        }
+        wr.Write(",");
         TrExpr(e.Term, wr, inLetExprBody);
         wr.Write(")); }");
         wr.Write("}");

@@ -213,12 +213,12 @@ public Parser(Scanner/*!*/ scanner, Errors/*!*/ errors, Include include, ModuleD
 }
 
 bool IsAttribute() {
-  Token x = scanner.Peek();
+  IToken x = scanner.Peek();
   return la.kind == _lbrace && x.kind == _colon;
 }
 
 bool IsAlternative() {
-  Token x = scanner.Peek();
+  IToken x = scanner.Peek();
   return (la.kind == _lbrace && x.kind == _case)
       || la.kind == _case;
 }
@@ -228,6 +228,10 @@ bool FollowedByColon() {
   while (x.kind == _ident || x.kind == _openparen)
      x = scanner.Peek();
   return x.kind == _colon;
+}
+
+bool IsGets() {
+  return la.kind == _gets;
 }
 
 // an existential guard starts with an identifier and is then followed by
@@ -740,6 +744,7 @@ TOKENS
   comma = ','.
   verticalbar = '|'.
   doublecolon = "::".
+  gets = ":=".
   boredSmiley = ":|".
   bullet = '\u2022'.
   dot = '.'.
@@ -3381,15 +3386,27 @@ MapComprehensionExpr<IToken mapToken, bool finite, out Expression e, bool allowS
      BoundVar bv;
      List<BoundVar> bvars = new List<BoundVar>();
      Expression range = null;
-     Expression body;
+     Expression bodyLeft = null;
+     Expression bodyRight;
      Attributes attrs = null;
   .)
   IdentTypeOptional<out bv>                    (. bvars.Add(bv); .)
+  { ","
+    IdentTypeOptional<out bv>                  (. bvars.Add(bv); .)
+  }
   { Attribute<ref attrs> }
   [ "|" Expression<out range, true, true, true> ]
   QSep
-  Expression<out body, allowSemi, allowLambda, allowBitwiseOps>
-  (. e = new MapComprehension(mapToken, finite, bvars, range ?? new LiteralExpr(mapToken, true), body, attrs);
+  Expression<out bodyRight, allowSemi, allowLambda, allowBitwiseOps>
+  [ IF(IsGets())  /* greedily parse ":=" */    (. bodyLeft = bodyRight; .)
+    ":=" Expression<out bodyRight, allowSemi, allowLambda, allowBitwiseOps>
+  ]
+  (. if (bodyLeft == null && bvars.Count != 1) {
+       SemErr(t, "a map comprehension with more than one bound variable must have a term expression of the form 'Expr := Expr'");
+       e = dummyExpr;
+     } else {
+       e = new MapComprehension(mapToken, finite, bvars, range ?? new LiteralExpr(mapToken, true), bodyLeft, bodyRight, attrs);
+     }
   .)
   .
 EndlessExpression<out Expression e, bool allowSemi, bool allowLambda, bool allowBitwiseOps>
