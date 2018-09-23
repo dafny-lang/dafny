@@ -12,8 +12,7 @@ types, rather than only characters. Sequence types are written:
    seq<int>
 ```
 
-for a sequence of integers, for example. (Note a known bug
-in Dafny prevents you from creating sequences of naturals, `nat`.)
+for a sequence of integers, for example.
 For example, this function takes a sequence as a parameter:
 
 ``` {.edit}

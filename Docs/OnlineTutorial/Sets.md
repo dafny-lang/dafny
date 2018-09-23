@@ -109,9 +109,6 @@ When used in a decreases clause, sets are ordered by subset. This is unlike
 sequences, which are ordered by length only. In order for sets to be used in
 decreases clauses, the successive values must be "related" in some sense, which
 usually implies that they are recursively calculated, or similar.
-This requirement comes from the fact that there is no way to get the cardinality
-(size) of a set in Dafny. The size is guaranteed to be some finite
-natural, but it is inaccessible.
 You can test if the set is empty by comparing it to the empty set
 (`s == {}` is true if and only if `s` has no elements.)
 
