@@ -145,7 +145,6 @@ class Release:
                     if any(fnmatch(fname, pattern) for pattern in UNIX_EXECUTABLES):
                         # http://stackoverflow.com/questions/434641/
                         fileinfo.external_attr = 0o100755 << 16
-                    if self.os != "win":
                         fileinfo.create_system = 3  # lie about this zip file's source OS to preserve permissions
                     contents = open(fpath, mode='rb').read()
                     fileinfo.compress_type = zipfile.ZIP_DEFLATED
