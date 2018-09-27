@@ -20,11 +20,9 @@ module B {
     tt := x;  // error: Pred(x) is unknown
   }
 
-  /* SOON
   method Good(x: T) returns (tt: NewT)
     requires Pred(x)
   {
     tt := x;  // fine
   }
-  */
 }

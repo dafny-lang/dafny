@@ -1221,7 +1221,7 @@ namespace Microsoft.Dafny {
         name += "$IsAlloc";
         var h = BplBoundVar("$h", predef.HeapType, vars);
         // $IsAlloc(o, ..)
-        is_o = MkIsAlloc(o, o_ty, h);
+        is_o = MkIsAlloc(o, o_ty, h, ModeledAsBoxType(dd.Var.Type));
         if (dd.Var.Type.IsNumericBased() || dd.Var.Type.IsBitVectorType || dd.Var.Type.IsBoolType || dd.Var.Type.IsCharType) {
           body = is_o;
         } else {
@@ -1231,7 +1231,7 @@ namespace Microsoft.Dafny {
       } else {
         name += "$Is";
         // $Is(o, ..)
-        is_o = MkIs(o, o_ty);
+        is_o = MkIs(o, o_ty, ModeledAsBoxType(dd.Var.Type));
         var etran = new ExpressionTranslator(this, predef, new Bpl.IdentifierExpr(dd.tok, "$OneHeap", predef.HeapType));
         Bpl.Expr parentConstraint, constraint;
         if (dd.Var.Type.IsNumericBased() || dd.Var.Type.IsBitVectorType || dd.Var.Type.IsBoolType) {
@@ -8374,19 +8374,21 @@ namespace Microsoft.Dafny {
               ==> $Box($Unbox(bx): DatatypeType) == bx
                && $Is($Unbox(bx): DatatypeType, List(T)));
       */
-      Helper((argExprs, args, _inner) => {
-        Bpl.Expr bx; var bxVar = BplBoundVar("bx", predef.BoxType, out bx);
-        var ty = FunctionCall(tok, name, predef.Ty, argExprs);
-        var unbox = FunctionCall(tok, BuiltinFunction.Unbox, ty_repr, bx);
-        var box_is = MkIs(bx, ty, true);
-        var unbox_is = MkIs(unbox, ty, false);
-        var box_unbox = FunctionCall(tok, BuiltinFunction.Box, null, unbox);
-        sink.AddTopLevelDeclaration(
-          new Axiom(tok,
-            BplForall(Snoc(args, bxVar), BplTrigger(box_is),
-              BplImp(box_is, BplAnd(Bpl.Expr.Eq(box_unbox, bx), unbox_is))),
-            "Box/unbox axiom for " + name));
-      });
+      if (!ModeledAsBoxType(UserDefinedType.FromTopLevelDecl(td.tok, td))) {
+        Helper((argExprs, args, _inner) => {
+          Bpl.Expr bx; var bxVar = BplBoundVar("bx", predef.BoxType, out bx);
+          var ty = FunctionCall(tok, name, predef.Ty, argExprs);
+          var unbox = FunctionCall(tok, BuiltinFunction.Unbox, ty_repr, bx);
+          var box_is = MkIs(bx, ty, true);
+          var unbox_is = MkIs(unbox, ty, false);
+          var box_unbox = FunctionCall(tok, BuiltinFunction.Box, null, unbox);
+          sink.AddTopLevelDeclaration(
+            new Axiom(tok,
+              BplForall(Snoc(args, bxVar), BplTrigger(box_is),
+                BplImp(box_is, BplAnd(Bpl.Expr.Eq(box_unbox, bx), unbox_is))),
+              "Box/unbox axiom for " + name));
+        });
+      }
 
       return name;
     }
