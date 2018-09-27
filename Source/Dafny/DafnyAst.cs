@@ -1128,7 +1128,7 @@ namespace Microsoft.Dafny {
     }
     public TypeParameter AsTypeParameter {
       get {
-        var ct = NormalizeExpand() as UserDefinedType;
+        var ct = NormalizeExpandKeepConstraints() as UserDefinedType;
         return ct == null ? null : ct.ResolvedParam;
       }
     }
