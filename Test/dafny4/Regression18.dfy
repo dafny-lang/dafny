@@ -26,3 +26,17 @@ module B {
     tt := x;  // fine
   }
 }
+
+module M {
+  datatype Dt = SomeValue
+  type X = Dt
+  type T = t: X | true witness SomeValue
+
+  function G(t: X): int
+
+  function F(t: T): int {
+    // this once used to give an error, because type checking/inference didn't skip
+    // all intermediate layers of type synonyms when checking subtyping
+    G(t)
+  }
+}

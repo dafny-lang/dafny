@@ -1347,8 +1347,9 @@ namespace Microsoft.Dafny {
           return udtSuper.ResolvedParam == sub.AsTypeParameter;
         } else {
           Contract.Assert(udtSuper.ResolvedClass != null);
-          sub = origSub.NormalizeExpandKeepConstraints();  // get back to the starting point, including any and all constraints
+          sub = origSub;  // get back to the starting point
           while (true) {
+            sub = sub.NormalizeExpandKeepConstraints();  // skip past proxies and type synonyms
             var udtSub = sub as UserDefinedType;
             if (udtSub == null) {
               return false;

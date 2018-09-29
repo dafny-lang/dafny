@@ -2,4 +2,4 @@ Regression18.dfy(20,10): Error: value does not satisfy the subset constraints of
 Execution trace:
     (0,0): anon0
 
-Dafny program verifier finished with 3 verified, 1 error
+Dafny program verifier finished with 5 verified, 1 error
