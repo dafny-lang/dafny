@@ -1971,6 +1971,13 @@ namespace Microsoft.Dafny {
           sep = ", ";
         }
         wr.Write(")");
+        if (DafnyOptions.O.DafnyPrintResolvedFile != null && DafnyOptions.O.PrintMode == DafnyOptions.PrintModes.Everything) {
+          if (e.ResolvedExpression != null) {
+            wr.Write("/*");
+            PrintExpression(e.ResolvedExpression, false);
+            wr.Write("*/");
+          }
+        }
         if (parensNeeded) { wr.Write(")"); }
 
       } else if (expr is ApplyExpr) {

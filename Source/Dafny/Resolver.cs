@@ -9341,9 +9341,7 @@ namespace Microsoft.Dafny
         Contract.Assert(ctors != null);  // dtd should have been inserted into datatypeCtors during a previous resolution stage
 
         // build the type-parameter substitution map for this use of the datatype
-        for (int i = 0; i < dtd.TypeArgs.Count; i++) {
-          subst.Add(dtd.TypeArgs[i], sourceType.TypeArgs[i]);
-        }
+        subst = TypeSubstitutionMap(dtd.TypeArgs, sourceType.TypeArgs);
       }
 
       // convert CasePattern in MatchCaseExpr to BoundVar and flatten the MatchCaseExpr.
@@ -11622,9 +11620,11 @@ namespace Microsoft.Dafny
         if (!ty.IsDatatype) {
           reporter.Error(MessageSource.Resolver, expr, "datatype update expression requires a root expression of a datatype (got {0})", ty);
         } else {
-          var let = ResolveDatatypeUpdate(expr.tok, e.Root, ty.AsDatatype, e.Updates, opts);
+          List<DatatypeCtor> legalSourceConstructors;
+          var let = ResolveDatatypeUpdate(expr.tok, e.Root, ty.AsDatatype, e.Updates, opts, out legalSourceConstructors);
           if (let != null) {
             e.ResolvedExpression = let;
+            e.LegalSourceConstructors = legalSourceConstructors;
             expr.Type = ty;
           }
         }
@@ -12208,23 +12208,26 @@ namespace Microsoft.Dafny
     }
 
     /// <summary>
-    /// Attempts to produce a let expression from the given datatype updates.  Returns that let expression upon success, and null otherwise.
+    /// Attempts to rewrite a datatype update into more primitive operations, after doing the appropriate resolution checks.
+    /// Upon success, returns that rewritten expression and sets "legalSourceConstructors".
+    /// Upon some resolution error, return null.
     /// </summary>
-    Expression ResolveDatatypeUpdate(IToken tok, Expression root, DatatypeDecl dt, List<Tuple<IToken, string, Expression>> memberUpdates, ResolveOpts opts) {
+    Expression ResolveDatatypeUpdate(IToken tok, Expression root, DatatypeDecl dt, List<Tuple<IToken, string, Expression>> memberUpdates, ResolveOpts opts, out List<DatatypeCtor> legalSourceConstructors) {
       Contract.Requires(tok != null);
       Contract.Requires(root != null);
       Contract.Requires(dt != null);
       Contract.Requires(memberUpdates != null);
       Contract.Requires(opts != null);
 
-      // Let en = e and e(n-1) = en.Seq
-      // We're currently looking at e = e(n-1)[en.Index := en.Value]
-      // Let e(n-2) = e(n-1).Seq, e(n-3) = e(n-2).Seq, etc.
-      // Let's extract e = e0[e1.Index := e1.Value]...[en.Index := en.Value]
-      var possibleCtors = dt.Ctors;  // list of constructors that have all the so-far-mentioned destructors
+      legalSourceConstructors = null;
+
+      // First, compute the list of candidate result constructors, that is, the constructors
+      // that have all of the mentioned destructors. Issue errors for duplicated names and for
+      // names that are not destructors in the datatype.
+      var candidateResultCtors = dt.Ctors;  // list of constructors that have all the so-far-mentioned destructors
       var memberNames = new HashSet<string>();
-      var updates = new Dictionary<DatatypeDestructor, Expression>();
-      var suppressUniquenessCheck = false;
+      var rhsBindings = new Dictionary<string, Tuple<BoundVar/*let variable*/, IdentifierExpr/*id expr for let variable*/, Expression /*RHS in given syntax*/>>();
+      var subst = TypeSubstitutionMap(dt.TypeArgs, root.Type.TypeArgs);
       foreach (var entry in memberUpdates) {
         var destructor_str = entry.Item2;
         if (memberNames.Contains(destructor_str)) {
@@ -12234,76 +12237,107 @@ namespace Microsoft.Dafny
           MemberDecl member;
           if (!datatypeMembers[dt].TryGetValue(destructor_str, out member)) {
             reporter.Error(MessageSource.Resolver, entry.Item1, "member '{0}' does not exist in datatype '{1}'", destructor_str, dt.Name);
-            suppressUniquenessCheck = true;
           } else if (!(member is DatatypeDestructor)) {
             reporter.Error(MessageSource.Resolver, entry.Item1, "member '{0}' is not a destructor in datatype '{1}'", destructor_str, dt.Name);
-            suppressUniquenessCheck = true;
           } else {
             var destructor = (DatatypeDestructor)member;
-            var intersection = new List<DatatypeCtor>(possibleCtors.Intersect(destructor.EnclosingCtors));
-            if (intersection.Count != 0) {
-              possibleCtors = intersection;
-              updates.Add(destructor, entry.Item3);
+            var intersection = new List<DatatypeCtor>(candidateResultCtors.Intersect(destructor.EnclosingCtors));
+            if (intersection.Count == 0) {
+              reporter.Error(MessageSource.Resolver, entry.Item1,
+                "updated datatype members must belong to the same constructor (unlike the previously mentioned destructors, '{0}' does not belong to {1})",
+                destructor_str, DatatypeDestructor.PrintableCtorNameList(candidateResultCtors, "or"));
             } else {
-              reporter.Error(MessageSource.Resolver, entry.Item1, "updated datatype members must belong to the same constructor " +
-                "(unlike the previously mentioned destructors, '{0}' does not belong to {1})", entry.Item2, DatatypeDestructor.PrintableCtorNameList(possibleCtors, "or"));
-              suppressUniquenessCheck = true;
+              candidateResultCtors = intersection;
+              if (destructor.IsGhost) {
+                rhsBindings.Add(destructor_str, new Tuple<BoundVar, IdentifierExpr, Expression>(null, null, entry.Item3));
+              } else {
+                var xName = FreshTempVarName(string.Format("dt_update#{0}#", destructor_str), opts.codeContext);
+                var xVar = new BoundVar(new AutoGeneratedToken(tok), xName, SubstType(destructor.Type, subst));
+                var x = new IdentifierExpr(new AutoGeneratedToken(tok), xVar);
+                rhsBindings.Add(destructor_str, new Tuple<BoundVar, IdentifierExpr, Expression>(xVar, x, entry.Item3));
+              }
             }
           }
         }
       }
+      if (candidateResultCtors.Count == 0) {
+        return null;
+      }
 
-      if (possibleCtors.Count != 1) {
-        if (!suppressUniquenessCheck) {
-          var which = DatatypeDestructor.PrintableCtorNameList(possibleCtors, "and");
-          string explanation;
-          if (memberUpdates.Count == 1) {
-            explanation = string.Format("destructor '{0}' belongs to constructors {1}", memberUpdates[0].Item2, which);
-          } else {
-            explanation = string.Format("the given destructors all belong to constructors {0}", which);
-          }
-          reporter.Error(MessageSource.Resolver, tok, "the updated datatype members must uniquely determine the resulting constructor ({0})", explanation);
+      // Check that every candidate result constructor has given a name to all of its parameters.
+      var hasError = false;
+      foreach (var ctor in candidateResultCtors) {
+        if (ctor.Formals.Exists(f => !f.HasName)) {
+          reporter.Error(MessageSource.Resolver, tok,
+            "candidate result constructor '{0}' has an anonymous parameter (to use in datatype update expression, name all the parameters of the candidate result constructors)",
+            ctor.Name);
+          hasError = true;
         }
-      } else {
-        var ctor = possibleCtors[0];
-        // Rewrite an update of the form "dt[dtor := E]" to be "let d' := dt in dtCtr(E, d'.dtor2, d'.dtor3,...)"
-        // Wrapping it in a let expr avoids exponential growth in the size of the expression
-        // More generally, rewrite "E0[dtor1 := E1][dtor2 := E2]...[dtorn := En]" where "E0" is "root" to
-        //   "let d' := E0 in dtCtr(...mixtures of Ek and d'.dtorj...)"
+      }
+      if (hasError) {
+        return null;
+      }
 
-        // Now that we know which constructor we're talking about, we can pick out the formal corresponding to each destructor
-        var fUpdates = new Dictionary<Formal, Expression>();
-        foreach (var entry in updates) {
-          var i = entry.Key.EnclosingCtors.IndexOf(ctor);
-          Contract.Assert(0 <= i && i < entry.Key.CorrespondingFormals.Count);
-          fUpdates.Add(entry.Key.CorrespondingFormals[i], entry.Value);
-        }
+      // The legal source constructors are the candidate result constructors. (Yep, two names for the same thing.)
+      legalSourceConstructors = candidateResultCtors;
+      Contract.Assert(1 <= legalSourceConstructors.Count);
 
-        // Create a unique name for d', the variable we introduce in the let expression
-        var tmpName = FreshTempVarName("dt_update_tmp#", opts.codeContext);
-        var tmpVarIdExpr = new IdentifierExpr(new AutoGeneratedToken(tok), tmpName);
-        var tmpVarBv = new BoundVar(new AutoGeneratedToken(tok), tmpName, root.Type);
-
+      // Rewrite the datatype update root.(x := X, y := Y, ...) to:
+      //     var d := root;
+      //     var x := X;  // EXCEPT: don't do this for ghost fields
+      //     var y := Y;
+      //     ..
+      //     if d.CandidateResultConstructor0 then
+      //       CandidateResultConstructor0(x, y, ..., d.f0, d.f1, ...)  // for a ghost field x, use the expression X directly
+      //     else if d.CandidateResultConstructor1 then
+      //       CandidateResultConstructor0(x, y, ..., d.g0, d.g1, ...)
+      //     ...
+      //     else
+      //       CandidateResultConstructorN(x, y, ..., d.k0, d.k1, ...)
+      //
+      Expression rewrite = null;
+      // Create a unique name for d', the variable we introduce in the let expression
+      var dName = FreshTempVarName("dt_update_tmp#", opts.codeContext);
+      var dVar = new BoundVar(new AutoGeneratedToken(tok), dName, root.Type);
+      var d = new IdentifierExpr(new AutoGeneratedToken(tok), dVar);
+      Expression body = null;
+      candidateResultCtors.Reverse();
+      foreach (var crc in candidateResultCtors) {
         // Build the arguments to the datatype constructor, using the updated value in the appropriate slot
         var ctor_args = new List<Expression>();
-        foreach (Formal d in ctor.Formals) {
-          Expression v;
-          if (fUpdates.TryGetValue(d, out v)) {
-            ctor_args.Add(v);
+        foreach (var f in crc.Formals) {
+          Tuple<BoundVar/*let variable*/, IdentifierExpr/*id expr for let variable*/, Expression /*RHS in given syntax*/> info;
+          if (rhsBindings.TryGetValue(f.Name, out info)) {
+            ctor_args.Add(info.Item2 ?? info.Item3);
           } else {
-            ctor_args.Add(new ExprDotName(tok, tmpVarIdExpr, d.Name, null));
+            ctor_args.Add(new ExprDotName(tok, d, f.Name, null));
           }
         }
-
-        DatatypeValue ctor_call = new DatatypeValue(tok, ctor.EnclosingDatatype.Name, ctor.Name, ctor_args);
-
-        var tmpVarPat = new CasePattern<BoundVar>(tok, tmpVarBv);
-        LetExpr let = new LetExpr(tok, new List<CasePattern<BoundVar>>() { tmpVarPat }, new List<Expression>() { root }, ctor_call, true);
-
-        ResolveExpression(let, opts);
-        return let;
+        var ctor_call = new DatatypeValue(tok, crc.EnclosingDatatype.Name, crc.Name, ctor_args);
+        ResolveDatatypeValue(opts, ctor_call, dt, root.Type);  // resolve to root.Type, so that type parameters get filled in appropriately
+        if (body == null) {
+          body = ctor_call;
+        } else {
+          // body = if d.crc? then ctor_call else body
+          var guard = new ExprDotName(tok, d, crc.QueryField.Name, null);
+          body = new ITEExpr(tok, false, guard, ctor_call, body);
+        }
       }
-      return null;
+      Contract.Assert(body != null);  // because there was at least one element in candidateResultCtors
+
+      // Wrap the let's around body
+      rewrite = body;
+      foreach (var entry in rhsBindings) {
+        if (entry.Value.Item1 != null) {
+          var lhs = new CasePattern<BoundVar>(tok, entry.Value.Item1);
+          rewrite = new LetExpr(tok, new List<CasePattern<BoundVar>>() { lhs }, new List<Expression>() { entry.Value.Item3 }, rewrite, true);
+        }
+      }
+      var dVarPat = new CasePattern<BoundVar>(tok, dVar);
+      rewrite = new LetExpr(tok, new List<CasePattern<BoundVar>>() { dVarPat }, new List<Expression>() { root }, rewrite, true);
+      Contract.Assert(rewrite != null);
+      ResolveExpression(rewrite, opts);
+      return rewrite;
     }
 
     void ResolveMatchExpr(MatchExpr me, ResolveOpts opts) {
@@ -12343,9 +12377,7 @@ namespace Microsoft.Dafny
         Contract.Assert(ctors != null);  // dtd should have been inserted into datatypeCtors during a previous resolution stage
 
         // build the type-parameter substitution map for this use of the datatype
-        for (int i = 0; i < dtd.TypeArgs.Count; i++) {
-          subst.Add(dtd.TypeArgs[i], sourceType.TypeArgs[i]);
-        }
+        subst = TypeSubstitutionMap(dtd.TypeArgs, sourceType.TypeArgs);
       }
 
       // convert CasePattern in MatchCaseExpr to BoundVar and flatten the MatchCaseExpr.
@@ -12753,10 +12785,7 @@ namespace Microsoft.Dafny
         }
         // build the type-parameter substitution map for this use of the datatype
         Contract.Assert(dtd.TypeArgs.Count == udt.TypeArgs.Count);  // follows from the type previously having been successfully resolved
-        var subst = new Dictionary<TypeParameter, Type>();
-        for (int i = 0; i < dtd.TypeArgs.Count; i++) {
-          subst.Add(dtd.TypeArgs[i], udt.TypeArgs[i]);
-        }
+        var subst = TypeSubstitutionMap(dtd.TypeArgs, udt.TypeArgs);
         // recursively call ResolveCasePattern on each of the arguments
         var j = 0;
         if (pat.Arguments != null) {

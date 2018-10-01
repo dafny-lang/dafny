@@ -10644,6 +10644,7 @@ namespace Microsoft.Dafny {
   {
     public readonly Expression Root;
     public readonly List<Tuple<IToken, string, Expression>> Updates;
+    public List<DatatypeCtor> LegalSourceConstructors;  // filled in by resolution
     public DatatypeUpdateExpr(IToken tok, Expression root, List<Tuple<IToken, string, Expression>> updates)
       : base(tok) {
       Contract.Requires(tok != null);

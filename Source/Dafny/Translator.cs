@@ -6715,12 +6715,9 @@ namespace Microsoft.Dafny {
         }
       } else if (expr is SeqUpdateExpr) {
         SeqUpdateExpr e = (SeqUpdateExpr)expr;
-        if (e.ResolvedUpdateExpr != null)
-        {
+        if (e.ResolvedUpdateExpr != null) {
           CheckWellformedWithResult(e.ResolvedUpdateExpr, options, result, resultType, locals, builder, etran);
-        }
-        else
-        {
+        } else {
           CheckWellformed(e.Seq, options, locals, builder, etran);
           Bpl.Expr seq = etran.TrExpr(e.Seq);
           Bpl.Expr index = etran.TrExpr(e.Index);
@@ -6807,7 +6804,7 @@ namespace Microsoft.Dafny {
         } else {
           fnCoreType = fnCore.Type;
         }
-        
+
         if (!fnCoreType.IsArrowTypeWithoutPreconditions) {
           // check precond
           var precond = FunctionCall(e.tok, Requires(arity), Bpl.Type.Bool, args);
@@ -7141,7 +7138,7 @@ namespace Microsoft.Dafny {
 
       } else if (expr is LetExpr) {
         result = CheckWellformedLetExprWithResult((LetExpr)expr, options, result, resultType, locals, builder, etran, true);
-      
+
       } else if (expr is NamedExpr) {
         var e = (NamedExpr)expr;
         CheckWellformedWithResult(e.Body, options, result, resultType, locals, builder, etran);
@@ -7292,8 +7289,7 @@ namespace Microsoft.Dafny {
           Bpl.Expr r = CtorInvocation(me.tok, missingCtor, etran, newLocals, b);
           locals.AddRange(newLocals);
 
-          if (newLocals.Count != 0)
-          {
+          if (newLocals.Count != 0) {
             List<Bpl.IdentifierExpr> havocIds = new List<Bpl.IdentifierExpr>();
             foreach (Variable local in newLocals) {
               havocIds.Add(new Bpl.IdentifierExpr(local.tok, local));
@@ -7306,7 +7302,7 @@ namespace Microsoft.Dafny {
           ifCmd = new Bpl.IfCmd(me.tok, guard, b.Collect(me.tok), ifCmd, els);
           els = null;
         }
-        for (int i = me.Cases.Count; 0 <= --i; ) {
+        for (int i = me.Cases.Count; 0 <= --i;) {
           MatchCaseExpr mc = me.Cases[i];
           BoogieStmtListBuilder b = new BoogieStmtListBuilder(this);
           Bpl.Expr ct = CtorInvocation(mc, etran, locals, b, NOALLOC, false);
@@ -7316,6 +7312,21 @@ namespace Microsoft.Dafny {
           els = null;
         }
         builder.Add(ifCmd);
+        result = null;
+
+      } else if (expr is DatatypeUpdateExpr) {
+        var e = (DatatypeUpdateExpr)expr;
+        // check that source expression is created from one of the legal source constructors, then proceed according to the .ResolvedExpression
+        var correctConstructor = BplOr(e.LegalSourceConstructors.ConvertAll(
+          ctor => FunctionCall(e.tok, ctor.QueryField.FullSanitizedName, Bpl.Type.Bool, etran.TrExpr(e.Root))));
+        if (e.LegalSourceConstructors.Count == e.Type.AsDatatype.Ctors.Count) {
+          // Every constructor has this destructor; no need to check anything
+        } else {
+          builder.Add(Assert(expr.tok, correctConstructor,
+            string.Format("source of datatype update must be constructed by {0}", DatatypeDestructor.PrintableCtorNameList(e.LegalSourceConstructors, "or"))));
+        }
+
+        CheckWellformedWithResult(e.ResolvedExpression, options, result, resultType, locals, builder, etran);
         result = null;
 
       } else if (expr is ConcreteSyntaxExpression) {

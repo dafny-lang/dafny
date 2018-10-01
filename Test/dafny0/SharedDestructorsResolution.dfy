@@ -7,19 +7,19 @@ module Module0 {
     | B(h: MyClass, x: int)
     | C(y: real)
     | D(u: int, y: real, v: bool)
-
+    | E(u: int, /*unnamed*/int)
   class MyClass { }
 
   method Update(d: Dt) returns (d': Dt)
   {
-    if d.A? {
-      d' := d.(x := 6);  // error: this destructor alone does not uniquely determine a resulting constructor
+    if d.D? || d.E? {
+      d' := d.(u := 6);  // error: a candidate result constructor (E) has unnamed fields
     } else if d.B? {
       d' := d.(h := null);
     } else {
-      d' := d.(y := 0.0);  // error: this destructor alone does not uniquely determine a resulting constructor
+      d' := d.(y := 0.0);
     }
-    d' := d.(x := 100, h := null);  // yes, this does unique determine the constructor
+    d' := d.(x := 100, h := null);
   }
 
   datatype Klef =
@@ -31,19 +31,19 @@ module Module0 {
   method UK(k: Klef, x: int) returns (k': Klef)
   {
     k' := k.(2 := x, 3 := x, 0 := x);  // this makes a C2
-    k' := k.(0 := x, 1 := x);  // error: ambiguous
+    k' := k.(0 := x, 1 := x);  // ambiguous, but that's okay
     k' := k.(c0 := x, 3 := x);  // error: no constructor has both "c0" and "3"
     k' := k.(3 := x, c0 := x);  // error: ditto
     k' := k.(3 := x, 2 := x, c0 := x);  // error: no constructor has all these destructors
     k' := k.(3 := x, 2 := x, 1 := x, c0 := x);  // error: no constructor has all these destructors
     k' := k.(3 := x, 1 := x, 0 := x);  // this makes a C3
     k' := k.(1 := x, c3 := x);  // this makes a C3
+    k' := k.(0 := x, 0 := x, 1 := x);  // error: c0 duplicate
     // multiples errors:
     k' := k.(C0? := x);  // error: C0? is not a destructor
     k' := k.(C0? := x, c0 := x);  // error: ditto
     k' := k.(c0 := x, c0 := x, c2 := x);  // error (2x): c0 duplicate, c2 never with c0
     k' := k.(c0 := x, c1 := x, c2 := x);  // error (2x): c1 and c2 never with c0
-    k' := k.(0 := x, 0 := x, 1 := x);  // error (2x): c0 duplicate, ambiguous C0 or C3
   }
 }
 

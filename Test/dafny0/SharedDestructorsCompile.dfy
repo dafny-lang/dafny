@@ -33,7 +33,8 @@ method Main()
     i := i + 1;
   }
 
-  BaseKlef(C1(44, 55, 66, 77));
+  BaseKlef(C3(44, 55, 66, 77));
+  Matte(AA(10, 2));
 }
 
 datatype Klef =
@@ -43,9 +44,34 @@ datatype Klef =
   | C3(3: int, 0: int, 1: int, c3: int)
 
 method BaseKlef(k: Klef)
-  requires !k.C0? && !k.C2?
+  requires !k.C0? && !k.C2? && !k.C1?
 {
   var k' := k.(0 := 100, c3 := 200);  // makes a C3
   assert k' == C3(k.3, 100, k.1, 200);
   print k', "\n";
+}
+
+datatype Datte<T> = AA(a: int, x: int) | BB(b: bool, x: int) | CC(c: real) | DD(x: int, o: set<int>, p: bv27, q: T)
+
+method Matte(d: Datte<real>)
+  requires !d.CC?
+{
+  var d := d;
+  
+  var s := d.(x := 5);
+  print d, " ", s, "\n";  // AA(10, 2) AA(10, 5)
+  
+  d := BB(false, 12);
+  s := d.(x := 6);
+  print d, " ", s, "\n";  // BB(false, 12) BB(false, 6)
+
+  d := CC(3.2);
+  s := d.(c := 3.4);
+  print d, " ", s, "\n";  // CC(3.2) CC(3.4)
+
+  d := DD(100, {7}, 5, 9.0);
+  s := d.(x := 30);
+  print d, " ", s, "\n";  // DD(100, {7}, 5, 9.0) DD(30, {7}, 5, 9.0)
+  s := s.(q := 2.0, p := d.p);
+  print d, " ", s, "\n";  // DD(100, {7}, 5, 9.0) DD(30, {7}, 5, 2.0)
 }

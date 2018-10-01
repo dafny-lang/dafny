@@ -31,7 +31,7 @@ method M(d: Dt) returns (r: int, s: real)
   case d.B? =>
     var h := d.h;
   case true =>
-    var n := d.(y := 2.7, x := 3);
+    var n := d.(y := 2.7, x := 3);  // error: d must be constructed by A
     assert n.A?;
 }
 
@@ -62,31 +62,43 @@ datatype Quirky = PP(id: int, a: int) | QQ(b: int, id: int) | RR(id: int, c: int
 
 method UpdateA(y: Quirky) returns (y': Quirky)
 {
-  // Datatype field update works as follows:
-  // 0- The fields given in the update must uniquely determine a constructor.
-  //    The result will be of this constructor.
-  // 1- For any pair "f := E" given in the update, the field "f" of the result will
-  //    have the value "E".
-  // 2- For any field "f" that is not given in the update "E.(x := X, y := Y, ...)",
-  //    "E" must be a value with an "f" field and the value of "f" in the result will
-  //    be "E.f".
-  // Note, in point 2, the requirement that "E" have an "f" field is satisfied
-  // if "E" is constructed by the same constructor as is determined in point 0.
-  // However, it is also possible to satisfy this requirement if "f" is a shared
-  // destructor and "E" is of a constructor that has that shared field.
-  // Note also, that a degenerate case of the update expression is that all fields
-  // of the by-point-0 determined constructor are given explicitly.  In that case,
-  // the source of the update (that is, the "E" in "E.(...)") can be any value.
+  // A datatype field update "E.(x := X, y := Y, ...)" works as follows:
+  //
+  // 0- Expression "E" must be of some (inductive or co-inductive) datatype, say
+  //    "D". The result of the update will have type "D".
+  //
+  // 1- The names "x", "y", ... must be destructors (aka members or fields) of
+  //    "D". Duplicate names are not allowed. For each pair "x := X", the type
+  //    of expression "X" must be assignable to field "x".
+  //
+  // 2- A constructor of "D" that has all the fields "x", "y", ... is called a
+  //    _candidate result constructor_. The result of the update will be created
+  //    by one of the candidate result constructors. If there is no candidate
+  //    result constructor, then a resolution-time error is reported. A resolution-time
+  //    error is also reported if a candidate result constructor does not name
+  //    all of its parameters.
+  //
+  // 3- The _legal source constructors_ are the candidate result constructors.
+  //    Let "C" denote the constructor that created "E". The verifier will check
+  //    that "C" is among the legal source constructors. The result of the update
+  //    will be created using constructor "C".
+  //
+  // 4- For any pair "x := X" given in the update, the field "x" of the result will
+  //    have the value "X".
+  //
+  // 5- For any field "f" of "C" that is not given in the update, the value of "f"
+  //    in the result will be "E.f". (Note that "E.f" is defined, since "E" is
+  //    constructed by "C".)
   if
   case true =>
-    // make a PP, get .id from anywhere
-    y' := y.(a := 10);
-  case true =>
-    // make a QQ, get .id from anywhere
+    // make a PP
+    y' := y.(a := 10);  // error: y must be constructed by PP
+  case y.QQ? =>
+    // make a QQ
     y' := y.(b := 10);
   case true =>
-    // make an RR, get .id from anywhere
-    y' := y.(c := 10, d := 20);
+    // make an RR
+    y' := y.(c := 10, d := 20);  // error: y must be an RR
   case y.RR? =>
     // make an RR, get .id and .d from y
     y' := y.(c := 10);
@@ -105,9 +117,38 @@ method TroubleKlef(k: Klef) returns (k': Klef)
   ensures k'.C3?
 {
   if
-  case k.C1? || k.C3? =>
+  case k.C3? =>
     k' := k.(0 := 100, c3 := 200);  // makes a C3
     assert k' == C3(k.3, 100, k.1, 200);
   case true =>
-    k' := k.(0 := 100, c3 := 200);  // error (x2): k might not have .1 and .3
+    k' := k.(0 := 100, c3 := 200);  // error: k should have been constructed by C3
+}
+
+datatype Many =
+  | Ma0(x: int)
+  | Ma1(u: int, fj: int)
+  | Ma2(x: int, y: int)
+  | Ma3(x: int, z: int)
+  | Ma4(x: int, u: int)
+  | Ma5(x: int, y: int)
+
+method TestMany(m: Many) returns (r: Many)
+{
+  if
+  case true =>
+    r := m.(x := 3, y := 4);  // error: m is not known to be Ma2 or Ma5
+  case m.Ma2? || m.Ma5? =>
+    r := m.(x := 3, y := 4);  // error: m is not known to be Ma2 or Ma5
+    assert r.x == 3;
+    assert r.y == 4;
+    assert r.Ma2? || r.Ma5?;
+    assert r.Ma2?;  // error: it could also be Ma5
+  case m.Ma4? =>
+    r := m.(u := 8);
+    assert m.Ma4?;
+    assert r.x == m.x;
+  case !m.Ma1? =>
+    r := m.(x := 5);
+    assert !r.Ma1?;
+    assert m.Ma4? ==> r.Ma4?;
 }
