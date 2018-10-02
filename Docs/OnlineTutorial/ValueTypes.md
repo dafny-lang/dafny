@@ -578,13 +578,13 @@ map and `key` is a key. So we could write:
 
 ``` {.editonly}
 method test() {
-  var m := map[4 := 5, 5 := 6]
+  var m := map[4 := 5, 5 := 6];
   assert m[4] == 5;
 }
 ```
 
 ```
-  var m := map[4 := 5, 5 := 6]
+  var m := map[4 := 5, 5 := 6];
   assert m[4] == 5;
 ```
 
