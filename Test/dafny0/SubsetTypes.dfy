@@ -309,3 +309,61 @@ module AssignmentsFromNewAllocation {
     }
   }
 }
+
+module RegressionsSubsetElementTypes {
+  type byte = x | 0 <= x < 256
+
+  datatype Dt =
+    | One(byte)
+    | Many(seq<byte>)
+    | Sany(set<byte>)
+    | Bany(multiset<byte>)
+    | Pany(map<byte,byte>)
+
+  method M0() returns (dt: Dt)
+  {
+    if
+    case true =>  dt := One(500);  // error
+    case true =>  dt := Many([500]);  // error
+    case true =>  dt := Sany({500});  // error
+    case true =>  dt := Bany(multiset{500});  // error
+  }
+  method M1() returns (dt: Dt)
+  {
+    if
+    case true =>  dt := Pany(map[500 := 20]);  // error
+    case true =>  dt := Pany(map[20 := 500]);  // error
+  }
+  method M2(x: int, s: seq<int>, t: set<int>, u: multiset<int>, m: map<int,int>) returns (dt: Dt)
+  {
+    if
+    case true =>  dt := One(x);  // error
+    case true =>  dt := Many(s);  // error
+    case true =>  dt := Sany(t);  // error
+    case true =>  dt := Bany(u);  // error
+    case true =>  dt := Pany(m);  // error
+  }
+  method M3(s: seq<int>, t: set<int>, u: multiset<int>, m: map<int,int>) returns (dt: Dt)
+  {
+    if
+    case true =>
+    case forall i :: 0 <= i < |s| ==> 0 <= s[i] < 256 =>
+      dt := Many(s);
+    case forall x :: x in t ==> 0 <= x < 256 =>
+      dt := Sany(t);
+    case forall x :: x in u ==> 0 <= x < 256 =>
+      dt := Bany(u);
+    case forall x :: x in m.Keys ==> 0 <= x < 256 && 0 <= m[x] < 256 =>
+      dt := Pany(m);
+  }
+
+  method M4(dm: Dt) returns (x: int, s: seq<int>, t: set<int>, u: multiset<int>, m: map<int,int>)
+  {
+    match dm
+    case One(a) =>  x := a;
+    case Many(b) =>  s := b;
+    case Sany(c) =>  t := c;
+    case Bany(d) =>  u := d;
+    case Pany(e) =>  m := e;
+  }
+}

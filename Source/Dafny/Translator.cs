@@ -6594,14 +6594,22 @@ namespace Microsoft.Dafny {
         }
       } else if (expr is DisplayExpression) {
         DisplayExpression e = (DisplayExpression)expr;
+        Contract.Assert(e.Type is CollectionType);
+        var elementType = ((CollectionType)e.Type).Arg;
         foreach (Expression el in e.Elements) {
           CheckWellformed(el, options, locals, builder, etran);
+          CheckSubrange(el.tok, etran.TrExpr(el), el.Type, elementType, builder);
         }
       } else if (expr is MapDisplayExpr) {
         MapDisplayExpr e = (MapDisplayExpr)expr;
+        Contract.Assert(e.Type is MapType);
+        var keyType = ((MapType)e.Type).Domain;
+        var valType = ((MapType)e.Type).Range;
         foreach (ExpressionPair p in e.Elements) {
           CheckWellformed(p.A, options, locals, builder, etran);
+          CheckSubrange(p.A.tok, etran.TrExpr(p.A), p.A.Type, keyType, builder);
           CheckWellformed(p.B, options, locals, builder, etran);
+          CheckSubrange(p.B.tok, etran.TrExpr(p.B), p.B.Type, valType, builder);
         }
       } else if (expr is MemberSelectExpr) {
         MemberSelectExpr e = (MemberSelectExpr)expr;

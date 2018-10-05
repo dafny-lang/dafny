@@ -268,5 +268,49 @@ SubsetTypes.dfy(308,11): Error: value does not satisfy the subset constraints of
 Execution trace:
     (0,0): anon0
     (0,0): anon18_Then
+SubsetTypes.dfy(326,28): Error: value does not satisfy the subset constraints of 'byte'
+Execution trace:
+    (0,0): anon0
+    (0,0): anon6_Then
+SubsetTypes.dfy(327,30): Error: value does not satisfy the subset constraints of 'byte'
+Execution trace:
+    (0,0): anon0
+    (0,0): anon7_Then
+SubsetTypes.dfy(328,30): Error: value does not satisfy the subset constraints of 'byte'
+Execution trace:
+    (0,0): anon0
+    (0,0): anon8_Then
+SubsetTypes.dfy(329,38): Error: value does not satisfy the subset constraints of 'byte'
+Execution trace:
+    (0,0): anon0
+    (0,0): anon9_Then
+SubsetTypes.dfy(334,33): Error: value does not satisfy the subset constraints of 'byte'
+Execution trace:
+    (0,0): anon0
+    (0,0): anon4_Then
+SubsetTypes.dfy(335,39): Error: value does not satisfy the subset constraints of 'byte'
+Execution trace:
+    (0,0): anon0
+    (0,0): anon5_Then
+SubsetTypes.dfy(340,28): Error: value does not satisfy the subset constraints of 'byte'
+Execution trace:
+    (0,0): anon0
+    (0,0): anon7_Then
+SubsetTypes.dfy(341,29): Error: value does not satisfy the subset constraints of 'seq<byte>'
+Execution trace:
+    (0,0): anon0
+    (0,0): anon8_Then
+SubsetTypes.dfy(342,29): Error: value does not satisfy the subset constraints of 'set<byte>'
+Execution trace:
+    (0,0): anon0
+    (0,0): anon9_Then
+SubsetTypes.dfy(343,29): Error: value does not satisfy the subset constraints of 'multiset<byte>'
+Execution trace:
+    (0,0): anon0
+    (0,0): anon10_Then
+SubsetTypes.dfy(344,29): Error: value does not satisfy the subset constraints of 'map<byte, byte>'
+Execution trace:
+    (0,0): anon0
+    (0,0): anon11_Then
 
-Dafny program verifier finished with 3 verified, 70 errors
+Dafny program verifier finished with 5 verified, 81 errors
