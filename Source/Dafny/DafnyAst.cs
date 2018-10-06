@@ -6067,10 +6067,19 @@ namespace Microsoft.Dafny {
       }
       return uniqueId;
     }
-    public Label(IToken tok, string label) {
+    public Label(IToken tok, string/*?*/ label) {
       Contract.Requires(tok != null);
       Tok = tok;
       Name = label;
+    }
+  }
+
+  public class AssertLabel : Label
+  {
+    public AssertLabel(IToken tok, string label)
+      : base(tok, label) {
+      Contract.Requires(tok != null);
+      Contract.Requires(label != null);
     }
   }
 
@@ -6107,12 +6116,14 @@ namespace Microsoft.Dafny {
 
   public class AssertStmt : PredicateStmt {
     public readonly BlockStmt Proof;
-    public AssertStmt(IToken tok, IToken endTok, Expression expr, BlockStmt/*?*/ proof, Attributes attrs)
+    public readonly AssertLabel Label;
+    public AssertStmt(IToken tok, IToken endTok, Expression expr, BlockStmt/*?*/ proof, AssertLabel/*?*/ label, Attributes attrs)
       : base(tok, endTok, expr, attrs) {
       Contract.Requires(tok != null);
       Contract.Requires(endTok != null);
       Contract.Requires(expr != null);
       Proof = proof;
+      Label = label;
     }
     public override IEnumerable<Statement> SubStatements {
       get {
@@ -10518,6 +10529,7 @@ namespace Microsoft.Dafny {
   public class MaybeFreeExpression {
     public readonly Expression E;
     public readonly bool IsFree;
+    public readonly AssertLabel/*?*/ Label;
 
     [ContractInvariantMethod]
     void ObjectInvariant() {
@@ -10554,6 +10566,14 @@ namespace Microsoft.Dafny {
       Contract.Requires(e != null);
       E = e;
       IsFree = isFree;
+      Attributes = attrs;
+    }
+
+    public MaybeFreeExpression(Expression e, bool isFree, AssertLabel/*?*/ label, Attributes attrs) {
+      Contract.Requires(e != null);
+      E = e;
+      IsFree = isFree;
+      Label = label;
       Attributes = attrs;
     }
 

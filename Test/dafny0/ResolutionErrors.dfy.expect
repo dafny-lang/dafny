@@ -33,9 +33,9 @@ ResolutionErrors.dfy(244,29): Error: ghost-context break statement is not allowe
 ResolutionErrors.dfy(267,14): Error: ghost-context break statement is not allowed to break out of non-ghost loop
 ResolutionErrors.dfy(281,14): Error: ghost-context break statement is not allowed to break out of non-ghost loop
 ResolutionErrors.dfy(286,10): Error: return statement is not allowed in this context (because it is guarded by a specification-only expression)
-ResolutionErrors.dfy(306,6): Error: label shadows an enclosing label
-ResolutionErrors.dfy(311,4): Error: duplicate label
-ResolutionErrors.dfy(313,4): Error: label shadows a dominating label
+ResolutionErrors.dfy(306,12): Error: label shadows an enclosing label
+ResolutionErrors.dfy(311,10): Error: duplicate label
+ResolutionErrors.dfy(313,10): Error: label shadows a dominating label
 ResolutionErrors.dfy(337,6): Error: when allocating an object of type 'ClassWithConstructor', one of its constructor methods must be called
 ResolutionErrors.dfy(338,6): Error: when allocating an object of type 'ClassWithConstructor', one of its constructor methods must be called
 ResolutionErrors.dfy(340,11): Error: a constructor is allowed to be called only when an object is being allocated
@@ -408,8 +408,8 @@ ResolutionErrors.dfy(2602,19): Error: no label 'WonderfulLabel' in scope at this
 ResolutionErrors.dfy(2609,13): Error: no label 'Treasure' in scope at this time
 ResolutionErrors.dfy(2610,13): Error: no label 'WonderfulLabel' in scope at this time
 ResolutionErrors.dfy(2519,11): Error: no label 'L' in scope at this time
-ResolutionErrors.dfy(2522,4): Error: label shadows a dominating label
-ResolutionErrors.dfy(2530,4): Error: label shadows a dominating label
+ResolutionErrors.dfy(2522,10): Error: label shadows a dominating label
+ResolutionErrors.dfy(2530,10): Error: label shadows a dominating label
 ResolutionErrors.dfy(2637,27): Error: type parameter (G) passed to method GimmieOne must support zero initialization (got Yt<Odd>)
 ResolutionErrors.dfy(2638,26): Error: type parameter (G) passed to method GimmieOne must support zero initialization (got Yt<GW>)
 ResolutionErrors.dfy(2651,50): Error: type of the receiver is not fully determined at this program point

@@ -252,7 +252,7 @@ namespace Microsoft.Dafny
     }
 
     public MaybeFreeExpression CloneMayBeFreeExpr(MaybeFreeExpression expr) {
-      var mfe = new MaybeFreeExpression(CloneExpr(expr.E), expr.IsFree);
+      var mfe = new MaybeFreeExpression(CloneExpr(expr.E), expr.IsFree, expr.Label == null ? null : new AssertLabel(Tok(expr.Label.Tok), expr.Label.Name), CloneAttributes(expr.Attributes));
       mfe.Attributes = CloneAttributes(expr.Attributes);
       return mfe;
     }
@@ -264,7 +264,7 @@ namespace Microsoft.Dafny
         var e = (LiteralExpr)expr;
         if (e is StaticReceiverExpr) {
           var ee = (StaticReceiverExpr)e;
-          return new StaticReceiverExpr(e.tok, CloneType(ee.UnresolvedType), ee.IsImplicit);
+          return new StaticReceiverExpr(Tok(e.tok), CloneType(ee.UnresolvedType), ee.IsImplicit);
         } else if (e.Value == null) {          
           return new LiteralExpr(Tok(e.tok));
         } else if (e.Value is bool) {
@@ -538,7 +538,7 @@ namespace Microsoft.Dafny
       Statement r;
       if (stmt is AssertStmt) {
         var s = (AssertStmt)stmt;
-        r = new AssertStmt(Tok(s.Tok), Tok(s.EndTok), CloneExpr(s.Expr), CloneBlockStmt(s.Proof), null);
+        r = new AssertStmt(Tok(s.Tok), Tok(s.EndTok), CloneExpr(s.Expr), CloneBlockStmt(s.Proof), s.Label == null ? null : new AssertLabel(Tok(s.Label.Tok), s.Label.Name), null);
 
       } else if (stmt is AssumeStmt) {
         var s = (AssumeStmt)stmt;

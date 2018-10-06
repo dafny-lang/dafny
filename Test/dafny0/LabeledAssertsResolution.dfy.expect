@@ -1,0 +1,9 @@
+LabeledAssertsResolution.dfy(51,9): Error: assert label shadows a dominating label
+LabeledAssertsResolution.dfy(53,9): Error: assert label shadows a dominating label
+LabeledAssertsResolution.dfy(8,11): Error: assert label shadows a dominating label
+LabeledAssertsResolution.dfy(18,10): Error: label shadows a dominating label
+LabeledAssertsResolution.dfy(19,10): Error: label shadows a dominating label
+LabeledAssertsResolution.dfy(25,24): Error: assert label shadows a dominating label
+LabeledAssertsResolution.dfy(27,11): Error: assert label shadows a dominating label
+LabeledAssertsResolution.dfy(33,22): Error: assert label shadows a dominating label
+8 resolution/type errors detected in LabeledAssertsResolution.dfy

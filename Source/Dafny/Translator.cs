@@ -2303,7 +2303,9 @@ namespace Microsoft.Dafny {
         var comment = "user-defined preconditions";
         foreach (var p in iter.Requires) {
           string errorMessage = CustomErrorMessage(p.Attributes);
-          if (p.IsFree && !DafnyOptions.O.DisallowSoundnessCheating) {
+          if (p.Label != null && kind == MethodTranslationKind.Implementation) {
+            // don't include this precondition here
+          } else if (p.IsFree && !DafnyOptions.O.DisallowSoundnessCheating) {
             req.Add(Requires(p.E.tok, true, etran.TrExpr(p.E), errorMessage, comment));
             comment = null;
           } else {
@@ -2510,7 +2512,11 @@ namespace Microsoft.Dafny {
       // add locals for the yield-history variables and the extra variables
       // Assume the precondition and postconditions of the iterator constructor method
       foreach (var p in iter.Member_Init.Req) {
-        builder.Add(TrAssumeCmd(p.E.tok, etran.TrExpr(p.E)));
+        if (p.Label != null) {
+          // don't include this precondition here
+        } else {
+          builder.Add(TrAssumeCmd(p.E.tok, etran.TrExpr(p.E)));
+        }
       }
       foreach (var p in iter.Member_Init.Ens) {
         // these postconditions are two-state predicates, but that's okay, because we haven't changed anything yet
@@ -8756,7 +8762,9 @@ namespace Microsoft.Dafny {
         var comment = "user-defined preconditions";
         foreach (var p in m.Req) {
           string errorMessage = CustomErrorMessage(p.Attributes);
-          if (p.IsFree && !DafnyOptions.O.DisallowSoundnessCheating) {
+          if (p.Label != null && kind == MethodTranslationKind.Implementation) {
+            // don't include this precondition here
+          } else if (p.IsFree && !DafnyOptions.O.DisallowSoundnessCheating) {
             req.Add(Requires(p.E.tok, true, etran.TrExpr(p.E), errorMessage, comment));
             comment = null;
           } else {
@@ -9415,10 +9423,14 @@ namespace Microsoft.Dafny {
             enclosingToken = stmt.Tok;
           }
           BoogieStmtListBuilder proofBuilder = null;
-          if (stmt is AssertStmt && ((AssertStmt)stmt).Proof != null) {
+          var assertStmt = stmt as AssertStmt;
+          if (assertStmt != null && assertStmt.Proof != null) {
             proofBuilder = new BoogieStmtListBuilder(this);
             AddComment(proofBuilder, stmt, "assert statement proof");
             TrStmt(((AssertStmt)stmt).Proof, proofBuilder, locals, etran);
+          } else if (assertStmt != null && assertStmt.Label != null) {
+            proofBuilder = new BoogieStmtListBuilder(this);
+            AddComment(proofBuilder, stmt, "assert statement proof");
           }
           bool splitHappened;
           var ss = TrSplitExpr(s.Expr, etran, true, out splitHappened);
@@ -9438,7 +9450,20 @@ namespace Microsoft.Dafny {
           }
           stmtContext = StmtType.NONE; // done with translating assert stmt
           if (splitHappened || proofBuilder != null) {
-            if (!defineFuel) {
+            if (assertStmt != null && assertStmt.Label != null) {
+              // make copies of the variables used in the assertion
+              var name = "$Heap_at_" + assertStmt.Label.AssignUniqueId(CurrentIdGenerator);
+              var heapAt = new Bpl.LocalVariable(stmt.Tok, new Bpl.TypedIdent(stmt.Tok, name, predef.HeapType));
+              locals.Add(heapAt);
+              b.Add(Bpl.Cmd.SimpleAssign(stmt.Tok, new Bpl.IdentifierExpr(stmt.Tok, heapAt), etran.HeapExpr));
+              foreach (var v in ComputeFreeVariables(assertStmt.Expr)) {
+                if (v is LocalVariable) {
+                  var vcopy = new Bpl.LocalVariable(stmt.Tok, new Bpl.TypedIdent(stmt.Tok, name + "#" + v.UniqueName, TrType(v.Type)));
+                  locals.Add(vcopy);
+                  b.Add(Bpl.Cmd.SimpleAssign(stmt.Tok, new Bpl.IdentifierExpr(stmt.Tok, vcopy), TrVar(stmt.Tok, v)));
+                }
+              }
+            } else if (!defineFuel) {
               // Adding the assume stmt, resetting the stmtContext
               stmtContext = StmtType.ASSUME;
               adjustFuelForExists = true;
@@ -17661,7 +17686,7 @@ namespace Microsoft.Dafny {
           return null;
         } else if (stmt is AssertStmt) {
           var s = (AssertStmt)stmt;
-          r = new AssertStmt(s.Tok, s.EndTok, Substitute(s.Expr), SubstBlockStmt(s.Proof), SubstAttributes(s.Attributes));
+          r = new AssertStmt(s.Tok, s.EndTok, Substitute(s.Expr), SubstBlockStmt(s.Proof), s.Label, SubstAttributes(s.Attributes));
         } else if (stmt is AssumeStmt) {
           var s = (AssumeStmt)stmt;
           r = new AssumeStmt(s.Tok, s.EndTok, Substitute(s.Expr), SubstAttributes(s.Attributes));

@@ -1,0 +1,33 @@
+LabeledAsserts.dfy(17,11): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+LabeledAsserts.dfy(19,18): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon5_Then
+LabeledAsserts.dfy(20,18): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    LabeledAsserts.dfy(19,3): anon5_Else
+    (0,0): anon6_Then
+LabeledAsserts.dfy(21,15): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    LabeledAsserts.dfy(19,3): anon5_Else
+    LabeledAsserts.dfy(20,3): anon6_Else
+LabeledAsserts.dfy(24,11): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    LabeledAsserts.dfy(19,3): anon5_Else
+    LabeledAsserts.dfy(20,3): anon6_Else
+LabeledAsserts.dfy(32,11): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+LabeledAsserts.dfy(42,18): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+LabeledAsserts.dfy(43,13): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+
+Dafny program verifier finished with 4 verified, 8 errors

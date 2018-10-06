@@ -993,18 +993,19 @@ namespace Microsoft.Dafny {
       Contract.Requires(kind != null);
       Contract.Requires(ee != null);
       if (printMode == DafnyOptions.PrintModes.NoGhost) { return; }
-      foreach (MaybeFreeExpression e in ee)
-      {
+      foreach (MaybeFreeExpression e in ee) {
         Contract.Assert(e != null);
         Indent(indent);
         wr.Write("{0}{1}", e.IsFree ? "free " : "", kind);
 
-        if (e.HasAttributes())
-        {
+        if (e.HasAttributes()) {
           PrintAttributes(e.Attributes);
         }
 
         wr.Write(" ");
+        if (e.Label != null) {
+          wr.Write("{0}: ", e.Label.Name);
+        }
         PrintExpression(e.E, true);
         if (newLine) {
           wr.WriteLine();
@@ -1086,6 +1087,9 @@ namespace Microsoft.Dafny {
           PrintAttributes(stmt.Attributes);
         }
         wr.Write(" ");
+        if (assertStmt != null && assertStmt.Label != null) {
+          wr.Write("{0}: ", assertStmt.Label.Name);
+        }
         PrintExpression(expr, true);
         if (assertStmt != null && assertStmt.Proof != null) {
           wr.Write(" by ");

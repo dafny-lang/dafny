@@ -8124,6 +8124,16 @@ namespace Microsoft.Dafny
           }
 
           dominatingStatementLabels.PushMarker();
+          foreach (var req in m.Req) {
+            if (req.Label != null) {
+              if (dominatingStatementLabels.Find(req.Label.Name) != null) {
+                reporter.Error(MessageSource.Resolver, req.Label.Tok, "assert label shadows a dominating label");
+              } else {
+                var rr = dominatingStatementLabels.Push(req.Label.Name, req.Label);
+                Contract.Assert(rr == Scope<Label>.PushResult.Success);  // since we just checked for duplicates, we expect the Push to succeed
+              }
+            }
+          }
           ResolveBlockStatement(m.Body, m);
           dominatingStatementLabels.PopMarker();
           SolveAllTypeConstraints();
@@ -8257,6 +8267,16 @@ namespace Microsoft.Dafny
       // Resolve body
       if (iter.Body != null) {
         dominatingStatementLabels.PushMarker();
+        foreach (var req in iter.Requires) {
+          if (req.Label != null) {
+            if (dominatingStatementLabels.Find(req.Label.Name) != null) {
+              reporter.Error(MessageSource.Resolver, req.Label.Tok, "assert label shadows a dominating label");
+            } else {
+              var rr = dominatingStatementLabels.Push(req.Label.Name, req.Label);
+              Contract.Assert(rr == Scope<Label>.PushResult.Success);  // since we just checked for duplicates, we expect the Push to succeed
+            }
+          }
+        }
         ResolveBlockStatement(iter.Body, iter);
         dominatingStatementLabels.PopMarker();
         SolveAllTypeConstraints();
@@ -8749,10 +8769,18 @@ namespace Microsoft.Dafny
       }
       if (stmt is PredicateStmt) {
         PredicateStmt s = (PredicateStmt)stmt;
+        var assertStmt = stmt as AssertStmt;
+        if (assertStmt != null && assertStmt.Label != null) {
+          if (dominatingStatementLabels.Find(assertStmt.Label.Name) != null) {
+            reporter.Error(MessageSource.Resolver, assertStmt.Label.Tok, "assert label shadows a dominating label");
+          } else {
+            var rr = dominatingStatementLabels.Push(assertStmt.Label.Name, assertStmt.Label);
+            Contract.Assert(rr == Scope<Label>.PushResult.Success);  // since we just checked for duplicates, we expect the Push to succeed
+          }
+        }
         ResolveExpression(s.Expr, new ResolveOpts(codeContext, true));
         Contract.Assert(s.Expr.Type != null);  // follows from postcondition of ResolveExpression
         ConstrainTypeExprBool(s.Expr, "condition is expected to be of type bool, but is {0}");
-        var assertStmt = stmt as AssertStmt;
         if (assertStmt != null && assertStmt.Proof != null) {
           ResolveStatement(assertStmt.Proof, codeContext);
         }

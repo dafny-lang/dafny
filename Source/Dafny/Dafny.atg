@@ -217,6 +217,15 @@ bool IsAttribute() {
   return la.kind == _lbrace && x.kind == _colon;
 }
 
+bool IsLabel(bool allowLabel) {
+  if (!allowLabel) {
+    return false;
+  }
+  scanner.ResetPeek();
+  IToken x = scanner.Peek();
+  return (la.kind == _ident || la.kind == _digits) && x.kind == _colon;
+}
+
 bool IsAlternative() {
   IToken x = scanner.Peek();
   return (la.kind == _lbrace && x.kind == _case)
@@ -1605,6 +1614,7 @@ MethodSpec<.List<MaybeFreeExpression> req, List<FrameExpression> mod, List<Maybe
      Contract.Requires(cce.NonNullElements(ens));
      Contract.Requires(cce.NonNullElements(decreases));
      Expression e;  FrameExpression fe;  bool isFree = false; Attributes ensAttrs = null; Attributes reqAttrs = null;
+     IToken lbl = null;
   .)
   SYNC
   ( "modifies" { IF(IsAttribute()) Attribute<ref modAttrs> }
@@ -1618,7 +1628,10 @@ MethodSpec<.List<MaybeFreeExpression> req, List<FrameExpression> mod, List<Maybe
     ]
     ( "requires" 
 		  { IF(IsAttribute()) Attribute<ref reqAttrs> }
-		  Expression<out e, false, false> OldSemi                (. req.Add(new MaybeFreeExpression(e, isFree, reqAttrs)); .)
+      [ IF(IsLabel(true))
+        LabelIdent<out lbl> ":"
+      ]
+		  Expression<out e, false, false> OldSemi                (. req.Add(new MaybeFreeExpression(e, isFree, lbl == null ? null : new AssertLabel(lbl, lbl.val), reqAttrs)); .)
     | "ensures"
       { IF(IsAttribute()) Attribute<ref ensAttrs> }
       Expression<out e, false, false> OldSemi                (. ens.Add(new MaybeFreeExpression(e, isFree, ensAttrs)); .)
@@ -1631,6 +1644,7 @@ IteratorSpec<.List<FrameExpression/*!*/>/*!*/ reads, List<FrameExpression/*!*/>/
               List<MaybeFreeExpression/*!*/>/*!*/ yieldReq, List<MaybeFreeExpression/*!*/>/*!*/ yieldEns,
               ref Attributes readsAttrs, ref Attributes modAttrs, ref Attributes decrAttrs.>
 = (. Expression/*!*/ e; FrameExpression/*!*/ fe; bool isFree = false; bool isYield = false; Attributes ensAttrs = null;
+     IToken lbl = null;
   .)
   SYNC
   ( "reads"    { IF(IsAttribute()) Attribute<ref readsAttrs> }
@@ -1649,10 +1663,15 @@ IteratorSpec<.List<FrameExpression/*!*/>/*!*/ reads, List<FrameExpression/*!*/>/
     ]
     [ "yield"                                                (. isYield = true; .)
     ]
-    ( "requires" Expression<out e, false, false> OldSemi     (. if (isYield) {
-                                                                  yieldReq.Add(new MaybeFreeExpression(e, isFree));
+    ( "requires"
+      [ IF(IsLabel(!isYield))
+        LabelIdent<out lbl> ":"
+      ]
+      Expression<out e, false, false> OldSemi                (. AssertLabel al = lbl == null ? null : new AssertLabel(lbl, lbl.val);
+                                                                if (isYield) {
+                                                                  yieldReq.Add(new MaybeFreeExpression(e, isFree, al, null));
                                                                 } else {
-                                                                  req.Add(new MaybeFreeExpression(e, isFree));
+                                                                  req.Add(new MaybeFreeExpression(e, isFree, al, null));
                                                                 }
                                                              .)
     | "ensures" { IF(IsAttribute()) Attribute<ref ensAttrs> }
@@ -2119,7 +2138,7 @@ OneStmt<out Statement/*!*/ s>
   .)
   SYNC
   ( BlockStmt<out bs, out bodyStart, out bodyEnd>  (. s = bs; .)
-  | AssertStmt<out s>
+  | AssertStmt<out s, false>
   | AssumeStmt<out s>
   | PrintStmt<out s>
   | RevealStmt<out s>
@@ -2131,9 +2150,9 @@ OneStmt<out Statement/*!*/ s>
   | ForallStmt<out s>
   | CalcStmt<out s>
   | ModifyStmt<out s>
-  | "label"                            (. x = t; .)
+  | "label"
     LabelIdent<out id> ":"
-    OneStmt<out s>                     (. s.Labels = new LList<Label>(new Label(x, id.val), s.Labels); .)
+    OneStmt<out s>                     (. s.Labels = new LList<Label>(new Label(id, id.val), s.Labels); .)
   | "break"                            (. x = t; breakCount = 1; label = null; .)
     ( LabelIdent<out id>               (. label = id.val; .)
     | { "break"                        (. breakCount++; .)
@@ -2617,16 +2636,20 @@ CaseStatement<out MatchCaseStmt/*!*/ c>
   (. c = new MatchCaseStmt(x, name, arguments, body); .)
   .
 /*------------------------------------------------------------------------*/
-AssertStmt<out Statement/*!*/ s>
+AssertStmt<out Statement/*!*/ s, bool inExprContext>
 = (. Contract.Ensures(Contract.ValueAtReturn(out s) != null); IToken/*!*/ x;
      Expression e = dummyExpr; Attributes attrs = null;
      IToken dotdotdot = null;
      BlockStmt proof = null;
      IToken proofStart, proofEnd;
+     IToken lbl = null;
   .)
   "assert"                                     (. x = t; .)
   { IF(IsAttribute()) Attribute<ref attrs> }
-  ( Expression<out e, false, true>
+  ( [ IF(IsLabel(!inExprContext))
+      LabelIdent<out lbl> ":"
+    ]
+    Expression<out e, false, true>
     ( "by"
       BlockStmt<out proof, out proofStart, out proofEnd>
     | ";"
@@ -2635,9 +2658,9 @@ AssertStmt<out Statement/*!*/ s>
     ";"
   )
   (. if (dotdotdot != null) {
-       s = new SkeletonStatement(new AssertStmt(x, t, new LiteralExpr(x, true), null, attrs), dotdotdot, null);
+       s = new SkeletonStatement(new AssertStmt(x, t, new LiteralExpr(x, true), null, null, attrs), dotdotdot, null);
      } else {
-       s = new AssertStmt(x, t, e, proof, attrs);
+       s = new AssertStmt(x, t, e, proof, lbl == null ? null : new AssertLabel(lbl, lbl.val), attrs);
      }
   .)
   .
@@ -3454,7 +3477,7 @@ EndlessExpression<out Expression e, bool allowSemi, bool allowLambda, bool allow
 
 StmtInExpr<out Statement s>
 = (. s = dummyStmt; .)
-  ( AssertStmt<out s>
+  ( AssertStmt<out s, true>
   | AssumeStmt<out s>
   | CalcStmt<out s>
   )
