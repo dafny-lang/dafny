@@ -3908,16 +3908,22 @@ namespace Microsoft.Dafny {
       }
     }
 
-    Bpl.Expr InSeqRange(IToken tok, Bpl.Expr index, Bpl.Expr seq, bool isSequence, Bpl.Expr lowerBound, bool includeUpperBound) {
+    Bpl.Expr InSeqRange(IToken tok, Bpl.Expr index, Type indexType, Bpl.Expr seq, bool isSequence, Bpl.Expr lowerBound, bool includeUpperBound) {
       Contract.Requires(tok != null);
       Contract.Requires(index != null);
+      Contract.Requires(indexType != null);
       Contract.Requires(seq != null);
       Contract.Ensures(Contract.Result<Bpl.Expr>() != null);
 
-      if (lowerBound == null) {
-        lowerBound = Bpl.Expr.Literal(0);
+      if (indexType.IsBitVectorType) {
+        index = ConvertExpression(tok, index, indexType, Type.Int);
       }
-      Bpl.Expr lower = Bpl.Expr.Le(lowerBound, index);
+      Bpl.Expr lower;
+      if (indexType.IsBitVectorType && lowerBound == null) {
+        lower = Bpl.Expr.True;  // bitvectors are always non-negative
+      } else {
+        lower = Bpl.Expr.Le(lowerBound ?? Bpl.Expr.Literal(0), index);
+      }
       Bpl.Expr length = isSequence ?
         FunctionCall(tok, BuiltinFunction.SeqLength, null, seq) :
         ArrayLength(tok, seq, 1, 0);
@@ -3927,7 +3933,7 @@ namespace Microsoft.Dafny {
       } else {
         upper = Bpl.Expr.Lt(index, length);
       }
-      return Bpl.Expr.And(lower, upper);
+      return BplAnd(lower, upper);
     }
 
     ModuleDefinition currentModule = null;  // the module whose members are currently being translated
@@ -5405,7 +5411,7 @@ namespace Microsoft.Dafny {
           // (exists i: int :: 0 <= i && i < Seq#Length(e) && Seq#Index(e,i) == Box(o))
           Bpl.Variable iVar = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, "$i", Bpl.Type.Int));
           Bpl.Expr i = new Bpl.IdentifierExpr(tok, iVar);
-          Bpl.Expr iBounds = InSeqRange(tok, i, etran.TrExpr(e), true, null, false);
+          Bpl.Expr iBounds = InSeqRange(tok, i, Type.Int, etran.TrExpr(e), true, null, false);
           Bpl.Expr XsubI = FunctionCall(tok, BuiltinFunction.SeqIndex, predef.BoxType, etran.TrExpr(e), i);
           // TODO: the equality in the next line should be changed to one that understands extensionality
           //TRIG (exists $i: int :: 0 <= $i && $i < Seq#Length(read($h0, this, _module.DoublyLinkedList.Nodes)) && Seq#Index(read($h0, this, _module.DoublyLinkedList.Nodes), $i) == $Box($o))
@@ -6674,11 +6680,17 @@ namespace Microsoft.Dafny {
           if (e.E0 != null) {
             e0 = etran.TrExpr(e.E0);
             CheckWellformed(e.E0, options, locals, builder, etran);
-            builder.Add(Assert(expr.tok, InSeqRange(expr.tok, e0, seq, isSequence, null, !e.SelectOne), e.SelectOne ? "index out of range" : "lower bound out of range", options.AssertKv));
+            builder.Add(Assert(expr.tok, InSeqRange(expr.tok, e0, e.E0.Type, seq, isSequence, null, !e.SelectOne), e.SelectOne ? "index out of range" : "lower bound out of range", options.AssertKv));
           }
           if (e.E1 != null) {
             CheckWellformed(e.E1, options, locals, builder, etran);
-            builder.Add(Assert(expr.tok, InSeqRange(expr.tok, etran.TrExpr(e.E1), seq, isSequence, e0, true), "upper bound " + (e.E0 == null ? "" : "below lower bound or ") + "above length of " + (isSequence ? "sequence" : "array"), options.AssertKv));
+            Bpl.Expr lowerBound;
+            if (e0 != null && e.E0.Type.IsBitVectorType) {
+              lowerBound = ConvertExpression(e.E0.tok, e0, e.E0.Type, Type.Int);
+            } else {
+              lowerBound = e0;
+            }
+            builder.Add(Assert(expr.tok, InSeqRange(expr.tok, etran.TrExpr(e.E1), e.E1.Type, seq, isSequence, lowerBound, true), "upper bound " + (e.E0 == null ? "" : "below lower bound or ") + "above length of " + (isSequence ? "sequence" : "array"), options.AssertKv));
           }
         }
         if (options.DoReadsChecks && eSeqType.IsArrayType) {
@@ -6733,7 +6745,7 @@ namespace Microsoft.Dafny {
           CheckWellformed(e.Index, options, locals, builder, etran);
           var eSeqType = e.Seq.Type.NormalizeExpand();
           if (eSeqType is SeqType) {
-            builder.Add(Assert(expr.tok, InSeqRange(expr.tok, index, seq, true, null, false), "index out of range", options.AssertKv));
+            builder.Add(Assert(expr.tok, InSeqRange(expr.tok, index, e.Index.Type, seq, true, null, false), "index out of range", options.AssertKv));
           } else if (eSeqType is MapType) {
             // updates to maps are always valid if the values are well formed
           } else if (eSeqType is MultiSetType) {
@@ -14019,7 +14031,13 @@ namespace Microsoft.Dafny {
           Bpl.Type elType = translator.TrType(elmtType);
           Bpl.Type dType = translator.TrType(domainType);
           Bpl.Expr e0 = e.E0 == null ? null : TrExpr(e.E0);
+          if (e0 != null && e.E0.Type.IsBitVectorType) {
+            e0 = translator.ConvertExpression(e.E0.tok, e0, e.E0.Type, Type.Int);
+          }
           Bpl.Expr e1 = e.E1 == null ? null : TrExpr(e.E1);
+          if (e1 != null && e.E1.Type.IsBitVectorType) {
+            e1 = translator.ConvertExpression(e.E1.tok, e1, e.E1.Type, Type.Int);
+          }
           if (e.SelectOne) {
             Contract.Assert(e1 == null);
             Bpl.Expr x;
@@ -14279,7 +14297,7 @@ namespace Microsoft.Dafny {
                 // generate:  (forall $i: int :: 0 <= $i && $i < Seq#Length(X) ==> Unbox(Seq#Index(X,$i)) != null && !old($Heap)[Unbox(Seq#Index(X,$i)),alloc])
                 Bpl.Variable iVar = new Bpl.BoundVariable(expr.tok, new Bpl.TypedIdent(expr.tok, "$i", Bpl.Type.Int));
                 Bpl.Expr i = new Bpl.IdentifierExpr(expr.tok, iVar);
-                Bpl.Expr iBounds = translator.InSeqRange(expr.tok, i, TrExpr(e.E), true, null, false);
+                Bpl.Expr iBounds = translator.InSeqRange(expr.tok, i, Type.Int, TrExpr(e.E), true, null, false);
                 Bpl.Expr XsubI = translator.FunctionCall(expr.tok, BuiltinFunction.SeqIndex, predef.RefType, TrExpr(e.E), i);
                 XsubI = translator.FunctionCall(expr.tok, BuiltinFunction.Unbox, predef.RefType, XsubI);
                 Bpl.Expr oNotFresh = Old.IsAlloced(expr.tok, XsubI);
