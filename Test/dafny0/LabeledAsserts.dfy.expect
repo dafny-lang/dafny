@@ -121,5 +121,8 @@ LabeledAsserts.dfy(252,6): Error: the calculation step between the previous line
 Execution trace:
     (0,0): anon0
     (0,0): anon17_Then
+LabeledAsserts.dfy(265,9): Error: assertion violation
+Execution trace:
+    (0,0): anon0
 
-Dafny program verifier finished with 10 verified, 25 errors
+Dafny program verifier finished with 11 verified, 26 errors

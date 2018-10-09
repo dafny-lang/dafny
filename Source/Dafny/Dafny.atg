@@ -2696,11 +2696,13 @@ PrintStmt<out Statement s>
 
 RevealStmt<out Statement s>
 = (. Contract.Ensures(Contract.ValueAtReturn(out s) != null);
-     IToken x;  Expression e;
+     IToken x; Expression e; var es = new List<Expression>();
   .)
   "reveal"                                      (. x = t; .)
-  Expression<out e, false, true>   
-  ";"                                          (. s = new RevealStmt(x, t, e); .)
+  Expression<out e, false, true>                (. es.Add(e); .)
+  { "," Expression<out e, false, true>          (. es.Add(e); .)
+  }
+  ";"                                           (. s = new RevealStmt(x, t, es); .)
   .
 
 ForallStmt<out Statement/*!*/ s>

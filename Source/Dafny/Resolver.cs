@@ -8797,26 +8797,28 @@ namespace Microsoft.Dafny
 
       } else if (stmt is RevealStmt) {
         var s = (RevealStmt)stmt;
-        var name = s.SingleName;
-        if (name != null) {
-          s.LabeledAssert = dominatingStatementLabels.Find(name) as AssertLabel;
-        }
-        if (s.LabeledAssert == null) {
-          var opts = new ResolveOpts(codeContext, false, true, false, false);
-          if (s.Expr is ApplySuffix) {
-            var e = (ApplySuffix)s.Expr;
-            var methodCallInfo = ResolveApplySuffix(e, opts, true);
-            if (methodCallInfo == null) {
-              reporter.Error(MessageSource.Resolver, s.Tok, "function {0} does not have the reveal lemma", e.Lhs);
-            } else {
-              var call = new CallStmt(methodCallInfo.Tok, s.EndTok, new List<Expression>(), methodCallInfo.Callee, methodCallInfo.Args);
-              s.ResolvedStatements.Add(call);
-            }
+        foreach (var expr in s.Exprs) {
+          var name = RevealStmt.SingleName(expr);
+          var labeledAssert = name == null ? null : dominatingStatementLabels.Find(name) as AssertLabel;
+          if (labeledAssert != null) {
+            s.LabeledAsserts.Add(labeledAssert);
           } else {
-            ResolveExpression(s.Expr, opts);
-          }
-          foreach (var a in s.ResolvedStatements) {
-            ResolveStatement(a, codeContext);
+            var opts = new ResolveOpts(codeContext, false, true, false, false);
+            if (expr is ApplySuffix) {
+              var e = (ApplySuffix)expr;
+              var methodCallInfo = ResolveApplySuffix(e, opts, true);
+              if (methodCallInfo == null) {
+                reporter.Error(MessageSource.Resolver, expr.tok, "function {0} does not have the reveal lemma", e.Lhs);
+              } else {
+                var call = new CallStmt(methodCallInfo.Tok, s.EndTok, new List<Expression>(), methodCallInfo.Callee, methodCallInfo.Args);
+                s.ResolvedStatements.Add(call);
+              }
+            } else {
+              ResolveExpression(expr, opts);
+            }
+            foreach (var a in s.ResolvedStatements) {
+              ResolveStatement(a, codeContext);
+            }
           }
         }
       } else if (stmt is BreakStmt) {

@@ -1107,11 +1107,16 @@ namespace Microsoft.Dafny {
       } else if (stmt is RevealStmt) {
         var s = (RevealStmt)stmt;
         wr.Write("reveal ");
-        if (s.SingleName != null) {
-          // this will do the printing correctly for labels (or label-lookalikes) like 00_023 (which by PrintExpression below would be printed as 23)
-          wr.Write(s.SingleName);
-        } else {
-          PrintExpression(s.Expr, true);
+        var sep = "";
+        foreach (var e in s.Exprs) {
+          wr.Write(sep);
+          sep = ", ";
+          if (RevealStmt.SingleName(e) != null) {
+            // this will do the printing correctly for labels (or label-lookalikes) like 00_023 (which by PrintExpression below would be printed as 23)
+            wr.Write(RevealStmt.SingleName(e));
+          } else {
+            PrintExpression(e, true);
+          }
         }
         wr.Write(";");
 

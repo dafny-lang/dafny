@@ -3090,13 +3090,19 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, st
 
 	void RevealStmt(out Statement s) {
 		Contract.Ensures(Contract.ValueAtReturn(out s) != null);
-		IToken x;  Expression e;
+		IToken x; Expression e; var es = new List<Expression>();
 		
 		Expect(88);
 		x = t; 
 		Expression(out e, false, true);
+		es.Add(e); 
+		while (la.kind == 26) {
+			Get();
+			Expression(out e, false, true);
+			es.Add(e); 
+		}
 		Expect(34);
-		s = new RevealStmt(x, t, e); 
+		s = new RevealStmt(x, t, es); 
 	}
 
 	void UpdateStmt(out Statement/*!*/ s) {

@@ -252,3 +252,15 @@ lemma Calc(x: int)
     x < 100;  // error: without a reveal in this step, it cannot be proved
   }
 }
+
+twostate lemma T3(c: C)
+  requires old(c.g) == 10
+  requires c.g == 20
+  requires A: old(c.h) == 100
+  requires B: c.h == 200
+{
+  reveal A, B;  // this can be a list
+  assert old(c.h) < 150;
+  assert 150 < c.h;
+  assert false;  // error: of course
+}

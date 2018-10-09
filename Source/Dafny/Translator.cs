@@ -9511,13 +9511,12 @@ namespace Microsoft.Dafny {
       } else if (stmt is RevealStmt) {
         AddComment(builder, stmt, "reveal statement");
         var s = (RevealStmt)stmt;
-        if (s.LabeledAssert != null) {
-          Contract.Assert(s.LabeledAssert.E != null);  // this should have been filled in by now
-          builder.Add(new Bpl.AssumeCmd(s.Tok, s.LabeledAssert.E));
-        } else {
-          foreach (var resolved in s.ResolvedStatements) {
-            TrStmt(resolved, builder, locals, etran);
-          }
+        foreach (var la in s.LabeledAsserts) {
+          Contract.Assert(la.E != null);  // this should have been filled in by now
+          builder.Add(new Bpl.AssumeCmd(s.Tok, la.E));
+        }
+        foreach (var resolved in s.ResolvedStatements) {
+          TrStmt(resolved, builder, locals, etran);
         }
 
       } else if (stmt is BreakStmt) {
@@ -17792,15 +17791,11 @@ namespace Microsoft.Dafny {
           r = rr;
         } else if (stmt is RevealStmt) {
           var s = (RevealStmt)stmt;
-          if (s.LabeledAssert != null) {
-            Contract.Assert(s.ResolvedStatements.Count == 0);
-            r = s;
-          } else {
-            // don't need to substitute s.Expr since it won't be used, only the s.ResolvedStatements are used.
-            var rr = new RevealStmt(s.Tok, s.EndTok, s.Expr);
-            rr.ResolvedStatements.AddRange(s.ResolvedStatements.ConvertAll(SubstStmt));
-            r = rr;
-          }
+          // don't need to substitute s.Expr since it won't be used, only the s.ResolvedStatements are used.
+          var rr = new RevealStmt(s.Tok, s.EndTok, s.Exprs);
+          rr.LabeledAsserts.AddRange(s.LabeledAsserts);
+          rr.ResolvedStatements.AddRange(s.ResolvedStatements.ConvertAll(SubstStmt));
+          r = rr;
         } else {
           Contract.Assert(false); throw new cce.UnreachableException();  // unexpected statement
         }

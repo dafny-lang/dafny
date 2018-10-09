@@ -6178,9 +6178,9 @@ namespace Microsoft.Dafny {
 
   public class RevealStmt : Statement
   {
-    public readonly Expression Expr;
-    public AssertLabel LabeledAssert;  // filled in during resolution to indicate that "Expr" denotes a labeled assertion
-    public readonly List<Statement> ResolvedStatements = new List<Statement>(); // contents filled in during resolution, if LabeledAssert does not apply
+    public readonly List<Expression> Exprs;
+    public readonly List<AssertLabel> LabeledAsserts = new List<AssertLabel>();  // contents filled in during resolution to indicate that "Expr" denotes a labeled assertion
+    public readonly List<Statement> ResolvedStatements = new List<Statement>(); // contents filled in during resolution
 
     public override IEnumerable<Statement> SubStatements {
       get { return ResolvedStatements; }
@@ -6188,24 +6188,24 @@ namespace Microsoft.Dafny {
 
     [ContractInvariantMethod]
     void ObjectInvariant() {
-      Contract.Invariant(Expr != null);
+      Contract.Invariant(Exprs != null);
+      Contract.Invariant(LabeledAsserts.Count <= Exprs.Count);
     }
 
-    public RevealStmt(IToken tok, IToken endTok, Expression expr)
+    public RevealStmt(IToken tok, IToken endTok, List<Expression> exprs)
       : base(tok, endTok) {
       Contract.Requires(tok != null);
       Contract.Requires(endTok != null);
-      Contract.Requires(expr != null);
-      this.Expr = expr;
+      Contract.Requires(exprs != null);
+      this.Exprs = exprs;
     }
 
-    public string SingleName {
-      get {
-        if (Expr is NameSegment || Expr is LiteralExpr) {
-          return Expr.tok.val;
-        } else {
-          return null;
-        }
+    public static string SingleName(Expression e) {
+      Contract.Requires(e != null);
+      if (e is NameSegment || e is LiteralExpr) {
+        return e.tok.val;
+      } else {
+        return null;
       }
     }
   }

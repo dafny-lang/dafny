@@ -550,7 +550,7 @@ namespace Microsoft.Dafny
 
       } else if (stmt is RevealStmt) {
         var s = (RevealStmt)stmt;
-        r = new RevealStmt(Tok(s.Tok), Tok(s.EndTok), CloneExpr(s.Expr));
+        r = new RevealStmt(Tok(s.Tok), Tok(s.EndTok), s.Exprs.ConvertAll(CloneExpr));
 
       } else if (stmt is BreakStmt) {
         var s = (BreakStmt)stmt;
