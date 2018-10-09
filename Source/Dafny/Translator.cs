@@ -2304,7 +2304,8 @@ namespace Microsoft.Dafny {
         foreach (var p in iter.Requires) {
           string errorMessage = CustomErrorMessage(p.Attributes);
           if (p.Label != null && kind == MethodTranslationKind.Implementation) {
-            // don't include this precondition here
+            // don't include this precondition here, but record it for later use
+            p.Label.E = etran.Old.TrExpr(p.E);
           } else if (p.IsFree && !DafnyOptions.O.DisallowSoundnessCheating) {
             req.Add(Requires(p.E.tok, true, etran.TrExpr(p.E), errorMessage, comment));
             comment = null;
@@ -2514,6 +2515,7 @@ namespace Microsoft.Dafny {
       foreach (var p in iter.Member_Init.Req) {
         if (p.Label != null) {
           // don't include this precondition here
+          Contract.Assert(p.Label.E != null);  // it should already have been recorded
         } else {
           builder.Add(TrAssumeCmd(p.E.tok, etran.TrExpr(p.E)));
         }
@@ -8763,7 +8765,8 @@ namespace Microsoft.Dafny {
         foreach (var p in m.Req) {
           string errorMessage = CustomErrorMessage(p.Attributes);
           if (p.Label != null && kind == MethodTranslationKind.Implementation) {
-            // don't include this precondition here
+            // don't include this precondition here, but record it for later use
+            p.Label.E = (m is TwoStateLemma ? ordinaryEtran : etran.Old).TrExpr(p.E);
           } else if (p.IsFree && !DafnyOptions.O.DisallowSoundnessCheating) {
             req.Add(Requires(p.E.tok, true, etran.TrExpr(p.E), errorMessage, comment));
             comment = null;
@@ -9455,14 +9458,23 @@ namespace Microsoft.Dafny {
               var name = "$Heap_at_" + assertStmt.Label.AssignUniqueId(CurrentIdGenerator);
               var heapAt = new Bpl.LocalVariable(stmt.Tok, new Bpl.TypedIdent(stmt.Tok, name, predef.HeapType));
               locals.Add(heapAt);
-              b.Add(Bpl.Cmd.SimpleAssign(stmt.Tok, new Bpl.IdentifierExpr(stmt.Tok, heapAt), etran.HeapExpr));
+              var h = new Bpl.IdentifierExpr(stmt.Tok, heapAt);
+              b.Add(Bpl.Cmd.SimpleAssign(stmt.Tok, h, etran.HeapExpr));
+              var substMap = new Dictionary<IVariable, Expression>();
               foreach (var v in ComputeFreeVariables(assertStmt.Expr)) {
                 if (v is LocalVariable) {
-                  var vcopy = new Bpl.LocalVariable(stmt.Tok, new Bpl.TypedIdent(stmt.Tok, name + "#" + v.UniqueName, TrType(v.Type)));
-                  locals.Add(vcopy);
-                  b.Add(Bpl.Cmd.SimpleAssign(stmt.Tok, new Bpl.IdentifierExpr(stmt.Tok, vcopy), TrVar(stmt.Tok, v)));
+                  var vcopy = new LocalVariable(stmt.Tok, stmt.Tok, string.Format("##{0}#{1}", name, v.Name), v.Type, v.IsGhost);
+                  vcopy.type = vcopy.OptionalType;  // resolve local here
+                  IdentifierExpr ie = new IdentifierExpr(vcopy.Tok, vcopy.AssignUniqueName(currentDeclaration.IdGenerator));
+                  ie.Var = vcopy; ie.Type = ie.Var.Type;  // resolve ie here
+                  substMap.Add(v, ie);
+                  locals.Add(new Bpl.LocalVariable(vcopy.Tok, new Bpl.TypedIdent(vcopy.Tok, vcopy.AssignUniqueName(currentDeclaration.IdGenerator), TrType(vcopy.Type))));
+                  b.Add(Bpl.Cmd.SimpleAssign(stmt.Tok, TrVar(stmt.Tok, vcopy), TrVar(stmt.Tok, v)));
                 }
               }
+              var exprToBeRevealed = Substitute(assertStmt.Expr, null, substMap);
+              var etr = new ExpressionTranslator(etran, h);
+              assertStmt.Label.E = etr.TrExpr(exprToBeRevealed);
             } else if (!defineFuel) {
               // Adding the assume stmt, resetting the stmtContext
               stmtContext = StmtType.ASSUME;
@@ -9498,9 +9510,14 @@ namespace Microsoft.Dafny {
 
       } else if (stmt is RevealStmt) {
         AddComment(builder, stmt, "reveal statement");
-        RevealStmt s = (RevealStmt)stmt;
-        foreach (var resolved in s.ResolvedStatements) {
-          TrStmt(resolved, builder, locals, etran);
+        var s = (RevealStmt)stmt;
+        if (s.LabeledAssert != null) {
+          Contract.Assert(s.LabeledAssert.E != null);  // this should have been filled in by now
+          builder.Add(new Bpl.AssumeCmd(s.Tok, s.LabeledAssert.E));
+        } else {
+          foreach (var resolved in s.ResolvedStatements) {
+            TrStmt(resolved, builder, locals, etran);
+          }
         }
 
       } else if (stmt is BreakStmt) {
@@ -17775,10 +17792,15 @@ namespace Microsoft.Dafny {
           r = rr;
         } else if (stmt is RevealStmt) {
           var s = (RevealStmt)stmt;
-          // don't need to substitute s.Expr since it won't be used, only the s.ResolvvedStatements are used.
-          var rr = new RevealStmt(s.Tok, s.EndTok, s.Expr);
-          rr.ResolvedStatements.AddRange(s.ResolvedStatements.ConvertAll(SubstStmt));
-          r = rr;
+          if (s.LabeledAssert != null) {
+            Contract.Assert(s.ResolvedStatements.Count == 0);
+            r = s;
+          } else {
+            // don't need to substitute s.Expr since it won't be used, only the s.ResolvedStatements are used.
+            var rr = new RevealStmt(s.Tok, s.EndTok, s.Expr);
+            rr.ResolvedStatements.AddRange(s.ResolvedStatements.ConvertAll(SubstStmt));
+            r = rr;
+          }
         } else {
           Contract.Assert(false); throw new cce.UnreachableException();  // unexpected statement
         }

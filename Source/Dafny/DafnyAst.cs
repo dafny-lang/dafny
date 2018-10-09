@@ -6076,6 +6076,7 @@ namespace Microsoft.Dafny {
 
   public class AssertLabel : Label
   {
+    public Boogie.Expr E;  // filled in during translation
     public AssertLabel(IToken tok, string label)
       : base(tok, label) {
       Contract.Requires(tok != null);
@@ -6178,7 +6179,8 @@ namespace Microsoft.Dafny {
   public class RevealStmt : Statement
   {
     public readonly Expression Expr;
-    public readonly List<Statement> ResolvedStatements = new List<Statement>(); // contents filled in during resolution.
+    public AssertLabel LabeledAssert;  // filled in during resolution to indicate that "Expr" denotes a labeled assertion
+    public readonly List<Statement> ResolvedStatements = new List<Statement>(); // contents filled in during resolution, if LabeledAssert does not apply
 
     public override IEnumerable<Statement> SubStatements {
       get { return ResolvedStatements; }
@@ -6195,6 +6197,16 @@ namespace Microsoft.Dafny {
       Contract.Requires(endTok != null);
       Contract.Requires(expr != null);
       this.Expr = expr;
+    }
+
+    public string SingleName {
+      get {
+        if (Expr is NameSegment || Expr is LiteralExpr) {
+          return Expr.tok.val;
+        } else {
+          return null;
+        }
+      }
     }
   }
 

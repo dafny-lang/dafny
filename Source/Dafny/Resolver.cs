@@ -5767,8 +5767,6 @@ namespace Microsoft.Dafny
       }
       if (stmt is PrintStmt) {
       } else if (stmt is RevealStmt) {
-        var s = (RevealStmt)stmt;
-        return CheckTailRecursive(s.ResolvedStatements, enclosingMethod, ref tailCall, reportErrors);
       } else if (stmt is BreakStmt) {
       } else if (stmt is ReturnStmt) {
         var s = (ReturnStmt)stmt;
@@ -8782,7 +8780,14 @@ namespace Microsoft.Dafny
         Contract.Assert(s.Expr.Type != null);  // follows from postcondition of ResolveExpression
         ConstrainTypeExprBool(s.Expr, "condition is expected to be of type bool, but is {0}");
         if (assertStmt != null && assertStmt.Proof != null) {
+          // clear the labels for the duration of checking the proof body, because break statements are not allowed to leave a the proof body
+          var prevLblStmts = enclosingStatementLabels;
+          var prevLoopStack = loopStack;
+          enclosingStatementLabels = new Scope<Statement>();
+          loopStack = new List<Statement>();
           ResolveStatement(assertStmt.Proof, codeContext);
+          enclosingStatementLabels = prevLblStmts;
+          loopStack = prevLoopStack;
         }
 
       } else if (stmt is PrintStmt) {
@@ -8792,21 +8797,27 @@ namespace Microsoft.Dafny
 
       } else if (stmt is RevealStmt) {
         var s = (RevealStmt)stmt;
-        var opts = new ResolveOpts(codeContext, false, true, false, false);
-        if (s.Expr is ApplySuffix) {
-          var e = (ApplySuffix)s.Expr;
-          var methodCallInfo = ResolveApplySuffix(e, opts, true);
-          if (methodCallInfo == null) {
-            reporter.Error(MessageSource.Resolver, s.Tok, "function {0} does not have the reveal lemma", e.Lhs);
-          } else {
-            var call = new CallStmt(methodCallInfo.Tok, s.EndTok, new List<Expression>(), methodCallInfo.Callee, methodCallInfo.Args);
-            s.ResolvedStatements.Add(call);
-          }
-        } else {
-          ResolveExpression(s.Expr, opts);
+        var name = s.SingleName;
+        if (name != null) {
+          s.LabeledAssert = dominatingStatementLabels.Find(name) as AssertLabel;
         }
-        foreach (var a in s.ResolvedStatements) {
-          ResolveStatement(a, codeContext);
+        if (s.LabeledAssert == null) {
+          var opts = new ResolveOpts(codeContext, false, true, false, false);
+          if (s.Expr is ApplySuffix) {
+            var e = (ApplySuffix)s.Expr;
+            var methodCallInfo = ResolveApplySuffix(e, opts, true);
+            if (methodCallInfo == null) {
+              reporter.Error(MessageSource.Resolver, s.Tok, "function {0} does not have the reveal lemma", e.Lhs);
+            } else {
+              var call = new CallStmt(methodCallInfo.Tok, s.EndTok, new List<Expression>(), methodCallInfo.Callee, methodCallInfo.Args);
+              s.ResolvedStatements.Add(call);
+            }
+          } else {
+            ResolveExpression(s.Expr, opts);
+          }
+          foreach (var a in s.ResolvedStatements) {
+            ResolveStatement(a, codeContext);
+          }
         }
       } else if (stmt is BreakStmt) {
         var s = (BreakStmt)stmt;
@@ -9264,7 +9275,11 @@ namespace Microsoft.Dafny
           enclosingStatementLabels = new Scope<Statement>();
           loopStack = new List<Statement>();
           foreach (var h in s.Hints) {
-            ResolveStatement(h, codeContext);
+            foreach (var oneHint in h.Body) {
+              dominatingStatementLabels.PushMarker();
+              ResolveStatement(oneHint, codeContext);
+              dominatingStatementLabels.PopMarker();
+            }
           }
           enclosingStatementLabels = prevLblStmts;
           loopStack = prevLoopStack;

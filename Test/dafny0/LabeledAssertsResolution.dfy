@@ -63,3 +63,38 @@ twostate lemma Twol(x: int)
   requires A: 0 <= x
 {
 }
+  
+lemma Calc(x: int)
+  requires A: x < 10
+{
+  assert B: x < 150 by { reveal A; }
+  label QRS: assert TUV: x < 10 by {
+    break ABC;  // error: a break is not allowed to leave the proof body
+    reveal A;
+  }
+
+  calc {
+    x < 200;
+  ==  { reveal B;
+        label XYZ:
+        reveal C;  // error: C is not dominated here
+        assert old@XYZ(x) == x;
+      }
+    x < 150;
+  ==  { assert C: x < 90 by { reveal A; }
+        reveal C;
+      }
+    x < 102;
+  ==  { assert C: x < 90 by { reveal A; }  // it's okay to have another C here
+      }
+    x < 100;
+  ==  { reveal A;}
+    x < 10;
+  ==  { assert old@XYZ(x) == x; }  // error: XYZ is not in scope here
+    x < 100;
+  ==
+    { label ABC: assert DEF: x < 10 by { reveal A; } }
+    { label ABC: assert DEF: x < 10 by { reveal A; } }
+    x < 100;
+  }
+}
