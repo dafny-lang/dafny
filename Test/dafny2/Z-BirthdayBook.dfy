@@ -93,7 +93,7 @@ abstract module Specification {
       ==  // fact about .Keys
         old(birthday).Keys + {name};
       == { assert old(Valid()); }  // invariant before
-        known + {name};
+        old(known) + {name};
       }
 
       // Note: It is common that proofs about programs are confined to "ghost"

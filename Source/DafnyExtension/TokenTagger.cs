@@ -480,6 +480,7 @@ namespace DafnyLanguage
                 case "refines":
                 case "return":
                 case "returns":
+                case "reveal":
                 case "static":
                 case "then":
                 case "this":
