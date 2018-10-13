@@ -269,6 +269,7 @@ method Main()
   TypeInstantiations.TestMain();
   TailRecursionWhereTypeParametersChange.TestMain();
   GeneralMaps.Test();
+  Cardinalities.Test();
 }
 
 // ------------------------------------------------------------------
@@ -459,5 +460,18 @@ module GeneralMaps {
     print m.Items, "\n";
     print m.Keys, "\n";
     print m.Values, "\n";
+  }
+}
+
+// -------------------------------------------------
+
+module Cardinalities {
+  method Test() {
+    var s := "hello";
+    var q := [0, 2, 4];
+    var t := {s};
+    var m := multiset{3, 5, 3};
+    var p := map[false := s, true := s];
+    print |s|, " ", |q|, " ", |t|, " ", |m|, " ", |p|, "\n";
   }
 }

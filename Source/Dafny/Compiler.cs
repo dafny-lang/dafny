@@ -3015,7 +3015,7 @@ namespace Microsoft.Dafny {
           case UnaryOpExpr.Opcode.Cardinality:
             wr.Write("new BigInteger(");
             TrParenExpr(e.E, wr, inLetExprBody);
-            wr.Write(".Length)");
+            wr.Write(".Count)");
             break;
           default:
             Contract.Assert(false); throw new cce.UnreachableException();  // unexpected unary expression
@@ -3059,9 +3059,17 @@ namespace Microsoft.Dafny {
               if (literal != null) {
                 // Optimize constant to avoid intermediate BigInteger
                 wr.Write("(" + literal + toNative.Suffix + ")");
-              } else if ((u != null && u.Op == UnaryOpExpr.Opcode.Cardinality) || (m != null && m.MemberName == "Length" && m.Obj.Type.IsArrayType)) {
+              } else if (u != null && u.Op == UnaryOpExpr.Opcode.Cardinality) {
+                // Optimize .Count to avoid intermediate BigInteger
+                TrParenExpr(u.E, wr, inLetExprBody);
+                if (toNative.UpperBound <= new BigInteger(0x80000000U)) {
+                  wr.Write(".Count");
+                } else {
+                  wr.Write(".LongCount");
+                }
+              } else if (m != null && m.MemberName == "Length" && m.Obj.Type.IsArrayType) {
                 // Optimize .Length to avoid intermediate BigInteger
-                TrParenExpr((u != null) ? u.E : m.Obj, wr, inLetExprBody);
+                TrParenExpr(m.Obj, wr, inLetExprBody);
                 if (toNative.UpperBound <= new BigInteger(0x80000000U)) {
                   wr.Write(".Length");
                 } else {

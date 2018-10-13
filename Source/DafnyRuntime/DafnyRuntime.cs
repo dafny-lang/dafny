@@ -62,10 +62,10 @@ namespace Dafny
       }
       return new Set<T>(d.ToImmutable(), containsNull);
     }
-    public int Length {
+    public int Count {
       get { return this.setImpl.Count + (containsNull ? 1 : 0); }
     }
-    public long LongLength {
+    public long LongCount {
       get { return this.setImpl.Count + (containsNull ? 1 : 0); }
     }
     public IEnumerable<T> Elements {
@@ -96,10 +96,10 @@ namespace Dafny
       s.Add(oneMoreValue);
       return new Set<T>(s);
     }
-    public int Length {
+    public int Count {
       get { return this.setImpl.Count; }
     }
-    public long LongLength {
+    public long LongCount {
       get { return this.setImpl.Count; }
     }
     public IEnumerable<T> Elements {
@@ -192,7 +192,7 @@ namespace Dafny
       return s + "}";
     }
     public bool IsProperSubsetOf(Set<T> other) {
-      return this.Length < other.Length && IsSubsetOf(other);
+      return this.Count < other.Count && IsSubsetOf(other);
     }
     public bool IsSubsetOf(Set<T> other) {
 #if DAFNY_USE_SYSTEM_COLLECTIONS_IMMUTABLE
@@ -541,6 +541,21 @@ namespace Dafny
       return new MultiSet<T>(r, other.occurrencesOfNull < occurrencesOfNull ? occurrencesOfNull - other.occurrencesOfNull : BigInteger.Zero);
     }
 
+    public int Count {
+      get { return (int)ElementCount(); }
+    }
+    public long LongCount {
+      get { return (long)ElementCount(); }
+    }
+    private BigInteger ElementCount() {
+      // This is inefficient
+      var c = occurrencesOfNull;
+      foreach (var item in dict) {
+        c += item.Value;
+      }
+      return c;
+    }
+
     public IEnumerable<T> Elements {
       get {
         for (var i = BigInteger.Zero; i < occurrencesOfNull; i++) {
@@ -628,10 +643,10 @@ namespace Dafny
       }
       return new Map<U, V>(d, hasNullValue, nullValue);
     }
-    public int Length {
+    public int Count {
       get { return dict.Count + (hasNullValue ? 1 : 0); }
     }
-    public long LongLength {
+    public long LongCount {
       get { return dict.Count + (hasNullValue ? 1 : 0); }
     }
     public static Map<U, V> _DafnyDefaultValue() {
@@ -791,10 +806,10 @@ namespace Dafny
     public static Sequence<T> _DafnyDefaultValue() {
       return Empty;
     }
-    public int Length {
+    public int Count {
       get { return elmts.Length; }
     }
-    public long LongLength {
+    public long LongCount {
       get { return elmts.LongLength; }
     }
     public T[] Elements {
