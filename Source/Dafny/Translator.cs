@@ -9700,6 +9700,7 @@ namespace Microsoft.Dafny {
       } else if (stmt is DividedBlockStmt) {
         var s = (DividedBlockStmt)stmt;
         AddComment(builder, stmt, "divided block before new;");
+        var prevDefiniteAssignmentTrackerCount = definiteAssignmentTrackers.Count;
         var tok = s.SeparatorTok ?? s.Tok;
         // a DividedBlockStmt occurs only inside a Constructor body of a class
         var cl = (ClassDecl)((Constructor)codeContext).EnclosingClass;
@@ -9733,6 +9734,7 @@ namespace Microsoft.Dafny {
 
         AddComment(builder, stmt, "divided block after new;");
         TrStmtList(s.BodyProper, builder, locals, etran);
+        RemoveDefiniteAssignmentTrackers(s.Body, prevDefiniteAssignmentTrackerCount);
 
       } else if (stmt is BlockStmt) {
         var s = (BlockStmt)stmt;

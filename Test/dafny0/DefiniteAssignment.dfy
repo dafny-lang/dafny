@@ -260,3 +260,32 @@ method UnderscoresAndPatterns3<T>(tt: T)
   var _, b := TwoMethod<T>(tt);
   var b' := b;
 }
+
+// ----- regression tests from github issue #213 -----
+
+class Regression213 {
+  constructor A() {
+    var f: object;  // regression; previously, this caused a crash in Dafny
+  }
+  constructor B() {
+    new;
+    var f: object;  // regression; previously, this caused a crash in Dafny
+  }
+  constructor C() {
+    var f: object;
+    var g := f;  // error: use of f before a definition
+  }
+  constructor D() {
+    new;
+    var f: object;
+    var g := f;  // error: use of f before a definition
+  }
+
+  method M() {
+    var f: object;
+  }
+  method N() {
+    var f: object;
+    var g := f;  // error: use of f before a definition
+  }
+}
