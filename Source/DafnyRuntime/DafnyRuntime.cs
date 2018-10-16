@@ -748,10 +748,8 @@ namespace Dafny
         return dict.Keys;
       }
     }
-    public Set<U> Keys
-    {
-      get
-      {
+    public Set<U> Keys {
+      get {
         if (hasNullValue) {
           return Dafny.Set<U>.FromCollectionPlusOne(dict.Keys, default(U));
         } else {
@@ -759,10 +757,8 @@ namespace Dafny
         }
       }
     }
-    public Set<V> Values
-    {
-      get
-      {
+    public Set<V> Values {
+      get {
         if (hasNullValue) {
           return Dafny.Set<V>.FromCollectionPlusOne(dict.Values, nullValue);
         } else {
@@ -770,16 +766,14 @@ namespace Dafny
         }
       }
     }
-    public Set<@_System.@__tuple_h2<U, V>> Items
-    {
-      get
-      {
+    public Set<@_System.@__tuple_h2<U, V>> Items {
+      get {
         HashSet<@_System.@__tuple_h2<U, V>> result = new HashSet<@_System.@__tuple_h2<U, V>>();
         if (hasNullValue) {
           result.Add(new @_System.@__tuple_h2<U, V>(new @_System.@__tuple_h2____hMake2<U, V>(default(U), nullValue)));
         }
         foreach (KeyValuePair<U, V> kvp in dict) {
-          result.Add(new @_System.@__tuple_h2<U,V>(new @_System.@__tuple_h2____hMake2<U, V>(kvp.Key, kvp.Value)));
+          result.Add(new @_System.@__tuple_h2<U, V>(new @_System.@__tuple_h2____hMake2<U, V>(kvp.Key, kvp.Value)));
         }
         return Dafny.Set<@_System.@__tuple_h2<U, V>>.FromCollection(result);
       }

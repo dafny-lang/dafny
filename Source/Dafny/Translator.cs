@@ -763,12 +763,14 @@ namespace Microsoft.Dafny {
           var ad = (ArrowTypeDecl)d;
           GetClassTyCon(ad);
           AddArrowTypeAxioms(ad);
-        } else {
+        } else if (d is ClassDecl) {
           var cl = (ClassDecl)d;
           AddClassMembers(cl, true);
           if (cl.NonNullTypeDecl != null) {
             AddTypeDecl(cl.NonNullTypeDecl);
           }
+        } else {
+          Contract.Assert(d is ValuetypeDecl);
         }
       }
 
@@ -8516,10 +8518,8 @@ namespace Microsoft.Dafny {
         } else if (f.EnclosingClass == null && f.Name == "Floor") {
           return predef.RealFloor;
         } else if (f is SpecialField && (f.Name == "Keys" || f.Name == "Values" || f.Name == "Items")) {
-          Contract.Assert(f is SpecialField && f.Type is SelfType);
-          var selfType = f.Type as SelfType;
-          Contract.Assert(selfType.ResolvedType is SetType);
-          var setType = selfType.ResolvedType as SetType;
+          Contract.Assert(f.Type is SetType);
+          var setType = (SetType)f.Type;
           if (f.Name == "Keys") {
             return setType.Finite ? predef.MapDomain : predef.IMapDomain;
           } else if (f.Name == "Values") {
@@ -12023,7 +12023,7 @@ namespace Microsoft.Dafny {
     }
 
     static public List<TypeParameter> GetTypeParams(TopLevelDecl d) {
-      Contract.Requires(d is ClassDecl || d is DatatypeDecl);
+      Contract.Requires(d is ClassDecl || d is DatatypeDecl || d is ValuetypeDecl);
       return d.TypeArgs;
     }
 

@@ -295,6 +295,8 @@ namespace Microsoft.Dafny {
             wr.WriteLine(" {");
             CompileClassMembers(cl, false, indent + IndentAmount, wr);
             Indent(indent, wr); wr.WriteLine("}");
+          } else if (d is ValuetypeDecl) {
+            // nop
           } else if (d is ModuleDecl) {
             // nop
           } else { Contract.Assert(false); }

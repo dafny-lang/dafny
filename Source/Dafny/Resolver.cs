@@ -188,16 +188,8 @@ namespace Microsoft.Dafny
     readonly Dictionary<ClassDecl, Dictionary<string, MemberDecl>> classMembers = new Dictionary<ClassDecl, Dictionary<string, MemberDecl>>();
     readonly Dictionary<DatatypeDecl, Dictionary<string, MemberDecl>> datatypeMembers = new Dictionary<DatatypeDecl, Dictionary<string, MemberDecl>>();
     readonly Dictionary<DatatypeDecl, Dictionary<string, DatatypeCtor>> datatypeCtors = new Dictionary<DatatypeDecl, Dictionary<string, DatatypeCtor>>();
-    enum BasicTypeVariety { Bool = 0, Int, Real, BigOrdinal, Bitvector, Map, IMap, None }  // note, these are ordered, so they can be used as indices into basicTypeMembers
-    readonly Dictionary<string, MemberDecl>[] basicTypeMembers = new Dictionary<string, MemberDecl>[] {
-      new Dictionary<string, MemberDecl>(),
-      new Dictionary<string, MemberDecl>(),
-      new Dictionary<string, MemberDecl>(),
-      new Dictionary<string, MemberDecl>(),
-      new Dictionary<string, MemberDecl>(),
-      new Dictionary<string, MemberDecl>(),
-      new Dictionary<string, MemberDecl>()
-    };
+    enum ValuetypeVariety { Bool = 0, Int, Real, BigOrdinal, Bitvector, Map, IMap, None }  // note, these are ordered, so they can be used as indices into valuetypeDecls
+    readonly ValuetypeDecl[] valuetypeDecls;
     private Dictionary<TypeParameter, Type> SelfTypeSubstitution;
     readonly Graph<ModuleDecl> dependencies = new Graph<ModuleDecl>();
     private ModuleSignature systemNameInfo = null;
@@ -211,69 +203,87 @@ namespace Microsoft.Dafny
 
       builtIns = prog.BuiltIns;
       reporter = prog.reporter;
+
+      // Map#Items relies on the two destructors for 2-tuples
+      builtIns.TupleType(Token.NoToken, 2, true);
+      // Several methods and fields rely on 1-argument arrow types
+      builtIns.CreateArrowTypeDecl(1);
+
+      valuetypeDecls = new ValuetypeDecl[] {
+        new ValuetypeDecl("bool", builtIns.SystemModule, 0, t => t.IsBoolType, typeArgs => Type.Bool),
+        new ValuetypeDecl("int", builtIns.SystemModule, 0, t => t.IsNumericBased(Type.NumericPersuation.Int), typeArgs => Type.Int),
+        new ValuetypeDecl("real", builtIns.SystemModule, 0, t => t.IsNumericBased(Type.NumericPersuation.Real), typeArgs => Type.Real),
+        new ValuetypeDecl("ORDINAL", builtIns.SystemModule, 0, t => t.IsBigOrdinalType, typeArgs => Type.BigOrdinal),
+        new ValuetypeDecl("bv", builtIns.SystemModule, 0, t => t.IsBitVectorType, null),  // "bv" represents a family of classes, so no typeTester or type creator is supplied
+        new ValuetypeDecl("map", builtIns.SystemModule, 2, t => t.IsMapType, typeArgs => new MapType(true, typeArgs[0], typeArgs[1])),
+        new ValuetypeDecl("imap", builtIns.SystemModule, 2, t => t.IsIMapType, typeArgs => new MapType(false, typeArgs[0], typeArgs[1]))
+      };
+      builtIns.SystemModule.TopLevelDecls.AddRange(valuetypeDecls);
       // Resolution error handling relies on being able to get to the 0-tuple declaration
       builtIns.TupleType(Token.NoToken, 0, true);
 
       // Populate the members of the basic types
       var floor = new SpecialField(Token.NoToken, "Floor", "ToBigInteger()", "", "", false, false, false, Type.Int, null);
       floor.AddVisibilityScope(prog.BuiltIns.SystemModule.VisibilityScope, false);
-      basicTypeMembers[(int)BasicTypeVariety.Real].Add(floor.Name, floor);
+      valuetypeDecls[(int)ValuetypeVariety.Real].Members.Add(floor.Name, floor);
 
       var isLimit = new SpecialField(Token.NoToken, "IsLimit", "", "Dafny.Helpers.BigOrdinal_IsLimit(", ")", false, false, false, Type.Bool, null);
       isLimit.AddVisibilityScope(prog.BuiltIns.SystemModule.VisibilityScope, false);
-      basicTypeMembers[(int)BasicTypeVariety.BigOrdinal].Add(isLimit.Name, isLimit);
+      valuetypeDecls[(int)ValuetypeVariety.BigOrdinal].Members.Add(isLimit.Name, isLimit);
 
       var isSucc = new SpecialField(Token.NoToken, "IsSucc", "", "Dafny.Helpers.BigOrdinal_IsSucc(", ")", false, false, false, Type.Bool, null);
       isSucc.AddVisibilityScope(prog.BuiltIns.SystemModule.VisibilityScope, false);
-      basicTypeMembers[(int)BasicTypeVariety.BigOrdinal].Add(isSucc.Name, isSucc);
+      valuetypeDecls[(int)ValuetypeVariety.BigOrdinal].Members.Add(isSucc.Name, isSucc);
 
       var limitOffset = new SpecialField(Token.NoToken, "Offset", "", "Dafny.Helpers.BigOrdinal_Offset(", ")", false, false, false, Type.Int, null);
       limitOffset.AddVisibilityScope(prog.BuiltIns.SystemModule.VisibilityScope, false);
-      basicTypeMembers[(int)BasicTypeVariety.BigOrdinal].Add(limitOffset.Name, limitOffset);
+      valuetypeDecls[(int)ValuetypeVariety.BigOrdinal].Members.Add(limitOffset.Name, limitOffset);
       builtIns.ORDINAL_Offset = limitOffset;
 
       var isNat = new SpecialField(Token.NoToken, "IsNat", "", "Dafny.Helpers.BigOrdinal_IsNat(", ")", false, false, false, Type.Bool, null);
       isNat.AddVisibilityScope(prog.BuiltIns.SystemModule.VisibilityScope, false);
-      basicTypeMembers[(int)BasicTypeVariety.BigOrdinal].Add(isNat.Name, isNat);
+      valuetypeDecls[(int)ValuetypeVariety.BigOrdinal].Members.Add(isNat.Name, isNat);
 
-      var keys = new SpecialField(Token.NoToken, "Keys", "Keys", "", "", false, false, false, new SelfType(), null);
-      keys.AddVisibilityScope(prog.BuiltIns.SystemModule.VisibilityScope, false);
-      basicTypeMembers[(int)BasicTypeVariety.Map].Add(keys.Name, keys);
+      // Add "Keys", "Values", and "Items" to map, imap
+      foreach (var typeVariety in new [] { ValuetypeVariety.Map, ValuetypeVariety.IMap }) {
+        var vtd = valuetypeDecls[(int)typeVariety];
+        var isFinite = typeVariety == ValuetypeVariety.Map;
 
-      var values = new SpecialField(Token.NoToken, "Values", "Values", "", "", false, false, false, new SelfType(), null);
-      values.AddVisibilityScope(prog.BuiltIns.SystemModule.VisibilityScope, false);
-      basicTypeMembers[(int)BasicTypeVariety.Map].Add(values.Name, values);
+        var r = new SetType(isFinite, new UserDefinedType(vtd.TypeArgs[0]));
+        var keys = new SpecialField(Token.NoToken, "Keys", "Keys", "", "", false, false, false, r, null);
 
-      var items = new SpecialField(Token.NoToken, "Items", "Items", "", "", false, false, false, new SelfType(), null);
-      items.AddVisibilityScope(prog.BuiltIns.SystemModule.VisibilityScope, false);
-      basicTypeMembers[(int)BasicTypeVariety.Map].Add(items.Name, items);
-      // Map#Items relies on the two destructors for 2-tuples
-      builtIns.TupleType(Token.NoToken, 2, true);
+        r = new SetType(isFinite, new UserDefinedType(vtd.TypeArgs[1]));
+        var values = new SpecialField(Token.NoToken, "Values", "Values", "", "", false, false, false, r, null);
 
-      var iMapKeys = new SpecialField(Token.NoToken, "Keys", "Keys", "", "", false, false, false, new SelfType(), null);
-      iMapKeys.AddVisibilityScope(prog.BuiltIns.SystemModule.VisibilityScope, false);
-      basicTypeMembers[(int)BasicTypeVariety.IMap].Add(keys.Name, iMapKeys);
+        var gt = vtd.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp));
+        var dt = builtIns.TupleType(Token.NoToken, 2, true);
+        var tupleType = new UserDefinedType(Token.NoToken, dt.Name, dt, gt);
+        r = new SetType(isFinite, tupleType);
+        var items = new SpecialField(Token.NoToken, "Items", "Items", "", "", false, false, false, r, null);
 
-      var iMapValues = new SpecialField(Token.NoToken, "Values", "Values", "", "", false, false, false, new SelfType(), null);
-      iMapValues.AddVisibilityScope(prog.BuiltIns.SystemModule.VisibilityScope, false);
-      basicTypeMembers[(int)BasicTypeVariety.IMap].Add(values.Name, iMapValues);
+        foreach (var memb in new[] { keys, values, items }) {
+          memb.EnclosingClass = vtd;
+          memb.AddVisibilityScope(prog.BuiltIns.SystemModule.VisibilityScope, false);
+          vtd.Members.Add(memb.Name, memb);
+        }
+      }
 
-      var iMapItems = new SpecialField(Token.NoToken, "Items", "Items", "", "", false, false, false, new SelfType(), null);
-      iMapItems.AddVisibilityScope(prog.BuiltIns.SystemModule.VisibilityScope, false);
-      basicTypeMembers[(int)BasicTypeVariety.IMap].Add(items.Name, iMapItems);
 
+      // The result type of the following bitvector methods is the type of the bitvector itself. However, we're representing all bitvector types as
+      // a family of types rolled up in one ValuetypeDecl. Therefore, we use the special SelfType as the result type.
       List<Formal> formals = new List<Formal> { new Formal(Token.NoToken, "w", Type.Nat(), true, false, false) };
       var rotateLeft = new SpecialFunction(Token.NoToken, "RotateLeft", prog.BuiltIns.SystemModule, false, false, false, new List<TypeParameter>(), formals, new SelfType(),
         new List<MaybeFreeExpression>(), new List<FrameExpression>(), new List<MaybeFreeExpression>(), new Specification<Expression>(new List<Expression>(), null), null, null, null);
+      rotateLeft.EnclosingClass = valuetypeDecls[(int)ValuetypeVariety.Bitvector];
       rotateLeft.AddVisibilityScope(prog.BuiltIns.SystemModule.VisibilityScope, false);
-      basicTypeMembers[(int)BasicTypeVariety.Bitvector].Add(rotateLeft.Name, rotateLeft);
-      builtIns.CreateArrowTypeDecl(formals.Count);
+      valuetypeDecls[(int)ValuetypeVariety.Bitvector].Members.Add(rotateLeft.Name, rotateLeft);
 
       formals = new List<Formal> { new Formal(Token.NoToken, "w", Type.Nat(), true, false, false) };
       var rotateRight = new SpecialFunction(Token.NoToken, "RotateRight", prog.BuiltIns.SystemModule, false, false, false, new List<TypeParameter>(), formals, new SelfType(),
         new List<MaybeFreeExpression>(), new List<FrameExpression>(), new List<MaybeFreeExpression>(), new Specification<Expression>(new List<Expression>(), null), null, null, null);
-      rotateLeft.AddVisibilityScope(prog.BuiltIns.SystemModule.VisibilityScope, false);
-      basicTypeMembers[(int)BasicTypeVariety.Bitvector].Add(rotateRight.Name, rotateRight);
+      rotateRight.EnclosingClass = valuetypeDecls[(int)ValuetypeVariety.Bitvector];
+      rotateRight.AddVisibilityScope(prog.BuiltIns.SystemModule.VisibilityScope, false);
+      valuetypeDecls[(int)ValuetypeVariety.Bitvector].Members.Add(rotateRight.Name, rotateRight);
     }
 
     [ContractInvariantMethod]
@@ -283,6 +293,16 @@ namespace Microsoft.Dafny
       Contract.Invariant(cce.NonNullDictionaryAndValues(classMembers) && Contract.ForAll(classMembers.Values, v => cce.NonNullDictionaryAndValues(v)));
       Contract.Invariant(cce.NonNullDictionaryAndValues(datatypeCtors) && Contract.ForAll(datatypeCtors.Values, v => cce.NonNullDictionaryAndValues(v)));
       Contract.Invariant(!inBodyInitContext || currentMethod is Constructor);
+    }
+
+    public ValuetypeDecl AsValuetypeDecl(Type t) {
+      Contract.Requires(t != null);
+      foreach (var vtd in valuetypeDecls) {
+        if (vtd.IsThisType(t)) {
+          return vtd;
+        }
+      }
+      return null;
     }
 
     /// <summary>
@@ -362,7 +382,7 @@ namespace Microsoft.Dafny
       systemNameInfo = RegisterTopLevelDecls(prog.BuiltIns.SystemModule, false);
       prog.CompileModules.Add(prog.BuiltIns.SystemModule);
       RevealAllInScope(prog.BuiltIns.SystemModule.TopLevelDecls, systemNameInfo.VisibilityScope);
-      ResolveBasicTypeMembers();
+      ResolveValuetypeDecls();
       // The SystemModule is constructed with all its members already being resolved. Except for
       // the non-null type corresponding to class types.  They are resolved here:
       var systemModuleClassesWithNonNullTypes = new List<TopLevelDecl>(prog.BuiltIns.SystemModule.TopLevelDecls.Where(d => d is ClassDecl && ((ClassDecl)d).NonNullTypeDecl != null));
@@ -819,10 +839,10 @@ namespace Microsoft.Dafny
       }
     }
 
-    private void ResolveBasicTypeMembers() {
+    private void ResolveValuetypeDecls() {
       moduleInfo = systemNameInfo;
-      foreach (var entry in basicTypeMembers) {
-        foreach (var kv in entry) {
+      foreach (var valueTypeDecl in valuetypeDecls) {
+        foreach (var kv in valueTypeDecl.Members) {
           if (kv.Value is Function) {
             ResolveFunctionSignature((Function)kv.Value);
           } else if (kv.Value is Method) {
@@ -1739,7 +1759,7 @@ namespace Microsoft.Dafny
             }
           }
 
-        } else {
+        } else if (d is DatatypeDecl) {
           DatatypeDecl dt = (DatatypeDecl)d;
 
           // register the names of the constructors
@@ -1814,6 +1834,8 @@ namespace Microsoft.Dafny
               ctor.Destructors.Add(dtor);
             }
           }
+        } else {
+          Contract.Assert(d is ValuetypeDecl);
         }
       }
       // Now, for each class, register its possibly-null type
@@ -10676,50 +10698,27 @@ namespace Microsoft.Dafny
         }
       }
 
-      BasicTypeVariety basic;
-      if (receiverType.IsBoolType) {
-        basic = BasicTypeVariety.Bool;
-      } else if (receiverType.IsNumericBased(Type.NumericPersuation.Int)) {
-        basic = BasicTypeVariety.Int;
-      } else if (receiverType.IsNumericBased(Type.NumericPersuation.Real)) {
-        basic = BasicTypeVariety.Real;
-      } else if (receiverType.IsBigOrdinalType) {
-        basic = BasicTypeVariety.BigOrdinal;
-      } else if (receiverType.IsBitVectorType) {
-        basic = BasicTypeVariety.Bitvector;
-      } else if (receiverType.IsMapType) {
-        basic = BasicTypeVariety.Map;
-      } else if (receiverType.IsIMapType) {
-        basic = BasicTypeVariety.IMap;
-      } else {
-        basic = BasicTypeVariety.None;
+      ValuetypeDecl valuet = null;
+      foreach (var vtd in valuetypeDecls) {
+        if (vtd.IsThisType(receiverType)) {
+          valuet = vtd;
+          break;
+        }
       }
-      if (basic != BasicTypeVariety.None) {
+      if (valuet != null) {
         MemberDecl member;
-        if (basicTypeMembers[(int)basic].TryGetValue(memberName, out member)) {
+        if (valuet.Members.TryGetValue(memberName, out member)) {
           nptype = (NonProxyType)receiverType;
           SelfType resultType = null;
-          var substType = receiverType;
           if (member is SpecialFunction) {
             resultType = ((SpecialFunction)member).ResultType as SelfType;
           } else if (member is SpecialField) {
             resultType = ((SpecialField)member).Type as SelfType;
-            MapType mapType = receiverType as MapType;
-            if (mapType != null && member.Name == "Keys") {
-              substType = new SetType(mapType.Finite, mapType.Domain);
-            } else if (mapType != null && member.Name == "Values") {
-              substType = new SetType(mapType.Finite, mapType.Range);
-            } else if (mapType != null && member.Name == "Items") {
-              var gt = new List<Type>() { mapType.Domain, mapType.Range };
-              var dt = builtIns.TupleType(member.tok, 2, true);
-              var tupleType = new UserDefinedType(member.tok, dt.Name, dt, gt);
-              substType = new SetType(mapType.Finite, tupleType);
-            }
           }
           if (resultType != null) {
             SelfTypeSubstitution = new Dictionary<TypeParameter, Type>();
-            SelfTypeSubstitution.Add(resultType.TypeArg, substType);
-            resultType.ResolvedType = substType;
+            SelfTypeSubstitution.Add(resultType.TypeArg, receiverType);
+            resultType.ResolvedType = receiverType;
           }
           return member;
         }
@@ -13395,14 +13394,22 @@ namespace Microsoft.Dafny
       // Now, fill in rr.Type.  This requires taking into consideration the type parameters passed to the receiver's type as well as any type
       // parameters used in this NameSegment/ExprDotName.
       // Add to "subst" the type parameters given to the member's class/datatype
-      Dictionary<TypeParameter, Type> subst;
-      var udt = (receiverTypeBound ?? receiver.Type).NormalizeExpand() as UserDefinedType;
       rr.TypeApplication = new List<Type>();
-      if (udt != null && udt.ResolvedClass != null) {
+      Dictionary<TypeParameter, Type> subst;
+      var rType = (receiverTypeBound ?? receiver.Type).NormalizeExpand();
+      if (rType is UserDefinedType udt && udt.ResolvedClass != null) {
         subst = TypeSubstitutionMap(udt.ResolvedClass.TypeArgs, udt.TypeArgs);
         rr.TypeApplication.AddRange(udt.TypeArgs);
       } else {
-        subst = new Dictionary<TypeParameter, Type>();
+        var vtd = AsValuetypeDecl(rType);
+        if (vtd != null) {
+          Contract.Assert(vtd.TypeArgs.Count == rType.TypeArgs.Count);
+          subst = TypeSubstitutionMap(vtd.TypeArgs, rType.TypeArgs);
+          rr.TypeApplication.AddRange(rType.TypeArgs);
+        } else {
+          Contract.Assert(rType.TypeArgs.Count == 0);
+          subst = new Dictionary<TypeParameter, Type>();
+        }
       }
 
       if (member is Field) {

@@ -4048,6 +4048,44 @@ namespace Microsoft.Dafny {
     }
   }
 
+  /// <summary>
+  /// The "ValuetypeDecl" class models the built-in value types (like bool, int, set, and seq.
+  /// Its primary function is to hold the formal type parameters and built-in members of these types.
+  /// </summary>
+  public class ValuetypeDecl : TopLevelDecl
+  {
+    public override string WhatKind { get { return Name; } }
+    public readonly Dictionary<string, MemberDecl> Members = new Dictionary<string, MemberDecl>();
+    readonly Func<Type, bool> typeTester;
+    readonly Func<List<Type>, Type>/*?*/ typeCreator;
+
+    public ValuetypeDecl(string name, ModuleDefinition module, int typeParameterCount, Func<Type, bool> typeTester, Func<List<Type>, Type>/*?*/ typeCreator)
+      : base(Token.NoToken, name, module, new List<TypeParameter>(), null) {
+      Contract.Requires(name != null);
+      Contract.Requires(module != null);
+      Contract.Requires(0 <= typeParameterCount);
+      Contract.Requires(typeTester != null);
+      // fill in the type parameters
+      for (int i = 0; i < typeParameterCount; i++) {
+        TypeArgs.Add(new TypeParameter(Token.NoToken, ((char)('T' + i)).ToString(), i, this));
+      }
+      this.typeTester = typeTester;
+      this.typeCreator = typeCreator;
+    }
+
+    public bool IsThisType(Type t) {
+      Contract.Assert(t != null);
+      return typeTester(t);
+    }
+
+    public Type CreateType(List<Type> typeArgs) {
+      Contract.Requires(typeArgs != null);
+      Contract.Requires(typeArgs.Count == TypeArgs.Count);
+      Contract.Assume(typeCreator != null);  // can only call CreateType for a ValuetypeDecl with a type creator (this is up to the caller to ensure)
+      return typeCreator(typeArgs);
+    }
+  }
+
   public class DatatypeCtor : Declaration, TypeParameter.ParentType
   {
     public readonly List<Formal> Formals;

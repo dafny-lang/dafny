@@ -307,6 +307,20 @@ namespace Microsoft.Dafny {
             PrintMembers(cl.Members, indent, fileBeingPrinted);
           }
 
+        } else if (d is ValuetypeDecl) {
+          var vtd = (ValuetypeDecl)d;
+          if (i++ != 0) { wr.WriteLine(); }
+          Indent(indent);
+          PrintClassMethodHelper("type", vtd.Attributes, vtd.Name, vtd.TypeArgs);
+          if (vtd.Members.Count == 0) {
+            wr.WriteLine(" { }");
+          } else {
+            wr.WriteLine(" {");
+            PrintMembers(new List<MemberDecl>(vtd.Members.Values), indent + IndentAmount, fileBeingPrinted);
+            Indent(indent);
+            wr.WriteLine("}");
+          }
+
         } else if (d is ModuleDecl) {
           wr.WriteLine();
           Indent(indent);
@@ -2537,7 +2551,7 @@ namespace Microsoft.Dafny {
         wr.Write(sep);
         sep = ", ";
         PrintExpression(p.A, false);
-        wr.Write(":=");
+        wr.Write(" := ");
         PrintExpression(p.B, false);
       }
     }

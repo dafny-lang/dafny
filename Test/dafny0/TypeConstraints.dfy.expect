@@ -78,6 +78,39 @@ module _System {
 
   datatype {:compile false} /*_tuple#2*/ (+T0, +T1) = _#Make2(0: T0, 1: T1)
 
+  type bool { }
+
+  type int { }
+
+  type real {
+    var Floor: int  // immutable
+  }
+
+  type ORDINAL {
+    var IsLimit: bool  // immutable
+    var IsSucc: bool  // immutable
+    var Offset: int  // immutable
+    var IsNat: bool  // immutable
+  }
+
+  type bv {
+    function method RotateLeft(w: nat): selftype
+
+    function method RotateRight(w: nat): selftype
+  }
+
+  type map<T, U> {
+    var Keys: set<T>  // immutable
+    var Values: set<U>  // immutable
+    var Items: set<(T, U)>  // immutable
+  }
+
+  type imap<T, U> {
+    var Keys: iset<T>  // immutable
+    var Values: iset<U>  // immutable
+    var Items: iset<(T, U)>  // immutable
+  }
+
   datatype /*_tuple#0*/ () = _#Make0
 }
 // bitvector types in use:
@@ -293,7 +326,7 @@ module MorePlusTests {
     var mm: multiset<bool> := m + m;
     var q: seq<bool> := [false];
     var qq: seq<bool> := q + q;
-    var p: map<bool, int> := map[false:=17];
+    var p: map<bool, int> := map[false := 17];
     var pp: map<bool, int> := p + p;
     var n: C := null;
     var nn: C? := n + n;
