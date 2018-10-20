@@ -1,4 +1,4 @@
-ExpandedGuardednessNeg.dfy(8,17): Error: cannot prove termination; try supplying a decreases clause (note that a call can be co-recursive only if all intra-cluster calls are in non-destructive contexts)
+ExpandedGuardednessNeg.dfy(8,17): Error: cannot prove termination; try supplying a decreases clause (note that calls cannot be co-recursive in this context)
 Execution trace:
     (0,0): anon0
     (0,0): anon6_Else

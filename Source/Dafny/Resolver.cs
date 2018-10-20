@@ -15249,6 +15249,7 @@ namespace Microsoft.Dafny
         foreach (var ee in e.Args) {
           CheckCoCalls(ee, destructionLevel, null, coCandidates);
         }
+        return;
       }
 
       // Default handling:
