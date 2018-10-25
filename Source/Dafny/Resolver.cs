@@ -12271,7 +12271,7 @@ namespace Microsoft.Dafny
       var candidateResultCtors = dt.Ctors;  // list of constructors that have all the so-far-mentioned destructors
       var memberNames = new HashSet<string>();
       var rhsBindings = new Dictionary<string, Tuple<BoundVar/*let variable*/, IdentifierExpr/*id expr for let variable*/, Expression /*RHS in given syntax*/>>();
-      var subst = TypeSubstitutionMap(dt.TypeArgs, root.Type.TypeArgs);
+      var subst = TypeSubstitutionMap(dt.TypeArgs, root.Type.NormalizeExpand().TypeArgs);
       foreach (var entry in memberUpdates) {
         var destructor_str = entry.Item2;
         if (memberNames.Contains(destructor_str)) {
@@ -12358,7 +12358,7 @@ namespace Microsoft.Dafny
           }
         }
         var ctor_call = new DatatypeValue(tok, crc.EnclosingDatatype.Name, crc.Name, ctor_args);
-        ResolveDatatypeValue(opts, ctor_call, dt, root.Type);  // resolve to root.Type, so that type parameters get filled in appropriately
+        ResolveDatatypeValue(opts, ctor_call, dt, root.Type.NormalizeExpand());  // resolve to root.Type, so that type parameters get filled in appropriately
         if (body == null) {
           body = ctor_call;
         } else {
