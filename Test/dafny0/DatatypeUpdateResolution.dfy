@@ -27,3 +27,17 @@ method Main()
   d := d.(x := 20);
   d := d.(Make? := d);  // error: Make? is not a destructor (this previously crashed the resolver)
 }
+
+module Issue214Regression {
+  datatype GenericType<T> = GenericType(value:T)
+
+  type ConcreteType = GenericType<int>
+
+  function F(c:ConcreteType): ConcreteType {
+    c.(value := 0)
+  }
+
+  function G(): int {
+    ConcreteType.GenericType(5).value
+  }
+}
