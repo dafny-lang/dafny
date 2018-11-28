@@ -2712,3 +2712,43 @@ module ExistsImpliesWarning {
   {
   }
 }
+
+// --------------- ghost (regression) tests, receivers -------------------------------------
+
+module GhostReceiverTests {
+  class C {
+    function F(x: int): int { 3 }
+    function method G(x: int): int { 4 }
+    lemma L(x: int) { }
+    method M(x: int) { }
+  }
+  method Caller(x: int, ghost z: int, c: C, ghost g: C) {
+    {
+      var y;
+      y := c.F(x);  // error: LHS is non-ghost, so RHS cannot use ghost function F
+      y := g.F(x);  // error: LHS is non-ghost, so RHS cannot use ghost function F
+      y := c.G(x);
+      y := g.G(x);  // error: LHS is non-ghost, so RHS cannot use ghost variable g
+    }
+    {
+      // all of the these are fine, because: the LHS is ghost and, therefore, the whole statement is
+      ghost var y;
+      y := c.F(x);
+      y := g.F(x);
+      y := c.G(x);
+      y := g.G(x);
+    }
+    {
+      // all of the these are fine, because: the LHS is ghost and, therefore, the whole statement is
+      ghost var y;
+      y := c.F(z);
+      y := g.F(z);
+      y := c.G(z);
+      y := g.G(z);
+    }
+    c.L(x);
+    g.L(x);
+    c.M(x);
+    g.M(x);  // error: cannot pass ghost receiver to compiled method
+  }
+}

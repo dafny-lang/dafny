@@ -6780,9 +6780,9 @@ namespace Microsoft.Dafny
               Error(s, "only ghost methods can be called from this context");
             }
           } else {
-            resolver.CheckIsCompilable(s.Receiver);
             int j;
             if (!callee.IsGhost) {
+              resolver.CheckIsCompilable(s.Receiver);
               j = 0;
               foreach (var e in s.Args) {
                 Contract.Assume(j < callee.Ins.Count);  // this should have already been checked by the resolver

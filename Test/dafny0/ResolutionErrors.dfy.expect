@@ -417,4 +417,8 @@ ResolutionErrors.dfy(2677,11): Error: name of type (Cache) is used as a variable
 ResolutionErrors.dfy(2677,17): Error: incorrect type for selection into ? (got X)
 ResolutionErrors.dfy(2685,13): Warning: the quantifier has the form 'exists x :: A ==> B', which most often is a typo for 'exists x :: A && B'; if you think otherwise, rewrite as 'exists x :: (A ==> B)' or 'exists x :: !A || B' to suppress this warning
 ResolutionErrors.dfy(2695,13): Warning: the quantifier has the form 'exists x :: A ==> B', which most often is a typo for 'exists x :: A && B'; if you think otherwise, rewrite as 'exists x :: (A ==> B)' or 'exists x :: !A || B' to suppress this warning
-414 resolution/type errors detected in ResolutionErrors.dfy
+ResolutionErrors.dfy(2728,13): Error: function calls are allowed only in specification contexts (consider declaring the function a 'function method')
+ResolutionErrors.dfy(2729,13): Error: function calls are allowed only in specification contexts (consider declaring the function a 'function method')
+ResolutionErrors.dfy(2731,11): Error: ghost variables are allowed only in specification contexts
+ResolutionErrors.dfy(2752,4): Error: ghost variables are allowed only in specification contexts
+418 resolution/type errors detected in ResolutionErrors.dfy
