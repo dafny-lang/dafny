@@ -42,10 +42,6 @@ struct DeclModifierData {
   public IToken StaticToken;
   public bool IsProtected;
   public IToken ProtectedToken;
-  public bool IsExtern;
-  public IToken ExternToken;
-  public StringLiteralExpr ExternName;
-
 }
 
 // Check that token has not been set, then set it.
@@ -70,7 +66,6 @@ enum AllowedDeclModifiers {
   AlreadyGhost = 4,
   Static = 8,
   Protected = 16, 
-  Extern = 32
 };
 
 /// <summary>
@@ -103,26 +98,6 @@ void CheckDeclModifiers(DeclModifierData dmod, string declCaption, AllowedDeclMo
   if (dmod.IsProtected && ((allowed & AllowedDeclModifiers.Protected) == 0)) {
     SemErr(dmod.ProtectedToken, declCaption + " cannot be declared 'protected'.");
     dmod.IsProtected = false;
-  }
-  if (dmod.IsExtern && ((allowed & AllowedDeclModifiers.Extern) == 0)) {
-    SemErr(dmod.ExternToken, declCaption + " cannot be declared 'extern'.");
-    dmod.IsExtern = false;
-  }
-}
-
-/// <summary>
-/// Encode an 'extern' declaration modifier as an {:extern name} attribute.
-///</summary>
-static void EncodeExternAsAttribute(DeclModifierData dmod, ref Attributes attrs, IToken/*!*/ id) {
-  if (dmod.IsExtern) {
-    StringLiteralExpr name = dmod.ExternName;
-    if (name == null) {
-      bool isVerbatimString = false;
-      name = new StringLiteralExpr(id, id.val, isVerbatimString);
-    }
-    var args = new List<Expression>();
-    args.Add(name);
-    attrs = new Attributes("extern", args, attrs);
   }
 }
 
@@ -774,8 +749,8 @@ TOKENS
   predicate = "predicate".
   inductive = "inductive".
   twostate = "twostate".
-  lemma = "lemma".
   copredicate = "copredicate".
+  lemma = "lemma".
   static = "static".
   protected = "protected".
   import = "import".
@@ -862,14 +837,6 @@ DeclModifier<ref DeclModifierData dmod>
   | "ghost"                                (. dmod.IsGhost = true;  CheckAndSetToken(ref dmod.GhostToken); .)
   | "static"                               (. dmod.IsStatic = true; CheckAndSetToken(ref dmod.StaticToken); .)
   | "protected"                            (. dmod.IsProtected = true; CheckAndSetToken(ref dmod.ProtectedToken); .)
-  | "extern"                               (. dmod.IsExtern = true; CheckAndSetToken(ref dmod.ExternToken);
-                                              errors.Deprecated(t, "the 'extern' keyword has been deprecated; use the ':extern' attribute instead");
-                                           .)
-    [ stringToken                          (. bool isVerbatimString;
-                                              string s = Util.RemoveParsedStringQuotes(t.val, out isVerbatimString);
-                                              dmod.ExternName = new StringLiteralExpr(t, s, isVerbatimString);
-                                           .)
-    ]
   )
   .
 
@@ -900,24 +867,21 @@ SubModuleDecl<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl sub
      bool isAbstract = dmod.IsAbstract;
      bool isProtected = dmod.IsProtected;
      bool opened = false;
-     CheckDeclModifiers(dmod, "Modules", AllowedDeclModifiers.Abstract | AllowedDeclModifiers.Extern | AllowedDeclModifiers.Protected);
+     CheckDeclModifiers(dmod, "Modules", AllowedDeclModifiers.Abstract | AllowedDeclModifiers.Protected);
   .)
   ( "module"
     { Attribute<ref attrs> }
     NoUSIdent<out id>
-    (. EncodeExternAsAttribute(dmod, ref attrs, id); .)
-  
-      [ "refines" ModuleName<out idRefined> ] 
-            (. module = new ModuleDefinition(id, id.val, isAbstract, isProtected, false, idRefined, parent, attrs, false); module.IsToBeVerified = theVerifyThisFile; .)  
-       "{"                                             (. module.BodyStartTok = t; .)
-            { TopDecl<module, namedModuleDefaultClassMembers, /* isTopLevel */ false, isAbstract>}
-       "}"                                 (. module.BodyEndTok = t;
-                                              module.TopLevelDecls.Add(new DefaultClassDecl(module, namedModuleDefaultClassMembers));
-                                              submodule = new LiteralModuleDecl(module, parent); .)
+    [ "refines" ModuleName<out idRefined> ] 
+    (. module = new ModuleDefinition(id, id.val, isAbstract, isProtected, false, idRefined, parent, attrs, false); module.IsToBeVerified = theVerifyThisFile; .)  
+    "{"                                 (. module.BodyStartTok = t; .)
+      { TopDecl<module, namedModuleDefaultClassMembers, /* isTopLevel */ false, isAbstract>}
+    "}"                                 (. module.BodyEndTok = t;
+                                           module.TopLevelDecls.Add(new DefaultClassDecl(module, namedModuleDefaultClassMembers));
+                                           submodule = new LiteralModuleDecl(module, parent); .)
   |
     "import" ["opened" (.opened = true;.)]
-     ModuleName<out id>
-    (. EncodeExternAsAttribute(dmod, ref attrs, id); .)
+    ModuleName<out id>
     ( (. idPath = new List<IToken>(); idExports = new List<IToken>(); .)
       [ QualifiedModuleExportSuffix<idPath, idExports> ]
       (. if (idPath.Count > 0)
@@ -1039,14 +1003,13 @@ ClassDecl<DeclModifierData dmodClass, ModuleDefinition/*!*/ module, out ClassDec
      List<TypeParameter/*!*/> typeArgs = new List<TypeParameter/*!*/>();
      List<MemberDecl/*!*/> members = new List<MemberDecl/*!*/>();
      IToken bodyStart;
-     CheckDeclModifiers(dmodClass, "Classes", AllowedDeclModifiers.Extern);
+     CheckDeclModifiers(dmodClass, "Classes", AllowedDeclModifiers.None);
      DeclModifierData dmod; 
   .)
   SYNC
   "class"
   { Attribute<ref attrs> }
   NoUSIdent<out id>
-  (. EncodeExternAsAttribute(dmodClass, ref attrs, id); .)
   [ GenericParameters<typeArgs, true> ]
   ["extends" 
   Type<out trait>    (. traits.Add(trait); .) 
@@ -1513,8 +1476,7 @@ MethodDecl<DeclModifierData dmod, bool allowConstructor, bool isWithinAbstractMo
   .)
   SYNC
   ( "method"                        (. isPlainOlMethod = true; caption = "Methods";
-                                       allowed = AllowedDeclModifiers.Ghost | AllowedDeclModifiers.Static 
-                                         | AllowedDeclModifiers.Extern; .)
+                                       allowed = AllowedDeclModifiers.Ghost | AllowedDeclModifiers.Static; .)
   | "lemma"                         (. isLemma = true; caption = "Lemmas";
                                        allowed = AllowedDeclModifiers.AlreadyGhost | AllowedDeclModifiers.Static 
                                          | AllowedDeclModifiers.Protected; .)
@@ -1550,7 +1512,6 @@ MethodDecl<DeclModifierData dmod, bool allowConstructor, bool isWithinAbstractMo
          SemErr(la, "a method must be given a name (expecting identifier)");
        }
      }
-     EncodeExternAsAttribute(dmod, ref attrs, id);
   .)
   (
     [ GenericParameters<typeArgs, false> ]
@@ -1898,7 +1859,6 @@ FunctionDecl<DeclModifierData dmod, bool isWithinAbstractModule, out Function/*!
        if (!isTwoState) { allowed |= AllowedDeclModifiers.Protected; }
        string caption = "Functions";
        if (isFunctionMethod) { 
-         allowed |= AllowedDeclModifiers.Extern; 
          caption = "Function methods";
        }
        CheckDeclModifiers(dmod, caption, allowed);
@@ -1937,7 +1897,6 @@ FunctionDecl<DeclModifierData dmod, bool isWithinAbstractModule, out Function/*!
        if (!isTwoState) { allowed |= AllowedDeclModifiers.Protected; }
        string caption = "Predicates";
        if (isFunctionMethod) { 
-         allowed |= AllowedDeclModifiers.Extern; 
          caption = "Predicate methods";
        }
        CheckDeclModifiers(dmod, caption, allowed);
@@ -1998,7 +1957,6 @@ FunctionDecl<DeclModifierData dmod, bool isWithinAbstractModule, out Function/*!
          !Attributes.Contains(attrs, "axiom") && !Attributes.Contains(attrs, "imported")) {
         SemErr(t, "a function with an ensures clause must have a body, unless given the :axiom attribute");
      }
-     EncodeExternAsAttribute(dmod, ref attrs, id);
      IToken tok = id;
      if (isTwoState && isPredicate) {
         f = new TwoStatePredicate(tok, id.val, dmod.IsStatic, typeArgs, formals,
