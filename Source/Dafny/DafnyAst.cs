@@ -484,7 +484,7 @@ namespace Microsoft.Dafny {
         } else if (literal != null && literal.Value is BigInteger && allowed.Contains(MatchingValueOption.Int)) {
           value = literal.Value;
           return true;
-        } else if (stringLiteral != null && (stringLiteral.Value as string) != null && allowed.Contains(MatchingValueOption.String)) {
+        } else if (stringLiteral != null && stringLiteral.Value is string && allowed.Contains(MatchingValueOption.String)) {
           value = stringLiteral.Value;
           return true;
         } else if (allowed.Contains(MatchingValueOption.Expression)) {
@@ -3025,8 +3025,7 @@ namespace Microsoft.Dafny {
             err => errorMessage = err);
           if (isExternal) {
             compileName = (string)externValue;
-          }
-          else {
+          } else {
             compileName = NonglobalVariable.CompilerizeName(Name);
           }
         }
@@ -3546,11 +3545,10 @@ namespace Microsoft.Dafny {
             err => errorMessage = err);
           if (isExternal) {
             compileName = (string)externValue;
+          } else if (IsBuiltinName) {
+            compileName = Name;
           } else {
-            if (IsBuiltinName)
-              compileName = Name;
-            else
-              compileName = "_" + Height.ToString() + "_" + NonglobalVariable.CompilerizeName(Name);
+            compileName = "_" + Height.ToString() + "_" + NonglobalVariable.CompilerizeName(Name);
           }
         }
         return compileName;
@@ -8379,13 +8377,13 @@ namespace Microsoft.Dafny {
       return sub.Substitute(e);
     }
 
+    /// <summary>
+    /// Returns the string literal underlying an actual string literal (not as a sequence display of characters)
+    /// </summary>
+    /// <returns></returns>
     public string AsStringLiteral() {
-      var le = this as LiteralExpr;
-      if (le != null) {
-        return le.Value as string;
-      } else {
-        return null;
-      }
+      var le = this as StringLiteralExpr;
+      return le == null ? null : le.Value as string;
     }
   }
 

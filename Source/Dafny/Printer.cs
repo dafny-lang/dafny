@@ -715,7 +715,7 @@ namespace Microsoft.Dafny {
     public void PrintOneAttribute(Attributes a, string nameSubstitution = null) {
       Contract.Requires(a != null);
       var name = nameSubstitution ?? a.Name;
-      var usAttribute = name.StartsWith("_") || (DafnyOptions.O.DisallowExterns && name == "extern");
+      var usAttribute = name.StartsWith("_") || (DafnyOptions.O.DisallowExterns && (name == "extern" || name == "dllimport"));
       wr.Write("{1}{{:{0}", name, usAttribute ? "/*" : "");
       if (a.Args != null) {
         PrintAttributeArgs(a.Args, false);

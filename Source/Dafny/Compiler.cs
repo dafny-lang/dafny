@@ -954,7 +954,7 @@ namespace Microsoft.Dafny {
           }
         } else if (member is Function) {
           var f = (Function)member;
-          if (f.Body == null && !(c is TraitDecl && !f.IsStatic)) {
+          if (f.Body == null && !(c is TraitDecl && !f.IsStatic) && !(!DafnyOptions.O.DisallowExterns && Attributes.Contains(f.Attributes, "dllimport"))) {
             // A (ghost or non-ghost) function must always have a body, except if it's an instance function in a trait.
             if (forCompanionClass || Attributes.Contains(f.Attributes, "axiom") || (!DafnyOptions.O.DisallowExterns && Attributes.Contains(f.Attributes, "extern"))) {
               // suppress error message (in the case of "forCompanionClass", the non-forCompanionClass call will produce the error message)
@@ -985,7 +985,7 @@ namespace Microsoft.Dafny {
           }
         } else if (member is Method) {
           var m = (Method)member;
-          if (m.Body == null && !(c is TraitDecl && !m.IsStatic)) {
+          if (m.Body == null && !(c is TraitDecl && !m.IsStatic) && !(!DafnyOptions.O.DisallowExterns && Attributes.Contains(m.Attributes, "dllimport"))) {
             // A (ghost or non-ghost) method must always have a body, except if it's an instance method in a trait.
             if (forCompanionClass || Attributes.Contains(m.Attributes, "axiom") || (!DafnyOptions.O.DisallowExterns && Attributes.Contains(m.Attributes, "extern"))) {
               // suppress error message (in the case of "forCompanionClass", the non-forCompanionClass call will produce the error message)
@@ -1022,51 +1022,68 @@ namespace Microsoft.Dafny {
     }
 
     private void CompileFunction(int indent, Function f, TextWriter wr) {
+      Contract.Requires(f != null);
+      Contract.Requires(wr != null);
+
+      var hasDllImportAttribute = ProcessDllImport(indent, f, wr);
       Indent(indent, wr);
-      wr.Write("public {0}{1} @{2}", f.IsStatic ? "static " : "", TypeName(f.ResultType, wr, f.tok), f.CompileName);
+      wr.Write("public {0}{1}{2} @{3}", f.IsStatic ? "static " : "", hasDllImportAttribute ? "extern " : "", TypeName(f.ResultType, wr, f.tok), f.CompileName);
       if (f.TypeArgs.Count != 0) {
         wr.Write("<{0}>", TypeParameters(f.TypeArgs));
       }
       wr.Write("(");
       WriteFormals("", f.Formals, wr);
-      wr.WriteLine(") {");
-      CompileReturnBody(f.Body, indent + IndentAmount, wr);
-      Indent(indent, wr); wr.WriteLine("}");
+      if (hasDllImportAttribute) {
+        wr.WriteLine(");");
+      } else {
+        wr.WriteLine(") {");
+        CompileReturnBody(f.Body, indent + IndentAmount, wr);
+        Indent(indent, wr); wr.WriteLine("}");
+      }
     }
 
     private void CompileMethod(ClassDecl c, int indent, Method m, TextWriter wr) {
+      Contract.Requires(c != null);
+      Contract.Requires(m != null);
+      Contract.Requires(wr != null);
+
+      var hasDllImportAttribute = ProcessDllImport(indent, m, wr);
       Indent(indent, wr);
-      wr.Write("public {0}void @{1}", m.IsStatic ? "static " : "", m.CompileName);
+      wr.Write("public {0}{1}void @{2}", m.IsStatic ? "static " : "", hasDllImportAttribute ? "extern " : "", m.CompileName);
       if (m.TypeArgs.Count != 0) {
         wr.Write("<{0}>", TypeParameters(m.TypeArgs));
       }
       wr.Write("(");
       int nIns = WriteFormals("", m.Ins, wr);
       WriteFormals(nIns == 0 ? "" : ", ", m.Outs, wr);
-      wr.WriteLine(")");
-      Indent(indent, wr); wr.WriteLine("{");
-      foreach (Formal p in m.Outs) {
-        if (!p.IsGhost) {
-          Indent(indent + IndentAmount, wr);
-          wr.WriteLine("@{0} = {1};", p.CompileName, DefaultValue(p.Type, wr, p.tok));
-        }
-      }
-      if (m.Body == null) {
-        Error(m.tok, "Method {0} has no body", wr, m.FullName);
+      if (hasDllImportAttribute) {
+        wr.WriteLine(");");
       } else {
-        if (m.IsTailRecursive) {
-          if (!m.IsStatic) {
-            Indent(indent + IndentAmount, wr); wr.WriteLine("var _this = this;");
+        wr.WriteLine(")");
+        Indent(indent, wr); wr.WriteLine("{");
+        foreach (Formal p in m.Outs) {
+          if (!p.IsGhost) {
+            Indent(indent + IndentAmount, wr);
+            wr.WriteLine("@{0} = {1};", p.CompileName, DefaultValue(p.Type, wr, p.tok));
           }
-          Indent(indent, wr); wr.WriteLine("TAIL_CALL_START: ;");
         }
-        Contract.Assert(enclosingMethod == null);
-        enclosingMethod = m;
-        TrStmtList(m.Body.Body, indent, wr);
-        Contract.Assert(enclosingMethod == m);
-        enclosingMethod = null;
+        if (m.Body == null) {
+          Error(m.tok, "Method {0} has no body", wr, m.FullName);
+        } else {
+          if (m.IsTailRecursive) {
+            if (!m.IsStatic) {
+              Indent(indent + IndentAmount, wr); wr.WriteLine("var _this = this;");
+            }
+            Indent(indent, wr); wr.WriteLine("TAIL_CALL_START: ;");
+          }
+          Contract.Assert(enclosingMethod == null);
+          enclosingMethod = m;
+          TrStmtList(m.Body.Body, indent, wr);
+          Contract.Assert(enclosingMethod == m);
+          enclosingMethod = null;
+        }
+        Indent(indent, wr); wr.WriteLine("}");
       }
-      Indent(indent, wr); wr.WriteLine("}");
 
       // allow the Main method to be an instance method
       if (IsMain(m) && (!m.IsStatic || m.CompileName != "Main")) {
@@ -1093,6 +1110,42 @@ namespace Microsoft.Dafny {
         }
         Indent(indent, wr); wr.WriteLine("}");
       }
+    }
+
+    /// <summary>
+    /// Process the declaration's "dllimport" attribute, if any, by emitting the corresponding .NET custom attribute.
+    /// Returns "true" if the declaration has an active "dllimport" attribute; "false", otherwise.
+    /// </summary>
+    bool ProcessDllImport(int indent, MemberDecl decl, TextWriter wr) {
+      Contract.Requires(decl != null);
+      Contract.Requires(wr != null);
+
+      var dllimportsArgs = Attributes.FindExpressions(decl.Attributes, "dllimport");
+      if (!DafnyOptions.O.DisallowExterns && dllimportsArgs != null) {
+        StringLiteralExpr libName = null;
+        StringLiteralExpr entryPoint = null;
+        if (dllimportsArgs.Count == 2) {
+          libName = dllimportsArgs[0] as StringLiteralExpr;
+          entryPoint = dllimportsArgs[1] as StringLiteralExpr;
+        } else if (dllimportsArgs.Count == 1) {
+          libName = dllimportsArgs[0] as StringLiteralExpr;
+          entryPoint = new StringLiteralExpr(decl.tok, decl.CompileName, false);
+        }
+        if (libName == null || entryPoint == null) {
+          Error(decl.tok, "Expected arguments are {{:dllimport dllName}} or {{:dllimport dllName, entryPoint}} where dllName and entryPoint are strings: {0}", wr, decl.FullName);
+        } else if ((decl is Method m && m.Body != null) || (decl is Function f && f.Body != null)) {
+          Error(decl.tok, "A {0} declared with dllimport is not allowed a body: {1}", wr, decl.WhatKind, decl.FullName);
+        } else {
+          Indent(indent, wr);
+          wr.Write("[System.Runtime.InteropServices.DllImport(");
+          TrStringLiteral(libName, wr);
+          wr.Write(", EntryPoint=");
+          TrStringLiteral(entryPoint, wr);
+          wr.WriteLine(")]");
+        }
+        return true;
+      }
+      return false;
     }
 
     void TrCasePatternOpt<VT>(CasePattern<VT> pat, Expression rhs, string rhs_string, int indent, TextWriter wr, bool inLetExprBody) where VT: IVariable {
@@ -2781,7 +2834,9 @@ namespace Microsoft.Dafny {
           wr.Write("'{0}'", (string)e.Value);
         } else if (e is StringLiteralExpr) {
           var str = (StringLiteralExpr)e;
-          wr.Write("{0}<char>.FromString({1}\"{2}\")", DafnySeqClass, str.IsVerbatim ? "@" : "", (string)e.Value);
+          wr.Write("{0}<char>.FromString(", DafnySeqClass);
+          TrStringLiteral(str, wr);
+          wr.Write(")");
         } else if (AsNativeType(e.Type) != null) {
           wr.Write((BigInteger)e.Value + AsNativeType(e.Type).Suffix);
         } else if (e.Value is BigInteger) {
@@ -3735,6 +3790,12 @@ namespace Microsoft.Dafny {
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected expression
       }
+    }
+
+    void TrStringLiteral(StringLiteralExpr str, TextWriter wr) {
+      Contract.Requires(str != null);
+      Contract.Requires(wr != null);
+      wr.Write("{0}\"{1}\"", str.IsVerbatim ? "@" : "", (string)str.Value);
     }
 
     private Expression SubstituteBound(ComprehensionExpr.IntBoundedPool b, List<ComprehensionExpr.BoundedPool> bounds, List<BoundVar> boundVars, int index, bool lowBound)

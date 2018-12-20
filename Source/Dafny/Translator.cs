@@ -15431,7 +15431,7 @@ namespace Microsoft.Dafny {
           if (attr.Name == skipThisAttribute
            || attr.Name == "axiom"  // Dafny's axiom attribute clashes with Boogie's axiom keyword
            || attr.Name == "fuel"   // Fuel often uses function names as arguments, which adds extra axioms unnecessarily
-           || (DafnyOptions.O.DisallowExterns && attr.Name == "extern") // omit the extern attribute when /noExterns option is specified.
+           || (DafnyOptions.O.DisallowExterns && (attr.Name == "extern" || attr.Name == "dllimport")) // omit the extern attribute when /noExterns option is specified.
              ) {
             continue;
           }

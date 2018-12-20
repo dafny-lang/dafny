@@ -499,7 +499,7 @@ namespace Microsoft.Dafny
                     how discriminating they are:  0 < 1 < 2 < (3,4) < 5 < 6
                 6 (default) - most discriminating
   /noIncludes   Ignore include directives
-  /noExterns    Ignore extern attributes
+  /noExterns    Ignore extern and dllimport attributes
   /noNLarith    Reduce Z3's knowledge of non-linear arithmetic (*,/,%).
                 Results in more manual work, but also produces more predictable behavior.
                 (This switch will perhaps be replaced by /arith in the future.
