@@ -3018,19 +3018,40 @@ namespace Microsoft.Dafny {
     public virtual string CompileName {
       get {
         if (compileName == null) {
-          object externValue = "";
-          string errorMessage = "";
-          bool isExternal = !DafnyOptions.O.DisallowExterns && Attributes.ContainsMatchingValue(this.Attributes, "extern", ref externValue,
-            new Attributes.MatchingValueOption[] { Attributes.MatchingValueOption.String },
-            err => errorMessage = err);
-          if (isExternal) {
-            compileName = (string)externValue;
-          } else {
+          string qual;
+          IsExtern(out qual, out compileName);
+          if (compileName == null) {
+            // this is the usual name
             compileName = NonglobalVariable.CompilerizeName(Name);
           }
         }
         return compileName;
       }
+    }
+    public bool IsExtern(out string/*?*/ qualification, out string/*?*/ name) {
+      // ensures result==false ==> qualification == null && name == null
+      Contract.Ensures(Contract.Result<bool>() || (Contract.ValueAtReturn(out qualification) == null && Contract.ValueAtReturn(out name) == null));
+      // ensures result==true ==> qualification != null ==> name != null
+      Contract.Ensures(!Contract.Result<bool>() || Contract.ValueAtReturn(out qualification) == null || Contract.ValueAtReturn(out name) != null);
+      
+      qualification = null;
+      name = null;
+      if (!DafnyOptions.O.DisallowExterns) {
+        var externArgs = Attributes.FindExpressions(this.Attributes, "extern");
+        if (externArgs != null) {
+          if (externArgs.Count == 0) {
+            return true;
+          } else if (externArgs.Count == 1 && externArgs[0] is StringLiteralExpr) {
+            name = externArgs[0].AsStringLiteral();
+            return true;
+          } else if (externArgs.Count == 2 && externArgs[0] is StringLiteralExpr && externArgs[1] is StringLiteralExpr) {
+            qualification = externArgs[0].AsStringLiteral();
+            name = externArgs[1].AsStringLiteral();
+            return true;
+          }
+        }
+      }
+      return false;
     }
     public Attributes Attributes;  // readonly, except during class merging in the refinement transformations
 
@@ -3787,6 +3808,12 @@ namespace Microsoft.Dafny {
     }
     public string FullCompileName {
       get {
+        var externArgs = Attributes.FindExpressions(this.Attributes, "extern");
+        if (!DafnyOptions.O.DisallowExterns && externArgs != null) {
+          if (externArgs.Count == 2 && externArgs[0] is StringLiteralExpr && externArgs[1] is StringLiteralExpr) {
+            return externArgs[0].AsStringLiteral() + "." + externArgs[1].AsStringLiteral();
+          }
+        }
         if (!Module.IsDefaultModule) {
           return Module.CompileName + ".@" + CompileName;
         } else {
