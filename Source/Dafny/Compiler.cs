@@ -1048,14 +1048,30 @@ namespace Microsoft.Dafny {
       Contract.Requires(wr != null);
 
       var hasDllImportAttribute = ProcessDllImport(indent, m, wr);
+      string targetReturnTypeReplacement = null;
+      if (hasDllImportAttribute) {
+        foreach (var p in m.Outs) {
+          if (!p.IsGhost) {
+            if (targetReturnTypeReplacement == null) {
+              targetReturnTypeReplacement = TypeName(p.Type, wr, p.tok);
+            } else if (targetReturnTypeReplacement != null) {
+              // there's more than one out-parameter, so bail
+              targetReturnTypeReplacement = null;
+              break;
+            }
+          }
+        }
+      }
       Indent(indent, wr);
-      wr.Write("public {0}{1}void @{2}", m.IsStatic ? "static " : "", hasDllImportAttribute ? "extern " : "", m.CompileName);
+      wr.Write("public {0}{1}{3} @{2}", m.IsStatic ? "static " : "", hasDllImportAttribute ? "extern " : "", m.CompileName, targetReturnTypeReplacement ?? "void");
       if (m.TypeArgs.Count != 0) {
         wr.Write("<{0}>", TypeParameters(m.TypeArgs));
       }
       wr.Write("(");
       int nIns = WriteFormals("", m.Ins, wr);
-      WriteFormals(nIns == 0 ? "" : ", ", m.Outs, wr);
+      if (targetReturnTypeReplacement == null) {
+        WriteFormals(nIns == 0 ? "" : ", ", m.Outs, wr);
+      }
       if (hasDllImportAttribute) {
         wr.WriteLine(");");
       } else {
@@ -1129,7 +1145,8 @@ namespace Microsoft.Dafny {
           entryPoint = dllimportsArgs[1] as StringLiteralExpr;
         } else if (dllimportsArgs.Count == 1) {
           libName = dllimportsArgs[0] as StringLiteralExpr;
-          entryPoint = new StringLiteralExpr(decl.tok, decl.CompileName, false);
+          // use the given name, not the .CompileName (if user needs something else, the user can supply it as a second argument to :dllimport)
+          entryPoint = new StringLiteralExpr(decl.tok, decl.Name, false);
         }
         if (libName == null || entryPoint == null) {
           Error(decl.tok, "Expected arguments are {{:dllimport dllName}} or {{:dllimport dllName, entryPoint}} where dllName and entryPoint are strings: {0}", wr, decl.FullName);
@@ -2495,7 +2512,12 @@ namespace Microsoft.Dafny {
       if (tRhs == null) {
         // no further initialization action required
       } else if (tRhs.InitCall != null) {
-        wr.Write(TrCallStmt(tRhs.InitCall, nw, indent).ToString());
+        string q, n;
+        if (tRhs.InitCall.Method is Constructor && tRhs.InitCall.Method.IsExtern(out q, out n)) {
+          // initialization was done at the time of allocation
+        } else {
+          wr.Write(TrCallStmt(tRhs.InitCall, nw, indent).ToString());
+        }
       } else if (tRhs.ElementInit != null) {
         // Compute the array-initializing function once and for all (as required by the language definition)
         string f = idGenerator.FreshId("_arrayinit");
@@ -2611,17 +2633,25 @@ namespace Microsoft.Dafny {
           if (!p.IsGhost) {
           }
         }
-        if (receiverReplacement != null) {
-          Indent(indent, wr);
-          wr.Write("@" + receiverReplacement);
-        } else if (s.Method.IsStatic) {
-          Indent(indent, wr);
-          wr.Write(TypeName_Companion(s.Receiver.Type, wr, s.Tok));
-        } else {
-          Indent(indent, wr);
-          TrParenExpr(s.Receiver, wr, false);
+        Indent(indent, wr);
+        if (!DafnyOptions.O.DisallowExterns && Attributes.Contains(s.Method.Attributes, "dllimport") && outTmps.Count == 1) {
+          wr.Write("{0} = ", outTmps[0]);
         }
-        wr.Write(".@{0}", s.Method.CompileName);
+        if (receiverReplacement != null) {
+          wr.Write("@" + receiverReplacement);
+          wr.Write(".@{0}", s.Method.CompileName);
+        } else if (!s.Method.IsStatic) {
+          TrParenExpr(s.Receiver, wr, false);
+          wr.Write(".@{0}", s.Method.CompileName);
+        } else {
+          string qual, compileName;
+          if (s.Method.IsExtern(out qual, out compileName) && qual != null) {
+            wr.Write("{0}.{1}", qual, compileName);
+          } else {
+            wr.Write(TypeName_Companion(s.Receiver.Type, wr, s.Tok));
+            wr.Write(".@{0}", s.Method.CompileName);
+          }
+        }
         if (s.Method.TypeArgs.Count != 0) {
           var typeSubst = s.MethodSelect.TypeArgumentSubstitutions();
           List<Type> typeArgs = s.Method.TypeArgs.ConvertAll(ta => typeSubst[ta]);
@@ -2639,9 +2669,13 @@ namespace Microsoft.Dafny {
           }
         }
 
-        foreach (var outTmp in outTmps) {
-          wr.Write("{0}out {1}", sep, outTmp);
-          sep = ", ";
+        if (!DafnyOptions.O.DisallowExterns && Attributes.Contains(s.Method.Attributes, "dllimport") && outTmps.Count == 1) {
+          // actual out-parameter already processed above
+        } else {
+          foreach (var outTmp in outTmps) {
+            wr.Write("{0}out {1}", sep, outTmp);
+            sep = ", ";
+          }
         }
         wr.WriteLine(");");
 
@@ -2667,7 +2701,22 @@ namespace Microsoft.Dafny {
       } else {
         TypeRhs tp = (TypeRhs)rhs;
         if (tp.ArrayDimensions == null) {
-          wr.Write("new {0}()", TypeName(tp.EType, wr, rhs.Tok));
+          wr.Write("new {0}(", TypeName(tp.EType, wr, rhs.Tok));
+          var ctor = tp.InitCall == null ? null : tp.InitCall.Method as Constructor;
+          string q, n;
+          if (ctor != null && ctor.IsExtern(out q, out n)) {
+            // the arguments of any external constructor are placed here
+            string sep = "";
+            for (int i = 0; i < ctor.Ins.Count; i++) {
+              Formal p = ctor.Ins[i];
+              if (!p.IsGhost) {
+                wr.Write(sep);
+                TrExpr(tp.InitCall.Args[i], wr, false);
+                sep = ", ";
+              }
+            }
+          }
+          wr.Write(")");
         } else if (tp.ElementInit != null || tp.InitDisplay != null || HasSimpleZeroInitializer(tp.EType)) {
           string typeNameSansBrackets, brackets;
           TypeName_SplitArrayName(tp.EType, wr, rhs.Tok, out typeNameSansBrackets, out brackets);
