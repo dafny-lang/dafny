@@ -62,7 +62,10 @@ namespace Microsoft.Dafny {
       wr.Write(spaces.Substring(0, ind));
     }
 
-    protected abstract void EmitHeader(Program program, TextWriter wr);
+    protected abstract void EmitHeader(Program program, TargetWriter wr);
+    protected abstract BlockTargetWriter CreateModule(TargetWriter wr, string moduleName);
+
+    protected abstract void EmitPrintStmt(TargetWriter wr, Expression arg);
 
     public void Compile(Program program, TargetWriter wrx) {
       Contract.Requires(program != null);
@@ -77,7 +80,7 @@ namespace Microsoft.Dafny {
           continue;
         }
         int indent = 0;
-        var wr = wrx.NewBigBlock(" // end of ", "namespace @{0}", m.IsDefaultModule ? "__default" : m.CompileName);
+        var wr = CreateModule(wrx, m.IsDefaultModule ? "__default" : m.CompileName);
         indent += IndentAmount;
         Contract.Assert(indent == wr.IndentLevel);
         foreach (TopLevelDecl d in m.TopLevelDecls) {
@@ -252,56 +255,56 @@ namespace Microsoft.Dafny {
       }
     }
 
-    void CompileBuiltIns(BuiltIns builtIns, TextWriter wr) {
-      wr.WriteLine("namespace Dafny {");
-      Indent(IndentAmount, wr);
-      wr.WriteLine("internal class ArrayHelpers {");
+    void CompileBuiltIns(BuiltIns builtIns, TargetWriter wr) {
+      Contract.Requires(builtIns != null);
+      Contract.Requires(wr != null);
+
+      wr = CreateModule(wr, "Dafny");
+      wr.Indent();
+      wr = wr.NewBlock("internal class ArrayHelpers");
       foreach (var decl in builtIns.SystemModule.TopLevelDecls) {
         if (decl is ArrayClassDecl) {
           int dims = ((ArrayClassDecl)decl).Dims;
 
           // Here is an overloading of the method name, where there is an initialValue parameter
           // public static T[,] InitNewArray2<T>(T z, BigInteger size0, BigInteger size1) {
-          Indent(3 * IndentAmount, wr);
-          wr.Write("public static T[");
-          RepeatWrite(wr, dims, "", ",");
-          wr.Write("] InitNewArray{0}<T>(T z, ", dims);
-          RepeatWrite(wr, dims, "BigInteger size{0}", ", ");
-          wr.WriteLine(") {");
+          var sw = new StringWriter();
+          sw.Write("public static T[");
+          RepeatWrite(sw, dims, "", ",");
+          sw.Write("] InitNewArray{0}<T>(T z, ", dims);
+          RepeatWrite(sw, dims, "BigInteger size{0}", ", ");
+          sw.Write(")");
+
+          wr.Indent();
+          var w = wr.NewBlock(sw.ToString());
           // int s0 = (int)size0;
           for (int i = 0; i < dims; i++) {
-            Indent(4 * IndentAmount, wr);
-            wr.WriteLine("int s{0} = (int)size{0};", i);
+            w.Indent();
+            w.WriteLine("int s{0} = (int)size{0};", i);
           }
           // T[,] a = new T[s0, s1];
-          Indent(4 * IndentAmount, wr);
-          wr.Write("T[");
-          RepeatWrite(wr, dims, "", ",");
-          wr.Write("] a = new T[");
-          RepeatWrite(wr, dims, "s{0}", ",");
-          wr.WriteLine("];");
+          w.Indent();
+          w.Write("T[");
+          RepeatWrite(w, dims, "", ",");
+          w.Write("] a = new T[");
+          RepeatWrite(w, dims, "s{0}", ",");
+          w.WriteLine("];");
           // for (int i0 = 0; i0 < s0; i0++)
           //   for (int i1 = 0; i1 < s1; i1++)
           for (int i = 0; i < dims; i++) {
-            Indent((4 + i) * IndentAmount, wr);
-            wr.WriteLine("for (int i{0} = 0; i{0} < s{0}; i{0}++)", i);
+            w.IndentExtra(i);
+            w.WriteLine("for (int i{0} = 0; i{0} < s{0}; i{0}++)", i);
           }
           // a[i0,i1] = z;
-          Indent((4 + dims) * IndentAmount, wr);
-          wr.Write("a[");
-          RepeatWrite(wr, dims, "i{0}", ",");
-          wr.WriteLine("] = z;");
+          w.IndentExtra(dims);
+          w.Write("a[");
+          RepeatWrite(w, dims, "i{0}", ",");
+          w.WriteLine("] = z;");
           // return a;
-          Indent(4 * IndentAmount, wr);
-          wr.WriteLine("return a;");
-          // }
-          Indent(3 * IndentAmount, wr);
-          wr.WriteLine("}");  // end of method
+          w.Indent();
+          w.WriteLine("return a;");
         }
       }
-      Indent(IndentAmount, wr);
-      wr.WriteLine("}");  // end of class Helpers
-      wr.WriteLine("}");  // end of namespace
     }
 
     static void RepeatWrite(TextWriter wr, int times, string template, string separator) {
@@ -1734,7 +1737,7 @@ namespace Microsoft.Dafny {
 
     TextWriter TrStmt(Statement stmt, int indent) {
       Contract.Requires(stmt != null);
-      TextWriter wr = new StringWriter();
+      TargetWriter wr = new TargetWriter(indent);
       if (stmt.IsGhost) {
         var v = new CheckHasNoAssumes_Visitor(this, wr);
         v.Visit(stmt);
@@ -1744,10 +1747,7 @@ namespace Microsoft.Dafny {
       if (stmt is PrintStmt) {
         PrintStmt s = (PrintStmt)stmt;
         foreach (var arg in s.Args) {
-          Indent(indent, wr);
-          wr.Write("System.Console.Write(");
-          TrExpr(arg, wr, false);
-          wr.WriteLine(");");
+          EmitPrintStmt(wr, arg);
         }
       } else if (stmt is BreakStmt) {
         var s = (BreakStmt)stmt;
@@ -2812,7 +2812,7 @@ namespace Microsoft.Dafny {
     /// <summary>
     /// Before calling TrExpr(expr), the caller must have spilled the let variables declared in "expr".
     /// </summary>
-    void TrExpr(Expression expr, TextWriter wr, bool inLetExprBody) {
+    protected void TrExpr(Expression expr, TextWriter wr, bool inLetExprBody) {
       Contract.Requires(expr != null);
       if (expr is LiteralExpr) {
         LiteralExpr e = (LiteralExpr)expr;
@@ -4043,9 +4043,12 @@ namespace Microsoft.Dafny {
     public void Indent() {
       Write(IndentString);
     }
-    public void IndentExtra() {
+    public void IndentExtra(int times = 1) {
+      Contract.Requires(0 <= times);
       Indent();
-      Write(IndentAmountString);
+      for (; 0 <= --times;) {
+        Write(IndentAmountString);
+      }
     }
     public override void Write(char[] buffer, int index, int count) {
       things.Add(new string(buffer, index, count));
@@ -4059,20 +4062,15 @@ namespace Microsoft.Dafny {
 
     public BlockTargetWriter NewBlock(string headerFormat, params object[] headerArgs) {
       Contract.Requires(headerFormat != null);
-      var btw = new BlockTargetWriter(IndentLevel + IndentAmount, headerFormat, headerArgs);
-      btw.SetBraceStyle(BlockTargetWriter.BraceStyle.Space, BlockTargetWriter.BraceStyle.Newline, null);
+      var btw = new BlockTargetWriter(IndentLevel + IndentAmount, string.Format(headerFormat, headerArgs), null);
+      btw.SetBraceStyle(BlockTargetWriter.BraceStyle.Space, BlockTargetWriter.BraceStyle.Newline);
       things.Add(btw);
       return btw;
     }
-    public BlockTargetWriter NewBigBlock(string footer, string headerFormat, params object[] headerArgs) {
-      Contract.Requires(footer != null);
-      Contract.Requires(headerFormat != null);
-      var btw = new BlockTargetWriter(IndentLevel + IndentAmount, headerFormat, headerArgs);
-      if (footer != null) {
-        btw.SetBraceStyle(BlockTargetWriter.BraceStyle.Space, BlockTargetWriter.BraceStyle.RepeatHeader, footer);
-      } else {
-        btw.SetBraceStyle(BlockTargetWriter.BraceStyle.Newline, BlockTargetWriter.BraceStyle.Newline, null);
-      }
+    public BlockTargetWriter NewBigBlock(string header, string/*?*/ footer) {
+      Contract.Requires(header != null);
+      var btw = new BlockTargetWriter(IndentLevel + IndentAmount, header, footer);
+      btw.SetBraceStyle(BlockTargetWriter.BraceStyle.Space, BlockTargetWriter.BraceStyle.Newline);
       things.Add(btw);
       return btw;
     }
@@ -4097,22 +4095,20 @@ namespace Microsoft.Dafny {
   }
   public class BlockTargetWriter : TargetWriter {
     string header;
-    public enum BraceStyle { Nothing, Space, Newline, RepeatHeader }
+    public enum BraceStyle { Nothing, Space, Newline }
     BraceStyle openBraceStyle = BraceStyle.Space;
     BraceStyle closeBraceStyle = BraceStyle.Newline;
-    string footer = null;
-    public BlockTargetWriter(int indentInsideBraces, string headerFormat, params object[] headerArgs)
+    string footer;
+    public BlockTargetWriter(int indentInsideBraces, string header, string/*?*/ footer)
     : base(indentInsideBraces) {
       Contract.Requires(IndentAmount <= indentInsideBraces);
-      Contract.Requires(headerFormat != null);
-      Contract.Requires(headerArgs != null);
-      this.header = string.Format(headerFormat, headerArgs);
+      Contract.Requires(header != null);
+      this.header = header;
+      this.footer = footer;
     }
-    public void SetBraceStyle(BraceStyle open, BraceStyle close, string footer) {
-      Contract.Requires(open != BraceStyle.RepeatHeader);
+    public void SetBraceStyle(BraceStyle open, BraceStyle close) {
       this.openBraceStyle = open;
       this.closeBraceStyle = close;
-      this.footer = footer;
     }
     public void AppendHeader(string format, params object[] args) {
       Contract.Requires(format != null);
@@ -4135,6 +4131,7 @@ namespace Microsoft.Dafny {
       }
       wr.WriteLine("{");
       base.Collect(wr);
+      wr.Write(UnIndentString);
       wr.Write("}");
       if (footer != null) {
         wr.Write(footer);
@@ -4148,9 +4145,6 @@ namespace Microsoft.Dafny {
           break;
         case BraceStyle.Newline:
           wr.WriteLine();
-          break;
-        case BraceStyle.RepeatHeader:
-          wr.WriteLine(header);
           break;
       }
     }

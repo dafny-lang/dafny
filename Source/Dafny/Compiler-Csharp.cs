@@ -18,7 +18,7 @@ namespace Microsoft.Dafny {
     : base(reporter) {
     }
 
-    protected override void EmitHeader(Program program, TextWriter wr) {
+    protected override void EmitHeader(Program program, TargetWriter wr) {
       wr.WriteLine("// Dafny program {0} compiled into C#", program.Name);
       wr.WriteLine("// To recompile, use 'csc' with: /r:System.Numerics.dll");
       wr.WriteLine("// and choosing /target:exe or /target:library");
@@ -61,5 +61,16 @@ namespace Microsoft.Dafny {
       }
     }
 
+    protected override BlockTargetWriter CreateModule(TargetWriter wr, string moduleName) {
+      var s = string.Format("namespace @{0}", moduleName);
+      return wr.NewBigBlock(s, " // end of " + s);
+    }
+
+    protected override void EmitPrintStmt(TargetWriter wr, Expression arg) {
+      wr.Indent();
+      wr.Write("System.Console.Write(");
+      TrExpr(arg, wr, false);
+      wr.WriteLine(");");
+    }
   }
 }
