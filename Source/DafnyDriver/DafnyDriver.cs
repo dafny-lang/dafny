@@ -417,11 +417,11 @@ namespace Microsoft.Dafny
 
     #region Compilation
 
-    static string WriteDafnyProgramToFile(string dafnyProgramName, string csharpProgram, bool completeProgram, TextWriter outputWriter)
+    static string WriteDafnyProgramToFile(string dafnyProgramName, string targetProgram, bool completeProgram, TextWriter outputWriter)
     {
-      string targetFilename = Path.ChangeExtension(dafnyProgramName, "cs");
+      string targetFilename = Path.ChangeExtension(dafnyProgramName, DafnyOptions.O.CompileTarget == DafnyOptions.CompilationTarget.JavaScript ? "js" : "cs");
       using (TextWriter target = new StreamWriter(new FileStream(targetFilename, System.IO.FileMode.Create))) {
-        target.Write(csharpProgram);
+        target.Write(targetProgram);
         string relativeTarget = Path.GetFileName(targetFilename);
         if (completeProgram) {
           outputWriter.WriteLine("Compiled program written to {0}", relativeTarget);
@@ -449,10 +449,20 @@ namespace Microsoft.Dafny
       }
 
       // Compile the Dafny program into a string that contains the C# program
-      StringWriter sw = new StringWriter();
       var oldErrorCount = dafnyProgram.reporter.Count(ErrorLevel.Error);
-      Dafny.Compiler compiler = new Dafny.Compiler(dafnyProgram.reporter);
+      Dafny.Compiler compiler;
+      switch (DafnyOptions.O.CompileTarget) {
+        case DafnyOptions.CompilationTarget.Csharp:
+        default:
+          compiler = new Dafny.CsharpCompiler(dafnyProgram.reporter);
+          break;
+        case DafnyOptions.CompilationTarget.JavaScript:
+          compiler = new Dafny.JavaScriptCompiler(dafnyProgram.reporter);
+          break;
+      }
+      
       var hasMain = compiler.HasMain(dafnyProgram);
+      var sw = new TargetWriter();
       compiler.Compile(dafnyProgram, sw);
       var csharpProgram = sw.ToString();
       bool completeProgram = dafnyProgram.reporter.Count(ErrorLevel.Error) == oldErrorCount;

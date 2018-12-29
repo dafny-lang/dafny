@@ -14,7 +14,7 @@ using System.Text;
 
 
 namespace Microsoft.Dafny {
-  public class Compiler {
+  public abstract class Compiler {
     public Compiler(ErrorReporter reporter) {
       Reporter = reporter;
     }
@@ -52,34 +52,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    void ReadRuntimeSystem(TextWriter wr) {
-      string codebase = cce.NonNull(System.IO.Path.GetDirectoryName(cce.NonNull(System.Reflection.Assembly.GetExecutingAssembly().Location)));
-      string path = System.IO.Path.Combine(codebase, "DafnyRuntime.cs");
-      using (TextReader rd = new StreamReader(new FileStream(path, System.IO.FileMode.Open, System.IO.FileAccess.Read))) {
-        while (true) {
-          string s = rd.ReadLine();
-          if (s == null)
-            return;
-          wr.WriteLine(s);
-        }
-      }
-    }
-
-    void EmitDafnySourceAttribute(Program program, TextWriter wr) {
-      Contract.Requires(program != null);
-
-      wr.WriteLine("[assembly: DafnyAssembly.DafnySourceAttribute(@\"");
-
-      var strwr = new StringWriter();
-      strwr.NewLine = wr.NewLine;
-      new Printer(strwr, DafnyOptions.PrintModes.Everything).PrintProgram(program, true);
-
-      wr.Write(strwr.GetStringBuilder().Replace("\"", "\"\"").ToString());
-      wr.WriteLine("\")]");
-      wr.WriteLine();
-    }
-
-    readonly int IndentAmount = 2;
+    const int IndentAmount = 2;
     void Indent(int ind, TextWriter wr) {
       Contract.Requires(0 <= ind);
       string spaces = "          ";
@@ -89,23 +62,14 @@ namespace Microsoft.Dafny {
       wr.Write(spaces.Substring(0, ind));
     }
 
-    public void Compile(Program program, TextWriter wr) {
+    protected abstract void EmitHeader(Program program, TextWriter wr);
+
+    public void Compile(Program program, TargetWriter wrx) {
       Contract.Requires(program != null);
-      wr.WriteLine("// Dafny program {0} compiled into C#", program.Name);
-      wr.WriteLine("// To recompile, use 'csc' with: /r:System.Numerics.dll");
-      wr.WriteLine("// and choosing /target:exe or /target:library");
-      wr.WriteLine("// You might also want to include compiler switches like:");
-      wr.WriteLine("//     /debug /nowarn:0164 /nowarn:0219 /nowarn:1717 /nowarn:0162");
-      wr.WriteLine();
-      wr.WriteLine("using System;");
-      wr.WriteLine("using System.Numerics;");
-      EmitDafnySourceAttribute(program, wr);
 
-      if (!DafnyOptions.O.UseRuntimeLib) {
-        ReadRuntimeSystem(wr);
-      }
+      EmitHeader(program, wrx);
 
-      CompileBuiltIns(program.BuiltIns, wr);
+      CompileBuiltIns(program.BuiltIns, wrx);
 
       foreach (ModuleDefinition m in program.CompileModules) {
         if (m.IsAbstract) {
@@ -113,12 +77,9 @@ namespace Microsoft.Dafny {
           continue;
         }
         int indent = 0;
-        if (!m.IsDefaultModule) {
-          wr.WriteLine("namespace @{0} {{", m.CompileName);
-        } else {
-          wr.WriteLine("namespace @__default {");
-        }
+        var wr = wrx.NewBigBlock(" // end of ", "namespace @{0}", m.IsDefaultModule ? "__default" : m.CompileName);
         indent += IndentAmount;
+        Contract.Assert(indent == wr.IndentLevel);
         foreach (TopLevelDecl d in m.TopLevelDecls) {
           bool compileIt = true;
           if (Attributes.ContainsBool(d.Attributes, "compile", ref compileIt) && !compileIt) {
@@ -131,50 +92,45 @@ namespace Microsoft.Dafny {
           } else if (d is TypeSynonymDecl) {
             var sst = d as SubsetTypeDecl;
             if (sst != null && sst.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
-              Indent(indent, wr);
-              wr.Write("public class @{0}", sst.CompileName);
+              wr.Indent();
+              var w = wr.NewBlock("public class @{0}", sst.CompileName);
               if (sst.TypeArgs.Count != 0) {
-                wr.Write("<{0}>", TypeParameters(sst.TypeArgs));
+                w.AppendHeader("<{0}>", TypeParameters(sst.TypeArgs));
               }
-              wr.WriteLine(" {");
-              Indent(indent + IndentAmount, wr);
-              wr.Write("public static readonly {0} Witness = ", TypeName(sst.Rhs, wr, sst.tok));
-              TrExpr(sst.Witness, wr, false);
-              wr.WriteLine(";");
-              Indent(indent, wr);
-              wr.WriteLine("}");
+              w.Indent();
+              w.Write("public static readonly {0} Witness = ", TypeName(sst.Rhs, wr, sst.tok));
+              TrExpr(sst.Witness, w, false);
+              w.WriteLine(";");
             } else {
               // do nothing, just bypass type synonyms and witness-less subset types in the compiler
             }
           } else if (d is NewtypeDecl) {
             var nt = (NewtypeDecl)d;
-            Indent(indent, wr);
-            wr.WriteLine("public class @{0} {{", nt.CompileName);
+            wr.Indent();
+            var w = wr.NewBlock("public class @{0}", nt.CompileName);
             if (nt.NativeType != null) {
-              Indent(indent + IndentAmount, wr);
-              wr.WriteLine("public static System.Collections.Generic.IEnumerable<{0}> IntegerRange(BigInteger lo, BigInteger hi) {{", nt.NativeType.Name);
-              Indent(indent + 2 * IndentAmount, wr);
-              wr.WriteLine("for (var j = lo; j < hi; j++) {{ yield return ({0})j; }}", nt.NativeType.Name);
-              Indent(indent + IndentAmount, wr);
-              wr.WriteLine("}");
+              w.Indent();
+              w.WriteLine("public static System.Collections.Generic.IEnumerable<{0}> IntegerRange(BigInteger lo, BigInteger hi) {{", nt.NativeType.Name);
+              w.IndentExtra();
+              w.WriteLine("for (var j = lo; j < hi; j++) {{ yield return ({0})j; }}", nt.NativeType.Name);
+              w.Indent();
+              w.WriteLine("}");
             }
             if (nt.WitnessKind == SubsetTypeDecl.WKind.Compiled) { 
-              Indent(indent + IndentAmount, wr);
+              w.Indent();
               if (nt.NativeType == null) {
-                wr.Write("public static readonly {0} Witness = ", TypeName(nt.BaseType, wr, nt.tok));
-                TrExpr(nt.Witness, wr, false);
+                w.Write("public static readonly {0} Witness = ", TypeName(nt.BaseType, w, nt.tok));
+                TrExpr(nt.Witness, w, false);
               } else {
-                wr.Write("public static readonly {0} Witness = ({0})(", nt.NativeType.Name);
-                TrExpr(nt.Witness, wr, false);
-                wr.Write(")");
+                w.Write("public static readonly {0} Witness = ({0})(", nt.NativeType.Name);
+                TrExpr(nt.Witness, w, false);
+                w.Write(")");
               }
-              wr.WriteLine(";");
+              w.WriteLine(";");
             }
-            Indent(indent, wr);
-            wr.WriteLine("}");
           } else if (d is DatatypeDecl) {
             var dt = (DatatypeDecl)d;
-            Indent(indent, wr);
+            wr.Indent();
             wr.Write("public abstract class Base_{0}", dt.CompileName);
             if (dt.TypeArgs.Count != 0) {
               wr.Write("<{0}>", TypeParameters(dt.TypeArgs));
@@ -211,100 +167,87 @@ namespace Microsoft.Dafny {
               Error(iter.tok, "since yield parameters are initialized arbitrarily, iterators are forbidden by /definiteAssignment:3 option", wr);
             }
 
-            Indent(indent, wr);
-            wr.Write("public class @{0}", iter.CompileName);
+            wr.Indent();
+            var w = wr.NewBlock("public class @{0}", iter.CompileName);
             if (iter.TypeArgs.Count != 0) {
-              wr.Write("<{0}>", TypeParameters(iter.TypeArgs));
+              w.AppendHeader("<{0}>", TypeParameters(iter.TypeArgs));
             }
-            wr.WriteLine(" {");
             var ind = indent + IndentAmount;
+            Contract.Assert(ind == w.IndentLevel);
             // here come the fields
             Constructor ct = null;
             foreach (var member in iter.Members) {
               var f = member as Field;
               if (f != null && !f.IsGhost) {
-                Indent(ind, wr);
-                wr.WriteLine("public {0} @{1} = {2};", TypeName(f.Type, wr, f.tok), f.CompileName, DefaultValue(f.Type, wr, f.tok));
+                w.Indent();
+                w.WriteLine("public {0} @{1} = {2};", TypeName(f.Type, w, f.tok), f.CompileName, DefaultValue(f.Type, w, f.tok));
               } else if (member is Constructor) {
                 Contract.Assert(ct == null);  // we're expecting just one constructor
                 ct = (Constructor)member;
               }
             }
             Contract.Assert(ct != null);  // we do expect a constructor
-            Indent(ind, wr); wr.WriteLine("System.Collections.Generic.IEnumerator<object> __iter;");
+            w.Indent(); w.WriteLine("System.Collections.Generic.IEnumerator<object> __iter;");
 
             // here's the initializer method
-            Indent(ind, wr); wr.Write("public void @{0}(", ct.CompileName);
+            w.Indent(); w.Write("public void @{0}(", ct.CompileName);
             string sep = "";
             foreach (var p in ct.Ins) {
               if (!p.IsGhost) {
                 // here we rely on the parameters and the corresponding fields having the same names
-                wr.Write("{0}{1} @{2}", sep, TypeName(p.Type, wr, p.tok), p.CompileName);
+                w.Write("{0}{1} @{2}", sep, TypeName(p.Type, w, p.tok), p.CompileName);
                 sep = ", ";
               }
             }
-            wr.WriteLine(") {");
+            w.WriteLine(") {");
             foreach (var p in ct.Ins) {
               if (!p.IsGhost) {
-                Indent(ind + IndentAmount, wr);
-                wr.WriteLine("this.@{0} = @{0};", p.CompileName);
+                w.IndentExtra();
+                w.WriteLine("this.@{0} = @{0};", p.CompileName);
               }
             }
-            Indent(ind + IndentAmount, wr); wr.WriteLine("__iter = TheIterator();");
-            Indent(ind, wr); wr.WriteLine("}");
+            w.IndentExtra(); w.WriteLine("__iter = TheIterator();");
+            w.Indent(); w.WriteLine("}");
             // here are the enumerator methods
-            Indent(ind, wr); wr.WriteLine("public void MoveNext(out bool more) { more = __iter.MoveNext(); }");
-            Indent(ind, wr); wr.WriteLine("private System.Collections.Generic.IEnumerator<object> TheIterator() {");
+            w.Indent(); w.WriteLine("public void MoveNext(out bool more) { more = __iter.MoveNext(); }");
+            w.Indent(); w.WriteLine("private System.Collections.Generic.IEnumerator<object> TheIterator() {");
             if (iter.Body == null) {
-              Error(iter.tok, "Iterator {0} has no body", wr, iter.FullName);
+              Error(iter.tok, "Iterator {0} has no body", w, iter.FullName);
             } else {
-              wr.Write(TrStmt(iter.Body, ind + IndentAmount).ToString());
+              w.Write(TrStmt(iter.Body, ind + IndentAmount).ToString());
             }
-            Indent(ind + IndentAmount, wr); wr.WriteLine("yield break;");
-            Indent(ind, wr); wr.WriteLine("}");
-            // end of the class
-            Indent(indent, wr); wr.WriteLine("}");
+            w.IndentExtra(); w.WriteLine("yield break;");
+            w.Indent(); w.WriteLine("}");
 
           } else if (d is TraitDecl) {
             //writing the trait
             var trait = (TraitDecl)d;
-            Indent(indent, wr);
-            wr.Write("public interface @{0}", trait.CompileName);
-            wr.WriteLine(" {");
-            CompileClassMembers(trait, false, indent + IndentAmount, wr);
-            Indent(indent, wr); wr.WriteLine("}");
+            wr.Indent();
+            var w = wr.NewBlock("public interface @{0}", trait.CompileName);
+            CompileClassMembers(trait, false, indent + IndentAmount, w);
 
             //writing the _Companion class
-            Indent(indent, wr);
-            wr.Write("public class @_Companion_{0}", trait.CompileName);
-            wr.WriteLine(" {");
-            CompileClassMembers(trait, true, indent + IndentAmount, wr);
-            Indent(indent, wr); wr.WriteLine("}");
+            wr.Indent();
+            w = wr.NewBlock("public class @_Companion_{0}", trait.CompileName);
+            CompileClassMembers(trait, true, indent + IndentAmount, w);
           } else if (d is ClassDecl) {
             var cl = (ClassDecl)d;
-            Indent(indent, wr);
-            wr.Write("public partial class @{0}", cl.CompileName);
+            wr.Indent();
+            var w = wr.NewBlock("public partial class @{0}", cl.CompileName);
             if (cl.TypeArgs.Count != 0) {
-              wr.Write("<{0}>", TypeParameters(cl.TypeArgs));
+              w.AppendHeader("<{0}>", TypeParameters(cl.TypeArgs));
             }
             string sep = " : ";
             foreach (var trait in cl.TraitsTyp) {
-              wr.Write("{0}{1}", sep, TypeName(trait, wr, cl.tok));
+              w.AppendHeader("{0}{1}", sep, TypeName(trait, w, cl.tok));
               sep = ", ";
             }
-            wr.WriteLine(" {");
-            CompileClassMembers(cl, false, indent + IndentAmount, wr);
-            Indent(indent, wr); wr.WriteLine("}");
+            CompileClassMembers(cl, false, indent + IndentAmount, w);
           } else if (d is ValuetypeDecl) {
             // nop
           } else if (d is ModuleDecl) {
             // nop
           } else { Contract.Assert(false); }
-        }
-        if (!m.IsDefaultModule) {
-          wr.WriteLine("}} // end of namespace {0}", m.CompileName);
-        } else {
-          wr.WriteLine("} // end of namespace @__default");
         }
       }
     }
@@ -4080,5 +4023,136 @@ namespace Microsoft.Dafny {
       TrExprList(exprs, wr, inLetExprBody);
     }
 
+  }
+
+  public class TargetWriter : TextWriter {
+    public readonly int IndentLevel;
+    protected const int IndentAmount = 2;
+    const string IndentAmountString = "  ";  // this should have the length IndentAmount
+    public readonly string IndentString;
+    public string UnIndentString => new string(' ', Math.Max(IndentLevel - IndentAmount, 0));
+    readonly List<object> things = new List<object>();
+    public TargetWriter(int indent = 0) {
+      Contract.Requires(0 <= indent);
+      IndentLevel = indent;
+      IndentString = new string(' ', indent);
+    }
+    public override Encoding Encoding {
+      get { return Encoding.Default; }
+    }
+    public void Indent() {
+      Write(IndentString);
+    }
+    public void IndentExtra() {
+      Indent();
+      Write(IndentAmountString);
+    }
+    public override void Write(char[] buffer, int index, int count) {
+      things.Add(new string(buffer, index, count));
+    }
+    public override void Write(string value) {
+      things.Add(value);
+    }
+    public override void Write(char value) {
+      things.Add(new string(value, 1));
+    }
+
+    public BlockTargetWriter NewBlock(string headerFormat, params object[] headerArgs) {
+      Contract.Requires(headerFormat != null);
+      var btw = new BlockTargetWriter(IndentLevel + IndentAmount, headerFormat, headerArgs);
+      btw.SetBraceStyle(BlockTargetWriter.BraceStyle.Space, BlockTargetWriter.BraceStyle.Newline, null);
+      things.Add(btw);
+      return btw;
+    }
+    public BlockTargetWriter NewBigBlock(string footer, string headerFormat, params object[] headerArgs) {
+      Contract.Requires(footer != null);
+      Contract.Requires(headerFormat != null);
+      var btw = new BlockTargetWriter(IndentLevel + IndentAmount, headerFormat, headerArgs);
+      if (footer != null) {
+        btw.SetBraceStyle(BlockTargetWriter.BraceStyle.Space, BlockTargetWriter.BraceStyle.RepeatHeader, footer);
+      } else {
+        btw.SetBraceStyle(BlockTargetWriter.BraceStyle.Newline, BlockTargetWriter.BraceStyle.Newline, null);
+      }
+      things.Add(btw);
+      return btw;
+    }
+
+    public override string ToString() {
+      var sw = new StringWriter();
+      Collect(sw);
+      return sw.ToString();
+    }
+    public virtual void Collect(TextWriter wr) {
+      Contract.Requires(wr != null);
+      foreach (var o in things) {
+        if (o is string) {
+          wr.Write((string)o);
+        } else if (o is TargetWriter) {
+          ((TargetWriter)o).Collect(wr);
+        } else {
+          wr.Write(o.ToString());
+        }
+      }
+    }
+  }
+  public class BlockTargetWriter : TargetWriter {
+    string header;
+    public enum BraceStyle { Nothing, Space, Newline, RepeatHeader }
+    BraceStyle openBraceStyle = BraceStyle.Space;
+    BraceStyle closeBraceStyle = BraceStyle.Newline;
+    string footer = null;
+    public BlockTargetWriter(int indentInsideBraces, string headerFormat, params object[] headerArgs)
+    : base(indentInsideBraces) {
+      Contract.Requires(IndentAmount <= indentInsideBraces);
+      Contract.Requires(headerFormat != null);
+      Contract.Requires(headerArgs != null);
+      this.header = string.Format(headerFormat, headerArgs);
+    }
+    public void SetBraceStyle(BraceStyle open, BraceStyle close, string footer) {
+      Contract.Requires(open != BraceStyle.RepeatHeader);
+      this.openBraceStyle = open;
+      this.closeBraceStyle = close;
+      this.footer = footer;
+    }
+    public void AppendHeader(string format, params object[] args) {
+      Contract.Requires(format != null);
+      header += string.Format(format, args);
+    }
+
+    public override void Collect(TextWriter wr) {
+      wr.Write(header);
+      switch (openBraceStyle) {
+        case BraceStyle.Nothing:
+        default:
+          break;
+        case BraceStyle.Space:
+          wr.Write(" ");
+          break;
+        case BraceStyle.Newline:
+          wr.WriteLine();
+          wr.Write(UnIndentString);
+          break;
+      }
+      wr.WriteLine("{");
+      base.Collect(wr);
+      wr.Write("}");
+      if (footer != null) {
+        wr.Write(footer);
+      }
+      switch (closeBraceStyle) {
+        case BraceStyle.Nothing:
+        default:
+          break;
+        case BraceStyle.Space:
+          wr.Write(" ");
+          break;
+        case BraceStyle.Newline:
+          wr.WriteLine();
+          break;
+        case BraceStyle.RepeatHeader:
+          wr.WriteLine(header);
+          break;
+      }
+    }
   }
 }

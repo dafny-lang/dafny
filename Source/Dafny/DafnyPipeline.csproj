@@ -156,6 +156,8 @@
     <Compile Include="Triggers\TriggerUtils.cs" />
     <Compile Include="Util.cs" />
     <Compile Include="Compiler.cs" />
+    <Compile Include="Compiler-Csharp.cs" />
+    <Compile Include="Compiler-js.cs" />
     <Compile Include="BigIntegerParser.cs" />
     <Compile Include="DafnyAst.cs" />
     <Compile Include="DafnyMain.cs" />

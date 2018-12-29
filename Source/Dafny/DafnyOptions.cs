@@ -62,6 +62,8 @@ namespace Microsoft.Dafny
     public string DafnyPrintResolvedFile = null;
     public List<string> DafnyPrintExportedViews = new List<string>();
     public bool Compile = true;
+    public enum CompilationTarget { Csharp, JavaScript }
+    public CompilationTarget CompileTarget = CompilationTarget.Csharp;
     public string DafnyPrintCompiledFile = null;
     public bool ForceCompile = false;
     public bool RunAfterCompile = false;
@@ -163,6 +165,18 @@ namespace Microsoft.Dafny
             }
             return true;
           }
+
+        case "compileTarget":
+          if (ps.ConfirmArgumentCount(1)) {
+            if (args[ps.i].Equals("cs")) {
+              CompileTarget = CompilationTarget.Csharp;
+            } else if (args[ps.i].Equals("js")) {
+              CompileTarget = CompilationTarget.JavaScript;
+            } else {
+              throw new Exception("Invalid value for compileTarget");
+            }
+          }
+          return true;
 
         case "dafnyVerify":
             {
@@ -466,6 +480,9 @@ namespace Microsoft.Dafny
                 3 - if there is a Main method and there are no verification
                     errors, compiles program in memory (i.e., does not write
                     an output file) and runs it
+  /compileTarget:<lang>
+                cs (default) - Compilation to .NET via C#
+                js - Compilation to JavaScript
   /spillTargetCode:<n>
                 0 (default) - don't write the compiled Dafny program (but
                     still compile it, if /compile indicates to do so)
