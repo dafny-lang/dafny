@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
@@ -147,6 +147,8 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Cloner.cs" />
+    <Compile Include="Compiler-Csharp.cs" />
+    <Compile Include="Compiler-js.cs" />
     <Compile Include="Reporting.cs" />
     <Compile Include="Triggers\QuantifiersCollection.cs" />
     <Compile Include="Triggers\QuantifierSplitter.cs" />
@@ -156,8 +158,6 @@
     <Compile Include="Triggers\TriggerUtils.cs" />
     <Compile Include="Util.cs" />
     <Compile Include="Compiler.cs" />
-    <Compile Include="Compiler-Csharp.cs" />
-    <Compile Include="Compiler-js.cs" />
     <Compile Include="BigIntegerParser.cs" />
     <Compile Include="DafnyAst.cs" />
     <Compile Include="DafnyMain.cs" />
@@ -177,8 +177,8 @@
     <None Include="Dafny.atg" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Parser.cs" Visible="False"/>
-    <Compile Include="Scanner.cs" Visible="False"/>
+    <Compile Include="Parser.cs" Visible="False" />
+    <Compile Include="Scanner.cs" Visible="False" />
   </ItemGroup>
   <ItemGroup>
     <BootstrapperPackage Include="Microsoft.Net.Client.3.5">

@@ -460,10 +460,14 @@ namespace Microsoft.Dafny
           compiler = new Dafny.JavaScriptCompiler(dafnyProgram.reporter);
           break;
       }
-      
-      var hasMain = compiler.HasMain(dafnyProgram);
+
+      Method mainMethod;
+      var hasMain = compiler.HasMain(dafnyProgram, out mainMethod);
       var sw = new TargetWriter();
       compiler.Compile(dafnyProgram, sw);
+      if (hasMain) {
+        compiler.EmitCallToMain(mainMethod, sw);
+      }
       var csharpProgram = sw.ToString();
       bool completeProgram = dafnyProgram.reporter.Count(ErrorLevel.Error) == oldErrorCount;
 

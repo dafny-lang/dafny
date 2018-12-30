@@ -42,7 +42,7 @@ namespace Microsoft.Dafny {
 
     public ErrorReporter Reporter;
 
-    void Error(Bpl.IToken tok, string msg, TextWriter wr, params object[] args) {
+    protected void Error(Bpl.IToken tok, string msg, TextWriter wr, params object[] args) {
       Contract.Requires(msg != null);
       Contract.Requires(args != null);
 
@@ -53,7 +53,7 @@ namespace Microsoft.Dafny {
     }
 
     const int IndentAmount = 2;
-    void Indent(int ind, TextWriter wr) {
+    protected void Indent(int ind, TextWriter wr) {
       Contract.Requires(0 <= ind);
       string spaces = "          ";
       for (; spaces.Length < ind; ind -= spaces.Length) {
@@ -62,25 +62,36 @@ namespace Microsoft.Dafny {
       wr.Write(spaces.Substring(0, ind));
     }
 
-    protected abstract void EmitHeader(Program program, TargetWriter wr);
+    protected virtual void EmitHeader(Program program, TargetWriter wr) { }
+    public virtual void EmitCallToMain(Method mainMethod, TextWriter wr) { }
     protected abstract BlockTargetWriter CreateModule(TargetWriter wr, string moduleName);
+    protected abstract BlockTargetWriter CreateClass(TargetWriter wr, ClassDecl cl);
+    protected abstract BlockTargetWriter CreateInternalClass(TargetWriter wr, string className);
+    protected abstract BlockTargetWriter CreateMethod(TargetWriter wr, Method m);
+    protected virtual void EmitMethodBodyPrelude(BlockTargetWriter wr, Method m) { }
 
     protected abstract void EmitPrintStmt(TargetWriter wr, Expression arg);
+
+    protected abstract void EmitLiteralExpr(TextWriter wr, LiteralExpr e);
 
     public void Compile(Program program, TargetWriter wrx) {
       Contract.Requires(program != null);
 
       EmitHeader(program, wrx);
-
-      CompileBuiltIns(program.BuiltIns, wrx);
+      if (DafnyOptions.O.CompileTarget != DafnyOptions.CompilationTarget.JavaScript) {  // TODO: this should also be done for JavaScript
+        CompileBuiltIns(program.BuiltIns, wrx);
+      }
 
       foreach (ModuleDefinition m in program.CompileModules) {
         if (m.IsAbstract) {
           // the purpose of an abstract module is to skip compilation
           continue;
         }
+        if (DafnyOptions.O.CompileTarget == DafnyOptions.CompilationTarget.JavaScript && m == program.BuiltIns.SystemModule) {  // TODO: this should also be done for JavaScript
+          continue;
+        }
         int indent = 0;
-        var wr = CreateModule(wrx, m.IsDefaultModule ? "__default" : m.CompileName);
+        var wr = CreateModule(wrx, m.IsDefaultModule ? "__module" : m.CompileName);
         indent += IndentAmount;
         Contract.Assert(indent == wr.IndentLevel);
         foreach (TopLevelDecl d in m.TopLevelDecls) {
@@ -171,10 +182,7 @@ namespace Microsoft.Dafny {
             }
 
             wr.Indent();
-            var w = wr.NewBlock("public class @{0}", iter.CompileName);
-            if (iter.TypeArgs.Count != 0) {
-              w.AppendHeader("<{0}>", TypeParameters(iter.TypeArgs));
-            }
+            var w = CreateClass(wr, iter);
             var ind = indent + IndentAmount;
             Contract.Assert(ind == w.IndentLevel);
             // here come the fields
@@ -236,15 +244,7 @@ namespace Microsoft.Dafny {
           } else if (d is ClassDecl) {
             var cl = (ClassDecl)d;
             wr.Indent();
-            var w = wr.NewBlock("public partial class @{0}", cl.CompileName);
-            if (cl.TypeArgs.Count != 0) {
-              w.AppendHeader("<{0}>", TypeParameters(cl.TypeArgs));
-            }
-            string sep = " : ";
-            foreach (var trait in cl.TraitsTyp) {
-              w.AppendHeader("{0}{1}", sep, TypeName(trait, w, cl.tok));
-              sep = ", ";
-            }
+            var w = CreateClass(wr, cl);
             CompileClassMembers(cl, false, indent + IndentAmount, w);
           } else if (d is ValuetypeDecl) {
             // nop
@@ -261,7 +261,7 @@ namespace Microsoft.Dafny {
 
       wr = CreateModule(wr, "Dafny");
       wr.Indent();
-      wr = wr.NewBlock("internal class ArrayHelpers");
+      wr = CreateInternalClass(wr, "ArrayHelpers");
       foreach (var decl in builtIns.SystemModule.TopLevelDecls) {
         if (decl is ArrayClassDecl) {
           int dims = ((ArrayClassDecl)decl).Dims;
@@ -666,9 +666,8 @@ namespace Microsoft.Dafny {
       wr.WriteLine("}");
     }
 
-    int WriteFormals(string sep, List<Formal/*!*/>/*!*/ formals, TextWriter wr) {
+    protected int WriteFormals(string sep, List<Formal> formals, TextWriter wr) {
       Contract.Requires(sep != null);
-      Contract.Requires(cce.NonNullElements(formals));
       int i = 0;
       foreach (Formal arg in formals) {
         if (!arg.IsGhost) {
@@ -737,8 +736,8 @@ namespace Microsoft.Dafny {
       return s;
     }
 
-    public bool HasMain(Program program) {
-      Method mainMethod = null;
+    public bool HasMain(Program program, out Method mainMethod) {
+      mainMethod = null;
       bool hasMain = false;
       foreach (var module in program.Modules()) {
         if (module.IsAbstract) {
@@ -763,6 +762,10 @@ namespace Microsoft.Dafny {
             }
           }
         }
+      }
+      if (!hasMain) {
+        // make sure "mainMethod" returns as null
+        mainMethod = null;
       }
       return hasMain;
     }
@@ -798,7 +801,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    void CompileClassMembers(ClassDecl c, bool forCompanionClass, int indent, TextWriter wr) {
+    void CompileClassMembers(ClassDecl c, bool forCompanionClass, int indent, TargetWriter wr) {
       Contract.Requires(c != null);
       Contract.Requires(!forCompanionClass || c is TraitDecl);
       Contract.Requires(0 <= indent);
@@ -971,7 +974,11 @@ namespace Microsoft.Dafny {
       Contract.Requires(f != null);
       Contract.Requires(wr != null);
 
-      var hasDllImportAttribute = ProcessDllImport(indent, f, wr);
+#if SOON
+      var hasDllImportAttribute = CsharpCompiler.ProcessDllImport(indent, f, wr);
+#else
+      var hasDllImportAttribute = false;
+#endif
       Indent(indent, wr);
       wr.Write("public {0}{1}{2} @{3}", f.IsStatic ? "static " : "", hasDllImportAttribute ? "extern " : "", TypeName(f.ResultType, wr, f.tok), f.CompileName);
       if (f.TypeArgs.Count != 0) {
@@ -988,63 +995,30 @@ namespace Microsoft.Dafny {
       }
     }
 
-    private void CompileMethod(ClassDecl c, int indent, Method m, TextWriter wr) {
+    private void CompileMethod(ClassDecl c, int indent, Method m, TargetWriter wr) {
       Contract.Requires(c != null);
       Contract.Requires(m != null);
       Contract.Requires(wr != null);
 
-      var hasDllImportAttribute = ProcessDllImport(indent, m, wr);
-      string targetReturnTypeReplacement = null;
-      if (hasDllImportAttribute) {
-        foreach (var p in m.Outs) {
-          if (!p.IsGhost) {
-            if (targetReturnTypeReplacement == null) {
-              targetReturnTypeReplacement = TypeName(p.Type, wr, p.tok);
-            } else if (targetReturnTypeReplacement != null) {
-              // there's more than one out-parameter, so bail
-              targetReturnTypeReplacement = null;
-              break;
-            }
-          }
-        }
-      }
-      Indent(indent, wr);
-      wr.Write("public {0}{1}{3} @{2}", m.IsStatic ? "static " : "", hasDllImportAttribute ? "extern " : "", m.CompileName, targetReturnTypeReplacement ?? "void");
-      if (m.TypeArgs.Count != 0) {
-        wr.Write("<{0}>", TypeParameters(m.TypeArgs));
-      }
-      wr.Write("(");
-      int nIns = WriteFormals("", m.Ins, wr);
-      if (targetReturnTypeReplacement == null) {
-        WriteFormals(nIns == 0 ? "" : ", ", m.Outs, wr);
-      }
-      if (hasDllImportAttribute) {
-        wr.WriteLine(");");
-      } else {
-        wr.WriteLine(")");
-        Indent(indent, wr); wr.WriteLine("{");
+      wr.Indent();
+      var w = CreateMethod(wr, m);
+      if (!w.DroppingBody) {
         foreach (Formal p in m.Outs) {
           if (!p.IsGhost) {
-            Indent(indent + IndentAmount, wr);
-            wr.WriteLine("@{0} = {1};", p.CompileName, DefaultValue(p.Type, wr, p.tok));
+            Indent(indent + IndentAmount, w);
+            w.WriteLine("@{0} = {1};", p.CompileName, DefaultValue(p.Type, w, p.tok));
           }
         }
         if (m.Body == null) {
-          Error(m.tok, "Method {0} has no body", wr, m.FullName);
+          Error(m.tok, "Method {0} has no body", w, m.FullName);
         } else {
-          if (m.IsTailRecursive) {
-            if (!m.IsStatic) {
-              Indent(indent + IndentAmount, wr); wr.WriteLine("var _this = this;");
-            }
-            Indent(indent, wr); wr.WriteLine("TAIL_CALL_START: ;");
-          }
+          EmitMethodBodyPrelude(w, m);
           Contract.Assert(enclosingMethod == null);
           enclosingMethod = m;
-          TrStmtList(m.Body.Body, indent, wr);
+          TrStmtList(m.Body.Body, indent, w);
           Contract.Assert(enclosingMethod == m);
           enclosingMethod = null;
         }
-        Indent(indent, wr); wr.WriteLine("}");
       }
 
       // allow the Main method to be an instance method
@@ -1072,43 +1046,6 @@ namespace Microsoft.Dafny {
         }
         Indent(indent, wr); wr.WriteLine("}");
       }
-    }
-
-    /// <summary>
-    /// Process the declaration's "dllimport" attribute, if any, by emitting the corresponding .NET custom attribute.
-    /// Returns "true" if the declaration has an active "dllimport" attribute; "false", otherwise.
-    /// </summary>
-    bool ProcessDllImport(int indent, MemberDecl decl, TextWriter wr) {
-      Contract.Requires(decl != null);
-      Contract.Requires(wr != null);
-
-      var dllimportsArgs = Attributes.FindExpressions(decl.Attributes, "dllimport");
-      if (!DafnyOptions.O.DisallowExterns && dllimportsArgs != null) {
-        StringLiteralExpr libName = null;
-        StringLiteralExpr entryPoint = null;
-        if (dllimportsArgs.Count == 2) {
-          libName = dllimportsArgs[0] as StringLiteralExpr;
-          entryPoint = dllimportsArgs[1] as StringLiteralExpr;
-        } else if (dllimportsArgs.Count == 1) {
-          libName = dllimportsArgs[0] as StringLiteralExpr;
-          // use the given name, not the .CompileName (if user needs something else, the user can supply it as a second argument to :dllimport)
-          entryPoint = new StringLiteralExpr(decl.tok, decl.Name, false);
-        }
-        if (libName == null || entryPoint == null) {
-          Error(decl.tok, "Expected arguments are {{:dllimport dllName}} or {{:dllimport dllName, entryPoint}} where dllName and entryPoint are strings: {0}", wr, decl.FullName);
-        } else if ((decl is Method m && m.Body != null) || (decl is Function f && f.Body != null)) {
-          Error(decl.tok, "A {0} declared with dllimport is not allowed a body: {1}", wr, decl.WhatKind, decl.FullName);
-        } else {
-          Indent(indent, wr);
-          wr.Write("[System.Runtime.InteropServices.DllImport(");
-          TrStringLiteral(libName, wr);
-          wr.Write(", EntryPoint=");
-          TrStringLiteral(entryPoint, wr);
-          wr.WriteLine(")]");
-        }
-        return true;
-      }
-      return false;
     }
 
     void TrCasePatternOpt<VT>(CasePattern<VT> pat, Expression rhs, string rhs_string, int indent, TextWriter wr, bool inLetExprBody) where VT: IVariable {
@@ -1251,12 +1188,12 @@ namespace Microsoft.Dafny {
 
     // ----- Type ---------------------------------------------------------------------------------
 
-    readonly string DafnySetClass = "Dafny.Set";
-    readonly string DafnyMultiSetClass = "Dafny.MultiSet";
-    readonly string DafnySeqClass = "Dafny.Sequence";
-    readonly string DafnyMapClass = "Dafny.Map";
+    protected readonly string DafnySetClass = "Dafny.Set";
+    protected readonly string DafnyMultiSetClass = "Dafny.MultiSet";
+    protected readonly string DafnySeqClass = "Dafny.Sequence";
+    protected readonly string DafnyMapClass = "Dafny.Map";
 
-    NativeType AsNativeType(Type typ) {
+    protected NativeType AsNativeType(Type typ) {
       Contract.Requires(typ != null);
       if (typ.AsNewtype != null) {
         return typ.AsNewtype.NativeType;
@@ -1283,7 +1220,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    string TypeName(Type type, TextWriter wr, Bpl.IToken tok) {
+    protected string TypeName(Type type, TextWriter wr, Bpl.IToken tok) {
       Contract.Requires(type != null);
       Contract.Ensures(Contract.Result<string>() != null);
 
@@ -1424,6 +1361,7 @@ namespace Microsoft.Dafny {
       return res;
     }
 
+    // TODO: move this method into CsharpCompiler
     string/*!*/ TypeParameters(List<TypeParameter/*!*/>/*!*/ targs) {
       Contract.Requires(cce.NonNullElements(targs));
       Contract.Ensures(Contract.Result<string>() != null);
@@ -2816,46 +2754,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(expr != null);
       if (expr is LiteralExpr) {
         LiteralExpr e = (LiteralExpr)expr;
-        if (e is StaticReceiverExpr) {
-          wr.Write(TypeName(e.Type, wr, e.tok));
-        } else if (e.Value == null) {
-          wr.Write("({0})null", TypeName(e.Type, wr, e.tok));
-        } else if (e.Value is bool) {
-          wr.Write((bool)e.Value ? "true" : "false");
-        } else if (e is CharLiteralExpr) {
-          wr.Write("'{0}'", (string)e.Value);
-        } else if (e is StringLiteralExpr) {
-          var str = (StringLiteralExpr)e;
-          wr.Write("{0}<char>.FromString(", DafnySeqClass);
-          TrStringLiteral(str, wr);
-          wr.Write(")");
-        } else if (AsNativeType(e.Type) != null) {
-          wr.Write((BigInteger)e.Value + AsNativeType(e.Type).Suffix);
-        } else if (e.Value is BigInteger) {
-          BigInteger i = (BigInteger)e.Value;
-          if (new BigInteger(int.MinValue) <= i && i <= new BigInteger(int.MaxValue)) {
-            wr.Write("new BigInteger({0})", i);
-          } else {
-            wr.Write("BigInteger.Parse(\"{0}\")", i);
-          }
-        } else if (e.Value is Basetypes.BigDec) {
-          var n = (Basetypes.BigDec)e.Value;
-          if (0 <= n.Exponent) {
-            wr.Write("new Dafny.BigRational(new BigInteger({0}", n.Mantissa);
-            for (int i = 0; i < n.Exponent; i++) {
-              wr.Write("0");
-            }
-            wr.Write("), BigInteger.One)");
-          } else {
-            wr.Write("new Dafny.BigRational(new BigInteger({0}), new BigInteger(1", n.Mantissa);
-            for (int i = n.Exponent; i < 0; i++) {
-              wr.Write("0");
-            }
-            wr.Write("))");
-          }
-        } else {
-          Contract.Assert(false); throw new cce.UnreachableException();  // unexpected literal
-        }
+        EmitLiteralExpr(wr, e);
 
       } else if (expr is ThisExpr) {
         wr.Write(enclosingMethod != null && enclosingMethod.IsTailRecursive ? "_this" : "this");
@@ -3784,7 +3683,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    void TrStringLiteral(StringLiteralExpr str, TextWriter wr) {
+    protected virtual void TrStringLiteral(StringLiteralExpr str, TextWriter wr) {
       Contract.Requires(str != null);
       Contract.Requires(wr != null);
       wr.Write("{0}\"{1}\"", str.IsVerbatim ? "@" : "", (string)str.Value);
@@ -4026,12 +3925,6 @@ namespace Microsoft.Dafny {
   }
 
   public class TargetWriter : TextWriter {
-    public readonly int IndentLevel;
-    protected const int IndentAmount = 2;
-    const string IndentAmountString = "  ";  // this should have the length IndentAmount
-    public readonly string IndentString;
-    public string UnIndentString => new string(' ', Math.Max(IndentLevel - IndentAmount, 0));
-    readonly List<object> things = new List<object>();
     public TargetWriter(int indent = 0) {
       Contract.Requires(0 <= indent);
       IndentLevel = indent;
@@ -4040,28 +3933,59 @@ namespace Microsoft.Dafny {
     public override Encoding Encoding {
       get { return Encoding.Default; }
     }
+
+    // ----- Indention ------------------------------
+
+    public readonly int IndentLevel;
+    protected const int IndentAmount = 2;
+    const string IndentAmountString = "  ";  // this should have the length IndentAmount
+    public readonly string IndentString;
+    public string UnIndentString => new string(' ', Math.Max(IndentLevel - IndentAmount, 0));
     public void Indent() {
       Write(IndentString);
     }
     public void IndentExtra(int times = 1) {
-      Contract.Requires(0 <= times);
-      Indent();
-      for (; 0 <= --times;) {
-        Write(IndentAmountString);
+      Contract.Requires(-1 <= times);
+      if (times == -1) {
+        Write(UnIndentString);
+      } else {
+        Indent();
+        for (; 0 <= --times;) {
+          Write(IndentAmountString);
+        }
       }
     }
+
+    // ----- Things ------------------------------
+
+    List<object> things = new List<object>();  // may be set to "null" by "DropBody()"
+    public void DropBody() {
+      Contract.Requires(!DroppingBody);  // DropBody should be called at most once
+      Contract.Assume(things.Count == 0);  // DropBody can only be called before anything has been written
+      things = null;
+    }
+    public bool DroppingBody => things == null;
+
+    // ----- Writing ------------------------------
+
     public override void Write(char[] buffer, int index, int count) {
+      // requires !DroppingBody;
       things.Add(new string(buffer, index, count));
     }
     public override void Write(string value) {
+      // requires !DroppingBody;
       things.Add(value);
     }
     public override void Write(char value) {
+      // requires !DroppingBody;
       things.Add(new string(value, 1));
     }
 
+    // ----- Nested blocks ------------------------------
+
     public BlockTargetWriter NewBlock(string headerFormat, params object[] headerArgs) {
       Contract.Requires(headerFormat != null);
+      // requires !DroppingBody;
       var btw = new BlockTargetWriter(IndentLevel + IndentAmount, string.Format(headerFormat, headerArgs), null);
       btw.SetBraceStyle(BlockTargetWriter.BraceStyle.Space, BlockTargetWriter.BraceStyle.Newline);
       things.Add(btw);
@@ -4069,11 +3993,14 @@ namespace Microsoft.Dafny {
     }
     public BlockTargetWriter NewBigBlock(string header, string/*?*/ footer) {
       Contract.Requires(header != null);
+      // requires !DroppingBody;
       var btw = new BlockTargetWriter(IndentLevel + IndentAmount, header, footer);
       btw.SetBraceStyle(BlockTargetWriter.BraceStyle.Space, BlockTargetWriter.BraceStyle.Newline);
       things.Add(btw);
       return btw;
     }
+
+    // ----- Collection ------------------------------
 
     public override string ToString() {
       var sw = new StringWriter();
@@ -4082,6 +4009,13 @@ namespace Microsoft.Dafny {
     }
     public virtual void Collect(TextWriter wr) {
       Contract.Requires(wr != null);
+      if (things != null) {
+        CollectThings(wr);
+      }
+    }
+    protected void CollectThings(TextWriter wr) {
+      Contract.Requires(wr != null);
+      Contract.Requires(!DroppingBody);
       foreach (var o in things) {
         if (o is string) {
           wr.Write((string)o);
@@ -4098,13 +4032,13 @@ namespace Microsoft.Dafny {
     public enum BraceStyle { Nothing, Space, Newline }
     BraceStyle openBraceStyle = BraceStyle.Space;
     BraceStyle closeBraceStyle = BraceStyle.Newline;
-    string footer;
+    public string Footer;
     public BlockTargetWriter(int indentInsideBraces, string header, string/*?*/ footer)
     : base(indentInsideBraces) {
       Contract.Requires(IndentAmount <= indentInsideBraces);
       Contract.Requires(header != null);
       this.header = header;
-      this.footer = footer;
+      this.Footer = footer;
     }
     public void SetBraceStyle(BraceStyle open, BraceStyle close) {
       this.openBraceStyle = open;
@@ -4112,7 +4046,7 @@ namespace Microsoft.Dafny {
     }
     public void AppendHeader(string format, params object[] args) {
       Contract.Requires(format != null);
-      header += string.Format(format, args);
+      header += args.Length == 0 ? format : string.Format(format, args);
     }
 
     public override void Collect(TextWriter wr) {
@@ -4129,23 +4063,28 @@ namespace Microsoft.Dafny {
           wr.Write(UnIndentString);
           break;
       }
-      wr.WriteLine("{");
-      base.Collect(wr);
-      wr.Write(UnIndentString);
-      wr.Write("}");
-      if (footer != null) {
-        wr.Write(footer);
-      }
-      switch (closeBraceStyle) {
-        case BraceStyle.Nothing:
-        default:
-          break;
-        case BraceStyle.Space:
-          wr.Write(" ");
-          break;
-        case BraceStyle.Newline:
-          wr.WriteLine();
-          break;
+      if (DroppingBody) {
+        wr.WriteLine(";");
+        // this also ingnores "footer"
+      } else {
+        wr.WriteLine("{");
+        CollectThings(wr);
+        wr.Write(UnIndentString);
+        wr.Write("}");
+        if (Footer != null) {
+          wr.Write(Footer);
+        }
+        switch (closeBraceStyle) {
+          case BraceStyle.Nothing:
+          default:
+            break;
+          case BraceStyle.Space:
+            wr.Write(" ");
+            break;
+          case BraceStyle.Newline:
+            wr.WriteLine();
+            break;
+        }
       }
     }
   }
