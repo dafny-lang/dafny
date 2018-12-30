@@ -23,7 +23,7 @@ namespace Microsoft.Dafny {
     }
 
     public override void EmitCallToMain(Method mainMethod, TextWriter wr) {
-      wr.WriteLine("{0}.{1}.{2}();", NonglobalVariable.CompilerizeName(mainMethod.EnclosingClass.Module.CompileName), mainMethod.EnclosingClass.CompileName, mainMethod.CompileName);
+      wr.WriteLine("{0}.{1}.{2}();", mainMethod.EnclosingClass.Module.CompileName, mainMethod.EnclosingClass.CompileName, mainMethod.CompileName);
     }
       
     protected override BlockTargetWriter CreateModule(TargetWriter wr, string moduleName) {

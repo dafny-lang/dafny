@@ -91,7 +91,7 @@ namespace Microsoft.Dafny {
           continue;
         }
         int indent = 0;
-        var wr = CreateModule(wrx, m.IsDefaultModule ? "__module" : m.CompileName);
+        var wr = CreateModule(wrx, m.CompileName);
         indent += IndentAmount;
         Contract.Assert(indent == wr.IndentLevel);
         foreach (TopLevelDecl d in m.TopLevelDecls) {

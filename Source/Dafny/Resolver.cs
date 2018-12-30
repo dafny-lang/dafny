@@ -338,7 +338,7 @@ namespace Microsoft.Dafny
       var origErrorCount = reporter.Count(ErrorLevel.Error); //TODO: This is used further below, but not in the >0 comparisons in the next few lines. Is that right?
       var bindings = new ModuleBindings(null);
       var b = BindModuleNames(prog.DefaultModuleDef, bindings);
-      bindings.BindName("_module", prog.DefaultModule, b);
+      bindings.BindName(prog.DefaultModule.Name, prog.DefaultModule, b);
       if (reporter.Count(ErrorLevel.Error) > 0) { return; } // if there were errors, then the implict ModuleBindings data structure invariant
       // is violated, so Processing dependencies will not succeed.
       ProcessDependencies(prog.DefaultModule, b, dependencies);
