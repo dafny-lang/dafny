@@ -195,7 +195,13 @@ namespace Microsoft.Dafny {
       if (e is StaticReceiverExpr) {
         wr.Write(TypeName(e.Type, wr, e.tok));
       } else if (e.Value == null) {
-        wr.Write("({0})null", TypeName(e.Type, wr, e.tok));
+        var cl = (e.Type.NormalizeExpand() as UserDefinedType)?.ResolvedClass;
+        bool isHandle = true;
+        if (cl != null && Attributes.ContainsBool(cl.Attributes, "handle", ref isHandle) && isHandle) {
+          wr.Write("0");
+        } else {
+          wr.Write("({0})null", TypeName(e.Type, wr, e.tok));
+        }
       } else if (e.Value is bool) {
         wr.Write((bool)e.Value ? "true" : "false");
       } else if (e is CharLiteralExpr) {

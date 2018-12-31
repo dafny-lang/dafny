@@ -805,6 +805,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(c != null);
       Contract.Requires(!forCompanionClass || c is TraitDecl);
       Contract.Requires(0 <= indent);
+      CheckHandleWellformed(c, wr);
       foreach (var member in c.InheritedMembers) {
         Contract.Assert(!member.IsStatic);  // only instance members should ever be added to .InheritedMembers
         if (member.IsGhost) {
@@ -966,6 +967,27 @@ namespace Microsoft.Dafny {
           }
         } else {
           Contract.Assert(false); throw new cce.UnreachableException();  // unexpected member
+        }
+      }
+    }
+
+    void CheckHandleWellformed(ClassDecl cl, TextWriter errorWr) {
+      Contract.Requires(cl != null);
+      Contract.Requires(errorWr != null);
+      var isHandle = true;
+      if (Attributes.ContainsBool(cl.Attributes, "handle", ref isHandle) && isHandle) {
+        foreach (var trait in cl.TraitsObj) {
+          isHandle = true;
+          if (Attributes.ContainsBool(trait.Attributes, "handle", ref isHandle) && isHandle) {
+            // all is good
+          } else {
+            Error(cl.tok, "{0} '{1}' is marked as :handle, so all the traits it extends must be be marked as :handle as well: {2}", errorWr, cl.WhatKind, cl.Name, trait.Name);
+          }
+        }
+        foreach (var member in cl.InheritedMembers.Concat(cl.Members)) {
+          if (!member.IsGhost && !member.IsStatic) {
+            Error(member.tok, "{0} '{1}' is marked as :handle, so all its non-static members must be ghost: {2}", errorWr, cl.WhatKind, cl.Name, member.Name);
+          }
         }
       }
     }
@@ -1259,13 +1281,16 @@ namespace Microsoft.Dafny {
       } else if (xType is UserDefinedType) {
         var udt = (UserDefinedType)xType;
         var s = udt.FullCompileName;
-        var rc = udt.ResolvedClass;
-        if (DafnyOptions.O.IronDafny &&
+        var cl = udt.ResolvedClass;
+        bool isHandle = true;
+        if (cl != null && Attributes.ContainsBool(cl.Attributes, "handle", ref isHandle) && isHandle) {
+          return "uint";
+        } else if (DafnyOptions.O.IronDafny &&
             !(xType is ArrowType) &&
-            rc != null &&
-            rc.Module != null &&
-            !rc.Module.IsDefaultModule) {
-          s = rc.FullCompileName;
+            cl != null &&
+            cl.Module != null &&
+            !cl.Module.IsDefaultModule) {
+          s = cl.FullCompileName;
         }
         return TypeName_UDT(s, udt.TypeArgs, wr, udt.tok);
       } else if (xType is SetType) {
@@ -3079,7 +3104,9 @@ namespace Microsoft.Dafny {
             opString = "^"; break;
 
           case BinaryExpr.ResolvedOpcode.EqCommon: {
-              if (e.E0.Type.IsRefType) {
+              if (IsHandleComparison(e.tok, e.E0, e.E1, wr)) {
+                opString = "==";
+              } else if (e.E0.Type.IsRefType) {
                 // Dafny's type rules are slightly different C#, so we may need a cast here.
                 // For example, Dafny allows x==y if x:array<T> and y:array<int> and T is some
                 // type parameter.
@@ -3092,7 +3119,9 @@ namespace Microsoft.Dafny {
               break;
             }
           case BinaryExpr.ResolvedOpcode.NeqCommon: {
-              if (e.E0.Type.IsRefType) {
+              if (IsHandleComparison(e.tok, e.E0, e.E1, wr)) {
+                opString = "!=";
+              } else if (e.E0.Type.IsRefType) {
                 // Dafny's type rules are slightly different C#, so we may need a cast here.
                 // For example, Dafny allows x==y if x:array<T> and y:array<int> and T is some
                 // type parameter.
@@ -3681,6 +3710,29 @@ namespace Microsoft.Dafny {
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected expression
       }
+    }
+
+    private bool IsHandleComparison(Bpl.IToken tok, Expression e0, Expression e1, TextWriter errorWr) {
+      Contract.Requires(tok != null);
+      Contract.Requires(e0 != null);
+      Contract.Requires(e1 != null);
+      TopLevelDecl cl;
+      var isHandle0 = true;
+      cl = (e0.Type.NormalizeExpand() as UserDefinedType)?.ResolvedClass;
+      if (cl == null || !Attributes.ContainsBool(cl.Attributes, "handle", ref isHandle0)) {
+        isHandle0 = false;
+      }
+      var isHandle1 = true;
+      cl = (e1.Type.NormalizeExpand() as UserDefinedType)?.ResolvedClass;
+      if (cl == null || !Attributes.ContainsBool(cl.Attributes, "handle", ref isHandle1)) {
+        isHandle1 = false;
+      }
+      if (isHandle0 && isHandle1) {
+        return true;
+      } else if (isHandle0 || isHandle1) {
+        Error(tok, "Comparison of a handle can only be with another handle", errorWr);
+      }
+      return false;
     }
 
     protected virtual void TrStringLiteral(StringLiteralExpr str, TextWriter wr) {
