@@ -996,11 +996,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(f != null);
       Contract.Requires(wr != null);
 
-#if SOON
-      var hasDllImportAttribute = CsharpCompiler.ProcessDllImport(indent, f, wr);
-#else
-      var hasDllImportAttribute = false;
-#endif
+      var hasDllImportAttribute = this is CsharpCompiler ? ((CsharpCompiler)this).ProcessDllImport(f, wr) : false;
       Indent(indent, wr);
       wr.Write("public {0}{1}{2} @{3}", f.IsStatic ? "static " : "", hasDllImportAttribute ? "extern " : "", TypeName(f.ResultType, wr, f.tok), f.CompileName);
       if (f.TypeArgs.Count != 0) {
@@ -1284,7 +1280,7 @@ namespace Microsoft.Dafny {
         var cl = udt.ResolvedClass;
         bool isHandle = true;
         if (cl != null && Attributes.ContainsBool(cl.Attributes, "handle", ref isHandle) && isHandle) {
-          return "uint";
+          return "ulong";
         } else if (DafnyOptions.O.IronDafny &&
             !(xType is ArrowType) &&
             cl != null &&
@@ -1621,7 +1617,16 @@ namespace Microsoft.Dafny {
         hasSimpleZeroInitializer = true;
         hasZeroInitializer = true;
         initializerIsKnown = true;
-        defaultValue = compiler == null ? null : string.Format("({0})null", compiler.TypeName(xType, wr, udt.tok));
+        if (compiler == null) {
+          defaultValue = null;
+        } else {
+          bool isHandle = true;
+          if (Attributes.ContainsBool(cl.Attributes, "handle", ref isHandle) && isHandle) {
+            defaultValue = "0";
+          } else {
+            defaultValue = string.Format("({0})null", compiler.TypeName(xType, wr, udt.tok));
+          }
+        }
         return;
       } else if (cl is DatatypeDecl) {
         // --- hasZeroInitializer ---
