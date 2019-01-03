@@ -11,17 +11,14 @@
 namespace Microsoft.Dafny
 {
   using System;
-  using System.CodeDom.Compiler;
   using System.Collections.Generic;
   using System.Collections.ObjectModel;
   using System.Diagnostics.Contracts;
   using System.IO;
-  using System.Reflection;
   using System.Linq;
 
   using Microsoft.Boogie;
   using Bpl = Microsoft.Boogie;
-  using DafnyAssembly;
   using System.Diagnostics;
 
   public class DafnyDriver
@@ -434,21 +431,22 @@ namespace Microsoft.Dafny
     }
 
     /// <summary>
-    /// Generate a C# program from the Dafny program and, if "invokeCsCompiler" is "true", invoke
+    /// Generate a C# program from the Dafny program and, if "invokeCompiler" is "true", invoke
     /// the C# compiler to compile it.
     /// </summary>
     public static bool CompileDafnyProgram(Dafny.Program dafnyProgram, string dafnyProgramName,
-                                           ReadOnlyCollection<string> otherFileNames, bool invokeCsCompiler,
+                                           ReadOnlyCollection<string> otherFileNames, bool invokeCompiler,
                                            TextWriter outputWriter = null)
     {
       Contract.Requires(dafnyProgram != null);
+      Contract.Requires(dafnyProgramName != null);
 
       if (outputWriter == null)
       {
         outputWriter = Console.Out;
       }
 
-      // Compile the Dafny program into a string that contains the C# program
+      // Compile the Dafny program into a string that contains the target program
       var oldErrorCount = dafnyProgram.reporter.Count(ErrorLevel.Error);
       Dafny.Compiler compiler;
       switch (DafnyOptions.O.CompileTarget) {
@@ -468,134 +466,33 @@ namespace Microsoft.Dafny
       if (hasMain) {
         compiler.EmitCallToMain(mainMethod, sw);
       }
-      var csharpProgram = sw.ToString();
+      var targetProgramText = sw.ToString();
       bool completeProgram = dafnyProgram.reporter.Count(ErrorLevel.Error) == oldErrorCount;
 
       // blurt out the code to a file, if requested, or if other files were specified for the C# command line.
       string targetFilename = null;
       if (DafnyOptions.O.SpillTargetCode > 0 || otherFileNames.Count > 0)
       {
-        targetFilename = WriteDafnyProgramToFile(dafnyProgramName, csharpProgram, completeProgram, outputWriter);
+        targetFilename = WriteDafnyProgramToFile(dafnyProgramName, targetProgramText, completeProgram, outputWriter);
       }
 
       // compile the program into an assembly
-      if (!completeProgram || !invokeCsCompiler)
-      {
+      if (!completeProgram || !invokeCompiler) {
         // don't compile
         return false;
       }
-      else if (!CodeDomProvider.IsDefinedLanguage("CSharp"))
-      {
-        outputWriter.WriteLine("Error: cannot compile, because there is no provider configured for input language CSharp");
-        return false;
-      }
-      else
-      {
-        var provider = CodeDomProvider.CreateProvider("CSharp", new Dictionary<string, string> { { "CompilerVersion", "v4.0" } });
-        var cp = new System.CodeDom.Compiler.CompilerParameters();
-        cp.GenerateExecutable = hasMain;
-        if (DafnyOptions.O.RunAfterCompile) {
-          cp.GenerateInMemory = true;
-        } else if (hasMain) {
-          cp.OutputAssembly = Path.ChangeExtension(dafnyProgramName, "exe");
-          cp.GenerateInMemory = false;
-        } else {
-          cp.OutputAssembly = Path.ChangeExtension(dafnyProgramName, "dll");
-          cp.GenerateInMemory = false;
-        }
-        cp.CompilerOptions = "/debug /nowarn:0164 /nowarn:0219 /nowarn:1717 /nowarn:0162 /nowarn:0168";  // warning CS0164 complains about unreferenced labels, CS0219/CS0168 is about unused variables, CS1717 is about assignments of a variable to itself, CS0162 is about unreachable code
-        cp.ReferencedAssemblies.Add("System.Numerics.dll");
-        cp.ReferencedAssemblies.Add("System.Core.dll");
-        cp.ReferencedAssemblies.Add("System.dll");
 
-        var libPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + Path.DirectorySeparatorChar;
-        if (DafnyOptions.O.UseRuntimeLib) {
-          cp.ReferencedAssemblies.Add(libPath + "DafnyRuntime.dll");
-        }
-
-        var immutableDllFileName = "System.Collections.Immutable.dll";
-        var immutableDllPath = libPath + immutableDllFileName;
-
-        if (DafnyOptions.O.Optimize) {
-          cp.CompilerOptions += " /optimize /define:DAFNY_USE_SYSTEM_COLLECTIONS_IMMUTABLE";
-          cp.ReferencedAssemblies.Add(immutableDllPath);
-          cp.ReferencedAssemblies.Add("System.Runtime.dll");
-        }
-
-        int numOtherSourceFiles = 0;
-        if (otherFileNames.Count > 0) {
-          foreach (var file in otherFileNames) {
-            string extension = Path.GetExtension(file);
-            if (extension != null) { extension = extension.ToLower(); }
-            if (extension == ".cs") {
-              numOtherSourceFiles++;
-            }
-            else if (extension == ".dll") {
-              cp.ReferencedAssemblies.Add(file);
-            }
-          }
-        }
-
-        CompilerResults cr;
-        if (numOtherSourceFiles > 0) {
-          string[] sourceFiles = new string[numOtherSourceFiles + 1];
-          sourceFiles[0] = targetFilename;
-          int index = 1;
-          foreach (var file in otherFileNames) {
-            string extension = Path.GetExtension(file);
-            if (extension != null) { extension = extension.ToLower(); }
-            if (extension == ".cs") {
-              sourceFiles[index++] = file;
-            }
-          }
-          cr = provider.CompileAssemblyFromFile(cp, sourceFiles);
-        }
-        else {
-          cr = provider.CompileAssemblyFromSource(cp, csharpProgram);
-        }
-
-        if (DafnyOptions.O.RunAfterCompile && !hasMain) {
-          // do no more
-          return cr.Errors.Count == 0 ? true : false;
-        }
-
-        var assemblyName = Path.GetFileName(cr.PathToAssembly);
-        if (DafnyOptions.O.RunAfterCompile && cr.Errors.Count == 0) {
-          outputWriter.WriteLine("Program compiled successfully");
+      object compilationResult;
+      var compiledCorrectly = compiler.CompileTargetProgram(dafnyProgramName, targetProgramText, targetFilename, otherFileNames,
+        hasMain, hasMain && DafnyOptions.O.RunAfterCompile, outputWriter, out compilationResult);
+      if (compiledCorrectly && DafnyOptions.O.RunAfterCompile) {
+        if (hasMain) {
           outputWriter.WriteLine("Running...");
           outputWriter.WriteLine();
-          var entry = cr.CompiledAssembly.EntryPoint;
-          try {
-            object[] parameters = entry.GetParameters().Length == 0 ? new object[] { } : new object[] { new string[0] };
-            entry.Invoke(null, parameters);
-          } catch (System.Reflection.TargetInvocationException e) {
-            outputWriter.WriteLine("Error: Execution resulted in exception: {0}", e.Message);
-            outputWriter.WriteLine(e.InnerException.ToString());
-          } catch (Exception e) {
-            outputWriter.WriteLine("Error: Execution resulted in exception: {0}", e.Message);
-            outputWriter.WriteLine(e.ToString());
-          }
-        } else if (cr.Errors.Count == 0) {
-          outputWriter.WriteLine("Compiled assembly into {0}", assemblyName);
-          if (DafnyOptions.O.Optimize) {
-            var outputDir = Path.GetDirectoryName(dafnyProgramName);
-            if (string.IsNullOrWhiteSpace(outputDir)) {
-              outputDir = ".";
-            }
-            var destPath = outputDir + Path.DirectorySeparatorChar + immutableDllFileName;
-            File.Copy(immutableDllPath, destPath, true);
-            outputWriter.WriteLine("Copied /optimize dependency {0} to {1}", immutableDllFileName, outputDir);
-          }
-        } else {
-          outputWriter.WriteLine("Errors compiling program into {0}", assemblyName);
-          foreach (var ce in cr.Errors) {
-            outputWriter.WriteLine(ce.ToString());
-            outputWriter.WriteLine();
-          }
-          return false;
+          compiledCorrectly = compiler.RunTargetProgram(dafnyProgramName, targetProgramText, targetFilename, otherFileNames, compilationResult, outputWriter);
         }
-        return true;
       }
+      return compiledCorrectly;
     }
 
     #endregion

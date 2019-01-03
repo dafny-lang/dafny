@@ -4,19 +4,19 @@
 //
 //-----------------------------------------------------------------------------
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Numerics;
 using System.IO;
 using System.Diagnostics.Contracts;
-using System.Text;
-
+using System.Collections.ObjectModel;
+using System.Diagnostics;
 
 namespace Microsoft.Dafny {
   public class JavaScriptCompiler : Compiler {
     public JavaScriptCompiler(ErrorReporter reporter)
     : base(reporter) {
     }
+
+    public override string TargetLanguage => "JavaScript";
 
     protected override void EmitHeader(Program program, TargetWriter wr) {
       wr.WriteLine("// Dafny program {0} compiled into JavaScript", program.Name);
@@ -111,6 +111,45 @@ namespace Microsoft.Dafny {
         }
       }
       wr.Write("\"");
+    }
+
+    // ----- Target compilation and execution -------------------------------------------------------------
+
+    public override bool RunTargetProgram(string dafnyProgramName, string targetProgramText, string targetFilename, ReadOnlyCollection<string> otherFileNames,
+      object compilationResult, TextWriter outputWriter) {
+
+      string args = "";
+      if (targetFilename != null) {
+        args += targetFilename;
+        foreach (var s in otherFileNames) {
+          args += " " + s;
+        }
+      } else {
+        Contract.Assert(otherFileNames.Count == 0);  // according to the precondition
+      }
+      var psi = new ProcessStartInfo("node", args) {
+        CreateNoWindow = true,
+        UseShellExecute = false,
+        RedirectStandardInput = true,
+        RedirectStandardOutput = false,
+        RedirectStandardError = false,
+      };
+
+      try {
+        using (var nodeProcess = Process.Start(psi)) {
+          if (targetFilename == null) {
+            nodeProcess.StandardInput.Write(targetProgramText);
+            nodeProcess.StandardInput.Flush();
+            nodeProcess.StandardInput.Close();
+          }
+          nodeProcess.WaitForExit();
+        }
+      } catch (System.ComponentModel.Win32Exception e) {
+        outputWriter.WriteLine("Error: Unable to start node.js ({0}): {1}", psi.FileName, e.Message);
+        return false;
+      }
+
+      return true;
     }
   }
 }

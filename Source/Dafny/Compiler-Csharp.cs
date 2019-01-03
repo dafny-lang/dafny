@@ -3,20 +3,25 @@
 // Copyright (C) Microsoft Corporation.  All Rights Reserved.
 //
 //-----------------------------------------------------------------------------
-using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Numerics;
 using System.IO;
 using System.Diagnostics.Contracts;
-using System.Text;
+using System.CodeDom.Compiler;
+using System.Reflection;
+using System.Collections.ObjectModel;
 
 
-namespace Microsoft.Dafny {
-  public class CsharpCompiler : Compiler {
+
+namespace Microsoft.Dafny
+{
+  public class CsharpCompiler : Compiler
+  {
     public CsharpCompiler(ErrorReporter reporter)
     : base(reporter) {
     }
+
+    public override string TargetLanguage => "C#";
 
     protected override void EmitHeader(Program program, TargetWriter wr) {
       wr.WriteLine("// Dafny program {0} compiled into C#", program.Name);
@@ -238,6 +243,147 @@ namespace Microsoft.Dafny {
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected literal
       }
+    }
+
+    // ----- Target compilation and execution -------------------------------------------------------------
+
+    private class CSharpCompilationResult
+    {
+      public string immutableDllFileName;
+      public string immutableDllPath;
+      public CompilerResults cr;
+    }
+
+    public override bool CompileTargetProgram(string dafnyProgramName, string targetProgramText, string/*?*/ targetFilename, ReadOnlyCollection<string> otherFileNames,
+      bool hasMain, bool runAfterCompile, TextWriter outputWriter, out object compilationResult) {
+
+      compilationResult = null;
+
+      if (!CodeDomProvider.IsDefinedLanguage("CSharp")) {
+        outputWriter.WriteLine("Error: cannot compile, because there is no provider configured for input language CSharp");
+        return false;
+      }
+
+      var provider = CodeDomProvider.CreateProvider("CSharp", new Dictionary<string, string> { { "CompilerVersion", "v4.0" } });
+      var cp = new System.CodeDom.Compiler.CompilerParameters();
+      cp.GenerateExecutable = hasMain;
+      if (DafnyOptions.O.RunAfterCompile) {
+        cp.GenerateInMemory = true;
+      } else if (hasMain) {
+        cp.OutputAssembly = Path.ChangeExtension(dafnyProgramName, "exe");
+        cp.GenerateInMemory = false;
+      } else {
+        cp.OutputAssembly = Path.ChangeExtension(dafnyProgramName, "dll");
+        cp.GenerateInMemory = false;
+      }
+      // The nowarn numbers are the following:
+      // * CS0164 complains about unreferenced labels
+      // * CS0219/CS0168 is about unused variables
+      // * CS1717 is about assignments of a variable to itself
+      // * CS0162 is about unreachable code
+      cp.CompilerOptions = "/debug /nowarn:0164 /nowarn:0219 /nowarn:1717 /nowarn:0162 /nowarn:0168";
+      cp.ReferencedAssemblies.Add("System.Numerics.dll");
+      cp.ReferencedAssemblies.Add("System.Core.dll");
+      cp.ReferencedAssemblies.Add("System.dll");
+
+      var libPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + Path.DirectorySeparatorChar;
+      if (DafnyOptions.O.UseRuntimeLib) {
+        cp.ReferencedAssemblies.Add(libPath + "DafnyRuntime.dll");
+      }
+
+      var crx = new CSharpCompilationResult();
+      crx.immutableDllFileName = "System.Collections.Immutable.dll";
+      crx.immutableDllPath = libPath + crx.immutableDllFileName;
+
+      if (DafnyOptions.O.Optimize) {
+        cp.CompilerOptions += " /optimize /define:DAFNY_USE_SYSTEM_COLLECTIONS_IMMUTABLE";
+        cp.ReferencedAssemblies.Add(crx.immutableDllPath);
+        cp.ReferencedAssemblies.Add("System.Runtime.dll");
+      }
+
+      int numOtherSourceFiles = 0;
+      if (otherFileNames.Count > 0) {
+        foreach (var file in otherFileNames) {
+          string extension = Path.GetExtension(file);
+          if (extension != null) { extension = extension.ToLower(); }
+          if (extension == ".cs") {
+            numOtherSourceFiles++;
+          } else if (extension == ".dll") {
+            cp.ReferencedAssemblies.Add(file);
+          }
+        }
+      }
+
+      if (numOtherSourceFiles > 0) {
+        string[] sourceFiles = new string[numOtherSourceFiles + 1];
+        sourceFiles[0] = targetFilename;
+        int index = 1;
+        foreach (var file in otherFileNames) {
+          string extension = Path.GetExtension(file);
+          if (extension != null) { extension = extension.ToLower(); }
+          if (extension == ".cs") {
+            sourceFiles[index++] = file;
+          }
+        }
+        crx.cr = provider.CompileAssemblyFromFile(cp, sourceFiles);
+      } else {
+        crx.cr = provider.CompileAssemblyFromSource(cp, targetProgramText);
+      }
+
+      if (crx.cr.Errors.Count != 0) {
+        if (cp.GenerateInMemory) {
+          outputWriter.WriteLine("Errors compiling program");
+        } else {
+          var assemblyName = Path.GetFileName(crx.cr.PathToAssembly);
+          outputWriter.WriteLine("Errors compiling program into {0}", assemblyName);
+        }
+        foreach (var ce in crx.cr.Errors) {
+          outputWriter.WriteLine(ce.ToString());
+          outputWriter.WriteLine();
+        }
+        return false;
+      }
+
+      if (cp.GenerateInMemory) {
+        outputWriter.WriteLine("Program compiled successfully");
+      } else {
+        var assemblyName = Path.GetFileName(crx.cr.PathToAssembly);
+        outputWriter.WriteLine("Compiled assembly into {0}", assemblyName);
+        if (DafnyOptions.O.Optimize) {
+          var outputDir = Path.GetDirectoryName(dafnyProgramName);
+          if (string.IsNullOrWhiteSpace(outputDir)) {
+            outputDir = ".";
+          }
+          var destPath = outputDir + Path.DirectorySeparatorChar + crx.immutableDllFileName;
+          File.Copy(crx.immutableDllPath, destPath, true);
+          outputWriter.WriteLine("Copied /optimize dependency {0} to {1}", crx.immutableDllFileName, outputDir);
+        }
+      }
+
+      compilationResult = crx;
+      return true;
+    }
+
+    public override bool RunTargetProgram(string dafnyProgramName, string targetProgramText, string/*?*/ targetFilename, ReadOnlyCollection<string> otherFileNames,
+      object compilationResult, TextWriter outputWriter) {
+
+      var crx = (CSharpCompilationResult)compilationResult;
+      var cr = crx.cr;
+
+      var assemblyName = Path.GetFileName(cr.PathToAssembly);
+      var entry = cr.CompiledAssembly.EntryPoint;
+      try {
+        object[] parameters = entry.GetParameters().Length == 0 ? new object[] { } : new object[] { new string[0] };
+        entry.Invoke(null, parameters);
+        return true;
+      } catch (System.Reflection.TargetInvocationException e) {
+        outputWriter.WriteLine("Error: Execution resulted in exception: {0}", e.Message);
+        outputWriter.WriteLine(e.InnerException.ToString());
+      } catch (System.Exception e) {
+        outputWriter.WriteLine("Error: Execution resulted in exception: {0}", e.Message);
+        outputWriter.WriteLine(e.ToString());
+      }
+      return false;
     }
   }
 }
