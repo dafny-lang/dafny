@@ -2445,7 +2445,7 @@ namespace Microsoft.Dafny {
         Contract.Requires(ResolvedClass is TraitDecl);
         var m = ResolvedClass.Module;
         var s = m.IsDefaultModule ? "" : m.CompileName + ".";
-        return s + "@_Companion_" + ResolvedClass.CompileName;
+        return s + "_Companion_" + ResolvedClass.CompileName;
       }
     }
 
@@ -3814,7 +3814,9 @@ namespace Microsoft.Dafny {
             return externArgs[0].AsStringLiteral() + "." + externArgs[1].AsStringLiteral();
           }
         }
-        if (!Module.IsDefaultModule) {
+        if (DafnyOptions.O.CompileTarget != DafnyOptions.CompilationTarget.Csharp) {
+          return Module.CompileName + "." + CompileName;
+        } else if (!Module.IsDefaultModule) {
           return Module.CompileName + ".@" + CompileName;
         } else {
           return CompileName;

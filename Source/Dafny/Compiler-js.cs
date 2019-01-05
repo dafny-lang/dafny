@@ -4,11 +4,13 @@
 //
 //-----------------------------------------------------------------------------
 using System;
+using System.Linq;
 using System.Numerics;
 using System.IO;
 using System.Diagnostics.Contracts;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
+using Bpl = Microsoft.Boogie;
 
 namespace Microsoft.Dafny {
   public class JavaScriptCompiler : Compiler {
@@ -23,15 +25,24 @@ namespace Microsoft.Dafny {
     }
 
     public override void EmitCallToMain(Method mainMethod, TextWriter wr) {
-      wr.WriteLine("{0}.{1}.{2}();", mainMethod.EnclosingClass.Module.CompileName, mainMethod.EnclosingClass.CompileName, mainMethod.CompileName);
+      wr.WriteLine("{0}.{1}();", mainMethod.EnclosingClass.FullCompileName, IdName(mainMethod));
     }
       
     protected override BlockTargetWriter CreateModule(TargetWriter wr, string moduleName) {
-      return wr.NewBigBlock(string.Format("var {0} =", moduleName), " // end of module " + moduleName);
+      var w = wr.NewBigBlock(string.Format("var {0} = (function()", moduleName), ")(); // end of module " + moduleName);
+      w.Indent();
+      w.WriteLine("function {0}() {{ }}", moduleName);
+      w.BodySuffix = string.Format("{0}return {1};{2}", w.IndentString, moduleName, w.NewLine);
+      return w;
     }
 
     protected override BlockTargetWriter CreateClass(TargetWriter wr, ClassDecl cl) {
-      return CreateInternalClass(wr, cl.CompileName);
+      var w = wr.NewBlock(string.Format("{0} = (function()", cl.FullCompileName));
+      w.Footer = ")();";
+      w.Indent();
+      w.WriteLine("function {0}() {{ }}", cl.CompileName);
+      w.BodySuffix = string.Format("{0}return {1};{2}", w.IndentString, cl.CompileName, w.NewLine);
+      return w;
     }
     protected override BlockTargetWriter CreateInternalClass(TargetWriter wr, string className) {
       var w = wr.NewBlock("{0}:", className);
@@ -40,16 +51,121 @@ namespace Microsoft.Dafny {
     }
 
     protected override BlockTargetWriter CreateMethod(TargetWriter wr, Method m) {
-      return wr.NewBlock("{0}: function()", m.CompileName);
+      var sw = new StringWriter();
+      sw.Write("{0}.{1}{2} = function (", m.EnclosingClass.CompileName, m.IsStatic ? "" : "prototype.", m.CompileName);
+      int nIns = WriteFormals("", m.Ins, sw);
+      sw.Write(")");
+      var w = wr.NewBlock(sw.ToString());
+      w.Footer = ";";
+
+      if (!m.IsStatic) {
+        w.Indent(); w.WriteLine("var _this = this;");
+      }
+      return w;
+    }
+
+    public override string TypeInitializationValue(Type type, TextWriter/*?*/ wr, Bpl.IToken/*?*/ tok) {
+      var xType = type.NormalizeExpandKeepConstraints();
+      if (xType is BoolType) {
+        return "false";
+      } else if (xType is CharType) {
+        return "'D'";
+      } else if (xType is IntType || xType is BigOrdinalType || xType is RealType || xType is BitvectorType) {
+        return "0";
+      } else if (xType is CollectionType) {
+        return TypeName(xType, wr, tok) + ".Empty";
+      }
+
+      var udt = (UserDefinedType)xType;
+      if (udt.ResolvedParam != null) {
+        return "Dafny.Helpers.Default<" + TypeName_UDT(udt.FullCompileName, udt.TypeArgs, wr, udt.tok) + ">()";
+      }
+      var cl = udt.ResolvedClass;
+      Contract.Assert(cl != null);
+      if (cl is NewtypeDecl) {
+        var td = (NewtypeDecl)cl;
+        if (td.Witness != null) {
+          return TypeName_UDT(udt.FullCompileName, udt.TypeArgs, wr, udt.tok) + ".Witness";
+        } else if (td.NativeType != null) {
+          return "0";
+        } else {
+          return TypeInitializationValue(td.BaseType, wr, tok);
+        }
+      } else if (cl is SubsetTypeDecl) {
+        var td = (SubsetTypeDecl)cl;
+        if (td.Witness != null) {
+          return TypeName_UDT(udt.FullCompileName, udt.TypeArgs, wr, udt.tok) + ".Witness";
+        } else if (td.WitnessKind == SubsetTypeDecl.WKind.Special) {
+          // WKind.Special is only used with -->, ->, and non-null types:
+          Contract.Assert(ArrowType.IsPartialArrowTypeName(td.Name) || ArrowType.IsTotalArrowTypeName(td.Name) || td is NonNullTypeDecl);
+          if (ArrowType.IsPartialArrowTypeName(td.Name)) {
+            return string.Format("null)");
+          } else if (ArrowType.IsTotalArrowTypeName(td.Name)) {
+            var rangeDefaultValue = TypeInitializationValue(udt.TypeArgs.Last(), wr, tok);
+            // return the lambda expression ((Ty0 x0, Ty1 x1, Ty2 x2) => rangeDefaultValue)
+            return string.Format("function () {{} return {0}; }", rangeDefaultValue);
+          } else if (((NonNullTypeDecl)td).Class is ArrayClassDecl) {
+            // non-null array type; we know how to initialize them
+            return "[]";
+          } else {
+            // non-null (non-array) type
+            // even though the type doesn't necessarily have a known initializer, it could be that the the compiler needs to
+            // lay down some bits to please the C#'s compiler's different definite-assignment rules.
+            return string.Format("default({0})", TypeName(xType, wr, udt.tok));
+          }
+        } else {
+          return TypeInitializationValue(td.RhsWithArgument(udt.TypeArgs), wr, tok);
+        }
+      } else if (cl is ClassDecl) {
+        bool isHandle = true;
+        if (Attributes.ContainsBool(cl.Attributes, "handle", ref isHandle) && isHandle) {
+          return "0";
+        } else {
+          return "null";
+        }
+      } else if (cl is DatatypeDecl) {
+        var s = "@" + udt.FullCompileName;
+        var rc = cl;
+        if (DafnyOptions.O.IronDafny &&
+            !(xType is ArrowType) &&
+            rc != null &&
+            rc.Module != null &&
+            !rc.Module.IsDefaultModule) {
+          s = "@" + rc.FullCompileName;
+        }
+        if (udt.TypeArgs.Count != 0) {
+          s += "<" + TypeNames(udt.TypeArgs, wr, udt.tok) + ">";
+        }
+        return string.Format("new {0}()", s);
+      } else {
+        Contract.Assert(false); throw new cce.UnreachableException();  // unexpected type
+      }
+
     }
 
     // ----- Statements -------------------------------------------------------------
 
+    protected override void EmitLocalVar(string name, Type type, Bpl.IToken tok, string/*?*/ rhs, TargetWriter wr) {
+      wr.Indent();
+      wr.Write("var {0}", name);
+      if (rhs != null) {
+        wr.Write(" = {0}", rhs);
+      }
+      wr.WriteLine(";");
+    }
+
+    protected override void EmitLocalVar(string name, Type type, Bpl.IToken tok, Expression rhs, bool inLetExprBody, TargetWriter wr) {
+      wr.Indent();
+      wr.Write("var {0} = ", name);
+      TrExpr(rhs, wr, inLetExprBody);
+      wr.WriteLine(";");
+    }
+
     protected override void EmitPrintStmt(TargetWriter wr, Expression arg) {
       wr.Indent();
-      wr.Write("console.log(");
-      TrExpr(arg, wr, false);
-      wr.WriteLine(");");
+      wr.Write("process.stdout.write(");
+      TrParenExpr(arg, wr, false);
+      wr.WriteLine(".toString());");
     }
 
     // ----- Expressions -------------------------------------------------------------

@@ -4,12 +4,14 @@
 //
 //-----------------------------------------------------------------------------
 using System.Collections.Generic;
+using System.Linq;
 using System.Numerics;
 using System.IO;
 using System.Diagnostics.Contracts;
 using System.CodeDom.Compiler;
 using System.Reflection;
 using System.Collections.ObjectModel;
+using Bpl = Microsoft.Boogie;
 
 
 
@@ -134,6 +136,13 @@ namespace Microsoft.Dafny
       if (hasDllImportAttribute) {
         wr.DropBody();
         wr.SetBraceStyle(BlockTargetWriter.BraceStyle.Nothing, BlockTargetWriter.BraceStyle.Newline);
+      } else {
+        if (m.IsTailRecursive) {
+          if (!m.IsStatic) {
+            wr.Indent(); wr.WriteLine("var _this = this;");
+          }
+          wr.IndentExtra(-1); wr.WriteLine("TAIL_CALL_START: ;");
+        }
       }
       return wr;
     }
@@ -176,17 +185,113 @@ namespace Microsoft.Dafny
       return false;
     }
 
-    protected override void EmitMethodBodyPrelude(BlockTargetWriter wr, Method m) {
-      if (m.IsTailRecursive) {
-        if (!m.IsStatic) {
-          wr.Indent(); wr.WriteLine("var _this = this;");
+    public override string TypeInitializationValue(Type type, TextWriter/*?*/ wr, Bpl.IToken/*?*/ tok) {
+      var xType = type.NormalizeExpandKeepConstraints();
+
+      if (xType is BoolType) {
+        return "false";
+      } else if (xType is CharType) {
+        return "'D'";
+      } else if (xType is IntType || xType is BigOrdinalType) {
+        return "BigInteger.Zero";
+      } else if (xType is RealType) {
+        return "Dafny.BigRational.ZERO";
+      } else if (xType is BitvectorType) {
+        var t = (BitvectorType)xType;
+        return t.NativeType != null ? "0" : "BigInteger.Zero";
+      } else if (xType is CollectionType) {
+        return TypeName(xType, wr, tok) + ".Empty";
+      }
+
+      var udt = (UserDefinedType)xType;
+      if (udt.ResolvedParam != null) {
+        return "Dafny.Helpers.Default<" + TypeName_UDT(udt.FullCompileName, udt.TypeArgs, wr, udt.tok) + ">()";
+      }
+      var cl = udt.ResolvedClass;
+      Contract.Assert(cl != null);
+      if (cl is NewtypeDecl) {
+        var td = (NewtypeDecl)cl;
+        if (td.Witness != null) {
+          return TypeName_UDT(udt.FullCompileName, udt.TypeArgs, wr, udt.tok) + ".Witness";
+        } else if (td.NativeType != null) {
+          return "0";
+        } else {
+          return TypeInitializationValue(td.BaseType, wr, tok);
         }
-        wr.IndentExtra(-1); wr.WriteLine("TAIL_CALL_START: ;");
+      } else if (cl is SubsetTypeDecl) {
+        var td = (SubsetTypeDecl)cl;
+        if (td.Witness != null) {
+          return TypeName_UDT(udt.FullCompileName, udt.TypeArgs, wr, udt.tok) + ".Witness";
+        } else if (td.WitnessKind == SubsetTypeDecl.WKind.Special) {
+          // WKind.Special is only used with -->, ->, and non-null types:
+          Contract.Assert(ArrowType.IsPartialArrowTypeName(td.Name) || ArrowType.IsTotalArrowTypeName(td.Name) || td is NonNullTypeDecl);
+          if (ArrowType.IsPartialArrowTypeName(td.Name)) {
+            return string.Format("(({0})null)", TypeName(xType, wr, udt.tok));
+          } else if (ArrowType.IsTotalArrowTypeName(td.Name)) {
+            var rangeDefaultValue = TypeInitializationValue(udt.TypeArgs.Last(), wr, tok);
+            // return the lambda expression ((Ty0 x0, Ty1 x1, Ty2 x2) => rangeDefaultValue)
+            return string.Format("(({0}) => {1})",
+              Util.Comma(", ", udt.TypeArgs.Count - 1, i => string.Format("{0} x{1}", TypeName(udt.TypeArgs[i], wr, udt.tok), i)),
+              rangeDefaultValue);
+          } else if (((NonNullTypeDecl)td).Class is ArrayClassDecl) {
+            // non-null array type; we know how to initialize them
+            var arrayClass = (ArrayClassDecl)((NonNullTypeDecl)td).Class;
+            string typeNameSansBrackets, brackets;
+            TypeName_SplitArrayName(udt.TypeArgs[0], wr, udt.tok, out typeNameSansBrackets, out brackets);
+            return string.Format("new {0}[{1}]{2}", typeNameSansBrackets, Util.Comma(arrayClass.Dims, _ => "0"), brackets);
+          } else {
+            // non-null (non-array) type
+            // even though the type doesn't necessarily have a known initializer, it could be that the the compiler needs to
+            // lay down some bits to please the C#'s compiler's different definite-assignment rules.
+            return string.Format("default({0})", TypeName(xType, wr, udt.tok));
+          }
+        } else {
+          return TypeInitializationValue(td.RhsWithArgument(udt.TypeArgs), wr, tok);
+        }
+      } else if (cl is ClassDecl) {
+        bool isHandle = true;
+        if (Attributes.ContainsBool(cl.Attributes, "handle", ref isHandle) && isHandle) {
+          return "0";
+        } else {
+          return string.Format("({0})null", TypeName(xType, wr, udt.tok));
+        }
+      } else if (cl is DatatypeDecl) {
+        var s = "@" + udt.FullCompileName;
+        var rc = cl;
+        if (DafnyOptions.O.IronDafny &&
+            !(xType is ArrowType) &&
+            rc != null &&
+            rc.Module != null &&
+            !rc.Module.IsDefaultModule) {
+          s = "@" + rc.FullCompileName;
+        }
+        if (udt.TypeArgs.Count != 0) {
+          s += "<" + TypeNames(udt.TypeArgs, wr, udt.tok) + ">";
+        }
+        return string.Format("new {0}()", s);
+      } else {
+        Contract.Assert(false); throw new cce.UnreachableException();  // unexpected type
       }
     }
 
     // ----- Statements -------------------------------------------------------------
 
+    protected override void EmitLocalVar(string name, Type type, Bpl.IToken tok, string/*?*/ rhs, TargetWriter wr) {
+      wr.Indent();
+      wr.Write("{0} {1}", TypeName(type, wr, tok), name);
+      if (rhs != null) {
+        wr.Write(" = {0}", rhs);
+      }
+      wr.WriteLine(";");
+    }
+
+    protected override void EmitLocalVar(string name, Type type, Bpl.IToken tok, Expression rhs, bool inLetExprBody, TargetWriter wr) {
+      wr.Indent();
+      wr.Write("{0} {1} = ", TypeName(type, wr, tok), name);
+      TrExpr(rhs, wr, inLetExprBody);
+      wr.WriteLine(";");
+    }
+    
     protected override void EmitPrintStmt(TargetWriter wr, Expression arg) {
       wr.Indent();
       wr.Write("System.Console.Write(");
@@ -243,6 +348,10 @@ namespace Microsoft.Dafny
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected literal
       }
+    }
+
+    protected override string IdProtect(string name) {
+      return "@" + name;
     }
 
     // ----- Target compilation and execution -------------------------------------------------------------
