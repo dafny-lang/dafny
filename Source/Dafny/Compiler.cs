@@ -71,8 +71,11 @@ namespace Microsoft.Dafny {
     protected abstract BlockTargetWriter CreateClass(TargetWriter wr, ClassDecl cl);
     protected abstract BlockTargetWriter CreateInternalClass(TargetWriter wr, string className);
     protected abstract BlockTargetWriter CreateMethod(TargetWriter wr, Method m);
+    protected abstract void EmitJumpToTailCallStart(TargetWriter wr);
     public abstract string TypeInitializationValue(Type xType, TextWriter/*?*/ wr, Bpl.IToken/*?*/ tok);
 
+    protected abstract void EmitField(TopLevelDecl cl, string name, Type type, Bpl.IToken tok, string rhs, TargetWriter wr);
+    protected abstract bool EmitFormal(string prefix, string name, Type type, Bpl.IToken tok, bool isInParam, TextWriter wr);
     protected abstract void EmitLocalVar(string name, Type type, Bpl.IToken tok, string/*?*/ rhs, TargetWriter wr);
     protected abstract void EmitLocalVar(string name, Type type, Bpl.IToken tok, Expression rhs, bool inLetExprBody, TargetWriter wr);
     protected virtual void EmitAssignment(string lhs, string rhs, TargetWriter wr) {
@@ -708,8 +711,9 @@ namespace Microsoft.Dafny {
       foreach (Formal arg in formals) {
         if (!arg.IsGhost) {
           string name = FormalName(arg, i);
-          wr.Write("{0}{1}{2} {3}", sep, arg.InParam ? "" : "out ", TypeName(arg.Type, wr, arg.tok), name);
-          sep = ", ";
+          if (EmitFormal(sep, name, arg.Type, arg.tok, arg.InParam, wr)) {
+            sep = ", ";
+          }
           i++;
         }
       }
@@ -935,8 +939,7 @@ namespace Microsoft.Dafny {
             }
             Indent(indent, wr); wr.WriteLine("}");
           } else {
-            Indent(indent, wr);
-            wr.WriteLine("public {0} {1} = {2};", TypeName(f.Type, wr, f.tok), IdName(f), DefaultValue(f.Type, wr, f.tok));
+            EmitField(f.EnclosingClass, IdName(f), f.Type, f.tok, DefaultValue(f.Type, wr, f.tok), wr);
           }
         } else if (member is Function) {
           var f = (Function)member;
@@ -2455,7 +2458,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(s != null);
       Contract.Assert(s.Method != null);  // follows from the fact that stmt has been successfully resolved
 
-      StringWriter wr = new StringWriter();
+      var wr = new TargetWriter();
       if (s.Method == enclosingMethod && enclosingMethod.IsTailRecursive) {
         // compile call as tail-recursive
 
@@ -2499,8 +2502,7 @@ namespace Microsoft.Dafny {
         }
         Contract.Assert(n == inTmps.Count);
         // finally, the jump back to the head of the method
-        Indent(indent, wr);
-        wr.WriteLine("goto TAIL_CALL_START;");
+        EmitJumpToTailCallStart(wr);
 
       } else {
         // compile call as a regular call
@@ -2578,8 +2580,7 @@ namespace Microsoft.Dafny {
 
         // assign to the actual LHSs
         for (int j = 0; j < lvalues.Count; j++) {
-          Indent(indent, wr);
-          wr.WriteLine("{0} = {1};", lvalues[j], outTmps[j]);
+          EmitAssignment(lvalues[j], outTmps[j], wr);
         }
       }
       return wr;

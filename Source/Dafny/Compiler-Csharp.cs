@@ -185,6 +185,11 @@ namespace Microsoft.Dafny
       return false;
     }
 
+    protected override void EmitJumpToTailCallStart(TargetWriter wr) {
+      wr.Indent();
+      wr.WriteLine("goto TAIL_CALL_START;");
+    }
+
     public override string TypeInitializationValue(Type type, TextWriter/*?*/ wr, Bpl.IToken/*?*/ tok) {
       var xType = type.NormalizeExpandKeepConstraints();
 
@@ -274,7 +279,17 @@ namespace Microsoft.Dafny
       }
     }
 
-    // ----- Statements -------------------------------------------------------------
+    // ----- Declarations -------------------------------------------------------------
+
+    protected override void EmitField(TopLevelDecl cl, string name, Type type, Bpl.IToken tok, string rhs, TargetWriter wr) {
+      wr.Indent();
+      wr.WriteLine("public {0} {1} = {2};", TypeName(type, wr, tok), name, rhs);
+    }
+
+    protected override bool EmitFormal(string prefix, string name, Type type, Bpl.IToken tok, bool isInParam, TextWriter wr) {
+      wr.Write("{0}{1}{2} {3}", prefix, isInParam ? "" : "out ", TypeName(type, wr, tok), name);
+      return true;
+    }
 
     protected override void EmitLocalVar(string name, Type type, Bpl.IToken tok, string/*?*/ rhs, TargetWriter wr) {
       wr.Indent();
@@ -291,7 +306,9 @@ namespace Microsoft.Dafny
       TrExpr(rhs, wr, inLetExprBody);
       wr.WriteLine(";");
     }
-    
+
+    // ----- Statements -------------------------------------------------------------
+
     protected override void EmitPrintStmt(TargetWriter wr, Expression arg) {
       wr.Indent();
       wr.Write("System.Console.Write(");

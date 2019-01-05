@@ -61,7 +61,17 @@ namespace Microsoft.Dafny {
       if (!m.IsStatic) {
         w.Indent(); w.WriteLine("var _this = this;");
       }
+      if (m.IsTailRecursive) {
+        w.Indent();
+        w = w.NewBlock("TAIL_CALL_START: while (true)");
+      }
+      w.BodySuffix = string.Format("{0}return;{1}", w.IndentString, w.NewLine);
       return w;
+    }
+
+    protected override void EmitJumpToTailCallStart(TargetWriter wr) {
+      wr.Indent();
+      wr.WriteLine("continue TAIL_CALL_START;");
     }
 
     public override string TypeInitializationValue(Type type, TextWriter/*?*/ wr, Bpl.IToken/*?*/ tok) {
@@ -143,7 +153,21 @@ namespace Microsoft.Dafny {
 
     }
 
-    // ----- Statements -------------------------------------------------------------
+    // ----- Declarations -------------------------------------------------------------
+
+    protected override void EmitField(TopLevelDecl cl, string name, Type type, Bpl.IToken tok, string rhs, TargetWriter wr) {
+      wr.Indent();
+      wr.WriteLine("{0}.{1} = {2};", IdName(cl), name, rhs);
+    }
+
+    protected override bool EmitFormal(string prefix, string name, Type type, Bpl.IToken tok, bool isInParam, TextWriter wr) {
+      if (isInParam) {
+        wr.Write("{0}{1}", prefix, name);
+        return true;
+      } else {
+        return false;
+      }
+    }
 
     protected override void EmitLocalVar(string name, Type type, Bpl.IToken tok, string/*?*/ rhs, TargetWriter wr) {
       wr.Indent();
@@ -160,6 +184,8 @@ namespace Microsoft.Dafny {
       TrExpr(rhs, wr, inLetExprBody);
       wr.WriteLine(";");
     }
+
+    // ----- Statements -------------------------------------------------------------
 
     protected override void EmitPrintStmt(TargetWriter wr, Expression arg) {
       wr.Indent();
@@ -259,13 +285,12 @@ namespace Microsoft.Dafny {
             nodeProcess.StandardInput.Close();
           }
           nodeProcess.WaitForExit();
+          return nodeProcess.ExitCode == 0;
         }
       } catch (System.ComponentModel.Win32Exception e) {
         outputWriter.WriteLine("Error: Unable to start node.js ({0}): {1}", psi.FileName, e.Message);
         return false;
       }
-
-      return true;
     }
   }
 }
