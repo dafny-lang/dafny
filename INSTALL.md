@@ -94,16 +94,3 @@ Dafny's sources.
        cp dafny/Binaries/z3/bin/z3 boogie/Binaries/z3.exe
 
 6. Run Dafny using the `dafny` shell script in the Binaries directory (it calls mono as appropriate)
-
-
-Editing in Emacs
-================
-
-The README at https://github.com/boogie-org/boogie-friends has plenty of
-information on how to set-up Emacs to work with Dafny. In short, it boils down
-to running [M-x package-install RET boogie-friends RET] and adding the following
-to your .emacs:
-    
-    (setq flycheck-dafny-executable "BASE-DIRECTORY/dafny/Binaries/dafny")
-
-Do look at the README, though! It's full of useful tips.
