@@ -281,30 +281,55 @@ namespace Microsoft.Dafny
 
     // ----- Declarations -------------------------------------------------------------
 
-    protected override void EmitField(TopLevelDecl cl, string name, Type type, Bpl.IToken tok, string rhs, TargetWriter wr) {
+    protected override void DeclareField(TopLevelDecl cl, string name, Type type, Bpl.IToken tok, string rhs, TargetWriter wr) {
       wr.Indent();
       wr.WriteLine("public {0} {1} = {2};", TypeName(type, wr, tok), name, rhs);
     }
 
-    protected override bool EmitFormal(string prefix, string name, Type type, Bpl.IToken tok, bool isInParam, TextWriter wr) {
+    protected override bool DeclareFormal(string prefix, string name, Type type, Bpl.IToken tok, bool isInParam, TextWriter wr) {
       wr.Write("{0}{1}{2} {3}", prefix, isInParam ? "" : "out ", TypeName(type, wr, tok), name);
       return true;
     }
 
-    protected override void EmitLocalVar(string name, Type type, Bpl.IToken tok, string/*?*/ rhs, TargetWriter wr) {
+    protected override void DeclareLocalVar(string name, Type/*?*/ type, Bpl.IToken tok, string/*?*/ rhs, TargetWriter wr) {
       wr.Indent();
-      wr.Write("{0} {1}", TypeName(type, wr, tok), name);
+      wr.Write("{0} {1}", type != null ? TypeName(type, wr, tok) : "var", name);
       if (rhs != null) {
         wr.Write(" = {0}", rhs);
       }
       wr.WriteLine(";");
     }
 
-    protected override void EmitLocalVar(string name, Type type, Bpl.IToken tok, Expression rhs, bool inLetExprBody, TargetWriter wr) {
+    protected override void DeclareLocalVar(string name, Type type, Bpl.IToken tok, Expression rhs, bool inLetExprBody, TargetWriter wr) {
       wr.Indent();
       wr.Write("{0} {1} = ", TypeName(type, wr, tok), name);
       TrExpr(rhs, wr, inLetExprBody);
       wr.WriteLine(";");
+    }
+
+    protected override void DeclareLocalOutVar(string name, Type type, Bpl.IToken tok, string rhs, TargetWriter wr) {
+      EmitAssignment(name, rhs, wr);
+    }
+
+    protected override void EmitActualOutArg(string actualOutParamName, TextWriter wr) {
+      wr.Write("out {0}", actualOutParamName);
+    }
+
+    protected override bool UseReturnStyleOuts(Method m, int nonGhostOutCount) {
+      return !DafnyOptions.O.DisallowExterns && Attributes.Contains(m.Attributes, "dllimport") && nonGhostOutCount == 1;
+    }
+
+    protected override void EmitOutParameterSplits(string outCollector, List<string> actualOutParamNames, TargetWriter wr) {
+      Contract.Assert(actualOutParamNames.Count == 1);
+      EmitAssignment(actualOutParamNames[0], outCollector, wr);
+    }
+
+    protected override void EmitActualTypeArgs(List<Type> typeArgs, Bpl.IToken tok, TextWriter wr) {
+      wr.Write("<" + TypeNames(typeArgs, wr, tok) + ">");
+    }
+
+    protected override string GenerateLhsDecl(string target, Type/*?*/ type, TextWriter wr, Bpl.IToken tok) {
+      return (type != null ? TypeName(type, wr, tok) : "var") + " " + target;
     }
 
     // ----- Statements -------------------------------------------------------------
@@ -314,6 +339,11 @@ namespace Microsoft.Dafny
       wr.Write("System.Console.Write(");
       TrExpr(arg, wr, false);
       wr.WriteLine(");");
+    }
+
+    protected override void EmitReturn(List<Formal> outParams, TargetWriter wr) {
+      wr.Indent();
+      wr.WriteLine("return;");
     }
 
     // ----- Expressions -------------------------------------------------------------

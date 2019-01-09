@@ -74,15 +74,23 @@ namespace Microsoft.Dafny {
     protected abstract void EmitJumpToTailCallStart(TargetWriter wr);
     public abstract string TypeInitializationValue(Type xType, TextWriter/*?*/ wr, Bpl.IToken/*?*/ tok);
 
-    protected abstract void EmitField(TopLevelDecl cl, string name, Type type, Bpl.IToken tok, string rhs, TargetWriter wr);
-    protected abstract bool EmitFormal(string prefix, string name, Type type, Bpl.IToken tok, bool isInParam, TextWriter wr);
-    protected abstract void EmitLocalVar(string name, Type type, Bpl.IToken tok, string/*?*/ rhs, TargetWriter wr);
-    protected abstract void EmitLocalVar(string name, Type type, Bpl.IToken tok, Expression rhs, bool inLetExprBody, TargetWriter wr);
+    protected abstract void DeclareField(TopLevelDecl cl, string name, Type type, Bpl.IToken tok, string rhs, TargetWriter wr);
+    protected abstract bool DeclareFormal(string prefix, string name, Type type, Bpl.IToken tok, bool isInParam, TextWriter wr);
+    protected abstract void DeclareLocalVar(string name, Type/*?*/ type, Bpl.IToken tok, string/*?*/ rhs, TargetWriter wr);
+    protected abstract void DeclareLocalVar(string name, Type type, Bpl.IToken tok, Expression rhs, bool inLetExprBody, TargetWriter wr);
+    protected virtual bool UseReturnStyleOuts(Method m, int nonGhostOutCount) => false;
+    protected abstract void DeclareLocalOutVar(string name, Type type, Bpl.IToken tok, string rhs, TargetWriter wr);
+    protected virtual void EmitActualOutArg(string actualOutParamName, TextWriter wr) { }  // actualOutParamName is always the name of a local variable; called only for non-return-style outs
+    protected virtual void EmitOutParameterSplits(string outCollector, List<string> actualOutParamNames, TargetWriter wr) { }  // called only for return-style calls
+
+    protected abstract void EmitActualTypeArgs(List<Type> typeArgs, Bpl.IToken tok, TextWriter wr);
+    protected abstract string GenerateLhsDecl(string target, Type/*?*/ type, TextWriter wr, Bpl.IToken tok);
     protected virtual void EmitAssignment(string lhs, string rhs, TargetWriter wr) {
       wr.Indent();
       wr.WriteLine("{0} = {1};", lhs, rhs);
     }
     protected abstract void EmitPrintStmt(TargetWriter wr, Expression arg);
+    protected abstract void EmitReturn(List<Formal> outParams, TargetWriter wr);
 
     protected abstract void EmitLiteralExpr(TextWriter wr, LiteralExpr e);
     protected virtual string IdName(TopLevelDecl d) {
@@ -711,7 +719,7 @@ namespace Microsoft.Dafny {
       foreach (Formal arg in formals) {
         if (!arg.IsGhost) {
           string name = FormalName(arg, i);
-          if (EmitFormal(sep, name, arg.Type, arg.tok, arg.InParam, wr)) {
+          if (DeclareFormal(sep, name, arg.Type, arg.tok, arg.InParam, wr)) {
             sep = ", ";
           }
           i++;
@@ -939,7 +947,7 @@ namespace Microsoft.Dafny {
             }
             Indent(indent, wr); wr.WriteLine("}");
           } else {
-            EmitField(f.EnclosingClass, IdName(f), f.Type, f.tok, DefaultValue(f.Type, wr, f.tok), wr);
+            DeclareField(f.EnclosingClass, IdName(f), f.Type, f.tok, DefaultValue(f.Type, wr, f.tok), wr);
           }
         } else if (member is Function) {
           var f = (Function)member;
@@ -1062,8 +1070,7 @@ namespace Microsoft.Dafny {
       if (!w.DroppingBody) {
         foreach (Formal p in m.Outs) {
           if (!p.IsGhost) {
-            Indent(indent + IndentAmount, w);
-            w.WriteLine("{0} = {1};", IdName(p), DefaultValue(p.Type, w, p.tok));
+            DeclareLocalOutVar(IdName(p), p.Type, p.tok, DefaultValue(p.Type, w, p.tok), w);
           }
         }
         if (m.Body == null) {
@@ -1709,13 +1716,14 @@ namespace Microsoft.Dafny {
         wr.WriteLine("goto after_{0};", s.TargetStmt.Labels.Data.AssignUniqueId(idGenerator));
       } else if (stmt is ProduceStmt) {
         var s = (ProduceStmt)stmt;
-        if (s.hiddenUpdate != null)
+        if (s.hiddenUpdate != null) {
           wr.Write(TrStmt(s.hiddenUpdate, indent).ToString());
-        Indent(indent, wr);
+        }
         if (s is YieldStmt) {
+          wr.Indent();
           wr.WriteLine("yield return null;");
         } else {
-          wr.WriteLine("return;");
+          EmitReturn(this.enclosingMethod.Outs, wr);
         }
       } else if (stmt is UpdateStmt) {
         var s = (UpdateStmt)stmt;
@@ -1741,14 +1749,13 @@ namespace Microsoft.Dafny {
 
                 string target = idGenerator.FreshId("_rhs");
                 rhss.Add(target);
-                TrRhs((rhs is ExprRhs ? TypeName(((ExprRhs)rhs).Expr.Type, wr, rhs.Tok) : "var") + " " + target, rhs, indent, wr);
+                TrRhs(GenerateLhsDecl(target, rhs is ExprRhs ? ((ExprRhs)rhs).Expr.Type : null, wr, rhs.Tok), rhs, indent, wr);
               }
             }
           }
           Contract.Assert(lvalues.Count == rhss.Count);
           for (int i = 0; i < lvalues.Count; i++) {
-            Indent(indent, wr);
-            wr.WriteLine("{0} = {1};", lvalues[i], rhss[i]);
+            EmitAssignment(lvalues[i], rhss[i], wr);
           }
         }
 
@@ -1787,7 +1794,7 @@ namespace Microsoft.Dafny {
 
       } else if (stmt is CallStmt) {
         CallStmt s = (CallStmt)stmt;
-        wr.Write(TrCallStmt(s, null, indent).ToString());
+        wr.Write(TrCallStmt(s, null, wr.IndentLevel).ToString());
 
       } else if (stmt is BlockStmt) {
         Indent(indent, wr); wr.WriteLine("{");
@@ -2400,7 +2407,7 @@ namespace Microsoft.Dafny {
       if (tRhs == null) {
         var eRhs = (ExprRhs)rhs;  // it's not HavocRhs (by the precondition) or TypeRhs (by the "if" test), so it's gotta be ExprRhs
         nw = idGenerator.FreshId("_rhs");
-        EmitLocalVar(nw, eRhs.Expr.Type, eRhs.Expr.tok, eRhs.Expr, false, wr);
+        DeclareLocalVar(nw, eRhs.Expr.Type, eRhs.Expr.tok, eRhs.Expr, false, wr);
       } else {
         Indent(indent, wr);
         nw = idGenerator.FreshId("_nw");
@@ -2417,7 +2424,7 @@ namespace Microsoft.Dafny {
         if (tRhs.InitCall.Method is Constructor && tRhs.InitCall.Method.IsExtern(out q, out n)) {
           // initialization was done at the time of allocation
         } else {
-          wr.Write(TrCallStmt(tRhs.InitCall, nw, indent).ToString());
+          wr.Write(TrCallStmt(tRhs.InitCall, nw, wr.IndentLevel).ToString());
         }
       } else if (tRhs.ElementInit != null) {
         // Compute the array-initializing function once and for all (as required by the language definition)
@@ -2458,7 +2465,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(s != null);
       Contract.Assert(s.Method != null);  // follows from the fact that stmt has been successfully resolved
 
-      var wr = new TargetWriter();
+      var wr = new TargetWriter(indent);
       if (s.Method == enclosingMethod && enclosingMethod.IsTailRecursive) {
         // compile call as tail-recursive
 
@@ -2521,8 +2528,7 @@ namespace Microsoft.Dafny {
           if (!p.IsGhost) {
             string target = idGenerator.FreshId("_out");
             outTmps.Add(target);
-            Indent(indent, wr);
-            wr.WriteLine("{0} {1};", TypeName(s.Lhs[i].Type, wr, s.Lhs[i].tok), target);
+            DeclareLocalVar(target, s.Lhs[i].Type, s.Lhs[i].tok, null, wr);
           }
         }
         Contract.Assert(lvalues.Count == outTmps.Count);
@@ -2532,9 +2538,13 @@ namespace Microsoft.Dafny {
           if (!p.IsGhost) {
           }
         }
-        Indent(indent, wr);
-        if (!DafnyOptions.O.DisallowExterns && Attributes.Contains(s.Method.Attributes, "dllimport") && outTmps.Count == 1) {
-          wr.Write("{0} = ", outTmps[0]);
+        var returnStyleOutCollector = outTmps.Count > 0 && UseReturnStyleOuts(s.Method, outTmps.Count) ? idGenerator.FreshId("_outcollector") : null;
+        if (returnStyleOutCollector != null) {
+          DeclareLocalVar(returnStyleOutCollector, null, s.Tok, null, wr);
+          wr.Indent();
+          wr.Write("{0} = ", returnStyleOutCollector);
+        } else {
+          wr.Indent();
         }
         if (receiverReplacement != null) {
           wr.Write(IdProtect(receiverReplacement));
@@ -2554,7 +2564,7 @@ namespace Microsoft.Dafny {
         if (s.Method.TypeArgs.Count != 0) {
           var typeSubst = s.MethodSelect.TypeArgumentSubstitutions();
           List<Type> typeArgs = s.Method.TypeArgs.ConvertAll(ta => typeSubst[ta]);
-          wr.Write("<" + TypeNames(typeArgs, wr, s.Tok) + ">");
+          EmitActualTypeArgs(typeArgs, s.Tok, wr);
         }
         wr.Write("(");
 
@@ -2568,15 +2578,17 @@ namespace Microsoft.Dafny {
           }
         }
 
-        if (!DafnyOptions.O.DisallowExterns && Attributes.Contains(s.Method.Attributes, "dllimport") && outTmps.Count == 1) {
-          // actual out-parameter already processed above
-        } else {
+        if (returnStyleOutCollector == null) {
           foreach (var outTmp in outTmps) {
-            wr.Write("{0}out {1}", sep, outTmp);
+            wr.Write(sep);
+            EmitActualOutArg(outTmp, wr);
             sep = ", ";
           }
         }
         wr.WriteLine(");");
+        if (returnStyleOutCollector != null) {
+          EmitOutParameterSplits(returnStyleOutCollector, outTmps, wr);
+        }
 
         // assign to the actual LHSs
         for (int j = 0; j < lvalues.Count; j++) {
@@ -2631,7 +2643,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    void TrStmtList(List<Statement/*!*/>/*!*/ stmts, int indent, TextWriter writer) {
+    void TrStmtList(List<Statement> stmts, int indent, TextWriter writer) {
       Contract.Requires(cce.NonNullElements(stmts));
       foreach (Statement ss in stmts) {
         copyInstrWriters.Push(new StringBuilder());
@@ -2657,7 +2669,7 @@ namespace Microsoft.Dafny {
         // only emit non-ghosts (we get here only for local variables introduced implicitly by call statements)
         return;
       }
-      EmitLocalVar(IdName(v), v.Type, v.Tok, alwaysInitialize ? DefaultValue(v.Type, wr, v.Tok) : null, wr);
+      DeclareLocalVar(IdName(v), v.Type, v.Tok, alwaysInitialize ? DefaultValue(v.Type, wr, v.Tok) : null, wr);
     }
 
     void MatchCasePrelude(string source, UserDefinedType sourceType, DatatypeCtor ctor, List<BoundVar/*!*/>/*!*/ arguments, int caseIndex, int caseCount, int indent, TextWriter wr) {
