@@ -71,11 +71,11 @@ namespace Microsoft.Dafny {
     protected abstract BlockTargetWriter CreateClass(ClassDecl cl, TargetWriter wr);
     protected abstract BlockTargetWriter CreateInternalClass(string className, TargetWriter wr);
     protected abstract BlockTargetWriter/*?*/ CreateMethod(Method m, TargetWriter wr);
-    protected abstract BlockTargetWriter/*?*/ CreateFunction(Function f, TargetWriter wr);
+    protected abstract BlockTargetWriter/*?*/ CreateFunction(string name, List<TypeParameter>/*?*/ typeArgs, List<Formal> formals, Type resultType, Bpl.IToken tok, bool isStatic, MemberDecl member, TargetWriter wr);
     protected abstract void EmitJumpToTailCallStart(TargetWriter wr);
     public abstract string TypeInitializationValue(Type xType, TextWriter/*?*/ wr, Bpl.IToken/*?*/ tok);
 
-    protected abstract void DeclareField(TopLevelDecl cl, string name, Type type, Bpl.IToken tok, string rhs, TargetWriter wr);
+    protected abstract void DeclareField(TopLevelDecl cl, string name, bool isStatic, Type type, Bpl.IToken tok, string rhs, TargetWriter wr);
     protected abstract bool DeclareFormal(string prefix, string name, Type type, Bpl.IToken tok, bool isInParam, TextWriter wr);
     protected abstract void DeclareLocalVar(string name, Type/*?*/ type, Bpl.IToken tok, string/*?*/ rhs, TargetWriter wr);
     protected abstract void DeclareLocalVar(string name, Type type, Bpl.IToken tok, Expression rhs, bool inLetExprBody, TargetWriter wr);
@@ -98,6 +98,10 @@ namespace Microsoft.Dafny {
       wr.Write("return ");
       TrExpr(expr, wr, inLetExprBody);
       wr.WriteLine(";");
+    }
+    protected virtual void EmitReturnExpr(string returnExpr, TargetWriter wr) {  // emits "return <returnExpr>;" for function bodies
+      wr.Indent();
+      wr.WriteLine("return {0};", returnExpr);
     }
     protected abstract void EmitBreak(string label, TargetWriter wr);
     protected abstract void EmitYield(TargetWriter wr);
@@ -889,22 +893,18 @@ namespace Microsoft.Dafny {
           var cf = (ConstantField)member;
           if (cf.Rhs == null) {
             Contract.Assert(!cf.IsStatic);  // as checked above, only instance members can be inherited
-            wr.Indent();
-            wr.WriteLine("public {0} _{1} = {2};", TypeName(cf.Type, wr, cf.tok), cf.CompileName, DefaultValue(cf.Type, wr, cf.tok));
+            DeclareField(cf.EnclosingClass, "_" + cf.CompileName, false, cf.Type, cf.tok, DefaultValue(cf.Type, wr, cf.tok), wr);
           }
-          wr.Indent();
-          var w = wr.NewNamedBlock("public {2}{0} {1}()", TypeName(cf.Type, wr, cf.tok), IdName(cf), cf.IsStatic ? "static " : "");
+          var w = CreateFunction(IdName(cf), null, new List<Formal>(), cf.Type, cf.tok, cf.IsStatic, cf, wr);
           if (cf.Rhs == null) {
-            w.Indent();
-            w.WriteLine("return _{0};", cf.CompileName);
+            EmitReturnExpr("_" + cf.CompileName, w);
           } else {
             CompileReturnBody(cf.Rhs, w);
           }
         } else if (member is Field) {
           var f = (Field)member;
           // every field is inherited
-          wr.Indent();
-          wr.WriteLine("public {0} _{1} = {2};", TypeName(f.Type, wr, f.tok), f.CompileName, DefaultValue(f.Type, wr, f.tok));
+          DeclareField(f.EnclosingClass, "_" + f.CompileName, false, f.Type, f.tok, DefaultValue(f.Type, wr, f.tok), wr);
           wr.Indent();
           var w = wr.NewNamedBlock("public {0} {1}", TypeName(f.Type, wr, f.tok), IdName(f));
           w.Indent();
@@ -932,10 +932,9 @@ namespace Microsoft.Dafny {
             // emit nothing, unless "f" is a static const
             var cf = f as ConstantField;
             if (cf != null && cf.IsStatic) {
-              wr.Indent();
-              var w = wr.NewNamedBlock("public static {0} {1}()", TypeName(cf.Type, wr, cf.tok), IdName(cf));
+              var w = CreateFunction(IdName(cf), null, new List<Formal>(), cf.Type, cf.tok, true, cf, wr);
               if (cf.Rhs == null) {
-                w.WriteLine("return {0};", DefaultValue(cf.Type, w, cf.tok));
+                EmitReturnExpr(DefaultValue(cf.Type, w, cf.tok), w);
               } else {
                 CompileReturnBody(cf.Rhs, w);
               }
@@ -957,19 +956,16 @@ namespace Microsoft.Dafny {
           } else if (f is ConstantField) {
             var cf = (ConstantField)f;
             if (cf.Rhs == null) {
-              wr.Indent();
-              wr.WriteLine("public {3}{0} _{1} = {2};", TypeName(cf.Type, wr, cf.tok), cf.CompileName, DefaultValue(cf.Type, wr, cf.tok), f.IsStatic ? "static " : "");
+              DeclareField(f.EnclosingClass, "_" + f.CompileName, f.IsStatic, f.Type, f.tok, DefaultValue(f.Type, wr, f.tok), wr);
             }
-            wr.Indent();
-            var w = wr.NewNamedBlock("public {2}{0} {1}()", TypeName(cf.Type, wr, cf.tok), IdName(cf), f.IsStatic ? "static " : "");
+            var w = CreateFunction(IdName(f), null, new List<Formal>(), f.Type, f.tok, f.IsStatic, f, wr);
             if (cf.Rhs == null) {
-              w.Indent();
-              w.WriteLine("return _{0};", cf.CompileName);
+              EmitReturnExpr("_" + f.CompileName, w);
             } else {
               CompileReturnBody(cf.Rhs, w);
             }
           } else {
-            DeclareField(f.EnclosingClass, IdName(f), f.Type, f.tok, DefaultValue(f.Type, wr, f.tok), wr);
+            DeclareField(f.EnclosingClass, IdName(f), false, f.Type, f.tok, DefaultValue(f.Type, wr, f.tok), wr);
           }
         } else if (member is Function) {
           var f = (Function)member;
@@ -1065,8 +1061,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(f != null);
       Contract.Requires(wr != null);
 
-      wr.Indent();
-      var w = CreateFunction(f, wr);
+      var w = CreateFunction(IdName(f), f.TypeArgs, f.Formals, f.ResultType, f.tok, f.IsStatic, f, wr);
       if (w != null) {
         CompileReturnBody(f.Body, w);
       }
@@ -1077,7 +1072,6 @@ namespace Microsoft.Dafny {
       Contract.Requires(m != null);
       Contract.Requires(wr != null);
 
-      wr.Indent();
       var w = CreateMethod(m, wr);
       if (w != null) {
         foreach (Formal p in m.Outs) {

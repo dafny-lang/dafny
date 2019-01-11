@@ -101,7 +101,6 @@ namespace Microsoft.Dafny
       var hasDllImportAttribute = ProcessDllImport(m, wr);
       string targetReturnTypeReplacement = null;
       if (hasDllImportAttribute) {
-        wr.Indent();
         foreach (var p in m.Outs) {
           if (!p.IsGhost) {
             if (targetReturnTypeReplacement == null) {
@@ -115,6 +114,7 @@ namespace Microsoft.Dafny
         }
       }
 
+      wr.Indent();
       wr.Write("public {0}{1}{3} @{2}", m.IsStatic ? "static " : "", hasDllImportAttribute ? "extern " : "", m.CompileName, targetReturnTypeReplacement ?? "void");
       if (m.TypeArgs.Count != 0) {
         wr.Write("<{0}>", TypeParameters(m.TypeArgs));
@@ -141,24 +141,24 @@ namespace Microsoft.Dafny
       }
     }
 
-    protected override BlockTargetWriter/*?*/ CreateFunction(Function f, TargetWriter wr) {
-      var hasDllImportAttribute = ProcessDllImport(f, wr);
-      if (hasDllImportAttribute) {
-        wr.Indent();
-      }
+    protected override BlockTargetWriter/*?*/ CreateFunction(string name, List<TypeParameter>/*?*/ typeArgs, List<Formal> formals, Type resultType, Bpl.IToken tok, bool isStatic, MemberDecl member, TargetWriter wr) {
+      var hasDllImportAttribute = ProcessDllImport(member, wr);
 
-      wr.Write("public {0}{1}{2} {3}", f.IsStatic ? "static " : "", hasDllImportAttribute ? "extern " : "", TypeName(f.ResultType, wr, f.tok), IdName(f));
-      if (f.TypeArgs.Count != 0) {
-        wr.Write("<{0}>", TypeParameters(f.TypeArgs));
+      wr.Indent();
+      wr.Write("public {0}{1}{2} {3}", isStatic ? "static " : "", hasDllImportAttribute ? "extern " : "", TypeName(resultType, wr, tok), name);
+      if (typeArgs != null && typeArgs.Count != 0) {
+        wr.Write("<{0}>", TypeParameters(typeArgs));
       }
       wr.Write("(");
-      WriteFormals("", f.Formals, wr);
+      WriteFormals("", formals, wr);
       if (hasDllImportAttribute) {
         wr.WriteLine(");");
         return null;
       } else {
         var w = wr.NewBlock(")");
-        w.SetBraceStyle(BlockTargetWriter.BraceStyle.Newline, BlockTargetWriter.BraceStyle.Newline);
+        if (formals.Count > 1) {
+          w.SetBraceStyle(BlockTargetWriter.BraceStyle.Newline, BlockTargetWriter.BraceStyle.Newline);
+        }
         return w;
       }
     }
@@ -167,7 +167,7 @@ namespace Microsoft.Dafny
     /// Process the declaration's "dllimport" attribute, if any, by emitting the corresponding .NET custom attribute.
     /// Returns "true" if the declaration has an active "dllimport" attribute; "false", otherwise.
     /// </summary>
-    public bool ProcessDllImport(MemberDecl decl, TextWriter wr) {
+    public bool ProcessDllImport(MemberDecl decl, TargetWriter wr) {
       Contract.Requires(decl != null);
       Contract.Requires(wr != null);
 
@@ -190,6 +190,7 @@ namespace Microsoft.Dafny
         } else if (!decl.IsStatic) {
           Error(decl.tok, "A {0} declared with :dllimport must be static: {1}", wr, decl.WhatKind, decl.FullName);
         } else {
+          wr.Indent();
           wr.Write("[System.Runtime.InteropServices.DllImport(");
           TrStringLiteral(libName, wr);
           wr.Write(", EntryPoint=");
@@ -297,9 +298,9 @@ namespace Microsoft.Dafny
 
     // ----- Declarations -------------------------------------------------------------
 
-    protected override void DeclareField(TopLevelDecl cl, string name, Type type, Bpl.IToken tok, string rhs, TargetWriter wr) {
+    protected override void DeclareField(TopLevelDecl cl, string name, bool isStatic, Type type, Bpl.IToken tok, string rhs, TargetWriter wr) {
       wr.Indent();
-      wr.WriteLine("public {0} {1} = {2};", TypeName(type, wr, tok), name, rhs);
+      wr.WriteLine("public {3}{0} {1} = {2};", TypeName(type, wr, tok), name, rhs, isStatic ? "static " : "");
     }
 
     protected override bool DeclareFormal(string prefix, string name, Type type, Bpl.IToken tok, bool isInParam, TextWriter wr) {

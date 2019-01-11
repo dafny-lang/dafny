@@ -52,6 +52,7 @@ namespace Microsoft.Dafny {
     }
 
     protected override BlockTargetWriter/*?*/ CreateMethod(Method m, TargetWriter wr) {
+      wr.Indent();
       wr.Write("{0}.{1}{2} = function (", m.EnclosingClass.CompileName, m.IsStatic ? "" : "prototype.", m.CompileName);
       int nIns = WriteFormals("", m.Ins, wr);
       var w = wr.NewBlock(")", ";");
@@ -69,11 +70,12 @@ namespace Microsoft.Dafny {
       return w;
     }
 
-    protected override BlockTargetWriter/*?*/ CreateFunction(Function f, TargetWriter wr) {
-      wr.Write("{0}.{1}{2} = function (", f.EnclosingClass.CompileName, f.IsStatic ? "" : "prototype.", f.CompileName);
-      int nIns = WriteFormals("", f.Formals, wr);
+    protected override BlockTargetWriter/*?*/ CreateFunction(string name, List<TypeParameter>/*?*/ typeArgs, List<Formal> formals, Type resultType, Bpl.IToken tok, bool isStatic, MemberDecl member, TargetWriter wr) {
+      wr.Indent();
+      wr.Write("{0}.{1}{2} = function (", member.EnclosingClass.CompileName, isStatic ? "" : "prototype.", name);
+      int nIns = WriteFormals("", formals, wr);
       var w = wr.NewBlock(")", ";");
-      if (!f.IsStatic) {
+      if (!isStatic) {
         w.Indent(); w.WriteLine("let _this = this;");
       }
       return w;
@@ -165,7 +167,7 @@ namespace Microsoft.Dafny {
 
     // ----- Declarations -------------------------------------------------------------
 
-    protected override void DeclareField(TopLevelDecl cl, string name, Type type, Bpl.IToken tok, string rhs, TargetWriter wr) {
+    protected override void DeclareField(TopLevelDecl cl, string name, bool isStatic, Type type, Bpl.IToken tok, string rhs, TargetWriter wr) {
       wr.Indent();
       wr.WriteLine("{0}.{1} = {2};", IdName(cl), name, rhs);
     }
