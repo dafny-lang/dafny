@@ -29,7 +29,7 @@ namespace Microsoft.Dafny {
       wr.WriteLine("{0}.{1}();", mainMethod.EnclosingClass.FullCompileName, IdName(mainMethod));
     }
       
-    protected override BlockTargetWriter CreateModule(TargetWriter wr, string moduleName) {
+    protected override BlockTargetWriter CreateModule(string moduleName, TargetWriter wr) {
       var w = wr.NewBigBlock(string.Format("let {0} = (function()", moduleName), ")(); // end of module " + moduleName);
       w.Indent();
       w.WriteLine("function {0}() {{ }}", moduleName);
@@ -37,27 +37,24 @@ namespace Microsoft.Dafny {
       return w;
     }
 
-    protected override BlockTargetWriter CreateClass(TargetWriter wr, ClassDecl cl) {
-      var w = wr.NewBlock(string.Format("{0} = (function()", cl.FullCompileName));
+    protected override BlockTargetWriter CreateClass(ClassDecl cl, TargetWriter wr) {
+      var w = wr.NewNamedBlock(string.Format("{0} = (function()", cl.FullCompileName));
       w.Footer = ")();";
       w.Indent();
       w.WriteLine("function {0}() {{ }}", cl.CompileName);
       w.BodySuffix = string.Format("{0}return {1};{2}", w.IndentString, cl.CompileName, w.NewLine);
       return w;
     }
-    protected override BlockTargetWriter CreateInternalClass(TargetWriter wr, string className) {
-      var w = wr.NewBlock("{0}:", className);
+    protected override BlockTargetWriter CreateInternalClass(string className, TargetWriter wr) {
+      var w = wr.NewNamedBlock("{0}:", className);
       w.Footer = ",";
       return w;
     }
 
-    protected override BlockTargetWriter CreateMethod(TargetWriter wr, Method m) {
-      var sw = new StringWriter();
-      sw.Write("{0}.{1}{2} = function (", m.EnclosingClass.CompileName, m.IsStatic ? "" : "prototype.", m.CompileName);
-      int nIns = WriteFormals("", m.Ins, sw);
-      sw.Write(")");
-      var w = wr.NewBlock(sw.ToString());
-      w.Footer = ";";
+    protected override BlockTargetWriter/*?*/ CreateMethod(Method m, TargetWriter wr) {
+      wr.Write("{0}.{1}{2} = function (", m.EnclosingClass.CompileName, m.IsStatic ? "" : "prototype.", m.CompileName);
+      int nIns = WriteFormals("", m.Ins, wr);
+      var w = wr.NewBlock(")", ";");
 
       if (!m.IsStatic) {
         w.Indent(); w.WriteLine("let _this = this;");
@@ -69,6 +66,16 @@ namespace Microsoft.Dafny {
       var r = new TargetWriter(w.IndentLevel);
       EmitReturn(m.Outs, r);
       w.BodySuffix = r.ToString();
+      return w;
+    }
+
+    protected override BlockTargetWriter/*?*/ CreateFunction(Function f, TargetWriter wr) {
+      wr.Write("{0}.{1}{2} = function (", f.EnclosingClass.CompileName, f.IsStatic ? "" : "prototype.", f.CompileName);
+      int nIns = WriteFormals("", f.Formals, wr);
+      var w = wr.NewBlock(")", ";");
+      if (!f.IsStatic) {
+        w.Indent(); w.WriteLine("let _this = this;");
+      }
       return w;
     }
 
@@ -116,7 +123,7 @@ namespace Microsoft.Dafny {
           } else if (ArrowType.IsTotalArrowTypeName(td.Name)) {
             var rangeDefaultValue = TypeInitializationValue(udt.TypeArgs.Last(), wr, tok);
             // return the lambda expression ((Ty0 x0, Ty1 x1, Ty2 x2) => rangeDefaultValue)
-            return string.Format("function () {{} return {0}; }", rangeDefaultValue);
+            return string.Format("function () {{ return {0}; }}", rangeDefaultValue);
           } else if (((NonNullTypeDecl)td).Class is ArrayClassDecl) {
             // non-null array type; we know how to initialize them
             return "[]";
@@ -190,6 +197,10 @@ namespace Microsoft.Dafny {
 
     protected override bool UseReturnStyleOuts(Method m, int nonGhostOutCount) => true;
 
+    protected override void DeclareOutCollector(string collectorVarName, TargetWriter wr) {
+      wr.Write("let {0} = ", collectorVarName);
+    }
+
     protected override void DeclareLocalOutVar(string name, Type type, Bpl.IToken tok, string rhs, TargetWriter wr) {
       DeclareLocalVar(name, type, tok, rhs, wr);
     }
@@ -231,6 +242,16 @@ namespace Microsoft.Dafny {
       } else {
         wr.WriteLine("return [{0}];", Util.Comma(outParams, IdName));
       }
+    }
+
+    protected override void EmitBreak(string label, TargetWriter wr) {
+      wr.Indent();
+      wr.WriteLine("break {0};", label);
+    }
+
+    protected override void EmitYield(TargetWriter wr) {
+      wr.Indent();
+      wr.WriteLine("yield null;");
     }
 
     // ----- Expressions -------------------------------------------------------------

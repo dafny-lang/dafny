@@ -67,10 +67,11 @@ namespace Microsoft.Dafny {
 
     protected virtual void EmitHeader(Program program, TargetWriter wr) { }
     public virtual void EmitCallToMain(Method mainMethod, TextWriter wr) { }
-    protected abstract BlockTargetWriter CreateModule(TargetWriter wr, string moduleName);
-    protected abstract BlockTargetWriter CreateClass(TargetWriter wr, ClassDecl cl);
-    protected abstract BlockTargetWriter CreateInternalClass(TargetWriter wr, string className);
-    protected abstract BlockTargetWriter CreateMethod(TargetWriter wr, Method m);
+    protected abstract BlockTargetWriter CreateModule(string moduleName, TargetWriter wr);
+    protected abstract BlockTargetWriter CreateClass(ClassDecl cl, TargetWriter wr);
+    protected abstract BlockTargetWriter CreateInternalClass(string className, TargetWriter wr);
+    protected abstract BlockTargetWriter/*?*/ CreateMethod(Method m, TargetWriter wr);
+    protected abstract BlockTargetWriter/*?*/ CreateFunction(Function f, TargetWriter wr);
     protected abstract void EmitJumpToTailCallStart(TargetWriter wr);
     public abstract string TypeInitializationValue(Type xType, TextWriter/*?*/ wr, Bpl.IToken/*?*/ tok);
 
@@ -78,6 +79,7 @@ namespace Microsoft.Dafny {
     protected abstract bool DeclareFormal(string prefix, string name, Type type, Bpl.IToken tok, bool isInParam, TextWriter wr);
     protected abstract void DeclareLocalVar(string name, Type/*?*/ type, Bpl.IToken tok, string/*?*/ rhs, TargetWriter wr);
     protected abstract void DeclareLocalVar(string name, Type type, Bpl.IToken tok, Expression rhs, bool inLetExprBody, TargetWriter wr);
+    protected virtual void DeclareOutCollector(string collectorVarName, TargetWriter wr) { }  // called only for return-style calls
     protected virtual bool UseReturnStyleOuts(Method m, int nonGhostOutCount) => false;
     protected abstract void DeclareLocalOutVar(string name, Type type, Bpl.IToken tok, string rhs, TargetWriter wr);
     protected virtual void EmitActualOutArg(string actualOutParamName, TextWriter wr) { }  // actualOutParamName is always the name of a local variable; called only for non-return-style outs
@@ -91,6 +93,21 @@ namespace Microsoft.Dafny {
     }
     protected abstract void EmitPrintStmt(TargetWriter wr, Expression arg);
     protected abstract void EmitReturn(List<Formal> outParams, TargetWriter wr);
+    protected abstract void EmitBreak(string label, TargetWriter wr);
+    protected abstract void EmitYield(TargetWriter wr);
+    protected virtual TargetWriter EmitIf(out TargetWriter guard, bool hasElse, TargetWriter wr) {
+      wr.Indent();
+      wr.Write("if (");
+      guard = new TargetWriter(wr.IndentLevel);
+      wr.Append(guard);
+      var thn = wr.NewBlock(")");
+      if (hasElse) {
+        thn.Footer = " else";
+        thn.SetBraceStyle(BlockTargetWriter.BraceStyle.Space, BlockTargetWriter.BraceStyle.Space);
+        wr.SuppressIndent();
+      }
+      return thn;
+    }
 
     protected abstract void EmitLiteralExpr(TextWriter wr, LiteralExpr e);
     protected virtual string IdName(TopLevelDecl d) {
@@ -135,7 +152,7 @@ namespace Microsoft.Dafny {
           continue;
         }
         int indent = 0;
-        var wr = CreateModule(wrx, m.CompileName);
+        var wr = CreateModule(m.CompileName, wrx);
         indent += IndentAmount;
         Contract.Assert(indent == wr.IndentLevel);
         foreach (TopLevelDecl d in m.TopLevelDecls) {
@@ -151,7 +168,7 @@ namespace Microsoft.Dafny {
             var sst = d as SubsetTypeDecl;
             if (sst != null && sst.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
               wr.Indent();
-              var w = wr.NewBlock("public class {0}", IdName(sst));
+              var w = wr.NewNamedBlock("public class {0}", IdName(sst));
               if (sst.TypeArgs.Count != 0) {
                 w.AppendHeader("<{0}>", TypeParameters(sst.TypeArgs));
               }
@@ -165,7 +182,7 @@ namespace Microsoft.Dafny {
           } else if (d is NewtypeDecl) {
             var nt = (NewtypeDecl)d;
             wr.Indent();
-            var w = wr.NewBlock("public class {0}", IdName(nt));
+            var w = wr.NewNamedBlock("public class {0}", IdName(nt));
             if (nt.NativeType != null) {
               w.Indent();
               w.WriteLine("public static System.Collections.Generic.IEnumerable<{0}> IntegerRange(BigInteger lo, BigInteger hi) {{", nt.NativeType.Name);
@@ -226,7 +243,7 @@ namespace Microsoft.Dafny {
             }
 
             wr.Indent();
-            var w = CreateClass(wr, iter);
+            var w = CreateClass(iter, wr);
             var ind = indent + IndentAmount;
             Contract.Assert(ind == w.IndentLevel);
             // here come the fields
@@ -269,7 +286,7 @@ namespace Microsoft.Dafny {
             if (iter.Body == null) {
               Error(iter.tok, "Iterator {0} has no body", w, iter.FullName);
             } else {
-              w.Write(TrStmt(iter.Body, ind + IndentAmount).ToString());
+              w.Append(TrStmt(iter.Body, ind + IndentAmount));
             }
             w.IndentExtra(); w.WriteLine("yield break;");
             w.Indent(); w.WriteLine("}");
@@ -278,17 +295,17 @@ namespace Microsoft.Dafny {
             //writing the trait
             var trait = (TraitDecl)d;
             wr.Indent();
-            var w = wr.NewBlock("public interface {0}", IdName(trait));
+            var w = wr.NewNamedBlock("public interface {0}", IdName(trait));
             CompileClassMembers(trait, false, indent + IndentAmount, w);
 
             //writing the _Companion class
             wr.Indent();
-            w = wr.NewBlock("public class _Companion_{0}", trait.CompileName);
+            w = wr.NewNamedBlock("public class _Companion_{0}", trait.CompileName);
             CompileClassMembers(trait, true, indent + IndentAmount, w);
           } else if (d is ClassDecl) {
             var cl = (ClassDecl)d;
             wr.Indent();
-            var w = CreateClass(wr, cl);
+            var w = CreateClass(cl, wr);
             CompileClassMembers(cl, false, indent + IndentAmount, w);
           } else if (d is ValuetypeDecl) {
             // nop
@@ -303,9 +320,9 @@ namespace Microsoft.Dafny {
       Contract.Requires(builtIns != null);
       Contract.Requires(wr != null);
 
-      wr = CreateModule(wr, "Dafny");
+      wr = CreateModule("Dafny", wr);
       wr.Indent();
-      wr = CreateInternalClass(wr, "ArrayHelpers");
+      wr = CreateInternalClass("ArrayHelpers", wr);
       foreach (var decl in builtIns.SystemModule.TopLevelDecls) {
         if (decl is ArrayClassDecl) {
           int dims = ((ArrayClassDecl)decl).Dims;
@@ -862,31 +879,28 @@ namespace Microsoft.Dafny {
           var cf = (ConstantField)member;
           if (cf.Rhs == null) {
             Contract.Assert(!cf.IsStatic);  // as checked above, only instance members can be inherited
-            Indent(indent, wr);
+            wr.Indent();
             wr.WriteLine("public {0} _{1} = {2};", TypeName(cf.Type, wr, cf.tok), cf.CompileName, DefaultValue(cf.Type, wr, cf.tok));
           }
-          Indent(indent, wr);
-          wr.WriteLine("public {2}{0} {1}() {{", TypeName(cf.Type, wr, cf.tok), IdName(cf), cf.IsStatic ? "static " : "");
+          wr.Indent();
+          var w = wr.NewNamedBlock("public {2}{0} {1}()", TypeName(cf.Type, wr, cf.tok), IdName(cf), cf.IsStatic ? "static " : "");
           if (cf.Rhs == null) {
-            Indent(indent + IndentAmount, wr);
-            wr.WriteLine("return _{0};", cf.CompileName);
+            w.Indent();
+            w.WriteLine("return _{0};", cf.CompileName);
           } else {
-            CompileReturnBody(cf.Rhs, indent + IndentAmount, wr);
+            CompileReturnBody(cf.Rhs, w);
           }
-          Indent(indent, wr); wr.WriteLine("}");
         } else if (member is Field) {
           var f = (Field)member;
           // every field is inherited
-          Indent(indent, wr);
+          wr.Indent();
           wr.WriteLine("public {0} _{1} = {2};", TypeName(f.Type, wr, f.tok), f.CompileName, DefaultValue(f.Type, wr, f.tok));
-          Indent(indent, wr);
-          wr.WriteLine("public {0} {1} {{", TypeName(f.Type, wr, f.tok), IdName(f));
-          Indent(indent + IndentAmount, wr);
-          wr.WriteLine("get {{ return this._{0}; }}", f.CompileName);
-          Indent(indent + IndentAmount, wr);
-          wr.WriteLine("set {{ this._{0} = value; }}", f.CompileName);
-          Indent(indent, wr);
-          wr.WriteLine("}");
+          wr.Indent();
+          var w = wr.NewNamedBlock("public {0} {1}", TypeName(f.Type, wr, f.tok), IdName(f));
+          w.Indent();
+          w.WriteLine("get {{ return this._{0}; }}", f.CompileName);
+          w.Indent();
+          w.WriteLine("set {{ this._{0} = value; }}", f.CompileName);
         } else if (member is Function) {
           var f = (Function)member;
           Contract.Assert(f.Body != null);
@@ -908,14 +922,13 @@ namespace Microsoft.Dafny {
             // emit nothing, unless "f" is a static const
             var cf = f as ConstantField;
             if (cf != null && cf.IsStatic) {
-              Indent(indent, wr);
-              wr.WriteLine("public static {0} {1}() {{", TypeName(cf.Type, wr, cf.tok), IdName(cf));
-              if (cf.Rhs != null) {
-                CompileReturnBody(cf.Rhs, indent + IndentAmount, wr);
+              wr.Indent();
+              var w = wr.NewNamedBlock("public static {0} {1}()", TypeName(cf.Type, wr, cf.tok), IdName(cf));
+              if (cf.Rhs == null) {
+                w.WriteLine("return {0};", DefaultValue(cf.Type, w, cf.tok));
               } else {
-                wr.WriteLine("return {0};", DefaultValue(cf.Type, wr, cf.tok));
+                CompileReturnBody(cf.Rhs, w);
               }
-              Indent(indent, wr); wr.WriteLine("}");
             }
           } else if (c is TraitDecl) {
             if (f is ConstantField) {
@@ -934,18 +947,17 @@ namespace Microsoft.Dafny {
           } else if (f is ConstantField) {
             var cf = (ConstantField)f;
             if (cf.Rhs == null) {
-              Indent(indent, wr);
+              wr.Indent();
               wr.WriteLine("public {3}{0} _{1} = {2};", TypeName(cf.Type, wr, cf.tok), cf.CompileName, DefaultValue(cf.Type, wr, cf.tok), f.IsStatic ? "static " : "");
             }
-            Indent(indent, wr);
-            wr.WriteLine("public {2}{0} {1}() {{", TypeName(cf.Type, wr, cf.tok), IdName(cf), f.IsStatic ? "static " : "");
+            wr.Indent();
+            var w = wr.NewNamedBlock("public {2}{0} {1}()", TypeName(cf.Type, wr, cf.tok), IdName(cf), f.IsStatic ? "static " : "");
             if (cf.Rhs == null) {
-              Indent(indent + IndentAmount, wr);
-              wr.WriteLine("return _{0};", cf.CompileName);
+              w.Indent();
+              w.WriteLine("return _{0};", cf.CompileName);
             } else {
-              CompileReturnBody(cf.Rhs, indent + IndentAmount, wr);
+              CompileReturnBody(cf.Rhs, w);
             }
-            Indent(indent, wr); wr.WriteLine("}");
           } else {
             DeclareField(f.EnclosingClass, IdName(f), f.Type, f.tok, DefaultValue(f.Type, wr, f.tok), wr);
           }
@@ -1039,24 +1051,14 @@ namespace Microsoft.Dafny {
       }
     }
 
-    private void CompileFunction(int indent, Function f, TextWriter wr) {
+    private void CompileFunction(int indent, Function f, TargetWriter wr) {
       Contract.Requires(f != null);
       Contract.Requires(wr != null);
 
-      var hasDllImportAttribute = this is CsharpCompiler ? ((CsharpCompiler)this).ProcessDllImport(f, wr) : false;
-      Indent(indent, wr);
-      wr.Write("public {0}{1}{2} {3}", f.IsStatic ? "static " : "", hasDllImportAttribute ? "extern " : "", TypeName(f.ResultType, wr, f.tok), IdName(f));
-      if (f.TypeArgs.Count != 0) {
-        wr.Write("<{0}>", TypeParameters(f.TypeArgs));
-      }
-      wr.Write("(");
-      WriteFormals("", f.Formals, wr);
-      if (hasDllImportAttribute) {
-        wr.WriteLine(");");
-      } else {
-        wr.WriteLine(") {");
-        CompileReturnBody(f.Body, indent + IndentAmount, wr);
-        Indent(indent, wr); wr.WriteLine("}");
+      wr.Indent();
+      var w = CreateFunction(f, wr);
+      if (w != null) {
+        CompileReturnBody(f.Body, w);
       }
     }
 
@@ -1066,8 +1068,8 @@ namespace Microsoft.Dafny {
       Contract.Requires(wr != null);
 
       wr.Indent();
-      var w = CreateMethod(wr, m);
-      if (!w.DroppingBody) {
+      var w = CreateMethod(m, wr);
+      if (w != null) {
         foreach (Formal p in m.Outs) {
           if (!p.IsGhost) {
             DeclareLocalOutVar(IdName(p), p.Type, p.tok, DefaultValue(p.Type, w, p.tok), w);
@@ -1078,7 +1080,7 @@ namespace Microsoft.Dafny {
         } else {
           Contract.Assert(enclosingMethod == null);
           enclosingMethod = m;
-          TrStmtList(m.Body.Body, indent, w);
+          TrStmtList(m.Body.Body, w);
           Contract.Assert(enclosingMethod == m);
           enclosingMethod = null;
         }
@@ -1240,13 +1242,8 @@ namespace Microsoft.Dafny {
       }
     }
 
-    void CompileReturnBody(Expression body, int indent, TextWriter wr) {
-      Contract.Requires(0 <= indent);
-      body = body.Resolved;
-      //Indent(indent);
-      //wr.Write("return ");
-      TrExprOpt(body, indent, wr, false);
-      //wr.WriteLine(";");
+    void CompileReturnBody(Expression body, TargetWriter wr) {
+      TrExprOpt(body.Resolved, wr.IndentLevel, wr, false);
     }
 
     // ----- Type ---------------------------------------------------------------------------------
@@ -1696,32 +1693,36 @@ namespace Microsoft.Dafny {
       }
     }
 
-    TextWriter TrStmt(Statement stmt, int indent) {
+    TargetWriter TrStmt(Statement stmt, int indent) {
       Contract.Requires(stmt != null);
       TargetWriter wr = new TargetWriter(indent);
+      return TrStmt(stmt, wr);
+    }
+    TargetWriter TrStmt(Statement stmt, TargetWriter wr) {
+      Contract.Requires(stmt != null);
+      Contract.Requires(wr != null);
+
       if (stmt.IsGhost) {
         var v = new CheckHasNoAssumes_Visitor(this, wr);
         v.Visit(stmt);
-        Indent(indent, wr); wr.WriteLine("{ }");
+        wr.Indent(); wr.WriteLine("{ }");
         return wr;
       }
       if (stmt is PrintStmt) {
-        PrintStmt s = (PrintStmt)stmt;
+        var s = (PrintStmt)stmt;
         foreach (var arg in s.Args) {
           EmitPrintStmt(wr, arg);
         }
       } else if (stmt is BreakStmt) {
         var s = (BreakStmt)stmt;
-        Indent(indent, wr);
-        wr.WriteLine("goto after_{0};", s.TargetStmt.Labels.Data.AssignUniqueId(idGenerator));
+        EmitBreak(s.TargetStmt.Labels.Data.AssignUniqueId(idGenerator), wr);
       } else if (stmt is ProduceStmt) {
         var s = (ProduceStmt)stmt;
         if (s.hiddenUpdate != null) {
-          wr.Write(TrStmt(s.hiddenUpdate, indent).ToString());
+          wr.Append(TrStmt(s.hiddenUpdate, wr.IndentLevel));
         }
         if (s is YieldStmt) {
-          wr.Indent();
-          wr.WriteLine("yield return null;");
+          EmitYield(wr);
         } else {
           EmitReturn(this.enclosingMethod.Outs, wr);
         }
@@ -1729,7 +1730,7 @@ namespace Microsoft.Dafny {
         var s = (UpdateStmt)stmt;
         var resolved = s.ResolvedStatements;
         if (resolved.Count == 1) {
-          wr.Write(TrStmt(resolved[0], indent).ToString());
+          wr.Append(TrStmt(resolved[0], wr.IndentLevel));
         } else {
           // multi-assignment
           Contract.Assert(s.Lhss.Count == resolved.Count);
@@ -1745,11 +1746,10 @@ namespace Microsoft.Dafny {
                   Error(rhs.Tok, "nondeterministic assignment forbidden by /definiteAssignment:3 option", wr);
                 }
               } else {
-                lvalues.Add(CreateLvalue(lhs, indent, wr));
-
+                lvalues.Add(CreateLvalue(lhs, wr));
                 string target = idGenerator.FreshId("_rhs");
                 rhss.Add(target);
-                TrRhs(GenerateLhsDecl(target, rhs is ExprRhs ? ((ExprRhs)rhs).Expr.Type : null, wr, rhs.Tok), rhs, indent, wr);
+                TrRhs(GenerateLhsDecl(target, rhs is ExprRhs ? ((ExprRhs)rhs).Expr.Type : null, wr, rhs.Tok), rhs, wr);
               }
             }
           }
@@ -1760,15 +1760,15 @@ namespace Microsoft.Dafny {
         }
 
       } else if (stmt is AssignStmt) {
-        AssignStmt s = (AssignStmt)stmt;
+        var s = (AssignStmt)stmt;
         Contract.Assert(!(s.Lhs is SeqSelectExpr) || ((SeqSelectExpr)s.Lhs).SelectOne);  // multi-element array assignments are not allowed
         if (s.Rhs is HavocRhs) {
           if (DafnyOptions.O.ForbidNondeterminism) {
             Error(s.Rhs.Tok, "nondeterministic assignment forbidden by /definiteAssignment:3 option", wr);
           }
         } else {
-          var lvalue = CreateLvalue(s.Lhs, indent, wr);
-          TrRhs(lvalue, s.Rhs, indent, wr);
+          var lvalue = CreateLvalue(s.Lhs, wr);
+          TrRhs(lvalue, s.Rhs, wr);
         }
 
       } else if (stmt is AssignSuchThatStmt) {
@@ -1788,7 +1788,7 @@ namespace Microsoft.Dafny {
             }
           } else {
             Contract.Assert(s.Bounds != null);
-            TrAssignSuchThat(indent, lhss, s.Expr, s.Bounds, s.Tok.line, wr, false);
+            TrAssignSuchThat(wr.IndentLevel, lhss, s.Expr, s.Bounds, s.Tok.line, wr, false);
           }
         }
 
@@ -1797,9 +1797,10 @@ namespace Microsoft.Dafny {
         wr.Write(TrCallStmt(s, null, wr.IndentLevel).ToString());
 
       } else if (stmt is BlockStmt) {
-        Indent(indent, wr); wr.WriteLine("{");
-        TrStmtList(((BlockStmt)stmt).Body, indent, wr);
-        Indent(indent, wr); wr.WriteLine("}");
+        wr.Indent();
+        var w = wr.NewBlock("");
+        w.SetBraceStyle(BlockTargetWriter.BraceStyle.Nothing, BlockTargetWriter.BraceStyle.Newline);
+        TrStmtList(((BlockStmt)stmt).Body, w);
 
       } else if (stmt is IfStmt) {
         IfStmt s = (IfStmt)stmt;
@@ -1811,33 +1812,30 @@ namespace Microsoft.Dafny {
           if (s.Els == null) {
             // let's compile the "else" branch, since that involves no work
             // (still, let's leave a marker in the source code to indicate that this is what we did)
-            Indent(indent, wr);
+            wr.Indent();
             wr.WriteLine("if (!false) { }");
           } else {
             // let's compile the "then" branch
-            Indent(indent, wr);
-            wr.WriteLine("if (true)");
-            wr.Write(TrStmt(s.Thn, indent).ToString());
+            wr.Indent();
+            wr.Write("if (true) ");
+            wr.Append(TrStmt(s.Thn, wr.IndentLevel));
           }
         } else {
           if (s.IsBindingGuard && DafnyOptions.O.ForbidNondeterminism) {
             Error(s.Tok, "binding if statement forbidden by /definiteAssignment:3 option", wr);
           }
-          Indent(indent, wr); wr.Write("if (");
-          TrExpr(s.IsBindingGuard ? Translator.AlphaRename((ExistsExpr)s.Guard, "eg_d") : s.Guard, wr, false);
-          wr.WriteLine(")");
+          TargetWriter guardWriter;
+          var thenWriter = EmitIf(out guardWriter, s.Els != null, wr);
+          TrExpr(s.IsBindingGuard ? Translator.AlphaRename((ExistsExpr)s.Guard, "eg_d") : s.Guard, guardWriter, false);
 
           // We'd like to do "TrStmt(s.Thn, indent)", except we want the scope of any existential variables to come inside the block
-          Indent(indent, wr); wr.WriteLine("{");
           if (s.IsBindingGuard) {
-            IntroduceAndAssignBoundVars(indent + IndentAmount, (ExistsExpr)s.Guard, wr);
+            IntroduceAndAssignBoundVars((ExistsExpr)s.Guard, thenWriter);
           }
-          TrStmtList(s.Thn.Body, indent, wr);
-          Indent(indent, wr); wr.WriteLine("}");
+          TrStmtList(s.Thn.Body, thenWriter);
 
           if (s.Els != null) {
-            Indent(indent, wr); wr.WriteLine("else");
-            wr.Write(TrStmt(s.Els, indent).ToString());
+            TrStmt(s.Els, wr);
           }
         }
 
@@ -1846,17 +1844,17 @@ namespace Microsoft.Dafny {
         if (DafnyOptions.O.ForbidNondeterminism && 2 <= s.Alternatives.Count) {
           Error(s.Tok, "case-based if statement forbidden by /definiteAssignment:3 option", wr);
         }
-        Indent(indent, wr);
+        wr.Indent();
         foreach (var alternative in s.Alternatives) {
           wr.Write("if (");
           TrExpr(alternative.IsBindingGuard ? Translator.AlphaRename((ExistsExpr)alternative.Guard, "eg_d") : alternative.Guard, wr, false);
-          wr.WriteLine(") {");
+          wr.Write(")");
+          var w = wr.NewBlock("", " else");
+          w.SetBraceStyle(BlockTargetWriter.BraceStyle.Space, BlockTargetWriter.BraceStyle.Space);
           if (alternative.IsBindingGuard) {
-            IntroduceAndAssignBoundVars(indent + IndentAmount, (ExistsExpr)alternative.Guard, wr);
+            IntroduceAndAssignBoundVars((ExistsExpr)alternative.Guard, w);
           }
-          TrStmtList(alternative.Body, indent, wr);
-          Indent(indent, wr);
-          wr.Write("} else ");
+          TrStmtList(alternative.Body, w);
         }
         wr.WriteLine("{ /*unreachable alternative*/ }");
 
@@ -1869,14 +1867,14 @@ namespace Microsoft.Dafny {
           if (DafnyOptions.O.ForbidNondeterminism) {
             Error(s.Tok, "nondeterministic loop forbidden by /definiteAssignment:3 option", wr);
           }
-          Indent(indent, wr);
+          wr.Indent();
           wr.WriteLine("while (false) { }");
         } else {
-          Indent(indent, wr);
+          wr.Indent();
           wr.Write("while (");
           TrExpr(s.Guard, wr, false);
-          wr.WriteLine(")");
-          wr.Write(TrStmt(s.Body, indent).ToString());
+          wr.Write(") ");
+          wr.Append(TrStmt(s.Body, wr.IndentLevel));
         }
 
       } else if (stmt is AlternativeLoopStmt) {
@@ -1885,23 +1883,18 @@ namespace Microsoft.Dafny {
           Error(s.Tok, "case-based loop forbidden by /definiteAssignment:3 option", wr);
         }
         if (s.Alternatives.Count != 0) {
-          Indent(indent, wr);
-          wr.WriteLine("while (true) {");
-          int ind = indent + IndentAmount;
+          wr.Indent();
+          var w = wr.NewBlock("while (true)");
+          w.Indent();
           foreach (var alternative in s.Alternatives) {
+            w.Write("if (");
+            TrExpr(alternative.Guard, w, false);
+            var wa = w.NewBlock(")");
+            wa.Footer = " else";
+            wa.SetBraceStyle(BlockTargetWriter.BraceStyle.Space, BlockTargetWriter.BraceStyle.Space);
+            TrStmtList(alternative.Body, wa);
           }
-          Indent(ind, wr);
-          foreach (var alternative in s.Alternatives) {
-            wr.Write("if (");
-            TrExpr(alternative.Guard, wr, false);
-            wr.WriteLine(") {");
-            TrStmtList(alternative.Body, ind, wr);
-            Indent(ind, wr);
-            wr.Write("} else ");
-          }
-          wr.WriteLine("{ break; }");
-          Indent(indent, wr);
-          wr.WriteLine("}");
+          w.WriteLine("{ break; }");
         }
 
       } else if (stmt is ForallStmt) {
@@ -1911,7 +1904,7 @@ namespace Microsoft.Dafny {
           return wr;
         } else if (s.BoundVars.Count == 0) {
           // the bound variables just spell out a single point, so the forall statement is equivalent to one execution of the body
-          wr.Write(TrStmt(s.Body, indent).ToString());
+          wr.Append(TrStmt(s.Body, wr.IndentLevel));
           return wr;
         }
         var s0 = (AssignStmt)s.S0;
@@ -1987,24 +1980,23 @@ namespace Microsoft.Dafny {
         tupleTypeArgs += "," + TypeName(rhs.Type, wr, rhs.tok);
 
         // declare and construct "ingredients"
-        Indent(indent, wr);
+        wr.Indent();
         wr.WriteLine("var {0} = new System.Collections.Generic.List<System.Tuple<{1}>>();", ingredients, tupleTypeArgs);
 
         var n = s.BoundVars.Count;
         Contract.Assert(s.Bounds.Count == n);
         for (int i = 0; i < n; i++) {
-          var ind = indent + i * IndentAmount;
           var bound = s.Bounds[i];
           var bv = s.BoundVars[i];
           if (bound is ComprehensionExpr.BoolBoundedPool) {
-            Indent(ind, wr);
+            wr.IndentExtra(i);
             wr.Write("foreach (var {0} in Dafny.Helpers.AllBooleans) {{ ", IdName(bv));
           } else if (bound is ComprehensionExpr.CharBoundedPool) {
-            Indent(ind, wr);
+            wr.IndentExtra(i);
             wr.Write("foreach (var {0} in Dafny.Helpers.AllChars) {{ ", IdName(bv));
           } else if (bound is ComprehensionExpr.IntBoundedPool) {
             var b = (ComprehensionExpr.IntBoundedPool)bound;
-            Indent(ind, wr);
+            wr.IndentExtra(i);
             if (AsNativeType(bv.Type) != null) {
               wr.Write("foreach (var {0} in {1}.IntegerRange(", IdName(bv), IdProtect(bv.Type.AsNewtype.FullCompileName));
             } else {
@@ -2018,19 +2010,19 @@ namespace Microsoft.Dafny {
             wr.Write(")) { ");
           } else if (bound is ComprehensionExpr.ExactBoundedPool) {
             var b = (ComprehensionExpr.ExactBoundedPool)bound;
-            Indent(ind, wr);
+            wr.IndentExtra(i);
             wr.Write("foreach (var {0} in Dafny.Helpers.SingleValue<{1}>(", bv.CompileName, TypeName(b.E.Type, wr, b.E.tok));
             TrExpr(b.E, wr, false);
             wr.WriteLine(")) {");
           } else if (bound is ComprehensionExpr.SetBoundedPool) {
             var b = (ComprehensionExpr.SetBoundedPool)bound;
-            Indent(ind, wr);
+            wr.IndentExtra(i);
             wr.Write("foreach (var {0} in (", IdName(bv));
             TrExpr(b.Set, wr, false);
             wr.Write(").Elements) { ");
           } else if (bound is ComprehensionExpr.MultiSetBoundedPool) {
             var b = (ComprehensionExpr.MultiSetBoundedPool)bound;
-            Indent(ind, wr);
+            wr.IndentExtra(i);
             wr.Write("foreach (var {0} in (", IdName(bv));
             TrExpr(b.MultiSet, wr, false);
             wr.Write(").Elements) { ");
@@ -2041,7 +2033,7 @@ namespace Microsoft.Dafny {
             wr.Write(").AllSubsets) {");
           } else if (bound is ComprehensionExpr.SeqBoundedPool) {
             var b = (ComprehensionExpr.SeqBoundedPool)bound;
-            Indent(ind, wr);
+            wr.IndentExtra(i);
             wr.Write("foreach (var {0} in (", IdName(bv));
             TrExpr(b.Seq, wr, false);
             wr.Write(").UniqueElements) { ");
@@ -2057,7 +2049,7 @@ namespace Microsoft.Dafny {
         // if (range) {
         //   ingredients.Add(new L-Tuple( LHS0(w,x,y,z), LHS1(w,x,y,z), ..., RHS(w,x,y,z) ));
         // }
-        Indent(indent + n * IndentAmount, wr);
+        wr.IndentExtra(n);
         wr.Write("if (");
         foreach (var bv in s.BoundVars) {
           var bvConstraints = Resolver.GetImpliedTypeConstraint(bv, bv.Type);
@@ -2067,8 +2059,7 @@ namespace Microsoft.Dafny {
         TrParenExpr(s.Range, wr, false);
         wr.WriteLine(") {");
 
-        var indFinal = indent + (n + 1) * IndentAmount;
-        Indent(indFinal, wr);
+        wr.IndentExtra(n + 1);
         wr.Write("{0}.Add(new System.Tuple<{1}>(", ingredients, tupleTypeArgs);
         if (s0.Lhs is MemberSelectExpr) {
           var lhs = (MemberSelectExpr)s0.Lhs;
@@ -2092,38 +2083,36 @@ namespace Microsoft.Dafny {
         TrExpr(rhs, wr, false);
         wr.WriteLine("));");
 
-        Indent(indent + n * IndentAmount, wr);
+        wr.IndentExtra(n);
         wr.WriteLine("}");
 
         for (int i = n; 0 <= --i;) {
-          Indent(indent + i * IndentAmount, wr);
+          wr.IndentExtra(i);
           wr.WriteLine("}");
         }
 
         //   foreach (L-Tuple l in ingredients) {
         //     LHS[ l0, l1, l2, ..., l(L-2) ] = l(L-1);
         //   }
-        Indent(indent, wr);
-        wr.WriteLine("foreach (var {0} in {1}) {{", tup, ingredients);
-        Indent(indent + IndentAmount, wr);
+        wr.Indent();
+        var w = wr.NewBlock(string.Format("foreach (var {0} in {1})", tup, ingredients));
+        w.Indent();
         if (s0.Lhs is MemberSelectExpr) {
           var lhs = (MemberSelectExpr)s0.Lhs;
-          wr.WriteLine("{0}.Item1.{1} = {0}.Item2;", tup, IdMemberName(lhs));
+          w.WriteLine("{0}.Item1.{1} = {0}.Item2;", tup, IdMemberName(lhs));
         } else if (s0.Lhs is SeqSelectExpr) {
           var lhs = (SeqSelectExpr)s0.Lhs;
-          wr.WriteLine("{0}.Item1[{0}.Item2] = {0}.Item3;", tup);
+          w.WriteLine("{0}.Item1[{0}.Item2] = {0}.Item3;", tup);
         } else {
           var lhs = (MultiSelectExpr)s0.Lhs;
-          wr.Write("{0}.Item1[", tup);
+          w.Write("{0}.Item1[", tup);
           string sep = "";
           for (int i = 0; i < lhs.Indices.Count; i++) {
-            wr.Write("{0}{1}.Item{2}", sep, tup, i + 2);
+            w.Write("{0}{1}.Item{2}", sep, tup, i + 2);
             sep = ", ";
           }
-          wr.WriteLine("] = {0}.Item{1};", tup, L);
+          w.WriteLine("] = {0}.Item{1};", tup, L);
         }
-        Indent(indent, wr);
-        wr.WriteLine("}");
 
       } else if (stmt is MatchStmt) {
         MatchStmt s = (MatchStmt)stmt;
@@ -2139,7 +2128,7 @@ namespace Microsoft.Dafny {
         // }
         if (s.Cases.Count != 0) {
           string source = idGenerator.FreshId("_source");
-          Indent(indent, wr);
+          wr.Indent();
           wr.Write("{0} {1} = ", TypeName(cce.NonNull(s.Source.Type), wr, s.Source.tok), source);
           TrExpr(s.Source, wr, false);
           wr.WriteLine(";");
@@ -2147,31 +2136,31 @@ namespace Microsoft.Dafny {
           int i = 0;
           var sourceType = (UserDefinedType)s.Source.Type.NormalizeExpand();
           foreach (MatchCaseStmt mc in s.Cases) {
-            MatchCasePrelude(source, sourceType, cce.NonNull(mc.Ctor), mc.Arguments, i, s.Cases.Count, indent, wr);
-            TrStmtList(mc.Body, indent, wr);
+            MatchCasePrelude(source, sourceType, cce.NonNull(mc.Ctor), mc.Arguments, i, s.Cases.Count, wr.IndentLevel, wr);
+            TrStmtList(mc.Body, wr);
             i++;
           }
-          Indent(indent, wr); wr.WriteLine("}");
+          wr.Indent(); wr.WriteLine("}");
         }
 
       } else if (stmt is VarDeclStmt) {
         var s = (VarDeclStmt)stmt;
         foreach (var local in s.Locals) {
-          TrLocalVar(local, true, indent, wr);
+          TrLocalVar(local, true, wr.IndentLevel, wr);
         }
         if (s.Update != null) {
-          wr.Write(TrStmt(s.Update, indent).ToString());
+          wr.Append(TrStmt(s.Update, wr.IndentLevel));
         }
 
       } else if (stmt is LetStmt) {
         var s = (LetStmt)stmt;
         if (Contract.Exists(s.LHS.Vars, bv => !bv.IsGhost)) {
-          TrCasePatternOpt(s.LHS, s.RHS, null, indent, wr, false);
+          TrCasePatternOpt(s.LHS, s.RHS, null, wr.IndentLevel, wr, false);
         }
       } else if (stmt is ModifyStmt) {
         var s = (ModifyStmt)stmt;
         if (s.Body != null) {
-          wr.Write(TrStmt(s.Body, indent).ToString());
+          wr.Append(TrStmt(s.Body, wr.IndentLevel));
         } else if (DafnyOptions.O.ForbidNondeterminism) {
           Error(s.Tok, "modify statement without a body forbidden by /definiteAssignment:3 option", wr);
         }
@@ -2183,16 +2172,15 @@ namespace Microsoft.Dafny {
       return wr;
     }
 
-    private void IntroduceAndAssignBoundVars(int indent, ExistsExpr exists, TargetWriter wr) {
-      Contract.Requires(0 <= indent);
+    private void IntroduceAndAssignBoundVars(ExistsExpr exists, TargetWriter wr) {
       Contract.Requires(exists != null);
       Contract.Assume(exists.Bounds != null);  // follows from successful resolution
       Contract.Assert(exists.Range == null);  // follows from invariant of class IfStmt
       foreach (var bv in exists.BoundVars) {
-        TrLocalVar(bv, false, indent, wr);
+        TrLocalVar(bv, false, wr.IndentLevel, wr);
       }
       var ivars = exists.BoundVars.ConvertAll(bv => (IVariable)bv);
-      TrAssignSuchThat(indent, ivars, exists.Term, exists.Bounds, exists.tok.line, wr, false);
+      TrAssignSuchThat(wr.IndentLevel, ivars, exists.Term, exists.Bounds, exists.tok.line, wr, false);
     }
 
     private void TrAssignSuchThat(int indent, List<IVariable> lhss, Expression constraint, List<ComprehensionExpr.BoundedPool> bounds, int debuginfoLine, TextWriter wr, bool inLetExprBody) {
@@ -2337,7 +2325,10 @@ namespace Microsoft.Dafny {
       wr.WriteLine("{0}: ;", doneLabel);
     }
 
-    string CreateLvalue(Expression lhs, int indent, TextWriter wr) {
+    string CreateLvalue(Expression lhs, TargetWriter wr) {
+      Contract.Requires(lhs != null);
+      Contract.Requires(wr != null);
+
       lhs = lhs.Resolved;
       if (lhs is IdentifierExpr) {
         var ll = (IdentifierExpr)lhs;
@@ -2345,7 +2336,7 @@ namespace Microsoft.Dafny {
       } else if (lhs is MemberSelectExpr) {
         var ll = (MemberSelectExpr)lhs;
         string obj = idGenerator.FreshId("_obj");
-        Indent(indent, wr);
+        wr.Indent();
         wr.Write("var {0} = ", obj);
         TrExpr(ll.Obj, wr, false);
         wr.WriteLine(";");
@@ -2360,11 +2351,11 @@ namespace Microsoft.Dafny {
         var c = idGenerator.FreshNumericId("_arr+_index");
         string arr = "_arr" + c;
         string index = "_index" + c;
-        Indent(indent, wr);
+        wr.Indent();
         wr.Write("var {0} = ", arr);
         TrExpr(ll.Seq, wr, false);
         wr.WriteLine(";");
-        Indent(indent, wr);
+        wr.Indent();
         wr.Write("var {0} = ", index);
         TrExpr(ll.E0, wr, false);
         wr.WriteLine(";");
@@ -2373,7 +2364,7 @@ namespace Microsoft.Dafny {
         var ll = (MultiSelectExpr)lhs;
         var c = idGenerator.FreshNumericId("_arr+_index");
         string arr = "_arr" + c;
-        Indent(indent, wr);
+        wr.Indent();
         wr.Write("var {0} = ", arr);
         TrExpr(ll.Array, wr, false);
         wr.WriteLine(";");
@@ -2382,7 +2373,7 @@ namespace Microsoft.Dafny {
         int i = 0;
         foreach (var idx in ll.Indices) {
           string index = "_index" + i + "_" + c;
-          Indent(indent, wr);
+          wr.Indent();
           wr.Write("var {0} = ", index);
           TrExpr(idx, wr, false);
           wr.WriteLine(";");
@@ -2394,10 +2385,9 @@ namespace Microsoft.Dafny {
       }
     }
 
-    void TrRhs(string target, AssignmentRhs rhs, int indent, TargetWriter wr) {
+    void TrRhs(string target, AssignmentRhs rhs, TargetWriter wr) {
       Contract.Requires(target != null);
       Contract.Requires(!(rhs is HavocRhs));
-      Contract.Requires(0 <= indent);
       Contract.Requires(wr != null);
 
       var tRhs = rhs as TypeRhs;
@@ -2409,7 +2399,7 @@ namespace Microsoft.Dafny {
         nw = idGenerator.FreshId("_rhs");
         DeclareLocalVar(nw, eRhs.Expr.Type, eRhs.Expr.tok, eRhs.Expr, false, wr);
       } else {
-        Indent(indent, wr);
+        wr.Indent();
         nw = idGenerator.FreshId("_nw");
         wr.Write("var {0} = ", nw);
         TrTypeRhs(tRhs, wr);
@@ -2429,27 +2419,27 @@ namespace Microsoft.Dafny {
       } else if (tRhs.ElementInit != null) {
         // Compute the array-initializing function once and for all (as required by the language definition)
         string f = idGenerator.FreshId("_arrayinit");
-        Indent(indent, wr);
+        wr.Indent();
         wr.Write("var {0} = ", f);
         TrExpr(tRhs.ElementInit, wr, false);
         wr.WriteLine(";");
         // Build a loop nest that will call the initializer for all indicies
         var indicies = Translator.Map(Enumerable.Range(0, tRhs.ArrayDimensions.Count), ii => idGenerator.FreshId("_arrayinit_" + ii));
         for (int d = 0; d < tRhs.ArrayDimensions.Count; d++) {
-          Indent(indent + d * IndentAmount, wr);
+          wr.IndentExtra(d);
           wr.WriteLine("for (int {0} = 0; {0} < {1}.{2}; {0}++) {{", indicies[d], nw,
             tRhs.ArrayDimensions.Count == 1 ? "Length" : ("GetLength(" + d + ")"));
         }
-        Indent(indent + tRhs.ArrayDimensions.Count * IndentAmount, wr);
+        wr.IndentExtra(tRhs.ArrayDimensions.Count);
         wr.WriteLine("{0}[{2}] = {1}({2});", nw, f, Util.Comma(indicies, si => si));
         for (int d = tRhs.ArrayDimensions.Count; 0 <= --d; ) {
-          Indent(indent + d * IndentAmount, wr);
+          wr.IndentExtra(d);
           wr.WriteLine("}");
         }
       } else if (tRhs.InitDisplay != null) {
         var ii = 0;
         foreach (var v in tRhs.InitDisplay) {
-          Indent(indent, wr);
+          wr.Indent();
           wr.Write("{0}[{1}] = ", nw, ii);
           TrExpr(v, wr, false);
           wr.WriteLine(";");
@@ -2519,7 +2509,7 @@ namespace Microsoft.Dafny {
         for (int i = 0; i < s.Method.Outs.Count; i++) {
           Formal p = s.Method.Outs[i];
           if (!p.IsGhost) {
-            lvalues.Add(CreateLvalue(s.Lhs[i], indent, wr));
+            lvalues.Add(CreateLvalue(s.Lhs[i], wr));
           }
         }
         var outTmps = new List<string>();
@@ -2540,9 +2530,8 @@ namespace Microsoft.Dafny {
         }
         var returnStyleOutCollector = outTmps.Count > 0 && UseReturnStyleOuts(s.Method, outTmps.Count) ? idGenerator.FreshId("_outcollector") : null;
         if (returnStyleOutCollector != null) {
-          DeclareLocalVar(returnStyleOutCollector, null, s.Tok, null, wr);
           wr.Indent();
-          wr.Write("{0} = ", returnStyleOutCollector);
+          DeclareOutCollector(returnStyleOutCollector, wr);
         } else {
           wr.Indent();
         }
@@ -2643,22 +2632,23 @@ namespace Microsoft.Dafny {
       }
     }
 
-    void TrStmtList(List<Statement> stmts, int indent, TextWriter writer) {
+    void TrStmtList(List<Statement> stmts, TargetWriter writer) {
       Contract.Requires(cce.NonNullElements(stmts));
+      Contract.Requires(writer != null);
       foreach (Statement ss in stmts) {
         copyInstrWriters.Push(new StringBuilder());
-        TextWriter wr = TrStmt(ss, indent + IndentAmount);
+        var wr = TrStmt(ss, writer.IndentLevel);
         // write out any copy instructions that copies the out param
         // used in letexpr to a local
         string copyInstr = copyInstrWriters.Pop().ToString();
         if (copyInstr != "") {
-          Indent(indent + IndentAmount, writer);
+          writer.Indent();
           writer.Write(copyInstr);
         }
-        writer.Write(wr.ToString());
+        writer.Append(wr);
         if (ss.Labels != null) {
-          Indent(indent, writer);  // labels are not indented as much as the statements
-          writer.WriteLine("after_{0}: ;", ss.Labels.Data.AssignUniqueId(idGenerator));
+          // labels are not indented as much as the statements
+          writer.WriteLine("{0}after_{1}: ;", writer.UnIndentString, ss.Labels.Data.AssignUniqueId(idGenerator));
         }
       }
     }
@@ -3929,7 +3919,7 @@ namespace Microsoft.Dafny {
         tr(e.Receiver, wr, inLetExprBody);
         twr.Write(")");
       }
-      twr.Write(".@{0}", f.CompileName);
+      twr.Write(".{0}", IdName(f));
       if (f.TypeArgs.Count != 0) {
           List<Type> typeArgs = f.TypeArgs.ConvertAll(ta => e.TypeArgumentSubstitutions[ta]);
           twr.Write("<" + TypeNames(typeArgs, wr, f.tok) + ">");
@@ -4026,12 +4016,19 @@ namespace Microsoft.Dafny {
     const string IndentAmountString = "  ";  // this should have the length IndentAmount
     public readonly string IndentString;
     public string UnIndentString => new string(' ', Math.Max(IndentLevel - IndentAmount, 0));
+    private bool suppressNextIndent = false;
     public void Indent() {
-      Write(IndentString);
+      if (suppressNextIndent) {
+        suppressNextIndent = false;
+      } else {
+        Write(IndentString);
+      }
     }
     public void IndentExtra(int times = 1) {
       Contract.Requires(-1 <= times);
-      if (times == -1) {
+      if (suppressNextIndent) {
+        suppressNextIndent = false;
+      } else if (times == -1) {
         Write(UnIndentString);
       } else {
         Indent();
@@ -4040,37 +4037,42 @@ namespace Microsoft.Dafny {
         }
       }
     }
+    public void SuppressIndent(){
+      suppressNextIndent = true;
+    }
 
     // ----- Things ------------------------------
 
-    List<object> things = new List<object>();  // may be set to "null" by "DropBody()"
-    public void DropBody() {
-      Contract.Requires(!DroppingBody);  // DropBody should be called at most once
-      Contract.Assume(things.Count == 0);  // DropBody can only be called before anything has been written
-      things = null;
+    readonly List<object> things = new List<object>();
+
+    public void Append(TargetWriter wr) {
+      Contract.Requires(wr != null);
+      things.Add(wr);
     }
-    public bool DroppingBody => things == null;
 
     // ----- Writing ------------------------------
 
     public override void Write(char[] buffer, int index, int count) {
-      // requires !DroppingBody;
       things.Add(new string(buffer, index, count));
     }
     public override void Write(string value) {
-      // requires !DroppingBody;
       things.Add(value);
     }
     public override void Write(char value) {
-      // requires !DroppingBody;
       things.Add(new string(value, 1));
     }
 
     // ----- Nested blocks ------------------------------
 
-    public BlockTargetWriter NewBlock(string headerFormat, params object[] headerArgs) {
+    public BlockTargetWriter NewBlock(string header, string/*?*/ footer = null) {
+      Contract.Requires(header != null);
+      var btw = new BlockTargetWriter(IndentLevel + IndentAmount, header, footer);
+      btw.SetBraceStyle(BlockTargetWriter.BraceStyle.Space, BlockTargetWriter.BraceStyle.Newline);
+      things.Add(btw);
+      return btw;
+    }
+    public BlockTargetWriter NewNamedBlock(string headerFormat, params object[] headerArgs) {
       Contract.Requires(headerFormat != null);
-      // requires !DroppingBody;
       var btw = new BlockTargetWriter(IndentLevel + IndentAmount, string.Format(headerFormat, headerArgs), null);
       btw.SetBraceStyle(BlockTargetWriter.BraceStyle.Space, BlockTargetWriter.BraceStyle.Newline);
       things.Add(btw);
@@ -4078,7 +4080,6 @@ namespace Microsoft.Dafny {
     }
     public BlockTargetWriter NewBigBlock(string header, string/*?*/ footer) {
       Contract.Requires(header != null);
-      // requires !DroppingBody;
       var btw = new BlockTargetWriter(IndentLevel + IndentAmount, header, footer);
       btw.SetBraceStyle(BlockTargetWriter.BraceStyle.Space, BlockTargetWriter.BraceStyle.Newline);
       things.Add(btw);
@@ -4100,7 +4101,6 @@ namespace Microsoft.Dafny {
     }
     protected void CollectThings(TextWriter wr) {
       Contract.Requires(wr != null);
-      Contract.Requires(!DroppingBody);
       foreach (var o in things) {
         if (o is string) {
           wr.Write((string)o);
@@ -4149,31 +4149,26 @@ namespace Microsoft.Dafny {
           wr.Write(UnIndentString);
           break;
       }
-      if (DroppingBody) {
-        wr.WriteLine(";");
-        // this also ingnores "footer"
-      } else {
-        wr.WriteLine("{");
-        CollectThings(wr);
-        if (BodySuffix != null) {
-          wr.Write(BodySuffix);
-        }
-        wr.Write(UnIndentString);
-        wr.Write("}");
-        if (Footer != null) {
-          wr.Write(Footer);
-        }
-        switch (closeBraceStyle) {
-          case BraceStyle.Nothing:
-          default:
-            break;
-          case BraceStyle.Space:
-            wr.Write(" ");
-            break;
-          case BraceStyle.Newline:
-            wr.WriteLine();
-            break;
-        }
+      wr.WriteLine("{");
+      CollectThings(wr);
+      if (BodySuffix != null) {
+        wr.Write(BodySuffix);
+      }
+      wr.Write(UnIndentString);
+      wr.Write("}");
+      if (Footer != null) {
+        wr.Write(Footer);
+      }
+      switch (closeBraceStyle) {
+        case BraceStyle.Nothing:
+        default:
+          break;
+        case BraceStyle.Space:
+          wr.Write(" ");
+          break;
+        case BraceStyle.Newline:
+          wr.WriteLine();
+          break;
       }
     }
   }

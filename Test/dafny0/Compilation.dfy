@@ -270,6 +270,7 @@ method Main()
   TailRecursionWhereTypeParametersChange.TestMain();
   GeneralMaps.Test();
   Cardinalities.Test();
+  AltLoop.Test();
 }
 
 // ------------------------------------------------------------------
@@ -473,5 +474,24 @@ module Cardinalities {
     var m := multiset{3, 5, 3};
     var p := map[false := s, true := s];
     print |s|, " ", |q|, " ", |t|, " ", |m|, " ", |p|, "\n";
+  }
+}
+
+// -------------------------------------------------
+
+module AltLoop {
+  method Test() {
+    var m, n := 5, 2;
+    while
+      decreases m + n
+    {
+      case 0 < n =>
+        print n, " ";
+        n := n - 1;
+      case n == 0 < m =>
+        print m, " ";
+        m := m - 1;
+    }
+    print "\n";
   }
 }

@@ -68,13 +68,13 @@ namespace Microsoft.Dafny
       }
     }
 
-    protected override BlockTargetWriter CreateModule(TargetWriter wr, string moduleName) {
+    protected override BlockTargetWriter CreateModule(string moduleName, TargetWriter wr) {
       var s = string.Format("namespace @{0}", moduleName);
       return wr.NewBigBlock(s, " // end of " + s);
     }
 
-    protected override BlockTargetWriter CreateClass(TargetWriter wr, ClassDecl cl) {
-      var w = wr.NewBlock("public partial class @{0}", cl.CompileName);
+    protected override BlockTargetWriter CreateClass(ClassDecl cl, TargetWriter wr) {
+      var w = wr.NewNamedBlock(string.Format("public partial class @{0}", cl.CompileName));
       if (cl.TypeArgs.Count != 0) {
         w.AppendHeader("<{0}>", TypeParameters(cl.TypeArgs));
       }
@@ -85,28 +85,23 @@ namespace Microsoft.Dafny
       }
       return w;
     }
-    protected override BlockTargetWriter CreateInternalClass(TargetWriter wr, string className) {
-      var w = wr.NewBlock("internal class {0}", className);
+    protected override BlockTargetWriter CreateInternalClass(string className, TargetWriter wr) {
+      var w = wr.NewNamedBlock("internal class {0}", className);
       return w;
     }
 
-    string/*!*/ TypeParameters(List<TypeParameter/*!*/>/*!*/ targs) {
+    string TypeParameters(List<TypeParameter> targs) {
       Contract.Requires(cce.NonNullElements(targs));
       Contract.Ensures(Contract.Result<string>() != null);
 
       return Util.Comma(targs, tp => "@" + tp.CompileName);
     }
 
-    protected override BlockTargetWriter CreateMethod(TargetWriter wrx, Method m) {
-      var wr = wrx.NewBlock("");
-      wr.SetBraceStyle(BlockTargetWriter.BraceStyle.Newline, BlockTargetWriter.BraceStyle.Newline);
-
-      var dllSw = new StringWriter();
-      var hasDllImportAttribute = ProcessDllImport(m, dllSw);
-      wr.AppendHeader(dllSw.ToString());
+    protected override BlockTargetWriter/*?*/ CreateMethod(Method m, TargetWriter wr) {
+      var hasDllImportAttribute = ProcessDllImport(m, wr);
       string targetReturnTypeReplacement = null;
       if (hasDllImportAttribute) {
-        wr.AppendHeader(wrx.IndentString);
+        wr.Indent();
         foreach (var p in m.Outs) {
           if (!p.IsGhost) {
             if (targetReturnTypeReplacement == null) {
@@ -120,31 +115,52 @@ namespace Microsoft.Dafny
         }
       }
 
-      var sw = new StringWriter();
-      sw.Write("public {0}{1}{3} @{2}", m.IsStatic ? "static " : "", hasDllImportAttribute ? "extern " : "", m.CompileName, targetReturnTypeReplacement ?? "void");
+      wr.Write("public {0}{1}{3} @{2}", m.IsStatic ? "static " : "", hasDllImportAttribute ? "extern " : "", m.CompileName, targetReturnTypeReplacement ?? "void");
       if (m.TypeArgs.Count != 0) {
-        sw.Write("<{0}>", TypeParameters(m.TypeArgs));
+        wr.Write("<{0}>", TypeParameters(m.TypeArgs));
       }
-      sw.Write("(");
-      int nIns = WriteFormals("", m.Ins, sw);
+      wr.Write("(");
+      int nIns = WriteFormals("", m.Ins, wr);
       if (targetReturnTypeReplacement == null) {
-        WriteFormals(nIns == 0 ? "" : ", ", m.Outs, sw);
+        WriteFormals(nIns == 0 ? "" : ", ", m.Outs, wr);
       }
-      sw.Write(")");
-      wr.AppendHeader(sw.ToString());
 
       if (hasDllImportAttribute) {
-        wr.DropBody();
-        wr.SetBraceStyle(BlockTargetWriter.BraceStyle.Nothing, BlockTargetWriter.BraceStyle.Newline);
+        wr.WriteLine(");");
+        return null;
       } else {
+        var w = wr.NewBlock(")");
+        w.SetBraceStyle(BlockTargetWriter.BraceStyle.Newline, BlockTargetWriter.BraceStyle.Newline);
         if (m.IsTailRecursive) {
           if (!m.IsStatic) {
-            wr.Indent(); wr.WriteLine("var _this = this;");
+            w.Indent(); w.WriteLine("var _this = this;");
           }
-          wr.IndentExtra(-1); wr.WriteLine("TAIL_CALL_START: ;");
+          w.IndentExtra(-1); w.WriteLine("TAIL_CALL_START: ;");
         }
+        return w;
       }
-      return wr;
+    }
+
+    protected override BlockTargetWriter/*?*/ CreateFunction(Function f, TargetWriter wr) {
+      var hasDllImportAttribute = ProcessDllImport(f, wr);
+      if (hasDllImportAttribute) {
+        wr.Indent();
+      }
+
+      wr.Write("public {0}{1}{2} {3}", f.IsStatic ? "static " : "", hasDllImportAttribute ? "extern " : "", TypeName(f.ResultType, wr, f.tok), IdName(f));
+      if (f.TypeArgs.Count != 0) {
+        wr.Write("<{0}>", TypeParameters(f.TypeArgs));
+      }
+      wr.Write("(");
+      WriteFormals("", f.Formals, wr);
+      if (hasDllImportAttribute) {
+        wr.WriteLine(");");
+        return null;
+      } else {
+        var w = wr.NewBlock(")");
+        w.SetBraceStyle(BlockTargetWriter.BraceStyle.Newline, BlockTargetWriter.BraceStyle.Newline);
+        return w;
+      }
     }
 
     /// <summary>
@@ -307,6 +323,10 @@ namespace Microsoft.Dafny
       wr.WriteLine(";");
     }
 
+    protected override void DeclareOutCollector(string collectorVarName, TargetWriter wr) {
+      wr.Write("var {0} = ", collectorVarName);
+    }
+
     protected override void DeclareLocalOutVar(string name, Type type, Bpl.IToken tok, string rhs, TargetWriter wr) {
       EmitAssignment(name, rhs, wr);
     }
@@ -344,6 +364,16 @@ namespace Microsoft.Dafny
     protected override void EmitReturn(List<Formal> outParams, TargetWriter wr) {
       wr.Indent();
       wr.WriteLine("return;");
+    }
+
+    protected override void EmitBreak(string label, TargetWriter wr) {
+      wr.Indent();
+      wr.WriteLine("goto after_{0};", label);
+    }
+
+    protected override void EmitYield(TargetWriter wr) {
+      wr.Indent();
+      wr.WriteLine("yield return null;");
     }
 
     // ----- Expressions -------------------------------------------------------------
