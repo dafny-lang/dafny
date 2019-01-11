@@ -95,6 +95,12 @@ namespace Microsoft.Dafny {
     protected abstract void EmitReturn(List<Formal> outParams, TargetWriter wr);
     protected abstract void EmitBreak(string label, TargetWriter wr);
     protected abstract void EmitYield(TargetWriter wr);
+    protected TargetWriter EmitIf(string guard, bool hasElse, TargetWriter wr) {
+      TargetWriter guardWriter;
+      var thn = EmitIf(out guardWriter, hasElse, wr);
+      guardWriter.Write(guard);
+      return thn;
+    }
     protected virtual TargetWriter EmitIf(out TargetWriter guard, bool hasElse, TargetWriter wr) {
       wr.Indent();
       wr.Write("if (");
@@ -212,7 +218,7 @@ namespace Microsoft.Dafny {
             }
             wr.WriteLine(" { }");
             CompileDatatypeConstructors(dt, indent, wr);
-            CompileDatatypeStruct(dt, indent, wr);
+            CompileDatatypeStruct(dt, wr);
           } else if (d is IteratorDecl) {
             var iter = (IteratorDecl)d;
             // An iterator is compiled as follows:
@@ -540,8 +546,9 @@ namespace Microsoft.Dafny {
       return root;
     }
 
-    void CompileDatatypeStruct(DatatypeDecl dt, int indent, TextWriter wr) {
+    void CompileDatatypeStruct(DatatypeDecl dt, TargetWriter wr) {
       Contract.Requires(dt != null);
+      Contract.Requires(wr != null);
 
       // public struct Dt<T> : IDatatype{
       //   Base_Dt<T> _d;
@@ -593,109 +600,95 @@ namespace Microsoft.Dafny {
         DtT_protected += DtT_TypeArgs;
       }
 
-      Indent(indent, wr);
-      wr.WriteLine("public struct {0} {{", DtT_protected);
-      int ind = indent + IndentAmount;
+      wr.Indent();
+      // from here on, write everything into the new block created here:
+      wr = wr.NewNamedBlock("public struct {0}", DtT_protected);
 
-      Indent(ind, wr);
+      wr.Indent();
       wr.WriteLine("Base_{0} _d;", DtT);
 
-      Indent(ind, wr);
-      wr.WriteLine("public Base_{0} _D {{", DtT);
-      Indent(ind + IndentAmount, wr);
-      wr.WriteLine("get {");
-      Indent(ind + 2 * IndentAmount, wr);
-      wr.WriteLine("if (_d == null) {");
-      Indent(ind + 3 * IndentAmount, wr);
-      wr.WriteLine("_d = Default;");
-      if (dt is CoDatatypeDecl) {
-        string typeParams = dt.TypeArgs.Count == 0 ? "" : string.Format("<{0}>", TypeParameters(dt.TypeArgs));
-        Indent(ind + 2 * IndentAmount, wr);
-        wr.WriteLine("}} else if (_d is {0}__Lazy{1}) {{", dt.CompileName, typeParams);
-        Indent(ind + 3 * IndentAmount, wr);
-        wr.WriteLine("_d = (({0}__Lazy{1})_d).Get();", dt.CompileName, typeParams);
+      wr.Indent();
+      using (var w = wr.NewNamedBlock("public Base_{0} _D", DtT)) {
+        w.Indent();
+        var wGet = w.NewBlock("get");
+        var wIf = EmitIf("_d == null", dt is CoDatatypeDecl, wGet);
+        wIf.Indent();
+        wIf.WriteLine("_d = Default;");
+        if (dt is CoDatatypeDecl) {
+          string typeParams = dt.TypeArgs.Count == 0 ? "" : string.Format("<{0}>", TypeParameters(dt.TypeArgs));
+          wIf = EmitIf(string.Format("_d is {0}__Lazy{1}", dt.CompileName, typeParams), false, wGet);
+          wIf.Indent();
+          wIf.WriteLine("_d = (({0}__Lazy{1})_d).Get();", dt.CompileName, typeParams);
+        }
+        wGet.Indent(); wGet.WriteLine("return _d;");
       }
-      Indent(ind + 2 * IndentAmount, wr); wr.WriteLine("}");
-      Indent(ind + 2 * IndentAmount, wr); wr.WriteLine("return _d;");
-      Indent(ind + IndentAmount, wr); wr.WriteLine("}");
-      Indent(ind, wr); wr.WriteLine("}");
 
-      Indent(ind, wr);
+      wr.Indent();
       wr.WriteLine("public {0}(Base_{1} d) {{ this._d = d; }}", IdName(dt), DtT);
 
-      Indent(ind, wr);
+      wr.Indent();
       wr.WriteLine("static Base_{0} theDefault;", DtT);
 
-      Indent(ind, wr);
-      wr.WriteLine("public static Base_{0} Default {{", DtT);
-      Indent(ind + IndentAmount, wr);
-      wr.WriteLine("get {");
-      Indent(ind + 2 * IndentAmount, wr);
-      wr.WriteLine("if (theDefault == null) {");
-      Indent(ind + 3 * IndentAmount, wr);
-      wr.Write("theDefault = ");
+      wr.Indent();
+      using (var w = wr.NewNamedBlock("public static Base_{0} Default", DtT)) {
+        w.Indent();
+        var wGet = w.NewBlock("get");
+        var wIf = EmitIf("theDefault == null", false, wGet);
+        wIf.Indent();
+        wIf.Write("theDefault = ");
 
-      DatatypeCtor defaultCtor;
-      if (dt is IndDatatypeDecl) {
-        defaultCtor = ((IndDatatypeDecl)dt).DefaultCtor;
-      } else {
-        defaultCtor = ((CoDatatypeDecl)dt).Ctors[0];  // pick any one of them (but pick must be the same as in InitializerIsKnown and HasZeroInitializer)
-      }
-      wr.Write("new {0}", DtCtorName(defaultCtor, dt.TypeArgs));
-      wr.Write("(");
-      string sep = "";
-      foreach (Formal f in defaultCtor.Formals) {
-        if (!f.IsGhost) {
-          wr.Write("{0}{1}", sep, DefaultValue(f.Type, wr, f.tok));
-          sep = ", ";
+        DatatypeCtor defaultCtor;
+        if (dt is IndDatatypeDecl) {
+          defaultCtor = ((IndDatatypeDecl)dt).DefaultCtor;
+        } else {
+          defaultCtor = ((CoDatatypeDecl)dt).Ctors[0];  // pick any one of them (but pick must be the same as in InitializerIsKnown and HasZeroInitializer)
         }
+        wIf.Write("new {0}(", DtCtorName(defaultCtor, dt.TypeArgs));
+        string sep = "";
+        foreach (Formal f in defaultCtor.Formals) {
+          if (!f.IsGhost) {
+            wIf.Write("{0}{1}", sep, DefaultValue(f.Type, wIf, f.tok));
+            sep = ", ";
+          }
+        }
+        wIf.WriteLine(");");
+
+        wGet.Indent();
+        wGet.WriteLine("return theDefault;");
       }
-      wr.Write(")");
 
-      wr.WriteLine(";");
-      Indent(ind + 2 * IndentAmount, wr);
-      wr.WriteLine("}");
-      Indent(ind + 2 * IndentAmount, wr);
-      wr.WriteLine("return theDefault;");
-      Indent(ind + IndentAmount, wr); wr.WriteLine("}");
+      wr.Indent();
+      using (var w = wr.NewNamedBlock("public override bool Equals(object other)")) {
+        w.Indent();
+        w.WriteLine("return other is {0} && _D.Equals((({0})other)._D);", DtT_protected);
+      }
 
-      Indent(ind, wr); wr.WriteLine("}");
-
-      Indent(ind, wr); wr.WriteLine("public override bool Equals(object other) {");
-      Indent(ind + IndentAmount, wr);
-      wr.WriteLine("return other is {0} && _D.Equals((({0})other)._D);", DtT_protected);
-      Indent(ind, wr); wr.WriteLine("}");
-
-      Indent(ind, wr);
+      wr.Indent();
       wr.WriteLine("public override int GetHashCode() { return _D.GetHashCode(); }");
       if (dt is IndDatatypeDecl) {
-        Indent(ind, wr);
+        wr.Indent();
         wr.WriteLine("public override string ToString() { return _D.ToString(); }");
       }
 
       // query properties
       foreach (var ctor in dt.Ctors) {
         //   public bool is_Ctor0 { get { return _D is Dt_Ctor0; } }
-        Indent(ind, wr);
+        wr.Indent();
         wr.WriteLine("public bool is_{0} {{ get {{ return _D is {1}_{0}{2}; }} }}", ctor.CompileName, dt.CompileName, DtT_TypeArgs);
       }
       if (dt.HasFinitePossibleValues) {
-        Indent(ind, wr);
-        wr.WriteLine("public static System.Collections.Generic.IEnumerable<{0}> AllSingletonConstructors {{", DtT_protected);
-        Indent(ind + IndentAmount, wr);
-        wr.WriteLine("get {");
+        wr.Indent();
+        var w = wr.NewNamedBlock("public static System.Collections.Generic.IEnumerable<{0}> AllSingletonConstructors", DtT_protected);
+        w.Indent();
+        var wGet = w.NewBlock("get");
         foreach (var ctr in dt.Ctors) {
           if (ctr.Formals.Count == 0) {
-            Indent(ind + IndentAmount + IndentAmount, wr);
-            wr.WriteLine("yield return new {0}(new {2}_{1}());", DtT_protected, ctr.CompileName, dt.CompileName);
+            wGet.Indent();
+            wGet.WriteLine("yield return new {0}(new {2}_{1}());", DtT_protected, ctr.CompileName, dt.CompileName);
           }
         }
-        Indent(ind + IndentAmount + IndentAmount, wr);
-        wr.WriteLine("yield break;");
-        Indent(ind + IndentAmount, wr);
-        wr.WriteLine("}");
-        Indent(ind, wr);
-        wr.WriteLine("}");
+        wGet.Indent();
+        wGet.WriteLine("yield break;");
       }
 
       // destructors
@@ -704,7 +697,7 @@ namespace Microsoft.Dafny {
           if (dtor.EnclosingCtors[0] == ctor) {
             var arg = dtor.CorrespondingFormals[0];
             if (!arg.IsGhost && arg.HasName) {
-              Indent(ind, wr);
+              wr.Indent();
               //   public T0 dtor_Dtor0 { get { var d = _D;
               //       if (d is DT_Ctor0) { return ((DT_Ctor0)d).@Dtor0; }
               //       if (d is DT_Ctor1) { return ((DT_Ctor1)d).@Dtor0; }
@@ -714,20 +707,29 @@ namespace Microsoft.Dafny {
               //    }}
               wr.Write("public {0} dtor_{1} {{ get {{ var d = _D; ", TypeName(arg.Type, wr, arg.tok), arg.CompileName);
               var n = dtor.EnclosingCtors.Count;
+              if (n > 1) {
+                wr.WriteLine();
+              }
               for (int i = 0; i < n-1; i++) {
                 var ctor_i = dtor.EnclosingCtors[i];
                 Contract.Assert(arg.CompileName == dtor.CorrespondingFormals[i].CompileName);
-                wr.Write("if (d is {0}_{1}{2}) {{ return (({0}_{1}{2})d).{3}; }} ", dt.CompileName, ctor_i.CompileName, DtT_TypeArgs, IdName(arg));
+                wr.IndentExtra(1);
+                wr.WriteLine("if (d is {0}_{1}{2}) {{ return (({0}_{1}{2})d).{3}; }}", dt.CompileName, ctor_i.CompileName, DtT_TypeArgs, IdName(arg));
               }
               Contract.Assert(arg.CompileName == dtor.CorrespondingFormals[n-1].CompileName);
-              wr.WriteLine("return (({0}_{1}{2})d).{3}; }} }}", dt.CompileName, dtor.EnclosingCtors[n-1].CompileName, DtT_TypeArgs, IdName(arg));
+              if (n > 1) {
+                wr.IndentExtra(1);
+              }
+              wr.Write("return (({0}_{1}{2})d).{3}; ", dt.CompileName, dtor.EnclosingCtors[n-1].CompileName, DtT_TypeArgs, IdName(arg));
+              if (n > 1) {
+                wr.WriteLine();
+                wr.Indent();
+              }
+              wr.WriteLine("} }");
             }
           }
         }
       }
-
-      Indent(indent, wr);
-      wr.WriteLine("}");
     }
 
     protected int WriteFormals(string sep, List<Formal> formals, TextWriter wr) {
