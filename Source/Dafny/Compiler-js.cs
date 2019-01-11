@@ -254,6 +254,11 @@ namespace Microsoft.Dafny {
       wr.WriteLine("yield null;");
     }
 
+    protected override void EmitAbsurd(TargetWriter wr) {
+      wr.Indent();
+      wr.WriteLine("throw new Error('unexpected control point');");
+    }
+
     // ----- Expressions -------------------------------------------------------------
 
     protected override void EmitLiteralExpr(TextWriter wr, LiteralExpr e) {
@@ -313,6 +318,10 @@ namespace Microsoft.Dafny {
         }
       }
       wr.Write("\"");
+    }
+
+    protected override void EmitThis(TargetWriter wr) {
+      wr.Write("_this");
     }
 
     // ----- Target compilation and execution -------------------------------------------------------------

@@ -376,6 +376,11 @@ namespace Microsoft.Dafny
       wr.WriteLine("yield return null;");
     }
 
+    protected override void EmitAbsurd(TargetWriter wr) {
+      wr.Indent();
+      wr.WriteLine("throw new System.Exception();");
+    }
+
     // ----- Expressions -------------------------------------------------------------
 
     protected override void EmitLiteralExpr(TextWriter wr, LiteralExpr e) {
@@ -429,6 +434,10 @@ namespace Microsoft.Dafny
 
     protected override string IdProtect(string name) {
       return "@" + name;
+    }
+
+    protected override void EmitThis(TargetWriter wr) {
+      wr.Write(enclosingMethod != null && enclosingMethod.IsTailRecursive ? "_this" : "this");
     }
 
     // ----- Target compilation and execution -------------------------------------------------------------
