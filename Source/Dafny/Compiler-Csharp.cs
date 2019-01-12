@@ -69,9 +69,6 @@ namespace Microsoft.Dafny
     }
 
     protected override void EmitBuiltInDecls(BuiltIns builtIns, TargetWriter wr) {
-      Contract.Requires(builtIns != null);
-      Contract.Requires(wr != null);
-
       wr = CreateModule("Dafny", wr);
       wr.Indent();
       wr = wr.NewNamedBlock("internal class ArrayHelpers");
@@ -124,20 +121,6 @@ namespace Microsoft.Dafny
       return wr.NewBigBlock(s, " // end of " + s);
     }
 
-    protected override BlockTargetWriter CreateClass(ClassDecl cl, TargetWriter wr) {
-      wr.Indent();
-      wr.Write("public partial class {0}", IdName(cl));
-      if (cl.TypeArgs.Count != 0) {
-        wr.Write("<{0}>", TypeParameters(cl.TypeArgs));
-      }
-      string sep = " : ";
-      foreach (var trait in cl.TraitsTyp) {
-        wr.Write("{0}{1}", sep, TypeName(trait, wr, cl.tok));
-        sep = ", ";
-      }
-      return wr.NewBlock("");
-    }
-
     string TypeParameters(List<TypeParameter> targs) {
       Contract.Requires(cce.NonNullElements(targs));
       Contract.Ensures(Contract.Result<string>() != null);
@@ -145,13 +128,22 @@ namespace Microsoft.Dafny
       return Util.Comma(targs, tp => "@" + tp.CompileName);
     }
 
-    protected override BlockTargetWriter CreateClassWrapper(string moduleName, string name, List<TypeParameter>/*?*/ typeParameters, TargetWriter wr) {
+    protected override BlockTargetWriter CreateClass(string name, List<TypeParameter>/*?*/ typeParameters, List<Type>/*?*/ superClasses, Bpl.IToken tok, out TargetWriter fieldsWriter, TargetWriter wr) {
       wr.Indent();
-      wr.Write("public class {0}", name);
+      wr.Write("public partial class {0}", name);
       if (typeParameters != null && typeParameters.Count != 0) {
         wr.Write("<{0}>", TypeParameters(typeParameters));
       }
-      return wr.NewBlock("");
+      if (superClasses != null) {
+        string sep = " : ";
+        foreach (var trait in superClasses) {
+          wr.Write("{0}{1}", sep, TypeName(trait, wr, tok));
+          sep = ", ";
+        }
+      }
+      var w = wr.NewBlock("");
+      fieldsWriter = w;
+      return w;
     }
 
     protected override BlockTargetWriter/*?*/ CreateMethod(Method m, TargetWriter wr) {
@@ -353,9 +345,22 @@ namespace Microsoft.Dafny
       }
     }
 
+    protected override string TypeName_UDT(string fullCompileName, List<Type> typeArgs, TextWriter wr, Bpl.IToken tok) {
+      Contract.Requires(fullCompileName != null);
+      Contract.Requires(typeArgs != null);
+      string s = IdProtect(fullCompileName);
+      if (typeArgs.Count != 0) {
+        if (typeArgs.Exists(ComplicatedTypeParameterForCompilation)) {
+          Error(tok, "compilation does not support trait types as a type parameter; consider introducing a ghost", wr);
+        }
+        s += "<" + TypeNames(typeArgs, wr, tok) + ">";
+      }
+      return s;
+    }
+
     // ----- Declarations -------------------------------------------------------------
 
-    protected override void DeclareField(TopLevelDecl cl, string name, bool isStatic, bool isConst, Type type, Bpl.IToken tok, string rhs, TargetWriter wr) {
+    protected override void DeclareField(string name, bool isStatic, bool isConst, Type type, Bpl.IToken tok, string rhs, TargetWriter wr) {
       wr.Indent();
       wr.WriteLine("public {3}{4}{0} {1} = {2};", TypeName(type, wr, tok), name, rhs,
         isStatic ? "static " : "",
@@ -442,6 +447,25 @@ namespace Microsoft.Dafny
     }
 
     // ----- Expressions -------------------------------------------------------------
+
+    protected override void EmitNew(Type type, Bpl.IToken tok, CallStmt/*?*/ initCall, TargetWriter wr) {
+      var ctor = initCall == null ? null : (Constructor)initCall.Method;  // correctness of cast follows from precondition of "EmitNew"
+      wr.Write("new {0}(", TypeName(type, wr, tok));
+      string q, n;
+      if (ctor != null && ctor.IsExtern(out q, out n)) {
+        // the arguments of any external constructor are placed here
+        string sep = "";
+        for (int i = 0; i < ctor.Ins.Count; i++) {
+          Formal p = ctor.Ins[i];
+          if (!p.IsGhost) {
+            wr.Write(sep);
+            TrExpr(initCall.Args[i], wr, false);
+            sep = ", ";
+          }
+        }
+      }
+      wr.Write(")");
+    }
 
     protected override void EmitLiteralExpr(TextWriter wr, LiteralExpr e) {
       if (e is StaticReceiverExpr) {

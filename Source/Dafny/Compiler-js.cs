@@ -32,36 +32,24 @@ namespace Microsoft.Dafny {
     protected override BlockTargetWriter CreateModule(string moduleName, TargetWriter wr) {
       var w = wr.NewBigBlock(string.Format("let {0} = (function()", moduleName), ")(); // end of module " + moduleName);
       w.Indent();
-      w.WriteLine("function {0}() {{ }}", moduleName);
-      w.BodySuffix = string.Format("{0}return {1};{2}", w.IndentString, moduleName, w.NewLine);
+      w.WriteLine("let $module = {};");
+      w.BodySuffix = string.Format("{0}return $module;{1}", w.IndentString, w.NewLine);
       return w;
     }
 
-    protected override BlockTargetWriter CreateClass(ClassDecl cl, TargetWriter wr) {
+    protected override BlockTargetWriter CreateClass(string name, List<TypeParameter>/*?*/ typeParameters, List<Type>/*?*/ superClasses, Bpl.IToken tok, out TargetWriter fieldsWriter, TargetWriter wr) {
       wr.Indent();
-      var w = wr.NewNamedBlock(string.Format("{0} = (function()", cl.FullCompileName));
-      w.Footer = ")();";
+      var w = wr.NewBlock(string.Format("$module.{0} = class {0}", name), ";");
       w.Indent();
-      w.WriteLine("function {0}() {{ }}", cl.CompileName);
-      w.BodySuffix = string.Format("{0}return {1};{2}", w.IndentString, cl.CompileName, w.NewLine);
-      return w;
-    }
-
-    protected override BlockTargetWriter CreateClassWrapper(string moduleName, string name, List<TypeParameter>/*?*/ typeParameters, TargetWriter wr) {
-      wr.Indent();
-      wr.Write("{0}.{1} = (function()", moduleName, name);
-      var w = wr.NewNamedBlock("", ")();");
-      w.Indent();
-      w.WriteLine("function {0}() {{ }}", name);
-      w.BodySuffix = string.Format("{0}return {1};{2}", w.IndentString, name, w.NewLine);
+      fieldsWriter = w.NewBlock("constructor ()");
       return w;
     }
 
     protected override BlockTargetWriter/*?*/ CreateMethod(Method m, TargetWriter wr) {
       wr.Indent();
-      wr.Write("{0}.{1}{2} = function (", m.EnclosingClass.CompileName, m.IsStatic ? "" : "prototype.", m.CompileName);
+      wr.Write("{0}{1}(", m.IsStatic ? "static " : "", IdName(m));
       int nIns = WriteFormals("", m.Ins, wr);
-      var w = wr.NewBlock(")", ";");
+      var w = wr.NewBlock(")");
 
       if (!m.IsStatic) {
         w.Indent(); w.WriteLine("let _this = this;");
@@ -171,11 +159,18 @@ namespace Microsoft.Dafny {
 
     }
 
+    protected override string TypeName_UDT(string fullCompileName, List<Type> typeArgs, TextWriter wr, Bpl.IToken tok) {
+      Contract.Requires(fullCompileName != null);
+      Contract.Requires(typeArgs != null);
+      string s = IdProtect(fullCompileName);
+      return s;
+    }
+
     // ----- Declarations -------------------------------------------------------------
 
-    protected override void DeclareField(TopLevelDecl cl, string name, bool isStatic, bool isConst, Type type, Bpl.IToken tok, string rhs, TargetWriter wr) {
+    protected override void DeclareField(string name, bool isStatic, bool isConst, Type type, Bpl.IToken tok, string rhs, TargetWriter wr) {
       wr.Indent();
-      wr.WriteLine("{0}.{1} = {2};", IdName(cl), name, rhs);
+      wr.WriteLine("this.{0} = {1};", name, rhs);
     }
 
     protected override bool DeclareFormal(string prefix, string name, Type type, Bpl.IToken tok, bool isInParam, TextWriter wr) {
@@ -268,6 +263,10 @@ namespace Microsoft.Dafny {
     }
 
     // ----- Expressions -------------------------------------------------------------
+
+    protected override void EmitNew(Type type, Bpl.IToken tok, CallStmt/*?*/ initCall, TargetWriter wr) {
+      wr.Write("new {0}()", TypeName(type, wr, tok));
+    }
 
     protected override void EmitLiteralExpr(TextWriter wr, LiteralExpr e) {
       if (e is StaticReceiverExpr) {

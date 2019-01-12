@@ -2433,10 +2433,14 @@ namespace Microsoft.Dafny {
       get {
         if (ResolvedClass == null) {
           return CompileName;
-        } else if (ResolvedClass.Module.IsDefaultModule) {
-          return ResolvedClass.CompileName;
+        } else if (DafnyOptions.O.CompileTarget == DafnyOptions.CompilationTarget.Csharp) {
+          if (ResolvedClass.Module.IsDefaultModule) {
+            return ResolvedClass.CompileName;
+          } else {
+            return ResolvedClass.Module.CompileName + ".@" + ResolvedClass.CompileName;
+          }
         } else {
-          return ResolvedClass.Module.CompileName + ".@" + ResolvedClass.CompileName;
+          return ResolvedClass.Module.CompileName + "." + ResolvedClass.CompileName;
         }
       }
     }
