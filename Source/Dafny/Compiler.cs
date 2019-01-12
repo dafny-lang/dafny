@@ -2056,8 +2056,18 @@ namespace Microsoft.Dafny {
 
       } else if (stmt is VarDeclStmt) {
         var s = (VarDeclStmt)stmt;
+        var i = 0;
         foreach (var local in s.Locals) {
-          TrLocalVar(local, true, wr.IndentLevel, wr);
+          bool hasRhs = s.Update is AssignSuchThatStmt;
+          if (!hasRhs && s.Update is UpdateStmt u) {
+            if (i < u.Rhss.Count && u.Rhss[i] is HavocRhs) {
+              // there's no specific initial value
+            } else {
+              hasRhs = true;
+            }
+          }
+          TrLocalVar(local, !hasRhs, wr.IndentLevel, wr);
+          i++;
         }
         if (s.Update != null) {
           wr.Append(TrStmt(s.Update, wr.IndentLevel));
