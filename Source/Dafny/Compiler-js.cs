@@ -38,6 +38,7 @@ namespace Microsoft.Dafny {
     }
 
     protected override BlockTargetWriter CreateClass(ClassDecl cl, TargetWriter wr) {
+      wr.Indent();
       var w = wr.NewNamedBlock(string.Format("{0} = (function()", cl.FullCompileName));
       w.Footer = ")();";
       w.Indent();
@@ -45,9 +46,14 @@ namespace Microsoft.Dafny {
       w.BodySuffix = string.Format("{0}return {1};{2}", w.IndentString, cl.CompileName, w.NewLine);
       return w;
     }
-    protected override BlockTargetWriter CreateInternalClass(string className, TargetWriter wr) {
-      var w = wr.NewNamedBlock("{0}:", className);
-      w.Footer = ",";
+
+    protected override BlockTargetWriter CreateClassWrapper(string moduleName, string name, List<TypeParameter>/*?*/ typeParameters, TargetWriter wr) {
+      wr.Indent();
+      wr.Write("{0}.{1} = (function()", moduleName, name);
+      var w = wr.NewNamedBlock("", ")();");
+      w.Indent();
+      w.WriteLine("function {0}() {{ }}", name);
+      w.BodySuffix = string.Format("{0}return {1};{2}", w.IndentString, name, w.NewLine);
       return w;
     }
 
@@ -167,7 +173,7 @@ namespace Microsoft.Dafny {
 
     // ----- Declarations -------------------------------------------------------------
 
-    protected override void DeclareField(TopLevelDecl cl, string name, bool isStatic, Type type, Bpl.IToken tok, string rhs, TargetWriter wr) {
+    protected override void DeclareField(TopLevelDecl cl, string name, bool isStatic, bool isConst, Type type, Bpl.IToken tok, string rhs, TargetWriter wr) {
       wr.Indent();
       wr.WriteLine("{0}.{1} = {2};", IdName(cl), name, rhs);
     }

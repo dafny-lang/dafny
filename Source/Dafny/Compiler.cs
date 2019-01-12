@@ -66,16 +66,17 @@ namespace Microsoft.Dafny {
     }
 
     protected virtual void EmitHeader(Program program, TargetWriter wr) { }
+    protected virtual void EmitBuiltInDecls(BuiltIns builtIns, TargetWriter wr) { }
     public virtual void EmitCallToMain(Method mainMethod, TextWriter wr) { }
     protected abstract BlockTargetWriter CreateModule(string moduleName, TargetWriter wr);
     protected abstract BlockTargetWriter CreateClass(ClassDecl cl, TargetWriter wr);
-    protected abstract BlockTargetWriter CreateInternalClass(string className, TargetWriter wr);
+    protected abstract BlockTargetWriter CreateClassWrapper(string moduleName, string name, List<TypeParameter>/*?*/ typeParameters, TargetWriter wr);
     protected abstract BlockTargetWriter/*?*/ CreateMethod(Method m, TargetWriter wr);
     protected abstract BlockTargetWriter/*?*/ CreateFunction(string name, List<TypeParameter>/*?*/ typeArgs, List<Formal> formals, Type resultType, Bpl.IToken tok, bool isStatic, MemberDecl member, TargetWriter wr);
     protected abstract void EmitJumpToTailCallStart(TargetWriter wr);
     public abstract string TypeInitializationValue(Type xType, TextWriter/*?*/ wr, Bpl.IToken/*?*/ tok);
 
-    protected abstract void DeclareField(TopLevelDecl cl, string name, bool isStatic, Type type, Bpl.IToken tok, string rhs, TargetWriter wr);
+    protected abstract void DeclareField(TopLevelDecl cl, string name, bool isStatic, bool isConst, Type type, Bpl.IToken tok, string rhs, TargetWriter wr);
     protected abstract bool DeclareFormal(string prefix, string name, Type type, Bpl.IToken tok, bool isInParam, TextWriter wr);
     protected abstract void DeclareLocalVar(string name, Type/*?*/ type, Bpl.IToken tok, string/*?*/ rhs, TargetWriter wr);
     protected abstract void DeclareLocalVar(string name, Type type, Bpl.IToken tok, Expression rhs, bool inLetExprBody, TargetWriter wr);
@@ -157,9 +158,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(program != null);
 
       EmitHeader(program, wrx);
-      if (DafnyOptions.O.CompileTarget != DafnyOptions.CompilationTarget.JavaScript) {  // TODO: this should also be done for JavaScript
-        CompileBuiltIns(program.BuiltIns, wrx);
-      }
+      EmitBuiltInDecls(program.BuiltIns, wrx);
 
       foreach (ModuleDefinition m in program.CompileModules) {
         if (m.IsAbstract) {
@@ -185,41 +184,33 @@ namespace Microsoft.Dafny {
           } else if (d is TypeSynonymDecl) {
             var sst = d as SubsetTypeDecl;
             if (sst != null && sst.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
-              wr.Indent();
-              var w = wr.NewNamedBlock("public class {0}", IdName(sst));
-              if (sst.TypeArgs.Count != 0) {
-                w.AppendHeader("<{0}>", TypeParameters(sst.TypeArgs));
-              }
-              w.Indent();
-              w.Write("public static readonly {0} Witness = ", TypeName(sst.Rhs, wr, sst.tok));
-              TrExpr(sst.Witness, w, false);
-              w.WriteLine(";");
+              var w = CreateClassWrapper(IdProtect(m.CompileName), IdName(sst), sst.TypeArgs, wr);
+              var sw = new TargetWriter();
+              TrExpr(sst.Witness, sw, false);
+              DeclareField(sst, "Witness", true, true, sst.Rhs, sst.tok, sw.ToString(), w);
             } else {
               // do nothing, just bypass type synonyms and witness-less subset types in the compiler
             }
           } else if (d is NewtypeDecl) {
             var nt = (NewtypeDecl)d;
-            wr.Indent();
-            var w = wr.NewNamedBlock("public class {0}", IdName(nt));
+            var w = CreateClassWrapper(IdProtect(m.CompileName), IdName(nt), null, wr);
             if (nt.NativeType != null) {
               w.Indent();
-              w.WriteLine("public static System.Collections.Generic.IEnumerable<{0}> IntegerRange(BigInteger lo, BigInteger hi) {{", nt.NativeType.Name);
-              w.IndentExtra();
-              w.WriteLine("for (var j = lo; j < hi; j++) {{ yield return ({0})j; }}", nt.NativeType.Name);
-              w.Indent();
-              w.WriteLine("}");
+              var wEnum = w.NewNamedBlock("public static System.Collections.Generic.IEnumerable<{0}> IntegerRange(BigInteger lo, BigInteger hi)", nt.NativeType.Name);
+              wEnum.Indent();
+              wEnum.WriteLine("for (var j = lo; j < hi; j++) {{ yield return ({0})j; }}", nt.NativeType.Name);
             }
             if (nt.WitnessKind == SubsetTypeDecl.WKind.Compiled) { 
-              w.Indent();
+              var witness = new TargetWriter();
+              TrExpr(nt.Witness, witness, false);
               if (nt.NativeType == null) {
-                w.Write("public static readonly {0} Witness = ", TypeName(nt.BaseType, w, nt.tok));
-                TrExpr(nt.Witness, w, false);
+                DeclareField(null, "Witness", true, true, nt.BaseType, nt.tok, witness.ToString(), w);
               } else {
+                w.Indent();
                 w.Write("public static readonly {0} Witness = ({0})(", nt.NativeType.Name);
-                TrExpr(nt.Witness, w, false);
-                w.Write(")");
+                w.Append(witness);
+                w.WriteLine(");");
               }
-              w.WriteLine(";");
             }
           } else if (d is DatatypeDecl) {
             var dt = (DatatypeDecl)d;
@@ -260,7 +251,6 @@ namespace Microsoft.Dafny {
               Error(iter.tok, "since yield parameters are initialized arbitrarily, iterators are forbidden by /definiteAssignment:3 option", wr);
             }
 
-            wr.Indent();
             var w = CreateClass(iter, wr);
             var ind = indent + IndentAmount;
             Contract.Assert(ind == w.IndentLevel);
@@ -314,85 +304,21 @@ namespace Microsoft.Dafny {
             var trait = (TraitDecl)d;
             wr.Indent();
             var w = wr.NewNamedBlock("public interface {0}", IdName(trait));
-            CompileClassMembers(trait, false, indent + IndentAmount, w);
+            CompileClassMembers(trait, false, w);
 
             //writing the _Companion class
-            wr.Indent();
-            w = wr.NewNamedBlock("public class _Companion_{0}", trait.CompileName);
-            CompileClassMembers(trait, true, indent + IndentAmount, w);
+            w = CreateClassWrapper(IdProtect(m.CompileName), "_Companion_" + trait.CompileName, null, wr);
+            CompileClassMembers(trait, true, w);
           } else if (d is ClassDecl) {
             var cl = (ClassDecl)d;
-            wr.Indent();
             var w = CreateClass(cl, wr);
-            CompileClassMembers(cl, false, indent + IndentAmount, w);
+            CompileClassMembers(cl, false, w);
           } else if (d is ValuetypeDecl) {
             // nop
           } else if (d is ModuleDecl) {
             // nop
           } else { Contract.Assert(false); }
         }
-      }
-    }
-
-    void CompileBuiltIns(BuiltIns builtIns, TargetWriter wr) {
-      Contract.Requires(builtIns != null);
-      Contract.Requires(wr != null);
-
-      wr = CreateModule("Dafny", wr);
-      wr.Indent();
-      wr = CreateInternalClass("ArrayHelpers", wr);
-      foreach (var decl in builtIns.SystemModule.TopLevelDecls) {
-        if (decl is ArrayClassDecl) {
-          int dims = ((ArrayClassDecl)decl).Dims;
-
-          // Here is an overloading of the method name, where there is an initialValue parameter
-          // public static T[,] InitNewArray2<T>(T z, BigInteger size0, BigInteger size1) {
-          var sw = new StringWriter();
-          sw.Write("public static T[");
-          RepeatWrite(sw, dims, "", ",");
-          sw.Write("] InitNewArray{0}<T>(T z, ", dims);
-          RepeatWrite(sw, dims, "BigInteger size{0}", ", ");
-          sw.Write(")");
-
-          wr.Indent();
-          var w = wr.NewBlock(sw.ToString());
-          // int s0 = (int)size0;
-          for (int i = 0; i < dims; i++) {
-            w.Indent();
-            w.WriteLine("int s{0} = (int)size{0};", i);
-          }
-          // T[,] a = new T[s0, s1];
-          w.Indent();
-          w.Write("T[");
-          RepeatWrite(w, dims, "", ",");
-          w.Write("] a = new T[");
-          RepeatWrite(w, dims, "s{0}", ",");
-          w.WriteLine("];");
-          // for (int i0 = 0; i0 < s0; i0++)
-          //   for (int i1 = 0; i1 < s1; i1++)
-          for (int i = 0; i < dims; i++) {
-            w.IndentExtra(i);
-            w.WriteLine("for (int i{0} = 0; i{0} < s{0}; i{0}++)", i);
-          }
-          // a[i0,i1] = z;
-          w.IndentExtra(dims);
-          w.Write("a[");
-          RepeatWrite(w, dims, "i{0}", ",");
-          w.WriteLine("] = z;");
-          // return a;
-          w.Indent();
-          w.WriteLine("return a;");
-        }
-      }
-    }
-
-    static void RepeatWrite(TextWriter wr, int times, string template, string separator) {
-      Contract.Requires(1 <= times);
-      string s = "";
-      for (int i = 0; i < times; i++) {
-        wr.Write(s);
-        wr.Write(template, i);
-        s = separator;
       }
     }
 
@@ -880,10 +806,9 @@ namespace Microsoft.Dafny {
       }
     }
 
-    void CompileClassMembers(ClassDecl c, bool forCompanionClass, int indent, TargetWriter wr) {
+    void CompileClassMembers(ClassDecl c, bool forCompanionClass, TargetWriter wr) {
       Contract.Requires(c != null);
       Contract.Requires(!forCompanionClass || c is TraitDecl);
-      Contract.Requires(0 <= indent);
       CheckHandleWellformed(c, wr);
       foreach (var member in c.InheritedMembers) {
         Contract.Assert(!member.IsStatic);  // only instance members should ever be added to .InheritedMembers
@@ -893,7 +818,7 @@ namespace Microsoft.Dafny {
           var cf = (ConstantField)member;
           if (cf.Rhs == null) {
             Contract.Assert(!cf.IsStatic);  // as checked above, only instance members can be inherited
-            DeclareField(cf.EnclosingClass, "_" + cf.CompileName, false, cf.Type, cf.tok, DefaultValue(cf.Type, wr, cf.tok), wr);
+            DeclareField(cf.EnclosingClass, "_" + cf.CompileName, false, false, cf.Type, cf.tok, DefaultValue(cf.Type, wr, cf.tok), wr);
           }
           var w = CreateFunction(IdName(cf), null, new List<Formal>(), cf.Type, cf.tok, cf.IsStatic, cf, wr);
           if (cf.Rhs == null) {
@@ -904,7 +829,7 @@ namespace Microsoft.Dafny {
         } else if (member is Field) {
           var f = (Field)member;
           // every field is inherited
-          DeclareField(f.EnclosingClass, "_" + f.CompileName, false, f.Type, f.tok, DefaultValue(f.Type, wr, f.tok), wr);
+          DeclareField(f.EnclosingClass, "_" + f.CompileName, false, false, f.Type, f.tok, DefaultValue(f.Type, wr, f.tok), wr);
           wr.Indent();
           var w = wr.NewNamedBlock("public {0} {1}", TypeName(f.Type, wr, f.tok), IdName(f));
           w.Indent();
@@ -914,11 +839,11 @@ namespace Microsoft.Dafny {
         } else if (member is Function) {
           var f = (Function)member;
           Contract.Assert(f.Body != null);
-          CompileFunction(indent, f, wr);
+          CompileFunction(wr.IndentLevel, f, wr);
         } else if (member is Method) {
           var method = (Method)member;
           Contract.Assert(method.Body != null);
-          CompileMethod(c, indent, method, wr);
+          CompileMethod(c, wr.IndentLevel, method, wr);
         } else {
           Contract.Assert(false);  // unexpected member
         }
@@ -945,18 +870,18 @@ namespace Microsoft.Dafny {
               if (cf.IsStatic) {
                 // emit nothing
               } else {
-                Indent(indent, wr);
+                wr.Indent();
                 wr.WriteLine("{0} {1}();", TypeName(f.Type, wr, cf.tok), IdName(f));
               }
             } else {
-              Indent(indent, wr);
+              wr.Indent();
               wr.Write("{0} {1}", TypeName(f.Type, wr, f.tok), IdName(f));
               wr.WriteLine(" { get; set; }");
             }
           } else if (f is ConstantField) {
             var cf = (ConstantField)f;
             if (cf.Rhs == null) {
-              DeclareField(f.EnclosingClass, "_" + f.CompileName, f.IsStatic, f.Type, f.tok, DefaultValue(f.Type, wr, f.tok), wr);
+              DeclareField(f.EnclosingClass, "_" + f.CompileName, f.IsStatic, false, f.Type, f.tok, DefaultValue(f.Type, wr, f.tok), wr);
             }
             var w = CreateFunction(IdName(f), null, new List<Formal>(), f.Type, f.tok, f.IsStatic, f, wr);
             if (cf.Rhs == null) {
@@ -965,7 +890,7 @@ namespace Microsoft.Dafny {
               CompileReturnBody(cf.Rhs, w);
             }
           } else {
-            DeclareField(f.EnclosingClass, IdName(f), false, f.Type, f.tok, DefaultValue(f.Type, wr, f.tok), wr);
+            DeclareField(f.EnclosingClass, IdName(f), false, false, f.Type, f.tok, DefaultValue(f.Type, wr, f.tok), wr);
           }
         } else if (member is Function) {
           var f = (Function)member;
@@ -987,7 +912,7 @@ namespace Microsoft.Dafny {
           } else if (c is TraitDecl && !forCompanionClass) {
             // include it, unless it's static
             if (!f.IsStatic) {
-              Indent(indent, wr);
+              wr.Indent();
               wr.Write("{0} {1}", TypeName(f.ResultType, wr, f.tok), IdName(f));
               wr.Write("(");
               WriteFormals("", f.Formals, wr);
@@ -996,7 +921,7 @@ namespace Microsoft.Dafny {
           } else if (forCompanionClass && !f.IsStatic) {
             // companion classes only has static members
           } else {
-            CompileFunction(indent, f, wr);
+            CompileFunction(wr.IndentLevel, f, wr);
           }
         } else if (member is Method) {
           var m = (Method)member;
@@ -1018,7 +943,7 @@ namespace Microsoft.Dafny {
           } else if (c is TraitDecl && !forCompanionClass) {
             // include it, unless it's static
             if (!m.IsStatic) {
-              Indent(indent, wr);
+              wr.Indent();
               wr.Write("void {0}", IdName(m));
               wr.Write("(");
               int nIns = WriteFormals("", m.Ins, wr);
@@ -1028,7 +953,7 @@ namespace Microsoft.Dafny {
           } else if (forCompanionClass && !m.IsStatic) {
             // companion classes only has static members
           } else {
-            CompileMethod(c, indent, m, wr);
+            CompileMethod(c, wr.IndentLevel, m, wr);
           }
         } else {
           Contract.Assert(false); throw new cce.UnreachableException();  // unexpected member
@@ -4047,6 +3972,18 @@ namespace Microsoft.Dafny {
     }
     public override void Write(char value) {
       things.Add(new string(value, 1));
+    }
+
+    public void RepeatWrite(int times, string template, string separator) {
+      Contract.Requires(1 <= times);
+      Contract.Requires(template != null);
+      Contract.Requires(separator != null);
+      string sep = "";
+      for (int i = 0; i < times; i++) {
+        Write(sep);
+        Write(template, i);
+        sep = separator;
+      }
     }
 
     // ----- Nested blocks ------------------------------

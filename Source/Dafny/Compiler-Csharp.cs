@@ -68,26 +68,74 @@ namespace Microsoft.Dafny
       }
     }
 
+    protected override void EmitBuiltInDecls(BuiltIns builtIns, TargetWriter wr) {
+      Contract.Requires(builtIns != null);
+      Contract.Requires(wr != null);
+
+      wr = CreateModule("Dafny", wr);
+      wr.Indent();
+      wr = wr.NewNamedBlock("internal class ArrayHelpers");
+      foreach (var decl in builtIns.SystemModule.TopLevelDecls) {
+        if (decl is ArrayClassDecl) {
+          int dims = ((ArrayClassDecl)decl).Dims;
+
+          // Here is an overloading of the method name, where there is an initialValue parameter
+          // public static T[,] InitNewArray2<T>(T z, BigInteger size0, BigInteger size1) {
+          wr.Indent();
+          wr.Write("public static T[");
+          wr.RepeatWrite(dims, "", ",");
+          wr.Write("] InitNewArray{0}<T>(T z, ", dims);
+          wr.RepeatWrite(dims, "BigInteger size{0}", ", ");
+          wr.Write(")");
+
+          var w = wr.NewBlock("");
+          // int s0 = (int)size0;
+          for (int i = 0; i < dims; i++) {
+            w.Indent();
+            w.WriteLine("int s{0} = (int)size{0};", i);
+          }
+          // T[,] a = new T[s0, s1];
+          w.Indent();
+          w.Write("T[");
+          w.RepeatWrite(dims, "", ",");
+          w.Write("] a = new T[");
+          w.RepeatWrite(dims, "s{0}", ",");
+          w.WriteLine("];");
+          // for (int i0 = 0; i0 < s0; i0++)
+          //   for (int i1 = 0; i1 < s1; i1++)
+          for (int i = 0; i < dims; i++) {
+            w.IndentExtra(i);
+            w.WriteLine("for (int i{0} = 0; i{0} < s{0}; i{0}++)", i);
+          }
+          // a[i0,i1] = z;
+          w.IndentExtra(dims);
+          w.Write("a[");
+          w.RepeatWrite(dims, "i{0}", ",");
+          w.WriteLine("] = z;");
+          // return a;
+          w.Indent();
+          w.WriteLine("return a;");
+        }
+      }
+    }
+
     protected override BlockTargetWriter CreateModule(string moduleName, TargetWriter wr) {
       var s = string.Format("namespace @{0}", moduleName);
       return wr.NewBigBlock(s, " // end of " + s);
     }
 
     protected override BlockTargetWriter CreateClass(ClassDecl cl, TargetWriter wr) {
-      var w = wr.NewNamedBlock(string.Format("public partial class @{0}", cl.CompileName));
+      wr.Indent();
+      wr.Write("public partial class {0}", IdName(cl));
       if (cl.TypeArgs.Count != 0) {
-        w.AppendHeader("<{0}>", TypeParameters(cl.TypeArgs));
+        wr.Write("<{0}>", TypeParameters(cl.TypeArgs));
       }
       string sep = " : ";
       foreach (var trait in cl.TraitsTyp) {
-        w.AppendHeader("{0}{1}", sep, TypeName(trait, w, cl.tok));
+        wr.Write("{0}{1}", sep, TypeName(trait, wr, cl.tok));
         sep = ", ";
       }
-      return w;
-    }
-    protected override BlockTargetWriter CreateInternalClass(string className, TargetWriter wr) {
-      var w = wr.NewNamedBlock("internal class {0}", className);
-      return w;
+      return wr.NewBlock("");
     }
 
     string TypeParameters(List<TypeParameter> targs) {
@@ -95,6 +143,15 @@ namespace Microsoft.Dafny
       Contract.Ensures(Contract.Result<string>() != null);
 
       return Util.Comma(targs, tp => "@" + tp.CompileName);
+    }
+
+    protected override BlockTargetWriter CreateClassWrapper(string moduleName, string name, List<TypeParameter>/*?*/ typeParameters, TargetWriter wr) {
+      wr.Indent();
+      wr.Write("public class {0}", name);
+      if (typeParameters != null && typeParameters.Count != 0) {
+        wr.Write("<{0}>", TypeParameters(typeParameters));
+      }
+      return wr.NewBlock("");
     }
 
     protected override BlockTargetWriter/*?*/ CreateMethod(Method m, TargetWriter wr) {
@@ -298,9 +355,11 @@ namespace Microsoft.Dafny
 
     // ----- Declarations -------------------------------------------------------------
 
-    protected override void DeclareField(TopLevelDecl cl, string name, bool isStatic, Type type, Bpl.IToken tok, string rhs, TargetWriter wr) {
+    protected override void DeclareField(TopLevelDecl cl, string name, bool isStatic, bool isConst, Type type, Bpl.IToken tok, string rhs, TargetWriter wr) {
       wr.Indent();
-      wr.WriteLine("public {3}{0} {1} = {2};", TypeName(type, wr, tok), name, rhs, isStatic ? "static " : "");
+      wr.WriteLine("public {3}{4}{0} {1} = {2};", TypeName(type, wr, tok), name, rhs,
+        isStatic ? "static " : "",
+        isConst ? "readonly " : "");
     }
 
     protected override bool DeclareFormal(string prefix, string name, Type type, Bpl.IToken tok, bool isInParam, TextWriter wr) {
