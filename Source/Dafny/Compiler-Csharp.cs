@@ -146,6 +146,15 @@ namespace Microsoft.Dafny
       return w;
     }
 
+    protected override void EmitDatatypeHeader(DatatypeDecl dt, TargetWriter wr) {
+      wr.Indent();
+      wr.Write("public abstract class Base_{0}", dt.CompileName);
+      if (dt.TypeArgs.Count != 0) {
+        wr.Write("<{0}>", TypeParameters(dt.TypeArgs));
+      }
+      wr.WriteLine(" { }");
+    }
+
     protected override BlockTargetWriter/*?*/ CreateMethod(Method m, TargetWriter wr) {
       var hasDllImportAttribute = ProcessDllImport(m, wr);
       string targetReturnTypeReplacement = null;

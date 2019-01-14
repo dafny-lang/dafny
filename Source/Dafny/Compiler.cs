@@ -76,6 +76,7 @@ namespace Microsoft.Dafny {
     /// "tok" can be "null" if "superClasses" is.
     /// </summary>
     protected abstract BlockTargetWriter CreateClass(string name, List<TypeParameter>/*?*/ typeParameters, List<Type>/*?*/ superClasses, Bpl.IToken tok, out TargetWriter fieldsWriter, TargetWriter wr);
+    protected virtual void EmitDatatypeHeader(DatatypeDecl dt, TargetWriter wr) { }
     protected abstract BlockTargetWriter/*?*/ CreateMethod(Method m, TargetWriter wr);
     protected abstract BlockTargetWriter/*?*/ CreateFunction(string name, List<TypeParameter>/*?*/ typeArgs, List<Formal> formals, Type resultType, Bpl.IToken tok, bool isStatic, MemberDecl member, TargetWriter wr);
     protected abstract void EmitJumpToTailCallStart(TargetWriter wr);
@@ -228,13 +229,8 @@ namespace Microsoft.Dafny {
             }
           } else if (d is DatatypeDecl) {
             var dt = (DatatypeDecl)d;
-            wr.Indent();
-            wr.Write("public abstract class Base_{0}", dt.CompileName);
-            if (dt.TypeArgs.Count != 0) {
-              wr.Write("<{0}>", TypeParameters(dt.TypeArgs));
-            }
-            wr.WriteLine(" { }");
-            CompileDatatypeConstructors(dt, indent, wr);
+            EmitDatatypeHeader(dt, wr);
+            CompileDatatypeConstructors(dt, wr);
             CompileDatatypeStruct(dt, wr);
           } else if (d is IteratorDecl) {
             var iter = (IteratorDecl)d;
@@ -339,7 +335,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    void CompileDatatypeConstructors(DatatypeDecl dt, int indent, TextWriter wr) {
+    void CompileDatatypeConstructors(DatatypeDecl dt, TargetWriter wrx) {
       Contract.Requires(dt != null);
 
       string typeParams = dt.TypeArgs.Count == 0 ? "" : string.Format("<{0}>", TypeParameters(dt.TypeArgs));
@@ -350,19 +346,16 @@ namespace Microsoft.Dafny {
         //   public Dt__Lazy(Computer c) { this.c = c; }
         //   public Base_Dt<T> Get() { return c(); }
         // }
-        Indent(indent, wr);
-        wr.WriteLine("public class {0}__Lazy{1} : Base_{0}{1} {{", dt.CompileName, typeParams);
-        int ind = indent + IndentAmount;
-        Indent(ind, wr);
-        wr.WriteLine("public delegate Base_{0}{1} Computer();", dt.CompileName, typeParams);
-        Indent(ind, wr);
-        wr.WriteLine("Computer c;");
-        Indent(ind, wr);
-        wr.WriteLine("public {0}__Lazy(Computer c) {{ this.c = c; }}", dt.CompileName);
-        Indent(ind, wr);
-        wr.WriteLine("public Base_{0}{1} Get() {{ return c(); }}", dt.CompileName, typeParams);
-        Indent(indent, wr);
-        wr.WriteLine("}");
+        wrx.Indent();
+        var w = wrx.NewNamedBlock("public class {0}__Lazy{1} : Base_{0}{1}", dt.CompileName, typeParams);
+        w.Indent();
+        w.WriteLine("public delegate Base_{0}{1} Computer();", dt.CompileName, typeParams);
+        w.Indent();
+        w.WriteLine("Computer c;");
+        w.Indent();
+        w.WriteLine("public {0}__Lazy(Computer c) {{ this.c = c; }}", dt.CompileName);
+        w.Indent();
+        w.WriteLine("public Base_{0}{1} Get() {{ return c(); }}", dt.CompileName, typeParams);
       }
 
       int constructorIndex = 0; // used to give each constructor a different
@@ -383,73 +376,74 @@ namespace Microsoft.Dafny {
         //     // ...
         //   }
         // }
-        Indent(indent, wr);
-        wr.Write("public class {0}", DtCtorDeclarationName(ctor, dt.TypeArgs));
-        wr.WriteLine(" : Base_{0}{1} {{", dt.CompileName, typeParams);
-        int ind = indent + IndentAmount;
+        wrx.Indent();
+        var wr = wrx.NewNamedBlock("public class {0} : Base_{1}{2}", DtCtorDeclarationName(ctor, dt.TypeArgs), dt.CompileName, typeParams);
 
         int i = 0;
         foreach (Formal arg in ctor.Formals) {
           if (!arg.IsGhost) {
-            Indent(ind, wr);
+            wr.Indent();
             wr.WriteLine("public readonly {0} {1};", TypeName(arg.Type, wr, arg.tok), FormalName(arg, i));
             i++;
           }
         }
 
-        Indent(ind, wr);
+        wr.Indent();
         wr.Write("public {0}(", DtCtorDeclartionName(ctor));
         WriteFormals("", ctor.Formals, wr);
-        wr.WriteLine(") {");
-        i = 0;
-        foreach (Formal arg in ctor.Formals) {
-          if (!arg.IsGhost) {
-            Indent(ind + IndentAmount, wr);
-            wr.WriteLine("this.{0} = {0};", FormalName(arg, i));
-            i++;
+        using (var w = wr.NewBlock(")")) {
+          i = 0;
+          foreach (Formal arg in ctor.Formals) {
+            if (!arg.IsGhost) {
+              w.Indent();
+              w.WriteLine("this.{0} = {0};", FormalName(arg, i));
+              i++;
+            }
           }
         }
-        Indent(ind, wr); wr.WriteLine("}");
 
         // Equals method
-        Indent(ind, wr); wr.WriteLine("public override bool Equals(object other) {");
-        Indent(ind + IndentAmount, wr);
-        wr.Write("var oth = other as {0}", DtCtorName(ctor, dt.TypeArgs));
-        wr.WriteLine(";");
-        Indent(ind + IndentAmount, wr);
-        wr.Write("return oth != null");
-        i = 0;
-        foreach (Formal arg in ctor.Formals) {
-          if (!arg.IsGhost) {
-            string nm = FormalName(arg, i);
-            if (IsDirectlyComparable(arg.Type)) {
-              wr.Write(" && this.{0} == oth.{0}", nm);
-            } else {
-              wr.Write(" && Dafny.Helpers.AreEqual(this.{0}, oth.{0})", nm);
+        wr.Indent();
+        using (var w = wr.NewBlock("public override bool Equals(object other)")) {
+          w.Indent();
+          w.Write("var oth = other as {0}", DtCtorName(ctor, dt.TypeArgs));
+          w.WriteLine(";");
+          w.Indent();
+          w.Write("return oth != null");
+          i = 0;
+          foreach (Formal arg in ctor.Formals) {
+            if (!arg.IsGhost) {
+              string nm = FormalName(arg, i);
+              if (IsDirectlyComparable(arg.Type)) {
+                w.Write(" && this.{0} == oth.{0}", nm);
+              } else {
+                w.Write(" && Dafny.Helpers.AreEqual(this.{0}, oth.{0})", nm);
+              }
+              i++;
             }
-            i++;
           }
+          w.WriteLine(";");
         }
-        wr.WriteLine(";");
-        Indent(ind, wr); wr.WriteLine("}");
 
         // GetHashCode method (Uses the djb2 algorithm)
-        Indent(ind, wr); wr.WriteLine("public override int GetHashCode() {");
-        Indent(ind + IndentAmount, wr); wr.WriteLine("ulong hash = 5381;");
-        Indent(ind + IndentAmount, wr); wr.WriteLine("hash = ((hash << 5) + hash) + {0};", constructorIndex);
-        i = 0;
-        foreach (Formal arg in ctor.Formals) {
-          if (!arg.IsGhost) {
-            string nm = FormalName(arg, i);
-            Indent(ind + IndentAmount, wr); wr.WriteLine("hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this.{0}));", nm);
-            i++;
+        wr.Indent();
+        using (var w = wr.NewBlock("public override int GetHashCode()")) {
+          w.Indent(); w.WriteLine("ulong hash = 5381;");
+          w.Indent(); w.WriteLine("hash = ((hash << 5) + hash) + {0};", constructorIndex);
+          i = 0;
+          foreach (Formal arg in ctor.Formals) {
+            if (!arg.IsGhost) {
+              string nm = FormalName(arg, i);
+              w.Indent(); w.WriteLine("hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this.{0}));", nm);
+              i++;
+            }
           }
+          w.Indent(); w.WriteLine("return (int) hash;");
         }
-        Indent(ind + IndentAmount, wr); wr.WriteLine("return (int) hash;");
-        Indent(ind, wr); wr.WriteLine("}");
 
         if (dt is IndDatatypeDecl) {
-          Indent(ind, wr); wr.WriteLine("public override string ToString() {");
+          wr.Indent();
+          var w = wr.NewBlock("public override string ToString()");
           string nm;
           if (dt is TupleTypeDecl) {
             nm = "";
@@ -457,26 +451,23 @@ namespace Microsoft.Dafny {
             nm = (dt.Module.IsDefaultModule ? "" : dt.Module.CompileName + ".") + dt.CompileName + "." + ctor.CompileName;
           }
           var tempVar = GenVarName("s", ctor.Formals);
-          Indent(ind + IndentAmount, wr); wr.WriteLine("string {0} = \"{1}\";", tempVar, nm);
+          w.Indent(); w.WriteLine("string {0} = \"{1}\";", tempVar, nm);
           if (ctor.Formals.Count != 0) {
-            Indent(ind + IndentAmount, wr); wr.WriteLine("{0} += \"(\";", tempVar);
+            w.Indent(); w.WriteLine("{0} += \"(\";", tempVar);
             i = 0;
             foreach (var arg in ctor.Formals) {
               if (!arg.IsGhost) {
                 if (i != 0) {
-                  Indent(ind + IndentAmount, wr); wr.WriteLine("{0} += \", \";", tempVar);
+                  w.Indent(); w.WriteLine("{0} += \", \";", tempVar);
                 }
-                Indent(ind + IndentAmount, wr); wr.WriteLine("{0} += Dafny.Helpers.ToString(this.{1});", tempVar, FormalName(arg, i));
+                w.Indent(); w.WriteLine("{0} += Dafny.Helpers.ToString(this.{1});", tempVar, FormalName(arg, i));
                 i++;
               }
             }
-            Indent(ind + IndentAmount, wr); wr.WriteLine("{0} += \")\";", tempVar);
+            w.Indent(); w.WriteLine("{0} += \")\";", tempVar);
           }
-          Indent(ind + IndentAmount, wr); wr.WriteLine("return {0};", tempVar);
-          Indent(ind, wr); wr.WriteLine("}");
+          w.Indent(); w.WriteLine("return {0};", tempVar);
         }
-
-        Indent(indent, wr); wr.WriteLine("}");
       }
       constructorIndex++;
     }
