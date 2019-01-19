@@ -23,6 +23,20 @@ namespace Microsoft.Dafny {
 
     protected override void EmitHeader(Program program, TargetWriter wr) {
       wr.WriteLine("// Dafny program {0} compiled into JavaScript", program.Name);
+      wr.WriteLine(@"
+let _dafny = (function() {
+  let $module = {};
+  $module.Tuple = class Tuple extends Array {
+    constructor(...elems) {
+      super(...elems);
+    }
+    toString() {
+      return ""("" + super.toString() + "")"";
+    }
+  }
+ return $module;
+})();
+");
     }
 
     public override void EmitCallToMain(Method mainMethod, TextWriter wr) {
@@ -43,6 +57,114 @@ namespace Microsoft.Dafny {
       w.Indent();
       fieldsWriter = w.NewBlock("constructor ()");
       return w;
+    }
+
+    protected override void DeclareDatatype(DatatypeDecl dt, TargetWriter wr) {
+      // $module.Dt = class Dt {
+      //   constructor(tag) {
+      //     this.$tag = tag;
+      //   }
+      //   static create_Ctor0(field0, field1, ...) {
+      //     let $dt = new Dt(0);
+      //     $dt.field0 = field0;
+      //     $dt.field1 = field1;
+      //     ...
+      //     return $dt;
+      //   }
+      //   static create_Ctor1(...) {
+      //     let $dt = new Dt(1);
+      //     ...
+      //   }
+      //   ...
+      //
+      //   get is_Ctor0 { return this.$tag == 0; }
+      //   get is_Ctor1 { return this.$tag == 1; }
+      //   ...
+      //
+      //   toString() {
+      //     ...
+      //   }
+      // }
+      // TODO: need Default member (also for co-datatypes)
+      // TODO: need equality methods
+      // TODO: if HasFinitePossibleValues, need enumerator of values
+
+      string DtT = dt.CompileName;
+      string DtT_protected = IdProtect(DtT);
+
+      wr.Indent();
+      // from here on, write everything into the new block created here:
+      wr = wr.NewNamedBlock("$module.{0} = class {0}", DtT_protected);
+
+      wr.Indent();
+      wr.WriteLine("constructor(tag) { this.$tag = tag; }");
+
+
+      // query properties
+      var i = 0;
+      foreach (var ctor in dt.Ctors) {
+        // collect the names of non-ghost arguments
+        var argNames = new List<string>();
+        foreach (var formal in ctor.Formals) {
+          if (!formal.IsGhost) {
+            argNames.Add(formal.CompileName);
+          }
+        }
+        // static create_Ctor0(params) { return {$tag:0, p0: pararms0, p1: params1, ...}; }
+        wr.Indent();
+        wr.Write("static create_{0}(", ctor.CompileName);
+        wr.Write(Util.Comma(argNames, nm => nm));
+        var w = wr.NewBlock(")");
+        w.Indent();
+        w.WriteLine("let $dt = new Dt({0});", i);
+        foreach (var arg in argNames) {
+          w.Indent();
+          w.WriteLine("$dt.{0} = {0};", arg);
+        }
+        w.Indent();
+        w.WriteLine("return $dt;");
+        i++;
+      }
+
+      // query properties
+      i = 0;
+      foreach (var ctor in dt.Ctors) {
+        // get is_Ctor0() { return _D is Dt_Ctor0; }
+        wr.Indent();
+        wr.WriteLine("get is_{0}() {{ return this.$tag === {1}; }}", ctor.CompileName, i);
+        i++;
+      }
+
+      if (dt is IndDatatypeDecl && !(dt is TupleTypeDecl)) {
+        wr.Indent();
+        var w = wr.NewBlock("toString()");
+        i = 0;
+        foreach (var ctor in dt.Ctors) {
+          w.Indent();
+          var cw = w.NewBlock(string.Format("if (this.$tag == {0})", i), " else");
+          cw.SetBraceStyle(BlockTargetWriter.BraceStyle.Space, BlockTargetWriter.BraceStyle.Space);
+          w.SuppressIndent();
+          cw.Indent();
+          cw.Write("return \"{0}\"", ctor.Name);
+          var sep = " + \"(\" + ";
+          var anyFormals = false;
+          foreach (var arg in ctor.Formals) {
+            if (!arg.IsGhost) {
+              anyFormals = true;
+              cw.Write("{0}this.{1}.toString()", sep, arg.CompileName);
+              sep = " + \", \" + ";
+            }
+          }
+          if (anyFormals) {
+            cw.Write(" + \")\"");
+          }
+          cw.WriteLine(";");
+          i++;
+        }
+        w = w.NewBlock("");
+        w.Indent();
+        w.WriteLine("return \"<unexpected>\";");
+      }
     }
 
     protected override BlockTargetWriter/*?*/ CreateMethod(Method m, TargetWriter wr) {
@@ -66,7 +188,7 @@ namespace Microsoft.Dafny {
 
     protected override BlockTargetWriter/*?*/ CreateFunction(string name, List<TypeParameter>/*?*/ typeArgs, List<Formal> formals, Type resultType, Bpl.IToken tok, bool isStatic, MemberDecl member, TargetWriter wr) {
       wr.Indent();
-      wr.Write("{0}.{1}{2} = function (", member.EnclosingClass.CompileName, isStatic ? "" : "prototype.", name);
+      wr.Write("{0}{1}(", isStatic ? "static " : "", name);
       int nIns = WriteFormals("", formals, wr);
       var w = wr.NewBlock(")", ";");
       if (!isStatic) {
@@ -329,6 +451,23 @@ namespace Microsoft.Dafny {
 
     protected override void EmitThis(TargetWriter wr) {
       wr.Write("_this");
+    }
+
+    protected override void EmitDatatypeValue(DatatypeValue dtv, string dtName, string ctorName, string arguments, TargetWriter wr) {
+      var dt = dtv.Ctor.EnclosingDatatype;
+      if (dt is TupleTypeDecl) {
+        wr.Write("new _dafny.Tuple({0})", arguments);
+      } else {
+        wr.Write("{0}.{1}.create_{2}({3})", dt.Module.CompileName, dtName, ctorName, arguments);
+      }
+    }
+
+    protected override void EmitMemberSelect(MemberDecl member, bool isLValue, TargetWriter wr) {
+      if (member is DatatypeDestructor dtor && dtor.EnclosingClass is TupleTypeDecl) {
+        wr.Write("[{0}]", dtor.Name);
+      } else {
+        wr.Write(".{0}", IdName(member));
+      }
     }
 
     // ----- Target compilation and execution -------------------------------------------------------------
