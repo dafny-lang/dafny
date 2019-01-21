@@ -236,7 +236,7 @@ let _dafny = (function() {
         }
 
         wr.Indent();
-        wr.Write("{0}set {1}()", isStatic ? "static " : "", name);
+        wr.Write("{0}set {1}(value)", isStatic ? "static " : "", name);
         var wSet = wr.NewBlock("", ";");
         if (!isStatic) {
           wSet.Indent(); wSet.WriteLine("let _this = this;");
@@ -339,6 +339,17 @@ let _dafny = (function() {
       Contract.Requires(typeArgs != null);
       string s = IdProtect(fullCompileName);
       return s;
+    }
+
+    protected override string TypeName_Companion(Type type, TextWriter wr, Bpl.IToken tok) {
+      var udt = type as UserDefinedType;
+      if (udt != null && udt.ResolvedClass is TraitDecl) {
+        if (udt.TypeArgs.Count != 0 && udt.TypeArgs.Exists(argType => argType.NormalizeExpand().IsObjectQ)) {
+          // TODO: This is a restriction for .NET, but may not need to be a restriction for JavaScript
+          Error(udt.tok, "compilation does not support type 'object' as a type parameter; consider introducing a ghost", wr);
+        }
+      }
+      return TypeName(type, wr, tok);
     }
 
     // ----- Declarations -------------------------------------------------------------

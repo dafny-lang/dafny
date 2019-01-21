@@ -88,6 +88,7 @@ namespace Microsoft.Dafny {
     protected abstract void EmitJumpToTailCallStart(TargetWriter wr);
     public abstract string TypeInitializationValue(Type xType, TextWriter/*?*/ wr, Bpl.IToken/*?*/ tok);
     protected abstract string TypeName_UDT(string fullCompileName, List<Type> typeArgs, TextWriter wr, Bpl.IToken tok);
+    protected abstract string TypeName_Companion(Type type, TextWriter wr, Bpl.IToken tok);
 
 
     protected abstract void DeclareField(string name, bool isStatic, bool isConst, Type type, Bpl.IToken tok, string rhs, TargetWriter wr);
@@ -518,7 +519,12 @@ namespace Microsoft.Dafny {
           var w = CreateGetter(IdName(cf), cf.Type, cf.tok, false, true, wr);
           Contract.Assert(w != null);  // since the previous line asked for a body
           if (cf.Rhs == null) {
-            EmitReturnExpr("_" + cf.CompileName, w);
+            using (var sw = new TargetWriter()) {
+              // get { return this._{0}; }
+              EmitThis(sw);
+              sw.Write("._{0}", cf.CompileName);
+              EmitReturnExpr(sw.ToString(), w);
+            }
           } else {
             CompileReturnBody(cf.Rhs, w);
           }
@@ -536,6 +542,7 @@ namespace Microsoft.Dafny {
           }
           using (var sw = new TargetWriter()) {
             // set { this._{0} = value; }
+            wSet.Indent();
             EmitThis(wSet);
             wSet.Write("._{0}", f.CompileName);
             EmitSetterParameter(sw);
@@ -866,23 +873,6 @@ namespace Microsoft.Dafny {
         return ((BitvectorType)typ).NativeType;
       }
       return null;
-    }
-
-    string TypeName_Companion(Type type, TextWriter wr, Bpl.IToken tok) {
-      Contract.Requires(type != null);
-      var udt = type as UserDefinedType;
-      if (udt != null && udt.ResolvedClass is TraitDecl) {
-        string s = udt.FullCompanionCompileName;
-        if (udt.TypeArgs.Count != 0) {
-          if (udt.TypeArgs.Exists(argType => argType.NormalizeExpand().IsObjectQ)) {
-            Error(udt.tok, "compilation does not support type 'object' as a type parameter; consider introducing a ghost", wr);
-          }
-          s += "<" + TypeNames(udt.TypeArgs, wr, udt.tok) + ">";
-        }
-        return s;
-      } else {
-        return TypeName(type, wr, tok);
-      }
     }
 
     protected string TypeName(Type type, TextWriter wr, Bpl.IToken tok) {

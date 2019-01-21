@@ -751,6 +751,22 @@ namespace Microsoft.Dafny
       return s;
     }
 
+    protected override string TypeName_Companion(Type type, TextWriter wr, Bpl.IToken tok) {
+      var udt = type as UserDefinedType;
+      if (udt != null && udt.ResolvedClass is TraitDecl) {
+        string s = udt.FullCompanionCompileName;
+        if (udt.TypeArgs.Count != 0) {
+          if (udt.TypeArgs.Exists(argType => argType.NormalizeExpand().IsObjectQ)) {
+            Error(udt.tok, "compilation does not support type 'object' as a type parameter; consider introducing a ghost", wr);
+          }
+          s += "<" + TypeNames(udt.TypeArgs, wr, udt.tok) + ">";
+        }
+        return s;
+      } else {
+        return TypeName(type, wr, tok);
+      }
+    }
+
     // ----- Declarations -------------------------------------------------------------
 
     protected override void DeclareField(string name, bool isStatic, bool isConst, Type type, Bpl.IToken tok, string rhs, TargetWriter wr) {
