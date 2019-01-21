@@ -76,9 +76,15 @@ namespace Microsoft.Dafny {
     /// "tok" can be "null" if "superClasses" is.
     /// </summary>
     protected abstract BlockTargetWriter CreateClass(string name, List<TypeParameter>/*?*/ typeParameters, List<Type>/*?*/ superClasses, Bpl.IToken tok, out TargetWriter fieldsWriter, TargetWriter wr);
+    /// <summary>
+    /// "tok" can be "null" if "superClasses" is.
+    /// </summary>
+    protected abstract BlockTargetWriter CreateTrait(string name, List<Type>/*?*/ superClasses, Bpl.IToken tok, out TargetWriter fieldsWriter, out TargetWriter staticMemberWriter, TargetWriter wr);
     protected abstract void DeclareDatatype(DatatypeDecl dt, TargetWriter wr);
-    protected abstract BlockTargetWriter/*?*/ CreateMethod(Method m, TargetWriter wr);
-    protected abstract BlockTargetWriter/*?*/ CreateFunction(string name, List<TypeParameter>/*?*/ typeArgs, List<Formal> formals, Type resultType, Bpl.IToken tok, bool isStatic, MemberDecl member, TargetWriter wr);
+    protected abstract BlockTargetWriter/*?*/ CreateMethod(Method m, bool createBody, TargetWriter wr);
+    protected abstract BlockTargetWriter/*?*/ CreateFunction(string name, List<TypeParameter>/*?*/ typeArgs, List<Formal> formals, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl member, TargetWriter wr);
+    protected abstract BlockTargetWriter/*?*/ CreateGetter(string name, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, TargetWriter wr);  // returns null iff !createBody
+    protected abstract BlockTargetWriter/*?*/ CreateGetterSetter(string name, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, out TargetWriter setterWriter, TargetWriter wr);  // if createBody, then result and setterWriter are non-null, else both are null
     protected abstract void EmitJumpToTailCallStart(TargetWriter wr);
     public abstract string TypeInitializationValue(Type xType, TextWriter/*?*/ wr, Bpl.IToken/*?*/ tok);
     protected abstract string TypeName_UDT(string fullCompileName, List<Type> typeArgs, TextWriter wr, Bpl.IToken tok);
@@ -99,6 +105,12 @@ namespace Microsoft.Dafny {
     protected virtual void EmitAssignment(string lhs, string rhs, TargetWriter wr) {
       wr.Indent();
       wr.WriteLine("{0} = {1};", lhs, rhs);
+    }
+    protected virtual void EmitAssignmentRhs(string rhs, TargetWriter wr) {
+      wr.WriteLine(" = {0};", rhs);
+    }
+    protected virtual void EmitSetterParameter(TargetWriter wr) {
+      wr.Write("value");
     }
     protected abstract void EmitPrintStmt(TargetWriter wr, Expression arg);
     protected abstract void EmitReturn(List<Formal> outParams, TargetWriter wr);
@@ -311,21 +323,16 @@ namespace Microsoft.Dafny {
             w.Indent(); w.WriteLine("}");
 
           } else if (d is TraitDecl) {
-            //writing the trait
+            // writing the trait
             var trait = (TraitDecl)d;
-            wr.Indent();
-            var w = wr.NewNamedBlock("public interface {0}", IdName(trait));
-            CompileClassMembers(trait, false, w, w);
-
-            //writing the _Companion class
-            TargetWriter fieldsWriter;
-            w = CreateClass("_Companion_" + trait.CompileName, null, out fieldsWriter, wr);
-            CompileClassMembers(trait, true, w, fieldsWriter);
+            TargetWriter fieldsWriter, staticMemberWriter;
+            var w = CreateTrait(trait.CompileName, null, null, out fieldsWriter, out staticMemberWriter, wr);
+            CompileClassMembers(trait, w, fieldsWriter, staticMemberWriter);
           } else if (d is ClassDecl) {
             var cl = (ClassDecl)d;
             TargetWriter fieldsWriter;
             var w = CreateClass(IdName(cl), cl.TypeArgs, cl.TraitsTyp, cl.tok, out fieldsWriter, wr);
-            CompileClassMembers(cl, false, w, fieldsWriter);
+            CompileClassMembers(cl, w, fieldsWriter, w);
           } else if (d is ValuetypeDecl) {
             // nop
           } else if (d is ModuleDecl) {
@@ -491,9 +498,12 @@ namespace Microsoft.Dafny {
       }
     }
 
-    void CompileClassMembers(ClassDecl c, bool forCompanionClass, TargetWriter wr, TargetWriter fieldsWriter) {
+    void CompileClassMembers(ClassDecl c, TargetWriter wr, TargetWriter fieldsWriter, TargetWriter staticMemberWriter) {
       Contract.Requires(c != null);
-      Contract.Requires(!forCompanionClass || c is TraitDecl);
+      Contract.Requires(wr != null);
+      Contract.Requires(fieldsWriter != null);
+      Contract.Requires(staticMemberWriter != null);
+
       CheckHandleWellformed(c, wr);
       foreach (var member in c.InheritedMembers) {
         Contract.Assert(!member.IsStatic);  // only instance members should ever be added to .InheritedMembers
@@ -505,7 +515,8 @@ namespace Microsoft.Dafny {
             Contract.Assert(!cf.IsStatic);  // as checked above, only instance members can be inherited
             DeclareField("_" + cf.CompileName, false, false, cf.Type, cf.tok, DefaultValue(cf.Type, fieldsWriter, cf.tok), fieldsWriter);
           }
-          var w = CreateFunction(IdName(cf), null, new List<Formal>(), cf.Type, cf.tok, cf.IsStatic, cf, wr);
+          var w = CreateGetter(IdName(cf), cf.Type, cf.tok, false, true, wr);
+          Contract.Assert(w != null);  // since the previous line asked for a body
           if (cf.Rhs == null) {
             EmitReturnExpr("_" + cf.CompileName, w);
           } else {
@@ -515,20 +526,29 @@ namespace Microsoft.Dafny {
           var f = (Field)member;
           // every field is inherited
           DeclareField("_" + f.CompileName, false, false, f.Type, f.tok, DefaultValue(f.Type, fieldsWriter, f.tok), fieldsWriter);
-          wr.Indent();
-          var w = wr.NewNamedBlock("public {0} {1}", TypeName(f.Type, wr, f.tok), IdName(f));
-          w.Indent();
-          w.WriteLine("get {{ return this._{0}; }}", f.CompileName);
-          w.Indent();
-          w.WriteLine("set {{ this._{0} = value; }}", f.CompileName);
+          TargetWriter wSet;
+          var wGet = CreateGetterSetter(IdName(f), f.Type, f.tok, false, true, out wSet, wr);
+          using (var sw = new TargetWriter()) {
+            // get { return this._{0}; }
+            EmitThis(sw);
+            sw.Write("._{0}", f.CompileName);
+            EmitReturnExpr(sw.ToString(), wGet);
+          }
+          using (var sw = new TargetWriter()) {
+            // set { this._{0} = value; }
+            EmitThis(wSet);
+            wSet.Write("._{0}", f.CompileName);
+            EmitSetterParameter(sw);
+            EmitAssignmentRhs(sw.ToString(), wSet);
+          }
         } else if (member is Function) {
           var f = (Function)member;
           Contract.Assert(f.Body != null);
-          CompileFunction(wr.IndentLevel, f, wr);
+          CompileFunction(f, wr);
         } else if (member is Method) {
           var method = (Method)member;
           Contract.Assert(method.Body != null);
-          CompileMethod(c, wr.IndentLevel, method, wr);
+          CompileMethod(c, method, wr);
         } else {
           Contract.Assert(false);  // unexpected member
         }
@@ -537,43 +557,45 @@ namespace Microsoft.Dafny {
         if (member is Field) {
           var f = (Field)member;
           if (f.IsGhost) {
-            // emit nothing
-          } else if (forCompanionClass) {
-            // emit nothing, unless "f" is a static const
-            var cf = f as ConstantField;
-            if (cf != null && cf.IsStatic) {
-              var w = CreateFunction(IdName(cf), null, new List<Formal>(), cf.Type, cf.tok, true, cf, wr);
-              if (cf.Rhs == null) {
-                EmitReturnExpr(DefaultValue(cf.Type, w, cf.tok), w);
-              } else {
-                CompileReturnBody(cf.Rhs, w);
-              }
-            }
-          } else if (c is TraitDecl) {
-            if (f is ConstantField) {
-              var cf = (ConstantField)f;
-              if (cf.IsStatic) {
-                // emit nothing
-              } else {
-                wr.Indent();
-                wr.WriteLine("{0} {1}();", TypeName(f.Type, wr, cf.tok), IdName(f));
-              }
-            } else {
-              wr.Indent();
-              wr.Write("{0} {1}", TypeName(f.Type, wr, f.tok), IdName(f));
-              wr.WriteLine(" { get; set; }");
+            // emit nothing, but check for assumes
+            if (f is ConstantField cf && cf.Rhs != null) {
+              var v = new CheckHasNoAssumes_Visitor(this, wr);
+              v.Visit(cf.Rhs);
             }
           } else if (f is ConstantField) {
             var cf = (ConstantField)f;
-            if (cf.Rhs == null) {
-              DeclareField("_" + f.CompileName, f.IsStatic, false, f.Type, f.tok, DefaultValue(f.Type, fieldsWriter, f.tok), fieldsWriter);
-            }
-            var w = CreateFunction(IdName(f), null, new List<Formal>(), f.Type, f.tok, f.IsStatic, f, wr);
-            if (cf.Rhs == null) {
-              EmitReturnExpr("_" + f.CompileName, w);
+            BlockTargetWriter wBody;
+            if (cf.IsStatic) {
+              wBody = CreateGetter(IdName(cf), cf.Type, cf.tok, true, true, staticMemberWriter);
+              Contract.Assert(wBody != null);  // since the previous line asked for a body
+            } else if (c is TraitDecl) {
+              wBody = CreateGetter(IdName(cf), cf.Type, cf.tok, false, false, wr);
+              Contract.Assert(wBody == null);  // since the previous line said not to create a body
+            } else if (cf.Rhs == null) {
+              // create a backing field, since this constant field may be assigned in constructors
+              DeclareField("_" + f.CompileName, false, false, f.Type, f.tok, DefaultValue(f.Type, fieldsWriter, f.tok), fieldsWriter);
+              wBody = CreateGetter(IdName(cf), cf.Type, cf.tok, false, true, wr);
+              Contract.Assert(wBody != null);  // since the previous line asked for a body
             } else {
-              CompileReturnBody(cf.Rhs, w);
+              wBody = CreateGetter(IdName(cf), cf.Type, cf.tok, false, true, wr);
+              Contract.Assert(wBody != null);  // since the previous line asked for a body
             }
+            if (wBody != null) {
+              if (cf.Rhs != null) {
+                CompileReturnBody(cf.Rhs, wBody);
+              } else if (!cf.IsStatic) {
+                var sw = new TargetWriter();
+                EmitThis(sw);
+                EmitMemberSelect(cf, true, sw);
+                EmitReturnExpr(sw.ToString(), wBody);
+              } else {
+                EmitReturnExpr(DefaultValue(cf.Type, wBody, cf.tok), wBody);
+              }
+            }
+          } else if (c is TraitDecl) {
+            TargetWriter wSet;
+            var wGet = CreateGetterSetter(IdName(f), f.Type, f.tok, f.IsStatic, false, out wSet, wr);
+            Contract.Assert(wSet == null && wGet == null);  // since the previous line specified no body
           } else {
             DeclareField(IdName(f), false, false, f.Type, f.tok, DefaultValue(f.Type, fieldsWriter, f.tok), fieldsWriter);
           }
@@ -581,8 +603,8 @@ namespace Microsoft.Dafny {
           var f = (Function)member;
           if (f.Body == null && !(c is TraitDecl && !f.IsStatic) && !(!DafnyOptions.O.DisallowExterns && Attributes.Contains(f.Attributes, "dllimport"))) {
             // A (ghost or non-ghost) function must always have a body, except if it's an instance function in a trait.
-            if (forCompanionClass || Attributes.Contains(f.Attributes, "axiom") || (!DafnyOptions.O.DisallowExterns && Attributes.Contains(f.Attributes, "extern"))) {
-              // suppress error message (in the case of "forCompanionClass", the non-forCompanionClass call will produce the error message)
+            if (Attributes.Contains(f.Attributes, "axiom") || (!DafnyOptions.O.DisallowExterns && Attributes.Contains(f.Attributes, "extern"))) {
+              // suppress error message
             } else {
               Error(f.tok, "Function {0} has no body", wr, f.FullName);
             }
@@ -594,26 +616,20 @@ namespace Microsoft.Dafny {
               var v = new CheckHasNoAssumes_Visitor(this, wr);
               v.Visit(f.Body);
             }
-          } else if (c is TraitDecl && !forCompanionClass) {
-            // include it, unless it's static
-            if (!f.IsStatic) {
-              wr.Indent();
-              wr.Write("{0} {1}", TypeName(f.ResultType, wr, f.tok), IdName(f));
-              wr.Write("(");
-              WriteFormals("", f.Formals, wr);
-              wr.WriteLine(");");
-            }
-          } else if (forCompanionClass && !f.IsStatic) {
-            // companion classes only has static members
+          } else if (c is TraitDecl && !f.IsStatic) {
+            var w = CreateFunction(IdName(f), f.TypeArgs, f.Formals, f.ResultType, f.tok, false, false, f, wr);
+            Contract.Assert(w == null);  // since we requested no body
+          } else if (c is TraitDecl && f.IsStatic) {
+            CompileFunction(f, staticMemberWriter);
           } else {
-            CompileFunction(wr.IndentLevel, f, wr);
+            CompileFunction(f, wr);
           }
         } else if (member is Method) {
           var m = (Method)member;
           if (m.Body == null && !(c is TraitDecl && !m.IsStatic) && !(!DafnyOptions.O.DisallowExterns && Attributes.Contains(m.Attributes, "dllimport"))) {
             // A (ghost or non-ghost) method must always have a body, except if it's an instance method in a trait.
-            if (forCompanionClass || Attributes.Contains(m.Attributes, "axiom") || (!DafnyOptions.O.DisallowExterns && Attributes.Contains(m.Attributes, "extern"))) {
-              // suppress error message (in the case of "forCompanionClass", the non-forCompanionClass call will produce the error message)
+            if (Attributes.Contains(m.Attributes, "axiom") || (!DafnyOptions.O.DisallowExterns && Attributes.Contains(m.Attributes, "extern"))) {
+              // suppress error message
             } else {
               Error(m.tok, "Method {0} has no body", wr, m.FullName);
             }
@@ -625,20 +641,13 @@ namespace Microsoft.Dafny {
               var v = new CheckHasNoAssumes_Visitor(this, wr);
               v.Visit(m.Body);
             }
-          } else if (c is TraitDecl && !forCompanionClass) {
-            // include it, unless it's static
-            if (!m.IsStatic) {
-              wr.Indent();
-              wr.Write("void {0}", IdName(m));
-              wr.Write("(");
-              int nIns = WriteFormals("", m.Ins, wr);
-              WriteFormals(nIns == 0 ? "" : ", ", m.Outs, wr);
-              wr.WriteLine(");");
-            }
-          } else if (forCompanionClass && !m.IsStatic) {
-            // companion classes only has static members
+          } else if (c is TraitDecl && !m.IsStatic) {
+            var w = CreateMethod(m, false, wr);
+            Contract.Assert(w == null);  // since we requested no body
+          } else if (c is TraitDecl && m.IsStatic) {
+            CompileMethod(c, m, staticMemberWriter);
           } else {
-            CompileMethod(c, wr.IndentLevel, m, wr);
+            CompileMethod(c, m, wr);
           }
         } else {
           Contract.Assert(false); throw new cce.UnreachableException();  // unexpected member
@@ -667,22 +676,22 @@ namespace Microsoft.Dafny {
       }
     }
 
-    private void CompileFunction(int indent, Function f, TargetWriter wr) {
+    private void CompileFunction(Function f, TargetWriter wr) {
       Contract.Requires(f != null);
       Contract.Requires(wr != null);
 
-      var w = CreateFunction(IdName(f), f.TypeArgs, f.Formals, f.ResultType, f.tok, f.IsStatic, f, wr);
+      var w = CreateFunction(IdName(f), f.TypeArgs, f.Formals, f.ResultType, f.tok, f.IsStatic, true, f, wr);
       if (w != null) {
         CompileReturnBody(f.Body, w);
       }
     }
 
-    private void CompileMethod(ClassDecl c, int indent, Method m, TargetWriter wr) {
+    private void CompileMethod(ClassDecl c, Method m, TargetWriter wr) {
       Contract.Requires(c != null);
       Contract.Requires(m != null);
       Contract.Requires(wr != null);
 
-      var w = CreateMethod(m, wr);
+      var w = CreateMethod(m, true, wr);
       if (w != null) {
         foreach (Formal p in m.Outs) {
           if (!p.IsGhost) {
@@ -702,28 +711,27 @@ namespace Microsoft.Dafny {
 
       // allow the Main method to be an instance method
       if (IsMain(m) && (!m.IsStatic || m.CompileName != "Main")) {
-        Indent(indent, wr);
-        wr.WriteLine("public static void Main(string[] args) {");
+        wr.Indent();
+        w = wr.NewBlock("public static void Main(string[] args)");
         if (!m.IsStatic) {
           Contract.Assert(m.EnclosingClass == c);
-          Indent(indent + IndentAmount, wr);
-          wr.Write("{0} b = new {0}", IdName(c));
+          w.Indent();
+          w.Write("{0} b = new {0}", IdName(c));
           if (c.TypeArgs.Count != 0) {
             // instantiate every parameter, it doesn't particularly matter how
-            wr.Write("<");
+            w.Write("<");
             string sep = "";
             for (int i = 0; i < c.TypeArgs.Count; i++) {
-              wr.Write("{0}int", sep);
+              w.Write("{0}int", sep);
               sep = ", ";
             }
-            wr.Write(">");
+            w.Write(">");
           }
-          wr.WriteLine("();");
-          Indent(indent + IndentAmount, wr); wr.WriteLine("b.{0}();", IdName(m));
+          w.WriteLine("();");
+          w.Indent(); w.WriteLine("b.{0}();", IdName(m));
         } else {
-          Indent(indent + IndentAmount, wr); wr.WriteLine("{0}();", IdName(m));
+          w.Indent(); w.WriteLine("{0}();", IdName(m));
         }
-        Indent(indent, wr); wr.WriteLine("}");
       }
     }
 

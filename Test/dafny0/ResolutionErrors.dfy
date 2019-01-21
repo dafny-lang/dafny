@@ -2752,3 +2752,21 @@ module GhostReceiverTests {
     g.M(x);  // error: cannot pass ghost receiver to compiled method
   }
 }
+
+// --------------- ghost RHS of constants (regression) tests -------------------------------------
+
+module GhostRhsConst {
+  class C {
+    function F(n: nat): nat { n }  // a ghost function
+    
+    const b := F(0);  // error: RHS uses a ghost function
+    static const u := F(0);  // error: RHS uses a ghost function
+  }
+
+  trait R {
+    function F(n: nat): nat { n }  // a ghost function
+    
+    const b := F(0);  // error: RHS uses a ghost function
+    static const u := F(0);  // error: RHS uses a ghost function
+  }
+}

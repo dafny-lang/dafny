@@ -146,6 +146,27 @@ namespace Microsoft.Dafny
       return w;
     }
 
+    protected override BlockTargetWriter CreateTrait(string name, List<Type>/*?*/ superClasses, Bpl.IToken tok, out TargetWriter fieldsWriter, out TargetWriter staticMemberWriter, TargetWriter wr) {
+      wr.Indent();
+      wr.Write("public interface {0}", IdProtect(name));
+      if (superClasses != null) {
+        string sep = " : ";
+        foreach (var trait in superClasses) {
+          wr.Write("{0}{1}", sep, TypeName(trait, wr, tok));
+          sep = ", ";
+        }
+      }
+      var w = wr.NewBlock("");
+      fieldsWriter = w;
+
+      //writing the _Companion class
+      wr.Indent();
+      wr.Write("public class _Companion_{0}", name);
+      staticMemberWriter = wr.NewBlock("");
+
+      return w;
+    }
+
     protected override void DeclareDatatype(DatatypeDecl dt, TargetWriter wr) {
       CompileDatatypeHeader(dt, wr);
       CompileDatatypeConstructors(dt, wr);
@@ -483,7 +504,7 @@ namespace Microsoft.Dafny
       }
     }
 
-    protected override BlockTargetWriter/*?*/ CreateMethod(Method m, TargetWriter wr) {
+    protected override BlockTargetWriter/*?*/ CreateMethod(Method m, bool createBody, TargetWriter wr) {
       var hasDllImportAttribute = ProcessDllImport(m, wr);
       string targetReturnTypeReplacement = null;
       if (hasDllImportAttribute) {
@@ -501,7 +522,12 @@ namespace Microsoft.Dafny
       }
 
       wr.Indent();
-      wr.Write("public {0}{1}{3} @{2}", m.IsStatic ? "static " : "", hasDllImportAttribute ? "extern " : "", m.CompileName, targetReturnTypeReplacement ?? "void");
+      wr.Write("{0}{1}{2}{3} {4}",
+        createBody ? "public " : "",
+        m.IsStatic ? "static " : "",
+        hasDllImportAttribute ? "extern " : "",
+        targetReturnTypeReplacement ?? "void",
+        IdName(m));
       if (m.TypeArgs.Count != 0) {
         wr.Write("<{0}>", TypeParameters(m.TypeArgs));
       }
@@ -511,7 +537,7 @@ namespace Microsoft.Dafny
         WriteFormals(nIns == 0 ? "" : ", ", m.Outs, wr);
       }
 
-      if (hasDllImportAttribute) {
+      if (!createBody || hasDllImportAttribute) {
         wr.WriteLine(");");
         return null;
       } else {
@@ -527,17 +553,17 @@ namespace Microsoft.Dafny
       }
     }
 
-    protected override BlockTargetWriter/*?*/ CreateFunction(string name, List<TypeParameter>/*?*/ typeArgs, List<Formal> formals, Type resultType, Bpl.IToken tok, bool isStatic, MemberDecl member, TargetWriter wr) {
+    protected override BlockTargetWriter/*?*/ CreateFunction(string name, List<TypeParameter>/*?*/ typeArgs, List<Formal> formals, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl member, TargetWriter wr) {
       var hasDllImportAttribute = ProcessDllImport(member, wr);
 
       wr.Indent();
-      wr.Write("public {0}{1}{2} {3}", isStatic ? "static " : "", hasDllImportAttribute ? "extern " : "", TypeName(resultType, wr, tok), name);
+      wr.Write("{0}{1}{2}{3} {4}", createBody ? "public " : "", isStatic ? "static " : "", hasDllImportAttribute ? "extern " : "", TypeName(resultType, wr, tok), name);
       if (typeArgs != null && typeArgs.Count != 0) {
         wr.Write("<{0}>", TypeParameters(typeArgs));
       }
       wr.Write("(");
       WriteFormals("", formals, wr);
-      if (hasDllImportAttribute) {
+      if (!createBody || hasDllImportAttribute) {
         wr.WriteLine(");");
         return null;
       } else {
@@ -546,6 +572,36 @@ namespace Microsoft.Dafny
           w.SetBraceStyle(BlockTargetWriter.BraceStyle.Newline, BlockTargetWriter.BraceStyle.Newline);
         }
         return w;
+      }
+    }
+
+    protected override BlockTargetWriter/*?*/ CreateGetter(string name, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, TargetWriter wr) {
+      wr.Indent();
+      wr.Write("{0}{1}{2} {3} {{ get", createBody ? "public " : "", isStatic ? "static " : "", TypeName(resultType, wr, tok), name);
+      if (createBody) {
+        var w = wr.NewBlock("", " }");
+        return w;
+      } else {
+        wr.WriteLine("; }");
+        return null;
+      }
+    }
+
+    protected override BlockTargetWriter/*?*/ CreateGetterSetter(string name, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, out TargetWriter setterWriter, TargetWriter wr) {
+      wr.Indent();
+      wr.Write("{0}{1}{2} {3}", createBody ? "public " : "", isStatic ? "static " : "", TypeName(resultType, wr, tok), name);
+      if (createBody) {
+        var w = wr.NewBlock("");
+        w.Indent();
+        var wGet = w.NewBlock("get");
+        w.Indent();
+        var wSet = w.NewBlock("set");
+        setterWriter = wSet;
+        return wGet;
+      } else {
+        wr.WriteLine(" { get; set; }");
+        setterWriter = null;
+        return null;
       }
     }
 
@@ -892,9 +948,6 @@ namespace Microsoft.Dafny
       } else if (member is SpecialField sf) {
         if (sf.CompiledName.Length != 0) {
           wr.Write(".{0}", sf.CompiledName);
-          if (member is ConstantField) {
-            wr.Write("()");  // constant fields are compiled as functions (possibly with a backing field)
-          }
         }
       } else {
         wr.Write(".{0}", IdName(member));

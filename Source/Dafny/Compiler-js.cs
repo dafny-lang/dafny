@@ -59,6 +59,15 @@ let _dafny = (function() {
       return w;
     }
 
+    protected override BlockTargetWriter CreateTrait(string name, List<Type>/*?*/ superClasses, Bpl.IToken tok, out TargetWriter fieldsWriter, out TargetWriter staticMemberWriter, TargetWriter wr) {
+      wr.Indent();
+      var w = wr.NewBlock(string.Format("$module.{0} = class {0}", IdProtect(name)), ";");
+      w.Indent();
+      fieldsWriter = w.NewBlock("constructor ()");
+      staticMemberWriter = w;
+      return w;
+    }
+
     protected override void DeclareDatatype(DatatypeDecl dt, TargetWriter wr) {
       // $module.Dt = class Dt {
       //   constructor(tag) {
@@ -167,7 +176,10 @@ let _dafny = (function() {
       }
     }
 
-    protected override BlockTargetWriter/*?*/ CreateMethod(Method m, TargetWriter wr) {
+    protected override BlockTargetWriter/*?*/ CreateMethod(Method m, bool createBody, TargetWriter wr) {
+      if (!createBody) {
+        return null;
+      }
       wr.Indent();
       wr.Write("{0}{1}(", m.IsStatic ? "static " : "", IdName(m));
       int nIns = WriteFormals("", m.Ins, wr);
@@ -186,7 +198,10 @@ let _dafny = (function() {
       return w;
     }
 
-    protected override BlockTargetWriter/*?*/ CreateFunction(string name, List<TypeParameter>/*?*/ typeArgs, List<Formal> formals, Type resultType, Bpl.IToken tok, bool isStatic, MemberDecl member, TargetWriter wr) {
+    protected override BlockTargetWriter/*?*/ CreateFunction(string name, List<TypeParameter>/*?*/ typeArgs, List<Formal> formals, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl member, TargetWriter wr) {
+      if (!createBody) {
+        return null;
+      }
       wr.Indent();
       wr.Write("{0}{1}(", isStatic ? "static " : "", name);
       int nIns = WriteFormals("", formals, wr);
@@ -195,6 +210,44 @@ let _dafny = (function() {
         w.Indent(); w.WriteLine("let _this = this;");
       }
       return w;
+    }
+
+    protected override BlockTargetWriter/*?*/ CreateGetter(string name, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, TargetWriter wr) {
+      if (createBody) {
+        wr.Indent();
+        wr.Write("{0}get {1}()", isStatic ? "static " : "", name);
+        var w = wr.NewBlock("", ";");
+        if (!isStatic) {
+          w.Indent(); w.WriteLine("let _this = this;");
+        }
+        return w;
+      } else {
+        return null;
+      }
+    }
+
+    protected override BlockTargetWriter/*?*/ CreateGetterSetter(string name, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, out TargetWriter setterWriter, TargetWriter wr) {
+      if (createBody) {
+        wr.Indent();
+        wr.Write("{0}get {1}()", isStatic ? "static " : "", name);
+        var wGet = wr.NewBlock("", ";");
+        if (!isStatic) {
+          wGet.Indent(); wGet.WriteLine("let _this = this;");
+        }
+
+        wr.Indent();
+        wr.Write("{0}set {1}()", isStatic ? "static " : "", name);
+        var wSet = wr.NewBlock("", ";");
+        if (!isStatic) {
+          wSet.Indent(); wSet.WriteLine("let _this = this;");
+        }
+
+        setterWriter = wSet;
+        return wGet;
+      } else {
+        setterWriter = null;
+        return null;
+      }
     }
 
     protected override void EmitJumpToTailCallStart(TargetWriter wr) {
@@ -463,7 +516,9 @@ let _dafny = (function() {
     }
 
     protected override void EmitMemberSelect(MemberDecl member, bool isLValue, TargetWriter wr) {
-      if (member is DatatypeDestructor dtor && dtor.EnclosingClass is TupleTypeDecl) {
+      if (isLValue && member is ConstantField) {
+        wr.Write("._{0}", member.CompileName);
+      } else if (member is DatatypeDestructor dtor && dtor.EnclosingClass is TupleTypeDecl) {
         wr.Write("[{0}]", dtor.Name);
       } else {
         wr.Write(".{0}", IdName(member));

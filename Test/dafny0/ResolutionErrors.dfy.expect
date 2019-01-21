@@ -421,4 +421,8 @@ ResolutionErrors.dfy(2728,13): Error: function calls are allowed only in specifi
 ResolutionErrors.dfy(2729,13): Error: function calls are allowed only in specification contexts (consider declaring the function a 'function method')
 ResolutionErrors.dfy(2731,11): Error: ghost variables are allowed only in specification contexts
 ResolutionErrors.dfy(2752,4): Error: ghost variables are allowed only in specification contexts
-418 resolution/type errors detected in ResolutionErrors.dfy
+ResolutionErrors.dfy(2762,15): Error: function calls are allowed only in specification contexts (consider declaring the function a 'function method')
+ResolutionErrors.dfy(2763,22): Error: function calls are allowed only in specification contexts (consider declaring the function a 'function method')
+ResolutionErrors.dfy(2769,15): Error: function calls are allowed only in specification contexts (consider declaring the function a 'function method')
+ResolutionErrors.dfy(2770,22): Error: function calls are allowed only in specification contexts (consider declaring the function a 'function method')
+422 resolution/type errors detected in ResolutionErrors.dfy
