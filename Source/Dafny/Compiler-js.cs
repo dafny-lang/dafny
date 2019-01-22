@@ -154,7 +154,7 @@ let _dafny = (function() {
           cw.SetBraceStyle(BlockTargetWriter.BraceStyle.Space, BlockTargetWriter.BraceStyle.Space);
           w.SuppressIndent();
           cw.Indent();
-          cw.Write("return \"{0}\"", ctor.Name);
+          cw.Write("return \"{0}.{1}\"", dt.Name, ctor.Name);
           var sep = " + \"(\" + ";
           var anyFormals = false;
           foreach (var arg in ctor.Formals) {
@@ -368,13 +368,16 @@ let _dafny = (function() {
       }
     }
 
-    protected override void DeclareLocalVar(string name, Type/*?*/ type, Bpl.IToken tok, string/*?*/ rhs, TargetWriter wr) {
+    protected override void DeclareLocalVar(string name, Type/*?*/ type, Bpl.IToken tok, bool leaveRoomForRhs, string/*?*/ rhs, TargetWriter wr) {
       wr.Indent();
       wr.Write("let {0}", name);
-      if (rhs != null) {
-        wr.Write(" = {0}", rhs);
+      if (leaveRoomForRhs) {
+        Contract.Assert(rhs == null);  // follows from precondition
+      } else if (rhs != null) {
+        wr.WriteLine(" = {0};", rhs);
+      } else {
+        wr.WriteLine(";");
       }
-      wr.WriteLine(";");
     }
 
     protected override void DeclareLocalVar(string name, Type type, Bpl.IToken tok, Expression rhs, bool inLetExprBody, TargetWriter wr) {
@@ -391,7 +394,7 @@ let _dafny = (function() {
     }
 
     protected override void DeclareLocalOutVar(string name, Type type, Bpl.IToken tok, string rhs, TargetWriter wr) {
-      DeclareLocalVar(name, type, tok, rhs, wr);
+      DeclareLocalVar(name, type, tok, false, rhs, wr);
     }
 
     protected override void EmitOutParameterSplits(string outCollector, List<string> actualOutParamNames, TargetWriter wr) {
@@ -534,6 +537,46 @@ let _dafny = (function() {
       } else {
         wr.Write(".{0}", IdName(member));
       }
+    }
+
+    protected override void EmitDestructor(string source, string dtorName, DatatypeCtor ctor, List<Type> typeArgs, TargetWriter wr) {
+      wr.Write("({0}).{1}", source, dtorName);
+    }
+
+
+    protected override BlockTargetWriter CreateLambda(List<Type> inTypes, Bpl.IToken tok, List<string> inNames, Type resultType, TargetWriter wr) {
+      wr.Write("function (");
+      Contract.Assert(inTypes.Count == inNames.Count);  // guaranteed by precondition
+      for (var i = 0; i < inNames.Count; i++) {
+        wr.Write("{0}{1}", i == 0 ? "" : ", ", inNames[i]);
+      }
+      var w = wr.NewBlock(")");
+      w.SetBraceStyle(BlockTargetWriter.BraceStyle.Space, BlockTargetWriter.BraceStyle.Nothing);
+      return w;
+    }
+
+    protected override TargetWriter CreateIIFE(Expression source, bool inLetExprBody, Type sourceType, Bpl.IToken sourceTok, Type resultType, Bpl.IToken resultTok, string bvName, TargetWriter wr) {
+      var w = wr.NewNamedBlock("function ({0})", bvName);
+      w.SetBraceStyle(BlockTargetWriter.BraceStyle.Space, BlockTargetWriter.BraceStyle.Nothing);
+      w.Indent();
+      w.Write("return ");
+      w.BodySuffix = ";" + w.NewLine;
+
+      wr.Write("(");
+      TrExpr(source, wr, inLetExprBody);
+      wr.Write(")");
+      return w;
+    }
+
+    protected override TargetWriter CreateIIFE(string source, Type sourceType, Bpl.IToken sourceTok, Type resultType, Bpl.IToken resultTok, string bvName, TargetWriter wr) {
+      var w = wr.NewNamedBlock("function ({0})", bvName);
+      w.SetBraceStyle(BlockTargetWriter.BraceStyle.Space, BlockTargetWriter.BraceStyle.Nothing);
+      w.Indent();
+      w.Write("return ");
+      w.BodySuffix = ";" + w.NewLine;
+
+      wr.Write("({0})", source);
+      return w;
     }
 
     // ----- Target compilation and execution -------------------------------------------------------------

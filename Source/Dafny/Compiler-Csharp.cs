@@ -781,13 +781,16 @@ namespace Microsoft.Dafny
       return true;
     }
 
-    protected override void DeclareLocalVar(string name, Type/*?*/ type, Bpl.IToken tok, string/*?*/ rhs, TargetWriter wr) {
+    protected override void DeclareLocalVar(string name, Type/*?*/ type, Bpl.IToken tok, bool leaveRoomForRhs, string/*?*/ rhs, TargetWriter wr) {
       wr.Indent();
       wr.Write("{0} {1}", type != null ? TypeName(type, wr, tok) : "var", name);
-      if (rhs != null) {
-        wr.Write(" = {0}", rhs);
+      if (leaveRoomForRhs) {
+        Contract.Assert(rhs == null);  // follows from precondition
+      } else if (rhs != null) {
+        wr.WriteLine(" = {0};", rhs);
+      } else {
+        wr.WriteLine(";");
       }
-      wr.WriteLine(";");
     }
 
     protected override void DeclareLocalVar(string name, Type type, Bpl.IToken tok, Expression rhs, bool inLetExprBody, TargetWriter wr) {
@@ -968,6 +971,44 @@ namespace Microsoft.Dafny
       } else {
         wr.Write(".{0}", IdName(member));
       }
+    }
+
+    protected override void EmitDestructor(string source, string dtorName, DatatypeCtor ctor, List<Type> typeArgs, TargetWriter wr) {
+      wr.Write("(({0}){1}._D).{2}", DtCtorName(ctor, typeArgs, wr), source, dtorName);
+    }
+
+    protected override BlockTargetWriter CreateLambda(List<Type> inTypes, Bpl.IToken tok, List<string> inNames, Type resultType, TargetWriter wr) {
+      wr.Write("new Dafny.Helpers.Function<");
+      foreach (var inType in inTypes) {
+        wr.Write("{0}, ", TypeName(inType, wr, tok));
+      }
+      wr.Write("{0}>(delegate (", TypeName(resultType, wr, tok));
+      Contract.Assert(inTypes.Count == inNames.Count);  // guaranteed by precondition
+      for (var i = 0; i < inNames.Count; i++) {
+        wr.Write("{0}{1} {2}", i == 0 ? "" : ", ", TypeName(inTypes[i], wr, tok), inNames[i]);
+      }
+      var w = wr.NewBlock(")", ")");
+      w.SetBraceStyle(BlockTargetWriter.BraceStyle.Space, BlockTargetWriter.BraceStyle.Nothing);
+      return w;
+    }
+
+    protected override TargetWriter CreateIIFE(Expression source, bool inLetExprBody, Type sourceType, Bpl.IToken sourceTok, Type resultType, Bpl.IToken resultTok, string bvName, TargetWriter wr) {
+      wr.Write("Dafny.Helpers.Let<{0},{1}>(", TypeName(sourceType, wr, sourceTok), TypeName(resultType, wr, resultTok));
+      TrExpr(source, wr, inLetExprBody);
+      wr.Write(", {0} => ", bvName);
+      var w = new TargetWriter(wr.IndentLevel);
+      wr.Append(w);
+      wr.Write(")");
+      return w;
+    }
+
+    protected override TargetWriter CreateIIFE(string source, Type sourceType, Bpl.IToken sourceTok, Type resultType, Bpl.IToken resultTok, string bvName, TargetWriter wr) {
+      wr.Write("Dafny.Helpers.Let<{0},{1}>(", TypeName(sourceType, wr, sourceTok), TypeName(resultType, wr, resultTok));
+      wr.Write("{0}, {1} => ", source, bvName);
+      var w = new TargetWriter(wr.IndentLevel);
+      wr.Append(w);
+      wr.Write(")");
+      return w;
     }
 
     // ----- Target compilation and execution -------------------------------------------------------------
