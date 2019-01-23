@@ -958,22 +958,21 @@ namespace Microsoft.Dafny
     }
 
     protected override void EmitMemberSelect(MemberDecl member, bool isLValue, TargetWriter wr) {
-      if (isLValue) {
-        if (member is ConstantField) {
-          wr.Write("._{0}", member.CompileName);
-        } else {
-          wr.Write(".{0}", IdName(member));
-        }
-      } else if (member is SpecialField sf) {
+      if (isLValue && member is ConstantField) {
+        wr.Write("._{0}", member.CompileName);
+      } else if (!isLValue && member is SpecialField sf) {
         if (sf.CompiledName.Length != 0) {
           wr.Write(".{0}", sf.CompiledName);
+        } else {
+          // this member selection is handled by some kind of enclosing function call, so nothing to do here
         }
       } else {
         wr.Write(".{0}", IdName(member));
       }
     }
 
-    protected override void EmitDestructor(string source, string dtorName, DatatypeCtor ctor, List<Type> typeArgs, TargetWriter wr) {
+    protected override void EmitDestructor(string source, Formal dtor, int formalNonGhostIndex, DatatypeCtor ctor, List<Type> typeArgs, TargetWriter wr) {
+      var dtorName = FormalName(dtor, formalNonGhostIndex);
       wr.Write("(({0}){1}._D).{2}", DtCtorName(ctor, typeArgs, wr), source, dtorName);
     }
 

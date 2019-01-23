@@ -190,7 +190,12 @@ namespace Microsoft.Dafny {
     protected abstract void EmitThis(TargetWriter wr);
     protected abstract void EmitDatatypeValue(DatatypeValue dtv, string dtName, string ctorName, string arguments, TargetWriter wr);
     protected abstract void EmitMemberSelect(MemberDecl member, bool isLValue, TargetWriter wr);
-    protected abstract void EmitDestructor(string source, string dtorName, DatatypeCtor ctor, List<Type> typeArgs, TargetWriter wr);
+    /// <summary>
+    /// EmitDestructor is somewhat similar to following "source" with a call to EmitMemberSelect.
+    /// However, EmitDestructor may also need to perform a cast on "source".
+    /// Furthermore, EmitDestructor also needs to work for anonymous destructors.
+    /// </summary>
+    protected abstract void EmitDestructor(string source, Formal dtor, int formalNonGhostIndex, DatatypeCtor ctor, List<Type> typeArgs, TargetWriter wr);
     protected abstract BlockTargetWriter CreateLambda(List<Type> inTypes, Bpl.IToken tok, List<string> inNames, Type resultType, TargetWriter wr);
     protected abstract TargetWriter CreateIIFE(Expression source, bool inLetExprBody, Type sourceType, Bpl.IToken sourceTok, Type resultType, Bpl.IToken resultTok, string bvName, TargetWriter wr);  // Immediately Invoked Function Expression
     protected abstract TargetWriter CreateIIFE(string source, Type sourceType, Bpl.IToken sourceTok, Type resultType, Bpl.IToken resultTok, string bvName, TargetWriter wr);  // Immediately Invoked Function Expression
@@ -755,9 +760,16 @@ namespace Microsoft.Dafny {
       }
     }
 
-    void TrCasePatternOpt<VT>(CasePattern<VT> pat, Expression rhs, string rhs_string, int indent, TargetWriter wr, bool inLetExprBody) where VT: IVariable {
+    void TrCasePatternOpt<VT>(CasePattern<VT> pat, Expression rhs, TargetWriter wr, bool inLetExprBody) where VT: IVariable {
+      TrCasePatternOpt(pat, rhs, null, rhs.Type, rhs.tok, wr, inLetExprBody);
+    }
+
+    void TrCasePatternOpt<VT>(CasePattern<VT> pat, Expression rhs, string rhs_string, Type rhsType, Bpl.IToken rhsTok, TargetWriter wr, bool inLetExprBody) where VT: IVariable {
       Contract.Requires(pat != null);
-      Contract.Requires(pat.Var != null || rhs != null);
+      Contract.Requires(pat.Var != null || rhs != null || rhs_string != null);
+      Contract.Requires(rhs != null || rhs_string != null);
+      Contract.Requires(rhsType != null && rhsTok != null);
+
       if (pat.Var != null) {
         // The trivial Dafny "pattern" expression
         //    var x := G
@@ -784,7 +796,11 @@ namespace Microsoft.Dafny {
 
         // Create the temporary variable to hold G
         var tmp_name = idGenerator.FreshId("_let_tmp_rhs");
-        DeclareLocalVar(tmp_name, rhs.Type, rhs.tok, rhs, inLetExprBody, wr);
+        if (rhs != null) {
+          DeclareLocalVar(tmp_name, rhs.Type, rhs.tok, rhs, inLetExprBody, wr);
+        } else {
+          DeclareLocalVar(tmp_name, rhsType, rhsTok, false, rhs_string, wr);
+        }
 
         var k = 0;  // number of non-ghost formals processed
         for (int i = 0; i < pat.Arguments.Count; i++) {
@@ -792,11 +808,11 @@ namespace Microsoft.Dafny {
           var formal = ctor.Formals[i];
           if (formal.IsGhost) {
             // nothing to compile, but do a sanity check
-            Contract.Assert(!Contract.Exists(arg.Vars, bv => !bv.IsGhost));
+            Contract.Assert(Contract.ForAll(arg.Vars, bv => bv.IsGhost));
           } else {
             var sw = new TargetWriter();
-            EmitDestructor(tmp_name, FormalName(formal, k), ctor, ((DatatypeValue)pat.Expr).InferredTypeArgs, sw);
-            TrCasePatternOpt(arg, null, sw.ToString(), indent, wr, inLetExprBody);
+            EmitDestructor(tmp_name, formal, k, ctor, ((DatatypeValue)pat.Expr).InferredTypeArgs, sw);
+            TrCasePatternOpt(arg, null, sw.ToString(), pat.Expr.Type, pat.Expr.tok, wr, inLetExprBody);
             k++;
           }
         }
@@ -811,7 +827,7 @@ namespace Microsoft.Dafny {
           for (int i = 0; i < e.LHSs.Count; i++) {
             var lhs = e.LHSs[i];
             if (Contract.Exists(lhs.Vars, bv => !bv.IsGhost)) {
-              TrCasePatternOpt(lhs, e.RHSs[i], null, wr.IndentLevel, wr, inLetExprBody);
+              TrCasePatternOpt(lhs, e.RHSs[i], wr, inLetExprBody);
             }
           }
           TrExprOpt(e.Body, wr, inLetExprBody);
@@ -1752,7 +1768,7 @@ namespace Microsoft.Dafny {
       } else if (stmt is LetStmt) {
         var s = (LetStmt)stmt;
         if (Contract.Exists(s.LHS.Vars, bv => !bv.IsGhost)) {
-          TrCasePatternOpt(s.LHS, s.RHS, null, wr.IndentLevel, wr, false);
+          TrCasePatternOpt(s.LHS, s.RHS, wr, false);
         }
       } else if (stmt is ModifyStmt) {
         var s = (ModifyStmt)stmt;
@@ -2266,7 +2282,7 @@ namespace Microsoft.Dafny {
           // FormalType f0 = ((Dt_Ctor0)source._D).a0;
           DeclareLocalVar(IdName(bv), bv.Type, bv.Tok, true, null, w);
           var sw = new TargetWriter();
-          EmitDestructor(source, FormalName(arg, k), ctor, sourceType.TypeArgs, sw);
+          EmitDestructor(source, arg, k, ctor, sourceType.TypeArgs, sw);
           EmitAssignmentRhs(sw.ToString(), w);
           k++;
         }
@@ -3379,7 +3395,7 @@ namespace Microsoft.Dafny {
             Contract.Assert(!Contract.Exists(arg.Vars, bv => !bv.IsGhost));
           } else {
             var sw = new TargetWriter(wr.IndentLevel);
-            EmitDestructor(rhsString, FormalName(formal, k), ctor, ((DatatypeValue)pat.Expr).InferredTypeArgs, sw);
+            EmitDestructor(rhsString, formal, k, ctor, ((DatatypeValue)pat.Expr).InferredTypeArgs, sw);
             wr = TrCasePattern(arg, sw.ToString(), bodyType, wr);
             k++;
           }

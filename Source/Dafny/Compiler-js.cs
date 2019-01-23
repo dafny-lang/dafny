@@ -114,9 +114,11 @@ let _dafny = (function() {
       foreach (var ctor in dt.Ctors) {
         // collect the names of non-ghost arguments
         var argNames = new List<string>();
+        var k = 0;
         foreach (var formal in ctor.Formals) {
           if (!formal.IsGhost) {
-            argNames.Add(formal.CompileName);
+            argNames.Add(FormalName(formal, k));
+            k++;
           }
         }
         // static create_Ctor0(params) { return {$tag:0, p0: pararms0, p1: params1, ...}; }
@@ -125,7 +127,7 @@ let _dafny = (function() {
         wr.Write(Util.Comma(argNames, nm => nm));
         var w = wr.NewBlock(")");
         w.Indent();
-        w.WriteLine("let $dt = new Dt({0});", i);
+        w.WriteLine("let $dt = new {0}({1});", DtT_protected, i);
         foreach (var arg in argNames) {
           w.Indent();
           w.WriteLine("$dt.{0} = {0};", arg);
@@ -157,11 +159,13 @@ let _dafny = (function() {
           cw.Write("return \"{0}.{1}\"", dt.Name, ctor.Name);
           var sep = " + \"(\" + ";
           var anyFormals = false;
+          var k = 0;
           foreach (var arg in ctor.Formals) {
             if (!arg.IsGhost) {
               anyFormals = true;
-              cw.Write("{0}this.{1}.toString()", sep, arg.CompileName);
+              cw.Write("{0}this.{1}.toString()", sep, FormalName(arg, k));
               sep = " + \", \" + ";
+              k++;
             }
           }
           if (anyFormals) {
@@ -532,17 +536,31 @@ let _dafny = (function() {
     protected override void EmitMemberSelect(MemberDecl member, bool isLValue, TargetWriter wr) {
       if (isLValue && member is ConstantField) {
         wr.Write("._{0}", member.CompileName);
-      } else if (member is DatatypeDestructor dtor && dtor.EnclosingClass is TupleTypeDecl) {
-        wr.Write("[{0}]", dtor.Name);
+      } else if (member is DatatypeDestructor dtor) {
+        if (dtor.EnclosingClass is TupleTypeDecl) {
+          wr.Write("[{0}]", dtor.Name);
+        } else {
+          wr.Write(".{0}", IdName(member));
+        }
+      } else if (!isLValue && member is SpecialField sf) {
+        if (sf.CompiledName.Length != 0) {
+          wr.Write(".{0}", sf.CompiledName);
+        } else {
+          // this member selection is handled by some kind of enclosing function call, so nothing to do here
+        }
       } else {
         wr.Write(".{0}", IdName(member));
       }
     }
 
-    protected override void EmitDestructor(string source, string dtorName, DatatypeCtor ctor, List<Type> typeArgs, TargetWriter wr) {
-      wr.Write("({0}).{1}", source, dtorName);
+    protected override void EmitDestructor(string source, Formal dtor, int formalNonGhostIndex, DatatypeCtor ctor, List<Type> typeArgs, TargetWriter wr) {
+      if (ctor.EnclosingDatatype is TupleTypeDecl) {
+        wr.Write("({0})[{1}]", source, formalNonGhostIndex);
+      } else {
+        var dtorName = FormalName(dtor, formalNonGhostIndex);
+        wr.Write("({0}).{1}", source, dtorName);
+      }
     }
-
 
     protected override BlockTargetWriter CreateLambda(List<Type> inTypes, Bpl.IToken tok, List<string> inNames, Type resultType, TargetWriter wr) {
       wr.Write("function (");
