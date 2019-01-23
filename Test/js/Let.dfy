@@ -31,8 +31,7 @@ method Main() {
 datatype Tree = Leaf | Node(Tree, val: int, Tree)
 
 function method Sum(t: Tree): int {
-  //TODO: if t == Leaf then  // equality on datatypes
-  if t.Leaf? then
+  if t == Leaf then  // equality on datatypes
     0
   else
     var Node(left, value, right) := t;  // let with pattern
@@ -40,7 +39,7 @@ function method Sum(t: Tree): int {
 }
 
 method InorderPrint(t: Tree) {
-  if t.Node? {
+  if t.Node? {  // discriminator
     var Node(left, value, right) := t;  // var with pattern
     InorderPrint(left);
     print value, " ";

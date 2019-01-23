@@ -1010,6 +1010,183 @@ namespace Microsoft.Dafny
       return w;
     }
 
+    protected override void CompileBinOp(BinaryExpr.ResolvedOpcode op,
+      Expression e0, Expression e1, Bpl.IToken tok, Type resultType,
+      out string opString,
+      out string preOpString,
+      out string postOpString,
+      out string callString,
+      out string staticCallString,
+      out bool reverseArguments,
+      out bool truncateResult,
+      out bool convertE1_to_int,
+      TextWriter errorWr) {
+
+      opString = null;
+      preOpString = "";
+      postOpString = "";
+      callString = null;
+      staticCallString = null;
+      reverseArguments = false;
+      truncateResult = false;
+      convertE1_to_int = false;
+
+      switch (op) {
+        case BinaryExpr.ResolvedOpcode.Iff:
+          opString = "=="; break;
+        case BinaryExpr.ResolvedOpcode.Imp:
+          preOpString = "!"; opString = "||"; break;
+        case BinaryExpr.ResolvedOpcode.Or:
+          opString = "||"; break;
+        case BinaryExpr.ResolvedOpcode.And:
+          opString = "&&"; break;
+        case BinaryExpr.ResolvedOpcode.BitwiseAnd:
+          opString = "&"; break;
+        case BinaryExpr.ResolvedOpcode.BitwiseOr:
+          opString = "|"; break;
+        case BinaryExpr.ResolvedOpcode.BitwiseXor:
+          opString = "^"; break;
+
+        case BinaryExpr.ResolvedOpcode.EqCommon: {
+            if (IsHandleComparison(tok, e0, e1, errorWr)) {
+              opString = "==";
+            } else if (e0.Type.IsRefType) {
+              // Dafny's type rules are slightly different C#, so we may need a cast here.
+              // For example, Dafny allows x==y if x:array<T> and y:array<int> and T is some
+              // type parameter.
+              opString = "== (object)";
+            } else if (IsDirectlyComparable(e0.Type)) {
+              opString = "==";
+            } else {
+              callString = "Equals";
+            }
+            break;
+          }
+        case BinaryExpr.ResolvedOpcode.NeqCommon: {
+            if (IsHandleComparison(tok, e0, e1, errorWr)) {
+              opString = "!=";
+            } else if (e0.Type.IsRefType) {
+              // Dafny's type rules are slightly different C#, so we may need a cast here.
+              // For example, Dafny allows x==y if x:array<T> and y:array<int> and T is some
+              // type parameter.
+              opString = "!= (object)";
+            } else if (IsDirectlyComparable(e0.Type)) {
+              opString = "!=";
+            } else {
+              preOpString = "!";
+              callString = "Equals";
+            }
+            break;
+          }
+
+        case BinaryExpr.ResolvedOpcode.Lt:
+        case BinaryExpr.ResolvedOpcode.LtChar:
+          opString = "<"; break;
+        case BinaryExpr.ResolvedOpcode.Le:
+        case BinaryExpr.ResolvedOpcode.LeChar:
+          opString = "<="; break;
+        case BinaryExpr.ResolvedOpcode.Ge:
+        case BinaryExpr.ResolvedOpcode.GeChar:
+          opString = ">="; break;
+        case BinaryExpr.ResolvedOpcode.Gt:
+        case BinaryExpr.ResolvedOpcode.GtChar:
+          opString = ">"; break;
+        case BinaryExpr.ResolvedOpcode.LeftShift:
+          opString = "<<"; truncateResult = true; convertE1_to_int = true; break;
+        case BinaryExpr.ResolvedOpcode.RightShift:
+          opString = ">>"; convertE1_to_int = true; break;
+        case BinaryExpr.ResolvedOpcode.Add:
+          opString = "+"; truncateResult = true;
+          if (resultType.IsCharType) {
+            preOpString = "(char)(";
+            postOpString = ")";
+          }
+          break;
+        case BinaryExpr.ResolvedOpcode.Sub:
+          opString = "-"; truncateResult = true;
+          if (resultType.IsCharType) {
+            preOpString = "(char)(";
+            postOpString = ")";
+          }
+          break;
+        case BinaryExpr.ResolvedOpcode.Mul:
+          opString = "*"; truncateResult = true; break;
+        case BinaryExpr.ResolvedOpcode.Div:
+          if (resultType.IsIntegerType || (AsNativeType(resultType) != null && AsNativeType(resultType).LowerBound < BigInteger.Zero)) {
+            var suffix = AsNativeType(resultType) != null ? "_" + AsNativeType(resultType).Name : "";
+            staticCallString = "Dafny.Helpers.EuclideanDivision" + suffix;
+          } else {
+            opString = "/";  // for reals
+          }
+          break;
+        case BinaryExpr.ResolvedOpcode.Mod:
+          if (resultType.IsIntegerType || (AsNativeType(resultType) != null && AsNativeType(resultType).LowerBound < BigInteger.Zero)) {
+            var suffix = AsNativeType(resultType) != null ? "_" + AsNativeType(resultType).Name : "";
+            staticCallString = "Dafny.Helpers.EuclideanModulus" + suffix;
+          } else {
+            opString = "%";  // for reals
+          }
+          break;
+        case BinaryExpr.ResolvedOpcode.SetEq:
+        case BinaryExpr.ResolvedOpcode.MultiSetEq:
+        case BinaryExpr.ResolvedOpcode.SeqEq:
+        case BinaryExpr.ResolvedOpcode.MapEq:
+          callString = "Equals"; break;
+        case BinaryExpr.ResolvedOpcode.SetNeq:
+        case BinaryExpr.ResolvedOpcode.MultiSetNeq:
+        case BinaryExpr.ResolvedOpcode.SeqNeq:
+        case BinaryExpr.ResolvedOpcode.MapNeq:
+          preOpString = "!"; callString = "Equals"; break;
+        case BinaryExpr.ResolvedOpcode.ProperSubset:
+        case BinaryExpr.ResolvedOpcode.ProperMultiSubset:
+          callString = "IsProperSubsetOf"; break;
+        case BinaryExpr.ResolvedOpcode.Subset:
+        case BinaryExpr.ResolvedOpcode.MultiSubset:
+          callString = "IsSubsetOf"; break;
+        case BinaryExpr.ResolvedOpcode.Superset:
+        case BinaryExpr.ResolvedOpcode.MultiSuperset:
+          callString = "IsSupersetOf"; break;
+        case BinaryExpr.ResolvedOpcode.ProperSuperset:
+        case BinaryExpr.ResolvedOpcode.ProperMultiSuperset:
+          callString = "IsProperSupersetOf"; break;
+        case BinaryExpr.ResolvedOpcode.Disjoint:
+        case BinaryExpr.ResolvedOpcode.MultiSetDisjoint:
+        case BinaryExpr.ResolvedOpcode.MapDisjoint:
+          callString = "IsDisjointFrom"; break;
+        case BinaryExpr.ResolvedOpcode.InSet:
+        case BinaryExpr.ResolvedOpcode.InMultiSet:
+        case BinaryExpr.ResolvedOpcode.InMap:
+          callString = "Contains"; reverseArguments = true; break;
+        case BinaryExpr.ResolvedOpcode.NotInSet:
+        case BinaryExpr.ResolvedOpcode.NotInMultiSet:
+        case BinaryExpr.ResolvedOpcode.NotInMap:
+          preOpString = "!"; callString = "Contains"; reverseArguments = true; break;
+        case BinaryExpr.ResolvedOpcode.Union:
+        case BinaryExpr.ResolvedOpcode.MultiSetUnion:
+          callString = "Union"; break;
+        case BinaryExpr.ResolvedOpcode.Intersection:
+        case BinaryExpr.ResolvedOpcode.MultiSetIntersection:
+          callString = "Intersect"; break;
+        case BinaryExpr.ResolvedOpcode.SetDifference:
+        case BinaryExpr.ResolvedOpcode.MultiSetDifference:
+          callString = "Difference"; break;
+
+        case BinaryExpr.ResolvedOpcode.ProperPrefix:
+          callString = "IsProperPrefixOf"; break;
+        case BinaryExpr.ResolvedOpcode.Prefix:
+          callString = "IsPrefixOf"; break;
+        case BinaryExpr.ResolvedOpcode.Concat:
+          callString = "Concat"; break;
+        case BinaryExpr.ResolvedOpcode.InSeq:
+          callString = "Contains"; reverseArguments = true; break;
+        case BinaryExpr.ResolvedOpcode.NotInSeq:
+          preOpString = "!"; callString = "Contains"; reverseArguments = true; break;
+
+        default:
+          Contract.Assert(false); throw new cce.UnreachableException();  // unexpected binary expression
+      }
+    }
+
     // ----- Target compilation and execution -------------------------------------------------------------
 
     private class CSharpCompilationResult
