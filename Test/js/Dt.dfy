@@ -9,10 +9,12 @@ method Main() {
   var b := Cons(5, a);
   var c := (a, b);
   var d := (c.1, c.0);
+  var e := ();
   print a, "\n";
   print b, "\n";
   print c, "\n";
   print d, "\n";
+  print e, "\n";
 
   print b.head, " ", b.tail, "\n";
 

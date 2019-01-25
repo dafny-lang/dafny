@@ -176,8 +176,7 @@ namespace Microsoft.Dafny {
         ArrayClassDecl arrayClass = new ArrayClassDecl(dims, SystemModule, DontCompile());
         for (int d = 0; d < dims; d++) {
           string name = dims == 1 ? "Length" : "Length" + d;
-          string compiledName = dims == 1 ? "Length" : "GetLength(" + d + ")";
-          Field len = new SpecialField(Token.NoToken, name, compiledName, "new BigInteger(", ")", false, false, false, Type.Int, null);
+          Field len = new SpecialField(Token.NoToken, name, SpecialField.ID.ArrayLength, dims == 1 ? null : (object)d, false, false, false, Type.Int, null);
           len.EnclosingClass = arrayClass;  // resolve here
           arrayClass.Members.Add(len);
         }
@@ -4531,37 +4530,44 @@ namespace Microsoft.Dafny {
     }
     ModuleDefinition ICodeContext.EnclosingModule { get { return this.Module; } }
     string ICallable.NameRelativeToModule { get { return Name; } }
-    }
+  }
 
-    public class SpecialField : Field
+  public class SpecialField : Field
   {
-    public readonly string CompiledName;
-    public readonly string PreString;
-    public readonly string PostString;
-    public SpecialField(IToken tok, string name, string compiledName, string preString, string postString, bool isGhost, bool isMutable, bool isUserMutable, Type type, Attributes attributes)
-      : this(tok, name, compiledName, preString, postString, false, isGhost, isMutable, isUserMutable, type, attributes) {
+    public enum ID {
+      UseIdParam,  // IdParam is a string
+      ArrayLength,  // IdParam is null for .Length; IdParam is an int "x" for GetLength(x)
+      Floor,
+      IsLimit,
+      IsSucc,
+      Offset,
+      IsNat,
+      Keys,
+      Values,
+      Items,
+      Reads,
+      Modifies,
+      New,
+    }
+    public readonly ID SpecialId;
+    public readonly object IdParam;
+    public SpecialField(IToken tok, string name, ID specialId, object idParam, bool isGhost, bool isMutable, bool isUserMutable, Type type, Attributes attributes)
+      : this(tok, name, specialId, idParam, false, isGhost, isMutable, isUserMutable, type, attributes) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
-      Contract.Requires(compiledName != null);
-      Contract.Requires(preString != null);
-      Contract.Requires(postString != null);
       Contract.Requires(!isUserMutable || isMutable);
       Contract.Requires(type != null);
     }
 
-    public SpecialField(IToken tok, string name, string compiledName, string preString, string postString, bool hasStaticKeyword, bool isGhost, bool isMutable, bool isUserMutable, Type type, Attributes attributes)
+    public SpecialField(IToken tok, string name, ID specialId, object idParam, bool hasStaticKeyword, bool isGhost, bool isMutable, bool isUserMutable, Type type, Attributes attributes)
       : base(tok, name, hasStaticKeyword, isGhost, isMutable, isUserMutable, type, attributes) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
-      Contract.Requires(compiledName != null);
-      Contract.Requires(preString != null);
-      Contract.Requires(postString != null);
       Contract.Requires(!isUserMutable || isMutable);
       Contract.Requires(type != null);
 
-      CompiledName = compiledName;
-      PreString = preString;
-      PostString = postString;
+      SpecialId = specialId;
+      IdParam = idParam;
     }
 
     public override string FullName {
@@ -4617,16 +4623,13 @@ namespace Microsoft.Dafny {
       Contract.Invariant(EnclosingCtors.Count == CorrespondingFormals.Count);
     }
 
-    public DatatypeDestructor(IToken tok, DatatypeCtor enclosingCtor, Formal correspondingFormal, string name, string compiledName, string preString, string postString, bool isGhost, Type type, Attributes attributes)
-      : base(tok, name, compiledName, preString, postString, isGhost, false, false, type, attributes)
+    public DatatypeDestructor(IToken tok, DatatypeCtor enclosingCtor, Formal correspondingFormal, string name, string compiledName, bool isGhost, Type type, Attributes attributes)
+      : base(tok, name, SpecialField.ID.UseIdParam, compiledName, isGhost, false, false, type, attributes)
     {
       Contract.Requires(tok != null);
       Contract.Requires(enclosingCtor != null);
       Contract.Requires(correspondingFormal != null);
       Contract.Requires(name != null);
-      Contract.Requires(compiledName != null);
-      Contract.Requires(preString != null);
-      Contract.Requires(postString != null);
       Contract.Requires(type != null);
       EnclosingCtors.Add(enclosingCtor);  // more enclosing constructors may be added later during resolution
       CorrespondingFormals.Add(correspondingFormal);  // more corresponding formals may be added later during resolution
@@ -4671,7 +4674,7 @@ namespace Microsoft.Dafny {
     public override string WhatKind { get { return "const field"; } }
     public readonly Expression Rhs;
     public ConstantField(IToken tok, string name, Expression/*?*/ rhs, bool hasStaticKeyword, bool isGhost, Type type, Attributes attributes)
-      : base(tok, name, NonglobalVariable.CompilerizeName(name), "", "", hasStaticKeyword, isGhost, false, false, type, attributes)
+      : base(tok, name, SpecialField.ID.UseIdParam, NonglobalVariable.CompilerizeName(name), hasStaticKeyword, isGhost, false, false, type, attributes)
     {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
@@ -9244,7 +9247,7 @@ namespace Microsoft.Dafny {
   public class UnaryOpExpr : UnaryExpr
   {
     public enum Opcode {
-      Not,
+      Not,  // boolean negation or bitwise negation
       Cardinality,
       Fresh,
       Allocated,

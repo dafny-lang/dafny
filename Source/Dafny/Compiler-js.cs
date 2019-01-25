@@ -31,11 +31,34 @@ let _dafny = (function() {
       super(...elems);
     }
     toString() {
-      return ""("" + super.toString() + "")"";
+      let s = ""("";
+      let sep = """";
+      for (let x of this) {
+        s += sep + x;
+        sep = "", "";
+      }
+      return s + "")"";
     }
   }
   $module.areEqual = function() {
     return false;  // TODO
+  }
+  $module.seqUpdate = function(s, i, v) {
+    let t = s.slice();
+    t[i] = v;
+    return t;
+  }
+  function buildArray(initValue, ...dims) {
+    if (dims.length === 0) {
+      return initValue;
+    } else {
+      let a = Array(dims[0]);
+      let b = Array.from(a, (x) => buildArray(initValue, ...dims.slice(1)));
+      return b;
+    }
+  }
+  $module.newArray = function(initValue, ...dims) {
+    return { dims: dims, elmts: buildArray(initValue, ...dims) };
   }
  return $module;
 })();
@@ -54,19 +77,19 @@ let _dafny = (function() {
       return w;
     }
 
-    protected override BlockTargetWriter CreateClass(string name, List<TypeParameter>/*?*/ typeParameters, List<Type>/*?*/ superClasses, Bpl.IToken tok, out TargetWriter fieldsWriter, TargetWriter wr) {
+    protected override BlockTargetWriter CreateClass(string name, List<TypeParameter>/*?*/ typeParameters, List<Type>/*?*/ superClasses, Bpl.IToken tok, out TargetWriter instanceFieldsWriter, TargetWriter wr) {
       wr.Indent();
       var w = wr.NewBlock(string.Format("$module.{0} = class {0}", name), ";");
       w.Indent();
-      fieldsWriter = w.NewBlock("constructor ()");
+      instanceFieldsWriter = w.NewBlock("constructor ()");
       return w;
     }
 
-    protected override BlockTargetWriter CreateTrait(string name, List<Type>/*?*/ superClasses, Bpl.IToken tok, out TargetWriter fieldsWriter, out TargetWriter staticMemberWriter, TargetWriter wr) {
+    protected override BlockTargetWriter CreateTrait(string name, List<Type>/*?*/ superClasses, Bpl.IToken tok, out TargetWriter instanceFieldsWriter, out TargetWriter staticMemberWriter, TargetWriter wr) {
       wr.Indent();
       var w = wr.NewBlock(string.Format("$module.{0} = class {0}", IdProtect(name)), ";");
       w.Indent();
-      fieldsWriter = w.NewBlock("constructor ()");
+      instanceFieldsWriter = w.NewBlock("constructor ()");
       staticMemberWriter = w;
       return w;
     }
@@ -396,7 +419,12 @@ let _dafny = (function() {
 
     protected override void DeclareField(string name, bool isStatic, bool isConst, Type type, Bpl.IToken tok, string rhs, TargetWriter wr) {
       wr.Indent();
-      wr.WriteLine("this.{0} = {1};", name, rhs);
+      if (isStatic) {
+        var w = wr.NewNamedBlock("static get {0}()", name);
+        EmitReturnExpr(rhs, w);
+      } else {
+        wr.WriteLine("this.{0} = {1};", name, rhs);
+      }
     }
 
     protected override bool DeclareFormal(string prefix, string name, Type type, Bpl.IToken tok, bool isInParam, TextWriter wr) {
@@ -408,7 +436,7 @@ let _dafny = (function() {
       }
     }
 
-    protected override void DeclareLocalVar(string name, Type/*?*/ type, Bpl.IToken tok, bool leaveRoomForRhs, string/*?*/ rhs, TargetWriter wr) {
+    protected override void DeclareLocalVar(string name, Type/*?*/ type, Bpl.IToken/*?*/ tok, bool leaveRoomForRhs, string/*?*/ rhs, TargetWriter wr) {
       wr.Indent();
       wr.Write("let {0}", name);
       if (leaveRoomForRhs) {
@@ -420,7 +448,7 @@ let _dafny = (function() {
       }
     }
 
-    protected override void DeclareLocalVar(string name, Type type, Bpl.IToken tok, Expression rhs, bool inLetExprBody, TargetWriter wr) {
+    protected override void DeclareLocalVar(string name, Type/*?*/ type, Bpl.IToken/*?*/ tok, Expression rhs, bool inLetExprBody, TargetWriter wr) {
       wr.Indent();
       wr.Write("let {0} = ", name);
       TrExpr(rhs, wr, inLetExprBody);
@@ -441,7 +469,7 @@ let _dafny = (function() {
       if (actualOutParamNames.Count == 1) {
         EmitAssignment(actualOutParamNames[0], outCollector, wr);
       } else {
-        for (int i = 0; i < actualOutParamNames.Count; i++) {
+        for (var i = 0; i < actualOutParamNames.Count; i++) {
           wr.Indent();
           wr.WriteLine("{0} = {1}[{2}];", actualOutParamNames[i], outCollector, i);
         }
@@ -491,10 +519,36 @@ let _dafny = (function() {
       wr.WriteLine("throw new Error('unexpected control point');");
     }
 
+    protected override BlockTargetWriter CreateForLoop(string indexVar, string bound, TargetWriter wr) {
+      wr.Indent();
+      var w = wr.NewNamedBlock("for (let {0} = 0; {0} < {1}; {0}++)", indexVar, bound);
+      return w;
+    }
+
     // ----- Expressions -------------------------------------------------------------
 
     protected override void EmitNew(Type type, Bpl.IToken tok, CallStmt/*?*/ initCall, TargetWriter wr) {
       wr.Write("new {0}()", TypeName(type, wr, tok));
+    }
+
+    protected override void EmitNewArray(Type elmtType, Bpl.IToken tok, List<Expression> dimensions, bool mustInitialize, TargetWriter wr) {
+      var initValue = mustInitialize ? DefaultValue(elmtType, wr, tok) : null;
+      if (dimensions.Count == 1) {
+        // handle the common case of 1-dimensional arrays separately
+        wr.Write("Array");
+        TrParenExpr(dimensions[0], wr, false);
+        if (initValue != null) {
+          wr.Write(".fill({0})", initValue);
+        }
+      } else {
+        // the general case
+        wr.Write("_dafny.newArray({0}", initValue ?? "undefined");
+        foreach (var dim in dimensions) {
+          wr.Write(", ");
+          TrExpr(dim, wr, false);
+        }
+        wr.Write(")");
+      }
     }
 
     protected override void EmitLiteralExpr(TextWriter wr, LiteralExpr e) {
@@ -520,14 +574,14 @@ let _dafny = (function() {
         var n = (Basetypes.BigDec)e.Value;
         if (0 <= n.Exponent) {
           wr.Write(n.Mantissa);
-          for (int i = 0; i < n.Exponent; i++) {
+          for (var i = 0; i < n.Exponent; i++) {
             wr.Write("0");
           }
         } else {
           wr.Write("(");
           wr.Write(n.Mantissa);
           wr.Write("/1", n.Mantissa);
-          for (int i = n.Exponent; i < 0; i++) {
+          for (var i = n.Exponent; i < 0; i++) {
             wr.Write("0");
           }
           wr.Write(")");
@@ -537,20 +591,19 @@ let _dafny = (function() {
       }
     }
 
-    protected override void TrStringLiteral(StringLiteralExpr str, TextWriter wr) {
-      var s = (string)str.Value;
-      var n = s.Length;
+    protected override void EmitStringLiteral(string str, bool isVerbatim, TextWriter wr) {
+      var n = str.Length;
       wr.Write("\"");
-      for (int i = 0; i < n; i++) {
-        if (s[i] == '\\' && s[i+1] == '0') {
+      for (var i = 0; i < n; i++) {
+        if (str[i] == '\\' && str[i+1] == '0') {
           wr.Write("\\u0000");
           i++;
-        } else if (s[i] == '\n') {  // may appear in a verbatim string
+        } else if (str[i] == '\n') {  // may appear in a verbatim string
           wr.Write("\\n");
-        } else if (s[i] == '\r') {  // may appear in a verbatim string
+        } else if (str[i] == '\r') {  // may appear in a verbatim string
           wr.Write("\\r");
         } else {
-          wr.Write(s[i]);
+          wr.Write(str[i]);
         }
       }
       wr.Write("\"");
@@ -563,9 +616,63 @@ let _dafny = (function() {
     protected override void EmitDatatypeValue(DatatypeValue dtv, string dtName, string ctorName, string arguments, TargetWriter wr) {
       var dt = dtv.Ctor.EnclosingDatatype;
       if (dt is TupleTypeDecl) {
-        wr.Write("new _dafny.Tuple({0})", arguments);
+        wr.Write("_dafny.Tuple.of({0})", arguments);
       } else {
         wr.Write("{0}.{1}.create_{2}({3})", dt.Module.CompileName, dtName, ctorName, arguments);
+      }
+    }
+
+    protected override void GetSpecialFieldInfo(SpecialField.ID id, object idParam, out string compiledName, out string preString, out string postString) {
+      compiledName = "";
+      preString = "";
+      postString = "";
+      switch (id) {
+        case SpecialField.ID.UseIdParam:
+          compiledName = (string)idParam;
+          break;
+        case SpecialField.ID.ArrayLength:
+          compiledName = idParam == null ? "length" : "dims[" + (int)idParam + "]";
+          break;
+        case SpecialField.ID.Floor:
+          compiledName = "ToBigInteger()";
+          break;
+        case SpecialField.ID.IsLimit:
+          preString = "Dafny.Helpers.BigOrdinal_IsLimit(";
+          postString = ")";
+          break;
+        case SpecialField.ID.IsSucc:
+          preString = "Dafny.Helpers.BigOrdinal_IsSucc(";
+          postString = ")";
+          break;
+        case SpecialField.ID.Offset:
+          preString = "Dafny.Helpers.BigOrdinal_Offset(";
+          postString = ")";
+          break;
+        case SpecialField.ID.IsNat:
+          preString = "Dafny.Helpers.BigOrdinal_IsNat(";
+          postString = ")";
+          break;
+        case SpecialField.ID.Keys:
+          compiledName = "Keys";
+          break;
+        case SpecialField.ID.Values:
+          compiledName = "Values";
+          break;
+        case SpecialField.ID.Items:
+          compiledName = "Items";
+          break;
+        case SpecialField.ID.Reads:
+          compiledName = "_reads";
+          break;
+        case SpecialField.ID.Modifies:
+          compiledName = "_modifies";
+          break;
+        case SpecialField.ID.New:
+          compiledName = "_new";
+          break;
+        default:
+          Contract.Assert(false); // unexpected ID
+          break;
       }
     }
 
@@ -579,14 +686,91 @@ let _dafny = (function() {
           wr.Write(".{0}", IdName(member));
         }
       } else if (!isLValue && member is SpecialField sf) {
-        if (sf.CompiledName.Length != 0) {
-          wr.Write(".{0}", sf.CompiledName);
+        string compiledName, preStr, postStr;
+        GetSpecialFieldInfo(sf.SpecialId, sf.IdParam, out compiledName, out preStr, out postStr);
+        if (compiledName.Length != 0) {
+          wr.Write(".{0}", compiledName);
         } else {
           // this member selection is handled by some kind of enclosing function call, so nothing to do here
         }
       } else {
         wr.Write(".{0}", IdName(member));
       }
+    }
+
+    protected override void EmitArraySelect(List<string> indices, TargetWriter wr) {
+      if (indices.Count == 1) {
+        wr.Write("[{0}]", indices[0]);
+      } else {
+        wr.Write(".elmts");
+        foreach (var index in indices) {
+          wr.Write("[{0}]", index);
+        }
+      }
+    }
+
+    protected override void EmitArraySelect(List<Expression> indices, bool inLetExprBody, TargetWriter wr) {
+      Contract.Assert(indices != null && 1 <= indices.Count);  // follows from precondition
+      if (indices.Count == 1) {
+        wr.Write("[");
+        TrExpr(indices[0], wr, inLetExprBody);
+        wr.Write("]");
+      } else {
+        wr.Write(".elmts");
+        foreach (var index in indices) {
+          wr.Write("[");
+          TrExpr(index, wr, inLetExprBody);
+          wr.Write("]");
+        }
+      }
+    }
+
+    protected override void EmitSeqSelect(Expression source, Expression index, bool inLetExprBody, TargetWriter wr) {
+      TrParenExpr(source, wr, inLetExprBody);
+      wr.Write("[");
+      TrExpr(index, wr, inLetExprBody);
+      wr.Write("]");
+    }
+
+    protected override void EmitSeqUpdate(Expression source, Expression index, Expression value, bool inLetExprBody, TargetWriter wr) {
+      wr.Write("_dafny.seqUpdate(");
+      TrExpr(source, wr, inLetExprBody);
+      wr.Write(", ");
+      TrExpr(index, wr, inLetExprBody);
+      wr.Write(", ");
+      TrExpr(value, wr, inLetExprBody);
+      wr.Write(")");
+    }
+
+    protected override void EmitSeqSelectRange(Expression source, Expression/*?*/ lo, Expression/*?*/ hi, bool fromArray, bool inLetExprBody, TargetWriter wr) {
+      TrParenExpr(source, wr, inLetExprBody);
+      if (lo != null) {
+        wr.Write(".slice(");
+        TrExpr(lo, wr, inLetExprBody);
+        if (hi != null) {
+          wr.Write(", ");
+          TrExpr(hi, wr, inLetExprBody);
+        }
+        wr.Write(")");
+      } else if (hi != null) {
+        wr.Write(".slice(0, ");
+        TrExpr(hi, wr, inLetExprBody);
+        wr.Write(")");
+      } else if (fromArray) {
+        wr.Write(".slice()");
+      }
+    }
+
+    protected override void EmitApplyExpr(Type functionType, Bpl.IToken tok, Expression function, List<Expression> arguments, bool inLetExprBody, TargetWriter wr) {
+      TrParenExpr(function, wr, inLetExprBody);
+      TrExprList(arguments, wr, inLetExprBody);
+    }
+
+    protected override void EmitBetaRedex(string boundVars, List<Expression> arguments, string typeArgs, bool inLetExprBody, System.Action makeBody, TargetWriter wr) {
+      wr.Write("(({0}) => ", boundVars);
+      makeBody();
+      wr.Write(")");
+      TrExprList(arguments, wr, inLetExprBody);
     }
 
     protected override void EmitDestructor(string source, Formal dtor, int formalNonGhostIndex, DatatypeCtor ctor, List<Type> typeArgs, TargetWriter wr) {
@@ -631,6 +815,23 @@ let _dafny = (function() {
 
       wr.Write("({0})", source);
       return w;
+    }
+
+    protected override void EmitUnaryExpr(ResolvedUnaryOp op, Expression expr, bool inLetExprBody, TargetWriter wr) {
+      switch (op) {
+        case ResolvedUnaryOp.BoolNot:
+          TrParenExpr("!", expr, wr, inLetExprBody);
+          break;
+        case ResolvedUnaryOp.BitwiseNot:
+          TrParenExpr("~", expr, wr, inLetExprBody);
+          break;
+        case ResolvedUnaryOp.Cardinality:
+          TrParenExpr(expr, wr, inLetExprBody);
+          wr.Write(".length");
+          break;
+        default:
+          Contract.Assert(false); throw new cce.UnreachableException();  // unexpected unary expression
+      }
     }
 
     protected override void CompileBinOp(BinaryExpr.ResolvedOpcode op,

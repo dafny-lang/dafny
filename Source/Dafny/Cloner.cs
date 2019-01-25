@@ -699,7 +699,7 @@ namespace Microsoft.Dafny
         // We don't expect a SpecialField to ever be cloned. However, it can happen for malformed programs, for example if
         // an iterator in a refined module is replaced by a class in the refining module.
         var s = (SpecialField)f;
-        return new SpecialField(Tok(s.tok), s.Name, s.CompiledName, s.PreString, s.PostString, s.IsGhost, s.IsMutable, s.IsUserMutable, CloneType(s.Type), CloneAttributes(s.Attributes));
+        return new SpecialField(Tok(s.tok), s.Name, s.SpecialId, s.IdParam, s.IsGhost, s.IsMutable, s.IsUserMutable, CloneType(s.Type), CloneAttributes(s.Attributes));
       } else {
         return new Field(Tok(f.tok), f.Name, f.HasStaticKeyword, f.IsGhost, f.IsMutable, f.IsUserMutable, CloneType(f.Type), CloneAttributes(f.Attributes));
       }
