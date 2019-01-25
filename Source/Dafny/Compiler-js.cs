@@ -31,13 +31,15 @@ let _dafny = (function() {
       super(...elems);
     }
     toString() {
-      let s = ""("";
-      let sep = """";
-      for (let x of this) {
-        s += sep + x;
-        sep = "", "";
-      }
-      return s + "")"";
+      return ""("" + this.join("", "") + "")"";
+    }
+  }
+  $module.Seq = class Seq extends Array {
+    constructor(...elems) {
+      super(...elems);
+    }
+    toString() {
+      return ""["" + this.join("", "") + ""]"";
     }
   }
   $module.areEqual = function() {
@@ -48,6 +50,11 @@ let _dafny = (function() {
     t[i] = v;
     return t;
   }
+  $module.newArray = function(initValue, ...dims) {
+    return { dims: dims, elmts: buildArray(initValue, ...dims) };
+  }
+  return $module;
+
   function buildArray(initValue, ...dims) {
     if (dims.length === 0) {
       return initValue;
@@ -57,10 +64,6 @@ let _dafny = (function() {
       return b;
     }
   }
-  $module.newArray = function(initValue, ...dims) {
-    return { dims: dims, elmts: buildArray(initValue, ...dims) };
-  }
- return $module;
 })();
 ");
     }
@@ -743,6 +746,9 @@ let _dafny = (function() {
     }
 
     protected override void EmitSeqSelectRange(Expression source, Expression/*?*/ lo, Expression/*?*/ hi, bool fromArray, bool inLetExprBody, TargetWriter wr) {
+      if (fromArray) {
+        wr.Write("_dafny.Seq.of(...");
+      }
       TrParenExpr(source, wr, inLetExprBody);
       if (lo != null) {
         wr.Write(".slice(");
@@ -758,6 +764,9 @@ let _dafny = (function() {
         wr.Write(")");
       } else if (fromArray) {
         wr.Write(".slice()");
+      }
+      if (fromArray) {
+        wr.Write(")");
       }
     }
 
