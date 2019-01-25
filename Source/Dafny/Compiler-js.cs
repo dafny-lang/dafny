@@ -1013,6 +1013,15 @@ let _dafny = (function() {
 
     // ----- Target compilation and execution -------------------------------------------------------------
 
+    public override bool CompileTargetProgram(string dafnyProgramName, string targetProgramText, string/*?*/ targetFilename, ReadOnlyCollection<string> otherFileNames,
+      bool hasMain, bool runAfterCompile, TextWriter outputWriter, out object compilationResult) {
+      if (DafnyOptions.O.RunAfterCompile) {
+        // to make the output look that like for C#
+        outputWriter.WriteLine("Program compiled successfully");
+      }
+      return base.CompileTargetProgram(dafnyProgramName, targetProgramText, targetFilename, otherFileNames, hasMain, runAfterCompile, outputWriter, out compilationResult);
+    }
+
     public override bool RunTargetProgram(string dafnyProgramName, string targetProgramText, string targetFilename, ReadOnlyCollection<string> otherFileNames,
       object compilationResult, TextWriter outputWriter) {
 

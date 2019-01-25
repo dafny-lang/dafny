@@ -15,6 +15,7 @@ Dt.Cons(0, Dt.Cons(1, Dt.Cons(2, Dt.Cons(3, Dt.Cons(4, Dt.Cons(5, Dt.Cons(6, Dt.
 
 Dafny program verifier finished with 5 verified, 0 errors
 Compiled program written to Dt.js
+Program compiled successfully
 Running...
 
 Dt.Nil

@@ -12,6 +12,7 @@ Tree.Node(Tree.Node(Tree.Leaf, 5, Tree.Node(Tree.Leaf, 7, Tree.Leaf)), 9, Tree.N
 
 Dafny program verifier finished with 3 verified, 0 errors
 Compiled program written to Let.js
+Program compiled successfully
 Running...
 
 50 58

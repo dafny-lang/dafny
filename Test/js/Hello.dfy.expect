@@ -10,6 +10,7 @@ y is False
 
 Dafny program verifier finished with 0 verified, 0 errors
 Compiled program written to Hello.js
+Program compiled successfully
 Running...
 
 Hello, JavaScript! Best, Dafny
