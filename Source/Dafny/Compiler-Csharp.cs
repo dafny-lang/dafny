@@ -1371,8 +1371,8 @@ namespace Microsoft.Dafny
 
     private class CSharpCompilationResult
     {
-      public string immutableDllFileName;
-      public string immutableDllPath;
+      public string libPath;
+      public List<string> immutableDllFileNames;
       public CompilerResults cr;
     }
 
@@ -1408,19 +1408,24 @@ namespace Microsoft.Dafny
       cp.ReferencedAssemblies.Add("System.Core.dll");
       cp.ReferencedAssemblies.Add("System.dll");
 
-      var libPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + Path.DirectorySeparatorChar;
+      var crx = new CSharpCompilationResult();
+      crx.libPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + Path.DirectorySeparatorChar;
       if (DafnyOptions.O.UseRuntimeLib) {
-        cp.ReferencedAssemblies.Add(libPath + "DafnyRuntime.dll");
+        cp.ReferencedAssemblies.Add(crx.libPath + "DafnyRuntime.dll");
       }
 
-      var crx = new CSharpCompilationResult();
-      crx.immutableDllFileName = "System.Collections.Immutable.dll";
-      crx.immutableDllPath = libPath + crx.immutableDllFileName;
+      crx.immutableDllFileNames = new List<string>() {
+        "System.Collections.Immutable.dll",
+        "System.Runtime.dll",
+        "netstandard.dll"
+      };
 
       if (DafnyOptions.O.Optimize) {
         cp.CompilerOptions += " /optimize /define:DAFNY_USE_SYSTEM_COLLECTIONS_IMMUTABLE";
-        cp.ReferencedAssemblies.Add(crx.immutableDllPath);
-        cp.ReferencedAssemblies.Add("System.Runtime.dll");
+        cp.CompilerOptions += " /lib:" + crx.libPath;
+        foreach (var filename in crx.immutableDllFileNames) {
+          cp.ReferencedAssemblies.Add(filename);
+        }
       }
 
       int numOtherSourceFiles = 0;
@@ -1476,9 +1481,11 @@ namespace Microsoft.Dafny
           if (string.IsNullOrWhiteSpace(outputDir)) {
             outputDir = ".";
           }
-          var destPath = outputDir + Path.DirectorySeparatorChar + crx.immutableDllFileName;
-          File.Copy(crx.immutableDllPath, destPath, true);
-          outputWriter.WriteLine("Copied /optimize dependency {0} to {1}", crx.immutableDllFileName, outputDir);
+          foreach (var filename in crx.immutableDllFileNames) {
+            var destPath = outputDir + Path.DirectorySeparatorChar + filename;
+            File.Copy(crx.libPath + filename, destPath, true);
+            outputWriter.WriteLine("Copied /optimize dependency {0} to {1}", filename, outputDir);
+          }
         }
       }
 
