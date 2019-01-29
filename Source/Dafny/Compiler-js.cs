@@ -24,6 +24,8 @@ namespace Microsoft.Dafny {
     protected override void EmitHeader(Program program, TargetWriter wr) {
       wr.WriteLine("// Dafny program {0} compiled into JavaScript", program.Name);
       wr.WriteLine(@"
+const BigNumber = require('bignumber.js');
+BigNumber.config({ MODULO_MODE: BigNumber.EUCLID })
 let _dafny = (function() {
   let $module = {};
   $module.Tuple = class Tuple extends Array {
@@ -52,6 +54,25 @@ let _dafny = (function() {
   }
   $module.newArray = function(initValue, ...dims) {
     return { dims: dims, elmts: buildArray(initValue, ...dims) };
+  }
+  $module.EuclideanDivision = function(a, b) {
+    if (a.isPositive()) {
+      if (b.isPositive()) {
+        // +a +b: a/b
+        return a.dividedToIntegerBy(b);
+      } else {
+        // +a -b: -(a/(-b))
+        return a.dividedToIntegerBy(b.negated()).negated();
+      }
+    } else {
+      if (b.isPositive()) {
+        // -a +b: -((-a-1)/b) - 1
+        return a.negated().minus(1).dividedToIntegerBy(b).negated().minus(1);
+      } else {
+        // -a -b: ((-a-1)/(-b)) + 1
+        return a.negated().minus(1).dividedToIntegerBy(b.negated()).plus(1);
+      }
+    }
   }
   return $module;
 
@@ -571,24 +592,15 @@ let _dafny = (function() {
       } else if (AsNativeType(e.Type) != null) {
         wr.Write((BigInteger)e.Value + AsNativeType(e.Type).Suffix);
       } else if (e.Value is BigInteger) {
-        // TODO: represent numbers more correctly (JavaScript's integers are bounded)
-        wr.Write((BigInteger)e.Value);
+        var i = (BigInteger)e.Value;
+        if (-9007199254740991 <= i && i <= 9007199254740991) {
+          wr.Write("new BigNumber({0})", i);
+        } else {
+          wr.Write("new BigNumber(\"{0}\")", i);
+        }
       } else if (e.Value is Basetypes.BigDec) {
         var n = (Basetypes.BigDec)e.Value;
-        if (0 <= n.Exponent) {
-          wr.Write(n.Mantissa);
-          for (var i = 0; i < n.Exponent; i++) {
-            wr.Write("0");
-          }
-        } else {
-          wr.Write("(");
-          wr.Write(n.Mantissa);
-          wr.Write("/1", n.Mantissa);
-          for (var i = n.Exponent; i < 0; i++) {
-            wr.Write("0");
-          }
-          wr.Write(")");
-        }
+        wr.Write("new BigNumber(\"{0}e{1}\")", n.Mantissa, n.Exponent);
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected literal
       }
@@ -929,33 +941,23 @@ let _dafny = (function() {
         case BinaryExpr.ResolvedOpcode.RightShift:
           opString = ">>"; convertE1_to_int = true; break;
         case BinaryExpr.ResolvedOpcode.Add:
-          opString = "+"; truncateResult = true;
-          if (resultType.IsCharType) {
-            preOpString = "(char)(";
-            postOpString = ")";
-          }
-          break;
+          callString = "plus"; truncateResult = true; break;
         case BinaryExpr.ResolvedOpcode.Sub:
-          opString = "-"; truncateResult = true;
-          if (resultType.IsCharType) {
-            preOpString = "(char)(";
-            postOpString = ")";
-          }
-          break;
+          callString = "minus"; truncateResult = true; break;
         case BinaryExpr.ResolvedOpcode.Mul:
-          opString = "*"; truncateResult = true; break;
+          callString = "multipliedBy"; truncateResult = true; break;
         case BinaryExpr.ResolvedOpcode.Div:
           if (resultType.IsIntegerType || (AsNativeType(resultType) != null && AsNativeType(resultType).LowerBound < BigInteger.Zero)) {
-            var suffix = AsNativeType(resultType) != null ? "_" + AsNativeType(resultType).Name : "";
-            staticCallString = "_dafny.EuclideanDivision" + suffix;
+            staticCallString = "_dafny.EuclideanDivision";
+          } else if (AsNativeType(resultType) != null) {
+            opString = "/";
           } else {
-            opString = "/";  // for reals
+            callString = "dividedBy";  // for reals
           }
           break;
         case BinaryExpr.ResolvedOpcode.Mod:
           if (resultType.IsIntegerType || (AsNativeType(resultType) != null && AsNativeType(resultType).LowerBound < BigInteger.Zero)) {
-            var suffix = AsNativeType(resultType) != null ? "_" + AsNativeType(resultType).Name : "";
-            staticCallString = "_dafny.EuclideanModulus" + suffix;
+            callString = "mod";
           } else {
             opString = "%";  // for reals
           }

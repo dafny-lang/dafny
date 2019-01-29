@@ -946,17 +946,17 @@ namespace Microsoft.Dafny
       } else if (e.Value is Basetypes.BigDec) {
         var n = (Basetypes.BigDec)e.Value;
         if (0 <= n.Exponent) {
-          wr.Write("new Dafny.BigRational(new BigInteger({0}", n.Mantissa);
+          wr.Write("new Dafny.BigRational(BigInteger.Parse(\"{0}", n.Mantissa);
           for (int i = 0; i < n.Exponent; i++) {
             wr.Write("0");
           }
-          wr.Write("), BigInteger.One)");
+          wr.Write("\"), BigInteger.One)");
         } else {
-          wr.Write("new Dafny.BigRational(new BigInteger({0}), new BigInteger(1", n.Mantissa);
+          wr.Write("new Dafny.BigRational(BigInteger.Parse(\"{0}\"), BigInteger.Parse(\"1", n.Mantissa);
           for (int i = n.Exponent; i < 0; i++) {
             wr.Write("0");
           }
-          wr.Write("))");
+          wr.Write("\"))");
         }
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected literal
