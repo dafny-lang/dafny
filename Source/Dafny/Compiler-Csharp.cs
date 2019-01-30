@@ -654,6 +654,87 @@ namespace Microsoft.Dafny
       wr.WriteLine("goto TAIL_CALL_START;");
     }
 
+    protected override string TypeName(Type type, TextWriter wr, Bpl.IToken tok) {
+      Contract.Requires(type != null);
+      Contract.Ensures(Contract.Result<string>() != null);
+
+      var xType = type.NormalizeExpand();
+      if (xType is TypeProxy) {
+        // unresolved proxy; just treat as ref, since no particular type information is apparently needed for this type
+        return "object";
+      }
+
+      if (xType is BoolType) {
+        return "bool";
+      } else if (xType is CharType) {
+        return "char";
+      } else if (xType is IntType || xType is BigOrdinalType) {
+        return "BigInteger";
+      } else if (xType is RealType) {
+        return "Dafny.BigRational";
+      } else if (xType is BitvectorType) {
+        var t = (BitvectorType)xType;
+        return t.NativeType != null ? t.NativeType.Name : "BigInteger";
+      } else if (xType.AsNewtype != null) {
+        NativeType nativeType = xType.AsNewtype.NativeType;
+        if (nativeType != null) {
+          return nativeType.Name;
+        }
+        return TypeName(xType.AsNewtype.BaseType, wr, tok);
+      } else if (xType.IsObjectQ) {
+        return "object";
+      } else if (xType.IsArrayType) {
+        ArrayClassDecl at = xType.AsArrayType;
+        Contract.Assert(at != null);  // follows from type.IsArrayType
+        Type elType = UserDefinedType.ArrayElementType(xType);
+        string typeNameSansBrackets, brackets;
+        TypeName_SplitArrayName(elType, wr, tok, out typeNameSansBrackets, out brackets);
+        return typeNameSansBrackets + TypeNameArrayBrackets(at.Dims) + brackets;
+      } else if (xType is UserDefinedType) {
+        var udt = (UserDefinedType)xType;
+        var s = udt.FullCompileName;
+        var cl = udt.ResolvedClass;
+        bool isHandle = true;
+        if (cl != null && Attributes.ContainsBool(cl.Attributes, "handle", ref isHandle) && isHandle) {
+          return "ulong";
+        } else if (DafnyOptions.O.IronDafny &&
+            !(xType is ArrowType) &&
+            cl != null &&
+            cl.Module != null &&
+            !cl.Module.IsDefaultModule) {
+          s = cl.FullCompileName;
+        }
+        return TypeName_UDT(s, udt.TypeArgs, wr, udt.tok);
+      } else if (xType is SetType) {
+        Type argType = ((SetType)xType).Arg;
+        if (ComplicatedTypeParameterForCompilation(argType)) {
+          Error(tok, "compilation of set<TRAIT> is not supported; consider introducing a ghost", wr);
+        }
+        return DafnySetClass + "<" + TypeName(argType, wr, tok) + ">";
+      } else if (xType is SeqType) {
+        Type argType = ((SeqType)xType).Arg;
+        if (ComplicatedTypeParameterForCompilation(argType)) {
+          Error(tok, "compilation of seq<TRAIT> is not supported; consider introducing a ghost", wr);
+        }
+        return DafnySeqClass + "<" + TypeName(argType, wr, tok) + ">";
+      } else if (xType is MultiSetType) {
+        Type argType = ((MultiSetType)xType).Arg;
+        if (ComplicatedTypeParameterForCompilation(argType)) {
+          Error(tok, "compilation of multiset<TRAIT> is not supported; consider introducing a ghost", wr);
+        }
+        return DafnyMultiSetClass + "<" + TypeName(argType, wr, tok) + ">";
+      } else if (xType is MapType) {
+        Type domType = ((MapType)xType).Domain;
+        Type ranType = ((MapType)xType).Range;
+        if (ComplicatedTypeParameterForCompilation(domType) || ComplicatedTypeParameterForCompilation(ranType)) {
+          Error(tok, "compilation of map<TRAIT, _> or map<_, TRAIT> is not supported; consider introducing a ghost", wr);
+        }
+        return DafnyMapClass + "<" + TypeName(domType, wr, tok) + "," + TypeName(ranType, wr, tok) + ">";
+      } else {
+        Contract.Assert(false); throw new cce.UnreachableException();  // unexpected type
+      }
+    }
+
     public override string TypeInitializationValue(Type type, TextWriter/*?*/ wr, Bpl.IToken/*?*/ tok) {
       var xType = type.NormalizeExpandKeepConstraints();
 
@@ -1005,9 +1086,12 @@ namespace Microsoft.Dafny
           compiledName = (string)idParam;
           break;
         case SpecialField.ID.ArrayLength:
+        case SpecialField.ID.ArrayLengthInt:
           compiledName = idParam == null ? "Length" : "GetLength(" + (int)idParam + ")";
-          preString = "new BigInteger(";
-          postString = ")";
+          if (id == SpecialField.ID.ArrayLength) {
+            preString = "new BigInteger(";
+            postString = ")";
+          }
           break;
         case SpecialField.ID.Floor:
           compiledName = "ToBigInteger()";
@@ -1091,12 +1175,12 @@ namespace Microsoft.Dafny
       wr.Write("]");
     }
 
-    protected override void EmitSeqSelect(Expression source, Expression index, bool inLetExprBody, TargetWriter wr) {
+    protected override void EmitIndexCollectionSelect(Expression source, Expression index, bool inLetExprBody, TargetWriter wr) {
       TrParenExpr(source, wr, inLetExprBody);
       TrParenExpr(".Select", index, wr, inLetExprBody);
     }
 
-    protected override void EmitSeqUpdate(Expression source, Expression index, Expression value, bool inLetExprBody, TargetWriter wr) {
+    protected override void EmitIndexCollectionUpdate(Expression source, Expression index, Expression value, bool inLetExprBody, TargetWriter wr) {
       TrParenExpr(source, wr, inLetExprBody);
       wr.Write(".Update(");
       TrExpr(index, wr, inLetExprBody);
@@ -1188,6 +1272,11 @@ namespace Microsoft.Dafny
         default:
           Contract.Assert(false); throw new cce.UnreachableException();  // unexpected unary expression
       }
+    }
+
+    static bool IsDirectlyComparable(Type t) {
+      Contract.Requires(t != null);
+      return t.IsBoolType || t.IsCharType || t.IsIntegerType || t.IsRealType || t.AsNewtype != null || t.IsBitVectorType || t.IsBigOrdinalType || t.IsRefType;
     }
 
     protected override void CompileBinOp(BinaryExpr.ResolvedOpcode op,
@@ -1365,6 +1454,16 @@ namespace Microsoft.Dafny
         default:
           Contract.Assert(false); throw new cce.UnreachableException();  // unexpected binary expression
       }
+    }
+
+    protected override void EmitCollectionDisplay(CollectionType ct, Bpl.IToken tok, List<Expression> elements, bool inLetExprBody, TargetWriter wr) {
+      wr.Write("{0}.FromElements", TypeName(ct, wr, tok));
+      TrExprList(elements, wr, inLetExprBody);
+    }
+
+    protected override void EmitMapDisplay(MapType mt, Bpl.IToken tok, List<ExpressionPair> elements, bool inLetExprBody, TargetWriter wr) {
+      wr.Write("{0}.FromElements", TypeName(mt, wr, tok));
+      TrExprPairList(elements, wr, inLetExprBody);
     }
 
     // ----- Target compilation and execution -------------------------------------------------------------

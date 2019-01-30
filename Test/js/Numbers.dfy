@@ -12,9 +12,18 @@ method Print(description: string, x: int) {
 
 method PrintReal(description: string, x: real) {
   print x;
-  if |description| != 0 {
-  // TODO:  if description != "" {  // string comparison
+  if description != "" {  // string comparison
     print " (aka ", description, ")";
+  }
+  print "\n";
+}
+
+method PrintSeq(s: seq) {
+  var sep, i := "", 0;
+  while i < |s| {
+    print sep, s[i];
+    sep := " ";
+    i := i + 1;
   }
   print "\n";
 }
@@ -65,10 +74,10 @@ method Literals() {
 }
 
 method Arithmetic() {
-  print 31 + 4, " ", 31 - 4, " ", 4 - 31, "\n";
+  PrintSeq([31 + 4, 31 - 4, 4 - 31]);  // also tests sequence displays
 
-  print 31 * 4, " ", 31 * -4, "\n";
-  print -31 * 4, " ", -31 * -4, "\n";
+  PrintSeq([31 * 4, 31 * -4]);
+  PrintSeq([-31 * 4, -31 * -4]);
 
   DivMod(31, 4);
   DivMod(-31, 4);
@@ -77,11 +86,11 @@ method Arithmetic() {
   DivMod(0, 4);
   DivMod(0, -4);
 
-  print 0.3 - 0.1, "\n";  // should be 0.2, not something like 0.19999999999999998
-  print 31.2 + 4.0, " ", 31.2 - 4.0, " ", 4.0 - 31.2, "\n";
+  PrintSeq([0.3 - 0.1]);  // should be 0.2, not something like 0.19999999999999998
+  PrintSeq([31.2 + 4.0, 31.2 - 4.0, 4.0 - 31.2]);
 
-  print 31.2 * 4.0, " ", 31.2 * -4.0, "\n";
-  print -31.2 * 4.0, " ", -31.2 * -4.0, "\n";
+  PrintSeq([31.2 * 4.0, 31.2 * -4.0]);
+  PrintSeq([-31.2 * 4.0, -31.2 * -4.0]);
 
   DivModReal(31.2, 4.0);
   DivModReal(-31.2, 4.0);

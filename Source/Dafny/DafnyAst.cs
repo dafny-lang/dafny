@@ -4537,6 +4537,7 @@ namespace Microsoft.Dafny {
     public enum ID {
       UseIdParam,  // IdParam is a string
       ArrayLength,  // IdParam is null for .Length; IdParam is an int "x" for GetLength(x)
+      ArrayLengthInt,  // same as ArrayLength, but produces int instead of BigInteger
       Floor,
       IsLimit,
       IsSucc,

@@ -28,6 +28,13 @@ const BigNumber = require('bignumber.js');
 BigNumber.config({ MODULO_MODE: BigNumber.EUCLID })
 let _dafny = (function() {
   let $module = {};
+  $module.areEqual = function(a, b) {
+    if (typeof a === 'object') {
+      return a.equals(b);
+    } else {
+      return a === b;
+    }
+  }
   $module.Tuple = class Tuple extends Array {
     constructor(...elems) {
       super(...elems);
@@ -43,14 +50,50 @@ let _dafny = (function() {
     toString() {
       return ""["" + this.join("", "") + ""]"";
     }
+    update(i, v) {
+      let t = this.slice();
+      t[i] = v;
+      return t;
+    }
   }
-  $module.areEqual = function() {
-    return false;  // TODO
-  }
-  $module.seqUpdate = function(s, i, v) {
-    let t = s.slice();
-    t[i] = v;
-    return t;
+  $module.Map = class Map extends Array {
+    constructor() {
+      super();
+    }
+    toString() {
+      return ""map["" + this.map(maplet => maplet[0] + "" := "" + maplet[1]).join("", "") + ""]"";
+    }
+    static get Empty() {
+      if (this._empty === undefined) {
+        this._empty = new Map();
+      }
+      return this._empty;
+    }
+    findIndex(k) {
+      for (let i = 0; i < this.length; i++) {
+        if (_dafny.areEqual(this[i][0], k)) {
+          return i;
+        }
+      }
+      return this.length;
+    }
+    get(k) {
+      let i = this.findIndex(k);
+      if (i == this.length) {
+        return undefined;
+      } else {
+        return this[i][1];
+      }
+    }
+    contains(k) {
+      return this.findIndex(k) < this.length;
+    }
+    update(k, v) {
+      let m = this.slice();
+      let i = m.findIndex(k);
+      m[i] = [k, v];
+      return m;
+    }
   }
   $module.newArray = function(initValue, ...dims) {
     return { dims: dims, elmts: buildArray(initValue, ...dims) };
@@ -136,8 +179,8 @@ let _dafny = (function() {
       //   }
       //   ...
       //
-      //   get is_Ctor0 { return this.$tag == 0; }
-      //   get is_Ctor1 { return this.$tag == 1; }
+      //   get is_Ctor0 { return this.$tag === 0; }
+      //   get is_Ctor1 { return this.$tag === 1; }
       //   ...
       //
       //   toString() {
@@ -145,6 +188,12 @@ let _dafny = (function() {
       //   }
       //   equals(other) {
       //     ...
+      //   }
+      //   static get Default() {
+      //     if (this.theDefault === undefined) {
+      //       this.theDefault = this.create_CtorK(...);
+      //     }
+      //     return this.theDefault;
       //   }
       // }
       // TODO: need Default member (also for co-datatypes)
@@ -204,7 +253,7 @@ let _dafny = (function() {
         var w = wr.NewBlock("toString()");
         i = 0;
         foreach (var ctor in dt.Ctors) {
-          var cw = EmitIf(string.Format("this.$tag == {0}", i), true, w);
+          var cw = EmitIf(string.Format("this.$tag === {0}", i), true, w);
           cw.Indent();
           cw.Write("return \"{0}.{1}\"", dt.Name, ctor.Name);
           var sep = " + \"(\" + ";
@@ -237,9 +286,9 @@ let _dafny = (function() {
         }
         i = 0;
         foreach (var ctor in dt.Ctors) {
-          var thn = EmitIf(string.Format("this.$tag == {0}", i), true, w);
+          var thn = EmitIf(string.Format("this.$tag === {0}", i), true, w);
           using (var guard = new TargetWriter()) {
-            guard.Write("other.$tag == {0}", i);
+            guard.Write("other.$tag === {0}", i);
             var k = 0;
             foreach (Formal arg in ctor.Formals) {
               if (!arg.IsGhost) {
@@ -260,6 +309,31 @@ let _dafny = (function() {
           els.Indent();
           els.WriteLine("return false; // unexpected");
         }
+      }
+
+      // Default getter
+      wr.Indent();
+      using (var w = wr.NewBlock("static get Default()")) {
+        using (var dw = EmitIf("this.theDefault === undefined", false, w)) {
+          DatatypeCtor defaultCtor;
+          if (dt is IndDatatypeDecl) {
+            defaultCtor = ((IndDatatypeDecl)dt).DefaultCtor;
+          } else {
+            defaultCtor = ((CoDatatypeDecl)dt).Ctors[0];  // pick any one of them (but pick must be the same as in InitializerIsKnown and HasZeroInitializer)
+          }
+
+          dw.Indent();
+          dw.Write("this.theDefault = this.create_{0}(", defaultCtor.CompileName);
+          string sep = "";
+          foreach (Formal f in defaultCtor.Formals) {
+            if (!f.IsGhost) {
+              dw.Write("{0}{1}", sep, DefaultValue(f.Type, dw, f.tok));
+              sep = ", ";
+            }
+          }
+          dw.WriteLine(");");
+        }
+        EmitReturnExpr("this.theDefault", w);
       }
     }
 
@@ -342,13 +416,96 @@ let _dafny = (function() {
       wr.WriteLine("continue TAIL_CALL_START;");
     }
 
+    protected override string TypeName(Type type, TextWriter wr, Bpl.IToken tok) {
+      Contract.Requires(type != null);
+      Contract.Ensures(Contract.Result<string>() != null);
+
+      var xType = type.NormalizeExpand();
+      if (xType is TypeProxy) {
+        // unresolved proxy; just treat as ref, since no particular type information is apparently needed for this type
+        return "object";
+      }
+
+      if (xType is BoolType) {
+        return "bool";
+      } else if (xType is CharType) {
+        return "char";
+      } else if (xType is IntType || xType is BigOrdinalType) {
+        return "BigInteger";
+      } else if (xType is RealType) {
+        return "Dafny.BigRational";
+      } else if (xType is BitvectorType) {
+        var t = (BitvectorType)xType;
+        return t.NativeType != null ? t.NativeType.Name : "BigInteger";
+      } else if (xType.AsNewtype != null) {
+        NativeType nativeType = xType.AsNewtype.NativeType;
+        if (nativeType != null) {
+          return nativeType.Name;
+        }
+        return TypeName(xType.AsNewtype.BaseType, wr, tok);
+      } else if (xType.IsObjectQ) {
+        return "object";
+      } else if (xType.IsArrayType) {
+        ArrayClassDecl at = xType.AsArrayType;
+        Contract.Assert(at != null);  // follows from type.IsArrayType
+        Type elType = UserDefinedType.ArrayElementType(xType);
+        string typeNameSansBrackets, brackets;
+        TypeName_SplitArrayName(elType, wr, tok, out typeNameSansBrackets, out brackets);
+        return typeNameSansBrackets + TypeNameArrayBrackets(at.Dims) + brackets;
+      } else if (xType is UserDefinedType) {
+        var udt = (UserDefinedType)xType;
+        var s = udt.FullCompileName;
+        var cl = udt.ResolvedClass;
+        bool isHandle = true;
+        if (cl != null && Attributes.ContainsBool(cl.Attributes, "handle", ref isHandle) && isHandle) {
+          return "ulong";
+        } else if (DafnyOptions.O.IronDafny &&
+            !(xType is ArrowType) &&
+            cl != null &&
+            cl.Module != null &&
+            !cl.Module.IsDefaultModule) {
+          s = cl.FullCompileName;
+        }
+        return TypeName_UDT(s, udt.TypeArgs, wr, udt.tok);
+      } else if (xType is SetType) {
+        Type argType = ((SetType)xType).Arg;
+        if (ComplicatedTypeParameterForCompilation(argType)) {
+          Error(tok, "compilation of set<TRAIT> is not supported; consider introducing a ghost", wr);
+        }
+        return DafnySetClass + "<" + TypeName(argType, wr, tok) + ">";
+      } else if (xType is SeqType) {
+        Type argType = ((SeqType)xType).Arg;
+        if (ComplicatedTypeParameterForCompilation(argType)) {
+          Error(tok, "compilation of seq<TRAIT> is not supported; consider introducing a ghost", wr);
+        }
+        return DafnySeqClass + "<" + TypeName(argType, wr, tok) + ">";
+      } else if (xType is MultiSetType) {
+        Type argType = ((MultiSetType)xType).Arg;
+        if (ComplicatedTypeParameterForCompilation(argType)) {
+          Error(tok, "compilation of multiset<TRAIT> is not supported; consider introducing a ghost", wr);
+        }
+        return DafnyMultiSetClass + "<" + TypeName(argType, wr, tok) + ">";
+      } else if (xType is MapType) {
+        Type domType = ((MapType)xType).Domain;
+        Type ranType = ((MapType)xType).Range;
+        if (ComplicatedTypeParameterForCompilation(domType) || ComplicatedTypeParameterForCompilation(ranType)) {
+          Error(tok, "compilation of map<TRAIT, _> or map<_, TRAIT> is not supported; consider introducing a ghost", wr);
+        }
+        return "_dafny.Map";
+      } else {
+        Contract.Assert(false); throw new cce.UnreachableException();  // unexpected type
+      }
+    }
+
     public override string TypeInitializationValue(Type type, TextWriter/*?*/ wr, Bpl.IToken/*?*/ tok) {
       var xType = type.NormalizeExpandKeepConstraints();
       if (xType is BoolType) {
         return "false";
       } else if (xType is CharType) {
         return "'D'";
-      } else if (xType is IntType || xType is BigOrdinalType || xType is RealType || xType is BitvectorType) {
+      } else if (xType is IntType || xType is BigOrdinalType) {
+        return "new BigNumber(0)";
+      } else if (xType is RealType || xType is BitvectorType) {
         return "0";
       } else if (xType is CollectionType) {
         return TypeName(xType, wr, tok) + ".Empty";
@@ -402,19 +559,9 @@ let _dafny = (function() {
           return "null";
         }
       } else if (cl is DatatypeDecl) {
-        var s = "@" + udt.FullCompileName;
-        var rc = cl;
-        if (DafnyOptions.O.IronDafny &&
-            !(xType is ArrowType) &&
-            rc != null &&
-            rc.Module != null &&
-            !rc.Module.IsDefaultModule) {
-          s = "@" + rc.FullCompileName;
-        }
-        if (udt.TypeArgs.Count != 0) {
-          s += "<" + TypeNames(udt.TypeArgs, wr, udt.tok) + ">";
-        }
-        return string.Format("new {0}()", s);
+        var s = udt.FullCompileName;
+        // TODO: pass udt.TypeArgs as parameters
+        return string.Format("{0}.Default", s);
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected type
       }
@@ -559,8 +706,9 @@ let _dafny = (function() {
       var initValue = mustInitialize ? DefaultValue(elmtType, wr, tok) : null;
       if (dimensions.Count == 1) {
         // handle the common case of 1-dimensional arrays separately
-        wr.Write("Array");
+        wr.Write("Array(");
         TrParenExpr(dimensions[0], wr, false);
+        wr.Write(".toNumber())");
         if (initValue != null) {
           wr.Write(".fill({0})", initValue);
         }
@@ -569,7 +717,8 @@ let _dafny = (function() {
         wr.Write("_dafny.newArray({0}", initValue ?? "undefined");
         foreach (var dim in dimensions) {
           wr.Write(", ");
-          TrExpr(dim, wr, false);
+          TrParenExpr(dim, wr, false);
+          wr.Write(".toNumber()");
         }
         wr.Write(")");
       }
@@ -646,7 +795,16 @@ let _dafny = (function() {
           compiledName = (string)idParam;
           break;
         case SpecialField.ID.ArrayLength:
-          compiledName = idParam == null ? "length" : "dims[" + (int)idParam + "]";
+        case SpecialField.ID.ArrayLengthInt:
+          if (idParam == null) {
+            compiledName = "length";
+          } else {
+            compiledName = "dims[" + (int)idParam + "]";
+          }
+          if (id == SpecialField.ID.ArrayLength) {
+            preString = "new BigNumber(";
+            postString = ")";
+          }
           break;
         case SpecialField.ID.Floor:
           compiledName = "ToBigInteger()";
@@ -740,17 +898,28 @@ let _dafny = (function() {
       }
     }
 
-    protected override void EmitSeqSelect(Expression source, Expression index, bool inLetExprBody, TargetWriter wr) {
-      TrParenExpr(source, wr, inLetExprBody);
-      wr.Write("[");
-      TrExpr(index, wr, inLetExprBody);
-      wr.Write("]");
+    protected override string ArrayIndexToInt(string arrayIndex) {
+      return string.Format("new BigNumber({0})", arrayIndex);
     }
 
-    protected override void EmitSeqUpdate(Expression source, Expression index, Expression value, bool inLetExprBody, TargetWriter wr) {
-      wr.Write("_dafny.seqUpdate(");
-      TrExpr(source, wr, inLetExprBody);
-      wr.Write(", ");
+    protected override void EmitIndexCollectionSelect(Expression source, Expression index, bool inLetExprBody, TargetWriter wr) {
+      TrParenExpr(source, wr, inLetExprBody);
+      if (source.Type.NormalizeExpand() is SeqType) {
+        // seq
+        wr.Write("[");
+        TrExpr(index, wr, inLetExprBody);
+        wr.Write("]");
+      } else {
+        // map or imap
+        wr.Write(".get(");
+        TrExpr(index, wr, inLetExprBody);
+        wr.Write(")");
+      }
+    }
+
+    protected override void EmitIndexCollectionUpdate(Expression source, Expression index, Expression value, bool inLetExprBody, TargetWriter wr) {
+      TrParenExpr(source, wr, inLetExprBody);
+      wr.Write(".update(");
       TrExpr(index, wr, inLetExprBody);
       wr.Write(", ");
       TrExpr(value, wr, inLetExprBody);
@@ -847,12 +1016,17 @@ let _dafny = (function() {
           TrParenExpr("~", expr, wr, inLetExprBody);
           break;
         case ResolvedUnaryOp.Cardinality:
-          TrParenExpr(expr, wr, inLetExprBody);
-          wr.Write(".length");
+          TrParenExpr("new BigNumber(", expr, wr, inLetExprBody);
+          wr.Write(".length)");
           break;
         default:
           Contract.Assert(false); throw new cce.UnreachableException();  // unexpected unary expression
       }
+    }
+
+    static bool IsDirectlyComparable(Type t) {
+      Contract.Requires(t != null);
+      return t.IsBoolType || t.IsCharType || t.AsNewtype != null || t.IsBitVectorType || t.IsRefType;
     }
 
     protected override void CompileBinOp(BinaryExpr.ResolvedOpcode op,
@@ -895,47 +1069,64 @@ let _dafny = (function() {
         case BinaryExpr.ResolvedOpcode.EqCommon: {
             if (IsHandleComparison(tok, e0, e1, errorWr)) {
               opString = "===";
-            } else if (e0.Type.IsRefType) {
-              // Dafny's type rules are slightly different C#, so we may need a cast here.
-              // For example, Dafny allows x==y if x:array<T> and y:array<int> and T is some
-              // type parameter.
-              opString = "=== (object)";
             } else if (IsDirectlyComparable(e0.Type)) {
               opString = "===";
+            } else if (e0.Type.IsIntegerType) {
+              callString = "isEqualTo";
             } else {
-              callString = "equals";
+              staticCallString = "_dafny.areEqual";
             }
             break;
           }
         case BinaryExpr.ResolvedOpcode.NeqCommon: {
             if (IsHandleComparison(tok, e0, e1, errorWr)) {
               opString = "!==";
-            } else if (e0.Type.IsRefType) {
-              // Dafny's type rules are slightly different C#, so we may need a cast here.
-              // For example, Dafny allows x==y if x:array<T> and y:array<int> and T is some
-              // type parameter.
-              opString = "!= (object)";
             } else if (IsDirectlyComparable(e0.Type)) {
-              opString = "!=";
+              opString = "!==";
+            } else if (e0.Type.IsIntegerType) {
+              preOpString = "!";
+              callString = "isEqualTo";
             } else {
               preOpString = "!";
-              callString = "Equals";
+              staticCallString = "_dafny.areEqual";
             }
             break;
           }
 
         case BinaryExpr.ResolvedOpcode.Lt:
         case BinaryExpr.ResolvedOpcode.LtChar:
-          opString = "<"; break;
+          if (e0.Type.IsIntegerType) {
+            callString = "isLessThan";
+          } else {
+            opString = "<";
+          }
+          break;
         case BinaryExpr.ResolvedOpcode.Le:
         case BinaryExpr.ResolvedOpcode.LeChar:
-          opString = "<="; break;
+          if (e0.Type.IsIntegerType) {
+            callString = "isLessThanOrEqualTo";
+          } else {
+            opString = "<=";
+          }
+          break;
         case BinaryExpr.ResolvedOpcode.Ge:
         case BinaryExpr.ResolvedOpcode.GeChar:
-          opString = ">="; break;
+          if (e0.Type.IsIntegerType) {
+            callString = "isLessThanOrEqualTo";
+            reverseArguments = true;
+          } else {
+            opString = ">=";
+          }
+          break;
         case BinaryExpr.ResolvedOpcode.Gt:
         case BinaryExpr.ResolvedOpcode.GtChar:
-          opString = ">"; break;
+          if (e0.Type.IsIntegerType) {
+            callString = "isLessThan";
+            reverseArguments = true;
+          } else {
+            opString = ">";
+          }
+          break;
         case BinaryExpr.ResolvedOpcode.LeftShift:
           opString = "<<"; truncateResult = true; convertE1_to_int = true; break;
         case BinaryExpr.ResolvedOpcode.RightShift:
@@ -964,14 +1155,18 @@ let _dafny = (function() {
           break;
         case BinaryExpr.ResolvedOpcode.SetEq:
         case BinaryExpr.ResolvedOpcode.MultiSetEq:
-        case BinaryExpr.ResolvedOpcode.SeqEq:
         case BinaryExpr.ResolvedOpcode.MapEq:
           callString = "equals"; break;
+        case BinaryExpr.ResolvedOpcode.SeqEq:
+          // a sequence may be represented as an array or as a string
+          staticCallString = "_dafny.areEqual"; break;
         case BinaryExpr.ResolvedOpcode.SetNeq:
         case BinaryExpr.ResolvedOpcode.MultiSetNeq:
-        case BinaryExpr.ResolvedOpcode.SeqNeq:
         case BinaryExpr.ResolvedOpcode.MapNeq:
           preOpString = "!"; callString = "equals"; break;
+        case BinaryExpr.ResolvedOpcode.SeqNeq:
+          // a sequence may be represented as an array or as a string
+          preOpString = "!"; staticCallString = "_dafny.areEqual"; break;
         case BinaryExpr.ResolvedOpcode.ProperSubset:
         case BinaryExpr.ResolvedOpcode.ProperMultiSubset:
           callString = "IsProperSubsetOf"; break;
@@ -991,7 +1186,7 @@ let _dafny = (function() {
         case BinaryExpr.ResolvedOpcode.InSet:
         case BinaryExpr.ResolvedOpcode.InMultiSet:
         case BinaryExpr.ResolvedOpcode.InMap:
-          callString = "Contains"; reverseArguments = true; break;
+          callString = "contains"; reverseArguments = true; break;
         case BinaryExpr.ResolvedOpcode.NotInSet:
         case BinaryExpr.ResolvedOpcode.NotInMultiSet:
         case BinaryExpr.ResolvedOpcode.NotInMap:
@@ -1020,6 +1215,31 @@ let _dafny = (function() {
         default:
           Contract.Assert(false); throw new cce.UnreachableException();  // unexpected binary expression
       }
+    }
+
+    protected override void EmitCollectionDisplay(CollectionType ct, Bpl.IToken tok, List<Expression> elements, bool inLetExprBody, TargetWriter wr) {
+      if (ct is SetType) {
+        wr.Write("{0}.FromElements", TypeName(ct, wr, tok));  // TODO
+        TrExprList(elements, wr, inLetExprBody);
+      } else if (ct is MultiSetType) {
+        wr.Write("{0}.FromElements", TypeName(ct, wr, tok));  // TODO
+        TrExprList(elements, wr, inLetExprBody);
+      } else {
+        Contract.Assert(ct is SeqType);  // follows from precondition
+        wr.Write("[");
+        string sep = "";
+        foreach (var e in elements) {
+          wr.Write(sep);
+          TrExpr(e, wr, inLetExprBody);
+          sep = ", ";
+        }
+        wr.Write("]");
+      }
+    }
+
+    protected override void EmitMapDisplay(MapType mt, Bpl.IToken tok, List<ExpressionPair> elements, bool inLetExprBody, TargetWriter wr) {
+      wr.Write("{0}.FromElements", TypeName(mt, wr, tok));  // TODO
+      TrExprPairList(elements, wr, inLetExprBody);
     }
 
     // ----- Target compilation and execution -------------------------------------------------------------

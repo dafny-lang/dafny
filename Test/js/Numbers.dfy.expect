@@ -1,5 +1,5 @@
 
-Dafny program verifier finished with 5 verified, 0 errors
+Dafny program verifier finished with 6 verified, 0 errors
 Compiled program written to Numbers.cs
 Program compiled successfully
 Running...
@@ -54,7 +54,7 @@ Running...
 (-312.0 / 40.0) (1248.0 / 40.0)
 (312.0 / 40.0) (-1248.0 / 40.0)
 
-Dafny program verifier finished with 5 verified, 0 errors
+Dafny program verifier finished with 6 verified, 0 errors
 Compiled program written to Numbers.js
 Program compiled successfully
 Running...
