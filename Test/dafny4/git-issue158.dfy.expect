@@ -3,9 +3,9 @@ Dafny program verifier finished with 2 verified, 0 errors
 Program compiled successfully
 Running...
 
-map[Record.Make(null, null, _module.Class, 5, 10) := (8.0 / 10.0)]
-map[Record.Make(null, null, _module.Class, 4, 11) := (1.0 / 10.0)]
-map[Record.Make(null, null, _module.Class, 8, 12) := (1.0 / 10.0)]
+map[Record.Make(null, null, _module.Class, 5, 10) := 0.8]
+map[Record.Make(null, null, _module.Class, 4, 11) := 0.1]
+map[Record.Make(null, null, _module.Class, 8, 12) := 0.1]
 (5, null)
 (5, null, 2)
 {(5, null)}
@@ -32,9 +32,9 @@ Dafny program verifier finished with 2 verified, 0 errors
 Program compiled successfully
 Running...
 
-map[Record.Make(null, null, _module.Class, 5, 10) := (8.0 / 10.0)]
-map[Record.Make(null, null, _module.Class, 4, 11) := (1.0 / 10.0)]
-map[Record.Make(null, null, _module.Class, 8, 12) := (1.0 / 10.0)]
+map[Record.Make(null, null, _module.Class, 5, 10) := 0.8]
+map[Record.Make(null, null, _module.Class, 4, 11) := 0.1]
+map[Record.Make(null, null, _module.Class, 8, 12) := 0.1]
 (5, null)
 (5, null, 2)
 {(5, null)}

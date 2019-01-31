@@ -8,8 +8,8 @@ short, short': 0, -35
 nes: {57}
 f0, f1: (0, False), (29, True)
 dt: Dt.Atom(-35)
-cl { u: 12, x: 0, r: (314.0 / 100.0), nes: {57} }
-cl' { u: 12, x: 0, ': (314.0 / 100.0), nes: {57, 20} }
+cl { u: 12, x: 0, r: 3.14, nes: {57} }
+cl' { u: 12, x: 0, ': 3.14, nes: {57, 20} }
 
 x: real :: 0.0 versus 0.0
 ch: char :: 'D' versus '\0'

@@ -81,7 +81,7 @@ method Compare() {
 }
 
 method In() {
-  var o := new object;
+  var o: Class? := new Class;
   var c := new Class;
   var s: seq<Class> := [];
   print o in s, "\n";

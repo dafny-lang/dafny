@@ -1253,10 +1253,41 @@ namespace Dafny
     // To deal with it, we ignore "den" when "num" is 0.
     BigInteger num, den;  // invariant 1 <= den || (num == 0 && den == 0)
     public override string ToString() {
+      int log10;
       if (num.IsZero || den.IsOne) {
         return string.Format("{0}.0", num);
+      } else if (IsPowerOf10(den, out log10)) {
+        string sign;
+        string digits;
+        if (num.Sign < 0) {
+          sign = "-"; digits = (-num).ToString();
+        } else {
+          sign = ""; digits = num.ToString();
+        }
+        if (log10 < digits.Length) {
+          var n = digits.Length - log10;
+          return string.Format("{0}{1}.{2}", sign, digits.Substring(0, n), digits.Substring(n));
+        } else {
+          return string.Format("{0}0.{1}{2}", sign, new string('0', log10 - digits.Length), digits);
+        }
       } else {
         return string.Format("({0}.0 / {1}.0)", num, den);
+      }
+    }
+    public bool IsPowerOf10(BigInteger x, out int log10) {
+      log10 = 0;
+      if (x.IsZero) {
+        return false;
+      }
+      while (true) {  // invariant: x != 0 && x * 10^log10 == old(x)
+        if (x.IsOne) {
+          return true;
+        } else if (x % 10 == 0) {
+          log10++;
+          x /= 10;
+        } else {
+          return false;
+        }
       }
     }
     public BigRational(int n) {

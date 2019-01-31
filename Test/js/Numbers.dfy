@@ -31,6 +31,7 @@ method PrintSeq(s: seq) {
 method Main() {
   Literals();
   Arithmetic();
+  PrintReals();
 }
 
 method Literals() {
@@ -115,4 +116,49 @@ method DivModReal(dividend: real, divisor: real)
   var quotient := dividend / divisor;
   assert quotient * divisor == dividend;
   print quotient, " ", quotient * divisor, "\n";
+}
+
+method PrintReals() {
+  /** SOON
+  // 0
+  P(0.0);
+  P(0.2 + 0.4 - 0.6);
+  var r: real;
+  P(r);
+  print "\n";
+
+  // integer
+  P(120.0);
+  P(000120.0);
+  P(20.0 / 3.0 + 4.0 / 3.0);  // 8.0
+  P(-(20.0 / 3.0 + 4.0 / 3.0));  // -8.0
+  print "\n";
+
+  // decimal digits
+  P(123.4567);
+  P(-123.4567);
+  P(0.1234);
+  P(-0.1234);
+  P(2.0 / 3.0 + 0.4 / 3.0);  // 0.8
+  print "\n";
+  P(0.2);
+  P(0.02);
+  P(0.0_0002);
+  print "\n";
+  P(-0.2);
+  P(-0.02);
+  P(-0.0_0002);
+  print "\n";
+
+  // general
+  P(20.0 / 3.0);
+  P(-20.0 / 3.0);
+  P(20.0 / -3.0);
+  P(-20.0 / -3.0);
+  print "\n";
+  **/
+}
+
+method P(r: real) {
+  print r, " ";
 }
