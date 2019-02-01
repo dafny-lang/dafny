@@ -1569,50 +1569,7 @@ namespace Microsoft.Dafny {
           var bv = s.BoundVars[i];
           TargetWriter collectionWriter;
           wr = CreateForeachLoop(IdName(bv), out collectionWriter, wr);
-          if (bound is ComprehensionExpr.BoolBoundedPool) {
-            collectionWriter.Write("Dafny.Helpers.AllBooleans");
-          } else if (bound is ComprehensionExpr.CharBoundedPool) {
-            collectionWriter.Write("Dafny.Helpers.AllChars");
-          } else if (bound is ComprehensionExpr.IntBoundedPool) {
-            var b = (ComprehensionExpr.IntBoundedPool)bound;
-            if (AsNativeType(bv.Type) != null) {
-              collectionWriter.Write("{0}.IntegerRange(", IdProtect(bv.Type.AsNewtype.FullCompileName));
-            } else {
-              collectionWriter.Write("Dafny.Helpers.IntegerRange(");
-            }
-            var low = SubstituteBound(b, s.Bounds, s.BoundVars, i, true);
-            TrExpr(low, collectionWriter, false);
-            collectionWriter.Write(", ");
-            var high = SubstituteBound(b, s.Bounds, s.BoundVars, i, false);
-            TrExpr(high, collectionWriter, false);
-            collectionWriter.Write(")");
-          } else if (bound is ComprehensionExpr.ExactBoundedPool) {
-            var b = (ComprehensionExpr.ExactBoundedPool)bound;
-            collectionWriter.Write("Dafny.Helpers.SingleValue<{0}>(", TypeName(b.E.Type, collectionWriter, b.E.tok));
-            TrExpr(b.E, collectionWriter, false);
-            collectionWriter.WriteLine(")");
-          } else if (bound is ComprehensionExpr.SetBoundedPool) {
-            var b = (ComprehensionExpr.SetBoundedPool)bound;
-            TrParenExpr(b.Set, collectionWriter, false);
-            collectionWriter.Write(".Elements");
-          } else if (bound is ComprehensionExpr.MultiSetBoundedPool) {
-            var b = (ComprehensionExpr.MultiSetBoundedPool)bound;
-            TrParenExpr(b.MultiSet, collectionWriter, false);
-            collectionWriter.Write(".Elements");
-          } else if (bound is ComprehensionExpr.SubSetBoundedPool) {
-            var b = (ComprehensionExpr.SubSetBoundedPool)bound;
-            TrParenExpr(b.UpperBound, collectionWriter, false);
-            collectionWriter.Write(".AllSubsets");
-          } else if (bound is ComprehensionExpr.SeqBoundedPool) {
-            var b = (ComprehensionExpr.SeqBoundedPool)bound;
-            TrParenExpr(b.Seq, collectionWriter, false);
-            collectionWriter.Write(".UniqueElements");
-          } else if (bound is ComprehensionExpr.DatatypeBoundedPool) {
-            var b = (ComprehensionExpr.DatatypeBoundedPool)bound;
-            collectionWriter.Write("{0}.AllSingletonConstructors", TypeName(bv.Type, collectionWriter, bv.tok));
-          } else {
-            Contract.Assert(false); throw new cce.UnreachableException();  // unexpected BoundedPool type
-          }
+          CompileCollection(bound, bv, false, false, collectionWriter, s.Bounds, s.BoundVars, i);
         }
 
         // if (range) {
@@ -1737,6 +1694,99 @@ namespace Microsoft.Dafny {
       }
     }
 
+    void CompileCollection(ComprehensionExpr.BoundedPool bound, IVariable bv, bool inLetExprBody, bool includeDuplicates,
+        TargetWriter collectionWriter,
+        List<ComprehensionExpr.BoundedPool>/*?*/ bounds = null, List<BoundVar>/*?*/ boundVars = null, int boundIndex = 0) {
+      Contract.Requires(bound != null);
+      Contract.Requires(bounds == null || (boundVars != null && bounds.Count == boundVars.Count && 0 <= boundIndex && boundIndex < bounds.Count));
+      Contract.Requires(collectionWriter != null);
+
+      if (bound is ComprehensionExpr.BoolBoundedPool) {
+        collectionWriter.Write("Dafny.Helpers.AllBooleans");
+      } else if (bound is ComprehensionExpr.CharBoundedPool) {
+        collectionWriter.Write("Dafny.Helpers.AllChars");
+      } else if (bound is ComprehensionExpr.IntBoundedPool) {
+        var b = (ComprehensionExpr.IntBoundedPool)bound;
+        if (AsNativeType(bv.Type) != null) {
+          collectionWriter.Write("{0}.IntegerRange(", IdProtect(bv.Type.AsNewtype.FullCompileName));
+        } else {
+          collectionWriter.Write("Dafny.Helpers.IntegerRange(");
+        }
+        if (b.LowerBound == null) {
+          collectionWriter.Write("null");
+        } else if (bounds != null) {
+          var low = SubstituteBound(b, bounds, boundVars, boundIndex, true);
+          TrExpr(low, collectionWriter, inLetExprBody);
+        } else {
+          TrExpr(b.LowerBound, collectionWriter, inLetExprBody);
+        }
+        collectionWriter.Write(", ");
+        if (b.UpperBound == null) {
+          collectionWriter.Write("null");
+        } else if (bounds != null) {
+          var high = SubstituteBound(b, bounds, boundVars, boundIndex, false);
+          TrExpr(high, collectionWriter, inLetExprBody);
+        } else {
+          TrExpr(b.UpperBound, collectionWriter, inLetExprBody);
+        }
+        collectionWriter.Write(")");
+      } else if (bound is AssignSuchThatStmt.WiggleWaggleBound) {
+        collectionWriter.Write("Dafny.Helpers.AllIntegers");
+      } else if (bound is ComprehensionExpr.ExactBoundedPool) {
+        var b = (ComprehensionExpr.ExactBoundedPool)bound;
+        collectionWriter.Write("Dafny.Helpers.SingleValue<{0}>", TypeName(b.E.Type, collectionWriter, b.E.tok));
+        TrParenExpr(b.E, collectionWriter, inLetExprBody);
+      } else if (bound is ComprehensionExpr.SetBoundedPool) {
+        var b = (ComprehensionExpr.SetBoundedPool)bound;
+        TrParenExpr(b.Set, collectionWriter, inLetExprBody);
+        collectionWriter.Write(".Elements");
+      } else if (bound is ComprehensionExpr.MultiSetBoundedPool) {
+        var b = (ComprehensionExpr.MultiSetBoundedPool)bound;
+        TrParenExpr(b.MultiSet, collectionWriter, inLetExprBody);
+        collectionWriter.Write(".Elements");
+      } else if (bound is ComprehensionExpr.SubSetBoundedPool) {
+        var b = (ComprehensionExpr.SubSetBoundedPool)bound;
+        TrParenExpr(b.UpperBound, collectionWriter, inLetExprBody);
+        collectionWriter.Write(".AllSubsets");
+      } else if (bound is ComprehensionExpr.MapBoundedPool) {
+        var b = (ComprehensionExpr.MapBoundedPool)bound;
+        TrParenExpr(b.Map, collectionWriter, inLetExprBody);
+        collectionWriter.Write(".Domain");
+      } else if (bound is ComprehensionExpr.SeqBoundedPool) {
+        var b = (ComprehensionExpr.SeqBoundedPool)bound;
+        TrParenExpr(b.Seq, collectionWriter, inLetExprBody);
+        collectionWriter.Write(includeDuplicates ? ".Elements" : ".UniqueElements");
+      } else if (bound is ComprehensionExpr.DatatypeBoundedPool) {
+        var b = (ComprehensionExpr.DatatypeBoundedPool)bound;
+        collectionWriter.Write("{0}.AllSingletonConstructors", TypeName(bv.Type, collectionWriter, bv.Tok));
+      } else {
+        Contract.Assert(false); throw new cce.UnreachableException();  // unexpected BoundedPool type
+      }
+    }
+
+    private Expression SubstituteBound(ComprehensionExpr.IntBoundedPool b, List<ComprehensionExpr.BoundedPool> bounds, List<BoundVar> boundVars, int index, bool lowBound) {
+      Contract.Requires(b != null);
+      Contract.Requires((lowBound ? b.LowerBound : b.UpperBound) != null);
+      Contract.Requires(bounds != null);
+      Contract.Requires(boundVars != null);
+      Contract.Requires(bounds.Count == boundVars.Count);
+      Contract.Requires(0 <= index && index < boundVars.Count);
+      // if the outer bound is dependent on the inner boundvar, we need to
+      // substitute the inner boundvar with its bound.
+      var bnd = lowBound ? b.LowerBound : b.UpperBound;
+      var sm = new Dictionary<IVariable, Expression>();
+      for (int i = index+1; i < boundVars.Count; i++) {
+        var bound = bounds[i];
+        if (bound is ComprehensionExpr.IntBoundedPool) {
+          var ib = (ComprehensionExpr.IntBoundedPool)bound;
+          var bv = boundVars[i];
+          sm[bv] = lowBound ? ib.LowerBound : ib.UpperBound;
+        }
+      }
+      var su = new Translator.Substituter(null, sm, new Dictionary<TypeParameter, Type>());
+      return su.Substitute(bnd);
+    }
+
     private void IntroduceAndAssignBoundVars(ExistsExpr exists, TargetWriter wr) {
       Contract.Requires(exists != null);
       Contract.Assume(exists.Bounds != null);  // follows from successful resolution
@@ -1803,62 +1853,7 @@ namespace Microsoft.Dafny {
         var tmpVar = idGenerator.FreshId("_assign_such_that_");
         TargetWriter collectionWriter;
         wr = CreateForeachLoop(tmpVar, out collectionWriter, wr, IdName(bv));
-        if (bound is ComprehensionExpr.BoolBoundedPool) {
-          collectionWriter.Write("Dafny.Helpers.AllBooleans");
-        } else if (bound is ComprehensionExpr.CharBoundedPool) {
-          collectionWriter.Write("Dafny.Helpers.AllChars");
-        } else if (bound is ComprehensionExpr.IntBoundedPool) {
-          var b = (ComprehensionExpr.IntBoundedPool)bound;
-          if (AsNativeType(bv.Type) != null) {
-            collectionWriter.Write("{0}.IntegerRange(", IdProtect(bv.Type.AsNewtype.FullCompileName));
-          } else {
-            collectionWriter.Write("Dafny.Helpers.IntegerRange(");
-          }
-          if (b.LowerBound == null) {
-            collectionWriter.Write("null");
-          } else {
-            TrExpr(b.LowerBound, collectionWriter, inLetExprBody);
-          }
-          collectionWriter.Write(", ");
-          if (b.UpperBound == null) {
-            collectionWriter.Write("null");
-          } else {
-            TrExpr(b.UpperBound, collectionWriter, inLetExprBody);
-          }
-          collectionWriter.Write(")");
-        } else if (bound is AssignSuchThatStmt.WiggleWaggleBound) {
-          collectionWriter.Write("Dafny.Helpers.AllIntegers");
-        } else if (bound is ComprehensionExpr.ExactBoundedPool) {
-          var b = (ComprehensionExpr.ExactBoundedPool)bound;
-          collectionWriter.Write("Dafny.Helpers.SingleValue<{0}>(", TypeName(b.E.Type, collectionWriter, b.E.tok));
-          TrExpr(b.E, collectionWriter, inLetExprBody);
-          collectionWriter.Write(")");
-        } else if (bound is ComprehensionExpr.SetBoundedPool) {
-          var b = (ComprehensionExpr.SetBoundedPool)bound;
-          TrParenExpr(b.Set, collectionWriter, inLetExprBody);
-          collectionWriter.Write(".Elements");
-        } else if (bound is ComprehensionExpr.MultiSetBoundedPool) {
-          var b = (ComprehensionExpr.MultiSetBoundedPool)bound;
-          TrParenExpr(b.MultiSet, collectionWriter, inLetExprBody);
-          collectionWriter.Write(".Elements");
-        } else if (bound is ComprehensionExpr.SubSetBoundedPool) {
-          var b = (ComprehensionExpr.SubSetBoundedPool)bound;
-          TrParenExpr(b.UpperBound, collectionWriter, inLetExprBody);
-          collectionWriter.Write(".AllSubsets");
-        } else if (bound is ComprehensionExpr.MapBoundedPool) {
-          var b = (ComprehensionExpr.MapBoundedPool)bound;
-          TrParenExpr(b.Map, collectionWriter, inLetExprBody);
-          collectionWriter.Write(".Domain");
-        } else if (bound is ComprehensionExpr.SeqBoundedPool) {
-          var b = (ComprehensionExpr.SeqBoundedPool)bound;
-          TrParenExpr(b.Seq, collectionWriter, inLetExprBody);
-          collectionWriter.Write(".Elements");
-        } else if (bound is ComprehensionExpr.DatatypeBoundedPool) {
-          var b = (ComprehensionExpr.DatatypeBoundedPool)bound;
-          collectionWriter.Write("{0}.AllSingletonConstructors", TypeName(bv.Type, collectionWriter, bv.Tok));
-        } else {
-          Contract.Assert(false); throw new cce.UnreachableException();  // unexpected BoundedPool type
-        }
+        CompileCollection(bound, bv, inLetExprBody, true, collectionWriter);
         if (needIterLimit) {
           var thn = EmitIf(string.Format("{0}_{1} == 0", iterLimit, i), false, wr);
           EmitBreak(null, thn);
@@ -2745,52 +2740,7 @@ namespace Microsoft.Dafny {
           TargetWriter collectionWriter;
           var tmpVar = idGenerator.FreshId("_compr_");
           wr = CreateForeachLoop(tmpVar, out collectionWriter, wr, IdName(bv), bv.Type, bv.tok);
-          if (bound is ComprehensionExpr.BoolBoundedPool) {
-            collectionWriter.Write("Dafny.Helpers.AllBooleans");
-          } else if (bound is ComprehensionExpr.CharBoundedPool) {
-            collectionWriter.Write("Dafny.Helpers.AllChars");
-          } else if (bound is ComprehensionExpr.IntBoundedPool) {
-            var b = (ComprehensionExpr.IntBoundedPool)bound;
-            if (AsNativeType(bv.Type) != null) {
-              collectionWriter.Write("{0}.IntegerRange(", IdProtect(bv.Type.AsNewtype.FullCompileName));
-            } else {
-              collectionWriter.Write("Dafny.Helpers.IntegerRange(");
-            }
-            TrExpr(b.LowerBound, collectionWriter, inLetExprBody);
-            collectionWriter.Write(", ");
-            TrExpr(b.UpperBound, collectionWriter, inLetExprBody);
-            collectionWriter.Write(")");
-          } else if (bound is ComprehensionExpr.ExactBoundedPool) {
-            var b = (ComprehensionExpr.ExactBoundedPool)bound;
-            collectionWriter.Write("Dafny.Helpers.SingleValue<{0}>(", TypeName(b.E.Type, collectionWriter, b.E.tok));
-            TrExpr(b.E, collectionWriter, inLetExprBody);
-            collectionWriter.Write(")");
-          } else if (bound is ComprehensionExpr.SetBoundedPool) {
-            var b = (ComprehensionExpr.SetBoundedPool)bound;
-            TrParenExpr(b.Set, collectionWriter, inLetExprBody);
-            collectionWriter.Write(".Elements");
-          } else if (bound is ComprehensionExpr.MultiSetBoundedPool) {
-            var b = (ComprehensionExpr.MultiSetBoundedPool)bound;
-            TrParenExpr(b.MultiSet, collectionWriter, inLetExprBody);
-            collectionWriter.Write(".Elements");
-          } else if (bound is ComprehensionExpr.SubSetBoundedPool) {
-            var b = (ComprehensionExpr.SubSetBoundedPool)bound;
-            TrParenExpr(b.UpperBound, collectionWriter, inLetExprBody);
-            collectionWriter.Write(".AllSubsets");
-          } else if (bound is ComprehensionExpr.MapBoundedPool) {
-            var b = (ComprehensionExpr.MapBoundedPool)bound;
-            TrParenExpr(b.Map, collectionWriter, inLetExprBody);
-            collectionWriter.Write(".Domain");
-          } else if (bound is ComprehensionExpr.SeqBoundedPool) {
-            var b = (ComprehensionExpr.SeqBoundedPool)bound;
-            TrParenExpr(b.Seq, collectionWriter, inLetExprBody);
-            collectionWriter.Write(".Elements");
-          } else if (bound is ComprehensionExpr.DatatypeBoundedPool) {
-            var b = (ComprehensionExpr.DatatypeBoundedPool)bound;
-            collectionWriter.Write("{0}.AllSingletonConstructors", TypeName(bv.Type, collectionWriter, bv.tok));
-          } else {
-            Contract.Assert(false); throw new cce.UnreachableException();  // unexpected BoundedPool type
-          }
+          CompileCollection(bound, bv, inLetExprBody, true, collectionWriter);
         }
         TargetWriter guardWriter;
         var thn = EmitIf(out guardWriter, false, wr);
@@ -2837,48 +2787,7 @@ namespace Microsoft.Dafny {
         Contract.Assume(e.BoundVars.Count == 1);  // TODO: implement the case where e.BoundVars.Count > 1
         TargetWriter collectionWriter;
         var w = CreateForeachLoop(IdName(bv), out collectionWriter, wr);
-        if (bound is ComprehensionExpr.BoolBoundedPool) {
-          collectionWriter.Write("Dafny.Helpers.AllBooleans");
-        } else if (bound is ComprehensionExpr.CharBoundedPool) {
-          collectionWriter.Write("Dafny.Helpers.AllChars");
-        } else if (bound is ComprehensionExpr.IntBoundedPool) {
-          var b = (ComprehensionExpr.IntBoundedPool)bound;
-          if (AsNativeType(bv.Type) != null) {
-            collectionWriter.Write("@{0}.IntegerRange(", bv.Type.AsNewtype.FullCompileName);
-          } else {
-            collectionWriter.Write("Dafny.Helpers.IntegerRange(");
-          }
-          TrExpr(b.LowerBound, collectionWriter, inLetExprBody);
-          collectionWriter.Write(", ");
-          TrExpr(b.UpperBound, collectionWriter, inLetExprBody);
-          collectionWriter.Write(")");
-        } else if (bound is ComprehensionExpr.ExactBoundedPool) {
-          var b = (ComprehensionExpr.ExactBoundedPool)bound;
-          collectionWriter.Write("Dafny.Helpers.SingleValue<{0}>", TypeName(b.E.Type, collectionWriter, b.E.tok));
-          TrParenExpr(b.E, collectionWriter, inLetExprBody);
-        } else if (bound is ComprehensionExpr.SetBoundedPool) {
-          var b = (ComprehensionExpr.SetBoundedPool)bound;
-          TrParenExpr(b.Set, collectionWriter, inLetExprBody);
-          collectionWriter.Write(".Elements");
-        } else if (bound is ComprehensionExpr.MultiSetBoundedPool) {
-          var b = (ComprehensionExpr.MultiSetBoundedPool)bound;
-          TrParenExpr(b.MultiSet, collectionWriter, inLetExprBody);
-          collectionWriter.Write(".Elements");
-        } else if (bound is ComprehensionExpr.SubSetBoundedPool) {
-          var b = (ComprehensionExpr.SubSetBoundedPool)bound;
-          TrParenExpr(b.UpperBound, collectionWriter, inLetExprBody);
-          collectionWriter.Write(".AllSubsets");
-        } else if (bound is ComprehensionExpr.MapBoundedPool) {
-          var b = (ComprehensionExpr.MapBoundedPool)bound;
-          TrParenExpr(b.Map, collectionWriter, inLetExprBody);
-          collectionWriter.Write(".Domain");
-        } else if (bound is ComprehensionExpr.SeqBoundedPool) {
-          var b = (ComprehensionExpr.SeqBoundedPool)bound;
-          TrParenExpr(b.Seq, collectionWriter, inLetExprBody);
-          collectionWriter.Write(".Elements");
-        } else {
-          Contract.Assert(false); throw new cce.UnreachableException();  // unexpected BoundedPool type
-        }
+        CompileCollection(bound, bv, inLetExprBody, true, collectionWriter);
         TargetWriter guardWriter;
         var thn = EmitIf(out guardWriter, false, w);
         TrExpr(e.Range, guardWriter, inLetExprBody);
@@ -2971,24 +2880,6 @@ namespace Microsoft.Dafny {
       Contract.Requires(str != null);
       Contract.Requires(wr != null);
       EmitStringLiteral((string)str.Value, str.IsVerbatim, wr);
-    }
-
-    private Expression SubstituteBound(ComprehensionExpr.IntBoundedPool b, List<ComprehensionExpr.BoundedPool> bounds, List<BoundVar> boundVars, int index, bool lowBound)
-    {
-      // if the outer bound is depended on the inner boundvar, we need to
-      // substitute the inner boundvar with its bound.
-      var low = lowBound ? b.LowerBound : b.UpperBound;
-      var sm = new Dictionary<IVariable, Expression>();
-      for (int i = index+1; i < boundVars.Count; i++) {
-        var bound = bounds[i];
-        if (bound is ComprehensionExpr.IntBoundedPool) {
-          var ib = (ComprehensionExpr.IntBoundedPool)bound;
-          var bv = boundVars[i];
-          sm[bv] = lowBound ? ib.LowerBound : ib.UpperBound;
-        }
-      }
-      var su = new Translator.Substituter(null, sm, new Dictionary<TypeParameter, Type>());
-      return su.Substitute(low);
     }
 
     private static void BitvectorTruncation(BitvectorType bvType, TextWriter wr, bool after, bool surroundByUnchecked) {
