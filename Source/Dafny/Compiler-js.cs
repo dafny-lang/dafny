@@ -289,7 +289,7 @@ let _dafny = (function() {
         i = 0;
         foreach (var ctor in dt.Ctors) {
           var thn = EmitIf(string.Format("this.$tag === {0}", i), true, w);
-          using (var guard = new TargetWriter()) {
+          using (var guard = new TargetWriter(w.IndentLevel)) {
             guard.Write("other.$tag === {0}", i);
             var k = 0;
             foreach (Formal arg in ctor.Formals) {
@@ -677,9 +677,17 @@ let _dafny = (function() {
       }
     }
 
-    protected override void EmitBreak(string label, TargetWriter wr) {
+    protected override TargetWriter CreateLabeledCode(string label, TargetWriter wr) {
+      return wr.NewNamedBlock("{0}:", label);
+    }
+
+    protected override void EmitBreak(string/*?*/ label, TargetWriter wr) {
       wr.Indent();
-      wr.WriteLine("break {0};", label);
+      if (label == null) {
+        wr.WriteLine("break;");
+      } else {
+        wr.WriteLine("break {0};", label);
+      }
     }
 
     protected override void EmitYield(TargetWriter wr) {
@@ -694,8 +702,24 @@ let _dafny = (function() {
 
     protected override BlockTargetWriter CreateForLoop(string indexVar, string bound, TargetWriter wr) {
       wr.Indent();
-      var w = wr.NewNamedBlock("for (let {0} = 0; {0} < {1}; {0}++)", indexVar, bound);
-      return w;
+      return wr.NewNamedBlock("for (let {0} = 0; {0} < {1}; {0}++)", indexVar, bound);
+    }
+
+    protected override BlockTargetWriter CreateDoublingForLoop(string indexVar, int start, TargetWriter wr) {
+      wr.Indent();
+      return wr.NewNamedBlock("for (let {0} = new BigNumber({1}); ; {0} = {0}.multipliedBy(2))", indexVar, start);
+    }
+
+    protected override BlockTargetWriter CreateForeachLoop(string boundVar, out TargetWriter collectionWriter, TargetWriter wr, string/*?*/ altBoundVarName = null, Type/*?*/ altVarType = null, Bpl.IToken/*?*/ tok = null) {
+      wr.Indent();
+      wr.Write("foreach (const {0} of ", boundVar);
+      collectionWriter = new TargetWriter(wr.IndentLevel);
+      wr.Append(collectionWriter);
+      if (altBoundVarName == null) {
+        return wr.NewBlock(")");
+      } else {
+        return wr.NewBlockWithPrefix(")", "{0} = {1};", altBoundVarName, boundVar);
+      }
     }
 
     // ----- Expressions -------------------------------------------------------------
@@ -999,6 +1023,17 @@ let _dafny = (function() {
     }
 
     protected override TargetWriter CreateIIFE(string source, Type sourceType, Bpl.IToken sourceTok, Type resultType, Bpl.IToken resultTok, string bvName, TargetWriter wr) {
+      var w = wr.NewNamedBlock("function ({0})", bvName);
+      w.SetBraceStyle(BlockTargetWriter.BraceStyle.Space, BlockTargetWriter.BraceStyle.Nothing);
+      w.Indent();
+      w.Write("return ");
+      w.BodySuffix = ";" + w.NewLine;
+
+      wr.Write("({0})", source);
+      return w;
+    }
+
+    protected override BlockTargetWriter CreateIIFE(int source, Type resultType, Bpl.IToken resultTok, string bvName, TargetWriter wr) {
       var w = wr.NewNamedBlock("function ({0})", bvName);
       w.SetBraceStyle(BlockTargetWriter.BraceStyle.Space, BlockTargetWriter.BraceStyle.Nothing);
       w.Indent();

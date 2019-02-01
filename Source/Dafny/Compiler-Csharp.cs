@@ -929,9 +929,21 @@ namespace Microsoft.Dafny
       wr.WriteLine("return;");
     }
 
-    protected override void EmitBreak(string label, TargetWriter wr) {
+    protected override TargetWriter CreateLabeledCode(string label, TargetWriter wr) {
+      var w = new TargetWriter(wr.IndentLevel);
+      wr.Append(w);
+      wr.IndentExtra(-1);
+      wr.WriteLine("after_{0}: ;", label);
+      return w;
+    }
+
+    protected override void EmitBreak(string/*?*/ label, TargetWriter wr) {
       wr.Indent();
-      wr.WriteLine("goto after_{0};", label);
+      if (label == null) {
+        wr.WriteLine("break;");
+      } else {
+        wr.WriteLine("goto after_{0};", label);
+      }
     }
 
     protected override void EmitYield(TargetWriter wr) {
@@ -946,8 +958,26 @@ namespace Microsoft.Dafny
 
     protected override BlockTargetWriter CreateForLoop(string indexVar, string bound, TargetWriter wr) {
       wr.Indent();
-      var w = wr.NewNamedBlock("for (var {0} = 0; {0} < {1}; {0}++)", indexVar, bound);
-      return w;
+      return wr.NewNamedBlock("for (var {0} = 0; {0} < {1}; {0}++)", indexVar, bound);
+    }
+
+    protected override BlockTargetWriter CreateDoublingForLoop(string indexVar, int start, TargetWriter wr) {
+      wr.Indent();
+      return wr.NewNamedBlock("for (var {0} = new BigInteger({1}); ; {0} *= 2)", indexVar, start);
+    }
+
+    protected override BlockTargetWriter CreateForeachLoop(string boundVar, out TargetWriter collectionWriter, TargetWriter wr, string/*?*/ altBoundVarName = null, Type/*?*/ altVarType = null, Bpl.IToken/*?*/ tok = null) {
+      wr.Indent();
+      wr.Write("foreach (var {0} in ", boundVar);
+      collectionWriter = new TargetWriter(wr.IndentLevel);
+      wr.Append(collectionWriter);
+      if (altBoundVarName == null) {
+        return wr.NewBlock(")");
+      } else if (altVarType == null) {
+        return wr.NewBlockWithPrefix(")", "{0} = {1};", altBoundVarName, boundVar);
+      } else {
+        return wr.NewBlockWithPrefix(")", "{2} {0} = ({2}){1};", altBoundVarName, boundVar, TypeName(altVarType, wr, tok));
+      }
     }
 
     // ----- Expressions -------------------------------------------------------------
@@ -1254,6 +1284,14 @@ namespace Microsoft.Dafny
       var w = new TargetWriter(wr.IndentLevel);
       wr.Append(w);
       wr.Write(")");
+      return w;
+    }
+
+    protected override BlockTargetWriter CreateIIFE(int source, Type resultType, Bpl.IToken resultTok, string bvName, TargetWriter wr) {
+      wr.Write("Dafny.Helpers.Let<int,{0}>(", TypeName(resultType, wr, resultTok));
+      wr.Write("{0}, {1} => ", source, bvName);
+      var w = wr.NewBlock("", ")");
+      w.SetBraceStyle(BlockTargetWriter.BraceStyle.Space, BlockTargetWriter.BraceStyle.Nothing);
       return w;
     }
 

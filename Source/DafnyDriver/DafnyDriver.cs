@@ -461,7 +461,7 @@ namespace Microsoft.Dafny
 
       Method mainMethod;
       var hasMain = compiler.HasMain(dafnyProgram, out mainMethod);
-      var sw = new TargetWriter();
+      var sw = new TargetWriter(0);
       compiler.Compile(dafnyProgram, sw);
       if (hasMain) {
         compiler.EmitCallToMain(mainMethod, sw);
