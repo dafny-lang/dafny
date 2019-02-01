@@ -29,10 +29,12 @@ BigNumber.config({ MODULO_MODE: BigNumber.EUCLID })
 let _dafny = (function() {
   let $module = {};
   $module.areEqual = function(a, b) {
-    if (typeof a === 'object') {
-      return a.equals(b);
-    } else {
+    if (typeof a !== 'object') {
       return a === b;
+    } else if (a.isEqualTo !== undefined) {
+      return a.isEqualTo(b);
+    } else {
+      return a.equals(b);
     }
   }
   $module.Tuple = class Tuple extends Array {

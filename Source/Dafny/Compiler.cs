@@ -55,16 +55,6 @@ namespace Microsoft.Dafny {
       }
     }
 
-    const int IndentAmount = 2;
-    protected void Indent(int ind, TextWriter wr) {
-      Contract.Requires(0 <= ind);
-      string spaces = "          ";
-      for (; spaces.Length < ind; ind -= spaces.Length) {
-        wr.Write(spaces);
-      }
-      wr.Write(spaces.Substring(0, ind));
-    }
-
     protected virtual void EmitHeader(Program program, TargetWriter wr) { }
     protected virtual void EmitBuiltInDecls(BuiltIns builtIns, TargetWriter wr) { }
     public virtual void EmitCallToMain(Method mainMethod, TextWriter wr) { }
@@ -275,10 +265,7 @@ namespace Microsoft.Dafny {
         if (DafnyOptions.O.CompileTarget == DafnyOptions.CompilationTarget.JavaScript && m == program.BuiltIns.SystemModule) {  // TODO: this should also be done for JavaScript
           continue;
         }
-        int indent = 0;
         var wr = CreateModule(m.CompileName, wrx);
-        indent += IndentAmount;
-        Contract.Assert(indent == wr.IndentLevel);
         foreach (TopLevelDecl d in m.TopLevelDecls) {
           bool compileIt = true;
           if (Attributes.ContainsBool(d.Attributes, "compile", ref compileIt) && !compileIt) {
@@ -355,8 +342,6 @@ namespace Microsoft.Dafny {
 
             TargetWriter instanceFieldsWriter;
             var w = CreateClass(IdName(iter), null, out instanceFieldsWriter, wr);
-            var ind = indent + IndentAmount;
-            Contract.Assert(ind == w.IndentLevel);
             // here come the fields
             Constructor ct = null;
             foreach (var member in iter.Members) {
@@ -393,14 +378,13 @@ namespace Microsoft.Dafny {
             w.Indent(); w.WriteLine("}");
             // here are the enumerator methods
             w.Indent(); w.WriteLine("public void MoveNext(out bool more) { more = __iter.MoveNext(); }");
-            w.Indent(); w.WriteLine("private System.Collections.Generic.IEnumerator<object> TheIterator() {");
+            var wIter = w.NewBlock("private System.Collections.Generic.IEnumerator<object> TheIterator()");
             if (iter.Body == null) {
-              Error(iter.tok, "Iterator {0} has no body", w, iter.FullName);
+              Error(iter.tok, "Iterator {0} has no body", wIter, iter.FullName);
             } else {
-              w.Append(TrStmt(iter.Body, ind + IndentAmount));
+              TrStmt(iter.Body, wIter);
             }
-            w.IndentExtra(); w.WriteLine("yield break;");
-            w.Indent(); w.WriteLine("}");
+            wIter.Indent(); wIter.WriteLine("yield break;");
 
           } else if (d is TraitDecl) {
             // writing the trait
@@ -1275,12 +1259,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    TargetWriter TrStmt(Statement stmt, int indent) {
-      Contract.Requires(stmt != null);
-      TargetWriter wr = new TargetWriter(indent);
-      return TrStmt(stmt, wr);
-    }
-    TargetWriter TrStmt(Statement stmt, TargetWriter wr) {
+    void TrStmt(Statement stmt, TargetWriter wr) {
       Contract.Requires(stmt != null);
       Contract.Requires(wr != null);
 
@@ -1288,7 +1267,7 @@ namespace Microsoft.Dafny {
         var v = new CheckHasNoAssumes_Visitor(this, wr);
         v.Visit(stmt);
         wr.Indent(); wr.WriteLine("{ }");
-        return wr;
+        return;
       }
       if (stmt is PrintStmt) {
         var s = (PrintStmt)stmt;
@@ -1301,7 +1280,7 @@ namespace Microsoft.Dafny {
       } else if (stmt is ProduceStmt) {
         var s = (ProduceStmt)stmt;
         if (s.hiddenUpdate != null) {
-          wr.Append(TrStmt(s.hiddenUpdate, wr.IndentLevel));
+          TrStmt(s.hiddenUpdate, wr);
         }
         if (s is YieldStmt) {
           EmitYield(wr);
@@ -1312,7 +1291,7 @@ namespace Microsoft.Dafny {
         var s = (UpdateStmt)stmt;
         var resolved = s.ResolvedStatements;
         if (resolved.Count == 1) {
-          wr.Append(TrStmt(resolved[0], wr.IndentLevel));
+          TrStmt(resolved[0], wr);
         } else {
           // multi-assignment
           Contract.Assert(s.Lhss.Count == resolved.Count);
@@ -1370,7 +1349,7 @@ namespace Microsoft.Dafny {
             }
           } else {
             Contract.Assert(s.Bounds != null);
-            TrAssignSuchThat(wr.IndentLevel, lhss, s.Expr, s.Bounds, s.Tok.line, wr, false);
+            TrAssignSuchThat(lhss, s.Expr, s.Bounds, s.Tok.line, wr, false);
           }
         }
 
@@ -1400,7 +1379,7 @@ namespace Microsoft.Dafny {
             // let's compile the "then" branch
             wr.Indent();
             wr.Write("if (true) ");
-            wr.Append(TrStmt(s.Thn, wr.IndentLevel));
+            TrStmt(s.Thn, wr);
           }
         } else {
           if (s.IsBindingGuard && DafnyOptions.O.ForbidNondeterminism) {
@@ -1443,7 +1422,7 @@ namespace Microsoft.Dafny {
       } else if (stmt is WhileStmt) {
         WhileStmt s = (WhileStmt)stmt;
         if (s.Body == null) {
-          return wr;
+          return;
         }
         if (s.Guard == null) {
           if (DafnyOptions.O.ForbidNondeterminism) {
@@ -1481,11 +1460,11 @@ namespace Microsoft.Dafny {
         var s = (ForallStmt)stmt;
         if (s.Kind != ForallStmt.BodyKind.Assign) {
           // Call and Proof have no side effects, so they can simply be optimized away.
-          return wr;
+          return;
         } else if (s.BoundVars.Count == 0) {
           // the bound variables just spell out a single point, so the forall statement is equivalent to one execution of the body
-          wr.Append(TrStmt(s.Body, wr.IndentLevel));
-          return wr;
+          TrStmt(s.Body, wr);
+          return;
         }
         var s0 = (AssignStmt)s.S0;
         if (s0.Rhs is HavocRhs) {
@@ -1494,7 +1473,7 @@ namespace Microsoft.Dafny {
           }
           // The forall statement says to havoc a bunch of things.  This can be efficiently compiled
           // into doing nothing.
-          return wr;
+          return;
         }
         var rhs = ((ExprRhs)s0.Rhs).Expr;
 
@@ -1549,7 +1528,7 @@ namespace Microsoft.Dafny {
           L = 2 + lhs.Indices.Count;
           if (8 < L) {
             Error(lhs.tok, "compiler currently does not support assignments to more-than-6-dimensional arrays in forall statements", wr);
-            return wr;
+            return;
           }
           tupleTypeArgs = TypeName(lhs.Array.Type, wr, lhs.tok);
           for (int i = 0; i < lhs.Indices.Count; i++) {
@@ -1731,11 +1710,11 @@ namespace Microsoft.Dafny {
               hasRhs = true;
             }
           }
-          TrLocalVar(local, !hasRhs, wr.IndentLevel, wr);
+          TrLocalVar(local, !hasRhs, wr);
           i++;
         }
         if (s.Update != null) {
-          wr.Append(TrStmt(s.Update, wr.IndentLevel));
+          TrStmt(s.Update, wr);
         }
 
       } else if (stmt is LetStmt) {
@@ -1746,7 +1725,7 @@ namespace Microsoft.Dafny {
       } else if (stmt is ModifyStmt) {
         var s = (ModifyStmt)stmt;
         if (s.Body != null) {
-          wr.Append(TrStmt(s.Body, wr.IndentLevel));
+          TrStmt(s.Body, wr);
         } else if (DafnyOptions.O.ForbidNondeterminism) {
           Error(s.Tok, "modify statement without a body forbidden by /definiteAssignment:3 option", wr);
         }
@@ -1754,8 +1733,6 @@ namespace Microsoft.Dafny {
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected statement
       }
-
-      return wr;
     }
 
     private void IntroduceAndAssignBoundVars(ExistsExpr exists, TargetWriter wr) {
@@ -1763,14 +1740,13 @@ namespace Microsoft.Dafny {
       Contract.Assume(exists.Bounds != null);  // follows from successful resolution
       Contract.Assert(exists.Range == null);  // follows from invariant of class IfStmt
       foreach (var bv in exists.BoundVars) {
-        TrLocalVar(bv, false, wr.IndentLevel, wr);
+        TrLocalVar(bv, false, wr);
       }
       var ivars = exists.BoundVars.ConvertAll(bv => (IVariable)bv);
-      TrAssignSuchThat(wr.IndentLevel, ivars, exists.Term, exists.Bounds, exists.tok.line, wr, false);
+      TrAssignSuchThat(ivars, exists.Term, exists.Bounds, exists.tok.line, wr, false);
     }
 
-    private void TrAssignSuchThat(int indent, List<IVariable> lhss, Expression constraint, List<ComprehensionExpr.BoundedPool> bounds, int debuginfoLine, TargetWriter wr, bool inLetExprBody) {
-      Contract.Requires(0 <= indent);
+    private void TrAssignSuchThat(List<IVariable> lhss, Expression constraint, List<ComprehensionExpr.BoundedPool> bounds, int debuginfoLine, TargetWriter wr, bool inLetExprBody) {
       Contract.Requires(lhss != null);
       Contract.Requires(constraint != null);
       Contract.Requires(bounds != null);
@@ -1808,28 +1784,27 @@ namespace Microsoft.Dafny {
       var doneLabel = "_ASSIGN_SUCH_THAT_" + c;
       var iterLimit = "_iterLimit_" + c;
 
-      int ind = indent;
       bool needIterLimit = lhss.Count != 1 && bounds.Exists(bnd => (bnd.Virtues & ComprehensionExpr.BoundedPool.PoolVirtues.Finite) == 0);
+      var wrOuter = wr;
       if (needIterLimit) {
-        Indent(indent, wr);
-        wr.WriteLine("for (var {0} = new BigInteger(5); ; {0} *= 2) {{", iterLimit);
-        ind += IndentAmount;
+        wr.Indent();
+        wr = wr.NewNamedBlock("for (var {0} = new BigInteger(5); ; {0} *= 2)", iterLimit);
       }
 
-      for (int i = 0; i < n; i++, ind += IndentAmount) {
+      for (int i = 0; i < n; i++) {
         var bound = bounds[i];
         Contract.Assert((bound.Virtues & ComprehensionExpr.BoundedPool.PoolVirtues.Enumerable) != 0);  // if we have got this far, it must be an enumerable bound
         var bv = lhss[i];
         if (needIterLimit) {
-          Indent(ind, wr);
+          wr.Indent();
           wr.WriteLine("var {0}_{1} = {0};", iterLimit, i);
         }
         var tmpVar = idGenerator.FreshId("_assign_such_that_");
-        Indent(ind, wr);
+        wr.Indent();
         if (bound is ComprehensionExpr.BoolBoundedPool) {
-          wr.WriteLine("foreach (var {0} in Dafny.Helpers.AllBooleans) {{ {1} = {0};", tmpVar, IdName(bv));
+          wr = wr.NewBlockWithPrefix("foreach (var {0} in Dafny.Helpers.AllBooleans)", "{1} = {0};", tmpVar, IdName(bv));
         } else if (bound is ComprehensionExpr.CharBoundedPool) {
-          wr.WriteLine("foreach (var {0} in Dafny.Helpers.AllChars) {{ {1} = {0};", tmpVar, IdName(bv));
+          wr = wr.NewBlockWithPrefix("foreach (var {0} in Dafny.Helpers.AllChars)", "{1} = {0};", tmpVar, IdName(bv));
         } else if (bound is ComprehensionExpr.IntBoundedPool) {
           var b = (ComprehensionExpr.IntBoundedPool)bound;
           if (AsNativeType(bv.Type) != null) {
@@ -1848,67 +1823,63 @@ namespace Microsoft.Dafny {
           } else {
             TrExpr(b.UpperBound, wr, inLetExprBody);
           }
-          wr.WriteLine(")) {{ {0} = {1};", IdName(bv), tmpVar);
+          wr = wr.NewBlockWithPrefix("))", "{0} = {1};", IdName(bv), tmpVar);
         } else if (bound is AssignSuchThatStmt.WiggleWaggleBound) {
-          wr.WriteLine("foreach (var {1} in Dafny.Helpers.AllIntegers) {{ {0} = {1};", IdName(bv), tmpVar);
+          wr = wr.NewBlockWithPrefix("foreach (var {1} in Dafny.Helpers.AllIntegers)", "{0} = {1};", IdName(bv), tmpVar);
         } else if (bound is ComprehensionExpr.ExactBoundedPool) {
           var b = (ComprehensionExpr.ExactBoundedPool)bound;
           wr.Write("foreach (var {0} in Dafny.Helpers.SingleValue<{1}>(", tmpVar, TypeName(b.E.Type, wr, b.E.tok));
           TrExpr(b.E, wr, inLetExprBody);
-          wr.WriteLine(")) {{ {0} = {1};", IdName(bv), tmpVar);
+          wr = wr.NewBlockWithPrefix("))", "{0} = {1};", IdName(bv), tmpVar);
         } else if (bound is ComprehensionExpr.SetBoundedPool) {
           var b = (ComprehensionExpr.SetBoundedPool)bound;
           wr.Write("foreach (var {0} in (", tmpVar);
           TrExpr(b.Set, wr, inLetExprBody);
-          wr.WriteLine(").Elements) {{ {0} = {1};", IdName(bv), tmpVar);
+          wr = wr.NewBlockWithPrefix(").Elements)", "{0} = {1};", IdName(bv), tmpVar);
         } else if (bound is ComprehensionExpr.MultiSetBoundedPool) {
           var b = (ComprehensionExpr.MultiSetBoundedPool)bound;
           wr.Write("foreach (var {0} in (", tmpVar);
           TrExpr(b.MultiSet, wr, inLetExprBody);
-          wr.WriteLine(").Elements) {{ {0} = {1};", IdName(bv), tmpVar);
+          wr = wr.NewBlockWithPrefix(").Elements)", "{0} = {1};", IdName(bv), tmpVar);
         } else if (bound is ComprehensionExpr.SubSetBoundedPool) {
           var b = (ComprehensionExpr.SubSetBoundedPool)bound;
           wr.Write("foreach (var {0} in (", tmpVar);
           TrExpr(b.UpperBound, wr, inLetExprBody);
-          wr.WriteLine(").AllSubsets) {{ {0} = {1};", IdName(bv), tmpVar);
+          wr = wr.NewBlockWithPrefix(").AllSubsets)", "{0} = {1};", IdName(bv), tmpVar);
         } else if (bound is ComprehensionExpr.MapBoundedPool) {
           var b = (ComprehensionExpr.MapBoundedPool)bound;
           wr.Write("foreach (var {0} in (", tmpVar);
           TrExpr(b.Map, wr, inLetExprBody);
-          wr.WriteLine(").Domain) {{ {0} = {1};", IdName(bv), tmpVar);
+          wr = wr.NewBlockWithPrefix(").Domain)", "{0} = {1};", IdName(bv), tmpVar);
         } else if (bound is ComprehensionExpr.SeqBoundedPool) {
           var b = (ComprehensionExpr.SeqBoundedPool)bound;
           wr.Write("foreach (var {0} in (", tmpVar);
           TrExpr(b.Seq, wr, inLetExprBody);
-          wr.WriteLine(").Elements) {{ {0} = {1};", IdName(bv), tmpVar);
+          wr = wr.NewBlockWithPrefix(").Elements)", "{0} = {1};", IdName(bv), tmpVar);
         } else if (bound is ComprehensionExpr.DatatypeBoundedPool) {
           var b = (ComprehensionExpr.DatatypeBoundedPool)bound;
-          wr.WriteLine("foreach (var {0} in {1}.AllSingletonConstructors) {{ {2} = {0};", tmpVar, TypeName(bv.Type, wr, bv.Tok), IdName(bv));
+          wr = wr.NewBlockWithPrefix("foreach (var {0} in {1}.AllSingletonConstructors)", "{2} = {0};", tmpVar, TypeName(bv.Type, wr, bv.Tok), IdName(bv));
         } else {
           Contract.Assert(false); throw new cce.UnreachableException();  // unexpected BoundedPool type
         }
         if (needIterLimit) {
-          Indent(ind + IndentAmount, wr);
-          wr.WriteLine("if ({0}_{1} == 0) {{ break; }}  {0}_{1}--;", iterLimit, i);
+          var thn = EmitIf(string.Format("{0}_{1} == 0", iterLimit, i), false, wr);
+          thn.Indent();
+          thn.WriteLine("break;");
+          wr.Indent();
+          wr.WriteLine("{0}_{1}--;", iterLimit, i);
         }
       }
-      Indent(ind, wr);
-      wr.Write("if (");
-      TrExpr(constraint, wr, inLetExprBody);
-      wr.WriteLine(") {");
-      Indent(ind + IndentAmount, wr);
-      wr.WriteLine("goto {0};", doneLabel);
-      Indent(ind, wr);
-      wr.WriteLine("}");
-      Indent(indent, wr);
-      for (int i = 0; i < n; i++) {
-        wr.Write(i == 0 ? "}" : " }");
-      }
-      wr.WriteLine(needIterLimit ? " }" : "");
-      Indent(indent, wr);
-      wr.WriteLine("throw new System.Exception(\"assign-such-that search produced no value (line {0})\");", debuginfoLine);
-      Indent(indent, wr);
-      wr.WriteLine("{0}: ;", doneLabel);
+      TargetWriter guardWriter;
+      var wBody = EmitIf(out guardWriter, false, wr);
+      TrExpr(constraint, guardWriter, inLetExprBody);
+      wBody.Indent();
+      wBody.WriteLine("goto {0};", doneLabel);
+
+      wrOuter.Indent();
+      wrOuter.WriteLine("throw new System.Exception(\"assign-such-that search produced no value (line {0})\");", debuginfoLine);
+      wrOuter.Indent();
+      wrOuter.WriteLine("{0}: ;", doneLabel);
     }
 
     string CreateLvalue(Expression lhs, TargetWriter wr) {
@@ -2050,13 +2021,13 @@ namespace Microsoft.Dafny {
         // Now, assign to the formals
         int n = 0;
         if (!s.Method.IsStatic) {
-          Indent(indent, wr);
+          wr.Indent();
           wr.WriteLine("_this = {0};", inTmps[n]);
           n++;
         }
         foreach (var p in s.Method.Ins) {
           if (!p.IsGhost) {
-            Indent(indent, wr);
+            wr.Indent();
             wr.WriteLine("{0} = {1};", p.CompileName, inTmps[n]);
             n++;
           }
@@ -2172,16 +2143,17 @@ namespace Microsoft.Dafny {
       Contract.Requires(cce.NonNullElements(stmts));
       Contract.Requires(writer != null);
       foreach (Statement ss in stmts) {
+        var prelude = new TargetWriter();
+        writer.Append(prelude);
         copyInstrWriters.Push(new StringBuilder());
-        var wr = TrStmt(ss, writer.IndentLevel);
+        TrStmt(ss, writer);
         // write out any copy instructions that copies the out param
         // used in letexpr to a local
         string copyInstr = copyInstrWriters.Pop().ToString();
         if (copyInstr != "") {
-          writer.Indent();
-          writer.Write(copyInstr);
+          prelude.Indent();
+          prelude.Write(copyInstr);
         }
-        writer.Append(wr);
         if (ss.Labels != null) {
           // labels are not indented as much as the statements
           writer.WriteLine("{0}after_{1}: ;", writer.UnIndentString, ss.Labels.Data.AssignUniqueId(idGenerator));
@@ -2189,7 +2161,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    void TrLocalVar(IVariable v, bool alwaysInitialize, int indent, TargetWriter wr) {
+    void TrLocalVar(IVariable v, bool alwaysInitialize, TargetWriter wr) {
       Contract.Requires(v != null);
       if (v.IsGhost) {
         // only emit non-ghosts (we get here only for local variables introduced implicitly by call statements)
@@ -2636,7 +2608,7 @@ namespace Microsoft.Dafny {
               wr.Write("{0} {1}", TypeName(bv.Type, wr, bv.tok), IdName(bv));
               wr.WriteLine(" = {0};", DefaultValue(bv.Type, wr, bv.tok));
             }
-            TrAssignSuchThat(0, new List<IVariable>(e.BoundVars).ConvertAll(bv => (IVariable)bv), e.RHSs[0], e.Constraint_Bounds, e.tok.line, wr, inLetExprBody);
+            TrAssignSuchThat(new List<IVariable>(e.BoundVars).ConvertAll(bv => (IVariable)bv), e.RHSs[0], e.Constraint_Bounds, e.tok.line, wr, inLetExprBody);
             wr.Write(" return ");
             TrExpr(e.Body, wr, true);
             wr.Write("; })");
@@ -3402,6 +3374,15 @@ namespace Microsoft.Dafny {
       things.Add(btw);
       return btw;
     }
+    public BlockTargetWriter NewBlockWithPrefix(string headerFormat, string prefixFormat, params object[] headerArgs) {
+      Contract.Requires(headerFormat != null);
+      Contract.Requires(prefixFormat != null);
+      var btw = new BlockTargetWriter(IndentLevel + IndentAmount, string.Format(headerFormat, headerArgs), null);
+      btw.SetBraceStyle(BlockTargetWriter.BraceStyle.Space, BlockTargetWriter.BraceStyle.Newline);
+      btw.BodyPrefix = string.Format(prefixFormat, headerArgs);
+      things.Add(btw);
+      return btw;
+    }
 
     // ----- Collection ------------------------------
 
@@ -3434,6 +3415,7 @@ namespace Microsoft.Dafny {
     public enum BraceStyle { Nothing, Space, Newline }
     BraceStyle openBraceStyle = BraceStyle.Space;
     BraceStyle closeBraceStyle = BraceStyle.Newline;
+    public string BodyPrefix;  // just inside the open curly (before the newline)
     public string BodySuffix;  // just before the close curly
     public string Footer;  // just after the close curly
     public BlockTargetWriter(int indentInsideBraces, string header, string/*?*/ footer)
@@ -3466,7 +3448,7 @@ namespace Microsoft.Dafny {
           wr.Write(UnIndentString);
           break;
       }
-      wr.WriteLine("{");
+      wr.WriteLine("{{{0}", BodyPrefix != null ? " " + BodyPrefix : "");
       CollectThings(wr);
       if (BodySuffix != null) {
         wr.Write(BodySuffix);
