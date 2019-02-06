@@ -1054,8 +1054,6 @@ namespace Dafny
       return frall;
     }
     // Enumerating other collections
-    public delegate Dafny.Set<T> ComprehensionDelegate<T>();
-    public delegate Dafny.Map<U, V> MapComprehensionDelegate<U, V>();
     public static IEnumerable<bool> AllBooleans {
       get {
         yield return false;
@@ -1223,8 +1221,6 @@ namespace Dafny
     public static U Let<T, U>(T t, Func<T,U> f) {
       return f(t);
     }
-
-    public delegate Result Function<Input,Result>(Input input);
 
     public static A Id<A>(A a) {
       return a;

@@ -119,6 +119,27 @@ let _dafny = (function() {
       }
     }
   }
+  $module.IntegerRange = function*(lo, hi) {
+    if (lo === null) {
+      while (true) {
+        hi = hi.minus(1);
+        yield hi;
+      }
+    } else if (hi === null) {
+      while (true) {
+        yield lo;
+        lo = lo.plus(1);
+      }
+    } else {
+      while (lo.isLessThan(hi)) {
+        yield lo;
+        lo = lo.plus(1);
+      }
+    }
+  }
+  $module.SingleValue = function*(v) {
+    yield v;
+  }
   return $module;
 
   function buildArray(initValue, ...dims) {
@@ -145,6 +166,8 @@ let _dafny = (function() {
       w.BodySuffix = string.Format("{0}return $module;{1}", w.IndentString, w.NewLine);
       return w;
     }
+
+    protected override string GetHelperModuleName() => "_dafny";
 
     protected override BlockTargetWriter CreateClass(string name, List<TypeParameter>/*?*/ typeParameters, List<Type>/*?*/ superClasses, Bpl.IToken tok, out TargetWriter instanceFieldsWriter, TargetWriter wr) {
       wr.Indent();
@@ -621,11 +644,13 @@ let _dafny = (function() {
       }
     }
 
-    protected override void DeclareLocalVar(string name, Type/*?*/ type, Bpl.IToken/*?*/ tok, Expression rhs, bool inLetExprBody, TargetWriter wr) {
+    protected override TargetWriter DeclareLocalVar(string name, Type/*?*/ type, Bpl.IToken/*?*/ tok, TargetWriter wr) {
       wr.Indent();
       wr.Write("let {0} = ", name);
-      TrExpr(rhs, wr, inLetExprBody);
+      var w = new TargetWriter(wr.IndentLevel);
+      wr.Append(w);
       wr.WriteLine(";");
+      return w;
     }
 
     protected override bool UseReturnStyleOuts(Method m, int nonGhostOutCount) => true;
@@ -678,6 +703,7 @@ let _dafny = (function() {
     }
 
     protected override TargetWriter CreateLabeledCode(string label, TargetWriter wr) {
+      wr.Indent();
       return wr.NewNamedBlock("{0}:", label);
     }
 
@@ -710,9 +736,14 @@ let _dafny = (function() {
       return wr.NewNamedBlock("for (let {0} = new BigNumber({1}); ; {0} = {0}.multipliedBy(2))", indexVar, start);
     }
 
+    protected override void DecrementVar(string varName, TargetWriter wr) {
+      wr.Indent();
+      wr.WriteLine("{0} = {0}.minus(1);", varName);
+    }
+
     protected override BlockTargetWriter CreateForeachLoop(string boundVar, out TargetWriter collectionWriter, TargetWriter wr, string/*?*/ altBoundVarName = null, Type/*?*/ altVarType = null, Bpl.IToken/*?*/ tok = null) {
       wr.Indent();
-      wr.Write("foreach (const {0} of ", boundVar);
+      wr.Write("for (const {0} of ", boundVar);
       collectionWriter = new TargetWriter(wr.IndentLevel);
       wr.Append(collectionWriter);
       if (altBoundVarName == null) {
@@ -982,11 +1013,13 @@ let _dafny = (function() {
       TrExprList(arguments, wr, inLetExprBody);
     }
 
-    protected override void EmitBetaRedex(string boundVars, List<Expression> arguments, string typeArgs, bool inLetExprBody, System.Action makeBody, TargetWriter wr) {
+    protected override TargetWriter EmitBetaRedex(string boundVars, List<Expression> arguments, string typeArgs, bool inLetExprBody, TargetWriter wr) {
       wr.Write("(({0}) => ", boundVars);
-      makeBody();
+      var w = new TargetWriter(wr.IndentLevel);
+      wr.Append(w);
       wr.Write(")");
       TrExprList(arguments, wr, inLetExprBody);
+      return w;
     }
 
     protected override void EmitDestructor(string source, Formal dtor, int formalNonGhostIndex, DatatypeCtor ctor, List<Type> typeArgs, TargetWriter wr) {
@@ -1009,37 +1042,35 @@ let _dafny = (function() {
       return w;
     }
 
-    protected override TargetWriter CreateIIFE(Expression source, bool inLetExprBody, Type sourceType, Bpl.IToken sourceTok, Type resultType, Bpl.IToken resultTok, string bvName, TargetWriter wr) {
+    protected override TargetWriter CreateIIFE_ExprBody(Expression source, bool inLetExprBody, Type sourceType, Bpl.IToken sourceTok, Type resultType, Bpl.IToken resultTok, string bvName, TargetWriter wr) {
       var w = wr.NewNamedBlock("function ({0})", bvName);
       w.SetBraceStyle(BlockTargetWriter.BraceStyle.Space, BlockTargetWriter.BraceStyle.Nothing);
       w.Indent();
       w.Write("return ");
       w.BodySuffix = ";" + w.NewLine;
-
-      wr.Write("(");
-      TrExpr(source, wr, inLetExprBody);
-      wr.Write(")");
+      TrParenExpr(source, wr, inLetExprBody);
       return w;
     }
 
-    protected override TargetWriter CreateIIFE(string source, Type sourceType, Bpl.IToken sourceTok, Type resultType, Bpl.IToken resultTok, string bvName, TargetWriter wr) {
+    protected override TargetWriter CreateIIFE_ExprBody(string source, Type sourceType, Bpl.IToken sourceTok, Type resultType, Bpl.IToken resultTok, string bvName, TargetWriter wr) {
       var w = wr.NewNamedBlock("function ({0})", bvName);
       w.SetBraceStyle(BlockTargetWriter.BraceStyle.Space, BlockTargetWriter.BraceStyle.Nothing);
       w.Indent();
       w.Write("return ");
       w.BodySuffix = ";" + w.NewLine;
-
       wr.Write("({0})", source);
       return w;
     }
 
-    protected override BlockTargetWriter CreateIIFE(int source, Type resultType, Bpl.IToken resultTok, string bvName, TargetWriter wr) {
+    protected override BlockTargetWriter CreateIIFE0(Type resultType, Bpl.IToken resultTok, TargetWriter wr) {
+      var w = wr.NewBlock("function ()", "()");
+      w.SetBraceStyle(BlockTargetWriter.BraceStyle.Space, BlockTargetWriter.BraceStyle.Nothing);
+      return w;
+    }
+
+    protected override BlockTargetWriter CreateIIFE1(int source, Type resultType, Bpl.IToken resultTok, string bvName, TargetWriter wr) {
       var w = wr.NewNamedBlock("function ({0})", bvName);
       w.SetBraceStyle(BlockTargetWriter.BraceStyle.Space, BlockTargetWriter.BraceStyle.Nothing);
-      w.Indent();
-      w.Write("return ");
-      w.BodySuffix = ";" + w.NewLine;
-
       wr.Write("({0})", source);
       return w;
     }
@@ -1254,6 +1285,10 @@ let _dafny = (function() {
       }
     }
 
+    protected override void EmitIsZero(string varName, TargetWriter wr) {
+      wr.Write("{0}.isZero()", varName);
+    }    
+
     protected override void EmitCollectionDisplay(CollectionType ct, Bpl.IToken tok, List<Expression> elements, bool inLetExprBody, TargetWriter wr) {
       if (ct is SetType) {
         wr.Write("{0}.FromElements", TypeName(ct, wr, tok));  // TODO
@@ -1277,6 +1312,54 @@ let _dafny = (function() {
     protected override void EmitMapDisplay(MapType mt, Bpl.IToken tok, List<ExpressionPair> elements, bool inLetExprBody, TargetWriter wr) {
       wr.Write("{0}.FromElements", TypeName(mt, wr, tok));  // TODO
       TrExprPairList(elements, wr, inLetExprBody);
+    }
+
+    protected override void EmitCollectionBuilder_New(CollectionType ct, Bpl.IToken tok, TargetWriter wr) {
+      if (ct is SetType) {
+        wr.Write("new System.Collections.Generic.List<{0}>()", TypeName(ct.Arg, wr, tok));
+      } else if (ct is MapType) {
+        wr.Write("new _dafny.Map()");
+      } else {
+        Contract.Assume(false);  // unepxected collection type
+      }
+    }
+
+    protected override void EmitCollectionBuilder_Add(CollectionType ct, string collName, Expression elmt, bool inLetExprBody, TargetWriter wr) {
+      Contract.Assume(ct is SetType);  // follows from precondition
+      // TODO
+      wr.Indent();
+      wr.Write("{0}.Add(", collName);
+      TrExpr(elmt, wr, inLetExprBody);
+      wr.WriteLine(");");
+    }
+
+    protected override TargetWriter EmitMapBuilder_Add(MapType mt, Bpl.IToken tok, string collName, Expression term, bool inLetExprBody, TargetWriter wr) {
+      wr.Indent();
+      wr.Write("{0}.push([", collName);
+      var termLeftWriter = new TargetWriter(wr.IndentLevel);
+      wr.Append(termLeftWriter);
+      wr.Write(",");
+      TrExpr(term, wr, inLetExprBody);
+      wr.WriteLine("]);");
+      return termLeftWriter;
+    }
+
+    protected override string GetCollectionBuilder_Create(CollectionType ct, Bpl.IToken tok, string collName, TargetWriter wr) {
+      if (ct is SetType) {
+        // TODO
+        var typeName = TypeName(ct.Arg, wr, tok);
+        return string.Format("Dafny.Set<{0}>.FromCollection({1})", typeName, collName);
+      } else if (ct is MapType) {
+        // the map was built in place
+        return collName;
+      } else {
+        Contract.Assume(false);  // unepxected collection type
+        throw new cce.UnreachableException();  // please compiler
+      }
+    }
+
+    protected override void EmitSingleValueGenerator(Expression e, bool inLetExprBody, string type, TargetWriter wr) {
+      TrParenExpr("_dafny.SingleValue", e, wr, inLetExprBody);
     }
 
     // ----- Target compilation and execution -------------------------------------------------------------
