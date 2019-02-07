@@ -45,6 +45,133 @@ let _dafny = (function() {
       return ""("" + this.join("", "") + "")"";
     }
   }
+  $module.Set = class Set extends Array {
+    constructor() {
+      super();
+    }
+    toString() {
+      return ""{"" + this.join("", "") + ""}"";
+    }
+    static get Empty() {
+      if (this._empty === undefined) {
+        this._empty = new Set();
+      }
+      return this._empty;
+    }
+    static fromElements(...elmts) {
+      let s = new Set();
+      for (let k of elmts) {
+        s.add(k);
+      }
+      return s;
+    }
+    contains(k) {
+      for (let i = 0; i < this.length; i++) {
+        if (_dafny.areEqual(this[i], k)) {
+          return true;
+        }
+      }
+      return false;
+    }
+    add(k) {
+      if (!this.contains(k)) {
+        this.push(k);
+      }
+    }
+    equals(other) {
+      if (this === other) {
+        return true;
+      } else if (this.length !== other.length) {
+        return false;
+      }
+      for (let e of this) {
+        if (!other.contains(e)) {
+          return false;
+        }
+      }
+      return true;
+    }
+  }
+  $module.MultiSet = class MultiSet extends Array {
+    constructor() {
+      super();
+    }
+    toString() {
+      return ""multiset{"" + this.join("", "") + ""}"";
+    }
+    static get Empty() {
+      if (this._empty === undefined) {
+        this._empty = new MultiSet();
+      }
+      return this._empty;
+    }
+    static fromElements(...elmts) {
+      let s = new MultiSet();
+      for (let e of elmts) {
+        s.add(e);
+      }
+      return s;
+    }
+    findIndex(k) {
+      for (let i = 0; i < this.length; i++) {
+        if (_dafny.areEqual(this[i][0], k)) {
+          return i;
+        }
+      }
+      return this.length;
+    }
+    get(k) {
+      let i = this.findIndex(k);
+      if (i === this.length) {
+        return new BigNumber(0);
+      } else {
+        return this[i][1];
+      }
+    }
+    contains(k) {
+      return this.findIndex(k) < this.length;
+    }
+    add(k) {
+      var i = s.findIndex(k);
+      if (i === s.length) {
+        s.push([e, new BigNumber(1)]);
+      } else {
+        let n = this[i][1];
+        this[i] = [k, n.plus(1)];
+      }
+    }
+    update(k, n) {
+      let i = this.findIndex(k);
+      if (i < this.length && this[i][1].isEqualTo(n)) {
+        return this;
+      } else if (i === this.length && n.isZero()) {
+        return this;
+      } else if (i === this.length) {
+        let m = this.slice();
+        m.push([k, n]);
+        return m;
+      } else {
+        let m = this.slice();
+        m[i] = [k, n];
+        return m;
+      }
+    }
+    equals(other) {
+      if (this === other) {
+        return true;
+      } else if (this.length !== other.length) {
+        return false;
+      }
+      for (let e of this) {
+        let [k,n] = e;
+        let m = other.get(k);
+        if (!n.isEqualTo(m)) {
+          return false;
+        }
+      }
+      return true;
+    }
+  }
   $module.Seq = class Seq extends Array {
     constructor(...elems) {
       super(...elems);
@@ -56,6 +183,19 @@ let _dafny = (function() {
       let t = this.slice();
       t[i] = v;
       return t;
+    }
+    equals(other) {
+      if (this === other) {
+        return true;
+      } else if (this.length !== other.length) {
+        return false;
+      }
+      for (let i = 0; i < this.length; i++) {
+        if (!_dafny.areEqual(this[i], other[i])) {
+          return false;
+        }
+      }
+      return true;
     }
   }
   $module.Map = class Map extends Array {
@@ -96,6 +236,21 @@ let _dafny = (function() {
       m[i] = [k, v];
       return m;
     }
+    equals(other) {
+      if (this === other) {
+        return true;
+      } else if (this.length !== other.length) {
+        return false;
+      }
+      for (let e of this) {
+        let [k,n] = e;
+        let m = other.get(k);
+        if (m === undefined || !_dafny.areEqual(n, m)) {
+          return false;
+        }
+      }
+      return true;
+    }
   }
   $module.newArray = function(initValue, ...dims) {
     return { dims: dims, elmts: buildArray(initValue, ...dims) };
@@ -117,6 +272,28 @@ let _dafny = (function() {
         // -a -b: ((-a-1)/(-b)) + 1
         return a.negated().minus(1).dividedToIntegerBy(b.negated()).plus(1);
       }
+    }
+  }
+  $module.Quantifier = function(vals, frall, pred) {
+    for (let u of vals) {
+      if (pred(u) !== frall) { return !frall; }
+    }
+    return frall;
+  }
+  $module.AllBooleans = function*() {
+    yield false;
+    yield true;
+  }
+  $module.AllChars = function*() {
+    for (let i = 0; i < 0x10000; i++) {
+      yield String.fromCharCode(i);
+    }
+  }
+  $module.AllIntegers = function*() {
+    yield new BigNumber(0);
+    for (let j = new BigNumber(1);; j = j.plus(1)) {
+      yield j;
+      yield j.negated();
     }
   }
   $module.IntegerRange = function*(lo, hi) {
@@ -362,6 +539,30 @@ let _dafny = (function() {
       }
     }
 
+    protected override void DeclareNewtype(NewtypeDecl nt, TargetWriter wr) {
+      TargetWriter instanceFieldsWriter;
+      var w = CreateClass(IdName(nt), null, out instanceFieldsWriter, wr);
+      if (nt.NativeType != null) {
+        w.Indent();
+        var wIntegerRangeBody = w.NewBlock("static *IntegerRange(lo, hi)");
+        wIntegerRangeBody.Indent();
+        var wLoopBody = wIntegerRangeBody.NewBlock("while (lo.isLessThan(hi))");
+        wLoopBody.Indent();
+        wLoopBody.WriteLine("yield lo.toNumber();");
+        EmitIncrementVar("lo", wLoopBody);
+      }
+      if (nt.WitnessKind == SubsetTypeDecl.WKind.Compiled) { 
+        var witness = new TargetWriter();
+        if (nt.NativeType == null) {
+          TrExpr(nt.Witness, witness, false);
+        } else {
+          TrParenExpr(nt.Witness, witness, false);
+          witness.Write(".toNumber()");
+        }
+        DeclareField("Witness", true, true, nt.BaseType, nt.tok, witness.ToString(), w);
+      }
+    }
+
     protected override BlockTargetWriter/*?*/ CreateMethod(Method m, bool createBody, TargetWriter wr) {
       if (!createBody) {
         return null;
@@ -532,8 +733,14 @@ let _dafny = (function() {
         return "new BigNumber(0)";
       } else if (xType is RealType || xType is BitvectorType) {
         return "0";
-      } else if (xType is CollectionType) {
-        return TypeName(xType, wr, tok) + ".Empty";
+      } else if (xType is SetType) {
+        return "_dafny.Set.Empty";
+      } else if (xType is MultiSetType) {
+        return "_dafny.MultiSet.Empty";
+      } else if (xType is SeqType) {
+        return "_dafny.Seq.Empty";
+      } else if (xType is MapType) {
+        return "_dafny.Map.Empty";
       }
 
       var udt = (UserDefinedType)xType;
@@ -736,9 +943,18 @@ let _dafny = (function() {
       return wr.NewNamedBlock("for (let {0} = new BigNumber({1}); ; {0} = {0}.multipliedBy(2))", indexVar, start);
     }
 
-    protected override void DecrementVar(string varName, TargetWriter wr) {
+    protected override void EmitIncrementVar(string varName, TargetWriter wr) {
+      wr.Indent();
+      wr.WriteLine("{0} = {0}.plus(1);", varName);
+    }
+
+    protected override void EmitDecrementVar(string varName, TargetWriter wr) {
       wr.Indent();
       wr.WriteLine("{0} = {0}.minus(1);", varName);
+    }
+
+    protected override string GetQuantifierName(string bvType) {
+      return string.Format("_dafny.Quantifier");
     }
 
     protected override BlockTargetWriter CreateForeachLoop(string boundVar, out TargetWriter collectionWriter, TargetWriter wr, string/*?*/ altBoundVarName = null, Type/*?*/ altVarType = null, Bpl.IToken/*?*/ tok = null) {
@@ -1287,36 +1503,130 @@ let _dafny = (function() {
 
     protected override void EmitIsZero(string varName, TargetWriter wr) {
       wr.Write("{0}.isZero()", varName);
-    }    
+    }
+
+    protected override void EmitConversionExpr(ConversionExpr e, bool inLetExprBody, TargetWriter wr) {
+      if (e.E.Type.IsNumericBased(Type.NumericPersuation.Int) || e.E.Type.IsBitVectorType || e.E.Type.IsCharType) {
+        if (e.ToType.IsNumericBased(Type.NumericPersuation.Real)) {
+          // (int or bv) -> real
+          Contract.Assert(AsNativeType(e.ToType) == null);
+          wr.Write("new Dafny.BigRational(");
+          if (AsNativeType(e.E.Type) != null) {
+            wr.Write("new BigInteger");
+          }
+          TrParenExpr(e.E, wr, inLetExprBody);
+          wr.Write(", BigInteger.One)");
+        } else if (e.ToType.IsCharType) {
+          wr.Write("(char)(");
+          TrExpr(e.E, wr, inLetExprBody);
+          wr.Write(")");
+        } else {
+          // (int or bv) -> (int or bv or ORDINAL)
+          var fromNative = AsNativeType(e.E.Type);
+          var toNative = AsNativeType(e.ToType);
+          if (fromNative == null && toNative == null) {
+            // big-integer (int or bv) -> big-integer (int or bv or ORDINAL), so identity will do
+            TrExpr(e.E, wr, inLetExprBody);
+          } else if (fromNative != null && toNative == null) {
+            // native (int or bv) -> big-integer (int or bv)
+            wr.Write("new BigNumber");
+            TrParenExpr(e.E, wr, inLetExprBody);
+          } else {
+            // any (int or bv) -> native (int or bv)
+            // A cast would do, but we also consider some optimizations
+            wr.Write("({0})", toNative.Name);
+
+            var literal = PartiallyEvaluate(e.E);
+            UnaryOpExpr u = e.E.Resolved as UnaryOpExpr;
+            MemberSelectExpr m = e.E.Resolved as MemberSelectExpr;
+            if (literal != null) {
+              // Optimize constant to avoid intermediate BigInteger
+              wr.Write("(" + literal + toNative.Suffix + ")");
+            } else if (u != null && u.Op == UnaryOpExpr.Opcode.Cardinality) {
+              // Optimize .Count to avoid intermediate BigInteger
+              TrParenExpr(u.E, wr, inLetExprBody);
+              if (toNative.UpperBound <= new BigInteger(0x80000000U)) {
+                wr.Write(".Count");
+              } else {
+                wr.Write(".LongCount");
+              }
+            } else if (m != null && m.MemberName == "Length" && m.Obj.Type.IsArrayType) {
+              // Optimize .Length to avoid intermediate BigInteger
+              TrParenExpr(m.Obj, wr, inLetExprBody);
+              if (toNative.UpperBound <= new BigInteger(0x80000000U)) {
+                wr.Write(".length");
+              } else {
+                wr.Write(".LongLength");
+              }
+            } else {
+              // no optimization applies; use the standard translation
+              TrParenExpr(e.E, wr, inLetExprBody);
+            }
+
+          }
+        }
+      } else if (e.E.Type.IsNumericBased(Type.NumericPersuation.Real)) {
+        Contract.Assert(AsNativeType(e.E.Type) == null);
+        if (e.ToType.IsNumericBased(Type.NumericPersuation.Real)) {
+          // real -> real
+          Contract.Assert(AsNativeType(e.ToType) == null);
+          TrExpr(e.E, wr, inLetExprBody);
+        } else {
+          // real -> (int or bv)
+          if (AsNativeType(e.ToType) != null) {
+            wr.Write("({0})", AsNativeType(e.ToType).Name);
+          }
+          TrParenExpr(e.E, wr, inLetExprBody);
+          wr.Write(".ToBigInteger()");
+        }
+      } else {
+        Contract.Assert(e.E.Type.IsBigOrdinalType);
+        Contract.Assert(e.ToType.IsNumericBased(Type.NumericPersuation.Int));
+        // identity will do
+        TrExpr(e.E, wr, inLetExprBody);
+      }
+    }
 
     protected override void EmitCollectionDisplay(CollectionType ct, Bpl.IToken tok, List<Expression> elements, bool inLetExprBody, TargetWriter wr) {
       if (ct is SetType) {
-        wr.Write("{0}.FromElements", TypeName(ct, wr, tok));  // TODO
+        wr.Write("_dafny.Set.fromElements");
         TrExprList(elements, wr, inLetExprBody);
       } else if (ct is MultiSetType) {
-        wr.Write("{0}.FromElements", TypeName(ct, wr, tok));  // TODO
+        wr.Write("_dafny.MultiSet.fromElements");
         TrExprList(elements, wr, inLetExprBody);
       } else {
         Contract.Assert(ct is SeqType);  // follows from precondition
-        wr.Write("[");
+        wr.Write("_dafny.Seq.of(");
         string sep = "";
         foreach (var e in elements) {
           wr.Write(sep);
           TrExpr(e, wr, inLetExprBody);
           sep = ", ";
         }
-        wr.Write("]");
+        wr.Write(")");
       }
     }
 
     protected override void EmitMapDisplay(MapType mt, Bpl.IToken tok, List<ExpressionPair> elements, bool inLetExprBody, TargetWriter wr) {
-      wr.Write("{0}.FromElements", TypeName(mt, wr, tok));  // TODO
-      TrExprPairList(elements, wr, inLetExprBody);
+      wr.Write("_dafny.Map.of(");
+      string sep = "";
+      foreach (ExpressionPair p in elements) {
+        wr.Write(sep);
+        wr.Write("[");
+        TrExpr(p.A, wr, inLetExprBody);
+        wr.Write(",");
+        TrExpr(p.B, wr, inLetExprBody);
+        wr.Write("]");
+        sep = ", ";
+      }
+      wr.Write(")");
     }
 
     protected override void EmitCollectionBuilder_New(CollectionType ct, Bpl.IToken tok, TargetWriter wr) {
       if (ct is SetType) {
-        wr.Write("new System.Collections.Generic.List<{0}>()", TypeName(ct.Arg, wr, tok));
+        wr.Write("new _dafny.Set()");
+      } else if (ct is MultiSetType) {
+        wr.Write("new _dafny.MultiSet()");
       } else if (ct is MapType) {
         wr.Write("new _dafny.Map()");
       } else {
@@ -1325,10 +1635,9 @@ let _dafny = (function() {
     }
 
     protected override void EmitCollectionBuilder_Add(CollectionType ct, string collName, Expression elmt, bool inLetExprBody, TargetWriter wr) {
-      Contract.Assume(ct is SetType);  // follows from precondition
-      // TODO
+      Contract.Assume(ct is SetType || ct is MultiSetType);  // follows from precondition
       wr.Indent();
-      wr.Write("{0}.Add(", collName);
+      wr.Write("{0}.add(", collName);
       TrExpr(elmt, wr, inLetExprBody);
       wr.WriteLine(");");
     }
@@ -1344,18 +1653,9 @@ let _dafny = (function() {
       return termLeftWriter;
     }
 
-    protected override string GetCollectionBuilder_Create(CollectionType ct, Bpl.IToken tok, string collName, TargetWriter wr) {
-      if (ct is SetType) {
-        // TODO
-        var typeName = TypeName(ct.Arg, wr, tok);
-        return string.Format("Dafny.Set<{0}>.FromCollection({1})", typeName, collName);
-      } else if (ct is MapType) {
-        // the map was built in place
-        return collName;
-      } else {
-        Contract.Assume(false);  // unepxected collection type
-        throw new cce.UnreachableException();  // please compiler
-      }
+    protected override string GetCollectionBuilder_Build(CollectionType ct, Bpl.IToken tok, string collName, TargetWriter wr) {
+      // collections are built in place
+      return collName;
     }
 
     protected override void EmitSingleValueGenerator(Expression e, bool inLetExprBody, string type, TargetWriter wr) {

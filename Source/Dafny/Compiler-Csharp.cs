@@ -511,6 +511,29 @@ namespace Microsoft.Dafny
       }
     }
 
+    protected override void DeclareNewtype(NewtypeDecl nt, TargetWriter wr) {
+      TargetWriter instanceFieldsWriter;
+      var w = CreateClass(IdName(nt), null, out instanceFieldsWriter, wr);
+      if (nt.NativeType != null) {
+        w.Indent();
+        var wEnum = w.NewNamedBlock("public static System.Collections.Generic.IEnumerable<{0}> IntegerRange(BigInteger lo, BigInteger hi)", nt.NativeType.Name);
+        wEnum.Indent();
+        wEnum.WriteLine("for (var j = lo; j < hi; j++) {{ yield return ({0})j; }}", nt.NativeType.Name);
+      }
+      if (nt.WitnessKind == SubsetTypeDecl.WKind.Compiled) { 
+        var witness = new TargetWriter();
+        TrExpr(nt.Witness, witness, false);
+        if (nt.NativeType == null) {
+          DeclareField("Witness", true, true, nt.BaseType, nt.tok, witness.ToString(), w);
+        } else {
+          w.Indent();
+          w.Write("public static readonly {0} Witness = ({0})(", nt.NativeType.Name);
+          w.Append(witness);
+          w.WriteLine(");");
+        }
+      }
+    }
+
     protected override BlockTargetWriter/*?*/ CreateMethod(Method m, bool createBody, TargetWriter wr) {
       var hasDllImportAttribute = ProcessDllImport(m, wr);
       string targetReturnTypeReplacement = null;
@@ -970,9 +993,18 @@ namespace Microsoft.Dafny
       return wr.NewNamedBlock("for (var {0} = new BigInteger({1}); ; {0} *= 2)", indexVar, start);
     }
 
-    protected override void DecrementVar(string varName, TargetWriter wr) {
+    protected override void EmitIncrementVar(string varName, TargetWriter wr) {
+      wr.Indent();
+      wr.WriteLine("{0}++;", varName);
+    }
+
+    protected override void EmitDecrementVar(string varName, TargetWriter wr) {
       wr.Indent();
       wr.WriteLine("{0}--;", varName);
+    }
+
+    protected override string GetQuantifierName(string bvType) {
+      return string.Format("Dafny.Helpers.Quantifier<{0}>", bvType);
     }
 
     protected override BlockTargetWriter CreateForeachLoop(string boundVar, out TargetWriter collectionWriter, TargetWriter wr, string/*?*/ altBoundVarName = null, Type/*?*/ altVarType = null, Bpl.IToken/*?*/ tok = null) {
@@ -1523,6 +1555,88 @@ namespace Microsoft.Dafny
       wr.Write("{0} == 0", varName);
     }    
 
+    protected override void EmitConversionExpr(ConversionExpr e, bool inLetExprBody, TargetWriter wr) {
+      if (e.E.Type.IsNumericBased(Type.NumericPersuation.Int) || e.E.Type.IsBitVectorType || e.E.Type.IsCharType) {
+        if (e.ToType.IsNumericBased(Type.NumericPersuation.Real)) {
+          // (int or bv) -> real
+          Contract.Assert(AsNativeType(e.ToType) == null);
+          wr.Write("new Dafny.BigRational(");
+          if (AsNativeType(e.E.Type) != null) {
+            wr.Write("new BigInteger");
+          }
+          TrParenExpr(e.E, wr, inLetExprBody);
+          wr.Write(", BigInteger.One)");
+        } else if (e.ToType.IsCharType) {
+          wr.Write("(char)(");
+          TrExpr(e.E, wr, inLetExprBody);
+          wr.Write(")");
+        } else {
+          // (int or bv) -> (int or bv or ORDINAL)
+          var fromNative = AsNativeType(e.E.Type);
+          var toNative = AsNativeType(e.ToType);
+          if (fromNative == null && toNative == null) {
+            // big-integer (int or bv) -> big-integer (int or bv or ORDINAL), so identity will do
+            TrExpr(e.E, wr, inLetExprBody);
+          } else if (fromNative != null && toNative == null) {
+            // native (int or bv) -> big-integer (int or bv)
+            wr.Write("new BigInteger");
+            TrParenExpr(e.E, wr, inLetExprBody);
+          } else {
+            // any (int or bv) -> native (int or bv)
+            // A cast would do, but we also consider some optimizations
+            wr.Write("({0})", toNative.Name);
+
+            var literal = PartiallyEvaluate(e.E);
+            UnaryOpExpr u = e.E.Resolved as UnaryOpExpr;
+            MemberSelectExpr m = e.E.Resolved as MemberSelectExpr;
+            if (literal != null) {
+              // Optimize constant to avoid intermediate BigInteger
+              wr.Write("(" + literal + toNative.Suffix + ")");
+            } else if (u != null && u.Op == UnaryOpExpr.Opcode.Cardinality) {
+              // Optimize .Count to avoid intermediate BigInteger
+              TrParenExpr(u.E, wr, inLetExprBody);
+              if (toNative.UpperBound <= new BigInteger(0x80000000U)) {
+                wr.Write(".Count");
+              } else {
+                wr.Write(".LongCount");
+              }
+            } else if (m != null && m.MemberName == "Length" && m.Obj.Type.IsArrayType) {
+              // Optimize .Length to avoid intermediate BigInteger
+              TrParenExpr(m.Obj, wr, inLetExprBody);
+              if (toNative.UpperBound <= new BigInteger(0x80000000U)) {
+                wr.Write(".Length");
+              } else {
+                wr.Write(".LongLength");
+              }
+            } else {
+              // no optimization applies; use the standard translation
+              TrParenExpr(e.E, wr, inLetExprBody);
+            }
+
+          }
+        }
+      } else if (e.E.Type.IsNumericBased(Type.NumericPersuation.Real)) {
+        Contract.Assert(AsNativeType(e.E.Type) == null);
+        if (e.ToType.IsNumericBased(Type.NumericPersuation.Real)) {
+          // real -> real
+          Contract.Assert(AsNativeType(e.ToType) == null);
+          TrExpr(e.E, wr, inLetExprBody);
+        } else {
+          // real -> (int or bv)
+          if (AsNativeType(e.ToType) != null) {
+            wr.Write("({0})", AsNativeType(e.ToType).Name);
+          }
+          TrParenExpr(e.E, wr, inLetExprBody);
+          wr.Write(".ToBigInteger()");
+        }
+      } else {
+        Contract.Assert(e.E.Type.IsBigOrdinalType);
+        Contract.Assert(e.ToType.IsNumericBased(Type.NumericPersuation.Int));
+        // identity will do
+        TrExpr(e.E, wr, inLetExprBody);
+      }
+    }
+
     protected override void EmitCollectionDisplay(CollectionType ct, Bpl.IToken tok, List<Expression> elements, bool inLetExprBody, TargetWriter wr) {
       wr.Write("{0}.FromElements", TypeName(ct, wr, tok));
       TrExprList(elements, wr, inLetExprBody);
@@ -1530,7 +1644,22 @@ namespace Microsoft.Dafny
 
     protected override void EmitMapDisplay(MapType mt, Bpl.IToken tok, List<ExpressionPair> elements, bool inLetExprBody, TargetWriter wr) {
       wr.Write("{0}.FromElements", TypeName(mt, wr, tok));
-      TrExprPairList(elements, wr, inLetExprBody);
+      wr.Write("(");
+      string sep = "";
+      foreach (ExpressionPair p in elements) {
+        wr.Write(sep);
+        wr.Write("new Dafny.Pair<");
+        wr.Write(TypeName(p.A.Type, wr, p.A.tok));
+        wr.Write(",");
+        wr.Write(TypeName(p.B.Type, wr, p.B.tok));
+        wr.Write(">(");
+        TrExpr(p.A, wr, inLetExprBody);
+        wr.Write(",");
+        TrExpr(p.B, wr, inLetExprBody);
+        wr.Write(")");
+        sep = ", ";
+      }
+      wr.Write(")");
     }
 
     protected override void EmitCollectionBuilder_New(CollectionType ct, Bpl.IToken tok, TargetWriter wr) {
@@ -1570,7 +1699,7 @@ namespace Microsoft.Dafny
       return termLeftWriter;
     }
 
-    protected override string GetCollectionBuilder_Create(CollectionType ct, Bpl.IToken tok, string collName, TargetWriter wr) {
+    protected override string GetCollectionBuilder_Build(CollectionType ct, Bpl.IToken tok, string collName, TargetWriter wr) {
       if (ct is SetType) {
         var typeName = TypeName(ct.Arg, wr, tok);
         return string.Format("Dafny.Set<{0}>.FromCollection({1})", typeName, collName);

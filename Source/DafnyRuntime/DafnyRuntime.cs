@@ -569,7 +569,7 @@ namespace Dafny
       }
     }
 
-    public IEnumerable<T> ElementsWithoutDuplicates {
+    public IEnumerable<T> UniqueElements {
       get {
         if (!occurrencesOfNull.IsZero) {
           yield return default(T);
@@ -970,110 +970,28 @@ namespace Dafny
         return default(G);
       }
     }
-    public static System.Predicate<BigInteger> PredicateConverter_byte(System.Predicate<byte> pred) {
-      return x => pred((byte)x);
-    }
-    public static System.Predicate<BigInteger> PredicateConverter_sbyte(System.Predicate<sbyte> pred) {
-      return x => pred((sbyte)x);
-    }
-    public static System.Predicate<BigInteger> PredicateConverter_ushort(System.Predicate<ushort> pred) {
-      return x => pred((ushort)x);
-    }
-    public static System.Predicate<BigInteger> PredicateConverter_short(System.Predicate<short> pred) {
-      return x => pred((short)x);
-    }
-    public static System.Predicate<BigInteger> PredicateConverter_uint(System.Predicate<uint> pred) {
-      return x => pred((uint)x);
-    }
-    public static System.Predicate<BigInteger> PredicateConverter_int(System.Predicate<int> pred) {
-      return x => pred((int)x);
-    }
-    public static System.Predicate<BigInteger> PredicateConverter_ulong(System.Predicate<ulong> pred) {
-      return x => pred((ulong)x);
-    }
-    public static System.Predicate<BigInteger> PredicateConverter_long(System.Predicate<long> pred) {
-      return x => pred((long)x);
-    }
     // Computing forall/exists quantifiers
-    public static bool QuantBool(bool frall, System.Predicate<bool> pred) {
-      if (frall) {
-        return pred(false) && pred(true);
-      } else {
-        return pred(false) || pred(true);
-      }
-    }
-    public static bool QuantChar(bool frall, System.Predicate<char> pred) {
-      for (int i = 0; i < 0x10000; i++) {
-        if (pred((char)i) != frall) { return !frall; }
-      }
-      return frall;
-    }
-    public static bool QuantInt(BigInteger lo, BigInteger hi, bool frall, System.Predicate<BigInteger> pred) {
-      for (BigInteger i = lo; i < hi; i++) {
-        if (pred(i) != frall) { return !frall; }
-      }
-      return frall;
-    }
-    public static bool QuantSingle<U>(U u, bool frall, System.Predicate<U> pred) {
-      return pred(u);
-    }
-    public static bool QuantSet<U>(Dafny.Set<U> set, bool frall, System.Predicate<U> pred) {
-      foreach (var u in set.Elements) {
-        if (pred(u) != frall) { return !frall; }
-      }
-      return frall;
-    }
-    public static bool QuantMultiSet<U>(Dafny.MultiSet<U> multiset, bool frall, System.Predicate<U> pred) {
-      foreach (var u in multiset.ElementsWithoutDuplicates) {
-        if (pred(u) != frall) { return !frall; }
-      }
-      return frall;
-    }
-    public static bool QuantSubSets<U>(Dafny.Set<U> set, bool frall, System.Predicate<Dafny.Set<U>> pred) {
-      foreach (var u in set.AllSubsets) {
-        if (pred(u) != frall) { return !frall; }
-      }
-      return frall;
-    }
-    public static bool QuantMap<U,V>(Dafny.Map<U,V> map, bool frall, System.Predicate<U> pred) {
-      foreach (var u in map.Domain) {
-        if (pred(u) != frall) { return !frall; }
-      }
-      return frall;
-    }
-    public static bool QuantSeq<U>(Dafny.Sequence<U> seq, bool frall, System.Predicate<U> pred) {
-      foreach (var u in seq.Elements) {
-        if (pred(u) != frall) { return !frall; }
-      }
-      return frall;
-    }
-    public static bool QuantDatatype<U>(IEnumerable<U> set, bool frall, System.Predicate<U> pred) {
-      foreach (var u in set) {
+    public static bool Quantifier<T>(IEnumerable<T> vals, bool frall, System.Predicate<T> pred) {
+      foreach (var u in vals) {
         if (pred(u) != frall) { return !frall; }
       }
       return frall;
     }
     // Enumerating other collections
-    public static IEnumerable<bool> AllBooleans {
-      get {
-        yield return false;
-        yield return true;
+    public static IEnumerable<bool> AllBooleans() {
+      yield return false;
+      yield return true;
+    }
+    public static IEnumerable<char> AllChars() {
+      for (int i = 0; i < 0x10000; i++) {
+        yield return (char)i;
       }
     }
-    public static IEnumerable<char> AllChars {
-      get {
-        for (int i = 0; i < 0x10000; i++) {
-          yield return (char)i;
-        }
-      }
-    }
-    public static IEnumerable<BigInteger> AllIntegers {
-      get {
-        yield return new BigInteger(0);
-        for (var j = new BigInteger(1);; j++) {
-          yield return j;
-          yield return -j;
-        }
+    public static IEnumerable<BigInteger> AllIntegers() {
+      yield return new BigInteger(0);
+      for (var j = new BigInteger(1);; j++) {
+        yield return j;
+        yield return -j;
       }
     }
     public static IEnumerable<BigInteger> IntegerRange(Nullable<BigInteger> lo, Nullable<BigInteger> hi) {

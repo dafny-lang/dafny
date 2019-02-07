@@ -72,6 +72,7 @@ namespace Microsoft.Dafny {
     /// </summary>
     protected abstract BlockTargetWriter CreateTrait(string name, List<Type>/*?*/ superClasses, Bpl.IToken tok, out TargetWriter instanceFieldsWriter, out TargetWriter staticMemberWriter, TargetWriter wr);
     protected abstract void DeclareDatatype(DatatypeDecl dt, TargetWriter wr);
+    protected abstract void DeclareNewtype(NewtypeDecl nt, TargetWriter wr);
     protected abstract BlockTargetWriter/*?*/ CreateMethod(Method m, bool createBody, TargetWriter wr);
     protected abstract BlockTargetWriter/*?*/ CreateFunction(string name, List<TypeParameter>/*?*/ typeArgs, List<Formal> formals, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl member, TargetWriter wr);
     protected abstract BlockTargetWriter/*?*/ CreateGetter(string name, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, TargetWriter wr);  // returns null iff !createBody
@@ -188,7 +189,10 @@ namespace Microsoft.Dafny {
 
     protected abstract BlockTargetWriter CreateForLoop(string indexVar, string bound, TargetWriter wr);
     protected abstract BlockTargetWriter CreateDoublingForLoop(string indexVar, int start, TargetWriter wr);
-    protected abstract void DecrementVar(string varName, TargetWriter wr);
+    protected abstract void EmitIncrementVar(string varName, TargetWriter wr);  // increments a BigInteger by 1
+    protected abstract void EmitDecrementVar(string varName, TargetWriter wr);  // decrements a BigInteger by 1
+
+    protected abstract string GetQuantifierName(string bvType);
 
     /// <summary>
     /// "tok" can be null if "altVarType" is null, which in turn is allowed if "altBoundVarName" is null
@@ -282,12 +286,13 @@ namespace Microsoft.Dafny {
       out bool convertE1_to_int,
       TextWriter errorWr);
     protected abstract void EmitIsZero(string varName, TargetWriter wr);
+    protected abstract void EmitConversionExpr(ConversionExpr e, bool inLetExprBody, TargetWriter wr);
     protected abstract void EmitCollectionDisplay(CollectionType ct, Bpl.IToken tok, List<Expression> elements, bool inLetExprBody, TargetWriter wr);  // used for sets, multisets, and sequences
     protected abstract void EmitMapDisplay(MapType mt, Bpl.IToken tok, List<ExpressionPair> elements, bool inLetExprBody, TargetWriter wr);
     protected abstract void EmitCollectionBuilder_New(CollectionType ct, Bpl.IToken tok, TargetWriter wr);
     protected abstract void EmitCollectionBuilder_Add(CollectionType ct, string collName, Expression elmt, bool inLetExprBody, TargetWriter wr);
     protected abstract TargetWriter EmitMapBuilder_Add(MapType mt, Bpl.IToken tok, string collName, Expression term, bool inLetExprBody, TargetWriter wr);
-    protected abstract string GetCollectionBuilder_Create(CollectionType ct, Bpl.IToken tok, string collName, TargetWriter wr);
+    protected abstract string GetCollectionBuilder_Build(CollectionType ct, Bpl.IToken tok, string collName, TargetWriter wr);
     protected abstract void EmitSingleValueGenerator(Expression e, bool inLetExprBody, string type, TargetWriter wr);
 
     public void Compile(Program program, TargetWriter wrx) {
@@ -327,26 +332,7 @@ namespace Microsoft.Dafny {
             }
           } else if (d is NewtypeDecl) {
             var nt = (NewtypeDecl)d;
-            TargetWriter instanceFieldsWriter;
-            var w = CreateClass(IdName(nt), null, out instanceFieldsWriter, wr);
-            if (nt.NativeType != null) {
-              w.Indent();
-              var wEnum = w.NewNamedBlock("public static System.Collections.Generic.IEnumerable<{0}> IntegerRange(BigInteger lo, BigInteger hi)", nt.NativeType.Name);
-              wEnum.Indent();
-              wEnum.WriteLine("for (var j = lo; j < hi; j++) {{ yield return ({0})j; }}", nt.NativeType.Name);
-            }
-            if (nt.WitnessKind == SubsetTypeDecl.WKind.Compiled) { 
-              var witness = new TargetWriter();
-              TrExpr(nt.Witness, witness, false);
-              if (nt.NativeType == null) {
-                DeclareField("Witness", true, true, nt.BaseType, nt.tok, witness.ToString(), w);
-              } else {
-                w.Indent();
-                w.Write("public static readonly {0} Witness = ({0})(", nt.NativeType.Name);
-                w.Append(witness);
-                w.WriteLine(");");
-              }
-            }
+            DeclareNewtype(nt, wr);
           } else if (d is DatatypeDecl) {
             var dt = (DatatypeDecl)d;
             DeclareDatatype(dt, wr);
@@ -1723,9 +1709,9 @@ namespace Microsoft.Dafny {
       Contract.Requires(collectionWriter != null);
 
       if (bound is ComprehensionExpr.BoolBoundedPool) {
-        collectionWriter.Write("{0}.AllBooleans", GetHelperModuleName());
+        collectionWriter.Write("{0}.AllBooleans()", GetHelperModuleName());
       } else if (bound is ComprehensionExpr.CharBoundedPool) {
-        collectionWriter.Write("{0}.AllChars", GetHelperModuleName());
+        collectionWriter.Write("{0}.AllChars()", GetHelperModuleName());
       } else if (bound is ComprehensionExpr.IntBoundedPool) {
         var b = (ComprehensionExpr.IntBoundedPool)bound;
         if (AsNativeType(bv.Type) != null) {
@@ -1752,7 +1738,7 @@ namespace Microsoft.Dafny {
         }
         collectionWriter.Write(")");
       } else if (bound is AssignSuchThatStmt.WiggleWaggleBound) {
-        collectionWriter.Write("{0}.AllIntegers", GetHelperModuleName());
+        collectionWriter.Write("{0}.AllIntegers()", GetHelperModuleName());
       } else if (bound is ComprehensionExpr.ExactBoundedPool) {
         var b = (ComprehensionExpr.ExactBoundedPool)bound;
         EmitSingleValueGenerator(b.E, inLetExprBody, TypeName(b.E.Type, collectionWriter, b.E.tok), collectionWriter);
@@ -1763,7 +1749,7 @@ namespace Microsoft.Dafny {
       } else if (bound is ComprehensionExpr.MultiSetBoundedPool) {
         var b = (ComprehensionExpr.MultiSetBoundedPool)bound;
         TrParenExpr(b.MultiSet, collectionWriter, inLetExprBody);
-        collectionWriter.Write(".Elements");
+        collectionWriter.Write(includeDuplicates ? ".Elements" : ".UniqueElements");
       } else if (bound is ComprehensionExpr.SubSetBoundedPool) {
         var b = (ComprehensionExpr.SubSetBoundedPool)bound;
         TrParenExpr(b.UpperBound, collectionWriter, inLetExprBody);
@@ -1880,7 +1866,7 @@ namespace Microsoft.Dafny {
           var thn = EmitIf(out isZeroWriter, false, wr);
           EmitIsZero(varName, isZeroWriter);
           EmitBreak(null, thn);
-          DecrementVar(varName, wr);
+          EmitDecrementVar(varName, wr);
         }
       }
       TargetWriter guardWriter;
@@ -2244,25 +2230,6 @@ namespace Microsoft.Dafny {
       }
       wr.Write(")");
     }
-    protected void TrExprPairList(List<ExpressionPair> exprs, TargetWriter wr, bool inLetExprBody) {
-      Contract.Requires(cce.NonNullElements(exprs));
-      wr.Write("(");
-      string sep = "";
-      foreach (ExpressionPair p in exprs) {
-        wr.Write(sep);
-        wr.Write("new Dafny.Pair<");
-        wr.Write(TypeName(p.A.Type, wr, p.A.tok));
-        wr.Write(",");
-        wr.Write(TypeName(p.B.Type, wr, p.B.tok));
-        wr.Write(">(");
-        TrExpr(p.A, wr, inLetExprBody);
-        wr.Write(",");
-        TrExpr(p.B, wr, inLetExprBody);
-        wr.Write(")");
-        sep = ", ";
-      }
-      wr.Write(")");
-    }
 
     /// <summary>
     /// Before calling TrExpr(expr), the caller must have spilled the let variables declared in "expr".
@@ -2420,85 +2387,7 @@ namespace Microsoft.Dafny {
 
       } else if (expr is ConversionExpr) {
         var e = (ConversionExpr)expr;
-        if (e.E.Type.IsNumericBased(Type.NumericPersuation.Int) || e.E.Type.IsBitVectorType || e.E.Type.IsCharType) {
-          if (e.ToType.IsNumericBased(Type.NumericPersuation.Real)) {
-            // (int or bv) -> real
-            Contract.Assert(AsNativeType(e.ToType) == null);
-            wr.Write("new Dafny.BigRational(");
-            if (AsNativeType(e.E.Type) != null) {
-              wr.Write("new BigInteger");
-            }
-            TrParenExpr(e.E, wr, inLetExprBody);
-            wr.Write(", BigInteger.One)");
-          } else if (e.ToType.IsCharType) {
-            wr.Write("(char)(");
-            TrExpr(e.E, wr, inLetExprBody);
-            wr.Write(")");
-          } else {
-            // (int or bv) -> (int or bv or ORDINAL)
-            var fromNative = AsNativeType(e.E.Type);
-            var toNative = AsNativeType(e.ToType);
-            if (fromNative == null && toNative == null) {
-              // big-integer (int or bv) -> big-integer (int or bv or ORDINAL), so identity will do
-              TrExpr(e.E, wr, inLetExprBody);
-            } else if (fromNative != null && toNative == null) {
-              // native (int or bv) -> big-integer (int or bv)
-              wr.Write("new BigInteger");
-              TrParenExpr(e.E, wr, inLetExprBody);
-            } else {
-              // any (int or bv) -> native (int or bv)
-              // A cast would do, but we also consider some optimizations
-              wr.Write("({0})", toNative.Name);
-
-              var literal = PartiallyEvaluate(e.E);
-              UnaryOpExpr u = e.E.Resolved as UnaryOpExpr;
-              MemberSelectExpr m = e.E.Resolved as MemberSelectExpr;
-              if (literal != null) {
-                // Optimize constant to avoid intermediate BigInteger
-                wr.Write("(" + literal + toNative.Suffix + ")");
-              } else if (u != null && u.Op == UnaryOpExpr.Opcode.Cardinality) {
-                // Optimize .Count to avoid intermediate BigInteger
-                TrParenExpr(u.E, wr, inLetExprBody);
-                if (toNative.UpperBound <= new BigInteger(0x80000000U)) {
-                  wr.Write(".Count");
-                } else {
-                  wr.Write(".LongCount");
-                }
-              } else if (m != null && m.MemberName == "Length" && m.Obj.Type.IsArrayType) {
-                // Optimize .Length to avoid intermediate BigInteger
-                TrParenExpr(m.Obj, wr, inLetExprBody);
-                if (toNative.UpperBound <= new BigInteger(0x80000000U)) {
-                  wr.Write(".Length");
-                } else {
-                  wr.Write(".LongLength");
-                }
-              } else {
-                // no optimization applies; use the standard translation
-                TrParenExpr(e.E, wr, inLetExprBody);
-              }
-
-            }
-          }
-        } else if (e.E.Type.IsNumericBased(Type.NumericPersuation.Real)) {
-          Contract.Assert(AsNativeType(e.E.Type) == null);
-          if (e.ToType.IsNumericBased(Type.NumericPersuation.Real)) {
-            // real -> real
-            Contract.Assert(AsNativeType(e.ToType) == null);
-            TrExpr(e.E, wr, inLetExprBody);
-          } else {
-            // real -> (int or bv)
-            if (AsNativeType(e.ToType) != null) {
-              wr.Write("({0})", AsNativeType(e.ToType).Name);
-            }
-            TrParenExpr(e.E, wr, inLetExprBody);
-            wr.Write(".ToBigInteger()");
-          }
-        } else {
-          Contract.Assert(e.E.Type.IsBigOrdinalType);
-          Contract.Assert(e.ToType.IsNumericBased(Type.NumericPersuation.Int));
-          // identity will do
-          TrExpr(e.E, wr, inLetExprBody);
-        }
+        EmitConversionExpr(e, inLetExprBody, wr);
 
       } else if (expr is BinaryExpr) {
         BinaryExpr e = (BinaryExpr)expr;
@@ -2662,68 +2551,16 @@ namespace Microsoft.Dafny {
         for (int i = 0; i < n; i++) {
           var bound = e.Bounds[i];
           var bv = e.BoundVars[i];
-          // emit:  Dafny.Helpers.QuantX(boundsInformation, isForall, bv => body)
-          if (bound is ComprehensionExpr.BoolBoundedPool) {
-            wr.Write("Dafny.Helpers.QuantBool(");
-          } else if (bound is ComprehensionExpr.CharBoundedPool) {
-            wr.Write("Dafny.Helpers.QuantChar(");
-          } else if (bound is ComprehensionExpr.IntBoundedPool) {
-            var b = (ComprehensionExpr.IntBoundedPool)bound;
-            wr.Write("Dafny.Helpers.QuantInt(");
-            var low = SubstituteBound(b, e.Bounds, e.BoundVars, i, true);
-            TrExpr(low, wr, inLetExprBody);
-            wr.Write(", ");
-            var high = SubstituteBound(b, e.Bounds, e.BoundVars, i, false);
-            TrExpr(high, wr, inLetExprBody);
-            wr.Write(", ");
-          } else if (bound is ComprehensionExpr.ExactBoundedPool) {
-            var b = (ComprehensionExpr.ExactBoundedPool)bound;
-            wr.Write("Dafny.Helpers.QuantSingle<{0}>(", TypeName(b.E.Type, wr, b.E.tok));
-            TrExpr(b.E, wr, inLetExprBody);
-            wr.WriteLine(", ");
-          } else if (bound is ComprehensionExpr.SetBoundedPool) {
-            var b = (ComprehensionExpr.SetBoundedPool)bound;
-            wr.Write("Dafny.Helpers.QuantSet(");
-            TrExpr(b.Set, wr, inLetExprBody);
-            wr.Write(", ");
-          } else if (bound is ComprehensionExpr.MultiSetBoundedPool) {
-            var b = (ComprehensionExpr.MultiSetBoundedPool)bound;
-            wr.Write("Dafny.Helpers.QuantMultiSet(");
-            TrExpr(b.MultiSet, wr, inLetExprBody);
-            wr.Write(", ");
-          } else if (bound is ComprehensionExpr.SubSetBoundedPool) {
-            var b = (ComprehensionExpr.SubSetBoundedPool)bound;
-            wr.Write("Dafny.Helpers.QuantSubSets(");
-            TrExpr(b.UpperBound, wr, inLetExprBody);
-            wr.Write(", ");
-          } else if (bound is ComprehensionExpr.MapBoundedPool) {
-            var b = (ComprehensionExpr.MapBoundedPool)bound;
-            wr.Write("Dafny.Helpers.QuantMap(");
-            TrExpr(b.Map, wr, inLetExprBody);
-            wr.Write(", ");
-          } else if (bound is ComprehensionExpr.SeqBoundedPool) {
-            var b = (ComprehensionExpr.SeqBoundedPool)bound;
-            wr.Write("Dafny.Helpers.QuantSeq(");
-            TrExpr(b.Seq, wr, inLetExprBody);
-            wr.Write(", ");
-          } else if (bound is ComprehensionExpr.DatatypeBoundedPool) {
-            var b = (ComprehensionExpr.DatatypeBoundedPool)bound;
-            wr.Write("Dafny.Helpers.QuantDatatype(");
-
-            wr.Write("{0}.AllSingletonConstructors, ", DtName(b.Decl));
-          } else {
-            Contract.Assert(false); throw new cce.UnreachableException();  // unexpected BoundedPool type
-          }
-          wr.Write("{0}, ", expr is ForallExpr ? "true" : "false");
+          // emit:  Dafny.Helpers.Quantifier(rangeOfValues, isForall, bv => body)
+          wr.Write("{0}(", GetQuantifierName(TypeName(bv.Type, wr, bv.tok)));
+          CompileCollection(bound, bv, inLetExprBody, false, wr, e.Bounds, e.BoundVars, i);
+          wr.Write(", {0}, ", expr is ForallExpr ? "true" : "false");
           var native = AsNativeType(e.BoundVars[i].Type);
-          if (native != null) {
-            wr.Write("Dafny.Helpers.PredicateConverter_{0}", native.Name);
-          }
-          wr.Write("({0} => ", IdName(bv));
+          wr.Write("{0} => ", IdName(bv));
         }
         TrExpr(e.LogicalBody(true), wr, inLetExprBody);
         for (int i = 0; i < n; i++) {
-          wr.Write("))");
+          wr.Write(")");
         }
 
       } else if (expr is SetComprehension) {
@@ -2750,7 +2587,7 @@ namespace Microsoft.Dafny {
         var bwr = CreateIIFE0(e.Type.AsSetType, e.tok, wr);
         wr = bwr;
         using (var wrVarInit = DeclareLocalVar(collection_name, null, null, wr)) {
-          EmitCollectionBuilder_New(e.Type.AsSetType, e.tok, wr);
+          EmitCollectionBuilder_New(e.Type.AsSetType, e.tok, wrVarInit);
         }
         var n = e.BoundVars.Count;
         Contract.Assert(e.Bounds.Count == n);
@@ -2766,7 +2603,7 @@ namespace Microsoft.Dafny {
         var thn = EmitIf(out guardWriter, false, wr);
         TrExpr(e.Range, guardWriter, inLetExprBody);
         EmitCollectionBuilder_Add(e.Type.AsSetType, collection_name, e.Term, inLetExprBody, thn);
-        var s = GetCollectionBuilder_Create(e.Type.AsSeqType, e.tok, collection_name, bwr);
+        var s = GetCollectionBuilder_Build(e.Type.AsSetType, e.tok, collection_name, wr);
         EmitReturnExpr(s, bwr);
 
       } else if (expr is MapComprehension) {
@@ -2813,7 +2650,7 @@ namespace Microsoft.Dafny {
           TrExpr(e.TermLeft, termLeftWriter, inLetExprBody);
         }
 
-        var s = GetCollectionBuilder_Create(e.Type.AsMapType, e.tok, collection_name, wr);
+        var s = GetCollectionBuilder_Build(e.Type.AsMapType, e.tok, collection_name, wr);
         EmitReturnExpr(s, wr);
 
       } else if (expr is LambdaExpr) {
