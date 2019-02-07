@@ -91,6 +91,9 @@ let _dafny = (function() {
       }
       return true;
     }
+    get Elements() {
+      return this;
+    }
   }
   $module.MultiSet = class MultiSet extends Array {
     constructor() {
@@ -171,6 +174,27 @@ let _dafny = (function() {
       }
       return true;
     }
+    get Elements() {
+      return Elements_;
+    }
+    *Elements_() {
+      for (let i = 0; i < this.length; i++) {
+        let [k,n] = this[i];
+        while (!n.isZero) {
+          yield k;
+          n = n.minus(1);
+        }
+      }
+    }
+    get UniqueElements() {
+      return UniqueElements_;
+    }
+    *UniqueElements_() {
+      for (let i = 0; i < this.length; i++) {
+        let [k,n] = this[i];
+        yield k;
+      }
+    }
   }
   $module.Seq = class Seq extends Array {
     constructor(...elems) {
@@ -196,6 +220,20 @@ let _dafny = (function() {
         }
       }
       return true;
+    }
+    contains(k) {
+      for (let x of this) {
+        if (_dafny.areEqual(x, k)) {
+          return true;
+        }
+      }
+      return false;
+    }
+    get Elements() {
+      return this;
+    }
+    get UniqueElements() {
+      return _dafny.Set.fromElements(...this);
     }
   }
   $module.Map = class Map extends Array {
@@ -1474,7 +1512,7 @@ let _dafny = (function() {
         case BinaryExpr.ResolvedOpcode.NotInSet:
         case BinaryExpr.ResolvedOpcode.NotInMultiSet:
         case BinaryExpr.ResolvedOpcode.NotInMap:
-          preOpString = "!"; callString = "Contains"; reverseArguments = true; break;
+          preOpString = "!"; callString = "contains"; reverseArguments = true; break;
         case BinaryExpr.ResolvedOpcode.Union:
         case BinaryExpr.ResolvedOpcode.MultiSetUnion:
           callString = "Union"; break;
@@ -1492,9 +1530,9 @@ let _dafny = (function() {
         case BinaryExpr.ResolvedOpcode.Concat:
           callString = "Concat"; break;
         case BinaryExpr.ResolvedOpcode.InSeq:
-          callString = "Contains"; reverseArguments = true; break;
+          callString = "contains"; reverseArguments = true; break;
         case BinaryExpr.ResolvedOpcode.NotInSeq:
-          preOpString = "!"; callString = "Contains"; reverseArguments = true; break;
+          preOpString = "!"; callString = "contains"; reverseArguments = true; break;
 
         default:
           Contract.Assert(false); throw new cce.UnreachableException();  // unexpected binary expression
