@@ -3,15 +3,15 @@ Dafny program verifier finished with 0 verified, 0 errors
 Program compiled successfully
 Running...
 
-True
-False
-True
-False
-True
-False
-False
-True
-False
-True
-False
-True
+true
+false
+true
+false
+true
+false
+false
+true
+false
+true
+false
+true

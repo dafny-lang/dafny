@@ -958,7 +958,16 @@ namespace Dafny
       return g == null ? 1001 : g.GetHashCode();
     }
     public static string ToString<G>(G g) {
-      return g == null ? "null" : g.ToString();
+      if (g == null) {
+        return "null";
+      } else if (g is bool) {
+        return (bool)(object)g ? "true" : "false";  // capitalize boolean literals like in Dafny
+      } else {
+        return g.ToString();
+      }
+    }
+    public static void Print<G>(G g) {
+      System.Console.Write(ToString(g));
     }
     public static G Default<G>() {
       System.Type ty = typeof(G);

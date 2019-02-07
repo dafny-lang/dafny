@@ -6,7 +6,7 @@ Running...
 
 Hello, JavaScript! Best, Dafny
 x is 14
-y is False
+y is false
 
 Dafny program verifier finished with 0 verified, 0 errors
 Compiled program written to Hello.js

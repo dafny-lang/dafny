@@ -39,5 +39,5 @@ got 14, expected 14
 68 68 68 68
 Something about ORDINAL: 143 143 143 147 43
 ORDINAL and bitvectors: 20 20
-False 143 True
-True 0 True
+false 143 true
+true 0 true

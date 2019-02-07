@@ -3,5 +3,5 @@ Dafny program verifier finished with 1 verified, 0 errors
 Program compiled successfully
 Running...
 
-True
-True
+true
+true

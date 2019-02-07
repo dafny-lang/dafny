@@ -3,7 +3,7 @@ Dafny program verifier finished with 4 verified, 0 errors
 Program compiled successfully
 Running...
 
-HI.foo(h1) => True
-HI.foo(h2) => True
+HI.foo(h1) => true
+HI.foo(h2) => true
 PI.orange(1) => 2
 PI.apple(2) => 3

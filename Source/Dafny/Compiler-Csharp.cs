@@ -946,7 +946,7 @@ namespace Microsoft.Dafny
 
     protected override void EmitPrintStmt(TargetWriter wr, Expression arg) {
       wr.Indent();
-      wr.Write("System.Console.Write(");
+      wr.Write("Dafny.Helpers.Print(");
       TrExpr(arg, wr, false);
       wr.WriteLine(");");
     }

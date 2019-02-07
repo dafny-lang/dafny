@@ -4,7 +4,7 @@ Compiled program written to Calls.cs
 Program compiled successfully
 Running...
 
-5 0 0 False 0 False 0
+5 0 0 false 0 false 0
 
 Dafny program verifier finished with 1 verified, 0 errors
 Compiled program written to Calls.js

@@ -8,7 +8,7 @@ x=13 y=14
 x=13 y=14 b=yes
 p=(13, 14)
 q=(13, 14, yes)
-True False
-True False
+true false
+true false
 map[12 := 6, 13 := 6, 14 := 7]
 map[16 := 12, 17 := 13, 18 := 14]
