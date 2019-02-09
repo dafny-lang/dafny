@@ -32,6 +32,7 @@ method Main() {
   Literals();
   Arithmetic();
   PrintReals();
+  SimpleReality();
 }
 
 method Literals() {
@@ -119,7 +120,6 @@ method DivModReal(dividend: real, divisor: real)
 }
 
 method PrintReals() {
-  /** SOON
   // 0
   P(0.0);
   P(0.2 + 0.4 - 0.6);
@@ -156,9 +156,18 @@ method PrintReals() {
   P(20.0 / -3.0);
   P(-20.0 / -3.0);
   print "\n";
-  **/
 }
 
 method P(r: real) {
   print r, " ";
+}
+
+method SimpleReality() {
+  var r: real;
+  var z := r - r;
+  var s := 0.81;
+  var t := 2.0 * s + z - s;
+  var u := s / t;  // 1.0
+  print r, " ", z, " ", s, " ", t, " ", u, "\n";
+  print s == t, " ", z == u, "\n";
 }

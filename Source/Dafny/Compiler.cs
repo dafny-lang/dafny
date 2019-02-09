@@ -73,6 +73,48 @@ namespace Microsoft.Dafny {
     protected abstract BlockTargetWriter CreateTrait(string name, List<Type>/*?*/ superClasses, Bpl.IToken tok, out TargetWriter instanceFieldsWriter, out TargetWriter staticMemberWriter, TargetWriter wr);
     protected abstract void DeclareDatatype(DatatypeDecl dt, TargetWriter wr);
     protected abstract void DeclareNewtype(NewtypeDecl nt, TargetWriter wr);
+    protected string GetNativeTypeName(NativeType nt) {
+      Contract.Requires(nt != null);
+      string nativeName = null, literalSuffix = null;
+      bool needsCastAfterArithmetic = false;
+      GetNativeInfo(nt.Sel, out nativeName, out literalSuffix, out needsCastAfterArithmetic);
+      return nativeName;
+    }
+    protected virtual void GetNativeInfo(NativeType.Selection sel, out string name, out string literalSuffix, out bool needsCastAfterArithmetic) {
+      switch (sel) {
+        case NativeType.Selection.Byte:
+          name = "byte"; literalSuffix = ""; needsCastAfterArithmetic = true;
+          break;
+        case NativeType.Selection.SByte:
+          name = "sbyte"; literalSuffix = ""; needsCastAfterArithmetic = true;
+          break;
+        case NativeType.Selection.UShort:
+          name = "ushort"; literalSuffix = ""; needsCastAfterArithmetic = true;
+          break;
+        case NativeType.Selection.Short:
+          name = "short"; literalSuffix = ""; needsCastAfterArithmetic = true;
+          break;
+        case NativeType.Selection.UInt:
+          name = "uint"; literalSuffix = "U"; needsCastAfterArithmetic = false;
+          break;
+        case NativeType.Selection.Int:
+          name = "int"; literalSuffix = ""; needsCastAfterArithmetic = false;
+          break;
+        case NativeType.Selection.Number:
+          name = "number"; literalSuffix = ""; needsCastAfterArithmetic = false;
+          break;
+        case NativeType.Selection.ULong:
+          name = "ulong"; literalSuffix = "UL"; needsCastAfterArithmetic = false;
+          break;
+        case NativeType.Selection.Long:
+          name = "long"; literalSuffix = "L"; needsCastAfterArithmetic = false;
+          break;
+        default:
+          Contract.Assert(false);  // unexpected native type
+          throw new cce.UnreachableException();  // to please the compiler
+      }
+    }
+
     protected abstract BlockTargetWriter/*?*/ CreateMethod(Method m, bool createBody, TargetWriter wr);
     protected abstract BlockTargetWriter/*?*/ CreateFunction(string name, List<TypeParameter>/*?*/ typeArgs, List<Formal> formals, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl member, TargetWriter wr);
     protected abstract BlockTargetWriter/*?*/ CreateGetter(string name, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, TargetWriter wr);  // returns null iff !createBody
@@ -2416,10 +2458,14 @@ namespace Microsoft.Dafny {
         var e0 = reverseArguments ? e.E1 : e.E0;
         var e1 = reverseArguments ? e.E0 : e.E1;
         if (opString != null) {
-          NativeType nativeType = AsNativeType(e.Type);
-          bool needsCast = nativeType != null && nativeType.NeedsCastAfterArithmetic;
+          var nativeType = AsNativeType(e.Type);
+          string nativeName = null, literalSuffix = null;
+          bool needsCast = false;
+          if (nativeType != null) {
+            GetNativeInfo(nativeType.Sel, out nativeName, out literalSuffix, out needsCast);
+          }
           if (needsCast) {
-            wr.Write("(" + nativeType.Name + ")(");
+            wr.Write("(" + nativeName + ")(");
           }
           wr.Write(preOpString);
           TrParenExpr(e0, wr, inLetExprBody);
@@ -2731,9 +2777,16 @@ namespace Microsoft.Dafny {
       EmitStringLiteral((string)str.Value, str.IsVerbatim, wr);
     }
 
-    private static void BitvectorTruncation(BitvectorType bvType, TextWriter wr, bool after, bool surroundByUnchecked) {
+    private void BitvectorTruncation(BitvectorType bvType, TextWriter wr, bool after, bool surroundByUnchecked) {
       Contract.Requires(bvType != null);
       Contract.Requires(wr != null);
+
+      string nativeName = null, literalSuffix = null;
+      bool needsCastAfterArithmetic = false;
+      if (bvType.NativeType != null) {
+        GetNativeInfo(bvType.NativeType.Sel, out nativeName, out literalSuffix, out needsCastAfterArithmetic);
+      }
+
       if (!after) {
         if (bvType.NativeType == null) {
           wr.Write("((");
@@ -2744,7 +2797,7 @@ namespace Microsoft.Dafny {
             // applied the "unchecked" only to the actual operation that may overflow.
             wr.Write("unchecked(");
           }
-          wr.Write("({0})((", bvType.NativeType.Name);
+          wr.Write("({0})((", nativeName);
         }
       } else {
         // do the truncation, if needed
@@ -2753,7 +2806,7 @@ namespace Microsoft.Dafny {
         } else {
           if (bvType.NativeType.Bitwidth != bvType.Width) {
             // print in hex, because that looks nice
-            wr.Write(") & ({2})0x{0:X}{1})", (1UL << bvType.Width) - 1, bvType.NativeType.Suffix, bvType.NativeType.Name);
+            wr.Write(") & ({2})0x{0:X}{1})", (1UL << bvType.Width) - 1, literalSuffix, nativeName);
           } else {
             wr.Write("))");  // close the parentheses for the cast
           }
@@ -2855,11 +2908,16 @@ namespace Microsoft.Dafny {
     }
 
     void CompileRotate(Expression e0, Expression e1, string op1, string op2, bool truncateOp1, bool truncateOp2, TargetWriter wr, bool inLetExprBody, FCE_Arg_Translator tr) {
-      NativeType nativeType = AsNativeType(e0.Type);
-      bool needsCast = nativeType != null && nativeType.NeedsCastAfterArithmetic;
+      string nativeName = null, literalSuffix = null;
+      bool needsCast = false;
+      var nativeType = AsNativeType(e0.Type);
+      if (nativeType != null) {
+        GetNativeInfo(nativeType.Sel, out nativeName, out literalSuffix, out needsCast);
+      }
+
       // ( e0 op1 e1) | (e0 op2 (width - e1))
       if (needsCast) {
-        wr.Write("(" + nativeType.Name + ")(");
+        wr.Write("(" + nativeName + ")(");
       }
       wr.Write("(");
       CompileShift(e0, e1, op1, truncateOp1, nativeType, true, wr, inLetExprBody, tr);
@@ -2876,16 +2934,20 @@ namespace Microsoft.Dafny {
       }
     }
 
-    void CompileShift(Expression e0, Expression e1, string op, bool truncate, NativeType nativeType, bool firstOp, TargetWriter wr, bool inLetExprBody, FCE_Arg_Translator tr) {
-      BitvectorType bv = (BitvectorType)e0.Type;
-      bool needsCast = nativeType != null && nativeType.NeedsCastAfterArithmetic;
+    void CompileShift(Expression e0, Expression e1, string op, bool truncate, NativeType/*?*/ nativeType, bool firstOp, TargetWriter wr, bool inLetExprBody, FCE_Arg_Translator tr) {
+      string nativeName = null, literalSuffix = null;
+      bool needsCast = false;
+      if (nativeType != null) {
+        GetNativeInfo(nativeType.Sel, out nativeName, out literalSuffix, out needsCast);
+      }
+      var bv = (BitvectorType)e0.Type;
       if (truncate) {
         BitvectorTruncation(bv, wr, false, true);
       }
       tr(e0, wr, false);
       wr.Write(" {0} ", op);
       if (needsCast) {
-        wr.Write("(" + nativeType.Name + ")(");
+        wr.Write("(" + nativeName + ")(");
       }
       if (!firstOp) {
         wr.Write("({0} -", bv.Width);

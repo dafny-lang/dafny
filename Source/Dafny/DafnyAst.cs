@@ -2063,7 +2063,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(0 <= width);
       Width = width;
       foreach (var nativeType in Resolver.NativeTypes) {
-        if (width <= nativeType.Bitwidth) {
+        if ((nativeType.CompilationTargets & DafnyOptions.O.CompileTarget) != 0 && width <= nativeType.Bitwidth) {
           NativeType = nativeType;
           break;
         }
@@ -4767,20 +4767,20 @@ namespace Microsoft.Dafny {
     public readonly BigInteger LowerBound;
     public readonly BigInteger UpperBound;
     public readonly int Bitwidth;  // for unasigned types, this shows the number of bits in the type; else is 0
-    public readonly string Suffix;
-    public readonly bool NeedsCastAfterArithmetic;
-    public NativeType(string Name, BigInteger LowerBound, BigInteger UpperBound, int bitwidth, string Suffix, bool NeedsCastAfterArithmetic) {
+    public enum Selection { Byte, SByte, UShort, Short, UInt, Int, Number, ULong, Long }
+    public readonly Selection Sel;
+    public readonly DafnyOptions.CompilationTarget CompilationTargets;
+    public NativeType(string Name, BigInteger LowerBound, BigInteger UpperBound, int bitwidth, Selection sel, DafnyOptions.CompilationTarget compilationTargets) {
       Contract.Requires(Name != null);
       Contract.Requires(LowerBound != null);
       Contract.Requires(UpperBound != null);
       Contract.Requires(0 <= bitwidth && (bitwidth == 0 || LowerBound == 0));
-      Contract.Requires(Suffix != null);
       this.Name = Name;
       this.LowerBound = LowerBound;
       this.UpperBound = UpperBound;
       this.Bitwidth = bitwidth;
-      this.Suffix = Suffix;
-      this.NeedsCastAfterArithmetic = NeedsCastAfterArithmetic;
+      this.Sel = sel;
+      this.CompilationTargets = compilationTargets;
     }
   }
 

@@ -2091,14 +2091,16 @@ namespace Microsoft.Dafny
     }
 
     public static readonly List<NativeType> NativeTypes = new List<NativeType>() {
-      new NativeType("byte", 0, 0x100, 8, "", true),
-      new NativeType("sbyte", -0x80, 0x80, 0, "", true),
-      new NativeType("ushort", 0, 0x10000, 16, "", true),
-      new NativeType("short", -0x8000, 0x8000, 0, "", true),
-      new NativeType("uint", 0, 0x100000000, 32, "U", false),
-      new NativeType("int", -0x80000000, 0x80000000, 0, "", false),
-      new NativeType("ulong", 0, new BigInteger(0x100000000) * new BigInteger(0x100000000), 64, "UL", false),
-      new NativeType("long", Int64.MinValue, 0x8000000000000000, 0, "L", false),
+      new NativeType("byte", 0, 0x100, 8,NativeType.Selection.Byte, DafnyOptions.CompilationTarget.Csharp),
+      new NativeType("sbyte", -0x80, 0x80, 0, NativeType.Selection.SByte, DafnyOptions.CompilationTarget.Csharp),
+      new NativeType("ushort", 0, 0x1_0000, 16, NativeType.Selection.UShort, DafnyOptions.CompilationTarget.Csharp),
+      new NativeType("short", -0x8000, 0x8000, 0, NativeType.Selection.Short, DafnyOptions.CompilationTarget.Csharp),
+      new NativeType("uint", 0, 0x1_0000_0000, 32, NativeType.Selection.UInt, DafnyOptions.CompilationTarget.Csharp),
+      new NativeType("int", -0x8000_0000, 0x8000_0000, 0, NativeType.Selection.Int, DafnyOptions.CompilationTarget.Csharp),
+      new NativeType("number", -0x20_0000_0000_0000, 0x20_0000_0000_0001, 0, NativeType.Selection.Number,
+        DafnyOptions.CompilationTarget.Csharp | DafnyOptions.CompilationTarget.JavaScript),  // JavaScript integers
+      new NativeType("ulong", 0, new BigInteger(0x1_0000_0000) * new BigInteger(0x1_0000_0000), 64, NativeType.Selection.ULong, DafnyOptions.CompilationTarget.Csharp),
+      new NativeType("long", Int64.MinValue, 0x8000_0000_0000_0000, 0, NativeType.Selection.Long, DafnyOptions.CompilationTarget.Csharp),
     };
 
     public void ResolveTopLevelDecls_Core(List<TopLevelDecl/*!*/>/*!*/ declarations, Graph<IndDatatypeDecl/*!*/>/*!*/ datatypeDependencies, Graph<CoDatatypeDecl/*!*/>/*!*/ codatatypeDependencies) {
@@ -2304,10 +2306,6 @@ namespace Microsoft.Dafny
       // * determines/checks tail-recursion.
       // ----------------------------------------------------------------------------
 
-      Dictionary<string, NativeType> nativeTypeMap = new Dictionary<string, NativeType>();
-      foreach (var nativeType in NativeTypes) {
-        nativeTypeMap.Add(nativeType.Name, nativeType);
-      }
       if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
         // Check that type inference went well everywhere; this will also fill in the .ResolvedOp field in binary expressions
         // Also, for each datatype, check that shared destructors are in agreement
@@ -2361,7 +2359,7 @@ namespace Microsoft.Dafny
               Contract.Assert(dd.Constraint != null);
               CheckExpression(dd.Constraint, this, dd);
             }
-            FigureOutNativeType(dd, nativeTypeMap);
+            FigureOutNativeType(dd);
           } else if (d is DatatypeDecl) {
             var dd = (DatatypeDecl)d;
             foreach (var member in datatypeMembers[dd].Values) {
@@ -3009,9 +3007,8 @@ namespace Microsoft.Dafny
       }
     }
 
-    private void FigureOutNativeType(NewtypeDecl dd, Dictionary<string, NativeType> nativeTypeMap) {
+    private void FigureOutNativeType(NewtypeDecl dd) {
       Contract.Requires(dd != null);
-      Contract.Requires(nativeTypeMap != null);
       bool? boolNativeType = null;
       NativeType stringNativeType = null;
       object nativeTypeAttr = true;
@@ -3025,11 +3022,19 @@ namespace Microsoft.Dafny
         if (nativeTypeAttr is bool) {
           boolNativeType = (bool)nativeTypeAttr;
         } else {
-          string keyString = (string)nativeTypeAttr;
-          if (nativeTypeMap.ContainsKey(keyString)) {
-            stringNativeType = nativeTypeMap[keyString];
-          } else {
-            reporter.Error(MessageSource.Resolver, dd, "Unsupported nativeType {0}", keyString);
+          var keyString = (string)nativeTypeAttr;
+          foreach (var nativeT in NativeTypes) {
+            if (nativeT.Name == keyString) {
+              if ((nativeT.CompilationTargets & DafnyOptions.O.CompileTarget) == 0) {
+                reporter.Error(MessageSource.Resolver, dd, "nativeType '{0}' not supported on the current compilation target", keyString);
+              } else {
+                stringNativeType = nativeT;
+              }
+              break;
+            }
+          }
+          if (stringNativeType == null) {
+            reporter.Error(MessageSource.Resolver, dd, "nativeType '{0}' not known", keyString);
           }
         }
       }
@@ -3072,7 +3077,7 @@ namespace Microsoft.Dafny
         List<NativeType> potentialNativeTypes =
           (stringNativeType != null) ? new List<NativeType> { stringNativeType } :
           (boolNativeType == false) ? new List<NativeType>() :
-          NativeTypes;
+          NativeTypes.Where(nt => (nt.CompilationTargets & DafnyOptions.O.CompileTarget) != 0).ToList();
         foreach (var nt in potentialNativeTypes) {
           bool lowerOk = false;
           bool upperOk = false;

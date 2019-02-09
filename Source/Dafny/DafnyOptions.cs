@@ -62,7 +62,8 @@ namespace Microsoft.Dafny
     public string DafnyPrintResolvedFile = null;
     public List<string> DafnyPrintExportedViews = new List<string>();
     public bool Compile = true;
-    public enum CompilationTarget { Csharp, JavaScript }
+    [Flags]
+    public enum CompilationTarget { Csharp = 1, JavaScript = 2 }
     public CompilationTarget CompileTarget = CompilationTarget.Csharp;
     public string DafnyPrintCompiledFile = null;
     public bool ForceCompile = false;

@@ -516,9 +516,9 @@ namespace Microsoft.Dafny
       var w = CreateClass(IdName(nt), null, out instanceFieldsWriter, wr);
       if (nt.NativeType != null) {
         w.Indent();
-        var wEnum = w.NewNamedBlock("public static System.Collections.Generic.IEnumerable<{0}> IntegerRange(BigInteger lo, BigInteger hi)", nt.NativeType.Name);
+        var wEnum = w.NewNamedBlock("public static System.Collections.Generic.IEnumerable<{0}> IntegerRange(BigInteger lo, BigInteger hi)", GetNativeTypeName(nt.NativeType));
         wEnum.Indent();
-        wEnum.WriteLine("for (var j = lo; j < hi; j++) {{ yield return ({0})j; }}", nt.NativeType.Name);
+        wEnum.WriteLine("for (var j = lo; j < hi; j++) {{ yield return ({0})j; }}", GetNativeTypeName(nt.NativeType));
       }
       if (nt.WitnessKind == SubsetTypeDecl.WKind.Compiled) { 
         var witness = new TargetWriter();
@@ -527,11 +527,18 @@ namespace Microsoft.Dafny
           DeclareField("Witness", true, true, nt.BaseType, nt.tok, witness.ToString(), w);
         } else {
           w.Indent();
-          w.Write("public static readonly {0} Witness = ({0})(", nt.NativeType.Name);
+          w.Write("public static readonly {0} Witness = ({0})(", GetNativeTypeName(nt.NativeType));
           w.Append(witness);
           w.WriteLine(");");
         }
       }
+    }
+
+    protected override void GetNativeInfo(NativeType.Selection sel, out string name, out string literalSuffix, out bool needsCastAfterArithmetic) {
+      if (sel == NativeType.Selection.Number) {
+        sel = NativeType.Selection.Long;
+      }
+      base.GetNativeInfo(sel, out name, out literalSuffix, out needsCastAfterArithmetic);
     }
 
     protected override BlockTargetWriter/*?*/ CreateMethod(Method m, bool createBody, TargetWriter wr) {
@@ -699,11 +706,11 @@ namespace Microsoft.Dafny
         return "Dafny.BigRational";
       } else if (xType is BitvectorType) {
         var t = (BitvectorType)xType;
-        return t.NativeType != null ? t.NativeType.Name : "BigInteger";
+        return t.NativeType != null ? GetNativeTypeName(t.NativeType) : "BigInteger";
       } else if (xType.AsNewtype != null) {
-        NativeType nativeType = xType.AsNewtype.NativeType;
+        var nativeType = xType.AsNewtype.NativeType;
         if (nativeType != null) {
-          return nativeType.Name;
+          return GetNativeTypeName(nativeType);
         }
         return TypeName(xType.AsNewtype.BaseType, wr, tok);
       } else if (xType.IsObjectQ) {
@@ -1087,14 +1094,13 @@ namespace Microsoft.Dafny
         TrStringLiteral(str, wr);
         wr.Write(")");
       } else if (AsNativeType(e.Type) != null) {
-        wr.Write((BigInteger)e.Value + AsNativeType(e.Type).Suffix);
+        string nativeName = null, literalSuffix = null;
+        bool needsCastAfterArithmetic = false;
+        GetNativeInfo(AsNativeType(e.Type).Sel, out nativeName, out literalSuffix, out needsCastAfterArithmetic);
+        wr.Write((BigInteger)e.Value + literalSuffix);
       } else if (e.Value is BigInteger) {
-        BigInteger i = (BigInteger)e.Value;
-        if (new BigInteger(int.MinValue) <= i && i <= new BigInteger(int.MaxValue)) {
-          wr.Write("new BigInteger({0})", i);
-        } else {
-          wr.Write("BigInteger.Parse(\"{0}\")", i);
-        }
+        var i = (BigInteger)e.Value;
+        EmitIntegerLiteral(i, wr);
       } else if (e.Value is Basetypes.BigDec) {
         var n = (Basetypes.BigDec)e.Value;
         if (0 <= n.Exponent) {
@@ -1104,7 +1110,9 @@ namespace Microsoft.Dafny
           }
           wr.Write("\"), BigInteger.One)");
         } else {
-          wr.Write("new Dafny.BigRational(BigInteger.Parse(\"{0}\"), BigInteger.Parse(\"1", n.Mantissa);
+          wr.Write("new Dafny.BigRational(");
+          EmitIntegerLiteral(n.Mantissa, wr);
+          wr.Write(", BigInteger.Parse(\"1");
           for (int i = n.Exponent; i < 0; i++) {
             wr.Write("0");
           }
@@ -1112,6 +1120,14 @@ namespace Microsoft.Dafny
         }
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected literal
+      }
+    }
+    void EmitIntegerLiteral(BigInteger i, TextWriter wr) {
+      Contract.Requires(wr != null);
+      if (new BigInteger(int.MinValue) <= i && i <= new BigInteger(int.MaxValue)) {
+        wr.Write("new BigInteger({0})", i);
+      } else {
+        wr.Write("BigInteger.Parse(\"{0}\")", i);
       }
     }
 
@@ -1477,7 +1493,7 @@ namespace Microsoft.Dafny
           opString = "*"; truncateResult = true; break;
         case BinaryExpr.ResolvedOpcode.Div:
           if (resultType.IsIntegerType || (AsNativeType(resultType) != null && AsNativeType(resultType).LowerBound < BigInteger.Zero)) {
-            var suffix = AsNativeType(resultType) != null ? "_" + AsNativeType(resultType).Name : "";
+            var suffix = AsNativeType(resultType) != null ? "_" + GetNativeTypeName(AsNativeType(resultType)) : "";
             staticCallString = "Dafny.Helpers.EuclideanDivision" + suffix;
           } else {
             opString = "/";  // for reals
@@ -1485,7 +1501,7 @@ namespace Microsoft.Dafny
           break;
         case BinaryExpr.ResolvedOpcode.Mod:
           if (resultType.IsIntegerType || (AsNativeType(resultType) != null && AsNativeType(resultType).LowerBound < BigInteger.Zero)) {
-            var suffix = AsNativeType(resultType) != null ? "_" + AsNativeType(resultType).Name : "";
+            var suffix = AsNativeType(resultType) != null ? "_" + GetNativeTypeName(AsNativeType(resultType)) : "";
             staticCallString = "Dafny.Helpers.EuclideanModulus" + suffix;
           } else {
             opString = "%";  // for reals
@@ -1582,16 +1598,19 @@ namespace Microsoft.Dafny
             wr.Write("new BigInteger");
             TrParenExpr(e.E, wr, inLetExprBody);
           } else {
+            string toNativeName, toNativeSuffix;
+            bool toNativeNeedsCast;
+            GetNativeInfo(toNative.Sel, out toNativeName, out toNativeSuffix, out toNativeNeedsCast);
             // any (int or bv) -> native (int or bv)
             // A cast would do, but we also consider some optimizations
-            wr.Write("({0})", toNative.Name);
+            wr.Write("({0})", toNativeName);
 
             var literal = PartiallyEvaluate(e.E);
             UnaryOpExpr u = e.E.Resolved as UnaryOpExpr;
             MemberSelectExpr m = e.E.Resolved as MemberSelectExpr;
             if (literal != null) {
               // Optimize constant to avoid intermediate BigInteger
-              wr.Write("(" + literal + toNative.Suffix + ")");
+              wr.Write("(" + literal + toNativeSuffix + ")");
             } else if (u != null && u.Op == UnaryOpExpr.Opcode.Cardinality) {
               // Optimize .Count to avoid intermediate BigInteger
               TrParenExpr(u.E, wr, inLetExprBody);
@@ -1624,7 +1643,7 @@ namespace Microsoft.Dafny
         } else {
           // real -> (int or bv)
           if (AsNativeType(e.ToType) != null) {
-            wr.Write("({0})", AsNativeType(e.ToType).Name);
+            wr.Write("({0})", GetNativeTypeName(AsNativeType(e.ToType)));
           }
           TrParenExpr(e.E, wr, inLetExprBody);
           wr.Write(".ToBigInteger()");
