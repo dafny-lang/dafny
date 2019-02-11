@@ -35,14 +35,12 @@ namespace Microsoft.Dafny
       wr.WriteLine("using System;");
       wr.WriteLine("using System.Numerics;");
       EmitDafnySourceAttribute(program, wr);
-
-      if (!DafnyOptions.O.UseRuntimeLib) {
-        ReadRuntimeSystem(wr);
-      }
+      ReadRuntimeSystem("DafnyRuntime.cs", wr);
     }
 
     void EmitDafnySourceAttribute(Program program, TextWriter wr) {
       Contract.Requires(program != null);
+      Contract.Requires(wr != null);
 
       wr.WriteLine("[assembly: DafnyAssembly.DafnySourceAttribute(@\"");
 
@@ -53,19 +51,6 @@ namespace Microsoft.Dafny
       wr.Write(strwr.GetStringBuilder().Replace("\"", "\"\"").ToString());
       wr.WriteLine("\")]");
       wr.WriteLine();
-    }
-
-    void ReadRuntimeSystem(TextWriter wr) {
-      string codebase = cce.NonNull(System.IO.Path.GetDirectoryName(cce.NonNull(System.Reflection.Assembly.GetExecutingAssembly().Location)));
-      string path = System.IO.Path.Combine(codebase, "DafnyRuntime.cs");
-      using (TextReader rd = new StreamReader(new FileStream(path, System.IO.FileMode.Open, System.IO.FileAccess.Read))) {
-        while (true) {
-          string s = rd.ReadLine();
-          if (s == null)
-            return;
-          wr.WriteLine(s);
-        }
-      }
     }
 
     protected override void EmitBuiltInDecls(BuiltIns builtIns, TargetWriter wr) {

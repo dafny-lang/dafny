@@ -473,6 +473,29 @@ namespace Microsoft.Dafny {
       }
     }
 
+    protected void ReadRuntimeSystem(string filename, TextWriter wr) {
+      Contract.Requires(filename != null);
+      Contract.Requires(wr != null);
+
+      if (DafnyOptions.O.UseRuntimeLib) {
+        return;
+      }
+      var assemblyLocation = System.Reflection.Assembly.GetExecutingAssembly().Location;
+      Contract.Assert(assemblyLocation != null);
+      var codebase = System.IO.Path.GetDirectoryName(assemblyLocation);
+      Contract.Assert(codebase != null);
+      string path = System.IO.Path.Combine(codebase, filename);
+      using (var rd = new StreamReader(new FileStream(path, System.IO.FileMode.Open, System.IO.FileAccess.Read))) {
+        while (true) {
+          string s = rd.ReadLine();
+          if (s == null) {
+            return;
+          }
+          wr.WriteLine(s);
+        }
+      }
+    }
+
     // create a varName that is not a duplicate of formals' name
     protected string GenVarName(string root, List<Formal> formals) {
       bool finished = false;
