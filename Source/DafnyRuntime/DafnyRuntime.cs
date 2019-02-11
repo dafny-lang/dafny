@@ -1152,17 +1152,19 @@ namespace Dafny
     public static A Id<A>(A a) {
       return a;
     }
+  }
 
-    public static bool BigOrdinal_IsLimit(BigInteger ord) {
+  public class BigOrdinal {
+    public static bool IsLimit(BigInteger ord) {
       return ord == 0;
     }
-    public static bool BigOrdinal_IsSucc(BigInteger ord) {
+    public static bool IsSucc(BigInteger ord) {
       return 0 < ord;
     }
-    public static BigInteger BigOrdinal_Offset(BigInteger ord) {
+    public static BigInteger Offset(BigInteger ord) {
       return ord;
     }
-    public static bool BigOrdinal_IsNat(BigInteger ord) {
+    public static bool IsNat(BigInteger ord) {
       return true;  // at run time, every ORDINAL is a natural number
     }
   }

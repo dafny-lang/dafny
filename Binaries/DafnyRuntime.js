@@ -267,6 +267,20 @@ let _dafny = (function() {
   $module.newArray = function(initValue, ...dims) {
     return { dims: dims, elmts: buildArray(initValue, ...dims) };
   }
+  $module.BigOrdinal = class BigOrdinal {
+    static IsLimit(ord) {
+      return ord.isZero();
+    }
+    static IsSucc(ord) {
+      return ord.isGreaterThanOrEqualTo(0);
+    }
+    static Offset(ord) {
+      return ord;
+    }
+    static IsNat(ord) {
+      return true;  // at run time, every ORDINAL is a natural number
+    }
+  }
   $module.BigRational = class BigRational {
     static get ZERO() {
       if (this._zero === undefined) {

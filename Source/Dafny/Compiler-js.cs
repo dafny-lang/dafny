@@ -815,19 +815,19 @@ namespace Microsoft.Dafny {
           compiledName = "ToBigInteger()";
           break;
         case SpecialField.ID.IsLimit:
-          preString = "Dafny.Helpers.BigOrdinal_IsLimit(";
+          preString = "_dafny.BigOrdinal.IsLimit(";
           postString = ")";
           break;
         case SpecialField.ID.IsSucc:
-          preString = "Dafny.Helpers.BigOrdinal_IsSucc(";
+          preString = "_dafny.BigOrdinal.IsSucc(";
           postString = ")";
           break;
         case SpecialField.ID.Offset:
-          preString = "Dafny.Helpers.BigOrdinal_Offset(";
+          preString = "_dafny.BigOrdinal.Offset(";
           postString = ")";
           break;
         case SpecialField.ID.IsNat:
-          preString = "Dafny.Helpers.BigOrdinal_IsNat(";
+          preString = "_dafny.BigOrdinal.IsNat(";
           postString = ")";
           break;
         case SpecialField.ID.Keys:
@@ -1158,50 +1158,44 @@ namespace Microsoft.Dafny {
         case BinaryExpr.ResolvedOpcode.RightShift:
           opString = ">>"; convertE1_to_int = true; break;
         case BinaryExpr.ResolvedOpcode.Add:
-          if (resultType.IsIntegerType || resultType.IsRealType) {
+          if (resultType.IsIntegerType || resultType.IsRealType || resultType.IsBigOrdinalType) {
             callString = "plus"; truncateResult = true;
-          } else if (AsNativeType(resultType) != null) {
-            opString = "+";
           } else {
-            // TODO
-            opString = "+";  // for reals
+            Contract.Assert(AsNativeType(resultType) != null);
+            opString = "+";
           }
           break;
         case BinaryExpr.ResolvedOpcode.Sub:
-          if (resultType.IsIntegerType || resultType.IsRealType) {
+          if (resultType.IsIntegerType || resultType.IsRealType || resultType.IsBigOrdinalType) {
             callString = "minus"; truncateResult = true;
-          } else if (AsNativeType(resultType) != null) {
-            opString = "-";
           } else {
-            // TODO
-            opString = "-";  // for reals
+            Contract.Assert(AsNativeType(resultType) != null);
+            opString = "-";
           }
           break;
         case BinaryExpr.ResolvedOpcode.Mul:
           if (resultType.IsIntegerType || resultType.IsRealType) {
             callString = "multipliedBy"; truncateResult = true;
-          } else if (AsNativeType(resultType) != null) {
-            opString = "*";
           } else {
-            // TODO
-            opString = "*";  // for reals
+            Contract.Assert(AsNativeType(resultType) != null);
+            opString = "*";
           }
           break;
         case BinaryExpr.ResolvedOpcode.Div:
           if (resultType.IsIntegerType) {
             staticCallString = "_dafny.EuclideanDivision";
-          } else if ((AsNativeType(resultType) != null && AsNativeType(resultType).LowerBound < BigInteger.Zero)) {
-            staticCallString = "_dafny.EuclideanDivisionNumber";
-          } else if (AsNativeType(resultType) != null) {
-            opString = "/";
-          } else {
+          } else if (AsNativeType(resultType) == null) {
             callString = "dividedBy";  // for reals
+          } else if (AsNativeType(resultType).LowerBound < BigInteger.Zero) {
+            staticCallString = "_dafny.EuclideanDivisionNumber";
+          } else {
+            opString = "/";
           }
           break;
         case BinaryExpr.ResolvedOpcode.Mod:
           if (resultType.IsIntegerType) {
             callString = "mod";
-          } else if ((AsNativeType(resultType) != null && AsNativeType(resultType).LowerBound < BigInteger.Zero)) {
+          } else if (AsNativeType(resultType).LowerBound < BigInteger.Zero) {
             callString = "_dafny.EuclideanModuloNumber";
           } else {
             opString = "%";

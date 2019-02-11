@@ -1169,19 +1169,19 @@ namespace Microsoft.Dafny
           compiledName = "ToBigInteger()";
           break;
         case SpecialField.ID.IsLimit:
-          preString = "Dafny.Helpers.BigOrdinal_IsLimit(";
+          preString = "Dafny.BigOrdinal.IsLimit(";
           postString = ")";
           break;
         case SpecialField.ID.IsSucc:
-          preString = "Dafny.Helpers.BigOrdinal_IsSucc(";
+          preString = "Dafny.BigOrdinal.IsSucc(";
           postString = ")";
           break;
         case SpecialField.ID.Offset:
-          preString = "Dafny.Helpers.BigOrdinal_Offset(";
+          preString = "Dafny.BigOrdinal.Offset(";
           postString = ")";
           break;
         case SpecialField.ID.IsNat:
-          preString = "Dafny.Helpers.BigOrdinal_IsNat(";
+          preString = "Dafny.BigOrdinal.IsNat(";
           postString = ")";
           break;
         case SpecialField.ID.Keys:
