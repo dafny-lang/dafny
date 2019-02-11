@@ -1,7 +1,6 @@
 
 Dafny program verifier finished with 8 verified, 0 errors
 Compiled program written to Numbers.cs
-Program compiled successfully
 Running...
 
 0
@@ -64,7 +63,6 @@ true false
 
 Dafny program verifier finished with 8 verified, 0 errors
 Compiled program written to Numbers.js
-Program compiled successfully
 Running...
 
 0

@@ -1,6 +1,5 @@
 
 Dafny program verifier finished with 11 verified, 0 errors
-Program compiled successfully
 Running...
 
 ns = List.Cons(4, List.Cons(10, List.Nil))

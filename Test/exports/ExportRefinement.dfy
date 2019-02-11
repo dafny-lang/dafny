@@ -1,8 +1,8 @@
 // RUN: %dafny /env:0 /compile:3 /dprint:"%t.dfy" "%s" > "%t.result"
 // RUN: %dafny /env:0 /printMode:DllEmbed /dprint:"%t1.dfy" "%t.dfy"
-// RUN: %dafny /env:0 /printMode:DllEmbed /dprint:"%t2.dfy" /compile:3 "%t1.dfy" > "%t.output"
+// RUN: %dafny /env:0 /printMode:DllEmbed /dprint:"%t2.dfy" /compile:3 "%t1.dfy" > "%t"
 // RUN: %diff "%t1.dfy" "%t2.dfy"
-// RUN: %diff "%s.expect" "%t.output"
+// RUN: %diff "%s.expect" "%t"
 
 abstract module A {
   export Spec provides f, T, m, C

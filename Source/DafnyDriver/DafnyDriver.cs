@@ -461,19 +461,26 @@ namespace Microsoft.Dafny
 
       Method mainMethod;
       var hasMain = compiler.HasMain(dafnyProgram, out mainMethod);
-      var sw = new TargetWriter(0);
-      compiler.Compile(dafnyProgram, sw);
-      if (hasMain) {
-        compiler.EmitCallToMain(mainMethod, sw);
+      string targetProgramText;
+      using (var wr = new TargetWriter(0)) {
+        compiler.Compile(dafnyProgram, wr);
+        targetProgramText = wr.ToString();
       }
-      var targetProgramText = sw.ToString();
+      string callToMain = null;
+      if (hasMain) {
+        using (var wr = new TargetWriter(0)) {
+          compiler.EmitCallToMain(mainMethod, wr);
+          callToMain = wr.ToString();
+        }
+      }
       bool completeProgram = dafnyProgram.reporter.Count(ErrorLevel.Error) == oldErrorCount;
 
       // blurt out the code to a file, if requested, or if other files were specified for the C# command line.
       string targetFilename = null;
       if (DafnyOptions.O.SpillTargetCode > 0 || otherFileNames.Count > 0)
       {
-        targetFilename = WriteDafnyProgramToFile(dafnyProgramName, targetProgramText, completeProgram, outputWriter);
+        var p = callToMain == null ? targetProgramText : targetProgramText + callToMain;
+        targetFilename = WriteDafnyProgramToFile(dafnyProgramName, p, completeProgram, outputWriter);
       }
 
       // compile the program into an assembly
@@ -483,13 +490,16 @@ namespace Microsoft.Dafny
       }
 
       object compilationResult;
-      var compiledCorrectly = compiler.CompileTargetProgram(dafnyProgramName, targetProgramText, targetFilename, otherFileNames,
+      var compiledCorrectly = compiler.CompileTargetProgram(dafnyProgramName, targetProgramText, callToMain, targetFilename, otherFileNames,
         hasMain, hasMain && DafnyOptions.O.RunAfterCompile, outputWriter, out compilationResult);
       if (compiledCorrectly && DafnyOptions.O.RunAfterCompile) {
         if (hasMain) {
           outputWriter.WriteLine("Running...");
           outputWriter.WriteLine();
-          compiledCorrectly = compiler.RunTargetProgram(dafnyProgramName, targetProgramText, targetFilename, otherFileNames, compilationResult, outputWriter);
+          compiledCorrectly = compiler.RunTargetProgram(dafnyProgramName, targetProgramText, callToMain, targetFilename, otherFileNames, compilationResult, outputWriter);
+        } else {
+          // make sure to give some feedback to the user
+          outputWriter.WriteLine("Program compiled successfully");
         }
       }
       return compiledCorrectly;

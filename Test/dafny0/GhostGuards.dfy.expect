@@ -5,6 +5,5 @@ GhostGuards.dfy(41,2): Info: ghost while
 GhostGuards.dfy(54,2): Info: ghost match
 
 Dafny program verifier finished with 1 verified, 0 errors
-Program compiled successfully
 Running...
 

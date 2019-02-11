@@ -57,6 +57,10 @@ namespace Microsoft.Dafny {
 
     protected virtual void EmitHeader(Program program, TargetWriter wr) { }
     protected virtual void EmitBuiltInDecls(BuiltIns builtIns, TargetWriter wr) { }
+    /// <summary>
+    /// Emits a call to "mainMethod" as the program's entry point, if such an explicit call is
+    /// required in the target language.
+    /// </summary>
     public virtual void EmitCallToMain(Method mainMethod, TextWriter wr) { }
     protected abstract BlockTargetWriter CreateModule(string moduleName, TargetWriter wr);
     protected abstract string GetHelperModuleName();
@@ -3033,7 +3037,7 @@ namespace Microsoft.Dafny {
     /// Returns "true" on success. Then, "compilationResult" is a value that can be passed in to
     /// the instance's "RunTargetProgram" method.
     /// </summary>
-    public virtual bool CompileTargetProgram(string dafnyProgramName, string targetProgramText, string/*?*/ targetFilename, ReadOnlyCollection<string> otherFileNames,
+    public virtual bool CompileTargetProgram(string dafnyProgramName, string targetProgramText, string/*?*/ callToMain, string/*?*/ targetFilename, ReadOnlyCollection<string> otherFileNames,
       bool hasMain, bool runAfterCompile, TextWriter outputWriter, out object compilationResult) {
       Contract.Requires(dafnyProgramName != null);
       Contract.Requires(targetProgramText != null);
@@ -3049,11 +3053,12 @@ namespace Microsoft.Dafny {
     /// <summary>
     /// Runs a target program after it has been successfully compiled.
     /// dafnyProgram, targetProgramText, targetFilename, and otherFileNames are the same as the corresponding parameters to "CompileTargetProgram".
+    /// "callToMain" is an explicit call to Main, as required by the target compilation language.
     /// "compilationResult" is a value returned by "CompileTargetProgram" for these parameters.
     /// 
     /// Returns "true" on success, "false" on error. Any errors are output to "outputWriter".
     /// </summary>
-    public virtual bool RunTargetProgram(string dafnyProgramName, string targetProgramText, string/*?*/ targetFilename, ReadOnlyCollection<string> otherFileNames,
+    public virtual bool RunTargetProgram(string dafnyProgramName, string targetProgramText, string/*?*/ callToMain, string/*?*/ targetFilename, ReadOnlyCollection<string> otherFileNames,
       object compilationResult, TextWriter outputWriter) {
       Contract.Requires(dafnyProgramName != null);
       Contract.Requires(targetProgramText != null);

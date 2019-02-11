@@ -11,7 +11,6 @@ NullComparisonWarnings.dfy(40,41): Warning: the type of the other operand is a n
 NullComparisonWarnings.dfy(45,12): Warning: the type of the other operand is a non-null type, so this comparison with 'null' will always return 'true'
 
 Dafny program verifier finished with 4 verified, 0 errors
-Program compiled successfully
 Running...
 
 despite the warnings, the program still compiles

@@ -1434,17 +1434,28 @@ namespace Microsoft.Dafny {
 
     // ----- Target compilation and execution -------------------------------------------------------------
 
-    public override bool CompileTargetProgram(string dafnyProgramName, string targetProgramText, string/*?*/ targetFilename, ReadOnlyCollection<string> otherFileNames,
+    public override bool CompileTargetProgram(string dafnyProgramName, string targetProgramText, string/*?*/ callToMain, string/*?*/ targetFilename, ReadOnlyCollection<string> otherFileNames,
       bool hasMain, bool runAfterCompile, TextWriter outputWriter, out object compilationResult) {
-      if (DafnyOptions.O.RunAfterCompile) {
-        // to make the output look that like for C#
-        outputWriter.WriteLine("Program compiled successfully");
+      compilationResult = null;
+      if (!DafnyOptions.O.RunAfterCompile || callToMain == null) {
+        // compile now
+        return SendToNewNodeProcess(dafnyProgramName, targetProgramText, null, targetFilename, otherFileNames, outputWriter);
+      } else {
+        // Since the program is to be run soon, nothing further is done here. Any compilation errors (that is, any errors
+        // in the emitted program--this should never happen if the compiler itself is correct) will be reported as 'node'
+        // will run the program.
+        return true;
       }
-      return base.CompileTargetProgram(dafnyProgramName, targetProgramText, targetFilename, otherFileNames, hasMain, runAfterCompile, outputWriter, out compilationResult);
     }
 
-    public override bool RunTargetProgram(string dafnyProgramName, string targetProgramText, string targetFilename, ReadOnlyCollection<string> otherFileNames,
+    public override bool RunTargetProgram(string dafnyProgramName, string targetProgramText, string/*?*/ callToMain, string targetFilename, ReadOnlyCollection<string> otherFileNames,
       object compilationResult, TextWriter outputWriter) {
+
+      return SendToNewNodeProcess(dafnyProgramName, targetProgramText, callToMain, targetFilename, otherFileNames, outputWriter);
+    }
+
+    bool SendToNewNodeProcess(string dafnyProgramName, string targetProgramText, string/*?*/ callToMain, string targetFilename, ReadOnlyCollection<string> otherFileNames,
+      TextWriter outputWriter) {
 
       string args = "";
       if (targetFilename != null) {
@@ -1467,6 +1478,9 @@ namespace Microsoft.Dafny {
         using (var nodeProcess = Process.Start(psi)) {
           if (targetFilename == null) {
             nodeProcess.StandardInput.Write(targetProgramText);
+            if (callToMain != null) {
+              nodeProcess.StandardInput.Write(callToMain);
+            }
             nodeProcess.StandardInput.Flush();
             nodeProcess.StandardInput.Close();
           }

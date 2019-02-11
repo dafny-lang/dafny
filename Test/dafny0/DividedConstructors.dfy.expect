@@ -183,7 +183,6 @@ method Main()
 }
 
 Dafny program verifier finished with 16 verified, 0 errors
-Program compiled successfully
 Running...
 
 37, 17, 3.14

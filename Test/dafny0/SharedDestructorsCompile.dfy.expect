@@ -1,6 +1,5 @@
 
 Dafny program verifier finished with 3 verified, 0 errors
-Program compiled successfully
 Running...
 
 Dt.A(10, 12.0):  x=10 y=12.0

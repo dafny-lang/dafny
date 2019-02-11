@@ -1,7 +1,6 @@
 
 Dafny program verifier finished with 0 verified, 0 errors
 Compiled program written to Hello.cs
-Program compiled successfully
 Running...
 
 Hello, JavaScript! Best, Dafny
@@ -10,7 +9,6 @@ y is false
 
 Dafny program verifier finished with 0 verified, 0 errors
 Compiled program written to Hello.js
-Program compiled successfully
 Running...
 
 Hello, JavaScript! Best, Dafny

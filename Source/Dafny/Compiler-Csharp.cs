@@ -1732,7 +1732,7 @@ namespace Microsoft.Dafny
       public CompilerResults cr;
     }
 
-    public override bool CompileTargetProgram(string dafnyProgramName, string targetProgramText, string/*?*/ targetFilename, ReadOnlyCollection<string> otherFileNames,
+    public override bool CompileTargetProgram(string dafnyProgramName, string targetProgramText, string/*?*/ callToMain, string/*?*/ targetFilename, ReadOnlyCollection<string> otherFileNames,
       bool hasMain, bool runAfterCompile, TextWriter outputWriter, out object compilationResult) {
 
       compilationResult = null;
@@ -1827,9 +1827,7 @@ namespace Microsoft.Dafny
         return false;
       }
 
-      if (cp.GenerateInMemory) {
-        outputWriter.WriteLine("Program compiled successfully");
-      } else {
+      if (!cp.GenerateInMemory) {
         var assemblyName = Path.GetFileName(crx.cr.PathToAssembly);
         outputWriter.WriteLine("Compiled assembly into {0}", assemblyName);
         if (DafnyOptions.O.Optimize) {
@@ -1849,7 +1847,7 @@ namespace Microsoft.Dafny
       return true;
     }
 
-    public override bool RunTargetProgram(string dafnyProgramName, string targetProgramText, string/*?*/ targetFilename, ReadOnlyCollection<string> otherFileNames,
+    public override bool RunTargetProgram(string dafnyProgramName, string targetProgramText, string callToMain, string/*?*/ targetFilename, ReadOnlyCollection<string> otherFileNames,
       object compilationResult, TextWriter outputWriter) {
 
       var crx = (CSharpCompilationResult)compilationResult;

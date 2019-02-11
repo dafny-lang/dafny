@@ -1,6 +1,5 @@
 
 Dafny program verifier finished with 2 verified, 0 errors
-Program compiled successfully
 Running...
 
 map[Record.Make(null, null, _module.Class, 5, 10) := 0.8]
@@ -29,7 +28,6 @@ false false
 true true
 
 Dafny program verifier finished with 2 verified, 0 errors
-Program compiled successfully
 Running...
 
 map[Record.Make(null, null, _module.Class, 5, 10) := 0.8]

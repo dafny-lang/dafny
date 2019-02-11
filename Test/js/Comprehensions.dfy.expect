@@ -1,7 +1,6 @@
 
 Dafny program verifier finished with 5 verified, 0 errors
 Compiled program written to Comprehensions.cs
-Program compiled successfully
 Running...
 
 x=13 y=14
@@ -15,7 +14,6 @@ map[16 := 12, 17 := 13, 18 := 14]
 
 Dafny program verifier finished with 5 verified, 0 errors
 Compiled program written to Comprehensions.js
-Program compiled successfully
 Running...
 
 x=13 y=14
