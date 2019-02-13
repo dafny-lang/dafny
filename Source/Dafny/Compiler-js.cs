@@ -618,6 +618,7 @@ namespace Microsoft.Dafny {
     }
 
     protected override void EmitReturn(List<Formal> outParams, TargetWriter wr) {
+      outParams = outParams.Where(f => !f.IsGhost).ToList();
       wr.Indent();
       if (outParams.Count == 0) {
         wr.WriteLine("return;");

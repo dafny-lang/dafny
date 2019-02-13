@@ -1209,7 +1209,11 @@ namespace Microsoft.Dafny
     }
     
     protected override string IdProtect(string name) {
-      return "@" + name;
+      if (name.First() == '_') {
+        return name;  // no need to further protect this name -- we know it's not a C# keyword
+      } else {
+        return "@" + name;
+      }
     }
 
     protected override void EmitThis(TargetWriter wr) {
