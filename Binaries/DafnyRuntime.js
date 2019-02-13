@@ -11,6 +11,9 @@ let _dafny = (function() {
       return a.equals(b);
     }
   }
+  $module.Default = function (ty) {
+    return null;  // TODO
+  }
   $module.Tuple = class Tuple extends Array {
     constructor(...elems) {
       super(...elems);
@@ -169,6 +172,17 @@ let _dafny = (function() {
         yield k;
       }
     }
+  }
+  $module.Concat = function(a, b) {
+    if (typeof a !== "string") {
+      // a must be a Seq
+      a = a.join("");
+    }
+    if (typeof b !== "string") {
+      // b must be a Seq
+      b = b.join("");
+    }
+    return a + b;
   }
   $module.Seq = class Seq extends Array {
     constructor(...elems) {
@@ -463,7 +477,7 @@ let _dafny = (function() {
       }
     }
   }
-  $module.EuclideanModulusNumber = function(a, b) {
+  $module.EuclideanModuloNumber = function(a, b) {
     let bp = Math.abs(b);
     if (0 <= a) {
       // +a: a % bp

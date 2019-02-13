@@ -448,14 +448,14 @@ namespace Microsoft.Dafny {
       } else if (xType is MultiSetType) {
         return "_dafny.MultiSet.Empty";
       } else if (xType is SeqType) {
-        return "_dafny.Seq.Empty";
+        return "_dafny.Seq.of()";
       } else if (xType is MapType) {
         return "_dafny.Map.Empty";
       }
 
       var udt = (UserDefinedType)xType;
       if (udt.ResolvedParam != null) {
-        return "Dafny.Helpers.Default<" + TypeName_UDT(udt.FullCompileName, udt.TypeArgs, wr, udt.tok) + ">()";
+        return string.Format("_dafny.Default(\"{0}\")", TypeName_UDT(udt.FullCompileName, udt.TypeArgs, wr, udt.tok));  // TODO
       }
       var cl = udt.ResolvedClass;
       Contract.Assert(cl != null);
@@ -488,7 +488,7 @@ namespace Microsoft.Dafny {
             // non-null (non-array) type
             // even though the type doesn't necessarily have a known initializer, it could be that the the compiler needs to
             // lay down some bits to please the C#'s compiler's different definite-assignment rules.
-            return string.Format("default({0})", TypeName(xType, wr, udt.tok));
+            return "null";
           }
         } else {
           return TypeInitializationValue(td.RhsWithArgument(udt.TypeArgs), wr, tok);
@@ -767,20 +767,26 @@ namespace Microsoft.Dafny {
 
     protected override void EmitStringLiteral(string str, bool isVerbatim, TextWriter wr) {
       var n = str.Length;
-      wr.Write("\"");
-      for (var i = 0; i < n; i++) {
-        if (str[i] == '\\' && str[i+1] == '0') {
-          wr.Write("\\u0000");
-          i++;
-        } else if (str[i] == '\n') {  // may appear in a verbatim string
-          wr.Write("\\n");
-        } else if (str[i] == '\r') {  // may appear in a verbatim string
-          wr.Write("\\r");
-        } else {
-          wr.Write(str[i]);
+      if (!isVerbatim) {
+        wr.Write("\"{0}\"", str);
+      } else {
+        wr.Write("\"");
+        for (var i = 0; i < n; i++) {
+          if (str[i] == '\"' && i+1 < n && str[i+1] == '\"') {
+            wr.Write("\\\"");
+            i++;
+          } else if (str[i] == '\\') {
+            wr.Write("\\\\");
+          } else if (str[i] == '\n') {
+            wr.Write("\\n");
+          } else if (str[i] == '\r') {
+            wr.Write("\\r");
+          } else {
+            wr.Write(str[i]);
+          }
         }
+        wr.Write("\"");
       }
-      wr.Write("\"");
     }
 
     protected override TargetWriter EmitBitvectorTruncation(BitvectorType bvType, bool surroundByUnchecked, TargetWriter wr) {
@@ -1329,7 +1335,7 @@ namespace Microsoft.Dafny {
           } else if (AsNativeType(resultType) == null) {
             callString = "mod";
           } else if (AsNativeType(resultType).LowerBound < BigInteger.Zero) {
-            callString = "_dafny.EuclideanModuloNumber";
+            staticCallString = "_dafny.EuclideanModuloNumber";
           } else {
             opString = "%";
           }
@@ -1387,7 +1393,7 @@ namespace Microsoft.Dafny {
         case BinaryExpr.ResolvedOpcode.Prefix:
           callString = "IsPrefixOf"; break;
         case BinaryExpr.ResolvedOpcode.Concat:
-          callString = "Concat"; break;
+          staticCallString = "_dafny.Concat"; break;
         case BinaryExpr.ResolvedOpcode.InSeq:
           callString = "contains"; reverseArguments = true; break;
         case BinaryExpr.ResolvedOpcode.NotInSeq:
@@ -1492,14 +1498,24 @@ namespace Microsoft.Dafny {
         TrExprList(elements, wr, inLetExprBody);
       } else {
         Contract.Assert(ct is SeqType);  // follows from precondition
-        wr.Write("_dafny.Seq.of(");
+        var wrElements = new TargetWriter(wr.IndentLevel);
+        if (ct.Arg.IsCharType) {
+          // We're really constructing a string.
+          // TODO: It may be that ct.Arg is a type parameter that may stand for char. We currently don't catch that case here.
+          wr.Write("[");
+          wr.Append(wrElements);
+          wr.Write("].join(\"\")");
+        } else {
+          wr.Write("_dafny.Seq.of(");
+          wr.Append(wrElements);
+          wr.Write(")");
+        }
         string sep = "";
         foreach (var e in elements) {
-          wr.Write(sep);
-          TrExpr(e, wr, inLetExprBody);
+          wrElements.Write(sep);
+          TrExpr(e, wrElements, inLetExprBody);
           sep = ", ";
         }
-        wr.Write(")");
       }
     }
 
