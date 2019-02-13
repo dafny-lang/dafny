@@ -252,6 +252,10 @@ namespace Microsoft.Dafny {
 
     protected abstract void EmitLiteralExpr(TextWriter wr, LiteralExpr e);
     protected abstract void EmitStringLiteral(string str, bool isVerbatim, TextWriter wr);
+    protected abstract TargetWriter EmitBitvectorTruncation(BitvectorType bvType, bool surroundByUnchecked, TargetWriter wr);
+    protected delegate void FCE_Arg_Translator(Expression e, TargetWriter wr, bool inLetExpr=false);
+
+    protected abstract void EmitRotate(Expression e0, Expression e1, bool isRotateLeft, TargetWriter wr, bool inLetExprBody, FCE_Arg_Translator tr);
 
     protected virtual string IdName(TopLevelDecl d) {
       Contract.Requires(d != null);
@@ -298,6 +302,7 @@ namespace Microsoft.Dafny {
     protected virtual string ArrayIndexToInt(string arrayIndex) {
       return arrayIndex;
     }
+    protected abstract void EmitExprAsInt(Expression expr, bool inLetExprBody, TargetWriter wr);
     protected abstract void EmitIndexCollectionSelect(Expression source, Expression index, bool inLetExprBody, TargetWriter wr);
     protected abstract void EmitIndexCollectionUpdate(Expression source, Expression index, Expression value, bool inLetExprBody, TargetWriter wr);
     /// <summary>
@@ -1034,7 +1039,7 @@ namespace Microsoft.Dafny {
       if (typ.AsNewtype != null) {
         return typ.AsNewtype.NativeType;
       } else if (typ.IsBitVectorType) {
-        return ((BitvectorType)typ).NativeType;
+        return typ.AsBitVectorType.NativeType;
       }
       return null;
     }
@@ -2439,10 +2444,9 @@ namespace Microsoft.Dafny {
         switch (e.Op) {
           case UnaryOpExpr.Opcode.Not:
             if (e.Type.IsBitVectorType) {
-              var bvType = (BitvectorType)e.Type;
-              BitvectorTruncation(bvType, wr, false, false);
-              EmitUnaryExpr(ResolvedUnaryOp.BitwiseNot, e.E, inLetExprBody, wr);
-              BitvectorTruncation(bvType, wr, true, false);
+              var bvType = e.Type.AsBitVectorType;
+              var wrTruncOperand = EmitBitvectorTruncation(bvType, false, wr);
+              EmitUnaryExpr(ResolvedUnaryOp.BitwiseNot, e.E, inLetExprBody, wrTruncOperand);
             } else {
               EmitUnaryExpr(ResolvedUnaryOp.BoolNot, e.E, inLetExprBody, wr);
             }
@@ -2459,15 +2463,9 @@ namespace Microsoft.Dafny {
         EmitConversionExpr(e, inLetExprBody, wr);
 
       } else if (expr is BinaryExpr) {
-        BinaryExpr e = (BinaryExpr)expr;
-        string opString = null;
-        string preOpString = "";
-        string postOpString = "";
-        string callString = null;
-        string staticCallString = null;
-        bool reverseArguments = false;
-        bool truncateResult = false;
-        bool convertE1_to_int = false;
+        var e = (BinaryExpr)expr;
+        string opString, preOpString, postOpString, callString, staticCallString;
+        bool reverseArguments, truncateResult, convertE1_to_int;
         CompileBinOp(e.ResolvedOp, e.E0, e.E1, e.tok, expr.Type,
           out opString,
           out preOpString,
@@ -2480,7 +2478,7 @@ namespace Microsoft.Dafny {
           wr);
 
         if (truncateResult && e.Type.IsBitVectorType) {
-          BitvectorTruncation((BitvectorType)e.Type, wr, false, true);
+          wr = EmitBitvectorTruncation(e.Type.AsBitVectorType, true, wr);
         }
         var e0 = reverseArguments ? e.E1 : e.E0;
         var e1 = reverseArguments ? e.E0 : e.E1;
@@ -2498,9 +2496,10 @@ namespace Microsoft.Dafny {
           TrParenExpr(e0, wr, inLetExprBody);
           wr.Write(" {0} ", opString);
           if (convertE1_to_int) {
-            wr.Write("(int)");
+            EmitExprAsInt(e1, inLetExprBody, wr);
+          } else {
+            TrParenExpr(e1, wr, inLetExprBody);
           }
-          TrParenExpr(e1, wr, inLetExprBody);
           if (needsCast) {
             wr.Write(")");
           }
@@ -2520,9 +2519,6 @@ namespace Microsoft.Dafny {
           TrExpr(e1, wr, inLetExprBody);
           wr.Write(")");
           wr.Write(postOpString);
-        }
-        if (truncateResult && e.Type.IsBitVectorType) {
-          BitvectorTruncation((BitvectorType)e.Type, wr, true, true);
         }
 
       } else if (expr is TernaryExpr) {
@@ -2804,46 +2800,6 @@ namespace Microsoft.Dafny {
       EmitStringLiteral((string)str.Value, str.IsVerbatim, wr);
     }
 
-    private void BitvectorTruncation(BitvectorType bvType, TextWriter wr, bool after, bool surroundByUnchecked) {
-      Contract.Requires(bvType != null);
-      Contract.Requires(wr != null);
-
-      string nativeName = null, literalSuffix = null;
-      bool needsCastAfterArithmetic = false;
-      if (bvType.NativeType != null) {
-        GetNativeInfo(bvType.NativeType.Sel, out nativeName, out literalSuffix, out needsCastAfterArithmetic);
-      }
-
-      if (!after) {
-        if (bvType.NativeType == null) {
-          wr.Write("((");
-        } else {
-          if (surroundByUnchecked) {
-            // Unfortunately, the following will apply "unchecked" to all subexpressions as well.  There
-            // shouldn't ever be any problem with this, but stylistically it would have been nice to have
-            // applied the "unchecked" only to the actual operation that may overflow.
-            wr.Write("unchecked(");
-          }
-          wr.Write("({0})((", nativeName);
-        }
-      } else {
-        // do the truncation, if needed
-        if (bvType.NativeType == null) {
-          wr.Write(") & ((new BigInteger(1) << {0}) - 1))", bvType.Width);
-        } else {
-          if (bvType.NativeType.Bitwidth != bvType.Width) {
-            // print in hex, because that looks nice
-            wr.Write(") & ({2})0x{0:X}{1})", (1UL << bvType.Width) - 1, literalSuffix, nativeName);
-          } else {
-            wr.Write("))");  // close the parentheses for the cast
-          }
-          if (surroundByUnchecked) {
-            wr.Write(")");  // close the parentheses for the "unchecked"
-          }
-        }
-      }
-    }
-
     /// <summary>
     /// Try to evaluate "expr" into one BigInteger.  On success, return it; otherwise, return "null".
     /// </summary>
@@ -2920,77 +2876,18 @@ namespace Microsoft.Dafny {
       return wr;
     }
 
-    delegate void FCE_Arg_Translator(Expression e, TargetWriter wr, bool inLetExpr=false);
-
     void CompileSpecialFunctionCallExpr(FunctionCallExpr e, TargetWriter wr, bool inLetExprBody, FCE_Arg_Translator tr) {
       string name = e.Function.Name;
       
       if (name == "RotateLeft") {
-        CompileRotate(e.Receiver, e.Args[0], "<<", ">>", true, false, wr, inLetExprBody, tr);
+        EmitRotate(e.Receiver, e.Args[0], true, wr, inLetExprBody, tr);
       } else if (name == "RotateRight") {
-        CompileRotate(e.Receiver, e.Args[0], ">>", "<<", false, true, wr, inLetExprBody, tr);
+        EmitRotate(e.Receiver, e.Args[0], false, wr, inLetExprBody, tr);
       } else {
         CompileFunctionCallExpr(e, wr, wr, inLetExprBody, tr);
       }
     }
 
-    void CompileRotate(Expression e0, Expression e1, string op1, string op2, bool truncateOp1, bool truncateOp2, TargetWriter wr, bool inLetExprBody, FCE_Arg_Translator tr) {
-      string nativeName = null, literalSuffix = null;
-      bool needsCast = false;
-      var nativeType = AsNativeType(e0.Type);
-      if (nativeType != null) {
-        GetNativeInfo(nativeType.Sel, out nativeName, out literalSuffix, out needsCast);
-      }
-
-      // ( e0 op1 e1) | (e0 op2 (width - e1))
-      if (needsCast) {
-        wr.Write("(" + nativeName + ")(");
-      }
-      wr.Write("(");
-      CompileShift(e0, e1, op1, truncateOp1, nativeType, true, wr, inLetExprBody, tr);
-      wr.Write(")");
-
-      wr.Write (" | ");
-
-      wr.Write("(");
-      CompileShift(e0, e1, op2, truncateOp2, nativeType, false, wr, inLetExprBody, tr);
-      wr.Write(")");
-
-      if (needsCast) {
-        wr.Write(")");
-      }
-    }
-
-    void CompileShift(Expression e0, Expression e1, string op, bool truncate, NativeType/*?*/ nativeType, bool firstOp, TargetWriter wr, bool inLetExprBody, FCE_Arg_Translator tr) {
-      string nativeName = null, literalSuffix = null;
-      bool needsCast = false;
-      if (nativeType != null) {
-        GetNativeInfo(nativeType.Sel, out nativeName, out literalSuffix, out needsCast);
-      }
-      var bv = (BitvectorType)e0.Type;
-      if (truncate) {
-        BitvectorTruncation(bv, wr, false, true);
-      }
-      tr(e0, wr, false);
-      wr.Write(" {0} ", op);
-      if (needsCast) {
-        wr.Write("(" + nativeName + ")(");
-      }
-      if (!firstOp) {
-        wr.Write("({0} -", bv.Width);
-      }
-      tr(e1, wr, inLetExprBody);
-      if (!firstOp) {
-        wr.Write(")");
-      }
-      if (needsCast) {
-        wr.Write(")");
-      }
-      if (truncate) {
-        BitvectorTruncation(bv, wr, true, true);
-      }
-    }
-    
     void CompileFunctionCallExpr(FunctionCallExpr e, TextWriter twr, TargetWriter wr, bool inLetExprBody, FCE_Arg_Translator tr) {
       Contract.Requires(e != null && e.Function != null);
       Contract.Requires(twr != null);

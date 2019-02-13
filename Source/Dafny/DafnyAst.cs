@@ -803,7 +803,8 @@ namespace Microsoft.Dafny {
     public bool IsIntegerType { get { return NormalizeExpand() is IntType; } }
     public bool IsRealType { get { return NormalizeExpand() is RealType; } }
     public bool IsBigOrdinalType { get { return NormalizeExpand() is BigOrdinalType; } }
-    public bool IsBitVectorType { get { return NormalizeExpand() is BitvectorType; } }
+    public bool IsBitVectorType { get { return AsBitVectorType != null; } }
+    public BitvectorType AsBitVectorType { get { return NormalizeExpand() as BitvectorType; } }
     public bool IsNumericBased() {
       var t = NormalizeExpand();
       return t.IsIntegerType || t.IsRealType || t.AsNewtype != null;

@@ -5,7 +5,7 @@ let _dafny = (function() {
   $module.areEqual = function(a, b) {
     if (typeof a !== 'object') {
       return a === b;
-    } else if (a.isEqualTo !== undefined) {
+    } else if (BigNumber.isBigNumber(a)) {
       return a.isEqualTo(b);
     } else {
       return a.equals(b);
@@ -475,6 +475,79 @@ let _dafny = (function() {
       let c = (-1) % bp;
       return c == 0 ? c : bp - c;
     }
+  }
+  $module.ShiftLeft = function(b, n) {
+    return b.multipliedBy(new BigNumber(2).exponentiatedBy(n));
+  }
+  $module.ShiftRight = function(b, n) {
+    return b.dividedToIntegerBy(new BigNumber(2).exponentiatedBy(n));
+  }
+  $module.RotateLeft = function(b, n, w) {  // truncate(b << n) | (b >> (w - n))
+    let x = _dafny.ShiftLeft(b, n).mod(new BigNumber(2).exponentiatedBy(w));
+    let y = _dafny.ShiftRight(b, w - n);
+    return x.plus(y);
+  }
+  $module.RotateRight = function(b, n, w) {  // (b >> n) | truncate(b << (w - n))
+    let x = _dafny.ShiftRight(b, n);
+    let y = _dafny.ShiftLeft(b, w - n).mod(new BigNumber(2).exponentiatedBy(w));;
+    return x.plus(y);
+  }
+  $module.BitwiseAnd = function(a, b) {
+    let r = new BigNumber(0);
+    const m = 0x20000000000000;  // 2^53
+    let h = new BigNumber(1);
+    while (!a.isZero() && !b.isZero()) {
+      let a0 = a.mod(m);
+      let b0 = b.mod(m);
+      r = r.plus(h.multipliedBy(a0 & b0));
+      a = a.dividedToIntegerBy(m);
+      b = b.dividedToIntegerBy(m);
+      h = h.multipliedBy(m);
+    }
+    return r;
+  }
+  $module.BitwiseOr = function(a, b) {
+    let r = new BigNumber(0);
+    const m = 0x20000000000000;  // 2^53
+    let h = new BigNumber(1);
+    while (!a.isZero() && !b.isZero()) {
+      let a0 = a.mod(m);
+      let b0 = b.mod(m);
+      r = r.plus(h.multipliedBy(a0 | b0));
+      a = a.dividedToIntegerBy(m);
+      b = b.dividedToIntegerBy(m);
+      h = h.multipliedBy(m);
+    }
+    r = r.plus(h.multipliedBy(a | b));
+    return r;
+  }
+  $module.BitwiseXor = function(a, b) {
+    let r = new BigNumber(0);
+    const m = 0x20000000000000;  // 2^53
+    let h = new BigNumber(1);
+    while (!a.isZero() && !b.isZero()) {
+      let a0 = a.mod(m);
+      let b0 = b.mod(m);
+      r = r.plus(h.multipliedBy(a0 ^ b0));
+      a = a.dividedToIntegerBy(m);
+      b = b.dividedToIntegerBy(m);
+      h = h.multipliedBy(m);
+    }
+    r = r.plus(h.multipliedBy(a | b));
+    return r;
+  }
+  $module.BitwiseNot = function(a, bits) {
+    let r = new BigNumber(0);
+    let h = new BigNumber(1);
+    for (let i = 0; i < bits; i++) {
+      let bit = a.mod(2);
+      if (bit.isZero()) {
+        r = r.plus(h);
+      }
+      a = a.dividedToIntegerBy(2);
+      h = h.multipliedBy(2);
+    }
+    return r;
   }
   $module.Quantifier = function(vals, frall, pred) {
     for (let u of vals) {

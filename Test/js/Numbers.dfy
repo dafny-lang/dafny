@@ -2,6 +2,16 @@
 // RUN: %dafny /compile:3 /spillTargetCode:2 /compileTarget:js "%s" >> "%t"
 // RUN: %diff "%s.expect" "%t"
 
+method Main() {
+  Literals();
+  Arithmetic();
+  PrintReals();
+  SimpleReality();
+  BitVectorTests();
+  MoreBvTests();
+  NewTypeTest();
+}
+
 method Print(description: string, x: int) {
   print x;
   if |description| != 0 {  // string length (that is, sequence length)
@@ -26,13 +36,6 @@ method PrintSeq(s: seq) {
     i := i + 1;
   }
   print "\n";
-}
-
-method Main() {
-  Literals();
-  Arithmetic();
-  PrintReals();
-  SimpleReality();
 }
 
 method Literals() {
@@ -170,4 +173,114 @@ method SimpleReality() {
   var u := s / t;  // 1.0
   print r, " ", z, " ", s, " ", t, " ", u, "\n";
   print s == t, " ", z == u, "\n";
+}
+
+method BitVectorTests() {
+  var a: bv0 := 0;
+  var b: bv1 := 0;
+  var c: bv2 := 2;
+  var d: bv7 := 2;
+  var e: bv8 := 2;
+  var f: bv15 := 2;
+  var g: bv16 := 2;
+  var h: bv53 := 2;
+  var i: bv100 := 2;
+  print a, " ", c, " ", h, " ", i, "\n";
+  a, c, h, i := a + a, c + 1, 3 * h, i * 23;
+  print a, " ", c, " ", h, " ", i, "\n";
+  a, c, h, i := a * a, c * c, h * h, i * i;
+  print a, " ", c, " ", h, " ", i, "\n";
+  a, c, h, i := a - a, c - c, h - h, i - i;
+  print a, " ", c, " ", h, " ", i, "\n";
+
+  NativeBv32();
+  NativeBv53();
+}
+
+method NativeBv32() {
+  var x: bv32 := 0;
+  var y: bv32 := 15;
+  x := x + y + y - x + 1;  // 2*y + 1
+  y := x / y;  // 2
+  x := x - y;  // 29
+  var z: bv32 := 17;
+  z := z % 3;  // 2
+  var w0: bv32 := -13;  // wrap backwards
+  var w1 := w0 + 15;  // wrap forwards
+  print x, " ", y, " ", z, " ", w0, " ", w1, "\n";
+}
+
+method NativeBv53() {
+  var x: bv53 := 0;
+  var y: bv53 := 15;
+  x := x + y + y - x + 1;  // 2*y + 1
+  y := x / y;  // 2
+  x := x - y;  // 29
+  var z: bv53 := 17;
+  z := z % 3;  // 2
+  var w0: bv53 := -13;  // wrap backwards
+  var w1 := w0 + 15;  // wrap forwards
+  print x, " ", y, " ", z, " ", w0, " ", w1, "\n";
+}
+
+type MyBv = x: bv4 | 2 <= x < 10 witness 7
+
+method MoreBvTests() {
+  var u: bv0;
+  var w: bv32;
+  var B: bv100;
+  var m: MyBv;
+  u := 0;
+  w := 0;
+  B := 0;
+  m := 9;
+  u := u + u & u;
+  print u, " ", w, " ", B, " ", m, "\n";
+  u, w, B, m := u | 0, w | 0, B | 0, m | 0;
+  print u, " ", w, " ", B, " ", m, "\n";
+  u, w, B, m := u ^ 0, w ^ 0, B ^ 0, m ^ 0;
+  print u, " ", w, " ", B, " ", m, "\n";
+  u, w, B, m := !u, !w, !B, !m;
+  print u, " ", w, " ", B, " ", m, "\n";
+  
+  B := 32;
+  B := B << 2;  // 128
+  B := B >> 4;  // 8
+  m := 2;
+  m := m << 2;  // 8
+  m := m >> 1;  // 4
+  print B, " ", m, "\n";
+  
+  B := 32 | 4;
+  B := B.RotateLeft(99);  // 16 | 2
+  var B' := B;
+  B := B.RotateRight(98);  // 64 | 8
+  m := 2;
+  m := m.RotateLeft(2);  // 8
+  m := m.RotateRight(1);  // 4
+  print B', " ", B, " ", m, "\n";  // 18 72 4
+
+  u := u.RotateLeft(0).RotateRight(0);
+  print u, "\n";  // as 0 as ever
+}
+
+newtype {:nativeType "number"} MyNumber = x | -100 <= x < 0x10_0000_0000
+
+method NewTypeTest() {
+  var a, b := 200, 300;
+  var r0 := M(a, b);
+  var r1 := M(b, a);
+  var r2 := M(-2, b);
+  print a, " ", b, "\n";
+  print r0, " ", r1, " ", r2, "\n";
+}
+
+method M(m: MyNumber, n: MyNumber) returns (r: MyNumber) {
+  if m < 0 || n < 0 {
+    r := 18;
+  } else if m < n {
+    r := n - m;
+  } else {
+    r := m - n;
+  }
 }

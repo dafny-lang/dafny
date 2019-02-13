@@ -364,12 +364,12 @@ namespace Microsoft.Dafny {
       } else if (xType is CharType) {
         return "char";
       } else if (xType is IntType || xType is BigOrdinalType) {
-        return "BigInteger";
+        return "BigNumber";
       } else if (xType is RealType) {
         return "Dafny.BigRational";
       } else if (xType is BitvectorType) {
         var t = (BitvectorType)xType;
-        return t.NativeType != null ? GetNativeTypeName(t.NativeType) : "BigInteger";
+        return t.NativeType != null ? GetNativeTypeName(t.NativeType) : "BigNumber";
       } else if (xType.AsNewtype != null) {
         NativeType nativeType = xType.AsNewtype.NativeType;
         if (nativeType != null) {
@@ -438,8 +438,11 @@ namespace Microsoft.Dafny {
         return "'D'";
       } else if (xType is IntType || xType is BigOrdinalType) {
         return "new BigNumber(0)";
-      } else if (xType is RealType || xType is BitvectorType) {
+      } else if (xType is RealType) {
         return "_dafny.BigRational.ZERO";
+      } else if (xType is BitvectorType) {
+        var t = (BitvectorType)xType;
+        return t.NativeType != null ? "0" : "new BigNumber(0)";
       } else if (xType is SetType) {
         return "_dafny.Set.Empty";
       } else if (xType is MultiSetType) {
@@ -606,6 +609,8 @@ namespace Microsoft.Dafny {
       // prevent that, toFixed() is used. Note, however, that this does not catch the case
       // where "arg" denotes an integer but its type is some type parameter.
       if (arg.Type.IsIntegerType) {
+        wr.WriteLine(".toFixed());");
+      } else if (arg.Type.IsBitVectorType && AsNativeType(arg.Type) == null) {
         wr.WriteLine(".toFixed());");
       } else {
         wr.WriteLine(".toString());");
@@ -778,6 +783,55 @@ namespace Microsoft.Dafny {
       wr.Write("\"");
     }
 
+    protected override TargetWriter EmitBitvectorTruncation(BitvectorType bvType, bool surroundByUnchecked, TargetWriter wr) {
+      string nativeName = null, literalSuffix = null;
+      bool needsCastAfterArithmetic = false;
+      if (bvType.NativeType != null) {
+        GetNativeInfo(bvType.NativeType.Sel, out nativeName, out literalSuffix, out needsCastAfterArithmetic);
+      }
+
+      if (bvType.NativeType == null) {
+        wr.Write("(");
+        var middle = new TargetWriter(wr.IndentLevel);
+        wr.Append(middle);
+        wr.Write(").mod(new BigNumber(2).exponentiatedBy({0}))", bvType.Width);
+        return middle;
+      } else if (bvType.NativeType.Bitwidth != bvType.Width) {
+        // no truncation needed
+        return wr;
+      } else {
+        wr.Write("((");
+        var middle = new TargetWriter(wr.IndentLevel);
+        wr.Append(middle);
+        // print in hex, because that looks nice
+        wr.Write(") & 0x{0:X}{1})", (1UL << bvType.Width) - 1, literalSuffix);
+        return middle;
+      }
+    }
+
+    protected override void EmitRotate(Expression e0, Expression e1, bool isRotateLeft, TargetWriter wr, bool inLetExprBody, FCE_Arg_Translator tr) {
+      string nativeName = null, literalSuffix = null;
+      bool needsCast = false;
+      var nativeType = AsNativeType(e0.Type);
+      if (nativeType != null) {
+        GetNativeInfo(nativeType.Sel, out nativeName, out literalSuffix, out needsCast);
+      }
+
+      var bv = e0.Type.AsBitVectorType;
+      if (bv.Width == 0) {
+        tr(e0, wr, inLetExprBody);
+      } else {
+        wr.Write("_dafny.{0}(", isRotateLeft ? "RotateLeft" : "RotateRight");
+        tr(e0, wr, inLetExprBody);
+        wr.Write(", (");
+        tr(e1, wr, inLetExprBody);
+        wr.Write(").toNumber(), {0})", bv.Width);
+        if (needsCast) {
+          wr.Write(".toNumber()");
+        }
+      }
+    }
+
     protected override void EmitThis(TargetWriter wr) {
       wr.Write("_this");
     }
@@ -907,6 +961,13 @@ namespace Microsoft.Dafny {
       return string.Format("new BigNumber({0})", arrayIndex);
     }
 
+    protected override void EmitExprAsInt(Expression expr, bool inLetExprBody, TargetWriter wr) {
+      TrParenExpr(expr, wr, inLetExprBody);
+      if (AsNativeType(expr.Type) == null) {
+        wr.Write(".toNumber()");
+      }
+    }
+
     protected override void EmitIndexCollectionSelect(Expression source, Expression index, bool inLetExprBody, TargetWriter wr) {
       TrParenExpr(source, wr, inLetExprBody);
       if (source.Type.NormalizeExpand() is SeqType) {
@@ -1029,7 +1090,18 @@ namespace Microsoft.Dafny {
           TrParenExpr("!", expr, wr, inLetExprBody);
           break;
         case ResolvedUnaryOp.BitwiseNot:
-          TrParenExpr("~", expr, wr, inLetExprBody);
+          if (AsNativeType(expr.Type) != null) {
+            // JavaScript bitwise operators are weird (numeric operands are first converted into
+            // signed 32-bit values), and it could be easy to forget how weird they are.
+            // Therefore, as a protective measure, the following assert is here to catch against any future
+            // change that would render this translation incorrect.
+            Contract.Assert(expr.Type.AsBitVectorType.Width == 0);
+            wr.Write("0");
+          } else {
+            wr.Write("_dafny.BitwiseNot(");
+            TrExpr(expr, wr, inLetExprBody);
+            wr.Write(", {0})", expr.Type.AsBitVectorType.Width);
+          }
           break;
         case ResolvedUnaryOp.Cardinality:
           TrParenExpr("new BigNumber(", expr, wr, inLetExprBody);
@@ -1042,7 +1114,7 @@ namespace Microsoft.Dafny {
 
     bool IsDirectlyComparable(Type t) {
       Contract.Requires(t != null);
-      return t.IsBoolType || t.IsCharType || AsNativeType(t) != null || t.IsBitVectorType || t.IsRefType;
+      return t.IsBoolType || t.IsCharType || AsNativeType(t) != null || t.IsRefType;
     }
 
     protected override void CompileBinOp(BinaryExpr.ResolvedOpcode op,
@@ -1076,18 +1148,48 @@ namespace Microsoft.Dafny {
         case BinaryExpr.ResolvedOpcode.And:
           opString = "&&"; break;
         case BinaryExpr.ResolvedOpcode.BitwiseAnd:
-          opString = "&"; break;
+          if (AsNativeType(resultType) != null) {
+            // JavaScript bitwise operators are weird (numeric operands are first converted into
+            // signed 32-bit values), and it could be easy to forget how weird they are.
+            // Therefore, as a protective measure, the following assert is here to catch against any future
+            // change that would render this translation incorrect.
+            Contract.Assert(resultType.AsBitVectorType.Width < 32);
+            opString = "&";
+          } else {
+            staticCallString = "_dafny.BitwiseAnd";
+          }
+          break;
         case BinaryExpr.ResolvedOpcode.BitwiseOr:
-          opString = "|"; break;
+          if (AsNativeType(resultType) != null) {
+            // JavaScript bitwise operators are weird (numeric operands are first converted into
+            // signed 32-bit values), and it could be easy to forget how weird they are.
+            // Therefore, as a protective measure, the following assert is here to catch against any future
+            // change that would render this translation incorrect.
+            Contract.Assert(resultType.AsBitVectorType.Width < 32);
+            opString = "|";
+          } else {
+            staticCallString = "_dafny.BitwiseOr";
+          }
+          break;
         case BinaryExpr.ResolvedOpcode.BitwiseXor:
-          opString = "^"; break;
+          if (AsNativeType(resultType) != null) {
+            // JavaScript bitwise operators are weird (numeric operands are first converted into
+            // signed 32-bit values), and it could be easy to forget how weird they are.
+            // Therefore, as a protective measure, the following assert is here to catch against any future
+            // change that would render this translation incorrect.
+            Contract.Assert(resultType.AsBitVectorType.Width < 32);
+            opString = "^";
+          } else {
+            staticCallString = "_dafny.BitwiseXor";
+          }
+          break;
 
         case BinaryExpr.ResolvedOpcode.EqCommon: {
             if (IsHandleComparison(tok, e0, e1, errorWr)) {
               opString = "===";
             } else if (IsDirectlyComparable(e0.Type)) {
               opString = "===";
-            } else if (e0.Type.IsIntegerType) {
+            } else if (e0.Type.IsIntegerType || e0.Type.IsBitVectorType) {
               callString = "isEqualTo";
             } else if (e0.Type.IsRealType) {
               callString = "equals";
@@ -1154,38 +1256,67 @@ namespace Microsoft.Dafny {
           }
           break;
         case BinaryExpr.ResolvedOpcode.LeftShift:
-          opString = "<<"; truncateResult = true; convertE1_to_int = true; break;
+          if (AsNativeType(resultType) != null) {
+            // JavaScript bitwise operators are weird (numeric operands are first converted into
+            // signed 32-bit values), and it could be easy to forget how weird they are.
+            // Therefore, as a protective measure, the following assert is here to catch against any future
+            // change that would render this translation incorrect.
+            Contract.Assert(resultType.AsBitVectorType.Width == 0);
+            opString = "+";  // 0 + 0 == 0 == 0 << 0
+             convertE1_to_int = true;
+          } else {
+            staticCallString = "_dafny.ShiftLeft";
+            truncateResult = true; convertE1_to_int = true;
+          }
+          break;
         case BinaryExpr.ResolvedOpcode.RightShift:
-          opString = ">>"; convertE1_to_int = true; break;
+          if (AsNativeType(resultType) != null) {
+            // JavaScript bitwise operators are weird (numeric operands are first converted into
+            // signed 32-bit values), and it could be easy to forget how weird they are.
+            // Therefore, as a protective measure, the following assert is here to catch against any future
+            // change that would render this translation incorrect.
+            Contract.Assert(resultType.AsBitVectorType.Width == 0);
+            opString = "+";  // 0 + 0 == 0 == 0 << 0
+             convertE1_to_int = true;
+          } else {
+            staticCallString = "_dafny.ShiftRight";
+            truncateResult = true; convertE1_to_int = true;
+          }
+          break;
         case BinaryExpr.ResolvedOpcode.Add:
           if (resultType.IsIntegerType || resultType.IsRealType || resultType.IsBigOrdinalType) {
             callString = "plus"; truncateResult = true;
-          } else {
-            Contract.Assert(AsNativeType(resultType) != null);
+          } else if (AsNativeType(resultType) != null) {
             opString = "+";
+          } else {
+            callString = "plus"; truncateResult = true;
           }
           break;
         case BinaryExpr.ResolvedOpcode.Sub:
           if (resultType.IsIntegerType || resultType.IsRealType || resultType.IsBigOrdinalType) {
             callString = "minus"; truncateResult = true;
-          } else {
-            Contract.Assert(AsNativeType(resultType) != null);
+          } else if (AsNativeType(resultType) != null) {
             opString = "-";
+          } else {
+            callString = "minus"; truncateResult = true;
           }
           break;
         case BinaryExpr.ResolvedOpcode.Mul:
           if (resultType.IsIntegerType || resultType.IsRealType) {
             callString = "multipliedBy"; truncateResult = true;
-          } else {
-            Contract.Assert(AsNativeType(resultType) != null);
+          } else if (AsNativeType(resultType) != null) {
             opString = "*";
+          } else {
+            callString = "multipliedBy"; truncateResult = true;
           }
           break;
         case BinaryExpr.ResolvedOpcode.Div:
           if (resultType.IsIntegerType) {
             staticCallString = "_dafny.EuclideanDivision";
+          } else if (resultType.IsRealType) {
+            callString = "dividedBy";
           } else if (AsNativeType(resultType) == null) {
-            callString = "dividedBy";  // for reals
+            callString = "dividedToIntegerBy";
           } else if (AsNativeType(resultType).LowerBound < BigInteger.Zero) {
             staticCallString = "_dafny.EuclideanDivisionNumber";
           } else {
@@ -1194,6 +1325,8 @@ namespace Microsoft.Dafny {
           break;
         case BinaryExpr.ResolvedOpcode.Mod:
           if (resultType.IsIntegerType) {
+            callString = "mod";
+          } else if (AsNativeType(resultType) == null) {
             callString = "mod";
           } else if (AsNativeType(resultType).LowerBound < BigInteger.Zero) {
             callString = "_dafny.EuclideanModuloNumber";
@@ -1276,10 +1409,10 @@ namespace Microsoft.Dafny {
           Contract.Assert(AsNativeType(e.ToType) == null);
           wr.Write("new Dafny.BigRational(");
           if (AsNativeType(e.E.Type) != null) {
-            wr.Write("new BigInteger");
+            wr.Write("new BigNumber");
           }
           TrParenExpr(e.E, wr, inLetExprBody);
-          wr.Write(", BigInteger.One)");
+          wr.Write(", new BigNumber(1))");
         } else if (e.ToType.IsCharType) {
           wr.Write("(char)(");
           TrExpr(e.E, wr, inLetExprBody);
@@ -1297,9 +1430,7 @@ namespace Microsoft.Dafny {
             TrParenExpr(e.E, wr, inLetExprBody);
           } else {
             // any (int or bv) -> native (int or bv)
-            // A cast would do, but we also consider some optimizations
-            wr.Write("({0})", toNative.Name);
-
+            // Consider some optimizations
             var literal = PartiallyEvaluate(e.E);
             UnaryOpExpr u = e.E.Resolved as UnaryOpExpr;
             MemberSelectExpr m = e.E.Resolved as MemberSelectExpr;
@@ -1325,6 +1456,7 @@ namespace Microsoft.Dafny {
             } else {
               // no optimization applies; use the standard translation
               TrParenExpr(e.E, wr, inLetExprBody);
+              wr.Write(".toNumber()");
             }
 
           }
@@ -1337,11 +1469,11 @@ namespace Microsoft.Dafny {
           TrExpr(e.E, wr, inLetExprBody);
         } else {
           // real -> (int or bv)
-          if (AsNativeType(e.ToType) != null) {
-            wr.Write("({0})", AsNativeType(e.ToType).Name);
-          }
           TrParenExpr(e.E, wr, inLetExprBody);
           wr.Write(".ToBigInteger()");
+          if (AsNativeType(e.ToType) != null) {
+            wr.Write(".toNumber()");
+          }
         }
       } else {
         Contract.Assert(e.E.Type.IsBigOrdinalType);

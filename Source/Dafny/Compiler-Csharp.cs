@@ -1120,6 +1120,94 @@ namespace Microsoft.Dafny
       wr.Write("{0}\"{1}\"", isVerbatim ? "@" : "", str);
     }
 
+    protected override TargetWriter EmitBitvectorTruncation(BitvectorType bvType, bool surroundByUnchecked, TargetWriter wr) {
+      string nativeName = null, literalSuffix = null;
+      bool needsCastAfterArithmetic = false;
+      if (bvType.NativeType != null) {
+        GetNativeInfo(bvType.NativeType.Sel, out nativeName, out literalSuffix, out needsCastAfterArithmetic);
+      }
+
+      // --- Before
+      if (bvType.NativeType == null) {
+        wr.Write("((");
+      } else {
+        if (surroundByUnchecked) {
+          // Unfortunately, the following will apply "unchecked" to all subexpressions as well.  There
+          // shouldn't ever be any problem with this, but stylistically it would have been nice to have
+          // applied the "unchecked" only to the actual operation that may overflow.
+          wr.Write("unchecked(");
+        }
+        wr.Write("({0})((", nativeName);
+      }
+      // --- Middle
+      var middle = new TargetWriter(wr.IndentLevel);
+      wr.Append(middle);
+      // --- After
+      // do the truncation, if needed
+      if (bvType.NativeType == null) {
+        wr.Write(") & ((new BigInteger(1) << {0}) - 1))", bvType.Width);
+      } else {
+        if (bvType.NativeType.Bitwidth != bvType.Width) {
+          // print in hex, because that looks nice
+          wr.Write(") & ({2})0x{0:X}{1})", (1UL << bvType.Width) - 1, literalSuffix, nativeName);
+        } else {
+          wr.Write("))");  // close the parentheses for the cast
+        }
+        if (surroundByUnchecked) {
+          wr.Write(")");  // close the parentheses for the "unchecked"
+        }
+      }
+
+      return middle;
+    }
+
+    protected override void EmitRotate(Expression e0, Expression e1, bool isRotateLeft, TargetWriter wr, bool inLetExprBody, FCE_Arg_Translator tr) {
+      string nativeName = null, literalSuffix = null;
+      bool needsCast = false;
+      var nativeType = AsNativeType(e0.Type);
+      if (nativeType != null) {
+        GetNativeInfo(nativeType.Sel, out nativeName, out literalSuffix, out needsCast);
+      }
+
+      // ( e0 op1 e1) | (e0 op2 (width - e1))
+      if (needsCast) {
+        wr.Write("(" + nativeName + ")(");
+      }
+      wr.Write("(");
+      EmitShift(e0, e1, isRotateLeft ? "<<" : ">>", isRotateLeft, nativeType, true, wr, inLetExprBody, tr);
+      wr.Write(")");
+
+      wr.Write (" | ");
+
+      wr.Write("(");
+      EmitShift(e0, e1, isRotateLeft ? ">>" : "<<", !isRotateLeft, nativeType, false, wr, inLetExprBody, tr);
+      wr.Write(")");
+
+      if (needsCast) {
+        wr.Write(")");
+      }
+    }
+
+    void EmitShift(Expression e0, Expression e1, string op, bool truncate, NativeType/*?*/ nativeType, bool firstOp, TargetWriter wr, bool inLetExprBody, FCE_Arg_Translator tr) {
+      var bv = e0.Type.AsBitVectorType;
+      if (truncate) {
+        wr = EmitBitvectorTruncation(bv, true, wr);
+      }
+      tr(e0, wr, inLetExprBody);
+      wr.Write(" {0} ", op);
+      if (!firstOp) {
+        wr.Write("({0} - ", bv.Width);
+      }
+
+      wr.Write("(int)(");
+      tr(e1, wr, inLetExprBody);
+      wr.Write(")");
+      
+      if (!firstOp) {
+        wr.Write(")");
+      }
+    }
+    
     protected override string IdProtect(string name) {
       return "@" + name;
     }
@@ -1245,6 +1333,10 @@ namespace Microsoft.Dafny
         sep = ", ";
       }
       wr.Write("]");
+    }
+
+    protected override void EmitExprAsInt(Expression expr, bool inLetExprBody, TargetWriter wr) {
+      TrParenExpr("(int)", expr, wr, inLetExprBody);
     }
 
     protected override void EmitIndexCollectionSelect(Expression source, Expression index, bool inLetExprBody, TargetWriter wr) {

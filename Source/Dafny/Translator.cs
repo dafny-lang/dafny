@@ -7102,7 +7102,7 @@ namespace Microsoft.Dafny {
           case BinaryExpr.ResolvedOpcode.Mod: {
               Bpl.Expr zero;
               if (e.E1.Type.IsBitVectorType) {
-                zero = BplBvLiteralExpr(e.tok, Basetypes.BigNum.ZERO, (BitvectorType)e.E1.Type);
+                zero = BplBvLiteralExpr(e.tok, Basetypes.BigNum.ZERO, e.E1.Type.AsBitVectorType);
               } else if (e.E1.Type.IsNumericBased(Type.NumericPersuation.Real)) {
                 zero = Bpl.Expr.Literal(Basetypes.BigDec.ZERO);
               } else {
@@ -7116,12 +7116,12 @@ namespace Microsoft.Dafny {
           case BinaryExpr.ResolvedOpcode.LeftShift:
           case BinaryExpr.ResolvedOpcode.RightShift: {
               CheckWellformed(e.E1, options, locals, builder, etran);
-              var w = ((BitvectorType)e.Type).Width;
+              var w = e.Type.AsBitVectorType.Width;
               var upperMsg = string.Format("shift amount must not exceed the width of the result ({0})", w);
               if (e.E1.Type.IsBitVectorType) {
                 // Known to be non-negative, so we don't need to check lower bound.
                 // Check upper bound, that is, check "E1 <= w"
-                var e1Width = ((BitvectorType)e.E1.Type).Width;
+                var e1Width = e.E1.Type.AsBitVectorType.Width;
                 if (w < (BigInteger.One << e1Width)) {
                   // w is a number that can be represented in the e.E1.Type, so do the comparison in that bitvector type.
                   var bound = BplBvLiteralExpr(e.tok, Basetypes.BigNum.FromInt(w), e1Width);
@@ -7400,7 +7400,7 @@ namespace Microsoft.Dafny {
       string name = expr.Function.Name;
       CheckWellformed(expr.Receiver, options, locals, builder, etran);
       if (name == "RotateLeft" || name == "RotateRight") {
-        var w = ((BitvectorType)expr.Type).Width;
+        var w = expr.Type.AsBitVectorType.Width;
         Expression arg = expr.Args[0];
         builder.Add(Assert(expr.tok, Bpl.Expr.Le(Bpl.Expr.Literal(0), etran.TrExpr(arg)), "shift amount must be non-negative", options.AssertKv));
         var upperMsg = string.Format("shift amount must not exceed the width of the result ({0})", w);
@@ -7494,10 +7494,10 @@ namespace Microsoft.Dafny {
       toType = toType.NormalizeExpand();
       fromType = fromType.NormalizeExpand();
       if (fromType.IsBitVectorType) {
-        var fromWidth = ((BitvectorType)fromType).Width;
+        var fromWidth = fromType.AsBitVectorType.Width;
         if (toType.IsBitVectorType) {
           // conversion from one bitvector type to another
-          var toWidth = ((BitvectorType)toType).Width;
+          var toWidth = toType.AsBitVectorType.Width;
           if (fromWidth == toWidth) {
             return r;
           } else if (fromWidth < toWidth) {
@@ -7551,13 +7551,13 @@ namespace Microsoft.Dafny {
         return FunctionCall(tok, BuiltinFunction.CharFromInt, null, r);
       } else {
         Contract.Assert(toType.IsBitVectorType);
-        var toWidth = ((BitvectorType)toType).Width;
+        var toWidth = toType.AsBitVectorType.Width;
         if (RemoveLit(r) is Bpl.LiteralExpr) {
           Bpl.LiteralExpr e = (Bpl.LiteralExpr) RemoveLit(r);
           if (e.isBigNum) {
             var toBound = Basetypes.BigNum.FromBigInt(BigInteger.One << toWidth);  // 1 << toWidth
             if (e.asBigNum <= toBound) {
-              return BplBvLiteralExpr(r.tok, e.asBigNum, (BitvectorType)toType);
+              return BplBvLiteralExpr(r.tok, e.asBigNum, toType.AsBitVectorType);
             }
           }
         }
@@ -7598,15 +7598,15 @@ namespace Microsoft.Dafny {
       }
 
       if (toType.IsBitVectorType) {
-        var toWidth = ((BitvectorType)toType.NormalizeExpand()).Width;
+        var toWidth = toType.AsBitVectorType.Width;
         var toBound = Basetypes.BigNum.FromBigInt(BigInteger.One << toWidth);  // 1 << toWidth
         Bpl.Expr boundsCheck = null;
         if (expr.Type.IsBitVectorType) {
-          var fromWidth = ((BitvectorType)expr.Type.NormalizeExpand()).Width;
+          var fromWidth = expr.Type.AsBitVectorType.Width;
           if (toWidth < fromWidth) {
             // Check "expr < (1 << toWidth)" in type "fromType" (note that "1 << toWidth" is indeed a value in "fromType")
             PutSourceIntoLocal();
-            var bound = BplBvLiteralExpr(tok, toBound, (BitvectorType)expr.Type.NormalizeExpand());
+            var bound = BplBvLiteralExpr(tok, toBound, expr.Type.AsBitVectorType);
             boundsCheck = FunctionCall(expr.tok, "lt_bv" + fromWidth, Bpl.Type.Bool, o, bound);
           }
         } else if (expr.Type.IsNumericBased(Type.NumericPersuation.Int)) {
@@ -14298,7 +14298,7 @@ namespace Microsoft.Dafny {
               return MaybeLit(arg);
             case UnaryOpExpr.Opcode.Not:
               if (expr.Type.IsBitVectorType) {
-                var bvWidth = ((BitvectorType)expr.Type).Width;
+                var bvWidth = expr.Type.AsBitVectorType.Width;
                 var bvType = translator.BplBvType(bvWidth);
                 Bpl.Expr r = translator.FunctionCall(expr.tok, "not_bv" + bvWidth, bvType, arg);
                 if (translator.IsLit(arg)) {
@@ -14372,7 +14372,7 @@ namespace Microsoft.Dafny {
         } else if (expr is BinaryExpr) {
           BinaryExpr e = (BinaryExpr)expr;
           bool isReal = e.E0.Type.IsNumericBased(Type.NumericPersuation.Real);
-          int bvWidth = e.E0.Type.IsBitVectorType ? ((BitvectorType)e.E0.Type.NormalizeExpand()).Width : -1;  // -1 indicates "not a bitvector type"
+          int bvWidth = e.E0.Type.IsBitVectorType ? e.E0.Type.AsBitVectorType.Width : -1;  // -1 indicates "not a bitvector type"
           Bpl.Expr e0 = TrExpr(e.E0);
           if (e.ResolvedOp == BinaryExpr.ResolvedOpcode.InSet) {
             bool pr;
@@ -15001,11 +15001,11 @@ namespace Microsoft.Dafny {
         Contract.Requires(expr.Function is SpecialFunction);
         string name = expr.Function.Name;
         if (name == "RotateLeft") {
-          var w = ((BitvectorType)expr.Type).Width;
+          var w = expr.Type.AsBitVectorType.Width;
           Expression arg = expr.Args[0];
           return TrToFunctionCall(expr.tok, "LeftRotate_bv" + w, translator.BplBvType(w), TrExpr(expr.Receiver), translator.ConvertExpression(expr.tok, TrExpr(arg), arg.Type, expr.Type), false);
         } else if (name == "RotateRight") {
-          var w = ((BitvectorType)expr.Type).Width;
+          var w = expr.Type.AsBitVectorType.Width;
           Expression arg = expr.Args[0];
           return TrToFunctionCall(expr.tok, "RightRotate_bv" + w, translator.BplBvType(w), TrExpr(expr.Receiver), translator.ConvertExpression(expr.tok, TrExpr(arg), arg.Type, expr.Type), false);
         } else {

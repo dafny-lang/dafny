@@ -23,7 +23,7 @@ method Main() {
   }
   print x, " ", y, " ", z, " ", w, "\n";
   var t, u, v := BitwiseOperations();
-  print t, " ", v, " ", v, "\n";
+  print t, " ", u, " ", v, "\n";
   DoArith32();
   var unry := Unary(5);
   print "bv16: 5 - 2 == ", unry, "\n";
