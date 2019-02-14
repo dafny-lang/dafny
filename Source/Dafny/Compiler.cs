@@ -1831,7 +1831,7 @@ namespace Microsoft.Dafny {
       } else if (bound is ComprehensionExpr.MapBoundedPool) {
         var b = (ComprehensionExpr.MapBoundedPool)bound;
         TrParenExpr(b.Map, collectionWriter, inLetExprBody);
-        collectionWriter.Write(".Domain");
+        collectionWriter.Write(".Keys.Elements");
       } else if (bound is ComprehensionExpr.SeqBoundedPool) {
         var b = (ComprehensionExpr.SeqBoundedPool)bound;
         TrParenExpr(b.Seq, collectionWriter, inLetExprBody);
@@ -2904,7 +2904,7 @@ namespace Microsoft.Dafny {
       twr.Write(".{0}", IdName(f));
       if (f.TypeArgs.Count != 0) {
           List<Type> typeArgs = f.TypeArgs.ConvertAll(ta => e.TypeArgumentSubstitutions[ta]);
-          twr.Write("<" + TypeNames(typeArgs, wr, f.tok) + ">");
+          EmitActualTypeArgs(typeArgs, f.tok, twr);
       }
       twr.Write("(");
       string sep = "";

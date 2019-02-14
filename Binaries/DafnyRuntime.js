@@ -50,7 +50,7 @@ let _dafny = (function() {
       }
       return false;
     }
-    add(k) {
+    add(k) {  // mutates the Set; use only during construction
       if (!this.contains(k)) {
         this.push(k);
       }
@@ -71,13 +71,117 @@ let _dafny = (function() {
     get Elements() {
       return this;
     }
+    Union(that) {
+      if (this.length === 0) {
+        return that;
+      } else if (that.length === 0) {
+        return this;
+      } else {
+        let s = Set.of(...this);
+        for (let k of that) {
+          s.add(k);
+        }
+        return s;
+      }
+    }
+    Intersect(that) {
+      if (this.length === 0) {
+        return this;
+      } else if (that.length === 0) {
+        return that;
+      } else {
+        let s = new Set();
+        for (let k of this) {
+          if (that.contains(k)) {
+            s.push(k);
+          }
+        }
+        return s;
+      }
+    }
+    IsDisjointFrom(that) {
+      for (let k of this) {
+        if (that.contains(k)) {
+          return false;
+        }
+      }
+      return true;
+    }
+    IsSubsetOf(that) {
+      if (that.length < this.length) {
+        return false;
+      }
+      for (let k of this) {
+        if (!that.contains(k)) {
+          return false;
+        }
+      }
+      return true;
+    }
+    IsProperSubsetOf(that) {
+      if (that.length <= this.length) {
+        return false;
+      }
+      for (let k of this) {
+        if (!that.contains(k)) {
+          return false;
+        }
+      }
+      return true;
+    }
+    get AllSubsets() {
+      return this.AllSubsets_();
+    }
+    *AllSubsets_() {
+      // Start by putting all set elements into a list, but don't include null
+      let elmts = Array.of(...this);
+      let n = elmts.length;
+      let which = new Array(n);
+      which.fill(false);
+      let a = [];
+      while (true) {
+        yield Set.of(...a);
+        // "add 1" to "which", as if doing a carry chain.  For every digit changed, change the membership of the corresponding element in "a".
+        let i = 0;
+        for (; i < n && which[i]; i++) {
+          which[i] = false;
+          // remove elmts[i] from a
+          for (let j = 0; j < a.length; j++) {
+            if (_dafny.areEqual(a[j], elmts[i])) {
+              // move the last element of a into slot j
+              a[j] = a[-1];
+              a.pop();
+              break;
+            }
+          }
+        }
+        if (i === n) {
+          // we have cycled through all the subsets
+          break;
+        }
+        which[i] = true;
+        a.push(elmts[i]);
+      }
+    }
   }
   $module.MultiSet = class MultiSet extends Array {
     constructor() {
       super();
     }
     toString() {
-      return "multiset{" + this.join(", ") + "}";
+      let s = "multiset{";
+      let sep = "";
+      for (let e of this) {
+        let [k, n] = e;
+        let ks = k.toString();
+        while (!n.isZero()) {
+          n = n.minus(1);
+          s += sep + ks;
+          sep = ", ";
+        }
+      }
+      s += "}";
+      return s;
     }
     static get Empty() {
       if (this._empty === undefined) {
@@ -87,8 +191,25 @@ let _dafny = (function() {
     }
     static fromElements(...elmts) {
       let s = new MultiSet();
+      const one = new BigNumber(1);
       for (let e of elmts) {
-        s.add(e);
+        s.add(e, one);
+      }
+      return s;
+    }
+    cardinality() {
+      let c = new BigNumber(0);
+      for (let e of this) {
+        let [k, n] = e;
+        c = c.plus(n);
+      }
+      return c;
+    }
+    clone() {
+      let s = new MultiSet();
+      for (let e of this) {
+        let [k, n] = e;
+        s.push([k, n]);  // make sure to create a new array [k, n] here
       }
       return s;
     }
@@ -111,13 +232,13 @@ let _dafny = (function() {
     contains(k) {
       return this.findIndex(k) < this.length;
     }
-    add(k) {
-      var i = s.findIndex(k);
-      if (i === s.length) {
-        s.push([e, new BigNumber(1)]);
+    add(k, n) {
+      var i = this.findIndex(k);
+      if (i === this.length) {
+        this.push([k, n]);
       } else {
-        let n = this[i][1];
-        this[i] = [k, n.plus(1)];
+        let m = this[i][1];
+        this[i] = [k, m.plus(n)];
       }
     }
     update(k, n) {
@@ -143,7 +264,7 @@ let _dafny = (function() {
         return false;
       }
       for (let e of this) {
-        let [k,n] = e;
+        let [k, n] = e;
         let m = other.get(k);
         if (!n.isEqualTo(m)) {
           return false;
@@ -152,11 +273,11 @@ let _dafny = (function() {
       return true;
     }
     get Elements() {
-      return Elements_;
+      return this.Elements_();
     }
     *Elements_() {
       for (let i = 0; i < this.length; i++) {
-        let [k,n] = this[i];
+        let [k, n] = this[i];
         while (!n.isZero()) {
           yield k;
           n = n.minus(1);
@@ -164,25 +285,78 @@ let _dafny = (function() {
       }
     }
     get UniqueElements() {
-      return UniqueElements_;
+      return this.UniqueElements_();
     }
     *UniqueElements_() {
-      for (let i = 0; i < this.length; i++) {
-        let [k,n] = this[i];
+      for (let e of this) {
+        let [k, n] = e;
         yield k;
       }
     }
-  }
-  $module.Concat = function(a, b) {
-    if (typeof a !== "string") {
-      // a must be a Seq
-      a = a.join("");
+    Union(that) {
+      if (this.length === 0) {
+        return that;
+      } else if (that.length === 0) {
+        return this;
+      } else {
+        let s = this.clone();
+        for (let e of that) {
+          let [k, n] = e;
+          s.add(k, n);
+        }
+        return s;
+      }
     }
-    if (typeof b !== "string") {
-      // b must be a Seq
-      b = b.join("");
+    Intersect(that) {
+      if (this.length === 0) {
+        return this;
+      } else if (that.length === 0) {
+        return that;
+      } else {
+        let s = new MultiSet();
+        for (let e of this) {
+          let [k, n] = e;
+          let m = that.get(k);
+          if (!m.isZero()) {
+            s.push([k, m.isLessThan(n) ? m : n]);
+          }
+        }
+        return s;
+      }
     }
-    return a + b;
+    IsDisjointFrom(that) {
+      let intersection = this.Intersect(that);
+      return intersection.length === 0;
+    }
+    IsSubsetOf(that) {
+      if (that.length < this.length) {
+        return false;
+      }
+      for (let e of this) {
+        let [k, n] = e;
+        let m = that.get(k);
+        if (!n.isLessThanOrEqualTo(m)) {
+          return false;
+        }
+      }
+      return true;
+    }
+    IsProperSubsetOf(that) {
+      if (that.length < this.length) {
+        return false;
+      }
+      let proper = this.length < that.length;
+      for (let e of this) {
+        let [k, n] = e;
+        let m = that.get(k);
+        if (!n.isLessThanOrEqualTo(m)) {
+          return false;
+        } else if (!proper && n.isLessThan(m)) {
+          proper = true;
+        }
+      }
+      return proper;
+    }
   }
   $module.Seq = class Seq extends Array {
     constructor(...elems) {
@@ -209,19 +383,64 @@ let _dafny = (function() {
       }
       return true;
     }
-    contains(k) {
-      for (let x of this) {
-        if (_dafny.areEqual(x, k)) {
-          return true;
+    static contains(s, k) {
+      if (typeof s === "string") {
+        return s.includes(k);
+      } else {
+        for (let x of s) {
+          if (_dafny.areEqual(x, k)) {
+            return true;
+          }
         }
+        return false;
       }
-      return false;
     }
     get Elements() {
       return this;
     }
     get UniqueElements() {
       return _dafny.Set.fromElements(...this);
+    }
+    static Concat(a, b) {
+      if (typeof a === "string" || typeof b === "string") {
+        // string concatenation, so make sure both operands are strings before concatenating
+        if (typeof a !== "string") {
+          // a must be a Seq
+          a = a.join("");
+        }
+        if (typeof b !== "string") {
+          // b must be a Seq
+          b = b.join("");
+        }
+        return a + b;
+      } else {
+        // ordinary concatenation
+        let r = Seq.of(...a);
+        r.push(...b);
+        return r;
+      }
+    }
+    static IsPrefixOf(a, b) {
+      if (b.length < a.length) {
+        return false;
+      }
+      for (let i = 0; i < a.length; i++) {
+        if (!_dafny.areEqual(a[i], b[i])) {
+          return false;
+        }
+      }
+      return true;
+    }
+    static IsProperPrefixOf(a, b) {
+      if (b.length <= a.length) {
+        return false;
+      }
+      for (let i = 0; i < a.length; i++) {
+        if (!_dafny.areEqual(a[i], b[i])) {
+          return false;
+        }
+      }
+      return true;
     }
   }
   $module.Map = class Map extends Array {
@@ -247,7 +466,7 @@ let _dafny = (function() {
     }
     get(k) {
       let i = this.findIndex(k);
-      if (i == this.length) {
+      if (i === this.length) {
         return undefined;
       } else {
         return this[i][1];
@@ -269,9 +488,42 @@ let _dafny = (function() {
         return false;
       }
       for (let e of this) {
-        let [k,n] = e;
-        let m = other.get(k);
-        if (m === undefined || !_dafny.areEqual(n, m)) {
+        let [k, v] = e;
+        let w = other.get(k);
+        if (w === undefined || !_dafny.areEqual(v, w)) {
+          return false;
+        }
+      }
+      return true;
+    }
+    get Keys() {
+      let s = new _dafny.Set();
+      for (let e of this) {
+        let [k, v] = e;
+        s.push(k);
+      }
+      return s;
+    }
+    get Values() {
+      let s = new _dafny.Set();
+      for (let e of this) {
+        let [k, v] = e;
+        s.add(v);
+      }
+      return s;
+    }
+    get Items() {
+      let s = new _dafny.Set();
+      for (let e of this) {
+        let [k, v] = e;
+        s.push(_dafny.Tuple.of(k, v));
+      }
+      return s;
+    }
+    IsDisjointFrom(that) {
+      for (let e of this) {
+        let [k, v] = e;
+        if (that.contains(k)) {
           return false;
         }
       }
@@ -352,7 +604,7 @@ let _dafny = (function() {
     toBigNumber() {
       if (this.num.isZero() || this.den.isEqualTo(1)) {
         return this.num;
-      } else if (this.num.Sign.isGreaterThan(0)) {
+      } else if (this.num.isGreaterThan(0)) {
         return this.num.dividedToIntegerBy(this.den);
       } else {
         return this.num.minus(this.den).plus(1).dividedToIntegerBy(this.den);
@@ -404,7 +656,7 @@ let _dafny = (function() {
       }
     }
     equals(that) {
-      return this.compareTo(that) == 0;
+      return this.compareTo(that) === 0;
     }
     isLessThan(that) {
       return this.compareTo(that) < 0;
@@ -487,7 +739,7 @@ let _dafny = (function() {
       // -a: bp - c if c > 0
       // -a: 0 if c == 0
       let c = (-1) % bp;
-      return c == 0 ? c : bp - c;
+      return c === 0 ? c : bp - c;
     }
   }
   $module.ShiftLeft = function(b, n) {

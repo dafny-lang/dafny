@@ -151,7 +151,8 @@ namespace Microsoft.Dafny {
         foreach (var ctor in dt.Ctors) {
           var cw = EmitIf(string.Format("this.$tag === {0}", i), true, w);
           cw.Indent();
-          cw.Write("return \"{0}.{1}\"", dt.Name, ctor.Name);
+          var nm = (dt.Module.IsDefaultModule ? "" : dt.Module.CompileName + ".") + dt.CompileName + "." + ctor.CompileName;
+          cw.Write("return \"{0}\"", nm);
           var sep = " + \"(\" + ";
           var anyFormals = false;
           var k = 0;
@@ -684,8 +685,10 @@ namespace Microsoft.Dafny {
       wr.Append(collectionWriter);
       if (altBoundVarName == null) {
         return wr.NewBlock(")");
-      } else {
+      } else if (altVarType == null) {
         return wr.NewBlockWithPrefix(")", "{0} = {1};", altBoundVarName, boundVar);
+      } else {
+        return wr.NewBlockWithPrefix(")", "let {0} = {1};", altBoundVarName, boundVar);
       }
     }
 
@@ -839,6 +842,17 @@ namespace Microsoft.Dafny {
       }
     }
 
+    protected override string IdProtect(string name) {
+      Contract.Requires(name != null);
+      switch (name) {
+        case "public":
+        case "private":
+          return "_$$_" + name;
+        default:
+          return name;
+      }
+    }
+
     protected override void EmitThis(TargetWriter wr) {
       wr.Write("_this");
     }
@@ -847,8 +861,10 @@ namespace Microsoft.Dafny {
       var dt = dtv.Ctor.EnclosingDatatype;
       if (dt is TupleTypeDecl) {
         wr.Write("_dafny.Tuple.of({0})", arguments);
+      } else if (dtName.StartsWith(dt.Module.CompileName)) {
+        wr.Write("{0}.create_{1}({2})", dtName, ctorName, arguments);
       } else {
-        wr.Write("{0}.{1}.create_{2}({3})", dt.Module.CompileName, dtName, ctorName, arguments);
+        wr.Write("{3}.{0}.create_{1}({2})", dtName, ctorName, arguments, dt.Module.CompileName);
       }
     }
 
@@ -873,7 +889,7 @@ namespace Microsoft.Dafny {
           }
           break;
         case SpecialField.ID.Floor:
-          compiledName = "ToBigInteger()";
+          compiledName = "toBigNumber()";
           break;
         case SpecialField.ID.IsLimit:
           preString = "_dafny.BigOrdinal.IsLimit(";
@@ -1112,7 +1128,11 @@ namespace Microsoft.Dafny {
           break;
         case ResolvedUnaryOp.Cardinality:
           TrParenExpr("new BigNumber(", expr, wr, inLetExprBody);
-          wr.Write(".length)");
+          if (expr.Type.AsMultiSetType != null) {
+            wr.Write(".cardinality())");
+          } else {
+            wr.Write(".length)");
+          }
           break;
         default:
           Contract.Assert(false); throw new cce.UnreachableException();  // unexpected unary expression
@@ -1390,13 +1410,13 @@ namespace Microsoft.Dafny {
           callString = "Difference"; break;
 
         case BinaryExpr.ResolvedOpcode.ProperPrefix:
-          callString = "IsProperPrefixOf"; break;
+          staticCallString = "_dafny.Seq.IsProperPrefixOf"; break;
         case BinaryExpr.ResolvedOpcode.Prefix:
-          callString = "IsPrefixOf"; break;
+          staticCallString = "_dafny.Seq.IsPrefixOf"; break;
         case BinaryExpr.ResolvedOpcode.Concat:
-          staticCallString = "_dafny.Concat"; break;
+          staticCallString = "_dafny.Seq.Concat"; break;
         case BinaryExpr.ResolvedOpcode.InSeq:
-          callString = "contains"; reverseArguments = true; break;
+          staticCallString = "_dafny.Seq.contains"; reverseArguments = true; break;
         case BinaryExpr.ResolvedOpcode.NotInSeq:
           preOpString = "!"; callString = "contains"; reverseArguments = true; break;
 
@@ -1477,7 +1497,7 @@ namespace Microsoft.Dafny {
         } else {
           // real -> (int or bv)
           TrParenExpr(e.E, wr, inLetExprBody);
-          wr.Write(".ToBigInteger()");
+          wr.Write(".toBigNumber()");
           if (AsNativeType(e.ToType) != null) {
             wr.Write(".toNumber()");
           }

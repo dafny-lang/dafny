@@ -478,6 +478,15 @@ namespace Dafny
     public bool Contains<G>(G t) {
       return t == null ? occurrencesOfNull > 0 : t is T && dict.ContainsKey((T)(object)t);
     }
+    public BigInteger Select<G>(G t) {
+      if (t == null) {
+        return occurrencesOfNull;
+      } else if (t is T && dict.ContainsKey((T)(object)t)) {
+        return dict[(T)(object)t];
+      } else {
+        return BigInteger.Zero;
+      }
+    }
     public MultiSet<T> Union(MultiSet<T> other) {
       if (dict.Count + occurrencesOfNull == 0)
         return other;
@@ -743,11 +752,6 @@ namespace Dafny
       }
     }
 #endif
-    public IEnumerable<U> Domain {
-      get {
-        return dict.Keys;
-      }
-    }
     public Set<U> Keys {
       get {
         if (hasNullValue) {
