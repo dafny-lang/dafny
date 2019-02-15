@@ -3,23 +3,52 @@ BigNumber.config({ MODULO_MODE: BigNumber.EUCLID })
 let _dafny = (function() {
   let $module = {};
   $module.areEqual = function(a, b) {
-    if (typeof a !== 'object') {
+    if (typeof a !== 'object' || a === null || b === null) {
       return a === b;
     } else if (BigNumber.isBigNumber(a)) {
       return a.isEqualTo(b);
+    } else if (a._tname !== undefined) {
+      return a === b;  // pointer equality
     } else {
-      return a.equals(b);
+      return a.equals(b);  // value-type equality
+    }
+  }
+  $module.toString = function(a) {
+    if (a === null) {
+      return "null";
+    } else if (typeof a === "number") {
+      return a.toFixed();
+    } else if (BigNumber.isBigNumber(a)) {
+      return a.toFixed();
+    } else if (a._tname !== undefined) {
+      return a._tname;
+    } else {
+      return a.toString();
     }
   }
   $module.Default = function (ty) {
     return null;  // TODO
+  }
+  $module.NewObject = function() {
+    return { _tname: "object" };
   }
   $module.Tuple = class Tuple extends Array {
     constructor(...elems) {
       super(...elems);
     }
     toString() {
-      return "(" + this.join(", ") + ")";
+      return "(" + arrayElementsToString(this) + ")";
+    }
+    equals(other) {
+      if (this === other) {
+        return true;
+      }
+      for (let i = 0; i < this.length; i++) {
+        if (!_dafny.areEqual(this[i], other[i])) {
+          return false;
+        }
+      }
+      return true;
     }
   }
   $module.Set = class Set extends Array {
@@ -27,7 +56,7 @@ let _dafny = (function() {
       super();
     }
     toString() {
-      return "{" + this.join(", ") + "}";
+      return "{" + arrayElementsToString(this) + "}";
     }
     static get Empty() {
       if (this._empty === undefined) {
@@ -173,7 +202,7 @@ let _dafny = (function() {
       let sep = "";
       for (let e of this) {
         let [k, n] = e;
-        let ks = k.toString();
+        let ks = _dafny.toString(k);
         while (!n.isZero()) {
           n = n.minus(1);
           s += sep + ks;
@@ -363,7 +392,7 @@ let _dafny = (function() {
       super(...elems);
     }
     toString() {
-      return "[" + this.join(", ") + "]";
+      return "[" + arrayElementsToString(this) + "]";
     }
     update(i, v) {
       let t = this.slice();
@@ -448,7 +477,7 @@ let _dafny = (function() {
       super();
     }
     toString() {
-      return "map[" + this.map(maplet => maplet[0] + " := " + maplet[1]).join(", ") + "]";
+      return "map[" + this.map(maplet => _dafny.toString(maplet[0]) + " := " + _dafny.toString(maplet[1])).join(", ") + "]";
     }
     static get Empty() {
       if (this._empty === undefined) {
@@ -869,6 +898,16 @@ let _dafny = (function() {
       let b = Array.from(a, (x) => buildArray(initValue, ...dims.slice(1)));
       return b;
     }
+  }
+  function arrayElementsToString(a) {
+    // like `a.join(", ")`, but calling _dafny.toString(x) on every element x instead of x.toString()
+    let s = "";
+    let sep = "";
+    for (let x of a) {
+      s += sep + _dafny.toString(x);
+      sep = ", ";
+    }
+    return s;
   }
   function BigNumberGcd(a, b){  // gcd of two non-negative BigNumber's
     while (true) {

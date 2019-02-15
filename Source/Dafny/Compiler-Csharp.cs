@@ -115,7 +115,7 @@ namespace Microsoft.Dafny
       return Util.Comma(targs, tp => "@" + tp.CompileName);
     }
 
-    protected override BlockTargetWriter CreateClass(string name, List<TypeParameter>/*?*/ typeParameters, List<Type>/*?*/ superClasses, Bpl.IToken tok, out TargetWriter instanceFieldsWriter, TargetWriter wr) {
+    protected override BlockTargetWriter CreateClass(string name, string/*?*/ fullPrintName, List<TypeParameter>/*?*/ typeParameters, List<Type>/*?*/ superClasses, Bpl.IToken tok, out TargetWriter instanceFieldsWriter, TargetWriter wr) {
       wr.Indent();
       wr.Write("public partial class {0}", name);
       if (typeParameters != null && typeParameters.Count != 0) {
@@ -1208,6 +1208,23 @@ namespace Microsoft.Dafny
       }
     }
     
+    protected override void EmitEmptyTupleList(string tupleTypeArgs, TargetWriter wr) {
+      wr.Write("new System.Collections.Generic.List<System.Tuple<{0}>>()", tupleTypeArgs);
+    }
+
+    protected override TargetWriter EmitAddTupleToList(string ingredients, string tupleTypeArgs, TargetWriter wr) {
+      wr.Indent();
+      wr.Write("{0}.Add(new System.Tuple<{1}>(", ingredients, tupleTypeArgs);
+      var wrTuple = new TargetWriter(wr.IndentLevel);
+      wr.Append(wrTuple);
+      wr.WriteLine("));");
+      return wrTuple;
+    }
+
+    protected override void EmitTupleSelect(string prefix, int i, TargetWriter wr) {
+      wr.Write("{0}.Item{1}", prefix, i+1);
+    }
+
     protected override string IdProtect(string name) {
       if (name.First() == '_') {
         return name;  // no need to further protect this name -- we know it's not a C# keyword
@@ -1668,12 +1685,18 @@ namespace Microsoft.Dafny
           TrExpr(e.E, wr, inLetExprBody);
           wr.Write(")");
         } else {
-          // (int or bv) -> (int or bv or ORDINAL)
+          // (int or bv or char) -> (int or bv or ORDINAL)
           var fromNative = AsNativeType(e.E.Type);
           var toNative = AsNativeType(e.ToType);
           if (fromNative == null && toNative == null) {
-            // big-integer (int or bv) -> big-integer (int or bv or ORDINAL), so identity will do
-            TrExpr(e.E, wr, inLetExprBody);
+            if (e.E.Type.IsCharType) {
+              // char -> big-integer (int or bv or ORDINAL)
+              wr.Write("new BigInteger");
+              TrParenExpr(e.E, wr, inLetExprBody);
+            } else {
+              // big-integer (int or bv) -> big-integer (int or bv or ORDINAL), so identity will do
+              TrExpr(e.E, wr, inLetExprBody);
+            }
           } else if (fromNative != null && toNative == null) {
             // native (int or bv) -> big-integer (int or bv)
             wr.Write("new BigInteger");

@@ -7580,10 +7580,15 @@ namespace Microsoft.Dafny {
       Bpl.IdentifierExpr o = null;
       Action PutSourceIntoLocal = () => {
         if (o == null) {
-          var oVar = new Bpl.LocalVariable(tok, new Bpl.TypedIdent(tok, CurrentIdGenerator.FreshId("newtype$check#"), TrType(expr.Type)));
+          var oType = expr.Type.IsCharType ? Type.Int : expr.Type;
+          var oVar = new Bpl.LocalVariable(tok, new Bpl.TypedIdent(tok, CurrentIdGenerator.FreshId("newtype$check#"), TrType(oType)));
           locals.Add(oVar);
           o = new Bpl.IdentifierExpr(tok, oVar);
-          builder.Add(Bpl.Cmd.SimpleAssign(tok, o, etran.TrExpr(expr)));
+          var rhs = etran.TrExpr(expr);
+          if (expr.Type.IsCharType) {
+            rhs = FunctionCall(expr.tok, "char#ToInt", Bpl.Type.Int, rhs);
+          }
+          builder.Add(Bpl.Cmd.SimpleAssign(tok, o, rhs));
         }
       };
 

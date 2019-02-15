@@ -40,11 +40,14 @@ namespace Microsoft.Dafny {
 
     protected override string GetHelperModuleName() => "_dafny";
 
-    protected override BlockTargetWriter CreateClass(string name, List<TypeParameter>/*?*/ typeParameters, List<Type>/*?*/ superClasses, Bpl.IToken tok, out TargetWriter instanceFieldsWriter, TargetWriter wr) {
+    protected override BlockTargetWriter CreateClass(string name, string/*?*/ fullPrintName, List<TypeParameter>/*?*/ typeParameters, List<Type>/*?*/ superClasses, Bpl.IToken tok, out TargetWriter instanceFieldsWriter, TargetWriter wr) {
       wr.Indent();
       var w = wr.NewBlock(string.Format("$module.{0} = class {0}", name), ";");
       w.Indent();
       instanceFieldsWriter = w.NewBlock("constructor ()");
+      if (fullPrintName != null) {
+        instanceFieldsWriter.Write("this._tname = \"{0}\";", fullPrintName);
+      }
       return w;
     }
 
@@ -159,7 +162,7 @@ namespace Microsoft.Dafny {
           foreach (var arg in ctor.Formals) {
             if (!arg.IsGhost) {
               anyFormals = true;
-              cw.Write("{0}this.{1}.toString()", sep, FormalName(arg, k));
+              cw.Write("{0}_dafny.toString(this.{1})", sep, FormalName(arg, k));
               sep = " + \", \" + ";
               k++;
             }
@@ -191,7 +194,7 @@ namespace Microsoft.Dafny {
               if (!arg.IsGhost) {
                 string nm = FormalName(arg, k);
                 if (IsDirectlyComparable(arg.Type)) {
-                  guard.Write(" && this.{0} === oth.{0}", nm);
+                  guard.Write(" && this.{0} === other.{0}", nm);
                 } else {
                   guard.Write(" && _dafny.areEqual(this.{0}, other.{0})", nm);
                 }
@@ -604,18 +607,9 @@ namespace Microsoft.Dafny {
 
     protected override void EmitPrintStmt(TargetWriter wr, Expression arg) {
       wr.Indent();
-      wr.Write("process.stdout.write(");
-      TrParenExpr(arg, wr, false);
-      // Annoyingly, BigNumber.toString() may return a string in scientific notation. To
-      // prevent that, toFixed() is used. Note, however, that this does not catch the case
-      // where "arg" denotes an integer but its type is some type parameter.
-      if (arg.Type.IsIntegerType) {
-        wr.WriteLine(".toFixed());");
-      } else if (arg.Type.IsBitVectorType && AsNativeType(arg.Type) == null) {
-        wr.WriteLine(".toFixed());");
-      } else {
-        wr.WriteLine(".toString());");
-      }
+      wr.Write("process.stdout.write(_dafny.toString(");
+      TrExpr(arg, wr, false);
+      wr.Write("));");
     }
 
     protected override void EmitReturn(List<Formal> outParams, TargetWriter wr) {
@@ -695,7 +689,12 @@ namespace Microsoft.Dafny {
     // ----- Expressions -------------------------------------------------------------
 
     protected override void EmitNew(Type type, Bpl.IToken tok, CallStmt/*?*/ initCall, TargetWriter wr) {
-      wr.Write("new {0}()", TypeName(type, wr, tok));
+      var cl = (type.NormalizeExpand() as UserDefinedType)?.ResolvedClass;
+      if (cl != null && cl.Name == "object") {
+        wr.Write("_dafny.NewObject()");
+      } else {
+        wr.Write("new {0}()", TypeName(type, wr, tok));
+      }
     }
 
     protected override void EmitNewArray(Type elmtType, Bpl.IToken tok, List<Expression> dimensions, bool mustInitialize, TargetWriter wr) {
@@ -840,6 +839,23 @@ namespace Microsoft.Dafny {
           wr.Write(".toNumber()");
         }
       }
+    }
+
+    protected override void EmitEmptyTupleList(string tupleTypeArgs, TargetWriter wr) {
+      wr.Write("[]", tupleTypeArgs);
+    }
+
+    protected override TargetWriter EmitAddTupleToList(string ingredients, string tupleTypeArgs, TargetWriter wr) {
+      wr.Indent();
+      wr.Write("{0}.push(_dafny.Tuple.of(", ingredients, tupleTypeArgs);
+      var wrTuple = new TargetWriter(wr.IndentLevel);
+      wr.Append(wrTuple);
+      wr.WriteLine("));");
+      return wrTuple;
+    }
+
+    protected override void EmitTupleSelect(string prefix, int i, TargetWriter wr) {
+      wr.Write("{0}[{1}]", prefix, i);
     }
 
     protected override string IdProtect(string name) {
@@ -1441,14 +1457,26 @@ namespace Microsoft.Dafny {
           TrParenExpr(e.E, wr, inLetExprBody);
           wr.Write(", new BigNumber(1))");
         } else if (e.ToType.IsCharType) {
-          wr.Write("(char)(");
-          TrExpr(e.E, wr, inLetExprBody);
-          wr.Write(")");
+          wr.Write("String.fromCharCode(");
+          TrParenExpr(e.E, wr, inLetExprBody);
+          wr.Write(".toNumber())");
         } else {
-          // (int or bv) -> (int or bv or ORDINAL)
+          // (int or bv or char) -> (int or bv or ORDINAL)
           var fromNative = AsNativeType(e.E.Type);
           var toNative = AsNativeType(e.ToType);
-          if (fromNative == null && toNative == null) {
+          if (e.E.Type.IsCharType) {
+            Contract.Assert(fromNative == null);
+            if (toNative == null) {
+              // char -> big-integer (int or bv or ORDINAL)
+              wr.Write("new BigNumber(");
+              TrParenExpr(e.E, wr, inLetExprBody);
+              wr.Write(".charCodeAt(0))");
+            } else {
+              // char -> native
+              TrParenExpr(e.E, wr, inLetExprBody);
+              wr.Write(".charCodeAt(0)");
+            }
+          } else if (fromNative == null && toNative == null) {
             // big-integer (int or bv) -> big-integer (int or bv or ORDINAL), so identity will do
             TrExpr(e.E, wr, inLetExprBody);
           } else if (fromNative != null && toNative == null) {

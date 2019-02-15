@@ -65,12 +65,13 @@ namespace Microsoft.Dafny {
     protected abstract BlockTargetWriter CreateModule(string moduleName, TargetWriter wr);
     protected abstract string GetHelperModuleName();
     protected BlockTargetWriter CreateClass(string name, List<TypeParameter>/*?*/ typeParameters, out TargetWriter instanceFieldsWriter, TargetWriter wr) {
-      return CreateClass(name, typeParameters, null, null, out instanceFieldsWriter, wr);
+      return CreateClass(name, null, typeParameters, null, null, out instanceFieldsWriter, wr);
     }
     /// <summary>
     /// "tok" can be "null" if "superClasses" is.
+    /// "fullPrintName" and "superClasses" are either both null (indicating a Dafny non-class type) or both non-null (indicating a Dafny class).
     /// </summary>
-    protected abstract BlockTargetWriter CreateClass(string name, List<TypeParameter>/*?*/ typeParameters, List<Type>/*?*/ superClasses, Bpl.IToken tok, out TargetWriter instanceFieldsWriter, TargetWriter wr);
+    protected abstract BlockTargetWriter CreateClass(string name, string/*?*/ fullPrintName, List<TypeParameter>/*?*/ typeParameters, List<Type>/*?*/ superClasses, Bpl.IToken tok, out TargetWriter instanceFieldsWriter, TargetWriter wr);
     /// <summary>
     /// "tok" can be "null" if "superClasses" is.
     /// </summary>
@@ -256,6 +257,9 @@ namespace Microsoft.Dafny {
     protected delegate void FCE_Arg_Translator(Expression e, TargetWriter wr, bool inLetExpr=false);
 
     protected abstract void EmitRotate(Expression e0, Expression e1, bool isRotateLeft, TargetWriter wr, bool inLetExprBody, FCE_Arg_Translator tr);
+    protected abstract void EmitEmptyTupleList(string tupleTypeArgs, TargetWriter wr);
+    protected abstract TargetWriter EmitAddTupleToList(string ingredients, string tupleTypeArgs, TargetWriter wr);
+    protected abstract void EmitTupleSelect(string prefix, int i, TargetWriter wr);
 
     protected virtual string IdName(TopLevelDecl d) {
       Contract.Requires(d != null);
@@ -471,7 +475,7 @@ namespace Microsoft.Dafny {
           } else if (d is ClassDecl) {
             var cl = (ClassDecl)d;
             TargetWriter instanceFieldsWriter;
-            var w = CreateClass(IdName(cl), cl.TypeArgs, cl.TraitsTyp, cl.tok, out instanceFieldsWriter, wr);
+            var w = CreateClass(IdName(cl), cl.FullName, cl.TypeArgs, cl.TraitsTyp, cl.tok, out instanceFieldsWriter, wr);
             CompileClassMembers(cl, w, instanceFieldsWriter, w);
           } else if (d is ValuetypeDecl) {
             // nop
@@ -1639,7 +1643,7 @@ namespace Microsoft.Dafny {
 
         // declare and construct "ingredients"
         using (var wrVarInit = DeclareLocalVar(ingredients, null, null, wr)) {
-          wrVarInit.Write("new System.Collections.Generic.List<System.Tuple<{0}>>()", tupleTypeArgs);
+          EmitEmptyTupleList(tupleTypeArgs, wrVarInit);
         }
 
         var wrOuter = wr;
@@ -1665,29 +1669,26 @@ namespace Microsoft.Dafny {
         }
         TrParenExpr(s.Range, guardWriter, false);
 
-        wr.Indent();
-        wr.Write("{0}.Add(new System.Tuple<{1}>(", ingredients, tupleTypeArgs);
-        if (s0.Lhs is MemberSelectExpr) {
-          var lhs = (MemberSelectExpr)s0.Lhs;
-          TrExpr(lhs.Obj, wr, false);
-        } else if (s0.Lhs is SeqSelectExpr) {
-          var lhs = (SeqSelectExpr)s0.Lhs;
-          TrExpr(lhs.Seq, wr, false);
-          wr.Write(", (int)(");
-          TrExpr(lhs.E0, wr, false);
-          wr.Write(")");
-        } else {
-          var lhs = (MultiSelectExpr)s0.Lhs;
-          TrExpr(lhs.Array, wr, false);
-          for (int i = 0; i < lhs.Indices.Count; i++) {
-            wr.Write(", (int)(");
-            TrExpr(lhs.Indices[i], wr, false);
-            wr.Write(")");
+        using (var wrTuple = EmitAddTupleToList(ingredients, tupleTypeArgs, wr)) {
+          if (s0.Lhs is MemberSelectExpr) {
+            var lhs = (MemberSelectExpr)s0.Lhs;
+            TrExpr(lhs.Obj, wrTuple, false);
+          } else if (s0.Lhs is SeqSelectExpr) {
+            var lhs = (SeqSelectExpr)s0.Lhs;
+            TrExpr(lhs.Seq, wrTuple, false);
+            wrTuple.Write(", ");
+            EmitExprAsInt(lhs.E0, false, wrTuple);
+          } else {
+            var lhs = (MultiSelectExpr)s0.Lhs;
+            TrExpr(lhs.Array, wrTuple, false);
+            for (int i = 0; i < lhs.Indices.Count; i++) {
+              wrTuple.Write(", ");
+              EmitExprAsInt(lhs.Indices[i], false, wrTuple);
+            }
           }
+          wrTuple.Write(", ");
+          TrExpr(rhs, wrTuple, false);
         }
-        wr.Write(", ");
-        TrExpr(rhs, wr, false);
-        wr.WriteLine("));");
 
         //   foreach (L-Tuple l in ingredients) {
         //     LHS[ l0, l1, l2, ..., l(L-2) ] = l(L-1);
@@ -1698,19 +1699,31 @@ namespace Microsoft.Dafny {
         wr.Indent();
         if (s0.Lhs is MemberSelectExpr) {
           var lhs = (MemberSelectExpr)s0.Lhs;
-          wr.WriteLine("{0}.Item1.{1} = {0}.Item2;", tup, IdMemberName(lhs));
+          EmitTupleSelect(tup, 0, wr);
+          wr.Write(".{0} = ", IdMemberName(lhs));
+          EmitTupleSelect(tup, 1, wr);
+          wr.WriteLine(";");
         } else if (s0.Lhs is SeqSelectExpr) {
           var lhs = (SeqSelectExpr)s0.Lhs;
-          wr.WriteLine("{0}.Item1[{0}.Item2] = {0}.Item3;", tup);
+          EmitTupleSelect(tup, 0, wr);
+          wr.Write("[");
+          EmitTupleSelect(tup, 1, wr);
+          wr.Write("] = ");
+          EmitTupleSelect(tup, 2, wr);
+          wr.WriteLine(";");
         } else {
           var lhs = (MultiSelectExpr)s0.Lhs;
-          wr.Write("{0}.Item1[", tup);
+          EmitTupleSelect(tup, 0, wr);
+          wr.Write("[");
           string sep = "";
           for (int i = 0; i < lhs.Indices.Count; i++) {
-            wr.Write("{0}{1}.Item{2}", sep, tup, i + 2);
+            wr.Write(sep);
+            EmitTupleSelect(tup, i+1, wr);
             sep = ", ";
           }
-          wr.WriteLine("] = {0}.Item{1};", tup, L);
+          wr.Write("] = ");
+          EmitTupleSelect(tup, L-1, wr);
+          wr.WriteLine(";");
         }
 
       } else if (stmt is MatchStmt) {
