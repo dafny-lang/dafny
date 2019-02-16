@@ -1,26 +1,40 @@
 
-Dafny program verifier finished with 5 verified, 0 errors
+Dafny program verifier finished with 10 verified, 0 errors
 Compiled program written to Dt.cs
 Running...
 
-Dt.Nil
-Dt.Cons(5, Dt.Nil)
-(Dt.Nil, Dt.Cons(5, Dt.Nil))
-(Dt.Cons(5, Dt.Nil), Dt.Nil)
+List.Nil
+List.Cons(5, List.Nil)
+(List.Nil, List.Cons(5, List.Nil))
+(List.Cons(5, List.Nil), List.Nil)
 ()
-5 Dt.Nil
-Dt.Cons(0, Dt.Cons(1, Dt.Cons(2, Dt.Cons(3, Dt.Cons(4, Dt.Cons(5, Dt.Cons(6, Dt.Nil)))))))
+5 List.Nil
+List.Cons(0, List.Cons(1, List.Cons(2, List.Cons(3, List.Cons(4, List.Cons(5, List.Cons(6, List.Nil)))))))
 0 + 1 + 2 + 3 + 4 + 5 + 6 == 21 (once more, that's 21)
+List.Cons(0, List.Cons(1, List.Cons(2, List.Cons(3, List.Nil))))
+0 List.Cons(1, List.Cons(2, List.Cons(3, List.Nil)))
+Stream.Next
+Stream.Next
+{Berry.Smultron, Berry.Jordgubb, Berry.Hallon}
+CoBerry.Hjortron true true false
+false
 
-Dafny program verifier finished with 5 verified, 0 errors
+Dafny program verifier finished with 10 verified, 0 errors
 Compiled program written to Dt.js
 Running...
 
-Dt.Nil
-Dt.Cons(5, Dt.Nil)
-(Dt.Nil, Dt.Cons(5, Dt.Nil))
-(Dt.Cons(5, Dt.Nil), Dt.Nil)
+List.Nil
+List.Cons(5, List.Nil)
+(List.Nil, List.Cons(5, List.Nil))
+(List.Cons(5, List.Nil), List.Nil)
 ()
-5 Dt.Nil
-Dt.Cons(0, Dt.Cons(1, Dt.Cons(2, Dt.Cons(3, Dt.Cons(4, Dt.Cons(5, Dt.Cons(6, Dt.Nil)))))))
+5 List.Nil
+List.Cons(0, List.Cons(1, List.Cons(2, List.Cons(3, List.Cons(4, List.Cons(5, List.Cons(6, List.Nil)))))))
 0 + 1 + 2 + 3 + 4 + 5 + 6 == 21 (once more, that's 21)
+List.Cons(0, List.Cons(1, List.Cons(2, List.Cons(3, List.Nil))))
+0 List.Cons(1, List.Cons(2, List.Cons(3, List.Nil)))
+Stream.Next
+Stream.Next
+{Berry.Smultron, Berry.Jordgubb, Berry.Hallon}
+CoBerry.Hjortron true true false
+false

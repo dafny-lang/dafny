@@ -14112,7 +14112,7 @@ namespace Microsoft.Dafny
         bounds.Add(new ComprehensionExpr.BoolBoundedPool());
       } else if (bv.Type.IsCharType) {
         bounds.Add(new ComprehensionExpr.CharBoundedPool());
-      } else if (bv.Type.IsIndDatatype && bv.Type.AsIndDatatype.HasFinitePossibleValues) {
+      } else if (bv.Type.IsDatatype && bv.Type.AsDatatype.HasFinitePossibleValues) {
         bounds.Add(new ComprehensionExpr.DatatypeBoundedPool(bv.Type.AsIndDatatype));
       } else if (bv.Type.IsNumericBased(Type.NumericPersuation.Int)) {
         bounds.Add(new AssignSuchThatStmt.WiggleWaggleBound());

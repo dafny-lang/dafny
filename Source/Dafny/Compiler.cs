@@ -69,7 +69,6 @@ namespace Microsoft.Dafny {
     }
     /// <summary>
     /// "tok" can be "null" if "superClasses" is.
-    /// "fullPrintName" and "superClasses" are either both null (indicating a Dafny non-class type) or both non-null (indicating a Dafny class).
     /// </summary>
     protected abstract BlockTargetWriter CreateClass(string name, string/*?*/ fullPrintName, List<TypeParameter>/*?*/ typeParameters, List<Type>/*?*/ superClasses, Bpl.IToken tok, out TargetWriter instanceFieldsWriter, TargetWriter wr);
     /// <summary>
@@ -295,7 +294,7 @@ namespace Microsoft.Dafny {
       TrExpr(els, wr, inLetExprBody);
       wr.Write(")");
     }
-    protected abstract void EmitDatatypeValue(DatatypeValue dtv, string dtName, string ctorName, string arguments, TargetWriter wr);
+    protected abstract void EmitDatatypeValue(DatatypeValue dtv, DatatypeCtor ctor, string arguments, TargetWriter wr);
     protected abstract void GetSpecialFieldInfo(SpecialField.ID id, object idParam, out string compiledName, out string preString, out string postString);
     protected abstract void EmitMemberSelect(MemberDecl member, bool isLValue, TargetWriter wr);
     protected void EmitArraySelect(string index, TargetWriter wr) {
@@ -549,55 +548,6 @@ namespace Microsoft.Dafny {
       Contract.Ensures(Contract.Result<string>() != null);
 
       return IdProtect(formal.HasName ? formal.CompileName : "_a" + i);
-    }
-
-    string DtName(DatatypeDecl decl) {
-      var d = (TopLevelDecl)decl;
-      return d.Module.IsDefaultModule ? d.CompileName : d.FullCompileName;
-    }
-    protected string DtCtorName(DatatypeCtor ctor) {
-      Contract.Requires(ctor != null);
-      Contract.Ensures(Contract.Result<string>() != null);
-
-      return DtName(ctor.EnclosingDatatype) + "_" + ctor.CompileName;
-    }
-    protected string DtCtorDeclarationName(DatatypeCtor ctor) {
-      Contract.Requires(ctor != null);
-      Contract.Ensures(Contract.Result<string>() != null);
-
-      return ctor.EnclosingDatatype.CompileName + "_" + ctor.CompileName;
-    }
-
-    protected string DtCtorName(DatatypeCtor ctor, List<TypeParameter> typeParams) {
-      Contract.Requires(ctor != null);
-      Contract.Ensures(Contract.Result<string>() != null);
-
-      var s = DtCtorName(ctor);
-      if (typeParams != null && typeParams.Count != 0) {
-        s += "<" + TypeParameters(typeParams) + ">";
-      }
-      return s;
-    }
-    protected string DtCtorDeclarationName(DatatypeCtor ctor, List<TypeParameter> typeParams) {
-      Contract.Requires(ctor != null);
-      Contract.Ensures(Contract.Result<string>() != null);
-
-      var s = DtCtorDeclarationName(ctor);
-      if (typeParams != null && typeParams.Count != 0) {
-        s += "<" + TypeParameters(typeParams) + ">";
-      }
-      return s;
-    }
-
-    protected string DtCtorName(DatatypeCtor ctor, List<Type> typeArgs, TextWriter wr) {
-      Contract.Requires(ctor != null);
-      Contract.Ensures(Contract.Result<string>() != null);
-
-      var s = DtCtorName(ctor);
-      if (typeArgs != null && typeArgs.Count != 0) {
-        s += "<" + TypeNames(typeArgs, wr, ctor.tok) + ">";
-      }
-      return s;
     }
 
     public bool HasMain(Program program, out Method mainMethod) {
@@ -2446,8 +2396,7 @@ namespace Microsoft.Dafny {
             sep = ", ";
           }
         }
-        var dtName = DtName(dtv.Ctor.EnclosingDatatype);
-        EmitDatatypeValue(dtv, dtName, dtv.Ctor.CompileName, wrArgumentList.ToString(), wr);
+        EmitDatatypeValue(dtv, dtv.Ctor, wrArgumentList.ToString(), wr);
 
       } else if (expr is OldExpr) {
         Contract.Assert(false); throw new cce.UnreachableException();  // 'old' is always a ghost

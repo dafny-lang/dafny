@@ -102,7 +102,7 @@ namespace Microsoft.Dafny
     }
 
     protected override BlockTargetWriter CreateModule(string moduleName, TargetWriter wr) {
-      var s = string.Format("namespace @{0}", moduleName);
+      var s = string.Format("namespace {0}", IdProtect(moduleName));
       return wr.NewBigBlock(s, " // end of " + s);
     }
 
@@ -112,7 +112,7 @@ namespace Microsoft.Dafny
       Contract.Requires(cce.NonNullElements(targs));
       Contract.Ensures(Contract.Result<string>() != null);
 
-      return Util.Comma(targs, tp => "@" + tp.CompileName);
+      return Util.Comma(targs, tp => IdName(tp));
     }
 
     protected override BlockTargetWriter CreateClass(string name, string/*?*/ fullPrintName, List<TypeParameter>/*?*/ typeParameters, List<Type>/*?*/ superClasses, Bpl.IToken tok, out TargetWriter instanceFieldsWriter, TargetWriter wr) {
@@ -274,19 +274,21 @@ namespace Microsoft.Dafny
           w.Indent(); w.WriteLine("return (int) hash;");
         }
 
-        if (dt is IndDatatypeDecl) {
-          wr.Indent();
-          var w = wr.NewBlock("public override string ToString()");
+        wr.Indent();
+        using (var w = wr.NewBlock("public override string ToString()")) {
+          string nm;
+          if (dt is TupleTypeDecl) {
+            nm = "";
+          } else {
+            nm = (dt.Module.IsDefaultModule ? "" : dt.Module.Name + ".") + dt.Name + "." + ctor.Name;
+          }
           if (dt is TupleTypeDecl tupleDt && ctor.Formals.Count == 0) {
             // here we want parentheses and no name
             w.Indent(); w.WriteLine("return \"()\";");
+          } else if (dt is CoDatatypeDecl) {
+            w.Indent();
+            w.WriteLine("return \"{0}\";", nm);
           } else {
-            string nm;
-            if (dt is TupleTypeDecl) {
-              nm = "";
-            } else {
-              nm = (dt.Module.IsDefaultModule ? "" : dt.Module.CompileName + ".") + dt.CompileName + "." + ctor.CompileName;
-            }
             var tempVar = GenVarName("s", ctor.Formals);
             w.Indent(); w.WriteLine("string {0} = \"{1}\";", tempVar, nm);
             if (ctor.Formals.Count != 0) {
@@ -308,6 +310,40 @@ namespace Microsoft.Dafny
         }
       }
       constructorIndex++;
+    }
+    string DtCtorDeclarationName(DatatypeCtor ctor, List<TypeParameter> typeParams) {
+      Contract.Requires(ctor != null);
+      Contract.Ensures(Contract.Result<string>() != null);
+
+      var s = DtCtorDeclarationName(ctor);
+      if (typeParams != null && typeParams.Count != 0) {
+        s += "<" + TypeParameters(typeParams) + ">";
+      }
+      return s;
+    }
+    string DtCtorDeclarationName(DatatypeCtor ctor) {
+      Contract.Requires(ctor != null);
+      Contract.Ensures(Contract.Result<string>() != null);
+
+      return ctor.EnclosingDatatype.CompileName + "_" + ctor.CompileName;
+    }
+    protected string DtCtorName(DatatypeCtor ctor, List<TypeParameter> typeParams) {
+      Contract.Requires(ctor != null);
+      Contract.Ensures(Contract.Result<string>() != null);
+
+      var s = DtCtorName(ctor);
+      if (typeParams != null && typeParams.Count != 0) {
+        s += "<" + TypeParameters(typeParams) + ">";
+      }
+      return s;
+    }
+    protected string DtCtorName(DatatypeCtor ctor) {
+      Contract.Requires(ctor != null);
+      Contract.Ensures(Contract.Result<string>() != null);
+
+      var dt = ctor.EnclosingDatatype;
+      var dtName = dt.Module.IsDefaultModule ? dt.CompileName : dt.FullCompileName;
+      return dtName + "_" + ctor.CompileName;
     }
 
     void CompileDatatypeStruct(DatatypeDecl dt, TargetWriter wr) {
@@ -336,22 +372,27 @@ namespace Microsoft.Dafny
       //       return theDefault;
       //     }
       //   }
-      //   public override bool Equals(object other) {
+      //   public override bool Equals(object other) {  // only for inductive datatypes
       //     return other is Dt<T> && _D.Equals(((Dt<T>)other)._D);
       //   }
-      //   public override int GetHashCode() { return _D.GetHashCode(); }
+      //   public override int GetHashCode() { return _D.GetHashCode(); }  // only for inductive datatypes
       //   public override string ToString() { return _D.ToString(); }  // only for inductive datatypes
+      //
+      //   public static create_Ctor0(field0, field1, ...) {
+      //     return new Dt(new Dt_Ctor0(field0, field1, ...));
+      //   }
+      //   ...
       //
       //   public bool is_Ctor0 { get { return _D is Dt_Ctor0; } }
       //   ...
       //
-      //   public T0 dtor_Dtor0 { get { return ((DT_Ctor)_D).@Dtor0; } }  // This is in essence what gets generated for the case where the destructor is used in one use constructor
+      //   public T0 dtor_Dtor0 { get { return ((DT_Ctor)_D).Dtor0; } }  // This is in essence what gets generated for the case where the destructor is used in one use constructor
       //   public T0 dtor_Dtor0 { get { var d = _D;                       // This is the general case
-      //       if (d is DT_Ctor0) { return ((DT_Ctor0)d).@Dtor0; }
-      //       if (d is DT_Ctor1) { return ((DT_Ctor1)d).@Dtor0; }
+      //       if (d is DT_Ctor0) { return ((DT_Ctor0)d).Dtor0; }
+      //       if (d is DT_Ctor1) { return ((DT_Ctor1)d).Dtor0; }
       //       ...
-      //       if (d is DT_Ctor(n-2)) { return ((DT_Ctor(n-2))d).@Dtor0; }
-      //       return ((DT_Ctor(n-1))d).@Dtor0;
+      //       if (d is DT_Ctor(n-2)) { return ((DT_Ctor(n-2))d).Dtor0; }
+      //       return ((DT_Ctor(n-1))d).Dtor0;
       //    }}
       //   ...
       // }
@@ -429,11 +470,29 @@ namespace Microsoft.Dafny
 
       wr.Indent();
       wr.WriteLine("public override int GetHashCode() { return _D.GetHashCode(); }");
-      if (dt is IndDatatypeDecl) {
-        wr.Indent();
-        wr.WriteLine("public override string ToString() { return _D.ToString(); }");
-      }
 
+      wr.Indent();
+      wr.WriteLine("public override string ToString() { return _D.ToString(); }");
+
+      // create methods
+      foreach (var ctor in dt.Ctors) {
+        wr.Indent();
+        wr.Write("public static {0} create_{1}(", DtT_protected, ctor.CompileName);
+        WriteFormals("", ctor.Formals, wr);
+        var w = wr.NewBlock(")");
+        w.Indent();
+        w.Write("return new {0}(new {1}(", DtT_protected, DtCtorDeclarationName(ctor, dt.TypeArgs));
+        var sep = "";
+        var i = 0;
+        foreach (var arg in ctor.Formals) {
+          if (!arg.IsGhost) {
+            w.Write("{0}{1}", sep, FormalName(arg, i));
+            sep = ", ";
+            i++;
+          }
+        }
+        w.WriteLine("));");
+      }
       // query properties
       foreach (var ctor in dt.Ctors) {
         //   public bool is_Ctor0 { get { return _D is Dt_Ctor0; } }
@@ -441,18 +500,16 @@ namespace Microsoft.Dafny
         wr.WriteLine("public bool is_{0} {{ get {{ return _D is {1}_{0}{2}; }} }}", ctor.CompileName, dt.CompileName, DtT_TypeArgs);
       }
       if (dt.HasFinitePossibleValues) {
+        Contract.Assert(dt.TypeArgs.Count == 0);
         wr.Indent();
         var w = wr.NewNamedBlock("public static System.Collections.Generic.IEnumerable<{0}> AllSingletonConstructors", DtT_protected);
         w.Indent();
         var wGet = w.NewBlock("get");
-        foreach (var ctr in dt.Ctors) {
-          if (ctr.Formals.Count == 0) {
-            wGet.Indent();
-            wGet.WriteLine("yield return new {0}(new {2}_{1}());", DtT_protected, ctr.CompileName, dt.CompileName);
-          }
+        foreach (var ctor in dt.Ctors) {
+          Contract.Assert(ctor.Formals.Count == 0);
+          wGet.Indent();
+          wGet.WriteLine("yield return {0}.create_{1}();", DtT_protected, ctor.CompileName);
         }
-        wGet.Indent();
-        wGet.WriteLine("yield break;");
       }
 
       // destructors
@@ -463,11 +520,11 @@ namespace Microsoft.Dafny
             if (!arg.IsGhost && arg.HasName) {
               wr.Indent();
               //   public T0 dtor_Dtor0 { get { var d = _D;
-              //       if (d is DT_Ctor0) { return ((DT_Ctor0)d).@Dtor0; }
-              //       if (d is DT_Ctor1) { return ((DT_Ctor1)d).@Dtor0; }
+              //       if (d is DT_Ctor0) { return ((DT_Ctor0)d).Dtor0; }
+              //       if (d is DT_Ctor1) { return ((DT_Ctor1)d).Dtor0; }
               //       ...
-              //       if (d is DT_Ctor(n-2)) { return ((DT_Ctor(n-2))d).@Dtor0; }
-              //       return ((DT_Ctor(n-1))d).@Dtor0;
+              //       if (d is DT_Ctor(n-2)) { return ((DT_Ctor(n-2))d).Dtor0; }
+              //       return ((DT_Ctor(n-1))d).Dtor0;
               //    }}
               wr.Write("public {0} dtor_{1} {{ get {{ var d = _D; ", TypeName(arg.Type, wr, arg.tok), arg.CompileName);
               var n = dtor.EnclosingCtors.Count;
@@ -1228,8 +1285,93 @@ namespace Microsoft.Dafny
     protected override string IdProtect(string name) {
       if (name.First() == '_') {
         return name;  // no need to further protect this name -- we know it's not a C# keyword
-      } else {
-        return "@" + name;
+      }
+      switch (name) {
+        // keywords
+        case "base":
+        case "byte":
+        case "catch":
+        case "checked":
+        case "continue":
+        case "decimal":
+        case "default":
+        case "delegate":
+        case "do":
+        case "double":
+        case "enum":
+        case "event":
+        case "explicit":
+        case "extern":
+        case "finally":
+        case "fixed":
+        case "float":
+        case "for":
+        case "foreach":
+        case "goto":
+        case "implicit":
+        case "interface":
+        case "internal":
+        case "is":
+        case "lock":
+        case "long":
+        case "namespace":
+        case "operator":
+        case "out":
+        case "override":
+        case "params":
+        case "private":
+        case "protected":
+        case "public":
+        case "readonly":
+        case "ref":
+        case "sbyte":
+        case "sealed":
+        case "short":
+        case "sizeof":
+        case "stackalloc":
+        case "struct":
+        case "switch":
+        case "throw":
+        case "try":
+        case "typeof":
+        case "uint":
+        case "ulong":
+        case "unchecked":
+        case "unsafe":
+        case "ushort":
+        case "using":
+        case "virtual":
+        case "void":
+        case "volatile":
+        // contextual keywords
+        case "add":
+        case "alias":
+        case "ascending":
+        case "async":
+        case "await":
+        case "descending":
+        case "dynamic":
+        case "equals":
+        case "from":
+        case "get":
+        case "global":
+        case "group":
+        case "into":
+        case "join":
+        case "let":
+        case "nameof":
+        case "on":
+        case "orderby":
+        case "partial":
+        case "remove":
+        case "select":
+        case "set":
+        case "value":
+        case "when":
+        case "where":
+          return "@" + name;
+        default:
+          return name;
       }
     }
 
@@ -1237,14 +1379,19 @@ namespace Microsoft.Dafny
       wr.Write(enclosingMethod != null && enclosingMethod.IsTailRecursive ? "_this" : "this");
     }
 
-    protected override void EmitDatatypeValue(DatatypeValue dtv, string dtName, string ctorName, string arguments, TargetWriter wr) {
+    protected override void EmitDatatypeValue(DatatypeValue dtv, DatatypeCtor ctor, string arguments, TargetWriter wr) {
+      var dt = dtv.Ctor.EnclosingDatatype;
+      var dtName = dt.Module.IsDefaultModule ? dt.CompileName : dt.FullCompileName;
+      var ctorName = dtv.Ctor.CompileName;
+
       var typeParams = dtv.InferredTypeArgs.Count == 0 ? "" : string.Format("<{0}>", TypeNames(dtv.InferredTypeArgs, wr, dtv.tok));
-      wr.Write("new @{0}{1}(", dtName, typeParams);
       if (!dtv.IsCoCall) {
+        wr.Write("@{0}{1}.", dtName, typeParams);
         // For an ordinary constructor (that is, one that does not guard any co-recursive calls), generate:
         //   new Dt_Cons<T>( args )
-        wr.Write("new {0}({1})", DtCtorName(dtv.Ctor, dtv.InferredTypeArgs, wr), arguments);
+        wr.Write("create_{0}({1})", ctor.CompileName, arguments);
       } else {
+        wr.Write("new @{0}{1}(", dtName, typeParams);
         // In the case of a co-recursive call, generate:
         //     new Dt__Lazy<T>( LAMBDA )
         // where LAMBDA is:
@@ -1254,9 +1401,20 @@ namespace Microsoft.Dafny
         wr.Write("() => { return ");
         wr.Write("new {0}({1})", DtCtorName(dtv.Ctor, dtv.InferredTypeArgs, wr), arguments);
         wr.Write("; })");
+        wr.Write(")");
       }
-      wr.Write(")");
     }
+    string DtCtorName(DatatypeCtor ctor, List<Type> typeArgs, TextWriter wr) {
+      Contract.Requires(ctor != null);
+      Contract.Ensures(Contract.Result<string>() != null);
+
+      var s = DtCtorName(ctor);
+      if (typeArgs != null && typeArgs.Count != 0) {
+        s += "<" + TypeNames(typeArgs, wr, ctor.tok) + ">";
+      }
+      return s;
+    }
+
 
     protected override void GetSpecialFieldInfo(SpecialField.ID id, object idParam, out string compiledName, out string preString, out string postString) {
       compiledName = "";
