@@ -2123,7 +2123,7 @@ namespace Microsoft.Dafny {
         if (parensNeeded) { wr.Write(")"); }
 
       } else if (expr is BinaryExpr) {
-        BinaryExpr e = (BinaryExpr)expr;
+        var e = (BinaryExpr)expr;
         // determine if parens are needed
         int opBindingStrength;
         bool fragileLeftContext = false;  // false means "allow same binding power on left without parens"
@@ -2132,12 +2132,20 @@ namespace Microsoft.Dafny {
           case BinaryExpr.Opcode.LeftShift:
           case BinaryExpr.Opcode.RightShift:
             opBindingStrength = 0x48; fragileRightContext = true; break;
-          case BinaryExpr.Opcode.Add:
-            opBindingStrength = 0x40; break;
+          case BinaryExpr.Opcode.Add: {
+            opBindingStrength = 0x40;
+            var t1 = e.E1.Type;
+            fragileRightContext = t1 == null || !(t1.IsIntegerType || t1.IsRealType || t1.IsBigOrdinalType || t1.IsBitVectorType);
+            break;
+          }
           case BinaryExpr.Opcode.Sub:
             opBindingStrength = 0x40; fragileRightContext = true; break;
-          case BinaryExpr.Opcode.Mul:
-            opBindingStrength = 0x50; break;
+          case BinaryExpr.Opcode.Mul: {
+            opBindingStrength = 0x50;
+            var t1 = e.E1.Type;
+            fragileRightContext = t1 == null || !(t1.IsIntegerType || t1.IsRealType || t1.IsBigOrdinalType || t1.IsBitVectorType);
+            break;
+          }
           case BinaryExpr.Opcode.Div:
           case BinaryExpr.Opcode.Mod:
             opBindingStrength = 0x50; fragileRightContext = true; break;
