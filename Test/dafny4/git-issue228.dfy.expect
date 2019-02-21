@@ -1,5 +1,3 @@
-// Dafny 2.2.0.10923
-// Command Line Options: -nologo -countVerificationErrors:0 -useBaseNameForFileName /dprint:- /Users/leino/Source/dafny/Test/dafny4/git-issue228.dfy
 // git-issue228.dfy
 
 newtype NegIsOdd = x
@@ -63,8 +61,6 @@ Execution trace:
     (0,0): anon0
 
 Dafny program verifier finished with 8 verified, 2 errors
-// Dafny 2.2.0.10923
-// Command Line Options: -nologo -countVerificationErrors:0 -useBaseNameForFileName /rprint:- /Users/leino/Source/dafny/Test/dafny4/git-issue228.dfy
 // git-issue228.dfy
 
 /*
