@@ -81,7 +81,6 @@ namespace Microsoft.Dafny
       if (!CommandLineOptions.Clo.Parse(args)) {
         return ExitValue.PREPROCESSING_ERROR;
       }
-      //CommandLineOptions.Clo.Files = new List<string> { @"C:\dafny\Test\dafny0\Trait\TraitExtend.dfy" };
 
       if (CommandLineOptions.Clo.Files.Count == 0)
       {
@@ -114,12 +113,22 @@ namespace Microsoft.Dafny
         string extension = Path.GetExtension(file);
         if (extension != null) { extension = extension.ToLower(); }
         try { dafnyFiles.Add(new DafnyFile(file)); } catch (IllegalDafnyFile) {
-          if ((extension == ".cs") || (extension == ".dll")) {
-            otherFiles.Add(file);
+          if (DafnyOptions.O.CompileTarget == DafnyOptions.CompilationTarget.Csharp) {
+            if (extension == ".cs" || extension == ".dll") {
+              otherFiles.Add(file);
+            } else {
+              ExecutionEngine.printer.ErrorWriteLine(Console.Out, "*** Error: '{0}': Filename extension '{1}' is not supported. Input files must be Dafny programs (.dfy) or C# files (.cs) or managed DLLS (.dll)", file,
+                extension == null ? "" : extension);
+              return ExitValue.PREPROCESSING_ERROR;
+            }
           } else {
-            ExecutionEngine.printer.ErrorWriteLine(Console.Out, "*** Error: '{0}': Filename extension '{1}' is not supported. Input files must be Dafny programs (.dfy) or C# files (.cs) or managed DLLS (.dll)", file,
-              extension == null ? "" : extension);
-            return ExitValue.PREPROCESSING_ERROR;
+            if (extension == ".js") {
+              otherFiles.Add(file);
+            } else {
+              ExecutionEngine.printer.ErrorWriteLine(Console.Out, "*** Error: '{0}': Filename extension '{1}' is not supported. Input files must be Dafny programs (.dfy) or JavaScrip files (.js)", file,
+                extension == null ? "" : extension);
+              return ExitValue.PREPROCESSING_ERROR;
+            }
           }
         }
       }

@@ -62,15 +62,15 @@ namespace Microsoft.Dafny {
     /// required in the target language.
     /// </summary>
     public virtual void EmitCallToMain(Method mainMethod, TextWriter wr) { }
-    protected abstract BlockTargetWriter CreateModule(string moduleName, TargetWriter wr);
+    protected abstract BlockTargetWriter CreateModule(string moduleName, bool isExtern, TargetWriter wr);
     protected abstract string GetHelperModuleName();
     protected BlockTargetWriter CreateClass(string name, List<TypeParameter>/*?*/ typeParameters, out TargetWriter instanceFieldsWriter, TargetWriter wr) {
-      return CreateClass(name, null, typeParameters, null, null, out instanceFieldsWriter, wr);
+      return CreateClass(name, false, null, typeParameters, null, null, out instanceFieldsWriter, wr);
     }
     /// <summary>
     /// "tok" can be "null" if "superClasses" is.
     /// </summary>
-    protected abstract BlockTargetWriter CreateClass(string name, string/*?*/ fullPrintName, List<TypeParameter>/*?*/ typeParameters, List<Type>/*?*/ superClasses, Bpl.IToken tok, out TargetWriter instanceFieldsWriter, TargetWriter wr);
+    protected abstract BlockTargetWriter CreateClass(string name, bool isExtern, string/*?*/ fullPrintName, List<TypeParameter>/*?*/ typeParameters, List<Type>/*?*/ superClasses, Bpl.IToken tok, out TargetWriter instanceFieldsWriter, TargetWriter wr);
     /// <summary>
     /// "tok" can be "null" if "superClasses" is.
     /// </summary>
@@ -367,7 +367,8 @@ namespace Microsoft.Dafny {
           // the purpose of an abstract module is to skip compilation
           continue;
         }
-        var wr = CreateModule(m.CompileName, wrx);
+        var moduleIsExtern = !DafnyOptions.O.DisallowExterns && Attributes.Contains(m.Attributes, "extern");
+        var wr = CreateModule(m.CompileName, moduleIsExtern, wrx);
         foreach (TopLevelDecl d in m.TopLevelDecls) {
           bool compileIt = true;
           if (Attributes.ContainsBool(d.Attributes, "compile", ref compileIt) && !compileIt) {
@@ -471,8 +472,9 @@ namespace Microsoft.Dafny {
             CompileClassMembers(trait, w, instanceFieldsWriter, staticMemberWriter);
           } else if (d is ClassDecl) {
             var cl = (ClassDecl)d;
+            var classIsExtern = !DafnyOptions.O.DisallowExterns && Attributes.Contains(cl.Attributes, "extern");
             TargetWriter instanceFieldsWriter;
-            var w = CreateClass(IdName(cl), cl.FullName, cl.TypeArgs, cl.TraitsTyp, cl.tok, out instanceFieldsWriter, wr);
+            var w = CreateClass(IdName(cl), classIsExtern, cl.FullName, cl.TypeArgs, cl.TraitsTyp, cl.tok, out instanceFieldsWriter, wr);
             CompileClassMembers(cl, w, instanceFieldsWriter, w);
           } else if (d is ValuetypeDecl) {
             // nop
@@ -495,13 +497,17 @@ namespace Microsoft.Dafny {
       var codebase = System.IO.Path.GetDirectoryName(assemblyLocation);
       Contract.Assert(codebase != null);
       string path = System.IO.Path.Combine(codebase, filename);
-      using (var rd = new StreamReader(new FileStream(path, System.IO.FileMode.Open, System.IO.FileAccess.Read))) {
+      WriteFromFile(path, wr);
+    }
+
+    protected void WriteFromFile(string inputFilename, TextWriter outputWriter) {
+      using (var rd = new StreamReader(new FileStream(inputFilename, System.IO.FileMode.Open, System.IO.FileAccess.Read))) {
         while (true) {
           string s = rd.ReadLine();
           if (s == null) {
             return;
           }
-          wr.WriteLine(s);
+          outputWriter.WriteLine(s);
         }
       }
     }

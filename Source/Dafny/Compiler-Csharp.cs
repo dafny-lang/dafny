@@ -54,7 +54,7 @@ namespace Microsoft.Dafny
     }
 
     protected override void EmitBuiltInDecls(BuiltIns builtIns, TargetWriter wr) {
-      wr = CreateModule("Dafny", wr);
+      wr = CreateModule("Dafny", false, wr);
       wr.Indent();
       wr = wr.NewNamedBlock("internal class ArrayHelpers");
       foreach (var decl in builtIns.SystemModule.TopLevelDecls) {
@@ -101,7 +101,7 @@ namespace Microsoft.Dafny
       }
     }
 
-    protected override BlockTargetWriter CreateModule(string moduleName, TargetWriter wr) {
+    protected override BlockTargetWriter CreateModule(string moduleName, bool isExtern, TargetWriter wr) {
       var s = string.Format("namespace {0}", IdProtect(moduleName));
       return wr.NewBigBlock(s, " // end of " + s);
     }
@@ -115,7 +115,7 @@ namespace Microsoft.Dafny
       return Util.Comma(targs, tp => IdName(tp));
     }
 
-    protected override BlockTargetWriter CreateClass(string name, string/*?*/ fullPrintName, List<TypeParameter>/*?*/ typeParameters, List<Type>/*?*/ superClasses, Bpl.IToken tok, out TargetWriter instanceFieldsWriter, TargetWriter wr) {
+    protected override BlockTargetWriter CreateClass(string name, bool isExtern, string/*?*/ fullPrintName, List<TypeParameter>/*?*/ typeParameters, List<Type>/*?*/ superClasses, Bpl.IToken tok, out TargetWriter instanceFieldsWriter, TargetWriter wr) {
       wr.Indent();
       wr.Write("public partial class {0}", name);
       if (typeParameters != null && typeParameters.Count != 0) {

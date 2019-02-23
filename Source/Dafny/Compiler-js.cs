@@ -30,19 +30,22 @@ namespace Microsoft.Dafny {
       wr.WriteLine("{0}.{1}();", mainMethod.EnclosingClass.FullCompileName, IdName(mainMethod));
     }
       
-    protected override BlockTargetWriter CreateModule(string moduleName, TargetWriter wr) {
-      var w = wr.NewBigBlock(string.Format("let {0} = (function()", moduleName), ")(); // end of module " + moduleName);
+    protected override BlockTargetWriter CreateModule(string moduleName, bool isExtern, TargetWriter wr) {
+      if (!isExtern) {
+        wr.Write("let {0} = ", moduleName);
+      }
+      var w = wr.NewBigBlock("(function()", ")(); // end of module " + moduleName);
       w.Indent();
-      w.WriteLine("let $module = {};");
+      w.WriteLine("let $module = {0};", isExtern ? moduleName : "{}");
       w.BodySuffix = string.Format("{0}return $module;{1}", w.IndentString, w.NewLine);
       return w;
     }
 
     protected override string GetHelperModuleName() => "_dafny";
 
-    protected override BlockTargetWriter CreateClass(string name, string/*?*/ fullPrintName, List<TypeParameter>/*?*/ typeParameters, List<Type>/*?*/ superClasses, Bpl.IToken tok, out TargetWriter instanceFieldsWriter, TargetWriter wr) {
+    protected override BlockTargetWriter CreateClass(string name, bool isExtern, string/*?*/ fullPrintName, List<TypeParameter>/*?*/ typeParameters, List<Type>/*?*/ superClasses, Bpl.IToken tok, out TargetWriter instanceFieldsWriter, TargetWriter wr) {
       wr.Indent();
-      var w = wr.NewBlock(string.Format("$module.{0} = class {0}", name), ";");
+      var w = wr.NewBlock(string.Format("$module.{0} = class {0}" + (isExtern ? " extends $module.{0}" : ""), name), ";");
       w.Indent();
       w.Write("constructor (");
       if (typeParameters != null) {
@@ -2008,16 +2011,9 @@ namespace Microsoft.Dafny {
 
     bool SendToNewNodeProcess(string dafnyProgramName, string targetProgramText, string/*?*/ callToMain, string targetFilename, ReadOnlyCollection<string> otherFileNames,
       TextWriter outputWriter) {
+      Contract.Requires(targetFilename != null || otherFileNames.Count == 0);
 
-      string args = "";
-      if (targetFilename != null) {
-        args += targetFilename;
-        foreach (var s in otherFileNames) {
-          args += " " + s;
-        }
-      } else {
-        Contract.Assert(otherFileNames.Count == 0);  // according to the precondition
-      }
+      var args = targetFilename != null && otherFileNames.Count == 0 ? targetFilename : "";
       var psi = new ProcessStartInfo("node", args) {
         CreateNoWindow = true,
         UseShellExecute = false,
@@ -2028,7 +2024,10 @@ namespace Microsoft.Dafny {
 
       try {
         using (var nodeProcess = Process.Start(psi)) {
-          if (targetFilename == null) {
+          if (args == "") {
+            foreach (var filename in otherFileNames) {
+              WriteFromFile(filename, nodeProcess.StandardInput);
+            }
             nodeProcess.StandardInput.Write(targetProgramText);
             if (callToMain != null) {
               nodeProcess.StandardInput.Write(callToMain);
