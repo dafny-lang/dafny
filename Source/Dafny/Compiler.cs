@@ -551,7 +551,7 @@ namespace Microsoft.Dafny {
     public bool HasMain(Program program, out Method mainMethod) {
       mainMethod = null;
       bool hasMain = false;
-      foreach (var module in program.Modules()) {
+      foreach (var module in program.CompileModules) {
         if (module.IsAbstract) {
           // the purpose of an abstract module is to skip compilation
           continue;
