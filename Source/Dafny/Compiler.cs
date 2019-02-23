@@ -77,6 +77,7 @@ namespace Microsoft.Dafny {
     protected abstract BlockTargetWriter CreateTrait(string name, List<Type>/*?*/ superClasses, Bpl.IToken tok, out TargetWriter instanceFieldsWriter, out TargetWriter staticMemberWriter, TargetWriter wr);
     protected abstract void DeclareDatatype(DatatypeDecl dt, TargetWriter wr);
     protected abstract void DeclareNewtype(NewtypeDecl nt, TargetWriter wr);
+    protected abstract void DeclareSubsetType(SubsetTypeDecl sst, TargetWriter wr);
     protected string GetNativeTypeName(NativeType nt) {
       Contract.Requires(nt != null);
       string nativeName = null, literalSuffix = null;
@@ -121,6 +122,12 @@ namespace Microsoft.Dafny {
 
     protected abstract BlockTargetWriter/*?*/ CreateMethod(Method m, bool createBody, TargetWriter wr);
     protected abstract BlockTargetWriter/*?*/ CreateFunction(string name, List<TypeParameter>/*?*/ typeArgs, List<Formal> formals, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl member, TargetWriter wr);
+    protected virtual int EmitRuntimeTypeDescriptorsActuals(List<Type> typeArgs, Bpl.IToken tok, TargetWriter wr) {
+      Contract.Requires(typeArgs != null);
+      Contract.Requires(tok != null);
+      Contract.Requires(wr != null);
+      return 0;
+    }
     protected abstract BlockTargetWriter/*?*/ CreateGetter(string name, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, TargetWriter wr);  // returns null iff !createBody
     protected abstract BlockTargetWriter/*?*/ CreateGetterSetter(string name, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, out TargetWriter setterWriter, TargetWriter wr);  // if createBody, then result and setterWriter are non-null, else both are null
     protected abstract void EmitJumpToTailCallStart(TargetWriter wr);
@@ -294,7 +301,7 @@ namespace Microsoft.Dafny {
       TrExpr(els, wr, inLetExprBody);
       wr.Write(")");
     }
-    protected abstract void EmitDatatypeValue(DatatypeValue dtv, DatatypeCtor ctor, string arguments, TargetWriter wr);
+    protected abstract void EmitDatatypeValue(DatatypeValue dtv, string arguments, TargetWriter wr);
     protected abstract void GetSpecialFieldInfo(SpecialField.ID id, object idParam, out string compiledName, out string preString, out string postString);
     protected abstract void EmitMemberSelect(MemberDecl member, bool isLValue, TargetWriter wr);
     protected void EmitArraySelect(string index, TargetWriter wr) {
@@ -360,9 +367,6 @@ namespace Microsoft.Dafny {
           // the purpose of an abstract module is to skip compilation
           continue;
         }
-        if (DafnyOptions.O.CompileTarget == DafnyOptions.CompilationTarget.JavaScript && m == program.BuiltIns.SystemModule) {  // TODO: this should also be done for JavaScript
-          continue;
-        }
         var wr = CreateModule(m.CompileName, wrx);
         foreach (TopLevelDecl d in m.TopLevelDecls) {
           bool compileIt = true;
@@ -375,14 +379,8 @@ namespace Microsoft.Dafny {
             Error(d.tok, "Opaque type ('{0}') cannot be compiled", wr, at.FullName);
           } else if (d is TypeSynonymDecl) {
             var sst = d as SubsetTypeDecl;
-            if (sst != null && sst.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
-              TargetWriter instanceFieldsWriter;
-              var w = CreateClass(IdName(sst), sst.TypeArgs, out instanceFieldsWriter, wr);
-              var sw = new TargetWriter();
-              TrExpr(sst.Witness, sw, false);
-              DeclareField("Witness", true, true, sst.Rhs, sst.tok, sw.ToString(), w);
-            } else {
-              // do nothing, just bypass type synonyms and witness-less subset types in the compiler
+            if (sst != null) {
+              DeclareSubsetType(sst, wr);
             }
           } else if (d is NewtypeDecl) {
             var nt = (NewtypeDecl)d;
@@ -842,13 +840,8 @@ namespace Microsoft.Dafny {
           w.Write("{0} b = new {0}", IdName(c));
           if (c.TypeArgs.Count != 0) {
             // instantiate every parameter, it doesn't particularly matter how
-            w.Write("<");
-            string sep = "";
-            for (int i = 0; i < c.TypeArgs.Count; i++) {
-              w.Write("{0}int", sep);
-              sep = ", ";
-            }
-            w.Write(">");
+            var typeArgs = c.TypeArgs.ConvertAll(tp => (Type)Type.Bool);
+            EmitActualTypeArgs(typeArgs, m.tok, w);
           }
           w.WriteLine("();");
           w.Indent(); w.WriteLine("b.{0}();", IdName(m));
@@ -2118,14 +2111,17 @@ namespace Microsoft.Dafny {
             wr.Write(".{0}", IdName(s.Method));
           }
         }
+        List<Type> typeArgs;
         if (s.Method.TypeArgs.Count != 0) {
           var typeSubst = s.MethodSelect.TypeArgumentSubstitutions();
-          List<Type> typeArgs = s.Method.TypeArgs.ConvertAll(ta => typeSubst[ta]);
-          EmitActualTypeArgs(typeArgs, s.Tok, wr);
+          typeArgs = s.Method.TypeArgs.ConvertAll(ta => typeSubst[ta]);
+        } else {
+          typeArgs = new List<Type>();
         }
+        EmitActualTypeArgs(typeArgs, s.Tok, wr);
         wr.Write("(");
-
-        string sep = "";
+        var nRTDs = EmitRuntimeTypeDescriptorsActuals(typeArgs, s.Tok, wr);
+        string sep = nRTDs == 0 ? "" : ", ";
         for (int i = 0; i < s.Method.Ins.Count; i++) {
           Formal p = s.Method.Ins[i];
           if (!p.IsGhost) {
@@ -2396,7 +2392,7 @@ namespace Microsoft.Dafny {
             sep = ", ";
           }
         }
-        EmitDatatypeValue(dtv, dtv.Ctor, wrArgumentList.ToString(), wr);
+        EmitDatatypeValue(dtv, wrArgumentList.ToString(), wr);
 
       } else if (expr is OldExpr) {
         Contract.Assert(false); throw new cce.UnreachableException();  // 'old' is always a ghost
@@ -2864,12 +2860,16 @@ namespace Microsoft.Dafny {
         twr.Write(")");
       }
       twr.Write(".{0}", IdName(f));
+      List<Type> typeArgs;
       if (f.TypeArgs.Count != 0) {
-          List<Type> typeArgs = f.TypeArgs.ConvertAll(ta => e.TypeArgumentSubstitutions[ta]);
-          EmitActualTypeArgs(typeArgs, f.tok, twr);
+        typeArgs = f.TypeArgs.ConvertAll(ta => e.TypeArgumentSubstitutions[ta]);
+        EmitActualTypeArgs(typeArgs, f.tok, twr);
+      } else {
+        typeArgs = new List<Type>();
       }
       twr.Write("(");
-      string sep = "";
+      var nRTDs = EmitRuntimeTypeDescriptorsActuals(typeArgs, e.tok, wr);
+      string sep = nRTDs == 0 ? "" : ", ";
       for (int i = 0; i < e.Args.Count; i++) {
         if (!e.Function.Formals[i].IsGhost) {
           twr.Write(sep);

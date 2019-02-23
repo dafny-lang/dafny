@@ -563,7 +563,7 @@ namespace Microsoft.Dafny
         wEnum.WriteLine("for (var j = lo; j < hi; j++) {{ yield return ({0})j; }}", GetNativeTypeName(nt.NativeType));
       }
       if (nt.WitnessKind == SubsetTypeDecl.WKind.Compiled) { 
-        var witness = new TargetWriter();
+        var witness = new TargetWriter(w.IndentLevel);
         TrExpr(nt.Witness, witness, false);
         if (nt.NativeType == null) {
           DeclareField("Witness", true, true, nt.BaseType, nt.tok, witness.ToString(), w);
@@ -573,6 +573,16 @@ namespace Microsoft.Dafny
           w.Append(witness);
           w.WriteLine(");");
         }
+      }
+    }
+
+    protected override void DeclareSubsetType(SubsetTypeDecl sst, TargetWriter wr) {
+      TargetWriter instanceFieldsWriter;
+      var w = CreateClass(IdName(sst), sst.TypeArgs, out instanceFieldsWriter, wr);
+      if (sst.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
+        var sw = new TargetWriter(w.IndentLevel);
+        TrExpr(sst.Witness, sw, false);
+        DeclareField("Witness", true, true, sst.Rhs, sst.tok, sw.ToString(), w);
       }
     }
 
@@ -984,7 +994,9 @@ namespace Microsoft.Dafny
     }
 
     protected override void EmitActualTypeArgs(List<Type> typeArgs, Bpl.IToken tok, TextWriter wr) {
-      wr.Write("<" + TypeNames(typeArgs, wr, tok) + ">");
+      if (typeArgs.Count != 0) {
+        wr.Write("<" + TypeNames(typeArgs, wr, tok) + ">");
+      }
     }
 
     protected override string GenerateLhsDecl(string target, Type/*?*/ type, TextWriter wr, Bpl.IToken tok) {
@@ -1379,7 +1391,7 @@ namespace Microsoft.Dafny
       wr.Write(enclosingMethod != null && enclosingMethod.IsTailRecursive ? "_this" : "this");
     }
 
-    protected override void EmitDatatypeValue(DatatypeValue dtv, DatatypeCtor ctor, string arguments, TargetWriter wr) {
+    protected override void EmitDatatypeValue(DatatypeValue dtv, string arguments, TargetWriter wr) {
       var dt = dtv.Ctor.EnclosingDatatype;
       var dtName = dt.Module.IsDefaultModule ? dt.CompileName : dt.FullCompileName;
       var ctorName = dtv.Ctor.CompileName;
@@ -1389,7 +1401,7 @@ namespace Microsoft.Dafny
         wr.Write("@{0}{1}.", dtName, typeParams);
         // For an ordinary constructor (that is, one that does not guard any co-recursive calls), generate:
         //   new Dt_Cons<T>( args )
-        wr.Write("create_{0}({1})", ctor.CompileName, arguments);
+        wr.Write("create_{0}({1})", dtv.Ctor.CompileName, arguments);
       } else {
         wr.Write("new @{0}{1}(", dtName, typeParams);
         // In the case of a co-recursive call, generate:

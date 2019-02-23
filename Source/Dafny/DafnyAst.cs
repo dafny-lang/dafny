@@ -2506,7 +2506,7 @@ namespace Microsoft.Dafny {
     }
 
     /// <summary>
-    /// This constructor constructs a resolved class/datatype/iterator type
+    /// This constructor constructs a resolved class/datatype/iterator/subset-type/newtype type
     /// </summary>
     public UserDefinedType(IToken tok, string name, TopLevelDecl cd, [Captured] List<Type> typeArgs) {
       Contract.Requires(tok != null);

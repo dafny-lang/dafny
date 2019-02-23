@@ -26,11 +26,29 @@ let _dafny = (function() {
       return a.toString();
     }
   }
-  $module.Default = function (ty) {
-    return null;  // TODO
-  }
   $module.NewObject = function() {
     return { _tname: "object" };
+  }
+  $module.Rtd_bool = class {
+    static get Default() { return false; }
+  }
+  $module.Rtd_char = class {
+    static get Default() { return '\0'; }
+  }
+  $module.Rtd_int = class {
+    static get Default() { return BigNumber(0); }
+  }
+  $module.Rtd_bv_Native = class {
+    static get Default() { return 0; }
+  }
+  $module.Rtd_bv_NonNative = class {
+    static get Default() { return BigNumber(0); }
+  }
+  $module.Rtd_ref = class {
+    static get Default() { return null; }
+  }
+  $module.Rtd_array = class {
+    static get Default() { return []; }
   }
   $module.Tuple = class Tuple extends Array {
     constructor(...elems) {
@@ -50,10 +68,18 @@ let _dafny = (function() {
       }
       return true;
     }
+    static Rtd(...rtdArgs) {
+      return {
+        Default: Tuple.from(rtdArgs, rtd => rtd.Default)
+      };
+    }
   }
   $module.Set = class Set extends Array {
     constructor() {
       super();
+    }
+    static get Default() {
+      return Set.Empty;
     }
     toString() {
       return "{" + arrayElementsToString(this) + "}";
@@ -197,6 +223,9 @@ let _dafny = (function() {
     constructor() {
       super();
     }
+    static get Default() {
+      return MultiSet.Empty;
+    }
     toString() {
       let s = "multiset{";
       let sep = "";
@@ -262,7 +291,7 @@ let _dafny = (function() {
       return this.findIndex(k) < this.length;
     }
     add(k, n) {
-      var i = this.findIndex(k);
+      let i = this.findIndex(k);
       if (i === this.length) {
         this.push([k, n]);
       } else {
@@ -391,6 +420,9 @@ let _dafny = (function() {
     constructor(...elems) {
       super(...elems);
     }
+    static get Default() {
+      return Seq.of();
+    }
     toString() {
       return "[" + arrayElementsToString(this) + "]";
     }
@@ -475,6 +507,9 @@ let _dafny = (function() {
   $module.Map = class Map extends Array {
     constructor() {
       super();
+    }
+    static get Default() {
+      return Map.of();
     }
     toString() {
       return "map[" + this.map(maplet => _dafny.toString(maplet[0]) + " := " + _dafny.toString(maplet[1])).join(", ") + "]";
@@ -563,6 +598,9 @@ let _dafny = (function() {
     return { dims: dims, elmts: buildArray(initValue, ...dims) };
   }
   $module.BigOrdinal = class BigOrdinal {
+    static get Default() {
+      return new BigNumber(0);
+    }
     static IsLimit(ord) {
       return ord.isZero();
     }
@@ -588,6 +626,9 @@ let _dafny = (function() {
       this.num = n;
       this.den = d === undefined ? new BigNumber(1) : d;
       // invariant 1 <= den || (num == 0 && den == 0)
+    }
+    static get Default() {
+      return _dafny.BigRational.ZERO;
     }
     // We need to deal with the special case `num == 0 && den == 0`, because
     // that's what C#'s default struct constructor will produce for BigRational. :(
@@ -675,7 +716,7 @@ let _dafny = (function() {
       } else if (bsign <= 0 && 0 < asign) {
         return 1;
       }
-      var [aa, bb, dd] = this.normalize(that);
+      let [aa, bb, dd] = this.normalize(that);
       if (aa.isLessThan(bb)) {
         return -1;
       } else if (aa.isEqualTo(bb)){
@@ -694,11 +735,11 @@ let _dafny = (function() {
       return this.compareTo(that) <= 0;
     }
     plus(b) {
-      var [aa, bb, dd] = this.normalize(b);
+      let [aa, bb, dd] = this.normalize(b);
       return new BigRational(aa.plus(bb), dd);
     }
     minus(b) {
-      var [aa, bb, dd] = this.normalize(b);
+      let [aa, bb, dd] = this.normalize(b);
       return new BigRational(aa.minus(bb), dd);
     }
     negated() {
