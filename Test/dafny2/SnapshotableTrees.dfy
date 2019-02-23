@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:2 /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %dafny /compile:4 /dprint:"%t.dprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // Rustan Leino, September 2011.
@@ -23,13 +23,13 @@ module SnapTreeTestHarness {
     var it := s.CreateIterator();
     var more := it.MoveNext();
     while more
-      invariant t.Valid() && !t.IsReadonly && it.Valid();
-      invariant more ==> 0 <= it.N < |it.Contents|;
-      invariant fresh(t.Repr) && fresh(it.IterRepr);
-      invariant t.MutableRepr <= t.Repr && it !in t.MutableRepr && t.MutableRepr !! it.T.Repr && t.Repr !! it.IterRepr;
-      invariant it.T == s && s.Valid();
-      invariant s.Contents == sc;  // this is not needed in the loop, but serves as an extra test case of the specifications
-      decreases |it.Contents| - it.N;
+      invariant t.Valid() && !t.IsReadonly && it.Valid()
+      invariant more ==> 0 <= it.N < |it.Contents|
+      invariant fresh(t.Repr) && fresh(it.IterRepr)
+      invariant t.MutableRepr <= t.Repr && it !in t.MutableRepr && t.MutableRepr !! it.T.Repr && t.Repr !! it.IterRepr
+      invariant it.T == s && s.Valid()
+      invariant s.Contents == sc  // this is not needed in the loop, but serves as an extra test case of the specifications
+      decreases |it.Contents| - it.N
     {
       var x := it.Current();
       print "Main iterates on ", x, "\n";
@@ -61,8 +61,8 @@ module SnapTreeTestHarness {
    *  proved to be correct.
    */
   method TestConcurrentModification(t: SnapTree.Tree)
-    requires t.Valid() && !t.IsReadonly;
-    modifies t.MutableRepr;
+    requires t.Valid() && !t.IsReadonly
+    modifies t.MutableRepr
   {
     var it := t.CreateIterator();
     var more := it.MoveNext();
@@ -82,18 +82,18 @@ module SnapTree {
   class Tree
   {
     // public
-    ghost var Contents: seq<int>;
-    var IsReadonly: bool;
-    ghost var Repr: set<object>;
-    ghost var MutableRepr: set<object>;
+    ghost var Contents: seq<int>
+    var IsReadonly: bool
+    ghost var Repr: set<object>
+    ghost var MutableRepr: set<object>
     // private
-    var root: Node?;
-    var reprIsShared: bool;
+    var root: Node?
+    var reprIsShared: bool
 
     predicate Valid()
-      reads this, Repr;
-      ensures Valid() ==> this in Repr && MutableRepr <= Repr;
-      ensures Valid() ==> IsSorted(Contents);
+      reads this, Repr
+      ensures Valid() ==> this in Repr && MutableRepr <= Repr
+      ensures Valid() ==> IsSorted(Contents)
     {
       this in MutableRepr && MutableRepr <= Repr &&
       (root == null ==> Contents == []) &&
@@ -111,12 +111,12 @@ module SnapTree {
       forall i, j :: 0 <= i < j < |c| ==> c[i] < c[j]
     }
     static lemma IsSortedProperty(c: seq<int>)
-      ensures IsSorted(c) <==> forall i, j :: 0 <= i < j < |c| ==> c[i] < c[j];
+      ensures IsSorted(c) <==> forall i, j :: 0 <= i < j < |c| ==> c[i] < c[j]
     {
       reveal IsSorted();
     }
     static lemma SmallIsSorted(s: seq<int>)
-      ensures |s| <= 1 ==> IsSorted(s);
+      ensures |s| <= 1 ==> IsSorted(s)
     {
       reveal IsSorted();
     }
@@ -134,15 +134,15 @@ module SnapTree {
       AllBelow(left, data) && AllAbove(data, right)
     }
     static lemma SortCombineProperty(left: seq<int>, data: int, right: seq<int>)
-      requires SortedSplit(left, data, right);
-      ensures IsSorted(left + [data] + right);
+      requires SortedSplit(left, data, right)
+      ensures IsSorted(left + [data] + right)
     {
       reveal IsSorted();
     }
 
     constructor Empty()
-      ensures Valid() && Contents == [] && !IsReadonly;
-      ensures MutableRepr <= Repr && fresh(Repr);
+      ensures Valid() && Contents == [] && !IsReadonly
+      ensures MutableRepr <= Repr && fresh(Repr)
     {
       new;
       Contents := [];
@@ -155,16 +155,16 @@ module SnapTree {
     }
 
     method CreateSnapshot() returns (snapshot: Tree)
-      requires Valid();
-      modifies Repr;
-      ensures Valid() && fresh(Repr - old(Repr));
-      ensures Contents == old(Contents) && IsReadonly == old(IsReadonly);
-      ensures snapshot.Valid();
-      ensures snapshot.Contents == Contents && snapshot.IsReadonly;
+      requires Valid()
+      modifies Repr
+      ensures Valid() && fresh(Repr - old(Repr))
+      ensures Contents == old(Contents) && IsReadonly == old(IsReadonly)
+      ensures snapshot.Valid()
+      ensures snapshot.Contents == Contents && snapshot.IsReadonly
       // the mutable part of the original tree is disjoint from the representation of the snapshot
-      ensures snapshot.Repr !! MutableRepr;
+      ensures snapshot.Repr !! MutableRepr
       // representation of the snapshot consists of new things of things from the previous tree (that are now immutable)
-      ensures fresh(snapshot.Repr - old(Repr));
+      ensures fresh(snapshot.Repr - old(Repr))
     {
       // from now on, only "this" is mutable; the rest of the representation is immutable
       Repr := Repr + MutableRepr;
@@ -183,14 +183,14 @@ module SnapTree {
     constructor Private() { }
 
     method Insert(x: int) returns (ghost pos: int)
-      requires Valid() && !IsReadonly;
-      modifies MutableRepr;
-      ensures Valid() && fresh(Repr - old(Repr)) && fresh(MutableRepr - old(MutableRepr));
-      ensures IsReadonly == old(IsReadonly);
-      ensures x in old(Contents) ==> pos < 0 && Contents == old(Contents);
+      requires Valid() && !IsReadonly
+      modifies MutableRepr
+      ensures Valid() && fresh(Repr - old(Repr)) && fresh(MutableRepr - old(MutableRepr))
+      ensures IsReadonly == old(IsReadonly)
+      ensures x in old(Contents) ==> pos < 0 && Contents == old(Contents)
       ensures x !in old(Contents) ==>
         0 <= pos < |Contents| == |old(Contents)| + 1 &&
-        Contents == old(Contents[..pos] + [x] + Contents[pos..]);
+        Contents == old(Contents[..pos] + [x] + Contents[pos..])
     {
       if reprIsShared {
         root, pos := Node.FunctionalInsert(root, x);
@@ -212,18 +212,18 @@ module SnapTree {
     }
 
     method CreateIterator() returns (iter: Iterator)
-      requires Valid(); // && IsReadonly;
-      ensures iter.Valid() && fresh(iter.IterRepr);
-      ensures iter.T == this && iter.Contents == Contents && iter.N == -1;
+      requires Valid() // && IsReadonly;
+      ensures iter.Valid() && fresh(iter.IterRepr)
+      ensures iter.T == this && iter.Contents == Contents && iter.N == -1
     {
       iter := new Iterator.Init(this);
     }
 
     method Print()
-      requires Valid();
-      modifies Repr;
-      ensures Valid() && fresh(Repr - old(Repr));
-      ensures Contents == old(Contents) && IsReadonly == old(IsReadonly);
+      requires Valid()
+      modifies Repr
+      ensures Valid() && fresh(Repr - old(Repr))
+      ensures Contents == old(Contents) && IsReadonly == old(IsReadonly)
     {
       var s;
       if IsReadonly {
@@ -238,15 +238,15 @@ module SnapTree {
 
   class Node
   {
-    ghost var Contents: seq<int>;
-    ghost var Repr: set<object>;
-    var data: int;
-    var left: Node?;
-    var right: Node?;
+    ghost var Contents: seq<int>
+    ghost var Repr: set<object>
+    var data: int
+    var left: Node?
+    var right: Node?
 
     predicate {:opaque} NodeValid()
-      reads this, Repr;
-      ensures NodeValid() ==> this in Repr && Tree.IsSorted(Contents);
+      reads this, Repr
+      ensures NodeValid() ==> this in Repr && Tree.IsSorted(Contents)
     {
       this in Repr &&
       (left != null ==>
@@ -260,12 +260,12 @@ module SnapTree {
     }
 
     static predicate SortedSplit(left: Node?, data: int, right: Node?)
-      reads left, right;
+      reads left, right
     {
       Tree.SortedSplit(if left == null then [] else left.Contents, data, if right == null then [] else right.Contents)
     }
     static function CombineSplit(left: Node?, data: int, right: Node?): seq<int>
-      reads left, right;
+      reads left, right
     {
       if left == null && right == null then
         [data]
@@ -277,8 +277,8 @@ module SnapTree {
         left.Contents + [data] + right.Contents
     }
     static lemma CombineSortedSplit(left: Node?, data: int, right: Node?)
-      requires SortedSplit(left, data, right);
-      ensures Tree.IsSorted(CombineSplit(left, data, right));
+      requires SortedSplit(left, data, right)
+      ensures Tree.IsSorted(CombineSplit(left, data, right))
     {
       var L := if left == null then [] else left.Contents;
       var R := if right == null then [] else right.Contents;
@@ -287,8 +287,8 @@ module SnapTree {
     }
 
     constructor Init(x: int)
-      ensures NodeValid() && fresh(Repr - {this});
-      ensures Contents == [x];
+      ensures NodeValid() && fresh(Repr - {this})
+      ensures Contents == [x]
     {
       Contents := [x];
       Repr := {this};
@@ -300,15 +300,15 @@ module SnapTree {
     }
 
     constructor Build(left: Node?, x: int, right: Node?)
-      requires left != null ==> left.NodeValid() && Tree.AllBelow(left.Contents, x);
-      requires right != null ==> right.NodeValid() && Tree.AllAbove(x, right.Contents);
-      requires left != null && right != null ==> left.Repr !! right.Repr;
-      ensures NodeValid();
-      ensures Contents == CombineSplit(left, x, right);
-      ensures left == null && right == null ==> fresh(Repr - {this});
-      ensures left != null && right == null ==> fresh(Repr - {this} - left.Repr);
-      ensures left == null && right != null ==> fresh(Repr - {this} - right.Repr);
-      ensures left != null && right != null ==> fresh(Repr - {this} - left.Repr - right.Repr);
+      requires left != null ==> left.NodeValid() && Tree.AllBelow(left.Contents, x)
+      requires right != null ==> right.NodeValid() && Tree.AllAbove(x, right.Contents)
+      requires left != null && right != null ==> left.Repr !! right.Repr
+      ensures NodeValid()
+      ensures Contents == CombineSplit(left, x, right)
+      ensures left == null && right == null ==> fresh(Repr - {this})
+      ensures left != null && right == null ==> fresh(Repr - {this} - left.Repr)
+      ensures left == null && right != null ==> fresh(Repr - {this} - right.Repr)
+      ensures left != null && right != null ==> fresh(Repr - {this} - left.Repr - right.Repr)
     {
       Contents := [x];
       Repr := {this};
@@ -330,16 +330,16 @@ module SnapTree {
     }
 
     static method FunctionalInsert(n: Node?, x: int) returns (r: Node, ghost pos: int)
-      requires n != null ==> n.NodeValid();
-      ensures r.NodeValid();
-      ensures n == null ==> fresh(r.Repr);
-      ensures n != null ==> fresh(r.Repr - n.Repr);
-      ensures n == null ==> r.Contents == [x] && pos == 0;
-      ensures n != null && x in n.Contents ==> r == n && pos < 0;
+      requires n != null ==> n.NodeValid()
+      ensures r.NodeValid()
+      ensures n == null ==> fresh(r.Repr)
+      ensures n != null ==> fresh(r.Repr - n.Repr)
+      ensures n == null ==> r.Contents == [x] && pos == 0
+      ensures n != null && x in n.Contents ==> r == n && pos < 0
       ensures n != null && x !in n.Contents ==>
         0 <= pos < |r.Contents| == |n.Contents| + 1 &&
-        r.Contents == n.Contents[..pos] + [x] + n.Contents[pos..];
-      decreases if n == null then {} else n.Repr;
+        r.Contents == n.Contents[..pos] + [x] + n.Contents[pos..]
+      decreases if n == null then {} else n.Repr
     {
       if n == null {
         r := new Node.Init(x);
@@ -355,14 +355,14 @@ module SnapTree {
     }
 
     static method FunctionalInsert_Left(n: Node, x: int) returns (r: Node, ghost pos: int)
-      requires n.NodeValid() && x < n.data;
-      ensures r.NodeValid();
-      ensures fresh(r.Repr - n.Repr);
-      ensures x in n.Contents ==> r == n && pos < 0;
+      requires n.NodeValid() && x < n.data
+      ensures r.NodeValid()
+      ensures fresh(r.Repr - n.Repr)
+      ensures x in n.Contents ==> r == n && pos < 0
       ensures x !in n.Contents ==>
         0 <= pos < |r.Contents| == |n.Contents| + 1 &&
-        r.Contents == n.Contents[..pos] + [x] + n.Contents[pos..];
-      decreases n.Repr, 0;
+        r.Contents == n.Contents[..pos] + [x] + n.Contents[pos..]
+      decreases n.Repr, 0
     {
       reveal n.NodeValid();
       var left;
@@ -375,14 +375,14 @@ module SnapTree {
     }
 
     static method FunctionalInsert_Right(n: Node, x: int) returns (r: Node, ghost pos: int)
-      requires n.NodeValid() && n.data < x;
-      ensures r.NodeValid();
-      ensures fresh(r.Repr - n.Repr);
-      ensures x in n.Contents ==> r == n && pos < 0;
+      requires n.NodeValid() && n.data < x
+      ensures r.NodeValid()
+      ensures fresh(r.Repr - n.Repr)
+      ensures x in n.Contents ==> r == n && pos < 0
       ensures x !in n.Contents ==>
         0 <= pos < |r.Contents| == |n.Contents| + 1 &&
-        r.Contents == n.Contents[..pos] + [x] + n.Contents[pos..];
-      decreases n.Repr, 0;
+        r.Contents == n.Contents[..pos] + [x] + n.Contents[pos..]
+      decreases n.Repr, 0
     {
       reveal n.NodeValid();
       var right;
@@ -398,14 +398,14 @@ module SnapTree {
     }
 
     method MutatingInsert(x: int) returns (ghost pos: int)
-      requires NodeValid();
-      modifies Repr;
-      ensures NodeValid() && fresh(Repr - old(Repr));
-      ensures x in old(Contents) ==> pos < 0 && Contents == old(Contents);
+      requires NodeValid()
+      modifies Repr
+      ensures NodeValid() && fresh(Repr - old(Repr))
+      ensures x in old(Contents) ==> pos < 0 && Contents == old(Contents)
       ensures x !in old(Contents) ==>
         0 <= pos < |Contents| == |old(Contents)| + 1 &&
-        Contents == old(Contents[..pos] + [x] + Contents[pos..]);
-      decreases Repr;
+        Contents == old(Contents[..pos] + [x] + Contents[pos..])
+      decreases Repr
     {
       if x < data {
         pos := MutatingInsert_Left(x);
@@ -418,14 +418,14 @@ module SnapTree {
     }
 
     method MutatingInsert_Left(x: int) returns (ghost pos: int)
-      requires NodeValid() && x < data;
-      modifies Repr;
-      ensures NodeValid() && fresh(Repr - old(Repr));
-      ensures x in old(Contents) ==> pos < 0 && Contents == old(Contents);
+      requires NodeValid() && x < data
+      modifies Repr
+      ensures NodeValid() && fresh(Repr - old(Repr))
+      ensures x in old(Contents) ==> pos < 0 && Contents == old(Contents)
       ensures x !in old(Contents) ==>
         0 <= pos < |Contents| == |old(Contents)| + 1 &&
-        Contents == old(Contents[..pos] + [x] + Contents[pos..]);
-      decreases Repr, 0;
+        Contents == old(Contents[..pos] + [x] + Contents[pos..])
+      decreases Repr, 0
     {
       reveal NodeValid();
       ghost var R := if right == null then [] else right.Contents;
@@ -443,14 +443,14 @@ module SnapTree {
     }
 
     method MutatingInsert_Right(x: int) returns (ghost pos: int)
-      requires NodeValid() && data < x;
-      modifies Repr;
-      ensures NodeValid() && fresh(Repr - old(Repr));
-      ensures x in old(Contents) ==> pos < 0 && Contents == old(Contents);
+      requires NodeValid() && data < x
+      modifies Repr
+      ensures NodeValid() && fresh(Repr - old(Repr))
+      ensures x in old(Contents) ==> pos < 0 && Contents == old(Contents)
       ensures x !in old(Contents) ==>
         0 <= pos < |Contents| == |old(Contents)| + 1 &&
-        Contents == old(Contents[..pos] + [x] + Contents[pos..]);
-      decreases Repr, 0;
+        Contents == old(Contents[..pos] + [x] + Contents[pos..])
+      decreases Repr, 0
     {
       reveal NodeValid();
       ghost var L := if left == null then [] else left.Contents;
@@ -476,18 +476,18 @@ module SnapTree {
   class Iterator
   {
     // public
-    ghost var IterRepr: set<object>;  // note, IterRepr does not include T.Repr
-    ghost var Contents: seq<int>;
-    ghost var N: int;
-    var T: Tree?;
+    ghost var IterRepr: set<object>  // note, IterRepr does not include T.Repr
+    ghost var Contents: seq<int>
+    ghost var N: int
+    var T: Tree?
     // private
-    var initialized: bool;
-    var stack: List;
+    var initialized: bool
+    var stack: List
 
     predicate Valid()
-      reads this, IterRepr, T;
-      reads if T != null then T.Repr else {};
-      ensures Valid() ==> T != null && IterRepr !! T.Repr;
+      reads this, IterRepr, T
+      reads if T != null then T.Repr else {}
+      ensures Valid() ==> T != null && IterRepr !! T.Repr
     {
       this in IterRepr &&
       T != null && T.Valid() && IterRepr !! T.Repr &&
@@ -506,8 +506,8 @@ module SnapTree {
     // In each case, R(wlist,n,C,Nodes) implies that the fragment wlist proper is a prefix of C[n..].
     // Nodes is (an overapproximation of) the set of nodes read by R.
     static predicate R(wlist: List, n: int, C: seq<int>, Nodes: set<object>)
-      reads Nodes;
-      decreases wlist;
+      reads Nodes
+      decreases wlist
     {
       match wlist
       case Nil => n == |C|
@@ -520,23 +520,23 @@ module SnapTree {
     }
 
     constructor Init(t: Tree)
-      requires t.Valid();
-      ensures Valid() && fresh(IterRepr - {this});
-      ensures T == t && Contents == t.Contents && N == -1;
+      requires t.Valid()
+      ensures Valid() && fresh(IterRepr - {this})
+      ensures T == t && Contents == t.Contents && N == -1
     {
       new;
       Init_Aux(t);
     }
     method Init_Aux(t: Tree)
-      requires this !in t.Repr;
+      requires this !in t.Repr
       // The following three lines say what it is we need from t.Valid():
-      requires t.root == null ==> |t.Contents| == 0;
-      requires t.root != null ==> t.root in t.Repr && t.root.Repr <= t.Repr && t.root.NodeValid();
-      requires t.root != null ==> t.root.Contents <= t.Contents && |t.Contents| == |t.root.Contents|;
-      modifies this;
-      ensures t.Valid() ==> Valid();
-      ensures fresh(IterRepr - {this});
-      ensures T == t && Contents == t.Contents && N == -1;
+      requires t.root == null ==> |t.Contents| == 0
+      requires t.root != null ==> t.root in t.Repr && t.root.Repr <= t.Repr && t.root.NodeValid()
+      requires t.root != null ==> t.root.Contents <= t.Contents && |t.Contents| == |t.root.Contents|
+      modifies this
+      ensures t.Valid() ==> Valid()
+      ensures fresh(IterRepr - {this})
+      ensures T == t && Contents == t.Contents && N == -1
     {
       T := t;
       IterRepr := {this};
@@ -548,16 +548,16 @@ module SnapTree {
     }
 
     method Print()
-      requires Valid();
-      modifies IterRepr;
+      requires Valid()
+      modifies IterRepr
     {
       print "Tree:";
       var more := MoveNext();
       while more
-        invariant Valid();
-        invariant more ==> 0 <= N < |Contents|;
-        invariant fresh(IterRepr - old(IterRepr));
-        decreases |Contents| - N;
+        invariant Valid()
+        invariant more ==> 0 <= N < |Contents|
+        invariant fresh(IterRepr - old(IterRepr))
+        decreases |Contents| - N
       {
         var x := Current();
         print " ", x;
@@ -568,12 +568,12 @@ module SnapTree {
 
     // private
     static method Push(stIn: List, ghost n: int, p: Node, ghost C: seq<int>, ghost Nodes: set<object>) returns (st: List)
-      requires p in Nodes && p.Repr <= Nodes && p.NodeValid();
-      requires 0 <= n <= |C|;
-      requires p.Contents <= C[n..];
-      requires R(stIn, n + |p.Contents|, C, Nodes);
-      ensures R(st, n, C, Nodes);
-      decreases |p.Contents|;
+      requires p in Nodes && p.Repr <= Nodes && p.NodeValid()
+      requires 0 <= n <= |C|
+      requires p.Contents <= C[n..]
+      requires R(stIn, n + |p.Contents|, C, Nodes)
+      ensures R(st, n, C, Nodes)
+      decreases |p.Contents|
     {
       st := Cons(p, stIn);
 
@@ -584,41 +584,39 @@ module SnapTree {
     }
 
     method Current() returns (x: int)
-      requires Valid() && 0 <= N < |Contents|;
-      ensures x == Contents[N];
+      requires Valid() && 0 <= N < |Contents|
+      ensures x == Contents[N]
     {
-      match (stack) {
-        case Cons(y, rest) => x := y.data;
-      }
+      match (stack)
+      case Cons(y, rest) => x := y.data;
     }
 
     method MoveNext() returns (hasCurrent: bool)
-      requires Valid() && N <= |Contents|;
-      modifies IterRepr;
-      ensures Valid() && fresh(IterRepr - old(IterRepr)) && T.Repr == old(T.Repr);
-      ensures Contents == old(Contents) && T == old(T);
-      ensures old(N) < |Contents| ==> N == old(N) + 1;
-      ensures old(N) == |Contents| ==> N == old(N);
-      ensures hasCurrent <==> 0 <= N < |Contents|;
+      requires Valid() && N <= |Contents|
+      modifies IterRepr
+      ensures Valid() && fresh(IterRepr - old(IterRepr)) && T.Repr == old(T.Repr)
+      ensures Contents == old(Contents) && T == old(T)
+      ensures old(N) < |Contents| ==> N == old(N) + 1
+      ensures old(N) == |Contents| ==> N == old(N)
+      ensures hasCurrent <==> 0 <= N < |Contents|
     {
       if !initialized {
         initialized, N := true, 0;
         hasCurrent := stack != Nil;
       } else {
-        match (stack) {
-          case Nil =>
-            hasCurrent := false;
-          case Cons(p, rest) =>
-            // lemmas:
-            reveal p.NodeValid();
+        match (stack)
+        case Nil =>
+          hasCurrent := false;
+        case Cons(p, rest) =>
+          // lemmas:
+          reveal p.NodeValid();
 
-            stack, N := rest, N+1;
+          stack, N := rest, N+1;
 
-            if p.right != null {
-              stack := Push(stack, N, p.right, Contents, T.Repr);
-            }
-            hasCurrent := stack != Nil;
-        }
+          if p.right != null {
+            stack := Push(stack, N, p.right, Contents, T.Repr);
+          }
+          hasCurrent := stack != Nil;
       }
     }
   }

@@ -158,11 +158,11 @@ namespace Microsoft.Dafny
 
         case "compile": {
             int compile = 0;
-            if (ps.GetNumericArgument(ref compile, 4)) {
+            if (ps.GetNumericArgument(ref compile, 5)) {
               // convert option to two booleans
               Compile = compile != 0;
-              ForceCompile = compile == 2;
-              RunAfterCompile = compile == 3;
+              ForceCompile = compile == 2 || compile == 4;
+              RunAfterCompile = compile == 3 || compile == 4;
             }
             return true;
           }
@@ -481,6 +481,8 @@ namespace Microsoft.Dafny
                 3 - if there is a Main method and there are no verification
                     errors, compiles program in memory (i.e., does not write
                     an output file) and runs it
+                4 - like (3), but attempts to compile and run regardless of
+                    verification outcome
   /compileTarget:<lang>
                 cs (default) - Compilation to .NET via C#
                 js - Compilation to JavaScript
