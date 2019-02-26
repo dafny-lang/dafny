@@ -367,3 +367,55 @@ module RegressionsSubsetElementTypes {
     case Pany(e) =>  m := e;
   }
 }
+
+// ----------- regression tests, make sure RHS's of const's are checked ----------
+
+module RegressionConstWithRhsAndConstraints0 {
+  const x: nat := -1  // error: RHS does not satisfy subtype type of const
+}
+
+module RegressionConstWithRhsAndConstraints1 {
+  class C {
+    const x: nat := -1  // error: RHS does not satisfy subtype type of const
+  }
+}
+
+module RegressionConstWithRhsAndConstraints2 {
+  newtype Nat = x | 0 <= x
+  const x: Nat := -1  // error: RHS does not satisfy newtype type of const
+}
+
+module RegressionConstWithRhsAndConstraints3 {
+  newtype Nat = x | 0 <= x
+  class C {
+    const x: Nat := -1  // error: RHS does not satisfy newtype type of const
+  }
+}
+
+module RegressionUninhabited0 {
+  type Nat = x: int | false  // error: type is uninhabited
+  const x: Nat := -1  // error: RHS does not satisfy constraint
+}
+
+module RegressionUninhabited1 {
+  newtype Nat = x: int | false  // error: type is uninhabited
+  const x: Nat := -1  // error: RHS does not satisfy constraint
+}
+
+module Uninhabited2 {
+  type Nat = x: int | false  // error: type is uninhabited
+  method M() returns (r: Nat)
+  {
+    assert false;  // unreachable, since Nat is uninhabited
+  }
+}
+
+module RegressionIllformedConstRhs0 {
+  const x: int := 15 / 0  // error: division by zero
+}
+
+module RegressionIllformedConstRhs1 {
+  class C {
+    const x: int := 15 / 0  // error: division by zero
+  }
+}

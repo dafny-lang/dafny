@@ -312,5 +312,41 @@ SubsetTypes.dfy(344,29): Error: value does not satisfy the subset constraints of
 Execution trace:
     (0,0): anon0
     (0,0): anon11_Then
+SubsetTypes.dfy(374,18): Error: value does not satisfy the subset constraints of 'nat'
+Execution trace:
+    (0,0): anon0
+SubsetTypes.dfy(379,20): Error: value does not satisfy the subset constraints of 'nat'
+Execution trace:
+    (0,0): anon0
+SubsetTypes.dfy(385,18): Error: result of operation might violate newtype constraint for 'Nat'
+Execution trace:
+    (0,0): anon0
+SubsetTypes.dfy(391,20): Error: result of operation might violate newtype constraint for 'Nat'
+Execution trace:
+    (0,0): anon0
+SubsetTypes.dfy(396,7): Error: cannot find witness that shows type is inhabited (only tried 0); try giving a hint through a 'witness' or 'ghost witness' clause
+Execution trace:
+    (0,0): anon0
+    (0,0): anon4_Else
+SubsetTypes.dfy(397,18): Error: value does not satisfy the subset constraints of 'Nat'
+Execution trace:
+    (0,0): anon0
+SubsetTypes.dfy(401,10): Error: cannot find witness that shows type is inhabited (only tried 0); try giving a hint through a 'witness' or 'ghost witness' clause
+Execution trace:
+    (0,0): anon0
+    (0,0): anon4_Else
+SubsetTypes.dfy(402,18): Error: result of operation might violate newtype constraint for 'Nat'
+Execution trace:
+    (0,0): anon0
+SubsetTypes.dfy(406,7): Error: cannot find witness that shows type is inhabited (only tried 0); try giving a hint through a 'witness' or 'ghost witness' clause
+Execution trace:
+    (0,0): anon0
+    (0,0): anon4_Else
+SubsetTypes.dfy(414,21): Error: possible division by zero
+Execution trace:
+    (0,0): anon0
+SubsetTypes.dfy(419,23): Error: possible division by zero
+Execution trace:
+    (0,0): anon0
 
-Dafny program verifier finished with 5 verified, 81 errors
+Dafny program verifier finished with 8 verified, 92 errors

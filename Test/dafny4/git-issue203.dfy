@@ -22,4 +22,4 @@ function method Eval(e: Expr, fuel: nat): Value
     case Some(body) => f(e.body, fuel')
     case None() => Nil()
 }
-const ctxp := Eval(None(), 1);
+const ctxp := Eval(None(), 1)

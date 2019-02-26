@@ -2283,7 +2283,7 @@ namespace Microsoft.Dafny {
       currentModule = iter.Module;
       codeContext = iter;
 
-      ExpressionTranslator etran = new ExpressionTranslator(this, predef, iter.tok);
+      var etran = new ExpressionTranslator(this, predef, iter.tok);
 
       var inParams = new List<Bpl.Variable>();
       List<Variable> outParams;
@@ -2507,9 +2507,9 @@ namespace Microsoft.Dafny {
       Contract.Assert(1 <= inParams.Count);  // there should at least be a receiver parameter
       Contract.Assert(proc.OutParams.Count == 0);
 
-      BoogieStmtListBuilder builder = new BoogieStmtListBuilder(this);
-      ExpressionTranslator etran = new ExpressionTranslator(this, predef, iter.tok);
-      List<Variable> localVariables = new List<Variable>();
+      var builder = new BoogieStmtListBuilder(this);
+      var etran = new ExpressionTranslator(this, predef, iter.tok);
+      var localVariables = new List<Variable>();
       GenerateIteratorImplPrelude(iter, inParams, new List<Variable>(), builder, localVariables);
 
       // add locals for the yield-history variables and the extra variables
@@ -3726,34 +3726,38 @@ namespace Microsoft.Dafny {
     ///     // If "c" is an array declaration, then the bound variables also include the index variables "ii" and "h[o, f]" has the form "h[o, Index(ii)]".
     ///     // If "f" is readonly, then "h[o, f]" has the form "f(o)" (for special fields) or "f(G,o)" (for programmer-declared const fields),
     ///     // so "h" and $IsHeap(h) are omitted.
-    ///     axiom (forall o: ref, h: Heap, G : Ty ::
+    ///     axiom fh < FunctionContextHeight ==>
+    ///       (forall o: ref, h: Heap, G : Ty ::
     ///         { h[o, f], TClassA(G) }  // if "f" is a const, omit TClassA(G) from the trigger and just use { f(G,o) }
     ///         $IsHeap(h) &&
     ///         o != null && $Is(o, TClassA(G))  // or dtype(o) = TClassA(G)
-    ///       ==>
+    ///         ==>
     ///         $Is(h[o, f], TT(PP)));
     ///
     ///     // allocation axiom:
     ///     // As above for "G" and "ii", but "h" is included no matter what.
-    ///     axiom (forall o: ref, h: Heap, G : Ty ::
+    ///     axiom fh < FunctionContextHeight ==>
+    ///       (forall o: ref, h: Heap, G : Ty ::
     ///         { h[o, f], TClassA(G) }  // if "f" is a const, use the trigger { f(G,o), h[o, alloc] }; for other readonly fields, use { f(o), h[o, alloc], TClassA(G) }
     ///         $IsHeap(h) &&
     ///         o != null && $Is(o, TClassA(G)) &&  // or dtype(o) = TClassA(G)
     ///         h[o, alloc]
-    ///       ==>
+    ///         ==>
     ///         $IsAlloc(h[o, f], TT(PP), h));
     ///
     /// For a static (necessarily "const") field "f" in a class "c(G)", the expression corresponding to "h[o, f]" or "f(G,o)" above is "f(G)",
     /// so generate:
     ///     // type axiom:
-    ///     axiom (forall G : Ty ::
+    ///     axiom fh < FunctionContextHeight ==>
+    ///       (forall G : Ty ::
     ///         { f(G) }
     ///         $Is(f(G), TT(PP)));
     ///     // Or in the case where G is empty:
     ///     axiom $Is(f(G), TT);
     ///
     ///     // allocation axiom:
-    ///     axiom (forall h: Heap, G : Ty ::
+    ///     axiom fh < FunctionContextHeight ==>
+    ///       (forall h: Heap, G : Ty ::
     ///         { $IsAlloc(f(G), TT(PP), h) }
     ///         $IsHeap(h)
     ///       ==>
@@ -3761,18 +3765,29 @@ namespace Microsoft.Dafny {
     /// 
     /// 
     /// The axioms above could be optimised to something along the lines of:
-    ///     axiom (forall o: ref, h: Heap ::
+    ///     axiom fh < FunctionContextHeight ==>
+    ///       (forall o: ref, h: Heap ::
     ///         { h[o, f] }
     ///         $IsHeap(h) && o != null && Tag(dtype(o)) = TagClass
-    ///       ==>
-    ///         (h[o, alloc] ==> $IsAlloc(h[o, f], TT(TClassA_Inv_i(dtype(o)),..), h))
-    ///       && $Is(h[o, f], TT(TClassA_Inv_i(dtype(o)),..), h);
+    ///         ==>
+    ///         (h[o, alloc] ==> $IsAlloc(h[o, f], TT(TClassA_Inv_i(dtype(o)),..), h)) &&
+    ///         $Is(h[o, f], TT(TClassA_Inv_i(dtype(o)),..), h);
     /// <summary>
     void AddAllocationAxiom(Field f, ClassDecl c, bool is_array = false) {
       Contract.Requires(c != null);
       // IFF you're adding the array axioms, then the field should be null
       Contract.Requires(is_array == (f == null));
       Contract.Requires(sink != null && predef != null);
+
+      Bpl.Expr heightAntecedent = Bpl.Expr.True;
+      if (f is ConstantField) {
+        var cf = (ConstantField)f;
+        AddWellformednessCheck(cf);
+        if (InVerificationScope(cf)) {
+          var etran = new ExpressionTranslator(this, predef, f.tok);
+          heightAntecedent = Bpl.Expr.Lt(Bpl.Expr.Literal(cf.EnclosingModule.CallGraph.GetSCCRepresentativeId(cf)), etran.FunctionContextHeight());
+        }
+      }
 
       var bvsTypeAxiom = new List<Bpl.Variable>();
       var bvsAllocationAxiom = new List<Bpl.Variable>();
@@ -3787,7 +3802,7 @@ namespace Microsoft.Dafny {
         var oDotF = new Bpl.NAryExpr(c.tok, new Bpl.FunctionCall(GetReadonlyField(f)), tyexprs);
         var is_hf = MkIs(oDotF, f.Type);              // $Is(h[o, f], ..)
         Bpl.Expr ax = bvsTypeAxiom.Count == 0 ? is_hf : BplForall(bvsTypeAxiom, BplTrigger(oDotF), is_hf);
-        sink.AddTopLevelDeclaration(new Bpl.Axiom(c.tok, ax, string.Format("{0}.{1}: Type axiom", c, f)));
+        sink.AddTopLevelDeclaration(new Bpl.Axiom(c.tok, BplImp(heightAntecedent, ax), string.Format("{0}.{1}: Type axiom", c, f)));
 
         if (CommonHeapUse || (NonGhostsUseHeap && !f.IsGhost)) {
           Bpl.Expr h;
@@ -3796,7 +3811,7 @@ namespace Microsoft.Dafny {
           var isGoodHeap = FunctionCall(c.tok, BuiltinFunction.IsGoodHeap, null, h);
           var isalloc_hf = MkIsAlloc(oDotF, f.Type, h); // $IsAlloc(h[o, f], ..)
           ax = BplForall(bvsAllocationAxiom, BplTrigger(isalloc_hf), BplImp(isGoodHeap, isalloc_hf));
-          sink.AddTopLevelDeclaration(new Bpl.Axiom(c.tok, ax, string.Format("{0}.{1}: Allocation axiom", c, f)));
+          sink.AddTopLevelDeclaration(new Bpl.Axiom(c.tok, BplImp(heightAntecedent, ax), string.Format("{0}.{1}: Allocation axiom", c, f)));
         }
 
       } else {
@@ -3891,7 +3906,7 @@ namespace Microsoft.Dafny {
         }
 
         Bpl.Expr ax = BplForall(bvsTypeAxiom, tr, BplImp(ante, is_hf));
-        sink.AddTopLevelDeclaration(new Bpl.Axiom(c.tok, ax, string.Format("{0}.{1}: Type axiom", c, f)));
+        sink.AddTopLevelDeclaration(new Bpl.Axiom(c.tok, BplImp(heightAntecedent, ax), string.Format("{0}.{1}: Type axiom", c, f)));
 
         if (isalloc_hf != null) {
           if (!is_array && !f.IsMutable) {
@@ -3913,7 +3928,7 @@ namespace Microsoft.Dafny {
           tr = new Bpl.Trigger(c.tok, true, t_es);
 
           ax = BplForall(bvsAllocationAxiom, tr, BplImp(ante, isalloc_hf));
-          sink.AddTopLevelDeclaration(new Bpl.Axiom(c.tok, ax, string.Format("{0}.{1}: Allocation axiom", c, f)));
+          sink.AddTopLevelDeclaration(new Bpl.Axiom(c.tok, BplImp(heightAntecedent, ax), string.Format("{0}.{1}: Allocation axiom", c, f)));
         }
       }
     }
@@ -4057,9 +4072,9 @@ namespace Microsoft.Dafny {
 
       BoogieStmtListBuilder builder = new BoogieStmtListBuilder(this);
       builder.Add(new CommentCmd("AddMethodImpl: " + m + ", " + proc));
-      ExpressionTranslator etran = new ExpressionTranslator(this, predef, m.tok);
+      var etran = new ExpressionTranslator(this, predef, m.tok);
       InitializeFuelConstant(m.tok, builder, etran);
-      List<Variable> localVariables = new List<Variable>();
+      var localVariables = new List<Variable>();
       GenerateImplPrelude(m, wellformednessProc, inParams, outParams, builder, localVariables);
 
       if (UseOptimizationInZ3)
@@ -4730,9 +4745,9 @@ namespace Microsoft.Dafny {
         List<Variable> inParams = Bpl.Formal.StripWhereClauses(proc.InParams);
         List<Variable> outParams = Bpl.Formal.StripWhereClauses(proc.OutParams);
 
-        BoogieStmtListBuilder builder = new BoogieStmtListBuilder(this);
-        ExpressionTranslator etran = new ExpressionTranslator(this, predef, m.tok);
-        List<Variable> localVariables = new List<Variable>();
+        var builder = new BoogieStmtListBuilder(this);
+        var etran = new ExpressionTranslator(this, predef, m.tok);
+        var localVariables = new List<Variable>();
         //GenerateImplPrelude(m, wellformednessProc, inParams, outParams, builder, localVariables);
         if (m is TwoStateLemma) {
           // $Heap := current$Heap;
@@ -5706,7 +5721,7 @@ namespace Microsoft.Dafny {
 
       currentModule = decl.Module;
       codeContext = decl;
-      ExpressionTranslator etran = new ExpressionTranslator(this, predef, decl.tok);
+      var etran = new ExpressionTranslator(this, predef, decl.tok);
 
       // parameters of the procedure
       var inParams = MkTyParamFormals(decl.TypeArgs);
@@ -5832,6 +5847,82 @@ namespace Microsoft.Dafny {
       Contract.Assert(currentModule == decl.Module);
       Contract.Assert(codeContext == decl);
       isAllocContext = null;
+      Reset();
+    }
+
+    void AddWellformednessCheck(ConstantField decl) {
+      Contract.Requires(decl != null);
+      Contract.Requires(sink != null && predef != null);
+      Contract.Requires(currentModule == null && codeContext == null && isAllocContext == null && fuelContext == null);
+      Contract.Ensures(currentModule == null && codeContext == null && isAllocContext == null && fuelContext == null);
+
+      if (!InVerificationScope(decl)) {
+        // Checked in other file
+        return;
+      }
+
+      // If there's no RHS, there's nothing to do
+      if (decl.Rhs == null) {
+        return;
+      }
+
+      currentModule = decl.EnclosingModule;
+      codeContext = decl;
+      fuelContext = FuelSetting.NewFuelContext(decl);
+      var etran = new ExpressionTranslator(this, predef, decl.tok);
+
+      // parameters of the procedure
+      List<Variable> inParams = MkTyParamFormals(GetTypeParams(decl.EnclosingClass));
+      if (!decl.IsStatic) {
+        var receiverType = Resolver.GetThisType(decl.tok, (ClassDecl)decl.EnclosingClass);
+        Contract.Assert(VisibleInScope(receiverType));
+
+        var th = new Bpl.IdentifierExpr(decl.tok, "this", predef.RefType);
+        var wh = Bpl.Expr.And(
+          Bpl.Expr.Neq(th, predef.Null),
+          etran.GoodRef(decl.tok, th, receiverType));
+        // for class constructors, the receiver is encoded as an output parameter
+        var thVar = new Bpl.Formal(decl.tok, new Bpl.TypedIdent(decl.tok, "this", predef.RefType, wh), true);
+        inParams.Add(thVar);
+      }
+
+      // the procedure itself
+      var req = new List<Bpl.Requires>();
+      // free requires mh == ModuleContextHeight && fh == TypeContextHeight;
+      req.Add(Requires(decl.tok, true, etran.HeightContext(decl), null, null));
+      var proc = new Bpl.Procedure(decl.tok, "CheckWellformed$$" + decl.FullSanitizedName, new List<Bpl.TypeVariable>(),
+        inParams, new List<Variable>(),
+        req, new List<Bpl.IdentifierExpr>(), new List<Bpl.Ensures>(), etran.TrAttributes(decl.Attributes, null));
+      sink.AddTopLevelDeclaration(proc);
+
+      var implInParams = Bpl.Formal.StripWhereClauses(inParams);
+      var locals = new List<Variable>();
+      var builder = new BoogieStmtListBuilder(this);
+      builder.Add(new CommentCmd(string.Format("AddWellformednessCheck for {0} {1}", decl.WhatKind, decl)));
+      builder.Add(CaptureState(decl.tok, false, "initial state"));
+      isAllocContext = new IsAllocContext(true);
+
+      DefineFrame(decl.tok, new List<FrameExpression>(), builder, locals, null);
+
+      // check well-formedness of the RHS expression
+      CheckWellformed(decl.Rhs, new WFOptions(null, true), locals, builder, etran);
+      builder.Add(new Bpl.AssumeCmd(decl.Rhs.tok, CanCallAssumption(decl.Rhs, etran)));
+      CheckSubrange(decl.Rhs.tok, etran.TrExpr(decl.Rhs), decl.Rhs.Type, decl.Type, builder);
+
+      if (EmitImplementation(decl.Attributes)) {
+        // emit the impl only when there are proof obligations.
+        QKeyValue kv = etran.TrAttributes(decl.Attributes, null);
+        var implBody = builder.Collect(decl.tok);
+        var impl = new Bpl.Implementation(decl.tok, proc.Name,
+          new List<Bpl.TypeVariable>(), implInParams, new List<Variable>(),
+          locals, implBody, kv);
+        sink.AddTopLevelDeclaration(impl);
+      }
+
+      Contract.Assert(currentModule == decl.EnclosingModule);
+      Contract.Assert(codeContext == decl);
+      isAllocContext = null;
+      fuelContext = null;
       Reset();
     }
 
