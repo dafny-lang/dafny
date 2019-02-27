@@ -30,6 +30,11 @@ namespace Microsoft.Dafny {
       wr.WriteLine("{0}.{1}();", mainMethod.EnclosingClass.FullCompileName, IdName(mainMethod));
     }
       
+    public override BlockTargetWriter CreateStaticMain(TargetWriter wr) {
+      wr.Indent();
+      return wr.NewBlock("static Main()");
+    }
+
     protected override BlockTargetWriter CreateModule(string moduleName, bool isExtern, TargetWriter wr) {
       if (!isExtern) {
         wr.Write("let {0} = ", moduleName);

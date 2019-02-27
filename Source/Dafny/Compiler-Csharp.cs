@@ -101,6 +101,11 @@ namespace Microsoft.Dafny
       }
     }
 
+    public override BlockTargetWriter CreateStaticMain(TargetWriter wr) {
+      wr.Indent();
+      return wr.NewBlock("public static void Main(string[] args)");
+    }
+
     protected override BlockTargetWriter CreateModule(string moduleName, bool isExtern, TargetWriter wr) {
       var s = string.Format("namespace {0}", IdProtect(moduleName));
       return wr.NewBigBlock(s, " // end of " + s);

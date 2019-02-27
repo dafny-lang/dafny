@@ -62,6 +62,11 @@ namespace Microsoft.Dafny {
     /// required in the target language.
     /// </summary>
     public virtual void EmitCallToMain(Method mainMethod, TextWriter wr) { }
+    /// <summary>
+    /// Creates a static Main method. The caller will fill the body of this static Main with a
+    /// call to the instance Main method in the enclosing class.
+    /// </summary>
+    public abstract BlockTargetWriter CreateStaticMain(TargetWriter wr);
     protected abstract BlockTargetWriter CreateModule(string moduleName, bool isExtern, TargetWriter wr);
     protected abstract string GetHelperModuleName();
     protected BlockTargetWriter CreateClass(string name, List<TypeParameter>/*?*/ typeParameters, out TargetWriter instanceFieldsWriter, TargetWriter wr) {
@@ -592,34 +597,33 @@ namespace Microsoft.Dafny {
     }
 
     public static bool IsMain(Method m) {
+      Contract.Requires(m.EnclosingClass is ClassDecl);
       // In order to be a legal Main() method, the following must be true:
-      //    The method takes no parameters
       //    The method is not a ghost method 
+      //    The method takes no non-ghost parameters and no type parameters
+      //    The enclosing class does not take any type parameters
+      //    If the method is an instance (that is, non-static) method in a class, then the enclosing class must not declare any constructor
+      // In addition, either:
+      //    The method is called "Main"
       //    The method has no requires clause 
       //    The method has no modifies clause 
-      //    If the method is an instance (that is, non-static) method in a class, then the enclosing class must not declare any constructor
-      // Or if a method is annotated with {:main} and the above restrictions apply, except it is allowed to take ghost arguments, 
-      //    and it is allowed to have preconditions and modifies.  This lets the programmer add some explicit assumptions about the outside world, 
-      //    modeled, for example, via ghost parameters.
-      if (!m.IsGhost && m.Name == "Main" && m.TypeArgs.Count == 0 && m.Ins.Count == 0 && m.Outs.Count == 0 && m.Req.Count == 0
-            && m.Mod.Expressions.Count == 0 && (m.IsStatic || (((ClassDecl)m.EnclosingClass) == null) || !((ClassDecl)m.EnclosingClass).HasConstructor)) {
-        return true;
-      } else if (Attributes.Contains(m.Attributes, "main") && !m.IsGhost && m.TypeArgs.Count == 0 && m.Outs.Count == 0
-            && (m.IsStatic || (((ClassDecl)m.EnclosingClass) == null) || !((ClassDecl)m.EnclosingClass).HasConstructor)) {
-        if (m.Ins.Count == 0) {
-          return true;
-        } else {
-          bool isGhost = true;
-          foreach (var arg in m.Ins) {
-            if (!arg.IsGhost) {
-              isGhost = false;
+      // or:
+      //    The method is annotated with {:main}
+      // Note, in the case where the method is annotated with {:main}, the method is allowed to have preconditions and modifies clauses.
+      // This lets the programmer add some explicit assumptions about the outside world, modeled, for example, via ghost parameters.
+      var cl = (ClassDecl)m.EnclosingClass;
+      if (!m.IsGhost && m.TypeArgs.Count == 0 && cl.TypeArgs.Count == 0) {
+        if (m.Ins.TrueForAll(f => f.IsGhost) && m.Outs.TrueForAll(f => f.IsGhost)) {
+          if (m.IsStatic || (!(cl is TraitDecl) && !cl.HasConstructor)) {
+            if (m.Name == "Main" && m.Req.Count == 0 && m.Mod.Expressions.Count == 0) {
+              return true;
+            } else if (Attributes.Contains(m.Attributes, "main")) {
+              return true;
             }
           }
-          return isGhost;
         }
-      } else {
-        return false;
       }
+      return false;
     }
 
     void CompileClassMembers(ClassDecl c, TargetWriter wr, TargetWriter instanceFieldsWriter, TargetWriter staticMemberWriter) {
@@ -841,18 +845,13 @@ namespace Microsoft.Dafny {
 
       // allow the Main method to be an instance method
       if (IsMain(m) && (!m.IsStatic || m.CompileName != "Main")) {
-        wr.Indent();
-        w = wr.NewBlock("public static void Main(string[] args)");
+        w = CreateStaticMain(wr);
         if (!m.IsStatic) {
           Contract.Assert(m.EnclosingClass == c);
-          w.Indent();
-          w.Write("{0} b = new {0}", IdName(c));
-          if (c.TypeArgs.Count != 0) {
-            // instantiate every parameter, it doesn't particularly matter how
-            var typeArgs = c.TypeArgs.ConvertAll(tp => (Type)Type.Bool);
-            EmitActualTypeArgs(typeArgs, m.tok, w);
-          }
-          w.WriteLine("();");
+          var typeArgs = c.TypeArgs.ConvertAll(tp => (Type)Type.Bool);
+          var ty = new UserDefinedType(m.tok, c.Name, c, typeArgs);
+          var wRhs = DeclareLocalVar("b", ty, m.tok, w);
+          EmitNew(ty, m.tok, null, wRhs);
           w.Indent(); w.WriteLine("b.{0}();", IdName(m));
         } else {
           w.Indent(); w.WriteLine("{0}();", IdName(m));
