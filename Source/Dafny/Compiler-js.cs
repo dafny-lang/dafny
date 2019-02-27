@@ -81,6 +81,78 @@ namespace Microsoft.Dafny {
       return w;
     }
 
+    protected override BlockTargetWriter CreateIterator(IteratorDecl iter, TargetWriter wr) {
+      // An iterator is compiled as follows:
+      //   public class MyIteratorExample
+      //   {
+      //     public T q;  // in-parameter
+      //     public T x;  // yield-parameter
+      //     public int y;  // yield-parameter
+      //     IEnumerator<object> _iter;
+      //
+      //     public void _MyIteratorExample(T q) {
+      //       this.q = q;
+      //       _iter = TheIterator();
+      //     }
+      //
+      //     public void MoveNext(out bool more) {
+      //       more =_iter.MoveNext();
+      //     }
+      //
+      //     private IEnumerator<object> TheIterator() {
+      //       // the translation of the body of the iterator, with each "yield" turning into a "yield return null;"
+      //       yield break;
+      //     }
+      //   }
+
+      TargetWriter instanceFieldsWriter;
+      var w = CreateClass(IdName(iter), iter.TypeArgs, out instanceFieldsWriter, wr);
+      // here come the fields
+      Constructor ct = null;
+      foreach (var member in iter.Members) {
+        var f = member as Field;
+        if (f != null && !f.IsGhost) {
+          DeclareField(IdName(f), false, false, f.Type, f.tok, DefaultValue(f.Type, instanceFieldsWriter, f.tok), instanceFieldsWriter);
+        } else if (member is Constructor) {
+          Contract.Assert(ct == null);  // we're expecting just one constructor
+          ct = (Constructor)member;
+        }
+      }
+      Contract.Assert(ct != null);  // we do expect a constructor
+      instanceFieldsWriter.Indent();
+      instanceFieldsWriter.WriteLine("this._iter = undefined;");
+
+      // here's the initializer method
+      w.Indent(); w.Write("{0}(", IdName(ct));
+      string sep = "";
+      foreach (var p in ct.Ins) {
+        if (!p.IsGhost) {
+          // here we rely on the parameters and the corresponding fields having the same names
+          w.Write("{0}{1}", sep, IdName(p));
+          sep = ", ";
+        }
+      }
+      using (var wBody = w.NewBlock(")")) {
+        foreach (var p in ct.Ins) {
+          if (!p.IsGhost) {
+            wBody.Indent();
+            wBody.WriteLine("this.{0} = {0};", IdName(p));
+          }
+        }
+        wBody.Indent(); wBody.WriteLine("this.__iter = this.TheIterator();");
+      }
+      // here are the enumerator methods
+      w.Indent();
+      using (var wBody = w.NewBlock("MoveNext()")) {
+        wBody.Indent(); wBody.WriteLine("let r = this.__iter.next();");
+        wBody.Indent(); wBody.WriteLine("return !r.done;");
+      }
+      w.Indent();
+      var wIter = w.NewBlock("*TheIterator()");
+      wIter.Indent(); wIter.WriteLine("let _this = this;");
+      return wIter;
+    }
+
     protected override void DeclareDatatype(DatatypeDecl dt, TargetWriter wr) {
       // ===== For inductive datatypes:
       //

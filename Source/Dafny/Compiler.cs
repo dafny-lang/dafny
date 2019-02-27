@@ -80,6 +80,7 @@ namespace Microsoft.Dafny {
     /// "tok" can be "null" if "superClasses" is.
     /// </summary>
     protected abstract BlockTargetWriter CreateTrait(string name, List<Type>/*?*/ superClasses, Bpl.IToken tok, out TargetWriter instanceFieldsWriter, out TargetWriter staticMemberWriter, TargetWriter wr);
+    protected abstract BlockTargetWriter CreateIterator(IteratorDecl iter, TargetWriter wr);
     protected abstract void DeclareDatatype(DatatypeDecl dt, TargetWriter wr);
     protected abstract void DeclareNewtype(NewtypeDecl nt, TargetWriter wr);
     protected abstract void DeclareSubsetType(SubsetTypeDecl sst, TargetWriter wr);
@@ -399,78 +400,16 @@ namespace Microsoft.Dafny {
             DeclareDatatype(dt, wr);
           } else if (d is IteratorDecl) {
             var iter = (IteratorDecl)d;
-            // An iterator is compiled as follows:
-            //   public class MyIteratorExample<T>
-            //   {
-            //     public T q;  // in-parameter
-            //     public T x;  // yield-parameter
-            //     public int y;  // yield-parameter
-            //     IEnumerator<object> _iter;
-            //
-            //     public void _MyIteratorExample(T q) {
-            //       this.q = q;
-            //       _iter = TheIterator();
-            //     }
-            //
-            //     public void MoveNext(out bool more) {
-            //       more =_iter.MoveNext();
-            //     }
-            //
-            //     private IEnumerator<object> TheIterator() {
-            //       // the translation of the body of the iterator, with each "yield" turning into a "yield return null;"
-            //       yield break;
-            //     }
-            //   }
-
             if (DafnyOptions.O.ForbidNondeterminism && iter.Outs.Count > 0) {
               Error(iter.tok, "since yield parameters are initialized arbitrarily, iterators are forbidden by /definiteAssignment:3 option", wr);
             }
 
-            TargetWriter instanceFieldsWriter;
-            var w = CreateClass(IdName(iter), null, out instanceFieldsWriter, wr);
-            // here come the fields
-            Constructor ct = null;
-            foreach (var member in iter.Members) {
-              var f = member as Field;
-              if (f != null && !f.IsGhost) {
-                instanceFieldsWriter.Indent();
-                instanceFieldsWriter.WriteLine("public {0} {1} = {2};", TypeName(f.Type, instanceFieldsWriter, f.tok), IdName(f), DefaultValue(f.Type, instanceFieldsWriter, f.tok));
-              } else if (member is Constructor) {
-                Contract.Assert(ct == null);  // we're expecting just one constructor
-                ct = (Constructor)member;
-              }
-            }
-            Contract.Assert(ct != null);  // we do expect a constructor
-            instanceFieldsWriter.Indent(); instanceFieldsWriter.WriteLine("System.Collections.Generic.IEnumerator<object> __iter;");
-
-            // here's the initializer method
-            w.Indent(); w.Write("public void {0}(", IdName(ct));
-            string sep = "";
-            foreach (var p in ct.Ins) {
-              if (!p.IsGhost) {
-                // here we rely on the parameters and the corresponding fields having the same names
-                w.Write("{0}{1} {2}", sep, TypeName(p.Type, w, p.tok), IdName(p));
-                sep = ", ";
-              }
-            }
-            w.WriteLine(") {");
-            foreach (var p in ct.Ins) {
-              if (!p.IsGhost) {
-                w.IndentExtra();
-                w.WriteLine("this.{0} = {0};", IdName(p));
-              }
-            }
-            w.IndentExtra(); w.WriteLine("__iter = TheIterator();");
-            w.Indent(); w.WriteLine("}");
-            // here are the enumerator methods
-            w.Indent(); w.WriteLine("public void MoveNext(out bool more) { more = __iter.MoveNext(); }");
-            var wIter = w.NewBlock("private System.Collections.Generic.IEnumerator<object> TheIterator()");
+            var wIter = CreateIterator(iter, wr);
             if (iter.Body == null) {
               Error(iter.tok, "Iterator {0} has no body", wIter, iter.FullName);
             } else {
-              TrStmt(iter.Body, wIter);
+              TrStmtList(iter.Body.Body, wIter);
             }
-            wIter.Indent(); wIter.WriteLine("yield break;");
 
           } else if (d is TraitDecl) {
             // writing the trait
@@ -1978,7 +1917,6 @@ namespace Microsoft.Dafny {
         nw = idGenerator.FreshId("_rhs");
         DeclareLocalVar(nw, eRhs.Expr.Type, eRhs.Expr.tok, eRhs.Expr, false, wr);
       } else {
-        wr.Indent();
         nw = idGenerator.FreshId("_nw");
         var wRhs = DeclareLocalVar(nw, null, null, wr);
         TrTypeRhs(tRhs, wRhs);
@@ -2172,7 +2110,9 @@ namespace Microsoft.Dafny {
       } else if (tp.ElementInit != null || tp.InitDisplay != null) {
         EmitNewArray(tp.EType, tp.Tok, tp.ArrayDimensions, false, wr);
       } else {
-        EmitNewArray(tp.EType, tp.Tok, tp.ArrayDimensions, true, wr);
+        // If an initializer is not known, the only way the verifier would have allowed this allocation
+        // is if the requested size is 0.
+        EmitNewArray(tp.EType, tp.Tok, tp.ArrayDimensions, InitializerIsKnown(tp.EType), wr);
       }
     }
 
