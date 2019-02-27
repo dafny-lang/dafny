@@ -1560,6 +1560,18 @@ namespace Microsoft.Dafny
       }
     }
 
+    protected override void EmitMultiSetFormingExpr(MultiSetFormingExpr expr, bool inLetExprBody, TargetWriter wr) {
+      wr.Write("{0}<{1}>", DafnyMultiSetClass, TypeName(expr.E.Type.AsCollectionType.Arg, wr, expr.tok));
+      var eeType = expr.E.Type.NormalizeExpand();
+      if (eeType is SeqType) {
+        TrParenExpr(".FromSeq", expr.E, wr, inLetExprBody);
+      } else if (eeType is SetType) {
+        TrParenExpr(".FromSet", expr.E, wr, inLetExprBody);
+      } else {
+        Contract.Assert(false); throw new cce.UnreachableException();
+      }
+    }
+
     protected override void EmitApplyExpr(Type functionType, Bpl.IToken tok, Expression function, List<Expression> arguments, bool inLetExprBody, TargetWriter wr) {
       wr.Write("Dafny.Helpers.Id<");
       wr.Write(TypeName(functionType, wr, tok));

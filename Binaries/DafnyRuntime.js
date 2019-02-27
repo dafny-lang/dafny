@@ -255,6 +255,14 @@ let _dafny = (function() {
       }
       return s;
     }
+    static FromArray(arr) {
+      let s = new MultiSet();
+      const one = new BigNumber(1);
+      for (let e of arr) {
+        s.add(e, one);
+      }
+      return s;
+    }
     cardinality() {
       let c = new BigNumber(0);
       for (let e of this) {

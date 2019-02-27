@@ -322,6 +322,7 @@ namespace Microsoft.Dafny {
     /// If "fromArray" is true, then "source" is an array.
     /// </summary>
     protected abstract void EmitSeqSelectRange(Expression source, Expression/*?*/ lo, Expression/*?*/ hi, bool fromArray, bool inLetExprBody, TargetWriter wr);
+    protected abstract void EmitMultiSetFormingExpr(MultiSetFormingExpr expr, bool inLetExprBody, TargetWriter wr);
     protected abstract void EmitApplyExpr(Type functionType, Bpl.IToken tok, Expression function, List<Expression> arguments, bool inLetExprBody, TargetWriter wr);
     protected abstract TargetWriter EmitBetaRedex(string boundVars, List<Expression> arguments, string typeArgs, bool inLetExprBody, TargetWriter wr);
     /// <summary>
@@ -1980,9 +1981,8 @@ namespace Microsoft.Dafny {
       } else {
         wr.Indent();
         nw = idGenerator.FreshId("_nw");
-        wr.Write("var {0} = ", nw);
-        TrTypeRhs(tRhs, wr);
-        wr.WriteLine(";");
+        var wRhs = DeclareLocalVar(nw, null, null, wr);
+        TrTypeRhs(tRhs, wRhs);
       }
 
       // Proceed with any initialization
@@ -2353,15 +2353,7 @@ namespace Microsoft.Dafny {
         }
       } else if (expr is MultiSetFormingExpr) {
         var e = (MultiSetFormingExpr)expr;
-        wr.Write("{0}<{1}>", DafnyMultiSetClass, TypeName(e.E.Type.AsCollectionType.Arg, wr, e.tok));
-        var eeType = e.E.Type.NormalizeExpand();
-        if (eeType is SeqType) {
-          TrParenExpr(".FromSeq", e.E, wr, inLetExprBody);
-        } else if (eeType is SetType) {
-          TrParenExpr(".FromSet", e.E, wr, inLetExprBody);
-        } else {
-          Contract.Assert(false); throw new cce.UnreachableException();
-        }
+        EmitMultiSetFormingExpr(e, inLetExprBody, wr);
       } else if (expr is MultiSelectExpr) {
         MultiSelectExpr e = (MultiSelectExpr)expr;
         TrParenExpr(e.Array, wr, inLetExprBody);

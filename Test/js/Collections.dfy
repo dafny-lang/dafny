@@ -9,6 +9,7 @@ method Main() {
   Sequences();
   Strings();
   Maps();
+  MultiSetForming();
 }
 
 method Sets() {
@@ -98,4 +99,13 @@ method Maps() {
   print "  disjoint: ", a !! b, " ", b !! c, "\n";
   print "  lookup: ", 17 in a, " ", b[17], " ", c[17], "\n";
   print "  update: ", a[17 := 6], " ", b[17 := 6], " ", c[17 := 6], "\n";
+}
+
+method MultiSetForming() {
+  var s := {24, 23, 24};
+  var q := [24, 23, 24];
+  var m := multiset(s);
+  print |m|, ": ", m[2], " ", m[23], " ", m[24], "\n";
+  m := multiset(q);
+  print |m|, ": ", m[2], " ", m[23], " ", m[24], "\n";
 }

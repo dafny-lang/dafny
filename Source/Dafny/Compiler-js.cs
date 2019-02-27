@@ -1490,6 +1490,10 @@ namespace Microsoft.Dafny {
       }
     }
 
+    protected override void EmitMultiSetFormingExpr(MultiSetFormingExpr expr, bool inLetExprBody, TargetWriter wr) {
+      TrParenExpr("_dafny.MultiSet.FromArray", expr.E, wr, inLetExprBody);
+    }
+
     protected override void EmitApplyExpr(Type functionType, Bpl.IToken tok, Expression function, List<Expression> arguments, bool inLetExprBody, TargetWriter wr) {
       TrParenExpr(function, wr, inLetExprBody);
       TrExprList(arguments, wr, inLetExprBody);
