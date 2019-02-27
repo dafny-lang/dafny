@@ -637,7 +637,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    private string TypeParamString(TypeParameter tp) {
+    public static string TypeParamString(TypeParameter tp) {
       Contract.Requires(tp != null);
       string variance;
       switch (tp.VarianceSyntax) {

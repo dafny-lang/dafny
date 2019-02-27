@@ -50,7 +50,7 @@ class Node<T> {
 		requires Valid()
 		decreases |List|
 	{
-		print data;
+		print data, " ";
 		if next != null {
 			next.Print();
 		}
@@ -62,4 +62,5 @@ method Main()
 	var l2 := new Node(2);
   var l1 := l2.Prepend(1);
 	l1.Print();
+  print "\n";
 }

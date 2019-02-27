@@ -19,6 +19,7 @@ type ReallyJustANullableMyClass = c: MyClass? | true
 method Main() {
   Standard<set<Color>>();
   Tp();
+  TraitClass();
   Direct();
 }
 
@@ -86,6 +87,51 @@ class Cl<X(==,0),Y(0)> {
     var d: Dt<X>;
     print w, " ", d, "\n";
   }
+}
+
+trait HTrait {
+  const h0: Stream<int>
+  var h1: Stream<int>
+
+  static method Cadr<X>(s: Stream<X>) returns (cadr: X) {
+    match s
+    case Next(_, Next(x, _)) => cadr := x;
+  }
+}
+class HClass extends HTrait {
+  const k0: Stream<int>
+  var k1: Stream<int>
+  constructor Make() {
+    h0 := FullStreamAhead(6);
+    h1 := FullStreamAhead(7);
+    k0 := FullStreamAhead(8);
+    k1 := FullStreamAhead(9);
+  }
+}
+class WClass<W> {
+  const k0: Stream<W>
+  var k1: Stream<W>
+  constructor Make(w: W) {
+    k0 := Generate(w);
+    k1 := Generate(w);
+  }
+  static function method Generate(w: W): Stream<W> {
+    Next(w, Generate(w))
+  }
+}
+
+method TraitClass() {
+  var a := new HClass.Make();
+  var x;
+  x := HTrait.Cadr(a.h0); print x, " ";
+  x := HTrait.Cadr(a.h1); print x, " ";
+  x := HTrait.Cadr(a.k0); print x, " ";
+  x := HTrait.Cadr(a.k1); print x, "\n";
+  
+  var b := new WClass.Make(true);
+  var y;
+  y := HTrait.Cadr(b.k0); print y, " ";
+  y := HTrait.Cadr(b.k1); print y, "\n";
 }
 
 // ---------- direct default values ----------

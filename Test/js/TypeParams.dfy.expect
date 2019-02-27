@@ -1,5 +1,5 @@
 
-Dafny program verifier finished with 14 verified, 0 errors
+Dafny program verifier finished with 19 verified, 0 errors
 Compiled program written to TypeParams.cs
 Running...
 
@@ -10,6 +10,8 @@ null null null null
 0 [] {} 0 Dt.D0(0)
 false Color.Orange {} false Dt.D0(false)
 NonemptyList.Atom(0)
+6 7 8 9
+true true
 IList.INil IList.ICons
 IList.INil IList.INil Stream.Next IList.INil
 NonemptyList.Atom(0)
@@ -20,7 +22,7 @@ System.Func`2[Dafny.BigRational,System.Boolean]
 System.Func`1[System.Numerics.BigInteger]
 System.Func`3[_module.Color,Dafny.Set`1[System.UInt16],System.UInt32]
 
-Dafny program verifier finished with 14 verified, 0 errors
+Dafny program verifier finished with 19 verified, 0 errors
 Compiled program written to TypeParams.js
 Running...
 
@@ -31,6 +33,8 @@ null null null null
 0 [] {} 0 Dt.D0(0)
 false Color.Orange {} false Dt.D0(false)
 NonemptyList.Atom(0)
+6 7 8 9
+true true
 IList.INil IList.ICons
 IList.INil IList.INil Stream.Next IList.INil
 NonemptyList.Atom(0)

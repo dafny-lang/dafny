@@ -49,7 +49,7 @@ namespace Microsoft.Dafny {
       w.Indent();
       w.Write("constructor (");
       if (typeParameters != null) {
-        WriteRuntimeTypeDescriptorsFormals(typeParameters, w);
+        WriteRuntimeTypeDescriptorsFormals(typeParameters, false, w);
       }
       instanceFieldsWriter = w.NewBlock(")");
       if (fullPrintName != null) {
@@ -58,8 +58,10 @@ namespace Microsoft.Dafny {
       }
       if (typeParameters != null) {
         foreach (var tp in typeParameters) {
-          instanceFieldsWriter.Indent();
-          instanceFieldsWriter.WriteLine("this.{0} = {0};", "rtd$_" + tp.CompileName);
+          if (tp.Characteristics.MustSupportZeroInitialization) {
+            instanceFieldsWriter.Indent();
+            instanceFieldsWriter.WriteLine("this.{0} = {0};", "rtd$_" + tp.CompileName);
+          }
         }
       }
       return w;
@@ -406,7 +408,7 @@ namespace Microsoft.Dafny {
       // }
       wr.Indent();
       wr.Write("static Rtd(");
-      WriteRuntimeTypeDescriptorsFormals(dt.TypeArgs, wr);
+      WriteRuntimeTypeDescriptorsFormals(UsedTypeParameters(dt), true, wr);
       using (var wRtd = wr.NewBlock(")")) {
         wRtd.Indent();
         using (var wClass = wRtd.NewBlock("return class", ";")) {
@@ -460,7 +462,7 @@ namespace Microsoft.Dafny {
       w.Indent();
       using (var wDefault = w.NewBlock("static get Default()")) {
         var udt = new UserDefinedType(nt.tok, nt.Name, nt, new List<Type>());
-        var d = TypeInitializationValue(udt, wr, nt.tok);
+        var d = TypeInitializationValue(udt, wr, nt.tok, false);
         wDefault.Indent();
         wDefault.WriteLine("return {0};", d);
       }
@@ -477,7 +479,7 @@ namespace Microsoft.Dafny {
       w.Indent();
       using (var wDefault = w.NewBlock("static get Default()")) {
         var udt = new UserDefinedType(sst.tok, sst.Name, sst, sst.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp)));
-        var d = TypeInitializationValue(udt, wr, sst.tok);
+        var d = TypeInitializationValue(udt, wr, sst.tok, false);
         wDefault.Indent();
         wDefault.WriteLine("return {0};", d);
       }
@@ -502,7 +504,7 @@ namespace Microsoft.Dafny {
       }
       wr.Indent();
       wr.Write("{0}{1}(", m.IsStatic ? "static " : "", IdName(m));
-      var nTypes = WriteRuntimeTypeDescriptorsFormals(m.TypeArgs, wr);
+      var nTypes = WriteRuntimeTypeDescriptorsFormals(m.TypeArgs, false, wr);
       int nIns = WriteFormals(nTypes == 0 ? "" : ", ", m.Ins, wr);
       var w = wr.NewBlock(")");
 
@@ -525,10 +527,7 @@ namespace Microsoft.Dafny {
       }
       wr.Indent();
       wr.Write("{0}{1}(", isStatic ? "static " : "", name);
-      var nTypes = 0;
-      if (typeArgs != null && typeArgs.Count != 0) {
-        nTypes = WriteRuntimeTypeDescriptorsFormals(typeArgs, wr);
-      }
+      var nTypes = typeArgs == null ? 0 : WriteRuntimeTypeDescriptorsFormals(typeArgs, false, wr);
       int nIns = WriteFormals(nTypes == 0 ? "" : ", ", formals, wr);
       var w = wr.NewBlock(")", ";");
       if (!isStatic) {
@@ -537,20 +536,72 @@ namespace Microsoft.Dafny {
       return w;
     }
 
-    int WriteRuntimeTypeDescriptorsFormals(List<TypeParameter> typeParams, TargetWriter wr, string prefix = "") {
+    List<TypeParameter> UsedTypeParameters(DatatypeDecl dt) {
+      Contract.Requires(dt != null);
+
+      var idt = dt as IndDatatypeDecl;
+      if (idt == null) {
+        return dt.TypeArgs;
+      } else {
+        Contract.Assert(idt.TypeArgs.Count == idt.TypeParametersUsedInConstructionByDefaultCtor.Length);
+        var tps = new List<TypeParameter>();
+        for (int i = 0; i < idt.TypeArgs.Count; i++) {
+          if (idt.TypeParametersUsedInConstructionByDefaultCtor[i]) {
+            tps.Add(idt.TypeArgs[i]);
+          }
+        }
+        return tps;
+      }
+    }
+
+    List<Type> UsedTypeParameters(DatatypeDecl dt, List<Type> typeArgs) {
+      Contract.Requires(dt != null);
+      Contract.Requires(typeArgs != null);
+      Contract.Requires(dt.TypeArgs.Count == typeArgs.Count);
+
+      var idt = dt as IndDatatypeDecl;
+      if (idt == null) {
+        return typeArgs;
+      } else {
+        Contract.Assert(typeArgs.Count == idt.TypeParametersUsedInConstructionByDefaultCtor.Length);
+        var ts = new List<Type>();
+        for (int i = 0; i < typeArgs.Count; i++) {
+          if (idt.TypeParametersUsedInConstructionByDefaultCtor[i]) {
+            ts.Add(typeArgs[i]);
+          }
+        }
+        return ts;
+      }
+    }
+
+    int WriteRuntimeTypeDescriptorsFormals(List<TypeParameter> typeParams, bool useAllTypeArgs, TargetWriter wr, string prefix = "") {
       Contract.Requires(typeParams != null);
       Contract.Requires(wr != null);
 
-      if (typeParams.Count != 0) {
-        wr.Write(prefix);
+      int c = 0;
+      foreach (var tp in typeParams) {
+        if (useAllTypeArgs || tp.Characteristics.MustSupportZeroInitialization) {
+          wr.Write("{0}{1}", prefix, "rtd$_" + tp.CompileName);
+          prefix = ", ";
+          c++;
+        }
       }
-      wr.Write(Util.Comma(typeParams, tp => "rtd$_" + tp.CompileName));
-      return typeParams.Count;
+      return c;
     }
 
-    protected override int EmitRuntimeTypeDescriptorsActuals(List<Type> typeArgs, Bpl.IToken tok, TargetWriter wr) {
-      wr.Write(Util.Comma(typeArgs, ty => RuntimeTypeDescriptor(ty, tok, wr)));
-      return typeArgs.Count;
+    protected override int EmitRuntimeTypeDescriptorsActuals(List<Type> typeArgs, List<TypeParameter> formals, Bpl.IToken tok, bool useAllTypeArgs, TargetWriter wr) {
+      var sep = "";
+      var c = 0;
+      for (int i = 0; i < typeArgs.Count; i++) {
+        var actual = typeArgs[i];
+        var formal = formals[i];
+        if (useAllTypeArgs || formal.Characteristics.MustSupportZeroInitialization) {
+          wr.Write("{0}{1}", sep, RuntimeTypeDescriptor(actual, tok, wr));
+          sep = ", ";
+          c++;
+        }
+      }
+      return c;
     }
 
     string RuntimeTypeDescriptor(Type type, Bpl.IToken tok, TextWriter wr) {
@@ -605,9 +656,10 @@ namespace Microsoft.Dafny {
         } else if (cl is ClassDecl) {
           return "_dafny.Rtd_ref";
         } else if (cl is DatatypeDecl) {
+          var dt = (DatatypeDecl)cl;
           var w = new TargetWriter();
-          w.Write("{0}.Rtd(", cl is TupleTypeDecl ? "_dafny.Tuple" : udt.FullCompileName);
-          EmitRuntimeTypeDescriptorsActuals(udt.TypeArgs, udt.tok, w);
+          w.Write("{0}.Rtd(", dt is TupleTypeDecl ? "_dafny.Tuple" : udt.FullCompileName);
+          EmitRuntimeTypeDescriptorsActuals(UsedTypeParameters(dt, udt.TypeArgs), cl.TypeArgs, udt.tok, true, w);
           w.Write(")");
           return w.ToString();
         } else if (xType.IsNonNullRefType) {
@@ -748,7 +800,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public override string TypeInitializationValue(Type type, TextWriter/*?*/ wr, Bpl.IToken/*?*/ tok) {
+    public override string TypeInitializationValue(Type type, TextWriter/*?*/ wr, Bpl.IToken/*?*/ tok, bool inAutoInitContext) {
       var xType = type.NormalizeExpandKeepConstraints();
       if (xType is BoolType) {
         return "false";
@@ -773,7 +825,11 @@ namespace Microsoft.Dafny {
 
       var udt = (UserDefinedType)xType;
       if (udt.ResolvedParam != null) {
-        return string.Format("{0}.Default", RuntimeTypeDescriptor(udt, udt.tok, wr));
+        if (inAutoInitContext && !udt.ResolvedParam.Characteristics.MustSupportZeroInitialization) {
+          return "undefined";
+        } else {
+          return string.Format("{0}.Default", RuntimeTypeDescriptor(udt, udt.tok, wr));
+        }
       }
       var cl = udt.ResolvedClass;
       Contract.Assert(cl != null);
@@ -784,7 +840,7 @@ namespace Microsoft.Dafny {
         } else if (td.NativeType != null) {
           return "0";
         } else {
-          return TypeInitializationValue(td.BaseType, wr, tok);
+          return TypeInitializationValue(td.BaseType, wr, tok, inAutoInitContext);
         }
       } else if (cl is SubsetTypeDecl) {
         var td = (SubsetTypeDecl)cl;
@@ -796,12 +852,17 @@ namespace Microsoft.Dafny {
           if (ArrowType.IsPartialArrowTypeName(td.Name)) {
             return "null";
           } else if (ArrowType.IsTotalArrowTypeName(td.Name)) {
-            var rangeDefaultValue = TypeInitializationValue(udt.TypeArgs.Last(), wr, tok);
+            var rangeDefaultValue = TypeInitializationValue(udt.TypeArgs.Last(), wr, tok, inAutoInitContext);
             // return the lambda expression ((Ty0 x0, Ty1 x1, Ty2 x2) => rangeDefaultValue)
             return string.Format("function () {{ return {0}; }}", rangeDefaultValue);
           } else if (((NonNullTypeDecl)td).Class is ArrayClassDecl) {
             // non-null array type; we know how to initialize them
-            return "[]";
+            var arrayClass = (ArrayClassDecl)((NonNullTypeDecl)td).Class;
+            if (arrayClass.Dims == 1) {
+              return "[]";
+            } else {
+              return string.Format("_dafny.newArray(undefined, {0})", Util.Comma(arrayClass.Dims, _ => "0"));
+            }
           } else {
             // non-null (non-array) type
             // even though the type doesn't necessarily have a known initializer, it could be that the the compiler needs to
@@ -809,7 +870,7 @@ namespace Microsoft.Dafny {
             return "null";
           }
         } else {
-          return TypeInitializationValue(td.RhsWithArgument(udt.TypeArgs), wr, tok);
+          return TypeInitializationValue(td.RhsWithArgument(udt.TypeArgs), wr, tok, inAutoInitContext);
         }
       } else if (cl is ClassDecl) {
         bool isHandle = true;
@@ -819,10 +880,11 @@ namespace Microsoft.Dafny {
           return "null";
         }
       } else if (cl is DatatypeDecl) {
-        var s = cl is TupleTypeDecl ? "_dafny.Tuple" : udt.FullCompileName;
+        var dt = (DatatypeDecl)cl;
+        var s = dt is TupleTypeDecl ? "_dafny.Tuple" : udt.FullCompileName;
         var w = new TargetWriter();
         w.Write("{0}.Rtd(", s);
-        EmitRuntimeTypeDescriptorsActuals(udt.TypeArgs, udt.tok, w);
+        EmitRuntimeTypeDescriptorsActuals(UsedTypeParameters(dt, udt.TypeArgs), dt.TypeArgs, udt.tok, true, w);
         w.Write(").Default");
         return w.ToString();
       } else {
@@ -1011,7 +1073,7 @@ namespace Microsoft.Dafny {
         wr.Write("_dafny.NewObject()");
       } else {
         wr.Write("new {0}(", TypeName(type, wr, tok));
-        EmitRuntimeTypeDescriptorsActuals(type.TypeArgs, tok, wr);
+        EmitRuntimeTypeDescriptorsActuals(type.TypeArgs, cl.TypeArgs, tok, false, wr);
         wr.Write(")");
       }
     }
@@ -1444,7 +1506,7 @@ namespace Microsoft.Dafny {
         wr.Write("({0})[{1}]", source, formalNonGhostIndex);
       } else {
         var dtorName = FormalName(dtor, formalNonGhostIndex);
-        wr.Write("({0}).{1}", source, dtorName);
+        wr.Write("({0}){1}.{2}", source, ctor.EnclosingDatatype is CoDatatypeDecl ? "._D()" : "", dtorName);
       }
     }
 

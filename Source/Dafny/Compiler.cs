@@ -122,8 +122,10 @@ namespace Microsoft.Dafny {
 
     protected abstract BlockTargetWriter/*?*/ CreateMethod(Method m, bool createBody, TargetWriter wr);
     protected abstract BlockTargetWriter/*?*/ CreateFunction(string name, List<TypeParameter>/*?*/ typeArgs, List<Formal> formals, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl member, TargetWriter wr);
-    protected virtual int EmitRuntimeTypeDescriptorsActuals(List<Type> typeArgs, Bpl.IToken tok, TargetWriter wr) {
+    protected virtual int EmitRuntimeTypeDescriptorsActuals(List<Type> typeArgs, List<TypeParameter> formals, Bpl.IToken tok, bool useAllTypeArgs, TargetWriter wr) {
       Contract.Requires(typeArgs != null);
+      Contract.Requires(formals != null);
+      Contract.Requires(typeArgs.Count == formals.Count);
       Contract.Requires(tok != null);
       Contract.Requires(wr != null);
       return 0;
@@ -132,7 +134,7 @@ namespace Microsoft.Dafny {
     protected abstract BlockTargetWriter/*?*/ CreateGetterSetter(string name, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, out TargetWriter setterWriter, TargetWriter wr);  // if createBody, then result and setterWriter are non-null, else both are null
     protected abstract void EmitJumpToTailCallStart(TargetWriter wr);
     protected abstract string TypeName(Type type, TextWriter wr, Bpl.IToken tok);
-    public abstract string TypeInitializationValue(Type xType, TextWriter/*?*/ wr, Bpl.IToken/*?*/ tok);
+    public abstract string TypeInitializationValue(Type type, TextWriter/*?*/ wr, Bpl.IToken/*?*/ tok, bool inAutoInitContext);
     protected abstract string TypeName_UDT(string fullCompileName, List<Type> typeArgs, TextWriter wr, Bpl.IToken tok);
     protected abstract string TypeName_Companion(Type type, TextWriter wr, Bpl.IToken tok);
 
@@ -634,7 +636,7 @@ namespace Microsoft.Dafny {
           var cf = (ConstantField)member;
           if (cf.Rhs == null) {
             Contract.Assert(!cf.IsStatic);  // as checked above, only instance members can be inherited
-            DeclareField("_" + cf.CompileName, false, false, cf.Type, cf.tok, DefaultValue(cf.Type, instanceFieldsWriter, cf.tok), instanceFieldsWriter);
+            DeclareField("_" + cf.CompileName, false, false, cf.Type, cf.tok, DefaultValue(cf.Type, instanceFieldsWriter, cf.tok, true), instanceFieldsWriter);
           }
           var w = CreateGetter(IdName(cf), cf.Type, cf.tok, false, true, wr);
           Contract.Assert(w != null);  // since the previous line asked for a body
@@ -651,7 +653,7 @@ namespace Microsoft.Dafny {
         } else if (member is Field) {
           var f = (Field)member;
           // every field is inherited
-          DeclareField("_" + f.CompileName, false, false, f.Type, f.tok, DefaultValue(f.Type, instanceFieldsWriter, f.tok), instanceFieldsWriter);
+          DeclareField("_" + f.CompileName, false, false, f.Type, f.tok, DefaultValue(f.Type, instanceFieldsWriter, f.tok, true), instanceFieldsWriter);
           TargetWriter wSet;
           var wGet = CreateGetterSetter(IdName(f), f.Type, f.tok, false, true, out wSet, wr);
           using (var sw = new TargetWriter()) {
@@ -700,7 +702,7 @@ namespace Microsoft.Dafny {
               Contract.Assert(wBody == null);  // since the previous line said not to create a body
             } else if (cf.Rhs == null) {
               // create a backing field, since this constant field may be assigned in constructors
-              DeclareField("_" + f.CompileName, false, false, f.Type, f.tok, DefaultValue(f.Type, instanceFieldsWriter, f.tok), instanceFieldsWriter);
+              DeclareField("_" + f.CompileName, false, false, f.Type, f.tok, DefaultValue(f.Type, instanceFieldsWriter, f.tok, true), instanceFieldsWriter);
               wBody = CreateGetter(IdName(cf), cf.Type, cf.tok, false, true, wr);
               Contract.Assert(wBody != null);  // since the previous line asked for a body
             } else {
@@ -716,7 +718,7 @@ namespace Microsoft.Dafny {
                 EmitMemberSelect(cf, true, sw);
                 EmitReturnExpr(sw.ToString(), wBody);
               } else {
-                EmitReturnExpr(DefaultValue(cf.Type, wBody, cf.tok), wBody);
+                EmitReturnExpr(DefaultValue(cf.Type, wBody, cf.tok, true), wBody);
               }
             }
           } else if (c is TraitDecl) {
@@ -724,7 +726,7 @@ namespace Microsoft.Dafny {
             var wGet = CreateGetterSetter(IdName(f), f.Type, f.tok, f.IsStatic, false, out wSet, wr);
             Contract.Assert(wSet == null && wGet == null);  // since the previous line specified no body
           } else {
-            DeclareField(IdName(f), false, false, f.Type, f.tok, DefaultValue(f.Type, instanceFieldsWriter, f.tok), instanceFieldsWriter);
+            DeclareField(IdName(f), false, false, f.Type, f.tok, DefaultValue(f.Type, instanceFieldsWriter, f.tok, true), instanceFieldsWriter);
           }
         } else if (member is Function) {
           var f = (Function)member;
@@ -822,7 +824,7 @@ namespace Microsoft.Dafny {
       if (w != null) {
         foreach (Formal p in m.Outs) {
           if (!p.IsGhost) {
-            DeclareLocalOutVar(IdName(p), p.Type, p.tok, DefaultValue(p.Type, w, p.tok), w);
+            DeclareLocalOutVar(IdName(p), p.Type, p.tok, DefaultValue(p.Type, w, p.tok, true), w);
           }
         }
         if (m.Body == null) {
@@ -1086,7 +1088,7 @@ namespace Microsoft.Dafny {
       return ik;
     }
 
-    protected string DefaultValue(Type type, TextWriter wr, Bpl.IToken tok) {
+    protected string DefaultValue(Type type, TextWriter wr, Bpl.IToken tok, bool inAutoInitContext = false) {
       Contract.Requires(type != null);
       Contract.Requires(wr != null);
       Contract.Requires(tok != null);
@@ -1094,7 +1096,7 @@ namespace Microsoft.Dafny {
 
       bool hs, hz, ik;
       string dv;
-      TypeInitialization(type, this, wr, tok, out hs, out hz, out ik, out dv);
+      TypeInitialization(type, this, wr, tok, out hs, out hz, out ik, out dv, inAutoInitContext);
       return dv;
     }
 
@@ -1108,8 +1110,12 @@ namespace Microsoft.Dafny {
     ///   defaultValue - If "compiler" is non-null, "defaultValue" is the C# representation of one possible value of the
     ///                  type (not necessarily the same value as the zero initializer, if any, may give).
     ///                  If "compiler" is null, then "defaultValue" can return as anything.
+    ///   inAutoInitContext - If "true", the default value produced may have dummy values (outside the Dafny type) for
+    ///                       components those type requires user-specified initialization.
     /// </summary>
-    static void TypeInitialization(Type type, Compiler/*?*/ compiler, TextWriter/*?*/ wr, Bpl.IToken/*?*/ tok, out bool hasSimpleZeroInitializer, out bool hasZeroInitializer, out bool initializerIsKnown, out string defaultValue) {
+    static void TypeInitialization(Type type, Compiler/*?*/ compiler, TextWriter/*?*/ wr, Bpl.IToken/*?*/ tok,
+        out bool hasSimpleZeroInitializer, out bool hasZeroInitializer, out bool initializerIsKnown, out string defaultValue,
+        bool inAutoInitContext = false) {
       Contract.Requires(type != null);
       Contract.Requires(compiler == null || (wr != null && tok != null));
       Contract.Ensures(!Contract.ValueAtReturn(out hasSimpleZeroInitializer) || Contract.ValueAtReturn(out hasZeroInitializer));  // hasSimpleZeroInitializer ==> hasZeroInitializer 
@@ -1122,7 +1128,7 @@ namespace Microsoft.Dafny {
         xType = new BoolType();
       }
 
-      defaultValue = compiler?.TypeInitializationValue(xType, wr, tok);
+      defaultValue = compiler?.TypeInitializationValue(xType, wr, tok, inAutoInitContext);
       if (xType is BoolType) {
         hasSimpleZeroInitializer = true;
         hasZeroInitializer = true;
@@ -2126,7 +2132,7 @@ namespace Microsoft.Dafny {
         }
         EmitActualTypeArgs(typeArgs, s.Tok, wr);
         wr.Write("(");
-        var nRTDs = EmitRuntimeTypeDescriptorsActuals(typeArgs, s.Tok, wr);
+        var nRTDs = EmitRuntimeTypeDescriptorsActuals(typeArgs, s.Method.TypeArgs, s.Tok, false, wr);
         string sep = nRTDs == 0 ? "" : ", ";
         for (int i = 0; i < s.Method.Ins.Count; i++) {
           Formal p = s.Method.Ins[i];
@@ -2874,7 +2880,7 @@ namespace Microsoft.Dafny {
         typeArgs = new List<Type>();
       }
       twr.Write("(");
-      var nRTDs = EmitRuntimeTypeDescriptorsActuals(typeArgs, e.tok, wr);
+      var nRTDs = EmitRuntimeTypeDescriptorsActuals(typeArgs, f.TypeArgs, e.tok, false, wr);
       string sep = nRTDs == 0 ? "" : ", ";
       for (int i = 0; i < e.Args.Count; i++) {
         if (!e.Function.Formals[i].IsGhost) {
