@@ -212,7 +212,7 @@ namespace Microsoft.Dafny {
     protected abstract TargetWriter CreateLabeledCode(string label, TargetWriter wr);
     protected abstract void EmitBreak(string/*?*/ label, TargetWriter wr);
     protected abstract void EmitYield(TargetWriter wr);
-    protected abstract void EmitAbsurd(TargetWriter wr);
+    protected abstract void EmitAbsurd(string/*?*/ message, TargetWriter wr);
     protected TargetWriter EmitIf(string guard, bool hasElse, TargetWriter wr) {
       TargetWriter guardWriter;
       var thn = EmitIf(out guardWriter, hasElse, wr);
@@ -959,7 +959,7 @@ namespace Microsoft.Dafny {
 
         if (e.Cases.Count == 0) {
           // the verifier would have proved we never get here; still, we need some code that will compile
-          EmitAbsurd(wr);
+          EmitAbsurd(null, wr);
         } else {
           int i = 0;
           var sourceType = (UserDefinedType)e.Source.Type.NormalizeExpand();
@@ -1463,19 +1463,18 @@ namespace Microsoft.Dafny {
         if (DafnyOptions.O.ForbidNondeterminism && 2 <= s.Alternatives.Count) {
           Error(s.Tok, "case-based if statement forbidden by /definiteAssignment:3 option", wr);
         }
-        wr.Indent();
         foreach (var alternative in s.Alternatives) {
-          wr.Write("if (");
-          TrExpr(alternative.IsBindingGuard ? Translator.AlphaRename((ExistsExpr)alternative.Guard, "eg_d") : alternative.Guard, wr, false);
-          wr.Write(")");
-          var w = wr.NewBlock("", " else");
-          w.SetBraceStyle(BlockTargetWriter.BraceStyle.Space, BlockTargetWriter.BraceStyle.Space);
+          TargetWriter guardWriter;
+          var thn = EmitIf(out guardWriter, true, wr);
+          TrExpr(alternative.IsBindingGuard ? Translator.AlphaRename((ExistsExpr)alternative.Guard, "eg_d") : alternative.Guard, guardWriter, false);
           if (alternative.IsBindingGuard) {
-            IntroduceAndAssignBoundVars((ExistsExpr)alternative.Guard, w);
+            IntroduceAndAssignBoundVars((ExistsExpr)alternative.Guard, thn);
           }
-          TrStmtList(alternative.Body, w);
+          TrStmtList(alternative.Body, thn);
         }
-        wr.WriteLine("{ /*unreachable alternative*/ }");
+        using (var wElse = wr.NewBlock("")) {
+          EmitAbsurd("unreachable alternative", wElse);
+        }
 
       } else if (stmt is WhileStmt) {
         WhileStmt s = (WhileStmt)stmt;
@@ -1502,16 +1501,15 @@ namespace Microsoft.Dafny {
         if (s.Alternatives.Count != 0) {
           wr.Indent();
           var w = wr.NewBlock("while (true)");
-          w.Indent();
           foreach (var alternative in s.Alternatives) {
-            w.Write("if (");
-            TrExpr(alternative.Guard, w, false);
-            var wa = w.NewBlock(")");
-            wa.Footer = " else";
-            wa.SetBraceStyle(BlockTargetWriter.BraceStyle.Space, BlockTargetWriter.BraceStyle.Space);
-            TrStmtList(alternative.Body, wa);
+            TargetWriter guardWriter;
+            var thn = EmitIf(out guardWriter, true, w);
+            TrExpr(alternative.Guard, guardWriter, false);
+            TrStmtList(alternative.Body, thn);
           }
-          w.WriteLine("{ break; }");
+          using (var wElse = w.NewBlock("")) {
+            EmitBreak(null, wElse);
+          }
         }
 
       } else if (stmt is ForallStmt) {
@@ -1916,8 +1914,7 @@ namespace Microsoft.Dafny {
       TrExpr(constraint, guardWriter, inLetExprBody);
       EmitBreak(doneLabel, wBody);
 
-      wrOuter.Indent();
-      wrOuter.WriteLine("throw new System.Exception(\"assign-such-that search produced no value (line {0})\");", debuginfoLine);
+      EmitAbsurd(string.Format("assign-such-that search produced no value (line {0})", debuginfoLine), wrOuter);
     }
 
     string CreateLvalue(Expression lhs, TargetWriter wr) {
@@ -2566,7 +2563,7 @@ namespace Microsoft.Dafny {
 
         if (e.Cases.Count == 0) {
           // the verifier would have proved we never get here; still, we need some code that will compile
-          EmitAbsurd(w);
+          EmitAbsurd(null, w);
         } else {
           int i = 0;
           var sourceType = (UserDefinedType)e.Source.Type.NormalizeExpand();
@@ -2597,7 +2594,7 @@ namespace Microsoft.Dafny {
           var native = AsNativeType(e.BoundVars[i].Type);
           wr.Write("{0} => ", IdName(bv));
         }
-        TrExpr(e.LogicalBody(true), wr, inLetExprBody);
+        TrExpr(e.LogicalBody(true), wr, true);
         for (int i = 0; i < n; i++) {
           wr.Write(")");
         }
@@ -2695,25 +2692,11 @@ namespace Microsoft.Dafny {
       } else if (expr is LambdaExpr) {
         LambdaExpr e = (LambdaExpr)expr;
 
-        var fvs = Translator.ComputeFreeVariables(expr);
-        var sm = new Dictionary<IVariable, Expression>();
+        List<BoundVar> bvars;
+        List<Expression> fexprs;
+        Translator.Substituter su;
+        CreateFreeVarSubstitution(expr, out bvars, out fexprs, out su);
 
-        var bvars = new List<BoundVar>();
-        var fexprs = new List<Expression>();
-        foreach (var fv in fvs) {
-          fexprs.Add(new IdentifierExpr(fv.Tok, fv.Name) {
-            Var = fv, // resolved here!
-            Type = fv.Type
-          });
-          var bv = new BoundVar(fv.Tok, fv.Name, fv.Type);
-          bvars.Add(bv);
-          sm[fv] = new IdentifierExpr(bv.Tok, bv.Name) {
-            Var = bv, // resolved here!
-            Type = bv.Type
-          };
-        }
-
-        var su = new Translator.Substituter(null, sm, new Dictionary<TypeParameter, Type>());
         var typeArgs = TypeName_UDT(ArrowType.Arrow_FullCompileName, Util.Snoc(bvars.ConvertAll(bv => bv.Type), expr.Type), wr, Bpl.Token.NoToken);
         var boundVars = Util.Comma(bvars, IdName);
         wr = EmitBetaRedex(boundVars, fexprs, typeArgs, inLetExprBody, wr);
@@ -2739,6 +2722,30 @@ namespace Microsoft.Dafny {
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected expression
       }
+    }
+
+    void CreateFreeVarSubstitution(Expression expr, out List<BoundVar> bvars, out List<Expression> fexprs, out Translator.Substituter su) {
+      Contract.Requires(expr != null);
+
+      var fvs = Translator.ComputeFreeVariables(expr);
+      var sm = new Dictionary<IVariable, Expression>();
+
+      bvars = new List<BoundVar>();
+      fexprs = new List<Expression>();
+      foreach (var fv in fvs) {
+        fexprs.Add(new IdentifierExpr(fv.Tok, fv.Name) {
+          Var = fv, // resolved here!
+          Type = fv.Type
+        });
+        var bv = new BoundVar(fv.Tok, fv.Name, fv.Type);
+        bvars.Add(bv);
+        sm[fv] = new IdentifierExpr(bv.Tok, bv.Name) {
+          Var = bv, // resolved here!
+          Type = bv.Type
+        };
+      }
+
+      su = new Translator.Substituter(null, sm, new Dictionary<TypeParameter, Type>());
     }
 
     protected bool IsHandleComparison(Bpl.IToken tok, Expression e0, Expression e1, TextWriter errorWr) {

@@ -1039,9 +1039,12 @@ namespace Microsoft.Dafny
       wr.WriteLine("yield return null;");
     }
 
-    protected override void EmitAbsurd(TargetWriter wr) {
+    protected override void EmitAbsurd(string/*?*/ message, TargetWriter wr) {
+      if (message == null) {
+        message = "unexpected control point";
+      }
       wr.Indent();
-      wr.WriteLine("throw new System.Exception();");
+      wr.WriteLine("throw new System.Exception(\"{0}\");", message);
     }
 
     protected override BlockTargetWriter CreateForLoop(string indexVar, string bound, TargetWriter wr) {

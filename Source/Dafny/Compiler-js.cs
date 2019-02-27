@@ -1005,7 +1005,7 @@ namespace Microsoft.Dafny {
 
     protected override TargetWriter CreateLabeledCode(string label, TargetWriter wr) {
       wr.Indent();
-      return wr.NewNamedBlock("{0}:", label);
+      return wr.NewNamedBlock("L{0}:", label);
     }
 
     protected override void EmitBreak(string/*?*/ label, TargetWriter wr) {
@@ -1013,7 +1013,7 @@ namespace Microsoft.Dafny {
       if (label == null) {
         wr.WriteLine("break;");
       } else {
-        wr.WriteLine("break {0};", label);
+        wr.WriteLine("break L{0};", label);
       }
     }
 
@@ -1022,9 +1022,12 @@ namespace Microsoft.Dafny {
       wr.WriteLine("yield null;");
     }
 
-    protected override void EmitAbsurd(TargetWriter wr) {
+    protected override void EmitAbsurd(string/*?*/ message, TargetWriter wr) {
+      if (message == null) {
+        message = "unexpected control point";
+      }
       wr.Indent();
-      wr.WriteLine("throw new Error('unexpected control point');");
+      wr.WriteLine("throw new Error(\"{0}\");", message);
     }
 
     protected override BlockTargetWriter CreateForLoop(string indexVar, string bound, TargetWriter wr) {
