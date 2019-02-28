@@ -299,6 +299,20 @@ namespace Microsoft.Dafny {
       Contract.Requires(name != null);
       return name;
     }
+    protected virtual string FullTypeName(UserDefinedType udt) {
+      Contract.Requires(udt != null);
+      if (udt is ArrowType) {
+        return ArrowType.Arrow_FullCompileName;
+      }
+      var cl = udt.ResolvedClass;
+      if (cl == null) {
+        return IdProtect(udt.CompileName);
+      } else if (cl.Module.IsDefaultModule) {
+        return IdProtect(cl.CompileName);
+      } else {
+        return IdProtect(cl.Module.CompileName) + "." + IdProtect(cl.CompileName);
+      }
+    }
     protected abstract void EmitThis(TargetWriter wr);
     protected virtual void EmitITE(Expression guard, Expression thn, Expression els, bool inLetExprBody, TargetWriter wr) {
       wr.Write("(");

@@ -735,7 +735,7 @@ namespace Microsoft.Dafny {
         } else if (cl is DatatypeDecl) {
           var dt = (DatatypeDecl)cl;
           var w = new TargetWriter();
-          w.Write("{0}.Rtd(", dt is TupleTypeDecl ? "_dafny.Tuple" : udt.FullCompileName);
+          w.Write("{0}.Rtd(", dt is TupleTypeDecl ? "_dafny.Tuple" : FullTypeName(udt));
           EmitRuntimeTypeDescriptorsActuals(UsedTypeParameters(dt, udt.TypeArgs), cl.TypeArgs, udt.tok, true, w);
           w.Write(")");
           return w.ToString();
@@ -746,7 +746,7 @@ namespace Microsoft.Dafny {
           return "_dafny.Rtd_ref/*not used*/";
         } else {
           Contract.Assert(cl is NewtypeDecl || cl is SubsetTypeDecl);
-          return TypeName_UDT(udt.FullCompileName, udt.TypeArgs, wr, udt.tok);
+          return TypeName_UDT(FullTypeName(udt), udt.TypeArgs, wr, udt.tok);
         }
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected type
@@ -834,7 +834,7 @@ namespace Microsoft.Dafny {
         return typeNameSansBrackets + TypeNameArrayBrackets(at.Dims) + brackets;
       } else if (xType is UserDefinedType) {
         var udt = (UserDefinedType)xType;
-        var s = udt.FullCompileName;
+        var s = FullTypeName(udt);
         var cl = udt.ResolvedClass;
         bool isHandle = true;
         if (cl != null && Attributes.ContainsBool(cl.Attributes, "handle", ref isHandle) && isHandle) {
@@ -913,7 +913,7 @@ namespace Microsoft.Dafny {
       if (cl is NewtypeDecl) {
         var td = (NewtypeDecl)cl;
         if (td.Witness != null) {
-          return TypeName_UDT(udt.FullCompileName, udt.TypeArgs, wr, udt.tok) + ".Witness";
+          return TypeName_UDT(FullTypeName(udt), udt.TypeArgs, wr, udt.tok) + ".Witness";
         } else if (td.NativeType != null) {
           return "0";
         } else {
@@ -922,7 +922,7 @@ namespace Microsoft.Dafny {
       } else if (cl is SubsetTypeDecl) {
         var td = (SubsetTypeDecl)cl;
         if (td.Witness != null) {
-          return TypeName_UDT(udt.FullCompileName, udt.TypeArgs, wr, udt.tok) + ".Witness";
+          return TypeName_UDT(FullTypeName(udt), udt.TypeArgs, wr, udt.tok) + ".Witness";
         } else if (td.WitnessKind == SubsetTypeDecl.WKind.Special) {
           // WKind.Special is only used with -->, ->, and non-null types:
           Contract.Assert(ArrowType.IsPartialArrowTypeName(td.Name) || ArrowType.IsTotalArrowTypeName(td.Name) || td is NonNullTypeDecl);
@@ -958,7 +958,7 @@ namespace Microsoft.Dafny {
         }
       } else if (cl is DatatypeDecl) {
         var dt = (DatatypeDecl)cl;
-        var s = dt is TupleTypeDecl ? "_dafny.Tuple" : udt.FullCompileName;
+        var s = dt is TupleTypeDecl ? "_dafny.Tuple" : FullTypeName(udt);
         var w = new TargetWriter();
         w.Write("{0}.Rtd(", s);
         EmitRuntimeTypeDescriptorsActuals(UsedTypeParameters(dt, udt.TypeArgs), dt.TypeArgs, udt.tok, true, w);
@@ -1320,6 +1320,9 @@ namespace Microsoft.Dafny {
     }
 
     protected override string IdProtect(string name) {
+      return PublicIdProtect(name);
+    }
+    public static string PublicIdProtect(string name) {
       Contract.Requires(name != null);
       switch (name) {
         case "arguments":
@@ -1365,6 +1368,19 @@ namespace Microsoft.Dafny {
           return "_$$_" + name;
         default:
           return name;
+      }
+    }
+
+    protected override string FullTypeName(UserDefinedType udt) {
+      Contract.Requires(udt != null);
+      if (udt is ArrowType) {
+        return ArrowType.Arrow_FullCompileName;
+      }
+      var cl = udt.ResolvedClass;
+      if (cl == null) {
+        return IdProtect(udt.CompileName);
+      } else {
+        return IdProtect(cl.Module.CompileName) + "." + IdProtect(cl.CompileName);
       }
     }
 

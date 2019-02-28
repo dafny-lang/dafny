@@ -602,6 +602,9 @@ namespace Microsoft.Dafny
       }
     }
 
+    /// <summary>
+    /// Returns a protected name with type parameters.
+    /// </summary>
     string DtCtorDeclarationName(DatatypeCtor ctor, List<TypeParameter> typeParams) {
       Contract.Requires(ctor != null);
       Contract.Ensures(Contract.Result<string>() != null);
@@ -612,6 +615,9 @@ namespace Microsoft.Dafny
       }
       return s;
     }
+    /// <summary>
+    /// Returns a protected name.
+    /// </summary>
     string DtCtorDeclarationName(DatatypeCtor ctor) {
       Contract.Requires(ctor != null);
       Contract.Ensures(Contract.Result<string>() != null);
@@ -619,6 +625,9 @@ namespace Microsoft.Dafny
       var dt = ctor.EnclosingDatatype;
       return dt.IsRecordType ? IdName(dt) : dt.CompileName + "_" + ctor.CompileName;
     }
+    /// <summary>
+    /// Returns a protected name with type parameters.
+    /// </summary>
     string DtCtorName(DatatypeCtor ctor, List<TypeParameter> typeParams) {
       Contract.Requires(ctor != null);
       Contract.Ensures(Contract.Result<string>() != null);
@@ -629,12 +638,28 @@ namespace Microsoft.Dafny
       }
       return s;
     }
+    /// <summary>
+    /// Returns a protected name with type parameters.
+    /// </summary>
+    string DtCtorName(DatatypeCtor ctor, List<Type> typeArgs, TextWriter wr) {
+      Contract.Requires(ctor != null);
+      Contract.Ensures(Contract.Result<string>() != null);
+
+      var s = DtCtorName(ctor);
+      if (typeArgs != null && typeArgs.Count != 0) {
+        s += "<" + TypeNames(typeArgs, wr, ctor.tok) + ">";
+      }
+      return s;
+    }
+    /// <summary>
+    /// Returns a protected name. (No type parameters.)
+    /// </summary>
     string DtCtorName(DatatypeCtor ctor) {
       Contract.Requires(ctor != null);
       Contract.Ensures(Contract.Result<string>() != null);
 
       var dt = ctor.EnclosingDatatype;
-      var dtName = dt.Module.IsDefaultModule ? dt.CompileName : dt.FullCompileName;
+      var dtName = dt.Module.IsDefaultModule ? IdProtect(dt.CompileName) : dt.FullCompileName;
       return dt.IsRecordType ? dtName : dtName + "_" + ctor.CompileName;
     }
     string DtCreateName(DatatypeCtor ctor) {
@@ -868,7 +893,7 @@ namespace Microsoft.Dafny
         return typeNameSansBrackets + TypeNameArrayBrackets(at.Dims) + brackets;
       } else if (xType is UserDefinedType) {
         var udt = (UserDefinedType)xType;
-        var s = udt.FullCompileName;
+        var s = FullTypeName(udt);
         var cl = udt.ResolvedClass;
         bool isHandle = true;
         if (cl != null && Attributes.ContainsBool(cl.Attributes, "handle", ref isHandle) && isHandle) {
@@ -931,14 +956,14 @@ namespace Microsoft.Dafny
 
       var udt = (UserDefinedType)xType;
       if (udt.ResolvedParam != null) {
-        return "Dafny.Helpers.Default<" + TypeName_UDT(udt.FullCompileName, udt.TypeArgs, wr, udt.tok) + ">()";
+        return "Dafny.Helpers.Default<" + TypeName_UDT(FullTypeName(udt), udt.TypeArgs, wr, udt.tok) + ">()";
       }
       var cl = udt.ResolvedClass;
       Contract.Assert(cl != null);
       if (cl is NewtypeDecl) {
         var td = (NewtypeDecl)cl;
         if (td.Witness != null) {
-          return TypeName_UDT(udt.FullCompileName, udt.TypeArgs, wr, udt.tok) + ".Witness";
+          return TypeName_UDT(FullTypeName(udt), udt.TypeArgs, wr, udt.tok) + ".Witness";
         } else if (td.NativeType != null) {
           return "0";
         } else {
@@ -947,7 +972,7 @@ namespace Microsoft.Dafny
       } else if (cl is SubsetTypeDecl) {
         var td = (SubsetTypeDecl)cl;
         if (td.Witness != null) {
-          return TypeName_UDT(udt.FullCompileName, udt.TypeArgs, wr, udt.tok) + ".Witness";
+          return TypeName_UDT(FullTypeName(udt), udt.TypeArgs, wr, udt.tok) + ".Witness";
         } else if (td.WitnessKind == SubsetTypeDecl.WKind.Special) {
           // WKind.Special is only used with -->, ->, and non-null types:
           Contract.Assert(ArrowType.IsPartialArrowTypeName(td.Name) || ArrowType.IsTotalArrowTypeName(td.Name) || td is NonNullTypeDecl);
@@ -982,7 +1007,7 @@ namespace Microsoft.Dafny
           return string.Format("({0})null", TypeName(xType, wr, udt.tok));
         }
       } else if (cl is DatatypeDecl) {
-        var s = "@" + udt.FullCompileName;
+        var s = "@" + FullTypeName(udt);
         var rc = cl;
         if (DafnyOptions.O.IronDafny &&
             !(xType is ArrowType) &&
@@ -1390,6 +1415,9 @@ namespace Microsoft.Dafny
     }
 
     protected override string IdProtect(string name) {
+      return PublicIdProtect(name);
+    }
+    public static string PublicIdProtect(string name) {
       if (name.First() == '_') {
         return name;  // no need to further protect this name -- we know it's not a C# keyword
       }
@@ -1508,16 +1536,6 @@ namespace Microsoft.Dafny
         wr.Write("new {0}({1})", DtCtorName(dtv.Ctor, dtv.InferredTypeArgs, wr), arguments);
         wr.Write("; })");
       }
-    }
-    string DtCtorName(DatatypeCtor ctor, List<Type> typeArgs, TextWriter wr) {
-      Contract.Requires(ctor != null);
-      Contract.Ensures(Contract.Result<string>() != null);
-
-      var s = DtCtorName(ctor);
-      if (typeArgs != null && typeArgs.Count != 0) {
-        s += "<" + TypeNames(typeArgs, wr, ctor.tok) + ">";
-      }
-      return s;
     }
 
 

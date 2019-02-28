@@ -1,3 +1,7 @@
 
-Dafny program verifier finished with 0 verified, 0 errors
-Compiled assembly into Bug116.exe
+Dafny program verifier finished with 1 verified, 0 errors
+Running...
+
+struct.S byte.arguments
+_0_enum_Compile.goto.switch _0_enum_Compile.goto.switch
+20 + 20 == 40

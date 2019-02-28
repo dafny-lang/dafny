@@ -2144,9 +2144,6 @@ namespace Microsoft.Dafny {
     }
 
     public const string Arrow_FullCompileName = "Func";  // this is the same for all arities
-    public override string FullCompileName {
-      get { return Arrow_FullCompileName; }
-    }
 
     public static string ArrowTypeName(int arity) {
       return "_#Func" + arity;
@@ -2421,27 +2418,12 @@ namespace Microsoft.Dafny {
     }
 
     string compileName;
-    string CompileName {
+    public string CompileName {
       get {
         if (compileName == null) {
           compileName = NonglobalVariable.CompilerizeName(Name);
         }
         return compileName;
-      }
-    }
-    public virtual string FullCompileName {
-      get {
-        if (ResolvedClass == null) {
-          return CompileName;
-        } else if (DafnyOptions.O.CompileTarget == DafnyOptions.CompilationTarget.Csharp) {
-          if (ResolvedClass.Module.IsDefaultModule) {
-            return ResolvedClass.CompileName;
-          } else {
-            return ResolvedClass.Module.CompileName + ".@" + ResolvedClass.CompileName;
-          }
-        } else {
-          return ResolvedClass.Module.CompileName + "." + ResolvedClass.CompileName;
-        }
       }
     }
     public string FullCompanionCompileName {
@@ -2957,6 +2939,18 @@ namespace Microsoft.Dafny {
     void ObjectInvariant() {
       Contract.Invariant(tok != null);
       Contract.Invariant(Name != null);
+    }
+
+    public static string IdProtect(string name) {
+      switch (DafnyOptions.O.CompileTarget) {
+        case DafnyOptions.CompilationTarget.Csharp:
+          return CsharpCompiler.PublicIdProtect(name);
+        case DafnyOptions.CompilationTarget.JavaScript:
+          return JavaScriptCompiler.PublicIdProtect(name);
+        default:
+          Contract.Assert(false);  // unexpected compile target
+          return name;
+      }
     }
 
     public IToken tok;
@@ -3818,12 +3812,10 @@ namespace Microsoft.Dafny {
             return externArgs[0].AsStringLiteral() + "." + externArgs[1].AsStringLiteral();
           }
         }
-        if (DafnyOptions.O.CompileTarget != DafnyOptions.CompilationTarget.Csharp) {
-          return Module.CompileName + "." + CompileName;
-        } else if (!Module.IsDefaultModule) {
-          return Module.CompileName + ".@" + CompileName;
+        if (Module.IsDefaultModule && DafnyOptions.O.CompileTarget == DafnyOptions.CompilationTarget.Csharp) {
+          return Declaration.IdProtect(CompileName);
         } else {
-          return CompileName;
+          return Declaration.IdProtect(Module.CompileName) + "." + Declaration.IdProtect(CompileName);
         }
       }
     }
@@ -4488,7 +4480,7 @@ namespace Microsoft.Dafny {
         Contract.Requires(EnclosingClass != null);
         Contract.Ensures(Contract.Result<string>() != null);
 
-        return EnclosingClass.FullCompileName + ".@" + CompileName;
+        return EnclosingClass.FullCompileName + "." + Declaration.IdProtect(CompileName);
       }
     }
     public virtual IEnumerable<Expression> SubExpressions {
@@ -4618,7 +4610,8 @@ namespace Microsoft.Dafny {
     public override string FullCompileName {
       get {
         Contract.Ensures(Contract.Result<string>() != null);
-        return EnclosingClass != null ? EnclosingClass.FullCompileName + ".@" + CompileName : CompileName;
+        var cn = Declaration.IdProtect(CompileName);
+        return EnclosingClass != null ? EnclosingClass.FullCompileName + "." + cn : cn;
       }
     }
   }
