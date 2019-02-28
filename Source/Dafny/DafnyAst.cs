@@ -3968,6 +3968,10 @@ namespace Microsoft.Dafny {
       }
     }
 
+    public bool IsRecordType {
+      get { return this is IndDatatypeDecl && Ctors.Count == 1; }
+    }
+
     TopLevelDecl RevealableTypeDecl.AsTopLevelDecl { get { return this; } }
 
     bool ICodeContext.IsGhost { get { return true; } }
@@ -4059,6 +4063,12 @@ namespace Microsoft.Dafny {
       }
       var ctor = new DatatypeCtor(Token.NoToken, BuiltIns.TupleTypeCtorNamePrefix + typeArgs.Count, formals, null);
       return new List<DatatypeCtor>() { ctor };
+    }
+
+    public override string CompileName {
+      get {
+        return "Tuple" + Dims;
+      }
     }
   }
 

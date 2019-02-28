@@ -1155,17 +1155,17 @@ axiom (forall<U,V> m: Map U V, v: V :: { Map#Values(m)[v] }
 
 function Map#Items<U,V>(Map U V) : Set Box;
 
-function _System.__tuple_h2._0(DatatypeType) : Box;
+function _System.Tuple2._0(DatatypeType) : Box;
 
-function _System.__tuple_h2._1(DatatypeType) : Box;
+function _System.Tuple2._1(DatatypeType) : Box;
 
 axiom (forall<U,V> m: Map U V :: { Set#Card(Map#Items(m)) }
   Set#Card(Map#Items(m)) == Map#Card(m));
 
 axiom (forall m: Map Box Box, item: Box :: { Map#Items(m)[item] }
   Map#Items(m)[item] <==>
-    Map#Domain(m)[_System.__tuple_h2._0($Unbox(item))] &&
-    Map#Elements(m)[_System.__tuple_h2._0($Unbox(item))] == _System.__tuple_h2._1($Unbox(item)));
+    Map#Domain(m)[_System.Tuple2._0($Unbox(item))] &&
+    Map#Elements(m)[_System.Tuple2._0($Unbox(item))] == _System.Tuple2._1($Unbox(item)));
 
 // Here are the operations that produce Map values.
 
@@ -1260,8 +1260,8 @@ function IMap#Items<U,V>(IMap U V) : Set Box;
 
 axiom (forall m: IMap Box Box, item: Box :: { IMap#Items(m)[item] }
   IMap#Items(m)[item] <==>
-    IMap#Domain(m)[_System.__tuple_h2._0($Unbox(item))] &&
-    IMap#Elements(m)[_System.__tuple_h2._0($Unbox(item))] == _System.__tuple_h2._1($Unbox(item)));
+    IMap#Domain(m)[_System.Tuple2._0($Unbox(item))] &&
+    IMap#Elements(m)[_System.Tuple2._0($Unbox(item))] == _System.Tuple2._1($Unbox(item)));
 
 // Here are the operations that produce Map values.
 function IMap#Empty<U, V>(): IMap U V;

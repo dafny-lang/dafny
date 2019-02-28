@@ -770,16 +770,16 @@ namespace Dafny
         }
       }
     }
-    public Set<_System.@__tuple_h2<U, V>> Items {
+    public Set<_System.Tuple2<U, V>> Items {
       get {
-        HashSet<_System.@__tuple_h2<U, V>> result = new HashSet<_System.@__tuple_h2<U, V>>();
+        HashSet<_System.Tuple2<U, V>> result = new HashSet<_System.Tuple2<U, V>>();
         if (hasNullValue) {
-          result.Add(_System.@__tuple_h2<U, V>.create____hMake2(default(U), nullValue));
+          result.Add(_System.Tuple2<U, V>.create(default(U), nullValue));
         }
         foreach (KeyValuePair<U, V> kvp in dict) {
-          result.Add(_System.@__tuple_h2<U, V>.create____hMake2(kvp.Key, kvp.Value));
+          result.Add(_System.Tuple2<U, V>.create(kvp.Key, kvp.Value));
         }
-        return Dafny.Set<_System.@__tuple_h2<U, V>>.FromCollection(result);
+        return Dafny.Set<_System.Tuple2<U, V>>.FromCollection(result);
       }
     }
   }
@@ -1336,39 +1336,15 @@ namespace Dafny
 
 namespace @_System
 {
-  public abstract class __tuple_h2<T0,T1> {
-    public __tuple_h2() { }
-    static __tuple_h2<T0,T1> theDefault;
-    public static __tuple_h2<T0,T1> Default {
-      get {
-        if (theDefault == null) {
-          theDefault = new _System.@__tuple_h2____hMake2<T0,T1>(Dafny.Helpers.Default<T0>(), Dafny.Helpers.Default<T1>());
-        }
-        return theDefault;
-      }
-    }
-    public static __tuple_h2<T0,T1> create____hMake2(T0 _0, T1 _1) {
-      return new __tuple_h2____hMake2<T0,T1>(_0, _1);
-    }
-    public bool is____hMake2 { get { return this is __tuple_h2____hMake2<T0,T1>; } }
-    public T0 dtor__0 { get {
-      var d = this;
-      return ((__tuple_h2____hMake2<T0,T1>)d)._0; 
-    }}
-    public T1 dtor__1 { get {
-      var d = this;
-      return ((__tuple_h2____hMake2<T0,T1>)d)._1; 
-    }}
-  }
-  public class __tuple_h2____hMake2<T0,T1> : __tuple_h2<T0,T1> {
+  public class Tuple2<T0,T1> {
     public readonly T0 _0;
     public readonly T1 _1;
-    public __tuple_h2____hMake2(T0 _0, T1 _1) {
+    public Tuple2(T0 _0, T1 _1) {
       this._0 = _0;
       this._1 = _1;
     }
     public override bool Equals(object other) {
-      var oth = other as _System.@__tuple_h2____hMake2<T0,T1>;
+      var oth = other as _System.@Tuple2<T0,T1>;
       return oth != null && Dafny.Helpers.AreEqual(this._0, oth._0) && Dafny.Helpers.AreEqual(this._1, oth._1);
     }
     public override int GetHashCode() {
@@ -1386,6 +1362,30 @@ namespace @_System
       s += Dafny.Helpers.ToString(this._1);
       s += ")";
       return s;
+    }
+    static Tuple2<T0,T1> theDefault;
+    public static Tuple2<T0,T1> Default {
+      get {
+        if (theDefault == null) {
+          theDefault = new _System.@Tuple2<T0,T1>(Dafny.Helpers.Default<T0>(), Dafny.Helpers.Default<T1>());
+        }
+        return theDefault;
+      }
+    }
+    public static Tuple2<T0,T1> _DafnyDefaultValue() { return Default; }
+    public static Tuple2<T0,T1> create(T0 _0, T1 _1) {
+      return new Tuple2<T0,T1>(_0, _1);
+    }
+    public bool is____hMake3 { get { return true; } }
+    public T0 dtor__0 {
+      get {
+        return this._0;
+      }
+    }
+    public T1 dtor__1 {
+      get {
+        return this._1;
+      }
     }
   }
 

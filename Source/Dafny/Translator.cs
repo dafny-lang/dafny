@@ -577,9 +577,9 @@ namespace Microsoft.Dafny {
             mapItems = f;
           } else if (f.Name == "IMap#Items") {
             imapItems = f;
-          } else if (f.Name == "_System.__tuple_h2._0") {
+          } else if (f.Name == "_System.Tuple2._0") {
             tuple2Destructors0 = f;
-          } else if (f.Name == "_System.__tuple_h2._1") {
+          } else if (f.Name == "_System.Tuple2._1") {
             tuple2Destructors1 = f;
           }
         }
@@ -621,9 +621,9 @@ namespace Microsoft.Dafny {
       } else if (imapItems == null) {
         Console.WriteLine("Error: Dafny prelude is missing declaration of function IMap#Items");
       } else if (tuple2Destructors0 == null) {
-        Console.WriteLine("Error: Dafny prelude is missing declaration of function _System.__tuple_h2._0");
+        Console.WriteLine("Error: Dafny prelude is missing declaration of function _System.Tuple2._0");
       } else if (tuple2Destructors1 == null) {
-        Console.WriteLine("Error: Dafny prelude is missing declaration of function _System.__tuple_h2._1");
+        Console.WriteLine("Error: Dafny prelude is missing declaration of function _System.Tuple2._1");
       } else if (bv0TypeDecl == null) {
         Console.WriteLine("Error: Dafny prelude is missing declaration of type Bv0");
       } else if (fieldNameType == null) {
@@ -8631,9 +8631,9 @@ namespace Microsoft.Dafny {
           return predef.ORDINAL_Offset;
         } else if (f is SpecialField && f.Name == "IsNat") {
           return predef.ORDINAL_IsNat;
-        } else if (f.FullSanitizedName == "_System.__tuple_h2._0") {
+        } else if (f.FullSanitizedName == "_System.Tuple2._0") {
           return predef.Tuple2Destructors0;
-        } else if (f.FullSanitizedName == "_System.__tuple_h2._1") {
+        } else if (f.FullSanitizedName == "_System.Tuple2._1") {
           return predef.Tuple2Destructors1;
         }
 
