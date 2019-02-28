@@ -1,3 +1,7 @@
 
-Dafny program verifier finished with 61 verified, 0 errors
-Compiled assembly into UnionFind.dll
+Dafny program verifier finished with 62 verified, 0 errors
+Running...
+
+false
+true true
+false true true

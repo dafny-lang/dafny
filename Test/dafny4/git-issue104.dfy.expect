@@ -1,3 +1,5 @@
 
-Dafny program verifier finished with 1 verified, 0 errors
-Compiled assembly into git-issue104.dll
+Dafny program verifier finished with 2 verified, 0 errors
+Running...
+
+true false

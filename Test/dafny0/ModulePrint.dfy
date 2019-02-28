@@ -1,8 +1,8 @@
 //RUN: %dafny /dafnyVerify:0 /compile:0 /env:0 /dprint:"%t.dfy" "%s"
 //RUN: %dafny /dafnyVerify:0 /compile:0 /env:0 /printMode:DllEmbed /dprint:"%t1.dfy" "%t.dfy"
-//RUN: %dafny /env:0 /out:"%s.dll" /printMode:DllEmbed /dprint:"%t2.dfy" "%t1.dfy" > "%t.output"
+//RUN: %dafny /env:0 /compile:3 /printMode:DllEmbed /dprint:"%t2.dfy" "%t1.dfy" > "%t"
 //RUN: %diff "%t1.dfy" "%t2.dfy"
-//RUN: %diff "%t.output" "%s.expect"
+//RUN: %diff "%s.expect" "%t"
 
 abstract module S {
   class C {
@@ -28,3 +28,7 @@ module T refines S {
   }
 }
  
+method Main() {
+  var c := new T.C;
+  c.m();
+}

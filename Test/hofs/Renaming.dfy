@@ -1,7 +1,7 @@
-// RUN: %dafny "%s" > "%t"
+// RUN: %dafny /compile:3 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
-function OnId(f : (bool -> bool) -> int) : int
+function method OnId(f : (bool -> bool) -> int) : int
   reads f.reads(x => x);
   requires f.requires(y => y);
 {
@@ -23,3 +23,11 @@ method K<A,B>(P : (A -> A) -> bool)
   assert (x => y => x) == ((a : A) => (b : B) => a);
 }
 
+method Main() {
+  Equal();
+  var p := (x: real -> real) => x(25.0) <= 25.0;
+  K<real,bool>(p);
+  var f := (b: bool -> bool) => if b(true) then 10 else 11;
+  var x := OnId(f);
+  print x, " ", f(_ => false), "\n";
+}

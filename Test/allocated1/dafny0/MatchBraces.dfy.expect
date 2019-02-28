@@ -1,5 +1,11 @@
 // MatchBraces.dfy
 
+method Main()
+{
+  M(Green, Red);
+  M(Blue, Blue);
+}
+
 method M(c: Color, d: Color)
 {
   var x := match c case Red => 5 case Green => 7 case Blue => 11;
@@ -7,6 +13,7 @@ method M(c: Color, d: Color)
   var z := match c case Red => Green case Green => match d { case Red => Red case Green => Blue case Blue => Red } case Blue => Green;
   var w := match c { case Red => 2 case Green => 3 case Blue => 4 } + 10;
   var t := match c case Red => 0 case Green => match d { case Red => 2 case Green => 2 case Blue => 1 } + (match d case Red => 10 case Green => 8 case Blue => 5) case Blue => match d { case Red => 20 case Green => 20 case Blue => 10 } + match d case Red => 110 case Green => 108 case Blue => 105;
+  print x, " ", y, " ", z, " ", w, " ", t, "\n";
 }
 
 function Heat(c: Color): int
@@ -117,5 +124,8 @@ method MoreDegenerateExamples(c: Color)
 
 datatype Color = Red | Green | Blue
 
-Dafny program verifier finished with 4 verified, 0 errors
-Compiled assembly into MatchBraces.dll
+Dafny program verifier finished with 5 verified, 0 errors
+Running...
+
+7 0.18 Color.Red 13 12
+11 98.0 Color.Green 14 115

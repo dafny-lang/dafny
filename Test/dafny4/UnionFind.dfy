@@ -1,4 +1,4 @@
-// RUN: %dafny /rprint:"%t.rprint" "%s" > "%t"
+// RUN: %dafny /compile:3 /rprint:"%t.rprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 // Rustan Leino, Nov 2015
 
@@ -329,4 +329,22 @@ module M3 refines M2 {
         ExtendedReach(next, C, d0-1, d1-1, r0, r1, C');
     }
   }
+}
+
+method Main() {
+  var uf := new M3.UnionFind();
+  var a := uf.New();
+  var b := uf.New();
+  var c := uf.New();
+  print a == b, "\n";
+  
+  var f0 := uf.Find(b);
+  var f1 := uf.Find(a);
+  print f0 == b, " ", f1 == a, "\n";
+
+  var _ := uf.Union(a, c);
+  var g0 := uf.Find(a);
+  var g1 := uf.Find(b);
+  var g2 := uf.Find(c);
+  print g0 == g1, " ", g0 == g2, " ", g1 == b, "\n";
 }

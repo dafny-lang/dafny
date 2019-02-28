@@ -1,3 +1,5 @@
 
-Dafny program verifier finished with 2 verified, 0 errors
-Compiled assembly into ImplicitTypeParamPrint.dfy.dll
+Dafny program verifier finished with 3 verified, 0 errors
+Running...
+
+List.Nil

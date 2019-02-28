@@ -1,4 +1,4 @@
-// RUN: %dafny /rprint:"%t.rprint" "%s" > "%t"
+// RUN: %dafny /compile:3 /rprint:"%t.rprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module NativeTypes {
@@ -22,4 +22,11 @@ module AppStateMachine_i refines AppStateMachine_s {
   {
     ConversionModule.Uint64ToBytes(response)
   }
+}
+
+method Main() {
+  var a := ConversionModule.Uint64ToBytes(67);
+  var b := AppStateMachine_i.ConversionModule.Uint64ToBytes(67);
+  var c := AppStateMachine_i.F(67);
+  print a, " ", b, " ", c, "\n";
 }

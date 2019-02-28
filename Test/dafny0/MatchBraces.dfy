@@ -1,7 +1,12 @@
-// RUN: %dafny /print:"%t.print" /env:0 /dprint:- "%s" > "%t"
+// RUN: %dafny /print:"%t.print" /compile:3 /env:0 /dprint:- "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 datatype Color = Red | Green | Blue
+
+method Main() {
+  M(Green, Red);
+  M(Blue, Blue);
+}
 
 // ----- match expressions in general positions
 
@@ -35,6 +40,7 @@ method M(c: Color, d: Color) {
       case Green => 20
       case Blue => 10
     } + (((match d case Red => 110 case Green => 108 case Blue => 105))));
+  print x, " ", y, " ", z, " ", w, " ", t, "\n";
 }
 
 // ----- match expressions in top-level positions
