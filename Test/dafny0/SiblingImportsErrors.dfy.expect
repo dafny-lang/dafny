@@ -1,0 +1,9 @@
+SiblingImportsErrors.dfy(24,14): Error: unresolved identifier: Less
+SiblingImportsErrors.dfy(37,6): Error: unresolved identifier: Library
+SiblingImportsErrors.dfy(50,6): Error: unresolved identifier: L
+SiblingImportsErrors.dfy(63,6): Error: unresolved identifier: L
+SiblingImportsErrors.dfy(76,6): Error: unresolved identifier: Library
+SiblingImportsErrors.dfy(89,6): Error: unresolved identifier: Max
+SiblingImportsErrors.dfy(102,6): Error: unresolved identifier: Library
+SiblingImportsErrors.dfy(113,8): Error: unresolved identifier: Frankie
+8 resolution/type errors detected in SiblingImportsErrors.dfy

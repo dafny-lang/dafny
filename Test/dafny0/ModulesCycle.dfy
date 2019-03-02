@@ -12,3 +12,16 @@ module A {
 module C {
   import D = A
 }
+
+module Kevin {  // error: cyclic import
+  module Joe {
+    module Nick {
+      import Frankie
+    }
+  }
+}
+
+module Frankie {
+  import Kevin
+  const x := 3
+}
