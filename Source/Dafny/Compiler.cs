@@ -67,15 +67,15 @@ namespace Microsoft.Dafny {
     /// call to the instance Main method in the enclosing class.
     /// </summary>
     public abstract BlockTargetWriter CreateStaticMain(TargetWriter wr);
-    protected abstract BlockTargetWriter CreateModule(string moduleName, bool isExtern, string/*?*/ libraryName, TargetWriter wr);  // "libraryName" is null if "isExtern" is false
+    protected abstract TargetWriter CreateModule(string moduleName, bool isExtern, string/*?*/ libraryName, TargetWriter wr);
     protected abstract string GetHelperModuleName();
-    protected BlockTargetWriter CreateClass(string name, List<TypeParameter>/*?*/ typeParameters, out TargetWriter instanceFieldsWriter, TargetWriter wr) {
+    protected TargetWriter CreateClass(string name, List<TypeParameter>/*?*/ typeParameters, out TargetWriter instanceFieldsWriter, TargetWriter wr) {
       return CreateClass(name, false, null, typeParameters, null, null, out instanceFieldsWriter, wr);
     }
     /// <summary>
     /// "tok" can be "null" if "superClasses" is.
     /// </summary>
-    protected abstract BlockTargetWriter CreateClass(string name, bool isExtern, string/*?*/ fullPrintName, List<TypeParameter>/*?*/ typeParameters, List<Type>/*?*/ superClasses, Bpl.IToken tok, out TargetWriter instanceFieldsWriter, TargetWriter wr);
+    protected abstract TargetWriter CreateClass(string name, bool isExtern, string/*?*/ fullPrintName, List<TypeParameter>/*?*/ typeParameters, List<Type>/*?*/ superClasses, Bpl.IToken tok, out TargetWriter instanceFieldsWriter, TargetWriter wr);
     /// <summary>
     /// "tok" can be "null" if "superClasses" is.
     /// </summary>
@@ -3007,6 +3007,12 @@ namespace Microsoft.Dafny {
       btw.BodyPrefix = string.Format(prefixFormat, headerArgs);
       things.Add(btw);
       return btw;
+    }
+
+    public TargetWriter NewSection() {
+      var w = new TargetWriter(IndentLevel);
+      things.Add(w);
+      return w;
     }
 
     // ----- Collection ------------------------------

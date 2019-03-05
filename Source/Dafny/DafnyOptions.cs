@@ -63,7 +63,7 @@ namespace Microsoft.Dafny
     public List<string> DafnyPrintExportedViews = new List<string>();
     public bool Compile = true;
     [Flags]
-    public enum CompilationTarget { Csharp = 1, JavaScript = 2 }
+    public enum CompilationTarget { Csharp = 1, JavaScript = 2, Go = 4 }
     public CompilationTarget CompileTarget = CompilationTarget.Csharp;
     public string DafnyPrintCompiledFile = null;
     public bool ForceCompile = false;
@@ -173,6 +173,8 @@ namespace Microsoft.Dafny
               CompileTarget = CompilationTarget.Csharp;
             } else if (args[ps.i].Equals("js")) {
               CompileTarget = CompilationTarget.JavaScript;
+            } else if (args[ps.i].Equals("go")) {
+              CompileTarget = CompilationTarget.Go;
             } else {
               throw new Exception("Invalid value for compileTarget");
             }

@@ -121,11 +121,19 @@ namespace Microsoft.Dafny
                 extension == null ? "" : extension);
               return ExitValue.PREPROCESSING_ERROR;
             }
-          } else {
+          } else if (DafnyOptions.O.CompileTarget == DafnyOptions.CompilationTarget.JavaScript) {
             if (extension == ".js") {
               otherFiles.Add(file);
             } else {
               ExecutionEngine.printer.ErrorWriteLine(Console.Out, "*** Error: '{0}': Filename extension '{1}' is not supported. Input files must be Dafny programs (.dfy) or JavaScrip files (.js)", file,
+                extension == null ? "" : extension);
+              return ExitValue.PREPROCESSING_ERROR;
+            }
+          } else {
+            if (extension == ".go") {
+              otherFiles.Add(file);
+            } else {
+              ExecutionEngine.printer.ErrorWriteLine(Console.Out, "*** Error: '{0}': Filename extension '{1}' is not supported. Input files must be Dafny programs (.dfy) or Go files (.go)", file,
                 extension == null ? "" : extension);
               return ExitValue.PREPROCESSING_ERROR;
             }
@@ -425,7 +433,22 @@ namespace Microsoft.Dafny
 
     static string WriteDafnyProgramToFile(string dafnyProgramName, string targetProgram, bool completeProgram, TextWriter outputWriter)
     {
-      string targetFilename = Path.ChangeExtension(dafnyProgramName, DafnyOptions.O.CompileTarget == DafnyOptions.CompilationTarget.JavaScript ? "js" : "cs");
+      string targetExtension;
+      switch (DafnyOptions.O.CompileTarget) {
+        case DafnyOptions.CompilationTarget.Csharp:
+          targetExtension = "cs";
+          break;
+        case DafnyOptions.CompilationTarget.JavaScript:
+          targetExtension = "js";
+          break;
+        case DafnyOptions.CompilationTarget.Go:
+          targetExtension = "go";
+          break;
+        default:
+          Contract.Assert(false);
+          throw new cce.UnreachableException();
+      }
+      string targetFilename = Path.ChangeExtension(dafnyProgramName, targetExtension);
       using (TextWriter target = new StreamWriter(new FileStream(targetFilename, System.IO.FileMode.Create))) {
         target.Write(targetProgram);
         string relativeTarget = Path.GetFileName(targetFilename);
@@ -465,6 +488,9 @@ namespace Microsoft.Dafny
           break;
         case DafnyOptions.CompilationTarget.JavaScript:
           compiler = new Dafny.JavaScriptCompiler(dafnyProgram.reporter);
+          break;
+        case DafnyOptions.CompilationTarget.Go:
+          compiler = new Dafny.GoCompiler(dafnyProgram.reporter);
           break;
       }
 

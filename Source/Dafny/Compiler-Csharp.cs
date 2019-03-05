@@ -106,7 +106,7 @@ namespace Microsoft.Dafny
       return wr.NewBlock("public static void Main(string[] args)");
     }
 
-    protected override BlockTargetWriter CreateModule(string moduleName, bool isExtern, string/*?*/ libraryName, TargetWriter wr) {
+    protected override TargetWriter CreateModule(string moduleName, bool isExtern, string/*?*/ libraryName, TargetWriter wr) {
       var s = string.Format("namespace {0}", IdProtect(moduleName));
       return wr.NewBigBlock(s, " // end of " + s);
     }
@@ -120,7 +120,7 @@ namespace Microsoft.Dafny
       return Util.Comma(targs, tp => IdName(tp));
     }
 
-    protected override BlockTargetWriter CreateClass(string name, bool isExtern, string/*?*/ fullPrintName, List<TypeParameter>/*?*/ typeParameters, List<Type>/*?*/ superClasses, Bpl.IToken tok, out TargetWriter instanceFieldsWriter, TargetWriter wr) {
+    protected override TargetWriter CreateClass(string name, bool isExtern, string/*?*/ fullPrintName, List<TypeParameter>/*?*/ typeParameters, List<Type>/*?*/ superClasses, Bpl.IToken tok, out TargetWriter instanceFieldsWriter, TargetWriter wr) {
       wr.Indent();
       wr.Write("public partial class {0}", name);
       if (typeParameters != null && typeParameters.Count != 0) {

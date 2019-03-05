@@ -148,6 +148,7 @@
   <ItemGroup>
     <Compile Include="Cloner.cs" />
     <Compile Include="Compiler-Csharp.cs" />
+    <Compile Include="Compiler-go.cs" />
     <Compile Include="Compiler-js.cs" />
     <Compile Include="Reporting.cs" />
     <Compile Include="Triggers\QuantifiersCollection.cs" />

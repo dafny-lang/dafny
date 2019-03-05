@@ -2947,6 +2947,8 @@ namespace Microsoft.Dafny {
           return CsharpCompiler.PublicIdProtect(name);
         case DafnyOptions.CompilationTarget.JavaScript:
           return JavaScriptCompiler.PublicIdProtect(name);
+        case DafnyOptions.CompilationTarget.Go:
+          return GoCompiler.PublicIdProtect(name);
         default:
           Contract.Assert(false);  // unexpected compile target
           return name;
