@@ -9,6 +9,7 @@ datatype byte = arguments  // JavaScript keyword
 method Main()
 {
   var s := S;
+  var t: struct;
   var b := arguments;
   print s, " ", b, "\n";
 

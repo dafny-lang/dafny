@@ -1007,7 +1007,7 @@ namespace Microsoft.Dafny
           return string.Format("({0})null", TypeName(xType, wr, udt.tok));
         }
       } else if (cl is DatatypeDecl) {
-        var s = "@" + FullTypeName(udt);
+        var s = FullTypeName(udt);
         var rc = cl;
         if (DafnyOptions.O.IronDafny &&
             !(xType is ArrowType) &&
