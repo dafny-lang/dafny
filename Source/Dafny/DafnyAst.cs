@@ -3557,14 +3557,10 @@ namespace Microsoft.Dafny {
     public string CompileName {
       get {
         if (compileName == null) {
-          object externValue = "";
-          string errorMessage = "";
-          bool isExternal = !DafnyOptions.O.DisallowExterns && Attributes.ContainsMatchingValue(this.Attributes, "extern", ref externValue,
-            new Attributes.MatchingValueOption[] { Attributes.MatchingValueOption.String },
-            err => errorMessage = err);
-          if (isExternal) {
-            compileName = (string)externValue;
-          } else if (IsBuiltinName) {
+          var externArgs = DafnyOptions.O.DisallowExterns ? null : Attributes.FindExpressions(this.Attributes, "extern");
+          if (externArgs != null && 1 <= externArgs.Count && externArgs[0] is StringLiteralExpr) {
+            compileName = (string)((StringLiteralExpr)externArgs[0]).Value;
+          } else if (IsBuiltinName || externArgs != null) {
             compileName = Name;
           } else {
             compileName = "_" + Height.ToString() + "_" + NonglobalVariable.CompilerizeName(Name);

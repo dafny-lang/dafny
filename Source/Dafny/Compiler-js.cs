@@ -35,13 +35,22 @@ namespace Microsoft.Dafny {
       return wr.NewBlock("static Main()");
     }
 
-    protected override BlockTargetWriter CreateModule(string moduleName, bool isExtern, TargetWriter wr) {
-      if (!isExtern) {
+    protected override BlockTargetWriter CreateModule(string moduleName, bool isExtern, string/*?*/ libraryName, TargetWriter wr) {
+      if (!isExtern || libraryName != null) {
         wr.Write("let {0} = ", moduleName);
       }
       var w = wr.NewBigBlock("(function()", ")(); // end of module " + moduleName);
       w.Indent();
-      w.WriteLine("let $module = {0};", isExtern ? moduleName : "{}");
+      if (!isExtern) {
+        // create new module here
+        w.WriteLine("let $module = {};");
+      } else if (libraryName == null) {
+        // extend a module provided in another .js file
+        w.WriteLine("let $module = {0};", moduleName);
+      } else {
+        // require a library
+        w.WriteLine("let $module = require(\"{0}\");", libraryName);
+      }
       w.BodySuffix = string.Format("{0}return $module;{1}", w.IndentString, w.NewLine);
       return w;
     }
@@ -796,7 +805,7 @@ namespace Microsoft.Dafny {
       wr.WriteLine("continue TAIL_CALL_START;");
     }
 
-    protected override string TypeName(Type type, TextWriter wr, Bpl.IToken tok) {
+    protected override string TypeName(Type type, TextWriter wr, Bpl.IToken tok, MemberDecl/*?*/ member = null) {
       Contract.Requires(type != null);
       Contract.Ensures(Contract.Result<string>() != null);
 
@@ -834,7 +843,7 @@ namespace Microsoft.Dafny {
         return typeNameSansBrackets + TypeNameArrayBrackets(at.Dims) + brackets;
       } else if (xType is UserDefinedType) {
         var udt = (UserDefinedType)xType;
-        var s = FullTypeName(udt);
+        var s = FullTypeName(udt, member);
         var cl = udt.ResolvedClass;
         bool isHandle = true;
         if (cl != null && Attributes.ContainsBool(cl.Attributes, "handle", ref isHandle) && isHandle) {
@@ -977,15 +986,9 @@ namespace Microsoft.Dafny {
       return s;
     }
 
-    protected override string TypeName_Companion(Type type, TextWriter wr, Bpl.IToken tok) {
-      var udt = type as UserDefinedType;
-      if (udt != null && udt.ResolvedClass is TraitDecl) {
-        if (udt.TypeArgs.Count != 0 && udt.TypeArgs.Exists(argType => argType.NormalizeExpand().IsObjectQ)) {
-          // TODO: This is a restriction for .NET, but may not need to be a restriction for JavaScript
-          Error(udt.tok, "compilation does not support type 'object' as a type parameter; consider introducing a ghost", wr);
-        }
-      }
-      return TypeName(type, wr, tok);
+    protected override string TypeName_Companion(Type type, TextWriter wr, Bpl.IToken tok, MemberDecl/*?*/ member) {
+      // There are no companion classes for JavaScript
+      return TypeName(type, wr, tok, member);
     }
 
     // ----- Declarations -------------------------------------------------------------
@@ -1371,7 +1374,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    protected override string FullTypeName(UserDefinedType udt) {
+    protected override string FullTypeName(UserDefinedType udt, MemberDecl/*?*/ member = null) {
       Contract.Requires(udt != null);
       if (udt is ArrowType) {
         return ArrowType.Arrow_FullCompileName;
@@ -1379,6 +1382,11 @@ namespace Microsoft.Dafny {
       var cl = udt.ResolvedClass;
       if (cl == null) {
         return IdProtect(udt.CompileName);
+      } else if (cl is ClassDecl cdecl && cdecl.IsDefaultClass && Attributes.Contains(cl.Module.Attributes, "extern") &&
+        member != null && Attributes.Contains(member.Attributes, "extern")) {
+        // omit the default class name ("_default") in extern modules, when the class is used to qualify an extern member
+        Contract.Assert(!cl.Module.IsDefaultModule);  // default module is not marked ":extern"
+        return IdProtect(cl.Module.CompileName);
       } else {
         return IdProtect(cl.Module.CompileName) + "." + IdProtect(cl.CompileName);
       }

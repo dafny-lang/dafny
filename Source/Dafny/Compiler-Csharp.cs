@@ -54,7 +54,7 @@ namespace Microsoft.Dafny
     }
 
     protected override void EmitBuiltInDecls(BuiltIns builtIns, TargetWriter wr) {
-      wr = CreateModule("Dafny", false, wr);
+      wr = CreateModule("Dafny", false, null, wr);
       wr.Indent();
       wr = wr.NewNamedBlock("internal class ArrayHelpers");
       foreach (var decl in builtIns.SystemModule.TopLevelDecls) {
@@ -106,7 +106,7 @@ namespace Microsoft.Dafny
       return wr.NewBlock("public static void Main(string[] args)");
     }
 
-    protected override BlockTargetWriter CreateModule(string moduleName, bool isExtern, TargetWriter wr) {
+    protected override BlockTargetWriter CreateModule(string moduleName, bool isExtern, string/*?*/ libraryName, TargetWriter wr) {
       var s = string.Format("namespace {0}", IdProtect(moduleName));
       return wr.NewBigBlock(s, " // end of " + s);
     }
@@ -855,7 +855,7 @@ namespace Microsoft.Dafny
       wr.WriteLine("goto TAIL_CALL_START;");
     }
 
-    protected override string TypeName(Type type, TextWriter wr, Bpl.IToken tok) {
+    protected override string TypeName(Type type, TextWriter wr, Bpl.IToken tok, MemberDecl/*?*/ member = null) {
       Contract.Requires(type != null);
       Contract.Ensures(Contract.Result<string>() != null);
 
@@ -893,7 +893,7 @@ namespace Microsoft.Dafny
         return typeNameSansBrackets + TypeNameArrayBrackets(at.Dims) + brackets;
       } else if (xType is UserDefinedType) {
         var udt = (UserDefinedType)xType;
-        var s = FullTypeName(udt);
+        var s = FullTypeName(udt, member);
         var cl = udt.ResolvedClass;
         bool isHandle = true;
         if (cl != null && Attributes.ContainsBool(cl.Attributes, "handle", ref isHandle) && isHandle) {
@@ -1038,19 +1038,14 @@ namespace Microsoft.Dafny
       return s;
     }
 
-    protected override string TypeName_Companion(Type type, TextWriter wr, Bpl.IToken tok) {
+    protected override string TypeName_Companion(Type type, TextWriter wr, Bpl.IToken tok, MemberDecl/*?*/ member) {
       var udt = type as UserDefinedType;
       if (udt != null && udt.ResolvedClass is TraitDecl) {
         string s = udt.FullCompanionCompileName;
-        if (udt.TypeArgs.Count != 0) {
-          if (udt.TypeArgs.Exists(argType => argType.NormalizeExpand().IsObjectQ)) {
-            Error(udt.tok, "compilation does not support type 'object' as a type parameter; consider introducing a ghost", wr);
-          }
-          s += "<" + TypeNames(udt.TypeArgs, wr, udt.tok) + ">";
-        }
+        Contract.Assert(udt.TypeArgs.Count == 0);  // traits have no type parameters
         return s;
       } else {
-        return TypeName(type, wr, tok);
+        return TypeName(type, wr, tok, member);
       }
     }
 
@@ -1507,6 +1502,21 @@ namespace Microsoft.Dafny
           return "@" + name;
         default:
           return name;
+      }
+    }
+
+    protected override string FullTypeName(UserDefinedType udt, MemberDecl/*?*/ member = null) {
+      Contract.Requires(udt != null);
+      if (udt is ArrowType) {
+        return ArrowType.Arrow_FullCompileName;
+      }
+      var cl = udt.ResolvedClass;
+      if (cl == null) {
+        return IdProtect(udt.CompileName);
+      } else if (cl.Module.IsDefaultModule) {
+        return IdProtect(cl.CompileName);
+      } else {
+        return IdProtect(cl.Module.CompileName) + "." + IdProtect(cl.CompileName);
       }
     }
 

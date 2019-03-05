@@ -67,7 +67,7 @@ namespace Microsoft.Dafny {
     /// call to the instance Main method in the enclosing class.
     /// </summary>
     public abstract BlockTargetWriter CreateStaticMain(TargetWriter wr);
-    protected abstract BlockTargetWriter CreateModule(string moduleName, bool isExtern, TargetWriter wr);
+    protected abstract BlockTargetWriter CreateModule(string moduleName, bool isExtern, string/*?*/ libraryName, TargetWriter wr);  // "libraryName" is null if "isExtern" is false
     protected abstract string GetHelperModuleName();
     protected BlockTargetWriter CreateClass(string name, List<TypeParameter>/*?*/ typeParameters, out TargetWriter instanceFieldsWriter, TargetWriter wr) {
       return CreateClass(name, false, null, typeParameters, null, null, out instanceFieldsWriter, wr);
@@ -139,10 +139,10 @@ namespace Microsoft.Dafny {
     protected abstract BlockTargetWriter/*?*/ CreateGetter(string name, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, TargetWriter wr);  // returns null iff !createBody
     protected abstract BlockTargetWriter/*?*/ CreateGetterSetter(string name, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, out TargetWriter setterWriter, TargetWriter wr);  // if createBody, then result and setterWriter are non-null, else both are null
     protected abstract void EmitJumpToTailCallStart(TargetWriter wr);
-    protected abstract string TypeName(Type type, TextWriter wr, Bpl.IToken tok);
+    protected abstract string TypeName(Type type, TextWriter wr, Bpl.IToken tok, MemberDecl/*?*/ member = null);
     public abstract string TypeInitializationValue(Type type, TextWriter/*?*/ wr, Bpl.IToken/*?*/ tok, bool inAutoInitContext);
     protected abstract string TypeName_UDT(string fullCompileName, List<Type> typeArgs, TextWriter wr, Bpl.IToken tok);
-    protected abstract string TypeName_Companion(Type type, TextWriter wr, Bpl.IToken tok);
+    protected abstract string TypeName_Companion(Type type, TextWriter wr, Bpl.IToken tok, MemberDecl/*?*/ member);
 
 
     protected abstract void DeclareField(string name, bool isStatic, bool isConst, Type type, Bpl.IToken tok, string rhs, TargetWriter wr);
@@ -299,20 +299,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(name != null);
       return name;
     }
-    protected virtual string FullTypeName(UserDefinedType udt) {
-      Contract.Requires(udt != null);
-      if (udt is ArrowType) {
-        return ArrowType.Arrow_FullCompileName;
-      }
-      var cl = udt.ResolvedClass;
-      if (cl == null) {
-        return IdProtect(udt.CompileName);
-      } else if (cl.Module.IsDefaultModule) {
-        return IdProtect(cl.CompileName);
-      } else {
-        return IdProtect(cl.Module.CompileName) + "." + IdProtect(cl.CompileName);
-      }
-    }
+    protected abstract string FullTypeName(UserDefinedType udt, MemberDecl/*?*/ member = null);
     protected abstract void EmitThis(TargetWriter wr);
     protected virtual void EmitITE(Expression guard, Expression thn, Expression els, bool inLetExprBody, TargetWriter wr) {
       wr.Write("(");
@@ -390,8 +377,18 @@ namespace Microsoft.Dafny {
           // the purpose of an abstract module is to skip compilation
           continue;
         }
-        var moduleIsExtern = !DafnyOptions.O.DisallowExterns && Attributes.Contains(m.Attributes, "extern");
-        var wr = CreateModule(m.CompileName, moduleIsExtern, wrx);
+        var moduleIsExtern = false;
+        string libraryName = null;
+        if (!DafnyOptions.O.DisallowExterns) {
+          var args = Attributes.FindExpressions(m.Attributes, "extern");
+          if (args != null) {
+            if (args.Count == 2) {
+              libraryName = (string)(args[1] as StringLiteralExpr)?.Value;
+            }
+            moduleIsExtern = true;
+          }
+        }
+        var wr = CreateModule(m.CompileName, moduleIsExtern, libraryName, wrx);
         foreach (TopLevelDecl d in m.TopLevelDecls) {
           bool compileIt = true;
           if (Attributes.ContainsBool(d.Attributes, "compile", ref compileIt) && !compileIt) {
@@ -433,10 +430,22 @@ namespace Microsoft.Dafny {
             CompileClassMembers(trait, w, instanceFieldsWriter, staticMemberWriter);
           } else if (d is ClassDecl) {
             var cl = (ClassDecl)d;
-            var classIsExtern = !DafnyOptions.O.DisallowExterns && Attributes.Contains(cl.Attributes, "extern");
-            TargetWriter instanceFieldsWriter;
-            var w = CreateClass(IdName(cl), classIsExtern, cl.FullName, cl.TypeArgs, cl.TraitsTyp, cl.tok, out instanceFieldsWriter, wr);
-            CompileClassMembers(cl, w, instanceFieldsWriter, w);
+            var include = true;
+            if (cl.IsDefaultClass) {
+              Predicate<MemberDecl> compilationMaterial = x =>
+                !x.IsGhost && (DafnyOptions.O.DisallowExterns || !Attributes.Contains(x.Attributes, "extern"));
+              include = cl.Members.Exists(compilationMaterial) || cl.InheritedMembers.Exists(compilationMaterial);
+            }
+            if (include) {
+              var classIsExtern = !DafnyOptions.O.DisallowExterns && Attributes.Contains(cl.Attributes, "extern");
+              TargetWriter instanceFieldsWriter;
+              var w = CreateClass(IdName(cl), classIsExtern, cl.FullName, cl.TypeArgs, cl.TraitsTyp, cl.tok, out instanceFieldsWriter, wr);
+              CompileClassMembers(cl, w, instanceFieldsWriter, w);
+            } else {
+              // still check that given members satisfy compilation rules
+              var abyss = new TargetWriter();
+              CompileClassMembers(cl, abyss, abyss, abyss);
+            }
           } else if (d is ValuetypeDecl) {
             // nop
           } else if (d is ModuleDecl) {
@@ -2067,7 +2076,7 @@ namespace Microsoft.Dafny {
           if (s.Method.IsExtern(out qual, out compileName) && qual != null) {
             wr.Write("{0}.{1}", qual, compileName);
           } else {
-            wr.Write(TypeName_Companion(s.Receiver.Type, wr, s.Tok));
+            wr.Write(TypeName_Companion(s.Receiver.Type, wr, s.Tok, s.Method));
             wr.Write(".{0}", IdName(s.Method));
           }
         }
@@ -2276,7 +2285,7 @@ namespace Microsoft.Dafny {
           GetSpecialFieldInfo(sf.SpecialId, sf.IdParam, out compiledName, out preStr, out postStr);
           wr.Write(preStr);
           if (sf.IsStatic) {
-            wr.Write(TypeName_Companion(e.Obj.Type, wr, e.tok));
+            wr.Write(TypeName_Companion(e.Obj.Type, wr, e.tok, sf));
           } else {
             TrParenExpr(e.Obj, wr, inLetExprBody);
           }
@@ -2817,7 +2826,7 @@ namespace Microsoft.Dafny {
       Function f = e.Function;
 
       if (f.IsStatic) {
-        twr.Write(TypeName_Companion(e.Receiver.Type, wr, e.tok));
+        twr.Write(TypeName_Companion(e.Receiver.Type, wr, e.tok, f));
       } else {
         twr.Write("(");
         tr(e.Receiver, wr, inLetExprBody);
