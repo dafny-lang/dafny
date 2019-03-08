@@ -143,7 +143,7 @@ namespace Microsoft.Dafny
       return ExitValue.VERIFIED;
     }
 
-    static ExitValue ProcessFiles(IList<DafnyFile/*!*/>/*!*/ dafnyFiles, ReadOnlyCollection<string> otherFileNames, 
+    static ExitValue ProcessFiles(IList<DafnyFile/*!*/>/*!*/ dafnyFiles, ReadOnlyCollection<string> otherFileNames,
                                   ErrorReporter reporter, bool lookForSnapshots = true, string programId = null)
    {
       Contract.Requires(cce.NonNullElements(dafnyFiles));
@@ -182,7 +182,7 @@ namespace Microsoft.Dafny
         }
         return exitValue;
       }
-      
+
       Dafny.Program dafnyProgram;
       string programName = dafnyFileNames.Count == 1 ? dafnyFileNames[0] : "the program";
       string err = Dafny.Main.ParseCheck(dafnyFiles, programName, reporter, out dafnyProgram);
@@ -317,7 +317,7 @@ namespace Microsoft.Dafny
         statSum.CachedOutOfMemoryCount += stats.Value.CachedOutOfMemoryCount;
         statSum.CachedTimeoutCount += stats.Value.CachedTimeoutCount;
         statSum.CachedVerifiedCount += stats.Value.CachedVerifiedCount;
-        statSum.InconclusiveCount += stats.Value.InconclusiveCount;        
+        statSum.InconclusiveCount += stats.Value.InconclusiveCount;
       }
       ExecutionEngine.printer.WriteTrailer(statSum);
     }
@@ -405,7 +405,7 @@ namespace Microsoft.Dafny
 
 
     #region Output
-    
+
     class DafnyConsolePrinter : ConsolePrinter
     {
       public override void ReportBplError(IToken tok, string message, bool error, TextWriter tw, string category = null)
@@ -431,9 +431,11 @@ namespace Microsoft.Dafny
 
     #region Compilation
 
-    static string WriteDafnyProgramToFile(string dafnyProgramName, string targetProgram, bool completeProgram, TextWriter outputWriter)
+    static string WriteDafnyProgramToFiles(string dafnyProgramName, string targetProgram, bool completeProgram, Dictionary<String, String> otherFiles, TextWriter outputWriter)
     {
       string targetExtension;
+      string baseName = Path.GetFileNameWithoutExtension(dafnyProgramName);
+      string targetBaseDir = "";
       switch (DafnyOptions.O.CompileTarget) {
         case DafnyOptions.CompilationTarget.Csharp:
           targetExtension = "cs";
@@ -443,23 +445,41 @@ namespace Microsoft.Dafny
           break;
         case DafnyOptions.CompilationTarget.Go:
           targetExtension = "go";
+          targetBaseDir = baseName + "-go/src";
           break;
         default:
           Contract.Assert(false);
           throw new cce.UnreachableException();
       }
-      string targetFilename = Path.ChangeExtension(dafnyProgramName, targetExtension);
-      using (TextWriter target = new StreamWriter(new FileStream(targetFilename, System.IO.FileMode.Create))) {
-        target.Write(targetProgram);
-        string relativeTarget = Path.GetFileName(targetFilename);
-        if (completeProgram) {
-          outputWriter.WriteLine("Compiled program written to {0}", relativeTarget);
-        }
-        else {
-          outputWriter.WriteLine("File {0} contains the partially compiled program", relativeTarget);
-        }
+      string targetBaseName = Path.ChangeExtension(baseName, targetExtension);
+      string targetDir = Path.Combine(Path.GetDirectoryName(dafnyProgramName), targetBaseDir);
+      string targetFilename = Path.Combine(targetDir, targetBaseName);
+      WriteFile(targetFilename, targetProgram);
+      string relativeTarget = Path.Combine(targetBaseDir, targetBaseName);
+      if (completeProgram) {
+        outputWriter.WriteLine("Compiled program written to {0}", relativeTarget);
+      }
+      else {
+        outputWriter.WriteLine("File {0} contains the partially compiled program", relativeTarget);
+      }
+
+      foreach (var entry in otherFiles) {
+        var filename = entry.Key;
+        WriteFile(Path.Combine(targetDir, filename), entry.Value);
+        outputWriter.WriteLine("Additional code written to {0}", Path.Combine(targetBaseDir, filename));
       }
       return targetFilename;
+    }
+
+    static void WriteFile(string filename, string text) {
+      var dir = Path.GetDirectoryName(filename);
+      if (dir != "") {
+        Directory.CreateDirectory(dir);
+      }
+      
+      using (TextWriter target = new StreamWriter(new FileStream(filename, System.IO.FileMode.Create))) {
+        target.Write(text);
+      }
     }
 
     /// <summary>
@@ -497,15 +517,28 @@ namespace Microsoft.Dafny
       Method mainMethod;
       var hasMain = compiler.HasMain(dafnyProgram, out mainMethod);
       string targetProgramText;
-      using (var wr = new TargetWriter(0)) {
-        compiler.Compile(dafnyProgram, wr);
-        targetProgramText = wr.ToString();
+      var otherFiles = new Dictionary<string, string>();
+      {
+        var fileQueue = new Queue<FileTargetWriter>();
+        using (var wr = new TargetWriter(0)) {
+          compiler.Compile(dafnyProgram, wr);
+          var sw = new StringWriter();
+          wr.Collect(sw, fileQueue);
+          targetProgramText = sw.ToString();
+        }
+
+        while (fileQueue.Count > 0) {
+          var wr = fileQueue.Dequeue();
+          var sw = new StringWriter();
+          wr.Collect(sw, fileQueue);
+          otherFiles.Add(wr.Filename, sw.ToString());
+        }
       }
       string callToMain = null;
       if (hasMain) {
         using (var wr = new TargetWriter(0)) {
           compiler.EmitCallToMain(mainMethod, wr);
-          callToMain = wr.ToString();
+          callToMain = wr.ToString(); // assume there aren't multiple files just to call main
         }
       }
       bool completeProgram = dafnyProgram.reporter.Count(ErrorLevel.Error) == oldErrorCount;
@@ -515,7 +548,7 @@ namespace Microsoft.Dafny
       if (DafnyOptions.O.SpillTargetCode > 0 || otherFileNames.Count > 0)
       {
         var p = callToMain == null ? targetProgramText : targetProgramText + callToMain;
-        targetFilename = WriteDafnyProgramToFile(dafnyProgramName, p, completeProgram, outputWriter);
+        targetFilename = WriteDafnyProgramToFiles(dafnyProgramName, p, completeProgram, otherFiles, outputWriter);
       }
 
       // compile the program into an assembly

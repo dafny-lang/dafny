@@ -45,4 +45,4 @@ Docs/OnlineTutorial/manuscripts/*.htm
 Docs/OnlineTutorial/manuscripts/*.*.dfy
 Test/js/*.cs
 Test/js/*.js
-Test/js/*.go
+Test/js/*-go

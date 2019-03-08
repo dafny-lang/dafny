@@ -1,15 +1,13 @@
-package main
+package dafny
 
 import (
 	fmt "fmt"
-	big "math/big"
 )
-
-var _ big.Int
 
 type showable interface{ String() string }
 
-func printAny(x interface{}) {
+// PrintAny prints an arbitrary value to standard output.
+func PrintAny(x interface{}) {
 	switch x.(type) {
 	case showable:
 		fmt.Printf("%s", x.(showable).String())
@@ -19,3 +17,7 @@ func printAny(x interface{}) {
 		break
 	}
 }
+
+// The Dummy type is just so that we can generate "var _ dafny.Dummy" to
+// suppress the unused-import error.
+type Dummy struct{}

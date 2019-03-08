@@ -57,7 +57,7 @@ namespace Microsoft.Dafny {
 
     protected override string GetHelperModuleName() => "_dafny";
 
-    protected override TargetWriter CreateClass(string name, bool isExtern, string/*?*/ fullPrintName, List<TypeParameter>/*?*/ typeParameters, List<Type>/*?*/ superClasses, Bpl.IToken tok, out TargetWriter instanceFieldsWriter, TargetWriter wr) {
+    protected override TargetWriter CreateClass(string name, bool isExtern, string/*?*/ fullPrintName, List<TypeParameter>/*?*/ typeParameters, List<Type>/*?*/ superClasses, Bpl.IToken tok, out TargetWriter instanceFieldsWriter, out TargetWriter staticFieldsWriter, TargetWriter wr) {
       wr.Indent();
       var w = wr.NewBlock(string.Format("$module.{0} = class {0}" + (isExtern ? " extends $module.{0}" : ""), name), ";");
       w.Indent();
@@ -65,7 +65,7 @@ namespace Microsoft.Dafny {
       if (typeParameters != null) {
         WriteRuntimeTypeDescriptorsFormals(typeParameters, false, w);
       }
-      instanceFieldsWriter = w.NewBlock(")");
+      instanceFieldsWriter = staticFieldsWriter = w.NewBlock(")");
       if (fullPrintName != null) {
         instanceFieldsWriter.Indent();
         instanceFieldsWriter.WriteLine("this._tname = \"{0}\";", fullPrintName);
@@ -115,7 +115,7 @@ namespace Microsoft.Dafny {
       //   }
 
       TargetWriter instanceFieldsWriter;
-      var w = CreateClass(IdName(iter), iter.TypeArgs, out instanceFieldsWriter, wr);
+      var w = CreateClass(IdName(iter), iter.TypeArgs, out instanceFieldsWriter, out _, wr);
       // here come the fields
       Constructor ct = null;
       foreach (var member in iter.Members) {
@@ -458,21 +458,19 @@ namespace Microsoft.Dafny {
         i = 0;
         foreach (var ctor in dt.Ctors) {
           var thn = EmitIf(string.Format("this.$tag === {0}", i), true, w);
-          using (var guard = new TargetWriter(w.IndentLevel)) {
-            guard.Write("other.$tag === {0}", i);
-            var k = 0;
-            foreach (Formal arg in ctor.Formals) {
-              if (!arg.IsGhost) {
-                string nm = FormalName(arg, k);
-                if (IsDirectlyComparable(arg.Type)) {
-                  guard.Write(" && this.{0} === other.{0}", nm);
-                } else {
-                  guard.Write(" && _dafny.areEqual(this.{0}, other.{0})", nm);
-                }
-                k++;
+          var guard = EmitReturnExpr(thn);
+          guard.Write("other.$tag === {0}", i);
+          var k = 0;
+          foreach (Formal arg in ctor.Formals) {
+            if (!arg.IsGhost) {
+              string nm = FormalName(arg, k);
+              if (IsDirectlyComparable(arg.Type)) {
+                guard.Write(" && this.{0} === other.{0}", nm);
+              } else {
+                guard.Write(" && _dafny.areEqual(this.{0}, other.{0})", nm);
               }
+              k++;
             }
-            EmitReturnExpr(guard.ToString(), thn);
           }
           i++;
         }
@@ -524,8 +522,7 @@ namespace Microsoft.Dafny {
     }
 
     protected override void DeclareNewtype(NewtypeDecl nt, TargetWriter wr) {
-      TargetWriter instanceFieldsWriter;
-      var w = CreateClass(IdName(nt), null, out instanceFieldsWriter, wr);
+      var w = CreateClass(IdName(nt), null, out _, out _, wr);
       if (nt.NativeType != null) {
         w.Indent();
         var wIntegerRangeBody = w.NewBlock("static *IntegerRange(lo, hi)");
@@ -555,8 +552,7 @@ namespace Microsoft.Dafny {
     }
 
     protected override void DeclareSubsetType(SubsetTypeDecl sst, TargetWriter wr) {
-      TargetWriter instanceFieldsWriter;
-      var w = CreateClass(IdName(sst), sst.TypeArgs, out instanceFieldsWriter, wr);
+      var w = CreateClass(IdName(sst), sst.TypeArgs, out _, out _, wr);
       if (sst.WitnessKind == SubsetTypeDecl.WKind.Compiled) { 
         var witness = new TargetWriter(w.IndentLevel);
         TrExpr(sst.Witness, witness, false);

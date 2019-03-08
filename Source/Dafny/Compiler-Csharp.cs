@@ -120,7 +120,7 @@ namespace Microsoft.Dafny
       return Util.Comma(targs, tp => IdName(tp));
     }
 
-    protected override TargetWriter CreateClass(string name, bool isExtern, string/*?*/ fullPrintName, List<TypeParameter>/*?*/ typeParameters, List<Type>/*?*/ superClasses, Bpl.IToken tok, out TargetWriter instanceFieldsWriter, TargetWriter wr) {
+    protected override TargetWriter CreateClass(string name, bool isExtern, string/*?*/ fullPrintName, List<TypeParameter>/*?*/ typeParameters, List<Type>/*?*/ superClasses, Bpl.IToken tok, out TargetWriter instanceFieldsWriter, out TargetWriter staticFieldsWriter, TargetWriter wr) {
       wr.Indent();
       wr.Write("public partial class {0}", name);
       if (typeParameters != null && typeParameters.Count != 0) {
@@ -134,7 +134,7 @@ namespace Microsoft.Dafny
         }
       }
       var w = wr.NewBlock("");
-      instanceFieldsWriter = w;
+      instanceFieldsWriter = staticFieldsWriter = w;
       return w;
     }
 
@@ -183,14 +183,15 @@ namespace Microsoft.Dafny
       //     }
       //   }
 
-      TargetWriter instanceFieldsWriter;
-      var w = CreateClass(IdName(iter), iter.TypeArgs, out instanceFieldsWriter, wr);
+      TargetWriter instanceFieldsWriter, staticFieldsWriter;
+      var w = CreateClass(IdName(iter), iter.TypeArgs, out instanceFieldsWriter, out staticFieldsWriter, wr);
       // here come the fields
       Constructor ct = null;
       foreach (var member in iter.Members) {
         var f = member as Field;
         if (f != null && !f.IsGhost) {
-          DeclareField(IdName(f), false, false, f.Type, f.tok, DefaultValue(f.Type, instanceFieldsWriter, f.tok), instanceFieldsWriter);
+          var fw = f.IsStatic ? staticFieldsWriter : instanceFieldsWriter;
+          DeclareField(IdName(f), false, false, f.Type, f.tok, DefaultValue(f.Type, fw, f.tok), fw);
         } else if (member is Constructor) {
           Contract.Assert(ct == null);  // we're expecting just one constructor
           ct = (Constructor)member;
@@ -671,8 +672,7 @@ namespace Microsoft.Dafny
     }
 
     protected override void DeclareNewtype(NewtypeDecl nt, TargetWriter wr) {
-      TargetWriter instanceFieldsWriter;
-      var w = CreateClass(IdName(nt), null, out instanceFieldsWriter, wr);
+      var w = CreateClass(IdName(nt), null, out _, out _, wr);
       if (nt.NativeType != null) {
         w.Indent();
         var wEnum = w.NewNamedBlock("public static System.Collections.Generic.IEnumerable<{0}> IntegerRange(BigInteger lo, BigInteger hi)", GetNativeTypeName(nt.NativeType));
@@ -694,8 +694,7 @@ namespace Microsoft.Dafny
     }
 
     protected override void DeclareSubsetType(SubsetTypeDecl sst, TargetWriter wr) {
-      TargetWriter instanceFieldsWriter;
-      var w = CreateClass(IdName(sst), sst.TypeArgs, out instanceFieldsWriter, wr);
+      var w = CreateClass(IdName(sst), sst.TypeArgs, out _, out _, wr);
       if (sst.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
         var sw = new TargetWriter(w.IndentLevel);
         TrExpr(sst.Witness, sw, false);

@@ -19,15 +19,60 @@ namespace Microsoft.Dafny {
     : base(reporter) {
     }
 
+    GoCompiler(GoCompiler parent, string moduleName) : base(parent.Reporter) {
+      ModuleName = moduleName;
+    }
+
     public override string TargetLanguage => "Go";
+
+    private readonly TargetWriter ImportWriter = new TargetWriter(4);
+    private readonly TargetWriter ImportDummyWriter = new TargetWriter();
+    private readonly string ModuleName = "_module";
 
     protected override void EmitHeader(Program program, TargetWriter wr) {
       wr.WriteLine("// Dafny program {0} compiled into Go", program.Name);
-      ReadRuntimeSystem("DafnyRuntime.go", wr);
+      wr.WriteLine("package main");
+      wr.WriteLine();
+      EmitImports(wr);
+      wr.WriteLine();
+      var rt = wr.NewFile("dafny/dafny.go");
+      ReadRuntimeSystem("DafnyRuntime.go", rt);
+    }
+
+    void EmitModuleHeader(string moduleName, TargetWriter wr) {
+      wr.WriteLine("// Package {0}", moduleName);
+      wr.WriteLine("// Dafny module {0} compiled into Go", moduleName);
+      wr.WriteLine();
+      wr.WriteLine("package {0}", moduleName);
+      wr.WriteLine();
+      EmitImports(wr);
+      wr.WriteLine();
+    }
+
+    void EmitImports(TargetWriter wr) {
+      wr.WriteLine("import (");
+      wr.WriteLine("    big \"math/big\"");
+      wr.WriteLine("    dafny \"dafny\"");
+      wr.Append(ImportWriter);
+      wr.WriteLine(")");
+      wr.WriteLine("var _ big.Int");
+      wr.WriteLine("var _ dafny.Dummy");
+      wr.Append(ImportDummyWriter);
+      wr.WriteLine();
+      wr.WriteLine("type Dummy struct{}");
     }
 
     public override void EmitCallToMain(Method mainMethod, TextWriter wr) {
-      wr.WriteLine("func main() {{ {0}() }}", IdName(mainMethod));
+      // We're not actually in the default module, we're in the special package
+      // main, so make a child compiler with the correct value for ModuleName
+      // so we can get the right companion name
+
+      var subcomp = new GoCompiler(this, "main");
+      var companion = subcomp.TypeName_Companion(mainMethod.EnclosingClass as ClassDecl, wr, mainMethod.tok);
+
+      wr.WriteLine("func main() {");
+      wr.WriteLine("  {0}.{1}()", companion, IdName(mainMethod));
+      wr.WriteLine("}");
     }
       
     TargetWriter CreateDescribedSection(string desc, TargetWriter wr, params object[] args) {
@@ -44,16 +89,48 @@ namespace Microsoft.Dafny {
     }
 
     protected override TargetWriter CreateModule(string moduleName, bool isExtern, string/*?*/ libraryName, TargetWriter wr) {
-      return CreateDescribedSection("module {0}", wr, moduleName);
+      if (isExtern) {
+        ImportWriter.Indent();
+        ImportWriter.WriteLine("{0} \"{1}\"", IdProtect(moduleName), libraryName);
+        return new TargetWriter(); // ignore contents of extern module
+      } else {
+        // Go ignores all filenames starting with underscores.  So we're forced
+        // to rewrite "__default" to "default__".
+        var pkgName = moduleName;
+        while (pkgName.StartsWith("_")) {
+          pkgName = pkgName.Substring(1) + "_";
+        }
+
+        // FIXME: This won't work for nested modules.  Add another variable
+        // like ImportWriter?
+        var filename = string.Format("{0}/{0}.go", pkgName);
+        var w = wr.NewFile(filename);
+        // Create a new Compiler so it has its own ImportWriter
+        var subcomp = new GoCompiler(this, moduleName);
+        subcomp.EmitModuleHeader(moduleName, w);
+
+        EmitImport(moduleName, pkgName);
+
+        return w;
+      }
     }
 
-    protected override string GetHelperModuleName() => "_dafny";
+    protected void EmitImport(string id, string pkg) {
+      ImportWriter.Indent();
+      ImportWriter.WriteLine("{0} \"{1}\"", IdProtect(id), pkg);
 
-    protected override TargetWriter CreateClass(string name, bool isExtern, string/*?*/ fullPrintName, List<TypeParameter>/*?*/ typeParameters, List<Type>/*?*/ superClasses, Bpl.IToken tok, out TargetWriter instanceFieldsWriter, TargetWriter wr) {
+      ImportDummyWriter.Indent();
+      ImportDummyWriter.WriteLine("var _ {0}.Dummy", IdProtect(id));
+    }
+
+    protected override string GetHelperModuleName() => "dafny";
+
+    protected override TargetWriter CreateClass(string name, bool isExtern, string/*?*/ fullPrintName, List<TypeParameter>/*?*/ typeParameters, List<Type>/*?*/ superClasses, Bpl.IToken tok, out TargetWriter instanceFieldsWriter, out TargetWriter staticFieldsWriter, TargetWriter wr) {
       wr.Indent();
       var w = CreateDescribedSection("class {0}", wr, name);
       
-      var ifw = w.NewBlock(string.Format("type {0} struct", name), "");
+      var ifw = w.NewBlock(string.Format("type {0} struct", name));
+
       instanceFieldsWriter = ifw;
       if (typeParameters != null) {
         WriteRuntimeTypeDescriptorsFields(typeParameters, false, ifw);
@@ -68,14 +145,15 @@ namespace Microsoft.Dafny {
         }
       }
 
+      staticFieldsWriter = w.NewBlock(string.Format("type companionStruct_{0}_ struct", name));
       wr.Indent();
-      wr.WriteLine("var _ {0} // suppress unused error", name);
+      wr.WriteLine("var Companion_{0}_ companionStruct_{0}_", name);
       return w;
     }
 
     protected override BlockTargetWriter CreateTrait(string name, List<Type>/*?*/ superClasses, Bpl.IToken tok, out TargetWriter instanceFieldsWriter, out TargetWriter staticMemberWriter, TargetWriter wr) {
       wr.Indent();
-      var w = wr.NewBlock(string.Format("type {0} interface", IdProtect(name)), ";");
+      var w = wr.NewBlock(string.Format("type {0} interface", IdProtect(name)));
       w.Indent();
       instanceFieldsWriter = w;
       staticMemberWriter = wr;
@@ -83,75 +161,8 @@ namespace Microsoft.Dafny {
     }
 
     protected override BlockTargetWriter CreateIterator(IteratorDecl iter, TargetWriter wr) {
-      // An iterator is compiled as follows:
-      //   public class MyIteratorExample
-      //   {
-      //     public T q;  // in-parameter
-      //     public T x;  // yield-parameter
-      //     public int y;  // yield-parameter
-      //     IEnumerator<object> _iter;
-      //
-      //     public void _MyIteratorExample(T q) {
-      //       this.q = q;
-      //       _iter = TheIterator();
-      //     }
-      //
-      //     public void MoveNext(out bool more) {
-      //       more =_iter.MoveNext();
-      //     }
-      //
-      //     private IEnumerator<object> TheIterator() {
-      //       // the translation of the body of the iterator, with each "yield" turning into a "yield return null;"
-      //       yield break;
-      //     }
-      //   }
-
-      TargetWriter instanceFieldsWriter;
-      var w = CreateClass(IdName(iter), iter.TypeArgs, out instanceFieldsWriter, wr);
-      // here come the fields
-      Constructor ct = null;
-      foreach (var member in iter.Members) {
-        var f = member as Field;
-        if (f != null && !f.IsGhost) {
-          DeclareField(IdName(f), false, false, f.Type, f.tok, DefaultValue(f.Type, instanceFieldsWriter, f.tok), instanceFieldsWriter);
-        } else if (member is Constructor) {
-          Contract.Assert(ct == null);  // we're expecting just one constructor
-          ct = (Constructor)member;
-        }
-      }
-      Contract.Assert(ct != null);  // we do expect a constructor
-      instanceFieldsWriter.Indent();
-      instanceFieldsWriter.WriteLine("this._iter = undefined;");
-
-      // here's the initializer method
-      w.Indent(); w.Write("{0}(", IdName(ct));
-      string sep = "";
-      foreach (var p in ct.Ins) {
-        if (!p.IsGhost) {
-          // here we rely on the parameters and the corresponding fields having the same names
-          w.Write("{0}{1}", sep, IdName(p));
-          sep = ", ";
-        }
-      }
-      using (var wBody = w.NewBlock(")")) {
-        foreach (var p in ct.Ins) {
-          if (!p.IsGhost) {
-            wBody.Indent();
-            wBody.WriteLine("this.{0} = {0};", IdName(p));
-          }
-        }
-        wBody.Indent(); wBody.WriteLine("this.__iter = this.TheIterator();");
-      }
-      // here are the enumerator methods
-      w.Indent();
-      using (var wBody = w.NewBlock("MoveNext()")) {
-        wBody.Indent(); wBody.WriteLine("let r = this.__iter.next();");
-        wBody.Indent(); wBody.WriteLine("return !r.done;");
-      }
-      w.Indent();
-      var wIter = w.NewBlock("*TheIterator()");
-      wIter.Indent(); wIter.WriteLine("let _this = this;");
-      return wIter;
+      Error(iter.tok, "Iterators not implemented for Go", wr);
+      return wr.NewBlock("_error__iterator__ {0}", iter.Name);
     }
 
     protected override void DeclareDatatype(DatatypeDecl dt, TargetWriter wr) {
@@ -450,21 +461,19 @@ namespace Microsoft.Dafny {
         i = 0;
         foreach (var ctor in dt.Ctors) {
           var thn = EmitIf(string.Format("this.$tag === {0}", i), true, w);
-          using (var guard = new TargetWriter(w.IndentLevel)) {
-            guard.Write("other.$tag === {0}", i);
-            var k = 0;
-            foreach (Formal arg in ctor.Formals) {
-              if (!arg.IsGhost) {
-                string nm = FormalName(arg, k);
-                if (IsDirectlyComparable(arg.Type)) {
-                  guard.Write(" && this.{0} === other.{0}", nm);
-                } else {
-                  guard.Write(" && _dafny.areEqual(this.{0}, other.{0})", nm);
-                }
-                k++;
+          var guard = EmitReturnExpr(thn);
+          guard.Write("other.$tag === {0}", i);
+          var k = 0;
+          foreach (Formal arg in ctor.Formals) {
+            if (!arg.IsGhost) {
+              string nm = FormalName(arg, k);
+              if (IsDirectlyComparable(arg.Type)) {
+                guard.Write(" && this.{0} === other.{0}", nm);
+              } else {
+                guard.Write(" && _dafny.areEqual(this.{0}, other.{0})", nm);
               }
+              k++;
             }
-            EmitReturnExpr(guard.ToString(), thn);
           }
           i++;
         }
@@ -516,8 +525,7 @@ namespace Microsoft.Dafny {
     }
 
     protected override void DeclareNewtype(NewtypeDecl nt, TargetWriter wr) {
-      TargetWriter instanceFieldsWriter;
-      var w = CreateClass(IdName(nt), null, out instanceFieldsWriter, wr);
+      var w = CreateClass(IdName(nt), null, out _, out _, wr);
       if (nt.NativeType != null) {
         w.Indent();
         var wIntegerRangeBody = w.NewBlock("static *IntegerRange(lo, hi)");
@@ -547,8 +555,7 @@ namespace Microsoft.Dafny {
     }
 
     protected override void DeclareSubsetType(SubsetTypeDecl sst, TargetWriter wr) {
-      TargetWriter instanceFieldsWriter;
-      var w = CreateClass(IdName(sst), sst.TypeArgs, out instanceFieldsWriter, wr);
+      var w = CreateClass(IdName(sst), sst.TypeArgs, out _, out _, wr);
       if (sst.WitnessKind == SubsetTypeDecl.WKind.Compiled) { 
         var witness = new TargetWriter(w.IndentLevel);
         TrExpr(sst.Witness, witness, false);
@@ -585,21 +592,28 @@ namespace Microsoft.Dafny {
         return null;
       }
       
-      wr.Indent();
-      wr.Write("func ");
-      if (!m.IsStatic) {
-        wr.Write("(_this * {0}) ", IdName(m.EnclosingClass));
+      string receiver;
+      if (m.IsStatic) {
+        receiver = string.Format("companionStruct_{0}_", IdName(m.EnclosingClass));
+      } else {
+        receiver = string.Format("* {0}", IdName(m.EnclosingClass));
       }
-      wr.Write("{0}(", IdName(m));
+      
+      wr.Indent();
+      wr.Write("func (_this {0}) {1}(", receiver, IdName(m));
       var nTypes = WriteRuntimeTypeDescriptorsFormals(m.TypeArgs, false, wr);
       int nIns = WriteFormals(nTypes == 0 ? "" : ", ", m.Ins, wr);
-      var w = wr.NewBlock(")");
+      wr.Write(")");
+
+      WriteOutTypes(m.Outs, null, wr, null);
+
+      var w = wr.NewBlock("");
 
       if (m.IsTailRecursive) {
         w.Indent();
-        w = w.NewBlock("TAIL_CALL_START: for");
+        w.WriteLine("goto TAIL_CALL_START");
         w.Indent();
-        w.WriteLine("if false { break TAIL_CALL_START } // suppress unused error");
+        w = w.NewBlock("TAIL_CALL_START: for");
       }
       var r = new TargetWriter(w.IndentLevel);
       EmitReturn(m.Outs, r);
@@ -611,12 +625,46 @@ namespace Microsoft.Dafny {
       if (!createBody) {
         return null;
       }
+      
       wr.Indent();
-      wr.Write("func {0}(", name);
+      wr.Write("func ");
+      
+      if (member != null && isStatic) {
+        wr.Write("(_this companionStruct_{0}_) ", member.EnclosingClass.CompileName);
+      }
+      
+      wr.Write("{0}(", name);
       var nTypes = typeArgs == null ? 0 : WriteRuntimeTypeDescriptorsFormals(typeArgs, false, wr);
       int nIns = WriteFormals(nTypes == 0 ? "" : ", ", formals, wr);
-      var w = wr.NewBlock(")", ";");
+      wr.Write(")");
+
+      WriteOutTypes(formals, resultType, wr, tok);
+
+      var w = wr.NewBlock("");
       return w;
+    }
+
+    protected void WriteOutTypes(List<Formal> formals, Type/*?*/ resultType, TargetWriter wr, Bpl.IToken tok) {
+      var outTypes = new List<Type>();
+      if (resultType != null) {
+        outTypes.Add(resultType);
+      }
+      
+      foreach (Formal f in formals) {
+        if (!f.InParam && !f.IsGhost) {
+          outTypes.Add(f.Type);
+        }
+      }
+      if (outTypes.Count > 0) {
+        wr.Write(' ');
+        if (outTypes.Count > 1) {
+          wr.Write('(');
+        }
+        wr.Write(Util.Comma(", ", outTypes, ty => TypeName(ty, wr, tok)));
+        if (outTypes.Count > 1) {
+          wr.Write(')');
+        }
+      }
     }
 
     List<TypeParameter> UsedTypeParameters(DatatypeDecl dt) {
@@ -794,7 +842,7 @@ namespace Microsoft.Dafny {
 
     protected override void EmitJumpToTailCallStart(TargetWriter wr) {
       wr.Indent();
-      wr.WriteLine("continue TAIL_CALL_START;");
+      wr.WriteLine("continue TAIL_CALL_START");
     }
 
     protected override string TypeName(Type type, TextWriter wr, Bpl.IToken tok, MemberDecl/*?*/ member = null) {
@@ -885,12 +933,12 @@ namespace Microsoft.Dafny {
       } else if (xType is CharType) {
         return "'D'";
       } else if (xType is IntType || xType is BigOrdinalType) {
-        return "&big.Int {}";
+        return "&big.Int{}";
       } else if (xType is RealType) {
-        return "_dafny.BigRational.ZERO";
+        return "&big.Flt{}";
       } else if (xType is BitvectorType) {
         var t = (BitvectorType)xType;
-        return t.NativeType != null ? "0" : "&big.Int {}";
+        return t.NativeType != null ? "0" : "&big.Int{}";
       } else if (xType is SetType) {
         return "_dafny.Set.Empty";
       } else if (xType is MultiSetType) {
@@ -978,9 +1026,15 @@ namespace Microsoft.Dafny {
       return s;
     }
 
-    protected override string TypeName_Companion(Type type, TextWriter wr, Bpl.IToken tok, MemberDecl/*?*/ member) {
-      // There are no companion classes for JavaScript
-      return TypeName(type, wr, tok, member);
+    protected override string/*?*/ TypeName_Companion(Type type, TextWriter wr, Bpl.IToken tok, MemberDecl/*?*/ member) {
+      // FIXME This is a hacky bit of string munging.
+      var name = TypeName(type, wr, tok);
+      var periodIx = name.LastIndexOf('.');
+      if (periodIx >= 0) {
+        return name.Substring(0, periodIx+1) + "Companion_" + name.Substring(periodIx+1) + "_";
+      } else {
+        return "Companion_" + name + "_";
+      }
     }
 
     // ----- Declarations -------------------------------------------------------------
@@ -997,7 +1051,7 @@ namespace Microsoft.Dafny {
 
     protected override bool DeclareFormal(string prefix, string name, Type type, Bpl.IToken tok, bool isInParam, TextWriter wr) {
       if (isInParam) {
-        wr.Write("{0}{1}", prefix, name);
+        wr.Write("{0}{1} {2}", prefix, name, TypeName(type, wr, tok));
         return true;
       } else {
         return false;
@@ -1006,30 +1060,38 @@ namespace Microsoft.Dafny {
 
     protected override void DeclareLocalVar(string name, Type/*?*/ type, Bpl.IToken/*?*/ tok, bool leaveRoomForRhs, string/*?*/ rhs, TargetWriter wr) {
       wr.Indent();
-      wr.Write("var {0}{1}", name, type != null ? " " + TypeName(type, wr, tok) : "");
+      wr.Write("var {0}{1}", name, type != null && rhs == null ? " " + TypeName(type, wr, tok) : "");
       
       if (leaveRoomForRhs) {
         Contract.Assert(rhs == null);  // follows from precondition
       } else if (rhs != null) {
         wr.WriteLine(" = {0}", rhs);
       } else {
-        wr.WriteLine("");
+        wr.WriteLine();
       }
+
+      wr.Indent();
+      wr.WriteLine("var _ = {0}", name);
     }
 
     protected override TargetWriter DeclareLocalVar(string name, Type/*?*/ type, Bpl.IToken/*?*/ tok, TargetWriter wr) {
       wr.Indent();
-      wr.Write("var {0}{1} = ", name, type != null ? " " + TypeName(type, wr, tok) : "");
+      wr.Write("var {0} = ", name);
       var w = new TargetWriter(wr.IndentLevel);
       wr.Append(w);
-      wr.WriteLine("");
+      wr.WriteLine();
+      
+      wr.Indent();
+      wr.WriteLine("var _ = {0}", name);
       return w;
     }
 
     protected override bool UseReturnStyleOuts(Method m, int nonGhostOutCount) => true;
 
+    protected override bool SupportsMultipleReturns() => true;
+
     protected override void DeclareOutCollector(string collectorVarName, TargetWriter wr) {
-      wr.Write("let {0} = ", collectorVarName);
+      wr.Write("var {0} = ", collectorVarName);
     }
 
     protected override void DeclareLocalOutVar(string name, Type type, Bpl.IToken tok, string rhs, TargetWriter wr) {
@@ -1052,14 +1114,27 @@ namespace Microsoft.Dafny {
     }
 
     protected override string GenerateLhsDecl(string target, Type/*?*/ type, TextWriter wr, Bpl.IToken tok) {
-      return "let " + target;
+      return "var " + target;
+    }
+
+    protected override void EmitAssignment(string lhs, string rhs, TargetWriter wr) {
+      wr.Indent();
+      wr.WriteLine("{0} = {1}", lhs, rhs);
+    }
+    protected override void EmitAssignmentRhs(string rhs, TargetWriter wr) {
+      wr.WriteLine(" = {0}", rhs);
+    }
+    protected override void EmitAssignmentRhs(Expression rhs, bool inLetExprBody, TargetWriter wr) {
+      wr.Write(" = ");
+      TrExpr(rhs, wr, inLetExprBody);
+      wr.WriteLine();
     }
 
     // ----- Statements -------------------------------------------------------------
 
     protected override void EmitPrintStmt(TargetWriter wr, Expression arg) {
       wr.Indent();
-      wr.Write("printAny(");
+      wr.Write("dafny.PrintAny(");
       TrExpr(arg, wr, false);
       wr.WriteLine(")");
     }
@@ -1069,10 +1144,8 @@ namespace Microsoft.Dafny {
       wr.Indent();
       if (outParams.Count == 0) {
         wr.WriteLine("return");
-      } else if (outParams.Count == 1) {
-        wr.WriteLine("return {0}", IdName(outParams[0]));
       } else {
-        wr.WriteLine("return [{0}]", Util.Comma(outParams, IdName));
+        wr.WriteLine("return {0}", Util.Comma(outParams, IdName));
       }
     }
 
@@ -1115,12 +1188,12 @@ namespace Microsoft.Dafny {
 
     protected override void EmitIncrementVar(string varName, TargetWriter wr) {
       wr.Indent();
-      wr.WriteLine("{0} = {0}.plus(1);", varName);
+      wr.WriteLine("{0} = new(big.Int).Add({0}, big.NewInt(1))", varName);
     }
 
     protected override void EmitDecrementVar(string varName, TargetWriter wr) {
       wr.Indent();
-      wr.WriteLine("{0} = {0}.minus(1);", varName);
+      wr.WriteLine("{0} = new(big.Int).Sub({0}, big.NewInt(1))", varName);
     }
 
     protected override string GetQuantifierName(string bvType) {
@@ -1321,47 +1394,32 @@ namespace Microsoft.Dafny {
     public static string PublicIdProtect(string name) {
       Contract.Requires(name != null);
       switch (name) {
-        case "arguments":
-        case "await":
-        case "boolean":
-        case "byte":
-        case "catch":
+        case "break":
+        case "case":
+        case "chan":
+        case "const":
         case "continue":
-        case "debugger":
         case "default":
-        case "delete":
-        case "do":
-        case "double":
-        case "enum":
-        case "eval":
-        case "final":
-        case "finally":
-        case "float":
+        case "defer":
+        case "else":
+        case "fallthrough":
         case "for":
+        case "func":
+        case "go":
         case "goto":
-        case "implements":
-        case "instanceof":
+        case "if":
+        case "import":
         case "interface":
-        case "let":
-        case "long":
-        case "native":
+        case "map":
         case "package":
-        case "private":
-        case "protected":
-        case "public":
-        case "short":
-        case "super":
+        case "range":
+        case "return":
+        case "select":
+        case "struct":
         case "switch":
-        case "synchronized":
-        case "throw":
-        case "throws":
-        case "transient":
-        case "try":
-        case "typeof":
-        case "void":
-        case "volatile":
-        case "with":
-          return "_$$_" + name;
+        case "type":
+        case "var":
+          return "__" + name;
         default:
           return name;
       }
@@ -1381,12 +1439,28 @@ namespace Microsoft.Dafny {
         Contract.Assert(!cl.Module.IsDefaultModule);  // default module is not marked ":extern"
         return IdProtect(cl.Module.CompileName);
       } else {
-        return IdProtect(cl.Module.CompileName) + "." + IdProtect(cl.CompileName);
+        if (this.ModuleName == cl.Module.CompileName) {
+          return IdProtect(cl.CompileName);
+        } else {
+          return IdProtect(cl.Module.CompileName) + "." + IdProtect(cl.CompileName);
+        }
       }
     }
 
     protected override void EmitThis(TargetWriter wr) {
       wr.Write("_this");
+    }
+
+    protected override void EmitITE(Expression guard, Expression thn, Expression els, bool inLetExprBody, TargetWriter wr) {
+      Contract.Requires(thn.Type != null);
+
+      wr.Write("(func () {0} {{ if ", TypeName(thn.Type, wr, null));
+      TrExpr(guard, wr, inLetExprBody);
+      wr.Write(" { return ");
+      TrExpr(thn, wr, inLetExprBody);
+      wr.Write(" }; return ");
+      TrExpr(els, wr, inLetExprBody);
+      wr.Write(" })() ");
     }
 
     protected override void EmitDatatypeValue(DatatypeValue dtv, string arguments, TargetWriter wr) {
@@ -1761,13 +1835,12 @@ namespace Microsoft.Dafny {
 
         case BinaryExpr.ResolvedOpcode.EqCommon: {
             if (IsHandleComparison(tok, e0, e1, errorWr)) {
-              opString = "===";
+              opString = "==";
             } else if (IsDirectlyComparable(e0.Type)) {
-              opString = "===";
-            } else if (e0.Type.IsIntegerType || e0.Type.IsBitVectorType) {
-              callString = "isEqualTo";
-            } else if (e0.Type.IsRealType) {
-              callString = "equals";
+              opString = "==";
+            } else if (e0.Type.IsIntegerType || e0.Type.IsBitVectorType || e0.Type.IsRealType) {
+              callString = "Cmp";
+              postOpString = " == 0";
             } else {
               staticCallString = "_dafny.areEqual";
             }
@@ -1778,12 +1851,9 @@ namespace Microsoft.Dafny {
               opString = "!==";
             } else if (IsDirectlyComparable(e0.Type)) {
               opString = "!==";
-            } else if (e0.Type.IsIntegerType) {
-              preOpString = "!";
-              callString = "isEqualTo";
-            } else if (e0.Type.IsRealType) {
-              preOpString = "!";
-              callString = "equals";
+            } else if (e0.Type.IsIntegerType || e0.Type.IsRealType) {
+              callString = "Cmp";
+              postOpString = " != 0";
             } else {
               preOpString = "!";
               staticCallString = "_dafny.areEqual";
@@ -1794,29 +1864,26 @@ namespace Microsoft.Dafny {
         case BinaryExpr.ResolvedOpcode.Lt:
         case BinaryExpr.ResolvedOpcode.LtChar:
           if (e0.Type.IsIntegerType || e0.Type.IsRealType) {
-            callString = "isLessThan";
+            callString = "Cmp";
+            postOpString = " < 0";
           } else {
             opString = "<";
           }
           break;
         case BinaryExpr.ResolvedOpcode.Le:
         case BinaryExpr.ResolvedOpcode.LeChar:
-          if (e0.Type.IsIntegerType) {
-            callString = "isLessThanOrEqualTo";
-          } else if (e0.Type.IsRealType) {
-            callString = "isAtMost";
+          if (e0.Type.IsIntegerType || e0.Type.IsRealType) {
+            callString = "Cmp";
+            postOpString = " <= 0";
           } else {
             opString = "<=";
           }
           break;
         case BinaryExpr.ResolvedOpcode.Ge:
         case BinaryExpr.ResolvedOpcode.GeChar:
-          if (e0.Type.IsIntegerType) {
-            callString = "isLessThanOrEqualTo";
-            reverseArguments = true;
-          } else if (e0.Type.IsRealType) {
-            callString = "isAtMost";
-            reverseArguments = true;
+          if (e0.Type.IsIntegerType || e0.Type.IsRealType) {
+            callString = "Cmp";
+            postOpString = " >= 0";
           } else {
             opString = ">=";
           }
@@ -1824,8 +1891,8 @@ namespace Microsoft.Dafny {
         case BinaryExpr.ResolvedOpcode.Gt:
         case BinaryExpr.ResolvedOpcode.GtChar:
           if (e0.Type.IsIntegerType || e0.Type.IsRealType) {
-            callString = "isLessThan";
-            reverseArguments = true;
+            callString = "Cmp";
+            postOpString = " > 0";
           } else {
             opString = ">";
           }
@@ -1860,25 +1927,25 @@ namespace Microsoft.Dafny {
           break;
         case BinaryExpr.ResolvedOpcode.Add:
           if (resultType.IsIntegerType || resultType.IsRealType || resultType.IsBigOrdinalType) {
-            callString = "plus"; truncateResult = true;
+            staticCallString = "new(big.Int).Add"; truncateResult = true;
           } else if (AsNativeType(resultType) != null) {
             opString = "+";
           } else {
-            callString = "plus"; truncateResult = true;
+            callString = "Plus"; truncateResult = true;
           }
           break;
         case BinaryExpr.ResolvedOpcode.Sub:
           if (resultType.IsIntegerType || resultType.IsRealType || resultType.IsBigOrdinalType) {
-            callString = "minus"; truncateResult = true;
+            staticCallString = "new(big.Int).Sub"; truncateResult = true;
           } else if (AsNativeType(resultType) != null) {
             opString = "-";
           } else {
-            callString = "minus"; truncateResult = true;
+            callString = "Minus"; truncateResult = true;
           }
           break;
         case BinaryExpr.ResolvedOpcode.Mul:
           if (resultType.IsIntegerType || resultType.IsRealType) {
-            callString = "multipliedBy"; truncateResult = true;
+            staticCallString = "new(big.Int).Mul"; truncateResult = true;
           } else if (AsNativeType(resultType) != null) {
             opString = "*";
           } else {
@@ -2174,37 +2241,32 @@ namespace Microsoft.Dafny {
 
     bool SendToNewGoProcess(string dafnyProgramName, string targetProgramText, string/*?*/ callToMain, string targetFilename, ReadOnlyCollection<string> otherFileNames,
       TextWriter outputWriter) {
-      Contract.Requires(targetFilename != null || otherFileNames.Count == 0);
+      Contract.Requires(targetFilename != null && otherFileNames.Count == 0);
 
-      var args = "run " + (targetFilename != null && otherFileNames.Count == 0 ? targetFilename : "");
+      var args = "run " + targetFilename;
       var psi = new ProcessStartInfo("go", args) {
         CreateNoWindow = true,
         UseShellExecute = false,
-        RedirectStandardInput = true,
+        RedirectStandardInput = false,
         RedirectStandardOutput = false,
         RedirectStandardError = false,
       };
+      psi.EnvironmentVariables.Add("GOPATH", GoPath(targetFilename));
 
       try {
-        using (var nodeProcess = Process.Start(psi)) {
-          if (args == "") {
-            foreach (var filename in otherFileNames) {
-              WriteFromFile(filename, nodeProcess.StandardInput);
-            }
-            nodeProcess.StandardInput.Write(targetProgramText);
-            if (callToMain != null) {
-              nodeProcess.StandardInput.Write(callToMain);
-            }
-            nodeProcess.StandardInput.Flush();
-            nodeProcess.StandardInput.Close();
-          }
-          nodeProcess.WaitForExit();
-          return nodeProcess.ExitCode == 0;
+        using (var process = Process.Start(psi)) {
+          process.WaitForExit();
+          return process.ExitCode == 0;
         }
       } catch (System.ComponentModel.Win32Exception e) {
         outputWriter.WriteLine("Error: Unable to start go ({0}): {1}", psi.FileName, e.Message);
         return false;
       }
+    }
+
+    static string GoPath(string filename) {
+      // Filename is Foo-go/src/Foo.go, so go two directories up
+      return Path.GetFullPath(Path.GetDirectoryName(Path.GetDirectoryName(filename)));
     }
   }
 }

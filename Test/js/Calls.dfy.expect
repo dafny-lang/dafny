@@ -10,3 +10,12 @@ Compiled program written to Calls.js
 Running...
 
 5 0 0 false 0 false 0
+
+Dafny program verifier finished with 1 verified, 0 errors
+Compiled program written to Calls-go/src/Calls.go
+Additional code written to Calls-go/src/dafny/dafny.go
+Additional code written to Calls-go/src/System_/System_.go
+Additional code written to Calls-go/src/module_/module_.go
+Running...
+
+5 0 0 false 0 false 0

@@ -69,13 +69,13 @@ namespace Microsoft.Dafny {
     public abstract BlockTargetWriter CreateStaticMain(TargetWriter wr);
     protected abstract TargetWriter CreateModule(string moduleName, bool isExtern, string/*?*/ libraryName, TargetWriter wr);
     protected abstract string GetHelperModuleName();
-    protected TargetWriter CreateClass(string name, List<TypeParameter>/*?*/ typeParameters, out TargetWriter instanceFieldsWriter, TargetWriter wr) {
-      return CreateClass(name, false, null, typeParameters, null, null, out instanceFieldsWriter, wr);
+    protected TargetWriter CreateClass(string name, List<TypeParameter>/*?*/ typeParameters, out TargetWriter instanceFieldsWriter, out TargetWriter staticFieldsWrapper, TargetWriter wr) {
+      return CreateClass(name, false, null, typeParameters, null, null, out instanceFieldsWriter, out staticFieldsWrapper, wr);
     }
     /// <summary>
     /// "tok" can be "null" if "superClasses" is.
     /// </summary>
-    protected abstract TargetWriter CreateClass(string name, bool isExtern, string/*?*/ fullPrintName, List<TypeParameter>/*?*/ typeParameters, List<Type>/*?*/ superClasses, Bpl.IToken tok, out TargetWriter instanceFieldsWriter, TargetWriter wr);
+    protected abstract TargetWriter CreateClass(string name, bool isExtern, string/*?*/ fullPrintName, List<TypeParameter>/*?*/ typeParameters, List<Type>/*?*/ superClasses, Bpl.IToken tok, out TargetWriter instanceFieldsWriter, out TargetWriter staticFieldsWriter, TargetWriter wr);
     /// <summary>
     /// "tok" can be "null" if "superClasses" is.
     /// </summary>
@@ -142,8 +142,10 @@ namespace Microsoft.Dafny {
     protected abstract string TypeName(Type type, TextWriter wr, Bpl.IToken tok, MemberDecl/*?*/ member = null);
     public abstract string TypeInitializationValue(Type type, TextWriter/*?*/ wr, Bpl.IToken/*?*/ tok, bool inAutoInitContext);
     protected abstract string TypeName_UDT(string fullCompileName, List<Type> typeArgs, TextWriter wr, Bpl.IToken tok);
-    protected abstract string TypeName_Companion(Type type, TextWriter wr, Bpl.IToken tok, MemberDecl/*?*/ member);
-
+    protected abstract string/*?*/ TypeName_Companion(Type type, TextWriter wr, Bpl.IToken tok, MemberDecl/*?*/ member);
+    protected string TypeName_Companion(ClassDecl cls, TextWriter wr, Bpl.IToken tok) {
+      return TypeName_Companion(UserDefinedType.FromTopLevelDecl(tok, cls), wr, tok, null);
+    }
 
     protected abstract void DeclareField(string name, bool isStatic, bool isConst, Type type, Bpl.IToken tok, string rhs, TargetWriter wr);
     protected abstract bool DeclareFormal(string prefix, string name, Type type, Bpl.IToken tok, bool isInParam, TextWriter wr);
@@ -178,6 +180,7 @@ namespace Microsoft.Dafny {
     protected abstract TargetWriter DeclareLocalVar(string name, Type/*?*/ type, Bpl.IToken/*?*/ tok, TargetWriter wr);
     protected virtual void DeclareOutCollector(string collectorVarName, TargetWriter wr) { }  // called only for return-style calls
     protected virtual bool UseReturnStyleOuts(Method m, int nonGhostOutCount) => false;
+    protected virtual bool SupportsMultipleReturns() => false;
     protected abstract void DeclareLocalOutVar(string name, Type type, Bpl.IToken tok, string rhs, TargetWriter wr);
     protected virtual void EmitActualOutArg(string actualOutParamName, TextWriter wr) { }  // actualOutParamName is always the name of a local variable; called only for non-return-style outs
     protected virtual void EmitOutParameterSplits(string outCollector, List<string> actualOutParamNames, TargetWriter wr) { }  // called only for return-style calls
@@ -192,9 +195,17 @@ namespace Microsoft.Dafny {
       wr.WriteLine(" = {0};", rhs);
     }
     protected virtual void EmitAssignmentRhs(Expression rhs, bool inLetExprBody, TargetWriter wr) {
-      wr.WriteLine(" = ");
-      TrExpr(rhs, wr, inLetExprBody);
+      var w = EmitAssignmentRhs(wr);
+      TrExpr(rhs, w, inLetExprBody);
+    }
+    protected virtual TargetWriter EmitAssignmentRhs(TargetWriter wr) {
+      var w = new TargetWriter(wr.IndentLevel);
+
+      wr.Write(" = ");
+      wr.Append(w);
       wr.WriteLine(";");
+
+      return w;
     }
     protected virtual void EmitSetterParameter(TargetWriter wr) {
       wr.Write("value");
@@ -202,14 +213,21 @@ namespace Microsoft.Dafny {
     protected abstract void EmitPrintStmt(TargetWriter wr, Expression arg);
     protected abstract void EmitReturn(List<Formal> outParams, TargetWriter wr);
     protected virtual void EmitReturnExpr(Expression expr, bool inLetExprBody, TargetWriter wr) {  // emits "return <expr>;" for function bodies
-      wr.Indent();
-      wr.Write("return ");
-      TrExpr(expr, wr, inLetExprBody);
-      wr.WriteLine(";");
+      var w = EmitReturnExpr(wr);
+      TrExpr(expr, w, inLetExprBody);
     }
     protected virtual void EmitReturnExpr(string returnExpr, TargetWriter wr) {  // emits "return <returnExpr>;" for function bodies
+      var w = EmitReturnExpr(wr);
+      w.Write(returnExpr);
+    }
+    protected virtual TargetWriter EmitReturnExpr(TargetWriter wr) {
+      // emits "return <returnExpr>;" for function bodies
+      var w = new TargetWriter(wr.IndentLevel);
       wr.Indent();
-      wr.WriteLine("return {0};", returnExpr);
+      wr.Write("return ");
+      wr.Append(w);
+      wr.WriteLine(";");
+      return w;
     }
     /// <summary>
     /// Labels the code written to the TargetWriter returned, in such that way that any
@@ -427,7 +445,7 @@ namespace Microsoft.Dafny {
             var trait = (TraitDecl)d;
             TargetWriter instanceFieldsWriter, staticMemberWriter;
             var w = CreateTrait(trait.CompileName, null, null, out instanceFieldsWriter, out staticMemberWriter, wr);
-            CompileClassMembers(trait, w, instanceFieldsWriter, staticMemberWriter);
+            CompileClassMembers(trait, w, instanceFieldsWriter, staticMemberWriter, staticMemberWriter);
           } else if (d is ClassDecl) {
             var cl = (ClassDecl)d;
             var include = true;
@@ -438,13 +456,13 @@ namespace Microsoft.Dafny {
             }
             if (include) {
               var classIsExtern = !DafnyOptions.O.DisallowExterns && Attributes.Contains(cl.Attributes, "extern");
-              TargetWriter instanceFieldsWriter;
-              var w = CreateClass(IdName(cl), classIsExtern, cl.FullName, cl.TypeArgs, cl.TraitsTyp, cl.tok, out instanceFieldsWriter, wr);
-              CompileClassMembers(cl, w, instanceFieldsWriter, w);
+              TargetWriter instanceFieldsWriter, staticFieldsWriter;
+              var w = CreateClass(IdName(cl), classIsExtern, cl.FullName, cl.TypeArgs, cl.TraitsTyp, cl.tok, out instanceFieldsWriter, out staticFieldsWriter, wr);
+              CompileClassMembers(cl, w, instanceFieldsWriter, staticFieldsWriter, w);
             } else {
               // still check that given members satisfy compilation rules
               var abyss = new TargetWriter();
-              CompileClassMembers(cl, abyss, abyss, abyss);
+              CompileClassMembers(cl, abyss, abyss, abyss, abyss);
             }
           } else if (d is ValuetypeDecl) {
             // nop
@@ -588,11 +606,12 @@ namespace Microsoft.Dafny {
       return false;
     }
 
-    void CompileClassMembers(ClassDecl c, TargetWriter wr, TargetWriter instanceFieldsWriter, TargetWriter staticMemberWriter) {
+    void CompileClassMembers(ClassDecl c, TargetWriter wr, TargetWriter instanceFieldsWriter, 
+    TargetWriter staticFieldsWriter, TargetWriter staticMethodWriter) {
       Contract.Requires(c != null);
       Contract.Requires(wr != null);
       Contract.Requires(instanceFieldsWriter != null);
-      Contract.Requires(staticMemberWriter != null);
+      Contract.Requires(staticMethodWriter != null);
 
       CheckHandleWellformed(c, wr);
       foreach (var member in c.InheritedMembers) {
@@ -608,12 +627,10 @@ namespace Microsoft.Dafny {
           var w = CreateGetter(IdName(cf), cf.Type, cf.tok, false, true, wr);
           Contract.Assert(w != null);  // since the previous line asked for a body
           if (cf.Rhs == null) {
-            using (var sw = new TargetWriter()) {
-              // get { return this._{0}; }
-              EmitThis(sw);
-              sw.Write("._{0}", cf.CompileName);
-              EmitReturnExpr(sw.ToString(), w);
-            }
+            var sw = EmitReturnExpr(w);
+            // get { return this._{0}; }
+            EmitThis(sw);
+            sw.Write("._{0}", cf.CompileName);
           } else {
             CompileReturnBody(cf.Rhs, w);
           }
@@ -623,19 +640,19 @@ namespace Microsoft.Dafny {
           DeclareField("_" + f.CompileName, false, false, f.Type, f.tok, DefaultValue(f.Type, instanceFieldsWriter, f.tok, true), instanceFieldsWriter);
           TargetWriter wSet;
           var wGet = CreateGetterSetter(IdName(f), f.Type, f.tok, false, true, out wSet, wr);
-          using (var sw = new TargetWriter()) {
+          {
+            var sw = EmitReturnExpr(wGet);
             // get { return this._{0}; }
             EmitThis(sw);
             sw.Write("._{0}", f.CompileName);
-            EmitReturnExpr(sw.ToString(), wGet);
           }
-          using (var sw = new TargetWriter()) {
+          {
             // set { this._{0} = value; }
             wSet.Indent();
             EmitThis(wSet);
             wSet.Write("._{0}", f.CompileName);
+            var sw = EmitAssignmentRhs(wSet);
             EmitSetterParameter(sw);
-            EmitAssignmentRhs(sw.ToString(), wSet);
           }
         } else if (member is Function) {
           var f = (Function)member;
@@ -662,7 +679,7 @@ namespace Microsoft.Dafny {
             var cf = (ConstantField)f;
             BlockTargetWriter wBody;
             if (cf.IsStatic) {
-              wBody = CreateGetter(IdName(cf), cf.Type, cf.tok, true, true, staticMemberWriter);
+              wBody = CreateGetter(IdName(cf), cf.Type, cf.tok, true, true, staticMethodWriter);
               Contract.Assert(wBody != null);  // since the previous line asked for a body
             } else if (c is TraitDecl) {
               wBody = CreateGetter(IdName(cf), cf.Type, cf.tok, false, false, wr);
@@ -680,10 +697,9 @@ namespace Microsoft.Dafny {
               if (cf.Rhs != null) {
                 CompileReturnBody(cf.Rhs, wBody);
               } else if (!cf.IsStatic) {
-                var sw = new TargetWriter();
+                var sw = EmitReturnExpr(wBody);
                 EmitThis(sw);
                 EmitMemberSelect(cf, true, sw);
-                EmitReturnExpr(sw.ToString(), wBody);
               } else {
                 EmitReturnExpr(DefaultValue(cf.Type, wBody, cf.tok, true), wBody);
               }
@@ -715,8 +731,8 @@ namespace Microsoft.Dafny {
           } else if (c is TraitDecl && !f.IsStatic) {
             var w = CreateFunction(IdName(f), f.TypeArgs, f.Formals, f.ResultType, f.tok, false, false, f, wr);
             Contract.Assert(w == null);  // since we requested no body
-          } else if (c is TraitDecl && f.IsStatic) {
-            CompileFunction(f, staticMemberWriter);
+          } else if (f.IsStatic) {
+            CompileFunction(f, staticMethodWriter);
           } else {
             CompileFunction(f, wr);
           }
@@ -740,8 +756,8 @@ namespace Microsoft.Dafny {
           } else if (c is TraitDecl && !m.IsStatic) {
             var w = CreateMethod(m, false, wr);
             Contract.Assert(w == null);  // since we requested no body
-          } else if (c is TraitDecl && m.IsStatic) {
-            CompileMethod(c, m, staticMemberWriter);
+          } else if (m.IsStatic) {
+            CompileMethod(c, m, staticMethodWriter);
           } else {
             CompileMethod(c, m, wr);
           }
@@ -2058,10 +2074,14 @@ namespace Microsoft.Dafny {
           if (!p.IsGhost) {
           }
         }
-        var returnStyleOutCollector = outTmps.Count > 0 && UseReturnStyleOuts(s.Method, outTmps.Count) ? idGenerator.FreshId("_outcollector") : null;
+        bool returnStyleOuts = UseReturnStyleOuts(s.Method, outTmps.Count);
+        var returnStyleOutCollector = outTmps.Count > 0 && returnStyleOuts && !SupportsMultipleReturns() ? idGenerator.FreshId("_outcollector") : null;
         if (returnStyleOutCollector != null) {
           wr.Indent();
           DeclareOutCollector(returnStyleOutCollector, wr);
+        } else if (outTmps.Count > 0 && returnStyleOuts && SupportsMultipleReturns()) {
+          wr.Indent();
+          wr.Write("{0} = ", Util.Comma(outTmps));
         } else {
           wr.Indent();
         }
@@ -2100,7 +2120,7 @@ namespace Microsoft.Dafny {
           }
         }
 
-        if (returnStyleOutCollector == null) {
+        if (returnStyleOutCollector == null && !SupportsMultipleReturns()) {
           foreach (var outTmp in outTmps) {
             wr.Write(sep);
             EmitActualOutArg(outTmp, wr);
@@ -2187,9 +2207,8 @@ namespace Microsoft.Dafny {
           BoundVar bv = arguments[m];
           // FormalType f0 = ((Dt_Ctor0)source._D).a0;
           DeclareLocalVar(IdName(bv), bv.Type, bv.Tok, true, null, w);
-          var sw = new TargetWriter();
+          var sw = EmitAssignmentRhs(w);
           EmitDestructor(source, arg, k, ctor, sourceType.TypeArgs, sw);
-          EmitAssignmentRhs(sw.ToString(), w);
           k++;
         }
       }
@@ -3015,26 +3034,44 @@ namespace Microsoft.Dafny {
       return w;
     }
 
+    public FileTargetWriter NewFile(string filename) {
+      var w = new FileTargetWriter(filename);
+      things.Add(w);
+      return w;
+    }
+
     // ----- Collection ------------------------------
 
     public override string ToString() {
       var sw = new StringWriter();
-      Collect(sw);
+      var q = new Queue<FileTargetWriter>();
+      Collect(sw, q);
+      while (q.Count != 0) {
+        var ftw = q.Dequeue();
+        sw.WriteLine("#file {0}", ftw.Filename);
+        ftw.Collect(sw, q);
+      }
       return sw.ToString();
     }
-    public virtual void Collect(TextWriter wr) {
+    public virtual void Collect(TextWriter wr, Queue<FileTargetWriter> files) {
       Contract.Requires(wr != null);
+      Contract.Requires(files != null);
+
       if (things != null) {
-        CollectThings(wr);
+        CollectThings(wr, files);
       }
     }
-    protected void CollectThings(TextWriter wr) {
+    protected void CollectThings(TextWriter wr, Queue<FileTargetWriter> files) {
       Contract.Requires(wr != null);
+      Contract.Requires(files != null);
+
       foreach (var o in things) {
         if (o is string) {
           wr.Write((string)o);
+        } else if (o is FileTargetWriter ftw) {
+          files.Enqueue(ftw);
         } else if (o is TargetWriter) {
-          ((TargetWriter)o).Collect(wr);
+          ((TargetWriter)o).Collect(wr, files);
         } else {
           wr.Write(o.ToString());
         }
@@ -3065,7 +3102,7 @@ namespace Microsoft.Dafny {
       header += args.Length == 0 ? format : string.Format(format, args);
     }
 
-    public override void Collect(TextWriter wr) {
+    public override void Collect(TextWriter wr, Queue<FileTargetWriter> files) {
       wr.Write(header);
       switch (openBraceStyle) {
         case BraceStyle.Nothing:
@@ -3080,7 +3117,7 @@ namespace Microsoft.Dafny {
           break;
       }
       wr.WriteLine("{{{0}", BodyPrefix != null ? " " + BodyPrefix : "");
-      CollectThings(wr);
+      CollectThings(wr, files);
       if (BodySuffix != null) {
         wr.Write(BodySuffix);
       }
@@ -3100,6 +3137,15 @@ namespace Microsoft.Dafny {
           wr.WriteLine();
           break;
       }
+    }
+  }
+
+  public class FileTargetWriter : TargetWriter {
+    public readonly string Filename;
+
+    public FileTargetWriter(string filename) {
+      Contract.Requires(filename != null);
+      Filename = filename;
     }
   }
 }
