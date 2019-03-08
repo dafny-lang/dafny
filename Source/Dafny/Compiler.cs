@@ -69,8 +69,8 @@ namespace Microsoft.Dafny {
     public abstract BlockTargetWriter CreateStaticMain(TargetWriter wr);
     protected abstract TargetWriter CreateModule(string moduleName, bool isExtern, string/*?*/ libraryName, TargetWriter wr);
     protected abstract string GetHelperModuleName();
-    protected TargetWriter CreateClass(string name, List<TypeParameter>/*?*/ typeParameters, out TargetWriter instanceFieldsWriter, out TargetWriter staticFieldsWrapper, TargetWriter wr) {
-      return CreateClass(name, false, null, typeParameters, null, null, out instanceFieldsWriter, out staticFieldsWrapper, wr);
+    protected TargetWriter CreateClass(string name, List<TypeParameter>/*?*/ typeParameters, out TargetWriter instanceFieldsWriter, out TargetWriter staticFieldsWriter, TargetWriter wr) {
+      return CreateClass(name, false, null, typeParameters, null, null, out instanceFieldsWriter, out staticFieldsWriter, wr);
     }
     /// <summary>
     /// "tok" can be "null" if "superClasses" is.
