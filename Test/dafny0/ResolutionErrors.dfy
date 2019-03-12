@@ -2770,3 +2770,43 @@ module GhostRhsConst {
     static const u := F(0);  // error: RHS uses a ghost function
   }
 }
+
+// --------------- errors from nested modules -------------------------------------
+
+module ErrorsFromNestedModules {
+  method M() {
+    U.V.Test();
+    UU.V.Test();
+  }
+
+  module U {  // regression test: since U is rather empty, this had once caused an error
+    module V {
+      method Test() {
+      }
+      module W {
+        const x1 := 12 * false  // error: bad types
+      }
+    }
+  }
+
+  module UU.V {  // same regression as above
+    method Test() {
+    }
+    module W {
+      const x1 := 12 * false  // error: bad types
+    }
+  }
+}
+
+// --------------- name clashes related to prefix-named modules -------------------------------------
+
+module NameClashes {
+  module U.G {
+  }
+  module U {
+    class G { }  // error: duplicate name: G
+    class H { }
+  }
+  module U.H {  // error: duplicate name: H
+  }
+}

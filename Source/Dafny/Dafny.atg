@@ -846,7 +846,13 @@ TopDecl<. ModuleDefinition module, List<MemberDecl/*!*/> membersDefaultClass, bo
      TraitDecl/*!*/ trait;
   .)
   { DeclModifier<ref dmod> }
-  ( SubModuleDecl<dmod, module, out submodule> (. module.TopLevelDecls.Add(submodule); .)
+  ( SubModuleDecl<dmod, module, out submodule> (. var litmod = submodule as LiteralModuleDecl;
+                                                  if (litmod != null && litmod.ModuleDef.PrefixIds.Count != 0) {
+                                                    var tup = new Tuple<List<IToken>, LiteralModuleDecl>(litmod.ModuleDef.PrefixIds, litmod);
+                                                    module.PrefixNamedModules.Add(tup);
+                                                  } else {
+                                                    module.TopLevelDecls.Add(submodule);
+                                                  } .)
   | ClassDecl<dmod, module, out c>             (. module.TopLevelDecls.Add(c); .)
   | DatatypeDecl<dmod, module, out dt>         (. module.TopLevelDecls.Add(dt); .)
   | NewtypeDecl<dmod, module, out td>          (. module.TopLevelDecls.Add(td); .)
@@ -858,7 +864,7 @@ TopDecl<. ModuleDefinition module, List<MemberDecl/*!*/> membersDefaultClass, bo
   ) .
 
 SubModuleDecl<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl submodule>
-= (. Attributes attrs = null;  IToken/*!*/ id;
+= (. Attributes attrs = null;  IToken/*!*/ id; var prefixIds = new List<IToken>();
      List<MemberDecl/*!*/> namedModuleDefaultClassMembers = new List<MemberDecl>();;
      List<IToken> idPath, idExports;
      IToken idRefined = null;
@@ -872,8 +878,11 @@ SubModuleDecl<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl sub
   ( "module"
     { Attribute<ref attrs> }
     NoUSIdent<out id>
+    { (. prefixIds.Add(id); .)
+      "." NoUSIdent<out id>
+    }
     [ "refines" ModuleName<out idRefined> ] 
-    (. module = new ModuleDefinition(id, id.val, isAbstract, isProtected, false, idRefined, parent, attrs, false); module.IsToBeVerified = theVerifyThisFile; .)  
+    (. module = new ModuleDefinition(id, id.val, prefixIds, isAbstract, isProtected, false, idRefined, parent, attrs, false); module.IsToBeVerified = theVerifyThisFile; .)  
     "{"                                 (. module.BodyStartTok = t; .)
       { TopDecl<module, namedModuleDefaultClassMembers, /* isTopLevel */ false, isAbstract>}
     "}"                                 (. module.BodyEndTok = t;

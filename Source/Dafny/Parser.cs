@@ -872,7 +872,13 @@ int StringToInt(string s, int defaultValue, string errString) {
 		switch (la.kind) {
 		case 54: case 55: case 91: {
 			SubModuleDecl(dmod, module, out submodule);
-			module.TopLevelDecls.Add(submodule); 
+			var litmod = submodule as LiteralModuleDecl;
+			if (litmod != null && litmod.ModuleDef.PrefixIds.Count != 0) {
+			 var tup = new Tuple<List<IToken>, LiteralModuleDecl>(litmod.ModuleDef.PrefixIds, litmod);
+			 module.PrefixNamedModules.Add(tup);
+			} else {
+			 module.TopLevelDecls.Add(submodule);
+			} 
 			break;
 		}
 		case 56: {
@@ -931,7 +937,7 @@ int StringToInt(string s, int defaultValue, string errString) {
 	}
 
 	void SubModuleDecl(DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl submodule) {
-		Attributes attrs = null;  IToken/*!*/ id;
+		Attributes attrs = null;  IToken/*!*/ id; var prefixIds = new List<IToken>();
 		List<MemberDecl/*!*/> namedModuleDefaultClassMembers = new List<MemberDecl>();;
 		List<IToken> idPath, idExports;
 		IToken idRefined = null;
@@ -948,11 +954,16 @@ int StringToInt(string s, int defaultValue, string errString) {
 				Attribute(ref attrs);
 			}
 			NoUSIdent(out id);
+			while (la.kind == 32) {
+				prefixIds.Add(id); 
+				Get();
+				NoUSIdent(out id);
+			}
 			if (la.kind == 92) {
 				Get();
 				ModuleName(out idRefined);
 			}
-			module = new ModuleDefinition(id, id.val, isAbstract, isProtected, false, idRefined, parent, attrs, false); module.IsToBeVerified = theVerifyThisFile; 
+			module = new ModuleDefinition(id, id.val, prefixIds, isAbstract, isProtected, false, idRefined, parent, attrs, false); module.IsToBeVerified = theVerifyThisFile; 
 			Expect(74);
 			module.BodyStartTok = t; 
 			while (StartOf(1)) {

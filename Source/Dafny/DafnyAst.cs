@@ -107,7 +107,7 @@ namespace Microsoft.Dafny {
 
   public class BuiltIns
   {
-    public readonly ModuleDefinition SystemModule = new ModuleDefinition(Token.NoToken, "_System", false, false, false, null, null, null, true);
+    public readonly ModuleDefinition SystemModule = new ModuleDefinition(Token.NoToken, "_System", new List<IToken>(), false, false, false, null, null, null, true);
     readonly Dictionary<int, ClassDecl> arrayTypeDecls = new Dictionary<int, ClassDecl>();
     public readonly Dictionary<int, ArrowTypeDecl> ArrowTypeDecls = new Dictionary<int, ArrowTypeDecl>();
     public readonly Dictionary<int, SubsetTypeDecl> PartialArrowTypeDecls = new Dictionary<int, SubsetTypeDecl>();  // same keys as arrowTypeDecl
@@ -3462,10 +3462,20 @@ namespace Microsoft.Dafny {
     public IToken BodyStartTok = Token.NoToken;
     public IToken BodyEndTok = Token.NoToken;
     public readonly string Name;
+    public string FullName {
+      get {
+        if (Module == null || Module.IsDefaultModule) {
+          return Name;
+        } else {
+          return Module.FullName + "." + Name;
+        }
+      }
+    }
+    public readonly List<IToken> PrefixIds;
     IToken INamedRegion.BodyStartTok { get { return BodyStartTok; } }
     IToken INamedRegion.BodyEndTok { get { return BodyEndTok; } }
     string INamedRegion.Name { get { return Name; } }
-    public readonly ModuleDefinition Module;
+    public ModuleDefinition Module;  // readonly, except can be changed by resolver for prefix-named modules when the real parent is discovered
     public readonly Attributes Attributes;
     public readonly IToken RefinementBaseName;  // null if no refinement base
     public ModuleDecl RefinementBaseRoot; // filled in early during resolution, corresponds to RefinementBaseName[0]
@@ -3473,7 +3483,8 @@ namespace Microsoft.Dafny {
 
     public List<Include> Includes;
 
-    public readonly List<TopLevelDecl> TopLevelDecls = new List<TopLevelDecl>();  // filled in by the parser; readonly after that
+    public readonly List<TopLevelDecl> TopLevelDecls = new List<TopLevelDecl>();  // filled in by the parser; readonly after that, except for the addition of prefix-named modules, which happens in the resolver
+    public readonly List<Tuple<List<IToken>, LiteralModuleDecl>> PrefixNamedModules = new List<Tuple<List<IToken>, LiteralModuleDecl>>();  // filled in by the parser; emptied by the resolver
     public readonly Graph<ICallable> CallGraph = new Graph<ICallable>();  // filled in during resolution
     public int Height;  // height in the topological sorting of modules; filled in during resolution
     public readonly bool IsAbstract;
@@ -3521,12 +3532,13 @@ namespace Microsoft.Dafny {
       Contract.Invariant(CallGraph != null);
     }
 
-    public ModuleDefinition(IToken tok, string name, bool isAbstract, bool isProtected, bool isFacade, IToken refinementBase, ModuleDefinition parent, Attributes attributes, bool isBuiltinName, Parser parser = null)
+    public ModuleDefinition(IToken tok, string name, List<IToken> prefixIds, bool isAbstract, bool isProtected, bool isFacade, IToken refinementBase, ModuleDefinition parent, Attributes attributes, bool isBuiltinName, Parser parser = null)
     {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
       this.tok = tok;
       this.Name = name;
+      this.PrefixIds = prefixIds;
       this.Attributes = attributes;
       this.Module = parent;
       RefinementBaseName = refinementBase;
@@ -3751,7 +3763,7 @@ namespace Microsoft.Dafny {
 
   public class DefaultModuleDecl : ModuleDefinition {
     public DefaultModuleDecl()
-      : base(Token.NoToken, "_module", false, false, false, null, null, null, true) {
+      : base(Token.NoToken, "_module", new List<IToken>(), false, false, false, null, null, null, true) {
     }
     public override bool IsDefaultModule {
       get {
@@ -3780,7 +3792,7 @@ namespace Microsoft.Dafny {
 
     public string FullName {
       get {
-        return Module.Name + "." + Name;
+        return Module.FullName + "." + Name;
       }
     }
     public string FullSanitizedName {

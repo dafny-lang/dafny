@@ -125,7 +125,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(m != null);
       using (var wr = new System.IO.StringWriter()) {
         var pr = new Printer(wr, printMode);
-        pr.PrintModuleDefinition(m, m.VisibilityScope, 0, null);
+        pr.PrintModuleDefinition(m, m.VisibilityScope, 0, null, null);
         return ToStringWithoutNewline(wr);
       }
     }
@@ -175,7 +175,7 @@ namespace Microsoft.Dafny {
       if (DafnyOptions.O.DafnyPrintResolvedFile != null && DafnyOptions.O.PrintMode == DafnyOptions.PrintModes.Everything) {
         wr.WriteLine();
         wr.WriteLine("/*");
-        PrintModuleDefinition(prog.BuiltIns.SystemModule, null, 0, Path.GetFullPath(DafnyOptions.O.DafnyPrintResolvedFile));
+        PrintModuleDefinition(prog.BuiltIns.SystemModule, null, 0, null, Path.GetFullPath(DafnyOptions.O.DafnyPrintResolvedFile));
         wr.Write("// bitvector types in use:");
         foreach (var w in prog.BuiltIns.Bitwidths) {
           wr.Write(" bv{0}", w);
@@ -185,7 +185,11 @@ namespace Microsoft.Dafny {
       }
       wr.WriteLine();
       PrintCallGraph(prog.DefaultModuleDef, 0);
-      PrintTopLevelDecls(prog.DefaultModuleDef.TopLevelDecls, 0, Path.GetFullPath(prog.FullName));
+      PrintTopLevelDecls(prog.DefaultModuleDef.TopLevelDecls, 0, null, Path.GetFullPath(prog.FullName));
+      foreach (var tup in prog.DefaultModuleDef.PrefixNamedModules) {
+        var decls = new List<TopLevelDecl>() { tup.Item2 };
+        PrintTopLevelDecls(decls, 0, tup.Item1, Path.GetFullPath(prog.FullName));
+      }
       wr.Flush();
     }
 
@@ -208,7 +212,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public void PrintTopLevelDecls(List<TopLevelDecl> decls, int indent, string fileBeingPrinted) {
+    public void PrintTopLevelDecls(List<TopLevelDecl> decls, int indent, List<Bpl.IToken>/*?*/ prefixIds, string fileBeingPrinted) {
       Contract.Requires(decls!= null);
       int i = 0;
       foreach (TopLevelDecl d in decls) {
@@ -330,7 +334,7 @@ namespace Microsoft.Dafny {
             if (modDecl.Signature != null){
               scope = modDecl.Signature.VisibilityScope;
             }
-            PrintModuleDefinition(modDecl.ModuleDef, scope, indent, fileBeingPrinted);
+            PrintModuleDefinition(modDecl.ModuleDef, scope, indent, prefixIds, fileBeingPrinted);
           } else if (d is AliasModuleDecl) {
             var dd = (AliasModuleDecl)d;
 
@@ -431,7 +435,7 @@ namespace Microsoft.Dafny {
           for (int j = start; j < i; j++) {
             var id = m.Exports[j];
             if (id.Decl is TopLevelDecl) {
-              PrintTopLevelDecls(new List<TopLevelDecl> { (TopLevelDecl)id.Decl }, indent + IndentAmount, fileBeingPrinted);
+              PrintTopLevelDecls(new List<TopLevelDecl> { (TopLevelDecl)id.Decl }, indent + IndentAmount, null, fileBeingPrinted);
             } else if (id.Decl is MemberDecl) {
               PrintMembers(new List<MemberDecl> { (MemberDecl)id.Decl }, indent + IndentAmount, fileBeingPrinted);
             }
@@ -444,7 +448,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public void PrintModuleDefinition(ModuleDefinition module, VisibilityScope scope, int indent, string fileBeingPrinted) {
+    public void PrintModuleDefinition(ModuleDefinition module, VisibilityScope scope, int indent, List<Bpl.IToken>/*?*/ prefixIds, string fileBeingPrinted) {
       Contract.Requires(module != null);
       Contract.Requires(0 <= indent);
       Type.PushScope(scope);
@@ -456,7 +460,13 @@ namespace Microsoft.Dafny {
       }
       wr.Write("module");
       PrintAttributes(module.Attributes);
-      wr.Write(" {0} ", module.Name);
+      wr.Write(" ");
+      if (prefixIds != null) {
+        foreach (var p in prefixIds) {
+          wr.Write("{0}.", p.val);
+        }
+      }
+      wr.Write("{0} ", module.Name);
       if (module.RefinementBaseName != null) {
         wr.Write("refines {0} ", module.RefinementBaseName.val);
       }
@@ -473,20 +483,23 @@ namespace Microsoft.Dafny {
     }
 
     void PrintTopLevelDeclsOrExportedView(ModuleDefinition module, int indent, string fileBeingPrinted) {
-      bool printViewsOnly = false;
-      List<TopLevelDecl> decls = new List<TopLevelDecl>();
+      var decls = module.TopLevelDecls;
       // only filter based on view name after resolver. 
-      if (afterResolver) {
+      if (afterResolver && DafnyOptions.O.DafnyPrintExportedViews.Count != 0) {
+        decls = new List<TopLevelDecl>();
         foreach (var nameOfView in DafnyOptions.O.DafnyPrintExportedViews) {
           foreach (var decl in module.TopLevelDecls) {
             if (decl.FullName.Equals(nameOfView)) {
-              printViewsOnly = true;
               decls.Add(decl);
             }
           }
         }
       }
-      PrintTopLevelDecls(printViewsOnly ? decls : module.TopLevelDecls, indent + IndentAmount, fileBeingPrinted);
+      PrintTopLevelDecls(decls, indent + IndentAmount, null, fileBeingPrinted);
+      foreach (var tup in module.PrefixNamedModules) {
+        decls = new List<TopLevelDecl>() { tup.Item2 };
+        PrintTopLevelDecls(decls, indent + IndentAmount, tup.Item1, fileBeingPrinted);
+      }
     }
 
     void PrintIteratorSignature(IteratorDecl iter, int indent) {
@@ -530,7 +543,7 @@ namespace Microsoft.Dafny {
       Indent(indent); wr.WriteLine("}");
 
       Contract.Assert(iter.NonNullTypeDecl != null);
-      PrintTopLevelDecls(new List<TopLevelDecl> { iter.NonNullTypeDecl }, indent, fileBeingPrinted);
+      PrintTopLevelDecls(new List<TopLevelDecl> { iter.NonNullTypeDecl }, indent, null, fileBeingPrinted);
     }
 
     public void PrintClass(ClassDecl c, int indent, string fileBeingPrinted) {
@@ -557,7 +570,7 @@ namespace Microsoft.Dafny {
         if (!printingExportSet) {
           Indent(indent); wr.WriteLine("/*-- non-null type");
         }
-        PrintTopLevelDecls(new List<TopLevelDecl> { c.NonNullTypeDecl }, indent, fileBeingPrinted);
+        PrintTopLevelDecls(new List<TopLevelDecl> { c.NonNullTypeDecl }, indent, null, fileBeingPrinted);
         if (!printingExportSet) {
           Indent(indent); wr.WriteLine("*/");
         }

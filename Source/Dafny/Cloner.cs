@@ -15,10 +15,14 @@ namespace Microsoft.Dafny
       if (m is DefaultModuleDecl) {
         nw = new DefaultModuleDecl();
       } else {
-        nw = new ModuleDefinition(Tok(m.tok), name, m.IsAbstract, m.IsProtected, m.IsFacade, m.RefinementBaseName, m.Module, CloneAttributes(m.Attributes), true);
+        nw = new ModuleDefinition(Tok(m.tok), name, m.PrefixIds, m.IsAbstract, m.IsProtected, m.IsFacade, m.RefinementBaseName, m.Module, CloneAttributes(m.Attributes), true);
       }
       foreach (var d in m.TopLevelDecls) {
         nw.TopLevelDecls.Add(CloneDeclaration(d, nw));
+      }
+      foreach (var tup in m.PrefixNamedModules) {
+        var newTup = new Tuple<List<IToken>, LiteralModuleDecl>(tup.Item1, (LiteralModuleDecl)CloneDeclaration(tup.Item2, nw));
+        nw.PrefixNamedModules.Add(newTup);
       }
       if (null != m.RefinementBase) {
         nw.RefinementBase = GetRefinementBase(m);

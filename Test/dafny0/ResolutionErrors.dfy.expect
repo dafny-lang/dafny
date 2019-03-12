@@ -425,4 +425,13 @@ ResolutionErrors.dfy(2762,15): Error: function calls are allowed only in specifi
 ResolutionErrors.dfy(2763,22): Error: function calls are allowed only in specification contexts (consider declaring the function a 'function method')
 ResolutionErrors.dfy(2769,15): Error: function calls are allowed only in specification contexts (consider declaring the function a 'function method')
 ResolutionErrors.dfy(2770,22): Error: function calls are allowed only in specification contexts (consider declaring the function a 'function method')
-422 resolution/type errors detected in ResolutionErrors.dfy
+ResolutionErrors.dfy(2787,23): Error: type of left argument to * (int) must agree with the result type (bool)
+ResolutionErrors.dfy(2787,23): Error: type of * must be of a numeric type, bitvector type, or a set-like type (instead got bool)
+ResolutionErrors.dfy(2786,13): Error: not resolving module 'V' because there were errors in resolving its nested module 'W'
+ResolutionErrors.dfy(2796,21): Error: type of left argument to * (int) must agree with the result type (bool)
+ResolutionErrors.dfy(2796,21): Error: type of * must be of a numeric type, bitvector type, or a set-like type (instead got bool)
+ResolutionErrors.dfy(2795,11): Error: not resolving module 'V' because there were errors in resolving its nested module 'W'
+ResolutionErrors.dfy(2782,9): Error: not resolving module 'ErrorsFromNestedModules' because there were errors in resolving its nested module 'U'
+ResolutionErrors.dfy(2804,11): Error: Duplicate name of top-level declaration: G
+ResolutionErrors.dfy(2810,11): Error: Duplicate name of top-level declaration: H
+431 resolution/type errors detected in ResolutionErrors.dfy

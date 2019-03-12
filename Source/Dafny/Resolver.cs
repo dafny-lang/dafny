@@ -422,9 +422,9 @@ namespace Microsoft.Dafny
           var preResolveErrorCount = reporter.Count(ErrorLevel.Error);
 
           ResolveModuleExport(literalDecl, sig);
-          ResolveModuleDefinition(m, sig);
+          var good = ResolveModuleDefinition(m, sig);
 
-          if (reporter.Count(ErrorLevel.Error) == preResolveErrorCount) {
+          if (good && reporter.Count(ErrorLevel.Error) == preResolveErrorCount) {
             // Check that the module export gives a self-contained view of the module.
             CheckModuleExportConsistency(m);
           }
@@ -437,12 +437,12 @@ namespace Microsoft.Dafny
           prog.ModuleSigs[m] = sig;
 
           foreach (var r in rewriters) {
-            if (reporter.Count(ErrorLevel.Error) != preResolveErrorCount) {
+            if (!good || reporter.Count(ErrorLevel.Error) != preResolveErrorCount) {
               break;
             }
             r.PostResolve(m);
           }
-          if (reporter.Count(ErrorLevel.Error) == errorCount) {
+          if (good && reporter.Count(ErrorLevel.Error) == errorCount) {
             m.SuccessfullyResolved = true;
           }
           Type.PopScope(tempVis);
@@ -852,7 +852,14 @@ namespace Microsoft.Dafny
       }
     }
 
-    private void ResolveModuleDefinition(ModuleDefinition m, ModuleSignature sig) {
+    /// <summary>
+    /// Resolves the module definition.
+    /// A return code of "false" is an indication of an error that may or may not have
+    /// been reported in an error message. So, in order to figure out if m was successfully
+    /// resolved, a caller has to check for both a change in error count and a "false"
+    /// return value.
+    /// </summary>
+    private bool ResolveModuleDefinition(ModuleDefinition m, ModuleSignature sig) {
       Contract.Requires(AllTypeConstraints.Count == 0);
       Contract.Ensures(AllTypeConstraints.Count == 0);
 
@@ -871,7 +878,7 @@ namespace Microsoft.Dafny
             if (!m.IsEssentiallyEmptyModuleBody()) {  // say something only if this will cause any testing to be omitted
               reporter.Error(MessageSource.Resolver, d, "not resolving module '{0}' because there were errors in resolving its import '{1}'", m.Name, d.Name);
             }
-            return;
+            return false;
           }
         } else if (d is LiteralModuleDecl) {
           var nested = (LiteralModuleDecl)d;
@@ -879,7 +886,7 @@ namespace Microsoft.Dafny
             if (!m.IsEssentiallyEmptyModuleBody()) {  // say something only if this will cause any testing to be omitted
               reporter.Error(MessageSource.Resolver, nested, "not resolving module '{0}' because there were errors in resolving its nested module '{1}'", m.Name, nested.Name);
             }
-            return;
+            return false;
           }
         }
       }
@@ -901,6 +908,7 @@ namespace Microsoft.Dafny
       }
       Type.PopScope(moduleInfo.VisibilityScope);
       moduleInfo = oldModuleInfo;
+      return true;
     }
 
     // Resolve the exports and detect cycles.
@@ -1271,13 +1279,34 @@ namespace Microsoft.Dafny
     private ModuleBindings BindModuleNames(ModuleDefinition moduleDecl, ModuleBindings parentBindings) {
       var bindings = new ModuleBindings(parentBindings);
 
+      // moduleDecl.PrefixNamedModules is a list of pairs like:
+      //     A.B.C  ,  module D { ... }
+      // We collect these according to the first component of the prefix, like so:
+      //     "A"   ->   (A.B.C  ,  module D { ... })
+      var prefixNames = new Dictionary<string, List<Tuple<List<IToken>, LiteralModuleDecl>>>();
+      foreach (var tup in moduleDecl.PrefixNamedModules) {
+        var id = tup.Item1[0].val;
+        List<Tuple<List<IToken>, LiteralModuleDecl>> prev;
+        if (!prefixNames.TryGetValue(id, out prev)) {
+          prev = new List<Tuple<List<IToken>, LiteralModuleDecl>>();
+        }
+        prev.Add(tup);
+        prefixNames[id] = prev;
+      }
+      moduleDecl.PrefixNamedModules.Clear();
+
       foreach (var tld in moduleDecl.TopLevelDecls) {
         if (tld is LiteralModuleDecl) {
           var subdecl = (LiteralModuleDecl)tld;
-          var subBindings = BindModuleNames(subdecl.ModuleDef, bindings);
-          if (!bindings.BindName(subdecl.Name, subdecl, subBindings)) {
-            reporter.Error(MessageSource.Resolver, subdecl.tok, "Duplicate module name: {0}", subdecl.Name);
+          // Transfer prefix-named modules downwards into the sub-module
+          List<Tuple<List<IToken>, LiteralModuleDecl>> prefixModules;
+          if (prefixNames.TryGetValue(subdecl.Name, out prefixModules)) {
+            prefixNames.Remove(subdecl.Name);
+            prefixModules = prefixModules.ConvertAll(ShortenPrefix);
+          } else {
+            prefixModules = null;
           }
+          BindModuleName_LiteralModuleDecl(subdecl, prefixModules, bindings);
         } else if (tld is ModuleFacadeDecl) {
           var subdecl = (ModuleFacadeDecl)tld;
           if (!bindings.BindName(subdecl.Name, subdecl, null)) {
@@ -1300,7 +1329,51 @@ namespace Microsoft.Dafny
           }
         }
       }
+      // add new modules for any remaining entries in "prefixNames"
+      foreach (var entry in prefixNames) {
+        var name = entry.Key;
+        var prefixNamedModules = entry.Value;
+        var tok = prefixNamedModules.First().Item1[0];
+        var modDef = new ModuleDefinition(tok, name, new List<IToken>(), false, false, false, null, moduleDecl, null, false);
+        // Every module is expected to have a default class, so we create and add one now
+        var defaultClass = new DefaultClassDecl(modDef, new List<MemberDecl>());
+        modDef.TopLevelDecls.Add(defaultClass);
+        // Add the new module to the top-level declarations of its parent and then bind its names as usual
+        var subdecl = new LiteralModuleDecl(modDef, moduleDecl);
+        moduleDecl.TopLevelDecls.Add(subdecl);
+        BindModuleName_LiteralModuleDecl(subdecl, prefixNamedModules.ConvertAll(ShortenPrefix), bindings);
+      }
       return bindings;
+    }
+
+    private Tuple<List<IToken>, LiteralModuleDecl> ShortenPrefix(Tuple<List<IToken>, LiteralModuleDecl> tup)
+    {
+      Contract.Requires(tup.Item1.Count != 0);
+      var rest = tup.Item1.GetRange(1, tup.Item1.Count - 1);
+      return new Tuple<List<IToken>, LiteralModuleDecl>(rest, tup.Item2);
+    }
+
+    private void BindModuleName_LiteralModuleDecl(LiteralModuleDecl litmod, List<Tuple<List<IToken>, LiteralModuleDecl>>/*?*/ prefixModules, ModuleBindings parentBindings) {
+      Contract.Requires(litmod != null);
+      Contract.Requires(parentBindings != null);
+
+      // Transfer prefix-named modules downwards into the sub-module
+      if (prefixModules != null) {
+        foreach (var tup in prefixModules) {
+          if (tup.Item1.Count == 0) {
+            tup.Item2.ModuleDef.Module = litmod.ModuleDef;  // change the parent, now that we have found the right parent module for the prefix-named module
+            var sm = new LiteralModuleDecl(tup.Item2.ModuleDef, litmod.ModuleDef);  // this will create a ModuleDecl with the right parent
+            litmod.ModuleDef.TopLevelDecls.Add(sm);
+          } else {
+            litmod.ModuleDef.PrefixNamedModules.Add(tup);
+          }
+        }
+      }
+
+      var bindings = BindModuleNames(litmod.ModuleDef, parentBindings);
+      if (!parentBindings.BindName(litmod.Name, litmod, bindings)) {
+        reporter.Error(MessageSource.Resolver, litmod.tok, "Duplicate module name: {0}", litmod.Name);
+      }
     }
 
     private void ProcessDependenciesDefinition(ModuleDecl decl, ModuleDefinition m, ModuleBindings bindings, Graph<ModuleDecl> dependencies) {
@@ -1862,7 +1935,7 @@ namespace Microsoft.Dafny
       Contract.Requires(compilationModuleClones != null);
       var errCount = reporter.Count(ErrorLevel.Error);
 
-      var mod = new ModuleDefinition(Token.NoToken, Name + ".Abs", true, true, true, null, null, null, false);
+      var mod = new ModuleDefinition(Token.NoToken, Name + ".Abs", new List<IToken>(), true, true, true, null, null, null, false);
       mod.Height = Height;
       mod.IsToBeVerified = p.ModuleDef.IsToBeVerified;
       bool hasDefaultClass = false;
@@ -1882,8 +1955,8 @@ namespace Microsoft.Dafny
       sig.CompileSignature = p;
       sig.IsAbstract = p.IsAbstract;
       mods.Add(mod, sig);
-      ResolveModuleDefinition(mod, sig);
-      if (reporter.Count(ErrorLevel.Error) == errCount) {
+      var good = ResolveModuleDefinition(mod, sig);
+      if (good && reporter.Count(ErrorLevel.Error) == errCount) {
         mod.SuccessfullyResolved = true;
       }
       return sig;
