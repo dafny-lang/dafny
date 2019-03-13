@@ -222,7 +222,6 @@ namespace Microsoft.Dafny.Triggers {
           annotation = AnnotateComprehensionExpr((ComprehensionExpr)expr);
         } else if (expr is ConcreteSyntaxExpression ||
                    expr is LiteralExpr ||
-                   expr is OldExpr ||
                    expr is ThisExpr ||
                    expr is BoxingCastExpr ||
                    expr is MultiSetFormingExpr) {

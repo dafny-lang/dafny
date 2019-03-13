@@ -6251,7 +6251,7 @@ namespace Microsoft.Dafny {
                     r = BplAnd(r, etran.TrExpr(eq));
                   }
                   if (r != Bpl.Expr.True) {
-                    return r;
+                    return BplAnd(BplAnd(t0, t1), r);
                   }
                 }
               }
@@ -18174,7 +18174,8 @@ namespace Microsoft.Dafny {
     /// Create a Boogie quantifier with body "A ==> body" and triggers "trg", but use only the subset of bound
     /// variables from "varsAndAntecedents" that actually occur free in "body" or "trg", and "A" is the conjunction of
     /// antecedents for those corresponding bound variables.  If none of the bound variables is used, "body"
-    /// is returned.
+    /// is returned. Also, if none of the bound variables is used in "body" (whether or not they are used in "trg"),
+    /// then "body" is returned.
     /// The order of the contents of "varsAndAntecedents" matters: For any index "i" into "varsAndAntecedents", the
     /// antecedent varsAndAntecedents[i].Item2 may depend on a variable varsAndAntecedents[j].Item1 if "j GREATER-OR-EQUAL i"
     /// but not if "j LESS i".
@@ -18190,6 +18191,10 @@ namespace Microsoft.Dafny {
       // free variables in "body" and "trg".
       var vis = new VariableNameVisitor();
       vis.Visit(body);
+      if (varsAndAntecedents.All(pair => !vis.Names.Contains(pair.Item1.Name))) {
+        // the body doesn't mention any of the bound variables, so no point in wrapping a quantifier around it
+        return body;
+      }
       for (var tt = trg; tt != null; tt = tt.Next) {
         tt.Tr.Iter(ee => vis.Visit(ee));
       }
