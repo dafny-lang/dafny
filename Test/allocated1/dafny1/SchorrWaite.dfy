@@ -215,11 +215,10 @@ class Main {
                   forall j :: 0 <= j < |n.children| ==>
                     j == n.childrenVisited || n.children[j] == old(n.children[j])
       // every marked node is reachable:
-      invariant old(allocated(path));  // needed to show 'path' worthy as argument to old(Reachable(...))
-      invariant old(ReachableVia(root, path, t, S));
-      invariant forall n, pth {:nowarn} :: n in S && n.marked && pth == n.pathFromRoot ==> old(allocated(pth))
-      invariant forall n, pth :: n in S && n.marked && pth == n.pathFromRoot ==>
-                  old(ReachableVia(root, pth, n, S))
+      invariant old(allocated(path))  // needed to show 'path' worthy as argument to old(Reachable(...))
+      invariant old(ReachableVia(root, path, t, S))
+      invariant forall n :: n in S && n.marked ==> var pth := n.pathFromRoot; old(allocated(pth))
+      invariant forall n :: n in S && n.marked ==> var pth := n.pathFromRoot; old(ReachableVia(root, pth, n, S))
       invariant forall n :: n in S && n.marked ==> old(Reachable(root, n, S))
       // the current values of m.children[m.childrenVisited] for m's on the stack:
       invariant 0 < |stackNodes| ==> stackNodes[0].children[stackNodes[0].childrenVisited] == null
@@ -240,8 +239,7 @@ class Main {
           return;
         }
         var oldP := p.children[p.childrenVisited];
-        // p.children[p.childrenVisited] := t;
-        p.children := p.children[..p.childrenVisited] + [t] + p.children[p.childrenVisited + 1..];
+        p.children := p.children[p.childrenVisited := t];
         t := p;
         p := oldP;
         stackNodes := stackNodes[..|stackNodes| - 1];
@@ -256,8 +254,7 @@ class Main {
         // push
 
         var newT := t.children[t.childrenVisited];
-        // t.children[t.childrenVisited] := p;
-        t.children := t.children[..t.childrenVisited] + [p] + t.children[t.childrenVisited + 1..];
+        t.children := t.children[t.childrenVisited := p];
         p := t;
         stackNodes := stackNodes + [t];
         path := Path.Extend(path, t);

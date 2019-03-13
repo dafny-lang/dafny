@@ -1114,6 +1114,33 @@ namespace Microsoft.Dafny {
         }
     }
 
+    /// <summary>
+    /// Construct an expression denoting the equality of e0 and e1, taking advantage of
+    /// any available extensional equality based on the given Dafny type.
+    /// </summary>
+    public Expr TypeSpecificEqual(IToken tok, Dafny.Type type, Expr e0, Expr e1) {
+      Contract.Requires(tok != null);
+      Contract.Requires(type != null);
+      Contract.Requires(e0 != null);
+      Contract.Requires(e1 != null);
+
+      if (type.AsSetType != null) {
+        var finite = type.AsSetType.Finite;
+        return FunctionCall(tok, finite ? BuiltinFunction.SetEqual : BuiltinFunction.ISetEqual, null, e0, e1);
+      } else if (type.AsMapType != null) {
+        var finite = type.AsMapType.Finite;
+        return FunctionCall(tok, finite ? BuiltinFunction.MapEqual : BuiltinFunction.IMapEqual, null, e0, e1);
+      } else if (type.AsMultiSetType != null) {
+         return FunctionCall(tok, BuiltinFunction.MultiSetEqual, null, e0, e1);
+      } else if (type.AsSeqType != null) {
+        return FunctionCall(tok, BuiltinFunction.SeqEqual, null, e0, e1);
+      } else if (type.IsIndDatatype) {
+        return FunctionCall(tok, type.AsIndDatatype.FullSanitizedName + "#Equal", Bpl.Type.Bool, e0, e1);
+      } else {
+        return Bpl.Expr.Eq(e0, e1);
+      }
+    }
+
     void AddTypeDecl_Aux(IToken tok, string nm, List<TypeParameter> typeArgs) {
       Contract.Requires(tok != null);
       Contract.Requires(nm != null);
@@ -1595,7 +1622,7 @@ namespace Microsoft.Dafny {
         var cases_fn = new Bpl.Function(dt.tok, "$IsA#" + dt.FullSanitizedName,
                                         new List<Variable> { cases_dBv },
                                         cases_resType,
-                                        "One-depth case-split function");
+                                        "Depth-one case-split function");
 
         if (InsertChecksums) {
           InsertChecksum(dt, cases_fn);
@@ -1613,7 +1640,7 @@ namespace Microsoft.Dafny {
             cases_body = BplOr(cases_body, disj);
           }
           var ax = BplForall(new List<Variable> { dVar }, BplTrigger(lhs), BplImp(lhs, cases_body));
-          sink.AddTopLevelDeclaration(new Bpl.Axiom(dt.tok, ax, "One-depth case-split axiom"));
+          sink.AddTopLevelDeclaration(new Bpl.Axiom(dt.tok, ax, "Depth-one case-split axiom"));
         }
       }
 
@@ -1643,6 +1670,84 @@ namespace Microsoft.Dafny {
         var body = Bpl.Expr.Imp(d_is, cases_body);
         var ax = BplForall(Snoc(tyvars, dVar), tr, body);
         sink.AddTopLevelDeclaration(new Bpl.Axiom(dt.tok, ax, "Questionmark data type disjunctivity"));
+      }
+
+      if (dt is IndDatatypeDecl) {
+        var dtEqualName = dt.FullSanitizedName + "#Equal";
+
+        // Add function Dt#Equal(DatatypeType, DatatypeType): bool; 
+        // For each constructor Ctor(x: X, y: Y), add an axiom of the form
+        //     forall a, b ::
+        //       { Dt#Equal(a, b), Ctor?(a) }
+        //       { Dt#Equal(a, b), Ctor?(b) }
+        //       Ctor?(a) && Ctor?(b)
+        //       ==>
+        //       (Dt#Equal(a, b) <==>
+        //           X#Equal(a.x, b.x) &&
+        //           Y#Equal(a.y, b.y)
+        //       )
+        // where X#Equal is the equality predicate for type X and a.x denotes Dtor#x(a), and similarly
+        // for Y and b.
+        // Except, in the event that the datatype has exactly one constructor, then instead generate:
+        //     forall a, b ::
+        //       { Dt#Equal(a, b) }
+        //       true
+        //       ==>
+        //       ...as before
+        {
+          var args = new List<Variable>();
+          args.Add(new Bpl.Formal(dt.tok, new Bpl.TypedIdent(dt.tok, Bpl.TypedIdent.NoName, predef.DatatypeType), false));
+          args.Add(new Bpl.Formal(dt.tok, new Bpl.TypedIdent(dt.tok, Bpl.TypedIdent.NoName, predef.DatatypeType), false));
+          var ctorEqualResult = new Bpl.Formal(dt.tok, new Bpl.TypedIdent(dt.tok, Bpl.TypedIdent.NoName, Bpl.Type.Bool), false);
+          sink.AddTopLevelDeclaration(new Bpl.Function(dt.tok, dtEqualName, args, ctorEqualResult, "Datatype extensional equality declaration"));
+
+          Bpl.Expr a; var aVar = BplBoundVar("a", predef.DatatypeType, out a);
+          Bpl.Expr b; var bVar = BplBoundVar("b", predef.DatatypeType, out b);
+
+          var dtEqual = FunctionCall(dt.tok, dtEqualName, Bpl.Type.Bool, a, b);
+
+          foreach (var ctor in dt.Ctors) {
+            Bpl.Trigger trigger;
+            Bpl.Expr ante;
+            if (dt.Ctors.Count == 1) {
+              ante = Bpl.Expr.True;
+              trigger = BplTrigger(dtEqual);
+            } else {
+              var ctorQ = GetReadonlyField(ctor.QueryField);
+              var ctorQa = FunctionCall(ctor.tok, ctorQ.Name, Bpl.Type.Bool, a);
+              var ctorQb = FunctionCall(ctor.tok, ctorQ.Name, Bpl.Type.Bool, b);
+              ante = BplAnd(ctorQa, ctorQb);
+              trigger = dt.Ctors.Count == 1 ? BplTrigger(dtEqual) :
+                new Bpl.Trigger(ctor.tok, true, new List<Bpl.Expr> { dtEqual, ctorQa },
+                new Bpl.Trigger(ctor.tok, true, new List<Bpl.Expr> { dtEqual, ctorQb }));
+            }
+
+            Bpl.Expr eqs = Bpl.Expr.True;
+            for (var i = 0; i < ctor.Formals.Count; i++) {
+              var arg = ctor.Formals[i];
+              var dtor = GetReadonlyField(ctor.Destructors[i]);
+              var dtorA = FunctionCall(ctor.tok, dtor.Name, TrType(arg.Type), a);
+              var dtorB = FunctionCall(ctor.tok, dtor.Name, TrType(arg.Type), b);
+              var eq = TypeSpecificEqual(ctor.tok, arg.Type, dtorA, dtorB);
+              eqs = BplAnd(eqs, eq);
+            }
+
+            var ax = BplForall(new List<Variable> { aVar, bVar }, trigger, Bpl.Expr.Imp(ante, Bpl.Expr.Iff(dtEqual, eqs)));
+            sink.AddTopLevelDeclaration(new Bpl.Axiom(dt.tok, ax, string.Format("Datatype extensional equality definition: {0}", ctor.FullName))); 
+          }
+        }
+
+        // Add extensionality axiom: forall a, b :: { Dt#Equal(a, b) } Dt#Equal(a, b) <==> a == b
+        {
+          Bpl.Expr a; var aVar = BplBoundVar("a", predef.DatatypeType, out a);
+          Bpl.Expr b; var bVar = BplBoundVar("b", predef.DatatypeType, out b);
+
+          var lhs = FunctionCall(dt.tok, dtEqualName, Bpl.Type.Bool, a, b);
+          var rhs = Bpl.Expr.Eq(a, b);
+
+          var ax = BplForall(new List<Variable> { aVar, bVar }, BplTrigger(lhs), Bpl.Expr.Iff(lhs, rhs));
+          sink.AddTopLevelDeclaration(new Bpl.Axiom(dt.tok, ax, string.Format("Datatype extensionality axiom: {0}", dt.FullName)));
+        }
       }
 
       if (dt is CoDatatypeDecl) {
@@ -14522,6 +14627,9 @@ namespace Microsoft.Dafny {
                 var e1args = e.E1.Type.NormalizeExpand().TypeArgs;
                 return translator.CoEqualCall(cot, e0args, e1args, null, this.layerInterCluster.LayerN((int)FuelSetting.FuelAmount.HIGH), e0, e1, expr.tok);
               }
+              if (e.E0.Type.IsIndDatatype) {
+                return translator.TypeSpecificEqual(expr.tok, e.E0.Type, e0, e1);
+              }
               typ = Bpl.Type.Bool;
               bOpcode = BinaryOperator.Opcode.Eq; break;
             case BinaryExpr.ResolvedOpcode.NeqCommon:
@@ -14529,8 +14637,12 @@ namespace Microsoft.Dafny {
               if (cotx != null) {
                 var e0args = e.E0.Type.NormalizeExpand().TypeArgs;
                 var e1args = e.E1.Type.NormalizeExpand().TypeArgs;
-                var x = translator.CoEqualCall(cotx, e0args, e1args, null, this.layerInterCluster.LayerN((int)FuelSetting.FuelAmount.HIGH), e0, e1, expr.tok);
-                return Bpl.Expr.Unary(expr.tok, UnaryOperator.Opcode.Not, x);
+                var eq = translator.CoEqualCall(cotx, e0args, e1args, null, this.layerInterCluster.LayerN((int)FuelSetting.FuelAmount.HIGH), e0, e1, expr.tok);
+                return Bpl.Expr.Unary(expr.tok, UnaryOperator.Opcode.Not, eq);
+              }
+              if (e.E0.Type.IsIndDatatype) {
+                var eq = translator.TypeSpecificEqual(expr.tok, e.E0.Type, e0, e1);
+                return Bpl.Expr.Unary(expr.tok, UnaryOperator.Opcode.Not, eq);
               }
               typ = Bpl.Type.Bool;
               bOpcode = BinaryOperator.Opcode.Neq; break;
@@ -14705,16 +14817,17 @@ namespace Microsoft.Dafny {
                 return Bpl.Expr.Binary(expr.tok, bOp, operand0, operand1);
               }
 
-            case BinaryExpr.ResolvedOpcode.SetEq: {
-              bool finite = e.E1.Type.AsSetType.Finite;
-              var f = finite ? BuiltinFunction.SetEqual : BuiltinFunction.ISetEqual;
-              return translator.FunctionCall(expr.tok, f, null, e0, e1);
-            }
-            case BinaryExpr.ResolvedOpcode.SetNeq: {
-              bool finite = e.E1.Type.AsSetType.Finite;
-              var f = finite ? BuiltinFunction.SetEqual : BuiltinFunction.ISetEqual;
-              return Bpl.Expr.Unary(expr.tok, UnaryOperator.Opcode.Not, translator.FunctionCall(expr.tok, f, null, e0, e1));
-            }
+            case BinaryExpr.ResolvedOpcode.SetEq:
+            case BinaryExpr.ResolvedOpcode.MultiSetEq:
+            case BinaryExpr.ResolvedOpcode.SeqEq:
+            case BinaryExpr.ResolvedOpcode.MapEq:
+              return translator.TypeSpecificEqual(expr.tok, e.E0.Type, e0, e1);
+            case BinaryExpr.ResolvedOpcode.SetNeq:
+            case BinaryExpr.ResolvedOpcode.MultiSetNeq:
+            case BinaryExpr.ResolvedOpcode.SeqNeq:
+            case BinaryExpr.ResolvedOpcode.MapNeq:
+              return Bpl.Expr.Unary(expr.tok, UnaryOperator.Opcode.Not, translator.TypeSpecificEqual(expr.tok, e.E0.Type, e0, e1));
+
             case BinaryExpr.ResolvedOpcode.ProperSubset: {
               return translator.ProperSubset(expr.tok, e0, e1);
             }
@@ -14754,19 +14867,6 @@ namespace Microsoft.Dafny {
               var f = finite ? BuiltinFunction.SetDifference : BuiltinFunction.ISetDifference;
               return translator.FunctionCall(expr.tok, f, translator.TrType(expr.Type.AsSetType.Arg), e0, e1);
             }
-            case BinaryExpr.ResolvedOpcode.MultiSetEq:
-              return translator.FunctionCall(expr.tok, BuiltinFunction.MultiSetEqual, null, e0, e1);
-            case BinaryExpr.ResolvedOpcode.MultiSetNeq:
-              return Bpl.Expr.Unary(expr.tok, UnaryOperator.Opcode.Not, translator.FunctionCall(expr.tok, BuiltinFunction.MultiSetEqual, null, e0, e1));
-            case BinaryExpr.ResolvedOpcode.MapEq: {
-              bool finite = e.E1.Type.AsMapType.Finite;
-              return translator.FunctionCall(expr.tok, finite ? BuiltinFunction.MapEqual : BuiltinFunction.IMapEqual, null, e0, e1);
-            }
-            case BinaryExpr.ResolvedOpcode.MapNeq: {
-              bool finite = e.E1.Type.AsMapType.Finite;
-              var f = finite ? BuiltinFunction.MapEqual : BuiltinFunction.IMapEqual;
-              return Bpl.Expr.Unary(expr.tok, UnaryOperator.Opcode.Not, translator.FunctionCall(expr.tok, f, null, e0, e1));
-            }
             case BinaryExpr.ResolvedOpcode.ProperMultiSubset:
               return translator.ProperMultiset(expr.tok, e0, e1);
             case BinaryExpr.ResolvedOpcode.MultiSubset:
@@ -14788,10 +14888,6 @@ namespace Microsoft.Dafny {
             case BinaryExpr.ResolvedOpcode.MultiSetDifference:
               return translator.FunctionCall(expr.tok, BuiltinFunction.MultiSetDifference, translator.TrType(expr.Type.AsMultiSetType.Arg), e0, e1);
 
-            case BinaryExpr.ResolvedOpcode.SeqEq:
-              return translator.FunctionCall(expr.tok, BuiltinFunction.SeqEqual, null, e0, e1);
-            case BinaryExpr.ResolvedOpcode.SeqNeq:
-              return Bpl.Expr.Unary(expr.tok, UnaryOperator.Opcode.Not, translator.FunctionCall(expr.tok, BuiltinFunction.SeqEqual, null, e0, e1));
             case BinaryExpr.ResolvedOpcode.ProperPrefix:
               return translator.ProperPrefix(expr.tok, e0, e1);
             case BinaryExpr.ResolvedOpcode.Prefix:
