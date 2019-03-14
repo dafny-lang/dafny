@@ -2128,18 +2128,8 @@ namespace Microsoft.Dafny
           ResolveClassMemberTypes((ClassDecl)d);
         } else if (d is ModuleDecl) {
           var decl = (ModuleDecl)d;
-          if (!def.IsAbstract) {
-            if (decl.Signature.IsAbstract) {
-              if (// _module is allowed to contain abstract modules, but not be abstract itself. Note this presents a challenge to
-                  // trusted verification, as toplevels can't be trusted if they invoke abstract module members.
-                  !def.IsDefaultModule) {
-                reporter.Error(MessageSource.Resolver, d.tok, "an abstract module can only be imported into other abstract modules, not a concrete one.");
-              }
-            } else {
-              // physical modules are allowed everywhere
-            }
-          } else {
-            // everything is allowed in an abstract module
+          if (!def.IsAbstract && decl is AliasModuleDecl am && decl.Signature.IsAbstract) {
+            reporter.Error(MessageSource.Resolver, am.Path.Last(), "a compiled module ({0}) is not allowed to import an abstract module ({1})", def.Name, Util.Comma(".", am.Path, tok => tok.val));
           }
         } else {
           ResolveCtorTypes((DatatypeDecl)d, datatypeDependencies, codatatypeDependencies);
@@ -13161,6 +13151,13 @@ namespace Microsoft.Dafny
       Contract.Requires(name != null);
       Contract.Requires(decl != null);
       Contract.Ensures(Contract.Result<Resolver_IdentifierExpr>() != null);
+
+      if (!moduleInfo.IsAbstract) {
+        var md = decl as ModuleDecl;
+        if (md != null && md.Signature.IsAbstract) {
+          reporter.Error(MessageSource.Resolver, tok, "a compiled module is not allowed to use an abstract module ({0})", decl.Name);
+        }
+      }
       var n = optTypeArguments == null ? 0 : optTypeArguments.Count;
       if (optTypeArguments != null) {
         // type arguments were supplied; they must be equal in number to those expected
