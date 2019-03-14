@@ -635,7 +635,7 @@ namespace Microsoft.Dafny {
       wr.Write("func ");
       
       if (member != null && isStatic) {
-        wr.Write("(_this {0}) ", FormatCompanionTypeName(IdProtect(member.EnclosingClass.CompileName)));
+        wr.Write("(_this {0}) ", FormatCompanionTypeName(IdName(member.EnclosingClass)));
       }
       
       wr.Write("{0}(", name);
@@ -1413,15 +1413,105 @@ namespace Microsoft.Dafny {
       wr.Write("{0}[{1}]", prefix, i);
     }
 
+    static string Capitalize(string str) {
+      Contract.Requires(str != "");
+      Contract.Requires(str.Any(c => c != '_'));
+      while (str.StartsWith("_")) {
+        str = str.Substring(1) + "_";
+      }
+      if (!char.IsLetter(str[0])) {
+        return "Go_" + str;
+      } else {
+        return char.ToUpper(str[0]) + str.Substring(1);
+      }
+    }
+
+    protected override string IdName(TopLevelDecl d) {
+      Contract.Requires(d != null);
+      return Capitalize(d.CompileName);
+    }
+
+    protected override string IdName(MemberDecl member) {
+      Contract.Requires(member != null);
+      return Capitalize(member.CompileName);
+    }
+
     protected override string IdProtect(string name) {
       return PublicIdProtect(name);
     }
     public static string PublicIdProtect(string name) {
       Contract.Requires(name != null);
-      // Hack: Make all names public by throwing on a capital letter at the
-      // start.
       
-      return name.StartsWith("Go_") ? name : "Go_" + name;
+      switch (name) {
+        // Keywords
+        case "break":
+        case "case":
+        case "chan":
+        case "const":
+        case "continue":
+        case "default":
+        case "defer":
+        case "else":
+        case "fallthrough":
+        case "for":
+        case "func":
+        case "go":
+        case "goto":
+        case "if":
+        case "import":
+        case "interface":
+        case "map":
+        case "package":
+        case "range":
+        case "return":
+        case "select":
+        case "struct":
+        case "switch":
+        case "type":
+        case "var":
+
+        // Built-in functions
+        case "append":
+        case "cap":
+        case "close":
+        case "complex":
+        case "copy":
+        case "delete":
+        case "imag":
+        case "len":
+        case "make":
+        case "new":
+        case "panic":
+        case "print":
+        case "println":
+        case "real":
+        case "recover":
+      
+        // Built-in types (can also be used as functions)
+        case "bool":
+        case "byte":
+        case "complex64":
+        case "complex128":
+        case "error":
+        case "float32":
+        case "float64":
+        case "int":
+        case "int8":
+        case "int16":
+        case "int32":
+        case "int64":
+        case "rune":
+        case "string":
+        case "uint":
+        case "uint8":
+        case "uint16":
+        case "uint32":
+        case "uint64":
+        case "uintptr":
+          return name + "_";
+        default:
+          return name;
+      }
     }
 
     protected override string FullTypeName(UserDefinedType udt, MemberDecl/*?*/ member = null) {
@@ -1439,9 +1529,9 @@ namespace Microsoft.Dafny {
         return IdProtect(cl.Module.CompileName);
       } else {
         if (this.ModuleName == cl.Module.CompileName) {
-          return IdProtect(cl.CompileName);
+          return IdName(cl);
         } else {
-          return cl.Module.CompileName + "." + IdProtect(cl.CompileName);
+          return cl.Module.CompileName + "." + IdName(cl);
         }
       }
     }
