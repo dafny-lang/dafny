@@ -31,6 +31,9 @@ namespace Microsoft.Dafny {
     public static string FreshId() {
       return compileNameIdGenerator.FreshNumericId();
     }
+    public static string FreshId(string prefix) {
+      return compileNameIdGenerator.FreshId(prefix);
+    }
 
     Dictionary<Expression, int> uniqueAstNumbers = new Dictionary<Expression, int>();
     int GetUniqueAstNumber(Expression expr) {
@@ -69,13 +72,13 @@ namespace Microsoft.Dafny {
     public abstract BlockTargetWriter CreateStaticMain(TargetWriter wr);
     protected abstract TargetWriter CreateModule(string moduleName, bool isExtern, string/*?*/ libraryName, TargetWriter wr);
     protected abstract string GetHelperModuleName();
-    protected TargetWriter CreateClass(string name, List<TypeParameter>/*?*/ typeParameters, out TargetWriter instanceFieldsWriter, out TargetWriter staticFieldsWriter, TargetWriter wr) {
-      return CreateClass(name, false, null, typeParameters, null, null, out instanceFieldsWriter, out staticFieldsWriter, wr);
+    protected void CreateClass(string name, List<TypeParameter>/*?*/ typeParameters, out TargetWriter instanceMethodWriter, out TargetWriter instanceFieldWriter, out TargetWriter instanceFieldInitWriter, out TargetWriter staticMethodWriter, out TargetWriter staticFieldWriter, out TargetWriter staticFieldInitWriter, TargetWriter wr) {
+      CreateClass(name, false, null, typeParameters, null, null, out instanceMethodWriter, out instanceFieldWriter, out instanceFieldInitWriter, out staticMethodWriter, out staticFieldWriter, out staticFieldInitWriter, wr);
     }
     /// <summary>
     /// "tok" can be "null" if "superClasses" is.
     /// </summary>
-    protected abstract TargetWriter CreateClass(string name, bool isExtern, string/*?*/ fullPrintName, List<TypeParameter>/*?*/ typeParameters, List<Type>/*?*/ superClasses, Bpl.IToken tok, out TargetWriter instanceFieldsWriter, out TargetWriter staticFieldsWriter, TargetWriter wr);
+    protected abstract void CreateClass(string name, bool isExtern, string/*?*/ fullPrintName, List<TypeParameter>/*?*/ typeParameters, List<Type>/*?*/ superClasses, Bpl.IToken tok, out TargetWriter instanceMethodWriter, out TargetWriter instanceFieldWriter, out TargetWriter/*?*/ instanceFieldInitWriter, out TargetWriter staticMethodWriter, out TargetWriter staticFieldWriter, out TargetWriter/*?*/ staticFieldInitWriter, TargetWriter wr);
     /// <summary>
     /// "tok" can be "null" if "superClasses" is.
     /// </summary>
@@ -147,7 +150,8 @@ namespace Microsoft.Dafny {
       return TypeName_Companion(UserDefinedType.FromTopLevelDecl(tok, cls), wr, tok, null);
     }
 
-    protected abstract void DeclareField(string name, bool isStatic, bool isConst, Type type, Bpl.IToken tok, string rhs, TargetWriter wr);
+    // TODO initSeparator is a hack and should be part of the subclass's state somehow
+    protected abstract void DeclareField(string name, bool isStatic, bool isConst, Type type, Bpl.IToken tok, string rhs, TargetWriter wr, TargetWriter/*?*/ initWriter);
     protected abstract bool DeclareFormal(string prefix, string name, Type type, Bpl.IToken tok, bool isInParam, TextWriter wr);
     /// <summary>
     /// If "leaveRoomForRhs" is false and "rhs" is null, then generates:
@@ -257,15 +261,20 @@ namespace Microsoft.Dafny {
       return thn;
     }
     protected virtual TargetWriter EmitWhile(List<Statement> body, TargetWriter wr) {  // returns the guard writer
-      wr.Indent();
-      wr.Write("while (");
-      var guardWriter = new TargetWriter(wr.IndentLevel);
-      wr.Append(guardWriter);
-      var wBody = wr.NewBlock(")");
+      TargetWriter guardWriter;
+      var wBody = CreateWhileLoop(out guardWriter, wr);
       TrStmtList(body, wBody);
       return guardWriter;
     }
 
+    protected virtual BlockTargetWriter CreateWhileLoop(out TargetWriter guardWriter, TargetWriter wr) {
+      wr.Indent();
+      wr.Write("while (");
+      guardWriter = new TargetWriter(wr.IndentLevel);
+      wr.Append(guardWriter);
+      var wBody = wr.NewBlock(")");
+      return wBody;
+    }
     protected abstract BlockTargetWriter CreateForLoop(string indexVar, string bound, TargetWriter wr);
     protected abstract BlockTargetWriter CreateDoublingForLoop(string indexVar, int start, TargetWriter wr);
     protected abstract void EmitIncrementVar(string varName, TargetWriter wr);  // increments a BigInteger by 1
@@ -331,11 +340,24 @@ namespace Microsoft.Dafny {
     protected abstract void EmitDatatypeValue(DatatypeValue dtv, string arguments, TargetWriter wr);
     protected abstract void GetSpecialFieldInfo(SpecialField.ID id, object idParam, out string compiledName, out string preString, out string postString);
     protected abstract void EmitMemberSelect(MemberDecl member, bool isLValue, TargetWriter wr);
-    protected void EmitArraySelect(string index, TargetWriter wr) {
-      EmitArraySelect(new List<string>() { index }, wr);
+    protected void EmitArraySelect(string index, Type elmtType, TargetWriter wr) {
+      EmitArraySelect(new List<string>() { index }, elmtType, wr);
     }
-    protected abstract void EmitArraySelect(List<string> indices, TargetWriter wr);
-    protected abstract void EmitArraySelect(List<Expression> indices, bool inLetExprBody, TargetWriter wr);
+    protected abstract void EmitArraySelect(List<string> indices, Type elmtType, TargetWriter wr);
+    protected abstract void EmitArraySelect(List<Expression> indices, Type elmtType, bool inLetExprBody, TargetWriter wr);
+    protected virtual void EmitArraySelectAsLvalue(string array, List<string> indices, Type elmtType, TargetWriter wr) {
+      wr.Write(array);
+      EmitArraySelect(indices, elmtType, wr);
+    }
+    protected virtual void EmitArrayUpdate(List<string> indices, string rhs, Type elmtType, TargetWriter wr) {
+      EmitArraySelect(indices, elmtType, wr);
+      wr.Write(" = {0}", rhs);
+    }
+    protected void EmitArrayUpdate(List<string> indices, Expression rhs, TargetWriter wr) {
+      var w = new TargetWriter();
+      TrExpr(rhs, w, false);
+      EmitArrayUpdate(indices, w.ToString(), rhs.Type, wr);
+    }
     protected virtual string ArrayIndexToInt(string arrayIndex) {
       return arrayIndex;
     }
@@ -349,7 +371,7 @@ namespace Microsoft.Dafny {
     protected abstract void EmitSeqSelectRange(Expression source, Expression/*?*/ lo, Expression/*?*/ hi, bool fromArray, bool inLetExprBody, TargetWriter wr);
     protected abstract void EmitMultiSetFormingExpr(MultiSetFormingExpr expr, bool inLetExprBody, TargetWriter wr);
     protected abstract void EmitApplyExpr(Type functionType, Bpl.IToken tok, Expression function, List<Expression> arguments, bool inLetExprBody, TargetWriter wr);
-    protected abstract TargetWriter EmitBetaRedex(string boundVars, List<Expression> arguments, string typeArgs, bool inLetExprBody, TargetWriter wr);
+    protected abstract TargetWriter EmitBetaRedex(List<string> boundVars, List<Expression> arguments, string typeArgs, List<Type> boundTypes, Type resultType, Bpl.IToken resultTok, bool inLetExprBody, TargetWriter wr);
     /// <summary>
     /// EmitDestructor is somewhat similar to following "source" with a call to EmitMemberSelect.
     /// However, EmitDestructor may also need to perform a cast on "source".
@@ -443,9 +465,9 @@ namespace Microsoft.Dafny {
           } else if (d is TraitDecl) {
             // writing the trait
             var trait = (TraitDecl)d;
-            TargetWriter instanceFieldsWriter, staticMemberWriter;
-            var w = CreateTrait(trait.CompileName, null, null, out instanceFieldsWriter, out staticMemberWriter, wr);
-            CompileClassMembers(trait, w, instanceFieldsWriter, staticMemberWriter, staticMemberWriter);
+            TargetWriter instanceFieldWriter, staticMemberWriter;
+            var w = CreateTrait(trait.CompileName, null, null, out instanceFieldWriter, out staticMemberWriter, wr);
+            CompileClassMembers(trait, w, instanceFieldWriter, null, staticMemberWriter, staticMemberWriter, staticFieldInitWriter : null);
           } else if (d is ClassDecl) {
             var cl = (ClassDecl)d;
             var include = true;
@@ -456,13 +478,13 @@ namespace Microsoft.Dafny {
             }
             if (include) {
               var classIsExtern = !DafnyOptions.O.DisallowExterns && Attributes.Contains(cl.Attributes, "extern");
-              TargetWriter instanceFieldsWriter, staticFieldsWriter;
-              var w = CreateClass(IdName(cl), classIsExtern, cl.FullName, cl.TypeArgs, cl.TraitsTyp, cl.tok, out instanceFieldsWriter, out staticFieldsWriter, wr);
-              CompileClassMembers(cl, w, instanceFieldsWriter, staticFieldsWriter, w);
+              TargetWriter instanceMethodWriter, instanceFieldWriter, instanceFieldInitWriter, staticMethodWriter, staticFieldWriter, staticFieldInitWriter;
+              CreateClass(IdName(cl), classIsExtern, cl.FullName, cl.TypeArgs, cl.TraitsTyp, cl.tok,out instanceMethodWriter, out instanceFieldWriter, out instanceFieldInitWriter, out staticMethodWriter, out staticFieldWriter, out staticFieldInitWriter, wr);
+              CompileClassMembers(cl, instanceMethodWriter, instanceFieldWriter, instanceFieldInitWriter, staticMethodWriter, staticFieldWriter, staticFieldInitWriter);
             } else {
               // still check that given members satisfy compilation rules
               var abyss = new TargetWriter();
-              CompileClassMembers(cl, abyss, abyss, abyss, abyss);
+              CompileClassMembers(cl, abyss, abyss, null, abyss, abyss, null);
             }
           } else if (d is ValuetypeDecl) {
             // nop
@@ -606,14 +628,13 @@ namespace Microsoft.Dafny {
       return false;
     }
 
-    void CompileClassMembers(ClassDecl c, TargetWriter wr, TargetWriter instanceFieldsWriter, 
-    TargetWriter staticFieldsWriter, TargetWriter staticMethodWriter) {
+    void CompileClassMembers(ClassDecl c, TargetWriter instanceMethodWriter, TargetWriter instanceFieldWriter, TargetWriter/*?*/ instanceFieldInitWriter, TargetWriter staticMethodWriter, TargetWriter staticFieldWriter, TargetWriter/*?*/ staticFieldInitWriter) {
       Contract.Requires(c != null);
-      Contract.Requires(wr != null);
-      Contract.Requires(instanceFieldsWriter != null);
+      Contract.Requires(instanceMethodWriter != null);
+      Contract.Requires(instanceFieldWriter != null);
       Contract.Requires(staticMethodWriter != null);
 
-      CheckHandleWellformed(c, wr);
+      CheckHandleWellformed(c, instanceMethodWriter);
       foreach (var member in c.InheritedMembers) {
         Contract.Assert(!member.IsStatic);  // only instance members should ever be added to .InheritedMembers
         if (member.IsGhost) {
@@ -622,9 +643,9 @@ namespace Microsoft.Dafny {
           var cf = (ConstantField)member;
           if (cf.Rhs == null) {
             Contract.Assert(!cf.IsStatic);  // as checked above, only instance members can be inherited
-            DeclareField("_" + cf.CompileName, false, false, cf.Type, cf.tok, DefaultValue(cf.Type, instanceFieldsWriter, cf.tok, true), instanceFieldsWriter);
+            DeclareField("_" + cf.CompileName, false, false, cf.Type, cf.tok, DefaultValue(cf.Type, instanceFieldWriter, cf.tok, true), instanceFieldWriter, instanceFieldInitWriter);
           }
-          var w = CreateGetter(IdName(cf), cf.Type, cf.tok, false, true, wr);
+          var w = CreateGetter(IdName(cf), cf.Type, cf.tok, false, true, instanceMethodWriter);
           Contract.Assert(w != null);  // since the previous line asked for a body
           if (cf.Rhs == null) {
             var sw = EmitReturnExpr(w);
@@ -637,9 +658,9 @@ namespace Microsoft.Dafny {
         } else if (member is Field) {
           var f = (Field)member;
           // every field is inherited
-          DeclareField("_" + f.CompileName, false, false, f.Type, f.tok, DefaultValue(f.Type, instanceFieldsWriter, f.tok, true), instanceFieldsWriter);
+          DeclareField("_" + f.CompileName, false, false, f.Type, f.tok, DefaultValue(f.Type, instanceFieldWriter, f.tok, true), instanceFieldWriter, instanceFieldInitWriter);
           TargetWriter wSet;
-          var wGet = CreateGetterSetter(IdName(f), f.Type, f.tok, false, true, out wSet, wr);
+          var wGet = CreateGetterSetter(IdName(f), f.Type, f.tok, false, true, out wSet, instanceMethodWriter);
           {
             var sw = EmitReturnExpr(wGet);
             // get { return this._{0}; }
@@ -657,11 +678,11 @@ namespace Microsoft.Dafny {
         } else if (member is Function) {
           var f = (Function)member;
           Contract.Assert(f.Body != null);
-          CompileFunction(f, wr);
+          CompileFunction(f, instanceMethodWriter);
         } else if (member is Method) {
           var method = (Method)member;
           Contract.Assert(method.Body != null);
-          CompileMethod(c, method, wr);
+          CompileMethod(c, method, instanceMethodWriter);
         } else {
           Contract.Assert(false);  // unexpected member
         }
@@ -672,7 +693,7 @@ namespace Microsoft.Dafny {
           if (f.IsGhost) {
             // emit nothing, but check for assumes
             if (f is ConstantField cf && cf.Rhs != null) {
-              var v = new CheckHasNoAssumes_Visitor(this, wr);
+              var v = new CheckHasNoAssumes_Visitor(this, instanceMethodWriter);
               v.Visit(cf.Rhs);
             }
           } else if (f is ConstantField) {
@@ -682,15 +703,15 @@ namespace Microsoft.Dafny {
               wBody = CreateGetter(IdName(cf), cf.Type, cf.tok, true, true, staticMethodWriter);
               Contract.Assert(wBody != null);  // since the previous line asked for a body
             } else if (c is TraitDecl) {
-              wBody = CreateGetter(IdName(cf), cf.Type, cf.tok, false, false, wr);
+              wBody = CreateGetter(IdName(cf), cf.Type, cf.tok, false, false, instanceMethodWriter);
               Contract.Assert(wBody == null);  // since the previous line said not to create a body
             } else if (cf.Rhs == null) {
               // create a backing field, since this constant field may be assigned in constructors
-              DeclareField("_" + f.CompileName, false, false, f.Type, f.tok, DefaultValue(f.Type, instanceFieldsWriter, f.tok, true), instanceFieldsWriter);
-              wBody = CreateGetter(IdName(cf), cf.Type, cf.tok, false, true, wr);
+              DeclareField("_" + f.CompileName, false, false, f.Type, f.tok, DefaultValue(f.Type, instanceFieldWriter, f.tok, true), instanceFieldWriter, instanceFieldInitWriter);
+              wBody = CreateGetter(IdName(cf), cf.Type, cf.tok, false, true, instanceMethodWriter);
               Contract.Assert(wBody != null);  // since the previous line asked for a body
             } else {
-              wBody = CreateGetter(IdName(cf), cf.Type, cf.tok, false, true, wr);
+              wBody = CreateGetter(IdName(cf), cf.Type, cf.tok, false, true, instanceMethodWriter);
               Contract.Assert(wBody != null);  // since the previous line asked for a body
             }
             if (wBody != null) {
@@ -706,10 +727,10 @@ namespace Microsoft.Dafny {
             }
           } else if (c is TraitDecl) {
             TargetWriter wSet;
-            var wGet = CreateGetterSetter(IdName(f), f.Type, f.tok, f.IsStatic, false, out wSet, wr);
+            var wGet = CreateGetterSetter(IdName(f), f.Type, f.tok, f.IsStatic, false, out wSet, instanceMethodWriter);
             Contract.Assert(wSet == null && wGet == null);  // since the previous line specified no body
           } else {
-            DeclareField(IdName(f), false, false, f.Type, f.tok, DefaultValue(f.Type, instanceFieldsWriter, f.tok, true), instanceFieldsWriter);
+            DeclareField(IdName(f), false, false, f.Type, f.tok, DefaultValue(f.Type, instanceFieldWriter, f.tok, true), instanceFieldWriter, instanceFieldInitWriter);
           }
         } else if (member is Function) {
           var f = (Function)member;
@@ -718,23 +739,23 @@ namespace Microsoft.Dafny {
             if (Attributes.Contains(f.Attributes, "axiom") || (!DafnyOptions.O.DisallowExterns && Attributes.Contains(f.Attributes, "extern"))) {
               // suppress error message
             } else {
-              Error(f.tok, "Function {0} has no body", wr, f.FullName);
+              Error(f.tok, "Function {0} has no body", instanceMethodWriter, f.FullName);
             }
           } else if (f.IsGhost) {
             // nothing to compile, but we do check for assumes
             if (f.Body == null) {
               Contract.Assert(c is TraitDecl && !f.IsStatic);
             } else {
-              var v = new CheckHasNoAssumes_Visitor(this, wr);
+              var v = new CheckHasNoAssumes_Visitor(this, instanceMethodWriter);
               v.Visit(f.Body);
             }
           } else if (c is TraitDecl && !f.IsStatic) {
-            var w = CreateFunction(IdName(f), f.TypeArgs, f.Formals, f.ResultType, f.tok, false, false, f, wr);
+            var w = CreateFunction(IdName(f), f.TypeArgs, f.Formals, f.ResultType, f.tok, false, false, f, instanceMethodWriter);
             Contract.Assert(w == null);  // since we requested no body
           } else if (f.IsStatic) {
             CompileFunction(f, staticMethodWriter);
           } else {
-            CompileFunction(f, wr);
+            CompileFunction(f, instanceMethodWriter);
           }
         } else if (member is Method) {
           var m = (Method)member;
@@ -743,23 +764,23 @@ namespace Microsoft.Dafny {
             if (Attributes.Contains(m.Attributes, "axiom") || (!DafnyOptions.O.DisallowExterns && Attributes.Contains(m.Attributes, "extern"))) {
               // suppress error message
             } else {
-              Error(m.tok, "Method {0} has no body", wr, m.FullName);
+              Error(m.tok, "Method {0} has no body", instanceMethodWriter, m.FullName);
             }
           } else if (m.IsGhost) {
             // nothing to compile, but we do check for assumes
             if (m.Body == null) {
               Contract.Assert(c is TraitDecl && !m.IsStatic);
             } else {
-              var v = new CheckHasNoAssumes_Visitor(this, wr);
+              var v = new CheckHasNoAssumes_Visitor(this, instanceMethodWriter);
               v.Visit(m.Body);
             }
           } else if (c is TraitDecl && !m.IsStatic) {
-            var w = CreateMethod(m, false, wr);
+            var w = CreateMethod(m, false, instanceMethodWriter);
             Contract.Assert(w == null);  // since we requested no body
           } else if (m.IsStatic) {
             CompileMethod(c, m, staticMethodWriter);
           } else {
-            CompileMethod(c, m, wr);
+            CompileMethod(c, m, instanceMethodWriter);
           }
         } else {
           Contract.Assert(false); throw new cce.UnreachableException();  // unexpected member
@@ -1478,7 +1499,9 @@ namespace Microsoft.Dafny {
         }
         if (s.Alternatives.Count != 0) {
           wr.Indent();
-          var w = wr.NewBlock("while (true)");
+          TargetWriter whileGuardWriter;
+          var w = CreateWhileLoop(out whileGuardWriter, wr);
+          whileGuardWriter.Write("true");
           foreach (var alternative in s.Alternatives) {
             TargetWriter guardWriter;
             var thn = EmitIf(out guardWriter, true, w);
@@ -1919,16 +1942,13 @@ namespace Microsoft.Dafny {
         DeclareLocalVar(arr, null, null, ll.Seq, false, wr);
         DeclareLocalVar(index, null, null, ll.E0, false, wr);
         var sw = new TargetWriter();
-        sw.Write(arr);
-        EmitArraySelect(index, sw);
+        EmitArraySelectAsLvalue(arr, new List<string>() { index }, ll.Type, sw);
         return sw.ToString();
       } else {
         var ll = (MultiSelectExpr)lhs;
         var c = idGenerator.FreshNumericId("_arr+_index");
         string arr = "_arr" + c;
         DeclareLocalVar(arr, null, null, ll.Array, false, wr);
-        var sw = new TargetWriter();
-        sw.Write(arr);
         var indices = new List<string>();
         int i = 0;
         foreach (var idx in ll.Indices) {
@@ -1937,7 +1957,8 @@ namespace Microsoft.Dafny {
           indices.Add(index);
           i++;
         }
-        EmitArraySelect(indices, sw);
+        var sw = new TargetWriter();
+        EmitArraySelectAsLvalue(arr, indices, ll.Type, sw);
         return sw.ToString();
       }
     }
@@ -1986,15 +2007,16 @@ namespace Microsoft.Dafny {
         }
         w.Indent();
         w.Write(nw);
-        EmitArraySelect(indices, w);
-        w.WriteLine(" = {0}({1});", f, Util.Comma(indices.ConvertAll(ArrayIndexToInt), si => si));
+        var eltRhs = string.Format("{0}({1})", f, Util.Comma(indices, ArrayIndexToInt));
+        EmitArrayUpdate(indices, eltRhs, tRhs.ElementInit.Type, w);
+        w.WriteLine(";");
       } else if (tRhs.InitDisplay != null) {
         var ii = 0;
         foreach (var v in tRhs.InitDisplay) {
           wr.Indent();
           wr.Write(nw);
-          EmitArraySelect(ii.ToString(), wr);
-          EmitAssignmentRhs(v, false, wr);
+          EmitArrayUpdate(new List<string> { ii.ToString() }, v, wr);
+          wr.WriteLine(";");
           ii++;
         }
       }
@@ -2322,7 +2344,7 @@ namespace Microsoft.Dafny {
           if (e.SelectOne) {
             Contract.Assert(e.E0 != null && e.E1 == null);
             TrParenExpr(e.Seq, wr, inLetExprBody);
-            EmitArraySelect(new List<Expression>() { e.E0 }, inLetExprBody, wr);
+            EmitArraySelect(new List<Expression>() { e.E0 }, e.Type, inLetExprBody, wr);
           } else {
             EmitSeqSelectRange(e.Seq, e.E0, e.E1, true, inLetExprBody, wr);
           }
@@ -2338,7 +2360,7 @@ namespace Microsoft.Dafny {
       } else if (expr is MultiSelectExpr) {
         MultiSelectExpr e = (MultiSelectExpr)expr;
         TrParenExpr(e.Array, wr, inLetExprBody);
-        EmitArraySelect(e.Indices, inLetExprBody, wr);
+        EmitArraySelect(e.Indices, e.Type, inLetExprBody, wr);
 
       } else if (expr is SeqUpdateExpr) {
         SeqUpdateExpr e = (SeqUpdateExpr)expr;
@@ -2447,7 +2469,7 @@ namespace Microsoft.Dafny {
         } else if (callString != null) {
           wr.Write(preOpString);
           TrParenExpr(e0, wr, inLetExprBody);
-          wr.Write(".{0}(", IdProtect(callString));
+          wr.Write(".{0}(", callString);
           TrExpr(e1, wr, inLetExprBody);
           wr.Write(")");
           wr.Write(postOpString);
@@ -2672,10 +2694,9 @@ namespace Microsoft.Dafny {
 
         var typeArgs = TypeName_UDT(ArrowType.Arrow_FullCompileName, Util.Snoc(bvars.ConvertAll(bv => bv.Type), expr.Type), wr, Bpl.Token.NoToken);
         var boundVars = Util.Comma(bvars, IdName);
-        wr = EmitBetaRedex(boundVars, fexprs, typeArgs, inLetExprBody, wr);
-        wr.Write("(");
-        wr.Write(Util.Comma(e.BoundVars, IdName));
-        wr.Write(") => ");
+        wr = EmitBetaRedex(bvars.ConvertAll(IdName), fexprs, typeArgs, bvars.ConvertAll(bv => bv.Type), expr.Type, expr.tok, inLetExprBody, wr);
+        wr = CreateLambda(e.BoundVars.ConvertAll(bv => bv.Type), Bpl.Token.NoToken, e.BoundVars.ConvertAll(IdName), e.Body.Type, wr);
+        wr = EmitReturnExpr(wr);
         TrExpr(su.Substitute(e.Body), wr, inLetExprBody);
 
       } else if (expr is StmtExpr) {

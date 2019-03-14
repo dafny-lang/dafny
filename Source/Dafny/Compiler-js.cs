@@ -57,7 +57,7 @@ namespace Microsoft.Dafny {
 
     protected override string GetHelperModuleName() => "_dafny";
 
-    protected override TargetWriter CreateClass(string name, bool isExtern, string/*?*/ fullPrintName, List<TypeParameter>/*?*/ typeParameters, List<Type>/*?*/ superClasses, Bpl.IToken tok, out TargetWriter instanceFieldsWriter, out TargetWriter staticFieldsWriter, TargetWriter wr) {
+    protected override void CreateClass(string name, bool isExtern, string/*?*/ fullPrintName, List<TypeParameter>/*?*/ typeParameters, List<Type>/*?*/ superClasses, Bpl.IToken tok, out TargetWriter instanceMethodWriter, out TargetWriter instanceFieldWriter, out TargetWriter/*?*/ instanceFieldInitWriter, out TargetWriter staticMethodWriter, out TargetWriter staticFieldWriter, out TargetWriter/*?*/ staticFieldInitWriter, TargetWriter wr) {
       wr.Indent();
       var w = wr.NewBlock(string.Format("$module.{0} = class {0}" + (isExtern ? " extends $module.{0}" : ""), name), ";");
       w.Indent();
@@ -65,20 +65,22 @@ namespace Microsoft.Dafny {
       if (typeParameters != null) {
         WriteRuntimeTypeDescriptorsFormals(typeParameters, false, w);
       }
-      instanceFieldsWriter = staticFieldsWriter = w.NewBlock(")");
+      instanceFieldWriter = staticFieldWriter = w.NewBlock(")");
       if (fullPrintName != null) {
-        instanceFieldsWriter.Indent();
-        instanceFieldsWriter.WriteLine("this._tname = \"{0}\";", fullPrintName);
+        instanceFieldWriter.Indent();
+        instanceFieldWriter.WriteLine("this._tname = \"{0}\";", fullPrintName);
       }
       if (typeParameters != null) {
         foreach (var tp in typeParameters) {
           if (tp.Characteristics.MustSupportZeroInitialization) {
-            instanceFieldsWriter.Indent();
-            instanceFieldsWriter.WriteLine("this.{0} = {0};", "rtd$_" + tp.CompileName);
+            instanceFieldWriter.Indent();
+            instanceFieldWriter.WriteLine("this.{0} = {0};", "rtd$_" + tp.CompileName);
           }
         }
       }
-      return w;
+      instanceMethodWriter = staticMethodWriter = w;
+      // Fields are declared by initializing them; don't need these separately
+      instanceFieldInitWriter = staticFieldInitWriter = null;
     }
 
     protected override BlockTargetWriter CreateTrait(string name, List<Type>/*?*/ superClasses, Bpl.IToken tok, out TargetWriter instanceFieldsWriter, out TargetWriter staticMemberWriter, TargetWriter wr) {
@@ -114,14 +116,14 @@ namespace Microsoft.Dafny {
       //     }
       //   }
 
-      TargetWriter instanceFieldsWriter;
-      var w = CreateClass(IdName(iter), iter.TypeArgs, out instanceFieldsWriter, out _, wr);
+      TargetWriter w, instanceFieldsWriter;
+      CreateClass(IdName(iter), iter.TypeArgs, out w, out instanceFieldsWriter, out _, out _, out _, out _, wr);
       // here come the fields
       Constructor ct = null;
       foreach (var member in iter.Members) {
         var f = member as Field;
         if (f != null && !f.IsGhost) {
-          DeclareField(IdName(f), false, false, f.Type, f.tok, DefaultValue(f.Type, instanceFieldsWriter, f.tok), instanceFieldsWriter);
+          DeclareField(IdName(f), false, false, f.Type, f.tok, DefaultValue(f.Type, instanceFieldsWriter, f.tok), instanceFieldsWriter, null);
         } else if (member is Constructor) {
           Contract.Assert(ct == null);  // we're expecting just one constructor
           ct = (Constructor)member;
@@ -522,7 +524,8 @@ namespace Microsoft.Dafny {
     }
 
     protected override void DeclareNewtype(NewtypeDecl nt, TargetWriter wr) {
-      var w = CreateClass(IdName(nt), null, out _, out _, wr);
+      TargetWriter w;
+      CreateClass(IdName(nt), null, out w, out _, out _, out _, out _, out _, wr);
       if (nt.NativeType != null) {
         w.Indent();
         var wIntegerRangeBody = w.NewBlock("static *IntegerRange(lo, hi)");
@@ -540,7 +543,7 @@ namespace Microsoft.Dafny {
           TrParenExpr(nt.Witness, witness, false);
           witness.Write(".toNumber()");
         }
-        DeclareField("Witness", true, true, nt.BaseType, nt.tok, witness.ToString(), w);
+        DeclareField("Witness", true, true, nt.BaseType, nt.tok, witness.ToString(), w, null);
       }
       w.Indent();
       using (var wDefault = w.NewBlock("static get Default()")) {
@@ -552,11 +555,12 @@ namespace Microsoft.Dafny {
     }
 
     protected override void DeclareSubsetType(SubsetTypeDecl sst, TargetWriter wr) {
-      var w = CreateClass(IdName(sst), sst.TypeArgs, out _, out _, wr);
+      TargetWriter w;
+      CreateClass(IdName(sst), sst.TypeArgs, out w, out _, out _, out _, out _, out _, wr);
       if (sst.WitnessKind == SubsetTypeDecl.WKind.Compiled) { 
         var witness = new TargetWriter(w.IndentLevel);
         TrExpr(sst.Witness, witness, false);
-        DeclareField("Witness", true, true, sst.Rhs, sst.tok, witness.ToString(), w);
+        DeclareField("Witness", true, true, sst.Rhs, sst.tok, witness.ToString(), w, null);
       }
       w.Indent();
       using (var wDefault = w.NewBlock("static get Default()")) {
@@ -989,7 +993,7 @@ namespace Microsoft.Dafny {
 
     // ----- Declarations -------------------------------------------------------------
 
-    protected override void DeclareField(string name, bool isStatic, bool isConst, Type type, Bpl.IToken tok, string rhs, TargetWriter wr) {
+    protected override void DeclareField(string name, bool isStatic, bool isConst, Type type, Bpl.IToken tok, string rhs, TargetWriter wr, TargetWriter/*?*/ initWriter) {
       wr.Indent();
       if (isStatic) {
         var w = wr.NewNamedBlock("static get {0}()", name);
@@ -1500,7 +1504,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    protected override void EmitArraySelect(List<string> indices, TargetWriter wr) {
+    protected override void EmitArraySelect(List<string> indices, Type elmtType, TargetWriter wr) {
       if (indices.Count == 1) {
         wr.Write("[{0}]", indices[0]);
       } else {
@@ -1511,7 +1515,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    protected override void EmitArraySelect(List<Expression> indices, bool inLetExprBody, TargetWriter wr) {
+    protected override void EmitArraySelect(List<Expression> indices, Type elmtType, bool inLetExprBody, TargetWriter wr) {
       Contract.Assert(indices != null && 1 <= indices.Count);  // follows from precondition
       if (indices.Count == 1) {
         wr.Write("[");
@@ -1596,8 +1600,8 @@ namespace Microsoft.Dafny {
       TrExprList(arguments, wr, inLetExprBody);
     }
 
-    protected override TargetWriter EmitBetaRedex(string boundVars, List<Expression> arguments, string typeArgs, bool inLetExprBody, TargetWriter wr) {
-      wr.Write("(({0}) => ", boundVars);
+    protected override TargetWriter EmitBetaRedex(List<string> boundVars, List<Expression> arguments, string typeArgs, List<Type> boundTypes, Type resultType, Bpl.IToken tok, bool inLetExprBody, TargetWriter wr) {
+      wr.Write("(({0}) => ", Util.Comma(boundVars));
       var w = new TargetWriter(wr.IndentLevel);
       wr.Append(w);
       wr.Write(")");

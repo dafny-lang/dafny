@@ -46,6 +46,17 @@ namespace Microsoft.Dafny {
       return res;
     }
 
+    public static string Repeat(string str, int times) {
+      Contract.Requires(times >= 0);
+      Contract.Requires(str != null);
+
+      var ans = "";
+      for (var i = 0; i < times; i++) {
+        ans += str;
+      }
+      return ans;
+    }
+
     public static List<B> Map<A, B>(IEnumerable<A> xs, Func<A, B> f)
     {
       List<B> ys = new List<B>();
