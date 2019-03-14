@@ -1,4 +1,3 @@
-// XFAIL: *
 // RUN: %dafny /compile:0 /dprint:"%t.dprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
@@ -245,13 +244,13 @@ module Allocated1 {
   twostate function TS0(c: Cell, new d: Cell): bool
   {
     allocated(d)  // error: even though this is always true, it is not allowed (when the function definition axiom
-                  // is applied in a reachable heap, but that's not guarantted)
+                  // is applied in a reachable heap, but that's not guaranteed)
   }
 
   twostate function TS1(c: Cell, new d: Cell): bool
   {
     allocated(d)  // error: even though this is always true, it is not allowed (when the function definition axiom
-                  // is applied in a reachable heap, but that's not guarantted)
+                  // is applied in a reachable heap, but that's not guaranteed)
   }
 
   twostate function TS2(c: Cell, new d: Cell): bool
