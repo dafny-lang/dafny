@@ -30,7 +30,8 @@ namespace Microsoft.Dafny {
       wr.WriteLine("{0}.{1}();", mainMethod.EnclosingClass.FullCompileName, IdName(mainMethod));
     }
       
-    public override BlockTargetWriter CreateStaticMain(TargetWriter wr) {
+    protected override BlockTargetWriter CreateStaticMain(IClassWriter cw) {
+      var wr = (cw as JavaScriptCompiler.ClassWriter).MethodWriter;
       wr.Indent();
       return wr.NewBlock("static Main()");
     }
@@ -57,7 +58,7 @@ namespace Microsoft.Dafny {
 
     protected override string GetHelperModuleName() => "_dafny";
 
-    protected override void CreateClass(string name, bool isExtern, string/*?*/ fullPrintName, List<TypeParameter>/*?*/ typeParameters, List<Type>/*?*/ superClasses, Bpl.IToken tok, out TargetWriter instanceMethodWriter, out TargetWriter instanceFieldWriter, out TargetWriter/*?*/ instanceFieldInitWriter, out TargetWriter staticMethodWriter, out TargetWriter staticFieldWriter, out TargetWriter/*?*/ staticFieldInitWriter, TargetWriter wr) {
+    protected override IClassWriter CreateClass(string name, bool isExtern, string/*?*/ fullPrintName, List<TypeParameter>/*?*/ typeParameters, List<Type>/*?*/ superClasses, Bpl.IToken tok, TargetWriter wr) {
       wr.Indent();
       var w = wr.NewBlock(string.Format("$module.{0} = class {0}" + (isExtern ? " extends $module.{0}" : ""), name), ";");
       w.Indent();
@@ -65,31 +66,30 @@ namespace Microsoft.Dafny {
       if (typeParameters != null) {
         WriteRuntimeTypeDescriptorsFormals(typeParameters, false, w);
       }
-      instanceFieldWriter = staticFieldWriter = w.NewBlock(")");
+      var fieldWriter = w.NewBlock(")");
       if (fullPrintName != null) {
-        instanceFieldWriter.Indent();
-        instanceFieldWriter.WriteLine("this._tname = \"{0}\";", fullPrintName);
+        fieldWriter.Indent();
+        fieldWriter.WriteLine("this._tname = \"{0}\";", fullPrintName);
       }
       if (typeParameters != null) {
         foreach (var tp in typeParameters) {
           if (tp.Characteristics.MustSupportZeroInitialization) {
-            instanceFieldWriter.Indent();
-            instanceFieldWriter.WriteLine("this.{0} = {0};", "rtd$_" + tp.CompileName);
+            fieldWriter.Indent();
+            fieldWriter.WriteLine("this.{0} = {0};", "rtd$_" + tp.CompileName);
           }
         }
       }
-      instanceMethodWriter = staticMethodWriter = w;
-      // Fields are declared by initializing them; don't need these separately
-      instanceFieldInitWriter = staticFieldInitWriter = null;
+      var methodWriter = w;
+      return new ClassWriter(this, methodWriter, fieldWriter);
     }
 
-    protected override BlockTargetWriter CreateTrait(string name, List<Type>/*?*/ superClasses, Bpl.IToken tok, out TargetWriter instanceFieldsWriter, out TargetWriter staticMemberWriter, TargetWriter wr) {
+    protected override IClassWriter CreateTrait(string name, List<Type>/*?*/ superClasses, Bpl.IToken tok, TargetWriter wr) {
       wr.Indent();
       var w = wr.NewBlock(string.Format("$module.{0} = class {0}", IdProtect(name)), ";");
       w.Indent();
-      instanceFieldsWriter = w.NewBlock("constructor ()");
-      staticMemberWriter = w;
-      return w;
+      var fieldWriter = w.NewBlock("constructor ()");
+      var methodWriter = w;
+      return new ClassWriter(this, methodWriter, fieldWriter);
     }
 
     protected override BlockTargetWriter CreateIterator(IteratorDecl iter, TargetWriter wr) {
@@ -116,14 +116,15 @@ namespace Microsoft.Dafny {
       //     }
       //   }
 
-      TargetWriter w, instanceFieldsWriter;
-      CreateClass(IdName(iter), iter.TypeArgs, out w, out instanceFieldsWriter, out _, out _, out _, out _, wr);
+      var cw = CreateClass(IdName(iter), iter.TypeArgs, wr) as JavaScriptCompiler.ClassWriter;
+      var w = cw.MethodWriter;
+      var instanceFieldsWriter = cw.FieldWriter;
       // here come the fields
       Constructor ct = null;
       foreach (var member in iter.Members) {
         var f = member as Field;
         if (f != null && !f.IsGhost) {
-          DeclareField(IdName(f), false, false, f.Type, f.tok, DefaultValue(f.Type, instanceFieldsWriter, f.tok), instanceFieldsWriter, null);
+          DeclareField(IdName(f), false, false, f.Type, f.tok, DefaultValue(f.Type, instanceFieldsWriter, f.tok), instanceFieldsWriter);
         } else if (member is Constructor) {
           Contract.Assert(ct == null);  // we're expecting just one constructor
           ct = (Constructor)member;
@@ -524,8 +525,8 @@ namespace Microsoft.Dafny {
     }
 
     protected override void DeclareNewtype(NewtypeDecl nt, TargetWriter wr) {
-      TargetWriter w;
-      CreateClass(IdName(nt), null, out w, out _, out _, out _, out _, out _, wr);
+      var cw = CreateClass(IdName(nt), null, wr) as JavaScriptCompiler.ClassWriter;
+      var w = cw.MethodWriter;
       if (nt.NativeType != null) {
         w.Indent();
         var wIntegerRangeBody = w.NewBlock("static *IntegerRange(lo, hi)");
@@ -543,7 +544,7 @@ namespace Microsoft.Dafny {
           TrParenExpr(nt.Witness, witness, false);
           witness.Write(".toNumber()");
         }
-        DeclareField("Witness", true, true, nt.BaseType, nt.tok, witness.ToString(), w, null);
+        DeclareField("Witness", true, true, nt.BaseType, nt.tok, witness.ToString(), w);
       }
       w.Indent();
       using (var wDefault = w.NewBlock("static get Default()")) {
@@ -555,12 +556,12 @@ namespace Microsoft.Dafny {
     }
 
     protected override void DeclareSubsetType(SubsetTypeDecl sst, TargetWriter wr) {
-      TargetWriter w;
-      CreateClass(IdName(sst), sst.TypeArgs, out w, out _, out _, out _, out _, out _, wr);
+      var cw = CreateClass(IdName(sst), sst.TypeArgs, wr) as JavaScriptCompiler.ClassWriter;
+      var w = cw.MethodWriter;
       if (sst.WitnessKind == SubsetTypeDecl.WKind.Compiled) { 
         var witness = new TargetWriter(w.IndentLevel);
         TrExpr(sst.Witness, witness, false);
-        DeclareField("Witness", true, true, sst.Rhs, sst.tok, witness.ToString(), w, null);
+        DeclareField("Witness", true, true, sst.Rhs, sst.tok, witness.ToString(), w);
       }
       w.Indent();
       using (var wDefault = w.NewBlock("static get Default()")) {
@@ -584,7 +585,36 @@ namespace Microsoft.Dafny {
       }
     }
 
-    protected override BlockTargetWriter/*?*/ CreateMethod(Method m, bool createBody, TargetWriter wr) {
+    protected class ClassWriter : IClassWriter {
+      public readonly JavaScriptCompiler Compiler;
+      public readonly BlockTargetWriter MethodWriter;
+      public readonly BlockTargetWriter FieldWriter;
+
+      public ClassWriter(JavaScriptCompiler compiler, BlockTargetWriter methodWriter, BlockTargetWriter fieldWriter) {
+        this.Compiler = compiler;
+        this.MethodWriter = methodWriter;
+        this.FieldWriter = fieldWriter;
+      }
+
+      public BlockTargetWriter/*?*/ CreateMethod(Method m, bool createBody) {
+        return Compiler.CreateMethod(m, createBody, MethodWriter);
+      }
+      public BlockTargetWriter/*?*/ CreateFunction(string name, List<TypeParameter>/*?*/ typeArgs, List<Formal> formals, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl member) {
+        return Compiler.CreateFunction(name, typeArgs, formals, resultType, tok, isStatic, createBody, MethodWriter);
+      }
+      public BlockTargetWriter/*?*/ CreateGetter(string name, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl/*?*/ member) {
+        return Compiler.CreateGetter(name, resultType, tok, isStatic, createBody, MethodWriter);
+      }
+      public BlockTargetWriter/*?*/ CreateGetterSetter(string name, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl/*?*/ member, out TargetWriter setterWriter) {
+        return Compiler.CreateGetterSetter(name, resultType, tok, isStatic, createBody, out setterWriter, MethodWriter);
+      }
+      public void DeclareField(string name, bool isStatic, bool isConst, Type type, Bpl.IToken tok, string rhs) {
+        Compiler.DeclareField(name, isStatic, isConst, type, tok, rhs, FieldWriter);
+      }
+      public TextWriter/*?*/ ErrorWriter() => MethodWriter;
+    }
+
+    protected BlockTargetWriter/*?*/ CreateMethod(Method m, bool createBody, TargetWriter wr) {
       if (!createBody) {
         return null;
       }
@@ -607,7 +637,7 @@ namespace Microsoft.Dafny {
       return w;
     }
 
-    protected override BlockTargetWriter/*?*/ CreateFunction(string name, List<TypeParameter>/*?*/ typeArgs, List<Formal> formals, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl member, TargetWriter wr) {
+    protected BlockTargetWriter/*?*/ CreateFunction(string name, List<TypeParameter>/*?*/ typeArgs, List<Formal> formals, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, TargetWriter wr) {
       if (!createBody) {
         return null;
       }
@@ -762,7 +792,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    protected override BlockTargetWriter/*?*/ CreateGetter(string name, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, TargetWriter wr) {
+    protected BlockTargetWriter/*?*/ CreateGetter(string name, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, TargetWriter wr) {
       if (createBody) {
         wr.Indent();
         wr.Write("{0}get {1}()", isStatic ? "static " : "", name);
@@ -776,7 +806,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    protected override BlockTargetWriter/*?*/ CreateGetterSetter(string name, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, out TargetWriter setterWriter, TargetWriter wr) {
+    protected BlockTargetWriter/*?*/ CreateGetterSetter(string name, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, out TargetWriter setterWriter, TargetWriter wr) {
       if (createBody) {
         wr.Indent();
         wr.Write("{0}get {1}()", isStatic ? "static " : "", name);
@@ -993,7 +1023,7 @@ namespace Microsoft.Dafny {
 
     // ----- Declarations -------------------------------------------------------------
 
-    protected override void DeclareField(string name, bool isStatic, bool isConst, Type type, Bpl.IToken tok, string rhs, TargetWriter wr, TargetWriter/*?*/ initWriter) {
+    protected void DeclareField(string name, bool isStatic, bool isConst, Type type, Bpl.IToken tok, string rhs, TargetWriter wr) {
       wr.Indent();
       if (isStatic) {
         var w = wr.NewNamedBlock("static get {0}()", name);
