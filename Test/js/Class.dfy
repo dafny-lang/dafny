@@ -1,5 +1,6 @@
 // RUN: %dafny /compile:3 /spillTargetCode:2 /compileTarget:cs "%s" > "%t"
 // RUN: %dafny /compile:3 /spillTargetCode:2 /compileTarget:js "%s" >> "%t"
+// RUN: %dafny /compile:3 /spillTargetCode:2 /compileTarget:go "%s" >> "%t"
 // RUN: %diff "%s.expect" "%t"
 
 class MyClass {
@@ -112,5 +113,11 @@ method Main() {
   var c := new MyClass(3);
   var t := new MyTraitInstance(2);
   var i := new MyTraitInstance(2);
+  // Upcast via local variable with rhs
+  var t2 : MyTrait := t;
+  // Upcast via local variable with assignment
+  var t3 : MyTrait;
+  t3 := t;
+  // Upcast via function call
   CallEm(c, t, i);
 }

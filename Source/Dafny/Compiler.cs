@@ -91,6 +91,9 @@ namespace Microsoft.Dafny {
     /// "tok" can be "null" if "superClasses" is.
     /// </summary>
     protected abstract IClassWriter CreateTrait(string name, List<Type>/*?*/ superClasses, Bpl.IToken tok, TargetWriter wr);
+    /// If this returns false, it is assumed that the implementation handles inherited fields on its own.
+    protected virtual bool NeedsWrappersForInheritedFields() => true;
+    protected virtual bool SupportsProperties() => true;
     protected abstract BlockTargetWriter CreateIterator(IteratorDecl iter, TargetWriter wr);
     protected abstract void DeclareDatatype(DatatypeDecl dt, TargetWriter wr);
     protected abstract void DeclareNewtype(NewtypeDecl nt, TargetWriter wr);
@@ -193,7 +196,7 @@ namespace Microsoft.Dafny {
 
     protected abstract void EmitActualTypeArgs(List<Type> typeArgs, Bpl.IToken tok, TextWriter wr);
     protected abstract string GenerateLhsDecl(string target, Type/*?*/ type, TextWriter wr, Bpl.IToken tok);
-    protected virtual void EmitAssignment(string lhs, string rhs, TargetWriter wr) {
+    protected virtual void EmitAssignment(string lhs, Type/*?*/ lhsType, string rhs, Type/*?*/ rhsType, TargetWriter wr) {
       wr.Indent();
       wr.WriteLine("{0} = {1};", lhs, rhs);
     }
@@ -303,7 +306,12 @@ namespace Microsoft.Dafny {
     protected abstract void EmitEmptyTupleList(string tupleTypeArgs, TargetWriter wr);
     protected abstract TargetWriter EmitAddTupleToList(string ingredients, string tupleTypeArgs, TargetWriter wr);
     protected abstract void EmitTupleSelect(string prefix, int i, TargetWriter wr);
-
+    /// <summary>
+    /// If "from" and "to" are both given, and if a "from" needs an explicit coercion in order to become a "to", emit that coercion.  Only needed in languages where we've had to represent upcasts manually (like Go).
+    /// </summary>
+    protected virtual TargetWriter EmitCoercionIfNecessary(Type/*?*/ from, Type/*?*/ to, Bpl.IToken tok, TargetWriter wr) {
+      return wr;
+    }
     protected virtual string IdName(TopLevelDecl d) {
       Contract.Requires(d != null);
       return IdProtect(d.CompileName);
@@ -672,41 +680,46 @@ namespace Microsoft.Dafny {
         Contract.Assert(!member.IsStatic);  // only instance members should ever be added to .InheritedMembers
         if (member.IsGhost) {
           // skip
-        } else if (member is ConstantField) {
-          var cf = (ConstantField)member;
-          if (cf.Rhs == null) {
-            Contract.Assert(!cf.IsStatic);  // as checked above, only instance members can be inherited
-            classWriter.DeclareField("_" + cf.CompileName, false, false, cf.Type, cf.tok, DefaultValue(cf.Type, errorWr, cf.tok, true));
-          }
-          var w = classWriter.CreateGetter(IdName(cf), cf.Type, cf.tok, false, true, member);
-          Contract.Assert(w != null);  // since the previous line asked for a body
-          if (cf.Rhs == null) {
-            var sw = EmitReturnExpr(w);
-            // get { return this._{0}; }
-            EmitThis(sw);
-            sw.Write("._{0}", cf.CompileName);
-          } else {
-            CompileReturnBody(cf.Rhs, w);
+        } else if (member is ConstantField && SupportsProperties()) {
+          if (NeedsWrappersForInheritedFields()) {
+            var cf = (ConstantField)member;
+          
+            if (cf.Rhs == null) {
+              Contract.Assert(!cf.IsStatic);  // as checked above, only instance members can be inherited
+              classWriter.DeclareField("_" + cf.CompileName, false, false, cf.Type, cf.tok, DefaultValue(cf.Type, errorWr, cf.tok, true));
+            }
+            var w = classWriter.CreateGetter(IdName(cf), cf.Type, cf.tok, false, true, member);
+            Contract.Assert(w != null);  // since the previous line asked for a body
+            if (cf.Rhs == null) {
+              var sw = EmitReturnExpr(w);
+              // get { return this._{0}; }
+              EmitThis(sw);
+              sw.Write("._{0}", cf.CompileName);
+            } else {
+              CompileReturnBody(cf.Rhs, w);
+            }
           }
         } else if (member is Field) {
-          var f = (Field)member;
-          // every field is inherited
-          classWriter.DeclareField("_" + f.CompileName, false, false, f.Type, f.tok, DefaultValue(f.Type, errorWr, f.tok, true));
-          TargetWriter wSet;
-          var wGet = classWriter.CreateGetterSetter(IdName(f), f.Type, f.tok, false, true, member, out wSet);
-          {
-            var sw = EmitReturnExpr(wGet);
-            // get { return this._{0}; }
-            EmitThis(sw);
-            sw.Write("._{0}", f.CompileName);
-          }
-          {
-            // set { this._{0} = value; }
-            wSet.Indent();
-            EmitThis(wSet);
-            wSet.Write("._{0}", f.CompileName);
-            var sw = EmitAssignmentRhs(wSet);
-            EmitSetterParameter(sw);
+          if (NeedsWrappersForInheritedFields()) {
+            var f = (Field)member;
+            // every field is inherited
+            classWriter.DeclareField("_" + f.CompileName, false, false, f.Type, f.tok, DefaultValue(f.Type, errorWr, f.tok, true));
+            TargetWriter wSet;
+            var wGet = classWriter.CreateGetterSetter(IdName(f), f.Type, f.tok, false, true, member, out wSet);
+            {
+              var sw = EmitReturnExpr(wGet);
+              // get { return this._{0}; }
+              EmitThis(sw);
+              sw.Write("._{0}", f.CompileName);
+            }
+            {
+              // set { this._{0} = value; }
+              wSet.Indent();
+              EmitThis(wSet);
+              wSet.Write("._{0}", f.CompileName);
+              var sw = EmitAssignmentRhs(wSet);
+              EmitSetterParameter(sw);
+            }
           }
         } else if (member is Function) {
           var f = (Function)member;
@@ -731,39 +744,53 @@ namespace Microsoft.Dafny {
             }
           } else if (f is ConstantField) {
             var cf = (ConstantField)f;
-            BlockTargetWriter wBody;
-            if (cf.IsStatic) {
-              wBody = classWriter.CreateGetter(IdName(cf), cf.Type, cf.tok, true, true, cf);
-              Contract.Assert(wBody != null);  // since the previous line asked for a body
-            } else if (c is TraitDecl) {
-              wBody = classWriter.CreateGetter(IdName(cf), cf.Type, cf.tok, false, false, cf);
-              Contract.Assert(wBody == null);  // since the previous line said not to create a body
-            } else if (cf.Rhs == null) {
-              // create a backing field, since this constant field may be assigned in constructors
-              classWriter.DeclareField("_" + f.CompileName, false, false, f.Type, f.tok, DefaultValue(f.Type, errorWr, f.tok, true));
-              wBody = classWriter.CreateGetter(IdName(cf), cf.Type, cf.tok, false, true, cf);
-              Contract.Assert(wBody != null);  // since the previous line asked for a body
-            } else {
-              wBody = classWriter.CreateGetter(IdName(cf), cf.Type, cf.tok, false, true, cf);
-              Contract.Assert(wBody != null);  // since the previous line asked for a body
-            }
-            if (wBody != null) {
-              if (cf.Rhs != null) {
-                CompileReturnBody(cf.Rhs, wBody);
-              } else if (!cf.IsStatic) {
-                var sw = EmitReturnExpr(wBody);
-                EmitThis(sw);
-                EmitMemberSelect(cf, true, sw);
+            if (SupportsProperties()) {
+              BlockTargetWriter wBody;
+              if (cf.IsStatic) {
+                wBody = classWriter.CreateGetter(IdName(cf), cf.Type, cf.tok, true, true, cf);
+                Contract.Assert(wBody != null);  // since the previous line asked for a body
+              } else if (c is TraitDecl) {
+                wBody = classWriter.CreateGetter(IdName(cf), cf.Type, cf.tok, false, false, cf);
+                Contract.Assert(wBody == null);  // since the previous line said not to create a body
+              } else if (cf.Rhs == null) {
+                // create a backing field, since this constant field may be assigned in constructors
+                classWriter.DeclareField("_" + f.CompileName, false, false, f.Type, f.tok, DefaultValue(f.Type, errorWr, f.tok, true));
+                wBody = classWriter.CreateGetter(IdName(cf), cf.Type, cf.tok, false, true, cf);
+                Contract.Assert(wBody != null);  // since the previous line asked for a body
               } else {
-                EmitReturnExpr(DefaultValue(cf.Type, wBody, cf.tok, true), wBody);
+                wBody = classWriter.CreateGetter(IdName(cf), cf.Type, cf.tok, false, true, cf);
+                Contract.Assert(wBody != null);  // since the previous line asked for a body
               }
+              if (wBody != null) {
+                if (cf.Rhs != null) {
+                  CompileReturnBody(cf.Rhs, wBody);
+                } else if (!cf.IsStatic) {
+                  var sw = EmitReturnExpr(wBody);
+                  EmitThis(sw);
+                  EmitMemberSelect(cf, true, sw);
+                } else {
+                  EmitReturnExpr(DefaultValue(cf.Type, wBody, cf.tok, true), wBody);
+                }
+              }
+            } else {
+              // If properties aren't supported, just use a field and hope
+              // everyone plays nicely ...
+              string rhs;
+              if (cf.Rhs != null) {
+                var w = new TargetWriter();
+                TrExpr(cf.Rhs, w, false);
+                rhs = w.ToString();
+              } else {
+                rhs = DefaultValue(f.Type, errorWr, f.tok, true);
+              }
+              classWriter.DeclareField(IdName(f), f.IsStatic, true, f.Type, f.tok, rhs);
             }
-          } else if (c is TraitDecl) {
+          } else if (c is TraitDecl && NeedsWrappersForInheritedFields()) {
             TargetWriter wSet;
             var wGet = classWriter.CreateGetterSetter(IdName(f), f.Type, f.tok, f.IsStatic, false, member, out wSet);
             Contract.Assert(wSet == null && wGet == null);  // since the previous line specified no body
           } else {
-            classWriter.DeclareField(IdName(f), false, false, f.Type, f.tok, DefaultValue(f.Type, errorWr, f.tok, true));
+            classWriter.DeclareField(IdName(f), f.IsStatic, false, f.Type, f.tok, DefaultValue(f.Type, errorWr, f.tok, true));
           }
         } else if (member is Function) {
           var f = (Function)member;
@@ -903,10 +930,11 @@ namespace Microsoft.Dafny {
         // var x := G;
         var bv = pat.Var;
         if (!bv.IsGhost) {
+          var w = EmitCoercionIfNecessary(from: rhs?.Type, to: bv.Type, tok:rhsTok, wr:wr);
           if (rhs != null) {
-            DeclareLocalVar(IdProtect(bv.CompileName), bv.Type, bv.Tok, rhs, inLetExprBody, wr);
+            DeclareLocalVar(IdProtect(bv.CompileName), bv.Type, bv.Tok, rhs, inLetExprBody, w);
           } else {
-            DeclareLocalVar(IdProtect(bv.CompileName), bv.Type, bv.Tok, false, rhs_string, wr);
+            DeclareLocalVar(IdProtect(bv.CompileName), bv.Type, bv.Tok, false, rhs_string, w);
           }
         }
       } else if (pat.Arguments != null) {
@@ -1395,13 +1423,13 @@ namespace Microsoft.Dafny {
                 lvalues.Add(CreateLvalue(lhs, wr));
                 string target = idGenerator.FreshId("_rhs");
                 rhss.Add(target);
-                TrRhs(GenerateLhsDecl(target, rhs is ExprRhs ? ((ExprRhs)rhs).Expr.Type : null, wr, rhs.Tok), rhs, wr);
+                TrRhs(GenerateLhsDecl(target, rhs is ExprRhs ? ((ExprRhs)rhs).Expr.Type : null, wr, rhs.Tok), lhs.Type, rhs, wr);
               }
             }
           }
           Contract.Assert(lvalues.Count == rhss.Count);
           for (int i = 0; i < lvalues.Count; i++) {
-            EmitAssignment(lvalues[i], rhss[i], wr);
+            EmitAssignment(lvalues[i], s.Lhss[i].Type, rhss[i], (s.Rhss[i] as TypeRhs)?.Type, wr);
           }
         }
 
@@ -1414,7 +1442,7 @@ namespace Microsoft.Dafny {
           }
         } else {
           var lvalue = CreateLvalue(s.Lhs, wr);
-          TrRhs(lvalue, s.Rhs, wr);
+          TrRhs(lvalue, s.Lhs.Type, s.Rhs, wr);
         }
 
       } else if (stmt is AssignSuchThatStmt) {
@@ -1991,7 +2019,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    void TrRhs(string target, AssignmentRhs rhs, TargetWriter wr) {
+    void TrRhs(string target, Type targetType, AssignmentRhs rhs, TargetWriter wr) {
       Contract.Requires(target != null);
       Contract.Requires(!(rhs is HavocRhs));
       Contract.Requires(wr != null);
@@ -2050,7 +2078,18 @@ namespace Microsoft.Dafny {
       }
 
       // Assign to the final LHS
-      EmitAssignment(target, nw, wr);
+      EmitAssignment(target, targetType, nw, TypeOfRhs(rhs), wr);
+    }
+
+    // to do: Make Type an abstract property of AssignmentRhs.  Unfortunately, this would first require convincing Microsoft that it makes sense for a base class to have a property that's only settable in some subclasses.  Until then, let it be known that Java's "properties" (i.e. getter/setter pairs) are more powerful >:-)
+    private static Type TypeOfRhs(AssignmentRhs rhs) {
+      if (rhs is TypeRhs tRhs) {
+        return tRhs.Type;
+      } else if (rhs is ExprRhs eRhs) {
+        return eRhs.Expr.Type;
+      } else {
+        return null;
+      }
     }
 
     TextWriter TrCallStmt(CallStmt s, string receiverReplacement, int indent) {
@@ -2165,7 +2204,8 @@ namespace Microsoft.Dafny {
           Formal p = s.Method.Ins[i];
           if (!p.IsGhost) {
             wr.Write(sep);
-            TrExpr(s.Args[i], wr, false);
+            var w = EmitCoercionIfNecessary(s.Args[i].Type, s.Method.Ins[i].Type, s.Tok, wr);
+            TrExpr(s.Args[i], w, false);
             sep = ", ";
           }
         }
@@ -2184,7 +2224,7 @@ namespace Microsoft.Dafny {
 
         // assign to the actual LHSs
         for (int j = 0; j < lvalues.Count; j++) {
-          EmitAssignment(lvalues[j], outTmps[j], wr);
+          EmitAssignment(lvalues[j], s.Lhs[j].Type, outTmps[j], s.Method.Outs[j].Type, wr);
         }
       }
       return wr;
@@ -3042,6 +3082,12 @@ namespace Microsoft.Dafny {
         Write(template, i);
         sep = separator;
       }
+    }
+
+    public TargetWriter Fork() {
+      var ans = new TargetWriter(IndentLevel);
+      things.Add(ans);
+      return ans;
     }
 
     // ----- Nested blocks ------------------------------

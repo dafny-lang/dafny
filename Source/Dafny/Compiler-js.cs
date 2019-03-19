@@ -1075,7 +1075,7 @@ namespace Microsoft.Dafny {
 
     protected override void EmitOutParameterSplits(string outCollector, List<string> actualOutParamNames, TargetWriter wr) {
       if (actualOutParamNames.Count == 1) {
-        EmitAssignment(actualOutParamNames[0], outCollector, wr);
+        EmitAssignment(actualOutParamNames[0], null, outCollector, null, wr);
       } else {
         for (var i = 0; i < actualOutParamNames.Count; i++) {
           wr.Indent();
