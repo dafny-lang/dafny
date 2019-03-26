@@ -51,14 +51,16 @@ namespace Microsoft.Dafny {
 
     void EmitImports(TargetWriter wr) {
       wr.WriteLine("import (");
-      wr.WriteLine("    dafny \"dafny\"");
-      wr.WriteLine("    fmt \"fmt\"");
+      wr.WriteLine("    \"dafny\"");
+      wr.WriteLine("    \"fmt\"");
       wr.WriteLine("    refl \"reflect\"");
+      wr.WriteLine("    \"runtime\"");
       wr.Append(ImportWriter);
       wr.WriteLine(")");
       wr.WriteLine("var _ dafny.Char");
       wr.WriteLine("var _ fmt.Stringer");
       wr.WriteLine("var _ refl.Type");
+      wr.WriteLine("var _ runtime.Func");
       wr.Append(ImportDummyWriter);
       wr.WriteLine();
       wr.WriteLine("type Dummy struct{}");
@@ -88,7 +90,7 @@ namespace Microsoft.Dafny {
     protected override BlockTargetWriter CreateStaticMain(IClassWriter cw) {
       var wr = (cw as GoCompiler.ClassWriter).ConcreteMethodWriter;
       wr.Indent();
-      return wr.NewBlock("func main()");
+      return wr.NewNamedBlock("func (_this * {0}) Main()", FormatCompanionTypeName((cw as GoCompiler.ClassWriter).ClassName));
     }
 
     protected override TargetWriter CreateModule(string moduleName, bool isExtern, string/*?*/ libraryName, TargetWriter wr) {
@@ -141,12 +143,13 @@ namespace Microsoft.Dafny {
       CreateInitializer(name, w, out var instanceFieldInitWriter, out var traitInitWriter);
 
       if (typeParameters != null) {
-        foreach (var tp in typeParameters) {
-          if (tp.Characteristics.MustSupportZeroInitialization) {
-            instanceFieldWriter.Indent();
-            instanceFieldWriter.WriteLine("this.{0} = {0};", "rtd$_" + tp.CompileName);
-          }
-        }
+        // TODO
+        // foreach (var tp in typeParameters) {
+        //   if (tp.Characteristics.MustSupportZeroInitialization) {
+        //     instanceFieldWriter.Indent();
+        //     instanceFieldWriter.WriteLine("this.{0} = {0};", "rtd$_" + tp.CompileName);
+        //   }
+        // }
       }
 
       var staticFieldWriter = w.NewNamedBlock("type {0} struct", FormatCompanionTypeName(name));
@@ -202,8 +205,123 @@ namespace Microsoft.Dafny {
     protected override bool SupportsProperties() => false;
 
     protected override BlockTargetWriter CreateIterator(IteratorDecl iter, TargetWriter wr) {
-      Error(iter.tok, "Iterators not implemented for Go", wr);
-      return wr.NewBlock("_error__iterator__ {0}", iter.Name);
+      // FIXME: There should be tests to make sure that the finalizer mechanism achieves what I hope it does, namely allowing the iterator's goroutine to be garbage-collected along with the iterator.
+      //
+      // type MyIteratorExample struct {
+      //   cont chan<- struct{}
+      //   yielded <-chan struct{}
+      //   
+      //   // Fields
+      // }
+      //
+      // func (_this * MyIteratorExample) Ctor__(/* params */) {
+      //   _cont := make(chan struct{})
+      //   _yielded := make(chan struct{})
+      //   _this.cont = _cont
+      //   _this.yielded = _yielded
+      //   // assign params
+      //   
+      //   go _this.run(_cont, _yielded)
+      //
+      //   runtime.SetFinalizer(this_, func(_ MyIteratorExample) {
+      //     close(_cont) // will cause the iterator to return and close _yielded
+      //   })
+      // }
+      //
+      // func (_this * MyIteratorExample) MoveNext() bool {
+      //   _this.cont <- struct{}{}
+      //   _, ok <- _this.yielded
+      //   
+      //   return ok
+      // }
+      //
+      // func (_this * MyIteratorExample) run(_cont <-chan struct{}, _yielded chan<- struct{}) {
+      //   defer close(_yielded)
+      //
+      //   var _ok bool
+      //   _, _ok = <- _cont
+      //   if !_ok { return }
+      //
+      //   // Statements ... yield becomes:
+      //   _yielded <- struct{}{}
+      //   _, _ok = <- _cont
+      //   if !_ok { return }
+      //
+      //   // break becomes:
+      //   return
+      // }()
+      var cw = CreateClass(IdName(iter), iter.TypeArgs, wr) as GoCompiler.ClassWriter;
+
+      cw.InstanceFieldWriter.Indent();
+      cw.InstanceFieldWriter.WriteLine("cont chan<- struct{}");
+      cw.InstanceFieldWriter.Indent();
+      cw.InstanceFieldWriter.WriteLine("yielded <-chan struct{}");
+
+      Constructor ct = null;
+      foreach (var member in iter.Members) {
+        if (member is Field f && !f.IsGhost) {
+          cw.DeclareField(IdName(f), false, false, f.Type, f.tok, DefaultValue(f.Type, wr, f.tok));
+        } else if (member is Constructor c) {
+          Contract.Assert(ct == null);
+          ct = c;
+        }
+      }
+      Contract.Assert(ct != null);
+
+      cw.ConcreteMethodWriter.Indent();
+      cw.ConcreteMethodWriter.Write("func (_this * {0}) {1}(", IdName(iter), IdName(ct));
+      string sep = "";
+      foreach (var p in ct.Ins) {
+        if (!p.IsGhost) {
+          // here we rely on the parameters and the corresponding fields having the same names
+          cw.ConcreteMethodWriter.Write("{0}{1} {2}", sep, IdName(p), TypeName(p.Type, wr, p.tok));
+          sep = ", ";
+        }
+      }
+      var wCtor = cw.ConcreteMethodWriter.NewBlock(")");
+      wCtor.Indent();
+      wCtor.WriteLine("_cont := make(chan struct{})");
+      wCtor.Indent();
+      wCtor.WriteLine("_yielded := make(chan struct{})");
+      wCtor.Indent();
+      wCtor.WriteLine("_this.cont = _cont");
+      wCtor.Indent();
+      wCtor.WriteLine("_this.yielded = _yielded");
+      wCtor.WriteLine();
+      foreach (var p in ct.Ins) {
+        if (!p.IsGhost) {
+          wCtor.Indent();
+          wCtor.WriteLine("_this.{0} = {1}", Capitalize(IdName(p)), IdName(p));
+        }
+      }
+      wCtor.WriteLine();
+      wCtor.Indent();
+      wCtor.WriteLine("go _this.run(_cont, _yielded)");
+      wCtor.WriteLine();
+      wCtor.Indent();
+      wCtor.WriteLine("runtime.SetFinalizer(_this, func(_ * {0}) {{ close(_cont) }})", IdName(iter));
+      
+      cw.ConcreteMethodWriter.Indent();
+      var wMoveNext = cw.ConcreteMethodWriter.NewNamedBlock("func (_this * {0}) MoveNext() bool", IdName(iter));
+      wMoveNext.Indent();
+      wMoveNext.WriteLine("_this.cont <- struct{}{}");
+      wMoveNext.Indent();
+      wMoveNext.WriteLine("_, ok := <- _this.yielded");
+      wMoveNext.WriteLine();
+      wMoveNext.Indent();
+      wMoveNext.WriteLine("return ok");
+
+      var wRun = cw.ConcreteMethodWriter.NewNamedBlock("func (_this * {0}) run(_cont <-chan struct{{}}, _yielded chan<- struct{{}})", IdName(iter));
+      wRun.Indent();
+      wRun.WriteLine("defer close(_yielded)");
+      wRun.WriteLine();
+      wRun.Indent();
+      wRun.WriteLine("_, _ok := <- _cont");
+      wRun.Indent();
+      wRun.WriteLine("if !_ok { return }");
+      wRun.WriteLine();
+      
+      return wRun;
     }
 
     protected override void DeclareDatatype(DatatypeDecl dt, TargetWriter wr) {
@@ -726,6 +844,8 @@ namespace Microsoft.Dafny {
       int nIns = WriteFormals(nTypes == 0 ? "" : ", ", inParams, wr);
       wr.Write(")");
 
+      // TODO: Maybe consider using named result parameters, since they're
+      // actually close to how Dafny method outs work
       WriteOutTypes(outParams, resultType, wr, tok);
 
       if (createBody) {
@@ -812,17 +932,8 @@ namespace Microsoft.Dafny {
     }
 
     int WriteRuntimeTypeDescriptorsFields(List<TypeParameter> typeParams, bool useAllTypeArgs, BlockTargetWriter wr) {
-      Contract.Requires(typeParams != null);
-      Contract.Requires(wr != null);
-
-      int c = 0;
-      foreach (var tp in typeParams) {
-        if (useAllTypeArgs || tp.Characteristics.MustSupportZeroInitialization) {
-          wr.Indent();
-          wr.Write("{0} string", "rtd$_" + tp.CompileName);
-        }
-      }
-      return c;
+      // TODO
+      return 0;
     }
 
     int WriteRuntimeTypeDescriptorsFormals(List<TypeParameter> typeParams, bool useAllTypeArgs, TargetWriter wr, string prefix = "") {
@@ -856,75 +967,8 @@ namespace Microsoft.Dafny {
     }
 
     string RuntimeTypeDescriptor(Type type, Bpl.IToken tok, TextWriter wr) {
-      Contract.Requires(type != null);
-      Contract.Requires(tok != null);
-      Contract.Requires(wr != null);
-
-      var xType = type.NormalizeExpandKeepConstraints();
-      if (xType is TypeProxy) {
-        // unresolved proxy; just treat as bool, since no particular type information is apparently needed for this type
-        return "_dafny.Rtd_bool";
-      }
-
-      if (xType is BoolType) {
-        return "_dafny.Rtd_bool";
-      } else if (xType is CharType) {
-        return "_dafny.Rtd_char";
-      } else if (xType is IntType) {
-        return "_dafny.Rtd_int";
-      } else if (xType is BigOrdinalType) {
-        return "_dafny.BigOrdinal";
-      } else if (xType is RealType) {
-        return "_dafny.BigRational";
-      } else if (xType is BitvectorType) {
-        var t = (BitvectorType)xType;
-        if (t.NativeType != null) {
-          return "_dafny.Rtd_bv_Native";
-        } else {
-          return "_dafny.Rtd_bv_NonNative";
-        }
-      } else if (xType is SetType) {
-        return "_dafny.Set";
-      } else if (xType is MultiSetType) {
-        return "_dafny.MultiSet";
-      } else if (xType is SeqType) {
-        return "_dafny.Seq";
-      } else if (xType is MapType) {
-        return "_dafny.Map";
-      } else if (xType.IsBuiltinArrowType) {
-        return "_dafny.Rtd_ref";  // null suffices as a default value, since the function will never be called
-      } else if (xType is UserDefinedType) {
-        var udt = (UserDefinedType)xType;
-        var tp = udt.ResolvedParam;
-        if (tp != null) {
-          return string.Format("{0}rtd$_{1}", tp.Parent is ClassDecl ? "this." : "", tp.CompileName);
-        }
-        var cl = udt.ResolvedClass;
-        Contract.Assert(cl != null);
-        bool isHandle = true;
-        if (Attributes.ContainsBool(cl.Attributes, "handle", ref isHandle) && isHandle) {
-          return "_dafny.Rtd_ref";
-        } else if (cl is ClassDecl) {
-          return "_dafny.Rtd_ref";
-        } else if (cl is DatatypeDecl) {
-          var dt = (DatatypeDecl)cl;
-          var w = new TargetWriter();
-          w.Write("{0}.Rtd(", dt is TupleTypeDecl ? "_dafny.Tuple" : FullTypeName(udt));
-          EmitRuntimeTypeDescriptorsActuals(UsedTypeParameters(dt, udt.TypeArgs), cl.TypeArgs, udt.tok, true, w);
-          w.Write(")");
-          return w.ToString();
-        } else if (xType.IsNonNullRefType) {
-          // this initializer shouldn't ever be needed; the compiler is expected to generate an error
-          // sooner or later, , but it could be that the the compiler needs to
-          // lay down some bits to please the C#'s compiler's different definite-assignment rules.
-          return "_dafny.Rtd_ref/*not used*/";
-        } else {
-          Contract.Assert(cl is NewtypeDecl || cl is SubsetTypeDecl);
-          return TypeName_UDT(FullTypeName(udt), udt.TypeArgs, wr, udt.tok);
-        }
-      } else {
-        Contract.Assert(false); throw new cce.UnreachableException();  // unexpected type
-      }
+      // TODO
+      return "nil";
     }
 
     protected BlockTargetWriter/*?*/ CreateGetter(string name, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl/*?*/ member, string ownerName, TargetWriter wr) {
@@ -949,7 +993,7 @@ namespace Microsoft.Dafny {
       instanceFieldWriter.WriteLine("{0}", TypeName(superType, instanceFieldWriter, tok));
 
       instanceFieldInitWriter.Indent();
-      instanceFieldInitWriter.WriteLine("{0}: {1}(),", ClassName(superType, instanceFieldInitWriter, tok), TypeName_Constructor(superType, instanceFieldInitWriter, tok));
+      instanceFieldInitWriter.WriteLine("{0}: {1}(),", ClassName(superType, instanceFieldInitWriter, tok), TypeName_Initializer(superType, instanceFieldInitWriter, tok));
 
       if (superType is UserDefinedType udt && udt.ResolvedClass.ViewAsClass is TraitDecl) {
         traitInitWriter.Indent();
@@ -1073,11 +1117,7 @@ namespace Microsoft.Dafny {
 
       var udt = (UserDefinedType)xType;
       if (udt.ResolvedParam != null) {
-        if (inAutoInitContext && !udt.ResolvedParam.Characteristics.MustSupportZeroInitialization) {
-          return "undefined";
-        } else {
-          return string.Format("{0}.Default", RuntimeTypeDescriptor(udt, udt.tok, wr));
-        }
+        return "nil";
       }
       var cl = udt.ResolvedClass;
       Contract.Assert(cl != null);
@@ -1103,14 +1143,9 @@ namespace Microsoft.Dafny {
             var rangeDefaultValue = TypeInitializationValue(udt.TypeArgs.Last(), wr, tok, inAutoInitContext);
             // return the lambda expression ((Ty0 x0, Ty1 x1, Ty2 x2) => rangeDefaultValue)
             return string.Format("function () {{ return {0}; }}", rangeDefaultValue);
-          } else if (((NonNullTypeDecl)td).Class is ArrayClassDecl) {
+          } else if (((NonNullTypeDecl)td).Class is ArrayClassDecl arrayClass) {
             // non-null array type; we know how to initialize them
-            var arrayClass = (ArrayClassDecl)((NonNullTypeDecl)td).Class;
-            if (arrayClass.Dims == 1) {
-              return "[]";
-            } else {
-              return string.Format("_dafny.newArray(undefined, {0})", Util.Comma(arrayClass.Dims, _ => "0"));
-            }
+            return string.Format("dafny.NewArray({0}, {1})", TypeName_ReflectionType(xType.TypeArgs[0], wr, tok), Util.Comma(arrayClass.Dims, d => string.Format("dafny.IntOf({0})", d)));
           } else {
             return "nil";
           }
@@ -1143,6 +1178,80 @@ namespace Microsoft.Dafny {
       Contract.Requires(typeArgs != null);
       string s = "*" + IdProtect(fullCompileName);
       return s;
+    }
+
+    protected string TypeName_ReflectionType(Type type, TextWriter/*?*/ wr, Bpl.IToken/*?*/ tok) {
+      type = type.NormalizeExpand();
+      
+      if (type is BoolType) {
+        return "dafny.BoolType";
+      } else if (type is CharType) {
+        return "dafny.CharType";
+      } else if (type is IntType || type is BigOrdinalType || type is BitvectorType) {
+        return "dafny.IntType";
+      } else if (type is RealType) {
+        return "dafny.ZeroReal";
+      } else if (type is SetType) {
+        return "_dafny.Set.Empty";
+      } else if (type is MultiSetType) {
+        return "_dafny.MultiSet.Empty";
+      } else if (type is SeqType) {
+        return "_dafny.Seq.of()";
+      } else if (type is MapType) {
+        return "_dafny.Map.Empty";
+      }
+
+      var udt = (UserDefinedType)type;
+      if (udt.ResolvedParam != null) {
+        return "dafny.TopType";
+      }
+      var cl = udt.ResolvedClass;
+      Contract.Assert(cl != null);
+      if (cl is NewtypeDecl) {
+        var td = (NewtypeDecl)cl;
+        if (td.Witness != null) {
+          return string.Format("refl.TypeOf({0}.Witness)", TypeName_UDT(FullTypeName(udt), udt.TypeArgs, wr, udt.tok));
+        } else if (td.NativeType != null) {
+          return string.Format("refl.TypeOf({0}(0))", TypeName(type, wr, tok));
+        } else {
+          return string.Format("refl.TypeOf({0})", TypeInitializationValue(td.BaseType, wr, tok, false));
+        }
+      } else if (cl is SubsetTypeDecl) {
+        var td = (SubsetTypeDecl)cl;
+        if (td.Witness != null) {
+          return string.Format("refl.TypeOf({0}.Witness)", TypeName_Companion(type, wr, tok, null));
+        } else if (td.WitnessKind == SubsetTypeDecl.WKind.Special) {
+          // WKind.Special is only used with -->, ->, and non-null types:
+          Contract.Assert(ArrowType.IsPartialArrowTypeName(td.Name) || ArrowType.IsTotalArrowTypeName(td.Name) || td is NonNullTypeDecl);
+          if (ArrowType.IsPartialArrowTypeName(td.Name) || ArrowType.IsTotalArrowTypeName(td.Name)) {
+            var ins = udt.TypeArgs.GetRange(0, udt.TypeArgs.Count - 1);
+            var outt = udt.TypeArgs.Last();
+            // return the lambda expression ((Ty0 x0, Ty1 x1, Ty2 x2) => rangeDefaultValue)
+            return string.Format("refl.FuncOf([]refl.Type{{{0}}}, []refl.Type{{{{1}}}}, false)",
+              Util.Comma(ins, ty => TypeName_ReflectionType(ty, wr, tok)),
+              TypeName_ReflectionType(outt, wr, tok));
+          } else if (((NonNullTypeDecl)td).Class is ArrayClassDecl arrayClass) {
+            return "dafny.ArrayType";
+          } else {
+            return "nil";
+          }
+        } else {
+          return string.Format("refl.TypeOf({0})", TypeInitializationValue(td.RhsWithArgument(udt.TypeArgs), wr, tok, false));
+        }
+      } else if (cl is ClassDecl) {
+        bool isHandle = true;
+        if (Attributes.ContainsBool(cl.Attributes, "handle", ref isHandle) && isHandle) {
+          return "dafny.IntType";
+        } else {
+          return string.Format("refl.TypeOf(*{0}{})", IdName(cl));
+        }
+      } else if (cl is DatatypeDecl) {
+        Error(tok, "Type of datatype not implemented", wr);
+        return "nil";
+      } else {
+        Contract.Assert(false); throw new cce.UnreachableException();  // unexpected type
+      }
+
     }
 
     protected static string FormatCompanionName(string clsName) =>
@@ -1190,7 +1299,7 @@ namespace Microsoft.Dafny {
       return TypeName_Related(FormatCompanionTypeName, type, wr, tok);
     }
 
-    protected string TypeName_Constructor(Type type, TextWriter wr, Bpl.IToken tok) {
+    protected string TypeName_Initializer(Type type, TextWriter wr, Bpl.IToken tok) {
       return TypeName_Related(FormatInitializerName, type, wr, tok);
     }
 
@@ -1328,8 +1437,8 @@ namespace Microsoft.Dafny {
     }
 
     protected override TargetWriter CreateLabeledCode(string label, TargetWriter wr) {
-      wr.Indent();
-      return wr.NewNamedBlock("L{0}:", label);
+      wr.Write("L{0}:", label);
+      return wr;
     }
 
     protected override void EmitBreak(string/*?*/ label, TargetWriter wr) {
@@ -1343,7 +1452,11 @@ namespace Microsoft.Dafny {
 
     protected override void EmitYield(TargetWriter wr) {
       wr.Indent();
-      wr.WriteLine("yield null;");
+      wr.WriteLine("_yielded <- struct{}{}");
+      wr.Indent();
+      wr.WriteLine("_, _ok = <- _cont");
+      wr.Indent();
+      wr.WriteLine("if !_ok { return }");
     }
 
     protected override void EmitAbsurd(string/*?*/ message, TargetWriter wr) {
@@ -1356,10 +1469,10 @@ namespace Microsoft.Dafny {
 
     protected override BlockTargetWriter CreateWhileLoop(out TargetWriter guardWriter, TargetWriter wr) {
       wr.Indent();
-      wr.Write("for (");
+      wr.Write("for ");
       guardWriter = new TargetWriter(wr.IndentLevel);
       wr.Append(guardWriter);
-      var wBody = wr.NewBlock(")");
+      var wBody = wr.NewBlock("");
       return wBody;
     }
     
@@ -1409,7 +1522,7 @@ namespace Microsoft.Dafny {
         if (cl.Name == "object") {
           wr.Write("new(struct{})");
         } else {
-          wr.Write("{0}()", TypeName_Constructor(type, wr, tok));
+          wr.Write("{0}()", TypeName_Initializer(type, wr, tok));
           // TODO
           //EmitRuntimeTypeDescriptorsActuals(type.TypeArgs, cl.TypeArgs, tok, false, wr);
           //wr.Write(")");
@@ -2096,7 +2209,7 @@ namespace Microsoft.Dafny {
             }else if (IsDirectlyComparable(e0.Type)) {
               opString = "==";
             } else {
-              staticCallString = "refl.DeepEquals";
+              staticCallString = "dafny.AreEqual";
             }
             break;
           }
@@ -2115,7 +2228,7 @@ namespace Microsoft.Dafny {
               callString = "Equals";
             } else {
               preOpString = "!";
-              staticCallString = "refl.DeepEquals";
+              staticCallString = "dafny.AreEqual";
             }
             break;
           }
@@ -2413,7 +2526,7 @@ namespace Microsoft.Dafny {
 
       from = from.NormalizeExpand();
       to = to.NormalizeExpand();
-      if (EqualsUpToParameters(from, to)) {
+      if (from.IsTypeParameter || to.IsTypeParameter || EqualsUpToParameters(from, to)) {
         // do nothing
         return wr;
       } else if (Type.IsSupertype(to, from)) {

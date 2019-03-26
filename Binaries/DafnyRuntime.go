@@ -7,6 +7,39 @@ import (
 )
 
 /******************************************************************************
+ * Generic values
+ ******************************************************************************/
+
+// An EqualsGeneric can be compared to any other object.  This method should
+// *only* return true when the other value is of the same type.
+type EqualsGeneric interface {
+	Dafny_EqualsGeneric_(other interface{}) bool
+}
+
+// AreEqual compares two values for equality in a generic way.  Besides the
+// refl.DeepEqual logic (to which this method defers as a last resort), the
+// values are handled intelligently if their type is refl.Value or any type that
+// implements the EqualsGeneric interface.
+func AreEqual(x, y interface{}) bool {
+	switch x := x.(type) {
+	case bool, complex64, complex128, float32, float64,
+		int, int8, int16, int32, int64,
+		uint, uint8, uint16, uint32, uint64:
+		return x == y
+	case refl.Value:
+		{
+			y, ok := y.(refl.Value)
+			return ok && x.CanInterface() && y.CanInterface() &&
+				AreEqual(x.Interface(), y.Interface())
+		}
+	case EqualsGeneric:
+		return x.Dafny_EqualsGeneric_(y)
+	default:
+		return refl.DeepEqual(x, y)
+	}
+}
+
+/******************************************************************************
  * Characters
  ******************************************************************************/
 
@@ -90,7 +123,7 @@ func (array Array) Len(dim Int) Int {
 }
 
 // Equals compares two arrays for equality.  Values are compared using
-// refl.DeepEqual.
+// dafny.AreEqual.
 func (array Array) Equals(array2 Array) bool {
 	if len(array.dims) != len(array2.dims) {
 		return false
@@ -104,7 +137,13 @@ func (array Array) Equals(array2 Array) bool {
 	// Not clear that this will always do the right thing.  It definitely won't
 	// with user-defined types with traits (since those values contain
 	// back pointers).
-	return refl.DeepEqual(array.contents.Interface(), array2.contents.Interface())
+	return AreEqual(array.contents.Interface(), array2.contents.Interface())
+}
+
+// Dafny_EqualsGeneric_ implements the EqualsGeneric interface.
+func (array Array) Dafny_EqualsGeneric_(other interface{}) bool {
+	array2, ok := other.(Array)
+	return ok && array.Equals(array2)
 }
 
 func (array Array) index(ixs ...int) refl.Value {
@@ -190,8 +229,8 @@ func (array Array) String() string {
 
 // An Int is an immutable big integer.
 type Int struct {
-	impl  *big.Int
-	debug string
+	impl *big.Int
+	// debug string
 } // Careful not to mutate!
 
 // A BV is an immutable big bitvector (presumed to be positive).
@@ -199,8 +238,8 @@ type BV = Int
 
 func intOf(i *big.Int) Int {
 	return Int{
-		impl:  i,
-		debug: i.String(),
+		impl: i,
+		// debug: i.String(),
 	}
 }
 
@@ -358,6 +397,12 @@ func (i Int) Cmp(j Int) int {
 	return i.impl.Cmp(j.impl)
 }
 
+// Dafny_EqualsGeneric_ compares an int to another value.
+func (i Int) Dafny_EqualsGeneric_(other interface{}) bool {
+	j, ok := other.(Int)
+	return ok && i.Cmp(j) == 0
+}
+
 // And performs bitwise AND.
 func (i Int) And(j Int) Int {
 	return i.binOp(j, (*big.Int).And)
@@ -449,12 +494,15 @@ func (i Int) dividesAPowerOf10() (yes bool, factor Int, log10 int) {
 // A Real is an arbitrary-precision real number, represented as a ratio of
 // arbitrary-precision integers.
 type Real struct {
-	impl  *big.Rat
-	debug string
+	impl *big.Rat
+	// debug string
 }
 
 func realOf(r *big.Rat) Real {
-	return Real{impl: r, debug: r.String()}
+	return Real{
+		impl: r,
+		// debug: r.String()
+	}
 }
 
 // RealOf converts a float64 into a Real.  Common values are cached.
@@ -575,6 +623,12 @@ func (x Real) DivBy(y Real) Real {
 // for greater.
 func (x Real) Cmp(y Real) int {
 	return x.impl.Cmp(y.impl)
+}
+
+// Dafny_EqualsGeneric_ compares an int to another value.
+func (x Real) Dafny_EqualsGeneric_(other interface{}) bool {
+	y, ok := other.(Real)
+	return ok && x.Cmp(y) == 0
 }
 
 /******************************************************************************
@@ -795,6 +849,28 @@ func Rrot_uint8(x uint8, n Int, w uint) uint8 {
 	y := uint(n.Uint64())
 	return (x >> y) | ((x << (w - y)) % (1 << w))
 }
+
+/******************************************************************************
+ * Reflection
+ ******************************************************************************/
+
+// ArrayType is the type Array.
+var ArrayType refl.Type = refl.TypeOf(Array{})
+
+// BoolType is the type bool.
+var BoolType refl.Type = refl.TypeOf(true)
+
+// CharType is the type Char.
+var CharType refl.Type = refl.TypeOf(Char('A'))
+
+// IntType is the type Int.
+var IntType refl.Type = refl.TypeOf(Int{})
+
+// RealType is the type Real.
+var RealType refl.Type = refl.TypeOf(Real{})
+
+// TopType is the type interface{}.
+var TopType refl.Type = refl.TypeOf((*interface{})(nil)).Elem()
 
 /******************************************************************************
  * Hacks for generated code
