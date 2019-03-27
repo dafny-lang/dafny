@@ -22,10 +22,6 @@ type EqualsGeneric interface {
 // implements the EqualsGeneric interface.
 func AreEqual(x, y interface{}) bool {
 	switch x := x.(type) {
-	case bool, complex64, complex128, float32, float64,
-		int, int8, int16, int32, int64,
-		uint, uint8, uint16, uint32, uint64:
-		return x == y
 	case refl.Value:
 		{
 			y, ok := y.(refl.Value)
@@ -104,11 +100,11 @@ func NewArrayWithValue(init interface{}, dims ...Int) Array {
 // NewArrayWithValues returns a new one-dimensional Array with the given initial
 // values, which must be of the given type.  (The type must be given in case
 // there are no values.)
-func NewArrayWithValues(typ refl.Type, values ...refl.Value) Array {
+func NewArrayWithValues(typ refl.Type, values ...interface{}) Array {
 	n := len(values)
 	contents := refl.MakeSlice(refl.SliceOf(typ), n, n)
 	for i, v := range values {
-		contents.Index(i).Set(v)
+		contents.Index(i).Set(refl.ValueOf(v))
 	}
 	return Array{
 		contents: contents,
@@ -221,6 +217,41 @@ func (array Array) String() string {
 		ixs := make([]int, len(array.dims))
 		return array.stringOfSubspace(0, ixs)
 	}
+}
+
+/******************************************************************************
+ * Tuples
+ ******************************************************************************/
+
+// A Tuple is a one-dimensional heterogeneous array.
+type Tuple Array
+
+// TupleOf creates a tuple with the given values.
+func TupleOf(values ...interface{}) Tuple {
+	return Tuple(NewArrayWithValues(TopType, values...))
+}
+
+// Dafny_EqualsGeneric_ implements the EqualsGeneric interface.
+func (tuple Tuple) Dafny_EqualsGeneric_(other interface{}) bool {
+	tuple2, ok := other.(Tuple)
+	return ok && Array(tuple).Equals(Array(tuple2))
+}
+
+func (tuple Tuple) String() string {
+	s := "("
+	for i := 0; int64(i) < Array(tuple).dims[0].Int64(); i++ {
+		if i > 0 {
+			s += ", "
+		}
+		s += fmt.Sprint(Array(tuple).index(i))
+	}
+	s += ")"
+	return s
+}
+
+// Index looks up the ith element of the tuple.
+func (tuple Tuple) Index(i Int) refl.Value {
+	return Array(tuple).Index(i)
 }
 
 /******************************************************************************

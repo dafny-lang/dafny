@@ -153,7 +153,7 @@ namespace Microsoft.Dafny {
     public abstract string TypeInitializationValue(Type type, TextWriter/*?*/ wr, Bpl.IToken/*?*/ tok, bool inAutoInitContext);
     protected abstract string TypeName_UDT(string fullCompileName, List<Type> typeArgs, TextWriter wr, Bpl.IToken tok);
     protected abstract string/*?*/ TypeName_Companion(Type type, TextWriter wr, Bpl.IToken tok, MemberDecl/*?*/ member);
-    protected string TypeName_Companion(ClassDecl cls, TextWriter wr, Bpl.IToken tok) {
+    protected string TypeName_Companion(TopLevelDecl cls, TextWriter wr, Bpl.IToken tok) {
       return TypeName_Companion(UserDefinedType.FromTopLevelDecl(tok, cls), wr, tok, null);
     }
 
@@ -382,6 +382,9 @@ namespace Microsoft.Dafny {
     protected abstract void EmitMultiSetFormingExpr(MultiSetFormingExpr expr, bool inLetExprBody, TargetWriter wr);
     protected abstract void EmitApplyExpr(Type functionType, Bpl.IToken tok, Expression function, List<Expression> arguments, bool inLetExprBody, TargetWriter wr);
     protected abstract TargetWriter EmitBetaRedex(List<string> boundVars, List<Expression> arguments, string typeArgs, List<Type> boundTypes, Type resultType, Bpl.IToken resultTok, bool inLetExprBody, TargetWriter wr);
+    protected virtual void EmitConstructorCheck(string source, DatatypeCtor ctor, TargetWriter wr) {
+      wr.Write("{0}.is_{1}", source, ctor.CompileName);
+    }
     /// <summary>
     /// EmitDestructor is somewhat similar to following "source" with a call to EmitMemberSelect.
     /// However, EmitDestructor may also need to perform a cast on "source".
@@ -2287,8 +2290,17 @@ namespace Microsoft.Dafny {
       //   FormalType f0 = ((Dt_Ctor0)source._D).a0;
       //   ...
       var lastCase = caseIndex == caseCount - 1;
-      var guard = lastCase ? "true" : string.Format("{0}.is_{1}", source, ctor.CompileName);
-      var w = EmitIf(guard, !lastCase, wr);
+      TargetWriter w;
+      if (lastCase) {
+        // Need to avoid if (true) because some languages (Go, someday Java)
+        // pretend that an if (true) isn't a certainty, leading to a complaint
+        // about a missing return statement
+        w = wr.NewBlock("");
+      } else {
+        TargetWriter guardWriter;
+        w = EmitIf(out guardWriter, !lastCase, wr);
+        EmitConstructorCheck(source, ctor, guardWriter);
+      }
 
       int k = 0;  // number of processed non-ghost arguments
       for (int m = 0; m < ctor.Formals.Count; m++) {
