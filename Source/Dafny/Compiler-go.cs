@@ -1166,7 +1166,7 @@ namespace Microsoft.Dafny {
           // WKind.Special is only used with -->, ->, and non-null types:
           Contract.Assert(ArrowType.IsPartialArrowTypeName(td.Name) || ArrowType.IsTotalArrowTypeName(td.Name) || td is NonNullTypeDecl);
           if (ArrowType.IsPartialArrowTypeName(td.Name)) {
-            return "null";
+            return "nil";
           } else if (ArrowType.IsTotalArrowTypeName(td.Name)) {
             var rangeDefaultValue = TypeInitializationValue(udt.TypeArgs.Last(), wr, tok, inAutoInitContext);
             // return the lambda expression ((Ty0 x0, Ty1 x1, Ty2 x2) => rangeDefaultValue)
@@ -1881,6 +1881,16 @@ namespace Microsoft.Dafny {
       wr.Write("_this");
     }
 
+    protected override void EmitNull(Type type, TargetWriter wr) {
+      if (type is IntType || type is BitvectorType) {
+        wr.Write("dafny.NilInt");
+      } else if (type is RealType) {
+        wr.Write("dafny.NilReal");
+      } else {
+        wr.Write("nil");
+      }
+    }
+
     protected override void EmitITE(Expression guard, Expression thn, Expression els, bool inLetExprBody, TargetWriter wr) {
       Contract.Requires(thn.Type != null);
 
@@ -2155,24 +2165,31 @@ namespace Microsoft.Dafny {
       w.SetBraceStyle(BlockTargetWriter.BraceStyle.Space, BlockTargetWriter.BraceStyle.Nothing);
       return w;
     }
-
-    protected override TargetWriter CreateIIFE_ExprBody(Expression source, bool inLetExprBody, Type sourceType, Bpl.IToken sourceTok, Type resultType, Bpl.IToken resultTok, string bvName, TargetWriter wr) {
-      var w = wr.NewNamedBlock("function ({0})", bvName);
+    
+    private TargetWriter CreateIIFE_ExprBody(out TargetWriter sourceWriter, Type sourceType, Bpl.IToken sourceTok, Type resultType, Bpl.IToken resultTok, string bvName, TargetWriter wr) {
+      var w = wr.NewNamedBlock("function ({0} {1}) {2}", bvName, TypeName(sourceType, wr, sourceTok), TypeName(resultType, wr, resultTok));
       w.SetBraceStyle(BlockTargetWriter.BraceStyle.Space, BlockTargetWriter.BraceStyle.Nothing);
       w.Indent();
       w.Write("return ");
-      w.BodySuffix = ";" + w.NewLine;
-      TrParenExpr(source, wr, inLetExprBody);
+      var wExpr = w.Fork();
+      w.WriteLine();
+      wr.Write('(');
+      sourceWriter = wr.Fork();
+      wr.Write(')');
+      return w;
+    }
+
+    protected override TargetWriter CreateIIFE_ExprBody(Expression source, bool inLetExprBody, Type sourceType, Bpl.IToken sourceTok, Type resultType, Bpl.IToken resultTok, string bvName, TargetWriter wr) {
+      TargetWriter sourceWriter;
+      var w = CreateIIFE_ExprBody(out sourceWriter, sourceType, sourceTok, resultType, resultTok, bvName, wr);
+      TrExpr(source, sourceWriter, inLetExprBody);
       return w;
     }
 
     protected override TargetWriter CreateIIFE_ExprBody(string source, Type sourceType, Bpl.IToken sourceTok, Type resultType, Bpl.IToken resultTok, string bvName, TargetWriter wr) {
-      var w = wr.NewNamedBlock("function ({0})", bvName);
-      w.SetBraceStyle(BlockTargetWriter.BraceStyle.Space, BlockTargetWriter.BraceStyle.Nothing);
-      w.Indent();
-      w.Write("return ");
-      w.BodySuffix = ";" + w.NewLine;
-      wr.Write("({0})", source);
+      TargetWriter sourceWriter;
+      var w = CreateIIFE_ExprBody(out sourceWriter, sourceType, sourceTok, resultType, resultTok, bvName, wr);
+      sourceWriter.Write(source);
       return w;
     }
 
@@ -2183,7 +2200,7 @@ namespace Microsoft.Dafny {
     }
 
     protected override BlockTargetWriter CreateIIFE1(int source, Type resultType, Bpl.IToken resultTok, string bvName, TargetWriter wr) {
-      var w = wr.NewNamedBlock("function ({0})", bvName);
+      var w = wr.NewNamedBlock("func ({0} int) {1}", bvName, TypeName(resultType, wr, resultTok));
       w.SetBraceStyle(BlockTargetWriter.BraceStyle.Space, BlockTargetWriter.BraceStyle.Nothing);
       wr.Write("({0})", source);
       return w;
@@ -2496,7 +2513,7 @@ namespace Microsoft.Dafny {
     }
 
     protected override void EmitIsZero(string varName, TargetWriter wr) {
-      wr.Write("{0}.isZero()", varName);
+      wr.Write("{0}.Cmp(dafny.Zero) == 0", varName);
     }
 
     protected override void EmitConversionExpr(ConversionExpr e, bool inLetExprBody, TargetWriter wr) {

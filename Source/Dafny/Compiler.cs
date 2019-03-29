@@ -338,6 +338,9 @@ namespace Microsoft.Dafny {
     }
     protected abstract string FullTypeName(UserDefinedType udt, MemberDecl/*?*/ member = null);
     protected abstract void EmitThis(TargetWriter wr);
+    protected virtual void EmitNull(Type type, TargetWriter wr) {
+      wr.Write("null");
+    }
     protected virtual void EmitITE(Expression guard, Expression thn, Expression els, bool inLetExprBody, TargetWriter wr) {
       wr.Write("(");
       TrExpr(guard, wr, inLetExprBody);
@@ -1821,7 +1824,7 @@ namespace Microsoft.Dafny {
           collectionWriter.Write("{0}.IntegerRange(", GetHelperModuleName());
         }
         if (b.LowerBound == null) {
-          collectionWriter.Write("null");
+          EmitNull(bv.Type, collectionWriter);
         } else if (bounds != null) {
           var low = SubstituteBound(b, bounds, boundVars, boundIndex, true);
           TrExpr(low, collectionWriter, inLetExprBody);
@@ -1830,7 +1833,7 @@ namespace Microsoft.Dafny {
         }
         collectionWriter.Write(", ");
         if (b.UpperBound == null) {
-          collectionWriter.Write("null");
+          EmitNull(bv.Type, collectionWriter);
         } else if (bounds != null) {
           var high = SubstituteBound(b, bounds, boundVars, boundIndex, false);
           TrExpr(high, collectionWriter, inLetExprBody);

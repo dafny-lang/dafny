@@ -665,6 +665,11 @@ func (set Set) isSubsetAfterCardinalityCheck(set2 Set) bool {
 	return true
 }
 
+// Elements returns the set of elements (i.e. the set itself).
+func (set Set) Elements() Set {
+	return set
+}
+
 // AllSubsets returns an iterator over all subsets of the given set.
 func (set Set) AllSubsets() Iterator {
 	// Use a big integer to range from 0 to 2^n
@@ -1272,6 +1277,9 @@ var Five = intOf(big.NewInt(5))
 // Ten is the constant 10.
 var Ten = intOf(big.NewInt(10))
 
+// NilInt is a missing int value.
+var NilInt = intOf(nil)
+
 func (i Int) binOp(j Int, f func(*big.Int, *big.Int, *big.Int) *big.Int) Int {
 	return intOf(f(new(big.Int), i.impl, j.impl))
 }
@@ -1455,6 +1463,65 @@ func (i Int) dividesAPowerOf10() (yes bool, factor Int, log10 int) {
 	}
 }
 
+// IntegerRange returns an iterator over the integers from lo up to (but not
+// including) hi.
+func IntegerRange(lo, hi Int) Iterator {
+	if lo.impl != nil {
+		i := lo
+		return func() (interface{}, bool) {
+			if hi.impl != nil && i.Cmp(hi) >= 0 {
+				return nil, false
+			} else {
+				ans := i
+				i = i.Plus(One)
+				return ans, true
+			}
+		}
+	} else if hi.impl != nil {
+		i := hi
+		return func() (interface{}, bool) {
+			ans := i
+			i = i.Minus(One)
+			return ans, true
+		}
+	} else {
+		return AllIntegers()
+	}
+}
+
+// AllIntegers returns an iterator over all integers, starting at zero and
+// alternating between positive and negative.
+func AllIntegers() Iterator {
+	type phase int
+	const (
+		zeroPhase int = iota
+		posPhase
+		negPhase
+	)
+
+	i := Zero
+	p := zeroPhase
+
+	return func() (interface{}, bool) {
+		switch p {
+		case zeroPhase:
+			i = One
+			p = posPhase
+			return Zero, true
+		case posPhase:
+			p = negPhase
+			return i, true
+		case negPhase:
+			ans := i.Negated
+			i = i.Plus(One)
+			p = posPhase
+			return ans, true
+		default:
+			panic("unknown phase")
+		}
+	}
+}
+
 /******************************************************************************
  * Reals
  ******************************************************************************/
@@ -1491,6 +1558,9 @@ func RealOfFrac(num, denom Int) Real {
 
 // ZeroReal is the Real value zero.
 var ZeroReal = realOf(new(big.Rat))
+
+// NilReal is a missing Real value.
+var NilReal = realOf(nil)
 
 // RealOfString parses the given string in base 10 and panics if this is not
 // possible.
