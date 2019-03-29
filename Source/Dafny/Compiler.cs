@@ -290,7 +290,7 @@ namespace Microsoft.Dafny {
     /// <summary>
     /// "tok" can be null if "altVarType" is null, which in turn is allowed if "altBoundVarName" is null
     /// </summary>
-    protected abstract BlockTargetWriter CreateForeachLoop(string boundVar, out TargetWriter collectionWriter, TargetWriter wr, string/*?*/ altBoundVarName = null, Type/*?*/ altVarType = null, Bpl.IToken/*?*/ tok = null);
+    protected abstract BlockTargetWriter CreateForeachLoop(string boundVar, Type/*?*/ boundVarType, out TargetWriter collectionWriter, TargetWriter wr, string/*?*/ altBoundVarName = null, Type/*?*/ altVarType = null, Bpl.IToken/*?*/ tok = null);
     /// <summary>
     /// If "initCall" is non-null, then "initCall.Method is Constructor".
     /// </summary>
@@ -1666,7 +1666,7 @@ namespace Microsoft.Dafny {
           var bound = s.Bounds[i];
           var bv = s.BoundVars[i];
           TargetWriter collectionWriter;
-          wr = CreateForeachLoop(IdName(bv), out collectionWriter, wr);
+          wr = CreateForeachLoop(IdName(bv), bv.Type, out collectionWriter, wr);
           CompileCollection(bound, bv, false, false, collectionWriter, s.Bounds, s.BoundVars, i);
         }
 
@@ -1707,7 +1707,7 @@ namespace Microsoft.Dafny {
         //     LHS[ l0, l1, l2, ..., l(L-2) ] = l(L-1);
         //   }
         TargetWriter collWriter;
-        wr = CreateForeachLoop(tup, out collWriter, wrOuter);
+        wr = CreateForeachLoop(tup, null, out collWriter, wrOuter);
         collWriter.Write(ingredients);
         wr.Indent();
         if (s0.Lhs is MemberSelectExpr) {
@@ -1959,7 +1959,7 @@ namespace Microsoft.Dafny {
         }
         var tmpVar = idGenerator.FreshId("_assign_such_that_");
         TargetWriter collectionWriter;
-        wr = CreateForeachLoop(tmpVar, out collectionWriter, wr, IdName(bv));
+        wr = CreateForeachLoop(tmpVar, bv.Type, out collectionWriter, wr, IdName(bv));
         CompileCollection(bound, bv, inLetExprBody, true, collectionWriter);
         if (needIterLimit) {
           var varName = string.Format("{0}_{1}", iterLimit, i);
@@ -2709,7 +2709,7 @@ namespace Microsoft.Dafny {
           var bv = e.BoundVars[i];
           TargetWriter collectionWriter;
           var tmpVar = idGenerator.FreshId("_compr_");
-          wr = CreateForeachLoop(tmpVar, out collectionWriter, wr, IdName(bv), bv.Type, bv.tok);
+          wr = CreateForeachLoop(tmpVar, bv.Type, out collectionWriter, wr, IdName(bv), bv.Type, bv.tok);
           CompileCollection(bound, bv, inLetExprBody, true, collectionWriter);
         }
         TargetWriter guardWriter;
@@ -2751,7 +2751,7 @@ namespace Microsoft.Dafny {
         var bv = e.BoundVars[0];
         Contract.Assume(e.BoundVars.Count == 1);  // TODO: implement the case where e.BoundVars.Count > 1
         TargetWriter collectionWriter;
-        var w = CreateForeachLoop(IdName(bv), out collectionWriter, wr);
+        var w = CreateForeachLoop(IdName(bv), bv.Type, out collectionWriter, wr);
         CompileCollection(bound, bv, inLetExprBody, true, collectionWriter);
         TargetWriter guardWriter;
         var thn = EmitIf(out guardWriter, false, w);

@@ -1214,7 +1214,7 @@ namespace Microsoft.Dafny
       return string.Format("Dafny.Helpers.Quantifier<{0}>", bvType);
     }
 
-    protected override BlockTargetWriter CreateForeachLoop(string boundVar, out TargetWriter collectionWriter, TargetWriter wr, string/*?*/ altBoundVarName = null, Type/*?*/ altVarType = null, Bpl.IToken/*?*/ tok = null) {
+    protected override BlockTargetWriter CreateForeachLoop(string boundVar, Type/*?*/ boundVarType, out TargetWriter collectionWriter, TargetWriter wr, string/*?*/ altBoundVarName = null, Type/*?*/ altVarType = null, Bpl.IToken/*?*/ tok = null) {
       wr.Indent();
       wr.Write("foreach (var {0} in ", boundVar);
       collectionWriter = new TargetWriter(wr.IndentLevel);

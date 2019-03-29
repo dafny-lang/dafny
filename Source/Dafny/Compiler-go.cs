@@ -1450,8 +1450,9 @@ namespace Microsoft.Dafny {
     }
 
     protected override TargetWriter CreateLabeledCode(string label, TargetWriter wr) {
-      wr.Write("L{0}:", label);
-      return wr;
+      var w = wr.Fork();
+      wr.WriteLine("L{0}:", label);
+      return w;
     }
 
     protected override void EmitBreak(string/*?*/ label, TargetWriter wr) {
@@ -1459,7 +1460,7 @@ namespace Microsoft.Dafny {
       if (label == null) {
         wr.WriteLine("break;");
       } else {
-        wr.WriteLine("break L{0};", label);
+        wr.WriteLine("goto L{0};", label);
       }
     }
 
@@ -1513,24 +1514,29 @@ namespace Microsoft.Dafny {
       return string.Format("dafny.Quantifier");
     }
 
-    protected override BlockTargetWriter CreateForeachLoop(string boundVar, out TargetWriter collectionWriter, TargetWriter wr, string/*?*/ altBoundVarName = null, Type/*?*/ altVarType = null, Bpl.IToken/*?*/ tok = null) {
+    protected override BlockTargetWriter CreateForeachLoop(string boundVar, Type/*?*/ boundVarType, out TargetWriter collectionWriter, TargetWriter wr, string/*?*/ altBoundVarName = null, Type/*?*/ altVarType = null, Bpl.IToken/*?*/ tok = null) {
       var okVar = FreshId("_ok");
       var iterVar = FreshId("_iter");
+      var valVar = boundVarType == null ? boundVar : FreshId("_val");
       wr.Indent();
       wr.Write("for {0} := dafny.Iterate(", iterVar);
       collectionWriter = wr.Fork();
       var wBody = wr.NewBlock(");;");
       wBody.Indent();
-      wBody.WriteLine("{0}, {1} := {2}()", boundVar, okVar, iterVar);
+      wBody.WriteLine("{0}, {1} := {2}()", valVar, okVar, iterVar);
       wBody.Indent();
       wBody.WriteLine("if !{0} {{ break }}", okVar);
+      if (boundVarType != null) {
+        wBody.Indent();
+        wBody.WriteLine("{0} := {1}.({2})", boundVar, valVar, TypeName(boundVarType, wBody, tok));
+      }
       
       if (altBoundVarName != null) {
         wBody.Indent();
         if (altVarType == null) {
           wBody.WriteLine("{0} = {1}", altBoundVarName, boundVar);
         } else {
-          wBody.WriteLine("{0} := {1}.({2})", altBoundVarName, boundVar, TypeName(altVarType, wBody, tok));
+          wBody.WriteLine("{0} := {1}", altBoundVarName, boundVar);
         }
       }
 
