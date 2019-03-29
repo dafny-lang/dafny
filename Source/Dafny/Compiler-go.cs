@@ -1453,6 +1453,10 @@ namespace Microsoft.Dafny {
       return TypeName_Related(FormatCompanionTypeName, type, wr, tok);
     }
 
+    protected string TypeName_DatatypeInterface(Type type, TextWriter wr, Bpl.IToken tok) {
+      return TypeName_Related(FormatDatatypeInterfaceName, type, wr, tok);
+    }
+
     protected string TypeName_Initializer(Type type, TextWriter wr, Bpl.IToken tok) {
       return TypeName_Related(FormatInitializerName, type, wr, tok);
     }
@@ -2263,10 +2267,11 @@ namespace Microsoft.Dafny {
     
     protected override void EmitDestructor(string source, Formal dtor, int formalNonGhostIndex, DatatypeCtor ctor, List<Type> typeArgs, TargetWriter wr) {
       if (ctor.EnclosingDatatype is TupleTypeDecl) {
-        wr.Write("({0}).Index({1}).Interface().({2})", source, formalNonGhostIndex, TypeName(dtor.Type, wr, Bpl.Token.NoToken));
+        wr.Write("({0}).Index(dafny.IntOf({1})).Interface().({2})", source, formalNonGhostIndex, TypeName(typeArgs[formalNonGhostIndex], wr, Bpl.Token.NoToken));
       } else {
         var dtorName = FormalName(dtor, formalNonGhostIndex);
-        wr.Write("({0}).{1}()", source, FormatDatatypeDestructorName(dtorName));
+        var type = UserDefinedType.FromTopLevelDecl(ctor.tok, ctor.EnclosingDatatype);
+        wr.Write("{0}.{1}.({2}_{3}).{4}", source, TypeName_DatatypeInterface(type, wr, ctor.tok), TypeName(type, wr, ctor.tok), ctor.CompileName, dtorName);
       }
     }
 
@@ -2282,7 +2287,7 @@ namespace Microsoft.Dafny {
     }
     
     private TargetWriter CreateIIFE_ExprBody(out TargetWriter sourceWriter, Type sourceType, Bpl.IToken sourceTok, Type resultType, Bpl.IToken resultTok, string bvName, TargetWriter wr) {
-      var w = wr.NewNamedBlock("function ({0} {1}) {2}", bvName, TypeName(sourceType, wr, sourceTok), TypeName(resultType, wr, resultTok));
+      var w = wr.NewNamedBlock("func ({0} {1}) {2}", bvName, TypeName(sourceType, wr, sourceTok), TypeName(resultType, wr, resultTok));
       w.SetBraceStyle(BlockTargetWriter.BraceStyle.Space, BlockTargetWriter.BraceStyle.Nothing);
       w.Indent();
       w.Write("return ");
@@ -2291,7 +2296,7 @@ namespace Microsoft.Dafny {
       wr.Write('(');
       sourceWriter = wr.Fork();
       wr.Write(')');
-      return w;
+      return wExpr;
     }
 
     protected override TargetWriter CreateIIFE_ExprBody(Expression source, bool inLetExprBody, Type sourceType, Bpl.IToken sourceTok, Type resultType, Bpl.IToken resultTok, string bvName, TargetWriter wr) {
