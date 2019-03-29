@@ -380,8 +380,23 @@ namespace Microsoft.Dafny {
       // func (_this Dt) String() { ... }
       //
       // func (_this Dt) Dafny_EqualsGeneric_(other interface{}) bool { ... }
-      // 
-      // TODO AllSingletonConstructors
+      //
+      // func (_ companionStruct_Dt_) AllSingletonConstructors() dafny.Iterator {
+      //   i := -1
+      //   return func() (interface{}, bool) {
+      //     i++
+      //     switch i {
+      //       case 0:
+      //         return Companion_Dt_.Create_Ctor0(), true
+      //       case 1:
+      //         return Companion_Dt_.Create_Ctor1(), true
+      //       ...
+      //       default:
+      //         return Dt{}, false
+      //     }
+      //   }
+      // }
+      //
       // TODO Run-time type descriptors
       // TODO Optimize record types
       //
@@ -545,7 +560,23 @@ namespace Microsoft.Dafny {
       }
 
       if (dt.HasFinitePossibleValues) {
-        // TODO
+        var wSingles = wr.NewNamedBlock("func (_ {0}) AllSingletonConstructors() dafny.Iterator", companionTypeName);
+        wSingles.Indent();
+        wSingles.WriteLine("i := -1");
+        wSingles.Indent();
+        wSingles = wSingles.NewNamedBlock("return func() (interface{{}}, bool)");
+        wSingles.Indent();
+        wSingles.WriteLine("i++");
+        wSingles.Indent();
+        wSingles = wSingles.NewNamedBlock("switch i");
+        var i = 0;
+        foreach (var ctor in dt.Ctors) {
+          wSingles.Indent();
+          wSingles.WriteLine("case {0}: return {1}.{2}(), true", i, FormatCompanionName(name), FormatDatatypeConstructorName(ctor.CompileName));
+          i++;
+        }
+        wSingles.Indent();
+        wSingles.WriteLine("default: return {0}{{}}, false", name);
       }
       
       // destructors

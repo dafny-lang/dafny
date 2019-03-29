@@ -1865,7 +1865,7 @@ namespace Microsoft.Dafny {
         collectionWriter.Write((includeDuplicates ? ".Elements" : ".UniqueElements") + propertySuffix);
       } else if (bound is ComprehensionExpr.DatatypeBoundedPool) {
         var b = (ComprehensionExpr.DatatypeBoundedPool)bound;
-        collectionWriter.Write("{0}.AllSingletonConstructors{1}", TypeName(bv.Type, collectionWriter, bv.Tok), propertySuffix);
+        collectionWriter.Write("{0}.AllSingletonConstructors{1}", TypeName_Companion(bv.Type, collectionWriter, bv.Tok, null), propertySuffix);
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected BoundedPool type
       }
