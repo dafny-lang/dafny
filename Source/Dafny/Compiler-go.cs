@@ -131,6 +131,90 @@ namespace Microsoft.Dafny {
     protected override string GetHelperModuleName() => "dafny";
 
     protected override IClassWriter CreateClass(string name, bool isExtern, string/*?*/ fullPrintName, List<TypeParameter>/*?*/ typeParameters, List<Type>/*?*/ superClasses, Bpl.IToken tok, TargetWriter wr) {
+      //
+      // The system for getting traits and inheritance to work is a little
+      // fiddly.  There is no inheritance in Go.  You can, however, *embed* the
+      // trait struct in the class's struct.  This gives you some things---the
+      // class responds to the trait's methods, for instance, and the trait's
+      // fields get added in.  But instead of an upcast, you have to project
+      // the trait struct out, which would lose the ability for a method
+      // invocation to get back the whole object.  (If traits had only methods,
+      // we could use Go interfaces, but fields make life harder.)
+      //
+      // So in order to be able to cast to a trait, whose instance methods
+      // should be invoked with the original object, every trait struct embeds
+      // an interface type with its abstract methods.  Effectively this is a
+      // back pointer to the whole object, imbued with a vtable.  Since the
+      // trait struct embeds the interface, it's a receiver for the interface
+      // (i.e. the methods can be invoked on the trait struct).
+      //
+      // It sounds like the class embeds each trait, each of which embeds the
+      // class!  Crucially, classes all use pointer receivers, so in embedding
+      // an interface, the trait struct actually embeds a pointer, so it all
+      // ends up tied up with a bow.
+      //
+      // There are two sources of complexity here that impact the compiler in
+      // general:
+      //
+      //   1. Upcasts are explicit.  This is why EmitCoercionIfNecessary() came
+      //      to be.  (It would be handy if our IR included upcasts rather than
+      //      leaving the subtyping implicit, but there aren't that many places
+      //      where coercions are necessary---really just function calls and
+      //      assignments to variables.)
+      //   2. We need to wire up the trait structs with their back pointers
+      //      whenever an object is created.  This is taken care of in the
+      //      initializer (New_Class_), so we just need to make sure all object
+      //      creation goes through there.
+      //
+      // type Class struct {
+      //   Trait0
+      //   Trait1
+      //   ...
+      //   Field0 type0
+      //   Field1 type1
+      //   ...
+      // }
+      //
+      // type companionStruct_Class_ struct {
+      //   *companionStruct_Trait0
+      //   *companionStruct_Trait1
+      //   StaticField0 type0
+      //   StaticField1 type1
+      //   ...
+      // }
+      //
+      // var Companion_Class_ = companionStruct_Class_{
+      //   &Companion_Trait0,
+      //   &Companion_Trait1,
+      //   StaticField1: ...,
+      //   StaticField2: ...,
+      // }
+      //
+      // func New_Class_() *Class {
+      //   __ans := &Class{
+      //      Trait0: New_Trait0(),
+      //      Trait1: New_Trait1(),
+      //      Field0: ...,
+      //      Field1: ...,
+      //   }
+      //
+      //   __ans.Trait0.Iface_Trait0 = &__ans
+      //   __ans.Trait1.Iface_Trait1 = &__ans
+      //   return __ans
+      // }
+      //
+      // func (_this *Class) InstanceMethod(param0 type0, ...) returnType {
+      //   ...
+      //   _this.Trait0.TraitField0 // access field from trait
+      //   var traitVar Trait1 = _this.Trait1 // cast to trait
+      //   _this.TraitMethod0() // can invoke trait method directly
+      //   ...
+      // }
+      //
+      // func (_this *companionStruct_Class) StaticMethod(param0 type0, ...) returnType {
+      //   ...
+      // }
+      //
       wr.Indent();
       var w = CreateDescribedSection("class {0}", wr, name);
       
@@ -166,6 +250,37 @@ namespace Microsoft.Dafny {
     }
 
     protected override IClassWriter CreateTrait(string name, List<Type>/*?*/ superClasses, Bpl.IToken tok, TargetWriter wr) {
+      //
+      // type Trait struct {
+      //   Iface_Trait_ // see comments on CreateClass
+      //   InstanceField0 type0
+      //   ...
+      // }
+      //
+      // type Iface_Trait_ interface {
+      //   AbstractMethod0(param0 type0, ...) returnType0
+      //   ...
+      // }
+      //
+      // type companionStruct_Trait_ struct {
+      //   StaticField0 type0
+      //   StaticField1 type1
+      //   ...
+      // }
+      //
+      // var Companion_Trait_ = companionStruct_Trait{
+      //   StaticField0: ...,
+      //   StaticField1: ...,
+      // }
+      //
+      // func (_this *Trait) ConcreteInstanceMethod(...) ... {
+      //   ...
+      // }
+      //
+      // func (_this *companionStruct_Trait) StaticMethod(...) ... {
+      //   ...
+      // }
+      //
       wr.Indent();
       wr = CreateDescribedSection("trait {0}", wr, name);
       var instanceFieldWriter = wr.NewNamedBlock("type {0} struct", name);
