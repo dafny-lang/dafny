@@ -48,6 +48,279 @@ func (char Char) String() string {
 }
 
 /******************************************************************************
+ * Iteration
+ ******************************************************************************/
+
+// An Iterator is a function that can be called multiple times to get successive
+// values, until the second value returned is false.
+type Iterator = func() (interface{}, bool)
+
+// An Iterable can produce an iterator, which we represent as a function which
+// can be called to get successive values.
+type Iterable interface {
+	Iterator() Iterator
+}
+
+// Iterate gets an iterator from a value that is either an iterator or an
+// iterable.
+func Iterate(over interface{}) Iterator {
+	switch over := over.(type) {
+	case Iterator:
+		return over
+	case Iterable:
+		return over.Iterator()
+	default:
+		if refl.TypeOf(over).Kind() != refl.Slice {
+			panic(fmt.Errorf("Not iterable: %v", over))
+		} else {
+			return sliceIterator(over)
+		}
+	}
+}
+
+func sliceIterator(slice interface{}) Iterator {
+	val := refl.ValueOf(slice)
+	n := val.Len()
+	i := 0
+	return func() (interface{}, bool) {
+		if i >= n {
+			return nil, false
+		} else {
+			ans := val.Index(i).Interface()
+			i++
+			return ans, true
+		}
+	}
+}
+
+// Quantifier calculates whether a predicate holds either for all values yielded
+// by an iterator or for at least one.
+func Quantifier(iter interface{}, isForAll bool, pred interface{}) bool {
+	predVal := refl.ValueOf(pred)
+
+	for i := Iterate(iter); ; {
+		v, ok := i()
+		if !ok {
+			return isForAll
+		}
+		if predVal.Call([]refl.Value{refl.ValueOf(v)})[0].Interface() != isForAll {
+			return !isForAll
+		}
+	}
+}
+
+// SingleValue produces an iterator that yields only a single value.
+func SingleValue(value interface{}) Iterator {
+	done := false
+	return func() (interface{}, bool) {
+		if done {
+			return nil, false
+		} else {
+			done = true
+			return value, true
+		}
+	}
+}
+
+/******************************************************************************
+ * Sequences
+ ******************************************************************************/
+
+// A Seq is a Go slice representing a one-dimensional array.  There aren't any
+// methods for updating; instead, you can update by mutating the value returned
+// by Index (either by using its Set method or by getting a pointer using its
+// Addr method).
+type Seq refl.Value
+
+// EmptySeq is the empty sequence.
+var EmptySeq = SeqOf()
+
+// SeqOf returns a sequence containing the given values.
+func SeqOf(values ...interface{}) Seq {
+	return Seq(refl.ValueOf(values))
+}
+
+// SeqOfString converts the given string into a sequence of characters.
+func SeqOfString(str string) Seq {
+	return Seq(refl.ValueOf([]Char(str)))
+}
+
+func (seq Seq) index(i int) interface{} {
+	return seq.indexValue(i).Interface()
+}
+
+func (seq Seq) indexValue(i int) refl.Value {
+	return refl.Value(seq).Index(i)
+}
+
+// Index finds the sequence element at the given index.
+func (seq Seq) Index(i Int) refl.Value {
+	return refl.Value(seq).Index(i.Int())
+}
+
+func (seq Seq) len() int {
+	return refl.Value(seq).Len()
+}
+
+// Len finds the length of the sequence.
+func (seq Seq) Len() Int {
+	return IntOf(seq.len())
+}
+
+// Cardinality finds the length of the sequence.
+func (seq Seq) Cardinality() Int {
+	return seq.Len()
+}
+
+// Contains finds whether the value is equal to any element in the sequence.
+func (seq Seq) Contains(value interface{}) bool {
+	n := seq.len()
+	for i := 0; i < n; i++ {
+		if AreEqual(seq.index(i), value) {
+			return true
+		}
+	}
+	return false
+}
+
+// Iterator returns an iterator over the sequence.
+func (seq Seq) Iterator() Iterator {
+	i := 0
+	n := seq.len()
+	return func() (interface{}, bool) {
+		if i >= n {
+			return nil, false
+		}
+		ans := seq.index(i)
+		i++
+		return ans, true
+	}
+}
+
+// Slice takes the slice a[from:to] of the given sequence.
+func (seq Seq) Slice(from, to Int) Seq {
+	return Seq(refl.Value(seq).Slice(from.Int(), to.Int()))
+}
+
+// SliceAll takes the slice a[:] of the given sequence.
+func (seq Seq) SliceAll() Seq {
+	return seq.Slice(Zero, seq.Len())
+}
+
+// SliceFrom takes the slice a[from:] of the given sequence.
+func (seq Seq) SliceFrom(ix Int) Seq {
+	return seq.Slice(ix, seq.Len())
+}
+
+// SliceTo takes the slice a[:to] of the given sequence.
+func (seq Seq) SliceTo(ix Int) Seq {
+	return seq.Slice(Zero, ix)
+}
+
+// Concat concatenates two sequences, returning a new one.
+func (seq Seq) Concat(seq2 Seq) Seq {
+	ty := refl.Value(seq).Type()
+	ty2 := refl.Value(seq2).Type()
+	n := seq.len()
+	n2 := seq2.len()
+	var newSlice refl.Value
+	if ty.AssignableTo(ty2) && ty2.AssignableTo(ty) {
+		newSlice = refl.MakeSlice(ty, n+n2, n+n2)
+		refl.Copy(newSlice, refl.Value(seq))
+		refl.Copy(newSlice.Slice(n, n+n2), refl.Value(seq2))
+	} else {
+		if !(CharSliceType.AssignableTo(ty) || CharSliceType.AssignableTo(ty2)) {
+			panic(fmt.Errorf("Different non-[]Char underlying slice types for Concat: %v != %v", ty, ty2))
+		}
+
+		// Convert both to []Char
+		newSlice = refl.MakeSlice(CharSliceType, n+n2, n+n2)
+		if CharSliceType.AssignableTo(ty) {
+			refl.Copy(newSlice, refl.Value(seq))
+			for i := n; i < n+n2; i++ {
+				// use Elem() to get at the Char under the interface{}
+				newSlice.Index(i).Set(refl.Value(seq2).Index(i - n).Elem())
+			}
+		} else {
+			for i := 0; i < n; i++ {
+				newSlice.Index(i).Set(refl.Value(seq).Index(i).Elem())
+			}
+			refl.Copy(newSlice.Slice(n, n+n2), refl.Value(seq2))
+		}
+	}
+	return Seq(newSlice)
+}
+
+// Equals compares two sequences for equality.
+func (seq Seq) Equals(seq2 Seq) bool {
+	return seq.len() == seq2.len() && seq.isPrefixAfterLengthCheck(seq2)
+}
+
+// Dafny_EqualsGeneric_ implements the EqualsGeneric interface.
+func (seq Seq) Dafny_EqualsGeneric_(other interface{}) bool {
+	seq2, ok := other.(Seq)
+	return ok && seq.Equals(seq2)
+}
+
+// IsPrefixOf finds whether s[i] == s2[i] for all i < some n.
+func (seq Seq) IsPrefixOf(seq2 Seq) bool {
+	return seq.len() <= seq2.len() && seq.isPrefixAfterLengthCheck(seq2)
+}
+
+// IsProperPrefixOf finds whether s[i] == s2[i] for all i < some n, and moreover
+// s != s2.
+func (seq Seq) IsProperPrefixOf(seq2 Seq) bool {
+	return seq.len() < seq2.len() && seq.isPrefixAfterLengthCheck(seq2)
+}
+
+func (seq Seq) isPrefixAfterLengthCheck(seq2 Seq) bool {
+	n := seq.len()
+	for i := 0; i < n; i++ {
+		if !AreEqual(seq.index(i), seq2.index(i)) {
+			return false
+		}
+	}
+	return true
+}
+
+// UniqueElements returns the set of elements in the sequence.
+func (seq Seq) UniqueElements() Set {
+	// This may not have been built from an []interface{} (particualrly if it's
+	// actually an Array), so be a bit careful here
+	b := NewBuilder()
+	n := seq.len()
+	for i := 0; i < n; i++ {
+		b.Add(seq.index(i))
+	}
+	return b.ToSet()
+}
+
+func (seq Seq) String() string {
+	switch arr := refl.Value(seq).Interface().(type) {
+	case []Char:
+		s := ""
+		for _, c := range arr {
+			s += c.String()
+		}
+		return s
+	default:
+		return "[" + seq.stringOfElements() + "]"
+	}
+}
+
+func (seq Seq) stringOfElements() string {
+	s := ""
+	n := seq.Len().Int()
+	for i := 0; i < n; i++ {
+		if i > 0 {
+			s += ", "
+		}
+		s += fmt.Sprint(seq.index(i))
+	}
+	return s
+}
+
+/******************************************************************************
  * Arrays
  ******************************************************************************/
 
@@ -56,33 +329,26 @@ func (char Char) String() string {
 // update by mutating the value returned by Index (either by using its Set
 // method or by getting a pointer using its Addr method).
 type Array struct {
-	contents refl.Value // stored as a flat one-dimensional slice
-	dims     []Int      // keep as Ints because we return them to user code
-	sizes    []int      // use ints because we only use them internally
+	contents Seq // stored as a flat one-dimensional slice
+	dims     []int
+	sizes    []int
 }
 
 // NewArray returns a new Array full of the zero value of the given type.
 func NewArray(typ refl.Type, dims ...Int) Array {
 	sizes := make([]int, len(dims))
+	intDims := make([]int, len(dims))
 	size := 1
 	for d := len(dims) - 1; d >= 0; d-- {
 		sizes[d] = size
-		size *= int(dims[d].Int64())
+		intDims[d] = int(dims[d].Int64())
+		size *= intDims[d]
 	}
-	contents := refl.MakeSlice(refl.SliceOf(typ), size, size)
+	contents := Seq(refl.MakeSlice(refl.SliceOf(typ), size, size))
 	return Array{
 		contents: contents,
-		dims:     dims,
+		dims:     intDims,
 		sizes:    sizes,
-	}
-}
-
-// NewArrayFromString converts from a string to an array of Chars.
-func NewArrayFromString(str string) Array {
-	return Array{
-		contents: refl.ValueOf(([]Char)(str)),
-		dims:     []Int{IntOf(int64(len(str)))},
-		sizes:    []int{1},
 	}
 }
 
@@ -90,9 +356,9 @@ func NewArrayFromString(str string) Array {
 func NewArrayWithValue(init interface{}, dims ...Int) Array {
 	ans := NewArray(refl.TypeOf(init), dims...)
 	initValue := refl.ValueOf(init)
-	n := ans.contents.Len()
+	n := ans.contents.len()
 	for i := 0; i < n; i++ {
-		ans.contents.Index(i).Set(initValue)
+		ans.contents.Index(IntOf(i)).Set(initValue)
 	}
 	return ans
 }
@@ -107,33 +373,35 @@ func NewArrayWithValues(typ refl.Type, values ...interface{}) Array {
 		contents.Index(i).Set(refl.ValueOf(v))
 	}
 	return Array{
-		contents: contents,
-		dims:     []Int{IntOf(int64(n))},
+		contents: Seq(contents),
+		dims:     []int{n},
 		sizes:    []int{1},
 	}
 }
 
 // Len returns the length of the array in the given dimension.
-func (array Array) Len(dim Int) Int {
-	return array.dims[int(dim.Int64())]
+func (array Array) Len(dim int) Int {
+	return IntOf(array.dims[dim])
 }
 
 // Equals compares two arrays for equality.  Values are compared using
 // dafny.AreEqual.
 func (array Array) Equals(array2 Array) bool {
+	// TODO: It feels like we should be able to shortcut in the case that the
+	// addresses are the same, but we're using value receivers.  Should we be?
+	// Can we still find out whether the slices are the same---that is, they
+	// have the same backing array, offset, length, and capacity?
+
 	if len(array.dims) != len(array2.dims) {
 		return false
 	}
 	for i, d := range array.dims {
-		if d.Cmp(array2.dims[i]) != 0 {
+		if d != array2.dims[i] {
 			return false
 		}
 	}
 
-	// Not clear that this will always do the right thing.  It definitely won't
-	// with user-defined types with traits (since those values contain
-	// back pointers).
-	return AreEqual(array.contents.Interface(), array2.contents.Interface())
+	return array.contents.Equals(array2.contents)
 }
 
 // Dafny_EqualsGeneric_ implements the EqualsGeneric interface.
@@ -147,7 +415,7 @@ func (array Array) index(ixs ...int) refl.Value {
 	for d := range array.dims {
 		i += ixs[d] * array.sizes[d]
 	}
-	return array.contents.Index(i)
+	return array.contents.indexValue(i)
 }
 
 // Index gets the element at the given indices into the array.
@@ -159,7 +427,7 @@ func (array Array) Index(ixs ...Int) refl.Value {
 	for d := range array.dims {
 		i += int(ixs[d].Int64()) * array.sizes[d]
 	}
-	return array.contents.Index(i)
+	return array.contents.Index(IntOf(i))
 }
 
 // Slice takes the slice a[from:to] of the given array.
@@ -168,20 +436,20 @@ func (array Array) Slice(from, to Int) Array {
 		panic("TODO: Slices of multidimensional arrays")
 	}
 	return Array{
-		contents: array.contents.Slice(int(from.Int64()), int(to.Int64())),
-		dims:     []Int{to.Minus(from)},
+		contents: array.contents.Slice(from, to),
+		dims:     []int{to.Int() - from.Int()},
 		sizes:    []int{1},
 	}
 }
 
 // SliceAll takes the slice a[:] of the given array.
 func (array Array) SliceAll() Array {
-	return array.Slice(Zero, array.Len(Zero))
+	return array.Slice(Zero, array.Len(0))
 }
 
 // SliceFrom takes the slice a[from:] of the given array.
 func (array Array) SliceFrom(ix Int) Array {
-	return array.Slice(ix, array.Len(Zero))
+	return array.Slice(ix, array.Len(0))
 }
 
 // SliceTo takes the slice a[:to] of the given array.
@@ -194,7 +462,7 @@ func (array Array) stringOfSubspace(d int, ixs []int) string {
 		return fmt.Sprint(array.index(ixs...))
 	}
 	s := "["
-	for i := 0; int64(i) < array.dims[d].Int64(); i++ {
+	for i := 0; i < array.dims[d]; i++ {
 		if i > 0 {
 			s += ", "
 		}
@@ -206,17 +474,8 @@ func (array Array) stringOfSubspace(d int, ixs []int) string {
 }
 
 func (array Array) String() string {
-	switch arr := array.contents.Interface().(type) {
-	case []Char:
-		s := ""
-		for _, c := range arr {
-			s += c.String()
-		}
-		return s
-	default:
-		ixs := make([]int, len(array.dims))
-		return array.stringOfSubspace(0, ixs)
-	}
+	ixs := make([]int, len(array.dims))
+	return array.stringOfSubspace(0, ixs)
 }
 
 /******************************************************************************
@@ -224,34 +483,677 @@ func (array Array) String() string {
  ******************************************************************************/
 
 // A Tuple is a one-dimensional heterogeneous array.
-type Tuple Array
+type Tuple Seq
 
 // TupleOf creates a tuple with the given values.
 func TupleOf(values ...interface{}) Tuple {
-	return Tuple(NewArrayWithValues(TopType, values...))
+	return Tuple(SeqOf(values...))
 }
 
 // Dafny_EqualsGeneric_ implements the EqualsGeneric interface.
 func (tuple Tuple) Dafny_EqualsGeneric_(other interface{}) bool {
 	tuple2, ok := other.(Tuple)
-	return ok && Array(tuple).Equals(Array(tuple2))
+	return ok && Seq(tuple).Equals(Seq(tuple2))
 }
 
 func (tuple Tuple) String() string {
-	s := "("
-	for i := 0; int64(i) < Array(tuple).dims[0].Int64(); i++ {
-		if i > 0 {
-			s += ", "
-		}
-		s += fmt.Sprint(Array(tuple).index(i))
-	}
-	s += ")"
-	return s
+	return "(" + Seq(tuple).stringOfElements() + ")"
 }
 
 // Index looks up the ith element of the tuple.
 func (tuple Tuple) Index(i Int) refl.Value {
-	return Array(tuple).Index(i)
+	return Seq(tuple).Index(i)
+}
+
+/******************************************************************************
+ * Collection building
+ ******************************************************************************/
+
+// A Builder holds values as they're imperatively accumulated in order to build
+// an Array, Set, or MultiSet.
+type Builder []interface{}
+
+// NewBuilder creates a new Builder.
+func NewBuilder() *Builder {
+	return new(Builder)
+}
+
+// Add adds a new value to a Builder.
+func (builder *Builder) Add(value interface{}) {
+	*builder = append(*builder, value)
+}
+
+// ToArray creates an Array with the accumulated values.
+func (builder *Builder) ToArray() Array {
+	return NewArrayWithValues(TopType, *builder...)
+}
+
+// ToMultiSet creates a MultiSet with the accumulated values.
+
+// ToSet creates a Set with the accumulated values.
+func (builder *Builder) ToSet() Set {
+	return SetOf(*builder...)
+}
+
+/******************************************************************************
+ * Sets
+ ******************************************************************************/
+
+// A Set is a sequence without duplicates.
+type Set Seq
+
+// EmptySet is the empty set.
+var EmptySet = SetOf()
+
+// SetOf creates a set with the given values.
+func SetOf(values ...interface{}) Set {
+	uniq := make([]interface{}, 0, len(values))
+NEXT_INPUT:
+	for _, v := range values {
+		for _, u := range uniq {
+			if AreEqual(u, v) {
+				continue NEXT_INPUT
+			}
+		}
+		uniq = append(uniq, v)
+	}
+	return Set(SeqOf(uniq...))
+}
+
+func (set Set) cardinality() int {
+	return Seq(set).len()
+}
+
+// Cardinality returns the cardinality (size) of the set.
+func (set Set) Cardinality() Int {
+	return Seq(set).Len()
+}
+
+// Index returns the ith element of the set, which is arbitrary but different
+// from the ith element for any other i.
+func (set Set) Index(i Int) interface{} {
+	return Seq(set).Index(i)
+}
+
+// Contains returns whether the given value is an element of the set.
+func (set Set) Contains(value interface{}) bool {
+	return Seq(set).Contains(value)
+}
+
+// Iterator returns an iterator over the elements of the set.
+func (set Set) Iterator() Iterator {
+	return Seq(set).Iterator()
+}
+
+// Union makes a set containing each element contained by either input set.
+func (set Set) Union(set2 Set) Set {
+	uniq := make([]interface{}, 0, set.cardinality()+set2.cardinality())
+	uniq = append(uniq, refl.Value(set).Interface().([]interface{})...)
+	n1 := set.cardinality()
+	n2 := set2.cardinality()
+NEXT_INPUT:
+	for i := 0; i < n2; i++ {
+		v := Seq(set2).index(i)
+		for j := 0; j < n1; j++ {
+			u := uniq[j]
+			if AreEqual(u, v) {
+				continue NEXT_INPUT
+			}
+		}
+		uniq = append(uniq, v)
+	}
+	return Set(SeqOf(uniq...))
+}
+
+// Intersection makes a set containing each element contained by both input
+// sets.
+func (set Set) Intersection(set2 Set) Set {
+	b := NewBuilder()
+	n := set.cardinality()
+	for i := 0; i < n; i++ {
+		v := Seq(set).index(i)
+		if set2.Contains(v) {
+			b.Add(v)
+		}
+	}
+	return Set(SeqOf(*b...))
+}
+
+// IsDisjointFrom returns true if the sets have no elements in common.
+func (set Set) IsDisjointFrom(set2 Set) bool {
+	n := set.cardinality()
+	for i := 0; i < n; i++ {
+		if set2.Contains(Seq(set).index(i)) {
+			return false
+		}
+	}
+	return true
+}
+
+// Equals tests whether the sets contain the same elements.
+func (set Set) Equals(set2 Set) bool {
+	return set.cardinality() == set2.cardinality() &&
+		set.isSubsetAfterCardinalityCheck(set2)
+}
+
+// Dafny_EqualsGeneric_ implements the EqualsGeneric interface.
+func (set Set) Dafny_EqualsGeneric_(other interface{}) bool {
+	set2, ok := other.(Set)
+	return ok && set.Equals(set2)
+}
+
+// IsSubsetOf returns true if each element in this set is also in the other.
+func (set Set) IsSubsetOf(set2 Set) bool {
+	return set.cardinality() <= set2.cardinality() &&
+		set.isSubsetAfterCardinalityCheck(set2)
+}
+
+// IsProperSubsetOf returns true if each element in this set is also in the
+// other, and moreover the sets aren't equal.
+func (set Set) IsProperSubsetOf(set2 Set) bool {
+	return set.cardinality() < set2.cardinality() &&
+		set.isSubsetAfterCardinalityCheck(set2)
+}
+
+func (set Set) isSubsetAfterCardinalityCheck(set2 Set) bool {
+	n := set.cardinality()
+	for i := 0; i < n; i++ {
+		if !set2.Contains(Seq(set).index(i)) {
+			return false
+		}
+	}
+	return true
+}
+
+// AllSubsets returns an iterator over all subsets of the given set.
+func (set Set) AllSubsets() Iterator {
+	// Use a big integer to range from 0 to 2^n
+	r := new(big.Int)
+	limit := new(big.Int).Lsh(One.impl, uint(set.cardinality()))
+	return func() (interface{}, bool) {
+		if r.Cmp(limit) == 0 {
+			return Set{}, false
+		} else {
+			b := NewBuilder()
+			i := 0
+			s := new(big.Int).Set(r)
+			mod := new(big.Int)
+			for s.Cmp(Zero.impl) > 0 {
+				if mod.Mod(s, Two.impl).Cmp(Zero.impl) != 0 {
+					b.Add(Seq(set).index(i))
+				}
+				s.Div(s, Two.impl)
+				i++
+			}
+			r.Add(r, One.impl)
+
+			// Annoyingly, the other implementations reverse the order of the
+			// elements, so we have to as well
+			values := make([]interface{}, len(*b))
+			for i, v := range *b {
+				values[len(*b)-i-1] = v
+			}
+			return Set(SeqOf(values...)), true
+		}
+	}
+}
+
+func (set Set) String() string {
+	return "{" + Seq(set).stringOfElements() + "}"
+}
+
+/******************************************************************************
+ * Multisets
+ ******************************************************************************/
+
+// A MultiSet is an unordered sequence of elements with possible duplication.
+type MultiSet struct {
+	elts []msetElt
+}
+
+type msetElt struct {
+	value interface{}
+	count Int
+}
+
+// EmptyMultiSet is the empty multiset.
+var EmptyMultiSet = MultiSetOf()
+
+// MultiSetOf creates a MultiSet with the given elements.
+func MultiSetOf(values ...interface{}) MultiSet {
+	elts := make([]msetElt, 0, len(values))
+NEXT_INPUT:
+	for _, v := range values {
+		for i, u := range elts {
+			if AreEqual(u.value, v) {
+				elts[i] = msetElt{value: u.value, count: u.count.Plus(One)}
+				continue NEXT_INPUT
+			}
+		}
+		elts = append(elts, msetElt{value: v, count: One})
+	}
+	return MultiSet{elts}
+}
+
+// MultiSetFromSeq creates a MultiSet from the elements in the given sequence.
+func MultiSetFromSeq(seq Seq) MultiSet {
+	switch slice := refl.Value(seq).Interface().(type) {
+	case []Char:
+		values := make([]interface{}, len(slice))
+		for i, c := range slice {
+			values[i] = c
+		}
+		return MultiSetOf(values...)
+	case []interface{}:
+		return MultiSetOf(slice...)
+	default:
+		panic(fmt.Errorf("Weird type for Seq: %v", refl.TypeOf(slice)))
+	}
+}
+
+// MultiSetFromSet creates a MultiSet from the elements in the given set.
+func MultiSetFromSet(set Set) MultiSet {
+	n := Seq(set).len()
+	elts := make([]msetElt, n)
+	for i := 0; i < n; i++ {
+		// No need to check whether it's already there because Set elements are
+		// assumed to be unique
+		elts[i] = msetElt{Seq(set).index(i), One}
+	}
+	return MultiSet{elts}
+}
+
+func (mset MultiSet) clone() MultiSet {
+	elts := make([]msetElt, len(mset.elts))
+	refl.Copy(refl.ValueOf(elts), refl.ValueOf(mset.elts))
+	return MultiSet{elts}
+}
+
+func (mset MultiSet) findIndex(value interface{}) (int, bool) {
+	for i, e := range mset.elts {
+		if AreEqual(e.value, value) {
+			return i, true
+		}
+	}
+	return -1, false
+}
+
+// Update changes the cardinality of the given value in the multiset, returning
+// a new multiset unless the cardinality did not actually change.
+func (mset MultiSet) Update(value interface{}, n Int) MultiSet {
+	i, found := mset.findIndex(value)
+	if found {
+		if mset.elts[i].count == n {
+			return mset
+		} else {
+			ans := mset.clone()
+			ans.elts[i] = msetElt{value, n}
+			return ans
+		}
+	} else if n.Cmp(Zero) == 0 {
+		return mset
+	} else {
+		return MultiSet{append(mset.clone().elts, msetElt{value, n})}
+	}
+}
+
+// Cardinality returns the number of elements in the multiset (counting
+// repetitions).
+func (mset MultiSet) Cardinality() Int {
+	n := new(big.Int)
+	for _, e := range mset.elts {
+		n.Add(n, e.count.impl)
+	}
+	return Int{n}
+}
+
+// Index returns the ith element of the multiset, which is arbitrary except that
+// it is different from the jth element when i /= j.  (Repetitions are ignored.)
+func (mset MultiSet) Index(i Int) interface{} {
+	return mset.elts[i.Int()]
+}
+
+// Iterator returns an iterator over the multiset (including repetitions).
+func (mset MultiSet) Iterator() Iterator {
+	i := 0
+	n := new(big.Int)
+	return func() (interface{}, bool) {
+		for {
+			if i >= len(mset.elts) {
+				return nil, false
+			}
+			if n.Cmp(mset.elts[i].count.impl) >= 0 {
+				n.SetInt64(0)
+				i++
+			} else {
+				break
+			}
+		}
+
+		ans := mset.elts[i].value
+		n.Add(n, One.impl)
+		return ans, true
+	}
+}
+
+// Contains returns whether the multiset contains the given element (at least
+// once).
+func (mset MultiSet) Contains(value interface{}) bool {
+	return mset.Multiplicity(value).Cmp(Zero) > 0
+}
+
+// Multiplicity returns the number of times a given element occurs in the
+// multiset.
+func (mset MultiSet) Multiplicity(value interface{}) Int {
+	i, found := mset.findIndex(value)
+	if found {
+		return mset.elts[i].count
+	} else {
+		return Zero
+	}
+}
+
+// Elements returns an iterator that yields each element in the multiset, as
+// many times as it appears.
+func (mset MultiSet) Elements() func() (interface{}, bool) {
+	i := 0
+	n := new(big.Int)
+	return func() (interface{}, bool) {
+		for {
+			if i >= len(mset.elts) {
+				return nil, false
+			}
+			if n.Cmp(mset.elts[i].count.impl) == 0 {
+				i++
+				n.SetInt64(0)
+			} else {
+				break
+			}
+		}
+		n.Add(n, One.impl)
+		return mset.elts[i].value, true
+	}
+}
+
+// UniqueElements returns an iterator that yields each element in the multiset
+// once.
+func (mset MultiSet) UniqueElements() func() (interface{}, bool) {
+	i := 0
+	return func() (interface{}, bool) {
+		if i >= len(mset.elts) {
+			return nil, false
+		} else {
+			i++
+			return mset.elts[i-1].value, true
+		}
+	}
+}
+
+// Union returns a multiset including each element of both sets.
+func (mset MultiSet) Union(mset2 MultiSet) MultiSet {
+	elts := make([]msetElt, 0, len(mset.elts)+len(mset2.elts))
+	for _, e := range mset.elts {
+		m := mset2.Multiplicity(e.value)
+		elts = append(elts, msetElt{e.value, e.count.Plus(m)})
+	}
+	for _, e := range mset2.elts {
+		if !mset.Contains(e.value) {
+			elts = append(elts, e)
+		}
+	}
+	return MultiSet{elts}
+}
+
+func min(n, m int) int {
+	if n <= m {
+		return n
+	} else {
+		return m
+	}
+}
+
+// Intersection returns a multiset including those elements which occur in both
+// sets.  Each value's multiplicity will be the minimum of its multiplicities
+// in the original multisets.
+func (mset MultiSet) Intersection(mset2 MultiSet) MultiSet {
+	elts := make([]msetElt, 0, min(len(mset.elts), len(mset2.elts)))
+	for _, e := range mset.elts {
+		m := mset2.Multiplicity(e.value)
+		if m.Cmp(Zero) != 0 {
+			elts = append(elts, msetElt{e.value, e.count.Min(m)})
+		}
+	}
+	return MultiSet{elts}
+}
+
+// IsDisjointFrom returns whether two multisets contain no elements in common.
+func (mset MultiSet) IsDisjointFrom(mset2 MultiSet) bool {
+	for _, e := range mset.elts {
+		if mset2.Contains(e.value) {
+			return false
+		}
+	}
+	return true
+}
+
+// Equals returns whether two multisets have the same values with the same
+// multiplicities.
+func (mset MultiSet) Equals(mset2 MultiSet) bool {
+	return mset.isRelated(mset2, func(x, y int) bool { return x == y })
+}
+
+// Dafny_EqualsGeneric_ implements the EqualsGeneric interface.
+func (mset MultiSet) Dafny_EqualsGeneric_(other interface{}) bool {
+	mset2, ok := other.(MultiSet)
+	return ok && mset.Equals(mset2)
+}
+
+// IsSubsetOf returns whether one multiset has a subset of the elements of the
+// other, with lesser or equal multiplicities.
+func (mset MultiSet) IsSubsetOf(mset2 MultiSet) bool {
+	return mset.isRelated(mset2, func(x, y int) bool { return x <= y })
+}
+
+// IsProperSubsetOf returns whether one multiset has a proper subset of the
+// elements of the other, with strictly lesser multiplicities.
+func (mset MultiSet) IsProperSubsetOf(mset2 MultiSet) bool {
+	return mset.isRelated(mset2, func(x, y int) bool { return x < y })
+}
+
+func (mset MultiSet) isRelated(mset2 MultiSet, r func(int, int) bool) bool {
+	if !r(len(mset.elts), len(mset2.elts)) {
+		return false
+	}
+
+	for _, e := range mset.elts {
+		m := mset2.Multiplicity(e.value)
+		if !r(e.count.Cmp(m), 0) {
+			return false
+		}
+	}
+
+	return true
+}
+
+func (mset MultiSet) String() string {
+	s := "multiset{"
+	sep := ""
+	i := new(big.Int)
+	for _, e := range mset.elts {
+		for i.SetInt64(0); i.Cmp(e.count.impl) < 0; i.Add(i, One.impl) {
+			s += sep + fmt.Sprint(e.value)
+			sep = ", "
+		}
+	}
+	s += "}"
+	return s
+}
+
+/******************************************************************************
+ * Maps
+ ******************************************************************************/
+
+// A Map is an association between keys and values.
+type Map struct {
+	elts []mapElt
+}
+
+type mapElt struct {
+	key, value interface{}
+}
+
+// A MapBuilder creates a new Map by accumulating elements imperatively.
+type MapBuilder []mapElt
+
+// NewMapBuilder creates a new map builder.
+func NewMapBuilder() *MapBuilder {
+	return new(MapBuilder)
+}
+
+// Add adds a key and value to the map being built.
+func (mb *MapBuilder) Add(k, v interface{}) *MapBuilder {
+	*mb = append(*mb, mapElt{k, v})
+	return mb
+}
+
+// ToMap gets the map out of the map builder.
+func (mb *MapBuilder) ToMap() Map {
+	return Map{*mb}
+}
+
+// EmptyMap is the empty map.
+var EmptyMap = NewMapBuilder().ToMap()
+
+func (m Map) clone() Map {
+	elts := make([]mapElt, len(m.elts), len(m.elts))
+	refl.Copy(refl.ValueOf(elts), refl.ValueOf(m.elts))
+	return Map{elts}
+}
+
+func (m Map) findIndex(key interface{}) (int, bool) {
+	for i, e := range m.elts {
+		if AreEqual(e.key, key) {
+			return i, true
+		}
+	}
+	return -1, false
+}
+
+// Cardinality finds the number of elements in the map.
+func (m Map) Cardinality() Int {
+	return IntOf(len(m.elts))
+}
+
+/*
+// LenAlong returns the cardinality if dim is zero.
+func (m Map) LenAlong(dim int) Int {
+	if dim != 0 {
+		panic("Maps are one-dimensional")
+	}
+	return m.Cardinality()
+}
+*/
+// Find finds the given key in the map, returning it and a success flag.
+func (m Map) Find(key interface{}) (interface{}, bool) {
+	i, found := m.findIndex(key)
+	if found {
+		return m.elts[i].value, true
+	} else {
+		return nil, false
+	}
+}
+
+// Get finds the given key in the map, returning it or nil.
+func (m Map) Get(key interface{}) interface{} {
+	v, _ := m.Find(key)
+	return v
+}
+
+// Contains returns whether the given key is in the map.
+func (m Map) Contains(key interface{}) bool {
+	_, found := m.findIndex(key)
+	return found
+}
+
+// Update returns a new Map which associates the given key and value.
+func (m Map) Update(key, value interface{}) Map {
+	ans := m.clone()
+	i, found := ans.findIndex(key)
+	if found {
+		ans.elts[i] = mapElt{key, value}
+	} else {
+		ans.elts = append(ans.elts, mapElt{key, value})
+	}
+	return ans
+}
+
+// Equals returns whether each map associates the same keys to the same values.
+func (m Map) Equals(m2 Map) bool {
+	if len(m.elts) != len(m2.elts) {
+		return false
+	}
+	for _, e := range m.elts {
+		i, found := m.findIndex(e.key)
+		if !found || !AreEqual(e.value, m2.elts[i].value) {
+			return false
+		}
+	}
+	return true
+}
+
+// Dafny_EqualsGeneric_ implements the EqualsGeneric interface.
+func (m Map) Dafny_EqualsGeneric_(other interface{}) bool {
+	m2, ok := other.(Map)
+	return ok && m.Equals(m2)
+}
+
+// Keys returns the set of keys in the map.
+func (m Map) Keys() Set {
+	b := NewBuilder()
+	for _, e := range m.elts {
+		b.Add(e.key)
+	}
+	return b.ToSet()
+}
+
+// Values returns the set of values in the map.
+func (m Map) Values() Set {
+	b := NewBuilder()
+	for _, e := range m.elts {
+		b.Add(e.value)
+	}
+	return b.ToSet()
+}
+
+// Items returns the set of items in the map as a Set of Tuples.
+func (m Map) Items() Set {
+	b := NewBuilder()
+	for _, e := range m.elts {
+		b.Add(TupleOf(e.key, e.value))
+	}
+	return b.ToSet()
+}
+
+// IsDisjointFrom returns whether two maps have no keys in common.
+func (m Map) IsDisjointFrom(m2 Map) bool {
+	for _, e := range m.elts {
+		if m2.Contains(e.key) {
+			return false
+		}
+	}
+	return true
+}
+
+func (m Map) String() string {
+	s := "map["
+	for i, e := range m.elts {
+		if i > 0 {
+			s += ", "
+		}
+		s += fmt.Sprintf("%v := %v", e.key, e.value)
+	}
+	s += "]"
+	return s
 }
 
 /******************************************************************************
@@ -274,8 +1176,13 @@ func intOf(i *big.Int) Int {
 	}
 }
 
-// IntOf turns the given int64 into an Int.  Common values are cached.
-func IntOf(i int64) Int {
+// IntOf turns the given int into an Int.  Common values are cached.
+func IntOf(i int) Int {
+	return IntOf64(int64(i))
+}
+
+// IntOf64 turns the given int64 into an Int.  Common values are cached.
+func IntOf64(i int64) Int {
 	switch i {
 	case -1:
 		return NegativeOne
@@ -319,10 +1226,22 @@ func IntOfString(s string) Int {
 	}
 }
 
+// Int converts back into an int.  If the result is not within int range,
+// the value is undefined.
+func (i Int) Int() int {
+	return int(i.impl.Int64())
+}
+
 // Int64 converts back to an int64.  If the result is not within int64 range,
 // the value is undefined.
 func (i Int) Int64() int64 {
 	return i.impl.Int64()
+}
+
+// Uint converts back to a uint.  If the result is not within uint range, the
+// value is undefined.
+func (i Int) Uint() uint {
+	return uint(i.impl.Uint64())
 }
 
 // Uint64 converts back to a uint64.  If the result is not within uint64 range,
@@ -432,6 +1351,24 @@ func (i Int) Cmp(j Int) int {
 func (i Int) Dafny_EqualsGeneric_(other interface{}) bool {
 	j, ok := other.(Int)
 	return ok && i.Cmp(j) == 0
+}
+
+// Min returns the minimum of two integers.
+func (i Int) Min(j Int) Int {
+	if i.Cmp(j) <= 0 {
+		return i
+	} else {
+		return j
+	}
+}
+
+// Max returns the maximum of two integers.
+func (i Int) Max(j Int) Int {
+	if i.Cmp(j) >= 0 {
+		return i
+	} else {
+		return j
+	}
 }
 
 // And performs bitwise AND.
@@ -662,6 +1599,24 @@ func (x Real) Dafny_EqualsGeneric_(other interface{}) bool {
 	return ok && x.Cmp(y) == 0
 }
 
+// Min returns the minimum of two reals.
+func (x Real) Min(y Real) Real {
+	if x.Cmp(y) <= 0 {
+		return x
+	} else {
+		return y
+	}
+}
+
+// Max returns the maximum of two reals.
+func (x Real) Max(y Real) Real {
+	if x.Cmp(y) >= 0 {
+		return x
+	} else {
+		return y
+	}
+}
+
 /******************************************************************************
  * Native math
  ******************************************************************************/
@@ -890,6 +1845,9 @@ var ArrayType refl.Type = refl.TypeOf(Array{})
 
 // BoolType is the type bool.
 var BoolType refl.Type = refl.TypeOf(true)
+
+// CharSliceTyep is the type []Char.
+var CharSliceType refl.Type = refl.SliceOf(CharType)
 
 // CharType is the type Char.
 var CharType refl.Type = refl.TypeOf(Char('A'))

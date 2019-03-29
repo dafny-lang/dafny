@@ -1070,7 +1070,7 @@ namespace Microsoft.Dafny {
         if (ComplicatedTypeParameterForCompilation(argType)) {
           Error(tok, "compilation of seq<TRAIT> is not supported; consider introducing a ghost", wr);
         }
-        return "dafny.Array";
+        return "dafny.Seq";
       } else if (xType is MultiSetType) {
         Type argType = ((MultiSetType)xType).Arg;
         if (ComplicatedTypeParameterForCompilation(argType)) {
@@ -1083,7 +1083,7 @@ namespace Microsoft.Dafny {
         if (ComplicatedTypeParameterForCompilation(domType) || ComplicatedTypeParameterForCompilation(ranType)) {
           Error(tok, "compilation of map<TRAIT, _> or map<_, TRAIT> is not supported; consider introducing a ghost", wr);
         }
-        return "_dafny.Map";
+        return "dafny.Map";
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected type
       }
@@ -1103,13 +1103,13 @@ namespace Microsoft.Dafny {
         var t = (BitvectorType)xType;
         return t.NativeType != null ? "0" : "dafny.Zero";
       } else if (xType is SetType) {
-        return "_dafny.Set.Empty";
+        return "dafny.EmptySet";
       } else if (xType is MultiSetType) {
-        return "_dafny.MultiSet.Empty";
+        return "dafny.EmptyMultiSet";
       } else if (xType is SeqType) {
-        return "_dafny.Seq.of()";
+        return "dafny.EmptySeq";
       } else if (xType is MapType) {
-        return "_dafny.Map.Empty";
+        return "dafny.EmptyMap";
       }
 
       var udt = (UserDefinedType)xType;
@@ -1477,7 +1477,7 @@ namespace Microsoft.Dafny {
         message = "unexpected control point";
       }
       wr.Indent();
-      wr.WriteLine("throw new Error(\"{0}\");", message);
+      wr.WriteLine("panic(\"{0}\")", message);
     }
 
     protected override BlockTargetWriter CreateWhileLoop(out TargetWriter guardWriter, TargetWriter wr) {
@@ -1510,21 +1510,31 @@ namespace Microsoft.Dafny {
     }
 
     protected override string GetQuantifierName(string bvType) {
-      return string.Format("_dafny.Quantifier");
+      return string.Format("dafny.Quantifier");
     }
 
     protected override BlockTargetWriter CreateForeachLoop(string boundVar, out TargetWriter collectionWriter, TargetWriter wr, string/*?*/ altBoundVarName = null, Type/*?*/ altVarType = null, Bpl.IToken/*?*/ tok = null) {
+      var okVar = FreshId("_ok");
+      var iterVar = FreshId("_iter");
       wr.Indent();
-      wr.Write("for (const {0} of ", boundVar);
-      collectionWriter = new TargetWriter(wr.IndentLevel);
-      wr.Append(collectionWriter);
-      if (altBoundVarName == null) {
-        return wr.NewBlock(")");
-      } else if (altVarType == null) {
-        return wr.NewBlockWithPrefix(")", "{0} = {1};", altBoundVarName, boundVar);
-      } else {
-        return wr.NewBlockWithPrefix(")", "let {0} = {1};", altBoundVarName, boundVar);
+      wr.Write("for {0} := dafny.Iterate(", iterVar);
+      collectionWriter = wr.Fork();
+      var wBody = wr.NewBlock(");;");
+      wBody.Indent();
+      wBody.WriteLine("{0}, {1} := {2}()", boundVar, okVar, iterVar);
+      wBody.Indent();
+      wBody.WriteLine("if !{0} {{ break }}", okVar);
+      
+      if (altBoundVarName != null) {
+        wBody.Indent();
+        if (altVarType == null) {
+          wBody.WriteLine("{0} = {1}", altBoundVarName, boundVar);
+        } else {
+          wBody.WriteLine("{0} := {1}.({2})", altBoundVarName, boundVar, TypeName(altVarType, wBody, tok));
+        }
       }
+
+      return wBody;
     }
 
     // ----- Expressions -------------------------------------------------------------
@@ -1576,10 +1586,10 @@ namespace Microsoft.Dafny {
         wr.Write((bool)e.Value ? "true" : "false");
       } else if (e is CharLiteralExpr) {
         var v = (string)e.Value;
-        wr.Write("'{0}'", v == "\\0" ? "\\u0000" : v);  // JavaScript doesn't have a \0
+        wr.Write("dafny.Char('{0}')", v);
       } else if (e is StringLiteralExpr) {
         var str = (StringLiteralExpr)e;
-        wr.Write("dafny.NewArrayFromString(");
+        wr.Write("dafny.SeqOfString(");
         TrStringLiteral(str, wr);
         wr.Write(")");
       } else if (AsNativeType(e.Type) != null) {
@@ -1697,10 +1707,9 @@ namespace Microsoft.Dafny {
 
     protected override TargetWriter EmitAddTupleToList(string ingredients, string tupleTypeArgs, TargetWriter wr) {
       wr.Indent();
-      wr.Write("{0}.push(_dafny.Tuple.of(", ingredients, tupleTypeArgs);
-      var wrTuple = new TargetWriter(wr.IndentLevel);
-      wr.Append(wrTuple);
-      wr.WriteLine("));");
+      wr.Write("{0}.Add(dafny.TupleOf(", ingredients, tupleTypeArgs);
+      var wrTuple = wr.Fork();
+      wr.WriteLine("))");
       return wrTuple;
     }
 
@@ -1885,10 +1894,9 @@ namespace Microsoft.Dafny {
           break;
         case SpecialField.ID.ArrayLength:
         case SpecialField.ID.ArrayLengthInt:
-          compiledName = string.Format("Len(dafny.IntOf({0}))", idParam == null ? 0 : (int) idParam);
+          compiledName = string.Format("Len({0})", idParam == null ? 0 : (int) idParam);
           if (id == SpecialField.ID.ArrayLengthInt) {
-            preString = "int(";
-            postString = ".Int64())";
+            postString = ".Int()";
           }
           break;
         case SpecialField.ID.Floor:
@@ -1911,13 +1919,13 @@ namespace Microsoft.Dafny {
           postString = ")";
           break;
         case SpecialField.ID.Keys:
-          compiledName = "Keys";
+          compiledName = "Keys()";
           break;
         case SpecialField.ID.Values:
-          compiledName = "Values";
+          compiledName = "Values()";
           break;
         case SpecialField.ID.Items:
-          compiledName = "Items";
+          compiledName = "Items()";
           break;
         case SpecialField.ID.Reads:
           compiledName = "_reads";
@@ -2001,22 +2009,27 @@ namespace Microsoft.Dafny {
 
     protected override void EmitIndexCollectionSelect(Expression source, Expression index, bool inLetExprBody, TargetWriter wr) {
       TrParenExpr(source, wr, inLetExprBody);
-      if (source.Type.NormalizeExpand() is SeqType) {
-        // seq
+      var type = source.Type.NormalizeExpand();
+      if (type is SeqType || type is SetType) {
         wr.Write(".Index(");
         TrExpr(index, wr, inLetExprBody);
         wr.Write(").Interface().({0})", TypeName(source.Type.TypeArgs[0], wr, null));
-      } else {
-        // map or imap
-        wr.Write(".get(");
+      } else if (type is MultiSetType) {
+        wr.Write(".Multiplicity(");
         TrExpr(index, wr, inLetExprBody);
         wr.Write(")");
+      } else {
+        Contract.Assert(type is MapType);
+        // map or imap
+        wr.Write(".Get(");
+        TrExpr(index, wr, inLetExprBody);
+        wr.Write(").({0})", TypeName(source.Type.TypeArgs[1], wr, null));
       }
     }
 
     protected override void EmitIndexCollectionUpdate(Expression source, Expression index, Expression value, bool inLetExprBody, TargetWriter wr) {
       TrParenExpr(source, wr, inLetExprBody);
-      wr.Write(".update(");
+      wr.Write(".Update(");
       TrExpr(index, wr, inLetExprBody);
       wr.Write(", ");
       TrExpr(value, wr, inLetExprBody);
@@ -2050,7 +2063,14 @@ namespace Microsoft.Dafny {
     }
 
     protected override void EmitMultiSetFormingExpr(MultiSetFormingExpr expr, bool inLetExprBody, TargetWriter wr) {
-      TrParenExpr("_dafny.MultiSet.FromArray", expr.E, wr, inLetExprBody);
+      var eeType = expr.E.Type.NormalizeExpand();
+      if (eeType is SeqType) {
+        TrParenExpr("dafny.MultiSetFromSeq", expr.E, wr, inLetExprBody);
+      } else if (eeType is SetType) {
+        TrParenExpr("dafny.MultiSetFromSet", expr.E, wr, inLetExprBody);
+      } else {
+        Contract.Assert(false); throw new cce.UnreachableException();
+      }
     }
 
     protected override void EmitApplyExpr(Type functionType, Bpl.IToken tok, Expression function, List<Expression> arguments, bool inLetExprBody, TargetWriter wr) {
@@ -2088,7 +2108,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    protected override BlockTargetWriter CreateLambda(List<Type> inTypes, Bpl.IToken tok, List<string> inNames, Type resultType, TargetWriter wr) {
+    protected override BlockTargetWriter CreateLambda(List<Type> inTypes, Bpl.IToken tok, List<string> inNames, Type resultType, TargetWriter wr, bool untyped = false) {
       wr.Write("func (");
       Contract.Assert(inTypes.Count == inNames.Count);  // guaranteed by precondition
       for (var i = 0; i < inNames.Count; i++) {
@@ -2147,13 +2167,8 @@ namespace Microsoft.Dafny {
           }
           break;
         case ResolvedUnaryOp.Cardinality:
-          if (expr.Type.AsMultiSetType != null) {
-            TrParenExpr(expr, wr, inLetExprBody);
-            wr.Write(".Cardinality()");
-          } else {
-            TrExpr(expr, wr, inLetExprBody);
-            wr.Write(".Len(dafny.Zero)");
-          }
+          TrParenExpr(expr, wr, inLetExprBody);
+          wr.Write(".Cardinality()");
           break;
         default:
           Contract.Assert(false); throw new cce.UnreachableException();  // unexpected unary expression
@@ -2412,31 +2427,31 @@ namespace Microsoft.Dafny {
         case BinaryExpr.ResolvedOpcode.InSet:
         case BinaryExpr.ResolvedOpcode.InMultiSet:
         case BinaryExpr.ResolvedOpcode.InMap:
-          callString = "contains"; reverseArguments = true; break;
+          callString = "Contains"; reverseArguments = true; break;
         case BinaryExpr.ResolvedOpcode.NotInSet:
         case BinaryExpr.ResolvedOpcode.NotInMultiSet:
         case BinaryExpr.ResolvedOpcode.NotInMap:
-          preOpString = "!"; callString = "contains"; reverseArguments = true; break;
+          preOpString = "!"; callString = "Contains"; reverseArguments = true; break;
         case BinaryExpr.ResolvedOpcode.Union:
         case BinaryExpr.ResolvedOpcode.MultiSetUnion:
           callString = "Union"; break;
         case BinaryExpr.ResolvedOpcode.Intersection:
         case BinaryExpr.ResolvedOpcode.MultiSetIntersection:
-          callString = "Intersect"; break;
+          callString = "Intersection"; break;
         case BinaryExpr.ResolvedOpcode.SetDifference:
         case BinaryExpr.ResolvedOpcode.MultiSetDifference:
           callString = "Difference"; break;
 
         case BinaryExpr.ResolvedOpcode.ProperPrefix:
-          staticCallString = "_dafny.Seq.IsProperPrefixOf"; break;
+          callString = "IsProperPrefixOf"; break;
         case BinaryExpr.ResolvedOpcode.Prefix:
-          staticCallString = "_dafny.Seq.IsPrefixOf"; break;
+          callString = "IsPrefixOf"; break;
         case BinaryExpr.ResolvedOpcode.Concat:
-          staticCallString = "_dafny.Seq.Concat"; break;
+          callString = "Concat"; break;
         case BinaryExpr.ResolvedOpcode.InSeq:
-          staticCallString = "_dafny.Seq.contains"; reverseArguments = true; break;
+          callString = "Contains"; reverseArguments = true; break;
         case BinaryExpr.ResolvedOpcode.NotInSeq:
-          preOpString = "!"; callString = "contains"; reverseArguments = true; break;
+          preOpString = "!"; callString = "Contains"; reverseArguments = true; break;
 
         default:
           Contract.Assert(false); throw new cce.UnreachableException();  // unexpected binary expression
@@ -2464,9 +2479,9 @@ namespace Microsoft.Dafny {
           TrParenExpr(e.E, w, inLetExprBody);
           wr.Write(", dafny.One)");
         } else if (e.ToType.IsCharType) {
-          wr.Write("(Char) ");
+          wr.Write("dafny.Char(");
           TrParenExpr(e.E, wr, inLetExprBody);
-          wr.Write(".Int64()");
+          wr.Write(".Int64())");
         } else {
           // (int or bv or char) -> (int or bv or ORDINAL)
           var fromNative = AsNativeType(e.E.Type);
@@ -2578,16 +2593,15 @@ namespace Microsoft.Dafny {
 
     protected override void EmitCollectionDisplay(CollectionType ct, Bpl.IToken tok, List<Expression> elements, bool inLetExprBody, TargetWriter wr) {
       if (ct is SetType) {
-        wr.Write("_dafny.Set.fromElements");
+        wr.Write("dafny.SetOf");
         TrExprList(elements, wr, inLetExprBody);
       } else if (ct is MultiSetType) {
-        wr.Write("_dafny.MultiSet.fromElements");
+        wr.Write("dafny.MultiSetOf");
         TrExprList(elements, wr, inLetExprBody);
       } else {
         Contract.Assert(ct is SeqType);  // follows from precondition
-        var wrElements = new TargetWriter(wr.IndentLevel);
-        wr.Write("dafny.NewArrayWithValues(refl.ValueOf({0}).Type(), ", TypeInitializationValue(ct.Arg, wr, tok, false), wrElements);
-        wr.Append(wrElements);
+        wr.Write("dafny.SeqOf(");
+        var wrElements = wr.Fork();
         wr.Write(")");
         string sep = "";
         foreach (var e in elements) {
@@ -2599,27 +2613,22 @@ namespace Microsoft.Dafny {
     }
 
     protected override void EmitMapDisplay(MapType mt, Bpl.IToken tok, List<ExpressionPair> elements, bool inLetExprBody, TargetWriter wr) {
-      wr.Write("_dafny.Map.of(");
-      string sep = "";
+      wr.Write("dafny.NewMapBuilder()");
       foreach (ExpressionPair p in elements) {
-        wr.Write(sep);
-        wr.Write("[");
+        wr.Write(".Add(");
         TrExpr(p.A, wr, inLetExprBody);
-        wr.Write(",");
+        wr.Write(", ");
         TrExpr(p.B, wr, inLetExprBody);
-        wr.Write("]");
-        sep = ", ";
+        wr.Write(')');
       }
-      wr.Write(")");
+      wr.Write(".ToMap()");
     }
 
     protected override void EmitCollectionBuilder_New(CollectionType ct, Bpl.IToken tok, TargetWriter wr) {
-      if (ct is SetType) {
-        wr.Write("new _dafny.Set()");
-      } else if (ct is MultiSetType) {
-        wr.Write("new _dafny.MultiSet()");
-      } else if (ct is MapType) {
-        wr.Write("new _dafny.Map()");
+      if (ct is MapType) {
+        wr.Write("dafny.NewMapBuilder()");
+      } else if (ct is SetType || ct is MultiSetType) {
+        wr.Write("dafny.NewBuilder()");
       } else {
         Contract.Assume(false);  // unepxected collection type
       }
@@ -2628,29 +2637,34 @@ namespace Microsoft.Dafny {
     protected override void EmitCollectionBuilder_Add(CollectionType ct, string collName, Expression elmt, bool inLetExprBody, TargetWriter wr) {
       Contract.Assume(ct is SetType || ct is MultiSetType);  // follows from precondition
       wr.Indent();
-      wr.Write("{0}.add(", collName);
+      wr.Write("{0}.Add(", collName);
       TrExpr(elmt, wr, inLetExprBody);
-      wr.WriteLine(");");
+      wr.WriteLine(")");
     }
 
     protected override TargetWriter EmitMapBuilder_Add(MapType mt, Bpl.IToken tok, string collName, Expression term, bool inLetExprBody, TargetWriter wr) {
       wr.Indent();
-      wr.Write("{0}.push([", collName);
-      var termLeftWriter = new TargetWriter(wr.IndentLevel);
-      wr.Append(termLeftWriter);
+      wr.Write("{0}.Add(", collName);
+      var termLeftWriter = wr.Fork();
       wr.Write(",");
       TrExpr(term, wr, inLetExprBody);
-      wr.WriteLine("]);");
+      wr.WriteLine(")");
       return termLeftWriter;
     }
 
     protected override string GetCollectionBuilder_Build(CollectionType ct, Bpl.IToken tok, string collName, TargetWriter wr) {
-      // collections are built in place
-      return collName;
+      if (ct is SetType) {
+        return collName + ".ToSet()";
+      } else if (ct is MultiSetType) {
+        return collName + ".ToMultiSet()";
+      } else {
+        Contract.Assert(ct is MapType);
+        return collName + ".ToMap()";
+      }
     }
 
     protected override void EmitSingleValueGenerator(Expression e, bool inLetExprBody, string type, TargetWriter wr) {
-      TrParenExpr("_dafny.SingleValue", e, wr, inLetExprBody);
+      TrParenExpr("dafny.SingleValue", e, wr, inLetExprBody);
     }
 
     // ----- Target compilation and execution -------------------------------------------------------------

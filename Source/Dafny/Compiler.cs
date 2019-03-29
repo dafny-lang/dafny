@@ -391,7 +391,7 @@ namespace Microsoft.Dafny {
     /// Furthermore, EmitDestructor also needs to work for anonymous destructors.
     /// </summary>
     protected abstract void EmitDestructor(string source, Formal dtor, int formalNonGhostIndex, DatatypeCtor ctor, List<Type> typeArgs, TargetWriter wr);
-    protected abstract BlockTargetWriter CreateLambda(List<Type> inTypes, Bpl.IToken tok, List<string> inNames, Type resultType, TargetWriter wr);
+    protected abstract BlockTargetWriter CreateLambda(List<Type> inTypes, Bpl.IToken tok, List<string> inNames, Type resultType, TargetWriter wr, bool untyped = false);
     protected abstract TargetWriter CreateIIFE_ExprBody(Expression source, bool inLetExprBody, Type sourceType, Bpl.IToken sourceTok, Type resultType, Bpl.IToken resultTok, string bvName, TargetWriter wr);  // Immediately Invoked Function Expression
     protected abstract TargetWriter CreateIIFE_ExprBody(string source, Type sourceType, Bpl.IToken sourceTok, Type resultType, Bpl.IToken resultTok, string bvName, TargetWriter wr);  // Immediately Invoked Function Expression
     protected abstract BlockTargetWriter CreateIIFE0(Type resultType, Bpl.IToken resultTok, TargetWriter wr);  // Immediately Invoked Function Expression
@@ -1807,6 +1807,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(bound != null);
       Contract.Requires(bounds == null || (boundVars != null && bounds.Count == boundVars.Count && 0 <= boundIndex && boundIndex < bounds.Count));
       Contract.Requires(collectionWriter != null);
+      var propertySuffix = SupportsProperties() ? "" : "()";
 
       if (bound is ComprehensionExpr.BoolBoundedPool) {
         collectionWriter.Write("{0}.AllBooleans()", GetHelperModuleName());
@@ -1845,26 +1846,26 @@ namespace Microsoft.Dafny {
       } else if (bound is ComprehensionExpr.SetBoundedPool) {
         var b = (ComprehensionExpr.SetBoundedPool)bound;
         TrParenExpr(b.Set, collectionWriter, inLetExprBody);
-        collectionWriter.Write(".Elements");
+        collectionWriter.Write(".Elements" + propertySuffix);
       } else if (bound is ComprehensionExpr.MultiSetBoundedPool) {
         var b = (ComprehensionExpr.MultiSetBoundedPool)bound;
         TrParenExpr(b.MultiSet, collectionWriter, inLetExprBody);
-        collectionWriter.Write(includeDuplicates ? ".Elements" : ".UniqueElements");
+        collectionWriter.Write((includeDuplicates ? ".Elements" : ".UniqueElements") + propertySuffix);
       } else if (bound is ComprehensionExpr.SubSetBoundedPool) {
         var b = (ComprehensionExpr.SubSetBoundedPool)bound;
         TrParenExpr(b.UpperBound, collectionWriter, inLetExprBody);
-        collectionWriter.Write(".AllSubsets");
+        collectionWriter.Write(".AllSubsets" + propertySuffix);
       } else if (bound is ComprehensionExpr.MapBoundedPool) {
         var b = (ComprehensionExpr.MapBoundedPool)bound;
         TrParenExpr(b.Map, collectionWriter, inLetExprBody);
-        collectionWriter.Write(".Keys.Elements");
+        collectionWriter.Write(".Keys{0}.Elements{0}", propertySuffix);
       } else if (bound is ComprehensionExpr.SeqBoundedPool) {
         var b = (ComprehensionExpr.SeqBoundedPool)bound;
         TrParenExpr(b.Seq, collectionWriter, inLetExprBody);
-        collectionWriter.Write(includeDuplicates ? ".Elements" : ".UniqueElements");
+        collectionWriter.Write((includeDuplicates ? ".Elements" : ".UniqueElements") + propertySuffix);
       } else if (bound is ComprehensionExpr.DatatypeBoundedPool) {
         var b = (ComprehensionExpr.DatatypeBoundedPool)bound;
-        collectionWriter.Write("{0}.AllSingletonConstructors", TypeName(bv.Type, collectionWriter, bv.Tok));
+        collectionWriter.Write("{0}.AllSingletonConstructors{1}", TypeName(bv.Type, collectionWriter, bv.Tok), propertySuffix);
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected BoundedPool type
       }
@@ -2659,20 +2660,21 @@ namespace Microsoft.Dafny {
         Contract.Assert(e.Bounds != null);  // for non-ghost quantifiers, the resolver would have insisted on finding bounds
         var n = e.BoundVars.Count;
         Contract.Assert(e.Bounds.Count == n);
+        var wBody = wr;
         for (int i = 0; i < n; i++) {
           var bound = e.Bounds[i];
           var bv = e.BoundVars[i];
           // emit:  Dafny.Helpers.Quantifier(rangeOfValues, isForall, bv => body)
-          wr.Write("{0}(", GetQuantifierName(TypeName(bv.Type, wr, bv.tok)));
-          CompileCollection(bound, bv, inLetExprBody, false, wr, e.Bounds, e.BoundVars, i);
-          wr.Write(", {0}, ", expr is ForallExpr ? "true" : "false");
+          wBody.Write("{0}(", GetQuantifierName(TypeName(bv.Type, wBody, bv.tok)));
+          CompileCollection(bound, bv, inLetExprBody, false, wBody, e.Bounds, e.BoundVars, i);
+          wBody.Write(", {0}, ", expr is ForallExpr ? "true" : "false");
           var native = AsNativeType(e.BoundVars[i].Type);
-          wr.Write("{0} => ", IdName(bv));
+          TargetWriter newWBody = CreateLambda(new List<Type>{ bv.Type }, e.tok, new List<string>{ IdName(bv) }, Type.Bool, wBody, untyped: true);
+          newWBody = EmitReturnExpr(newWBody);
+          wBody.Write(')');
+          wBody = newWBody;
         }
-        TrExpr(e.LogicalBody(true), wr, true);
-        for (int i = 0; i < n; i++) {
-          wr.Write(")");
-        }
+        TrExpr(e.LogicalBody(true), wBody, true);
 
       } else if (expr is SetComprehension) {
         var e = (SetComprehension)expr;

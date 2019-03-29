@@ -1744,7 +1744,7 @@ namespace Microsoft.Dafny
       wr.Write("(({0}){1}{2}).{3}", DtCtorName(ctor, typeArgs, wr), source, ctor.EnclosingDatatype is CoDatatypeDecl ? ".Get()" : "", dtorName);
     }
 
-    protected override BlockTargetWriter CreateLambda(List<Type> inTypes, Bpl.IToken tok, List<string> inNames, Type resultType, TargetWriter wr) {
+    protected override BlockTargetWriter CreateLambda(List<Type> inTypes, Bpl.IToken tok, List<string> inNames, Type resultType, TargetWriter wr, bool untyped = false) {
       // (
       //   (System.Func<inTypes,resultType>)  // cast, which tells C# what the various types involved are
       //   (
@@ -1753,10 +1753,11 @@ namespace Microsoft.Dafny
       //     }
       //   )
       // )
-      wr.Write("((System.Func<{0}{1}>)(({2}) =>",
-        Util.Comma("", inTypes, t => TypeName(t, wr, tok) + ", "),
-        TypeName(resultType, wr, tok),
-        Util.Comma(inNames, nm => nm));
+      wr.Write('(');
+      if (!untyped) {
+        wr.Write("(System.Func<{0}{1}>)", Util.Comma("", inTypes, t => TypeName(t, wr, tok) + ", "), TypeName(resultType, wr, tok));
+      }
+      wr.Write("(({0}) =>", Util.Comma(inNames, nm => nm));
       var w = wr.NewBlock("", "))");
       w.SetBraceStyle(BlockTargetWriter.BraceStyle.Space, BlockTargetWriter.BraceStyle.Nothing);
       return w;
