@@ -35,6 +35,121 @@ func AreEqual(x, y interface{}) bool {
 	}
 }
 
+func isNil(v refl.Value) bool {
+	switch v.Kind() {
+	case refl.Chan, refl.Func, refl.Map, refl.Ptr, refl.Slice:
+		return v.IsNil()
+	case refl.Interface:
+		return v.IsNil() || v.Elem().IsNil()
+	default:
+		return false
+	}
+}
+
+// String formats the given value using fmt.Sprint, unless it's nil, in which
+// case it formats it as "null" to conform to other languages' output.
+func String(x interface{}) string {
+	if x == nil {
+		return "null"
+	}
+	v := refl.ValueOf(x)
+	if isNil(v) {
+		return "null"
+	}
+	if v.Kind() == refl.Func {
+		return v.Type().String()
+	}
+	return fmt.Sprint(x)
+}
+
+/******************************************************************************
+ * Run-time type descriptors (RTDs)
+ ******************************************************************************/
+
+// A Type is a run-time type descriptor, needed to carry information about types
+// which gets erased by the compiler.
+type Type interface {
+	Default() interface{}
+}
+
+// BaseType returns the RTD for a base value (bool, int, etc.)
+func BaseType(value interface{}) Type {
+	return baseType{refl.TypeOf(value)}
+}
+
+type baseType struct {
+	typ refl.Type
+}
+
+func (typ baseType) Default() interface{} {
+	return refl.Zero(typ.typ).Interface()
+}
+
+// TypeWithDefault returns a type whose default value is the given one.  Used
+// for types of functions, since there are infinitely many of those.
+func TypeWithDefault(value interface{}) Type {
+	return typeWithDefault{value}
+}
+
+type typeWithDefault struct {
+	value interface{}
+}
+
+func (typ typeWithDefault) Default() interface{} {
+	return typ.value
+}
+
+// AnyType is the RTD of interface{}.
+var AnyType Type = baseType{refl.TypeOf((*interface{})(nil)).Elem()}
+
+// BoolType is the RTD of bool.
+var BoolType = BaseType(true)
+
+// CharType is the RTD of char.
+var CharType = BaseType(Char('a'))
+
+// Float32Type is the RTD of float32.
+var Float32Type = BaseType(float32(0))
+
+// Float64Type is the RTD of float64.
+var Float64Type = BaseType(float64(0))
+
+// NativeIntType is the RTD of int.
+var NativeIntType = BaseType(int(0))
+
+// Int8Type is the RTD of int8.
+var Int8Type = BaseType(int8(0))
+
+// Int16Type is the RTD of int16.
+var Int16Type = BaseType(int16(0))
+
+// Int32Type is the RTD of int32.
+var Int32Type = BaseType(int32(0))
+
+// Int64Type is the RTD of int64.
+var Int64Type = BaseType(int64(0))
+
+// PointerType is the RTD of *interface().
+var PointerType = BaseType((*interface{})(nil))
+
+// StringType is the RTD of string.
+var StringType = BaseType("")
+
+// UintType is the RTD of uint.
+var UintType = BaseType(uint(0))
+
+// Uint8Type is the RTD of uint8.
+var Uint8Type = BaseType(uint8(0))
+
+// Uint16Type is the RTD of uint16.
+var Uint16Type = BaseType(uint16(0))
+
+// Uint32Type is the RTD of uint32.
+var Uint32Type = BaseType(uint32(0))
+
+// Uint64Type is the RTD of uint64.
+var Uint64Type = BaseType(uint64(0))
+
 /******************************************************************************
  * Characters
  ******************************************************************************/
@@ -130,19 +245,27 @@ func SingleValue(value interface{}) Iterator {
 // methods for updating; instead, you can update by mutating the value returned
 // by Index (either by using its Set method or by getting a pointer using its
 // Addr method).
-type Seq refl.Value
+type Seq struct {
+	slice    []interface{}
+	isString bool
+}
 
 // EmptySeq is the empty sequence.
 var EmptySeq = SeqOf()
 
-// SeqOf returns a sequence containing the given values.
+// SeqOf returns a sequence containing the given values, which are kept in
+// place, NOT copied.
 func SeqOf(values ...interface{}) Seq {
-	return Seq(refl.ValueOf(values))
+	return Seq{values, false}
 }
 
 // SeqOfString converts the given string into a sequence of characters.
 func SeqOfString(str string) Seq {
-	return Seq(refl.ValueOf([]Char(str)))
+	values := make([]interface{}, len(str))
+	for i, c := range str {
+		values[i] = Char(c)
+	}
+	return Seq{values, true}
 }
 
 func (seq Seq) index(i int) interface{} {
@@ -150,16 +273,16 @@ func (seq Seq) index(i int) interface{} {
 }
 
 func (seq Seq) indexValue(i int) refl.Value {
-	return refl.Value(seq).Index(i)
+	return refl.ValueOf(seq.slice).Index(i)
 }
 
 // Index finds the sequence element at the given index.
 func (seq Seq) Index(i Int) refl.Value {
-	return refl.Value(seq).Index(i.Int())
+	return seq.indexValue(i.Int())
 }
 
 func (seq Seq) len() int {
-	return refl.Value(seq).Len()
+	return len(seq.slice)
 }
 
 // Len finds the length of the sequence.
@@ -199,56 +322,35 @@ func (seq Seq) Iterator() Iterator {
 
 // Slice takes the slice a[from:to] of the given sequence.
 func (seq Seq) Slice(from, to Int) Seq {
-	return Seq(refl.Value(seq).Slice(from.Int(), to.Int()))
+	return Seq{seq.slice[from.Int():to.Int()], seq.isString}
 }
 
 // SliceAll takes the slice a[:] of the given sequence.
 func (seq Seq) SliceAll() Seq {
-	return seq.Slice(Zero, seq.Len())
+	return Seq{seq.slice[:], seq.isString}
 }
 
 // SliceFrom takes the slice a[from:] of the given sequence.
 func (seq Seq) SliceFrom(ix Int) Seq {
-	return seq.Slice(ix, seq.Len())
+	return Seq{seq.slice[ix.Int():], seq.isString}
 }
 
 // SliceTo takes the slice a[:to] of the given sequence.
 func (seq Seq) SliceTo(ix Int) Seq {
-	return seq.Slice(Zero, ix)
+	return Seq{seq.slice[:ix.Int()], seq.isString}
 }
 
 // Concat concatenates two sequences, returning a new one.
 func (seq Seq) Concat(seq2 Seq) Seq {
-	ty := refl.Value(seq).Type()
-	ty2 := refl.Value(seq2).Type()
-	n := seq.len()
-	n2 := seq2.len()
-	var newSlice refl.Value
-	if ty.AssignableTo(ty2) && ty2.AssignableTo(ty) {
-		newSlice = refl.MakeSlice(ty, n+n2, n+n2)
-		refl.Copy(newSlice, refl.Value(seq))
-		refl.Copy(newSlice.Slice(n, n+n2), refl.Value(seq2))
-	} else {
-		if !(CharSliceType.AssignableTo(ty) || CharSliceType.AssignableTo(ty2)) {
-			panic(fmt.Errorf("Different non-[]Char underlying slice types for Concat: %v != %v", ty, ty2))
-		}
-
-		// Convert both to []Char
-		newSlice = refl.MakeSlice(CharSliceType, n+n2, n+n2)
-		if CharSliceType.AssignableTo(ty) {
-			refl.Copy(newSlice, refl.Value(seq))
-			for i := n; i < n+n2; i++ {
-				// use Elem() to get at the Char under the interface{}
-				newSlice.Index(i).Set(refl.Value(seq2).Index(i - n).Elem())
-			}
-		} else {
-			for i := 0; i < n; i++ {
-				newSlice.Index(i).Set(refl.Value(seq).Index(i).Elem())
-			}
-			refl.Copy(newSlice.Slice(n, n+n2), refl.Value(seq2))
-		}
+	n, n2 := len(seq.slice), len(seq2.slice)
+	newSlice := make([]interface{}, n+n2)
+	for i, v := range seq.slice {
+		newSlice[i] = v
 	}
-	return Seq(newSlice)
+	for i, v := range seq2.slice {
+		newSlice[i+n] = v
+	}
+	return Seq{newSlice, seq.isString || seq2.isString}
 }
 
 // Equals compares two sequences for equality.
@@ -296,14 +398,13 @@ func (seq Seq) UniqueElements() Set {
 }
 
 func (seq Seq) String() string {
-	switch arr := refl.Value(seq).Interface().(type) {
-	case []Char:
+	if seq.isString {
 		s := ""
-		for _, c := range arr {
-			s += c.String()
+		for _, c := range seq.slice {
+			s += c.(Char).String()
 		}
 		return s
-	default:
+	} else {
 		return "[" + seq.stringOfElements() + "]"
 	}
 }
@@ -315,9 +416,22 @@ func (seq Seq) stringOfElements() string {
 		if i > 0 {
 			s += ", "
 		}
-		s += fmt.Sprint(seq.index(i))
+		s += String(seq.index(i))
 	}
 	return s
+}
+
+// SeqType is the RTD for a sequence.
+var SeqType Type = seqType{}
+
+type seqType struct{}
+
+func (seqType) Default() interface{} {
+	return EmptySeq
+}
+
+func (seqType) String() string {
+	return "dafny.Seq"
 }
 
 /******************************************************************************
@@ -334,59 +448,62 @@ type Array struct {
 	sizes    []int
 }
 
-// NewArray returns a new Array full of the zero value of the given type.
-func NewArray(typ refl.Type, dims ...Int) Array {
+func newArray(dims ...Int) *Array {
 	sizes := make([]int, len(dims))
 	intDims := make([]int, len(dims))
 	size := 1
 	for d := len(dims) - 1; d >= 0; d-- {
 		sizes[d] = size
-		intDims[d] = int(dims[d].Int64())
+		intDims[d] = dims[d].Int()
 		size *= intDims[d]
 	}
-	contents := Seq(refl.MakeSlice(refl.SliceOf(typ), size, size))
-	return Array{
+	contents := SeqOf(make([]interface{}, size)...)
+	return &Array{
 		contents: contents,
 		dims:     intDims,
 		sizes:    sizes,
 	}
 }
 
+// EmptyArray is an empty one-dimensional array.
+var EmptyArray = NewArray(Zero)
+
+// NewArray returns a new Array full of the default value of the given type.
+func NewArray(dims ...Int) *Array {
+	return NewArrayWithValue(nil, dims...)
+}
+
 // NewArrayWithValue returns a new Array full of the given initial value.
-func NewArrayWithValue(init interface{}, dims ...Int) Array {
-	ans := NewArray(refl.TypeOf(init), dims...)
-	initValue := refl.ValueOf(init)
-	n := ans.contents.len()
-	for i := 0; i < n; i++ {
-		ans.contents.Index(IntOf(i)).Set(initValue)
+func NewArrayWithValue(init interface{}, dims ...Int) *Array {
+	ans := newArray(dims...)
+	if init != nil {
+		initValue := refl.ValueOf(init)
+		n := ans.contents.len()
+		for i := 0; i < n; i++ {
+			ans.contents.Index(IntOf(i)).Set(initValue)
+		}
 	}
 	return ans
 }
 
 // NewArrayWithValues returns a new one-dimensional Array with the given initial
-// values, which must be of the given type.  (The type must be given in case
-// there are no values.)
-func NewArrayWithValues(typ refl.Type, values ...interface{}) Array {
-	n := len(values)
-	contents := refl.MakeSlice(refl.SliceOf(typ), n, n)
-	for i, v := range values {
-		contents.Index(i).Set(refl.ValueOf(v))
-	}
-	return Array{
-		contents: Seq(contents),
-		dims:     []int{n},
+// values.
+func NewArrayWithValues(values ...interface{}) *Array {
+	return &Array{
+		contents: SeqOf(values...),
+		dims:     []int{len(values)},
 		sizes:    []int{1},
 	}
 }
 
 // Len returns the length of the array in the given dimension.
-func (array Array) Len(dim int) Int {
+func (array *Array) Len(dim int) Int {
 	return IntOf(array.dims[dim])
 }
 
 // Equals compares two arrays for equality.  Values are compared using
 // dafny.AreEqual.
-func (array Array) Equals(array2 Array) bool {
+func (array *Array) Equals(array2 *Array) bool {
 	// TODO: It feels like we should be able to shortcut in the case that the
 	// addresses are the same, but we're using value receivers.  Should we be?
 	// Can we still find out whether the slices are the same---that is, they
@@ -405,12 +522,12 @@ func (array Array) Equals(array2 Array) bool {
 }
 
 // Dafny_EqualsGeneric_ implements the EqualsGeneric interface.
-func (array Array) Dafny_EqualsGeneric_(other interface{}) bool {
-	array2, ok := other.(Array)
+func (array *Array) Dafny_EqualsGeneric_(other interface{}) bool {
+	array2, ok := other.(*Array)
 	return ok && array.Equals(array2)
 }
 
-func (array Array) index(ixs ...int) refl.Value {
+func (array *Array) index(ixs ...int) refl.Value {
 	i := 0
 	for d := range array.dims {
 		i += ixs[d] * array.sizes[d]
@@ -419,7 +536,7 @@ func (array Array) index(ixs ...int) refl.Value {
 }
 
 // Index gets the element at the given indices into the array.
-func (array Array) Index(ixs ...Int) refl.Value {
+func (array *Array) Index(ixs ...Int) refl.Value {
 	if len(ixs) != len(array.dims) {
 		panic(fmt.Sprintf("Expected %d indices but got %d", len(array.dims), len(ixs)))
 	}
@@ -431,11 +548,11 @@ func (array Array) Index(ixs ...Int) refl.Value {
 }
 
 // Slice takes the slice a[from:to] of the given array.
-func (array Array) Slice(from, to Int) Array {
+func (array *Array) Slice(from, to Int) *Array {
 	if len(array.dims) != 1 {
 		panic("TODO: Slices of multidimensional arrays")
 	}
-	return Array{
+	return &Array{
 		contents: array.contents.Slice(from, to),
 		dims:     []int{to.Int() - from.Int()},
 		sizes:    []int{1},
@@ -443,23 +560,23 @@ func (array Array) Slice(from, to Int) Array {
 }
 
 // SliceAll takes the slice a[:] of the given array.
-func (array Array) SliceAll() Array {
+func (array *Array) SliceAll() *Array {
 	return array.Slice(Zero, array.Len(0))
 }
 
 // SliceFrom takes the slice a[from:] of the given array.
-func (array Array) SliceFrom(ix Int) Array {
+func (array *Array) SliceFrom(ix Int) *Array {
 	return array.Slice(ix, array.Len(0))
 }
 
 // SliceTo takes the slice a[:to] of the given array.
-func (array Array) SliceTo(ix Int) Array {
+func (array *Array) SliceTo(ix Int) *Array {
 	return array.Slice(Zero, ix)
 }
 
-func (array Array) stringOfSubspace(d int, ixs []int) string {
+func (array *Array) stringOfSubspace(d int, ixs []int) string {
 	if d == len(array.dims) {
-		return fmt.Sprint(array.index(ixs...))
+		return String(array.index(ixs...))
 	}
 	s := "["
 	for i := 0; i < array.dims[d]; i++ {
@@ -473,9 +590,22 @@ func (array Array) stringOfSubspace(d int, ixs []int) string {
 	return s
 }
 
-func (array Array) String() string {
+func (array *Array) String() string {
 	ixs := make([]int, len(array.dims))
 	return array.stringOfSubspace(0, ixs)
+}
+
+// ArrayType is the type of any array.
+var ArrayType Type = arrayType{}
+
+type arrayType struct{}
+
+func (arrayType) Default() interface{} {
+	return (*Array)(nil)
+}
+
+func (arrayType) String() string {
+	return "dafny.Array"
 }
 
 /******************************************************************************
@@ -483,26 +613,56 @@ func (array Array) String() string {
  ******************************************************************************/
 
 // A Tuple is a one-dimensional heterogeneous array.
-type Tuple Seq
+type Tuple struct {
+	Seq
+}
 
 // TupleOf creates a tuple with the given values.
 func TupleOf(values ...interface{}) Tuple {
-	return Tuple(SeqOf(values...))
+	return Tuple{SeqOf(values...)}
 }
 
 // Dafny_EqualsGeneric_ implements the EqualsGeneric interface.
 func (tuple Tuple) Dafny_EqualsGeneric_(other interface{}) bool {
 	tuple2, ok := other.(Tuple)
-	return ok && Seq(tuple).Equals(Seq(tuple2))
+	return ok && tuple.Seq.Equals(tuple2.Seq)
 }
 
 func (tuple Tuple) String() string {
-	return "(" + Seq(tuple).stringOfElements() + ")"
+	return "(" + tuple.Seq.stringOfElements() + ")"
 }
 
 // Index looks up the ith element of the tuple.
 func (tuple Tuple) Index(i Int) refl.Value {
-	return Seq(tuple).Index(i)
+	return tuple.Seq.Index(i)
+}
+
+// TupleType returns the type of a tuple with given element types.
+func TupleType(tys ...Type) Type {
+	return tupleType{tys}
+}
+
+type tupleType struct {
+	eltTys []Type
+}
+
+func (tt tupleType) Default() interface{} {
+	values := make([]interface{}, len(tt.eltTys))
+	for i, ty := range tt.eltTys {
+		values[i] = ty.Default()
+	}
+	return TupleOf(values)
+}
+
+func (tt tupleType) String() string {
+	s := "("
+	sep := ""
+	for _, ty := range tt.eltTys {
+		s += sep + String(ty)
+		sep = ", "
+	}
+	s += ")"
+	return s
 }
 
 /******************************************************************************
@@ -524,8 +684,8 @@ func (builder *Builder) Add(value interface{}) {
 }
 
 // ToArray creates an Array with the accumulated values.
-func (builder *Builder) ToArray() Array {
-	return NewArrayWithValues(TopType, *builder...)
+func (builder *Builder) ToArray() *Array {
+	return NewArrayWithValues(*builder...)
 }
 
 // ToMultiSet creates a MultiSet with the accumulated values.
@@ -588,7 +748,7 @@ func (set Set) Iterator() Iterator {
 // Union makes a set containing each element contained by either input set.
 func (set Set) Union(set2 Set) Set {
 	uniq := make([]interface{}, 0, set.cardinality()+set2.cardinality())
-	uniq = append(uniq, refl.Value(set).Interface().([]interface{})...)
+	uniq = append(uniq, set.slice...)
 	n1 := set.cardinality()
 	n2 := set2.cardinality()
 NEXT_INPUT:
@@ -608,15 +768,15 @@ NEXT_INPUT:
 // Intersection makes a set containing each element contained by both input
 // sets.
 func (set Set) Intersection(set2 Set) Set {
-	b := NewBuilder()
+	uniq := make([]interface{}, 0, min(len(set.slice), len(set2.slice)))
 	n := set.cardinality()
 	for i := 0; i < n; i++ {
 		v := Seq(set).index(i)
 		if set2.Contains(v) {
-			b.Add(v)
+			uniq = append(uniq, v)
 		}
 	}
-	return Set(SeqOf(*b...))
+	return Set(SeqOf(uniq...))
 }
 
 // IsDisjointFrom returns true if the sets have no elements in common.
@@ -679,13 +839,13 @@ func (set Set) AllSubsets() Iterator {
 		if r.Cmp(limit) == 0 {
 			return Set{}, false
 		} else {
-			b := NewBuilder()
+			values := make([]interface{}, 0, len(set.slice))
 			i := 0
 			s := new(big.Int).Set(r)
 			mod := new(big.Int)
 			for s.Cmp(Zero.impl) > 0 {
 				if mod.Mod(s, Two.impl).Cmp(Zero.impl) != 0 {
-					b.Add(Seq(set).index(i))
+					values = append(values, Seq(set).index(i))
 				}
 				s.Div(s, Two.impl)
 				i++
@@ -694,17 +854,35 @@ func (set Set) AllSubsets() Iterator {
 
 			// Annoyingly, the other implementations reverse the order of the
 			// elements, so we have to as well
-			values := make([]interface{}, len(*b))
-			for i, v := range *b {
-				values[len(*b)-i-1] = v
-			}
-			return Set(SeqOf(values...)), true
+			return Set(SeqOf(reverse(values)...)), true
 		}
 	}
 }
 
+func reverse(values []interface{}) []interface{} {
+	ans := make([]interface{}, len(values))
+	n := len(values)
+	for i, v := range values {
+		ans[n-1-i] = v
+	}
+	return ans
+}
+
 func (set Set) String() string {
 	return "{" + Seq(set).stringOfElements() + "}"
+}
+
+// SetType is the type of any set.
+var SetType Type = setType{}
+
+type setType struct{}
+
+func (setType) Default() interface{} {
+	return EmptySet
+}
+
+func (st setType) String() string {
+	return "dafny.Set"
 }
 
 /******************************************************************************
@@ -742,18 +920,7 @@ NEXT_INPUT:
 
 // MultiSetFromSeq creates a MultiSet from the elements in the given sequence.
 func MultiSetFromSeq(seq Seq) MultiSet {
-	switch slice := refl.Value(seq).Interface().(type) {
-	case []Char:
-		values := make([]interface{}, len(slice))
-		for i, c := range slice {
-			values[i] = c
-		}
-		return MultiSetOf(values...)
-	case []interface{}:
-		return MultiSetOf(slice...)
-	default:
-		panic(fmt.Errorf("Weird type for Seq: %v", refl.TypeOf(slice)))
-	}
+	return MultiSetOf(seq.slice...)
 }
 
 // MultiSetFromSet creates a MultiSet from the elements in the given set.
@@ -809,7 +976,7 @@ func (mset MultiSet) Cardinality() Int {
 	for _, e := range mset.elts {
 		n.Add(n, e.count.impl)
 	}
-	return Int{n}
+	return intOf(n)
 }
 
 // Index returns the ith element of the multiset, which is arbitrary except that
@@ -986,12 +1153,25 @@ func (mset MultiSet) String() string {
 	i := new(big.Int)
 	for _, e := range mset.elts {
 		for i.SetInt64(0); i.Cmp(e.count.impl) < 0; i.Add(i, One.impl) {
-			s += sep + fmt.Sprint(e.value)
+			s += sep + String(e.value)
 			sep = ", "
 		}
 	}
 	s += "}"
 	return s
+}
+
+// MultiSetType is the type of any multiset.
+var MultiSetType = multiSetType{}
+
+type multiSetType struct{}
+
+func (multiSetType) Default() interface{} {
+	return EmptyMultiSet
+}
+
+func (mst multiSetType) String() string {
+	return "dafny.MultiSet"
 }
 
 /******************************************************************************
@@ -1049,15 +1229,6 @@ func (m Map) Cardinality() Int {
 	return IntOf(len(m.elts))
 }
 
-/*
-// LenAlong returns the cardinality if dim is zero.
-func (m Map) LenAlong(dim int) Int {
-	if dim != 0 {
-		panic("Maps are one-dimensional")
-	}
-	return m.Cardinality()
-}
-*/
 // Find finds the given key in the map, returning it and a success flag.
 func (m Map) Find(key interface{}) (interface{}, bool) {
 	i, found := m.findIndex(key)
@@ -1155,10 +1326,23 @@ func (m Map) String() string {
 		if i > 0 {
 			s += ", "
 		}
-		s += fmt.Sprintf("%v := %v", e.key, e.value)
+		s += fmt.Sprintf("%s := %s", String(e.key), String(e.value))
 	}
 	s += "]"
 	return s
+}
+
+// MapType is the type of any map.
+var MapType Type = mapType{}
+
+type mapType struct{}
+
+func (mapType) Default() interface{} {
+	return EmptyMap
+}
+
+func (mapType) String() string {
+	return "dafny.Map"
 }
 
 /******************************************************************************
@@ -1279,6 +1463,11 @@ var Ten = intOf(big.NewInt(10))
 
 // NilInt is a missing int value.
 var NilInt = intOf(nil)
+
+// IsNilInt returns whether this Int is actually a missing value.
+func (i Int) IsNilInt() bool {
+	return i.impl == nil
+}
 
 func (i Int) binOp(j Int, f func(*big.Int, *big.Int, *big.Int) *big.Int) Int {
 	return intOf(f(new(big.Int), i.impl, j.impl))
@@ -1522,6 +1711,19 @@ func AllIntegers() Iterator {
 	}
 }
 
+// IntType is the RTD for integers.
+var IntType Type = intType{}
+
+type intType struct{}
+
+func (intType) Default() interface{} {
+	return Zero
+}
+
+func (intType) String() string {
+	return "dafny.Int"
+}
+
 /******************************************************************************
  * Reals
  ******************************************************************************/
@@ -1561,6 +1763,11 @@ var ZeroReal = realOf(new(big.Rat))
 
 // NilReal is a missing Real value.
 var NilReal = realOf(nil)
+
+// IsNilReal returns whether this is actually a missing value.
+func (real Real) IsNilReal() bool {
+	return real.impl == nil
+}
 
 // RealOfString parses the given string in base 10 and panics if this is not
 // possible.
@@ -1685,6 +1892,15 @@ func (x Real) Max(y Real) Real {
 	} else {
 		return y
 	}
+}
+
+// RealType is the RTD for reals.
+var RealType Type = realType{}
+
+type realType struct{}
+
+func (realType) Default() interface{} {
+	return ZeroReal
 }
 
 /******************************************************************************
@@ -1907,34 +2123,9 @@ func Rrot_uint8(x uint8, n Int, w uint) uint8 {
 }
 
 /******************************************************************************
- * Reflection
- ******************************************************************************/
-
-// ArrayType is the type Array.
-var ArrayType refl.Type = refl.TypeOf(Array{})
-
-// BoolType is the type bool.
-var BoolType refl.Type = refl.TypeOf(true)
-
-// CharSliceTyep is the type []Char.
-var CharSliceType refl.Type = refl.SliceOf(CharType)
-
-// CharType is the type Char.
-var CharType refl.Type = refl.TypeOf(Char('A'))
-
-// IntType is the type Int.
-var IntType refl.Type = refl.TypeOf(Int{})
-
-// RealType is the type Real.
-var RealType refl.Type = refl.TypeOf(Real{})
-
-// TopType is the type interface{}.
-var TopType refl.Type = refl.TypeOf((*interface{})(nil)).Elem()
-
-/******************************************************************************
  * Hacks for generated code
  ******************************************************************************/
 
-// The Dummy type, which each compiled Dafny module declares, is just so that
-// we can generate "var _ dafny.Dummy" to suppress the unused-import error.
-type Dummy struct{}
+// The Dummy__ type, which each compiled Dafny module declares, is just so that
+// we can generate "var _ dafny.Dummy__" to suppress the unused-import error.
+type Dummy__ struct{}

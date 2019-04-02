@@ -1,5 +1,6 @@
 // RUN: %dafny /compile:3 /spillTargetCode:2 /compileTarget:cs "%s" > "%t"
 // RUN: %dafny /compile:3 /spillTargetCode:2 /compileTarget:js "%s" >> "%t"
+// RUN: %dafny /compile:3 /spillTargetCode:2 /compileTarget:go "%s" >> "%t"
 // RUN: %diff "%s.expect" "%t"
 
 datatype Color = Orange | Pink | Teal
@@ -26,8 +27,7 @@ method Main() {
 method Standard<T(0)>() {
   var a: int := Gimmie();
   var b: Six := Gimmie();
-  var c: Even := Gimmie();
-  var d: bool := Gimmie();
+  var c: Even, d: bool := GimmieMore();
   var e: Color := Gimmie();
   var f: real := Gimmie();
   var g: T := Gimmie();
@@ -59,6 +59,7 @@ method Standard<T(0)>() {
 }
 
 method Gimmie<R(0)>() returns (r: R) { }
+method GimmieMore<R(0), S(0)>() returns (r: R, s: S) { }
 
 // ---------- type parameters ----------
 

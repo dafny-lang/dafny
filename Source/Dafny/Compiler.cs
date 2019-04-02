@@ -190,6 +190,7 @@ namespace Microsoft.Dafny {
     protected virtual void DeclareOutCollector(string collectorVarName, TargetWriter wr) { }  // called only for return-style calls
     protected virtual bool UseReturnStyleOuts(Method m, int nonGhostOutCount) => false;
     protected virtual bool SupportsMultipleReturns() => false;
+    protected virtual bool NeedsCastFromTypeParameter() => false;
     protected abstract void DeclareLocalOutVar(string name, Type type, Bpl.IToken tok, string rhs, TargetWriter wr);
     protected virtual void EmitActualOutArg(string actualOutParamName, TextWriter wr) { }  // actualOutParamName is always the name of a local variable; called only for non-return-style outs
     protected virtual void EmitOutParameterSplits(string outCollector, List<string> actualOutParamNames, TargetWriter wr) { }  // called only for return-style calls
@@ -421,6 +422,7 @@ namespace Microsoft.Dafny {
     protected abstract TargetWriter EmitMapBuilder_Add(MapType mt, Bpl.IToken tok, string collName, Expression term, bool inLetExprBody, TargetWriter wr);
     protected abstract string GetCollectionBuilder_Build(CollectionType ct, Bpl.IToken tok, string collName, TargetWriter wr);
     protected abstract void EmitSingleValueGenerator(Expression e, bool inLetExprBody, string type, TargetWriter wr);
+    protected virtual void FinishModule() { }
 
     public void Compile(Program program, TargetWriter wrx) {
       Contract.Requires(program != null);
@@ -506,6 +508,8 @@ namespace Microsoft.Dafny {
             // nop
           } else { Contract.Assert(false); }
         }
+        
+        FinishModule();
       }
     }
 
@@ -936,11 +940,12 @@ namespace Microsoft.Dafny {
         // var x := G;
         var bv = pat.Var;
         if (!bv.IsGhost) {
-          var w = EmitCoercionIfNecessary(from: rhs?.Type, to: bv.Type, tok:rhsTok, wr:wr);
+          var w = DeclareLocalVar(IdProtect(bv.CompileName), bv.Type, rhsTok, wr);
           if (rhs != null) {
-            DeclareLocalVar(IdProtect(bv.CompileName), bv.Type, bv.Tok, rhs, inLetExprBody, w);
+            w = EmitCoercionIfNecessary(from: rhs.Type, to: bv.Type, tok:rhsTok, wr:w);
+            TrExpr(rhs, w, inLetExprBody);
           } else {
-            DeclareLocalVar(IdProtect(bv.CompileName), bv.Type, bv.Tok, false, rhs_string, w);
+            w.Write(rhs_string);
           }
         }
       } else if (pat.Arguments != null) {
@@ -2160,7 +2165,51 @@ namespace Microsoft.Dafny {
           if (!p.IsGhost) {
             string target = idGenerator.FreshId("_out");
             outTmps.Add(target);
-            DeclareLocalVar(target, s.Lhs[i].Type, s.Lhs[i].tok, false, null, wr);
+            Type type;
+            if (!NeedsCastFromTypeParameter()) {
+              type = s.Lhs[i].Type;
+            } else {
+              //
+              // The type of the parameter will differ from the LHS type in a
+              // situation like this:
+              //
+              //   method Gimmie<R(0)>() returns (r: R) { }
+              //
+              //   var a : int := Gimmie();
+              //
+              // The method Gimme will be compiled down to Go (or JavaScript)
+              // as a function which returns any value (some details omitted):
+              //   
+              //   func Gimmie(ty dafny.Type) interface{} {
+              //     return ty.Default()
+              //   }
+              // 
+              // If we naively translate, we get a type error:
+              //
+              //   var lhs int = Gimmie(dafny.Type) // error!
+              //
+              // Fortunately, we have the information at hand to do better.  The
+              // LHS does have the actual final type (int in this case), and the
+              // out parameter on the method tells us the compiled type
+              // returned.  Therefore what we want to do is this:
+              //
+              //   var lhs dafny.Int
+              //   var _out interface{}
+              //
+              //   _out = Gimmie(dafny.IntType)
+              //
+              //   lhs = _out.(int) // type cast
+              //
+              // All we have to do now is declare the out variable with the type
+              // from the parameter; later we'll do the type cast.
+              //
+              // None of this is necessary if the language supports parametric
+              // functions to begin with (C#) or has dynamic typing so none of
+              // this comes up (JavaScript), so we only do this if
+              // NeedsCastFromTypeParameter() is on.
+              type = p.Type;
+            }
+            DeclareLocalVar(target, type, s.Lhs[i].tok, false, null, wr);
           }
         }
         Contract.Assert(lvalues.Count == outTmps.Count);
@@ -2231,6 +2280,8 @@ namespace Microsoft.Dafny {
 
         // assign to the actual LHSs
         for (int j = 0; j < lvalues.Count; j++) {
+          // The type information here takes care both of implicit upcasts and
+          // implicit downcasts from type parameters (see above).
           EmitAssignment(lvalues[j], s.Lhs[j].Type, outTmps[j], s.Method.Outs[j].Type, wr);
         }
       }
@@ -2312,8 +2363,7 @@ namespace Microsoft.Dafny {
         if (!arg.IsGhost) {
           BoundVar bv = arguments[m];
           // FormalType f0 = ((Dt_Ctor0)source._D).a0;
-          DeclareLocalVar(IdName(bv), bv.Type, bv.Tok, true, null, w);
-          var sw = EmitAssignmentRhs(w);
+          var sw = DeclareLocalVar(IdName(bv), bv.Type, bv.Tok, w);
           EmitDestructor(source, arg, k, ctor, sourceType.TypeArgs, sw);
           k++;
         }
@@ -2459,7 +2509,7 @@ namespace Microsoft.Dafny {
         if (e.Function is SpecialFunction) {
           CompileSpecialFunctionCallExpr(e, wr, inLetExprBody, TrExpr);
         } else {
-          CompileFunctionCallExpr(e, wr, wr, inLetExprBody, TrExpr);
+          CompileFunctionCallExpr(e, wr, inLetExprBody, TrExpr);
         }
 
       } else if (expr is ApplyExpr) {
@@ -2940,42 +2990,44 @@ namespace Microsoft.Dafny {
       } else if (name == "RotateRight") {
         EmitRotate(e.Receiver, e.Args[0], false, wr, inLetExprBody, tr);
       } else {
-        CompileFunctionCallExpr(e, wr, wr, inLetExprBody, tr);
+        CompileFunctionCallExpr(e, wr, inLetExprBody, tr);
       }
     }
 
-    void CompileFunctionCallExpr(FunctionCallExpr e, TextWriter twr, TargetWriter wr, bool inLetExprBody, FCE_Arg_Translator tr) {
+    void CompileFunctionCallExpr(FunctionCallExpr e, TargetWriter wr, bool inLetExprBody, FCE_Arg_Translator tr) {
       Contract.Requires(e != null && e.Function != null);
-      Contract.Requires(twr != null);
+      Contract.Requires(wr != null);
       Contract.Requires(tr != null);
       Function f = e.Function;
 
+      wr = EmitCoercionIfNecessary(f.ResultType, e.Type, e.tok, wr);
+
       if (f.IsStatic) {
-        twr.Write(TypeName_Companion(e.Receiver.Type, wr, e.tok, f));
+        wr.Write(TypeName_Companion(e.Receiver.Type, wr, e.tok, f));
       } else {
-        twr.Write("(");
+        wr.Write("(");
         tr(e.Receiver, wr, inLetExprBody);
-        twr.Write(")");
+        wr.Write(")");
       }
-      twr.Write(".{0}", IdName(f));
+      wr.Write(".{0}", IdName(f));
       List<Type> typeArgs;
       if (f.TypeArgs.Count != 0) {
         typeArgs = f.TypeArgs.ConvertAll(ta => e.TypeArgumentSubstitutions[ta]);
-        EmitActualTypeArgs(typeArgs, f.tok, twr);
+        EmitActualTypeArgs(typeArgs, f.tok, wr);
       } else {
         typeArgs = new List<Type>();
       }
-      twr.Write("(");
+      wr.Write("(");
       var nRTDs = EmitRuntimeTypeDescriptorsActuals(typeArgs, f.TypeArgs, e.tok, false, wr);
       string sep = nRTDs == 0 ? "" : ", ";
       for (int i = 0; i < e.Args.Count; i++) {
         if (!e.Function.Formals[i].IsGhost) {
-          twr.Write(sep);
+          wr.Write(sep);
           tr(e.Args[i], wr, inLetExprBody);
           sep = ", ";
         }
       }
-      twr.Write(")");
+      wr.Write(")");
     }
 
     /// <summary>
