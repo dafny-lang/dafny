@@ -1,7 +1,7 @@
 package dafny
 
 import (
-	fmt "fmt"
+	"fmt"
 	big "math/big"
 	refl "reflect"
 )
@@ -13,7 +13,7 @@ import (
 // An EqualsGeneric can be compared to any other object.  This method should
 // *only* return true when the other value is of the same type.
 type EqualsGeneric interface {
-	Dafny_EqualsGeneric_(other interface{}) bool
+	EqualsGeneric(other interface{}) bool
 }
 
 // AreEqual compares two values for equality in a generic way.  Besides the
@@ -29,7 +29,7 @@ func AreEqual(x, y interface{}) bool {
 				AreEqual(x.Interface(), y.Interface())
 		}
 	case EqualsGeneric:
-		return x.Dafny_EqualsGeneric_(y)
+		return x.EqualsGeneric(y)
 	default:
 		return refl.DeepEqual(x, y)
 	}
@@ -358,8 +358,8 @@ func (seq Seq) Equals(seq2 Seq) bool {
 	return seq.len() == seq2.len() && seq.isPrefixAfterLengthCheck(seq2)
 }
 
-// Dafny_EqualsGeneric_ implements the EqualsGeneric interface.
-func (seq Seq) Dafny_EqualsGeneric_(other interface{}) bool {
+// EqualsGeneric implements the EqualsGeneric interface.
+func (seq Seq) EqualsGeneric(other interface{}) bool {
 	seq2, ok := other.(Seq)
 	return ok && seq.Equals(seq2)
 }
@@ -521,8 +521,8 @@ func (array *Array) Equals(array2 *Array) bool {
 	return array.contents.Equals(array2.contents)
 }
 
-// Dafny_EqualsGeneric_ implements the EqualsGeneric interface.
-func (array *Array) Dafny_EqualsGeneric_(other interface{}) bool {
+// EqualsGeneric implements the EqualsGeneric interface.
+func (array *Array) EqualsGeneric(other interface{}) bool {
 	array2, ok := other.(*Array)
 	return ok && array.Equals(array2)
 }
@@ -622,8 +622,8 @@ func TupleOf(values ...interface{}) Tuple {
 	return Tuple{SeqOf(values...)}
 }
 
-// Dafny_EqualsGeneric_ implements the EqualsGeneric interface.
-func (tuple Tuple) Dafny_EqualsGeneric_(other interface{}) bool {
+// EqualsGeneric implements the EqualsGeneric interface.
+func (tuple Tuple) EqualsGeneric(other interface{}) bool {
 	tuple2, ok := other.(Tuple)
 	return ok && tuple.Seq.Equals(tuple2.Seq)
 }
@@ -796,8 +796,8 @@ func (set Set) Equals(set2 Set) bool {
 		set.isSubsetAfterCardinalityCheck(set2)
 }
 
-// Dafny_EqualsGeneric_ implements the EqualsGeneric interface.
-func (set Set) Dafny_EqualsGeneric_(other interface{}) bool {
+// EqualsGeneric implements the EqualsGeneric interface.
+func (set Set) EqualsGeneric(other interface{}) bool {
 	set2, ok := other.(Set)
 	return ok && set.Equals(set2)
 }
@@ -1114,8 +1114,8 @@ func (mset MultiSet) Equals(mset2 MultiSet) bool {
 	return mset.isRelated(mset2, func(x, y int) bool { return x == y })
 }
 
-// Dafny_EqualsGeneric_ implements the EqualsGeneric interface.
-func (mset MultiSet) Dafny_EqualsGeneric_(other interface{}) bool {
+// EqualsGeneric implements the EqualsGeneric interface.
+func (mset MultiSet) EqualsGeneric(other interface{}) bool {
 	mset2, ok := other.(MultiSet)
 	return ok && mset.Equals(mset2)
 }
@@ -1277,8 +1277,8 @@ func (m Map) Equals(m2 Map) bool {
 	return true
 }
 
-// Dafny_EqualsGeneric_ implements the EqualsGeneric interface.
-func (m Map) Dafny_EqualsGeneric_(other interface{}) bool {
+// EqualsGeneric implements the EqualsGeneric interface.
+func (m Map) EqualsGeneric(other interface{}) bool {
 	m2, ok := other.(Map)
 	return ok && m.Equals(m2)
 }
@@ -1544,8 +1544,8 @@ func (i Int) Cmp(j Int) int {
 	return i.impl.Cmp(j.impl)
 }
 
-// Dafny_EqualsGeneric_ compares an int to another value.
-func (i Int) Dafny_EqualsGeneric_(other interface{}) bool {
+// EqualsGeneric compares an int to another value.
+func (i Int) EqualsGeneric(other interface{}) bool {
 	j, ok := other.(Int)
 	return ok && i.Cmp(j) == 0
 }
@@ -1765,8 +1765,8 @@ var ZeroReal = realOf(new(big.Rat))
 var NilReal = realOf(nil)
 
 // IsNilReal returns whether this is actually a missing value.
-func (real Real) IsNilReal() bool {
-	return real.impl == nil
+func (x Real) IsNilReal() bool {
+	return x.impl == nil
 }
 
 // RealOfString parses the given string in base 10 and panics if this is not
@@ -1870,8 +1870,8 @@ func (x Real) Cmp(y Real) int {
 	return x.impl.Cmp(y.impl)
 }
 
-// Dafny_EqualsGeneric_ compares an int to another value.
-func (x Real) Dafny_EqualsGeneric_(other interface{}) bool {
+// EqualsGeneric compares an int to another value.
+func (x Real) EqualsGeneric(other interface{}) bool {
 	y, ok := other.(Real)
 	return ok && x.Cmp(y) == 0
 }
@@ -1907,8 +1907,8 @@ func (realType) Default() interface{} {
  * Native math
  ******************************************************************************/
 
-// Div_int does Euclidean division on the given ints
-func Div_int(x int, y int) int {
+// DivInt does Euclidean division on the given ints
+func DivInt(x int, y int) int {
 	if x >= 0 {
 		if y >= 0 {
 			return x / y
@@ -1924,8 +1924,8 @@ func Div_int(x int, y int) int {
 	}
 }
 
-// Div_int8 does Euclidean divison on the given int8s
-func Div_int8(x int8, y int8) int8 {
+// DivInt8 does Euclidean divison on the given int8s
+func DivInt8(x int8, y int8) int8 {
 	if x >= 0 {
 		if y >= 0 {
 			return x / y
@@ -1941,8 +1941,8 @@ func Div_int8(x int8, y int8) int8 {
 	}
 }
 
-// Div_int16 does Euclidean divison on the given int16s
-func Div_int16(x int16, y int16) int16 {
+// DivInt16 does Euclidean divison on the given int16s
+func DivInt16(x int16, y int16) int16 {
 	if x >= 0 {
 		if y >= 0 {
 			return x / y
@@ -1958,8 +1958,8 @@ func Div_int16(x int16, y int16) int16 {
 	}
 }
 
-// Div_int32 does Euclidean divison on the given int32s
-func Div_int32(x int32, y int32) int32 {
+// DivInt32 does Euclidean divison on the given int32s
+func DivInt32(x int32, y int32) int32 {
 	if x >= 0 {
 		if y >= 0 {
 			return x / y
@@ -1975,8 +1975,8 @@ func Div_int32(x int32, y int32) int32 {
 	}
 }
 
-// Div_int64 does Euclidean divison on the given int64s
-func Div_int64(x int64, y int64) int64 {
+// DivInt64 does Euclidean divison on the given int64s
+func DivInt64(x int64, y int64) int64 {
 	if x >= 0 {
 		if y >= 0 {
 			return x / y
@@ -1992,8 +1992,8 @@ func Div_int64(x int64, y int64) int64 {
 	}
 }
 
-// Div_float32 does Euclidean division on the given float32s
-func Div_float32(x float32, y float32) float32 {
+// DivFloat32 does Euclidean division on the given float32s
+func DivFloat32(x float32, y float32) float32 {
 	if x >= 0 {
 		if y >= 0 {
 			return x / y
@@ -2009,8 +2009,8 @@ func Div_float32(x float32, y float32) float32 {
 	}
 }
 
-// Div_float64 does Euclidean division on the given float64s
-func Div_float64(x float64, y float64) float64 {
+// DivFloat64 does Euclidean division on the given float64s
+func DivFloat64(x float64, y float64) float64 {
 	if x >= 0 {
 		if y >= 0 {
 			return x / y
@@ -2026,14 +2026,38 @@ func Div_float64(x float64, y float64) float64 {
 	}
 }
 
-// Lrot_uint8 performs left rotation on the low w bits of an int8
-func Lrot_uint8(x uint8, n Int, w uint) uint8 {
-	y := uint(n.Uint64())
+// LrotUint performs left rotation on the low w bits of an int
+func LrotUint(x uint, n Int, w uint) uint {
+	y := n.Uint()
 	return ((x << y) % (1 << w)) | (x >> (w - y))
 }
 
-// Mod_int finds Euclidean remainder of the given ints
-func Mod_int(x int, y int) int {
+// LrotUint8 performs left rotation on the low w bits of an int8
+func LrotUint8(x uint8, n Int, w uint) uint8 {
+	y := n.Uint()
+	return ((x << y) % (1 << w)) | (x >> (w - y))
+}
+
+// LrotUint16 performs left rotation on the low w bits of an int16
+func LrotUint16(x uint16, n Int, w uint) uint16 {
+	y := n.Uint()
+	return ((x << y) % (1 << w)) | (x >> (w - y))
+}
+
+// LrotUint32 performs left rotation on the low w bits of an int32
+func LrotUint32(x uint32, n Int, w uint) uint32 {
+	y := n.Uint()
+	return ((x << y) % (1 << w)) | (x >> (w - y))
+}
+
+// LrotUint64 performs left rotation on the low w bits of an int64
+func LrotUint64(x uint64, n Int, w uint) uint64 {
+	y := n.Uint()
+	return ((x << y) % (1 << w)) | (x >> (w - y))
+}
+
+// ModInt finds Euclidean remainder of the given ints
+func ModInt(x int, y int) int {
 	if y < 0 {
 		y = -y
 	}
@@ -2049,8 +2073,8 @@ func Mod_int(x int, y int) int {
 	}
 }
 
-// Mod_int8 finds Euclidean remainder of the given int8s
-func Mod_int8(x int8, y int8) int8 {
+// ModInt8 finds Euclidean remainder of the given int8s
+func ModInt8(x int8, y int8) int8 {
 	if y < 0 {
 		y = -y
 	}
@@ -2066,8 +2090,8 @@ func Mod_int8(x int8, y int8) int8 {
 	}
 }
 
-// Mod_int16 finds Euclidean remainder of the given int16s
-func Mod_int16(x int16, y int16) int16 {
+// ModInt16 finds Euclidean remainder of the given int16s
+func ModInt16(x int16, y int16) int16 {
 	if y < 0 {
 		y = -y
 	}
@@ -2083,8 +2107,8 @@ func Mod_int16(x int16, y int16) int16 {
 	}
 }
 
-// Mod_int32 finds Euclidean remainder of the given int32s
-func Mod_int32(x int32, y int32) int32 {
+// ModInt32 finds Euclidean remainder of the given int32s
+func ModInt32(x int32, y int32) int32 {
 	if y < 0 {
 		y = -y
 	}
@@ -2100,8 +2124,8 @@ func Mod_int32(x int32, y int32) int32 {
 	}
 }
 
-// Mod_int64 finds Euclidean remainder of the given int64s
-func Mod_int64(x int64, y int64) int64 {
+// ModInt64 finds Euclidean remainder of the given int64s
+func ModInt64(x int64, y int64) int64 {
 	if y < 0 {
 		y = -y
 	}
@@ -2117,8 +2141,33 @@ func Mod_int64(x int64, y int64) int64 {
 	}
 }
 
-func Rrot_uint8(x uint8, n Int, w uint) uint8 {
-	y := uint(n.Uint64())
+// RrotUint performs right rotation on the low w bits of an int
+func RrotUint(x uint, n Int, w uint) uint {
+	y := n.Uint()
+	return (x >> y) | ((x << (w - y)) % (1 << w))
+}
+
+// RrotUint8 performs right rotation on the low w bits of an int8
+func RrotUint8(x uint8, n Int, w uint) uint8 {
+	y := n.Uint()
+	return (x >> y) | ((x << (w - y)) % (1 << w))
+}
+
+// RrotUint16 performs right rotation on the low w bits of an int16
+func RrotUint16(x uint16, n Int, w uint) uint16 {
+	y := n.Uint()
+	return (x >> y) | ((x << (w - y)) % (1 << w))
+}
+
+// RrotUint32 performs right rotation on the low w bits of an int32
+func RrotUint32(x uint32, n Int, w uint) uint32 {
+	y := n.Uint()
+	return (x >> y) | ((x << (w - y)) % (1 << w))
+}
+
+// RrotUint64 performs right rotation on the low w bits of an int64
+func RrotUint64(x uint64, n Int, w uint) uint64 {
+	y := n.Uint()
 	return (x >> y) | ((x << (w - y)) % (1 << w))
 }
 

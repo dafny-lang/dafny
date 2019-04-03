@@ -2048,7 +2048,7 @@ namespace Microsoft.Dafny {
       } else {
         TargetWriter wFirstArg;
         if (bv.NativeType != null) {
-          wr.Write("dafny.{0}_{1}(", isRotateLeft ? "Lrot" : "Rrot", GetNativeTypeName(bv.NativeType));
+          wr.Write("dafny.{0}{1}(", isRotateLeft ? "Lrot" : "Rrot", Capitalize(GetNativeTypeName(bv.NativeType)));
           wFirstArg = wr.Fork();
           wr.Write(", ");
         } else {
@@ -2083,7 +2083,6 @@ namespace Microsoft.Dafny {
     }
 
     static string Capitalize(string str) {
-      Contract.Requires(str != "");
       Contract.Requires(str.Any(c => c != '_'));
       while (str.StartsWith("_")) {
         str = str.Substring(1) + "_";
@@ -2758,7 +2757,7 @@ namespace Microsoft.Dafny {
             var nt = AsNativeType(resultType);
             if (nt.LowerBound < BigInteger.Zero) {
               // Want Euclidean division for signed types
-              staticCallString =  "dafny.Div_" + GetNativeTypeName(AsNativeType(resultType));
+              staticCallString =  "dafny.Div" + Capitalize(GetNativeTypeName(AsNativeType(resultType)));
             } else {
               // Native division is fine for unsigned
               opString = "/";
@@ -2772,7 +2771,7 @@ namespace Microsoft.Dafny {
             var nt = AsNativeType(resultType);
             if (nt.LowerBound < BigInteger.Zero) {
               // Want Euclidean division for signed types
-              staticCallString = "dafny.Mod_" + GetNativeTypeName(AsNativeType(resultType));
+              staticCallString = "dafny.Mod" + Capitalize(GetNativeTypeName(AsNativeType(resultType)));
             } else {
               // Native division is fine for unsigned
               opString = "%";
