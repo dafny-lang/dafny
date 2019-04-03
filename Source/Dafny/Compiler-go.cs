@@ -11,6 +11,7 @@ using System.IO;
 using System.Diagnostics.Contracts;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
+using System.Text.RegularExpressions;
 using Bpl = Microsoft.Boogie;
 
 namespace Microsoft.Dafny {
@@ -103,17 +104,22 @@ namespace Microsoft.Dafny {
     }
 
     protected override TargetWriter CreateModule(string moduleName, bool isExtern, string/*?*/ libraryName, TargetWriter wr) {
-      if (isExtern) {
-        Imports.Add(new Import{ Name=moduleName, Path=libraryName });
-        return new TargetWriter(); // ignore contents of extern module
+      string pkgName;
+      if (libraryName != null) {
+        pkgName = libraryName;
       } else {
         // Go ignores all filenames starting with underscores.  So we're forced
         // to rewrite "__default" to "default__".
-        var pkgName = moduleName;
+        pkgName = moduleName;
         while (pkgName.StartsWith("_")) {
           pkgName = pkgName.Substring(1) + "_";
         }
+      }
 
+      if (isExtern) {
+        Imports.Add(new Import{ Name=moduleName, Path=pkgName });
+        return new TargetWriter(); // ignore contents of extern module
+      } else {
         var filename = string.Format("{0}/{0}.go", pkgName);
         var w = wr.NewFile(filename);
         ModuleName = moduleName;
@@ -3053,7 +3059,7 @@ namespace Microsoft.Dafny {
         return SendToNewGoProcess(dafnyProgramName, targetProgramText, null, targetFilename, otherFileNames, outputWriter);
       } else {
         // Since the program is to be run soon, nothing further is done here. Any compilation errors (that is, any errors
-        // in the emitted program--this should never happen if the compiler itself is correct) will be reported as 'node'
+        // in the emitted program--this should never happen if the compiler itself is correct) will be reported as 'go run'
         // will run the program.
         return true;
       }
@@ -3067,7 +3073,18 @@ namespace Microsoft.Dafny {
 
     bool SendToNewGoProcess(string dafnyProgramName, string targetProgramText, string/*?*/ callToMain, string targetFilename, ReadOnlyCollection<string> otherFileNames,
       TextWriter outputWriter) {
-      Contract.Requires(targetFilename != null && otherFileNames.Count == 0);
+      Contract.Requires(targetFilename != null);
+
+      foreach (var otherFileName in otherFileNames) {
+        if (Path.GetExtension(otherFileName) != ".go") {
+          outputWriter.WriteLine("Unrecognized file as extra input for Go compilation: {0}", otherFileName);
+          return false;
+        }
+
+        if (!CopyExternLibraryIntoPlace(mainProgram: targetFilename, externFilename: otherFileName, outputWriter: outputWriter)) {
+          return false;
+        };
+      }
 
       var args = "run " + targetFilename;
       var psi = new ProcessStartInfo("go", args) {
@@ -3094,5 +3111,56 @@ namespace Microsoft.Dafny {
       // Filename is Foo-go/src/Foo.go, so go two directories up
       return Path.GetFullPath(Path.GetDirectoryName(Path.GetDirectoryName(filename)));
     }
+
+    static bool CopyExternLibraryIntoPlace(string externFilename, string mainProgram, TextWriter outputWriter) {
+      // Grossly, we need to look in the file to figure out where to put it
+      var pkgName = FindPackageName(externFilename);
+      if (pkgName == null) {
+        outputWriter.WriteLine("Unable to determine package name: {0}", externFilename);
+        return false;
+      }
+      if (pkgName.StartsWith("_")) {
+        // Check this here because otherwise Go acts like the package simply doesn't exist, which is confusing
+        outputWriter.WriteLine("Go packages can't start with underscores: {0}", pkgName);
+        return false;
+      }
+
+      var mainDir = Path.GetDirectoryName(mainProgram);
+      var tgtDir = Path.Combine(mainDir, pkgName);
+      var tgtFilename = Path.Combine(tgtDir, pkgName + ".go");
+
+      Directory.CreateDirectory(tgtDir);
+      using (var rd = new StreamReader(new FileStream(externFilename, FileMode.Open, FileAccess.Read))) {
+        using (var wr = new StreamWriter(new FileStream(tgtFilename, FileMode.OpenOrCreate, FileAccess.Write))) {
+          while (rd.ReadLine() is string line) {
+            wr.WriteLine(line);
+          }
+        }
+      }
+
+      string relTgtFilename;
+      var cwd = Directory.GetCurrentDirectory();
+      if (tgtFilename.StartsWith(cwd)) {
+        relTgtFilename = tgtFilename.Substring(cwd.Length + 1); // chop off relative path and '/'
+      } else {
+        relTgtFilename = tgtFilename;
+      }
+      outputWriter.WriteLine("Additional input {0} copied to {1}", externFilename, relTgtFilename);
+      return true;
+    }
+
+    private static string FindPackageName(string externFilename) {
+      using (var rd = new StreamReader(new FileStream(externFilename, FileMode.Open, FileAccess.Read))) {
+        while (rd.ReadLine() is string line) {
+          var match = PackageLine.Match(line);
+          if (match.Success) {
+            return match.Groups[1].Value;
+          }
+        }
+        return null;
+      }
+    }
+
+    private static readonly Regex PackageLine = new Regex(@"^\s*package\s+([a-zA-Z0-9_]+)\s*$");
   }
 }
