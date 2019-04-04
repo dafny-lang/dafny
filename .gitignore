@@ -43,6 +43,6 @@ Docs/OnlineTutorial/DocumentationTransducer.pdb
 Docs/OnlineTutorial/DocumentationTransducer/obj
 Docs/OnlineTutorial/manuscripts/*.htm
 Docs/OnlineTutorial/manuscripts/*.*.dfy
-Test/js/*.cs
-Test/js/*.js
-Test/js/*-go
+Test/comp/*.cs
+Test/comp/*.js
+Test/comp/*-go
