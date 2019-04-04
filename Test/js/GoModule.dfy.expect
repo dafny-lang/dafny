@@ -1,0 +1,14 @@
+
+Dafny program verifier finished with 2 verified, 0 errors
+Compiled program written to GoModule-go/src/GoModule.go
+Additional code written to GoModule-go/src/dafny/dafny.go
+Additional code written to GoModule-go/src/System_/System_.go
+Additional code written to GoModule-go/src/module_/module_.go
+Running...
+
+The address http://localhost:8080/default.htm?year=1915&month=august&day=29
+has the following parts:
+host: localhost:8080
+pathname: /default.htm
+search: year=1915&month=august&day=29
+Parse error: parse http://localhost:8080/default.htm%: invalid URL escape "%"

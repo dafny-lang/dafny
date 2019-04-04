@@ -39,6 +39,7 @@ namespace Microsoft.Dafny {
 
     private struct Import {
       public string Name, Path, Dummy;
+      public bool SuppressDummy;
     }
 
     protected override void EmitHeader(Program program, TargetWriter wr) {
@@ -117,7 +118,7 @@ namespace Microsoft.Dafny {
       }
 
       if (isExtern) {
-        Imports.Add(new Import{ Name=moduleName, Path=pkgName });
+        Imports.Add(new Import{ Name=moduleName, Path=pkgName, SuppressDummy=true });
         return new TargetWriter(); // ignore contents of extern module
       } else {
         var filename = string.Format("{0}/{0}.go", pkgName);
@@ -147,8 +148,10 @@ namespace Microsoft.Dafny {
       importWriter.Indent();
       importWriter.WriteLine("  {0} \"{1}\"", id, path);
 
-      importDummyWriter.Indent();
-      importDummyWriter.WriteLine("var _ {0}.{1}", id, dummy);
+      if (!import.SuppressDummy) {
+        importDummyWriter.Indent();
+        importDummyWriter.WriteLine("var _ {0}.{1}", id, dummy);
+      }
     }
 
     protected override string GetHelperModuleName() => "dafny";
@@ -291,7 +294,7 @@ namespace Microsoft.Dafny {
         wDefault.WriteLine("return (*{0})(nil)", name);
       }
 
-      var cw = new ClassWriter(this, name, null, w, instanceFieldWriter, instanceFieldInitWriter, traitInitWriter, staticFieldWriter, staticFieldInitWriter);
+      var cw = new ClassWriter(this, name, isExtern, null, w, instanceFieldWriter, instanceFieldInitWriter, traitInitWriter, staticFieldWriter, staticFieldInitWriter);
 
       if (superClasses != null) {
         foreach (Type typ in superClasses) {
@@ -301,7 +304,7 @@ namespace Microsoft.Dafny {
       return cw;
     }
 
-    protected override IClassWriter CreateTrait(string name, List<Type>/*?*/ superClasses, Bpl.IToken tok, TargetWriter wr) {
+    protected override IClassWriter CreateTrait(string name, bool isExtern, List<Type>/*?*/ superClasses, Bpl.IToken tok, TargetWriter wr) {
       //
       // type Trait struct {
       //   Iface_Trait_ // see comments on CreateClass
@@ -350,7 +353,7 @@ namespace Microsoft.Dafny {
       var staticFieldInitWriter = wr.NewNamedBlock("var {0} = {1}", FormatCompanionName(name), FormatCompanionTypeName(name));
       wr.Indent();
       
-      var cw = new ClassWriter(this, name, abstractMethodWriter, concreteMethodWriter, instanceFieldWriter, instanceFieldInitWriter, traitInitWriter, staticFieldWriter, staticFieldInitWriter);
+      var cw = new ClassWriter(this, name, isExtern, abstractMethodWriter, concreteMethodWriter, instanceFieldWriter, instanceFieldInitWriter, traitInitWriter, staticFieldWriter, staticFieldInitWriter);
       if (superClasses != null) {
         foreach (Type typ in superClasses) {
           cw.AddSuperType(typ, tok);
@@ -993,7 +996,7 @@ namespace Microsoft.Dafny {
       if (sst.WitnessKind == SubsetTypeDecl.WKind.Compiled) { 
         var witness = new TargetWriter(w.IndentLevel);
         TrExpr(sst.Witness, witness, false);
-        DeclareField("Witness", true, true, sst.Rhs, sst.tok, witness.ToString(), cw.StaticFieldWriter, cw.StaticFieldInitWriter);
+        DeclareField("Witness", false, true, true, sst.Rhs, sst.tok, witness.ToString(), cw.StaticFieldWriter, cw.StaticFieldInitWriter);
       }
       // RTD
       {
@@ -1072,11 +1075,13 @@ namespace Microsoft.Dafny {
     protected class ClassWriter : IClassWriter {
       public readonly GoCompiler Compiler;
       public readonly string ClassName;
+      public readonly bool IsExtern;
       public readonly TargetWriter/*?*/ AbstractMethodWriter, ConcreteMethodWriter, InstanceFieldWriter, InstanceFieldInitWriter, TraitInitWriter, StaticFieldWriter, StaticFieldInitWriter;
 
-      public ClassWriter(GoCompiler compiler, string className, TargetWriter abstractMethodWriter, TargetWriter concreteMethodWriter, TargetWriter instanceFieldWriter, TargetWriter instanceFieldInitWriter, TargetWriter traitInitWriter, TargetWriter staticFieldWriter, TargetWriter staticFieldInitWriter) {
+      public ClassWriter(GoCompiler compiler, string className, bool isExtern, TargetWriter abstractMethodWriter, TargetWriter concreteMethodWriter, TargetWriter instanceFieldWriter, TargetWriter instanceFieldInitWriter, TargetWriter traitInitWriter, TargetWriter staticFieldWriter, TargetWriter staticFieldInitWriter) {
         this.Compiler = compiler;
         this.ClassName = className;
+        this.IsExtern = isExtern;
         this.AbstractMethodWriter = abstractMethodWriter;
         this.ConcreteMethodWriter = concreteMethodWriter;
         this.InstanceFieldWriter = instanceFieldWriter;
@@ -1107,7 +1112,7 @@ namespace Microsoft.Dafny {
         return Compiler.CreateGetterSetter(name, resultType, tok, isStatic, createBody, member, name, out setterWriter, ConcreteMethodWriter);
       }
       public void DeclareField(string name, bool isStatic, bool isConst, Type type, Bpl.IToken tok, string rhs) {
-        Compiler.DeclareField(name, isStatic, isConst, type, tok, rhs, FieldWriter(isStatic), FieldInitWriter(isStatic));
+        Compiler.DeclareField(name, IsExtern, isStatic, isConst, type, tok, rhs, FieldWriter(isStatic), FieldInitWriter(isStatic));
       }
       public TextWriter/*?*/ ErrorWriter() => ConcreteMethodWriter;
 
@@ -1469,8 +1474,14 @@ namespace Microsoft.Dafny {
           // Don't return a pointer to the datatype because the datatype is
           // already represented using a pointer
           return IdProtect(s); 
+        } else if (udt.IsTraitType && udt.ResolvedClass.IsExtern(out var qual, out var name)) {
+          // To use an external interface, we need to have values of the
+          // interface type, so we treat an extern trait as a plain interface
+          // value, not a pointer (a Go interface value is basically a typed
+          // pointer anyway).
+          return string.Format("{0}{1}{2}", qual, qual == "" ? "" : ".", name);
         } else {
-          return TypeName_UDT(s, udt.TypeArgs, wr, udt.tok);
+          return "*" + IdProtect(s);
         }
       } else if (xType is SetType) {
         Type argType = ((SetType)xType).Arg;
@@ -1674,7 +1685,11 @@ namespace Microsoft.Dafny {
 
     // ----- Declarations -------------------------------------------------------------
 
-    protected void DeclareField(string name, bool isStatic, bool isConst, Type type, Bpl.IToken tok, string rhs, TargetWriter wr, TargetWriter initWriter) {
+    protected void DeclareField(string name, bool isExtern, bool isStatic, bool isConst, Type type, Bpl.IToken tok, string rhs, TargetWriter wr, TargetWriter initWriter) {
+      if (isExtern) {
+        Error(tok, "Unsupported field {0} in extern trait", wr, name);
+      }
+
       wr.Indent();
       wr.WriteLine("{0} {1}", name, TypeName(type, initWriter, tok));
 
@@ -1768,25 +1783,25 @@ namespace Microsoft.Dafny {
       return "var " + target;
     }
 
-    protected override void EmitAssignment(string lhs, Type lhsType, string rhs, Type rhsType, TargetWriter wr) {
+    protected override void EmitAssignment(out TargetWriter wLhs, Type/*?*/ lhsType, out TargetWriter wRhs, Type/*?*/ rhsType, TargetWriter wr) {
       wr.Indent();
-      wr.Write("{0} = ", lhs);
+      wLhs = wr.Fork();
+      wr.Write(" = ");
       TargetWriter w;
       if (lhsType != null && rhsType != null) {
         w = EmitCoercionIfNecessary(from:rhsType, to:lhsType, tok:Bpl.Token.NoToken, wr:wr);
       } else {
         w = wr;
       }
-      w.Write(rhs);
+      wRhs = w.Fork();
       wr.WriteLine();
     }
-    protected override void EmitAssignmentRhs(string rhs, TargetWriter wr) {
-      wr.WriteLine(" = {0}", rhs);
-    }
-    protected override void EmitAssignmentRhs(Expression rhs, bool inLetExprBody, TargetWriter wr) {
+    
+    protected override TargetWriter EmitAssignmentRhs(TargetWriter wr) {
       wr.Write(" = ");
-      TrExpr(rhs, wr, inLetExprBody);
+      var wRhs = wr.Fork();
       wr.WriteLine();
+      return wRhs;
     }
 
     // ----- Statements -------------------------------------------------------------
@@ -2968,6 +2983,30 @@ namespace Microsoft.Dafny {
         return w;
       } else {
         Error(tok, "Cannot convert from {0} to {1}", wr, from, to);
+        return wr;
+      }
+    }
+
+    protected override TargetWriter EmitCoercionToNativeForm(Type from, Bpl.IToken tok, TargetWriter wr) {
+      from = from.NormalizeExpand();
+      if (from is SeqType && from.TypeArgs[0].IsCharType) {
+        wr.Write('(');
+        var w = wr.Fork();
+        wr.Write(").String()");
+        return w;
+      } else {
+        return wr;
+      }
+    }
+
+    protected override TargetWriter EmitCoercionFromNativeForm(Type to, Bpl.IToken tok, TargetWriter wr) {
+      to = to.NormalizeExpand();
+      if (to is SeqType && to.TypeArgs[0].IsCharType) {
+        wr.Write("dafny.SeqOfString(");
+        var w = wr.Fork();
+        wr.Write(")");
+        return w;
+      } else {
         return wr;
       }
     }

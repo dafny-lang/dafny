@@ -90,7 +90,7 @@ namespace Microsoft.Dafny {
     /// <summary>
     /// "tok" can be "null" if "superClasses" is.
     /// </summary>
-    protected abstract IClassWriter CreateTrait(string name, List<Type>/*?*/ superClasses, Bpl.IToken tok, TargetWriter wr);
+    protected abstract IClassWriter CreateTrait(string name, bool isExtern, List<Type>/*?*/ superClasses, Bpl.IToken tok, TargetWriter wr);
     /// If this returns false, it is assumed that the implementation handles inherited fields on its own.
     protected virtual bool NeedsWrappersForInheritedFields() => true;
     protected virtual bool SupportsProperties() => true;
@@ -197,14 +197,23 @@ namespace Microsoft.Dafny {
 
     protected abstract void EmitActualTypeArgs(List<Type> typeArgs, Bpl.IToken tok, TextWriter wr);
     protected abstract string GenerateLhsDecl(string target, Type/*?*/ type, TextWriter wr, Bpl.IToken tok);
-    protected virtual void EmitAssignment(string lhs, Type/*?*/ lhsType, string rhs, Type/*?*/ rhsType, TargetWriter wr) {
+    protected virtual void EmitAssignment(out TargetWriter wLhs, Type/*?*/ lhsType, out TargetWriter wRhs, Type/*?*/ rhsType, TargetWriter wr) {
       wr.Indent();
-      wr.WriteLine("{0} = {1};", lhs, rhs);
+      wLhs = wr.Fork();
+      wr.Write(" = ");
+      wRhs = wr.Fork();
+      wr.WriteLine(";");
     }
-    protected virtual void EmitAssignmentRhs(string rhs, TargetWriter wr) {
-      wr.WriteLine(" = {0};", rhs);
+    protected void EmitAssignment(string lhs, Type/*?*/ lhsType, string rhs, Type/*?*/ rhsType, TargetWriter wr) {
+      EmitAssignment(out var wLhs, lhsType, out var wRhs, rhsType, wr);
+      wLhs.Write(lhs);
+      wRhs.Write(rhs);
     }
-    protected virtual void EmitAssignmentRhs(Expression rhs, bool inLetExprBody, TargetWriter wr) {
+    protected void EmitAssignmentRhs(string rhs, TargetWriter wr) {
+      var w = EmitAssignmentRhs(wr);
+      w.Write(rhs);
+    }
+    protected void EmitAssignmentRhs(Expression rhs, bool inLetExprBody, TargetWriter wr) {
       var w = EmitAssignmentRhs(wr);
       TrExpr(rhs, w, inLetExprBody);
     }
@@ -311,6 +320,12 @@ namespace Microsoft.Dafny {
     /// If "from" and "to" are both given, and if a "from" needs an explicit coercion in order to become a "to", emit that coercion.  Only needed in languages where we've had to represent upcasts manually (like Go).
     /// </summary>
     protected virtual TargetWriter EmitCoercionIfNecessary(Type/*?*/ from, Type/*?*/ to, Bpl.IToken tok, TargetWriter wr) {
+      return wr;
+    }
+    protected virtual TargetWriter EmitCoercionToNativeForm(Type/*?*/ from, Bpl.IToken tok, TargetWriter wr) {
+      return wr;
+    }
+    protected virtual TargetWriter EmitCoercionFromNativeForm(Type/*?*/ to, Bpl.IToken tok, TargetWriter wr) {
       return wr;
     }
     protected virtual string IdName(TopLevelDecl d) {
@@ -483,7 +498,7 @@ namespace Microsoft.Dafny {
           } else if (d is TraitDecl) {
             // writing the trait
             var trait = (TraitDecl)d;
-            var w = CreateTrait(trait.CompileName, null, null, wr);
+            var w = CreateTrait(trait.CompileName, trait.IsExtern(out _, out _), null, null, wr);
             CompileClassMembers(trait, w);
           } else if (d is ClassDecl) {
             var cl = (ClassDecl)d;
@@ -2260,7 +2275,11 @@ namespace Microsoft.Dafny {
           Formal p = s.Method.Ins[i];
           if (!p.IsGhost) {
             wr.Write(sep);
+            // Order of coercions is important here: EmitCoercionToNativeForm may coerce into a type we're unaware of, so it *has* to be second
             var w = EmitCoercionIfNecessary(s.Args[i].Type, s.Method.Ins[i].Type, s.Tok, wr);
+            if (s.Method.IsExtern(out _, out _)) {
+              w = EmitCoercionToNativeForm(s.Method.Ins[i].Type, s.Tok, w);
+            }
             TrExpr(s.Args[i], w, false);
             sep = ", ";
           }
@@ -2282,7 +2301,15 @@ namespace Microsoft.Dafny {
         for (int j = 0; j < lvalues.Count; j++) {
           // The type information here takes care both of implicit upcasts and
           // implicit downcasts from type parameters (see above).
-          EmitAssignment(lvalues[j], s.Lhs[j].Type, outTmps[j], s.Method.Outs[j].Type, wr);
+          TargetWriter wLhs, wRhs;
+          EmitAssignment(out wLhs, s.Lhs[j].Type, out wRhs, s.Method.Outs[j].Type, wr);
+          wLhs.Write(lvalues[j]);
+          if (s.Method.IsExtern(out _, out _)) {
+            wRhs = EmitCoercionFromNativeForm(s.Method.Outs[j].Type, s.Tok, wRhs);
+          }
+          wRhs.Write(outTmps[j]);
+          // Coercion from the out type to the LHS type is the responsibility
+          // of the EmitAssignment above
         }
       }
       return wr;
