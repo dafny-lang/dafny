@@ -92,8 +92,8 @@ namespace Microsoft.Dafny {
     /// </summary>
     protected abstract IClassWriter CreateTrait(string name, bool isExtern, List<Type>/*?*/ superClasses, Bpl.IToken tok, TargetWriter wr);
     /// If this returns false, it is assumed that the implementation handles inherited fields on its own.
-    protected virtual bool NeedsWrappersForInheritedFields() => true;
-    protected virtual bool SupportsProperties() => true;
+    protected virtual bool NeedsWrappersForInheritedFields { get => true; }
+    protected virtual bool SupportsProperties { get => true; }
     protected abstract BlockTargetWriter CreateIterator(IteratorDecl iter, TargetWriter wr);
     protected abstract void DeclareDatatype(DatatypeDecl dt, TargetWriter wr);
     protected abstract void DeclareNewtype(NewtypeDecl nt, TargetWriter wr);
@@ -189,8 +189,12 @@ namespace Microsoft.Dafny {
     protected abstract TargetWriter DeclareLocalVar(string name, Type/*?*/ type, Bpl.IToken/*?*/ tok, TargetWriter wr);
     protected virtual void DeclareOutCollector(string collectorVarName, TargetWriter wr) { }  // called only for return-style calls
     protected virtual bool UseReturnStyleOuts(Method m, int nonGhostOutCount) => false;
-    protected virtual bool SupportsMultipleReturns() => false;
-    protected virtual bool NeedsCastFromTypeParameter() => false;
+    protected virtual bool SupportsMultipleReturns { get => false; }
+    protected virtual bool NeedsCastFromTypeParameter { get => false; }
+    /// The punctuation that comes at the end of a statement.  Note that
+    /// statements are followed by newlines regardless.
+    protected virtual string StmtTerminator { get => ";"; }
+    protected void EndStmt(TargetWriter wr) { wr.WriteLine(StmtTerminator); }
     protected abstract void DeclareLocalOutVar(string name, Type type, Bpl.IToken tok, string rhs, TargetWriter wr);
     protected virtual void EmitActualOutArg(string actualOutParamName, TextWriter wr) { }  // actualOutParamName is always the name of a local variable; called only for non-return-style outs
     protected virtual void EmitOutParameterSplits(string outCollector, List<string> actualOutParamNames, TargetWriter wr) { }  // called only for return-style calls
@@ -201,8 +205,14 @@ namespace Microsoft.Dafny {
       wr.Indent();
       wLhs = wr.Fork();
       wr.Write(" = ");
-      wRhs = wr.Fork();
-      wr.WriteLine(";");
+      TargetWriter w;
+      if (rhsType != null) {
+        w = EmitCoercionIfNecessary(from:rhsType, to:lhsType, tok:Bpl.Token.NoToken, wr:wr);
+      } else {
+        w = wr;
+      }
+      wRhs = w.Fork();
+      EndStmt(wr);
     }
     protected void EmitAssignment(string lhs, Type/*?*/ lhsType, string rhs, Type/*?*/ rhsType, TargetWriter wr) {
       EmitAssignment(out var wLhs, lhsType, out var wRhs, rhsType, wr);
@@ -222,7 +232,7 @@ namespace Microsoft.Dafny {
 
       wr.Write(" = ");
       wr.Append(w);
-      wr.WriteLine(";");
+      EndStmt(wr);
 
       return w;
     }
@@ -245,7 +255,7 @@ namespace Microsoft.Dafny {
       wr.Indent();
       wr.Write("return ");
       wr.Append(w);
-      wr.WriteLine(";");
+      EndStmt(wr);
       return w;
     }
     /// <summary>
@@ -705,8 +715,8 @@ namespace Microsoft.Dafny {
         Contract.Assert(!member.IsStatic);  // only instance members should ever be added to .InheritedMembers
         if (member.IsGhost) {
           // skip
-        } else if (member is ConstantField && SupportsProperties()) {
-          if (NeedsWrappersForInheritedFields()) {
+        } else if (member is ConstantField && SupportsProperties) {
+          if (NeedsWrappersForInheritedFields) {
             var cf = (ConstantField)member;
           
             if (cf.Rhs == null) {
@@ -725,7 +735,7 @@ namespace Microsoft.Dafny {
             }
           }
         } else if (member is Field) {
-          if (NeedsWrappersForInheritedFields()) {
+          if (NeedsWrappersForInheritedFields) {
             var f = (Field)member;
             // every field is inherited
             classWriter.DeclareField("_" + f.CompileName, false, false, f.Type, f.tok, DefaultValue(f.Type, errorWr, f.tok, true));
@@ -769,7 +779,7 @@ namespace Microsoft.Dafny {
             }
           } else if (f is ConstantField) {
             var cf = (ConstantField)f;
-            if (SupportsProperties()) {
+            if (SupportsProperties) {
               BlockTargetWriter wBody;
               if (cf.IsStatic) {
                 wBody = classWriter.CreateGetter(IdName(cf), cf.Type, cf.tok, true, true, cf);
@@ -810,7 +820,7 @@ namespace Microsoft.Dafny {
               }
               classWriter.DeclareField(IdName(f), f.IsStatic, true, f.Type, f.tok, rhs);
             }
-          } else if (c is TraitDecl && NeedsWrappersForInheritedFields()) {
+          } else if (c is TraitDecl && NeedsWrappersForInheritedFields) {
             TargetWriter wSet;
             var wGet = classWriter.CreateGetterSetter(IdName(f), f.Type, f.tok, f.IsStatic, false, member, out wSet);
             Contract.Assert(wSet == null && wGet == null);  // since the previous line specified no body
@@ -1738,7 +1748,7 @@ namespace Microsoft.Dafny {
           EmitTupleSelect(tup, 0, wr);
           wr.Write(".{0} = ", IdMemberName(lhs));
           EmitTupleSelect(tup, 1, wr);
-          wr.WriteLine(";");
+          EndStmt(wr);
         } else if (s0.Lhs is SeqSelectExpr) {
           var lhs = (SeqSelectExpr)s0.Lhs;
           EmitTupleSelect(tup, 0, wr);
@@ -1746,7 +1756,7 @@ namespace Microsoft.Dafny {
           EmitTupleSelect(tup, 1, wr);
           wr.Write("] = ");
           EmitTupleSelect(tup, 2, wr);
-          wr.WriteLine(";");
+          EndStmt(wr);
         } else {
           var lhs = (MultiSelectExpr)s0.Lhs;
           EmitTupleSelect(tup, 0, wr);
@@ -1759,7 +1769,7 @@ namespace Microsoft.Dafny {
           }
           wr.Write("] = ");
           EmitTupleSelect(tup, L-1, wr);
-          wr.WriteLine(";");
+          EndStmt(wr);
         }
 
       } else if (stmt is MatchStmt) {
@@ -1830,7 +1840,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(bound != null);
       Contract.Requires(bounds == null || (boundVars != null && bounds.Count == boundVars.Count && 0 <= boundIndex && boundIndex < bounds.Count));
       Contract.Requires(collectionWriter != null);
-      var propertySuffix = SupportsProperties() ? "" : "()";
+      var propertySuffix = SupportsProperties ? "" : "()";
 
       if (bound is ComprehensionExpr.BoolBoundedPool) {
         collectionWriter.Write("{0}.AllBooleans()", GetHelperModuleName());
@@ -2149,13 +2159,15 @@ namespace Microsoft.Dafny {
         int n = 0;
         if (!s.Method.IsStatic) {
           wr.Indent();
-          wr.WriteLine("_this = {0};", inTmps[n]);
+          wr.Write("_this = {0}", inTmps[n]);
+          EndStmt(wr);
           n++;
         }
         foreach (var p in s.Method.Ins) {
           if (!p.IsGhost) {
             wr.Indent();
-            wr.WriteLine("{0} = {1};", p.CompileName, inTmps[n]);
+            wr.WriteLine("{0} = {1}", p.CompileName, inTmps[n]);
+            EndStmt(wr);
             n++;
           }
         }
@@ -2181,7 +2193,7 @@ namespace Microsoft.Dafny {
             string target = idGenerator.FreshId("_out");
             outTmps.Add(target);
             Type type;
-            if (!NeedsCastFromTypeParameter()) {
+            if (!NeedsCastFromTypeParameter) {
               type = s.Lhs[i].Type;
             } else {
               //
@@ -2235,11 +2247,11 @@ namespace Microsoft.Dafny {
           }
         }
         bool returnStyleOuts = UseReturnStyleOuts(s.Method, outTmps.Count);
-        var returnStyleOutCollector = outTmps.Count > 0 && returnStyleOuts && !SupportsMultipleReturns() ? idGenerator.FreshId("_outcollector") : null;
+        var returnStyleOutCollector = outTmps.Count > 0 && returnStyleOuts && !SupportsMultipleReturns ? idGenerator.FreshId("_outcollector") : null;
         if (returnStyleOutCollector != null) {
           wr.Indent();
           DeclareOutCollector(returnStyleOutCollector, wr);
-        } else if (outTmps.Count > 0 && returnStyleOuts && SupportsMultipleReturns()) {
+        } else if (outTmps.Count > 0 && returnStyleOuts && SupportsMultipleReturns) {
           wr.Indent();
           wr.Write("{0} = ", Util.Comma(outTmps));
         } else {
@@ -2285,7 +2297,7 @@ namespace Microsoft.Dafny {
           }
         }
 
-        if (returnStyleOutCollector == null && !SupportsMultipleReturns()) {
+        if (returnStyleOutCollector == null && !SupportsMultipleReturns) {
           foreach (var outTmp in outTmps) {
             wr.Write(sep);
             EmitActualOutArg(outTmp, wr);

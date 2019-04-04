@@ -376,8 +376,8 @@ namespace Microsoft.Dafny {
       w.WriteLine("return &_this");
     }
 
-    protected override bool NeedsWrappersForInheritedFields() => false;
-    protected override bool SupportsProperties() => false;
+    protected override bool NeedsWrappersForInheritedFields { get => false; }
+    protected override bool SupportsProperties { get => false; }
 
     protected override BlockTargetWriter CreateIterator(IteratorDecl iter, TargetWriter wr) {
       // FIXME: There should be tests to make sure that the finalizer mechanism achieves what I hope it does, namely allowing the iterator's goroutine to be garbage-collected along with the iterator.
@@ -1752,56 +1752,20 @@ namespace Microsoft.Dafny {
 
     protected override bool UseReturnStyleOuts(Method m, int nonGhostOutCount) => true;
 
-    protected override bool NeedsCastFromTypeParameter() => true;
-
-    protected override bool SupportsMultipleReturns() => true;
-
-    protected override void DeclareOutCollector(string collectorVarName, TargetWriter wr) {
-      wr.Write("var {0} = ", collectorVarName);
-    }
+    protected override bool NeedsCastFromTypeParameter { get => true; }
+    protected override bool SupportsMultipleReturns { get => true; }
+    protected override string StmtTerminator { get => ""; }
 
     protected override void DeclareLocalOutVar(string name, Type type, Bpl.IToken tok, string rhs, TargetWriter wr) {
       DeclareLocalVar(name, type, tok, false, rhs, wr);
     }
 
-    protected override void EmitOutParameterSplits(string outCollector, List<string> actualOutParamNames, TargetWriter wr) {
-      if (actualOutParamNames.Count == 1) {
-        EmitAssignment(actualOutParamNames[0], null, outCollector, null, wr);
-      } else {
-        for (var i = 0; i < actualOutParamNames.Count; i++) {
-          wr.Indent();
-          wr.WriteLine("{0} = {1}[{2}];", actualOutParamNames[i], outCollector, i);
-        }
-      }
-    }
-
     protected override void EmitActualTypeArgs(List<Type> typeArgs, Bpl.IToken tok, TextWriter wr) {
-      // emit nothing
+      // emit nothing; this is only for actual parametric polymorphism, not RTDs
     }
 
     protected override string GenerateLhsDecl(string target, Type/*?*/ type, TextWriter wr, Bpl.IToken tok) {
       return "var " + target;
-    }
-
-    protected override void EmitAssignment(out TargetWriter wLhs, Type/*?*/ lhsType, out TargetWriter wRhs, Type/*?*/ rhsType, TargetWriter wr) {
-      wr.Indent();
-      wLhs = wr.Fork();
-      wr.Write(" = ");
-      TargetWriter w;
-      if (lhsType != null && rhsType != null) {
-        w = EmitCoercionIfNecessary(from:rhsType, to:lhsType, tok:Bpl.Token.NoToken, wr:wr);
-      } else {
-        w = wr;
-      }
-      wRhs = w.Fork();
-      wr.WriteLine();
-    }
-    
-    protected override TargetWriter EmitAssignmentRhs(TargetWriter wr) {
-      wr.Write(" = ");
-      var wRhs = wr.Fork();
-      wr.WriteLine();
-      return wRhs;
     }
 
     // ----- Statements -------------------------------------------------------------
@@ -1832,9 +1796,9 @@ namespace Microsoft.Dafny {
     protected override void EmitBreak(string/*?*/ label, TargetWriter wr) {
       wr.Indent();
       if (label == null) {
-        wr.WriteLine("break;");
+        wr.WriteLine("break");
       } else {
-        wr.WriteLine("goto L{0};", label);
+        wr.WriteLine("goto L{0}", label);
       }
     }
 
