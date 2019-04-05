@@ -6267,25 +6267,7 @@ namespace Microsoft.Dafny {
 
       } else if (expr is LetExpr) {
         var e = (LetExpr)expr;
-        if (e.Exact) {
-          // CanCall[[ var b := RHS(g); Body(b,g,h) ]] =
-          //   CanCall[[ RHS(g) ]] &&
-          //   CanCall[[ Body(b,g,h)[b := PROTECT(RHS(g))] ]]
-          // where PROTECT(e) means protect e from variable capture (which is achieved by translating
-          // e and then putting it into a BoogieWrapper).  Actually, since the b may be a pattern,
-          // the substitution is really [b0 := PROTECT( RHS(g).dtor )] for each b0 in b and each corresponding
-          // path of destructors dtor.
-          Bpl.Expr canCallRHS = Bpl.Expr.True;
-          var substMap = new Dictionary<IVariable, Expression>();
-          int i = 0;
-          foreach (var lhs in e.LHSs) {
-            canCallRHS = BplAnd(canCallRHS, CanCallAssumption(e.RHSs[i], etran));
-            AddCasePatternVarSubstitutions(lhs, etran.TrExpr(e.RHSs[i]), substMap);
-            i++;
-          }
-          var canCallBody = CanCallAssumption(Substitute(e.Body, null, substMap), etran);
-          return BplAnd(canCallRHS, canCallBody);
-        } else {
+        if (!e.Exact) {
           // CanCall[[ var b0,b1 :| RHS(b0,b1,g); Body(b0,b1,g,h) ]] =
           //   $let$canCall(g) &&
           //   CanCall[[ Body($let$b0(g), $let$b1(g), h) ]]
@@ -6304,6 +6286,40 @@ namespace Microsoft.Dafny {
           var p = Substitute(e.Body, null, substMap);
           var cc = BplAnd(canCall, CanCallAssumption(p, etran));
           return cc;
+        } else {
+          // CanCall[[ var b := RHS(g); Body(b,g,h) ]] =
+          //   CanCall[[ RHS(g) ]] &&
+          //   (var lhs0,lhs1,... := rhs0,rhs1,...;  CanCall[[ Body ]])
+          Bpl.Expr canCallRHS = Bpl.Expr.True;
+          foreach (var rhs in e.RHSs) {
+            canCallRHS = BplAnd(canCallRHS, CanCallAssumption(rhs, etran));
+          }
+
+          var bodyCanCall = CanCallAssumption(e.Body, etran);
+          // We'd like to compute the free variables if "bodyCanCall". It would be nice to use the Boogie
+          // routine Bpl.Expr.ComputeFreeVariables for this purpose. However, calling it requires the Boogie
+          // expression to be resolved. Instead, we do the cheesy thing of computing the set of names of
+          // free variables in "bodyCanCall".
+          var vis = new VariableNameVisitor();
+          vis.Visit(bodyCanCall);
+
+          List<Bpl.Variable> lhssAll;
+          List<Bpl.Expr> rhssAll;
+          etran.TrLetExprPieces(e, out lhssAll, out rhssAll);
+          Contract.Assert(lhssAll.Count == rhssAll.Count);
+
+          // prune lhss,rhss to contain only those pairs where the LHS is used in the body
+          var lhssPruned = new List<Bpl.Variable>();
+          var rhssPruned = new List<Bpl.Expr>();
+          for (var i = 0; i < lhssAll.Count; i++) {
+            var bv = lhssAll[i];
+            if (vis.Names.Contains(bv.Name)) {
+              lhssPruned.Add(bv);
+              rhssPruned.Add(rhssAll[i]);
+            }
+          }
+          Bpl.Expr let = lhssPruned.Count == 0 ? bodyCanCall : new Bpl.LetExpr(e.tok, lhssPruned, rhssPruned, null, bodyCanCall);
+          return BplAnd(canCallRHS, let);
         }
 
       } else if (expr is NamedExpr) {
@@ -14970,11 +14986,15 @@ namespace Microsoft.Dafny {
           }
         } else if (expr is LetExpr) {
           var e = (LetExpr)expr;
-          if (e.Exact) {
-            return TrExpr(GetSubstitutedBody(e));
-          } else {
+          if (!e.Exact) {
             var d = translator.LetDesugaring(e);
             return TrExpr(d);
+          } else {
+            List<Bpl.Variable> lhss;
+            List<Bpl.Expr> rhss;
+            TrLetExprPieces(e, out lhss, out rhss);
+            // in the following, use the token for Body instead of the token for the whole let expression; this gives better error locations
+            return new Bpl.LetExpr(e.Body.tok, lhss, rhss, null, TrExpr(e.Body));
           }
         } else if (expr is NamedExpr) {
           return TrExpr(((NamedExpr)expr).Body);
@@ -15262,6 +15282,23 @@ namespace Microsoft.Dafny {
                 new Bpl.LambdaExpr(e.tok, new List<TypeVariable>(), bvars, null, rdbody))),
                 layerIntraCluster != null ? layerIntraCluster.ToExpr() : layerInterCluster.ToExpr()),
           predef.HandleType);
+      }
+
+      public void TrLetExprPieces(LetExpr let, out List<Bpl.Variable> lhss, out List<Bpl.Expr> rhss) {
+        Contract.Requires(let != null);
+        var substMap = new Dictionary<IVariable, Expression>();
+        for (int i = 0; i < let.LHSs.Count; i++) {
+          translator.AddCasePatternVarSubstitutions(let.LHSs[i], TrExpr(let.RHSs[i]), substMap);
+        }
+        lhss = new List<Bpl.Variable>();
+        rhss = new List<Bpl.Expr>();
+        foreach (var v in let.BoundVars) {
+          var rhs = substMap[v];  // this should succeed (that is, "v" is in "substMap"), because the AddCasePatternVarSubstitutions calls above should have added a mapping for each bound variable in let.BoundVars
+          Bpl.Expr bvIde;  // unused
+          var bv = BplBoundVar(v.AssignUniqueName(translator.currentDeclaration.IdGenerator), translator.TrType(v.Type), out bvIde);
+          lhss.Add(bv);
+          rhss.Add(TrExpr(rhs));
+        }
       }
 
       public Expression DesugarMatchExpr(MatchExpr e) {
@@ -16412,20 +16449,26 @@ namespace Microsoft.Dafny {
 
       } else if (expr is LetExpr) {
         var e = (LetExpr)expr;
-        if (e.Exact) {
-          // The RHS of the let get substituted into the body of the let. Unfortunately, what gets substituted
-          // is not exactly the original Dafny RHS, but instead of Boogie.Expr-wrapped translation of the
-          // Dafny RHS. At this point in the translation, we don't know where the substitution is going to
-          // end up, and in particular we don't know if it will end up in a spot where TrSplitExpr would like
-          // to increase the Layer offset or not. In fact, different substitutions of the same let variable
-          // may end up needing different Layer constants. The following code will always bump the Layer
-          // offset in the RHS. This seems likely to be desireable in many cases, because the LetExpr sits
-          // in a position that TrSplitExpr is invoked.
-          var b = etran.LayerOffset(1).GetSubstitutedBody(e);
-          return TrSplitExpr(b, splits, position, heightLimit, inlineProtectedFunctions, apply_induction, etran);
-        } else {
+        if (!e.Exact) {
           var d = LetDesugaring(e);
           return TrSplitExpr(d, splits, position, heightLimit, inlineProtectedFunctions, apply_induction, etran);
+        } else {
+          var ss = new List<SplitExprInfo>();
+          if (TrSplitExpr(e.Body, ss, position, heightLimit, inlineProtectedFunctions, apply_induction, etran)) {
+            // We don't know where the RHSs of the let are used in the body. In particular, we don't know if a RHS
+            // will end up in a spot where TrSplitExpr would like to increase the Layer offset or not. In fact, different
+            // uses of the same let variable may end up needing different Layer constants. The following code will
+            // always bump the Layer offset in the RHS. This seems likely to be desireable in many cases, because the
+            // LetExpr sits in a position for which TrSplitExpr is invoked.
+            List<Bpl.Variable> lhss;
+            List<Bpl.Expr> rhss;
+            etran.LayerOffset(1).TrLetExprPieces(e, out lhss, out rhss);
+            foreach (var s in ss) {
+              // as the source location in the following let, use that of the translated "s"
+              splits.Add(new SplitExprInfo(s.Kind, new Bpl.LetExpr(s.E.tok, lhss, rhss, null, s.E)));
+            }
+            return true;
+          }
         }
 
       } else if (expr is UnchangedExpr) {

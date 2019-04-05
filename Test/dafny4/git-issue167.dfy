@@ -1,9 +1,42 @@
 // RUN: %dafny /compile:3 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
-// The problem reported in issue 167 has not yet been fixed. However, an improvement that
-// happens to avoid the problem in some cases has been implemented. The tests below
-// test that behavior.
+method Main() {
+  LetTest();
+
+  var m := map[6 := 8, 7 := 3];
+  var n := Rewrite(m);
+  assert m.Keys == n.Keys;
+  print n.Keys, "\n";
+
+  var u := {"Alfons", "Milla"};
+  var v := Rewrite2(u);
+  assert u == v.Keys;
+  print v.Keys, "\n";
+}
+
+// Some tests of let-expression translation into Boogie's new let expressions:
+
+function method F(u: int): int
+  requires u < 2400
+{
+  u
+}
+
+function method G(w: int): int
+{
+  var g := w + w;
+  g - w
+}
+
+method LetTest() {
+  var x :=
+    var y := "unused"; var y, z := 10, 20; G(F(y)) + z;
+  assert x == G(30);
+  print x, "\n";
+}
+
+// Issue 167:
 
 function method Rewrite(env: map<nat, nat>): map<nat, nat> {
   var p := map g: nat | g in env :: g;  // regression test: used to produce malformed Boogie
@@ -20,20 +53,6 @@ function method Rewrite2(strs: set<string>): map<string, string> {
   map s: string | s in p :: s
 }
 
-method Main() {
-  var m := map[6 := 8, 7 := 3];
-  var n := Rewrite(m);
-  assert m.Keys == n.Keys;
-  print n.Keys, "\n";
-
-  var u := {"Alfons", "Milla"};
-  var v := Rewrite2(u);
-  assert u == v.Keys;
-  print v.Keys, "\n";
-}
-
-
-/*
 function sum(a: int, b: int): int {
   a + b
 }
@@ -42,4 +61,25 @@ predicate sum_is_sum(b: int, c: int) {
   var s := a => sum(a, b);
   forall a: int :: s(a) + c == a + b + c
 }
-*/
+
+lemma TestApply(x: int, y: int)
+  ensures sum_is_sum(x, y)
+{
+}
+
+// Issue 215:
+
+module Test {
+  datatype A = A1
+  datatype B = B1
+
+  function Convert_AB(f:A) : B { B1 }
+  function Convert_BA(f:B) : A { A1 }
+
+  function ConvertMap_AB(m:map<A, int>) : map<B, int>
+  {
+    var dom_B := set a | a in m :: Convert_AB(a);
+    assert forall u :: u in m.Keys ==> u == A1;  // added this to Issue 215 to make the next line verify
+    map b | b in dom_B :: m[Convert_BA(b)]
+  }
+}
