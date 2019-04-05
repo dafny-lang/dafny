@@ -30,7 +30,7 @@ namespace Microsoft.Dafny {
     private static string InitialModuleName = "main";
     private static List<Import> StandardImports =
       new List<Import> {
-        new Import { Name = "dafny", Path = "dafny" },
+        new Import { Name = "_dafny", Path = "dafny" },
         new Import { Name = "fmt", Path = "fmt", Dummy = "Stringer" },
         new Import { Name = "refl", Path = "reflect", Dummy = "Type" },
         new Import { Name = "runtime", Path = "runtime", Dummy = "Func" },
@@ -154,7 +154,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    protected override string GetHelperModuleName() => "dafny";
+    protected override string GetHelperModuleName() => "_dafny";
 
     protected override IClassWriter CreateClass(string name, bool isExtern, string/*?*/ fullPrintName, List<TypeParameter>/*?*/ typeParameters, List<Type>/*?*/ superClasses, Bpl.IToken tok, TargetWriter wr) {
       return CreateClass(name, isExtern, fullPrintName, typeParameters, superClasses, tok, wr, includeRtd: true);
@@ -200,8 +200,8 @@ namespace Microsoft.Dafny {
       //   Trait0
       //   Trait1
       //   ...
-      //   Type0 dafny.Type
-      //   Type1 dafny.Type
+      //   Type0 _dafny.Type
+      //   Type1 _dafny.Type
       //   ...
       //   Field0 type0
       //   Field1 type1
@@ -252,13 +252,13 @@ namespace Microsoft.Dafny {
       //   ...
       // }
       //
-      // func Type_Class_(Type0 dafny.Type, Type1 dafny.Type) dafny.Type {
+      // func Type_Class_(Type0 _dafny.Type, Type1 _dafny.Type) _dafny.Type {
       //   return type_Class_{Type0, Type1}
       // }
       //
       // type type_Class_ struct{
-      //   Type0 dafny.Type
-      //   Type1 dafny.Type
+      //   Type0 _dafny.Type
+      //   Type1 _dafny.Type
       // }
       //
       // func (_this type_Class_) Default() interface{} {
@@ -559,9 +559,9 @@ namespace Microsoft.Dafny {
       //
       // func (_this Dt) String() { ... }
       //
-      // func (_this Dt) Dafny_EqualsGeneric_(other interface{}) bool { ... }
+      // func (_this Dt) EqualsGeneric(other interface{}) bool { ... }
       //
-      // func (companionStruct_Dt_) AllSingletonConstructors() dafny.Iterator {
+      // func (companionStruct_Dt_) AllSingletonConstructors() _dafny.Iterator {
       //   i := -1
       //   return func() (interface{}, bool) {
       //     i++
@@ -577,7 +577,7 @@ namespace Microsoft.Dafny {
       //   }
       // }
       //
-      // func Type_Dt_(tyArg0 Type, tyArg1 Type, ...) Type {
+      // func Type_Dt_(tyArg0 Type, tyArg1 Type, ...) _dafny.Type {
       //   return type_Dt_{tyArg0, tyArg1, ...}
       // }
       //
@@ -773,7 +773,7 @@ namespace Microsoft.Dafny {
       if (dt.HasFinitePossibleValues) {
         wr.WriteLine();
         wr.Indent();
-        var wSingles = wr.NewNamedBlock("func (_ {0}) AllSingletonConstructors() dafny.Iterator", companionTypeName);
+        var wSingles = wr.NewNamedBlock("func (_ {0}) AllSingletonConstructors() _dafny.Iterator", companionTypeName);
         wSingles.Indent();
         wSingles.WriteLine("i := -1");
         wSingles.Indent();
@@ -847,7 +847,7 @@ namespace Microsoft.Dafny {
             foreach (var arg in ctor.Formals) {
               if (!arg.IsGhost) {
                 anyFormals = true;
-                wCase.Write("{0}dafny.String(data.{1})", sep, FormalName(arg, k));
+                wCase.Write("{0}_dafny.String(data.{1})", sep, FormalName(arg, k));
                 sep = " + \", \" + ";
                 k++;
               }
@@ -896,7 +896,7 @@ namespace Microsoft.Dafny {
               if (IsDirectlyComparable(arg.Type)) {
                 wCase.Write("data1.{0} == data2.{0}", nm);
               } else {
-                wCase.Write("dafny.AreEqual(data1.{0}, data2.{0})", nm);
+                wCase.Write("_dafny.AreEqual(data1.{0}, data2.{0})", nm);
               }
               wCase.WriteLine(") { return false }");
               k++;
@@ -957,9 +957,9 @@ namespace Microsoft.Dafny {
       var nativeType = nt.NativeType != null ? GetNativeTypeName(nt.NativeType) : null;
       if (nt.NativeType != null) {
         w.Indent();
-        var wIntegerRangeBody = w.NewNamedBlock("func (_this *{0}) IntegerRange(lo dafny.Int, hi dafny.Int) dafny.Iterator", FormatCompanionTypeName(IdName(nt)));
+        var wIntegerRangeBody = w.NewNamedBlock("func (_this *{0}) IntegerRange(lo _dafny.Int, hi _dafny.Int) _dafny.Iterator", FormatCompanionTypeName(IdName(nt)));
         wIntegerRangeBody.Indent();
-        wIntegerRangeBody.WriteLine("iter := dafny.IntegerRange(lo, hi)");
+        wIntegerRangeBody.WriteLine("iter := _dafny.IntegerRange(lo, hi)");
         wIntegerRangeBody.Indent();
         var wIterFuncBody = wIntegerRangeBody.NewBlock("return func() (interface{}, bool)");
         wIterFuncBody.Indent();
@@ -1018,7 +1018,7 @@ namespace Microsoft.Dafny {
       wr.Indent();
       wr.Write("func {0}(", FormatRTDName(typeName));
       WriteRuntimeTypeDescriptorsFormals(usedParams, true, wr);
-      var wTypeMethod = wr.NewBlock(") dafny.Type");
+      var wTypeMethod = wr.NewBlock(") _dafny.Type");
       wTypeMethod.Indent();
       wTypeMethod.WriteLine("return type_{0}_{{{1}}}", typeName, Util.Comma(usedParams, tp => FormatRTDName(tp.CompileName)));
 
@@ -1242,7 +1242,7 @@ namespace Microsoft.Dafny {
           var name = FormatRTDName(tp.CompileName);
 
           wr.Indent();
-          wr.WriteLine("{0} dafny.Type", name);
+          wr.WriteLine("{0} _dafny.Type", name);
 
           if (wInit != null) {
             wInit.Indent();
@@ -1250,7 +1250,7 @@ namespace Microsoft.Dafny {
           }
 
           if (wParams != null) {
-            wParams.Write("{0}{1} dafny.Type", sep, name);
+            wParams.Write("{0}{1} _dafny.Type", sep, name);
             sep = ", ";
           }
         }
@@ -1264,7 +1264,7 @@ namespace Microsoft.Dafny {
       int c = 0;
       foreach (var tp in typeParams) {
         if (useAllTypeArgs || tp.Characteristics.MustSupportZeroInitialization) {
-          wr.Write("{0}{1} dafny.Type", prefix, FormatRTDName(tp.CompileName));
+          wr.Write("{0}{1} _dafny.Type", prefix, FormatRTDName(tp.CompileName));
           prefix = ", ";
           c++;
         }
@@ -1307,39 +1307,39 @@ namespace Microsoft.Dafny {
       var xType = type.NormalizeExpandKeepConstraints();
       if (xType is TypeProxy) {
         // unresolved proxy; just treat as bool, since no particular type information is apparently needed for this type
-        return "dafny.BoolType";
+        return "_dafny.BoolType";
       }
 
       if (xType is BoolType) {
-        return "dafny.BoolType";
+        return "_dafny.BoolType";
       } else if (xType is CharType) {
-        return "dafny.CharType";
+        return "_dafny.CharType";
       } else if (xType is IntType) {
-        return "dafny.IntType";
+        return "_dafny.IntType";
       } else if (xType is BigOrdinalType) {
-        return "dafny.BigOrdinal";
+        return "_dafny.BigOrdinal";
       } else if (xType is RealType) {
-        return "dafny.RealType";
+        return "_dafny.RealType";
       } else if (xType is BitvectorType) {
         var t = (BitvectorType)xType;
         if (t.NativeType != null) {
-          return string.Format("dafny.{0}Type", Capitalize(GetNativeTypeName(t.NativeType)));
+          return string.Format("_dafny.{0}Type", Capitalize(GetNativeTypeName(t.NativeType)));
         } else {
-          return "dafny.IntType";
+          return "_dafny.IntType";
         }
       } else if (xType is SetType) {
-        return "dafny.SetType";
+        return "_dafny.SetType";
       } else if (xType is MultiSetType) {
-        return "dafny.MultiSetType";
+        return "_dafny.MultiSetType";
       } else if (xType is SeqType) {
-        return "dafny.SeqType";
+        return "_dafny.SeqType";
       } else if (xType is MapType) {
-        return "dafny.MapType";
+        return "_dafny.MapType";
       } else if (xType.IsBuiltinArrowType) {
 
-        return string.Format("dafny.TypeWithDefault({0})", TypeInitializationValue(xType, wr, tok, false));
+        return string.Format("_dafny.TypeWithDefault({0})", TypeInitializationValue(xType, wr, tok, false));
       } else if (xType.IsObjectQ) {
-        return "dafny.PointerType";
+        return "_dafny.PointerType";
       } else if (xType is UserDefinedType) {
         var udt = (UserDefinedType)xType;
         var tp = udt.ResolvedParam;
@@ -1350,12 +1350,12 @@ namespace Microsoft.Dafny {
         Contract.Assert(cl != null);
         bool isHandle = true;
         if (Attributes.ContainsBool(cl.Attributes, "handle", ref isHandle) && isHandle) {
-          return "dafny.PointerType";
+          return "_dafny.PointerType";
         } else if (cl is ArrayClassDecl) {
-          return "dafny.ArrayType";
+          return "_dafny.ArrayType";
         } else if (cl is ClassDecl || cl is DatatypeDecl) {
           var w = new TargetWriter();
-          w.Write("{0}(", cl is TupleTypeDecl ? "dafny.TupleType" : TypeName_RTD(xType, w, tok));
+          w.Write("{0}(", cl is TupleTypeDecl ? "_dafny.TupleType" : TypeName_RTD(xType, w, tok));
           List<Type> usedTypeParams;
           if (cl is DatatypeDecl dt) {
             usedTypeParams = UsedTypeParameters(dt, udt.TypeArgs);
@@ -1369,7 +1369,7 @@ namespace Microsoft.Dafny {
           // this initializer shouldn't ever be needed; the compiler is expected to generate an error
           // sooner or later, , but it could be that the the compiler needs to
           // lay down some bits to please the C#'s compiler's different definite-assignment rules.
-          return "dafny.PointerType/*not used*/";
+          return "_dafny.PointerType/*not used*/";
         } else {
           Contract.Assert(cl is NewtypeDecl || cl is SubsetTypeDecl);
           return TypeName_RTD(xType, wr, udt.tok) + "()";
@@ -1433,14 +1433,14 @@ namespace Microsoft.Dafny {
       if (xType is BoolType) {
         return "bool";
       } else if (xType is CharType) {
-        return "dafny.Char";
+        return "_dafny.Char";
       } else if (xType is IntType || xType is BigOrdinalType) {
-        return "dafny.Int";
+        return "_dafny.Int";
       } else if (xType is RealType) {
-        return "dafny.Real";
+        return "_dafny.Real";
       } else if (xType is BitvectorType) {
         var t = (BitvectorType)xType;
-        return t.NativeType != null ? GetNativeTypeName(t.NativeType) : "dafny.BV";
+        return t.NativeType != null ? GetNativeTypeName(t.NativeType) : "_dafny.BV";
       } else if (xType.AsNewtype != null) {
         NativeType nativeType = xType.AsNewtype.NativeType;
         if (nativeType != null) {
@@ -1450,7 +1450,7 @@ namespace Microsoft.Dafny {
       } else if (xType.IsObjectQ) {
         return "*interface{}";
       } else if (xType.IsArrayType) {
-        return "*dafny.Array";
+        return "*_dafny.Array";
       } else if (xType is UserDefinedType udt) {
         var s = FullTypeName(udt, member);
         var cl = udt.ResolvedClass;
@@ -1466,7 +1466,7 @@ namespace Microsoft.Dafny {
         } else if (xType is ArrowType at) {
           return string.Format("func ({0}) {1}", Util.Comma(at.Args, arg => TypeName(arg, wr, tok)), TypeName(at.Result, wr, tok));
         } else if (cl is TupleTypeDecl) {
-          return "dafny.Tuple";
+          return "_dafny.Tuple";
         } else if (udt.IsTypeParameter) {
           return "interface{}";
         }
@@ -1484,13 +1484,13 @@ namespace Microsoft.Dafny {
           return "*" + IdProtect(s);
         }
       } else if (xType is SetType) {
-        return "dafny.Set";
+        return "_dafny.Set";
       } else if (xType is SeqType) {
-        return "dafny.Seq";
+        return "_dafny.Seq";
       } else if (xType is MultiSetType) {
-        return "dafny.MultiSet";
+        return "_dafny.MultiSet";
       } else if (xType is MapType) {
-        return "dafny.Map";
+        return "_dafny.Map";
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected type
       }
@@ -1504,22 +1504,22 @@ namespace Microsoft.Dafny {
       if (xType is BoolType) {
         return "false";
       } else if (xType is CharType) {
-        return "dafny.Char('D')";
+        return "_dafny.Char('D')";
       } else if (xType is IntType || xType is BigOrdinalType) {
-        return "dafny.Zero";
+        return "_dafny.Zero";
       } else if (xType is RealType) {
-        return "dafny.ZeroReal";
+        return "_dafny.ZeroReal";
       } else if (xType is BitvectorType) {
         var t = (BitvectorType)xType;
-        return t.NativeType != null ? "0" : "dafny.Zero";
+        return t.NativeType != null ? "0" : "_dafny.Zero";
       } else if (xType is SetType) {
-        return "dafny.EmptySet";
+        return "_dafny.EmptySet";
       } else if (xType is MultiSetType) {
-        return "dafny.EmptyMultiSet";
+        return "_dafny.EmptyMultiSet";
       } else if (xType is SeqType) {
-        return "dafny.EmptySeq";
+        return "_dafny.EmptySeq";
       } else if (xType is MapType) {
-        return "dafny.EmptyMap";
+        return "_dafny.EmptyMap";
       }
 
       var udt = (UserDefinedType)xType;
@@ -1560,7 +1560,7 @@ namespace Microsoft.Dafny {
             return string.Format("func ({0}) {1} {{ return {2}; }}", Util.Comma(udt.TypeArgs.GetRange(0, udt.TypeArgs.Count-1), tp => TypeName(tp, wr, tok)), TypeName(udt.TypeArgs.Last(), wr, tok), rangeDefaultValue);
           } else if (((NonNullTypeDecl)td).Class is ArrayClassDecl arrayClass) {
             // non-null array type; we know how to initialize them
-            return string.Format("dafny.NewArrayWithValue({0}, {1})", TypeInitializationValue(xType.TypeArgs[0], wr, tok, inAutoInitContext), Util.Comma(arrayClass.Dims, d => string.Format("dafny.IntOf({0})", d)));
+            return string.Format("_dafny.NewArrayWithValue({0}, {1})", TypeInitializationValue(xType.TypeArgs[0], wr, tok, inAutoInitContext), Util.Comma(arrayClass.Dims, d => string.Format("_dafny.IntOf({0})", d)));
           } else {
             return nil();
           }
@@ -1755,7 +1755,7 @@ namespace Microsoft.Dafny {
 
     protected override void EmitPrintStmt(TargetWriter wr, Expression arg) {
       wr.Indent();
-      wr.Write("fmt.Print(dafny.String(");
+      wr.Write("fmt.Print(_dafny.String(");
       TrExpr(arg, wr, false);
       wr.WriteLine("))");
     }
@@ -1813,26 +1813,26 @@ namespace Microsoft.Dafny {
     
     protected override BlockTargetWriter CreateForLoop(string indexVar, string bound, TargetWriter wr) {
       wr.Indent();
-      return wr.NewNamedBlock("for {0} := dafny.Zero; {0}.Cmp({1}) < 0; {0} = {0}.Plus(dafny.One)", indexVar, bound);
+      return wr.NewNamedBlock("for {0} := _dafny.Zero; {0}.Cmp({1}) < 0; {0} = {0}.Plus(_dafny.One)", indexVar, bound);
     }
 
     protected override BlockTargetWriter CreateDoublingForLoop(string indexVar, int start, TargetWriter wr) {
       wr.Indent();
-      return wr.NewNamedBlock("for {0} := dafny.IntOf({1}); ; {0} = {0}.Times(dafny.Two)", indexVar, start);
+      return wr.NewNamedBlock("for {0} := _dafny.IntOf({1}); ; {0} = {0}.Times(_dafny.Two)", indexVar, start);
     }
 
     protected override void EmitIncrementVar(string varName, TargetWriter wr) {
       wr.Indent();
-      wr.WriteLine("{0} = {0}.Plus(dafny.One)", varName);
+      wr.WriteLine("{0} = {0}.Plus(_dafny.One)", varName);
     }
 
     protected override void EmitDecrementVar(string varName, TargetWriter wr) {
       wr.Indent();
-      wr.WriteLine("{0} = {0}.Minus(dafny.One)", varName);
+      wr.WriteLine("{0} = {0}.Minus(_dafny.One)", varName);
     }
 
     protected override string GetQuantifierName(string bvType) {
-      return string.Format("dafny.Quantifier");
+      return string.Format("_dafny.Quantifier");
     }
 
     protected override BlockTargetWriter CreateForeachLoop(string boundVar, Type/*?*/ boundVarType, out TargetWriter collectionWriter, TargetWriter wr, string/*?*/ altBoundVarName = null, Type/*?*/ altVarType = null, Bpl.IToken/*?*/ tok = null) {
@@ -1840,7 +1840,7 @@ namespace Microsoft.Dafny {
       var iterVar = FreshId("_iter");
       var valVar = boundVarType == null ? boundVar : FreshId("_val");
       wr.Indent();
-      wr.Write("for {0} := dafny.Iterate(", iterVar);
+      wr.Write("for {0} := _dafny.Iterate(", iterVar);
       collectionWriter = wr.Fork();
       var wBody = wr.NewBlock(");;");
       wBody.Indent();
@@ -1888,10 +1888,10 @@ namespace Microsoft.Dafny {
       
       string sep;
       if (!mustInitialize) {
-        wr.Write("dafny.NewArray(");
+        wr.Write("_dafny.NewArray(");
         sep = "";
       } else {
-        wr.Write("dafny.NewArrayWithValue({0}", initValue);
+        wr.Write("_dafny.NewArrayWithValue({0}", initValue);
         sep = ", ";
       }
 
@@ -1913,10 +1913,10 @@ namespace Microsoft.Dafny {
         wr.Write((bool)e.Value ? "true" : "false");
       } else if (e is CharLiteralExpr) {
         var v = (string)e.Value;
-        wr.Write("dafny.Char('{0}')", v);
+        wr.Write("_dafny.Char('{0}')", v);
       } else if (e is StringLiteralExpr) {
         var str = (StringLiteralExpr)e;
-        wr.Write("dafny.SeqOfString(");
+        wr.Write("_dafny.SeqOfString(");
         TrStringLiteral(str, wr);
         wr.Write(")");
       } else if (AsNativeType(e.Type) != null) {
@@ -1931,7 +1931,7 @@ namespace Microsoft.Dafny {
         } else {
           str = n.Mantissa + "/1" + zeros;
         }
-        wr.Write("dafny.RealOfString(\"{0}\")", str);
+        wr.Write("_dafny.RealOfString(\"{0}\")", str);
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected literal
       }
@@ -1939,11 +1939,11 @@ namespace Microsoft.Dafny {
     void EmitIntegerLiteral(BigInteger i, TextWriter wr) {
       Contract.Requires(wr != null);
       if (i == 0) {
-        wr.Write("dafny.Zero");
+        wr.Write("_dafny.Zero");
       } else if (long.MinValue <= i && i <= long.MaxValue) {
-        wr.Write("dafny.IntOf({0})", i);
+        wr.Write("_dafny.IntOf({0})", i);
       } else {
-        wr.Write("dafny.IntOfString(\"{0}\")", i);
+        wr.Write("_dafny.IntOfString(\"{0}\")", i);
       }
     }
 
@@ -1981,7 +1981,7 @@ namespace Microsoft.Dafny {
       if (bvType.NativeType == null) {
         wr.Write('(');
         var middle = wr.Fork();
-        wr.Write(").Modulo(dafny.One.Lsh(dafny.IntOf({0})))", bvType.Width);
+        wr.Write(").Modulo(_dafny.One.Lsh(_dafny.IntOf({0})))", bvType.Width);
         return middle;
       } else if (bvType.NativeType.Bitwidth == bvType.Width) {
         // no truncation needed
@@ -2010,7 +2010,7 @@ namespace Microsoft.Dafny {
       } else {
         TargetWriter wFirstArg;
         if (bv.NativeType != null) {
-          wr.Write("dafny.{0}{1}(", isRotateLeft ? "Lrot" : "Rrot", Capitalize(GetNativeTypeName(bv.NativeType)));
+          wr.Write("_dafny.{0}{1}(", isRotateLeft ? "Lrot" : "Rrot", Capitalize(GetNativeTypeName(bv.NativeType)));
           wFirstArg = wr.Fork();
           wr.Write(", ");
         } else {
@@ -2034,14 +2034,14 @@ namespace Microsoft.Dafny {
 
     protected override TargetWriter EmitAddTupleToList(string ingredients, string tupleTypeArgs, TargetWriter wr) {
       wr.Indent();
-      wr.Write("{0}.Add(dafny.TupleOf(", ingredients, tupleTypeArgs);
+      wr.Write("{0}.Add(_dafny.TupleOf(", ingredients, tupleTypeArgs);
       var wrTuple = wr.Fork();
       wr.WriteLine("))");
       return wrTuple;
     }
 
     protected override void EmitTupleSelect(string prefix, int i, TargetWriter wr) {
-      wr.Write("{0}.Index(dafny.IntOf({1})).Interface()", prefix, i);
+      wr.Write("{0}.Index(_dafny.IntOf({1})).Interface()", prefix, i);
     }
 
     static string Capitalize(string str) {
@@ -2172,9 +2172,9 @@ namespace Microsoft.Dafny {
 
     protected override void EmitNull(Type type, TargetWriter wr) {
       if (type is IntType || type is BitvectorType) {
-        wr.Write("dafny.NilInt");
+        wr.Write("_dafny.NilInt");
       } else if (type is RealType) {
-        wr.Write("dafny.NilReal");
+        wr.Write("_dafny.NilReal");
       } else {
         wr.Write("nil");
       }
@@ -2203,7 +2203,7 @@ namespace Microsoft.Dafny {
       
 
       if (dt is TupleTypeDecl) {
-        wr.Write("dafny.TupleOf({0})", arguments);
+        wr.Write("_dafny.TupleOf({0})", arguments);
       } else if (!isCoCall) {
         // Ordinary constructor (that is, one that does not guard any co-recursive calls)
         // Generate:  Dt{Dt_Ctor{arguments}}
@@ -2281,7 +2281,7 @@ namespace Microsoft.Dafny {
     protected override void EmitMemberSelect(MemberDecl member, bool isLValue, TargetWriter wr) {
       if (member is DatatypeDestructor dtor) {
         if (dtor.EnclosingClass is TupleTypeDecl) {
-          wr.Write(".Index(dafny.IntOf({0})).Interface()", dtor.Name);
+          wr.Write(".Index(_dafny.IntOf({0})).Interface()", dtor.Name);
         } else {
           wr.Write(".{0}()", FormatDatatypeDestructorName(dtor.CompileName));
         }
@@ -2401,9 +2401,9 @@ namespace Microsoft.Dafny {
     protected override void EmitMultiSetFormingExpr(MultiSetFormingExpr expr, bool inLetExprBody, TargetWriter wr) {
       var eeType = expr.E.Type.NormalizeExpand();
       if (eeType is SeqType) {
-        TrParenExpr("dafny.MultiSetFromSeq", expr.E, wr, inLetExprBody);
+        TrParenExpr("_dafny.MultiSetFromSeq", expr.E, wr, inLetExprBody);
       } else if (eeType is SetType) {
-        TrParenExpr("dafny.MultiSetFromSet", expr.E, wr, inLetExprBody);
+        TrParenExpr("_dafny.MultiSetFromSet", expr.E, wr, inLetExprBody);
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();
       }
@@ -2437,7 +2437,7 @@ namespace Microsoft.Dafny {
     
     protected override void EmitDestructor(string source, Formal dtor, int formalNonGhostIndex, DatatypeCtor ctor, List<Type> typeArgs, TargetWriter wr) {
       if (ctor.EnclosingDatatype is TupleTypeDecl) {
-        wr.Write("({0}).Index(dafny.IntOf({1})).Interface().({2})", source, formalNonGhostIndex, TypeName(typeArgs[formalNonGhostIndex], wr, Bpl.Token.NoToken));
+        wr.Write("({0}).Index(_dafny.IntOf({1})).Interface().({2})", source, formalNonGhostIndex, TypeName(typeArgs[formalNonGhostIndex], wr, Bpl.Token.NoToken));
       } else {
         var dtorName = FormalName(dtor, formalNonGhostIndex);
         var type = UserDefinedType.FromTopLevelDecl(ctor.tok, ctor.EnclosingDatatype);
@@ -2595,7 +2595,7 @@ namespace Microsoft.Dafny {
             }else if (IsDirectlyComparable(e0.Type)) {
               opString = "==";
             } else {
-              staticCallString = "dafny.AreEqual";
+              staticCallString = "_dafny.AreEqual";
             }
             break;
           }
@@ -2614,7 +2614,7 @@ namespace Microsoft.Dafny {
               callString = "Equals";
             } else {
               preOpString = "!";
-              staticCallString = "dafny.AreEqual";
+              staticCallString = "_dafny.AreEqual";
             }
             break;
           }
@@ -2719,7 +2719,7 @@ namespace Microsoft.Dafny {
             var nt = AsNativeType(resultType);
             if (nt.LowerBound < BigInteger.Zero) {
               // Want Euclidean division for signed types
-              staticCallString =  "dafny.Div" + Capitalize(GetNativeTypeName(AsNativeType(resultType)));
+              staticCallString =  "_dafny.Div" + Capitalize(GetNativeTypeName(AsNativeType(resultType)));
             } else {
               // Native division is fine for unsigned
               opString = "/";
@@ -2733,7 +2733,7 @@ namespace Microsoft.Dafny {
             var nt = AsNativeType(resultType);
             if (nt.LowerBound < BigInteger.Zero) {
               // Want Euclidean division for signed types
-              staticCallString = "dafny.Mod" + Capitalize(GetNativeTypeName(AsNativeType(resultType)));
+              staticCallString = "_dafny.Mod" + Capitalize(GetNativeTypeName(AsNativeType(resultType)));
             } else {
               // Native division is fine for unsigned
               opString = "%";
@@ -2803,7 +2803,7 @@ namespace Microsoft.Dafny {
     }
 
     protected override void EmitIsZero(string varName, TargetWriter wr) {
-      wr.Write("{0}.Cmp(dafny.Zero) == 0", varName);
+      wr.Write("{0}.Cmp(_dafny.Zero) == 0", varName);
     }
 
     protected override void EmitConversionExpr(ConversionExpr e, bool inLetExprBody, TargetWriter wr) {
@@ -2811,19 +2811,19 @@ namespace Microsoft.Dafny {
         if (e.ToType.IsNumericBased(Type.NumericPersuation.Real)) {
           // (int or bv) -> real
           Contract.Assert(AsNativeType(e.ToType) == null);
-          wr.Write("dafny.RealOfFrac(");
+          wr.Write("_dafny.RealOfFrac(");
           TargetWriter w;
           if (AsNativeType(e.E.Type) != null) {
-            wr.Write("dafny.IntOf(int64(");
+            wr.Write("_dafny.IntOf(int64(");
             w = wr.Fork();
             wr.Write("))");
           } else {
             w = wr;
           }
           TrParenExpr(e.E, w, inLetExprBody);
-          wr.Write(", dafny.One)");
+          wr.Write(", _dafny.One)");
         } else if (e.ToType.IsCharType) {
-          wr.Write("dafny.Char(");
+          wr.Write("_dafny.Char(");
           TrParenExpr(e.E, wr, inLetExprBody);
           wr.Write(".Int64())");
         } else {
@@ -2837,7 +2837,7 @@ namespace Microsoft.Dafny {
             Contract.Assert(fromNative == null);
             if (toNative == null) {
               // char -> big-integer (int or bv or ORDINAL)
-              wr.Write("dafny.IntOf(int64(");
+              wr.Write("_dafny.IntOf(int64(");
               TrExpr(e.E, wr, inLetExprBody);
               wr.Write("))");
             } else {
@@ -2850,7 +2850,7 @@ namespace Microsoft.Dafny {
             TrExpr(e.E, wr, inLetExprBody);
           } else if (fromNative != null && toNative == null) {
             // native (int or bv) -> big-integer (int or bv)
-            wr.Write("dafny.IntOf(int64(");
+            wr.Write("_dafny.IntOf(int64(");
             TrExpr(e.E, wr, inLetExprBody);
             wr.Write("))");
           } else {
@@ -2886,7 +2886,7 @@ namespace Microsoft.Dafny {
           TrExpr(e.E, wr, inLetExprBody);
         } else {
           // real -> (int or bv)
-          wr.Write("dafny.RatToInt");
+          wr.Write("_dafny.RatToInt");
           TrParenExpr(e.E, wr, inLetExprBody);
           if (AsNativeType(e.ToType) != null) {
             wr.Write(".Int64()");
@@ -2949,7 +2949,7 @@ namespace Microsoft.Dafny {
     protected override TargetWriter EmitCoercionFromNativeForm(Type to, Bpl.IToken tok, TargetWriter wr) {
       to = to.NormalizeExpand();
       if (to is SeqType && to.TypeArgs[0].IsCharType) {
-        wr.Write("dafny.SeqOfString(");
+        wr.Write("_dafny.SeqOfString(");
         var w = wr.Fork();
         wr.Write(")");
         return w;
@@ -2960,18 +2960,18 @@ namespace Microsoft.Dafny {
 
     protected override void EmitCollectionDisplay(CollectionType ct, Bpl.IToken tok, List<Expression> elements, bool inLetExprBody, TargetWriter wr) {
       if (ct is SetType) {
-        wr.Write("dafny.SetOf");
+        wr.Write("_dafny.SetOf");
       } else if (ct is MultiSetType) {
-        wr.Write("dafny.MultiSetOf");
+        wr.Write("_dafny.MultiSetOf");
       } else {
         Contract.Assert(ct is SeqType);  // follows from precondition
-        wr.Write("dafny.SeqOf");
+        wr.Write("_dafny.SeqOf");
       }
       TrExprList(elements, wr, inLetExprBody, type: ct.TypeArgs[0]);
     }
 
     protected override void EmitMapDisplay(MapType mt, Bpl.IToken tok, List<ExpressionPair> elements, bool inLetExprBody, TargetWriter wr) {
-      wr.Write("dafny.NewMapBuilder()");
+      wr.Write("_dafny.NewMapBuilder()");
       foreach (ExpressionPair p in elements) {
         wr.Write(".Add(");
         TrExpr(p.A, wr, inLetExprBody);
@@ -2984,9 +2984,9 @@ namespace Microsoft.Dafny {
 
     protected override void EmitCollectionBuilder_New(CollectionType ct, Bpl.IToken tok, TargetWriter wr) {
       if (ct is MapType) {
-        wr.Write("dafny.NewMapBuilder()");
+        wr.Write("_dafny.NewMapBuilder()");
       } else if (ct is SetType || ct is MultiSetType) {
-        wr.Write("dafny.NewBuilder()");
+        wr.Write("_dafny.NewBuilder()");
       } else {
         Contract.Assume(false);  // unepxected collection type
       }
@@ -3022,7 +3022,7 @@ namespace Microsoft.Dafny {
     }
 
     protected override void EmitSingleValueGenerator(Expression e, bool inLetExprBody, string type, TargetWriter wr) {
-      TrParenExpr("dafny.SingleValue", e, wr, inLetExprBody);
+      TrParenExpr("_dafny.SingleValue", e, wr, inLetExprBody);
     }
 
     // ----- Target compilation and execution -------------------------------------------------------------
