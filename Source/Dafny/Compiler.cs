@@ -2102,14 +2102,14 @@ namespace Microsoft.Dafny {
         w.Write(nw);
         var eltRhs = string.Format("{0}({1})", f, Util.Comma(indices, ArrayIndexToInt));
         EmitArrayUpdate(indices, eltRhs, tRhs.ElementInit.Type, w);
-        w.WriteLine(";");
+        EndStmt(w);
       } else if (tRhs.InitDisplay != null) {
         var ii = 0;
         foreach (var v in tRhs.InitDisplay) {
           wr.Indent();
           wr.Write(nw);
           EmitArrayUpdate(new List<string> { ii.ToString() }, v, wr);
-          wr.WriteLine(";");
+          EndStmt(wr);
           ii++;
         }
       }
@@ -2304,7 +2304,8 @@ namespace Microsoft.Dafny {
             sep = ", ";
           }
         }
-        wr.WriteLine(");");
+        wr.Write(')');
+        EndStmt(wr);
         if (returnStyleOutCollector != null) {
           EmitOutParameterSplits(returnStyleOutCollector, outTmps, wr);
         }
@@ -2437,13 +2438,20 @@ namespace Microsoft.Dafny {
     /// <summary>
     /// Before calling TrExprList(exprs), the caller must have spilled the let variables declared in expressions in "exprs".
     /// </summary>
-    protected void TrExprList(List<Expression> exprs, TargetWriter wr, bool inLetExprBody) {
+    protected void TrExprList(List<Expression> exprs, TargetWriter wr, bool inLetExprBody, Type/*?*/ type = null) {
       Contract.Requires(cce.NonNullElements(exprs));
       wr.Write("(");
       string sep = "";
       foreach (Expression e in exprs) {
         wr.Write(sep);
-        TrExpr(e, wr, inLetExprBody);
+        TargetWriter w;
+        if (type != null) {
+          w = wr.Fork();
+          w = EmitCoercionIfNecessary(e.Type, type, e.tok, w);
+        } else {
+          w = wr;
+        }
+        TrExpr(e, w, inLetExprBody);
         sep = ", ";
       }
       wr.Write(")");

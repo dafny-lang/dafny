@@ -1484,29 +1484,12 @@ namespace Microsoft.Dafny {
           return "*" + IdProtect(s);
         }
       } else if (xType is SetType) {
-        Type argType = ((SetType)xType).Arg;
-        if (ComplicatedTypeParameterForCompilation(argType)) {
-          Error(tok, "compilation of set<TRAIT> is not supported; consider introducing a ghost", wr);
-        }
         return "dafny.Set";
       } else if (xType is SeqType) {
-        Type argType = ((SeqType)xType).Arg;
-        if (ComplicatedTypeParameterForCompilation(argType)) {
-          Error(tok, "compilation of seq<TRAIT> is not supported; consider introducing a ghost", wr);
-        }
         return "dafny.Seq";
       } else if (xType is MultiSetType) {
-        Type argType = ((MultiSetType)xType).Arg;
-        if (ComplicatedTypeParameterForCompilation(argType)) {
-          Error(tok, "compilation of multiset<TRAIT> is not supported; consider introducing a ghost", wr);
-        }
         return "dafny.MultiSet";
       } else if (xType is MapType) {
-        Type domType = ((MapType)xType).Domain;
-        Type ranType = ((MapType)xType).Range;
-        if (ComplicatedTypeParameterForCompilation(domType) || ComplicatedTypeParameterForCompilation(ranType)) {
-          Error(tok, "compilation of map<TRAIT, _> or map<_, TRAIT> is not supported; consider introducing a ghost", wr);
-        }
         return "dafny.Map";
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected type
@@ -2978,22 +2961,13 @@ namespace Microsoft.Dafny {
     protected override void EmitCollectionDisplay(CollectionType ct, Bpl.IToken tok, List<Expression> elements, bool inLetExprBody, TargetWriter wr) {
       if (ct is SetType) {
         wr.Write("dafny.SetOf");
-        TrExprList(elements, wr, inLetExprBody);
       } else if (ct is MultiSetType) {
         wr.Write("dafny.MultiSetOf");
-        TrExprList(elements, wr, inLetExprBody);
       } else {
         Contract.Assert(ct is SeqType);  // follows from precondition
-        wr.Write("dafny.SeqOf(");
-        var wrElements = wr.Fork();
-        wr.Write(")");
-        string sep = "";
-        foreach (var e in elements) {
-          wrElements.Write(sep);
-          TrExpr(e, wrElements, inLetExprBody);
-          sep = ", ";
-        }
+        wr.Write("dafny.SeqOf");
       }
+      TrExprList(elements, wr, inLetExprBody, type: ct.TypeArgs[0]);
     }
 
     protected override void EmitMapDisplay(MapType mt, Bpl.IToken tok, List<ExpressionPair> elements, bool inLetExprBody, TargetWriter wr) {
