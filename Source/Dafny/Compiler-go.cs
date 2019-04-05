@@ -2965,7 +2965,11 @@ namespace Microsoft.Dafny {
         wr.Write("_dafny.MultiSetOf");
       } else {
         Contract.Assert(ct is SeqType);  // follows from precondition
-        wr.Write("_dafny.SeqOf");
+        if (ct.Arg.IsCharType) {
+          wr.Write("_dafny.SeqOfChars");
+        } else {
+          wr.Write("_dafny.SeqOf");
+        }
       }
       TrExprList(elements, wr, inLetExprBody, type: ct.TypeArgs[0]);
     }

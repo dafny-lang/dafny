@@ -163,6 +163,65 @@ func (char Char) String() string {
 }
 
 /******************************************************************************
+ * Slices
+ ******************************************************************************/
+
+func sliceEquals(s1, s2 []interface{}) bool {
+	return len(s1) == len(s2) && sliceIsPrefixAfterLengthCheck(s1, s2)
+}
+
+func sliceIsPrefixOf(s1, s2 []interface{}) bool {
+	return len(s1) <= len(s2) && sliceIsPrefixAfterLengthCheck(s1, s2)
+}
+
+func sliceIsProperPrefixOf(s1, s2 []interface{}) bool {
+	return len(s1) < len(s2) && sliceIsPrefixAfterLengthCheck(s1, s2)
+}
+
+func sliceIsPrefixAfterLengthCheck(s1, s2 []interface{}) bool {
+	for i, v := range s1 {
+		if !(AreEqual(v, s2[i])) {
+			return false
+		}
+	}
+	return true
+}
+
+func sliceContains(s []interface{}, value interface{}) bool {
+	for _, v := range s {
+		if AreEqual(v, value) {
+			return true
+		}
+	}
+	return false
+}
+
+// Iterator returns an iterator over the sequence.
+func sliceIterator(s []interface{}) Iterator {
+	i := 0
+	n := len(s)
+	return func() (interface{}, bool) {
+		if i >= n {
+			return nil, false
+		}
+		ans := s[i]
+		i++
+		return ans, true
+	}
+}
+
+func stringOfElements(s []interface{}) string {
+	str := ""
+	for i, v := range s {
+		if i > 0 {
+			str += ", "
+		}
+		str += String(v)
+	}
+	return str
+}
+
+/******************************************************************************
  * Iteration
  ******************************************************************************/
 
@@ -188,12 +247,12 @@ func Iterate(over interface{}) Iterator {
 		if refl.TypeOf(over).Kind() != refl.Slice {
 			panic(fmt.Errorf("Not iterable: %v", over))
 		} else {
-			return sliceIterator(over)
+			return anySliceIterator(over)
 		}
 	}
 }
 
-func sliceIterator(slice interface{}) Iterator {
+func anySliceIterator(slice interface{}) Iterator {
 	val := refl.ValueOf(slice)
 	n := val.Len()
 	i := 0
@@ -246,26 +305,39 @@ func SingleValue(value interface{}) Iterator {
 // by Index (either by using its Set method or by getting a pointer using its
 // Addr method).
 type Seq struct {
-	slice    []interface{}
+	contents []interface{}
 	isString bool
 }
 
 // EmptySeq is the empty sequence.
 var EmptySeq = SeqOf()
 
-// SeqOf returns a sequence containing the given values, which are kept in
-// place, NOT copied.
+// SeqOf returns a sequence containing the given values.
 func SeqOf(values ...interface{}) Seq {
-	return Seq{values, false}
+	// Making a defensive copy here because variadic functions can get hinky
+	// if someone says SeqOf(slice...) and then mutates slice.
+	arr := make([]interface{}, len(values))
+	copy(arr, values)
+	return Seq{arr, false}
+}
+
+// SeqOfChars returns a sequence containing the given character values.
+func SeqOfChars(values ...Char) Seq {
+	arr := make([]interface{}, len(values))
+	for i, v := range values {
+		arr[i] = v
+	}
+	return Seq{arr, true}
 }
 
 // SeqOfString converts the given string into a sequence of characters.
 func SeqOfString(str string) Seq {
-	values := make([]interface{}, len(str))
-	for i, c := range str {
-		values[i] = Char(c)
+	// Need to make sure the elements of the array are Chars
+	arr := make([]interface{}, len(str))
+	for i, v := range str {
+		arr[i] = Char(v)
 	}
-	return Seq{values, true}
+	return Seq{arr, true}
 }
 
 func (seq Seq) index(i int) interface{} {
@@ -273,7 +345,7 @@ func (seq Seq) index(i int) interface{} {
 }
 
 func (seq Seq) indexValue(i int) refl.Value {
-	return refl.ValueOf(seq.slice).Index(i)
+	return refl.ValueOf(seq.contents).Index(i)
 }
 
 // Index finds the sequence element at the given index.
@@ -282,7 +354,7 @@ func (seq Seq) Index(i Int) refl.Value {
 }
 
 func (seq Seq) len() int {
-	return len(seq.slice)
+	return len(seq.contents)
 }
 
 // Len finds the length of the sequence.
@@ -297,65 +369,46 @@ func (seq Seq) Cardinality() Int {
 
 // Contains finds whether the value is equal to any element in the sequence.
 func (seq Seq) Contains(value interface{}) bool {
-	n := seq.len()
-	for i := 0; i < n; i++ {
-		if AreEqual(seq.index(i), value) {
-			return true
-		}
-	}
-	return false
+	return sliceContains(seq.contents, value)
 }
 
 // Iterator returns an iterator over the sequence.
 func (seq Seq) Iterator() Iterator {
-	i := 0
-	n := seq.len()
-	return func() (interface{}, bool) {
-		if i >= n {
-			return nil, false
-		}
-		ans := seq.index(i)
-		i++
-		return ans, true
-	}
+	return sliceIterator(seq.contents)
 }
 
 // Slice takes the slice a[from:to] of the given sequence.
 func (seq Seq) Slice(from, to Int) Seq {
-	return Seq{seq.slice[from.Int():to.Int()], seq.isString}
+	return Seq{seq.contents[from.Int():to.Int()], seq.isString}
 }
 
 // SliceAll takes the slice a[:] of the given sequence.
 func (seq Seq) SliceAll() Seq {
-	return Seq{seq.slice[:], seq.isString}
+	return Seq{seq.contents[:], seq.isString}
 }
 
 // SliceFrom takes the slice a[from:] of the given sequence.
 func (seq Seq) SliceFrom(ix Int) Seq {
-	return Seq{seq.slice[ix.Int():], seq.isString}
+	return Seq{seq.contents[ix.Int():], seq.isString}
 }
 
 // SliceTo takes the slice a[:to] of the given sequence.
 func (seq Seq) SliceTo(ix Int) Seq {
-	return Seq{seq.slice[:ix.Int()], seq.isString}
+	return Seq{seq.contents[:ix.Int()], seq.isString}
 }
 
 // Concat concatenates two sequences, returning a new one.
 func (seq Seq) Concat(seq2 Seq) Seq {
-	n, n2 := len(seq.slice), len(seq2.slice)
+	n, n2 := len(seq.contents), len(seq2.contents)
 	newSlice := make([]interface{}, n+n2)
-	for i, v := range seq.slice {
-		newSlice[i] = v
-	}
-	for i, v := range seq2.slice {
-		newSlice[i+n] = v
-	}
+	copy(newSlice, seq.contents)
+	copy(newSlice[len(seq.contents):], seq2.contents)
 	return Seq{newSlice, seq.isString || seq2.isString}
 }
 
 // Equals compares two sequences for equality.
 func (seq Seq) Equals(seq2 Seq) bool {
-	return seq.len() == seq2.len() && seq.isPrefixAfterLengthCheck(seq2)
+	return sliceEquals(seq.contents, seq2.contents)
 }
 
 // EqualsGeneric implements the EqualsGeneric interface.
@@ -366,23 +419,13 @@ func (seq Seq) EqualsGeneric(other interface{}) bool {
 
 // IsPrefixOf finds whether s[i] == s2[i] for all i < some n.
 func (seq Seq) IsPrefixOf(seq2 Seq) bool {
-	return seq.len() <= seq2.len() && seq.isPrefixAfterLengthCheck(seq2)
+	return sliceIsPrefixOf(seq.contents, seq2.contents)
 }
 
 // IsProperPrefixOf finds whether s[i] == s2[i] for all i < some n, and moreover
 // s != s2.
 func (seq Seq) IsProperPrefixOf(seq2 Seq) bool {
-	return seq.len() < seq2.len() && seq.isPrefixAfterLengthCheck(seq2)
-}
-
-func (seq Seq) isPrefixAfterLengthCheck(seq2 Seq) bool {
-	n := seq.len()
-	for i := 0; i < n; i++ {
-		if !AreEqual(seq.index(i), seq2.index(i)) {
-			return false
-		}
-	}
-	return true
+	return sliceIsProperPrefixOf(seq.contents, seq2.contents)
 }
 
 // UniqueElements returns the set of elements in the sequence.
@@ -400,25 +443,13 @@ func (seq Seq) UniqueElements() Set {
 func (seq Seq) String() string {
 	if seq.isString {
 		s := ""
-		for _, c := range seq.slice {
+		for _, c := range seq.contents {
 			s += c.(Char).String()
 		}
 		return s
 	} else {
-		return "[" + seq.stringOfElements() + "]"
+		return "[" + stringOfElements(seq.contents) + "]"
 	}
-}
-
-func (seq Seq) stringOfElements() string {
-	s := ""
-	n := seq.Len().Int()
-	for i := 0; i < n; i++ {
-		if i > 0 {
-			s += ", "
-		}
-		s += String(seq.index(i))
-	}
-	return s
 }
 
 // SeqType is the RTD for a sequence.
@@ -443,25 +474,23 @@ func (seqType) String() string {
 // update by mutating the value returned by Index (either by using its Set
 // method or by getting a pointer using its Addr method).
 type Array struct {
-	contents Seq // stored as a flat one-dimensional slice
+	contents []interface{} // stored as a flat one-dimensional slice
 	dims     []int
-	sizes    []int
 }
 
 func newArray(dims ...Int) *Array {
-	sizes := make([]int, len(dims))
 	intDims := make([]int, len(dims))
 	size := 1
 	for d := len(dims) - 1; d >= 0; d-- {
-		sizes[d] = size
+		//		sizes[d] = size
 		intDims[d] = dims[d].Int()
 		size *= intDims[d]
 	}
-	contents := SeqOf(make([]interface{}, size)...)
+	// Bypass the SeqOf constructor to avoid defensive copy
+	contents := make([]interface{}, size)
 	return &Array{
 		contents: contents,
 		dims:     intDims,
-		sizes:    sizes,
 	}
 }
 
@@ -477,10 +506,8 @@ func NewArray(dims ...Int) *Array {
 func NewArrayWithValue(init interface{}, dims ...Int) *Array {
 	ans := newArray(dims...)
 	if init != nil {
-		initValue := refl.ValueOf(init)
-		n := ans.contents.len()
-		for i := 0; i < n; i++ {
-			ans.contents.Index(IntOf(i)).Set(initValue)
+		for i := range ans.contents {
+			ans.contents[i] = init
 		}
 	}
 	return ans
@@ -489,10 +516,11 @@ func NewArrayWithValue(init interface{}, dims ...Int) *Array {
 // NewArrayWithValues returns a new one-dimensional Array with the given initial
 // values.
 func NewArrayWithValues(values ...interface{}) *Array {
+	arr := make([]interface{}, len(values))
+	copy(arr, values)
 	return &Array{
-		contents: SeqOf(values...),
+		contents: arr,
 		dims:     []int{len(values)},
-		sizes:    []int{1},
 	}
 }
 
@@ -518,7 +546,7 @@ func (array *Array) Equals(array2 *Array) bool {
 		}
 	}
 
-	return array.contents.Equals(array2.contents)
+	return sliceIsPrefixAfterLengthCheck(array.contents, array2.contents)
 }
 
 // EqualsGeneric implements the EqualsGeneric interface.
@@ -527,12 +555,22 @@ func (array *Array) EqualsGeneric(other interface{}) bool {
 	return ok && array.Equals(array2)
 }
 
-func (array *Array) index(ixs ...int) refl.Value {
+func (array *Array) findIndex(ixs ...int) int {
 	i := 0
-	for d := range array.dims {
-		i += ixs[d] * array.sizes[d]
+	size := 1
+	for d := len(array.dims) - 1; d >= 0; d-- {
+		i += size * ixs[d]
+		size *= array.dims[d]
 	}
-	return array.contents.indexValue(i)
+	return i
+}
+
+func (array *Array) index(ixs ...int) interface{} {
+	return array.contents[array.findIndex(ixs...)]
+}
+
+func (array *Array) indexValue(ixs ...int) refl.Value {
+	return refl.ValueOf(array.contents).Index(array.findIndex(ixs...))
 }
 
 // Index gets the element at the given indices into the array.
@@ -540,22 +578,23 @@ func (array *Array) Index(ixs ...Int) refl.Value {
 	if len(ixs) != len(array.dims) {
 		panic(fmt.Sprintf("Expected %d indices but got %d", len(array.dims), len(ixs)))
 	}
-	i := 0
-	for d := range array.dims {
-		i += int(ixs[d].Int64()) * array.sizes[d]
+	ints := make([]int, len(ixs))
+	for i, ix := range ixs {
+		ints[i] = ix.Int()
 	}
-	return array.contents.Index(IntOf(i))
+	return array.indexValue(ints...)
 }
 
 // Slice takes the slice a[from:to] of the given array.
 func (array *Array) Slice(from, to Int) *Array {
 	if len(array.dims) != 1 {
-		panic("TODO: Slices of multidimensional arrays")
+		panic("Can't take a slice of a multidimensional array")
 	}
+	f := from.Int()
+	t := to.Int()
 	return &Array{
-		contents: array.contents.Slice(from, to),
-		dims:     []int{to.Int() - from.Int()},
-		sizes:    []int{1},
+		contents: array.contents[f:t],
+		dims:     []int{t - f},
 	}
 }
 
@@ -614,32 +653,41 @@ func (arrayType) String() string {
 
 // A Tuple is a one-dimensional heterogeneous array.
 type Tuple struct {
-	Seq
+	contents []interface{}
 }
 
 // TupleOf creates a tuple with the given values.
 func TupleOf(values ...interface{}) Tuple {
-	return Tuple{SeqOf(values...)}
+	arr := make([]interface{}, len(values))
+	copy(arr, values)
+	return Tuple{arr}
+}
+
+// Equals returns whether two tuples have the same values.
+func (tuple Tuple) Equals(other Tuple) bool {
+	return sliceEquals(tuple.contents, other.contents)
 }
 
 // EqualsGeneric implements the EqualsGeneric interface.
 func (tuple Tuple) EqualsGeneric(other interface{}) bool {
 	tuple2, ok := other.(Tuple)
-	return ok && tuple.Seq.Equals(tuple2.Seq)
+	return ok && tuple.Equals(tuple2)
 }
 
 func (tuple Tuple) String() string {
-	return "(" + tuple.Seq.stringOfElements() + ")"
+	return "(" + stringOfElements(tuple.contents) + ")"
 }
 
 // Index looks up the ith element of the tuple.
 func (tuple Tuple) Index(i Int) refl.Value {
-	return tuple.Seq.Index(i)
+	return refl.ValueOf(tuple.contents).Index(i.Int())
 }
 
 // TupleType returns the type of a tuple with given element types.
 func TupleType(tys ...Type) Type {
-	return tupleType{tys}
+	arr := make([]Type, len(tys))
+	copy(arr, tys)
+	return tupleType{arr}
 }
 
 type tupleType struct {
@@ -700,7 +748,9 @@ func (builder *Builder) ToSet() Set {
  ******************************************************************************/
 
 // A Set is a sequence without duplicates.
-type Set Seq
+type Set struct {
+	contents []interface{}
+}
 
 // EmptySet is the empty set.
 var EmptySet = SetOf()
@@ -717,73 +767,67 @@ NEXT_INPUT:
 		}
 		uniq = append(uniq, v)
 	}
-	return Set(SeqOf(uniq...))
+	return Set{uniq}
 }
 
 func (set Set) cardinality() int {
-	return Seq(set).len()
+	return len(set.contents)
 }
 
 // Cardinality returns the cardinality (size) of the set.
 func (set Set) Cardinality() Int {
-	return Seq(set).Len()
+	return IntOf(len(set.contents))
 }
 
 // Index returns the ith element of the set, which is arbitrary but different
 // from the ith element for any other i.
 func (set Set) Index(i Int) interface{} {
-	return Seq(set).Index(i)
+	return len(set.contents)
 }
 
 // Contains returns whether the given value is an element of the set.
 func (set Set) Contains(value interface{}) bool {
-	return Seq(set).Contains(value)
+	return sliceContains(set.contents, value)
 }
 
 // Iterator returns an iterator over the elements of the set.
 func (set Set) Iterator() Iterator {
-	return Seq(set).Iterator()
+	return sliceIterator(set.contents)
 }
 
 // Union makes a set containing each element contained by either input set.
 func (set Set) Union(set2 Set) Set {
-	uniq := make([]interface{}, 0, set.cardinality()+set2.cardinality())
-	uniq = append(uniq, set.slice...)
-	n1 := set.cardinality()
-	n2 := set2.cardinality()
+	n := set.cardinality()
+	uniq := make([]interface{}, n, n+set2.cardinality())
+	copy(uniq, set.contents)
 NEXT_INPUT:
-	for i := 0; i < n2; i++ {
-		v := Seq(set2).index(i)
-		for j := 0; j < n1; j++ {
-			u := uniq[j]
+	for _, v := range set2.contents {
+		for _, u := range uniq {
 			if AreEqual(u, v) {
 				continue NEXT_INPUT
 			}
 		}
 		uniq = append(uniq, v)
 	}
-	return Set(SeqOf(uniq...))
+	return Set{uniq}
 }
 
 // Intersection makes a set containing each element contained by both input
 // sets.
 func (set Set) Intersection(set2 Set) Set {
-	uniq := make([]interface{}, 0, min(len(set.slice), len(set2.slice)))
-	n := set.cardinality()
-	for i := 0; i < n; i++ {
-		v := Seq(set).index(i)
+	uniq := make([]interface{}, 0, min(len(set.contents), len(set2.contents)))
+	for _, v := range set.contents {
 		if set2.Contains(v) {
 			uniq = append(uniq, v)
 		}
 	}
-	return Set(SeqOf(uniq...))
+	return Set{uniq}
 }
 
 // IsDisjointFrom returns true if the sets have no elements in common.
 func (set Set) IsDisjointFrom(set2 Set) bool {
-	n := set.cardinality()
-	for i := 0; i < n; i++ {
-		if set2.Contains(Seq(set).index(i)) {
+	for _, v := range set.contents {
+		if sliceContains(set2.contents, v) {
 			return false
 		}
 	}
@@ -816,9 +860,8 @@ func (set Set) IsProperSubsetOf(set2 Set) bool {
 }
 
 func (set Set) isSubsetAfterCardinalityCheck(set2 Set) bool {
-	n := set.cardinality()
-	for i := 0; i < n; i++ {
-		if !set2.Contains(Seq(set).index(i)) {
+	for _, v := range set.contents {
+		if !sliceContains(set2.contents, v) {
 			return false
 		}
 	}
@@ -839,13 +882,13 @@ func (set Set) AllSubsets() Iterator {
 		if r.Cmp(limit) == 0 {
 			return Set{}, false
 		} else {
-			values := make([]interface{}, 0, len(set.slice))
+			values := make([]interface{}, 0, len(set.contents))
 			i := 0
 			s := new(big.Int).Set(r)
 			mod := new(big.Int)
 			for s.Cmp(Zero.impl) > 0 {
 				if mod.Mod(s, Two.impl).Cmp(Zero.impl) != 0 {
-					values = append(values, Seq(set).index(i))
+					values = append(values, set.contents[i])
 				}
 				s.Div(s, Two.impl)
 				i++
@@ -854,7 +897,7 @@ func (set Set) AllSubsets() Iterator {
 
 			// Annoyingly, the other implementations reverse the order of the
 			// elements, so we have to as well
-			return Set(SeqOf(reverse(values)...)), true
+			return Set{reverse(values)}, true
 		}
 	}
 }
@@ -869,7 +912,7 @@ func reverse(values []interface{}) []interface{} {
 }
 
 func (set Set) String() string {
-	return "{" + Seq(set).stringOfElements() + "}"
+	return "{" + stringOfElements(set.contents) + "}"
 }
 
 // SetType is the type of any set.
@@ -920,17 +963,16 @@ NEXT_INPUT:
 
 // MultiSetFromSeq creates a MultiSet from the elements in the given sequence.
 func MultiSetFromSeq(seq Seq) MultiSet {
-	return MultiSetOf(seq.slice...)
+	return MultiSetOf(seq.contents...)
 }
 
 // MultiSetFromSet creates a MultiSet from the elements in the given set.
 func MultiSetFromSet(set Set) MultiSet {
-	n := Seq(set).len()
-	elts := make([]msetElt, n)
-	for i := 0; i < n; i++ {
+	elts := make([]msetElt, len(set.contents))
+	for i, v := range set.contents {
 		// No need to check whether it's already there because Set elements are
 		// assumed to be unique
-		elts[i] = msetElt{Seq(set).index(i), One}
+		elts[i] = msetElt{v, One}
 	}
 	return MultiSet{elts}
 }

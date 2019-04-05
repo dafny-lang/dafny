@@ -75,8 +75,15 @@ method Strings() {
   print "  prefix: ", a <= b, " ", b <= c, " ", c <= c, "\n";
   print "  proper prefix: ", a < b, " ", b < c, " ", c < c, "\n";
   print "  membership: ", 'u' in a, " ", 'u' in b, " ", 'u' in c, "\n";
+  
+  var d := ['g', 'u', 'r', 'u'];
+  print "  constructed as sequence: ", d, "\n";
 
   var x, y := InterplayBetweenSeqCharAndString('d');
+  // TODO: JavaScript and Go currently differ from C# if the following line is
+  // uncommented, as they don't carry enough type information around at run time
+  // to notice that x and y are character sequences (i.e. strings).
+  // print "  separate: ", x, " ", y, "\n";
   x := "hello-" + x;
   y := y + "-hello";
   print "  mix: ", x, " ", y, "\n";
