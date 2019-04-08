@@ -4,6 +4,7 @@ import (
 	"fmt"
 	big "math/big"
 	refl "reflect"
+	"runtime"
 )
 
 /******************************************************************************
@@ -60,6 +61,23 @@ func String(x interface{}) string {
 		return v.Type().String()
 	}
 	return fmt.Sprint(x)
+}
+
+// Print prints the given value using fmt.Print, formatted using String.
+func Print(x interface{}) {
+	fmt.Print(String(x))
+}
+
+// Reflect creates a reflected value using the Go reflection API.  Included here
+// so that only this module needs to be imported by every Dafny module.
+func Reflect(x interface{}) refl.Value {
+	return refl.ValueOf(x)
+}
+
+// SetFinalizer is a re-export of runtime.SetFinalizer.  Included here so that
+// only this module needs to be imported by every Dafny module.
+func SetFinalizer(x interface{}, f interface{}) {
+	runtime.SetFinalizer(x, f)
 }
 
 /******************************************************************************

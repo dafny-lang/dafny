@@ -31,14 +31,11 @@ namespace Microsoft.Dafny {
     private static List<Import> StandardImports =
       new List<Import> {
         new Import { Name = "_dafny", Path = "dafny" },
-        new Import { Name = "fmt", Path = "fmt", Dummy = "Stringer" },
-        new Import { Name = "refl", Path = "reflect", Dummy = "Type" },
-        new Import { Name = "runtime", Path = "runtime", Dummy = "Func" },
       };
     private static string DummyTypeName = "Dummy__";
 
     private struct Import {
-      public string Name, Path, Dummy;
+      public string Name, Path;
       public bool SuppressDummy;
     }
 
@@ -143,14 +140,13 @@ namespace Microsoft.Dafny {
     private void EmitImport(Import import, TargetWriter importWriter, TargetWriter importDummyWriter) {
       var id = IdProtect(import.Name);
       var path = import.Path;
-      var dummy = import.Dummy == null ? DummyTypeName : import.Dummy;
 
       importWriter.Indent();
       importWriter.WriteLine("  {0} \"{1}\"", id, path);
 
       if (!import.SuppressDummy) {
         importDummyWriter.Indent();
-        importDummyWriter.WriteLine("var _ {0}.{1}", id, dummy);
+        importDummyWriter.WriteLine("var _ {0}.{1}", id, DummyTypeName);
       }
     }
 
@@ -398,7 +394,7 @@ namespace Microsoft.Dafny {
       //   
       //   go _this.run(_cont, _yielded)
       //
-      //   runtime.SetFinalizer(this_, func(_ MyIteratorExample) {
+      //   _dafny.SetFinalizer(this_, func(_ MyIteratorExample) {
       //     close(_cont) // will cause the iterator to return and close _yielded
       //   })
       // }
@@ -474,7 +470,7 @@ namespace Microsoft.Dafny {
       wCtor.WriteLine("go _this.run(_cont, _yielded)");
       wCtor.WriteLine();
       wCtor.Indent();
-      wCtor.WriteLine("runtime.SetFinalizer(_this, func(_ * {0}) {{ close(_cont) }})", IdName(iter));
+      wCtor.WriteLine("_dafny.SetFinalizer(_this, func(_ * {0}) {{ close(_cont) }})", IdName(iter));
       
       cw.ConcreteMethodWriter.Indent();
       var wMoveNext = cw.ConcreteMethodWriter.NewNamedBlock("func (_this * {0}) MoveNext() bool", IdName(iter));
@@ -1755,9 +1751,9 @@ namespace Microsoft.Dafny {
 
     protected override void EmitPrintStmt(TargetWriter wr, Expression arg) {
       wr.Indent();
-      wr.Write("fmt.Print(_dafny.String(");
+      wr.Write("_dafny.Print(");
       TrExpr(arg, wr, false);
-      wr.WriteLine("))");
+      wr.WriteLine(")");
     }
 
     protected override void EmitReturn(List<Formal> formals, TargetWriter wr) {
@@ -2326,7 +2322,7 @@ namespace Microsoft.Dafny {
     }
 
     protected override void EmitArrayUpdate(List<string> indices, string rhs, Type elmtType, TargetWriter wr) {
-      wr.Write(".Index({0}).Set(refl.ValueOf({1}))", Util.Comma(indices), rhs);
+      wr.Write(".Index({0}).Set(_dafny.Reflect({1}))", Util.Comma(indices), rhs);
     }
 
     protected override void EmitExprAsInt(Expression expr, bool inLetExprBody, TargetWriter wr) {
