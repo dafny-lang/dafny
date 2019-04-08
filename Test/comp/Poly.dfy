@@ -4,6 +4,9 @@
 
 trait Shape {
     function method Center(): (real, real) reads this
+    method PrintCenter() {
+        print "Center: ", this.Center(), "\n";
+    }
 }
 
 class Square extends Shape {
@@ -40,7 +43,7 @@ method PrintArray(shapes: array<Shape?>) {
         decreases shapes.Length - i
     {
         if shapes[i] != null {
-            print "Center: ", shapes[i].Center(), "\n";
+            shapes[i].PrintCenter();
         }
         i := i + 1;
     }
@@ -52,7 +55,7 @@ method PrintSeq(shapes: seq<Shape>) {
         invariant 0 <= i <= |shapes|
         decreases |shapes| - i
     {
-        print "Center: ", shapes[i].Center(), "\n";
+        shapes[i].PrintCenter();
         i := i + 1;
     }
 }
