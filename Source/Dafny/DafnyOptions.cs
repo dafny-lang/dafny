@@ -487,6 +487,7 @@ namespace Microsoft.Dafny
                     verification outcome
   /compileTarget:<lang>
                 cs (default) - Compilation to .NET via C#
+                go - Compilation to Go
                 js - Compilation to JavaScript
   /spillTargetCode:<n>
                 0 (default) - don't write the compiled Dafny program (but
