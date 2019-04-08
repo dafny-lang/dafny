@@ -204,15 +204,15 @@ namespace Microsoft.Dafny {
       //   ...
       // }
       //
-      // type companionStruct_Class_ struct {
-      //   *companionStruct_Trait0
-      //   *companionStruct_Trait1
+      // type CompanionStruct_Class_ struct {
+      //   *CompanionStruct_Trait0
+      //   *CompanionStruct_Trait1
       //   StaticField0 type0
       //   StaticField1 type1
       //   ...
       // }
       //
-      // var Companion_Class_ = companionStruct_Class_{
+      // var Companion_Class_ = CompanionStruct_Class_{
       //   &Companion_Trait0,
       //   &Companion_Trait1,
       //   StaticField1: ...,
@@ -220,14 +220,14 @@ namespace Microsoft.Dafny {
       // }
       //
       // func New_Class_(Type0 Dafny.Type, Type1 Dafny.Type) *Class {
-      //   _this := &Class{}
+      //   _this := Class{}
       //
       //   // Have to do it this way because some default values (namely type
       //   // parameters) assume that _this points to the current value
       //   _this.Type0 = Type0
       //   _this.Type1 = Type1
-      //   _this.Trait0 = New_Trait0()
-      //   _this.Trait1 = New_Trait1()
+      //   _this.Trait0 = New_Trait0_()
+      //   _this.Trait1 = New_Trait1_()
       //   _this.Field0 = ...
       //   _this.Field1 = ...
       // 
@@ -244,7 +244,7 @@ namespace Microsoft.Dafny {
       //   ...
       // }
       //
-      // func (_this *companionStruct_Class) StaticMethod(param0 type0, ...) returnType {
+      // func (_this *CompanionStruct_Class) StaticMethod(param0 type0, ...) returnType {
       //   ...
       // }
       //
@@ -511,9 +511,9 @@ namespace Microsoft.Dafny {
       //   return _this.Data_Dt_
       // }
       //
-      // type companionStruct_Dt_ struct {}
+      // type CompanionStruct_Dt_ struct {}
       //
-      // var Companion_Dt_ = companionStruct_Dt_ {}
+      // var Companion_Dt_ = CompanionStruct_Dt_ {}
       //
       // ...
       //
@@ -525,7 +525,7 @@ namespace Microsoft.Dafny {
       // 
       // func (Dt_Ctor0) isDt() {}
       //
-      // func (_ companionStruct_Dt_) CreateCtor0(field0 type0, field1 type1) Dt {
+      // func (_ CompanionStruct_Dt_) CreateCtor0(field0 type0, field1 type1) Dt {
       //   return Dt{Dt_Ctor0{type0, type1}}
       // }
       //
@@ -557,7 +557,7 @@ namespace Microsoft.Dafny {
       //
       // func (_this Dt) EqualsGeneric(other interface{}) bool { ... }
       //
-      // func (companionStruct_Dt_) AllSingletonConstructors() _dafny.Iterator {
+      // func (CompanionStruct_Dt_) AllSingletonConstructors() _dafny.Iterator {
       //   i := -1
       //   return func() (interface{}, bool) {
       //     i++
@@ -605,7 +605,7 @@ namespace Microsoft.Dafny {
       // }
       //
       // type lazyDt struct {
-      //   value Dface_Dt_
+      //   value Iface_Dt_
       //   init func() Dt
       // }
       //
@@ -619,11 +619,11 @@ namespace Microsoft.Dafny {
       //
       // ...
       //
-      // func (_ companionStruct_Dt_) LazyDt(f func() Dt) Dt {
+      // func (_ CompanionStruct_Dt_) LazyDt(f func() Dt) Dt {
       //   return Dt{*lazyDt{nil, f}}
       // }
       //
-      // func (_ companionStruct_Dt_) CreateCtor0(field0 type0, field1 type1) Dt {
+      // func (_ CompanionStruct_Dt_) CreateCtor0(field0 type0, field1 type1) Dt {
       //   return Dt{*Dt_Ctor0{type0, type1}}
       // }
       //
@@ -693,7 +693,7 @@ namespace Microsoft.Dafny {
 
         wr.WriteLine();
         wr.Indent();
-        var wLazyCreate = wr.NewNamedBlock("func (_this {0}) {1}(f func () {2}) {2}", companionTypeName, FormatLazyConstructorName(name), name, name);
+        var wLazyCreate = wr.NewNamedBlock("func ({0}) {1}(f func () {2}) {2}", companionTypeName, FormatLazyConstructorName(name), name, name);
         wLazyCreate.Indent();
         wLazyCreate.WriteLine("return {0}{{&lazy{0}{{nil, f}}}}", name);
       }
@@ -1131,7 +1131,7 @@ namespace Microsoft.Dafny {
         wr = concreteWriter;
         string receiver = isStatic ? FormatCompanionTypeName(ownerName) : ownerName;
         wr.Indent();
-        wr.Write("func (_this * {0}) ", receiver);
+        wr.Write("func (_this *{0}) ", receiver);
       } else {
         wr = abstractWriter;
         wr.Indent();
@@ -1405,7 +1405,7 @@ namespace Microsoft.Dafny {
       }
 
       staticFieldWriter.Indent();
-      staticFieldWriter.WriteLine("* {0}", TypeName_CompanionType(superType, staticFieldWriter, tok));
+      staticFieldWriter.WriteLine("*{0}", TypeName_CompanionType(superType, staticFieldWriter, tok));
 
       staticFieldInitWriter.Indent();
       staticFieldInitWriter.WriteLine("{0}: &{1},", TypeName_CompanionType(superType, staticFieldInitWriter, tok), TypeName_Companion(superType, staticFieldInitWriter, tok, null));
