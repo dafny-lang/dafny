@@ -491,12 +491,14 @@ namespace Microsoft.Dafny
                                            TextWriter outputWriter = null)
     {
       Contract.Requires(dafnyProgram != null);
-      Contract.Requires(dafnyProgramName != null);
+      Contract.Assert(dafnyProgramName != null);
 
       if (outputWriter == null)
       {
         outputWriter = Console.Out;
       }
+
+      bool runRequiresSpill = false;
 
       // Compile the Dafny program into a string that contains the target program
       var oldErrorCount = dafnyProgram.reporter.Count(ErrorLevel.Error);
@@ -511,6 +513,7 @@ namespace Microsoft.Dafny
           break;
         case DafnyOptions.CompilationTarget.Go:
           compiler = new Dafny.GoCompiler(dafnyProgram.reporter);
+          runRequiresSpill = true;
           break;
       }
 
@@ -545,7 +548,7 @@ namespace Microsoft.Dafny
 
       // blurt out the code to a file, if requested, or if other files were specified for the C# command line.
       string targetFilename = null;
-      if (DafnyOptions.O.SpillTargetCode > 0 || otherFileNames.Count > 0)
+      if (DafnyOptions.O.SpillTargetCode > 0 || otherFileNames.Count > 0 || (runRequiresSpill && DafnyOptions.O.RunAfterCompile))
       {
         var p = callToMain == null ? targetProgramText : targetProgramText + callToMain;
         targetFilename = WriteDafnyProgramToFiles(dafnyProgramName, p, completeProgram, otherFiles, outputWriter);
