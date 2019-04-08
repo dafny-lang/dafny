@@ -18,13 +18,17 @@ method LinearSearch(a: array<int>, key: int) returns (n: nat)
   }
 }
 
-method PrintArray(a: array) {
-  var i := 0;
-  while i < a.Length {
-    print a[i], " ";
-    i := i + 1;
+method PrintArray<A>(a: array?<A>) {
+  if (a == null) {
+    print "It's null\n";
+  } else {
+    var i := 0;
+    while i < a.Length {
+      print a[i], " ";
+      i := i + 1;
+    }
+    print "\n";
   }
-  print "\n";
 }
 
 method Main() {
@@ -45,6 +49,8 @@ method Main() {
   InitTests();
   
   MultipleDimensions();
+
+  PrintArray<int>(null);
 }
 
 type lowercase = ch | 'a' <= ch <= 'z' witness 'd'

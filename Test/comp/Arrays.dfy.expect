@@ -17,6 +17,7 @@ h e l l o
 0 1 0 0 0 
 0 0 1 0 0 
 cube dims: 3 0 4
+It's null
 
 Dafny program verifier finished with 8 verified, 0 errors
 Compiled program written to Arrays.js
@@ -36,6 +37,7 @@ h e l l o
 0 1 0 0 0 
 0 0 1 0 0 
 cube dims: 3 0 4
+It's null
 
 Dafny program verifier finished with 8 verified, 0 errors
 Compiled program written to Arrays-go/src/Arrays.go
@@ -58,3 +60,4 @@ h e l l o
 0 1 0 0 0 
 0 0 1 0 0 
 cube dims: 3 0 4
+It's null

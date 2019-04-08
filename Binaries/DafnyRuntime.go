@@ -22,6 +22,12 @@ type EqualsGeneric interface {
 // values are handled intelligently if their type is refl.Value or any type that
 // implements the EqualsGeneric interface.
 func AreEqual(x, y interface{}) bool {
+	if x == nil {
+		return y == nil
+	}
+	if y == nil {
+		return false
+	}
 	switch x := x.(type) {
 	case refl.Value:
 		{
@@ -550,11 +556,12 @@ func (array *Array) Len(dim int) Int {
 // Equals compares two arrays for equality.  Values are compared using
 // dafny.AreEqual.
 func (array *Array) Equals(array2 *Array) bool {
-	// TODO: It feels like we should be able to shortcut in the case that the
-	// addresses are the same, but we're using value receivers.  Should we be?
-	// Can we still find out whether the slices are the same---that is, they
-	// have the same backing array, offset, length, and capacity?
-
+	if array == array2 {
+		return true
+	}
+	if array == nil || array2 == nil {
+		return false // we already know they're not equal as pointers
+	}
 	if len(array.dims) != len(array2.dims) {
 		return false
 	}
