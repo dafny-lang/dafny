@@ -2345,7 +2345,7 @@ namespace Microsoft.Dafny {
       if (type is SeqType || type is SetType) {
         wr.Write(".Index(");
         TrExpr(index, wr, inLetExprBody);
-        wr.Write(").Interface().({0})", TypeName(source.Type.TypeArgs[0], wr, null));
+        wr.Write(").Interface().({0})", TypeName(((CollectionType) type).Arg, wr, null));
       } else if (type is MultiSetType) {
         wr.Write(".Multiplicity(");
         TrExpr(index, wr, inLetExprBody);
