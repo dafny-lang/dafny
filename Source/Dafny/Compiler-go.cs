@@ -2431,12 +2431,13 @@ namespace Microsoft.Dafny {
       wr.Write("{0}.{1}()", source, FormatDatatypeConstructorCheckName(ctor.CompileName));
     }
     
-    protected override void EmitDestructor(string source, Formal dtor, int formalNonGhostIndex, DatatypeCtor ctor, List<Type> typeArgs, TargetWriter wr) {
+    protected override void EmitDestructor(string source, Formal dtor, int formalNonGhostIndex, DatatypeCtor ctor, List<Type> typeArgs, Type bvType, TargetWriter wr) {
       if (ctor.EnclosingDatatype is TupleTypeDecl) {
         wr.Write("({0}).Index(_dafny.IntOf({1})).Interface().({2})", source, formalNonGhostIndex, TypeName(typeArgs[formalNonGhostIndex], wr, Bpl.Token.NoToken));
       } else {
         var dtorName = FormalName(dtor, formalNonGhostIndex);
         var type = UserDefinedType.FromTopLevelDecl(ctor.tok, ctor.EnclosingDatatype);
+        wr = EmitCoercionIfNecessary(from:dtor.Type, to:bvType, tok:dtor.tok, wr:wr);
         wr.Write("{0}.Get().({1}).{2}", source, TypeName_Constructor(ctor, wr), dtorName);
       }
     }

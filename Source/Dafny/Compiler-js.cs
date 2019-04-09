@@ -1639,7 +1639,7 @@ namespace Microsoft.Dafny {
       return w;
     }
 
-    protected override void EmitDestructor(string source, Formal dtor, int formalNonGhostIndex, DatatypeCtor ctor, List<Type> typeArgs, TargetWriter wr) {
+    protected override void EmitDestructor(string source, Formal dtor, int formalNonGhostIndex, DatatypeCtor ctor, List<Type> typeArgs, Type bvType, TargetWriter wr) {
       if (ctor.EnclosingDatatype is TupleTypeDecl) {
         wr.Write("({0})[{1}]", source, formalNonGhostIndex);
       } else {

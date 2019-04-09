@@ -419,7 +419,7 @@ namespace Microsoft.Dafny {
     /// However, EmitDestructor may also need to perform a cast on "source".
     /// Furthermore, EmitDestructor also needs to work for anonymous destructors.
     /// </summary>
-    protected abstract void EmitDestructor(string source, Formal dtor, int formalNonGhostIndex, DatatypeCtor ctor, List<Type> typeArgs, TargetWriter wr);
+    protected abstract void EmitDestructor(string source, Formal dtor, int formalNonGhostIndex, DatatypeCtor ctor, List<Type> typeArgs, Type bvType, TargetWriter wr);
     protected abstract BlockTargetWriter CreateLambda(List<Type> inTypes, Bpl.IToken tok, List<string> inNames, Type resultType, TargetWriter wr, bool untyped = false);
     protected abstract TargetWriter CreateIIFE_ExprBody(Expression source, bool inLetExprBody, Type sourceType, Bpl.IToken sourceTok, Type resultType, Bpl.IToken resultTok, string bvName, TargetWriter wr);  // Immediately Invoked Function Expression
     protected abstract TargetWriter CreateIIFE_ExprBody(string source, Type sourceType, Bpl.IToken sourceTok, Type resultType, Bpl.IToken resultTok, string bvName, TargetWriter wr);  // Immediately Invoked Function Expression
@@ -1001,7 +1001,7 @@ namespace Microsoft.Dafny {
             Contract.Assert(Contract.ForAll(arg.Vars, bv => bv.IsGhost));
           } else {
             var sw = new TargetWriter();
-            EmitDestructor(tmp_name, formal, k, ctor, ((DatatypeValue)pat.Expr).InferredTypeArgs, sw);
+            EmitDestructor(tmp_name, formal, k, ctor, ((DatatypeValue)pat.Expr).InferredTypeArgs, arg.Expr.Type, sw);
             TrCasePatternOpt(arg, null, sw.ToString(), pat.Expr.Type, pat.Expr.tok, wr, inLetExprBody);
             k++;
           }
@@ -2402,7 +2402,7 @@ namespace Microsoft.Dafny {
           BoundVar bv = arguments[m];
           // FormalType f0 = ((Dt_Ctor0)source._D).a0;
           var sw = DeclareLocalVar(IdName(bv), bv.Type, bv.Tok, w);
-          EmitDestructor(source, arg, k, ctor, sourceType.TypeArgs, sw);
+          EmitDestructor(source, arg, k, ctor, sourceType.TypeArgs, bv.Type, sw);
           k++;
         }
       }
@@ -3018,7 +3018,7 @@ namespace Microsoft.Dafny {
             Contract.Assert(!Contract.Exists(arg.Vars, bv => !bv.IsGhost));
           } else {
             var sw = new TargetWriter(wr.IndentLevel);
-            EmitDestructor(rhsString, formal, k, ctor, ((DatatypeValue)pat.Expr).InferredTypeArgs, sw);
+            EmitDestructor(rhsString, formal, k, ctor, ((DatatypeValue)pat.Expr).InferredTypeArgs, arg.Expr.Type, sw);
             wr = TrCasePattern(arg, sw.ToString(), bodyType, wr);
             k++;
           }
