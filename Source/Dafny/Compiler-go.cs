@@ -1915,8 +1915,8 @@ namespace Microsoft.Dafny {
         wr.Write("_dafny.SeqOfString(");
         TrStringLiteral(str, wr);
         wr.Write(")");
-      } else if (AsNativeType(e.Type) != null) {
-        wr.Write((BigInteger)e.Value);
+      } else if (AsNativeType(e.Type) is NativeType nt) {
+        wr.Write("{0}({1})", GetNativeTypeName(nt), (BigInteger)e.Value);
       } else if (e.Value is BigInteger i) {
         EmitIntegerLiteral(i, wr);
       } else if (e.Value is Basetypes.BigDec n) {

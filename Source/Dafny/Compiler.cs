@@ -1459,7 +1459,7 @@ namespace Microsoft.Dafny {
                 lvalues.Add(CreateLvalue(lhs, wr));
                 string target = idGenerator.FreshId("_rhs");
                 rhss.Add(target);
-                TrRhs(GenerateLhsDecl(target, rhs is ExprRhs ? ((ExprRhs)rhs).Expr.Type : null, wr, rhs.Tok), lhs.Type, rhs, wr);
+                TrRhs(GenerateLhsDecl(target, lhs.Type, wr, rhs.Tok), lhs.Type, rhs, wr);
               }
             }
           }
@@ -2063,59 +2063,57 @@ namespace Microsoft.Dafny {
 
       var tRhs = rhs as TypeRhs;
 
-      // Do the allocation and assign it to _rhs aka _nw
-      string nw;
       if (tRhs == null) {
         var eRhs = (ExprRhs)rhs;  // it's not HavocRhs (by the precondition) or TypeRhs (by the "if" test), so it's gotta be ExprRhs
-        nw = idGenerator.FreshId("_rhs");
-        DeclareLocalVar(nw, eRhs.Expr.Type, eRhs.Expr.tok, eRhs.Expr, false, wr);
+        TargetWriter wLhs, wRhs;
+        EmitAssignment(out wLhs, targetType, out wRhs, TypeOfRhs(rhs), wr);
+        wLhs.Write(target);
+        TrExpr(eRhs.Expr, wRhs, false);
       } else {
-        nw = idGenerator.FreshId("_nw");
+        var nw = idGenerator.FreshId("_nw");
         var wRhs = DeclareLocalVar(nw, null, null, wr);
         TrTypeRhs(tRhs, wRhs);
-      }
 
-      // Proceed with any initialization
-      if (tRhs == null) {
-        // no further initialization action required
-      } else if (tRhs.InitCall != null) {
-        string q, n;
-        if (tRhs.InitCall.Method is Constructor && tRhs.InitCall.Method.IsExtern(out q, out n)) {
-          // initialization was done at the time of allocation
-        } else {
-          wr.Write(TrCallStmt(tRhs.InitCall, nw, wr.IndentLevel).ToString());
+        // Proceed with initialization
+        if (tRhs.InitCall != null) {
+          string q, n;
+          if (tRhs.InitCall.Method is Constructor && tRhs.InitCall.Method.IsExtern(out q, out n)) {
+            // initialization was done at the time of allocation
+          } else {
+            wr.Write(TrCallStmt(tRhs.InitCall, nw, wr.IndentLevel).ToString());
+          }
+        } else if (tRhs.ElementInit != null) {
+          // Compute the array-initializing function once and for all (as required by the language definition)
+          string f = idGenerator.FreshId("_arrayinit");
+          DeclareLocalVar(f, null, null, tRhs.ElementInit, false, wr);
+          // Build a loop nest that will call the initializer for all indicies
+          var indices = Translator.Map(Enumerable.Range(0, tRhs.ArrayDimensions.Count), ii => idGenerator.FreshId("_arrayinit_" + ii));
+          var w = wr;
+          for (var d = 0; d < tRhs.ArrayDimensions.Count; d++) {
+            string len, p0, p1;
+            GetSpecialFieldInfo(SpecialField.ID.ArrayLengthInt, tRhs.ArrayDimensions.Count == 1 ? null : (object)d, out len, out p0, out p1);
+            var bound = string.Format("{0}.{1}", nw, len);
+            w = CreateForLoop(indices[d], bound, w);
+          }
+          w.Indent();
+          w.Write(nw);
+          var eltRhs = string.Format("{0}({1})", f, Util.Comma(indices, ArrayIndexToInt));
+          EmitArrayUpdate(indices, eltRhs, tRhs.ElementInit.Type, w);
+          EndStmt(w);
+        } else if (tRhs.InitDisplay != null) {
+          var ii = 0;
+          foreach (var v in tRhs.InitDisplay) {
+            wr.Indent();
+            wr.Write(nw);
+            EmitArrayUpdate(new List<string> { ii.ToString() }, v, wr);
+            EndStmt(wr);
+            ii++;
+          }
         }
-      } else if (tRhs.ElementInit != null) {
-        // Compute the array-initializing function once and for all (as required by the language definition)
-        string f = idGenerator.FreshId("_arrayinit");
-        DeclareLocalVar(f, null, null, tRhs.ElementInit, false, wr);
-        // Build a loop nest that will call the initializer for all indicies
-        var indices = Translator.Map(Enumerable.Range(0, tRhs.ArrayDimensions.Count), ii => idGenerator.FreshId("_arrayinit_" + ii));
-        var w = wr;
-        for (var d = 0; d < tRhs.ArrayDimensions.Count; d++) {
-          string len, p0, p1;
-          GetSpecialFieldInfo(SpecialField.ID.ArrayLengthInt, tRhs.ArrayDimensions.Count == 1 ? null : (object)d, out len, out p0, out p1);
-          var bound = string.Format("{0}.{1}", nw, len);
-          w = CreateForLoop(indices[d], bound, w);
-        }
-        w.Indent();
-        w.Write(nw);
-        var eltRhs = string.Format("{0}({1})", f, Util.Comma(indices, ArrayIndexToInt));
-        EmitArrayUpdate(indices, eltRhs, tRhs.ElementInit.Type, w);
-        EndStmt(w);
-      } else if (tRhs.InitDisplay != null) {
-        var ii = 0;
-        foreach (var v in tRhs.InitDisplay) {
-          wr.Indent();
-          wr.Write(nw);
-          EmitArrayUpdate(new List<string> { ii.ToString() }, v, wr);
-          EndStmt(wr);
-          ii++;
-        }
-      }
 
-      // Assign to the final LHS
-      EmitAssignment(target, targetType, nw, TypeOfRhs(rhs), wr);
+        // Assign to the final LHS
+        EmitAssignment(target, targetType, nw, TypeOfRhs(rhs), wr);
+      }
     }
 
     // to do: Make Type an abstract property of AssignmentRhs.  Unfortunately, this would first require convincing Microsoft that it makes sense for a base class to have a property that's only settable in some subclasses.  Until then, let it be known that Java's "properties" (i.e. getter/setter pairs) are more powerful >:-)
