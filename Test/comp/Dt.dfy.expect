@@ -1,8 +1,5 @@
 
 Dafny program verifier finished with 10 verified, 0 errors
-Compiled program written to Dt.cs
-Running...
-
 List.Nil
 List.Cons(5, List.Nil)
 (List.Nil, List.Cons(5, List.Nil))
@@ -20,9 +17,6 @@ CoBerry.Hjortron true true false
 false
 
 Dafny program verifier finished with 10 verified, 0 errors
-Compiled program written to Dt.js
-Running...
-
 List.Nil
 List.Cons(5, List.Nil)
 (List.Nil, List.Cons(5, List.Nil))
@@ -40,12 +34,6 @@ CoBerry.Hjortron true true false
 false
 
 Dafny program verifier finished with 10 verified, 0 errors
-Compiled program written to Dt-go/src/Dt.go
-Additional code written to Dt-go/src/dafny/dafny.go
-Additional code written to Dt-go/src/System_/System_.go
-Additional code written to Dt-go/src/module_/module_.go
-Running...
-
 List.Nil
 List.Cons(5, List.Nil)
 (List.Nil, List.Cons(5, List.Nil))

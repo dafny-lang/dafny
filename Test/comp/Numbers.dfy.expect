@@ -1,8 +1,5 @@
 
 Dafny program verifier finished with 16 verified, 0 errors
-Compiled program written to Numbers.cs
-Running...
-
 0
 0
 3
@@ -77,9 +74,6 @@ true false
 100 100 18
 
 Dafny program verifier finished with 16 verified, 0 errors
-Compiled program written to Numbers.js
-Running...
-
 0
 0
 3
@@ -154,12 +148,6 @@ true false
 100 100 18
 
 Dafny program verifier finished with 16 verified, 0 errors
-Compiled program written to Numbers-go/src/Numbers.go
-Additional code written to Numbers-go/src/dafny/dafny.go
-Additional code written to Numbers-go/src/System_/System_.go
-Additional code written to Numbers-go/src/module_/module_.go
-Running...
-
 0
 0
 3

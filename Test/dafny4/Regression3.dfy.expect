@@ -1,7 +1,5 @@
 
 Dafny program verifier finished with 3 verified, 0 errors
-Running...
-
 55
 Trunc( -3.0 ) = -3 (expected -3)
 Trunc( -2.8 ) = -3 (expected -3)

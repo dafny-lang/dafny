@@ -1,8 +1,5 @@
 
 Dafny program verifier finished with 3 verified, 0 errors
-Compiled program written to Collections.cs
-Running...
-
 Sets: {} {17, 82} {12, 17}
   cardinality: 0 2 2
   union: {17, 82} {17, 82, 12}
@@ -49,9 +46,6 @@ Maps: map[] map[17 := 2, 82 := 2] map[17 := 0, 12 := 26]
 3: 0 1 2
 
 Dafny program verifier finished with 3 verified, 0 errors
-Compiled program written to Collections.js
-Running...
-
 Sets: {} {17, 82} {12, 17}
   cardinality: 0 2 2
   union: {17, 82} {17, 82, 12}
@@ -98,12 +92,6 @@ Maps: map[] map[17 := 2, 82 := 2] map[17 := 0, 12 := 26]
 3: 0 1 2
 
 Dafny program verifier finished with 3 verified, 0 errors
-Compiled program written to Collections-go/src/Collections.go
-Additional code written to Collections-go/src/dafny/dafny.go
-Additional code written to Collections-go/src/System_/System_.go
-Additional code written to Collections-go/src/module_/module_.go
-Running...
-
 Sets: {} {17, 82} {12, 17}
   cardinality: 0 2 2
   union: {17, 82} {17, 82, 12}

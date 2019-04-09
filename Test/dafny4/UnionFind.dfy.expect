@@ -1,7 +1,5 @@
 
 Dafny program verifier finished with 62 verified, 0 errors
-Running...
-
 false
 true true
 false true true

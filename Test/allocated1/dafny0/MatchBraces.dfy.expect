@@ -125,7 +125,5 @@ method MoreDegenerateExamples(c: Color)
 datatype Color = Red | Green | Blue
 
 Dafny program verifier finished with 5 verified, 0 errors
-Running...
-
 7 0.18 Color.Red 13 12
 11 98.0 Color.Green 14 115

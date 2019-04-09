@@ -1,8 +1,5 @@
 
 Dafny program verifier finished with 2 verified, 0 errors
-Compiled program written to Class.cs
-Running...
-
 103 103 103 106 106 106
 203 17 0 18 8 9 69 70
 203 17 0 18 8 9 69 70
@@ -12,9 +9,6 @@ Running...
 0 18 9 70
 
 Dafny program verifier finished with 2 verified, 0 errors
-Compiled program written to Class.js
-Running...
-
 103 103 103 106 106 106
 203 17 0 18 8 9 69 70
 203 17 0 18 8 9 69 70
@@ -24,12 +18,6 @@ Running...
 0 18 9 70
 
 Dafny program verifier finished with 2 verified, 0 errors
-Compiled program written to Class-go/src/Class.go
-Additional code written to Class-go/src/dafny/dafny.go
-Additional code written to Class-go/src/System_/System_.go
-Additional code written to Class-go/src/module_/module_.go
-Running...
-
 103 103 103 106 106 106
 203 17 0 18 8 9 69 70
 203 17 0 18 8 9 69 70

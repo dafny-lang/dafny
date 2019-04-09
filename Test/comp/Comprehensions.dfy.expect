@@ -1,8 +1,5 @@
 
 Dafny program verifier finished with 15 verified, 0 errors
-Compiled program written to Comprehensions.cs
-Running...
-
 x=13 y=14
 x=13 y=14 b=yes
 p=(13, 14)
@@ -21,9 +18,6 @@ XM returned: 16
 0 12 3 8
 
 Dafny program verifier finished with 15 verified, 0 errors
-Compiled program written to Comprehensions.js
-Running...
-
 x=13 y=14
 x=13 y=14 b=yes
 p=(13, 14)
@@ -42,12 +36,6 @@ XM returned: 16
 0 12 3 8
 
 Dafny program verifier finished with 15 verified, 0 errors
-Compiled program written to Comprehensions-go/src/Comprehensions.go
-Additional code written to Comprehensions-go/src/dafny/dafny.go
-Additional code written to Comprehensions-go/src/System_/System_.go
-Additional code written to Comprehensions-go/src/module_/module_.go
-Running...
-
 x=13 y=14
 x=13 y=14 b=yes
 p=(13, 14)

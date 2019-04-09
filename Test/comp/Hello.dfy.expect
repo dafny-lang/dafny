@@ -1,27 +1,15 @@
 
 Dafny program verifier finished with 0 verified, 0 errors
-Compiled program written to Hello.cs
-Running...
-
 Hello, JavaScript! Best, Dafny
 x is 14
 y is false
 
 Dafny program verifier finished with 0 verified, 0 errors
-Compiled program written to Hello.js
-Running...
-
 Hello, JavaScript! Best, Dafny
 x is 14
 y is false
 
 Dafny program verifier finished with 0 verified, 0 errors
-Compiled program written to Hello-go/src/Hello.go
-Additional code written to Hello-go/src/dafny/dafny.go
-Additional code written to Hello-go/src/System_/System_.go
-Additional code written to Hello-go/src/module_/module_.go
-Running...
-
 Hello, JavaScript! Best, Dafny
 x is 14
 y is false

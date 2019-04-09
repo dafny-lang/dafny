@@ -1,4 +1,5 @@
-// RUN: %dafny /compile:3 /compileTarget:js "%s" > "%t"
+// RUN: %dafny /compile:3 "%s" /compileTarget:js > "%t"
+// note: putting /compileTarget:js after "%s" overrides user-provided option
 // RUN: %diff "%s.expect" "%t"
 
 // "url" is a built-in package in node, so it should be accessible to the

@@ -183,7 +183,5 @@ method Main()
 }
 
 Dafny program verifier finished with 16 verified, 0 errors
-Running...
-
 37, 17, 3.14
 false, true

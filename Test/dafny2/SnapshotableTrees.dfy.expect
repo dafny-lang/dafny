@@ -12,8 +12,6 @@ Execution trace:
     (0,0): anon3_Then
 
 Dafny program verifier finished with 53 verified, 2 errors
-Running...
-
 Main iterates on -15
 Main iterates on 0
 Main iterates on 1

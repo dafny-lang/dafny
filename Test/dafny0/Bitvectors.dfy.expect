@@ -439,8 +439,6 @@ method PrintRotates<T>(s: string, a: T, b: T)
 }
 
 Dafny program verifier finished with 11 verified, 0 errors
-Running...
-
 4000 4000 4000 0
 1 2053 1099
 185 55

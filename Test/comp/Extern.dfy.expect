@@ -1,25 +1,12 @@
 
 Dafny program verifier finished with 2 verified, 0 errors
-Compiled program written to Extern.cs
-Running...
-
 Hello
 31 62 45
 
 Dafny program verifier finished with 2 verified, 0 errors
-Compiled program written to Extern.js
-Running...
-
 Hello
 31 62 45
 
 Dafny program verifier finished with 2 verified, 0 errors
-Compiled program written to Extern-go/src/Extern.go
-Additional code written to Extern-go/src/dafny/dafny.go
-Additional code written to Extern-go/src/System_/System_.go
-Additional code written to Extern-go/src/module_/module_.go
-Running...
-
-Additional input Extern4.go copied to Extern-go/src/Library/Library.go
 Hello
 31 62 45

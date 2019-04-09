@@ -372,8 +372,6 @@ module U {
 }
 
 Dafny program verifier finished with 1 verified, 0 errors
-Running...
-
 6 1 5 3
 20 17 22
 12 144 170
