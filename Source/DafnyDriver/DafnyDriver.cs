@@ -456,8 +456,10 @@ namespace Microsoft.Dafny
       string targetFilename = Path.Combine(targetDir, targetBaseName);
       WriteFile(targetFilename, targetProgram);
       string relativeTarget = Path.Combine(targetBaseDir, targetBaseName);
-      if (completeProgram && DafnyOptions.O.CompileVerbose) {
-        outputWriter.WriteLine("Compiled program written to {0}", relativeTarget);
+      if (completeProgram) {
+        if (DafnyOptions.O.CompileVerbose) {
+          outputWriter.WriteLine("Compiled program written to {0}", relativeTarget);
+        }
       }
       else {
         outputWriter.WriteLine("File {0} contains the partially compiled program", relativeTarget);
