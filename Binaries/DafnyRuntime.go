@@ -1457,6 +1457,24 @@ func IntOf64(i int64) Int {
 	}
 }
 
+// IntOfUint64 turns the given uint64 into an Int.  Common values are cached.
+func IntOfUint64(i uint64) Int {
+	switch i {
+	case 0:
+		return Zero
+	case 1:
+		return One
+	case 2:
+		return Two
+	case 5:
+		return Five
+	case 10:
+		return Ten
+	default:
+		return intOf(new(big.Int).SetUint64(i))
+	}
+}
+
 // IntOfString parses the given string as an Int, panicking on failure.
 func IntOfString(s string) Int {
 	switch s {

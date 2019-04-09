@@ -2521,7 +2521,7 @@ namespace Microsoft.Dafny {
     }
 
     bool IsOrderedByCmp(Type t) {
-      return t.IsIntegerType || t.IsRealType || t.IsBitVectorType;
+      return t.IsIntegerType || t.IsRealType || (t.IsBitVectorType && t.AsBitVectorType.NativeType == null);
     }
 
     bool IsComparedByEquals(Type t) {
@@ -2652,13 +2652,21 @@ namespace Microsoft.Dafny {
           }
           break;
         case BinaryExpr.ResolvedOpcode.LeftShift:
+          if (resultType.IsBitVectorType) {
+            truncateResult = true;
+          }
           if (AsNativeType(resultType) != null) {
             opString = "<<";
             if (AsNativeType(e1.Type) == null) {
               postOpString = ".Uint64()";
             }
           } else {
-            callString = "Lsh";
+            if (AsNativeType(e1.Type) is NativeType nt) {
+              callString = "Lsh(_dafny.IntOfUint64(uint64";
+              postOpString = "))";
+            } else {
+              callString = "Lsh";
+            }
           }
           break;
         case BinaryExpr.ResolvedOpcode.RightShift:
@@ -2668,15 +2676,20 @@ namespace Microsoft.Dafny {
               postOpString = ".Uint64()";
             }
           } else {
-            callString = "Rsh";
+            if (AsNativeType(e1.Type) is NativeType nt) {
+              callString = "Rsh(_dafny.IntOfUint64(uint64";
+              postOpString = "))";
+            } else {
+              callString = "Rsh";
+            }
           }
           break;
         case BinaryExpr.ResolvedOpcode.Add:
+          if (resultType.IsBitVectorType) {
+            truncateResult = true;
+          }
           if (AsNativeType(resultType) != null) {
             opString = "+";
-            if (resultType.IsBitVectorType) {
-              truncateResult = true;
-            }
           } else {
             callString = "Plus";
           }
