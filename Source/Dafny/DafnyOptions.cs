@@ -65,6 +65,7 @@ namespace Microsoft.Dafny
     [Flags]
     public enum CompilationTarget { Csharp = 1, JavaScript = 2, Go = 4 }
     public CompilationTarget CompileTarget = CompilationTarget.Csharp;
+    public bool CompileVerbose = true;
     public string DafnyPrintCompiledFile = null;
     public bool ForceCompile = false;
     public bool RunAfterCompile = false;
@@ -180,6 +181,14 @@ namespace Microsoft.Dafny
             }
           }
           return true;
+
+        case "compileVerbose": {
+            int verbosity = 0;
+            if (ps.GetNumericArgument(ref verbosity, 2)) {
+              CompileVerbose = verbosity == 1;
+            }
+            return true;
+          }
 
         case "dafnyVerify":
             {
@@ -489,6 +498,10 @@ namespace Microsoft.Dafny
                 cs (default) - Compilation to .NET via C#
                 go - Compilation to Go
                 js - Compilation to JavaScript
+  /compileVerbose:<n>
+                0 - don't print status of compilation to the console
+                1 (default) - print information such as files being written by
+                    the compiler to the console
   /spillTargetCode:<n>
                 0 (default) - don't write the compiled Dafny program (but
                     still compile it, if /compile indicates to do so)

@@ -456,7 +456,7 @@ namespace Microsoft.Dafny
       string targetFilename = Path.Combine(targetDir, targetBaseName);
       WriteFile(targetFilename, targetProgram);
       string relativeTarget = Path.Combine(targetBaseDir, targetBaseName);
-      if (completeProgram) {
+      if (completeProgram && DafnyOptions.O.CompileVerbose) {
         outputWriter.WriteLine("Compiled program written to {0}", relativeTarget);
       }
       else {
@@ -466,7 +466,9 @@ namespace Microsoft.Dafny
       foreach (var entry in otherFiles) {
         var filename = entry.Key;
         WriteFile(Path.Combine(targetDir, filename), entry.Value);
-        outputWriter.WriteLine("Additional code written to {0}", Path.Combine(targetBaseDir, filename));
+        if (DafnyOptions.O.CompileVerbose) {
+          outputWriter.WriteLine("Additional code written to {0}", Path.Combine(targetBaseDir, filename));
+        }
       }
       return targetFilename;
     }
@@ -565,12 +567,16 @@ namespace Microsoft.Dafny
         hasMain, hasMain && DafnyOptions.O.RunAfterCompile, outputWriter, out compilationResult);
       if (compiledCorrectly && DafnyOptions.O.RunAfterCompile) {
         if (hasMain) {
-          outputWriter.WriteLine("Running...");
-          outputWriter.WriteLine();
+          if (DafnyOptions.O.CompileVerbose) {
+            outputWriter.WriteLine("Running...");
+            outputWriter.WriteLine();
+          }
           compiledCorrectly = compiler.RunTargetProgram(dafnyProgramName, targetProgramText, callToMain, targetFilename, otherFileNames, compilationResult, outputWriter);
         } else {
           // make sure to give some feedback to the user
-          outputWriter.WriteLine("Program compiled successfully");
+          if (DafnyOptions.O.CompileVerbose) {
+            outputWriter.WriteLine("Program compiled successfully");
+          }
         }
       }
       return compiledCorrectly;

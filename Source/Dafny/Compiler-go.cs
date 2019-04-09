@@ -3121,7 +3121,9 @@ namespace Microsoft.Dafny {
       } else {
         relTgtFilename = tgtFilename;
       }
-      outputWriter.WriteLine("Additional input {0} copied to {1}", externFilename, relTgtFilename);
+      if (DafnyOptions.O.CompileVerbose) {
+        outputWriter.WriteLine("Additional input {0} copied to {1}", externFilename, relTgtFilename);
+      }
       return true;
     }
 

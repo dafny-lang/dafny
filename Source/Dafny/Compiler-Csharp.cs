@@ -2283,7 +2283,9 @@ namespace Microsoft.Dafny
 
       if (!cp.GenerateInMemory) {
         var assemblyName = Path.GetFileName(crx.cr.PathToAssembly);
-        outputWriter.WriteLine("Compiled assembly into {0}", assemblyName);
+        if (DafnyOptions.O.CompileVerbose) {
+          outputWriter.WriteLine("Compiled assembly into {0}", assemblyName);
+        }
         if (DafnyOptions.O.Optimize) {
           var outputDir = Path.GetDirectoryName(dafnyProgramName);
           if (string.IsNullOrWhiteSpace(outputDir)) {
@@ -2292,7 +2294,9 @@ namespace Microsoft.Dafny
           foreach (var filename in crx.immutableDllFileNames) {
             var destPath = outputDir + Path.DirectorySeparatorChar + filename;
             File.Copy(crx.libPath + filename, destPath, true);
-            outputWriter.WriteLine("Copied /optimize dependency {0} to {1}", filename, outputDir);
+            if (DafnyOptions.O.CompileVerbose) {
+              outputWriter.WriteLine("Copied /optimize dependency {0} to {1}", filename, outputDir);
+            }
           }
         }
       }
