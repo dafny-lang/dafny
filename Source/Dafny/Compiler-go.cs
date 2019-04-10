@@ -1906,7 +1906,7 @@ namespace Microsoft.Dafny {
       if (e is StaticReceiverExpr) {
         wr.Write("{0}", TypeName(e.Type, wr, e.tok));
       } else if (e.Value == null) {
-        wr.Write("nil");
+        wr.Write("({0})(nil)", TypeName(e.Type, wr, tok:null));
       } else if (e.Value is bool) {
         wr.Write((bool)e.Value ? "true" : "false");
       } else if (e is CharLiteralExpr) {
@@ -2174,7 +2174,7 @@ namespace Microsoft.Dafny {
       } else if (type is RealType) {
         wr.Write("_dafny.NilReal");
       } else {
-        wr.Write("nil");
+        wr.Write("({0})(nil)", TypeName(type, wr, tok:null));
       }
     }
 
