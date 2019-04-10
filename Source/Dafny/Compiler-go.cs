@@ -2833,7 +2833,7 @@ namespace Microsoft.Dafny {
           wr.Write("_dafny.RealOfFrac(");
           TargetWriter w;
           if (AsNativeType(e.E.Type) != null) {
-            wr.Write("_dafny.IntOf(int64(");
+            wr.Write("_dafny.IntOf64(int64(");
             w = wr.Fork();
             wr.Write("))");
           } else {
@@ -2856,7 +2856,7 @@ namespace Microsoft.Dafny {
             Contract.Assert(fromNative == null);
             if (toNative == null) {
               // char -> big-integer (int or bv or ORDINAL)
-              wr.Write("_dafny.IntOf(int64(");
+              wr.Write("_dafny.IntOf64(int64(");
               TrExpr(e.E, wr, inLetExprBody);
               wr.Write("))");
             } else {
@@ -2869,7 +2869,7 @@ namespace Microsoft.Dafny {
             TrExpr(e.E, wr, inLetExprBody);
           } else if (fromNative != null && toNative == null) {
             // native (int or bv) -> big-integer (int or bv)
-            wr.Write("_dafny.IntOf(int64(");
+            wr.Write("_dafny.IntOf64(int64(");
             TrExpr(e.E, wr, inLetExprBody);
             wr.Write("))");
           } else {
