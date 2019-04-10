@@ -446,6 +446,17 @@ namespace Microsoft.Dafny {
     protected abstract void EmitCollectionBuilder_Add(CollectionType ct, string collName, Expression elmt, bool inLetExprBody, TargetWriter wr);
     protected abstract TargetWriter EmitMapBuilder_Add(MapType mt, Bpl.IToken tok, string collName, Expression term, bool inLetExprBody, TargetWriter wr);
     protected abstract string GetCollectionBuilder_Build(CollectionType ct, Bpl.IToken tok, string collName, TargetWriter wr);
+    protected virtual void EmitIntegerRange(Type type, out TargetWriter wLo, out TargetWriter wHi, TargetWriter wr) {
+      if (AsNativeType(type) != null) {
+        wr.Write("{0}.IntegerRange(", IdProtect(type.AsNewtype.FullCompileName));
+      } else {
+        wr.Write("{0}.IntegerRange(", GetHelperModuleName());
+      }
+      wLo = wr.Fork();
+      wr.Write(", ");
+      wHi = wr.Fork();
+      wr.Write(')');
+    }
     protected abstract void EmitSingleValueGenerator(Expression e, bool inLetExprBody, string type, TargetWriter wr);
     protected virtual void FinishModule() { }
 
@@ -1848,29 +1859,24 @@ namespace Microsoft.Dafny {
         collectionWriter.Write("{0}.AllChars()", GetHelperModuleName());
       } else if (bound is ComprehensionExpr.IntBoundedPool) {
         var b = (ComprehensionExpr.IntBoundedPool)bound;
-        if (AsNativeType(bv.Type) != null) {
-          collectionWriter.Write("{0}.IntegerRange(", IdProtect(bv.Type.AsNewtype.FullCompileName));
-        } else {
-          collectionWriter.Write("{0}.IntegerRange(", GetHelperModuleName());
-        }
+        TargetWriter wLo, wHi;
+        EmitIntegerRange(bv.Type, out wLo, out wHi, collectionWriter);
         if (b.LowerBound == null) {
-          EmitNull(bv.Type, collectionWriter);
+          EmitNull(bv.Type, wLo);
         } else if (bounds != null) {
           var low = SubstituteBound(b, bounds, boundVars, boundIndex, true);
-          TrExpr(low, collectionWriter, inLetExprBody);
+          TrExpr(low, wLo, inLetExprBody);
         } else {
-          TrExpr(b.LowerBound, collectionWriter, inLetExprBody);
+          TrExpr(b.LowerBound, wLo, inLetExprBody);
         }
-        collectionWriter.Write(", ");
         if (b.UpperBound == null) {
-          EmitNull(bv.Type, collectionWriter);
+          EmitNull(bv.Type, wHi);
         } else if (bounds != null) {
           var high = SubstituteBound(b, bounds, boundVars, boundIndex, false);
-          TrExpr(high, collectionWriter, inLetExprBody);
+          TrExpr(high, wHi, inLetExprBody);
         } else {
-          TrExpr(b.UpperBound, collectionWriter, inLetExprBody);
+          TrExpr(b.UpperBound, wHi, inLetExprBody);
         }
-        collectionWriter.Write(")");
       } else if (bound is AssignSuchThatStmt.WiggleWaggleBound) {
         collectionWriter.Write("{0}.AllIntegers()", GetHelperModuleName());
       } else if (bound is ComprehensionExpr.ExactBoundedPool) {

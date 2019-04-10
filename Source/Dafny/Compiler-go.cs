@@ -3044,6 +3044,18 @@ namespace Microsoft.Dafny {
       }
     }
 
+    protected override void EmitIntegerRange(Type type, out TargetWriter wLo, out TargetWriter wHi, TargetWriter wr) {
+      if (AsNativeType(type) != null) {
+        wr.Write("{0}.IntegerRange(", TypeName_Companion(type.AsNewtype, wr, tok:null));
+      } else {
+        wr.Write("_dafny.IntegerRange(");
+      }
+      wLo = wr.Fork();
+      wr.Write(", ");
+      wHi = wr.Fork();
+      wr.Write(')');
+    }
+
     protected override void EmitSingleValueGenerator(Expression e, bool inLetExprBody, string type, TargetWriter wr) {
       TrParenExpr("_dafny.SingleValue", e, wr, inLetExprBody);
     }
