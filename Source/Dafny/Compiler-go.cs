@@ -723,7 +723,7 @@ namespace Microsoft.Dafny {
         foreach (var formal in ctor.Formals) {
           if (!formal.IsGhost) {
             wStruct.Indent();
-            wStruct.WriteLine("{0} {1}", FormalName(formal, k), TypeName(formal.Type, wr, formal.Tok));
+            wStruct.WriteLine("{0} {1}", DatatypeFieldName(formal, k), TypeName(formal.Type, wr, formal.Tok));
             k++;
           }
         }
@@ -739,7 +739,7 @@ namespace Microsoft.Dafny {
         k = 0;
         foreach (var formal in ctor.Formals) {
           if (!formal.IsGhost) {
-            var formalName = FormalName(formal, k);
+            var formalName = DatatypeFieldName(formal, k);
 
             wr.Write("{0}{1} {2}", k > 0 ? ", " : "", formalName, TypeName(formal.Type, wr, formal.Tok));
 
@@ -802,18 +802,18 @@ namespace Microsoft.Dafny {
               wDtor.Indent();
               var n = dtor.EnclosingCtors.Count;
               if (n == 1) {
-                wDtor.WriteLine("return _this.Get().({0}).{1}", structOfCtor(dtor.EnclosingCtors[0]), arg.CompileName);
+                wDtor.WriteLine("return _this.Get().({0}).{1}", structOfCtor(dtor.EnclosingCtors[0]), Capitalize(arg.CompileName));
               } else {
                 wDtor = wDtor.NewBlock("switch data := _this.Get().(type)");
                 for (int i = 0; i < n-1; i++) {
                   var ctor_i = dtor.EnclosingCtors[i];
                   Contract.Assert(arg.CompileName == dtor.CorrespondingFormals[i].CompileName);
                   wDtor.Indent();
-                  wDtor.WriteLine("case {0}: return data.{1}", structOfCtor(ctor_i), IdName(arg));
+                  wDtor.WriteLine("case {0}: return data.{1}", structOfCtor(ctor_i), Capitalize(arg.CompileName));
                 }
                 Contract.Assert(arg.CompileName == dtor.CorrespondingFormals[n-1].CompileName);
                 wDtor.Indent();
-                wDtor.WriteLine("default: return data.({0}).{1}", structOfCtor(dtor.EnclosingCtors[n-1]), IdName(arg));
+                wDtor.WriteLine("default: return data.({0}).{1}", structOfCtor(dtor.EnclosingCtors[n-1]), Capitalize(arg.CompileName));
               }
             }
           }
@@ -845,7 +845,7 @@ namespace Microsoft.Dafny {
             foreach (var arg in ctor.Formals) {
               if (!arg.IsGhost) {
                 anyFormals = true;
-                wCase.Write("{0}_dafny.String(data.{1})", sep, FormalName(arg, k));
+                wCase.Write("{0}_dafny.String(data.{1})", sep, DatatypeFieldName(arg, k));
                 sep = " + \", \" + ";
                 k++;
               }
@@ -890,7 +890,7 @@ namespace Microsoft.Dafny {
             if (!arg.IsGhost) {
               wCase.Indent();
               wCase.Write("if !(");
-              string nm = FormalName(arg, k);
+              string nm = DatatypeFieldName(arg, k);
               if (IsDirectlyComparable(arg.Type)) {
                 wCase.Write("data1.{0} == data2.{0}", nm);
               } else {
@@ -1664,6 +1664,10 @@ namespace Microsoft.Dafny {
       return type is UserDefinedType udt ? FullTypeName(udt) : TypeName(type, wr, tok);
     }
 
+    protected string DatatypeFieldName(Formal formal, int formalNonGhostIndex) {
+      return Capitalize(FormalName(formal, formalNonGhostIndex));
+    }
+
     // ----- Declarations -------------------------------------------------------------
 
     protected void DeclareField(string name, bool isExtern, bool isStatic, bool isConst, Type type, Bpl.IToken tok, string rhs, TargetWriter wr, TargetWriter initWriter) {
@@ -2289,7 +2293,7 @@ namespace Microsoft.Dafny {
         string compiledName, preStr, postStr;
         GetSpecialFieldInfo(sf.SpecialId, sf.IdParam, out compiledName, out preStr, out postStr);
         if (compiledName.Length != 0) {
-          wr.Write(".{0}", compiledName);
+          wr.Write(".{0}", Capitalize(compiledName));
         } else {
           // this member selection is handled by some kind of enclosing function call, so nothing to do here
         }
@@ -2440,7 +2444,7 @@ namespace Microsoft.Dafny {
       if (ctor.EnclosingDatatype is TupleTypeDecl) {
         wr.Write("({0}).Index(_dafny.IntOf({1})).Interface().({2})", source, formalNonGhostIndex, TypeName(typeArgs[formalNonGhostIndex], wr, Bpl.Token.NoToken));
       } else {
-        var dtorName = FormalName(dtor, formalNonGhostIndex);
+        var dtorName = DatatypeFieldName(dtor, formalNonGhostIndex);
         var type = UserDefinedType.FromTopLevelDecl(ctor.tok, ctor.EnclosingDatatype);
         wr = EmitCoercionIfNecessary(from:dtor.Type, to:bvType, tok:dtor.tok, wr:wr);
         wr.Write("{0}.Get().({1}).{2}", source, TypeName_Constructor(ctor, wr), dtorName);
