@@ -2841,24 +2841,25 @@ namespace Microsoft.Dafny {
         } else if (e.ToType.IsCharType) {
           wr.Write("_dafny.Char(");
           TrParenExpr(e.E, wr, inLetExprBody);
-          wr.Write(".Int64())");
+          wr.Write(".Int32())");
         } else {
           // (int or bv or char) -> (int or bv or ORDINAL)
           var fromNative = AsNativeType(e.E.Type);
           var toNative = AsNativeType(e.ToType);
           if (fromNative != null && toNative != null) {
             // from a native, to a native -- simple!
-           TrExpr(e.E, wr, inLetExprBody);
+            wr.Write(GetNativeTypeName(toNative));
+            TrParenExpr(e.E, wr, inLetExprBody);
           } else if (e.E.Type.IsCharType) {
             Contract.Assert(fromNative == null);
             if (toNative == null) {
               // char -> big-integer (int or bv or ORDINAL)
-              wr.Write("_dafny.IntOfInt32(int32(");
+              wr.Write("_dafny.IntOfInt32(rune(");
               TrExpr(e.E, wr, inLetExprBody);
               wr.Write("))");
             } else {
               // char -> native
-              wr.Write("(rune) ");
+              wr.Write(toNative);
               TrParenExpr(e.E, wr, inLetExprBody);
             }
           } else if (fromNative == null && toNative == null) {
