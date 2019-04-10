@@ -1432,13 +1432,34 @@ func intOf(i *big.Int) Int {
 	}
 }
 
-// IntOf turns the given int into an Int.  Common values are cached.
+// IntOf turns the given int into an Int.  Common values are cached.  This is
+// simply a shorter form of IntOfInt.
 func IntOf(i int) Int {
-	return IntOf64(int64(i))
+	return IntOfInt(i)
 }
 
-// IntOf64 turns the given int64 into an Int.  Common values are cached.
-func IntOf64(i int64) Int {
+// IntOfInt turns the given int into an Int.  Common values are cached.
+func IntOfInt(i int) Int {
+	return IntOfInt64(int64(i))
+}
+
+// IntOfInt8 turns the given int8 into an Int.  Common values are cached.
+func IntOfInt8(i int8) Int {
+	return IntOfInt64(int64(i))
+}
+
+// IntOfInt16 turns the given int16 into an Int.  Common values are cached.
+func IntOfInt16(i int16) Int {
+	return IntOfInt64(int64(i))
+}
+
+// IntOfInt32 turns the given int32 into an Int.  Common values are cached.
+func IntOfInt32(i int32) Int {
+	return IntOfInt64(int64(i))
+}
+
+// IntOfInt64 turns the given int64 into an Int.  Common values are cached.
+func IntOfInt64(i int64) Int {
 	switch i {
 	case -1:
 		return NegativeOne
@@ -1455,6 +1476,26 @@ func IntOf64(i int64) Int {
 	default:
 		return intOf(big.NewInt(i))
 	}
+}
+
+// IntOfUint turns the given uint into an Int.  Common values are cached.
+func IntOfUint(i uint) Int {
+	return IntOfUint64(uint64(i))
+}
+
+// IntOfUint8 turns the given uint8 into an Int.  Common values are cached.
+func IntOfUint8(i uint8) Int {
+	return IntOfUint64(uint64(i))
+}
+
+// IntOfUint16 turns the given uint16 into an Int.  Common values are cached.
+func IntOfUint16(i uint16) Int {
+	return IntOfUint64(uint64(i))
+}
+
+// IntOfUint32 turns the given uint32 into an Int.  Common values are cached.
+func IntOfUint32(i uint32) Int {
+	return IntOfUint64(uint64(i))
 }
 
 // IntOfUint64 turns the given uint64 into an Int.  Common values are cached.
@@ -1506,6 +1547,24 @@ func (i Int) Int() int {
 	return int(i.impl.Int64())
 }
 
+// Int8 converts back into an int8.  If the result is not within int8 range,
+// the value is undefined.
+func (i Int) Int8() int8 {
+	return int8(i.impl.Int64())
+}
+
+// Int16 converts back into an int16.  If the result is not within int16 range,
+// the value is undefined.
+func (i Int) Int16() int16 {
+	return int16(i.impl.Int64())
+}
+
+// Int32 converts back into an int32.  If the result is not within int32 range,
+// the value is undefined.
+func (i Int) Int32() int32 {
+	return int32(i.impl.Int64())
+}
+
 // Int64 converts back to an int64.  If the result is not within int64 range,
 // the value is undefined.
 func (i Int) Int64() int64 {
@@ -1516,6 +1575,24 @@ func (i Int) Int64() int64 {
 // value is undefined.
 func (i Int) Uint() uint {
 	return uint(i.impl.Uint64())
+}
+
+// Uint8 converts back to a uint8.  If the result is not within uint8 range, the
+// value is undefined.
+func (i Int) Uint8() uint8 {
+	return uint8(i.impl.Uint64())
+}
+
+// Uint16 converts back to a uint16.  If the result is not within uint16 range,
+// the value is undefined.
+func (i Int) Uint16() uint16 {
+	return uint16(i.impl.Uint64())
+}
+
+// Uint32 converts back to a uint32.  If the result is not within uint32 range,
+// the value is undefined.
+func (i Int) Uint32() uint32 {
+	return uint32(i.impl.Uint64())
 }
 
 // Uint64 converts back to a uint64.  If the result is not within uint64 range,

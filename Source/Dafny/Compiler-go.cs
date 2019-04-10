@@ -965,16 +965,15 @@ namespace Microsoft.Dafny {
         wIterFuncBody.Indent();
         wIterFuncBody.WriteLine("if !ok {{ return {0}(0), false }}", nativeType);
         wIterFuncBody.Indent();
-        wIterFuncBody.WriteLine("return {0}(next.(int64)), true", nativeType);
+        wIterFuncBody.WriteLine("return next.(_dafny.Int).{0}(), true", Capitalize(nativeType));
       }
       if (nt.WitnessKind == SubsetTypeDecl.WKind.Compiled) { 
         var witness = new TargetWriter(w.IndentLevel);
         if (nt.NativeType == null) {
           TrExpr(nt.Witness, witness, false);
         } else {
-          witness.Write("{0}(", nativeType);
           TrParenExpr(nt.Witness, witness, false);
-          witness.Write(".Int64())");
+          witness.Write(".{0}()", Capitalize(GetNativeTypeName(nt.NativeType)));
         }
         cw.DeclareField("Witness", true, true, nt.BaseType, nt.tok, witness.ToString());
       }
@@ -1943,7 +1942,7 @@ namespace Microsoft.Dafny {
       if (i == 0) {
         wr.Write("_dafny.Zero");
       } else if (long.MinValue <= i && i <= long.MaxValue) {
-        wr.Write("_dafny.IntOf({0})", i);
+        wr.Write("_dafny.IntOfInt64({0})", i);
       } else {
         wr.Write("_dafny.IntOfString(\"{0}\")", i);
       }
@@ -2832,10 +2831,10 @@ namespace Microsoft.Dafny {
           Contract.Assert(AsNativeType(e.ToType) == null);
           wr.Write("_dafny.RealOfFrac(");
           TargetWriter w;
-          if (AsNativeType(e.E.Type) != null) {
-            wr.Write("_dafny.IntOf64(int64(");
+          if (AsNativeType(e.E.Type) is NativeType nt) {
+            wr.Write("_dafny.IntOf{0}(", Capitalize(GetNativeTypeName(nt)));
             w = wr.Fork();
-            wr.Write("))");
+            wr.Write(")");
           } else {
             w = wr;
           }
@@ -2856,7 +2855,7 @@ namespace Microsoft.Dafny {
             Contract.Assert(fromNative == null);
             if (toNative == null) {
               // char -> big-integer (int or bv or ORDINAL)
-              wr.Write("_dafny.IntOf64(int64(");
+              wr.Write("_dafny.IntOfInt32(int32(");
               TrExpr(e.E, wr, inLetExprBody);
               wr.Write("))");
             } else {
@@ -2869,9 +2868,9 @@ namespace Microsoft.Dafny {
             TrExpr(e.E, wr, inLetExprBody);
           } else if (fromNative != null && toNative == null) {
             // native (int or bv) -> big-integer (int or bv)
-            wr.Write("_dafny.IntOf64(int64(");
+            wr.Write("_dafny.IntOf{0}(", Capitalize(GetNativeTypeName(fromNative)));
             TrExpr(e.E, wr, inLetExprBody);
-            wr.Write("))");
+            wr.Write(')');
           } else {
             // any (int or bv) -> native (int or bv)
             // Consider some optimizations
@@ -2892,7 +2891,7 @@ namespace Microsoft.Dafny {
             } else {
               // no optimization applies; use the standard translation
               TrParenExpr(e.E, wr, inLetExprBody);
-              wr.Write(".Int64()");
+              wr.Write(".{0}()", Capitalize(GetNativeTypeName(toNative)));
             }
 
           }
@@ -2905,10 +2904,10 @@ namespace Microsoft.Dafny {
           TrExpr(e.E, wr, inLetExprBody);
         } else {
           // real -> (int or bv)
-          wr.Write("_dafny.RatToInt");
           TrParenExpr(e.E, wr, inLetExprBody);
-          if (AsNativeType(e.ToType) != null) {
-            wr.Write(".Int64()");
+          wr.Write(".Int()");
+          if (AsNativeType(e.ToType) is NativeType nt) {
+            wr.Write(".{0}()", Capitalize(GetNativeTypeName(nt)));
           }
         }
       } else {
