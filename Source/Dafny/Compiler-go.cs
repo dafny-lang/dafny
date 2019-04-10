@@ -2305,10 +2305,13 @@ namespace Microsoft.Dafny {
       }
     }
 
+    // TODO We might be able to be more consistent about whether indices are ints or Ints and avoid this
+    private static string IntOfAny(string i) {
+      return string.Format("_dafny.IntOfAny({0})", i);
+    }
+
     protected override void EmitArraySelect(List<string> indices, Type elmtType, TargetWriter wr) {
-      foreach (var index in indices) {
-        wr.Write(".Index({0}).Interface().({1})", index, TypeName(elmtType, wr, Bpl.Token.NoToken));
-      }
+      wr.Write(".Index({0}).Interface().({1})", Util.Comma(indices, IntOfAny), TypeName(elmtType, wr, Bpl.Token.NoToken));
     }
 
     protected override void EmitArraySelect(List<Expression> indices, Type elmtType, bool inLetExprBody, TargetWriter wr) {
@@ -2317,6 +2320,7 @@ namespace Microsoft.Dafny {
       var sep = "";
       foreach (var index in indices) {
         wr.Write(sep);
+        // No need for IntOfAny; things coming from user code are presumed Ints
         TrParenExpr(index, wr, inLetExprBody);
         sep = ", ";
       }
@@ -2324,11 +2328,11 @@ namespace Microsoft.Dafny {
     }
 
     protected override void EmitArraySelectAsLvalue(string array, List<string> indices, Type elmtType, TargetWriter wr) {
-      wr.Write("*({0}.Index({1}).Addr().Interface().(*interface{{}}))", array, Util.Comma(indices));
+      wr.Write("*({0}.Index({1}).Addr().Interface().(*interface{{}}))", array, Util.Comma(indices, IntOfAny));
     }
 
     protected override void EmitArrayUpdate(List<string> indices, string rhs, Type elmtType, TargetWriter wr) {
-      wr.Write(".Index({0}).Set(_dafny.Reflect({1}))", Util.Comma(indices), rhs);
+      wr.Write(".Index({0}).Set(_dafny.Reflect({1}))", Util.Comma(indices, IntOfAny), rhs);
     }
 
     protected override void EmitExprAsInt(Expression expr, bool inLetExprBody, TargetWriter wr) {

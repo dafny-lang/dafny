@@ -1568,6 +1568,43 @@ func IntOfString(s string) Int {
 	}
 }
 
+// IntOfAny converts from many different things to Int.  Note that
+// switch-on-type does a linear search, so this can be slow for less common
+// cases.
+func IntOfAny(x interface{}) Int {
+	switch x := x.(type) {
+	// Try and put the most common cases earliest.
+	case Int:
+		return x
+	case int:
+		return IntOfInt(x)
+	case string:
+		return IntOfString(x)
+	case uint:
+		return IntOfUint(x)
+	case Char:
+		return IntOfInt32(rune(x))
+	case int32:
+		return IntOfInt32(x)
+	case int64:
+		return IntOfInt64(x)
+	case uint32:
+		return IntOfUint32(x)
+	case uint64:
+		return IntOfUint64(x)
+	case int8:
+		return IntOfInt8(x)
+	case uint8:
+		return IntOfUint8(x)
+	case int16:
+		return IntOfInt16(x)
+	case uint16:
+		return IntOfUint16(x)
+	default:
+		panic(fmt.Errorf("unexpected type for IntToAny: %v", refl.TypeOf(x)))
+	}
+}
+
 // Int converts back into an int.  If the result is not within int range,
 // the value is undefined.
 func (i Int) Int() int {
