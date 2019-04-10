@@ -2173,7 +2173,7 @@ namespace Microsoft.Dafny {
     }
 
     protected override void EmitNull(Type type, TargetWriter wr) {
-      if (type.IsIntegerType || type.IsBitVectorType) {
+      if (type.IsIntegerType || type.IsBitVectorType || type.AsNewtype != null) {
         wr.Write("_dafny.NilInt");
       } else if (type.IsRealType) {
         wr.Write("_dafny.NilReal");
@@ -2531,7 +2531,7 @@ namespace Microsoft.Dafny {
     }
 
     bool IsOrderedByCmp(Type t) {
-      return t.IsIntegerType || t.IsRealType || (t.IsBitVectorType && t.AsBitVectorType.NativeType == null);
+      return t.IsIntegerType || t.IsRealType || (t.IsBitVectorType && t.AsBitVectorType.NativeType == null) || (t.AsNewtype is NewtypeDecl nt && nt.NativeType == null);
     }
 
     bool IsComparedByEquals(Type t) {
