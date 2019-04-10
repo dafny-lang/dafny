@@ -2173,9 +2173,9 @@ namespace Microsoft.Dafny {
     }
 
     protected override void EmitNull(Type type, TargetWriter wr) {
-      if (type is IntType || type is BitvectorType) {
+      if (type.IsIntegerType || type.IsBitVectorType) {
         wr.Write("_dafny.NilInt");
-      } else if (type is RealType) {
+      } else if (type.IsRealType) {
         wr.Write("_dafny.NilReal");
       } else {
         wr.Write("({0})(nil)", TypeName(type, wr, tok:null));
