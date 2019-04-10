@@ -11,6 +11,7 @@ method Main() {
   BitVectorTests();
   MoreBvTests();
   NewTypeTest();
+  OrdinalTests();
 }
 
 method Print(description: string, x: int) {
@@ -284,4 +285,18 @@ method M(m: MyNumber, n: MyNumber) returns (r: MyNumber) {
   } else {
     r := m - n;
   }
+}
+
+method OrdinalTests() {
+  PrintOrdinalInfo(0);
+  PrintOrdinalInfo(1);
+  PrintOrdinalInfo(42);
+}
+
+method PrintOrdinalInfo(o : ORDINAL) {
+  print o;
+  print ": IsNat: ", o.IsNat;
+  print ", Offset: ", o.Offset;
+  print ", IsLimit: ", o.IsLimit;
+  print ", IsSucc: ", o.IsSucc, "\n";
 }

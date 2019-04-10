@@ -613,7 +613,7 @@ let _dafny = (function() {
       return ord.isZero();
     }
     static IsSucc(ord) {
-      return ord.isGreaterThanOrEqualTo(0);
+      return ord.isGreaterThan(0);
     }
     static Offset(ord) {
       return ord;

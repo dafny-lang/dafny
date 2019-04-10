@@ -1,5 +1,5 @@
 
-Dafny program verifier finished with 16 verified, 0 errors
+Dafny program verifier finished with 17 verified, 0 errors
 0
 0
 3
@@ -72,8 +72,11 @@ true false
 0
 200 300
 100 100 18
+0: IsNat: true, Offset: 0, IsLimit: true, IsSucc: false
+1: IsNat: true, Offset: 1, IsLimit: false, IsSucc: true
+42: IsNat: true, Offset: 42, IsLimit: false, IsSucc: true
 
-Dafny program verifier finished with 16 verified, 0 errors
+Dafny program verifier finished with 17 verified, 0 errors
 0
 0
 3
@@ -146,8 +149,11 @@ true false
 0
 200 300
 100 100 18
+0: IsNat: true, Offset: 0, IsLimit: true, IsSucc: false
+1: IsNat: true, Offset: 1, IsLimit: false, IsSucc: true
+42: IsNat: true, Offset: 42, IsLimit: false, IsSucc: true
 
-Dafny program verifier finished with 16 verified, 0 errors
+Dafny program verifier finished with 17 verified, 0 errors
 0
 0
 3
@@ -220,3 +226,6 @@ true false
 0
 200 300
 100 100 18
+0: IsNat: true, Offset: 0, IsLimit: true, IsSucc: false
+1: IsNat: true, Offset: 1, IsLimit: false, IsSucc: true
+42: IsNat: true, Offset: 42, IsLimit: false, IsSucc: true
