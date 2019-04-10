@@ -1447,7 +1447,7 @@ namespace Microsoft.Dafny {
         }
         return TypeName(xType.AsNewtype.BaseType, wr, tok);
       } else if (xType.IsObjectQ) {
-        return "*interface{}";
+        return "interface{}";
       } else if (xType.IsArrayType) {
         return "*_dafny.Array";
       } else if (xType is UserDefinedType udt) {
@@ -2995,9 +2995,14 @@ namespace Microsoft.Dafny {
         return wr;
       } else if (from != null && Type.IsSupertype(to, from)) {
         // upcast
-        var w = wr.Fork();
-        wr.Write(".{0}", ClassName(to, wr, tok));
-        return w;
+        if (to.IsObjectQ) {
+          // Cast to interface{} is one of the few upcasts we can actually do
+          return wr;
+        } else {
+          var w = wr.Fork();
+          wr.Write(".{0}", ClassName(to, wr, tok));
+          return w;
+        }
       } else if (from == null || from.IsTypeParameter || Type.IsSupertype(from, to)) {
         // downcast (allowed?) or implicit cast from parameter
         var w = wr.Fork();
