@@ -1314,7 +1314,7 @@ namespace Microsoft.Dafny {
       } else if (xType is IntType) {
         return "_dafny.IntType";
       } else if (xType is BigOrdinalType) {
-        return "_dafny.BigOrdinal";
+        return "_dafny.IntType";
       } else if (xType is RealType) {
         return "_dafny.RealType";
       } else if (xType is BitvectorType) {
@@ -1431,8 +1431,10 @@ namespace Microsoft.Dafny {
         return "bool";
       } else if (xType is CharType) {
         return "_dafny.Char";
-      } else if (xType is IntType || xType is BigOrdinalType) {
+      } else if (xType is IntType) {
         return "_dafny.Int";
+      } else if (xType is BigOrdinalType) {
+        return "_dafny.Ord";
       } else if (xType is RealType) {
         return "_dafny.Real";
       } else if (xType is BitvectorType) {
@@ -2240,20 +2242,16 @@ namespace Microsoft.Dafny {
           compiledName = "toBigNumber()";
           break;
         case SpecialField.ID.IsLimit:
-          preString = "_dafny.BigOrdinal.IsLimit(";
-          postString = ")";
+          compiledName = "IsLimitOrd()";
           break;
         case SpecialField.ID.IsSucc:
-          preString = "_dafny.BigOrdinal.IsSucc(";
-          postString = ")";
+          compiledName = "IsSuccOrd()";
           break;
         case SpecialField.ID.Offset:
-          preString = "_dafny.BigOrdinal.Offset(";
-          postString = ")";
+          compiledName = "OrdOffset()";
           break;
         case SpecialField.ID.IsNat:
-          preString = "_dafny.BigOrdinal.IsNat(";
-          postString = ")";
+          compiledName = "IsNatOrd()";
           break;
         case SpecialField.ID.Keys:
           compiledName = "Keys()";

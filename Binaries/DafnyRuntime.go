@@ -1452,9 +1452,6 @@ type Int struct {
 // A BV is an immutable big bitvector (presumed to be non-negative).
 type BV = Int
 
-// An Ord is an immutable big integer (presumed to be non-negative).
-type Ord = Int
-
 func intOf(i *big.Int) Int {
 	return Int{
 		impl: i,
@@ -1914,6 +1911,33 @@ func (intType) Default() interface{} {
 
 func (intType) String() string {
 	return "dafny.Int"
+}
+
+/******************************************************************************
+ * Ordinals
+ ******************************************************************************/
+
+// An Ord is an immutable big integer (presumed to be non-negative).
+type Ord = Int
+
+// IsLimitOrd returns true for a limit ordinal.
+func (ord Ord) IsLimitOrd() bool {
+	return ord.Cmp(Zero) == 0
+}
+
+// IsSuccOrd returns true for a successor ordinal.
+func (ord Ord) IsSuccOrd() bool {
+	return ord.Cmp(Zero) > 0
+}
+
+// OrdOffset returns the ordinal as an Int.
+func (ord Ord) OrdOffset() Int {
+	return ord
+}
+
+// IsNatOrd returns true if the ordinal represents a natural number.
+func (Ord) IsNatOrd() bool {
+	return true // at run time, every ORDINAL is a natural number
 }
 
 /******************************************************************************
