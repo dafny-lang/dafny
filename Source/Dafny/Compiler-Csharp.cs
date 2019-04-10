@@ -1639,7 +1639,7 @@ namespace Microsoft.Dafny
       }
     }
 
-    protected override void EmitMemberSelect(MemberDecl member, bool isLValue, TargetWriter wr) {
+    protected override void EmitMemberSelect(MemberDecl member, bool isLValue, Type expectedType, TargetWriter wr) {
       if (isLValue && member is ConstantField) {
         wr.Write("._{0}", member.CompileName);
       } else if (!isLValue && member is SpecialField sf) {

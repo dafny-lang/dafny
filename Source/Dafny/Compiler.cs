@@ -378,7 +378,7 @@ namespace Microsoft.Dafny {
     }
     protected abstract void EmitDatatypeValue(DatatypeValue dtv, string arguments, TargetWriter wr);
     protected abstract void GetSpecialFieldInfo(SpecialField.ID id, object idParam, out string compiledName, out string preString, out string postString);
-    protected abstract void EmitMemberSelect(MemberDecl member, bool isLValue, TargetWriter wr);
+    protected abstract void EmitMemberSelect(MemberDecl member, bool isLValue, Type expectedType, TargetWriter wr);
     protected void EmitArraySelect(string index, Type elmtType, TargetWriter wr) {
       EmitArraySelect(new List<string>() { index }, elmtType, wr);
     }
@@ -802,7 +802,7 @@ namespace Microsoft.Dafny {
                 } else if (!cf.IsStatic) {
                   var sw = EmitReturnExpr(wBody);
                   EmitThis(sw);
-                  EmitMemberSelect(cf, true, sw);
+                  EmitMemberSelect(cf, true, f.Type, sw);
                 } else {
                   EmitReturnExpr(DefaultValue(cf.Type, wBody, cf.tok, true), wBody);
                 }
@@ -2025,7 +2025,7 @@ namespace Microsoft.Dafny {
         DeclareLocalVar(obj, null, null, ll.Obj, false, wr);
         Contract.Assert(!ll.Member.IsInstanceIndependentConstant);  // instance-independent const's don't have assignment statements
         var sw = new TargetWriter();
-        EmitMemberSelect(ll.Member, true, sw);
+        EmitMemberSelect(ll.Member, true, lhs.Type, sw);
         return obj + sw.ToString();
       } else if (lhs is SeqSelectExpr) {
         var ll = (SeqSelectExpr)lhs;
@@ -2509,11 +2509,11 @@ namespace Microsoft.Dafny {
           } else {
             TrParenExpr(e.Obj, wr, inLetExprBody);
           }
-          EmitMemberSelect(sf, false, wr);
+          EmitMemberSelect(sf, false, expr.Type, wr);
           wr.Write(postStr);
         } else {
           TrExpr(e.Obj, wr, inLetExprBody);
-          EmitMemberSelect(e.Member, false, wr);
+          EmitMemberSelect(e.Member, false, expr.Type, wr);
         }
 
       } else if (expr is SeqSelectExpr) {

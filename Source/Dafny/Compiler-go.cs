@@ -2276,14 +2276,16 @@ namespace Microsoft.Dafny {
       }
     }
 
-    protected override void EmitMemberSelect(MemberDecl member, bool isLValue, TargetWriter wr) {
+    protected override void EmitMemberSelect(MemberDecl member, bool isLValue, Type expectedType, TargetWriter wr) {
       if (member is DatatypeDestructor dtor) {
+        wr = EmitCoercionIfNecessary(from:dtor.Type, to:expectedType, tok:null, wr:wr);
         if (dtor.EnclosingClass is TupleTypeDecl) {
           wr.Write(".Index(_dafny.IntOf({0})).Interface()", dtor.Name);
         } else {
           wr.Write(".{0}()", FormatDatatypeDestructorName(dtor.CompileName));
         }
       } else if (!isLValue && member is SpecialField sf && sf.SpecialId != SpecialField.ID.UseIdParam) {
+        wr = EmitCoercionIfNecessary(from:sf.Type, to:expectedType, tok:null, wr:wr);
         string compiledName, preStr, postStr;
         GetSpecialFieldInfo(sf.SpecialId, sf.IdParam, out compiledName, out preStr, out postStr);
         if (compiledName.Length != 0) {
@@ -2294,6 +2296,7 @@ namespace Microsoft.Dafny {
       } else if (member is SpecialField sf2 && sf2.SpecialId == SpecialField.ID.UseIdParam && sf2.IdParam is string fieldName && fieldName.StartsWith("is_")) {
         // sf2 is needed here only because the scope rules for these pattern matches are asinine: sf is *still in scope* but it's useless because it may not have been assigned to!
 
+        wr = EmitCoercionIfNecessary(from:sf2.Type, to:expectedType, tok:null, wr:wr);
         // FIXME This is a pretty awful string hack.
         wr.Write(".{0}()", FormatDatatypeConstructorCheckName(fieldName.Substring(3)));
       } else {
