@@ -2879,15 +2879,17 @@ namespace Microsoft.Dafny {
             MemberSelectExpr m = e.E.Resolved as MemberSelectExpr;
             if (literal != null) {
               // Optimize constant to avoid intermediate BigInteger
-              wr.Write("(" + literal  + ")");
+              wr.Write("{0}({1})", GetNativeTypeName(toNative), literal);
             } else if (u != null && u.Op == UnaryOpExpr.Opcode.Cardinality) {
               // Optimize .Count to avoid intermediate BigInteger
+              wr.Write("{0}(", GetNativeTypeName(toNative));
               TrParenExpr(u.E, wr, inLetExprBody);
-              wr.Write(".length");
+              wr.Write(".CardinalityInt())");
             } else if (m != null && m.MemberName == "Length" && m.Obj.Type.IsArrayType) {
               // Optimize .Length to avoid intermediate BigInteger
+              wr.Write("{0}(", GetNativeTypeName(toNative));
               TrParenExpr(m.Obj, wr, inLetExprBody);
-              wr.Write(".length");
+              wr.Write(".LenInt(0))");
             } else {
               // no optimization applies; use the standard translation
               TrParenExpr(e.E, wr, inLetExprBody);

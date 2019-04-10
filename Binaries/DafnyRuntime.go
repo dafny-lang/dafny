@@ -377,17 +377,23 @@ func (seq Seq) Index(i Int) refl.Value {
 	return seq.indexValue(i.Int())
 }
 
-func (seq Seq) len() int {
-	return len(seq.contents)
-}
-
 // Len finds the length of the sequence.
 func (seq Seq) Len() Int {
-	return IntOf(seq.len())
+	return IntOf(seq.LenInt())
+}
+
+// LenInt finds the length of the sequence as an int.
+func (seq Seq) LenInt() int {
+	return len(seq.contents)
 }
 
 // Cardinality finds the length of the sequence.
 func (seq Seq) Cardinality() Int {
+	return seq.Len()
+}
+
+// CardinalityInt finds the length of the sequence as an int.
+func (seq Seq) CardinalityInt() Int {
 	return seq.Len()
 }
 
@@ -457,7 +463,7 @@ func (seq Seq) UniqueElements() Set {
 	// This may not have been built from an []interface{} (particualrly if it's
 	// actually an Array), so be a bit careful here
 	b := NewBuilder()
-	n := seq.len()
+	n := seq.LenInt()
 	for i := 0; i < n; i++ {
 		b.Add(seq.index(i))
 	}
@@ -550,7 +556,12 @@ func NewArrayWithValues(values ...interface{}) *Array {
 
 // Len returns the length of the array in the given dimension.
 func (array *Array) Len(dim int) Int {
-	return IntOf(array.dims[dim])
+	return IntOf(array.LenInt(dim))
+}
+
+// LenInt returns the length of the array in the given dimension, as an int.
+func (array *Array) LenInt(dim int) int {
+	return array.dims[dim]
 }
 
 // Equals compares two arrays for equality.  Values are compared using
@@ -795,13 +806,14 @@ NEXT_INPUT:
 	return Set{uniq}
 }
 
-func (set Set) cardinality() int {
-	return len(set.contents)
-}
-
 // Cardinality returns the cardinality (size) of the set.
 func (set Set) Cardinality() Int {
-	return IntOf(len(set.contents))
+	return IntOf(set.CardinalityInt())
+}
+
+// CardinalityInt returns the cardinality (size) of the set as an int.
+func (set Set) CardinalityInt() int {
+	return len(set.contents)
 }
 
 // Index returns the ith element of the set, which is arbitrary but different
@@ -822,8 +834,8 @@ func (set Set) Iterator() Iterator {
 
 // Union makes a set containing each element contained by either input set.
 func (set Set) Union(set2 Set) Set {
-	n := set.cardinality()
-	uniq := make([]interface{}, n, n+set2.cardinality())
+	n := set.CardinalityInt()
+	uniq := make([]interface{}, n, n+set2.CardinalityInt())
 	copy(uniq, set.contents)
 NEXT_INPUT:
 	for _, v := range set2.contents {
@@ -861,7 +873,7 @@ func (set Set) IsDisjointFrom(set2 Set) bool {
 
 // Equals tests whether the sets contain the same elements.
 func (set Set) Equals(set2 Set) bool {
-	return set.cardinality() == set2.cardinality() &&
+	return set.CardinalityInt() == set2.CardinalityInt() &&
 		set.isSubsetAfterCardinalityCheck(set2)
 }
 
@@ -873,14 +885,14 @@ func (set Set) EqualsGeneric(other interface{}) bool {
 
 // IsSubsetOf returns true if each element in this set is also in the other.
 func (set Set) IsSubsetOf(set2 Set) bool {
-	return set.cardinality() <= set2.cardinality() &&
+	return set.CardinalityInt() <= set2.CardinalityInt() &&
 		set.isSubsetAfterCardinalityCheck(set2)
 }
 
 // IsProperSubsetOf returns true if each element in this set is also in the
 // other, and moreover the sets aren't equal.
 func (set Set) IsProperSubsetOf(set2 Set) bool {
-	return set.cardinality() < set2.cardinality() &&
+	return set.CardinalityInt() < set2.CardinalityInt() &&
 		set.isSubsetAfterCardinalityCheck(set2)
 }
 
@@ -902,7 +914,7 @@ func (set Set) Elements() Set {
 func (set Set) AllSubsets() Iterator {
 	// Use a big integer to range from 0 to 2^n
 	r := new(big.Int)
-	limit := new(big.Int).Lsh(One.impl, uint(set.cardinality()))
+	limit := new(big.Int).Lsh(One.impl, uint(set.CardinalityInt()))
 	return func() (interface{}, bool) {
 		if r.Cmp(limit) == 0 {
 			return Set{}, false
@@ -1044,6 +1056,16 @@ func (mset MultiSet) Cardinality() Int {
 		n.Add(n, e.count.impl)
 	}
 	return intOf(n)
+}
+
+// CardinalityInt returns the number of elements in the multiset (counting
+// repetitions) as an int.
+func (mset MultiSet) CardinalityInt() int {
+	n := 0
+	for _, e := range mset.elts {
+		n += e.count.Int()
+	}
+	return n
 }
 
 // Index returns the ith element of the multiset, which is arbitrary except that
@@ -1293,7 +1315,12 @@ func (m Map) findIndex(key interface{}) (int, bool) {
 
 // Cardinality finds the number of elements in the map.
 func (m Map) Cardinality() Int {
-	return IntOf(len(m.elts))
+	return IntOf(m.CardinalityInt())
+}
+
+// CardinalityInt finds the number of elements in the map as an int.
+func (m Map) CardinalityInt() int {
+	return len(m.elts)
 }
 
 // Find finds the given key in the map, returning it and a success flag.
@@ -1422,8 +1449,11 @@ type Int struct {
 	// debug string
 } // Careful not to mutate!
 
-// A BV is an immutable big bitvector (presumed to be positive).
+// A BV is an immutable big bitvector (presumed to be non-negative).
 type BV = Int
+
+// An Ord is an immutable big integer (presumed to be non-negative).
+type Ord = Int
 
 func intOf(i *big.Int) Int {
 	return Int{
