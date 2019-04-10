@@ -827,7 +827,7 @@ namespace Microsoft.Dafny {
                 TrExpr(cf.Rhs, w, false);
                 rhs = w.ToString();
               } else {
-                rhs = DefaultValue(f.Type, errorWr, f.tok, true);
+                rhs = null;
               }
               classWriter.DeclareField(IdName(f), f.IsStatic, true, f.Type, f.tok, rhs);
             }

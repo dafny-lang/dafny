@@ -993,7 +993,7 @@ namespace Microsoft.Dafny {
       if (sst.WitnessKind == SubsetTypeDecl.WKind.Compiled) { 
         var witness = new TargetWriter(w.IndentLevel);
         TrExpr(sst.Witness, witness, false);
-        DeclareField("Witness", false, true, true, sst.Rhs, sst.tok, witness.ToString(), cw.StaticFieldWriter, cw.StaticFieldInitWriter);
+        DeclareField("Witness", false, true, true, sst.Rhs, sst.tok, witness.ToString(), cw.ClassName, cw.StaticFieldWriter, cw.StaticFieldInitWriter, cw.ConcreteMethodWriter);
       }
       // RTD
       {
@@ -1109,7 +1109,7 @@ namespace Microsoft.Dafny {
         return Compiler.CreateGetterSetter(name, resultType, tok, isStatic, createBody, member, name, out setterWriter, ConcreteMethodWriter);
       }
       public void DeclareField(string name, bool isStatic, bool isConst, Type type, Bpl.IToken tok, string rhs) {
-        Compiler.DeclareField(name, IsExtern, isStatic, isConst, type, tok, rhs, FieldWriter(isStatic), FieldInitWriter(isStatic));
+        Compiler.DeclareField(name, IsExtern, isStatic, isConst, type, tok, rhs, ClassName, FieldWriter(isStatic), FieldInitWriter(isStatic), ConcreteMethodWriter);
       }
       public TextWriter/*?*/ ErrorWriter() => ConcreteMethodWriter;
 
@@ -1538,7 +1538,7 @@ namespace Microsoft.Dafny {
       if (cl is NewtypeDecl) {
         var td = (NewtypeDecl)cl;
         if (td.Witness != null) {
-          return TypeName_Companion(cl, wr, tok) + ".Witness";
+          return TypeName_Companion(cl, wr, tok) + ".Witness()";
         } else if (td.NativeType != null) {
           return "0";
         } else {
@@ -1547,7 +1547,7 @@ namespace Microsoft.Dafny {
       } else if (cl is SubsetTypeDecl) {
         var td = (SubsetTypeDecl)cl;
         if (td.Witness != null) {
-          return TypeName_Companion(type, wr, tok, null) + ".Witness";
+          return TypeName_Companion(type, wr, tok, null) + ".Witness()";
         } else if (td.WitnessKind == SubsetTypeDecl.WKind.Special) {
           // WKind.Special is only used with -->, ->, and non-null types:
           Contract.Assert(ArrowType.IsPartialArrowTypeName(td.Name) || ArrowType.IsTotalArrowTypeName(td.Name) || td is NonNullTypeDecl);
@@ -1671,19 +1671,30 @@ namespace Microsoft.Dafny {
 
     // ----- Declarations -------------------------------------------------------------
 
-    protected void DeclareField(string name, bool isExtern, bool isStatic, bool isConst, Type type, Bpl.IToken tok, string rhs, TargetWriter wr, TargetWriter initWriter) {
+    protected void DeclareField(string name, bool isExtern, bool isStatic, bool isConst, Type type, Bpl.IToken tok, string/*?*/ rhs, string className, TargetWriter wr, TargetWriter initWriter, TargetWriter concreteMethodWriter) {
       if (isExtern) {
         Error(tok, "Unsupported field {0} in extern trait", wr, name);
       }
 
-      wr.Indent();
-      wr.WriteLine("{0} {1}", name, TypeName(type, initWriter, tok));
-
-      initWriter.Indent();
-      if (!isStatic) {
-        initWriter.WriteLine("_this.{0} = {1}", name, rhs);
+      if (isConst && rhs != null) {
+        var receiver = isStatic ? FormatCompanionTypeName(className) : className;
+        var wBody = concreteMethodWriter.NewNamedBlock("func (_this *{0}) {1}() {2}", receiver, name, TypeName(type, concreteMethodWriter, tok));
+        wBody.Indent();
+        wBody.WriteLine("return {0}", rhs);
       } else {
-        initWriter.WriteLine("{0}: {1},", name, rhs);
+        if (rhs == null) {
+          rhs = DefaultValue(type, initWriter, tok);
+        }
+
+        wr.Indent();
+        wr.WriteLine("{0} {1}", name, TypeName(type, initWriter, tok));
+
+        initWriter.Indent();
+        if (!isStatic) {
+          initWriter.WriteLine("_this.{0} = {1}", name, rhs);
+        } else {
+          initWriter.WriteLine("{0}: {1},", name, rhs);
+        }
       }
     }
 
@@ -2300,6 +2311,8 @@ namespace Microsoft.Dafny {
         wr = EmitCoercionIfNecessary(from:sf2.Type, to:expectedType, tok:null, wr:wr);
         // FIXME This is a pretty awful string hack.
         wr.Write(".{0}()", FormatDatatypeConstructorCheckName(fieldName.Substring(3)));
+      } else if (member is ConstantField cf && cf.Rhs != null) {
+        wr.Write(".{0}()", IdName(member));
       } else {
         wr.Write(".{0}", IdName(member));
       }
