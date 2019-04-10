@@ -2931,7 +2931,49 @@ namespace Microsoft.Dafny {
 
       from = from?.NormalizeExpand();
       to = to.NormalizeExpand();
-      if (to.IsTypeParameter || from != null && EqualsUpToParameters(from, to)) {
+      if (from != null && from.IsArrowType && to.IsArrowType && !from.Equals(to)) {
+        // Need to convert functions more often, so do this before the
+        // EqualsUpToParameters check below
+        ArrowType fat = from.AsArrowType, tat = to.AsArrowType;
+        wr.Write("func (");
+        var sep = "";
+        var args = new List<string>();
+        foreach (Type toArgType in tat.Args) {
+          var arg = FreshId("arg");
+          args.Add(arg);
+          wr.Write("{0}{1} {2}", sep, arg, TypeName(toArgType, wr, tok));
+          sep = ", ";
+        }
+        wr.Write(')');
+        if (tat.Result != null) {
+          wr.Write(" {0}", TypeName(tat.Result, wr, tok));
+        }
+        var wBody = wr.NewBlock("");
+        wBody.SetBraceStyle(BlockTargetWriter.BraceStyle.Space, BlockTargetWriter.BraceStyle.Nothing);
+        wBody.Indent();
+        TargetWriter wCall;
+        if (fat.Result == null) {
+          wCall = wBody;
+        } else {
+          wBody.Write("return ");
+          wCall = EmitCoercionIfNecessary(from:fat.Result, to:fat.Result, tok:tok, wr:wBody);
+        }
+        wCall.Write('(');
+        var ans = wCall.Fork();
+        wCall.Write(")(");
+        Contract.Assert(fat.Args.Count == tat.Args.Count);
+        sep = "";
+        for (int i = 0; i < fat.Args.Count; i++) {
+          var fromArgType = fat.Args[i];
+          var toArgType = tat.Args[i];
+          wCall.Write(sep);
+          var w = EmitCoercionIfNecessary(from:toArgType, to:fromArgType, tok:tok, wr:wCall);
+          w.Write(args[i]);
+          sep = ", ";
+        }
+        wCall.WriteLine(')');
+        return ans;
+      } else if (to.IsTypeParameter || from != null && EqualsUpToParameters(from, to)) {
         // do nothing
         return wr;
       } else if (from != null && Type.IsSupertype(to, from)) {
