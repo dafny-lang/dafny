@@ -265,6 +265,8 @@ namespace Microsoft.Dafny {
       //   return "module.Class"
       // }
       //
+      name = Capitalize(name);
+
       wr.Indent();
       var w = CreateDescribedSection("class {0}", wr, name);
       
@@ -635,7 +637,7 @@ namespace Microsoft.Dafny {
         return;
       }
 
-      string name = IdProtect(dt.CompileName);
+      string name = Capitalize(dt.CompileName);
       string companionTypeName = FormatCompanionTypeName(name);
       string dataName = FormatDatatypeInterfaceName(name);
       string ifaceName = FormatLazyInterfaceName(name);
