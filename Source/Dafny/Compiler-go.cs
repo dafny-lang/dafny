@@ -1909,7 +1909,7 @@ namespace Microsoft.Dafny {
 
     protected override void EmitLiteralExpr(TextWriter wr, LiteralExpr e) {
       if (e is StaticReceiverExpr) {
-        wr.Write("{0}", TypeName(e.Type, wr, e.tok));
+        wr.Write("{0}", TypeName_Companion(((UserDefinedType) e.Type).ResolvedClass, wr, e.tok));
       } else if (e.Value == null) {
         wr.Write("({0})(nil)", TypeName(e.Type, wr, tok:null));
       } else if (e.Value is bool) {
