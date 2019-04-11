@@ -1985,7 +1985,7 @@ namespace Microsoft.Dafny {
     protected override void EmitStringLiteral(string str, bool isVerbatim, TextWriter wr) {
       var n = str.Length;
       if (!isVerbatim) {
-        wr.Write("\"{0}\"", str);
+        wr.Write("\"{0}\"", str.Replace("\\'", "'"));
       } else {
         wr.Write("\"");
         for (var i = 0; i < n; i++) {
