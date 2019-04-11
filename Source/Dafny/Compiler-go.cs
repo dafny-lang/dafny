@@ -2180,6 +2180,14 @@ namespace Microsoft.Dafny {
     }
 
     protected override string FullTypeName(UserDefinedType udt, MemberDecl/*?*/ member = null) {
+      return UserDefinedTypeName(udt, full:true, member:member);
+    }
+
+    private string UnqualifiedTypeName(UserDefinedType udt, MemberDecl/*?*/ member = null) {
+      return UserDefinedTypeName(udt, full:false, member:member);
+    }
+
+    private string UserDefinedTypeName(UserDefinedType udt, bool full, MemberDecl/*?*/ member = null) {
       Contract.Requires(udt != null);
       if (udt is ArrowType) {
         return ArrowType.Arrow_FullCompileName;
@@ -3024,7 +3032,7 @@ namespace Microsoft.Dafny {
           return wr;
         } else {
           var w = wr.Fork();
-          wr.Write(".{0}", ClassName(to, wr, tok));
+          wr.Write(".{0}", UnqualifiedClassName(to, wr, tok));
           return w;
         }
       } else if (from == null || from.IsTypeParameter || Type.IsSupertype(from, to)) {
