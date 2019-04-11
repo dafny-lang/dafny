@@ -1948,7 +1948,7 @@ namespace Microsoft.Dafny {
         wr.Write((bool)e.Value ? "true" : "false");
       } else if (e is CharLiteralExpr) {
         var v = (string)e.Value;
-        wr.Write("_dafny.Char('{0}')", v);
+        wr.Write("_dafny.Char('{0}')", TranslateEscapes(v, isChar:true));
       } else if (e is StringLiteralExpr) {
         var str = (StringLiteralExpr)e;
         wr.Write("_dafny.SeqOfString(");
@@ -1985,7 +1985,7 @@ namespace Microsoft.Dafny {
     protected override void EmitStringLiteral(string str, bool isVerbatim, TextWriter wr) {
       var n = str.Length;
       if (!isVerbatim) {
-        wr.Write("\"{0}\"", str.Replace("\\'", "'"));
+        wr.Write("\"{0}\"", TranslateEscapes(str, isChar:false));
       } else {
         wr.Write("\"");
         for (var i = 0; i < n; i++) {
@@ -2005,6 +2005,32 @@ namespace Microsoft.Dafny {
         wr.Write("\"");
       }
     }
+
+    private static string TranslateEscapes(string s, bool isChar) {
+      if (isChar) {
+        s = s.Replace("\\\"", "\"");
+      } else {
+        s = s.Replace("\\'", "'");
+      }
+
+      // Painfully, Go doesn't support octal escapes with fewer than three
+      // digits, so we have to expand them.
+      s = ShortOctalEscape.Replace(s, match => {
+        switch (match.Length) {
+          case 2: return "\\00" + match.Groups[1];
+          case 3: return "\\0" + match.Groups[1];
+          default: throw new Exception("Unexpected match of length " + match.Length);
+        }
+      });
+
+      // Similarly with hex escapes with only one digit
+      s = ShortHexEscape.Replace(s, match => "\\x0" + match.Groups[1]);
+
+      return s;
+    }
+
+    private static Regex ShortOctalEscape = new Regex(@"(?<!\\)\\([0-7][0-7]?)(?![0-7])");
+    private static Regex ShortHexEscape = new Regex(@"(?<!\\)\\([0-9a-fA-F])(?![0-9a-fA-F])");
 
     protected override TargetWriter EmitBitvectorTruncation(BitvectorType bvType, bool surroundByUnchecked, TargetWriter wr) {
       string nativeName = null, literalSuffix = null;
