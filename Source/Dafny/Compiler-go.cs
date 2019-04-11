@@ -248,6 +248,10 @@ namespace Microsoft.Dafny {
       //   ...
       // }
       //
+      // func (*Class) String() string {
+      //   return "module.Class"
+      // }
+      //
       // func Type_Class_(Type0 _dafny.Type, Type1 _dafny.Type) _dafny.Type {
       //   return type_Class_{Type0, Type1}
       // }
@@ -282,6 +286,11 @@ namespace Microsoft.Dafny {
       w.WriteLine();
       var staticFieldWriter = w.NewNamedBlock("type {0} struct", FormatCompanionTypeName(name));
       var staticFieldInitWriter = w.NewNamedBlock("var {0} = {1}", FormatCompanionName(name), FormatCompanionTypeName(name));
+
+      w.WriteLine();
+      var wString = w.NewNamedBlock("func (*{0}) String() string", name);
+      wString.Indent();
+      wString.WriteLine("return \"{0}.{1}\"", ModuleName, name);
 
       if (includeRtd) {
         w.WriteLine();
