@@ -967,15 +967,17 @@ namespace Microsoft.Dafny {
         wIterFuncBody.Indent();
         wIterFuncBody.WriteLine("return next.(_dafny.Int).{0}(), true", Capitalize(nativeType));
       }
-      if (nt.WitnessKind == SubsetTypeDecl.WKind.Compiled) { 
-        var witness = new TargetWriter(w.IndentLevel);
+      if (nt.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
+        var retType = nt.NativeType != null ? GetNativeTypeName(nt.NativeType) : TypeName(nt.BaseType, w, nt.tok);
+        var wWitness = w.NewNamedBlock("func (_this *{0}) Witness() {1}", FormatCompanionTypeName(IdName(nt)), retType);
+        wWitness.Indent();
+        wWitness.Write("return ");
         if (nt.NativeType == null) {
-          TrExpr(nt.Witness, witness, false);
+          TrExpr(nt.Witness, wWitness, false);
         } else {
-          TrParenExpr(nt.Witness, witness, false);
-          witness.Write(".{0}()", Capitalize(GetNativeTypeName(nt.NativeType)));
+          TrParenExpr(nt.Witness, wWitness, false);
+          wWitness.Write(".{0}()", Capitalize(GetNativeTypeName(nt.NativeType)));
         }
-        cw.DeclareField("Witness", true, true, nt.BaseType, nt.tok, witness.ToString());
       }
       // RTD
       {
