@@ -156,6 +156,10 @@ namespace Microsoft.Dafny {
     protected string TypeName_Companion(TopLevelDecl cls, TextWriter wr, Bpl.IToken tok) {
       return TypeName_Companion(UserDefinedType.FromTopLevelDecl(tok, cls), wr, tok, null);
     }
+    /// Return the "native form" of a type, to which EmitCoercionToNativeForm coerces it.
+    protected virtual Type NativeForm(Type type) {
+      return type;
+    }
 
     protected abstract bool DeclareFormal(string prefix, string name, Type type, Bpl.IToken tok, bool isInParam, TextWriter wr);
     /// <summary>
@@ -2239,6 +2243,9 @@ namespace Microsoft.Dafny {
               // this comes up (JavaScript), so we only do this if
               // NeedsCastFromTypeParameter() is on.
               type = p.Type;
+            }
+            if (s.Method.IsExtern(out _, out _)) {
+              type = NativeForm(type);
             }
             DeclareLocalVar(target, type, s.Lhs[i].tok, false, null, wr);
           }

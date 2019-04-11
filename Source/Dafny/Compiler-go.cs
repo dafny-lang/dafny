@@ -1427,7 +1427,9 @@ namespace Microsoft.Dafny {
         return "interface {}";
       }
 
-      if (xType is BoolType) {
+      if (xType is SpecialNativeType snt) {
+        return snt.Name;
+      } else if (xType is BoolType) {
         return "bool";
       } else if (xType is CharType) {
         return "_dafny.Char";
@@ -1665,9 +1667,28 @@ namespace Microsoft.Dafny {
       return type is UserDefinedType udt ? FullTypeName(udt) : TypeName(type, wr, tok);
     }
 
+    protected string UnqualifiedClassName(Type type, TextWriter wr, Bpl.IToken tok) {
+      return type is UserDefinedType udt ? FullTypeName(udt) : TypeName(type, wr, tok);
+    }
+
     protected string DatatypeFieldName(Formal formal, int formalNonGhostIndex) {
       return Capitalize(FormalName(formal, formalNonGhostIndex));
     }
+
+    protected override Type NativeForm(Type type) {
+      if (type.AsSeqType is SeqType st && st.Arg.IsCharType) {
+        return NativeStringType;
+      } else {
+        return type;
+      }
+    }
+
+    /// A type which is rendered to Go exactly as specified.  Used to represent the native string type.
+    private class SpecialNativeType : UserDefinedType {
+      internal SpecialNativeType(string name) : base(Bpl.Token.NoToken, name, null) { }
+    }
+
+    private readonly static SpecialNativeType NativeStringType = new SpecialNativeType("string");
 
     // ----- Declarations -------------------------------------------------------------
 
@@ -2998,6 +3019,9 @@ namespace Microsoft.Dafny {
         if (to.IsObjectQ) {
           // Cast to interface{} is one of the few upcasts we can actually do
           return wr;
+        } else if (to.IsTraitType && ((UserDefinedType) to).ResolvedClass.IsExtern(out _, out _)) {
+          // An extern trait is a plain interface; no need to project an embedded thing
+          return wr;
         } else {
           var w = wr.Fork();
           wr.Write(".{0}", ClassName(to, wr, tok));
@@ -3018,8 +3042,9 @@ namespace Microsoft.Dafny {
     }
 
     protected override TargetWriter EmitCoercionToNativeForm(Type from, Bpl.IToken tok, TargetWriter wr) {
-      from = from.NormalizeExpand();
-      if (from is SeqType && from.TypeArgs[0].IsCharType) {
+      // Don't expand!  We want to distinguish string from seq<char> here
+      from = from.Normalize();
+      if (from is UserDefinedType udt && udt.Name == "string") {
         wr.Write('(');
         var w = wr.Fork();
         wr.Write(").String()");
@@ -3030,8 +3055,9 @@ namespace Microsoft.Dafny {
     }
 
     protected override TargetWriter EmitCoercionFromNativeForm(Type to, Bpl.IToken tok, TargetWriter wr) {
-      to = to.NormalizeExpand();
-      if (to is SeqType && to.TypeArgs[0].IsCharType) {
+      // Don't expand! We want to distinguish string from seq<char> here
+      to = to.Normalize();
+      if (to is UserDefinedType udt && udt.Name == "string") {
         wr.Write("_dafny.SeqOfString(");
         var w = wr.Fork();
         wr.Write(")");
