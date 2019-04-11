@@ -735,7 +735,7 @@ func (tt tupleType) Default() interface{} {
 	for i, ty := range tt.eltTys {
 		values[i] = ty.Default()
 	}
-	return TupleOf(values)
+	return TupleOf(values...)
 }
 
 func (tt tupleType) String() string {
