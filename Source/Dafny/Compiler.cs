@@ -2215,13 +2215,13 @@ namespace Microsoft.Dafny {
               // The method Gimme will be compiled down to Go (or JavaScript)
               // as a function which returns any value (some details omitted):
               //   
-              //   func Gimmie(ty dafny.Type) interface{} {
+              //   func Gimmie(ty _dafny.Type) interface{} {
               //     return ty.Default()
               //   }
               // 
               // If we naively translate, we get a type error:
               //
-              //   var lhs int = Gimmie(dafny.Type) // error!
+              //   var lhs int = Gimmie(_dafny.IntType) // error!
               //
               // Fortunately, we have the information at hand to do better.  The
               // LHS does have the actual final type (int in this case), and the
@@ -2241,7 +2241,7 @@ namespace Microsoft.Dafny {
               // None of this is necessary if the language supports parametric
               // functions to begin with (C#) or has dynamic typing so none of
               // this comes up (JavaScript), so we only do this if
-              // NeedsCastFromTypeParameter() is on.
+              // NeedsCastFromTypeParameter is on.
               type = p.Type;
             }
             if (s.Method.IsExtern(out _, out _)) {
