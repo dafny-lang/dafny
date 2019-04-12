@@ -109,13 +109,20 @@ namespace Microsoft.Dafny {
         // Go ignores all filenames starting with underscores.  So we're forced
         // to rewrite "__default" to "default__".
         pkgName = moduleName;
+        if (pkgName != "" && pkgName.All(c => c == '_')) {
+          Error(Bpl.Token.NoToken, "Cannot have a package name with only underscores: {0}", wr, pkgName);
+          return wr;
+        }
         while (pkgName.StartsWith("_")) {
           pkgName = pkgName.Substring(1) + "_";
         }
       }
 
       if (isExtern) {
-        Imports.Add(new Import{ Name=moduleName, Path=pkgName, SuppressDummy=true });
+        // Allow the library name to be "" to import built-in things like the error type
+        if (pkgName != "") {
+          Imports.Add(new Import{ Name=moduleName, Path=pkgName, SuppressDummy=true });
+        }
         return new TargetWriter(); // ignore contents of extern module
       } else {
         var filename = string.Format("{0}/{0}.go", pkgName);
@@ -1486,12 +1493,15 @@ namespace Microsoft.Dafny {
           // Don't return a pointer to the datatype because the datatype is
           // already represented using a pointer
           return IdProtect(s); 
-        } else if (udt.IsTraitType && udt.ResolvedClass.IsExtern(out var qual, out var name)) {
+        } else if (udt.IsTraitType && udt.ResolvedClass.IsExtern(out _, out _)) {
           // To use an external interface, we need to have values of the
           // interface type, so we treat an extern trait as a plain interface
           // value, not a pointer (a Go interface value is basically a typed
           // pointer anyway).
-          return string.Format("{0}{1}{2}", qual, qual == "" ? "" : ".", name);
+          //
+          // Also don't use IdProtect so that we can have it be a built-in
+          // name like error.
+          return s;
         } else {
           return "*" + IdProtect(s);
         }
@@ -2255,7 +2265,20 @@ namespace Microsoft.Dafny {
         Contract.Assert(!cl.Module.IsDefaultModule);  // default module is not marked ":extern"
         return IdProtect(cl.Module.CompileName);
       } else {
-        if (!full || this.ModuleName == cl.Module.CompileName) {
+        if (cl.IsExtern(out var qual, out _)) {
+          if (!full) {
+            return cl.CompileName;
+          }
+          
+          // No need to take into account the second argument to extern, since
+          // it'll already be cl.CompileName
+          if (qual == null) {
+            qual = cl.Module.CompileName;
+          }
+          // Don't use IdName since that'll capitalize, which is unhelpful for
+          // built-in types
+          return qual + (qual == "" ? "" : ".") + cl.CompileName;
+        } else if (!full || this.ModuleName == cl.Module.CompileName) {
           return IdName(cl);
         } else {
           return cl.Module.CompileName + "." + IdName(cl);
