@@ -1628,14 +1628,14 @@ namespace Microsoft.Dafny {
     protected static string FormatTraitInterfaceName(string traitName) =>
       string.Format("Iface_{0}_", traitName);
 
-    protected string TypeName_Related(Func<string, string> formatter, Type type, TextWriter wr, Bpl.IToken tok) {
+    protected string TypeName_Related(Func<string, string> formatter, Type type, TextWriter wr, Bpl.IToken tok, MemberDecl/*?*/ member = null) {
       Contract.Requires(formatter != null);
       Contract.Requires(type != null);
       Contract.Ensures(Contract.Result<string>() != null);
 
       // FIXME This is a hacky bit of string munging.
 
-      string name = ClassName(type, wr, tok);
+      string name = ClassName(type, wr, tok, member);
       string prefix, baseName;
       var periodIx = name.LastIndexOf('.');
       if (periodIx >= 0) {
@@ -1655,7 +1655,15 @@ namespace Microsoft.Dafny {
     }
 
     protected override string TypeName_Companion(Type type, TextWriter wr, Bpl.IToken tok, MemberDecl/*?*/ member) {
-      return TypeName_Related(FormatCompanionName, type, wr, tok);
+      // XXX This duplicates some of the logic in UserDefinedTypeName, but if we
+      // don't do it here, we end up passing the name of the module to
+      // FormatCompanionName, which doesn't help anyone
+      if (type is UserDefinedType udt && udt.ResolvedClass != null && IsExternMemberOfExternModule(member, udt.ResolvedClass)) {
+        // omit the default class name ("_default") in extern modules, when the class is used to qualify an extern member
+        Contract.Assert(!udt.ResolvedClass.Module.IsDefaultModule);  // default module is not marked ":extern"
+        return IdProtect(udt.ResolvedClass.Module.CompileName);
+      }
+      return TypeName_Related(FormatCompanionName, type, wr, tok, member);
     }
 
     protected string TypeName_CompanionType(Type type, TextWriter wr, Bpl.IToken tok) {
@@ -1674,8 +1682,8 @@ namespace Microsoft.Dafny {
       return TypeName_Related(FormatTraitInterfaceName, type, wr, tok);
     }
 
-    protected string ClassName(Type type, TextWriter wr, Bpl.IToken tok) {
-      return type is UserDefinedType udt ? FullTypeName(udt) : TypeName(type, wr, tok);
+    protected string ClassName(Type type, TextWriter wr, Bpl.IToken tok, MemberDecl/*?*/ member = null) {
+      return type is UserDefinedType udt ? FullTypeName(udt, member) : TypeName(type, wr, tok, member);
     }
 
     protected string UnqualifiedClassName(Type type, TextWriter wr, Bpl.IToken tok) {
@@ -2242,8 +2250,7 @@ namespace Microsoft.Dafny {
     }
 
     private string UserDefinedTypeName(TopLevelDecl cl, bool full, MemberDecl/*?*/ member = null) {
-      if (cl is ClassDecl cdecl && cdecl.IsDefaultClass && Attributes.Contains(cl.Module.Attributes, "extern") &&
-        member != null && Attributes.Contains(member.Attributes, "extern")) {
+      if (IsExternMemberOfExternModule(member, cl)) {
         // omit the default class name ("_default") in extern modules, when the class is used to qualify an extern member
         Contract.Assert(!cl.Module.IsDefaultModule);  // default module is not marked ":extern"
         return IdProtect(cl.Module.CompileName);
@@ -2254,6 +2261,10 @@ namespace Microsoft.Dafny {
           return cl.Module.CompileName + "." + IdName(cl);
         }
       }
+    }
+
+    private bool IsExternMemberOfExternModule(MemberDecl/*?*/ member, TopLevelDecl cl) {
+      return member != null && cl is ClassDecl cdecl && cdecl.IsDefaultClass && Attributes.Contains(cdecl.Module.Attributes, "extern") && member.IsExtern(out _, out _);
     }
 
     protected override void EmitThis(TargetWriter wr) {
