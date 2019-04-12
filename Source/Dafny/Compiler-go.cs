@@ -2101,12 +2101,12 @@ namespace Microsoft.Dafny {
     }
 
     protected override void EmitEmptyTupleList(string tupleTypeArgs, TargetWriter wr) {
-      wr.Write("[]", tupleTypeArgs);
+      wr.Write("_dafny.NewBuilder()");
     }
 
     protected override TargetWriter EmitAddTupleToList(string ingredients, string tupleTypeArgs, TargetWriter wr) {
       wr.Indent();
-      wr.Write("{0}.Add(_dafny.TupleOf(", ingredients, tupleTypeArgs);
+      wr.Write("{0}.Add(_dafny.TupleOf(", ingredients);
       var wrTuple = wr.Fork();
       wr.WriteLine("))");
       return wrTuple;
@@ -2449,11 +2449,18 @@ namespace Microsoft.Dafny {
     }
 
     protected override void EmitIndexCollectionUpdate(Expression source, Expression index, Expression value, bool inLetExprBody, TargetWriter wr) {
-      TrParenExpr(source, wr, inLetExprBody);
-      wr.Write(".Update(");
-      TrExpr(index, wr, inLetExprBody);
-      wr.Write(", ");
-      TrExpr(value, wr, inLetExprBody);
+      EmitIndexCollectionUpdate(out var wSource, out var wIndex, out var wValue, wr);
+      TrParenExpr(source, wSource, inLetExprBody);
+      TrExpr(index, wIndex, inLetExprBody);
+      TrExpr(value, wValue, inLetExprBody);
+    }
+
+    protected override void EmitIndexCollectionUpdate(out TargetWriter wSource, out TargetWriter wIndex, out TargetWriter wValue, TargetWriter wr) {
+      wSource = wr.Fork();
+      wr.Write(".Update(_dafny.IntOfAny(");
+      wIndex = wr.Fork();
+      wr.Write("), ");
+      wValue = wr.Fork();
       wr.Write(")");
     }
 
@@ -3110,6 +3117,18 @@ namespace Microsoft.Dafny {
       } else {
         return wr;
       }
+    }
+
+    protected override TargetWriter EmitCoercionToNativeInt(TargetWriter wr) {
+      var w = wr.Fork();
+      wr.Write(".(int)");
+      return w;
+    }
+
+    protected override TargetWriter EmitCoercionToArbitraryTuple(TargetWriter wr) {
+      var w = wr.Fork();
+      wr.Write(".(_dafny.Tuple)");
+      return w;
     }
 
     protected override void EmitCollectionDisplay(CollectionType ct, Bpl.IToken tok, List<Expression> elements, bool inLetExprBody, TargetWriter wr) {

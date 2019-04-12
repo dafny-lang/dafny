@@ -342,6 +342,15 @@ namespace Microsoft.Dafny {
     protected virtual TargetWriter EmitCoercionFromNativeForm(Type/*?*/ to, Bpl.IToken tok, TargetWriter wr) {
       return wr;
     }
+    protected virtual TargetWriter EmitCoercionToNativeInt(TargetWriter wr) {
+      return wr;
+    }
+    /// <summary>
+    /// Emit a coercion of a value to any tuple, returning the writer for the value to coerce.  Needed in translating ForallStmt because some of the tuple components are native ints for which we have no Type object, but Go needs to coerce the value that comes out of the iterator.  Safe to leave this alone in subclasses that don't have the same problem.
+    /// </summary>
+    protected virtual TargetWriter EmitCoercionToArbitraryTuple(TargetWriter wr) {
+      return wr;
+    }
     protected virtual string IdName(TopLevelDecl d) {
       Contract.Requires(d != null);
       return IdProtect(d.CompileName);
@@ -407,6 +416,13 @@ namespace Microsoft.Dafny {
     protected abstract void EmitExprAsInt(Expression expr, bool inLetExprBody, TargetWriter wr);
     protected abstract void EmitIndexCollectionSelect(Expression source, Expression index, bool inLetExprBody, TargetWriter wr);
     protected abstract void EmitIndexCollectionUpdate(Expression source, Expression index, Expression value, bool inLetExprBody, TargetWriter wr);
+    protected virtual void EmitIndexCollectionUpdate(out TargetWriter wSource, out TargetWriter wIndex, out TargetWriter wValue, TargetWriter wr) {
+      wSource = wr.Fork();
+      wr.Write('[');
+      wIndex = wr.Fork();
+      wr.Write("] = ");
+      wValue = wr.Fork();
+    }
     /// <summary>
     /// If "fromArray" is false, then "source" is a sequence.
     /// If "fromArray" is true, then "source" is an array.
@@ -1757,6 +1773,12 @@ namespace Microsoft.Dafny {
         TargetWriter collWriter;
         wr = CreateForeachLoop(tup, null, out collWriter, wrOuter);
         collWriter.Write(ingredients);
+        {
+          var wTup = new TargetWriter();
+          var wCoerceTup = EmitCoercionToArbitraryTuple(wTup);
+          wCoerceTup.Write(tup);
+          tup = wTup.ToString();
+        }
         wr.Indent();
         if (s0.Lhs is MemberSelectExpr) {
           var lhs = (MemberSelectExpr)s0.Lhs;
@@ -1766,11 +1788,16 @@ namespace Microsoft.Dafny {
           EndStmt(wr);
         } else if (s0.Lhs is SeqSelectExpr) {
           var lhs = (SeqSelectExpr)s0.Lhs;
-          EmitTupleSelect(tup, 0, wr);
-          wr.Write("[");
-          EmitTupleSelect(tup, 1, wr);
-          wr.Write("] = ");
-          EmitTupleSelect(tup, 2, wr);
+          TargetWriter wColl, wIndex, wValue;
+          EmitIndexCollectionUpdate(out wColl, out wIndex, out wValue, wr);
+
+          var wCoerce = EmitCoercionIfNecessary(from:null, to:lhs.Seq.Type, tok:s0.Tok, wr:wColl);
+          EmitTupleSelect(tup, 0, wCoerce);
+          
+          wCoerce = EmitCoercionToNativeInt(wIndex);
+          EmitTupleSelect(tup, 1, wCoerce);
+
+          EmitTupleSelect(tup, 2, wValue);
           EndStmt(wr);
         } else {
           var lhs = (MultiSelectExpr)s0.Lhs;

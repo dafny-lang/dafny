@@ -621,6 +621,11 @@ func (array *Array) Index(ixs ...Int) refl.Value {
 	return array.indexValue(ints...)
 }
 
+// Iterator iterates over the array.
+func (array *Array) Iterator() Iterator {
+	return sliceIterator(array.contents)
+}
+
 // Slice takes the slice a[from:to] of the given array.
 func (array *Array) Slice(from, to Int) *Array {
 	if len(array.dims) != 1 {
@@ -647,6 +652,16 @@ func (array *Array) SliceFrom(ix Int) *Array {
 // SliceTo takes the slice a[:to] of the given array.
 func (array *Array) SliceTo(ix Int) *Array {
 	return array.Slice(Zero, ix)
+}
+
+// Update updates a location in a one-dimensional array.  (Must be
+// one-dimensional so that this function is uniform with the other Update
+// methods.)
+func (array *Array) Update(ix Int, value interface{}) {
+	if len(array.dims) != 1 {
+		panic("Can't update a multidimensional array")
+	}
+	array.contents[ix.Int()] = value
 }
 
 func (array *Array) stringOfSubspace(d int, ixs []int) string {
@@ -772,11 +787,14 @@ func (builder *Builder) ToArray() *Array {
 	return NewArrayWithValues(*builder...)
 }
 
-// ToMultiSet creates a MultiSet with the accumulated values.
-
 // ToSet creates a Set with the accumulated values.
 func (builder *Builder) ToSet() Set {
 	return SetOf(*builder...)
+}
+
+// Iterator iterates over the accumulated values.
+func (builder *Builder) Iterator() Iterator {
+	return sliceIterator(*builder)
 }
 
 /******************************************************************************
