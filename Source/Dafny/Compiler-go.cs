@@ -2220,6 +2220,10 @@ namespace Microsoft.Dafny {
       return UserDefinedTypeName(udt, full:true, member:member);
     }
 
+    private string FullTypeName(TopLevelDecl cl, MemberDecl/*?*/ member = null) {
+      return UserDefinedTypeName(cl, full:true, member:member);
+    }
+
     private string UnqualifiedTypeName(UserDefinedType udt, MemberDecl/*?*/ member = null) {
       return UserDefinedTypeName(udt, full:false, member:member);
     }
@@ -2232,13 +2236,19 @@ namespace Microsoft.Dafny {
       var cl = udt.ResolvedClass;
       if (cl == null) {
         return IdProtect(udt.CompileName);
-      } else if (cl is ClassDecl cdecl && cdecl.IsDefaultClass && Attributes.Contains(cl.Module.Attributes, "extern") &&
+      } else {
+        return UserDefinedTypeName(cl, full, member);
+      }
+    }
+
+    private string UserDefinedTypeName(TopLevelDecl cl, bool full, MemberDecl/*?*/ member = null) {
+      if (cl is ClassDecl cdecl && cdecl.IsDefaultClass && Attributes.Contains(cl.Module.Attributes, "extern") &&
         member != null && Attributes.Contains(member.Attributes, "extern")) {
         // omit the default class name ("_default") in extern modules, when the class is used to qualify an extern member
         Contract.Assert(!cl.Module.IsDefaultModule);  // default module is not marked ":extern"
         return IdProtect(cl.Module.CompileName);
       } else {
-        if (this.ModuleName == cl.Module.CompileName) {
+        if (!full || this.ModuleName == cl.Module.CompileName) {
           return IdName(cl);
         } else {
           return cl.Module.CompileName + "." + IdName(cl);
@@ -2278,10 +2288,9 @@ namespace Microsoft.Dafny {
     }
 
     void EmitDatatypeValue(DatatypeDecl dt, DatatypeCtor ctor, bool isCoCall, string arguments, TargetWriter wr) {
-      var dtName = IdName(dt);
+      var dtName = FullTypeName(dt);
       var ctorName = ctor.CompileName;
       
-
       if (dt is TupleTypeDecl) {
         wr.Write("_dafny.TupleOf({0})", arguments);
       } else if (!isCoCall) {
