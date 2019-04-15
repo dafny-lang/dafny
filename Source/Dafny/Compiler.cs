@@ -415,8 +415,8 @@ namespace Microsoft.Dafny {
     }
     protected abstract void EmitExprAsInt(Expression expr, bool inLetExprBody, TargetWriter wr);
     protected abstract void EmitIndexCollectionSelect(Expression source, Expression index, bool inLetExprBody, TargetWriter wr);
-    protected abstract void EmitIndexCollectionUpdate(Expression source, Expression index, Expression value, bool inLetExprBody, TargetWriter wr);
-    protected virtual void EmitIndexCollectionUpdate(out TargetWriter wSource, out TargetWriter wIndex, out TargetWriter wValue, TargetWriter wr) {
+    protected abstract void EmitIndexCollectionUpdate(Expression source, Expression index, Expression value, bool inLetExprBody, TargetWriter wr, bool nativeIndex = false);
+    protected virtual void EmitIndexCollectionUpdate(out TargetWriter wSource, out TargetWriter wIndex, out TargetWriter wValue, TargetWriter wr, bool nativeIndex = false) {
       wSource = wr.Fork();
       wr.Write('[');
       wIndex = wr.Fork();
@@ -1789,13 +1789,13 @@ namespace Microsoft.Dafny {
         } else if (s0.Lhs is SeqSelectExpr) {
           var lhs = (SeqSelectExpr)s0.Lhs;
           TargetWriter wColl, wIndex, wValue;
-          EmitIndexCollectionUpdate(out wColl, out wIndex, out wValue, wr);
+          EmitIndexCollectionUpdate(out wColl, out wIndex, out wValue, wr, nativeIndex: true);
 
           var wCoerce = EmitCoercionIfNecessary(from:null, to:lhs.Seq.Type, tok:s0.Tok, wr:wColl);
           EmitTupleSelect(tup, 0, wCoerce);
           
-          wCoerce = EmitCoercionToNativeInt(wIndex);
-          EmitTupleSelect(tup, 1, wCoerce);
+          var wCast = EmitCoercionToNativeInt(wIndex);
+          EmitTupleSelect(tup, 1, wCast);
 
           EmitTupleSelect(tup, 2, wValue);
           EndStmt(wr);

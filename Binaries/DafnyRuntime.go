@@ -658,10 +658,17 @@ func (array *Array) SliceTo(ix Int) *Array {
 // one-dimensional so that this function is uniform with the other Update
 // methods.)
 func (array *Array) Update(ix Int, value interface{}) {
+	array.UpdateInt(ix.Int(), value)
+}
+
+// UpdateInt updates a location in a one-dimensional array.  (Must be
+// one-dimensional so that this function is uniform with the other Update
+// methods.)
+func (array *Array) UpdateInt(ix int, value interface{}) {
 	if len(array.dims) != 1 {
 		panic("Can't update a multidimensional array")
 	}
-	array.contents[ix.Int()] = value
+	array.contents[ix] = value
 }
 
 func (array *Array) stringOfSubspace(d int, ixs []int) string {
