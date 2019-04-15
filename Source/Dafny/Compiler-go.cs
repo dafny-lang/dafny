@@ -2469,6 +2469,10 @@ namespace Microsoft.Dafny {
       } else if (member is ConstantField cf && cf.Rhs != null) {
         wSource = wr.Fork();
         wr.Write(".{0}()", IdName(member));
+      } else if (member is Field f && !isLValue) {
+        wr = EmitCoercionIfNecessary(from:f.Type, to:expectedType, tok:null, wr:wr);
+        wSource = wr.Fork();
+        wr.Write(".{0}", IdName(member));
       } else {
         wSource = wr.Fork();
         wr.Write(".{0}", IdName(member));
