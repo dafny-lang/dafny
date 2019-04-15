@@ -391,7 +391,7 @@ namespace Microsoft.Dafny {
     }
     protected abstract void EmitDatatypeValue(DatatypeValue dtv, string arguments, TargetWriter wr);
     protected abstract void GetSpecialFieldInfo(SpecialField.ID id, object idParam, out string compiledName, out string preString, out string postString);
-    protected abstract void EmitMemberSelect(MemberDecl member, bool isLValue, Type expectedType, TargetWriter wr);
+    protected abstract TargetWriter EmitMemberSelect(MemberDecl member, bool isLValue, Type expectedType, TargetWriter wr);
     protected void EmitArraySelect(string index, Type elmtType, TargetWriter wr) {
       EmitArraySelect(new List<string>() { index }, elmtType, wr);
     }
@@ -832,8 +832,8 @@ namespace Microsoft.Dafny {
                   CompileReturnBody(cf.Rhs, wBody);
                 } else if (!cf.IsStatic) {
                   var sw = EmitReturnExpr(wBody);
-                  EmitThis(sw);
-                  EmitMemberSelect(cf, true, f.Type, sw);
+                  var wThis = EmitMemberSelect(cf, true, f.Type, sw);
+                  EmitThis(wThis);
                 } else {
                   EmitReturnExpr(DefaultValue(cf.Type, wBody, cf.tok, true), wBody);
                 }
@@ -2062,8 +2062,9 @@ namespace Microsoft.Dafny {
         DeclareLocalVar(obj, null, null, ll.Obj, false, wr);
         Contract.Assert(!ll.Member.IsInstanceIndependentConstant);  // instance-independent const's don't have assignment statements
         var sw = new TargetWriter();
-        EmitMemberSelect(ll.Member, true, lhs.Type, sw);
-        return obj + sw.ToString();
+        var w = EmitMemberSelect(ll.Member, true, lhs.Type, sw);
+        w.Write(obj);
+        return sw.ToString();
       } else if (lhs is SeqSelectExpr) {
         var ll = (SeqSelectExpr)lhs;
         var c = idGenerator.FreshNumericId("_arr+_index");
@@ -2544,16 +2545,16 @@ namespace Microsoft.Dafny {
           string compiledName, preStr, postStr;
           GetSpecialFieldInfo(sf.SpecialId, sf.IdParam, out compiledName, out preStr, out postStr);
           wr.Write(preStr);
+          var w = EmitMemberSelect(sf, false, expr.Type, wr);
           if (sf.IsStatic) {
-            wr.Write(TypeName_Companion(e.Obj.Type, wr, e.tok, sf));
+            w.Write(TypeName_Companion(e.Obj.Type, wr, e.tok, sf));
           } else {
-            TrParenExpr(e.Obj, wr, inLetExprBody);
+            TrParenExpr(e.Obj, w, inLetExprBody);
           }
-          EmitMemberSelect(sf, false, expr.Type, wr);
           wr.Write(postStr);
         } else {
-          TrExpr(e.Obj, wr, inLetExprBody);
-          EmitMemberSelect(e.Member, false, expr.Type, wr);
+          var w = EmitMemberSelect(e.Member, false, expr.Type, wr);
+          TrExpr(e.Obj, w, inLetExprBody);
         }
 
       } else if (expr is SeqSelectExpr) {

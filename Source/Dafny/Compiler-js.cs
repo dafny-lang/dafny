@@ -1516,7 +1516,8 @@ namespace Microsoft.Dafny {
       }
     }
 
-    protected override void EmitMemberSelect(MemberDecl member, bool isLValue, Type expectedType, TargetWriter wr) {
+    protected override TargetWriter EmitMemberSelect(MemberDecl member, bool isLValue, Type expectedType, TargetWriter wr) {
+      var wSource = wr.Fork();
       if (isLValue && member is ConstantField) {
         wr.Write("._{0}", member.CompileName);
       } else if (member is DatatypeDestructor dtor && dtor.EnclosingClass is TupleTypeDecl) {
@@ -1532,6 +1533,7 @@ namespace Microsoft.Dafny {
       } else {
         wr.Write(".{0}", IdName(member));
       }
+      return wSource;
     }
 
     protected override void EmitArraySelect(List<string> indices, Type elmtType, TargetWriter wr) {

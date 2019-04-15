@@ -2397,9 +2397,11 @@ namespace Microsoft.Dafny {
       }
     }
 
-    protected override void EmitMemberSelect(MemberDecl member, bool isLValue, Type expectedType, TargetWriter wr) {
+    protected override TargetWriter EmitMemberSelect(MemberDecl member, bool isLValue, Type expectedType, TargetWriter wr) {
+      TargetWriter wSource;
       if (member is DatatypeDestructor dtor) {
         wr = EmitCoercionIfNecessary(from:dtor.Type, to:expectedType, tok:null, wr:wr);
+        wSource = wr.Fork();
         if (dtor.EnclosingClass is TupleTypeDecl) {
           wr.Write(".Index(_dafny.IntOf({0})).Interface()", dtor.Name);
         } else {
@@ -2407,6 +2409,7 @@ namespace Microsoft.Dafny {
         }
       } else if (!isLValue && member is SpecialField sf && sf.SpecialId != SpecialField.ID.UseIdParam) {
         wr = EmitCoercionIfNecessary(from:sf.Type, to:expectedType, tok:null, wr:wr);
+        wSource = wr.Fork();
         string compiledName, preStr, postStr;
         GetSpecialFieldInfo(sf.SpecialId, sf.IdParam, out compiledName, out preStr, out postStr);
         if (compiledName.Length != 0) {
@@ -2418,13 +2421,17 @@ namespace Microsoft.Dafny {
         // sf2 is needed here only because the scope rules for these pattern matches are asinine: sf is *still in scope* but it's useless because it may not have been assigned to!
 
         wr = EmitCoercionIfNecessary(from:sf2.Type, to:expectedType, tok:null, wr:wr);
+        wSource = wr.Fork();
         // FIXME This is a pretty awful string hack.
         wr.Write(".{0}()", FormatDatatypeConstructorCheckName(fieldName.Substring(3)));
       } else if (member is ConstantField cf && cf.Rhs != null) {
+        wSource = wr.Fork();
         wr.Write(".{0}()", IdName(member));
       } else {
+        wSource = wr.Fork();
         wr.Write(".{0}", IdName(member));
       }
+      return wSource;
     }
 
     // TODO We might be able to be more consistent about whether indices are ints or Ints and avoid this
