@@ -79,6 +79,7 @@ namespace Microsoft.Dafny {
       BlockTargetWriter/*?*/ CreateGetterSetter(string name, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl/*?*/ member, out TargetWriter setterWriter);  // if createBody, then result and setterWriter are non-null, else both are null
       void DeclareField(string name, bool isStatic, bool isConst, Type type, Bpl.IToken tok, string rhs);
       TextWriter/*?*/ ErrorWriter();
+      void Finish();
     }
     protected IClassWriter CreateClass(string name, List<TypeParameter>/*?*/ typeParameters, TargetWriter wr) {
       return CreateClass(name, false, null, typeParameters, null, null, wr);
@@ -553,6 +554,7 @@ namespace Microsoft.Dafny {
               var classIsExtern = !DafnyOptions.O.DisallowExterns && Attributes.Contains(cl.Attributes, "extern");
               var cw = CreateClass(IdName(cl), classIsExtern, cl.FullName, cl.TypeArgs, cl.TraitsTyp, cl.tok, wr);
               CompileClassMembers(cl, cw);
+              cw.Finish();
             } else {
               // still check that given members satisfy compilation rules
               var abyss = new NullClassWriter();
@@ -600,6 +602,8 @@ namespace Microsoft.Dafny {
       public TextWriter/*?*/ ErrorWriter() {
         return null; // match the old behavior of Compile() where this is used
       }
+
+      public void Finish() { }
     }
 
     protected void ReadRuntimeSystem(string filename, TextWriter wr) {

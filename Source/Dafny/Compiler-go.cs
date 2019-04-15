@@ -160,10 +160,12 @@ namespace Microsoft.Dafny {
     protected override string GetHelperModuleName() => "_dafny";
 
     protected override IClassWriter CreateClass(string name, bool isExtern, string/*?*/ fullPrintName, List<TypeParameter>/*?*/ typeParameters, List<Type>/*?*/ superClasses, Bpl.IToken tok, TargetWriter wr) {
-      return CreateClass(name, isExtern, fullPrintName, typeParameters, superClasses, tok, wr, includeRtd: true);
+      return CreateClass(name, isExtern, fullPrintName, typeParameters, superClasses, tok, wr, includeRtd: true, includeEquals: true);
     }
 
-    private GoCompiler.ClassWriter CreateClass(string name, bool isExtern, string/*?*/ fullPrintName, List<TypeParameter>/*?*/ typeParameters, List<Type>/*?*/ superClasses, Bpl.IToken tok, TargetWriter wr, bool includeRtd) {
+    // TODO Consider splitting this into two functions; most things seem to be
+    // passing includeRtd: false and includeEquals: false.
+    private GoCompiler.ClassWriter CreateClass(string name, bool isExtern, string/*?*/ fullPrintName, List<TypeParameter>/*?*/ typeParameters, List<Type>/*?*/ superClasses, Bpl.IToken tok, TargetWriter wr, bool includeRtd, bool includeEquals) {
       //
       // The system for getting traits and inheritance to work is a little
       // fiddly.  There is no inheritance in Go.  You can, however, *embed* the
@@ -293,6 +295,22 @@ namespace Microsoft.Dafny {
       w.WriteLine();
       var staticFieldWriter = w.NewNamedBlock("type {0} struct", FormatCompanionTypeName(name));
       var staticFieldInitWriter = w.NewNamedBlock("var {0} = {1}", FormatCompanionName(name), FormatCompanionTypeName(name));
+
+      if (includeEquals) {
+        // This Equals() is so simple that we could just use == instead, but uniformity is good and it'll get inlined anyway.
+
+        w.WriteLine();
+        var wEquals = w.NewNamedBlock("func (_this *{0}) Equals(other *{0}) bool", name);
+        wEquals.Indent();
+        wEquals.WriteLine("return _this == other");
+
+        w.WriteLine();
+        var wEqualsGeneric = w.NewNamedBlock("func (_this *{0}) EqualsGeneric(x interface{{}}) bool", name);
+        wEqualsGeneric.Indent();
+        wEqualsGeneric.WriteLine("other, ok := x.(*{0})", name);
+        wEqualsGeneric.Indent();
+        wEqualsGeneric.WriteLine("return ok && _this.Equals(other)");
+      }
 
       w.WriteLine();
       var wString = w.NewNamedBlock("func (*{0}) String() string", name);
@@ -439,7 +457,7 @@ namespace Microsoft.Dafny {
       //   // break becomes:
       //   return
       // }()
-      var cw = CreateClass(IdName(iter), false, null, iter.TypeArgs, null, null, wr, includeRtd: false);
+      var cw = CreateClass(IdName(iter), false, null, iter.TypeArgs, null, null, wr, includeRtd: false, includeEquals: false);
 
       cw.InstanceFieldWriter.Indent();
       cw.InstanceFieldWriter.WriteLine("cont chan<- struct{}");
@@ -966,7 +984,7 @@ namespace Microsoft.Dafny {
     }
 
     protected override void DeclareNewtype(NewtypeDecl nt, TargetWriter wr) {
-      var cw = CreateClass(IdName(nt), false, null, null, null, null, wr, includeRtd: false);
+      var cw = CreateClass(IdName(nt), false, null, null, null, null, wr, includeRtd: false, includeEquals: false);
       var w = cw.ConcreteMethodWriter;
       var nativeType = nt.NativeType != null ? GetNativeTypeName(nt.NativeType) : null;
       if (nt.NativeType != null) {
@@ -1006,7 +1024,7 @@ namespace Microsoft.Dafny {
     }
 
     protected override void DeclareSubsetType(SubsetTypeDecl sst, TargetWriter wr) {
-      var cw = CreateClass(IdName(sst), false, null, sst.TypeArgs, null, null, wr, includeRtd: false);
+      var cw = CreateClass(IdName(sst), false, null, sst.TypeArgs, null, null, wr, includeRtd: false, includeEquals: false);
       var w = cw.ConcreteMethodWriter;
       if (sst.WitnessKind == SubsetTypeDecl.WKind.Compiled) { 
         var witness = new TargetWriter(w.IndentLevel);
@@ -1092,6 +1110,8 @@ namespace Microsoft.Dafny {
       public readonly string ClassName;
       public readonly bool IsExtern;
       public readonly TargetWriter/*?*/ AbstractMethodWriter, ConcreteMethodWriter, InstanceFieldWriter, InstanceFieldInitWriter, TraitInitWriter, StaticFieldWriter, StaticFieldInitWriter;
+      private bool anyInstanceFields = false;
+      public bool AnyInstanceFields { get => anyInstanceFields; }
 
       public ClassWriter(GoCompiler compiler, string className, bool isExtern, TargetWriter abstractMethodWriter, TargetWriter concreteMethodWriter, TargetWriter instanceFieldWriter, TargetWriter instanceFieldInitWriter, TargetWriter traitInitWriter, TargetWriter staticFieldWriter, TargetWriter staticFieldInitWriter) {
         this.Compiler = compiler;
@@ -1127,12 +1147,22 @@ namespace Microsoft.Dafny {
         return Compiler.CreateGetterSetter(name, resultType, tok, isStatic, createBody, member, name, out setterWriter, ConcreteMethodWriter);
       }
       public void DeclareField(string name, bool isStatic, bool isConst, Type type, Bpl.IToken tok, string rhs) {
+        // FIXME: This should probably be done in Compiler.DeclareField().
+        // Should just have these delegate methods take the ClassWriter as an
+        // argument.
+        if (!isStatic) {
+          anyInstanceFields = true;
+        }
         Compiler.DeclareField(name, IsExtern, isStatic, isConst, type, tok, rhs, ClassName, FieldWriter(isStatic), FieldInitWriter(isStatic), ConcreteMethodWriter);
       }
       public TextWriter/*?*/ ErrorWriter() => ConcreteMethodWriter;
 
       public void AddSuperType(Type superType, Bpl.IToken tok) {
         Compiler.AddSuperType(superType, tok, InstanceFieldWriter, InstanceFieldInitWriter, TraitInitWriter, StaticFieldWriter, StaticFieldInitWriter);
+      }
+
+      public void Finish() {
+        Compiler.FinishClass(this);
       }
     }
 
@@ -1430,6 +1460,16 @@ namespace Microsoft.Dafny {
 
       staticFieldInitWriter.Indent();
       staticFieldInitWriter.WriteLine("{0}: &{1},", TypeName_CompanionType(superType, staticFieldInitWriter, tok), TypeName_Companion(superType, staticFieldInitWriter, tok, null));
+    }
+
+    private void FinishClass(GoCompiler.ClassWriter cw) {
+      // Go gets weird about zero-length structs.  In particular, it likes to
+      // make all pointers to a zero-length struct the same.  Irritatingly, this
+      // forces us to waste space here.
+      if (!cw.AnyInstanceFields) {
+        cw.InstanceFieldWriter.Indent();
+        cw.InstanceFieldWriter.WriteLine("dummy byte");
+      }
     }
 
     protected override void EmitJumpToTailCallStart(TargetWriter wr) {

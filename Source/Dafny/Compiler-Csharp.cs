@@ -739,6 +739,8 @@ namespace Microsoft.Dafny
         Compiler.DeclareField(name, isStatic, isConst, type, tok, rhs, Writer(isStatic));
       }
       public TextWriter/*?*/ ErrorWriter() => InstanceMemberWriter;
+
+      public void Finish() { }
     }
 
     protected BlockTargetWriter/*?*/ CreateMethod(Method m, bool createBody, TargetWriter wr) {
