@@ -3142,7 +3142,7 @@ namespace Microsoft.Dafny {
           wCall = wBody;
         } else {
           wBody.Write("return ");
-          wCall = EmitCoercionIfNecessary(from:fat.Result, to:fat.Result, tok:tok, wr:wBody);
+          wCall = EmitCoercionIfNecessary(from:fat.Result, to:tat.Result, tok:tok, wr:wBody);
         }
         wCall.Write('(');
         var ans = wCall.Fork();
@@ -3157,7 +3157,7 @@ namespace Microsoft.Dafny {
           w.Write(args[i]);
           sep = ", ";
         }
-        wCall.WriteLine(')');
+        wCall.Write(')');
         return ans;
       } else if (to.IsTypeParameter || from != null && EqualsUpToParameters(from, to)) {
         // do nothing
