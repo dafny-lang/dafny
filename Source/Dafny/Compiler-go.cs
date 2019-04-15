@@ -690,7 +690,7 @@ namespace Microsoft.Dafny {
 
         wr.WriteLine();
         wr.Indent();
-        var wLazy = wr.NewNamedBlock("type lazy{0} struct", name);
+        var wLazy = wr.NewNamedBlock("type lazy_{0}_ struct", name);
         wLazy.Indent();
         wLazy.WriteLine("value {0}", dataName);
         wLazy.Indent();
@@ -698,7 +698,7 @@ namespace Microsoft.Dafny {
 
         wr.WriteLine();
         wr.Indent();
-        var wLazyGet = wr.NewNamedBlock("func (_this *lazy{0}) Get() {1}", name, dataName);
+        var wLazyGet = wr.NewNamedBlock("func (_this *lazy_{0}_) Get() {1}", name, dataName);
         wLazyGet.Indent();
         var wIf = wLazyGet.NewBlock("if _this.value == nil");
         wIf.Indent();
@@ -713,7 +713,7 @@ namespace Microsoft.Dafny {
         wr.Indent();
         var wLazyCreate = wr.NewNamedBlock("func ({0}) {1}(f func () {2}) {2}", companionTypeName, FormatLazyConstructorName(name), name, name);
         wLazyCreate.Indent();
-        wLazyCreate.WriteLine("return {0}{{&lazy{0}{{nil, f}}}}", name);
+        wLazyCreate.WriteLine("return {0}{{&lazy_{0}_{{nil, f}}}}", name);
       }
 
       {
