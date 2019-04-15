@@ -2361,7 +2361,7 @@ namespace Microsoft.Dafny {
           }
           break;
         case SpecialField.ID.Floor:
-          compiledName = "toBigNumber()";
+          compiledName = "Int()";
           break;
         case SpecialField.ID.IsLimit:
           compiledName = "IsLimitOrd()";

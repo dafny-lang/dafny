@@ -2091,9 +2091,18 @@ func RealOfString(s string) Real {
 	return realOf(x)
 }
 
-// Int converts the given real to an integer using Euclidean division.
+// Int converts the given real to an integer, rounding toward negative numbers.
+// (That is, returns floor(x).)
 func (x Real) Int() Int {
-	return intOf(new(big.Int).Div(x.impl.Num(), x.impl.Denom()))
+	if x.Cmp(ZeroReal) == 0 || x.Denom().Cmp(One) == 0 {
+		return x.Num()
+	} else if x.Num().Cmp(Zero) > 0 {
+		return intOf(new(big.Int).Div(x.impl.Num(), x.impl.Denom()))
+	} else {
+		a := new(big.Int).Sub(x.impl.Num(), x.impl.Denom())
+		a.Add(a, One.impl)
+		return intOf(a.Quo(a, x.impl.Denom())) // note: *truncated* division
+	}
 }
 
 // Num returns the given Real's numerator as an Int
