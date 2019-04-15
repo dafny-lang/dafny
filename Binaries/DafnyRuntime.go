@@ -1983,7 +1983,7 @@ func AllIntegers() Iterator {
 			p = negPhase
 			return i, true
 		case negPhase:
-			ans := i.Negated
+			ans := i.Negated()
 			i = i.Plus(One)
 			p = posPhase
 			return ans, true
