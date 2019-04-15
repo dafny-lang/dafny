@@ -3114,7 +3114,8 @@ namespace Microsoft.Dafny {
       for (int i = 0; i < e.Args.Count; i++) {
         if (!e.Function.Formals[i].IsGhost) {
           wr.Write(sep);
-          tr(e.Args[i], wr, inLetExprBody);
+          var w = EmitCoercionIfNecessary(from:e.Args[i].Type, to:e.Function.Formals[i].Type, tok:e.tok, wr:wr);
+          tr(e.Args[i], w, inLetExprBody);
           sep = ", ";
         }
       }
