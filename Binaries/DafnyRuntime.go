@@ -186,6 +186,20 @@ func (char Char) String() string {
 	return fmt.Sprintf("%c", rune(char))
 }
 
+// AllChars returns an iterator that returns all 16-bit characters.
+func AllChars() Iterator {
+	c := int32(0)
+	return func() (interface{}, bool) {
+		if c >= 0x10000 {
+			return -1, false
+		} else {
+			ans := Char(c)
+			c++
+			return ans, true
+		}
+	}
+}
+
 /******************************************************************************
  * Slices
  ******************************************************************************/
@@ -316,6 +330,23 @@ func SingleValue(value interface{}) Iterator {
 		} else {
 			done = true
 			return value, true
+		}
+	}
+}
+
+// AllBooleans returns an iterator that returns false, then returns true.
+func AllBooleans() Iterator {
+	phase := 0
+	return func() (interface{}, bool) {
+		switch phase {
+		case 0:
+			phase = 1
+			return false, true
+		case 1:
+			phase = 2
+			return true, true
+		default:
+			return false, false
 		}
 	}
 }
