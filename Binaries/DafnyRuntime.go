@@ -1388,7 +1388,7 @@ func (m Map) Equals(m2 Map) bool {
 		return false
 	}
 	for _, e := range m.elts {
-		i, found := m.findIndex(e.key)
+		i, found := m2.findIndex(e.key)
 		if !found || !AreEqual(e.value, m2.elts[i].value) {
 			return false
 		}
