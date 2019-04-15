@@ -2612,7 +2612,8 @@ namespace Microsoft.Dafny {
           var formal = dtv.Ctor.Formals[i];
           if (!formal.IsGhost) {
             wrArgumentList.Write(sep);
-            TrExpr(dtv.Arguments[i], wrArgumentList, inLetExprBody);
+            var w = EmitCoercionIfNecessary(from:dtv.Arguments[i].Type, to:dtv.Ctor.Formals[i].Type, tok:dtv.tok, wr:wrArgumentList);
+            TrExpr(dtv.Arguments[i], w, inLetExprBody);
             sep = ", ";
           }
         }
