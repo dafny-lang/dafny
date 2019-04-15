@@ -1295,6 +1295,8 @@ namespace Microsoft.Dafny {
         if (useAllTypeArgs || tp.Characteristics.MustSupportZeroInitialization) {
           wr.Indent();
           wr.WriteLine("{0} := _this.{0}", FormatRTDName(tp.CompileName));
+          wr.Indent();
+          wr.WriteLine("_ = {0}", FormatRTDName(tp.CompileName));
         }
       }
     }
