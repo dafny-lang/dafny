@@ -3041,7 +3041,7 @@ namespace Microsoft.Dafny {
               wr.Write("))");
             } else {
               // char -> native
-              wr.Write(toNative);
+              wr.Write(GetNativeTypeName(toNative));
               TrParenExpr(e.E, wr, inLetExprBody);
             }
           } else if (fromNative == null && toNative == null) {
