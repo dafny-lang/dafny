@@ -946,7 +946,7 @@ namespace Microsoft.Dafny {
 
         wr.WriteLine();
         wr.Indent();
-        var wEqualsGeneric = wr.NewNamedBlock("func (_this {0}) Dafny_EqualsGeneric_(other interface{{}}) bool", name);
+        var wEqualsGeneric = wr.NewNamedBlock("func (_this {0}) EqualsGeneric(other interface{{}}) bool", name);
         wEqualsGeneric.Indent();
         wEqualsGeneric.WriteLine("typed, ok := other.({0})", name);
         wEqualsGeneric.Indent();
