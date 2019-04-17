@@ -3053,7 +3053,7 @@ namespace Microsoft.Dafny {
       }
       return false;
     }
-    public Attributes Attributes;  // readonly, except during class merging in the refinement transformations
+    public Attributes Attributes;  // readonly, except during class merging in the refinement transformations and when changed by Compiler.MarkCapitalizationConflict
 
     public Declaration(IToken tok, string name, Attributes attributes) {
       Contract.Requires(tok != null);

@@ -2176,27 +2176,26 @@ namespace Microsoft.Dafny {
       wr.Write("{0}.Index(_dafny.IntOf({1})).Interface()", prefix, i);
     }
 
-    static string Capitalize(string str) {
-      Contract.Requires(str.Any(c => c != '_'));
-      while (str.StartsWith("_")) {
-        str = str.Substring(1) + "_";
-      }
-      if (!char.IsLetter(str[0])) {
-        return "Go_" + str;
-      } else {
-        return char.ToUpper(str[0]) + str.Substring(1);
-      }
-    }
-
     protected override string IdName(TopLevelDecl d) {
       Contract.Requires(d != null);
-      return Capitalize(d.CompileName);
+      return IdName((Declaration) d);
     }
 
     protected override string IdName(MemberDecl member) {
       Contract.Requires(member != null);
-      return Capitalize(member.CompileName);
+      return IdName((Declaration) member);
     }
+
+    private string IdName(Declaration decl) {
+      if (HasCapitalizationConflict(decl)) {
+        // Don't use Go_ because Capitalize might use it and we know there's a conflict
+        return "Go__" + decl.CompileName;
+      } else {
+        return Capitalize(decl.CompileName);
+      }
+    }
+
+    protected override string PrefixForForcedCapitalization { get => "Go_"; }
 
     protected override string IdProtect(string name) {
       return PublicIdProtect(name);

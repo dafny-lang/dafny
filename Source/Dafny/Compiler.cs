@@ -523,6 +523,10 @@ namespace Microsoft.Dafny {
             DeclareNewtype(nt, wr);
           } else if (d is DatatypeDecl) {
             var dt = (DatatypeDecl)d;
+            CheckForCapitalizationConflicts(dt.Ctors);
+            foreach (var ctor in dt.Ctors) {
+              CheckForCapitalizationConflicts(ctor.Destructors);
+            }
             DeclareDatatype(dt, wr);
           } else if (d is IteratorDecl) {
             var iter = (IteratorDecl)d;
@@ -746,6 +750,7 @@ namespace Microsoft.Dafny {
       var errorWr = classWriter.ErrorWriter();
 
       CheckHandleWellformed(c, errorWr);
+      CheckForCapitalizationConflicts(c.Members, c.InheritedMembers);
       foreach (var member in c.InheritedMembers) {
         Contract.Assert(!member.IsStatic);  // only instance members should ever be added to .InheritedMembers
         if (member.IsGhost) {
@@ -934,6 +939,81 @@ namespace Microsoft.Dafny {
         }
       }
     }
+
+    /// <summary>
+    /// Check whether two declarations have the same name if capitalized.
+    /// </summary>
+    /// <param name="canChange">The declarations to check.</param>
+    /// <param name="cantChange">Additional declarations which may conflict, but which can't be given different names.  For example, these may be the inherited members of a class.</param>
+    /// <remarks>
+    /// If two elements of <paramref name="canChange"/> have the same
+    /// capitalization, the lowercase one will get a
+    /// <c>{:_capitalizationConflict}</c> attribute.  If
+    /// <paramref name="cantChange"/> is given and one of its elements conflicts
+    /// with one from <paramref name="canChange"/>, the element from
+    /// <paramref name="canChange"/> gets the attribute whether it is lowercase
+    /// or not.
+    /// </remarks>
+    /// <seealso cref="HasCapitalizationConflict"/>
+    private void CheckForCapitalizationConflicts<T>(IEnumerable<T> canChange, IEnumerable<T> cantChange = null) where T : Declaration {
+      if (cantChange == null) {
+        cantChange = Enumerable.Empty<T>();
+      }
+      IDictionary<string, T> declsByCapName = new Dictionary<string, T>();
+      ISet<string> fixedNames = new HashSet<string>(from decl in cantChange select Capitalize(decl.CompileName));
+
+      foreach (var decl in canChange) {
+        var name = decl.CompileName;
+        var capName = Capitalize(name);
+        if (name == capName) {
+          if (fixedNames.Contains(name)) {
+            // Normally we mark the lowercase one, but in this case we can't change that one
+            MarkCapitalizationConflict(decl);
+          } else {
+            T other;
+            if (declsByCapName.TryGetValue(name, out other)) {
+              // Presume that the other is the lowercase one
+              MarkCapitalizationConflict(other);
+            } else {
+              declsByCapName.Add(name, decl);
+            }
+          }
+        } else {
+          if (declsByCapName.ContainsKey(capName)) {
+            MarkCapitalizationConflict(decl);
+          } else {
+            declsByCapName.Add(capName, decl);
+          }
+        }
+      }
+    }
+
+    protected string Capitalize(string str) {
+      if (!str.Any(c => c != '_')) {
+        return PrefixForForcedCapitalization + str;
+      }
+      var origStr = str;
+      while (str.StartsWith("_")) {
+        str = str.Substring(1) + "_";
+      }
+      if (!char.IsLetter(str[0])) {
+        return PrefixForForcedCapitalization + origStr;
+      } else {
+        return char.ToUpper(str[0]) + str.Substring(1);
+      }
+    }
+
+    protected virtual string PrefixForForcedCapitalization { get => "Cap_"; }
+
+    private static void MarkCapitalizationConflict(Declaration decl) {
+      decl.Attributes = new Attributes(CapitalizationConflictAttribute, new List<Expression>(), decl.Attributes);
+    }
+
+    protected static bool HasCapitalizationConflict(Declaration decl) {
+      return Attributes.Contains(decl.Attributes, CapitalizationConflictAttribute);
+    }
+
+    private static string CapitalizationConflictAttribute = "_capitalizationConflict";
 
     private void CompileFunction(Function f, IClassWriter cw) {
       Contract.Requires(f != null);
