@@ -1778,15 +1778,18 @@ namespace Microsoft.Dafny {
         // Compute L
         int L;
         string tupleTypeArgs;
+        List<Type> tupleTypeArgsList;
         if (s0.Lhs is MemberSelectExpr) {
           var lhs = (MemberSelectExpr)s0.Lhs;
           L = 2;
           tupleTypeArgs = TypeName(lhs.Obj.Type, wr, lhs.tok);
+          tupleTypeArgsList = new List<Type> { lhs.Obj.Type };
         } else if (s0.Lhs is SeqSelectExpr) {
           var lhs = (SeqSelectExpr)s0.Lhs;
           L = 3;
           // note, we might as well do the BigInteger-to-int cast for array indices here, before putting things into the Tuple rather than when they are extracted from the Tuple
           tupleTypeArgs = TypeName(lhs.Seq.Type, wr, lhs.tok) + ",int";
+          tupleTypeArgsList = new List<Type> { lhs.Seq.Type, null };
         } else {
           var lhs = (MultiSelectExpr)s0.Lhs;
           L = 2 + lhs.Indices.Count;
@@ -1795,12 +1798,16 @@ namespace Microsoft.Dafny {
             return;
           }
           tupleTypeArgs = TypeName(lhs.Array.Type, wr, lhs.tok);
+          tupleTypeArgsList = new List<Type> { lhs.Array.Type };
           for (int i = 0; i < lhs.Indices.Count; i++) {
             // note, we might as well do the BigInteger-to-int cast for array indices here, before putting things into the Tuple rather than when they are extracted from the Tuple
             tupleTypeArgs += ",int";
+            tupleTypeArgsList.Add(null);
           }
+          
         }
         tupleTypeArgs += "," + TypeName(rhs.Type, wr, rhs.tok);
+        tupleTypeArgsList.Add(rhs.Type);
 
         // declare and construct "ingredients"
         using (var wrVarInit = DeclareLocalVar(ingredients, null, null, wr)) {
@@ -1866,9 +1873,11 @@ namespace Microsoft.Dafny {
         wr.Indent();
         if (s0.Lhs is MemberSelectExpr) {
           var lhs = (MemberSelectExpr)s0.Lhs;
-          EmitTupleSelect(tup, 0, wr);
+          var wCoerced = EmitCoercionIfNecessary(from:null, to:tupleTypeArgsList[0], tok:s0.Tok, wr:wr);
+          EmitTupleSelect(tup, 0, wCoerced);
           wr.Write(".{0} = ", IdMemberName(lhs));
-          EmitTupleSelect(tup, 1, wr);
+          wCoerced = EmitCoercionIfNecessary(from:null, to:tupleTypeArgsList[1], tok:s0.Tok, wr:wr);
+          EmitTupleSelect(tup, 1, wCoerced);
           EndStmt(wr);
         } else if (s0.Lhs is SeqSelectExpr) {
           var lhs = (SeqSelectExpr)s0.Lhs;
@@ -1885,15 +1894,18 @@ namespace Microsoft.Dafny {
           EndStmt(wr);
         } else {
           var lhs = (MultiSelectExpr)s0.Lhs;
-          EmitTupleSelect(tup, 0, wr);
-          wr.Write("[");
-          string sep = "";
+          var wArray = new TargetWriter();
+          var wCoerced = EmitCoercionIfNecessary(from:null, to:tupleTypeArgsList[0], tok:s0.Tok, wr:wArray);
+          EmitTupleSelect(tup, 0, wCoerced);
+          var array = wArray.ToString();
+          var indices = new List<string>();          
           for (int i = 0; i < lhs.Indices.Count; i++) {
-            wr.Write(sep);
-            EmitTupleSelect(tup, i+1, wr);
-            sep = ", ";
+            var wIndex = new TargetWriter();
+            EmitTupleSelect(tup, i+1, wIndex);
+            indices.Add(wIndex.ToString());
           }
-          wr.Write("] = ");
+          EmitArraySelectAsLvalue(array, indices, tupleTypeArgsList[L-1], wr);
+          wr.Write(" = ");
           EmitTupleSelect(tup, L-1, wr);
           EndStmt(wr);
         }

@@ -2197,6 +2197,10 @@ namespace Microsoft.Dafny {
 
     protected override string PrefixForForcedCapitalization { get => "Go_"; }
 
+    protected override string IdMemberName(MemberSelectExpr mse) {
+      return Capitalize(mse.MemberName);
+    }
+
     protected override string IdProtect(string name) {
       return PublicIdProtect(name);
     }
