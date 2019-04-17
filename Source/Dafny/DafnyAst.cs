@@ -7360,6 +7360,12 @@ namespace Microsoft.Dafny {
         }
       }
     }
+
+    public List<BoundVar> UncompilableBoundVars() {
+      Contract.Ensures(Contract.Result<List<BoundVar>>() != null);
+      var v = ComprehensionExpr.BoundedPool.PoolVirtues.Finite | ComprehensionExpr.BoundedPool.PoolVirtues.Enumerable;
+      return ComprehensionExpr.BoundedPool.MissingBounds(BoundVars, Bounds, v);
+    }
   }
 
   public class ModifyStmt : Statement

@@ -222,8 +222,8 @@ module IteratorTypeParameters {
     } else if * {
       var iter: MyIter<Stream,int>;  // error: even this variable declaration is disallowed
     } else if * {
-      var arr := new int[25];
-      forall iter: MyIter<Stream,int> | false {  // error: even this variable declaration is disallowed
+      var arr := new int[25]; var somethingToCompareWith: object;
+      forall iter: MyIter<Stream,int> | iter == somethingToCompareWith {  // error: even this variable declaration is disallowed
         arr[2] := 60;
       }
     } else {

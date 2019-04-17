@@ -6957,6 +6957,16 @@ namespace Microsoft.Dafny
           }
           s.IsGhost = s.IsGhost || s.Body == null || s.Body.IsGhost;
 
+          if (!s.IsGhost) {
+            // Since we've determined this is a non-ghost forall statement, we now check that the bound variables have compilable bounds.
+            var uncompilableBoundVars = s.UncompilableBoundVars();
+            if (uncompilableBoundVars.Count != 0) {
+              foreach (var bv in uncompilableBoundVars) {
+                Error(s, "forall statements in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce or compile a bounded set of values for '{0}'", bv.Name);
+              }
+            }
+          }
+
         } else if (stmt is ModifyStmt) {
           var s = (ModifyStmt)stmt;
           s.IsGhost = mustBeErasable;
