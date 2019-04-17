@@ -1867,7 +1867,7 @@ namespace Microsoft.Dafny {
     }
 
     protected override void EmitReturn(List<Formal> formals, TargetWriter wr) {
-      var outParams = formals.Where(f => !f.IsGhost);
+      var outParams = formals.Where(f => !f.IsGhost).ToList();
       wr.Indent();
       if (!outParams.Any()) {
         wr.WriteLine("return");
