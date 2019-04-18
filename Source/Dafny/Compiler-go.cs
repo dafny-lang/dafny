@@ -1859,6 +1859,35 @@ namespace Microsoft.Dafny {
 
     // ----- Statements -------------------------------------------------------------
 
+    protected override void EmitMultiAssignment(out List<TargetWriter> wLhss, List<Type> lhsTypes, out List<TargetWriter> wRhss, List<Type> rhsTypes, TargetWriter wr) {
+      Contract.Assert(lhsTypes.Count == rhsTypes.Count);
+      wLhss = new List<TargetWriter>();
+      wRhss = new List<TargetWriter>();
+
+      wr.Indent();
+      var sep = "";
+      
+      foreach (var _ in lhsTypes) {
+        wr.Write(sep);
+        var wLhs = wr.Fork();
+        wLhss.Add(wLhs);
+        sep = ", ";
+      }
+
+      wr.Write(" = ");
+
+      sep = "";
+      for (int i = 0; i < rhsTypes.Count; i++) {
+        wr.Write(sep);
+        var wRhs = wr.Fork();
+        wRhs = EmitCoercionIfNecessary(from:rhsTypes[i], to:lhsTypes[i], tok:null, wr:wRhs);
+        wRhss.Add(wRhs);
+        sep = ", ";
+      }
+
+      wr.WriteLine();
+    }
+
     protected override void EmitPrintStmt(TargetWriter wr, Expression arg) {
       wr.Indent();
       wr.Write("_dafny.Print(");

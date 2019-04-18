@@ -241,6 +241,31 @@ namespace Microsoft.Dafny {
 
       return w;
     }
+
+    protected virtual void EmitMultiAssignment(out List<TargetWriter> wLhss, List<Type> lhsTypes, out List<TargetWriter> wRhss, List<Type> rhsTypes, TargetWriter wr) {
+      Contract.Assert(lhsTypes.Count == rhsTypes.Count);
+      wLhss = new List<TargetWriter>();
+      wRhss = new List<TargetWriter>();
+      var rhsVars = new List<string>();
+      foreach (var lhsType in lhsTypes) {
+        string target = idGenerator.FreshId("_rhs");
+        rhsVars.Add(target);
+        wr.Indent();
+        wr.Write(GenerateLhsDecl(target, lhsType, wr, null));
+        wr.Write(" = ");
+        wRhss.Add(wr.Fork());
+        EndStmt(wr);
+      }
+
+      Contract.Assert(rhsVars.Count == lhsTypes.Count);
+      for (int i = 0; i < rhsVars.Count; i++) {
+        TargetWriter wLhs, wRhsVar;
+        EmitAssignment(out wLhs, lhsTypes[i], out wRhsVar, rhsTypes[i], wr);
+        wLhss.Add(wLhs);
+        wRhsVar.Write(rhsVars[i]);
+      }
+    }
+    
     protected virtual void EmitSetterParameter(TargetWriter wr) {
       wr.Write("value");
     }
@@ -1560,8 +1585,10 @@ namespace Microsoft.Dafny {
           // multi-assignment
           Contract.Assert(s.Lhss.Count == resolved.Count);
           Contract.Assert(s.Rhss.Count == resolved.Count);
-          var lvalues = new List<string>();
-          var rhss = new List<string>();
+          var lhsTypes = new List<Type>();
+          var rhsTypes = new List<Type>();
+          var lhss = new List<Expression>();
+          var rhss = new List<AssignmentRhs>();
           for (int i = 0; i < resolved.Count; i++) {
             if (!resolved[i].IsGhost) {
               var lhs = s.Lhss[i];
@@ -1571,19 +1598,22 @@ namespace Microsoft.Dafny {
                   Error(rhs.Tok, "nondeterministic assignment forbidden by /definiteAssignment:3 option", wr);
                 }
               } else {
-                lvalues.Add(CreateLvalue(lhs, wr));
-                string target = idGenerator.FreshId("_rhs");
-                rhss.Add(target);
-                TrRhs(GenerateLhsDecl(target, lhs.Type, wr, rhs.Tok), lhs.Type, rhs, wr);
+                lhss.Add(lhs);
+                lhsTypes.Add(lhs.Type);
+                rhss.Add(rhs);
+                rhsTypes.Add(TypeOfRhs(rhs));
               }
             }
           }
-          Contract.Assert(lvalues.Count == rhss.Count);
-          for (int i = 0; i < lvalues.Count; i++) {
-            EmitAssignment(lvalues[i], s.Lhss[i].Type, rhss[i], (s.Rhss[i] as TypeRhs)?.Type, wr);
+
+          var wStmts = wr.Fork();
+          List<TargetWriter> wLhss, wRhss;
+          EmitMultiAssignment(out wLhss, lhsTypes, out wRhss, rhsTypes, wr);
+          for (int i = 0; i < wLhss.Count; i++) {
+            wLhss[i].Write(CreateLvalue(lhss[i], wStmts));
+            TrRhs(rhss[i], wRhss[i], wStmts);
           }
         }
-
       } else if (stmt is AssignStmt) {
         var s = (AssignStmt)stmt;
         Contract.Assert(!(s.Lhs is SeqSelectExpr) || ((SeqSelectExpr)s.Lhs).SelectOne);  // multi-element array assignments are not allowed
@@ -1593,7 +1623,11 @@ namespace Microsoft.Dafny {
           }
         } else {
           var lvalue = CreateLvalue(s.Lhs, wr);
-          TrRhs(lvalue, s.Lhs.Type, s.Rhs, wr);
+          var wStmts = wr.Fork();
+          TargetWriter wLhs, wRhs;
+          EmitAssignment(out wLhs, s.Lhs.Type, out wRhs, TypeOfRhs(s.Rhs), wr);
+          wLhs.Write(lvalue);
+          TrRhs(s.Rhs, wRhs, wStmts);
         }
 
       } else if (stmt is AssignSuchThatStmt) {
@@ -2190,8 +2224,13 @@ namespace Microsoft.Dafny {
       }
     }
 
-    void TrRhs(string target, Type targetType, AssignmentRhs rhs, TargetWriter wr) {
-      Contract.Requires(target != null);
+    /// <summary>
+    /// Translate the right-hand side of an assignment.
+    /// </summary>
+    /// <param name="rhs">The RHS to translate</param>
+    /// <param name="wr">The writer at the position for the translated RHS</param>
+    /// <param name="wStmts">A writer at an earlier position where extra statements may be written</param>
+    void TrRhs(AssignmentRhs rhs, TargetWriter wr, TargetWriter wStmts) {
       Contract.Requires(!(rhs is HavocRhs));
       Contract.Requires(wr != null);
 
@@ -2199,13 +2238,10 @@ namespace Microsoft.Dafny {
 
       if (tRhs == null) {
         var eRhs = (ExprRhs)rhs;  // it's not HavocRhs (by the precondition) or TypeRhs (by the "if" test), so it's gotta be ExprRhs
-        TargetWriter wLhs, wRhs;
-        EmitAssignment(out wLhs, targetType, out wRhs, TypeOfRhs(rhs), wr);
-        wLhs.Write(target);
-        TrExpr(eRhs.Expr, wRhs, false);
+        TrExpr(eRhs.Expr, wr, false);
       } else {
         var nw = idGenerator.FreshId("_nw");
-        var wRhs = DeclareLocalVar(nw, null, null, wr);
+        var wRhs = DeclareLocalVar(nw, null, null, wStmts);
         TrTypeRhs(tRhs, wRhs);
 
         // Proceed with initialization
@@ -2214,15 +2250,15 @@ namespace Microsoft.Dafny {
           if (tRhs.InitCall.Method is Constructor && tRhs.InitCall.Method.IsExtern(out q, out n)) {
             // initialization was done at the time of allocation
           } else {
-            wr.Write(TrCallStmt(tRhs.InitCall, nw, wr.IndentLevel).ToString());
+            wStmts.Write(TrCallStmt(tRhs.InitCall, nw, wStmts.IndentLevel).ToString());
           }
         } else if (tRhs.ElementInit != null) {
           // Compute the array-initializing function once and for all (as required by the language definition)
           string f = idGenerator.FreshId("_arrayinit");
-          DeclareLocalVar(f, null, null, tRhs.ElementInit, false, wr);
+          DeclareLocalVar(f, null, null, tRhs.ElementInit, false, wStmts);
           // Build a loop nest that will call the initializer for all indicies
           var indices = Translator.Map(Enumerable.Range(0, tRhs.ArrayDimensions.Count), ii => idGenerator.FreshId("_arrayinit_" + ii));
-          var w = wr;
+          var w = wStmts;
           for (var d = 0; d < tRhs.ArrayDimensions.Count; d++) {
             string len, p0, p1;
             GetSpecialFieldInfo(SpecialField.ID.ArrayLengthInt, tRhs.ArrayDimensions.Count == 1 ? null : (object)d, out len, out p0, out p1);
@@ -2237,16 +2273,16 @@ namespace Microsoft.Dafny {
         } else if (tRhs.InitDisplay != null) {
           var ii = 0;
           foreach (var v in tRhs.InitDisplay) {
-            wr.Indent();
-            wr.Write(nw);
-            EmitArrayUpdate(new List<string> { ii.ToString() }, v, wr);
-            EndStmt(wr);
+            wStmts.Indent();
+            wStmts.Write(nw);
+            EmitArrayUpdate(new List<string> { ii.ToString() }, v, wStmts);
+            EndStmt(wStmts);
             ii++;
           }
         }
 
         // Assign to the final LHS
-        EmitAssignment(target, targetType, nw, TypeOfRhs(rhs), wr);
+        wr.Write(nw);
       }
     }
 
