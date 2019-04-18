@@ -14,6 +14,32 @@ As much as possible, identifiers in generated code include underscores in their
 names.  Therefore, to avoid namespace collisions, **avoid using underscores in
 names in Dafny code** if you anticipate compiling to Go.
 
+Top-Level Structure
+-------------------
+
+Unlike C# and JavaScript, Go imposes strict requirements on modules and file
+structure.  As it is not possible to put a multi-package Go program into one
+file, a whole directory structure is produced alongside the original `.dfy`
+file.  For a Dafny source file `Example.dfy` which doesn't define any modules,
+the structure will look like so:
+
+  - `Example-go`: The top level, to which `GOPATH` is set in order to run the
+    program.
+    - `src`: All source files are placed here.
+      - `Example.go`: A stub which calls the Main method in `module_/module_go`.
+      - `module_/module_.go`: The main module.
+      - `dafny/dafny.go`: The Dafny run-time library.
+      - `System_/System_.go`: Additional definitions for built-in types.
+
+Each Dafny module will be placed in a package named after the module, in a file
+such as `Module/Module.go`.  If the module's name begins with an underscore
+(such as in the `_module` and `_System` modules), the filename will move the
+underscore to the end.  (Go ignores any file whose name starts with an
+underscore.)
+
+Anything declared outside of a module will end up in the default module, called
+`_module`.
+
 Predefined Types
 ----------------
 
@@ -94,7 +120,7 @@ from the defining module.
 
 In addition to any constructors, each class also has an *initializer* which
 allocate an object, with all fields given the default values for their types.
-The initializer will be called `New_`*`Class`*`_`:
+The initializer will be called <code>New_*Class*_</code>:
 
 ```go
 func New_Class_() *Class {
@@ -149,6 +175,30 @@ var Companion_Class_ = CompanionStruct_Class_ {
 
 func (_this *CompanionStruct_Class_) Frob(z _dafny.Seq, a *Class) (_dafny.Int, _dafny.Char) {
     ...
+}
+```
+
+## The Default Class
+
+All methods are represented as being members of some class.  Top-level methods,
+then, are static methods of the *default class,* called `Default__`.
+
+```dafny
+method Main() {
+    print "Hello world!\n";
+}
+```
+
+```go
+type Default__ struct {
+}
+
+type CompanionStruct_Default___ {
+}
+var Companion_Default___ = CompanionStruct_Default___{}
+
+func (_this *CompanionStruct_Default___) Main() {
+    _dafny.Print(_dafny.SeqOfString("Hello world!"))
 }
 ```
 
@@ -355,7 +405,71 @@ subsequent `Get()`s.
 Type Parameters
 ---------------
 
-**Documentation TODO**
+Go doesn't have parameteric polymorphism, so parameterized types are implemented
+by erasure: the Go type of a value whose type is a parameter is always
+`interface{}`.  The compiler takes care of inserting the necessary type
+assertions.
+
+For example:
+
+```dafny
+function method Head<A>(xs: seq<A>): A requires |xs| > 0 {
+    xs[0]
+}
+```
+
+```go
+func Head(xs _dafny.Seq) interface{} { ... }
+```
+
+(Here `Head` is actually a method of the default class's companion object, so it
+should have a receiver of type `CompanionStruct_Default___`; we've
+omitted this and other details for clarity throughout this section.)
+
+Any sequence has the same type `_dafny.Seq`, and the `Head` function's signature
+says it takes any sequence and may return any value.  Calls therefore often
+require type assertions:
+
+```dafny
+var xs: seq<int> := ...;
+var x: int := Head(xs);
+```
+
+```go
+xs := ...
+x := Head(xs).(_dafny.Int)
+```
+
+In more complex situations, it is necessary to retain type information that
+would otherwise be erased.  For example:
+
+```dafny
+method GetDefault<A(0)>() returns (a: A) { }
+```
+
+Here we cannot simply compile `Default` with type `func() interface{}`—what
+would it return?  Thus the compiled method takes a *run-time type descriptor*
+(RTD) as a parameter:
+
+```go
+func GetDefault(A _dafny.Type) interface{} {
+    var a interface{} = A.Default()
+    return a
+}
+```
+
+The `_dafny.Type` type is a simple interface; currently its only purpose is to
+allow for zero initialization in precisely such cases as these:
+
+```go
+type Type interface {
+    Default() interface{}
+}
+```
+
+Each compiled class or datatype comes with a function called
+<code>Type_*Class*_</code> that takes a `_dafny.Type` for each type parameter
+and returns the `_dafny.Type` for the class or datatype.
 
 Iterators
 ---------
@@ -374,7 +488,82 @@ clean up n iterators.
 Externs
 -------
 
-**Documentation TODO**
+Dafny code may freely interoperate with existing Go code using `{:extern}`
+declarations.  This may include both pre-existing Go modules and modules written
+specifically to interact with compiled Dafny code.
+
+Go modules to be included as part of the compiled code should be passed as
+additional arguments on the Dafny command line.
+
+An `{:extern}` declaration on a module indicates that the module is
+external—either one that was passed on the command line or one from a
+pre-existing package.
+
+```dafny
+module {:extern "os"} OS { }
+```
+
+```go
+import "os"
+```
+
+Import statements are automatically inserted in the default module and in
+subsequent (non-extern) modules (this may produce problems; see
+[this TODO item](#extern-always-imported)).
+
+As a special case, types and values in the built-in top-level scope in Go can be
+accessed by passing the empty string as the package name (see the next example).
+Such a declaration does not generate an `import` statement.
+
+An interface can be imported in Dafny code by declaring it as a trait with an
+`{:extern}` annotation:
+
+```dafny
+module {:extern ""} Builtins {
+    trait {:extern} error {
+        method {:extern} Error() returns (s : string)
+    }
+}
+```
+
+Similarly, a class with methods can be imported, and a top-level function can
+be imported as a module-level method:
+
+```dafny
+module {:extern "bufio"} BufIO {
+    class {:extern} Scanner {
+        method {:extern} Scan() returns (ok: bool)
+        method {:extern} Text() returns (text: string)
+    }
+
+    method {:extern} NewScanner(r: OS.Reader) returns (s: Scanner)
+}
+```
+
+The alert reader may notice here that the `Reader` interface belongs to the `io`
+package, not `os`.  Unfortunately, extern modules must abide by Dafny's
+restriction that a class can only extend a trait in its own module.  In Go
+terms, then, we can't directly express that a struct in one module implements
+an interface from another one.
+
+Fortunately, there is a “cheat”:
+
+```dafny
+module {:extern "io"} IO { }
+
+module {:extern "os"} OS {
+    import Builtins
+  
+    trait {:extern "io", "Reader"} Reader { }
+    class {:extern} File extends Reader { }
+    method {:extern} Open(name: string) returns (file:File, error: Builtins.error?)
+}
+```
+
+Here we declare an empty module for `io` just to be sure that `io` gets
+imported.  Then we use a special two-argument `{:extern}` form that specifies
+that `Reader` actually lives in the `io` namespace.  Dafny will understand that
+we can call `Open` and use the `File` returned as a `Reader`.
 
 TODO
 ----
@@ -385,7 +574,8 @@ TODO
     values rather than as a string, even if `A` is `char` for a particular
     invocation.
 
-  - [ ] Currently it is assumed that, once an `extern` module is declared, every
+  - [ ] <a id="extern-always-imported"></a>Currently
+    it is assumed that, once an `extern` module is declared, every
     subsequent Dafny module (plus the default module) imports it.  If a module
     does not, the Go compiler will complain about an unused import.  To avoid
     this, it suffices to declare a dummy variable of a type exported by that
