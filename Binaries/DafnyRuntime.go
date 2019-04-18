@@ -74,12 +74,6 @@ func Print(x interface{}) {
 	fmt.Print(String(x))
 }
 
-// Reflect creates a reflected value using the Go reflection API.  Included here
-// so that only this module needs to be imported by every Dafny module.
-func Reflect(x interface{}) refl.Value {
-	return refl.ValueOf(x)
-}
-
 // SetFinalizer is a re-export of runtime.SetFinalizer.  Included here so that
 // only this module needs to be imported by every Dafny module.
 func SetFinalizer(x interface{}, f interface{}) {
@@ -395,17 +389,14 @@ func SeqOfString(str string) Seq {
 	return Seq{arr, true}
 }
 
-func (seq Seq) index(i int) interface{} {
-	return seq.indexValue(i).Interface()
+// Index finds the address of the sequence element at the given index.
+func (seq Seq) Index(i Int) *interface{} {
+	return seq.IndexInt(i.Int())
 }
 
-func (seq Seq) indexValue(i int) refl.Value {
-	return refl.ValueOf(seq.contents).Index(i)
-}
-
-// Index finds the sequence element at the given index.
-func (seq Seq) Index(i Int) refl.Value {
-	return seq.indexValue(i.Int())
+// IndexInt finds the address of the sequence element at the given index.
+func (seq Seq) IndexInt(i int) *interface{} {
+	return &seq.contents[i]
 }
 
 // Len finds the length of the sequence.
@@ -491,14 +482,7 @@ func (seq Seq) IsProperPrefixOf(seq2 Seq) bool {
 
 // UniqueElements returns the set of elements in the sequence.
 func (seq Seq) UniqueElements() Set {
-	// This may not have been built from an []interface{} (particualrly if it's
-	// actually an Array), so be a bit careful here
-	b := NewBuilder()
-	n := seq.LenInt()
-	for i := 0; i < n; i++ {
-		b.Add(seq.index(i))
-	}
-	return b.ToSet()
+	return (*Builder)(&seq.contents).ToSet()
 }
 
 func (seq Seq) String() string {
@@ -632,16 +616,8 @@ func (array *Array) findIndex(ixs ...int) int {
 	return i
 }
 
-func (array *Array) index(ixs ...int) interface{} {
-	return array.contents[array.findIndex(ixs...)]
-}
-
-func (array *Array) indexValue(ixs ...int) refl.Value {
-	return refl.ValueOf(array.contents).Index(array.findIndex(ixs...))
-}
-
 // Index gets the element at the given indices into the array.
-func (array *Array) Index(ixs ...Int) refl.Value {
+func (array *Array) Index(ixs ...Int) *interface{} {
 	if len(ixs) != len(array.dims) {
 		panic(fmt.Sprintf("Expected %d indices but got %d", len(array.dims), len(ixs)))
 	}
@@ -649,7 +625,12 @@ func (array *Array) Index(ixs ...Int) refl.Value {
 	for i, ix := range ixs {
 		ints[i] = ix.Int()
 	}
-	return array.indexValue(ints...)
+	return array.IndexInts(ints...)
+}
+
+// IndexInts gets the element at the given indices into the array.
+func (array *Array) IndexInts(ixs ...int) *interface{} {
+	return &array.contents[array.findIndex(ixs...)]
 }
 
 // Iterator iterates over the array.
@@ -704,7 +685,7 @@ func (array *Array) UpdateInt(ix int, value interface{}) {
 
 func (array *Array) stringOfSubspace(d int, ixs []int) string {
 	if d == len(array.dims) {
-		return String(array.index(ixs...))
+		return String(*array.IndexInts(ixs...))
 	}
 	s := "["
 	for i := 0; i < array.dims[d]; i++ {
@@ -767,9 +748,14 @@ func (tuple Tuple) String() string {
 	return "(" + stringOfElements(tuple.contents) + ")"
 }
 
-// Index looks up the ith element of the tuple.
-func (tuple Tuple) Index(i Int) refl.Value {
-	return refl.ValueOf(tuple.contents).Index(i.Int())
+// Index looks up the address of the ith element of the tuple.
+func (tuple Tuple) Index(i Int) *interface{} {
+	return tuple.IndexInt(i.Int())
+}
+
+// IndexInt looks up the address of the ith element of the tuple.
+func (tuple Tuple) IndexInt(i int) *interface{} {
+	return &tuple.contents[i]
 }
 
 // TupleType returns the type of a tuple with given element types.

@@ -1659,8 +1659,9 @@ namespace Microsoft.Dafny
       return wSource;
     }
 
-    protected override void EmitArraySelect(List<string> indices, Type elmtType, TargetWriter wr) {
+    protected override TargetWriter EmitArraySelect(List<string> indices, Type elmtType, TargetWriter wr) {
       Contract.Assert(indices != null && 1 <= indices.Count);  // follows from precondition
+      var w = wr.Fork();
       wr.Write("[");
       var sep = "";
       foreach (var index in indices) {
@@ -1668,10 +1669,12 @@ namespace Microsoft.Dafny
         sep = ", ";
       }
       wr.Write("]");
+      return w;
     }
 
-    protected override void EmitArraySelect(List<Expression> indices, Type elmtType, bool inLetExprBody, TargetWriter wr) {
+    protected override TargetWriter EmitArraySelect(List<Expression> indices, Type elmtType, bool inLetExprBody, TargetWriter wr) {
       Contract.Assert(indices != null && 1 <= indices.Count);  // follows from precondition
+      var w = wr.Fork();
       wr.Write("[");
       var sep = "";
       foreach (var index in indices) {
@@ -1680,6 +1683,7 @@ namespace Microsoft.Dafny
         sep = ", ";
       }
       wr.Write("]");
+      return w;
     }
 
     protected override void EmitExprAsInt(Expression expr, bool inLetExprBody, TargetWriter wr) {

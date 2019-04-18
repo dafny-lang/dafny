@@ -2202,7 +2202,7 @@ namespace Microsoft.Dafny {
     }
 
     protected override void EmitTupleSelect(string prefix, int i, TargetWriter wr) {
-      wr.Write("{0}.Index(_dafny.IntOf({1})).Interface()", prefix, i);
+      wr.Write("(*({0}).IndexInt({1}))", prefix, i);
     }
 
     protected override string IdName(TopLevelDecl d) {
@@ -2475,10 +2475,12 @@ namespace Microsoft.Dafny {
       TargetWriter wSource;
       if (member is DatatypeDestructor dtor) {
         wr = EmitCoercionIfNecessary(from:dtor.Type, to:expectedType, tok:null, wr:wr);
-        wSource = wr.Fork();
         if (dtor.EnclosingClass is TupleTypeDecl) {
-          wr.Write(".Index(_dafny.IntOf({0})).Interface()", dtor.Name);
+          wr.Write("(*(");
+          wSource = wr.Fork();
+          wr.Write(").IndexInt({0}))", dtor.Name);
         } else {
+          wSource = wr.Fork();
           wr.Write(".{0}()", FormatDatatypeDestructorName(dtor.CompileName));
         }
       } else if (!isLValue && member is SpecialField sf && sf.SpecialId != SpecialField.ID.UseIdParam) {
@@ -2517,12 +2519,17 @@ namespace Microsoft.Dafny {
       return string.Format("_dafny.IntOfAny({0})", i);
     }
 
-    protected override void EmitArraySelect(List<string> indices, Type elmtType, TargetWriter wr) {
-      wr.Write(".Index({0}).Interface().({1})", Util.Comma(indices, IntOfAny), TypeName(elmtType, wr, Bpl.Token.NoToken));
+    protected override TargetWriter EmitArraySelect(List<string> indices, Type elmtType, TargetWriter wr) {
+      wr.Write("*(");
+      var w = wr.Fork();
+      wr.Write(".Index({0})).({1})", Util.Comma(indices, IntOfAny), TypeName(elmtType, wr, Bpl.Token.NoToken));
+      return w;
     }
 
-    protected override void EmitArraySelect(List<Expression> indices, Type elmtType, bool inLetExprBody, TargetWriter wr) {
+    protected override TargetWriter EmitArraySelect(List<Expression> indices, Type elmtType, bool inLetExprBody, TargetWriter wr) {
       Contract.Assert(indices != null && 1 <= indices.Count);  // follows from precondition
+      wr.Write("(*");
+      var w = wr.Fork();
       wr.Write(".Index(");
       var sep = "";
       foreach (var index in indices) {
@@ -2531,15 +2538,19 @@ namespace Microsoft.Dafny {
         TrParenExpr(index, wr, inLetExprBody);
         sep = ", ";
       }
-      wr.Write(").Interface().({0})", TypeName(elmtType, wr, Bpl.Token.NoToken));
+      wr.Write(")).({0})", TypeName(elmtType, wr, Bpl.Token.NoToken));
+      return w;
     }
 
     protected override void EmitArraySelectAsLvalue(string array, List<string> indices, Type elmtType, TargetWriter wr) {
-      wr.Write("*({0}.Index({1}).Addr().Interface().(*interface{{}}))", array, Util.Comma(indices, IntOfAny));
+      wr.Write("*({0}.Index({1}))", array, Util.Comma(indices, IntOfAny));
     }
 
-    protected override void EmitArrayUpdate(List<string> indices, string rhs, Type elmtType, TargetWriter wr) {
-      wr.Write(".Index({0}).Set(_dafny.Reflect({1}))", Util.Comma(indices, IntOfAny), rhs);
+    protected override TargetWriter EmitArrayUpdate(List<string> indices, string rhs, Type elmtType, TargetWriter wr) {
+      wr.Write("*(");
+      var w = wr.Fork();
+      wr.Write(".Index({0})) = {1}", Util.Comma(indices, IntOfAny), rhs);
+      return w;
     }
 
     protected override void EmitExprAsInt(Expression expr, bool inLetExprBody, TargetWriter wr) {
@@ -2557,19 +2568,22 @@ namespace Microsoft.Dafny {
     }
 
     protected override void EmitIndexCollectionSelect(Expression source, Expression index, bool inLetExprBody, TargetWriter wr) {
-      TrParenExpr(source, wr, inLetExprBody);
       var type = source.Type.NormalizeExpand();
       if (type is SeqType || type is SetType) {
+        wr.Write("(*");
+        TrParenExpr(source, wr, inLetExprBody);
         wr.Write(".Index(");
         TrExpr(index, wr, inLetExprBody);
-        wr.Write(").Interface().({0})", TypeName(((CollectionType) type).Arg, wr, null));
+        wr.Write(")).({0})", TypeName(((CollectionType) type).Arg, wr, null));
       } else if (type is MultiSetType) {
+        TrParenExpr(source, wr, inLetExprBody);
         wr.Write(".Multiplicity(");
         TrExpr(index, wr, inLetExprBody);
         wr.Write(")");
       } else {
         Contract.Assert(type is MapType);
         // map or imap
+        TrParenExpr(source, wr, inLetExprBody);
         wr.Write(".Get(");
         TrExpr(index, wr, inLetExprBody);
         wr.Write(").({0})", TypeName(source.Type.TypeArgs[1], wr, null));
@@ -2657,7 +2671,7 @@ namespace Microsoft.Dafny {
     
     protected override void EmitDestructor(string source, Formal dtor, int formalNonGhostIndex, DatatypeCtor ctor, List<Type> typeArgs, Type bvType, TargetWriter wr) {
       if (ctor.EnclosingDatatype is TupleTypeDecl) {
-        wr.Write("({0}).Index(_dafny.IntOf({1})).Interface().({2})", source, formalNonGhostIndex, TypeName(typeArgs[formalNonGhostIndex], wr, Bpl.Token.NoToken));
+        wr.Write("(*({0}).IndexInt({1})).({2})", source, formalNonGhostIndex, TypeName(typeArgs[formalNonGhostIndex], wr, Bpl.Token.NoToken));
       } else {
         var dtorName = DatatypeFieldName(dtor, formalNonGhostIndex);
         var type = UserDefinedType.FromTopLevelDecl(ctor.tok, ctor.EnclosingDatatype);

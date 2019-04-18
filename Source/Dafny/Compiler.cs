@@ -421,20 +421,21 @@ namespace Microsoft.Dafny {
     protected void EmitArraySelect(string index, Type elmtType, TargetWriter wr) {
       EmitArraySelect(new List<string>() { index }, elmtType, wr);
     }
-    protected abstract void EmitArraySelect(List<string> indices, Type elmtType, TargetWriter wr);
-    protected abstract void EmitArraySelect(List<Expression> indices, Type elmtType, bool inLetExprBody, TargetWriter wr);
+    protected abstract TargetWriter EmitArraySelect(List<string> indices, Type elmtType, TargetWriter wr);
+    protected abstract TargetWriter EmitArraySelect(List<Expression> indices, Type elmtType, bool inLetExprBody, TargetWriter wr);
     protected virtual void EmitArraySelectAsLvalue(string array, List<string> indices, Type elmtType, TargetWriter wr) {
       wr.Write(array);
       EmitArraySelect(indices, elmtType, wr);
     }
-    protected virtual void EmitArrayUpdate(List<string> indices, string rhs, Type elmtType, TargetWriter wr) {
-      EmitArraySelect(indices, elmtType, wr);
+    protected virtual TargetWriter EmitArrayUpdate(List<string> indices, string rhs, Type elmtType, TargetWriter wr) {
+      var w = EmitArraySelect(indices, elmtType, wr);
       wr.Write(" = {0}", rhs);
+      return w;
     }
-    protected void EmitArrayUpdate(List<string> indices, Expression rhs, TargetWriter wr) {
+    protected TargetWriter EmitArrayUpdate(List<string> indices, Expression rhs, TargetWriter wr) {
       var w = new TargetWriter();
       TrExpr(rhs, w, false);
-      EmitArrayUpdate(indices, w.ToString(), rhs.Type, wr);
+      return EmitArrayUpdate(indices, w.ToString(), rhs.Type, wr);
     }
     protected virtual string ArrayIndexToInt(string arrayIndex) {
       return arrayIndex;
@@ -2266,16 +2267,16 @@ namespace Microsoft.Dafny {
             w = CreateForLoop(indices[d], bound, w);
           }
           w.Indent();
-          w.Write(nw);
           var eltRhs = string.Format("{0}({1})", f, Util.Comma(indices, ArrayIndexToInt));
-          EmitArrayUpdate(indices, eltRhs, tRhs.ElementInit.Type, w);
+          var wArray = EmitArrayUpdate(indices, eltRhs, tRhs.ElementInit.Type, w);
+          wArray.Write(nw);
           EndStmt(w);
         } else if (tRhs.InitDisplay != null) {
           var ii = 0;
           foreach (var v in tRhs.InitDisplay) {
             wStmts.Indent();
-            wStmts.Write(nw);
-            EmitArrayUpdate(new List<string> { ii.ToString() }, v, wStmts);
+            var wArray = EmitArrayUpdate(new List<string> { ii.ToString() }, v, wStmts);
+            wArray.Write(nw);
             EndStmt(wStmts);
             ii++;
           }
@@ -2695,8 +2696,8 @@ namespace Microsoft.Dafny {
         if (e.Seq.Type.IsArrayType) {
           if (e.SelectOne) {
             Contract.Assert(e.E0 != null && e.E1 == null);
-            TrParenExpr(e.Seq, wr, inLetExprBody);
-            EmitArraySelect(new List<Expression>() { e.E0 }, e.Type, inLetExprBody, wr);
+            var w = EmitArraySelect(new List<Expression>() { e.E0 }, e.Type, inLetExprBody, wr);
+            TrParenExpr(e.Seq, w, inLetExprBody);
           } else {
             EmitSeqSelectRange(e.Seq, e.E0, e.E1, true, inLetExprBody, wr);
           }
@@ -2711,9 +2712,9 @@ namespace Microsoft.Dafny {
         EmitMultiSetFormingExpr(e, inLetExprBody, wr);
       } else if (expr is MultiSelectExpr) {
         MultiSelectExpr e = (MultiSelectExpr)expr;
-        TrParenExpr(e.Array, wr, inLetExprBody);
-        EmitArraySelect(e.Indices, e.Type, inLetExprBody, wr);
-
+        var w = EmitArraySelect(e.Indices, e.Type, inLetExprBody, wr);
+        TrParenExpr(e.Array, w, inLetExprBody);
+        
       } else if (expr is SeqUpdateExpr) {
         SeqUpdateExpr e = (SeqUpdateExpr)expr;
         if (e.ResolvedUpdateExpr != null) {
