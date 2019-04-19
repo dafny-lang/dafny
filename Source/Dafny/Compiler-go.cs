@@ -2557,12 +2557,9 @@ namespace Microsoft.Dafny {
       if (expr is LiteralExpr lit) {
         wr.Write(lit.Value.ToString());
       } else {
-        if (AsNativeType(expr.Type) == null) {
-          wr.Write("int(");
-        }
         TrParenExpr(expr, wr, inLetExprBody);
         if (AsNativeType(expr.Type) == null) {
-          wr.Write(".Int64())");
+          wr.Write(".Int()");
         }
       }
     }
