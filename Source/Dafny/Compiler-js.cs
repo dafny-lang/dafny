@@ -36,7 +36,7 @@ namespace Microsoft.Dafny {
       return wr.NewBlock("static Main()");
     }
 
-    protected override TargetWriter CreateModule(string moduleName, bool isExtern, string/*?*/ libraryName, TargetWriter wr) {
+    protected override TargetWriter CreateModule(string moduleName, bool isDefault, bool isExtern, string/*?*/ libraryName, TargetWriter wr) {
       if (!isExtern || libraryName != null) {
         wr.Write("let {0} = ", moduleName);
       }

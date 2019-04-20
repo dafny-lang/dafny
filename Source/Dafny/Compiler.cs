@@ -70,7 +70,7 @@ namespace Microsoft.Dafny {
     /// call to the instance Main method in the enclosing class.
     /// </summary>
     protected abstract BlockTargetWriter CreateStaticMain(IClassWriter wr);
-    protected abstract TargetWriter CreateModule(string moduleName, bool isExtern, string/*?*/ libraryName, TargetWriter wr);
+    protected abstract TargetWriter CreateModule(string moduleName, bool isDefault, bool isExtern, string/*?*/ libraryName, TargetWriter wr);
     protected abstract string GetHelperModuleName();
     protected interface IClassWriter {
       BlockTargetWriter/*?*/ CreateMethod(Method m, bool createBody);
@@ -529,7 +529,7 @@ namespace Microsoft.Dafny {
             moduleIsExtern = true;
           }
         }
-        var wr = CreateModule(m.CompileName, moduleIsExtern, libraryName, wrx);
+        var wr = CreateModule(m.CompileName, m.IsDefaultModule, moduleIsExtern, libraryName, wrx);
         foreach (TopLevelDecl d in m.TopLevelDecls) {
           bool compileIt = true;
           if (Attributes.ContainsBool(d.Attributes, "compile", ref compileIt) && !compileIt) {

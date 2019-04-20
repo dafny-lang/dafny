@@ -54,7 +54,7 @@ namespace Microsoft.Dafny
     }
 
     protected override void EmitBuiltInDecls(BuiltIns builtIns, TargetWriter wr) {
-      wr = CreateModule("Dafny", false, null, wr);
+      wr = CreateModule("Dafny", false, false, null, wr);
       wr.Indent();
       wr = wr.NewNamedBlock("internal class ArrayHelpers");
       foreach (var decl in builtIns.SystemModule.TopLevelDecls) {
@@ -107,7 +107,7 @@ namespace Microsoft.Dafny
       return wr.NewBlock("public static void Main(string[] args)");
     }
 
-    protected override TargetWriter CreateModule(string moduleName, bool isExtern, string/*?*/ libraryName, TargetWriter wr) {
+    protected override TargetWriter CreateModule(string moduleName, bool isDefault, bool isExtern, string/*?*/ libraryName, TargetWriter wr) {
       var s = string.Format("namespace {0}", IdProtect(moduleName));
       return wr.NewBigBlock(s, " // end of " + s);
     }

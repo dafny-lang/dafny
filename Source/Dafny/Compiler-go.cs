@@ -23,11 +23,11 @@ namespace Microsoft.Dafny {
     public override string TargetLanguage => "Go";
 
     private readonly List<Import> Imports = new List<Import>(StandardImports);
-    private string ModuleName = InitialModuleName;
+    private string ModuleName;
     private TargetWriter RootImportWriter;
     private TargetWriter RootImportDummyWriter;
 
-    private static string InitialModuleName = "main";
+    private string MainModuleName;
     private static List<Import> StandardImports =
       new List<Import> {
         new Import { Name = "_dafny", Path = "dafny" },
@@ -41,10 +41,16 @@ namespace Microsoft.Dafny {
 
     protected override void EmitHeader(Program program, TargetWriter wr) {
       wr.WriteLine("// Dafny program {0} compiled into Go", program.Name);
-      wr.WriteLine("package main");
+
+      ModuleName = MainModuleName = HasMain(program, out _) ? "main" : Path.GetFileNameWithoutExtension(program.Name); 
+      
+      wr.WriteLine("package {0}", ModuleName);
       wr.WriteLine();
+      // Keep the import writers so that we can import subsequent modules into the main one
       EmitImports(wr, out RootImportWriter, out RootImportDummyWriter);
-      wr.WriteLine();
+    }
+
+    protected override void EmitBuiltInDecls(BuiltIns builtIns, TargetWriter wr) {
       var rt = wr.NewFile("dafny/dafny.go");
       ReadRuntimeSystem("DafnyRuntime.go", rt);
     }
@@ -55,7 +61,7 @@ namespace Microsoft.Dafny {
       wr.WriteLine();
       wr.WriteLine("package {0}", ModuleName);
       wr.WriteLine();
-      // We've already emitted all the imports we need, so don't keep the writers returned here
+      // This is a non-main module; it only imports things declared before it, so we don't need these writers
       EmitImports(wr, out _, out _);
       wr.WriteLine();
       wr.WriteLine("type {0} struct{{}}", DummyTypeName);
@@ -74,14 +80,8 @@ namespace Microsoft.Dafny {
     }
 
     public override void EmitCallToMain(Method mainMethod, TextWriter wr) {
-      // We're not actually in the default module, we're in the special package
-      // main, so change it temporarily
-
-      var oldModuleName = ModuleName;
-      ModuleName = "main";
       var companion = TypeName_Companion(mainMethod.EnclosingClass as ClassDecl, wr, mainMethod.tok);
-      ModuleName = oldModuleName;
-
+      
       wr.WriteLine("func main() {");
       wr.WriteLine("  {0}.{1}()", companion, IdName(mainMethod));
       wr.WriteLine("}");
@@ -101,7 +101,12 @@ namespace Microsoft.Dafny {
       return wr.NewNamedBlock("func (_this * {0}) Main()", FormatCompanionTypeName((cw as GoCompiler.ClassWriter).ClassName));
     }
 
-    protected override TargetWriter CreateModule(string moduleName, bool isExtern, string/*?*/ libraryName, TargetWriter wr) {
+    protected override TargetWriter CreateModule(string moduleName, bool isDefault, bool isExtern, string/*?*/ libraryName, TargetWriter wr) {
+      if (isDefault) {
+        // Fold the default module into the main module
+        return wr;
+      }
+      
       string pkgName;
       if (libraryName != null) {
         pkgName = libraryName;
@@ -118,10 +123,12 @@ namespace Microsoft.Dafny {
         }
       }
 
+      var import = new Import{ Name=moduleName, Path=pkgName };
       if (isExtern) {
         // Allow the library name to be "" to import built-in things like the error type
         if (pkgName != "") {
-          Imports.Add(new Import{ Name=moduleName, Path=pkgName, SuppressDummy=true });
+          import.SuppressDummy = true;
+          AddImport(import);
         }
         return new TargetWriter(); // ignore contents of extern module
       } else {
@@ -130,20 +137,23 @@ namespace Microsoft.Dafny {
         ModuleName = moduleName;
         EmitModuleHeader(w);
 
-        // Import in root module
-        var import = new Import{ Name=moduleName, Path=pkgName };
-        EmitImport(import, RootImportWriter, RootImportDummyWriter);
-        // Import in all subsequent modules
-        Imports.Add(import);
-
+        AddImport(import);
+        
         return w;
       }
     }
 
     protected override void FinishModule() {
-      ModuleName = InitialModuleName;
+      ModuleName = MainModuleName;
     }
 
+    private void AddImport(Import import) {
+      // Import in root module
+      EmitImport(import, RootImportWriter, RootImportDummyWriter);
+      // Import in all subsequent modules
+      Imports.Add(import);
+    }
+    
     private void EmitImport(Import import, TargetWriter importWriter, TargetWriter importDummyWriter) {
       var id = IdProtect(import.Name);
       var path = import.Path;
@@ -315,7 +325,9 @@ namespace Microsoft.Dafny {
       w.WriteLine();
       var wString = w.NewNamedBlock("func (*{0}) String() string", name);
       wString.Indent();
-      wString.WriteLine("return \"{0}.{1}\"", ModuleName, name);
+      // Be consistent with other back ends, which don't fold _module into the main module
+      var module = ModuleName == MainModuleName ? "_module" : ModuleName;
+      wString.WriteLine("return \"{0}.{1}\"", module, name);
 
       if (includeRtd) {
         w.WriteLine();
@@ -2352,7 +2364,7 @@ namespace Microsoft.Dafny {
           // Don't use IdName since that'll capitalize, which is unhelpful for
           // built-in types
           return qual + (qual == "" ? "" : ".") + cl.CompileName;
-        } else if (!full || this.ModuleName == cl.Module.CompileName) {
+        } else if (!full || cl.Module.IsDefaultModule || this.ModuleName == cl.Module.CompileName) {
           return IdName(cl);
         } else {
           return cl.Module.CompileName + "." + IdName(cl);

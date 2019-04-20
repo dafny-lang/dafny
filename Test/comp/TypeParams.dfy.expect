@@ -57,4 +57,4 @@ Color.Pink 19 -3
 null null null null
 func(dafny.Real) bool
 func() dafny.Int
-func(_module.Color, dafny.Set) uint32
+func(main.Color, dafny.Set) uint32
