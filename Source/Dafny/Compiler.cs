@@ -2189,9 +2189,17 @@ namespace Microsoft.Dafny {
         return IdName(ll.Var);
       } else if (lhs is MemberSelectExpr) {
         var ll = (MemberSelectExpr)lhs;
-        string obj = idGenerator.FreshId("_obj");
-        DeclareLocalVar(obj, null, null, ll.Obj, false, wr);
         Contract.Assert(!ll.Member.IsInstanceIndependentConstant);  // instance-independent const's don't have assignment statements
+        var objExpr = ll.Obj;
+        string obj;
+        if (objExpr is IdentifierExpr || objExpr is ThisExpr) {
+          var wObj = new TargetWriter();
+          TrParenExpr(objExpr, wObj, false);
+          obj = wObj.ToString();
+        } else {
+          obj = idGenerator.FreshId("_obj");
+          DeclareLocalVar(obj, null, null, ll.Obj, false, wr);
+        }
         var sw = new TargetWriter();
         var w = EmitMemberSelect(ll.Member, true, lhs.Type, sw);
         w.Write(obj);
