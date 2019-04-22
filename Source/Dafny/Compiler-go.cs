@@ -96,9 +96,9 @@ namespace Microsoft.Dafny {
     }
 
     protected override BlockTargetWriter CreateStaticMain(IClassWriter cw) {
-      var wr = (cw as GoCompiler.ClassWriter).ConcreteMethodWriter;
+      var wr = ((GoCompiler.ClassWriter) cw).ConcreteMethodWriter;
       wr.Indent();
-      return wr.NewNamedBlock("func (_this * {0}) Main()", FormatCompanionTypeName((cw as GoCompiler.ClassWriter).ClassName));
+      return wr.NewNamedBlock("func (_this * {0}) Main()", FormatCompanionTypeName(((GoCompiler.ClassWriter) cw).ClassName));
     }
 
     protected override TargetWriter CreateModule(string moduleName, bool isDefault, bool isExtern, string/*?*/ libraryName, TargetWriter wr) {
@@ -332,7 +332,7 @@ namespace Microsoft.Dafny {
       if (includeRtd) {
         w.WriteLine();
         BlockTargetWriter wDefault;
-        CreateRTD(name, typeParameters, typeParameters, tok, out wDefault, w);
+        CreateRTD(name, typeParameters, out wDefault, w);
         
         wDefault.Indent();
         wDefault.WriteLine("return (*{0})(nil)", name);
@@ -420,8 +420,8 @@ namespace Microsoft.Dafny {
       w.WriteLine("return &_this");
     }
 
-    protected override bool NeedsWrappersForInheritedFields { get => false; }
-    protected override bool SupportsProperties { get => false; }
+    protected override bool NeedsWrappersForInheritedFields => false;
+    protected override bool SupportsProperties => false;
 
     protected override BlockTargetWriter CreateIterator(IteratorDecl iter, TargetWriter wr) {
       // FIXME: There should be tests to make sure that the finalizer mechanism achieves what I hope it does, namely allowing the iterator's goroutine to be garbage-collected along with the iterator.
@@ -969,7 +969,7 @@ namespace Microsoft.Dafny {
       {
         var usedTypeParams = UsedTypeParameters(dt);
         BlockTargetWriter wDefault;
-        CreateRTD(name, usedTypeParams, dt.TypeArgs, dt.tok, out wDefault, wr);
+        CreateRTD(name, usedTypeParams, out wDefault, wr);
 
         WriteRuntimeTypeDescriptorsLocals(usedTypeParams, true, wDefault);
 
@@ -1027,7 +1027,7 @@ namespace Microsoft.Dafny {
       }
       // RTD
       {
-        CreateRTD(IdName(nt), new List<TypeParameter>(), new List<TypeParameter>(), nt.tok, out var wDefaultBody, wr);
+        CreateRTD(IdName(nt), null, out var wDefaultBody, wr);
         var udt = new UserDefinedType(nt.tok, nt.Name, nt, new List<Type>());
         var d = TypeInitializationValue(udt, wr, nt.tok, false);
         wDefaultBody.Indent();
@@ -1045,7 +1045,7 @@ namespace Microsoft.Dafny {
       }
       // RTD
       {
-        CreateRTD(IdName(sst), new List<TypeParameter>(), new List<TypeParameter>(), sst.tok, out var wDefaultBody, wr);
+        CreateRTD(IdName(sst), null, out var wDefaultBody, wr);
         var udt = new UserDefinedType(sst.tok, sst.Name, sst, sst.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp)));
         var d = TypeInitializationValue(udt, wr, sst.tok, false);
         wDefaultBody.Indent();
@@ -1053,12 +1053,9 @@ namespace Microsoft.Dafny {
       }
     }
 
-    private void CreateRTD(string typeName, List<TypeParameter>/*?*/ usedParams, List<TypeParameter>/*?*/ allParams, Bpl.IToken tok, out BlockTargetWriter wDefaultBody, TargetWriter wr) {
+    private void CreateRTD(string typeName, List<TypeParameter>/*?*/ usedParams, out BlockTargetWriter wDefaultBody, TargetWriter wr) {
       if (usedParams == null) {
         usedParams = new List<TypeParameter>();
-      }
-      if (allParams == null) {
-        allParams = new List<TypeParameter>();
       }
       wr.Indent();
       wr.Write("func {0}(", FormatRTDName(typeName));
@@ -1122,8 +1119,7 @@ namespace Microsoft.Dafny {
       public readonly string ClassName;
       public readonly bool IsExtern;
       public readonly TargetWriter/*?*/ AbstractMethodWriter, ConcreteMethodWriter, InstanceFieldWriter, InstanceFieldInitWriter, TraitInitWriter, StaticFieldWriter, StaticFieldInitWriter;
-      private bool anyInstanceFields = false;
-      public bool AnyInstanceFields { get => anyInstanceFields; }
+      public bool AnyInstanceFields { get; private set; } = false;
 
       public ClassWriter(GoCompiler compiler, string className, bool isExtern, TargetWriter abstractMethodWriter, TargetWriter concreteMethodWriter, TargetWriter instanceFieldWriter, TargetWriter instanceFieldInitWriter, TargetWriter traitInitWriter, TargetWriter staticFieldWriter, TargetWriter staticFieldInitWriter) {
         this.Compiler = compiler;
@@ -1163,7 +1159,7 @@ namespace Microsoft.Dafny {
         // Should just have these delegate methods take the ClassWriter as an
         // argument.
         if (!isStatic) {
-          anyInstanceFields = true;
+          AnyInstanceFields = true;
         }
         Compiler.DeclareField(name, IsExtern, isStatic, isConst, type, tok, rhs, ClassName, FieldWriter(isStatic), FieldInitWriter(isStatic), ConcreteMethodWriter);
       }
@@ -1199,7 +1195,7 @@ namespace Microsoft.Dafny {
       }
       wr.Write("{0}(", name);
       var nTypes = WriteRuntimeTypeDescriptorsFormals(typeArgs, false, wr);
-      int nIns = WriteFormals(nTypes == 0 ? "" : ", ", inParams, wr);
+      var _ = WriteFormals(nTypes == 0 ? "" : ", ", inParams, wr);
       wr.Write(")");
 
       // TODO: Maybe consider using named result parameters, since they're
@@ -1853,9 +1849,9 @@ namespace Microsoft.Dafny {
 
     protected override bool UseReturnStyleOuts(Method m, int nonGhostOutCount) => true;
 
-    protected override bool NeedsCastFromTypeParameter { get => true; }
-    protected override bool SupportsMultipleReturns { get => true; }
-    protected override string StmtTerminator { get => ""; }
+    protected override bool NeedsCastFromTypeParameter => true;
+    protected override bool SupportsMultipleReturns => true;
+    protected override string StmtTerminator => "";
 
     protected override void DeclareLocalOutVar(string name, Type type, Bpl.IToken tok, string rhs, TargetWriter wr) {
       DeclareLocalVar(name, type, tok, false, rhs, wr);
@@ -1979,7 +1975,7 @@ namespace Microsoft.Dafny {
     }
 
     protected override string GetQuantifierName(string bvType) {
-      return string.Format("_dafny.Quantifier");
+      return "_dafny.Quantifier";
     }
 
     protected override BlockTargetWriter CreateForeachLoop(string boundVar, Type/*?*/ boundVarType, out TargetWriter collectionWriter, TargetWriter wr, string/*?*/ altBoundVarName = null, Type/*?*/ altVarType = null, Bpl.IToken/*?*/ tok = null) {
@@ -2030,8 +2026,6 @@ namespace Microsoft.Dafny {
 
     protected override void EmitNewArray(Type elmtType, Bpl.IToken tok, List<Expression> dimensions, bool mustInitialize, TargetWriter wr) {
       var initValue = DefaultValue(elmtType, wr, tok);
-      
-      string elmtTypeName = TypeName(elmtType, wr, tok);
       
       string sep;
       if (!mustInitialize) {
@@ -2145,10 +2139,9 @@ namespace Microsoft.Dafny {
     private static Regex ShortHexEscape = new Regex(@"(?<!\\)\\([0-9a-fA-F])(?![0-9a-fA-F])");
 
     protected override TargetWriter EmitBitvectorTruncation(BitvectorType bvType, bool surroundByUnchecked, TargetWriter wr) {
-      string nativeName = null, literalSuffix = null;
-      bool needsCastAfterArithmetic = false;
+      string literalSuffix = null;
       if (bvType.NativeType != null) {
-        GetNativeInfo(bvType.NativeType.Sel, out nativeName, out literalSuffix, out needsCastAfterArithmetic);
+        GetNativeInfo(bvType.NativeType.Sel, out _, out literalSuffix, out _);
       }
 
       if (bvType.NativeType == null) {
@@ -2170,11 +2163,10 @@ namespace Microsoft.Dafny {
     }
 
     protected override void EmitRotate(Expression e0, Expression e1, bool isRotateLeft, TargetWriter wr, bool inLetExprBody, FCE_Arg_Translator tr) {
-      string nativeName = null, literalSuffix = null;
       bool needsCast = false;
       var nativeType = AsNativeType(e0.Type);
       if (nativeType != null) {
-        GetNativeInfo(nativeType.Sel, out nativeName, out literalSuffix, out needsCast);
+        GetNativeInfo(nativeType.Sel, out _, out _, out needsCast);
       }
 
       var bv = e0.Type.AsBitVectorType;
@@ -2236,7 +2228,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    protected override string PrefixForForcedCapitalization { get => "Go_"; }
+    protected override string PrefixForForcedCapitalization => "Go_";
 
     protected override string IdMemberName(MemberSelectExpr mse) {
       return Capitalize(mse.MemberName);
@@ -2321,18 +2313,6 @@ namespace Microsoft.Dafny {
     }
 
     protected override string FullTypeName(UserDefinedType udt, MemberDecl/*?*/ member = null) {
-      return UserDefinedTypeName(udt, full:true, member:member);
-    }
-
-    private string FullTypeName(TopLevelDecl cl, MemberDecl/*?*/ member = null) {
-      return UserDefinedTypeName(cl, full:true, member:member);
-    }
-
-    private string UnqualifiedTypeName(UserDefinedType udt, MemberDecl/*?*/ member = null) {
-      return UserDefinedTypeName(udt, full:false, member:member);
-    }
-
-    private string UserDefinedTypeName(UserDefinedType udt, bool full, MemberDecl/*?*/ member = null) {
       Contract.Requires(udt != null);
       if (udt is ArrowType) {
         return ArrowType.Arrow_FullCompileName;
@@ -2341,21 +2321,17 @@ namespace Microsoft.Dafny {
       if (cl == null) {
         return IdProtect(udt.CompileName);
       } else {
-        return UserDefinedTypeName(cl, full, member);
+        return FullTypeName(cl, member);
       }
     }
 
-    private string UserDefinedTypeName(TopLevelDecl cl, bool full, MemberDecl/*?*/ member = null) {
+    private string FullTypeName(TopLevelDecl cl, MemberDecl/*?*/ member = null) {
       if (IsExternMemberOfExternModule(member, cl)) {
         // omit the default class name ("_default") in extern modules, when the class is used to qualify an extern member
         Contract.Assert(!cl.Module.IsDefaultModule);  // default module is not marked ":extern"
         return IdProtect(cl.Module.CompileName);
       } else {
         if (cl.IsExtern(out var qual, out _)) {
-          if (!full) {
-            return cl.CompileName;
-          }
-          
           // No need to take into account the second argument to extern, since
           // it'll already be cl.CompileName
           if (qual == null) {
@@ -2364,7 +2340,7 @@ namespace Microsoft.Dafny {
           // Don't use IdName since that'll capitalize, which is unhelpful for
           // built-in types
           return qual + (qual == "" ? "" : ".") + cl.CompileName;
-        } else if (!full || cl.Module.IsDefaultModule || this.ModuleName == cl.Module.CompileName) {
+        } else if (cl.Module.IsDefaultModule || this.ModuleName == cl.Module.CompileName) {
           return IdName(cl);
         } else {
           return cl.Module.CompileName + "." + IdName(cl);
@@ -2408,7 +2384,6 @@ namespace Microsoft.Dafny {
     }
 
     void EmitDatatypeValue(DatatypeDecl dt, DatatypeCtor ctor, bool isCoCall, string arguments, TargetWriter wr) {
-      var dtName = FullTypeName(dt);
       var ctorName = ctor.CompileName;
       
       if (dt is TupleTypeDecl) {
@@ -2417,13 +2392,13 @@ namespace Microsoft.Dafny {
         // Ordinary constructor (that is, one that does not guard any co-recursive calls)
         // Generate:  Dt{Dt_Ctor{arguments}}
         wr.Write("{0}{{{1}{0}_{2}{{{3}}}}}",
-          dtName, dt is IndDatatypeDecl ? "" : "&", ctorName,
+          FullTypeName(dt), dt is IndDatatypeDecl ? "" : "&", ctorName,
           arguments);
       } else {
         // Co-recursive call
         // Generate:  Companion_Dt_.LazyDt(func () Dt => Companion_Dt_.CreateCtor(args))
         var companionName = TypeName_Companion(dt, wr, dt.tok);
-        wr.Write("{0}.{1}(func () {2} ", companionName, FormatLazyConstructorName(dt.CompileName), IdName(dt), dtName);
+        wr.Write("{0}.{1}(func () {2} ", companionName, FormatLazyConstructorName(dt.CompileName), IdName(dt));
         wr.Write("{{ return {0}.{1}({2}) }}", companionName, FormatDatatypeConstructorName(ctorName), arguments);
         wr.Write(')');
       }
@@ -2498,8 +2473,8 @@ namespace Microsoft.Dafny {
       } else if (!isLValue && member is SpecialField sf && sf.SpecialId != SpecialField.ID.UseIdParam) {
         wr = EmitCoercionIfNecessary(from:sf.Type, to:expectedType, tok:null, wr:wr);
         wSource = wr.Fork();
-        string compiledName, preStr, postStr;
-        GetSpecialFieldInfo(sf.SpecialId, sf.IdParam, out compiledName, out preStr, out postStr);
+        string compiledName;
+        GetSpecialFieldInfo(sf.SpecialId, sf.IdParam, out compiledName, out _, out _);
         if (compiledName.Length != 0) {
           wr.Write(".{0}", Capitalize(compiledName));
         } else {
@@ -2683,7 +2658,6 @@ namespace Microsoft.Dafny {
         wr.Write("(*({0}).IndexInt({1})).({2})", source, formalNonGhostIndex, TypeName(typeArgs[formalNonGhostIndex], wr, Bpl.Token.NoToken));
       } else {
         var dtorName = DatatypeFieldName(dtor, formalNonGhostIndex);
-        var type = UserDefinedType.FromTopLevelDecl(ctor.tok, ctor.EnclosingDatatype);
         wr = EmitCoercionIfNecessary(from:dtor.Type, to:bvType, tok:dtor.tok, wr:wr);
         wr.Write("{0}.Get().({1}).{2}", source, TypeName_Constructor(ctor, wr), dtorName);
       }
@@ -2909,7 +2883,7 @@ namespace Microsoft.Dafny {
               postOpString = ".Uint64()";
             }
           } else {
-            if (AsNativeType(e1.Type) is NativeType nt) {
+            if (AsNativeType(e1.Type) != null) {
               callString = "Lsh(_dafny.IntOfUint64(uint64";
               postOpString = "))";
             } else {
@@ -2924,7 +2898,7 @@ namespace Microsoft.Dafny {
               postOpString = ".Uint64()";
             }
           } else {
-            if (AsNativeType(e1.Type) is NativeType nt) {
+            if (AsNativeType(e1.Type) != null) {
               callString = "Rsh(_dafny.IntOfUint64(uint64";
               postOpString = "))";
             } else {
@@ -3106,7 +3080,9 @@ namespace Microsoft.Dafny {
           } else if (fromNative == null && toNative == null) {
             // big-integer (int or bv) -> big-integer (int or bv or ORDINAL), so identity will do
             TrExpr(e.E, wr, inLetExprBody);
-          } else if (fromNative != null && toNative == null) {
+          } else if (fromNative != null) {
+            Contract.Assert(toNative == null); // follows from other checks
+            
             // native (int or bv) -> big-integer (int or bv)
             wr.Write("_dafny.IntOf{0}(", Capitalize(GetNativeTypeName(fromNative)));
             TrExpr(e.E, wr, inLetExprBody);
@@ -3367,12 +3343,14 @@ namespace Microsoft.Dafny {
 
     // ----- Target compilation and execution -------------------------------------------------------------
 
+    public override bool SupportsInMemoryCompilation => false;
+
     public override bool CompileTargetProgram(string dafnyProgramName, string targetProgramText, string/*?*/ callToMain, string/*?*/ targetFilename, ReadOnlyCollection<string> otherFileNames,
       bool hasMain, bool runAfterCompile, TextWriter outputWriter, out object compilationResult) {
       compilationResult = null;
       if (!DafnyOptions.O.RunAfterCompile || callToMain == null) {
         // compile now
-        return SendToNewGoProcess(dafnyProgramName, targetProgramText, null, targetFilename, otherFileNames, outputWriter, hasMain, run:false);
+        return SendToNewGoProcess(dafnyProgramName, targetFilename, otherFileNames, outputWriter, hasMain, run:false);
       } else {
         // Since the program is to be run soon, nothing further is done here. Any compilation errors (that is, any errors
         // in the emitted program--this should never happen if the compiler itself is correct) will be reported as 'go run'
@@ -3384,10 +3362,10 @@ namespace Microsoft.Dafny {
     public override bool RunTargetProgram(string dafnyProgramName, string targetProgramText, string/*?*/ callToMain, string targetFilename, ReadOnlyCollection<string> otherFileNames,
       object compilationResult, TextWriter outputWriter) {
 
-      return SendToNewGoProcess(dafnyProgramName, targetProgramText, callToMain, targetFilename, otherFileNames, outputWriter, hasMain:true, run:true);
+      return SendToNewGoProcess(dafnyProgramName, targetFilename, otherFileNames, outputWriter, hasMain:true, run:true);
     }
 
-    bool SendToNewGoProcess(string dafnyProgramName, string targetProgramText, string/*?*/ callToMain, string targetFilename, ReadOnlyCollection<string> otherFileNames,
+    private bool SendToNewGoProcess(string dafnyProgramName, string targetFilename, ReadOnlyCollection<string> otherFileNames,
       TextWriter outputWriter, bool hasMain, bool run) {
       Contract.Requires(targetFilename != null);
 
@@ -3399,7 +3377,7 @@ namespace Microsoft.Dafny {
 
         if (!CopyExternLibraryIntoPlace(mainProgram: targetFilename, externFilename: otherFileName, outputWriter: outputWriter)) {
           return false;
-        };
+        }
       }
 
       string verb;
@@ -3454,6 +3432,9 @@ namespace Microsoft.Dafny {
 
       try {
         using (var process = Process.Start(psi)) {
+          if (process == null) {
+            return false;
+          }
           process.WaitForExit();
           return process.ExitCode == 0;
         }
@@ -3464,8 +3445,12 @@ namespace Microsoft.Dafny {
     }
 
     static string GoPath(string filename) {
+      var dirName = Path.GetDirectoryName(Path.GetDirectoryName(filename));
+
+      Contract.Assert(dirName != null);
+      
       // Filename is Foo-go/src/Foo.go, so go two directories up
-      return Path.GetFullPath(Path.GetDirectoryName(Path.GetDirectoryName(filename)));
+      return Path.GetFullPath(dirName);
     }
 
     static bool CopyExternLibraryIntoPlace(string externFilename, string mainProgram, TextWriter outputWriter) {
@@ -3482,6 +3467,9 @@ namespace Microsoft.Dafny {
       }
 
       var mainDir = Path.GetDirectoryName(mainProgram);
+      
+      Contract.Assert(mainDir != null);
+      
       var tgtDir = Path.Combine(mainDir, pkgName);
       var tgtFilename = Path.Combine(tgtDir, pkgName + ".go");
 
