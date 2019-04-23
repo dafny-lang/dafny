@@ -3258,7 +3258,9 @@ namespace Microsoft.Dafny {
       }
       wr.Write(")");
     }
-
+    
+    public virtual bool SupportsInMemoryCompilation { get => true; }
+    
     /// <summary>
     /// Compile the target program known as "dafnyProgramName".
     /// "targetProgramText" contains the program text.
@@ -3281,6 +3283,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(targetProgramText != null);
       Contract.Requires(otherFileNames != null);
       Contract.Requires(otherFileNames.Count == 0 || targetFilename != null);
+      Contract.Requires(this.SupportsInMemoryCompilation || targetFilename != null);
       Contract.Requires(!runAfterCompile || hasMain);
       Contract.Requires(outputWriter != null);
 

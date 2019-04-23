@@ -3372,7 +3372,7 @@ namespace Microsoft.Dafny {
       compilationResult = null;
       if (!DafnyOptions.O.RunAfterCompile || callToMain == null) {
         // compile now
-        return SendToNewGoProcess(dafnyProgramName, targetProgramText, null, targetFilename, otherFileNames, outputWriter);
+        return SendToNewGoProcess(dafnyProgramName, targetProgramText, null, targetFilename, otherFileNames, outputWriter, hasMain, run:false);
       } else {
         // Since the program is to be run soon, nothing further is done here. Any compilation errors (that is, any errors
         // in the emitted program--this should never happen if the compiler itself is correct) will be reported as 'go run'
@@ -3384,11 +3384,11 @@ namespace Microsoft.Dafny {
     public override bool RunTargetProgram(string dafnyProgramName, string targetProgramText, string/*?*/ callToMain, string targetFilename, ReadOnlyCollection<string> otherFileNames,
       object compilationResult, TextWriter outputWriter) {
 
-      return SendToNewGoProcess(dafnyProgramName, targetProgramText, callToMain, targetFilename, otherFileNames, outputWriter);
+      return SendToNewGoProcess(dafnyProgramName, targetProgramText, callToMain, targetFilename, otherFileNames, outputWriter, hasMain:true, run:true);
     }
 
     bool SendToNewGoProcess(string dafnyProgramName, string targetProgramText, string/*?*/ callToMain, string targetFilename, ReadOnlyCollection<string> otherFileNames,
-      TextWriter outputWriter) {
+      TextWriter outputWriter, bool hasMain, bool run) {
       Contract.Requires(targetFilename != null);
 
       foreach (var otherFileName in otherFileNames) {
@@ -3402,7 +3402,47 @@ namespace Microsoft.Dafny {
         };
       }
 
-      var args = "run " + targetFilename;
+      string verb;
+      if (run) {
+        verb = "run";
+      } else {
+        string output;
+        var outputToFile = !DafnyOptions.O.RunAfterCompile;
+
+        if (outputToFile) {
+          string extension;
+          if (hasMain) {
+            switch (Environment.OSVersion.Platform) {
+              case PlatformID.Unix:
+              case PlatformID.MacOSX:
+              case (PlatformID) 128: // early Mono
+                extension = null;
+                break;
+              default:
+                extension = "exe";
+                break;
+            }
+          } else {
+            extension = "a";
+          }
+          output = Path.ChangeExtension(dafnyProgramName, extension);
+        } else {
+          switch (Environment.OSVersion.Platform) {
+            case PlatformID.Unix:
+            case PlatformID.MacOSX:
+            case (PlatformID) 128: // early Mono
+              output = "/dev/null";
+              break;
+            default:
+              output = "NUL";
+              break;
+          }
+        }
+
+        verb = string.Format("build -o \"{0}\"", output);
+      }
+      
+      var args = string.Format("{0} \"{1}\"", verb, targetFilename);
       var psi = new ProcessStartInfo("go", args) {
         CreateNoWindow = true,
         UseShellExecute = false,
