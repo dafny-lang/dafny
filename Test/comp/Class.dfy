@@ -113,6 +113,7 @@ method Main() {
   var c := new MyClass(3);
   var t := new MyTraitInstance(2);
   var i := new MyTraitInstance(2);
+  print t == t, " ", i == i, " ", i == t, "\n";
   // Upcast via local variable with rhs
   var t2 : MyTrait := t;
   // Upcast via local variable with assignment

@@ -873,7 +873,8 @@ namespace Microsoft.Dafny {
         var w = wr.NewNamedBlock("func (_this {0}) String() string", name);
         w.Indent();
         // TODO Avoid switch if only one branch
-        w = w.NewNamedBlock("switch {0}_this.Get().(type)", dt is CoDatatypeDecl ? "" : "data := ");
+        var needData = dt is IndDatatypeDecl && dt.Ctors.Exists(ctor => ctor.Formals.Exists(arg => !arg.IsGhost));
+        w = w.NewNamedBlock("switch {0}_this.Get().(type)", needData ? "data := " : "");
         w.Indent();
         w.WriteLine("case nil: return \"null\"");
         foreach (var ctor in dt.Ctors) {
@@ -908,8 +909,6 @@ namespace Microsoft.Dafny {
         if (dt is CoDatatypeDecl) {
           wDefault.WriteLine("return \"{0}.{1}.unexpected\"", dt.Module.CompileName, dt.CompileName);
         } else {
-          wDefault.WriteLine("var _ = data");
-          wDefault.Indent();
           wDefault.WriteLine("return \"<unexpected>\"");
         }
       }
@@ -920,39 +919,41 @@ namespace Microsoft.Dafny {
         wr.Indent();
         var wEquals = wr.NewNamedBlock("func (_this {0}) Equals(other {0}) bool", name);
         // TODO: Way to implement shortcut check for address equality?
+        var needData1 = dt.Ctors.Exists(ctor => ctor.Formals.Exists(arg => !arg.IsGhost));
+        
         wEquals.Indent();
-        wEquals = wEquals.NewNamedBlock("switch data1 := _this.Get().(type)");
+        wEquals = wEquals.NewNamedBlock("switch {0}_this.Get().(type)", needData1 ? "data1 := " : "");
         foreach (var ctor in dt.Ctors) {
           wEquals.Indent();
           var wCase = wEquals.NewNamedBlock("case {0}:", structOfCtor(ctor));
+
+          var needData2 = ctor.Formals.Exists(arg => !arg.IsGhost);
+          
           wCase.Indent();
-          wCase.WriteLine("data2, ok := other.Get().({0})", structOfCtor(ctor));
+          wCase.WriteLine("{0}, ok := other.Get().({1})", needData2 ? "data2" : "_", structOfCtor(ctor));
           wCase.Indent();
-          wCase.WriteLine("var _ = data2");
-          wCase.Indent();
-          wCase.WriteLine("if !ok { return false }");
+          wCase.Write("return ok");
           var k = 0;
           foreach (Formal arg in ctor.Formals) {
             if (!arg.IsGhost) {
-              wCase.Indent();
-              wCase.Write("if !(");
+              wCase.Write(" && ");
               string nm = DatatypeFieldName(arg, k);
               if (IsDirectlyComparable(arg.Type)) {
                 wCase.Write("data1.{0} == data2.{0}", nm);
+              } else if (IsOrderedByCmp(arg.Type)) {
+                wCase.Write("data1.{0}.Cmp(data2.{0}) == 0", nm);
+              } else if (IsComparedByEquals(arg.Type)) {
+                wCase.Write("data1.{0}.Equals(data2.{0})", nm);
               } else {
                 wCase.Write("_dafny.AreEqual(data1.{0}, data2.{0})", nm);
               }
-              wCase.WriteLine(") { return false }");
               k++;
             }
           }
-          wCase.Indent();
-          wCase.WriteLine("return true");
+          wCase.WriteLine();
         }
         wEquals.Indent();
         var wDefault = wEquals.NewNamedBlock("default:");
-        wDefault.Indent();
-        wDefault.WriteLine("var _ = data1");
         wDefault.Indent();
         wDefault.WriteLine("return false; // unexpected");
 
@@ -2737,17 +2738,17 @@ namespace Microsoft.Dafny {
       }
     }
 
-    bool IsDirectlyComparable(Type t) {
+    private bool IsDirectlyComparable(Type t) {
       Contract.Requires(t != null);
-      return t.IsBoolType || t.IsCharType || AsNativeType(t) != null;
+      return t.IsBoolType || t.IsCharType || AsNativeType(t) != null || (t.NormalizeExpand() is UserDefinedType udt && !t.IsArrowType && udt.ResolvedClass is ClassDecl);
     }
 
-    bool IsOrderedByCmp(Type t) {
+    private bool IsOrderedByCmp(Type t) {
       return t.IsIntegerType || t.IsRealType || (t.IsBitVectorType && t.AsBitVectorType.NativeType == null) || (t.AsNewtype is NewtypeDecl nt && nt.NativeType == null);
     }
 
-    bool IsComparedByEquals(Type t) {
-      return t.IsArrayType;
+    private bool IsComparedByEquals(Type t) {
+      return t.IsArrayType || t.IsIndDatatype || t.NormalizeExpand() is CollectionType;
     }
 
     protected override void CompileBinOp(BinaryExpr.ResolvedOpcode op,
@@ -2805,6 +2806,8 @@ namespace Microsoft.Dafny {
         case BinaryExpr.ResolvedOpcode.EqCommon: {
             if (IsHandleComparison(tok, e0, e1, errorWr)) {
               opString = "==";
+            } else if (!EqualsUpToParameters(e0.Type, e1.Type)) {
+              staticCallString = "_dafny.AreEqual";
             } else if (IsOrderedByCmp(e0.Type)) {
               callString = "Cmp";
               postOpString = " == 0";
@@ -2821,6 +2824,9 @@ namespace Microsoft.Dafny {
             if (IsHandleComparison(tok, e0, e1, errorWr)) {
               opString = "!=";
               postOpString = "/* handle */";
+            } else if (!EqualsUpToParameters(e0.Type, e1.Type)) {
+              preOpString = "!";
+              staticCallString = "_dafny.AreEqual";
             } else if (IsDirectlyComparable(e0.Type)) {
               opString = "!=";
               postOpString = "/* dircomp */";
