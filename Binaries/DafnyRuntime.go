@@ -516,8 +516,7 @@ func (seqType) String() string {
 
 // An Array is a Go slice representing a (possibly) multidimensional array,
 // along with metadata.  There aren't any methods for updating; instead, you can
-// update by mutating the value returned by Index (either by using its Set
-// method or by getting a pointer using its Addr method).
+// update through the pointer returned by Index.
 type Array struct {
 	contents []interface{} // stored as a flat one-dimensional slice
 	dims     []int
