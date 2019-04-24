@@ -29,6 +29,8 @@ method Main() {
 
   CoDt();
   AllBerry();
+  TestConflictingNames();
+  TestModule();
 }
 
 function method Up(m: nat, n: nat): List
@@ -109,4 +111,25 @@ codatatype NatPlus = Succ(NatPlus) | Zero
 
 function method Inf(): NatPlus {
   Succ(Inf())
+}
+
+datatype ConflictingNames = ConflictingNames1(len: int, public: char, goto: string) | ConflictingNames2(goto: string)
+
+method TestConflictingNames() {
+  var x := ConflictingNames1(42, 'q', "hello");
+  print x.len, " ", x.public, " ", x.goto, "\n";
+}
+
+module Module {
+  datatype OptionInt = Some(int) | None
+}
+
+method TestModule() {
+  PrintMaybe(Module.Some(1701));
+}
+
+method PrintMaybe(x : Module.OptionInt) {
+  match x
+  case Some(n) => print n, "\n";
+  case None => print "None\n";
 }

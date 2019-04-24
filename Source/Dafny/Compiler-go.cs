@@ -848,18 +848,18 @@ namespace Microsoft.Dafny {
               wDtor.Indent();
               var n = dtor.EnclosingCtors.Count;
               if (n == 1) {
-                wDtor.WriteLine("return _this.Get().({0}).{1}", structOfCtor(dtor.EnclosingCtors[0]), Capitalize(arg.CompileName));
+                wDtor.WriteLine("return _this.Get().({0}).{1}", structOfCtor(dtor.EnclosingCtors[0]), DatatypeFieldName(arg));
               } else {
                 wDtor = wDtor.NewBlock("switch data := _this.Get().(type)");
                 for (int i = 0; i < n-1; i++) {
                   var ctor_i = dtor.EnclosingCtors[i];
                   Contract.Assert(arg.CompileName == dtor.CorrespondingFormals[i].CompileName);
                   wDtor.Indent();
-                  wDtor.WriteLine("case {0}: return data.{1}", structOfCtor(ctor_i), Capitalize(arg.CompileName));
+                  wDtor.WriteLine("case {0}: return data.{1}", structOfCtor(ctor_i), DatatypeFieldName(arg));
                 }
                 Contract.Assert(arg.CompileName == dtor.CorrespondingFormals[n-1].CompileName);
                 wDtor.Indent();
-                wDtor.WriteLine("default: return data.({0}).{1}", structOfCtor(dtor.EnclosingCtors[n-1]), Capitalize(arg.CompileName));
+                wDtor.WriteLine("default: return data.({0}).{1}", structOfCtor(dtor.EnclosingCtors[n-1]), DatatypeFieldName(arg));
               }
             }
           }
@@ -1752,7 +1752,14 @@ namespace Microsoft.Dafny {
     }
 
     protected string DatatypeFieldName(Formal formal, int formalNonGhostIndex) {
-      return Capitalize(FormalName(formal, formalNonGhostIndex));
+      // Don't rely on base.FormalName because it needlessly (for us) passes the
+      // value through IdProtect when we're going to capitalize it
+      return formal.HasName ? Capitalize(formal.CompileName) : "A" + formalNonGhostIndex + "_";
+    }
+
+    protected string DatatypeFieldName(Formal formal) {
+      Contract.Assert(formal.HasName);
+      return Capitalize(formal.CompileName);
     }
 
     protected override Type NativeForm(Type type) {

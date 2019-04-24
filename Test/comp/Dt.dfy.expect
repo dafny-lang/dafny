@@ -1,5 +1,5 @@
 
-Dafny program verifier finished with 10 verified, 0 errors
+Dafny program verifier finished with 12 verified, 0 errors
 List.Nil
 List.Cons(5, List.Nil)
 (List.Nil, List.Cons(5, List.Nil))
@@ -15,8 +15,10 @@ Stream.Next
 {Berry.Smultron, Berry.Jordgubb, Berry.Hallon}
 CoBerry.Hjortron true true false
 false
+42 q hello
+1701
 
-Dafny program verifier finished with 10 verified, 0 errors
+Dafny program verifier finished with 12 verified, 0 errors
 List.Nil
 List.Cons(5, List.Nil)
 (List.Nil, List.Cons(5, List.Nil))
@@ -32,8 +34,10 @@ Stream.Next
 {Berry.Smultron, Berry.Jordgubb, Berry.Hallon}
 CoBerry.Hjortron true true false
 false
+42 q hello
+1701
 
-Dafny program verifier finished with 10 verified, 0 errors
+Dafny program verifier finished with 12 verified, 0 errors
 List.Nil
 List.Cons(5, List.Nil)
 (List.Nil, List.Cons(5, List.Nil))
@@ -49,3 +53,5 @@ Stream.Next
 {Berry.Smultron, Berry.Jordgubb, Berry.Hallon}
 CoBerry.Hjortron true true false
 false
+42 q hello
+1701
