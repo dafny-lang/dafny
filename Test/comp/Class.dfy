@@ -122,3 +122,13 @@ method Main() {
   // Upcast via function call
   CallEm(c, t, i);
 }
+
+module Module1 {
+  trait {:termination false} TraitInModule { }
+}
+
+module Module2 {
+  import Module1
+
+  class ClassExtendingTraitInOtherModule extends Module1.TraitInModule { } 
+}

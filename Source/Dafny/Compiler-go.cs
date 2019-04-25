@@ -1456,19 +1456,21 @@ namespace Microsoft.Dafny {
       instanceFieldWriter.Indent();
       instanceFieldWriter.WriteLine("{0}", TypeName(superType, instanceFieldWriter, tok));
 
+      var embed = UnqualifiedClassName(superType, instanceFieldInitWriter, tok);
+      
       instanceFieldInitWriter.Indent();
-      instanceFieldInitWriter.WriteLine("_this.{0} = {1}()", ClassName(superType, instanceFieldInitWriter, tok), TypeName_Initializer(superType, instanceFieldInitWriter, tok));
+      instanceFieldInitWriter.WriteLine("_this.{0} = {1}()", embed, TypeName_Initializer(superType, instanceFieldInitWriter, tok));
 
-      if (superType is UserDefinedType udt && udt.ResolvedClass.ViewAsClass is TraitDecl) {
+      if (superType.IsTraitType) {
         traitInitWriter.Indent();
-        traitInitWriter.WriteLine("_this.{0}.{1} = &_this", IdProtect(udt.CompileName), FormatTraitInterfaceName(IdProtect(udt.CompileName)));
+        traitInitWriter.WriteLine("_this.{0}.{1} = &_this", embed, FormatTraitInterfaceName(embed));
       }
 
       staticFieldWriter.Indent();
       staticFieldWriter.WriteLine("*{0}", TypeName_CompanionType(superType, staticFieldWriter, tok));
 
       staticFieldInitWriter.Indent();
-      staticFieldInitWriter.WriteLine("{0}: &{1},", TypeName_CompanionType(superType, staticFieldInitWriter, tok), TypeName_Companion(superType, staticFieldInitWriter, tok, null));
+      staticFieldInitWriter.WriteLine("{0}: &{1},", FormatCompanionTypeName(embed), TypeName_Companion(superType, staticFieldInitWriter, tok, null));
     }
 
     private void FinishClass(GoCompiler.ClassWriter cw) {
@@ -1748,7 +1750,7 @@ namespace Microsoft.Dafny {
     }
 
     protected string UnqualifiedClassName(Type type, TextWriter wr, Bpl.IToken tok) {
-      return type is UserDefinedType udt ? FullTypeName(udt) : TypeName(type, wr, tok);
+      return type is UserDefinedType udt ? UnqualifiedTypeName(udt) : TypeName(type, wr, tok);
     }
 
     protected string DatatypeFieldName(Formal formal, int formalNonGhostIndex) {
@@ -2321,6 +2323,14 @@ namespace Microsoft.Dafny {
     }
 
     protected override string FullTypeName(UserDefinedType udt, MemberDecl/*?*/ member = null) {
+      return UserDefinedTypeName(udt, full:true, member:member);
+    }
+    
+    private string UnqualifiedTypeName(UserDefinedType udt, MemberDecl/*?*/ member = null) {
+      return UserDefinedTypeName(udt, full:false, member:member);
+    }
+
+    private string UserDefinedTypeName(UserDefinedType udt, bool full, MemberDecl/*?*/ member = null) {
       Contract.Requires(udt != null);
       if (udt is ArrowType) {
         return ArrowType.Arrow_FullCompileName;
@@ -2329,11 +2339,19 @@ namespace Microsoft.Dafny {
       if (cl == null) {
         return IdProtect(udt.CompileName);
       } else {
-        return FullTypeName(cl, member);
+        return UserDefinedTypeName(cl, full, member);
       }
     }
 
     private string FullTypeName(TopLevelDecl cl, MemberDecl/*?*/ member = null) {
+      return UserDefinedTypeName(cl, true, member:member);
+    }
+
+    private string UnqualifiedTypeName(TopLevelDecl cl, MemberDecl/*?*/ member = null) {
+      return UserDefinedTypeName(cl, full:false, member:member);
+    }
+
+    private string UserDefinedTypeName(TopLevelDecl cl, bool full, MemberDecl/*?*/ member = null) {
       if (IsExternMemberOfExternModule(member, cl)) {
         // omit the default class name ("_default") in extern modules, when the class is used to qualify an extern member
         Contract.Assert(!cl.Module.IsDefaultModule);  // default module is not marked ":extern"
@@ -2348,7 +2366,7 @@ namespace Microsoft.Dafny {
           // Don't use IdName since that'll capitalize, which is unhelpful for
           // built-in types
           return qual + (qual == "" ? "" : ".") + cl.CompileName;
-        } else if (cl.Module.IsDefaultModule || this.ModuleName == cl.Module.CompileName) {
+        } else if (!full || cl.Module.IsDefaultModule || this.ModuleName == cl.Module.CompileName) {
           return IdName(cl);
         } else {
           return cl.Module.CompileName + "." + IdName(cl);
