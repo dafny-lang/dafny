@@ -2596,7 +2596,7 @@ namespace Microsoft.Dafny {
         TrParenExpr(source, wr, inLetExprBody);
         wr.Write(".Get(");
         TrExpr(index, wr, inLetExprBody);
-        wr.Write(").({0})", TypeName(source.Type.TypeArgs[1], wr, null));
+        wr.Write(").({0})", TypeName(((MapType) type).Range, wr, null));
       }
     }
 
