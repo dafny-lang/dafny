@@ -1057,7 +1057,7 @@ func MultiSetFromSet(set Set) MultiSet {
 
 func (mset MultiSet) clone() MultiSet {
 	elts := make([]msetElt, len(mset.elts))
-	refl.Copy(refl.ValueOf(elts), refl.ValueOf(mset.elts))
+	copy(elts, mset.elts)
 	return MultiSet{elts}
 }
 
@@ -1340,8 +1340,8 @@ func (mb *MapBuilder) ToMap() Map {
 var EmptyMap = NewMapBuilder().ToMap()
 
 func (m Map) clone() Map {
-	elts := make([]mapElt, len(m.elts), len(m.elts))
-	refl.Copy(refl.ValueOf(elts), refl.ValueOf(m.elts))
+	elts := make([]mapElt, len(m.elts))
+	copy(elts, m.elts)
 	return Map{elts}
 }
 
