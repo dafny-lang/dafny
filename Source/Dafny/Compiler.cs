@@ -2190,46 +2190,97 @@ namespace Microsoft.Dafny {
       } else if (lhs is MemberSelectExpr) {
         var ll = (MemberSelectExpr)lhs;
         Contract.Assert(!ll.Member.IsInstanceIndependentConstant);  // instance-independent const's don't have assignment statements
-        var objExpr = ll.Obj;
-        string obj;
-        if (objExpr is IdentifierExpr || objExpr is ThisExpr) {
-          var wObj = new TargetWriter();
-          TrParenExpr(objExpr, wObj, false);
-          obj = wObj.ToString();
-        } else {
-          obj = idGenerator.FreshId("_obj");
-          DeclareLocalVar(obj, null, null, ll.Obj, false, wr);
-        }
+        var obj = StabilizeExpr(ll.Obj, "_obj", wr);
         var sw = new TargetWriter();
         var w = EmitMemberSelect(ll.Member, true, lhs.Type, sw);
         w.Write(obj);
         return sw.ToString();
       } else if (lhs is SeqSelectExpr) {
         var ll = (SeqSelectExpr)lhs;
-        var c = idGenerator.FreshNumericId("_arr+_index");
-        string arr = "_arr" + c;
-        string index = "_index" + c;
-        DeclareLocalVar(arr, null, null, ll.Seq, false, wr);
-        DeclareLocalVar(index, null, null, ll.E0, false, wr);
+        var arr = StabilizeExpr(ll.Seq, "_arr", wr);
+        var index = StabilizeExpr(ll.E0, "_index", wr);
         var sw = new TargetWriter();
         EmitArraySelectAsLvalue(arr, new List<string>() { index }, ll.Type, sw);
         return sw.ToString();
       } else {
         var ll = (MultiSelectExpr)lhs;
-        var c = idGenerator.FreshNumericId("_arr+_index");
-        string arr = "_arr" + c;
-        DeclareLocalVar(arr, null, null, ll.Array, false, wr);
+        string arr = StabilizeExpr(ll.Array, "_arr", wr);
         var indices = new List<string>();
         int i = 0;
         foreach (var idx in ll.Indices) {
-          string index = "_index" + i + "_" + c;
-          DeclareLocalVar(index, null, null, idx, false, wr);
-          indices.Add(index);
+          indices.Add(StabilizeExpr(idx, "_index" + i + "_", wr));
           i++;
         }
         var sw = new TargetWriter();
         EmitArraySelectAsLvalue(arr, indices, ll.Type, sw);
         return sw.ToString();
+      }
+    }
+
+    /// <summary>
+    /// If the given expression's value is stable, translate it and return the
+    /// string form.  Otherwise, output code to evaluate the expression, then
+    /// return a fresh variable bound to its value.
+    /// </summary>
+    /// <param name="e">An expression to evaluate</param>
+    /// <param name="prefix">The prefix to give the fresh variable, if
+    /// needed.</param>
+    /// <param name="wr">A writer in a position to write statements
+    /// evaluating the expression</param>
+    /// <returns>A string giving the translated value as a stable
+    /// expression</returns>
+    /// <seealso cref="IsStableExpr"/>
+    private string StabilizeExpr(Expression e, string prefix, TargetWriter wr) {
+      if (IsStableExpr(e)) {
+        var sw = new TargetWriter();
+        TrParenExpr(e, sw, false);
+        return sw.ToString();
+      } else {
+        var v = idGenerator.FreshId(prefix);
+        DeclareLocalVar(v, null, null, e, false, wr);
+        return v;
+      }
+    }
+
+    /// <summary>
+    /// Returns whether the given expression is <em>stable</em>, that is,
+    /// whether its value is fixed over the course of the evaluation of an
+    /// expression.  Note that anything that could be altered by a function call
+    /// (say, the value of a non-constant field) is unstable.
+    /// </summary>
+    private bool IsStableExpr(Expression e) {
+      if (e is IdentifierExpr || e is ThisExpr || e is LiteralExpr) {
+        return true;
+      } else if (e is MemberSelectExpr mse) {
+        if (!IsStableExpr(mse.Obj)) {
+          return false;
+        }
+        var member = mse.Member;
+        if (member is ConstantField) {
+          return true;
+        } else if (member is SpecialField sf) {
+          switch (sf.SpecialId) {
+            case SpecialField.ID.ArrayLength:
+            case SpecialField.ID.ArrayLengthInt:
+            case SpecialField.ID.Floor:
+            case SpecialField.ID.IsLimit:
+            case SpecialField.ID.IsSucc:
+            case SpecialField.ID.Offset:
+            case SpecialField.ID.IsNat:
+            case SpecialField.ID.Keys:
+            case SpecialField.ID.Values:
+            case SpecialField.ID.Items:
+              return true;
+            default:
+              return false;
+          }
+        } else {
+          return false;
+        }
+      } else if (e is ConcreteSyntaxExpression cse) {
+        return IsStableExpr(cse.ResolvedExpression);
+      } else {
+        return false;
       }
     }
 
