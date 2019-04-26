@@ -85,6 +85,8 @@ method Arithmetic() {
 
   PrintSeq([31 * 4, 31 * -4]);
   PrintSeq([-31 * 4, -31 * -4]);
+  
+  PrintSeq(['3' + '4', '7' - '4' + 'N', '4' - '3' + '1']);
 
   DivMod(31, 4);
   DivMod(-31, 4);

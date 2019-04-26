@@ -899,6 +899,12 @@ let _dafny = (function() {
     }
     return frall;
   }
+  $module.PlusChar = function(a, b) {
+    return String.fromCharCode(a.charCodeAt(0) + b.charCodeAt(0));
+  }
+  $module.MinusChar = function(a, b) {
+    return String.fromCharCode(a.charCodeAt(0) - b.charCodeAt(0));
+  }
   $module.AllBooleans = function*() {
     yield false;
     yield true;

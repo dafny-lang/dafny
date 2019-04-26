@@ -1907,6 +1907,8 @@ namespace Microsoft.Dafny {
             callString = "plus"; truncateResult = true;
           } else if (AsNativeType(resultType) != null) {
             opString = "+";
+          } else if (resultType.IsCharType) {
+            staticCallString = "_dafny.PlusChar";
           } else {
             callString = "plus"; truncateResult = true;
           }
@@ -1916,6 +1918,8 @@ namespace Microsoft.Dafny {
             callString = "minus"; truncateResult = true;
           } else if (AsNativeType(resultType) != null) {
             opString = "-";
+          } else if (resultType.IsCharType) {
+            staticCallString = "_dafny.MinusChar";
           } else {
             callString = "minus"; truncateResult = true;
           }

@@ -2941,7 +2941,7 @@ namespace Microsoft.Dafny {
           if (resultType.IsBitVectorType) {
             truncateResult = true;
           }
-          if (AsNativeType(resultType) != null) {
+          if (resultType.IsCharType || AsNativeType(resultType) != null) {
             opString = "+";
           } else {
             callString = "Plus";
@@ -2962,6 +2962,8 @@ namespace Microsoft.Dafny {
             } else {
               opString = "-";
             }
+          } else if (resultType.IsCharType) {
+            opString = "-";
           } else {
             callString = "Minus";
           }

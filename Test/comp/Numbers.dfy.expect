@@ -35,6 +35,7 @@ Dafny program verifier finished with 17 verified, 0 errors
 35 27 -27
 124 -124
 -124 124
+g Q 2
 7 3 31
 -8 1 -31
 -7 3 31
@@ -112,6 +113,7 @@ Dafny program verifier finished with 17 verified, 0 errors
 35 27 -27
 124 -124
 -124 124
+g Q 2
 7 3 31
 -8 1 -31
 -7 3 31
@@ -189,6 +191,7 @@ Dafny program verifier finished with 17 verified, 0 errors
 35 27 -27
 124 -124
 -124 124
+g Q 2
 7 3 31
 -8 1 -31
 -7 3 31
