@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:1 /definiteAssignment:3 "%s" > "%t"
+// RUN: %dafny /compile:1 /definiteAssignment:3 "%s" /compileTarget:cs > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 class C {

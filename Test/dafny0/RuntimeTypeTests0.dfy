@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:3 "%s" > "%t"
+// RUN: %dafny /compile:3 "%s" /compileTarget:cs > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // The code in this file demonstrates complications in compiling to C# if a
