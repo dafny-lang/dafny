@@ -389,14 +389,28 @@ func SeqOfString(str string) Seq {
 	return Seq{arr, true}
 }
 
-// Index finds the address of the sequence element at the given index.
-func (seq Seq) Index(i Int) *interface{} {
+// Index finds the sequence element at the given index.
+func (seq Seq) Index(i Int) interface{} {
 	return seq.IndexInt(i.Int())
 }
 
-// IndexInt finds the address of the sequence element at the given index.
-func (seq Seq) IndexInt(i int) *interface{} {
-	return &seq.contents[i]
+// IndexInt finds the sequence element at the given index.
+func (seq Seq) IndexInt(i int) interface{} {
+	return seq.contents[i]
+}
+
+// Update returns a new sequence with the given index set to the given value.
+func (seq Seq) Update(i Int, v interface{}) interface{} {
+	return seq.UpdateInt(i.Int(), v)
+}
+
+// UpdateInt returns a new sequence with the given index set to the given value.
+func (seq Seq) UpdateInt(i int, v interface{}) interface{} {
+	arr := make([]interface{}, len(seq.contents))
+	copy(arr, seq.contents[:i])
+	arr[i] = v
+	copy(arr[i+1:], seq.contents[i+1:])
+	return Seq{arr, seq.isString}
 }
 
 // Len finds the length of the sequence.
@@ -861,12 +875,6 @@ func (set Set) Cardinality() Int {
 
 // CardinalityInt returns the cardinality (size) of the set as an int.
 func (set Set) CardinalityInt() int {
-	return len(set.contents)
-}
-
-// Index returns the ith element of the set, which is arbitrary but different
-// from the ith element for any other i.
-func (set Set) Index(i Int) interface{} {
 	return len(set.contents)
 }
 

@@ -1,5 +1,5 @@
 
-Dafny program verifier finished with 3 verified, 0 errors
+Dafny program verifier finished with 5 verified, 0 errors
 Sets: {} {17, 82} {12, 17}
   cardinality: 0 2 2
   union: {17, 82} {17, 82, 12}
@@ -21,9 +21,12 @@ Multisets: multiset{} multiset{17, 17, 82, 82} multiset{12, 17}
   subset: true false true
   proper subset: true false false
   membership: false true true
+  update: multiset{17, 17} multiset{17, 17, 82, 82} multiset{12, 17, 17}
   multiplicity: 0 2 1
 Sequences: [] [17, 82, 17, 82] [12, 17]
   cardinality: 0 4 2
+  update: [42, 82, 17, 82] [42, 17]
+  index: 17 12
   concatenation: [17, 82, 17, 82] [17, 82, 17, 82, 12, 17]
   prefix: true false true
   proper prefix: true false false
@@ -42,12 +45,12 @@ Maps: map[] map[17 := 2, 82 := 2] map[17 := 0, 12 := 26]
   values: {} {2} {0, 26}
   items: {} {(17, 2), (82, 2)} {(17, 0), (12, 26)}
   disjoint: true false
-  lookup: false 2 0
   update: map[17 := 6] map[17 := 6, 82 := 2] map[17 := 6, 12 := 26]
+  lookup: false 2 0
 2: 0 1 1
 3: 0 1 2
 
-Dafny program verifier finished with 3 verified, 0 errors
+Dafny program verifier finished with 5 verified, 0 errors
 Sets: {} {17, 82} {12, 17}
   cardinality: 0 2 2
   union: {17, 82} {17, 82, 12}
@@ -69,9 +72,12 @@ Multisets: multiset{} multiset{17, 17, 82, 82} multiset{12, 17}
   subset: true false true
   proper subset: true false false
   membership: false true true
+  update: multiset{17, 17} multiset{17, 17, 82, 82} multiset{12, 17, 17}
   multiplicity: 0 2 1
 Sequences: [] [17, 82, 17, 82] [12, 17]
   cardinality: 0 4 2
+  update: [42, 82, 17, 82] [42, 17]
+  index: 17 12
   concatenation: [17, 82, 17, 82] [17, 82, 17, 82, 12, 17]
   prefix: true false true
   proper prefix: true false false
@@ -90,12 +96,12 @@ Maps: map[] map[17 := 2, 82 := 2] map[17 := 0, 12 := 26]
   values: {} {2} {0, 26}
   items: {} {(17, 2), (82, 2)} {(17, 0), (12, 26)}
   disjoint: true false
-  lookup: false 2 0
   update: map[17 := 6] map[17 := 6, 82 := 2] map[17 := 6, 12 := 26]
+  lookup: false 2 0
 2: 0 1 1
 3: 0 1 2
 
-Dafny program verifier finished with 3 verified, 0 errors
+Dafny program verifier finished with 5 verified, 0 errors
 Sets: {} {17, 82} {12, 17}
   cardinality: 0 2 2
   union: {17, 82} {17, 82, 12}
@@ -117,9 +123,12 @@ Multisets: multiset{} multiset{17, 17, 82, 82} multiset{12, 17}
   subset: true false true
   proper subset: true false false
   membership: false true true
+  update: multiset{17, 17} multiset{17, 17, 82, 82} multiset{12, 17, 17}
   multiplicity: 0 2 1
 Sequences: [] [17, 82, 17, 82] [12, 17]
   cardinality: 0 4 2
+  update: [42, 82, 17, 82] [42, 17]
+  index: 17 12
   concatenation: [17, 82, 17, 82] [17, 82, 17, 82, 12, 17]
   prefix: true false true
   proper prefix: true false false
@@ -138,7 +147,7 @@ Maps: map[] map[17 := 2, 82 := 2] map[17 := 0, 12 := 26]
   values: {} {2} {0, 26}
   items: {} {(17, 2), (82, 2)} {(17, 0), (12, 26)}
   disjoint: true false
-  lookup: false 2 0
   update: map[17 := 6] map[17 := 6, 82 := 2] map[17 := 6, 12 := 26]
+  lookup: false 2 0
 2: 0 1 1
 3: 0 1 2

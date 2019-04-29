@@ -2579,12 +2579,11 @@ namespace Microsoft.Dafny {
 
     protected override void EmitIndexCollectionSelect(Expression source, Expression index, bool inLetExprBody, TargetWriter wr) {
       var type = source.Type.NormalizeExpand();
-      if (type is SeqType || type is SetType) {
-        wr.Write("(*");
+      if (type is SeqType seqType) {
         TrParenExpr(source, wr, inLetExprBody);
         wr.Write(".Index(");
         TrExpr(index, wr, inLetExprBody);
-        wr.Write(")).({0})", TypeName(((CollectionType) type).Arg, wr, null));
+        wr.Write(").({0})", TypeName(seqType.Arg, wr, null));
       } else if (type is MultiSetType) {
         TrParenExpr(source, wr, inLetExprBody);
         wr.Write(".Multiplicity(");

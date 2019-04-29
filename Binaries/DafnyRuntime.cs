@@ -487,6 +487,21 @@ namespace Dafny
         return BigInteger.Zero;
       }
     }
+    public MultiSet<T> Update<G>(G t, BigInteger i) {
+      if (Select(t) == i) {
+        return this;
+      } else if (t == null) {
+        return new MultiSet<T>(dict, i);
+      } else {
+#if DAFNY_USE_SYSTEM_COLLECTIONS_IMMUTABLE
+        var r = dict.ToBuilder();
+#else
+        var r = new Dictionary<T, int>(dict);
+#endif
+        r[(T)(object)t] = (int)i;
+        return new MultiSet<T>(r, occurrencesOfNull);
+      }
+    }
     public MultiSet<T> Union(MultiSet<T> other) {
       if (dict.Count + occurrencesOfNull == 0)
         return other;

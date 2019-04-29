@@ -52,6 +52,7 @@ method MultiSets() {
   print "  subset: ", a <= b, " ", b <= c, " ", c <= c, "\n";
   print "  proper subset: ", a < b, " ", b < c, " ", c < c, "\n";
   print "  membership: ", 17 in a, " ", 17 in b, " ", 17 in c, "\n";
+  print "  update: ", a[17 := 2], " ", b[17 := 2], " ", c[17 := 2], "\n";
   print "  multiplicity: ", a[17], " ", b[17], " ", c[17], "\n";
 }
 
@@ -61,6 +62,8 @@ method Sequences() {
   var c := [12, 17];
   print "Sequences: ", a, " ", b, " ", c, "\n";
   print "  cardinality: ", |a|, " ", |b|, " ", |c|, "\n";
+  print "  update: ", b[0 := 42], " ", c[0 := 42], "\n";
+  print "  index: ", b[0], " ", c[0], "\n";
   print "  concatenation: ", a + b, " ", b + c, "\n";
   print "  prefix: ", a <= b, " ", b <= c, " ", c <= c, "\n";
   print "  proper prefix: ", a < b, " ", b < c, " ", c < c, "\n";
@@ -107,8 +110,8 @@ method Maps() {
   print "  values: ", a.Values, " ", b.Values, " ", c.Values, "\n";
   print "  items: ", a.Items, " ", b.Items, " ", c.Items, "\n";
   print "  disjoint: ", a !! b, " ", b !! c, "\n";
-  print "  lookup: ", 17 in a, " ", b[17], " ", c[17], "\n";
   print "  update: ", a[17 := 6], " ", b[17 := 6], " ", c[17 := 6], "\n";
+  print "  lookup: ", 17 in a, " ", b[17], " ", c[17], "\n";
 }
 
 method MultiSetForming() {
