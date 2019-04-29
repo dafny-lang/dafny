@@ -13,9 +13,11 @@ method Main() {
   MultiSetForming();
 }
 
+type IntSet = set<int>
+
 method Sets() {
   var a := {};
-  var b := {17, 82, 17, 82};
+  var b : IntSet := {17, 82, 17, 82};
   var c := {12, 17};
   print "Sets: ", a, " ", b, " ", c, "\n";
   print "  cardinality: ", |a|, " ", |b|, " ", |c|, "\n";
@@ -39,9 +41,11 @@ method SubSets() {
 }
 predicate method P(r: set<char>) { true }
 
+type IntMultiSet = multiset<int>
+
 method MultiSets() {
   var a := multiset{};
-  var b := multiset{17, 82, 17, 82};
+  var b : IntMultiSet := multiset{17, 82, 17, 82};
   var c := multiset{12, 17};
   print "Multisets: ", a, " ", b, " ", c, "\n";
   print "  cardinality: ", |a|, " ", |b|, " ", |c|, "\n";
@@ -56,9 +60,11 @@ method MultiSets() {
   print "  multiplicity: ", a[17], " ", b[17], " ", c[17], "\n";
 }
 
+type IntSeq = seq<int>
+
 method Sequences() {
   var a := [];
-  var b := [17, 82, 17, 82];
+  var b : IntSeq := [17, 82, 17, 82];
   var c := [12, 17];
   print "Sequences: ", a, " ", b, " ", c, "\n";
   print "  cardinality: ", |a|, " ", |b|, " ", |c|, "\n";
@@ -100,9 +106,11 @@ method InterplayBetweenSeqCharAndString<G>(g: G) returns (a: seq<G>, b: seq<G>) 
   b := b + [g];
 }
 
+type IntMap = map<int, int>
+
 method Maps() {
   var a := map[];
-  var b := map[17 := 2, 82 := 2];
+  var b : IntMap := map[17 := 2, 82 := 2];
   var c := map[17 := 0, 12 := 26];
   print "Maps: ", a, " ", b, " ", c, "\n";
   print "  cardinality: ", |a|, " ", |b|, " ", |c|, "\n";
