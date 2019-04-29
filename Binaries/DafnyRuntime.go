@@ -449,8 +449,15 @@ func (seq Seq) SliceTo(ix Int) Seq {
 	return Seq{seq.contents[:ix.Int()], seq.isString}
 }
 
-// Concat concatenates two sequences, returning a new one.
+// Concat returns the concatenation of two sequences.
 func (seq Seq) Concat(seq2 Seq) Seq {
+	if seq.LenInt() == 0 {
+		return seq2
+	}
+	if seq2.LenInt() == 0 {
+		return seq
+	}
+
 	n, n2 := len(seq.contents), len(seq2.contents)
 	newSlice := make([]interface{}, n+n2)
 	copy(newSlice, seq.contents)
@@ -875,8 +882,15 @@ func (set Set) Iterator() Iterator {
 
 // Union makes a set containing each element contained by either input set.
 func (set Set) Union(set2 Set) Set {
+	if set.CardinalityInt() == 0 {
+		return set2
+	}
+	if set2.CardinalityInt() == 0 {
+		return set
+	}
+
 	n := set.CardinalityInt()
-	uniq := make([]interface{}, n, n+set2.CardinalityInt())
+	uniq := make([]interface{}, n)
 	copy(uniq, set.contents)
 NEXT_INPUT:
 	for _, v := range set2.contents {
@@ -887,18 +901,24 @@ NEXT_INPUT:
 		}
 		uniq = append(uniq, v)
 	}
+
 	return Set{uniq}
 }
 
 // Intersection makes a set containing each element contained by both input
 // sets.
 func (set Set) Intersection(set2 Set) Set {
-	uniq := make([]interface{}, 0, min(len(set.contents), len(set2.contents)))
+	if set.CardinalityInt() == 0 || set2.CardinalityInt() == 0 {
+		return EmptySet
+	}
+
+	uniq := make([]interface{}, 0)
 	for _, v := range set.contents {
 		if set2.Contains(v) {
 			uniq = append(uniq, v)
 		}
 	}
+
 	return Set{uniq}
 }
 
@@ -921,11 +941,16 @@ func (set Set) Difference(set2 Set) Set {
 
 // IsDisjointFrom returns true if the sets have no elements in common.
 func (set Set) IsDisjointFrom(set2 Set) bool {
+	if set.CardinalityInt() == 0 || set2.CardinalityInt() == 0 {
+		return true
+	}
+
 	for _, v := range set.contents {
 		if sliceContains(set2.contents, v) {
 			return false
 		}
 	}
+
 	return true
 }
 
@@ -1208,8 +1233,16 @@ func (mset MultiSet) UniqueElements() func() (interface{}, bool) {
 	}
 }
 
-// Union returns a multiset including each element of both sets.
+// Union returns a multiset including each element of either set.  Each value's
+// multiplicity will be the sum of its multiplicities in the original multisets.
 func (mset MultiSet) Union(mset2 MultiSet) MultiSet {
+	if len(mset.elts) == 0 {
+		return mset2
+	}
+	if len(mset2.elts) == 0 {
+		return mset
+	}
+
 	elts := make([]msetElt, 0, len(mset.elts)+len(mset2.elts))
 	for _, e := range mset.elts {
 		m := mset2.Multiplicity(e.value)
@@ -1220,6 +1253,7 @@ func (mset MultiSet) Union(mset2 MultiSet) MultiSet {
 			elts = append(elts, e)
 		}
 	}
+
 	return MultiSet{elts}
 }
 
@@ -1227,13 +1261,18 @@ func (mset MultiSet) Union(mset2 MultiSet) MultiSet {
 // sets.  Each value's multiplicity will be the minimum of its multiplicities
 // in the original multisets.
 func (mset MultiSet) Intersection(mset2 MultiSet) MultiSet {
-	elts := make([]msetElt, 0, min(len(mset.elts), len(mset2.elts)))
+	if len(mset.elts) == 0 || len(mset2.elts) == 0 {
+		return EmptyMultiSet
+	}
+
+	elts := make([]msetElt, 0)
 	for _, e := range mset.elts {
 		m := mset2.Multiplicity(e.value)
 		if m.Cmp(Zero) != 0 {
 			elts = append(elts, msetElt{e.value, e.count.Min(m)})
 		}
 	}
+
 	return MultiSet{elts}
 }
 
@@ -1258,11 +1297,16 @@ func (mset MultiSet) Difference(mset2 MultiSet) MultiSet {
 
 // IsDisjointFrom returns whether two multisets contain no elements in common.
 func (mset MultiSet) IsDisjointFrom(mset2 MultiSet) bool {
+	if len(mset.elts) == 0 || len(mset2.elts) == 0 {
+		return true
+	}
+
 	for _, e := range mset.elts {
 		if mset2.Contains(e.value) {
 			return false
 		}
 	}
+
 	return true
 }
 
@@ -1475,11 +1519,16 @@ func (m Map) Items() Set {
 
 // IsDisjointFrom returns whether two maps have no keys in common.
 func (m Map) IsDisjointFrom(m2 Map) bool {
+	if len(m.elts) == 0 || len(m2.elts) == 0 {
+		return true
+	}
+
 	for _, e := range m.elts {
 		if m2.Contains(e.key) {
 			return false
 		}
 	}
+
 	return true
 }
 
