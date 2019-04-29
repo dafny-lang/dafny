@@ -21,6 +21,7 @@ method Sets() {
   print "  cardinality: ", |a|, " ", |b|, " ", |c|, "\n";
   print "  union: ", a + b, " ", b + c, "\n";
   print "  intersection: ", a * b, " ", b * c, "\n";
+  print "  difference: ", a - b, " ", b - c, "\n";
   print "  disjoint: ", a !! b, " ", b !! c, "\n";
   print "  subset: ", a <= b, " ", b <= c, " ", c <= c, "\n";
   print "  proper subset: ", a < b, " ", b < c, " ", c < c, "\n";
@@ -46,6 +47,7 @@ method MultiSets() {
   print "  cardinality: ", |a|, " ", |b|, " ", |c|, "\n";
   print "  union: ", a + b, " ", b + c, "\n";
   print "  intersection: ", a * b, " ", b * c, "\n";
+  print "  difference: ", a - b, " ", b - c, "\n";
   print "  disjoint: ", a !! b, " ", b !! c, "\n";
   print "  subset: ", a <= b, " ", b <= c, " ", c <= c, "\n";
   print "  proper subset: ", a < b, " ", b < c, " ", c < c, "\n";

@@ -902,6 +902,23 @@ func (set Set) Intersection(set2 Set) Set {
 	return Set{uniq}
 }
 
+// Difference makes a set containing each element contained by set but not
+// by set2.
+func (set Set) Difference(set2 Set) Set {
+	if set.CardinalityInt() == 0 || set2.CardinalityInt() == 0 {
+		return set
+	}
+
+	elts := make([]interface{}, 0, max(0, set.CardinalityInt()-set2.CardinalityInt()))
+	for _, v := range set.contents {
+		if !set2.Contains(v) {
+			elts = append(elts, v)
+		}
+	}
+
+	return Set{elts}
+}
+
 // IsDisjointFrom returns true if the sets have no elements in common.
 func (set Set) IsDisjointFrom(set2 Set) bool {
 	for _, v := range set.contents {
@@ -1206,14 +1223,6 @@ func (mset MultiSet) Union(mset2 MultiSet) MultiSet {
 	return MultiSet{elts}
 }
 
-func min(n, m int) int {
-	if n <= m {
-		return n
-	} else {
-		return m
-	}
-}
-
 // Intersection returns a multiset including those elements which occur in both
 // sets.  Each value's multiplicity will be the minimum of its multiplicities
 // in the original multisets.
@@ -1225,6 +1234,25 @@ func (mset MultiSet) Intersection(mset2 MultiSet) MultiSet {
 			elts = append(elts, msetElt{e.value, e.count.Min(m)})
 		}
 	}
+	return MultiSet{elts}
+}
+
+// Difference returns a multiset including those elements which occur in the
+// first argument but not the second.  Each value's multiplicity will be its
+// multiplicity in mset minus its multiplicity in mset2.
+func (mset MultiSet) Difference(mset2 MultiSet) MultiSet {
+	if len(mset.elts) == 0 || len(mset2.elts) == 0 {
+		return mset
+	}
+
+	elts := make([]msetElt, 0, max(0, len(mset.elts)-len(mset2.elts)))
+	for _, e := range mset.elts {
+		d := e.count.Minus(mset2.Multiplicity(e.value))
+		if d.Cmp(Zero) > 0 {
+			elts = append(elts, msetElt{e.value, d})
+		}
+	}
+
 	return MultiSet{elts}
 }
 
@@ -2481,3 +2509,23 @@ func RrotUint64(x uint64, n Int, w uint) uint64 {
 // The Dummy__ type, which each compiled Dafny module declares, is just so that
 // we can generate "var _ dafny.Dummy__" to suppress the unused-import error.
 type Dummy__ struct{}
+
+/******************************************************************************
+ * Utility functions
+ ******************************************************************************/
+
+func min(n, m int) int {
+	if n <= m {
+		return n
+	} else {
+		return m
+	}
+}
+
+func max(n, m int) int {
+	if n >= m {
+		return n
+	} else {
+		return m
+	}
+}

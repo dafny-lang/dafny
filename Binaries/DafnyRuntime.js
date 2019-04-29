@@ -154,6 +154,19 @@ let _dafny = (function() {
         return s;
       }
     }
+    Difference(that) {
+      if (this.length == 0 || that.length == 0) {
+        return this;
+      } else {
+        let s = new Set();
+        for (let k of this) {
+          if (!that.contains(k)) {
+            s.push(k);
+          }
+        }
+        return s;
+      }
+    }
     IsDisjointFrom(that) {
       for (let k of this) {
         if (that.contains(k)) {
@@ -385,6 +398,21 @@ let _dafny = (function() {
           let m = that.get(k);
           if (!m.isZero()) {
             s.push([k, m.isLessThan(n) ? m : n]);
+          }
+        }
+        return s;
+      }
+    }
+    Difference(that) {
+      if (this.length === 0 || that.length === 0) {
+        return this;
+      } else {
+        let s = new MultiSet();
+        for (let e of this) {
+          let [k, n] = e;
+          let d = n.minus(that.get(k));
+          if (d.isGreaterThan(new BigNumber(0))) {
+            s.push([k, d]);
           }
         }
         return s;

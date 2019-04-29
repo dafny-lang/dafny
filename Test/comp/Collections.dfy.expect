@@ -4,6 +4,7 @@ Sets: {} {17, 82} {12, 17}
   cardinality: 0 2 2
   union: {17, 82} {17, 82, 12}
   intersection: {} {17}
+  difference: {} {82}
   disjoint: true false
   subset: true false true
   proper subset: true false false
@@ -15,6 +16,7 @@ Multisets: multiset{} multiset{17, 17, 82, 82} multiset{12, 17}
   cardinality: 0 4 2
   union: multiset{17, 17, 82, 82} multiset{17, 17, 17, 82, 82, 12}
   intersection: multiset{} multiset{17}
+  difference: multiset{} multiset{17, 82, 82}
   disjoint: true false
   subset: true false true
   proper subset: true false false
@@ -50,6 +52,7 @@ Sets: {} {17, 82} {12, 17}
   cardinality: 0 2 2
   union: {17, 82} {17, 82, 12}
   intersection: {} {17}
+  difference: {} {82}
   disjoint: true false
   subset: true false true
   proper subset: true false false
@@ -61,6 +64,7 @@ Multisets: multiset{} multiset{17, 17, 82, 82} multiset{12, 17}
   cardinality: 0 4 2
   union: multiset{17, 17, 82, 82} multiset{17, 17, 17, 82, 82, 12}
   intersection: multiset{} multiset{17}
+  difference: multiset{} multiset{17, 82, 82}
   disjoint: true false
   subset: true false true
   proper subset: true false false
@@ -96,6 +100,7 @@ Sets: {} {17, 82} {12, 17}
   cardinality: 0 2 2
   union: {17, 82} {17, 82, 12}
   intersection: {} {17}
+  difference: {} {82}
   disjoint: true false
   subset: true false true
   proper subset: true false false
@@ -107,6 +112,7 @@ Multisets: multiset{} multiset{17, 17, 82, 82} multiset{12, 17}
   cardinality: 0 4 2
   union: multiset{17, 17, 82, 82} multiset{17, 17, 17, 82, 82, 12}
   intersection: multiset{} multiset{17}
+  difference: multiset{} multiset{17, 82, 82}
   disjoint: true false
   subset: true false true
   proper subset: true false false
