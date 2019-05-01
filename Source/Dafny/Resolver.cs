@@ -6816,24 +6816,32 @@ namespace Microsoft.Dafny
           } else if (mustBeErasable) {
             Error(stmt, "Assignment to {0} is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)",
               AssignStmt.NonGhostKind_To_String(gk));
-          } else if (s.Rhs is ExprRhs) {
-            var rhs = (ExprRhs)s.Rhs;
-            resolver.CheckIsCompilable(rhs.Expr);
-          } else if (s.Rhs is HavocRhs) {
-            // cool
           } else {
-            var rhs = (TypeRhs)s.Rhs;
-            if (rhs.ArrayDimensions != null) {
-              rhs.ArrayDimensions.ForEach(resolver.CheckIsCompilable);
-              if (rhs.ElementInit != null) {
-                resolver.CheckIsCompilable(rhs.ElementInit);
-              }
-              if (rhs.InitDisplay != null) {
-                rhs.InitDisplay.ForEach(resolver.CheckIsCompilable);
-              }
+            if (gk == AssignStmt.NonGhostKind.Field) {
+              var mse = (MemberSelectExpr)lhs;
+              resolver.CheckIsCompilable(mse.Obj);
+            } else if (gk == AssignStmt.NonGhostKind.ArrayElement) {
+              resolver.CheckIsCompilable(lhs);
             }
-            if (rhs.InitCall != null) {
-              rhs.InitCall.Args.ForEach(resolver.CheckIsCompilable);
+            if (s.Rhs is ExprRhs) {
+              var rhs = (ExprRhs)s.Rhs;
+              resolver.CheckIsCompilable(rhs.Expr);
+            } else if (s.Rhs is HavocRhs) {
+              // cool
+            } else {
+              var rhs = (TypeRhs)s.Rhs;
+              if (rhs.ArrayDimensions != null) {
+                rhs.ArrayDimensions.ForEach(resolver.CheckIsCompilable);
+                if (rhs.ElementInit != null) {
+                  resolver.CheckIsCompilable(rhs.ElementInit);
+                }
+                if (rhs.InitDisplay != null) {
+                  rhs.InitDisplay.ForEach(resolver.CheckIsCompilable);
+                }
+              }
+              if (rhs.InitCall != null) {
+                rhs.InitCall.Args.ForEach(resolver.CheckIsCompilable);
+              }
             }
           }
 

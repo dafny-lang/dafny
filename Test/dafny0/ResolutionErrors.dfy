@@ -2810,3 +2810,42 @@ module NameClashes {
   module U.H {  // error: duplicate name: H
   }
 }
+
+// --------------- regression ghost tests -------------------------------------
+
+module RegressionGhostTests {
+  class Cell {
+    var data: int
+  }
+
+  method field(x: Cell)
+    modifies x
+  { 
+    ghost var y := x;
+    x.data := 42;
+    y.data := 42;  // error: assignment to non-ghost field depends on a ghost
+    (assert x == y; x).data := 42;
+    (assert x == y; y).data := 42;  // error: assignment to non-ghost field depends on a ghost
+  }
+
+  method arr(a: array<int>)
+    requires 5 < a.Length
+    modifies a
+  {
+    ghost var b := a;
+    ghost var i := 5;
+    a[i] := 42;  // error: assignment to non-ghost field depends on a ghost
+    b[5] := 42;  // error: assignment to non-ghost field depends on a ghost
+  }
+
+  method arr2(a: array2<int>)
+    requires 5 < a.Length0 && 5 < a.Length1
+    modifies a
+  {
+    ghost var b := a;
+    ghost var i := 5;
+    a[i,5] := 42;  // error: assignment to non-ghost field depends on a ghost
+    a[5,i] := 42;  // error: assignment to non-ghost field depends on a ghost
+    b[5,5] := 42;  // error: assignment to non-ghost field depends on a ghost
+  }
+}

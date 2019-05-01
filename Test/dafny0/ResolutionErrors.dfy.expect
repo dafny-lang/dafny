@@ -434,4 +434,11 @@ ResolutionErrors.dfy(2795,11): Error: not resolving module 'V' because there wer
 ResolutionErrors.dfy(2782,9): Error: not resolving module 'ErrorsFromNestedModules' because there were errors in resolving its nested module 'U'
 ResolutionErrors.dfy(2804,11): Error: Duplicate name of top-level declaration: G
 ResolutionErrors.dfy(2810,11): Error: Duplicate name of top-level declaration: H
-431 resolution/type errors detected in ResolutionErrors.dfy
+ResolutionErrors.dfy(2826,4): Error: ghost variables are allowed only in specification contexts
+ResolutionErrors.dfy(2828,20): Error: ghost variables are allowed only in specification contexts
+ResolutionErrors.dfy(2837,6): Error: ghost variables are allowed only in specification contexts
+ResolutionErrors.dfy(2838,4): Error: ghost variables are allowed only in specification contexts
+ResolutionErrors.dfy(2847,6): Error: ghost variables are allowed only in specification contexts
+ResolutionErrors.dfy(2848,8): Error: ghost variables are allowed only in specification contexts
+ResolutionErrors.dfy(2849,4): Error: ghost variables are allowed only in specification contexts
+438 resolution/type errors detected in ResolutionErrors.dfy
