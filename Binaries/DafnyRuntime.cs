@@ -491,7 +491,12 @@ namespace Dafny
       if (Select(t) == i) {
         return this;
       } else if (t == null) {
-        return new MultiSet<T>(dict, i);
+#if DAFNY_USE_SYSTEM_COLLECTIONS_IMMUTABLE
+        var r = dict.ToBuilder();
+#else
+        var r = dict;
+#endif
+        return new MultiSet<T>(r, i);
       } else {
 #if DAFNY_USE_SYSTEM_COLLECTIONS_IMMUTABLE
         var r = dict.ToBuilder();
