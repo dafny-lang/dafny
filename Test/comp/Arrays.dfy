@@ -41,10 +41,18 @@ method Main() {
   PrintArray(a);
   var n := LinearSearch(a, 17);
   print n, "\n";
-  print a[..], "\n";
-  print a[2..16], "\n";
-  print a[20..], "\n";
-  print a[..8], "\n";
+  var s : seq<int> := a[..];
+  print s, "\n";
+  s := a[2..16];
+  print s, "\n";
+  s := a[20..];
+  print s, "\n";
+  s := a[..8];
+  print s, "\n";
+  
+  // Conversion to sequence should copy elements (sequences are immutable!)
+  a[0] := 42;
+  print s, "\n";
 
   InitTests();
   

@@ -70,6 +70,10 @@ method Sequences() {
   print "  cardinality: ", |a|, " ", |b|, " ", |c|, "\n";
   print "  update: ", b[0 := 42], " ", c[0 := 42], "\n";
   print "  index: ", b[0], " ", c[0], "\n";
+  print "  subsequence ([lo..hi]): ", b[1..3], " ", c[1..2], "\n";
+  print "  subsequence ([lo..]): ", b[1..], " ", c[1..], "\n";
+  print "  subsequence ([..hi]): ", b[..3], c[..1], "\n";
+  print "  subsequence ([..]): ", a[..], " ", b[..], " ", c[..], "\n";
   print "  concatenation: ", a + b, " ", b + c, "\n";
   print "  prefix: ", a <= b, " ", b <= c, " ", c <= c, "\n";
   print "  proper prefix: ", a < b, " ", b < c, " ", c < c, "\n";

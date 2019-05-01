@@ -27,6 +27,10 @@ Sequences: [] [17, 82, 17, 82] [12, 17]
   cardinality: 0 4 2
   update: [42, 82, 17, 82] [42, 17]
   index: 17 12
+  subsequence ([lo..hi]): [82, 17] [17]
+  subsequence ([lo..]): [82, 17, 82] [17]
+  subsequence ([..hi]): [17, 82, 17][12]
+  subsequence ([..]): [] [17, 82, 17, 82] [12, 17]
   concatenation: [17, 82, 17, 82] [17, 82, 17, 82, 12, 17]
   prefix: true false true
   proper prefix: true false false
@@ -78,6 +82,10 @@ Sequences: [] [17, 82, 17, 82] [12, 17]
   cardinality: 0 4 2
   update: [42, 82, 17, 82] [42, 17]
   index: 17 12
+  subsequence ([lo..hi]): [82, 17] [17]
+  subsequence ([lo..]): [82, 17, 82] [17]
+  subsequence ([..hi]): [17, 82, 17][12]
+  subsequence ([..]): [] [17, 82, 17, 82] [12, 17]
   concatenation: [17, 82, 17, 82] [17, 82, 17, 82, 12, 17]
   prefix: true false true
   proper prefix: true false false
@@ -129,6 +137,10 @@ Sequences: [] [17, 82, 17, 82] [12, 17]
   cardinality: 0 4 2
   update: [42, 82, 17, 82] [42, 17]
   index: 17 12
+  subsequence ([lo..hi]): [82, 17] [17]
+  subsequence ([lo..]): [82, 17, 82] [17]
+  subsequence ([..hi]): [17, 82, 17][12]
+  subsequence ([..]): [] [17, 82, 17, 82] [12, 17]
   concatenation: [17, 82, 17, 82] [17, 82, 17, 82, 12, 17]
   prefix: true false true
   proper prefix: true false false

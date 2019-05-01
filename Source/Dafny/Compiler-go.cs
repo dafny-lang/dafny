@@ -2616,28 +2616,23 @@ namespace Microsoft.Dafny {
 
     protected override void EmitSeqSelectRange(Expression source, Expression/*?*/ lo, Expression/*?*/ hi, bool fromArray, bool inLetExprBody, TargetWriter wr) {
       TrParenExpr(source, wr, inLetExprBody);
-      wr.Write(".");
+      wr.Write(fromArray ? ".RangeToSeq(" : ".Subseq(");
+      
       if (lo == null) {
-        if (hi == null) {
-          wr.Write("SliceAll()");
-        } else {
-          wr.Write("SliceTo(");
-          TrExpr(hi, wr, inLetExprBody);
-          wr.Write(")");
-        }
+        wr.Write("_dafny.NilInt");
       } else {
-        if (hi == null) {
-          wr.Write("SliceFrom(");
-          TrExpr(lo, wr, inLetExprBody);
-          wr.Write(")");
-        } else {
-          wr.Write("Slice(");
-          TrExpr(lo, wr, inLetExprBody);
-          wr.Write(", ");
-          TrExpr(hi, wr, inLetExprBody);
-          wr.Write(")");
-        }
+        TrExpr(lo, wr, inLetExprBody);
       }
+
+      wr.Write(", ");
+      
+      if (hi == null) {
+        wr.Write("_dafny.NilInt");
+      } else {
+        TrExpr(hi, wr, inLetExprBody);
+      }
+
+      wr.Write(")");
     }
 
     protected override void EmitMultiSetFormingExpr(MultiSetFormingExpr expr, bool inLetExprBody, TargetWriter wr) {

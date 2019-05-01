@@ -443,24 +443,24 @@ func (seq Seq) Iterator() Iterator {
 	return sliceIterator(seq.contents)
 }
 
-// Slice takes the slice a[from:to] of the given sequence.
-func (seq Seq) Slice(from, to Int) Seq {
-	return Seq{seq.contents[from.Int():to.Int()], seq.isString}
-}
+// Subseq gets the selected portion of the sequence as a new sequence.
+func (seq Seq) Subseq(lo, hi Int) Seq {
+	var slice []interface{}
+	if !lo.IsNilInt() {
+		if !hi.IsNilInt() {
+			slice = seq.contents[lo.Int():hi.Int()]
+		} else {
+			slice = seq.contents[lo.Int():]
+		}
+	} else {
+		if !hi.IsNilInt() {
+			slice = seq.contents[:hi.Int()]
+		} else {
+			slice = seq.contents
+		}
+	}
 
-// SliceAll takes the slice a[:] of the given sequence.
-func (seq Seq) SliceAll() Seq {
-	return Seq{seq.contents[:], seq.isString}
-}
-
-// SliceFrom takes the slice a[from:] of the given sequence.
-func (seq Seq) SliceFrom(ix Int) Seq {
-	return Seq{seq.contents[ix.Int():], seq.isString}
-}
-
-// SliceTo takes the slice a[:to] of the given sequence.
-func (seq Seq) SliceTo(ix Int) Seq {
-	return Seq{seq.contents[:ix.Int()], seq.isString}
+	return Seq{slice, seq.isString}
 }
 
 // Concat returns the concatenation of two sequences.
@@ -658,32 +658,17 @@ func (array *Array) Iterator() Iterator {
 	return sliceIterator(array.contents)
 }
 
-// Slice takes the slice a[from:to] of the given array.
-func (array *Array) Slice(from, to Int) *Array {
+// RangeToSeq converts the selected portion of the array to a sequence.
+func (array *Array) RangeToSeq(lo, hi Int) Seq {
 	if len(array.dims) != 1 {
 		panic("Can't take a slice of a multidimensional array")
 	}
-	f := from.Int()
-	t := to.Int()
-	return &Array{
-		contents: array.contents[f:t],
-		dims:     []int{t - f},
-	}
-}
 
-// SliceAll takes the slice a[:] of the given array.
-func (array *Array) SliceAll() *Array {
-	return array.Slice(Zero, array.Len(0))
-}
+	// TODO Should set isString to true if this is an array of characters
+	// (need to know it's an array of characters first!).
+	seq := SeqOf(array.contents...)
 
-// SliceFrom takes the slice a[from:] of the given array.
-func (array *Array) SliceFrom(ix Int) *Array {
-	return array.Slice(ix, array.Len(0))
-}
-
-// SliceTo takes the slice a[:to] of the given array.
-func (array *Array) SliceTo(ix Int) *Array {
-	return array.Slice(Zero, ix)
+	return seq.Subseq(lo, hi)
 }
 
 // Update updates a location in a one-dimensional array.  (Must be
