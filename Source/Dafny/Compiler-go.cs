@@ -1925,6 +1925,7 @@ namespace Microsoft.Dafny {
 
     protected override TargetWriter CreateLabeledCode(string label, TargetWriter wr) {
       var w = wr.Fork();
+      wr.IndentExtra(-1);
       wr.WriteLine("L{0}:", label);
       return w;
     }

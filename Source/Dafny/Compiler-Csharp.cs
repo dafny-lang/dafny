@@ -222,7 +222,7 @@ namespace Microsoft.Dafny
       w.Indent(); w.WriteLine("public void MoveNext(out bool more) { more = _iter.MoveNext(); }");
       w.Indent();
       var wIter = w.NewBlock("private System.Collections.Generic.IEnumerator<object> TheIterator()");
-      var suffix = new TargetWriter(w.IndentLevel);
+      var suffix = new TargetWriter(wIter.IndentLevel);
       suffix.Indent();
       suffix.WriteLine("yield break;");
       wIter.BodySuffix = suffix.ToString();
@@ -1111,8 +1111,7 @@ namespace Microsoft.Dafny
     protected override TargetWriter DeclareLocalVar(string name, Type/*?*/ type, Bpl.IToken/*?*/ tok, TargetWriter wr) {
       wr.Indent();
       wr.Write("{0} {1} = ", type != null ? TypeName(type, wr, tok) : "var", name);
-      var w = new TargetWriter(wr.IndentLevel);
-      wr.Append(w);
+      var w = wr.Fork();
       wr.WriteLine(";");
       return w;
     }
@@ -1163,8 +1162,7 @@ namespace Microsoft.Dafny
     }
 
     protected override TargetWriter CreateLabeledCode(string label, TargetWriter wr) {
-      var w = new TargetWriter(wr.IndentLevel);
-      wr.Append(w);
+      var w = wr.Fork();
       wr.IndentExtra(-1);
       wr.WriteLine("after_{0}: ;", label);
       return w;
@@ -1219,8 +1217,7 @@ namespace Microsoft.Dafny
     protected override BlockTargetWriter CreateForeachLoop(string boundVar, Type/*?*/ boundVarType, out TargetWriter collectionWriter, TargetWriter wr, string/*?*/ altBoundVarName = null, Type/*?*/ altVarType = null, Bpl.IToken/*?*/ tok = null) {
       wr.Indent();
       wr.Write("foreach (var {0} in ", boundVar);
-      collectionWriter = new TargetWriter(wr.IndentLevel);
-      wr.Append(collectionWriter);
+      collectionWriter = wr.Fork();
       if (altBoundVarName == null) {
         return wr.NewBlock(")");
       } else if (altVarType == null) {
@@ -1357,8 +1354,7 @@ namespace Microsoft.Dafny
         wr.Write("({0})((", nativeName);
       }
       // --- Middle
-      var middle = new TargetWriter(wr.IndentLevel);
-      wr.Append(middle);
+      var middle = wr.Fork();
       // --- After
       // do the truncation, if needed
       if (bvType.NativeType == null) {
@@ -1432,8 +1428,7 @@ namespace Microsoft.Dafny
     protected override TargetWriter EmitAddTupleToList(string ingredients, string tupleTypeArgs, TargetWriter wr) {
       wr.Indent();
       wr.Write("{0}.Add(new System.Tuple<{1}>(", ingredients, tupleTypeArgs);
-      var wrTuple = new TargetWriter(wr.IndentLevel);
-      wr.Append(wrTuple);
+      var wrTuple = wr.Fork();
       wr.WriteLine("));");
       return wrTuple;
     }
@@ -1740,8 +1735,7 @@ namespace Microsoft.Dafny
 
     protected override TargetWriter EmitBetaRedex(List<string> boundVars, List<Expression> arguments, string typeArgs, List<Type> boundTypes, Type resultType, Bpl.IToken tok, bool inLetExprBody, TargetWriter wr) {
       wr.Write("Dafny.Helpers.Id<{0}>(({1}) => ", typeArgs, Util.Comma(boundVars));
-      var w = new TargetWriter(wr.IndentLevel);
-      wr.Append(w);
+      var w = wr.Fork();
       wr.Write(")");
       TrExprList(arguments, wr, inLetExprBody);
       return w;
@@ -1775,8 +1769,7 @@ namespace Microsoft.Dafny
       wr.Write("Dafny.Helpers.Let<{0},{1}>(", TypeName(sourceType, wr, sourceTok), TypeName(resultType, wr, resultTok));
       TrExpr(source, wr, inLetExprBody);
       wr.Write(", {0} => ", bvName);
-      var w = new TargetWriter(wr.IndentLevel);
-      wr.Append(w);
+      var w = wr.Fork();
       wr.Write(")");
       int y = ((System.Func<int,int>)((u) => u + 5))(6);
       return w;
@@ -1785,8 +1778,7 @@ namespace Microsoft.Dafny
     protected override TargetWriter CreateIIFE_ExprBody(string source, Type sourceType, Bpl.IToken sourceTok, Type resultType, Bpl.IToken resultTok, string bvName, TargetWriter wr) {
       wr.Write("Dafny.Helpers.Let<{0},{1}>(", TypeName(sourceType, wr, sourceTok), TypeName(resultType, wr, resultTok));
       wr.Write("{0}, {1} => ", source, bvName);
-      var w = new TargetWriter(wr.IndentLevel);
-      wr.Append(w);
+      var w = wr.Fork();
       wr.Write(")");
       return w;
     }
@@ -2157,8 +2149,7 @@ namespace Microsoft.Dafny
       var rantypeName = TypeName(mt.Range, wr, tok);
       wr.Indent();
       wr.Write("{0}.Add(new Dafny.Pair<{1},{2}>(", collName, domtypeName, rantypeName);
-      var termLeftWriter = new TargetWriter(wr.IndentLevel);
-      wr.Append(termLeftWriter);
+      var termLeftWriter = wr.Fork();
       wr.Write(",");
       TrExpr(term, wr, inLetExprBody);
       wr.WriteLine("));");
