@@ -4,6 +4,7 @@
 //
 //-----------------------------------------------------------------------------
 using System;
+using System.CodeDom;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
@@ -11,6 +12,8 @@ using System.IO;
 using System.Diagnostics.Contracts;
 using Bpl = Microsoft.Boogie;
 using System.Collections.ObjectModel;
+using System.Diagnostics.SymbolStore;
+using System.Net.Security;
 using System.Text;
 
 
@@ -1781,175 +1784,160 @@ namespace Microsoft.Dafny {
         }
         var rhs = ((ExprRhs)s0.Rhs).Expr;
 
-        // Compile:
-        //   forall (w,x,y,z | Range(w,x,y,z)) {
-        //     LHS(w,x,y,z) := RHS(w,x,y,z);
-        //   }
-        // where w,x,y,z have types seq<W>,set<X>,int,bool and LHS has L-1 top-level subexpressions
-        // (that is, L denotes the number of top-level subexpressions of LHS plus 1),
-        // into:
-        //   var ingredients = new List< L-Tuple >();
-        //   foreach (W w in sq.UniqueElements) {
-        //     foreach (X x in st.Elements) {
-        //       for (BigInteger y = Lo; j < Hi; j++) {
-        //         for (bool z in Helper.AllBooleans) {
-        //           if (Range(w,x,y,z)) {
-        //             ingredients.Add(new L-Tuple( LHS0(w,x,y,z), LHS1(w,x,y,z), ..., RHS(w,x,y,z) ));
-        //           }
-        //         }
-        //       }
-        //     }
-        //   }
-        //   foreach (L-Tuple l in ingredients) {
-        //     LHS[ l0, l1, l2, ..., l(L-2) ] = l(L-1);
-        //   }
-        //
-        // Note, because the .NET Tuple class only supports up to 8 components, the compiler implementation
-        // here supports arrays only up to 6 dimensions.  This does not seem like a serious practical limitation.
-        // However, it may be more noticeable if the forall statement supported forall assignments in its
-        // body.  To support cases where tuples would need more than 8 components, .NET Tuple's would have to
-        // be nested.
-
-        // Temporary names
-        var c = idGenerator.FreshNumericId("_ingredients+_tup");
-        string ingredients = "_ingredients" + c;
-        string tup = "_tup" + c;
-
-        // Compute L
-        int L;
-        string tupleTypeArgs;
-        List<Type> tupleTypeArgsList;
-        if (s0.Lhs is MemberSelectExpr) {
-          var lhs = (MemberSelectExpr)s0.Lhs;
-          L = 2;
-          tupleTypeArgs = TypeName(lhs.Obj.Type, wr, lhs.tok);
-          tupleTypeArgsList = new List<Type> { lhs.Obj.Type };
-        } else if (s0.Lhs is SeqSelectExpr) {
-          var lhs = (SeqSelectExpr)s0.Lhs;
-          L = 3;
-          // note, we might as well do the BigInteger-to-int cast for array indices here, before putting things into the Tuple rather than when they are extracted from the Tuple
-          tupleTypeArgs = TypeName(lhs.Seq.Type, wr, lhs.tok) + ",int";
-          tupleTypeArgsList = new List<Type> { lhs.Seq.Type, null };
+        if (CanSequentializeForall(s.BoundVars, s.Bounds, s.Range, s0.Lhs, rhs)) {
+          // Just put the statement inside the loops
+          var wLoop = CompileGuardedLoops(s.BoundVars, s.Bounds, s.Range, wr);
+          TrStmt(s0, wLoop);
         } else {
-          var lhs = (MultiSelectExpr)s0.Lhs;
-          L = 2 + lhs.Indices.Count;
-          if (8 < L) {
-            Error(lhs.tok, "compiler currently does not support assignments to more-than-6-dimensional arrays in forall statements", wr);
-            return;
-          }
-          tupleTypeArgs = TypeName(lhs.Array.Type, wr, lhs.tok);
-          tupleTypeArgsList = new List<Type> { lhs.Array.Type };
-          for (int i = 0; i < lhs.Indices.Count; i++) {
-            // note, we might as well do the BigInteger-to-int cast for array indices here, before putting things into the Tuple rather than when they are extracted from the Tuple
-            tupleTypeArgs += ",int";
-            tupleTypeArgsList.Add(null);
-          }
-          
-        }
-        tupleTypeArgs += "," + TypeName(rhs.Type, wr, rhs.tok);
-        tupleTypeArgsList.Add(rhs.Type);
+          // Compile:
+          //   forall (w,x,y,z | Range(w,x,y,z)) {
+          //     LHS(w,x,y,z) := RHS(w,x,y,z);
+          //   }
+          // where w,x,y,z have types seq<W>,set<X>,int,bool and LHS has L-1 top-level subexpressions
+          // (that is, L denotes the number of top-level subexpressions of LHS plus 1),
+          // into:
+          //   var ingredients = new List< L-Tuple >();
+          //   foreach (W w in sq.UniqueElements) {
+          //     foreach (X x in st.Elements) {
+          //       for (BigInteger y = Lo; j < Hi; j++) {
+          //         for (bool z in Helper.AllBooleans) {
+          //           if (Range(w,x,y,z)) {
+          //             ingredients.Add(new L-Tuple( LHS0(w,x,y,z), LHS1(w,x,y,z), ..., RHS(w,x,y,z) ));
+          //           }
+          //         }
+          //       }
+          //     }
+          //   }
+          //   foreach (L-Tuple l in ingredients) {
+          //     LHS[ l0, l1, l2, ..., l(L-2) ] = l(L-1);
+          //   }
+          //
+          // Note, because the .NET Tuple class only supports up to 8 components, the compiler implementation
+          // here supports arrays only up to 6 dimensions.  This does not seem like a serious practical limitation.
+          // However, it may be more noticeable if the forall statement supported forall assignments in its
+          // body.  To support cases where tuples would need more than 8 components, .NET Tuple's would have to
+          // be nested.
 
-        // declare and construct "ingredients"
-        using (var wrVarInit = DeclareLocalVar(ingredients, null, null, wr)) {
-          EmitEmptyTupleList(tupleTypeArgs, wrVarInit);
-        }
+          // Temporary names
+          var c = idGenerator.FreshNumericId("_ingredients+_tup");
+          string ingredients = "_ingredients" + c;
+          string tup = "_tup" + c;
 
-        var wrOuter = wr;
-        var n = s.BoundVars.Count;
-        Contract.Assert(s.Bounds.Count == n);
-        for (int i = 0; i < n; i++) {
-          var bound = s.Bounds[i];
-          var bv = s.BoundVars[i];
-          TargetWriter collectionWriter;
-          wr = CreateForeachLoop(IdName(bv), bv.Type, out collectionWriter, wr);
-          CompileCollection(bound, bv, false, false, collectionWriter, s.Bounds, s.BoundVars, i);
-        }
-
-        // if (range) {
-        //   ingredients.Add(new L-Tuple( LHS0(w,x,y,z), LHS1(w,x,y,z), ..., RHS(w,x,y,z) ));
-        // }
-        TargetWriter guardWriter;
-        wr = EmitIf(out guardWriter, false, wr);
-        foreach (var bv in s.BoundVars) {
-          var bvConstraints = Resolver.GetImpliedTypeConstraint(bv, bv.Type);
-          TrParenExpr(bvConstraints, guardWriter, false);
-          guardWriter.Write(" && ");
-        }
-        TrParenExpr(s.Range, guardWriter, false);
-
-        using (var wrTuple = EmitAddTupleToList(ingredients, tupleTypeArgs, wr)) {
+          // Compute L
+          int L;
+          string tupleTypeArgs;
+          List<Type> tupleTypeArgsList;
           if (s0.Lhs is MemberSelectExpr) {
-            var lhs = (MemberSelectExpr)s0.Lhs;
-            TrExpr(lhs.Obj, wrTuple, false);
+            var lhs = (MemberSelectExpr) s0.Lhs;
+            L = 2;
+            tupleTypeArgs = TypeName(lhs.Obj.Type, wr, lhs.tok);
+            tupleTypeArgsList = new List<Type> { lhs.Obj.Type };
           } else if (s0.Lhs is SeqSelectExpr) {
-            var lhs = (SeqSelectExpr)s0.Lhs;
-            TrExpr(lhs.Seq, wrTuple, false);
-            wrTuple.Write(", ");
-            EmitExprAsInt(lhs.E0, false, wrTuple);
+            var lhs = (SeqSelectExpr) s0.Lhs;
+            L = 3;
+            // note, we might as well do the BigInteger-to-int cast for array indices here, before putting things into the Tuple rather than when they are extracted from the Tuple
+            tupleTypeArgs = TypeName(lhs.Seq.Type, wr, lhs.tok) + ",int";
+            tupleTypeArgsList = new List<Type> { lhs.Seq.Type, null };
           } else {
-            var lhs = (MultiSelectExpr)s0.Lhs;
-            TrExpr(lhs.Array, wrTuple, false);
-            for (int i = 0; i < lhs.Indices.Count; i++) {
-              wrTuple.Write(", ");
-              EmitExprAsInt(lhs.Indices[i], false, wrTuple);
+            var lhs = (MultiSelectExpr) s0.Lhs;
+            L = 2 + lhs.Indices.Count;
+            if (8 < L) {
+              Error(lhs.tok, "compiler currently does not support assignments to more-than-6-dimensional arrays in forall statements", wr);
+              return;
             }
+            tupleTypeArgs = TypeName(lhs.Array.Type, wr, lhs.tok);
+            tupleTypeArgsList = new List<Type> { lhs.Array.Type };
+            for (int i = 0; i < lhs.Indices.Count; i++) {
+              // note, we might as well do the BigInteger-to-int cast for array indices here, before putting things into the Tuple rather than when they are extracted from the Tuple
+              tupleTypeArgs += ",int";
+              tupleTypeArgsList.Add(null);
+            }
+
           }
-          wrTuple.Write(", ");
-          TrExpr(rhs, wrTuple, false);
-        }
+          tupleTypeArgs += "," + TypeName(rhs.Type, wr, rhs.tok);
+          tupleTypeArgsList.Add(rhs.Type);
 
-        //   foreach (L-Tuple l in ingredients) {
-        //     LHS[ l0, l1, l2, ..., l(L-2) ] = l(L-1);
-        //   }
-        TargetWriter collWriter;
-        wr = CreateForeachLoop(tup, null, out collWriter, wrOuter);
-        collWriter.Write(ingredients);
-        {
-          var wTup = new TargetWriter();
-          var wCoerceTup = EmitCoercionToArbitraryTuple(wTup);
-          wCoerceTup.Write(tup);
-          tup = wTup.ToString();
-        }
-        wr.Indent();
-        if (s0.Lhs is MemberSelectExpr) {
-          var lhs = (MemberSelectExpr)s0.Lhs;
-          var wCoerced = EmitCoercionIfNecessary(from:null, to:tupleTypeArgsList[0], tok:s0.Tok, wr:wr);
-          EmitTupleSelect(tup, 0, wCoerced);
-          wr.Write(".{0} = ", IdMemberName(lhs));
-          wCoerced = EmitCoercionIfNecessary(from:null, to:tupleTypeArgsList[1], tok:s0.Tok, wr:wr);
-          EmitTupleSelect(tup, 1, wCoerced);
-          EndStmt(wr);
-        } else if (s0.Lhs is SeqSelectExpr) {
-          var lhs = (SeqSelectExpr)s0.Lhs;
-          TargetWriter wColl, wIndex, wValue;
-          EmitIndexCollectionUpdate(out wColl, out wIndex, out wValue, wr, nativeIndex: true);
-
-          var wCoerce = EmitCoercionIfNecessary(from:null, to:lhs.Seq.Type, tok:s0.Tok, wr:wColl);
-          EmitTupleSelect(tup, 0, wCoerce);
-          
-          var wCast = EmitCoercionToNativeInt(wIndex);
-          EmitTupleSelect(tup, 1, wCast);
-
-          EmitTupleSelect(tup, 2, wValue);
-          EndStmt(wr);
-        } else {
-          var lhs = (MultiSelectExpr)s0.Lhs;
-          var wArray = new TargetWriter();
-          var wCoerced = EmitCoercionIfNecessary(from:null, to:tupleTypeArgsList[0], tok:s0.Tok, wr:wArray);
-          EmitTupleSelect(tup, 0, wCoerced);
-          var array = wArray.ToString();
-          var indices = new List<string>();          
-          for (int i = 0; i < lhs.Indices.Count; i++) {
-            var wIndex = new TargetWriter();
-            EmitTupleSelect(tup, i+1, wIndex);
-            indices.Add(wIndex.ToString());
+          // declare and construct "ingredients"
+          using (var wrVarInit = DeclareLocalVar(ingredients, null, null, wr)) {
+            EmitEmptyTupleList(tupleTypeArgs, wrVarInit);
           }
-          EmitArraySelectAsLvalue(array, indices, tupleTypeArgsList[L-1], wr);
-          wr.Write(" = ");
-          EmitTupleSelect(tup, L-1, wr);
-          EndStmt(wr);
-        }
 
+          var wrOuter = wr;
+          wr = CompileGuardedLoops(s.BoundVars, s.Bounds, s.Range, wr);
+
+          using (var wrTuple = EmitAddTupleToList(ingredients, tupleTypeArgs, wr)) {
+            if (s0.Lhs is MemberSelectExpr) {
+              var lhs = (MemberSelectExpr) s0.Lhs;
+              TrExpr(lhs.Obj, wrTuple, false);
+            } else if (s0.Lhs is SeqSelectExpr) {
+              var lhs = (SeqSelectExpr) s0.Lhs;
+              TrExpr(lhs.Seq, wrTuple, false);
+              wrTuple.Write(", ");
+              EmitExprAsInt(lhs.E0, false, wrTuple);
+            } else {
+              var lhs = (MultiSelectExpr) s0.Lhs;
+              TrExpr(lhs.Array, wrTuple, false);
+              for (int i = 0; i < lhs.Indices.Count; i++) {
+                wrTuple.Write(", ");
+                EmitExprAsInt(lhs.Indices[i], false, wrTuple);
+              }
+            }
+            wrTuple.Write(", ");
+            TrExpr(rhs, wrTuple, false);
+          }
+
+          //   foreach (L-Tuple l in ingredients) {
+          //     LHS[ l0, l1, l2, ..., l(L-2) ] = l(L-1);
+          //   }
+          TargetWriter collWriter;
+          wr = CreateForeachLoop(tup, null, out collWriter, wrOuter);
+          collWriter.Write(ingredients);
+          {
+            var wTup = new TargetWriter();
+            var wCoerceTup = EmitCoercionToArbitraryTuple(wTup);
+            wCoerceTup.Write(tup);
+            tup = wTup.ToString();
+          }
+          wr.Indent();
+          if (s0.Lhs is MemberSelectExpr) {
+            var lhs = (MemberSelectExpr) s0.Lhs;
+            var wCoerced = EmitCoercionIfNecessary(from:null, to:tupleTypeArgsList[0], tok:s0.Tok, wr:wr);
+            EmitTupleSelect(tup, 0, wCoerced);
+            wr.Write(".{0} = ", IdMemberName(lhs));
+            wCoerced = EmitCoercionIfNecessary(from:null, to:tupleTypeArgsList[1], tok:s0.Tok, wr:wr);
+            EmitTupleSelect(tup, 1, wCoerced);
+            EndStmt(wr);
+          } else if (s0.Lhs is SeqSelectExpr) {
+            var lhs = (SeqSelectExpr) s0.Lhs;
+            TargetWriter wColl, wIndex, wValue;
+            EmitIndexCollectionUpdate(out wColl, out wIndex, out wValue, wr, nativeIndex: true);
+
+            var wCoerce = EmitCoercionIfNecessary(from:null, to:lhs.Seq.Type, tok:s0.Tok, wr:wColl);
+            EmitTupleSelect(tup, 0, wCoerce);
+
+            var wCast = EmitCoercionToNativeInt(wIndex);
+            EmitTupleSelect(tup, 1, wCast);
+
+            EmitTupleSelect(tup, 2, wValue);
+            EndStmt(wr);
+          } else {
+            var lhs = (MultiSelectExpr) s0.Lhs;
+            var wArray = new TargetWriter();
+            var wCoerced = EmitCoercionIfNecessary(from:null, to:tupleTypeArgsList[0], tok:s0.Tok, wr:wArray);
+            EmitTupleSelect(tup, 0, wCoerced);
+            var array = wArray.ToString();
+            var indices = new List<string>();
+            for (int i = 0; i < lhs.Indices.Count; i++) {
+              var wIndex = new TargetWriter();
+              EmitTupleSelect(tup, i + 1, wIndex);
+              indices.Add(wIndex.ToString());
+            }
+            EmitArraySelectAsLvalue(array, indices, tupleTypeArgsList[L - 1], wr);
+            wr.Write(" = ");
+            EmitTupleSelect(tup, L - 1, wr);
+            EndStmt(wr);
+          }
+        }
       } else if (stmt is MatchStmt) {
         MatchStmt s = (MatchStmt)stmt;
         // Type source = e;
@@ -2010,6 +1998,32 @@ namespace Microsoft.Dafny {
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected statement
       }
+    }
+
+    private TargetWriter CompileGuardedLoops(List<BoundVar> bvs, List<ComprehensionExpr.BoundedPool> bounds, Expression range, TargetWriter wr) {
+      var n = bvs.Count;
+      Contract.Assert(bounds.Count == n);
+      for (int i = 0; i < n; i++) {
+        var bound = bounds[i];
+        var bv = bvs[i];
+        TargetWriter collectionWriter;
+        wr = CreateForeachLoop(IdName(bv), bv.Type, out collectionWriter, wr);
+        CompileCollection(bound, bv, false, false, collectionWriter, bounds, bvs, i);
+      }
+
+      // if (range) {
+      //   ingredients.Add(new L-Tuple( LHS0(w,x,y,z), LHS1(w,x,y,z), ..., RHS(w,x,y,z) ));
+      // }
+      TargetWriter guardWriter;
+      wr = EmitIf(out guardWriter, false, wr);
+      foreach (var bv in bvs) {
+        var bvConstraints = Resolver.GetImpliedTypeConstraint(bv, bv.Type);
+        TrParenExpr(bvConstraints, guardWriter, false);
+        guardWriter.Write(" && ");
+      }
+      TrParenExpr(range, guardWriter, false);
+
+      return wr;
     }
 
     void CompileCollection(ComprehensionExpr.BoundedPool bound, IVariable bv, bool inLetExprBody, bool includeDuplicates,
@@ -2109,6 +2123,115 @@ namespace Microsoft.Dafny {
       }
       var ivars = exists.BoundVars.ConvertAll(bv => (IVariable)bv);
       TrAssignSuchThat(ivars, exists.Term, exists.Bounds, exists.tok.line, wr, false);
+    }
+
+    private bool CanSequentializeForall(List<BoundVar> bvs, List<ComprehensionExpr.BoundedPool> bounds, Expression range, Expression lhs, Expression rhs) {
+      Contract.Assert(bvs.Count == bounds.Count);
+
+      if (!noImpureFunctionCalls(lhs, rhs, range)) {
+        return false;
+      } else if (lhs is SeqSelectExpr sse) {
+        return
+          no1DArrayAccesses(sse.Seq, sse.E0, range, rhs) ||
+
+          bvs.Count == 1 &&
+          isVar(bvs[0], sse.E0) &&
+          noSequenceConversions(range, rhs) &&
+          indexIsAlwaysVar(bvs[0], range, rhs) &&
+          producesDistinctValues(bounds[0]);
+      } else if (lhs is MultiSelectExpr mse) {
+        var exprs = new List<Expression>() { mse.Array, range, rhs };
+        exprs.AddRange(mse.Indices);
+        return noMultiDArrayAccesses(exprs.ToArray());
+        // TODO Might be able to relax this
+      } else {
+        // !@#$#@$% scope rules won't let me call this mse ...
+        var mse2 = (MemberSelectExpr) lhs;
+
+        return
+          noFieldAccesses(mse2.Member, mse2.Obj, range, rhs) ||
+
+          bvs.Count == 1 &&
+          isVar(bvs[0], mse2.Obj) &&
+          accessedObjectIsAlwaysVar(mse2.Member, bvs[0], range, rhs) &&
+          producesDistinctValues(bounds[0]);
+      }
+
+      bool noImpureFunctionCalls(params Expression[] exprs) {
+        return exprs.All(e => Check<ApplyExpr>(e, fce => {
+          var ty = (UserDefinedType) fce.Function.Type.NormalizeExpandKeepConstraints();
+          return ArrowType.IsPartialArrowTypeName(ty.Name) || ArrowType.IsTotalArrowTypeName(ty.Name);
+        }));
+      }
+
+      bool no1DArrayAccesses(params Expression[] exprs) {
+        return exprs.All(e => Check<SeqSelectExpr>(e, _ => false));
+      }
+
+      bool noMultiDArrayAccesses(params Expression[] exprs) {
+        return exprs.All(e => Check<MultiSelectExpr>(e, _ => false));
+      }
+
+      bool noFieldAccesses(MemberDecl member, params Expression[] exprs) {
+        return exprs.All(e => Check<MemberSelectExpr>(e, mse => mse.Member != member));
+      }
+
+      bool isVar(BoundVar var, Expression expr) {
+        return expr.Resolved is IdentifierExpr ie && ie.Var == var;
+      }
+
+      bool noSequenceConversions(params Expression[] exprs) {
+        return exprs.All(e => Check<SeqSelectExpr>(e, sse2 => sse2.SelectOne));
+      }
+
+      bool indexIsAlwaysVar(BoundVar var, params Expression[] exprs) {
+        return exprs.All(e => Check<SeqSelectExpr>(e, sse2 => !sse2.SelectOne || isVar(var, sse2.E0)));
+      }
+
+      bool accessedObjectIsAlwaysVar(MemberDecl member, BoundVar var, params Expression[] exprs) {
+        return exprs.All(e => Check<MemberSelectExpr>(e, mse => mse.Member != member || isVar(var, mse.Obj)));
+      }
+
+      bool producesDistinctValues(ComprehensionExpr.BoundedPool bound) {
+        return
+          bound is ComprehensionExpr.BoolBoundedPool ||
+          bound is ComprehensionExpr.CharBoundedPool ||
+          bound is ComprehensionExpr.IntBoundedPool ||
+          bound is AssignSuchThatStmt.WiggleWaggleBound ||
+          bound is ComprehensionExpr.ExactBoundedPool ||
+          bound is ComprehensionExpr.SeqBoundedPool || // thanks to UniqueElements()
+          bound is ComprehensionExpr.SetBoundedPool ||
+          bound is ComprehensionExpr.DatatypeBoundedPool;
+      }
+    }
+
+    /// <summary>
+    /// Check all of the given expression's subexpressions of a given type
+    /// using a predicate.  Returns true only if the predicate returns true for
+    /// all subexpressions of type <typeparamref name="E"/>.
+    /// </summary>
+    private static bool Check<E>(Expression e, Predicate<E> pred) where E : Expression {
+      var checker = new Checker<E>(pred);
+      checker.Visit(e, null);
+      return checker.Passing;
+    }
+
+    private class Checker<E> : TopDownVisitor<object> where E : Expression {
+      private readonly Predicate<E> Pred;
+      public bool Passing = true;
+
+      public Checker(Predicate<E> pred) {
+        Pred = pred;
+      }
+
+      protected override bool VisitOneExpr(Expression expr, ref object st) {
+        if (expr is E e && !Pred(e)) {
+          Passing = false;
+          return false;
+        } else {
+          return true;
+        }
+      }
     }
 
     private void TrAssignSuchThat(List<IVariable> lhss, Expression constraint, List<ComprehensionExpr.BoundedPool> bounds, int debuginfoLine, TargetWriter wr, bool inLetExprBody) {
