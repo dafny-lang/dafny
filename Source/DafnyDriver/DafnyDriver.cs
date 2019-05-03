@@ -78,7 +78,12 @@ namespace Microsoft.Dafny
       otherFiles = new List<string>();
 
       CommandLineOptions.Clo.RunningBoogieFromCommandLine = true;
-      if (!CommandLineOptions.Clo.Parse(args)) {
+      try {
+        if (!CommandLineOptions.Clo.Parse(args)) {
+          return ExitValue.PREPROCESSING_ERROR;
+        }
+      } catch (ProverException pe) {
+        ExecutionEngine.printer.ErrorWriteLine(Console.Out, "*** ProverException: {0}", pe.Message);
         return ExitValue.PREPROCESSING_ERROR;
       }
 
