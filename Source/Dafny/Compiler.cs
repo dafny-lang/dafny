@@ -2406,15 +2406,22 @@ namespace Microsoft.Dafny {
       } else {
         // compile call as a regular call
 
-        var lvalues = new List<string>();
+        var lvalues = new List<string/*?*/>();  // contains an entry for each non-ghost formal out-parameter, but the entry is null if the actual out-parameter is ghost
         Contract.Assert(s.Lhs.Count == s.Method.Outs.Count);
         for (int i = 0; i < s.Method.Outs.Count; i++) {
           Formal p = s.Method.Outs[i];
           if (!p.IsGhost) {
-            lvalues.Add(CreateLvalue(s.Lhs[i], wr));
+            var lhs = s.Lhs[i].Resolved;
+            if (lhs is IdentifierExpr lhsIE && lhsIE.Var.IsGhost) {
+              lvalues.Add(null);
+            } else if (lhs is MemberSelectExpr lhsMSE && lhsMSE.Member.IsGhost) {
+              lvalues.Add(null);
+            } else {
+              lvalues.Add(CreateLvalue(s.Lhs[i], wr));
+            }
           }
         }
-        var outTmps = new List<string>();
+        var outTmps = new List<string>();  // contains a name for each non-ghost formal out-parameter
         for (int i = 0; i < s.Method.Outs.Count; i++) {
           Formal p = s.Method.Outs[i];
           if (!p.IsGhost) {
@@ -2472,11 +2479,6 @@ namespace Microsoft.Dafny {
         }
         Contract.Assert(lvalues.Count == outTmps.Count);
 
-        for (int i = 0; i < s.Method.Ins.Count; i++) {
-          Formal p = s.Method.Ins[i];
-          if (!p.IsGhost) {
-          }
-        }
         bool returnStyleOuts = UseReturnStyleOuts(s.Method, outTmps.Count);
         var returnStyleOutCollector = outTmps.Count > 0 && returnStyleOuts && !SupportsMultipleReturns ? idGenerator.FreshId("_outcollector") : null;
         if (returnStyleOutCollector != null) {
@@ -2542,18 +2544,25 @@ namespace Microsoft.Dafny {
         }
 
         // assign to the actual LHSs
-        for (int j = 0; j < lvalues.Count; j++) {
-          // The type information here takes care both of implicit upcasts and
-          // implicit downcasts from type parameters (see above).
-          TargetWriter wLhs, wRhs;
-          EmitAssignment(out wLhs, s.Lhs[j].Type, out wRhs, s.Method.Outs[j].Type, wr);
-          wLhs.Write(lvalues[j]);
-          if (s.Method.IsExtern(out _, out _)) {
-            wRhs = EmitCoercionFromNativeForm(s.Method.Outs[j].Type, s.Tok, wRhs);
+        for (int j = 0, l = 0; j < s.Method.Outs.Count; j++) {
+          var p = s.Method.Outs[j];
+          if (!p.IsGhost) {
+            var lvalue = lvalues[l];
+            if (lvalue != null) {
+              // The type information here takes care both of implicit upcasts and
+              // implicit downcasts from type parameters (see above).
+              TargetWriter wLhs, wRhs;
+              EmitAssignment(out wLhs, s.Lhs[j].Type, out wRhs, p.Type, wr);
+              wLhs.Write(lvalue);
+              if (s.Method.IsExtern(out _, out _)) {
+                wRhs = EmitCoercionFromNativeForm(p.Type, s.Tok, wRhs);
+              }
+              wRhs.Write(outTmps[l]);
+              // Coercion from the out type to the LHS type is the responsibility
+              // of the EmitAssignment above
+            }
+            l++;
           }
-          wRhs.Write(outTmps[j]);
-          // Coercion from the out type to the LHS type is the responsibility
-          // of the EmitAssignment above
         }
       }
       return wr;
