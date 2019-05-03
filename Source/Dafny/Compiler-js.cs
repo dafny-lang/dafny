@@ -2011,7 +2011,7 @@ namespace Microsoft.Dafny {
         case BinaryExpr.ResolvedOpcode.InSeq:
           staticCallString = "_dafny.Seq.contains"; reverseArguments = true; break;
         case BinaryExpr.ResolvedOpcode.NotInSeq:
-          preOpString = "!"; callString = "contains"; reverseArguments = true; break;
+          preOpString = "!"; staticCallString = "_dafny.Seq.contains"; reverseArguments = true; break;
 
         default:
           Contract.Assert(false); throw new cce.UnreachableException();  // unexpected binary expression
