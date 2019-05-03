@@ -1,0 +1,10 @@
+# Reading from unmarshal.transcript
+method A(a:int) returns (b: int) {
+  b := a;
+  assert false;
+}
+
+Verification completed successfully!
+[SUCCESS] [[DAFNY-SERVER: EOM]]
+Verification completed successfully!
+[SUCCESS] [[DAFNY-SERVER: EOM]]

@@ -87,6 +87,10 @@ namespace Microsoft.Dafny {
           ServerUtils.checkArgs(command, 0);
           ReadPayload();
           VersionCheck.CurrentVersion();
+        } else if (verb == "unmarshal") {
+          ServerUtils.checkArgs(command, 0);
+          var payload = ReadPayload();
+          VerificationTask.ReadTask(payload).Unmarshal();
         } else if (verb == "quit") {
           ServerUtils.checkArgs(command, 0);
           Exit();

@@ -63,5 +63,9 @@ namespace Microsoft.Dafny {
     public void DotGraph() {
       new DafnyHelper(args, filename, ProgramSource).DotGraph();
     }
+
+    public void Unmarshal() {
+      Console.WriteLine(ProgramSource);
+    }
   }
 }
