@@ -714,6 +714,8 @@ namespace Microsoft.Dafny
       public readonly BlockTargetWriter StaticMemberWriter;
 
       public ClassWriter(CsharpCompiler compiler, BlockTargetWriter instanceMemberWriter, BlockTargetWriter staticMemberWriter = null) {
+        Contract.Requires(compiler != null);
+        Contract.Requires(instanceMemberWriter != null);
         this.Compiler = compiler;
         this.InstanceMemberWriter = instanceMemberWriter;
         this.StaticMemberWriter = staticMemberWriter == null ? instanceMemberWriter : staticMemberWriter;
@@ -889,8 +891,8 @@ namespace Microsoft.Dafny
     }
 
     protected override string TypeName(Type type, TextWriter wr, Bpl.IToken tok, MemberDecl/*?*/ member = null) {
-      Contract.Requires(type != null);
       Contract.Ensures(Contract.Result<string>() != null);
+      Contract.Assume(type != null);  // precondition; this ought to be declared as a Requires in the superclass
 
       var xType = type.NormalizeExpand();
       if (xType is TypeProxy) {
@@ -1059,8 +1061,8 @@ namespace Microsoft.Dafny
     }
 
     protected override string TypeName_UDT(string fullCompileName, List<Type> typeArgs, TextWriter wr, Bpl.IToken tok) {
-      Contract.Requires(fullCompileName != null);
-      Contract.Requires(typeArgs != null);
+      Contract.Assume(fullCompileName != null);  // precondition; this ought to be declared as a Requires in the superclass
+      Contract.Assume(typeArgs != null);  // precondition; this ought to be declared as a Requires in the superclass
       string s = IdProtect(fullCompileName);
       if (typeArgs.Count != 0) {
         if (typeArgs.Exists(ComplicatedTypeParameterForCompilation)) {
@@ -1534,7 +1536,7 @@ namespace Microsoft.Dafny
     }
 
     protected override string FullTypeName(UserDefinedType udt, MemberDecl/*?*/ member = null) {
-      Contract.Requires(udt != null);
+      Contract.Assume(udt != null);  // precondition; this ought to be declared as a Requires in the superclass
       if (udt is ArrowType) {
         return ArrowType.Arrow_FullCompileName;
       }

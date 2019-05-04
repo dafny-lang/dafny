@@ -591,6 +591,9 @@ namespace Microsoft.Dafny {
       public readonly BlockTargetWriter FieldWriter;
 
       public ClassWriter(JavaScriptCompiler compiler, BlockTargetWriter methodWriter, BlockTargetWriter fieldWriter) {
+        Contract.Requires(compiler != null);
+        Contract.Requires(methodWriter != null);
+        Contract.Requires(fieldWriter != null);
         this.Compiler = compiler;
         this.MethodWriter = methodWriter;
         this.FieldWriter = fieldWriter;
@@ -837,8 +840,8 @@ namespace Microsoft.Dafny {
     }
 
     protected override string TypeName(Type type, TextWriter wr, Bpl.IToken tok, MemberDecl/*?*/ member = null) {
-      Contract.Requires(type != null);
       Contract.Ensures(Contract.Result<string>() != null);
+      Contract.Assume(type != null);  // precondition; this ought to be declared as a Requires in the superclass
 
       var xType = type.NormalizeExpand();
       if (xType is TypeProxy) {
@@ -1011,8 +1014,8 @@ namespace Microsoft.Dafny {
     }
 
     protected override string TypeName_UDT(string fullCompileName, List<Type> typeArgs, TextWriter wr, Bpl.IToken tok) {
-      Contract.Requires(fullCompileName != null);
-      Contract.Requires(typeArgs != null);
+      Contract.Assume(fullCompileName != null);  // precondition; this ought to be declared as a Requires in the superclass
+      Contract.Assume(typeArgs != null);  // precondition; this ought to be declared as a Requires in the superclass
       string s = IdProtect(fullCompileName);
       return s;
     }
@@ -1401,7 +1404,7 @@ namespace Microsoft.Dafny {
     }
 
     protected override string FullTypeName(UserDefinedType udt, MemberDecl/*?*/ member = null) {
-      Contract.Requires(udt != null);
+      Contract.Assume(udt != null);  // precondition; this ought to be declared as a Requires in the superclass
       if (udt is ArrowType) {
         return ArrowType.Arrow_FullCompileName;
       }

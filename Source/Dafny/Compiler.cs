@@ -48,7 +48,7 @@ namespace Microsoft.Dafny {
 
     public ErrorReporter Reporter;
 
-    protected void Error(Bpl.IToken tok, string msg, TextWriter wr, params object[] args) {
+    protected void Error(Bpl.IToken tok, string msg, TextWriter/*?*/ wr, params object[] args) {
       Contract.Requires(msg != null);
       Contract.Requires(args != null);
 
@@ -407,6 +407,12 @@ namespace Microsoft.Dafny {
       wr.Write("null");
     }
     protected virtual void EmitITE(Expression guard, Expression thn, Expression els, bool inLetExprBody, TargetWriter wr) {
+      Contract.Requires(guard != null);
+      Contract.Requires(thn != null);
+      Contract.Requires(thn.Type != null);
+      Contract.Requires(els != null);
+      Contract.Requires(wr != null);
+
       wr.Write("(");
       TrExpr(guard, wr, inLetExprBody);
       wr.Write(") ? (");
@@ -945,9 +951,8 @@ namespace Microsoft.Dafny {
       }
     }
 
-    void CheckHandleWellformed(ClassDecl cl, TextWriter errorWr) {
+    void CheckHandleWellformed(ClassDecl cl, TextWriter/*?*/ errorWr) {
       Contract.Requires(cl != null);
-      Contract.Requires(errorWr != null);
       var isHandle = true;
       if (Attributes.ContainsBool(cl.Attributes, "handle", ref isHandle) && isHandle) {
         foreach (var trait in cl.TraitsObj) {

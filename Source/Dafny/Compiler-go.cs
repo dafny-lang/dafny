@@ -1123,6 +1123,8 @@ namespace Microsoft.Dafny {
       public bool AnyInstanceFields { get; private set; } = false;
 
       public ClassWriter(GoCompiler compiler, string className, bool isExtern, TargetWriter abstractMethodWriter, TargetWriter concreteMethodWriter, TargetWriter instanceFieldWriter, TargetWriter instanceFieldInitWriter, TargetWriter traitInitWriter, TargetWriter staticFieldWriter, TargetWriter staticFieldInitWriter) {
+        Contract.Requires(compiler != null);
+        Contract.Requires(className != null);
         this.Compiler = compiler;
         this.ClassName = className;
         this.IsExtern = isExtern;
@@ -1489,8 +1491,8 @@ namespace Microsoft.Dafny {
     }
 
     protected override string TypeName(Type type, TextWriter wr, Bpl.IToken tok, MemberDecl/*?*/ member = null) {
-      Contract.Requires(type != null);
       Contract.Ensures(Contract.Result<string>() != null);
+      Contract.Assume(type != null);  // precondition; this ought to be declared as a Requires in the superclass
 
       var xType = type.NormalizeExpand();
       if (xType is TypeProxy) {
@@ -1658,8 +1660,8 @@ namespace Microsoft.Dafny {
     }
 
     protected override string TypeName_UDT(string fullCompileName, List<Type> typeArgs, TextWriter wr, Bpl.IToken tok) {
-      Contract.Requires(fullCompileName != null);
-      Contract.Requires(typeArgs != null);
+      Contract.Assume(fullCompileName != null);  // precondition; this ought to be declared as a Requires in the superclass
+      Contract.Assume(typeArgs != null);  // precondition; this ought to be declared as a Requires in the superclass
       string s = "*" + IdProtect(fullCompileName);
       return s;
     }
@@ -2221,12 +2223,10 @@ namespace Microsoft.Dafny {
     }
 
     protected override string IdName(TopLevelDecl d) {
-      Contract.Requires(d != null);
       return IdName((Declaration) d);
     }
 
     protected override string IdName(MemberDecl member) {
-      Contract.Requires(member != null);
       return IdName((Declaration) member);
     }
 
@@ -2394,8 +2394,6 @@ namespace Microsoft.Dafny {
     }
 
     protected override void EmitITE(Expression guard, Expression thn, Expression els, bool inLetExprBody, TargetWriter wr) {
-      Contract.Requires(thn.Type != null);
-
       wr.Write("(func () {0} {{ if ", TypeName(thn.Type, wr, null));
       TrExpr(guard, wr, inLetExprBody);
       wr.Write(" { return ");
