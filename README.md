@@ -18,6 +18,7 @@ You can ask questions about Dafny on [Stack Overflow](https://stackoverflow.com/
 # Try Dafny
 
 The easiest way to get started with Dafny is to use [rise4fun](http://rise4fun.com/dafny), where you can write and verify Dafny programs without having install anything. On [rise4fun](http://rise4fun.com/dafny), you will also find the online Dafny tutorial.
+It is also easy to [install Dafny on your own machine](https://github.com/Microsoft/dafny/wiki/INSTALL) in VS Code, which gives you a much better user experience than in the web browser.
 
 # Setup
 
