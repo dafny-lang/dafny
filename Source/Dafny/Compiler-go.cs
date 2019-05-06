@@ -3453,13 +3453,13 @@ namespace Microsoft.Dafny {
       
       var args = string.Format("{0} \"{1}\"", verb, targetFilename);
       var psi = new ProcessStartInfo("go", args) {
-        CreateNoWindow = true,
+        CreateNoWindow = Environment.OSVersion.Platform != PlatformID.Win32NT,
         UseShellExecute = false,
         RedirectStandardInput = false,
         RedirectStandardOutput = false,
         RedirectStandardError = false,
       };
-      psi.EnvironmentVariables.Add("GOPATH", GoPath(targetFilename));
+      psi.EnvironmentVariables["GOPATH"] = GoPath(targetFilename);
 
       try {
         using (var process = Process.Start(psi)) {
