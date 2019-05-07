@@ -58,7 +58,7 @@ DLLs = ["BoogieAbsInt",
         "BoogieVCExpr",
         "BoogieVCGeneration"]
 EXEs = ["Dafny", "DafnyServer"]
-ETCs = UNIX_EXECUTABLES + ["DafnyPrelude.bpl", "DafnyRuntime.cs", "DafnyLanguageService.vsix"]
+ETCs = UNIX_EXECUTABLES + ["DafnyPrelude.bpl", "DafnyRuntime.cs", "DafnyRuntime.js", "DafnyRuntime.go", "DafnyLanguageService.vsix"]
 
 # Constants
 
