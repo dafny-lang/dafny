@@ -2048,7 +2048,7 @@ method BinarySearch(a: array<int>, value: int) returns (index: int)
 
 We've seen a whirlwind tour of the major features of Dafny,
 and used it for some interesting, if a little on the small side, examples of
-what Dafny can do. But to really take advantage of the power Dafny offers, on
+what Dafny can do. But to really take advantage of the power Dafny offers, one
 needs to plow ahead into the advanced topics: objects, sequences and sets, data
 structures, lemmas, etc. Now that you are familiar with the basics of Dafny,
 you can peruse the tutorials on each of these topics at your leisure. Each
@@ -2060,7 +2060,7 @@ what the disjoint set operator is (it's `!!`, for those
 interested).
 
 Even if you do not use Dafny regularly, the idea of writing
-down exactly what it is that the code does is a precise way, and using this to
+down exactly what it is that the code does in a precise way, and using this to
 prove code correct is a useful skill. Invariants, pre- and post conditions,
 and annotations are useful in debugging code, and also as documentation for future
 developers. When modifying or adding to a codebase, they confirm that the
