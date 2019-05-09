@@ -2126,6 +2126,41 @@ namespace Microsoft.Dafny {
     }
 
     private bool CanSequentializeForall(List<BoundVar> bvs, List<ComprehensionExpr.BoundedPool> bounds, Expression range, Expression lhs, Expression rhs) {
+      // Given a statement
+      //
+      //   forall i, ... | R {
+      //     L := E;
+      //   }
+      //
+      // we sequentialize if all of these conditions hold:
+      //
+      //   1. There are no calls to functions which may have read effects in R,
+      //      L, or E
+      //   2. Each index value will be produced only once (note that this is
+      //      currently always true thanks to the use of UniqueElements())
+      //   3. If L has the form A[I] for some A and I, then one of the following
+      //      is true:
+      //      a. There are no array dereferences or array-to-sequence
+      //         conversions in R, A, I, or E
+      //      b. All of the following are true:
+      //         i.   There is only one bound variable; call it i
+      //         ii.  I is the variable i
+      //         iii. Each array dereference in R, A, or E has the form B[i] for
+      //              some B
+      //         iv.  There are no array-to-sequence conversions in R, A, or E
+      //   4. If L has the form A[I, J, ...] for some A, I, J, ... then there
+      //      are no multi-D array dereferences in R, A, E, or any of the
+      //      indices I, J, ...
+      //   5. If L has the form O.f for some field f, then one of the following
+      //      is true:
+      //      a. There are no accesses of f in R, O, or E
+      //      b. All of the following are true:
+      //         i.   There is only one bound variable; call it i
+      //         ii.  O is the variable i
+      //         iii. Each access of f in R or E has the form i.f
+      //
+      // TODO It may be possible to weaken rule 4 by adding an alternative
+      // similar to rules 3b and 5b.
       Contract.Assert(bvs.Count == bounds.Count);
 
       if (!noImpureFunctionCalls(lhs, rhs, range)) {
@@ -2136,14 +2171,11 @@ namespace Microsoft.Dafny {
 
           bvs.Count == 1 &&
           isVar(bvs[0], sse.E0) &&
-          noSequenceConversions(range, rhs) &&
-          indexIsAlwaysVar(bvs[0], range, rhs) &&
-          producesDistinctValues(bounds[0]);
+          indexIsAlwaysVar(bvs[0], range, sse.Seq, rhs); // also covers sequence conversions
       } else if (lhs is MultiSelectExpr mse) {
-        var exprs = new List<Expression>() { mse.Array, range, rhs };
-        exprs.AddRange(mse.Indices);
-        return noMultiDArrayAccesses(exprs.ToArray());
-        // TODO Might be able to relax this
+        return
+          noMultiDArrayAccesses(mse.Array, range, rhs) &&
+          noMultiDArrayAccesses(mse.Indices.ToArray());
       } else {
         // !@#$#@$% scope rules won't let me call this mse ...
         var mse2 = (MemberSelectExpr) lhs;
@@ -2153,19 +2185,18 @@ namespace Microsoft.Dafny {
 
           bvs.Count == 1 &&
           isVar(bvs[0], mse2.Obj) &&
-          accessedObjectIsAlwaysVar(mse2.Member, bvs[0], range, rhs) &&
-          producesDistinctValues(bounds[0]);
+          accessedObjectIsAlwaysVar(mse2.Member, bvs[0], range, rhs);
       }
 
       bool noImpureFunctionCalls(params Expression[] exprs) {
-        return exprs.All(e => Check<ApplyExpr>(e, fce => {
-          var ty = (UserDefinedType) fce.Function.Type.NormalizeExpandKeepConstraints();
+        return exprs.All(e => Check<ApplyExpr>(e, ae => {
+          var ty = (UserDefinedType) ae.Function.Type.NormalizeExpandKeepConstraints();
           return ArrowType.IsPartialArrowTypeName(ty.Name) || ArrowType.IsTotalArrowTypeName(ty.Name);
         }));
       }
 
       bool no1DArrayAccesses(params Expression[] exprs) {
-        return exprs.All(e => Check<SeqSelectExpr>(e, _ => false));
+        return exprs.All(e => Check<SeqSelectExpr>(e, sse => !sse.Seq.Type.IsArrayType)); // allow sequence accesses
       }
 
       bool noMultiDArrayAccesses(params Expression[] exprs) {
@@ -2180,28 +2211,12 @@ namespace Microsoft.Dafny {
         return expr.Resolved is IdentifierExpr ie && ie.Var == var;
       }
 
-      bool noSequenceConversions(params Expression[] exprs) {
-        return exprs.All(e => Check<SeqSelectExpr>(e, sse2 => sse2.SelectOne));
-      }
-
       bool indexIsAlwaysVar(BoundVar var, params Expression[] exprs) {
-        return exprs.All(e => Check<SeqSelectExpr>(e, sse2 => !sse2.SelectOne || isVar(var, sse2.E0)));
+        return exprs.All(e => Check<SeqSelectExpr>(e, sse2 => sse2.SelectOne && isVar(var, sse2.E0)));
       }
 
       bool accessedObjectIsAlwaysVar(MemberDecl member, BoundVar var, params Expression[] exprs) {
         return exprs.All(e => Check<MemberSelectExpr>(e, mse => mse.Member != member || isVar(var, mse.Obj)));
-      }
-
-      bool producesDistinctValues(ComprehensionExpr.BoundedPool bound) {
-        return
-          bound is ComprehensionExpr.BoolBoundedPool ||
-          bound is ComprehensionExpr.CharBoundedPool ||
-          bound is ComprehensionExpr.IntBoundedPool ||
-          bound is AssignSuchThatStmt.WiggleWaggleBound ||
-          bound is ComprehensionExpr.ExactBoundedPool ||
-          bound is ComprehensionExpr.SeqBoundedPool || // thanks to UniqueElements()
-          bound is ComprehensionExpr.SetBoundedPool ||
-          bound is ComprehensionExpr.DatatypeBoundedPool;
       }
     }
 

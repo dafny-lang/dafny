@@ -1,5 +1,5 @@
 
-Dafny program verifier finished with 27 verified, 0 errors
+Dafny program verifier finished with 25 verified, 0 errors
 Arrays: Basic cases
 [0, 1, 2, 3, 4]
 [0, 1, 2, 3, 4]
@@ -43,7 +43,7 @@ Objects: Functions
 [(2, 1.0), (3, 2.0), (3, 3.0)]
 [(3, 1.0), (4, 2.0), (5, 3.0)]
 
-Dafny program verifier finished with 27 verified, 0 errors
+Dafny program verifier finished with 25 verified, 0 errors
 Arrays: Basic cases
 [0, 1, 2, 3, 4]
 [0, 1, 2, 3, 4]
@@ -87,7 +87,7 @@ Objects: Functions
 [(2, 1.0), (3, 2.0), (3, 3.0)]
 [(3, 1.0), (4, 2.0), (5, 3.0)]
 
-Dafny program verifier finished with 27 verified, 0 errors
+Dafny program verifier finished with 25 verified, 0 errors
 Arrays: Basic cases
 [0, 1, 2, 3, 4]
 [0, 1, 2, 3, 4]

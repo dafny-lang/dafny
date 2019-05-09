@@ -41,9 +41,7 @@ class ArrayTests {
     WrongIndex();
     SequenceConversion();
     IndexCollection();
-    Functions1();
-    Functions2();
-    Functions3();
+    Functions();
   }
 
   method BasicCases() modifies a, b requires Valid() ensures Valid() {
@@ -131,7 +129,7 @@ class ArrayTests {
     // TODO add case that can't be sequentialized
   }
 
-  method Functions1() modifies a, b requires Valid() ensures Valid() {
+  method Functions() modifies a, b requires Valid() ensures Valid() {
     print "\nArrays: Functions\n";
 
     var f: int -> int := x => x + 1;
@@ -149,9 +147,7 @@ class ArrayTests {
       a[i] := f(a[i]);
     }
     print a[..], "\n"; // [ 1, 1, 3, 4, 5 ];
-  }
 
-  method Functions2() modifies a, b requires Valid() ensures Valid() {
     var g: int ~> int := x reads this, a, b requires Valid() => x + a[1];
 
     // Can't sequentialize: impure function call in range
@@ -160,10 +156,6 @@ class ArrayTests {
       a[i] := i + 1;
     }
     print a[..], "\n"; // [ 1, 2, 3, 3, 5 ]
-  }
-
-  method Functions3() modifies a, b requires Valid() ensures Valid() {
-    var g: int ~> int := x reads this, a, b requires Valid() => x + a[1];
 
     // Can't sequentialize: impure function call in RHS
     Initialize();
