@@ -103,3 +103,28 @@ module H {
 module I {
   import G`Public  // OK
 }
+
+module J {
+  module X {
+    // providing a class provides the types C and C? and also provides the info about whether or not the class has a constructor
+    export provides C, D
+    class C {
+      constructor Init() { }
+    }
+    class D {
+    }
+  }
+  module Client {
+    import X
+    method M(c: X.C, c0: X.C?, d: X.D, d0: X.D?) {  // all of these types are known
+      if c0 == null || d0 == null {  // fine to compare c0 and d0 with null
+      }
+    }
+    method P() {
+      var c: X.C;
+      c := new X.C;  // error: must call a constructor
+      c := new X.C.Init();  // error: alas, no constructor is visible
+      var d := new X.D;  // fine, since it is known that X.D has no constructor
+    }
+  }
+}
