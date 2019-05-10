@@ -603,7 +603,7 @@ namespace Microsoft.Dafny {
         scopeTokens.UnionWith(other.scopeTokens);
         scopeIds.UnionWith(other.scopeIds);
         cached.Clear();
-        }
+      }
     }
 
     public VisibilityScope(bool newScope, string name) {

@@ -942,7 +942,7 @@ namespace Microsoft.Dafny
       if (cycleError) { return; } // give up on trying to resolve anything else
 
       // fill in the exports for the extends.
-      List<ModuleExportDecl> sortedDecls = exportDependencies.TopologicallySortedComponents();
+      List<ModuleExportDecl> sortedExportDecls = exportDependencies.TopologicallySortedComponents();
       ModuleExportDecl defaultExport = null;
       TopLevelDecl defaultClass;
 
@@ -951,7 +951,7 @@ namespace Microsoft.Dafny
       Contract.Assert(((ClassDecl)defaultClass).IsDefaultClass);
       defaultClass.AddVisibilityScope(m.VisibilityScope, true);
 
-      foreach (var d in sortedDecls) {
+      foreach (var d in sortedExportDecls) {
 
         defaultClass.AddVisibilityScope(d.ThisScope, true);
 
@@ -1038,7 +1038,7 @@ namespace Microsoft.Dafny
         }
       }
 
-      foreach (ModuleExportDecl decl in sortedDecls) {
+      foreach (ModuleExportDecl decl in sortedExportDecls) {
         if (decl.IsDefault) {
           if (defaultExport == null) {
             defaultExport = decl;
@@ -1078,12 +1078,12 @@ namespace Microsoft.Dafny
       // set the default export if it exists
       if (defaultExport != null) {
         literalDecl.DefaultExport = defaultExport.Signature;
-      } else if (sortedDecls.Count > 0) {
+      } else if (sortedExportDecls.Count > 0) {
         literalDecl.DefaultExport = null;
       }
 
       // final pass to propagate visibility of exported imports
-      var sigs = sortedDecls.Select(d => d.Signature).Concat1(sig);
+      var sigs = sortedExportDecls.Select(d => d.Signature).Concat1(sig);
 
       foreach (var s in sigs) {
         foreach (var decl in s.TopLevels) {
@@ -1097,7 +1097,7 @@ namespace Microsoft.Dafny
       HashSet<Tuple<Declaration, bool>> exported = new HashSet<Tuple<Declaration, bool>>();
 
       //some decls may not be set due to resolution errors
-      foreach (var e in sortedDecls.SelectMany(e => e.Exports).Where(e => e.Decl != null)) {
+      foreach (var e in sortedExportDecls.SelectMany(e => e.Exports).Where(e => e.Decl != null)) {
         var decl = e.Decl;
         exported.Add(new Tuple<Declaration, bool>(decl, e.Opaque));
         if (!e.Opaque && decl.CanBeRevealed()) {
@@ -1137,7 +1137,7 @@ namespace Microsoft.Dafny
           declScopes.Add(typ, null);
         }
 
-        foreach (var decl in sortedDecls) {
+        foreach (var decl in sortedExportDecls) {
           if (decl.Exports.Exists(ex => ex.Decl == e.Item1 && (e.Item2 || !ex.Opaque))) {
             //if we are revealed, consider those exports where we are provided as well
             var scope = decl.Signature.VisibilityScope;

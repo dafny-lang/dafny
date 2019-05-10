@@ -1,5 +1,5 @@
-// RUN: %dafny /compile:0 "%s" > "%t.result"
-// RUN: %diff "%s.expect" "%t.result"
+// RUN: %dafny /compile:0 "%s" > "%t"
+// RUN: %diff "%s.expect" "%t"
 
 module M {
   inductive predicate P(x: int)
