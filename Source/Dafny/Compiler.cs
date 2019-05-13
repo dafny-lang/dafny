@@ -212,8 +212,6 @@ namespace Microsoft.Dafny {
     protected abstract void EmitActualTypeArgs(List<Type> typeArgs, Bpl.IToken tok, TextWriter wr);
     protected abstract string GenerateLhsDecl(string target, Type/*?*/ type, TextWriter wr, Bpl.IToken tok);
     protected virtual void EmitAssignment(out TargetWriter wLhs, Type/*?*/ lhsType, out TargetWriter wRhs, Type/*?*/ rhsType, TargetWriter wr) {
-      wr.Indent();
-      wr.Write("");  // to cause the Indent to happen
       wLhs = wr.Fork();
       wr.Write(" = ");
       TargetWriter w;
@@ -253,7 +251,6 @@ namespace Microsoft.Dafny {
       foreach (var lhsType in lhsTypes) {
         string target = idGenerator.FreshId("_rhs");
         rhsVars.Add(target);
-        wr.Indent();
         wr.Write(GenerateLhsDecl(target, lhsType, wr, null));
         wr.Write(" = ");
         wRhss.Add(wr.Fork());
@@ -284,7 +281,6 @@ namespace Microsoft.Dafny {
     }
     protected virtual TargetWriter EmitReturnExpr(TargetWriter wr) {
       // emits "return <returnExpr>;" for function bodies
-      wr.Indent();
       wr.Write("return ");
       var w = wr.Fork();
       EndStmt(wr);
@@ -305,7 +301,6 @@ namespace Microsoft.Dafny {
       return thn;
     }
     protected virtual TargetWriter EmitIf(out TargetWriter guardWriter, bool hasElse, TargetWriter wr) {
-      wr.Indent();
       wr.Write("if (");
       guardWriter = wr.Fork();
       if (hasElse) {
@@ -325,7 +320,6 @@ namespace Microsoft.Dafny {
     }
 
     protected virtual BlockTargetWriter CreateWhileLoop(out TargetWriter guardWriter, TargetWriter wr) {
-      wr.Indent();
       wr.Write("while (");
       guardWriter = wr.Fork();
       var wBody = wr.NewBlock(")");
@@ -822,7 +816,6 @@ namespace Microsoft.Dafny {
             }
             {
               // set { this._{0} = value; }
-              wSet.Indent();
               EmitThis(wSet);
               wSet.Write("._{0}", f.CompileName);
               var sw = EmitAssignmentRhs(wSet);
@@ -1088,9 +1081,9 @@ namespace Microsoft.Dafny {
           var ty = new UserDefinedType(m.tok, c.Name, c, typeArgs);
           var wRhs = DeclareLocalVar("b", ty, m.tok, w);
           EmitNew(ty, m.tok, null, wRhs);
-          w.Indent(); w.WriteLine("b.{0}();", IdName(m));
+          w.WriteLine("b.{0}();", IdName(m));
         } else {
-          w.Indent(); w.WriteLine("{0}();", IdName(m));
+          w.WriteLine("{0}();", IdName(m));
         }
       }
     }
@@ -1562,7 +1555,7 @@ namespace Microsoft.Dafny {
       if (stmt.IsGhost) {
         var v = new CheckHasNoAssumes_Visitor(this, wr);
         v.Visit(stmt);
-        wr.Indent(); wr.WriteLine("{ }");
+        wr.WriteLine("{ }");
         return;
       }
       if (stmt is PrintStmt) {
@@ -1663,7 +1656,6 @@ namespace Microsoft.Dafny {
         TrCallStmt(s, null, wr);
 
       } else if (stmt is BlockStmt) {
-        wr.Indent();
         var w = wr.NewBlock("", null, BlockTargetWriter.BraceStyle.Nothing, BlockTargetWriter.BraceStyle.Newline);
         TrStmtList(((BlockStmt)stmt).Body, w);
 
@@ -1677,11 +1669,9 @@ namespace Microsoft.Dafny {
           if (s.Els == null) {
             // let's compile the "else" branch, since that involves no work
             // (still, let's leave a marker in the source code to indicate that this is what we did)
-            wr.Indent();
             wr.WriteLine("if (!false) { }");
           } else {
             // let's compile the "then" branch
-            wr.Indent();
             wr.Write("if (true) ");
             wr.SuppressIndent();
             TrStmt(s.Thn, wr);
@@ -1895,7 +1885,6 @@ namespace Microsoft.Dafny {
             wCoerceTup.Write(tup);
             tup = wTup.ToString();
           }
-          wr.Indent();
           if (s0.Lhs is MemberSelectExpr) {
             var lhs = (MemberSelectExpr) s0.Lhs;
             var wCoerced = EmitCoercionIfNecessary(from:null, to:tupleTypeArgsList[0], tok:s0.Tok, wr:wr);
@@ -2465,7 +2454,6 @@ namespace Microsoft.Dafny {
             var bound = string.Format("{0}.{1}", nw, len);
             w = CreateForLoop(indices[d], bound, w);
           }
-          w.Indent();
           var eltRhs = string.Format("{0}({1})", f, Util.Comma(indices, ArrayIndexToInt));
           var wArray = EmitArrayUpdate(indices, eltRhs, tRhs.ElementInit.Type, w);
           wArray.Write(nw);
@@ -2473,7 +2461,6 @@ namespace Microsoft.Dafny {
         } else if (tRhs.InitDisplay != null) {
           var ii = 0;
           foreach (var v in tRhs.InitDisplay) {
-            wStmts.Indent();
             var wArray = EmitArrayUpdate(new List<string> { ii.ToString() }, v, wStmts);
             wArray.Write(nw);
             EndStmt(wStmts);
@@ -2525,14 +2512,12 @@ namespace Microsoft.Dafny {
         // Now, assign to the formals
         int n = 0;
         if (!s.Method.IsStatic) {
-          wr.Indent();
           wr.Write("_this = {0}", inTmps[n]);
           EndStmt(wr);
           n++;
         }
         foreach (var p in s.Method.Ins) {
           if (!p.IsGhost) {
-            wr.Indent();
             wr.Write("{0} = {1}", p.CompileName, inTmps[n]);
             EndStmt(wr);
             n++;
@@ -2621,13 +2606,9 @@ namespace Microsoft.Dafny {
         bool returnStyleOuts = UseReturnStyleOuts(s.Method, outTmps.Count);
         var returnStyleOutCollector = outTmps.Count > 0 && returnStyleOuts && !SupportsMultipleReturns ? idGenerator.FreshId("_outcollector") : null;
         if (returnStyleOutCollector != null) {
-          wr.Indent();
           DeclareOutCollector(returnStyleOutCollector, wr);
         } else if (outTmps.Count > 0 && returnStyleOuts && SupportsMultipleReturns) {
-          wr.Indent();
           wr.Write("{0} = ", Util.Comma(outTmps));
-        } else {
-          wr.Indent();
         }
         if (receiverReplacement != null) {
           wr.Write(IdProtect(receiverReplacement));
@@ -2767,7 +2748,6 @@ namespace Microsoft.Dafny {
         // Need to avoid if (true) because some languages (Go, someday Java)
         // pretend that an if (true) isn't a certainty, leading to a complaint
         // about a missing return statement
-        wr.Indent();
         w = wr.NewBlock("", null, BlockTargetWriter.BraceStyle.Nothing);
       } else {
         TargetWriter guardWriter;
@@ -3527,52 +3507,11 @@ namespace Microsoft.Dafny {
     public readonly string IndentString;
     public string UnIndentString => new string(' ', Math.Max(IndentLevel - IndentAmount, 0));
     private bool suppressNextIndent = false;
-    public void Indent() {
-      if (suppressNextIndent) {
-        if (indentPending) {
-          Console.WriteLine("DEBUG: Indent called in suppressed state with indentPending");
-          indentPending = false;
-          Write("/*UNEXPECTED-INDENT-SUPPRESS*/");
-          indentPending = false;
-        }
-        suppressNextIndent = false;
-      } else {
-        if (!indentPending) {
-          Console.WriteLine("DEBUG: Indent called without indentPending");
-          indentPending = false;
-          Write("/*UNEXPECTED-INDENT*/");
-        }
-        indentPending = false;
-        Write(IndentString);
-      }
-      Contract.Assert(!indentPending);  // should at least have been reset by the call to Write(string) above
-      indentPending = false;
-    }
     public void IndentLess() {
-      if (suppressNextIndent) {
-        if (indentPending) {
-          Console.WriteLine("DEBUG: IndentLess called in suppressed state with indentPending");
-          indentPending = false;
-          Write("/*UNEXPECTED-INDENT-LESS-SUPPRESS*/");
-          indentPending = false;
-        }
-        suppressNextIndent = false;
-      } else {
-        if (!indentPending) {
-          Console.WriteLine("DEBUG: IndentLess called without indentPending");
-          indentPending = false;
-          Write("/*UNEXPECTED-INDENT-LESS*/");
-        }
-        indentPending = false;
-        Write(UnIndentString);
-      }
+      indentPending = false;
+      Write(UnIndentString);
     }
     public void SuppressIndent(){
-      if (indentPending) {
-        Console.WriteLine("DEBUG: SuppressIndent called with indentPending");
-        indentPending = false;
-        Write("/*UNEXPECTED-SUPPRESS-INDENT*/");
-      }
       suppressNextIndent = true;
       indentPending = false;
     }
@@ -3582,22 +3521,9 @@ namespace Microsoft.Dafny {
     private readonly List<object> things = new List<object>();
 
     private void AddThing(object thing) {
-      if (indentPending && IndentLevel != 0) {
-        Console.WriteLine("DEBUG: AddThing called with indentPending");
+      if (indentPending) {
         indentPending = false;
-        string msg;
-        if (thing is string s) {
-          msg = string.Format("string.Length={0}:", s.Length);
-        } else if (thing is FileTargetWriter) {
-          msg = "FileTargetWriter";
-        } else if (thing is BlockTargetWriter) {
-          msg = "BlockTargetWriter";
-        } else if (thing is TargetWriter) {
-          msg = "TargetWriter";
-        } else {
-          msg = "other";
-        }
-        things.Add(string.Format("/*UNEXPECTED-ADD-THING-{0}-{1}*/", IndentLevel, msg));
+        things.Add(IndentString);
       }
       things.Add(thing);
       if (thing is BlockTargetWriter btw && btw.EndsWithNewLine) {
@@ -3618,30 +3544,22 @@ namespace Microsoft.Dafny {
     bool indentPending;
 
     public override void Write(char[] buffer, int index, int count) {
-      if (indentPending && IndentLevel != 0 && !(count == 1 && buffer[index] == '\n')) {
-        Console.WriteLine("DEBUG: Write(buffer,index,count) called with indentPending");
+      if (indentPending && count == 1 && buffer[index] == '\n') {
         indentPending = false;
-        AddThing(string.Format("/*UNEXPECTED-WRITE-BUFFER-{0}*/", IndentLevel));
       }
-      indentPending = false;
       AddThing(new string(buffer, index, count));
       indentPending = count > 0 && buffer[index + count - 1] == '\n';
     }
     public override void Write(string value) {
-      if (indentPending && IndentLevel != 0 && value != "\n") {
-        Console.WriteLine("DEBUG: Write(string) called with indentPending");
+      if (indentPending && value == "\n") {
         indentPending = false;
-        AddThing(string.Format("/*UNEXPECTED-WRITE-STRING-{0}*/", IndentLevel));
       }
-      indentPending = false;
       AddThing(value);
       indentPending = false;
     }
     public override void Write(char value) {
-      if (indentPending && IndentLevel != 0) {
-        Console.WriteLine("DEBUG: Write(char) called with indentPending");
+      if (indentPending && value == '\n') {
         indentPending = false;
-        AddThing("/*UNEXPECTED-WRITE-CHAR*/");
       }
       indentPending = false;
       AddThing(new string(value, 1));
@@ -3662,9 +3580,6 @@ namespace Microsoft.Dafny {
 
     public void WriteError(string format, params string[] args) {
       var oldIndentPending = indentPending;
-      if (indentPending) {
-        Indent();
-      }
       WriteLine(format, args);
       indentPending = oldIndentPending;
     }
@@ -3676,15 +3591,8 @@ namespace Microsoft.Dafny {
     /// See also ForkSection().
     /// </summary>
     public TargetWriter Fork() {
-      var oldIndentPending = indentPending;
-      indentPending = false;
-      if (oldIndentPending) {
-        Console.WriteLine("DEBUG: singleLine-Fork called with indentPending");
-        Write("/*UNEXPECTED-SINGLE-LINE-FORK*/");
-      }
       var ans = new TargetWriter(IndentLevel, true);
       AddThing(ans);
-      indentPending = oldIndentPending;
       return ans;
     }
 
@@ -3693,15 +3601,10 @@ namespace Microsoft.Dafny {
     /// each beginning with an indent and ending with a newline.
     /// </summary>
     public TargetWriter ForkSection(bool indentMore = false) {
-      var oldIndentPending = indentPending;
-      if (!indentPending) {
-        Console.WriteLine("DEBUG: ForkSection called without indentPending");
-        Write("/*UNEXPECTED-FORK-SECTION*/");
-      }
       indentPending = false;
       var ans = new TargetWriter(IndentLevel + (indentMore ? IndentAmount : 0));
       AddThing(ans);
-      indentPending = oldIndentPending;
+      indentPending = true;
       return ans;
     }
 

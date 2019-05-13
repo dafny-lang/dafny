@@ -83,7 +83,6 @@ namespace Microsoft.Dafny {
       var companion = TypeName_Companion(mainMethod.EnclosingClass as ClassDecl, wr, mainMethod.tok);
       
       var wBody = wr.NewNamedBlock("func main()");
-      wBody.Indent();
       wBody.WriteLine("{0}.{1}()", companion, IdName(mainMethod));
     }
       
@@ -97,7 +96,6 @@ namespace Microsoft.Dafny {
 
     protected override BlockTargetWriter CreateStaticMain(IClassWriter cw) {
       var wr = ((GoCompiler.ClassWriter) cw).ConcreteMethodWriter;
-      wr.Indent();
       return wr.NewNamedBlock("func (_this * {0}) Main()", FormatCompanionTypeName(((GoCompiler.ClassWriter) cw).ClassName));
     }
 
@@ -158,11 +156,9 @@ namespace Microsoft.Dafny {
       var id = IdProtect(import.Name);
       var path = import.Path;
 
-      importWriter.Indent();
       importWriter.WriteLine("{0} \"{1}\"", id, path);
 
       if (!import.SuppressDummy) {
-        importDummyWriter.Indent();
         importDummyWriter.WriteLine("var _ {0}.{1}", id, DummyTypeName);
       }
     }
@@ -290,7 +286,6 @@ namespace Microsoft.Dafny {
       //
       name = Capitalize(name);
 
-      wr.Indent();
       var w = CreateDescribedSection("class {0}", wr, name);
       
       var instanceFieldWriter = w.NewBlock(string.Format("type {0} struct", name));
@@ -311,20 +306,16 @@ namespace Microsoft.Dafny {
 
         w.WriteLine();
         var wEquals = w.NewNamedBlock("func (_this *{0}) Equals(other *{0}) bool", name);
-        wEquals.Indent();
         wEquals.WriteLine("return _this == other");
 
         w.WriteLine();
         var wEqualsGeneric = w.NewNamedBlock("func (_this *{0}) EqualsGeneric(x interface{{}}) bool", name);
-        wEqualsGeneric.Indent();
         wEqualsGeneric.WriteLine("other, ok := x.(*{0})", name);
-        wEqualsGeneric.Indent();
         wEqualsGeneric.WriteLine("return ok && _this.Equals(other)");
       }
 
       w.WriteLine();
       var wString = w.NewNamedBlock("func (*{0}) String() string", name);
-      wString.Indent();
       // Be consistent with other back ends, which don't fold _module into the main module
       var module = ModuleName == MainModuleName ? "_module" : ModuleName;
       wString.WriteLine("return \"{0}.{1}\"", module, name);
@@ -334,7 +325,6 @@ namespace Microsoft.Dafny {
         BlockTargetWriter wDefault;
         CreateRTD(name, typeParameters, out wDefault, w);
         
-        wDefault.Indent();
         wDefault.WriteLine("return (*{0})(nil)", name);
       }
 
@@ -380,22 +370,16 @@ namespace Microsoft.Dafny {
       //   ...
       // }
       //
-      wr.Indent();
       wr = CreateDescribedSection("trait {0}", wr, name);
       var instanceFieldWriter = wr.NewNamedBlock("type {0} struct", name);
-      instanceFieldWriter.Indent();
       instanceFieldWriter.WriteLine(FormatTraitInterfaceName(name));
-      wr.Indent();
       var abstractMethodWriter = wr.NewNamedBlock("type {0} interface", FormatTraitInterfaceName(name));
       var concreteMethodWriter = wr.ForkSection();
-      wr.Indent();
 
       CreateInitializer(name, wr, out var instanceFieldInitWriter, out var traitInitWriter, rtdParamWriter:out _);
       
       var staticFieldWriter = wr.NewNamedBlock("type {0} struct", FormatCompanionTypeName(name));
-      wr.Indent();
       var staticFieldInitWriter = wr.NewNamedBlock("var {0} = {1}", FormatCompanionName(name), FormatCompanionTypeName(name));
-      wr.Indent();
       
       var cw = new ClassWriter(this, name, isExtern, abstractMethodWriter, concreteMethodWriter, instanceFieldWriter, instanceFieldInitWriter, traitInitWriter, staticFieldWriter, staticFieldInitWriter);
       if (superClasses != null) {
@@ -410,13 +394,11 @@ namespace Microsoft.Dafny {
       wr.Write("func {0}(", FormatInitializerName(name));
       rtdParamWriter = wr.Fork();
       var w = wr.NewNamedBlock(") *{0}", name);
-      w.Indent();
       w.WriteLine("_this := {0}{{}}", name);
 
       w.WriteLine();
       instanceFieldInitWriter = w.ForkSection();
       traitInitWriter = w.ForkSection();
-      w.Indent();
       w.WriteLine("return &_this");
     }
 
@@ -471,9 +453,7 @@ namespace Microsoft.Dafny {
       // }()
       var cw = CreateClass(IdName(iter), false, null, iter.TypeArgs, null, null, wr, includeRtd: false, includeEquals: false);
 
-      cw.InstanceFieldWriter.Indent();
       cw.InstanceFieldWriter.WriteLine("cont chan<- struct{}");
-      cw.InstanceFieldWriter.Indent();
       cw.InstanceFieldWriter.WriteLine("yielded <-chan struct{}");
 
       Constructor ct = null;
@@ -487,7 +467,6 @@ namespace Microsoft.Dafny {
       }
       Contract.Assert(ct != null);
 
-      cw.ConcreteMethodWriter.Indent();
       cw.ConcreteMethodWriter.Write("func (_this * {0}) {1}(", IdName(iter), IdName(ct));
       string sep = "";
       foreach (var p in ct.Ins) {
@@ -498,45 +477,31 @@ namespace Microsoft.Dafny {
         }
       }
       var wCtor = cw.ConcreteMethodWriter.NewBlock(")");
-      wCtor.Indent();
       wCtor.WriteLine("_cont := make(chan struct{})");
-      wCtor.Indent();
       wCtor.WriteLine("_yielded := make(chan struct{})");
-      wCtor.Indent();
       wCtor.WriteLine("_this.cont = _cont");
-      wCtor.Indent();
       wCtor.WriteLine("_this.yielded = _yielded");
       wCtor.WriteLine();
       foreach (var p in ct.Ins) {
         if (!p.IsGhost) {
-          wCtor.Indent();
           wCtor.WriteLine("_this.{0} = {1}", Capitalize(IdName(p)), IdName(p));
         }
       }
       wCtor.WriteLine();
-      wCtor.Indent();
       wCtor.WriteLine("go _this.run(_cont, _yielded)");
       wCtor.WriteLine();
-      wCtor.Indent();
       wCtor.WriteLine("_dafny.SetFinalizer(_this, func(_ * {0}) {{ close(_cont) }})", IdName(iter));
       
-      cw.ConcreteMethodWriter.Indent();
       var wMoveNext = cw.ConcreteMethodWriter.NewNamedBlock("func (_this * {0}) MoveNext() bool", IdName(iter));
-      wMoveNext.Indent();
       wMoveNext.WriteLine("_this.cont <- struct{}{}");
-      wMoveNext.Indent();
       wMoveNext.WriteLine("_, ok := <- _this.yielded");
       wMoveNext.WriteLine();
-      wMoveNext.Indent();
       wMoveNext.WriteLine("return ok");
 
       var wRun = cw.ConcreteMethodWriter.NewNamedBlock("func (_this * {0}) run(_cont <-chan struct{{}}, _yielded chan<- struct{{}})", IdName(iter));
-      wRun.Indent();
       wRun.WriteLine("defer close(_yielded)");
       wRun.WriteLine();
-      wRun.Indent();
       wRun.WriteLine("_, _ok := <- _cont");
-      wRun.Indent();
       wRun.WriteLine("if !_ok { return }");
       wRun.WriteLine();
       
@@ -691,95 +656,68 @@ namespace Microsoft.Dafny {
       Func<DatatypeCtor, string> structOfCtor = ctor =>
         string.Format("{0}{1}_{2}", dt is CoDatatypeDecl ? "*" : "", name, ctor.CompileName);
 
-      wr.Indent();
       // from here on, write everything into the new block created here:
       wr = CreateDescribedSection("{0} {1}", wr, dt is IndDatatypeDecl ? "data type" : "co-data type", name);
 
       if (dt is IndDatatypeDecl) {
-        wr.Indent();
         var wStruct = wr.NewNamedBlock("type {0} struct", name);
-        wStruct.Indent();
         wStruct.WriteLine(dataName);
 
         wr.WriteLine();
-        wr.Indent();
         var wGet = wr.NewNamedBlock("func (_this {0}) Get() {1}", name, dataName);
-        wGet.Indent();
         wGet.WriteLine("return _this.{0}", dataName);
       } else {
-        wr.Indent();
         var wDt = wr.NewNamedBlock("type {0} struct", name);
-        wDt.Indent();
         wDt.WriteLine(ifaceName);
 
         wr.WriteLine();
-        wr.Indent();
         var wIface = wr.NewNamedBlock("type {0} interface", ifaceName);
-        wIface.Indent();
         wIface.WriteLine("Get() {0}", dataName);
 
         wr.WriteLine();
-        wr.Indent();
         var wLazy = wr.NewNamedBlock("type lazy_{0}_ struct", name);
-        wLazy.Indent();
         wLazy.WriteLine("value {0}", dataName);
-        wLazy.Indent();
         wLazy.WriteLine("init func() {0}", name);
 
         wr.WriteLine();
-        wr.Indent();
         var wLazyGet = wr.NewNamedBlock("func (_this *lazy_{0}_) Get() {1}", name, dataName);
-        wLazyGet.Indent();
         var wIf = wLazyGet.NewBlock("if _this.value == nil");
-        wIf.Indent();
         wIf.WriteLine("_this.value = _this.init().Get()");
-        wIf.Indent();
         wIf.WriteLine("_this.init = nil"); // allow GC of values in closure
 
-        wLazyGet.Indent();
         wLazyGet.WriteLine("return _this.value");
 
         wr.WriteLine();
-        wr.Indent();
         var wLazyCreate = wr.NewNamedBlock("func ({0}) {1}(f func () {2}) {2}", companionTypeName, FormatLazyConstructorName(name), name, name);
-        wLazyCreate.Indent();
         wLazyCreate.WriteLine("return {0}{{&lazy_{0}_{{nil, f}}}}", name);
       }
 
       {
         wr.WriteLine();
-        wr.Indent();
         var wIface = wr.NewNamedBlock("type {0} interface", dataName);
-        wIface.Indent();
         wIface.WriteLine("is{0}()", name);
       }
 
       wr.WriteLine();
-      wr.Indent();
       wr.WriteLine("type {0} struct {{}}", companionTypeName);
-      wr.Indent();
       wr.WriteLine("var {0} = {1}{{}}", FormatCompanionName(name), companionTypeName);
 
       foreach (var ctor in dt.Ctors) {
         var ctorStructName = name + "_" + ctor.CompileName;
         wr.WriteLine();
-        wr.Indent();
         var wStruct = wr.NewNamedBlock("type {0} struct", ctorStructName);
         var k = 0;
         foreach (var formal in ctor.Formals) {
           if (!formal.IsGhost) {
-            wStruct.Indent();
             wStruct.WriteLine("{0} {1}", DatatypeFieldName(formal, k), TypeName(formal.Type, wr, formal.Tok));
             k++;
           }
         }
 
         wr.WriteLine();
-        wr.Indent();
         wr.WriteLine("func ({0}{1}) is{2}() {{}}", dt is CoDatatypeDecl ? "*" : "", ctorStructName, name);
         wr.WriteLine();
 
-        wr.Indent();
         wr.Write("func ({0}) {1}(", companionTypeName, FormatDatatypeConstructorName(ctor.CompileName));
         var argNames = new List<string>();
         k = 0;
@@ -794,45 +732,32 @@ namespace Microsoft.Dafny {
           }
         }
         var wCreateBody = wr.NewNamedBlock(") {0}", name);
-        wCreateBody.Indent();
         wCreateBody.WriteLine("return {0}{{{1}{2}{{{3}}}}}", name, dt is CoDatatypeDecl ? "&" : "", ctorStructName, Util.Comma(argNames));
 
         wr.WriteLine();
-        wr.Indent();
         var wCheck = wr.NewNamedBlock("func (_this {0}) {1}() bool", name, FormatDatatypeConstructorCheckName(ctor.CompileName));
-        wCheck.Indent();
         wCheck.WriteLine("_, ok := _this.Get().({0})", structOfCtor(ctor));
-        wCheck.Indent();
         wCheck.WriteLine("return ok");
 
         if (dt is CoDatatypeDecl) {
           wr.WriteLine();
-          wr.Indent();
           var wGet = wr.NewNamedBlock("func (_this *{0}) Get() {1}", ctorStructName, dataName);
-          wGet.Indent();
           wGet.WriteLine("return _this");
         }
       }
 
       if (dt.HasFinitePossibleValues) {
         wr.WriteLine();
-        wr.Indent();
         var wSingles = wr.NewNamedBlock("func (_ {0}) AllSingletonConstructors() _dafny.Iterator", companionTypeName);
-        wSingles.Indent();
         wSingles.WriteLine("i := -1");
-        wSingles.Indent();
         wSingles = wSingles.NewNamedBlock("return func() (interface{{}}, bool)");
-        wSingles.Indent();
         wSingles.WriteLine("i++");
-        wSingles.Indent();
         wSingles = wSingles.NewNamedBlock("switch i");
         var i = 0;
         foreach (var ctor in dt.Ctors) {
-          wSingles.Indent();
           wSingles.WriteLine("case {0}: return {1}.{2}(), true", i, FormatCompanionName(name), FormatDatatypeConstructorName(ctor.CompileName));
           i++;
         }
-        wSingles.Indent();
         wSingles.WriteLine("default: return {0}{{}}, false", name);
       }
       
@@ -843,9 +768,7 @@ namespace Microsoft.Dafny {
             var arg = dtor.CorrespondingFormals[0];
             if (!arg.IsGhost && arg.HasName) {
               wr.WriteLine();
-              wr.Indent();
               var wDtor = wr.NewNamedBlock("func (_this {0}) {1}() {2}", name, FormatDatatypeDestructorName(arg.CompileName), TypeName(arg.Type, wr, arg.tok));
-              wDtor.Indent();
               var n = dtor.EnclosingCtors.Count;
               if (n == 1) {
                 wDtor.WriteLine("return _this.Get().({0}).{1}", structOfCtor(dtor.EnclosingCtors[0]), DatatypeFieldName(arg));
@@ -854,11 +777,9 @@ namespace Microsoft.Dafny {
                 for (int i = 0; i < n-1; i++) {
                   var ctor_i = dtor.EnclosingCtors[i];
                   Contract.Assert(arg.CompileName == dtor.CorrespondingFormals[i].CompileName);
-                  wDtor.Indent();
                   wDtor.WriteLine("case {0}: return data.{1}", structOfCtor(ctor_i), DatatypeFieldName(arg));
                 }
                 Contract.Assert(arg.CompileName == dtor.CorrespondingFormals[n-1].CompileName);
-                wDtor.Indent();
                 wDtor.WriteLine("default: return data.({0}).{1}", structOfCtor(dtor.EnclosingCtors[n-1]), DatatypeFieldName(arg));
               }
             }
@@ -869,18 +790,13 @@ namespace Microsoft.Dafny {
       {
         // String() method
         wr.WriteLine();
-        wr.Indent();
         var w = wr.NewNamedBlock("func (_this {0}) String() string", name);
-        w.Indent();
         // TODO Avoid switch if only one branch
         var needData = dt is IndDatatypeDecl && dt.Ctors.Exists(ctor => ctor.Formals.Exists(arg => !arg.IsGhost));
         w = w.NewNamedBlock("switch {0}_this.Get().(type)", needData ? "data := " : "");
-        w.Indent();
         w.WriteLine("case nil: return \"null\"");
         foreach (var ctor in dt.Ctors) {
-          w.Indent();
           var wCase = w.NewNamedBlock("case {0}:", structOfCtor(ctor));
-          wCase.Indent();
           var nm = (dt.Module.IsDefaultModule ? "" : dt.Module.Name + ".") + dt.Name + "." + ctor.Name;
           if (dt is CoDatatypeDecl) {
             wCase.WriteLine("return \"{0}\"", nm);
@@ -903,9 +819,7 @@ namespace Microsoft.Dafny {
             wCase.WriteLine();
           }
         }
-        w.Indent();
         var wDefault = w.NewBlock("default:");
-        wDefault.Indent();
         if (dt is CoDatatypeDecl) {
           wDefault.WriteLine("return \"{0}.{1}.unexpected\"", dt.Module.CompileName, dt.CompileName);
         } else {
@@ -916,22 +830,17 @@ namespace Microsoft.Dafny {
       // Equals method
       {
         wr.WriteLine();
-        wr.Indent();
         var wEquals = wr.NewNamedBlock("func (_this {0}) Equals(other {0}) bool", name);
         // TODO: Way to implement shortcut check for address equality?
         var needData1 = dt.Ctors.Exists(ctor => ctor.Formals.Exists(arg => !arg.IsGhost));
         
-        wEquals.Indent();
         wEquals = wEquals.NewNamedBlock("switch {0}_this.Get().(type)", needData1 ? "data1 := " : "");
         foreach (var ctor in dt.Ctors) {
-          wEquals.Indent();
           var wCase = wEquals.NewNamedBlock("case {0}:", structOfCtor(ctor));
 
           var needData2 = ctor.Formals.Exists(arg => !arg.IsGhost);
           
-          wCase.Indent();
           wCase.WriteLine("{0}, ok := other.Get().({1})", needData2 ? "data2" : "_", structOfCtor(ctor));
-          wCase.Indent();
           wCase.Write("return ok");
           var k = 0;
           foreach (Formal arg in ctor.Formals) {
@@ -952,17 +861,12 @@ namespace Microsoft.Dafny {
           }
           wCase.WriteLine();
         }
-        wEquals.Indent();
         var wDefault = wEquals.NewNamedBlock("default:");
-        wDefault.Indent();
         wDefault.WriteLine("return false; // unexpected");
 
         wr.WriteLine();
-        wr.Indent();
         var wEqualsGeneric = wr.NewNamedBlock("func (_this {0}) EqualsGeneric(other interface{{}}) bool", name);
-        wEqualsGeneric.Indent();
         wEqualsGeneric.WriteLine("typed, ok := other.({0})", name);
-        wEqualsGeneric.Indent();
         wEqualsGeneric.WriteLine("return ok && _this.Equals(typed)");
       }
       
@@ -974,7 +878,6 @@ namespace Microsoft.Dafny {
 
         WriteRuntimeTypeDescriptorsLocals(usedTypeParams, true, wDefault);
 
-        wDefault.Indent();
         wDefault.Write("return ");
         DatatypeCtor defaultCtor;
         if (dt is IndDatatypeDecl idd) {
@@ -1001,23 +904,16 @@ namespace Microsoft.Dafny {
       var w = cw.ConcreteMethodWriter;
       var nativeType = nt.NativeType != null ? GetNativeTypeName(nt.NativeType) : null;
       if (nt.NativeType != null) {
-        w.Indent();
         var wIntegerRangeBody = w.NewNamedBlock("func (_this *{0}) IntegerRange(lo _dafny.Int, hi _dafny.Int) _dafny.Iterator", FormatCompanionTypeName(IdName(nt)));
-        wIntegerRangeBody.Indent();
         wIntegerRangeBody.WriteLine("iter := _dafny.IntegerRange(lo, hi)");
-        wIntegerRangeBody.Indent();
         var wIterFuncBody = wIntegerRangeBody.NewBlock("return func() (interface{}, bool)");
-        wIterFuncBody.Indent();
         wIterFuncBody.WriteLine("next, ok := iter()");
-        wIterFuncBody.Indent();
         wIterFuncBody.WriteLine("if !ok {{ return {0}(0), false }}", nativeType);
-        wIterFuncBody.Indent();
         wIterFuncBody.WriteLine("return next.(_dafny.Int).{0}(), true", Capitalize(nativeType));
       }
       if (nt.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
         var retType = nt.NativeType != null ? GetNativeTypeName(nt.NativeType) : TypeName(nt.BaseType, w, nt.tok);
         var wWitness = w.NewNamedBlock("func (_this *{0}) Witness() {1}", FormatCompanionTypeName(IdName(nt)), retType);
-        wWitness.Indent();
         wWitness.Write("return ");
         if (nt.NativeType == null) {
           TrExpr(nt.Witness, wWitness, false);
@@ -1031,7 +927,6 @@ namespace Microsoft.Dafny {
         CreateRTD(IdName(nt), null, out var wDefaultBody, wr);
         var udt = new UserDefinedType(nt.tok, nt.Name, nt, new List<Type>());
         var d = TypeInitializationValue(udt, wr, nt.tok, false);
-        wDefaultBody.Indent();
         wDefaultBody.WriteLine("return {0}", d);
       }
     }
@@ -1049,7 +944,6 @@ namespace Microsoft.Dafny {
         CreateRTD(IdName(sst), null, out var wDefaultBody, wr);
         var udt = new UserDefinedType(sst.tok, sst.Name, sst, sst.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp)));
         var d = TypeInitializationValue(udt, wr, sst.tok, false);
-        wDefaultBody.Indent();
         wDefaultBody.WriteLine("return {0}", d);
       }
     }
@@ -1058,26 +952,20 @@ namespace Microsoft.Dafny {
       if (usedParams == null) {
         usedParams = new List<TypeParameter>();
       }
-      wr.Indent();
       wr.Write("func {0}(", FormatRTDName(typeName));
       WriteRuntimeTypeDescriptorsFormals(usedParams, true, wr);
       var wTypeMethod = wr.NewBlock(") _dafny.Type");
-      wTypeMethod.Indent();
       wTypeMethod.WriteLine("return type_{0}_{{{1}}}", typeName, Util.Comma(usedParams, tp => FormatRTDName(tp.CompileName)));
 
       wr.WriteLine();
-      wr.Indent();
       var wType = wr.NewNamedBlock("type type_{0}_ struct", typeName);
       WriteRuntimeTypeDescriptorsFields(usedParams, true, wType, null, null);
 
       wr.WriteLine();
-      wr.Indent();
       wDefaultBody = wr.NewNamedBlock("func (_this type_{0}_) Default() interface{{}}", typeName);
       
       wr.WriteLine();
-      wr.Indent();
       var wString = wr.NewNamedBlock("func (_this type_{0}_) String() string", typeName);
-      wString.Indent();
       wString.WriteLine("return \"{0}.{1}\"", ModuleName, typeName);
     }
 
@@ -1190,11 +1078,9 @@ namespace Microsoft.Dafny {
       if (createBody || abstractWriter == null) {
         wr = concreteWriter;
         string receiver = isStatic ? FormatCompanionTypeName(ownerName) : ownerName;
-        wr.Indent();
         wr.Write("func (_this *{0}) ", receiver);
       } else {
         wr = abstractWriter;
-        wr.Indent();
       }
       wr.Write("{0}(", name);
       var nTypes = WriteRuntimeTypeDescriptorsFormals(typeArgs, false, wr);
@@ -1209,9 +1095,7 @@ namespace Microsoft.Dafny {
         var w = wr.NewBlock("");
 
         if (isTailRecursive) {
-          w.Indent();
           w.WriteLine("goto TAIL_CALL_START");
-          w.Indent();
           w.WriteLine("TAIL_CALL_START:");
         }
 
@@ -1297,11 +1181,9 @@ namespace Microsoft.Dafny {
         if (useAllTypeArgs || tp.Characteristics.MustSupportZeroInitialization) {
           var name = FormatRTDName(tp.CompileName);
 
-          wr.Indent();
           wr.WriteLine("{0} _dafny.Type", name);
 
           if (wInit != null) {
-            wInit.Indent();
             wInit.WriteLine("_this.{0} = {0}", name);
           }
 
@@ -1334,9 +1216,7 @@ namespace Microsoft.Dafny {
 
       foreach (var tp in typeParams) {
         if (useAllTypeArgs || tp.Characteristics.MustSupportZeroInitialization) {
-          wr.Indent();
           wr.WriteLine("{0} := _this.{0}", FormatRTDName(tp.CompileName));
-          wr.Indent();
           wr.WriteLine("_ = {0}", FormatRTDName(tp.CompileName));
         }
       }
@@ -1455,23 +1335,18 @@ namespace Microsoft.Dafny {
     }
 
     private void AddSuperType(Type superType, Bpl.IToken tok, TargetWriter instanceFieldWriter, TargetWriter instanceFieldInitWriter, TargetWriter traitInitWriter, TargetWriter staticFieldWriter, TargetWriter staticFieldInitWriter) {
-      instanceFieldWriter.Indent();
       instanceFieldWriter.WriteLine("{0}", TypeName(superType, instanceFieldWriter, tok));
 
       var embed = UnqualifiedClassName(superType, instanceFieldInitWriter, tok);
       
-      instanceFieldInitWriter.Indent();
       instanceFieldInitWriter.WriteLine("_this.{0} = {1}()", embed, TypeName_Initializer(superType, instanceFieldInitWriter, tok));
 
       if (superType.IsTraitType) {
-        traitInitWriter.Indent();
         traitInitWriter.WriteLine("_this.{0}.{1} = &_this", embed, FormatTraitInterfaceName(embed));
       }
 
-      staticFieldWriter.Indent();
       staticFieldWriter.WriteLine("*{0}", TypeName_CompanionType(superType, staticFieldWriter, tok));
 
-      staticFieldInitWriter.Indent();
       staticFieldInitWriter.WriteLine("{0}: &{1},", FormatCompanionTypeName(embed), TypeName_Companion(superType, staticFieldInitWriter, tok, null));
     }
 
@@ -1480,13 +1355,11 @@ namespace Microsoft.Dafny {
       // make all pointers to a zero-length struct the same.  Irritatingly, this
       // forces us to waste space here.
       if (!cw.AnyInstanceFields) {
-        cw.InstanceFieldWriter.Indent();
         cw.InstanceFieldWriter.WriteLine("dummy byte");
       }
     }
 
     protected override void EmitJumpToTailCallStart(TargetWriter wr) {
-      wr.Indent();
       wr.WriteLine("goto TAIL_CALL_START");
     }
 
@@ -1791,17 +1664,14 @@ namespace Microsoft.Dafny {
       if (isConst && rhs != null) {
         var receiver = isStatic ? FormatCompanionTypeName(className) : className;
         var wBody = concreteMethodWriter.NewNamedBlock("func (_this *{0}) {1}() {2}", receiver, name, TypeName(type, concreteMethodWriter, tok));
-        wBody.Indent();
         wBody.WriteLine("return {0}", rhs);
       } else {
         if (rhs == null) {
           rhs = DefaultValue(type, initWriter, tok);
         }
 
-        wr.Indent();
         wr.WriteLine("{0} {1}", name, TypeName(type, initWriter, tok));
 
-        initWriter.Indent();
         if (!isStatic) {
           initWriter.WriteLine("_this.{0} = {1}", name, rhs);
         } else {
@@ -1820,7 +1690,6 @@ namespace Microsoft.Dafny {
     }
 
     private TargetWriter/*?*/ DeclareLocalVar(string name, Type/*?*/ type, Bpl.IToken/*?*/ tok, bool includeRhs, bool leaveRoomForRhs, TargetWriter wr) {
-      wr.Indent();
       wr.Write("var {0}", name);
       
       if (type != null) {
@@ -1841,7 +1710,6 @@ namespace Microsoft.Dafny {
       if (!leaveRoomForRhs) {
         wr.WriteLine();
 
-        wr.Indent();
         wr.WriteLine("var _ = {0}", name);
       }
 
@@ -1884,9 +1752,7 @@ namespace Microsoft.Dafny {
       wLhss = new List<TargetWriter>();
       wRhss = new List<TargetWriter>();
 
-      wr.Indent();
       var sep = "";
-      
       foreach (var _ in lhsTypes) {
         wr.Write(sep);
         var wLhs = wr.Fork();
@@ -1909,7 +1775,6 @@ namespace Microsoft.Dafny {
     }
 
     protected override void EmitPrintStmt(TargetWriter wr, Expression arg) {
-      wr.Indent();
       wr.Write("_dafny.Print(");
       TrExpr(arg, wr, false);
       wr.WriteLine(")");
@@ -1917,7 +1782,6 @@ namespace Microsoft.Dafny {
 
     protected override void EmitReturn(List<Formal> formals, TargetWriter wr) {
       var outParams = formals.Where(f => !f.IsGhost).ToList();
-      wr.Indent();
       if (!outParams.Any()) {
         wr.WriteLine("return");
       } else {
@@ -1933,7 +1797,6 @@ namespace Microsoft.Dafny {
     }
 
     protected override void EmitBreak(string/*?*/ label, TargetWriter wr) {
-      wr.Indent();
       if (label == null) {
         wr.WriteLine("break");
       } else {
@@ -1942,11 +1805,8 @@ namespace Microsoft.Dafny {
     }
 
     protected override void EmitYield(TargetWriter wr) {
-      wr.Indent();
       wr.WriteLine("_yielded <- struct{}{}");
-      wr.Indent();
       wr.WriteLine("_, _ok = <- _cont");
-      wr.Indent();
       wr.WriteLine("if !_ok { return }");
     }
 
@@ -1954,12 +1814,10 @@ namespace Microsoft.Dafny {
       if (message == null) {
         message = "unexpected control point";
       }
-      wr.Indent();
       wr.WriteLine("panic(\"{0}\")", message);
     }
 
     protected override BlockTargetWriter CreateWhileLoop(out TargetWriter guardWriter, TargetWriter wr) {
-      wr.Indent();
       wr.Write("for ");
       guardWriter = wr.Fork();
       var wBody = wr.NewBlock("");
@@ -1967,22 +1825,18 @@ namespace Microsoft.Dafny {
     }
     
     protected override BlockTargetWriter CreateForLoop(string indexVar, string bound, TargetWriter wr) {
-      wr.Indent();
       return wr.NewNamedBlock("for {0} := _dafny.Zero; {0}.Cmp({1}) < 0; {0} = {0}.Plus(_dafny.One)", indexVar, bound);
     }
 
     protected override BlockTargetWriter CreateDoublingForLoop(string indexVar, int start, TargetWriter wr) {
-      wr.Indent();
       return wr.NewNamedBlock("for {0} := _dafny.IntOf({1}); ; {0} = {0}.Times(_dafny.Two)", indexVar, start);
     }
 
     protected override void EmitIncrementVar(string varName, TargetWriter wr) {
-      wr.Indent();
       wr.WriteLine("{0} = {0}.Plus(_dafny.One)", varName);
     }
 
     protected override void EmitDecrementVar(string varName, TargetWriter wr) {
-      wr.Indent();
       wr.WriteLine("{0} = {0}.Minus(_dafny.One)", varName);
     }
 
@@ -1994,21 +1848,16 @@ namespace Microsoft.Dafny {
       var okVar = FreshId("_ok");
       var iterVar = FreshId("_iter");
       var valVar = boundVarType == null ? boundVar : FreshId("_val");
-      wr.Indent();
       wr.Write("for {0} := _dafny.Iterate(", iterVar);
       collectionWriter = wr.Fork();
       var wBody = wr.NewBlock(");;");
-      wBody.Indent();
       wBody.WriteLine("{0}, {1} := {2}()", valVar, okVar, iterVar);
-      wBody.Indent();
       wBody.WriteLine("if !{0} {{ break }}", okVar);
       if (boundVarType != null) {
-        wBody.Indent();
         wBody.WriteLine("{0} := {1}.({2})", boundVar, valVar, TypeName(boundVarType, wBody, tok));
       }
       
       if (altBoundVarName != null) {
-        wBody.Indent();
         if (altVarType == null) {
           wBody.WriteLine("{0} = {1}", altBoundVarName, boundVar);
         } else {
@@ -2209,7 +2058,6 @@ namespace Microsoft.Dafny {
     }
 
     protected override TargetWriter EmitAddTupleToList(string ingredients, string tupleTypeArgs, TargetWriter wr) {
-      wr.Indent();
       wr.Write("{0}.Add(_dafny.TupleOf(", ingredients);
       var wrTuple = wr.Fork();
       wr.WriteLine("))");
@@ -2490,13 +2338,11 @@ namespace Microsoft.Dafny {
           wSource = wr.Fork();
           wr.Write(").IndexInt({0}))", dtor.Name);
         } else {
-          wr.Write("");  // to cause the Indent to happen
           wSource = wr.Fork();
           wr.Write(".{0}()", FormatDatatypeDestructorName(dtor.CompileName));
         }
       } else if (!isLValue && member is SpecialField sf && sf.SpecialId != SpecialField.ID.UseIdParam) {
         wr = EmitCoercionIfNecessary(from:sf.Type, to:expectedType, tok:null, wr:wr);
-        wr.Write("");  // to cause the Indent to happen
         wSource = wr.Fork();
         string compiledName;
         GetSpecialFieldInfo(sf.SpecialId, sf.IdParam, out compiledName, out _, out _);
@@ -2509,21 +2355,17 @@ namespace Microsoft.Dafny {
         // sf2 is needed here only because the scope rules for these pattern matches are asinine: sf is *still in scope* but it's useless because it may not have been assigned to!
 
         wr = EmitCoercionIfNecessary(from:sf2.Type, to:expectedType, tok:null, wr:wr);
-        wr.Write("");  // to cause the Indent to happen
         wSource = wr.Fork();
         // FIXME This is a pretty awful string hack.
         wr.Write(".{0}()", FormatDatatypeConstructorCheckName(fieldName.Substring(3)));
       } else if (member is ConstantField cf && cf.Rhs != null) {
-        wr.Write("");  // to cause the Indent to happen
         wSource = wr.Fork();
         wr.Write(".{0}()", IdName(member));
       } else if (member is Field f && !isLValue) {
         wr = EmitCoercionIfNecessary(from:f.Type, to:expectedType, tok:null, wr:wr);
-        wr.Write("");  // to cause the Indent to happen
         wSource = wr.Fork();
         wr.Write(".{0}", IdName(member));
       } else {
-        wr.Write("");  // to cause the Indent to happen
         wSource = wr.Fork();
         wr.Write(".{0}", IdName(member));
       }
@@ -2610,7 +2452,6 @@ namespace Microsoft.Dafny {
     }
 
     protected override void EmitIndexCollectionUpdate(out TargetWriter wSource, out TargetWriter wIndex, out TargetWriter wValue, TargetWriter wr, bool nativeIndex = false) {
-      wr.Write("");  // to cause the Indent to happen
       wSource = wr.Fork();
       wr.Write(nativeIndex ? ".UpdateInt(" : ".Update(");
       wIndex = wr.Fork();
@@ -2699,7 +2540,6 @@ namespace Microsoft.Dafny {
     
     private TargetWriter CreateIIFE_ExprBody(out TargetWriter sourceWriter, Type sourceType, Bpl.IToken sourceTok, Type resultType, Bpl.IToken resultTok, string bvName, TargetWriter wr) {
       var w = wr.NewExprBlock("func ({0} {1}) {2}", bvName, TypeName(sourceType, wr, sourceTok), TypeName(resultType, wr, resultTok));
-      w.Indent();
       w.Write("return ");
       var wExpr = w.Fork();
       w.WriteLine();
@@ -3193,7 +3033,6 @@ namespace Microsoft.Dafny {
           wr.Write(" {0}", TypeName(tat.Result, wr, tok));
         }
         var wBody = wr.NewExprBlock("");
-        wBody.Indent();
         TargetWriter wCall;
         if (fat.Result == null) {
           wCall = wBody;
@@ -3324,14 +3163,12 @@ namespace Microsoft.Dafny {
 
     protected override void EmitCollectionBuilder_Add(CollectionType ct, string collName, Expression elmt, bool inLetExprBody, TargetWriter wr) {
       Contract.Assume(ct is SetType || ct is MultiSetType);  // follows from precondition
-      wr.Indent();
       wr.Write("{0}.Add(", collName);
       TrExpr(elmt, wr, inLetExprBody);
       wr.WriteLine(")");
     }
 
     protected override TargetWriter EmitMapBuilder_Add(MapType mt, Bpl.IToken tok, string collName, Expression term, bool inLetExprBody, TargetWriter wr) {
-      wr.Indent();
       wr.Write("{0}.Add(", collName);
       var termLeftWriter = wr.Fork();
       wr.Write(",");
