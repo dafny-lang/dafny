@@ -56,7 +56,9 @@ namespace Microsoft.Dafny {
       Contract.Requires(args != null);
 
       Reporter.Error(MessageSource.Compiler, tok, msg, args);
-      if (wr != null) {
+      if (wr is TargetWriter tw) {
+        tw.WriteError("/* {0} */", string.Format("Compilation error: " + msg, args));
+      } else if (wr != null) {
         wr.WriteLine("/* {0} */", string.Format("Compilation error: " + msg, args));
       }
     }
@@ -67,7 +69,7 @@ namespace Microsoft.Dafny {
     /// Emits a call to "mainMethod" as the program's entry point, if such an explicit call is
     /// required in the target language.
     /// </summary>
-    public virtual void EmitCallToMain(Method mainMethod, TextWriter wr) { }
+    public virtual void EmitCallToMain(Method mainMethod, TargetWriter wr) { }
     /// <summary>
     /// Creates a static Main method. The caller will fill the body of this static Main with a
     /// call to the instance Main method in the enclosing class.
@@ -211,6 +213,7 @@ namespace Microsoft.Dafny {
     protected abstract string GenerateLhsDecl(string target, Type/*?*/ type, TextWriter wr, Bpl.IToken tok);
     protected virtual void EmitAssignment(out TargetWriter wLhs, Type/*?*/ lhsType, out TargetWriter wRhs, Type/*?*/ rhsType, TargetWriter wr) {
       wr.Indent();
+      wr.Write("");  // to cause the Indent to happen
       wLhs = wr.Fork();
       wr.Write(" = ");
       TargetWriter w;
@@ -236,12 +239,9 @@ namespace Microsoft.Dafny {
       TrExpr(rhs, w, inLetExprBody);
     }
     protected virtual TargetWriter EmitAssignmentRhs(TargetWriter wr) {
-      var w = new TargetWriter(wr.IndentLevel);
-
       wr.Write(" = ");
-      wr.Append(w);
+      var w = wr.Fork();
       EndStmt(wr);
-
       return w;
     }
 
@@ -284,10 +284,9 @@ namespace Microsoft.Dafny {
     }
     protected virtual TargetWriter EmitReturnExpr(TargetWriter wr) {
       // emits "return <returnExpr>;" for function bodies
-      var w = new TargetWriter(wr.IndentLevel);
       wr.Indent();
       wr.Write("return ");
-      wr.Append(w);
+      var w = wr.Fork();
       EndStmt(wr);
       return w;
     }
@@ -308,15 +307,15 @@ namespace Microsoft.Dafny {
     protected virtual TargetWriter EmitIf(out TargetWriter guardWriter, bool hasElse, TargetWriter wr) {
       wr.Indent();
       wr.Write("if (");
-      guardWriter = new TargetWriter(wr.IndentLevel);
-      wr.Append(guardWriter);
-      var thn = wr.NewBlock(")");
+      guardWriter = wr.Fork();
       if (hasElse) {
-        thn.Footer = " else";
-        thn.SetBraceStyle(BlockTargetWriter.BraceStyle.Space, BlockTargetWriter.BraceStyle.Space);
+        var thn = wr.NewBlock(")", " else", BlockTargetWriter.BraceStyle.Space, BlockTargetWriter.BraceStyle.Space);
         wr.SuppressIndent();
+        return thn;
+      } else {
+        var thn = wr.NewBlock(")");
+        return thn;
       }
-      return thn;
     }
     protected virtual TargetWriter EmitWhile(List<Statement> body, TargetWriter wr) {  // returns the guard writer
       TargetWriter guardWriter;
@@ -328,8 +327,7 @@ namespace Microsoft.Dafny {
     protected virtual BlockTargetWriter CreateWhileLoop(out TargetWriter guardWriter, TargetWriter wr) {
       wr.Indent();
       wr.Write("while (");
-      guardWriter = new TargetWriter(wr.IndentLevel);
-      wr.Append(guardWriter);
+      guardWriter = wr.Fork();
       var wBody = wr.NewBlock(")");
       return wBody;
     }
@@ -442,7 +440,7 @@ namespace Microsoft.Dafny {
       return w;
     }
     protected TargetWriter EmitArrayUpdate(List<string> indices, Expression rhs, TargetWriter wr) {
-      var w = new TargetWriter();
+      var w = new TargetWriter(wr.IndentLevel, true);
       TrExpr(rhs, w, false);
       return EmitArrayUpdate(indices, w.ToString(), rhs.Type, wr);
     }
@@ -1149,7 +1147,7 @@ namespace Microsoft.Dafny {
             // nothing to compile, but do a sanity check
             Contract.Assert(Contract.ForAll(arg.Vars, bv => bv.IsGhost));
           } else {
-            var sw = new TargetWriter();
+            var sw = new TargetWriter(wr.IndentLevel, true);
             EmitDestructor(tmp_name, formal, k, ctor, ((DatatypeValue)pat.Expr).InferredTypeArgs, arg.Expr.Type, sw);
             TrCasePatternOpt(arg, null, sw.ToString(), pat.Expr.Type, pat.Expr.tok, wr, inLetExprBody);
             k++;
@@ -1615,7 +1613,7 @@ namespace Microsoft.Dafny {
             }
           }
 
-          var wStmts = wr.Fork();
+          var wStmts = wr.ForkSection();
           List<TargetWriter> wLhss, wRhss;
           EmitMultiAssignment(out wLhss, lhsTypes, out wRhss, rhsTypes, wr);
           for (int i = 0; i < wLhss.Count; i++) {
@@ -1632,7 +1630,7 @@ namespace Microsoft.Dafny {
           }
         } else {
           var lvalue = CreateLvalue(s.Lhs, wr);
-          var wStmts = wr.Fork();
+          var wStmts = wr.ForkSection();
           TargetWriter wLhs, wRhs;
           EmitAssignment(out wLhs, s.Lhs.Type, out wRhs, TypeOfRhs(s.Rhs), wr);
           wLhs.Write(lvalue);
@@ -1661,13 +1659,12 @@ namespace Microsoft.Dafny {
         }
 
       } else if (stmt is CallStmt) {
-        CallStmt s = (CallStmt)stmt;
-        wr.Write(TrCallStmt(s, null, wr.IndentLevel).ToString());
+        var s = (CallStmt)stmt;
+        TrCallStmt(s, null, wr);
 
       } else if (stmt is BlockStmt) {
         wr.Indent();
-        var w = wr.NewBlock("");
-        w.SetBraceStyle(BlockTargetWriter.BraceStyle.Nothing, BlockTargetWriter.BraceStyle.Newline);
+        var w = wr.NewBlock("", null, BlockTargetWriter.BraceStyle.Nothing, BlockTargetWriter.BraceStyle.Newline);
         TrStmtList(((BlockStmt)stmt).Body, w);
 
       } else if (stmt is IfStmt) {
@@ -1686,6 +1683,7 @@ namespace Microsoft.Dafny {
             // let's compile the "then" branch
             wr.Indent();
             wr.Write("if (true) ");
+            wr.SuppressIndent();
             TrStmt(s.Thn, wr);
           }
         } else {
@@ -1721,7 +1719,7 @@ namespace Microsoft.Dafny {
           }
           TrStmtList(alternative.Body, thn);
         }
-        using (var wElse = wr.NewBlock("")) {
+        using (var wElse = wr.NewBlock("", null, BlockTargetWriter.BraceStyle.Nothing)) {
           EmitAbsurd("unreachable alternative", wElse);
         }
 
@@ -1748,7 +1746,6 @@ namespace Microsoft.Dafny {
           Error(s.Tok, "case-based loop forbidden by /definiteAssignment:3 option", wr);
         }
         if (s.Alternatives.Count != 0) {
-          wr.Indent();
           TargetWriter whileGuardWriter;
           var w = CreateWhileLoop(out whileGuardWriter, wr);
           whileGuardWriter.Write("true");
@@ -1893,7 +1890,7 @@ namespace Microsoft.Dafny {
           wr = CreateForeachLoop(tup, null, out collWriter, wrOuter);
           collWriter.Write(ingredients);
           {
-            var wTup = new TargetWriter();
+            var wTup = new TargetWriter(wr.IndentLevel, true);
             var wCoerceTup = EmitCoercionToArbitraryTuple(wTup);
             wCoerceTup.Write(tup);
             tup = wTup.ToString();
@@ -1922,7 +1919,7 @@ namespace Microsoft.Dafny {
             EndStmt(wr);
           } else {
             var lhs = (MultiSelectExpr) s0.Lhs;
-            var wArray = new TargetWriter();
+            var wArray = new TargetWriter(wr.IndentLevel, true);
             var wCoerced = EmitCoercionIfNecessary(from:null, to:tupleTypeArgsList[0], tok:s0.Tok, wr:wArray);
             EmitTupleSelect(tup, 0, wCoerced);
             var array = wArray.ToString();
@@ -2453,7 +2450,7 @@ namespace Microsoft.Dafny {
           if (tRhs.InitCall.Method is Constructor && tRhs.InitCall.Method.IsExtern(out q, out n)) {
             // initialization was done at the time of allocation
           } else {
-            wStmts.Write(TrCallStmt(tRhs.InitCall, nw, wStmts.IndentLevel).ToString());
+            TrCallStmt(tRhs.InitCall, nw, wStmts);
           }
         } else if (tRhs.ElementInit != null) {
           // Compute the array-initializing function once and for all (as required by the language definition)
@@ -2500,11 +2497,10 @@ namespace Microsoft.Dafny {
       }
     }
 
-    TextWriter TrCallStmt(CallStmt s, string receiverReplacement, int indent) {
+    void TrCallStmt(CallStmt s, string receiverReplacement, TargetWriter wr) {
       Contract.Requires(s != null);
       Contract.Assert(s.Method != null);  // follows from the fact that stmt has been successfully resolved
 
-      var wr = new TargetWriter(indent);
       if (s.Method == enclosingMethod && enclosingMethod.IsTailRecursive) {
         // compile call as tail-recursive
 
@@ -2537,7 +2533,7 @@ namespace Microsoft.Dafny {
         foreach (var p in s.Method.Ins) {
           if (!p.IsGhost) {
             wr.Indent();
-            wr.WriteLine("{0} = {1}", p.CompileName, inTmps[n]);
+            wr.Write("{0} = {1}", p.CompileName, inTmps[n]);
             EndStmt(wr);
             n++;
           }
@@ -2708,7 +2704,6 @@ namespace Microsoft.Dafny {
           }
         }
       }
-      return wr;
     }
 
     /// <summary>
@@ -2741,8 +2736,7 @@ namespace Microsoft.Dafny {
         if (ss.Labels != null) {
           w = CreateLabeledCode(ss.Labels.Data.AssignUniqueId(idGenerator), w);
         }
-        var prelude = new TargetWriter(w.IndentLevel);
-        w.Append(prelude);
+        var prelude = w.ForkSection();
         copyInstrWriters.Push(prelude);
         TrStmt(ss, w);
         copyInstrWriters.Pop();
@@ -2773,7 +2767,8 @@ namespace Microsoft.Dafny {
         // Need to avoid if (true) because some languages (Go, someday Java)
         // pretend that an if (true) isn't a certainty, leading to a complaint
         // about a missing return statement
-        w = wr.NewBlock("");
+        wr.Indent();
+        w = wr.NewBlock("", null, BlockTargetWriter.BraceStyle.Nothing);
       } else {
         TargetWriter guardWriter;
         w = EmitIf(out guardWriter, !lastCase, wr);
@@ -3403,7 +3398,7 @@ namespace Microsoft.Dafny {
             // nothing to compile, but do a sanity check
             Contract.Assert(!Contract.Exists(arg.Vars, bv => !bv.IsGhost));
           } else {
-            var sw = new TargetWriter(wr.IndentLevel);
+            var sw = new TargetWriter(wr.IndentLevel, true);
             EmitDestructor(rhsString, formal, k, ctor, ((DatatypeValue)pat.Expr).InferredTypeArgs, arg.Expr.Type, sw);
             wr = TrCasePattern(arg, sw.ToString(), bodyType, wr);
             k++;
@@ -3514,10 +3509,11 @@ namespace Microsoft.Dafny {
   }
 
   public class TargetWriter : TextWriter {
-    public TargetWriter(int indent = 0) {
+    public TargetWriter(int indent = 0, bool suppressInitialIndent = false) {
       Contract.Requires(0 <= indent);
       IndentLevel = indent;
       IndentString = new string(' ', indent);
+      indentPending = !suppressInitialIndent;
     }
     public override Encoding Encoding {
       get { return Encoding.Default; }
@@ -3533,47 +3529,123 @@ namespace Microsoft.Dafny {
     private bool suppressNextIndent = false;
     public void Indent() {
       if (suppressNextIndent) {
+        if (indentPending) {
+          Console.WriteLine("DEBUG: Indent called in suppressed state with indentPending");
+          indentPending = false;
+          Write("/*UNEXPECTED-INDENT-SUPPRESS*/");
+          indentPending = false;
+        }
         suppressNextIndent = false;
       } else {
+        if (!indentPending) {
+          Console.WriteLine("DEBUG: Indent called without indentPending");
+          indentPending = false;
+          Write("/*UNEXPECTED-INDENT*/");
+        }
+        indentPending = false;
         Write(IndentString);
       }
+      Contract.Assert(!indentPending);  // should at least have been reset by the call to Write(string) above
+      indentPending = false;
     }
-    public void IndentExtra(int times = 1) {
-      Contract.Requires(-1 <= times);
+    public void IndentLess() {
       if (suppressNextIndent) {
-        suppressNextIndent = false;
-      } else if (times == -1) {
-        Write(UnIndentString);
-      } else {
-        Indent();
-        for (; 0 <= --times;) {
-          Write(IndentAmountString);
+        if (indentPending) {
+          Console.WriteLine("DEBUG: IndentLess called in suppressed state with indentPending");
+          indentPending = false;
+          Write("/*UNEXPECTED-INDENT-LESS-SUPPRESS*/");
+          indentPending = false;
         }
+        suppressNextIndent = false;
+      } else {
+        if (!indentPending) {
+          Console.WriteLine("DEBUG: IndentLess called without indentPending");
+          indentPending = false;
+          Write("/*UNEXPECTED-INDENT-LESS*/");
+        }
+        indentPending = false;
+        Write(UnIndentString);
       }
     }
     public void SuppressIndent(){
+      if (indentPending) {
+        Console.WriteLine("DEBUG: SuppressIndent called with indentPending");
+        indentPending = false;
+        Write("/*UNEXPECTED-SUPPRESS-INDENT*/");
+      }
       suppressNextIndent = true;
+      indentPending = false;
     }
 
     // ----- Things ------------------------------
 
-    readonly List<object> things = new List<object>();
+    private readonly List<object> things = new List<object>();
+
+    private void AddThing(object thing) {
+      if (indentPending && IndentLevel != 0) {
+        Console.WriteLine("DEBUG: AddThing called with indentPending");
+        indentPending = false;
+        string msg;
+        if (thing is string s) {
+          msg = string.Format("string.Length={0}:", s.Length);
+        } else if (thing is FileTargetWriter) {
+          msg = "FileTargetWriter";
+        } else if (thing is BlockTargetWriter) {
+          msg = "BlockTargetWriter";
+        } else if (thing is TargetWriter) {
+          msg = "TargetWriter";
+        } else {
+          msg = "other";
+        }
+        things.Add(string.Format("/*UNEXPECTED-ADD-THING-{0}-{1}*/", IndentLevel, msg));
+      }
+      things.Add(thing);
+      if (thing is BlockTargetWriter btw && btw.EndsWithNewLine) {
+        indentPending = true;
+      } else {
+        indentPending = false;
+      }
+      suppressNextIndent = false;
+    }
 
     public void Append(TargetWriter wr) {
       Contract.Requires(wr != null);
-      things.Add(wr);
+      AddThing(wr);
     }
 
     // ----- Writing ------------------------------
 
+    bool indentPending;
+
     public override void Write(char[] buffer, int index, int count) {
-      things.Add(new string(buffer, index, count));
+      if (indentPending && IndentLevel != 0 && !(count == 1 && buffer[index] == '\n')) {
+        Console.WriteLine("DEBUG: Write(buffer,index,count) called with indentPending");
+        indentPending = false;
+        AddThing(string.Format("/*UNEXPECTED-WRITE-BUFFER-{0}*/", IndentLevel));
+      }
+      indentPending = false;
+      AddThing(new string(buffer, index, count));
+      indentPending = count > 0 && buffer[index + count - 1] == '\n';
     }
     public override void Write(string value) {
-      things.Add(value);
+      if (indentPending && IndentLevel != 0 && value != "\n") {
+        Console.WriteLine("DEBUG: Write(string) called with indentPending");
+        indentPending = false;
+        AddThing(string.Format("/*UNEXPECTED-WRITE-STRING-{0}*/", IndentLevel));
+      }
+      indentPending = false;
+      AddThing(value);
+      indentPending = false;
     }
     public override void Write(char value) {
-      things.Add(new string(value, 1));
+      if (indentPending && IndentLevel != 0) {
+        Console.WriteLine("DEBUG: Write(char) called with indentPending");
+        indentPending = false;
+        AddThing("/*UNEXPECTED-WRITE-CHAR*/");
+      }
+      indentPending = false;
+      AddThing(new string(value, 1));
+      indentPending = false;
     }
 
     public void RepeatWrite(int times, string template, string separator) {
@@ -3588,33 +3660,82 @@ namespace Microsoft.Dafny {
       }
     }
 
+    public void WriteError(string format, params string[] args) {
+      var oldIndentPending = indentPending;
+      if (indentPending) {
+        Indent();
+      }
+      WriteLine(format, args);
+      indentPending = oldIndentPending;
+    }
+
+    /// <summary>
+    /// Fork() is to be used when the new TargetWriter will not start with an indent
+    /// and will not end with a newline. (However, contrary to what the name of this parameter may
+    /// suggest, the new TargetWriter may choose to add its own newlines and indents in the middele.)
+    /// See also ForkSection().
+    /// </summary>
     public TargetWriter Fork() {
-      var ans = new TargetWriter(IndentLevel);
-      things.Add(ans);
+      var oldIndentPending = indentPending;
+      indentPending = false;
+      if (oldIndentPending) {
+        Console.WriteLine("DEBUG: singleLine-Fork called with indentPending");
+        Write("/*UNEXPECTED-SINGLE-LINE-FORK*/");
+      }
+      var ans = new TargetWriter(IndentLevel, true);
+      AddThing(ans);
+      indentPending = oldIndentPending;
+      return ans;
+    }
+
+    /// <summary>
+    /// ForkSection() says that the new TargetWriter will form a block of complete lines,
+    /// each beginning with an indent and ending with a newline.
+    /// </summary>
+    public TargetWriter ForkSection(bool indentMore = false) {
+      var oldIndentPending = indentPending;
+      if (!indentPending) {
+        Console.WriteLine("DEBUG: ForkSection called without indentPending");
+        Write("/*UNEXPECTED-FORK-SECTION*/");
+      }
+      indentPending = false;
+      var ans = new TargetWriter(IndentLevel + (indentMore ? IndentAmount : 0));
+      AddThing(ans);
+      indentPending = oldIndentPending;
       return ans;
     }
 
     // ----- Nested blocks ------------------------------
 
-    public BlockTargetWriter NewBlock(string header, string/*?*/ footer = null) {
+    public BlockTargetWriter NewBlock(string header, string/*?*/ footer = null,
+      BlockTargetWriter.BraceStyle open = BlockTargetWriter.BraceStyle.Space,
+      BlockTargetWriter.BraceStyle close = BlockTargetWriter.BraceStyle.Newline) {
       Contract.Requires(header != null);
       var btw = new BlockTargetWriter(IndentLevel + IndentAmount, header, footer);
-      btw.SetBraceStyle(BlockTargetWriter.BraceStyle.Space, BlockTargetWriter.BraceStyle.Newline);
-      things.Add(btw);
+      btw.SetBraceStyle(open, close);
+      AddThing(btw);
       return btw;
     }
     public BlockTargetWriter NewNamedBlock(string headerFormat, params object[] headerArgs) {
       Contract.Requires(headerFormat != null);
-      var btw = new BlockTargetWriter(IndentLevel + IndentAmount, string.Format(headerFormat, headerArgs), null);
-      btw.SetBraceStyle(BlockTargetWriter.BraceStyle.Space, BlockTargetWriter.BraceStyle.Newline);
-      things.Add(btw);
-      return btw;
+      return NewBigBlock(string.Format(headerFormat, headerArgs), null);
     }
     public BlockTargetWriter NewBigBlock(string header, string/*?*/ footer) {
       Contract.Requires(header != null);
       var btw = new BlockTargetWriter(IndentLevel + IndentAmount, header, footer);
       btw.SetBraceStyle(BlockTargetWriter.BraceStyle.Space, BlockTargetWriter.BraceStyle.Newline);
-      things.Add(btw);
+      AddThing(btw);
+      return btw;
+    }
+    public BlockTargetWriter NewExprBlock(string headerFormat, params object[] headerArgs) {
+      Contract.Requires(headerFormat != null);
+      return NewBigExprBlock(string.Format(headerFormat, headerArgs), null);
+    }
+    public BlockTargetWriter NewBigExprBlock(string header, string/*?*/ footer) {
+      Contract.Requires(header != null);
+      var btw = new BlockTargetWriter(IndentLevel + IndentAmount, header, footer);
+      btw.SetBraceStyle(BlockTargetWriter.BraceStyle.Space, BlockTargetWriter.BraceStyle.Nothing);
+      AddThing(btw);
       return btw;
     }
     public BlockTargetWriter NewBlockWithPrefix(string headerFormat, string prefixFormat, params object[] headerArgs) {
@@ -3623,19 +3744,19 @@ namespace Microsoft.Dafny {
       var btw = new BlockTargetWriter(IndentLevel + IndentAmount, string.Format(headerFormat, headerArgs), null);
       btw.SetBraceStyle(BlockTargetWriter.BraceStyle.Space, BlockTargetWriter.BraceStyle.Newline);
       btw.BodyPrefix = string.Format(prefixFormat, headerArgs);
-      things.Add(btw);
+      AddThing(btw);
       return btw;
     }
 
     public TargetWriter NewSection() {
       var w = new TargetWriter(IndentLevel);
-      things.Add(w);
+      AddThing(w);
       return w;
     }
 
     public FileTargetWriter NewFile(string filename) {
       var w = new FileTargetWriter(filename);
-      things.Add(w);
+      AddThing(w);
       return w;
     }
 
@@ -3656,21 +3777,20 @@ namespace Microsoft.Dafny {
       Contract.Requires(wr != null);
       Contract.Requires(files != null);
 
-      if (things != null) {
-        CollectThings(wr, files);
-      }
+      Contract.Assert(things != null);
+      CollectThings(wr, files);
     }
     protected void CollectThings(TextWriter wr, Queue<FileTargetWriter> files) {
       Contract.Requires(wr != null);
       Contract.Requires(files != null);
 
       foreach (var o in things) {
-        if (o is string) {
-          wr.Write((string)o);
+        if (o is string s) {
+          wr.Write(s);
         } else if (o is FileTargetWriter ftw) {
           files.Enqueue(ftw);
-        } else if (o is TargetWriter) {
-          ((TargetWriter)o).Collect(wr, files);
+        } else if (o is TargetWriter tw) {
+          tw.Collect(wr, files);
         } else {
           wr.Write(o.ToString());
         }
@@ -3681,7 +3801,7 @@ namespace Microsoft.Dafny {
     string header;
     public enum BraceStyle { Nothing, Space, Newline }
     BraceStyle openBraceStyle = BraceStyle.Space;
-    BraceStyle closeBraceStyle = BraceStyle.Newline;
+    BraceStyle closeBraceStyle = BraceStyle.Newline;  // must be set to its final value before the BlockTargetWriter is .Add'ed to an enclosing TargetWriter
     public string BodyPrefix;  // just inside the open curly (before the newline)
     public string BodySuffix;  // just before the close curly
     public string Footer;  // just after the close curly
@@ -3695,6 +3815,9 @@ namespace Microsoft.Dafny {
     public void SetBraceStyle(BraceStyle open, BraceStyle close) {
       this.openBraceStyle = open;
       this.closeBraceStyle = close;
+    }
+    public bool EndsWithNewLine {
+      get => closeBraceStyle == BraceStyle.Newline;
     }
     public void AppendHeader(string format, params object[] args) {
       Contract.Requires(format != null);

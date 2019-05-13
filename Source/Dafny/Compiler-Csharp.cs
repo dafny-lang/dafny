@@ -83,17 +83,18 @@ namespace Microsoft.Dafny
           w.Write("] a = new T[");
           w.RepeatWrite(dims, "s{0}", ",");
           w.WriteLine("];");
-          // for (int i0 = 0; i0 < s0; i0++)
-          //   for (int i1 = 0; i1 < s1; i1++)
+          // for (int i0 = 0; i0 < s0; i0++) {
+          //   for (int i1 = 0; i1 < s1; i1++) {
+          var wLoopNest = w;
           for (int i = 0; i < dims; i++) {
-            w.IndentExtra(i);
-            w.WriteLine("for (int i{0} = 0; i{0} < s{0}; i{0}++)", i);
+            wLoopNest.Indent();
+            wLoopNest = wLoopNest.NewNamedBlock("for (int i{0} = 0; i{0} < s{0}; i{0}++)", i);
           }
           // a[i0,i1] = z;
-          w.IndentExtra(dims);
-          w.Write("a[");
-          w.RepeatWrite(dims, "i{0}", ",");
-          w.WriteLine("] = z;");
+          wLoopNest.Indent();
+          wLoopNest.Write("a[");
+          wLoopNest.RepeatWrite(dims, "i{0}", ",");
+          wLoopNest.WriteLine("] = z;");
           // return a;
           w.Indent();
           w.WriteLine("return a;");
@@ -679,7 +680,7 @@ namespace Microsoft.Dafny
         wEnum.WriteLine("for (var j = lo; j < hi; j++) {{ yield return ({0})j; }}", GetNativeTypeName(nt.NativeType));
       }
       if (nt.WitnessKind == SubsetTypeDecl.WKind.Compiled) { 
-        var witness = new TargetWriter(w.IndentLevel);
+        var witness = new TargetWriter(w.IndentLevel, true);
         TrExpr(nt.Witness, witness, false);
         if (nt.NativeType == null) {
           cw.DeclareField("Witness", true, true, nt.BaseType, nt.tok, witness.ToString());
@@ -695,7 +696,7 @@ namespace Microsoft.Dafny
     protected override void DeclareSubsetType(SubsetTypeDecl sst, TargetWriter wr) {
       ClassWriter cw = CreateClass(IdName(sst), sst.TypeArgs, wr) as ClassWriter;
       if (sst.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
-        var sw = new TargetWriter(cw.InstanceMemberWriter.IndentLevel);
+        var sw = new TargetWriter(cw.InstanceMemberWriter.IndentLevel, true);
         TrExpr(sst.Witness, sw, false);
         cw.DeclareField("Witness", true, true, sst.Rhs, sst.tok, sw.ToString());
       }
@@ -782,13 +783,12 @@ namespace Microsoft.Dafny
         wr.WriteLine(");");
         return null;
       } else {
-        var w = wr.NewBlock(")");
-        w.SetBraceStyle(BlockTargetWriter.BraceStyle.Newline, BlockTargetWriter.BraceStyle.Newline);
+        var w = wr.NewBlock(")", null, BlockTargetWriter.BraceStyle.Newline, BlockTargetWriter.BraceStyle.Newline);
         if (m.IsTailRecursive) {
           if (!m.IsStatic) {
             w.Indent(); w.WriteLine("var _this = this;");
           }
-          w.IndentExtra(-1); w.WriteLine("TAIL_CALL_START: ;");
+          w.IndentLess(); w.WriteLine("TAIL_CALL_START: ;");
         }
         return w;
       }
@@ -808,11 +808,13 @@ namespace Microsoft.Dafny
         wr.WriteLine(");");
         return null;
       } else {
-        var w = wr.NewBlock(")");
         if (formals.Count > 1) {
-          w.SetBraceStyle(BlockTargetWriter.BraceStyle.Newline, BlockTargetWriter.BraceStyle.Newline);
+          var w = wr.NewBlock(")", null, BlockTargetWriter.BraceStyle.Newline, BlockTargetWriter.BraceStyle.Newline);
+          return w;
+        } else {
+          var w = wr.NewBlock(")");
+          return w;
         }
-        return w;
       }
     }
 
@@ -1164,8 +1166,8 @@ namespace Microsoft.Dafny
     }
 
     protected override TargetWriter CreateLabeledCode(string label, TargetWriter wr) {
-      var w = wr.Fork();
-      wr.IndentExtra(-1);
+      var w = wr.ForkSection();
+      wr.IndentLess();
       wr.WriteLine("after_{0}: ;", label);
       return w;
     }
@@ -1639,6 +1641,7 @@ namespace Microsoft.Dafny
     }
 
     protected override TargetWriter EmitMemberSelect(MemberDecl member, bool isLValue, Type expectedType, TargetWriter wr) {
+      wr.Write("");  // to cause the Indent to happen
       var wSource = wr.Fork();
       if (isLValue && member is ConstantField) {
         wr.Write("._{0}", member.CompileName);
@@ -1762,8 +1765,7 @@ namespace Microsoft.Dafny
         wr.Write("(System.Func<{0}{1}>)", Util.Comma("", inTypes, t => TypeName(t, wr, tok) + ", "), TypeName(resultType, wr, tok));
       }
       wr.Write("(({0}) =>", Util.Comma(inNames, nm => nm));
-      var w = wr.NewBlock("", "))");
-      w.SetBraceStyle(BlockTargetWriter.BraceStyle.Space, BlockTargetWriter.BraceStyle.Nothing);
+      var w = wr.NewBigExprBlock("", "))");
       return w;
     }
 
@@ -1790,16 +1792,14 @@ namespace Microsoft.Dafny
       //   (System.Func<resultType>)(() => <<body>>)
       // )()
       wr.Write("((System.Func<{0}>)(() =>", TypeName(resultType, wr, resultTok));
-      var w = wr.NewBlock("", "))()");
-      w.SetBraceStyle(BlockTargetWriter.BraceStyle.Space, BlockTargetWriter.BraceStyle.Nothing);
+      var w = wr.NewBigExprBlock("", "))()");
       return w;
     }
 
     protected override BlockTargetWriter CreateIIFE1(int source, Type resultType, Bpl.IToken resultTok, string bvName, TargetWriter wr) {
       wr.Write("Dafny.Helpers.Let<int,{0}>(", TypeName(resultType, wr, resultTok));
       wr.Write("{0}, {1} => ", source, bvName);
-      var w = wr.NewBlock("", ")");
-      w.SetBraceStyle(BlockTargetWriter.BraceStyle.Space, BlockTargetWriter.BraceStyle.Nothing);
+      var w = wr.NewBigExprBlock("", ")");
       return w;
     }
 

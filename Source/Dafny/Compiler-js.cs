@@ -26,7 +26,7 @@ namespace Microsoft.Dafny {
       ReadRuntimeSystem("DafnyRuntime.js", wr);
     }
 
-    public override void EmitCallToMain(Method mainMethod, TextWriter wr) {
+    public override void EmitCallToMain(Method mainMethod, TargetWriter wr) {
       wr.WriteLine("{0}.{1}();", mainMethod.EnclosingClass.FullCompileName, IdName(mainMethod));
     }
       
@@ -537,7 +537,7 @@ namespace Microsoft.Dafny {
         EmitIncrementVar("lo", wLoopBody);
       }
       if (nt.WitnessKind == SubsetTypeDecl.WKind.Compiled) { 
-        var witness = new TargetWriter(w.IndentLevel);
+        var witness = new TargetWriter(w.IndentLevel, true);
         if (nt.NativeType == null) {
           TrExpr(nt.Witness, witness, false);
         } else {
@@ -559,7 +559,7 @@ namespace Microsoft.Dafny {
       var cw = CreateClass(IdName(sst), sst.TypeArgs, wr) as JavaScriptCompiler.ClassWriter;
       var w = cw.MethodWriter;
       if (sst.WitnessKind == SubsetTypeDecl.WKind.Compiled) { 
-        var witness = new TargetWriter(w.IndentLevel);
+        var witness = new TargetWriter(w.IndentLevel, true);
         TrExpr(sst.Witness, witness, false);
         DeclareField("Witness", true, true, sst.Rhs, sst.tok, witness.ToString(), w);
       }
@@ -1516,6 +1516,7 @@ namespace Microsoft.Dafny {
     }
 
     protected override TargetWriter EmitMemberSelect(MemberDecl member, bool isLValue, Type expectedType, TargetWriter wr) {
+      wr.Write("");  // to cause the Indent to happen
       var wSource = wr.Fork();
       if (isLValue && member is ConstantField) {
         wr.Write("._{0}", member.CompileName);
@@ -1658,14 +1659,12 @@ namespace Microsoft.Dafny {
       for (var i = 0; i < inNames.Count; i++) {
         wr.Write("{0}{1}", i == 0 ? "" : ", ", inNames[i]);
       }
-      var w = wr.NewBlock(")");
-      w.SetBraceStyle(BlockTargetWriter.BraceStyle.Space, BlockTargetWriter.BraceStyle.Nothing);
+      var w = wr.NewExprBlock(")");
       return w;
     }
 
     protected override TargetWriter CreateIIFE_ExprBody(Expression source, bool inLetExprBody, Type sourceType, Bpl.IToken sourceTok, Type resultType, Bpl.IToken resultTok, string bvName, TargetWriter wr) {
-      var w = wr.NewNamedBlock("function ({0})", bvName);
-      w.SetBraceStyle(BlockTargetWriter.BraceStyle.Space, BlockTargetWriter.BraceStyle.Nothing);
+      var w = wr.NewExprBlock("function ({0})", bvName);
       w.Indent();
       w.Write("return ");
       w.BodySuffix = ";" + w.NewLine;
@@ -1674,8 +1673,7 @@ namespace Microsoft.Dafny {
     }
 
     protected override TargetWriter CreateIIFE_ExprBody(string source, Type sourceType, Bpl.IToken sourceTok, Type resultType, Bpl.IToken resultTok, string bvName, TargetWriter wr) {
-      var w = wr.NewNamedBlock("function ({0})", bvName);
-      w.SetBraceStyle(BlockTargetWriter.BraceStyle.Space, BlockTargetWriter.BraceStyle.Nothing);
+      var w = wr.NewExprBlock("function ({0})", bvName);
       w.Indent();
       w.Write("return ");
       w.BodySuffix = ";" + w.NewLine;
@@ -1684,14 +1682,12 @@ namespace Microsoft.Dafny {
     }
 
     protected override BlockTargetWriter CreateIIFE0(Type resultType, Bpl.IToken resultTok, TargetWriter wr) {
-      var w = wr.NewBlock("function ()", "()");
-      w.SetBraceStyle(BlockTargetWriter.BraceStyle.Space, BlockTargetWriter.BraceStyle.Nothing);
+      var w = wr.NewBigExprBlock("function ()", "()");
       return w;
     }
 
     protected override BlockTargetWriter CreateIIFE1(int source, Type resultType, Bpl.IToken resultTok, string bvName, TargetWriter wr) {
-      var w = wr.NewNamedBlock("function ({0})", bvName);
-      w.SetBraceStyle(BlockTargetWriter.BraceStyle.Space, BlockTargetWriter.BraceStyle.Nothing);
+      var w = wr.NewExprBlock("function ({0})", bvName);
       wr.Write("({0})", source);
       return w;
     }
@@ -2119,16 +2115,16 @@ namespace Microsoft.Dafny {
         TrExprList(elements, wr, inLetExprBody);
       } else {
         Contract.Assert(ct is SeqType);  // follows from precondition
-        var wrElements = new TargetWriter(wr.IndentLevel);
+        TargetWriter wrElements;
         if (ct.Arg.IsCharType) {
           // We're really constructing a string.
           // TODO: It may be that ct.Arg is a type parameter that may stand for char. We currently don't catch that case here.
           wr.Write("[");
-          wr.Append(wrElements);
+          wrElements = wr.Fork();
           wr.Write("].join(\"\")");
         } else {
           wr.Write("_dafny.Seq.of(");
-          wr.Append(wrElements);
+          wrElements = wr.Fork();
           wr.Write(")");
         }
         string sep = "";

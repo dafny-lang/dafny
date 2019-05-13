@@ -70,21 +70,21 @@ namespace Microsoft.Dafny {
 
     void EmitImports(TargetWriter wr, out TargetWriter importWriter, out TargetWriter importDummyWriter) {
       wr.WriteLine("import (");
-      importWriter = wr.Fork();
+      importWriter = wr.ForkSection(true);
       wr.WriteLine(")");
-      importDummyWriter = wr.Fork();
+      importDummyWriter = wr.ForkSection();
       
       foreach (var import in Imports) {
         EmitImport(import, importWriter, importDummyWriter);
       }
     }
 
-    public override void EmitCallToMain(Method mainMethod, TextWriter wr) {
+    public override void EmitCallToMain(Method mainMethod, TargetWriter wr) {
       var companion = TypeName_Companion(mainMethod.EnclosingClass as ClassDecl, wr, mainMethod.tok);
       
-      wr.WriteLine("func main() {");
-      wr.WriteLine("  {0}.{1}()", companion, IdName(mainMethod));
-      wr.WriteLine("}");
+      var wBody = wr.NewNamedBlock("func main()");
+      wBody.Indent();
+      wBody.WriteLine("{0}.{1}()", companion, IdName(mainMethod));
     }
       
     TargetWriter CreateDescribedSection(string desc, TargetWriter wr, params object[] args) {
@@ -159,7 +159,7 @@ namespace Microsoft.Dafny {
       var path = import.Path;
 
       importWriter.Indent();
-      importWriter.WriteLine("  {0} \"{1}\"", id, path);
+      importWriter.WriteLine("{0} \"{1}\"", id, path);
 
       if (!import.SuppressDummy) {
         importDummyWriter.Indent();
@@ -386,8 +386,8 @@ namespace Microsoft.Dafny {
       instanceFieldWriter.Indent();
       instanceFieldWriter.WriteLine(FormatTraitInterfaceName(name));
       wr.Indent();
-      var abstractMethodWriter = wr.NewBlock(string.Format("type {0} interface", FormatTraitInterfaceName(name)));
-      var concreteMethodWriter = wr.Fork();
+      var abstractMethodWriter = wr.NewNamedBlock("type {0} interface", FormatTraitInterfaceName(name));
+      var concreteMethodWriter = wr.ForkSection();
       wr.Indent();
 
       CreateInitializer(name, wr, out var instanceFieldInitWriter, out var traitInitWriter, rtdParamWriter:out _);
@@ -414,8 +414,8 @@ namespace Microsoft.Dafny {
       w.WriteLine("_this := {0}{{}}", name);
 
       w.WriteLine();
-      instanceFieldInitWriter = w.Fork();
-      traitInitWriter = w.Fork();
+      instanceFieldInitWriter = w.ForkSection();
+      traitInitWriter = w.ForkSection();
       w.Indent();
       w.WriteLine("return &_this");
     }
@@ -1040,7 +1040,7 @@ namespace Microsoft.Dafny {
       var cw = CreateClass(IdName(sst), false, null, sst.TypeArgs, null, null, wr, includeRtd: false, includeEquals: false);
       var w = cw.ConcreteMethodWriter;
       if (sst.WitnessKind == SubsetTypeDecl.WKind.Compiled) { 
-        var witness = new TargetWriter(w.IndentLevel);
+        var witness = new TargetWriter(w.IndentLevel, true);
         TrExpr(sst.Witness, witness, false);
         DeclareField("Witness", false, true, true, sst.Rhs, sst.tok, witness.ToString(), cw.ClassName, cw.StaticFieldWriter, cw.StaticFieldInitWriter, cw.ConcreteMethodWriter);
       }
@@ -1604,7 +1604,7 @@ namespace Microsoft.Dafny {
         if (inAutoInitContext && !udt.ResolvedParam.Characteristics.MustSupportZeroInitialization) {
           return nil();
         } else {
-          var w = new TargetWriter();
+          var w = new TargetWriter(0, true);
           w = EmitCoercionIfNecessary(from:null, to:xType, tok:tok, wr:w);
           w.Write(RuntimeTypeDescriptor(udt, udt.tok, wr));
           w.Write(".Default()");
@@ -1926,8 +1926,8 @@ namespace Microsoft.Dafny {
     }
 
     protected override TargetWriter CreateLabeledCode(string label, TargetWriter wr) {
-      var w = wr.Fork();
-      wr.IndentExtra(-1);
+      var w = wr.ForkSection();
+      wr.IndentLess();
       wr.WriteLine("L{0}:", label);
       return w;
     }
@@ -1961,8 +1961,7 @@ namespace Microsoft.Dafny {
     protected override BlockTargetWriter CreateWhileLoop(out TargetWriter guardWriter, TargetWriter wr) {
       wr.Indent();
       wr.Write("for ");
-      guardWriter = new TargetWriter(wr.IndentLevel);
-      wr.Append(guardWriter);
+      guardWriter = wr.Fork();
       var wBody = wr.NewBlock("");
       return wBody;
     }
@@ -2167,8 +2166,7 @@ namespace Microsoft.Dafny {
         return wr;
       } else {
         wr.Write("((");
-        var middle = new TargetWriter(wr.IndentLevel);
-        wr.Append(middle);
+        var middle = wr.Fork();
         // print in hex, because that looks nice
         wr.Write(") & 0x{0:X}{1})", (1UL << bvType.Width) - 1, literalSuffix);
         return middle;
@@ -2492,11 +2490,13 @@ namespace Microsoft.Dafny {
           wSource = wr.Fork();
           wr.Write(").IndexInt({0}))", dtor.Name);
         } else {
+          wr.Write("");  // to cause the Indent to happen
           wSource = wr.Fork();
           wr.Write(".{0}()", FormatDatatypeDestructorName(dtor.CompileName));
         }
       } else if (!isLValue && member is SpecialField sf && sf.SpecialId != SpecialField.ID.UseIdParam) {
         wr = EmitCoercionIfNecessary(from:sf.Type, to:expectedType, tok:null, wr:wr);
+        wr.Write("");  // to cause the Indent to happen
         wSource = wr.Fork();
         string compiledName;
         GetSpecialFieldInfo(sf.SpecialId, sf.IdParam, out compiledName, out _, out _);
@@ -2509,17 +2509,21 @@ namespace Microsoft.Dafny {
         // sf2 is needed here only because the scope rules for these pattern matches are asinine: sf is *still in scope* but it's useless because it may not have been assigned to!
 
         wr = EmitCoercionIfNecessary(from:sf2.Type, to:expectedType, tok:null, wr:wr);
+        wr.Write("");  // to cause the Indent to happen
         wSource = wr.Fork();
         // FIXME This is a pretty awful string hack.
         wr.Write(".{0}()", FormatDatatypeConstructorCheckName(fieldName.Substring(3)));
       } else if (member is ConstantField cf && cf.Rhs != null) {
+        wr.Write("");  // to cause the Indent to happen
         wSource = wr.Fork();
         wr.Write(".{0}()", IdName(member));
       } else if (member is Field f && !isLValue) {
         wr = EmitCoercionIfNecessary(from:f.Type, to:expectedType, tok:null, wr:wr);
+        wr.Write("");  // to cause the Indent to happen
         wSource = wr.Fork();
         wr.Write(".{0}", IdName(member));
       } else {
+        wr.Write("");  // to cause the Indent to happen
         wSource = wr.Fork();
         wr.Write(".{0}", IdName(member));
       }
@@ -2606,6 +2610,7 @@ namespace Microsoft.Dafny {
     }
 
     protected override void EmitIndexCollectionUpdate(out TargetWriter wSource, out TargetWriter wIndex, out TargetWriter wValue, TargetWriter wr, bool nativeIndex = false) {
+      wr.Write("");  // to cause the Indent to happen
       wSource = wr.Fork();
       wr.Write(nativeIndex ? ".UpdateInt(" : ".Update(");
       wIndex = wr.Fork();
@@ -2661,9 +2666,9 @@ namespace Microsoft.Dafny {
         wr.Write("{0} {1}", boundVars[i], TypeName(boundTypes[i], wr, tok));
       }
 
-      wr.Write(") {0} {{", TypeName(type, wr, tok));
-      var w = EmitReturnExpr(wr);
-      wr.Write("})");
+      wr.Write(") {0}", TypeName(type, wr, tok));
+      var wLambdaBody = wr.NewBigExprBlock("", ")");
+      var w = EmitReturnExpr(wLambdaBody);
       TrExprList(arguments, wr, inLetExprBody);
       return w;
     }
@@ -2688,14 +2693,12 @@ namespace Microsoft.Dafny {
       for (var i = 0; i < inNames.Count; i++) {
         wr.Write("{0}{1} {2}", i == 0 ? "" : ", ", inNames[i], TypeName(inTypes[i], wr, tok));
       }
-      var w = wr.NewNamedBlock(") {0}", TypeName(resultType, wr, tok));
-      w.SetBraceStyle(BlockTargetWriter.BraceStyle.Space, BlockTargetWriter.BraceStyle.Nothing);
+      var w = wr.NewExprBlock(") {0}", TypeName(resultType, wr, tok));
       return w;
     }
     
     private TargetWriter CreateIIFE_ExprBody(out TargetWriter sourceWriter, Type sourceType, Bpl.IToken sourceTok, Type resultType, Bpl.IToken resultTok, string bvName, TargetWriter wr) {
-      var w = wr.NewNamedBlock("func ({0} {1}) {2}", bvName, TypeName(sourceType, wr, sourceTok), TypeName(resultType, wr, resultTok));
-      w.SetBraceStyle(BlockTargetWriter.BraceStyle.Space, BlockTargetWriter.BraceStyle.Nothing);
+      var w = wr.NewExprBlock("func ({0} {1}) {2}", bvName, TypeName(sourceType, wr, sourceTok), TypeName(resultType, wr, resultTok));
       w.Indent();
       w.Write("return ");
       var wExpr = w.Fork();
@@ -2721,14 +2724,12 @@ namespace Microsoft.Dafny {
     }
 
     protected override BlockTargetWriter CreateIIFE0(Type resultType, Bpl.IToken resultTok, TargetWriter wr) {
-      var w = wr.NewBlock("func () " + TypeName(resultType, wr, resultTok), "()");
-      w.SetBraceStyle(BlockTargetWriter.BraceStyle.Space, BlockTargetWriter.BraceStyle.Nothing);
+      var w = wr.NewBigExprBlock("func () " + TypeName(resultType, wr, resultTok), "()");
       return w;
     }
 
     protected override BlockTargetWriter CreateIIFE1(int source, Type resultType, Bpl.IToken resultTok, string bvName, TargetWriter wr) {
-      var w = wr.NewNamedBlock("func ({0} int) {1}", bvName, TypeName(resultType, wr, resultTok));
-      w.SetBraceStyle(BlockTargetWriter.BraceStyle.Space, BlockTargetWriter.BraceStyle.Nothing);
+      var w = wr.NewExprBlock("func ({0} int) {1}", bvName, TypeName(resultType, wr, resultTok));
       wr.Write("({0})", source);
       return w;
     }
@@ -3191,8 +3192,7 @@ namespace Microsoft.Dafny {
         if (tat.Result != null) {
           wr.Write(" {0}", TypeName(tat.Result, wr, tok));
         }
-        var wBody = wr.NewBlock("");
-        wBody.SetBraceStyle(BlockTargetWriter.BraceStyle.Space, BlockTargetWriter.BraceStyle.Nothing);
+        var wBody = wr.NewExprBlock("");
         wBody.Indent();
         TargetWriter wCall;
         if (fat.Result == null) {
