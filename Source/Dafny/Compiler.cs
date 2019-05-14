@@ -305,7 +305,6 @@ namespace Microsoft.Dafny {
       guardWriter = wr.Fork();
       if (hasElse) {
         var thn = wr.NewBlock(")", " else", BlockTargetWriter.BraceStyle.Space, BlockTargetWriter.BraceStyle.Space);
-        wr.SuppressIndent();
         return thn;
       } else {
         var thn = wr.NewBlock(")");
@@ -1673,7 +1672,6 @@ namespace Microsoft.Dafny {
           } else {
             // let's compile the "then" branch
             wr.Write("if (true) ");
-            wr.SuppressIndent();
             TrStmt(s.Thn, wr);
           }
         } else {
@@ -3506,14 +3504,9 @@ namespace Microsoft.Dafny {
     const string IndentAmountString = "  ";  // this should have the length IndentAmount
     public readonly string IndentString;
     public string UnIndentString => new string(' ', Math.Max(IndentLevel - IndentAmount, 0));
-    private bool suppressNextIndent = false;
     public void IndentLess() {
       indentPending = false;
       Write(UnIndentString);
-    }
-    public void SuppressIndent(){
-      suppressNextIndent = true;
-      indentPending = false;
     }
 
     // ----- Things ------------------------------
@@ -3531,7 +3524,6 @@ namespace Microsoft.Dafny {
       } else {
         indentPending = false;
       }
-      suppressNextIndent = false;
     }
 
     public void Append(TargetWriter wr) {
