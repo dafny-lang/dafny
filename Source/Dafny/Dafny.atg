@@ -922,30 +922,27 @@ SubModuleDecl<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl sub
       ExportSignature exsig;
     .)
     "export" (. exportId = t; .)
-    [ ModuleExport<out exportId> ]
+    [ ExportIdent<out exportId> ]
     {
-       "provides"
-       ( 
-         ( ModuleExportSignature<true, out exsig> 
-           (. exports.Add(exsig); .)
-           {"," ModuleExportSignature<true, out exsig>  (. exports.Add(exsig); .) }
-         )
-        | "*" (. provideAll = true; .)
-       )
-     | "reveals"
-       ( 
-         ( ModuleExportSignature<false, out exsig> 
-           (. exports.Add(exsig); .)
-           {"," ModuleExportSignature<false, out exsig>  (. exports.Add(exsig); .) }
-         )
-        | "*" (. revealAll = true; .)
-       )
-     | "extends" 
-       ModuleExport<out id>(. extends.Add(id.val); .) 
-       {"," ModuleExport<out id>  (. extends.Add(id.val); .) }
+      "provides"
+      ( 
+        ( ModuleExportSignature<true, out exsig>        (. exports.Add(exsig); .)
+          {"," ModuleExportSignature<true, out exsig>   (. exports.Add(exsig); .) }
+        )
+      | "*" (. provideAll = true; .)
+      )
+    | "reveals"
+      ( 
+        ( ModuleExportSignature<false, out exsig>       (. exports.Add(exsig); .)
+          {"," ModuleExportSignature<false, out exsig>  (. exports.Add(exsig); .) }
+        )
+      | "*" (. revealAll = true; .)
+      )
+    | "extends" 
+      ExportIdent<out id>       (. extends.Add(id.val); .) 
+      {"," ExportIdent<out id>  (. extends.Add(id.val); .) }
     }
-    (.
-       if (exportId.val == "export" || exportId.val == parent.Name) {
+    (. if (exportId.val == "export" || exportId.val == parent.Name) {
          isDefault = true;
        }
        submodule = new ModuleExportDecl(exportId, parent, exports, extends, provideAll, revealAll, isDefault);
@@ -955,7 +952,7 @@ SubModuleDecl<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl sub
 
 ModuleExportSignature<bool opaque, out ExportSignature exsig>
 = (. IToken prefix; IToken suffix = null; .)
-  NoUSIdent<out prefix> [ "." NoUSIdent<out suffix> ]
+  TypeNameOrCtorSuffix<out prefix> [ "." TypeNameOrCtorSuffix<out suffix> ]
   (. if (suffix != null) {
        exsig = new ExportSignature(prefix, prefix.val, suffix, suffix.val, opaque);
      } else {
@@ -970,26 +967,18 @@ ModuleName<out IToken id>
 = Ident<out id>
   .
 
-/* For declaring or referring to module exports from the current module */
-ModuleExport<out IToken id>
-= (. IToken afterdot; .) 
-  DotSuffix<out id, out afterdot> 
-  (. if (afterdot != null)
-       SemErr(afterdot, "Decimal export sets are not supported");
-  .)
-  .
-
 /* This production is for referring to module exports for imports (both normal and facades) */
 QualifiedModuleExportSuffix<.List<IToken> ids, List<IToken> exports.>
 = (. IToken id; .)
   (
-    "." ModuleName<out id> (. ids.Add(id); .)
+    "." ModuleName<out id>   (. ids.Add(id); .)
     { "." ModuleName<out id> (. ids.Add(id); .) }
-  | "`" ( ModuleExport<out id> (. exports.Add(id); .)
-        | "{" ModuleExport<out id> (. exports.Add(id); .)
-          { "," ModuleExport<out id> (. exports.Add(id); .) }
-          "}"
-        )
+  | "`"
+    ( ExportIdent<out id>       (. exports.Add(id); .)
+    | "{" ExportIdent<out id>   (. exports.Add(id); .)
+      { "," ExportIdent<out id> (. exports.Add(id); .) }
+      "}"
+    )
   )
   .
 
@@ -3908,8 +3897,8 @@ DotSuffix<out IToken x, out IToken y>
                         }
                       }
                    .)
-  | "requires"    (. x = t; .)
-  | "reads"       (. x = t; .)
+  | "requires"     (. x = t; .)
+  | "reads"        (. x = t; .)
   )
   .
 MemberBindingUpdate<out IToken id, out Expression e>
@@ -3932,6 +3921,10 @@ FuMe_Ident<out IToken id>
   ( NoUSIdent<out id>
   | digits         (. id = t; .)
   )
+  .
+ExportIdent<out IToken id>
+=
+  FuMe_Ident<out id>
   .
 TypeNameOrCtorSuffix<out IToken id>
 = (. id = Token.NoToken; .)

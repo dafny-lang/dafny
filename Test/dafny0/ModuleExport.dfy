@@ -169,3 +169,51 @@ module L {
     c.Print();
   }
 }
+
+module M {
+  module W {
+    export
+      provides C, C.Valid, C.Print, C.G
+      provides C._ctor  // this is how one names the "anonymous" constructor
+
+    class C {
+      predicate Valid() { true }
+      constructor () ensures Valid() { }  // anonymous constructor
+      method Print() requires Valid() { }
+      function G(): nat requires Valid() { 5 }
+    }
+  }
+
+  method M() {
+    var c := new W.C();
+    assert c.Valid() ==> 0 <= c.G();
+    c.Print();
+  }
+}
+
+module N {
+  module NN {
+    export 050
+      reveals 300, C.4
+      provides C
+    export
+      reveals 300, C.7
+      provides C
+    function 300(): int { 297 }
+    class C {
+      function 4(): int { 4 }
+      static const 7 := 6
+    }
+  }
+  module MM {
+    import A = NN
+    import B = NN`050
+    import opened D = NN
+    method X() {
+      ghost var f := A.300;
+      assert f() == 297 == A.300();
+      ghost var s := C.7;
+      assert s == C.7 == 6 == B.C.7;
+    }
+  }
+}
