@@ -1182,13 +1182,6 @@ namespace Microsoft.Dafny
 
           rt.Key.AsTopLevelDecl.AddVisibilityScope(newscope, rt.Value.Value);
         }
-
-        if (e.Item2) {
-          e.Item1.MinimumSignatureScope = newscope;
-        } else {
-          e.Item1.MinimumBodyScope = newscope;
-        }
-
       }
     }
 
@@ -2203,8 +2196,6 @@ namespace Microsoft.Dafny
           } else {
             Contract.Assert(object.ReferenceEquals(dd.Var.Type, dd.BaseType));  // follows from NewtypeDecl invariant
             Contract.Assert(dd.Constraint != null);  // follows from NewtypeDecl invariant
-            SetupMinimumBodyScope(dd, t =>
-                reporter.Error(MessageSource.Resolver, dd.tok, "The body of newtype {0} depends on type {1} which was not exported with it. Ensure that {1} is visible wherever {0} is exported.", dd.Name, t.ToString()));
 
             scope.PushMarker();
             var added = scope.Push(dd.Var.Name, dd.Var);
@@ -2216,15 +2207,11 @@ namespace Microsoft.Dafny
             if (!CheckTypeInference_Visitor.IsDetermined(dd.BaseType.NormalizeExpand())) {
               reporter.Error(MessageSource.Resolver, dd.tok, "newtype's base type is not fully determined; add an explicit type for '{0}'", dd.Var.Name);
             }
-            TeardownMinimumBodyScope(dd);
             scope.PopMarker();
           }
 
         } else if (d is SubsetTypeDecl) {
           var dd = (SubsetTypeDecl)d;
-
-          SetupMinimumBodyScope(dd, t =>
-                reporter.Error(MessageSource.Resolver, dd.tok, "The body of subset type {0} depends on type {1} which was not exported with it. Ensure that {1} is visible wherever {0} is exported.", dd.Name, t.ToString()));
 
           allTypeParameters.PushMarker();
           ResolveTypeParameters(d.TypeArgs, false, d);
@@ -2242,7 +2229,6 @@ namespace Microsoft.Dafny
           if (!CheckTypeInference_Visitor.IsDetermined(dd.Rhs.NormalizeExpand())) {
             reporter.Error(MessageSource.Resolver, dd.tok, "subset type's base type is not fully determined; add an explicit type for '{0}'", dd.Var.Name);
           }
-          TeardownMinimumBodyScope(dd);
           scope.PopMarker();
           allTypeParameters.PopMarker();
         }
@@ -7961,11 +7947,6 @@ namespace Microsoft.Dafny
       bool warnShadowingOption = DafnyOptions.O.WarnShadowing;  // save the original warnShadowing value
       bool warnShadowing = false;
 
-
-
-      SetupMinimumSignatureScope(f, t =>
-        reporter.Error(MessageSource.Resolver, f.tok, "The signature of function {0} depends on type {1} which was not exported with it. Ensure that {1} is visible wherever {0} is exported.", f.Name, t.ToString()));
-
       scope.PushMarker();
       if (f.IsStatic) {
         scope.AllowInstance = false;
@@ -8007,13 +7988,6 @@ namespace Microsoft.Dafny
       }
       SolveAllTypeConstraints();
 
-
-      TeardownMinimumSignatureScope(f);
-
-      SetupMinimumBodyScope(f, t =>
-        reporter.Error(MessageSource.Resolver, f.tok, "The body of function {0} depends on type {1} which was not exported with it. Ensure that {1} is visible wherever the body of {0} is exported.", f.Name, t.ToString()));
-
-
       if (f.Body != null) {
         var prevErrorCount = reporter.Count(ErrorLevel.Error);
         ResolveExpression(f.Body, new ResolveOpts(f, f is TwoStateFunction));
@@ -8022,12 +7996,9 @@ namespace Microsoft.Dafny
         SolveAllTypeConstraints();
       }
 
-      TeardownMinimumBodyScope(f);
       scope.PopMarker();
 
-
       DafnyOptions.O.WarnShadowing = warnShadowingOption; // restore the original warnShadowing value
-
     }
 
     public enum FrameExpressionUse { Reads, Modifies, Unchanged }
@@ -8078,8 +8049,6 @@ namespace Microsoft.Dafny
     /// </summary>
     void ResolveMethodSignature(Method m) {
       Contract.Requires(m != null);
-      SetupMinimumSignatureScope(m, t =>
-          reporter.Error(MessageSource.Resolver, m.tok, "The signature of method {0} depends on type {1} which was not exported with it. Ensure that {1} is visible wherever {0} is exported.", m.Name, t.ToString()));
 
       scope.PushMarker();
       if (m.SignatureIsOmitted) {
@@ -8099,42 +8068,6 @@ namespace Microsoft.Dafny
         AddTypeDependencyEdges(m, p.Type);
       }
       scope.PopMarker();
-      TeardownMinimumSignatureScope(m);
-    }
-
-
-    void SetupMinimumSignatureScope(Declaration d, Action<Type> onError) {
-      if (d.MinimumSignatureScope != null) {
-        VisibilityScope checkScope = new VisibilityScope();
-        checkScope.Augment(systemNameInfo.VisibilityScope);
-        checkScope.Augment(d.MinimumSignatureScope);
-        checkScope.HandleInvalidAccesses = onError;
-        Type.PushScope(checkScope);
-      }
-    }
-
-    void TeardownMinimumSignatureScope(Declaration d) {
-      if (d.MinimumSignatureScope != null) {
-        Type.PopScope();
-      }
-    }
-
-    void SetupMinimumBodyScope(Declaration d, Action<Type> onError) {
-      Contract.Assert(d.CanBeRevealed());
-
-      if (d.MinimumBodyScope != null) {
-        VisibilityScope checkScope = new VisibilityScope();
-        checkScope.Augment(systemNameInfo.VisibilityScope);
-        checkScope.Augment(d.MinimumBodyScope);
-        checkScope.HandleInvalidAccesses = onError;
-        Type.PushScope(checkScope);
-      }
-    }
-
-    void TeardownMinimumBodyScope(Declaration d) {
-      if (d.MinimumBodyScope != null) {
-        Type.PopScope();
-      }
     }
 
     /// <summary>
@@ -8146,8 +8079,6 @@ namespace Microsoft.Dafny
       Contract.Ensures(AllTypeConstraints.Count == 0);
 
       try {
-        SetupMinimumSignatureScope(m, t => 
-          reporter.Error(MessageSource.Resolver, m.tok, "The signature of method {0} depends on type {1} which was not exported with it. Ensure that {1} is visible wherever {0} is exported.", m.Name, t.ToString()));
         currentMethod = m;
 
         bool warnShadowingOption = DafnyOptions.O.WarnShadowing;  // save the original warnShadowing value
@@ -8217,8 +8148,6 @@ namespace Microsoft.Dafny
           ConstrainTypeExprBool(e.E, "Postcondition must be a boolean (got {0})");
         }
         SolveAllTypeConstraints();
-
-        TeardownMinimumSignatureScope(m);
 
         // Resolve body
         if (m.Body != null) {

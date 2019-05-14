@@ -537,8 +537,6 @@ namespace Microsoft.Dafny {
   public class VisibilityScope {
     private static uint maxScopeID = 0;
 
-    public Action<Type> HandleInvalidAccesses;
-
     private SortedSet<uint> scopeTokens = new SortedSet<uint>();
 
     // Only for debugging
@@ -554,25 +552,9 @@ namespace Microsoft.Dafny {
 
     private Dictionary<VisibilityScope, Tuple<int, bool>> cached = new Dictionary<VisibilityScope, Tuple<int, bool>>();
 
-
-    //Something terrible has happened, all bets are off for keeping scopes intact
-    private bool hasBeenInvalidlyAccessed = false;
-
-    public void TripInvalidAccess() {
-      hasBeenInvalidlyAccessed = true;
-    }
-
-    public bool HasBeenInvalidlyAccessed() {
-      return hasBeenInvalidlyAccessed;
-    }
-
     //By convention, the "null" scope sees all
     public bool VisibleInScope(VisibilityScope other) {
       if (other != null) {
-        if (other.hasBeenInvalidlyAccessed) {
-          return true;
-        }
-
         Tuple<int, bool> result;
         if (cached.TryGetValue(other, out result)) {
           if (result.Item1 == other.scopeTokens.Count()) {
@@ -746,12 +728,7 @@ namespace Microsoft.Dafny {
           var udt = (UserDefinedType)type;
 
           if (!rtd.AsTopLevelDecl.IsVisibleInScope(scope)) {
-            if (scope.HandleInvalidAccesses != null) {
-              scope.HandleInvalidAccesses(type);
-              scope.TripInvalidAccess();
-            } else {
-              Contract.Assert(false);
-            }
+            Contract.Assert(false);
           }
 
           if (rtd.IsRevealedInScope(scope)) {
@@ -2966,9 +2943,6 @@ namespace Microsoft.Dafny {
 
     private VisibilityScope opaqueScope = new VisibilityScope();
     private VisibilityScope revealScope = new VisibilityScope();
-
-    public VisibilityScope MinimumSignatureScope; // filled in by resolver during export check, can be null
-    public VisibilityScope MinimumBodyScope; // filled in by resolver during export check, can be null
 
     private bool scopeIsInherited = false;
 

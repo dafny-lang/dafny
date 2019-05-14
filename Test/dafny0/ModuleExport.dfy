@@ -128,3 +128,44 @@ module J {
     }
   }
 }
+  
+module K {
+  module Y {
+    export
+      provides C, C.Valid, C.Init, C.Print, C.G
+
+    class C {
+      predicate Valid() { true }
+      constructor Init() ensures Valid() { }
+      method Print() requires Valid() { }
+      function G(): nat requires Valid() { 5 }
+    }
+  }
+
+  method M() {
+    var c := new Y.C.Init();
+    assert c.Valid() ==> 0 <= c.G();
+    c.Print();
+  }
+}
+
+module L {
+  module Z {
+    export
+      provides C, C.Init, C.Print
+      reveals C.Valid, C.G
+
+    class C {
+      predicate Valid() { true }
+      constructor Init() ensures Valid() { }
+      method Print() requires Valid() { }
+      function G(): nat requires Valid() { 5 }
+    }
+  }
+
+  method M() {
+    var c := new Z.C.Init();
+    assert c.Valid() ==> 0 <= c.G();
+    c.Print();
+  }
+}
