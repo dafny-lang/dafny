@@ -79,7 +79,7 @@ class Class {
         this.x := x;
         ...
     }
-    method Frob(z: string, a: Class) returns (a: int, b: char) {
+    method Frob(z: string, c: Class) returns (a: int, b: char) {
         ...
     }
 }
@@ -96,7 +96,7 @@ func (_this *Class) Ctor__(x: _dafny.Int) {
     ...
 }
 
-func (_this *Class) Frob(z dafny.Seq, a *Class) (_dafny.Int, _dafny.Char) {
+func (_this *Class) Frob(z dafny.Seq, c *Class) (_dafny.Int, _dafny.Char) {
     ...
 }
 ```
@@ -119,7 +119,7 @@ from the defining module.
 ### Initializers
 
 In addition to any constructors, each class also has an *initializer* which
-allocate an object, with all fields given the default values for their types.
+allocates an object, with all fields given the default values for their types.
 The initializer will be called <code>New_*Class*_</code>:
 
 ```go
@@ -155,7 +155,7 @@ the same module can happily use the same name for a static member.  Therefore
 class Class {
     var x: int
     static const y = 42.0;
-    static method Frob(z: string, a: Class) returns (a: int, b: char) {
+    static method Frob(z: string, c: Class) returns (a: int, b: char) {
         ...
     }
 }
@@ -173,7 +173,7 @@ var Companion_Class_ = CompanionStruct_Class_ {
     Y: _dafny.RealOfString("42.0")
 }
 
-func (_this *CompanionStruct_Class_) Frob(z _dafny.Seq, a *Class) (_dafny.Int, _dafny.Char) {
+func (_this *CompanionStruct_Class_) Frob(z _dafny.Seq, c *Class) (_dafny.Int, _dafny.Char) {
     ...
 }
 ```
