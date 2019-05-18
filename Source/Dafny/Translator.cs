@@ -12989,11 +12989,21 @@ namespace Microsoft.Dafny {
         // We should always be able to use Is, but this is an optimisation.
         msg = null;
         return null;
-      } else {
-        var cre = MkIs(bSource, targetType);
-        msg = string.Format("value does not satisfy the subset constraints of '{0}'", targetType.Normalize());
-        return cre;
       }
+      targetType = targetType.NormalizeExpandKeepConstraints();
+      var cre = MkIs(bSource, targetType);
+      var udt = targetType as UserDefinedType;
+      if (udt != null && udt.ResolvedClass is NonNullTypeDecl) {
+        var certain = udt.ResolvedClass.TypeArgs.Count == 0;
+        msg = string.Format("value does not satisfy the subset constraints of '{0}' ({1}it may be null)", targetType.Normalize(), certain ? "" : "possible cause: ");
+      } else if (udt != null && ArrowType.IsTotalArrowTypeName(udt.Name)) {
+        msg = string.Format("value does not satisfy the subset constraints of '{0}' (possible cause: it may be partial or have read effects)", targetType.Normalize());
+      } else if (udt != null && ArrowType.IsPartialArrowTypeName(udt.Name)) {
+        msg = string.Format("value does not satisfy the subset constraints of '{0}' (possible cause: it may have read effects)", targetType.Normalize());
+      } else {
+        msg = string.Format("value does not satisfy the subset constraints of '{0}'", targetType.Normalize());
+      }
+      return cre;
     }
 
     void CheckSubrange(IToken tok, Bpl.Expr bSource, Type sourceType, Type targetType, BoogieStmtListBuilder builder) {
