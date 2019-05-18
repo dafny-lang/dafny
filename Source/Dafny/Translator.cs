@@ -12842,13 +12842,13 @@ namespace Microsoft.Dafny {
               Bpl.Expr ante = Bpl.Expr.True;
               var varNameGen = CurrentIdGenerator.NestedFreshIdGenerator("arrayinit#");
               var bvs = new List<Bpl.Variable>();
-              var indicies = new List<Bpl.Expr>();
+              var indices = new List<Bpl.Expr>();
               for (int ii = 0; ii < tRhs.ArrayDimensions.Count; ii++) {
                 var nm = varNameGen.FreshId(string.Format("#i{0}#", ii));
                 var bv = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, nm, Bpl.Type.Int));
                 bvs.Add(bv);
                 var ie = new Bpl.IdentifierExpr(tok, bv);
-                indicies.Add(ie);
+                indices.Add(ie);
                 ante = BplAnd(ante, BplAnd(Bpl.Expr.Le(Bpl.Expr.Literal(0), ie), Bpl.Expr.Lt(ie, etran.TrExpr(tRhs.ArrayDimensions[ii]))));
               }
               var sourceType = tRhs.ElementInit.Type.AsArrowType;
@@ -12858,11 +12858,11 @@ namespace Microsoft.Dafny {
                 Cons(TypeToTy(sourceType.Result),
                 Cons(etran.HeapExpr,
                 Cons(etran.TrExpr(tRhs.ElementInit),
-                indicies.ConvertAll(idx => (Bpl.Expr)FunctionCall(tok, BuiltinFunction.Box, null, idx))))));
+                indices.ConvertAll(idx => (Bpl.Expr)FunctionCall(tok, BuiltinFunction.Box, null, idx))))));
               // check precond
               var pre = FunctionCall(tok, Requires(tRhs.ArrayDimensions.Count), Bpl.Type.Bool, args);
               var q = new Bpl.ForallExpr(tok, bvs, Bpl.Expr.Imp(ante, pre));
-              builder.Add(AssertNS(tok, q, "all array indicies must be in the domain of the initialization function"));
+              builder.Add(AssertNS(tok, q, "all array indices must be in the domain of the initialization function"));
               // Check that the values coming out of the function satisfy any appropriate subset-type constraints
               var apply = UnboxIfBoxed(FunctionCall(tok, Apply(tRhs.ArrayDimensions.Count), TrType(tRhs.EType), args), tRhs.EType);
               string msg;
@@ -12876,7 +12876,7 @@ namespace Microsoft.Dafny {
               // Assume that array elements have initial values according to the given initialization function.  That is:
               // assume (forall i0,i1,i2,... :: { nw[i0,i1,i2,...] }
               //            0 <= i0 < ... && ... ==> nw[i0,i1,i2,...] == tRhs.ElementInit.requires(i0,i1,i2,...));
-              var ai = ReadHeap(tok, etran.HeapExpr, nw, GetArrayIndexFieldName(tok, indicies));
+              var ai = ReadHeap(tok, etran.HeapExpr, nw, GetArrayIndexFieldName(tok, indices));
               var ai_prime = UnboxIfBoxed(ai, tRhs.EType);
               var tr = new Bpl.Trigger(tok, true, new List<Bpl.Expr> { ai });
               q = new Bpl.ForallExpr(tok, bvs, tr, Bpl.Expr.Imp(ante, Bpl.Expr.Eq(ai_prime, apply)));  // TODO: use a more general Equality translation

@@ -2,10 +2,10 @@ ArrayElementInit.dfy(13,31): Error: possible division by zero
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Then
-ArrayElementInit.dfy(19,11): Error: all array indicies must be in the domain of the initialization function
+ArrayElementInit.dfy(19,11): Error: all array indices must be in the domain of the initialization function
 Execution trace:
     (0,0): anon0
-ArrayElementInit.dfy(39,11): Error: all array indicies must be in the domain of the initialization function
+ArrayElementInit.dfy(39,11): Error: all array indices must be in the domain of the initialization function
 Execution trace:
     (0,0): anon0
     ArrayElementInit.dfy(39,25): anon7_Else

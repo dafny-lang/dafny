@@ -2443,7 +2443,7 @@ namespace Microsoft.Dafny {
           // Compute the array-initializing function once and for all (as required by the language definition)
           string f = idGenerator.FreshId("_arrayinit");
           DeclareLocalVar(f, null, null, tRhs.ElementInit, false, wStmts);
-          // Build a loop nest that will call the initializer for all indicies
+          // Build a loop nest that will call the initializer for all indices
           var indices = Translator.Map(Enumerable.Range(0, tRhs.ArrayDimensions.Count), ii => idGenerator.FreshId("_arrayinit_" + ii));
           var w = wStmts;
           for (var d = 0; d < tRhs.ArrayDimensions.Count; d++) {
