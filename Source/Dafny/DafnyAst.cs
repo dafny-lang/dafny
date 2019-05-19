@@ -3238,7 +3238,7 @@ namespace Microsoft.Dafny {
   public class LiteralModuleDecl : ModuleDecl
   {
     public readonly ModuleDefinition ModuleDef;
-    public ModuleSignature DefaultExport;  // the default export of the module. fill in by the resolver.
+    public ModuleSignature DefaultExport;  // the default export set of the module. fill in by the resolver.
 
     private ModuleSignature emptySignature;
     public override ModuleSignature AccessibleSignature(bool ignoreExports) {
@@ -3392,6 +3392,7 @@ namespace Microsoft.Dafny {
   public class ModuleSignature {
     public  VisibilityScope VisibilityScope = null;
     public readonly Dictionary<string, TopLevelDecl> TopLevels = new Dictionary<string, TopLevelDecl>();
+    public readonly Dictionary<string, ModuleExportDecl> ExportSets = new Dictionary<string, ModuleExportDecl>();
     public readonly Dictionary<string, Tuple<DatatypeCtor, bool>> Ctors = new Dictionary<string, Tuple<DatatypeCtor, bool>>();
     public readonly Dictionary<string, MemberDecl> StaticMembers = new Dictionary<string, MemberDecl>();
     public ModuleDefinition ModuleDef = null; // Note: this is null if this signature does not correspond to a specific definition (i.e.
@@ -3416,14 +3417,7 @@ namespace Microsoft.Dafny {
 
     // Final projection is for module export
     public bool FindExport(string name, out ModuleExportDecl pp) {
-      TopLevelDecl top;
-      if (TopLevels.TryGetValue(name, out top) && top is ModuleExportDecl) {
-        pp = ((ModuleExportDecl)top);
-        return true;
-      } else {
-        pp = null;
-        return false;
-      }
+      return ExportSets.TryGetValue(name, out pp);
     }
   }
 

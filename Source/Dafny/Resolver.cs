@@ -461,10 +461,7 @@ namespace Microsoft.Dafny
             var compileSig = RegisterTopLevelDecls(nw, true);
             compileSig.Refines = refinementTransformer.RefinedSig;
             sig.CompileSignature = compileSig;
-            foreach (var top in sig.TopLevels.Values) {
-              var exportDecl = top as ModuleExportDecl;
-              if (exportDecl == null)
-                continue;
+            foreach (var exportDecl in sig.ExportSets.Values) {
               exportDecl.Signature.CompileSignature = cloner.CloneModuleSignature(exportDecl.Signature, compileSig);
             }
             // Now we're ready to resolve the cloned module definition, using the compile signature
@@ -1006,18 +1003,21 @@ namespace Microsoft.Dafny
             decl = tdecl.ViewAsClass;  // interpret the export as a class name, not a type name
           } else if (sig.StaticMembers.TryGetValue(name, out member)) {
             decl = member;
+          } else if (sig.ExportSets.ContainsKey(name)) {
+            reporter.Error(MessageSource.Resolver, export.Tok, "'{0}' is an export set and cannot be provided/revealed by another export set (did you intend to list it in an \"extends\"?)", name);
+            continue;
           } else {
-            reporter.Error(MessageSource.Resolver, export.Tok, name + " must be a member of " + m.Name + " to be exported");
+            reporter.Error(MessageSource.Resolver, export.Tok, "'{0}' must be a member of '{1}' to be exported", name, m.Name);
             continue;
           }
 
           if (!decl.CanBeExported()) {
-            reporter.Error(MessageSource.Resolver, export.Tok, name + " is not a valid export of " + m.Name);
+            reporter.Error(MessageSource.Resolver, export.Tok, "'{0}' is not a valid export of '{1}'", name, m.Name);
             continue;
           }
 
           if (!export.Opaque && !decl.CanBeRevealed()) {
-            reporter.Error(MessageSource.Resolver, export.Tok, name + " cannot be revealed in an export. Use \"provides\" instead.");
+            reporter.Error(MessageSource.Resolver, export.Tok, "'{0}' cannot be revealed in an export. Use \"provides\" instead.", name);
             continue;
           }
 
@@ -1043,7 +1043,7 @@ namespace Microsoft.Dafny
           if (defaultExport == null) {
             defaultExport = decl;
           } else {
-            reporter.Error(MessageSource.Resolver, m.tok, "more than one default export declared in module {0}", m.Name);
+            reporter.Error(MessageSource.Resolver, m.tok, "more than one default export set declared in module {0}", m.Name);
           }
         }
         // fill in export signature
@@ -1075,7 +1075,7 @@ namespace Microsoft.Dafny
       }
 
 
-      // set the default export if it exists
+      // set the default export set, if it exists
       if (defaultExport != null) {
         literalDecl.DefaultExport = defaultExport.Signature;
       } else if (sortedExportDecls.Count > 0) {
@@ -1578,8 +1578,14 @@ namespace Microsoft.Dafny
         }
 
         // register the class/datatype/module name
-        if (toplevels.ContainsKey(d.Name)) {
-          reporter.Error(MessageSource.Resolver, d, "Duplicate name of top-level declaration: {0}", d.Name);
+        if (d is ModuleExportDecl export) {
+          if (sig.ExportSets.ContainsKey(d.Name)) {
+            reporter.Error(MessageSource.Resolver, d, "duplicate name of export set: {0}", d.Name);
+          } else {
+            sig.ExportSets[d.Name] = export;
+          }
+        } else if (toplevels.ContainsKey(d.Name)) {
+          reporter.Error(MessageSource.Resolver, d, "duplicate name of top-level declaration: {0}", d.Name);
         } else {
           var cl = d as ClassDecl;
           TopLevelDecl dprime = cl != null && cl.NonNullTypeDecl != null ? cl.NonNullTypeDecl : d;
@@ -1906,7 +1912,7 @@ namespace Microsoft.Dafny
       }
       // Now, for each class, register its possibly-null type
       foreach (TopLevelDecl d in declarations) {
-        if (d is ClassDecl && ((ClassDecl)d).NonNullTypeDecl != null) {
+        if ((d as ClassDecl)?.NonNullTypeDecl != null) {
           var name = d.Name + "?";
           TopLevelDecl prev;
           if (toplevels.TryGetValue(name, out prev)) {
@@ -1983,13 +1989,13 @@ namespace Microsoft.Dafny
       Contract.Requires(Exports.Count == 0 || Path.Count == 1); // Path.Count > 1 ==> Exports.Count == 0
       Contract.Requires(Exports.Count == 0 || root is LiteralModuleDecl); // only literal modules may have exports
       if (Path.Count == 1 && root is LiteralModuleDecl) {
-        // use the default export when the importing the root
+        // use the default export set when importing the root
         LiteralModuleDecl decl = (LiteralModuleDecl)root;
         if (Exports.Count == 0) {
           p = decl.DefaultExport;
           if (p == null) {
-            // no default view is specified.
-            reporter.Error(MessageSource.Resolver, decl.tok, "no default export declared in module: {0}", decl.Name);
+            // no default view is specified. 
+            reporter.Error(MessageSource.Resolver, Path[0], "no default export set declared in module: {0}", decl.Name);
             return false;
           }
           return true;
@@ -1998,7 +2004,7 @@ namespace Microsoft.Dafny
           if (root.Signature.FindExport(Exports[0].val, out pp)) {
             p = pp.Signature;
           } else {
-            reporter.Error(MessageSource.Resolver, Exports[0], "No export set {0} in module {1}", Exports[0].val, decl.Name);
+            reporter.Error(MessageSource.Resolver, Exports[0], "no export set '{0}' in module '{1}'", Exports[0].val, decl.Name);
             p = null;
             return false;
           }
@@ -2011,7 +2017,7 @@ namespace Microsoft.Dafny
               merged.CompileSignature = MergeSignature(p.CompileSignature, pp.Signature.CompileSignature);
               p = merged;
             } else {
-              reporter.Error(MessageSource.Resolver, export, "No export set {0} in module {1}", export.val, decl.Name);
+              reporter.Error(MessageSource.Resolver, export, "no export set {0} in module {1}", export.val, decl.Name);
               p = null;
               return false;
             }

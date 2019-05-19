@@ -1036,6 +1036,13 @@ namespace Microsoft.Dafny
         }
       }
 
+      foreach (var kv in org.ExportSets) {
+        ModuleExportDecl d;
+        if (newSig.ExportSets.TryGetValue(kv.Key, out d)) {
+          sig.ExportSets.Add(kv.Key, d);
+        }
+      }
+
       foreach (var kv in org.Ctors) {
         Tuple<DatatypeCtor, bool> pair;
         if (newSig.Ctors.TryGetValue(kv.Key, out pair)) {
