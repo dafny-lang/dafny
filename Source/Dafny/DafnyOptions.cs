@@ -415,7 +415,62 @@ namespace Microsoft.Dafny
     }
 
     public override void AttributeUsage() {
-      // TODO: provide attribute help here
+            Console.WriteLine(
+@"Dafny: The following attributes are supported by this implementation.
+
+    {:extern}
+    {:extern s1}
+    {:extern s1, s2}
+      NOTE: :extern is target language dependent.
+      The extern modifier is used to alter the CompileName of entities such as modules, classes, and methods.
+      The CompileName is the name for the entity when translating to one of the target languages.
+      A common use case of :extern is to avoid name clashes with existing library functions.
+      :extern takes 0, 1, or 2 (possibly empty) string arguments:
+        - 0: The name is deleted from the target language
+        - 1: Dafny will use s1 as the CompileName
+        - 2: Dafny will use a combination of s1 and s2 such as for example s1.s2 as the CompileName
+             It may also be the case that one of the arguments is simply ignored.
+      Dafny does not perform sanity checks on the arguments---it is the user's responsibility not to generate
+      malformed target code.
+
+
+    TODO:
+    {:axiom}
+    {:handle}
+    {:dllimport}
+    {:compile}
+    {:main}
+    {:axiom}
+    {:imported}
+    {:decl}
+    {:_provided}
+    {:abstemious}
+    {:nativeType}
+    {:tailrecursion}
+    {:termination}
+    {:auto_generated}
+    {:warnShadowing}
+    {:assumption}
+    {:typeQuantifier}
+    {:verify}
+    {:_autorequires}
+    {:autocontracts}
+    {:opaque}
+    {:autoReq}
+    {:timeLimitMultiplier}
+    {:opaque_reveal}
+    {:prependAssertToken}
+    {:_trustWellformed}
+    {:layerQuantifier}
+    {:heapQuantifier}
+    {:no_inline}
+    {:nowarn}
+    {:split}
+    {:matchingloop}
+    {:autotriggers}
+    {:trigger}
+    {:matchinglooprewrite}
+");
     }
 
     
