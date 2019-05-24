@@ -7434,6 +7434,13 @@ namespace Microsoft.Dafny
               reporter.Error(MessageSource.Resolver, clMember.tok, "non-method member '{0}' overrides method '{1}' inherited from trait '{2}'", clMember.Name, traitMethod.Name, trait.Name);
             } else {
               var classMethod = (Method)clMember;
+
+              // Copy trait's extern attribute onto class if class does not provide one
+              if(!Attributes.Contains(classMethod.Attributes, "extern") && Attributes.Contains(traitMethod.Attributes, "extern")) {
+                var traitExternArgs = Attributes.FindExpressions(traitMethod.Attributes, "extern");
+                classMethod.Attributes = new Attributes("extern", traitExternArgs, classMethod.Attributes);
+              }
+
               classMethod.OverriddenMethod = traitMethod;
               //adding a call graph edge from the trait method to that of class
               cl.Module.CallGraph.AddEdge(traitMethod, classMethod);
