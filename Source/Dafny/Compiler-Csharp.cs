@@ -1367,7 +1367,7 @@ namespace Microsoft.Dafny
       return PublicIdProtect(name);
     }
     public static string PublicIdProtect(string name) {
-      if (name.First() == '_') {
+      if (name == "" || name.First() == '_') {
         return name;  // no need to further protect this name -- we know it's not a C# keyword
       }
       switch (name) {
