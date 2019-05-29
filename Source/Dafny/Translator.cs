@@ -17592,7 +17592,7 @@ namespace Microsoft.Dafny {
             // Note, CreateBoundVarSubstitutions has the side effect of updating the substitution map.
             // For an Exact let expression, this is something that needs to be done after substituting
             // in the RHSs.
-            var newCasePatterns = CreateCasePatternSubstitutions(e.LHSs);
+            var newCasePatterns = CreateCasePatternSubstitutions(e.LHSs, true);
             if (newCasePatterns != e.LHSs) {
               anythingChanged = true;
             }
@@ -17625,7 +17625,7 @@ namespace Microsoft.Dafny {
           bool anythingChanged = src != e.Source;
           var cases = new List<MatchCaseExpr>();
           foreach (var mc in e.Cases) {
-            var newBoundVars = CreateBoundVarSubstitutions(mc.Arguments);
+            var newBoundVars = CreateBoundVarSubstitutions(mc.Arguments, false);
             var body = Substitute(mc.Body);
             // undo any changes to substMap (could be optimized to do this only if newBoundVars != mc.Arguments)
             foreach (var bv in mc.Arguments) {
@@ -17801,12 +17801,12 @@ namespace Microsoft.Dafny {
       /// undoing these changes once the updated 'substMap' has been used.
       /// If no changes are necessary, the list returned is exactly 'vars' and 'substMap' is unchanged.
       /// </summary>
-      protected virtual List<BoundVar> CreateBoundVarSubstitutions(List<BoundVar> vars, bool forceSubstitutionOfQuantifiedVars = false) {
+      protected virtual List<BoundVar> CreateBoundVarSubstitutions(List<BoundVar> vars, bool forceSubstitutionOfBoundVars) {
         bool anythingChanged = false;
         var newBoundVars = new List<BoundVar>();
         foreach (var bv in vars) {
           var tt = Resolver.SubstType(bv.Type, typeMap);
-          if (!forceSubstitutionOfQuantifiedVars && tt == bv.Type) {
+          if (!forceSubstitutionOfBoundVars && tt == bv.Type) {
             newBoundVars.Add(bv);
           } else {
             anythingChanged = true;
@@ -17828,11 +17828,11 @@ namespace Microsoft.Dafny {
       /// undoing these changes once the updated 'substMap' has been used.
       /// If no changes are necessary, the list returned is exactly 'patterns' and 'substMap' is unchanged.
       /// </summary>
-      protected virtual List<CasePattern<BoundVar>> CreateCasePatternSubstitutions(List<CasePattern<BoundVar>> patterns) {
+      protected virtual List<CasePattern<BoundVar>> CreateCasePatternSubstitutions(List<CasePattern<BoundVar>> patterns, bool forceSubstitutionOfBoundVars) {
         bool anythingChanged = false;
         var newPatterns = new List<CasePattern<BoundVar>>();
         foreach (var pat in patterns) {
-          var newPat = SubstituteCasePattern(pat);
+          var newPat = SubstituteCasePattern(pat, forceSubstitutionOfBoundVars);
           newPatterns.Add(newPat);
           if (newPat != pat) {
             anythingChanged = true;
@@ -17840,12 +17840,12 @@ namespace Microsoft.Dafny {
         }
         return anythingChanged ? newPatterns : patterns;
       }
-      CasePattern<BoundVar> SubstituteCasePattern(CasePattern<BoundVar> pat) {
+      CasePattern<BoundVar> SubstituteCasePattern(CasePattern<BoundVar> pat, bool forceSubstitutionOfBoundVars) {
         Contract.Requires(pat != null);
         if (pat.Var != null) {
           var bv = pat.Var;
           var tt = Resolver.SubstType(bv.Type, typeMap);
-          if (tt != bv.Type) {
+          if (forceSubstitutionOfBoundVars || tt != bv.Type) {
             var newBv = new BoundVar(pat.tok, pat.Id, tt);
             // update substMap to reflect the new BoundVar substitutions
             var ie = new IdentifierExpr(newBv.tok, newBv.Name);
@@ -17860,7 +17860,7 @@ namespace Microsoft.Dafny {
           bool anythingChanged = false;
           var newArgs = new List<CasePattern<BoundVar>>();
           foreach (var arg in pat.Arguments) {
-            var newArg = SubstituteCasePattern(arg);
+            var newArg = SubstituteCasePattern(arg, forceSubstitutionOfBoundVars);
             newArgs.Add(newArg);
             if (newArg != arg) {
               anythingChanged = true;
@@ -17984,7 +17984,7 @@ namespace Microsoft.Dafny {
           r = new AlternativeLoopStmt(s.Tok, s.EndTok, s.Invariants.ConvertAll(SubstMayBeFreeExpr), SubstSpecExpr(s.Decreases), SubstSpecFrameExpr(s.Mod), s.Alternatives.ConvertAll(SubstGuardedAlternative), s.UsesOptionalBraces);
         } else if (stmt is ForallStmt) {
           var s = (ForallStmt)stmt;
-          var newBoundVars = CreateBoundVarSubstitutions(s.BoundVars);
+          var newBoundVars = CreateBoundVarSubstitutions(s.BoundVars, false);
           var body = SubstStmt(s.Body);
           // undo any changes to substMap (could be optimized to do this only if newBoundVars != e.Vars)
           foreach (var bv in s.BoundVars) {
@@ -18117,7 +18117,7 @@ namespace Microsoft.Dafny {
 
       protected MatchCaseStmt SubstMatchCaseStmt(MatchCaseStmt c) {
         Contract.Requires(c != null);
-        var newBoundVars = CreateBoundVarSubstitutions(c.Arguments);
+        var newBoundVars = CreateBoundVarSubstitutions(c.Arguments, false);
         var r = new MatchCaseStmt(c.tok, c.Id, newBoundVars, c.Body.ConvertAll(SubstStmt));
         r.Ctor = c.Ctor;
         // undo any changes to substMap (could be optimized to do this only if newBoundVars != e.Vars)
@@ -18186,7 +18186,7 @@ namespace Microsoft.Dafny {
         Contract.Requires(substMap != null);
         Contract.Requires(typeMap != null);
       }
-      protected override List<BoundVar> CreateBoundVarSubstitutions(List<BoundVar> vars, bool forceSubstitutionOfQuantifiedVars) {
+      protected override List<BoundVar> CreateBoundVarSubstitutions(List<BoundVar> vars, bool forceSubstitutionOfBoundVars) {
         var newBoundVars = vars.Count == 0 ? vars : new List<BoundVar>();
         foreach (var bv in vars) {
           var tt = Resolver.SubstType(bv.Type, typeMap);
