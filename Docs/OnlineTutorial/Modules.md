@@ -484,7 +484,7 @@ module Interface {
     ensures addSome(n) > n
 }
 module Mod {
-  import A as Interface
+  import A : Interface
   method m() {
     assert 6 <= A.addSome(5);
   }
