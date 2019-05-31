@@ -12554,7 +12554,9 @@ namespace Microsoft.Dafny
         // no constructors, there is no need to desugar
         return;
       }
-      var ctorsList = new List<Dictionary<string, DatatypeCtor>>();
+      // Each tuple element gets mapped to its constructors' dictionary.
+      // Type variables get an empty dictionary.
+      var tupleCtorsList = new List<Dictionary<string, DatatypeCtor>>();
       if (me.Source.Type.AsDatatype is TupleTypeDecl) {
         var udt = me.Source.Type.NormalizeExpand() as UserDefinedType;
         foreach (Type typeArg in udt.TypeArgs) {
@@ -12562,10 +12564,12 @@ namespace Microsoft.Dafny
           if (t != null) {
             var cls = t.ResolvedClass as DatatypeDecl;
             if (cls != null) {
-              ctorsList.Add(datatypeCtors[cls]);
+              tupleCtorsList.Add(datatypeCtors[cls]);
+            } else {
+              tupleCtorsList.Add(new Dictionary<string, DatatypeCtor>());
             }
           } else {
-            ctorsList.Add(new Dictionary<string, DatatypeCtor>());
+            tupleCtorsList.Add(new Dictionary<string, DatatypeCtor>());
           }
         }
       }
@@ -12587,7 +12591,7 @@ namespace Microsoft.Dafny
           if (me.Source.Type.AsDatatype is TupleTypeDecl) {
             int i = 0;
             foreach (var pat in mc.CasePatterns) {
-              FindDuplicateIdentifier(pat, ctorsList[i++], true);
+              FindDuplicateIdentifier(pat, tupleCtorsList[i++], true);
             }
           } else {
             foreach (var pat in mc.CasePatterns) {
