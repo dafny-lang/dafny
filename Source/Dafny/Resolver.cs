@@ -12560,10 +12560,8 @@ namespace Microsoft.Dafny
         foreach (Type typeArg in udt.TypeArgs) {
           var t = PartiallyResolveTypeForMemberSelection(me.tok, typeArg).NormalizeExpand() as UserDefinedType;
           if (t != null) {
-            var cls = t.ResolvedClass as DatatypeDecl;
-            if (cls != null) {
-              ctorsList.Add(datatypeCtors[cls]);
-            }
+            dtd = cce.NonNull((DatatypeDecl)t.ResolvedClass);
+            ctorsList.Add(datatypeCtors[dtd]);
           } else {
             ctorsList.Add(new Dictionary<string, DatatypeCtor>());
           }
