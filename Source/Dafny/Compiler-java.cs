@@ -1114,7 +1114,7 @@ namespace Microsoft.Dafny {
       throw new NotImplementedException();
     }
 
-    protected override void DeclareLocalOutVar(string name, Type type, Bpl.IToken tok, string rhs, TargetWriter wr)
+    protected override void DeclareLocalOutVar(string name, Type type, Bpl.IToken tok, string rhs, bool useReturnStyleOuts, TargetWriter wr)
     {
       throw new NotImplementedException();
     }
