@@ -192,13 +192,13 @@ namespace Microsoft.Dafny {
             } else {
                 var w = wr.NewBlock(")", null, BlockTargetWriter.BraceStyle.Newline, BlockTargetWriter.BraceStyle.Newline);
                 // TODO: Maybe later, add optimization for tail-recursion and remove the comments
-                //TODO: Figure out what implication static has on declaring this, whether it is necessary, and how to get current class name
-//                if (m.IsTailRecursive) {
-//                    if (!m.IsStatic) {
-//                        w.WriteLine("var _this = this;");
-//                    }
-//                    w.IndentLess(); w.WriteLine("TAIL_CALL_START: ;");
-//                }
+                // TODO: Figure out what implication static has on declaring this, whether it is necessary, and how to get current class name
+                /*if (m.IsTailRecursive) {
+                    if (!m.IsStatic) {
+                        w.WriteLine("var _this = this;");
+                    }
+                    w.IndentLess(); w.WriteLine("TAIL_CALL_START: ;");
+                }*/
                 return w;
             }
         }
