@@ -63,7 +63,7 @@ namespace Microsoft.Dafny
     public List<string> DafnyPrintExportedViews = new List<string>();
     public bool Compile = true;
     [Flags]
-    public enum CompilationTarget { Csharp = 1, JavaScript = 2, Go = 4 }
+    public enum CompilationTarget { Csharp = 1, JavaScript = 2, Go = 4, Java = 8 }
     public CompilationTarget CompileTarget = CompilationTarget.Csharp;
     public bool CompileVerbose = true;
     public string DafnyPrintCompiledFile = null;
@@ -176,6 +176,8 @@ namespace Microsoft.Dafny
               CompileTarget = CompilationTarget.JavaScript;
             } else if (args[ps.i].Equals("go")) {
               CompileTarget = CompilationTarget.Go;
+            } else if (args[ps.i].Equals("java")) {
+              CompileTarget = CompilationTarget.Java;
             } else {
               throw new Exception("Invalid value for compileTarget");
             }
@@ -582,6 +584,7 @@ namespace Microsoft.Dafny
                 cs (default) - Compilation to .NET via C#
                 go - Compilation to Go
                 js - Compilation to JavaScript
+                java - Compilation to Java
   /compileVerbose:<n>
                 0 - don't print status of compilation to the console
                 1 (default) - print information such as files being written by
