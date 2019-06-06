@@ -171,33 +171,28 @@ namespace Microsoft.Dafny {
         
         //TODO: Finish this method
         protected BlockTargetWriter CreateMethod(Method m, bool createBody, TargetWriter wr) {
-//            string targetReturnTypeReplacement = null;
-//            foreach (var p in m.Outs) {
-//                if (!p.IsGhost) {
-//                    if (targetReturnTypeReplacement == null) {
-//                        targetReturnTypeReplacement = TypeName(p.Type, wr, p.tok);
-//                    } else if (targetReturnTypeReplacement != null) {
-//                        // there's more than one out-parameter, so bail
-//                        targetReturnTypeReplacement = null;
-//                        break;
-//                    }
-//                }
-//            }
-//            wr.Write("{0}{1}{2} {3}",
-//                createBody ? "public " : "",
-//                m.IsStatic ? "static " : "",
-//                targetReturnTypeReplacement ?? "void",
-//                IdName(m));
+            string targetReturnTypeReplacement = null;
+            foreach (var p in m.Outs) {
+                if (!p.IsGhost) {
+                    if (targetReturnTypeReplacement == null) {
+                        targetReturnTypeReplacement = TypeName(p.Type, wr, p.tok);
+                    } else if (targetReturnTypeReplacement != null) {
+                        // there's more than one out-parameter, so bail
+                        targetReturnTypeReplacement = null;
+                        break;
+                    }
+                }
+            }
+            wr.Write("{0}{1}{2} {3}",
+                createBody ? "public " : "",
+                m.IsStatic ? "static " : "",
+                targetReturnTypeReplacement ?? "void",
+                IdName(m));
             throw new NotImplementedException();
         }
         
         //TODO: Implement all the methods starting from TypeNameArrayBrackets(at.Dims)
         // Function copied and pasted from Compiler-Csharp.cs, will be modified later if deemed necessary.
-        protected override void EmitJumpToTailCallStart(TargetWriter wr)
-        {
-            throw new NotImplementedException();
-        }
-
         protected override string TypeName(Type type, TextWriter wr, Bpl.IToken tok, MemberDecl/*?*/ member = null) { 
             Contract.Ensures(Contract.Result<string>() != null); 
             Contract.Assume(type != null);  // precondition; this ought to be declared as a Requires in the superclass
@@ -215,7 +210,7 @@ namespace Microsoft.Dafny {
             } else if (xType is IntType || xType is BigOrdinalType) { 
                 return "BigInteger"; 
             } else if (xType is RealType) { 
-                return "Dafny.BigRational"; 
+                return "Dafny.BigRational"; //TODO: change the data structure to match the one in DafnyRuntime.java
             } else if (xType is BitvectorType) { 
                 var t = (BitvectorType)xType; 
                 return t.NativeType != null ? GetNativeTypeName(t.NativeType) : "BigInteger"; 
@@ -240,7 +235,7 @@ namespace Microsoft.Dafny {
                 var cl = udt.ResolvedClass; 
                 bool isHandle = true; 
                 if (cl != null && Attributes.ContainsBool(cl.Attributes, "handle", ref isHandle) && isHandle) { 
-                    return "ulong"; 
+                    return "ulong"; //TODO: Make sure DafnyRuntime.java has a data structure to handle unsigned longs.
                 } else if (DafnyOptions.O.IronDafny && 
                            !(xType is ArrowType) && 
                            cl != null && 
@@ -294,6 +289,7 @@ namespace Microsoft.Dafny {
             switch (name)
             {
                 //keywords Java 8 and before
+                // https://docs.oracle.com/javase/tutorial/java/nutsandbolts/_keywords.html
                 case "abstract":
                 case "assert":
                 case "break":
@@ -361,6 +357,11 @@ namespace Microsoft.Dafny {
         }
         
         // ABSTRACT METHOD DECLARATIONS FOR THE SAKE OF BUILDING PROGRAM
+        protected override void EmitJumpToTailCallStart(TargetWriter wr)
+        {
+            throw new NotImplementedException();
+        }
+        
         public override string TypeInitializationValue(Type type, TextWriter wr, Bpl.IToken tok, bool inAutoInitContext)
         {
             throw new NotImplementedException();
