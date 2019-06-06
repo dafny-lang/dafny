@@ -94,11 +94,6 @@ namespace Microsoft.Dafny {
 
         // TODO: Function needs to follow Go format because module will be in a separate file, so add module to Imports list
         // TODO: Find out if "isExtern" applies to Java
-        protected override BlockTargetWriter CreateStaticMain(IClassWriter wr)
-        {
-            throw new NotImplementedException();
-        }
-
         protected override TargetWriter CreateModule(string moduleName, bool isDefault, bool isExtern, string /*?*/ libraryName, TargetWriter wr) {
             string pkgName = IdProtect(moduleName);
             var import = new Import{ Name=moduleName, Path=pkgName };
@@ -169,7 +164,6 @@ namespace Microsoft.Dafny {
             public void Finish() { }
         }
         
-        //TODO: Finish this method
         protected BlockTargetWriter CreateMethod(Method m, bool createBody, TargetWriter wr) {
             string targetReturnTypeReplacement = null;
             foreach (var p in m.Outs) {
@@ -183,15 +177,39 @@ namespace Microsoft.Dafny {
                     }
                 }
             }
-            wr.Write("{0}{1}{2} {3}",
-                createBody ? "public " : "",
-                m.IsStatic ? "static " : "",
-                targetReturnTypeReplacement ?? "void",
-                IdName(m));
-            throw new NotImplementedException();
+            wr.Write("{0}{1}", createBody ? "public " : "", m.IsStatic ? "static " : "");
+            if (m.TypeArgs.Count != 0) {
+                wr.Write("<{0}>", TypeParameters(m.TypeArgs));
+            }
+            wr.WriteLine("{0} {1}", targetReturnTypeReplacement ?? "void", IdName(m));
+            
+            wr.Write("(");
+            WriteFormals("", m.Ins, wr);
+            
+            if (!createBody) {
+                wr.WriteLine(");");
+                return null;
+            } else {
+                var w = wr.NewBlock(")", null, BlockTargetWriter.BraceStyle.Newline, BlockTargetWriter.BraceStyle.Newline);
+                // TODO: Maybe later, add optimization for tail-recursion and remove the comments
+                //TODO: Figure out what implication static has on declaring this, whether it is necessary, and how to get current class name
+//                if (m.IsTailRecursive) {
+//                    if (!m.IsStatic) {
+//                        w.WriteLine("var _this = this;");
+//                    }
+//                    w.IndentLess(); w.WriteLine("TAIL_CALL_START: ;");
+//                }
+                return w;
+            }
         }
         
-        //TODO: Implement all the methods starting from TypeNameArrayBrackets(at.Dims)
+        string TypeParameters(List<TypeParameter> targs) {
+            Contract.Requires(cce.NonNullElements(targs));
+            Contract.Ensures(Contract.Result<string>() != null);
+
+            return Util.Comma(targs, tp => IdName(tp));
+        }
+        
         // Function copied and pasted from Compiler-Csharp.cs, will be modified later if deemed necessary.
         protected override string TypeName(Type type, TextWriter wr, Bpl.IToken tok, MemberDecl/*?*/ member = null) { 
             Contract.Ensures(Contract.Result<string>() != null); 
@@ -272,6 +290,46 @@ namespace Microsoft.Dafny {
             } else { 
                 Contract.Assert(false); throw new cce.UnreachableException();  // unexpected type
             }
+        }
+        
+        // Copied from Compiler-C#, seemed most applicable to Java compiler due to similar data types.
+        // TODO: verify, change if necessary to match Java language specifications
+        protected override string FullTypeName(UserDefinedType udt, MemberDecl/*?*/ member = null) {
+            Contract.Assume(udt != null);  // precondition; this ought to be declared as a Requires in the superclass
+            if (udt is ArrowType) {
+                return ArrowType.Arrow_FullCompileName;
+            }
+            var cl = udt.ResolvedClass;
+            if (cl == null) {
+                return IdProtect(udt.CompileName);
+            } else if (cl.Module.IsDefaultModule) {
+                return IdProtect(cl.CompileName);
+            } else {
+                return IdProtect(cl.Module.CompileName) + "." + IdProtect(cl.CompileName);
+            }
+        }
+        
+        protected override bool DeclareFormal(string prefix, string name, Type type, Bpl.IToken tok, bool isInParam, TextWriter wr)
+        {
+            if (isInParam) {
+                wr.Write("{0}{1} {2}", prefix, TypeName(type, wr, tok), name);
+                return true;
+            } else {
+                return false;
+            }
+        }
+        
+        protected override string TypeName_UDT(string fullCompileName, List<Type> typeArgs, TextWriter wr, Bpl.IToken tok) {
+            Contract.Assume(fullCompileName != null);  // precondition; this ought to be declared as a Requires in the superclass
+            Contract.Assume(typeArgs != null);  // precondition; this ought to be declared as a Requires in the superclass
+            string s = IdProtect(fullCompileName);
+            if (typeArgs.Count != 0) {
+                if (typeArgs.Exists(ComplicatedTypeParameterForCompilation)) {
+                    Error(tok, "compilation does not support trait types as a type parameter; consider introducing a ghost", wr);
+                }
+                s += "<" + TypeNames(typeArgs, wr, tok) + ">";
+            }
+            return s;
         }
 
         protected override string IdProtect(string name) {
@@ -357,6 +415,11 @@ namespace Microsoft.Dafny {
         }
         
         // ABSTRACT METHOD DECLARATIONS FOR THE SAKE OF BUILDING PROGRAM
+        protected override BlockTargetWriter CreateStaticMain(IClassWriter wr)
+        {
+            throw new NotImplementedException();
+        }
+        
         protected override void EmitJumpToTailCallStart(TargetWriter wr)
         {
             throw new NotImplementedException();
@@ -367,17 +430,7 @@ namespace Microsoft.Dafny {
             throw new NotImplementedException();
         }
 
-        protected override string TypeName_UDT(string fullCompileName, List<Type> typeArgs, TextWriter wr, Bpl.IToken tok)
-        {
-            throw new NotImplementedException();
-        }
-
         protected override string TypeName_Companion(Type type, TextWriter wr, Bpl.IToken tok, MemberDecl member)
-        {
-            throw new NotImplementedException();
-        }
-
-        protected override bool DeclareFormal(string prefix, string name, Type type, Bpl.IToken tok, bool isInParam, TextWriter wr)
         {
             throw new NotImplementedException();
         }
@@ -433,11 +486,6 @@ namespace Microsoft.Dafny {
         }
 
         protected override void EmitAbsurd(string message, TargetWriter wr)
-        {
-            throw new NotImplementedException();
-        }
-        
-        protected override string FullTypeName(UserDefinedType udt, MemberDecl member = null)
         {
             throw new NotImplementedException();
         }
