@@ -1,6 +1,8 @@
 package Tests;
 
-import DafnyClasses.*;
+import DafnyClasses.DafnyMultiset;
+import DafnyClasses.DafnyString;
+import DafnyClasses.DafnySequence;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigInteger;
@@ -9,7 +11,9 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class SequenceTest {
     Integer[] testSequenceArr = new Integer[]{1, 3, 2, 4, 2, 4, 6, 5, 4, 1, 7};

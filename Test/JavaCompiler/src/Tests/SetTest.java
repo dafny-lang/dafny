@@ -1,12 +1,14 @@
 package Tests;
 
-import DafnyClasses.*;
+import DafnyClasses.DafnySet;
 import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
 import java.util.HashSet;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class SetTest {
 
@@ -32,9 +34,9 @@ public class SetTest {
         assertFalse(testSet.contains(0));
         assertTrue(testSet.contains(6));
         assertFalse(testSubSet.contains(6));
-        assertTrue(testSet.containsAll(Arrays.asList(1,3, 5, 8)));
-        assertFalse(testSet.containsAll(Arrays.asList(1,2,3,7)));
-        assertFalse(testSubSet.containsAll(Arrays.asList(1,3,6)));
+        assertTrue(testSet.getInnerSet().containsAll(Arrays.asList(1,3, 5, 8)));
+        assertFalse(testSet.getInnerSet().containsAll(Arrays.asList(1,2,3,7)));
+        assertFalse(testSubSet.getInnerSet().containsAll(Arrays.asList(1,3,6)));
     }
 
     @Test

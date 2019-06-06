@@ -1,7 +1,11 @@
 package DafnyClasses;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Spliterator;
 import java.util.function.Consumer;
+import java.util.Iterator;
 
 public class DafnySequence<T> implements Iterable{
     protected T[] seq;

@@ -1,19 +1,16 @@
 package DafnyClasses;
 
-import java.util.*;
-import java.util.function.Consumer;
-import java.util.function.IntFunction;
-import java.util.function.Predicate;
-import java.util.stream.Stream;
+import java.util.Set;
+import java.util.HashSet;
 
-public class DafnySet<T> implements Iterable, Collection, Set {
-    Set<T> innerHash;
+public class DafnySet<T> {
+    private Set<T> innerSet;
     public DafnySet(){
-        this.innerHash = new HashSet();
+        this.innerSet = new HashSet();
     }
 
     public DafnySet(Set<T> s){
-        this.innerHash = (HashSet) s;
+        this.innerSet = (HashSet) s;
     }
 
 
@@ -27,11 +24,11 @@ public class DafnySet<T> implements Iterable, Collection, Set {
 
 
     public boolean contains(Object o){
-        return this.innerHash.contains(o);
+        return this.innerSet.contains(o);
     }
 
     public boolean disjoint(DafnySet<T> otherSet){
-        for (T ele: this.innerHash
+        for (T ele: this.innerSet
              ) {
             if(otherSet.contains(ele))
                 return false;
@@ -55,7 +52,7 @@ public class DafnySet<T> implements Iterable, Collection, Set {
 
     public DafnySet<T> intersection(DafnySet<T> otherSet){
         DafnySet<T> u = new DafnySet<>();
-        for (T ele: this.innerHash
+        for (T ele: this.innerSet
              ) {
             if (otherSet.contains(ele))
                 u.add(ele);
@@ -63,99 +60,35 @@ public class DafnySet<T> implements Iterable, Collection, Set {
         return u;
     }
 
-    @Override
-    public boolean containsAll(Collection c) {
-        return this.innerHash.containsAll(c);
+    public boolean containsAll(DafnySet c) {
+        return this.innerSet.containsAll(c.innerSet);
     }
 
-    @Override
     public int size() {
-        return this.innerHash.size();
+        return this.innerSet.size();
     }
 
-    @Override
-    public Iterator iterator() {
-        return this.innerHash.iterator();
-    }
 
-    @Override
+
     public boolean isEmpty() {
-        return this.innerHash.isEmpty();
+        return this.innerSet.isEmpty();
     }
 
-    @Override
-    public Object[] toArray() {
-        return this.innerHash.toArray();
-    }
 
-    @Override
-    public T[] toArray(Object[] a) {
-        return (T[]) this.innerHash.toArray(a);
-    }
-
-    @Override
     public boolean add(Object o) {
-        return this.innerHash.add((T) o);
+        return this.innerSet.add((T) o);
     }
 
-    @Override
     public boolean remove(Object o) {
-        return this.innerHash.remove((T) o);
+        return this.innerSet.remove((T) o);
     }
 
-    @Override
-    public boolean removeAll(Collection c) {
-        return this.innerHash.removeAll(c);
+    public boolean removeAll(DafnySet c) {
+        return this.innerSet.removeAll(c.innerSet);
     }
 
-    @Override
-    public boolean addAll(Collection c) {
-        return this.innerHash.addAll(c);
-    }
-
-    @Override
-    public boolean retainAll(Collection c) {
-        return this.innerHash.retainAll(c);
-    }
-
-    @Override
-    public boolean removeIf(Predicate filter) {
-        return this.innerHash.removeIf(filter);
-    }
-
-    @Override
-    public T[] toArray(IntFunction generator) {
-        return (T[]) this.innerHash.toArray(generator);
-    }
-
-    @Override
-    public Spliterator spliterator() {
-        return this.innerHash.spliterator();
-    }
-
-    @Override
-    public Stream parallelStream() {
-        return this.innerHash.parallelStream();
-    }
-
-    @Override
-    public Stream stream() {
-        return this.innerHash.stream();
-    }
-
-    @Override
-    public void clear() {
-        this.innerHash.clear();
-    }
-
-    @Override
-    public void forEach(Consumer action) {
-        this.innerHash.forEach(action);
-    }
-
-    @Override
-    protected Object clone() throws CloneNotSupportedException {
-        return super.clone();
+    public boolean addAll(DafnySet c) {
+        return this.innerSet.addAll(c.innerSet);
     }
 
     @Override
@@ -176,11 +109,15 @@ public class DafnySet<T> implements Iterable, Collection, Set {
 
     @Override
     public int hashCode() {
-        return this.innerHash.hashCode();
+        return this.innerSet.hashCode();
     }
 
     @Override
     public String toString() {
-        return this.innerHash.toString();
+        return this.innerSet.toString();
+    }
+
+    public Set<T> getInnerSet(){
+        return this.innerSet;
     }
 }
