@@ -93,7 +93,6 @@ namespace Microsoft.Dafny {
         }
 
         // TODO: Function needs to follow Go format because module will be in a separate file, so add module to Imports list
-        // TODO: Find out if "isExtern" applies to Java
         protected override TargetWriter CreateModule(string moduleName, bool isDefault, bool isExtern, string /*?*/ libraryName, TargetWriter wr) {
             string pkgName = IdProtect(moduleName);
             var import = new Import{ Name=moduleName, Path=pkgName };
