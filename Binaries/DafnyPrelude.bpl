@@ -1355,7 +1355,7 @@ axiom (forall x, y: int ::
 #if ARITH_MUL_ASSOC
 axiom (forall x, y, z: int ::
   { Mul(x, Mul(y, z)) }
-  Mul(x, Mul(y, z)) == mul(mul(x, y), z));
+  Mul(x, Mul(y, z)) == Mul(Mul(x, y), z));
 #endif
 
 // -------------------------------------------------------------------------
