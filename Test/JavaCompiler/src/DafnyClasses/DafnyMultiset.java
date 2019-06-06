@@ -1,7 +1,12 @@
 package DafnyClasses;
 
 import java.math.BigInteger;
-import java.util.*;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+
 
 public class DafnyMultiset<T> {
     private Map<T, BigInteger> innerHash;
@@ -51,7 +56,7 @@ public class DafnyMultiset<T> {
     }
 
     public boolean isSubset(DafnyMultiset<T> otherMulti){
-        for (Map.Entry<T, BigInteger> entry: otherMulti.getInnerHash().entrySet()
+        for (Map.Entry<T, BigInteger> entry: otherMulti.getInnerMap().entrySet()
              ) {
             if(!this.innerHash.containsKey(entry.getKey()) || this.innerHash.get(entry.getKey()).compareTo(entry.getValue()) < 0)
                 return false;
@@ -68,7 +73,7 @@ public class DafnyMultiset<T> {
     }
 
     public boolean disjoint(DafnyMultiset<T> otherMulti){
-        for (T t: otherMulti.getInnerHash().keySet()
+        for (T t: otherMulti.getInnerMap().keySet()
         ) {
             if(this.innerHash.containsKey(t))
                 return false;
@@ -146,7 +151,7 @@ public class DafnyMultiset<T> {
             return false;
         DafnyMultiset<T> o = (DafnyMultiset<T>) obj;
         // field comparison
-        return this.innerHash.equals(o.getInnerHash());
+        return this.innerHash.equals(o.getInnerMap());
     }
 
     @Override
@@ -159,7 +164,7 @@ public class DafnyMultiset<T> {
         return this.innerHash.toString();
     }
 
-    public Map<T, BigInteger> getInnerHash() {
+    public Map<T, BigInteger> getInnerMap() {
         return innerHash;
     }
 }
