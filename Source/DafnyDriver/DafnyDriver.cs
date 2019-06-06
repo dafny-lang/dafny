@@ -130,7 +130,15 @@ namespace Microsoft.Dafny
             if (extension == ".js") {
               otherFiles.Add(file);
             } else {
-              ExecutionEngine.printer.ErrorWriteLine(Console.Out, "*** Error: '{0}': Filename extension '{1}' is not supported. Input files must be Dafny programs (.dfy) or JavaScrip files (.js)", file,
+              ExecutionEngine.printer.ErrorWriteLine(Console.Out, "*** Error: '{0}': Filename extension '{1}' is not supported. Input files must be Dafny programs (.dfy) or JavaScript files (.js)", file,
+                extension == null ? "" : extension);
+              return ExitValue.PREPROCESSING_ERROR;
+            }
+          } else if (DafnyOptions.O.CompileTarget == DafnyOptions.CompilationTarget.Java) {
+            if (extension == ".java") {
+              otherFiles.Add(file);
+            } else {
+              ExecutionEngine.printer.ErrorWriteLine(Console.Out, "*** Error: '{0}': Filename extension '{1}' is not supported. Input files must be Dafny programs (.dfy) or Java files (.java)", file,
                 extension == null ? "" : extension);
               return ExitValue.PREPROCESSING_ERROR;
             }
@@ -452,6 +460,10 @@ namespace Microsoft.Dafny
           targetExtension = "go";
           targetBaseDir = baseName + "-go/src";
           break;
+        case DafnyOptions.CompilationTarget.Java:
+          targetExtension = "java";
+          targetBaseDir = baseName + "-java/src";
+          break;
         default:
           Contract.Assert(false);
           throw new cce.UnreachableException();
@@ -520,6 +532,9 @@ namespace Microsoft.Dafny
           break;
         case DafnyOptions.CompilationTarget.Go:
           compiler = new Dafny.GoCompiler(dafnyProgram.reporter);
+          break;
+        case DafnyOptions.CompilationTarget.Java:
+          compiler = new Dafny.JavaCompiler(dafnyProgram.reporter);
           break;
       }
 
