@@ -1,142 +1,152 @@
 package DafnyClasses;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Spliterator;
 import java.util.function.Consumer;
 import java.util.Iterator;
 
-public class DafnySequence<T> implements Iterable{
-    protected T[] seq;
+public class DafnySequence<T> implements Iterable {
+    /*
+    Invariant: forall 0<=i<length(). seq[i] = Character
+    Property: DafnySequences are immutable. Any methods that seem to edit the DafnySequence will only return a new
+    DafnySequence
+    Todo: DafnySequence Invariants and Properties
+     */
+    protected ArrayList<T> seq;
 
-    public DafnySequence(){
-
+    public DafnySequence() {
     }
 
-    public DafnySequence(List<T> l){
-        this.seq = (T[]) l.toArray();
+    private DafnySequence(List<T> l, int i, T t){
+        seq = new ArrayList<>(l);
+        seq.set(i, t);
     }
 
-    public boolean prefix(DafnySequence<T> otherSeq){
-        if(otherSeq.length() > this.length())
-            return false;
-        for(int i = 0; i < otherSeq.length(); i++){
-            if(seq[i] != otherSeq.select(i))
-                return false;
+    public DafnySequence(List<T> l) {
+        assert l != null: "Precondition Violation";
+        seq = new ArrayList<>(l);
+    }
+
+    public DafnySequence(DafnySequence<T> other) {
+        assert other != null : "Precondition Violation";
+        seq = new ArrayList<>(other.seq);
+    }
+
+    // Determines if this DafnySequence is a prefix of other
+    public boolean isPrefixOf(DafnySequence<T> other) {
+        assert other != null : "Precondition Violation";
+        if (other.length() < length()) return false;
+        for (int i = 0; i < length(); i++) {
+            if (seq.get(i) != other.select(i)) return false;
         }
 
         return true;
     }
 
-    public boolean properPrefix(DafnySequence<T> otherSeq){
-        return this.length() > otherSeq.length() && this.prefix(otherSeq);
+    // Determines if this DafnySequence is a proper prefix of other
+    public boolean isProperPrefixOf(DafnySequence<T> other) {
+        assert other != null : "Precondition Violation";
+        return length() < other.length() && isPrefixOf(other);
     }
 
-    public DafnySequence<T> concatenate(DafnySequence<T> otherSeq){
-        List<T> l = new ArrayList<T>(Arrays.asList(seq));
-        for(int i =0; i < otherSeq.length(); i++){
-            l.add(otherSeq.seq[i]);
-        }
+    public DafnySequence<T> concatenate(DafnySequence<T> other) {
+        assert other != null : "Precondition Violation";
+        List<T> l = new ArrayList(seq);
+        l.addAll(other.seq);
         return new DafnySequence<>(l);
     }
 
-    public T select(int i){
-        return seq[i];
+    public T select(int i) {
+        assert i >= 0 : "Precondition Violation";
+        return seq.get(i);
     }
 
-    public int length(){
-        return seq.length;
+    public int length() {
+        return seq.size();
     }
 
-    public DafnySequence<T> update(int i, T t){
-        List<T> l = new ArrayList<T>(Arrays.asList(seq));
-        l.set(i, t);
-        return new DafnySequence<>(l);
+    public DafnySequence<T> update(int i, T t) {
+        //todo: should we allow i=length, and return a new sequence with t appended to the sequence?
+        assert 0 <= i && i < length(): "Precondition Violation";
+        return new DafnySequence<>(seq, i, t);
     }
 
-    public boolean contains(T t){
-        return Arrays.asList(seq).contains(t);
+    public boolean contains(T t) {
+        assert t != null : "Precondition Violation";
+        return seq.contains(t);
     }
 
-    public DafnySequence<T> subsequence(int lo, int hi){
-        List<T> l = new ArrayList<>();
-        for(int i = lo; i< hi; i++){
-            l.add(seq[i]);
-        }
-        return new DafnySequence<>(l);
+    // Returns the subsequence of values [lo..hi)
+    public DafnySequence<T> subsequence(int lo, int hi) {
+        assert lo >= 0 && hi >= 0 && hi >= lo : "Precondition Violation";
+        return new DafnySequence<>(seq.subList(lo, hi));
     }
 
-    public DafnySequence<T> drop(int lo){
-        List<T> l = new ArrayList<>();
-        for(int i = lo; i< this.length(); i++){
-            l.add(seq[i]);
-        }
-        return new DafnySequence<>(l);
+
+    // Returns the subsequence of values [lo..length())
+    public DafnySequence<T> drop(int lo) {
+        assert lo >= 0 && lo < length() : "Precondition Violation";
+        return new DafnySequence<>(seq.subList(lo, length()));
     }
 
-    public DafnySequence<T> take(int hi){
-        List<T> l = new ArrayList<>();
-        for(int i = 0; i< hi; i++){
-            l.add(seq[i]);
-        }
-        return new DafnySequence<>(l);
+
+    // Returns the subsequence of values [0..hi)
+    public DafnySequence<T> take(int hi) {
+        assert hi >= 0 && hi <= length() : "Precondition Violation";
+        return new DafnySequence<>(seq.subList(0, hi));
     }
 
-    public DafnySequence<DafnySequence<T>> slice(List<Integer> l){
+    public DafnySequence<DafnySequence<T>> slice(List<Integer> l) {
+        assert l != null : "Precondition Violation";
         List<DafnySequence<T>> list = new ArrayList<>();
         int curr = 0;
-        for(Integer i : l){
-            List<T> innerList = new ArrayList<>();
-            for(int j = 0; j < i; j++){
-                innerList.add(seq[curr+j]);
-            }
+        for (Integer i : l) {
+            assert i != null : "Precondition Violation";
+            list.add(new DafnySequence<>(subsequence(curr, curr + i)));
             curr += i;
-            list.add(new DafnySequence<>(innerList));
         }
 
         return new DafnySequence<>(list);
     }
 
-    public DafnyMultiset<T> asDafnyMultiset(){
-        DafnyMultiset<T> d = new DafnyMultiset<>(Arrays.asList(seq));
-        return d;
+    public DafnyMultiset<T> asDafnyMultiset() {
+        return new DafnyMultiset<>(seq);
     }
 
     @Override
     public void forEach(Consumer action) {
-        Arrays.asList(seq).forEach(action);
+        assert action != null : "Precondition Violation";
+        seq.forEach(action);
     }
 
     @Override
     public Spliterator spliterator() {
-        return Arrays.asList(seq).spliterator();
+        return seq.spliterator();
     }
 
     @Override
     public Iterator iterator() {
-        return Arrays.asList(seq).iterator();
+        return seq.iterator();
     }
 
     @Override
     public boolean equals(Object obj) {
-        // self check
-        if (this == obj)
-            return true;
-        // null check
-        if (obj == null)
-            return false;
-        // type check and cast
-        if (getClass() != obj.getClass())
-            return false;
+        if (this == obj) return true;
+        if (obj == null) return false;
+        if (getClass() != obj.getClass()) return false;
         DafnySequence<T> o = (DafnySequence<T>) obj;
-        // field comparison
-        if(this.length() != o.length())
-            return false;
-        for(int i = 0; i < this.length(); i++){
-            if(seq[i] != o.select(i))
-                return false;
-        }
-        return true;
+        if (length() != o.length()) return false;
+        return seq.equals(o.seq);
+    }
+
+    @Override
+    public int hashCode() {
+        return seq.hashCode();
+    }
+
+    @Override
+    public String toString() {
+        return seq.toString();
     }
 }
