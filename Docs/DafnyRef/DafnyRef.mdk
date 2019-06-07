@@ -1071,7 +1071,7 @@ with common names. The `opened` keyword can be used with any kind of
 Sometimes, using a specific implementation is unnecessary; instead,
 all that is needed is a module that implements some interface.  In
 that case, you can use an _abstract_ module import. In Dafny, this is
-written `import A as B`.  This means bind the name `A` as before, but
+written `import A : B`.  This means bind the name `A` as before, but
 instead of getting the exact module `B`, you get any module which is a
 _adheres_ of `B`.  Typically, the module `B` may have abstract type
 definitions, classes with bodyless methods, or otherwise be unsuitable
@@ -1084,7 +1084,7 @@ module Interface {
     ensures addSome(n) > n
 }
 module Mod {
-  import A as Interface
+  import A : Interface
   method m() {
     assert 6 <= A.addSome(5);
   }
@@ -1125,7 +1125,7 @@ module Interface {
     ensures addSome(n) > n
 }
 module Mod {
-  import A as Interface default Implementation
+  import A : Interface default Implementation
   method m() {
     assert 6 <= A.addSome(5);
   }
@@ -1138,7 +1138,7 @@ module Implementation {
   }
 }
 module Mod2 refines Mod {
-  import A as Interface default Implementation
+  import A : Interface default Implementation
   ...
 }
 ```
