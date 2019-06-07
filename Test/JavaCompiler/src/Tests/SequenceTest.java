@@ -1,19 +1,19 @@
-package Tests;
-
 import DafnyClasses.DafnyMultiset;
+import DafnyClasses.DafnySet;
 import DafnyClasses.DafnyString;
 import DafnyClasses.DafnySequence;
-import org.junit.jupiter.api.Test;
 
 import java.math.BigInteger;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
 
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static junit.framework.Assert.assertFalse;
+import static junit.framework.Assert.assertTrue;
+import static junit.framework.Assert.assertEquals;
+import static org.hamcrest.CoreMatchers.startsWith;
+
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 public class SequenceTest {
     Integer[] testSequenceArr = new Integer[]{1, 3, 2, 4, 2, 4, 6, 5, 4, 1, 7};
@@ -32,21 +32,24 @@ public class SequenceTest {
     DafnySequence<Integer> testSequenceDrop = new DafnySequence<>(Arrays.asList(testSequenceDropArr));
     DafnySequence<Integer> testSequenceTake = new DafnySequence<>(Arrays.asList(testSequenceTakeArr));
     DafnySequence<Integer> testSequenceEmpty = new DafnySequence<>(Arrays.asList(testSequenceEmptyArr));
+    DafnySequence<Integer> testCopy = new DafnySequence<>(Arrays.asList(testSequenceArr));
 
     @Test
     public void testSequencePrefix() {
-        assertTrue(testSequence.prefix(testSequencePre));
-        assertFalse(testSequence.prefix(testSequenceNPre));
-        assertFalse(testSequence.prefix(testSequenceNPre2));
-        assertTrue(testSequence.prefix(testSequence));
+        assertTrue(testSequencePre.isPrefixOf(testSequence));
+        assertFalse(testSequenceNPre.isPrefixOf(testSequence));
+        assertFalse(testSequenceNPre2.isPrefixOf(testSequence));
+        assertTrue(testSequence.isPrefixOf(testSequence));
+        assertFalse(testSequence.isPrefixOf(testSequencePre));
     }
 
     @Test
     public void testSequenceProperPrefix() {
-        assertTrue(testSequence.properPrefix(testSequencePre));
-        assertFalse(testSequence.properPrefix(testSequenceNPre));
-        assertFalse(testSequence.properPrefix(testSequenceNPre2));
-        assertFalse(testSequence.properPrefix(testSequence));
+        assertTrue(testSequencePre.isProperPrefixOf(testSequence));
+        assertFalse(testSequence.isProperPrefixOf(testSequenceNPre));
+        assertFalse(testSequence.isProperPrefixOf(testSequence));
+        assertFalse(testSequenceNPre.isProperPrefixOf(testSequence));
+        assertFalse(testSequenceNPre2.isProperPrefixOf(testSequence));
     }
 
     @Test
@@ -71,10 +74,11 @@ public class SequenceTest {
 
     @Test
     public void testSequenceUpdate() {
-        DafnySequence<Integer> temp = new DafnySequence<>(Arrays.asList(testSequencePreArr));
-        assertEquals(temp, testSequencePre);
-        temp = temp.update(5, 5);
-        assertEquals(temp, testSequenceNPre);
+        DafnySequence<Integer> temp;
+        temp = testSequence.update(5, 5);
+        DafnySequence<Integer> testUpdate = new DafnySequence(Arrays.asList(new Integer[]{1, 3, 2, 4, 2, 5, 6, 5, 4, 1, 7}));
+        assertEquals(temp, testUpdate);
+        assertEquals(testSequence, testCopy);
     }
 
     @Test
@@ -126,6 +130,60 @@ public class SequenceTest {
         assertEquals(it.next(), testSequenceDrop);
     }
 
+    @Test
+    public void testObjectMethods() {
+        assertEquals(testSequence, testCopy);
+        assertEquals(testSequence.hashCode(), testCopy.hashCode());
+        assertEquals("[1, 3, 2, 4, 2, 4, 6, 5, 4, 1, 7]", testSequence.toString());
+        assertEquals("[1, 3, 2, 4, 2, 4, 6, 5, 4, 1, 7]", testCopy.toString());
+    }
+
+    @Rule
+    public ExpectedException thrown = ExpectedException.none();
+
+
+    @Test
+    public void testNullFailures() {
+        List<Integer> l = null;
+        DafnySequence<Integer> s = null;
+        thrown.expect(AssertionError.class);
+        new DafnySequence<>(l);
+        new DafnySequence<Integer>(s);
+        testSequence.isPrefixOf(null);
+        testSequence.isProperPrefixOf(null);
+        testSequence.contains(null);
+        testSequence.concatenate(null);
+        testSequence.update(1, null);
+        testSequence.slice(null);
+        l = new ArrayList<>();
+        l.add(null);
+        testSequence.slice(l);
+        testSequence.forEach(null);
+    }
+
+    @Test
+    public void testIndexFailures() {
+        thrown.expect(AssertionError.class);
+        testSequence.drop(13);
+        testSequence.drop(-3);
+        testSequence.take(13);
+        testSequence.take(-3);
+        testSequence.subsequence(-3, 4);
+        testSequence.subsequence(3, 42);
+        testSequence.subsequence(2, 1);
+        testSequence.subsequence(testSequence.length(), testSequence.length());
+        testSequence.update(45, 3);
+        testSequence.update(-8, 3);
+    }
+
+    @Test
+    public void testNullMembers() {
+        Integer[] testNulls = new Integer[]{3, null, 2};
+        DafnySequence<Integer> testNull = new DafnySequence(Arrays.asList(testNulls));
+        testNull = testNull.update(0, null);
+        assertEquals(testNull, new DafnySequence<>(Arrays.asList(new Integer[]{null, null, 2})));
+    }
+
     Character[] testStringArr = new Character[]{'1', '3', '2', '4', '2', '4', '6', '5', '4', '1', '7'};
     Character[] testStringPreArr = new Character[]{'1', '3', '2', '4', '2', '4'};
     Character[] testStringNPreArr = new Character[]{'1', '3', '2', '4', '2', '5'};
@@ -141,7 +199,7 @@ public class SequenceTest {
     DafnyString testStringSub = new DafnyString(Arrays.asList(testStringSubArr));
     DafnyString testStringDrop = new DafnyString(Arrays.asList(testStringDropArr));
     DafnyString testStringTake = new DafnyString(Arrays.asList(testStringTakeArr));
-    DafnyString testStringEmpty = new DafnyString(Arrays.asList(testStringEmptyArr));
+    DafnyString testStringCopy = new DafnyString(Arrays.asList(testStringArr));
 
     DafnySequence<Character> testStringDropSlice = new DafnySequence<>(Arrays.asList(testStringDropArr));
     DafnySequence<Character> testStringTakeSlice = new DafnySequence<>(Arrays.asList(testStringTakeArr));
@@ -149,18 +207,20 @@ public class SequenceTest {
 
     @Test
     public void testStringPrefix() {
-        assertTrue(testString.prefix(testStringPre));
-        assertFalse(testString.prefix(testStringNPre));
-        assertFalse(testString.prefix(testStringNPre2));
-        assertTrue(testString.prefix(testString));
+        assertTrue(testStringPre.isPrefixOf(testString));
+        assertFalse(testStringNPre.isPrefixOf(testString));
+        assertFalse(testStringNPre2.isPrefixOf(testString));
+        assertTrue(testString.isPrefixOf(testString));
     }
 
     @Test
     public void testStringProperPrefix() {
-        assertTrue(testString.properPrefix(testStringPre));
-        assertFalse(testString.properPrefix(testStringNPre));
-        assertFalse(testString.properPrefix(testStringNPre2));
-        assertFalse(testString.properPrefix(testString));
+        assertTrue(testStringPre.isProperPrefixOf(testString));
+        assertFalse(testString.isProperPrefixOf(testStringNPre));
+        assertTrue(testString.isProperPrefixOf(testStringNPre2));
+        assertFalse(testString.isProperPrefixOf(testString));
+        assertFalse(testStringNPre.isProperPrefixOf(testString));
+        assertFalse(testStringNPre2.isProperPrefixOf(testString));
     }
 
     @Test
@@ -239,4 +299,48 @@ public class SequenceTest {
         assertEquals(it.next(), testStringDropSlice);
     }
 
+    @Test
+    public void testStringObjectMethods() {
+        assertEquals(testString, testStringCopy);
+        assertEquals(testString.hashCode(), testStringCopy.hashCode());
+        assertEquals("13242465417", testString.toString());
+        assertEquals("13242465417", testStringCopy.toString());
+    }
+
+    @Test
+    public void testNullStringFailures() {
+        List<Character> l = null;
+        DafnyString s = null;
+        thrown.expect(AssertionError.class);
+        new DafnyString(l);
+        l = new ArrayList<>();
+        l.add(null);
+        new DafnyString(l);
+        new DafnyString(s);
+        testString.isPrefixOf(null);
+        testString.isProperPrefixOf(null);
+        testString.contains(null);
+        testString.concatenate(null);
+        testString.update(1, null);
+        testString.slice(null);
+        List<Integer> ints = new ArrayList<>();
+        ints.add(null);
+        testString.slice(ints);
+        testString.forEach(null);
+    }
+
+    @Test
+    public void testStringIndexFailures() {
+        thrown.expect(AssertionError.class);
+        testString.drop(13);
+        testString.drop(-3);
+        testString.take(13);
+        testString.take(-3);
+        testString.subsequence(-3, 4);
+        testString.subsequence(3, 42);
+        testString.subsequence(2, 1);
+        testString.subsequence(testString.length(), testString.length());
+        testString.update(45, 'C');
+        testString.update(-8, 'C');
+    }
 }
