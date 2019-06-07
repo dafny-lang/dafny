@@ -1,5 +1,6 @@
-import DafnyClasses.DafnyMultiset;
 import DafnyClasses.DafnySet;
+import DafnyClasses.DafnyMultiset;
+import org.junit.Test;
 
 import java.math.BigInteger;
 import java.util.*;
@@ -10,7 +11,6 @@ import static junit.framework.Assert.assertEquals;
 import static org.hamcrest.CoreMatchers.startsWith;
 
 import org.junit.Rule;
-import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
 public class SetTest {
