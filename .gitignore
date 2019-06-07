@@ -7,15 +7,18 @@
 *.vsixmanifest
 *~
 
+.idea/
+
 Binaries/*.dll
 Binaries/*.mdb
 Binaries/*.pdb
 Binaries/*.xml
-Binaries/z3/
+Binaries/z3*
 Binaries/Dafny.exe
 Binaries/Dafny.vshost.exe
 Binaries/DafnyServer.exe
 Binaries/export/
+Binaries/mono_crash*
 
 Package/
 
