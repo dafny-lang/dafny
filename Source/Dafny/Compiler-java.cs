@@ -49,8 +49,8 @@ namespace Microsoft.Dafny {
             wr.WriteLine("package {0};", ModuleName);
             wr.WriteLine();
             // Keep the import writers so that we can import subsequent modules into the main one
-            EmitImports(wr, out RootImportWriter, out RootImportDummyWriter);
-            // TODO: Finish this method override
+            EmitImports(wr, out RootImportWriter);
+            wr.WriteLine();
         }
         
         // TODO: Same format as compiler-go.cs, might need to follow C# depending on how DafnyRuntime.java looks
@@ -60,7 +60,6 @@ namespace Microsoft.Dafny {
         }
 
         // Creates file header for each module's file.
-        // TODO: Finish the part after EmitImports
         void EmitModuleHeader(TargetWriter wr) {
             wr.WriteLine("// Package {0}", ModuleName);
             wr.WriteLine("// Dafny module {0} compiled into Java", ModuleName);
@@ -68,46 +67,45 @@ namespace Microsoft.Dafny {
             wr.WriteLine("package {0};", ModuleName);
             wr.WriteLine();
             wr.WriteLine("import java.*;"); // TODO: See if it is really necessary to import all of Java, though C# compiler imports all of System
-            EmitImports(wr, out _, out _);
+            EmitImports(wr, out _);
+            wr.WriteLine();
         }
 
-        void EmitImports(TargetWriter wr, out TargetWriter importWriter, out TargetWriter importDummyWriter) {
-            throw new NotImplementedException();
-            importDummyWriter = wr.ForkSection();
+        void EmitImports(TargetWriter wr, out TargetWriter importWriter) {
+            importWriter = wr.ForkSection();
             foreach (var import in Imports) {
-                EmitImport(import, wr, importDummyWriter);
+                EmitImport(import, importWriter);
             }
         }
         
         // TODO: Figure out what importDummyWriter is and whether we need it or not.
-        private void EmitImport(Import import, TargetWriter importWriter, TargetWriter importDummyWriter) {
-//            var id = IdProtect(import.Name);
+        private void EmitImport(Import import, TargetWriter importWriter) {
             var path = import.Path;
 
             importWriter.WriteLine("import {0}.*;", path);
-            importWriter.WriteLine();
-
-//            if (!import.SuppressDummy) {
-//                importDummyWriter.WriteLine("var _ {0}.{1}", id, DummyTypeName);
-//            }
         }
 
         // TODO: Function needs to follow Go format because module will be in a separate file, so add module to Imports list
-        protected override TargetWriter CreateModule(string moduleName, bool isDefault, bool isExtern, string /*?*/ libraryName, TargetWriter wr) {
-            string pkgName = IdProtect(moduleName);
+        protected override TargetWriter CreateModule(string moduleName, bool isDefault, bool isExtern, string /*?*/ libraryName, TargetWriter wr)
+        {
+            string pkgName;
+            if (libraryName != null) {
+                pkgName = libraryName;
+            } else {
+                pkgName = IdProtect(moduleName);
+            }
             var import = new Import{ Name=moduleName, Path=pkgName };
             var filename = string.Format("{0}/{0}.java", pkgName);
             var w = wr.NewFile(filename);
             ModuleName = moduleName;
             EmitModuleHeader(w);
-            
-            var s = string.Format("package {0};", IdProtect(moduleName));
-            return wr.NewBigBlock(s, " // end of " + s);
+            AddImport(import);
+            return w;
         }
 
-        protected override string GetHelperModuleName()
-        {
-            throw new NotImplementedException();
+        private void AddImport(Import import) {
+            EmitImport(import, RootImportWriter);
+            Imports.Add(import);
         }
 
 
@@ -414,6 +412,11 @@ namespace Microsoft.Dafny {
         }
         
         // ABSTRACT METHOD DECLARATIONS FOR THE SAKE OF BUILDING PROGRAM
+        protected override string GetHelperModuleName()
+        {
+            throw new NotImplementedException();
+        }
+        
         protected override BlockTargetWriter CreateStaticMain(IClassWriter wr)
         {
             throw new NotImplementedException();
