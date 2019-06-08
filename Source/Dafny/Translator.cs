@@ -4590,7 +4590,7 @@ namespace Microsoft.Dafny {
         // the procedure itself
         var req = new List<Bpl.Requires>();
         // free requires mh == ModuleContextHeight && fh == FunctionContextHeight;
-        req.Add(Requires(f.tok, true, etran.HeightContext(f), null, null));
+        req.Add(Requires(f.tok, true, etran.HeightContext(f.OverriddenFunction), null, null));
         if (f is TwoStateFunction) {
           // free requires prevHeap == Heap && HeapSucc(prevHeap, currHeap) && IsHeap(currHeap)
           var a0 = Bpl.Expr.Eq(prevHeap, ordinaryEtran.HeapExpr);
@@ -8948,7 +8948,7 @@ namespace Microsoft.Dafny {
       // FREE PRECONDITIONS
       if (kind == MethodTranslationKind.SpecWellformedness || kind == MethodTranslationKind.Implementation || kind == MethodTranslationKind.OverrideCheck) {  // the other cases have no need for a free precondition
         // free requires mh == ModuleContextHeight && fh == FunctionContextHeight;
-        req.Add(Requires(m.tok, true, etran.HeightContext(m), null, null));
+        req.Add(Requires(m.tok, true, etran.HeightContext(kind == MethodTranslationKind.OverrideCheck ? m.OverriddenMethod : m), null, null));
         if (m is TwoStateLemma) {
           // free requires prevHeap == Heap && HeapSucc(prevHeap, currHeap) && IsHeap(currHeap)
           var a0 = Bpl.Expr.Eq(prevHeap, ordinaryEtran.HeapExpr);
