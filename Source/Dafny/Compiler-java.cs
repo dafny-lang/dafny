@@ -78,14 +78,12 @@ namespace Microsoft.Dafny {
             }
         }
         
-        // TODO: Figure out what importDummyWriter is and whether we need it or not.
         private void EmitImport(Import import, TargetWriter importWriter) {
             var path = import.Path;
 
             importWriter.WriteLine("import {0}.*;", path);
         }
-
-        // TODO: Function needs to follow Go format because module will be in a separate file, so add module to Imports list
+        
         protected override TargetWriter CreateModule(string moduleName, bool isDefault, bool isExtern, string /*?*/ libraryName, TargetWriter wr)
         {
             string pkgName;
@@ -136,14 +134,14 @@ namespace Microsoft.Dafny {
                 return isStatic ? StaticMemberWriter : InstanceMemberWriter;
             }
             
-            // TODO: Define all of these undefined methods.
             public BlockTargetWriter/*?*/ CreateMethod(Method m, bool createBody) {
                 return Compiler.CreateMethod(m, createBody, Writer(m.IsStatic));
             }
             public BlockTargetWriter/*?*/ CreateFunction(string name, List<TypeParameter>/*?*/ typeArgs, List<Formal> formals, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl member) {
-                throw new NotImplementedException();
-//                return Compiler.CreateFunction(name, typeArgs, formals, resultType, tok, isStatic, createBody, member, Writer(isStatic));
+                return Compiler.CreateFunction(name, typeArgs, formals, resultType, tok, isStatic, createBody, member, Writer(isStatic));
             }
+            
+            //TODO: Decide if we need to make the getters/setters, since all fields are public anyway.
             public BlockTargetWriter/*?*/ CreateGetter(string name, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl/*?*/ member) {
                 throw new NotImplementedException();
 //                return Compiler.CreateGetter(name, resultType, tok, isStatic, createBody, Writer(isStatic));
@@ -153,8 +151,7 @@ namespace Microsoft.Dafny {
 //                return Compiler.CreateGetterSetter(name, resultType, tok, isStatic, createBody, out setterWriter, Writer(isStatic));
             }
             public void DeclareField(string name, bool isStatic, bool isConst, Type type, Bpl.IToken tok, string rhs) {
-                throw new NotImplementedException();
-//                Compiler.DeclareField(name, isStatic, isConst, type, tok, rhs, Writer(isStatic));
+                Compiler.DeclareField(name, isStatic, isConst, type, tok, rhs, Writer(isStatic));
             }
             public TextWriter/*?*/ ErrorWriter() => InstanceMemberWriter;
 
@@ -178,7 +175,7 @@ namespace Microsoft.Dafny {
             if (m.TypeArgs.Count != 0) {
                 wr.Write("<{0}>", TypeParameters(m.TypeArgs));
             }
-            wr.WriteLine("{0} {1}", targetReturnTypeReplacement ?? "void", IdName(m));
+            wr.Write("{0} {1}", targetReturnTypeReplacement ?? "void", IdName(m));
             
             wr.Write("(");
             WriteFormals("", m.Ins, wr);
@@ -199,7 +196,35 @@ namespace Microsoft.Dafny {
                 return w;
             }
         }
-        
+
+        protected BlockTargetWriter /*?*/ CreateFunction(string name, List<TypeParameter> /*?*/ typeArgs,
+            List<Formal> formals, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl member,
+            TargetWriter wr) {
+            wr.Write("{0}{1}", createBody ? "public " : "", isStatic ? "static " : "");
+            if (typeArgs != null && typeArgs.Count != 0) {
+                wr.Write("<{0}>", TypeParameters(typeArgs));
+            }
+            wr.Write("{0} {1}(", TypeName(resultType, wr, tok), name);
+            WriteFormals("", formals, wr);
+            if (!createBody) {
+                wr.WriteLine(");");
+                return null;
+            } else {
+                if (formals.Count > 1) {
+                    var w = wr.NewBlock(")", null, BlockTargetWriter.BraceStyle.Newline, BlockTargetWriter.BraceStyle.Newline);
+                    return w;
+                } else {
+                    var w = wr.NewBlock(")");
+                    return w;
+                }
+            }
+        }
+
+        protected void DeclareField(string name, bool isStatic, bool isConst, Type type, Bpl.IToken tok, string rhs,
+            TargetWriter wr) {
+            wr.WriteLine("public {0}{1}{2} {3} = {4};", isStatic ? "static " : "", isConst ? "final " : "", TypeName(type, wr, tok), name, rhs);
+        }
+
         string TypeParameters(List<TypeParameter> targs) {
             Contract.Requires(cce.NonNullElements(targs));
             Contract.Ensures(Contract.Result<string>() != null);
@@ -329,6 +354,32 @@ namespace Microsoft.Dafny {
             return s;
         }
 
+        protected override IClassWriter CreateClass(string name, bool isExtern, string /*?*/ fullPrintName,
+            List<TypeParameter> /*?*/ typeParameters, List<Type> /*?*/ superClasses, Bpl.IToken tok, TargetWriter wr) {
+            var filename = string.Format("{0}/{0}.java", name);
+            var w = wr.NewFile(filename);
+            w.WriteLine("// Class {0}", name);
+            w.WriteLine("// Dafny class {0} compiled into Java", name);
+            w.WriteLine("package {0};", ModuleName);
+            w.WriteLine();
+            wr.WriteLine("import java.*;"); // TODO: See if it is really necessary to import all of Java, though C# compiler imports all of System
+            EmitImports(w, out _);
+            w.WriteLine();
+            w.WriteLine("public class {0}", name);
+            if (typeParameters != null && typeParameters.Count != 0) {
+                w.Write("<{0}>", TypeParameters(typeParameters));
+            }
+            // Since Java does not support multiple inheritance, we are assuming a list of "superclasses" is a list of interfaces
+            if (superClasses != null) {
+                string sep = " implements ";
+                foreach (var trait in superClasses) {
+                    w.Write("{0}{1}", sep, TypeName(trait, w, tok));
+                    sep = ", ";
+                }
+            }
+            return new ClassWriter(this, w.NewBlock(""));
+        }
+
         protected override string IdProtect(string name) {
             return PublicIdProtect(name);
         }
@@ -343,7 +394,7 @@ namespace Microsoft.Dafny {
             // TODO: Finish with all the public IDs that need to be protected
             switch (name)
             {
-                //keywords Java 8 and before
+                // keywords Java 8 and before
                 // https://docs.oracle.com/javase/tutorial/java/nutsandbolts/_keywords.html
                 case "abstract":
                 case "assert":
@@ -645,12 +696,6 @@ namespace Microsoft.Dafny {
         }
 
         protected override void EmitSingleValueGenerator(Expression e, bool inLetExprBody, string type, TargetWriter wr)
-        {
-            throw new NotImplementedException();
-        }
-
-        protected override IClassWriter CreateClass(string name, bool isExtern, string fullPrintName, List<TypeParameter> typeParameters, List<Type> superClasses,
-            Bpl.IToken tok, TargetWriter wr)
         {
             throw new NotImplementedException();
         }
