@@ -55,7 +55,7 @@ namespace Microsoft.Dafny {
         yield return msig.Key;
         Type.PopScope(msig.Value.VisibilityScope);
       }
-      
+
     }
 
     public IEnumerable<ModuleDefinition> RawModules() {
@@ -86,7 +86,7 @@ namespace Microsoft.Dafny {
     public readonly string includedFilename;
     public readonly string includedFullPath;
     public bool ErrorReported;
-    
+
     public Include(IToken tok, string includer, string theFilename, string fullPath) {
       this.tok = tok;
       this.includerFilename = includer;
@@ -243,8 +243,8 @@ namespace Microsoft.Dafny {
         PartialArrowTypeDecls.Add(arity, partialArrow);
         SystemModule.TopLevelDecls.Add(partialArrow);
 
-        // declaration of total arrow-type 
-        
+        // declaration of total arrow-type
+
         tps = Util.Map(Enumerable.Range(0, arity + 1), x => x < arity ?
           new TypeParameter(tok, "T" + x, TypeParameter.TPVarianceSyntax.Contravariance) :
           new TypeParameter(tok, "R", TypeParameter.TPVarianceSyntax.Covariant_Strict));
@@ -619,7 +619,7 @@ namespace Microsoft.Dafny {
 
     [ThreadStatic]
     private static bool scopesEnabled = false;
-    
+
     public static void PushScope(VisibilityScope scope) {
       scopes.Add(scope);
     }
@@ -658,14 +658,14 @@ namespace Microsoft.Dafny {
       scopesEnabled = false;
     }
 
-    
+
     public static string TypeArgsToString(ModuleDefinition/*?*/ context, List<Type> typeArgs, bool parseAble = false) {
       Contract.Requires(typeArgs == null ||
         (typeArgs.All(ty => ty != null && ty.TypeName(context, parseAble) != null) &&
          (typeArgs.All(ty => ty.TypeName(context, parseAble).StartsWith("_")) ||
           typeArgs.All(ty => !ty.TypeName(context, parseAble).StartsWith("_")))));
 
-      if (typeArgs != null && typeArgs.Count > 0 && 
+      if (typeArgs != null && typeArgs.Count > 0 &&
           (!parseAble || !typeArgs[0].TypeName(context, parseAble).StartsWith("_"))){
         return string.Format("<{0}>",Util.Comma(", ", typeArgs, ty => ty.TypeName(context, parseAble)));
       }
@@ -715,7 +715,7 @@ namespace Microsoft.Dafny {
       Contract.Ensures(!(Contract.Result<Type>() is TypeProxy) || ((TypeProxy)Contract.Result<Type>()).T == null);  // return a proxy only if .T == null
       Type type = this;
       while (true) {
-        
+
         var pt = type as TypeProxy;
         if (pt != null && pt.T != null) {
           type = pt.T;
@@ -755,7 +755,7 @@ namespace Microsoft.Dafny {
             return type;
           }
         }
-        
+
         return type;
       }
     }
@@ -2727,7 +2727,7 @@ namespace Microsoft.Dafny {
         }
       }
     }
-    
+
     public IEnumerable<Type> SubtypesKeepConstraints {
       get {
         foreach (var c in SubtypeConstraints) {
@@ -3007,7 +3007,7 @@ namespace Microsoft.Dafny {
       Contract.Ensures(Contract.Result<bool>() || (Contract.ValueAtReturn(out qualification) == null && Contract.ValueAtReturn(out name) == null));
       // ensures result==true ==> qualification != null ==> name != null
       Contract.Ensures(!Contract.Result<bool>() || Contract.ValueAtReturn(out qualification) == null || Contract.ValueAtReturn(out name) != null);
-      
+
       qualification = null;
       name = null;
       if (!DafnyOptions.O.DisallowExterns) {
@@ -3303,7 +3303,7 @@ namespace Microsoft.Dafny {
     public override object Dereference() { return this; }
   }
 
-  // Represents the exports of a module. 
+  // Represents the exports of a module.
   public class ModuleExportDecl : ModuleDecl
   {
     public readonly bool IsDefault;
@@ -3315,8 +3315,8 @@ namespace Microsoft.Dafny {
     public bool ProvideAll;
 
     public readonly VisibilityScope ThisScope;
-    public ModuleExportDecl(IToken tok, ModuleDefinition parent, 
-      List<ExportSignature> exports, List<string> extends, bool provideAll, bool revealAll, bool isDefault) 
+    public ModuleExportDecl(IToken tok, ModuleDefinition parent,
+      List<ExportSignature> exports, List<string> extends, bool provideAll, bool revealAll, bool isDefault)
       : base(tok, isDefault ? parent.Name : tok.val, parent, false) {
       Contract.Requires(exports != null);
       IsDefault = isDefault;
@@ -3351,7 +3351,7 @@ namespace Microsoft.Dafny {
     public readonly bool Opaque;
     public readonly string ClassId;
     public readonly string Id;
-    
+
     public Declaration Decl;  // filled in by the resolver
 
     [ContractInvariantMethod]
@@ -4237,7 +4237,7 @@ namespace Microsoft.Dafny {
     public Predicate Member_Valid;  // created during registration phase of resolution; its specification is filled in during resolution
     public Method Member_MoveNext;  // created during registration phase of resolution; its specification is filled in during resolution
     public readonly LocalVariable YieldCountVariable;
-    
+
     public IteratorDecl(IToken tok, string name, ModuleDefinition module, List<TypeParameter> typeArgs,
                         List<Formal> ins, List<Formal> outs,
                         Specification<FrameExpression> reads, Specification<FrameExpression> mod, Specification<Expression> decreases,
@@ -4508,7 +4508,7 @@ namespace Microsoft.Dafny {
                     List<TypeParameter> typeArgs, List<Formal> formals, Type resultType,
                     List<MaybeFreeExpression> req, List<FrameExpression> reads, List<MaybeFreeExpression> ens, Specification<Expression> decreases,
                     Expression body, Attributes attributes, IToken signatureEllipsis)
-      : base(tok, name, hasStaticKeyword, isProtected, isGhost, typeArgs, formals, null, resultType, req, reads, ens, decreases, body, attributes, signatureEllipsis) 
+      : base(tok, name, hasStaticKeyword, isProtected, isGhost, typeArgs, formals, null, resultType, req, reads, ens, decreases, body, attributes, signatureEllipsis)
     {
       Module = module;
     }
@@ -4562,7 +4562,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public override string FullSanitizedName { 
+    public override string FullSanitizedName {
       get {
         Contract.Ensures(Contract.Result<string>() != null);
         return EnclosingClass != null ? EnclosingClass.FullSanitizedName + "." + CompileName : CompileName;
@@ -4672,7 +4672,7 @@ namespace Microsoft.Dafny {
       return true;
     }
 
-    // 
+    //
     public new bool IsGhost { get { return this.isGhost; } }
     public List<TypeParameter> TypeArgs { get { return new List<TypeParameter>(); } }
     public List<Formal> Ins { get { return new List<Formal>(); } }
@@ -5371,7 +5371,7 @@ namespace Microsoft.Dafny {
     public bool IsBuiltin;
     public Function OverriddenFunction;
     public bool containsQuantifier;
-    public bool ContainsQuantifier { 
+    public bool ContainsQuantifier {
       set { containsQuantifier = value; }
       get { return containsQuantifier;  }
     }
@@ -5408,7 +5408,7 @@ namespace Microsoft.Dafny {
         return Contract.Exists(Decreases.Expressions, e => e is WildcardExpr);
       }
     }
-    
+
     /// <summary>
     /// The "AllCalls" field is used for non-FixpointPredicate, non-PrefixPredicate functions only (so its value should not be relied upon for FixpointPredicate and PrefixPredicate functions).
     /// It records all function calls made by the Function, including calls made in the body as well as in the specification.
@@ -5484,7 +5484,7 @@ namespace Microsoft.Dafny {
         }
       }
     }
-          
+
 
     bool ICodeContext.IsGhost { get { return this.IsGhost; } }
     List<TypeParameter> ICodeContext.TypeArgs { get { return this.TypeArgs; } }
@@ -5695,7 +5695,7 @@ namespace Microsoft.Dafny {
     public readonly ISet<IVariable> AssignedAssumptionVariables = new HashSet<IVariable>();
     public Method OverriddenMethod;
     private static BlockStmt emptyBody = new BlockStmt(Token.NoToken, Token.NoToken, new List<Statement>());
-    
+
     public override IEnumerable<Expression> SubExpressions {
       get {
         foreach (var e in Req) {
@@ -6595,7 +6595,7 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public class LetStmt : Statement 
+  public class LetStmt : Statement
   {
     public readonly CasePattern<LocalVariable> LHS;
     public readonly Expression RHS;
@@ -7464,7 +7464,7 @@ namespace Microsoft.Dafny {
       public override Expression StepExpr(Expression line0, Expression line1)
       {
         if (Op == BinaryExpr.Opcode.Exp) {
-          // The order of operands is reversed so that it can be turned into implication during resolution 
+          // The order of operands is reversed so that it can be turned into implication during resolution
           return new BinaryExpr(line0.tok, Op, line1, line0);
         } else {
           return new BinaryExpr(line0.tok, Op, line0, line1);
@@ -7917,7 +7917,7 @@ namespace Microsoft.Dafny {
       set {
         Contract.Requires(!WasResolved());  // set it only once
         Contract.Requires(value != null);
-        
+
         //modifies type;
         type = value.Normalize();
       }
@@ -8182,7 +8182,7 @@ namespace Microsoft.Dafny {
       return (expr is SetDisplayExpr && ((SetDisplayExpr)expr).Elements.Count == 0) ||
         (expr is MultiSetDisplayExpr && ((MultiSetDisplayExpr)expr).Elements.Count == 0);
     }
-      
+
     public static Expression CreateNot(IToken tok, Expression e) {
       Contract.Requires(tok != null);
       Contract.Requires(e.Type.IsBoolType);
@@ -8431,7 +8431,7 @@ namespace Microsoft.Dafny {
       UnresolvedType = t;
       Implicit = isImplicit;
     }
-    
+
     /// <summary>
     /// Constructs a resolved LiteralExpr representing the 'null' literal whose type is "cl"
     /// parameterized by the type arguments of "cl" itself.
@@ -9060,7 +9060,7 @@ namespace Microsoft.Dafny {
   public class RevealExpr : Expression
   {
     public readonly Expression Expr;
-    public Expression ResolvedExpression; 
+    public Expression ResolvedExpression;
 
     public override IEnumerable<Expression> SubExpressions {
       get {
@@ -9070,7 +9070,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public RevealExpr(IToken tok, Expression expr) 
+    public RevealExpr(IToken tok, Expression expr)
       : base(tok)
     {
       this.Expr = expr;
@@ -9744,37 +9744,37 @@ namespace Microsoft.Dafny {
       /// A higher preference is better.
       /// A preference below 2 is a last-resort bounded pool. Bounds discovery will not consider
       /// such a pool to be final until there are no other choices.
-      /// 
+      ///
       /// For easy reference, here is the BoundedPool hierarchy and their preference levels:
-      /// 
+      ///
       /// 0: AllocFreeBoundedPool
       /// 0: ExplicitAllocatedBoundedPool
       /// 0: SpecialAllocIndependenceAllocatedBoundedPool
-      /// 
+      ///
       /// 1: WiggleWaggleBound
-      /// 
+      ///
       /// 2: SuperSetBoundedPool
       /// 2: DatatypeInclusionBoundedPool
-      /// 
+      ///
       /// 3: SubSetBoundedPool
-      /// 
+      ///
       /// 4: IntBoundedPool with one bound
       /// 5: IntBoundedPool with both bounds
       /// 5: CharBoundedPool
-      /// 
+      ///
       /// 8: DatatypeBoundedPool
-      /// 
+      ///
       /// 10: CollectionBoundedPool
       ///     - SetBoundedPool
       ///     - MapBoundedPool
       ///     - SeqBoundedPool
-      /// 
+      ///
       /// 14: BoolBoundedPool
-      /// 
+      ///
       /// 15: ExactBoundedPool
       /// </summary>
       public abstract int Preference(); // higher is better
-      
+
       public static BoundedPool GetBest(List<BoundedPool> bounds, PoolVirtues requiredVirtues) {
         Contract.Requires(bounds != null);
         bounds = CombineIntegerBounds(bounds);
@@ -10063,7 +10063,7 @@ namespace Microsoft.Dafny {
     static int FreshQuantId() {
       return System.Threading.Interlocked.Increment(ref currentQuantId);
     }
-    
+
     public string FullName {
       get {
         return "q$" + UniqueId;
@@ -10073,7 +10073,7 @@ namespace Microsoft.Dafny {
     public String Refresh(string prefix, FreshIdGenerator idGen) {
       return idGen.FreshId(prefix);
     }
-  
+
     public TypeParameter Refresh(TypeParameter p, FreshIdGenerator idGen) {
       var cp = new TypeParameter(p.tok, idGen.FreshId(p.Name + "#"), p.VarianceSyntax, p.Characteristics);
       cp.Parent = this;
@@ -10116,7 +10116,7 @@ namespace Microsoft.Dafny {
       }
     }
   }
-  
+
   public class ForallExpr : QuantifierExpr {
     protected override BinaryExpr.ResolvedOpcode SplitResolvedOp { get { return BinaryExpr.ResolvedOpcode.And; } }
 
@@ -10895,19 +10895,19 @@ namespace Microsoft.Dafny {
   ///   2. ApplySuffix
   ///   3. SeqSelectExpr or MultiSelectExpr
   ///   4. SeqSelectExpr
-  ///   
+  ///
   /// The first three of these inherit from ConcreteSyntaxExpression.  The resolver will resolve
   /// these into:
   ///   0. IdentifierExpr or MemberSelectExpr (with .Lhs set to ImplicitThisExpr or StaticReceiverExpr)
   ///   1. IdentifierExpr or MemberSelectExpr
   ///   2. FuncionCallExpr or ApplyExpr
-  ///   
+  ///
   /// The IdentifierExpr's that forms 0 and 1 can turn into sometimes denote the name of a module or
   /// type.  The .Type field of the corresponding resolved expressions are then the special Type subclasses
   /// ResolutionType_Module and ResolutionType_Type, respectively.  These will not be seen by the
   /// verifier or compiler, since, in a well-formed program, the verifier and compiler will use the
   /// .ResolvedExpr field of whatever form-1 expression contains these.
-  /// 
+  ///
   /// Notes:
   ///   * IdentifierExpr and FunctionCallExpr are resolved-only expressions (that is, they don't contain
   ///     all the syntactic components that were used to parse them).

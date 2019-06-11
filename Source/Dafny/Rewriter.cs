@@ -45,11 +45,11 @@ namespace Microsoft.Dafny
 
     internal override void PostCyclicityResolve(ModuleDefinition m) {
       var finder = new Triggers.QuantifierCollector(reporter);
-        
+
       foreach (var decl in ModuleDefinition.AllCallables(m.TopLevelDecls)) {
         finder.Visit(decl, null);
       }
-      
+
       var triggersCollector = new Triggers.TriggersCollector(finder.exprsInOldContext);
       foreach (var quantifierCollection in finder.quantifierCollections) {
         quantifierCollection.ComputeTriggers(triggersCollector);
@@ -90,7 +90,7 @@ namespace Microsoft.Dafny
           }
         }
       }
-      
+
     }
 
     internal class ForAllStmtVisitor : TopDownVisitor<bool>
@@ -232,7 +232,7 @@ namespace Microsoft.Dafny
             Contract.Assert(false);  // unexpected kind
           }
         }
-        return true;  //visit the sub-parts with the same "st"    
+        return true;  //visit the sub-parts with the same "st"
       }
 
       internal class ForallStmtTranslationValues
@@ -397,7 +397,7 @@ namespace Microsoft.Dafny
   /// into a class.  From the user's perspective, what needs to be done is simply:
   ///  - mark the class with {:autocontracts}
   ///  - declare a function (or predicate) called Valid()
-  ///  
+  ///
   /// AutoContracts will then:
   ///
   /// Declare, unless there already exist members with these names:
@@ -424,7 +424,7 @@ namespace Microsoft.Dafny
   ///
   /// In all the following cases, no "modifies" clause or "reads" clause is added if the user
   /// has given one.
-  /// 
+  ///
   /// For every non-static non-ghost method that is not a "simple query method",
   /// add:
   ///    requires Valid()
@@ -438,7 +438,7 @@ namespace Microsoft.Dafny
   ///    requires Valid()
   /// For every non-static twostate method, add:
   ///    requires old(Valid())
-  /// 
+  ///
   /// For every non-"Valid" non-static function, add:
   ///    requires Valid()
   ///    reads Repr
@@ -904,7 +904,7 @@ namespace Microsoft.Dafny
       fullVersion = new Dictionary<Function, Function>();
       original = new Dictionary<Function, Function>();
       revealOriginal = new Dictionary<Lemma, Function>();
-    }   
+    }
 
     internal override void PreResolve(ModuleDefinition m) {
       foreach (var d in m.TopLevelDecls) {
@@ -914,13 +914,13 @@ namespace Microsoft.Dafny
       }
     }
 
-    internal override void PostResolve(ModuleDefinition m) {     
+    internal override void PostResolve(ModuleDefinition m) {
       foreach (var decl in ModuleDefinition.AllCallables(m.TopLevelDecls)) {
         if (decl is Lemma) {
           var lem = (Lemma)decl;
           if (revealOriginal.ContainsKey(lem)) {
-            Function fn = revealOriginal[lem];            
-            AnnotateRevealFunction(lem, fn);            
+            Function fn = revealOriginal[lem];
+            AnnotateRevealFunction(lem, fn);
           }
         }
       }
@@ -959,7 +959,7 @@ namespace Microsoft.Dafny
       lemma.Attributes = new Attributes("fuel", new List<Expression>() { nameSegment, low, hi }, lemma.Attributes);
     }
 
-        
+
     // Tells the function to use 0 fuel by default
     protected void ProcessOpaqueClassFunctions(ClassDecl c) {
       List<MemberDecl> newDecls = new List<MemberDecl>();
@@ -972,7 +972,7 @@ namespace Microsoft.Dafny
           } else if (f.IsProtected) {
             reporter.Error(MessageSource.Rewriter, f.tok, ":opaque is not allowed to be applied to protected functions (this will be allowed when the language introduces 'opaque'/'reveal' as keywords)");
           } else if (!RefinementToken.IsInherited(f.tok, c.Module)) {
-            RewriteOpaqueFunctionUseFuel(f, newDecls);           
+            RewriteOpaqueFunctionUseFuel(f, newDecls);
           }
         }
       }
@@ -1003,7 +1003,7 @@ namespace Microsoft.Dafny
         typeVars.Add(cloner.CloneTypeParam(tp));
         // doesn't matter what type, just so we have it to make the resolver happy when resolving function member of
         // the fuel attribute. This might not be needed after fixing codeplex issue #172.
-        optTypeArgs.Add(new IntType()); 
+        optTypeArgs.Add(new IntType());
       }
 
       // Add an axiom attribute so that the compiler won't complain about the lemma's lack of a body
@@ -1020,15 +1020,15 @@ namespace Microsoft.Dafny
     }
 
     class OpaqueFunctionVisitor : TopDownVisitor<bool> {
-      protected override bool VisitOneExpr(Expression expr, ref bool context) {        
+      protected override bool VisitOneExpr(Expression expr, ref bool context) {
         return true;
       }
-    }    
+    }
   }
 
 
   /// <summary>
-  /// Automatically accumulate requires for function calls within a function body, 
+  /// Automatically accumulate requires for function calls within a function body,
   /// if requested via {:autoreq}
   /// </summary>
   public class AutoReqFunctionRewriter : IRewriter {
@@ -1061,7 +1061,7 @@ namespace Microsoft.Dafny
             fn.Req.InsertRange(0, auto_reqs); // Need to come before the actual requires
             addAutoReqToolTipInfoToFunction("pre", fn, auto_reqs);
 
-            // Then the body itself, if any          
+            // Then the body itself, if any
             if (fn.Body != null) {
               auto_reqs = new List<MaybeFreeExpression>();
               foreach (Expression e in generateAutoReqs(fn.Body)) {
@@ -1069,7 +1069,7 @@ namespace Microsoft.Dafny
               }
               fn.Req.AddRange(auto_reqs);
               addAutoReqToolTipInfoToFunction("post", fn, auto_reqs);
-            }            
+            }
           }
         }
         else if (scComponent is Method)
@@ -1165,15 +1165,15 @@ namespace Microsoft.Dafny
 
     // Stitch a list of expressions together with logical ands
     Expression andify(Bpl.IToken tok, List<Expression> exprs) {
-      Expression ret = Expression.CreateBoolLiteral(tok, true); 
+      Expression ret = Expression.CreateBoolLiteral(tok, true);
 
-      foreach (var expr in exprs) {        
+      foreach (var expr in exprs) {
         ret = Expression.CreateAnd(ret, expr);
-      }   
+      }
 
       return ret;
     }
-   
+
     List<Expression> gatherReqs(Function f, List<Expression> args, Expression f_this) {
       List<Expression> translated_f_reqs = new List<Expression>();
 
@@ -1186,8 +1186,8 @@ namespace Microsoft.Dafny
         }
 
         foreach (var req in f.Req) {
-          Translator.Substituter sub = new Translator.Substituter(f_this, substMap, typeMap);          
-          translated_f_reqs.Add(sub.Substitute(req.E));         
+          Translator.Substituter sub = new Translator.Substituter(f_this, substMap, typeMap);
+          translated_f_reqs.Add(sub.Substitute(req.E));
         }
       }
 
@@ -1197,7 +1197,7 @@ namespace Microsoft.Dafny
     List<Expression> generateAutoReqs(Expression expr) {
       List<Expression> reqs = new List<Expression>();
 
-      if (expr is LiteralExpr) {      
+      if (expr is LiteralExpr) {
       } else if (expr is ThisExpr) {
       } else if (expr is IdentifierExpr) {
       } else if (expr is SetDisplayExpr) {
@@ -1221,13 +1221,13 @@ namespace Microsoft.Dafny
 
         foreach (ExpressionPair p in e.Elements) {
           reqs.AddRange(generateAutoReqs(p.A));
-          reqs.AddRange(generateAutoReqs(p.B));        
+          reqs.AddRange(generateAutoReqs(p.B));
         }
       } else if (expr is MemberSelectExpr) {
         MemberSelectExpr e = (MemberSelectExpr)expr;
         Contract.Assert(e.Member != null && e.Member is Field);
 
-        reqs.AddRange(generateAutoReqs(e.Obj));       
+        reqs.AddRange(generateAutoReqs(e.Obj));
       } else if (expr is SeqSelectExpr) {
         SeqSelectExpr e = (SeqSelectExpr)expr;
 
@@ -1261,19 +1261,19 @@ namespace Microsoft.Dafny
         } else {
           reqs.AddRange(gatherReqs(e.Function, e.Args, e.Receiver));
         }
-      } else if (expr is DatatypeValue) {         
+      } else if (expr is DatatypeValue) {
         DatatypeValue dtv = (DatatypeValue)expr;
         Contract.Assert(dtv.Ctor != null);  // since dtv has been successfully resolved
         for (int i = 0; i < dtv.Arguments.Count; i++) {
           Expression arg = dtv.Arguments[i];
           reqs.AddRange(generateAutoReqs(arg));
-        }              
-      } else if (expr is OldExpr) {  
+        }
+      } else if (expr is OldExpr) {
       } else if (expr is MatchExpr) {
         MatchExpr e = (MatchExpr)expr;
         containsMatch = true;
         reqs.AddRange(generateAutoReqs(e.Source));
-        
+
         List<MatchCaseExpr> newMatches = new List<MatchCaseExpr>();
         foreach (MatchCaseExpr caseExpr in e.Cases) {
           //MatchCaseExpr c = new MatchCaseExpr(caseExpr.tok, caseExpr.Id, caseExpr.Arguments, andify(caseExpr.tok, generateAutoReqs(caseExpr.Body)));
@@ -1281,32 +1281,32 @@ namespace Microsoft.Dafny
           MatchCaseExpr c = Expression.CreateMatchCase(caseExpr, andify(caseExpr.tok, generateAutoReqs(caseExpr.Body)));
           newMatches.Add(c);
         }
-        
+
         reqs.Add(Expression.CreateMatch(e.tok, e.Source, newMatches, e.Type));
       } else if (expr is MultiSetFormingExpr) {
         MultiSetFormingExpr e = (MultiSetFormingExpr)expr;
         reqs.AddRange(generateAutoReqs(e.E));
       } else if (expr is UnaryExpr) {
         UnaryExpr e = (UnaryExpr)expr;
-        Expression arg = e.E;                
+        Expression arg = e.E;
         reqs.AddRange(generateAutoReqs(arg));
       } else if (expr is BinaryExpr) {
         BinaryExpr e = (BinaryExpr)expr;
-  
+
         switch (e.ResolvedOp) {
           case BinaryExpr.ResolvedOpcode.Imp:
           case BinaryExpr.ResolvedOpcode.And:
             reqs.AddRange(generateAutoReqs(e.E0));
             foreach (var req in generateAutoReqs(e.E1)) {
-              // We only care about this req if E0 is true, since And short-circuits              
-              reqs.Add(Expression.CreateImplies(e.E0, req));  
+              // We only care about this req if E0 is true, since And short-circuits
+              reqs.Add(Expression.CreateImplies(e.E0, req));
             }
             break;
 
           case BinaryExpr.ResolvedOpcode.Or:
             reqs.AddRange(generateAutoReqs(e.E0));
             foreach (var req in generateAutoReqs(e.E1)) {
-              // We only care about this req if E0 is false, since Or short-circuits              
+              // We only care about this req if E0 is false, since Or short-circuits
               reqs.Add(Expression.CreateImplies(Expression.CreateNot(e.E1.tok, e.E0), req));
             }
             break;
@@ -1315,7 +1315,7 @@ namespace Microsoft.Dafny
             reqs.AddRange(generateAutoReqs(e.E0));
             reqs.AddRange(generateAutoReqs(e.E1));
             break;
-        }   
+        }
       } else if (expr is TernaryExpr) {
         var e = (TernaryExpr)expr;
 
@@ -1330,7 +1330,7 @@ namespace Microsoft.Dafny
             reqs.AddRange(generateAutoReqs(rhs));
           }
           var new_reqs = generateAutoReqs(e.Body);
-          if (new_reqs.Count > 0) {                 
+          if (new_reqs.Count > 0) {
             reqs.Add(Expression.CreateLet(e.tok, e.LHSs, e.RHSs, andify(e.tok, new_reqs), e.Exact));
           }
         } else {
@@ -1356,19 +1356,19 @@ namespace Microsoft.Dafny
         }
       } else if (expr is SetComprehension) {
         var e = (SetComprehension)expr;
-        // Translate "set xs | R :: T" 
+        // Translate "set xs | R :: T"
 
         // See LetExpr for issues with the e.Range
         //reqs.AddRange(generateAutoReqs(e.Range));
         var auto_reqs = generateAutoReqs(e.Term);
         if (auto_reqs.Count > 0) {
           reqs.Add(Expression.CreateQuantifier(new ForallExpr(e.tok, new List<TypeParameter>(), e.BoundVars, e.Range, andify(e.Term.tok, auto_reqs), e.Attributes), true));
-        }      
+        }
       } else if (expr is MapComprehension) {
         var e = (MapComprehension)expr;
         // Translate "map x | R :: T" into
         // See LetExpr for issues with the e.Range
-        //reqs.AddRange(generateAutoReqs(e.Range));        
+        //reqs.AddRange(generateAutoReqs(e.Range));
         var auto_reqs = new List<Expression>();
         if (e.TermLeft != null) {
           auto_reqs.AddRange(generateAutoReqs(e.TermLeft));
@@ -1382,7 +1382,7 @@ namespace Microsoft.Dafny
         reqs.AddRange(generateAutoReqs(e.E));
       } else if (expr is ITEExpr) {
         ITEExpr e = (ITEExpr)expr;
-        reqs.AddRange(generateAutoReqs(e.Test));        
+        reqs.AddRange(generateAutoReqs(e.Test));
         reqs.Add(Expression.CreateITE(e.Test, andify(e.Thn.tok, generateAutoReqs(e.Thn)), andify(e.Els.tok, generateAutoReqs(e.Els))));
       } else if (expr is ConcreteSyntaxExpression) {
         var e = (ConcreteSyntaxExpression)expr;

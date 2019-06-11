@@ -211,7 +211,7 @@ namespace DafnyLanguage
     public static void Compile(Dafny.Program dafnyProgram, TextWriter outputWriter)
     {
       Microsoft.Dafny.DafnyOptions.O.SpillTargetCode = 1;
-      // Currently there are no provisions for specifying other files to compile with from the 
+      // Currently there are no provisions for specifying other files to compile with from the
       // VS interface, so just send an empty list.
       ReadOnlyCollection<string> otherFileNames = new List<string>().AsReadOnly();
       Microsoft.Dafny.DafnyDriver.CompileDafnyProgram(dafnyProgram, dafnyProgram.FullName, otherFileNames, true, outputWriter);
@@ -308,7 +308,7 @@ namespace DafnyLanguage
 
       bool success = false;
       var errorSink = new ErrorSink(this);
-      
+
       foreach (var kv in boogiePrograms) {
         var boogieProgram = kv.Item2;
 

@@ -10,9 +10,9 @@ namespace Microsoft.Dafny.Triggers
   class QuantifierSplitter : BottomUpVisitor
   {
     /// This cache was introduced because some statements (notably calc) return the same SubExpression multiple times.
-    /// This ended up causing an inconsistent situation when the calc statement's subexpressions contained the same quantifier 
-    /// twice: on the first pass that quantifier got its SplitQuantifiers generated, and on the the second pass these 
-    /// split quantifiers got re-split, creating a situation where the direct children of a split quantifier were 
+    /// This ended up causing an inconsistent situation when the calc statement's subexpressions contained the same quantifier
+    /// twice: on the first pass that quantifier got its SplitQuantifiers generated, and on the the second pass these
+    /// split quantifiers got re-split, creating a situation where the direct children of a split quantifier were
     /// also split quantifiers.
     private Dictionary<QuantifierExpr, List<Expression>> splits = new Dictionary<QuantifierExpr, List<Expression>>();
 
@@ -29,7 +29,7 @@ namespace Microsoft.Dafny.Triggers
     // NOTE: If we wanted to split quantifiers as far as possible, it would be
     // enough to put the formulas in DNF (for foralls) or CNF (for exists).
     // Unfortunately, this would cause ill-behaved quantifiers to produce
-    // exponentially many smaller quantifiers. Thus we only do one step of 
+    // exponentially many smaller quantifiers. Thus we only do one step of
     // distributing, which takes care of the usual precondition case:
     //   forall x :: P(x) ==> (Q(x) && R(x))
 
@@ -108,12 +108,12 @@ namespace Microsoft.Dafny.Triggers
         }
       }
     }
-     
+
     protected override void VisitOneStmt(Statement stmt) {
       if (stmt is ForallStmt) {
         ForallStmt s = (ForallStmt)stmt;
         if (s.ForallExpressions != null) {
-          foreach (Expression expr in s.ForallExpressions) { 
+          foreach (Expression expr in s.ForallExpressions) {
             VisitOneExpr(expr);
           }
         }
@@ -140,7 +140,7 @@ namespace Microsoft.Dafny.Triggers
       // rewrite quantifier to avoid matching loops
       // before:
       //    assert forall i :: 0 <= i < a.Length-1 ==> a[i] <= a[i+1];
-      // after: 
+      // after:
       //    assert forall i,j :: j == i+1 ==> 0 <= i < a.Length-1 ==> a[i] <= a[j];
       substMap = new List<Tuple<Expression, IdentifierExpr>>();
       foreach (var m in q.LoopingMatches) {

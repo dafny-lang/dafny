@@ -484,7 +484,7 @@ namespace Microsoft.Dafny {
 
     void PrintTopLevelDeclsOrExportedView(ModuleDefinition module, int indent, string fileBeingPrinted) {
       var decls = module.TopLevelDecls;
-      // only filter based on view name after resolver. 
+      // only filter based on view name after resolver.
       if (afterResolver && DafnyOptions.O.DafnyPrintExportedViews.Count != 0) {
         decls = new List<TopLevelDecl>();
         foreach (var nameOfView in DafnyOptions.O.DafnyPrintExportedViews) {
@@ -642,7 +642,7 @@ namespace Microsoft.Dafny {
     private void PrintTypeParams(List<TypeParameter> typeArgs) {
       Contract.Requires(typeArgs != null);
       Contract.Requires(
-        typeArgs.All(tp => tp.Name.StartsWith("_")) || 
+        typeArgs.All(tp => tp.Name.StartsWith("_")) ||
         typeArgs.All(tp => !tp.Name.StartsWith("_")));
 
       if (typeArgs.Count != 0 && !typeArgs[0].Name.StartsWith("_")) {

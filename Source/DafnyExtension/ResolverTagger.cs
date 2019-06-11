@@ -148,7 +148,7 @@ namespace DafnyLanguage
     }
 
     string MostRecentRequestId;
-    
+
     internal void ReInitializeVerificationErrors(string mostRecentRequestId, IEnumerable<Microsoft.Boogie.Implementation> implementations)
     {
       var implNames = implementations.Select(impl => impl.Name);
@@ -359,7 +359,7 @@ namespace DafnyLanguage
         _errorProvider.SuspendRefresh();  // reduce flickering
         _errorProvider.Tasks.Clear();
         foreach (var err in AllErrors)
-        { 
+        {
           var lineNum = 0;
           var columnNum = 0;
           if (err.Span != null) {
@@ -371,7 +371,7 @@ namespace DafnyLanguage
             lineNum = err.Line;
             columnNum = err.Column;
           }
-          
+
           ErrorTask task = new ErrorTask()
           {
             Category = TaskCategory.BuildCompile,
@@ -382,7 +382,7 @@ namespace DafnyLanguage
           };
           if (err.Filename != null) {
             task.Document = err.Filename;
-          } 
+          }
           else if (_document != null)
           {
             task.Document = _document.FilePath;
@@ -512,7 +512,7 @@ namespace DafnyLanguage
       get
       {
         if (_stateSpans == null && Model != null)
-        {          
+        {
           var model = Model;
           var locRegex = new Regex(@"\((\d+),(\d+)\)");
           _stateSpans = model.States.Select(

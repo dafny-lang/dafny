@@ -307,7 +307,7 @@ namespace Microsoft.Dafny
 
     /// <summary>
     /// Check that now two modules that are being compiled have the same CompileName.
-    /// 
+    ///
     /// This could happen if they are given the same name using the 'extern' declaration modifier.
     /// </summary>
     /// <param name="prog">The Dafny program being compiled.</param>
@@ -1525,7 +1525,7 @@ namespace Microsoft.Dafny
           foreach (var kv in s.Ctors) {
             Tuple<DatatypeCtor, bool> pair;
             if (sig.Ctors.TryGetValue(kv.Key, out pair)) {
-              // The same ctor can be imported from two different imports (e.g "diamond" imports), in which case, 
+              // The same ctor can be imported from two different imports (e.g "diamond" imports), in which case,
               // they are not duplicates.
               if (!Object.ReferenceEquals(kv.Value.Item1, pair.Item1)) {
                 // mark it as a duplicate
@@ -1988,7 +1988,7 @@ namespace Microsoft.Dafny
         if (Exports.Count == 0) {
           p = decl.DefaultExport;
           if (p == null) {
-            // no default view is specified. 
+            // no default view is specified.
             reporter.Error(MessageSource.Resolver, decl.tok, "no default export declared in module: {0}", decl.Name);
             return false;
           }
@@ -2463,8 +2463,8 @@ namespace Microsoft.Dafny
                 if (fce != null) {  // the other possibility is that "e" is a BinaryExpr
                   CoPredicate predicate = (CoPredicate)fce.Function;
                   focalPredicates.Add(predicate);
-                  // For every focal predicate P in S, add to S all co-predicates in the same strongly connected 
-                  // component (in the call graph) as P 
+                  // For every focal predicate P in S, add to S all co-predicates in the same strongly connected
+                  // component (in the call graph) as P
                   foreach (var node in predicate.EnclosingClass.Module.CallGraph.GetSCC(predicate)) {
                     if (node is CoPredicate) {
                       focalPredicates.Add((CoPredicate)node);
@@ -2486,8 +2486,8 @@ namespace Microsoft.Dafny
                 var fce = (FunctionCallExpr)e;  // we expect "antecedents" to contain only FunctionCallExpr's
                 InductivePredicate predicate = (InductivePredicate)fce.Function;
                 focalPredicates.Add(predicate);
-                // For every focal predicate P in S, add to S all inductive predicates in the same strongly connected 
-                // component (in the call graph) as P 
+                // For every focal predicate P in S, add to S all inductive predicates in the same strongly connected
+                // component (in the call graph) as P
                 foreach (var node in predicate.EnclosingClass.Module.CallGraph.GetSCC(predicate)) {
                   if (node is InductivePredicate) {
                     focalPredicates.Add((InductivePredicate)node);
@@ -7674,10 +7674,10 @@ namespace Microsoft.Dafny
             goto NEXT_OUTER_ITERATION;
           }
         }
-        // this constructor satisfies the requirements, check to see if it is a better fit than the 
+        // this constructor satisfies the requirements, check to see if it is a better fit than the
         // one found so far. By "better" it means fewer type arguments. Between the ones with
         // the same number of the type arguments, pick the one shows first.
-        if (defaultCtor == null || typeParametersUsed.Count < lastTypeParametersUsed.Count)  { 
+        if (defaultCtor == null || typeParametersUsed.Count < lastTypeParametersUsed.Count)  {
           defaultCtor = ctor;
           lastTypeParametersUsed = typeParametersUsed;
         }
@@ -9435,7 +9435,7 @@ namespace Microsoft.Dafny
       }
 
       // convert CasePattern in MatchCaseExpr to BoundVar and flatten the MatchCaseExpr.
-      List<Tuple<CasePattern<BoundVar>, BoundVar>> patternSubst = new List<Tuple<CasePattern<BoundVar>, BoundVar>>(); 
+      List<Tuple<CasePattern<BoundVar>, BoundVar>> patternSubst = new List<Tuple<CasePattern<BoundVar>, BoundVar>>();
       if (dtd != null) {
         DesugarMatchCaseStmt(s, dtd, patternSubst, codeContext);
       }
@@ -9609,12 +9609,12 @@ namespace Microsoft.Dafny
           scope.PopMarker();
         }
       }
-      
+
 
       List<MatchCaseStmt> newCases = new List<MatchCaseStmt>();
 
       // need to consolidate the cases.
-      // Convert 
+      // Convert
       //  match xs
       //    case Cons(y, #mc#0) => match #mc#0
       //                case Cons((z, zs) => body
@@ -9666,7 +9666,7 @@ namespace Microsoft.Dafny
           // For cons(a, const(b, c)):
           // this handles check to see if 'b' or 'c' is duplicate with 'a',
           // the duplication check between 'b' and 'c' is handled in the desugared
-          // form (to avoid reporting the same error twice), that is why we don't 
+          // form (to avoid reporting the same error twice), that is why we don't
           // push 'b' and 'c' onto the scope, only find.
           if (scope.FindInCurrentScope(v.Name) != null) {
             reporter.Error(MessageSource.Resolver, v, "Duplicate parameter name: {0}", v.Name);
@@ -9682,7 +9682,7 @@ namespace Microsoft.Dafny
     }
 
     List<Statement> DesugarMatchCasePattern(MatchCaseStmt mc, CasePattern<BoundVar> pat, BoundVar v, List<Statement> body, bool keepToken) {
-      // convert 
+      // convert
       //    case Cons(y, Cons(z, zs)) => body
       // to
       //    case Cons(y, #mc#) => match #mc#
@@ -9755,8 +9755,8 @@ namespace Microsoft.Dafny
       // into BoundVars.
       Contract.Assert(one.CasePatterns == null && one.Arguments != null);
       Contract.Assert(other.CasePatterns == null && other.Arguments != null);
-      // In order to combine the two match cases, the bodies need to be a MatchExpr and 
-      // the arguments and the source of the body are the same. 
+      // In order to combine the two match cases, the bodies need to be a MatchExpr and
+      // the arguments and the source of the body are the same.
       // We do string equals since they should be in the same scope.
       if (one.Arguments.Count != other.Arguments.Count) {
         return false;
@@ -10182,7 +10182,7 @@ namespace Microsoft.Dafny
             } else {
               reporter.Error(MessageSource.Resolver, lhs, "LHS of assignment must denote a mutable field of 'this'");
             }
-          } else {  
+          } else {
             reporter.Error(MessageSource.Resolver, lhs, "LHS of assignment must denote a mutable field");
           }
         }
@@ -12448,7 +12448,7 @@ namespace Microsoft.Dafny
       }
 
       // convert CasePattern in MatchCaseExpr to BoundVar and flatten the MatchCaseExpr.
-      List<Tuple<CasePattern<BoundVar>, BoundVar>> patternSubst = new List<Tuple<CasePattern<BoundVar>, BoundVar>>(); 
+      List<Tuple<CasePattern<BoundVar>, BoundVar>> patternSubst = new List<Tuple<CasePattern<BoundVar>, BoundVar>>();
       if (dtd != null) {
         DesugarMatchCaseExpr(me, dtd, patternSubst, opts.codeContext);
       }
@@ -12594,7 +12594,7 @@ namespace Microsoft.Dafny
           }
           List<BoundVar> arguments = new List<BoundVar>();
           Expression body = mc.Body;
-          for (int i = mc.CasePatterns.Count-1; i>=0; i--) { 
+          for (int i = mc.CasePatterns.Count-1; i>=0; i--) {
             string name = "_ms#" + i;
             Type type = new InferredTypeProxy();
             BoundVar sourceVar = new BoundVar(new MatchCaseToken(me.tok), name, type);
@@ -12615,12 +12615,12 @@ namespace Microsoft.Dafny
           scope.PopMarker();
         }
       }
-      
+
 
       List<MatchCaseExpr> newCases = new List<MatchCaseExpr>();
-      
+
       // need to consolidate the cases.
-      // Convert 
+      // Convert
       //  match xs
       //    case Cons(y, #mc#0) => match #mc#0
       //                case Cons((z, zs) => body
@@ -12631,7 +12631,7 @@ namespace Microsoft.Dafny
       //    case Cons(y, #mc#0) => match #mc#0
       //                case Cons((z, zs) => body
       //                case Nil => y
-      bool thingsChanged = false;      
+      bool thingsChanged = false;
       Dictionary<string, MatchCaseExpr> caseMap = new Dictionary<string, MatchCaseExpr>();
       List<MatchCaseExpr> mcWithWildCard = new List<MatchCaseExpr>();
       foreach (MatchCaseExpr mc in me.Cases) {
@@ -12646,7 +12646,7 @@ namespace Microsoft.Dafny
       foreach (MatchCaseExpr mc in mcWithWildCard) {
         // now process with cases with wildcard
         thingsChanged |= CombineMatchCaseExpr(mc, newCases, caseMap, codeContext);
-      }      
+      }
 
       if (thingsChanged) {
         me.UpdateCases(newCases);
@@ -12654,14 +12654,14 @@ namespace Microsoft.Dafny
     }
 
     Expression DesugarMatchCasePattern(MatchCaseExpr mc, CasePattern<BoundVar> pat, BoundVar v, Expression body, bool keepToken) {
-      // convert 
+      // convert
       //    case Cons(y, Cons(z, zs)) => body
       // to
       //    case Cons(y, #mc#) => match #mc#
       //            case Cons(z, zs) => body
 
       Expression source = new NameSegment(new AutoGeneratedToken(pat.tok), v.Name, null);
-      List<MatchCaseExpr> cases = new List<MatchCaseExpr>(); 
+      List<MatchCaseExpr> cases = new List<MatchCaseExpr>();
       cases.Add(new MatchCaseExpr(pat.tok, pat.Id, pat.Arguments == null ? new List<CasePattern<BoundVar>>() : pat.Arguments, body));
       if (!keepToken) {
         AutoGeneratedTokenCloner cloner = new AutoGeneratedTokenCloner();
@@ -12732,8 +12732,8 @@ namespace Microsoft.Dafny
       // into BoundVars.
       Contract.Assert(one.CasePatterns == null && one.Arguments != null);
       Contract.Assert(other.CasePatterns == null && other.Arguments != null);
-      // In order to combine the two match cases, the bodies need to be a MatchExpr and 
-      // the arguments and the source of the body are the same. 
+      // In order to combine the two match cases, the bodies need to be a MatchExpr and
+      // the arguments and the source of the body are the same.
       // We do string equals since they should be in the same scope.
       if (one.Arguments.Count != other.Arguments.Count) {
         return false;
@@ -12747,7 +12747,7 @@ namespace Microsoft.Dafny
         return false;
       }
       if (!((NameSegment)source1).Name.Equals(((NameSegment)source2).Name)) {
-        return false;       
+        return false;
       }
       for (int i = 0; i < one.Arguments.Count; i++) {
         BoundVar bv1 = one.Arguments[i];
@@ -12811,7 +12811,7 @@ namespace Microsoft.Dafny
           }
         }
       }
-        
+
       if (pat.Var != null) {
         // this is a simple resolution
         var v = pat.Var;
@@ -12881,7 +12881,7 @@ namespace Microsoft.Dafny
     ///     (Language design note:  If the constructor name is ambiguous or if one of the steps above takes priority, one can qualify the constructor name with the name of the datatype)
     ///  3. Member of the enclosing module (type name or the name of a module)
     ///  4. Static function or method in the enclosing module or its imports
-    ///  
+    ///
     /// </summary>
     /// <param name="expr"></param>
     /// <param name="isLastNameSegment">Indicates that the NameSegment is not directly enclosed in another NameSegment or ExprDotName expression.</param>
@@ -12896,7 +12896,7 @@ namespace Microsoft.Dafny
       Contract.Requires(!expr.WasResolved());
       Contract.Requires(opts != null);
       Contract.Ensures(Contract.Result<Expression>() == null || args != null);
-      
+
       if (expr.OptTypeArguments != null) {
         foreach (var ty in expr.OptTypeArguments) {
           ResolveType(expr.tok, ty, opts.codeContext, ResolveTypeOptionEnum.InferTypeProxies, null);
@@ -13011,7 +13011,7 @@ namespace Microsoft.Dafny
     ///  1. Member of enclosing class (an implicit "this" is inserted, if needed)
     ///  2. Member of the enclosing module (type name or the name of a module)
     ///  3. Static function or method in the enclosing module or its imports
-    ///  
+    ///
     /// Note: 1 and 3 are not used now, but they will be of interest when async task types are supported.
     /// </summary>
     void ResolveNameSegment_Type(NameSegment expr, ResolveOpts opts, ResolveTypeOption option, List<TypeParameter> defaultTypeArguments) {
@@ -13326,7 +13326,7 @@ namespace Microsoft.Dafny
     ///      2. a. Member of that type denoting an async task type, or:
     ///         b. If allowDanglingDotName:
     ///            Return the type "E" and the given "expr", letting the caller try to make sense of the final dot-name.
-    ///      
+    ///
     /// Note: 1 and 2a are not used now, but they will be of interest when async task types are supported.
     /// </summary>
     ResolveTypeReturn ResolveDotSuffix_Type(ExprDotName expr, ResolveOpts opts, bool allowDanglingDotName, ResolveTypeOption option, List<TypeParameter> defaultTypeArguments) {
@@ -13643,7 +13643,7 @@ namespace Microsoft.Dafny
                 rr.TypeArgumentSubstitutions.Add(callee.TypeArgs[i], mse.TypeApplication[enclosingTypeArgsCount + i]);
               }
               Dictionary<TypeParameter, Type> subst = BuildTypeArgumentSubstitute(rr.TypeArgumentSubstitutions);
-              
+
               // type check the arguments
 #if DEBUG
               Contract.Assert(callee.Formals.Count == fnType.Arity);
@@ -13956,7 +13956,7 @@ namespace Microsoft.Dafny
             e.TypeArgumentSubstitutions.Add(p, new ParamTypeProxy(p));
           }
           Dictionary<TypeParameter, Type> subst = BuildTypeArgumentSubstitute(e.TypeArgumentSubstitutions);
-     
+
           // type check the arguments
           for (int i = 0; i < function.Formals.Count; i++) {
             Expression farg = e.Args[i];

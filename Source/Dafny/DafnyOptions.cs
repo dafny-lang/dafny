@@ -79,7 +79,7 @@ namespace Microsoft.Dafny
     public bool AllowGlobals = false;
     public bool CountVerificationErrors = true;
     public bool Optimize = false;
-    public bool AutoTriggers = true;    
+    public bool AutoTriggers = true;
     public bool RewriteFocalPredicates = true;
     public bool PrintTooltips = false;
     public bool PrintStats = false;
@@ -98,8 +98,8 @@ namespace Microsoft.Dafny
     public bool UseRuntimeLib = false;
     public bool DisableScopes = false;
     public int Allocated = 3;
-    public bool IronDafny = 
-#if ENABLE_IRONDAFNY 
+    public bool IronDafny =
+#if ENABLE_IRONDAFNY
       true
 #else
       false
@@ -273,7 +273,7 @@ namespace Microsoft.Dafny
         case "allowGlobals":
           AllowGlobals = true;
           return true;
-        
+
         case "stats":
           PrintStats = true;
           return true;
@@ -383,7 +383,7 @@ namespace Microsoft.Dafny
             } else if (args[ps.i].Equals("Immediate")) {
               PrintIncludesMode = IncludesModes.Immediate;
             } else if (args[ps.i].Equals("Transitive")) {
-              PrintIncludesMode = IncludesModes.Transitive;              
+              PrintIncludesMode = IncludesModes.Transitive;
             } else {
               throw new Exception("Invalid value for includesMode");
             }
@@ -422,7 +422,7 @@ namespace Microsoft.Dafny
     {:extern <s1:string>}
     {:extern <s1:string>, <s2:string>}
       NOTE: :extern is target-language dependent.
-      The extern modifier is used 
+      The extern modifier is used
         * to alter the CompileName of entities such as modules, classes, methods, etc.,
         * to alter the ReferenceName of the entities,
         * to decide whether to emit target code or not, and
@@ -502,11 +502,11 @@ namespace Microsoft.Dafny
 ");
     }
 
-    
+
     /// <summary>
-    /// Dafny comes with it's own copy of z3, to save new users the trouble of having to install extra dependency. 
+    /// Dafny comes with it's own copy of z3, to save new users the trouble of having to install extra dependency.
     /// For this to work, Dafny makes the Z3ExecutablePath point to the path were Z3 is put by our release script.
-    /// For developers though (and people getting this from source), it's convenient to be able to run right away, 
+    /// For developers though (and people getting this from source), it's convenient to be able to run right away,
     /// so we vendor a Windows version.
     /// </summary>
     private void SetZ3ExecutableName() {
@@ -514,21 +514,21 @@ namespace Microsoft.Dafny
 
       // http://www.mono-project.com/docs/faq/technical/
       var isUnix = platform == 4 || platform == 128;
-      
+
       var z3binName = isUnix ? "z3" : "z3.exe";
       var dafnyBinDir = System.IO.Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
       var z3BinDir = System.IO.Path.Combine(dafnyBinDir, "z3", "bin");
       var z3BinPath = System.IO.Path.Combine(z3BinDir, z3binName);
 
       if (!System.IO.File.Exists(z3BinPath) && !isUnix) {
-        // This is most likely a Windows user running from source without downloading z3 
+        // This is most likely a Windows user running from source without downloading z3
         // separately; this is ok, since we vendor z3.exe.
         z3BinPath = System.IO.Path.Combine(dafnyBinDir, z3binName);
       }
-      
+
       if (!System.IO.File.Exists(z3BinPath) && errorReporter != null) {
         var tok = new Bpl.Token(1, 1) { filename = "*** " };
-        errorReporter.Warning(MessageSource.Other, tok, "Could not find '{0}' in '{1}'.{2}Downloading and extracting a Z3 distribution to Dafny's 'Binaries' folder would solve this issue; for now, we'll rely on Boogie to find Z3.", 
+        errorReporter.Warning(MessageSource.Other, tok, "Could not find '{0}' in '{1}'.{2}Downloading and extracting a Z3 distribution to Dafny's 'Binaries' folder would solve this issue; for now, we'll rely on Boogie to find Z3.",
           z3binName, z3BinDir, System.Environment.NewLine);
       } else {
         Z3ExecutablePath = z3BinPath;
@@ -560,8 +560,8 @@ namespace Microsoft.Dafny
   /view:<view1, view2>
                 print the filtered views of a module after it is resolved (/rprint).
                 if print before the module is resolved (/dprint), then everthing in the module is printed
-                if no view is specified, then everything in the module is printed. 
-                
+                if no view is specified, then everything in the module is printed.
+
   /dafnyVerify:<n>
                 0 - stop after typechecking
                 1 - continue on to translation, verification, and compilation
@@ -600,7 +600,7 @@ namespace Microsoft.Dafny
                 such files on the command line implies /spillTargetCode:1 (or
                 higher, if manually specified).
   /out:<file>
-                filename and location for the generated .cs, .dll or .exe files 
+                filename and location for the generated .cs, .dll or .exe files
   /dafnycc      Disable features not supported by DafnyCC
   /noCheating:<n>
                 0 (default) - allow assume statements and free invariants
@@ -663,9 +663,9 @@ namespace Microsoft.Dafny
                 1 (default) - In the body of prefix lemmas, rewrite any use of a focal predicate
                               P to P#[_k-1].
   /optimize     Produce optimized C# code, meaning:
-                  - selects optimized C# prelude by passing 
-                    /define:DAFNY_USE_SYSTEM_COLLECTIONS_IMMUTABLE to csc.exe (requires 
-                    System.Collections.Immutable.dll in the source directory to successfully 
+                  - selects optimized C# prelude by passing
+                    /define:DAFNY_USE_SYSTEM_COLLECTIONS_IMMUTABLE to csc.exe (requires
+                    System.Collections.Immutable.dll in the source directory to successfully
                     compile).
                   - passes /optimize flag to csc.exe.
   /optimizeResolution:<n>
@@ -690,7 +690,7 @@ namespace Microsoft.Dafny
                 0 - don't give any warnings about deprecated features
                 1 (default) - show warnings about deprecated features
                 2 - also point out where there's new simpler syntax
-  /verifyAllModules 
+  /verifyAllModules
                 Verify modules that come from an include directive
   /separateModuleOutput
                 Output verification results for each module separately, rather than
@@ -723,8 +723,8 @@ namespace Microsoft.Dafny
                 these features may cause your code to become incompatible with future
                 releases of Dafny.
   /noIronDafny  Disable Ironclad/Ironfleet features, if enabled by default.
-  /printTooltips    
-                Dump additional positional information (displayed as mouse-over tooltips by 
+  /printTooltips
+                Dump additional positional information (displayed as mouse-over tooltips by
                 the VS plugin) to stdout as 'Info' messages.
   /printIncludes:<None|Immediate|Transitive>
                 None is the default.

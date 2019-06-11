@@ -38,7 +38,7 @@ namespace Microsoft.Dafny.Triggers {
       internal TriggerCandidate ToTriggerCandidate() {
         return new TriggerCandidate(Terms);
       }
-      
+
       internal static SetOfTerms Empty() {
         var newSet = new SetOfTerms();
         newSet.IsRedundant = false;
@@ -80,7 +80,7 @@ namespace Microsoft.Dafny.Triggers {
         // Check #0: does this term bring anything new?
         copy.IsRedundant = IsRedundant || varsInNewTerm.All(bv => copy.variables.Contains(bv));
         copy.variables.UnionWith(varsInNewTerm);
-        
+
         // Check #1: does this term claiming ownership of all its variables cause another term to become useless?
         foreach (var v in varsInNewTerm) {
           TriggerTerm originalOwner;
@@ -125,7 +125,7 @@ namespace Microsoft.Dafny.Triggers {
         }
       }
     }
-    
+
     internal static List<T> MergeAlterFirst<T>(List<T> a, List<T> b) {
       Contract.Requires(a != null);
       Contract.Requires(b != null);
@@ -208,7 +208,7 @@ namespace Microsoft.Dafny.Triggers {
 
     internal static bool WantsMatchingLoopRewrite(ComprehensionExpr quantifier)
     {
-      Contract.Requires(!(quantifier is QuantifierExpr) || ((QuantifierExpr)quantifier).SplitQuantifier == null); 
+      Contract.Requires(!(quantifier is QuantifierExpr) || ((QuantifierExpr)quantifier).SplitQuantifier == null);
       bool wantsMatchingLoopRewrite = true;
       return (!Attributes.ContainsBool(quantifier.Attributes, "matchinglooprewrite", ref wantsMatchingLoopRewrite) || wantsMatchingLoopRewrite) && WantsAutoTriggers(quantifier);
     }

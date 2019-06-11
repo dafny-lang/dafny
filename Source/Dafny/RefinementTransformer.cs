@@ -54,7 +54,7 @@ namespace Microsoft.Dafny
   {
     Cloner rawCloner; // This cloner just gives exactly the same thing back.
     RefinementCloner refinementCloner; // This cloner wraps things in a RefinementToken
-    
+
     Program program;
 
     public RefinementTransformer(ErrorReporter reporter)
@@ -114,7 +114,7 @@ namespace Microsoft.Dafny
         }
       }
     }
-    
+
     void PreResolveWorker(ModuleDefinition m) {
       Contract.Requires(m != null);
 
@@ -166,7 +166,7 @@ namespace Microsoft.Dafny
         }
       }
 
-      // Merge the imports of prev 
+      // Merge the imports of prev
       var prevTopLevelDecls = RefinedSig.TopLevels.Values;
       foreach (var d in prevTopLevelDecls) {
         int index;
@@ -967,32 +967,32 @@ namespace Microsoft.Dafny
            *   assume E;                    assert ...;                 assert E;
            *   assert E;                    assert ...;                 assert E;
            *   assert E;                                                assert E;
-           *   
+           *
            *   assume E;                    assume ...;                 assume E;
-           *   
+           *
            *   var x;                       var x := E;                 var x := E;
            *   var x := *;                  var x := E;                 var x := E;
            *   var x :| P;                  var x := E1;                var x := E1; assert P;
            *   var VarProduction;                                       var VarProduction;
-           *   
+           *
            *   x := *;                      x := E;                     x := E;
            *   x :| P;                      x := E;                     x := E; assert P;
-           *   
+           *
            *   modify E;                    modify ...;                 modify E;
            *   modify E;                    modify ... { S }            modify E { S }
            *   modify E { S }               modify ... { S' }           modify E { Merge(S, S') }
            *
            *   if (G) Then' else Else'      if ... Then else Else       if (G) Merge(Then,Then') else Merge(Else,Else')
            *   if (*) Then' else Else'      if (G) Then else Else       if (G) Merge(Then,Then') else Merge(Else,Else')
-           *   
+           *
            *   while (G) LoopSpec' Body     while ... LoopSpec ...      while (G) Merge(LoopSpec,LoopSpec') Body
            *   while (G) LoopSpec' Body'    while ... LoopSpec Body     while (G) Merge(LoopSpec,LoopSpec') Merge(Body,Body')
            *   while (*) LoopSpec' Body     while (G) LoopSpec ...      while (G) Merge(LoopSpec,LoopSpec') Body
            *   while (*) LoopSpec' Body'    while (G) LoopSpec Body     while (G) Merge(LoopSpec,LoopSpec') Merge(Body,Body')
-           *   
+           *
            *   StmtThatDoesNotMatchS; S'    ... where x = e; S          StatementThatDoesNotMatchS[e/x]; Merge( ... where x = e; S , S')
            *   StmtThatMatchesS; S'         ... where x = e; S          StmtThatMatchesS; S'
-           * 
+           *
            * Note, LoopSpec must contain only invariant declarations (as the parser ensures for the first three cases).
            * Note, there is an implicit "...;" at the end of every block in a skeleton.
            */
@@ -1612,7 +1612,7 @@ namespace Microsoft.Dafny
           SubstitutionsMade.Add(n.Name);
           return new NamedExpr(n.tok, n.Name, E, c.CloneExpr(n.Body), E.tok);
         }
-      } 
+      }
       return base.CloneExpr(expr); // in all other cases, just do what the base class would.
                                    // note that when we get a named expression that is not in
                                    // our substitution list, then we call the base class, which
