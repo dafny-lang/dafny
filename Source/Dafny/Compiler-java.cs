@@ -34,7 +34,7 @@ namespace Microsoft.Dafny {
         
         //RootImportWriter writes additional imports to the main file.
         private TargetWriter RootImportWriter;
-        private TargetWriter RootImportDummyWriter;
+        private TargetWriter RootImportDummyWriter; // TODO: Remove if not deemed necessary.
         
         private struct Import {
             public string Name, Path;
@@ -56,7 +56,7 @@ namespace Microsoft.Dafny {
         // TODO: Same format as compiler-go.cs, might need to follow C# depending on how DafnyRuntime.java looks
         protected override void EmitBuiltInDecls(BuiltIns builtIns, TargetWriter wr) {
             var rt = wr.NewFile("dafny/dafny.java");
-//            ReadRuntimeSystem("DafnyRuntime.java", rt); Commented out beceause DafnyRuntime.java does not exist yet.
+            // ReadRuntimeSystem("DafnyRuntime.java", rt); Commented out beceause DafnyRuntime.java does not exist yet.
         }
 
         // Creates file header for each module's file.
@@ -141,14 +141,14 @@ namespace Microsoft.Dafny {
                 return Compiler.CreateFunction(name, typeArgs, formals, resultType, tok, isStatic, createBody, member, Writer(isStatic));
             }
             
-            //TODO: Decide if we need to make the getters/setters, since all fields are public anyway.
+            // TODO: Decide if we need to make the getters/setters, since all fields are public anyway.
             public BlockTargetWriter/*?*/ CreateGetter(string name, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl/*?*/ member) {
                 throw new NotImplementedException();
-//                return Compiler.CreateGetter(name, resultType, tok, isStatic, createBody, Writer(isStatic));
+                // return Compiler.CreateGetter(name, resultType, tok, isStatic, createBody, Writer(isStatic));
             }
             public BlockTargetWriter/*?*/ CreateGetterSetter(string name, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl/*?*/ member, out TargetWriter setterWriter) {
                 throw new NotImplementedException();
-//                return Compiler.CreateGetterSetter(name, resultType, tok, isStatic, createBody, out setterWriter, Writer(isStatic));
+                // return Compiler.CreateGetterSetter(name, resultType, tok, isStatic, createBody, out setterWriter, Writer(isStatic));
             }
             public void DeclareField(string name, bool isStatic, bool isConst, Type type, Bpl.IToken tok, string rhs) {
                 Compiler.DeclareField(name, isStatic, isConst, type, tok, rhs, Writer(isStatic));
@@ -176,13 +176,11 @@ namespace Microsoft.Dafny {
                 wr.Write("<{0}>", TypeParameters(m.TypeArgs));
             }
             wr.Write("{0} {1}", targetReturnTypeReplacement ?? "void", IdName(m));
-            
             wr.Write("(");
             WriteFormals("", m.Ins, wr);
-            
             if (!createBody) {
                 wr.WriteLine(");");
-                return null;
+                return null; // We do not want to write a function body, so instead of returning a BTW, we return null.
             } else {
                 var w = wr.NewBlock(")", null, BlockTargetWriter.BraceStyle.Newline, BlockTargetWriter.BraceStyle.Newline);
                 // TODO: Maybe later, add optimization for tail-recursion and remove the comments
@@ -197,7 +195,7 @@ namespace Microsoft.Dafny {
             }
         }
 
-        protected BlockTargetWriter /*?*/ CreateFunction(string name, List<TypeParameter> /*?*/ typeArgs,
+        protected BlockTargetWriter/*?*/ CreateFunction(string name, List<TypeParameter>/*?*/ typeArgs,
             List<Formal> formals, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl member,
             TargetWriter wr) {
             wr.Write("{0}{1}", createBody ? "public " : "", isStatic ? "static " : "");
@@ -208,15 +206,15 @@ namespace Microsoft.Dafny {
             WriteFormals("", formals, wr);
             if (!createBody) {
                 wr.WriteLine(");");
-                return null;
+                return null; // We do not want to write a function body, so instead of returning a BTW, we return null.
             } else {
+                BlockTargetWriter w;
                 if (formals.Count > 1) {
-                    var w = wr.NewBlock(")", null, BlockTargetWriter.BraceStyle.Newline, BlockTargetWriter.BraceStyle.Newline);
-                    return w;
+                    w = wr.NewBlock(")", null, BlockTargetWriter.BraceStyle.Newline, BlockTargetWriter.BraceStyle.Newline);
                 } else {
-                    var w = wr.NewBlock(")");
-                    return w;
+                    w = wr.NewBlock(")");
                 }
+                return w;
             }
         }
 
@@ -242,7 +240,6 @@ namespace Microsoft.Dafny {
                 // unresolved proxy; just treat as ref, since no particular type information is apparently needed for this type
                 return "object"; 
             }
-            
             if (xType is BoolType) { 
                 return "bool"; 
             } else if (xType is CharType) { 
@@ -250,7 +247,7 @@ namespace Microsoft.Dafny {
             } else if (xType is IntType || xType is BigOrdinalType) { 
                 return "BigInteger"; 
             } else if (xType is RealType) { 
-                return "Dafny.BigRational"; //TODO: change the data structure to match the one in DafnyRuntime.java
+                return "BigDecimal"; //TODO: change the data structure to match the one in DafnyRuntime.java
             } else if (xType is BitvectorType) { 
                 var t = (BitvectorType)xType; 
                 return t.NativeType != null ? GetNativeTypeName(t.NativeType) : "BigInteger"; 
@@ -261,7 +258,7 @@ namespace Microsoft.Dafny {
                 } 
                 return TypeName(xType.AsNewtype.BaseType, wr, tok); 
             } else if (xType.IsObjectQ) { 
-                return "object"; 
+                return "Object"; 
             } else if (xType.IsArrayType) { 
                 ArrayClassDecl at = xType.AsArrayType; 
                 Contract.Assert(at != null);  // follows from type.IsArrayType
@@ -275,7 +272,7 @@ namespace Microsoft.Dafny {
                 var cl = udt.ResolvedClass; 
                 bool isHandle = true; 
                 if (cl != null && Attributes.ContainsBool(cl.Attributes, "handle", ref isHandle) && isHandle) { 
-                    return "ulong"; //TODO: Make sure DafnyRuntime.java has a data structure to handle unsigned longs.
+                    return "ulong"; // TODO: Make sure DafnyRuntime.java has a data structure to handle unsigned longs.
                 } else if (DafnyOptions.O.IronDafny && 
                            !(xType is ArrowType) && 
                            cl != null && 
@@ -331,8 +328,7 @@ namespace Microsoft.Dafny {
             }
         }
         
-        protected override bool DeclareFormal(string prefix, string name, Type type, Bpl.IToken tok, bool isInParam, TextWriter wr)
-        {
+        protected override bool DeclareFormal(string prefix, string name, Type type, Bpl.IToken tok, bool isInParam, TextWriter wr) {
             if (isInParam) {
                 wr.Write("{0}{1} {2}", prefix, TypeName(type, wr, tok), name);
                 return true;
@@ -378,6 +374,96 @@ namespace Microsoft.Dafny {
                 }
             }
             return new ClassWriter(this, w.NewBlock(""));
+        }
+        
+        protected override void EmitLiteralExpr(TextWriter wr, LiteralExpr e) {
+            if (e is StaticReceiverExpr) {
+                wr.Write(TypeName(e.Type, wr, e.tok));
+            } else if (e.Value == null) {
+                wr.Write("({0}) null", TypeName(e.Type, wr, e.tok));
+            } else if (e.Value is bool) {
+                wr.Write((bool)e.Value ? "true" : "false");
+            } else if (e is CharLiteralExpr) {
+                wr.Write("'{0}'", (string) e.Value);
+            } else if (e is StringLiteralExpr) {
+                var str = (StringLiteralExpr)e;
+                wr.Write("new DafnyString(");
+                TrStringLiteral(str, wr);
+                wr.Write(")");
+            } else if (AsNativeType(e.Type) != null) {
+                string literalSuffix;
+                GetNativeInfo(AsNativeType(e.Type).Sel, out _, out literalSuffix, out _);
+                wr.Write((BigInteger)e.Value + literalSuffix);
+            } else if (e.Value is BigInteger i) {
+                wr.Write("new BigInteger(\"{0}\")", i);
+            } else if (e.Value is Basetypes.BigDec n) {
+                wr.Write("new BigDecimal(\"{0}E{1}\")", n.Mantissa, n.Exponent);
+            } else {
+                Contract.Assert(false); throw new cce.UnreachableException();  // unexpected literal
+            }
+        }
+        
+        protected override void EmitStringLiteral(string str, bool isVerbatim, TextWriter wr) {
+            if (!isVerbatim) {
+                wr.Write("\"{0}\"", str);
+            } else {
+                //TODO: This is taken from Go and JS since Java doesn't have raw string literals, modify and make better if possible.
+                var n = str.Length;
+                wr.Write("\"");
+                for (var i = 0; i < n; i++) {
+                    if (str[i] == '\"' && i+1 < n && str[i+1] == '\"') {
+                        wr.Write("\\\"");
+                        i++;
+                    } else if (str[i] == '\\') {
+                        wr.Write("\\\\");
+                    } else if (str[i] == '\n') {
+                        wr.Write("\\n");
+                    } else if (str[i] == '\r') {
+                        wr.Write("\\r");
+                    } else {
+                        wr.Write(str[i]);
+                    }
+                }
+                wr.Write("\"");
+            }
+        }
+
+        protected override void GetNativeInfo(NativeType.Selection sel, out string name, out string literalSuffix,
+            out bool needsCastAfterArithmetic) {
+            literalSuffix = "";
+            needsCastAfterArithmetic = false;
+            switch (sel) {
+                // TODO: When the unsigned types get created in DafnyRuntime.java, make sure the names match the ones here
+                case NativeType.Selection.Byte:
+                    name = "Dafny.Byte";
+                    break;
+                case NativeType.Selection.SByte:
+                    name = "byte";
+                    break;
+                case NativeType.Selection.UShort:
+                    name = "Dafny.UShort";
+                    break;
+                case NativeType.Selection.Short:
+                    name = "short";
+                    break;
+                case NativeType.Selection.UInt:
+                    name = "Dafny.UInt";
+                    break;
+                case NativeType.Selection.Int:
+                    name = "int";
+                    break;
+                case NativeType.Selection.ULong:
+                    name = "Dafny.ULong";
+                    break;
+                case NativeType.Selection.Number:
+                case NativeType.Selection.Long:
+                    name = "long";
+                    literalSuffix = "L";
+                    break;
+                default:
+                    Contract.Assert(false);  // unexpected native type
+                    throw new cce.UnreachableException();  // to please the compiler
+            }
         }
 
         protected override string IdProtect(string name) {
@@ -458,7 +544,7 @@ namespace Microsoft.Dafny {
                 case "true":
                     return name + "_"; // TODO: figure out what to do here (C# uses @, Go uses _, JS uses _$$_)
                 default:
-                    return name; //Package name is not a keyword, so it can be used
+                    return name; // Package name is not a keyword, so it can be used
             }
         }
         
@@ -741,16 +827,6 @@ namespace Microsoft.Dafny {
         }
 
         protected override void EmitNewArray(Type elmtType, Bpl.IToken tok, List<Expression> dimensions, bool mustInitialize, TargetWriter wr)
-        {
-            throw new NotImplementedException();
-        }
-
-        protected override void EmitLiteralExpr(TextWriter wr, LiteralExpr e)
-        {
-            throw new NotImplementedException();
-        }
-
-        protected override void EmitStringLiteral(string str, bool isVerbatim, TextWriter wr)
         {
             throw new NotImplementedException();
         }
