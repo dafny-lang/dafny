@@ -2344,6 +2344,11 @@ namespace Microsoft.Dafny {
         var b = FunctionAxiom(f, null, null);
         Contract.Assert(b == null);
       }
+      // for a function in a class C that overrides a function in a trait J, add an axiom that connects J.F and C.F
+      if (f.OverriddenFunction != null) {
+        AddFunctionOverrideAxiom(f);
+      }
+
       // supply the connection between inductive/coinductive predicates and prefix predicates
       if (f is FixpointPredicate) {
         AddPrefixPredicateAxioms(((FixpointPredicate)f).PrefixPredicate);
@@ -4657,10 +4662,6 @@ namespace Microsoft.Dafny {
           sink.AddTopLevelDeclaration(impl);
 
         }
-
-        //creating an axiom that connects J.F and C.F
-        //which is a class function and overridden trait function
-        AddFunctionOverrideAxiom(f);
 
         if (InsertChecksums)
         {
