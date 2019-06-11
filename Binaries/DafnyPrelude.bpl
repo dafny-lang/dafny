@@ -1054,8 +1054,7 @@ axiom (forall h: Heap, a: ref ::
     Seq#Index(Seq#FromArray(h, a), i) == read(h, a, IndexField(i))));
 axiom (forall h0, h1: Heap, a: ref ::
   { Seq#FromArray(h1, a), $HeapSucc(h0, h1) }
-  $IsGoodHeap(h0) && $IsGoodHeap(h1) && $HeapSucc(h0, h1)
-  && h0[a] == h1[a]
+  $IsGoodHeap(h0) && $IsGoodHeap(h1) && $HeapSucc(h0, h1) && h0[a] == h1[a]
   ==>
   Seq#FromArray(h0, a) == Seq#FromArray(h1, a));
 axiom (forall h: Heap, i: int, v: Box, a: ref ::
