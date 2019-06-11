@@ -507,10 +507,9 @@ function {:inline} _System.real.Floor(x: real): int { Int(x) }
 // ---------------------------------------------------------------
 // -- The heap ---------------------------------------------------
 // ---------------------------------------------------------------
-
-type Heap = <alpha>[ref,Field alpha]alpha;
-function {:inline} read<alpha>(H:Heap, r:ref, f:Field alpha): alpha { H[r, f] }
-function {:inline} update<alpha>(H:Heap, r:ref, f:Field alpha, v:alpha): Heap { H[r,f := v] }
+type Heap = [ref]<alpha>[Field alpha]alpha;
+function {:inline} read<alpha>(H:Heap, r:ref, f:Field alpha): alpha { H[r][f] }
+function {:inline} update<alpha>(H:Heap, r:ref, f:Field alpha, v:alpha): Heap { H[r := H[r][f := v]] }
 
 function $IsGoodHeap(Heap): bool;
 function $IsHeapAnchor(Heap): bool;
@@ -527,7 +526,7 @@ axiom (forall<alpha> h: Heap, r: ref, f: Field alpha, x: alpha :: { update(h, r,
   $IsGoodHeap(update(h, r, f, x)) ==>
   $HeapSucc(h, update(h, r, f, x)));
 axiom (forall a,b,c: Heap :: { $HeapSucc(a,b), $HeapSucc(b,c) }
-  $HeapSucc(a,b) && $HeapSucc(b,c) ==> $HeapSucc(a,c));
+  a != c ==> $HeapSucc(a,b) && $HeapSucc(b,c) ==> $HeapSucc(a,c));
 axiom (forall h: Heap, k: Heap :: { $HeapSucc(h,k) }
   $HeapSucc(h,k) ==> (forall o: ref :: { read(k, o, alloc) } read(h, o, alloc) ==> read(k, o, alloc)));
 
@@ -1055,9 +1054,8 @@ axiom (forall h: Heap, a: ref ::
     Seq#Index(Seq#FromArray(h, a), i) == read(h, a, IndexField(i))));
 axiom (forall h0, h1: Heap, a: ref ::
   { Seq#FromArray(h1, a), $HeapSucc(h0, h1) }
-  $IsGoodHeap(h0) && $IsGoodHeap(h1) && $HeapSucc(h0, h1) &&
-  (forall i: int ::
-    0 <= i && i < _System.array.Length(a) ==> read(h0, a, IndexField(i)) == read(h1, a, IndexField(i)))
+  $IsGoodHeap(h0) && $IsGoodHeap(h1) && $HeapSucc(h0, h1)
+  && h0[a] == h1[a]
   ==>
   Seq#FromArray(h0, a) == Seq#FromArray(h1, a));
 axiom (forall h: Heap, i: int, v: Box, a: ref ::

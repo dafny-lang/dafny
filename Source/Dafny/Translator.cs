@@ -2092,6 +2092,21 @@ namespace Microsoft.Dafny {
         args);
     }
 
+    public static Bpl.NAryExpr ReadHeap(IToken tok, Expr heap, Expr r)
+    {
+      Contract.Requires(tok != null);
+      Contract.Requires(heap != null);
+      Contract.Requires(r != null);
+      Contract.Ensures(Contract.Result<Bpl.NAryExpr>() != null);
+
+      List<Bpl.Expr> args = new List<Bpl.Expr>();
+      args.Add(heap);
+      args.Add(r);
+      return new Bpl.NAryExpr(tok,
+        new Bpl.MapSelect(tok, 1),
+        args);
+    }
+
     public Bpl.Expr DType(Bpl.Expr e, Bpl.Expr type) {
       return Bpl.Expr.Eq(FunctionCall(e.tok, BuiltinFunction.DynamicType, null, e), type);
     }
@@ -9279,21 +9294,19 @@ namespace Microsoft.Dafny {
       var alpha = new Bpl.TypeVariable(tok, "alpha");
       var oVar = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, "$o", predef.RefType));
       var o = new Bpl.IdentifierExpr(tok, oVar);
-      var fVar = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, "$f", predef.FieldName(tok, alpha)));
-      var f = new Bpl.IdentifierExpr(tok, fVar);
 
-      Bpl.Expr heapOF = ReadHeap(tok, etran.HeapExpr, o, f);
-      Bpl.Expr preHeapOF = ReadHeap(tok, etranPre.HeapExpr, o, f);
+      Bpl.Expr heapOF = ReadHeap(tok, etran.HeapExpr, o);
+      Bpl.Expr preHeapOF = ReadHeap(tok, etranPre.HeapExpr, o);
       Bpl.Expr ante = Bpl.Expr.Neq(o, predef.Null);
       if (!isGhostContext && use == Resolver.FrameExpressionUse.Modifies) {
         ante = Bpl.Expr.And(ante, etranMod.IsAlloced(tok, o));
       }
       var eq = Bpl.Expr.Eq(heapOF, preHeapOF);
-      var ofInFrame = InRWClause(tok, o, f, frame, use == Resolver.FrameExpressionUse.Unchanged, etranMod, null, null);
+      var ofInFrame = InRWClause(tok, o, null, frame, use == Resolver.FrameExpressionUse.Unchanged, etranMod, null, null);
       Bpl.Expr consequent = use == Resolver.FrameExpressionUse.Modifies ? Bpl.Expr.Or(eq, ofInFrame) : Bpl.Expr.Imp(ofInFrame, eq);
 
       var tr = new Bpl.Trigger(tok, true, new List<Bpl.Expr> { heapOF });
-      return new Bpl.ForallExpr(tok, new List<TypeVariable> { alpha }, new List<Variable> { oVar, fVar }, null, tr, Bpl.Expr.Imp(ante, consequent));
+      return new Bpl.ForallExpr(tok, new List<TypeVariable>(), new List<Variable> { oVar }, null, tr, Bpl.Expr.Imp(ante, consequent));
     }
     Bpl.Expr/*!*/ FrameConditionUsingDefinedFrame(IToken/*!*/ tok, ExpressionTranslator/*!*/ etranPre, ExpressionTranslator/*!*/ etran, ExpressionTranslator/*!*/ etranMod)
     {
