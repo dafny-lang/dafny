@@ -199,10 +199,7 @@ public class SequenceTest {
     DafnyString testStringDrop = new DafnyString(Arrays.asList(testStringDropArr));
     DafnyString testStringTake = new DafnyString(Arrays.asList(testStringTakeArr));
     DafnyString testStringCopy = new DafnyString(Arrays.asList(testStringArr));
-
-    DafnySequence<Character> testStringDropSlice = new DafnySequence<>(Arrays.asList(testStringDropArr));
-    DafnySequence<Character> testStringTakeSlice = new DafnySequence<>(Arrays.asList(testStringTakeArr));
-    DafnySequence<Character> testStringEmptySlice = new DafnySequence<>(Arrays.asList(testStringEmptyArr));
+    DafnyString testStringEmpty = new DafnyString(Arrays.asList(testStringEmptyArr));
 
     @Test
     public void testStringPrefix() {
@@ -291,11 +288,11 @@ public class SequenceTest {
         l.add(5);
         l.add(0);
         l.add(6);
-        DafnySequence<DafnySequence<Character>> sliced = testString.slice(l);
-        Iterator<DafnySequence> it = sliced.iterator();
-        assertEquals(it.next(), testStringTakeSlice);
-        assertEquals(it.next(), testStringEmptySlice);
-        assertEquals(it.next(), testStringDropSlice);
+        DafnySequence<DafnyString> sliced = testString.slice(l);
+        Iterator<DafnyString> it = sliced.iterator();
+        assertEquals(it.next(), testStringTake);
+        assertEquals(it.next(), testStringEmpty);
+        assertEquals(it.next(), testStringDrop);
     }
 
     @Test
@@ -318,9 +315,7 @@ public class SequenceTest {
         new DafnyString(s);
         testString.isPrefixOf(null);
         testString.isProperPrefixOf(null);
-        testString.contains(null);
         testString.concatenate(null);
-        testString.update(1, null);
         testString.slice(null);
         List<Integer> ints = new ArrayList<>();
         ints.add(null);
