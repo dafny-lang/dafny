@@ -184,7 +184,7 @@ namespace Microsoft.Dafny {
             } else {
                 var w = wr.NewBlock(")", null, BlockTargetWriter.BraceStyle.Newline, BlockTargetWriter.BraceStyle.Newline);
                 // TODO: Maybe later, add optimization for tail-recursion and remove the comments
-                // TODO: Figure out what implication static has on declaring this, whether it is necessary, and how to get current class name
+                // TODO: Figure out what implication static has on declaring this, whether it is necessary, and use Object _this = this;
                 /*if (m.IsTailRecursive) {
                     if (!m.IsStatic) {
                         w.WriteLine("var _this = this;");
@@ -465,21 +465,146 @@ namespace Microsoft.Dafny {
                     throw new cce.UnreachableException();  // to please the compiler
             }
         }
+        
+        protected override void EmitThis(TargetWriter wr) {
+            wr.Write("_this");
+        }
+        
+        protected override void DeclareLocalVar(string name, Type/*?*/ type, Bpl.IToken/*?*/ tok, bool leaveRoomForRhs, string/*?*/ rhs, TargetWriter wr) {
+            wr.Write("{0} {1}", TypeName(type, wr, tok), name);
+            if (leaveRoomForRhs) {
+                Contract.Assert(rhs == null);  // follows from precondition
+            } else if (rhs != null) {
+                wr.WriteLine(" = {0};", rhs);
+            } else {
+                wr.WriteLine(";");
+            }
+        }
+        
+        protected override void EmitCollectionDisplay(CollectionType ct, Bpl.IToken tok, List<Expression> elements, bool inLetExprBody, TargetWriter wr) {
+            wr.Write("new {0}", TypeName(ct, wr, tok));
+            TrExprList(elements, wr, inLetExprBody);
+        }
+        
+        protected override void EmitMapDisplay(MapType mt, Bpl.IToken tok, List<ExpressionPair> elements, bool inLetExprBody, TargetWriter wr) {
+            wr.Write("new HashMap<>() {{{{\n");
+            foreach (ExpressionPair p in elements) {
+                wr.Write("put(");
+                TrExpr(p.A, wr, inLetExprBody);
+                wr.Write(", ");
+                TrExpr(p.B, wr, inLetExprBody);
+                wr.Write(");\n");
+            }
+            wr.Write("}}}}");
+        }
+        
+        protected override void GetSpecialFieldInfo(SpecialField.ID id, object idParam, out string compiledName, out string preString, out string postString) {
+            compiledName = "";
+            preString = "";
+            postString = "";
+            switch (id) {
+                case SpecialField.ID.UseIdParam:
+                    compiledName = (string)idParam;
+                    break;
+                case SpecialField.ID.ArrayLength:
+                case SpecialField.ID.ArrayLengthInt:
+                    compiledName = "length";
+                    if (id == SpecialField.ID.ArrayLength) {
+                        preString = "new BigInteger(";
+                        postString = ")";
+                    }
+                    break;
+                case SpecialField.ID.Floor:
+                    compiledName = "toBigInteger()";
+                    break;
+                case SpecialField.ID.IsLimit:
+                    preString = "Dafny.BigOrdinal.IsLimit(";
+                    postString = ")";
+                    break;
+                case SpecialField.ID.IsSucc:
+                    preString = "Dafny.BigOrdinal.IsSucc(";
+                    postString = ")";
+                    break;
+                case SpecialField.ID.Offset:
+                    preString = "Dafny.BigOrdinal.Offset(";
+                    postString = ")";
+                    break;
+                case SpecialField.ID.IsNat:
+                    preString = "Dafny.BigOrdinal.IsNat(";
+                    postString = ")";
+                    break;
+                case SpecialField.ID.Keys:
+                    compiledName = "keySet()";
+                    break;
+                case SpecialField.ID.Values:
+                    compiledName = "values()";
+                    break;
+                case SpecialField.ID.Items:
+                    compiledName = "_items";
+                    break;
+                case SpecialField.ID.Reads:
+                    compiledName = "_reads";
+                    break;
+                case SpecialField.ID.Modifies:
+                    compiledName = "_modifies";
+                    break;
+                case SpecialField.ID.New:
+                    compiledName = "_new";
+                    break;
+                default:
+                    Contract.Assert(false); // unexpected ID
+                    break;
+            }
+        }
+        
+        protected override TargetWriter EmitMemberSelect(MemberDecl member, bool isLValue, Type expectedType, TargetWriter wr) {
+            var wSource = wr.Fork();
+            if (isLValue && member is ConstantField) {
+                wr.Write("._{0}", member.CompileName);
+            } else if (!isLValue && member is SpecialField sf) {
+                string compiledName, preStr, postStr;
+                GetSpecialFieldInfo(sf.SpecialId, sf.IdParam, out compiledName, out preStr, out postStr);
+                if (compiledName.Length != 0) {
+                    if (sf.IdParam != null) {
+                        switch (sf.SpecialId) {
+                            case SpecialField.ID.ArrayLength:
+                            case SpecialField.ID.ArrayLengthInt:
+                                for (int i = 0; i < (int) sf.IdParam; i++) {
+                                    wr.Write("[0]");
+                                }
+                                break;
+                        }
+                    }
+                    wr.Write(".{0}", compiledName);
+                }
+            } else {
+                wr.Write(".{0}", IdName(member));
+            }
+            return wSource;
+        }
+        
+        protected override string TypeName_Companion(Type type, TextWriter wr, Bpl.IToken tok, MemberDecl member) {
+            var udt = type as UserDefinedType;
+            if (udt != null && udt.ResolvedClass is TraitDecl) {
+                string s = udt.FullCompanionCompileName;
+                Contract.Assert(udt.TypeArgs.Count == 0);  // traits have no type parameters
+                return s;
+            } else {
+                return TypeName(type, wr, tok, member);
+            }
+        }
 
         protected override string IdProtect(string name) {
             return PublicIdProtect(name);
         }
 
-        public static string PublicIdProtect(string name)
-        {
-            if (name == "" || name.First() == '_')
-            {
+        public static string PublicIdProtect(string name) {
+            if (name == "" || name.First() == '_') {
                 return name; // no need to further protect this name
             }
 
             // TODO: Finish with all the public IDs that need to be protected
-            switch (name)
-            {
+            switch (name) {
                 // keywords Java 8 and before
                 // https://docs.oracle.com/javase/tutorial/java/nutsandbolts/_keywords.html
                 case "abstract":
@@ -569,16 +694,6 @@ namespace Microsoft.Dafny {
             throw new NotImplementedException();
         }
 
-        protected override string TypeName_Companion(Type type, TextWriter wr, Bpl.IToken tok, MemberDecl member)
-        {
-            throw new NotImplementedException();
-        }
-
-        protected override void DeclareLocalVar(string name, Type type, Bpl.IToken tok, bool leaveRoomForRhs, string rhs, TargetWriter wr)
-        {
-            throw new NotImplementedException();
-        }
-
         protected override TargetWriter DeclareLocalVar(string name, Type type, Bpl.IToken tok, TargetWriter wr)
         {
             throw new NotImplementedException();
@@ -629,22 +744,7 @@ namespace Microsoft.Dafny {
             throw new NotImplementedException();
         }
 
-        protected override void EmitThis(TargetWriter wr)
-        {
-            throw new NotImplementedException();
-        }
-
         protected override void EmitDatatypeValue(DatatypeValue dtv, string arguments, TargetWriter wr)
-        {
-            throw new NotImplementedException();
-        }
-
-        protected override void GetSpecialFieldInfo(SpecialField.ID id, object idParam, out string compiledName, out string preString, out string postString)
-        {
-            throw new NotImplementedException();
-        }
-
-        protected override TargetWriter EmitMemberSelect(MemberDecl member, bool isLValue, Type expectedType, TargetWriter wr)
         {
             throw new NotImplementedException();
         }
@@ -745,16 +845,6 @@ namespace Microsoft.Dafny {
         }
 
         protected override void EmitConversionExpr(ConversionExpr e, bool inLetExprBody, TargetWriter wr)
-        {
-            throw new NotImplementedException();
-        }
-
-        protected override void EmitCollectionDisplay(CollectionType ct, Bpl.IToken tok, List<Expression> elements, bool inLetExprBody, TargetWriter wr)
-        {
-            throw new NotImplementedException();
-        }
-
-        protected override void EmitMapDisplay(MapType mt, Bpl.IToken tok, List<ExpressionPair> elements, bool inLetExprBody, TargetWriter wr)
         {
             throw new NotImplementedException();
         }
