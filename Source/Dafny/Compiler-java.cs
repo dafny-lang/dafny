@@ -675,6 +675,76 @@ namespace Microsoft.Dafny {
       TrExpr(value, wr, inLetExprBody);
       wr.Write(")");
     }
+    
+    protected override void EmitRotate(Expression e0, Expression e1, bool isRotateLeft, TargetWriter wr, bool inLetExprBody, FCE_Arg_Translator tr) {
+      string nativeName = null, literalSuffix = null;
+      bool needsCast = false;
+      var nativeType = AsNativeType(e0.Type);
+      if (nativeType != null) {
+        GetNativeInfo(nativeType.Sel, out nativeName, out literalSuffix, out needsCast);
+      }
+      // ( e0 op1 e1) | (e0 op2 (width - e1))
+      if (needsCast) {
+        wr.Write("(" + nativeName + ")(");
+      }
+      wr.Write("(");
+      EmitShift(e0, e1, isRotateLeft ? "<<" : ">>", isRotateLeft, nativeType, true, wr, inLetExprBody, tr);
+      wr.Write(")");
+      wr.Write (" | ");
+      wr.Write("(");
+      EmitShift(e0, e1, isRotateLeft ? ">>" : "<<", !isRotateLeft, nativeType, false, wr, inLetExprBody, tr);
+      wr.Write(")");
+      if (needsCast) {
+        wr.Write(")");
+      }
+    }
+
+    void EmitShift(Expression e0, Expression e1, string op, bool truncate, NativeType/*?*/ nativeType, bool firstOp, TargetWriter wr, bool inLetExprBody, FCE_Arg_Translator tr) {
+      var bv = e0.Type.AsBitVectorType;
+      if (truncate) {
+        wr = EmitBitvectorTruncation(bv, true, wr);
+      }
+      tr(e0, wr, inLetExprBody);
+      wr.Write(" {0} ", op);
+      if (!firstOp) {
+        wr.Write("({0} - ", bv.Width);
+      }
+      wr.Write("(int) (");
+      tr(e1, wr, inLetExprBody);
+      wr.Write(")");
+      if (!firstOp) {
+        wr.Write(")");
+      }
+    }
+    
+    protected override TargetWriter EmitBitvectorTruncation(BitvectorType bvType, bool surroundByUnchecked, TargetWriter wr) {
+      string nativeName = null, literalSuffix = null;
+      bool needsCastAfterArithmetic = false;
+      if (bvType.NativeType != null) {
+        GetNativeInfo(bvType.NativeType.Sel, out nativeName, out literalSuffix, out needsCastAfterArithmetic);
+      }
+      // --- Before
+      if (bvType.NativeType == null) {
+        wr.Write("((");
+      } else {
+        wr.Write("({0})((", nativeName);
+      }
+      // --- Middle
+      var middle = wr.Fork();
+      // --- After
+      // do the truncation, if needed
+      if (bvType.NativeType == null) {
+        wr.Write(") & ((new BigInteger(1) << {0}) - 1))", bvType.Width);
+      } else {
+        if (bvType.NativeType.Bitwidth != bvType.Width) {
+          // print in hex, because that looks nice
+          wr.Write(") & ({2})0x{0:X}{1})", (1UL << bvType.Width) - 1, literalSuffix, nativeName);
+        } else {
+          wr.Write("))");  // close the parentheses for the cast
+        }
+      }
+      return middle;
+    }
 
     protected override string IdProtect(string name) {
       return PublicIdProtect(name);
@@ -967,17 +1037,6 @@ namespace Microsoft.Dafny {
     }
 
     protected override void EmitNewArray(Type elmtType, Bpl.IToken tok, List<Expression> dimensions, bool mustInitialize, TargetWriter wr)
-    {
-      throw new NotImplementedException();
-    }
-
-    protected override TargetWriter EmitBitvectorTruncation(BitvectorType bvType, bool surroundByUnchecked, TargetWriter wr)
-    {
-      throw new NotImplementedException();
-    }
-
-    protected override void EmitRotate(Expression e0, Expression e1, bool isRotateLeft, TargetWriter wr, bool inLetExprBody,
-      FCE_Arg_Translator tr)
     {
       throw new NotImplementedException();
     }
