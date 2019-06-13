@@ -2179,7 +2179,7 @@ namespace Microsoft.Dafny
           string extension = Path.GetExtension(file);
           if (extension != null) { extension = extension.ToLower(); }
           if (extension == ".cs") {
-            sourceFiles[index++] = file;
+            sourceFiles[index++] = Path.Combine(Path.GetDirectoryName(file), Path.GetFileName(file));
           }
         }
         crx.cr = provider.CompileAssemblyFromFile(cp, sourceFiles);
