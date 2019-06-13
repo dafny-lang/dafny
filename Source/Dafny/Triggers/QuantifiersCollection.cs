@@ -34,11 +34,11 @@ namespace Microsoft.Dafny.Triggers {
     readonly ErrorReporter reporter;
     readonly ComprehensionExpr expr;  //  the expression where the splits are originated from
     List<QuantifierWithTriggers> quantifiers;
-   
+
     internal QuantifiersCollection(ComprehensionExpr expr, IEnumerable<ComprehensionExpr> quantifiers, ErrorReporter reporter) {
       Contract.Requires(quantifiers.All(q => !(q is QuantifierExpr) || ((QuantifierExpr)q).SplitQuantifier == null));
       this.reporter = reporter;
-      this.expr = expr; 
+      this.expr = expr;
       this.quantifiers = quantifiers.Select(q => new QuantifierWithTriggers(q)).ToList();
     }
 
@@ -54,7 +54,7 @@ namespace Microsoft.Dafny.Triggers {
       SelectTriggers();
       CombineSplitQuantifier();
     }
-    
+
     private bool SubsetGenerationPredicate(TriggerUtils.SetOfTerms terms, TriggerTerm additionalTerm) {
       return true; // FIXME Remove this
       //return additionalTerm.Variables.Where(v => v is BoundVar && !terms.Any(t => t.Variables.Contains(v))).Any();
@@ -127,10 +127,10 @@ namespace Microsoft.Dafny.Triggers {
       // quantifier that matches one of the terms of the trigger (this ensures that
       // [∀ x {f(x), f(f(x))} ⋅ f(x) = f(f(x))] is not a loop). And we even
       // ignore terms that almost match a trigger term, modulo a single variable
-      // (this ensures that [∀ x y {a(x, y)} ⋅ a(x, y) == a(y, x)] is not a loop). 
+      // (this ensures that [∀ x y {a(x, y)} ⋅ a(x, y) == a(y, x)] is not a loop).
       // In addition, we ignore cases where the only differences between a trigger
-      // and a trigger match are places where a variable is replaced with an 
-      // expression whose free variables do not intersect that of the quantifier 
+      // and a trigger match are places where a variable is replaced with an
+      // expression whose free variables do not intersect that of the quantifier
       // in which that expression is found. For examples of this behavious, see
       // triggers/literals-do-not-cause-loops.
       // This ignoring logic is implemented by the CouldCauseLoops method.
@@ -229,7 +229,7 @@ namespace Microsoft.Dafny.Triggers {
               groups[j].expressions.Add(quantifiers[i].quantifier);
               found = true;
               break;
-            } 
+            }
           }
           if (!found) {
             // start a new group
@@ -268,7 +268,7 @@ namespace Microsoft.Dafny.Triggers {
     }
 
     private static bool SameTriggerCandidate(TriggerCandidate arg1, TriggerCandidate arg2) {
-      return TriggerUtils.SameLists(arg1.Terms, arg2.Terms, TriggerTerm.Eq); 
+      return TriggerUtils.SameLists(arg1.Terms, arg2.Terms, TriggerTerm.Eq);
     }
 
     private Expression QuantifiersToExpression(IToken tok, BinaryExpr.ResolvedOpcode op, List<ComprehensionExpr> expressions) {
@@ -287,7 +287,7 @@ namespace Microsoft.Dafny.Triggers {
 
       if (!TriggerUtils.NeedsAutoTriggers(q.quantifier)) { // NOTE: split and autotriggers attributes are passed down to Boogie
         var extraMsg = TriggerUtils.WantsAutoTriggers(q.quantifier) ? "" : " Note that {:autotriggers false} can cause instabilities. Consider using {:nowarn}, {:matchingloop} (not great either), or a manual trigger instead.";
-        msg.AppendFormat("Not generating triggers for \"{0}\".{1}", Printer.ExprToString(q.quantifier.Term), extraMsg).AppendLine(); 
+        msg.AppendFormat("Not generating triggers for \"{0}\".{1}", Printer.ExprToString(q.quantifier.Term), extraMsg).AppendLine();
       } else {
         if (addHeader) {
           msg.AppendFormat("For expression \"{0}\":", Printer.ExprToString(q.quantifier.Term)).AppendLine();

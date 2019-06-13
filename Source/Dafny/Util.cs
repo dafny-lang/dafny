@@ -89,13 +89,13 @@ namespace Microsoft.Dafny {
     }
 
     public static Dictionary<A,B> Dict<A,B>(IEnumerable<A> xs, IEnumerable<B> ys) {
-      return Dict<A,B>(xs.Zip(ys)); 
+      return Dict<A,B>(xs.Zip(ys));
     }
 
     public static Dictionary<A,B> Dict<A,B>(IEnumerable<Tuple<A,B>> xys) {
       Dictionary<A,B> res = new Dictionary<A,B>();
       foreach (var p in xys) {
-        res[p.Item1] = p.Item2; 
+        res[p.Item1] = p.Item2;
       }
       return res;
     }
@@ -382,7 +382,7 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public class DependencyMap 
+  public class DependencyMap
   {
     private Dictionary<string, SortedSet<string>> dependencies;
 

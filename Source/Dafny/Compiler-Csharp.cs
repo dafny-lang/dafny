@@ -624,7 +624,7 @@ namespace Microsoft.Dafny
         var wEnum = w.NewNamedBlock("public static System.Collections.Generic.IEnumerable<{0}> IntegerRange(BigInteger lo, BigInteger hi)", GetNativeTypeName(nt.NativeType));
         wEnum.WriteLine("for (var j = lo; j < hi; j++) {{ yield return ({0})j; }}", GetNativeTypeName(nt.NativeType));
       }
-      if (nt.WitnessKind == SubsetTypeDecl.WKind.Compiled) { 
+      if (nt.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
         var witness = new TargetWriter(w.IndentLevel, true);
         TrExpr(nt.Witness, witness, false);
         if (nt.NativeType == null) {
@@ -1342,12 +1342,12 @@ namespace Microsoft.Dafny
       wr.Write("(int)(");
       tr(e1, wr, inLetExprBody);
       wr.Write(")");
-      
+
       if (!firstOp) {
         wr.Write(")");
       }
     }
-    
+
     protected override void EmitEmptyTupleList(string tupleTypeArgs, TargetWriter wr) {
       wr.Write("new System.Collections.Generic.List<System.Tuple<{0}>>()", tupleTypeArgs);
     }
@@ -1925,7 +1925,7 @@ namespace Microsoft.Dafny
 
     protected override void EmitIsZero(string varName, TargetWriter wr) {
       wr.Write("{0} == 0", varName);
-    }    
+    }
 
     protected override void EmitConversionExpr(ConversionExpr e, bool inLetExprBody, TargetWriter wr) {
       if (e.E.Type.IsNumericBased(Type.NumericPersuation.Int) || e.E.Type.IsBitVectorType || e.E.Type.IsCharType) {

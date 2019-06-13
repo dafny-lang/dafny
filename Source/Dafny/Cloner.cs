@@ -9,7 +9,7 @@ namespace Microsoft.Dafny
   class Cloner
   {
 
-     
+
     public virtual ModuleDefinition CloneModuleDefinition(ModuleDefinition m, string name) {
       ModuleDefinition nw;
       if (m is DefaultModuleDecl) {
@@ -269,7 +269,7 @@ namespace Microsoft.Dafny
         if (e is StaticReceiverExpr) {
           var ee = (StaticReceiverExpr)e;
           return new StaticReceiverExpr(Tok(e.tok), CloneType(ee.UnresolvedType), ee.IsImplicit);
-        } else if (e.Value == null) {          
+        } else if (e.Value == null) {
           return new LiteralExpr(Tok(e.tok));
         } else if (e.Value is bool) {
           return new LiteralExpr(Tok(e.tok), (bool)e.Value);
@@ -847,7 +847,7 @@ namespace Microsoft.Dafny
 
     public override ModuleDefinition CloneModuleDefinition(ModuleDefinition m, string name) {
       var basem = base.CloneModuleDefinition(m, name);
-      
+
 
       //Merge signatures for imports which point to the same module
       //This makes the consistency check understand that the same element
@@ -895,7 +895,7 @@ namespace Microsoft.Dafny
     }
 
     public override TopLevelDecl CloneDeclaration(TopLevelDecl d, ModuleDefinition m) {
-     
+
       var based = base.CloneDeclaration(d, m);
 
       if (d is RevealableTypeDecl && !RevealedInScope(d)) {
@@ -908,7 +908,7 @@ namespace Microsoft.Dafny
       reverseMap.Add(based, d);
 
       return based;
-      
+
     }
 
     public override Field CloneField(Field f) {
@@ -976,7 +976,7 @@ namespace Microsoft.Dafny
   }
 
 
-  
+
   /// <summary>
   /// This cloner is used to clone a module into a _Compile module.  This is different from
   /// the standard cloner in the following ways:
@@ -1305,7 +1305,7 @@ namespace Microsoft.Dafny
         var new_tt = (UserDefinedType)new_t;
 
         new_tt.ResolvedClass = tt.ResolvedClass;
-        new_tt.ResolvedParam = tt.ResolvedParam;                
+        new_tt.ResolvedParam = tt.ResolvedParam;
       }
 
       return new_t;

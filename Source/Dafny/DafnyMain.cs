@@ -118,7 +118,7 @@ namespace Microsoft.Dafny {
           return err;
         }
       }
-      
+
       if (!(DafnyOptions.O.DisallowIncludes || DafnyOptions.O.PrintIncludesMode == DafnyOptions.IncludesModes.Immediate)) {
         string errString = ParseIncludes(module, builtIns, DafnyFile.fileNames(files), new Errors(reporter));
         if (errString != null) {
@@ -174,7 +174,7 @@ namespace Microsoft.Dafny {
 
         List<Include> newFilesToInclude = new List<Include>();
         dmap.AddIncludes(((LiteralModuleDecl)module).ModuleDef.Includes);
-        foreach (Include include in ((LiteralModuleDecl)module).ModuleDef.Includes) {          
+        foreach (Include include in ((LiteralModuleDecl)module).ModuleDef.Includes) {
           bool isNew = includes.Add(include);
           if (isNew) {
             newlyIncluded = true;
@@ -211,7 +211,7 @@ namespace Microsoft.Dafny {
           return string.Format("{0} parse errors detected in {1}", errorCount, fn);
         }
       } catch (IOException e) {
-        Bpl.IToken tok = include == null ? Bpl.Token.NoToken : include.tok; 
+        Bpl.IToken tok = include == null ? Bpl.Token.NoToken : include.tok;
         errs.SemErr(tok, "Unable to open included file");
         return string.Format("Error opening file \"{0}\": {1}", fn, e.Message);
       }

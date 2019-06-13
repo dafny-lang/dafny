@@ -238,7 +238,7 @@ namespace DafnyLanguage
         }
 
         if (resolver == null) return;
-        
+
         Dafny.Program prog;
         ITextSnapshot snap;
         lock (resolver) {
@@ -360,7 +360,7 @@ namespace DafnyLanguage
       {
         var logDirName = System.IO.Path.Combine(System.IO.Path.GetDirectoryName(program.FullName), "logs");
         Directory.CreateDirectory(logDirName);
-        var logFileName = System.IO.Path.Combine(logDirName, System.IO.Path.GetFileName(System.IO.Path.ChangeExtension(program.FullName, string.Format("{0}.v{1}{2}", _created.Ticks, _version, System.IO.Path.GetExtension(program.FullName)))));        
+        var logFileName = System.IO.Path.Combine(logDirName, System.IO.Path.GetFileName(System.IO.Path.ChangeExtension(program.FullName, string.Format("{0}.v{1}{2}", _created.Ticks, _version, System.IO.Path.GetExtension(program.FullName)))));
         using (var writer = new StreamWriter(logFileName))
         {
           snapshot.Write(writer);

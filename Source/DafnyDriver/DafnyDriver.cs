@@ -485,7 +485,7 @@ namespace Microsoft.Dafny
       if (dir != "") {
         Directory.CreateDirectory(dir);
       }
-      
+
       using (TextWriter target = new StreamWriter(new FileStream(filename, System.IO.FileMode.Create))) {
         target.Write(text);
       }

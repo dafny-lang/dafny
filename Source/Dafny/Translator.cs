@@ -746,7 +746,7 @@ namespace Microsoft.Dafny {
         // conversion functions
         AddBitvectorNatConversionFunction(w);
       }
-      
+
       foreach (TopLevelDecl d in program.BuiltIns.SystemModule.TopLevelDecls) {
         currentDeclaration = d;
         if (d is OpaqueTypeDecl) {
@@ -869,7 +869,7 @@ namespace Microsoft.Dafny {
         }
         yield return new Tuple<string, Bpl.Program>(outerModule.CompileName, translator.DoTranslation(p, outerModule));
       }
-      
+
     }
 
     public Bpl.Type BplBvType(int width) {
@@ -1283,7 +1283,7 @@ namespace Microsoft.Dafny {
     void AddDatatype(DatatypeDecl dt) {
       Contract.Requires(dt != null);
       Contract.Requires(sink != null && predef != null);
-     
+
       Bpl.Constant dt_const = GetClass(dt);
       sink.AddTopLevelDeclaration(dt_const);
 
@@ -1497,7 +1497,7 @@ namespace Microsoft.Dafny {
               /* CHECK
               Bpl.Expr lhs = FunctionCall(ctor.tok, BuiltinFunction.DtRank, null,
                 argType.IsDatatype ? args[i] : FunctionCall(ctor.tok, BuiltinFunction.Unbox, predef.DatatypeType, args[i]));
-              */                           
+              */
               Bpl.Expr ct = FunctionCall(ctor.tok, ctor.FullName, predef.DatatypeType, args);
               var rhs = FunctionCall(ctor.tok, BuiltinFunction.DtRank, null, ct);
               var trigger = BplTrigger(ct);
@@ -1675,7 +1675,7 @@ namespace Microsoft.Dafny {
       if (dt is IndDatatypeDecl) {
         var dtEqualName = dt.FullSanitizedName + "#Equal";
 
-        // Add function Dt#Equal(DatatypeType, DatatypeType): bool; 
+        // Add function Dt#Equal(DatatypeType, DatatypeType): bool;
         // For each constructor Ctor(x: X, y: Y), add an axiom of the form
         //     forall a, b ::
         //       { Dt#Equal(a, b), Ctor?(a) }
@@ -1733,7 +1733,7 @@ namespace Microsoft.Dafny {
             }
 
             var ax = BplForall(new List<Variable> { aVar, bVar }, trigger, Bpl.Expr.Imp(ante, Bpl.Expr.Iff(dtEqual, eqs)));
-            sink.AddTopLevelDeclaration(new Bpl.Axiom(dt.tok, ax, string.Format("Datatype extensional equality definition: {0}", ctor.FullName))); 
+            sink.AddTopLevelDeclaration(new Bpl.Axiom(dt.tok, ax, string.Format("Datatype extensional equality definition: {0}", ctor.FullName)));
           }
         }
 
@@ -2340,7 +2340,7 @@ namespace Microsoft.Dafny {
       if (f.Body != null && RevealedInScope(f)) {
         AddFunctionAxiom(f, f.Body.Resolved);
       } else {
-        // for body-less functions, at least generate its #requires function      
+        // for body-less functions, at least generate its #requires function
         var b = FunctionAxiom(f, null, null);
         Contract.Assert(b == null);
       }
@@ -2361,7 +2361,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(iter != null);
       Contract.Ensures(fuelContext == Contract.OldValue(fuelContext));
 
-      FuelContext oldFuelContext = this.fuelContext;      
+      FuelContext oldFuelContext = this.fuelContext;
       this.fuelContext = FuelSetting.NewFuelContext(iter);
       isAllocContext = new IsAllocContext(false);
 
@@ -2583,7 +2583,7 @@ namespace Microsoft.Dafny {
 
       stmts = builder.Collect(iter.tok);
 
-      if (EmitImplementation(iter.Attributes)) {   
+      if (EmitImplementation(iter.Attributes)) {
         QKeyValue kv = etran.TrAttributes(iter.Attributes, null);
         Bpl.Implementation impl = new Bpl.Implementation(iter.tok, proc.Name,
           new List<Bpl.TypeVariable>(), inParams, new List<Variable>(),
@@ -2595,7 +2595,7 @@ namespace Microsoft.Dafny {
     }
 
     bool EmitImplementation(Attributes attributes) {
-      // emit the impl only when there are proof obligations 
+      // emit the impl only when there are proof obligations
       if (assertionCount > 0) {
         return true;
       } else {
@@ -2664,7 +2664,7 @@ namespace Microsoft.Dafny {
           localVariables, stmts, kv);
         sink.AddTopLevelDeclaration(impl);
       }
-      
+
       yieldCountVariable = null;
       Reset();
     }
@@ -2856,7 +2856,7 @@ namespace Microsoft.Dafny {
       Bpl.BoundVariable layer;
       if (f.IsFuelAware()) {
         layer = new Bpl.BoundVariable(f.tok, new Bpl.TypedIdent(f.tok, "$ly", predef.LayerType));
-        formals.Add(layer);        
+        formals.Add(layer);
         etran = etran.WithCustomFuelSetting(new CustomFuelSettings{ {f, new FuelSetting(this, 0, new Bpl.IdentifierExpr(f.tok, layer))} });
         //etran = etran.WithLayer(new Bpl.IdentifierExpr(f.tok, layer));
         // Note, "layer" is not added to "args" here; rather, that's done below, as needed
@@ -3271,7 +3271,7 @@ namespace Microsoft.Dafny {
         } else {
           etranBody = etran.LimitedFunctions(f, ly);
         }
-        
+
         tastyVegetarianOption = BplAnd(CanCallAssumption(bodyWithSubst, etranBody),
           BplAnd(TrFunctionSideEffect(bodyWithSubst, etranBody),Bpl.Expr.Eq(funcAppl, etranBody.TrExpr(bodyWithSubst))));
       }
@@ -3872,8 +3872,8 @@ namespace Microsoft.Dafny {
     ///         $IsHeap(h)
     ///       ==>
     ///         $IsAlloc(f(G), TT(PP), h));
-    /// 
-    /// 
+    ///
+    ///
     /// The axioms above could be optimised to something along the lines of:
     ///     axiom fh < FunctionContextHeight ==>
     ///       (forall o: ref, h: Heap ::
@@ -4079,10 +4079,10 @@ namespace Microsoft.Dafny {
     bool assertAsAssume = false; // generate assume statements instead of assert statements
     public enum StmtType { NONE, ASSERT, ASSUME };
     public StmtType stmtContext = StmtType.NONE;  // the Statement that is currently being translated
-    public bool adjustFuelForExists = true;  // fuel need to be adjusted for exists based on whether exists is in assert or assume stmt. 
-    
+    public bool adjustFuelForExists = true;  // fuel need to be adjusted for exists based on whether exists is in assert or assume stmt.
+
     public readonly FreshIdGenerator defaultIdGenerator = new FreshIdGenerator();
-    
+
     public FreshIdGenerator CurrentIdGenerator
     {
       get
@@ -4485,7 +4485,7 @@ namespace Microsoft.Dafny {
         var found = fuelContext.TryGetValue(f, out settings);
         if (!found) {
           // If the context doesn't define fuel for this function, check for a fuel attribute (which supplies a default value if none is found)
-          settings = FuelSetting.FuelAttrib(f, out found); 
+          settings = FuelSetting.FuelAttrib(f, out found);
         }
 
         if (settings.low == 0 && settings.high == 0) {
@@ -4518,7 +4518,7 @@ namespace Microsoft.Dafny {
         if (fuelConstant != null) {
           Bpl.Expr startFuel = fuelConstant.startFuel;
           Bpl.Expr startFuelAssert = fuelConstant.startFuelAssert;
-          Bpl.Expr moreFuel_expr = fuelConstant.MoreFuel(sink, predef, f.IdGenerator);          
+          Bpl.Expr moreFuel_expr = fuelConstant.MoreFuel(sink, predef, f.IdGenerator);
           Bpl.Expr layer = etran.layerInterCluster.LayerN(settings.low, moreFuel_expr);
           Bpl.Expr layerAssert = etran.layerInterCluster.LayerN(settings.high, moreFuel_expr);
           builder.Add(TrAssumeCmd(tok, Bpl.Expr.Eq(startFuel, layer)));
@@ -4528,7 +4528,7 @@ namespace Microsoft.Dafny {
       }
       return defineFuel;
     }
-    
+
     internal static AssumeCmd optimizeExpr(bool minimize, Expression expr, IToken tok, ExpressionTranslator etran)
     {
       Contract.Requires(expr != null);
@@ -4908,7 +4908,7 @@ namespace Microsoft.Dafny {
             InsertChecksum(m, impl);
           }
         }
-        
+
         isAllocContext = null;
         Reset();
     }
@@ -5615,7 +5615,7 @@ namespace Microsoft.Dafny {
         Contract.Assert(!p.IsOld);
         Bpl.Type varType = TrType(p.Type);
         Bpl.Expr wh = GetWhereClause(p.tok, new Bpl.IdentifierExpr(p.tok, p.AssignUniqueName(f.IdGenerator), varType), p.Type, etran, NOALLOC);
-        outParams.Add(new Bpl.Formal(p.tok, new Bpl.TypedIdent(p.tok, p.AssignUniqueName(f.IdGenerator), varType, wh), true));     
+        outParams.Add(new Bpl.Formal(p.tok, new Bpl.TypedIdent(p.tok, p.AssignUniqueName(f.IdGenerator), varType, wh), true));
       }
       // the procedure itself
       var req = new List<Bpl.Requires>();
@@ -5799,7 +5799,7 @@ namespace Microsoft.Dafny {
           InsertChecksum(f, impl);
         }
       }
-      
+
       Contract.Assert(currentModule == f.EnclosingClass.Module);
       Contract.Assert(codeContext == f);
       Reset();
@@ -6747,7 +6747,7 @@ namespace Microsoft.Dafny {
         // If the quantifier is universal, then continue as:
         //   assume (\forall x :: body(x));
         // Create local variables corresponding to the type arguments:
-        
+
         var typeArgumentCopies = Map(e.TypeArgs, tp => e.Refresh(tp, CurrentIdGenerator));
         var typeMap = Util.Dict(e.TypeArgs, Map(typeArgumentCopies, tp => (Type)new UserDefinedType(tp)));
         var newLocals = Map(typeArgumentCopies, tp => new Bpl.LocalVariable(tp.tok, new TypedIdent(tp.tok, nameTypeParam(tp), predef.Ty)));
@@ -6757,7 +6757,7 @@ namespace Microsoft.Dafny {
         // Get the body of the quantifier and suitably substitute for the type variables and bound variables
         var body = Substitute(e.LogicalBody(true), null, substMap, typeMap);
         CheckWellformedAndAssume(body, options, locals, builder, etran);
-        
+
         if (e is ForallExpr) {
           // Although we do the WF check on the original quantifier, we assume the split one.
           // This ensures that cases like forall x :: x != null && f(x.a) do not fail to verify.
@@ -7777,7 +7777,7 @@ namespace Microsoft.Dafny {
         return FunctionCall(tok, "nat_to_bv" + toWidth, BplBvType(toWidth), r);
       }
     }
-        
+
     /// <summary>
     /// Emit checks that "expr" (which may or may not be a value of type "expr.Type"!) is a value of type "toType".
     /// </summary>
@@ -7844,7 +7844,7 @@ namespace Microsoft.Dafny {
           builder.Add(Assert(tok, boundsCheck, string.Format("{0}value to be converted might not fit in {1}", errorMsgPrefix, toType)));
         }
       }
-      
+
       if (toType.IsCharType) {
         if (expr.Type.IsNumericBased(Type.NumericPersuation.Int)) {
           PutSourceIntoLocal();
@@ -8037,7 +8037,7 @@ namespace Microsoft.Dafny {
         var func_vars = new List<Bpl.Variable>();
         var func_args = new List<Bpl.Expr>();
         var boxed_func_args = new List<Bpl.Expr>();
-        
+
         var idGen = f.IdGenerator.NestedFreshIdGenerator("$fh$");
         foreach (var fm in f.Formals) {
           string fm_name = idGen.FreshId("x#");
@@ -8051,7 +8051,7 @@ namespace Microsoft.Dafny {
           var arg = BplBoundVar(fm_name, TrType(fm.Type), func_vars);
           func_args.Add(arg);
           var boxed = BoxIfUnboxed(arg, fm.Type);
-          boxed_func_args.Add(boxed);     
+          boxed_func_args.Add(boxed);
         }
 
         var h = BplBoundVar("$heap", predef.HeapType, vars);
@@ -8119,7 +8119,7 @@ namespace Microsoft.Dafny {
           var rhs = FunctionCall(f.tok, Apply(arity), TrType(f.ResultType), Concat(tyargs, Cons(h, Cons(fhandle, boxed_func_args))));
           var rhs_unboxed = UnboxIfBoxed(rhs, f.ResultType);
           var tr = BplTriggerHeap(this, f.tok, lhs, AlwaysUseHeap || f.ReadsHeap ? null : h);
-          
+
           sink.AddTopLevelDeclaration(new Axiom(f.tok,
             BplForall(Concat(vars, func_vars), tr, Bpl.Expr.Eq(lhs, rhs_unboxed))));
         }
@@ -8362,7 +8362,7 @@ namespace Microsoft.Dafny {
             new Bpl.Trigger(tok, true, new List<Bpl.Expr> { readsOne, goodHeap },
             new Bpl.Trigger(tok, true, new List<Bpl.Expr> { readsH })),
             BplImp(
-              BplAnd(goodHeap, isness), 
+              BplAnd(goodHeap, isness),
               BplIff(readsNothingOne, readsNothingH))),
             string.Format("empty-reads property for {0} ", Reads(arity))));
         }
@@ -8442,7 +8442,7 @@ namespace Microsoft.Dafny {
         }
         /*
            axiom (forall f: HandleType, t0: Ty, t1: Ty, u0: Ty, u1: Ty ::
-             { $Is(f, Tclass._System.___hFunc1(t0, t1)), $Is(f, Tclass._System.___hFunc1(u0, u1)) }  
+             { $Is(f, Tclass._System.___hFunc1(t0, t1)), $Is(f, Tclass._System.___hFunc1(u0, u1)) }
              $Is(f, Tclass._System.___hFunc1(t0, t1)) &&
              (forall bx: Box :: { $IsBox(bx, u0), $IsBox(bx, t0) }
                  $IsBox(bx, u0) ==> $IsBox(bx, t0)) &&  // contravariant arguments
@@ -9033,7 +9033,7 @@ namespace Microsoft.Dafny {
         foreach (BoilerplateTriple tri in GetTwoStateBoilerplate(m.tok, m.Mod.Expressions, m.IsGhost, ordinaryEtran.Old, ordinaryEtran, ordinaryEtran.Old)) {
           AddEnsures(ens, Ensures(tri.tok, tri.IsFree, tri.Expr, tri.ErrorMessage, tri.Comment));
         }
-        
+
         // add the fuel assumption for the reveal method of a opaque method
         if (IsOpaqueRevealLemma(m)) {
           List<Expression> args = Attributes.FindExpressions(m.Attributes, "fuel");
@@ -9604,7 +9604,7 @@ namespace Microsoft.Dafny {
       builder.Add(ifCmd);
     }
 
-    string CustomErrorMessage(Attributes attrs) 
+    string CustomErrorMessage(Attributes attrs)
     {
       if (attrs == null) { return null; }
       List<Expression> args = Attributes.FindExpressions(attrs, "error");
@@ -9614,7 +9614,7 @@ namespace Microsoft.Dafny {
         return (string)l.Value;
       } else {
         return null;
-      }    
+      }
     }
 
     void TrStmt(Statement stmt, BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran)
@@ -10060,7 +10060,7 @@ namespace Microsoft.Dafny {
       } else if (stmt is ForallStmt) {
         var s = (ForallStmt)stmt;
         this.fuelContext = FuelSetting.ExpandFuelContext(stmt.Attributes, stmt.Tok, this.fuelContext, this.reporter);
-        
+
         if (s.Kind == ForallStmt.BodyKind.Assign) {
           AddComment(builder, stmt, "forall statement (assign)");
           Contract.Assert(s.Ens.Count == 0);
@@ -10420,7 +10420,7 @@ namespace Microsoft.Dafny {
     public static Expression AlphaRename(ExistsExpr exists, string prefix) {
       Contract.Requires(exists != null);
       Contract.Requires(prefix != null);
-      
+
       if (exists.SplitQuantifier != null) {
         // TODO: what to do?  Substitute(exists.SplitQuantifierExpression);
       }
@@ -10866,7 +10866,7 @@ namespace Microsoft.Dafny {
           qq = TrForall_NewValueAssumption(expr.tok, expr.BoundVars, expr.Bounds, expr.Range, e0, e1, expr.Attributes, etran, prevEtran);
           updater.Add(TrAssumeCmd(s.Tok, qq));
         }
-      } 
+      }
     }
 
     /// <summary>
@@ -11017,12 +11017,12 @@ namespace Microsoft.Dafny {
         // call should be translated using "initEtran", whereas the method postcondition should be translated
         // using "callEtran".  To accomplish this, we translate the argument and then tuck the resulting
         // Boogie expressions into BoogieExprWrappers that are used in the DafnyExpr-to-DafnyExpr substitution.
-        // TODO     
+        // TODO
         Bpl.Expr qq;
         var bvars = new List<Variable>();
         Dictionary<IVariable, Expression> substMap;
         Bpl.Trigger antitriggerBoundVarTypes;
-        Bpl.Expr ante; 
+        Bpl.Expr ante;
         var argsSubstMap = new Dictionary<IVariable, Expression>();  // maps formal arguments to actuals
         Contract.Assert(s0.Method.Ins.Count == s0.Args.Count);
         var callEtran = new ExpressionTranslator(this, predef, etran.HeapExpr, initHeap);
@@ -12219,7 +12219,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(x != null);
       var nm = nameTypeParam(x);
       var opaqueType = x as OpaqueType_AsParameter;
-      if (tyArguments != null && tyArguments.Count != 0) {    
+      if (tyArguments != null && tyArguments.Count != 0) {
           List<Bpl.Expr> args = tyArguments.ConvertAll(TypeToTy);
           return FunctionCall(x.tok, nm, predef.Ty, args);
       } else {
@@ -12732,9 +12732,9 @@ namespace Microsoft.Dafny {
     /// If "bGivenLhs" is null, then this method will return an expression that in a stable way denotes the translation of "rhs";
     /// this is achieved by creating a new temporary Boogie variable to hold the result and returning an expression that mentions
     /// that new temporary variable.
-    /// 
+    ///
     /// Before the assignment, the generated code will check that "rhs" obeys any subrange requirements entailed by "rhsTypeConstraint".
-    /// 
+    ///
     /// The purpose of "lhsType" is to determine if the expression should be boxed before doing the assignment.  It is allowed to be null,
     /// which indicates that the result should always be a box.  Note that "lhsType" may refer to a formal type parameter that is not in
     /// scope; this is okay, since the purpose of "lhsType" is just to say whether or not the result should be boxed.
@@ -13423,8 +13423,8 @@ namespace Microsoft.Dafny {
       public Dictionary<TypeParameter, Type> typeMap;
 
       public SubstLetExpr(IToken tok, List<CasePattern<BoundVar>> lhss, List<Expression> rhss, Expression body, bool exact,
-         LetExpr orgExpr, Dictionary<IVariable, Expression> substMap, Dictionary<TypeParameter, Type> typeMap) 
-        : base(tok, lhss, rhss, body, exact) 
+         LetExpr orgExpr, Dictionary<IVariable, Expression> substMap, Dictionary<TypeParameter, Type> typeMap)
+        : base(tok, lhss, rhss, body, exact)
       {
         this.orgExpr = orgExpr;
         this.substMap = substMap;
@@ -13458,7 +13458,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    internal class FuelSettingPair 
+    internal class FuelSettingPair
     {
       public int low;
       public int high;
@@ -13533,7 +13533,7 @@ namespace Microsoft.Dafny {
       }
 
       public int amount;        // Amount of fuel above that represented by start
-      private Bpl.Expr start;   // Starting fuel argument (null indicates LZ)      
+      private Bpl.Expr start;   // Starting fuel argument (null indicates LZ)
       private Translator translator;
       private CustomFuelSettings customFuelSettings;
 
@@ -13593,7 +13593,7 @@ namespace Microsoft.Dafny {
       /// <summary>
       /// Get the fuel value for this function, given the ambient environment (represented by the fuel setting)
       /// the function itself, and the function call's context (if any)
-      /// </summary>      
+      /// </summary>
       public Bpl.Expr GetFunctionFuel(Function f) {
         Contract.Requires(f != null);
         if (customFuelSettings != null && customFuelSettings.ContainsKey(f)) {
@@ -13645,7 +13645,7 @@ namespace Microsoft.Dafny {
       /// Finds all fuel related attributes of the form {:fuel function low [high]}
       /// Adds the setting to the context _if_ the context does not already have a setting for that function.
       /// In other words, it should be called in order from most to least specific context scope.
-      /// </summary>    
+      /// </summary>
       public static void FindFuelAttributes(Attributes attribs, FuelContext fuelContext) {
         Function f = null;
         FuelSettingPair setting = null;
@@ -13705,7 +13705,7 @@ namespace Microsoft.Dafny {
 
       /// <summary>
       /// Creates a summary of all fuel settings in scope, starting from the given class declaration
-      /// </summary>      
+      /// </summary>
       public static FuelContext NewFuelContext(TopLevelDecl decl) {
         FuelContext context = new FuelContext();
         AddFuelContext(context, decl);
@@ -13713,20 +13713,20 @@ namespace Microsoft.Dafny {
       }
 
       /// <summary>
-      /// Creates a summary of all fuel settings in scope, starting from the given member declaration      
-      /// </summary>      
+      /// Creates a summary of all fuel settings in scope, starting from the given member declaration
+      /// </summary>
       public static FuelContext NewFuelContext(MemberDecl decl) {
         FuelContext context = new FuelContext();
 
         FindFuelAttributes(decl.Attributes, context);
         AddFuelContext(context, decl.EnclosingClass);
-        
+
         return context;
       }
 
       /// <summary>
       /// Extends the given fuel context with any new fuel settings found in attribs
-      /// </summary>    
+      /// </summary>
       public static FuelContext ExpandFuelContext(Attributes attribs, IToken tok, FuelContext oldFuelContext, ErrorReporter reporter) {
         Contract.Ensures(SavedContexts.Count == Contract.OldValue(SavedContexts.Count) + 1);
         FuelContext newContext = new FuelContext();
@@ -13755,7 +13755,7 @@ namespace Microsoft.Dafny {
           newContext = oldFuelContext;
         }
         SavedContexts.Push(oldFuelContext);
-        
+
         return newContext;
       }
 
@@ -13843,7 +13843,7 @@ namespace Microsoft.Dafny {
 
         Contract.Requires(translator != null);
         Contract.Requires(predef != null);
-        Contract.Requires(thisVar != null);       
+        Contract.Requires(thisVar != null);
         Contract.Requires(modifiesFrame != null);
 
         this.translator = translator;
@@ -15048,7 +15048,7 @@ namespace Microsoft.Dafny {
 
             Bpl.QKeyValue kv = TrAttributes(e.Attributes, "trigger");
             Bpl.Trigger tr = translator.TrTrigger(bodyEtran, e.Attributes, e.tok, bvars, null, null);
-            
+
             if (e.Range != null) {
               antecedent = BplAnd(antecedent, bodyEtran.TrExpr(e.Range));
             }
@@ -15440,7 +15440,7 @@ namespace Microsoft.Dafny {
         if (!omitHeapArgument && (AlwaysUseHeap || e.Function.ReadsHeap)) {
           args.Add(HeapExpr);
           // if the function doesn't use heaps, but always use heap as an argument
-          // we want to quantify over the heap so that heap in the trigger can match over 
+          // we want to quantify over the heap so that heap in the trigger can match over
           // heap modifying operations. (see Dafny4/bug144.dfy)
           bool useHeap = e.Function.ReadsHeap;
           if (!useHeap) {
@@ -17385,7 +17385,7 @@ namespace Microsoft.Dafny {
       public readonly Expression receiverReplacement;
       public readonly Dictionary<IVariable, Expression/*!*/>/*!*/ substMap;
       public readonly Dictionary<TypeParameter, Type/*!*/>/*!*/ typeMap;
-      
+
       public Substituter(Expression receiverReplacement, Dictionary<IVariable, Expression/*!*/>/*!*/ substMap, Dictionary<TypeParameter, Type> typeMap) {
         Contract.Requires(substMap != null);
         Contract.Requires(typeMap != null);

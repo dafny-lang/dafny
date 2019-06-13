@@ -32,8 +32,8 @@ namespace Microsoft.Dafny.Triggers {
     }
 
     /// <summary>
-    ///  This method checks whether this match could actually cause a loop, given a set of terms participating in a trigger; 
-    ///  to compute an answer, we match the Expr of this match against the Exprs of each of these term, allowing for harmless 
+    ///  This method checks whether this match could actually cause a loop, given a set of terms participating in a trigger;
+    ///  to compute an answer, we match the Expr of this match against the Exprs of each of these term, allowing for harmless
     ///  variations. If any of these tests does match, this term likely won't cause a loop.
     ///  The boundVars list is useful to determine that forall x :: P(x) == P(y+z) does not loop.
     /// </summary>
@@ -56,7 +56,7 @@ namespace Microsoft.Dafny.Triggers {
         foreach (var subexpr in AllSubExpressions(Translator.InlineLet(le), wrapOld, strict, inlineLets)) {
           yield return subexpr;
         }
-        // If strict is false, then the recursive call will already yield a copy of (the inlined version) of expr, 
+        // If strict is false, then the recursive call will already yield a copy of (the inlined version) of expr,
         // so there's no need to yield expr itself below.
         yield break;
       }
@@ -117,7 +117,7 @@ namespace Microsoft.Dafny.Triggers {
         }
       }
 
-      return ShallowEq_Top(expr1, expr2) && TriggerUtils.SameLists(expr1.SubExpressions, 
+      return ShallowEq_Top(expr1, expr2) && TriggerUtils.SameLists(expr1.SubExpressions,
         expr2.SubExpressions, (e1, e2) => ExpressionEqModuloExpressionsNotInvolvingBoundVariables(e1, e2, boundVars));
     }
 
@@ -173,7 +173,7 @@ namespace Microsoft.Dafny.Triggers {
               arg1.UniqueName == arg2.UniqueName &&
               arg1.IsGhost == arg2.IsGhost &&
               arg1.IsMutable == arg2.IsMutable &&
-              ((arg1.Type == null && arg2.Type == null) || arg1.Type.Equals(arg2.Type))); 
+              ((arg1.Type == null && arg2.Type == null) || arg1.Type.Equals(arg2.Type)));
     }
 
     /// <summary>
@@ -189,7 +189,7 @@ namespace Microsoft.Dafny.Triggers {
       Contract.Requires(!(expr2 is ConcreteSyntaxExpression));
 
       // CPC: Hey future editor: the following block of code is auto-generated. Just add your own cases at the end.
-      //      This could be a visitor pattern, except I need to visit a pair of nodes. 
+      //      This could be a visitor pattern, except I need to visit a pair of nodes.
       //      It could also be implemented in each individual class. I'd have a slight preference for that.
       //      This really just wants to use double dispatch.
       if (expr1 is UnboxingCastExpr && expr2 is UnboxingCastExpr) {

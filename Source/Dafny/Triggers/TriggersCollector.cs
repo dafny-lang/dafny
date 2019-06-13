@@ -18,10 +18,10 @@ namespace Microsoft.Dafny.Triggers {
     }
 
     public override string ToString() {
-      return Printer.ExprToString(Expr); 
-      // NOTE: Using OriginalExpr here could cause some confusion: 
-      // for example, {a !in b} is a binary expression, yielding 
-      // trigger {a in b}. Saying the trigger is a !in b would be 
+      return Printer.ExprToString(Expr);
+      // NOTE: Using OriginalExpr here could cause some confusion:
+      // for example, {a !in b} is a binary expression, yielding
+      // trigger {a in b}. Saying the trigger is a !in b would be
       // rather misleading.
     }
 
@@ -85,7 +85,7 @@ namespace Microsoft.Dafny.Triggers {
 
     internal bool IsStrongerThan(TriggerCandidate that) {
       if (this == that) {
-        return false; 
+        return false;
       }
 
       var hasStrictlyStrongerTerm = false;
@@ -148,9 +148,9 @@ namespace Microsoft.Dafny.Triggers {
     public readonly Dictionary<Expression, TriggerAnnotation> annotations;
 
     /// <summary>
-    /// For certain operations, the TriggersCollector class needs to know whether 
-    /// a particular expression is under an old(...) wrapper. This is in particular 
-    /// true for generating trigger terms (but it is not for checking whether something 
+    /// For certain operations, the TriggersCollector class needs to know whether
+    /// a particular expression is under an old(...) wrapper. This is in particular
+    /// true for generating trigger terms (but it is not for checking whether something
     /// is a trigger killer, so passing an empty set here for that case would be fine.
     /// </summary>
     public TriggerAnnotationsCache(Dictionary<Expression, HashSet<OldExpr>> exprsInOldContext) {
@@ -202,7 +202,7 @@ namespace Microsoft.Dafny.Triggers {
           annotation = Annotate(Translator.InlineLet(le));
         }
       }
-      
+
       if (annotation == null) {
         expr.SubExpressions.Iter(e => Annotate(e));
 
@@ -230,7 +230,7 @@ namespace Microsoft.Dafny.Triggers {
           annotation = AnnotateOther(expr, true);
         }
       }
-    
+
       TriggerUtils.DebugTriggers("{0} ({1})\n{2}", Printer.ExprToString(expr), expr.GetType(), annotation);
       cache.annotations[expr] = annotation;
       return annotation;
@@ -268,7 +268,7 @@ namespace Microsoft.Dafny.Triggers {
       }
     }
 
-    // math operations can be turned into a Boogie-level function as in the 
+    // math operations can be turned into a Boogie-level function as in the
     // case with /noNLarith.
     public static bool TranslateToFunctionCall(Expression expr) {
       if (!(expr is BinaryExpr)) {
@@ -333,11 +333,11 @@ namespace Microsoft.Dafny.Triggers {
     }
 
     private TriggerAnnotation AnnotateApplySuffix(ApplySuffix expr) {
-      // This is a bit tricky. A funcall node is generally meaningful as a trigger candidate, 
+      // This is a bit tricky. A funcall node is generally meaningful as a trigger candidate,
       // but when it's part of an ApplySuffix the function call itself may not resolve properly
       // when the second round of resolving is done after modules are duplicated.
-      // Thus first we annotate expr and create a trigger candidate, and then we remove the 
-      // candidate matching its direct subexpression if needed. Note that function calls are not the 
+      // Thus first we annotate expr and create a trigger candidate, and then we remove the
+      // candidate matching its direct subexpression if needed. Note that function calls are not the
       // only possible child here; there can be DatatypeValue nodes, for example (see vstte2012/Combinators.dfy).
       var annotation = AnnotatePotentialCandidate(expr);
       // Comparing by reference is fine here. Using sets could yield a small speedup

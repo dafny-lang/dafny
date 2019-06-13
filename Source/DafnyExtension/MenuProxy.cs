@@ -66,7 +66,7 @@ namespace DafnyLanguage
     {
       DafnyLanguage.ProgressTagger tagger;
       return activeTextView != null
-                 && StopResolverCommandEnabled(activeTextView) // verifier can start/stop only when resolver is running.       
+                 && StopResolverCommandEnabled(activeTextView) // verifier can start/stop only when resolver is running.
                  && DafnyLanguage.ProgressTagger.ProgressTaggers.TryGetValue(activeTextView.TextBuffer, out tagger)
                  && tagger != null && tagger.VerificationDisabled;
     }

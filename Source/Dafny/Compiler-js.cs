@@ -29,7 +29,7 @@ namespace Microsoft.Dafny {
     public override void EmitCallToMain(Method mainMethod, TargetWriter wr) {
       wr.WriteLine("{0}.{1}();", mainMethod.EnclosingClass.FullCompileName, IdName(mainMethod));
     }
-      
+
     protected override BlockTargetWriter CreateStaticMain(IClassWriter cw) {
       var wr = (cw as JavaScriptCompiler.ClassWriter).MethodWriter;
       return wr.NewBlock("static Main()");
@@ -352,7 +352,7 @@ namespace Microsoft.Dafny {
           }
         }
       }
-      
+
       // destructors
       foreach (var ctor in dt.Ctors) {
         foreach (var dtor in ctor.Destructors) {
@@ -487,7 +487,7 @@ namespace Microsoft.Dafny {
         wLoopBody.WriteLine("yield lo.toNumber();");
         EmitIncrementVar("lo", wLoopBody);
       }
-      if (nt.WitnessKind == SubsetTypeDecl.WKind.Compiled) { 
+      if (nt.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
         var witness = new TargetWriter(w.IndentLevel, true);
         if (nt.NativeType == null) {
           TrExpr(nt.Witness, witness, false);
@@ -507,7 +507,7 @@ namespace Microsoft.Dafny {
     protected override void DeclareSubsetType(SubsetTypeDecl sst, TargetWriter wr) {
       var cw = CreateClass(IdName(sst), sst.TypeArgs, wr) as JavaScriptCompiler.ClassWriter;
       var w = cw.MethodWriter;
-      if (sst.WitnessKind == SubsetTypeDecl.WKind.Compiled) { 
+      if (sst.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
         var witness = new TargetWriter(w.IndentLevel, true);
         TrExpr(sst.Witness, witness, false);
         DeclareField("Witness", true, true, sst.Rhs, sst.tok, witness.ToString(), w);

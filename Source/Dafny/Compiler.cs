@@ -265,7 +265,7 @@ namespace Microsoft.Dafny {
         wRhsVar.Write(rhsVars[i]);
       }
     }
-    
+
     protected virtual void EmitSetterParameter(TargetWriter wr) {
       wr.Write("value");
     }
@@ -596,7 +596,7 @@ namespace Microsoft.Dafny {
             // nop
           } else { Contract.Assert(false); }
         }
-        
+
         FinishModule();
       }
     }
@@ -742,14 +742,14 @@ namespace Microsoft.Dafny {
     public static bool IsMain(Method m) {
       Contract.Requires(m.EnclosingClass is ClassDecl);
       // In order to be a legal Main() method, the following must be true:
-      //    The method is not a ghost method 
+      //    The method is not a ghost method
       //    The method takes no non-ghost parameters and no type parameters
       //    The enclosing class does not take any type parameters
       //    If the method is an instance (that is, non-static) method in a class, then the enclosing class must not declare any constructor
       // In addition, either:
       //    The method is called "Main"
-      //    The method has no requires clause 
-      //    The method has no modifies clause 
+      //    The method has no requires clause
+      //    The method has no modifies clause
       // or:
       //    The method is annotated with {:main}
       // Note, in the case where the method is annotated with {:main}, the method is allowed to have preconditions and modifies clauses.
@@ -784,7 +784,7 @@ namespace Microsoft.Dafny {
         } else if (member is ConstantField && SupportsProperties) {
           if (NeedsWrappersForInheritedFields) {
             var cf = (ConstantField)member;
-          
+
             if (cf.Rhs == null) {
               Contract.Assert(!cf.IsStatic);  // as checked above, only instance members can be inherited
               classWriter.DeclareField("_" + cf.CompileName, false, false, cf.Type, cf.tok, DefaultValue(cf.Type, errorWr, cf.tok, true));
@@ -1348,7 +1348,7 @@ namespace Microsoft.Dafny {
         bool inAutoInitContext = false) {
       Contract.Requires(type != null);
       Contract.Requires(compiler == null || (wr != null && tok != null));
-      Contract.Ensures(!Contract.ValueAtReturn(out hasSimpleZeroInitializer) || Contract.ValueAtReturn(out hasZeroInitializer));  // hasSimpleZeroInitializer ==> hasZeroInitializer 
+      Contract.Ensures(!Contract.ValueAtReturn(out hasSimpleZeroInitializer) || Contract.ValueAtReturn(out hasZeroInitializer));  // hasSimpleZeroInitializer ==> hasZeroInitializer
       Contract.Ensures(!Contract.ValueAtReturn(out hasZeroInitializer) || Contract.ValueAtReturn(out initializerIsKnown));  // hasZeroInitializer ==> initializerIsKnown
       Contract.Ensures(compiler == null || Contract.ValueAtReturn(out defaultValue) != null);
 
@@ -2563,11 +2563,11 @@ namespace Microsoft.Dafny {
               //
               // The method Gimme will be compiled down to Go (or JavaScript)
               // as a function which returns any value (some details omitted):
-              //   
+              //
               //   func Gimmie(ty _dafny.Type) interface{} {
               //     return ty.Default()
               //   }
-              // 
+              //
               // If we naively translate, we get a type error:
               //
               //   var lhs int = Gimmie(_dafny.IntType) // error!
@@ -2898,7 +2898,7 @@ namespace Microsoft.Dafny {
         MultiSelectExpr e = (MultiSelectExpr)expr;
         var w = EmitArraySelect(e.Indices, e.Type, inLetExprBody, wr);
         TrParenExpr(e.Array, w, inLetExprBody);
-        
+
       } else if (expr is SeqUpdateExpr) {
         SeqUpdateExpr e = (SeqUpdateExpr)expr;
         if (e.ResolvedUpdateExpr != null) {
@@ -3388,7 +3388,7 @@ namespace Microsoft.Dafny {
 
     void CompileSpecialFunctionCallExpr(FunctionCallExpr e, TargetWriter wr, bool inLetExprBody, FCE_Arg_Translator tr) {
       string name = e.Function.Name;
-      
+
       if (name == "RotateLeft") {
         EmitRotate(e.Receiver, e.Args[0], true, wr, inLetExprBody, tr);
       } else if (name == "RotateRight") {
@@ -3434,20 +3434,20 @@ namespace Microsoft.Dafny {
       }
       wr.Write(")");
     }
-    
+
     public virtual bool SupportsInMemoryCompilation { get => true; }
-    
+
     /// <summary>
     /// Compile the target program known as "dafnyProgramName".
     /// "targetProgramText" contains the program text.
     /// If "targetFilename" is non-null, it is the name of the target program text stored as a
     /// file. "targetFileName" must be non-null if "otherFileNames" is nonempty.
     /// "otherFileNames" is a list of other files to include in the compilation.
-    /// 
+    ///
     /// "hasMain" says whether or not the program contains a "Main()" program.
-    /// 
+    ///
     /// Upon successful compilation, "runAfterCompile" says whether or not to execute the program.
-    /// 
+    ///
     /// Output any errors to "outputWriter".
     /// Returns "false" if there were errors. Then, "compilationResult" should not be used.
     /// Returns "true" on success. Then, "compilationResult" is a value that can be passed in to
@@ -3472,7 +3472,7 @@ namespace Microsoft.Dafny {
     /// dafnyProgram, targetProgramText, targetFilename, and otherFileNames are the same as the corresponding parameters to "CompileTargetProgram".
     /// "callToMain" is an explicit call to Main, as required by the target compilation language.
     /// "compilationResult" is a value returned by "CompileTargetProgram" for these parameters.
-    /// 
+    ///
     /// Returns "true" on success, "false" on error. Any errors are output to "outputWriter".
     /// </summary>
     public virtual bool RunTargetProgram(string dafnyProgramName, string targetProgramText, string/*?*/ callToMain, string/*?*/ targetFilename, ReadOnlyCollection<string> otherFileNames,

@@ -35,7 +35,7 @@ namespace DafnyLanguage.DafnyMenu
 
     bool AutomaticInductionCommandEnabled(IWpfTextView activeTextView);
 
-    
+
     bool StopVerifierCommandEnabled(IWpfTextView activeTextView);
 
 

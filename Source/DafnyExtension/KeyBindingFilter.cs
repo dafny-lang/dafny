@@ -32,7 +32,7 @@ namespace DafnyLanguage
           switch (prgCmds[0].cmdID) {
             case (uint)VSConstants.VSStd97CmdID.GotoDefn: // F12
             case (uint)VSConstants.VSStd97CmdID.Start:    // F5
-            case (uint)VSConstants.VSStd97CmdID.StepInto: // F11 
+            case (uint)VSConstants.VSStd97CmdID.StepInto: // F11
               prgCmds[0].cmdf = (uint) OLECMDF.OLECMDF_SUPPORTED;
               prgCmds[0].cmdf |= (uint)OLECMDF.OLECMDF_ENABLED;
               return VSConstants.S_OK;
@@ -116,7 +116,7 @@ namespace DafnyLanguage
       IVsUIHierarchy uiHierarchy;
       uint itemID;
       IVsWindowFrame windowFrame;
-      
+
       if (Microsoft.VisualStudio.Shell.VsShellUtilities.IsDocumentOpen(serviceProvider, filePath, Guid.Empty,
                                       out uiHierarchy, out itemID, out windowFrame)) {
         // Get the IVsTextView from the windowFrame.
@@ -136,7 +136,7 @@ namespace DafnyLanguage
 
         if (hr == VSConstants.S_OK) {
           commandFilter.m_added = true;
-          //you'll need the next target for Exec and QueryStatus 
+          //you'll need the next target for Exec and QueryStatus
           if (next != null)
             commandFilter.m_nextTarget = next;
         }
