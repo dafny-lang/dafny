@@ -136,4 +136,8 @@ public class DafnySet<T> {
     public String toString() {
         return innerSet.toString();
     }
+
+    public DafnyMultiset<T> asDafnyMultiset(){
+        return new DafnyMultiset<>(innerSet);
+    }
 }
