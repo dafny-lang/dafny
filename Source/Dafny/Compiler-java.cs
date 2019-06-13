@@ -435,25 +435,25 @@ namespace Microsoft.Dafny {
             switch (sel) {
                 // TODO: When the unsigned types get created in DafnyRuntime.java, make sure the names match the ones here
                 case NativeType.Selection.Byte:
-                    name = "Dafny.Byte";
+                    name = "Dafny.DafnyByte";
                     break;
                 case NativeType.Selection.SByte:
                     name = "byte";
                     break;
                 case NativeType.Selection.UShort:
-                    name = "Dafny.UShort";
+                    name = "Dafny.DafnyUShort";
                     break;
                 case NativeType.Selection.Short:
                     name = "short";
                     break;
                 case NativeType.Selection.UInt:
-                    name = "Dafny.UInt";
+                    name = "Dafny.DafnyUInt";
                     break;
                 case NativeType.Selection.Int:
                     name = "int";
                     break;
                 case NativeType.Selection.ULong:
-                    name = "Dafny.ULong";
+                    name = "Dafny.DafnyULong";
                     break;
                 case NativeType.Selection.Number:
                 case NativeType.Selection.Long:
@@ -508,7 +508,7 @@ namespace Microsoft.Dafny {
                     break;
                 case SpecialField.ID.ArrayLength:
                 case SpecialField.ID.ArrayLengthInt:
-                    compiledName = "length";
+                    compiledName = idParam == null ? "length" : "dims[" + (int)idParam + "]";
                     if (id == SpecialField.ID.ArrayLength) {
                         preString = "new BigInteger(";
                         postString = ")";
@@ -540,7 +540,7 @@ namespace Microsoft.Dafny {
                     compiledName = "values()";
                     break;
                 case SpecialField.ID.Items:
-                    compiledName = "_items";
+                    compiledName = "entrySet()";
                     break;
                 case SpecialField.ID.Reads:
                     compiledName = "_reads";
@@ -565,16 +565,6 @@ namespace Microsoft.Dafny {
                 string compiledName, preStr, postStr;
                 GetSpecialFieldInfo(sf.SpecialId, sf.IdParam, out compiledName, out preStr, out postStr);
                 if (compiledName.Length != 0) {
-                    if (sf.IdParam != null) {
-                        switch (sf.SpecialId) {
-                            case SpecialField.ID.ArrayLength:
-                            case SpecialField.ID.ArrayLengthInt:
-                                for (int i = 0; i < (int) sf.IdParam; i++) {
-                                    wr.Write("[0]");
-                                }
-                                break;
-                        }
-                    }
                     wr.Write(".{0}", compiledName);
                 }
             } else {
@@ -592,6 +582,98 @@ namespace Microsoft.Dafny {
             } else {
                 return TypeName(type, wr, tok, member);
             }
+        }
+        
+        protected override TargetWriter EmitArraySelect(List<string> indices, Type elmtType, TargetWriter wr) {
+            Contract.Assert(indices != null && 1 <= indices.Count);  // follows from precondition
+            var w = wr.Fork();
+            if (indices.Count == 1) {
+                wr.Write("[(int) {0}]", indices[0]);
+            } else {
+                wr.Write(".elmts");
+                foreach (var index in indices) {
+                    wr.Write("[(int) {0}]", index);
+                }
+            }
+            return w;
+        }
+
+        protected override TargetWriter EmitArraySelect(List<Expression> indices, Type elmtType, bool inLetExprBody, TargetWriter wr) {
+            Contract.Assert(indices != null && 1 <= indices.Count);  // follows from precondition
+            var w = wr.Fork();
+            if (indices.Count == 1) {
+                wr.Write("[(int) ");
+                TrParenExpr(indices[0], wr, inLetExprBody);
+                wr.Write("]");
+            } else {
+                wr.Write(".elmts");
+                foreach (var index in indices) {
+                    wr.Write("[(int) ");
+                    TrParenExpr(index, wr, inLetExprBody);
+                    wr.Write("]");
+                }
+            }
+            return w;
+        }
+        
+        protected override void EmitSeqSelectRange(Expression source, Expression lo, Expression hi, bool fromArray, bool inLetExprBody, TargetWriter wr) {
+            if (fromArray) {
+                wr.Write("new DafnySequence(Arrays.asList(Arrays.copyOfRange(");
+            }
+            TrParenExpr(source, wr, inLetExprBody);
+            if (fromArray) {
+                wr.Write(", ");
+                if (lo != null) {
+                    TrExpr(lo, wr, inLetExprBody);
+                } else {
+                    wr.Write("0");
+                }
+                wr.Write(", ");
+                if (hi != null) {
+                    TrExpr(hi, wr, inLetExprBody);
+                } else {
+                    TrParenExpr(source, wr, inLetExprBody);
+                    wr.Write(".length");
+                }
+                wr.Write(")))");
+            } else {
+                if (lo != null && hi != null) {
+                    wr.Write(".subsequence(");
+                    TrExpr(lo, wr, inLetExprBody);
+                    wr.Write(", ");
+                    TrExpr(hi, wr, inLetExprBody);
+                    wr.Write(")");
+                }
+                else if (lo != null) {
+                    wr.Write(".drop");
+                    TrParenExpr(lo, wr, inLetExprBody);
+                }
+                else if (hi != null) {
+                    wr.Write(".take");
+                    TrParenExpr(hi, wr, inLetExprBody);
+                }
+            }
+        }
+        
+        protected override void EmitIndexCollectionSelect(Expression source, Expression index, bool inLetExprBody, TargetWriter wr) {
+            // Taken from C# compiler, assuming source is a DafnySequence type.
+            TrParenExpr(source, wr, inLetExprBody);
+            TrParenExpr(".select", index, wr, inLetExprBody);
+        }
+
+        protected override void EmitMultiSetFormingExpr(MultiSetFormingExpr expr, bool inLetExprBody, TargetWriter wr) {
+            TrParenExpr(expr.E, wr, inLetExprBody);
+            wr.Write(".asDafnyMultiset()");
+        }
+        
+        protected override void EmitIndexCollectionUpdate(Expression source, Expression index, Expression value, bool inLetExprBody,
+            TargetWriter wr, bool nativeIndex = false) {
+            TrParenExpr(source, wr, inLetExprBody);
+            wr.Write(".update(");
+            TrExpr(index, wr, inLetExprBody);
+            wr.Write(", ");
+            TrExpr(value, wr, inLetExprBody);
+            wr.Write(")");
         }
 
         protected override string IdProtect(string name) {
@@ -749,39 +831,7 @@ namespace Microsoft.Dafny {
             throw new NotImplementedException();
         }
 
-        protected override TargetWriter EmitArraySelect(List<string> indices, Type elmtType, TargetWriter wr)
-        {
-            throw new NotImplementedException();
-        }
-
-        protected override TargetWriter EmitArraySelect(List<Expression> indices, Type elmtType, bool inLetExprBody, TargetWriter wr)
-        {
-            throw new NotImplementedException();
-        }
-
         protected override void EmitExprAsInt(Expression expr, bool inLetExprBody, TargetWriter wr)
-        {
-            throw new NotImplementedException();
-        }
-
-        protected override void EmitIndexCollectionSelect(Expression source, Expression index, bool inLetExprBody, TargetWriter wr)
-        {
-            throw new NotImplementedException();
-        }
-
-        protected override void EmitIndexCollectionUpdate(Expression source, Expression index, Expression value, bool inLetExprBody,
-            TargetWriter wr, bool nativeIndex = false)
-        {
-            throw new NotImplementedException();
-        }
-
-        protected override void EmitSeqSelectRange(Expression source, Expression lo, Expression hi, bool fromArray, bool inLetExprBody,
-            TargetWriter wr)
-        {
-            throw new NotImplementedException();
-        }
-
-        protected override void EmitMultiSetFormingExpr(MultiSetFormingExpr expr, bool inLetExprBody, TargetWriter wr)
         {
             throw new NotImplementedException();
         }
