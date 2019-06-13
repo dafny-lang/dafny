@@ -132,4 +132,9 @@ public class SetTest {
         testSet.removeAll(testSet);
         assertTrue(testSet.isEmpty());
     }
+
+    @Test
+    public void testConversion(){
+        assertEquals(new DafnyMultiset<>(Arrays.asList(1, 2, 3, 4, 5, 6, 8)), testSet.asDafnyMultiset());
+    }
 }
