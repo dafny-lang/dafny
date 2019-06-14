@@ -2166,7 +2166,7 @@ namespace Microsoft.Dafny
           if (extension == ".cs") {
             numOtherSourceFiles++;
           } else if (extension == ".dll") {
-            cp.ReferencedAssemblies.Add(file);
+            cp.ReferencedAssemblies.Add(Path.Combine(Path.GetDirectoryName(file), Path.GetFileName(file)));
           }
         }
       }
