@@ -13,7 +13,6 @@ import static org.hamcrest.CoreMatchers.startsWith;
 
 
 public class MultisetTest {
-//Todo: test conditions associated with negative multiplicities
     DafnyMultiset<Integer> testMSet = new DafnyMultiset<>(Arrays.asList(1, 2, 3, 1, 2, 4, 3, 5, 7, 3, 2));
     DafnyMultiset<Integer> testMSubSet = new DafnyMultiset<>(Arrays.asList(1, 2, 1, 2, 4, 3, 5, 3, 2));
     DafnyMultiset<Integer> testMDisjoint = new DafnyMultiset<>(Arrays.asList(-1, -3, -1, -5, 10, 11, -4));

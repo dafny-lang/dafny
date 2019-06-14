@@ -8,7 +8,7 @@ import java.util.Iterator;
 
 public class DafnySequence<T> implements Iterable {
     /*
-    Invariant: forall 0<=i<length(). seq[i] = Character
+    Invariant: forall 0<=i<length(). seq[i] == T || null
     Property: DafnySequences are immutable. Any methods that seem to edit the DafnySequence will only return a new
     DafnySequence
     Todo: DafnySequence Invariants and Properties
