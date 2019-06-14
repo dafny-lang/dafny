@@ -70,6 +70,13 @@ namespace Microsoft.Dafny {
       EmitImports(wr, out _);
       wr.WriteLine();
     }
+    
+    public override void EmitCallToMain(Method mainMethod, TargetWriter wr) {
+      var companion = TypeName_Companion(mainMethod.EnclosingClass as ClassDecl, wr, mainMethod.tok);
+      
+      var wBody = wr.NewNamedBlock("public static void main(String[] args)");
+      wBody.WriteLine("{0}.{1}();", companion, IdName(mainMethod));
+    }
 
     void EmitImports(TargetWriter wr, out TargetWriter importWriter) {
       importWriter = wr.ForkSection();
@@ -358,7 +365,7 @@ namespace Microsoft.Dafny {
       w.WriteLine("// Dafny class {0} compiled into Java", name);
       w.WriteLine("package {0};", ModuleName);
       w.WriteLine();
-      wr.WriteLine("import java.*;"); // TODO: See if it is really necessary to import all of Java, though C# compiler imports all of System
+      w.WriteLine("import java.*;"); // TODO: See if it is really necessary to import all of Java, though C# compiler imports all of System
       EmitImports(w, out _);
       w.WriteLine();
       w.WriteLine("public class {0}", name);
@@ -675,6 +682,289 @@ namespace Microsoft.Dafny {
       TrExpr(value, wr, inLetExprBody);
       wr.Write(")");
     }
+    
+    protected override void EmitRotate(Expression e0, Expression e1, bool isRotateLeft, TargetWriter wr, bool inLetExprBody, FCE_Arg_Translator tr) {
+      string nativeName = null, literalSuffix = null;
+      bool needsCast = false;
+      var nativeType = AsNativeType(e0.Type);
+      if (nativeType != null) {
+        GetNativeInfo(nativeType.Sel, out nativeName, out literalSuffix, out needsCast);
+      }
+      // ( e0 op1 e1) | (e0 op2 (width - e1))
+      if (needsCast) {
+        wr.Write("(" + nativeName + ")(");
+      }
+      wr.Write("(");
+      EmitShift(e0, e1, isRotateLeft ? "<<" : ">>", isRotateLeft, nativeType, true, wr, inLetExprBody, tr);
+      wr.Write(")");
+      wr.Write (" | ");
+      wr.Write("(");
+      EmitShift(e0, e1, isRotateLeft ? ">>" : "<<", !isRotateLeft, nativeType, false, wr, inLetExprBody, tr);
+      wr.Write(")");
+      if (needsCast) {
+        wr.Write(")");
+      }
+    }
+
+    void EmitShift(Expression e0, Expression e1, string op, bool truncate, NativeType/*?*/ nativeType, bool firstOp, TargetWriter wr, bool inLetExprBody, FCE_Arg_Translator tr) {
+      var bv = e0.Type.AsBitVectorType;
+      if (truncate) {
+        wr = EmitBitvectorTruncation(bv, true, wr);
+      }
+      tr(e0, wr, inLetExprBody);
+      wr.Write(" {0} ", op);
+      if (!firstOp) {
+        wr.Write("({0} - ", bv.Width);
+      }
+      wr.Write("(int) (");
+      tr(e1, wr, inLetExprBody);
+      wr.Write(")");
+      if (!firstOp) {
+        wr.Write(")");
+      }
+    }
+    
+    protected override TargetWriter EmitBitvectorTruncation(BitvectorType bvType, bool surroundByUnchecked, TargetWriter wr) {
+      string nativeName = null, literalSuffix = null;
+      bool needsCastAfterArithmetic = false;
+      if (bvType.NativeType != null) {
+        GetNativeInfo(bvType.NativeType.Sel, out nativeName, out literalSuffix, out needsCastAfterArithmetic);
+      }
+      // --- Before
+      if (bvType.NativeType == null) {
+        wr.Write("((");
+      } else {
+        wr.Write("({0})((", nativeName);
+      }
+      // --- Middle
+      var middle = wr.Fork();
+      // --- After
+      // do the truncation, if needed
+      if (bvType.NativeType == null) {
+        wr.Write(") & ((new BigInteger(1) << {0}) - 1))", bvType.Width);
+      } else {
+        if (bvType.NativeType.Bitwidth != bvType.Width) {
+          // print in hex, because that looks nice
+          wr.Write(") & ({2})0x{0:X}{1})", (1UL << bvType.Width) - 1, literalSuffix, nativeName);
+        } else {
+          wr.Write("))");  // close the parentheses for the cast
+        }
+      }
+      return middle;
+    }
+    
+    protected override void DeclareDatatype(DatatypeDecl dt, TargetWriter wr) {
+      CompileDatatypeBase(dt, wr);
+      CompileDatatypeConstructors(dt, wr);
+    }
+
+    void CompileDatatypeBase(DatatypeDecl dt, TargetWriter wr) {
+      string DtT = dt.CompileName;
+      string DtT_protected = IdProtect(DtT);
+      string DtT_TypeArgs = "";
+      if (dt.TypeArgs.Count != 0) {
+        DtT_TypeArgs = "<" + TypeParameters(dt.TypeArgs) + ">";
+        DtT += DtT_TypeArgs;
+        DtT_protected += DtT_TypeArgs;
+      }
+      var filename = string.Format("{0}/{0}.java", DtT_protected);
+      wr = wr.NewFile(filename);
+      wr.WriteLine("// Class {0}", DtT_protected);
+      wr.WriteLine("// Dafny class {0} compiled into Java", DtT_protected);
+      wr.WriteLine("package {0};", ModuleName);
+      wr.WriteLine();
+      wr.WriteLine("import java.*;"); // TODO: See if it is really necessary to import all of Java, though C# compiler imports all of System
+      EmitImports(wr, out _);
+      wr.WriteLine();
+      // from here on, write everything into the new block created here:
+      wr = wr.NewNamedBlock("public{0} class {1}", dt.IsRecordType ? "" : " abstract", DtT_protected);
+      // constructor
+      if (dt.IsRecordType) {
+        DatatypeFieldsAndConstructor(dt.Ctors[0], 0, wr);
+      } else {
+        wr.WriteLine("public {0}() {{ }}", IdName(dt));
+      }
+      wr.WriteLine("static {0} theDefault;", DtT_protected);
+      using (var w = wr.NewNamedBlock("public static {0} Default", DtT_protected)) {
+        var wIf = EmitIf("theDefault == null", false, w);
+        wIf.Write("theDefault = ");
+        DatatypeCtor defaultCtor;
+        if (dt is IndDatatypeDecl) {
+          defaultCtor = ((IndDatatypeDecl)dt).DefaultCtor;
+        } else {
+          defaultCtor = ((CoDatatypeDecl) dt).Ctors[0];
+        }
+        wIf.Write("new {0}(", DtCtorName(defaultCtor, dt.TypeArgs));
+        string sep = "";
+        foreach (Formal f in defaultCtor.Formals) {
+          if (!f.IsGhost) {
+            wIf.Write("{0}{1}", sep, DefaultValue(f.Type, wIf, f.tok));
+            sep = ", ";
+          }
+        }
+        wIf.Write(");");
+        wIf.WriteLine();
+        w.WriteLine("return theDefault;");
+      }
+      wr.WriteLine("public static {0} _DafnyDefaultValue() {{ return Default; }}", DtT_protected);
+      // create methods
+      foreach (var ctor in dt.Ctors) {
+        wr.Write("public static {0} {1}(", DtT_protected, DtCreateName(ctor));
+        WriteFormals("", ctor.Formals, wr);
+        var w = wr.NewBlock(")");
+        w.Write("return new {0}(", DtCtorDeclarationName(ctor, dt.TypeArgs));
+        var sep = "";
+        var i = 0;
+        foreach (var arg in ctor.Formals) {
+          if (!arg.IsGhost) {
+            w.Write("{0}{1}", sep, FormalName(arg, i));
+            sep = ", ";
+            i++;
+          }
+        }
+        w.WriteLine(");");
+      }
+      // query properties
+      foreach (var ctor in dt.Ctors) {
+        if (dt.IsRecordType) {
+          wr.WriteLine("public bool is_{0} {{ return true; }}", ctor.CompileName);
+        } else {
+          wr.WriteLine("public bool is_{0} {{ return this instanceOf {1}_{0}{2}; }}", ctor.CompileName, dt.CompileName, DtT_TypeArgs);
+        }
+      }
+      // destructors
+      foreach (var ctor in dt.Ctors) {
+        foreach (var dtor in ctor.Destructors) {
+          if (dtor.EnclosingCtors[0] == ctor) {
+            var arg = dtor.CorrespondingFormals[0];
+            if (!arg.IsGhost && arg.HasName) {
+              using (var wDtor = wr.NewNamedBlock("public {0} dtor_{1}", TypeName(arg.Type, wr, arg.tok), arg.CompileName)) {
+                if (dt.IsRecordType) {
+                  wDtor.WriteLine("return this.{0};", IdName(arg)); 
+                } else {
+                  wDtor.WriteLine("{0} d = this;", DtT_protected); 
+                  var n = dtor.EnclosingCtors.Count;
+                  for (int i = 0; i < n-1; i++) {
+                    var ctor_i = dtor.EnclosingCtors[i];
+                    Contract.Assert(arg.CompileName == dtor.CorrespondingFormals[i].CompileName);
+                    wDtor.WriteLine("if (d instanceOf {0}_{1}{2}) {{ return (({0}_{1}{2})d).{3}; }}", dt.CompileName, ctor_i.CompileName, DtT_TypeArgs, IdName(arg));
+                  }
+                  Contract.Assert(arg.CompileName == dtor.CorrespondingFormals[n-1].CompileName);
+                  wDtor.WriteLine("return (({0}_{1}{2})d).{3}; ", dt.CompileName, dtor.EnclosingCtors[n-1].CompileName, DtT_TypeArgs, IdName(arg));
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+    
+    void CompileDatatypeConstructors(DatatypeDecl dt, TargetWriter wrx) {
+      Contract.Requires(dt != null);
+      string typeParams = dt.TypeArgs.Count == 0 ? "" : string.Format("<{0}>", TypeParameters(dt.TypeArgs));
+      if (dt.IsRecordType) {
+        // There is only one constructor, and it is populated by CompileDatatypeBase
+        return;
+      }
+      int constructorIndex = 0; // used to give each constructor a different name
+      foreach (DatatypeCtor ctor in dt.Ctors) {
+        var filename = string.Format("{0}/{0}.java", DtCtorDeclarationName(ctor, dt.TypeArgs));
+        var wr = wrx.NewFile(filename);
+        wr.WriteLine("// Class {0}", DtCtorDeclarationName(ctor, dt.TypeArgs));
+        wr.WriteLine("// Dafny class {0} compiled into Java", DtCtorDeclarationName(ctor, dt.TypeArgs));
+        wr.WriteLine("package {0};", ModuleName);
+        wr.WriteLine();
+        wr.WriteLine("import java.*;"); // TODO: See if it is really necessary to import all of Java, though C# compiler imports all of System
+        EmitImports(wr, out _);
+        wr.WriteLine();
+        var w = wr.NewNamedBlock("public class {0} extends {1}{2}", DtCtorDeclarationName(ctor, dt.TypeArgs), IdName(dt), typeParams);
+        DatatypeFieldsAndConstructor(ctor, constructorIndex, w);
+        constructorIndex++;
+      }
+    }
+    
+    void DatatypeFieldsAndConstructor(DatatypeCtor ctor, int constructorIndex, TargetWriter wr) {
+      Contract.Requires(ctor != null);
+      Contract.Requires(0 <= constructorIndex && constructorIndex < ctor.EnclosingDatatype.Ctors.Count);
+      Contract.Requires(wr != null);
+      var i = 0;
+      foreach (Formal arg in ctor.Formals) {
+        if (!arg.IsGhost) {
+          wr.WriteLine("public {0} {1};", TypeName(arg.Type, wr, arg.tok), FormalName(arg, i));
+          i++;
+        }
+      }
+      wr.Write("public {0}(", DtCtorDeclarationName(ctor));
+      WriteFormals("", ctor.Formals, wr);
+      using (var w = wr.NewBlock(")")) {
+        i = 0;
+        foreach (Formal arg in ctor.Formals) {
+          if (!arg.IsGhost) {
+            w.WriteLine("this.{0} = {0};", FormalName(arg, i));
+            i++;
+          }
+        }
+      }
+    }
+    
+    string DtCtorDeclarationName(DatatypeCtor ctor, List<TypeParameter> typeParams) {
+      Contract.Requires(ctor != null);
+      Contract.Ensures(Contract.Result<string>() != null);
+
+      var s = DtCtorDeclarationName(ctor);
+      if (typeParams != null && typeParams.Count != 0) {
+        s += "<" + TypeParameters(typeParams) + ">";
+      }
+      return s;
+    }
+    string DtCtorDeclarationName(DatatypeCtor ctor) {
+      Contract.Requires(ctor != null);
+      Contract.Ensures(Contract.Result<string>() != null);
+
+      var dt = ctor.EnclosingDatatype;
+      return dt.IsRecordType ? IdName(dt) : dt.CompileName + "_" + ctor.CompileName;
+    }
+    string DtCtorName(DatatypeCtor ctor, List<TypeParameter> typeParams) {
+      Contract.Requires(ctor != null);
+      Contract.Ensures(Contract.Result<string>() != null);
+
+      var s = DtCtorName(ctor);
+      if (typeParams != null && typeParams.Count != 0) {
+        s += "<" + TypeParameters(typeParams) + ">";
+      }
+      return s;
+    }
+    string DtCtorName(DatatypeCtor ctor, List<Type> typeArgs, TextWriter wr) {
+      Contract.Requires(ctor != null);
+      Contract.Ensures(Contract.Result<string>() != null);
+
+      var s = DtCtorName(ctor);
+      if (typeArgs != null && typeArgs.Count != 0) {
+        s += "<" + TypeNames(typeArgs, wr, ctor.tok) + ">";
+      }
+      return s;
+    }
+    string DtCtorName(DatatypeCtor ctor) {
+      Contract.Requires(ctor != null);
+      Contract.Ensures(Contract.Result<string>() != null);
+
+      var dt = ctor.EnclosingDatatype;
+      var dtName = dt.Module.IsDefaultModule ? IdProtect(dt.CompileName) : dt.FullCompileName;
+      return dt.IsRecordType ? dtName : dtName + "_" + ctor.CompileName;
+    }
+    string DtCreateName(DatatypeCtor ctor) {
+      if (ctor.EnclosingDatatype.IsRecordType) {
+        return "create";
+      } else {
+        return "create_" + ctor.CompileName;
+      }
+    }
+    
+    protected override void EmitPrintStmt(TargetWriter wr, Expression arg) {
+      wr.Write("System.out.print(");
+      TrExpr(arg, wr, false);
+      wr.WriteLine(");");
+    }
 
     protected override string IdProtect(string name) {
       return PublicIdProtect(name);
@@ -792,11 +1082,6 @@ namespace Microsoft.Dafny {
     }
 
     protected override string GenerateLhsDecl(string target, Type type, TextWriter wr, Bpl.IToken tok)
-    {
-      throw new NotImplementedException();
-    }
-
-    protected override void EmitPrintStmt(TargetWriter wr, Expression arg)
     {
       throw new NotImplementedException();
     }
@@ -971,17 +1256,6 @@ namespace Microsoft.Dafny {
       throw new NotImplementedException();
     }
 
-    protected override TargetWriter EmitBitvectorTruncation(BitvectorType bvType, bool surroundByUnchecked, TargetWriter wr)
-    {
-      throw new NotImplementedException();
-    }
-
-    protected override void EmitRotate(Expression e0, Expression e1, bool isRotateLeft, TargetWriter wr, bool inLetExprBody,
-      FCE_Arg_Translator tr)
-    {
-      throw new NotImplementedException();
-    }
-
     protected override void EmitEmptyTupleList(string tupleTypeArgs, TargetWriter wr)
     {
       throw new NotImplementedException();
@@ -1003,11 +1277,6 @@ namespace Microsoft.Dafny {
     }
         
     protected override BlockTargetWriter CreateIterator(IteratorDecl iter, TargetWriter wr)
-    {
-      throw new NotImplementedException();
-    }
-
-    protected override void DeclareDatatype(DatatypeDecl dt, TargetWriter wr)
     {
       throw new NotImplementedException();
     }
