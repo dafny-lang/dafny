@@ -9240,9 +9240,13 @@ namespace Microsoft.Dafny {
         // plain and simple:  S1 == S2
         boilerplate.Add(new BoilerplateTriple(tok, true, Bpl.Expr.Eq(etranPre.HeapExpr, etran.HeapExpr), null, "frame condition"));
       } else {
+        bool fieldGranularity = true;
+        bool objectGranularity = !fieldGranularity;
         // the frame condition, which is free since it is checked with every heap update and call
-        boilerplate.Add(new BoilerplateTriple(tok, true, FrameCondition(tok, modifiesClause, isGhostContext, Resolver.FrameExpressionUse.Modifies, etranPre, etran, etranMod), null, "frame condition"));
-        boilerplate.Add(new BoilerplateTriple(tok, true, FrameCondition2(tok, modifiesClause, isGhostContext, Resolver.FrameExpressionUse.Modifies, etranPre, etran, etranMod), null, "frame condition"));
+        boilerplate.Add(new BoilerplateTriple(tok, true, FrameCondition(tok, modifiesClause, isGhostContext, Resolver.FrameExpressionUse.Modifies, etranPre, etran, etranMod, objectGranularity), null, "frame condition: object granularity"));
+        if (modifiesClause.Exists(fe => fe.FieldName != null)) {
+          boilerplate.Add(new BoilerplateTriple(tok, true, FrameCondition(tok, modifiesClause, isGhostContext, Resolver.FrameExpressionUse.Modifies, etranPre, etran, etranMod, fieldGranularity), null, "frame condition: field granularity"));
+        }
         // HeapSucc(S1, S2) or HeapSuccGhost(S1, S2)
         Bpl.Expr heapSucc = HeapSucc(etranPre.HeapExpr, etran.HeapExpr, isGhostContext);
         boilerplate.Add(new BoilerplateTriple(tok, true, heapSucc, null, "boilerplate"));
@@ -9265,7 +9269,7 @@ namespace Microsoft.Dafny {
     ///      and if it has a field designation, then furthermore 'alloc' is unchanged
     /// </summary>
     Bpl.Expr/*!*/ FrameCondition(IToken/*!*/ tok, List<FrameExpression/*!*/>/*!*/ frame, bool isGhostContext, Resolver.FrameExpressionUse use,
-      ExpressionTranslator/*!*/ etranPre, ExpressionTranslator/*!*/ etran, ExpressionTranslator/*!*/ etranMod)
+      ExpressionTranslator/*!*/ etranPre, ExpressionTranslator/*!*/ etran, ExpressionTranslator/*!*/ etranMod, bool fieldGranularity)
     {
       Contract.Requires(tok != null);
       Contract.Requires(etran != null);
@@ -9274,15 +9278,18 @@ namespace Microsoft.Dafny {
       Contract.Requires(predef != null);
       Contract.Ensures(Contract.Result<Bpl.Expr>() != null);
 
+      // read is handled in AddFrameAxiom
+      //
+      // if field granularity: 
       // generate:
-      //  (forall<alpha> o: ref, f: Field alpha :: { $Heap[o,f] }
+      //  (forall<alpha> o: ref, f: Field alpha :: { $Heap[o][f] }
       //      o != null
       // #if use==Modifies
-      //      && old($Heap)[o,alloc]                     // include only in non-ghost contexts
+      //      && old($Heap)[o][alloc]                     // include only in non-ghost contexts
       // #endif
       //      ==>
       // #if use==Modifies
-      //        $Heap[o,f] == PreHeap[o,f] ||
+      //        $Heap[o][f] == PreHeap[o][f] ||
       //        (o,f) in modifiesClause)
       // #else
       //        (o,f) in readsClause
@@ -9290,16 +9297,51 @@ namespace Microsoft.Dafny {
       //        or f==alloc && there's some f' such that (o,f') in readsClause
       // #endif
       //        ==>
-      //        $Heap[o,f] == PreHeap[o,f])
+      //        $Heap[o][f] == PreHeap[o][f])
       // #endif
-      var alpha = new Bpl.TypeVariable(tok, "alpha");
+      //
+      // if object granularity: 
+      // generate:
+      //  (forall o: ref :: { $Heap[o] }
+      //      o != null
+      // #if use==Modifies
+      //      && old($Heap)[o][alloc]                     // include only in non-ghost contexts
+      // #endif
+      //      ==>
+      // #if use==Modifies
+      //        $Heap[o] == PreHeap[o] ||
+      //        o in modifiesClause)
+      // #else
+      //        o in readsClause
+      //        ==>
+      //        $Heap[o] == PreHeap[o])
+      // #endif
       var oVar = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, "$o", predef.RefType));
       var o = new Bpl.IdentifierExpr(tok, oVar);
-      var fVar = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, "$f", predef.FieldName(tok, alpha)));
-      var f = new Bpl.IdentifierExpr(tok, fVar);
 
-      Bpl.Expr heapOF = ReadHeap(tok, etran.HeapExpr, o, f);
-      Bpl.Expr preHeapOF = ReadHeap(tok, etranPre.HeapExpr, o, f);
+      Bpl.TypeVariable alpha;
+      Bpl.Expr f;
+      List<Variable> quantifiedVars;
+      List<TypeVariable> typeVars;
+      Bpl.Expr heapOF;
+      Bpl.Expr preHeapOF;
+      if (fieldGranularity) {
+        alpha = new Bpl.TypeVariable(tok, "alpha");
+        typeVars = new List<TypeVariable> { alpha };
+        var fVar = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, "$f", predef.FieldName(tok, alpha)));
+        f = new Bpl.IdentifierExpr(tok, fVar);
+        quantifiedVars = new List<Variable> { oVar, fVar };
+        heapOF = ReadHeap(tok, etran.HeapExpr, o, f);
+        preHeapOF = ReadHeap(tok, etranPre.HeapExpr, o, f);
+      } else {
+        // object granularity
+        typeVars = new List<TypeVariable>();
+        f = null;
+        quantifiedVars = new List<Variable> { oVar };
+        heapOF = ReadHeap(tok, etran.HeapExpr, o);
+        preHeapOF = ReadHeap(tok, etranPre.HeapExpr, o);
+      }
+
       Bpl.Expr ante = Bpl.Expr.Neq(o, predef.Null);
       if (!isGhostContext && use == Resolver.FrameExpressionUse.Modifies) {
         ante = Bpl.Expr.And(ante, etranMod.IsAlloced(tok, o));
@@ -9309,68 +9351,9 @@ namespace Microsoft.Dafny {
       Bpl.Expr consequent = use == Resolver.FrameExpressionUse.Modifies ? Bpl.Expr.Or(eq, ofInFrame) : Bpl.Expr.Imp(ofInFrame, eq);
 
       var tr = new Bpl.Trigger(tok, true, new List<Bpl.Expr> { heapOF });
-      return new Bpl.ForallExpr(tok, new List<TypeVariable> { alpha }, new List<Variable> { oVar, fVar }, null, tr, Bpl.Expr.Imp(ante, consequent));
+      return new Bpl.ForallExpr(tok, typeVars, quantifiedVars, null, tr, Bpl.Expr.Imp(ante, consequent));    
     }
 
-    /// <summary>
-    /// There are 3 states of interest when generating a frame condition:
-    ///  S0. the beginning of the method/loop, which is where the frame is interpreted
-    ///  S1. the pre-state of the two-state interval
-    ///  S2. the post-state of the two-state interval
-    /// This method assumes that etranPre denotes S1, etran denotes S2, and that etranMod denotes S0.
-    /// "use" being "Modifies" says to produce this frame condition:
-    ///      if it's not in the frame, then it is unchanged
-    /// "use" being "Reads" says to produce this frame condition:
-    ///      if it's in the frame, then it is unchanged
-    /// "use" being "Unchanged" says to produce this frame condition:
-    ///      if it's in the frame, then it is unchanged,
-    ///      and if it has a field designation, then furthermore 'alloc' is unchanged
-    /// </summary>
-    Bpl.Expr/*!*/ FrameCondition2(IToken/*!*/ tok, List<FrameExpression/*!*/>/*!*/ frame, bool isGhostContext, Resolver.FrameExpressionUse use,
-      ExpressionTranslator/*!*/ etranPre, ExpressionTranslator/*!*/ etran, ExpressionTranslator/*!*/ etranMod)
-    {
-      Contract.Requires(tok != null);
-      Contract.Requires(etran != null);
-      Contract.Requires(etranPre != null);
-      Contract.Requires(cce.NonNullElements(frame));
-      Contract.Requires(predef != null);
-      Contract.Ensures(Contract.Result<Bpl.Expr>() != null);
-
-      // generate:
-      //  (forall<alpha> o: ref, f: Field alpha :: { $Heap[o,f] }
-      //      o != null
-      // #if use==Modifies
-      //      && old($Heap)[o,alloc]                     // include only in non-ghost contexts
-      // #endif
-      //      ==>
-      // #if use==Modifies
-      //        $Heap[o,f] == PreHeap[o,f] ||
-      //        (o,f) in modifiesClause)
-      // #else
-      //        (o,f) in readsClause
-      // #if use==Unchanged
-      //        or f==alloc && there's some f' such that (o,f') in readsClause
-      // #endif
-      //        ==>
-      //        $Heap[o,f] == PreHeap[o,f])
-      // #endif
-      var oVar = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, "$o", predef.RefType));
-      var o = new Bpl.IdentifierExpr(tok, oVar);
-
-      Bpl.Expr heapOF = ReadHeap(tok, etran.HeapExpr, o);
-      Bpl.Expr preHeapOF = ReadHeap(tok, etranPre.HeapExpr, o);
-      Bpl.Expr ante = Bpl.Expr.Neq(o, predef.Null);
-      if (!isGhostContext && use == Resolver.FrameExpressionUse.Modifies)
-      {
-        ante = Bpl.Expr.And(ante, etranMod.IsAlloced(tok, o));
-      }
-      var eq = Bpl.Expr.Eq(heapOF, preHeapOF);
-      var ofInFrame = InRWClause(tok, o, null, frame, use == Resolver.FrameExpressionUse.Unchanged, etranMod, null, null);
-      Bpl.Expr consequent = use == Resolver.FrameExpressionUse.Modifies ? Bpl.Expr.Or(eq, ofInFrame) : Bpl.Expr.Imp(ofInFrame, eq);
-
-      var tr = new Bpl.Trigger(tok, true, new List<Bpl.Expr> { heapOF });
-      return new Bpl.ForallExpr(tok, new List<TypeVariable> (), new List<Variable> { oVar }, null, tr, Bpl.Expr.Imp(ante, consequent));
-    }
     Bpl.Expr/*!*/ FrameConditionUsingDefinedFrame(IToken/*!*/ tok, ExpressionTranslator/*!*/ etranPre, ExpressionTranslator/*!*/ etran, ExpressionTranslator/*!*/ etranMod)
     {
       Contract.Requires(tok != null);
@@ -14582,7 +14565,7 @@ namespace Microsoft.Dafny {
 
         } else if (expr is UnchangedExpr) {
           var e = (UnchangedExpr)expr;
-          return translator.FrameCondition(e.tok, e.Frame, false, Resolver.FrameExpressionUse.Unchanged, e.AtLabel == null ? Old : OldAt(e.AtLabel), this, this);
+          return translator.FrameCondition(e.tok, e.Frame, false, Resolver.FrameExpressionUse.Unchanged, e.AtLabel == null ? Old : OldAt(e.AtLabel), this, this, true);
 
         } else if (expr is UnaryOpExpr) {
           var e = (UnaryOpExpr)expr;
