@@ -2166,7 +2166,7 @@ namespace Microsoft.Dafny
           if (extension == ".cs") {
             numOtherSourceFiles++;
           } else if (extension == ".dll") {
-            cp.ReferencedAssemblies.Add(file);
+            cp.ReferencedAssemblies.Add(Path.Combine(Path.GetDirectoryName(file), Path.GetFileName(file)));
           }
         }
       }
@@ -2179,7 +2179,13 @@ namespace Microsoft.Dafny
           string extension = Path.GetExtension(file);
           if (extension != null) { extension = extension.ToLower(); }
           if (extension == ".cs") {
-            sourceFiles[index++] = file;
+            var normalizedPath = Path.Combine(Path.GetDirectoryName(file), Path.GetFileName(file));
+            if (File.Exists(normalizedPath)) {
+              sourceFiles[index++] = normalizedPath;
+            } else {
+              outputWriter.WriteLine("Errors compiling program: Could not find {0}", file);
+              return false;
+            }
           }
         }
         crx.cr = provider.CompileAssemblyFromFile(cp, sourceFiles);
