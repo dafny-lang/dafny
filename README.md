@@ -10,6 +10,13 @@ Dafny is a programming language with a program verifier. As you type in your pro
     * the wiki, including [frequently asked questions](https://github.com/Microsoft/dafny/wiki/FAQ)
 * The [Rise4fun site](http://rise4fun.com/dafny), including a tutorial, where you can verify Dafny programs in your web browser.
 
+## Build Status
+
+[![build status][1]][2]
+
+[1]: https://travis-ci.org/Microsoft/dafny.svg?branch=master
+[2]: https://travis-ci.org/Microsoft/dafny
+
 # Community
 
 You can ask questions about Dafny on [Stack Overflow](https://stackoverflow.com/questions/tagged/dafny) or participate in general discussion on the [mailing list](https://groups.google.com/d/forum/dafny-discuss
@@ -41,6 +48,7 @@ Here are some ways to get started with Dafny:
 * Language reference for the [Dafny type system](http://leino.science/papers/krml243.html), which also describes available expressions for each type 
 * [Cheatsheet](https://docs.google.com/document/d/1kz5_yqzhrEyXII96eCF1YoHZhnb_6dzv-K3u79bMMis/edit?pref=2&pli=1): basic Dafny syntax on two pages 
 * Dafny Reference Manual [[html](https://github.com/Microsoft/dafny/blob/master/Docs/DafnyRef/out/DafnyRef.html)] [[pdf](https://github.com/Microsoft/dafny/blob/master/Docs/DafnyRef/out/DafnyRef.pdf)]
+* [Dafny Power User](http://leino.science/dafny-power-user)
 * Videos at [Verification Corner](https://www.youtube.com/channel/UCP2eLEql4tROYmIYm5mA27A)
 
 The language itself draws pieces of influence from:
