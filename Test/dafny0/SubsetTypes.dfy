@@ -419,3 +419,39 @@ module RegressionIllformedConstRhs1 {
     const x: int := 15 / 0  // error: division by zero
   }
 }
+
+module ErrorMessagesOfFailingConstraints {
+  type X = u | u % 2 == 0  // multiples of 2
+  type Y = v: X | v % 3 == 0  // multiples of 6
+  class C { }
+  
+  method M0(x: int, c: C?) {
+    if
+    case true =>
+      var xx: X := x;  // error: x may be odd
+    case true =>
+      var yy: Y := x;  // error: x may not be a multiple of 6
+    case x % 3 == 0 =>
+      var yy: Y := x;  // error: x may be odd
+    case x % 2 == 0 =>
+      var yy: Y := x;  // error: x may not be a multiple of 3
+    case true =>
+      var cc: C := c;  // error: c may be null
+  }
+  method M1(f: int ~> int, g: int --> int) {
+    if
+    case true =>
+      var ff: int --> int := f;  // error: f may have read effects
+    case true =>
+      var gg: int -> int := g;  // error: g may be partial
+    case true =>
+      var gg: int -> int := f;  // error: f may have read effects or be partial
+    case true =>
+      var hh: int ~> nat := f;  // error: f may return negative numbers
+    case true =>
+      var hh: int ~> X := f;  // error: f may return odd numbers
+  }
+  method m2(x: int) returns (n: nat) {
+    n := x;  // error: x may be negative
+  }
+}

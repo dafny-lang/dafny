@@ -217,3 +217,53 @@ module N {
     }
   }
 }
+
+module ModuleName0 {
+  export X reveals pi
+  const pi := 3.14
+  type U = X  // error: X is not a type
+}
+module ModuleName1 {
+  export X reveals pi
+  const pi := 3.14
+  // regression test:
+  type X = int  // fine, because export names are in a different name space than other module contents
+}
+module ModuleName2 {
+  export X reveals pi
+  const pi := 3.14
+  const X := 17  // fine, because export names are in a different name space than other module contents
+}
+module ModuleName3 {
+  export X reveals pi
+  const pi := 3.14
+  function X(): int { 17 }  // fine, because export names are in a different name space than other module contents
+}
+module ModuleName4 {
+  export X reveals pi
+  const pi := 3.14
+  method X() { }  // fine, because export names are in a different name space than other module contents
+}
+module ModuleName5 {
+  export X reveals e
+  const e := 2.7
+  import X = ModuleName4`X  // fine, because export names are in a different name space than other module contents
+  datatype Dt = Make(pi: int)
+  const X := Make(10)  // fine, because name of const comes lexically "before" names of imports
+  method Test() {
+    assert X.pi == 10;  // X.pi refers to member pi of const X, not to the imported ModuleName4.pi
+  }
+}
+module ModuleName6 {
+  // regression: the error in the next line should be reported there, not in ModuleName4 above
+  import X = ModuleName4  // error: ModuleName4 does not have an eponymous export set
+}
+module ModuleName7 {
+  import X = ModuleName4`Y  // error: ModuleName4 does not have an export set named Y
+}
+module ModuleName8 {
+  export X reveals pi
+  export X reveals e  // error: duplicate name of export set
+  const pi: int
+  const e: int
+}

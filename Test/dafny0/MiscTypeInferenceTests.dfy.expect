@@ -6,7 +6,7 @@ Execution trace:
     (0,0): anon6_Then
     (0,0): anon7_Then
     (0,0): anon8_Then
-MiscTypeInferenceTests.dfy(24,11): Error: value does not satisfy the subset constraints of 'int -> int'
+MiscTypeInferenceTests.dfy(24,11): Error: value does not satisfy the subset constraints of 'int -> int' (possible cause: it may be partial or have read effects)
 Execution trace:
     (0,0): anon0
     (0,0): anon17_Then

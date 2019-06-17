@@ -601,9 +601,6 @@ namespace Microsoft.Dafny
       } else if (stmt is ForallStmt) {
         var s = (ForallStmt)stmt;
         r = new ForallStmt(Tok(s.Tok), Tok(s.EndTok), s.BoundVars.ConvertAll(CloneBoundVar), null, CloneExpr(s.Range), s.Ens.ConvertAll(CloneMayBeFreeExpr), CloneStmt(s.Body));
-        if (s.ForallExpressions != null) {
-          ((ForallStmt)r).ForallExpressions = s.ForallExpressions.ConvertAll(CloneExpr);
-        }
       } else if (stmt is CalcStmt) {
         var s = (CalcStmt)stmt;
         // calc statements have the unusual property that the last line is duplicated.  If that is the case (which
@@ -1033,6 +1030,13 @@ namespace Microsoft.Dafny
         TopLevelDecl d;
         if (newSig.TopLevels.TryGetValue(kv.Key, out d)) {
           sig.TopLevels.Add(kv.Key, d);
+        }
+      }
+
+      foreach (var kv in org.ExportSets) {
+        ModuleExportDecl d;
+        if (newSig.ExportSets.TryGetValue(kv.Key, out d)) {
+          sig.ExportSets.Add(kv.Key, d);
         }
       }
 

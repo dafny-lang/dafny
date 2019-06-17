@@ -135,7 +135,7 @@ ResolutionErrors.dfy(998,12): Error: arguments to % must be integer-numeric or b
 ResolutionErrors.dfy(997,19): Error: type of right argument to / (int) must agree with the result type (real)
 ResolutionErrors.dfy(1025,11): Error: Wrong number of type arguments (2 instead of 1) passed to subset type: array3
 ResolutionErrors.dfy(1026,11): Error: Wrong number of type arguments (2 instead of 1) passed to subset type: C
-ResolutionErrors.dfy(1037,7): Error: Duplicate name of top-level declaration: BadSyn2
+ResolutionErrors.dfy(1037,7): Error: duplicate name of top-level declaration: BadSyn2
 ResolutionErrors.dfy(1034,17): Error: Wrong number of type arguments (0 instead of 1) passed to datatype: List
 ResolutionErrors.dfy(1035,17): Error: Undeclared top-level type or type parameter: badName (did you forget to qualify a name or declare a module import 'opened?')
 ResolutionErrors.dfy(1036,22): Error: Undeclared top-level type or type parameter: X (did you forget to qualify a name or declare a module import 'opened?')
@@ -432,8 +432,8 @@ ResolutionErrors.dfy(2796,21): Error: type of left argument to * (int) must agre
 ResolutionErrors.dfy(2796,21): Error: type of * must be of a numeric type, bitvector type, or a set-like type (instead got bool)
 ResolutionErrors.dfy(2795,11): Error: not resolving module 'V' because there were errors in resolving its nested module 'W'
 ResolutionErrors.dfy(2782,9): Error: not resolving module 'ErrorsFromNestedModules' because there were errors in resolving its nested module 'U'
-ResolutionErrors.dfy(2804,11): Error: Duplicate name of top-level declaration: G
-ResolutionErrors.dfy(2810,11): Error: Duplicate name of top-level declaration: H
+ResolutionErrors.dfy(2804,11): Error: duplicate name of top-level declaration: G
+ResolutionErrors.dfy(2810,11): Error: duplicate name of top-level declaration: H
 ResolutionErrors.dfy(2826,4): Error: ghost variables are allowed only in specification contexts
 ResolutionErrors.dfy(2828,20): Error: ghost variables are allowed only in specification contexts
 ResolutionErrors.dfy(2837,6): Error: ghost variables are allowed only in specification contexts
