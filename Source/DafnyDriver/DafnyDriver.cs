@@ -472,6 +472,23 @@ namespace Microsoft.Dafny
       string targetDir = Path.Combine(Path.GetDirectoryName(dafnyProgramName), targetBaseDir);
       string targetFilename = Path.Combine(targetDir, targetBaseName);
       WriteFile(targetFilename, targetProgram);
+
+      if (DafnyOptions.O.CompileTarget is DafnyOptions.CompilationTarget.Java) {
+        var assemblyLocation = System.Reflection.Assembly.GetExecutingAssembly().Location;
+        Contract.Assert(assemblyLocation != null);
+        var codebase = System.IO.Path.GetDirectoryName(assemblyLocation);
+        Contract.Assert(codebase != null);
+        string path = codebase + "/DafnyClasses";
+        DirectoryInfo dir = new DirectoryInfo(path);
+        FileInfo[] files = dir.GetFiles();
+        Directory.CreateDirectory(targetDir + "/DafnyClasses");
+        string dest = targetDir + "/DafnyClasses";
+        foreach (FileInfo file in files) {
+          string temp = Path.Combine(dest, file.Name);
+          file.CopyTo(temp, true);
+        }
+      }
+      
       string relativeTarget = Path.Combine(targetBaseDir, targetBaseName);
       if (completeProgram) {
         if (DafnyOptions.O.CompileVerbose) {
@@ -558,9 +575,13 @@ namespace Microsoft.Dafny
           otherFiles.Add(wr.Filename, sw.ToString());
         }
       }
+      string baseName = Path.GetFileNameWithoutExtension(dafnyProgramName);
       string callToMain = null;
       if (hasMain) {
         using (var wr = new TargetWriter(0)) {
+          if (DafnyOptions.O.CompileTarget is DafnyOptions.CompilationTarget.Java) {
+            wr.Write("public class {0} {{\n\t", baseName);
+          }
           compiler.EmitCallToMain(mainMethod, wr);
           callToMain = wr.ToString(); // assume there aren't multiple files just to call main
         }
