@@ -11,6 +11,7 @@ using System.IO;
 using System.Diagnostics.Contracts;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
+using System.Reflection;
 using Bpl = Microsoft.Boogie;
 
 
@@ -28,7 +29,7 @@ namespace Microsoft.Dafny {
         
     private static List<Import> StandardImports =
       new List<Import> {
-        new Import { Name = "_dafny", Path = "dafny" },
+        new Import { Name = "_dafny", Path = "DafnyClasses" },
       };
     private readonly List<Import> Imports = new List<Import>(StandardImports);
         
@@ -43,21 +44,15 @@ namespace Microsoft.Dafny {
         
     protected override void EmitHeader(Program program, TargetWriter wr) {
       wr.WriteLine("// Dafny program {0} compiled into Java", program.Name);
-            
       ModuleName = MainModuleName = HasMain(program, out _) ? "main" : Path.GetFileNameWithoutExtension(program.Name);
-            
-      wr.WriteLine("package {0};", ModuleName);
       wr.WriteLine();
       // Keep the import writers so that we can import subsequent modules into the main one
       EmitImports(wr, out RootImportWriter);
       wr.WriteLine();
     }
         
-    // TODO: Same format as compiler-go.cs, might need to follow C# depending on how DafnyRuntime.java looks
-    protected override void EmitBuiltInDecls(BuiltIns builtIns, TargetWriter wr) {
-      var rt = wr.NewFile("dafny/dafny.java");
-      // ReadRuntimeSystem("DafnyRuntime.java", rt); Commented out beceause DafnyRuntime.java does not exist yet.
-    }
+    // Only exists to make sure method is overriden, actual Emit occurs in DafnyDriver.cs
+    protected override void EmitBuiltInDecls(BuiltIns builtIns, TargetWriter wr) { }
 
     // Creates file header for each module's file.
     void EmitModuleHeader(TargetWriter wr) {
@@ -66,22 +61,24 @@ namespace Microsoft.Dafny {
       wr.WriteLine();
       wr.WriteLine("package {0};", ModuleName);
       wr.WriteLine();
-      wr.WriteLine("import java.*;"); // TODO: See if it is really necessary to import all of Java, though C# compiler imports all of System
+      wr.WriteLine("import java.math.*;"); // TODO: Figure out all the Java imports necessary for compiled program to run.
       EmitImports(wr, out _);
       wr.WriteLine();
     }
     
     public override void EmitCallToMain(Method mainMethod, TargetWriter wr) {
       var companion = TypeName_Companion(mainMethod.EnclosingClass as ClassDecl, wr, mainMethod.tok);
-      
       var wBody = wr.NewNamedBlock("public static void main(String[] args)");
-      wBody.WriteLine("{0}.{1}();", companion, IdName(mainMethod));
+      wBody.WriteLine("\t{0}.{1}();", companion, IdName(mainMethod));
+      wr.WriteLine("}");
     }
 
     void EmitImports(TargetWriter wr, out TargetWriter importWriter) {
       importWriter = wr.ForkSection();
       foreach (var import in Imports) {
-        EmitImport(import, importWriter);
+        if (import.Name != ModuleName) {
+          EmitImport(import, importWriter);
+        }
       }
     }
         
@@ -91,8 +88,11 @@ namespace Microsoft.Dafny {
       importWriter.WriteLine("import {0}.*;", path);
     }
         
-    protected override TargetWriter CreateModule(string moduleName, bool isDefault, bool isExtern, string /*?*/ libraryName, TargetWriter wr)
-    {
+    protected override TargetWriter CreateModule(string moduleName, bool isDefault, bool isExtern, string /*?*/ libraryName, TargetWriter wr) {
+      if (isDefault) {
+        // Fold the default module into the main module
+        return wr;
+      }
       string pkgName;
       if (libraryName != null) {
         pkgName = libraryName;
@@ -248,7 +248,7 @@ namespace Microsoft.Dafny {
         return "object"; 
       }
       if (xType is BoolType) { 
-        return "bool"; 
+        return "boolean"; 
       } else if (xType is CharType) { 
         return "char"; 
       } else if (xType is IntType || xType is BigOrdinalType) { 
@@ -359,13 +359,13 @@ namespace Microsoft.Dafny {
 
     protected override IClassWriter CreateClass(string name, bool isExtern, string /*?*/ fullPrintName,
       List<TypeParameter> /*?*/ typeParameters, List<Type> /*?*/ superClasses, Bpl.IToken tok, TargetWriter wr) {
-      var filename = string.Format("{0}/{0}.java", name);
+      var filename = string.Format("{1}/{0}.java", name, ModuleName);
       var w = wr.NewFile(filename);
       w.WriteLine("// Class {0}", name);
       w.WriteLine("// Dafny class {0} compiled into Java", name);
       w.WriteLine("package {0};", ModuleName);
       w.WriteLine();
-      w.WriteLine("import java.*;"); // TODO: See if it is really necessary to import all of Java, though C# compiler imports all of System
+      w.WriteLine("import java.math.*;"); // TODO: Figure out all the Java imports necessary for compiled program to run.
       EmitImports(w, out _);
       w.WriteLine();
       w.WriteLine("public class {0}", name);
@@ -440,7 +440,6 @@ namespace Microsoft.Dafny {
       literalSuffix = "";
       needsCastAfterArithmetic = false;
       switch (sel) {
-        // TODO: When the unsigned types get created in DafnyRuntime.java, make sure the names match the ones here
         case NativeType.Selection.Byte:
           name = "Dafny.DafnyByte";
           break;
@@ -767,13 +766,13 @@ namespace Microsoft.Dafny {
         DtT += DtT_TypeArgs;
         DtT_protected += DtT_TypeArgs;
       }
-      var filename = string.Format("{0}/{0}.java", DtT_protected);
+      var filename = string.Format("{1}/{0}.java", DtT_protected, ModuleName);
       wr = wr.NewFile(filename);
       wr.WriteLine("// Class {0}", DtT_protected);
       wr.WriteLine("// Dafny class {0} compiled into Java", DtT_protected);
       wr.WriteLine("package {0};", ModuleName);
       wr.WriteLine();
-      wr.WriteLine("import java.*;"); // TODO: See if it is really necessary to import all of Java, though C# compiler imports all of System
+      wr.WriteLine("import java.math.*;"); // TODO: Figure out all the Java imports necessary for compiled program to run.
       EmitImports(wr, out _);
       wr.WriteLine();
       // from here on, write everything into the new block created here:
@@ -868,13 +867,13 @@ namespace Microsoft.Dafny {
       }
       int constructorIndex = 0; // used to give each constructor a different name
       foreach (DatatypeCtor ctor in dt.Ctors) {
-        var filename = string.Format("{0}/{0}.java", DtCtorDeclarationName(ctor, dt.TypeArgs));
+        var filename = string.Format("{1}/{0}.java", DtCtorDeclarationName(ctor, dt.TypeArgs), ModuleName);
         var wr = wrx.NewFile(filename);
         wr.WriteLine("// Class {0}", DtCtorDeclarationName(ctor, dt.TypeArgs));
         wr.WriteLine("// Dafny class {0} compiled into Java", DtCtorDeclarationName(ctor, dt.TypeArgs));
         wr.WriteLine("package {0};", ModuleName);
         wr.WriteLine();
-        wr.WriteLine("import java.*;"); // TODO: See if it is really necessary to import all of Java, though C# compiler imports all of System
+        wr.WriteLine("import java.math.*;"); // TODO: Figure out all the Java imports necessary for compiled program to run.
         EmitImports(wr, out _);
         wr.WriteLine();
         var w = wr.NewNamedBlock("public class {0} extends {1}{2}", DtCtorDeclarationName(ctor, dt.TypeArgs), IdName(dt), typeParams);
