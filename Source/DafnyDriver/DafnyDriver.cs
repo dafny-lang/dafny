@@ -583,6 +583,9 @@ namespace Microsoft.Dafny
             wr.Write("public class {0} {{\n\t", baseName);
           }
           compiler.EmitCallToMain(mainMethod, wr);
+          if (DafnyOptions.O.CompileTarget is DafnyOptions.CompilationTarget.Java) {
+            wr.WriteLine("}");
+          }
           callToMain = wr.ToString(); // assume there aren't multiple files just to call main
         }
       }

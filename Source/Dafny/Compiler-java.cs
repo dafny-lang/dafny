@@ -70,7 +70,6 @@ namespace Microsoft.Dafny {
       var companion = TypeName_Companion(mainMethod.EnclosingClass as ClassDecl, wr, mainMethod.tok);
       var wBody = wr.NewNamedBlock("public static void main(String[] args)");
       wBody.WriteLine("\t{0}.{1}();", companion, IdName(mainMethod));
-      wr.WriteLine("}");
     }
 
     void EmitImports(TargetWriter wr, out TargetWriter importWriter) {
@@ -753,8 +752,8 @@ namespace Microsoft.Dafny {
     }
     
     protected override void DeclareDatatype(DatatypeDecl dt, TargetWriter wr) {
-      CompileDatatypeBase(dt, wr);
-      CompileDatatypeConstructors(dt, wr);
+//      CompileDatatypeBase(dt, wr);
+//      CompileDatatypeConstructors(dt, wr);
     }
 
     void CompileDatatypeBase(DatatypeDecl dt, TargetWriter wr) {
@@ -1043,7 +1042,41 @@ namespace Microsoft.Dafny {
           return name; // Package name is not a keyword, so it can be used
       }
     }
-        
+
+    // public override bool RunTargetProgram(string dafnyProgramName, string targetProgramText, string callToMain, string /*?*/ targetFilename, 
+    //  ReadOnlyCollection<string> otherFileNames, object compilationResult, TextWriter outputWriter) {
+    //  }
+
+    public override bool CompileTargetProgram(string dafnyProgramName, string targetProgramText, string /*?*/ callToMain, string /*?*/ targetFilename, 
+      ReadOnlyCollection<string> otherFileNames, bool hasMain, bool runAfterCompile, TextWriter outputWriter, out object compilationResult) {
+      compilationResult = null;
+      var psi = new ProcessStartInfo("find", ". -name \"*.java\"") {
+        CreateNoWindow = true,
+        UseShellExecute = false,
+        RedirectStandardInput = true,
+        RedirectStandardOutput = true,
+        RedirectStandardError = false,
+      };
+      psi.WorkingDirectory = Path.GetFullPath(Path.GetDirectoryName(targetFilename));
+      psi.EnvironmentVariables["CLASSPATH"] = ".:" + Path.GetFullPath(Path.GetDirectoryName(targetFilename));
+      var proc = Process.Start(psi);
+      var files = new List<string>();
+      while (!proc.StandardOutput.EndOfStream) {
+        files.Add(proc.StandardOutput.ReadLine());
+      }
+      proc.WaitForExit();
+      foreach (var file in files) {
+        var psi2 = new ProcessStartInfo("javac", file);
+        psi2.CreateNoWindow = true;
+        psi2.UseShellExecute = false;
+        psi2.WorkingDirectory = Path.GetFullPath(Path.GetDirectoryName(targetFilename));
+        psi2.EnvironmentVariables["CLASSPATH"] = ".:" + Path.GetFullPath(Path.GetDirectoryName(targetFilename));
+        var proc2 = Process.Start(psi2);
+        proc2.WaitForExit();
+      }
+      return true;
+    }
+
     // ABSTRACT METHOD DECLARATIONS FOR THE SAKE OF BUILDING PROGRAM
     protected override string GetHelperModuleName()
     {
