@@ -1043,10 +1043,6 @@ namespace Microsoft.Dafny {
       }
     }
 
-    // public override bool RunTargetProgram(string dafnyProgramName, string targetProgramText, string callToMain, string /*?*/ targetFilename, 
-    //  ReadOnlyCollection<string> otherFileNames, object compilationResult, TextWriter outputWriter) {
-    //  }
-
     public override bool CompileTargetProgram(string dafnyProgramName, string targetProgramText, string /*?*/ callToMain, string /*?*/ targetFilename, 
       ReadOnlyCollection<string> otherFileNames, bool hasMain, bool runAfterCompile, TextWriter outputWriter, out object compilationResult) {
       compilationResult = null;
@@ -1055,7 +1051,7 @@ namespace Microsoft.Dafny {
         UseShellExecute = false,
         RedirectStandardInput = true,
         RedirectStandardOutput = true,
-        RedirectStandardError = false,
+        RedirectStandardError = false
       };
       psi.WorkingDirectory = Path.GetFullPath(Path.GetDirectoryName(targetFilename));
       psi.EnvironmentVariables["CLASSPATH"] = ".:" + Path.GetFullPath(Path.GetDirectoryName(targetFilename));
@@ -1074,6 +1070,21 @@ namespace Microsoft.Dafny {
         var proc2 = Process.Start(psi2);
         proc2.WaitForExit();
       }
+      return true;
+    }
+    
+    public override bool RunTargetProgram(string dafnyProgramName, string targetProgramText, string callToMain, string /*?*/ targetFilename, 
+     ReadOnlyCollection<string> otherFileNames, object compilationResult, TextWriter outputWriter) {
+      var psi = new ProcessStartInfo("java", Path.GetFileNameWithoutExtension(targetFilename));
+      psi.CreateNoWindow = true;
+      psi.UseShellExecute = false;
+      psi.RedirectStandardOutput = true;
+      psi.WorkingDirectory = Path.GetFullPath(Path.GetDirectoryName(targetFilename));
+      var proc = Process.Start(psi);
+      while (!proc.StandardOutput.EndOfStream) {
+        outputWriter.WriteLine(proc.StandardOutput.ReadLine());
+      }
+      proc.WaitForExit();
       return true;
     }
 
