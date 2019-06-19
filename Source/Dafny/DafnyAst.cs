@@ -3414,11 +3414,6 @@ namespace Microsoft.Dafny {
         return false;
       }
     }
-
-    // Final projection is for module export
-    public bool FindExport(string name, out ModuleExportDecl pp) {
-      return ExportSets.TryGetValue(name, out pp);
-    }
   }
 
   public class ModuleDefinition : INamedRegion, IAttributeBearingDeclaration

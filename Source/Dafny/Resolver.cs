@@ -919,7 +919,7 @@ namespace Microsoft.Dafny
           exportDependencies.AddVertex(d);
           foreach (string s in d.Extends) {
             ModuleExportDecl extend;
-            if (sig.FindExport(s, out extend)) {
+            if (sig.ExportSets.TryGetValue(s, out extend)) {
               d.ExtendDecls.Add(extend);
               exportDependencies.AddEdge(d, extend);
             } else {
@@ -1994,14 +1994,14 @@ namespace Microsoft.Dafny
         if (Exports.Count == 0) {
           p = decl.DefaultExport;
           if (p == null) {
-            // no default view is specified. 
+            // no default view is specified.
             reporter.Error(MessageSource.Resolver, Path[0], "no default export set declared in module: {0}", decl.Name);
             return false;
           }
           return true;
         } else {
           ModuleExportDecl pp;
-          if (root.Signature.FindExport(Exports[0].val, out pp)) {
+          if (root.Signature.ExportSets.TryGetValue(Exports[0].val, out pp)) {
             p = pp.Signature;
           } else {
             reporter.Error(MessageSource.Resolver, Exports[0], "no export set '{0}' in module '{1}'", Exports[0].val, decl.Name);
@@ -2010,7 +2010,7 @@ namespace Microsoft.Dafny
           }
 
           foreach (IToken export in Exports.Skip(1)) {
-            if (root.Signature.FindExport(export.val, out pp)) {
+            if (root.Signature.ExportSets.TryGetValue(export.val, out pp)) {
               Contract.Assert(Object.ReferenceEquals(p.ModuleDef, pp.Signature.ModuleDef));
               ModuleSignature merged = MergeSignature(p, pp.Signature);
               merged.ModuleDef = pp.Signature.ModuleDef;
