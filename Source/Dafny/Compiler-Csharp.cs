@@ -161,8 +161,8 @@ namespace Microsoft.Dafny
       //       _iter = TheIterator();
       //     }
       //
-      //     public void MoveNext(out bool more) {
-      //       more =_iter.MoveNext();
+      //     public bool MoveNext() {
+      //       return _iter.MoveNext();
       //     }
       //
       //     private IEnumerator<object> TheIterator() {
@@ -207,7 +207,7 @@ namespace Microsoft.Dafny
         wBody.WriteLine("this._iter = TheIterator();");
       }
       // here are the enumerator methods
-      w.WriteLine("public void MoveNext(out bool more) { more = _iter.MoveNext(); }");
+      w.WriteLine("public bool MoveNext() { return _iter.MoveNext(); }");
       var wIter = w.NewBlock("private System.Collections.Generic.IEnumerator<object> TheIterator()");
       var suffix = new TargetWriter(wIter.IndentLevel);
       suffix.WriteLine("yield break;");
@@ -693,16 +693,14 @@ namespace Microsoft.Dafny
     protected BlockTargetWriter/*?*/ CreateMethod(Method m, bool createBody, TargetWriter wr) {
       var hasDllImportAttribute = ProcessDllImport(m, wr);
       string targetReturnTypeReplacement = null;
-      if (hasDllImportAttribute) {
-        foreach (var p in m.Outs) {
-          if (!p.IsGhost) {
-            if (targetReturnTypeReplacement == null) {
-              targetReturnTypeReplacement = TypeName(p.Type, wr, p.tok);
-            } else if (targetReturnTypeReplacement != null) {
-              // there's more than one out-parameter, so bail
-              targetReturnTypeReplacement = null;
-              break;
-            }
+      foreach (var p in m.Outs) {
+        if (!p.IsGhost) {
+          if (targetReturnTypeReplacement == null) {
+            targetReturnTypeReplacement = TypeName(p.Type, wr, p.tok);
+          } else if (targetReturnTypeReplacement != null) {
+            // there's more than one out-parameter, so bail
+            targetReturnTypeReplacement = null;
+            break;
           }
         }
       }
@@ -732,6 +730,12 @@ namespace Microsoft.Dafny
             w.WriteLine("var _this = this;");
           }
           w.IndentLess(); w.WriteLine("TAIL_CALL_START: ;");
+        }
+
+        if (targetReturnTypeReplacement != null) {
+          var r = new TargetWriter(w.IndentLevel);
+          EmitReturn(m.Outs, r);
+          w.BodySuffix = r.ToString();
         }
         return w;
       }
@@ -1057,8 +1061,12 @@ namespace Microsoft.Dafny
       wr.Write("var {0} = ", collectorVarName);
     }
 
-    protected override void DeclareLocalOutVar(string name, Type type, Bpl.IToken tok, string rhs, TargetWriter wr) {
-      EmitAssignment(name, type, rhs, null, wr);
+    protected override void DeclareLocalOutVar(string name, Type type, Bpl.IToken tok, string rhs, bool useReturnStyleOuts, TargetWriter wr) {
+      if (useReturnStyleOuts) {
+        DeclareLocalVar(name, type, tok, false, rhs, wr);
+      } else {
+        EmitAssignment(name, type, rhs, null, wr);
+      }
     }
 
     protected override void EmitActualOutArg(string actualOutParamName, TextWriter wr) {
@@ -1066,7 +1074,7 @@ namespace Microsoft.Dafny
     }
 
     protected override bool UseReturnStyleOuts(Method m, int nonGhostOutCount) {
-      return !DafnyOptions.O.DisallowExterns && Attributes.Contains(m.Attributes, "dllimport") && nonGhostOutCount == 1;
+      return nonGhostOutCount == 1;
     }
 
     protected override void EmitOutParameterSplits(string outCollector, List<string> actualOutParamNames, TargetWriter wr) {
@@ -1093,7 +1101,12 @@ namespace Microsoft.Dafny
     }
 
     protected override void EmitReturn(List<Formal> outParams, TargetWriter wr) {
-      wr.WriteLine("return;");
+      outParams = outParams.Where(f => !f.IsGhost).ToList();
+      if (outParams.Count == 1) {
+        wr.WriteLine("return {0};", IdName(outParams[0]));
+      } else {
+        wr.WriteLine("return;");
+      }
     }
 
     protected override TargetWriter CreateLabeledCode(string label, TargetWriter wr) {

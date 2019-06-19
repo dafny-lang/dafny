@@ -8,8 +8,9 @@ namespace Library {
       z = y + y;
     }
     // static method CallMeNative(x: MyInt, b: bool) returns (y: MyInt)
-    public static void CallMeNative(int x, bool b, out int y) {
-      y = b ? x + 1 : x - 1;
+    public static int CallMeNative(int x, bool b) {
+      var y = b ? x + 1 : x - 1;
+      return y;
     }
   }
   

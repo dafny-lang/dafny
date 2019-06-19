@@ -205,7 +205,7 @@ namespace Microsoft.Dafny {
     /// statements are followed by newlines regardless.
     protected virtual string StmtTerminator { get => ";"; }
     protected void EndStmt(TargetWriter wr) { wr.WriteLine(StmtTerminator); }
-    protected abstract void DeclareLocalOutVar(string name, Type type, Bpl.IToken tok, string rhs, TargetWriter wr);
+    protected abstract void DeclareLocalOutVar(string name, Type type, Bpl.IToken tok, string rhs, bool useReturnStyleOuts, TargetWriter wr);
     protected virtual void EmitActualOutArg(string actualOutParamName, TextWriter wr) { }  // actualOutParamName is always the name of a local variable; called only for non-return-style outs
     protected virtual void EmitOutParameterSplits(string outCollector, List<string> actualOutParamNames, TargetWriter wr) { }  // called only for return-style calls
 
@@ -1061,9 +1061,17 @@ namespace Microsoft.Dafny {
 
       var w = cw.CreateMethod(m, true);
       if (w != null) {
-        foreach (Formal p in m.Outs) {
+        int nonGhostOutsCount = 0;
+        foreach (var p in m.Outs) {
           if (!p.IsGhost) {
-            DeclareLocalOutVar(IdName(p), p.Type, p.tok, DefaultValue(p.Type, w, p.tok, true), w);
+            nonGhostOutsCount++;
+          }
+        }
+
+        var useReturnStyleOuts = UseReturnStyleOuts(m, nonGhostOutsCount);
+        foreach (var p in m.Outs) {
+          if (!p.IsGhost) {
+            DeclareLocalOutVar(IdName(p), p.Type, p.tok, DefaultValue(p.Type, w, p.tok, true), useReturnStyleOuts, w);
           }
         }
         if (m.Body == null) {
