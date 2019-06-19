@@ -580,8 +580,14 @@ namespace Microsoft.Dafny {
                 !x.IsGhost && (DafnyOptions.O.DisallowExterns || !Attributes.Contains(x.Attributes, "extern"));
               include = cl.Members.Exists(compilationMaterial) || cl.InheritedMembers.Exists(compilationMaterial);
             }
+            var classIsExtern = false;
             if (include) {
-              var classIsExtern = !DafnyOptions.O.DisallowExterns && Attributes.Contains(cl.Attributes, "extern");
+              classIsExtern = !DafnyOptions.O.DisallowExterns && Attributes.Contains(cl.Attributes, "extern");
+              if (classIsExtern && cl.Members.TrueForAll(member => member.IsGhost || Attributes.Contains(member.Attributes, "extern"))) {
+                include = false;
+              }
+            }
+            if (include) {
               var cw = CreateClass(IdName(cl), classIsExtern, cl.FullName, cl.TypeArgs, cl.TraitsTyp, cl.tok, wr);
               CompileClassMembers(cl, cw);
               cw.Finish();
