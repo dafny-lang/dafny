@@ -823,6 +823,7 @@ namespace Microsoft.Dafny {
     }
     
     protected override void DeclareDatatype(DatatypeDecl dt, TargetWriter wr) {
+
       if (dt is TupleTypeDecl){
         tuples.Add(((TupleTypeDecl) dt).Dims);
       }
