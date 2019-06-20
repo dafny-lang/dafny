@@ -5,17 +5,17 @@ import java.math.BigInteger;
 public class DafnyEuclidean {
     // pre: b != 0
     // post: result == a/b, as defined by Euclidean Division (http://en.wikipedia.org/wiki/Modulo_operation)
-    public static byte EuclideanDivision_sbyte(byte a, byte b) {
+    public static byte EuclideanDivision(byte a, byte b) {
         assert b != 0 : "Precondition Failure";
-        return (byte) EuclideanDivision_int(a, b);
+        return (byte) EuclideanDivision((int)a, (int)b);
     }
 
-    public static short EuclideanDivision_short(short a, short b) {
+    public static short EuclideanDivision(short a, short b) {
         assert b != 0 : "Precondition Failure";
-        return (short) EuclideanDivision_int(a, b);
+        return (short) EuclideanDivision((int) a, (int) b);
     }
 
-    public static int EuclideanDivision_int(int a, int b) {
+    public static int EuclideanDivision(int a, int b) {
         assert b != 0 : "Precondition Failure";
         if (0 <= a) {
             if (0 <= b) {
@@ -43,7 +43,7 @@ public class DafnyEuclidean {
         }
     }
 
-    public static long EuclideanDivision_long(long a, long b) {
+    public static long EuclideanDivision(long a, long b) {
         assert b != 0 : "Precondition Failure";
         if (0 <= a) {
             if (0 <= b) {
@@ -94,17 +94,17 @@ public class DafnyEuclidean {
 
     // pre: b != 0
     // post: result == a%b, as defined by Euclidean Division (http://en.wikipedia.org/wiki/Modulo_operation)
-    public static byte EuclideanModulus_byte(byte a, byte b) {
+    public static byte EuclideanModulus(byte a, byte b) {
         assert b != 0 : "Precondition Failure";
-        return (byte) EuclideanModulus_int(a, b);
+        return (byte) EuclideanModulus((int) a, (int) b);
     }
 
-    public static short EuclideanModulus_short(short a, short b) {
+    public static short EuclideanModulus(short a, short b) {
         assert b != 0 : "Precondition Failure";
-        return (short) EuclideanModulus_int(a, b);
+        return (short) EuclideanModulus((int) a,(int) b);
     }
 
-    public static int EuclideanModulus_int(int a, int b) {
+    public static int EuclideanModulus(int a, int b) {
         assert b != 0 : "Precondition Failure";
         if (0 <= a) {
             // +a: a % b'
@@ -131,7 +131,7 @@ public class DafnyEuclidean {
         }
     }
 
-    public static long EuclideanModulus_long(long a, long b) {
+    public static long EuclideanModulus(long a, long b) {
         assert b != 0 : "Precondition Failure";
         if (0 <= a) {
             // +a: a % b'
