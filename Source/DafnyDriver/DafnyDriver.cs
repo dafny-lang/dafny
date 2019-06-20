@@ -604,7 +604,19 @@ namespace Microsoft.Dafny
         // don't compile
         return false;
       }
-
+      
+      
+      if (DafnyOptions.O.CompileTarget is DafnyOptions.CompilationTarget.Java) {
+        string targetBaseDir = baseName + "-java/src";
+        string targetDir = Path.Combine(Path.GetDirectoryName(dafnyProgramName), targetBaseDir);
+        var assemblyLocation = System.Reflection.Assembly.GetExecutingAssembly().Location;
+        Contract.Assert(assemblyLocation != null);
+        var codebase = System.IO.Path.GetDirectoryName(assemblyLocation);
+        Contract.Assert(codebase != null);
+        string dest = targetDir + "/DafnyClasses";
+        ((JavaCompiler)compiler).CompileTuples(dest);
+      }
+      
       object compilationResult;
       var compiledCorrectly = compiler.CompileTargetProgram(dafnyProgramName, targetProgramText, callToMain, targetFilename, otherFileNames,
         hasMain, hasMain && DafnyOptions.O.RunAfterCompile, outputWriter, out compilationResult);

@@ -11,6 +11,7 @@ using System.IO;
 using System.Diagnostics.Contracts;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
+using System.Text.RegularExpressions;
 using System.Reflection;
 using Bpl = Microsoft.Boogie;
 
@@ -26,6 +27,7 @@ namespace Microsoft.Dafny {
 
     private String ModuleName;
     private String MainModuleName;
+    private HashSet<int> tuples = new HashSet<int>();
         
     private static List<Import> StandardImports =
       new List<Import> {
@@ -821,6 +823,9 @@ namespace Microsoft.Dafny {
     }
     
     protected override void DeclareDatatype(DatatypeDecl dt, TargetWriter wr) {
+      if (dt is TupleTypeDecl){
+        tuples.Add(((TupleTypeDecl) dt).Dims);
+      }
 //      CompileDatatypeBase(dt, wr);
 //      CompileDatatypeConstructors(dt, wr);
     }
@@ -1164,9 +1169,10 @@ namespace Microsoft.Dafny {
     }
     
     // TODO: Make sure all OpCodes are accounted for.
-    protected override void CompileBinOp(BinaryExpr.ResolvedOpcode op, Expression e0, Expression e1, Bpl.IToken tok, Type resultType, out string opString,
+    protected override void CompileBinOp(BinaryExpr.ResolvedOpcode op, Expression e0, Expression e1, Bpl.IToken tok,
+      Type resultType, out string opString,
       out string preOpString, out string postOpString, out string callString, out string staticCallString,
-      out bool reverseArguments, out bool truncateResult, out bool convertE1_to_int, TextWriter errorWr) {
+      out bool reverseArguments, out bool truncateResult, out bool convertE1_to_int, TextWriter errorWr){
       opString = null;
       preOpString = "";
       postOpString = "";
@@ -1175,153 +1181,360 @@ namespace Microsoft.Dafny {
       reverseArguments = false;
       truncateResult = false;
       convertE1_to_int = false;
-      switch (op) {
+      switch (op){
         case BinaryExpr.ResolvedOpcode.Iff:
-          opString = "=="; break;
+          opString = "==";
+          break;
         case BinaryExpr.ResolvedOpcode.Imp:
-          preOpString = "!"; opString = "||"; break;
+          preOpString = "!";
+          opString = "||";
+          break;
         case BinaryExpr.ResolvedOpcode.Or:
-          opString = "||"; break;
+          opString = "||";
+          break;
         case BinaryExpr.ResolvedOpcode.And:
-          opString = "&&"; break;
+          opString = "&&";
+          break;
         case BinaryExpr.ResolvedOpcode.BitwiseAnd:
-          callString = "and"; break;
+          callString = "and";
+          break;
         case BinaryExpr.ResolvedOpcode.BitwiseOr:
-          callString = "or"; break;
+          callString = "or";
+          break;
         case BinaryExpr.ResolvedOpcode.BitwiseXor:
-          callString = "xor"; break;
-        case BinaryExpr.ResolvedOpcode.EqCommon: {
-            if (IsHandleComparison(tok, e0, e1, errorWr)) {
-              opString = "==";
-            } else if (e0.Type.IsRefType) {
-              opString = "== (Object) ";
-            } else if (IsDirectlyComparable(e0.Type)) {
-              opString = "==";
-            } else {
-              callString = "equals";
-            }
-            break;
+          callString = "xor";
+          break;
+        case BinaryExpr.ResolvedOpcode.EqCommon:{
+          if (IsHandleComparison(tok, e0, e1, errorWr)){
+            opString = "==";
           }
-        case BinaryExpr.ResolvedOpcode.NeqCommon: {
-            if (IsHandleComparison(tok, e0, e1, errorWr)) {
-              opString = "!=";
-            } else if (e0.Type.IsRefType) {
-              opString = "!= (Object) ";
-            } else if (IsDirectlyComparable(e0.Type)) {
-              opString = "!=";
-            } else {
-              preOpString = "!";
-              callString = "equals";
-            }
-            break;
+          else if (e0.Type.IsRefType){
+            opString = "== (Object) ";
           }
+          else if (IsDirectlyComparable(e0.Type)){
+            opString = "==";
+          }
+          else{
+            callString = "equals";
+          }
+
+          break;
+        }
+
+        case BinaryExpr.ResolvedOpcode.NeqCommon:{
+          if (IsHandleComparison(tok, e0, e1, errorWr)){
+            opString = "!=";
+          }
+          else if (e0.Type.IsRefType){
+            opString = "!= (Object) ";
+          }
+          else if (IsDirectlyComparable(e0.Type)){
+            opString = "!=";
+          }
+          else{
+            preOpString = "!";
+            callString = "equals";
+          }
+
+          break;
+        }
+
         case BinaryExpr.ResolvedOpcode.Lt:
         case BinaryExpr.ResolvedOpcode.LtChar:
-          callString = "compareTo"; postOpString = " < 0"; break;
+          callString = "compareTo";
+          postOpString = " < 0";
+          break;
         case BinaryExpr.ResolvedOpcode.Le:
         case BinaryExpr.ResolvedOpcode.LeChar:
-          callString = "compareTo"; postOpString = " <= 0"; break;
+          callString = "compareTo";
+          postOpString = " <= 0";
+          break;
         case BinaryExpr.ResolvedOpcode.Ge:
         case BinaryExpr.ResolvedOpcode.GeChar:
-          callString = "compareTo"; postOpString = " > 0"; break;
+          callString = "compareTo";
+          postOpString = " > 0";
+          break;
         case BinaryExpr.ResolvedOpcode.Gt:
         case BinaryExpr.ResolvedOpcode.GtChar:
-          callString = "compareTo"; postOpString = " >= 0"; break;
+          callString = "compareTo";
+          postOpString = " >= 0";
+          break;
         case BinaryExpr.ResolvedOpcode.LeftShift:
-          callString = "shiftLeft"; truncateResult = true; convertE1_to_int = true; break;
+          callString = "shiftLeft";
+          truncateResult = true;
+          convertE1_to_int = true;
+          break;
         case BinaryExpr.ResolvedOpcode.RightShift:
-          callString = "shiftRight"; convertE1_to_int = true; break;
+          callString = "shiftRight";
+          convertE1_to_int = true;
+          break;
         case BinaryExpr.ResolvedOpcode.Add:
-          callString = "add"; truncateResult = true;
-          if (resultType.IsCharType) {
+          callString = "add";
+          truncateResult = true;
+          if (resultType.IsCharType){
             preOpString = "(char) (";
             postOpString = ".intValue())";
           }
+
           break;
         case BinaryExpr.ResolvedOpcode.Sub:
-          callString = "subtract"; truncateResult = true;
-          if (resultType.IsCharType) {
+          callString = "subtract";
+          truncateResult = true;
+          if (resultType.IsCharType){
             preOpString = "(char) (";
             postOpString = ".intValue())";
           }
+
           break;
         case BinaryExpr.ResolvedOpcode.Mul:
-          callString = "multiply"; truncateResult = true; break;
+          callString = "multiply";
+          truncateResult = true;
+          break;
         case BinaryExpr.ResolvedOpcode.Div:
-          if (resultType.IsIntegerType || (AsNativeType(resultType) != null && AsNativeType(resultType).LowerBound < BigInteger.Zero)) {
+          if (resultType.IsIntegerType ||
+              (AsNativeType(resultType) != null && AsNativeType(resultType).LowerBound < BigInteger.Zero)){
             var suffix = AsNativeType(resultType) != null ? "_" + GetNativeTypeName(AsNativeType(resultType)) : "";
             staticCallString = "DafnyEuclidian.EuclideanDivision" + suffix;
-          } else {
+          }
+          else{
             callString = "divide";
           }
+
           break;
         case BinaryExpr.ResolvedOpcode.Mod:
-          if (resultType.IsIntegerType || (AsNativeType(resultType) != null && AsNativeType(resultType).LowerBound < BigInteger.Zero)) {
+          if (resultType.IsIntegerType ||
+              (AsNativeType(resultType) != null && AsNativeType(resultType).LowerBound < BigInteger.Zero)){
             var suffix = AsNativeType(resultType) != null ? "_" + GetNativeTypeName(AsNativeType(resultType)) : "";
             staticCallString = "DafnyEuclidian.EuclideanModulus" + suffix;
-          } else {
+          }
+          else{
             callString = "mod";
           }
+
           break;
         case BinaryExpr.ResolvedOpcode.SetEq:
         case BinaryExpr.ResolvedOpcode.MultiSetEq:
         case BinaryExpr.ResolvedOpcode.SeqEq:
         case BinaryExpr.ResolvedOpcode.MapEq:
-          callString = "equals"; break;
+          callString = "equals";
+          break;
         case BinaryExpr.ResolvedOpcode.SetNeq:
         case BinaryExpr.ResolvedOpcode.MultiSetNeq:
         case BinaryExpr.ResolvedOpcode.SeqNeq:
         case BinaryExpr.ResolvedOpcode.MapNeq:
-          preOpString = "!"; callString = "equals"; break;
+          preOpString = "!";
+          callString = "equals";
+          break;
         case BinaryExpr.ResolvedOpcode.ProperSubset:
         case BinaryExpr.ResolvedOpcode.ProperMultiSubset:
-          callString = "isProperSubsetOf"; break;
+          callString = "isProperSubsetOf";
+          break;
         case BinaryExpr.ResolvedOpcode.Subset:
         case BinaryExpr.ResolvedOpcode.MultiSubset:
-          callString = "isSubsetOf"; break;
+          callString = "isSubsetOf";
+          break;
         case BinaryExpr.ResolvedOpcode.Superset:
         case BinaryExpr.ResolvedOpcode.MultiSuperset:
-          callString = "isSubsetOf"; reverseArguments = true; break;
+          callString = "isSubsetOf";
+          reverseArguments = true;
+          break;
         case BinaryExpr.ResolvedOpcode.ProperSuperset:
         case BinaryExpr.ResolvedOpcode.ProperMultiSuperset:
-          callString = "IsProperSubsetOf"; reverseArguments = true; break;
+          callString = "IsProperSubsetOf";
+          reverseArguments = true;
+          break;
         case BinaryExpr.ResolvedOpcode.Disjoint:
         case BinaryExpr.ResolvedOpcode.MultiSetDisjoint:
         case BinaryExpr.ResolvedOpcode.MapDisjoint:
-          callString = "disjoint"; break;
+          callString = "disjoint";
+          break;
         case BinaryExpr.ResolvedOpcode.InSet:
         case BinaryExpr.ResolvedOpcode.InMultiSet:
         case BinaryExpr.ResolvedOpcode.InMap:
-          callString = "contains"; reverseArguments = true; break;
+          callString = "contains";
+          reverseArguments = true;
+          break;
         case BinaryExpr.ResolvedOpcode.NotInSet:
         case BinaryExpr.ResolvedOpcode.NotInMultiSet:
         case BinaryExpr.ResolvedOpcode.NotInMap:
-          preOpString = "!"; callString = "contains"; reverseArguments = true; break;
+          preOpString = "!";
+          callString = "contains";
+          reverseArguments = true;
+          break;
         case BinaryExpr.ResolvedOpcode.Union:
         case BinaryExpr.ResolvedOpcode.MultiSetUnion:
-          callString = "union"; break;
+          callString = "union";
+          break;
         case BinaryExpr.ResolvedOpcode.Intersection:
         case BinaryExpr.ResolvedOpcode.MultiSetIntersection:
-          callString = "intersection"; break;
+          callString = "intersection";
+          break;
         case BinaryExpr.ResolvedOpcode.SetDifference:
         case BinaryExpr.ResolvedOpcode.MultiSetDifference:
-          callString = "difference"; break;
+          callString = "difference";
+          break;
 
         case BinaryExpr.ResolvedOpcode.ProperPrefix:
-          callString = "isProperPrefixOf"; break;
+          callString = "isProperPrefixOf";
+          break;
         case BinaryExpr.ResolvedOpcode.Prefix:
-          callString = "isPrefixOf"; break;
+          callString = "isPrefixOf";
+          break;
         case BinaryExpr.ResolvedOpcode.Concat:
-          callString = "concatenate"; break;
+          callString = "concatenate";
+          break;
         case BinaryExpr.ResolvedOpcode.InSeq:
-          callString = "contains"; reverseArguments = true; break;
+          callString = "contains";
+          reverseArguments = true;
+          break;
         case BinaryExpr.ResolvedOpcode.NotInSeq:
-          preOpString = "!"; callString = "contains"; reverseArguments = true; break;
+          preOpString = "!";
+          callString = "contains";
+          reverseArguments = true;
+          break;
 
         default:
-          Contract.Assert(false); throw new cce.UnreachableException();  // unexpected binary expression
+          Contract.Assert(false);
+          throw new cce.UnreachableException(); // unexpected binary expression
       }
     }
+
+    public void CompileTuples(string path){
+      foreach(int i in tuples){
+        if(i!=0)
+          CreateTuple(i, path);
+      }
+    }
+
+    private static int indent = 0;
+    private static String Indent(){
+      String Indent = "";
+      for (int i = 0; i <= indent; i++){
+        Indent += "    ";
+      }
+
+      return Indent;
+    }
+    private static void CreateTuple(int i, string path){
+        path += "/DafnyTuple"+i+".java";
+        // Create a file to write to.
+        using (StreamWriter sw = File.CreateText(path)){
+            sw.WriteLine("package DafnyClasses;");
+            sw.WriteLine();
+            sw.Write("public class DafnyTuple");
+            sw.Write(i);
+            sw.Write("<");
+            for (int j = 0; j < i; j++){
+                sw.Write("T" + j);
+                if (j != i - 1)
+                    sw.Write(", ");
+                else{
+                    sw.WriteLine("> {");
+                }
+            }
+
+            for (int j = 0; j < i; j++){
+                sw.WriteLine(Indent() + "private T" + j + " _" + j+";");
+            }
+
+            sw.WriteLine();
+            sw.Write(Indent() + "public DafnyTuple" + i + "(");
+            for (int j = 0; j < i; j++){
+                sw.Write("T" + j + " _" + j);
+                if (j != i - 1)
+                    sw.Write(", ");
+                else{
+                    sw.WriteLine(") {");
+                }
+            }
+
+            indent++;
+            for (int j = 0; j < i; j++){
+                sw.WriteLine(Indent() + "this._" + j + " = _" + j + ";");
+            }
+
+            indent--;
+            sw.WriteLine(Indent() + "}");
+            sw.WriteLine();
+            sw.WriteLine(Indent() + "@Override");
+            sw.WriteLine(Indent() + "public boolean equals(Object obj) {");
+            indent++;
+            sw.WriteLine(Indent() + "if (this == obj) return true;");
+            sw.WriteLine(Indent() + "if (obj == null) return false;");
+            sw.WriteLine(Indent() + "if (getClass() != obj.getClass()) return false;");
+            sw.Write(Indent() + "DafnyTuple"+i+"<");
+            for (int j = 0; j < i; j++){
+                sw.Write("T" + j);
+                if (j != i - 1)
+                    sw.Write(", ");
+                else{
+                    sw.Write("> o = (DafnyTuple"+i+"<");
+                }
+            }
+            for (int j = 0; j < i; j++){
+                sw.Write("T" + j);
+                if (j != i - 1)
+                    sw.Write(", ");
+                else{
+                    sw.WriteLine(">) obj;");
+                }
+            }
+            sw.Write(Indent() + "return ");
+            for (int j = 0; j < i; j++){
+                sw.Write("this._" + j + ".equals(o._" + j + ")");
+                if (j != i - 1)
+                    sw.Write(" && ");
+                else{
+                    sw.WriteLine(";");
+                }
+            }
+
+            indent--;
+            sw.WriteLine(Indent() + "}");
+            sw.WriteLine();
+            sw.WriteLine(Indent() + "@Override");
+            sw.WriteLine(Indent() + "public String toString() {");
+            indent++;
+            sw.WriteLine(Indent() + "StringBuilder sb = new StringBuilder();");
+            sw.WriteLine(Indent() + "sb.append(\"(\");");
+            for (int j = 0; j < i; j++){
+                sw.WriteLine(Indent() + "sb.append(_" + j + ".toString());");
+                if (j != i - 1)
+                    sw.WriteLine(Indent() + "sb.append(\", \");");
+                else{
+                    sw.WriteLine(Indent() + "sb.append(\")\");");
+                    ;
+                }
+            }
+
+            sw.WriteLine(Indent() + "return sb.toString();");
+            indent--;
+            sw.WriteLine(Indent() + "}");
+            sw.WriteLine();
+            sw.WriteLine(Indent() + "@Override");
+            sw.WriteLine(Indent() + "public int hashCode() {");
+            indent++;
+            sw.WriteLine(Indent() + "// GetHashCode method (Uses the djb2 algorithm)");
+            sw.WriteLine(Indent() + 
+                "// https://stackoverflow.com/questions/1579721/why-are-5381-and-33-so-important-in-the-djb2-algorithm");
+            sw.WriteLine(Indent() + "long hash = 5381;");
+            sw.WriteLine(Indent() + "hash = ((hash << 5) + hash) + 0;");
+            for (int j = 0; j < i; j++){
+                sw.WriteLine(Indent() + "hash = ((hash << 5) + hash) + ((long) this._" + j + ".hashCode());");
+            }
+
+            sw.WriteLine(Indent() + "return (int) hash;");
+            indent--;
+            sw.WriteLine(Indent() + "}");
+            for (int j = 0; j < i; j++){
+                sw.WriteLine();
+                sw.WriteLine(Indent() + "public T"+j+" get_"+j+"() { return this._"+j+"; }");
+            }
+            sw.WriteLine("}");
+            sw.WriteLine();
+        }
+    }
+
     
     protected override void EmitReturn(List<Formal> outParams, TargetWriter wr) {
       if (outParams.Count == 0) {
