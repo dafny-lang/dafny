@@ -41,6 +41,35 @@ namespace Microsoft.Dafny {
       public string Name, Path;
       public bool SuppressDummy; // TODO: Not sure what this does, might not need it? (Copied from Compiler-go.cs)
     }
+
+    protected override bool UseReturnStyleOuts(Method m, int nonGhostOutCount) => true;
+
+    protected override bool SupportsAmbiguousTypeDecl => false;
+
+    protected override void DeclareSpecificOutCollector(string collectorVarName, TargetWriter wr, int outCount, Method m) {
+      if (outCount > 1) {
+        wr.Write("DafnyTuple{0} {1} = ", outCount, collectorVarName);
+      }
+      else {
+        for (int i = 0; i < m.Outs.Count; i++) {
+          Formal p = m.Outs[i];
+          if (!p.IsGhost) {
+            wr.Write("{0} {1} = ", TypeName(p.Type, wr, p.tok), collectorVarName);
+            return;
+          }
+        }
+      }
+    }
+    
+    protected override void EmitCastOutParameterSplits(string outCollector, List<string> actualOutParamNames, TargetWriter wr, List<Type> actualOutParamTypes, Bpl.IToken tok) {
+      if (actualOutParamNames.Count == 1) {
+        EmitAssignment(actualOutParamNames[0], null, outCollector, null, wr);
+      } else {
+        for (var i = 0; i < actualOutParamNames.Count; i++) {
+          wr.WriteLine("{0} = ({3}) {1}.get_{2}();", actualOutParamNames[i], outCollector, i, TypeName(actualOutParamTypes[i], wr, tok));
+        }
+      }
+    }
         
     protected override void EmitHeader(Program program, TargetWriter wr) {
       wr.WriteLine("// Dafny program {0} compiled into Java", program.Name);
@@ -166,14 +195,14 @@ namespace Microsoft.Dafny {
         
     protected BlockTargetWriter CreateMethod(Method m, bool createBody, TargetWriter wr) {
       string targetReturnTypeReplacement = null;
+      int nonGhostOuts = 2;
       foreach (var p in m.Outs) {
         if (!p.IsGhost) {
           if (targetReturnTypeReplacement == null) {
             targetReturnTypeReplacement = TypeName(p.Type, wr, p.tok);
           } else if (targetReturnTypeReplacement != null) {
-            // there's more than one out-parameter, so bail
-            targetReturnTypeReplacement = null;
-            break;
+            targetReturnTypeReplacement = "DafnyTuple" + nonGhostOuts;
+            nonGhostOuts += 1;
           }
         }
       }
@@ -253,7 +282,7 @@ namespace Microsoft.Dafny {
       } else if (xType is IntType || xType is BigOrdinalType) { 
         return "BigInteger"; 
       } else if (xType is RealType) { 
-        return "BigDecimal"; //TODO: change the data structure to match the one in DafnyRuntime.java
+        return "BigDecimal";
       } else if (xType is BitvectorType) { 
         var t = (BitvectorType)xType; 
         return t.NativeType != null ? GetNativeTypeName(t.NativeType) : "BigInteger"; 
@@ -278,7 +307,7 @@ namespace Microsoft.Dafny {
         var cl = udt.ResolvedClass; 
         bool isHandle = true; 
         if (cl != null && Attributes.ContainsBool(cl.Attributes, "handle", ref isHandle) && isHandle) { 
-          return "ulong"; // TODO: Make sure DafnyRuntime.java has a data structure to handle unsigned longs.
+          return "DafnyULong";
         } else if (DafnyOptions.O.IronDafny && 
                    !(xType is ArrowType) && 
                    cl != null && 
@@ -292,26 +321,26 @@ namespace Microsoft.Dafny {
         if (ComplicatedTypeParameterForCompilation(argType)) { 
           Error(tok, "compilation of set<TRAIT> is not supported; consider introducing a ghost", wr); 
         } 
-        return DafnySetClass + "<" + TypeName(argType, wr, tok) + ">"; 
+        return "DafnySet<" + TypeName(argType, wr, tok) + ">"; 
       } else if (xType is SeqType) { 
         Type argType = ((SeqType)xType).Arg; 
         if (ComplicatedTypeParameterForCompilation(argType)) { 
           Error(tok, "compilation of seq<TRAIT> is not supported; consider introducing a ghost", wr); 
         } 
-        return DafnySeqClass + "<" + TypeName(argType, wr, tok) + ">"; 
+        return "DafnySequence<" + TypeName(argType, wr, tok) + ">"; 
       } else if (xType is MultiSetType) { 
         Type argType = ((MultiSetType)xType).Arg; 
         if (ComplicatedTypeParameterForCompilation(argType)) { 
           Error(tok, "compilation of multiset<TRAIT> is not supported; consider introducing a ghost", wr); 
         } 
-        return DafnyMultiSetClass + "<" + TypeName(argType, wr, tok) + ">"; 
+        return "DafnyMultiSet<" + TypeName(argType, wr, tok) + ">"; 
       } else if (xType is MapType) { 
         Type domType = ((MapType)xType).Domain; 
         Type ranType = ((MapType)xType).Range; 
         if (ComplicatedTypeParameterForCompilation(domType) || ComplicatedTypeParameterForCompilation(ranType)) { 
           Error(tok, "compilation of map<TRAIT, _> or map<_, TRAIT> is not supported; consider introducing a ghost", wr); 
         } 
-        return DafnyMapClass + "<" + TypeName(domType, wr, tok) + "," + TypeName(ranType, wr, tok) + ">"; 
+        return "HashMap<" + TypeName(domType, wr, tok) + "," + TypeName(ranType, wr, tok) + ">"; 
       } else { 
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected type
       }
@@ -1087,6 +1116,284 @@ namespace Microsoft.Dafny {
       proc.WaitForExit();
       return true;
     }
+    
+    // TODO: See if more types need to be added
+    bool IsDirectlyComparable(Type t) {
+      Contract.Requires(t != null);
+      return t.IsBoolType || t.IsCharType || AsNativeType(t) != null || t.IsRefType;
+    }
+    
+    // TODO: Make sure all OpCodes are accounted for.
+    protected override void CompileBinOp(BinaryExpr.ResolvedOpcode op, Expression e0, Expression e1, Bpl.IToken tok, Type resultType, out string opString,
+      out string preOpString, out string postOpString, out string callString, out string staticCallString,
+      out bool reverseArguments, out bool truncateResult, out bool convertE1_to_int, TextWriter errorWr) {
+      opString = null;
+      preOpString = "";
+      postOpString = "";
+      callString = null;
+      staticCallString = null;
+      reverseArguments = false;
+      truncateResult = false;
+      convertE1_to_int = false;
+      switch (op) {
+        case BinaryExpr.ResolvedOpcode.Iff:
+          opString = "=="; break;
+        case BinaryExpr.ResolvedOpcode.Imp:
+          preOpString = "!"; opString = "||"; break;
+        case BinaryExpr.ResolvedOpcode.Or:
+          opString = "||"; break;
+        case BinaryExpr.ResolvedOpcode.And:
+          opString = "&&"; break;
+        case BinaryExpr.ResolvedOpcode.BitwiseAnd:
+          callString = "and"; break;
+        case BinaryExpr.ResolvedOpcode.BitwiseOr:
+          callString = "or"; break;
+        case BinaryExpr.ResolvedOpcode.BitwiseXor:
+          callString = "xor"; break;
+        case BinaryExpr.ResolvedOpcode.EqCommon: {
+            if (IsHandleComparison(tok, e0, e1, errorWr)) {
+              opString = "==";
+            } else if (e0.Type.IsRefType) {
+              opString = "== (Object) ";
+            } else if (IsDirectlyComparable(e0.Type)) {
+              opString = "==";
+            } else {
+              callString = "equals";
+            }
+            break;
+          }
+        case BinaryExpr.ResolvedOpcode.NeqCommon: {
+            if (IsHandleComparison(tok, e0, e1, errorWr)) {
+              opString = "!=";
+            } else if (e0.Type.IsRefType) {
+              opString = "!= (Object) ";
+            } else if (IsDirectlyComparable(e0.Type)) {
+              opString = "!=";
+            } else {
+              preOpString = "!";
+              callString = "equals";
+            }
+            break;
+          }
+        case BinaryExpr.ResolvedOpcode.Lt:
+        case BinaryExpr.ResolvedOpcode.LtChar:
+          callString = "compareTo"; postOpString = " < 0"; break;
+        case BinaryExpr.ResolvedOpcode.Le:
+        case BinaryExpr.ResolvedOpcode.LeChar:
+          callString = "compareTo"; postOpString = " <= 0"; break;
+        case BinaryExpr.ResolvedOpcode.Ge:
+        case BinaryExpr.ResolvedOpcode.GeChar:
+          callString = "compareTo"; postOpString = " > 0"; break;
+        case BinaryExpr.ResolvedOpcode.Gt:
+        case BinaryExpr.ResolvedOpcode.GtChar:
+          callString = "compareTo"; postOpString = " >= 0"; break;
+        case BinaryExpr.ResolvedOpcode.LeftShift:
+          callString = "shiftLeft"; truncateResult = true; convertE1_to_int = true; break;
+        case BinaryExpr.ResolvedOpcode.RightShift:
+          callString = "shiftRight"; convertE1_to_int = true; break;
+        case BinaryExpr.ResolvedOpcode.Add:
+          callString = "add"; truncateResult = true;
+          if (resultType.IsCharType) {
+            preOpString = "(char) (";
+            postOpString = ".intValue())";
+          }
+          break;
+        case BinaryExpr.ResolvedOpcode.Sub:
+          callString = "subtract"; truncateResult = true;
+          if (resultType.IsCharType) {
+            preOpString = "(char) (";
+            postOpString = ".intValue())";
+          }
+          break;
+        case BinaryExpr.ResolvedOpcode.Mul:
+          callString = "multiply"; truncateResult = true; break;
+        case BinaryExpr.ResolvedOpcode.Div:
+          if (resultType.IsIntegerType || (AsNativeType(resultType) != null && AsNativeType(resultType).LowerBound < BigInteger.Zero)) {
+            var suffix = AsNativeType(resultType) != null ? "_" + GetNativeTypeName(AsNativeType(resultType)) : "";
+            staticCallString = "DafnyEuclidian.EuclideanDivision" + suffix;
+          } else {
+            callString = "divide";
+          }
+          break;
+        case BinaryExpr.ResolvedOpcode.Mod:
+          if (resultType.IsIntegerType || (AsNativeType(resultType) != null && AsNativeType(resultType).LowerBound < BigInteger.Zero)) {
+            var suffix = AsNativeType(resultType) != null ? "_" + GetNativeTypeName(AsNativeType(resultType)) : "";
+            staticCallString = "DafnyEuclidian.EuclideanModulus" + suffix;
+          } else {
+            callString = "mod";
+          }
+          break;
+        case BinaryExpr.ResolvedOpcode.SetEq:
+        case BinaryExpr.ResolvedOpcode.MultiSetEq:
+        case BinaryExpr.ResolvedOpcode.SeqEq:
+        case BinaryExpr.ResolvedOpcode.MapEq:
+          callString = "equals"; break;
+        case BinaryExpr.ResolvedOpcode.SetNeq:
+        case BinaryExpr.ResolvedOpcode.MultiSetNeq:
+        case BinaryExpr.ResolvedOpcode.SeqNeq:
+        case BinaryExpr.ResolvedOpcode.MapNeq:
+          preOpString = "!"; callString = "equals"; break;
+        case BinaryExpr.ResolvedOpcode.ProperSubset:
+        case BinaryExpr.ResolvedOpcode.ProperMultiSubset:
+          callString = "isProperSubsetOf"; break;
+        case BinaryExpr.ResolvedOpcode.Subset:
+        case BinaryExpr.ResolvedOpcode.MultiSubset:
+          callString = "isSubsetOf"; break;
+        case BinaryExpr.ResolvedOpcode.Superset:
+        case BinaryExpr.ResolvedOpcode.MultiSuperset:
+          callString = "isSubsetOf"; reverseArguments = true; break;
+        case BinaryExpr.ResolvedOpcode.ProperSuperset:
+        case BinaryExpr.ResolvedOpcode.ProperMultiSuperset:
+          callString = "IsProperSubsetOf"; reverseArguments = true; break;
+        case BinaryExpr.ResolvedOpcode.Disjoint:
+        case BinaryExpr.ResolvedOpcode.MultiSetDisjoint:
+        case BinaryExpr.ResolvedOpcode.MapDisjoint:
+          callString = "disjoint"; break;
+        case BinaryExpr.ResolvedOpcode.InSet:
+        case BinaryExpr.ResolvedOpcode.InMultiSet:
+        case BinaryExpr.ResolvedOpcode.InMap:
+          callString = "contains"; reverseArguments = true; break;
+        case BinaryExpr.ResolvedOpcode.NotInSet:
+        case BinaryExpr.ResolvedOpcode.NotInMultiSet:
+        case BinaryExpr.ResolvedOpcode.NotInMap:
+          preOpString = "!"; callString = "contains"; reverseArguments = true; break;
+        case BinaryExpr.ResolvedOpcode.Union:
+        case BinaryExpr.ResolvedOpcode.MultiSetUnion:
+          callString = "union"; break;
+        case BinaryExpr.ResolvedOpcode.Intersection:
+        case BinaryExpr.ResolvedOpcode.MultiSetIntersection:
+          callString = "intersection"; break;
+        case BinaryExpr.ResolvedOpcode.SetDifference:
+        case BinaryExpr.ResolvedOpcode.MultiSetDifference:
+          callString = "difference"; break;
+
+        case BinaryExpr.ResolvedOpcode.ProperPrefix:
+          callString = "isProperPrefixOf"; break;
+        case BinaryExpr.ResolvedOpcode.Prefix:
+          callString = "isPrefixOf"; break;
+        case BinaryExpr.ResolvedOpcode.Concat:
+          callString = "concatenate"; break;
+        case BinaryExpr.ResolvedOpcode.InSeq:
+          callString = "contains"; reverseArguments = true; break;
+        case BinaryExpr.ResolvedOpcode.NotInSeq:
+          preOpString = "!"; callString = "contains"; reverseArguments = true; break;
+
+        default:
+          Contract.Assert(false); throw new cce.UnreachableException();  // unexpected binary expression
+      }
+    }
+    
+    protected override void EmitReturn(List<Formal> outParams, TargetWriter wr) {
+      if (outParams.Count == 0) {
+        wr.WriteLine("return;");
+      } else if (outParams.Count == 1) {
+        wr.WriteLine("return {0};", IdName(outParams[0]));
+      } else {
+        wr.WriteLine("return new DafnyTuple{0}({1});", outParams.Count, Util.Comma(outParams, IdName));
+      }
+    }
+    
+    public override string TypeInitializationValue(Type type, TextWriter wr, Bpl.IToken tok, bool inAutoInitContext) {
+      var xType = type.NormalizeExpandKeepConstraints();
+
+      if (xType is BoolType) {
+        return "false";
+      } else if (xType is CharType) {
+        return "'D'";
+      } else if (xType is IntType || xType is BigOrdinalType) {
+        return "BigInteger.ZERO";
+      } else if (xType is RealType) {
+        return "BigDecimal.ZERO";
+      } else if (xType is BitvectorType) {
+        var t = (BitvectorType)xType;
+        return t.NativeType != null ? "0" : "BigInteger.ZERO";
+      } else if (xType is CollectionType) {
+        return "new " + TypeName(xType, wr, tok) + "()";
+      }
+      
+      var udt = (UserDefinedType)xType;
+      if (udt.ResolvedParam != null) {
+        return "Helpers.Default<" + TypeName_UDT(FullTypeName(udt), udt.TypeArgs, wr, udt.tok) + ">()";
+      }
+      var cl = udt.ResolvedClass;
+      Contract.Assert(cl != null);
+      if (cl is NewtypeDecl) {
+        var td = (NewtypeDecl)cl;
+        if (td.Witness != null) {
+          return TypeName_UDT(FullTypeName(udt), udt.TypeArgs, wr, udt.tok) + ".Witness";
+        } else if (td.NativeType != null) {
+          return "0";
+        } else {
+          return TypeInitializationValue(td.BaseType, wr, tok, inAutoInitContext);
+        }
+      } else if (cl is SubsetTypeDecl) {
+        var td = (SubsetTypeDecl)cl;
+        if (td.Witness != null) {
+          return TypeName_UDT(FullTypeName(udt), udt.TypeArgs, wr, udt.tok) + ".Witness";
+        } else if (td.WitnessKind == SubsetTypeDecl.WKind.Special) {
+          // WKind.Special is only used with -->, ->, and non-null types:
+          Contract.Assert(ArrowType.IsPartialArrowTypeName(td.Name) || ArrowType.IsTotalArrowTypeName(td.Name) || td is NonNullTypeDecl);
+          if (ArrowType.IsPartialArrowTypeName(td.Name)) {
+            return string.Format("(({0}) null)", TypeName(xType, wr, udt.tok));
+          } else if (ArrowType.IsTotalArrowTypeName(td.Name)) {
+            var rangeDefaultValue = TypeInitializationValue(udt.TypeArgs.Last(), wr, tok, inAutoInitContext);
+            // return the lambda expression ((Ty0 x0, Ty1 x1, Ty2 x2) -> rangeDefaultValue)
+            return string.Format("(({0}) -> {1})",
+              Util.Comma(", ", udt.TypeArgs.Count - 1, i => string.Format("{0} x{1}", TypeName(udt.TypeArgs[i], wr, udt.tok), i)),
+              rangeDefaultValue);
+          } else if (((NonNullTypeDecl)td).Class is ArrayClassDecl) {
+            // non-null array type; we know how to initialize them
+            var arrayClass = (ArrayClassDecl)((NonNullTypeDecl)td).Class;
+            string typeNameSansBrackets, brackets;
+            TypeName_SplitArrayName(udt.TypeArgs[0], wr, udt.tok, out typeNameSansBrackets, out brackets);
+            return string.Format("new {0}[{1}]{2}", typeNameSansBrackets, Util.Comma(arrayClass.Dims, _ => "0"), brackets);
+          } else {
+            // non-null (non-array) type
+            // even though the type doesn't necessarily have a known initializer, it could be that the the compiler needs to
+            // lay down some bits to please the C#'s compiler's different definite-assignment rules.
+            return string.Format("default({0})", TypeName(xType, wr, udt.tok));
+          }
+        } else {
+          return TypeInitializationValue(td.RhsWithArgument(udt.TypeArgs), wr, tok, inAutoInitContext);
+        }
+      } else if (cl is ClassDecl) {
+        bool isHandle = true;
+        if (Attributes.ContainsBool(cl.Attributes, "handle", ref isHandle) && isHandle) {
+          return "0";
+        } else {
+          return string.Format("({0}) null", TypeName(xType, wr, udt.tok));
+        }
+      } else if (cl is DatatypeDecl) {
+        var s = FullTypeName(udt);
+        if (udt.TypeArgs.Count != 0) {
+          s += "<" + TypeNames(udt.TypeArgs, wr, udt.tok) + ">";
+        }
+        return string.Format("{0}.Default", s);
+      } else {
+        Contract.Assert(false); throw new cce.UnreachableException();  // unexpected type
+      }
+    }
+    
+    protected override TargetWriter DeclareLocalVar(string name, Type type, Bpl.IToken tok, TargetWriter wr) {
+      wr.Write("{0} {1} = ", TypeName(type, wr, tok), name);
+      var w = wr.Fork();
+      wr.WriteLine(";");
+      return w;
+    }
+    
+    protected override void DeclareLocalOutVar(string name, Type type, Bpl.IToken tok, string rhs, TargetWriter wr) {
+      DeclareLocalVar(name, type, tok, false, rhs, wr);
+    }
+    
+    protected override string GenerateLhsDecl(string target, Type type, TextWriter wr, Bpl.IToken tok) {
+      return TypeName(type, wr, tok) + " " + target;
+    }
+    
+    protected override void EmitActualTypeArgs(List<Type> typeArgs, Bpl.IToken tok, TextWriter wr) {
+      if (typeArgs.Count != 0) {
+        wr.Write("<" + TypeNames(typeArgs, wr, tok) + ">");
+      }
+    }
 
     // ABSTRACT METHOD DECLARATIONS FOR THE SAKE OF BUILDING PROGRAM
     protected override string GetHelperModuleName()
@@ -1100,36 +1407,6 @@ namespace Microsoft.Dafny {
     }
         
     protected override void EmitJumpToTailCallStart(TargetWriter wr)
-    {
-      throw new NotImplementedException();
-    }
-        
-    public override string TypeInitializationValue(Type type, TextWriter wr, Bpl.IToken tok, bool inAutoInitContext)
-    {
-      throw new NotImplementedException();
-    }
-
-    protected override TargetWriter DeclareLocalVar(string name, Type type, Bpl.IToken tok, TargetWriter wr)
-    {
-      throw new NotImplementedException();
-    }
-
-    protected override void DeclareLocalOutVar(string name, Type type, Bpl.IToken tok, string rhs, TargetWriter wr)
-    {
-      throw new NotImplementedException();
-    }
-
-    protected override void EmitActualTypeArgs(List<Type> typeArgs, Bpl.IToken tok, TextWriter wr)
-    {
-      throw new NotImplementedException();
-    }
-
-    protected override string GenerateLhsDecl(string target, Type type, TextWriter wr, Bpl.IToken tok)
-    {
-      throw new NotImplementedException();
-    }
-
-    protected override void EmitReturn(List<Formal> outParams, TargetWriter wr)
     {
       throw new NotImplementedException();
     }
@@ -1206,13 +1483,6 @@ namespace Microsoft.Dafny {
     }
 
     protected override void EmitUnaryExpr(ResolvedUnaryOp op, Expression expr, bool inLetExprBody, TargetWriter wr)
-    {
-      throw new NotImplementedException();
-    }
-
-    protected override void CompileBinOp(BinaryExpr.ResolvedOpcode op, Expression e0, Expression e1, Bpl.IToken tok, Type resultType, out string opString,
-      out string preOpString, out string postOpString, out string callString, out string staticCallString,
-      out bool reverseArguments, out bool truncateResult, out bool convertE1_to_int, TextWriter errorWr)
     {
       throw new NotImplementedException();
     }

@@ -198,9 +198,11 @@ namespace Microsoft.Dafny {
     /// </summary>
     protected abstract TargetWriter DeclareLocalVar(string name, Type/*?*/ type, Bpl.IToken/*?*/ tok, TargetWriter wr);
     protected virtual void DeclareOutCollector(string collectorVarName, TargetWriter wr) { }  // called only for return-style calls
+    protected virtual void DeclareSpecificOutCollector(string collectorVarName, TargetWriter wr, int outCount, Method m) { } // for languages that don't allow "let" or "var" expressions
     protected virtual bool UseReturnStyleOuts(Method m, int nonGhostOutCount) => false;
     protected virtual bool SupportsMultipleReturns { get => false; }
     protected virtual bool NeedsCastFromTypeParameter { get => false; }
+    protected virtual bool SupportsAmbiguousTypeDecl { get => true; }
     /// The punctuation that comes at the end of a statement.  Note that
     /// statements are followed by newlines regardless.
     protected virtual string StmtTerminator { get => ";"; }
@@ -208,6 +210,7 @@ namespace Microsoft.Dafny {
     protected abstract void DeclareLocalOutVar(string name, Type type, Bpl.IToken tok, string rhs, TargetWriter wr);
     protected virtual void EmitActualOutArg(string actualOutParamName, TextWriter wr) { }  // actualOutParamName is always the name of a local variable; called only for non-return-style outs
     protected virtual void EmitOutParameterSplits(string outCollector, List<string> actualOutParamNames, TargetWriter wr) { }  // called only for return-style calls
+    protected virtual void EmitCastOutParameterSplits(string outCollector, List<string> actualOutParamNames, TargetWriter wr, List<Type> actualOutParamTypes, Bpl.IToken tok) { }
 
     protected abstract void EmitActualTypeArgs(List<Type> typeArgs, Bpl.IToken tok, TextWriter wr);
     protected abstract string GenerateLhsDecl(string target, Type/*?*/ type, TextWriter wr, Bpl.IToken tok);
@@ -2544,6 +2547,7 @@ namespace Microsoft.Dafny {
           }
         }
         var outTmps = new List<string>();  // contains a name for each non-ghost formal out-parameter
+        var outTypes = new List<Type>();  // contains a type for each non-ghost formal out-parameter
         for (int i = 0; i < s.Method.Outs.Count; i++) {
           Formal p = s.Method.Outs[i];
           if (!p.IsGhost) {
@@ -2596,6 +2600,7 @@ namespace Microsoft.Dafny {
             if (s.Method.IsExtern(out _, out _)) {
               type = NativeForm(type);
             }
+            outTypes.Add(type);
             DeclareLocalVar(target, type, s.Lhs[i].tok, false, null, wr);
           }
         }
@@ -2603,7 +2608,9 @@ namespace Microsoft.Dafny {
 
         bool returnStyleOuts = UseReturnStyleOuts(s.Method, outTmps.Count);
         var returnStyleOutCollector = outTmps.Count > 0 && returnStyleOuts && !SupportsMultipleReturns ? idGenerator.FreshId("_outcollector") : null;
-        if (returnStyleOutCollector != null) {
+        if (returnStyleOutCollector != null && !SupportsAmbiguousTypeDecl) {
+          DeclareSpecificOutCollector(returnStyleOutCollector, wr, outTmps.Count, s.Method);
+        } else if (returnStyleOutCollector != null) {
           DeclareOutCollector(returnStyleOutCollector, wr);
         } else if (outTmps.Count > 0 && returnStyleOuts && SupportsMultipleReturns) {
           wr.Write("{0} = ", Util.Comma(outTmps));
@@ -2657,6 +2664,9 @@ namespace Microsoft.Dafny {
         }
         wr.Write(')');
         EndStmt(wr);
+        if (returnStyleOutCollector != null && !SupportsAmbiguousTypeDecl) {
+          EmitCastOutParameterSplits(returnStyleOutCollector, outTmps, wr, outTypes, s.Tok);
+        }
         if (returnStyleOutCollector != null) {
           EmitOutParameterSplits(returnStyleOutCollector, outTmps, wr);
         }
