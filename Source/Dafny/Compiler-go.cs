@@ -1733,7 +1733,7 @@ namespace Microsoft.Dafny {
     protected override bool SupportsMultipleReturns => true;
     protected override string StmtTerminator => "";
 
-    protected override void DeclareLocalOutVar(string name, Type type, Bpl.IToken tok, string rhs, TargetWriter wr) {
+    protected override void DeclareLocalOutVar(string name, Type type, Bpl.IToken tok, string rhs, bool useReturnStyleOuts, TargetWriter wr) {
       DeclareLocalVar(name, type, tok, false, rhs, wr);
     }
 

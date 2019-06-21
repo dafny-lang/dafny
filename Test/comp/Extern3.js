@@ -15,5 +15,17 @@ let Library = (function() {
     }
   };
   
+  $module.Mixed = class Mixed {
+    // static method P()
+    static P() {
+      process.stdout.write("Mixed.P\n");
+    }
+  }
+  $module.AllExtern = class AllExtern {
+    static P() {
+      process.stdout.write("AllExtern.P\n");
+    }
+  };
+  
   return $module;
 })();

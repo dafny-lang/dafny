@@ -205,7 +205,7 @@ namespace Microsoft.Dafny {
     /// statements are followed by newlines regardless.
     protected virtual string StmtTerminator { get => ";"; }
     protected void EndStmt(TargetWriter wr) { wr.WriteLine(StmtTerminator); }
-    protected abstract void DeclareLocalOutVar(string name, Type type, Bpl.IToken tok, string rhs, TargetWriter wr);
+    protected abstract void DeclareLocalOutVar(string name, Type type, Bpl.IToken tok, string rhs, bool useReturnStyleOuts, TargetWriter wr);
     protected virtual void EmitActualOutArg(string actualOutParamName, TextWriter wr) { }  // actualOutParamName is always the name of a local variable; called only for non-return-style outs
     protected virtual void EmitOutParameterSplits(string outCollector, List<string> actualOutParamNames, TargetWriter wr) { }  // called only for return-style calls
 
@@ -580,8 +580,14 @@ namespace Microsoft.Dafny {
                 !x.IsGhost && (DafnyOptions.O.DisallowExterns || !Attributes.Contains(x.Attributes, "extern"));
               include = cl.Members.Exists(compilationMaterial) || cl.InheritedMembers.Exists(compilationMaterial);
             }
+            var classIsExtern = false;
             if (include) {
-              var classIsExtern = !DafnyOptions.O.DisallowExterns && Attributes.Contains(cl.Attributes, "extern");
+              classIsExtern = !DafnyOptions.O.DisallowExterns && Attributes.Contains(cl.Attributes, "extern");
+              if (classIsExtern && cl.Members.TrueForAll(member => member.IsGhost || Attributes.Contains(member.Attributes, "extern"))) {
+                include = false;
+              }
+            }
+            if (include) {
               var cw = CreateClass(IdName(cl), classIsExtern, cl.FullName, cl.TypeArgs, cl.TraitsTyp, cl.tok, wr);
               CompileClassMembers(cl, cw);
               cw.Finish();
@@ -1055,9 +1061,17 @@ namespace Microsoft.Dafny {
 
       var w = cw.CreateMethod(m, true);
       if (w != null) {
-        foreach (Formal p in m.Outs) {
+        int nonGhostOutsCount = 0;
+        foreach (var p in m.Outs) {
           if (!p.IsGhost) {
-            DeclareLocalOutVar(IdName(p), p.Type, p.tok, DefaultValue(p.Type, w, p.tok, true), w);
+            nonGhostOutsCount++;
+          }
+        }
+
+        var useReturnStyleOuts = UseReturnStyleOuts(m, nonGhostOutsCount);
+        foreach (var p in m.Outs) {
+          if (!p.IsGhost) {
+            DeclareLocalOutVar(IdName(p), p.Type, p.tok, DefaultValue(p.Type, w, p.tok, true), useReturnStyleOuts, w);
           }
         }
         if (m.Body == null) {
