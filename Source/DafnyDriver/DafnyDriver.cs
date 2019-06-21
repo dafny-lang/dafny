@@ -613,7 +613,7 @@ namespace Microsoft.Dafny
         Contract.Assert(assemblyLocation != null);
         var codebase = System.IO.Path.GetDirectoryName(assemblyLocation);
         Contract.Assert(codebase != null);
-        string dest = targetDir + "/DafnyClasses";
+        string dest = targetDir + "/_System";
         ((JavaCompiler)compiler).CompileTuples(dest);
       }
       
