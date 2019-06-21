@@ -316,9 +316,9 @@ namespace Microsoft.Dafny {
         return "object"; 
       }
       if (xType is BoolType) { 
-        return "boolean"; 
+        return "Boolean"; 
       } else if (xType is CharType) { 
-        return "char"; 
+        return "Character"; 
       } else if (xType is IntType || xType is BigOrdinalType) { 
         return "BigInteger"; 
       } else if (xType is RealType) { 
@@ -396,8 +396,13 @@ namespace Microsoft.Dafny {
       var cl = udt.ResolvedClass;
       if (cl == null) {
         return IdProtect(udt.CompileName);
-      } else {
+      } else if (cl.Module.IsDefaultModule) {
         return IdProtect(cl.CompileName);
+      } 
+      else if (cl.Module.CompileName.Equals(ModuleName)){
+        return IdProtect(cl.CompileName);
+      }else {
+        return IdProtect(cl.Module.CompileName) + "." + IdProtect(cl.CompileName);
       }
     }
         
@@ -1417,12 +1422,12 @@ namespace Microsoft.Dafny {
       return Indent;
     }
     private static void CreateTuple(int i, string path){
-        path += "/DafnyTuple"+i+".java";
+        path += "/Tuple"+i+".java";
         // Create a file to write to.
         using (StreamWriter sw = File.CreateText(path)){
-            sw.WriteLine("package DafnyClasses;");
+            sw.WriteLine("package _System;");
             sw.WriteLine();
-            sw.Write("public class DafnyTuple");
+            sw.Write("public class Tuple");
             sw.Write(i);
             sw.Write("<");
             for (int j = 0; j < i; j++){
@@ -1439,7 +1444,7 @@ namespace Microsoft.Dafny {
             }
 
             sw.WriteLine();
-            sw.Write(Indent() + "public DafnyTuple" + i + "(");
+            sw.Write(Indent() + "public Tuple" + i + "(");
             for (int j = 0; j < i; j++){
                 sw.Write("T" + j + " _" + j);
                 if (j != i - 1)
@@ -1463,13 +1468,13 @@ namespace Microsoft.Dafny {
             sw.WriteLine(Indent() + "if (this == obj) return true;");
             sw.WriteLine(Indent() + "if (obj == null) return false;");
             sw.WriteLine(Indent() + "if (getClass() != obj.getClass()) return false;");
-            sw.Write(Indent() + "DafnyTuple"+i+"<");
+            sw.Write(Indent() + "Tuple"+i+"<");
             for (int j = 0; j < i; j++){
                 sw.Write("T" + j);
                 if (j != i - 1)
                     sw.Write(", ");
                 else{
-                    sw.Write("> o = (DafnyTuple"+i+"<");
+                    sw.Write("> o = (Tuple"+i+"<");
                 }
             }
             for (int j = 0; j < i; j++){
@@ -1742,7 +1747,28 @@ namespace Microsoft.Dafny {
 
     protected override void EmitDatatypeValue(DatatypeValue dtv, string arguments, TargetWriter wr)
     {
-      throw new NotImplementedException();
+      var dt = dtv.Ctor.EnclosingDatatype;
+      var dtName = dt.Module.IsDefaultModule || dt.Module.Name.Equals(ModuleName)? dt.CompileName :  dt.FullCompileName;
+      var ctorName = dtv.Ctor.CompileName;
+
+      var typeParams = dtv.InferredTypeArgs.Count == 0 ? "" : string.Format("<{0}>", TypeNames(dtv.InferredTypeArgs, wr, dtv.tok));
+      if (!dtv.IsCoCall) {
+        wr.Write("new {0}{1}", dtName, typeParams);
+        // For an ordinary constructor (that is, one that does not guard any co-recursive calls), generate:
+        //   new Dt_Cons<T>( args )
+        wr.Write("({0})", arguments);
+      } 
+//      else {
+//        // In the case of a co-recursive call, generate:
+//        //     new Dt__Lazy<T>( LAMBDA )
+//        // where LAMBDA is:
+//        //     () => { return Dt_Cons<T>( ...args... ); }
+//        wr.Write("new {0}__Lazy{1}(", dtv.DatatypeName, typeParams);
+//
+//        wr.Write("() => { return ");
+//        wr.Write("new {0}({1})", DtCtorName(dtv.Ctor, dtv.InferredTypeArgs, wr), arguments);
+//        wr.Write("; })");
+//      }
     }
 
     protected override void EmitExprAsInt(Expression expr, bool inLetExprBody, TargetWriter wr)
