@@ -1406,9 +1406,9 @@ namespace Microsoft.Dafny {
     }
 
     public void CompileTuples(string path){
+      tuples.Add(2);
       foreach(int i in tuples){
-        if(i!=0)
-          CreateTuple(i, path);
+        CreateTuple(i, path);
       }
     }
 
@@ -1429,16 +1429,18 @@ namespace Microsoft.Dafny {
             sw.WriteLine();
             sw.Write("public class Tuple");
             sw.Write(i);
-            sw.Write("<");
-            for (int j = 0; j < i; j++){
+            if (i != 0){
+              sw.Write("<");
+              for (int j = 0; j < i; j++){
                 sw.Write("T" + j);
                 if (j != i - 1)
-                    sw.Write(", ");
+                  sw.Write(", ");
                 else{
-                    sw.WriteLine("> {");
+                  sw.Write("> ");
                 }
+              }
             }
-
+            sw.WriteLine("{");
             for (int j = 0; j < i; j++){
                 sw.WriteLine(Indent() + "private T" + j + " _" + j+";");
             }
@@ -1449,11 +1451,8 @@ namespace Microsoft.Dafny {
                 sw.Write("T" + j + " _" + j);
                 if (j != i - 1)
                     sw.Write(", ");
-                else{
-                    sw.WriteLine(") {");
-                }
             }
-
+            sw.WriteLine(") {");
             indent++;
             for (int j = 0; j < i; j++){
                 sw.WriteLine(Indent() + "this._" + j + " = _" + j + ";");
@@ -1468,32 +1467,40 @@ namespace Microsoft.Dafny {
             sw.WriteLine(Indent() + "if (this == obj) return true;");
             sw.WriteLine(Indent() + "if (obj == null) return false;");
             sw.WriteLine(Indent() + "if (getClass() != obj.getClass()) return false;");
-            sw.Write(Indent() + "Tuple"+i+"<");
-            for (int j = 0; j < i; j++){
+            
+            if(i!= 0){
+                sw.Write(Indent() + "Tuple" + i + "<");
+              for (int j = 0; j < i; j++){
                 sw.Write("T" + j);
                 if (j != i - 1)
-                    sw.Write(", ");
+                  sw.Write(", ");
                 else{
-                    sw.Write("> o = (Tuple"+i+"<");
+                  sw.Write("> o = (Tuple" + i + "<");
                 }
-            }
-            for (int j = 0; j < i; j++){
+              }
+
+              for (int j = 0; j < i; j++){
                 sw.Write("T" + j);
                 if (j != i - 1)
-                    sw.Write(", ");
+                  sw.Write(", ");
                 else{
-                    sw.WriteLine(">) obj;");
+                  sw.WriteLine(">) obj;");
                 }
+              }
+              sw.Write(Indent() + "return ");
+              for (int j = 0; j < i; j++){
+                  sw.Write("this._" + j + ".equals(o._" + j + ")");
+                  if (j != i - 1)
+                      sw.Write(" && ");
+                  else{
+                      sw.WriteLine(";");
+                  }
+              }
             }
-            sw.Write(Indent() + "return ");
-            for (int j = 0; j < i; j++){
-                sw.Write("this._" + j + ".equals(o._" + j + ")");
-                if (j != i - 1)
-                    sw.Write(" && ");
-                else{
-                    sw.WriteLine(";");
-                }
+            else{
+                sw.WriteLine(Indent() + "return true;");
             }
+            
 
             indent--;
             sw.WriteLine(Indent() + "}");
@@ -1507,12 +1514,9 @@ namespace Microsoft.Dafny {
                 sw.WriteLine(Indent() + "sb.append(_" + j + ".toString());");
                 if (j != i - 1)
                     sw.WriteLine(Indent() + "sb.append(\", \");");
-                else{
-                    sw.WriteLine(Indent() + "sb.append(\")\");");
-                    ;
-                }
             }
 
+            sw.WriteLine(Indent() + "sb.append(\")\");");
             sw.WriteLine(Indent() + "return sb.toString();");
             indent--;
             sw.WriteLine(Indent() + "}");
@@ -1757,7 +1761,10 @@ namespace Microsoft.Dafny {
         // For an ordinary constructor (that is, one that does not guard any co-recursive calls), generate:
         //   new Dt_Cons<T>( args )
         wr.Write("({0})", arguments);
-      } 
+      }
+      else{
+        throw new NotImplementedException();
+      }
 //      else {
 //        // In the case of a co-recursive call, generate:
 //        //     new Dt__Lazy<T>( LAMBDA )
