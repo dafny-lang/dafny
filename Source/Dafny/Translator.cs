@@ -4592,20 +4592,34 @@ namespace Microsoft.Dafny {
 
         // parameters of the procedure
         var typeInParams = MkTyParamFormals(GetTypeParams(f));
-        List<Variable> inParams = new List<Variable>();
-        if (!f.IsStatic)
-        {
-            Bpl.Expr wh = Bpl.Expr.And(
-              Bpl.Expr.Neq(new Bpl.IdentifierExpr(f.tok, "this", predef.RefType), predef.Null),
-              etran.GoodRef(f.tok, new Bpl.IdentifierExpr(f.tok, "this", predef.RefType), Resolver.GetReceiverType(f.tok, f)));
-            Bpl.Formal thVar = new Bpl.Formal(f.tok, new Bpl.TypedIdent(f.tok, "this", predef.RefType, wh), true);
-            inParams.Add(thVar);
+        var inParams = new List<Variable>();
+        var outParams = new List<Bpl.Variable>();
+        if (!f.IsStatic) {
+          Bpl.Expr wh = Bpl.Expr.And(
+            Bpl.Expr.Neq(new Bpl.IdentifierExpr(f.tok, "this", predef.RefType), predef.Null),
+            etran.GoodRef(f.tok, new Bpl.IdentifierExpr(f.tok, "this", predef.RefType), Resolver.GetReceiverType(f.tok, f)));
+          Bpl.Formal thVar = new Bpl.Formal(f.tok, new Bpl.TypedIdent(f.tok, "this", predef.RefType, wh), true);
+          inParams.Add(thVar);
         }
-        foreach (Formal p in f.Formals)
-        {
-            Bpl.Type varType = TrType(p.Type);
-            Bpl.Expr wh = GetWhereClause(p.tok, new Bpl.IdentifierExpr(p.tok, p.AssignUniqueName(f.IdGenerator), varType), p.Type, etran, NOALLOC);
-            inParams.Add(new Bpl.Formal(p.tok, new Bpl.TypedIdent(p.tok, p.AssignUniqueName(f.IdGenerator), varType, wh), true));
+        foreach (Formal p in f.Formals) {
+          Bpl.Type varType = TrType(p.Type);
+          Bpl.Expr wh = GetWhereClause(p.tok, new Bpl.IdentifierExpr(p.tok, p.AssignUniqueName(f.IdGenerator), varType), p.Type, etran, NOALLOC);
+          inParams.Add(new Bpl.Formal(p.tok, new Bpl.TypedIdent(p.tok, p.AssignUniqueName(f.IdGenerator), varType, wh), true));
+        }
+
+        Formal pOut = null;
+        if (f.Result != null || f.OverriddenFunction.Result != null) {
+          if (f.Result != null) {
+            pOut = f.Result;
+            Contract.Assert(!pOut.IsOld);
+          } else {
+            var pp = f.OverriddenFunction.Result;
+            Contract.Assert(!pp.IsOld);
+            pOut = new Formal(pp.tok, pp.Name, f.ResultType, false, pp.IsGhost);
+          }
+          var varType = TrType(pOut.Type);
+          var wh = GetWhereClause(pOut.tok, new Bpl.IdentifierExpr(pOut.tok, pOut.AssignUniqueName(f.IdGenerator), varType), pOut.Type, etran, NOALLOC);
+          outParams.Add(new Bpl.Formal(pOut.tok, new Bpl.TypedIdent(pOut.tok, pOut.AssignUniqueName(f.IdGenerator), varType, wh), true));
         }
         // the procedure itself
         var req = new List<Bpl.Requires>();
@@ -4624,11 +4638,13 @@ namespace Microsoft.Dafny {
           etran.Tick()
         };
         var ens = new List<Bpl.Ensures>();
+
         var proc = new Bpl.Procedure(f.tok, "OverrideCheck$$" + f.FullSanitizedName, new List<Bpl.TypeVariable>(),
-          Concat(Concat(typeInParams, inParams_Heap), inParams), new List<Variable>(),
+          Concat(Concat(typeInParams, inParams_Heap), inParams), outParams,
           req, mod, ens, etran.TrAttributes(f.Attributes, null));
         sink.AddTopLevelDeclaration(proc);
         var implInParams = Bpl.Formal.StripWhereClauses(inParams);
+        var implOutParams = Bpl.Formal.StripWhereClauses(outParams);
 
 #endregion
 
@@ -4645,12 +4661,19 @@ namespace Microsoft.Dafny {
         }
 
         var substMap = new Dictionary<IVariable, Expression>();
-        for (int i = 0; i < f.Formals.Count; i++)
-        {
-            //get corresponsing formal in the class
-            var ie = new IdentifierExpr(f.Formals[i].tok, f.Formals[i].AssignUniqueName(f.IdGenerator));
-            ie.Var = f.Formals[i]; ie.Type = ie.Var.Type;
-            substMap.Add(f.OverriddenFunction.Formals[i], ie);
+        for (int i = 0; i < f.Formals.Count; i++) {
+          //get corresponsing formal in the class
+          var ie = new IdentifierExpr(f.Formals[i].tok, f.Formals[i].AssignUniqueName(f.IdGenerator));
+          ie.Var = f.Formals[i]; ie.Type = ie.Var.Type;
+          substMap.Add(f.OverriddenFunction.Formals[i], ie);
+        }
+
+        if (f.OverriddenFunction.Result != null) {
+          Contract.Assert(pOut != null);
+          //get corresponsing formal in the class
+          var ie = new IdentifierExpr(pOut.tok, pOut.AssignUniqueName(f.IdGenerator));
+          ie.Var = pOut; ie.Type = ie.Var.Type;
+          substMap.Add(f.OverriddenFunction.Result, ie);
         }
 
         Bpl.StmtList stmts;
@@ -4664,7 +4687,7 @@ namespace Microsoft.Dafny {
         AddFunctionOverrideSubsetChk(f, builder, etran, localVariables, substMap);
 
         //adding assume Q; assert Post’;
-        AddFunctionOverrideEnsChk(f, builder, etran, substMap, implInParams);
+        AddFunctionOverrideEnsChk(f, builder, etran, substMap, implInParams, implOutParams.Count == 0 ? null : implOutParams[0]);
 
         stmts = builder.Collect(f.tok);
 
@@ -4673,9 +4696,8 @@ namespace Microsoft.Dafny {
           QKeyValue kv = etran.TrAttributes(f.Attributes, null);
 
           var impl = new Bpl.Implementation(f.tok, proc.Name, new List<Bpl.TypeVariable>(),
-            Concat(Concat(typeInParams, inParams_Heap), implInParams), new List<Variable>(), localVariables, stmts, kv);
+            Concat(Concat(typeInParams, inParams_Heap), implInParams), implOutParams, localVariables, stmts, kv);
           sink.AddTopLevelDeclaration(impl);
-
         }
 
         if (InsertChecksums)
@@ -4715,7 +4737,7 @@ namespace Microsoft.Dafny {
       sink.AddTopLevelDeclaration(FunctionAxiom(f.OverriddenFunction, pseudoBody, null, f.EnclosingClass));
     }
 
-    private void AddFunctionOverrideEnsChk(Function f, BoogieStmtListBuilder builder, ExpressionTranslator etran, Dictionary<IVariable, Expression> substMap, List<Variable> implInParams)
+    private void AddFunctionOverrideEnsChk(Function f, BoogieStmtListBuilder builder, ExpressionTranslator etran, Dictionary<IVariable, Expression> substMap, List<Bpl.Variable> implInParams, Bpl.Variable/*?*/ resultVariable)
     {
       //generating class post-conditions
       foreach (var en in f.Ens)
@@ -4756,6 +4778,12 @@ namespace Microsoft.Dafny {
       Bpl.Expr funcExpC = new Bpl.NAryExpr(f.tok, funcIdC, argsC);
       Bpl.Expr funcExpT = new Bpl.NAryExpr(f.OverriddenFunction.tok, funcIdT, argsT);
       builder.Add(TrAssumeCmd(f.tok, Bpl.Expr.Eq(funcExpC, funcExpT)));
+
+      //generating assume C.F(ins) == out, if a result variable was given
+      if (resultVariable != null) {
+        var resultVar = new Bpl.IdentifierExpr(resultVariable.tok, resultVariable);
+        builder.Add(TrAssumeCmd(f.tok, Bpl.Expr.Eq(funcExpC, resultVar)));
+      }
 
       //generating trait post-conditions with class variables
       foreach (var en in f.OverriddenFunction.Ens) {
