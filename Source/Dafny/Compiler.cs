@@ -517,6 +517,29 @@ namespace Microsoft.Dafny {
 
       EmitHeader(program, wrx);
       EmitBuiltInDecls(program.BuiltIns, wrx);
+      if (this.TargetLanguage.Equals("Java")){
+        //todo: Find a better way to reorganize this list
+        var temp = new List<ModuleDefinition>();
+        foreach (var m in program.CompileModules){
+          if (!m.IsDefaultModule && !(m.Name.Equals("_System"))){
+            temp.Add(m);
+          }
+        }
+
+        foreach (var m in program.CompileModules){
+          if (m.Name.Equals("_System")){
+            temp.Add(m);
+          }
+        }
+
+        foreach (var m in program.CompileModules){
+          if (m.IsDefaultModule){
+            temp.Add(m);
+          }
+        }
+
+        program.CompileModules = temp;
+      }
 
       foreach (ModuleDefinition m in program.CompileModules) {
         if (m.IsAbstract) {
