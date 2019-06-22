@@ -34,14 +34,14 @@ module _System {
 
   trait {:compile false} object { }
   /*-- non-null type
-  type {:axiom} object(==) = c: object? | c != null    /*special witness*/
+  type {:axiom} object(==) = c: object? | c != null /*special witness*/
   */
 
   class {:compile false} array<arg> {
     var Length: int  // immutable
   }
   /*-- non-null type
-  type {:axiom} array(==)<arg> = c: array?<arg> | c != null    /*special witness*/
+  type {:axiom} array(==)<arg> = c: array?<arg> | c != null /*special witness*/
   */
 
   class {:compile false} /*_#Func0*/ () ~> +R {
@@ -150,7 +150,7 @@ module Tests {
     method N(m: nat) returns (n: nat)
   }
   /*-- non-null type
-  type {:axiom} CC(==) = c: CC? | c != null    /*special witness*/
+  type {:axiom} CC(==) = c: CC? | c != null /*special witness*/
   */
 
   method ChainOfAssignments() returns (x: int, y: int, n: nat)
@@ -311,7 +311,7 @@ module MorePlusTests {
 
   class C { }
   /*-- non-null type
-  type {:axiom} C(==) = c: C? | c != null    /*special witness*/
+  type {:axiom} C(==) = c: C? | c != null /*special witness*/
   */
 
   method Plusses(b: bool, i: int, j: MyInt, r: real)
@@ -358,22 +358,22 @@ module References {
    */
   class C extends K, M { }
   /*-- non-null type
-  type {:axiom} C(==) = c: C? | c != null    /*special witness*/
+  type {:axiom} C(==) = c: C? | c != null /*special witness*/
   */
 
   trait R { }
   /*-- non-null type
-  type {:axiom} R(==) = c: R? | c != null    /*special witness*/
+  type {:axiom} R(==) = c: R? | c != null /*special witness*/
   */
 
   trait K { }
   /*-- non-null type
-  type {:axiom} K(==) = c: K? | c != null    /*special witness*/
+  type {:axiom} K(==) = c: K? | c != null /*special witness*/
   */
 
   trait M { }
   /*-- non-null type
-  type {:axiom} M(==) = c: M? | c != null    /*special witness*/
+  type {:axiom} M(==) = c: M? | c != null /*special witness*/
   */
 
   method M0() returns (c: C, r: R)
@@ -423,29 +423,29 @@ module SimpleClassesAndTraits {
    */
   class C extends K, M { }
   /*-- non-null type
-  type {:axiom} C(==) = c: C? | c != null    /*special witness*/
+  type {:axiom} C(==) = c: C? | c != null /*special witness*/
   */
 
   class D extends K, M { }
   /*-- non-null type
-  type {:axiom} D(==) = c: D? | c != null    /*special witness*/
+  type {:axiom} D(==) = c: D? | c != null /*special witness*/
   */
 
   trait R { }
   /*-- non-null type
-  type {:axiom} R(==) = c: R? | c != null    /*special witness*/
+  type {:axiom} R(==) = c: R? | c != null /*special witness*/
   */
 
   trait K {
     var h: int
   }
   /*-- non-null type
-  type {:axiom} K(==) = c: K? | c != null    /*special witness*/
+  type {:axiom} K(==) = c: K? | c != null /*special witness*/
   */
 
   trait M { }
   /*-- non-null type
-  type {:axiom} M(==) = c: M? | c != null    /*special witness*/
+  type {:axiom} M(==) = c: M? | c != null /*special witness*/
   */
 
   method Infer(c: C, o: object, k: K, d: D)
@@ -562,27 +562,27 @@ module TraitStuff {
     var id: int
   }
   /*-- non-null type
-  type {:axiom} Part(==) = c: Part? | c != null    /*special witness*/
+  type {:axiom} Part(==) = c: Part? | c != null /*special witness*/
   */
 
   trait Motorized { }
   /*-- non-null type
-  type {:axiom} Motorized(==) = c: Motorized? | c != null    /*special witness*/
+  type {:axiom} Motorized(==) = c: Motorized? | c != null /*special witness*/
   */
 
   class PartX extends Part { }
   /*-- non-null type
-  type {:axiom} PartX(==) = c: PartX? | c != null    /*special witness*/
+  type {:axiom} PartX(==) = c: PartX? | c != null /*special witness*/
   */
 
   class PartY extends Part, Motorized { }
   /*-- non-null type
-  type {:axiom} PartY(==) = c: PartY? | c != null    /*special witness*/
+  type {:axiom} PartY(==) = c: PartY? | c != null /*special witness*/
   */
 
   class PartZ extends Part, Motorized { }
   /*-- non-null type
-  type {:axiom} PartZ(==) = c: PartZ? | c != null    /*special witness*/
+  type {:axiom} PartZ(==) = c: PartZ? | c != null /*special witness*/
   */
 
   class Aggregate {
@@ -603,7 +603,7 @@ module TraitStuff {
     }
   }
   /*-- non-null type
-  type {:axiom} Aggregate(==) = c: Aggregate? | c != null    /*special witness*/
+  type {:axiom} Aggregate(==) = c: Aggregate? | c != null /*special witness*/
   */
 }
 
@@ -640,32 +640,32 @@ module OtherTraitsAndClasses {
    */
   trait J { }
   /*-- non-null type
-  type {:axiom} J(==) = c: J? | c != null    /*special witness*/
+  type {:axiom} J(==) = c: J? | c != null /*special witness*/
   */
 
   trait K { }
   /*-- non-null type
-  type {:axiom} K(==) = c: K? | c != null    /*special witness*/
+  type {:axiom} K(==) = c: K? | c != null /*special witness*/
   */
 
   class C extends J { }
   /*-- non-null type
-  type {:axiom} C(==) = c: C? | c != null    /*special witness*/
+  type {:axiom} C(==) = c: C? | c != null /*special witness*/
   */
 
   class D extends J, K { }
   /*-- non-null type
-  type {:axiom} D(==) = c: D? | c != null    /*special witness*/
+  type {:axiom} D(==) = c: D? | c != null /*special witness*/
   */
 
   class E { }
   /*-- non-null type
-  type {:axiom} E(==) = c: E? | c != null    /*special witness*/
+  type {:axiom} E(==) = c: E? | c != null /*special witness*/
   */
 
   class MyClass { }
   /*-- non-null type
-  type {:axiom} MyClass(==) = c: MyClass? | c != null    /*special witness*/
+  type {:axiom} MyClass(==) = c: MyClass? | c != null /*special witness*/
   */
 
   method Basics(x: int) returns (y: int)

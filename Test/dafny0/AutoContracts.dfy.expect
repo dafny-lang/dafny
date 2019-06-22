@@ -17,14 +17,14 @@ module _System {
 
   trait {:compile false} object { }
   /*-- non-null type
-  type {:axiom} object(==) = c: object? | c != null    /*special witness*/
+  type {:axiom} object(==) = c: object? | c != null /*special witness*/
   */
 
   class {:compile false} array<arg> {
     var Length: int  // immutable
   }
   /*-- non-null type
-  type {:axiom} array(==)<arg> = c: array?<arg> | c != null    /*special witness*/
+  type {:axiom} array(==)<arg> = c: array?<arg> | c != null /*special witness*/
   */
 
   class {:compile false} /*_#Func0*/ () ~> +R {
@@ -140,7 +140,7 @@ module OneModule {
     }
   }
   /*-- non-null type
-  type {:axiom} D(==) = c: D? | c != null    /*special witness*/
+  type {:axiom} D(==) = c: D? | c != null /*special witness*/
   */
 
   class {:autocontracts} C {
@@ -251,7 +251,7 @@ module OneModule {
     ghost var Repr: set<object?>
   }
   /*-- non-null type
-  type {:axiom} C(==) = c: C? | c != null    /*special witness*/
+  type {:axiom} C(==) = c: C? | c != null /*special witness*/
   */
 }
 
@@ -344,7 +344,7 @@ module N0 {
     }
   }
   /*-- non-null type
-  type {:axiom} C(==) = c: C? | c != null    /*special witness*/
+  type {:axiom} C(==) = c: C? | c != null /*special witness*/
   */
 }
 
@@ -443,7 +443,7 @@ module N1 refines N0 {
     ghost var Repr: set<object?>
   }
   /*-- non-null type
-  type {:axiom} C(==) = c: C? | c != null    /*special witness*/
+  type {:axiom} C(==) = c: C? | c != null /*special witness*/
   */
 }
 
@@ -542,7 +542,7 @@ module N2 refines N1 {
     ghost var Repr: set<object?>
   }
   /*-- non-null type
-  type {:axiom} C(==) = c: C? | c != null    /*special witness*/
+  type {:axiom} C(==) = c: C? | c != null /*special witness*/
   */
 }
 AutoContracts.dfy(17,4): Error BP5003: A postcondition might not hold on this return path.

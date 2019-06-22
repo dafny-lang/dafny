@@ -244,7 +244,11 @@ namespace Microsoft.Dafny {
             wr.Write("| ");
             PrintExpression(dd.Constraint, true);
             wr.WriteLine();
-            PrintWitnessClause(dd, indent + IndentAmount);
+            if (dd.WitnessKind != SubsetTypeDecl.WKind.None) {
+              Indent(indent + IndentAmount);
+              PrintWitnessClause(dd);
+              wr.WriteLine();
+            }
           }
         } else if (d is SubsetTypeDecl) {
           var dd = (SubsetTypeDecl)d;
@@ -265,10 +269,16 @@ namespace Microsoft.Dafny {
           }
           wr.Write("| ");
           PrintExpression(dd.Constraint, true);
-          if (!(dd is NonNullTypeDecl)) {
-            wr.WriteLine();
+          if (dd.WitnessKind != SubsetTypeDecl.WKind.None) {
+            if (dd is NonNullTypeDecl) {
+              wr.Write(" ");
+            } else {
+              wr.WriteLine();
+              Indent(indent + IndentAmount);
+            }
+            PrintWitnessClause(dd);
           }
-          PrintWitnessClause(dd, indent + IndentAmount);
+          wr.WriteLine();
         } else if (d is TypeSynonymDecl) {
           var dd = (TypeSynonymDecl)d;
           if (i++ != 0) { wr.WriteLine(); }
@@ -385,13 +395,10 @@ namespace Microsoft.Dafny {
       }
     }
 
-    private void PrintWitnessClause(RedirectingTypeDecl dd, int indent) {
+    private void PrintWitnessClause(RedirectingTypeDecl dd) {
       Contract.Requires(dd != null);
-      Contract.Requires(0 <= indent);
-      if (dd.WitnessKind == SubsetTypeDecl.WKind.None) {
-        return;
-      }
-      Indent(indent);
+      Contract.Requires(dd.WitnessKind != SubsetTypeDecl.WKind.None);
+
       switch (dd.WitnessKind) {
         case SubsetTypeDecl.WKind.Ghost:
           wr.Write("ghost ");
@@ -399,13 +406,11 @@ namespace Microsoft.Dafny {
         case SubsetTypeDecl.WKind.Compiled:
           wr.Write("witness ");
           PrintExpression(dd.Witness, true);
-          wr.WriteLine();
-          break;
-        case SubsetTypeDecl.WKind.None:
           break;
         case SubsetTypeDecl.WKind.Special:
-          wr.WriteLine("/*special witness*/");
+          wr.Write("/*special witness*/");
           break;
+        case SubsetTypeDecl.WKind.None:
         default:
           Contract.Assert(false);  // unexpected WKind
           break;
