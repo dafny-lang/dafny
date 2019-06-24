@@ -832,8 +832,10 @@ namespace Microsoft.Dafny {
       if (dt is TupleTypeDecl){
         tuples.Add(((TupleTypeDecl) dt).Dims);
       }
-//      CompileDatatypeBase(dt, wr);
-//      CompileDatatypeConstructors(dt, wr);
+      else{
+        CompileDatatypeBase(dt, wr);
+        CompileDatatypeConstructors(dt, wr);
+      }
     }
 
     void CompileDatatypeBase(DatatypeDecl dt, TargetWriter wr) {
@@ -863,7 +865,7 @@ namespace Microsoft.Dafny {
         wr.WriteLine("public {0}() {{ }}", IdName(dt));
       }
       wr.WriteLine("static {0} theDefault;", DtT_protected);
-      using (var w = wr.NewNamedBlock("public static {0} Default", DtT_protected)) {
+      using (var w = wr.NewNamedBlock("public static {0} Default()", DtT_protected)) {
         var wIf = EmitIf("theDefault == null", false, w);
         wIf.Write("theDefault = ");
         DatatypeCtor defaultCtor;
@@ -884,7 +886,7 @@ namespace Microsoft.Dafny {
         wIf.WriteLine();
         w.WriteLine("return theDefault;");
       }
-      wr.WriteLine("public static {0} _DafnyDefaultValue() {{ return Default; }}", DtT_protected);
+      wr.WriteLine("public static {0} _DafnyDefaultValue() {{ return {1}.Default(); }}", DtT_protected, DtT_protected);
       // create methods
       foreach (var ctor in dt.Ctors) {
         wr.Write("public static {0} {1}(", DtT_protected, DtCreateName(ctor));
@@ -905,9 +907,9 @@ namespace Microsoft.Dafny {
       // query properties
       foreach (var ctor in dt.Ctors) {
         if (dt.IsRecordType) {
-          wr.WriteLine("public bool is_{0} {{ return true; }}", ctor.CompileName);
+          wr.WriteLine("public boolean is_{0}() {{ return true; }}", ctor.CompileName);
         } else {
-          wr.WriteLine("public bool is_{0} {{ return this instanceOf {1}_{0}{2}; }}", ctor.CompileName, dt.CompileName, DtT_TypeArgs);
+          wr.WriteLine("public boolean is_{0}() {{ return this instanceof {1}_{0}{2}; }}", ctor.CompileName, dt.CompileName, DtT_TypeArgs);
         }
       }
       // destructors
@@ -1027,7 +1029,7 @@ namespace Microsoft.Dafny {
       Contract.Ensures(Contract.Result<string>() != null);
 
       var dt = ctor.EnclosingDatatype;
-      var dtName = dt.Module.IsDefaultModule ? IdProtect(dt.CompileName) : dt.FullCompileName;
+      var dtName = IdProtect(dt.CompileName);
       return dt.IsRecordType ? dtName : dtName + "_" + ctor.CompileName;
     }
     string DtCreateName(DatatypeCtor ctor) {
