@@ -967,6 +967,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(ctor != null);
       Contract.Requires(0 <= constructorIndex && constructorIndex < ctor.EnclosingDatatype.Ctors.Count);
       Contract.Requires(wr != null);
+      var dt = ctor.EnclosingDatatype;
       var i = 0;
       foreach (Formal arg in ctor.Formals) {
         if (!arg.IsGhost) {
@@ -985,6 +986,91 @@ namespace Microsoft.Dafny {
           }
         }
       }
+      
+      if (dt is CoDatatypeDecl) {
+        string typeParams = dt.TypeArgs.Count == 0 ? "" : string.Format("<{0}>", TypeParameters(dt.TypeArgs));
+        wr.WriteLine("public override {0}{1} Get() {{ return this; }}", dt.CompileName, typeParams);
+      }
+
+      // Equals method
+      using (var w = wr.NewBlock("\n@Override\npublic boolean equals(Object other)")) {
+        w.WriteLine("if (this == other) return true;");
+        w.WriteLine("if (other == null) return false;");
+        w.WriteLine("if (getClass() != other.getClass()) return false;");
+        if(ctor.Formals.Count > 0){string typeParams = dt.TypeArgs.Count == 0 ? "" : string.Format("<{0}>", TypeParameters(dt.TypeArgs));
+          w.WriteLine("{0}{1} o = ({0}{1})other;", dt.CompileName, typeParams);
+          i = 0;
+          foreach (Formal arg in ctor.Formals) {
+            if (!arg.IsGhost) {
+              string nm = FormalName(arg, i);
+              if (IsDirectlyComparable(arg.Type)) {
+                w.Write(" && {0} == o.{0}", nm);
+              } else {
+                w.Write(" && {0}.equals(o.{0})", nm);
+              }
+              i++;
+            }
+          }
+          w.WriteLine(";");}
+        else{
+          w.WriteLine("return true;");
+        }
+      }
+
+//      // GetHashCode method (Uses the djb2 algorithm)
+      using (var w = wr.NewBlock("\n@Override\npublic int hashCode()")) {
+        w.WriteLine("long hash = 5381;");
+        w.WriteLine("hash = ((hash << 5) + hash) + {0};", constructorIndex);
+        i = 0;
+        foreach (Formal arg in ctor.Formals) {
+          if (!arg.IsGhost) {
+            string nm = FormalName(arg, i);
+            w.WriteLine("hash = ((hash << 5) + hash) + ((long)this.{0}.hashCode());", nm);
+            i++;
+          }
+        }
+        w.WriteLine("return (int) hash;");
+      }
+//
+      using (var w = wr.NewBlock("\n@Override\npublic String toString()")) {
+        string nm;
+        if (dt is TupleTypeDecl) {
+          nm = "";
+        } else {
+          nm = (dt.Module.IsDefaultModule ? "" : dt.Module.Name + ".") + dt.Name + "." + ctor.Name;
+        }
+        if (dt is TupleTypeDecl tupleDt && ctor.Formals.Count == 0) {
+          // here we want parentheses and no name
+          w.WriteLine("return \"()\";");
+        } else if (dt is CoDatatypeDecl) {
+          w.WriteLine("return \"{0}\";", nm);
+        } else {
+          var tempVar = GenVarName("s", ctor.Formals);
+          w.WriteLine("StringBuilder {0} = new StringBuilder();", tempVar);
+          w.WriteLine("{0}.append(\"{1}\");", tempVar, nm);
+          if (ctor.Formals.Count != 0) {
+            w.WriteLine("{0}.append(\"(\");", tempVar);
+            i = 0;
+            foreach (var arg in ctor.Formals) {
+              if (!arg.IsGhost) {
+                if (i != 0) {
+                  w.WriteLine("{0}.append(\", \");", tempVar);
+                }
+                w.WriteLine("{0}.append(this.{1}.toString());", tempVar, FormalName(arg, i));
+                i++;
+              }
+            }
+            w.WriteLine("{0}.append(\")\");", tempVar);
+          }
+          w.WriteLine("return {0}.toString();", tempVar);
+        }
+      }
+      
+    }
+    
+    static bool IsDirectlyComparable(Type t) {
+      Contract.Requires(t != null);
+      return t.IsBoolType || t.IsCharType || t.IsIntegerType || t.IsRealType || t.AsNewtype != null || t.IsBitVectorType || t.IsBigOrdinalType || t.IsRefType;
     }
     
     string DtCtorDeclarationName(DatatypeCtor ctor, List<TypeParameter> typeParams) {
