@@ -23,6 +23,10 @@ namespace Microsoft.Dafny{
       : base(reporter){ }
 
     public override String TargetLanguage => "Java";
+    protected new readonly string DafnySetClass = "DafnyClasses.DafnySet";
+    protected new readonly string DafnyMultiSetClass = "DafnyClasses.DafnyMultiSet";
+    protected new readonly string DafnySeqClass = "DafnyClasses.DafnySequence";
+//    protected new readonly string DafnyMapClass = "DafnyClasses.DafnyMap";
 
     private String ModuleName;
     private String MainModuleName;
@@ -576,6 +580,25 @@ namespace Microsoft.Dafny{
     protected override void EmitCollectionDisplay(CollectionType ct, Bpl.IToken tok, List<Expression> elements, bool inLetExprBody, TargetWriter wr) {
       wr.Write("new {0}", TypeName(ct, wr, tok));
       TrExprList(elements, wr, inLetExprBody);
+    }
+
+    protected void TrExprList(List<Expression> exprs, TargetWriter wr, bool inLetExprBody, Type/*?*/ type = null) {
+      Contract.Requires(cce.NonNullElements(exprs));
+      wr.Write("(Arrays.asList(");
+      string sep = "";
+      foreach (Expression e in exprs) {
+        wr.Write(sep);
+        TargetWriter w;
+        if (type != null) {
+          w = wr.Fork();
+          w = EmitCoercionIfNecessary(e.Type, type, e.tok, w);
+        } else {
+          w = wr;
+        }
+        TrExpr(e, w, inLetExprBody);
+        sep = ", ";
+      }
+      wr.Write("))");
     }
         
     protected override void EmitMapDisplay(MapType mt, Bpl.IToken tok, List<ExpressionPair> elements, bool inLetExprBody, TargetWriter wr) {
@@ -2107,8 +2130,8 @@ namespace Microsoft.Dafny{
           TrParenExpr("~", expr, wr, inLetExprBody);
           break;
         case ResolvedUnaryOp.Cardinality:
-          TrParenExpr("new BigInteger(", expr, wr, inLetExprBody);
-          wr.Write(".Count)");
+          TrParenExpr("new BigInteger(Long.toString(", expr, wr, inLetExprBody);
+          wr.Write(".size()))");
           break;
         default:
           Contract.Assert(false);
@@ -2126,9 +2149,9 @@ namespace Microsoft.Dafny{
       throw new NotImplementedException();
     }
 
-    protected override TargetWriter EmitMapBuilder_Add(MapType mt, Bpl.IToken tok, string collName, Expression term, bool inLetExprBody,
-      TargetWriter wr)
-    {
+    protected override TargetWriter EmitMapBuilder_Add(MapType mt, Bpl.IToken tok, string collName, Expression term,
+      bool inLetExprBody,
+      TargetWriter wr){
       throw new NotImplementedException();
     }
 
