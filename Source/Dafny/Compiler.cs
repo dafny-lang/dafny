@@ -203,6 +203,8 @@ namespace Microsoft.Dafny {
     protected virtual bool SupportsMultipleReturns { get => false; }
     protected virtual bool NeedsCastFromTypeParameter { get => false; }
     protected virtual bool SupportsAmbiguousTypeDecl { get => true; }
+    protected virtual bool FieldsInTraits { get => true; } // True if language's "trait" equivalent allows for non-final field declarations, false otherwise
+    protected bool MemberSelectObjIsTrait; // Example: if MemberSelect expression is T.x, this will be true if T is a trait, false otherwise
     /// The punctuation that comes at the end of a statement.  Note that
     /// statements are followed by newlines regardless.
     protected virtual string StmtTerminator { get => ";"; }
@@ -829,6 +831,44 @@ namespace Microsoft.Dafny {
               var sw = EmitAssignmentRhs(wSet);
               EmitSetterParameter(sw);
             }
+          } else {
+            var f = (Field) member;
+            if (!FieldsInTraits && f is ConstantField cf && cf.Rhs != null) {
+              var w = new TargetWriter();
+              TrExpr(cf.Rhs, w, false);
+              var rhs = w.ToString();
+              classWriter.DeclareField(f.CompileName, false, true, f.Type, f.tok, rhs);
+            } else {
+              classWriter.DeclareField(f.CompileName, false, false, f.Type, f.tok, DefaultValue(f.Type, errorWr, f.tok, true));
+            }
+
+            if (!FieldsInTraits) { // Create getters and setters for languages "traits" that don't allow for non-final field declarations.
+              if (!(f is ConstantField)) {
+                TargetWriter wSet;
+                var wGet = classWriter.CreateGetterSetter(IdName(f), f.Type, f.tok, false, true, member, out wSet);
+                {
+                  var sw = EmitReturnExpr(wGet);
+                  // get { return this.{0}; }
+                  EmitThis(sw);
+                  sw.Write(".{0}", f.CompileName);
+                }
+                {
+                  // set { this.{0} = value; }
+                  EmitThis(wSet);
+                  wSet.Write(".{0}", f.CompileName);
+                  var sw = EmitAssignmentRhs(wSet);
+                  EmitSetterParameter(sw);
+                }
+              } else {
+                var wGet = classWriter.CreateGetter(IdName(f), f.Type, f.tok, false, true, member);
+                {
+                  var sw = EmitReturnExpr(wGet);
+                  // get { return this.{0}; }
+                  EmitThis(sw);
+                  sw.Write(".{0}", f.CompileName);
+                }
+              }
+            }
           }
         } else if (member is Function) {
           var f = (Function)member;
@@ -875,6 +915,7 @@ namespace Microsoft.Dafny {
                   CompileReturnBody(cf.Rhs, wBody);
                 } else if (!cf.IsStatic) {
                   var sw = EmitReturnExpr(wBody);
+                  MemberSelectObjIsTrait = false;
                   var wThis = EmitMemberSelect(cf, true, f.Type, sw);
                   EmitThis(wThis);
                 } else {
@@ -892,12 +933,19 @@ namespace Microsoft.Dafny {
               } else {
                 rhs = null;
               }
-              classWriter.DeclareField(IdName(f), f.IsStatic, true, f.Type, f.tok, rhs);
+              if (!(c is TraitDecl && !FieldsInTraits) || cf.IsStatic) {
+                classWriter.DeclareField(IdName(f), f.IsStatic, true, f.Type, f.tok, rhs);
+              } else { // Constant fields in traits (Java interface) should be get methods.
+                classWriter.CreateGetter(IdName(cf), cf.Type, cf.tok, false, false, cf);
+              }
             }
           } else if (c is TraitDecl && NeedsWrappersForInheritedFields) {
             TargetWriter wSet;
             var wGet = classWriter.CreateGetterSetter(IdName(f), f.Type, f.tok, f.IsStatic, false, member, out wSet);
             Contract.Assert(wSet == null && wGet == null);  // since the previous line specified no body
+          } else if (c is TraitDecl && !FieldsInTraits && !f.IsStatic) {
+            TargetWriter wSet;
+            classWriter.CreateGetterSetter(IdName(f), f.Type, f.tok, false, false, member, out wSet);
           } else {
             classWriter.DeclareField(IdName(f), f.IsStatic, false, f.Type, f.tok, DefaultValue(f.Type, errorWr, f.tok, true));
           }
@@ -1641,7 +1689,9 @@ namespace Microsoft.Dafny {
           var lvalue = CreateLvalue(s.Lhs, wr);
           var wStmts = wr.ForkSection();
           TargetWriter wLhs, wRhs;
+          MemberSelectObjIsTrait = s.Lhs is MemberSelectExpr && ((MemberSelectExpr)s.Lhs).Obj.Type.IsTraitType && !(((MemberSelectExpr)s.Lhs).Obj is ThisExpr);
           EmitAssignment(out wLhs, s.Lhs.Type, out wRhs, TypeOfRhs(s.Rhs), wr);
+          MemberSelectObjIsTrait = false;
           wLhs.Write(lvalue);
           TrRhs(s.Rhs, wRhs, wStmts);
         }
@@ -2336,7 +2386,9 @@ namespace Microsoft.Dafny {
         Contract.Assert(!ll.Member.IsInstanceIndependentConstant);  // instance-independent const's don't have assignment statements
         var obj = StabilizeExpr(ll.Obj, "_obj", wr);
         var sw = new TargetWriter();
+        MemberSelectObjIsTrait = ll.Obj.Type.IsTraitType && !(ll.Obj is ThisExpr);
         var w = EmitMemberSelect(ll.Member, true, lhs.Type, sw);
+        MemberSelectObjIsTrait = false;
         w.Write(obj);
         return sw.ToString();
       } else if (lhs is SeqSelectExpr) {
@@ -2445,7 +2497,8 @@ namespace Microsoft.Dafny {
         TrExpr(eRhs.Expr, wr, false);
       } else {
         var nw = idGenerator.FreshId("_nw");
-        var wRhs = DeclareLocalVar(nw, null, null, wStmts);
+        var localType = SupportsAmbiguousTypeDecl ? null : tRhs.EType;
+        var wRhs = DeclareLocalVar(nw, localType, null, wStmts);
         TrTypeRhs(tRhs, wRhs);
 
         // Proceed with initialization
@@ -2881,12 +2934,14 @@ namespace Microsoft.Dafny {
 
       } else if (expr is MemberSelectExpr) {
         MemberSelectExpr e = (MemberSelectExpr)expr;
+        MemberSelectObjIsTrait = e.Obj.Type.IsTraitType;
         SpecialField sf = e.Member as SpecialField;
         if (sf != null) {
           string compiledName, preStr, postStr;
           GetSpecialFieldInfo(sf.SpecialId, sf.IdParam, out compiledName, out preStr, out postStr);
           wr.Write(preStr);
           var w = EmitMemberSelect(sf, false, expr.Type, wr);
+          MemberSelectObjIsTrait = false;
           if (sf.IsStatic) {
             w.Write(TypeName_Companion(e.Obj.Type, wr, e.tok, sf));
           } else {
@@ -2895,6 +2950,7 @@ namespace Microsoft.Dafny {
           wr.Write(postStr);
         } else {
           var w = EmitMemberSelect(e.Member, false, expr.Type, wr);
+          MemberSelectObjIsTrait = false;
           TrExpr(e.Obj, w, inLetExprBody);
         }
 

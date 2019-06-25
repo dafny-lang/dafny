@@ -11,6 +11,7 @@ using System.IO;
 using System.Diagnostics.Contracts;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
+using System.Net.Mime;
 using System.Reflection;
 using Bpl = Microsoft.Boogie;
 
@@ -45,6 +46,10 @@ namespace Microsoft.Dafny {
     protected override bool UseReturnStyleOuts(Method m, int nonGhostOutCount) => true;
 
     protected override bool SupportsAmbiguousTypeDecl => false;
+    
+    protected override bool SupportsProperties => false;
+    protected override bool NeedsWrappersForInheritedFields => false;
+    protected override bool FieldsInTraits => false;
 
     protected override void DeclareSpecificOutCollector(string collectorVarName, TargetWriter wr, int outCount, Method m) {
       if (outCount > 1) {
@@ -178,12 +183,10 @@ namespace Microsoft.Dafny {
             
       // TODO: Decide if we need to make the getters/setters, since all fields are public anyway.
       public BlockTargetWriter/*?*/ CreateGetter(string name, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl/*?*/ member) {
-        throw new NotImplementedException();
-        // return Compiler.CreateGetter(name, resultType, tok, isStatic, createBody, Writer(isStatic));
+        return Compiler.CreateGetter(name, resultType, tok, isStatic, createBody, Writer(isStatic));
       }
       public BlockTargetWriter/*?*/ CreateGetterSetter(string name, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl/*?*/ member, out TargetWriter setterWriter) {
-        throw new NotImplementedException();
-        // return Compiler.CreateGetterSetter(name, resultType, tok, isStatic, createBody, out setterWriter, Writer(isStatic));
+        return Compiler.CreateGetterSetter(name, resultType, tok, isStatic, createBody, out setterWriter, Writer(isStatic));
       }
       public void DeclareField(string name, bool isStatic, bool isConst, Type type, Bpl.IToken tok, string rhs) {
         Compiler.DeclareField(name, isStatic, isConst, type, tok, rhs, Writer(isStatic));
@@ -191,6 +194,37 @@ namespace Microsoft.Dafny {
       public TextWriter/*?*/ ErrorWriter() => InstanceMemberWriter;
 
       public void Finish() { }
+    }
+
+    protected BlockTargetWriter CreateGetter(string name, Type resultType, Bpl.IToken tok, bool isStatic,
+      bool createBody, TargetWriter wr) {
+      wr.Write("public {0}{1} get_{2}()", isStatic ? "static " : "", TypeName(resultType, wr, tok), name);
+      if (createBody) {
+        var w = wr.NewBlock(null, null, BlockTargetWriter.BraceStyle.Newline, BlockTargetWriter.BraceStyle.Newline);
+        return w;
+      } else {
+        wr.WriteLine(";");
+        return null;
+      }
+    }
+
+    public BlockTargetWriter /*?*/ CreateGetterSetter(string name, Type resultType, Bpl.IToken tok, bool isStatic,
+      bool createBody, out TargetWriter setterWriter, TargetWriter wr) {
+      wr.Write("public {0}{1} get_{2}()", isStatic ? "static " : "", TypeName(resultType, wr, tok), name);
+      BlockTargetWriter wGet = null;
+      if (createBody) {
+        wGet = wr.NewBlock(null, null, BlockTargetWriter.BraceStyle.Newline, BlockTargetWriter.BraceStyle.Newline);
+      } else {
+        wr.WriteLine(";");
+      }
+      wr.Write("public {0}void set_{1}({2} value)", isStatic? "static " : "", name, TypeName(resultType, wr, tok));
+      if (createBody) {
+        setterWriter = wr.NewBlock(null, null, BlockTargetWriter.BraceStyle.Newline, BlockTargetWriter.BraceStyle.Newline);
+      } else {
+        wr.WriteLine(";");
+        setterWriter = null;
+      }
+      return wGet;
     }
         
     protected BlockTargetWriter CreateMethod(Method m, bool createBody, TargetWriter wr) {
@@ -200,7 +234,7 @@ namespace Microsoft.Dafny {
         if (!p.IsGhost) {
           if (targetReturnTypeReplacement == null) {
             targetReturnTypeReplacement = TypeName(p.Type, wr, p.tok);
-          } else if (targetReturnTypeReplacement != null) {
+          } else {
             targetReturnTypeReplacement = "DafnyTuple" + nonGhostOuts;
             nonGhostOuts += 1;
           }
@@ -226,6 +260,11 @@ namespace Microsoft.Dafny {
             }
             w.IndentLess(); w.WriteLine("TAIL_CALL_START: ;");
         }*/
+        if (!m.Body.Body.OfType<ReturnStmt>().Any() && m.Outs.Count > 0) { // If method has out parameters but no explicit return statement in Dafny
+          var r = new TargetWriter(w.IndentLevel);
+          EmitReturn(m.Outs, r);
+          w.BodySuffix = r.ToString();
+        }
         return w;
       }
     }
@@ -253,9 +292,8 @@ namespace Microsoft.Dafny {
       }
     }
 
-    protected void DeclareField(string name, bool isStatic, bool isConst, Type type, Bpl.IToken tok, string rhs,
-      TargetWriter wr) {
-      wr.WriteLine("public {0}{1}{2} {3} = {4};", isStatic ? "static " : "", isConst ? "final " : "", TypeName(type, wr, tok), name, rhs);
+    protected void DeclareField(string name, bool isStatic, bool isConst, Type type, Bpl.IToken tok, string rhs, TargetWriter wr) {
+      wr.WriteLine("public {0}{1} {2} = {3};", isStatic ? "static " : "", TypeName(type, wr, tok), name, (rhs != null) ? rhs : DefaultValue(type, wr, tok));
     }
 
     string TypeParameters(List<TypeParameter> targs) {
@@ -356,10 +394,8 @@ namespace Microsoft.Dafny {
       var cl = udt.ResolvedClass;
       if (cl == null) {
         return IdProtect(udt.CompileName);
-      } else if (cl.Module.IsDefaultModule) {
-        return IdProtect(cl.CompileName);
       } else {
-        return IdProtect(cl.Module.CompileName) + "." + IdProtect(cl.CompileName);
+        return IdProtect(cl.CompileName);
       }
     }
         
@@ -396,7 +432,7 @@ namespace Microsoft.Dafny {
       w.WriteLine("import java.math.*;"); // TODO: Figure out all the Java imports necessary for compiled program to run.
       EmitImports(w, out _);
       w.WriteLine();
-      w.WriteLine("public class {0}", name);
+      w.Write("public class {0}", name);
       if (typeParameters != null && typeParameters.Count != 0) {
         w.Write("<{0}>", TypeParameters(typeParameters));
       }
@@ -501,11 +537,11 @@ namespace Microsoft.Dafny {
     }
         
     protected override void EmitThis(TargetWriter wr) {
-      wr.Write("_this");
+      wr.Write("this");
     }
         
     protected override void DeclareLocalVar(string name, Type/*?*/ type, Bpl.IToken/*?*/ tok, bool leaveRoomForRhs, string/*?*/ rhs, TargetWriter wr) {
-      wr.Write("{0} {1}", TypeName(type, wr, tok), name);
+      wr.Write("{0} {1}", type != null ? TypeName(type, wr, tok) : "Object", name);
       if (leaveRoomForRhs) {
         Contract.Assert(rhs == null);  // follows from precondition
       } else if (rhs != null) {
@@ -594,13 +630,17 @@ namespace Microsoft.Dafny {
     protected override TargetWriter EmitMemberSelect(MemberDecl member, bool isLValue, Type expectedType, TargetWriter wr) {
       var wSource = wr.Fork();
       if (isLValue && member is ConstantField) {
-        wr.Write("._{0}", member.CompileName);
+        wr.Write(".{0}", member.CompileName);
       } else if (!isLValue && member is SpecialField sf) {
         string compiledName, preStr, postStr;
         GetSpecialFieldInfo(sf.SpecialId, sf.IdParam, out compiledName, out preStr, out postStr);
         if (compiledName.Length != 0) {
-          wr.Write(".{0}", compiledName);
+          wr.Write(".{0}{1}{2}", MemberSelectObjIsTrait && !sf.IsStatic ? "get_" : "", compiledName, MemberSelectObjIsTrait && !sf.IsStatic ? "()" : "");
         }
+      } else if (!isLValue && MemberSelectObjIsTrait && !member.IsStatic) {
+        wr.Write(".get_{0}()", IdName(member));
+      } else if (isLValue && MemberSelectObjIsTrait && !member.IsStatic) { 
+        wr.Write(".set_{0}(", IdName(member));
       } else {
         wr.Write(".{0}", IdName(member));
       }
@@ -1348,10 +1388,7 @@ namespace Microsoft.Dafny {
             TypeName_SplitArrayName(udt.TypeArgs[0], wr, udt.tok, out typeNameSansBrackets, out brackets);
             return string.Format("new {0}[{1}]{2}", typeNameSansBrackets, Util.Comma(arrayClass.Dims, _ => "0"), brackets);
           } else {
-            // non-null (non-array) type
-            // even though the type doesn't necessarily have a known initializer, it could be that the the compiler needs to
-            // lay down some bits to please the C#'s compiler's different definite-assignment rules.
-            return string.Format("default({0})", TypeName(xType, wr, udt.tok));
+            return "null";
           }
         } else {
           return TypeInitializationValue(td.RhsWithArgument(udt.TypeArgs), wr, tok, inAutoInitContext);
@@ -1375,7 +1412,7 @@ namespace Microsoft.Dafny {
     }
     
     protected override TargetWriter DeclareLocalVar(string name, Type type, Bpl.IToken tok, TargetWriter wr) {
-      wr.Write("{0} {1} = ", TypeName(type, wr, tok), name);
+      wr.Write("{0} {1} = ", type != null ? TypeName(type, wr, tok) : "Object", name);
       var w = wr.Fork();
       wr.WriteLine(";");
       return w;
@@ -1393,6 +1430,64 @@ namespace Microsoft.Dafny {
       if (typeArgs.Count != 0) {
         wr.Write("<" + TypeNames(typeArgs, wr, tok) + ">");
       }
+    }
+    
+    protected override IClassWriter CreateTrait(string name, bool isExtern, List<Type> superClasses, Bpl.IToken tok, TargetWriter wr) {
+      var filename = string.Format("{1}/{0}.java", name, ModuleName);
+      var w = wr.NewFile(filename);
+      w.WriteLine("// Interface {0}", name);
+      w.WriteLine("// Dafny trait {0} compiled into Java", name);
+      w.WriteLine("package {0};", ModuleName);
+      w.WriteLine();
+      w.WriteLine("import java.math.*;"); // TODO: Figure out all the Java imports necessary for compiled program to run.
+      EmitImports(w, out _);
+      w.WriteLine();
+      w.Write("public interface {0}", IdProtect(name));
+      if (superClasses != null) {
+        string sep = " implements ";
+        foreach (var trait in superClasses) {
+          w.Write("{0}{1}", sep, TypeName(trait, w, tok));
+          sep = ", ";
+        }
+      }
+      var instanceMemberWriter = w.NewBlock("");
+
+      //writing the _Companion class
+      filename = string.Format("{1}/_Companion_{0}.java", name, ModuleName);
+      w = w.NewFile(filename);
+      w.WriteLine("// Interface {0}", name);
+      w.WriteLine("// Dafny trait {0} compiled into Java", name);
+      w.WriteLine("package {0};", ModuleName);
+      w.WriteLine();
+      w.WriteLine("import java.math.*;"); // TODO: Figure out all the Java imports necessary for compiled program to run.
+      EmitImports(w, out _);
+      w.WriteLine();
+      w.Write("public class _Companion_{0}", name);
+      var staticMemberWriter = w.NewBlock("");
+
+      return new ClassWriter(this, instanceMemberWriter, staticMemberWriter);
+    }
+    
+    protected override void EmitNew(Type type, Bpl.IToken tok, CallStmt initCall, TargetWriter wr) {
+      var ctor = initCall == null ? null : (Constructor)initCall.Method;  // correctness of cast follows from precondition of "EmitNew"
+      wr.Write("new {0}(", TypeName(type, wr, tok));
+      wr.Write(")");
+    }
+    
+    protected override void EmitAssignment(out TargetWriter wLhs, Type/*?*/ lhsType, out TargetWriter wRhs, Type/*?*/ rhsType, TargetWriter wr) {
+      wLhs = wr.Fork();
+      if (!MemberSelectObjIsTrait)
+        wr.Write(" = ");
+      TargetWriter w;
+      if (rhsType != null) {
+        w = EmitCoercionIfNecessary(from:rhsType, to:lhsType, tok:Bpl.Token.NoToken, wr:wr);
+      } else {
+        w = wr;
+      }
+      wRhs = w.Fork();
+      if (MemberSelectObjIsTrait)
+        w.Write(")");
+      EndStmt(wr);
     }
 
     // ABSTRACT METHOD DECLARATIONS FOR THE SAKE OF BUILDING PROGRAM
@@ -1524,11 +1619,6 @@ namespace Microsoft.Dafny {
       throw new NotImplementedException();
     }
 
-    protected override IClassWriter CreateTrait(string name, bool isExtern, List<Type> superClasses, Bpl.IToken tok, TargetWriter wr)
-    {
-      throw new NotImplementedException();
-    }
-
     protected override BlockTargetWriter CreateDoublingForLoop(string indexVar, int start, TargetWriter wr)
     {
       throw new NotImplementedException();
@@ -1557,11 +1647,6 @@ namespace Microsoft.Dafny {
 
     protected override BlockTargetWriter CreateForLoop(string indexVar, string bound, TargetWriter wr) {
       throw new Exception();
-    }
-
-    protected override void EmitNew(Type type, Bpl.IToken tok, CallStmt initCall, TargetWriter wr)
-    {
-      throw new NotImplementedException();
     }
 
     protected override void EmitNewArray(Type elmtType, Bpl.IToken tok, List<Expression> dimensions, bool mustInitialize, TargetWriter wr)
