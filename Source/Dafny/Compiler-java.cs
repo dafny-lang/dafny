@@ -847,7 +847,7 @@ namespace Microsoft.Dafny {
         DtT += DtT_TypeArgs;
         DtT_protected += DtT_TypeArgs;
       }
-      var filename = string.Format("{1}/{0}.java", DtT_protected, ModuleName);
+      var filename = string.Format("{1}/{0}.java", dt, ModuleName);
       wr = wr.NewFile(filename);
       wr.WriteLine("// Class {0}", DtT_protected);
       wr.WriteLine("// Dafny class {0} compiled into Java", DtT_protected);
@@ -862,10 +862,10 @@ namespace Microsoft.Dafny {
       if (dt.IsRecordType) {
         DatatypeFieldsAndConstructor(dt.Ctors[0], 0, wr);
       } else {
-        wr.WriteLine("public {0}() {{ }}", IdName(dt));
+        wr.WriteLine("public {0}() {{ }}", dt);
       }
-      wr.WriteLine("static {0} theDefault;", DtT_protected);
-      using (var w = wr.NewNamedBlock("public static {0} Default()", DtT_protected)) {
+      wr.WriteLine("static {0} theDefault;", dt);
+      using (var w = wr.NewNamedBlock("public static {0} Default()", IdName(dt))) {
         var wIf = EmitIf("theDefault == null", false, w);
         wIf.Write("theDefault = ");
         DatatypeCtor defaultCtor;
@@ -874,7 +874,7 @@ namespace Microsoft.Dafny {
         } else {
           defaultCtor = ((CoDatatypeDecl) dt).Ctors[0];
         }
-        wIf.Write("new {0}(", DtCtorName(defaultCtor, dt.TypeArgs));
+        wIf.Write("new {0}(", DtCtorName(defaultCtor));
         string sep = "";
         foreach (Formal f in defaultCtor.Formals) {
           if (!f.IsGhost) {
@@ -886,30 +886,31 @@ namespace Microsoft.Dafny {
         wIf.WriteLine();
         w.WriteLine("return theDefault;");
       }
-      wr.WriteLine("public static {0} _DafnyDefaultValue() {{ return {1}.Default(); }}", DtT_protected, DtT_protected);
+      wr.WriteLine("public static {0} _DafnyDefaultValue() {{ return {0}.Default(); }}", dt);
       // create methods
-      foreach (var ctor in dt.Ctors) {
-        wr.Write("public static {0} {1}(", DtT_protected, DtCreateName(ctor));
-        WriteFormals("", ctor.Formals, wr);
-        var w = wr.NewBlock(")");
-        w.Write("return new {0}(", DtCtorDeclarationName(ctor, dt.TypeArgs));
-        var sep = "";
-        var i = 0;
-        foreach (var arg in ctor.Formals) {
-          if (!arg.IsGhost) {
-            w.Write("{0}{1}", sep, FormalName(arg, i));
-            sep = ", ";
-            i++;
-          }
-        }
-        w.WriteLine(");");
-      }
+      // TODO:  Need to revisit this. Java cannot reference generic types in a static context, so this wont work. 
+//      foreach (var ctor in dt.Ctors) {
+//        wr.Write("public static {0} {1}(", DtT_protected, DtCreateName(ctor));
+//        WriteFormals("", ctor.Formals, wr);
+//        var w = wr.NewBlock(")");
+//        w.Write("return new {0}(", DtCtorDeclarationName(ctor, dt.TypeArgs));
+//        var sep = "";
+//        var i = 0;
+//        foreach (var arg in ctor.Formals) {
+//          if (!arg.IsGhost) {
+//            w.Write("{0}{1}", sep, FormalName(arg, i));
+//            sep = ", ";
+//            i++;
+//          }
+//        }
+//        w.WriteLine(");");
+//      }
       // query properties
       foreach (var ctor in dt.Ctors) {
         if (dt.IsRecordType) {
           wr.WriteLine("public boolean is_{0}() {{ return true; }}", ctor.CompileName);
         } else {
-          wr.WriteLine("public boolean is_{0}() {{ return this instanceof {1}_{0}{2}; }}", ctor.CompileName, dt.CompileName, DtT_TypeArgs);
+          wr.WriteLine("public boolean is_{0}() {{ return this instanceof {1}_{0}; }}", ctor.CompileName, dt.CompileName);
         }
       }
       // destructors
@@ -918,7 +919,7 @@ namespace Microsoft.Dafny {
           if (dtor.EnclosingCtors[0] == ctor) {
             var arg = dtor.CorrespondingFormals[0];
             if (!arg.IsGhost && arg.HasName) {
-              using (var wDtor = wr.NewNamedBlock("public {0} dtor_{1}", TypeName(arg.Type, wr, arg.tok), arg.CompileName)) {
+              using (var wDtor = wr.NewNamedBlock("public {0} dtor_{1}()", TypeName(arg.Type, wr, arg.tok), arg.CompileName)) {
                 if (dt.IsRecordType) {
                   wDtor.WriteLine("return this.{0};", IdName(arg)); 
                 } else {
@@ -948,7 +949,7 @@ namespace Microsoft.Dafny {
       }
       int constructorIndex = 0; // used to give each constructor a different name
       foreach (DatatypeCtor ctor in dt.Ctors) {
-        var filename = string.Format("{1}/{0}.java", DtCtorDeclarationName(ctor, dt.TypeArgs), ModuleName);
+        var filename = string.Format("{1}/{0}.java", DtCtorDeclarationName(ctor), ModuleName);
         var wr = wrx.NewFile(filename);
         wr.WriteLine("// Class {0}", DtCtorDeclarationName(ctor, dt.TypeArgs));
         wr.WriteLine("// Dafny class {0} compiled into Java", DtCtorDeclarationName(ctor, dt.TypeArgs));
@@ -998,16 +999,15 @@ namespace Microsoft.Dafny {
         w.WriteLine("if (other == null) return false;");
         w.WriteLine("if (getClass() != other.getClass()) return false;");
         if(ctor.Formals.Count > 0){string typeParams = dt.TypeArgs.Count == 0 ? "" : string.Format("<{0}>", TypeParameters(dt.TypeArgs));
-          w.WriteLine("{0}{1} o = ({0}{1})other;", dt.CompileName, typeParams);
+          w.WriteLine("{0} o = ({0})other;", DtCtorDeclarationName(ctor, dt.TypeArgs));
+          w.Write("return ");
           i = 0;
           foreach (Formal arg in ctor.Formals) {
             if (!arg.IsGhost) {
               string nm = FormalName(arg, i);
-              if (IsDirectlyComparable(arg.Type)) {
-                w.Write(" && {0} == o.{0}", nm);
-              } else {
-                w.Write(" && {0}.equals(o.{0})", nm);
-              }
+              if(i!= 0)
+                w.Write(" && ");
+              w.Write("{0}.equals(o.{0})", nm);
               i++;
             }
           }
@@ -1065,14 +1065,8 @@ namespace Microsoft.Dafny {
           w.WriteLine("return {0}.toString();", tempVar);
         }
       }
-      
     }
-    
-    static bool IsDirectlyComparable(Type t) {
-      Contract.Requires(t != null);
-      return t.IsBoolType || t.IsCharType || t.IsIntegerType || t.IsRealType || t.AsNewtype != null || t.IsBitVectorType || t.IsBigOrdinalType || t.IsRefType;
-    }
-    
+
     string DtCtorDeclarationName(DatatypeCtor ctor, List<TypeParameter> typeParams) {
       Contract.Requires(ctor != null);
       Contract.Ensures(Contract.Result<string>() != null);
