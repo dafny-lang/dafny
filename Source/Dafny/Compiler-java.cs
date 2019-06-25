@@ -1387,13 +1387,13 @@ namespace Microsoft.Dafny{
           opString = "&&";
           break;
         case BinaryExpr.ResolvedOpcode.BitwiseAnd:
-          callString = "and";
+          callString = "&";
           break;
         case BinaryExpr.ResolvedOpcode.BitwiseOr:
-          callString = "or";
+          callString = "|";
           break;
         case BinaryExpr.ResolvedOpcode.BitwiseXor:
-          callString = "xor";
+          callString = "^";
           break;
         case BinaryExpr.ResolvedOpcode.EqCommon:{
           if (IsHandleComparison(tok, e0, e1, errorWr)){
@@ -1827,8 +1827,9 @@ namespace Microsoft.Dafny{
       }
     }
 
-    protected override TargetWriter DeclareLocalVar(string name, Type type, Bpl.IToken tok, TargetWriter wr){
-      wr.Write("{0} {1} = ", type != null ? TypeName(type, wr, tok) : "Object", name);
+    protected override TargetWriter DeclareLocalVar(string name, Type type, Bpl.IToken tok, TargetWriter wr)
+    {
+      wr.Write("{0} {1} = ", type != null ? TypeName(type, wr, tok) : "var", name);
       var w = wr.Fork();
       wr.WriteLine(";");
       return w;
@@ -1847,8 +1848,9 @@ namespace Microsoft.Dafny{
         wr.Write("<" + TypeNames(typeArgs, wr, tok) + ">");
       }
     }
-    
-    protected override IClassWriter CreateTrait(string name, bool isExtern, List<Type> superClasses, Bpl.IToken tok, TargetWriter wr) {
+
+    protected override IClassWriter CreateTrait(string name, bool isExtern, List<Type> superClasses, Bpl.IToken tok,
+      TargetWriter wr){
       var filename = string.Format("{1}/{0}.java", name, ModuleName);
       var w = wr.NewFile(filename);
       w.WriteLine("// Interface {0}", name);
@@ -2077,28 +2079,43 @@ namespace Microsoft.Dafny{
       throw new NotImplementedException();
     }
 
+
     protected override TargetWriter EmitBetaRedex(List<string> boundVars, List<Expression> arguments, string typeArgs,
       List<Type> boundTypes, Type resultType,
       Bpl.IToken resultTok, bool inLetExprBody, TargetWriter wr){
       throw new NotImplementedException();
     }
-
+    
     protected override TargetWriter CreateIIFE_ExprBody(string source, Type sourceType, Bpl.IToken sourceTok,
       Type resultType, Bpl.IToken resultTok,
       string bvName, TargetWriter wr){
       throw new NotImplementedException();
     }
-    
-    protected override TargetWriter CreateIIFE_ExprBody(Expression source, bool inLetExprBody, Type sourceType, Bpl.IToken sourceTok,
-      Type resultType, Bpl.IToken resultTok, string bvName, TargetWriter wr) {
+
+    protected override TargetWriter CreateIIFE_ExprBody(Expression source, bool inLetExprBody, Type sourceType,
+      Bpl.IToken sourceTok,
+      Type resultType, Bpl.IToken resultTok, string bvName, TargetWriter wr){
       throw new NotImplementedException();
     }
-    
-    protected override void EmitUnaryExpr(ResolvedUnaryOp op, Expression expr, bool inLetExprBody, TargetWriter wr)
-    {
-      throw new NotImplementedException();
+
+    protected override void EmitUnaryExpr(ResolvedUnaryOp op, Expression expr, bool inLetExprBody, TargetWriter wr){
+      switch (op){
+        case ResolvedUnaryOp.BoolNot:
+          TrParenExpr("!", expr, wr, inLetExprBody);
+          break;
+        case ResolvedUnaryOp.BitwiseNot:
+          TrParenExpr("~", expr, wr, inLetExprBody);
+          break;
+        case ResolvedUnaryOp.Cardinality:
+          TrParenExpr("new BigInteger(", expr, wr, inLetExprBody);
+          wr.Write(".Count)");
+          break;
+        default:
+          Contract.Assert(false);
+          throw new cce.UnreachableException(); // unexpected unary expression
+      }
     }
-    
+
     protected override void EmitIsZero(string varName, TargetWriter wr)
     {
       throw new NotImplementedException();
@@ -2135,11 +2152,6 @@ namespace Microsoft.Dafny{
       throw new NotImplementedException();
     }
 
-    protected override string GetQuantifierName(string bvType)
-    {
-      throw new NotImplementedException();
-    }
-    
     protected override BlockTargetWriter CreateForLoop(string indexVar, string bound, TargetWriter wr) {
       throw new NotImplementedException();
     }
@@ -2149,9 +2161,13 @@ namespace Microsoft.Dafny{
       throw new NotImplementedException();
     }
 
-    protected override void EmitEmptyTupleList(string tupleTypeArgs, TargetWriter wr)
-    {
+    protected override void EmitEmptyTupleList(string tupleTypeArgs, TargetWriter wr){
       throw new NotImplementedException();
+    }
+
+    protected override string GetQuantifierName(string bvType)
+    {
+      return string.Format("Dafny.Helpers.Quantifier<{0}>", bvType);
     }
 
     protected override TargetWriter EmitAddTupleToList(string ingredients, string tupleTypeArgs, TargetWriter wr)
