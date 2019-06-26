@@ -388,24 +388,20 @@ namespace Microsoft.Dafny {
         
     // Copied from Compiler-C#, seemed most applicable to Java compiler due to similar data types.
     // TODO: verify, change if necessary to match Java language specifications
-    protected override string FullTypeName(UserDefinedType udt, MemberDecl/*?*/ member = null) {
-      Contract.Assume(udt != null);  // precondition; this ought to be declared as a Requires in the superclass
+    protected override string FullTypeName(UserDefinedType udt, MemberDecl /*?*/ member = null) {
+      Contract.Assume(udt != null); // precondition; this ought to be declared as a Requires in the superclass
       if (udt is ArrowType) {
         return ArrowType.Arrow_FullCompileName;
       }
       var cl = udt.ResolvedClass;
       if (cl == null) {
         return IdProtect(udt.CompileName);
-      } else if (cl.Module.IsDefaultModule) {
+      }
+      else {
         return IdProtect(cl.CompileName);
-      } 
-      else if (cl.Module.CompileName.Equals(ModuleName)){
-        return IdProtect(cl.CompileName);
-      }else {
-        return IdProtect(cl.Module.CompileName) + "." + IdProtect(cl.CompileName);
       }
     }
-        
+
     protected override bool DeclareFormal(string prefix, string name, Type type, Bpl.IToken tok, bool isInParam, TextWriter wr) {
       if (isInParam) {
         wr.Write("{0}{1} {2}", prefix, TypeName(type, wr, tok), name);
@@ -1844,9 +1840,10 @@ namespace Microsoft.Dafny {
         //   new Dt_Cons<T>( args )
         wr.Write("({0})", arguments);
       }
-      else{
+      else {
         throw new NotImplementedException();
       }
+    }
 //      else {
 //        // In the case of a co-recursive call, generate:
 //        //     new Dt__Lazy<T>( LAMBDA )
@@ -1858,8 +1855,14 @@ namespace Microsoft.Dafny {
 //        wr.Write("new {0}({1})", DtCtorName(dtv.Ctor, dtv.InferredTypeArgs, wr), arguments);
 //        wr.Write("; })");
 //      }
-    }
 
+    protected override void EmitDestructor(string source, Formal dtor, int formalNonGhostIndex, DatatypeCtor ctor, List<Type> typeArgs, Type bvType, TargetWriter wr) {
+    }
+    
+    protected override BlockTargetWriter CreateLambda(List<Type> inTypes, Bpl.IToken tok, List<string> inNames, Type resultType, TargetWriter wr, bool untyped = false) {
+      return wr.NewBlock(null, null, BlockTargetWriter.BraceStyle.Newline, BlockTargetWriter.BraceStyle.Newline);;
+    }
+    
     protected override void EmitExprAsInt(Expression expr, bool inLetExprBody, TargetWriter wr)
     {
       throw new NotImplementedException();
@@ -1873,18 +1876,6 @@ namespace Microsoft.Dafny {
 
     protected override TargetWriter EmitBetaRedex(List<string> boundVars, List<Expression> arguments, string typeArgs, List<Type> boundTypes, Type resultType,
       Bpl.IToken resultTok, bool inLetExprBody, TargetWriter wr)
-    {
-      throw new NotImplementedException();
-    }
-
-    protected override void EmitDestructor(string source, Formal dtor, int formalNonGhostIndex, DatatypeCtor ctor, List<Type> typeArgs, Type bvType,
-      TargetWriter wr)
-    {
-      throw new NotImplementedException();
-    }
-
-    protected override BlockTargetWriter CreateLambda(List<Type> inTypes, Bpl.IToken tok, List<string> inNames, Type resultType, TargetWriter wr,
-      bool untyped = false)
     {
       throw new NotImplementedException();
     }
