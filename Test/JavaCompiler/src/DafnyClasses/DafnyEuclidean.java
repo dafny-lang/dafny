@@ -3,11 +3,19 @@ package DafnyClasses;
 import java.math.BigInteger;
 
 public class DafnyEuclidean {
+    // Properties of Euclidean Division, as referenced in post conditions
+    // quotient >= 0 if sign(a) = sign(b) else quotient <= 0
+    // remainder is always positive
+    // a = quotient*b + remainder
+    // there are no max values for these operations, but casting to unsigned is required if b is the MIN_VALUE of a
+    // given type because there will be overflow. Since this is division, the return value for all methods will be
+    // at a maximum the input value a, which is required to be well defined
+
     // pre: b != 0
-    // post: result == a/b, as defined by Euclidean Division (http://en.wikipedia.org/wiki/Modulo_operation)
+    // post: quotient == a/b, as defined by Euclidean Division (http://en.wikipedia.org/wiki/Modulo_operation)
     public static byte EuclideanDivision(byte a, byte b) {
         assert b != 0 : "Precondition Failure";
-        return (byte) EuclideanDivision((int)a, (int)b);
+        return (byte) EuclideanDivision((int) a, (int) b);
     }
 
     public static short EuclideanDivision(short a, short b) {
@@ -93,7 +101,7 @@ public class DafnyEuclidean {
     }
 
     // pre: b != 0
-    // post: result == a%b, as defined by Euclidean Division (http://en.wikipedia.org/wiki/Modulo_operation)
+    // post: remainder == a%b, as defined by Euclidean Division (http://en.wikipedia.org/wiki/Modulo_operation)
     public static byte EuclideanModulus(byte a, byte b) {
         assert b != 0 : "Precondition Failure";
         return (byte) EuclideanModulus((int) a, (int) b);
@@ -101,7 +109,7 @@ public class DafnyEuclidean {
 
     public static short EuclideanModulus(short a, short b) {
         assert b != 0 : "Precondition Failure";
-        return (short) EuclideanModulus((int) a,(int) b);
+        return (short) EuclideanModulus((int) a, (int) b);
     }
 
     public static int EuclideanModulus(int a, int b) {
