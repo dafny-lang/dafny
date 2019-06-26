@@ -11,7 +11,6 @@ using System.IO;
 using System.Diagnostics.Contracts;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
-using System.Net.Mime;
 using System.Reflection;
 using Bpl = Microsoft.Boogie;
 
@@ -229,17 +228,18 @@ namespace Microsoft.Dafny {
         
     protected BlockTargetWriter CreateMethod(Method m, bool createBody, TargetWriter wr) {
       string targetReturnTypeReplacement = null;
-      int nonGhostOuts = 2;
+      int nonGhostOuts = 0;
       foreach (var p in m.Outs) {
         if (!p.IsGhost) {
-          if (targetReturnTypeReplacement == null) {
-            targetReturnTypeReplacement = TypeName(p.Type, wr, p.tok);
-          } else {
-            targetReturnTypeReplacement = "DafnyTuple" + nonGhostOuts;
-            nonGhostOuts += 1;
-          }
+          nonGhostOuts += 1;
         }
       }
+      if (nonGhostOuts == 1) {
+        targetReturnTypeReplacement = TypeName(m.Outs[0].Type, wr, m.Outs[0].tok);
+      } else if (nonGhostOuts > 1) {
+        targetReturnTypeReplacement = "DafnyTuple" + nonGhostOuts;
+      }
+      
       wr.Write("{0}{1}", createBody ? "public " : "", m.IsStatic ? "static " : "");
       if (m.TypeArgs.Count != 0) {
         wr.Write("<{0}>", TypeParameters(m.TypeArgs));
@@ -260,7 +260,7 @@ namespace Microsoft.Dafny {
             }
             w.IndentLess(); w.WriteLine("TAIL_CALL_START: ;");
         }*/
-        if (!m.Body.Body.OfType<ReturnStmt>().Any() && m.Outs.Count > 0) { // If method has out parameters but no explicit return statement in Dafny
+        if (!m.Body.Body.OfType<ReturnStmt>().Any() && nonGhostOuts > 0) { // If method has out parameters but no explicit return statement in Dafny
           var r = new TargetWriter(w.IndentLevel);
           EmitReturn(m.Outs, r);
           w.BodySuffix = r.ToString();

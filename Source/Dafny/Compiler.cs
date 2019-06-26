@@ -836,31 +836,21 @@ namespace Microsoft.Dafny {
               classWriter.DeclareField(f.CompileName, false, false, f.Type, f.tok, DefaultValue(f.Type, errorWr, f.tok, true));
             }
 
-            if (!FieldsInTraits) { // Create getters and setters for languages "traits" that don't allow for non-final field declarations.
-              if (!(f is ConstantField)) {
-                TargetWriter wSet;
-                var wGet = classWriter.CreateGetterSetter(IdName(f), f.Type, f.tok, false, true, member, out wSet);
-                {
-                  var sw = EmitReturnExpr(wGet);
-                  // get { return this.{0}; }
-                  EmitThis(sw);
-                  sw.Write(".{0}", f.CompileName);
-                }
-                {
-                  // set { this.{0} = value; }
-                  EmitThis(wSet);
-                  wSet.Write(".{0}", f.CompileName);
-                  var sw = EmitAssignmentRhs(wSet);
-                  EmitSetterParameter(sw);
-                }
-              } else {
-                var wGet = classWriter.CreateGetter(IdName(f), f.Type, f.tok, false, true, member);
-                {
-                  var sw = EmitReturnExpr(wGet);
-                  // get { return this.{0}; }
-                  EmitThis(sw);
-                  sw.Write(".{0}", f.CompileName);
-                }
+            if (!FieldsInTraits) { // Create getters and setters for "traits" in languages that don't allow for non-final field declarations.
+              TargetWriter wSet;
+              var wGet = classWriter.CreateGetterSetter(IdName(f), f.Type, f.tok, false, true, member, out wSet);
+              {
+                var sw = EmitReturnExpr(wGet);
+                // get { return this.{0}; }
+                EmitThis(sw);
+                sw.Write(".{0}", f.CompileName);
+              }
+              {
+                // set { this.{0} = value; }
+                EmitThis(wSet);
+                wSet.Write(".{0}", f.CompileName);
+                var sw = EmitAssignmentRhs(wSet); 
+                EmitSetterParameter(sw);
               }
             }
           }
