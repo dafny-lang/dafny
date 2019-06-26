@@ -2010,36 +2010,7 @@ namespace Microsoft.Dafny{
       EndStmt(wr);
     }
 
-    // ABSTRACT METHOD DECLARATIONS FOR THE SAKE OF BUILDING PROGRAM
-    protected override string GetHelperModuleName(){
-      throw new NotImplementedException();
-    }
-
-    protected override BlockTargetWriter CreateStaticMain(IClassWriter wr){
-      throw new NotImplementedException();
-    }
-
-    protected override void EmitJumpToTailCallStart(TargetWriter wr){
-      throw new NotImplementedException();
-    }
-
-    protected override TargetWriter CreateLabeledCode(string label, TargetWriter wr){
-      throw new NotImplementedException();
-    }
-
-    protected override void EmitBreak(string label, TargetWriter wr){
-      throw new NotImplementedException();
-    }
-
-    protected override void EmitYield(TargetWriter wr){
-      throw new NotImplementedException();
-    }
-
-    protected override void EmitAbsurd(string message, TargetWriter wr){
-      throw new NotImplementedException();
-    }
-
-    protected override void EmitDatatypeValue(DatatypeValue dtv, string arguments, TargetWriter wr){
+    protected override void EmitDatatypeValue(DatatypeValue dtv, string arguments, TargetWriter wr) {
       var dt = dtv.Ctor.EnclosingDatatype;
       var dtName = dt.Module.IsDefaultModule || dt.Module.Name.Equals(ModuleName) ? dt.CompileName : dt.FullCompileName;
       var ctorName = dtv.Ctor.CompileName;
@@ -2047,15 +2018,16 @@ namespace Microsoft.Dafny{
       var typeParams = dtv.InferredTypeArgs.Count == 0
         ? ""
         : string.Format("<{0}>", TypeNames(dtv.InferredTypeArgs, wr, dtv.tok));
-      if (!dtv.IsCoCall){
+      if (!dtv.IsCoCall) {
         wr.Write("new {0}{1}", dtName, typeParams);
         // For an ordinary constructor (that is, one that does not guard any co-recursive calls), generate:
         //   new Dt_Cons<T>( args )
         wr.Write("({0})", arguments);
       }
-      else{
+      else {
         throw new NotImplementedException();
       }
+    }
 
 //      else {
 //        // In the case of a co-recursive call, generate:
@@ -2068,6 +2040,61 @@ namespace Microsoft.Dafny{
 //        wr.Write("new {0}({1})", DtCtorName(dtv.Ctor, dtv.InferredTypeArgs, wr), arguments);
 //        wr.Write("; })");
 //      }
+
+    protected override void EmitDestructor(string source, Formal dtor, int formalNonGhostIndex, DatatypeCtor ctor, List<Type> typeArgs, Type bvType, TargetWriter wr) {
+    }
+    
+    protected override BlockTargetWriter CreateLambda(List<Type> inTypes, Bpl.IToken tok, List<string> inNames, Type resultType, TargetWriter wr, bool untyped = false) {
+      return wr.NewBlock(null, null, BlockTargetWriter.BraceStyle.Newline, BlockTargetWriter.BraceStyle.Newline);;
+    }
+
+    protected override void EmitJumpToTailCallStart(TargetWriter wr) {
+    }
+    
+    protected override BlockTargetWriter CreateIIFE0(Type resultType, Bpl.IToken resultTok, TargetWriter wr) {
+      return wr.NewBlock(null, null, BlockTargetWriter.BraceStyle.Newline, BlockTargetWriter.BraceStyle.Newline);;
+    }
+    
+    protected override void EmitCollectionBuilder_New(CollectionType ct, Bpl.IToken tok, TargetWriter wr) {
+    }
+    
+    protected override BlockTargetWriter CreateForeachLoop(string boundVar, Type boundVarType, out TargetWriter collectionWriter,
+      TargetWriter wr, string altBoundVarName = null, Type altVarType = null, Bpl.IToken tok = null) {
+      collectionWriter = wr;
+      return wr.NewBlock(null, null, BlockTargetWriter.BraceStyle.Newline, BlockTargetWriter.BraceStyle.Newline);
+    }
+    
+    protected override void EmitCollectionBuilder_Add(CollectionType ct, string collName, Expression elmt, bool inLetExprBody, TargetWriter wr) {
+    }
+    
+    protected override string GetCollectionBuilder_Build(CollectionType ct, Bpl.IToken tok, string collName, TargetWriter wr) {
+      return "";
+    }
+    
+    protected override TargetWriter CreateLabeledCode(string label, TargetWriter wr) {
+      return wr;
+    }
+    
+    protected override void EmitBreak(string label, TargetWriter wr) {
+    }
+    
+    protected override void EmitAbsurd(string message, TargetWriter wr) {
+    }
+
+    // ABSTRACT METHOD DECLARATIONS FOR THE SAKE OF BUILDING PROGRAM
+    protected override string GetHelperModuleName()
+    {
+      throw new NotImplementedException();
+    }
+        
+    protected override BlockTargetWriter CreateStaticMain(IClassWriter wr)
+    {
+      throw new NotImplementedException();
+    }
+
+    protected override void EmitYield(TargetWriter wr)
+    {
+      throw new NotImplementedException();
     }
 
     protected override void EmitExprAsInt(Expression expr, bool inLetExprBody, TargetWriter wr){
@@ -2086,35 +2113,19 @@ namespace Microsoft.Dafny{
       throw new NotImplementedException();
     }
 
-    protected override void EmitDestructor(string source, Formal dtor, int formalNonGhostIndex, DatatypeCtor ctor,
-      List<Type> typeArgs, Type bvType,
-      TargetWriter wr){
-      throw new NotImplementedException();
-    }
-
-    protected override BlockTargetWriter CreateLambda(List<Type> inTypes, Bpl.IToken tok, List<string> inNames,
-      Type resultType, TargetWriter wr,
-      bool untyped = false){
-      throw new NotImplementedException();
-    }
-
-    protected override TargetWriter CreateIIFE_ExprBody(Expression source, bool inLetExprBody, Type sourceType,
-      Bpl.IToken sourceTok,
-      Type resultType, Bpl.IToken resultTok, string bvName, TargetWriter wr){
-      throw new NotImplementedException();
-    }
-
     protected override TargetWriter CreateIIFE_ExprBody(string source, Type sourceType, Bpl.IToken sourceTok,
       Type resultType, Bpl.IToken resultTok,
       string bvName, TargetWriter wr){
       throw new NotImplementedException();
     }
-
-    protected override BlockTargetWriter CreateIIFE0(Type resultType, Bpl.IToken resultTok, TargetWriter wr){
+    
+    protected override TargetWriter CreateIIFE_ExprBody(Expression source, bool inLetExprBody, Type sourceType, Bpl.IToken sourceTok,
+      Type resultType, Bpl.IToken resultTok, string bvName, TargetWriter wr) {
       throw new NotImplementedException();
     }
-
-    protected override void EmitUnaryExpr(ResolvedUnaryOp op, Expression expr, bool inLetExprBody, TargetWriter wr){
+    
+    protected override void EmitUnaryExpr(ResolvedUnaryOp op, Expression expr, bool inLetExprBody, TargetWriter wr)
+    {
       throw new NotImplementedException();
     }
 
@@ -2126,28 +2137,14 @@ namespace Microsoft.Dafny{
       throw new NotImplementedException();
     }
 
-    protected override void EmitCollectionBuilder_New(CollectionType ct, Bpl.IToken tok, TargetWriter wr){
-      throw new NotImplementedException();
-    }
-
-    protected override void EmitCollectionBuilder_Add(CollectionType ct, string collName, Expression elmt,
-      bool inLetExprBody,
-      TargetWriter wr){
-      throw new NotImplementedException();
-    }
-
     protected override TargetWriter EmitMapBuilder_Add(MapType mt, Bpl.IToken tok, string collName, Expression term,
       bool inLetExprBody,
       TargetWriter wr){
       throw new NotImplementedException();
     }
 
-    protected override string GetCollectionBuilder_Build(CollectionType ct, Bpl.IToken tok, string collName,
-      TargetWriter wr){
-      throw new NotImplementedException();
-    }
-
-    protected override void EmitSingleValueGenerator(Expression e, bool inLetExprBody, string type, TargetWriter wr){
+    protected override void EmitSingleValueGenerator(Expression e, bool inLetExprBody, string type, TargetWriter wr)
+    {
       throw new NotImplementedException();
     }
 
@@ -2166,14 +2163,7 @@ namespace Microsoft.Dafny{
     protected override string GetQuantifierName(string bvType){
       throw new NotImplementedException();
     }
-
-    protected override BlockTargetWriter CreateForeachLoop(string boundVar, Type boundVarType,
-      out TargetWriter collectionWriter,
-      TargetWriter wr, string altBoundVarName = null, Type altVarType = null, Bpl.IToken tok = null){
-      throw new NotImplementedException();
-    }
-
-    protected override BlockTargetWriter CreateForLoop(string indexVar, string bound, TargetWriter wr){
+    protected override BlockTargetWriter CreateForLoop(string indexVar, string bound, TargetWriter wr) {
       throw new Exception();
     }
 
