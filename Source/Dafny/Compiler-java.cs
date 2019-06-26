@@ -763,18 +763,20 @@ namespace Microsoft.Dafny{
       } else {
         if (lo != null && hi != null) {
           wr.Write(".subsequence(");
-          TrExpr(lo, wr, inLetExprBody);
+          wr.Write(((BigInteger)((LiteralExpr)lo).Value).ToString());
           wr.Write(", ");
-          TrExpr(hi, wr, inLetExprBody);
+          wr.Write(((BigInteger)((LiteralExpr)lo).Value).ToString());
           wr.Write(")");
         }
         else if (lo != null) {
-          wr.Write(".drop");
-          TrParenExpr(lo, wr, inLetExprBody);
+          wr.Write(".drop(");
+          wr.Write(((BigInteger)((LiteralExpr)lo).Value).ToString());
+          wr.Write(")");
         }
         else if (hi != null) {
-          wr.Write(".take");
-          TrParenExpr(hi, wr, inLetExprBody);
+          wr.Write(".take(");
+          wr.Write(((BigInteger)((LiteralExpr)hi).Value).ToString());
+          wr.Write(")");
         }
       }
     }
@@ -784,6 +786,12 @@ namespace Microsoft.Dafny{
       TrParenExpr(source, wr, inLetExprBody);
       if (source.Type.AsCollectionType.CollectionTypeName.Equals("multiset")){
         TrParenExpr(".multiplicity", index, wr, inLetExprBody);
+      }
+      else if (source.Type.AsCollectionType.CollectionTypeName.Equals("seq") ||
+          source.Type.AsCollectionType.CollectionTypeName.Equals("string")){
+        wr.Write(".select(");
+        wr.Write(((BigInteger)((LiteralExpr)index).Value).ToString());
+        wr.Write(")");
       }
       else{
         TrParenExpr(".select", index, wr, inLetExprBody);
@@ -800,7 +808,13 @@ namespace Microsoft.Dafny{
       TargetWriter wr, bool nativeIndex = false) {
       TrParenExpr(source, wr, inLetExprBody);
       wr.Write(".update(");
-      TrExpr(index, wr, inLetExprBody);
+      if (source.Type.AsCollectionType.CollectionTypeName.Equals("seq") ||
+          source.Type.AsCollectionType.CollectionTypeName.Equals("string")){
+        wr.Write(((BigInteger)((LiteralExpr)index).Value).ToString());
+      }
+      else{
+        TrExpr(index, wr, inLetExprBody);
+      }
       wr.Write(", ");
       TrExpr(value, wr, inLetExprBody);
       wr.Write(")");
@@ -1517,9 +1531,13 @@ namespace Microsoft.Dafny{
             TrParenExpr("", expr, wr, inLetExprBody);
             wr.Write(".cardinality()");
           }
-          else{
+          else if (expr.Type.AsCollectionType.CollectionTypeName.Equals("set")){
             TrParenExpr("new BigInteger(Long.toString(", expr, wr, inLetExprBody);
             wr.Write(".size()))");
+          }
+          else{
+            TrParenExpr("new BigInteger(Long.toString(", expr, wr, inLetExprBody);
+            wr.Write(".length()))");
           }
           
           break;
