@@ -24,7 +24,7 @@ namespace Microsoft.Dafny{
 
     public override String TargetLanguage => "Java";
     protected new readonly string DafnySetClass = "DafnyClasses.DafnySet";
-    protected new readonly string DafnyMultiSetClass = "DafnyClasses.DafnyMultiSet";
+    protected new readonly string DafnyMultiSetClass = "DafnyClasses.DafnyMultiset";
     protected new readonly string DafnySeqClass = "DafnyClasses.DafnySequence";
 //    protected new readonly string DafnyMapClass = "DafnyClasses.DafnyMap";
 
@@ -782,7 +782,13 @@ namespace Microsoft.Dafny{
     protected override void EmitIndexCollectionSelect(Expression source, Expression index, bool inLetExprBody, TargetWriter wr) {
       // Taken from C# compiler, assuming source is a DafnySequence type.
       TrParenExpr(source, wr, inLetExprBody);
-      TrParenExpr(".select", index, wr, inLetExprBody);
+      if (source.Type.AsCollectionType.CollectionTypeName.Equals("multiset")){
+        TrParenExpr(".multiplicity", index, wr, inLetExprBody);
+      }
+      else{
+        TrParenExpr(".select", index, wr, inLetExprBody);
+      }
+      
     }
     
     protected override void EmitMultiSetFormingExpr(MultiSetFormingExpr expr, bool inLetExprBody, TargetWriter wr) {
@@ -1382,7 +1388,146 @@ namespace Microsoft.Dafny{
       return t.IsBoolType || t.IsCharType || AsNativeType(t) != null || t.IsRefType;
     }
     
-    // TODO: Make sure all OpCodes are accounted for.
+    protected void DeclareLocalOutVar(string name, Type type, Bpl.IToken tok, string rhs, TargetWriter wr)
+    {
+      EmitAssignment(name, type, rhs, null, wr);
+    }
+
+    protected override void EmitActualTypeArgs(List<Type> typeArgs, Bpl.IToken tok, TextWriter wr)
+    {
+      if (typeArgs.Count != 0) {
+        wr.Write("<" + TypeNames(typeArgs, wr, tok) + ">");
+      }
+    }
+
+    protected override string GenerateLhsDecl(string target, Type type, TextWriter wr, Bpl.IToken tok){
+      return TypeName(type, wr, tok) + " " + target;
+    }
+    
+
+    protected override IClassWriter CreateTrait(string name, bool isExtern, List<Type> superClasses, Bpl.IToken tok,
+      TargetWriter wr){
+      var filename = string.Format("{1}/{0}.java", name, ModuleName);
+      var w = wr.NewFile(filename);
+      w.WriteLine("// Interface {0}", name);
+      w.WriteLine("// Dafny trait {0} compiled into Java", name);
+      w.WriteLine("package {0};", ModuleName);
+      w.WriteLine();
+      w.WriteLine(
+        "import java.math.*;"); // TODO: Figure out all the Java imports necessary for compiled program to run.
+      EmitImports(w, out _);
+      w.WriteLine();
+      w.Write("public interface {0}", IdProtect(name));
+      if (superClasses != null){
+        string sep = " implements ";
+        foreach (var trait in superClasses){
+          w.Write("{0}{1}", sep, TypeName(trait, w, tok));
+          sep = ", ";
+        }
+      }
+
+      var instanceMemberWriter = w.NewBlock("");
+
+      //writing the _Companion class
+      filename = string.Format("{1}/_Companion_{0}.java", name, ModuleName);
+      w = w.NewFile(filename);
+      w.WriteLine("// Interface {0}", name);
+      w.WriteLine("// Dafny trait {0} compiled into Java", name);
+      w.WriteLine("package {0};", ModuleName);
+      w.WriteLine();
+      w.WriteLine(
+        "import java.math.*;"); // TODO: Figure out all the Java imports necessary for compiled program to run.
+      EmitImports(w, out _);
+      w.WriteLine();
+      w.Write("public class _Companion_{0}", name);
+      var staticMemberWriter = w.NewBlock("");
+
+      return new ClassWriter(this, instanceMemberWriter, staticMemberWriter);
+    }
+
+    protected override void EmitNew(Type type, Bpl.IToken tok, CallStmt initCall, TargetWriter wr){
+      var ctor = initCall == null
+        ? null
+        : (Constructor) initCall.Method; // correctness of cast follows from precondition of "EmitNew"
+      wr.Write("new {0}(", TypeName(type, wr, tok));
+      wr.Write(")");
+    }
+
+    protected override void EmitAssignment(out TargetWriter wLhs, Type /*?*/ lhsType, out TargetWriter wRhs,
+      Type /*?*/ rhsType, TargetWriter wr){
+      wLhs = wr.Fork();
+      if (!MemberSelectObjIsTrait)
+        wr.Write(" = ");
+      TargetWriter w;
+      if (rhsType != null){
+        w = EmitCoercionIfNecessary(from: rhsType, to: lhsType, tok: Bpl.Token.NoToken, wr: wr);
+      }
+      else{
+        w = wr;
+      }
+
+      wRhs = w.Fork();
+      if (MemberSelectObjIsTrait)
+        w.Write(")");
+      EndStmt(wr);
+    }
+
+    protected override void EmitDatatypeValue(DatatypeValue dtv, string arguments, TargetWriter wr){
+      var dt = dtv.Ctor.EnclosingDatatype;
+      var dtName = dt.Module.IsDefaultModule || dt.Module.Name.Equals(ModuleName) ? dt.CompileName : dt.FullCompileName;
+      var ctorName = dtv.Ctor.CompileName;
+
+      var typeParams = dtv.InferredTypeArgs.Count == 0
+        ? ""
+        : string.Format("<{0}>", TypeNames(dtv.InferredTypeArgs, wr, dtv.tok));
+      if (!dtv.IsCoCall){
+        wr.Write("new {0}{1}", dtName, typeParams);
+        // For an ordinary constructor (that is, one that does not guard any co-recursive calls), generate:
+        //   new Dt_Cons<T>( args )
+        wr.Write("({0})", arguments);
+      }
+      else{
+        throw new NotImplementedException();
+      }
+
+//      else {
+//        // In the case of a co-recursive call, generate:
+//        //     new Dt__Lazy<T>( LAMBDA )
+//        // where LAMBDA is:
+//        //     () => { return Dt_Cons<T>( ...args... ); }
+//        wr.Write("new {0}__Lazy{1}(", dtv.DatatypeName, typeParams);
+//
+//        wr.Write("() => { return ");
+//        wr.Write("new {0}({1})", DtCtorName(dtv.Ctor, dtv.InferredTypeArgs, wr), arguments);
+//        wr.Write("; })");
+//      }
+    }
+
+    protected override void EmitUnaryExpr(ResolvedUnaryOp op, Expression expr, bool inLetExprBody, TargetWriter wr)
+    {
+      switch (op) {
+        case ResolvedUnaryOp.BoolNot:
+          TrParenExpr("!", expr, wr, inLetExprBody);
+          break;
+        case ResolvedUnaryOp.BitwiseNot:
+          TrParenExpr("~", expr, wr, inLetExprBody);
+          break;
+        case ResolvedUnaryOp.Cardinality:
+          if (expr.Type.AsCollectionType.CollectionTypeName.Equals("multiset")){
+            TrParenExpr("", expr, wr, inLetExprBody);
+            wr.Write(".cardinality()");
+          }
+          else{
+            TrParenExpr("new BigInteger(Long.toString(", expr, wr, inLetExprBody);
+            wr.Write(".size()))");
+          }
+          
+          break;
+        default:
+          Contract.Assert(false); throw new cce.UnreachableException();  // unexpected unary expression
+      }
+    }
+
     protected override void CompileBinOp(BinaryExpr.ResolvedOpcode op, Expression e0, Expression e1, Bpl.IToken tok,
       Type resultType, out string opString,
       out string preOpString, out string postOpString, out string callString, out string staticCallString,
@@ -1449,7 +1594,6 @@ namespace Microsoft.Dafny{
             preOpString = "!";
             callString = "equals";
           }
-
           break;
         }
 
@@ -1862,99 +2006,6 @@ namespace Microsoft.Dafny{
       DeclareLocalVar(name, type, tok, false, rhs, wr);
     }
 
-    protected override string GenerateLhsDecl(string target, Type type, TextWriter wr, Bpl.IToken tok) {
-      return TypeName(type, wr, tok) + " " + target;
-    }
-    
-    protected override void EmitActualTypeArgs(List<Type> typeArgs, Bpl.IToken tok, TextWriter wr) {
-      if (typeArgs.Count != 0) {
-        wr.Write("<" + TypeNames(typeArgs, wr, tok) + ">");
-      }
-    }
-
-    protected override IClassWriter CreateTrait(string name, bool isExtern, List<Type> superClasses, Bpl.IToken tok,
-      TargetWriter wr){
-      var filename = string.Format("{1}/{0}.java", name, ModuleName);
-      var w = wr.NewFile(filename);
-      w.WriteLine("// Interface {0}", name);
-      w.WriteLine("// Dafny trait {0} compiled into Java", name);
-      w.WriteLine("package {0};", ModuleName);
-      w.WriteLine();
-      w.WriteLine("import java.util.*;");
-      w.WriteLine("import java.util.function.*;");
-      w.WriteLine("import java.math.*;"); // TODO: Figure out all the Java imports necessary for compiled program to run.
-      EmitImports(w, out _);
-      w.WriteLine();
-      w.Write("public interface {0}", IdProtect(name));
-      if (superClasses != null) {
-        string sep = " implements ";
-        foreach (var trait in superClasses) {
-          w.Write("{0}{1}", sep, TypeName(trait, w, tok));
-          sep = ", ";
-        }
-      }
-      var instanceMemberWriter = w.NewBlock("");
-
-      //writing the _Companion class
-      filename = string.Format("{1}/_Companion_{0}.java", name, ModuleName);
-      w = w.NewFile(filename);
-      w.WriteLine("// Interface {0}", name);
-      w.WriteLine("// Dafny trait {0} compiled into Java", name);
-      w.WriteLine("package {0};", ModuleName);
-      w.WriteLine();
-      w.WriteLine("import java.util.*;");
-      w.WriteLine("import java.util.function.*;");
-      w.WriteLine("import java.math.*;"); // TODO: Figure out all the Java imports necessary for compiled program to run.
-      EmitImports(w, out _);
-      w.WriteLine();
-      w.Write("public class _Companion_{0}", name);
-      var staticMemberWriter = w.NewBlock("");
-
-      return new ClassWriter(this, instanceMemberWriter, staticMemberWriter);
-    }
-
-    protected override void EmitNew(Type type, Bpl.IToken tok, CallStmt initCall, TargetWriter wr) {
-      var ctor = initCall == null ? null : (Constructor)initCall.Method;  // correctness of cast follows from precondition of "EmitNew"
-      wr.Write("new {0}(", TypeName(type, wr, tok));
-      wr.Write(")");
-    }
-    
-    protected override void EmitAssignment(out TargetWriter wLhs, Type/*?*/ lhsType, out TargetWriter wRhs, Type/*?*/ rhsType, TargetWriter wr) {
-      wLhs = wr.Fork();
-      if (!MemberSelectObjIsTrait)
-        wr.Write(" = ");
-      TargetWriter w;
-      if (rhsType != null) {
-        w = EmitCoercionIfNecessary(from:rhsType, to:lhsType, tok:Bpl.Token.NoToken, wr:wr);
-      } else {
-        w = wr;
-      }
-      wRhs = w.Fork();
-      if (MemberSelectObjIsTrait)
-        w.Write(")");
-      EndStmt(wr);
-    }
-    
-    protected override void EmitDatatypeValue(DatatypeValue dtv, string arguments, TargetWriter wr) {
-      var dt = dtv.Ctor.EnclosingDatatype;
-      var dtName = dt.CompileName;
-      var ctorName = dtv.Ctor.CompileName;
-      
-      var typeParams = dtv.InferredTypeArgs.Count == 0 ? "" : string.Format("<{0}>", TypeNames(dtv.InferredTypeArgs, wr, dtv.tok));
-      if (!dtv.IsCoCall) {
-        wr.Write("new {0}{1}{2}", dtName, dt.IsRecordType ? "" : "_" + ctorName, typeParams);
-        // For an ordinary constructor (that is, one that does not guard any co-recursive calls), generate:
-        //   new Dt_Cons<T>( args )
-        wr.Write("({0})", arguments);
-      }
-      else {
-        wr.Write("new {0}__Lazy{1}(", dtv.DatatypeName, typeParams);
-        wr.Write("() -> { return ");
-        wr.Write("new {0}({1})", DtCtorName(dtv.Ctor, dtv.InferredTypeArgs, wr), arguments);
-        wr.Write("; })");
-      }
-    }
-
     protected override void EmitDestructor(string source, Formal dtor, int formalNonGhostIndex, DatatypeCtor ctor, List<Type> typeArgs, Type bvType, TargetWriter wr) {
       var dtorName = FormalName(dtor, formalNonGhostIndex);
       wr.Write("(({0}){1}{2}).{3}", DtCtorName(ctor, typeArgs, wr), source, ctor.EnclosingDatatype is CoDatatypeDecl ? ".Get()" : "", dtorName);
@@ -2119,24 +2170,6 @@ namespace Microsoft.Dafny{
       Bpl.IToken sourceTok,
       Type resultType, Bpl.IToken resultTok, string bvName, TargetWriter wr){
       throw new NotImplementedException();
-    }
-
-    protected override void EmitUnaryExpr(ResolvedUnaryOp op, Expression expr, bool inLetExprBody, TargetWriter wr){
-      switch (op){
-        case ResolvedUnaryOp.BoolNot:
-          TrParenExpr("!", expr, wr, inLetExprBody);
-          break;
-        case ResolvedUnaryOp.BitwiseNot:
-          TrParenExpr("~", expr, wr, inLetExprBody);
-          break;
-        case ResolvedUnaryOp.Cardinality:
-          TrParenExpr("new BigInteger(Long.toString(", expr, wr, inLetExprBody);
-          wr.Write(".size()))");
-          break;
-        default:
-          Contract.Assert(false);
-          throw new cce.UnreachableException(); // unexpected unary expression
-      }
     }
 
     protected override void EmitIsZero(string varName, TargetWriter wr)

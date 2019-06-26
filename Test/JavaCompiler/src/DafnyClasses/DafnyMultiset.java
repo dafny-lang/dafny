@@ -31,7 +31,7 @@ public class DafnyMultiset<T> {
         }
     }
 
-    public DafnyMultiset(Collection<T> c){
+    public DafnyMultiset(Collection<T> c) {
         assert c != null : "Precondition Violation";
         innerMap = new HashMap<>();
         for (T t : c) {
@@ -91,13 +91,14 @@ public class DafnyMultiset<T> {
         return innerMap.get(t) == null ? BigInteger.ZERO : innerMap.get(t);
     }
 
-    public void update(T t, BigInteger b) {
+    public DafnyMultiset<T> update(T t, BigInteger b) {
         assert b != null && b.compareTo(BigInteger.ZERO) >= 0 : "Precondition Violation";
         if (b.compareTo(BigInteger.ZERO) == 0) {
             innerMap.remove(t);
-            return;
+        } else {
+            innerMap.put(t, b);
         }
-        innerMap.put(t, b);
+        return this;
     }
 
     public DafnyMultiset<T> union(DafnyMultiset<T> other) {
