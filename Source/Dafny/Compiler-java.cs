@@ -26,6 +26,7 @@ namespace Microsoft.Dafny{
     protected new readonly string DafnySetClass = "DafnyClasses.DafnySet";
     protected new readonly string DafnyMultiSetClass = "DafnyClasses.DafnyMultiset";
     protected new readonly string DafnySeqClass = "DafnyClasses.DafnySequence";
+    protected new readonly string DafnyStringClass = "DafnyClasses.DafnyString";
 //    protected new readonly string DafnyMapClass = "DafnyClasses.DafnyMap";
 
     private String ModuleName;
@@ -322,7 +323,7 @@ namespace Microsoft.Dafny{
       } else if (xType is IntType || xType is BigOrdinalType) { 
         return "BigInteger"; 
       } else if (xType is RealType) { 
-        return "BigDecimal";
+        return "BigDecimal"; //TODO: change the data structure to match the one in DafnyRuntime.java
       } else if (xType is BitvectorType) { 
         var t = (BitvectorType)xType; 
         return t.NativeType != null ? GetNativeTypeName(t.NativeType) : "BigInteger"; 
@@ -345,7 +346,7 @@ namespace Microsoft.Dafny{
         var udt = (UserDefinedType)xType; 
         var s = FullTypeName(udt, member); 
         var cl = udt.ResolvedClass; 
-        bool isHandle = true; 
+        bool isHandle = true;
         if (cl != null && Attributes.ContainsBool(cl.Attributes, "handle", ref isHandle) && isHandle) {
           return "DafnyULong";
         }
@@ -356,49 +357,40 @@ namespace Microsoft.Dafny{
                  !cl.Module.IsDefaultModule){
           s = cl.FullCompileName;
         }
-
         return TypeName_UDT(s, udt.TypeArgs, wr, udt.tok);
-      }
-      else if (xType is SetType){
-        Type argType = ((SetType) xType).Arg;
-        if (ComplicatedTypeParameterForCompilation(argType)){
-          Error(tok, "compilation of set<TRAIT> is not supported; consider introducing a ghost", wr);
+      } else if (xType is SetType) { 
+        Type argType = ((SetType)xType).Arg; 
+        if (ComplicatedTypeParameterForCompilation(argType)) { 
+          Error(tok, "compilation of set<TRAIT> is not supported; consider introducing a ghost", wr); 
+        } 
+        return DafnySetClass + "<" + TypeName(argType, wr, tok) + ">"; 
+      } else if (xType is SeqType) { 
+        Type argType = ((SeqType)xType).Arg; 
+        if (ComplicatedTypeParameterForCompilation(argType)) { 
+          Error(tok, "compilation of seq<TRAIT> is not supported; consider introducing a ghost", wr); 
         }
 
-        return "DafnySet<" + TypeName(argType, wr, tok) + ">";
-      }
-      else if (xType is SeqType){
-        Type argType = ((SeqType) xType).Arg;
-        if (ComplicatedTypeParameterForCompilation(argType)){
-          Error(tok, "compilation of seq<TRAIT> is not supported; consider introducing a ghost", wr);
+        if (argType is CharType || argType is InferredTypeProxy && ((InferredTypeProxy)argType).T is CharType){
+          return DafnyStringClass;
         }
-
-        if (argType is CharType) {
-          return "DafnyString";
+        else{
+          return DafnySeqClass + "<" + TypeName(argType, wr, tok) + ">"; 
         }
-        return "DafnySequence<" + TypeName(argType, wr, tok) + ">";
-      }
-      else if (xType is MultiSetType){
-        Type argType = ((MultiSetType) xType).Arg;
-        if (ComplicatedTypeParameterForCompilation(argType)){
-          Error(tok, "compilation of multiset<TRAIT> is not supported; consider introducing a ghost", wr);
-        }
-
-        return "DafnyMultiSet<" + TypeName(argType, wr, tok) + ">";
-      }
-      else if (xType is MapType){
-        Type domType = ((MapType) xType).Domain;
-        Type ranType = ((MapType) xType).Range;
-        if (ComplicatedTypeParameterForCompilation(domType) || ComplicatedTypeParameterForCompilation(ranType)){
-          Error(tok, "compilation of map<TRAIT, _> or map<_, TRAIT> is not supported; consider introducing a ghost",
-            wr);
-        }
-
-        return "HashMap<" + TypeName(domType, wr, tok) + "," + TypeName(ranType, wr, tok) + ">";
-      }
-      else{
-        Contract.Assert(false);
-        throw new cce.UnreachableException(); // unexpected type
+      } else if (xType is MultiSetType) { 
+        Type argType = ((MultiSetType)xType).Arg; 
+        if (ComplicatedTypeParameterForCompilation(argType)) { 
+          Error(tok, "compilation of multiset<TRAIT> is not supported; consider introducing a ghost", wr); 
+        } 
+        return DafnyMultiSetClass + "<" + TypeName(argType, wr, tok) + ">"; 
+      } else if (xType is MapType) { 
+        Type domType = ((MapType)xType).Domain; 
+        Type ranType = ((MapType)xType).Range; 
+        if (ComplicatedTypeParameterForCompilation(domType) || ComplicatedTypeParameterForCompilation(ranType)) { 
+          Error(tok, "compilation of map<TRAIT, _> or map<_, TRAIT> is not supported; consider introducing a ghost", wr); 
+        } 
+        return DafnyMapClass + "<" + TypeName(domType, wr, tok) + "," + TypeName(ranType, wr, tok) + ">"; 
+      } else { 
+        Contract.Assert(false); throw new cce.UnreachableException();  // unexpected type
       }
     }
 
@@ -1409,9 +1401,10 @@ namespace Microsoft.Dafny{
 
     protected override void EmitActualTypeArgs(List<Type> typeArgs, Bpl.IToken tok, TextWriter wr)
     {
-      if (typeArgs.Count != 0) {
-        wr.Write("<" + TypeNames(typeArgs, wr, tok) + ">");
-      }
+      // Todo: see if there is ever a time in java where this is necessary
+//      if (typeArgs.Count != 0) {
+//        wr.Write("<" + TypeNames(typeArgs, wr, tok) + ">");
+//      }
     }
 
     protected override string GenerateLhsDecl(string target, Type type, TextWriter wr, Bpl.IToken tok){

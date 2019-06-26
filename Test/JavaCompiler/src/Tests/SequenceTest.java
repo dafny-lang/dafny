@@ -53,7 +53,7 @@ public class SequenceTest {
 
     @Test
     public void testSequenceConcatenate() {
-        DafnySequence<Integer> fatty = testSequence.concatenate(testSequencePre);
+        DafnySequence<Integer> fatty = testSequence.concat(testSequencePre);
         assertEquals(fatty.length(), testSequencePre.length() + testSequence.length());
         for (int i = 0; i < testSequence.length(); i++) {
             assertEquals(fatty.select(i), testSequence.select(i));
@@ -151,7 +151,7 @@ public class SequenceTest {
         testSequence.isPrefixOf(null);
         testSequence.isProperPrefixOf(null);
         testSequence.contains(null);
-        testSequence.concatenate(null);
+        testSequence.concat(null);
         testSequence.update(1, null);
         testSequence.slice(null);
         l = new ArrayList<>();
@@ -221,7 +221,7 @@ public class SequenceTest {
 
     @Test
     public void testStringConcatenate() {
-        DafnyString fatty = testString.concatenate(testStringPre);
+        DafnyString fatty = testString.concat(testStringPre);
         assertEquals(fatty.length(), testStringPre.length() + testString.length());
         for (int i = 0; i < testString.length(); i++) {
             assertEquals(fatty.select(i), testString.select(i));
@@ -315,7 +315,7 @@ public class SequenceTest {
         new DafnyString(s);
         testString.isPrefixOf(null);
         testString.isProperPrefixOf(null);
-        testString.concatenate(null);
+        testString.concat(null);
         testString.slice(null);
         List<Integer> ints = new ArrayList<>();
         ints.add(null);
