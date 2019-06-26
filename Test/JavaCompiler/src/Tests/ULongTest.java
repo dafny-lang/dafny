@@ -68,7 +68,7 @@ public class ULongTest {
     @Test
     public void testFailures(){
         thrown.expect(AssertionError.class);
-        DafnyULong fail = new DafnyULong(DafnyULong.MAXBI.add(BigInteger.TWO));
+        DafnyULong fail = new DafnyULong(DafnyULong.MAXBI.add(new BigInteger("2")));
         max.add(tenI);
         zero.subtract(two);
         max.multiply(tenU);

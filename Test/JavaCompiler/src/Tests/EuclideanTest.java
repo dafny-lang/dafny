@@ -6,6 +6,7 @@ import java.math.BigInteger;
 import static junit.framework.Assert.assertEquals;
 
 public class EuclideanTest {
+    BigInteger two = new BigInteger("2");
 
     @Test
     public void testByte() {
@@ -96,16 +97,16 @@ public class EuclideanTest {
 
     @Test
     public void testBigInteger() {
-        assertEquals(BigInteger.TWO, DafnyEuclidean.EuclideanDivision(new BigInteger("7"), new BigInteger("3")));
-        assertEquals(BigInteger.TWO.negate(), DafnyEuclidean.EuclideanDivision(new BigInteger("7"), new BigInteger("-3")));
+        assertEquals(two, DafnyEuclidean.EuclideanDivision(new BigInteger("7"), new BigInteger("3")));
+        assertEquals(two.negate(), DafnyEuclidean.EuclideanDivision(new BigInteger("7"), new BigInteger("-3")));
         assertEquals(new BigInteger("-3"), DafnyEuclidean.EuclideanDivision(new BigInteger("-7"), new BigInteger("3")));
         assertEquals(new BigInteger("3"), DafnyEuclidean.EuclideanDivision(new BigInteger("-7"), new BigInteger("-3")));
         assertEquals(BigInteger.ZERO, DafnyEuclidean.EuclideanDivision(BigInteger.ZERO, BigInteger.ONE));
         assertEquals(BigInteger.ZERO, DafnyEuclidean.EuclideanDivision(BigInteger.ZERO, BigInteger.ONE.negate()));
-        assertEquals(BigInteger.TWO, DafnyEuclidean.EuclideanDivision(BigInteger.TWO, BigInteger.ONE));
-        assertEquals(BigInteger.TWO.negate(), DafnyEuclidean.EuclideanDivision(BigInteger.TWO.negate(), BigInteger.ONE));
-        assertEquals(new BigInteger("6"), DafnyEuclidean.EuclideanDivision(new BigInteger("13"), BigInteger.TWO));
-        assertEquals(new BigInteger("-7"), DafnyEuclidean.EuclideanDivision(new BigInteger("-13"), BigInteger.TWO));
+        assertEquals(two, DafnyEuclidean.EuclideanDivision(two, BigInteger.ONE));
+        assertEquals(two.negate(), DafnyEuclidean.EuclideanDivision(two.negate(), BigInteger.ONE));
+        assertEquals(new BigInteger("6"), DafnyEuclidean.EuclideanDivision(new BigInteger("13"), two));
+        assertEquals(new BigInteger("-7"), DafnyEuclidean.EuclideanDivision(new BigInteger("-13"), two));
     }
 
     @Test
@@ -208,13 +209,13 @@ public class EuclideanTest {
     public void testBigIntegerMod() {
         assertEquals(BigInteger.ONE, DafnyEuclidean.EuclideanModulus(new BigInteger("7"), new BigInteger("3")));
         assertEquals(BigInteger.ONE, DafnyEuclidean.EuclideanModulus(new BigInteger("7"), new BigInteger("-3")));
-        assertEquals(BigInteger.TWO, DafnyEuclidean.EuclideanModulus(new BigInteger("-7"), new BigInteger("3")));
-        assertEquals(BigInteger.TWO, DafnyEuclidean.EuclideanModulus(new BigInteger("-7"), new BigInteger("-3")));
+        assertEquals(two, DafnyEuclidean.EuclideanModulus(new BigInteger("-7"), new BigInteger("3")));
+        assertEquals(two, DafnyEuclidean.EuclideanModulus(new BigInteger("-7"), new BigInteger("-3")));
         assertEquals(BigInteger.ZERO, DafnyEuclidean.EuclideanModulus(BigInteger.ZERO, BigInteger.ONE));
         assertEquals(BigInteger.ZERO, DafnyEuclidean.EuclideanModulus(BigInteger.ZERO, BigInteger.ONE.negate()));
-        assertEquals(BigInteger.ZERO, DafnyEuclidean.EuclideanModulus(BigInteger.TWO, BigInteger.ONE));
-        assertEquals(BigInteger.ZERO, DafnyEuclidean.EuclideanModulus(BigInteger.TWO.negate(), BigInteger.ONE));
-        assertEquals(BigInteger.ONE, DafnyEuclidean.EuclideanModulus(new BigInteger("13"), BigInteger.TWO));
-        assertEquals(BigInteger.ONE, DafnyEuclidean.EuclideanModulus(new BigInteger("-13"), BigInteger.TWO));
+        assertEquals(BigInteger.ZERO, DafnyEuclidean.EuclideanModulus(two, BigInteger.ONE));
+        assertEquals(BigInteger.ZERO, DafnyEuclidean.EuclideanModulus(two.negate(), BigInteger.ONE));
+        assertEquals(BigInteger.ONE, DafnyEuclidean.EuclideanModulus(new BigInteger("13"), two));
+        assertEquals(BigInteger.ONE, DafnyEuclidean.EuclideanModulus(new BigInteger("-13"), two));
     }
 }
