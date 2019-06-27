@@ -1418,6 +1418,7 @@ namespace Microsoft.Dafny{
     
     protected void DeclareLocalOutVar(string name, Type type, Bpl.IToken tok, string rhs, TargetWriter wr)
     {
+      wr.Write("{0} {1};\n", TypeName(type, wr, tok), name);
       EmitAssignment(name, type, rhs, null, wr);
     }
 
