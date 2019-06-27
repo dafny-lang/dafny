@@ -54,9 +54,10 @@ namespace Microsoft.Dafny{
     protected override bool SupportsProperties => false;
     protected override bool NeedsWrappersForInheritedFields => false;
     protected override bool FieldsInTraits => false;
-    
-    protected override void DeclareSpecificOutCollector(string collectorVarName, TargetWriter wr, int outCount, Method m) {
-      if (outCount > 1) {
+
+    protected override void DeclareSpecificOutCollector(string collectorVarName, TargetWriter wr, int outCount,
+      Method m){
+      if (outCount > 1){
         wr.Write("Tuple{0} {1} = ", outCount, collectorVarName);
       }
       else {
@@ -247,7 +248,6 @@ namespace Microsoft.Dafny{
       } else if (nonGhostOuts > 1) {
         targetReturnTypeReplacement = "Tuple" + nonGhostOuts;
       }
-      
       wr.Write("{0}{1}", createBody ? "public " : "", m.IsStatic ? "static " : "");
       if (m.TypeArgs.Count != 0) {
         wr.Write("<{0}> ", TypeParameters(m.TypeArgs));
@@ -1383,18 +1383,31 @@ namespace Microsoft.Dafny{
       return true;
     }
 
-    private static string FindPackageName(string externFilename) {
-      using (var rd = new StreamReader(new FileStream(externFilename, FileMode.Open, FileAccess.Read))) {
-        while (rd.ReadLine() is string line) {
+    private static string FindPackageName(string externFilename){
+      using (var rd = new StreamReader(new FileStream(externFilename, FileMode.Open, FileAccess.Read))){
+        while (rd.ReadLine() is string line){
           var match = PackageLine.Match(line);
-          if (match.Success) {
+          if (match.Success){
             return match.Groups[1].Value;
           }
         }
+
         return null;
       }
     }
 
+    protected override void EmitReturn(List<Formal> outParams, TargetWriter wr) {
+      if (outParams.Count == 0){
+        wr.WriteLine("return;");
+      }
+      else if (outParams.Count == 1){
+        wr.WriteLine("return {0};", IdName(outParams[0]));
+      }
+      else{
+        wr.WriteLine("return new Tuple{0}({1});", outParams.Count, Util.Comma(outParams, IdName));
+      }
+    }
+    
     private static readonly Regex PackageLine = new Regex(@"^\s*package\s+([a-zA-Z0-9_]+)\s*;$");
     
     // TODO: See if more types need to be added
@@ -1918,18 +1931,6 @@ namespace Microsoft.Dafny{
         }
     }
 
-    
-    protected override void EmitReturn(List<Formal> outParams, TargetWriter wr) {
-      outParams = outParams.Where(f => !f.IsGhost).ToList();
-      if (outParams.Count == 0) {
-        wr.WriteLine("return;");
-      } else if (outParams.Count == 1) {
-        wr.WriteLine("return {0};", IdName(outParams[0]));
-      } else {
-        wr.WriteLine("return new Tuple{0}({1});", outParams.Count, Util.Comma(outParams, IdName));
-      }
-    }
-    
     public override string TypeInitializationValue(Type type, TextWriter wr, Bpl.IToken tok, bool inAutoInitContext) {
       var xType = type.NormalizeExpandKeepConstraints();
 

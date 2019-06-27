@@ -56,7 +56,7 @@ public class DafnyString implements Iterable {
         return length() < other.length() && isPrefixOf(other);
     }
 
-    public DafnyString concat(DafnyString other) {
+    public DafnyString concatenate(DafnyString other) {
         assert other != null : "Precondition Violation";
         return new DafnyString(inner + other.inner);
     }

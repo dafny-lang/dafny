@@ -50,7 +50,7 @@ public class DafnySequence<T> implements Iterable {
         return length() < other.length() && isPrefixOf(other);
     }
 
-    public DafnySequence<T> concat(DafnySequence<T> other) {
+    public DafnySequence<T> concatenate(DafnySequence<T> other) {
         assert other != null : "Precondition Violation";
         List<T> l = new ArrayList(seq);
         l.addAll(other.seq);
