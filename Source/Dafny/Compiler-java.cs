@@ -26,8 +26,8 @@ namespace Microsoft.Dafny{
     protected new readonly string DafnySetClass = "DafnyClasses.DafnySet";
     protected new readonly string DafnyMultiSetClass = "DafnyClasses.DafnyMultiset";
     protected new readonly string DafnySeqClass = "DafnyClasses.DafnySequence";
-    protected new readonly string DafnyStringClass = "DafnyClasses.DafnyString";
-//    protected new readonly string DafnyMapClass = "DafnyClasses.DafnyMap";
+    protected readonly string DafnyStringClass = "DafnyClasses.DafnyString";
+    protected new readonly string DafnyMapClass = "DafnyClasses.Dafnymap";
 
     private String ModuleName;
     private String MainModuleName;
@@ -594,7 +594,7 @@ namespace Microsoft.Dafny{
     }
         
     protected override void EmitMapDisplay(MapType mt, Bpl.IToken tok, List<ExpressionPair> elements, bool inLetExprBody, TargetWriter wr) {
-      wr.Write("new HashMap<>() {{{{\n");
+      wr.Write("new DafnyClasses.Dafnymap<>() {{{{\n");
       foreach (ExpressionPair p in elements) {
         wr.Write("put(");
         TrExpr(p.A, wr, inLetExprBody);
@@ -779,6 +779,9 @@ namespace Microsoft.Dafny{
       if (source.Type.AsCollectionType.CollectionTypeName.Equals("multiset")){
         TrParenExpr(".multiplicity", index, wr, inLetExprBody);
       }
+      else if (source.Type.AsCollectionType.CollectionTypeName.Equals("map")){
+        TrParenExpr(".get", index, wr, inLetExprBody);
+      }
       else if (source.Type.AsCollectionType.CollectionTypeName.Equals("seq") ||
           source.Type.AsCollectionType.CollectionTypeName.Equals("string")){
         wr.Write(".select(");
@@ -799,13 +802,19 @@ namespace Microsoft.Dafny{
     protected override void EmitIndexCollectionUpdate(Expression source, Expression index, Expression value, bool inLetExprBody,
       TargetWriter wr, bool nativeIndex = false) {
       TrParenExpr(source, wr, inLetExprBody);
-      wr.Write(".update(");
-      if (source.Type.AsCollectionType.CollectionTypeName.Equals("seq") ||
-          source.Type.AsCollectionType.CollectionTypeName.Equals("string")){
-        wr.Write(((BigInteger)((LiteralExpr)index).Value).ToString());
+      if (source.Type.AsCollectionType.CollectionTypeName.Equals("map")){
+        wr.Write(".put(");
+        TrExpr(index, wr, inLetExprBody);
       }
       else{
-        TrExpr(index, wr, inLetExprBody);
+        wr.Write(".update(");
+        if (source.Type.AsCollectionType.CollectionTypeName.Equals("seq") ||
+            source.Type.AsCollectionType.CollectionTypeName.Equals("string")){
+          wr.Write(((BigInteger)((LiteralExpr)index).Value).ToString());
+        }
+        else{
+          TrExpr(index, wr, inLetExprBody);
+        }
       }
       wr.Write(", ");
       TrExpr(value, wr, inLetExprBody);
@@ -1524,7 +1533,8 @@ namespace Microsoft.Dafny{
             TrParenExpr("", expr, wr, inLetExprBody);
             wr.Write(".cardinality()");
           }
-          else if (expr.Type.AsCollectionType.CollectionTypeName.Equals("set")){
+          else if (expr.Type.AsCollectionType.CollectionTypeName.Equals("set") || 
+                   expr.Type.AsCollectionType.CollectionTypeName.Equals("map")){
             TrParenExpr("new BigInteger(Long.toString(", expr, wr, inLetExprBody);
             wr.Write(".size()))");
           }
