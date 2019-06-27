@@ -96,6 +96,7 @@ namespace Microsoft.Dafny {
       wr.WriteLine();
       wr.WriteLine("package {0};", ModuleName);
       wr.WriteLine();
+      wr.WriteLine("import java.util.function.*;");
       wr.WriteLine("import java.math.*;"); // TODO: Figure out all the Java imports necessary for compiled program to run.
       EmitImports(wr, out _);
       wr.WriteLine();
@@ -254,15 +255,10 @@ namespace Microsoft.Dafny {
         return null; // We do not want to write a function body, so instead of returning a BTW, we return null.
       } else {
         var w = wr.NewBlock(")", null, BlockTargetWriter.BraceStyle.Newline, BlockTargetWriter.BraceStyle.Newline);
-        // TODO: Maybe later, add optimization for tail-recursion and remove the comments
-        // TODO: Figure out what implication static has on declaring this, whether it is necessary, and use Object _this = this;
-        /*if (m.IsTailRecursive) {
-            if (!m.IsStatic) {
-                w.WriteLine("var _this = this;");
-            }
-            w.IndentLess(); w.WriteLine("TAIL_CALL_START: ;");
-        }*/
-        if (!m.Body.Body.OfType<ReturnStmt>().Any() && nonGhostOuts > 0) { // If method has out parameters but no explicit return statement in Dafny
+        if (m.IsTailRecursive) {
+          w = w.NewBlock("TAIL_CALL_START: while (true)");
+        }
+        if (!m.Body.Body.OfType<ReturnStmt>().Any() && (nonGhostOuts > 0 || m.IsTailRecursive)) { // If method has out parameters or is tail-recursive but no explicit return statement in Dafny
           var r = new TargetWriter(w.IndentLevel);
           EmitReturn(m.Outs, r);
           w.BodySuffix = r.ToString();
@@ -432,6 +428,7 @@ namespace Microsoft.Dafny {
       w.WriteLine("// Dafny class {0} compiled into Java", name);
       w.WriteLine("package {0};", ModuleName);
       w.WriteLine();
+      w.WriteLine("import java.util.function.*;");
       w.WriteLine("import java.math.*;"); // TODO: Figure out all the Java imports necessary for compiled program to run.
       EmitImports(w, out _);
       w.WriteLine();
@@ -849,6 +846,7 @@ namespace Microsoft.Dafny {
       wr.WriteLine("// Dafny class {0} compiled into Java", DtT_protected);
       wr.WriteLine("package {0};", ModuleName);
       wr.WriteLine();
+      wr.WriteLine("import java.util.function.*;");
       wr.WriteLine("import java.math.*;"); // TODO: Figure out all the Java imports necessary for compiled program to run.
       EmitImports(wr, out _);
       wr.WriteLine();
@@ -951,6 +949,7 @@ namespace Microsoft.Dafny {
         wr.WriteLine("// Dafny class {0} compiled into Java", DtCtorDeclarationName(ctor, dt.TypeArgs));
         wr.WriteLine("package {0};", ModuleName);
         wr.WriteLine();
+        wr.WriteLine("import java.util.function.*;");
         wr.WriteLine("import java.math.*;"); // TODO: Figure out all the Java imports necessary for compiled program to run.
         EmitImports(wr, out _);
         wr.WriteLine();
@@ -1740,6 +1739,7 @@ namespace Microsoft.Dafny {
       w.WriteLine("// Dafny trait {0} compiled into Java", name);
       w.WriteLine("package {0};", ModuleName);
       w.WriteLine();
+      w.WriteLine("import java.util.function.*;");
       w.WriteLine("import java.math.*;"); // TODO: Figure out all the Java imports necessary for compiled program to run.
       EmitImports(w, out _);
       w.WriteLine();
@@ -1760,6 +1760,7 @@ namespace Microsoft.Dafny {
       w.WriteLine("// Dafny trait {0} compiled into Java", name);
       w.WriteLine("package {0};", ModuleName);
       w.WriteLine();
+      w.WriteLine("import java.util.function.*;");
       w.WriteLine("import java.math.*;"); // TODO: Figure out all the Java imports necessary for compiled program to run.
       EmitImports(w, out _);
       w.WriteLine();
@@ -1801,28 +1802,8 @@ namespace Microsoft.Dafny {
     {
       throw new NotImplementedException();
     }
-        
-    protected override void EmitJumpToTailCallStart(TargetWriter wr)
-    {
-      throw new NotImplementedException();
-    }
-
-    protected override TargetWriter CreateLabeledCode(string label, TargetWriter wr)
-    {
-      throw new NotImplementedException();
-    }
-
-    protected override void EmitBreak(string label, TargetWriter wr)
-    {
-      throw new NotImplementedException();
-    }
 
     protected override void EmitYield(TargetWriter wr)
-    {
-      throw new NotImplementedException();
-    }
-
-    protected override void EmitAbsurd(string message, TargetWriter wr)
     {
       throw new NotImplementedException();
     }
@@ -1857,15 +1838,77 @@ namespace Microsoft.Dafny {
 //      }
 
     protected override void EmitDestructor(string source, Formal dtor, int formalNonGhostIndex, DatatypeCtor ctor, List<Type> typeArgs, Type bvType, TargetWriter wr) {
+      var dtorName = FormalName(dtor, formalNonGhostIndex);
+      wr.Write("({0}{1}).{2}", source, ctor.EnclosingDatatype is CoDatatypeDecl ? ".Get()" : "", dtorName);
     }
     
     protected override BlockTargetWriter CreateLambda(List<Type> inTypes, Bpl.IToken tok, List<string> inNames, Type resultType, TargetWriter wr, bool untyped = false) {
-      return wr.NewBlock(null, null, BlockTargetWriter.BraceStyle.Newline, BlockTargetWriter.BraceStyle.Newline);;
+      wr.Write('(');
+      if (!untyped) {
+        wr.Write("(Function<{0}{1}>)", Util.Comma("", inTypes, t => TypeName(t, wr, tok) + ", "), TypeName(resultType, wr, tok));
+      }
+      wr.Write("({0}) ->", Util.Comma(inNames, nm => nm));
+      var w = wr.NewExprBlock("");
+      wr.Write(").apply");
+      return w;
+    }
+
+    protected override void EmitExprAsInt(Expression expr, bool inLetExprBody, TargetWriter wr) {
+      throw new NotImplementedException();
+    }
+
+    protected override void EmitJumpToTailCallStart(TargetWriter wr) {
+      wr.WriteLine("continue TAIL_CALL_START;");
     }
     
-    protected override void EmitExprAsInt(Expression expr, bool inLetExprBody, TargetWriter wr)
-    {
+    protected override BlockTargetWriter CreateIIFE0(Type resultType, Bpl.IToken resultTok, TargetWriter wr) {
+      wr.Write("((Supplier<{0}>) () ->", TypeName(resultType, wr, resultTok));
+      var w = wr.NewBigExprBlock("", ").get()");
+      return w;
+    }
+    
+    protected override void EmitCollectionBuilder_New(CollectionType ct, Bpl.IToken tok, TargetWriter wr) {
       throw new NotImplementedException();
+    }
+    
+    protected override BlockTargetWriter CreateForeachLoop(string boundVar, Type boundVarType, out TargetWriter collectionWriter,
+      TargetWriter wr, string altBoundVarName = null, Type altVarType = null, Bpl.IToken tok = null) {
+      wr.Write("for({0} {1} : ", TypeName(boundVarType, wr, tok), boundVar);
+      collectionWriter = wr.Fork();
+      if (altBoundVarName == null) {
+        return wr.NewBlock(")");
+      } else if (altVarType == null) {
+        return wr.NewBlockWithPrefix(")", "{0} = {1};", altBoundVarName, boundVar);
+      } else {
+        return wr.NewBlockWithPrefix(")", "{2} {0} = ({2}){1};", altBoundVarName, boundVar, TypeName(altVarType, wr, tok));
+      }
+    }
+    
+    protected override void EmitCollectionBuilder_Add(CollectionType ct, string collName, Expression elmt, bool inLetExprBody, TargetWriter wr) {
+      throw new NotImplementedException();
+    }
+    
+    protected override string GetCollectionBuilder_Build(CollectionType ct, Bpl.IToken tok, string collName, TargetWriter wr) {
+      throw new NotImplementedException();
+    }
+    
+    protected override TargetWriter CreateLabeledCode(string label, TargetWriter wr) {
+      return wr.NewNamedBlock("{0}:", label);
+    }
+    
+    protected override void EmitBreak(string label, TargetWriter wr) {
+      if (label == null) {
+        wr.WriteLine("break;");
+      } else {
+        wr.WriteLine("break {0};", label);
+      }
+    }
+    
+    protected override void EmitAbsurd(string message, TargetWriter wr) {
+      if (message == null) {
+        message = "unexpected control point";
+      }
+      wr.WriteLine("throw new Exception(\"{0}\");", message);
     }
 
     protected override void EmitApplyExpr(Type functionType, Bpl.IToken tok, Expression function, List<Expression> arguments, bool inLetExprBody,
@@ -1892,11 +1935,6 @@ namespace Microsoft.Dafny {
       throw new NotImplementedException();
     }
 
-    protected override BlockTargetWriter CreateIIFE0(Type resultType, Bpl.IToken resultTok, TargetWriter wr)
-    {
-      throw new NotImplementedException();
-    }
-
     protected override void EmitUnaryExpr(ResolvedUnaryOp op, Expression expr, bool inLetExprBody, TargetWriter wr)
     {
       throw new NotImplementedException();
@@ -1912,24 +1950,8 @@ namespace Microsoft.Dafny {
       throw new NotImplementedException();
     }
 
-    protected override void EmitCollectionBuilder_New(CollectionType ct, Bpl.IToken tok, TargetWriter wr)
-    {
-      throw new NotImplementedException();
-    }
-
-    protected override void EmitCollectionBuilder_Add(CollectionType ct, string collName, Expression elmt, bool inLetExprBody,
-      TargetWriter wr)
-    {
-      throw new NotImplementedException();
-    }
-
     protected override TargetWriter EmitMapBuilder_Add(MapType mt, Bpl.IToken tok, string collName, Expression term, bool inLetExprBody,
       TargetWriter wr)
-    {
-      throw new NotImplementedException();
-    }
-
-    protected override string GetCollectionBuilder_Build(CollectionType ct, Bpl.IToken tok, string collName, TargetWriter wr)
     {
       throw new NotImplementedException();
     }
@@ -1955,12 +1977,6 @@ namespace Microsoft.Dafny {
     }
 
     protected override string GetQuantifierName(string bvType)
-    {
-      throw new NotImplementedException();
-    }
-
-    protected override BlockTargetWriter CreateForeachLoop(string boundVar, Type boundVarType, out TargetWriter collectionWriter,
-      TargetWriter wr, string altBoundVarName = null, Type altVarType = null, Bpl.IToken tok = null)
     {
       throw new NotImplementedException();
     }
