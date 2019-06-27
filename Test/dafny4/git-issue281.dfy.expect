@@ -1,0 +1,4 @@
+git-issue281.dfy(13,20): Error: Type mismatch: expected constructor of type DT.  Got Left.
+git-issue281.dfy(13,20): Error: member Left does not exist in datatype DT
+git-issue281.dfy(14,20): Error: member Left does not exist in datatype DT
+3 resolution/type errors detected in git-issue281.dfy

@@ -12625,6 +12625,9 @@ namespace Microsoft.Dafny
           mc.Arguments = arguments;
           mc.CasePatterns = null;
           scope.PopMarker();
+        } else if (mc.CasePatterns != null) {
+          reporter.Error(MessageSource.Resolver, mc.tok, "Type mismatch: expected constructor of type {0}.  Got {1}.", dtd.Name, mc.Id);
+          return;
         }
       }
 
