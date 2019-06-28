@@ -91,6 +91,21 @@ public class SetTest {
         assertEquals("[1, 2, 3, 4, 5, 6, 8]", testCopy.toString());
     }
 
+    @Test
+    public void testAllSubsets(){
+        DafnySet<Integer> testSet = new DafnySet<>(new HashSet<>(Arrays.asList(1, 2, 3)));
+        HashSet<DafnySet<Integer>> finalSet = new HashSet<>();
+        finalSet.add(new DafnySet<>());
+        finalSet.add(new DafnySet<>(new DafnySet<>(new HashSet<>(Arrays.asList(1, 2, 3)))));
+        finalSet.add(new DafnySet<>(new DafnySet<>(new HashSet<>(Arrays.asList(1, 2)))));
+        finalSet.add(new DafnySet<>(new DafnySet<>(new HashSet<>(Arrays.asList(1, 3)))));
+        finalSet.add(new DafnySet<>(new DafnySet<>(new HashSet<>(Arrays.asList(2, 3)))));
+        finalSet.add(new DafnySet<>(new DafnySet<>(new HashSet<>(Arrays.asList(1)))));
+        finalSet.add(new DafnySet<>(new DafnySet<>(new HashSet<>(Arrays.asList(2)))));
+        finalSet.add(new DafnySet<>(new DafnySet<>(new HashSet<>(Arrays.asList(3)))));
+        assertEquals(finalSet, testSet.allSubsets());
+    }
+
     @Rule
     public ExpectedException thrown = ExpectedException.none();
 

@@ -2559,7 +2559,13 @@ namespace Microsoft.Dafny{
       else if (bound is ComprehensionExpr.SubSetBoundedPool){
         var b = (ComprehensionExpr.SubSetBoundedPool) bound;
         TrParenExpr(b.UpperBound, collectionWriter, inLetExprBody);
-        collectionWriter.Write(".AllSubsets" + propertySuffix);
+        if (this.TargetLanguage.Equals("Java")){
+          collectionWriter.Write(".allSubsets" + propertySuffix);
+        }
+          else
+        {
+          collectionWriter.Write(".AllSubsets" + propertySuffix);
+        }
       }
       else if (bound is ComprehensionExpr.MapBoundedPool){
         var b = (ComprehensionExpr.MapBoundedPool) bound;

@@ -103,9 +103,9 @@ namespace Microsoft.Dafny{
       wr.WriteLine();
       wr.WriteLine("package {0};", ModuleName);
       wr.WriteLine();
-      wr.WriteLine("import java.util.*;");
       wr.WriteLine("import java.util.function.*;");
-      wr.WriteLine("import java.math.*;"); // TODO: Figure out all the Java imports necessary for compiled program to run.
+      wr.WriteLine("import java.math.*;");
+      wr.WriteLine("import java.util.*;");// TODO: Figure out all the Java imports necessary for compiled program to run.
       EmitImports(wr, out _);
       wr.WriteLine();
     }
@@ -433,30 +433,29 @@ namespace Microsoft.Dafny{
     }
 
     protected override IClassWriter CreateClass(string name, bool isExtern, string /*?*/ fullPrintName,
-      List<TypeParameter> /*?*/ typeParameters, List<Type> /*?*/ superClasses, Bpl.IToken tok, TargetWriter wr) {
-      if (!isExtern) {
-        var filename = string.Format("{1}/{0}.java", name, ModuleName);
-        var w = wr.NewFile(filename);
-        w.WriteLine("// Class {0}", name);
-        w.WriteLine("// Dafny class {0} compiled into Java", name);
-        w.WriteLine("package {0};", ModuleName);
-        w.WriteLine();
-        w.WriteLine("import java.util.*;");
-        w.WriteLine("import java.util.function.*;");
-        w.WriteLine("import java.math.*;"); // TODO: Figure out all the Java imports necessary for compiled program to run.
-        EmitImports(w, out _);
-        w.WriteLine();
-        w.Write("public class {0}", name);
-        if (typeParameters != null && typeParameters.Count != 0) {
-          w.Write("<{0}>", TypeParameters(typeParameters));
-        }
-        // Since Java does not support multiple inheritance, we are assuming a list of "superclasses" is a list of interfaces
-        if (superClasses != null) {
-          string sep = " implements ";
-          foreach (var trait in superClasses) {
-            w.Write("{0}{1}", sep, TypeName(trait, w, tok));
-            sep = ", ";
-          }
+      List<TypeParameter> /*?*/ typeParameters, List<Type> /*?*/ superClasses, Bpl.IToken tok, TargetWriter wr){
+      var filename = string.Format("{1}/{0}.java", name, ModuleName);
+      var w = wr.NewFile(filename);
+      w.WriteLine("// Class {0}", name);
+      w.WriteLine("// Dafny class {0} compiled into Java", name);
+      w.WriteLine("package {0};", ModuleName);
+      w.WriteLine();
+      w.WriteLine("import java.math.*;");
+      w.WriteLine("import java.util.function.*;");
+      w.WriteLine("import java.util.*;");// TODO: Figure out all the Java imports necessary for compiled program to run.
+      EmitImports(w, out _);
+      w.WriteLine();
+      w.Write("public class {0}", name);
+      if (typeParameters != null && typeParameters.Count != 0){
+        w.Write("<{0}>", TypeParameters(typeParameters));
+      }
+
+      // Since Java does not support multiple inheritance, we are assuming a list of "superclasses" is a list of interfaces
+      if (superClasses != null){
+        string sep = " implements ";
+        foreach (var trait in superClasses){
+          w.Write("{0}{1}", sep, TypeName(trait, w, tok));
+          sep = ", ";
         }
         return new ClassWriter(this, w.NewBlock(""));
       }
@@ -594,7 +593,7 @@ namespace Microsoft.Dafny{
     }
         
     protected override void EmitMapDisplay(MapType mt, Bpl.IToken tok, List<ExpressionPair> elements, bool inLetExprBody, TargetWriter wr) {
-      wr.Write("new DafnyClasses.Dafnymap<>() {{{{\n");
+      wr.Write("new DafnyClasses.Dafnymap() {{{{\n");
       foreach (ExpressionPair p in elements) {
         wr.Write("put(");
         TrExpr(p.A, wr, inLetExprBody);
@@ -1037,9 +1036,9 @@ namespace Microsoft.Dafny{
         wr.WriteLine("// Dafny class {0} compiled into Java", DtCtorDeclarationName(ctor, dt.TypeArgs));
         wr.WriteLine("package {0};", ModuleName);
         wr.WriteLine();
-        wr.WriteLine("import java.util.*;");
+        wr.WriteLine("import java.math.*;");
         wr.WriteLine("import java.util.function.*;");
-        wr.WriteLine("import java.math.*;"); // TODO: Figure out all the Java imports necessary for compiled program to run.
+        wr.WriteLine("import java.util.*;"); // TODO: Figure out all the Java imports necessary for compiled program to run.
         EmitImports(wr, out _);
         wr.WriteLine();
         var w = wr.NewNamedBlock("public class {0} extends {1}{2}", DtCtorDeclarationName(ctor, dt.TypeArgs), IdName(dt), typeParams);
@@ -1531,6 +1530,31 @@ namespace Microsoft.Dafny{
 //        wr.Write("new {0}({1})", DtCtorName(dtv.Ctor, dtv.InferredTypeArgs, wr), arguments);
 //        wr.Write("; })");
 //      }
+    }
+    
+
+protected override BlockTargetWriter CreateLambda(List<Type> inTypes, Bpl.IToken tok, List<string> inNames, Type resultType, TargetWriter wr, bool untyped = false) {
+      wr.Write('(');
+      if (!untyped) {
+        wr.Write("(Function<{0}{1}>)", Util.Comma("", inTypes, t => TypeName(t, wr, tok) + ", "), TypeName(resultType, wr, tok));
+      }
+      wr.Write("({0}) ->", Util.Comma(inNames, nm => nm));
+      var w = wr.NewExprBlock("");
+      wr.Write(")");
+      if (!resultType.IsBoolType){
+        wr.Write(".apply");
+      }
+      return w;
+    }
+
+    protected override BlockTargetWriter CreateIIFE0(Type resultType, Bpl.IToken resultTok, TargetWriter wr)
+    {
+      // (
+      //   (Supplier<resultType>)(() -> <<body>>)
+      // )()
+      wr.Write("((Supplier<{0}>)(() ->", TypeName(resultType, wr, resultTok));
+      var w = wr.NewBigExprBlock("", ")).get()");
+      return w;
     }
 
     protected override void EmitUnaryExpr(ResolvedUnaryOp op, Expression expr, bool inLetExprBody, TargetWriter wr)
@@ -2033,28 +2057,11 @@ namespace Microsoft.Dafny{
       var dtorName = FormalName(dtor, formalNonGhostIndex);
       wr.Write("(({0}){1}{2}).{3}", DtCtorName(ctor, typeArgs, wr), source, ctor.EnclosingDatatype is CoDatatypeDecl ? ".Get()" : "", dtorName);
     }
-    
-    protected override BlockTargetWriter CreateLambda(List<Type> inTypes, Bpl.IToken tok, List<string> inNames, Type resultType, TargetWriter wr, bool untyped = false) {
-      wr.Write('(');
-      if (!untyped) {
-        wr.Write("(Function<{0}{1}>)", Util.Comma("", inTypes, t => TypeName(t, wr, tok) + ", "), TypeName(resultType, wr, tok));
-      }
-      wr.Write("({0}) ->", Util.Comma(inNames, nm => nm));
-      var w = wr.NewExprBlock("");
-      wr.Write(").apply");
-      return w;
-    }
-    
+
     protected override void EmitJumpToTailCallStart(TargetWriter wr) {
       wr.WriteLine("continue TAIL_CALL_START;");
     }
-    
-    protected override BlockTargetWriter CreateIIFE0(Type resultType, Bpl.IToken resultTok, TargetWriter wr) {
-      wr.Write("((Supplier<{0}>) () ->", TypeName(resultType, wr, resultTok));
-      var w = wr.NewBigExprBlock("", ").get()");
-      return w;
-    }
-    
+
     protected override void EmitCollectionBuilder_New(CollectionType ct, Bpl.IToken tok, TargetWriter wr)
     {
       if (ct is SetType) {
