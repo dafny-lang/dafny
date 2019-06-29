@@ -2587,7 +2587,8 @@ namespace Microsoft.Dafny {
           if (!p.IsGhost) {
             string inTmp = idGenerator.FreshId("_in");
             inTmps.Add(inTmp);
-            DeclareLocalVar(inTmp, null, null, s.Args[i], false, wr);
+            var rhsType = SupportsAmbiguousTypeDecl ? null : p.Type;
+            DeclareLocalVar(inTmp, rhsType, null, s.Args[i], false, wr);
           }
         }
         // Now, assign to the formals
@@ -3249,8 +3250,14 @@ namespace Microsoft.Dafny {
         var collection_name = idGenerator.FreshId("_coll");
         var bwr = CreateIIFE0(e.Type.AsSetType, e.tok, wr);
         wr = bwr;
-        using (var wrVarInit = DeclareLocalVar(collection_name, null, null, wr)) {
-          EmitCollectionBuilder_New(e.Type.AsSetType, e.tok, wrVarInit);
+        if (TargetLanguage.Equals("Java")) {
+          wr.Write("ArrayList<{0}> {1} = ", TypeName(((SetType)expr.Type).Arg, wr, null), collection_name);
+          EmitCollectionBuilder_New(e.Type.AsSetType, e.tok, wr);
+          wr.WriteLine(";");
+        } else {
+          using (var wrVarInit = DeclareLocalVar(collection_name, null, null, wr)){
+            EmitCollectionBuilder_New(e.Type.AsSetType, e.tok, wrVarInit);
+          }
         }
         var n = e.BoundVars.Count;
         Contract.Assert(e.Bounds.Count == n);
