@@ -26,7 +26,6 @@ namespace Microsoft.Dafny{
     protected new readonly string DafnySetClass = "DafnyClasses.DafnySet";
     protected new readonly string DafnyMultiSetClass = "DafnyClasses.DafnyMultiset";
     protected new readonly string DafnySeqClass = "DafnyClasses.DafnySequence";
-    protected readonly string DafnyStringClass = "DafnyClasses.DafnyString";
     protected new readonly string DafnyMapClass = "DafnyClasses.Dafnymap";
 
     private String ModuleName;
@@ -369,13 +368,8 @@ namespace Microsoft.Dafny{
         if (ComplicatedTypeParameterForCompilation(argType)) { 
           Error(tok, "compilation of seq<TRAIT> is not supported; consider introducing a ghost", wr); 
         }
-
-        if (argType is CharType || argType is InferredTypeProxy && ((InferredTypeProxy)argType).T is CharType){
-          return DafnyStringClass;
-        }
-        else{
-          return DafnySeqClass + "<" + TypeName(argType, wr, tok) + ">"; 
-        }
+        return DafnySeqClass + "<" + TypeName(argType, wr, tok) + ">"; 
+        
       } else if (xType is MultiSetType) { 
         Type argType = ((MultiSetType)xType).Arg; 
         if (ComplicatedTypeParameterForCompilation(argType)) { 
@@ -471,9 +465,10 @@ namespace Microsoft.Dafny{
         wr.Write((bool)e.Value ? "true" : "false");
       } else if (e is CharLiteralExpr) {
         wr.Write("'{0}'", (string) e.Value);
-      } else if (e is StringLiteralExpr) {
-        var str = (StringLiteralExpr)e;
-        wr.Write("new DafnyString(");
+      }
+      else if (e is StringLiteralExpr){
+        var str = (StringLiteralExpr) e;
+        wr.Write("DafnySequence.asString(");
         TrStringLiteral(str, wr);
         wr.Write(")");
       } else if (AsNativeType(e.Type) != null) {
@@ -1228,6 +1223,9 @@ namespace Microsoft.Dafny{
     protected override void EmitPrintStmt(TargetWriter wr, Expression arg) {
       wr.Write("System.out.print(");
       TrExpr(arg, wr, false);
+      if (arg is StringLiteralExpr){
+        wr.Write(".verbatimString()");
+      }
       wr.WriteLine(");");
     }
     

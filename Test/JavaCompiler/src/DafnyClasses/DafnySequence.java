@@ -1,10 +1,8 @@
 package DafnyClasses;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Spliterator;
+import java.util.*;
 import java.util.function.Consumer;
-import java.util.Iterator;
+import java.util.stream.Collectors;
 
 public class DafnySequence<T> implements Iterable {
     /*
@@ -16,6 +14,12 @@ public class DafnySequence<T> implements Iterable {
     protected ArrayList<T> seq;
 
     public DafnySequence() {
+    }
+
+    public static DafnySequence<Character> asString(String s){
+        return new DafnySequence<>(s.chars()
+                .mapToObj(e -> (char)e)
+                .collect(Collectors.toList()));
     }
 
     private DafnySequence(List<T> l, int i, T t){
@@ -148,5 +152,14 @@ public class DafnySequence<T> implements Iterable {
     @Override
     public String toString() {
         return seq.toString();
+    }
+
+    public String verbatimString(){
+        StringBuilder builder = new StringBuilder(seq.size());
+        for(Character ch: (ArrayList<Character>) seq)
+        {
+            builder.append(ch);
+        }
+        return builder.toString();
     }
 }
