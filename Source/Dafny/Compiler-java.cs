@@ -100,6 +100,7 @@ namespace Microsoft.Dafny{
       wr.WriteLine();
       wr.WriteLine("package {0};", ModuleName);
       wr.WriteLine();
+      wr.WriteLine("import java.util.*;");
       wr.WriteLine("import java.util.function.*;");
       wr.WriteLine("import java.math.*;"); // TODO: Figure out all the Java imports necessary for compiled program to run.
       EmitImports(wr, out _);
@@ -414,6 +415,9 @@ namespace Microsoft.Dafny{
           Error(tok, "compilation of seq<TRAIT> is not supported; consider introducing a ghost", wr);
         }
 
+        if (argType is CharType) {
+          return "DafnyString";
+        }
         return "DafnySequence<" + TypeName(argType, wr, tok) + ">";
       }
       else if (xType is MultiSetType){
@@ -452,14 +456,8 @@ namespace Microsoft.Dafny{
       if (cl == null){
         return IdProtect(udt.CompileName);
       }
-      else if (cl.Module.IsDefaultModule){
-        return IdProtect(cl.CompileName);
-      }
-      else if (cl.Module.CompileName.Equals(ModuleName)){
-        return IdProtect(cl.CompileName);
-      }
       else{
-        return IdProtect(cl.Module.CompileName) + "." + IdProtect(cl.CompileName);
+        return IdProtect(cl.CompileName);
       }
     }
 
@@ -498,6 +496,7 @@ namespace Microsoft.Dafny{
       w.WriteLine("// Dafny class {0} compiled into Java", name);
       w.WriteLine("package {0};", ModuleName);
       w.WriteLine();
+      w.WriteLine("import java.util.*;");
       w.WriteLine("import java.util.function.*;");
       w.WriteLine("import java.math.*;"); // TODO: Figure out all the Java imports necessary for compiled program to run.
       EmitImports(w, out _);
@@ -629,7 +628,7 @@ namespace Microsoft.Dafny{
 
     protected override void DeclareLocalVar(string name, Type /*?*/ type, Bpl.IToken /*?*/ tok, bool leaveRoomForRhs,
       string /*?*/ rhs, TargetWriter wr){
-      wr.Write("{0} {1}", type != null ? TypeName(type, wr, tok) : "Object", name);
+      wr.Write("{0} {1}", type != null ? TypeName(type, wr, tok) : "T", name);
       if (leaveRoomForRhs){
         Contract.Assert(rhs == null); // follows from precondition
       }
@@ -668,7 +667,7 @@ namespace Microsoft.Dafny{
       postString = "";
       switch (id){
         case SpecialField.ID.UseIdParam:
-          compiledName = (string) idParam;
+          compiledName = ((string) idParam);
           break;
         case SpecialField.ID.ArrayLength:
         case SpecialField.ID.ArrayLengthInt:
@@ -733,7 +732,7 @@ namespace Microsoft.Dafny{
         GetSpecialFieldInfo(sf.SpecialId, sf.IdParam, out compiledName, out preStr, out postStr);
         if (compiledName.Length != 0){
           wr.Write(".{0}{1}{2}", MemberSelectObjIsTrait && !sf.IsStatic ? "get_" : "", compiledName,
-            MemberSelectObjIsTrait && !sf.IsStatic ? "()" : "");
+            (MemberSelectObjIsTrait && !sf.IsStatic) || member.EnclosingClass is DatatypeDecl ? "()" : "");
         }
       }
       else if (!isLValue && MemberSelectObjIsTrait && !member.IsStatic){
@@ -747,6 +746,10 @@ namespace Microsoft.Dafny{
       }
 
       return wSource;
+    }
+    
+    protected override void EmitConstructorCheck(string source, DatatypeCtor ctor, TargetWriter wr){
+      wr.Write("{0}.is_{1}()", source, ctor.CompileName);
     }
 
     protected override string TypeName_Companion(Type type, TextWriter wr, Bpl.IToken tok, MemberDecl member){
@@ -976,6 +979,7 @@ namespace Microsoft.Dafny{
       wr.WriteLine("// Dafny class {0} compiled into Java", DtT_protected);
       wr.WriteLine("package {0};", ModuleName);
       wr.WriteLine();
+      wr.WriteLine("import java.util.*;");
       wr.WriteLine("import java.util.function.*;");
       wr.WriteLine("import java.math.*;"); // TODO: Figure out all the Java imports necessary for compiled program to run.
       EmitImports(wr, out _);
@@ -1045,7 +1049,20 @@ namespace Microsoft.Dafny{
             dt.CompileName);
         }
       }
-
+      if (dt is CoDatatypeDecl) {
+        wr.WriteLine("public abstract {0} Get();", DtT_protected);
+      }
+      if (dt.HasFinitePossibleValues) {
+        Contract.Assert(dt.TypeArgs.Count == 0);
+        var w = wr.NewNamedBlock("public static ArrayList<{0}> AllSingletonConstructors()", DtT_protected);
+        string arraylist = "singleton_iterator";
+        w.WriteLine("ArrayList<{0}> {1} = new ArrayList<>();", DtT_protected, arraylist);
+        foreach (var ctor in dt.Ctors) {
+          Contract.Assert(ctor.Formals.Count == 0);
+          w.WriteLine("{2}.add(new {0}_{1}());", DtT_protected, ctor.CompileName, arraylist);
+        }
+        w.WriteLine("return {0};", arraylist);
+      }
       // destructors
       foreach (var ctor in dt.Ctors){
         foreach (var dtor in ctor.Destructors){
@@ -1058,12 +1075,12 @@ namespace Microsoft.Dafny{
                   wDtor.WriteLine("return this.{0};", IdName(arg));
                 }
                 else{
-                  wDtor.WriteLine("{0} d = this;", DtT_protected);
+                  wDtor.WriteLine("{0} d = this{1};", DtT_protected, dt is CoDatatypeDecl ? ".Get()" : "");
                   var n = dtor.EnclosingCtors.Count;
                   for (int i = 0; i < n - 1; i++){
                     var ctor_i = dtor.EnclosingCtors[i];
                     Contract.Assert(arg.CompileName == dtor.CorrespondingFormals[i].CompileName);
-                    wDtor.WriteLine("if (d instanceOf {0}_{1}{2}) {{ return (({0}_{1}{2})d).{3}; }}", dt.CompileName,
+                    wDtor.WriteLine("if (d instanceof {0}_{1}{2}) {{ return (({0}_{1}{2})d).{3}; }}", dt.CompileName,
                       ctor_i.CompileName, DtT_TypeArgs, IdName(arg));
                   }
 
@@ -1094,6 +1111,7 @@ namespace Microsoft.Dafny{
         wr.WriteLine("// Dafny class {0} compiled into Java", DtCtorDeclarationName(ctor, dt.TypeArgs));
         wr.WriteLine("package {0};", ModuleName);
         wr.WriteLine();
+        wr.WriteLine("import java.util.*;");
         wr.WriteLine("import java.util.function.*;");
         wr.WriteLine("import java.math.*;"); // TODO: Figure out all the Java imports necessary for compiled program to run.
         EmitImports(wr, out _);
@@ -1102,6 +1120,27 @@ namespace Microsoft.Dafny{
           IdName(dt), typeParams);
         DatatypeFieldsAndConstructor(ctor, constructorIndex, w);
         constructorIndex++;
+      }
+      
+      if (dt is CoDatatypeDecl) {
+        var filename = string.Format("{1}/{0}__Lazy.java", dt.CompileName, ModuleName);
+        var wr = wrx.NewFile(filename);
+        wr.WriteLine("// Class {0}__Lazy", dt.CompileName);
+        wr.WriteLine("// Dafny class {0}__Lazy compiled into Java", dt.CompileName);
+        wr.WriteLine("package {0};", ModuleName);
+        wr.WriteLine();
+        wr.WriteLine("import java.util.*;");
+        wr.WriteLine("import java.util.function.*;");
+        wr.WriteLine("import java.math.*;"); // TODO: Figure out all the Java imports necessary for compiled program to run.
+        EmitImports(wr, out _);
+        wr.WriteLine();
+        var w = wr.NewNamedBlock("public class {0}__Lazy extends {1}{2}", dt.CompileName, IdName(dt), typeParams);
+        w.WriteLine("interface Computer {{ {0}{1} run(); }}", dt.CompileName, typeParams);
+        w.WriteLine("Computer c;");
+        w.WriteLine("{0}{1} d;", dt.CompileName, typeParams);
+        w.WriteLine("public {0}__Lazy(Computer c) {{ this.c = c; }}", dt.CompileName);
+        w.WriteLine("public {0}{1} Get() {{ if (c != null) {{ d = c.run(); c = null; }} return d; }}", dt.CompileName, typeParams);
+        w.WriteLine("public String toString() { return Get().toString(); }");
       }
     }
 
@@ -1132,7 +1171,7 @@ namespace Microsoft.Dafny{
 
       if (dt is CoDatatypeDecl){
         string typeParams = dt.TypeArgs.Count == 0 ? "" : string.Format("<{0}>", TypeParameters(dt.TypeArgs));
-        wr.WriteLine("public override {0}{1} Get() {{ return this; }}", dt.CompileName, typeParams);
+        wr.WriteLine("public {0}{1} Get() {{ return this; }}", dt.CompileName, typeParams);
       }
 
       // Equals method
@@ -1794,7 +1833,7 @@ namespace Microsoft.Dafny{
         sw.WriteLine(Indent() + "}");
         for (int j = 0; j < i; j++){
           sw.WriteLine();
-          sw.WriteLine(Indent() + "public T" + j + " get_" + j + "() { return this._" + j + "; }");
+          sw.WriteLine(Indent() + "public T" + j + " dtor__" + j + "() { return this._" + j + "; }");
         }
 
         sw.WriteLine("}");
@@ -1908,7 +1947,7 @@ namespace Microsoft.Dafny{
           s += "<" + TypeNames(udt.TypeArgs, wr, udt.tok) + ">";
         }
 
-        return string.Format("{0}.Default", s);
+        return string.Format("{0}.Default()", s);
       }
       else{
         Contract.Assert(false);
@@ -1917,7 +1956,7 @@ namespace Microsoft.Dafny{
     }
 
     protected override TargetWriter DeclareLocalVar(string name, Type type, Bpl.IToken tok, TargetWriter wr){
-      wr.Write("{0} {1} = ", type != null ? TypeName(type, wr, tok) : "Object", name);
+      wr.Write("{0} {1} = ", type != null ? TypeName(type, wr, tok) : "T", name);
       var w = wr.Fork();
       wr.WriteLine(";");
       return w;
@@ -1945,6 +1984,7 @@ namespace Microsoft.Dafny{
       w.WriteLine("// Dafny trait {0} compiled into Java", name);
       w.WriteLine("package {0};", ModuleName);
       w.WriteLine();
+      w.WriteLine("import java.util.*;");
       w.WriteLine("import java.util.function.*;");
       w.WriteLine("import java.math.*;"); // TODO: Figure out all the Java imports necessary for compiled program to run.
       EmitImports(w, out _);
@@ -1967,6 +2007,7 @@ namespace Microsoft.Dafny{
       w.WriteLine("// Dafny trait {0} compiled into Java", name);
       w.WriteLine("package {0};", ModuleName);
       w.WriteLine();
+      w.WriteLine("import java.util.*;");
       w.WriteLine("import java.util.function.*;");
       w.WriteLine("import java.math.*;"); // TODO: Figure out all the Java imports necessary for compiled program to run.
       EmitImports(w, out _);
@@ -2006,20 +2047,23 @@ namespace Microsoft.Dafny{
 
     protected override void EmitDatatypeValue(DatatypeValue dtv, string arguments, TargetWriter wr) {
       var dt = dtv.Ctor.EnclosingDatatype;
-      var dtName = dt.Module.IsDefaultModule || dt.Module.Name.Equals(ModuleName) ? dt.CompileName : dt.FullCompileName;
+      var dtName = dt.CompileName;
       var ctorName = dtv.Ctor.CompileName;
 
       var typeParams = dtv.InferredTypeArgs.Count == 0
         ? ""
         : string.Format("<{0}>", TypeNames(dtv.InferredTypeArgs, wr, dtv.tok));
       if (!dtv.IsCoCall) {
-        wr.Write("new {0}{1}", dtName, typeParams);
+        wr.Write("new {0}{1}{2}", dtName, dt.IsRecordType ? "" : "_" + ctorName, typeParams);
         // For an ordinary constructor (that is, one that does not guard any co-recursive calls), generate:
         //   new Dt_Cons<T>( args )
         wr.Write("({0})", arguments);
       }
       else {
-        throw new NotImplementedException();
+        wr.Write("new {0}__Lazy{1}(", dtv.DatatypeName, typeParams);
+        wr.Write("() -> { return ");
+        wr.Write("new {0}({1})", DtCtorName(dtv.Ctor, dtv.InferredTypeArgs, wr), arguments);
+        wr.Write("; })");
       }
     }
 
@@ -2037,7 +2081,7 @@ namespace Microsoft.Dafny{
 
     protected override void EmitDestructor(string source, Formal dtor, int formalNonGhostIndex, DatatypeCtor ctor, List<Type> typeArgs, Type bvType, TargetWriter wr) {
       var dtorName = FormalName(dtor, formalNonGhostIndex);
-      wr.Write("({0}{1}).{2}", source, ctor.EnclosingDatatype is CoDatatypeDecl ? ".Get()" : "", dtorName);
+      wr.Write("(({0}){1}{2}).{3}", DtCtorName(ctor, typeArgs, wr), source, ctor.EnclosingDatatype is CoDatatypeDecl ? ".Get()" : "", dtorName);
     }
     
     protected override BlockTargetWriter CreateLambda(List<Type> inTypes, Bpl.IToken tok, List<string> inNames, Type resultType, TargetWriter wr, bool untyped = false) {
@@ -2061,8 +2105,18 @@ namespace Microsoft.Dafny{
       return w;
     }
     
-    protected override void EmitCollectionBuilder_New(CollectionType ct, Bpl.IToken tok, TargetWriter wr) {
-      throw new NotImplementedException();
+    protected override void EmitCollectionBuilder_New(CollectionType ct, Bpl.IToken tok, TargetWriter wr)
+    {
+      if (ct is SetType) {
+        wr.Write("new ArrayList<{0}>()", TypeName(ct.Arg, wr, tok));
+      } else if (ct is MapType) {
+        var mt = (MapType)ct;
+        var domtypeName = TypeName(mt.Domain, wr, tok);
+        var rantypeName = TypeName(mt.Range, wr, tok);
+        wr.Write("new ArrayList<Dafny.Pair<{0},{1}>>()", domtypeName, rantypeName);
+      } else {
+        Contract.Assume(false);  // unepxected collection type
+      }
     }
     
     protected override BlockTargetWriter CreateForeachLoop(string boundVar, Type boundVarType, out TargetWriter collectionWriter,
@@ -2079,11 +2133,28 @@ namespace Microsoft.Dafny{
     }
     
     protected override void EmitCollectionBuilder_Add(CollectionType ct, string collName, Expression elmt, bool inLetExprBody, TargetWriter wr) {
-      throw new NotImplementedException();
+      if (ct is SetType) {
+        wr.Write("{0}.add(", collName);
+        TrExpr(elmt, wr, inLetExprBody);
+        wr.WriteLine(");");
+      } else {
+        Contract.Assume(false);  // unepxected collection type
+      }
     }
     
     protected override string GetCollectionBuilder_Build(CollectionType ct, Bpl.IToken tok, string collName, TargetWriter wr) {
-      throw new NotImplementedException();
+      if (ct is SetType) {
+        var typeName = TypeName(ct.Arg, wr, tok);
+        return string.Format("new DafnyClasses.DafnySet<{0}>({1})", typeName, collName);
+      } else if (ct is MapType) {
+        var mt = (MapType)ct;
+        var domtypeName = TypeName(mt.Domain, wr, tok);
+        var rantypeName = TypeName(mt.Range, wr, tok);
+        return string.Format("new {3}<{0},{1}>({2})", domtypeName, rantypeName, collName, DafnyMapClass);
+      } else {
+        Contract.Assume(false);  // unepxected collection type
+        throw new cce.UnreachableException();  // please compiler
+      }
     }
     
     protected override TargetWriter CreateLabeledCode(string label, TargetWriter wr) {
@@ -2102,7 +2173,7 @@ namespace Microsoft.Dafny{
       if (message == null) {
         message = "unexpected control point";
       }
-      wr.WriteLine("throw new Exception(\"{0}\");", message);
+      wr.WriteLine("throw new IllegalArgumentException(\"{0}\");", message);
     }
 
     // ABSTRACT METHOD DECLARATIONS FOR THE SAKE OF BUILDING PROGRAM
