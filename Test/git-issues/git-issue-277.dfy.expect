@@ -1,0 +1,5 @@
+git-issue-277.dfy(5,12): Error: wrong number of indices for multi-selection
+git-issue-277.dfy(5,25): Error: wrong number of indices for multi-selection
+git-issue-277.dfy(5,12): Error: incorrect type for selection into array<int> (got bool)
+git-issue-277.dfy(5,25): Error: incorrect type for selection into array<int> (got bool)
+4 resolution/type errors detected in git-issue-277.dfy
