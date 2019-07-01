@@ -9727,7 +9727,7 @@ namespace Microsoft.Dafny {
           PredicateStmt s = (PredicateStmt)stmt;
           TrStmt_CheckWellformed(s.Expr, b, locals, etran, false);
           IToken enclosingToken = null;
-          if (Attributes.Contains(stmt.Attributes, "prependAssertToken")) {
+          if (Attributes.Contains(stmt.Attributes, "_prependAssertToken")) {
             enclosingToken = stmt.Tok;
           }
           BoogieStmtListBuilder proofBuilder = null;
