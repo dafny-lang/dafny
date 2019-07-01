@@ -17,7 +17,7 @@ public class Dafnymap<K, V> implements Map<K, V>{
         assert m != null : "Precondition Violation";
         innerMap = new HashMap<>();
         for (Map.Entry<K, V> e : m.entrySet()) {
-            update(e.getKey(), e.getValue());
+            put(e.getKey(), e.getValue());
         }
     }
 
@@ -34,8 +34,9 @@ public class Dafnymap<K, V> implements Map<K, V>{
     }
 
     public Dafnymap<K, V> update(K k, V v) {
-        innerMap.put(k, v);
-        return this;
+        HashMap<K, V> copy = new HashMap<>(innerMap);
+        copy.put(k, v);
+        return new Dafnymap<>(copy);
     }
 
 

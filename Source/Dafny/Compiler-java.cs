@@ -751,7 +751,7 @@ namespace Microsoft.Dafny{
           wr.Write(".subsequence(");
           wr.Write(((BigInteger)((LiteralExpr)lo).Value).ToString());
           wr.Write(", ");
-          wr.Write(((BigInteger)((LiteralExpr)lo).Value).ToString());
+          wr.Write(((BigInteger)((LiteralExpr)hi).Value).ToString());
           wr.Write(")");
         }
         else if (lo != null) {
@@ -796,11 +796,6 @@ namespace Microsoft.Dafny{
     protected override void EmitIndexCollectionUpdate(Expression source, Expression index, Expression value, bool inLetExprBody,
       TargetWriter wr, bool nativeIndex = false) {
       TrParenExpr(source, wr, inLetExprBody);
-      if (source.Type.AsCollectionType.CollectionTypeName.Equals("map")){
-        wr.Write(".put(");
-        TrExpr(index, wr, inLetExprBody);
-      }
-      else{
         wr.Write(".update(");
         if (source.Type.AsCollectionType.CollectionTypeName.Equals("seq") ||
             source.Type.AsCollectionType.CollectionTypeName.Equals("string")){
@@ -809,8 +804,7 @@ namespace Microsoft.Dafny{
         else{
           TrExpr(index, wr, inLetExprBody);
         }
-      }
-      wr.Write(", ");
+        wr.Write(", ");
       TrExpr(value, wr, inLetExprBody);
       wr.Write(")");
     }

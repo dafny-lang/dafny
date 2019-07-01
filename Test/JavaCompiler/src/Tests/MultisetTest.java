@@ -58,7 +58,7 @@ public class MultisetTest {
         testMap.put(45, new BigInteger("18"));
         testMap.put(-3, BigInteger.ZERO);
         DafnyMultiset<Integer> testZeros= new DafnyMultiset<>(testMap);
-        testZeros.update(10, BigInteger.ZERO);
+        testZeros = testZeros.update(10, BigInteger.ZERO);
         assertTrue(testMDisjoint.disjoint(testZeros));
         assertTrue(testMDisjoint.disjoint(testZeros.intersection(testMSubSet)));
         assertTrue(testMSet.disjoint(testMSet.difference(testMSet)));
@@ -109,11 +109,11 @@ public class MultisetTest {
 
     @Test
     public void testUpdate(){
-        testMSet.update(7, new BigInteger("3"));
+        testMSet = testMSet.update(7, new BigInteger("3"));
         assertEquals(new BigInteger("3"), testMSet.multiplicity(7));
-        testMSet.update(8, new BigInteger("5"));
+        testMSet = testMSet.update(8, new BigInteger("5"));
         assertEquals(new BigInteger("5"), testMSet.multiplicity(8));
-        testMSet.update(8, new BigInteger("0"));
+        testMSet = testMSet.update(8, new BigInteger("0"));
         assertFalse(testMSet.contains(8));
     }
 
@@ -157,10 +157,10 @@ public class MultisetTest {
 
     @Test
     public void testNullEntries(){
-        testMSet.update(null, BigInteger.ONE);
+        testMSet = testMSet.update(null, BigInteger.ONE);
         assertTrue(testMSet.contains(null));
         assertEquals(BigInteger.ONE, testMSet.multiplicity(null));
-        testMSet.update(null, BigInteger.ZERO);
+        testMSet = testMSet.update(null, BigInteger.ZERO);
         assertFalse(testMSet.contains(null));
         assertEquals(BigInteger.ZERO, testMSet.multiplicity(null));
     }
