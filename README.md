@@ -11,7 +11,7 @@ Dafny is a programming language with a program verifier. As you type in your pro
 
 ## Build Status
 
-[![Build Status](https://travis-ci.com/dafny-lang/dafny.svg?branch=master)](https://travis-ci.com/dafny-lang/dafny)
+[![Build Status](https://travis-ci.org/dafny-lang/dafny.svg?branch=master)](https://travis-ci.org/dafny-lang/dafny)
 
 # Community
 
