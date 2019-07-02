@@ -149,9 +149,7 @@ namespace Microsoft.Dafny{
       EmitImport(import, RootImportWriter);
       Imports.Add(import);
     }
-
-
-    //TODO: Complete ClassWriter class, CreateClass function, TrExpr function
+    
     protected override void DeclareSubsetType(SubsetTypeDecl sst, TargetWriter wr){
       ClassWriter cw = CreateClass(IdName(sst), sst.TypeArgs, wr) as ClassWriter;
       if (sst.WitnessKind == SubsetTypeDecl.WKind.Compiled){
@@ -440,30 +438,33 @@ namespace Microsoft.Dafny{
 
     protected override IClassWriter CreateClass(string name, bool isExtern, string /*?*/ fullPrintName,
       List<TypeParameter> /*?*/ typeParameters, List<Type> /*?*/ superClasses, Bpl.IToken tok, TargetWriter wr) {
-      var filename = string.Format("{1}/{0}.java", name, ModuleName);
-      var w = wr.NewFile(filename);
-      w.WriteLine("// Class {0}", name);
-      w.WriteLine("// Dafny class {0} compiled into Java", name);
-      w.WriteLine("package {0};", ModuleName);
-      w.WriteLine();
-      w.WriteLine("import java.util.*;");
-      w.WriteLine("import java.util.function.*;");
-      w.WriteLine("import java.math.*;"); // TODO: Figure out all the Java imports necessary for compiled program to run.
-      EmitImports(w, out _);
-      w.WriteLine();
-      w.Write("public class {0}", name);
-      if (typeParameters != null && typeParameters.Count != 0) {
-        w.Write("<{0}>", TypeParameters(typeParameters));
-      }
-      // Since Java does not support multiple inheritance, we are assuming a list of "superclasses" is a list of interfaces
-      if (superClasses != null) {
-        string sep = " implements ";
-        foreach (var trait in superClasses) {
-          w.Write("{0}{1}", sep, TypeName(trait, w, tok));
-          sep = ", ";
+      if (!isExtern) {
+        var filename = string.Format("{1}/{0}.java", name, ModuleName);
+        var w = wr.NewFile(filename);
+        w.WriteLine("// Class {0}", name);
+        w.WriteLine("// Dafny class {0} compiled into Java", name);
+        w.WriteLine("package {0};", ModuleName);
+        w.WriteLine();
+        w.WriteLine("import java.util.*;");
+        w.WriteLine("import java.util.function.*;");
+        w.WriteLine("import java.math.*;"); // TODO: Figure out all the Java imports necessary for compiled program to run.
+        EmitImports(w, out _);
+        w.WriteLine();
+        w.Write("public class {0}", name);
+        if (typeParameters != null && typeParameters.Count != 0) {
+          w.Write("<{0}>", TypeParameters(typeParameters));
         }
+        // Since Java does not support multiple inheritance, we are assuming a list of "superclasses" is a list of interfaces
+        if (superClasses != null) {
+          string sep = " implements ";
+          foreach (var trait in superClasses) {
+            w.Write("{0}{1}", sep, TypeName(trait, w, tok));
+            sep = ", ";
+          }
+        }
+        return new ClassWriter(this, w.NewBlock(""));
       }
-      return new ClassWriter(this, w.NewBlock(""));
+      return new ClassWriter(this, new BlockTargetWriter(0, "", ""));
     }
         
     protected override void EmitLiteralExpr(TextWriter wr, LiteralExpr e) {
@@ -527,26 +528,26 @@ namespace Microsoft.Dafny{
           name = "Dafny.DafnyByte";
           break;
         case NativeType.Selection.SByte:
-          name = "byte";
+          name = "Byte";
           break;
         case NativeType.Selection.UShort:
           name = "Dafny.DafnyUShort";
           break;
         case NativeType.Selection.Short:
-          name = "short";
+          name = "Short";
           break;
         case NativeType.Selection.UInt:
           name = "Dafny.DafnyUInt";
           break;
         case NativeType.Selection.Int:
-          name = "int";
+          name = "Integer";
           break;
         case NativeType.Selection.ULong:
           name = "Dafny.DafnyULong";
           break;
         case NativeType.Selection.Number:
         case NativeType.Selection.Long:
-          name = "long";
+          name = "Long";
           literalSuffix = "L";
           break;
         default:
@@ -1269,6 +1270,16 @@ namespace Microsoft.Dafny{
     public override bool CompileTargetProgram(string dafnyProgramName, string targetProgramText, string /*?*/ callToMain, string /*?*/ targetFilename, 
       ReadOnlyCollection<string> otherFileNames, bool hasMain, bool runAfterCompile, TextWriter outputWriter, out object compilationResult) {
       compilationResult = null;
+      foreach (var otherFileName in otherFileNames) {
+        if (Path.GetExtension(otherFileName) != ".java") {
+          outputWriter.WriteLine("Unrecognized file as extra input for Java compilation: {0}", otherFileName);
+          return false;
+        }
+        if (!CopyExternLibraryIntoPlace(mainProgram: targetFilename, externFilename: otherFileName, outputWriter: outputWriter)) {
+          return false;
+        }
+      }
+      
       var psi = new ProcessStartInfo("find", ". -name \"*.java\"") {
         CreateNoWindow = true,
         UseShellExecute = false,
@@ -1310,6 +1321,60 @@ namespace Microsoft.Dafny{
       proc.WaitForExit();
       return true;
     }
+    
+    static bool CopyExternLibraryIntoPlace(string externFilename, string mainProgram, TextWriter outputWriter) {
+      // Grossly, we need to look in the file to figure out where to put it
+      var pkgName = FindPackageName(externFilename);
+      if (pkgName == null) {
+        outputWriter.WriteLine("Unable to determine package name: {0}", externFilename);
+        return false;
+      }
+      string baseName = Path.GetFileNameWithoutExtension(externFilename);
+      var mainDir = Path.GetDirectoryName(mainProgram);
+      Contract.Assert(mainDir != null);
+      var tgtDir = Path.Combine(mainDir, pkgName);
+      var tgtFilename = Path.Combine(tgtDir, baseName + ".java");
+      
+      Directory.CreateDirectory(tgtDir);
+      
+      FileInfo file = new FileInfo(externFilename);
+      file.CopyTo(tgtFilename, true);
+
+      
+//      using (var rd = new StreamReader(new FileStream(externFilename, FileMode.Open, FileAccess.Read))) {
+//        using (var wr = new StreamWriter(new FileStream(tgtFilename, FileMode.OpenOrCreate, FileAccess.Write))) {
+//          while (rd.ReadLine() is string line) {
+//            wr.WriteLine(line);
+//          }
+//        }
+//      }
+
+      string relTgtFilename;
+      var cwd = Directory.GetCurrentDirectory();
+      if (tgtFilename.StartsWith(cwd)) {
+        relTgtFilename = tgtFilename.Substring(cwd.Length + 1); // chop off relative path and '/'
+      } else {
+        relTgtFilename = tgtFilename;
+      }
+      if (DafnyOptions.O.CompileVerbose) {
+        outputWriter.WriteLine("Additional input {0} copied to {1}", externFilename, relTgtFilename);
+      }
+      return true;
+    }
+
+    private static string FindPackageName(string externFilename) {
+      using (var rd = new StreamReader(new FileStream(externFilename, FileMode.Open, FileAccess.Read))) {
+        while (rd.ReadLine() is string line) {
+          var match = PackageLine.Match(line);
+          if (match.Success) {
+            return match.Groups[1].Value;
+          }
+        }
+        return null;
+      }
+    }
+
+    private static readonly Regex PackageLine = new Regex(@"^\s*package\s+([a-zA-Z0-9_]+)\s*;$");
     
     // TODO: See if more types need to be added
     bool IsDirectlyComparable(Type t) {
@@ -1979,6 +2044,30 @@ namespace Microsoft.Dafny{
       wr.WriteLine("throw new IllegalArgumentException(\"{0}\");", message);
     }
     
+    protected override void DeclareNewtype(NewtypeDecl nt, TargetWriter wr){
+      var cw = CreateClass(IdName(nt), null, wr) as ClassWriter;
+      var w = cw.StaticMemberWriter;
+      if (nt.NativeType != null) {
+        var nativeType = GetNativeTypeName(nt.NativeType);
+        var wEnum = w.NewNamedBlock("public static ArrayList<{0}> IntegerRange(BigInteger lo, BigInteger hi)", nativeType);
+        wEnum.WriteLine("ArrayList<{0}> arr = new ArrayList<>();", nativeType);
+        nativeType = nativeType == "Integer" ? "int" : nativeType.ToLower();
+        wEnum.WriteLine("for (BigInteger j = lo; j.compareTo(hi) < 0; j.add(new BigInteger(\"1\"))) {{ arr.add(j.{0}Value()); }}", nativeType);
+        wEnum.WriteLine("return arr;");
+      }
+      if (nt.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
+        var witness = new TargetWriter(w.IndentLevel, true);
+        TrExpr(nt.Witness, witness, false);
+        if (nt.NativeType == null) {
+          cw.DeclareField("Witness", true, true, nt.BaseType, nt.tok, witness.ToString());
+        } else {
+          w.Write("public static {0} Witness = ({0})(", GetNativeTypeName(nt.NativeType));
+          w.Append(witness);
+          w.WriteLine(");");
+        }
+      }
+    }
+    
     // ABSTRACT METHOD DECLARATIONS FOR THE SAKE OF BUILDING PROGRAM
     protected override string GetHelperModuleName()
     {
@@ -2098,11 +2187,6 @@ namespace Microsoft.Dafny{
     }
         
     protected override BlockTargetWriter CreateIterator(IteratorDecl iter, TargetWriter wr)
-    {
-      throw new NotImplementedException();
-    }
-
-    protected override void DeclareNewtype(NewtypeDecl nt, TargetWriter wr)
     {
       throw new NotImplementedException();
     }
