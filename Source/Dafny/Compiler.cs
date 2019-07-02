@@ -848,6 +848,8 @@ namespace Microsoft.Dafny {
               var v = new CheckHasNoAssumes_Visitor(this, errorWr);
               v.Visit(cf.Rhs);
             }
+          } else if (!DafnyOptions.O.DisallowExterns && Attributes.Contains(f.Attributes, "extern")) {
+            // emit nothing
           } else if (f is ConstantField) {
             var cf = (ConstantField)f;
             if (SupportsProperties) {
