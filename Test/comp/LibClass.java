@@ -6,10 +6,10 @@ import java.math.*;
 // The Java compiler doesn't support Dafny methods in extern libraries
 public class LibClass {
     // static method CallMeInt(x: int) returns (y: int, z: int)
-    public static DafnyTuple2 CallMeInt(BigInteger x) {
+    public static Tuple2 CallMeInt(BigInteger x) {
       BigInteger y = x.add(BigInteger.ONE);
       BigInteger z = y.add(y);
-      return new DafnyTuple2(y, z);
+      return new Tuple2(y, z);
     }
     // static method CallMeNative(x: MyInt, b: bool) returns (y: MyInt)
     public static int CallMeNative(int x, boolean b) {

@@ -3189,7 +3189,7 @@ namespace Microsoft.Dafny{
         }
 
         List<Type> typeArgs;
-        if (s.Method.TypeArgs.Count != 0){
+        if (s.Method.TypeArgs.Count != 0 && TargetLanguage != "Java"){
           var typeSubst = s.MethodSelect.TypeArgumentSubstitutions();
           typeArgs = s.Method.TypeArgs.ConvertAll(ta => typeSubst[ta]);
         }

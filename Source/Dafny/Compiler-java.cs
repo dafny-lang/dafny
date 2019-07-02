@@ -52,7 +52,7 @@ namespace Microsoft.Dafny{
     
     protected override void DeclareSpecificOutCollector(string collectorVarName, TargetWriter wr, int outCount, Method m) {
       if (outCount > 1) {
-        wr.Write("DafnyTuple{0} {1} = ", outCount, collectorVarName);
+        wr.Write("Tuple{0} {1} = ", outCount, collectorVarName);
       }
       else {
         for (int i = 0; i < m.Outs.Count; i++) {
@@ -72,7 +72,7 @@ namespace Microsoft.Dafny{
       }
       else{
         for (var i = 0; i < actualOutParamNames.Count; i++){
-          wr.WriteLine("{0} = ({3}) {1}.get_{2}();", actualOutParamNames[i], outCollector, i,
+          wr.WriteLine("{0} = ({3}) {1}.dtor__{2}();", actualOutParamNames[i], outCollector, i,
             TypeName(actualOutParamTypes[i], wr, tok));
         }
       }
@@ -240,12 +240,12 @@ namespace Microsoft.Dafny{
       if (nonGhostOuts == 1) {
         targetReturnTypeReplacement = TypeName(m.Outs[0].Type, wr, m.Outs[0].tok);
       } else if (nonGhostOuts > 1) {
-        targetReturnTypeReplacement = "DafnyTuple" + nonGhostOuts;
+        targetReturnTypeReplacement = "Tuple" + nonGhostOuts;
       }
       
       wr.Write("{0}{1}", createBody ? "public " : "", m.IsStatic ? "static " : "");
       if (m.TypeArgs.Count != 0) {
-        wr.Write("<{0}>", TypeParameters(m.TypeArgs));
+        wr.Write("<{0}> ", TypeParameters(m.TypeArgs));
       }
       wr.Write("{0} {1}", targetReturnTypeReplacement ?? "void", IdName(m));
       wr.Write("(");
@@ -562,7 +562,7 @@ namespace Microsoft.Dafny{
 
     protected override void DeclareLocalVar(string name, Type /*?*/ type, Bpl.IToken /*?*/ tok, bool leaveRoomForRhs,
       string /*?*/ rhs, TargetWriter wr){
-      wr.Write("{0} {1}", type != null ? TypeName(type, wr, tok) : "T", name);
+      wr.Write("{0} {1}", type != null ? TypeName(type, wr, tok) : "Object", name);
       if (leaveRoomForRhs){
         Contract.Assert(rhs == null); // follows from precondition
       }
@@ -1598,6 +1598,7 @@ namespace Microsoft.Dafny{
 
     public void CompileTuples(string path){
       tuples.Add(2);
+      tuples.Add(3);
       foreach(int i in tuples){
         CreateTuple(i, path);
       }
@@ -1616,7 +1617,7 @@ namespace Microsoft.Dafny{
         path += "/Tuple"+i+".java";
         // Create a file to write to.
         using (StreamWriter sw = File.CreateText(path)){
-            sw.WriteLine("package _System;");
+            sw.WriteLine("package DafnyClasses;");
             sw.WriteLine();
             sw.Write("public class Tuple");
             sw.Write(i);
@@ -1737,12 +1738,13 @@ namespace Microsoft.Dafny{
 
     
     protected override void EmitReturn(List<Formal> outParams, TargetWriter wr) {
+      outParams = outParams.Where(f => !f.IsGhost).ToList();
       if (outParams.Count == 0) {
         wr.WriteLine("return;");
       } else if (outParams.Count == 1) {
         wr.WriteLine("return {0};", IdName(outParams[0]));
       } else {
-        wr.WriteLine("return new DafnyTuple{0}({1});", outParams.Count, Util.Comma(outParams, IdName));
+        wr.WriteLine("return new Tuple{0}({1});", outParams.Count, Util.Comma(outParams, IdName));
       }
     }
     
@@ -1766,7 +1768,8 @@ namespace Microsoft.Dafny{
       
       var udt = (UserDefinedType)xType;
       if (udt.ResolvedParam != null) {
-        return "Helpers.Default<" + TypeName_UDT(FullTypeName(udt), udt.TypeArgs, wr, udt.tok) + ">()";
+//        return "Helpers.Default<" + TypeName_UDT(FullTypeName(udt), udt.TypeArgs, wr, udt.tok) + ">()"; TODO: Implement Helpers.Default if necessary
+        return "null";
       }
       var cl = udt.ResolvedClass;
       Contract.Assert(cl != null);
@@ -1819,6 +1822,9 @@ namespace Microsoft.Dafny{
           s += "<" + TypeNames(udt.TypeArgs, wr, udt.tok) + ">";
         }
 
+        if (cl is TupleTypeDecl) {
+          return "(" + s + ")null";
+        }
         return string.Format("{0}.Default()", s);
       }
       else{
@@ -1828,7 +1834,7 @@ namespace Microsoft.Dafny{
     }
 
     protected override TargetWriter DeclareLocalVar(string name, Type type, Bpl.IToken tok, TargetWriter wr){
-      wr.Write("{0} {1} = ", type != null ? TypeName(type, wr, tok) : "T", name);
+      wr.Write("{0} {1} = ", type != null ? TypeName(type, wr, tok) : "Object", name);
       var w = wr.Fork();
       wr.WriteLine(";");
       return w;
