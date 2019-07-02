@@ -1093,7 +1093,7 @@ namespace Microsoft.Dafny{
         }
         w.WriteLine("return (int) hash;");
       }
-//
+
       using (var w = wr.NewBlock("\n@Override\npublic String toString()")) {
         string nm;
         if (dt is TupleTypeDecl) {
@@ -1339,25 +1339,8 @@ namespace Microsoft.Dafny{
       
       FileInfo file = new FileInfo(externFilename);
       file.CopyTo(tgtFilename, true);
-
-      
-//      using (var rd = new StreamReader(new FileStream(externFilename, FileMode.Open, FileAccess.Read))) {
-//        using (var wr = new StreamWriter(new FileStream(tgtFilename, FileMode.OpenOrCreate, FileAccess.Write))) {
-//          while (rd.ReadLine() is string line) {
-//            wr.WriteLine(line);
-//          }
-//        }
-//      }
-
-      string relTgtFilename;
-      var cwd = Directory.GetCurrentDirectory();
-      if (tgtFilename.StartsWith(cwd)) {
-        relTgtFilename = tgtFilename.Substring(cwd.Length + 1); // chop off relative path and '/'
-      } else {
-        relTgtFilename = tgtFilename;
-      }
       if (DafnyOptions.O.CompileVerbose) {
-        outputWriter.WriteLine("Additional input {0} copied to {1}", externFilename, relTgtFilename);
+        outputWriter.WriteLine("Additional input {0} copied to {1}", externFilename, tgtFilename);
       }
       return true;
     }
@@ -2158,7 +2141,7 @@ namespace Microsoft.Dafny{
     }
     
     protected override BlockTargetWriter CreateForLoop(string indexVar, string bound, TargetWriter wr) {
-      throw new Exception();
+      throw new NotImplementedException();
     }
     
     protected override void EmitNewArray(Type elmtType, Bpl.IToken tok, List<Expression> dimensions, bool mustInitialize, TargetWriter wr)
