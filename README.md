@@ -1,3 +1,6 @@
+
+[![Build Status](https://travis-ci.org/dafny-lang/dafny.svg?branch=master)](https://travis-ci.org/dafny-lang/dafny) [![Gitter](https://badges.gitter.im/dafny-lang/community.svg)](https://gitter.im/dafny-lang/community?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
+
 ![Dafny](dafny-banner.png)
 
 Dafny is a programming language with a program verifier. As you type in your program, the verifier constantly looks over your shoulders and flags any errors. Dafny is currently spread across 3 sites:
@@ -9,14 +12,9 @@ Dafny is a programming language with a program verifier. As you type in your pro
     * the wiki, including [frequently asked questions](https://github.com/dafny-lang/dafny/wiki/FAQ)
 * The [Rise4fun site](http://rise4fun.com/dafny), including a tutorial, where you can verify Dafny programs in your web browser.
 
-## Build Status
-
-[![Build Status](https://travis-ci.org/dafny-lang/dafny.svg?branch=master)](https://travis-ci.org/dafny-lang/dafny)
-
 # Community
 
-You can ask questions about Dafny on [Stack Overflow](https://stackoverflow.com/questions/tagged/dafny) or participate in general discussion on the [mailing list](https://groups.google.com/d/forum/dafny-discuss
-).
+You can ask questions about Dafny on [Stack Overflow](https://stackoverflow.com/questions/tagged/dafny) or participate in general discussion on Dafny's [![Gitter](https://badges.gitter.im/dafny-lang/community.svg)](https://gitter.im/dafny-lang/community?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge).
 
 # Try Dafny
 
