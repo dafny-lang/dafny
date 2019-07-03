@@ -1279,30 +1279,21 @@ namespace Microsoft.Dafny{
           return false;
         }
       }
-      
-      var psi = new ProcessStartInfo("find", ". -name \"*.java\"") {
-        CreateNoWindow = true,
-        UseShellExecute = false,
-        RedirectStandardInput = true,
-        RedirectStandardOutput = true,
-        RedirectStandardError = false
-      };
-      psi.WorkingDirectory = Path.GetFullPath(Path.GetDirectoryName(targetFilename));
-      psi.EnvironmentVariables["CLASSPATH"] = ".:" + Path.GetFullPath(Path.GetDirectoryName(targetFilename));
-      var proc = Process.Start(psi);
       var files = new List<string>();
-      while (!proc.StandardOutput.EndOfStream) {
-        files.Add(proc.StandardOutput.ReadLine());
+      foreach (string file in Directory.EnumerateFiles(Path.GetDirectoryName(targetFilename), "*.java", SearchOption.AllDirectories)) {
+        files.Add(file);
       }
-      proc.WaitForExit();
       foreach (var file in files) {
-        var psi2 = new ProcessStartInfo("javac", file);
-        psi2.CreateNoWindow = true;
-        psi2.UseShellExecute = false;
-        psi2.WorkingDirectory = Path.GetFullPath(Path.GetDirectoryName(targetFilename));
-        psi2.EnvironmentVariables["CLASSPATH"] = ".:" + Path.GetFullPath(Path.GetDirectoryName(targetFilename));
-        var proc2 = Process.Start(psi2);
-        proc2.WaitForExit();
+        var psi = new ProcessStartInfo("javac", file);
+        psi.CreateNoWindow = true;
+        psi.UseShellExecute = false;
+        psi.WorkingDirectory = Path.GetFullPath(Path.GetDirectoryName(targetFilename));
+        psi.EnvironmentVariables["CLASSPATH"] = ".:" + Path.GetFullPath(Path.GetDirectoryName(targetFilename));
+        var proc = Process.Start(psi);
+        proc.WaitForExit();
+        if (proc.ExitCode != 0) {
+          throw new Exception("Error while compiling Java file " + file + ". Process exited with exit code " + proc.ExitCode);
+        }
       }
       return true;
     }
@@ -1319,6 +1310,9 @@ namespace Microsoft.Dafny{
         outputWriter.WriteLine(proc.StandardOutput.ReadLine());
       }
       proc.WaitForExit();
+      if (proc.ExitCode != 0) {
+        throw new Exception("Error while compiling Java file " + targetFilename + ". Process exited with exit code " + proc.ExitCode);
+      }
       return true;
     }
     
