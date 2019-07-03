@@ -8039,6 +8039,8 @@ namespace Microsoft.Dafny
           // error has already been reported by ResolveMember
         } else if (!(member is Field)) {
           reporter.Error(MessageSource.Resolver, fe.E, "member {0} in type {1} does not refer to a field", fe.FieldName, ctype.Name);
+        } else if (member is ConstantField) {
+          reporter.Error(MessageSource.Resolver, fe.E, "expression is not allowed to refer to constant field {0}", fe.FieldName);
         } else {
           Contract.Assert(ctype != null && ctype.ResolvedClass != null);  // follows from postcondition of ResolveMember
           fe.Field = (Field)member;
