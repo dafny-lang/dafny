@@ -1,0 +1,143 @@
+package DafnyClasses;
+
+import java.util.Collection;
+import java.util.List;
+import java.util.Set;
+import java.util.HashSet;
+
+// A class that is equivalent to the implementation of Set in Dafny
+public class DafnySet<T> {
+    private Set<T> innerSet;
+
+
+    public DafnySet() {
+        innerSet = new HashSet();
+    }
+
+    public DafnySet(Set<T> s) {
+        assert s != null : "Precondition Violation";
+        innerSet = new HashSet<>(s);
+    }
+
+    public DafnySet(Collection<T> c) {
+        assert c != null : "Precondition Violation";
+        innerSet = new HashSet<>(c);
+    }
+
+    public DafnySet(DafnySet<T> other) {
+        assert other != null : "Precondition Violation";
+        innerSet = new HashSet<>(other.innerSet);
+    }
+
+    public DafnySet(List<T> l) {
+        assert l != null : "Precondition Violation";
+        innerSet = new HashSet<>(l);
+    }
+
+    // Determines if the current object is a subset of the DafnySet passed in. Requires that the input DafnySet is not
+    // null.
+    public boolean isSubsetOf(DafnySet<T> other) {
+        assert other != null : "Precondition Violation";
+        return other.containsAll(this);
+    }
+
+    // Determines if the current object is a proper subset of the DafnySet passed in. Requires that the input DafnySet
+    // is not null.
+    public boolean isProperSubsetOf(DafnySet<T> other) {
+        assert other != null : "Precondition Violation";
+        return isSubsetOf(other) && (size() < other.size());
+    }
+
+    public boolean contains(T t) {
+        assert t != null : "Precondition Violation";
+        return innerSet.contains(t);
+    }
+
+    public boolean disjoint(DafnySet<T> other) {
+        assert other != null : "Precondition Violation";
+        for (T ele : innerSet) {
+            if (other.contains(ele)) return false;
+        }
+        return true;
+    }
+
+    public DafnySet<T> union(DafnySet<T> other) {
+        assert other != null : "Precondition Violation";
+        DafnySet<T> u = new DafnySet<>(other);
+        u.addAll(this);
+        return u;
+    }
+
+    //Returns a DafnySet containing elements only found in the current DafnySet
+    public DafnySet<T> difference(DafnySet<T> other) {
+        assert other != null : "Precondition Violation";
+        DafnySet<T> u = new DafnySet<>(this);
+        u.removeAll(other);
+        return u;
+    }
+
+    public DafnySet<T> intersection(DafnySet<T> other) {
+        assert other != null : "Precondition Violation";
+        DafnySet<T> u = new DafnySet<>();
+        for (T ele : innerSet) {
+            if (other.contains(ele)) u.add(ele);
+        }
+        return u;
+    }
+
+    public boolean containsAll(DafnySet other) {
+        assert other != null : "Precondition Violation";
+        return innerSet.containsAll(other.innerSet);
+    }
+
+    public int size() {
+        return innerSet.size();
+    }
+
+    public boolean isEmpty() {
+        return innerSet.isEmpty();
+    }
+
+    public boolean add(T t) {
+        assert t != null : "Precondition Violation";
+        return innerSet.add(t);
+    }
+
+    public boolean remove(T t) {
+        assert t != null : "Precondition Violation";
+        return innerSet.remove(t);
+    }
+
+    public boolean removeAll(DafnySet other) {
+        assert other != null : "Precondition Violation";
+        return innerSet.removeAll(other.innerSet);
+    }
+
+    public boolean addAll(DafnySet other) {
+        assert other != null : "Precondition Violation";
+        return innerSet.addAll(other.innerSet);
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) return true;
+        if (obj == null) return false;
+        if (getClass() != obj.getClass()) return false;
+        DafnySet<T> o = (DafnySet<T>) obj;
+        return containsAll(o) && o.containsAll(this);
+    }
+
+    @Override
+    public int hashCode() {
+        return innerSet.hashCode();
+    }
+
+    @Override
+    public String toString() {
+        return innerSet.toString();
+    }
+
+    public DafnyMultiset<T> asDafnyMultiset(){
+        return new DafnyMultiset<>(innerSet);
+    }
+}
