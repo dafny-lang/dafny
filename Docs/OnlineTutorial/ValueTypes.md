@@ -17,7 +17,7 @@ those objects, for example. Further, all of Dafny's value types can be stored in
 and used in real code in addition to specifications. Dafny's built in value types are sets, sequences, multisets, and maps.
 
 For a complete guide to various collection types and their operations,
-see the document on the [Dafny type system](http://research.microsoft.com/en-us/um/people/leino/papers/krml243.html).
+see the document on the [Dafny type system](http://leino.science/papers/krml243.html).
 Note, if you want to use these types in an executing program and you
 care about performance, use Dafny's `/optimize` option when compiling.
 
