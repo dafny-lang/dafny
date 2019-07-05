@@ -100,36 +100,11 @@ namespace Microsoft.Dafny {
     public void Symbols() {
       ServerUtils.ApplyArgs(args, reporter);
       if (Parse() && Resolve()) {
-        var symbolTable = new SymbolTable(dafnyProgram);
-        var symbols = symbolTable.CalculateSymbols();
-        Console.WriteLine("SYMBOLS_START " + ConvertToJson(symbols) + " SYMBOLS_END");
+	var symbolTable = new SymbolTable(dafnyProgram);
+	var symbols = symbolTable.CalculateSymbols();
+	Console.WriteLine("SYMBOLS_START " + ConvertToJson(symbols) + " SYMBOLS_END");
       } else {
-        Console.WriteLine("SYMBOLS_START [] SYMBOLS_END");
-      }
-    }
-
-    public void CounterExample() {
-      var listArgs = args.ToList();
-      listArgs.Add("/mv:" + CounterExampleProvider.ModelBvd);
-      ServerUtils.ApplyArgs(listArgs.ToArray(), reporter);
-      try {
-        if (Parse() && Resolve() && Translate()) {
-          var counterExampleProvider = new CounterExampleProvider();
-          foreach (var boogieProgram in boogiePrograms) {
-            RemoveExistingModel();
-            BoogieOnce(boogieProgram.Item1, boogieProgram.Item2);
-            var model = counterExampleProvider.LoadCounterModel();
-            Console.WriteLine("COUNTEREXAMPLE_START " + ConvertToJson(model) + " COUNTEREXAMPLE_END");
-          }
-        }
-      } catch (Exception e) {
-        Console.WriteLine("Error collection models: " + e.Message);
-      }
-    }
-
-    private void RemoveExistingModel() {
-      if (File.Exists(CounterExampleProvider.ModelBvd)) {
-        File.Delete(CounterExampleProvider.ModelBvd);
+	Console.WriteLine("SYMBOLS_START [] SYMBOLS_END");
       }
     }
 

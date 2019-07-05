@@ -56,10 +56,6 @@ namespace Microsoft.Dafny {
       new DafnyHelper(args, filename, ProgramSource).Symbols();
     }
 
-    public void CounterExample() {
-      new DafnyHelper(args, filename, ProgramSource).CounterExample();
-    }
-
     public void DotGraph() {
       new DafnyHelper(args, filename, ProgramSource).DotGraph();
     }
