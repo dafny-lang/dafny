@@ -1,7 +1,8 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <ProductVersion>9.0.30729</ProductVersion>
     <SchemaVersion>2.0</SchemaVersion>
@@ -10,7 +11,7 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>Microsoft.Dafny</RootNamespace>
     <AssemblyName>DafnyPipeline</AssemblyName>
-    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
+    <TargetFrameworks>netcoreapp2.2;net45</TargetFrameworks>
     <FileAlignment>512</FileAlignment>
     <CodeContractsAssemblyMode>0</CodeContractsAssemblyMode>
     <SignAssembly>true</SignAssembly>
@@ -146,40 +147,14 @@
     <Reference Include="System.Numerics" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Cloner.cs" />
-    <Compile Include="Compiler-Csharp.cs" />
-    <Compile Include="Compiler-go.cs" />
-    <Compile Include="Compiler-js.cs" />
-    <Compile Include="Reporting.cs" />
-    <Compile Include="Triggers\QuantifiersCollection.cs" />
-    <Compile Include="Triggers\QuantifierSplitter.cs" />
-    <Compile Include="Triggers\TriggerExtensions.cs" />
-    <Compile Include="Triggers\QuantifiersCollector.cs" />
-    <Compile Include="Triggers\TriggersCollector.cs" />
-    <Compile Include="Triggers\TriggerUtils.cs" />
-    <Compile Include="Util.cs" />
-    <Compile Include="Compiler.cs" />
-    <Compile Include="BigIntegerParser.cs" />
-    <Compile Include="DafnyAst.cs" />
-    <Compile Include="DafnyMain.cs" />
-    <Compile Include="DafnyOptions.cs" />
-    <Compile Include="Printer.cs" />
-    <Compile Include="RefinementTransformer.cs" />
-    <Compile Include="Resolver.cs" />
-    <Compile Include="Rewriter.cs" />
-    <Compile Include="SccGraph.cs" />
-    <Compile Include="Translator.cs" />
     <Compile Include="..\version.cs" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="cce.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Dafny.atg" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Parser.cs" Visible="False" />
-    <Compile Include="Scanner.cs" Visible="False" />
   </ItemGroup>
   <ItemGroup>
     <BootstrapperPackage Include="Microsoft.Net.Client.3.5">
@@ -204,7 +179,14 @@
       <Name>DafnyRuntime</Name>
     </ProjectReference>
   </ItemGroup>
-  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <ItemGroup Condition="'$(TargetFramework)' == 'netcoreapp2.2'">
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="3.1.0" />
+    <PackageReference Include="System.CodeDom" Version="4.5.0" />
+    <PackageReference Include="System.Runtime.Loader" Version="4.3.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="System.Runtime.Caching" Version="4.5.0" />
+  </ItemGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it.
        Other similar extension points exist, see Microsoft.Common.targets.
   <Target Name="BeforeBuild">
