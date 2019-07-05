@@ -30,7 +30,6 @@ element decreases by at most one from the previous element. In code:
 
 ``` {.editonly}
 method FindZero(a: array<int>) returns (index: int)
-   requires a != null
    requires forall i :: 0 <= i < a.Length ==> 0 <= a[i]
    requires forall i :: 0 < i < a.Length ==> a[i-1]-1 <= a[i]
 {
@@ -50,7 +49,6 @@ be until 7 more elements in the array. So we don't even have to search for a zer
 
 ``` {.editonly}
 method FindZero(a: array<int>) returns (index: int)
-   requires a != null
    requires forall i :: 0 <= i < a.Length ==> 0 <= a[i]
    requires forall i :: 0 < i < a.Length ==> a[i-1]-1 <= a[i]
    ensures index < 0  ==> forall i :: 0 <= i < a.Length ==> a[i] != 0
@@ -110,8 +108,7 @@ For the zero search problem, the desirable property is that none of the elements
 to start from as parameters, with the usual requirements from `FindZero`:
 
 ``` {.editonly}
-lemma SkippingLemma(a : array<int>, j : int)
-   requires a != null
+lemma SkippingLemma(a: array<int>, j: int)
    requires forall i :: 0 <= i < a.Length ==> 0 <= a[i]
    requires forall i :: 0 < i < a.Length ==> a[i-1]-1 <= a[i]
    requires 0 <= j < a.Length
@@ -122,8 +119,7 @@ lemma SkippingLemma(a : array<int>, j : int)
 ```
 
 ```
-lemma SkippingLemma(a : array<int>, j : int)
-   requires a != null
+lemma SkippingLemma(a: array<int>, j: int)
    requires forall i :: 0 <= i < a.Length ==> 0 <= a[i]
    requires forall i :: 0 < i < a.Length ==> a[i-1]-1 <= a[i]
    requires 0 <= j < a.Length
@@ -141,8 +137,7 @@ By making this check before filling in the lemma body, we ensure that we are try
 prove the right thing. The `FindZero` method becomes:
 
 ``` {.editonly}
-lemma SkippingLemma(a : array<int>, j : int)
-   requires a != null
+lemma SkippingLemma(a: array<int>, j: int)
    requires forall i :: 0 <= i < a.Length ==> 0 <= a[i]
    requires forall i :: 0 < i < a.Length ==> a[i-1]-1 <= a[i]
    requires 0 <= j < a.Length
@@ -151,7 +146,6 @@ lemma SkippingLemma(a : array<int>, j : int)
    //...
 }
 method FindZero(a: array<int>) returns (index: int)
-   requires a != null
    requires forall i :: 0 <= i < a.Length ==> 0 <= a[i]
    requires forall i :: 0 < i < a.Length ==> a[i-1]-1 <= a[i]
    ensures index < 0  ==> forall i :: 0 <= i < a.Length ==> a[i] != 0
@@ -195,8 +189,7 @@ slowly. We can ask whether certain properties hold by using assertions. For
 example, we can see that Dafny knows:
 
 ``` {.editonly}
-lemma SkippingLemma(a : array<int>, j : int)
-   requires a != null
+lemma SkippingLemma(a: array<int>, j: int)
    requires forall i :: 0 <= i < a.Length ==> 0 <= a[i]
    requires forall i :: 0 < i < a.Length ==> a[i-1]-1 <= a[i]
    requires 0 <= j < a.Length - 3
@@ -229,8 +222,7 @@ track of the lower bound as we go. We also keep track of the fact that all
 of the elements we have seen so far are not zero:
 
 ``` {.editonly}
-lemma SkippingLemma(a : array<int>, j : int)
-   requires a != null
+lemma SkippingLemma(a: array<int>, j: int)
    requires forall i :: 0 <= i < a.Length ==> 0 <= a[i]
    requires forall i :: 0 < i < a.Length ==> a[i-1]-1 <= a[i]
    requires 0 <= j < a.Length
@@ -245,7 +237,6 @@ lemma SkippingLemma(a : array<int>, j : int)
    }
 }
 method FindZero(a: array<int>) returns (index: int)
-   requires a != null
    requires forall i :: 0 <= i < a.Length ==> 0 <= a[i]
    requires forall i :: 0 < i < a.Length ==> a[i-1]-1 <= a[i]
    ensures index < 0  ==> forall i :: 0 <= i < a.Length ==> a[i] != 0
@@ -580,14 +571,13 @@ class Node
 }
 ```
 
-We represent a graph as a set of non-null Nodes that only point to other nodes in the graph, and not to itself.
+We represent a graph as a set of Nodes that only point to other nodes in the graph, and not to itself.
 We call such a set of nodes *closed*:
 
 ```
 predicate closed(graph: set<Node>)
    reads graph
 {
-   null !in graph && // graphs can only consist of actual nodes, not null.
    forall i :: i in graph ==>
       forall k :: 0 <= k < |i.next| ==> i.next[k] in graph && i.next[k] != i
 }
@@ -652,7 +642,6 @@ predicate path(p: seq<Node>, graph: set<Node>)
 predicate closed(graph: set<Node>)
    reads graph
 {
-   null !in graph && // graphs can only consist of actual nodes, not null.
    forall i :: i in graph ==> forall k :: 0 <= k < |i.next| ==> i.next[k] in graph && i.next[k] != i
 }
 ```
@@ -708,7 +697,6 @@ predicate path(p: seq<Node>, graph: set<Node>)
 predicate closed(graph: set<Node>)
    reads graph
 {
-   null !in graph && // graphs can only consist of actual nodes, not null.
    forall i :: i in graph ==> forall k :: 0 <= k < |i.next| ==> i.next[k] in graph && i.next[k] != i
 }
 ```
@@ -768,7 +756,6 @@ predicate path(p: seq<Node>, graph: set<Node>)
 predicate closed(graph: set<Node>)
    reads graph
 {
-   null !in graph && // graphs can only consist of actual nodes, not null.
    forall i :: i in graph ==> forall k :: 0 <= k < |i.next| ==> i.next[k] in graph && i.next[k] != i
 }
 ```
@@ -826,7 +813,6 @@ predicate path(p: seq<Node>, graph: set<Node>)
 predicate closed(graph: set<Node>)
    reads graph
 {
-   null !in graph && // graphs can only consist of actual nodes, not null.
    forall i :: i in graph ==> forall k :: 0 <= k < |i.next| ==> i.next[k] in graph && i.next[k] != i
 }
 ```
@@ -872,7 +858,7 @@ if the first link is valid. We can express this with another `if` statement:
 ```
    if 1 < |p| && p[0] == root && p[|p|-1] == goal {
       if p[1] in p[0].next {
-         (yet further proof))
+         (yet further proof)
       }
    }
 ```
@@ -929,7 +915,6 @@ predicate path(p: seq<Node>, graph: set<Node>)
 predicate closed(graph: set<Node>)
    reads graph
 {
-   null !in graph && // graphs can only consist of actual nodes, not null.
    forall i :: i in graph ==> forall k :: 0 <= k < |i.next| ==> i.next[k] in graph && i.next[k] != i
 }
 ```
