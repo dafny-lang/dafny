@@ -359,7 +359,7 @@ namespace Microsoft.Dafny {
     }
 
     public static IEnumerable<Expression> SubExpressions(Attributes attrs) {
-      return attrs.AsEnumerable().SelectMany(aa => attrs.Args);
+      return attrs.AsEnumerable().SelectMany(aa => aa.Args);
     }
 
     public static bool Contains(Attributes attrs, string nm) {
