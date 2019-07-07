@@ -3204,6 +3204,8 @@ UnaryExpression<out Expression e, bool allowSemi, bool allowLambda, bool allowBi
     { IF(IsSuffix()) Suffix<ref e> }
   | MultiSetExpr<out e>
     { IF(IsSuffix()) Suffix<ref e> }
+  | SeqConstructionExpr<out e>
+    { IF(IsSuffix()) Suffix<ref e> }
   | ConstAtomExpression<out e, allowSemi, allowLambda>
     { IF(IsSuffix()) Suffix<ref e> }
   )
@@ -3345,6 +3347,19 @@ MultiSetExpr<out Expression e>
       Expression<out e, true, true>            (. e = new MultiSetFormingExpr(x, e); .)
     ")"
   )
+  .
+SeqConstructionExpr<out Expression e>
+= (. Contract.Ensures(Contract.ValueAtReturn(out e) != null);
+     IToken x = null;
+     Expression n, f;
+     e = dummyExpr;
+  .)
+  "seq"                          (. x = t; .)
+  "("
+  Expression<out n, true, true>
+  ","
+  Expression<out f, true, true>
+  ")"                            (. e = new SeqConstructionExpr(x, n, f); .)
   .
 MapDisplayExpr<IToken/*!*/ mapToken, bool finite, out Expression e>
 = (. Contract.Ensures(Contract.ValueAtReturn(out e) != null);

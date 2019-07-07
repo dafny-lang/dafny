@@ -63,3 +63,98 @@ method SetComprehensionBoxAntecedents()
   case true =>
     assert forall x :: x in a <==> x in b;
 }
+
+// ---------- Sequence operations ----------
+
+method Sequences0() {
+  var four1s := [1, 1, 1, 1];
+  var twelve1s := seq(12, _ => 1);
+  assert twelve1s == four1s + four1s + four1s;
+
+  var squares := seq(8, i => i*i);
+  assert |squares| == 8;
+  assert squares[6] == 36;
+  if * {
+    assert squares[7] == 0;  // error
+  }
+
+  var nats := seq(8, i => i);
+}
+
+class SeqOp {
+  var x: real
+
+  function method G(i: nat): real
+    reads this
+  {
+    if i < 20 then 2.5 else x
+  }
+  function method H(i: nat): real
+    reads if i < 20 then {} else {this}
+  {
+    if i < 20 then 2.5 else x
+  }
+
+  function method S0(n: nat): seq<real> {
+    seq(n, G)  // error: S0 reads {this}
+  }
+  function method S1(n: nat): seq<real>
+    reads this
+  {
+    seq(n, G)
+  }
+  function method S2(n: nat): seq<real> {
+    seq(n, H)  // error: S2 reads {this}
+  }
+  function method S3(n: nat): seq<real>
+    reads this
+  {
+    seq(n, H)
+  }
+  function method S4(n: nat): seq<real> {
+    seq(n, i => if i < 20 then 2.5 else x)  // error: lambda reads {this}
+  }
+  function method S5(n: nat): seq<real> {
+    seq(n, i reads this => if i < 20 then 2.5 else x)  // error: S5 reads {this}
+  }
+  function method S6(n: nat): seq<real>
+    reads this
+  {
+    seq(n, i reads this => if i < 20 then 2.5 else x)
+  }
+  function method S7(n: nat): seq<real> {
+    seq(n, i requires i < 20 => if i < 20 then 2.5 else x)  // error: S7 violates lambda's precondition
+  }
+
+  function method T0(n: nat): seq<real>
+    requires n <= 20
+  {
+    seq(n, G)  // error: T0 reads {this}
+  }
+  function method T1(n: nat): seq<real>
+    requires n <= 20
+    reads this
+  {
+    seq(n, G)
+  }
+  function method T2(n: nat): seq<real>
+    requires n <= 20
+  {
+    seq(n, H)
+  }
+  function method T3(n: nat): seq<real>
+    requires n <= 20
+  {
+    seq(n, i reads this => if i < 20 then 2.5 else x)  // error: T3 reads {this}
+  }
+  function method T4(n: nat): seq<real>
+    requires n <= 20
+  {
+    seq(n, i requires i < 20 => if i < 20 then 2.5 else x)
+  }
+  function method T5(n: nat): seq<real>
+    requires n <= 20
+  {
+    seq(n, i reads if i < 20 then {} else {this} => if i < 20 then 2.5 else x)
+  }
+}

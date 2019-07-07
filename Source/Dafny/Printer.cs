@@ -2062,6 +2062,14 @@ namespace Microsoft.Dafny {
         }
         if (parensNeeded) { wr.Write(")"); }
 
+      } else if (expr is SeqConstructionExpr) {
+        var e = (SeqConstructionExpr)expr;
+        wr.Write("seq(");
+        PrintExpression(e.N, false);
+        wr.Write(", ");
+        PrintExpression(e.Initializer, false);
+        wr.Write(")");
+
       } else if (expr is MultiSetFormingExpr) {
         wr.Write("multiset(");
         PrintExpression(((MultiSetFormingExpr)expr).E, false);

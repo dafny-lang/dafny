@@ -224,7 +224,8 @@ namespace Microsoft.Dafny.Triggers {
                    expr is LiteralExpr ||
                    expr is ThisExpr ||
                    expr is BoxingCastExpr ||
-                   expr is MultiSetFormingExpr) {
+                   expr is MultiSetFormingExpr ||
+                   expr is SeqConstructionExpr) {
           annotation = AnnotateOther(expr, false);
         } else {
           annotation = AnnotateOther(expr, true);

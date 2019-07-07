@@ -815,6 +815,14 @@ namespace Dafny
         return new Sequence<T>(new T[0]);
       }
     }
+    public static Sequence<T> Create(BigInteger length, System.Func<BigInteger, T> init) {
+      var len = (int)length;
+      var values = new T[len];
+      for (int i = 0; i < len; i++) {
+        values[i] = init(new BigInteger(i));
+      }
+      return new Sequence<T>(values);
+    }
     public static Sequence<T> FromElements(params T[] values) {
       return new Sequence<T>(values);
     }

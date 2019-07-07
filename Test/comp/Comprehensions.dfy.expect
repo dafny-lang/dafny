@@ -1,5 +1,5 @@
 
-Dafny program verifier finished with 15 verified, 0 errors
+Dafny program verifier finished with 16 verified, 0 errors
 x=13 y=14
 x=13 y=14 b=yes
 p=(13, 14)
@@ -16,8 +16,12 @@ XM returned: 16
 0 12 3 8
 0 12 3 8
 0 12 3 8
+[1, 1, 1, 1]
+[1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+[0, 1, 4, 9, 16, 25, 36, 49]
+[0, 1, 2, 3, 4, 5, 6, 7]
 
-Dafny program verifier finished with 15 verified, 0 errors
+Dafny program verifier finished with 16 verified, 0 errors
 x=13 y=14
 x=13 y=14 b=yes
 p=(13, 14)
@@ -34,8 +38,12 @@ XM returned: 16
 0 12 3 8
 0 12 3 8
 0 12 3 8
+[1, 1, 1, 1]
+[1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+[0, 1, 4, 9, 16, 25, 36, 49]
+[0, 1, 2, 3, 4, 5, 6, 7]
 
-Dafny program verifier finished with 15 verified, 0 errors
+Dafny program verifier finished with 16 verified, 0 errors
 x=13 y=14
 x=13 y=14 b=yes
 p=(13, 14)
@@ -52,3 +60,7 @@ XM returned: 16
 0 12 3 8
 0 12 3 8
 0 12 3 8
+[1, 1, 1, 1]
+[1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+[0, 1, 4, 9, 16, 25, 36, 49]
+[0, 1, 2, 3, 4, 5, 6, 7]

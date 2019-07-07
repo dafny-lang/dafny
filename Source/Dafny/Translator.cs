@@ -6212,6 +6212,9 @@ namespace Microsoft.Dafny {
       } else if (expr is DatatypeValue) {
         DatatypeValue dtv = (DatatypeValue)expr;
         return CanCallAssumption(dtv.Arguments, etran);
+      } else if (expr is SeqConstructionExpr) {
+        var e = (SeqConstructionExpr)expr;
+        return BplAnd(CanCallAssumption(e.N, etran), CanCallAssumption(e.Initializer, etran));
       } else if (expr is MultiSetFormingExpr) {
         MultiSetFormingExpr e = (MultiSetFormingExpr)expr;
         return CanCallAssumption(e.E, etran);
@@ -7294,6 +7297,15 @@ namespace Microsoft.Dafny {
           Type ty = Resolver.SubstType(formal.Type, su);
           CheckSubrange(arg.tok, etran.TrExpr(arg), arg.Type, ty, builder);
         }
+      } else if (expr is SeqConstructionExpr) {
+        var e = (SeqConstructionExpr)expr;
+        CheckWellformed(e.N, options, locals, builder, etran);
+        builder.Add(Assert(e.N.tok, Bpl.Expr.Le(Bpl.Expr.Literal(0), etran.TrExpr(e.N)),
+          "sequence size might be negative"));
+
+        CheckWellformed(e.Initializer, options, locals, builder, etran);
+        var eType = e.Type.AsSeqType.Arg.NormalizeExpand();
+        CheckElementInit(e.tok, false, new List<Expression>() {e.N}, eType, e.Initializer, null, builder, etran, options);
       } else if (expr is MultiSetFormingExpr) {
         MultiSetFormingExpr e = (MultiSetFormingExpr)expr;
         CheckWellformed(e.E, options, locals, builder, etran);
@@ -8207,7 +8219,9 @@ namespace Microsoft.Dafny {
       };
 
       // function ApplyN(Ty, ... Ty, HandleType, Heap, Box, ..., Box) : Box
-      SelectorFunction(Apply(arity), predef.BoxType);
+      if (arity != 1) {  // Apply1 is already declared in DafnyPrelude.bpl
+        SelectorFunction(Apply(arity), predef.BoxType);
+      }
       // function RequiresN(Ty, ... Ty, HandleType, Heap, Box, ..., Box) : Bool
       SelectorFunction(Requires(arity), Bpl.Type.Bool);
       // function ReadsN(Ty, ... Ty, HandleType, Heap, Box, ..., Box) : Set Box
@@ -9308,7 +9322,7 @@ namespace Microsoft.Dafny {
 
       // read is handled in AddFrameAxiom
       //
-      // if field granularity: 
+      // if field granularity:
       // generate:
       //  (forall<alpha> o: ref, f: Field alpha :: { $Heap[o][f] }
       //      o != null
@@ -9328,7 +9342,7 @@ namespace Microsoft.Dafny {
       //        $Heap[o][f] == PreHeap[o][f])
       // #endif
       //
-      // if object granularity: 
+      // if object granularity:
       // generate:
       //  (forall o: ref :: { $Heap[o] }
       //      o != null
@@ -9379,7 +9393,7 @@ namespace Microsoft.Dafny {
       Bpl.Expr consequent = use == Resolver.FrameExpressionUse.Modifies ? Bpl.Expr.Or(eq, ofInFrame) : Bpl.Expr.Imp(ofInFrame, eq);
 
       var tr = new Bpl.Trigger(tok, true, new List<Bpl.Expr> { heapOF });
-      return new Bpl.ForallExpr(tok, typeVars, quantifiedVars, null, tr, Bpl.Expr.Imp(ante, consequent));    
+      return new Bpl.ForallExpr(tok, typeVars, quantifiedVars, null, tr, Bpl.Expr.Imp(ante, consequent));
     }
 
     Bpl.Expr/*!*/ FrameConditionUsingDefinedFrame(IToken/*!*/ tok, ExpressionTranslator/*!*/ etranPre, ExpressionTranslator/*!*/ etran, ExpressionTranslator/*!*/ etranMod)
@@ -12925,50 +12939,7 @@ namespace Microsoft.Dafny {
               i++;
             }
             if (tRhs.ElementInit != null) {
-              // Check that all indices are in the domain of the given function.  That is:
-              // assert (forall i0,i1,i2,... :: 0 <= i0 < tRhs.ArrayDimensions[0] && ... ==> tRhs.ElementInit.requires(i0,i1,i2,...));
-              Bpl.Expr ante = Bpl.Expr.True;
-              var varNameGen = CurrentIdGenerator.NestedFreshIdGenerator("arrayinit#");
-              var bvs = new List<Bpl.Variable>();
-              var indices = new List<Bpl.Expr>();
-              for (int ii = 0; ii < tRhs.ArrayDimensions.Count; ii++) {
-                var nm = varNameGen.FreshId(string.Format("#i{0}#", ii));
-                var bv = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, nm, Bpl.Type.Int));
-                bvs.Add(bv);
-                var ie = new Bpl.IdentifierExpr(tok, bv);
-                indices.Add(ie);
-                ante = BplAnd(ante, BplAnd(Bpl.Expr.Le(Bpl.Expr.Literal(0), ie), Bpl.Expr.Lt(ie, etran.TrExpr(tRhs.ArrayDimensions[ii]))));
-              }
-              var sourceType = tRhs.ElementInit.Type.AsArrowType;
-              Contract.Assert(sourceType.Args.Count == tRhs.ArrayDimensions.Count);
-              var args = Concat(
-                Map(Enumerable.Range(0, tRhs.ArrayDimensions.Count), ii => TypeToTy(sourceType.Args[ii])),
-                Cons(TypeToTy(sourceType.Result),
-                Cons(etran.HeapExpr,
-                Cons(etran.TrExpr(tRhs.ElementInit),
-                indices.ConvertAll(idx => (Bpl.Expr)FunctionCall(tok, BuiltinFunction.Box, null, idx))))));
-              // check precond
-              var pre = FunctionCall(tok, Requires(tRhs.ArrayDimensions.Count), Bpl.Type.Bool, args);
-              var q = new Bpl.ForallExpr(tok, bvs, Bpl.Expr.Imp(ante, pre));
-              builder.Add(AssertNS(tok, q, "all array indices must be in the domain of the initialization function"));
-              // Check that the values coming out of the function satisfy any appropriate subset-type constraints
-              var apply = UnboxIfBoxed(FunctionCall(tok, Apply(tRhs.ArrayDimensions.Count), TrType(tRhs.EType), args), tRhs.EType);
-              string msg;
-              var cre = GetSubrangeCheck(apply, sourceType.Result, tRhs.EType, out msg);
-              if (cre != null) {
-                // assert (forall i0,i1,i2,... ::
-                //            0 <= i0 < ... && ... ==> tRhs.ElementInit.requires(i0,i1,i2,...) is Subtype);
-                q = new Bpl.ForallExpr(tok, bvs, Bpl.Expr.Imp(ante, cre));
-                builder.Add(AssertNS(tRhs.ElementInit.tok, q, msg));
-              }
-              // Assume that array elements have initial values according to the given initialization function.  That is:
-              // assume (forall i0,i1,i2,... :: { nw[i0,i1,i2,...] }
-              //            0 <= i0 < ... && ... ==> nw[i0,i1,i2,...] == tRhs.ElementInit.requires(i0,i1,i2,...));
-              var ai = ReadHeap(tok, etran.HeapExpr, nw, GetArrayIndexFieldName(tok, indices));
-              var ai_prime = UnboxIfBoxed(ai, tRhs.EType);
-              var tr = new Bpl.Trigger(tok, true, new List<Bpl.Expr> { ai });
-              q = new Bpl.ForallExpr(tok, bvs, tr, Bpl.Expr.Imp(ante, Bpl.Expr.Eq(ai_prime, apply)));  // TODO: use a more general Equality translation
-              builder.Add(new Bpl.AssumeCmd(tok, q));
+              CheckElementInit(tok, true, tRhs.ArrayDimensions, tRhs.EType, tRhs.ElementInit, nw, builder, etran, new WFOptions());
             } else if (tRhs.InitDisplay != null) {
               int ii = 0;
               foreach (var v in tRhs.InitDisplay) {
@@ -13011,6 +12982,87 @@ namespace Microsoft.Dafny {
           builder.Add(Bpl.Cmd.SimpleAssign(tok, bLhs, nw));
           return CondApplyBox(tok, bLhs, tRhs.Type, lhsType);
         }
+      }
+    }
+
+    /// <summary>
+    /// Check that all indices are in the domain of the given function.  That is, for an array ("forArray"):
+    ///     assert (forall i0,i1,i2,... :: 0 <= i0 < dims[0] && ... ==> init.requires(i0,i1,i2,...));
+    /// and for a sequence ("!forArray"):
+    ///     assert (forall i0 :: 0 <= i0 < dims[0] && ... ==> init.requires(i0));
+    /// </summary>
+    private void CheckElementInit(IToken tok, bool forArray, List<Expression> dims, Type elementType, Expression init,
+      Bpl.IdentifierExpr/*?*/ nw, BoogieStmtListBuilder builder, ExpressionTranslator etran, WFOptions options) {
+      Contract.Requires(tok != null);
+      Contract.Requires(dims != null && dims.Count != 0);
+      Contract.Requires(elementType != null);
+      Contract.Requires(init != null);
+      Contract.Requires(!forArray || nw != null);
+      Contract.Requires(builder != null);
+      Contract.Requires(etran != null);
+
+      Bpl.Expr ante = Bpl.Expr.True;
+      var varNameGen = CurrentIdGenerator.NestedFreshIdGenerator(forArray ? "arrayinit#" : "seqinit#");
+      var bvs = new List<Bpl.Variable>();
+      var indices = new List<Bpl.Expr>();
+      for (var i = 0; i < dims.Count; i++) {
+        var nm = varNameGen.FreshId(string.Format("#i{0}#", i));
+        var bv = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, nm, Bpl.Type.Int));
+        bvs.Add(bv);
+        var ie = new Bpl.IdentifierExpr(tok, bv);
+        indices.Add(ie);
+        ante = BplAnd(ante, BplAnd(Bpl.Expr.Le(Bpl.Expr.Literal(0), ie), Bpl.Expr.Lt(ie, etran.TrExpr(dims[i]))));
+      }
+
+      var sourceType = init.Type.AsArrowType;
+      Contract.Assert(sourceType.Args.Count == dims.Count);
+      var args = Concat(
+        Map(Enumerable.Range(0, dims.Count), ii => TypeToTy(sourceType.Args[ii])),
+        Cons(TypeToTy(sourceType.Result),
+          Cons(etran.HeapExpr,
+            Cons(etran.TrExpr(init),
+              indices.ConvertAll(idx => (Bpl.Expr) FunctionCall(tok, BuiltinFunction.Box, null, idx))))));
+      // check precond
+      var pre = FunctionCall(tok, Requires(dims.Count), Bpl.Type.Bool, args);
+      var q = new Bpl.ForallExpr(tok, bvs, Bpl.Expr.Imp(ante, pre));
+      builder.Add(AssertNS(tok, q, string.Format("all {0} indices must be in the domain of the initialization function", forArray ? "array" : "sequence")));
+      if (!forArray && options.DoReadsChecks) {
+        // check read effects
+        Type objset = new SetType(true, program.BuiltIns.ObjectQ());
+        Expression wrap = new BoogieWrapper(
+          FunctionCall(tok, Reads(1), TrType(objset), args),
+          objset);
+        var reads = new FrameExpression(tok, wrap, null);
+        Action<IToken, Bpl.Expr, string, Bpl.QKeyValue> maker = (t, e, s, qk) => {
+          var qe = new Bpl.ForallExpr(t, bvs, Bpl.Expr.Imp(ante, e));
+          options.AssertSink(this, builder)(t, qe, s, qk);
+        };
+        CheckFrameSubset(tok, new List<FrameExpression> { reads }, null, null,
+          etran, maker,
+          "insufficient reads clause to invoke the function passed as an argument to the sequence constructor",
+          options.AssertKv);
+      }
+      // Check that the values coming out of the function satisfy any appropriate subset-type constraints
+      var apply = UnboxIfBoxed(FunctionCall(tok, Apply(dims.Count), TrType(elementType), args), elementType);
+      string msg;
+      var cre = GetSubrangeCheck(apply, sourceType.Result, elementType, out msg);
+      if (cre != null) {
+        // assert (forall i0,i1,i2,... ::
+        //            0 <= i0 < ... && ... ==> init.requires(i0,i1,i2,...) is Subtype);
+        q = new Bpl.ForallExpr(tok, bvs, Bpl.Expr.Imp(ante, cre));
+        builder.Add(AssertNS(init.tok, q, msg));
+      }
+
+      if (forArray) {
+        // Assume that array elements have initial values according to the given initialization function.  That is:
+        // assume (forall i0,i1,i2,... :: { nw[i0,i1,i2,...] }
+        //            0 <= i0 < ... && ... ==> nw[i0,i1,i2,...] == init.requires(i0,i1,i2,...));
+        var ai = ReadHeap(tok, etran.HeapExpr, nw, GetArrayIndexFieldName(tok, indices));
+        var ai_prime = UnboxIfBoxed(ai, elementType);
+        var tr = new Bpl.Trigger(tok, true, new List<Bpl.Expr> {ai});
+        q = new Bpl.ForallExpr(tok, bvs, tr,
+          Bpl.Expr.Imp(ante, Bpl.Expr.Eq(ai_prime, apply))); // TODO: use a more general Equality translation
+        builder.Add(new Bpl.AssumeCmd(tok, q));
       }
     }
 
@@ -14585,6 +14637,11 @@ namespace Microsoft.Dafny {
             ret = MaybeLit(ret, predef.DatatypeType);
           }
           return ret;
+
+        } else if (expr is SeqConstructionExpr) {
+          var e = (SeqConstructionExpr)expr;
+          var eType = e.Type.AsSeqType.Arg.NormalizeExpand();
+          return translator.FunctionCall(expr.tok, "Seq#Create", predef.SeqType(e.tok, predef.BoxType), translator.TypeToTy(eType), HeapExpr, TrExpr(e.N), TrExpr(e.Initializer));
 
         } else if (expr is MultiSetFormingExpr) {
           MultiSetFormingExpr e = (MultiSetFormingExpr)expr;
@@ -17629,6 +17686,13 @@ namespace Microsoft.Dafny {
           }
           if (anythingChanged) {
             newExpr = new UnchangedExpr(e.tok, fr, e.At) { AtLabel = e.AtLabel };
+          }
+        } else if (expr is SeqConstructionExpr) {
+          var e = (SeqConstructionExpr)expr;
+          var sn = Substitute(e.N);
+          var sinit = Substitute(e.Initializer);
+          if (sn != e.N || sinit != e.Initializer) {
+            newExpr = new SeqConstructionExpr(expr.tok, sn, sinit);
           }
         } else if (expr is MultiSetFormingExpr) {
           var e = (MultiSetFormingExpr)expr;

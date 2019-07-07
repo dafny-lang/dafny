@@ -1283,6 +1283,10 @@ namespace Microsoft.Dafny
         }
 
         reqs.Add(Expression.CreateMatch(e.tok, e.Source, newMatches, e.Type));
+      } else if (expr is SeqConstructionExpr) {
+        var e = (SeqConstructionExpr)expr;
+        reqs.AddRange(generateAutoReqs(e.N));
+        reqs.AddRange(generateAutoReqs(e.Initializer));
       } else if (expr is MultiSetFormingExpr) {
         MultiSetFormingExpr e = (MultiSetFormingExpr)expr;
         reqs.AddRange(generateAutoReqs(e.E));
