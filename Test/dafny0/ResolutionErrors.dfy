@@ -1856,8 +1856,8 @@ module DividedConstructors {
       P(g);
       P(this.g);  // "this" is benign here
       modify this;  // error: cannot use "this" here
-      modify this`g;  // error: cannot use "this" here
-      modify `g;  // error: cannot use (implicit) "this" here
+      modify this`c;  // error: cannot use "this" here
+      modify `c;  // error: cannot use (implicit) "this" here
       new;
       a := a + b;
       Helper();
@@ -2847,5 +2847,22 @@ module RegressionGhostTests {
     a[i,5] := 42;  // error: assignment to non-ghost field depends on a ghost
     a[5,i] := 42;  // error: assignment to non-ghost field depends on a ghost
     b[5,5] := 42;  // error: assignment to non-ghost field depends on a ghost
+  }
+}
+
+// --------------- regression test const in frame expression ------------------------------
+
+module RegressionConstFrameExpression {
+  class C {
+    const x: int
+    var y: int
+  }
+  method m(c: C)
+    modifies c`x
+    modifies c`y
+    ensures unchanged(c`x)
+    ensures unchanged(c)
+  {
+
   }
 }
