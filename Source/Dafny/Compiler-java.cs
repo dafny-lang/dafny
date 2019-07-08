@@ -2415,12 +2415,22 @@ namespace Microsoft.Dafny{
     protected override TargetWriter CreateIIFE_ExprBody(string source, Type sourceType, Bpl.IToken sourceTok,
       Type resultType, Bpl.IToken resultTok,
       string bvName, TargetWriter wr){
-      throw new NotImplementedException();
+      wr.Write("Dafny.Helpers.Let<{0},{1}>(", TypeName(sourceType, wr, sourceTok), TypeName(resultType, wr, resultTok));
+      wr.Write("{0}, {1} => ", source, bvName);
+      var w = wr.Fork();
+      wr.Write(")");
+      return w;
     }
 
     protected override TargetWriter CreateIIFE_ExprBody(Expression source, bool inLetExprBody, Type sourceType, Bpl.IToken sourceTok,
       Type resultType, Bpl.IToken resultTok, string bvName, TargetWriter wr) {
-      throw new NotImplementedException();
+      wr.Write("Dafny.Helpers.Let<{0},{1}>(", TypeName(sourceType, wr, sourceTok), TypeName(resultType, wr, resultTok));
+      TrExpr(source, wr, inLetExprBody);
+      wr.Write(", {0} => ", bvName);
+      var w = wr.Fork();
+      wr.Write(")");
+      int y = ((System.Func<int,int>)((u) => u + 5))(6);
+      return w;
     }
 
     protected override void EmitIsZero(string varName, TargetWriter wr)
