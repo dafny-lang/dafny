@@ -16,7 +16,7 @@ COMPILER Dafny
 /*--------------------------------------------------------------------------*/
 readonly Expression/*!*/ dummyExpr;
 readonly AssignmentRhs/*!*/ dummyRhs;
-readonly FrameExpression/*!*/ dummyFrameExpr;  
+readonly FrameExpression/*!*/ dummyFrameExpr;
 readonly Statement/*!*/ dummyStmt;
 readonly Statement/*!*/ dummyIfStmt;
 readonly Include theInclude;
@@ -65,14 +65,14 @@ enum AllowedDeclModifiers {
   // Means ghost not allowed because already implicitly ghost.
   AlreadyGhost = 4,
   Static = 8,
-  Protected = 16, 
+  Protected = 16,
 };
 
 /// <summary>
 /// Check the declaration modifiers against those that are allowed.
 ///
 /// The 'allowed' parameter specifies which declaratio modifiers are allowed.
-/// The 'declCaption' parameter should be a string describing the kind of declaration. 
+/// The 'declCaption' parameter should be a string describing the kind of declaration.
 /// It is used in error messages.
 /// Any declaration modifiers that are present but not allowed are cleared.
 ///</summary>
@@ -859,7 +859,7 @@ TopDecl<. ModuleDefinition module, List<MemberDecl/*!*/> membersDefaultClass, bo
   | OtherTypeDecl<dmod, module, out td>        (. module.TopLevelDecls.Add(td); .)
   | IteratorDecl<dmod, module, out iter>       (. module.TopLevelDecls.Add(iter); .)
   | TraitDecl<dmod, module, out trait>         (. module.TopLevelDecls.Add(trait); .)
-  | ClassMemberDecl<dmod, membersDefaultClass, false, !DafnyOptions.O.AllowGlobals, 
+  | ClassMemberDecl<dmod, membersDefaultClass, false, !DafnyOptions.O.AllowGlobals,
                     !isTopLevel && DafnyOptions.O.IronDafny && isAbstract>
   ) .
 
@@ -881,8 +881,8 @@ SubModuleDecl<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl sub
     { (. prefixIds.Add(id); .)
       "." NoUSIdent<out id>
     }
-    [ "refines" ModuleName<out idRefined> ] 
-    (. module = new ModuleDefinition(id, id.val, prefixIds, isAbstract, isProtected, false, idRefined, parent, attrs, false); module.IsToBeVerified = theVerifyThisFile; .)  
+    [ "refines" ModuleName<out idRefined> ]
+    (. module = new ModuleDefinition(id, id.val, prefixIds, isAbstract, isProtected, false, idRefined, parent, attrs, false); module.IsToBeVerified = theVerifyThisFile; .)
     "{"                                 (. module.BodyStartTok = t; .)
       { TopDecl<module, namedModuleDefaultClassMembers, /* isTopLevel */ false, isAbstract>}
     "}"                                 (. module.BodyEndTok = t;
@@ -896,7 +896,7 @@ SubModuleDecl<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl sub
       (. if (idPath.Count > 0)
            SemErr(idPath[0], "Qualified imports must be given a name.");
         idPath.Insert(0, id);
-        submodule = new AliasModuleDecl(idPath, id, parent, opened, idExports); 
+        submodule = new AliasModuleDecl(idPath, id, parent, opened, idExports);
       .)
     | "=" QualifiedModuleExport<out idPath, out idExports>
       (. submodule = new AliasModuleDecl(idPath, id, parent, opened, idExports); .)
@@ -904,7 +904,7 @@ SubModuleDecl<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl sub
         (. submodule = new ModuleFacadeDecl(idPath, id, parent, opened, idExports); .)
 
     )
-    
+
 
     [ SYNC ";"
         // This semi-colon used to be required, but it seems silly to have it.
@@ -912,7 +912,7 @@ SubModuleDecl<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl sub
         // in the next big version of Dafny, don't allow the semi-colon at all.
         (. errors.Deprecated(t, "the semi-colon that used to terminate a sub-module declaration has been deprecated; in the new syntax, just leave off the semi-colon"); .)
     ]
-  | (.      
+  | (.
       IToken exportId;
       List<ExportSignature> exports = new List<ExportSignature>();;
       List<string> extends = new List<string>();
@@ -925,21 +925,21 @@ SubModuleDecl<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl sub
     [ ExportIdent<out exportId> ]
     {
       "provides"
-      ( 
+      (
         ( ModuleExportSignature<true, out exsig>        (. exports.Add(exsig); .)
           {"," ModuleExportSignature<true, out exsig>   (. exports.Add(exsig); .) }
         )
       | "*" (. provideAll = true; .)
       )
     | "reveals"
-      ( 
+      (
         ( ModuleExportSignature<false, out exsig>       (. exports.Add(exsig); .)
           {"," ModuleExportSignature<false, out exsig>  (. exports.Add(exsig); .) }
         )
       | "*" (. revealAll = true; .)
       )
-    | "extends" 
-      ExportIdent<out id>       (. extends.Add(id.val); .) 
+    | "extends"
+      ExportIdent<out id>       (. extends.Add(id.val); .)
       {"," ExportIdent<out id>  (. extends.Add(id.val); .) }
     }
     (. if (exportId.val == "export" || exportId.val == parent.Name) {
@@ -960,7 +960,7 @@ ModuleExportSignature<bool opaque, out ExportSignature exsig>
      }
   .)
   .
-  
+
 
 /* The only modules in any given scope are siblings, so we no longer need qualified lookups */
 ModuleName<out IToken id>
@@ -1002,17 +1002,17 @@ ClassDecl<DeclModifierData dmodClass, ModuleDefinition/*!*/ module, out ClassDec
      List<MemberDecl/*!*/> members = new List<MemberDecl/*!*/>();
      IToken bodyStart;
      CheckDeclModifiers(dmodClass, "Classes", AllowedDeclModifiers.None);
-     DeclModifierData dmod; 
+     DeclModifierData dmod;
   .)
   SYNC
   "class"
   { Attribute<ref attrs> }
   NoUSIdent<out id>
   [ GenericParameters<typeArgs, true> ]
-  ["extends" 
-  Type<out trait>    (. traits.Add(trait); .) 
+  ["extends"
+  Type<out trait>    (. traits.Add(trait); .)
   {"," Type<out trait>  (. traits.Add(trait); .) }
-  ]         
+  ]
   "{"                                            (. bodyStart = t;  .)
   { (. dmod = new DeclModifierData(); .)
     { DeclModifier<ref dmod> }
@@ -1026,7 +1026,7 @@ ClassDecl<DeclModifierData dmodClass, ModuleDefinition/*!*/ module, out ClassDec
   .
 
 TraitDecl<DeclModifierData dmodIn, ModuleDefinition/*!*/ module, out TraitDecl/*!*/ trait>
-  = (. Contract.Requires(module != null);     
+  = (. Contract.Requires(module != null);
      Contract.Ensures(Contract.ValueAtReturn(out trait) != null);
      CheckDeclModifiers(dmodIn, "Traits", AllowedDeclModifiers.None);
      IToken/*!*/ id;
@@ -1034,7 +1034,7 @@ TraitDecl<DeclModifierData dmodIn, ModuleDefinition/*!*/ module, out TraitDecl/*
      List<TypeParameter/*!*/> typeArgs = new List<TypeParameter/*!*/>(); //traits should not support type parameters at the moment
      List<MemberDecl/*!*/> members = new List<MemberDecl/*!*/>();
      IToken bodyStart;
-     DeclModifierData dmod; 
+     DeclModifierData dmod;
     .)
   SYNC
   "trait"
@@ -1160,7 +1160,7 @@ ConstantFieldDecl<.DeclModifierData dmod, List<MemberDecl/*!*/>/*!*/ mm, bool mo
                                              (. if (e == null && ty is InferredTypeProxy) {
                                                   SemErr(id, "a const declaration must have a type or a RHS value");
                                                 }
-                                                mm.Add(new ConstantField(id, id.val, e, dmod.IsStatic, dmod.IsGhost, ty, attrs)); 
+                                                mm.Add(new ConstantField(id, id.val, e, dmod.IsStatic, dmod.IsGhost, ty, attrs));
                                              .)
   OldSemi
   .
@@ -1476,30 +1476,30 @@ MethodDecl<DeclModifierData dmod, bool allowConstructor, bool isWithinAbstractMo
   ( "method"                        (. isPlainOlMethod = true; caption = "Methods";
                                        allowed = AllowedDeclModifiers.Ghost | AllowedDeclModifiers.Static; .)
   | "lemma"                         (. isLemma = true; caption = "Lemmas";
-                                       allowed = AllowedDeclModifiers.AlreadyGhost | AllowedDeclModifiers.Static 
+                                       allowed = AllowedDeclModifiers.AlreadyGhost | AllowedDeclModifiers.Static
                                          | AllowedDeclModifiers.Protected; .)
   | "colemma"                       (. isCoLemma = true; caption = "Colemmas";
-                                       allowed = AllowedDeclModifiers.AlreadyGhost | AllowedDeclModifiers.Static 
+                                       allowed = AllowedDeclModifiers.AlreadyGhost | AllowedDeclModifiers.Static
                                          | AllowedDeclModifiers.Protected; .)
   | "comethod"                      (. isCoLemma = true; caption = "Comethods";
-                                       allowed = AllowedDeclModifiers.AlreadyGhost | AllowedDeclModifiers.Static 
+                                       allowed = AllowedDeclModifiers.AlreadyGhost | AllowedDeclModifiers.Static
                                          | AllowedDeclModifiers.Protected;
                                        errors.Deprecated(t, "the 'comethod' keyword has been deprecated; it has been renamed to 'colemma'");
                                     .)
   | "inductive" "lemma"             (. isIndLemma = true;  caption = "Inductive lemmas";
                                        allowed = AllowedDeclModifiers.AlreadyGhost | AllowedDeclModifiers.Static;.)
   | "twostate" "lemma"              (. isTwoStateLemma = true; caption = "Two-state lemmas";
-                                       allowed = AllowedDeclModifiers.AlreadyGhost | AllowedDeclModifiers.Static 
+                                       allowed = AllowedDeclModifiers.AlreadyGhost | AllowedDeclModifiers.Static
                                          | AllowedDeclModifiers.Protected; .)
   | "constructor"                   (. if (allowConstructor) {
                                          isConstructor = true;
                                        } else {
                                          SemErr(t, "constructors are allowed only in classes");
-                                       } 
+                                       }
                                        caption = "Constructors";
                                        allowed = AllowedDeclModifiers.None;
                                     .)
-  )                                 (. keywordToken = t; 
+  )                                 (. keywordToken = t;
                                        CheckDeclModifiers(dmod, caption, allowed); .)
   { Attribute<ref attrs> }
   [ FuMe_Ident<out id>               (. hasName = true; .)
@@ -1585,7 +1585,7 @@ MethodSpec<.List<MaybeFreeExpression> req, List<FrameExpression> mod, List<Maybe
                                                                 errors.Deprecated(t, "the 'free' keyword is soon to be deprecated");
                                                              .)
     ]
-    ( "requires" 
+    ( "requires"
 		  { IF(IsAttribute()) Attribute<ref reqAttrs> }
       [ IF(IsLabel(true))
         LabelIdent<out lbl> ":"
@@ -1856,7 +1856,7 @@ FunctionDecl<DeclModifierData dmod, bool isWithinAbstractModule, out Function/*!
     (. AllowedDeclModifiers allowed = AllowedDeclModifiers.AlreadyGhost | AllowedDeclModifiers.Static;
        if (!isTwoState) { allowed |= AllowedDeclModifiers.Protected; }
        string caption = "Functions";
-       if (isFunctionMethod) { 
+       if (isFunctionMethod) {
          caption = "Function methods";
        }
        CheckDeclModifiers(dmod, caption, allowed);
@@ -1867,9 +1867,9 @@ FunctionDecl<DeclModifierData dmod, bool isWithinAbstractModule, out Function/*!
       [ GenericParameters<typeArgs, false> ]
       Formals<true, isFunctionMethod, isTwoState, formals>
       ":"
-      (  IF(FollowedByColon()) 
+      (  IF(FollowedByColon())
          "("
-           (. 
+           (.
               IToken resultId;
               Type ty;
               bool isGhost;
@@ -1894,7 +1894,7 @@ FunctionDecl<DeclModifierData dmod, bool isWithinAbstractModule, out Function/*!
     (. AllowedDeclModifiers allowed = AllowedDeclModifiers.AlreadyGhost | AllowedDeclModifiers.Static;
        if (!isTwoState) { allowed |= AllowedDeclModifiers.Protected; }
        string caption = "Predicates";
-       if (isFunctionMethod) { 
+       if (isFunctionMethod) {
          caption = "Predicate methods";
        }
        CheckDeclModifiers(dmod, caption, allowed);
@@ -1991,7 +1991,7 @@ FunctionSpec<.List<MaybeFreeExpression/*!*/>/*!*/ reqs, List<FrameExpression/*!*
      Expression/*!*/ e;  FrameExpression/*!*/ fe;
 		 Attributes ensAttrs = null; Attributes reqAttrs = null; .)
   SYNC
-  ( "requires" 
+  ( "requires"
 	  { IF(IsAttribute()) Attribute<ref reqAttrs> }
 		  Expression<out e, false, false> OldSemi                (. reqs.Add(new MaybeFreeExpression(e, false, reqAttrs)); .)
   | "reads"
@@ -2338,7 +2338,7 @@ VarDeclStatement<.out Statement/*!*/ s.>
       ":|"                          (.  SemErr(pat.tok, "LHS of assign-such-that expression must be variables, not general patterns"); .)
     )
     Expression<out e, false, true>
-    
+
     ";"
     (. s = new LetStmt(e.tok, e.tok, pat, e); .)
   )
@@ -2901,12 +2901,12 @@ ImpliesExpliesExpression<out Expression e0, bool allowSemi, bool allowLambda, bo
     ( ImpliesOp                                               (. x = t; .)
       ImpliesExpression<out e1, allowSemi, allowLambda, allowBitwiseOps>       (. e0 = new BinaryExpr(x, BinaryExpr.Opcode.Imp, e0, e1); .)
     | ExpliesOp                                               (. x = t; .)
-      LogicalExpression<out e1, allowSemi, allowLambda, allowBitwiseOps>       (. // The order of operands is reversed so that it can be turned into implication during resolution 
+      LogicalExpression<out e1, allowSemi, allowLambda, allowBitwiseOps>       (. // The order of operands is reversed so that it can be turned into implication during resolution
                                                                  e0 = new BinaryExpr(x, BinaryExpr.Opcode.Exp, e1, e0); .)
       { IF(IsExpliesOp())  /* read a reverse implication as far as possible */
         ExpliesOp                                             (. x = t; .)
         LogicalExpression<out e1, allowSemi, allowLambda, allowBitwiseOps>     (. //The order of operands is reversed so that it can be turned into implication during resolution
-                                                                 e0 = new BinaryExpr(x, BinaryExpr.Opcode.Exp, e1, e0); 
+                                                                 e0 = new BinaryExpr(x, BinaryExpr.Opcode.Exp, e1, e0);
                                                               .)
       }
     )
@@ -3242,7 +3242,7 @@ ConstAtomExpression<out Expression e, bool allowSemi, bool allowLambda>
     "(" Expression<out e, true, true> ")"      (. e = new UnaryOpExpr(x, UnaryOpExpr.Opcode.Allocated, e); .)
   | "unchanged"                                (. x = t; FrameExpression fe; var mod = new List<FrameExpression>(); IToken oldAt = null; .)
     [ "@" LabelIdent<out oldAt> ]
-    "(" 
+    "("
       FrameExpression<out fe, false, false>         (. mod.Add(fe); .)
       { "," FrameExpression<out fe, false, false>   (. mod.Add(fe); .)
       }
@@ -3410,7 +3410,7 @@ EndlessExpression<out Expression e, bool allowSemi, bool allowLambda, bool allow
                                                                foreach (var v in exists.BoundVars) {
                                                                  LHSs.Add(new CasePattern<BoundVar>(e.tok, v));
                                                                }
-                                                               e0 = new LetExpr(e.tok, LHSs, new List<Expression>() { exists.Term }, e0, false);                                                           
+                                                               e0 = new LetExpr(e.tok, LHSs, new List<Expression>() { exists.Term }, e0, false);
                                                              }
                                                              e = new ITEExpr(x, isExistentialGuard, e, e0, e1);
                                                          .)
@@ -3545,8 +3545,8 @@ CasePattern<.out CasePattern<BoundVar> pat.>
         }
       ]
     ")"                                (. pat = new CasePattern<BoundVar>(id, id.val, arguments); .)
-  | "("                                (. id = t;                                                           
-                                          arguments = new List<CasePattern<BoundVar>>(); 
+  | "("                                (. id = t;
+                                          arguments = new List<CasePattern<BoundVar>>();
                                        .)
       [ CasePattern<out pat>           (. arguments.Add(pat); .)
         { "," CasePattern<out pat>     (. arguments.Add(pat); .)
@@ -3555,7 +3555,7 @@ CasePattern<.out CasePattern<BoundVar> pat.>
     ")"                                (. // Parse parenthesis without an identifier as a built in tuple type.
                                           theBuiltIns.TupleType(id, arguments.Count, true); // make sure the tuple type exists
                                           string ctor = BuiltIns.TupleTypeCtorNamePrefix + arguments.Count;  //use the TupleTypeCtors
-                                          pat = new CasePattern<BoundVar>(id, ctor, arguments); 
+                                          pat = new CasePattern<BoundVar>(id, ctor, arguments);
                                        .)
   | IdentTypeOptional<out bv>          (. // This could be a BoundVar of a parameter-less constructor and we may not know until resolution.
                                           // Nevertheless, we do put the "bv" into the CasePattern here (even though it will get thrown out
@@ -3587,8 +3587,8 @@ CasePatternLocal<.out CasePattern<LocalVariable> pat, bool isGhost.>
         }
       ]
     ")"                                          (. pat = new CasePattern<LocalVariable>(id, id.val, arguments); .)
-  | "("                                          (. id = t;                                                           
-                                                    arguments = new List<CasePattern<LocalVariable>>(); 
+  | "("                                          (. id = t;
+                                                    arguments = new List<CasePattern<LocalVariable>>();
                                                  .)
       [ CasePatternLocal<out pat, isGhost>       (. arguments.Add(pat); .)
         { "," CasePatternLocal<out pat, isGhost> (. arguments.Add(pat); .)
@@ -3597,7 +3597,7 @@ CasePatternLocal<.out CasePattern<LocalVariable> pat, bool isGhost.>
     ")"                                (. // Parse parenthesis without an identifier as a built in tuple type.
                                           theBuiltIns.TupleType(id, arguments.Count, true); // make sure the tuple type exists
                                           string ctor = BuiltIns.TupleTypeCtorNamePrefix + arguments.Count;  //use the TupleTypeCtors
-                                          pat = new CasePattern<LocalVariable>(id, ctor, arguments); 
+                                          pat = new CasePattern<LocalVariable>(id, ctor, arguments);
                                        .)
   | LocalIdentTypeOptional<out local, isGhost>
                                        (. // This could be a LocalVariable of a parameter-less constructor and we may not know until resolution.
