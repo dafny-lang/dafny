@@ -770,14 +770,13 @@ namespace Microsoft.Dafny{
     protected override void EmitIndexCollectionSelect(Expression source, Expression index, bool inLetExprBody, TargetWriter wr) {
       // Taken from C# compiler, assuming source is a DafnySequence type.
       TrParenExpr(source, wr, inLetExprBody);
-      if (source.Type.AsCollectionType.CollectionTypeName.Equals("multiset")){
+      if (source.Type.AsCollectionType is MultiSetType){
         TrParenExpr(".multiplicity", index, wr, inLetExprBody);
       }
-      else if (source.Type.AsCollectionType.CollectionTypeName.Equals("map")){
+      else if (source.Type.AsCollectionType is MapType){
         TrParenExpr(".get", index, wr, inLetExprBody);
       }
-      else if (source.Type.AsCollectionType.CollectionTypeName.Equals("seq") ||
-          source.Type.AsCollectionType.CollectionTypeName.Equals("string")){
+      else if (source.Type.AsCollectionType is SeqType){
         wr.Write(".select(");
         wr.Write(((BigInteger)((LiteralExpr)index).Value).ToString());
         wr.Write(")");
@@ -797,8 +796,7 @@ namespace Microsoft.Dafny{
       TargetWriter wr, bool nativeIndex = false) {
       TrParenExpr(source, wr, inLetExprBody);
         wr.Write(".update(");
-        if (source.Type.AsCollectionType.CollectionTypeName.Equals("seq") ||
-            source.Type.AsCollectionType.CollectionTypeName.Equals("string")){
+        if (source.Type is SeqType){
           wr.Write(((BigInteger)((LiteralExpr)index).Value).ToString());
         }
         else{
@@ -1559,12 +1557,12 @@ protected override BlockTargetWriter CreateLambda(List<Type> inTypes, Bpl.IToken
           TrParenExpr("~", expr, wr, inLetExprBody);
           break;
         case ResolvedUnaryOp.Cardinality:
-          if (expr.Type.AsCollectionType.CollectionTypeName.Equals("multiset")){
+          if (expr.Type.AsCollectionType is MultiSetType){
             TrParenExpr("", expr, wr, inLetExprBody);
             wr.Write(".cardinality()");
           }
-          else if (expr.Type.AsCollectionType.CollectionTypeName.Equals("set") || 
-                   expr.Type.AsCollectionType.CollectionTypeName.Equals("map")){
+          else if (expr.Type.AsCollectionType is SetType || 
+                   expr.Type.AsCollectionType is MapType){
             TrParenExpr("new BigInteger(Long.toString(", expr, wr, inLetExprBody);
             wr.Write(".size()))");
           }

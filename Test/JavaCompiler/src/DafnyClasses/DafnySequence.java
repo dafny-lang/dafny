@@ -1,5 +1,6 @@
 package DafnyClasses;
 
+import java.math.BigInteger;
 import java.util.*;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
@@ -74,6 +75,13 @@ public class DafnySequence<T> implements Iterable {
         //todo: should we allow i=length, and return a new sequence with t appended to the sequence?
         assert 0 <= i && i < length(): "Precondition Violation";
         return new DafnySequence<>(seq, i, t);
+    }
+
+    public DafnySequence<T> update(BigInteger b, T t) {
+        //todo: should we allow i=length, and return a new sequence with t appended to the sequence?
+        assert b.compareTo(BigInteger.ZERO) >=0  &&
+                b.compareTo(new BigInteger(Integer.toString(length()))) < 0: "Precondition Violation";
+        return new DafnySequence<>(seq, b.intValue(), t);
     }
 
     public boolean contains(T t) {

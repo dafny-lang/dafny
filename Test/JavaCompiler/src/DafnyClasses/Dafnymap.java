@@ -1,12 +1,11 @@
 package DafnyClasses;
 
-import java.math.BigInteger;
 import java.util.*;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
-public class Dafnymap<K, V> implements Map<K, V>{
+public class Dafnymap<K, V> implements Map<K, V> {
     private Map<K, V> innerMap;
 
     public Dafnymap() {
@@ -146,7 +145,7 @@ public class Dafnymap<K, V> implements Map<K, V>{
 
     @Override
     public V put(K key, V value) {
-        return innerMap.put(key,value);
+        return innerMap.put(key, value);
     }
 
     @Override
@@ -170,8 +169,7 @@ public class Dafnymap<K, V> implements Map<K, V>{
     }
 
     @Override
-    public Collection<V> values() {
-        return innerMap.values();
+    public Collection<V> values() { return new HashSet<>(innerMap.values());
     }
 
     @Override
