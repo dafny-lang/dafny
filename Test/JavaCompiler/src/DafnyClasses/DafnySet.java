@@ -122,20 +122,17 @@ public class DafnySet<T> {
         int n = elmts.size();
         DafnySet<T> s;
         HashSet<DafnySet<T>> r = new HashSet<>();
-        // "add 1" to "which", as if doing a carry chain.  For every digit changed,
-        // change the membership of the corresponding element in "s".
         for (int i = 0; i < (1<<n); i++)
         {
             s = new DafnySet<>();
             int m = 1; // m is used to check set bit in binary representation.
             // Print current subset
-            for (int j = 0; j < n; j++)
+            for (int j = 0; j < n; j++, m = m << 1)
             {
                 if ((i & m) > 0)
                 {
                     s.add(elmts.get(j));
                 }
-                m = m << 1;
             }
             r.add(s);
         }

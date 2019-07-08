@@ -23,10 +23,11 @@ namespace Microsoft.Dafny{
       : base(reporter){ }
 
     public override String TargetLanguage => "Java";
-    protected new readonly string DafnySetClass = "DafnyClasses.DafnySet";
-    protected new readonly string DafnyMultiSetClass = "DafnyClasses.DafnyMultiset";
-    protected new readonly string DafnySeqClass = "DafnyClasses.DafnySequence";
-    protected new readonly string DafnyMapClass = "DafnyClasses.Dafnymap";
+    // Shadowing variables in Compiler.cs
+    string DafnySetClass = "DafnyClasses.DafnySet";
+    string DafnyMultiSetClass = "DafnyClasses.DafnyMultiset";
+    string DafnySeqClass = "DafnyClasses.DafnySequence"; 
+    string DafnyMapClass = "DafnyClasses.Dafnymap";
 
     private String ModuleName;
     private String MainModuleName;

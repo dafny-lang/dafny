@@ -15,9 +15,7 @@ public class Dafnymap<K, V> implements Map<K, V> {
     public Dafnymap(Map<K, V> m) {
         assert m != null : "Precondition Violation";
         innerMap = new HashMap<>();
-        for (Map.Entry<K, V> e : m.entrySet()) {
-            put(e.getKey(), e.getValue());
-        }
+        m.forEach((k, v) -> put(k, v));
     }
 
     public boolean contains(K t) {
