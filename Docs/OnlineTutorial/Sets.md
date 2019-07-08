@@ -182,6 +182,4 @@ For example, `iset x | x % 2 == 0` is legal in ghost contexts.)
 To ensure that `set` comprehensions give rise to finite sets, Dafny employs some heuristics.
 When creating sets of integers, this can be done by bounding the integers
 in at least one conjunct of the predicate (something like `0 <= x < n`). Requiring a bound
-variable to be in an existing set also works, as in `x in {0,1,2}` from above. This works
-only when the inclusion part is conjoined (`&&`'ed) with the rest of the predicate, as it
-needs to limit the possible values to consider.
+variable to be in an existing set also works, as in `x in {0,1,2}` from above.
