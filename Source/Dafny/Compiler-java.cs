@@ -1563,12 +1563,12 @@ protected override BlockTargetWriter CreateLambda(List<Type> inTypes, Bpl.IToken
           }
           else if (expr.Type.AsCollectionType is SetType || 
                    expr.Type.AsCollectionType is MapType){
-            TrParenExpr("new BigInteger(Long.toString(", expr, wr, inLetExprBody);
-            wr.Write(".size()))");
+            TrParenExpr("BigInteger.valueOf(", expr, wr, inLetExprBody);
+            wr.Write(".size())");
           }
           else{
-            TrParenExpr("new BigInteger(Long.toString(", expr, wr, inLetExprBody);
-            wr.Write(".length()))");
+            TrParenExpr("BigInteger.valueOf(", expr, wr, inLetExprBody);
+            wr.Write(".length())");
           }
           
           break;
