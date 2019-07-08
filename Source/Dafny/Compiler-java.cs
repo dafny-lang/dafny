@@ -78,7 +78,7 @@ namespace Microsoft.Dafny{
       }
       else{
         for (var i = 0; i < actualOutParamNames.Count; i++){
-          wr.WriteLine("{0} = ({3}) {1}.dtor__{2}();", actualOutParamNames[i], outCollector, i,
+          wr.WriteLine("{0} = ({3}) {1}.get_{2}();", actualOutParamNames[i], outCollector, i,
             TypeName(actualOutParamTypes[i], wr, tok));
         }
       }
@@ -428,29 +428,31 @@ namespace Microsoft.Dafny{
     }
 
     protected override IClassWriter CreateClass(string name, bool isExtern, string /*?*/ fullPrintName,
-      List<TypeParameter> /*?*/ typeParameters, List<Type> /*?*/ superClasses, Bpl.IToken tok, TargetWriter wr){
-      var filename = string.Format("{1}/{0}.java", name, ModuleName);
-      var w = wr.NewFile(filename);
-      w.WriteLine("// Class {0}", name);
-      w.WriteLine("// Dafny class {0} compiled into Java", name);
-      w.WriteLine("package {0};", ModuleName);
-      w.WriteLine();
-      w.WriteLine("import java.math.*;");
-      w.WriteLine("import java.util.function.*;");
-      w.WriteLine("import java.util.*;");// TODO: Figure out all the Java imports necessary for compiled program to run.
-      EmitImports(w, out _);
-      w.WriteLine();
-      w.Write("public class {0}", name);
-      if (typeParameters != null && typeParameters.Count != 0){
-        w.Write("<{0}>", TypeParameters(typeParameters));
-      }
-
-      // Since Java does not support multiple inheritance, we are assuming a list of "superclasses" is a list of interfaces
-      if (superClasses != null){
-        string sep = " implements ";
-        foreach (var trait in superClasses){
-          w.Write("{0}{1}", sep, TypeName(trait, w, tok));
-          sep = ", ";
+      List<TypeParameter> /*?*/ typeParameters, List<Type> /*?*/ superClasses, Bpl.IToken tok, TargetWriter wr) {
+      if (!isExtern) {
+        var filename = string.Format("{1}/{0}.java", name, ModuleName);
+        var w = wr.NewFile(filename);
+        w.WriteLine("// Class {0}", name);
+        w.WriteLine("// Dafny class {0} compiled into Java", name);
+        w.WriteLine("package {0};", ModuleName);
+        w.WriteLine();
+        w.WriteLine("import java.util.*;");
+        w.WriteLine("import java.util.function.*;");
+        w.WriteLine("import java.util.Arrays;");
+        w.WriteLine("import java.math.*;"); // TODO: Figure out all the Java imports necessary for compiled program to run.
+        EmitImports(w, out _);
+        w.WriteLine();
+        w.Write("public class {0}", name);
+        if (typeParameters != null && typeParameters.Count != 0) {
+          w.Write("<{0}>", TypeParameters(typeParameters));
+        }
+        // Since Java does not support multiple inheritance, we are assuming a list of "superclasses" is a list of interfaces
+        if (superClasses != null) {
+          string sep = " implements ";
+          foreach (var trait in superClasses) {
+            w.Write("{0}{1}", sep, TypeName(trait, w, tok));
+            sep = ", ";
+          }
         }
         return new ClassWriter(this, w.NewBlock(""));
       }
@@ -2244,7 +2246,7 @@ protected override BlockTargetWriter CreateLambda(List<Type> inTypes, Bpl.IToken
 
     protected override string GetQuantifierName(string bvType)
     {
-      return string.Format("Dafny.Helpers.Quantifier<{0}>", bvType);
+      return string.Format("DafnyClasses.Helpers.Quantifier", bvType);
     }
 
     protected override TargetWriter EmitAddTupleToList(string ingredients, string tupleTypeArgs, TargetWriter wr)
