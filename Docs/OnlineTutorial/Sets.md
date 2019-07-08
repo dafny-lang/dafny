@@ -13,11 +13,12 @@ it has been created. A set has the type:
 for a set of integers, for example. In general, sets can be of almost any type, including objects. Concrete sets can be specified by using display notation:
 
 ``` {.editonly}
-method()
+method m()
 {
    var s1 := {}; // the empty set
    var s2 := {1, 2, 3}; // set contains exactly 1, 2, and 3
    assert s2 == {1,1,2,3,3,3,3}; // same as before
+   assert s1 != s2;  // sets with different elements are different
    var s3, s4 := {1,2}, {1,4};
 }
 ```
@@ -26,6 +27,7 @@ method()
    var s1 := {}; // the empty set
    var s2 := {1, 2, 3}; // set contains exactly 1, 2, and 3
    assert s2 == {1,1,2,3,3,3,3}; // same as before
+   assert s1 != s2;  // sets with different elements are different
    var s3, s4 := {1,2}, {1,4};
 ```
 
@@ -35,7 +37,7 @@ for sets. Two sets are equal if they have exactly the same elements.
 New sets can be created from existing ones using the common set operations:
 
 ``` {.editonly}
-method m ()
+method m()
 {
    var s1 := {};
    var s2 := {1, 2, 3};
@@ -105,11 +107,12 @@ any object or array. This is useful to bundle up all of the locations
 that a function or method might read or write when they can be different types.
 
 
-When used in a decreases clause, sets are ordered by subset. This is unlike
-sequences, which are ordered by length only. In order for sets to be used in
+When used in a decreases clause, sets are ordered by proper subset.
+To use sets in
 decreases clauses, the successive values must be "related" in some sense, which
 usually implies that they are recursively calculated, or similar.
-You can test if the set is empty by comparing it to the empty set
+
+You can test if a set is empty by comparing it to the empty set
 (`s == {}` is true if and only if `s` has no elements.)
 
 
@@ -132,12 +135,12 @@ usually has the same type as the resulting set, but it does not need to. As an e
 ``` {.editonly}
 method m()
 {
-   assert (set x | x in {0,1,2} :: x * 1) == {0,1,2};
+   assert (set x | x in {0,1,2} :: x + 0) == {0,1,2};
 }
 ```
 
 ```
-   assert (set x | x in {0,1,2} :: x * 1) == {0,1,2};
+   assert (set x | x in {0,1,2} :: x + 0) == {0,1,2};
 ```
 
 If the function is the identity, then the expression can be written with a particularly nice form:
@@ -153,24 +156,30 @@ method m()
    assert (set x | x in {0,1,2,3,4,5} && x < 3) == {0,1,2};
 ```
 
-General, non-identity functions in set comprehensions confuse Dafny easily. For example,
-the following is true, but Dafny cannot prove it:
+To reason about general, non-identity functions in set comprehensions, Dafny may need some help.
+For example, the following is true, but Dafny cannot prove it:
 
 ``` {.editonly}
 method m()
 {
-   assert (set x | x in {0,1,2} :: x + 1) == {1,2,3};
+   // assert {0*1, 1*1, 2*1} == {0,1,2};  // include this assertion as a lemma to prove the next line
+   assert (set x | x in {0,1,2} :: x * 1) == {0,1,2};
 }
 ```
 
 ```
-   assert (set x | x in {0,1,2} :: x + 1) == {1,2,3};
+   assert (set x | x in {0,1,2} :: x * 1) == {0,1,2};
 ```
 
-This mechanism has the potential to create an infinite set, which is not allowed in Dafny.
-To prevent this, Dafny employs heuristics in an attempt to prove that that the resulting 
-set will be finite. When creating sets of integers, this can be done by bounding the integers
-in at least one clause of the predicate (something like `0 <= x < n`). Requiring a bound
-variable to be in an existing set also works, as in `x in {0,1,2}` from above. This works
-only when the inclusion part is conjuncted (`&&`'ed) with the rest of the predicate, as it
-needs to limit the possible values to consider.
+To help Dafny prove this assertion, you can precede it with the assertion
+`assert {0*1, 1*1, 2*1} == {0,1,2};`. This lets Dafny figure out both assertions.
+
+Without care, a set comprehension could prescribe an infinite number of elements, but a `set`
+is only allowed to have a finite number of elements. For example, if you tried writing
+`set x | x % 2 == 0` as the set of all even integers, then you would get an error.
+(If you really want an infinite set, use the `iset` type instead.
+For example, `iset x | x % 2 == 0` is legal in ghost contexts.)
+To ensure that `set` comprehensions give rise to finite sets, Dafny employs some heuristics.
+When creating sets of integers, this can be done by bounding the integers
+in at least one conjunct of the predicate (something like `0 <= x < n`). Requiring a bound
+variable to be in an existing set also works, as in `x in {0,1,2}` from above.
