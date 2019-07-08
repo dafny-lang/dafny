@@ -123,7 +123,7 @@ public class Parser {
 
 readonly Expression/*!*/ dummyExpr;
 readonly AssignmentRhs/*!*/ dummyRhs;
-readonly FrameExpression/*!*/ dummyFrameExpr;  
+readonly FrameExpression/*!*/ dummyFrameExpr;
 readonly Statement/*!*/ dummyStmt;
 readonly Statement/*!*/ dummyIfStmt;
 readonly Include theInclude;
@@ -172,14 +172,14 @@ enum AllowedDeclModifiers {
   // Means ghost not allowed because already implicitly ghost.
   AlreadyGhost = 4,
   Static = 8,
-  Protected = 16, 
+  Protected = 16,
 };
 
 /// <summary>
 /// Check the declaration modifiers against those that are allowed.
 ///
 /// The 'allowed' parameter specifies which declaratio modifiers are allowed.
-/// The 'declCaption' parameter should be a string describing the kind of declaration. 
+/// The 'declCaption' parameter should be a string describing the kind of declaration.
 /// It is used in error messages.
 /// Any declaration modifiers that are present but not allowed are cleared.
 ///</summary>
@@ -912,7 +912,7 @@ int StringToInt(string s, int defaultValue, string errString) {
 			break;
 		}
 		case 46: case 47: case 48: case 49: case 50: case 51: case 60: case 61: case 65: case 66: case 67: case 104: {
-			ClassMemberDecl(dmod, membersDefaultClass, false, !DafnyOptions.O.AllowGlobals, 
+			ClassMemberDecl(dmod, membersDefaultClass, false, !DafnyOptions.O.AllowGlobals,
 !isTopLevel && DafnyOptions.O.IronDafny && isAbstract);
 			break;
 		}
@@ -988,7 +988,7 @@ int StringToInt(string s, int defaultValue, string errString) {
 				if (idPath.Count > 0)
 				 SemErr(idPath[0], "Qualified imports must be given a name.");
 				idPath.Insert(0, id);
-				submodule = new AliasModuleDecl(idPath, id, parent, opened, idExports); 
+				submodule = new AliasModuleDecl(idPath, id, parent, opened, idExports);
 				
 			} else if (la.kind == 94) {
 				Get();
@@ -1077,7 +1077,7 @@ int StringToInt(string s, int defaultValue, string errString) {
 		List<MemberDecl/*!*/> members = new List<MemberDecl/*!*/>();
 		IToken bodyStart;
 		CheckDeclModifiers(dmodClass, "Classes", AllowedDeclModifiers.None);
-		DeclModifierData dmod; 
+		DeclModifierData dmod;
 		
 		while (!(la.kind == 0 || la.kind == 56)) {SynErr(163); Get();}
 		Expect(56);
@@ -1342,7 +1342,7 @@ int StringToInt(string s, int defaultValue, string errString) {
 	}
 
 	void TraitDecl(DeclModifierData dmodIn, ModuleDefinition/*!*/ module, out TraitDecl/*!*/ trait) {
-		Contract.Requires(module != null);     
+		Contract.Requires(module != null);
 		Contract.Ensures(Contract.ValueAtReturn(out trait) != null);
 		CheckDeclModifiers(dmodIn, "Traits", AllowedDeclModifiers.None);
 		IToken/*!*/ id;
@@ -1350,7 +1350,7 @@ int StringToInt(string s, int defaultValue, string errString) {
 		List<TypeParameter/*!*/> typeArgs = new List<TypeParameter/*!*/>(); //traits should not support type parameters at the moment
 		List<MemberDecl/*!*/> members = new List<MemberDecl/*!*/>();
 		IToken bodyStart;
-		DeclModifierData dmod; 
+		DeclModifierData dmod;
 		
 		while (!(la.kind == 0 || la.kind == 57)) {SynErr(172); Get();}
 		Expect(57);
@@ -1607,7 +1607,7 @@ int StringToInt(string s, int defaultValue, string errString) {
 		if (e == null && ty is InferredTypeProxy) {
 		 SemErr(id, "a const declaration must have a type or a RHS value");
 		}
-		mm.Add(new ConstantField(id, id.val, e, dmod.IsStatic, dmod.IsGhost, ty, attrs)); 
+		mm.Add(new ConstantField(id, id.val, e, dmod.IsStatic, dmod.IsGhost, ty, attrs));
 		
 		OldSemi();
 	}
@@ -1649,7 +1649,7 @@ int StringToInt(string s, int defaultValue, string errString) {
 			AllowedDeclModifiers allowed = AllowedDeclModifiers.AlreadyGhost | AllowedDeclModifiers.Static;
 			if (!isTwoState) { allowed |= AllowedDeclModifiers.Protected; }
 			string caption = "Functions";
-			if (isFunctionMethod) { 
+			if (isFunctionMethod) {
 			 caption = "Function methods";
 			}
 			CheckDeclModifiers(dmod, caption, allowed);
@@ -1695,7 +1695,7 @@ int StringToInt(string s, int defaultValue, string errString) {
 			AllowedDeclModifiers allowed = AllowedDeclModifiers.AlreadyGhost | AllowedDeclModifiers.Static;
 			if (!isTwoState) { allowed |= AllowedDeclModifiers.Protected; }
 			string caption = "Predicates";
-			if (isFunctionMethod) { 
+			if (isFunctionMethod) {
 			 caption = "Predicate methods";
 			}
 			CheckDeclModifiers(dmod, caption, allowed);
@@ -1860,21 +1860,21 @@ int StringToInt(string s, int defaultValue, string errString) {
 		case 51: {
 			Get();
 			isLemma = true; caption = "Lemmas";
-			allowed = AllowedDeclModifiers.AlreadyGhost | AllowedDeclModifiers.Static 
+			allowed = AllowedDeclModifiers.AlreadyGhost | AllowedDeclModifiers.Static
 			 | AllowedDeclModifiers.Protected; 
 			break;
 		}
 		case 66: {
 			Get();
 			isCoLemma = true; caption = "Colemmas";
-			allowed = AllowedDeclModifiers.AlreadyGhost | AllowedDeclModifiers.Static 
+			allowed = AllowedDeclModifiers.AlreadyGhost | AllowedDeclModifiers.Static
 			 | AllowedDeclModifiers.Protected; 
 			break;
 		}
 		case 104: {
 			Get();
 			isCoLemma = true; caption = "Comethods";
-			allowed = AllowedDeclModifiers.AlreadyGhost | AllowedDeclModifiers.Static 
+			allowed = AllowedDeclModifiers.AlreadyGhost | AllowedDeclModifiers.Static
 			 | AllowedDeclModifiers.Protected;
 			errors.Deprecated(t, "the 'comethod' keyword has been deprecated; it has been renamed to 'colemma'");
 			
@@ -1891,7 +1891,7 @@ int StringToInt(string s, int defaultValue, string errString) {
 			Get();
 			Expect(51);
 			isTwoStateLemma = true; caption = "Two-state lemmas";
-			allowed = AllowedDeclModifiers.AlreadyGhost | AllowedDeclModifiers.Static 
+			allowed = AllowedDeclModifiers.AlreadyGhost | AllowedDeclModifiers.Static
 			 | AllowedDeclModifiers.Protected; 
 			break;
 		}
@@ -1901,7 +1901,7 @@ int StringToInt(string s, int defaultValue, string errString) {
 			 isConstructor = true;
 			} else {
 			 SemErr(t, "constructors are allowed only in classes");
-			} 
+			}
 			caption = "Constructors";
 			allowed = AllowedDeclModifiers.None;
 			
@@ -1909,7 +1909,7 @@ int StringToInt(string s, int defaultValue, string errString) {
 		}
 		default: SynErr(186); break;
 		}
-		keywordToken = t; 
+		keywordToken = t;
 		CheckDeclModifiers(dmod, caption, allowed); 
 		while (la.kind == 74) {
 			Attribute(ref attrs);
@@ -3722,8 +3722,8 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, st
 			pat = new CasePattern<LocalVariable>(id, id.val, arguments); 
 		} else if (la.kind == 78) {
 			Get();
-			id = t;                                                           
-			arguments = new List<CasePattern<LocalVariable>>(); 
+			id = t;
+			arguments = new List<CasePattern<LocalVariable>>();
 			
 			if (la.kind == 1 || la.kind == 78) {
 				CasePatternLocal(out pat, isGhost);
@@ -3737,7 +3737,7 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, st
 			Expect(79);
 			theBuiltIns.TupleType(id, arguments.Count, true); // make sure the tuple type exists
 			string ctor = BuiltIns.TupleTypeCtorNamePrefix + arguments.Count;  //use the TupleTypeCtors
-			pat = new CasePattern<LocalVariable>(id, ctor, arguments); 
+			pat = new CasePattern<LocalVariable>(id, ctor, arguments);
 			
 		} else if (la.kind == 1) {
 			LocalIdentTypeOptional(out local, isGhost);
@@ -3946,8 +3946,8 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, st
 			pat = new CasePattern<BoundVar>(id, id.val, arguments); 
 		} else if (la.kind == 78) {
 			Get();
-			id = t;                                                           
-			arguments = new List<CasePattern<BoundVar>>(); 
+			id = t;
+			arguments = new List<CasePattern<BoundVar>>();
 			
 			if (la.kind == 1 || la.kind == 78) {
 				CasePattern(out pat);
@@ -3961,7 +3961,7 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, st
 			Expect(79);
 			theBuiltIns.TupleType(id, arguments.Count, true); // make sure the tuple type exists
 			string ctor = BuiltIns.TupleTypeCtorNamePrefix + arguments.Count;  //use the TupleTypeCtors
-			pat = new CasePattern<BoundVar>(id, ctor, arguments); 
+			pat = new CasePattern<BoundVar>(id, ctor, arguments);
 			
 		} else if (la.kind == 1) {
 			IdentTypeOptional(out bv);
@@ -4179,7 +4179,7 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, st
 					ExpliesOp();
 					x = t; 
 					LogicalExpression(out e1, allowSemi, allowLambda, allowBitwiseOps);
-					e0 = new BinaryExpr(x, BinaryExpr.Opcode.Exp, e1, e0); 
+					e0 = new BinaryExpr(x, BinaryExpr.Opcode.Exp, e1, e0);
 					
 				}
 			} else SynErr(261);
@@ -4883,7 +4883,7 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, st
 			 foreach (var v in exists.BoundVars) {
 			   LHSs.Add(new CasePattern<BoundVar>(e.tok, v));
 			 }
-			 e0 = new LetExpr(e.tok, LHSs, new List<Expression>() { exists.Term }, e0, false);                                                           
+			 e0 = new LetExpr(e.tok, LHSs, new List<Expression>() { exists.Term }, e0, false);
 			}
 			e = new ITEExpr(x, isExistentialGuard, e, e0, e1);
 			
