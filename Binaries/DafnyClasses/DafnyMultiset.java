@@ -19,7 +19,7 @@ public class DafnyMultiset<T> {
         assert m != null : "Precondition Violation";
         innerMap = new HashMap<>();
         for (Map.Entry<T, BigInteger> e : m.entrySet()) {
-            update(e.getKey(), e.getValue());
+            put(e.getKey(), e.getValue());
         }
     }
 
@@ -31,7 +31,7 @@ public class DafnyMultiset<T> {
         }
     }
 
-    public DafnyMultiset(Collection<T> c){
+    public DafnyMultiset(Collection<T> c) {
         assert c != null : "Precondition Violation";
         innerMap = new HashMap<>();
         for (T t : c) {
@@ -91,13 +91,16 @@ public class DafnyMultiset<T> {
         return innerMap.get(t) == null ? BigInteger.ZERO : innerMap.get(t);
     }
 
-    public void update(T t, BigInteger b) {
+    // Do we want to make this change so it is immutable?
+    public DafnyMultiset<T> update(T t, BigInteger b) {
         assert b != null && b.compareTo(BigInteger.ZERO) >= 0 : "Precondition Violation";
+        HashMap<T, BigInteger> copy = new HashMap<>(innerMap);
         if (b.compareTo(BigInteger.ZERO) == 0) {
-            innerMap.remove(t);
-            return;
+            copy.remove(t);
+        } else {
+            copy.put(t, b);
         }
-        innerMap.put(t, b);
+        return new DafnyMultiset<>(copy);
     }
 
     public DafnyMultiset<T> union(DafnyMultiset<T> other) {
@@ -125,7 +128,7 @@ public class DafnyMultiset<T> {
         assert other != null : "Precondition Violation";
         DafnyMultiset<T> u = new DafnyMultiset<>();
         for (Map.Entry<T, BigInteger> entry : innerMap.entrySet()) {
-            u.update(entry.getKey(), entry.getValue().min(other.multiplicity(entry.getKey())));
+            u = u.update(entry.getKey(), entry.getValue().min(other.multiplicity(entry.getKey())));
         }
 
         return u;
@@ -135,8 +138,17 @@ public class DafnyMultiset<T> {
     public BigInteger increment(T t, BigInteger b) {
         assert b != null : "Precondition Violation";
         BigInteger n = b.negate().compareTo(multiplicity(t)) >= 0 ? BigInteger.ZERO : multiplicity(t).add(b);
-        update(t, n);
+        put(t, n);
         return n;
+    }
+
+    private void put(T t, BigInteger b){
+        assert b != null && b.compareTo(BigInteger.ZERO) >= 0 : "Precondition Violation";
+        if (b.compareTo(BigInteger.ZERO) == 0) {
+            innerMap.remove(t);
+        } else {
+            innerMap.put(t, b);
+        }
     }
 
 

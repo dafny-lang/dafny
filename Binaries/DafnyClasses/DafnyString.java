@@ -17,10 +17,6 @@ public class DafnyString implements Iterable {
 
     private String inner;
 
-    public DafnyString(){
-        inner = "";
-    }
-
     public DafnyString(List<Character> inList) {
         assert inList != null && !inList.contains(null) : "Precondition Violation";
         StringBuilder sb = new StringBuilder();
