@@ -1985,7 +1985,6 @@ namespace Microsoft.Dafny{
         }
       }
       var instanceMemberWriter = w.NewBlock("");
-
       //writing the _Companion class
       filename = string.Format("{1}/_Companion_{0}.java", name, ModuleName);
       w = w.NewFile(filename);
@@ -2048,8 +2047,14 @@ namespace Microsoft.Dafny{
       }
     }
     
-    protected override void EmitDestructor(string source, Formal dtor, int formalNonGhostIndex, DatatypeCtor ctor, List<Type> typeArgs, Type bvType, TargetWriter wr) {
-      var dtorName = FormalName(dtor, formalNonGhostIndex);
+    protected override void EmitDestructor(string source, Formal dtor, int formalNonGhostIndex, DatatypeCtor ctor, List<Type> typeArgs, Type bvType, TargetWriter wr){
+      string dtorName;
+      if (dtor.Type.IsTypeParameter){
+        dtorName = $"dtor__{dtor.Name}()";
+      }
+      else{
+        dtorName = FormalName(dtor, formalNonGhostIndex);
+      }
       wr.Write("(({0}){1}{2}).{3}", DtCtorName(ctor, typeArgs, wr), source, ctor.EnclosingDatatype is CoDatatypeDecl ? ".Get()" : "", dtorName);
     }
 
@@ -2415,8 +2420,8 @@ namespace Microsoft.Dafny{
     protected override TargetWriter CreateIIFE_ExprBody(string source, Type sourceType, Bpl.IToken sourceTok,
       Type resultType, Bpl.IToken resultTok,
       string bvName, TargetWriter wr){
-      wr.Write("Dafny.Helpers.Let<{0},{1}>(", TypeName(sourceType, wr, sourceTok), TypeName(resultType, wr, resultTok));
-      wr.Write("{0}, {1} => ", source, bvName);
+      wr.Write("DafnyClasses.Helpers.Let(");
+      wr.Write("{0}, {1} -> ", source, bvName);
       var w = wr.Fork();
       wr.Write(")");
       return w;
@@ -2424,9 +2429,9 @@ namespace Microsoft.Dafny{
 
     protected override TargetWriter CreateIIFE_ExprBody(Expression source, bool inLetExprBody, Type sourceType, Bpl.IToken sourceTok,
       Type resultType, Bpl.IToken resultTok, string bvName, TargetWriter wr) {
-      wr.Write("Dafny.Helpers.Let<{0},{1}>(", TypeName(sourceType, wr, sourceTok), TypeName(resultType, wr, resultTok));
+      wr.Write("DafnyClasses.Helpers.Let(");
       TrExpr(source, wr, inLetExprBody);
-      wr.Write(", {0} => ", bvName);
+      wr.Write(", {0} -> ", bvName);
       var w = wr.Fork();
       wr.Write(")");
       int y = ((System.Func<int,int>)((u) => u + 5))(6);
