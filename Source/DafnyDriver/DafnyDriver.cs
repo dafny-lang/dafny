@@ -204,7 +204,7 @@ namespace Microsoft.Dafny
         string baseName = cce.NonNull(Path.GetFileName(dafnyFileNames[dafnyFileNames.Count - 1]));
         var verified = Boogie(baseName, boogiePrograms, programId, out statss, out oc);
         var compiled = Compile(dafnyFileNames[0], otherFileNames, dafnyProgram, oc, statss, verified);
-        exitValue = verified && compiled ? ExitValue.VERIFIED : !verified ? ExitValue.NOT_VERIFIED : ExitValue.COMPILE_ERROR;
+        exitValue = verified && (compiled || !DafnyOptions.O.Compile) ? ExitValue.VERIFIED : !verified ? ExitValue.NOT_VERIFIED : ExitValue.COMPILE_ERROR;
       }
 
       if (err == null && dafnyProgram != null && DafnyOptions.O.PrintStats) {
