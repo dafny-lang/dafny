@@ -2968,7 +2968,7 @@ namespace Microsoft.Dafny{
       }
       else{
         var nw = idGenerator.FreshId("_nw");
-        var localType = SupportsAmbiguousTypeDecl ? null : tRhs.EType;
+        var localType = SupportsAmbiguousTypeDecl ? null : tRhs.Type;
         var wRhs = DeclareLocalVar(nw, localType, null, wStmts);
         TrTypeRhs(tRhs, wRhs);
 
@@ -2985,7 +2985,7 @@ namespace Microsoft.Dafny{
         else if (tRhs.ElementInit != null){
           // Compute the array-initializing function once and for all (as required by the language definition)
           string f = idGenerator.FreshId("_arrayinit");
-          DeclareLocalVar(f, null, null, tRhs.ElementInit, false, wStmts);
+          DeclareLocalVar(f, SupportsAmbiguousTypeDecl ? null : tRhs.ElementInit.Type, null, tRhs.ElementInit, false, wStmts);
           // Build a loop nest that will call the initializer for all indices
           var indices = Translator.Map(Enumerable.Range(0, tRhs.ArrayDimensions.Count),
             ii => idGenerator.FreshId("_arrayinit_" + ii));
@@ -2998,7 +2998,7 @@ namespace Microsoft.Dafny{
             w = CreateForLoop(indices[d], bound, w);
           }
 
-          var eltRhs = string.Format("{0}({1})", f, Util.Comma(indices, ArrayIndexToInt));
+          var eltRhs = string.Format("{0}{2}({1})", f, Util.Comma(indices, ArrayIndexToInt), TargetLanguage == "Java" ? ".apply" : "");
           var wArray = EmitArrayUpdate(indices, eltRhs, tRhs.ElementInit.Type, w);
           wArray.Write(nw);
           EndStmt(w);
@@ -3738,6 +3738,9 @@ namespace Microsoft.Dafny{
         }
 
         // We end with applying the source expression to the delegate we just built
+        if (TargetLanguage == "Java") {
+          wr.Write(".apply");
+        }
         TrParenExpr(e.Source, wr, inLetExprBody);
       }
       else if (expr is QuantifierExpr){

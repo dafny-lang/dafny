@@ -67,6 +67,10 @@ public class DafnySequence<T> implements Iterable {
         return seq.get(i);
     }
 
+    public T select(BigInteger i) {
+        return select(i.intValue());
+    }
+
     public int length() {
         return seq.size();
     }
@@ -102,11 +106,19 @@ public class DafnySequence<T> implements Iterable {
         return new DafnySequence<>(seq.subList(lo, length()));
     }
 
+    public DafnySequence<T> drop(BigInteger lo) {
+        return drop(lo.intValue());
+    }
+
 
     // Returns the subsequence of values [0..hi)
     public DafnySequence<T> take(int hi) {
         assert hi >= 0 && hi <= length() : "Precondition Violation";
         return new DafnySequence<>(seq.subList(0, hi));
+    }
+
+    public DafnySequence<T> take(BigInteger hi) {
+        return take(hi.intValue());
     }
 
     public DafnySequence<DafnySequence<T>> slice(List<Integer> l) {
