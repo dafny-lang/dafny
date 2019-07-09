@@ -59,8 +59,8 @@ public class ByteTest {
         assertEquals(0, max.multiply(zero).intValue());
         assertEquals(5, tenI.divide(two).intValue());
         assertEquals(0, zero.divide(max).intValue());
-        assertEquals(0, tenB.modulus(two).intValue());
-        assertEquals(0xff%10, max.modulus(tenI).intValue());
+        assertEquals(0, tenB.mod(two).intValue());
+        assertEquals(0xff%10, max.mod(tenI).intValue());
     }
 
     @Rule
@@ -74,6 +74,6 @@ public class ByteTest {
         zero.subtract(two);
         max.multiply(tenB);
         max.divide(zero);
-        max.modulus(zero);
+        max.mod(zero);
     }
 }

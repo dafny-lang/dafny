@@ -14,6 +14,10 @@ public class DafnyByte {
         inner = i;
     }
 
+    public DafnyByte(DafnyByte other){
+        inner = other.inner;
+    }
+
     public static int compare(DafnyByte x, DafnyByte y){
         return Integer.compareUnsigned(x.inner, y.inner);
     }
@@ -67,7 +71,7 @@ public class DafnyByte {
     }
 
     //Invariant that other.inner is positive, so only nonzero check needed
-    public DafnyByte modulus(DafnyByte other){
+    public DafnyByte mod(DafnyByte other){
         assert other.inner != 0 : "Precondition Failure";
         return new DafnyByte(inner%other.inner);
     }

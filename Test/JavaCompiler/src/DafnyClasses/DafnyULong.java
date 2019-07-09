@@ -18,6 +18,10 @@ public class DafnyULong {
         inner = Short.toUnsignedLong(sh);
     }
 
+    public DafnyULong(DafnyULong other){
+        inner = other.inner;
+    }
+
     public DafnyULong(int i) {
         inner = Integer.toUnsignedLong(i);
     }
@@ -68,7 +72,7 @@ public class DafnyULong {
     }
 
     //Invariant that other.inner is positive, so only nonzero check needed
-    public DafnyULong modulus(DafnyULong other) {
+    public DafnyULong mod(DafnyULong other) {
         assert other.inner != 0 : "Precondition Failure";
         return new DafnyULong(Long.remainderUnsigned(inner, other.inner));
     }
