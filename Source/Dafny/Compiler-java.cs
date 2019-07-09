@@ -518,25 +518,25 @@ namespace Microsoft.Dafny{
       needsCastAfterArithmetic = false;
       switch (sel) {
         case NativeType.Selection.Byte:
-          name = "Dafny.DafnyByte";
+          name = "DafnyClasses.DafnyByte";
           break;
         case NativeType.Selection.SByte:
           name = "Byte";
           break;
         case NativeType.Selection.UShort:
-          name = "Dafny.DafnyUShort";
+          name = "DafnyClasses.DafnyUShort";
           break;
         case NativeType.Selection.Short:
           name = "Short";
           break;
         case NativeType.Selection.UInt:
-          name = "Dafny.DafnyUInt";
+          name = "DafnyClasses.DafnyUInt";
           break;
         case NativeType.Selection.Int:
           name = "Integer";
           break;
         case NativeType.Selection.ULong:
-          name = "Dafny.DafnyULong";
+          name = "DafnyClasses.DafnyULong";
           break;
         case NativeType.Selection.Number:
         case NativeType.Selection.Long:
@@ -622,19 +622,19 @@ namespace Microsoft.Dafny{
           compiledName = "toBigInteger()";
           break;
         case SpecialField.ID.IsLimit:
-          preString = "Dafny.BigOrdinal.IsLimit(";
+          preString = "DafnyClasses.DafnyBigOrdinal.IsLimit(";
           postString = ")";
           break;
         case SpecialField.ID.IsSucc:
-          preString = "Dafny.BigOrdinal.IsSucc(";
+          preString = "DafnyClasses.DafnyBigOrdinal.IsSucc(";
           postString = ")";
           break;
         case SpecialField.ID.Offset:
-          preString = "Dafny.BigOrdinal.Offset(";
+          preString = "DafnyClasses.DafnyBigOrdinal.Offset(";
           postString = ")";
           break;
         case SpecialField.ID.IsNat:
-          preString = "Dafny.BigOrdinal.IsNat(";
+          preString = "DafnyClasses.DafnyBigOrdinal.IsNat(";
           postString = ")";
           break;
         case SpecialField.ID.Keys:
@@ -779,11 +779,6 @@ namespace Microsoft.Dafny{
       else if (source.Type.AsCollectionType is MapType){
         TrParenExpr(".get", index, wr, inLetExprBody);
       }
-      else if (source.Type.AsCollectionType is SeqType){
-        wr.Write(".select(");
-        wr.Write(((BigInteger)((LiteralExpr)index).Value).ToString());
-        wr.Write(")");
-      }
       else{
         TrParenExpr(".select", index, wr, inLetExprBody);
       }
@@ -822,11 +817,11 @@ namespace Microsoft.Dafny{
         wr.Write("(" + nativeName + ")(");
       }
       wr.Write("(");
-      EmitShift(e0, e1, isRotateLeft ? "<<" : ">>", isRotateLeft, nativeType, true, wr, inLetExprBody, tr);
+      EmitShift(e0, e1, isRotateLeft ? ".shiftLeft" : ".shiftRight", isRotateLeft, nativeType, true, wr, inLetExprBody, tr);
       wr.Write(")");
       wr.Write (" | ");
       wr.Write("(");
-      EmitShift(e0, e1, isRotateLeft ? ">>" : "<<", !isRotateLeft, nativeType, false, wr, inLetExprBody, tr);
+      EmitShift(e0, e1, isRotateLeft ? ".shiftRight" : ".shiftLeft", !isRotateLeft, nativeType, false, wr, inLetExprBody, tr);
       wr.Write(")");
       if (needsCast) {
         wr.Write(")");
@@ -868,7 +863,7 @@ namespace Microsoft.Dafny{
       // --- After
       // do the truncation, if needed
       if (bvType.NativeType == null) {
-        wr.Write(") & ((new BigInteger(1) << {0}) - 1))", bvType.Width);
+        wr.Write(").and((BigInteger.ONE.shiftLeft({0})).subtract(BigInteger.ONE)))", bvType.Width);
       } else {
         if (bvType.NativeType.Bitwidth != bvType.Width) {
           // print in hex, because that looks nice
@@ -1493,6 +1488,28 @@ namespace Microsoft.Dafny{
         w.Write(")");
       EndStmt(wr);
     }
+    
+    protected override TargetWriter EmitCoercionIfNecessary(Type/*?*/ from, Type/*?*/ to, Bpl.IToken tok, TargetWriter wr) {
+      if (to == null) {
+        return wr;
+      }
+
+      from = from?.NormalizeExpand();
+      to = to.NormalizeExpand();
+      if (from is BitvectorType && to is BitvectorType && ((BitvectorType)from).NativeType != null){
+        string p;
+        string s;
+        bool b;
+        GetNativeInfo(((BitvectorType)from).NativeType.Sel, out p, out s, out b);
+        wr.Write($"new {p}(");
+        var w = wr.Fork();
+        wr.Write(")");
+        return w;
+      }
+
+      return wr;
+    }
+
 
     protected override void EmitDatatypeValue(DatatypeValue dtv, string arguments, TargetWriter wr){
       var dt = dtv.Ctor.EnclosingDatatype;
@@ -1679,20 +1696,26 @@ protected override BlockTargetWriter CreateLambda(List<Type> inTypes, Bpl.IToken
           convertE1_to_int = true;
           break;
         case BinaryExpr.ResolvedOpcode.Add:
-          callString = "add";
           truncateResult = true;
           if (resultType.IsCharType){
             preOpString = "(char) (";
-            postOpString = ".intValue())";
+            postOpString = ")";
+            opString = "+";
+          }
+          else{
+            callString = "add";
           }
 
           break;
         case BinaryExpr.ResolvedOpcode.Sub:
-          callString = "subtract";
           truncateResult = true;
           if (resultType.IsCharType){
             preOpString = "(char) (";
-            postOpString = ".intValue())";
+            opString = "-";
+            postOpString = ")";
+          }
+          else{
+            callString = "subtract";
           }
 
           break;
@@ -1704,7 +1727,7 @@ protected override BlockTargetWriter CreateLambda(List<Type> inTypes, Bpl.IToken
           if (resultType.IsIntegerType ||
               (AsNativeType(resultType) != null && AsNativeType(resultType).LowerBound < BigInteger.Zero)){
             var suffix = AsNativeType(resultType) != null ? "_" + GetNativeTypeName(AsNativeType(resultType)) : "";
-            staticCallString = "DafnyEuclidian.EuclideanDivision" + suffix;
+            staticCallString = "DafnyEuclidean.EuclideanDivision" + suffix;
           }
           else{
             callString = "divide";
@@ -1715,7 +1738,7 @@ protected override BlockTargetWriter CreateLambda(List<Type> inTypes, Bpl.IToken
           if (resultType.IsIntegerType ||
               (AsNativeType(resultType) != null && AsNativeType(resultType).LowerBound < BigInteger.Zero)){
             var suffix = AsNativeType(resultType) != null ? "_" + GetNativeTypeName(AsNativeType(resultType)) : "";
-            staticCallString = "DafnyEuclidian.EuclideanModulus" + suffix;
+            staticCallString = "DafnyEuclidean.EuclideanModulus" + suffix;
           }
           else{
             callString = "mod";
