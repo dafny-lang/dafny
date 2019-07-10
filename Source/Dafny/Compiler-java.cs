@@ -2330,7 +2330,7 @@ namespace Microsoft.Dafny{
     }
     
     protected override BlockTargetWriter CreateForLoop(string indexVar, string bound, TargetWriter wr) {
-      return wr.NewNamedBlock("for (BigInteger {0} = new BigInteger(\"0\"); {0}.compareTo(BigInteger.valueOf({1})) < 0; {0} = {0}.add(new BigInteger(\"1\")))", indexVar, bound);
+      return wr.NewNamedBlock($"for (BigInteger {indexVar} = new BigInteger(\"0\"); {indexVar}.compareTo(BigInteger.valueOf({bound})) < 0; {indexVar} = {indexVar}.add(new BigInteger(\"1\")))");
     }
 
     // ABSTRACT METHOD DECLARATIONS FOR THE SAKE OF BUILDING PROGRAM

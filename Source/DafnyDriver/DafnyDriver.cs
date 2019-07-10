@@ -614,10 +614,11 @@ namespace Microsoft.Dafny
         var codebase = System.IO.Path.GetDirectoryName(assemblyLocation);
         Contract.Assert(codebase != null);
         string dest = targetDir + "/DafnyClasses";
-        ((JavaCompiler)compiler).CompileTuples(dest);
-        ((JavaCompiler)compiler).CreateFunctionInterface(dest);
-        ((JavaCompiler)compiler).CompileDafnyArrays(dest);
-        ((JavaCompiler)compiler).CompileArrayInits(dest);
+        var jcompiler = (JavaCompiler) compiler;
+        jcompiler.CompileTuples(dest);
+        jcompiler.CreateFunctionInterface(dest);
+        jcompiler.CompileDafnyArrays(dest);
+        jcompiler.CompileArrayInits(dest);
       }
       
       object compilationResult;
