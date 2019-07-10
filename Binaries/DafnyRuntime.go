@@ -361,6 +361,16 @@ type Seq struct {
 // EmptySeq is the empty sequence.
 var EmptySeq = SeqOf()
 
+// Create a sequence from a length and an element initializer
+func SeqCreate(n Int, init func (Int) interface{}) Seq {
+  len := n.Int()
+  arr := make([]interface{}, len)
+  for i := 0; i < len; i++ {
+    arr[i] = init(IntOf(i))
+  }
+  return Seq{arr, false}
+}
+
 // SeqOf returns a sequence containing the given values.
 func SeqOf(values ...interface{}) Seq {
 	// Making a defensive copy here because variadic functions can get hinky

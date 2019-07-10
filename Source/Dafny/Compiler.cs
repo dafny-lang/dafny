@@ -455,6 +455,7 @@ namespace Microsoft.Dafny {
     /// If "fromArray" is true, then "source" is an array.
     /// </summary>
     protected abstract void EmitSeqSelectRange(Expression source, Expression/*?*/ lo, Expression/*?*/ hi, bool fromArray, bool inLetExprBody, TargetWriter wr);
+    protected abstract void EmitSeqConstructionExpr(SeqConstructionExpr expr, bool inLetExprBody, TargetWriter wr);
     protected abstract void EmitMultiSetFormingExpr(MultiSetFormingExpr expr, bool inLetExprBody, TargetWriter wr);
     protected abstract void EmitApplyExpr(Type functionType, Bpl.IToken tok, Expression function, List<Expression> arguments, bool inLetExprBody, TargetWriter wr);
     protected abstract TargetWriter EmitBetaRedex(List<string> boundVars, List<Expression> arguments, string typeArgs, List<Type> boundTypes, Type resultType, Bpl.IToken resultTok, bool inLetExprBody, TargetWriter wr);
@@ -2907,6 +2908,9 @@ namespace Microsoft.Dafny {
         } else {
           EmitSeqSelectRange(e.Seq, e.E0, e.E1, false, inLetExprBody, wr);
         }
+      } else if (expr is SeqConstructionExpr) {
+        var e = (SeqConstructionExpr)expr;
+        EmitSeqConstructionExpr(e, inLetExprBody, wr);
       } else if (expr is MultiSetFormingExpr) {
         var e = (MultiSetFormingExpr)expr;
         EmitMultiSetFormingExpr(e, inLetExprBody, wr);

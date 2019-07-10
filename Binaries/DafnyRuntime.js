@@ -459,6 +459,9 @@ let _dafny = (function() {
     static get Default() {
       return Seq.of();
     }
+    static Create(n, init) {
+      return Seq.from({length: n}, (_, i) => init(new BigNumber(i)));
+    }
     toString() {
       return "[" + arrayElementsToString(this) + "]";
     }

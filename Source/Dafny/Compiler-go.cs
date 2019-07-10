@@ -10,6 +10,7 @@ using System.Numerics;
 using System.IO;
 using System.Diagnostics.Contracts;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Text.RegularExpressions;
 using Bpl = Microsoft.Boogie;
@@ -2478,6 +2479,19 @@ namespace Microsoft.Dafny {
         TrExpr(hi, wr, inLetExprBody);
       }
 
+      wr.Write(")");
+    }
+
+    protected override void EmitSeqConstructionExpr(SeqConstructionExpr expr, bool inLetExprBody, TargetWriter wr) {
+      wr.Write("_dafny.SeqCreate(");
+      TrExpr(expr.N, wr, inLetExprBody);
+      wr.Write(", ");
+      var fromType = (UserDefinedType)expr.Initializer.Type.NormalizeExpand();
+      var atd = (ArrowTypeDecl)fromType.ResolvedClass;
+      var tParam = new UserDefinedType(expr.tok, new TypeParameter(expr.tok, "X", TypeParameter.TPVarianceSyntax.NonVariant_Strict));
+      var toType = new ArrowType(expr.tok, atd, new List<Type>() { Type.Int }, tParam);
+      var initWr = EmitCoercionIfNecessary(fromType, toType, expr.tok, wr);
+      TrExpr(expr.Initializer, initWr, inLetExprBody);
       wr.Write(")");
     }
 

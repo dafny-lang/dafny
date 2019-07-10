@@ -216,6 +216,8 @@ namespace Microsoft.Dafny.Triggers {
         return ShallowEq((BinaryExpr)expr1, (BinaryExpr)expr2);
       } else if (expr1 is UnaryExpr && expr2 is UnaryExpr) {
         return ShallowEq((UnaryExpr)expr1, (UnaryExpr)expr2);
+      } else if (expr1 is SeqConstructionExpr && expr2 is SeqConstructionExpr) {
+        return ShallowEq((SeqConstructionExpr)expr1, (SeqConstructionExpr)expr2);
       } else if (expr1 is MultiSetFormingExpr && expr2 is MultiSetFormingExpr) {
         return ShallowEq((MultiSetFormingExpr)expr1, (MultiSetFormingExpr)expr2);
       } else if (expr1 is OldExpr && expr2 is OldExpr) {
@@ -392,6 +394,10 @@ namespace Microsoft.Dafny.Triggers {
     }
 
     private static bool ShallowEq(MultiSetFormingExpr expr1, MultiSetFormingExpr expr2) {
+      return true;
+    }
+
+    private static bool ShallowEq(SeqConstructionExpr expr1, SeqConstructionExpr expr2) {
       return true;
     }
 

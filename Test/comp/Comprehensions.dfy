@@ -10,6 +10,7 @@ method Main() {
   MapComprehension();
   OutParamsUnderLambdas();  // white-box testing
   AltControlFlow();
+  Sequences();
 }
 
 predicate method Thirteen(x: int) { x == 13 }
@@ -187,4 +188,21 @@ method FindRangeBindingGuardAlt(s: seq<int>, from: int, to: int) returns (lo: in
     case forall j :: lo <= j < hi ==> from <= s[j] < to =>
       break;
   }
+}
+
+method Sequences() {
+  var four1s := [1, 1, 1, 1];
+  var twelve1s := seq(12, _ => 1);
+  assert twelve1s == four1s + four1s + four1s;
+
+  var squares := seq(8, i => i*i);
+  assert |squares| == 8;
+  assert squares[6] == 36;
+
+  var nats := seq(8, i => i);
+
+  print four1s, "\n";
+  print twelve1s, "\n";
+  print squares, "\n";
+  print nats, "\n";
 }

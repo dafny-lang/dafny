@@ -306,6 +306,10 @@ axiom (forall s: [ref]bool, bx: Box :: { SetRef_to_SetBox(s)[bx] }
 axiom (forall s: [ref]bool :: { SetRef_to_SetBox(s) }
   $Is(SetRef_to_SetBox(s), TSet(Tclass._System.object?())));
 
+// Functions ApplyN, RequiresN, and ReadsN are generated on demand by the translator,
+// but Apply1 is referred to in the prelude, so its definition is hardcoded here.
+function Apply1(Ty, Ty, Heap, HandleType, Box): Box;
+
 // ---------------------------------------------------------------
 // -- Datatypes --------------------------------------------------
 // ---------------------------------------------------------------
@@ -938,6 +942,16 @@ axiom (forall<T> s: Seq T, i: int, v: T :: { Seq#Index(Seq#Build(s,v), i) }
 // Build preserves $Is
 axiom (forall s: Seq Box, bx: Box, t: Ty :: { $Is(Seq#Build(s,bx),TSeq(t)) }
     $Is(s,TSeq(t)) && $IsBox(bx,t) ==> $Is(Seq#Build(s,bx),TSeq(t)));
+
+function Seq#Create(ty: Ty, heap: Heap, len: int, init: HandleType): Seq Box;
+axiom (forall ty: Ty, heap: Heap, len: int, init: HandleType ::
+  { Seq#Length(Seq#Create(ty, heap, len, init): Seq Box) }
+  $IsGoodHeap(heap) && 0 <= len ==>
+  Seq#Length(Seq#Create(ty, heap, len, init): Seq Box) == len);
+axiom (forall ty: Ty, heap: Heap, len: int, init: HandleType, i: int ::
+  { Seq#Index(Seq#Create(ty, heap, len, init), i) }
+  $IsGoodHeap(heap) && 0 <= i && i < len ==>
+  Seq#Index(Seq#Create(ty, heap, len, init), i) == Apply1(TInt, TSeq(ty), heap, init, $Box(i)));
 
 function Seq#Append<T>(Seq T, Seq T): Seq T;
 axiom (forall<T> s0: Seq T, s1: Seq T :: { Seq#Length(Seq#Append(s0,s1)) }

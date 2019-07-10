@@ -6523,7 +6523,7 @@ namespace Microsoft.Dafny
             i++;
           }
           return false;  // we've done what there is to be done
-        } else if (expr is SetDisplayExpr || expr is MultiSetDisplayExpr || expr is MapDisplayExpr || expr is MultiSetFormingExpr || expr is StaticReceiverExpr) {
+        } else if (expr is SetDisplayExpr || expr is MultiSetDisplayExpr || expr is MapDisplayExpr || expr is SeqConstructionExpr || expr is MultiSetFormingExpr || expr is StaticReceiverExpr) {
           // This catches other expressions whose type may potentially be illegal
           CheckEqualityTypes_Type(expr.tok, expr.Type);
         }
@@ -11709,23 +11709,41 @@ namespace Microsoft.Dafny
         ResolveFunctionCallExpr(e, opts);
 
       } else if (expr is ApplyExpr) {
-        var e = (ApplyExpr)expr;
+        var e = (ApplyExpr) expr;
         ResolveExpression(e.Function, opts);
         foreach (var arg in e.Args) {
           ResolveExpression(arg, opts);
         }
+
         // TODO: the following should be replaced by a type-class constraint that constrains the types of e.Function, e.Args[*], and e.Type
         var fnType = e.Function.Type.AsArrowType;
         if (fnType == null) {
-          reporter.Error(MessageSource.Resolver, e.tok, "non-function expression (of type {0}) is called with parameters", e.Function.Type);
+          reporter.Error(MessageSource.Resolver, e.tok,
+            "non-function expression (of type {0}) is called with parameters", e.Function.Type);
         } else if (fnType.Arity != e.Args.Count) {
-          reporter.Error(MessageSource.Resolver, e.tok, "wrong number of arguments to function application (function type '{0}' expects {1}, got {2})", fnType, fnType.Arity, e.Args.Count);
+          reporter.Error(MessageSource.Resolver, e.tok,
+            "wrong number of arguments to function application (function type '{0}' expects {1}, got {2})", fnType,
+            fnType.Arity, e.Args.Count);
         } else {
           for (var i = 0; i < fnType.Arity; i++) {
-            AddAssignableConstraint(e.Args[i].tok, fnType.Args[i], e.Args[i].Type, "type mismatch for argument" + (fnType.Arity == 1 ? "" : " " + i) + " (function expects {0}, got {1})");
+            AddAssignableConstraint(e.Args[i].tok, fnType.Args[i], e.Args[i].Type,
+              "type mismatch for argument" + (fnType.Arity == 1 ? "" : " " + i) + " (function expects {0}, got {1})");
           }
         }
+
         expr.Type = fnType == null ? new InferredTypeProxy() : fnType.Result;
+
+      } else if (expr is SeqConstructionExpr) {
+        var e = (SeqConstructionExpr) expr;
+        var elementType = new InferredTypeProxy();
+        ResolveExpression(e.N, opts);
+        ConstrainToIntegerType(e.N, "sequence construction must use an integer-based expression for the sequence size (got {0})");
+        ResolveExpression(e.Initializer, opts);
+        var arrowType = new ArrowType(e.tok, builtIns.ArrowTypeDecls[1], new List<Type>() { Type.Int }, elementType);
+        var hintString = " (perhaps write '_ =>' in front of the expression you gave in order to make it an arrow type)";
+        ConstrainSubtypeRelation(arrowType, e.Initializer.Type, e.Initializer, "sequence-construction initializer expression expected to have type '{0}' (instead got '{1}'){2}",
+          arrowType, e.Initializer.Type, new LazyString_OnTypeEquals(elementType, e.Initializer.Type, hintString));
+        expr.Type = new SeqType(elementType);
 
       } else if (expr is MultiSetFormingExpr) {
         MultiSetFormingExpr e = (MultiSetFormingExpr)expr;

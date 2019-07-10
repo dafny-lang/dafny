@@ -1550,6 +1550,14 @@ namespace Microsoft.Dafny {
       }
     }
 
+    protected override void EmitSeqConstructionExpr(SeqConstructionExpr expr, bool inLetExprBody, TargetWriter wr) {
+      wr.Write("_dafny.Seq.Create(");
+      TrExpr(expr.N, wr, inLetExprBody);
+      wr.Write(", ");
+      TrExpr(expr.Initializer, wr, inLetExprBody);
+      wr.Write(")");
+    }
+
     protected override void EmitMultiSetFormingExpr(MultiSetFormingExpr expr, bool inLetExprBody, TargetWriter wr) {
       TrParenExpr("_dafny.MultiSet.FromArray", expr.E, wr, inLetExprBody);
     }
