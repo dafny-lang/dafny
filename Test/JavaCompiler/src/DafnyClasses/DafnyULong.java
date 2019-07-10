@@ -99,4 +99,28 @@ public class DafnyULong {
     private BigInteger asBigInteger() {
         return new BigInteger(Long.toUnsignedString(inner));
     }
+
+    public DafnyULong xor(DafnyULong other){
+        return new DafnyULong(inner ^ other.inner);
+    }
+
+    public DafnyULong or(DafnyULong other){
+        return new DafnyULong(inner | other.inner);
+    }
+
+    public DafnyULong and(DafnyULong other){
+        return new DafnyULong(inner & other.inner);
+    }
+
+    public DafnyULong negate(){
+        return new DafnyULong(~inner);
+    }
+
+    public DafnyULong shiftLeft(int i){
+        return new DafnyULong(inner << i);
+    }
+
+    public DafnyULong shiftRight(int i){
+        return new DafnyULong(inner << i);
+    }
 }

@@ -94,4 +94,28 @@ public class DafnyByte {
     public String toString() {
         return Integer.toString(inner);
     }
+
+    public DafnyByte xor(DafnyByte other){
+        return new DafnyByte(inner ^ other.inner);
+    }
+
+    public DafnyByte or(DafnyByte other){
+        return new DafnyByte(inner | other.inner);
+    }
+
+    public DafnyByte and(DafnyByte other){
+        return new DafnyByte(inner & other.inner);
+    }
+
+    public DafnyByte negate(){
+        return new DafnyByte(~inner);
+    }
+
+    public DafnyByte shiftLeft(int i){
+        return new DafnyByte(inner << i);
+    }
+
+    public DafnyByte shiftRight(int i){
+        return new DafnyByte(inner << i);
+    }
 }

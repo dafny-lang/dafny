@@ -102,4 +102,27 @@ public class DafnyUInt {
         return Integer.toString(inner);
     }
 
+    public DafnyUInt xor(DafnyUInt other){
+        return new DafnyUInt(inner ^ other.inner);
+    }
+
+    public DafnyUInt or(DafnyUInt other){
+        return new DafnyUInt(inner | other.inner);
+    }
+
+    public DafnyUInt and(DafnyUInt other){
+        return new DafnyUInt(inner & other.inner);
+    }
+
+    public DafnyUInt negate(){
+        return new DafnyUInt(~inner);
+    }
+
+    public DafnyUInt shiftLeft(int i){
+        return new DafnyUInt(inner << i);
+    }
+
+    public DafnyUInt shiftRight(int i){
+        return new DafnyUInt(inner << i);
+    }
 }

@@ -99,4 +99,28 @@ public class DafnyUShort {
     public String toString() {
         return Integer.toString(inner);
     }
+
+    public DafnyUShort xor(DafnyUShort other){
+        return new DafnyUShort(inner ^ other.inner);
+    }
+
+    public DafnyUShort or(DafnyUShort other){
+        return new DafnyUShort(inner | other.inner);
+    }
+
+    public DafnyUShort and(DafnyUShort other){
+        return new DafnyUShort(inner & other.inner);
+    }
+
+    public DafnyUShort negate(){
+        return new DafnyUShort(~inner);
+    }
+
+    public DafnyUShort shiftLeft(int i){
+        return new DafnyUShort(inner << i);
+    }
+
+    public DafnyUShort shiftRight(int i){
+        return new DafnyUShort(inner << i);
+    }
 }
