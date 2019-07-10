@@ -53,7 +53,7 @@ namespace Microsoft.Dafny
 
       if (exitValue == ExitValue.VERIFIED)
       {
-        exitValue = ProcessFiles(dafnyFiles, otherFiles.AsReadOnly(), reporter);
+        exitValue = ProcessFiles(dafnyFiles, otherFiles.AsReadOnly(), reporter); 
       }
 
       if (CommandLineOptions.Clo.XmlSink != null) {
@@ -204,7 +204,7 @@ namespace Microsoft.Dafny
         string baseName = cce.NonNull(Path.GetFileName(dafnyFileNames[dafnyFileNames.Count - 1]));
         var verified = Boogie(baseName, boogiePrograms, programId, out statss, out oc);
         var compiled = Compile(dafnyFileNames[0], otherFileNames, dafnyProgram, oc, statss, verified);
-        exitValue = verified && (compiled || !DafnyOptions.O.Compile) ? ExitValue.VERIFIED : !verified ? ExitValue.NOT_VERIFIED : ExitValue.COMPILE_ERROR;
+        exitValue = verified && compiled ? ExitValue.VERIFIED : !verified ? ExitValue.NOT_VERIFIED : ExitValue.COMPILE_ERROR;
       }
 
       if (err == null && dafnyProgram != null && DafnyOptions.O.PrintStats) {
@@ -561,8 +561,8 @@ namespace Microsoft.Dafny
       }
 
       // compile the program into an assembly
-      if (!completeProgram || !invokeCompiler) {
-        // don't compile
+      // it should not return false when invokeCompiler is false, not compiling is not same as COMPILE_ERROR
+      if (!completeProgram) {
         return false;
       }
 
