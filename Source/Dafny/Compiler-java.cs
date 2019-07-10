@@ -2291,6 +2291,14 @@ namespace Microsoft.Dafny{
         }
       }
       if (!mustInitialize) {
+        if (elmtType is UserDefinedType && (elmtType as UserDefinedType).ResolvedClass == null) {
+          wr.Write($"({(elmtType as UserDefinedType).CompileName}");
+          foreach (var dim in dimensions) {
+            wr.Write("[]");
+          }
+          wr.Write(")");
+          typeNameSansBrackets = "Object";
+        }
         wr.Write("new {0}", typeNameSansBrackets);
         string prefix = "[";
         foreach (var dim in dimensions) {
