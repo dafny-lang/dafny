@@ -565,6 +565,9 @@ namespace Microsoft.Dafny
       if (!completeProgram) {
         return false;
       }
+      if (!invokeCompiler) {
+        return true;
+      }
 
       object compilationResult;
       var compiledCorrectly = compiler.CompileTargetProgram(dafnyProgramName, targetProgramText, callToMain, targetFilename, otherFileNames,
