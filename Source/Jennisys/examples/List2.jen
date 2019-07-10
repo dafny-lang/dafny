@@ -43,12 +43,12 @@ interface IntNode {
   constructor SingletonZero()
     ensures list = [0]
 
-  constructor Init(x: int) 
+  constructor Init(x: int)
     ensures list = [x]
 
   constructor Double(x: int, y: int)
     ensures list = [x y]
-	
+
   method Max() returns (ret: int)
     ensures ret in list
 	ensures forall t :: t in list ==> ret >= t
@@ -59,10 +59,10 @@ datamodel IntNode {
   var data: int
   var next: IntNode
 
-  frame 
+  frame
     next
 
   invariant
     next = null ==> list = [data]
     next != null ==> list = [data] + next.list
-} 
+}

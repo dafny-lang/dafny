@@ -879,7 +879,7 @@ module DatatypeTestZ {
 
 module ConstantFieldReceiverNonNull {
   newtype Six = x | 6 <= x witness 6
-    
+
   trait Trait {
     const x0: Six
     const x1: Six := 7

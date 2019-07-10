@@ -50,7 +50,7 @@ Colorizer   : java
                        //"([^"|\s]*)"/\([\"\1\"]{.terminal}\)\
                        //([^\[\(\{\w#.&])([A-Z]\w+)\b/\1\([\2](#1_\L\2\E){.ntref}\)\
                        //([^\[\(\{\w#.&])([a-z]\w+)\b/\1\([\2](#2_\L\2\E){.ntref}\)\
-                       //cg'    
+                       //cg'
 
 .grammar-ref: replace='//\/\/.*/\0\
                        //\/\*[\s\S]*?\*\//\0\
@@ -59,8 +59,8 @@ Colorizer   : java
                        //([^\[\(\{\w#.&])([a-z]\w+)\b/\1\([\2](#2_\L\2\E){.ntref}\)\
                        //^([A-Z]\w+)$/\([\1](#1_\L\1\E){.ntref}\)\
                        //^([a-z]\w+)$/\([\1](#2_\L\1\E){.ntref}\)\
-                       //cg'    
-.terminal   : font-weight=bold color=black                       
+                       //cg'
+.terminal   : font-weight=bold color=black
 .ntref      : color=maroon
 .ntdef      : color=olive
 
@@ -122,12 +122,12 @@ Css Header  : body { text-rendering=optimizeLegibility }
 % daan's fractions
 \newcommand\xstrut{\vrule height 9.4pt depth 4.6pt width 0pt\relax}
 \newcommand\xupstrut{\vrule height 9.4pt depth 0pt width 0pt\relax}
-         
+
 \renewcommand{\Dfrac}[2]{%
   \ooalign{%
     % first a thick fraction line
     $\genfrac{}{}{1.4pt}1{\displaystyle #1\strut}{\displaystyle #2\strut}$\cr%
-    % and then a thinner white fraction line on top of it 
+    % and then a thinner white fraction line on top of it
     $\color{white}\genfrac{}{}{0.6pt}1{\phantom{\displaystyle #1\strut}}{\phantom{\displaystyle #2\strut}}$}%
 }
 \renewcommand{\dfrac}[2]{%
@@ -190,7 +190,7 @@ From verified programs, the Dafny compiler produces code (`.dll` or
 facilities for interfacing with other .NET code are minimal.
 
 This is the reference manual for the Dafny verification system. It is
-based on the following references: 
+based on the following references:
 [@Leino:Dafny:LPAR16;@MSR:dafny:main;
 @MSR:dafny:source;@MSR:dafny:quickref; @LEINO:Dafny:Calc;
 @LEINO:Dafny:Coinduction;
@@ -208,7 +208,7 @@ To give a flavor of Dafny, here is the solution to a competition problem.
 // VSComp 2010, problem 3, find a 0 in a linked list and return how many
 // nodes were skipped until the first 0 (or end-of-list) was found.
 // Rustan Leino, 18 August 2010.
-// 
+//
 // The difficulty in this problem lies in specifying what the return
 // value 'r' denotes and in proving that the program terminates.  Both of
 // these are addressed by declaring a ghost field 'List' in each
@@ -217,7 +217,7 @@ To give a flavor of Dafny, here is the solution to a competition problem.
 // now talk about that sequence of elements and can use 'r' as an index
 // into the sequence, and termination can be proved from the fact that
 // all sequences in Dafny are finite.
-// 
+//
 // We only want to deal with linked lists whose 'List' field is properly
 // filled in (which can only happen in an acyclic list, for example).  To
 // that avail, the standard idiom in Dafny is to declare a predicate
@@ -243,14 +243,14 @@ class Node {
     1 <= |List| && List[0] == head &&
     (next == null ==> |List| == 1) &&
     (next != null ==>
-      next in Repr && next.Repr <= Repr && this !in next.Repr && 
+      next in Repr && next.Repr <= Repr && this !in next.Repr &&
       next.Valid() && next.List == List[1..])
   }
 
   static method Cons(x: int, tail: Node) returns (n: Node)
     requires tail == null || tail.Valid()
     ensures n != null && n.Valid()
-    ensures if tail == null then n.List == [x] 
+    ensures if tail == null then n.List == [x]
                             else n.List == [x] + tail.List
   {
     n := new Node;
@@ -278,7 +278,7 @@ method Search(ll: Node) returns (r: int)
   } else {
     var jj,i := ll,0;
     while (jj != null && jj.head != 0)
-      invariant jj != null ==> jj.Valid() && i + |jj.List| == |ll.List| && 
+      invariant jj != null ==> jj.Valid() && i + |jj.List| == |ll.List| &&
                                ll.List[i..] == jj.List
       invariant jj == null ==> i == |ll.List|
       invariant 0 !in ll.List[..i]
@@ -309,7 +309,7 @@ method Main()
 Dafny uses the Coco/R lexer and parser generator for its lexer and parser
 (<http://www.ssw.uni-linz.ac.at/Research/Projects/Coco>)[@Linz:Coco].
 The Dafny input file to Coco/R is the `Dafny.atg` file in the source tree.
-A Coco/R input file consists of code written in the target language 
+A Coco/R input file consists of code written in the target language
 (&eg; C#) intermixed with these special sections:
 
 0. The Characters section which defines classes of characters that are used
@@ -333,21 +333,21 @@ following transformations have been performed.
 * A Coco/R grammar is an attributed grammar where the attributes enable
   the productions to have input and output parameters. These attributes
   were removed except that boolean input parameters that affect
-  the parsing are kept. 
+  the parsing are kept.
   * In our representation we represent these
     in a definition by giving the names of the parameters following
     the non-terminal name. For example `entity1(allowsX)`.
   * In the case of uses of the parameter, the common case is that the
     parameter is just passed to a lower-level non-terminal. In that
-    case we just give the name, e.g. `entity2(allowsX)`. 
-  * If we want to given an explicit value to a parameter, we specify it in 
+    case we just give the name, e.g. `entity2(allowsX)`.
+  * If we want to given an explicit value to a parameter, we specify it in
     a keyword notation like this: `entity2(allowsX: true)`.
   * In some cases the value to be passed depends on the grammatical context.
     In such cases we give a description of the conditions under which the
     parameter is true, enclosed in parenthesis. For example:
-    
+
       `FunctionSignatureOrEllipsis_(allowGhostKeyword: ("method" present))`
-    
+
     means that the `allowGhostKeyword` parameter is true if the
     "method" keyword was given in the associated ``FunctionDecl``.
   * Where a parameter affects the parsing of a non-terminal we will
@@ -355,7 +355,7 @@ following transformations have been performed.
 
 
 The names of character sets and tokens start with a lower case
-letter but the names of grammar non-terminals start with 
+letter but the names of grammar non-terminals start with
 an upper-case letter.
 
 The grammar uses Extended BNF notation. See the [Coco/R Referenced
@@ -363,15 +363,15 @@ manual](http://www.ssw.uni-linz.ac.at/Research/Projects/Coco/Doc/UserManual.pdf)
 for details. But in summary:
 
 * identifiers starting with a lower case letter denote
-terminal symbols, 
+terminal symbols,
 * identifiers starting with an upper case letter denote nonterminal
 symbols.
 * Strings denote themselves.
-* `=` separates the sides of a production, &eg; `A = a b c` 
+* `=` separates the sides of a production, &eg; `A = a b c`
 * In the Coco grammars "." terminates a production, but for readability
-  in this document a production starts with the defined identifier in 
+  in this document a production starts with the defined identifier in
   the left margin and may be continued on subsequent lines if they
-  are indented.  
+  are indented.
 * `|` separates alternatives, &eg; `a b | c | d e` means `a b` or `c or d e`
 * `(` `)` groups alternatives, &eg; (a | b) c means a c or b c
 * `[ ]` option, &eg; `[a] b` means `a b` or `b`
@@ -428,7 +428,7 @@ that are allowed to appear in a Dafny identifier. These are
 * `"'"` because mathematicians like to put primes on identifiers and some ML
   programmers like to start names of type parameters with a "'".
 * "_" because computer scientists expect to be able to have underscores in identifiers.
-* "?" because it is useful to have "?" at the end of names of predicates, 
+* "?" because it is useful to have "?" at the end of names of predicates,
   e.g. "Cons?".
 
 ````
@@ -497,7 +497,7 @@ The following reserved words appear in the Dafny grammar and may not be used
 as identifiers of user-defined entities:
 
 ````
-reservedword = 
+reservedword =
     "abstract" | "array" | "as" | "assert" | "assume" | "bool" | "break" |
     "calc" | "case" | "char" | "class" | "codatatype" | "colemma" |
     "constructor" | "copredicate" | "datatype" | "decreases" |
@@ -523,7 +523,7 @@ TODO: Is "_" is reserved word?
 ### Identifiers
 
 ````
-ident = nondigitIdChar { idchar } - arraytoken - chartoken - reservedword 
+ident = nondigitIdChar { idchar } - arraytoken - chartoken - reservedword
 ````
 In general Dafny identifiers are sequences of ``idChar`` characters where
 the first character is a ``nondigitIdChar``. However tokens that fit this pattern
@@ -550,7 +550,7 @@ A decimal fraction constant, possibly interspersed with underscores for readabil
 Example: `123_456.789_123`.
 
 ### Escaped Character
-In this section the "\\" characters are literal. 
+In this section the "\\" characters are literal.
 ````
 escapedChar =
     ( "\\\'" | "\\&quot;" | "\\\\" | "\\0" | "\\n" | "\\r" | "\\t"
@@ -562,10 +562,10 @@ In Dafny character or string literals escaped characters may be used
 to specify the presence of the delimiting quote, or back slash,
 or null, or new line, or carriage return or tab, or the
 Unicode character with given hexadecimal representation.
- 
+
 ### Character Constant Token
 ````
-charToken = "'" ( charChar | escapedChar ) "'" 
+charToken = "'" ( charChar | escapedChar ) "'"
 ````
 
 A character constant is enclosed by "'" and includes either a character
@@ -583,7 +583,7 @@ stringToken =
 ````
 
 A string constant is either a normal string constant or a verbatim string constant.
-A normal string constant is enclosed by '"' and can contain characters from the 
+A normal string constant is enclosed by '"' and can contain characters from the
 ``stringChar`` set and escapes.
 
 A verbatim string constant is enclosed between '@"' and '"' and can
@@ -596,17 +596,17 @@ the string.
 ### Identifier Variations
 
 ````
-Ident = ident 
+Ident = ident
 ````
-The ``Ident`` non-terminal is just an ``ident`` token and represents an ordinary 
+The ``Ident`` non-terminal is just an ``ident`` token and represents an ordinary
 identifier.
 
 ````
-DotSuffix = 
-  ( ident | digits | "requires" | "reads" ) 
+DotSuffix =
+  ( ident | digits | "requires" | "reads" )
 ````
 When using the _dot_ notation to denote a component of a compound entity
-the token following the ".", in addition to being an identifier, 
+the token following the ".", in addition to being an identifier,
 can also be a natural number, or one of the keywords `requires` or `reads`.
 
 * Digits can be used to name fields of classes and destructors of
@@ -620,47 +620,47 @@ can also be a natural number, or one of the keywords `requires` or `reads`.
 NoUSIdent = ident - "_" { idChar }
 ````
 A ``NoUSIdent`` is an identifier except that identifiers with a **leading**
-underscore are not allowed. The names of user-defined entities are 
+underscore are not allowed. The names of user-defined entities are
 required to be ``NoUSIdent``s. We introduce more mnemonic names
 for these below (e.g. ``ClassName``).
 
 ````
-WildIdent = NoUSIdent | "_" 
+WildIdent = NoUSIdent | "_"
 ````
 Identifier, disallowing leading underscores, except the "wildcard"
 identifier "_". When "_" appears it is replaced by a unique generated
-identifier distinct from user identifiers. 
+identifier distinct from user identifiers.
 
 ### NoUSIdent Synonyms
-In the productions for the declaration of user-defined entities the name of the 
+In the productions for the declaration of user-defined entities the name of the
 user-defined entity is required to be an identifier that does not start
 with an underscore, i.e., a ``NoUSIdent``. To make the productions more
 mnemonic, we introduce the following synonyms for ``NoUSIdent``.
 
 ````
-ModuleName = NoUSIdent 
-ClassName = NoUSIdent 
-TraitName = NoUSIdent 
-DatatypeName = NoUSIdent 
-DatatypeMemberName = NoUSIdent 
-NewtypeName = NoUSIdent 
-NumericTypeName = NoUSIdent 
-SynonymTypeName = NoUSIdent 
-IteratorName = NoUSIdent 
-TypeVariableName = NoUSIdent 
-MethodName = NoUSIdent 
-FunctionName = NoUSIdent 
-PredicateName = NoUSIdent 
-CopredicateName = NoUSIdent 
+ModuleName = NoUSIdent
+ClassName = NoUSIdent
+TraitName = NoUSIdent
+DatatypeName = NoUSIdent
+DatatypeMemberName = NoUSIdent
+NewtypeName = NoUSIdent
+NumericTypeName = NoUSIdent
+SynonymTypeName = NoUSIdent
+IteratorName = NoUSIdent
+TypeVariableName = NoUSIdent
+MethodName = NoUSIdent
+FunctionName = NoUSIdent
+PredicateName = NoUSIdent
+CopredicateName = NoUSIdent
 LabelName = NoUSIdent
 AttributeName = NoUSIdent
-FieldIdent = NoUSIdent 
+FieldIdent = NoUSIdent
 ````
 A ``FieldIdent`` is one of the ways to identify a field. The other is
 using digits.
 
 ### Qualified Names
-A qualified name starts with the name of the top-level entity and then is followed by 
+A qualified name starts with the name of the top-level entity and then is followed by
 zero or more ``DotSuffix``s which denote a component. Examples:
 
 * `Module.MyType1`
@@ -668,7 +668,7 @@ zero or more ``DotSuffix``s which denote a component. Examples:
 * `MyMethod.requires`
 
 The grammar does not actually have a production for qualified names
-except in the special case of a qualified name that is known to be 
+except in the special case of a qualified name that is known to be
 a module name, i.e. a ``QualifiedModuleName``.
 
 ### Identifier-Type Combinations
@@ -677,7 +677,7 @@ In this section, we describe some nonterminals that combine an identifier and a 
 ````
 IdentType = WildIdent ":" Type
 ````
-In Dafny, a variable or field is typically declared by giving its name followed by 
+In Dafny, a variable or field is typically declared by giving its name followed by
 a ``colon`` and its type. An ``IdentType`` is such a construct.
 
 ````
@@ -689,7 +689,7 @@ Ghost variables are useful for abstractly representing internal state in specifi
 If `allowGhostKeyword` is false then "ghost" is not allowed.
 
 ````
-LocalIdentTypeOptional = WildIdent [ ":" Type ] 
+LocalIdentTypeOptional = WildIdent [ ":" Type ]
 ````
 A ``LocalIdentTypeOptional`` is used when declaring local variables. In
 such a case a value may be specified for the variable in which case the
@@ -697,7 +697,7 @@ type may be omitted because it can be inferred from the initial value.
 The initial value value may also be omitted.
 
 ````
-IdentTypeOptional = WildIdent [ ":" Type ] 
+IdentTypeOptional = WildIdent [ ":" Type ]
 ````
 A ``IdentTypeOptional`` is typically used in a context where the type of the identifier
 may be inferred from the context. Examples are in pattern matching or quantifiers.
@@ -706,10 +706,10 @@ may be inferred from the context. Examples are in pattern matching or quantifier
 TypeIdentOptional = [ "ghost" ] ( NoUSIdent | digits ) ":" ] Type
 ````
 ``TypeIdentOptional``s are used in ``FormalsOptionalIds``. This represents situations
-where a type is given but there may not be an identifier. 
+where a type is given but there may not be an identifier.
 
 ````
-FormalsOptionalIds = "(" [TypeIdentOptional  { "," TypeIdentOptional } ] ")" 
+FormalsOptionalIds = "(" [TypeIdentOptional  { "," TypeIdentOptional } ] ")"
 ````
 A ``FormalsOptionalIds`` is a formal parameter list in which the types are required
 but the names of the parameters is optional. This is used in algebraic
@@ -717,18 +717,18 @@ datatype definitions.
 
 ### Numeric Literals
 ````
-Nat = ( digits | hexdigits ) 
+Nat = ( digits | hexdigits )
 ````
 A ``Nat`` represents a natural number expressed in either decimal or hexadecimal.
 
 ````
-Dec = (decimaldigits ) 
+Dec = (decimaldigits )
 ````
 A ``Dec`` represents a decimal fraction literal.
 
 # Programs
 ````
-Dafny = { IncludeDirective_ } { TopDecl } EOF 
+Dafny = { IncludeDirective_ } { TopDecl } EOF
 ````
 At the top level, a Dafny program (stored as files with extension `.dfy`)
 is a set of declarations. The declarations introduce (module-level)
@@ -736,7 +736,7 @@ methods and functions, as well as types (classes, traits, inductive and
 co-inductive datatypes, new_types, type synonyms, opaque types, and
 iterators) and modules, where the order of introduction is irrelevant. A
 class also contains a set of declarations, introducing fields, methods,
-and functions. 
+and functions.
 
 When asked to compile a program, Dafny looks for the existence of a
 Main() method. If a legal Main() method is found, the compiler will emit
@@ -749,10 +749,10 @@ a `.EXE`; otherwise, it will emit a `.DLL`.
 
 In order to be a legal Main() method, the following must be true:
 
-* The method takes no parameters 
-* The method is not a ghost method 
-* The method has no requires clause 
-* The method has no modifies clause 
+* The method takes no parameters
+* The method is not a ghost method
+* The method has no requires clause
+* The method has no modifies clause
 * If the method is an instance (that is, non-static) method in a class,
   then the enclosing class must not declare any constructor
 
@@ -762,7 +762,7 @@ Note, however, that the following are allowed:
   class does not declare any constructor. In this case, the runtime
   system will allocate an object of the enclosing class and will invoke
   Main() on it.
-* The method is allowed to have `ensures` clauses 
+* The method is allowed to have `ensures` clauses
 * The method is allowed to have `decreases` clauses, including a
   `decreases *`. (If Main() has a `decreases *`, then its execution may
   go on forever, but in the absence of a `decreases *` on Main(), Dafny
@@ -772,19 +772,19 @@ Note, however, that the following are allowed:
 An invocation of Dafny may specify a number of source files.
 Each Dafny file follows the grammar of the ``Dafny`` non-terminal.
 
-It consists of a sequence of optional _include_ directives followed by top 
+It consists of a sequence of optional _include_ directives followed by top
 level declarations followed by the end of the file.
 
 ## Include Directives
 ````
-IncludeDirective_ = "include" stringToken  
+IncludeDirective_ = "include" stringToken
 ````
 
 Include directives have the form ``"include" stringToken`` where
 the string token is either a normal string token or a
-verbatim string token. The ``stringToken`` is interpreted as the name of 
+verbatim string token. The ``stringToken`` is interpreted as the name of
 a file that will be included in the Dafny source. These included
-files also obey the ``Dafny`` grammar. Dafny parses and processes the 
+files also obey the ``Dafny`` grammar. Dafny parses and processes the
 transitive closure of the original source files and all the included files,
 but will not invoke the verifier on these unless they have been listed
 explicitly on the command line.
@@ -800,7 +800,7 @@ TopDecl = { { DeclModifier }
   | IteratorDecl
   | TraitDecl
   | ClassMemberDecl(moduleLevelDecl: true)
-  } 
+  }
 ````
 Top-level declarations may appear either at the top level of a Dafny file,
 or within a ``SubModuleDecl``. A top-level declaration is one of the following
@@ -812,7 +812,7 @@ type declarations and are describe in Section [#sec-types]. Ordinarily
 ``ClassMemberDecl``s appear in class declarations but they can also
 appear at the top level. In that case they are included as part of an
 implicit top-level class and are implicitly `static` (but cannot be
-declared as static). In addition a ``ClassMemberDecl`` that appears at 
+declared as static). In addition a ``ClassMemberDecl`` that appears at
 the top level cannot be a ``FieldDecl``.
 
 ## Declaration Modifiers
@@ -823,14 +823,14 @@ DeclModifier =
   )
 ````
 
-Top level declarations may be preceded by zero or more declaration 
-modifiers. Not all of these are allowed in all contexts. 
+Top level declarations may be preceded by zero or more declaration
+modifiers. Not all of these are allowed in all contexts.
 
-The "abstract" modifiers may only be used for module declarations. 
+The "abstract" modifiers may only be used for module declarations.
 An abstract module can leave some entities underspecified.
 Abstract modules are not compiled to C#.
 
-The ghost modifier is used to mark entities as being used for 
+The ghost modifier is used to mark entities as being used for
 specification only, not for compilation to code.
 
 The static modifier is used for class members that that
@@ -838,10 +838,10 @@ are associated with the class as a whole rather than with
 an instance of the class.
 
 The protected modifier is used to control the visibility of the
-body of functions. 
+body of functions.
 
-The extern modifier is used to alter the CompileName of 
-entities. The CompileName is the name for the entity 
+The extern modifier is used to alter the CompileName of
+entities. The CompileName is the name for the entity
 when translating to Boogie or C#.
 
 The following table shows modifiers that are available
@@ -877,7 +877,7 @@ implicitly ghost.
 # Modules
 
 ````
-SubModuleDecl = ( ModuleDefinition_ | ModuleImport_ ) 
+SubModuleDecl = ( ModuleDefinition_ | ModuleImport_ )
 ````
 
 Structuring a program by breaking it into parts is an important part of
@@ -890,10 +890,10 @@ interface.
 
 ## Declaring New Modules
 ````
-ModuleDefinition_ = "module" { Attribute } ModuleName 
-        [ [  "exclusively" ] "refines" QualifiedModuleName ] 
-        "{" { TopDecl } "}" 
-QualifiedModuleName = Ident { "." Ident } 
+ModuleDefinition_ = "module" { Attribute } ModuleName
+        [ [  "exclusively" ] "refines" QualifiedModuleName ]
+        "{" { TopDecl } "}"
+QualifiedModuleName = Ident { "." Ident }
 ````
 A qualified name that is known to refer to a module.
 
@@ -914,7 +914,7 @@ level. This includes classes, datatypes, types, methods, functions, etc.
 module Mod {
   class C {
     var f: int
-    method m() 
+    method m()
   }
   datatype Option = A(int) | B(int)
   type T
@@ -972,10 +972,10 @@ module Mod {
 ## Importing Modules
 ````
 ModuleImport_ = "import" ["opened" ] ModuleName
-    [ "=" QualifiedModuleName 
-    | "as" QualifiedModuleName ["default" QualifiedModuleName ] 
+    [ "=" QualifiedModuleName
+    | "as" QualifiedModuleName ["default" QualifiedModuleName ]
     ]
-    [ ";" ] 
+    [ ";" ]
 ````
 
 Declaring new submodules is useful, but sometimes you want to refer to
@@ -1121,7 +1121,7 @@ refinement, by giving a default to the abstract import:
 
 ```
 module Interface {
-  function method addSome(n: nat): nat 
+  function method addSome(n: nat): nat
     ensures addSome(n) > n
 }
 module Mod {
@@ -1131,7 +1131,7 @@ module Mod {
   }
 }
 module Implementation {
-  function method addSome(n: nat): nat 
+  function method addSome(n: nat): nat
     ensures addSome(n) == n + 1
   {
     n + 1
@@ -1216,14 +1216,14 @@ sequences like this refer to is name resolution. Though the rules may
 seem complex, usually they do what you would expect. Dafny first looks
 up the initial identifier. Depending on what the first identifier
 refers to, the rest of the identifier is looked up in the appropriate
-context. 
+context.
 
-In terms of the grammar, sequences like the above are represented as 
+In terms of the grammar, sequences like the above are represented as
 a ``NameSegment`` followed by 0 or more ``Suffix``es. A ``Suffix`` is
 more general and the form shown above would be for when the
-``Suffix`` is an ``AugmentedDotSuffix_``. 
+``Suffix`` is an ``AugmentedDotSuffix_``.
 
-The resolution is different depending on whether it is in 
+The resolution is different depending on whether it is in
 an expression context or a type context.
 
 ### Expression Context Name Resolution
@@ -1276,7 +1276,7 @@ First resolve expression E and any type arguments.
 
 * If `E` resolved to a module `M`:
   0. If `E.id<T>` is not followed by any further suffixes, look for
-     unambiguous datatype constructor. 
+     unambiguous datatype constructor.
   1. Member of module M: a sub-module (including submodules of imports),
      class, datatype, etc.
   2. Static function or method.
@@ -1299,7 +1299,7 @@ To resolve expression `E.id`:
   0. Member of module M: a sub-module (including submodules of imports),
      class, datatype, etc.
 * If `E` denotes a type:
-  1. If `allowDanglingDotName`: Return the type of `E` and the given `E.id`, 
+  1. If `allowDanglingDotName`: Return the type of `E` and the given `E.id`,
      letting the caller try to make sense of the final dot-name.
      TODO: I don't under this sentence. What is `allowDanglingDotName`?
 
@@ -1315,22 +1315,22 @@ may be given, in any order.
 We document specifications at these levels:
 
 - At the lowest level are the various kinds of specification clauses,
-  e.g. a ``RequiresClause_``. 
-- Next are the specifications for entities that need them, 
-  e.g. a ``MethodSpec``. 
+  e.g. a ``RequiresClause_``.
+- Next are the specifications for entities that need them,
+  e.g. a ``MethodSpec``.
 - At the top level are the entity declarations that include
-  the specifications, e.g. ``MethodDecl``. 
+  the specifications, e.g. ``MethodDecl``.
 
 This section documents the first two of these in a bottom-up manner.
 We first document the clauses and then the specifications
-that use them. 
+that use them.
 
 ## Specification Clauses
 
 ### Requires Clause
 
 ````
-RequiresClause_ = 
+RequiresClause_ =
     "requires" Expression(allowLemma: false, allowLambda: false)
 ````
 
@@ -1348,11 +1348,11 @@ from all of the **requires** clauses.
 ### Ensures Clause
 
 ````
-EnsuresClause_ = 
+EnsuresClause_ =
     "ensures" { Attribute } Expression(allowLemma: false, allowLambda: false)
-ForAllEnsuresClause_ = 
+ForAllEnsuresClause_ =
     "ensures" Expression(allowLemma: false, allowLambda: true)
-FunctionEnsuresClause_ = 
+FunctionEnsuresClause_ =
     "ensures" Expression(allowLemma: false, allowLambda: false)
 ````
 
@@ -1367,23 +1367,23 @@ from all of the **ensures** clauses.
 
 TODO: In the present sources ``FunctionEnsuresClause_`` differs from
 ``EnsuresClause_`` only in that it is not allowed to specify
-``Attribute``s. This seems like a bug and will likely 
+``Attribute``s. This seems like a bug and will likely
 be fixed in a future version.
 
 ### Decreases Clause
 ````
-DecreasesClause_(allowWildcard, allowLambda) = 
+DecreasesClause_(allowWildcard, allowLambda) =
     "decreases" { Attribute } DecreasesList(allowWildcard, allowLambda)
 FunctionDecreasesClause_(allowWildcard, allowLambda) =
     "decreases" DecreasesList(allowWildcard, allowLambda)
 ````
 
 ````
-DecreasesList(allowWildcard, allowLambda) = 
-  PossiblyWildExpression(allowLambda) 
-  { "," PossiblyWildExpression(allowLambda) } 
+DecreasesList(allowWildcard, allowLambda) =
+  PossiblyWildExpression(allowLambda)
+  { "," PossiblyWildExpression(allowLambda) }
 ````
-If `allowWildcard` is false but one of the 
+If `allowWildcard` is false but one of the
 ``PossiblyWildExpression``s is a wild-card, an error is
 reported.
 
@@ -1393,7 +1393,7 @@ TODO: A ``FunctionDecreasesClause_`` is not allowed to specify
 **Decreases** clauses are used to prove termination in the
 presence of recursion. if more than one **decreases** clause is given
 it is as if a single **decreases** clause had been given with the
-collected list of arguments. That is, 
+collected list of arguments. That is,
 
 ```
 decreases A, B
@@ -1407,7 +1407,7 @@ decreases A, B, C, D
 ```
 
 If any of the expressions in the **decreases** clause are wild (i.e. "*")
-then proof of termination will be skipped. 
+then proof of termination will be skipped.
 
 Termination metrics in Dafny, which are declared by **decreases** clauses,
 are lexicographic tuples of expressions. At each recursive (or mutually
@@ -1449,7 +1449,7 @@ function Fib(n: nat) : nat
 
 ```
 
-In this example, if you hover your mouse over the function name 
+In this example, if you hover your mouse over the function name
 you will see that Dafny has supplied a `**decreases** n` clause.
 
 Let's take a look at the kind of example where a mysterious-looking
@@ -1513,7 +1513,7 @@ lexicographic tuple `"x-1, 1"` is strictly smaller than `"x, 0"`.
 
  We can simplify things a little bit by remembering that Dafny appends
  \top to the user-supplied decreases clause. For the A-and-B example,
- this lets us drop the constant from the **decreases** clause of A: 
+ this lets us drop the constant from the **decreases** clause of A:
 
 ```
  method A(x: nat)
@@ -1598,25 +1598,25 @@ The ingredients are simple, but the end result may seem like magic. For many use
 
 ### Framing
 ````
-FrameExpression(allowLemma, allowLambda) = 
-  ( Expression(allowLemma, allowLambda) [ FrameField ] 
+FrameExpression(allowLemma, allowLambda) =
+  ( Expression(allowLemma, allowLambda) [ FrameField ]
   | FrameField )
 ````
 
 ````
-FrameField = "`" Ident 
+FrameField = "`" Ident
 ````
 
 ````
-PossiblyWildFrameExpression(allowLemma) = 
+PossiblyWildFrameExpression(allowLemma) =
     ( "*" | FrameExpression(allowLemma, allowLambda: false) )
 ````
 
 Frame expressions are used to denote the set of memory locations
-that a Dafny program element may read or write. A frame 
+that a Dafny program element may read or write. A frame
 expression is a set expression. The form `{}` (that is, the empty set)
 says that no memory locations may be modified,
-which is also the default if no **modifies** clause is given explicitly. 
+which is also the default if no **modifies** clause is given explicitly.
 
 Note that framing only applies to the heap, or memory accessed through
 references. Local variables are not stored on the heap, so they cannot be
@@ -1632,14 +1632,14 @@ class object. The identifier following the back-quote is the
 name of the field being referenced.
 If the `FrameField` is preceded by an expression the expression
 must be a reference to an object having that field.
-If the `FrameField` is not preceded by an expression then 
+If the `FrameField` is not preceded by an expression then
 the frame expression is referring to that field of the current
 object. This form is only used from a method of a class.
 
 The use of ``FrameField`` is discouraged as in practice it has not
-been shown to either be more concise or to perform better. 
-Also, there's (unfortunately) no form of it for array 
-elements---one could imagine 
+been shown to either be more concise or to perform better.
+Also, there's (unfortunately) no form of it for array
+elements---one could imagine
 
 ```
   modifies a`[j]
@@ -1649,18 +1649,18 @@ lambda expressions.
 
 ### Reads Clause
 ````
-FunctionReadsClause_ = 
-  "reads" 
+FunctionReadsClause_ =
+  "reads"
   PossiblyWildFrameExpression (allowLemma: false)
   { "," PossiblyWildFrameExpression(allowLemma: false) }
-LambdaReadsClause_ = 
+LambdaReadsClause_ =
   "reads" PossiblyWildFrameExpression(allowLemma: true)
-IteratorReadsClause_ = 
-  "reads" { Attribute } 
-  FrameExpression(allowLemma: false, allowLambda: false) 
+IteratorReadsClause_ =
+  "reads" { Attribute }
+  FrameExpression(allowLemma: false, allowLambda: false)
   { "," FrameExpression(allowLemma: false, allowLambda: false) }
-PossiblyWildExpression(allowLambda) = 
-    ( "*" | Expression(allowLemma: false, allowLambda) ) 
+PossiblyWildExpression(allowLambda) =
+    ( "*" | Expression(allowLemma: false, allowLambda) )
 ````
 
 Functions are not allowed to have side effects but may be restricted in
@@ -1700,9 +1700,9 @@ a list and attributes.
 ### Modifies Clause
 
 ````
-ModifiesClause_ = 
-  "modifies" { Attribute } 
-  FrameExpression(allowLemma: false, allowLambda: false) 
+ModifiesClause_ =
+  "modifies" { Attribute }
+  FrameExpression(allowLemma: false, allowLambda: false)
   { "," FrameExpression(allowLemma: false, allowLambda: false) }
 ````
 
@@ -1721,7 +1721,7 @@ memory to something that Dafny can reason about.
 Note that fields of newly allocated objects can always be modified.
 
 It is also possible to frame what can be modified by a block statement
-by means of the block form of the 
+by means of the block form of the
 [modify statement](#sec-modify-statement) (Section [#sec-modify-statement]).
 
 A **modifies** clause specifies the set of memory locations that a
@@ -1734,8 +1734,8 @@ the enclosing context is allowed to modify.
 
 ### Invariant Clause
 ````
-InvariantClause_ = 
-    "invariant" { Attribute } 
+InvariantClause_ =
+    "invariant" { Attribute }
     Expression(allowLemma: false, allowLambda: true)
 ````
 
@@ -1750,12 +1750,12 @@ holds at the end of the loop.
 
 ## Method Specification
 ````
-MethodSpec = 
+MethodSpec =
   { ModifiesClause_
   | RequiresClause_
   | EnsuresClause_
   | DecreasesClause_(allowWildcard: true, allowLambda: false)
-  } 
+  }
 ````
 
 A method specification is zero or more **modifies**, **requires**,
@@ -1770,7 +1770,7 @@ FunctionSpec =
   | FunctionReadsClause_
   | FunctionEnsuresClause_
   | FunctionDecreasesClause_(allowWildcard: false, allowLambda: false)
-  } 
+  }
 ````
 
 A function specification is zero or more **reads**, **requires**,
@@ -1780,15 +1780,15 @@ allowed to modify any memory.
 
 ## Lambda Specification
 ````
-LambdaSpec_ = 
+LambdaSpec_ =
   { LambdaReadsClause_
-  | RequiresClause_ 
-  } 
+  | RequiresClause_
+  }
 ````
 
 A lambda specification is zero or more **reads** or **requires** clauses.
 Lambda specifications do not have **ensures** clauses because the body
-is never opaque. 
+is never opaque.
 Lambda specifications do not have **decreases**
 clauses because they do not have names and thus cannot be recursive. A
 lambda specification does not have **modifies** clauses because lambdas
@@ -1802,7 +1802,7 @@ IteratorSpec =
   | [ "yield" ] RequiresClause_
   | [ "yield" ] EnsuresClause_
   | DecreasesClause_(allowWildcard: false, allowLambda: false)
-  } 
+  }
 ````
 
 An iterator specification applies both to the iterator's constructor
@@ -1812,22 +1812,22 @@ clauses, if `yield` is not present they apply to the constructor,
 but if `yield` is present they apply to the `MoveNext` method.
 
 TODO: What is the meaning of a **decreases** clause on an iterator?
-Does it apply to `MoveNext`? Make sure our description of 
+Does it apply to `MoveNext`? Make sure our description of
 iterators explains these.
 
 TODO: What is the relationship between the post condition and
-the `Valid()` predicate? 
- 
+the `Valid()` predicate?
+
 ## Loop Specification
 ````
 LoopSpec =
   { InvariantClause_
   | DecreasesClause_(allowWildcard: true, allowLambda: true)
-  | ModifiesClause_ 
-  } 
+  | ModifiesClause_
+  }
 ````
 
-A loop specification provides the information Dafny needs to 
+A loop specification provides the information Dafny needs to
 prove properties of a loop. The ``InvariantClause_`` clause
 is effectively a precondition and it along with the
 negation of the loop test condition provides the postcondition.
@@ -1835,7 +1835,7 @@ The ``DecreasesClause_`` clause is used to prove termination.
 
 # Types
 ````
-Type = DomainType [ "->" Type ] 
+Type = DomainType [ "->" Type ]
 ````
 A Dafny type is a domain type (i.e. a type that can be the domain of a
 function type) optionally followed by an arrow and a range type.
@@ -1843,13 +1843,13 @@ function type) optionally followed by an arrow and a range type.
 ````
 DomainType =
   ( BoolType_ | CharType_ | NatType_ | IntType_ | RealType_ | ObjectType_
-  | FiniteSetType_ | InfiniteSetType_ | MultisetType_ 
+  | FiniteSetType_ | InfiniteSetType_ | MultisetType_
   | SequenceType_ | StringType_
   | FiniteMapType_ | InfiniteMapType_ | ArrayType_
-  | TupleType_ | NamedType_ ) 
+  | TupleType_ | NamedType_ )
 ````
 The domain types comprise the builtin scalar types, the builtin
-collection types, tuple types (including as a special case 
+collection types, tuple types (including as a special case
 a parenthesized type) and reference types.
 
 
@@ -1893,13 +1893,13 @@ class, trait, inductive, co-inductive, synonym and opaque
 type declarations. They are also used to refer to type variables.
 
 ````
-NameSegmentForTypeName = Ident  [ GenericInstantiation ] 
+NameSegmentForTypeName = Ident  [ GenericInstantiation ]
 ````
 A ``NameSegmentForTypeName`` is a type name optionally followed by a
 ``GenericInstantiation`` which supplies type parameters to a generic
-type, if needed. It is a special case of a ``NameSegment`` 
+type, if needed. It is a special case of a ``NameSegment``
 (See Section [#sec-name-segment])
-that does not allow a ``HashCall``. 
+that does not allow a ``HashCall``.
 
 The following sections describe each of these kinds of types in more detail.
 
@@ -1910,7 +1910,7 @@ characters, `int` and `nat` for integers, and `real` for reals.
 
 ## Booleans
 ````
-BoolType_ = "bool" 
+BoolType_ = "bool"
 ````
 
 There are two boolean values and each has a corresponding literal in
@@ -2034,8 +2034,8 @@ exists), described in section [#sec-quantifier-expression].
 ## Numeric types
 
 ````
-IntType_ = "int" 
-RealType_ = "real" 
+IntType_ = "int"
+RealType_ = "real"
 ````
 
 Dafny supports _numeric types_ of two kinds, _integer-based_, which
@@ -2143,11 +2143,11 @@ function `real` from `int` to `real`, as described in Section
 ## Characters
 
 ````
-CharType_ = "char" 
+CharType_ = "char"
 ````
 
 Dafny supports a type `char` of _characters_.  Character literals are
-enclosed in single quotes, as in `'D'`. Their form is described 
+enclosed in single quotes, as in `'D'`. Their form is described
 by the ``charToken`` nonterminal in the grammar.  To write a single quote as a
 character literal, it is necessary to use an _escape sequence_.
 Escape sequences can also be used to write other characters.  The
@@ -2198,7 +2198,7 @@ TODO: Are there any conversions between `char` values and numeric values?
 
 ````
 GenericParameters = "<" TypeVariableName [ "(" "==" ")" ]
-      { "," TypeVariableName [ "(" "==" ")" ] } ">" 
+      { "," TypeVariableName [ "(" "==" ")" ] } ">"
 ````
 Many of the types (as well as functions and methods) in Dafny can be
 parameterized by types.  These _type parameters_ are typically
@@ -2242,7 +2242,7 @@ TODO: Need to describe type inference somewhere.
 
 # Generic Instantiation
 ````
-GenericInstantiation = "<" Type { "," Type } ">" 
+GenericInstantiation = "<" Type { "," Type } ">"
 ````
 When a generic entity is used, actual types must be specified for each
 generic parameter. This is done using a ``GenericInstantiation``.
@@ -2262,7 +2262,7 @@ InfiniteSetType_ = "iset" [ GenericInstantiation ]
 For any type `T`, each value of type `set<T>` is a finite set of
 `T` values.
 
-TODO: 
+TODO:
 Set membership is determined by equality in the type `T`,
 so `set<T>` can be used in a non-ghost context only if `T` is equality
 supporting.
@@ -2338,7 +2338,7 @@ The expression `e !in s` is a syntactic shorthand for `!(e in s)`.
 
 ## Multisets
 ````
-MultisetType_ = "multiset" [ GenericInstantiation ] 
+MultisetType_ = "multiset" [ GenericInstantiation ]
 ````
 
 A _multiset_ is similar to a set, but keeps track of the multiplicity
@@ -2434,7 +2434,7 @@ if e in s then s[e := s[e] - 1] else s
 
 ## Sequences
 ````
-SequenceType_ = "seq" [ GenericInstantiation ] 
+SequenceType_ = "seq" [ GenericInstantiation ]
 ````
 
 For any type `T`, a value of type `seq<T>` denotes a _sequence_ of `T`
@@ -2546,7 +2546,7 @@ type `T` is equality supporting.
 
 ### Strings
 ````
-StringType_ = "string" 
+StringType_ = "string"
 ````
 
 A special case of a sequence type is `seq<char>`, for which Dafny
@@ -2590,8 +2590,8 @@ sorting strings.
 
 ## Finite and Infinite Maps
 ````
-FiniteMapType_ = "map" [ GenericInstantiation ] 
-InfiniteMapType_ = "imap" [ GenericInstantiation ] 
+FiniteMapType_ = "map" [ GenericInstantiation ]
+InfiniteMapType_ = "imap" [ GenericInstantiation ]
 ````
 
 For any types `T` and `U`, a value of type `map<T,U>` denotes a
@@ -2673,8 +2673,8 @@ if K in cache {  // check if temperature is in domain of cache
 
 # Types that stand for other types
 ````
-SynonymTypeDecl = 
-  ( SynonymTypeDefinition_ | OpaqueTypeDefinition_ ) [ ";" ] 
+SynonymTypeDecl =
+  ( SynonymTypeDefinition_ | OpaqueTypeDefinition_ ) [ ";" ]
 ````
 It is sometimes useful to know a type by several names or to treat a
 type abstractly. Synonym and opaque types serve this purpose.
@@ -2713,8 +2713,8 @@ type string = seq<char>
 
 ## Opaque types
 ````
-OpaqueTypeDefinition_ = "type" { Attribute } SynonymTypeName 
-  [ "(" "==" ")" ] [ GenericParameters ] 
+OpaqueTypeDefinition_ = "type" { Attribute } SynonymTypeName
+  [ "(" "==" ")" ] [ GenericParameters ]
 ````
 
 A special case of a type synonym is one that is underspecified.  Such
@@ -2831,7 +2831,7 @@ The fact that the function being defined occurs on both sides of the equation
 causes concern that we might not be defining the function properly, leading to a
 logical inconsistency.  In general, there
 could be many solutions to an equation like [#eq-general] or there could be none.
-Let's consider two ways to make sure we're defining the function uniquely. 
+Let's consider two ways to make sure we're defining the function uniquely.
 
 ### Well-founded Functions
 
@@ -2906,7 +2906,7 @@ a complete lattice $(X \to Y, \FBelow)$, where for any $f,g \colon X \to Y$,
 
 ~ Equation
   f \FBelow q  \Equiv
-  \forall x \bullet\; f(x) \leq g(x) 
+  \forall x \bullet\; f(x) \leq g(x)
 ~
 
 In particular, if $Y$ is the set of booleans ordered by implication ($\false \leq \true$),
@@ -3038,7 +3038,7 @@ where $k$ ranges over the natural numbers:
       \F(\iter{f}_{k-1})(x) & \textrm{if } k > 0
     \end{array}
     \right.
-~ 
+~
 ~ Equation {#eq-greatest-approx}
   \Iter{f}_k(x) \Equal \left\{
     \begin{array}{ll}
@@ -3046,7 +3046,7 @@ where $k$ ranges over the natural numbers:
       \F(\Iter{f}_{k-1})(x) & \textrm{if } k > 0
     \end{array}
     \right.
-~ 
+~
 
 These functions are called the _iterates_ of $f$, and I will also refer to them
 as the _prefix predicates_ of $f$ (or the _prefix predicate_ of $f$, if we think
@@ -3074,10 +3074,10 @@ of $f$.  Next, I define two functions, $f\least$ and $f\greatest$, in
 terms of the prefix predicates:
 
 ~ Equation {#eq-least-is-exists}
-  f\least(x) \Equal  \exists k \bullet\; \iter{f}_k(x) 
+  f\least(x) \Equal  \exists k \bullet\; \iter{f}_k(x)
 ~
 ~ Equation {#eq-greatest-is-forall}
-  f\greatest(x) \Equal  \forall k \bullet\; \Iter{f}_k(x) 
+  f\greatest(x) \Equal  \forall k \bullet\; \Iter{f}_k(x)
 ~
 
 By [#eq-prefix-postfix], we also have that $f\least$ is a pre-fixpoint of $\F$ and $f\greatest$
@@ -3434,7 +3434,7 @@ With the declarations `inductive lemma` and `colemma`, Dafny offers to
 set up the proofs
 in these standard forms.  What is gained is not just fewer characters in the program
 text, but also a possible intuitive reading of the proofs.  (Okay, to be fair, the
-reading is intuitive for simpler proofs; complicated proofs may or may not be intuitive.) 
+reading is intuitive for simpler proofs; complicated proofs may or may not be intuitive.)
 
 Somewhat analogous to the creation of prefix predicates from extreme predicates, Dafny
 automatically creates a _prefix lemma_ `L#` from each "extreme lemma" `L`.  The pre-
@@ -3483,19 +3483,19 @@ Folks, it doesn't get any simpler than that!
 
 ````
 ClassDecl = "class" { Attribute } ClassName [ GenericParameters ]
-  ["extends" Type {"," Type} ] 
-  "{" { { DeclModifier } ClassMemberDecl(moduleLevelDecl: false) } "}" 
+  ["extends" Type {"," Type} ]
+  "{" { { DeclModifier } ClassMemberDecl(moduleLevelDecl: false) } "}"
 ````
 
 ````
-ClassMemberDecl(moduleLevelDecl) = 
-  ( FieldDecl | FunctionDecl | 
-    MethodDecl(isGhost: ("ghost" was present), 
-               allowConstructor: !moduleLevelDecl) 
-  ) 
+ClassMemberDecl(moduleLevelDecl) =
+  ( FieldDecl | FunctionDecl |
+    MethodDecl(isGhost: ("ghost" was present),
+               allowConstructor: !moduleLevelDecl)
+  )
 ````
-The ``ClassMemberDecl`` parameter `moduleLevelDecl` will be true if 
-the member declaration is at the top level or directly within a 
+The ``ClassMemberDecl`` parameter `moduleLevelDecl` will be true if
+the member declaration is at the top level or directly within a
 module declaration. It will be false for ``ClassMemberDecl``s
 that are part of a class or trait declaration. If `moduleLevelDecl` is
 false ``FieldDecl``s are not allowed.
@@ -3511,7 +3511,7 @@ where the list of type parameters `T` is optional and so is
 "`extends J1, ..., Jn`", which says that the class extends traits `J1` ... `Jn`.
 The members of a class are _fields_, _functions_, and
 _methods_.  These are accessed or invoked by dereferencing a reference
-to a `C` instance. 
+to a `C` instance.
 
 A function or method is invoked on an _instance_
 of `C`, unless the function or method is declared `static`.
@@ -3564,7 +3564,7 @@ these methods can be invoked at any time, not just as part of a `new`,
 and that `new` does not require that an initialization method be
 invoked at creation.
 
-A clas can declare special initializing methods called _constructor methods_. 
+A clas can declare special initializing methods called _constructor methods_.
 See Section [#sec-method-declarations].
 
 ## Field Declarations
@@ -3576,7 +3576,7 @@ identifier (that is not allowed to start with a leading underscore) or
 some digits. Digits are used if you want to number your fields, e.g. "0",
 "1", etc.
 ````
-FIdentType = ( FieldIdent | digits ) ":" Type 
+FIdentType = ( FieldIdent | digits ) ":" Type
 ````
 
 A field x of some type T is declared as:
@@ -3592,7 +3592,7 @@ required and will not be inferred.
 
 Unlike method and function declarations, a field declaration
 cannot be given at the top level. Fields can be declared in either a
-class or a trait. A class that inherits from multiple traits will 
+class or a trait. A class that inherits from multiple traits will
 have all the fields declared in any of its parent traits.
 
 Fields that are declared as `ghost` can only be used in specifications,
@@ -3604,7 +3604,7 @@ Fields may not be declared static.
 
 ## Method Declarations
 ````
-MethodDecl(isGhost, allowConstructor) = 
+MethodDecl(isGhost, allowConstructor) =
  MethodKeyword { Attribute } [ MethodName ]
  (  MethodSignature(isGhost)  | SignatureEllipsis_ )
  MethodSpec [ BlockStmt ]
@@ -3613,20 +3613,20 @@ The `isGhost` parameter is true iff the `ghost` keyword
 preceded the method declaration.
 
 If the `allowConstructor` parameter is false then
-the ``MethodDecl`` must not be a `constructor` 
+the ``MethodDecl`` must not be a `constructor`
 declaration.
 
 ````
 MethodKeyword = ("method" | "lemma" | "colemma"
                 | "inductive" "lemma" | "constructor" )
 ````
-The method keyword is used to specify special kinds of methods 
+The method keyword is used to specify special kinds of methods
 as explained below.
 
 ````
-MethodSignature(isGhost) = 
-    [ GenericParameters ] 
-    Formals(allowGhost: !isGhost) 
+MethodSignature(isGhost) =
+    [ GenericParameters ]
+    Formals(allowGhost: !isGhost)
     [ "returns" Formals(allowGhost: !isGhost) ]
 ````
 A method signature specifies the method generic parameters,
@@ -3641,13 +3641,13 @@ A ``SignatureEllipsis_`` is used when a method or function is being redeclared
 in module that refines another module. In that case the signature is
 copied from the module that is being refined. This works because
 Dafny does not support method or function overloading, so the
-name of the class method uniquely identifies it without the 
+name of the class method uniquely identifies it without the
 signature.
 
 ````
-Formals(allowGhostKeyword) = 
-  "(" [ GIdentType(allowGhostKeyword) 
-        { "," GIdentType(allowGhostKeyword) } ] ")" 
+Formals(allowGhostKeyword) =
+  "(" [ GIdentType(allowGhostKeyword)
+        { "," GIdentType(allowGhostKeyword) } ] ")"
 ````
 The ``Formals`` specifies the names and types of the method input or
 output parameters.
@@ -3773,33 +3773,33 @@ for more examples and hints for using lemmas.
 ## Function Declarations
 
 ````
-FunctionDecl = 
+FunctionDecl =
   ( "function" [ "method" ] { Attribute }
-    FunctionName 
+    FunctionName
     FunctionSignatureOrEllipsis_(allowGhostKeyword: ("method" present))
   | "predicate" [ "method" ] { Attribute }
-    PredicateName 
+    PredicateName
     PredicateSignatureOrEllipsis_(allowGhostKeyword: ("method" present))
   | "inductive" "predicate" { Attribute }
-    PredicateName 
+    PredicateName
     PredicateSignatureOrEllipsis_(allowGhostKeyword: false)
   | "copredicate" { Attribute }
-    CopredicateName 
+    CopredicateName
     PredicateSignatureOrEllipsis_(allowGhostKeyword: false)
   )
-  FunctionSpec [ FunctionBody ] 
+  FunctionSpec [ FunctionBody ]
 
 FunctionSignatureOrEllipsis_(allowGhostKeyword) =
-    FunctionSignature_ | SignatureEllipsis_ 
+    FunctionSignature_ | SignatureEllipsis_
 FunctionSignature_(allowGhostKeyword) =
-    [ GenericParameters ] Formals(allowGhostKeyword) ":" Type 
+    [ GenericParameters ] Formals(allowGhostKeyword) ":" Type
 
 PredicateSignatureOrEllipsis_(allowGhostKeyword) =
-    PredicateSignature_(allowGhostKeyword) | SignatureEllipsis_ 
+    PredicateSignature_(allowGhostKeyword) | SignatureEllipsis_
 PredicateSignature_(allowGhostKeyword) =
     [ GenericParameters ] Formals(allowGhostKeyword)
 
-FunctionBody = "{" Expression(allowLemma: true, allowLambda: true) "}" 
+FunctionBody = "{" Expression(allowLemma: true, allowLambda: true) "}"
 ````
 In the above productions, allowGhostKeyword is true if the optional
 "method" keyword was specified. This allows some of the
@@ -3866,16 +3866,16 @@ As for methods, a ``SignatureEllipsis_`` is used when declaring
 a function in a module refinement. For example, if module `M0` declares
 function `F`, a module `M1` can be declared to refine `M0` and
 `M1` can then refine `F`. The refinement function, `M1.F` can have
-a ``SignatureEllipsis_`` which means to copy the signature form 
+a ``SignatureEllipsis_`` which means to copy the signature form
 `M0.F`. A refinement function can furnish a body for a function
-(if `M0.F` does not provide one). It can also add **ensures** 
-clauses. And if `F` is a predicate, it can add conjuncts to 
+(if `M0.F` does not provide one). It can also add **ensures**
+clauses. And if `F` is a predicate, it can add conjuncts to
 a previously given body.
 
-### Function Transparency 
-A function is said to be _transparent_ in a location if the 
+### Function Transparency
+A function is said to be _transparent_ in a location if the
 contents of the body of the function is visible at that point.
-A function is said to be _opaque_ at a location if it is not 
+A function is said to be _opaque_ at a location if it is not
 transparent. However the ``FunctionSpec`` of a function
 is always available.
 
@@ -3885,7 +3885,7 @@ transparent all the way.
 
 But the transparency of a function is affected by the following:
 
-* whether the function was declared to be protected, and 
+* whether the function was declared to be protected, and
 * whether the function was given the `{:opaque}` attribute (as explained
 in Section [#sec-opaque]).
 
@@ -3923,7 +3923,7 @@ of inductive predicates and lemmas.
 # Trait Types
 ````
 TraitDecl = "trait" { Attribute } TraitName [ GenericParameters ]
-  "{" { { DeclModifier } ClassMemberDecl(moduleLevelDecl: false) } "}" 
+  "{" { { DeclModifier } ClassMemberDecl(moduleLevelDecl: false) } "}"
 ````
 
 A _trait_ is an "abstract superclass", or call it an "interface" or
@@ -4022,7 +4022,7 @@ myShapes[1].MoveH(myShapes[0].Width());
 
 # Array Types
 ````
-ArrayType_ = arrayToken [ GenericInstantiation ] 
+ArrayType_ = arrayToken [ GenericInstantiation ]
 ````
 
 Dafny supports mutable fixed-length _array types_ of any positive
@@ -4188,12 +4188,12 @@ is useful to keep a ghost field (typically named `Repr` for
 # Iterator types
 ````
 IteratorDecl = "iterator" { Attribute } IteratorName
-  ( [ GenericParameters ] 
+  ( [ GenericParameters ]
     Formals(allowGhostKeyword: true)
     [ "yields" Formals(allowGhostKeyword: true) ]
   | "..."
   )
-  IteratorSpec [ BlockStmt ] 
+  IteratorSpec [ BlockStmt ]
 ````
 
 See section [#sec-iterator-specification] for a description of ``IteratorSpec``.
@@ -4322,7 +4322,7 @@ added.  The iterator body is allowed to remove elements from the
     combined into one field named `decreases` whose type is a
     _n_-tuple. Thse changes may be incorporated into a future version
     of Dafny.
-	
+
 Note, in the precondition of the iterator, which is to hold upon
 construction of the iterator, the in-parameters are indeed
 in-parameters, not fields of `this`.
@@ -4403,7 +4403,7 @@ design of asynchronous methods evolves.
 # Function types
 
 ````
-Type = DomainType "->" Type  
+Type = DomainType "->" Type
 ````
 
 Functions are first-class values in Dafny.  Function types have the form
@@ -4503,15 +4503,15 @@ of the datatype's constructors and each constructor is injective in
 its parameters.
 
 ````
-DatatypeDecl = ( InductiveDatatypeDecl | CoinductiveDatatypeDecl ) 
+DatatypeDecl = ( InductiveDatatypeDecl | CoinductiveDatatypeDecl )
 ````
 
 ## Inductive datatypes
 
 ````
 InductiveDatatypeDecl_ = "datatype" { Attribute } DatatypeName [ GenericParameters ]
-  "=" DatatypeMemberDecl { "|" DatatypeMemberDecl } [ ";" ] 
-DatatypeMemberDecl = { Attribute } DatatypeMemberName [ FormalsOptionalIds ] 
+  "=" DatatypeMemberDecl { "|" DatatypeMemberDecl } [ ";" ]
+DatatypeMemberDecl = { Attribute } DatatypeMemberName [ FormalsOptionalIds ]
 ````
 
 The values of inductive datatypes can be seen as finite trees where
@@ -4595,7 +4595,7 @@ following equality holds:
 Cons(4, Nil)[tail := Cons(3, Nil)] == Cons(4, Cons(3, Nil))
 ```
 
-The datatype update expression also accepts multiple field 
+The datatype update expression also accepts multiple field
 names, provided these are distinct. For example, a node of some
 inductive datatype for trees may be updated as follows:
 
@@ -4605,7 +4605,7 @@ node[left := L, right := R]
 
 ## Tuple types
 ````
-TupleType_ = "(" [ Type { "," Type } ] ")" 
+TupleType_ = "(" [ Type { "," Type } ] ")"
 ````
 
 Dafny builds in record types that correspond to tuples and gives these
@@ -4633,7 +4633,7 @@ _unit type_ and its single value, also written `()`, is known as _unit_.
 
 ````
 CoinductiveDatatypeDecl_ = "codatatype" { Attribute } DatatypeName [ GenericParameters ]
-  "=" DatatypeMemberDecl { "|" DatatypeMemberDecl } [ ";" ] 
+  "=" DatatypeMemberDecl { "|" DatatypeMemberDecl } [ ";" ]
 ````
 
 Whereas Dafny insists that there is a way to construct every inductive
@@ -4704,7 +4704,7 @@ copredicate Below(a: IStream<int>, b: IStream<int>)
 colemma Theorem_BelowSquare(a: IStream<int>)
 ensures Below(a, Mult(a, a))
 { assert a.head <= Mult(a, a).head;
-  if a.head == Mult(a, a).head { 
+  if a.head == Mult(a, a).head {
     Theorem_BelowSquare(a.tail);
   }
 }
@@ -4795,7 +4795,7 @@ for structuring the proof. Additionally, the statement:
 forall x | P(x) { Lemma(x); }
 ```
 is used to invoke `Lemma(x)` on all `x` for which `P(x)` holds. If
-`Lemma(x)` ensures `Q(x)`, then the forall statement establishes 
+`Lemma(x)` ensures `Q(x)`, then the forall statement establishes
 ```
 forall x :: P(x) ==> Q(x).
 ```
@@ -4817,7 +4817,7 @@ codatatype Stream<T> = SNil | SCons(head: T, tail: Stream)
 function Up(n: int): Stream<int> { SCons(n, Up(n+1)) }
 function FivesUp(n: int): Stream<int>
   decreases 4 - (n - 1) % 5
-{ 
+{
   if (n % 5 == 0) then
     SCons(n, FivesUp(n+1))
   else
@@ -4886,7 +4886,7 @@ gives rise to a corresponding prefix predicate, `Pos#`. The syntax for
 calling a prefix predicate sets apart the argument that specifies the
 prefix length, as shown in the last line; for this figure, we took the
 liberty of making up a coordinating syntax for the signature of the
-automatically generated prefix predicate (which is not part of 
+automatically generated prefix predicate (which is not part of
 Dafny syntax).
 
 ```
@@ -4902,7 +4902,7 @@ predicate Pos#[_k: nat](s: Stream<int>)
 { if _k = 0 then true else
   match s
   case SNil => true
-  case SCons(x, rest) => x > 0 && Pos#[_k-1](rest) 
+  case SCons(x, rest) => x > 0 && Pos#[_k-1](rest)
 }
 ```
 
@@ -4935,7 +4935,7 @@ from the co-predicate by
 * adding the clause "**decreases** `_k;`" to the prefix predicate (the
   co-predicate itself is not allowed to have a decreases clause),
 
-* replacing in the body of the co-predicate every intra-cluster 
+* replacing in the body of the co-predicate every intra-cluster
   call `Q(args)` to a copredicate by a call `Q#[_k - 1](args)`
   to the corresponding prefix predicate, and then
 
@@ -4953,7 +4953,7 @@ words, the definition of `Pos` cannot depend on `Pos#`.
 #### Co-Equality
 Equality between two values of a co-datatype is a built-in co-predicate.
 It has the usual equality syntax `s == t`, and the corresponding prefix
-equality is written `s ==#[k] t`. And similarly for `s != t` 
+equality is written `s ==#[k] t`. And similarly for `s != t`
 and `s !=#[k] t`.
 
 ### Co-inductive Proofs
@@ -4978,7 +4978,7 @@ predicate is true for all finite unrollings.
 
 In Sec. 4 of the paper [Co-induction Simply] a soundness theorem of such
 assumptions is given, provided the co-predicates meet the co-friendly
-restrictions. An example proof of `Pos(Up(n))` for every `n > 0` is 
+restrictions. An example proof of `Pos(Up(n))` for every `n > 0` is
 here shown:
 
 ```
@@ -4986,14 +4986,14 @@ lemma UpPosLemma(n: int)
   requires n > 0
   ensures Pos(Up(n))
 {
-  forall k | 0 <= k { UpPosLemmaK(k, n); } 
+  forall k | 0 <= k { UpPosLemmaK(k, n); }
 }
 
 lemma UpPosLemmaK(k: nat, n: int)
   requires n > 0
   ensures Pos#[k](Up(n))
   decreases k
-{ 
+{
   if k != 0 {
     // this establishes Pos#[k-1](Up(n).tail)
     UpPosLemmaK(k-1, n+1);
@@ -5021,7 +5021,7 @@ proofs directly. As an example consider the following co-lemma.
 colemma UpPosLemma(n: int)
   requires n > 0
   ensures Pos(Up(n))
-{ 
+{
   UpPosLemma(n+1);
 }
 ```
@@ -5099,10 +5099,10 @@ infinite proof on demand.
 
 # Newtypes
 ````
-NewtypeDecl = "newtype" { Attribute } NewtypeName "="  
+NewtypeDecl = "newtype" { Attribute } NewtypeName "="
   ( NumericTypeName [ ":" Type ] "|" Expression(allowLemma: false, allowLambda: true)
-  | Type               
-  ) 
+  | Type
+  )
 ````
 
 A new numeric type can be declared with the _newtype_
@@ -5182,8 +5182,8 @@ convert it to the base type:
 
 If possible, Dafny will represent values of the newtype using
 a native data type for the sake of efficiency. This action can
-be inhibited or a specific native data type selected by 
-using the `{:nativeType}` attribute, as explained in 
+be inhibited or a specific native data type selected by
+using the `{:nativeType}` attribute, as explained in
 section [#sec-nativetype].
 
 There is a restriction that the value `0` must be part of every
@@ -5222,7 +5222,7 @@ respectively three, run-time conversions.
 
 # Subset types
 ````
-NatType_ = "nat" 
+NatType_ = "nat"
 ````
 
 A _subset type_ is a restricted use of an existing type, called
@@ -5280,13 +5280,13 @@ type `nat`.
 Stmt = ( BlockStmt | AssertStmt | AssumeStmt | PrintStmt | UpdateStmt
   | VarDeclStatement | IfStmt | WhileStmt | MatchStmt | ForallStmt
   | CalcStmt | ModifyStmt | LabeledStmt_ | BreakStmt_ | ReturnStmt
-  | YieldStmt 
-  ) 
+  | YieldStmt
+  )
 ````
-<!-- 
+<!--
 Describe where refinement is described.
 
-| SkeletonStmt 
+| SkeletonStmt
 -->
 
 Many of Dafny's statements are similar to those in traditional
@@ -5294,19 +5294,19 @@ programming languages, but a number of them are significantly different.
 This grammar production shows the different kinds of Dafny statements.
 They are described in subsequent sections.
 
-## Labeled Statement 
+## Labeled Statement
 ````
-LabeledStmt_ = "label" LabelName ":" Stmt 
+LabeledStmt_ = "label" LabelName ":" Stmt
 ````
 A labeled statement is just the keyword `label` followed by an identifier
 which is the label followed by a colon and a statement. The label may be
 referenced in a break statement to transfer control to the location after
 that statement. The label is not allowed to be the same as any enclosing
-label. 
+label.
 
 ## Break Statement
 ````
-BreakStmt_ = "break" ( LabelName | { "break" } ) ";" 
+BreakStmt_ = "break" ( LabelName | { "break" } ) ";"
 ````
 A break statement breaks out of one or more loops (if the
 statement consists solely of one or more `break` keywords),
@@ -5314,8 +5314,8 @@ or else transfers control to just past the statement
 bearing the referenced label, if a label was used.
 
 If a label is used, the break statement must be enclosed in a statement
-with that label. If no label is specified and the statement list `n` 
-occurrences of `break`, then the statement must be enclosed in 
+with that label. If no label is specified and the statement list `n`
+occurrences of `break`, then the statement must be enclosed in
 (at least) `n` levels of loops. For example,
 
 ```
@@ -5324,24 +5324,24 @@ break break;
 
 ## Block Statement
 ````
-BlockStmt = "{" { Stmt } "}" 
+BlockStmt = "{" { Stmt } "}"
 ````
 A block statement is just a sequence of statements enclosed by curly braces.
 Local variables declared in the block end their scope at the end of the block.
 
 ## Return Statement
 ````
-ReturnStmt = "return" [ Rhs { "," Rhs } ] ";" 
+ReturnStmt = "return" [ Rhs { "," Rhs } ] ";"
 ````
 A return statement can only be used in a method. It is used
 to terminate the execution of the method.
 
-To return a value from a method, the value is assigned to one 
+To return a value from a method, the value is assigned to one
 of the named out-parameters sometime before a return statement.
-In fact, the out-parameters act very much like local variables, 
-and can be assigned to more than once. Return statements are 
-used when one wants to return before reaching the end of the 
-body block of the method. 
+In fact, the out-parameters act very much like local variables,
+and can be assigned to more than once. Return statements are
+used when one wants to return before reaching the end of the
+body block of the method.
 
 Return statements can be just the return keyword (where the current value
 of the out-parameters are used), or they can take a list of expressions to
@@ -5352,7 +5352,7 @@ method terminates.
 
 ## Yield Statement
 ````
-YieldStmt = "yield" [ Rhs { "," Rhs } ] ";" 
+YieldStmt = "yield" [ Rhs { "," Rhs } ] ";"
 ````
 
 A yield statement can only be used in an iterator.
@@ -5362,13 +5362,13 @@ about iterators.
 The body of an iterator is a _co-routine_. It is used
 to yield control to its caller, signaling that a new
 set of values for the iterator's yield parameters (if any)
-are available. Values are assigned to the yield parameters 
+are available. Values are assigned to the yield parameters
 at or before a yield statement.
-In fact, the yield parameters act very much like local variables, 
-and can be assigned to more than once. Yield statements are 
+In fact, the yield parameters act very much like local variables,
+and can be assigned to more than once. Yield statements are
 used when one wants to return new yield parameter values
-to the caller. Yield statements can be just the 
-**yield** keyword (where the current value of the yield parameters 
+to the caller. Yield statements can be just the
+**yield** keyword (where the current value of the yield parameters
 are used), or they can take a list of expressions to yield.
 If a list is given, the number of expressions given must be the
 same as the number of named return yield parameters.
@@ -5388,21 +5388,21 @@ UpdateStmt =
      )
      ";"
     | ":"
-    ) 
+    )
 ````
 
 ````
-CallStmt_ = 
+CallStmt_ =
     [ Lhs { , Lhs } ":=" ] Lhs ";"
 ````
 
-The update statement server three logical purposes. 
+The update statement server three logical purposes.
 
 First, if it matches the grammar of a ``CallStmt_`` in which the right-most ``Lhs``
 references a method and arguments to pass to it, then the ``UpdateStmt`` is a
-method call or a new allocation with an initializing method. 
-These are the only ways in which a method call is allowed in an update statement. 
-In particular, the result of one method call is not allowed to be used 
+method call or a new allocation with an initializing method.
+These are the only ways in which a method call is allowed in an update statement.
+In particular, the result of one method call is not allowed to be used
 as an argument of another method call (as if it had been an expression).
 
 The form
@@ -5410,7 +5410,7 @@ The form
 ```
 Lhs {Attribute} ";"
 ```
-is assumed to be a call to a method with no out-parameters. 
+is assumed to be a call to a method with no out-parameters.
 
 The form
 
@@ -5420,9 +5420,9 @@ The form
 can occur in the ``UpdateStmt`` grammar when there is a single Rhs that
 takes the special form of a ``Lhs`` that is a call. That is the only case
 where the number of left-hand sides can be different than the number of
-right-hand sides in the ``UpdateStmt``. In that case the number of 
-left-hand sides must match the number of out-parameters of the 
-method that is called. 
+right-hand sides in the ``UpdateStmt``. In that case the number of
+left-hand sides must match the number of out-parameters of the
+method that is called.
 
 Second, if no call is involved, the ``UpdateStmt`` can be a parallel
 assignment of right-hand-side values to the left-hand sides. For example
@@ -5452,13 +5452,13 @@ method Sum(X: set<int>) returns (s: int)
 }
 ```
 
-Dafny will report an error if it cannot prove that values 
+Dafny will report an error if it cannot prove that values
 exist which satisfy the condition.
 
 In addition, though the choice is arbitrary, given identical
 circumstances the choice will be made consistently.
 
-The form 
+The form
 
 ````
     Lhs ":"
@@ -5493,16 +5493,16 @@ Note that the type of each variable must be given individually. The following co
 var x, y : int;
 ```
 does not declare both `x` and `y` to be of type `int`. Rather it will give an
-error explaining that the type of `x` is underspecified if it cannot be 
-inferred from uses of x. 
+error explaining that the type of `x` is underspecified if it cannot be
+inferred from uses of x.
 
 What follows the ``LocalIdentTypeOptional`` optionally combines the variables
 declarations with an update statement, see [#sec-update-and-call-statements].
-If the Rhs is a call, then any variable receiving the value of a 
+If the Rhs is a call, then any variable receiving the value of a
 formal ghost out-parameter will automatically be declared as ghost, even
 if the **ghost** keyword is not part of the variable declaration statement.
 
-The left-hand side can also contain a tuple of patterns which will be 
+The left-hand side can also contain a tuple of patterns which will be
 matched against the right-hand-side. For example:
 
 ```
@@ -5520,9 +5520,9 @@ function usesTuple() : int
 
 ## Guards
 ````
-Guard = ( "*" | "(" "*" ")" | Expression(allowLemma: true, allowLambda: true) ) 
+Guard = ( "*" | "(" "*" ")" | Expression(allowLemma: true, allowLambda: true) )
 ````
-Guards are used in `if` and `while` statements as boolean expressions. Guards 
+Guards are used in `if` and `while` statements as boolean expressions. Guards
 take two forms.
 
 The first and most common form is just a boolean expression.
@@ -5550,7 +5550,7 @@ In other words, the statement
 if x :| P { S } else { T }
 ```
 
-has the same meaning as 
+has the same meaning as
 
 ```
 if exists x :| P { var x :| P; S } else { T }
@@ -5558,7 +5558,7 @@ if exists x :| P { var x :| P; S } else { T }
 
 The identifiers bound by ``BindingGuard`` are ghost variables
 and cannot be assigned to non-ghost variables. They are only
-used in specification contexts. 
+used in specification contexts.
 
 Here is an example:
 
@@ -5593,14 +5593,14 @@ IfStmt = "if"
 
 ````
 IfAlternativeBlock =
-   "{" { "case" 
+   "{" { "case"
       (
         BindingGuard(allowLambda:false)
       | Expression(allowLemma: true, allowLambda: false)
       ) "=>" { Stmt } } "}" .
 ````
 
-The simplest form an `if` statement uses a guard that is a boolean 
+The simplest form an `if` statement uses a guard that is a boolean
 expression. It then has the same form as in C# and other common
 programming languages. For example
 
@@ -5620,7 +5620,7 @@ If the guard is an asterisk then a non-deterministic choice is made:
   }
 ```
 
-The `if` statement using the `IfAlternativeBlock` form is similar to the 
+The `if` statement using the `IfAlternativeBlock` form is similar to the
 `if ... fi` construct used in the book "A Discipline of Programming" by
 Edsger W. Dijkstra. It is used for a multi-branch `if`.
 
@@ -5647,7 +5647,7 @@ WhileStmt = "while"
       | "..."
       | /* go body-less */
       )
-  ) 
+  )
 ````
 
 ````
@@ -5681,7 +5681,7 @@ iteration of the loop. If false then terminate the loop.
 Keep the following commented out until we decide a better
 place to put it.
 
-* An ellipsis (`...`), which makes the while statement a _skeleton_ 
+* An ellipsis (`...`), which makes the while statement a _skeleton_
 `while` statement. TODO: What does that mean?
 
 The _body_ of the loop is usually a block statement, but it can also
@@ -5690,7 +5690,7 @@ TODO: Wouldn't a missing body cause problems? Isn't it clearer to have
 a block statement with no statements inside?
 -->
 
-The second form uses the `WhileAlternativeBlock`. It is similar to the 
+The second form uses the `WhileAlternativeBlock`. It is similar to the
 `do ... od` construct used in the book "A Discipline of Programming" by
 Edsger W. Dijkstra. For example:
 
@@ -5715,10 +5715,10 @@ out what the loop is doing without more help. However, in general the user
 must provide more information in order to help Dafny prove the effect of
 the loop. This information is provided by a ``LoopSpec``. A
 ``LoopSpec`` provides information about invariants, termination, and
-what the loop modifies. ``LoopSpecs`` are explained in 
+what the loop modifies. ``LoopSpecs`` are explained in
 section [#sec-loop-specification]. However the following sections
 present additional rationale and tutorial on loop specifications.
-For additional tutorial information see [@KoenigLeino:MOD2011] or the 
+For additional tutorial information see [@KoenigLeino:MOD2011] or the
 [online Dafny tutorial](http://rise4fun.com/Dafny/tutorial/Guide).
 
 #### Loop Invariants
@@ -5761,7 +5761,7 @@ are preserved unless it is told via an invariant.
 
 Dafny proves that code terminates, i.e. does not loop forever, by using
 `decreases` annotations. For many things, Dafny is able to guess the right
-annotations, but sometimes it needs to be made explicit. 
+annotations, but sometimes it needs to be made explicit.
 There are two places Dafny proves termination: loops and recursion.
 Both of these situations require either an explicit annotation or a
 correct guess by Dafny.
@@ -5770,7 +5770,7 @@ A `decreases` annotation, as its name suggests, gives Dafny an expression
 that decreases with every loop iteration or recursive call. There are two
 conditions that Dafny needs to verify when using a decreases expression:
 
-* that the expression actually gets smaller, and 
+* that the expression actually gets smaller, and
 * that it is bounded.
 
 Many times, an integral value (natural or plain integer) is the quantity
@@ -5824,9 +5824,9 @@ See the discussion of framing in methods for a fuller discussion.
 MatchStmt = "match" Expression(allowLemma: true, allowLambda: true)
   ( "{" { CaseStatement  } "}"
   | { CaseStatement }
-  ) 
+  )
 
-CaseStatement = CaseBinding_ "=>" { Stmt } 
+CaseStatement = CaseBinding_ "=>" { Stmt }
 ````
 
 The `match` statement is used to do case analysis on a value of inductive
@@ -5878,11 +5878,11 @@ infinite.
 
 ## Assert Statement
 ````
-AssertStmt = 
-    "assert" { Attribute } 
-    ( Expression(allowLemma: false, allowLambda: true) 
-    | "..." 
-    ) ";" 
+AssertStmt =
+    "assert" { Attribute }
+    ( Expression(allowLemma: false, allowLambda: true)
+    | "..."
+    ) ";"
 ````
 
 `Assert` statements are used to express logical proposition that are
@@ -5901,11 +5901,11 @@ If the proposition is `...` then (TODO: what does this mean?).
 
 ## Assume Statement
 ````
-AssumeStmt = 
-    "assume" { Attribute } 
-    ( Expression(allowLemma: false, allowLambda: true) 
-    | "..." 
-    ) ";" 
+AssumeStmt =
+    "assume" { Attribute }
+    ( Expression(allowLemma: false, allowLambda: true)
+    | "..."
+    ) ";"
 ````
 
 The `Assume` statement lets the user specify a logical proposition
@@ -5919,7 +5919,7 @@ the other verification can proceed. Then when that is completed the
 user would come back and replace the `assume` with `assert`.
 
 An `Assume` statement cannot be compiled. In fact, the compiler
-will complain if it finds an **assume** anywhere where it has not 
+will complain if it finds an **assume** anywhere where it has not
 been replaced through a refinement steop.
 
 <!--
@@ -5930,9 +5930,9 @@ If the proposition is `...` then (TODO: what does this mean?).
 
 ## Print Statement
 ````
-PrintStmt = 
-    "print" Expression(allowLemma: false, allowLambda: true) 
-    { "," Expression(allowLemma: false, allowLambda: true) } ";" 
+PrintStmt =
+    "print" Expression(allowLemma: false, allowLambda: true)
+    { "," Expression(allowLemma: false, allowLambda: true) } ";"
 ````
 
 The `print` statement is used to print the values of a comma-separated
@@ -5969,7 +5969,7 @@ ForallStmt = "forall"
   [ BlockStmt ]
 ````
 
-The `forall` statement executes the body in 
+The `forall` statement executes the body in
 parallel for all quantified values in the specified range.
 There are several variant uses of the `forall`
 statement. And there are a number of restrictions.
@@ -5983,7 +5983,7 @@ The target must be an array element or an object field.
 quantified or proved by the body (if present).
 
 An _assign_ `forall` statement is to perform simultaneous assignment.
-The left-hand sides must denote different l-values, unless the 
+The left-hand sides must denote different l-values, unless the
 corresponding right-hand sides also coincide.
 
 The following is an excerpt of an example given by Leino in
@@ -6027,7 +6027,7 @@ forall cmd', deps', e' | Hash(Loc(cmd', deps', e')) == Hash(Loc(cmd, deps, e)) {
   HashProperty(cmd', deps', e', cmd, deps, e);
 }
 
-lemma HashProperty(cmd: Expression, deps: Expression, ext: string, 
+lemma HashProperty(cmd: Expression, deps: Expression, ext: string,
     cmd': Expression, deps': Expression, ext': string)
   requires Hash(Loc(cmd, deps, ext)) == Hash(Loc(cmd', deps', ext'))
   ensures cmd == cmd' && deps == deps' && ext == ext'
@@ -6049,7 +6049,7 @@ More generally, the statement
 forall x | P(x) { Lemma(x); }
 ```
 is used to invoke `Lemma(x)` on all `x` for which `P(x)` holds. If
-`Lemma(x)` ensures `Q(x)`, then the forall statement establishes 
+`Lemma(x)` ensures `Q(x)`, then the forall statement establishes
 ```
 forall x :: P(x) ==> Q(x).
 ```
@@ -6059,7 +6059,7 @@ co-predicates and co-lemmas. See section [#sec-co-inductive-datatypes].
 
 ## Modify Statement
 ````
-ModifyStmt = 
+ModifyStmt =
   "modify" { Attribute }
   ( FrameExpression(allowLemma: false, allowLambda: true)
     { "," FrameExpression(allowLemma: false, allowLambda: true) }
@@ -6132,11 +6132,11 @@ The first `modify` statement in the example has an empty
 frame expression so it cannot modify any memory locations.
 So an error is reported when it tries to modify field `x`.
 
-The second `modify` statement also has an empty frame 
+The second `modify` statement also has an empty frame
 expression. But it allocates a new object and modifies it.
 Thus we see that the frame expressions on a block `modify`
-statement only limits what may be modified of existing 
-memory. It does not limit what may be modified in 
+statement only limits what may be modified of existing
+memory. It does not limit what may be modified in
 new memory that is allocated.
 
 The third `modify` statement has a frame expression that
@@ -6145,16 +6145,16 @@ so the modification of field `x` is allowed.
 
 ## Calc Statement
 ````
-CalcStmt = "calc" { Attribute } [ CalcOp ] "{" CalcBody "}" 
-CalcBody = { CalcLine [ CalcOp ] Hints } 
-CalcLine = Expression(allowLemma: false, allowLambda: true) ";" 
-Hints = { ( BlockStmt | CalcStmt ) } 
+CalcStmt = "calc" { Attribute } [ CalcOp ] "{" CalcBody "}"
+CalcBody = { CalcLine [ CalcOp ] Hints }
+CalcLine = Expression(allowLemma: false, allowLambda: true) ";"
+Hints = { ( BlockStmt | CalcStmt ) }
 CalcOp =
   ( "==" [ "#" "[" Expression(allowLemma: true, allowLambda: true) "]" ]
-  | "<" | ">" 
+  | "<" | ">"
   | "!=" | "<=" | ">="
   | "<==>" | "==>" | "<=="
-  ) 
+  )
 ````
 
 [Verified Calculations]: http://research.microsoft.com/en-us/um/people/leino/papers/krml231.pdf
@@ -6166,7 +6166,7 @@ and Polikarpova[@LEINO:Dafny:Calc]. Please see that paper for a more
 complete explanation of the `calc` statement. We here mention only the
 highlights.
 
-Calculational proofs are proofs by stepwise formula manipulation 
+Calculational proofs are proofs by stepwise formula manipulation
 as is taught in elementary algebra. The typical example is to prove
 an equality by starting with a left-hand-side, and through a series of
 transformations morph it into the desired right-hand-side.
@@ -6177,7 +6177,7 @@ chain-compatible operators can be used together in a calculation. The
 notion of chain-compatibility is quite intuitive for the operators
 supported by poC; for example, it is clear that "<" and ">" cannot be used within
 the same calculation, as there would be no relation to conclude between
-the first and the last line. See the [paper][Verified Calculations] for 
+the first and the last line. See the [paper][Verified Calculations] for
 a more formal treatment of chain-compatibility.
 
 Note that we allow a single occurrence of the intransitive operator "!=" to
@@ -6237,7 +6237,7 @@ nested `calc` statements that prove equality of some sub-parts
 of the expression.
 
 The `==` operators show the relation between
-the previous expression and the next. Because of the transitivity of 
+the previous expression and the next. Because of the transitivity of
 equality we can then conclude that the original left-hand-side is
 equal to the final expression.
 
@@ -6268,17 +6268,17 @@ Move to discussion of refinement.
 
 ## Skeleton Statement
 ````
-SkeletonStmt = 
-  "..." 
-  ["where" Ident {"," Ident } ":=" 
-    Expression(allowLemma: false, allowLambda: true) 
-    {"," Expression(allowLemma: false, allowLambda: true) } 
-  ] ";" 
+SkeletonStmt =
+  "..."
+  ["where" Ident {"," Ident } ":="
+    Expression(allowLemma: false, allowLambda: true)
+    {"," Expression(allowLemma: false, allowLambda: true) }
+  ] ";"
 ````
 -->
 
 # Expressions
-The grammar of Dafny expressions follows a hierarchy that 
+The grammar of Dafny expressions follows a hierarchy that
 reflects the precedence of Dafny operators. The following
 table shows the Dafny operators and their precedence
 in order of increasing binding power.
@@ -6324,16 +6324,16 @@ We are calling the ``UnaryExpression``s that are neither
 arithmetic nor logical negation the _primary expressions_.
 They are the most tightly bound.
 
-In the grammar entries below we explain the meaning when the 
+In the grammar entries below we explain the meaning when the
 operator for that precedence level is present. If the
 operator is not present then we just descend to the
 next precedence level.
 
 ## Top-level expressions
 ````
-Expression(allowLemma, allowLambda) = 
+Expression(allowLemma, allowLambda) =
     EquivExpression(allowLemma, allowLambda)
-    [ ";" Expression(allowLemma, allowLambda) ] 
+    [ ";" Expression(allowLemma, allowLambda) ]
 ````
 
 The "allowLemma" argument says whether or not the expression
@@ -6350,7 +6350,7 @@ specifications, if/while statements with guarded alternatives, and expressions
 in the specification of a lambda expression itself.
 
 Sometimes an expression will fail unless some relevant fact is known.
-In the following example the `F_Fails` function fails to verify 
+In the following example the `F_Fails` function fails to verify
 because the `Fact(n)` divisor may be zero. But preceding
 the expression by a lemma that ensures that the denominator
 is not zero allows function `F_Succeeds` to succeed.
@@ -6379,9 +6379,9 @@ function F_Succeeds(n: nat): int
 
 ## Equivalence Expressions
 ````
-EquivExpression(allowLemma, allowLambda) = 
+EquivExpression(allowLemma, allowLambda) =
   ImpliesExpliesExpression(allowLemma, allowLambda)
-  { "<==>" ImpliesExpliesExpression(allowLemma, allowLambda) } 
+  { "<==>" ImpliesExpliesExpression(allowLemma, allowLambda) }
 ````
 An ``EquivExpression`` that contains one or more "<==>"s is
 a boolean expression and all the contained ``ImpliesExpliesExpression``
@@ -6400,11 +6400,11 @@ ImpliesExpliesExpression(allowLemma, allowLambda) =
     | "<==" LogicalExpression(allowLemma, allowLambda)
             { "<==" LogicalExpression(allowLemma, allowLambda) }
     )
-  ] 
+  ]
 
 ImpliesExpression(allowLemma, allowLambda) =
-  LogicalExpression(allowLemma, allowLambda) 
-  [  "==>" ImpliesExpression(allowLemma, allowLambda) ] 
+  LogicalExpression(allowLemma, allowLambda)
+  [  "==>" ImpliesExpression(allowLemma, allowLambda) ]
 ````
 
 See section [#sec-implication-and-reverse-implication] for an explanation
@@ -6420,10 +6420,10 @@ LogicalExpression(allowLemma, allowLambda) =
     | "||" RelationalExpression(allowLemma, allowLambda)
            { "||" RelationalExpression(allowLemma, allowLambda) }
     )
-  ] 
+  ]
 ````
 
-See section [#sec-conjunction-and-disjunction] for an explanation 
+See section [#sec-conjunction-and-disjunction] for an explanation
 of the `&&` (or &and;) and `||` (or &or;) operators.
 
 ## Relational Expressions
@@ -6434,36 +6434,36 @@ RelationalExpression(allowLemma, allowLambda) =
 
 RelOp =
   ( "==" [ "#" "[" Expression(allowLemma: true, allowLambda: true) "]" ]
-  | "<" | ">" | "<=" | ">=" 
+  | "<" | ">" | "<=" | ">="
   | "!=" [ "#" "[" Expression(allowLemma: true, allowLambda: true) "]" ]
   | "in"
   | "!in"
   | "!!"
   )
-  
+
 ````
 
 The relation expressions that have a ``RelOp`` compare two or more terms.
-As explained in section [#sec-basic-types], `==`, `!=`, ``<``, `>`, `<=`, and `>=` 
+As explained in section [#sec-basic-types], `==`, `!=`, ``<``, `>`, `<=`, and `>=`
 and their corresponding Unicode equivalents are _chaining_.
 
-The `in` and `!in` operators apply to collection types as explained in 
+The `in` and `!in` operators apply to collection types as explained in
 section [#sec-collection-types] and represent membership or non-membership
 respectively.
 
-The `!!` represents disjointness for sets and multisets as explained in 
+The `!!` represents disjointness for sets and multisets as explained in
 sections [#sec-sets] and [#sec-multisets].
 
 Note that `x ==#[k] y` is the prefix equality operator that compares
-co-inductive values for equality to a nesting level of k, as 
+co-inductive values for equality to a nesting level of k, as
 explained in section [#sec-co-equality].
 
 ## Terms
 ````
 Term(allowLemma, allowLambda) =
   Factor(allowLemma, allowLambda)
-  { AddOp Factor(allowLemma, allowLambda) } 
-AddOp = ( "+" | "-" ) 
+  { AddOp Factor(allowLemma, allowLambda) }
+AddOp = ( "+" | "-" )
 ````
 
 `Terms` combine `Factors` by adding or subtracting.
@@ -6480,8 +6480,8 @@ difference for sets and multisets.
 ````
 Factor(allowLemma, allowLambda) =
   UnaryExpression(allowLemma, allowLambda)
-  { MulOp UnaryExpression(allowLemma, allowLambda) } 
-MulOp = ( "*" | "/" | "%" ) 
+  { MulOp UnaryExpression(allowLemma, allowLambda) }
+MulOp = ( "*" | "/" | "%" )
 ````
 
 A ``Factor`` combines ``UnaryExpression``s using multiplication,
@@ -6499,7 +6499,7 @@ UnaryExpression(allowLemma, allowLambda) =
   | "!" UnaryExpression(allowLemma, allowLambda)
   | PrimaryExpression_(allowLemma, allowLambda)
   )
-  
+
 ````
 
 A ``UnaryExpression`` applies either numeric (section [#sec-numeric-types])
@@ -6518,7 +6518,7 @@ PrimaryExpression_(allowLemma, allowLambda) =
   | EndlessExpression(allowLemma, allowLambda)
   | ConstAtomExpression { Suffix }
   )
-  
+
 ````
 
 After descending through all the binary and unary operators we arrive at
@@ -6536,7 +6536,7 @@ LambdaExpression(allowLemma) =
   | "(" [ IdentTypeOptional { "," IdentTypeOptional } ] ")"
   )
   LambdaSpec_
-  "=>" Expression(allowLemma, allowLambda: true) 
+  "=>" Expression(allowLemma, allowLambda: true)
 ````
 
 See section [#sec-lambda-specification] for a description of ``LambdaSpec``.
@@ -6632,7 +6632,7 @@ allocated, or in which havoc may be produced.
 
 ## Array Allocation
 ````
-ArrayAllocation_ = "new" Type "[" Expressions "]" 
+ArrayAllocation_ = "new" Type "[" Expressions "]"
 ````
 
 This allocates a new single or multi-dimensional array as explained in
@@ -6640,7 +6640,7 @@ section [#sec-array-types].
 
 ## Object Allocation
 ````
-ObjectAllocation_ = "new" Type [ "(" [ Expressions ] ")" ] 
+ObjectAllocation_ = "new" Type [ "(" [ Expressions ] ")" ]
 ````
 
 This allocated a new object of a class type as explained
@@ -6663,24 +6663,24 @@ ConstAtomExpression =
   | CardinalityExpression_
   | NumericConversionExpression_
   | ParensExpression
-  ) 
+  )
 ````
 A ``ConstAtomExpression`` represent either a constant of some type, or an
-atomic expression. A ``ConstAtomExpression`` is never an l-value. 
+atomic expression. A ``ConstAtomExpression`` is never an l-value.
 ## Literal Expressions
 ````
-LiteralExpression_ = 
- ( "false" | "true" | "null" | Nat | Dec | 
-   charToken | stringToken | "this") 
+LiteralExpression_ =
+ ( "false" | "true" | "null" | Nat | Dec |
+   charToken | stringToken | "this")
 ````
-A literal expression is a boolean literal, a null object reference, 
+A literal expression is a boolean literal, a null object reference,
 an unsigned integer or real literal, a character or string literal,
 or "this" which denote the current object in the context of
 an instance method or function.
 
 ## Fresh Expressions
 ````
-FreshExpression_ = "fresh" "(" Expression(allowLemma: true, allowLambda: true) ")" 
+FreshExpression_ = "fresh" "(" Expression(allowLemma: true, allowLambda: true) ")"
 ````
 
 `fresh(e)` returns a boolean value that is true if
@@ -6691,18 +6691,18 @@ or a collection of object references.
 
 ## Old Expressions
 ````
-OldExpression_ = "old" "(" Expression(allowLemma: true, allowLambda: true) ")" 
+OldExpression_ = "old" "(" Expression(allowLemma: true, allowLambda: true) ")"
 ````
 
 An _old expression_ is used in postconditions. `old(e)` evaluates to
 the value expression `e` had on entry to the current method.
 Note that **old** only affects heap dereferences, like `o.f` and `a[i]`.
-In particular, **old** has no effect on the value returned for local 
+In particular, **old** has no effect on the value returned for local
 variables or out-parameters.
 
 ## Cardinality Expressions
 ````
-CardinalityExpression_ = "|" Expression(allowLemma: true, allowLambda: true) "|" 
+CardinalityExpression_ = "|" Expression(allowLemma: true, allowLambda: true) "|"
 ````
 
 For a finite-collection expression `c`, `|c|` is the cardinality of `c`. For a
@@ -6714,8 +6714,8 @@ For more, see section [#sec-collection-types].
 
 ## Numeric Conversion Expressions
 ````
-NumericConversionExpression_ = 
-    ( "int" | "real" ) "(" Expression(allowLemma: true, allowLambda: true) ")" 
+NumericConversionExpression_ =
+    ( "int" | "real" ) "(" Expression(allowLemma: true, allowLambda: true) ")"
 ````
 Numeric conversion expressions give the name of the target type
 followed by the expression being converted in parentheses.
@@ -6726,7 +6726,7 @@ e.g. `newtypes`. See section [#sec-numeric-conversion-operations].
 ## Parenthesized Expression
 ````
 ParensExpression =
-  "(" [ Expressions ] ")" 
+  "(" [ Expressions ] ")"
 ````
 A ``ParensExpression`` is a list of zero or more expressions
 enclosed in parentheses.
@@ -6739,7 +6739,7 @@ See section [#sec-tuple-types].
 
 ## Sequence Display Expression
 ````
-SeqDisplayExpr = "[" [ Expressions ] "]" 
+SeqDisplayExpr = "[" [ Expressions ] "]"
 ````
 A sequence display expression provide a way to constructing
 a sequence with given values. For example
@@ -6753,7 +6753,7 @@ sequences.
 
 ## Set Display Expression
 ````
-SetDisplayExpr = [ "iset" ] "{" [ Expressions ] "}" 
+SetDisplayExpr = [ "iset" ] "{" [ Expressions ] "}"
 ````
 
 A set display expression provides a way of constructing a set with given
@@ -6771,11 +6771,11 @@ sets.
 
 ## Multiset Display or Cast Expression
 ````
-MultiSetExpr = 
-    "multiset" 
-    ( "{" [ Expressions ] "}" 
-    | "(" Expression(allowLemma: true, allowLambda: true) ")" 
-    ) 
+MultiSetExpr =
+    "multiset"
+    ( "{" [ Expressions ] "}"
+    | "(" Expression(allowLemma: true, allowLambda: true) ")"
+    )
 ````
 
 A multiset display expression provides a way of constructing
@@ -6787,7 +6787,7 @@ multiset{1, 1, 2, 3}
 is a multiset with three elements in it. The number 1 has a multiplicity of 2,
 the others a multiplicity of 1.
 
-On the other hand, a multiset cast expression converts a set or a sequence 
+On the other hand, a multiset cast expression converts a set or a sequence
 into a multiset as shown here:
 
 ```
@@ -6804,12 +6804,12 @@ multisets.
 
 ## Map Display Expression
 ````
-MapDisplayExpr = ("map" | "imap" ) "[" [ MapLiteralExpressions ] "]" 
-MapLiteralExpressions = 
-    Expression(allowLemma: true, allowLambda: true) 
-    ":=" Expression(allowLemma: true, allowLambda: true) 
-    { "," Expression(allowLemma: true, allowLambda: true) 
-          ":=" Expression(allowLemma: true, allowLambda: true) 
+MapDisplayExpr = ("map" | "imap" ) "[" [ MapLiteralExpressions ] "]"
+MapLiteralExpressions =
+    Expression(allowLemma: true, allowLambda: true)
+    ":=" Expression(allowLemma: true, allowLambda: true)
+    { "," Expression(allowLemma: true, allowLambda: true)
+          ":=" Expression(allowLemma: true, allowLambda: true)
     }
 ````
 
@@ -6833,7 +6833,7 @@ EndlessExpression(allowLemma, allowLambda) =
   | StmtInExpr Expression(allowLemma, allowLambda)
   | LetExpr(allowLemma, allowLambda)
   | MapComprehensionExpr(allowLemma, allowLambda)
-  ) 
+  )
 ````
 <!-- Experimental - do not document.
   | NamedExpr(allowLemma, allowLambda)
@@ -6846,16 +6846,16 @@ all end with an ``Expression`` at the end. The various
 
 ## If Expression
 ````
-IfExpression_(allowLemma, allowLambda) = 
+IfExpression_(allowLemma, allowLambda) =
     "if" Expression(allowLemma: true, allowLambda: true)
-    "then" Expression(allowLemma: true, allowLambda: true) 
-    "else" Expression(allowLemma, allowLambda) 
+    "then" Expression(allowLemma: true, allowLambda: true)
+    "else" Expression(allowLemma, allowLambda)
 ````
 
 The ``IfExpression`` is a conditional expression. It first evaluates
 the expression following the `if`. If it evaluates to `true` then
 it evaluates the expression following the `then` and that is the
-result of the expression. If it evaluates to `false` then the 
+result of the expression. If it evaluates to `false` then the
 expression following the `else` is evaluated and that is the result
 of the expression. It is important that only the selected expression
 is evaluated as the following example shows.
@@ -6869,20 +6869,20 @@ var m := if x != 0 then 10 / x else 1; // ok, guarded
 ````
 CaseBinding_ =
   "case"
-  ( Ident [ "(" [CasePattern { "," CasePattern } ] ")" ] 
+  ( Ident [ "(" [CasePattern { "," CasePattern } ] ")" ]
   | "(" [ CasePattern { "," CasePattern } ] ")"
   )
 
-CasePattern = 
+CasePattern =
   ( Ident "(" [ CasePattern { "," CasePattern } ] ")"
   | "(" [ CasePattern { "," Casepattern } ] ")"
   | IdentTypeOptional
-  ) 
+  )
 ````
 
 Case bindings and patterns are used for (possibly nested)
 pattern matching on inductive or coinductive values.
-The ``CaseBinding_`` construct is used in 
+The ``CaseBinding_`` construct is used in
 ``CaseStatement`` and ``CaseExpression``s.
 Besides its use in ``CaseBinding_``, ``CasePattern``s are used
 in ``LetExpr``s and ``VarDeclStatement``s.
@@ -6894,7 +6894,7 @@ considered to have a single constructor.
 The ``Ident`` of the ``CaseBinding_`` must match the name
 of a constructor (or in the case of a tuple, the ``Ident`` is
 absent and the second alternative is chosen).
-The ``CasePattern``s inside the parentheses are then 
+The ``CasePattern``s inside the parentheses are then
 matched against the arguments that were given to the
 constructor when the value was constructed.
 The number of ``CasePattern``s must match the number
@@ -6909,14 +6909,14 @@ matched.
 ## Match Expression
 
 ````
-MatchExpression(allowLemma, allowLambda) = 
+MatchExpression(allowLemma, allowLambda) =
   "match" Expression(allowLemma, allowLambda)
-  ( "{" { CaseExpression(allowLemma: true, allowLambda: true) } "}" 
-  | { CaseExpression(allowLemma, allowLambda) } 
-  ) 
+  ( "{" { CaseExpression(allowLemma: true, allowLambda: true) } "}"
+  | { CaseExpression(allowLemma, allowLambda) }
+  )
 
 CaseExpression(allowLemma, allowLambda) =
-    CaseBinding_ "=>" Expression(allowLemma, allowLambda) 
+    CaseBinding_ "=>" Expression(allowLemma, allowLambda)
 ````
 
 A ``MatchExpression`` is used to conditionally evaluate and select an
@@ -6947,7 +6947,7 @@ corresponding parameters.
 A ``MatchExpression`` is evaluated by first evaluating the selector.
 Then the ``CaseClause`` is selected for the constructor that was
 used to construct the evaluated selector. If the constructor had
-parameters then the actual values used to construct the selector 
+parameters then the actual values used to construct the selector
 value are bound to the identifiers in the identifier list.
 The expression to the right of the `=>` in the ``CaseClause`` is then
 evaluated in the environment enriched by this binding. The result
@@ -6959,10 +6959,10 @@ Note that the braces enclosing the ``CaseClause``s may be omitted.
 ````
 QuantifierExpression(allowLemma, allowLambda) =
     ( "forall" | "exists" ) QuantifierDomain "::"
-    Expression(allowLemma, allowLambda) 
+    Expression(allowLemma, allowLambda)
 
 QuantifierDomain =
-  IdentTypeOptional { "," IdentTypeOptional } { Attribute } 
+  IdentTypeOptional { "," IdentTypeOptional } { Attribute }
   [ "|" Expression(allowLemma: true, allowLambda: true) ]
 ````
 
@@ -6995,17 +6995,17 @@ It this is not possible, the program is in error.
 ## Set Comprehension Expressions
 ````
 SetComprehensionExpr(allowLemma, allowLambda) =
-  [ "set" | "iset" ] 
+  [ "set" | "iset" ]
   IdentTypeOptional { "," IdentTypeOptional } { Attribute }
-  "|" Expression(allowLemma, allowLambda) 
-  [ "::" Expression(allowLemma, allowLambda) ] 
+  "|" Expression(allowLemma, allowLambda)
+  [ "::" Expression(allowLemma, allowLambda) ]
 ````
 
 A set comprehension expression is an expressions that yields a set
-(possibly infinite if `iset` is used) that 
+(possibly infinite if `iset` is used) that
 satisfies specified conditions. There are two basic forms.
 
-If there is only one quantified variable, the optional ``"::" Expression`` 
+If there is only one quantified variable, the optional ``"::" Expression``
 need not be supplied, in which case it is as if it had been supplied
 and the expression consists solely of the quantified variable.
 That is,
@@ -7028,14 +7028,14 @@ var S := set x1:T1, x2:T2 ... | P(x1, x2, ...) :: Q(x1, x2, ...)
 
 the elements of `S` will be all values resulting from evaluation of `Q(x1, x2, ...)`
 for all combinations of quantified variables `x1, x2, ...` such that
-predicate `P(x1, x2, ...)` holds. For example, 
+predicate `P(x1, x2, ...)` holds. For example,
 
 ```
 var S := set x:nat, y:nat | x < 2 && y < 2 :: (x, y)
 ```
 yields `S == {(0, 0), (0, 1), (1, 0), (1,1) }`
 
-The types on the quantified variables are optional and if not given Dafny 
+The types on the quantified variables are optional and if not given Dafny
 will attempt to infer them from the contexts in which they are used in the
 `P` or `Q` expressions.
 
@@ -7057,10 +7057,10 @@ finite--it is not pleasant or practical to compute at run time.
 
 ## Statements in an Expression
 ````
-StmtInExpr = ( AssertStmt | AssumeStmt | CalcStmt ) 
+StmtInExpr = ( AssertStmt | AssumeStmt | CalcStmt )
 ````
 
-A ``StmtInExpr`` is a kind of statement that is allowed to 
+A ``StmtInExpr`` is a kind of statement that is allowed to
 precede an expression in order to ensure that the expression
 can be evaluated without error. For example:
 
@@ -7074,11 +7074,11 @@ assume x != 0; 10/x
 
 ````
 LetExpr(allowLemma, allowLambda) =
-    [ "ghost" ] "var" CasePattern { "," CasePattern } 
+    [ "ghost" ] "var" CasePattern { "," CasePattern }
     ( ":=" | { Attribute } ":|" )
-    Expression(allowLemma: false, allowLambda: true) 
-    { "," Expression(allowLemma: false, allowLambda: true) } ";" 
-    Expression(allowLemma, allowLambda) 
+    Expression(allowLemma: false, allowLambda: true)
+    { "," Expression(allowLemma: false, allowLambda: true) } ";"
+    Expression(allowLemma, allowLambda)
 ````
 
 A `let` expression allows binding of intermediate values to identifiers
@@ -7109,10 +7109,10 @@ function GhostF(z: Stuff): int
 
 ## Map Comprehension Expression
 ````
-MapComprehensionExpr(allowLemma, allowLambda) = 
-  ( "map" | "imap" ) IdentTypeOptional { Attribute } 
-  [ "|" Expression(allowLemma: true, allowLambda: true) ] 
-  "::" Expression(allowLemma, allowLambda) 
+MapComprehensionExpr(allowLemma, allowLambda) =
+  ( "map" | "imap" ) IdentTypeOptional { Attribute }
+  [ "|" Expression(allowLemma: true, allowLambda: true) ]
+  "::" Expression(allowLemma, allowLambda)
 ````
 
 A ``MapComprehensionExpr`` defines a finite or infinite map value
@@ -7123,7 +7123,7 @@ giving the mapped value using the expression following the "::".
 For example:
 ```
 function square(x : int) : int { x * x }
-method test() 
+method test()
 {
   var m := map x : int | 0 <= x <= 10 :: x * x;
   ghost var im := imap x : int :: x * x;
@@ -7140,13 +7140,13 @@ creation of an infinite map that gives the same results as a function.
 ## Named Expression
 ````
 NamedExpr(allowLemma, allowLambda) =
-    "label" LabelName ":" Expression(allowLemma, allowLambda) 
+    "label" LabelName ":" Expression(allowLemma, allowLambda)
 ````
 
 A ``NamedExpr`` is an expression that has been tagged with a name.
 For example:
 ```
-label squareit: x * x 
+label squareit: x * x
 ```
 
 This is an experimental feature.
@@ -7156,11 +7156,11 @@ Should we remove the description?
 
 ## Name Segment
 ````
-NameSegment = Ident [ GenericInstantiation | HashCall ] 
+NameSegment = Ident [ GenericInstantiation | HashCall ]
 ````
 
 A ``NameSegment`` names a Dafny entity by giving its declared
-name optionally followed by information to 
+name optionally followed by information to
 make the name more complete. For the simple case, it is
 just an identifier.
 
@@ -7176,8 +7176,8 @@ followed by a ``HashCall``.
 ## Hash Call
 ````
 HashCall = "#" [ GenericInstantiation ]
-  "[" Expression(allowLemma: true, allowLambda: true) "]" 
-  "(" [ Expressions ] ")" 
+  "[" Expression(allowLemma: true, allowLambda: true) "]"
+  "(" [ Expressions ] ")"
 ````
 A ``HashCall`` is used to call the prefix for a copredicate or colemma.
 In the non-generic case, just insert `"#[k]"` before the call argument
@@ -7240,19 +7240,19 @@ Suffix =
   | SequenceUpdateSuffix_
   | SelectionSuffix_
   | ArgumentListSuffix_
-  ) 
+  )
 ````
 
-The ``Suffix`` non-terminal describes ways of deriving a new value from 
+The ``Suffix`` non-terminal describes ways of deriving a new value from
 the entity to which the suffix is appended. There are six kinds
 of suffixes which are described below.
 
 ### Augmented Dot Suffix
 ````
-AugmentedDotSuffix_ = ". " DotSuffix [ GenericInstantiation | HashCall ] 
+AugmentedDotSuffix_ = ". " DotSuffix [ GenericInstantiation | HashCall ]
 ````
 
-An augmented dot suffix consists of a simple ``DotSuffix`` optionally 
+An augmented dot suffix consists of a simple ``DotSuffix`` optionally
 followed by either
 
 * a ``GenericInstantiation`` (for the case where the item
@@ -7267,7 +7267,7 @@ selected by the ``DotSuffix`` is generic), or
 DatatypeUpdateSuffix_ =
   "." "(" MemberBindingUpdate { "," MemberBindingUpdate } ")"
 
-MemberBindingUpdate = 
+MemberBindingUpdate =
   ( ident | digits ) ":=" Expression(allowLemma: true, allowLambda: true)
 ````
 
@@ -7288,11 +7288,11 @@ Here is an example:
 
 ```
 module NewSyntax {
-datatype MyDataType = MyConstructor(myint:int, mybool:bool) 
-                    | MyOtherConstructor(otherbool:bool) 
+datatype MyDataType = MyConstructor(myint:int, mybool:bool)
+                    | MyOtherConstructor(otherbool:bool)
                     | MyNumericConstructor(42:int)
 
-method test(datum:MyDataType, x:int) 
+method test(datum:MyDataType, x:int)
     returns (abc:MyDataType, def:MyDataType, ghi:MyDataType, jkl:MyDataType)
     requires datum.MyConstructor?;
     ensures abc == datum.(myint := x + 2);
@@ -7302,7 +7302,7 @@ method test(datum:MyDataType, x:int)
     //ensures jkl == datum.(non_destructor := 5);
     ensures jkl == datum.(42 := 7);
 {
-    abc := MyConstructor(x + 2, datum.mybool); 
+    abc := MyConstructor(x + 2, datum.mybool);
     abc := datum.(myint := x + 2);
     def := MyOtherConstructor(!datum.mybool);
     ghi := MyConstructor(2, false);
@@ -7317,10 +7317,10 @@ method test(datum:MyDataType, x:int)
 
 ### Subsequence Suffix
 ````
-SubsequenceSuffix_ = 
+SubsequenceSuffix_ =
   "[" [ Expression(allowLemma: true, allowLambda: true) ]
       ".." [ Expression(allowLemma: true, allowLambda: true) ]
-  "]" 
+  "]"
 ````
 A subsequence suffix applied to a sequence produces a new sequence whose
 elements are taken from a contiguous part of the original sequence. For
@@ -7330,9 +7330,9 @@ section [#sec-other-sequence-expressions] for details.
 
 ### Slices By Length Suffix
 ````
-SlicesByLengthSuffix_ = 
+SlicesByLengthSuffix_ =
   "[" Expression(allowLemma: true, allowLambda: true) ":"
-      [ 
+      [
         Expression(allowLemma: true, allowLambda: true)
         { ":" Expression(allowLemma: true, allowLambda: true) }
         [ ":" ]
@@ -7347,9 +7347,9 @@ See section [#sec-other-sequence-expressions] for details.
 ### Sequence Update Suffix
 ````
 SequenceUpdateSuffix_ =
-  "[" Expression(allowLemma: true, allowLambda: true) 
-      ":=" Expression(allowLemma: true, allowLambda: true) 
-  "]" 
+  "[" Expression(allowLemma: true, allowLambda: true)
+      ":=" Expression(allowLemma: true, allowLambda: true)
+  "]"
 ````
 
 For a sequence `s` and expressions `i` and `v`, the expression
@@ -7359,9 +7359,9 @@ index `i` it has value `v`.
 ### Selection Suffix
 ````
 SelectionSuffix_ =
-  "[" Expression(allowLemma: true, allowLambda: true) 
-      { "," Expression(allowLemma: true, allowLambda: true) } 
-  "]" 
+  "[" Expression(allowLemma: true, allowLambda: true)
+      { "," Expression(allowLemma: true, allowLambda: true) }
+  "]"
 ````
 
 If a ``SelectionSuffix_`` has only one expression in it, it is a
@@ -7374,18 +7374,18 @@ The rank of the array must be the same as the number of indices.
 
 ### Argument List Suffix
 ````
-ArgumentListSuffix_ = "(" [ Expressions ] ")" 
+ArgumentListSuffix_ = "(" [ Expressions ] ")"
 ````
 
 An argument list suffix is a parenthesized list of expressions that
-are the arguments to pass to a method or function that is being 
+are the arguments to pass to a method or function that is being
 called. Applying such a suffix causes the method or function
 to be called and the result is the result of the call.
 
 ## Expression Lists
 ````
-Expressions = 
-    Expression(allowLemma: true, allowLambda: true) 
+Expressions =
+    Expression(allowLemma: true, allowLambda: true)
     { "," Expression(allowLemma: true, allowLambda: true) }
 ````
 
@@ -7397,7 +7397,7 @@ TODO: Write this section.
 
 # Attributes
 ````
-Attribute = "{" ":" AttributeName [ Expressions ] "}" 
+Attribute = "{" ":" AttributeName [ Expressions ] "}"
 ````
 Dafny allows many of its entities to be annotated with _Attributes_.
 The grammar shows where the attribute annotations may appear.
@@ -7413,8 +7413,8 @@ followed by a comma separated list of expressions. These expressions will
 be resolved and type-checked in the context where the attribute appears.
 
 ## Dafny Attribute Implementation Details
-In the Dafny implementation the `Attributes` type holds the name of 
-the attribute, a list of ``Expression`` arguments and a link to the 
+In the Dafny implementation the `Attributes` type holds the name of
+the attribute, a list of ``Expression`` arguments and a link to the
 previous Attributes object for that Dafny entity. So for each
 Dafny entity that has attributes we have a list of them.
 
@@ -7430,7 +7430,7 @@ document on Dafny internals.
 All entities that Dafny translates to Boogie have their attributes
 passed on to Boogie except for the `{:axiom}` attribute (which
 conflicts with Boogie usage) and the `{:trigger}` attribute which is
-instead converted into a Boogie quantifier _trigger_. See Section 11 of 
+instead converted into a Boogie quantifier _trigger_. See Section 11 of
 [@Leino:Boogie2-RefMan].
 
 Dafny has special processing for some attributes. For some attributes, the
@@ -7440,27 +7440,27 @@ at the entity and if the attribute is not there, look up in the hierarchy
 the `ContainsBoolAtAnyLevel` method in the Dafny source. The attribute
 declaration closest to the entity overrides those further away.
 
-For attributes with a single boolean expression argument, the attribute 
+For attributes with a single boolean expression argument, the attribute
 with no argument is interpreted as if it were true.
 
 The attributes that are processed specially by Dafny are described in the
 following sections.
 
-### assumption 
+### assumption
 This attribute can only be placed on a local ghost bool
 variable of a method. Its declaration cannot have a rhs, but it is
 allowed to participate as the lhs of exactly one assignment of the
 form: `b := b && expr;`. Such a variable declaration translates in the
-Boogie output to a declaration followed by an `assume b` command. 
+Boogie output to a declaration followed by an `assume b` command.
 See [@LeinoWuestholz2015], Section 3, for example uses of the `{:assumption}`
 attribute in Boogie.
 
-### autoReq boolExpr 
+### autoReq boolExpr
 For a function declaration, if this attribute is set true at the nearest
 level, then its `requires` clause is strengthed sufficiently so that
 it may call the functions that it calls.
 
-For following example 
+For following example
 ```
 function f(x:int) : bool
   requires x > 3
@@ -7474,7 +7474,7 @@ function {:autoReq} g(y:int, b:bool) : bool
   if b then f(y + 2) else f(2*y)
 }
 ```
-the `{:autoReq}` attribute causes Dafny to 
+the `{:autoReq}` attribute causes Dafny to
 deduce a `requires` clause for g as if it had been
 declared
 ```
@@ -7550,8 +7550,8 @@ be added.
 
 ### axiom
 The `{:axiom}` attribute may be placed on a function or method.
-It means that the post-condition may be assumed to be true 
-without proof. In that case also the body of the function or 
+It means that the post-condition may be assumed to be true
+without proof. In that case also the body of the function or
 method may be omitted.
 
 The `{:axiom}` attribute is also used for generated `reveal_*`
@@ -7605,7 +7605,7 @@ The quantifier is translated into the following Boogie:
 
 ```
 (forall q$heap#8: Heap, u#5: int ::
-    {:heapQuantifier} 
+    {:heapQuantifier}
     $IsGoodHeap(q$heap#8) && ($Heap == q$heap#8 || $HeapSucc($Heap, q$heap#8))
        ==> $Unbox(Apply1(TInt, TInt, f#0, q$heap#8, $Box(u#5))): int == u#5 + r#0);
 ```
@@ -7624,17 +7624,17 @@ A method or function declaration may be given the `(:imported)` attribute. This 
 the error message that would be given if a method or function with an `ensures` clause
 does not have a body.
 
-This seems to duplicate what `extern` and `{:decl}` do and would be a good candidate for 
+This seems to duplicate what `extern` and `{:decl}` do and would be a good candidate for
 deprecation.
 
 ### induction
-The `{:induction}` attribute controls the application of 
+The `{:induction}` attribute controls the application of
 proof by induction to two contexts. Given a list of
 variables on which induction might be applied, the
 `{:induction}` attribute selects a sub-list of those
 variables (in the same order) to which to apply induction.
 
-Dafny issue [34](https://github.com/Microsoft/dafny/issues/34) 
+Dafny issue [34](https://github.com/Microsoft/dafny/issues/34)
 proposes to remove the restriction that the sub-list
 be in the same order, and would apply induction in the
 order given in the `{:induction}` attribute.
@@ -7652,7 +7652,7 @@ The form of the `{:induction}` attribute is one of the following:
 * `{:induction false}` -- suppress induction, that is, don't apply it to any bound variable
 * `{:induction L}` where `L` is a list consisting entirely of bound variables
 -- apply induction to the specified bound variables
-* `{:induction X}` where `X` is anything else -- treat the same as 
+* `{:induction X}` where `X` is anything else -- treat the same as
 {:induction}, that is, apply induction to all bound variables. For this
 usage conventionally `X` is `true`.
 
@@ -7666,7 +7666,7 @@ lemma Fill_J(s: seq<int>)
 ```
 
 ### layerQuantifier
-When Dafny is translating a quantified expression, if it has 
+When Dafny is translating a quantified expression, if it has
 a `{:layerQuantifier}` attribute an additional quantifier
 variable is added to the quantifier bound variables.
 This variable as the predefined _LayerType_.
@@ -7682,7 +7682,7 @@ There is no explicit user of the `{:layerQuantifier}` attribute
 in the Dafny tests. So I believe this attribute is only used
 internally by Dafny and not externally.
 
-TODO: Need more complete explanation of this attribute. 
+TODO: Need more complete explanation of this attribute.
 Dafny issue [35](https://github.com/Microsoft/dafny/issues/35) tracks
 further effort for this attribute.
 
@@ -7691,15 +7691,15 @@ The `{:nativeType}` attribute may only be used on a ``NewtypeDecl``
 where the base type is an integral type. It can take one of the following
 forms:
 
-* `{:nativeType}` - With no parameters it has no effect and the ``NewtypeDecl`` 
+* `{:nativeType}` - With no parameters it has no effect and the ``NewtypeDecl``
 have its default behavior which is to choose a native type that can hold any
 value satisfying the constraints, if possible, otherwise BigInteger is used.
-* `{:nativeType true}` - Also gives default ``NewtypeDecl`` behavior, 
+* `{:nativeType true}` - Also gives default ``NewtypeDecl`` behavior,
 but gives an error if base type is not integral.
 * `{:nativeType false}` - Inhibits using a native type. BigInteger is used
 for integral types and BitRational for real types.
 * `{:nativeType "typename"}` - This form has an native integral
-type name as a string literal. Acceptable values are: "byte", 
+type name as a string literal. Acceptable values are: "byte",
 "sbyte", "ushort", "short", "uint", "int", "ulong" and "long".
 An error is reported if the given data type cannot hold all the
 values that satisfy the constraint.
@@ -7712,7 +7712,7 @@ sometimes it is useful to hide it. If a function `f` is given the
 so that it can only be seen within its recursive clique (if any),
 or if the programmer specifically asks to see it via the `reveal_f()` lemma.
 
-We create a lemma to allow the user to selectively reveal the function's body          
+We create a lemma to allow the user to selectively reveal the function's body
 That is, given:
 
 ```
@@ -7732,7 +7732,7 @@ We produce:
 ```
 
 where `foo_FULL` is a copy of `foo` which does not have its body
-hidden. In addition `foo_FULL` is given the 
+hidden. In addition `foo_FULL` is given the
 `{:opaque_full}` and `{:auto_generated}` attributes in addition
 to the `{:opaque}` attribute (which it got because it is a copy of `foo`).
 
@@ -7767,10 +7767,10 @@ If specified with a false value, it means the user specifically
 requested no tail recursion, so none is done.
 
 If specified with a true value, or if no argument is specified,
-then tail recursive optimization will be attempted subject to 
+then tail recursive optimization will be attempted subject to
 the following conditions:
 
-* It is an error if the method is a ghost method and tail 
+* It is an error if the method is a ghost method and tail
 recursion was explicitly requested.
 * Only direct recursion is supported, not mutually recursive methods.
 * If `{:tailrecursion true}` was specified but the code does not allow it,
@@ -7778,7 +7778,7 @@ an error message is given.
 
 ### timeLimitMultiplier
 This attribute may be placed on a method or function declaration
-and has an integer argument. If `{:timeLimitMultiplier X}` was 
+and has an integer argument. If `{:timeLimitMultiplier X}` was
 specified a `{:timelimit Y}` attributed is passed on to Boogie
 where `Y` is `X` times either the default verification time limit
 for a function or method, or times the value specified by the
@@ -7905,7 +7905,7 @@ Boogie: The following attributes are supported by this implementation.
 
 ```
 
-However a scan of Boogie's sources shows it checks for the 
+However a scan of Boogie's sources shows it checks for the
 following attributes.
 
 * `{:$}`
@@ -8003,7 +8003,7 @@ Emacs](https://github.com/boogie-org/boogie-friends).
 
 ## Building Dafny from Source
 The current version of the Dafny executable builds and runs with Visual Studio 2012 or later,
-but the Visual Studio extensions for Dafny currently only build with Visual Studio 2012. 
+but the Visual Studio extensions for Dafny currently only build with Visual Studio 2012.
 So if you intend to run Dafny from within Visual Studio (using extensions that you have
 built yourself), you must install Visual Studio 2012.
 
@@ -8037,7 +8037,7 @@ Last, follow the conventions:
 Dafny performs its verification by translating the Dafny source into
 the Boogie intermediate verification language. So Dafny references
 data structures defined in the Boogie project. So the first step
-is to clone and build Boogie from sources. See 
+is to clone and build Boogie from sources. See
 <https://github.com/boogie-org/boogie>.
 
 Follow these steps.
@@ -8051,7 +8051,7 @@ cd work
 git clone https://github.com/boogie-org/boogie.git
 ```
 
-Build Boogie using the directions from the Boogie web site, 
+Build Boogie using the directions from the Boogie web site,
 which for Windows currently are:
 
 1. Open Source\Boogie.sln in Visual Studio
@@ -8070,7 +8070,7 @@ Download and install the Visual Studio 2012 SDK from
 
 * <https://www.microsoft.com/en-us/download/details.aspx?id=30668>.
 
-This is needed to build the Visual Studio Extension that 
+This is needed to build the Visual Studio Extension that
 runs Dafny from within Visual Studio 2012.
 
 Build the command-line Dafny executables.
@@ -8091,10 +8091,10 @@ also for later versions of Visual Studio if you have installed them.
 To test your installation, you can open Dafny test files
 from the dafny/Test subdirectory in Visual Studio 2012.
 You will want to use "VIEW/Error List" to ensure that
-you see any errors that Dafny detects, and 
+you see any errors that Dafny detects, and
 "VIEW/Output" to see the result of any compilation.
 
-An example of a valid Dafny test is 
+An example of a valid Dafny test is
 
 ```
 dafny\Test\vstte2012\Tree.dfy
@@ -8118,7 +8118,7 @@ errors.
 
 ## Using Dafny From the Command Line
 ### Dafny Command Line Options
-The command `Dafny.exe /?` gives the following description of 
+The command `Dafny.exe /?` gives the following description of
 options that can be passed to Dafny.
 
 ```
@@ -8135,7 +8135,7 @@ options that can be passed to Dafny.
   /printMode:<Everything|NoIncludes|NoGhost>
                 NoIncludes disables printing of {:verify false} methods incorporated via the
                 include mechanism, as well as datatypes and fields included from other files.
-                NoGhost disables printing of functions, ghost methods, and proof statements 
+                NoGhost disables printing of functions, ghost methods, and proof statements
                 in implementation methods.  It also disables anything NoIncludes disables.
   /rprint:<file>
                 print Dafny program after resolving it
@@ -8360,7 +8360,7 @@ options that can be passed to Dafny.
                    p = predicates (default)
                    a = arguments
                    m = monomorphic
-  /monomorphize   
+  /monomorphize
                 Do not abstract map types in the encoding (this is an
                 experimental feature that will not do the right thing if
                 the program uses polymorphism)
@@ -8400,7 +8400,7 @@ options that can be passed to Dafny.
   /vcsPathCostMult:<f1>
   /vcsAssumeMult:<f2>
                 The cost of a block is
-                    (<assert-cost> + <f2>*<assume-cost>) * 
+                    (<assert-cost> + <f2>*<assume-cost>) *
                     (1.0 + <f1>*<entering-paths>)
                 <f1> defaults to 1.0, <f2> defaults to 0.01.
                 The cost of a single assertion or assumption is

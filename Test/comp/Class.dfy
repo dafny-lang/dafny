@@ -26,7 +26,7 @@ trait MyTrait {
   const c := 17
   static const d: int
   static const e := 18
-    
+
   function method F(): int { 8 }
   static function method G(): int { 9 }
   method M() returns (r: int) { r := 69; }
@@ -65,7 +65,7 @@ method CallEm(c: MyClass, t: MyTrait, i: MyTraitInstance)
   print u, " ";
   u := c.N();
   print u, "\n";
-  
+
   print t.b, " ";
   print t.c, " ";
   print t.d, " ";
@@ -130,5 +130,5 @@ module Module1 {
 module Module2 {
   import Module1
 
-  class ClassExtendingTraitInOtherModule extends Module1.TraitInModule { } 
+  class ClassExtendingTraitInOtherModule extends Module1.TraitInModule { }
 }

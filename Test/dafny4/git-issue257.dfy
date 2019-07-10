@@ -1,7 +1,7 @@
 // RUN: %dafny "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
-module  M { 
+module  M {
   trait T {
     function f() : nat
   }

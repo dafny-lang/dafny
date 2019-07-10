@@ -16,13 +16,13 @@ interface List[T] {
   method Size() returns (ret: int)
     ret := |list|
 }
-    
-datamodel List[T] {    
+
+datamodel List[T] {
   var data: T
   var next: List[T]
 
   frame next
-  
+
   invariant
     next = null  ==> list = [data]
     next != null ==> list = [data] + next.list

@@ -15,7 +15,7 @@ method TestReals()
 {
   // Several of the cases below are regression tests of things that hadn't
   // worked properly before.
-  
+
   var r: real;
   var s := r + 3.4;
   print "r= ", r, "  s= ", s, "\n";

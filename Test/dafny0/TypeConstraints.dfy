@@ -69,7 +69,7 @@ module HereAreErrors {
   }
 
   newtype MyInt = x: int | true
-  
+
   method Literals() returns (r: int, s: MyInt) {
     var a := 0;  // int
     var b := 0;  // MyInt
@@ -117,7 +117,7 @@ module PlusTests' {
     a := b + c;
     r := a;
   }
-  
+
   newtype MyInt = x: int | true
   method Plus5(y: MyInt) {
     var a, b, c;
@@ -254,7 +254,7 @@ module TypeParameters {  // and opaque types
     r := c1;
   }
 }
-  
+
 module Datatypes {
   datatype Color = Red | Green | Blue
 

@@ -28,7 +28,7 @@ let rec PrintExpr ctx expr =
   | ObjLiteral(id)
   | VarLiteral(id)
   | IdLiteral(id) -> id
-  | VarDeclExpr(vlist, declare) -> 
+  | VarDeclExpr(vlist, declare) ->
       let decl = if declare then "var " else ""
       let vars = PrintSep ", " PrintVarDecl vlist
       sprintf "%s%s" decl vars
@@ -72,12 +72,12 @@ let rec PrintExpr ctx expr =
       sprintf "%sforall %s :: %s%s" openParen (vv |> PrintSep ", " PrintVarDecl) (PrintExpr 0 e) closeParen
   | MethodCall(rcv,_,name,aparams) ->
       sprintf "%s.%s(%s)" (PrintExpr 0 rcv) name (aparams |> PrintSep ", " (PrintExpr 0))
-  | MethodOutSelect(mth,name)      ->      
+  | MethodOutSelect(mth,name)      ->
       // TODO: this can only work if there is only 1 out parameter
-      sprintf "%s" (PrintExpr 0 mth) 
+      sprintf "%s" (PrintExpr 0 mth)
 
-let rec PrintConst cst = 
-  match cst with 
+let rec PrintConst cst =
+  match cst with
   | IntConst(v)        -> sprintf "%d" v
   | BoolConst(b)       -> sprintf "%b" b
   | BoxConst(id)       -> sprintf "box_%s" id
@@ -93,19 +93,19 @@ let rec PrintConst cst =
 let PrintSig signature =
   match signature with
   | Sig(ins, outs) ->
-      let returnClause = 
+      let returnClause =
         if outs <> [] then sprintf " returns (%s)" (outs |> PrintSep ", " PrintVarDecl)
         else ""
       sprintf "(%s)%s" (ins |> PrintSep ", " PrintVarDecl) returnClause
 
-let PrintTypeParams typeParams = 
+let PrintTypeParams typeParams =
   match typeParams with
   | [] -> ""
   | _ -> sprintf "<%s>" (typeParams |> PrintSep ", " (fun tp -> tp))
 
-let PrintFields vars indent ghost = 
+let PrintFields vars indent ghost =
   let ghostStr = if ghost then "ghost " else ""
-  vars |> List.fold (fun acc v -> match GetVarType v with 
+  vars |> List.fold (fun acc v -> match GetVarType v with
                                   | None     -> acc + (sprintf "%s%svar %s;%s" (Indent indent) ghostStr (GetExtVarName v) newline)
                                   | Some(tp) -> acc + (sprintf "%s%svar %s: %s;%s" (Indent indent) ghostStr (GetExtVarName v) (PrintType tp) newline)) ""
 

@@ -45,7 +45,7 @@ class Node<T> {
   {
     r := new Node.InitAsPredecessor(d, this);
   }
-  
+
   method SkipHead() returns (r: Node?<T>)
     requires Valid()
     ensures r == null ==> |List| == 1
@@ -66,7 +66,7 @@ class Node<T> {
     reverse.next := null;
     reverse.Repr := {reverse};
     reverse.List := [data];
-    
+
     while current != null
       invariant reverse.Valid() && reverse.Repr <= old(Repr)
       invariant current == null ==> |old(List)| == |reverse.List|

@@ -2,7 +2,7 @@ Building on Linux
 =================
 
 Tested on a fresh Ubuntu 16.04 image. Note that we now have
-[official releases for Linux](https://github.com/Microsoft/dafny/releases), 
+[official releases for Linux](https://github.com/Microsoft/dafny/releases),
 so these instructions mostly apply to people interested in looking at
 Dafny's sources.
 
@@ -25,7 +25,7 @@ Dafny's sources.
 3. Download and build Dafny:
 
        cd BASE-DIRECTORY
-       git clone https://github.com/Microsoft/dafny.git 
+       git clone https://github.com/Microsoft/dafny.git
        msbuild dafny/Source/Dafny.sln
 
 4. Download and unpack z3 (Dafny looks for `z3` in Binaries/z3/bin/)
@@ -44,7 +44,7 @@ Dafny's sources.
 6. Run Dafny using the `dafny` shell script in the Binaries directory (it calls `mono` as appropriate)
 
 
-Building on Mac OS X 
+Building on Mac OS X
 ====================
 
 Tested on Mac OS X 10.12.6 (Sierra).  Note that we now have
@@ -77,7 +77,7 @@ Dafny's sources.
 3. Download and build Dafny:
 
        cd BASE-DIRECTORY
-       git clone https://github.com/Microsoft/dafny.git 
+       git clone https://github.com/Microsoft/dafny.git
        msbuild dafny/Source/Dafny.sln
 
 4. Download and unpack z3 (Dafny looks for `z3` in Binaries/z3/bin/)

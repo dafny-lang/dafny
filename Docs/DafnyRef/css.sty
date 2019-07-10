@@ -1,6 +1,6 @@
 %---------------------------------------------------------------------------
 %  Copyright 2013 Microsoft Corporation.
-% 
+%
 %  This is free software; you can redistribute it and/or modify it under the
 %  terms of the Apache License, Version 2.0. A copy of the License can be
 %  found in the file "license.txt" at the root of this distribution.
@@ -129,11 +129,11 @@
 		\let\footnote\tablefootnote%
 	 \fi%
 	 \@saveFootnotestrue}%
-\newcommand{\cssRestoreFootnotes}%	 
+\newcommand{\cssRestoreFootnotes}%
 	{\if@saveFootnotes\else%
- 		\tfn@tablefootnoteprintout% 
+ 		\tfn@tablefootnoteprintout%
  		\gdef\tfn@fnt{0}%
- 	 \fi}% 
+ 	 \fi}%
 
 %-------------------------------------------------------------
 % Setup mdframed with default values
@@ -287,13 +287,13 @@
 		\eifstrequal{\cssBorderRightStyle}{none}{}{\addtolength{\cssWidthFull}{\cssBorderWidth}}%
 		\setlength{\cssHeightFull}{\dimexpr\cssHeight+\cssPaddingTop+\cssPaddingBottom\relax}%
 		\eifstrequal{\cssBorderTopStyle}{none}{}{\addtolength{\cssHeightFull}{\cssBorderWidth}}%
-		\eifstrequal{\cssBorderBottomStyle}{none}{}{\addtolength{\cssHeightFull}{\cssBorderWidth}}%		
+		\eifstrequal{\cssBorderBottomStyle}{none}{}{\addtolength{\cssHeightFull}{\cssBorderWidth}}%
 		% set default width?
 		\ifdim\cssWidth=1sp% in this case, cssWidthFull is just padding and borders
 			\setlength{\cssWidth}{\dimexpr\linewidth-\cssWidthFull-\cssMarginLeft-\cssMarginRight}%
 			\addtolength{\cssWidthFull}{\cssWidth}%
 		\fi%
-		%minipage				
+		%minipage
 		\ifdim\cssMarginTop=0pt\else\cssDoBefore{\vspace{\cssMarginTop}}\fi
 		\ifdim\cssMarginLeft=0pt\else\cssDoBefore{\hspace*{\cssMarginLeft}}\fi
 		\setlength{\@cssParIndent}{\parindent}% save parskip and parindent since minipage resets it
@@ -328,8 +328,8 @@
 				\itemsep=0pt%
 				\parsep=0pt%
 				\parskip=0pt%
-				\partopsep=0pt%	
-				\listparindent=\parindent%	
+				\partopsep=0pt%
+				\listparindent=\parindent%
 			}%
 			\ifdim\@cssMarginAfter=0pt\else\cssDoAfter{\vspace{\@cssMarginAfter}}\fi%
 			\cssIfHasClass{math-display}%
@@ -351,7 +351,7 @@
 }
 
 %-------------------------------------------------------------
-% css: Borders and padding 
+% css: Borders and padding
 %-------------------------------------------------------------
 
 \cssNewLengthKey{css}{padding-left}{\cssPaddingLeft}
@@ -402,12 +402,12 @@
 	\ifdim\cssPaddingBottom=0pt\else\@needframetrue\fi
 	\ifdim\cssPaddingLeft=0pt\else\@needframetrue\fi
 	\ifdim\cssPaddingRight=0pt\else\@needframetrue\fi
-	\strsplit{\cssBackgroundColor}%			
+	\strsplit{\cssBackgroundColor}%
 	  \eifstrequal{\strhead}{\#}%
 	  {\definecolor{Temp}{HTML}{\strtail}\edef\@@bcolor{Temp}}%
-	  {\cssDefNormalizeColor{@bcolor}{\cssBackgroundColor}\edef\@@bcolor{\@bcolor}}%		
-	%\expandafter\lowercase\expandafter{\expandafter\def\expandafter\bcolor\expandafter{\cssBackgroundColor}}%	
-	\if@needframe%		
+	  {\cssDefNormalizeColor{@bcolor}{\cssBackgroundColor}\edef\@@bcolor{\@bcolor}}%
+	%\expandafter\lowercase\expandafter{\expandafter\def\expandafter\bcolor\expandafter{\cssBackgroundColor}}%
+	\if@needframe%
 		\cssDoAfter{\cssRestoreFootnotes}% first, because post commands are pre-pended
 		\renewcommand{\@cssFramedArgs}{%
 			innertopmargin=\the\cssPaddingTop,%
@@ -419,12 +419,12 @@
 			backgroundcolor=\@@bcolor%
 		}%
 		\setlength{\cssBorderWidthTotal}{0pt}%
-		\eifstrequal{\cssBorderTopStyle}{none}{\appto{\@cssFramedArgs}{,topline=false}}{}%	
-		\eifstrequal{\cssBorderBottomStyle}{none}{\appto{\@cssFramedArgs}{,bottomline=false}}{}%	
+		\eifstrequal{\cssBorderTopStyle}{none}{\appto{\@cssFramedArgs}{,topline=false}}{}%
+		\eifstrequal{\cssBorderBottomStyle}{none}{\appto{\@cssFramedArgs}{,bottomline=false}}{}%
 		\eifstrequal{\cssBorderLeftStyle}{none}{\appto{\@cssFramedArgs}{,leftline=false}}%
-			{\addtolength{\cssBorderWidthTotal}{\cssBorderWidth}}%	
-		\eifstrequal{\cssBorderRightStyle}{none}{\appto{\@cssFramedArgs}{,rightline=false}}%		
-			{\addtolength{\cssBorderWidthTotal}{\cssBorderWidth}}%	
+			{\addtolength{\cssBorderWidthTotal}{\cssBorderWidth}}%
+		\eifstrequal{\cssBorderRightStyle}{none}{\appto{\@cssFramedArgs}{,rightline=false}}%
+			{\addtolength{\cssBorderWidthTotal}{\cssBorderWidth}}%
 		\cssIfHasClass{math-display}%
 			{\@expandafter{\cssDoEnvOpt{mdmathframed}}{\@cssFramedArgs}}%
 			{\@expandafter{\cssDoEnvOpt{mdframed}}{\@cssFramedArgs}}%
@@ -433,7 +433,7 @@
 		\ifdim\cssWidth=1sp\else\@hasdimtrue\fi
 		\ifdim\cssHeight=1sp\else\@hasdimtrue\fi
 		\if@hasdim%
-			\ifdim\cssHeight=1sp%					
+			\ifdim\cssHeight=1sp%
 		   		\cssDoBefore{\begin{minipage}{\cssWidth}}%
 			\else
 				\cssDoBefore{\begin{minipage}[t][\cssHeight]{\cssWidth}}%
@@ -441,7 +441,7 @@
 		    \cssDoBefore{\setlength{\parskip}{\@cssParSkip}\setlength{\parindent}{\@cssParIndent}}%
 			%note: DoAfter prepends, so in opposite order
 			\cssDoAfter{\end{minipage}}%
-		\fi    
+		\fi
 		\cssDoBefore{\cssSaveFootnotes}%
 	\fi
 }
@@ -490,7 +490,7 @@
 \newcommand{\@cssInlinePadding}{%
 	\eifstrequal{\cssBackgroundColor}{}{}%
 	  {\eifstrequal{\cssBackgroundColor}{white}{}%
-		{\strsplit{\cssBackgroundColor}%			
+		{\strsplit{\cssBackgroundColor}%
 		 \eifstrequal{\strhead}{\#}%
 		 	{\cssWrapCmd{\protect\colorbox[HTML]{\strtail}}}%
 		 	{\cssWrapCmd{\@robustColorbox{\cssBackgroundColor}}}%
@@ -500,7 +500,7 @@
 	\eifstrequal{\cssBorderTopStyle}{none}{}{\@needframetrue}%
 	\eifstrequal{\cssBorderBottomStyle}{none}{}{\@needframetrue}%
 	\eifstrequal{\cssBorderLeftStyle}{none}{}{\@needframetrue}%
-	\eifstrequal{\cssBorderRightStyle}{none}{}{\@needframetrue}%		
+	\eifstrequal{\cssBorderRightStyle}{none}{}{\@needframetrue}%
 	\if@needframe%
 		\setlength{\fboxrule}{\cssBorderWidth}%
 		\ifdim\cssWidth=1sp%
@@ -528,7 +528,7 @@
 	% padding
 	\if@needframe
 		\setlength{\fboxsep}{\cssPaddingTop}%  todo: define our own box so we can set paddingtop/bot separately
-		\ifdim\cssPaddingBottom>\fboxsep\setlength{\fboxsep}{\cssPaddingBottom}\fi	
+		\ifdim\cssPaddingBottom>\fboxsep\setlength{\fboxsep}{\cssPaddingBottom}\fi
 		\ifdim\cssPaddingLeft=\fboxsep\else\hspace*{\dimexpr\cssPaddingLeft-\fboxsep\relax}\fi
 		\ifdim\cssPaddingRight=\fboxsep\else\hspace*{\dimexpr\cssPaddingRight-\fboxsep\relax}\fi
 	\else
@@ -537,10 +537,10 @@
 		\ifdim\cssPaddingBottom=0pt\else\cssDoBefore{\protect\rule[-\cssPaddingBottom]{0pt}{\cssPaddingBottom}}\fi
 		\ifdim\cssPaddingTop=0pt\else\cssDoBefore{\protect\rule{0pt}{\dimexpr\cssPaddingTop+0.8em\relax}}\fi
 	\fi
-}	
+}
 
 %-------------------------------------------------------------
-% css: Textalign, textindent etc 
+% css: Textalign, textindent etc
 %-------------------------------------------------------------
 
 \cssNewLengthKey{css}{text-indent}{\cssTextIndent}
@@ -576,7 +576,7 @@
 		{\cssDoBefore{\protect\centering}}%
 	{}}}%
 	\ifdim\cssLineHeight=0pt\else\setlength{\baselineskip}{\cssLineHeight}\fi
-	\noindent\ifdim\cssTextIndent=0pt\else\hspace*{\cssTextIndent}\fi	
+	\noindent\ifdim\cssTextIndent=0pt\else\hspace*{\cssTextIndent}\fi
 }
 
 \newcommand{\@cssInlineText}{%
@@ -592,7 +592,7 @@
 }
 
 %-------------------------------------------------------------
-% css: Font attributes 
+% css: Font attributes
 %-------------------------------------------------------------
 
 \cssNewKey{css}{font-weight}{\cssFontWeight}{}
@@ -656,7 +656,7 @@
 		{}}}}}}}}%
 	%
 	\eifstrequal{\cssColor}{}{}%
-		{\strsplit{\cssColor}%			
+		{\strsplit{\cssColor}%
 		 \eifstrequal{\strhead}{\#}%
 		 	{\cssDoBefore{\protect\color[HTML]{\strtail}}}%
 		 	{\cssDoBefore{\@robustColor{\cssColor}}}%
@@ -675,13 +675,13 @@
 \newcommand{\cssRule}[3]{%
   \@for\@ii:=#2\do{%
 	\csappto{@rule@#1@\@ii}{,#3}%
-  }%	
+  }%
 }%
 
 \newcommand{\cssRuleDo}[3]{%
   \@for\@ii:=#2\do{%
 	\csappto{@ruleDo@#1@\@ii}{#3}%
-  }%	
+  }%
 }%
 
 
@@ -691,7 +691,7 @@
       \edef\@args{\csname @rule@#1@\@ii\endcsname}%
       \@expandafter{\setkeys{#2}}{\@args}%
     }{}%
-  }%	
+  }%
 }
 
 \newcommand{\@cssApplyDoRulesFor}[3]{%
@@ -699,7 +699,7 @@
     \ifcsmacro{@ruleDo@#1@\@ii}{%
       \csname @ruleDo@#1@\@ii\endcsname%
     }{}%
-  }%	
+  }%
 }
 
 \newcommand{\cssIfHasClass}[3]{%
@@ -707,7 +707,7 @@
   \@for\@ii:=\cssClass\do{%
     \@for\@cname:=#1\do{%
 	 	\eeifstrequal{\@ii}{\@cname}{%
-       		\def\@found{true}%       		
+       		\def\@found{true}%
     	}{}%
     }%
   }%
@@ -747,7 +747,7 @@
 
 
 %-------------------------------------------------------------
-% 
+%
 %-------------------------------------------------------------
 
 \newenvironment{cssBlockX}[2]%
@@ -770,7 +770,7 @@
 	 #3%
 	 \@cssProcessText\@cssProcessFont%
 	 \@cssApplyCmd{#4}%
-	}%	 
+	}%
 
 \newcommand{\cssInline}[2][]{\cssInlineX{}{#1}{}{#2}}
 \newcommand{\cssInlineCmd}[3][]{\cssInlineX{}{#1}{\cssWrapCmd{#2}}{#3}}

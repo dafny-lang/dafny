@@ -209,7 +209,7 @@ iterator DoleOutReferences(u: Cell?) yields (r: Cell?, c: Cell?)
     } else if (*) {
       assert c.data == 12;  // still true, since 'c' is in _new
       assert c in _new;  // as is checked here as well
-      assert r.data == 12;  // error: it may have changed 
+      assert r.data == 12;  // error: it may have changed
     } else {
       forall z | z in myCells {
         z.data := z.data + 1;  // we're allowed to modify these, because they are all in _new

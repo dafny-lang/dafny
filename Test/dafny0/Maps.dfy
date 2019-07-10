@@ -188,7 +188,7 @@ method m14()
 
 class A { var x: int; }
 
-method m15(b: set<A>) 
+method m15(b: set<A>)
 {
   var m := map a | a in b :: a.x;
   var aa := new A;

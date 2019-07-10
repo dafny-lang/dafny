@@ -21,7 +21,7 @@ namespace _module {
       }
       return r;
     }
-    
+
     public void TwoResultsExtern(BigInteger z, out BigInteger r, out BigInteger s) {
       if (z == 0) {
         r = 5;

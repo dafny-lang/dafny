@@ -13,7 +13,7 @@ namespace Library {
       return y;
     }
   }
-  
+
   // must be partial, since Dafny will also generate some methods into this class
   public partial class Mixed {
     public static void P() {

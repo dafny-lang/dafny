@@ -8,31 +8,31 @@ trait T1
   {
     x + y
   }
-  
+
   function method bb(x:int):int
     requires x>10
-  
+
   function method BodyLess1(a:int) : int
     requires a > 0
-   
-  function method dd(a:int) : int  
-   
-  method Testing()  
+
+  function method dd(a:int) : int
+
+  method Testing()
 }
 
 class C1 extends T1
 {
   function method dd(x:int):int
   {
-    2  
+    2
   }
-  
+
   method Testing()
   {
     var x:int := 11;
     x := bb(x);
   }
-  
+
   function method bb(x:int):int
     requires x >10
   {
@@ -43,7 +43,7 @@ class C1 extends T1
   {
     2
   }
-  
+
   method CallBodyLess(x:int)
     requires x > -10
   {
@@ -52,18 +52,18 @@ class C1 extends T1
   }
 }
 
-trait T2 
+trait T2
 {
   function method F(x: int): int
     requires x < 100
     ensures F(x) < 100
-  
+
   method M(x: int) returns (y: int)
     requires 0 <= x
     ensures x < y
 }
 
-class C2 extends T2 
+class C2 extends T2
 {
   function method F(x: int): int
     requires x < 100
@@ -71,7 +71,7 @@ class C2 extends T2
   {
     x
   }
-  
+
   method M(x: int) returns (y: int)
     requires -2000 <= x  // a more permissive precondition than in the interface
     ensures 2*x < y  // a more detailed postcondition than in the interface
@@ -81,12 +81,12 @@ class C2 extends T2
 }
 
 
-trait T3 
+trait T3
 {
   function method F(y: int): int
   function method G(y: int): int { 12 }
   method M(y: int)
-  method N(y: int) {  
+  method N(y: int) {
     var a:int := 100;
     assert a==100;
   }
@@ -98,7 +98,7 @@ class C3 extends T3
     a + b
   }
   function method F(y: int): int { 20 }
-  method M(y: int) { 
+  method M(y: int) {
     var a:int := 100;
     assert a==100;
   }
@@ -118,7 +118,7 @@ class c extends t
     ensures f(s3) > 1
     //requires s0 != null && s0.Length > (0)
     //reads s0
-  { 
+  {
     2
   }
 }
@@ -132,7 +132,7 @@ trait TT
   }
 }
 
-class CC extends TT 
+class CC extends TT
 {
   method Testing(a:int,b:int)
   {
@@ -141,21 +141,21 @@ class CC extends TT
 }
 
 
-trait T4 
+trait T4
 {
   function method F(y: int): int
-  
-  function method G(y: int): int 
-  { 
-    100 
+
+  function method G(y: int): int
+  {
+    100
   }
-  
+
   method M(y: int) returns (kobra:int)
     requires y > 0
     ensures kobra > 0
-     
-  method N(y: int) 
-  { 
+
+  method N(y: int)
+  {
     var x: int;
     var y : int;
     y := 10;
@@ -164,19 +164,19 @@ trait T4
   }
 }
 
-class C4 extends T4 
+class C4 extends T4
 {
-  function method F(y: int): int 
-  { 
-    200 
+  function method F(y: int): int
+  {
+    200
   }
 
   method M(kk:int) returns (ksos:int)
     requires kk > -1
     ensures ksos > 0
   {
-    ksos:=10;  
-  }   
+    ksos:=10;
+  }
 }
 
 // regression tests

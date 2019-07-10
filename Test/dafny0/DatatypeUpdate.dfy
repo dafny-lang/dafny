@@ -2,8 +2,8 @@
 // RUN: %diff "%s.expect" "%t"
 
 module NewSyntax {
-  datatype MyDataType = MyConstructor(myint:int, mybool:bool) 
-                      | MyOtherConstructor(otherbool:bool) 
+  datatype MyDataType = MyConstructor(myint:int, mybool:bool)
+                      | MyOtherConstructor(otherbool:bool)
                       | MyNumericConstructor(42:int)
 
   method test(foo:MyDataType, goo:MyDataType, hoo:MyDataType, x:int)
@@ -14,7 +14,7 @@ module NewSyntax {
     ensures ghi == foo.(myint := 2).(mybool := false);
     ensures jkl == hoo.(42 := 7);
   {
-    abc := MyConstructor(x + 4, foo.mybool); 
+    abc := MyConstructor(x + 4, foo.mybool);
     abc := abc.(myint := abc.myint - 2);
     def := MyOtherConstructor(!foo.mybool);
     ghi := MyConstructor(2, false);
@@ -75,7 +75,7 @@ module Regression0 {
   datatype SystemState = SS(connections: map<int,Connection>)
   datatype Connection = C(acceptor: Actor)
   type Actor
-  
+
   method M(ls: SystemState, actor: Actor, conn_id: int)
     requires conn_id in ls.connections
   {

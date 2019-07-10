@@ -63,7 +63,7 @@ twostate lemma Twol(x: int)
   requires A: 0 <= x
 {
 }
-  
+
 lemma Calc(x: int)
   requires A: x < 10
 {

@@ -4,7 +4,7 @@
 function Transform(x:int) : int
 
 lemma TransformProperties()
-    ensures forall x1, x2 {:trigger Transform(x1), Transform(x2)} :: Transform(x1) == Transform(x2) ==> x1 == x2;       
+    ensures forall x1, x2 {:trigger Transform(x1), Transform(x2)} :: Transform(x1) == Transform(x2) ==> x1 == x2;
 
 function {:opaque} Looper(input:seq<int>) : seq<int>
     ensures |Looper(input)| == |input|;

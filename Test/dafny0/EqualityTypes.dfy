@@ -249,7 +249,7 @@ module UnderspecifiedTypeParameters {
   function method UG<T>(): int
   method Callee<T(==)>()
   class TakesParam<U> { }
-  
+
   method MPG()
   {
     var g := UG();  // error: type parameter underspecified
@@ -260,7 +260,7 @@ module UnderspecifiedTypeParameters {
     Callee<(int)>();
     Callee<set>();  // error: type is underspecified
     Callee<()>();
-    // The following 
+    // The following
     Callee<TakesParam>();  // error: type is underspecified
   }
 }
@@ -301,10 +301,10 @@ module EqualitySupportingTypes {
 
     var xy: set<set<int>>;
     var xz: set<set<Stream<int>>>;  // error: set type argument must support equality
-    
+
     Callee<set<Stream<int>>>();  // error: cannot utter set<Stream<int>>  -- Note: language definition should be changed, because it doesn't make sense for it to talk about a type appearing in a ghost or non-ghost context. Instead, set/iset/multiset/map/imap should always be allowed to take any type argument, but these types may or may not support equality.
     var xg := G<set<Stream<int>>>();  // error: cannot utter set<Stream<int>>, because Stream<int> does not support equality
-    
+
     var ac0: AClass<int,int>;
     var ac1: AClass<Stream<int>,int>;  // error: type parameter 0 is required to support equality
     var ac2: AClass<int,Stream<int>>;
@@ -324,7 +324,7 @@ module EqualitySupportingTypes {
     AClass<int,Stream<int>>.Q<real,real>();
     AClass<int,Stream<int>>.Q<Stream<real>,real>();
     AClass<int,Stream<int>>.Q<real,Stream<real>>();  // error: method type param 1 wants an equality-supporting type
-  
+
     AClass<int,set<Stream<int>>>.Q<real,real>();  // error: cannot utter "set<Stream<int>>"
     AClass<int,int>.Q<set<Stream<real>>,real>();  // error: cannot utter "set<Stream<real>>"
     var xi0 := AClass<int,set<Stream<int>>>.H<real,real>();  // error: cannot utter "set<Stream<int>>"
@@ -398,7 +398,7 @@ module AlwaysOkayComparisons {
     r := d == Atom(b);
     r := d == CoCons(10, CoCons(8, Atom(b)));
   }
-  
+
   method CompareDisplays<A,B>(q: seq<B>, m: map<A,B>) returns (r: int) {
     r := if q != [] && m == map[] then 3 else 5;  // allowed
   }

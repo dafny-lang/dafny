@@ -90,7 +90,7 @@ method Strings() {
   print "  prefix: ", a <= b, " ", b <= c, " ", c <= c, "\n";
   print "  proper prefix: ", a < b, " ", b < c, " ", c < c, "\n";
   print "  membership: ", 'u' in a, " ", 'u' in b, " ", 'u' in c, "\n";
-  
+
   var d := ['g', 'u', 'r', 'u'];
   print "  constructed as sequence: ", d, "\n";
 

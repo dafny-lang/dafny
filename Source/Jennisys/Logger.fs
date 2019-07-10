@@ -5,7 +5,7 @@
 //  #######################################################
 
 module Logger
-             
+
 let newline =  System.Environment.NewLine
 
 let _ALL = 100
@@ -22,7 +22,7 @@ let Log level msg =
   if logLevel >= level then
     printf "%s" msg
 
-let LogLine level msg = 
+let LogLine level msg =
   Log level (msg + newline)
 
 let Trace msg = Log _TRACE msg

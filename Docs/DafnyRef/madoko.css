@@ -72,7 +72,7 @@
   text-align: left;
 }
 
-.madoko .footnote { 
+.madoko .footnote {
   margin-left: 1em;
 }
 .madoko .footnote-before {
@@ -242,9 +242,9 @@
 }
 
 .madoko ul.list-dash > li:before {
-    content: "\2013"; 
+    content: "\2013";
     position: absolute;
-    margin-left: -1em; 
+    margin-left: -1em;
 }
 
 .madoko ul.list-plus {
@@ -315,7 +315,7 @@
 .highlighted .token.identifier      { }
 .highlighted .token.operators       { }
 .highlighted .token.keyword         { color: blue }
-.highlighted .token.string          { color: maroon } 
+.highlighted .token.string          { color: maroon }
 .highlighted .token.string.escape   { color: gray }
 .highlighted .token.comment         { color: darkgreen }
 .highlighted .token.comment.doc     { font-style: normal }
@@ -332,8 +332,8 @@
 .highlighted .token.constructor     { color: purple }
 .highlighted .token.namespace       { color: navy }
 .highlighted .token.header          { color: navy }
-.highlighted .token.type            { color: teal } 
-.highlighted .token.type.delimiter  { color: teal; } 
+.highlighted .token.type            { color: teal }
+.highlighted .token.type.delimiter  { color: teal; }
 .highlighted .token.predefined      { color: navy }
 .highlighted .token.invalid         { border-bottom: red dotted 1px }
 .highlighted .token.code            { color: maroon }
@@ -350,7 +350,7 @@
 
 
 /* Pretty formatting of code */
-.madoko pre.pretty, .madoko code.pretty { 
+.madoko pre.pretty, .madoko code.pretty {
   font-family: Cambria,Times,Georgia,serif;
   font-size: 100%;
 }
@@ -395,24 +395,24 @@ body.madoko.preview {
 }
 
 /* style headings nicer, especially h5 and h6 */
-.madoko h1, .madoko h2, .madoko h3, .madoko h4 { 
-  margin-top: 1.22em; 
+.madoko h1, .madoko h2, .madoko h3, .madoko h4 {
+  margin-top: 1.22em;
   margin-bottom: 1ex;
 }
-.madoko h1+p, .madoko h2+p, .madoko h3+p, .madoko h4+p, .madoko h5+p  { 
-  margin-top: 1ex;    
+.madoko h1+p, .madoko h2+p, .madoko h3+p, .madoko h4+p, .madoko h5+p  {
+  margin-top: 1ex;
 }
-.madoko h5, .madoko h6 { 
+.madoko h5, .madoko h6 {
   margin-top: 1ex;
   font-size: 1em;
 }
-.madoko h5 { 
+.madoko h5 {
   margin-bottom: 0.5ex;
 }
 .madoko h5 + p {
   margin-top: 0.5ex;
 }
-.madoko h6 { 
+.madoko h6 {
   margin-bottom: 0pt;
 }
 .madoko h6 + p {

@@ -9308,7 +9308,7 @@ namespace Microsoft.Dafny {
 
       // read is handled in AddFrameAxiom
       //
-      // if field granularity: 
+      // if field granularity:
       // generate:
       //  (forall<alpha> o: ref, f: Field alpha :: { $Heap[o][f] }
       //      o != null
@@ -9328,7 +9328,7 @@ namespace Microsoft.Dafny {
       //        $Heap[o][f] == PreHeap[o][f])
       // #endif
       //
-      // if object granularity: 
+      // if object granularity:
       // generate:
       //  (forall o: ref :: { $Heap[o] }
       //      o != null
@@ -9379,7 +9379,7 @@ namespace Microsoft.Dafny {
       Bpl.Expr consequent = use == Resolver.FrameExpressionUse.Modifies ? Bpl.Expr.Or(eq, ofInFrame) : Bpl.Expr.Imp(ofInFrame, eq);
 
       var tr = new Bpl.Trigger(tok, true, new List<Bpl.Expr> { heapOF });
-      return new Bpl.ForallExpr(tok, typeVars, quantifiedVars, null, tr, Bpl.Expr.Imp(ante, consequent));    
+      return new Bpl.ForallExpr(tok, typeVars, quantifiedVars, null, tr, Bpl.Expr.Imp(ante, consequent));
     }
 
     Bpl.Expr/*!*/ FrameConditionUsingDefinedFrame(IToken/*!*/ tok, ExpressionTranslator/*!*/ etranPre, ExpressionTranslator/*!*/ etran, ExpressionTranslator/*!*/ etranMod)

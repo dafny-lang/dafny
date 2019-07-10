@@ -12,7 +12,7 @@ predicate {:opaque} InBounds(s:sp_state, o:operand, v:int)
 }
 
 lemma lemma_K_InBounds()
-    ensures forall s:sp_state :: 
+    ensures forall s:sp_state ::
                 InBounds(s, sp_op_const(0x428a2f98), 0x428a2f98) &&
                 InBounds(s, sp_op_const(0x71374491), 0x71374491) &&
                 InBounds(s, sp_op_const(0xb5c0fbcf), 0xb5c0fbcf) &&
@@ -76,7 +76,7 @@ lemma lemma_K_InBounds()
                 InBounds(s, sp_op_const(0x90befffa), 0x90befffa) &&
                 InBounds(s, sp_op_const(0xa4506ceb), 0xa4506ceb) &&
                 InBounds(s, sp_op_const(0xbef9a3f7), 0xbef9a3f7) &&
-                InBounds(s, sp_op_const(0xc67178f2), 0xc67178f2) 
+                InBounds(s, sp_op_const(0xc67178f2), 0xc67178f2)
 { reveal_InBounds(); }
 
 

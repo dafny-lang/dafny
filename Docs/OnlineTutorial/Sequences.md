@@ -265,7 +265,7 @@ method m()
 ```
 
 Because sequences support `in` and `!in`, this operation gives us
-an easy way to express the "element not in array" property, turning:  
+an easy way to express the "element not in array" property, turning:
 
 ```
 forall k :: 0 <= k < a.Length ==> elem != a[k]

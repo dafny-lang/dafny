@@ -391,7 +391,7 @@ module MiscEvenMore {
     var z := new GenericClass<int>;
     var w := new GenericClass<bool>;
     MG0(x, w);  // this has the effect of making x's and y's type GenericClass<bool>
-    
+
     y.data := z.data;  // error: bool vs int
     assert x.data == 5;  // error: bool vs int
   }
@@ -466,7 +466,7 @@ module MyOwnModule {
     }
   }
 }
-  
+
 // ------------------- nameless constructors ------------------------------
 
 module MiscAgain {
@@ -1263,7 +1263,7 @@ module NonInferredTypeVariables {
     var x := N(n);  // error: cannot infer the type argument for N (and thus x's type cannot be determined either)
     var a := new array;  // error: cannot infer the type argument for 'array'
     var c := new C;  // error: cannot infer the type argument for 'C'
-    var s: set;  // type argument for 'set' 
+    var s: set;  // type argument for 'set'
     var ss := new set[15];  // error: cannot infer the type argument in 'array<set< _ >>'
     var what;  // error: the type of this local variable in underspecified
   }
@@ -1334,7 +1334,7 @@ module FrameTargetFields {
       modifies `z  // cool
     {
     }
-  } 
+  }
 }
 
 module FrameTargetFields_More {
@@ -1442,7 +1442,7 @@ module SuchThat {
 
 module GhostTests {
   class G { }
-  
+
   method GhostNew3(n: nat)
   {
     var g := new G;
@@ -1460,7 +1460,7 @@ module GhostTests {
     modifies g;
   {
   }
-  
+
   class MyClass {
     ghost method SideEffect()
       modifies this;
@@ -1655,7 +1655,7 @@ module LoopResolutionTests {
     ghost var y: int
   }
 
-  
+
   ghost method M(c: C)
     modifies c
   {
@@ -1681,7 +1681,7 @@ module LoopResolutionTests {
     }
   }
 
-  
+
   method MMX(c: C, ghost g: int)
     modifies c
   {
@@ -1696,7 +1696,7 @@ module LoopResolutionTests {
     }
   }
 
-  
+
   method MD0(c: C, ghost g: nat)
     modifies c
     decreases *
@@ -1710,7 +1710,7 @@ module LoopResolutionTests {
     }
   }
 
-  
+
   method MD1(c: C, ghost g: nat)
     modifies c
     decreases *
@@ -1838,7 +1838,7 @@ module DividedConstructors {
     var n: MyClass
     const t := 17
     static const g := 25
-  
+
     constructor Init(x: nat)
     {
       this.a := this.b;  // this use of "this" in RHS is allowed
@@ -1880,7 +1880,7 @@ module DividedConstructors {
       a, c := 0, 0;
       new;
     }
-    
+
   }
 }
 
@@ -2041,7 +2041,7 @@ module ZI_RefinementConcrete1 refines ZI_RefinementAbstract {
   type Mx_
   type M_x(0)
   type M__(0)  // error: not allowed to change zero-initialization setting
-    
+
   method Delta<
     Q,  // error: not allowed to change zero-initialization setting
     W,
@@ -2117,7 +2117,7 @@ module BigOrdinalRestrictions {  // also see BigOrdinalRestrictionsExtremePred b
     var st: set<ORDINAL>;  // error: cannot use ORDINAL as type argument
     var p: (int, ORDINAL);  // error: cannot use ORDINAL as type argument
     var o: ORDINAL;  // okay
-    ghost var f := F(o);  // error: cannot use ORDINAL as type argument 
+    ghost var f := F(o);  // error: cannot use ORDINAL as type argument
     f := F'<ORDINAL>();  // error: cannot use ORDINAL as type argument
     f := F'<(char,ORDINAL)>();  // error: cannot use ORDINAL as type argument
     var lambda := F'<ORDINAL>;  // error: cannot use ORDINAL as type argument
@@ -2462,7 +2462,7 @@ module BigOrdinalRestrictionsExtremePred {
     var st: set<ORDINAL> := {};  // error: cannot use ORDINAL as type argument
     var p: (int, ORDINAL) := (0,0);  // error: cannot use ORDINAL as type argument
     var o: ORDINAL := 0;  // okay
-    ghost var f := F(o);  // error: cannot use ORDINAL as type argument 
+    ghost var f := F(o);  // error: cannot use ORDINAL as type argument
     var f := F'<ORDINAL>();  // error: cannot use ORDINAL as type argument
     var f := F'<(char,ORDINAL)>();  // error: cannot use ORDINAL as type argument
     var lambda := F'<ORDINAL>;  // error: cannot use ORDINAL as type argument
@@ -2758,14 +2758,14 @@ module GhostReceiverTests {
 module GhostRhsConst {
   class C {
     function F(n: nat): nat { n }  // a ghost function
-    
+
     const b := F(0);  // error: RHS uses a ghost function
     static const u := F(0);  // error: RHS uses a ghost function
   }
 
   trait R {
     function F(n: nat): nat { n }  // a ghost function
-    
+
     const b := F(0);  // error: RHS uses a ghost function
     static const u := F(0);  // error: RHS uses a ghost function
   }
@@ -2820,7 +2820,7 @@ module RegressionGhostTests {
 
   method field(x: Cell)
     modifies x
-  { 
+  {
     ghost var y := x;
     x.data := 42;
     y.data := 42;  // error: assignment to non-ghost field depends on a ghost

@@ -22,9 +22,9 @@ module C {
 
   function g(): A.T { A.CT1 }
 
-  function h(x : A.T): int { 
-    match x 
-      case CT1 => 0 
+  function h(x : A.T): int {
+    match x
+      case CT1 => 0
       case CT2(n) => n
   }
   function k(x : A.T): int { if x.CT1? then 1 else x.X }
@@ -40,9 +40,9 @@ module CBad {
 
   function g(): A.T { A.CT1 } //can't construct one
 
-  function h(x : A.T): int { 
+  function h(x : A.T): int {
     match x //can't match
-      case CT1 => 0 
+      case CT1 => 0
       case CT2(n) => n //constructor not resolved, so error here
   }
   function k(x : A.T): int { if x.CT1? then 1 else x.X } // can't access destructors
@@ -57,9 +57,9 @@ module CIndirect {
 
   function i() : A.T { ABody.CT1 }
 
-  function h(x : A.T): int { 
+  function h(x : A.T): int {
     match x
-      case CT1 => 0 
+      case CT1 => 0
       case CT2(n) => n
   }
   function k(x : A.T): int { if x.CT1? then 1 else x.X }

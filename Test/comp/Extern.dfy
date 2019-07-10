@@ -8,7 +8,7 @@ method Main() {
   var x, y := Library.LibClass.CallMeInt(30);
   var z := Library.LibClass.CallMeNative(44, true);
   print x, " ", y, " ", z, "\n";
-  
+
   Library.AllDafny.M();
   Library.Mixed.M();
   Library.Mixed.P();
@@ -22,7 +22,7 @@ module {:extern "Library"} Library {
     static method {:extern} CallMeInt(x: int) returns (y: int, z: int)
     static method {:extern} CallMeNative(x: MyInt, b: bool) returns (y: MyInt)
   }
-  
+
   class AllDafny {
     static function Seven(): int { 7 }
     static method M() { print "AllDafny.M\n"; }

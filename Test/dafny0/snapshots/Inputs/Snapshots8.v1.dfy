@@ -1,7 +1,7 @@
 method M(x: int)
 {
 assert x < 20 || 10 <= x;  // always true
-  
+
        assert x < 10;  // error
   Other(x);  // error: precondition violation
   assert x == 7;  // error: this is a new error in v1

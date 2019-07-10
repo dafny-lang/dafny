@@ -64,7 +64,7 @@ function ok5(r : R?):()
 
 class CircularChecking {
   ghost var Repr: set<object>
-    
+
   function F(): int
     reads this, Repr
 

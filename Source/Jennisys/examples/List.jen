@@ -59,19 +59,19 @@ interface Node[T] {
 
   method Find(n: T) returns (ret: bool)
     ensures ret = (n in list)
-	
-  method Insert(n: T) 
-    ensures list = old(list) + [n]  
+
+  method Insert(n: T)
+    ensures list = old(list) + [n]
 }
 
 datamodel Node[T] {
   var data: T
   var next: Node[T]
 
-  frame 
+  frame
     next
 
   invariant
     next = null ==> list = [data]
-    next != null ==> list = [data] + next.list 
-} 
+    next != null ==> list = [data] + next.list
+}

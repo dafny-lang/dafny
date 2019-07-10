@@ -18,7 +18,7 @@ module Client {
   import C = PriorityQueue_intrinsic
   import D = PriorityQueue_on_intrinsic
   import E = PriorityQueue_direct
-  
+
   method Main() {
     print "PriorityQueue_extrinsic: ", Test_extrinsic(), "\n";
     print "PriorityQueue_layered: ", Test_layered(), "\n";
@@ -261,7 +261,7 @@ module PriorityQueue_direct {
       (right == Leaf || x <= right.val)
   }
   type T = t: T' | Valid(t) witness Leaf
-  
+
   function Elements(t: T): multiset<int> {
     match t
     case Leaf => multiset{}

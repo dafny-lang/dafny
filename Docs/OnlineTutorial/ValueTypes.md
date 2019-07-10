@@ -77,9 +77,9 @@ method m ()
 ```
 
 Note that because sets can only contain at most one of each element,
-the union does not count repeated elements more than once. These 
+the union does not count repeated elements more than once. These
 operators will result in a finite set if both operands are finite,
-so they cannot generate an infinite set. Unlike the arithmetic 
+so they cannot generate an infinite set. Unlike the arithmetic
 operators, the set operators are always defined. In addition to set
 forming operators, there are comparison operators with their usual
 meanings:
@@ -123,7 +123,7 @@ method m()
 
 Sets are used in several annotations, including reads and modifies
 clauses. In this case, they can be sets of a specific object type
-(like `Nodes` in a linked list), or they can be sets of the 
+(like `Nodes` in a linked list), or they can be sets of the
 generic reference type `object`. Despite its name, this can point to
 any object or array. This is useful to bundle up all of the locations
 that a function or method might read or write when they can be different types.
@@ -193,7 +193,7 @@ method m()
 ```
 
 This mechanism has the potential to create an infinite set, which is not allowed in Dafny.
-To prevent this, Dafny employs heuristics in an attempt to prove that that the resulting 
+To prevent this, Dafny employs heuristics in an attempt to prove that that the resulting
 set will be finite. When creating sets of integers, this can be done by bounding the integers
 in at least one clause of the predicate (something like `0 <= x < n`). Requiring a bound
 variable to be in an existing set also works, as in `x in {0,1,2}` from above. This works
@@ -538,7 +538,7 @@ Multiset disjoint (`!!`) works as expected, and is true if and only if the two m
 Also, two multisets are equal if they have exactly the same count of each element.
 
 
-Finally, multisets can be created from both sequences and sets by using multiset with parentheses: 
+Finally, multisets can be created from both sequences and sets by using multiset with parentheses:
 
 ``` {.editonly}
 method test()
@@ -599,7 +599,7 @@ in `forall i :: i in m <==> 0 <= i < 100` (which is true when `m`'s domain is ex
 In addition, two maps are disjoint (`!!`) if their domains taken as sets are disjoint.
 
 
-If `m` is a map, then `m[i := j]` is a new map which is the result of adding `i` to the domain of `m` and 
+If `m` is a map, then `m[i := j]` is a new map which is the result of adding `i` to the domain of `m` and
 then associating the key `i` with the value `j`. If `i` already had a value, then it is overridden in
 the new map. This also means that when using map literals, it is permissible to repeat a key, but then the first value will be
 overridden. So `map[3 := 5, 3 := 4] == map[3 := 4]`. Note that two maps are equal if they have the same domain, and they

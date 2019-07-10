@@ -49,20 +49,20 @@ method Main() {
   print s, "\n";
   s := a[..8];
   print s, "\n";
-  
+
   // Conversion to sequence should copy elements (sequences are immutable!)
   a[0] := 42;
   print s, "\n";
 
   InitTests();
-  
+
   MultipleDimensions();
 
   PrintArray<int>(null);
 }
 
 type lowercase = ch | 'a' <= ch <= 'z' witness 'd'
-  
+
 method InitTests() {
   var aa := new lowercase[3];
   PrintArray(aa);

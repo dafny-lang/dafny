@@ -3,7 +3,7 @@
 
 // In one version of opaque + fuel, the following failed to verify
 // because the quantifier in the requires used a trigger that included
-// StartFuel_P, while the assert used StartFuelAssert_P.  Since P is 
+// StartFuel_P, while the assert used StartFuelAssert_P.  Since P is
 // opaque, we can't tell that those fuels are the same, and hence the
 // trigger never fires
 

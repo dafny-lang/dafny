@@ -22,7 +22,7 @@ method Main()
   Print(n, "OhOnes()", OhOnes());
   Print(n, "Combine(plus, ones(), from(3))", Combine(plus, ones(), from(3)));
 }
-  
+
 method Print<T>(n: nat, msg: string, s: Stream<T>) {
   print msg, ": ";
   var i, s := 0, s;

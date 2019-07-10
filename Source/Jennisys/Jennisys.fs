@@ -23,12 +23,12 @@ let readAndProcess (filename: string) =
   let f = if filename = null then Console.In else new StreamReader(filename) :> TextReader
   let lexbuf = LexBuffer<char>.FromTextReader(f)
   lexbuf.EndPos <- { pos_bol = 0;
-                     pos_fname=if filename = null then "stdin" else filename; 
+                     pos_fname=if filename = null then "stdin" else filename;
                      pos_cnum=0;
                      pos_lnum=1 }
-  
-  let sprog = 
-    try 
+
+  let sprog =
+    try
       // parse
       Parser.start Lexer.tokenize lexbuf
     with
@@ -41,30 +41,30 @@ let readAndProcess (filename: string) =
   | None -> ()  // errors have already been reported
   | Some(prog) ->
       Analyze prog filename
-  
 
-try 
+
+try
   let args = Environment.GetCommandLineArgs()
   ParseCmdLineArgs (List.ofArray args |> List.tail)
   if CONFIG.breakIntoDebugger then ignore (System.Diagnostics.Debugger.Launch()) else ()
-  if CONFIG.help then 
+  if CONFIG.help then
     printfn "%s" PrintHelpMsg
-  else 
+  else
     if CONFIG.inputFilename = "" then
       printfn "*** Error: No input file was specified."
     else
       readAndProcess CONFIG.inputFilename
 with
-  | InvalidCmdLineOption(msg) 
-  | InvalidCmdLineArg(msg) as ex -> 
-      printfn "  [ERROR] %s" msg; 
+  | InvalidCmdLineOption(msg)
+  | InvalidCmdLineArg(msg) as ex ->
+      printfn "  [ERROR] %s" msg;
       printfn "%s" PrintHelpMsg
-  | EvalFailed(msg) as ex -> 
+  | EvalFailed(msg) as ex ->
       printfn "  [EVALUATION ERROR]  %s" msg
-      printfn "%O" ex.StackTrace 
+      printfn "%O" ex.StackTrace
 
 //let mc = MethodOutSelect (MethodCall(IdLiteral("left"),"SetNode","Find",[VarLiteral("n")]), "ret")
-//let expr = BinaryOr (BinaryOr (BinaryEq (VarLiteral("a")) (VarLiteral("b"))) mc) (mc) 
+//let expr = BinaryOr (BinaryOr (BinaryEq (VarLiteral("a")) (VarLiteral("b"))) mc) (mc)
 //printfn "%s" (PrintExpr 0 expr)
 //printfn ""
 //

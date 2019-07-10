@@ -21,7 +21,7 @@ function GlobalUpdate(gm: globalsmap, g:string, v:int): globalsmap
     requires ValidGlobalStateOpaque(gm) && ValidGlobal(g)
     ensures ValidGlobalStateOpaque(GlobalUpdate(gm, g, v))
 {
-    reveal_ValidGlobalStateOpaque();		
+    reveal_ValidGlobalStateOpaque();
     gm[g := gm[g][0 := v]]
 }
 
@@ -42,7 +42,7 @@ predicate {:opaque} ValidRegState(regs:map<reg, int>)
     forall r:reg :: r in regs
 }
 
-function sp_update_reg(r:reg, sM:map<reg, int>, sK:map<reg, int>): map<reg, int> 
+function sp_update_reg(r:reg, sM:map<reg, int>, sK:map<reg, int>): map<reg, int>
     requires ValidRegState(sK) && ValidRegState(sM)
     ensures ValidRegState(sp_update_reg(r, sM, sK))
 {
