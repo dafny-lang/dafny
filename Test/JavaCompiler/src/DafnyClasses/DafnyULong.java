@@ -93,7 +93,7 @@ public class DafnyULong {
 
     @Override
     public String toString() {
-        return Long.toString(inner);
+        return Long.toUnsignedString(inner);
     }
 
     private BigInteger asBigInteger() {
@@ -112,7 +112,7 @@ public class DafnyULong {
         return new DafnyULong(inner & other.inner);
     }
 
-    public DafnyULong negate(){
+    public DafnyULong not(){
         return new DafnyULong(~inner);
     }
 
@@ -121,6 +121,6 @@ public class DafnyULong {
     }
 
     public DafnyULong shiftRight(int i){
-        return new DafnyULong(inner << i);
+        return new DafnyULong(inner >> i);
     }
 }

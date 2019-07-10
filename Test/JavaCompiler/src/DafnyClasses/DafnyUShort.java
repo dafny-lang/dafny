@@ -97,7 +97,7 @@ public class DafnyUShort {
 
     @Override
     public String toString() {
-        return Integer.toString(inner);
+        return Integer.toUnsignedString(inner);
     }
 
     public DafnyUShort xor(DafnyUShort other){
@@ -112,7 +112,7 @@ public class DafnyUShort {
         return new DafnyUShort(inner & other.inner);
     }
 
-    public DafnyUShort negate(){
+    public DafnyUShort not(){
         return new DafnyUShort(~inner);
     }
 
@@ -121,6 +121,6 @@ public class DafnyUShort {
     }
 
     public DafnyUShort shiftRight(int i){
-        return new DafnyUShort(inner << i);
+        return new DafnyUShort(inner >> i);
     }
 }

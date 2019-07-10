@@ -99,7 +99,7 @@ public class DafnyUInt {
 
     @Override
     public String toString() {
-        return Integer.toString(inner);
+        return Integer.toUnsignedString(inner);
     }
 
     public DafnyUInt xor(DafnyUInt other){
@@ -114,7 +114,7 @@ public class DafnyUInt {
         return new DafnyUInt(inner & other.inner);
     }
 
-    public DafnyUInt negate(){
+    public DafnyUInt not(){
         return new DafnyUInt(~inner);
     }
 
@@ -123,6 +123,6 @@ public class DafnyUInt {
     }
 
     public DafnyUInt shiftRight(int i){
-        return new DafnyUInt(inner << i);
+        return new DafnyUInt(inner >> i);
     }
 }

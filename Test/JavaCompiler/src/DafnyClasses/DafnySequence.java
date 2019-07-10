@@ -62,6 +62,11 @@ public class DafnySequence<T> implements Iterable {
         return new DafnySequence<>(l);
     }
 
+    public T select(BigInteger b) {
+        assert b.compareTo(BigInteger.ZERO) >=0 && b.compareTo(BigInteger.valueOf(Integer.MAX_VALUE)) <=0 : "Precondition Violation";
+        return seq.get(b.intValue());
+    }
+
     public T select(int i) {
         assert i >= 0 : "Precondition Violation";
         return seq.get(i);

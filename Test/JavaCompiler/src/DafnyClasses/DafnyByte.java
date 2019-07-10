@@ -92,7 +92,7 @@ public class DafnyByte {
 
     @Override
     public String toString() {
-        return Integer.toString(inner);
+        return Integer.toUnsignedString(inner);
     }
 
     public DafnyByte xor(DafnyByte other){
@@ -107,7 +107,7 @@ public class DafnyByte {
         return new DafnyByte(inner & other.inner);
     }
 
-    public DafnyByte negate(){
+    public DafnyByte not(){
         return new DafnyByte(~inner);
     }
 
@@ -116,6 +116,6 @@ public class DafnyByte {
     }
 
     public DafnyByte shiftRight(int i){
-        return new DafnyByte(inner << i);
+        return new DafnyByte(inner >> i);
     }
 }

@@ -323,7 +323,7 @@ namespace Microsoft.Dafny{
       } else if (xType is IntType || xType is BigOrdinalType) { 
         return "BigInteger"; 
       } else if (xType is RealType) { 
-        return "BigDecimal"; //TODO: change the data structure to match the one in DafnyRuntime.java
+        return "BigRational";
       } else if (xType is BitvectorType) { 
         var t = (BitvectorType)xType; 
         return t.NativeType != null ? GetNativeTypeName(t.NativeType) : "BigInteger"; 
@@ -480,9 +480,27 @@ namespace Microsoft.Dafny{
         wr.Write((BigInteger)e.Value + literalSuffix);
       } else if (e.Value is BigInteger i) {
         wr.Write("new BigInteger(\"{0}\")", i);
-      } else if (e.Value is Basetypes.BigDec n) {
-        wr.Write("new BigDecimal(\"{0}E{1}\")", n.Mantissa, n.Exponent);
-      } else {
+      } else if (e.Value is Basetypes.BigDec n){
+        if (0 <= n.Exponent){
+          wr.Write("new DafnyClasses.BigRational(new BigInteger(\"{0}", n.Mantissa);
+          for (int j = 0; j < n.Exponent; j++){
+            wr.Write("0");
+          }
+
+          wr.Write("\"), BigInteger.ONE)");
+        }
+        else{
+          wr.Write("new DafnyClasses.BigRational(");
+          wr.Write($"new BigInteger(\"{n.Mantissa}\")");
+          wr.Write(", new BigInteger(\"1");
+          for (int j = n.Exponent; j < 0; j++){
+            wr.Write("0");
+          }
+
+          wr.Write("\"))");
+        }
+      }
+      else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected literal
       }
     }
@@ -1575,7 +1593,7 @@ protected override BlockTargetWriter CreateLambda(List<Type> inTypes, Bpl.IToken
           break;
         case ResolvedUnaryOp.BitwiseNot:
           TrParenExpr("", expr, wr, inLetExprBody);
-          wr.Write(".negate()");
+          wr.Write(".not()");
           break;
         case ResolvedUnaryOp.Cardinality:
           if (expr.Type.AsCollectionType is MultiSetType){
@@ -1985,7 +2003,7 @@ protected override BlockTargetWriter CreateLambda(List<Type> inTypes, Bpl.IToken
       } else if (xType is IntType || xType is BigOrdinalType) {
         return "BigInteger.ZERO";
       } else if (xType is RealType) {
-        return "BigDecimal.ZERO";
+        return "BigRational.ZERO";
       } else if (xType is BitvectorType) {
         var t = (BitvectorType)xType;
         return t.NativeType != null ? $"new {GetNativeTypeName(t.NativeType)}(0)" : "BigInteger.ZERO";
