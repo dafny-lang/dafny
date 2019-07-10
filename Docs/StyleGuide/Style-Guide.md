@@ -227,7 +227,7 @@ method Collatz(num: nat)
 ```
 ### Whitespace
 
-Avoid unnecessary whitespaces inside expressions.
+Avoid unnecessary whitespace inside expressions.
 
 #### Type Declaration
 A type declaration should have a form of `variableName: variableType`.
@@ -239,9 +239,9 @@ class {:extern} Util {
 }
 
 // NO
-var i : int := 1; // unnecessary whitespaces
+var i : int := 1; // unnecessary whitespace
 class {:extern} Util {
-    var {:extern} Exception : System.String // unnecessary whitespaces
+    var {:extern} Exception : System.String // unnecessary whitespace
 }
 ```
 
@@ -254,10 +254,10 @@ The `function`, `method`, `predicate`, and `lemma` definitions should have a for
 function method Foo<int>(i: int): int
 
 // NO
-function method Foo<int> (i : int) : int // unnecessary whitespaces
+function method Foo<int> (i : int) : int // unnecessary whitespace
 ```
 
-Avoid too little or too many whitespaces that reduce the overall readability.
+Avoid too little or too many whitespace that reduce the overall readability.
 
 ```dafny
 // YES
