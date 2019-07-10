@@ -9,7 +9,8 @@ var minValue := 1;
 var cipherMessage := "Hello World";
 ```
 
-Any **lemmas**, **predicates**, **functions**, **methods**, **classes**, and **modules** are named with `PascalCase`.
+Any **lemmas**, **predicates**, **functions**, **methods**, **classes**, **modules**, **datatypes**, and **newtypes**
+are named with `PascalCase`.
 ```dafny
 method FindIndex(arr: seq<int>, k: int)
     ...
@@ -116,6 +117,9 @@ import opened Native
 import opened Donut
 import Coffee
 ```
+
+Although not required, it's recommended to keep the order of `import`s and `include`s alphabetically, except when it
+makes more sense to group them logically.
 
 ## Indentation and Line Breaks
 
