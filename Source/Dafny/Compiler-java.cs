@@ -296,7 +296,7 @@ namespace Microsoft.Dafny{
     }
     
     protected void DeclareField(string name, bool isStatic, bool isConst, Type type, Bpl.IToken tok, string rhs, TargetWriter wr) {
-      wr.WriteLine("public {0}{1} {2} = {3};", isStatic ? "static " : "", TypeName(type, wr, tok), name, (rhs != null) ? rhs : DefaultValue(type, wr, tok));
+      wr.WriteLine("public {0}{1} {2} = {3};", isStatic ? "static " : "", TypeName(type, wr, tok), name, (rhs != null) ? $"new {TypeName(type, wr, tok)}({rhs})" : DefaultValue(type, wr, tok));
     }
 
     string TypeParameters(List<TypeParameter> targs) {
@@ -819,10 +819,10 @@ namespace Microsoft.Dafny{
       wr.Write("(");
       EmitShift(e0, e1, isRotateLeft ? ".shiftLeft" : ".shiftRight", isRotateLeft, nativeType, true, wr, inLetExprBody, tr);
       wr.Write(")");
-      wr.Write (" | ");
+      wr.Write (".or");
       wr.Write("(");
       EmitShift(e0, e1, isRotateLeft ? ".shiftRight" : ".shiftLeft", !isRotateLeft, nativeType, false, wr, inLetExprBody, tr);
-      wr.Write(")");
+      wr.Write(")))");
       if (needsCast) {
         wr.Write(")");
       }
@@ -838,9 +838,9 @@ namespace Microsoft.Dafny{
       if (!firstOp) {
         wr.Write("({0} - ", bv.Width);
       }
-      wr.Write("(int) (");
+      wr.Write("(");
       tr(e1, wr, inLetExprBody);
-      wr.Write(")");
+      wr.Write(".intValue()");
       if (!firstOp) {
         wr.Write(")");
       }
@@ -867,7 +867,7 @@ namespace Microsoft.Dafny{
       } else {
         if (bvType.NativeType.Bitwidth != bvType.Width) {
           // print in hex, because that looks nice
-          wr.Write(") & ({2})0x{0:X}{1})", (1UL << bvType.Width) - 1, literalSuffix, nativeName);
+          wr.Write(").and(new {2}(0x{0:X}{1}{3})))", (1UL << bvType.Width) - 1, literalSuffix, nativeName, bvType.NativeType.Sel.Equals(NativeType.Selection.ULong) ? "L" : "");
         } else {
           wr.Write("))");  // close the parentheses for the cast
         }
@@ -1574,7 +1574,8 @@ protected override BlockTargetWriter CreateLambda(List<Type> inTypes, Bpl.IToken
           TrParenExpr("!", expr, wr, inLetExprBody);
           break;
         case ResolvedUnaryOp.BitwiseNot:
-          TrParenExpr("~", expr, wr, inLetExprBody);
+          TrParenExpr("", expr, wr, inLetExprBody);
+          wr.Write(".negate()");
           break;
         case ResolvedUnaryOp.Cardinality:
           if (expr.Type.AsCollectionType is MultiSetType){
@@ -1624,13 +1625,13 @@ protected override BlockTargetWriter CreateLambda(List<Type> inTypes, Bpl.IToken
           opString = "&&";
           break;
         case BinaryExpr.ResolvedOpcode.BitwiseAnd:
-          callString = "&";
+          callString = "and";
           break;
         case BinaryExpr.ResolvedOpcode.BitwiseOr:
-          callString = "|";
+          callString = "or";
           break;
         case BinaryExpr.ResolvedOpcode.BitwiseXor:
-          callString = "^";
+          callString = "xor";
           break;
         case BinaryExpr.ResolvedOpcode.EqCommon:{
           if (IsHandleComparison(tok, e0, e1, errorWr)){
@@ -1713,6 +1714,8 @@ protected override BlockTargetWriter CreateLambda(List<Type> inTypes, Bpl.IToken
             preOpString = "(char) (";
             opString = "-";
             postOpString = ")";
+          }if (resultType is UserDefinedType){
+            opString = "-";
           }
           else{
             callString = "subtract";
@@ -1985,7 +1988,7 @@ protected override BlockTargetWriter CreateLambda(List<Type> inTypes, Bpl.IToken
         return "BigDecimal.ZERO";
       } else if (xType is BitvectorType) {
         var t = (BitvectorType)xType;
-        return t.NativeType != null ? "0" : "BigInteger.ZERO";
+        return t.NativeType != null ? $"new {GetNativeTypeName(t.NativeType)}(0)" : "BigInteger.ZERO";
       } else if (xType is CollectionType) {
         return "new " + TypeName(xType, wr, tok) + "()";
       }
@@ -2002,7 +2005,11 @@ protected override BlockTargetWriter CreateLambda(List<Type> inTypes, Bpl.IToken
         if (td.Witness != null) {
           return TypeName_UDT(FullTypeName(udt), udt.TypeArgs, wr, udt.tok) + ".Witness";
         } else if (td.NativeType != null) {
-          return "0";
+          string s = td.NativeType.Sel.Equals(NativeType.Selection.Number) || td.NativeType.Sel.Equals(NativeType.Selection.Long) || td
+            .NativeType.Sel.Equals(NativeType.Selection.ULong)
+            ? "L"
+            : "";
+          return $"0{s}";
         } else {
           return TypeInitializationValue(td.BaseType, wr, tok, inAutoInitContext);
         }
@@ -2190,7 +2197,8 @@ protected override BlockTargetWriter CreateLambda(List<Type> inTypes, Bpl.IToken
     }
     
     protected override void EmitExprAsInt(Expression expr, bool inLetExprBody, TargetWriter wr){
-      throw new NotImplementedException();
+      TrParenExpr(expr, wr, inLetExprBody);
+      wr.Write(".intValue()");
     }
 
     protected override void EmitApplyExpr(Type functionType, Bpl.IToken tok, Expression function,
