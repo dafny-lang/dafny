@@ -17,8 +17,7 @@ if [[ ! -e "$DAFNY" ]]; then
 fi
 
 MY_OS=$(uname -s)
-MY_OS_SUBSTR="${MY_OS:0:5}"
-if [ "$MY_OS_SUBSTR" == "MINGW" ]; then
+if [ "${MY_OS:0:5}" == "MINGW" ] || [ "${MY_OS:0:6}" == "CYGWIN" ]; then
     "$DAFNY" "$@"
 else
     MONO=$(which mono)
