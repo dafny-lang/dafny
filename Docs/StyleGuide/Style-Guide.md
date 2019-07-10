@@ -45,9 +45,9 @@ class Integer {
 ## Code Layout
 
 ### Braces
-Dafny by default opens a new brace in the same line.
+Opening braces go on the same line by default.
 ```dafny
-module M() {
+module M {
     ...
     method Met() {
         ...
@@ -55,10 +55,10 @@ module M() {
 }
 ```
 In case the method (or function, lemma, etc) signature is too long to fit in one line, or in case the signature has at
-least one specification clause, the new brace goes to the new line.
+least one specification clause, the opening brace goes on a new line.
 
 ```dafny
-module M() {
+module M {
     ...
     method Met(i: int) returns (j: int)
         requires i % 2 == 0
@@ -72,17 +72,22 @@ module M() {
 This applies to every scope: `module`, `class`, `predicate`, `if`, `while`, and more.
 
 ### Imports
-Import the modules with `opened` to avoid typing a full module name each time a method is invoked.
+
+By default, import modules without opening them.
 ```dafny
-import opened StandardLibrary
+import Coffee
 ...
 ```
 
-When there are more than two modules with the same method name, specify the name of the module during method invocation.
-
+However, if some members of a module are used very frequently, import it using `opened`:
 ```dafny
-import opened MyModule
-import opened YourModule
+import opened Donut
+...
+```
+When a file uses two modules, and both of them define a method of the same name, do not import them `opened`.
+```dafny
+import MyModule
+import YourModule
 ...
 method MyMethod() {
     MyModule.foo();
@@ -90,8 +95,7 @@ method MyMethod() {
 }
 ```
 
-In case typing the full module name is cumbersome, import it with a shorthanded name.
-
+In this case, if you want to shorten their name, import them with a shorthand name.
 ```dafny
 import M = MyModuleWithACumbersomeName
 import Y = YourModuleWithACumbersomeName
@@ -121,7 +125,7 @@ Spaces are preferred over tabs. Tabs should only be used to remain consistent wi
 Use 4 spaces for each indentation.
 
 ### Maximum Character Limit
-Although there is no strict requirement, it is generally recommended to have maximum of 120 characters in each line.
+Although there is no strict requirement, it is generally recommended to have a maximum of 120 characters per line.
 
 ### Functions, Methods, Predicates, and Lemmas
 Every Dafny method has the following signature.
@@ -133,10 +137,9 @@ method {:<attributes>} MethodName(param1: Type, param2: Type) returns (ret: Type
     ensures Q()
 ```
 
-When possible, put MethodName and `returns` statement in the same line, as the keyword `returns` is distinct from other
-method specification clauses, such as `modifies`, `requires`, `ensures`, and `decreases`, which can be mixed in any
-order (although not recommended for readability), while `returns` should always be right after the parameter
-definitions. Each method specification clause should be in a separate line.
+When possible, put MethodName and the `returns` statement on the same line, as the keyword `returns` is distinct from
+other method specification clauses, such as `decreases`, `requires`, `modifies`, and `ensures`, which should appear in
+this order. Each method specification clause should be on a separate line.
 
 In case the Method signature is too long, we can break it down.
 ```dafny
@@ -157,15 +160,15 @@ method {:<attributes>} MethodName(param1: Type, param2: Type,
 Multiple `requires` or `ensures` can be combined into one:
 ```dafny
 requires
-    P1() &&
-    P2() &&
-    P3()
+    && P1()
+    && P2()
+    && P3()
 ```
 The same rules apply to `function`, `predicate`, and `lemma` definitions.
 
 ## Things to Avoid
 
-### Parenthesis
+### Parentheses
 
 In a lot of cases, Dafny does not require parentheses around expressions. Here are some examples.
 
@@ -218,12 +221,12 @@ method Collatz(num: nat)
     }
 }
 ```
-### Whitespaces
+### Whitespace
 
 Avoid unnecessary whitespaces inside expressions.
 
 #### Type Declaration
-Type declaration should have a form of `variableName: variableType`.
+A type declaration should have a form of `variableName: variableType`.
 ```dafny
 // YES
 var i: int := 1;
@@ -269,8 +272,8 @@ This section describes a few recommendations that can help make code more readab
 strictly enforced.
 
 ### Externs
-Try to name them the same in Dafny and C# whenever possible, so that in Dafny we only have to write `{:extern}`, not
-`{:extern "<name>"}`.
+Try to name them the same in Dafny and the target language (e.g. C#, Java, etc) whenever possible, so that in Dafny we
+only have to write `{:extern}`, not `{:extern "<name>"}`.
 
 ### Things to Consider
 Ask these questions before designing / implementing a program in Dafny.
