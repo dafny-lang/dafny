@@ -885,12 +885,18 @@ namespace Microsoft.Dafny{
       } else {
         if (bvType.NativeType.Bitwidth != bvType.Width) {
           // print in hex, because that looks nice
-          wr.Write(").and(new {2}(0x{0:X}{1}{3})))", (1UL << bvType.Width) - 1, literalSuffix, nativeName, bvType.NativeType.Sel.Equals(NativeType.Selection.ULong) ? "L" : "");
+          var t = RepresentableByInt(bvType.NativeType) ? "" : "L";
+          wr.Write($").and(new {nativeName}(0x{(1UL << bvType.Width) - 1:X}{literalSuffix}{t})))");
         } else {
           wr.Write("))");  // close the parentheses for the cast
         }
       }
       return middle;
+    }
+    
+    private static bool RepresentableByInt(NativeType n){
+      return !(n.Sel.Equals(NativeType.Selection.ULong) || n.Sel.Equals(NativeType.Selection.Long) 
+                                                        || n.Sel.Equals(NativeType.Selection.Number));
     }
     
     protected override void DeclareDatatype(DatatypeDecl dt, TargetWriter wr) {
@@ -903,7 +909,22 @@ namespace Microsoft.Dafny{
         CompileDatatypeConstructors(dt, wr);
       }
     }
-    
+
+    protected override void TrBvExpr(Expression expr, TargetWriter wr, bool inLetExprBody){
+      var bv = expr.Type.AsBitVectorType;
+      if (bv != null && expr is LiteralExpr){
+        if (bv.NativeType != null){
+          wr.Write($"new {GetNativeTypeName(bv.NativeType)}({((LiteralExpr)expr).Value})");
+        }
+        else{
+          wr.Write($"BigInteger.valueOf({((LiteralExpr)expr).Value})");
+        }
+      }
+      else{
+        TrParenExpr(expr, wr, inLetExprBody);
+      }
+    }
+
     void CompileDatatypeBase(DatatypeDecl dt, TargetWriter wr) {
       string DtT = dt.CompileName;
       string DtT_protected = IdProtect(DtT);
@@ -1231,7 +1252,7 @@ namespace Microsoft.Dafny{
     protected override void EmitPrintStmt(TargetWriter wr, Expression arg) {
       wr.Write("System.out.print(");
       TrExpr(arg, wr, false);
-      if (arg is StringLiteralExpr){
+      if (arg.Type.AsCollectionType != null && arg.Type.AsCollectionType.AsSeqType.Arg is CharType){
         wr.Write(".verbatimString()");
       }
       wr.WriteLine(");");
@@ -2023,10 +2044,9 @@ protected override BlockTargetWriter CreateLambda(List<Type> inTypes, Bpl.IToken
         if (td.Witness != null) {
           return TypeName_UDT(FullTypeName(udt), udt.TypeArgs, wr, udt.tok) + ".Witness";
         } else if (td.NativeType != null) {
-          string s = td.NativeType.Sel.Equals(NativeType.Selection.Number) || td.NativeType.Sel.Equals(NativeType.Selection.Long) || td
-            .NativeType.Sel.Equals(NativeType.Selection.ULong)
-            ? "L"
-            : "";
+          string s = RepresentableByInt(td.NativeType)
+            ? ""
+            : "L";
           return $"0{s}";
         } else {
           return TypeInitializationValue(td.BaseType, wr, tok, inAutoInitContext);

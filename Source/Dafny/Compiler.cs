@@ -3377,6 +3377,12 @@ namespace Microsoft.Dafny{
       TrExpr(expr, wr, inLetExprBody);
       wr.Write(")");
     }
+    
+    protected virtual void TrBvExpr(Expression expr, TargetWriter wr, bool inLetExprBody){
+      Contract.Requires(expr != null);
+      Contract.Requires(wr != null);
+      TrParenExpr(expr, wr, inLetExprBody);
+    }
 
     /// <summary>
     /// Before calling TrExprList(exprs), the caller must have spilled the let variables declared in expressions in "exprs".
@@ -3624,31 +3630,13 @@ namespace Microsoft.Dafny{
         }
         else if (callString != null){
           wr.Write(preOpString);
-          if (TargetLanguage.Equals("Java") && e0 is LiteralExpr && e0.Type.IsBitVectorType){
-            if (e0.Type.AsBitVectorType.NativeType != null){
-              wr.Write($"new {GetNativeTypeName(e0.Type.AsBitVectorType.NativeType)}({((LiteralExpr)e0).Value})");
-            }
-            else{
-              wr.Write($"new BigInteger(Integer.toString({((LiteralExpr)e0).Value}))");
-            }
-          }
-          else{
-            TrParenExpr(e0, wr, inLetExprBody);
-          }
+          TrBvExpr(e0, wr, inLetExprBody);
           wr.Write(".{0}(", callString);
-          if (TargetLanguage.Equals("Java") && e1 is LiteralExpr && e1.Type.IsBitVectorType){
-            if (e1.Type.AsBitVectorType.NativeType != null){
-              wr.Write($"new {GetNativeTypeName(e1.Type.AsBitVectorType.NativeType)}({((LiteralExpr)e1).Value})");
-            }
-            else{
-              wr.Write($"new BigInteger(Integer.toString({((LiteralExpr)e1).Value}))");
-            }
-          }
-          else if (convertE1_to_int){
+          if (convertE1_to_int){
             EmitExprAsInt(e1, inLetExprBody, wr);
           }
           else{
-            TrParenExpr(e1, wr, inLetExprBody);
+            TrBvExpr(e1, wr, inLetExprBody);
           }
           wr.Write(")");
           wr.Write(postOpString);
