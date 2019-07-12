@@ -60,4 +60,4 @@ Execution trace:
     (0,0): anon29_Then
     (0,0): anon30_Then
 
-Dafny program verifier finished with 19 verified, 9 errors
+Dafny program verifier finished with 20 verified, 9 errors
