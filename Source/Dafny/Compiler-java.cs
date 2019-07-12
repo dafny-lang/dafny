@@ -401,7 +401,7 @@ namespace Microsoft.Dafny{
     protected override string FullTypeName(UserDefinedType udt, MemberDecl /*?*/ member = null) {
       Contract.Assume(udt != null); // precondition; this ought to be declared as a Requires in the superclass
       if (udt is ArrowType) {
-        return string.Format("Function{0}", udt.TypeArgs.Count > 2 ? (udt.TypeArgs.Count - 1).ToString() : "");
+        return string.Format("Function{0}", udt.TypeArgs.Count != 2 ? (udt.TypeArgs.Count - 1).ToString() : "");
       }
       var cl = udt.ResolvedClass;
       if (cl == null) {
@@ -1323,9 +1323,9 @@ namespace Microsoft.Dafny{
           outputWriter.WriteLine(proc.StandardError.ReadLine());
         }
         proc.WaitForExit();
-        if (proc.ExitCode != 0) {
-          throw new Exception("Error while compiling Java file " + file + ". Process exited with exit code " + proc.ExitCode);
-        }
+//        if (proc.ExitCode != 0) {
+//          throw new Exception("Error while compiling Java file " + file + ". Process exited with exit code " + proc.ExitCode);
+//        }
       }
       return true;
     }
@@ -1346,9 +1346,9 @@ namespace Microsoft.Dafny{
         outputWriter.WriteLine(proc.StandardError.ReadLine());
       }
       proc.WaitForExit();
-      if (proc.ExitCode != 0) {
-        throw new Exception("Error while running Java file " + targetFilename + ". Process exited with exit code " + proc.ExitCode);
-      }
+//      if (proc.ExitCode != 0) {
+//        throw new Exception("Error while running Java file " + targetFilename + ". Process exited with exit code " + proc.ExitCode);
+//      }
       return true;
     }
     
@@ -1606,7 +1606,7 @@ namespace Microsoft.Dafny{
           if (resultType.IsIntegerType ||
               (AsNativeType(resultType) != null && AsNativeType(resultType).LowerBound < BigInteger.Zero)){
             var suffix = AsNativeType(resultType) != null ? "_" + GetNativeTypeName(AsNativeType(resultType)) : "";
-            staticCallString = "DafnyEuclidian.EuclideanDivision" + suffix;
+            staticCallString = "DafnyEuclidean.EuclideanDivision" + suffix;
           }
           else{
             callString = "divide";
@@ -1617,7 +1617,7 @@ namespace Microsoft.Dafny{
           if (resultType.IsIntegerType ||
               (AsNativeType(resultType) != null && AsNativeType(resultType).LowerBound < BigInteger.Zero)){
             var suffix = AsNativeType(resultType) != null ? "_" + GetNativeTypeName(AsNativeType(resultType)) : "";
-            staticCallString = "DafnyEuclidian.EuclideanModulus" + suffix;
+            staticCallString = "DafnyEuclidean.EuclideanModulus" + suffix;
           }
           else{
             callString = "mod";
@@ -1905,7 +1905,21 @@ namespace Microsoft.Dafny{
             var arrayClass = (ArrayClassDecl)((NonNullTypeDecl)td).Class;
             string typeNameSansBrackets, brackets;
             TypeName_SplitArrayName(udt.TypeArgs[0], wr, udt.tok, out typeNameSansBrackets, out brackets);
-            return string.Format("new {0}[{1}]{2}", typeNameSansBrackets, Util.Comma(arrayClass.Dims, _ => "0"), brackets);
+            string newarr = "";
+            if (arrayClass.Dims > 1) {
+              newarr += $"new Array{arrayClass.Dims}(";
+              for (int i = 0; i < arrayClass.Dims; i++) {
+                newarr += "0, ";
+              }
+            }
+            newarr += $"new {typeNameSansBrackets}";
+            for (int i = 0; i < arrayClass.Dims; i++) {
+              newarr += "[0]";
+            }
+            if (arrayClass.Dims > 1) {
+              newarr += ")";
+            }
+            return newarr;
           } else {
             return "null";
           }
@@ -2200,7 +2214,12 @@ namespace Microsoft.Dafny{
     
     protected override BlockTargetWriter CreateForeachLoop(string boundVar, Type boundVarType, out TargetWriter collectionWriter,
       TargetWriter wr, string altBoundVarName = null, Type altVarType = null, Bpl.IToken tok = null) {
-      wr.Write("for({0} {1} : ", TypeName(boundVarType, wr, tok), boundVar);
+      if (boundVarType != null) {
+        wr.Write("for({0} {1} : ", TypeName(boundVarType, wr, tok), boundVar);
+      }
+      else {
+        wr.Write($"for(Tuple{TargetTupleSize} {boundVar} : ");
+      }
       collectionWriter = wr.Fork();
       if (altBoundVarName == null) {
         return wr.NewBlock(")");
@@ -2341,12 +2360,48 @@ namespace Microsoft.Dafny{
       return wr.NewNamedBlock($"for (BigInteger {indexVar} = new BigInteger(\"0\"); {indexVar}.compareTo(BigInteger.valueOf({bound})) < 0; {indexVar} = {indexVar}.add(new BigInteger(\"1\")))");
     }
 
-    // ABSTRACT METHOD DECLARATIONS FOR THE SAKE OF BUILDING PROGRAM
-    protected override string GetHelperModuleName()
-    {
-      throw new NotImplementedException();
+    protected override string GetHelperModuleName() => "DafnyClasses.Helpers";
+    
+    protected override void EmitEmptyTupleList(string tupleTypeArgs, TargetWriter wr){
+      wr.WriteLine($"new ArrayList<>();");
     }
-        
+
+    protected override void AddTupleToSet(int i) {
+      tuples.Add(i);
+    }
+    
+    protected override TargetWriter EmitAddTupleToList(string ingredients, string tupleTypeArgs, TargetWriter wr) {
+      wr.Write($"{ingredients}.add(new Tuple");
+      var wrTuple = wr.Fork();
+      wr.Write("));");
+      return wrTuple;
+    }
+    
+    protected override void EmitExprAsInt(Expression expr, bool inLetExprBody, TargetWriter wr){
+      wr.Write("(");
+      wr.Write("({0})", TypeName(expr.Type.NormalizeExpand(), wr, Bpl.Token.NoToken));
+      TrParenExpr(expr, wr, inLetExprBody);
+      wr.Write(").intValue()");
+    }
+    
+    protected override void EmitTupleSelect(string prefix, int i, TargetWriter wr) {
+      wr.Write("{0}.dtor__{1}()", prefix, i);
+    }
+    
+    protected override void EmitApplyExpr(Type functionType, Bpl.IToken tok, Expression function, List<Expression> arguments, bool inLetExprBody, TargetWriter wr){
+      TrParenExpr(function, wr, inLetExprBody);
+      wr.Write(".apply");
+      TrExprList(arguments, wr, inLetExprBody);
+    }
+    
+    protected override TargetWriter EmitCoercionToNativeInt(TargetWriter wr) {
+      wr.Write("((BigInteger)");
+      var w = wr.Fork();
+      wr.Write(").intValue()");
+      return w;
+    }
+
+    // ABSTRACT METHOD DECLARATIONS FOR THE SAKE OF BUILDING PROGRAM
     protected override BlockTargetWriter CreateStaticMain(IClassWriter wr)
     {
       throw new NotImplementedException();
@@ -2356,17 +2411,7 @@ namespace Microsoft.Dafny{
     {
       throw new NotImplementedException();
     }
-    
-    protected override void EmitExprAsInt(Expression expr, bool inLetExprBody, TargetWriter wr){
-      throw new NotImplementedException();
-    }
 
-    protected override void EmitApplyExpr(Type functionType, Bpl.IToken tok, Expression function,
-      List<Expression> arguments, bool inLetExprBody,
-      TargetWriter wr){
-      throw new NotImplementedException();
-    }
-    
     protected override TargetWriter CreateIIFE_ExprBody(string source, Type sourceType, Bpl.IToken sourceTok,
       Type resultType, Bpl.IToken resultTok,
       string bvName, TargetWriter wr){
@@ -2414,25 +2459,11 @@ namespace Microsoft.Dafny{
       throw new NotImplementedException();
     }
 
-    protected override void EmitEmptyTupleList(string tupleTypeArgs, TargetWriter wr){
-      throw new NotImplementedException();
-    }
-
     protected override string GetQuantifierName(string bvType)
     {
       return string.Format("DafnyClasses.Helpers.Quantifier", bvType);
     }
 
-    protected override TargetWriter EmitAddTupleToList(string ingredients, string tupleTypeArgs, TargetWriter wr)
-    {
-      throw new NotImplementedException();
-    }
-
-    protected override void EmitTupleSelect(string prefix, int i, TargetWriter wr)
-    {
-      throw new NotImplementedException();
-    }
-        
     protected override BlockTargetWriter CreateIIFE1(int source, Type resultType, Bpl.IToken resultTok, string bvName, TargetWriter wr)
     {
       throw new NotImplementedException();

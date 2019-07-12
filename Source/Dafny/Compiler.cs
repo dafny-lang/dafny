@@ -278,6 +278,8 @@ namespace Microsoft.Dafny{
     protected virtual bool SupportsAmbiguousTypeDecl { get => true; }
     protected virtual bool FieldsInTraits { get => true; } // True if language's "trait" equivalent allows for non-final field declarations, false otherwise
     protected bool MemberSelectObjIsTrait; // Example: if MemberSelect expression is T.x, this will be true if T is a trait, false otherwise
+    protected virtual void AddTupleToSet(int i) { }
+    public int TargetTupleSize = 0;
     /// The punctuation that comes at the end of a statement.  Note that
     /// statements are followed by newlines regardless.
     protected virtual string StmtTerminator { get => ";"; }
@@ -2288,7 +2290,12 @@ namespace Microsoft.Dafny{
             var lhs = (SeqSelectExpr) s0.Lhs;
             L = 3;
             // note, we might as well do the BigInteger-to-int cast for array indices here, before putting things into the Tuple rather than when they are extracted from the Tuple
-            tupleTypeArgs = TypeName(lhs.Seq.Type, wr, lhs.tok) + ",int";
+            if (TargetLanguage == "Java") {
+              tupleTypeArgs = TypeName(lhs.Seq.Type, wr, lhs.tok) + ",BigInteger";
+            }
+            else {
+              tupleTypeArgs = TypeName(lhs.Seq.Type, wr, lhs.tok) + ",int";
+            }
             tupleTypeArgsList = new List<Type>{lhs.Seq.Type, null};
           }
           else{
@@ -2305,7 +2312,12 @@ namespace Microsoft.Dafny{
             tupleTypeArgsList = new List<Type>{lhs.Array.Type};
             for (int i = 0; i < lhs.Indices.Count; i++){
               // note, we might as well do the BigInteger-to-int cast for array indices here, before putting things into the Tuple rather than when they are extracted from the Tuple
-              tupleTypeArgs += ",int";
+              if (TargetLanguage == "Java") {
+                tupleTypeArgs += ",BigInteger";
+              }
+              else {
+                tupleTypeArgs += ",int";
+              }
               tupleTypeArgsList.Add(null);
             }
           }
@@ -2314,7 +2326,11 @@ namespace Microsoft.Dafny{
           tupleTypeArgsList.Add(rhs.Type);
 
           // declare and construct "ingredients"
-          using (var wrVarInit = DeclareLocalVar(ingredients, null, null, wr)){
+          using (var wrVarInit = SupportsAmbiguousTypeDecl ? DeclareLocalVar(ingredients, null, null, wr) : wr){
+            if (!SupportsAmbiguousTypeDecl) {
+              wrVarInit.Write($"ArrayList<Tuple{L}<{tupleTypeArgs}>> {ingredients} = ");
+              AddTupleToSet(L);
+            }
             EmitEmptyTupleList(tupleTypeArgs, wrVarInit);
           }
 
@@ -2322,6 +2338,9 @@ namespace Microsoft.Dafny{
           wr = CompileGuardedLoops(s.BoundVars, s.Bounds, s.Range, wr);
 
           using (var wrTuple = EmitAddTupleToList(ingredients, tupleTypeArgs, wr)){
+            if (!SupportsAmbiguousTypeDecl) {
+              wrTuple.Write($"{L}<{tupleTypeArgs}>(");
+            }
             if (s0.Lhs is MemberSelectExpr){
               var lhs = (MemberSelectExpr) s0.Lhs;
               TrExpr(lhs.Obj, wrTuple, false);
@@ -2330,18 +2349,34 @@ namespace Microsoft.Dafny{
               var lhs = (SeqSelectExpr) s0.Lhs;
               TrExpr(lhs.Seq, wrTuple, false);
               wrTuple.Write(", ");
+              if (TargetLanguage == "Java") {
+                wrTuple.Write("BigInteger.valueOf(");
+              }
               EmitExprAsInt(lhs.E0, false, wrTuple);
+              if (TargetLanguage == "Java") {
+                wrTuple.Write(")");
+              }
             }
             else{
               var lhs = (MultiSelectExpr) s0.Lhs;
               TrExpr(lhs.Array, wrTuple, false);
               for (int i = 0; i < lhs.Indices.Count; i++){
                 wrTuple.Write(", ");
+                if (TargetLanguage == "Java") {
+                  wrTuple.Write("BigInteger.valueOf(");
+                }
                 EmitExprAsInt(lhs.Indices[i], false, wrTuple);
+                if (TargetLanguage == "Java") {
+                  wrTuple.Write(")");
+                }
               }
             }
 
             wrTuple.Write(", ");
+            if (!SupportsAmbiguousTypeDecl && rhs is MultiSelectExpr) {
+              Type t = rhs.Type.NormalizeExpand();
+              wrTuple.Write("({0})", TypeName(t, wrTuple, rhs.tok));
+            }
             TrExpr(rhs, wrTuple, false);
           }
 
@@ -2349,6 +2384,7 @@ namespace Microsoft.Dafny{
           //     LHS[ l0, l1, l2, ..., l(L-2) ] = l(L-1);
           //   }
           TargetWriter collWriter;
+          TargetTupleSize = L;
           wr = CreateForeachLoop(tup, null, out collWriter, wrOuter);
           collWriter.Write(ingredients);
           {
@@ -2357,12 +2393,24 @@ namespace Microsoft.Dafny{
             wCoerceTup.Write(tup);
             tup = wTup.ToString();
           }
+          if (!SupportsAmbiguousTypeDecl) {
+            wr.Write("(");
+          }
           if (s0.Lhs is MemberSelectExpr){
             var lhs = (MemberSelectExpr) s0.Lhs;
             var wCoerced = EmitCoercionIfNecessary(from: null, to: tupleTypeArgsList[0], tok: s0.Tok, wr: wr);
+            if (!SupportsAmbiguousTypeDecl) {
+              wCoerced.Write("({0})", TypeName(tupleTypeArgsList[0].NormalizeExpand(), wCoerced, s0.Tok));
+            }
             EmitTupleSelect(tup, 0, wCoerced);
+            if (!SupportsAmbiguousTypeDecl) {
+              wr.Write(")");
+            }
             wr.Write(".{0} = ", IdMemberName(lhs));
             wCoerced = EmitCoercionIfNecessary(from: null, to: tupleTypeArgsList[1], tok: s0.Tok, wr: wr);
+            if (!SupportsAmbiguousTypeDecl) {
+              wCoerced.Write("({0})", TypeName(tupleTypeArgsList[1].NormalizeExpand(), wCoerced, s0.Tok));
+            }
             EmitTupleSelect(tup, 1, wCoerced);
             EndStmt(wr);
           }
@@ -2372,11 +2420,18 @@ namespace Microsoft.Dafny{
             EmitIndexCollectionUpdate(out wColl, out wIndex, out wValue, wr, nativeIndex: true);
 
             var wCoerce = EmitCoercionIfNecessary(from: null, to: lhs.Seq.Type, tok: s0.Tok, wr: wColl);
+            if (!SupportsAmbiguousTypeDecl) {
+              wCoerce.Write("({0})", TypeName(lhs.Seq.Type.NormalizeExpand(), wCoerce, s0.Tok));
+            }
             EmitTupleSelect(tup, 0, wCoerce);
-
+            if (!SupportsAmbiguousTypeDecl) {
+              wColl.Write(")");
+            }
             var wCast = EmitCoercionToNativeInt(wIndex);
             EmitTupleSelect(tup, 1, wCast);
-
+            if (!SupportsAmbiguousTypeDecl) {
+              wValue.Write("({0})", TypeName(tupleTypeArgsList[2].NormalizeExpand(), wValue, s0.Tok));
+            }
             EmitTupleSelect(tup, 2, wValue);
             EndStmt(wr);
           }
@@ -2384,12 +2439,24 @@ namespace Microsoft.Dafny{
             var lhs = (MultiSelectExpr) s0.Lhs;
             var wArray = new TargetWriter(wr.IndentLevel, true);
             var wCoerced = EmitCoercionIfNecessary(from: null, to: tupleTypeArgsList[0], tok: s0.Tok, wr: wArray);
+            if (!SupportsAmbiguousTypeDecl) {
+              wCoerced.Write("({0})", TypeName(tupleTypeArgsList[0].NormalizeExpand(), wCoerced, s0.Tok));
+            }
             EmitTupleSelect(tup, 0, wCoerced);
+            if (!SupportsAmbiguousTypeDecl) {
+              wArray.Write(")");
+            }
             var array = wArray.ToString();
             var indices = new List<string>();
             for (int i = 0; i < lhs.Indices.Count; i++){
               var wIndex = new TargetWriter();
+              if (!SupportsAmbiguousTypeDecl) {
+                wIndex.Write("((BigInteger)");
+              }
               EmitTupleSelect(tup, i + 1, wIndex);
+              if (!SupportsAmbiguousTypeDecl) {
+                wIndex.Write(")");
+              }
               indices.Add(wIndex.ToString());
             }
 
@@ -2562,7 +2629,7 @@ namespace Microsoft.Dafny{
         if (this.TargetLanguage.Equals("Java")){
           collectionWriter.Write(".allSubsets" + propertySuffix);
         }
-          else
+        else
         {
           collectionWriter.Write(".AllSubsets" + propertySuffix);
         }
@@ -2896,7 +2963,8 @@ namespace Microsoft.Dafny{
       }
       else{
         var v = idGenerator.FreshId(prefix);
-        DeclareLocalVar(v, null, null, e, false, wr);
+        var type = TargetLanguage == "Java" ? e.Type : null;
+        DeclareLocalVar(v, type, null, e, false, wr);
         return v;
       }
     }
@@ -3499,6 +3567,9 @@ namespace Microsoft.Dafny{
       }
       else if (expr is MultiSelectExpr){
         MultiSelectExpr e = (MultiSelectExpr) expr;
+        if (!SupportsAmbiguousTypeDecl) {
+          wr.Write("({0})", TypeName(e.Type.NormalizeExpand(), wr, e.tok));
+        }
         var w = EmitArraySelect(e.Indices, e.Type, inLetExprBody, wr);
         TrParenExpr(e.Array, w, inLetExprBody);
       }

@@ -161,4 +161,8 @@ public class DafnySet<T> {
     public DafnyMultiset<T> asDafnyMultiset() {
         return new DafnyMultiset<>(innerSet);
     }
+
+    public Set<T> Elements() {
+        return innerSet;
+    }
 }

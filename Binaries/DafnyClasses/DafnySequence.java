@@ -182,4 +182,8 @@ public class DafnySequence<T> implements Iterable {
         }
         return builder.toString();
     }
+
+    public HashSet<T> UniqueElements() {
+        return new HashSet(seq);
+    }
 }
