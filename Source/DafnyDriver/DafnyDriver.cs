@@ -130,7 +130,15 @@ namespace Microsoft.Dafny
             if (extension == ".js") {
               otherFiles.Add(file);
             } else {
-              ExecutionEngine.printer.ErrorWriteLine(Console.Out, "*** Error: '{0}': Filename extension '{1}' is not supported. Input files must be Dafny programs (.dfy) or JavaScrip files (.js)", file,
+              ExecutionEngine.printer.ErrorWriteLine(Console.Out, "*** Error: '{0}': Filename extension '{1}' is not supported. Input files must be Dafny programs (.dfy) or JavaScript files (.js)", file,
+                extension == null ? "" : extension);
+              return ExitValue.PREPROCESSING_ERROR;
+            }
+          } else if (DafnyOptions.O.CompileTarget == DafnyOptions.CompilationTarget.Java) {
+            if (extension == ".java") {
+              otherFiles.Add(file);
+            } else {
+              ExecutionEngine.printer.ErrorWriteLine(Console.Out, "*** Error: '{0}': Filename extension '{1}' is not supported. Input files must be Dafny programs (.dfy) or Java files (.java)", file,
                 extension == null ? "" : extension);
               return ExitValue.PREPROCESSING_ERROR;
             }
@@ -452,6 +460,10 @@ namespace Microsoft.Dafny
           targetExtension = "go";
           targetBaseDir = baseName + "-go/src";
           break;
+        case DafnyOptions.CompilationTarget.Java:
+          targetExtension = "java";
+          targetBaseDir = baseName + "-java/src";
+          break;
         default:
           Contract.Assert(false);
           throw new cce.UnreachableException();
@@ -460,6 +472,23 @@ namespace Microsoft.Dafny
       string targetDir = Path.Combine(Path.GetDirectoryName(dafnyProgramName), targetBaseDir);
       string targetFilename = Path.Combine(targetDir, targetBaseName);
       WriteFile(targetFilename, targetProgram);
+
+      if (DafnyOptions.O.CompileTarget is DafnyOptions.CompilationTarget.Java) {
+        var assemblyLocation = System.Reflection.Assembly.GetExecutingAssembly().Location;
+        Contract.Assert(assemblyLocation != null);
+        var codebase = System.IO.Path.GetDirectoryName(assemblyLocation);
+        Contract.Assert(codebase != null);
+        string path = codebase + "/DafnyClasses";
+        DirectoryInfo dir = new DirectoryInfo(path);
+        FileInfo[] files = dir.GetFiles();
+        Directory.CreateDirectory(targetDir + "/DafnyClasses");
+        string dest = targetDir + "/DafnyClasses";
+        foreach (FileInfo file in files) {
+          string temp = Path.Combine(dest, file.Name);
+          file.CopyTo(temp, true);
+        }
+      }
+      
       string relativeTarget = Path.Combine(targetBaseDir, targetBaseName);
       if (completeProgram) {
         if (DafnyOptions.O.CompileVerbose) {
@@ -521,6 +550,9 @@ namespace Microsoft.Dafny
         case DafnyOptions.CompilationTarget.Go:
           compiler = new Dafny.GoCompiler(dafnyProgram.reporter);
           break;
+        case DafnyOptions.CompilationTarget.Java:
+          compiler = new Dafny.JavaCompiler(dafnyProgram.reporter);
+          break;
       }
 
       Method mainMethod;
@@ -543,10 +575,17 @@ namespace Microsoft.Dafny
           otherFiles.Add(wr.Filename, sw.ToString());
         }
       }
+      string baseName = Path.GetFileNameWithoutExtension(dafnyProgramName);
       string callToMain = null;
       if (hasMain) {
         using (var wr = new TargetWriter(0)) {
+          if (DafnyOptions.O.CompileTarget is DafnyOptions.CompilationTarget.Java) {
+            wr.Write("public class {0} {{\n\t", baseName);
+          }
           compiler.EmitCallToMain(mainMethod, wr);
+          if (DafnyOptions.O.CompileTarget is DafnyOptions.CompilationTarget.Java) {
+            wr.WriteLine("}");
+          }
           callToMain = wr.ToString(); // assume there aren't multiple files just to call main
         }
       }
@@ -565,7 +604,23 @@ namespace Microsoft.Dafny
         // don't compile
         return false;
       }
-
+      
+      
+      if (DafnyOptions.O.CompileTarget is DafnyOptions.CompilationTarget.Java) {
+        string targetBaseDir = baseName + "-java/src";
+        string targetDir = Path.Combine(Path.GetDirectoryName(dafnyProgramName), targetBaseDir);
+        var assemblyLocation = System.Reflection.Assembly.GetExecutingAssembly().Location;
+        Contract.Assert(assemblyLocation != null);
+        var codebase = System.IO.Path.GetDirectoryName(assemblyLocation);
+        Contract.Assert(codebase != null);
+        string dest = targetDir + "/DafnyClasses";
+        var jcompiler = (JavaCompiler) compiler;
+        jcompiler.CompileTuples(dest);
+        jcompiler.CreateFunctionInterface(dest);
+        jcompiler.CompileDafnyArrays(dest);
+        jcompiler.CompileArrayInits(dest);
+      }
+      
       object compilationResult;
       var compiledCorrectly = compiler.CompileTargetProgram(dafnyProgramName, targetProgramText, callToMain, targetFilename, otherFileNames,
         hasMain, hasMain && DafnyOptions.O.RunAfterCompile, outputWriter, out compilationResult);
