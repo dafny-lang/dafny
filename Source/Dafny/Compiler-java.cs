@@ -1423,20 +1423,53 @@ namespace Microsoft.Dafny{
     protected override string GenerateLhsDecl(string target, Type type, TextWriter wr, Bpl.IToken tok){
       return TypeName(type, wr, tok) + " " + target;
     }
+    
+    protected override void EmitNew(Type type, Bpl.IToken tok, CallStmt initCall, TargetWriter wr){
+      var ctor = initCall == null
+        ? null
+        : (Constructor) initCall.Method; // correctness of cast follows from precondition of "EmitNew"
+      wr.Write("new {0}(", TypeName(type, wr, tok));
+      wr.Write(")");
+    }
 
-//    protected override BlockTargetWriter CreateLambda(List<Type> inTypes, Bpl.IToken tok, List<string> inNames, Type resultType, TargetWriter wr, bool untyped = false) {
-//      wr.Write('(');
-//      if (!untyped) {
-//        wr.Write("(Function<{0}{1}>)", Util.Comma("", inTypes, t => TypeName(t, wr, tok) + ", "), TypeName(resultType, wr, tok));
-//      }
-//      wr.Write("({0}) ->", Util.Comma(inNames, nm => nm));
-//      var w = wr.NewExprBlock("");
-//      wr.Write(")");
-//      if (!resultType.IsBoolType){
-//        wr.Write(".apply");
-//      }
-//      return w;
-//    }
+    protected override void EmitAssignment(out TargetWriter wLhs, Type /*?*/ lhsType, out TargetWriter wRhs,
+      Type /*?*/ rhsType, TargetWriter wr){
+      wLhs = wr.Fork();
+      if (!MemberSelectObjIsTrait)
+        wr.Write(" = ");
+      TargetWriter w;
+      if (rhsType != null){
+        w = EmitCoercionIfNecessary(from: rhsType, to: lhsType, tok: Bpl.Token.NoToken, wr: wr);
+      }
+      else{
+        w = wr;
+      }
+
+      wRhs = w.Fork();
+      if (MemberSelectObjIsTrait)
+        w.Write(")");
+      EndStmt(wr);
+    }
+
+    protected override void EmitDatatypeValue(DatatypeValue dtv, string arguments, TargetWriter wr) {
+      var dt = dtv.Ctor.EnclosingDatatype;
+      var dtName = dt.CompileName;
+      var ctorName = dtv.Ctor.CompileName;
+      
+      var typeParams = dtv.InferredTypeArgs.Count == 0 ? "" : string.Format("<{0}>", TypeNames(dtv.InferredTypeArgs, wr, dtv.tok));
+      if (!dtv.IsCoCall) {
+        wr.Write("new {0}{1}{2}", dtName, dt.IsRecordType ? "" : "_" + ctorName, typeParams);
+        // For an ordinary constructor (that is, one that does not guard any co-recursive calls), generate:
+        //   new Dt_Cons<T>( args )
+        wr.Write("({0})", arguments);
+      }
+      else {
+        wr.Write("new {0}__Lazy{1}(", dtv.DatatypeName, typeParams);
+        wr.Write("() -> { return ");
+        wr.Write("new {0}({1})", DtCtorName(dtv.Ctor, dtv.InferredTypeArgs, wr), arguments);
+        wr.Write("; })");
+      }
+    }
 
     protected override BlockTargetWriter CreateIIFE0(Type resultType, Bpl.IToken resultTok, TargetWriter wr)
     {
@@ -1985,7 +2018,6 @@ namespace Microsoft.Dafny{
         }
       }
       var instanceMemberWriter = w.NewBlock("");
-
       //writing the _Companion class
       filename = string.Format("{1}/_Companion_{0}.java", name, ModuleName);
       w = w.NewFile(filename);
@@ -2006,50 +2038,14 @@ namespace Microsoft.Dafny{
       return new ClassWriter(this, instanceMemberWriter, staticMemberWriter);
     }
 
-    protected override void EmitNew(Type type, Bpl.IToken tok, CallStmt initCall, TargetWriter wr) {
-      var ctor = initCall == null ? null : (Constructor)initCall.Method;  // correctness of cast follows from precondition of "EmitNew"
-      wr.Write("new {0}(", TypeName(type, wr, tok));
-      wr.Write(")");
-    }
-    
-    protected override void EmitAssignment(out TargetWriter wLhs, Type/*?*/ lhsType, out TargetWriter wRhs, Type/*?*/ rhsType, TargetWriter wr) {
-      wLhs = wr.Fork();
-      if (!MemberSelectObjIsTrait)
-        wr.Write(" = ");
-      TargetWriter w;
-      if (rhsType != null) {
-        w = EmitCoercionIfNecessary(from:rhsType, to:lhsType, tok:Bpl.Token.NoToken, wr:wr);
-      } else {
-        w = wr;
+    protected override void EmitDestructor(string source, Formal dtor, int formalNonGhostIndex, DatatypeCtor ctor, List<Type> typeArgs, Type bvType, TargetWriter wr){
+      string dtorName;
+      if (dtor.Type.IsTypeParameter){
+        dtorName = $"dtor__{dtor.Name}()";
       }
-      wRhs = w.Fork();
-      if (MemberSelectObjIsTrait)
-        w.Write(")");
-      EndStmt(wr);
-    }
-    
-    protected override void EmitDatatypeValue(DatatypeValue dtv, string arguments, TargetWriter wr) {
-      var dt = dtv.Ctor.EnclosingDatatype;
-      var dtName = dt.CompileName;
-      var ctorName = dtv.Ctor.CompileName;
-      
-      var typeParams = dtv.InferredTypeArgs.Count == 0 ? "" : string.Format("<{0}>", TypeNames(dtv.InferredTypeArgs, wr, dtv.tok));
-      if (!dtv.IsCoCall) {
-        wr.Write("new {0}{1}{2}", dtName, dt.IsRecordType ? "" : "_" + ctorName, typeParams);
-        // For an ordinary constructor (that is, one that does not guard any co-recursive calls), generate:
-        //   new Dt_Cons<T>( args )
-        wr.Write("({0})", arguments);
+      else{
+        dtorName = FormalName(dtor, formalNonGhostIndex);
       }
-      else {
-        wr.Write("new {0}__Lazy{1}(", dtv.DatatypeName, typeParams);
-        wr.Write("() -> { return ");
-        wr.Write("new {0}({1})", DtCtorName(dtv.Ctor, dtv.InferredTypeArgs, wr), arguments);
-        wr.Write("; })");
-      }
-    }
-    
-    protected override void EmitDestructor(string source, Formal dtor, int formalNonGhostIndex, DatatypeCtor ctor, List<Type> typeArgs, Type bvType, TargetWriter wr) {
-      var dtorName = FormalName(dtor, formalNonGhostIndex);
       wr.Write("(({0}){1}{2}).{3}", DtCtorName(ctor, typeArgs, wr), source, ctor.EnclosingDatatype is CoDatatypeDecl ? ".Get()" : "", dtorName);
     }
 
@@ -2415,12 +2411,22 @@ namespace Microsoft.Dafny{
     protected override TargetWriter CreateIIFE_ExprBody(string source, Type sourceType, Bpl.IToken sourceTok,
       Type resultType, Bpl.IToken resultTok,
       string bvName, TargetWriter wr){
-      throw new NotImplementedException();
+      wr.Write("DafnyClasses.Helpers.Let(");
+      wr.Write("{0}, {1} -> ", source, bvName);
+      var w = wr.Fork();
+      wr.Write(")");
+      return w;
     }
 
     protected override TargetWriter CreateIIFE_ExprBody(Expression source, bool inLetExprBody, Type sourceType, Bpl.IToken sourceTok,
       Type resultType, Bpl.IToken resultTok, string bvName, TargetWriter wr) {
-      throw new NotImplementedException();
+      wr.Write("DafnyClasses.Helpers.Let(");
+      TrExpr(source, wr, inLetExprBody);
+      wr.Write(", {0} -> ", bvName);
+      var w = wr.Fork();
+      wr.Write(")");
+      int y = ((System.Func<int,int>)((u) => u + 5))(6);
+      return w;
     }
 
     protected override void EmitIsZero(string varName, TargetWriter wr)
