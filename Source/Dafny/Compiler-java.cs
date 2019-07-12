@@ -1603,7 +1603,7 @@ namespace Microsoft.Dafny{
         }
         proc.WaitForExit();
         if (proc.ExitCode != 0) {
-          throw new Exception("Error while compiling Java file " + file + ". Process exited with exit code " + proc.ExitCode);
+          throw new Exception($"Error while compiling Java file {file}. Process exited with exit code {proc.ExitCode}");
         }
       }
       return true;
@@ -1626,7 +1626,7 @@ namespace Microsoft.Dafny{
       }
       proc.WaitForExit();
       if (proc.ExitCode != 0) {
-        throw new Exception("Error while running Java file " + targetFilename + ". Process exited with exit code " + proc.ExitCode);
+        throw new Exception($"Error while running Java file {targetFilename}. Process exited with exit code {proc.ExitCode}");
       }
       return true;
     }
@@ -1684,12 +1684,6 @@ namespace Microsoft.Dafny{
       Contract.Requires(t != null);
       return t.IsBoolType || t.IsCharType || AsNativeType(t) != null || t.IsRefType;
     }
-    
-//    protected void DeclareLocalOutVar(string name, Type type, Bpl.IToken tok, string rhs, TargetWriter wr)
-//    {
-//      wr.Write("{0} {1};\n", TypeName(type, wr, tok), name);
-//      EmitAssignment(name, type, rhs, null, wr);
-//    }
 
     protected override void EmitActualTypeArgs(List<Type> typeArgs, Bpl.IToken tok, TextWriter wr)
     {
@@ -2324,7 +2318,7 @@ protected override BlockTargetWriter CreateLambda(List<Type> inTypes, Bpl.IToken
       } else if (xType is CharType) {
         return "'d'";
       } else if (xType is IntType || xType is BigOrdinalType) {
-        return "new BigInteger(\"0\")";
+        return "BigInteger.ZERO";
       } else if (xType is RealType) {
         return "BigRational.ZERO";
       } else if (xType is BitvectorType) {
@@ -2722,7 +2716,7 @@ protected override BlockTargetWriter CreateLambda(List<Type> inTypes, Bpl.IToken
         var wEnum = w.NewNamedBlock("public static ArrayList<{0}> IntegerRange(BigInteger lo, BigInteger hi)", nativeType);
         wEnum.WriteLine("ArrayList<{0}> arr = new ArrayList<>();", nativeType);
         nativeType = nativeType == "Integer" ? "int" : nativeType.ToLower();
-        wEnum.WriteLine("for (BigInteger j = lo; j.compareTo(hi) < 0; j.add(new BigInteger(\"1\"))) {{ arr.add(j.{0}Value()); }}", nativeType);
+        wEnum.WriteLine("for (BigInteger j = lo; j.compareTo(hi) < 0; j.add(BigInteger.ONE)) {{ arr.add(j.{0}Value()); }}", nativeType);
         wEnum.WriteLine("return arr;");
       }
       if (nt.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
@@ -2821,7 +2815,7 @@ protected override BlockTargetWriter CreateLambda(List<Type> inTypes, Bpl.IToken
     }
     
     protected override BlockTargetWriter CreateForLoop(string indexVar, string bound, TargetWriter wr) {
-      return wr.NewNamedBlock($"for (BigInteger {indexVar} = new BigInteger(\"0\"); {indexVar}.compareTo(BigInteger.valueOf({bound})) < 0; {indexVar} = {indexVar}.add(new BigInteger(\"1\")))");
+      return wr.NewNamedBlock($"for (BigInteger {indexVar} = BigInteger.ZERO; {indexVar}.compareTo(BigInteger.valueOf({bound})) < 0; {indexVar} = {indexVar}.add(BigInteger.ONE))");
     }
 
     protected override string GetHelperModuleName() => "dafny.Helpers";
