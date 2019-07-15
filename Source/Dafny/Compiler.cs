@@ -2829,7 +2829,7 @@ namespace Microsoft.Dafny{
                         0); // if we have got this far, it must be an enumerable bound
         var bv = lhss[i];
         if (needIterLimit){
-          DeclareLocalVar(string.Format("{0}_{1}", iterLimit, i), null, null, false, iterLimit, wr);
+          DeclareLocalVar(string.Format("{0}_{1}", iterLimit, i), SupportsAmbiguousTypeDecl ? null : Type.Int, null, false, iterLimit, wr);
         }
 
         var tmpVar = idGenerator.FreshId("_assign_such_that_");
@@ -2850,8 +2850,11 @@ namespace Microsoft.Dafny{
       var wBody = EmitIf(out guardWriter, false, wr);
       TrExpr(constraint, guardWriter, inLetExprBody);
       EmitBreak(doneLabel, wBody);
-
-      EmitAbsurd(string.Format("assign-such-that search produced no value (line {0})", debuginfoLine), wrOuter);
+      
+      // Java compiler throws unreachable error when absurd statement is written after unbounded for-loop, so we don't write it then.
+      if (TargetLanguage != "Java" || !needIterLimit) {
+        EmitAbsurd(string.Format("assign-such-that search produced no value (line {0})", debuginfoLine), wrOuter);
+      }
     }
 
     string CreateLvalue(Expression lhs, TargetWriter wr){
@@ -3449,7 +3452,7 @@ namespace Microsoft.Dafny{
           // allow out parameters
           var name = string.Format("_pat_let_tv{0}", GetUniqueAstNumber(e));
           wr.Write(name);
-          DeclareLocalVar(name, null, null, false, IdName(e.Var), copyInstrWriters.Peek());
+          DeclareLocalVar(name, SupportsAmbiguousTypeDecl ? null : e.Type, null, false, IdName(e.Var), copyInstrWriters.Peek());
         }
         else{
           wr.Write(IdName(e.Var));
@@ -3865,7 +3868,7 @@ namespace Microsoft.Dafny{
         var rantypeName = TypeName(e.Type.AsMapType.Range, wr, e.tok);
         var collection_name = idGenerator.FreshId("_coll");
         wr = CreateIIFE0(e.Type.AsMapType, e.tok, wr);
-        using (var wrVarInit = DeclareLocalVar(collection_name, null, null, wr)){
+        using (var wrVarInit = DeclareLocalVar(collection_name, SupportsAmbiguousTypeDecl ? null : e.Type.AsMapType, null, wr)){
           EmitCollectionBuilder_New(e.Type.AsMapType, e.tok, wrVarInit);
         }
 

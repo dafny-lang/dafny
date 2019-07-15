@@ -2,6 +2,7 @@ package dafny;
 
 import java.math.BigInteger;
 import java.util.*;
+import java.util.function.*;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
@@ -37,6 +38,14 @@ public class DafnySequence<T> implements Iterable {
     public DafnySequence(DafnySequence<T> other) {
         assert other != null : "Precondition Violation";
         seq = new ArrayList<>(other.seq);
+    }
+
+    public static <T> DafnySequence<T> Create(BigInteger length, Function<BigInteger, T> init) {
+        ArrayList<T> values = new ArrayList<>();
+        for(BigInteger i = BigInteger.ZERO; i.compareTo(length) < 0; i = i.add(BigInteger.ONE)) {
+            values.add(init.apply(i));
+        }
+        return new DafnySequence<>(values);
     }
 
     // Determines if this DafnySequence is a prefix of other

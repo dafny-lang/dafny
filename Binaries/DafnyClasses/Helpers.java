@@ -5,8 +5,12 @@ import java.lang.reflect.Array;
 import java.math.BigInteger;
 import java.math.BigDecimal;
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.function.*;
 import java.util.ArrayList;
+import java.lang.Iterable;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class Helpers {
 
@@ -55,11 +59,22 @@ public class Helpers {
         return null;
     }
 
-    public static ArrayList<BigInteger> IntegerRange(BigInteger lo, BigInteger hi) {
+    public static Iterable<BigInteger> IntegerRange(BigInteger lo, BigInteger hi) {
         ArrayList<BigInteger> arr = new ArrayList<>();
-        while (lo.compareTo(hi) < 0) {
-            arr.add(lo);
-            lo = lo.add(new BigInteger("1"));
+        if(lo == null) {
+            Stream<BigInteger> infiniteSteam = Stream.iterate(hi, i -> i.subtract(BigInteger.ONE));
+            return (Iterable<BigInteger>) infiniteSteam::iterator;
+        }
+        else if(hi == null) {
+            Stream<BigInteger> infiniteSteam = Stream.iterate(lo, i -> i.add(BigInteger.ONE));
+            return (Iterable<BigInteger>) infiniteSteam::iterator;
+        }
+        else {
+            while (lo.compareTo(hi) < 0) {
+                arr.add(lo);
+                lo = lo.add(new BigInteger("1"));
+            }
+>>>>>>> Allows Comprehensions.dfy to compile fully
         }
         return arr;
     }

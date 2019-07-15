@@ -816,7 +816,11 @@ namespace Microsoft.Dafny{
       }
       else if (rhs != null){
         wr.WriteLine(" = {0};", rhs);
-      } else {
+      }
+      else if (type.IsIntegerType) {
+        wr.WriteLine(" = BigInteger.ZERO;");
+      }
+      else {
         wr.WriteLine(";");
       }
     }
@@ -2635,12 +2639,12 @@ protected override BlockTargetWriter CreateLambda(List<Type> inTypes, Bpl.IToken
     protected override void EmitCollectionBuilder_New(CollectionType ct, Bpl.IToken tok, TargetWriter wr)
     {
       if (ct is SetType) {
-        wr.Write("new ArrayList<{0}>()", TypeName(ct.Arg, wr, tok));
+        wr.Write("new ArrayList<>()");
       } else if (ct is MapType) {
         var mt = (MapType)ct;
         var domtypeName = TypeName(mt.Domain, wr, tok);
         var rantypeName = TypeName(mt.Range, wr, tok);
-        wr.Write("new ArrayList<Dafny.Pair<{0},{1}>>()", domtypeName, rantypeName);
+        wr.Write($"new {DafnyMapClass}<>()");
       } else {
         Contract.Assume(false);  // unepxected collection type
       }
@@ -2690,14 +2694,14 @@ protected override BlockTargetWriter CreateLambda(List<Type> inTypes, Bpl.IToken
     }
     
     protected override TargetWriter CreateLabeledCode(string label, TargetWriter wr) {
-      return wr.NewNamedBlock("{0}:", label);
+      return wr.NewNamedBlock("goto_{0}:", label);
     }
     
     protected override void EmitBreak(string label, TargetWriter wr) {
       if (label == null) {
         wr.WriteLine("break;");
       } else {
-        wr.WriteLine("break {0};", label);
+        wr.WriteLine("break goto_{0};", label);
       }
     }
     
@@ -2861,6 +2865,52 @@ protected override BlockTargetWriter CreateLambda(List<Type> inTypes, Bpl.IToken
       wr.Write(").intValue()");
       return w;
     }
+    
+    protected override BlockTargetWriter CreateDoublingForLoop(string indexVar, int start, TargetWriter wr) {
+      return wr.NewNamedBlock($"for (BigInteger {indexVar} = BigInteger.valueOf({start}); ; {indexVar} = {indexVar}.multiply(new BigInteger(\"2\")))");
+    }
+    
+    protected override void EmitIsZero(string varName, TargetWriter wr) {
+      wr.Write($"{varName}.equals(BigInteger.ZERO)");
+    }
+    
+    protected override void EmitDecrementVar(string varName, TargetWriter wr) {
+      wr.WriteLine($"{varName} = {varName}.subtract(BigInteger.ONE);");
+    }
+    
+    protected override void EmitSingleValueGenerator(Expression e, bool inLetExprBody, string type, TargetWriter wr) {
+      wr.Write("Arrays.asList("); 
+      TrParenExpr(e, wr, inLetExprBody);
+      wr.Write(")");
+    }
+    
+    protected override BlockTargetWriter CreateIIFE1(int source, Type resultType, Bpl.IToken resultTok, string bvName, TargetWriter wr) {
+      wr.Write("((Function<BigInteger, {0}>)(({1}) ->", TypeName(resultType, wr, resultTok), bvName);
+      var w = wr.NewBigExprBlock("", $")).apply(BigInteger.valueOf({source}))");
+      return w;
+    }
+    
+    protected override TargetWriter EmitMapBuilder_Add(MapType mt, Bpl.IToken tok, string collName, Expression term, bool inLetExprBody, TargetWriter wr){
+      wr.Write("{0}.put(", collName);
+      var termLeftWriter = wr.Fork();
+      wr.Write(",");
+      TrExpr(term, wr, inLetExprBody);
+      wr.WriteLine(");");
+      return termLeftWriter;
+    }
+    
+    protected override void EmitSeqConstructionExpr(SeqConstructionExpr expr, bool inLetExprBody, TargetWriter wr) {
+      wr.Write("{0}.Create(", DafnySeqClass);
+      TrExpr(expr.N, wr, inLetExprBody);
+      wr.Write(", ");
+      TrExpr(expr.Initializer, wr, inLetExprBody);
+      wr.Write(")");
+    }
+    
+    protected override void EmitConversionExpr(ConversionExpr e, bool inLetExprBody, TargetWriter wr)
+    {
+      throw new NotImplementedException();
+    }
 
     // ABSTRACT METHOD DECLARATIONS FOR THE SAKE OF BUILDING PROGRAM
     protected override BlockTargetWriter CreateStaticMain(IClassWriter wr)
@@ -2894,38 +2944,7 @@ protected override BlockTargetWriter CreateLambda(List<Type> inTypes, Bpl.IToken
       return w;
     }
 
-    protected override void EmitIsZero(string varName, TargetWriter wr)
-    {
-      throw new NotImplementedException();
-    }
-
-    protected override void EmitConversionExpr(ConversionExpr e, bool inLetExprBody, TargetWriter wr)
-    {
-      throw new NotImplementedException();
-    }
-
-    protected override TargetWriter EmitMapBuilder_Add(MapType mt, Bpl.IToken tok, string collName, Expression term,
-      bool inLetExprBody,
-      TargetWriter wr){
-      throw new NotImplementedException();
-    }
-
-    protected override void EmitSingleValueGenerator(Expression e, bool inLetExprBody, string type, TargetWriter wr)
-    {
-      throw new NotImplementedException();
-    }
-    
-    protected override BlockTargetWriter CreateDoublingForLoop(string indexVar, int start, TargetWriter wr)
-    {
-      throw new NotImplementedException();
-    }
-
     protected override void EmitIncrementVar(string varName, TargetWriter wr)
-    {
-      throw new NotImplementedException();
-    }
-
-    protected override void EmitDecrementVar(string varName, TargetWriter wr)
     {
       throw new NotImplementedException();
     }
@@ -2935,17 +2954,8 @@ protected override BlockTargetWriter CreateLambda(List<Type> inTypes, Bpl.IToken
       return string.Format("dafny.Helpers.Quantifier", bvType);
     }
 
-    protected override BlockTargetWriter CreateIIFE1(int source, Type resultType, Bpl.IToken resultTok, string bvName, TargetWriter wr)
-    {
-      throw new NotImplementedException();
-    }
-        
     protected override BlockTargetWriter CreateIterator(IteratorDecl iter, TargetWriter wr)
     {
-      throw new NotImplementedException();
-    }
-
-    protected override void EmitSeqConstructionExpr(SeqConstructionExpr expr, bool inLetExprBody, TargetWriter wr) {
       throw new NotImplementedException();
     }
   }
