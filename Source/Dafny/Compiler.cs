@@ -271,7 +271,7 @@ namespace Microsoft.Dafny{
     /// </summary>
     protected abstract TargetWriter DeclareLocalVar(string name, Type/*?*/ type, Bpl.IToken/*?*/ tok, TargetWriter wr);
     protected virtual void DeclareOutCollector(string collectorVarName, TargetWriter wr) { }  // called only for return-style calls
-    protected virtual void DeclareSpecificOutCollector(string collectorVarName, TargetWriter wr, int outCount, Method m) { } // for languages that don't allow "let" or "var" expressions
+    protected virtual void DeclareSpecificOutCollector(string collectorVarName, TargetWriter wr, int outCount, List<Type> t, Method m) {DeclareOutCollector(collectorVarName, wr); } // for languages that don't allow "let" or "var" expressions
     protected virtual bool UseReturnStyleOuts(Method m, int nonGhostOutCount) => false;
     protected virtual bool SupportsMultipleReturns { get => false; }
     protected virtual bool NeedsCastFromTypeParameter { get => false; }
@@ -1633,7 +1633,7 @@ namespace Microsoft.Dafny{
       }
     }
 
-    protected string TypeNameArrayBrackets(int dims){
+    protected virtual string TypeNameArrayBrackets(int dims){
       Contract.Requires(0 <= dims);
       var name = "[";
       for (int i = 1; i < dims; i++){
@@ -3235,7 +3235,7 @@ namespace Microsoft.Dafny{
         bool returnStyleOuts = UseReturnStyleOuts(s.Method, outTmps.Count);
         var returnStyleOutCollector = outTmps.Count > 0 && returnStyleOuts && !SupportsMultipleReturns ? idGenerator.FreshId("_outcollector") : null;
         if (returnStyleOutCollector != null && !SupportsAmbiguousTypeDecl) {
-          DeclareSpecificOutCollector(returnStyleOutCollector, wr, outTmps.Count, s.Method);
+          DeclareSpecificOutCollector(returnStyleOutCollector, wr, outTmps.Count, outTypes, s.Method);
         } else if (returnStyleOutCollector != null) {
           DeclareOutCollector(returnStyleOutCollector, wr);
         }
