@@ -30,7 +30,7 @@ public class Helpers {
     public static <T, U> U Let(T t, Function<T, U> f) {
         return f.apply(t);
     }
-
+    
     public static Object getDefault(String s) {
         if (s == null || s.startsWith("interface "))
             return null;
@@ -59,25 +59,31 @@ public class Helpers {
         return null;
     }
 
+    /* Returns Iterable in range [lo, hi-1] if lo and hi are both not null.
+    If lo == null, returns Iterable that infinitely ranges down from hi-1.
+    If hi == null, returns Iterable that infinitely ranges up from lo.
+     */
     public static Iterable<BigInteger> IntegerRange(BigInteger lo, BigInteger hi) {
-        ArrayList<BigInteger> arr = new ArrayList<>();
+        assert lo != null || hi != null;
         if(lo == null) {
             hi = hi.subtract(BigInteger.ONE);
             Stream<BigInteger> infiniteSteam = Stream.iterate(hi, i -> i.subtract(BigInteger.ONE));
             return (Iterable<BigInteger>) infiniteSteam::iterator;
-        }
-        else if(hi == null) {
+        } else if(hi == null) {
             Stream<BigInteger> infiniteSteam = Stream.iterate(lo, i -> i.add(BigInteger.ONE));
             return (Iterable<BigInteger>) infiniteSteam::iterator;
-        }
-        else {
+        } else {
+            ArrayList<BigInteger> arr = new ArrayList<>();
             while (lo.compareTo(hi) < 0) {
                 arr.add(lo);
-                lo = lo.add(new BigInteger("1"));
+                lo = lo.add(BigInteger.ONE);
             }
+<<<<<<< HEAD
+>>>>>>> Allows Comprehensions.dfy to compile fully
+=======
+            return arr;
 >>>>>>> Allows Comprehensions.dfy to compile fully
         }
-        return arr;
     }
 
     public static Character createCharacter(DafnyByte t) {

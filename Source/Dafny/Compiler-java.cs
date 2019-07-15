@@ -2755,14 +2755,14 @@ protected override BlockTargetWriter CreateLambda(List<Type> inTypes, Bpl.IToken
     }
     
     protected override TargetWriter CreateLabeledCode(string label, TargetWriter wr) {
-      return wr.NewNamedBlock("goto_{0}:", label);
+      return wr.NewNamedBlock($"goto_{label}:");
     }
     
     protected override void EmitBreak(string label, TargetWriter wr) {
       if (label == null) {
         wr.WriteLine("break;");
       } else {
-        wr.WriteLine("break goto_{0};", label);
+        wr.WriteLine($"break goto_{label};");
       }
     }
     
@@ -2941,13 +2941,7 @@ protected override BlockTargetWriter CreateLambda(List<Type> inTypes, Bpl.IToken
     protected override void EmitIncrementVar(string varName, TargetWriter wr) {
       wr.WriteLine($"{varName} = {varName}.add(BigInteger.ONE);");
     }
-    
-    protected override void EmitSingleValueGenerator(Expression e, bool inLetExprBody, string type, TargetWriter wr) {
-      wr.Write("Arrays.asList("); 
-      TrParenExpr(e, wr, inLetExprBody);
-      wr.Write(")");
-    }
-    
+
     protected override BlockTargetWriter CreateIIFE1(int source, Type resultType, Bpl.IToken resultTok, string bvName, TargetWriter wr) {
       wr.Write("((Function<BigInteger, {0}>)(({1}) ->", TypeName(resultType, wr, resultTok), bvName);
       var w = wr.NewBigExprBlock("", $")).apply(BigInteger.valueOf({source}))");
