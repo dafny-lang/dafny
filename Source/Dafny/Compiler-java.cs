@@ -1917,8 +1917,7 @@ protected override BlockTargetWriter CreateLambda(List<Type> inTypes, Bpl.IToken
             TrParenExpr("", expr, wr, inLetExprBody);
             wr.Write(".cardinality()");
           }
-          else if (expr.Type.AsCollectionType is SetType || 
-                   expr.Type.AsCollectionType is MapType){
+          else if (expr.Type.AsCollectionType is SetType || expr.Type.AsCollectionType is MapType){
             TrParenExpr("BigInteger.valueOf(", expr, wr, inLetExprBody);
             wr.Write(".size())");
           }
@@ -2878,6 +2877,10 @@ protected override BlockTargetWriter CreateLambda(List<Type> inTypes, Bpl.IToken
       wr.WriteLine($"{varName} = {varName}.subtract(BigInteger.ONE);");
     }
     
+    protected override void EmitIncrementVar(string varName, TargetWriter wr) {
+      wr.WriteLine($"{varName} = {varName}.add(BigInteger.ONE);");
+    }
+    
     protected override void EmitSingleValueGenerator(Expression e, bool inLetExprBody, string type, TargetWriter wr) {
       wr.Write("Arrays.asList("); 
       TrParenExpr(e, wr, inLetExprBody);
@@ -2907,20 +2910,106 @@ protected override BlockTargetWriter CreateLambda(List<Type> inTypes, Bpl.IToken
       wr.Write(")");
     }
     
-    protected override void EmitConversionExpr(ConversionExpr e, bool inLetExprBody, TargetWriter wr)
-    {
-      throw new NotImplementedException();
-    }
+    // TODO: Copied from C# and JS, debug to make sure everything works for Java types.
+    protected override void EmitConversionExpr(ConversionExpr e, bool inLetExprBody, TargetWriter wr) {
+      if (e.E.Type.IsNumericBased(Type.NumericPersuation.Int) || e.E.Type.IsBitVectorType || e.E.Type.IsCharType) {
+        if (e.ToType.IsNumericBased(Type.NumericPersuation.Real)) {
+          // (int or bv) -> real
+          Contract.Assert(AsNativeType(e.ToType) == null);
+          wr.Write("new DafnyClasses.BigRational(");
+          if (AsNativeType(e.E.Type) != null) {
+            wr.Write("new BigInteger");
+          }
+          TrParenExpr(e.E, wr, inLetExprBody);
+          wr.Write(", BigInteger.ONE)");
+        } else if (e.ToType.IsCharType) {
+          wr.Write("(Character)(");
+          TrExpr(e.E, wr, inLetExprBody);
+          wr.Write(")");
+        } else {
+          // (int or bv or char) -> (int or bv or ORDINAL)
+          var fromNative = AsNativeType(e.E.Type);
+          var toNative = AsNativeType(e.ToType);
+          if (fromNative == null && toNative == null) {
+            if (e.E.Type.IsCharType) {
+              // char -> big-integer (int or bv or ORDINAL)
+              wr.Write("new BigInteger");
+              TrParenExpr(e.E, wr, inLetExprBody);
+            } else {
+              // big-integer (int or bv) -> big-integer (int or bv or ORDINAL), so identity will do
+              TrExpr(e.E, wr, inLetExprBody);
+            }
+          } else if (fromNative != null && toNative == null) {
+            // native (int or bv) -> big-integer (int or bv)
+            wr.Write("new BigInteger");
+            TrParenExpr(e.E, wr, inLetExprBody);
+          } else {
+            string toNativeName, toNativeSuffix;
+            bool toNativeNeedsCast;
+            GetNativeInfo(toNative.Sel, out toNativeName, out toNativeSuffix, out toNativeNeedsCast);
+            // any (int or bv) -> native (int or bv)
+            // A cast would do, but we also consider some optimizations
+            wr.Write("({0})", toNativeName);
 
-    // ABSTRACT METHOD DECLARATIONS FOR THE SAKE OF BUILDING PROGRAM
-    protected override BlockTargetWriter CreateStaticMain(IClassWriter wr)
-    {
-      throw new NotImplementedException();
+            var literal = PartiallyEvaluate(e.E);
+            UnaryOpExpr u = e.E.Resolved as UnaryOpExpr;
+            MemberSelectExpr m = e.E.Resolved as MemberSelectExpr;
+            if (literal != null) {
+              // Optimize constant to avoid intermediate BigInteger
+              wr.Write("(" + literal + toNativeSuffix + ")");
+            } else if (u != null && u.Op == UnaryOpExpr.Opcode.Cardinality) {
+              if (u.Type.AsCollectionType is MultiSetType){
+                TrParenExpr("", u.E, wr, inLetExprBody);
+                wr.Write(".cardinality()");
+              }
+              else if (u.Type.AsCollectionType is SetType || u.Type.AsCollectionType is MapType){
+                TrParenExpr("BigInteger.valueOf(", u.E, wr, inLetExprBody);
+                wr.Write(".size())");
+              }
+              else if (u.Type.IsArrayType) {
+                TrParenExpr("BigInteger.valueOf(", u.E, wr, inLetExprBody);
+                wr.Write(".length)");
+              }
+              else{
+                TrParenExpr("BigInteger.valueOf(", u.E, wr, inLetExprBody);
+                wr.Write(".length())");
+              }
+            } else if (m != null && m.MemberName == "Length" && m.Obj.Type.IsArrayType) {
+              // Optimize .Length to avoid intermediate BigInteger
+              TrParenExpr(m.Obj, wr, inLetExprBody);
+              wr.Write(".length");
+            } else {
+              // no optimization applies; use the standard translation
+              TrParenExpr(e.E, wr, inLetExprBody);
+            }
+
+          }
+        }
+      } else if (e.E.Type.IsNumericBased(Type.NumericPersuation.Real)) {
+        Contract.Assert(AsNativeType(e.E.Type) == null);
+        if (e.ToType.IsNumericBased(Type.NumericPersuation.Real)) {
+          // real -> real
+          Contract.Assert(AsNativeType(e.ToType) == null);
+          TrExpr(e.E, wr, inLetExprBody);
+        } else {
+          // real -> (int or bv)
+          if (AsNativeType(e.ToType) != null) {
+            wr.Write("({0})", GetNativeTypeName(AsNativeType(e.ToType)));
+          }
+          TrParenExpr(e.E, wr, inLetExprBody);
+          wr.Write(".ToBigInteger()");
+        }
+      } else {
+        Contract.Assert(e.E.Type.IsBigOrdinalType);
+        Contract.Assert(e.ToType.IsNumericBased(Type.NumericPersuation.Int));
+        // identity will do
+        TrExpr(e.E, wr, inLetExprBody);
+      }
     }
     
-    protected override void EmitYield(TargetWriter wr)
-    {
-      throw new NotImplementedException();
+    protected override BlockTargetWriter CreateStaticMain(IClassWriter cw) {
+      var wr = (cw as JavaCompiler.ClassWriter).StaticMemberWriter;
+      return wr.NewBlock("public static void Main(string[] args)");
     }
 
     protected override TargetWriter CreateIIFE_ExprBody(string source, Type sourceType, Bpl.IToken sourceTok,
@@ -2944,14 +3033,16 @@ protected override BlockTargetWriter CreateLambda(List<Type> inTypes, Bpl.IToken
       return w;
     }
 
-    protected override void EmitIncrementVar(string varName, TargetWriter wr)
-    {
-      throw new NotImplementedException();
-    }
-
     protected override string GetQuantifierName(string bvType)
     {
       return string.Format("dafny.Helpers.Quantifier", bvType);
+    }
+    
+    // ABSTRACT METHOD DECLARATIONS FOR THE SAKE OF BUILDING PROGRAM
+    
+    protected override void EmitYield(TargetWriter wr)
+    {
+      throw new NotImplementedException();
     }
 
     protected override BlockTargetWriter CreateIterator(IteratorDecl iter, TargetWriter wr)

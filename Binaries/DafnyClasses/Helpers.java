@@ -62,6 +62,7 @@ public class Helpers {
     public static Iterable<BigInteger> IntegerRange(BigInteger lo, BigInteger hi) {
         ArrayList<BigInteger> arr = new ArrayList<>();
         if(lo == null) {
+            hi = hi.subtract(BigInteger.ONE);
             Stream<BigInteger> infiniteSteam = Stream.iterate(hi, i -> i.subtract(BigInteger.ONE));
             return (Iterable<BigInteger>) infiniteSteam::iterator;
         }
