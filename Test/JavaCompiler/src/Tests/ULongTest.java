@@ -56,9 +56,9 @@ public class ULongTest {
         assertEquals(0, zero.divide(max).value());
         assertEquals(1, max.divide(max).value());
         assertEquals(DafnyULong.MAXBI.divide(BigInteger.TEN).longValue(), max.divide(tenU).value());
-        assertEquals(0, tenU.modulus(two).value());
-        assertEquals(DafnyULong.MAXBI.mod(BigInteger.TEN).longValue(), max.modulus(tenI).value());
-        assertEquals(tenU.value(), tenU.modulus(max).value());
+        assertEquals(0, tenU.mod(two).value());
+        assertEquals(DafnyULong.MAXBI.mod(BigInteger.TEN).longValue(), max.mod(tenI).value());
+        assertEquals(tenU.value(), tenU.mod(max).value());
         assertEquals(DafnyULong.MAXBI.divide(BigInteger.TEN).longValue(), max.divide(tenI).value());
     }
 
@@ -73,6 +73,6 @@ public class ULongTest {
         zero.subtract(two);
         max.multiply(tenU);
         max.divide(zero);
-        max.modulus(zero);
+        max.mod(zero);
     }
 }

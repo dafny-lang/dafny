@@ -23,6 +23,10 @@ public class DafnyUInt {
         inner = (int) l;
     }
 
+    public DafnyUInt(DafnyUInt other){
+        inner = other.inner;
+    }
+
     public static int compare(DafnyUInt x, DafnyUInt y){
         return Integer.compareUnsigned(x.inner, y.inner);
     }
@@ -74,7 +78,7 @@ public class DafnyUInt {
     }
 
     //Invariant that other.inner is positive, so only nonzero check needed
-    public DafnyUInt modulus(DafnyUInt other){
+    public DafnyUInt mod(DafnyUInt other){
         assert other.inner != 0 : "Precondition Failure";
         return new DafnyUInt(Integer.remainderUnsigned(inner, other.inner));
     }
@@ -95,7 +99,30 @@ public class DafnyUInt {
 
     @Override
     public String toString() {
-        return Integer.toString(inner);
+        return Integer.toUnsignedString(inner);
     }
 
+    public DafnyUInt xor(DafnyUInt other){
+        return new DafnyUInt(inner ^ other.inner);
+    }
+
+    public DafnyUInt or(DafnyUInt other){
+        return new DafnyUInt(inner | other.inner);
+    }
+
+    public DafnyUInt and(DafnyUInt other){
+        return new DafnyUInt(inner & other.inner);
+    }
+
+    public DafnyUInt not(){
+        return new DafnyUInt(~inner);
+    }
+
+    public DafnyUInt shiftLeft(int i){
+        return new DafnyUInt(inner << i);
+    }
+
+    public DafnyUInt shiftRight(int i){
+        return new DafnyUInt(inner >> i);
+    }
 }

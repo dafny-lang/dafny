@@ -116,7 +116,7 @@ public class DafnyEuclidean {
         assert b != 0 : "Precondition Failure";
         if (0 <= a) {
             // +a: a % b'
-            if (b == Integer.MIN_VALUE) return (int) new DafnyUInt(a).modulus(new DafnyUInt(b)).value();
+            if (b == Integer.MIN_VALUE) return (int) new DafnyUInt(a).mod(new DafnyUInt(b)).value();
             else if (b < 0) return a % -b;
             else return a % b;
         } else {
@@ -126,10 +126,10 @@ public class DafnyEuclidean {
             if (a == Integer.MIN_VALUE || b == Integer.MIN_VALUE) {
                 if (a == b) return 0;
                 else if (b == Integer.MIN_VALUE) {
-                    return new DafnyUInt(b).subtract(new DafnyUInt(-a).modulus(new DafnyUInt(b))).value();
+                    return new DafnyUInt(b).subtract(new DafnyUInt(-a).mod(new DafnyUInt(b))).value();
                 } else {
                     int bp = b < 0 ? -b : b;
-                    return new DafnyUInt(bp).subtract(new DafnyUInt(a).modulus(new DafnyUInt(bp))).value();
+                    return new DafnyUInt(bp).subtract(new DafnyUInt(a).mod(new DafnyUInt(bp))).value();
                 }
             } else {
                 int bp = b < 0 ? -b : b;
@@ -143,7 +143,7 @@ public class DafnyEuclidean {
         assert b != 0 : "Precondition Failure";
         if (0 <= a) {
             // +a: a % b'
-            if (b == Long.MIN_VALUE) return (int) new DafnyULong(a).modulus(new DafnyULong(b)).value();
+            if (b == Long.MIN_VALUE) return (int) new DafnyULong(a).mod(new DafnyULong(b)).value();
             else if (b < 0) return a % -b;
             else return a % b;
         } else {
@@ -153,10 +153,10 @@ public class DafnyEuclidean {
             if (a == Long.MIN_VALUE || b == Long.MIN_VALUE) {
                 if (a == b) return 0;
                 else if (b == Long.MIN_VALUE) {
-                    return new DafnyULong(b).subtract(new DafnyULong(-a).modulus(new DafnyULong(b))).value();
+                    return new DafnyULong(b).subtract(new DafnyULong(-a).mod(new DafnyULong(b))).value();
                 } else {
                     long bp = b < 0 ? -b : b;
-                    return new DafnyULong(bp).subtract(new DafnyULong(a).modulus(new DafnyULong(bp))).value();
+                    return new DafnyULong(bp).subtract(new DafnyULong(a).mod(new DafnyULong(bp))).value();
                 }
             } else {
                 long bp = b < 0 ? -b : b;

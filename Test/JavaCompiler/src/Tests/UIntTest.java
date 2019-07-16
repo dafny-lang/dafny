@@ -61,8 +61,8 @@ public class UIntTest {
         assertEquals(0, zero.divide(max).value());
         assertEquals(0xffffffffl / 10, max.divide(tenI).longValue());
         assertEquals((int)(0xffffffffl / 10), max.divide(tenI).value());
-        assertEquals(0, tenU.modulus(two).value());
-        assertEquals((0xffffffffl)%10, max.modulus(tenI).value());
+        assertEquals(0, tenU.mod(two).value());
+        assertEquals((0xffffffffl)%10, max.mod(tenI).value());
     }
 
     @Rule
@@ -76,6 +76,6 @@ public class UIntTest {
         zero.subtract(two);
         max.multiply(tenU);
         max.divide(zero);
-        max.modulus(zero);
+        max.mod(zero);
     }
 }
