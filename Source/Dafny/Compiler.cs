@@ -3445,6 +3445,12 @@ namespace Microsoft.Dafny{
       TrExpr(expr, wr, inLetExprBody);
       wr.Write(")");
     }
+    
+    protected virtual void TrBvExpr(Expression expr, TargetWriter wr, bool inLetExprBody){
+      Contract.Requires(expr != null);
+      Contract.Requires(wr != null);
+      TrParenExpr(expr, wr, inLetExprBody);
+    }
 
     /// <summary>
     /// Before calling TrExprList(exprs), the caller must have spilled the let variables declared in expressions in "exprs".
@@ -3697,9 +3703,14 @@ namespace Microsoft.Dafny{
         }
         else if (callString != null){
           wr.Write(preOpString);
-          TrParenExpr(e0, wr, inLetExprBody);
+          TrBvExpr(e0, wr, inLetExprBody);
           wr.Write(".{0}(", callString);
-          TrExpr(e1, wr, inLetExprBody);
+          if (convertE1_to_int){
+            EmitExprAsInt(e1, inLetExprBody, wr);
+          }
+          else{
+            TrBvExpr(e1, wr, inLetExprBody);
+          }
           wr.Write(")");
           wr.Write(postOpString);
         }

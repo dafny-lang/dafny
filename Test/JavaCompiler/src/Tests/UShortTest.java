@@ -59,8 +59,8 @@ public class UShortTest {
         assertEquals(0, max.multiply(zero).intValue());
         assertEquals(5, tenI.divide(two).intValue());
         assertEquals(0, zero.divide(max).intValue());
-        assertEquals(0, tenU.modulus(two).intValue());
-        assertEquals(0xffff%10, max.modulus(tenI).intValue());
+        assertEquals(0, tenU.mod(two).intValue());
+        assertEquals(0xffff%10, max.mod(tenI).intValue());
     }
 
     @Rule
@@ -74,6 +74,6 @@ public class UShortTest {
         zero.subtract(two);
         max.multiply(tenU);
         max.divide(zero);
-        max.modulus(zero);
+        max.mod(zero);
     }
 }
