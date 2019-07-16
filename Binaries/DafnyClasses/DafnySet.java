@@ -1,9 +1,6 @@
 package DafnyClasses;
 
-import java.util.Collection;
-import java.util.List;
-import java.util.Set;
-import java.util.HashSet;
+import java.util.*;
 
 // A class that is equivalent to the implementation of Set in Dafny
 public class DafnySet<T> {
@@ -118,6 +115,30 @@ public class DafnySet<T> {
         return innerSet.addAll(other.innerSet);
     }
 
+    public Collection<DafnySet<T>> allSubsets(){
+        // Start by putting all set elements into a list, but don't include null
+        List<T> elmts = new ArrayList();
+        elmts.addAll(innerSet);
+        int n = elmts.size();
+        DafnySet<T> s;
+        HashSet<DafnySet<T>> r = new HashSet<>();
+        for (int i = 0; i < (1<<n); i++)
+        {
+            s = new DafnySet<>();
+            int m = 1; // m is used to check set bit in binary representation.
+            // Print current subset
+            for (int j = 0; j < n; j++, m = m << 1)
+            {
+                if ((i & m) > 0)
+                {
+                    s.add(elmts.get(j));
+                }
+            }
+            r.add(s);
+        }
+        return r;
+    }
+
     @Override
     public boolean equals(Object obj) {
         if (this == obj) return true;
@@ -137,7 +158,7 @@ public class DafnySet<T> {
         return innerSet.toString();
     }
 
-    public DafnyMultiset<T> asDafnyMultiset(){
+    public DafnyMultiset<T> asDafnyMultiset() {
         return new DafnyMultiset<>(innerSet);
     }
 }

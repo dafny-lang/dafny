@@ -1,10 +1,9 @@
 package DafnyClasses;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Spliterator;
+import java.math.BigInteger;
+import java.util.*;
 import java.util.function.Consumer;
-import java.util.Iterator;
+import java.util.stream.Collectors;
 
 public class DafnySequence<T> implements Iterable {
     /*
@@ -16,6 +15,12 @@ public class DafnySequence<T> implements Iterable {
     protected ArrayList<T> seq;
 
     public DafnySequence() {
+    }
+
+    public static DafnySequence<Character> asString(String s){
+        return new DafnySequence<>(s.chars()
+                .mapToObj(e -> (char)e)
+                .collect(Collectors.toList()));
     }
 
     private DafnySequence(List<T> l, int i, T t){
@@ -57,6 +62,11 @@ public class DafnySequence<T> implements Iterable {
         return new DafnySequence<>(l);
     }
 
+    public T select(BigInteger b) {
+        assert b.compareTo(BigInteger.ZERO) >=0 && b.compareTo(BigInteger.valueOf(Integer.MAX_VALUE)) <=0 : "Precondition Violation";
+        return seq.get(b.intValue());
+    }
+
     public T select(int i) {
         assert i >= 0 : "Precondition Violation";
         return seq.get(i);
@@ -70,6 +80,13 @@ public class DafnySequence<T> implements Iterable {
         //todo: should we allow i=length, and return a new sequence with t appended to the sequence?
         assert 0 <= i && i < length(): "Precondition Violation";
         return new DafnySequence<>(seq, i, t);
+    }
+
+    public DafnySequence<T> update(BigInteger b, T t) {
+        //todo: should we allow i=length, and return a new sequence with t appended to the sequence?
+        assert b.compareTo(BigInteger.ZERO) >=0  &&
+                b.compareTo(new BigInteger(Integer.toString(length()))) < 0: "Precondition Violation";
+        return new DafnySequence<>(seq, b.intValue(), t);
     }
 
     public boolean contains(T t) {
@@ -148,5 +165,14 @@ public class DafnySequence<T> implements Iterable {
     @Override
     public String toString() {
         return seq.toString();
+    }
+
+    public String verbatimString(){
+        StringBuilder builder = new StringBuilder(seq.size());
+        for(Character ch: (ArrayList<Character>) seq)
+        {
+            builder.append(ch);
+        }
+        return builder.toString();
     }
 }
