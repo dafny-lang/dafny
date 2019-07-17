@@ -2409,12 +2409,12 @@ protected override BlockTargetWriter CreateLambda(List<Type> inTypes, Bpl.IToken
         var s = FullTypeName(udt);
         var typeargs = "";
         if (udt.TypeArgs.Count != 0) {
-          typeargs = "<" + TypeNames(udt.TypeArgs, wr, udt.tok) + ">";
+          typeargs = $"<{TypeNames(udt.TypeArgs, wr, udt.tok)}>";
         }
         if (cl is TupleTypeDecl) {
-          return "(" + s + typeargs + ")null";
+          return $"({s}{typeargs})null";
         }
-        return string.Format($"{s}.{typeargs}Default()", s);
+        return string.Format($"{s}.{typeargs}Default()");
       }
       else{
         Contract.Assert(false);
@@ -2889,7 +2889,7 @@ protected override BlockTargetWriter CreateLambda(List<Type> inTypes, Bpl.IToken
     
     protected override BlockTargetWriter CreateIIFE1(int source, Type resultType, Bpl.IToken resultTok, string bvName, TargetWriter wr) {
       wr.Write("((Function<BigInteger, {0}>)(({1}) ->", TypeName(resultType, wr, resultTok), bvName);
-      var w = wr.NewBigExprBlock("", $")).apply(BigInteger.valueOf({source}))");
+      var w = wr.NewBigExprBlock("", $")).apply(fBigInteger.valueOf({source}))");
       return w;
     }
     
