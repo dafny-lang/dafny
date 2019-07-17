@@ -257,6 +257,7 @@ namespace Microsoft.Dafny{
       }
       wr.Write("{0} {1}", targetReturnTypeReplacement ?? "void", IdName(m));
       wr.Write("(");
+      var nTypes = WriteRuntimeTypeDescriptorsFormals(m.TypeArgs, false, wr);
       WriteFormals("", m.Ins, wr);
       if (!createBody) {
         wr.WriteLine(");");
@@ -273,6 +274,21 @@ namespace Microsoft.Dafny{
         }
         return w;
       }
+    }
+    
+    int WriteRuntimeTypeDescriptorsFormals(List<TypeParameter> typeParams, bool useAllTypeArgs, TargetWriter wr, string prefix = "") {
+      Contract.Requires(typeParams != null);
+      Contract.Requires(wr != null);
+
+      int c = 0;
+      foreach (var tp in typeParams) {
+        if (useAllTypeArgs || tp.Characteristics.MustSupportZeroInitialization) {
+          wr.Write($"{prefix}String s{tp.Name}");
+          prefix = ", ";
+          c++;
+        }
+      }
+      return c;
     }
     
     protected BlockTargetWriter/*?*/ CreateFunction(string name, List<TypeParameter>/*?*/ typeArgs,
@@ -308,11 +324,18 @@ namespace Microsoft.Dafny{
     }
 
     private void SplitType(string s, out string t, out string n){
-      string pat = @"([^<]+)(<.>)";
+      string pat = @"([^<]+)(<.*>)";
       Regex r = new Regex(pat);
       Match m = r.Match(s);
-      n = m.Groups[1].Captures[0].Value;
-      t = m.Groups[2].Captures[0].Value;
+      if (m.Groups.Count < 2){
+        n = s;
+        
+        t = null;
+      }
+      else{
+        n = m.Groups[1].Captures[0].Value;
+        t = m.Groups[2].Captures[0].Value;
+      }
     }
     
     protected void DeclareField(string name, bool isStatic, bool isConst, Type type, Bpl.IToken tok, string rhs, TargetWriter wr) {
@@ -1029,26 +1052,24 @@ namespace Microsoft.Dafny{
       } else {
         wr.WriteLine("public {0}() {{ }}", dt);
       }
-      wr.WriteLine("static {0} theDefault;", dt);
+      wr.Write("static {0} theDefault = ", dt);
+      DatatypeCtor defaultCtor;
+      if (dt is IndDatatypeDecl) {
+        defaultCtor = ((IndDatatypeDecl)dt).DefaultCtor;
+      } else {
+        defaultCtor = ((CoDatatypeDecl) dt).Ctors[0];
+      }
+      wr.Write("new {0}(", DtCtorName(defaultCtor));
+      string sep = "";
+      foreach (Formal f in defaultCtor.Formals) {
+        if (!f.IsGhost) {
+          wr.Write($"{sep}null");
+          sep = ", ";
+        }
+      }
+      wr.WriteLine(");");
+      wr.WriteLine("public static String defaultInstanceName = theDefault.getClass().toString();");
       using (var w = wr.NewNamedBlock("public static {0} Default()", IdName(dt))) {
-        var wIf = EmitIf("theDefault == null", false, w);
-        wIf.Write("theDefault = ");
-        DatatypeCtor defaultCtor;
-        if (dt is IndDatatypeDecl) {
-          defaultCtor = ((IndDatatypeDecl)dt).DefaultCtor;
-        } else {
-          defaultCtor = ((CoDatatypeDecl) dt).Ctors[0];
-        }
-        wIf.Write("new {0}(", DtCtorName(defaultCtor));
-        string sep = "";
-        foreach (Formal f in defaultCtor.Formals) {
-          if (!f.IsGhost) {
-            wIf.Write("{0}{1}", sep, DefaultValue(f.Type, wIf, f.tok));
-            sep = ", ";
-          }
-        }
-        wIf.Write(");");
-        wIf.WriteLine();
         w.WriteLine("return theDefault;");
       }
       wr.WriteLine("public static {0} _DafnyDefaultValue() {{ return {0}.Default(); }}", dt);
@@ -2084,8 +2105,8 @@ protected override BlockTargetWriter CreateLambda(List<Type> inTypes, Bpl.IToken
       
       var udt = (UserDefinedType)xType;
       if (udt.ResolvedParam != null) {
-//        return "Helpers.Default<" + TypeName_UDT(FullTypeName(udt), udt.TypeArgs, wr, udt.tok) + ">()"; TODO: Implement Helpers.Default if necessary
-        return "null";
+        return $"({type}) Helpers.getDefault(s{type})"; 
+        //TODO: Implement Helpers.Default if necessary
       }
       var cl = udt.ResolvedClass;
       Contract.Assert(cl != null);
@@ -2516,6 +2537,27 @@ protected override BlockTargetWriter CreateLambda(List<Type> inTypes, Bpl.IToken
       }
     }
     
+    protected override int EmitRuntimeTypeDescriptorsActuals(List<Type> typeArgs, List<TypeParameter> formals, Bpl.IToken tok, bool useAllTypeArgs, TargetWriter wr) {
+      var sep = "";
+      var c = 0;
+      for (int i = 0; i < typeArgs.Count; i++) {
+        var actual = typeArgs[i];
+        var formal = formals[i];
+        if (useAllTypeArgs || formal.Characteristics.MustSupportZeroInitialization) {
+          string t, n;
+          SplitType(TypeName(actual, wr, tok), out t, out n);
+          if (actual.IsDatatype){
+            wr.Write("{0}{1}.defaultInstanceName", sep, n);
+          }
+          else{
+            wr.Write("{0}{1}.class.toString()", sep, n);
+          }
+          sep = ", ";
+          c++;
+        }
+      }
+      return c;
+    }
     protected override TargetWriter EmitBetaRedex(List<string> boundVars, List<Expression> arguments, string typeArgs,
       List<Type> boundTypes, Type resultType, Bpl.IToken resultTok, bool inLetExprBody, TargetWriter wr){
       if (boundTypes.Count != 1) {

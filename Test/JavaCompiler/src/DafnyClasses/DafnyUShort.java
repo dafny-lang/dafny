@@ -18,8 +18,12 @@ public class DafnyUShort {
         inner = i;
     }
 
-    public DafnyUShort(DafnyUShort other){
+    public DafnyUShort(DafnyUShort other) {
         inner = other.inner;
+    }
+
+    public DafnyUShort(){
+        inner = 0;
     }
 
     public static int compare(DafnyUShort x, DafnyUShort y){

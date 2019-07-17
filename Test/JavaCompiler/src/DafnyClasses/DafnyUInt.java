@@ -23,8 +23,12 @@ public class DafnyUInt {
         inner = (int) l;
     }
 
-    public DafnyUInt(DafnyUInt other){
+    public DafnyUInt(DafnyUInt other) {
         inner = other.inner;
+    }
+
+    public DafnyUInt(){
+        inner = 0;
     }
 
     public static int compare(DafnyUInt x, DafnyUInt y){

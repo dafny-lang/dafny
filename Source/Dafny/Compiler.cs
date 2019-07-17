@@ -3263,13 +3263,13 @@ namespace Microsoft.Dafny{
         }
 
         List<Type> typeArgs;
-        if (s.Method.TypeArgs.Count != 0 && TargetLanguage != "Java"){
+//        if (s.Method.TypeArgs.Count != 0 && TargetLanguage != "Java"){
           var typeSubst = s.MethodSelect.TypeArgumentSubstitutions();
           typeArgs = s.Method.TypeArgs.ConvertAll(ta => typeSubst[ta]);
-        }
-        else{
-          typeArgs = new List<Type>();
-        }
+//        }
+//        else{
+//          typeArgs = new List<Type>();
+//        } TODO: determine why this was added in the first place, and if it is still needed
 
         EmitActualTypeArgs(typeArgs, s.Tok, wr);
         wr.Write("(");

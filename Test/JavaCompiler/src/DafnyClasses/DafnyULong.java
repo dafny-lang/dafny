@@ -18,8 +18,12 @@ public class DafnyULong {
         inner = Short.toUnsignedLong(sh);
     }
 
-    public DafnyULong(DafnyULong other){
+    public DafnyULong(DafnyULong other) {
         inner = other.inner;
+    }
+
+    public DafnyULong(){
+        inner = 0L;
     }
 
     public DafnyULong(int i) {
