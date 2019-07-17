@@ -2407,14 +2407,14 @@ protected override BlockTargetWriter CreateLambda(List<Type> inTypes, Bpl.IToken
         }
       } else if (cl is DatatypeDecl) {
         var s = FullTypeName(udt);
-//        if (udt.TypeArgs.Count != 0) {
-//          s += "<" + TypeNames(udt.TypeArgs, wr, udt.tok) + ">";
-//        } TODO: determine if this is ever needed in Java
-
-        if (cl is TupleTypeDecl) {
-          return "(" + s + ")null";
+        var typeargs = "";
+        if (udt.TypeArgs.Count != 0) {
+          typeargs = "<" + TypeNames(udt.TypeArgs, wr, udt.tok) + ">";
         }
-        return string.Format("{0}.Default()", s);
+        if (cl is TupleTypeDecl) {
+          return "(" + s + typeargs + ")null";
+        }
+        return string.Format($"{s}.{typeargs}Default()", s);
       }
       else{
         Contract.Assert(false);
