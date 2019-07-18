@@ -15,6 +15,7 @@ public class DafnySequence<T> implements Iterable {
     protected ArrayList<T> seq;
 
     public DafnySequence() {
+        seq = new ArrayList<>();
     }
 
     public static DafnySequence<Character> asString(String s){

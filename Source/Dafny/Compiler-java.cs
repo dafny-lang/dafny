@@ -1236,6 +1236,10 @@ namespace Microsoft.Dafny{
         }
       }
 
+      if (ctor.Formals.Count > 0){
+        wr.Write($"public {DtCtorDeclarationName(ctor)}(){{}}");
+      }
+
       if (dt is CoDatatypeDecl) {
         string typeParams = dt.TypeArgs.Count == 0 ? "" : string.Format("<{0}>", TypeParameters(dt.TypeArgs));
         wr.WriteLine("public {0}{1} Get() {{ return this; }}", dt.CompileName, typeParams);
@@ -1305,7 +1309,7 @@ namespace Microsoft.Dafny{
                 if (i != 0) {
                   w.WriteLine("{0}.append(\", \");", tempVar);
                 }
-                w.WriteLine("{0}.append(this.{1}.toString());", tempVar, FormalName(arg, i));
+                w.WriteLine("{0}.append(this.{1} == null ? \"\" : this.{1}.toString());", tempVar, FormalName(arg, i));
                 i++;
               }
             }
@@ -2094,7 +2098,7 @@ protected override BlockTargetWriter CreateLambda(List<Type> inTypes, Bpl.IToken
             sw.WriteLine(Indent() + "StringBuilder sb = new StringBuilder();");
             sw.WriteLine(Indent() + "sb.append(\"(\");");
             for (int j = 0; j < i; j++){
-                sw.WriteLine(Indent() + "sb.append(_" + j + ".toString());");
+                sw.WriteLine(Indent() + $"sb.append(_{j} == null ? \"\" : _{j}.toString());");
                 if (j != i - 1)
                     sw.WriteLine(Indent() + "sb.append(\", \");");
             }
@@ -2353,6 +2357,7 @@ protected override BlockTargetWriter CreateLambda(List<Type> inTypes, Bpl.IToken
         foreach(TypeParameter t in l)
         {
           w.WriteLine($"this.s{t.Name} = s{t.Name};");
+          w.WriteLine($"{t.Name.ToLower()} = ({t.Name}) Helpers.getDefault(s{t.Name});");
         }
       }
     }
@@ -2386,6 +2391,7 @@ protected override BlockTargetWriter CreateLambda(List<Type> inTypes, Bpl.IToken
         }
         sw.WriteLine(Indent() + Indent() + "this.elmts = elmts;");
         sw.WriteLine(Indent() + "}");
+        sw.WriteLine(Indent() + "public Array" + i + "(){}");
         sw.WriteLine("}");
       }
     }

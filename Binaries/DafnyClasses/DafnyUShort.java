@@ -18,6 +18,14 @@ public class DafnyUShort {
         inner = i;
     }
 
+    public DafnyUShort(){
+        inner = 0;
+    }
+
+    public DafnyUShort(DafnyUShort other){
+        inner = other.inner;
+    }
+
     public static int compare(DafnyUShort x, DafnyUShort y){
         return Integer.compareUnsigned(x.inner,y.inner);
     }
@@ -72,7 +80,7 @@ public class DafnyUShort {
     }
 
     //Invariant that other.inner is positive, so only nonzero check needed
-    public DafnyUShort modulus(DafnyUShort other) {
+    public DafnyUShort mod(DafnyUShort other) {
         assert other.inner != 0 : "Precondition Failure";
         return new DafnyUShort(inner % other.inner);
     }
@@ -93,6 +101,30 @@ public class DafnyUShort {
 
     @Override
     public String toString() {
-        return Integer.toString(inner);
+        return Integer.toUnsignedString(inner);
+    }
+
+    public DafnyUShort xor(DafnyUShort other){
+        return new DafnyUShort(inner ^ other.inner);
+    }
+
+    public DafnyUShort or(DafnyUShort other){
+        return new DafnyUShort(inner | other.inner);
+    }
+
+    public DafnyUShort and(DafnyUShort other){
+        return new DafnyUShort(inner & other.inner);
+    }
+
+    public DafnyUShort not(){
+        return new DafnyUShort(~inner);
+    }
+
+    public DafnyUShort shiftLeft(int i){
+        return new DafnyUShort(inner << i);
+    }
+
+    public DafnyUShort shiftRight(int i){
+        return new DafnyUShort(inner >> i);
     }
 }

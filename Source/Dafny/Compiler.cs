@@ -1215,7 +1215,7 @@ namespace Microsoft.Dafny{
           else if (c is ClassDecl && f.Type.IsTypeParameter){
             if (TargetLanguage.Equals(("Java"))){
               l.Add(f.Type.AsTypeParameter);
-              classWriter.DeclareField($"s{f.Type.AsTypeParameter.Name}", false, false, Type.String(), null, "new String()");
+              classWriter.DeclareField($"s{f.Type.AsTypeParameter.Name}", false, false, Type.String(), null, "null");
             }
             classWriter.DeclareField(IdName(f), f.IsStatic, false, f.Type, f.tok,
               DefaultValue(f.Type, errorWr, f.tok, true));
