@@ -35,6 +35,7 @@ namespace Microsoft.Dafny{
     private HashSet<int> functions = new HashSet<int>();
     private HashSet<int> arrays = new HashSet<int>();
     private HashSet<int> arrayinits = new HashSet<int>();
+    private HashSet<string> NeedsInputStrings = new HashSet<string>();
 
     private static List<Import> StandardImports =
       new List<Import>{
@@ -183,6 +184,10 @@ namespace Microsoft.Dafny{
       public BlockTargetWriter Writer(bool isStatic) {
         return isStatic ? StaticMemberWriter : InstanceMemberWriter;
       }
+
+      public BlockTargetWriter CreateConstructor(ClassDecl c, List<TypeParameter> l){
+        return Compiler.CreateConstructor(c, Writer(false), l);
+      }
             
       public BlockTargetWriter/*?*/ CreateMethod(Method m, bool createBody) {
         return Compiler.CreateMethod(m, createBody, Writer(m.IsStatic));
@@ -258,7 +263,7 @@ namespace Microsoft.Dafny{
       wr.Write("{0} {1}", targetReturnTypeReplacement ?? "void", IdName(m));
       wr.Write("(");
       var nTypes = WriteRuntimeTypeDescriptorsFormals(m.TypeArgs, false, wr);
-      WriteFormals("", m.Ins, wr);
+      WriteFormals(nTypes > 0 ? ", " : "", m.Ins, wr);
       if (!createBody) {
         wr.WriteLine(");");
         return null; // We do not want to write a function body, so instead of returning a BTW, we return null.
@@ -276,18 +281,29 @@ namespace Microsoft.Dafny{
       }
     }
     
+    protected BlockTargetWriter CreateConstructor(ClassDecl c, TargetWriter wr, List<TypeParameter> l) {
+      string targetReturnTypeReplacement = null;
+      int nonGhostOuts = 0;
+      int nonGhostIndex = 0;
+      
+      wr.Write("public ");
+      wr.Write(c.CompileName);
+      wr.Write("(");
+      var nTypes = WriteRuntimeTypeDescriptorsFormals(l, false, wr);
+      var w = wr.NewBlock(")", null, BlockTargetWriter.BraceStyle.Newline, BlockTargetWriter.BraceStyle.Newline);
+      return w;
+    }
+    
     int WriteRuntimeTypeDescriptorsFormals(List<TypeParameter> typeParams, bool useAllTypeArgs, TargetWriter wr, string prefix = "") {
       Contract.Requires(typeParams != null);
       Contract.Requires(wr != null);
 
       int c = 0;
       foreach (var tp in typeParams) {
-        if (useAllTypeArgs || tp.Characteristics.MustSupportZeroInitialization) {
-          wr.Write($"{prefix}String s{tp.Name}");
+        wr.Write($"{prefix}String s{tp.Name}");
           prefix = ", ";
           c++;
         }
-      }
       return c;
     }
     
@@ -401,7 +417,10 @@ namespace Microsoft.Dafny{
         return typeNameSansBrackets + "[]";
       } else if (xType is UserDefinedType) { 
         var udt = (UserDefinedType)xType; 
-        var s = FullTypeName(udt, member); 
+        var s = FullTypeName(udt, member);
+        if (s.Equals("string")){
+          return "String";
+        }
         var cl = udt.ResolvedClass; 
         bool isHandle = true;
         if (cl != null && Attributes.ContainsBool(cl.Attributes, "handle", ref isHandle) && isHandle) {
@@ -1576,9 +1595,32 @@ namespace Microsoft.Dafny{
         ? null
         : (Constructor) initCall.Method; // correctness of cast follows from precondition of "EmitNew"
       wr.Write("new {0}(", TypeName(type, wr, tok));
+      if (type is UserDefinedType && NeedsInputStrings.Contains(((UserDefinedType)type).CompileName)){
+        EmitRuntimeTypeDescriptors(type.TypeArgs, tok, wr);
+      }
       wr.Write(")");
     }
 
+    
+    private void EmitRuntimeTypeDescriptors(List<Type> typeArgs, Bpl.IToken tok, TargetWriter wr){
+      var sep = "";
+      for (int i = 0; i < typeArgs.Count; i++) {
+        var actual = typeArgs[i];
+          string t, n;
+          SplitType(TypeName(actual, wr, tok), out t, out n);
+          if (actual.IsDatatype){
+            wr.Write("{0}{1}.defaultInstanceName", sep, n);
+          }
+          else if (actual.IsTypeParameter){
+            wr.Write($"s{n}");
+          }
+          else{
+            wr.Write("{0}{1}.class.toString()", sep, n);
+          }
+          sep = ", ";
+      }
+    }
+    
     protected override void EmitAssignment(out TargetWriter wLhs, Type /*?*/ lhsType, out TargetWriter wRhs,
       Type /*?*/ rhsType, TargetWriter wr){
       wLhs = wr.Fork();
@@ -2106,7 +2148,6 @@ protected override BlockTargetWriter CreateLambda(List<Type> inTypes, Bpl.IToken
       var udt = (UserDefinedType)xType;
       if (udt.ResolvedParam != null) {
         return $"({type}) Helpers.getDefault(s{type})"; 
-        //TODO: Implement Helpers.Default if necessary
       }
       var cl = udt.ResolvedClass;
       Contract.Assert(cl != null);
@@ -2299,6 +2340,20 @@ protected override BlockTargetWriter CreateLambda(List<Type> inTypes, Bpl.IToken
     public void CompileDafnyArrays(string path) {
       foreach(int i in arrays){
         CreateDafnyArrays(i, path);
+      }
+    }
+
+    protected override void CreateDefaultConstructor(ClassDecl c, IClassWriter cw, List<TypeParameter> l){
+      Contract.Requires(cw != null);
+      Contract.Requires(c != null);
+
+      var w = ((ClassWriter) cw).CreateConstructor(c, l);
+      NeedsInputStrings.Add(c.CompileName);
+      if (w != null) {
+        foreach(TypeParameter t in l)
+        {
+          w.WriteLine($"this.s{t.Name} = s{t.Name};");
+        }
       }
     }
     
@@ -2548,6 +2603,9 @@ protected override BlockTargetWriter CreateLambda(List<Type> inTypes, Bpl.IToken
           SplitType(TypeName(actual, wr, tok), out t, out n);
           if (actual.IsDatatype){
             wr.Write("{0}{1}.defaultInstanceName", sep, n);
+          }
+          else if (actual.IsTypeParameter){
+            wr.Write($"s{n}");
           }
           else{
             wr.Write("{0}{1}.class.toString()", sep, n);

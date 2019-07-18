@@ -1133,6 +1133,7 @@ namespace Microsoft.Dafny{
         }
       }
 
+      List<TypeParameter> l = new List<TypeParameter>();
       foreach (MemberDecl member in c.Members){
         if (member is Field){
           var f = (Field) member;
@@ -1211,6 +1212,14 @@ namespace Microsoft.Dafny{
             TargetWriter wSet;
             classWriter.CreateGetterSetter(IdName(f), f.Type, f.tok, false, false, member, out wSet);
           }
+          else if (c is ClassDecl && f.Type.IsTypeParameter){
+            if (TargetLanguage.Equals(("Java"))){
+              l.Add(f.Type.AsTypeParameter);
+              classWriter.DeclareField($"s{f.Type.AsTypeParameter.Name}", false, false, Type.String(), null, "new String()");
+            }
+            classWriter.DeclareField(IdName(f), f.IsStatic, false, f.Type, f.tok,
+              DefaultValue(f.Type, errorWr, f.tok, true));
+          }
           else{
             classWriter.DeclareField(IdName(f), f.IsStatic, false, f.Type, f.tok,
               DefaultValue(f.Type, errorWr, f.tok, true));
@@ -1283,6 +1292,13 @@ namespace Microsoft.Dafny{
           throw new cce.UnreachableException(); // unexpected member
         }
       }
+      if (l.Count > 0){
+        CreateDefaultConstructor(c, classWriter, l);
+      }
+    }
+
+    protected virtual void CreateDefaultConstructor(ClassDecl c, IClassWriter cw, List<TypeParameter> l){
+      
     }
 
     void CheckHandleWellformed(ClassDecl cl, TextWriter /*?*/ errorWr){
@@ -3273,7 +3289,7 @@ namespace Microsoft.Dafny{
 
         EmitActualTypeArgs(typeArgs, s.Tok, wr);
         wr.Write("(");
-        var nRTDs = EmitRuntimeTypeDescriptorsActuals(typeArgs, s.Method.TypeArgs, s.Tok, false, wr);
+        var nRTDs = EmitRuntimeTypeDescriptorsActuals(typeArgs, s.Method.TypeArgs, s.Tok, (TargetLanguage.Equals("Java") && returnStyleOutCollector != null), wr);
         string sep = nRTDs == 0 ? "" : ", ";
         for (int i = 0; i < s.Method.Ins.Count; i++){
           Formal p = s.Method.Ins[i];
@@ -3354,7 +3370,7 @@ namespace Microsoft.Dafny{
       }
     }
 
-    void TrStmtList(List<Statement> stmts, TargetWriter writer){
+    protected void TrStmtList(List<Statement> stmts, TargetWriter writer){
       Contract.Requires(cce.NonNullElements(stmts));
       Contract.Requires(writer != null);
       foreach (Statement ss in stmts){
