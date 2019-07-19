@@ -462,7 +462,7 @@ namespace Microsoft.Dafny
           break;
         case DafnyOptions.CompilationTarget.Java:
           targetExtension = "java";
-          targetBaseDir = baseName + "-java/src";
+          targetBaseDir = baseName;
           break;
         default:
           Contract.Assert(false);
@@ -607,7 +607,7 @@ namespace Microsoft.Dafny
       
       
       if (DafnyOptions.O.CompileTarget is DafnyOptions.CompilationTarget.Java) {
-        string targetBaseDir = baseName + "-java/src";
+        string targetBaseDir = baseName;
         string targetDir = Path.Combine(Path.GetDirectoryName(dafnyProgramName), targetBaseDir);
         var assemblyLocation = System.Reflection.Assembly.GetExecutingAssembly().Location;
         Contract.Assert(assemblyLocation != null);

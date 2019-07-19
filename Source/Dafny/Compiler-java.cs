@@ -241,9 +241,7 @@ namespace Microsoft.Dafny{
     }
 
     private void EmitImport(Import import, TargetWriter importWriter){
-      var path = import.Path;
-
-      importWriter.WriteLine("import {0}.*;", path);
+      importWriter.WriteLine("import {0}.*;", import.Path.Replace('/','.'));
     }
 
     protected override TargetWriter CreateModule(string moduleName, bool isDefault, bool isExtern, string /*?*/ libraryName, TargetWriter wr) {
@@ -257,13 +255,16 @@ namespace Microsoft.Dafny{
       } else {
         pkgName = IdProtect(moduleName);
       }
-      var import = new Import{ Name=moduleName, Path=pkgName };
-      var filename = string.Format("{0}/{0}.java", pkgName);
+      var path = pkgName.Replace('.', '/');
+      var import = new Import{ Name=moduleName, Path=path };
+      var filename = string.Format("{0}/PLACEHOLDER.java", path, pkgName);
+      // TODO: Placeholder java file exists to create package that current module can be imported even if there are no Java files.
+      // Want to make sure that if directory has no Java files, it does not get created and added to imports.
       var w = wr.NewFile(filename);
       ModuleName = moduleName;
       EmitModuleHeader(w);
       AddImport(import);
-      return w;
+      return wr;
     }
     
     private void AddImport(Import import){
@@ -593,10 +594,13 @@ namespace Microsoft.Dafny{
       }
       var cl = udt.ResolvedClass;
       if (cl == null) {
-        return IdProtect(udt.CompileName);
+        return IdProtect(udt.FullName);
+      }
+      else if (cl.Module.CompileName == ModuleName || cl.Module.CompileName == "_module") {
+        return IdProtect(cl.CompileName);
       }
       else{
-        return IdProtect(cl.CompileName);
+        return IdProtect(cl.FullCompileName);
       }
     }
     
@@ -666,7 +670,7 @@ namespace Microsoft.Dafny{
       if (isExtern) {
         return new ClassWriter(this, new BlockTargetWriter(0, "", ""));
       }
-      var filename = string.Format("{1}/{0}.java", name, ModuleName);
+      var filename = string.Format("{1}/{0}.java", name, ModuleName.Replace('.', '/'));
       var w = wr.NewFile(filename);
       w.WriteLine("// Class {0}", name);
       w.WriteLine("// Dafny class {0} compiled into Java", name);
@@ -761,6 +765,31 @@ namespace Microsoft.Dafny{
           }
         }
         wr.Write("\"");
+      }
+    }
+
+    protected string GetNativeDefault(NativeType.Selection sel) {
+      switch (sel) {
+        case NativeType.Selection.Byte:
+          return "new dafny.UByte(0)";
+        case NativeType.Selection.SByte:
+          return "new Byte(0)";
+        case NativeType.Selection.UShort:
+          return "new dafny.UShort";
+        case NativeType.Selection.Short:
+          return "new Short(0)";
+        case NativeType.Selection.UInt:
+          return "new dafny.UInt(0)";
+        case NativeType.Selection.Int:
+          return "0";
+        case NativeType.Selection.ULong:
+          return "new dafny.ULong(0)";
+        case NativeType.Selection.Number:
+        case NativeType.Selection.Long:
+          return "0L";
+        default:
+          Contract.Assert(false);  // unexpected native type
+          throw new cce.UnreachableException();  // to please the compiler
       }
     }
 
@@ -1163,7 +1192,7 @@ namespace Microsoft.Dafny{
         DtT += DtT_TypeArgs;
         DtT_protected += DtT_TypeArgs;
       }
-      var filename = string.Format("{1}/{0}.java", dt, ModuleName);
+      var filename = string.Format("{1}/{0}.java", dt, ModuleName.Replace('.','/'));
       wr = wr.NewFile(filename);
       wr.WriteLine("// Class {0}", DtT_protected);
       wr.WriteLine("// Dafny class {0} compiled into Java", DtT_protected);
@@ -1283,7 +1312,7 @@ namespace Microsoft.Dafny{
       }
       int constructorIndex = 0; // used to give each constructor a different name
       foreach (DatatypeCtor ctor in dt.Ctors) {
-        var filename = string.Format("{1}/{0}.java", DtCtorDeclarationName(ctor), ModuleName);
+        var filename = string.Format("{1}/{0}.java", DtCtorDeclarationName(ctor), ModuleName.Replace('.','/'));
         var wr = wrx.NewFile(filename);
         wr.WriteLine("// Class {0}", DtCtorDeclarationName(ctor, dt.TypeArgs));
         wr.WriteLine("// Dafny class {0} compiled into Java", DtCtorDeclarationName(ctor, dt.TypeArgs));
@@ -1302,7 +1331,7 @@ namespace Microsoft.Dafny{
       }
       
       if (dt is CoDatatypeDecl) {
-        var filename = string.Format("{1}/{0}__Lazy.java", dt.CompileName, ModuleName);
+        var filename = string.Format("{1}/{0}__Lazy.java", dt.CompileName, ModuleName.Replace('.','/'));
         var wr = wrx.NewFile(filename);
         wr.WriteLine("// Class {0}__Lazy", dt.CompileName);
         wr.WriteLine("// Dafny class {0}__Lazy compiled into Java", dt.CompileName);
@@ -1706,8 +1735,22 @@ namespace Microsoft.Dafny{
         ? null
         : (Constructor) initCall.Method; // correctness of cast follows from precondition of "EmitNew"
       wr.Write("new {0}(", TypeName(type, wr, tok));
-      if (type is UserDefinedType && NeedsInputStrings.Contains(((UserDefinedType)type).CompileName)){
+      if (type is UserDefinedType && NeedsInputStrings.Contains(((UserDefinedType) type).CompileName)) {
         EmitRuntimeTypeDescriptors(type.TypeArgs, tok, wr);
+      }
+
+      string q, n;
+      if (ctor != null && ctor.IsExtern(out q, out n)) {
+        // the arguments of any external constructor are placed here
+        string sep = "";
+        for (int i = 0; i < ctor.Ins.Count; i++) {
+          Formal p = ctor.Ins[i];
+          if (!p.IsGhost) {
+            wr.Write(sep);
+            TrExpr(initCall.Args[i], wr, false);
+            sep = ", ";
+          }
+        }
       }
       wr.Write(")");
     }
@@ -2342,10 +2385,7 @@ protected override BlockTargetWriter CreateLambda(List<Type> inTypes, Bpl.IToken
         if (td.Witness != null) {
           return FullTypeName(udt) + ".Witness";
         } else if (td.NativeType != null) {
-          string s = RepresentableByInt(td.NativeType)
-            ? ""
-            : "L";
-          return $"0{s}";
+          return GetNativeDefault(td.NativeType.Sel);
         } else {
           return TypeInitializationValue(td.BaseType, wr, tok, inAutoInitContext);
         }
@@ -2383,6 +2423,14 @@ protected override BlockTargetWriter CreateLambda(List<Type> inTypes, Bpl.IToken
               for (int i = 0; i < arrayClass.Dims; i++) {
                 newarr += "0, ";
               }
+            }
+            if (udt.TypeArgs[0] is UserDefinedType && (udt.TypeArgs[0] as UserDefinedType).ResolvedClass == null) {
+              newarr += $"({(udt.TypeArgs[0] as UserDefinedType).CompileName}";
+              for (int i = 0; i < arrayClass.Dims; i++) {
+                newarr += "[]";
+              }
+              newarr += ")";
+              typeNameSansBrackets = "Object";
             }
             newarr += $"new {typeNameSansBrackets}";
             for (int i = 0; i < arrayClass.Dims; i++) {
@@ -2435,7 +2483,7 @@ protected override BlockTargetWriter CreateLambda(List<Type> inTypes, Bpl.IToken
     }
     
     protected override IClassWriter CreateTrait(string name, bool isExtern, List<Type> superClasses, Bpl.IToken tok, TargetWriter wr) {
-      var filename = string.Format("{1}/{0}.java", name, ModuleName);
+      var filename = string.Format("{1}/{0}.java", name, ModuleName.Replace('.','/'));
       var w = wr.NewFile(filename);
       w.WriteLine("// Interface {0}", name);
       w.WriteLine("// Dafny trait {0} compiled into Java", name);
@@ -2458,7 +2506,7 @@ protected override BlockTargetWriter CreateLambda(List<Type> inTypes, Bpl.IToken
       }
       var instanceMemberWriter = w.NewBlock("");
       //writing the _Companion class
-      filename = string.Format("{1}/_Companion_{0}.java", name, ModuleName);
+      filename = string.Format("{1}/_Companion_{0}.java", name, ModuleName.Replace('.','/'));
       w = w.NewFile(filename);
       w.WriteLine("// Interface {0}", name);
       w.WriteLine("// Dafny trait {0} compiled into Java", name);
@@ -2479,12 +2527,12 @@ protected override BlockTargetWriter CreateLambda(List<Type> inTypes, Bpl.IToken
 
     protected override void EmitDestructor(string source, Formal dtor, int formalNonGhostIndex, DatatypeCtor ctor, List<Type> typeArgs, Type bvType, TargetWriter wr){
       string dtorName;
-//      if (dtor.Type.IsTypeParameter){
-//        dtorName = $"dtor__{dtor.Name}()";
-//      }
-//      else{
+      if (dtor.Type.IsTypeParameter){
+        dtorName = $"dtor_{dtor.Name}()";
+      }
+      else{
         dtorName = FormalName(dtor, formalNonGhostIndex);
-//      }
+      }
       wr.Write("(({0}){1}{2}).{3}", DtCtorName(ctor, typeArgs, wr), source, ctor.EnclosingDatatype is CoDatatypeDecl ? ".Get()" : "", dtorName);
     }
 
@@ -2718,8 +2766,7 @@ protected override BlockTargetWriter CreateLambda(List<Type> inTypes, Bpl.IToken
         var nativeType = GetNativeTypeName(nt.NativeType);
         var wEnum = w.NewNamedBlock("public static ArrayList<{0}> IntegerRange(BigInteger lo, BigInteger hi)", nativeType);
         wEnum.WriteLine("ArrayList<{0}> arr = new ArrayList<>();", nativeType);
-        nativeType = nativeType == "Integer" ? "int" : nativeType.ToLower();
-        wEnum.WriteLine("for (BigInteger j = lo; j.compareTo(hi) < 0; j.add(BigInteger.ONE)) {{ arr.add(j.{0}Value()); }}", nativeType);
+        wEnum.WriteLine("for (BigInteger j = lo; j.compareTo(hi) < 0; j.add(BigInteger.ONE)) {{ arr.add(new {0}(j.intValue())); }}", nativeType);
         wEnum.WriteLine("return arr;");
       }
       if (nt.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
@@ -2889,7 +2936,7 @@ protected override BlockTargetWriter CreateLambda(List<Type> inTypes, Bpl.IToken
     
     protected override BlockTargetWriter CreateIIFE1(int source, Type resultType, Bpl.IToken resultTok, string bvName, TargetWriter wr) {
       wr.Write("((Function<BigInteger, {0}>)(({1}) ->", TypeName(resultType, wr, resultTok), bvName);
-      var w = wr.NewBigExprBlock("", $")).apply(fBigInteger.valueOf({source}))");
+      var w = wr.NewBigExprBlock("", $")).apply(BigInteger.valueOf({source}))");
       return w;
     }
     
@@ -2918,13 +2965,19 @@ protected override BlockTargetWriter CreateLambda(List<Type> inTypes, Bpl.IToken
           Contract.Assert(AsNativeType(e.ToType) == null);
           wr.Write("new DafnyClasses.BigRational(");
           if (AsNativeType(e.E.Type) != null) {
-            wr.Write("new BigInteger");
+            wr.Write("BigInteger.valueOf");
           }
           TrParenExpr(e.E, wr, inLetExprBody);
+          if (!e.E.Type.IsIntegerType) {
+            wr.Write(".intValue()");
+          }
           wr.Write(", BigInteger.ONE)");
         } else if (e.ToType.IsCharType) {
-          wr.Write("(Character)(");
-          TrExpr(e.E, wr, inLetExprBody);
+          wr.Write("DafnyClasses.Helpers.createCharacter(");
+          TrParenExpr(e.E, wr, inLetExprBody);
+          if (!e.E.Type.IsIntegerType) {
+            wr.Write(".intValue()");
+          }
           wr.Write(")");
         } else {
           // (int or bv or char) -> (int or bv or ORDINAL)
@@ -2933,7 +2986,7 @@ protected override BlockTargetWriter CreateLambda(List<Type> inTypes, Bpl.IToken
           if (fromNative == null && toNative == null) {
             if (e.E.Type.IsCharType) {
               // char -> big-integer (int or bv or ORDINAL)
-              wr.Write("new BigInteger");
+              wr.Write("BigInteger.valueOf");
               TrParenExpr(e.E, wr, inLetExprBody);
             } else {
               // big-integer (int or bv) -> big-integer (int or bv or ORDINAL), so identity will do
@@ -2941,15 +2994,19 @@ protected override BlockTargetWriter CreateLambda(List<Type> inTypes, Bpl.IToken
             }
           } else if (fromNative != null && toNative == null) {
             // native (int or bv) -> big-integer (int or bv)
-            wr.Write("new BigInteger");
+            wr.Write("BigInteger.valueOf(");
             TrParenExpr(e.E, wr, inLetExprBody);
+            if (!e.E.Type.IsIntegerType) {
+              wr.Write(".intValue()");
+            }
+            wr.Write(")");
           } else {
             string toNativeName, toNativeSuffix;
             bool toNativeNeedsCast;
             GetNativeInfo(toNative.Sel, out toNativeName, out toNativeSuffix, out toNativeNeedsCast);
             // any (int or bv) -> native (int or bv)
             // A cast would do, but we also consider some optimizations
-            wr.Write("({0})", toNativeName);
+            wr.Write("new {0}(", toNativeName);
 
             var literal = PartiallyEvaluate(e.E);
             UnaryOpExpr u = e.E.Resolved as UnaryOpExpr;
@@ -2982,7 +3039,7 @@ protected override BlockTargetWriter CreateLambda(List<Type> inTypes, Bpl.IToken
               // no optimization applies; use the standard translation
               TrParenExpr(e.E, wr, inLetExprBody);
             }
-
+            wr.Write(")");
           }
         }
       } else if (e.E.Type.IsNumericBased(Type.NumericPersuation.Real)) {

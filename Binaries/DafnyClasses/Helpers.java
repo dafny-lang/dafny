@@ -79,6 +79,23 @@ public class Helpers {
         }
         return arr;
     }
+
+    public static Character createCharacter(DafnyByte t) {
+        return new Character((char)((DafnyByte)t).intValue());
+    }
+
+    public static Character createCharacter(DafnyUInt t) {
+        return new Character((char)((DafnyUInt)t).value());
+    }
+
+    public static Character createCharacter(DafnyULong t) {
+        return new Character((char)((DafnyULong)t).value());
+    }
+
+    public static Character createCharacter(long t) {
+
+        return new Character((char)t);
+    }
 }
 
 
