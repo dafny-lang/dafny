@@ -225,7 +225,7 @@ namespace Microsoft.Dafny{
       wr.WriteLine();
     }
 
-    public override void EmitCallToMain(Method mainMethod, TargetWriter wr){
+    public override void EmitCallToMain(Method mainMethod, TargetWriter wr) {
       var companion = TypeName_Companion(mainMethod.EnclosingClass as ClassDecl, wr, mainMethod.tok);
       var wBody = wr.NewNamedBlock("public static void main(String[] args)");
       wBody.WriteLine("\t{0}.{1}();", companion, IdName(mainMethod));
@@ -596,7 +596,7 @@ namespace Microsoft.Dafny{
       if (cl == null) {
         return IdProtect(udt.FullName);
       }
-      else if (cl.Module.CompileName == ModuleName || cl.Module.CompileName == "_module") {
+      else if (cl.Module.CompileName == ModuleName || cl is TupleTypeDecl || cl.Module.CompileName == "_module") {
         return IdProtect(cl.CompileName);
       }
       else{
@@ -1635,9 +1635,9 @@ namespace Microsoft.Dafny{
           outputWriter.WriteLine(proc.StandardError.ReadLine());
         }
         proc.WaitForExit();
-        if (proc.ExitCode != 0) {
-          throw new Exception($"Error while compiling Java file {file}. Process exited with exit code {proc.ExitCode}");
-        }
+//        if (proc.ExitCode != 0) {
+//          throw new Exception($"Error while compiling Java file {file}. Process exited with exit code {proc.ExitCode}");
+//        }
       }
       return true;
     }
