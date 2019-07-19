@@ -36,7 +36,7 @@ namespace Microsoft.Dafny{
 
     private String ModuleName;
     private String MainModuleName;
-    private int FilesCount = 0;
+    private int FileCount = 0;
     private Import ModuleImport;
     private HashSet<int> tuples = new HashSet<int>();
     private HashSet<int> functions = new HashSet<int>();
@@ -262,15 +262,15 @@ namespace Microsoft.Dafny{
       var import = new Import{ Name=moduleName, Path=path };
       ModuleName = IdProtect(moduleName);
       ModuleImport = import;
-      FilesCount = 0;
+      FileCount = 0;
       return wr;
     }
 
     protected override void FinishModule() {
-      if (FilesCount > 0) {
+      if (FileCount > 0) {
         AddImport(ModuleImport);
       }
-      FilesCount = 0;
+      FileCount = 0;
     }
     
     private void AddImport(Import import){
@@ -680,7 +680,7 @@ namespace Microsoft.Dafny{
       }
       var filename = string.Format("{1}/{0}.java", name, ModuleName.Replace('.', '/'));
       var w = wr.NewFile(filename);
-      FilesCount += 1;
+      FileCount += 1;
       w.WriteLine("// Class {0}", name);
       w.WriteLine("// Dafny class {0} compiled into Java", name);
       w.WriteLine("package {0};", ModuleName);
@@ -1203,7 +1203,7 @@ namespace Microsoft.Dafny{
       }
       var filename = string.Format("{1}/{0}.java", dt, ModuleName.Replace('.','/'));
       wr = wr.NewFile(filename);
-      FilesCount += 1;
+      FileCount += 1;
       wr.WriteLine("// Class {0}", DtT_protected);
       wr.WriteLine("// Dafny class {0} compiled into Java", DtT_protected);
       wr.WriteLine("package {0};", ModuleName);
@@ -1324,7 +1324,7 @@ namespace Microsoft.Dafny{
       foreach (DatatypeCtor ctor in dt.Ctors) {
         var filename = string.Format("{1}/{0}.java", DtCtorDeclarationName(ctor), ModuleName.Replace('.','/'));
         var wr = wrx.NewFile(filename);
-        FilesCount += 1;
+        FileCount += 1;
         wr.WriteLine("// Class {0}", DtCtorDeclarationName(ctor, dt.TypeArgs));
         wr.WriteLine("// Dafny class {0} compiled into Java", DtCtorDeclarationName(ctor, dt.TypeArgs));
         wr.WriteLine("package {0};", ModuleName);
@@ -1344,7 +1344,7 @@ namespace Microsoft.Dafny{
       if (dt is CoDatatypeDecl) {
         var filename = string.Format("{1}/{0}__Lazy.java", dt.CompileName, ModuleName.Replace('.','/'));
         var wr = wrx.NewFile(filename);
-        FilesCount += 1;
+        FileCount += 1;
         wr.WriteLine("// Class {0}__Lazy", dt.CompileName);
         wr.WriteLine("// Dafny class {0}__Lazy compiled into Java", dt.CompileName);
         wr.WriteLine("package {0};", ModuleName);
@@ -2497,7 +2497,7 @@ protected override BlockTargetWriter CreateLambda(List<Type> inTypes, Bpl.IToken
     protected override IClassWriter CreateTrait(string name, bool isExtern, List<Type> superClasses, Bpl.IToken tok, TargetWriter wr) {
       var filename = string.Format("{1}/{0}.java", name, ModuleName.Replace('.','/'));
       var w = wr.NewFile(filename);
-      FilesCount += 1;
+      FileCount += 1;
       w.WriteLine("// Interface {0}", name);
       w.WriteLine("// Dafny trait {0} compiled into Java", name);
       w.WriteLine("package {0};", ModuleName);
@@ -2521,7 +2521,7 @@ protected override BlockTargetWriter CreateLambda(List<Type> inTypes, Bpl.IToken
       //writing the _Companion class
       filename = string.Format("{1}/_Companion_{0}.java", name, ModuleName.Replace('.','/'));
       w = w.NewFile(filename);
-      FilesCount += 1;
+      FileCount += 1;
       w.WriteLine("// Interface {0}", name);
       w.WriteLine("// Dafny trait {0} compiled into Java", name);
       w.WriteLine("package {0};", ModuleName);
