@@ -102,6 +102,26 @@ public class Helpers {
 
         return new Character((char)t);
     }
+
+    public static Character createCharacter(DafnyByte t) {
+        assert 0 <= t.intValue() && t.intValue() <= 65535;
+        return new Character((char)t.intValue());
+    }
+
+    public static Character createCharacter(DafnyUInt t) {
+        assert 0 <= t.value() && t.value() <= 65535;
+        return new Character((char)t.value());
+    }
+
+    public static Character createCharacter(DafnyULong t) {
+        assert 0 <= t.value() && t.value() <= 65535;
+        return new Character((char)t.value());
+    }
+
+    public static Character createCharacter(long t) {
+        assert 0 <= t && t <= 65535;
+        return new Character((char)t);
+    }
 }
 
 

@@ -35,6 +35,7 @@ namespace Microsoft.Dafny{
     string DafnyMapClass = "dafny.DafnyMap";
 
     private String ModuleName;
+    private String ModulePath;
     private String MainModuleName;
     private int FileCount = 0;
     private Import ModuleImport;
@@ -261,6 +262,7 @@ namespace Microsoft.Dafny{
       var path = pkgName.Replace('.', '/');
       var import = new Import{ Name=moduleName, Path=path };
       ModuleName = IdProtect(moduleName);
+      ModulePath = path;
       ModuleImport = import;
       FileCount = 0;
       return wr;
@@ -678,7 +680,7 @@ namespace Microsoft.Dafny{
       if (isExtern) {
         return new ClassWriter(this, new BlockTargetWriter(0, "", ""));
       }
-      var filename = string.Format("{1}/{0}.java", name, ModuleName.Replace('.', '/'));
+      var filename = string.Format("{1}/{0}.java", name, ModulePath);
       var w = wr.NewFile(filename);
       FileCount += 1;
       w.WriteLine("// Class {0}", name);
@@ -1201,7 +1203,7 @@ namespace Microsoft.Dafny{
         DtT += DtT_TypeArgs;
         DtT_protected += DtT_TypeArgs;
       }
-      var filename = string.Format("{1}/{0}.java", dt, ModuleName.Replace('.','/'));
+      var filename = string.Format("{1}/{0}.java", dt, ModulePath);
       wr = wr.NewFile(filename);
       FileCount += 1;
       wr.WriteLine("// Class {0}", DtT_protected);
@@ -1322,7 +1324,7 @@ namespace Microsoft.Dafny{
       }
       int constructorIndex = 0; // used to give each constructor a different name
       foreach (DatatypeCtor ctor in dt.Ctors) {
-        var filename = string.Format("{1}/{0}.java", DtCtorDeclarationName(ctor), ModuleName.Replace('.','/'));
+        var filename = string.Format("{1}/{0}.java", DtCtorDeclarationName(ctor), ModulePath);
         var wr = wrx.NewFile(filename);
         FileCount += 1;
         wr.WriteLine("// Class {0}", DtCtorDeclarationName(ctor, dt.TypeArgs));
@@ -1342,7 +1344,7 @@ namespace Microsoft.Dafny{
       }
       
       if (dt is CoDatatypeDecl) {
-        var filename = string.Format("{1}/{0}__Lazy.java", dt.CompileName, ModuleName.Replace('.','/'));
+        var filename = string.Format("{1}/{0}__Lazy.java", dt.CompileName, ModulePath);
         var wr = wrx.NewFile(filename);
         FileCount += 1;
         wr.WriteLine("// Class {0}__Lazy", dt.CompileName);
@@ -2495,7 +2497,7 @@ protected override BlockTargetWriter CreateLambda(List<Type> inTypes, Bpl.IToken
     }
     
     protected override IClassWriter CreateTrait(string name, bool isExtern, List<Type> superClasses, Bpl.IToken tok, TargetWriter wr) {
-      var filename = string.Format("{1}/{0}.java", name, ModuleName.Replace('.','/'));
+      var filename = string.Format("{1}/{0}.java", name, ModulePath);
       var w = wr.NewFile(filename);
       FileCount += 1;
       w.WriteLine("// Interface {0}", name);
@@ -2519,7 +2521,7 @@ protected override BlockTargetWriter CreateLambda(List<Type> inTypes, Bpl.IToken
       }
       var instanceMemberWriter = w.NewBlock("");
       //writing the _Companion class
-      filename = string.Format("{1}/_Companion_{0}.java", name, ModuleName.Replace('.','/'));
+      filename = string.Format("{1}/_Companion_{0}.java", name, ModulePath);
       w = w.NewFile(filename);
       FileCount += 1;
       w.WriteLine("// Interface {0}", name);

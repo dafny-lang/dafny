@@ -26,9 +26,8 @@ public class DafnyByte{
     }
 
     public DafnyByte(BigInteger i){
-        int ii = i.intValue();
-        assert 0 <= ii && ii <= MAXVALUE : "Precondition Failure";
-        inner = ii;
+        assert i.compareTo(BigInteger.ZERO) >= 0 && i.compareTo(BigInteger.valueOf(MAXVALUE)) <= 0 : "Precondition Failure";
+        inner = i.intValue();
     }
 
     public static int compare(DafnyByte x, DafnyByte y){
