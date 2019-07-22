@@ -1,4 +1,4 @@
-package DafnyClasses;
+package dafny;
 
 import java.util.ArrayList;
 import java.util.Iterator;

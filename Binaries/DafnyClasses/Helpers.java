@@ -1,4 +1,4 @@
-package DafnyClasses;
+package dafny;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Array;
@@ -6,6 +6,7 @@ import java.math.BigInteger;
 import java.math.BigDecimal;
 import java.util.Collection;
 import java.util.function.*;
+import java.util.ArrayList;
 
 public class Helpers {
 
@@ -63,5 +64,5 @@ public class Helpers {
         return arr;
     }
 }
-}
+
 

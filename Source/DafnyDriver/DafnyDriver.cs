@@ -481,8 +481,8 @@ namespace Microsoft.Dafny
         string path = codebase + "/DafnyClasses";
         DirectoryInfo dir = new DirectoryInfo(path);
         FileInfo[] files = dir.GetFiles();
-        Directory.CreateDirectory(targetDir + "/DafnyClasses");
-        string dest = targetDir + "/DafnyClasses";
+        Directory.CreateDirectory(targetDir + "/dafny");
+        string dest = targetDir + "/dafny";
         foreach (FileInfo file in files) {
           string temp = Path.Combine(dest, file.Name);
           file.CopyTo(temp, true);
@@ -613,7 +613,7 @@ namespace Microsoft.Dafny
         Contract.Assert(assemblyLocation != null);
         var codebase = System.IO.Path.GetDirectoryName(assemblyLocation);
         Contract.Assert(codebase != null);
-        string dest = targetDir + "/DafnyClasses";
+        string dest = targetDir + "/dafny";
         var jcompiler = (JavaCompiler) compiler;
         jcompiler.CompileTuples(dest);
         jcompiler.CreateFunctionInterface(dest);

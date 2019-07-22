@@ -1,36 +1,28 @@
-package DafnyClasses;
+package dafny;
 
-public class DafnyUShort {
+// Dafny bytes are default unsigned, whereas they are signed in Java, and there is no unsigned equivalent
+public class UByte {
     private int inner;
-    public final static int MAXVALUE = 0xffff;
-    public DafnyUShort(byte by){
+    public final static int MAXVALUE = 0xff;
+    public UByte(byte by){
         //simply casting to an int will preserve the sign
         inner = Byte.toUnsignedInt(by);
     }
 
-    public DafnyUShort(short sh){
-        //simply casting to an int will preserve the sign
-        inner = Short.toUnsignedInt(sh);
-    }
-
-    public DafnyUShort(int i){
+    public UByte(int i){
         assert 0 <= i && i <= MAXVALUE : "Precondition Failure";
         inner = i;
     }
 
-    public DafnyUShort(){
-        inner = 0;
-    }
-
-    public DafnyUShort(DafnyUShort other){
+    public UByte(UByte other){
         inner = other.inner;
     }
 
-    public static int compare(DafnyUShort x, DafnyUShort y){
-        return Integer.compareUnsigned(x.inner,y.inner);
+    public static int compare(UByte x, UByte y){
+        return Integer.compareUnsigned(x.inner, y.inner);
     }
 
-    public int compareTo(DafnyUShort other){
+    public int compareTo(UByte other){
         return Integer.compareUnsigned(inner, other.inner);
     }
 
@@ -51,46 +43,45 @@ public class DafnyUShort {
         return (long) inner;
     }
 
-
     //Invariant that other.inner is positive, so no underflow check needed
-    public DafnyUShort add(DafnyUShort other){
+    public UByte add(UByte other){
         int i = inner + other.inner;
         assert i <= MAXVALUE: "Precondition Failure";
-        return new DafnyUShort(i);
+        return new UByte(i);
     }
 
     //Invariant that other.inner is positive, so no overflow check needed
-    public DafnyUShort subtract(DafnyUShort other){
+    public UByte subtract(UByte other){
         int i = inner - other.inner;
         assert i >= 0: "Precondition Failure";
-        return new DafnyUShort(i);
+        return new UByte(i);
     }
 
     //Invariant that other.inner is positive, so no underflow check needed
-    public DafnyUShort multiply(DafnyUShort other){
+    public UByte multiply(UByte other){
         int i = inner * other.inner;
         assert i <= MAXVALUE: "Precondition Failure";
-        return new DafnyUShort(i);
-    }
-    
-    //Invariant that other.inner is positive, so only nonzero check needed
-    public DafnyUShort divide(DafnyUShort other){
-        assert other.inner != 0 : "Precondition Failure";
-        return new DafnyUShort(inner/other.inner);
+        return new UByte(i);
     }
 
     //Invariant that other.inner is positive, so only nonzero check needed
-    public DafnyUShort mod(DafnyUShort other) {
+    public UByte divide(UByte other){
         assert other.inner != 0 : "Precondition Failure";
-        return new DafnyUShort(inner % other.inner);
+        return new UByte(inner/other.inner);
+    }
+
+    //Invariant that other.inner is positive, so only nonzero check needed
+    public UByte mod(UByte other){
+        assert other.inner != 0 : "Precondition Failure";
+        return new UByte(inner%other.inner);
     }
 
     @Override
     public boolean equals(Object obj) {
         if (this == obj) return true;
         if (obj == null) return false;
-        if (getClass() != obj.getClass()) return false;
-        DafnyUShort o = (DafnyUShort) obj;
+        if (getClass() != getClass()) return false;
+        UByte o = (UByte) obj;
         return inner == o.inner;
     }
 
@@ -104,27 +95,27 @@ public class DafnyUShort {
         return Integer.toUnsignedString(inner);
     }
 
-    public DafnyUShort xor(DafnyUShort other){
-        return new DafnyUShort(inner ^ other.inner);
+    public UByte xor(UByte other){
+        return new UByte(inner ^ other.inner);
     }
 
-    public DafnyUShort or(DafnyUShort other){
-        return new DafnyUShort(inner | other.inner);
+    public UByte or(UByte other){
+        return new UByte(inner | other.inner);
     }
 
-    public DafnyUShort and(DafnyUShort other){
-        return new DafnyUShort(inner & other.inner);
+    public UByte and(UByte other){
+        return new UByte(inner & other.inner);
     }
 
-    public DafnyUShort not(){
-        return new DafnyUShort(~inner);
+    public UByte not(){
+        return new UByte(~inner);
     }
 
-    public DafnyUShort shiftLeft(int i){
-        return new DafnyUShort(inner << i);
+    public UByte shiftLeft(int i){
+        return new UByte(inner << i);
     }
 
-    public DafnyUShort shiftRight(int i){
-        return new DafnyUShort(inner >> i);
+    public UByte shiftRight(int i){
+        return new UByte(inner >> i);
     }
 }

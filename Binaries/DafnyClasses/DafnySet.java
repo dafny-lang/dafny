@@ -1,4 +1,4 @@
-package DafnyClasses;
+package dafny;
 
 import java.util.*;
 
@@ -115,7 +115,7 @@ public class DafnySet<T> {
         return innerSet.addAll(other.innerSet);
     }
 
-    public Collection<DafnySet<T>> allSubsets(){
+    public Collection<DafnySet<T>> AllSubsets(){
         // Start by putting all set elements into a list, but don't include null
         List<T> elmts = new ArrayList();
         elmts.addAll(innerSet);

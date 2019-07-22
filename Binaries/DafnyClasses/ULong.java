@@ -1,41 +1,41 @@
-package DafnyClasses;
+package dafny;
 
 import java.math.BigInteger;
 
 // Dafny bytes are default unsigned, whereas they are signed in Java, and there is no unsigned equivalent
-public class DafnyULong {
+public class ULong {
     private long inner;
     public final static long MAXVALUE = 0xffffffffffffffffl;
     public final static BigInteger MAXBI = new BigInteger("18446744073709551615");
 
-    public DafnyULong(byte by) {
+    public ULong(byte by) {
         //simply casting to an int will preserve the sign
         inner = Byte.toUnsignedLong(by);
     }
 
-    public DafnyULong(short sh) {
+    public ULong(short sh) {
         //simply casting to an int will preserve the sign
         inner = Short.toUnsignedLong(sh);
     }
 
-    public DafnyULong(DafnyULong other){
+    public ULong(ULong other){
         inner = other.inner;
     }
 
-    public DafnyULong(int i) {
+    public ULong(int i) {
         inner = Integer.toUnsignedLong(i);
     }
 
-    public DafnyULong(long l) {
+    public ULong(long l) {
         inner = l;
     }
 
-    public DafnyULong(BigInteger b) {
+    public ULong(BigInteger b) {
         assert b.compareTo(MAXBI) <= 0 : "Precondition Failure";
         inner = b.longValue() < 0 ? 0xffffffffffffffffl + MAXBI.subtract(b).longValue(): b.longValue();
     }
 
-    public DafnyULong(){
+    public ULong(){
         inner = 0L;
     }
 
@@ -43,42 +43,42 @@ public class DafnyULong {
         return inner;
     }
 
-    public static int compare(DafnyULong x, DafnyULong y) {
+    public static int compare(ULong x, ULong y) {
         return x.compareTo(y);
     }
 
-    public int compareTo(DafnyULong other) {
+    public int compareTo(ULong other) {
         return Long.compareUnsigned(inner, other.inner);
     }
 
     //Invariant that other.inner is positive, so no underflow check needed
-    public DafnyULong add(DafnyULong other) {
+    public ULong add(ULong other) {
         assert asBigInteger().add(other.asBigInteger()).compareTo(MAXBI) <= 0 : "Precondition Failure";
-        return new DafnyULong(inner + other.inner);
+        return new ULong(inner + other.inner);
     }
 
     //Invariant that other.inner is positive, so no overflow check needed
-    public DafnyULong subtract(DafnyULong other) {
+    public ULong subtract(ULong other) {
         assert asBigInteger().subtract(other.asBigInteger()).compareTo(BigInteger.ZERO) >= 0 : "Precondition Failure";
-        return new DafnyULong(inner - other.inner);
+        return new ULong(inner - other.inner);
     }
 
     //Invariant that other.inner is positive, so no underflow check needed
-    public DafnyULong multiply(DafnyULong other) {
+    public ULong multiply(ULong other) {
         assert asBigInteger().multiply(other.asBigInteger()).compareTo(MAXBI) <= 0 : "Precondition Failure";
-        return new DafnyULong(inner * other.inner);
+        return new ULong(inner * other.inner);
     }
 
     //Invariant that other.inner is positive, so only nonzero check needed
-    public DafnyULong divide(DafnyULong other) {
+    public ULong divide(ULong other) {
         assert other.inner != 0 : "Precondition Failure";
-        return new DafnyULong(Long.divideUnsigned(inner, other.inner));
+        return new ULong(Long.divideUnsigned(inner, other.inner));
     }
 
     //Invariant that other.inner is positive, so only nonzero check needed
-    public DafnyULong mod(DafnyULong other) {
+    public ULong mod(ULong other) {
         assert other.inner != 0 : "Precondition Failure";
-        return new DafnyULong(Long.remainderUnsigned(inner, other.inner));
+        return new ULong(Long.remainderUnsigned(inner, other.inner));
     }
 
     @Override
@@ -86,7 +86,7 @@ public class DafnyULong {
         if (this == obj) return true;
         if (obj == null) return false;
         if (getClass() != obj.getClass()) return false;
-        DafnyULong o = (DafnyULong) obj;
+        ULong o = (ULong) obj;
         return inner == o.inner;
     }
 
@@ -104,27 +104,27 @@ public class DafnyULong {
         return new BigInteger(Long.toUnsignedString(inner));
     }
 
-    public DafnyULong xor(DafnyULong other){
-        return new DafnyULong(inner ^ other.inner);
+    public ULong xor(ULong other){
+        return new ULong(inner ^ other.inner);
     }
 
-    public DafnyULong or(DafnyULong other){
-        return new DafnyULong(inner | other.inner);
+    public ULong or(ULong other){
+        return new ULong(inner | other.inner);
     }
 
-    public DafnyULong and(DafnyULong other){
-        return new DafnyULong(inner & other.inner);
+    public ULong and(ULong other){
+        return new ULong(inner & other.inner);
     }
 
-    public DafnyULong not(){
-        return new DafnyULong(~inner);
+    public ULong not(){
+        return new ULong(~inner);
     }
 
-    public DafnyULong shiftLeft(int i){
-        return new DafnyULong(inner << i);
+    public ULong shiftLeft(int i){
+        return new ULong(inner << i);
     }
 
-    public DafnyULong shiftRight(int i){
-        return new DafnyULong(inner >> i);
+    public ULong shiftRight(int i){
+        return new ULong(inner >> i);
     }
 }

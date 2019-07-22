@@ -1,8 +1,8 @@
-package DafnyClasses;
+package dafny;
 
 import java.math.BigInteger;
 
-public class DafnyBigOrdinal {
+public class BigOrdinal {
     public static boolean IsLimit(BigInteger b){
         return b.equals(BigInteger.ZERO);
     }

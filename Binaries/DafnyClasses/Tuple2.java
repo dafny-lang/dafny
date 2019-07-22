@@ -1,10 +1,10 @@
-package DafnyClasses;
+package dafny;
 
-public class DafnyTuple2<T0, T1> {
+public class Tuple2<T0, T1> {
     private T0 _0;
     private T1 _1;
 
-    public DafnyTuple2(T0 _0, T1 _1) {
+    public Tuple2(T0 _0, T1 _1) {
         this._0 = _0;
         this._1 = _1;
     }
@@ -14,7 +14,7 @@ public class DafnyTuple2<T0, T1> {
         if (this == obj) return true;
         if (obj == null) return false;
         if (getClass() != obj.getClass()) return false;
-        DafnyTuple2<T0, T1> o = (DafnyTuple2<T0, T1>) obj;
+        Tuple2<T0, T1> o = (Tuple2<T0, T1>) obj;
         return this._0.equals(o._0) && this._1.equals(o._1);
     }
 
@@ -40,8 +40,8 @@ public class DafnyTuple2<T0, T1> {
         return (int) hash;
     }
 
-    public T0 get_0() { return this._0; }
+    public T0 dtor__0() { return this._0; }
 
-    public T1 get_1() { return this._1; }
+    public T1 dtor__1() { return this._1; }
 }
 

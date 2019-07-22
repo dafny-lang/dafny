@@ -72,6 +72,9 @@ namespace Microsoft.Dafny{
       }
     }
 
+    protected string IntSelect = ",int";
+    protected string LambdaExecute = "";
+
     protected virtual void EmitHeader(Program program, TargetWriter wr){ }
     protected virtual void EmitBuiltInDecls(BuiltIns builtIns, TargetWriter wr){ }
 
@@ -257,7 +260,7 @@ namespace Microsoft.Dafny{
     /// In the above, if "type" is null, then it is replaced by "var" or "let".
     /// "tok" is allowed to be null if "type" is.
     /// </summary>
-    protected void DeclareLocalVar(string name, Type /*?*/ type, Bpl.IToken /*?*/ tok, Expression rhs,
+    protected virtual void DeclareLocalVar(string name, Type /*?*/ type, Bpl.IToken /*?*/ tok, Expression rhs,
       bool inLetExprBody, TargetWriter wr){
       var w = DeclareLocalVar(name, type, tok, wr);
       TrExpr(rhs, w, inLetExprBody);
@@ -699,35 +702,18 @@ namespace Microsoft.Dafny{
     protected abstract void EmitSingleValueGenerator(Expression e, bool inLetExprBody, string type, TargetWriter wr);
     protected virtual void FinishModule(){ }
 
+    protected virtual void OrganizeModules(Program program, out List<ModuleDefinition> modules){
+      modules = program.CompileModules;
+    }
+    
     public void Compile(Program program, TargetWriter wrx){
       Contract.Requires(program != null);
 
       EmitHeader(program, wrx);
       EmitBuiltInDecls(program.BuiltIns, wrx);
-      if (this.TargetLanguage.Equals("Java")){
-        //todo: Find a better way to reorganize this list
-        var temp = new List<ModuleDefinition>();
-        foreach (var m in program.CompileModules){
-          if (!m.IsDefaultModule && !(m.Name.Equals("_System"))){
-            temp.Add(m);
-          }
-        }
-
-        foreach (var m in program.CompileModules){
-          if (m.Name.Equals("_System")){
-            temp.Add(m);
-          }
-        }
-
-        foreach (var m in program.CompileModules){
-          if (m.IsDefaultModule){
-            temp.Add(m);
-          }
-        }
-
-        program.CompileModules = temp;
-      }
-
+      var temp = new List<ModuleDefinition>();
+      OrganizeModules(program, out temp);
+      program.CompileModules = temp;
       foreach (ModuleDefinition m in program.CompileModules){
         if (m.IsAbstract){
           // the purpose of an abstract module is to skip compilation
@@ -1213,12 +1199,7 @@ namespace Microsoft.Dafny{
             classWriter.CreateGetterSetter(IdName(f), f.Type, f.tok, false, false, member, out wSet);
           }
           else if (c is ClassDecl && f.Type.IsTypeParameter){
-            if (TargetLanguage.Equals(("Java"))){
-              l.Add(f.Type.AsTypeParameter);
-              classWriter.DeclareField($"s{f.Type.AsTypeParameter.Name}", false, false, Type.String(), null, "null");
-            }
-            classWriter.DeclareField(IdName(f), f.IsStatic, false, f.Type, f.tok,
-              DefaultValue(f.Type, errorWr, f.tok, true));
+            EmitTypeParams(classWriter, l, f, errorWr);
           }
           else{
             classWriter.DeclareField(IdName(f), f.IsStatic, false, f.Type, f.tok,
@@ -1298,7 +1279,11 @@ namespace Microsoft.Dafny{
     }
 
     protected virtual void CreateDefaultConstructor(ClassDecl c, IClassWriter cw, List<TypeParameter> l){
-      
+    }
+
+    protected virtual void EmitTypeParams(IClassWriter classWriter, List<TypeParameter> l, Field f, TextWriter errorWr){
+      classWriter.DeclareField(IdName(f), f.IsStatic, false, f.Type, f.tok,
+        DefaultValue(f.Type, errorWr, f.tok, true));
     }
 
     void CheckHandleWellformed(ClassDecl cl, TextWriter /*?*/ errorWr){
@@ -2306,12 +2291,7 @@ namespace Microsoft.Dafny{
             var lhs = (SeqSelectExpr) s0.Lhs;
             L = 3;
             // note, we might as well do the BigInteger-to-int cast for array indices here, before putting things into the Tuple rather than when they are extracted from the Tuple
-            if (TargetLanguage == "Java") {
-              tupleTypeArgs = TypeName(lhs.Seq.Type, wr, lhs.tok) + ",BigInteger";
-            }
-            else {
-              tupleTypeArgs = TypeName(lhs.Seq.Type, wr, lhs.tok) + ",int";
-            }
+            tupleTypeArgs = TypeName(lhs.Seq.Type, wr, lhs.tok) + IntSelect;
             tupleTypeArgsList = new List<Type>{lhs.Seq.Type, null};
           }
           else{
@@ -2328,12 +2308,7 @@ namespace Microsoft.Dafny{
             tupleTypeArgsList = new List<Type>{lhs.Array.Type};
             for (int i = 0; i < lhs.Indices.Count; i++){
               // note, we might as well do the BigInteger-to-int cast for array indices here, before putting things into the Tuple rather than when they are extracted from the Tuple
-              if (TargetLanguage == "Java") {
-                tupleTypeArgs += ",BigInteger";
-              }
-              else {
-                tupleTypeArgs += ",int";
-              }
+              tupleTypeArgs += IntSelect;
               tupleTypeArgsList.Add(null);
             }
           }
@@ -2365,26 +2340,12 @@ namespace Microsoft.Dafny{
               var lhs = (SeqSelectExpr) s0.Lhs;
               TrExpr(lhs.Seq, wrTuple, false);
               wrTuple.Write(", ");
-              if (TargetLanguage == "Java") {
-                wrTuple.Write("BigInteger.valueOf(");
-              }
-              EmitExprAsInt(lhs.E0, false, wrTuple);
-              if (TargetLanguage == "Java") {
-                wrTuple.Write(")");
-              }
             }
             else{
               var lhs = (MultiSelectExpr) s0.Lhs;
               TrExpr(lhs.Array, wrTuple, false);
               for (int i = 0; i < lhs.Indices.Count; i++){
                 wrTuple.Write(", ");
-                if (TargetLanguage == "Java") {
-                  wrTuple.Write("BigInteger.valueOf(");
-                }
-                EmitExprAsInt(lhs.Indices[i], false, wrTuple);
-                if (TargetLanguage == "Java") {
-                  wrTuple.Write(")");
-                }
               }
             }
 
@@ -2642,13 +2603,7 @@ namespace Microsoft.Dafny{
       else if (bound is ComprehensionExpr.SubSetBoundedPool){
         var b = (ComprehensionExpr.SubSetBoundedPool) bound;
         TrParenExpr(b.UpperBound, collectionWriter, inLetExprBody);
-        if (this.TargetLanguage.Equals("Java")){
-          collectionWriter.Write(".allSubsets" + propertySuffix);
-        }
-        else
-        {
-          collectionWriter.Write(".AllSubsets" + propertySuffix);
-        }
+        collectionWriter.Write(".AllSubsets" + propertySuffix);
       }
       else if (bound is ComprehensionExpr.MapBoundedPool){
         var b = (ComprehensionExpr.MapBoundedPool) bound;
@@ -2979,8 +2934,7 @@ namespace Microsoft.Dafny{
       }
       else{
         var v = idGenerator.FreshId(prefix);
-        var type = TargetLanguage == "Java" ? e.Type : null;
-        DeclareLocalVar(v, type, null, e, false, wr);
+        DeclareLocalVar(v, null, null, e, false, wr);
         return v;
       }
     }
@@ -3082,7 +3036,7 @@ namespace Microsoft.Dafny{
             w = CreateForLoop(indices[d], bound, w);
           }
 
-          var eltRhs = string.Format("{0}{2}({1})", f, Util.Comma(indices, ArrayIndexToInt), TargetLanguage == "Java" ? ".apply" : "");
+          var eltRhs = string.Format("{0}{2}({1})", f, Util.Comma(indices, ArrayIndexToInt), LambdaExecute);
           var wArray = EmitArrayUpdate(indices, eltRhs, tRhs.ElementInit.Type, w);
           wArray.Write(nw);
           EndStmt(w);
@@ -3289,7 +3243,7 @@ namespace Microsoft.Dafny{
 
         EmitActualTypeArgs(typeArgs, s.Tok, wr);
         wr.Write("(");
-        var nRTDs = EmitRuntimeTypeDescriptorsActuals(typeArgs, s.Method.TypeArgs, s.Tok, (TargetLanguage.Equals("Java") && returnStyleOutCollector != null), wr);
+        var nRTDs = EmitRuntimeTypeDescriptorsActuals(typeArgs, s.Method.TypeArgs, s.Tok, returnStyleOutCollector != null, wr);
         string sep = nRTDs == 0 ? "" : ", ";
         for (int i = 0; i < s.Method.Ins.Count; i++){
           Formal p = s.Method.Ins[i];
@@ -3838,10 +3792,8 @@ namespace Microsoft.Dafny{
         }
 
         // We end with applying the source expression to the delegate we just built
-        if (TargetLanguage == "Java") {
-          wr.Write(".apply");
-        }
-        TrParenExpr(e.Source, wr, inLetExprBody);
+        wr.Write(LambdaExecute);
+          TrParenExpr(e.Source, wr, inLetExprBody);
       }
       else if (expr is QuantifierExpr){
         var e = (QuantifierExpr) expr;
@@ -3893,16 +3845,7 @@ namespace Microsoft.Dafny{
         var collection_name = idGenerator.FreshId("_coll");
         var bwr = CreateIIFE0(e.Type.AsSetType, e.tok, wr);
         wr = bwr;
-        if (TargetLanguage.Equals("Java")) {
-          wr.Write("ArrayList<{0}> {1} = ", TypeName(((SetType)expr.Type).Arg, wr, null), collection_name);
-          EmitCollectionBuilder_New(e.Type.AsSetType, e.tok, wr);
-          wr.WriteLine(";");
-        } else {
-          using (var wrVarInit = DeclareLocalVar(collection_name, null, null, wr)){
-            EmitCollectionBuilder_New(e.Type.AsSetType, e.tok, wrVarInit);
-          }
-        }
-
+        EmitSetComprehension(wr, expr, collection_name);
         var n = e.BoundVars.Count;
         Contract.Assert(e.Bounds.Count == n);
         for (int i = 0; i < n; i++){
@@ -4032,6 +3975,13 @@ namespace Microsoft.Dafny{
       }
 
       su = new Translator.Substituter(null, sm, new Dictionary<TypeParameter, Type>());
+    }
+
+    protected virtual void EmitSetComprehension(TargetWriter wr, Expression expr, String collection_name){
+      var e = (SetComprehension) expr;
+        using (var wrVarInit = DeclareLocalVar(collection_name, null, null, wr)){
+          EmitCollectionBuilder_New(e.Type.AsSetType, e.tok, wrVarInit);
+        }
     }
 
     protected bool IsHandleComparison(Bpl.IToken tok, Expression e0, Expression e1, TextWriter errorWr){
