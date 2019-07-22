@@ -471,7 +471,9 @@ namespace Microsoft.Dafny
       string targetBaseName = Path.ChangeExtension(baseName, targetExtension);
       string targetDir = Path.Combine(Path.GetDirectoryName(dafnyProgramName), targetBaseDir);
       string targetFilename = Path.Combine(targetDir, targetBaseName);
-      WriteFile(targetFilename, targetProgram);
+      if (targetProgram != null) {
+        WriteFile(targetFilename, targetProgram); 
+      }
 
       if (DafnyOptions.O.CompileTarget is DafnyOptions.CompilationTarget.Java) {
         var assemblyLocation = System.Reflection.Assembly.GetExecutingAssembly().Location;
@@ -490,7 +492,7 @@ namespace Microsoft.Dafny
       }
       
       string relativeTarget = Path.Combine(targetBaseDir, targetBaseName);
-      if (completeProgram) {
+      if (completeProgram && targetProgram != null) {
         if (DafnyOptions.O.CompileVerbose) {
           outputWriter.WriteLine("Compiled program written to {0}", relativeTarget);
         }
@@ -596,6 +598,9 @@ namespace Microsoft.Dafny
       if (DafnyOptions.O.SpillTargetCode > 0 || otherFileNames.Count > 0 || (invokeCompiler && !compiler.SupportsInMemoryCompilation))
       {
         var p = callToMain == null ? targetProgramText : targetProgramText + callToMain;
+        if (DafnyOptions.O.CompileTarget is DafnyOptions.CompilationTarget.Java && callToMain == null) {
+          p = null;
+        }
         targetFilename = WriteDafnyProgramToFiles(dafnyProgramName, p, completeProgram, otherFiles, outputWriter);
       }
 

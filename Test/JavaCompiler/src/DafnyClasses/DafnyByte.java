@@ -56,6 +56,8 @@ public class DafnyByte{
         return (long) inner;
     }
 
+    public byte byteValue() { return (byte) inner; }
+
     //Invariant that other.inner is positive, so no underflow check needed
     public DafnyByte add(DafnyByte other){
         int i = inner + other.inner;

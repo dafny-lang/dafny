@@ -41,10 +41,13 @@ public class ByteTest {
         double d = 10;
         int i = 10;
         long l = 10;
+        byte b = 10;
         assertEquals(f, tenB.floatValue());
         assertEquals(d, tenB.doubleValue());
         assertEquals(i, tenB.intValue());
         assertEquals(l, tenB.longValue());
+        assertEquals(b, tenB.byteValue());
+        assertEquals(b, (new DafnyByte(b)).byteValue());
         assertEquals(Integer.hashCode(10), tenB.hashCode());
         assertEquals("10", tenB.toString());
     }
