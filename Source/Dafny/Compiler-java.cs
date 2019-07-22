@@ -208,7 +208,7 @@ namespace Microsoft.Dafny{
       wr.WriteLine();
     }
 
-    // Only exists to make sure method is overriden, actual Emit occurs in DafnyDriver.cs
+    // Only exists to make sure method is overriden
     protected override void EmitBuiltInDecls(BuiltIns builtIns, TargetWriter wr){ }
 
     // Creates file header for each module's file.
@@ -274,8 +274,10 @@ namespace Microsoft.Dafny{
     }
     
     private void AddImport(Import import){
-      EmitImport(import, RootImportWriter);
-      Imports.Add(import);
+      if (!Imports.Contains(import)) {
+        EmitImport(import, RootImportWriter);
+        Imports.Add(import);
+      }
     }
     
     protected override void DeclareSubsetType(SubsetTypeDecl sst, TargetWriter wr){
@@ -602,7 +604,7 @@ namespace Microsoft.Dafny{
       if (cl == null) {
         return IdProtect(udt.FullName);
       }
-      else if (cl.Module.CompileName == ModuleName || cl is TupleTypeDecl || cl.Module.CompileName == "_module") {
+      else if (cl.Module.CompileName == ModuleName || cl is TupleTypeDecl || cl.Module.IsDefaultModule) {
         return IdProtect(cl.CompileName);
       }
       else{
@@ -1278,7 +1280,7 @@ namespace Microsoft.Dafny{
         w.WriteLine("ArrayList<{0}> {1} = new ArrayList<>();", DtT_protected, arraylist);
         foreach (var ctor in dt.Ctors) {
           Contract.Assert(ctor.Formals.Count == 0);
-          w.WriteLine("{2}.add(new {0}_{1}());", DtT_protected, ctor.CompileName, arraylist);
+          w.WriteLine("{2}.add(new {0}{1}());", DtT_protected, dt.IsRecordType ? "" : $"_{ctor.CompileName}", arraylist);
         }
         w.WriteLine("return {0};", arraylist);
       }
