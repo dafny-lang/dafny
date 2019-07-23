@@ -265,6 +265,12 @@ namespace Microsoft.Dafny{
       var w = DeclareLocalVar(name, type, tok, wr);
       TrExpr(rhs, w, inLetExprBody);
     }
+    
+    protected virtual void DeclareLocalVar(string name, Type /*?*/ type, Bpl.IToken /*?*/ tok, Expression rhs,
+      bool inLetExprBody, TargetWriter wr, Type t){
+      var w = DeclareLocalVar(name, type, tok, wr);
+      TrExpr(rhs, w, inLetExprBody);
+    }
 
     /// <summary>
     /// Generates
@@ -290,10 +296,15 @@ namespace Microsoft.Dafny{
     protected abstract void DeclareLocalOutVar(string name, Type type, Bpl.IToken tok, string rhs, bool useReturnStyleOuts, TargetWriter wr);
     protected virtual void EmitActualOutArg(string actualOutParamName, TextWriter wr) { }  // actualOutParamName is always the name of a local variable; called only for non-return-style outs
     protected virtual void EmitOutParameterSplits(string outCollector, List<string> actualOutParamNames, TargetWriter wr) { }  // called only for return-style calls
-    protected virtual void EmitCastOutParameterSplits(string outCollector, List<string> actualOutParamNames, TargetWriter wr, List<Type> actualOutParamTypes, Bpl.IToken tok) { }
+    protected virtual void EmitCastOutParameterSplits(string outCollector, List<string> actualOutParamNames, TargetWriter wr, List<Type> actualOutParamTypes, Bpl.IToken tok) { 
+      EmitOutParameterSplits(outCollector, actualOutParamNames, wr); }
 
     protected abstract void EmitActualTypeArgs(List<Type> typeArgs, Bpl.IToken tok, TextWriter wr);
     protected abstract string GenerateLhsDecl(string target, Type /*?*/ type, TextWriter wr, Bpl.IToken tok);
+
+    protected virtual TargetWriter DeclareLocalVar(string name, Type /*?*/ type, Bpl.IToken /*?*/ tok, TargetWriter wr, Type t){
+      return DeclareLocalVar(name, type, tok, wr);
+    }
 
     protected virtual void EmitAssignment(out TargetWriter wLhs, Type /*?*/ lhsType, out TargetWriter wRhs,
       Type /*?*/ rhsType, TargetWriter wr){
@@ -2317,45 +2328,7 @@ namespace Microsoft.Dafny{
           tupleTypeArgsList.Add(rhs.Type);
 
           // declare and construct "ingredients"
-          using (var wrVarInit = SupportsAmbiguousTypeDecl ? DeclareLocalVar(ingredients, null, null, wr) : wr){
-            if (!SupportsAmbiguousTypeDecl) {
-              wrVarInit.Write($"ArrayList<Tuple{L}<{tupleTypeArgs}>> {ingredients} = ");
-              AddTupleToSet(L);
-            }
-            EmitEmptyTupleList(tupleTypeArgs, wrVarInit);
-          }
-
-          var wrOuter = wr;
-          wr = CompileGuardedLoops(s.BoundVars, s.Bounds, s.Range, wr);
-
-          using (var wrTuple = EmitAddTupleToList(ingredients, tupleTypeArgs, wr)){
-            if (!SupportsAmbiguousTypeDecl) {
-              wrTuple.Write($"{L}<{tupleTypeArgs}>(");
-            }
-            if (s0.Lhs is MemberSelectExpr){
-              var lhs = (MemberSelectExpr) s0.Lhs;
-              TrExpr(lhs.Obj, wrTuple, false);
-            }
-            else if (s0.Lhs is SeqSelectExpr){
-              var lhs = (SeqSelectExpr) s0.Lhs;
-              TrExpr(lhs.Seq, wrTuple, false);
-              wrTuple.Write(", ");
-            }
-            else{
-              var lhs = (MultiSelectExpr) s0.Lhs;
-              TrExpr(lhs.Array, wrTuple, false);
-              for (int i = 0; i < lhs.Indices.Count; i++){
-                wrTuple.Write(", ");
-              }
-            }
-
-            wrTuple.Write(", ");
-            if (!SupportsAmbiguousTypeDecl && rhs is MultiSelectExpr) {
-              Type t = rhs.Type.NormalizeExpand();
-              wrTuple.Write("({0})", TypeName(t, wrTuple, rhs.tok));
-            }
-            TrExpr(rhs, wrTuple, false);
-          }
+          var wrOuter = EmitIngredients(wr, ingredients, L, tupleTypeArgs, s, s0, rhs);
 
           //   foreach (L-Tuple l in ingredients) {
           //     LHS[ l0, l1, l2, ..., l(L-2) ] = l(L-1);
@@ -2370,77 +2343,14 @@ namespace Microsoft.Dafny{
             wCoerceTup.Write(tup);
             tup = wTup.ToString();
           }
-          if (!SupportsAmbiguousTypeDecl) {
-            wr.Write("(");
-          }
           if (s0.Lhs is MemberSelectExpr){
-            var lhs = (MemberSelectExpr) s0.Lhs;
-            var wCoerced = EmitCoercionIfNecessary(from: null, to: tupleTypeArgsList[0], tok: s0.Tok, wr: wr);
-            if (!SupportsAmbiguousTypeDecl) {
-              wCoerced.Write("({0})", TypeName(tupleTypeArgsList[0].NormalizeExpand(), wCoerced, s0.Tok));
-            }
-            EmitTupleSelect(tup, 0, wCoerced);
-            if (!SupportsAmbiguousTypeDecl) {
-              wr.Write(")");
-            }
-            wr.Write(".{0} = ", IdMemberName(lhs));
-            wCoerced = EmitCoercionIfNecessary(from: null, to: tupleTypeArgsList[1], tok: s0.Tok, wr: wr);
-            if (!SupportsAmbiguousTypeDecl) {
-              wCoerced.Write("({0})", TypeName(tupleTypeArgsList[1].NormalizeExpand(), wCoerced, s0.Tok));
-            }
-            EmitTupleSelect(tup, 1, wCoerced);
-            EndStmt(wr);
+            EmitMemberSelect(s0, tupleTypeArgsList, wr, tup);
           }
           else if (s0.Lhs is SeqSelectExpr){
-            var lhs = (SeqSelectExpr) s0.Lhs;
-            TargetWriter wColl, wIndex, wValue;
-            EmitIndexCollectionUpdate(out wColl, out wIndex, out wValue, wr, nativeIndex: true);
-
-            var wCoerce = EmitCoercionIfNecessary(from: null, to: lhs.Seq.Type, tok: s0.Tok, wr: wColl);
-            if (!SupportsAmbiguousTypeDecl) {
-              wCoerce.Write("({0})", TypeName(lhs.Seq.Type.NormalizeExpand(), wCoerce, s0.Tok));
-            }
-            EmitTupleSelect(tup, 0, wCoerce);
-            if (!SupportsAmbiguousTypeDecl) {
-              wColl.Write(")");
-            }
-            var wCast = EmitCoercionToNativeInt(wIndex);
-            EmitTupleSelect(tup, 1, wCast);
-            if (!SupportsAmbiguousTypeDecl) {
-              wValue.Write("({0})", TypeName(tupleTypeArgsList[2].NormalizeExpand(), wValue, s0.Tok));
-            }
-            EmitTupleSelect(tup, 2, wValue);
-            EndStmt(wr);
+            EmitSeqSelect(s0, tupleTypeArgsList, wr, tup);
           }
           else{
-            var lhs = (MultiSelectExpr) s0.Lhs;
-            var wArray = new TargetWriter(wr.IndentLevel, true);
-            var wCoerced = EmitCoercionIfNecessary(from: null, to: tupleTypeArgsList[0], tok: s0.Tok, wr: wArray);
-            if (!SupportsAmbiguousTypeDecl) {
-              wCoerced.Write("({0})", TypeName(tupleTypeArgsList[0].NormalizeExpand(), wCoerced, s0.Tok));
-            }
-            EmitTupleSelect(tup, 0, wCoerced);
-            if (!SupportsAmbiguousTypeDecl) {
-              wArray.Write(")");
-            }
-            var array = wArray.ToString();
-            var indices = new List<string>();
-            for (int i = 0; i < lhs.Indices.Count; i++){
-              var wIndex = new TargetWriter();
-              if (!SupportsAmbiguousTypeDecl) {
-                wIndex.Write("((BigInteger)");
-              }
-              EmitTupleSelect(tup, i + 1, wIndex);
-              if (!SupportsAmbiguousTypeDecl) {
-                wIndex.Write(")");
-              }
-              indices.Add(wIndex.ToString());
-            }
-
-            EmitArraySelectAsLvalue(array, indices, tupleTypeArgsList[L - 1], wr);
-            wr.Write(" = ");
-            EmitTupleSelect(tup, L - 1, wr);
-            EndStmt(wr);
+            EmitMultiSelect(s0, tupleTypeArgsList, wr, tup, L);
           }
         }
       }
@@ -2512,7 +2422,83 @@ namespace Microsoft.Dafny{
       }
     }
 
-    private TargetWriter CompileGuardedLoops(List<BoundVar> bvs, List<ComprehensionExpr.BoundedPool> bounds,
+    protected virtual TargetWriter EmitIngredients(TargetWriter wr, string ingredients, int L, string tupleTypeArgs, ForallStmt s, AssignStmt s0, Expression rhs){
+      
+      using (var wrVarInit = DeclareLocalVar(ingredients, null, null, wr)){
+        EmitEmptyTupleList(tupleTypeArgs, wrVarInit);
+      }
+
+      var wrOuter = wr;
+      wr = CompileGuardedLoops(s.BoundVars, s.Bounds, s.Range, wr);
+
+      using (var wrTuple = EmitAddTupleToList(ingredients, tupleTypeArgs, wr)){
+        if (s0.Lhs is MemberSelectExpr){
+          var lhs = (MemberSelectExpr) s0.Lhs;
+          TrExpr(lhs.Obj, wrTuple, false);
+        }
+        else if (s0.Lhs is SeqSelectExpr){
+          var lhs = (SeqSelectExpr) s0.Lhs;
+          TrExpr(lhs.Seq, wrTuple, false);
+          wrTuple.Write(", (int)");
+          TrParenExpr(lhs.E0,  wrTuple, false);
+        }
+        else{
+          var lhs = (MultiSelectExpr) s0.Lhs;
+          TrExpr(lhs.Array, wrTuple, false);
+          for (int i = 0; i < lhs.Indices.Count; i++){
+            wrTuple.Write(", (int)");
+            TrParenExpr(lhs.Indices[i], wrTuple, false);
+          }
+        }
+
+        wrTuple.Write(", ");
+        TrExpr(rhs, wrTuple, false);
+      }
+
+      return wrOuter;
+    }
+    
+    protected virtual void EmitMemberSelect(AssignStmt s0, List<Type> tupleTypeArgsList, TargetWriter wr, string tup){
+      var lhs = (MemberSelectExpr) s0.Lhs;
+      var wCoerced = EmitCoercionIfNecessary(from: null, to: tupleTypeArgsList[0], tok: s0.Tok, wr: wr);
+      EmitTupleSelect(tup, 0, wCoerced);
+      wr.Write(".{0} = ", IdMemberName(lhs));
+      wCoerced = EmitCoercionIfNecessary(from: null, to: tupleTypeArgsList[1], tok: s0.Tok, wr: wr);
+      EmitTupleSelect(tup, 1, wCoerced);
+      EndStmt(wr);
+    }
+
+    protected virtual void EmitSeqSelect(AssignStmt s0, List<Type> tupleTypeArgsList, TargetWriter wr, string tup){
+      var lhs = (SeqSelectExpr) s0.Lhs;
+      TargetWriter wColl, wIndex, wValue;
+      EmitIndexCollectionUpdate(out wColl, out wIndex, out wValue, wr, nativeIndex: true);
+      var wCoerce = EmitCoercionIfNecessary(from: null, to: lhs.Seq.Type, tok: s0.Tok, wr: wColl);
+      EmitTupleSelect(tup, 0, wCoerce);
+      var wCast = EmitCoercionToNativeInt(wIndex);
+      EmitTupleSelect(tup, 1, wCast);
+      EmitTupleSelect(tup, 2, wValue);
+      EndStmt(wr);
+    }
+
+    protected virtual void EmitMultiSelect(AssignStmt s0, List<Type> tupleTypeArgsList, TargetWriter wr, string tup, int L){
+      var lhs = (MultiSelectExpr) s0.Lhs;
+      var wArray = new TargetWriter(wr.IndentLevel, true);
+      var wCoerced = EmitCoercionIfNecessary(from: null, to: tupleTypeArgsList[0], tok: s0.Tok, wr: wArray);
+      EmitTupleSelect(tup, 0, wCoerced);
+      var array = wArray.ToString();
+      var indices = new List<string>();
+      for (int i = 0; i < lhs.Indices.Count; i++){
+        var wIndex = new TargetWriter();
+        EmitTupleSelect(tup, i + 1, wIndex);
+        indices.Add(wIndex.ToString());
+      }
+      EmitArraySelectAsLvalue(array, indices, tupleTypeArgsList[L - 1], wr);
+      wr.Write(" = ");
+      EmitTupleSelect(tup, L - 1, wr);
+      EndStmt(wr);
+    }
+    
+    protected TargetWriter CompileGuardedLoops(List<BoundVar> bvs, List<ComprehensionExpr.BoundedPool> bounds,
       Expression range, TargetWriter wr){
       var n = bvs.Count;
       Contract.Assert(bounds.Count == n);
@@ -3006,8 +2992,7 @@ namespace Microsoft.Dafny{
       }
       else{
         var nw = idGenerator.FreshId("_nw");
-        var localType = SupportsAmbiguousTypeDecl ? null : tRhs.Type;
-        var wRhs = DeclareLocalVar(nw, localType, null, wStmts);
+        var wRhs = DeclareLocalVar(nw, null, null, wStmts, tRhs.Type);
         TrTypeRhs(tRhs, wRhs);
 
         // Proceed with initialization
@@ -3023,7 +3008,7 @@ namespace Microsoft.Dafny{
         else if (tRhs.ElementInit != null){
           // Compute the array-initializing function once and for all (as required by the language definition)
           string f = idGenerator.FreshId("_arrayinit");
-          DeclareLocalVar(f, SupportsAmbiguousTypeDecl ? null : tRhs.ElementInit.Type, null, tRhs.ElementInit, false, wStmts);
+          DeclareLocalVar(f, null, null, tRhs.ElementInit, false, wStmts, tRhs.ElementInit.Type);
           // Build a loop nest that will call the initializer for all indices
           var indices = Translator.Map(Enumerable.Range(0, tRhs.ArrayDimensions.Count),
             ii => idGenerator.FreshId("_arrayinit_" + ii));
@@ -3092,8 +3077,7 @@ namespace Microsoft.Dafny{
           if (!p.IsGhost){
             string inTmp = idGenerator.FreshId("_in");
             inTmps.Add(inTmp);
-            var rhsType = SupportsAmbiguousTypeDecl ? null : p.Type;
-            DeclareLocalVar(inTmp, rhsType, null, s.Args[i], false, wr);
+            DeclareLocalVar(inTmp, null, null, s.Args[i], false, wr, p.Type);
           }
         }
 
@@ -3204,10 +3188,8 @@ namespace Microsoft.Dafny{
 
         bool returnStyleOuts = UseReturnStyleOuts(s.Method, outTmps.Count);
         var returnStyleOutCollector = outTmps.Count > 0 && returnStyleOuts && !SupportsMultipleReturns ? idGenerator.FreshId("_outcollector") : null;
-        if (returnStyleOutCollector != null && !SupportsAmbiguousTypeDecl) {
+        if (returnStyleOutCollector != null) {
           DeclareSpecificOutCollector(returnStyleOutCollector, wr, outTmps.Count, outTypes, s.Method);
-        } else if (returnStyleOutCollector != null) {
-          DeclareOutCollector(returnStyleOutCollector, wr);
         }
         else if (outTmps.Count > 0 && returnStyleOuts && SupportsMultipleReturns){
           wr.Write("{0} = ", Util.Comma(outTmps));
@@ -3233,13 +3215,14 @@ namespace Microsoft.Dafny{
         }
 
         List<Type> typeArgs;
+        //TODO: determine why this was added in the first place, and if it is still needed
 //        if (s.Method.TypeArgs.Count != 0 && TargetLanguage != "Java"){
           var typeSubst = s.MethodSelect.TypeArgumentSubstitutions();
           typeArgs = s.Method.TypeArgs.ConvertAll(ta => typeSubst[ta]);
 //        }
 //        else{
 //          typeArgs = new List<Type>();
-//        } TODO: determine why this was added in the first place, and if it is still needed
+//        } 
 
         EmitActualTypeArgs(typeArgs, s.Tok, wr);
         wr.Write("(");
@@ -3270,11 +3253,8 @@ namespace Microsoft.Dafny{
 
         wr.Write(')');
         EndStmt(wr);
-        if (returnStyleOutCollector != null && !SupportsAmbiguousTypeDecl) {
-          EmitCastOutParameterSplits(returnStyleOutCollector, outTmps, wr, outTypes, s.Tok);
-        }
         if (returnStyleOutCollector != null) {
-          EmitOutParameterSplits(returnStyleOutCollector, outTmps, wr);
+          EmitCastOutParameterSplits(returnStyleOutCollector, outTmps, wr, outTypes, s.Tok);
         }
 
         // assign to the actual LHSs
@@ -3545,10 +3525,8 @@ namespace Microsoft.Dafny{
       }
       else if (expr is MultiSelectExpr){
         MultiSelectExpr e = (MultiSelectExpr) expr;
-        if (!SupportsAmbiguousTypeDecl) {
           wr.Write("({0})", TypeName(e.Type.NormalizeExpand(), wr, e.tok));
-        }
-        var w = EmitArraySelect(e.Indices, e.Type, inLetExprBody, wr);
+          var w = EmitArraySelect(e.Indices, e.Type, inLetExprBody, wr);
         TrParenExpr(e.Array, w, inLetExprBody);
       }
       else if (expr is SeqUpdateExpr){

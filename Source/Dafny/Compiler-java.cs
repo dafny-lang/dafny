@@ -89,7 +89,114 @@ namespace Microsoft.Dafny{
         }
       }
     }
+    
+    protected override void EmitMemberSelect(AssignStmt s0, List<Type> tupleTypeArgsList, TargetWriter wr, string tup){
+      wr.Write("(");
+      var lhs = (MemberSelectExpr) s0.Lhs;
+      var wCoerced = EmitCoercionIfNecessary(from: null, to: tupleTypeArgsList[0], tok: s0.Tok, wr: wr);
+      wCoerced.Write("({0})", TypeName(tupleTypeArgsList[0].NormalizeExpand(), wCoerced, s0.Tok));
+      EmitTupleSelect(tup, 0, wCoerced);
+      wr.Write(")");
+      wr.Write(".{0} = ", IdMemberName(lhs));
+      wCoerced = EmitCoercionIfNecessary(from: null, to: tupleTypeArgsList[1], tok: s0.Tok, wr: wr);
+      wCoerced.Write("({0})", TypeName(tupleTypeArgsList[1].NormalizeExpand(), wCoerced, s0.Tok));
+      EmitTupleSelect(tup, 1, wCoerced);
+      EndStmt(wr);
+    }
+    
+    protected override void EmitSeqSelect(AssignStmt s0, List<Type> tupleTypeArgsList, TargetWriter wr, string tup){
+      wr.Write("(");
+      var lhs = (SeqSelectExpr) s0.Lhs;
+      TargetWriter wColl, wIndex, wValue;
+      EmitIndexCollectionUpdate(out wColl, out wIndex, out wValue, wr, nativeIndex: true);
 
+      var wCoerce = EmitCoercionIfNecessary(from: null, to: lhs.Seq.Type, tok: s0.Tok, wr: wColl);
+        wCoerce.Write("({0})", TypeName(lhs.Seq.Type.NormalizeExpand(), wCoerce, s0.Tok));
+        EmitTupleSelect(tup, 0, wCoerce);
+        wColl.Write(")");
+      var wCast = EmitCoercionToNativeInt(wIndex);
+      EmitTupleSelect(tup, 1, wCast);
+        wValue.Write("({0})", TypeName(tupleTypeArgsList[2].NormalizeExpand(), wValue, s0.Tok));
+      EmitTupleSelect(tup, 2, wValue);
+      EndStmt(wr);
+    }
+    
+    protected override void EmitMultiSelect(AssignStmt s0, List<Type> tupleTypeArgsList, TargetWriter wr, string tup, int L){
+      wr.Write("(");
+      var lhs = (MultiSelectExpr) s0.Lhs;
+      var wArray = new TargetWriter(wr.IndentLevel, true);
+      var wCoerced = EmitCoercionIfNecessary(from: null, to: tupleTypeArgsList[0], tok: s0.Tok, wr: wArray);
+        wCoerced.Write("({0})", TypeName(tupleTypeArgsList[0].NormalizeExpand(), wCoerced, s0.Tok));
+        EmitTupleSelect(tup, 0, wCoerced);
+        wArray.Write(")");
+      var array = wArray.ToString();
+      var indices = new List<string>();
+      for (int i = 0; i < lhs.Indices.Count; i++){
+        var wIndex = new TargetWriter();
+          wIndex.Write("((BigInteger)");
+        EmitTupleSelect(tup, i + 1, wIndex);
+          wIndex.Write(")");
+        indices.Add(wIndex.ToString());
+      }
+
+      EmitArraySelectAsLvalue(array, indices, tupleTypeArgsList[L - 1], wr);
+      wr.Write(" = ");
+      EmitTupleSelect(tup, L - 1, wr);
+      EndStmt(wr);
+    }
+
+    protected override TargetWriter DeclareLocalVar(string name, Type /*?*/ type, Bpl.IToken /*?*/ tok, TargetWriter wr, Type t){
+      return DeclareLocalVar(name, t, tok, wr);
+    }
+    
+    protected override void DeclareLocalVar(string name, Type /*?*/ type, Bpl.IToken /*?*/ tok, Expression rhs,
+      bool inLetExprBody, TargetWriter wr, Type t){
+      var w = DeclareLocalVar(name, t, tok, wr);
+      TrExpr(rhs, w, inLetExprBody);
+    }
+    
+    protected override TargetWriter EmitIngredients(TargetWriter wr, string ingredients, int L, string tupleTypeArgs, ForallStmt s, AssignStmt s0, Expression rhs){
+      using (var wrVarInit = wr){
+        wrVarInit.Write($"ArrayList<Tuple{L}<{tupleTypeArgs}>> {ingredients} = ");
+          AddTupleToSet(L);
+        EmitEmptyTupleList(tupleTypeArgs, wrVarInit);
+      }
+
+      var wrOuter = wr;
+      wr = CompileGuardedLoops(s.BoundVars, s.Bounds, s.Range, wr);
+
+      using (var wrTuple = EmitAddTupleToList(ingredients, tupleTypeArgs, wr)){
+          wrTuple.Write($"{L}<{tupleTypeArgs}>(");
+        if (s0.Lhs is MemberSelectExpr){
+          var lhs = (MemberSelectExpr) s0.Lhs;
+          TrExpr(lhs.Obj, wrTuple, false);
+        }
+        else if (s0.Lhs is SeqSelectExpr){
+          var lhs = (SeqSelectExpr) s0.Lhs;
+          TrExpr(lhs.Seq, wrTuple, false);
+          wrTuple.Write(", ");
+          TrParenExpr(lhs.E0,  wrTuple, false);
+        }
+        else{
+          var lhs = (MultiSelectExpr) s0.Lhs;
+          TrExpr(lhs.Array, wrTuple, false);
+          for (int i = 0; i < lhs.Indices.Count; i++){
+            wrTuple.Write(", ");
+            TrParenExpr(lhs.Indices[i],  wrTuple, false);
+          }
+        }
+
+        wrTuple.Write(", ");
+        if (rhs is MultiSelectExpr) {
+          Type t = rhs.Type.NormalizeExpand();
+          wrTuple.Write("({0})", TypeName(t, wrTuple, rhs.tok));
+        }
+        TrExpr(rhs, wrTuple, false);
+      }
+
+      return wrOuter;
+    }
+    
     protected override void EmitHeader(Program program, TargetWriter wr){
       wr.WriteLine("// Dafny program {0} compiled into Java", program.Name);
       ModuleName = MainModuleName = HasMain(program, out _) ? "main" : Path.GetFileNameWithoutExtension(program.Name);
@@ -1774,14 +1881,16 @@ namespace Microsoft.Dafny{
 protected override BlockTargetWriter CreateLambda(List<Type> inTypes, Bpl.IToken tok, List<string> inNames, Type resultType, TargetWriter wr, bool untyped = false) {
       wr.Write('(');
       if (!untyped) {
-        wr.Write("(Function<{0}{1}>)", Util.Comma("", inTypes, t => TypeName(t, wr, tok) + ", "), TypeName(resultType, wr, tok));
+        if (inTypes.Count == 0){
+          wr.Write("(Supplier<{0}{1}>)", Util.Comma("", inTypes, t => TypeName(t, wr, tok) + ", "), TypeName(resultType, wr, tok));
+        }
+        else{
+          wr.Write("(Function<{0}{1}>)", Util.Comma("", inTypes, t => TypeName(t, wr, tok) + ", "), TypeName(resultType, wr, tok));
+        }
       }
       wr.Write("({0}) ->", Util.Comma(inNames, nm => nm));
       var w = wr.NewExprBlock("");
       wr.Write(")");
-      if (!resultType.IsBoolType){
-        wr.Write(".apply");
-      }
       return w;
     }
 
@@ -2743,7 +2852,12 @@ protected override BlockTargetWriter CreateLambda(List<Type> inTypes, Bpl.IToken
     
     protected override void EmitApplyExpr(Type functionType, Bpl.IToken tok, Expression function, List<Expression> arguments, bool inLetExprBody, TargetWriter wr){
       TrParenExpr(function, wr, inLetExprBody);
-      wr.Write(".apply");
+      if (functionType.IsArrowType && functionType.AsArrowType.Args.Count == 0){
+        wr.Write(".get");
+      }
+      else{
+        wr.Write(".apply");
+      }
       TrExprList(arguments, wr, inLetExprBody);
     }
     
