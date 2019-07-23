@@ -603,13 +603,6 @@ namespace Microsoft.Dafny
         }
         targetFilename = WriteDafnyProgramToFiles(dafnyProgramName, p, completeProgram, otherFiles, outputWriter);
       }
-
-      // compile the program into an assembly
-      if (!completeProgram || !invokeCompiler) {
-        // don't compile
-        return false;
-      }
-      
       
       if (DafnyOptions.O.CompileTarget is DafnyOptions.CompilationTarget.Java) {
         string targetBaseDir = baseName;
@@ -625,7 +618,13 @@ namespace Microsoft.Dafny
         jcompiler.CompileDafnyArrays(dest);
         jcompiler.CompileArrayInits(dest);
       }
-      
+
+      // compile the program into an assembly
+      if (!completeProgram || !invokeCompiler) {
+        // don't compile
+        return false;
+      }
+
       object compilationResult;
       var compiledCorrectly = compiler.CompileTargetProgram(dafnyProgramName, targetProgramText, callToMain, targetFilename, otherFileNames,
         hasMain, hasMain && DafnyOptions.O.RunAfterCompile, outputWriter, out compilationResult);

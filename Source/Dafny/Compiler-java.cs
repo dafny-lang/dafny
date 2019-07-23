@@ -67,15 +67,17 @@ namespace Microsoft.Dafny{
     protected override bool NeedsWrappersForInheritedFields => false;
     protected override bool FieldsInTraits => false;
 
-    protected override void DeclareSpecificOutCollector(string collectorVarName, TargetWriter wr, int outCount,
-      List<Type> t, Method m){
-      if (outCount > 1){
+    protected override void DeclareSpecificOutCollector(string collectorVarName, TargetWriter wr, int outCount, List<Type> types, Method m) {
+      if (outCount > 1) {
         wr.Write("Tuple{0} {1} = ", outCount, collectorVarName);
       }
       else {
-        for (int i = 0; i < t.Count; i++) {
-            wr.Write("{0} {1} = ", TypeName(t[i], wr, m.Outs[i].tok), collectorVarName);
+        for (int i = 0; i < types.Count; i++) {
+          Formal p = m.Outs[i];
+          if (!p.IsGhost) {
+            wr.Write("{0} {1} = ", TypeName(types[i], wr, p.tok), collectorVarName);
             return;
+          }
         }
       }
     }
@@ -2942,6 +2944,11 @@ protected override BlockTargetWriter CreateLambda(List<Type> inTypes, Bpl.IToken
     
     protected override void EmitIncrementVar(string varName, TargetWriter wr) {
       wr.WriteLine($"{varName} = {varName}.add(BigInteger.ONE);");
+    }
+    
+    protected override void EmitSingleValueGenerator(Expression e, bool inLetExprBody, string type, TargetWriter wr) {
+      wr.Write("Arrays.asList"); 
+      TrParenExpr(e, wr, inLetExprBody);
     }
 
     protected override BlockTargetWriter CreateIIFE1(int source, Type resultType, Bpl.IToken resultTok, string bvName, TargetWriter wr) {
