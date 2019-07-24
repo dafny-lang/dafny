@@ -437,7 +437,7 @@ namespace Microsoft.Dafny{
         wr.Write("<{0}>", TypeParameters(typeArgs));
         wr.Write("{0} {1}(", TypeName(resultType, wr, tok), name);
       }
-      else if (isStatic && resultType is UserDefinedType){
+      else if (isStatic && resultType.TypeArgs.Count > 0 && resultType.TypeArgs[0].IsTypeParameter){
         string t = "";
         string n = "";
         SplitType(TypeName(resultType, wr, tok), out t, out n);
@@ -3019,9 +3019,9 @@ namespace Microsoft.Dafny{
         } else if (e.ToType.IsCharType) {
           wr.Write("dafny.Helpers.createCharacter(");
           TrParenExpr(e.E, wr, inLetExprBody);
-          if (!e.E.Type.IsIntegerType) {
+//          if (!e.E.Type.IsIntegerType) {
             wr.Write(".intValue()");
-          }
+//          }
           wr.Write(")");
         } else {
           // (int or bv or char) -> (int or bv or ORDINAL)

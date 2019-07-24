@@ -1,5 +1,7 @@
 package dafny;
 
+import java.math.BigInteger;
+
 // Dafny bytes are default unsigned, whereas they are signed in Java, and there is no unsigned equivalent
 public class UByte {
     private int inner;
@@ -16,6 +18,11 @@ public class UByte {
 
     public UByte(UByte other){
         inner = other.inner;
+    }
+
+    public UByte(BigInteger i){
+        assert i.compareTo(BigInteger.ZERO) >= 0 && i.compareTo(BigInteger.valueOf(MAXVALUE)) <= 0 : "Precondition Failure";
+        inner = i.intValue();
     }
 
     public static int compare(UByte x, UByte y){
