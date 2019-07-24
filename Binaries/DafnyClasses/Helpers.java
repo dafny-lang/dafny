@@ -14,7 +14,7 @@ import java.util.stream.Stream;
 
 public class Helpers {
 
-    public static <T> boolean Quantifier(Collection<T> vals, boolean frall, Predicate<T> pred) {
+    public static <T> boolean Quantifier(Iterable<T> vals, boolean frall, Predicate<T> pred) {
         for (T t : vals) {
             if (pred.test(t) != frall) {
                 return !frall;
@@ -78,25 +78,21 @@ public class Helpers {
                 arr.add(lo);
                 lo = lo.add(BigInteger.ONE);
             }
-<<<<<<< HEAD
->>>>>>> Allows Comprehensions.dfy to compile fully
-=======
             return arr;
->>>>>>> Allows Comprehensions.dfy to compile fully
         }
     }
 
-    public static Character createCharacter(DafnyByte t) {
+    public static Character createCharacter(UByte t) {
         assert 0 <= t.intValue() && t.intValue() <= 65535;
         return new Character((char)t.intValue());
     }
 
-    public static Character createCharacter(DafnyUInt t) {
+    public static Character createCharacter(UInt t) {
         assert 0 <= t.value() && t.value() <= 65535;
         return new Character((char)t.value());
     }
 
-    public static Character createCharacter(DafnyULong t) {
+    public static Character createCharacter(ULong t) {
         assert 0 <= t.value() && t.value() <= 65535;
         return new Character((char)t.value());
     }

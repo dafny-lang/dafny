@@ -556,9 +556,9 @@ namespace Microsoft.Dafny{
           s = cl.FullCompileName;
         }
 
-        if (type.IsArrowType){
-          return TypeName_UDT(s, udt.AsArrowType.Args, udt.AsArrowType.Result, wr, udt.tok);
-        }
+//        if (type.IsArrowType){
+//          return TypeName_UDT(s, udt.AsArrowType.Args, udt.AsArrowType.Result, wr, udt.tok);
+//        }
         return TypeName_UDT(s, udt.TypeArgs, wr, udt.tok);
       } else if (xType is SetType) { 
         Type argType = ((SetType)xType).Arg; 
@@ -595,18 +595,20 @@ namespace Microsoft.Dafny{
     protected override string FullTypeName(UserDefinedType udt, MemberDecl /*?*/ member = null) {
       Contract.Assume(udt != null); // precondition; this ought to be declared as a Requires in the superclass
       if (udt is ArrowType) {
-        if (udt.AsArrowType.Args.Count == 0){
-          return "Supplier";
-        }else if (udt.AsArrowType.Result == null){
-          return "Consumer";
-        }
-        else{
-          return "Function";
-        }
+//        if (udt.AsArrowType.Args.Count == 0){
+//          return "Supplier";
+//        }else if (udt.AsArrowType.Result == null){
+//          return "Consumer";
+//        }
+//        else{
+//          return "Function";
+//        }
+        functions.Add(udt.TypeArgs.Count - 1);
+        return string.Format("Function{0}", udt.TypeArgs.Count != 2 ? (udt.TypeArgs.Count - 1).ToString() : "");
       }
       var cl = udt.ResolvedClass;
       if (cl == null) {
-        return IdProtect(udt.FullName);
+        return IdProtect(udt.CompileName);
       }
       else if (cl.Module.CompileName == ModuleName || cl is TupleTypeDecl || cl.Module.IsDefaultModule) {
         return IdProtect(cl.CompileName);
@@ -670,7 +672,7 @@ namespace Microsoft.Dafny{
         if (inArgs.Count > 0){
           s += ", ";
         }
-          s += TypeName(outArgs, wr, tok) + "";
+        s += TypeName(outArgs, wr, tok) + "";
       }
 
       s += ">";
@@ -726,9 +728,9 @@ namespace Microsoft.Dafny{
         TrStringLiteral(str, wr);
         wr.Write(")");
       } else if (AsNativeType(e.Type) != null) {
-        string literalSuffix;
-        GetNativeInfo(AsNativeType(e.Type).Sel, out _, out literalSuffix, out _);
-        wr.Write((BigInteger)e.Value + literalSuffix);
+        string literalSuffix, name;
+        GetNativeInfo(AsNativeType(e.Type).Sel, out name, out literalSuffix, out _);
+        wr.Write($"new {name}({(BigInteger)e.Value}{literalSuffix})");
       } else if (e.Value is BigInteger i) {
         wr.Write("new BigInteger(\"{0}\")", i);
       } else if (e.Value is Basetypes.BigDec n){
@@ -866,7 +868,12 @@ namespace Microsoft.Dafny{
         wr.WriteLine(";");
       }
     }
-        
+
+    protected override void DeclareLocalVar(string name, Type /*?*/ type, Bpl.IToken /*?*/ tok, bool leaveRoomForRhs,
+      string /*?*/ rhs, TargetWriter wr, Type t) {
+      DeclareLocalVar(name, t, tok, leaveRoomForRhs, rhs, wr);
+    }
+
     protected override void EmitCollectionDisplay(CollectionType ct, Bpl.IToken tok, List<Expression> elements, bool inLetExprBody, TargetWriter wr) {
       wr.Write("new {0}", TypeName(ct, wr, tok));
       wr.Write("(Arrays.asList(");
@@ -1912,15 +1919,15 @@ namespace Microsoft.Dafny{
       var ctorName = dtv.Ctor.CompileName;
       
       var typeParams = dtv.InferredTypeArgs.Count == 0 ? "" : string.Format("<{0}>", TypeNames(dtv.InferredTypeArgs, wr, dtv.tok));
-      var typeDecl = dtv.InferredTypeArgs.Count == 0
-        ? ""
-        : string.Format("new {0}", TypeNames(dtv.InferredTypeArgs, wr, dtv.tok));
+//      var typeDecl = dtv.InferredTypeArgs.Count == 0
+//        ? ""
+//        : string.Format("new {0}", TypeNames(dtv.InferredTypeArgs, wr, dtv.tok));
       if (!dtv.IsCoCall) {
         wr.Write("new {0}{1}{2}", dtName, dt.IsRecordType ? "" : "_" + ctorName, typeParams);
         // For an ordinary constructor (that is, one that does not guard any co-recursive calls), generate:
         //   new Dt_Cons<T>( args )
         if (arguments != null && !arguments.Equals("")){
-          wr.Write($"({typeDecl}({arguments}))");
+          wr.Write($"({arguments})");
         }
         else{
           wr.Write("()");
@@ -1933,17 +1940,19 @@ namespace Microsoft.Dafny{
         wr.Write("; })");
       }
     }
-    
 
-protected override BlockTargetWriter CreateLambda(List<Type> inTypes, Bpl.IToken tok, List<string> inNames, Type resultType, TargetWriter wr, bool untyped = false) {
+    protected override BlockTargetWriter CreateLambda(List<Type> inTypes, Bpl.IToken tok, List<string> inNames, Type resultType, TargetWriter wr, bool untyped = false) {
+      if (inTypes.Count != 1) {
+        functions.Add(inTypes.Count);
+      }
       wr.Write('(');
       if (!untyped) {
-        if (inTypes.Count == 0){
-          wr.Write("(Supplier<{0}{1}>)", Util.Comma("", inTypes, t => TypeName(t, wr, tok) + ", "), TypeName(resultType, wr, tok));
-        }
-        else{
-          wr.Write("(Function<{0}{1}>)", Util.Comma("", inTypes, t => TypeName(t, wr, tok) + ", "), TypeName(resultType, wr, tok));
-        }
+//        if (inTypes.Count == 0){
+//          wr.Write("(Supplier<{0}{1}>)", Util.Comma("", inTypes, t => TypeName(t, wr, tok) + ", "), TypeName(resultType, wr, tok));
+//        }
+//        else{
+          wr.Write("(Function{2}<{0}{1}>)", Util.Comma("", inTypes, t => TypeName(t, wr, tok) + ", "), TypeName(resultType, wr, tok), inTypes.Count != 1 ? inTypes.Count.ToString() : "");
+//        }
       }
       wr.Write("({0}) ->", Util.Comma(inNames, nm => nm));
       var w = wr.NewExprBlock("");
@@ -1956,8 +1965,9 @@ protected override BlockTargetWriter CreateLambda(List<Type> inTypes, Bpl.IToken
       // (
       //   (Supplier<resultType>)(() -> <<body>>)
       // )()
-      wr.Write("((Supplier<{0}>)(() ->", TypeName(resultType, wr, resultTok));
-      var w = wr.NewBigExprBlock("", ")).get()");
+      functions.Add(0);
+      wr.Write("((Function0<{0}>)(() ->", TypeName(resultType, wr, resultTok));
+      var w = wr.NewBigExprBlock("", ")).apply()");
       return w;
     }
 
@@ -2288,6 +2298,11 @@ protected override BlockTargetWriter CreateLambda(List<Type> inTypes, Bpl.IToken
 
             indent--;
             sw.WriteLine(Indent() + "}");
+            sw.WriteLine(Indent() + $"public static String defaultInstanceName = Tuple{i}.class.toString();");
+            if (i != 0) { 
+              sw.WriteLine();
+              sw.Write(Indent() + "public Tuple" + i + "(){}");
+            }
             sw.WriteLine();
             sw.WriteLine(Indent() + "@Override");
             sw.WriteLine(Indent() + "public boolean equals(Object obj) {");
@@ -2417,16 +2432,19 @@ protected override BlockTargetWriter CreateLambda(List<Type> inTypes, Bpl.IToken
           } else if (ArrowType.IsTotalArrowTypeName(td.Name)) {
             var rangeDefaultValue = TypeInitializationValue(udt.TypeArgs.Last(), wr, tok, inAutoInitContext);
             // return the lambda expression ((Ty0 x0, Ty1 x1, Ty2 x2) -> rangeDefaultValue)
-            string s;
-            if (udt.TypeArgs.Count > 2){
-              s = $"Tuple{udt.TypeArgs.Count - 1}<{Util.Comma(", ", udt.TypeArgs.Count - 1, i => $"{TypeName(udt.TypeArgs[i], wr, udt.tok)}")}> x0";
-            }else if (udt.TypeArgs.Count == 2){
-              s = $"{TypeName(udt.TypeArgs[0], wr, udt.tok)} x0";
-            }
-            else{
-              s = "";
-            }
-            return $"(({s}) -> {rangeDefaultValue})";
+//            string s;
+//            if (udt.TypeArgs.Count > 2){
+//              s = $"Tuple{udt.TypeArgs.Count - 1}<{Util.Comma(", ", udt.TypeArgs.Count - 1, i => $"{TypeName(udt.TypeArgs[i], wr, udt.tok)}")}> x0";
+//            }else if (udt.TypeArgs.Count == 2){
+//              s = $"{TypeName(udt.TypeArgs[0], wr, udt.tok)} x0";
+//            }
+//            else{
+//              s = "";
+//            }
+//            return $"(({s}) -> {rangeDefaultValue})";
+            return string.Format("(({0}) -> {1})",
+              Util.Comma(", ", udt.TypeArgs.Count - 1, i => string.Format("{0} x{1}", TypeName(udt.TypeArgs[i], wr, udt.tok), i)),
+              rangeDefaultValue);
           } else if (((NonNullTypeDecl)td).Class is ArrayClassDecl) {
             // non-null array type; we know how to initialize them
             var arrayClass = (ArrayClassDecl)((NonNullTypeDecl)td).Class;
@@ -2545,7 +2563,10 @@ protected override BlockTargetWriter CreateLambda(List<Type> inTypes, Bpl.IToken
 
     protected override void EmitDestructor(string source, Formal dtor, int formalNonGhostIndex, DatatypeCtor ctor, List<Type> typeArgs, Type bvType, TargetWriter wr){
       string dtorName;
-      if (dtor.Type.IsTypeParameter){
+      if (ctor.EnclosingDatatype is TupleTypeDecl) {
+        dtorName = $"dtor__{dtor.Name}()";
+      }
+      else if (int.TryParse(dtor.Name, out _)){
         dtorName = $"dtor_{dtor.Name}()";
       }
       else{
@@ -2777,6 +2798,12 @@ protected override BlockTargetWriter CreateLambda(List<Type> inTypes, Bpl.IToken
       wr.WriteLine("throw new IllegalArgumentException(\"{0}\");", message);
     }
     
+    protected override void EmitAbsurd(string message, TargetWriter wr, bool needIterLimit) {
+      if (!needIterLimit) {
+        EmitAbsurd(message, wr);
+      }
+    }
+    
     protected override void DeclareNewtype(NewtypeDecl nt, TargetWriter wr){
       var cw = CreateClass(IdName(nt), null, wr) as ClassWriter;
       var w = cw.StaticMemberWriter;
@@ -2854,7 +2881,7 @@ protected override BlockTargetWriter CreateLambda(List<Type> inTypes, Bpl.IToken
         if (useAllTypeArgs || formal.Characteristics.MustSupportZeroInitialization) {
           string t, n;
           SplitType(TypeName(actual, wr, tok), out t, out n);
-          if (actual.IsDatatype){
+          if (actual.IsDatatype && !(actual.AsDatatype is TupleTypeDecl)){
             wr.Write("{0}{1}.defaultInstanceName", sep, n);
           }
           else if (actual.IsTypeParameter){
@@ -2914,12 +2941,12 @@ protected override BlockTargetWriter CreateLambda(List<Type> inTypes, Bpl.IToken
     
     protected override void EmitApplyExpr(Type functionType, Bpl.IToken tok, Expression function, List<Expression> arguments, bool inLetExprBody, TargetWriter wr){
       TrParenExpr(function, wr, inLetExprBody);
-      if (functionType.IsArrowType && functionType.AsArrowType.Args.Count == 0){
-        wr.Write(".get");
-      }
-      else{
+//      if (functionType.IsArrowType && functionType.AsArrowType.Args.Count == 0){
+//        wr.Write(".get");
+//      }
+//      else{
         wr.Write(".apply");
-      }
+//      }
       TrExprList(arguments, wr, inLetExprBody);
     }
     
@@ -2980,7 +3007,7 @@ protected override BlockTargetWriter CreateLambda(List<Type> inTypes, Bpl.IToken
         if (e.ToType.IsNumericBased(Type.NumericPersuation.Real)) {
           // (int or bv) -> real
           Contract.Assert(AsNativeType(e.ToType) == null);
-          wr.Write("new DafnyClasses.BigRational(");
+          wr.Write("new dafny.BigRational(");
           if (AsNativeType(e.E.Type) != null) {
             wr.Write("BigInteger.valueOf");
           }
@@ -2990,7 +3017,7 @@ protected override BlockTargetWriter CreateLambda(List<Type> inTypes, Bpl.IToken
           }
           wr.Write(", BigInteger.ONE)");
         } else if (e.ToType.IsCharType) {
-          wr.Write("DafnyClasses.Helpers.createCharacter(");
+          wr.Write("dafny.Helpers.createCharacter(");
           TrParenExpr(e.E, wr, inLetExprBody);
           if (!e.E.Type.IsIntegerType) {
             wr.Write(".intValue()");

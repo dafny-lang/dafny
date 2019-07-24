@@ -254,6 +254,11 @@ namespace Microsoft.Dafny{
     protected abstract void DeclareLocalVar(string name, Type /*?*/ type, Bpl.IToken /*?*/ tok, bool leaveRoomForRhs,
       string /*?*/ rhs, TargetWriter wr);
 
+    protected virtual void DeclareLocalVar(string name, Type /*?*/ type, Bpl.IToken /*?*/ tok, bool leaveRoomForRhs,
+      string /*?*/ rhs, TargetWriter wr, Type t) {
+      DeclareLocalVar(name, type, tok, leaveRoomForRhs, rhs, wr);
+    }
+
     /// <summary>
     /// Generates:
     ///     type name = rhs;
@@ -405,6 +410,9 @@ namespace Microsoft.Dafny{
     protected abstract void EmitBreak(string /*?*/ label, TargetWriter wr);
     protected abstract void EmitYield(TargetWriter wr);
     protected abstract void EmitAbsurd(string /*?*/ message, TargetWriter wr);
+    protected virtual void EmitAbsurd(string message, TargetWriter wr, bool needIterLimit) {
+      EmitAbsurd(message, wr);
+    }
 
     protected TargetWriter EmitIf(string guard, bool hasElse, TargetWriter wr){
       TargetWriter guardWriter;
@@ -2829,7 +2837,7 @@ namespace Microsoft.Dafny{
                         0); // if we have got this far, it must be an enumerable bound
         var bv = lhss[i];
         if (needIterLimit){
-          DeclareLocalVar(string.Format("{0}_{1}", iterLimit, i), SupportsAmbiguousTypeDecl ? null : Type.Int, null, false, iterLimit, wr);
+          DeclareLocalVar(string.Format("{0}_{1}", iterLimit, i), null, null, false, iterLimit, wr, Type.Int);
         }
 
         var tmpVar = idGenerator.FreshId("_assign_such_that_");
@@ -2852,9 +2860,7 @@ namespace Microsoft.Dafny{
       EmitBreak(doneLabel, wBody);
       
       // Java compiler throws unreachable error when absurd statement is written after unbounded for-loop, so we don't write it then.
-      if (TargetLanguage != "Java" || !needIterLimit) {
-        EmitAbsurd(string.Format("assign-such-that search produced no value (line {0})", debuginfoLine), wrOuter);
-      }
+      EmitAbsurd(string.Format("assign-such-that search produced no value (line {0})", debuginfoLine), wrOuter, needIterLimit);
     }
 
     string CreateLvalue(Expression lhs, TargetWriter wr){
@@ -3452,7 +3458,7 @@ namespace Microsoft.Dafny{
           // allow out parameters
           var name = string.Format("_pat_let_tv{0}", GetUniqueAstNumber(e));
           wr.Write(name);
-          DeclareLocalVar(name, SupportsAmbiguousTypeDecl ? null : e.Type, null, false, IdName(e.Var), copyInstrWriters.Peek());
+          DeclareLocalVar(name, null, null, false, IdName(e.Var), copyInstrWriters.Peek(), e.Type);
         }
         else{
           wr.Write(IdName(e.Var));
@@ -3868,7 +3874,7 @@ namespace Microsoft.Dafny{
         var rantypeName = TypeName(e.Type.AsMapType.Range, wr, e.tok);
         var collection_name = idGenerator.FreshId("_coll");
         wr = CreateIIFE0(e.Type.AsMapType, e.tok, wr);
-        using (var wrVarInit = DeclareLocalVar(collection_name, SupportsAmbiguousTypeDecl ? null : e.Type.AsMapType, null, wr)){
+        using (var wrVarInit = DeclareLocalVar(collection_name, null, null, wr, e.Type.AsMapType)){
           EmitCollectionBuilder_New(e.Type.AsMapType, e.tok, wrVarInit);
         }
 

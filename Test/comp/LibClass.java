@@ -1,6 +1,6 @@
 package Library;
 
-import DafnyClasses.*;
+import dafny.*;
 import java.math.*;
 
 // The Java compiler doesn't support Dafny methods in extern libraries
