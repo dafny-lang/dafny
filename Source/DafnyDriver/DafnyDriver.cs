@@ -470,6 +470,11 @@ namespace Microsoft.Dafny
       }
       string targetBaseName = Path.ChangeExtension(baseName, targetExtension);
       string targetDir = Path.Combine(Path.GetDirectoryName(dafnyProgramName), targetBaseDir);
+      // WARNING: Make sure that Directory.Delete is only called when the compilation target is Java.
+      // If called during C# or JS compilation, you will lose your entire target directory.
+      // Purpose is to delete the old generated folder with the Java compilation output and replace all contents.
+      if (DafnyOptions.O.CompileTarget is DafnyOptions.CompilationTarget.Java && Directory.Exists(targetDir))
+        Directory.Delete(targetDir, true);
       string targetFilename = Path.Combine(targetDir, targetBaseName);
       if (targetProgram != null) {
         WriteFile(targetFilename, targetProgram); 
