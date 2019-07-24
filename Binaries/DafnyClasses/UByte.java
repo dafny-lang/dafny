@@ -21,7 +21,7 @@ public class UByte {
     }
 
     public UByte(BigInteger i){
-        assert i.compareTo(BigInteger.ZERO) >= 0 && i.compareTo(BigInteger.valueOf(MAXVALUE)) <= 0 : "Precondition Failure";
+        assert 0 <= i.compareTo(BigInteger.ZERO) && i.compareTo(BigInteger.valueOf(MAXVALUE)) <= 0 : "Precondition Failure";
         inner = i.intValue();
     }
 
@@ -60,7 +60,7 @@ public class UByte {
     //Invariant that other.inner is positive, so no overflow check needed
     public UByte subtract(UByte other){
         int i = inner - other.inner;
-        assert i >= 0: "Precondition Failure";
+        assert 0 <= i: "Precondition Failure";
         return new UByte(i);
     }
 

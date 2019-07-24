@@ -290,7 +290,6 @@ namespace Microsoft.Dafny{
         var sw = new TargetWriter(cw.InstanceMemberWriter.IndentLevel, true);
         TrExpr(sst.Witness, sw, false);
         cw.DeclareField("Witness", true, true, sst.Rhs, sst.tok, sst.Rhs.AsBitVectorType != null ? $"new {TypeName(sst.Witness.Type, sw, sst.tok)}({sw})" : sw.ToString());
-        //$"new {TypeName(sst.Witness.Type, sw, sst.tok)}({sw})"
       }
     }
     
@@ -477,7 +476,6 @@ namespace Microsoft.Dafny{
     }
     
     protected void DeclareField(string name, bool isStatic, bool isConst, Type type, Bpl.IToken tok, string rhs, TargetWriter wr) {
-//      wr.WriteLine("public {0}{1} {2} = {3};", isStatic ? "static " : "", TypeName(type, wr, tok), name, (rhs != null) ? $"new {TypeName(type, wr, tok)}({rhs})" : DefaultValue(type, wr, tok));
       if (isStatic){
         var r = RemoveParams((rhs != null) ? rhs : DefaultValue(type, wr, tok));
         var t = RemoveParams(TypeName(type, wr, tok));
@@ -555,10 +553,7 @@ namespace Microsoft.Dafny{
                  !cl.Module.IsDefaultModule){
           s = cl.FullCompileName;
         }
-
-//        if (type.IsArrowType){
-//          return TypeName_UDT(s, udt.AsArrowType.Args, udt.AsArrowType.Result, wr, udt.tok);
-//        }
+        
         return TypeName_UDT(s, udt.TypeArgs, wr, udt.tok);
       } else if (xType is SetType) { 
         Type argType = ((SetType)xType).Arg; 
@@ -595,14 +590,6 @@ namespace Microsoft.Dafny{
     protected override string FullTypeName(UserDefinedType udt, MemberDecl /*?*/ member = null) {
       Contract.Assume(udt != null); // precondition; this ought to be declared as a Requires in the superclass
       if (udt is ArrowType) {
-//        if (udt.AsArrowType.Args.Count == 0){
-//          return "Supplier";
-//        }else if (udt.AsArrowType.Result == null){
-//          return "Consumer";
-//        }
-//        else{
-//          return "Function";
-//        }
         functions.Add(udt.TypeArgs.Count - 1);
         return string.Format("Function{0}", udt.TypeArgs.Count != 2 ? (udt.TypeArgs.Count - 1).ToString() : "");
       }
@@ -1658,9 +1645,9 @@ namespace Microsoft.Dafny{
           outputWriter.WriteLine(proc.StandardError.ReadLine());
         }
         proc.WaitForExit();
-//        if (proc.ExitCode != 0) {
-//          throw new Exception($"Error while compiling Java file {file}. Process exited with exit code {proc.ExitCode}");
-//        }
+        if (proc.ExitCode != 0) {
+          throw new Exception($"Error while compiling Java file {file}. Process exited with exit code {proc.ExitCode}");
+        }
       }
       return true;
     }
@@ -1919,9 +1906,6 @@ namespace Microsoft.Dafny{
       var ctorName = dtv.Ctor.CompileName;
       
       var typeParams = dtv.InferredTypeArgs.Count == 0 ? "" : string.Format("<{0}>", TypeNames(dtv.InferredTypeArgs, wr, dtv.tok));
-//      var typeDecl = dtv.InferredTypeArgs.Count == 0
-//        ? ""
-//        : string.Format("new {0}", TypeNames(dtv.InferredTypeArgs, wr, dtv.tok));
       if (!dtv.IsCoCall) {
         wr.Write("new {0}{1}{2}", dtName, dt.IsRecordType ? "" : "_" + ctorName, typeParams);
         // For an ordinary constructor (that is, one that does not guard any co-recursive calls), generate:
@@ -1947,12 +1931,7 @@ namespace Microsoft.Dafny{
       }
       wr.Write('(');
       if (!untyped) {
-//        if (inTypes.Count == 0){
-//          wr.Write("(Supplier<{0}{1}>)", Util.Comma("", inTypes, t => TypeName(t, wr, tok) + ", "), TypeName(resultType, wr, tok));
-//        }
-//        else{
-          wr.Write("(Function{2}<{0}{1}>)", Util.Comma("", inTypes, t => TypeName(t, wr, tok) + ", "), TypeName(resultType, wr, tok), inTypes.Count != 1 ? inTypes.Count.ToString() : "");
-//        }
+        wr.Write("(Function{2}<{0}{1}>)", Util.Comma("", inTypes, t => TypeName(t, wr, tok) + ", "), TypeName(resultType, wr, tok), inTypes.Count != 1 ? inTypes.Count.ToString() : "");
       }
       wr.Write("({0}) ->", Util.Comma(inNames, nm => nm));
       var w = wr.NewExprBlock("");
@@ -1962,9 +1941,6 @@ namespace Microsoft.Dafny{
 
     protected override BlockTargetWriter CreateIIFE0(Type resultType, Bpl.IToken resultTok, TargetWriter wr)
     {
-      // (
-      //   (Supplier<resultType>)(() -> <<body>>)
-      // )()
       functions.Add(0);
       wr.Write("((Function0<{0}>)(() ->", TypeName(resultType, wr, resultTok));
       var w = wr.NewBigExprBlock("", ")).apply()");
@@ -2432,16 +2408,6 @@ namespace Microsoft.Dafny{
           } else if (ArrowType.IsTotalArrowTypeName(td.Name)) {
             var rangeDefaultValue = TypeInitializationValue(udt.TypeArgs.Last(), wr, tok, inAutoInitContext);
             // return the lambda expression ((Ty0 x0, Ty1 x1, Ty2 x2) -> rangeDefaultValue)
-//            string s;
-//            if (udt.TypeArgs.Count > 2){
-//              s = $"Tuple{udt.TypeArgs.Count - 1}<{Util.Comma(", ", udt.TypeArgs.Count - 1, i => $"{TypeName(udt.TypeArgs[i], wr, udt.tok)}")}> x0";
-//            }else if (udt.TypeArgs.Count == 2){
-//              s = $"{TypeName(udt.TypeArgs[0], wr, udt.tok)} x0";
-//            }
-//            else{
-//              s = "";
-//            }
-//            return $"(({s}) -> {rangeDefaultValue})";
             return string.Format("(({0}) -> {1})",
               Util.Comma(", ", udt.TypeArgs.Count - 1, i => string.Format("{0} x{1}", TypeName(udt.TypeArgs[i], wr, udt.tok), i)),
               rangeDefaultValue);
@@ -2941,12 +2907,7 @@ namespace Microsoft.Dafny{
     
     protected override void EmitApplyExpr(Type functionType, Bpl.IToken tok, Expression function, List<Expression> arguments, bool inLetExprBody, TargetWriter wr){
       TrParenExpr(function, wr, inLetExprBody);
-//      if (functionType.IsArrowType && functionType.AsArrowType.Args.Count == 0){
-//        wr.Write(".get");
-//      }
-//      else{
-        wr.Write(".apply");
-//      }
+      wr.Write(".apply");
       TrExprList(arguments, wr, inLetExprBody);
     }
     
@@ -3019,9 +2980,7 @@ namespace Microsoft.Dafny{
         } else if (e.ToType.IsCharType) {
           wr.Write("dafny.Helpers.createCharacter(");
           TrParenExpr(e.E, wr, inLetExprBody);
-//          if (!e.E.Type.IsIntegerType) {
-            wr.Write(".intValue()");
-//          }
+          wr.Write(".intValue()");
           wr.Write(")");
         } else {
           // (int or bv or char) -> (int or bv or ORDINAL)
