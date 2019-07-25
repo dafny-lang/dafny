@@ -984,20 +984,20 @@ namespace Microsoft.Dafny{
 
     protected override string TypeName_Companion(Type type, TextWriter wr, Bpl.IToken tok, MemberDecl member){
       var udt = type as UserDefinedType;
-      if (udt != null){
+      if (udt != null) {
         if (udt.ResolvedClass is TraitDecl){
-          string s = udt.FullCompanionCompileName;
+          string s = IdProtect(udt.FullCompanionCompileName);
           Contract.Assert(udt.TypeArgs.Count == 0); // traits have no type parameters
         return s;
+        } else if (udt.ResolvedClass.Module.CompileName == ModuleName || udt.ResolvedClass is TupleTypeDecl || udt.ResolvedClass.Module.IsDefaultModule) {
+          return IdProtect(udt.ResolvedClass.CompileName);
+        } else{
+          return IdProtect(udt.ResolvedClass.FullCompileName);
         }
-        else{
-          return udt.ResolvedClass.CompileName;
-        }
-    } else {
+      } else {
         return TypeName(type, wr, tok, member);
       }
-      return TypeName(type, wr, tok, member);
-      }
+    }
         
     protected override TargetWriter EmitArraySelect(List<string> indices, Type elmtType, TargetWriter wr) {
       Contract.Assert(indices != null && 1 <= indices.Count);  // follows from precondition
