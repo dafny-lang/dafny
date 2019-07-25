@@ -287,6 +287,7 @@ namespace Microsoft.Dafny{
     protected virtual void DeclareOutCollector(string collectorVarName, TargetWriter wr) { }  // called only for return-style calls
     protected virtual void DeclareSpecificOutCollector(string collectorVarName, TargetWriter wr, int outCount, List<Type> types, Method m) {DeclareOutCollector(collectorVarName, wr); } // for languages that don't allow "let" or "var" expressions
     protected virtual bool UseReturnStyleOuts(Method m, int nonGhostOutCount) => false;
+    protected virtual BlockTargetWriter EmitMethodReturns(Method m, BlockTargetWriter wr) { return wr; } // for languages that need explicit return statements not provided by Dafny
     protected virtual bool SupportsMultipleReturns { get => false; }
     protected virtual bool NeedsCastFromTypeParameter { get => false; }
     protected virtual bool SupportsAmbiguousTypeDecl { get => true; }
@@ -1445,6 +1446,8 @@ namespace Microsoft.Dafny{
             DeclareLocalOutVar(IdName(p), p.Type, p.tok, DefaultValue(p.Type, w, p.tok, true), useReturnStyleOuts, w);
           }
         }
+
+        w = EmitMethodReturns(m, w);
 
         if (m.Body == null){
           Error(m.tok, "Method {0} has no body", w, m.FullName);

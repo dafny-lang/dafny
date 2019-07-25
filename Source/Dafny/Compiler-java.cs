@@ -406,13 +406,25 @@ namespace Microsoft.Dafny{
         if (m.IsTailRecursive) {
           w = w.NewBlock("TAIL_CALL_START: while (true)");
         }
-        if (!m.Body.Body.OfType<ReturnStmt>().Any() && (nonGhostOuts > 0 || m.IsTailRecursive)) { // If method has out parameters or is tail-recursive but no explicit return statement in Dafny
-          var r = new TargetWriter(w.IndentLevel);
-          EmitReturn(m.Outs, r);
-          w.BodySuffix = r.ToString();
-        }
         return w;
       }
+    }
+
+    protected override BlockTargetWriter EmitMethodReturns(Method m, BlockTargetWriter wr) {
+      int nonGhostOuts = 0;
+      for (int i = 0; i < m.Outs.Count; i++) {
+        if (!m.Outs[i].IsGhost) {
+          nonGhostOuts += 1;
+          break;
+        }
+      }
+      if (!m.Body.Body.OfType<ReturnStmt>().Any() && (nonGhostOuts > 0 || m.IsTailRecursive)) { // If method has out parameters or is tail-recursive but no explicit return statement in Dafny
+        var r = new TargetWriter(wr.IndentLevel);
+        EmitReturn(m.Outs, r);
+        wr.BodySuffix = r.ToString();
+        wr = wr.NewBlock("if(true)"); // Ensure no unreachable error is thrown for the return statement
+      }
+      return wr;
     }
     
     protected BlockTargetWriter CreateConstructor(ClassDecl c, TargetWriter wr, List<TypeParameter> l) {
@@ -2086,6 +2098,9 @@ namespace Microsoft.Dafny{
             postOpString = ")";
             opString = "+";
           }
+          else if (resultType is UserDefinedType && !(resultType.IsIntegerType)){
+            opString = "-";
+          }
           else{
             callString = "add";
           }
@@ -2097,7 +2112,8 @@ namespace Microsoft.Dafny{
             preOpString = "(char) (";
             opString = "-";
             postOpString = ")";
-          }if (resultType is UserDefinedType){
+          }
+          else if (resultType is UserDefinedType && !(resultType.IsIntegerType)){
             opString = "-";
           }
           else{
