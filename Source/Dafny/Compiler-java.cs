@@ -397,7 +397,7 @@ namespace Microsoft.Dafny{
       }
       wr.Write("{0} {1}", targetReturnTypeReplacement ?? "void", IdName(m));
       wr.Write("(");
-      var nTypes = WriteRuntimeTypeDescriptorsFormals(m, m.TypeArgs, false, wr);
+      var nTypes = WriteRuntimeTypeDescriptorsFormals(m, m.TypeArgs, nonGhostOuts > 0, wr);
       WriteFormals(nTypes > 0 ? ", " : "", m.Ins, wr);
       if (!createBody) {
         wr.WriteLine(");");
