@@ -1037,7 +1037,7 @@ namespace Microsoft.Dafny{
         
     protected override void EmitSeqSelectRange(Expression source, Expression lo, Expression hi, bool fromArray, bool inLetExprBody, TargetWriter wr) {
       if (fromArray) {
-        wr.Write("new DafnySequence(Arrays.asList(Arrays.copyOfRange(");
+        wr.Write("new DafnySequence<>(Arrays.asList(Arrays.copyOfRange(");
       }
       TrParenExpr(source, wr, inLetExprBody);
       if (fromArray) {
@@ -2659,6 +2659,7 @@ namespace Microsoft.Dafny{
         sw.WriteLine("import java.lang.reflect.Array;");
         sw.WriteLine();
         sw.WriteLine("public class ArrayInit" + i + "{");
+        sw.WriteLine("@SuppressWarnings(\"unchecked\")");
         sw.Write(Indent() + "public static<T> T");
         for (int j = 0; j < i; j++) {
           sw.Write("[]");
@@ -2812,7 +2813,7 @@ namespace Microsoft.Dafny{
       TypeName_SplitArrayName(elmtType, wr, tok, out typeNameSansBrackets, out brackets);
       if (dimensions.Count > 1) {
         arrays.Add(dimensions.Count);
-        wr.Write("new Array{0}(", dimensions.Count);
+        wr.Write("new Array{0}<>(", dimensions.Count);
         foreach (var dim in dimensions) {
           TrParenExpr(dim, wr, false);
           wr.Write(".intValue(), ");
