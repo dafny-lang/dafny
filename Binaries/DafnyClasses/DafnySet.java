@@ -8,7 +8,7 @@ public class DafnySet<T> {
 
 
     public DafnySet() {
-        innerSet = new HashSet();
+        innerSet = new HashSet<>();
     }
 
     public DafnySet(Set<T> s) {
@@ -105,19 +105,19 @@ public class DafnySet<T> {
         return innerSet.remove(t);
     }
 
-    public boolean removeAll(DafnySet other) {
+    public boolean removeAll(DafnySet<T> other) {
         assert other != null : "Precondition Violation";
         return innerSet.removeAll(other.innerSet);
     }
 
-    public boolean addAll(DafnySet other) {
+    public boolean addAll(DafnySet<T> other) {
         assert other != null : "Precondition Violation";
         return innerSet.addAll(other.innerSet);
     }
 
     public Collection<DafnySet<T>> AllSubsets(){
         // Start by putting all set elements into a list, but don't include null
-        List<T> elmts = new ArrayList();
+        List<T> elmts = new ArrayList<>();
         elmts.addAll(innerSet);
         int n = elmts.size();
         DafnySet<T> s;
@@ -144,7 +144,7 @@ public class DafnySet<T> {
         if (this == obj) return true;
         if (obj == null) return false;
         if (getClass() != obj.getClass()) return false;
-        DafnySet<T> o = (DafnySet<T>) obj;
+        DafnySet o = (DafnySet) obj;
         return containsAll(o) && o.containsAll(this);
     }
 

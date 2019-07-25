@@ -158,11 +158,12 @@ public class DafnyMultiset<T> {
     }
 
     @Override
+    @SuppressWarnings("UNCHECKED_CAST")
     public boolean equals(Object obj) {
         if (this == obj) return true;
         if (obj == null) return false;
         if (getClass() != obj.getClass()) return false;
-        DafnyMultiset<T> o = (DafnyMultiset<T>) obj;
+        DafnyMultiset o = (DafnyMultiset) obj;
         return innerMap.equals(o.innerMap);
     }
 

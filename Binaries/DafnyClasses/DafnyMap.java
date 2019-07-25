@@ -47,7 +47,7 @@ public class DafnyMap<K, V> implements Map<K, V> {
         if (this == obj) return true;
         if (obj == null) return false;
         if (getClass() != obj.getClass()) return false;
-        DafnyMap<K, V> o = (DafnyMap<K, V>) obj;
+        DafnyMap o = (DafnyMap) obj;
         return innerMap.equals(o.innerMap);
     }
 
@@ -62,12 +62,12 @@ public class DafnyMap<K, V> implements Map<K, V> {
     }
 
     @Override
-    public void forEach(BiConsumer action) {
+    public void forEach(BiConsumer<? super K, ? super V> action) {
         innerMap.forEach(action);
     }
 
     @Override
-    public void replaceAll(BiFunction function) {
+    public void replaceAll(BiFunction<? super K, ? super V, ? extends V> function) {
         innerMap.replaceAll(function);
     }
 

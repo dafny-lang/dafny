@@ -9,7 +9,7 @@ public class LibClass {
     public static Tuple2 CallMeInt(BigInteger x) {
       BigInteger y = x.add(BigInteger.ONE);
       BigInteger z = y.add(y);
-      return new Tuple2(y, z);
+      return new Tuple2<>(y, z);
     }
     // static method CallMeNative(x: MyInt, b: bool) returns (y: MyInt)
     public static int CallMeNative(int x, boolean b) {

@@ -12,11 +12,12 @@ public class Tuple3<T0, T1, T2> {
     }
 
     @Override
+    @SuppressWarnings("UNCHECKED_CAST")
     public boolean equals(Object obj) {
         if (this == obj) return true;
         if (obj == null) return false;
         if (getClass() != obj.getClass()) return false;
-        Tuple3<T0, T1, T2> o = (Tuple3<T0, T1, T2>) obj;
+        Tuple3 o = (Tuple3) obj;
         return this._0.equals(o._0) && this._1.equals(o._1) && this._2.equals(o._2);
     }
 

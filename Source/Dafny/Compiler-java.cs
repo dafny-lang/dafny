@@ -853,7 +853,12 @@ namespace Microsoft.Dafny{
       if (type != null && type.AsArrayType != null){
         arrays.Add(type.AsArrayType.Dims);
       }
-      wr.Write("{0} {1}", type != null ? TypeName(type, wr, tok) : "Object", name);
+      if (type.IsDatatype && type.AsDatatype is TupleTypeDecl) {
+        wr.Write($"Tuple{type.AsDatatype.TypeArgs.Count} {name}");
+      }
+      else {
+        wr.Write("{0} {1}", type != null ? TypeName(type, wr, tok) : "Object", name);
+      }
       if (leaveRoomForRhs){
         Contract.Assert(rhs == null); // follows from precondition
       }
@@ -1728,7 +1733,7 @@ namespace Microsoft.Dafny{
       } else if (outParams.Count == 1){
         wr.WriteLine("return {0};", IdName(outParams[0]));
       } else{
-        wr.WriteLine("return new Tuple{0}({1});", outParams.Count, Util.Comma(outParams, IdName));
+        wr.WriteLine("return new Tuple{0}<>({1});", outParams.Count, Util.Comma(outParams, IdName));
       }
     }
     
@@ -1916,8 +1921,11 @@ namespace Microsoft.Dafny{
       var dt = dtv.Ctor.EnclosingDatatype;
       var dtName = dt.CompileName;
       var ctorName = dtv.Ctor.CompileName;
-      
-      var typeParams = dtv.InferredTypeArgs.Count == 0 ? "" : string.Format("<{0}>", TypeNames(dtv.InferredTypeArgs, wr, dtv.tok));
+      var typeParams = dtv.InferredTypeArgs.Count == 0 ? "" : "<>";
+      //TODO: Determine if this implementation is ever needed
+//      var typeDecl = dtv.InferredTypeArgs.Count == 0
+//        ? ""
+//        : string.Format("new {0}", TypeNames(dtv.InferredTypeArgs, wr, dtv.tok));
       if (!dtv.IsCoCall) {
         wr.Write("new {0}{1}{2}", dtName, dt.IsRecordType ? "" : "_" + ctorName, typeParams);
         // For an ordinary constructor (that is, one that does not guard any co-recursive calls), generate:
@@ -2302,26 +2310,9 @@ namespace Microsoft.Dafny{
             sw.WriteLine(Indent() + "if (this == obj) return true;");
             sw.WriteLine(Indent() + "if (obj == null) return false;");
             sw.WriteLine(Indent() + "if (getClass() != obj.getClass()) return false;");
+            sw.WriteLine(Indent() + $"Tuple{i} o = (Tuple{i}) obj;");
             
             if(i!= 0){
-                sw.Write(Indent() + "Tuple" + i + "<");
-              for (int j = 0; j < i; j++){
-                sw.Write("T" + j);
-                if (j != i - 1)
-                  sw.Write(", ");
-                else{
-                  sw.Write("> o = (Tuple" + i + "<");
-                }
-              }
-
-              for (int j = 0; j < i; j++){
-                sw.Write("T" + j);
-                if (j != i - 1)
-                  sw.Write(", ");
-                else{
-                  sw.WriteLine(">) obj;");
-                }
-              }
               sw.Write(Indent() + "return ");
               for (int j = 0; j < i; j++){
                   sw.Write("this._" + j + ".equals(o._" + j + ")");
@@ -2614,6 +2605,7 @@ namespace Microsoft.Dafny{
         foreach(TypeParameter t in l)
         {
           w.WriteLine($"this.s{t.Name} = s{t.Name};");
+          w.WriteLine("@SuppressWarnings(\"unchecked\")");
           w.WriteLine($"{t.Name.ToLower()} = ({t.Name}) Helpers.getDefault(s{t.Name});");
         }
       }

@@ -67,7 +67,7 @@ public class DafnySequence<T> implements Iterable {
 
     public DafnySequence<T> concatenate(DafnySequence<T> other) {
         assert other != null : "Precondition Violation";
-        List<T> l = new ArrayList(seq);
+        List<T> l = new ArrayList<>(seq);
         l.addAll(other.seq);
         return new DafnySequence<>(l);
     }
@@ -149,12 +149,6 @@ public class DafnySequence<T> implements Iterable {
     }
 
     @Override
-    public void forEach(Consumer action) {
-        assert action != null : "Precondition Violation";
-        seq.forEach(action);
-    }
-
-    @Override
     public Spliterator spliterator() {
         return seq.spliterator();
     }
@@ -165,11 +159,12 @@ public class DafnySequence<T> implements Iterable {
     }
 
     @Override
+    @SuppressWarnings("UNCHECKED_CAST")
     public boolean equals(Object obj) {
         if (this == obj) return true;
         if (obj == null) return false;
         if (getClass() != obj.getClass()) return false;
-        DafnySequence<T> o = (DafnySequence<T>) obj;
+        DafnySequence o = (DafnySequence) obj;
         if (length() != o.length()) return false;
         return seq.equals(o.seq);
     }
@@ -184,6 +179,7 @@ public class DafnySequence<T> implements Iterable {
         return seq.toString();
     }
 
+    @SuppressWarnings("unchecked")
     public String verbatimString(){
         StringBuilder builder = new StringBuilder(seq.size());
         for(Character ch: (ArrayList<Character>) seq)
@@ -194,6 +190,6 @@ public class DafnySequence<T> implements Iterable {
     }
 
     public HashSet<T> UniqueElements() {
-        return new HashSet(seq);
+        return new HashSet<>(seq);
     }
 }

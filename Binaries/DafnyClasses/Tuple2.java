@@ -4,17 +4,23 @@ public class Tuple2<T0, T1> {
     private T0 _0;
     private T1 _1;
 
+    public static String defaultInstanceName = Tuple2.class.toString();
+
+    public Tuple2(){
+    }
+
     public Tuple2(T0 _0, T1 _1) {
         this._0 = _0;
         this._1 = _1;
     }
 
     @Override
+    @SuppressWarnings("UNCHECKED_CAST")
     public boolean equals(Object obj) {
         if (this == obj) return true;
         if (obj == null) return false;
         if (getClass() != obj.getClass()) return false;
-        Tuple2<T0, T1> o = (Tuple2<T0, T1>) obj;
+        Tuple2 o = (Tuple2) obj;
         return this._0.equals(o._0) && this._1.equals(o._1);
     }
 
