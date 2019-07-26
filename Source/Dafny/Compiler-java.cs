@@ -1737,7 +1737,7 @@ namespace Microsoft.Dafny{
     // TODO: See if more types need to be added
     bool IsDirectlyComparable(Type t) {
       Contract.Requires(t != null);
-      return t.IsBoolType || t.IsCharType || AsNativeType(t) != null || t.IsRefType;
+      return t.IsBoolType || t.IsCharType || t.IsRefType;
     }
 
     protected override void EmitActualTypeArgs(List<Type> typeArgs, Bpl.IToken tok, TextWriter wr)
@@ -2099,7 +2099,7 @@ namespace Microsoft.Dafny{
             opString = "+";
           }
           else if (resultType is UserDefinedType && !(resultType.IsIntegerType)){
-            opString = "-";
+            opString = "+";
           }
           else{
             callString = "add";
