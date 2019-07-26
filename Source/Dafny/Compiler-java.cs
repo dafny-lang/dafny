@@ -87,10 +87,11 @@ namespace Microsoft.Dafny{
       if (actualOutParamNames.Count == 1){
         EmitAssignment(actualOutParamNames[0], null, outCollector, null, wr);
       }
-      else{
+      else {
         for (var i = 0; i < actualOutParamNames.Count; i++){
-          wr.WriteLine("{0} = ({3}) {1}.dtor__{2}();", actualOutParamNames[i], outCollector, i,
-            TypeName(actualOutParamTypes[i], wr, tok));
+          string t, n;
+          SplitType(TypeName(actualOutParamTypes[i], wr, tok), out t, out n);
+          wr.WriteLine("{0} = ({3}) {1}.dtor__{2}();", actualOutParamNames[i], outCollector, i, n);
         }
       }
     }
@@ -857,7 +858,10 @@ namespace Microsoft.Dafny{
         wr.Write($"Tuple{type.AsDatatype.TypeArgs.Count} {name}");
       }
       else {
-        wr.Write("{0} {1}", type != null ? TypeName(type, wr, tok) : "Object", name);
+        if (type.IsTypeParameter) {
+          wr.WriteLine("@SuppressWarnings(\"unchecked\")");
+        }
+        wr.Write("{0} {1}", type != null ? TypeName(type, wr, tok) : "Object", name);		
       }
       if (leaveRoomForRhs){
         Contract.Assert(rhs == null); // follows from precondition
