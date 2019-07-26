@@ -433,6 +433,7 @@ namespace Microsoft.Dafny{
       int nonGhostOuts = 0;
       int nonGhostIndex = 0;
       
+      EmitSuppression(wr);
       wr.Write("public ");
       wr.Write(c.CompileName);
       wr.Write("(");
@@ -496,11 +497,23 @@ namespace Microsoft.Dafny{
       }
       else{
         wr.WriteLine("public {0} {1} = {2};", TypeName(type, wr, tok), name, (rhs != null) ? rhs : DefaultValue(type, wr, tok));
+        //If the previous field is s*, then we know it is a string for getDefault, which requires warnings to be suppressed before the line
+        if (name.StartsWith("s") && name.Length == 2) {
+          EmitSuppression(wr);
+        }
       }
     }
 
     private string RemoveParams(string s){
       return Regex.Replace(s, @"<.>", "");
+    }
+
+    private void EmitSuppression(TargetWriter wr) {
+      wr.WriteLine("@SuppressWarnings(\"unchecked\")");
+    }
+    
+    private void EmitSuppression(StreamWriter sw) {
+      sw.WriteLine("@SuppressWarnings(\"unchecked\")");
     }
 
     string TypeParameters(List<TypeParameter> targs) {
@@ -698,6 +711,8 @@ namespace Microsoft.Dafny{
       w.WriteLine("import java.math.*;"); // TODO: Figure out all the Java imports necessary for compiled program to run.
       EmitImports(w, out _);
       w.WriteLine();
+//        //TODO: Fix implementations so they do not need this suppression
+      EmitSuppression(w);
       w.Write("public class {0}", name);
       if (typeParameters != null && typeParameters.Count != 0) { 
         w.Write("<{0}>", TypeParameters(typeParameters));
@@ -859,7 +874,7 @@ namespace Microsoft.Dafny{
       }
       else {
         if (type.IsTypeParameter) {
-          wr.WriteLine("@SuppressWarnings(\"unchecked\")");
+          EmitSuppression(wr);
         }
         wr.Write("{0} {1}", type != null ? TypeName(type, wr, tok) : "Object", name);		
       }
@@ -1235,6 +1250,8 @@ namespace Microsoft.Dafny{
       EmitImports(wr, out _);
       wr.WriteLine();
       // from here on, write everything into the new block created here:
+      //TODO: Figure out how to resolve type checking warnings
+      EmitSuppression(wr);
       wr = wr.NewNamedBlock("public{0} class {1}", dt.IsRecordType ? "" : " abstract", DtT_protected);
       // constructor
       if (dt.IsRecordType) {
@@ -1375,6 +1392,7 @@ namespace Microsoft.Dafny{
         wr.WriteLine("import java.math.*;"); // TODO: Figure out all the Java imports necessary for compiled program to run.
         EmitImports(wr, out _);
         wr.WriteLine();
+        EmitSuppression(wr); //TODO: Fix implementations so they do not need this suppression
         var w = wr.NewNamedBlock("public class {0}__Lazy{2} extends {1}{2}", dt.CompileName, IdName(dt), typeParams);
         w.WriteLine("interface Computer {{ {0} run(); }}", dt.CompileName);
         w.WriteLine("Computer c;");
@@ -2514,6 +2532,7 @@ namespace Microsoft.Dafny{
       w.WriteLine("import java.math.*;"); // TODO: Figure out all the Java imports necessary for compiled program to run.
       EmitImports(w, out _);
       w.WriteLine();
+      EmitSuppression(w);; //TODO: Fix implementations so they do not need this suppression
       w.Write("public interface {0}", IdProtect(name));
       if (superClasses != null) {
         string sep = " implements ";
@@ -2609,7 +2628,6 @@ namespace Microsoft.Dafny{
         foreach(TypeParameter t in l)
         {
           w.WriteLine($"this.s{t.Name} = s{t.Name};");
-          w.WriteLine("@SuppressWarnings(\"unchecked\")");
           w.WriteLine($"{t.Name.ToLower()} = ({t.Name}) Helpers.getDefault(s{t.Name});");
         }
       }
@@ -2663,7 +2681,7 @@ namespace Microsoft.Dafny{
         sw.WriteLine("import java.lang.reflect.Array;");
         sw.WriteLine();
         sw.WriteLine("public class ArrayInit" + i + "{");
-        sw.WriteLine("@SuppressWarnings(\"unchecked\")");
+        EmitSuppression(sw);
         sw.Write(Indent() + "public static<T> T");
         for (int j = 0; j < i; j++) {
           sw.Write("[]");
