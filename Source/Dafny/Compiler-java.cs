@@ -2446,7 +2446,12 @@ namespace Microsoft.Dafny{
                 newarr += "[]";
               }
               newarr += ")";
-              typeNameSansBrackets = "Object";
+              newarr += $"Array.newInstance(dafny.Helpers.getClass(s{udt.TypeArgs[0].ToString()}.substring(6))";
+              for (int i = 0; i < arrayClass.Dims; i++) {
+                newarr += $", 0";
+              }
+              newarr += ")";
+              return newarr;
             }
             newarr += $"new {typeNameSansBrackets}";
             for (int i = 0; i < arrayClass.Dims; i++) {
@@ -2823,20 +2828,30 @@ namespace Microsoft.Dafny{
       if (!mustInitialize) {
         if (elmtType is UserDefinedType && (elmtType as UserDefinedType).ResolvedClass == null) {
           wr.Write($"({(elmtType as UserDefinedType).CompileName}");
-          foreach (var dim in dimensions) {
+          for (int i = 0; i < dimensions.Count; i++) {
             wr.Write("[]");
           }
           wr.Write(")");
-          typeNameSansBrackets = "Object";
+          wr.Write($"Array.newInstance(dafny.Helpers.getClass(s{(elmtType as UserDefinedType).ToString()}.substring(6))");
+          string pref = ", ";
+          foreach (var dim in dimensions) {
+            wr.Write("{0}", pref);
+            TrParenExpr(dim, wr, false);
+            pref = ".intValue(), ";
+          }
+          wr.Write(".intValue())");
         }
-        wr.Write("new {0}", typeNameSansBrackets);
-        string prefix = "[";
-        foreach (var dim in dimensions) {
-          wr.Write("{0}", prefix);
-          TrParenExpr(dim, wr, false);
-          prefix = ".intValue()][";
+        else {
+          wr.Write("new {0}", typeNameSansBrackets);
+          string prefix = "[";
+          foreach (var dim in dimensions) {
+            wr.Write("{0}", prefix);
+            TrParenExpr(dim, wr, false);
+            prefix = ".intValue()][";
+          }
+
+          wr.Write(".intValue()]");
         }
-        wr.Write(".intValue()]");
       } else {
         arrayinits.Add(dimensions.Count);
         

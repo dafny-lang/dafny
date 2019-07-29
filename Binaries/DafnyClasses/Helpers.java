@@ -101,6 +101,16 @@ public class Helpers {
         assert 0 <= t && t <= 65535;
         return new Character((char)t);
     }
+
+    public static Class getClass(String s) {
+        try {
+            return Class.forName(s);
+        }
+        catch(ClassNotFoundException e) {
+            System.out.println("Class " + s + " not found.");
+            return null;
+        }
+    }
 }
 
 
