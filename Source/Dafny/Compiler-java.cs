@@ -508,12 +508,8 @@ namespace Microsoft.Dafny{
       return Regex.Replace(s, @"<.>", "");
     }
 
-    private void EmitSuppression(TargetWriter wr) {
+    private void EmitSuppression(TextWriter wr) {
       wr.WriteLine("@SuppressWarnings(\"unchecked\")");
-    }
-    
-    private void EmitSuppression(StreamWriter sw) {
-      sw.WriteLine("@SuppressWarnings(\"unchecked\")");
     }
 
     string TypeParameters(List<TypeParameter> targs) {
@@ -711,7 +707,7 @@ namespace Microsoft.Dafny{
       w.WriteLine("import java.math.*;"); // TODO: Figure out all the Java imports necessary for compiled program to run.
       EmitImports(w, out _);
       w.WriteLine();
-//        //TODO: Fix implementations so they do not need this suppression
+      //TODO: Fix implementations so they do not need this suppression
       EmitSuppression(w);
       w.Write("public class {0}", name);
       if (typeParameters != null && typeParameters.Count != 0) { 
@@ -1372,6 +1368,7 @@ namespace Microsoft.Dafny{
         wr.WriteLine("import java.math.*;"); // TODO: Figure out all the Java imports necessary for compiled program to run.
         EmitImports(wr, out _);
         wr.WriteLine();
+        EmitSuppression(wr);
         var w = wr.NewNamedBlock("public class {0} extends {1}{2}", DtCtorDeclarationName(ctor, dt.TypeArgs), IdName(dt), typeParams);
         DatatypeFieldsAndConstructor(ctor, constructorIndex, w);
         constructorIndex++;
@@ -1566,9 +1563,14 @@ namespace Microsoft.Dafny{
     
     protected override void EmitPrintStmt(TargetWriter wr, Expression arg) {
       wr.Write("System.out.print(");
-      TrExpr(arg, wr, false);
-      if (arg.Type.AsCollectionType != null && arg.Type.AsCollectionType.AsSeqType!= null && arg.Type.AsCollectionType.AsSeqType.Arg is CharType){
-        wr.Write(".verbatimString()");
+      if (arg.Type.IsArrowType) {
+        wr.Write(IdName(((IdentifierExpr) ((ConcreteSyntaxExpression)arg).ResolvedExpression).Var) + " == null ? null : \"Function\"");
+      }
+      else {
+        TrExpr(arg, wr, false);
+        if (arg.Type.AsCollectionType != null && arg.Type.AsCollectionType.AsSeqType!= null && arg.Type.AsCollectionType.AsSeqType.Arg is CharType){
+          wr.Write(".verbatimString()");
+        }
       }
       wr.WriteLine(");");
     }
@@ -2532,7 +2534,7 @@ namespace Microsoft.Dafny{
       w.WriteLine("import java.math.*;"); // TODO: Figure out all the Java imports necessary for compiled program to run.
       EmitImports(w, out _);
       w.WriteLine();
-      EmitSuppression(w);; //TODO: Fix implementations so they do not need this suppression
+      EmitSuppression(w); //TODO: Fix implementations so they do not need this suppression
       w.Write("public interface {0}", IdProtect(name));
       if (superClasses != null) {
         string sep = " implements ";

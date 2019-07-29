@@ -35,12 +35,15 @@ public class Helpers {
         if (s == null || s.startsWith("interface "))
             return null;
         try {
-            if (!s.startsWith("class "))
-                return Class.forName(s).newInstance();
+            if (!s.startsWith("class ")){
+                Object o = Class.forName(s).newInstance();
+                if(o.toString().contains("@"))
+                    return null;
+                else
+                    return o;
+            }
             if (s.startsWith("class [")) {
-                String xs = s.substring(8);
-                xs = xs.replace(";", "");
-                return Array.newInstance(Class.forName(xs), 0);
+                return null;
             }
             switch (s) {
                 case "class java.math.BigInteger":
@@ -51,7 +54,11 @@ public class Helpers {
                     return new BigDecimal(0);
                 default:
                     String xs = s.substring(6);
-                    return Class.forName(xs).newInstance();
+                    Object o = Class.forName(xs).newInstance();
+                    if(o.toString().contains("@"))
+                        return null;
+                    else
+                        return o;
             }
         } catch (Exception e) {
             e.printStackTrace();

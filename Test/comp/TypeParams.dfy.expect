@@ -61,7 +61,7 @@ func(main.Color, dafny.Set) uint32
 
 Dafny program verifier finished with 19 verified, 0 errors
 0 0 0 false Color.Orange 0.0 []
-java.lang.Object@12edcd21 [Ljava.lang.Boolean;@34c45dca dafny.Array3@52cc8049 _System.MyClass@5b6f7412 _System.MyClass@27973e9b
+null null null null null
 [] {} [] {} [] {}
 null null null null
 0 [] [] 0 Dt.D0()
@@ -75,6 +75,6 @@ NonemptyList.Atom()
 NonemptyCoList.CoAtom
 Color.Pink 19 -3
 null null null null
-_System.__default$$Lambda$10/2094548358@17a7cec2
-_System.__default$$Lambda$11/1323165413@65b3120a
-_System.__default$$Lambda$12/214126413@6f539caf
+Function
+Function
+Function
