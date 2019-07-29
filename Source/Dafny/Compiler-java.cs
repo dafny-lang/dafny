@@ -2446,7 +2446,7 @@ namespace Microsoft.Dafny{
                 newarr += "[]";
               }
               newarr += ")";
-              newarr += $"Array.newInstance(dafny.Helpers.getClass(s{udt.TypeArgs[0].ToString()}.substring(6))";
+              newarr += $"Array.newInstance(dafny.Helpers.getClassUnsafe(s{udt.TypeArgs[0].ToString()}.substring(6))";
               for (int i = 0; i < arrayClass.Dims; i++) {
                 newarr += $", 0";
               }
@@ -2832,7 +2832,8 @@ namespace Microsoft.Dafny{
             wr.Write("[]");
           }
           wr.Write(")");
-          wr.Write($"Array.newInstance(dafny.Helpers.getClass(s{(elmtType as UserDefinedType).ToString()}.substring(6))");
+          // Java class strings are written in the format "class x", so we use substring(6) to get the classname "x".
+          wr.Write($"Array.newInstance(dafny.Helpers.getClassUnsafe(s{(elmtType as UserDefinedType).ToString()}.substring(6))");
           string pref = ", ";
           foreach (var dim in dimensions) {
             wr.Write("{0}", pref);

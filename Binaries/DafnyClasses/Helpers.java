@@ -102,13 +102,12 @@ public class Helpers {
         return new Character((char)t);
     }
 
-    public static Class getClass(String s) {
+    public static Class getClassUnsafe(String s) {
         try {
             return Class.forName(s);
         }
         catch(ClassNotFoundException e) {
-            System.out.println("Class " + s + " not found.");
-            return null;
+            throw new RuntimeException("Class " + s + " not found.");
         }
     }
 }
