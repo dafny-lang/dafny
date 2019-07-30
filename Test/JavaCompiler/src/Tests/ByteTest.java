@@ -28,7 +28,7 @@ public class ByteTest {
         assertTrue(UByte.compare(tenB, zero) > 0);
         assertTrue(UByte.compare(tenB, max) < 0);
         assertTrue(UByte.compare(tenB, tenI) == 0);
-
+        assertEquals(new UByte((byte)-1), max);
     }
 
     @Test
@@ -37,11 +37,14 @@ public class ByteTest {
         double d = 10;
         int i = 10;
         long l = 10;
-        byte b = 10;
+        byte b2 = -1;
         assertEquals(f, tenB.floatValue());
         assertEquals(d, tenB.doubleValue());
         assertEquals(i, tenB.intValue());
         assertEquals(l, tenB.longValue());
+        assertEquals(tenByte, tenB.byteValue());
+        assertEquals(b2, max.byteValue());
+        assertEquals(0xff, max.intValue());
         assertEquals(Integer.hashCode(10), tenB.hashCode());
         assertEquals("10", tenB.toString());
     }

@@ -33,7 +33,6 @@ public class UByte {
         return Integer.compareUnsigned(inner, other.inner);
     }
 
-
     public double doubleValue(){
         return (double) inner;
     }
@@ -48,6 +47,11 @@ public class UByte {
 
     public long longValue(){
         return (long) inner;
+    }
+
+    public byte byteValue(){
+        assert 0 <= inner && inner <= MAXVALUE;
+        return (byte) inner;
     }
 
     //Invariant that other.inner is positive, so no underflow check needed

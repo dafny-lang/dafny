@@ -50,6 +50,11 @@ public class UByte {
         return (long) inner;
     }
 
+    public byte byteValue(){
+        assert 0 <= inner && inner <= MAXVALUE;
+        return (byte) inner;
+    }
+
     //Invariant that other.inner is positive, so no underflow check needed
     public UByte add(UByte other){
         int i = inner + other.inner;
