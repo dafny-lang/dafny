@@ -33,7 +33,9 @@ public class DafnyMap<K, V> implements Map<K, V> {
     public DafnyMap<K, V> update(K k, V v) {
         HashMap<K, V> copy = new HashMap<>(innerMap);
         copy.put(k, v);
-        return new DafnyMap<>(copy);
+        DafnyMap<K, V> r = new DafnyMap<>();
+        r.innerMap = copy;
+        return r;
     }
 
 

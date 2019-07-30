@@ -21,6 +21,8 @@ public class MapTest {
         h.put(1, 'c');
         dm.put(1, 'c');
         assertEquals(dm, new DafnyMap(h));
+        dm.update(6, 't');
+        assertEquals(dm, new DafnyMap(h));
         assertEquals(dm.entrySet(), h.entrySet());
         assertEquals(dm.keySet(), h.keySet());
         assertTrue(dm.contains(1));
