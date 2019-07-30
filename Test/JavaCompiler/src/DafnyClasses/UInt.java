@@ -1,41 +1,41 @@
 package DafnyClasses;
 
 // Dafny bytes are default unsigned, whereas they are signed in Java, and there is no unsigned equivalent
-public class DafnyUInt {
+public class UInt {
     private int inner;
     public final static int MAXVALUE = 0xffffffff;
-    public DafnyUInt(byte by){
+    public UInt(byte by){
         //simply casting to an int will preserve the sign
         inner = Byte.toUnsignedInt(by);
     }
 
-    public DafnyUInt(short sh){
+    public UInt(short sh){
         //simply casting to an int will preserve the sign
         inner = Short.toUnsignedInt(sh);
     }
 
-    public DafnyUInt(int i){
+    public UInt(int i){
         inner = i;
     }
 
-    public DafnyUInt(long l){
+    public UInt(long l){
         assert l <= 0xffffffffl: "Precondition Failure";
         inner = (int) l;
     }
 
-    public DafnyUInt(DafnyUInt other) {
-        inner = other.inner;
-    }
-
-    public DafnyUInt(){
+    public UInt(){
         inner = 0;
     }
 
-    public static int compare(DafnyUInt x, DafnyUInt y){
+    public UInt(UInt other){
+        inner = other.inner;
+    }
+
+    public static int compare(UInt x, UInt y){
         return Integer.compareUnsigned(x.inner, y.inner);
     }
 
-    public int compareTo(DafnyUInt other){
+    public int compareTo(UInt other){
         return Integer.compareUnsigned(inner, other.inner);
     }
 
@@ -58,33 +58,33 @@ public class DafnyUInt {
     //Invariant that other.inner is positive, so no underflow check needed
     //todo: determine what to do if there is overflow ever
     //addExact will throw an error if there is overflow
-    public DafnyUInt add(DafnyUInt other){
+    public UInt add(UInt other){
         assert Integer.toUnsignedLong(inner) + Integer.toUnsignedLong(other.inner) <= 0xffffffffl : "Precondition Failure";
-        return new DafnyUInt(inner+other.inner);
+        return new UInt(inner+other.inner);
     }
 
     //Invariant that other.inner is positive, so no overflow check needed
-    public DafnyUInt subtract(DafnyUInt other){
+    public UInt subtract(UInt other){
         assert Integer.compareUnsigned(inner, other.inner) >= 0: "Precondition Failure";
-        return new DafnyUInt(inner-other.inner);
+        return new UInt(inner-other.inner);
     }
 
     //Invariant that other.inner is positive, so no underflow check needed
-    public DafnyUInt multiply(DafnyUInt other){
+    public UInt multiply(UInt other){
         assert Integer.toUnsignedLong(inner) * Integer.toUnsignedLong(other.inner) <= 0xffffffffl : "Precondition Failure";
-        return new DafnyUInt(inner*other.inner);
+        return new UInt(inner*other.inner);
     }
 
     //Invariant that other.inner is positive, so only nonzero check needed
-    public DafnyUInt divide(DafnyUInt other){
+    public UInt divide(UInt other){
         assert other.inner != 0 : "Precondition Failure";
-        return new DafnyUInt(Integer.divideUnsigned(inner, other.inner));
+        return new UInt(Integer.divideUnsigned(inner, other.inner));
     }
 
     //Invariant that other.inner is positive, so only nonzero check needed
-    public DafnyUInt mod(DafnyUInt other){
+    public UInt mod(UInt other){
         assert other.inner != 0 : "Precondition Failure";
-        return new DafnyUInt(Integer.remainderUnsigned(inner, other.inner));
+        return new UInt(Integer.remainderUnsigned(inner, other.inner));
     }
 
     @Override
@@ -92,7 +92,7 @@ public class DafnyUInt {
         if (this == obj) return true;
         if (obj == null) return false;
         if (getClass() != obj.getClass()) return false;
-        DafnyUInt o = (DafnyUInt) obj;
+        UInt o = (UInt) obj;
         return inner == o.inner;
     }
 
@@ -106,27 +106,27 @@ public class DafnyUInt {
         return Integer.toUnsignedString(inner);
     }
 
-    public DafnyUInt xor(DafnyUInt other){
-        return new DafnyUInt(inner ^ other.inner);
+    public UInt xor(UInt other){
+        return new UInt(inner ^ other.inner);
     }
 
-    public DafnyUInt or(DafnyUInt other){
-        return new DafnyUInt(inner | other.inner);
+    public UInt or(UInt other){
+        return new UInt(inner | other.inner);
     }
 
-    public DafnyUInt and(DafnyUInt other){
-        return new DafnyUInt(inner & other.inner);
+    public UInt and(UInt other){
+        return new UInt(inner & other.inner);
     }
 
-    public DafnyUInt not(){
-        return new DafnyUInt(~inner);
+    public UInt not(){
+        return new UInt(~inner);
     }
 
-    public DafnyUInt shiftLeft(int i){
-        return new DafnyUInt(inner << i);
+    public UInt shiftLeft(int i){
+        return new UInt(inner << i);
     }
 
-    public DafnyUInt shiftRight(int i){
-        return new DafnyUInt(inner >> i);
+    public UInt shiftRight(int i){
+        return new UInt(inner >> i);
     }
 }

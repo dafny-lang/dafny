@@ -3,38 +3,33 @@ package DafnyClasses;
 import java.math.BigInteger;
 
 // Dafny bytes are default unsigned, whereas they are signed in Java, and there is no unsigned equivalent
-public class DafnyByte{
+public class UByte {
     private int inner;
     public final static int MAXVALUE = 0xff;
-
-    public DafnyByte(){
-        inner = 0;
-    }
-
-    public DafnyByte(byte by){
+    public UByte(byte by){
         //simply casting to an int will preserve the sign
         inner = Byte.toUnsignedInt(by);
     }
 
-    public DafnyByte(int i){
+    public UByte(int i){
         assert 0 <= i && i <= MAXVALUE : "Precondition Failure";
         inner = i;
     }
 
-    public DafnyByte(DafnyByte other) {
+    public UByte(UByte other){
         inner = other.inner;
     }
 
-    public DafnyByte(BigInteger i){
-        assert i.compareTo(BigInteger.ZERO) >= 0 && i.compareTo(BigInteger.valueOf(MAXVALUE)) <= 0 : "Precondition Failure";
+    public UByte(BigInteger i){
+        assert 0 <= i.compareTo(BigInteger.ZERO) && i.compareTo(BigInteger.valueOf(MAXVALUE)) <= 0 : "Precondition Failure";
         inner = i.intValue();
     }
 
-    public static int compare(DafnyByte x, DafnyByte y){
+    public static int compare(UByte x, UByte y){
         return Integer.compareUnsigned(x.inner, y.inner);
     }
 
-    public int compareTo(DafnyByte other){
+    public int compareTo(UByte other){
         return Integer.compareUnsigned(inner, other.inner);
     }
 
@@ -55,42 +50,37 @@ public class DafnyByte{
         return (long) inner;
     }
 
-    public byte byteValue(){
-        assert 0 <= inner && inner <= MAXVALUE;
-        return (byte) inner;
-    }
-
     //Invariant that other.inner is positive, so no underflow check needed
-    public DafnyByte add(DafnyByte other){
+    public UByte add(UByte other){
         int i = inner + other.inner;
         assert i <= MAXVALUE: "Precondition Failure";
-        return new DafnyByte(i);
+        return new UByte(i);
     }
 
     //Invariant that other.inner is positive, so no overflow check needed
-    public DafnyByte subtract(DafnyByte other){
+    public UByte subtract(UByte other){
         int i = inner - other.inner;
-        assert i >= 0: "Precondition Failure";
-        return new DafnyByte(i);
+        assert 0 <= i: "Precondition Failure";
+        return new UByte(i);
     }
 
     //Invariant that other.inner is positive, so no underflow check needed
-    public DafnyByte multiply(DafnyByte other){
+    public UByte multiply(UByte other){
         int i = inner * other.inner;
         assert i <= MAXVALUE: "Precondition Failure";
-        return new DafnyByte(i);
+        return new UByte(i);
     }
 
     //Invariant that other.inner is positive, so only nonzero check needed
-    public DafnyByte divide(DafnyByte other){
+    public UByte divide(UByte other){
         assert other.inner != 0 : "Precondition Failure";
-        return new DafnyByte(inner/other.inner);
+        return new UByte(inner/other.inner);
     }
 
     //Invariant that other.inner is positive, so only nonzero check needed
-    public DafnyByte mod(DafnyByte other){
+    public UByte mod(UByte other){
         assert other.inner != 0 : "Precondition Failure";
-        return new DafnyByte(inner%other.inner);
+        return new UByte(inner%other.inner);
     }
 
     @Override
@@ -98,7 +88,7 @@ public class DafnyByte{
         if (this == obj) return true;
         if (obj == null) return false;
         if (getClass() != getClass()) return false;
-        DafnyByte o = (DafnyByte) obj;
+        UByte o = (UByte) obj;
         return inner == o.inner;
     }
 
@@ -112,27 +102,27 @@ public class DafnyByte{
         return Integer.toUnsignedString(inner);
     }
 
-    public DafnyByte xor(DafnyByte other){
-        return new DafnyByte(inner ^ other.inner);
+    public UByte xor(UByte other){
+        return new UByte(inner ^ other.inner);
     }
 
-    public DafnyByte or(DafnyByte other){
-        return new DafnyByte(inner | other.inner);
+    public UByte or(UByte other){
+        return new UByte(inner | other.inner);
     }
 
-    public DafnyByte and(DafnyByte other){
-        return new DafnyByte(inner & other.inner);
+    public UByte and(UByte other){
+        return new UByte(inner & other.inner);
     }
 
-    public DafnyByte not(){
-        return new DafnyByte(~inner);
+    public UByte not(){
+        return new UByte(~inner);
     }
 
-    public DafnyByte shiftLeft(int i){
-        return new DafnyByte(inner << i);
+    public UByte shiftLeft(int i){
+        return new UByte(inner << i);
     }
 
-    public DafnyByte shiftRight(int i){
-        return new DafnyByte(inner >> i);
+    public UByte shiftRight(int i){
+        return new UByte(inner >> i);
     }
 }

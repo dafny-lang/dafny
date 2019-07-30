@@ -17,37 +17,37 @@ public class TupleTest {
     Integer[] testSequenceArr = new Integer[]{1, 3, 2, 4, 2, 4, 6, 5, 4, 1, 7};
     DafnySequence<Integer> testSequence = new DafnySequence<>(Arrays.asList(testSequenceArr));
     Character[] testStringArr = new Character[]{'1', '3', '2', '4', '2', '4', '6', '5', '4', '1', '7'};
-    DafnyString testString = new DafnyString(Arrays.asList(testStringArr));
+    DafnySequence<Character> testString = new DafnySequence<>(Arrays.asList(testStringArr));
     DafnySet<Integer> testSet = new DafnySet<>(new HashSet<>(Arrays.asList(1, 2, 3, 4, 5, 6, 8)));
     Integer integer = 3;
     String string = "Hello";
     StringBuilder sb = new StringBuilder();
     ArrayList<Hashtable<TreeMap<Integer, Time>, ItemEvent>> bigFriend = new ArrayList<>();
-    DafnyTuple3<DafnyMultiset<Integer>, DafnySequence<Integer>, DafnyString> dafny = new DafnyTuple3<>(testMSet, testSequence, testString);
-    DafnyTuple3<Integer, Integer[], String> types = new DafnyTuple3<>(integer, testSequenceArr, string);
-    DafnyTuple3<Integer, Integer[], String> typeCopy = new DafnyTuple3<>(integer, testSequenceArr, string);
-    DafnyTuple3<ArrayList, StringBuilder, Integer> complex = new DafnyTuple3<>(bigFriend, sb, integer);
+    Tuple3<DafnyMultiset<Integer>, DafnySequence<Integer>, DafnySequence<Character>> dafny = new Tuple3<>(testMSet, testSequence, testString);
+    Tuple3<Integer, Integer[], String> types = new Tuple3<>(integer, testSequenceArr, string);
+    Tuple3<Integer, Integer[], String> typeCopy = new Tuple3<>(integer, testSequenceArr, string);
+    Tuple3<ArrayList, StringBuilder, Integer> complex = new Tuple3<>(bigFriend, sb, integer);
 
     @Test
     public void testEquals(){
         assertEquals(types, typeCopy);
         assertTrue(types.equals(typeCopy));
         assertFalse(types.equals(complex));
-        assertEquals(types.get_0(), complex.get_2());
-        assertEquals(dafny.get_0(), testMSet);
-        assertEquals(dafny.get_1(), testSequence);
-        assertEquals(dafny.get_2(), testString);
+        assertEquals(types.dtor__0(), complex.dtor__2());
+        assertEquals(dafny.dtor__0(), testMSet);
+        assertEquals(dafny.dtor__1(), testSequence);
+        assertEquals(dafny.dtor__2(), testString);
     }
 
     @Test
     public void testHash(){
         assertEquals(types.hashCode(), typeCopy.hashCode());
-        assertEquals(types.get_0().hashCode(), complex.get_2().hashCode());
-        assertEquals(complex.get_0().hashCode(), new ArrayList().hashCode());
+        assertEquals(types.dtor__0().hashCode(), complex.dtor__2().hashCode());
+        assertEquals(complex.dtor__0().hashCode(), new ArrayList().hashCode());
         assertFalse(types.hashCode() == complex.hashCode());
-        assertEquals(dafny.get_0().hashCode(), testMSet.hashCode());
-        assertEquals(dafny.get_1().hashCode(), testSequence.hashCode());
-        assertEquals(dafny.get_2().hashCode(), testString.hashCode());
+        assertEquals(dafny.dtor__0().hashCode(), testMSet.hashCode());
+        assertEquals(dafny.dtor__1().hashCode(), testSequence.hashCode());
+        assertEquals(dafny.dtor__2().hashCode(), testString.hashCode());
     }
 
     @Test
@@ -60,22 +60,22 @@ public class TupleTest {
 
     @Test
     public void testGet(){
-        assertEquals(complex.get_0(), new ArrayList());
-        complex.get_0().add(new Hashtable<>());
-        assertFalse(complex.get_0().equals(new ArrayList()));
-        assertFalse(new StringBuilder().equals(complex.get_1()));
-        assertEquals(complex.get_1(), sb);
+        assertEquals(complex.dtor__0(), new ArrayList());
+        complex.dtor__0().add(new Hashtable<>());
+        assertFalse(complex.dtor__0().equals(new ArrayList()));
+        assertFalse(new StringBuilder().equals(complex.dtor__1()));
+        assertEquals(complex.dtor__1(), sb);
         sb.append("H");
-        assertEquals(complex.get_1(), sb);
-        complex.get_1().append("J");
-        assertEquals(complex.get_1(), sb);
-        assertFalse(new StringBuilder().equals(complex.get_1()));
-        assertEquals(complex.get_2(), new Integer(3));
-        Integer a = 1 + complex.get_2();
-        assertEquals(complex.get_2(), new Integer(3));
-        DafnyTuple3<Integer, String, Integer> nullTest = new DafnyTuple3<>(null, null, null);
-        assertEquals(nullTest.get_0(), null);
-        assertEquals(nullTest.get_1(), null);
-        assertEquals(nullTest.get_2(), null);
+        assertEquals(complex.dtor__1(), sb);
+        complex.dtor__1().append("J");
+        assertEquals(complex.dtor__1(), sb);
+        assertFalse(new StringBuilder().equals(complex.dtor__1()));
+        assertEquals(complex.dtor__2(), new Integer(3));
+        Integer a = 1 + complex.dtor__2();
+        assertEquals(complex.dtor__2(), new Integer(3));
+        Tuple3<Integer, String, Integer> nullTest = new Tuple3<>(null, null, null);
+        assertEquals(nullTest.dtor__0(), null);
+        assertEquals(nullTest.dtor__1(), null);
+        assertEquals(nullTest.dtor__2(), null);
     }
 }

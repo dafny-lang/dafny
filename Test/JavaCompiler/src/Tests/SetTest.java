@@ -103,7 +103,7 @@ public class SetTest {
         finalSet.add(new DafnySet<>(new DafnySet<>(new HashSet<>(Arrays.asList(1)))));
         finalSet.add(new DafnySet<>(new DafnySet<>(new HashSet<>(Arrays.asList(2)))));
         finalSet.add(new DafnySet<>(new DafnySet<>(new HashSet<>(Arrays.asList(3)))));
-        assertEquals(finalSet, testSet.allSubsets());
+        assertEquals(finalSet, testSet.AllSubsets());
     }
 
     @Rule

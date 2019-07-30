@@ -62,6 +62,10 @@ public class BigRational {
         }
     }
 
+    public BigRational() {
+        this(0, 1);
+    }
+
     public BigRational(int n) {
         this(n, 1);
     }

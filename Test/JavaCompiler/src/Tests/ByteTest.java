@@ -1,11 +1,7 @@
-import DafnyClasses.DafnyByte;
-import DafnyClasses.DafnyMultiset;
+import DafnyClasses.UByte;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
-
-import java.math.BigInteger;
-import java.util.*;
 
 import static junit.framework.Assert.assertFalse;
 import static junit.framework.Assert.assertTrue;
@@ -13,12 +9,12 @@ import static junit.framework.Assert.assertEquals;
 
 public class ByteTest {
 
-    DafnyByte tenI = new DafnyByte(10);
+    UByte tenI = new UByte(10);
     byte tenByte = 10;
-    DafnyByte tenB = new DafnyByte(tenByte);
-    DafnyByte two = new DafnyByte(2);
-    DafnyByte zero = new DafnyByte(0);
-    DafnyByte max = new DafnyByte((byte)0xff);
+    UByte tenB = new UByte(tenByte);
+    UByte two = new UByte(2);
+    UByte zero = new UByte(0);
+    UByte max = new UByte((byte)0xff);
 
     @Test
     public void testComparisons(){
@@ -29,9 +25,9 @@ public class ByteTest {
         assertTrue(tenB.compareTo(zero) > 0);
         assertTrue(tenB.compareTo(max) < 0);
         assertTrue(tenB.compareTo(tenI) == 0);
-        assertTrue(DafnyByte.compare(tenB, zero) > 0);
-        assertTrue(DafnyByte.compare(tenB, max) < 0);
-        assertTrue(DafnyByte.compare(tenB, tenI) == 0);
+        assertTrue(UByte.compare(tenB, zero) > 0);
+        assertTrue(UByte.compare(tenB, max) < 0);
+        assertTrue(UByte.compare(tenB, tenI) == 0);
 
     }
 
@@ -46,8 +42,6 @@ public class ByteTest {
         assertEquals(d, tenB.doubleValue());
         assertEquals(i, tenB.intValue());
         assertEquals(l, tenB.longValue());
-        assertEquals(b, tenB.byteValue());
-        assertEquals(b, (new DafnyByte(b)).byteValue());
         assertEquals(Integer.hashCode(10), tenB.hashCode());
         assertEquals("10", tenB.toString());
     }
@@ -72,7 +66,7 @@ public class ByteTest {
     @Test
     public void testFailures(){
         thrown.expect(AssertionError.class);
-        DafnyByte fail = new DafnyByte(0xfff);
+        UByte fail = new UByte(0xfff);
         max.add(tenI);
         zero.subtract(two);
         max.multiply(tenB);

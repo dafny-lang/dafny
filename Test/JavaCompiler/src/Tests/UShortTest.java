@@ -1,11 +1,7 @@
-import DafnyClasses.DafnyUShort;
-import DafnyClasses.DafnyMultiset;
+import DafnyClasses.UShort;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
-
-import java.math.BigInteger;
-import java.util.*;
 
 import static junit.framework.Assert.assertFalse;
 import static junit.framework.Assert.assertTrue;
@@ -13,12 +9,12 @@ import static junit.framework.Assert.assertEquals;
 
 public class UShortTest {
 
-    DafnyUShort tenI = new DafnyUShort(10);
+    UShort tenI = new UShort(10);
     short tenUShort = 10;
-    DafnyUShort tenU = new DafnyUShort(tenUShort);
-    DafnyUShort two = new DafnyUShort(2);
-    DafnyUShort zero = new DafnyUShort(0);
-    DafnyUShort max = new DafnyUShort((short)0xffff);
+    UShort tenU = new UShort(tenUShort);
+    UShort two = new UShort(2);
+    UShort zero = new UShort(0);
+    UShort max = new UShort((short)0xffff);
 
     @Test
     public void testComparisons(){
@@ -29,9 +25,9 @@ public class UShortTest {
         assertTrue(tenU.compareTo(zero) > 0);
         assertTrue(tenU.compareTo(max) < 0);
         assertTrue(tenU.compareTo(tenI) == 0);
-        assertTrue(DafnyUShort.compare(tenU, zero) > 0);
-        assertTrue(DafnyUShort.compare(tenU, max) < 0);
-        assertTrue(DafnyUShort.compare(tenU, tenI) == 0);
+        assertTrue(UShort.compare(tenU, zero) > 0);
+        assertTrue(UShort.compare(tenU, max) < 0);
+        assertTrue(UShort.compare(tenU, tenI) == 0);
 
     }
 
@@ -69,7 +65,7 @@ public class UShortTest {
     @Test
     public void testFailures(){
         thrown.expect(AssertionError.class);
-        DafnyUShort fail = new DafnyUShort(0xfffff);
+        UShort fail = new UShort(0xfffff);
         max.add(tenI);
         zero.subtract(two);
         max.multiply(tenU);

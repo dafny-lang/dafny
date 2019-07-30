@@ -1,11 +1,9 @@
-import DafnyClasses.DafnyULong;
-import DafnyClasses.DafnyMultiset;
+import DafnyClasses.ULong;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
 import java.math.BigInteger;
-import java.util.*;
 
 import static junit.framework.Assert.assertFalse;
 import static junit.framework.Assert.assertTrue;
@@ -13,14 +11,14 @@ import static junit.framework.Assert.assertEquals;
 
 public class ULongTest {
 
-    DafnyULong tenI = new DafnyULong(10);
+    ULong tenI = new ULong(10);
     short tenUShort = 10;
-    DafnyULong tenU = new DafnyULong(tenUShort);
-    DafnyULong two = new DafnyULong(2);
-    DafnyULong zero = new DafnyULong(0);
-    DafnyULong max = new DafnyULong(new BigInteger("18446744073709551615"));
-    DafnyULong large = new DafnyULong(0xfffffffffffffff0l);
-    DafnyULong grande = new DafnyULong(0x0ffffffffffffff0l);
+    ULong tenU = new ULong(tenUShort);
+    ULong two = new ULong(2);
+    ULong zero = new ULong(0);
+    ULong max = new ULong(new BigInteger("18446744073709551615"));
+    ULong large = new ULong(0xfffffffffffffff0l);
+    ULong grande = new ULong(0x0ffffffffffffff0l);
 
     @Test
     public void testComparisons(){
@@ -29,9 +27,9 @@ public class ULongTest {
         assertTrue(tenU.compareTo(zero) > 0);
         assertTrue(tenU.compareTo(max) < 0);
         assertTrue(tenU.compareTo(tenI) == 0);
-        assertTrue(DafnyULong.compare(tenU, zero) > 0);
-        assertTrue(DafnyULong.compare(tenU, max) < 0);
-        assertTrue(DafnyULong.compare(tenU, tenI) == 0);
+        assertTrue(ULong.compare(tenU, zero) > 0);
+        assertTrue(ULong.compare(tenU, max) < 0);
+        assertTrue(ULong.compare(tenU, tenI) == 0);
 
     }
 
@@ -44,10 +42,10 @@ public class ULongTest {
     @Test
     public void testArithmetic(){
         assertEquals(10+2, tenU.add(two).value());
-        assertEquals(DafnyULong.MAXVALUE, max.add(zero).value());
+        assertEquals(ULong.MAXVALUE, max.add(zero).value());
         assertEquals(0xfffffffffffffffal, large.add(tenU).value());
         assertEquals(10-2, tenU.subtract(two).value());
-        assertEquals(DafnyULong.MAXVALUE- 2, max.subtract(two).value());
+        assertEquals(ULong.MAXVALUE- 2, max.subtract(two).value());
         assertEquals(0xffffffffffffffe6l, large.subtract(tenU).value());
         assertEquals(10*2, tenU.multiply(two).value());
         assertEquals(0, max.multiply(zero).value());
@@ -55,11 +53,11 @@ public class ULongTest {
         assertEquals(5, tenI.divide(two).value());
         assertEquals(0, zero.divide(max).value());
         assertEquals(1, max.divide(max).value());
-        assertEquals(DafnyULong.MAXBI.divide(BigInteger.TEN).longValue(), max.divide(tenU).value());
+        assertEquals(ULong.MAXBI.divide(BigInteger.TEN).longValue(), max.divide(tenU).value());
         assertEquals(0, tenU.mod(two).value());
-        assertEquals(DafnyULong.MAXBI.mod(BigInteger.TEN).longValue(), max.mod(tenI).value());
+        assertEquals(ULong.MAXBI.mod(BigInteger.TEN).longValue(), max.mod(tenI).value());
         assertEquals(tenU.value(), tenU.mod(max).value());
-        assertEquals(DafnyULong.MAXBI.divide(BigInteger.TEN).longValue(), max.divide(tenI).value());
+        assertEquals(ULong.MAXBI.divide(BigInteger.TEN).longValue(), max.divide(tenI).value());
     }
 
     @Rule
@@ -68,7 +66,7 @@ public class ULongTest {
     @Test
     public void testFailures(){
         thrown.expect(AssertionError.class);
-        DafnyULong fail = new DafnyULong(DafnyULong.MAXBI.add(new BigInteger("2")));
+        ULong fail = new ULong(ULong.MAXBI.add(new BigInteger("2")));
         max.add(tenI);
         zero.subtract(two);
         max.multiply(tenU);

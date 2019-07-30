@@ -1,12 +1,5 @@
 import DafnyClasses.BigRational;
-import DafnyClasses.DafnyULong;
-import DafnyClasses.DafnyMultiset;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
-
-import java.math.BigInteger;
-import java.util.*;
 
 import static junit.framework.Assert.assertFalse;
 import static junit.framework.Assert.assertTrue;

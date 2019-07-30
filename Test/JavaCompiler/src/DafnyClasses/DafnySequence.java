@@ -3,6 +3,7 @@ package DafnyClasses;
 import java.math.BigInteger;
 import java.util.*;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public class DafnySequence<T> implements Iterable {
@@ -15,6 +16,7 @@ public class DafnySequence<T> implements Iterable {
     protected ArrayList<T> seq;
 
     public DafnySequence() {
+        seq = new ArrayList<>();
     }
 
     public static DafnySequence<Character> asString(String s){
@@ -36,6 +38,14 @@ public class DafnySequence<T> implements Iterable {
     public DafnySequence(DafnySequence<T> other) {
         assert other != null : "Precondition Violation";
         seq = new ArrayList<>(other.seq);
+    }
+
+    public static <T> DafnySequence<T> Create(BigInteger length, Function<BigInteger, T> init) {
+        ArrayList<T> values = new ArrayList<>();
+        for(BigInteger i = BigInteger.ZERO; i.compareTo(length) < 0; i = i.add(BigInteger.ONE)) {
+            values.add(init.apply(i));
+        }
+        return new DafnySequence<>(values);
     }
 
     // Determines if this DafnySequence is a prefix of other
@@ -62,14 +72,13 @@ public class DafnySequence<T> implements Iterable {
         return new DafnySequence<>(l);
     }
 
-    public T select(BigInteger b) {
-        assert b.compareTo(BigInteger.ZERO) >=0 && b.compareTo(BigInteger.valueOf(Integer.MAX_VALUE)) <=0 : "Precondition Violation";
-        return seq.get(b.intValue());
-    }
-
     public T select(int i) {
         assert i >= 0 : "Precondition Violation";
         return seq.get(i);
+    }
+
+    public T select(BigInteger i) {
+        return select(i.intValue());
     }
 
     public int length() {
@@ -107,11 +116,19 @@ public class DafnySequence<T> implements Iterable {
         return new DafnySequence<>(seq.subList(lo, length()));
     }
 
+    public DafnySequence<T> drop(BigInteger lo) {
+        return drop(lo.intValue());
+    }
+
 
     // Returns the subsequence of values [0..hi)
     public DafnySequence<T> take(int hi) {
         assert hi >= 0 && hi <= length() : "Precondition Violation";
         return new DafnySequence<>(seq.subList(0, hi));
+    }
+
+    public DafnySequence<T> take(BigInteger hi) {
+        return take(hi.intValue());
     }
 
     public DafnySequence<DafnySequence<T>> slice(List<Integer> l) {
@@ -174,5 +191,9 @@ public class DafnySequence<T> implements Iterable {
             builder.append(ch);
         }
         return builder.toString();
+    }
+
+    public HashSet<T> UniqueElements() {
+        return new HashSet(seq);
     }
 }

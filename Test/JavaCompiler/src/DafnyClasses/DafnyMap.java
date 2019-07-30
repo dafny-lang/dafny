@@ -5,14 +5,14 @@ import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
-public class Dafnymap<K, V> implements Map<K, V> {
+public class DafnyMap<K, V> implements Map<K, V> {
     private Map<K, V> innerMap;
 
-    public Dafnymap() {
+    public DafnyMap() {
         innerMap = new HashMap<>();
     }
 
-    public Dafnymap(Map<K, V> m) {
+    public DafnyMap(Map<K, V> m) {
         assert m != null : "Precondition Violation";
         innerMap = new HashMap<>();
         m.forEach((k, v) -> put(k, v));
@@ -22,7 +22,7 @@ public class Dafnymap<K, V> implements Map<K, V> {
         return innerMap.containsKey(t);
     }
 
-    public boolean disjoint(Dafnymap<K, V> other) {
+    public boolean disjoint(DafnyMap<K, V> other) {
         assert other != null : "Precondition Violation";
         for (K t : other.innerMap.keySet()) {
             if (innerMap.containsKey(t)) return false;
@@ -30,10 +30,10 @@ public class Dafnymap<K, V> implements Map<K, V> {
         return true;
     }
 
-    public Dafnymap<K, V> update(K k, V v) {
+    public DafnyMap<K, V> update(K k, V v) {
         HashMap<K, V> copy = new HashMap<>(innerMap);
         copy.put(k, v);
-        return new Dafnymap<>(copy);
+        return new DafnyMap<>(copy);
     }
 
 
@@ -47,7 +47,7 @@ public class Dafnymap<K, V> implements Map<K, V> {
         if (this == obj) return true;
         if (obj == null) return false;
         if (getClass() != obj.getClass()) return false;
-        Dafnymap<K, V> o = (Dafnymap<K, V>) obj;
+        DafnyMap<K, V> o = (DafnyMap<K, V>) obj;
         return innerMap.equals(o.innerMap);
     }
 

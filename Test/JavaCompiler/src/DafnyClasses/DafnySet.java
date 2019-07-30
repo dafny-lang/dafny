@@ -115,7 +115,7 @@ public class DafnySet<T> {
         return innerSet.addAll(other.innerSet);
     }
 
-    public Collection<DafnySet<T>> allSubsets(){
+    public Collection<DafnySet<T>> AllSubsets(){
         // Start by putting all set elements into a list, but don't include null
         List<T> elmts = new ArrayList();
         elmts.addAll(innerSet);
@@ -160,5 +160,9 @@ public class DafnySet<T> {
 
     public DafnyMultiset<T> asDafnyMultiset() {
         return new DafnyMultiset<>(innerSet);
+    }
+
+    public Set<T> Elements() {
+        return innerSet;
     }
 }
