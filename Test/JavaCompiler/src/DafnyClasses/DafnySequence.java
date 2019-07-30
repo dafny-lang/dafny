@@ -6,7 +6,7 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-public class DafnySequence<T> implements Iterable {
+public class DafnySequence<T> implements Iterable<T> {
     /*
     Invariant: forall 0<=i<length(). seq[i] == T || null
     Property: DafnySequences are immutable. Any methods that seem to edit the DafnySequence will only return a new
@@ -155,12 +155,12 @@ public class DafnySequence<T> implements Iterable {
     }
 
     @Override
-    public Spliterator spliterator() {
+    public Spliterator<T> spliterator() {
         return seq.spliterator();
     }
 
     @Override
-    public Iterator iterator() {
+    public Iterator<T> iterator() {
         return seq.iterator();
     }
 
