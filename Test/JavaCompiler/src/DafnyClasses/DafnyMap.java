@@ -38,7 +38,6 @@ public class DafnyMap<K, V> implements Map<K, V> {
         return r;
     }
 
-
     @Override
     protected Object clone() throws CloneNotSupportedException {
         return super.clone();
@@ -169,7 +168,8 @@ public class DafnyMap<K, V> implements Map<K, V> {
     }
 
     @Override
-    public Collection<V> values() { return new HashSet<>(innerMap.values());
+    public Collection<V> values() {
+        return new HashSet<>(innerMap.values());
     }
 
     @Override

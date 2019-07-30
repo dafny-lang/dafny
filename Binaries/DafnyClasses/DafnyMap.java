@@ -18,7 +18,6 @@ public class DafnyMap<K, V> implements Map<K, V> {
         m.forEach((k, v) -> put(k, v));
     }
 
-
     public boolean contains(K t) {
         return innerMap.containsKey(t);
     }
@@ -38,7 +37,6 @@ public class DafnyMap<K, V> implements Map<K, V> {
         r.innerMap = copy;
         return r;
     }
-
 
     @Override
     protected Object clone() throws CloneNotSupportedException {
@@ -170,7 +168,8 @@ public class DafnyMap<K, V> implements Map<K, V> {
     }
 
     @Override
-    public Collection<V> values() { return new HashSet<>(innerMap.values());
+    public Collection<V> values() {
+        return new HashSet<>(innerMap.values());
     }
 
     @Override
