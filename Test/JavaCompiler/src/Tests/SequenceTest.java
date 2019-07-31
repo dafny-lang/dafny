@@ -121,7 +121,7 @@ public class SequenceTest {
         l.add(0);
         l.add(6);
         DafnySequence<DafnySequence<Integer>> sliced = testSequence.slice(l);
-        Iterator<DafnySequence> it = sliced.iterator();
+        Iterator<DafnySequence<Integer>> it = sliced.iterator();
         assertEquals(it.next(), testSequenceTake);
         assertEquals(it.next(), testSequenceEmpty);
         assertEquals(it.next(), testSequenceDrop);
