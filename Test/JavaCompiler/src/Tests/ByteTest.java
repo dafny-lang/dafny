@@ -12,6 +12,8 @@ public class ByteTest {
     UByte tenI = new UByte(10);
     byte tenByte = 10;
     UByte tenB = new UByte(tenByte);
+    byte negtenByte = -10;
+    UByte negtenB = new UByte(negtenByte);
     UByte two = new UByte(2);
     UByte zero = new UByte(0);
     UByte max = new UByte((byte)0xff);
@@ -43,7 +45,10 @@ public class ByteTest {
         assertEquals(i, tenB.intValue());
         assertEquals(l, tenB.longValue());
         assertEquals(tenByte, tenB.byteValue());
+        assertEquals(tenB, new UByte(tenB.byteValue()));
         assertEquals(b2, max.byteValue());
+        assertEquals(negtenByte, negtenB.byteValue());
+        assertEquals(negtenB, new UByte(negtenB.byteValue()));
         assertEquals(0xff, max.intValue());
         assertEquals(Integer.hashCode(10), tenB.hashCode());
         assertEquals("10", tenB.toString());
