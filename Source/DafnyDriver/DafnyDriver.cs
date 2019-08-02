@@ -480,22 +480,6 @@ namespace Microsoft.Dafny
         WriteFile(targetFilename, targetProgram); 
       }
 
-      if (DafnyOptions.O.CompileTarget is DafnyOptions.CompilationTarget.Java) {
-        var assemblyLocation = System.Reflection.Assembly.GetExecutingAssembly().Location;
-        Contract.Assert(assemblyLocation != null);
-        var codebase = System.IO.Path.GetDirectoryName(assemblyLocation);
-        Contract.Assert(codebase != null);
-        string path = codebase + "/DafnyClasses";
-        DirectoryInfo dir = new DirectoryInfo(path);
-        FileInfo[] files = dir.GetFiles();
-        Directory.CreateDirectory(targetDir + "/dafny");
-        string dest = targetDir + "/dafny";
-        foreach (FileInfo file in files) {
-          string temp = Path.Combine(dest, file.Name);
-          file.CopyTo(temp, true);
-        }
-      }
-      
       string relativeTarget = Path.Combine(targetBaseDir, targetBaseName);
       if (completeProgram && targetProgram != null) {
         if (DafnyOptions.O.CompileVerbose) {
@@ -617,6 +601,7 @@ namespace Microsoft.Dafny
         var codebase = System.IO.Path.GetDirectoryName(assemblyLocation);
         Contract.Assert(codebase != null);
         string dest = targetDir + "/dafny";
+        Directory.CreateDirectory(dest);
         var jcompiler = (JavaCompiler) compiler;
         jcompiler.CompileTuples(dest);
         jcompiler.CreateFunctionInterface(dest);

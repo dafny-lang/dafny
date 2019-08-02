@@ -1582,6 +1582,11 @@ namespace Microsoft.Dafny{
       foreach (string file in Directory.EnumerateFiles(Path.GetDirectoryName(targetFilename), "*.java", SearchOption.AllDirectories)) {
         files.Add(Path.GetFullPath(file));
       }
+      var assemblyLocation = Assembly.GetExecutingAssembly().Location;
+      Contract.Assert(assemblyLocation != null);
+      var codebase = Path.GetDirectoryName(assemblyLocation);
+      Contract.Assert(codebase != null);
+      var classpath = GetClassPath(targetFilename, codebase);
       foreach (var file in files) {
         var psi = new ProcessStartInfo("javac", file) {
           CreateNoWindow = true,
@@ -1590,7 +1595,7 @@ namespace Microsoft.Dafny{
           RedirectStandardError = true,
           WorkingDirectory = Path.GetFullPath(Path.GetDirectoryName(targetFilename))
         };
-        psi.EnvironmentVariables["CLASSPATH"] = "." + Path.PathSeparator + Path.GetFullPath(Path.GetDirectoryName(targetFilename));
+        psi.EnvironmentVariables["CLASSPATH"] = classpath;
         var proc = Process.Start(psi);
         while (!proc.StandardOutput.EndOfStream) {
           outputWriter.WriteLine(proc.StandardOutput.ReadLine());
@@ -1615,6 +1620,11 @@ namespace Microsoft.Dafny{
         RedirectStandardError = true,
         WorkingDirectory = Path.GetFullPath(Path.GetDirectoryName(targetFilename))
       };
+      var assemblyLocation = Assembly.GetExecutingAssembly().Location;
+      Contract.Assert(assemblyLocation != null);
+      var codebase = Path.GetDirectoryName(assemblyLocation);
+      Contract.Assert(codebase != null);
+      psi.EnvironmentVariables["CLASSPATH"] = GetClassPath(targetFilename, codebase);
       var proc = Process.Start(psi);
       while (!proc.StandardOutput.EndOfStream) {
         outputWriter.WriteLine(proc.StandardOutput.ReadLine());
@@ -1627,6 +1637,11 @@ namespace Microsoft.Dafny{
         throw new Exception($"Error while running Java file {targetFilename}. Process exited with exit code {proc.ExitCode}");
       }
       return true;
+    }
+
+    protected string GetClassPath(string targetFilename, string codebase) {
+      // DafnyRuntime-1.jar has already been created using Maven. It is added to the java CLASSPATH below.
+      return "." + Path.PathSeparator + Path.GetFullPath(Path.GetDirectoryName(targetFilename)) + Path.PathSeparator + Path.Combine(codebase, "DafnyRuntime-1.jar");
     }
     
     static bool CopyExternLibraryIntoPlace(string externFilename, string mainProgram, TextWriter outputWriter) {
@@ -2127,9 +2142,8 @@ namespace Microsoft.Dafny{
     }
 
     public void CompileTuples(string path){
-      tuples.Add(2);
-      tuples.Add(3);
-      foreach(int i in tuples){
+      foreach(int i in tuples) {
+        if (i == 2 || i == 3) continue; // Tuple2 and Tuple3 already exist in DafnyRuntime-1.jar, so don't remake these files.
         CreateTuple(i, path);
       }
     }
