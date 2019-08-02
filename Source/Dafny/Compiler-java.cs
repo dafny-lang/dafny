@@ -1980,12 +1980,12 @@ namespace Microsoft.Dafny{
         case BinaryExpr.ResolvedOpcode.Ge:
         case BinaryExpr.ResolvedOpcode.GeChar:
           callString = "compareTo";
-          postOpString = " > 0";
+          postOpString = " >= 0";
           break;
         case BinaryExpr.ResolvedOpcode.Gt:
         case BinaryExpr.ResolvedOpcode.GtChar:
           callString = "compareTo";
-          postOpString = " >= 0";
+          postOpString = " > 0";
           break;
         case BinaryExpr.ResolvedOpcode.LeftShift:
           callString = "shiftLeft";
