@@ -42,7 +42,8 @@
   </ItemGroup>
 
   <ItemGroup>
-      <None Include="..\..\LICENSE.txt" Pack="true" PackagePath="LICENSE.txt"/>
+      <Content Include="..\..\LICENSE.txt" Pack="true" PackagePath="LICENSE.txt" CopyToOutputDirectory="Always"/>
+      <Content Include="..\..\Binaries\DafnyPrelude.bpl" Pack="true" PackagePath="DafnyPrelude.bpl" CopyToOutputDirectory="Always"/>
   </ItemGroup>
 
 </Project>
