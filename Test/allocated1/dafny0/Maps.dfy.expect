@@ -40,24 +40,23 @@ Maps.dfy(241,41): Error: possible violation of function precondition
 Maps.dfy(215,13): Related location
 Execution trace:
     (0,0): anon0
-    (0,0): anon21_Then
-    (0,0): anon22_Then
-    (0,0): anon23_Then
-    (0,0): anon24_Then
+    (0,0): anon17_Then
+    (0,0): anon18_Then
+    (0,0): anon19_Then
 Maps.dfy(243,36): Error: possible violation of function precondition
 Maps.dfy(215,13): Related location
 Execution trace:
     (0,0): anon0
-    (0,0): anon26_Then
-    (0,0): anon27_Then
-    (0,0): anon28_Then
+    (0,0): anon20_Then
+    (0,0): anon21_Then
+    (0,0): anon22_Then
 Maps.dfy(243,37): Error: key expressions may be referring to the same value
 Execution trace:
     (0,0): anon0
-    (0,0): anon26_Then
-    (0,0): anon27_Then
-    (0,0): anon28_Then
-    (0,0): anon29_Then
-    (0,0): anon30_Then
+    (0,0): anon20_Then
+    (0,0): anon21_Then
+    (0,0): anon22_Then
+    (0,0): anon23_Then
+    (0,0): anon24_Then
 
 Dafny program verifier finished with 19 verified, 9 errors
