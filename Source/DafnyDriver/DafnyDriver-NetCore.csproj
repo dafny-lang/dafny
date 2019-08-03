@@ -20,13 +20,13 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\boogie-dotnet\Source\AbsInt\AbsInt-NetCore.csproj" />
-    <ProjectReference Include="..\..\..\boogie-dotnet\Source\Concurrency\Concurrency-NetCore.csproj" />
-    <ProjectReference Include="..\..\..\boogie-dotnet\Source\Core\Core-NetCore.csproj" />
-    <ProjectReference Include="..\..\..\boogie-dotnet\Source\ExecutionEngine\ExecutionEngine-NetCore.csproj" />
-    <ProjectReference Include="..\..\..\boogie-dotnet\Source\ParserHelper\ParserHelper-NetCore.csproj" />
-    <ProjectReference Include="..\..\..\boogie-dotnet\Source\Provers\SMTLib\SMTLib-NetCore.csproj" />
-    <ProjectReference Include="..\..\..\boogie-dotnet\Source\VCGeneration\VCGeneration-NetCore.csproj" />
+    <ProjectReference Include="..\..\..\boogie\Source\AbsInt\AbsInt-NetCore.csproj" />
+    <ProjectReference Include="..\..\..\boogie\Source\Concurrency\Concurrency-NetCore.csproj" />
+    <ProjectReference Include="..\..\..\boogie\Source\Core\Core-NetCore.csproj" />
+    <ProjectReference Include="..\..\..\boogie\Source\ExecutionEngine\ExecutionEngine-NetCore.csproj" />
+    <ProjectReference Include="..\..\..\boogie\Source\ParserHelper\ParserHelper-NetCore.csproj" />
+    <ProjectReference Include="..\..\..\boogie\Source\Provers\SMTLib\SMTLib-NetCore.csproj" />
+    <ProjectReference Include="..\..\..\boogie\Source\VCGeneration\VCGeneration-NetCore.csproj" />
     <ProjectReference Include="..\DafnyRuntime\DafnyRuntime-NetCore.csproj" />
     <ProjectReference Include="..\Dafny\DafnyPipeline-NetCore.csproj" />
   </ItemGroup>

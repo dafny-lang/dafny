@@ -10,9 +10,9 @@
 
   <ItemGroup>
     <ProjectReference Include="..\DafnyRuntime\DafnyRuntime-NetCore.csproj" />
-    <ProjectReference Include="..\..\..\boogie-dotnet\Source\Core\Core-NetCore.csproj" />
-    <ProjectReference Include="..\..\..\boogie-dotnet\Source\Basetypes\Basetypes-NetCore.csproj" />
-    <ProjectReference Include="..\..\..\boogie-dotnet\Source\ParserHelper\ParserHelper-NetCore.csproj" />
+    <ProjectReference Include="..\..\..\boogie\Source\Core\Core-NetCore.csproj" />
+    <ProjectReference Include="..\..\..\boogie\Source\Basetypes\Basetypes-NetCore.csproj" />
+    <ProjectReference Include="..\..\..\boogie\Source\ParserHelper\ParserHelper-NetCore.csproj" />
   </ItemGroup>
 
   <PropertyGroup>
