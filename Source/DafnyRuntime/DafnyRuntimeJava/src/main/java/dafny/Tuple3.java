@@ -25,11 +25,11 @@ public class Tuple3<T0, T1, T2> {
     public String toString() {
         StringBuilder sb = new StringBuilder();
         sb.append("(");
-        sb.append(_0.toString());
+        sb.append(_0 == null ? "" : _0.toString());
         sb.append(", ");
-        sb.append(_1.toString());
+        sb.append(_1 == null ? "" : _1.toString());
         sb.append(", ");
-        sb.append(_2.toString());
+        sb.append(_2 == null ? "" : _2.toString());
         sb.append(")");
         return sb.toString();
     }
