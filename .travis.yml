@@ -1,6 +1,6 @@
 language: csharp
 mono:
-  - 5.20.0
+  - 5.20.1.19
 dist: xenial
 solution: "dafny/Source/Dafny.sln"
 addons:
