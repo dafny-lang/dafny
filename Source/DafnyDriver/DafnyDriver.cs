@@ -560,15 +560,15 @@ namespace Microsoft.Dafny
         targetFilename = WriteDafnyProgramToFiles(dafnyProgramName, p, completeProgram, otherFiles, outputWriter);
       }
 
-      // compile the program into an assembly
-      // it should not return false when invokeCompiler is false, not compiling is not same as COMPILE_ERROR
       if (!completeProgram) {
         return false;
       }
+      // If we got until here, compilation to C# succeeded
       if (!invokeCompiler) {
-        return true;
+        return true; // If we're not asked to invoke the C# to assembly compiler, we can report success
       }
 
+      // compile the program into an assembly
       object compilationResult;
       var compiledCorrectly = compiler.CompileTargetProgram(dafnyProgramName, targetProgramText, callToMain, targetFilename, otherFileNames,
         hasMain, hasMain && DafnyOptions.O.RunAfterCompile, outputWriter, out compilationResult);
