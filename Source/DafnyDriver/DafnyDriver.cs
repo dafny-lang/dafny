@@ -452,6 +452,9 @@ namespace Microsoft.Dafny
           targetExtension = "go";
           targetBaseDir = baseName + "-go/src";
           break;
+        case DafnyOptions.CompilationTarget.Cpp:
+          targetExtension = "cpp";
+          break;        
         default:
           Contract.Assert(false);
           throw new cce.UnreachableException();
@@ -520,6 +523,9 @@ namespace Microsoft.Dafny
           break;
         case DafnyOptions.CompilationTarget.Go:
           compiler = new Dafny.GoCompiler(dafnyProgram.reporter);
+          break;
+        case DafnyOptions.CompilationTarget.Cpp:
+          compiler = new Dafny.CppCompiler(dafnyProgram.reporter);
           break;
       }
 
