@@ -28,9 +28,9 @@ public class Tuple2<T0, T1> {
     public String toString() {
         StringBuilder sb = new StringBuilder();
         sb.append("(");
-        sb.append(_0 == null ? "" : _0.toString());
+        sb.append(_0 == null ? "null" : _0.toString());
         sb.append(", ");
-        sb.append(_1 == null ? "" : _1.toString());
+        sb.append(_1 == null ? "null" : _1.toString());
         sb.append(")");
         return sb.toString();
     }
