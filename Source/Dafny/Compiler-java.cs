@@ -1582,11 +1582,7 @@ namespace Microsoft.Dafny{
       foreach (string file in Directory.EnumerateFiles(Path.GetDirectoryName(targetFilename), "*.java", SearchOption.AllDirectories)) {
         files.Add(Path.GetFullPath(file));
       }
-      var assemblyLocation = Assembly.GetExecutingAssembly().Location;
-      Contract.Assert(assemblyLocation != null);
-      var codebase = Path.GetDirectoryName(assemblyLocation);
-      Contract.Assert(codebase != null);
-      var classpath = GetClassPath(targetFilename, codebase);
+      var classpath = GetClassPath(targetFilename);
       foreach (var file in files) {
         var psi = new ProcessStartInfo("javac", file) {
           CreateNoWindow = true,
@@ -1620,11 +1616,7 @@ namespace Microsoft.Dafny{
         RedirectStandardError = true,
         WorkingDirectory = Path.GetFullPath(Path.GetDirectoryName(targetFilename))
       };
-      var assemblyLocation = Assembly.GetExecutingAssembly().Location;
-      Contract.Assert(assemblyLocation != null);
-      var codebase = Path.GetDirectoryName(assemblyLocation);
-      Contract.Assert(codebase != null);
-      psi.EnvironmentVariables["CLASSPATH"] = GetClassPath(targetFilename, codebase);
+      psi.EnvironmentVariables["CLASSPATH"] = GetClassPath(targetFilename);
       var proc = Process.Start(psi);
       while (!proc.StandardOutput.EndOfStream) {
         outputWriter.WriteLine(proc.StandardOutput.ReadLine());
@@ -1639,7 +1631,11 @@ namespace Microsoft.Dafny{
       return true;
     }
 
-    protected string GetClassPath(string targetFilename, string codebase) {
+    protected string GetClassPath(string targetFilename) {
+      var assemblyLocation = Assembly.GetExecutingAssembly().Location;
+      Contract.Assert(assemblyLocation != null);
+      var codebase = Path.GetDirectoryName(assemblyLocation);
+      Contract.Assert(codebase != null);
       // DafnyRuntime-1.jar has already been created using Maven. It is added to the java CLASSPATH below.
       return "." + Path.PathSeparator + Path.GetFullPath(Path.GetDirectoryName(targetFilename)) + Path.PathSeparator + Path.Combine(codebase, "DafnyRuntime-1.jar");
     }
