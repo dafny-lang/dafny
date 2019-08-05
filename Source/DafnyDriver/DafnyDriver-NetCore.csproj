@@ -1,0 +1,49 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <PackageId>Dafny</PackageId>
+    <VersionPrefix>42</VersionPrefix>
+    <PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
+    <RepositoryUrl>https://github.com/dafny-org/dafny</RepositoryUrl>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <AssemblyName>DafnyDriver</AssemblyName>
+    <TargetFramework>netcoreapp2.2</TargetFramework>
+    <DefineConstants>COREFX_SUBSET</DefineConstants>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <PackageOutputPath>nupkg</PackageOutputPath>
+    <PackAsTool>true</PackAsTool>
+    <ToolCommandName>dafny</ToolCommandName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\boogie\Source\AbsInt\AbsInt-NetCore.csproj" />
+    <ProjectReference Include="..\..\..\boogie\Source\Concurrency\Concurrency-NetCore.csproj" />
+    <ProjectReference Include="..\..\..\boogie\Source\Core\Core-NetCore.csproj" />
+    <ProjectReference Include="..\..\..\boogie\Source\ExecutionEngine\ExecutionEngine-NetCore.csproj" />
+    <ProjectReference Include="..\..\..\boogie\Source\ParserHelper\ParserHelper-NetCore.csproj" />
+    <ProjectReference Include="..\..\..\boogie\Source\Provers\SMTLib\SMTLib-NetCore.csproj" />
+    <ProjectReference Include="..\..\..\boogie\Source\VCGeneration\VCGeneration-NetCore.csproj" />
+    <ProjectReference Include="..\DafnyRuntime\DafnyRuntime-NetCore.csproj" />
+    <ProjectReference Include="..\Dafny\DafnyPipeline-NetCore.csproj" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="..\version.cs" />
+    <Compile Include="**\*.cs" />
+    <Compile Remove="**\cce.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+      <Content Include="..\..\LICENSE.txt" Pack="true" PackagePath="LICENSE.txt" CopyToOutputDirectory="Always"/>
+      <Content Include="..\..\Binaries\DafnyPrelude.bpl" Pack="true" PackagePath="DafnyPrelude.bpl" CopyToOutputDirectory="Always"/>
+  </ItemGroup>
+
+</Project>
