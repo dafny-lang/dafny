@@ -392,18 +392,24 @@ namespace Microsoft.Dafny {
       }
     }
 
-    protected override void DeclareNewtype(NewtypeDecl nt, TargetWriter wr) {
-      var error = string.Format("Asked to create a newtype {0}, which is currently unsupported", nt);
-      throw new Exception(error);
-      /* 
-      var cw = CreateClass(IdName(nt), null, wr) as CppCompiler.ClassWriter;
-      var w = cw.MethodWriter;
+    protected override void DeclareNewtype(NewtypeDecl nt, TargetWriter wr) {    
+      
       if (nt.NativeType != null) {
+        if (nt.NativeType.Name != nt.Name) {
+          wr.WriteLine("typedef {0} {1};", nt.NativeType.Name, nt.Name);
+        }
+        /*
         var wIntegerRangeBody = w.NewBlock("static *IntegerRange(lo, hi)");
         var wLoopBody = wIntegerRangeBody.NewBlock("while (lo.isLessThan(hi))");
         wLoopBody.WriteLine("yield lo.toNumber();");
         EmitIncrementVar("lo", wLoopBody);
+        */
+      } else {
+        var error = string.Format("Asked to create a non-native newtype {0}, which is currently unsupported", nt);
+        throw new Exception(error);
       }
+      var cw = CreateClass(IdName(nt), null, wr) as CppCompiler.ClassWriter;
+      var w = cw.MethodWriter;
       if (nt.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
         var witness = new TargetWriter(w.IndentLevel, true);
         if (nt.NativeType == null) {
@@ -418,7 +424,7 @@ namespace Microsoft.Dafny {
         var udt = new UserDefinedType(nt.tok, nt.Name, nt, new List<Type>());
         var d = TypeInitializationValue(udt, wr, nt.tok, false);
         wDefault.WriteLine("return {0};", d);
-      } */
+      }
     }
 
     protected override void DeclareSubsetType(SubsetTypeDecl sst, TargetWriter wr) {      
