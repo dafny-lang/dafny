@@ -6421,7 +6421,7 @@ namespace Microsoft.Dafny {
         if (e.Range != null) {
           canCall = BplAnd(CanCallAssumption(e.Range, etran), BplImp(etran.TrExpr(e.Range), canCall));
         }
-        if (expr is MapComprehension mc && mc.TermLeft != null) {
+        if (expr is MapComprehension mc && mc.IsGeneralMapComprehension) {
           canCall = BplAnd(canCall, CanCallAssumption(mc.TermLeft, etran));
 
           // The translation of "map x,y | R(x,y) :: F(x,y) := G(x,y)" makes use of projection
@@ -7450,7 +7450,7 @@ namespace Microsoft.Dafny {
         var q = e as QuantifierExpr;
         var lam = e as LambdaExpr;
         var mc = e as MapComprehension;
-        if (mc != null && mc.TermLeft == null) {
+        if (mc != null && !mc.IsGeneralMapComprehension) {
           mc = null;  // mc will be non-null when "e" is a general map comprehension
         }
 
@@ -15284,7 +15284,7 @@ namespace Microsoft.Dafny {
           Bpl.Expr typeAntecedent = translator.GetWhereClause(bv.tok, unboxw, bv.Type, this, NOALLOC);
 
           Bpl.Expr keys, values;
-          if (e.TermLeft == null) {
+          if (!e.IsGeneralMapComprehension) {
             var subst = new Dictionary<IVariable,Expression>();
             subst.Add(e.BoundVars[0], new BoogieWrapper(unboxw, e.BoundVars[0].Type));
 
@@ -17831,7 +17831,7 @@ namespace Microsoft.Dafny {
               newExpr = new SetComprehension(expr.tok, ((SetComprehension)e).Finite, newBoundVars, newRange, newTerm, newAttrs);
             } else if (e is MapComprehension) {
               var mc = (MapComprehension)e;
-              var newTermLeft = mc.TermLeft == null ? null : Substitute(mc.TermLeft);
+              var newTermLeft = mc.IsGeneralMapComprehension ? Substitute(mc.TermLeft) : null;
               newExpr = new MapComprehension(expr.tok, mc.Finite, newBoundVars, newRange, newTermLeft, newTerm, newAttrs);
             } else if (expr is ForallExpr) {
               newExpr = new ForallExpr(expr.tok, ((QuantifierExpr)expr).TypeArgs, newBoundVars, newRange, newTerm, newAttrs);

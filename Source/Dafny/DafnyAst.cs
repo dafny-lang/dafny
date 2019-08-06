@@ -10192,7 +10192,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public SetComprehension(IToken tok, bool finite, List<BoundVar> bvars, Expression range, Expression term, Attributes attrs)
+    public SetComprehension(IToken tok, bool finite, List<BoundVar> bvars, Expression range, Expression/*?*/ term, Attributes attrs)
       : base(tok, bvars, range, term ?? new IdentifierExpr(tok, bvars[0].Name), attrs) {
       Contract.Requires(tok != null);
       Contract.Requires(cce.NonNullElements(bvars));
@@ -10222,6 +10222,31 @@ namespace Microsoft.Dafny {
 
       Finite = finite;
       TermLeft = termLeft;
+    }
+
+    /// <summary>
+    /// IsGeneralMapComprehension returns true for general map comprehensions.
+    /// In other words, it returns false if either no TermLeft was given or if
+    /// the given TermLeft is the sole bound variable.
+    /// This property getter requires that the expression has been successfully
+    /// resolved.
+    /// </summary>
+    public bool IsGeneralMapComprehension {
+      get {
+        Contract.Requires(WasResolved());
+        if (TermLeft == null) {
+          return false;
+        } else if (BoundVars.Count != 1) {
+          return true;
+        }
+        var lhs = StripParens(TermLeft).Resolved;
+        if (lhs is IdentifierExpr ide && ide.Var == BoundVars[0]) {
+          // TermLeft is the sole bound variable, so this is the same as
+          // if TermLeft wasn't given at all
+          return false;
+        }
+        return true;
+      }
     }
 
     public override IEnumerable<Expression> SubExpressions {
