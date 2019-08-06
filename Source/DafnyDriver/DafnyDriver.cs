@@ -53,7 +53,7 @@ namespace Microsoft.Dafny
 
       if (exitValue == ExitValue.VERIFIED)
       {
-        exitValue = ProcessFiles(dafnyFiles, otherFiles.AsReadOnly(), reporter);
+        exitValue = ProcessFiles(dafnyFiles, otherFiles.AsReadOnly(), reporter); 
       }
 
       if (CommandLineOptions.Clo.XmlSink != null) {
@@ -560,12 +560,15 @@ namespace Microsoft.Dafny
         targetFilename = WriteDafnyProgramToFiles(dafnyProgramName, p, completeProgram, otherFiles, outputWriter);
       }
 
-      // compile the program into an assembly
-      if (!completeProgram || !invokeCompiler) {
-        // don't compile
+      if (!completeProgram) {
         return false;
       }
+      // If we got until here, compilation to C# succeeded
+      if (!invokeCompiler) {
+        return true; // If we're not asked to invoke the C# to assembly compiler, we can report success
+      }
 
+      // compile the program into an assembly
       object compilationResult;
       var compiledCorrectly = compiler.CompileTargetProgram(dafnyProgramName, targetProgramText, callToMain, targetFilename, otherFileNames,
         hasMain, hasMain && DafnyOptions.O.RunAfterCompile, outputWriter, out compilationResult);
