@@ -17354,7 +17354,7 @@ namespace Microsoft.Dafny {
         if (call != null && call.Function != null && call.Function.ReadsHeap) {
           foundHeap = true;
         }
-        if (expr is ApplyExpr) {
+        if (expr is ApplyExpr || expr is SeqConstructionExpr) {
           foundHeap = true;
         }
         ThisExpr thisExpr = expr as ThisExpr;
