@@ -103,14 +103,14 @@ module _System {
 
   trait {:compile false} object { }
   /*-- non-null type
-  type {:axiom} object(==) = c: object? | c != null    /*special witness*/
+  type {:axiom} object(==) = c: object? | c != null /*special witness*/
   */
 
   class {:compile false} array<arg> {
     var Length: int  // immutable
   }
   /*-- non-null type
-  type {:axiom} array(==)<arg> = c: array?<arg> | c != null    /*special witness*/
+  type {:axiom} array(==)<arg> = c: array?<arg> | c != null /*special witness*/
   */
 
   class {:compile false} /*_#Func0*/ () ~> +R {
