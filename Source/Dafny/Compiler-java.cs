@@ -1979,24 +1979,32 @@ namespace Microsoft.Dafny{
           break;
         }
         case BinaryExpr.ResolvedOpcode.Lt:
-        case BinaryExpr.ResolvedOpcode.LtChar:
           callString = "compareTo";
           postOpString = " < 0";
           break;
+        case BinaryExpr.ResolvedOpcode.LtChar:
+          opString = "<";
+          break;
         case BinaryExpr.ResolvedOpcode.Le:
-        case BinaryExpr.ResolvedOpcode.LeChar:
           callString = "compareTo";
           postOpString = " <= 0";
           break;
+        case BinaryExpr.ResolvedOpcode.LeChar:
+          opString = "<=";
+          break;
         case BinaryExpr.ResolvedOpcode.Ge:
-        case BinaryExpr.ResolvedOpcode.GeChar:
           callString = "compareTo";
           postOpString = " >= 0";
           break;
+        case BinaryExpr.ResolvedOpcode.GeChar:
+          opString = ">=";
+          break;
         case BinaryExpr.ResolvedOpcode.Gt:
-        case BinaryExpr.ResolvedOpcode.GtChar:
           callString = "compareTo";
           postOpString = " > 0";
+          break;
+        case BinaryExpr.ResolvedOpcode.GtChar:
+          opString = ">";
           break;
         case BinaryExpr.ResolvedOpcode.LeftShift:
           callString = "shiftLeft";
