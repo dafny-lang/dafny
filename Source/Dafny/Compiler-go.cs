@@ -943,7 +943,7 @@ namespace Microsoft.Dafny {
       // RTD
       {
         CreateRTD(IdName(sst), null, out var wDefaultBody, wr);
-        var udt = new UserDefinedType(sst.tok, sst.Name, sst, sst.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp)));
+        var udt = UserDefinedType.FromTopLevelDecl(sst.tok, sst);
         var d = TypeInitializationValue(udt, wr, sst.tok, false);
         wDefaultBody.WriteLine("return {0}", d);
       }

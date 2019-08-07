@@ -1266,7 +1266,7 @@ namespace Microsoft.Dafny {
         if (dd.Var.Type.IsNumericBased() || dd.Var.Type.IsBitVectorType || dd.Var.Type.IsBoolType) {
           // optimize this to only use the numeric/bitvector constraint, not the whole $Is thing on the base type
           parentConstraint = Bpl.Expr.True;
-          var udt = new UserDefinedType(dd.tok, dd.Name, (TopLevelDecl)dd, dd.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp)));
+          var udt = UserDefinedType.FromTopLevelDecl(dd.tok, (TopLevelDecl)dd);
           var c = Resolver.GetImpliedTypeConstraint(dd.Var, udt);
           constraint = etran.TrExpr(c);
         } else {
