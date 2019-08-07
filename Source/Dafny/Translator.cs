@@ -1231,14 +1231,14 @@ namespace Microsoft.Dafny {
       currentModule = null;
       this.fuelContext = oldFuelContext;
     }
-    void AddRedirectingTypeDeclAxioms(bool is_alloc, RedirectingTypeDecl dd, string fullName) {
-      Contract.Requires(dd != null && dd is TopLevelDecl);
+    void AddRedirectingTypeDeclAxioms<T>(bool is_alloc, T dd, string fullName) where T : TopLevelDecl, RedirectingTypeDecl {
+      Contract.Requires(dd != null);
       Contract.Requires(dd.Var != null && dd.Constraint != null);
       Contract.Requires(fullName != null);
 
       List<Bpl.Expr> typeArgs;
       var vars = MkTyParamBinders(dd.TypeArgs, out typeArgs);
-      var o_ty = ClassTyCon((TopLevelDecl)dd, typeArgs);
+      var o_ty = ClassTyCon(dd, typeArgs);
 
       var oBplType = TrType(dd.Var.Type);
       var o = BplBoundVar(dd.Var.AssignUniqueName(dd.IdGenerator), oBplType, vars);
@@ -1266,7 +1266,7 @@ namespace Microsoft.Dafny {
         if (dd.Var.Type.IsNumericBased() || dd.Var.Type.IsBitVectorType || dd.Var.Type.IsBoolType) {
           // optimize this to only use the numeric/bitvector constraint, not the whole $Is thing on the base type
           parentConstraint = Bpl.Expr.True;
-          var udt = new UserDefinedType(dd.tok, dd.Name, (TopLevelDecl)dd, dd.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp)));
+          var udt = UserDefinedType.FromTopLevelDecl(dd.tok, dd);
           var c = Resolver.GetImpliedTypeConstraint(dd.Var, udt);
           constraint = etran.TrExpr(c);
         } else {
