@@ -1173,6 +1173,70 @@ namespace Dafny
     public static Sequence<T> SeqFromArray<T>(T[] array) {
       return new Sequence<T>((T[])array.Clone());
     }
+
+    public static Sequence<T> SeqFromArrayPrefix<T>(T[] array, long n) {
+      T[] ar = new T[n];
+      for (long i = 0; i < n; i++) {
+        ar[i] = array[i];
+      }
+      return new Sequence<T>(ar);
+    }
+
+    public static Sequence<T> SeqFromArrayPrefix<T>(T[] array, ulong n) {
+      return SeqFromArrayPrefix(array, (long)n);
+    }
+
+    public static Sequence<T> SeqFromArrayPrefix<T>(T[] array, BigInteger n) {
+      return SeqFromArrayPrefix(array, (long)n);
+    }
+
+    public static Sequence<T> SeqFromArraySuffix<T>(T[] array, long n) {
+      T[] ar = new T[array.Length - n];
+      for (long i = n; i < array.Length; i++) {
+        ar[i - n] = array[i];
+      }
+      return new Sequence<T>(ar);
+    }
+
+    public static Sequence<T> SeqFromArraySuffix<T>(T[] array, ulong n) {
+      return SeqFromArraySuffix(array, (long) n);
+    }
+    public static Sequence<T> SeqFromArraySuffix<T>(T[] array, BigInteger n) {
+      return SeqFromArraySuffix(array, (long) n);
+    }
+
+    public static Sequence<T> SeqFromArraySlice<T>(T[] array, long lo, long hi) {
+      T[] ar = new T[hi - lo];
+      for (long i = lo; i < hi; i++) {
+        ar[i - lo] = array[i];
+      }
+      return new Sequence<T>(ar);
+    }
+    public static Sequence<T> SeqFromArraySlice<T>(T[] array, long lo, ulong hi) {
+      return SeqFromArraySlice(array, (long)lo, (long)hi);
+    }
+    public static Sequence<T> SeqFromArraySlice<T>(T[] array, long lo, BigInteger hi) {
+      return SeqFromArraySlice(array, (long)lo, (long)hi);
+    }
+    public static Sequence<T> SeqFromArraySlice<T>(T[] array, ulong lo, long hi) {
+      return SeqFromArraySlice(array, (long)lo, (long)hi);
+    }
+    public static Sequence<T> SeqFromArraySlice<T>(T[] array, ulong lo, ulong hi) {
+      return SeqFromArraySlice(array, (long)lo, (long)hi);
+    }
+    public static Sequence<T> SeqFromArraySlice<T>(T[] array, ulong lo, BigInteger hi) {
+      return SeqFromArraySlice(array, (long)lo, (long)hi);
+    }
+    public static Sequence<T> SeqFromArraySlice<T>(T[] array, BigInteger lo, long hi) {
+      return SeqFromArraySlice(array, (long)lo, (long)hi);
+    }
+    public static Sequence<T> SeqFromArraySlice<T>(T[] array, BigInteger lo, ulong hi) {
+      return SeqFromArraySlice(array, (long)lo, (long)hi);
+    }
+    public static Sequence<T> SeqFromArraySlice<T>(T[] array, BigInteger lo, BigInteger hi) {
+      return SeqFromArraySlice(array, (long)lo, (long)hi);
+    }
+
     // In .NET version 4.5, it it possible to mark a method with "AggressiveInlining", which says to inline the
     // method if possible.  Method "ExpressionSequence" would be a good candidate for it:
     // [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
