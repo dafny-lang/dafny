@@ -22,6 +22,18 @@ public class ULong {
         inner = other.inner;
     }
 
+    public ULong(dafny.UInt other){
+        this(other.value());
+    }
+
+    public ULong(dafny.UShort other){
+        this(other.value());
+    }
+
+    public ULong(dafny.UByte other){
+        this(other.value());
+    }
+
     public ULong(int i) {
         inner = Integer.toUnsignedLong(i);
     }

@@ -31,6 +31,18 @@ public class UInt {
         inner = other.inner;
     }
 
+    public UInt(dafny.UShort other){
+        this(other.value());
+    }
+
+    public UInt(dafny.ULong other){
+        this(other.value());
+    }
+
+    public UInt(dafny.UByte other){
+        this(other.value());
+    }
+
     public static int compare(UInt x, UInt y){
         return Integer.compareUnsigned(x.inner, y.inner);
     }

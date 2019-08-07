@@ -18,12 +18,29 @@ public class UShort {
         inner = i;
     }
 
+    public UShort(long l){
+        assert 0 <= l && l <= MAXVALUE : "Precondition Failure";
+        inner = (int) l;
+    }
+
     public UShort(){
         inner = 0;
     }
 
     public UShort(UShort other){
         inner = other.inner;
+    }
+
+    public UShort(dafny.UInt other){
+        this(other.value());
+    }
+
+    public UShort(dafny.ULong other){
+        this(other.value());
+    }
+
+    public UShort(dafny.UByte other){
+        this(other.value());
     }
 
     public static int compare(UShort x, UShort y){
@@ -33,7 +50,6 @@ public class UShort {
     public int compareTo(UShort other){
         return Integer.compareUnsigned(inner, other.inner);
     }
-
 
     public double doubleValue(){
         return (double) inner;
@@ -49,6 +65,10 @@ public class UShort {
 
     public long longValue(){
         return (long) inner;
+    }
+
+    public short value() {
+        return (short) inner;
     }
 
 
