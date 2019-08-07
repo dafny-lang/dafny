@@ -765,6 +765,8 @@ namespace Microsoft.Dafny{
           throw new cce.UnreachableException();  // to please the compiler
       }
     }
+    
+    HashSet<string> unsignedTypes = new HashSet<string> {"dafny.UByte", "dafny.UShort", "dafny.UInt", "dafny.ULong"};
 
     protected override void GetNativeInfo(NativeType.Selection sel, out string name, out string literalSuffix,
       out bool needsCastAfterArithmetic) {
@@ -2021,7 +2023,7 @@ namespace Microsoft.Dafny{
             preOpString = "(char) (";
             postOpString = ")";
             opString = "+";
-          } else if (resultType is UserDefinedType && !resultType.IsIntegerType) {
+          } else if (resultType is UserDefinedType && !resultType.IsIntegerType && !unsignedTypes.Contains(TypeName(e0.Type, null, tok)) && !unsignedTypes.Contains(TypeName(e1.Type, null, tok))) {
             opString = "+";
           } else {
             callString = "add";
@@ -2033,7 +2035,7 @@ namespace Microsoft.Dafny{
             preOpString = "(char) (";
             opString = "-";
             postOpString = ")";
-          } else if (resultType is UserDefinedType && !resultType.IsIntegerType) {
+          } else if (resultType is UserDefinedType && !resultType.IsIntegerType && !unsignedTypes.Contains(TypeName(e0.Type, null, tok)) && !unsignedTypes.Contains(TypeName(e1.Type, null, tok))) {
             opString = "-";
           } else {
             callString = "subtract";
