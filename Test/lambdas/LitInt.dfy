@@ -10,7 +10,8 @@ function Fibonacci(n: int): int
   else Fibonacci(n - 2) + Fibonacci(n - 1)
 }
 
-function Wrong(): bool {
+function Wrong(): bool
+{
   // The following assertion should fail.
   // Specifically, the verifier should not attempt to
   // prove that for all N, Fibonacci is not equal to 143
@@ -24,13 +25,13 @@ function Wrong(): bool {
   assert Fibonacci(M) == 144;
 
   // Should fail: constants are not Lit-wrapped
-  // and therefore the sum "M + 3" is not a Lit,
+  // and therefore the sum "M + 5" is not a Lit,
   // so Fibonacci(M+5) cannot be evaluated without a fuel
-  // (but as shown belowi in `CheckFib` the verifier knows that
-  // Fibonacci(15) == 610)
-  assert Fibonacci(M + 5) == 610;
+  // (but as shown below in `CheckFib` the verifier knows that
+  // Fibonacci(17) == 1597)
+  assert Fibonacci(M + 5) == 1597;
   true
 }
 
 lemma CheckFib()
-  ensures Fibonacci(15) == 610 {}
+  ensures Fibonacci(17) == 1597 {}
