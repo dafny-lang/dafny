@@ -16,8 +16,30 @@ public class UByte {
         inner = i;
     }
 
+    public UByte(short s){
+        assert 0 <= s && s <= MAXVALUE : "Precondition Failure";
+        inner = s;
+    }
+
+    public UByte(long l){
+        assert 0 <= l && l <= MAXVALUE : "Precondition Failure";
+        inner = (int) l;
+    }
+
     public UByte(UByte other){
         inner = other.inner;
+    }
+
+    public UByte(dafny.UInt other){
+        this(other.value());
+    }
+
+    public UByte(dafny.ULong other){
+        this(other.value());
+    }
+
+    public UByte(dafny.UShort other){
+        this(other.value());
     }
 
     public UByte(BigInteger i){
@@ -52,6 +74,10 @@ public class UByte {
     public byte byteValue(){
         assert 0 <= inner && inner <= MAXVALUE;
         return (byte) inner;
+    }
+
+    public byte value(){
+        return byteValue();
     }
 
     //Invariant that other.inner is positive, so no underflow check needed
