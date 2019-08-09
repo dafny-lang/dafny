@@ -2354,7 +2354,7 @@ namespace Microsoft.Dafny{
               }
               newarr += ")";
               // Java class strings are written in the format "class x", so we use substring(6) to get the classname "x"
-              newarr += $"Array.newInstance(dafny.Helpers.getClassUnsafe(s{udt.TypeArgs[0].ToString()}.substring(6))";
+              newarr += $"Array.newInstance(dafny.Helpers.getClassUnsafe(s{udt.TypeArgs[0]}.substring(6))";
               for (int i = 0; i < arrayClass.Dims; i++) {
                 newarr += ", 0";
               }
