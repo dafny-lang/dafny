@@ -1,4 +1,5 @@
 import dafny.DafnyMultiset;
+
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -8,7 +9,7 @@ import java.util.*;
 import static junit.framework.Assert.assertFalse;
 import static junit.framework.Assert.assertTrue;
 import static junit.framework.Assert.assertEquals;
-import static org.hamcrest.CoreMatchers.startsWith;
+import org.hamcrest.*;
 
 
 public class MultisetTest {
@@ -173,5 +174,25 @@ public class MultisetTest {
         thrown.expect(AssertionError.class);
         DafnyMultiset<Integer> willFail = new DafnyMultiset<>(m);
         testMSet.update(16, new BigInteger("-18"));
+    }
+
+    @Test
+    public void testElements(){
+        HashMap<Integer, BigInteger> counts = new HashMap<>();
+        for(Integer i : testMSet.Elements()){
+            if(!counts.containsKey(i)){
+                counts.put(i, BigInteger.ONE);
+            } else {
+                counts.put(i, counts.get(i).add(BigInteger.ONE));
+            }
+        }
+        assertEquals(new DafnyMultiset<Integer>(counts), testMSet);
+    }
+
+    @Test
+    public void testUniqueElements(){
+        for(Integer i : testMSet.UniqueElements()){
+            assertTrue(testMSet.contains(i));
+        }
     }
 }

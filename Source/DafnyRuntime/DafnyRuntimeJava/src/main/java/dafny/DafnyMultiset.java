@@ -151,6 +151,20 @@ public class DafnyMultiset<T> {
         }
     }
 
+    public Iterable<T> Elements(){
+        ArrayList<T> r = new ArrayList<>();
+        for(Map.Entry<T, BigInteger> e : innerMap.entrySet()){
+            for(int i = 0; i < e.getValue().intValue(); i++){
+                r.add(e.getKey());
+            }
+        }
+        return r;
+    }
+
+    public Iterable<T> UniqueElements(){
+        return innerMap.keySet();
+    }
+
 
     @Override
     protected Object clone() throws CloneNotSupportedException {
