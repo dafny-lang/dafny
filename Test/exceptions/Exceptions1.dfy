@@ -71,14 +71,14 @@ method MakeNatFailure(msg: string) returns (res: NatOutcome) {
 method TestParsing(b: bool, n: nat, o1: NatOutcome, o2: NatOutcome) {
     // 2x2 matrix of (expr, stmt) x (explicit type, no explicit type), where stmt also tests reassignment
 
-    var stmt1: /*nat*/ NatOutcome ; //:- MakeNatSuccess(n);
+    var stmt1: /*nat*/ NatOutcome :- MakeNatSuccess(n);
     stmt1 :- MakeNatFailure("sorry, bad luck");
     var use_stmt1: /*nat*/ NatOutcome := stmt1;
-/*
+
     var stmt2 :- MakeNatSuccess(n);
     stmt2 :- MakeNatFailure("sorry, bad luck");
-    var use_stmt2: nat := stmt2;
-*/
+    var use_stmt2: /*nat*/ NatOutcome := stmt2;
+
 }
 
 /*
