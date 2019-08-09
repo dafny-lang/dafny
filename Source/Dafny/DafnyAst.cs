@@ -6637,7 +6637,7 @@ namespace Microsoft.Dafny {
   }
 
   /// <summary>
-  /// Common superclass of UpdateStmt and AssignSuchThatStmt.
+  /// Common superclass of UpdateStmt, AssignSuchThatStmt and AssignOrReturnStmt
   /// </summary>
   public abstract class ConcreteUpdateStatement : Statement
   {
@@ -6729,6 +6729,34 @@ namespace Microsoft.Dafny {
       Contract.Requires(lhss.Count != 0 || rhss.Count == 1);
       Rhss = rhss;
       CanMutateKnownState = mutate;
+    }
+  }
+
+  public class AssignOrReturnStmt : ConcreteUpdateStatement
+  {
+    public readonly Expression Rhs; // this is the unresolved RHS, and thus can also be a method call
+    public Statement ResolvedStmt = null;  // filled in during resolution
+
+    public override IEnumerable<Statement> SubStatements {
+      get { yield return ResolvedStmt; } // TODO does this need a null-check?
+    }
+
+    [ContractInvariantMethod]
+    void ObjectInvariant() {
+      Contract.Invariant(
+          Lhss == null ||                      // ":- MethodOrExpresion;" which returns void success or an error
+          Lhss.Count == 1 && Lhss[0] != null   // "y :- MethodOrExpression;"
+      );
+      Contract.Invariant(Rhs != null);
+    }
+
+    public AssignOrReturnStmt(IToken tok, IToken endTok, Expression lhs, Expression rhs)
+      : base(tok, endTok, lhs == null ? null : new List<Expression>() { lhs })
+    {
+      Contract.Requires(tok != null);
+      Contract.Requires(endTok != null);
+      Contract.Requires(rhs != null);
+      Rhs = rhs;
     }
   }
 

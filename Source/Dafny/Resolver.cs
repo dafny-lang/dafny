@@ -6012,6 +6012,10 @@ namespace Microsoft.Dafny
         }
         return status;
       } else if (stmt is AssignSuchThatStmt) {
+      } else if (stmt is AssignOrReturnStmt) {
+        // TODO this should be the conservative choice, but probably we can consider this to be tail-recursive
+        // under some conditions? However, how does this interact with compiling to exceptions?
+        return TailRecursionStatus.NotTailRecursive;
       } else if (stmt is UpdateStmt) {
         var s = (UpdateStmt)stmt;
         return CheckTailRecursive(s.ResolvedStatements, enclosingMethod, ref tailCall, reportErrors);
@@ -6788,6 +6792,9 @@ namespace Microsoft.Dafny
           var s = (UpdateStmt)stmt;
           s.ResolvedStatements.Iter(ss => Visit(ss, mustBeErasable));
           s.IsGhost = s.ResolvedStatements.All(ss => ss.IsGhost);
+
+        } else if (stmt is AssignOrReturnStmt) {
+          stmt.IsGhost = false; // TODO when do we want to allow this feature in ghost code? Note that return changes control flow
 
         } else if (stmt is VarDeclStmt) {
           var s = (VarDeclStmt)stmt;
@@ -9912,7 +9919,6 @@ namespace Microsoft.Dafny
 
       // First, resolve all LHS's and expression-looking RHS's.
       int errorCountBeforeCheckingLhs = reporter.Count(ErrorLevel.Error);
-      var update = s as UpdateStmt;
 
       var lhsNameSet = new HashSet<string>();  // used to check for duplicate identifiers on the left (full duplication checking for references and the like is done during verification)
       foreach (var lhs in s.Lhss) {
@@ -9926,11 +9932,14 @@ namespace Microsoft.Dafny
       }
 
       // Resolve RHSs
-      if (update == null) {
-        var suchThat = (AssignSuchThatStmt)s;  // this is the other possible subclass
-        ResolveAssignSuchThatStmt(suchThat, codeContext);
+      if (s is AssignSuchThatStmt) {
+        ResolveAssignSuchThatStmt((AssignSuchThatStmt)s, codeContext);
+      } else if (s is UpdateStmt) {
+        ResolveUpdateStmt((UpdateStmt)s, codeContext, errorCountBeforeCheckingLhs);
+      } else if (s is AssignOrReturnStmt) {
+        ResolveAssignOrReturnStmt((AssignOrReturnStmt)s, codeContext);
       } else {
-        ResolveUpdateStmt(update, codeContext, errorCountBeforeCheckingLhs);
+        Contract.Assert(false); throw new cce.UnreachableException();
       }
       ResolveAttributes(s.Attributes, s, new ResolveOpts(codeContext, true));
     }
@@ -10057,6 +10066,15 @@ namespace Microsoft.Dafny
 
       ResolveExpression(s.Expr, new ResolveOpts(codeContext, true));
       ConstrainTypeExprBool(s.Expr, "type of RHS of assign-such-that statement must be boolean (got {0})");
+    }
+
+    private void ResolveAssignOrReturnStmt(AssignOrReturnStmt s, ICodeContext codeContext) {
+      // desugars "y :- MethodOrExpression" into 
+      // "var temp := MethodOrExpression; if temp.IsFailure() { return temp.PropagateFailure(); } y := temp.Extract();"
+
+      // desugars "y :- MethodOrExpression" into "y := MethodOrExpression" (TODO that's not what it should do)
+      s.ResolvedStmt = new UpdateStmt(s.Rhs.tok, s.EndTok, s.Lhss, new List<AssignmentRhs>() { new ExprRhs(s.Rhs) });
+      ResolveStatement(s.ResolvedStmt, codeContext);
     }
 
     void ResolveAlternatives(List<GuardedAlternative> alternatives, AlternativeLoopStmt loopToCatchBreaks, ICodeContext codeContext) {
