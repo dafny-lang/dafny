@@ -8967,8 +8967,8 @@ namespace Microsoft.Dafny
         ResolveConcreteUpdateStmt((ConcreteUpdateStatement)stmt, codeContext);
       } else if (stmt is VarDeclStmt) {
         var s = (VarDeclStmt)stmt;
-        // We have three cases.
-        Contract.Assert(s.Update == null || s.Update is UpdateStmt || s.Update is AssignSuchThatStmt);
+        // We have four cases.
+        Contract.Assert(s.Update == null || s.Update is AssignSuchThatStmt || s.Update is UpdateStmt || s.Update is AssignOrReturnStmt);
         // 0.  There is no .Update.  This is easy, we will just resolve the locals.
         // 1.  The .Update is an AssignSuchThatStmt.  This is also straightforward:  first
         //     resolve the locals, which adds them to the scope, and then resolve the .Update.
@@ -8976,6 +8976,8 @@ namespace Microsoft.Dafny
         //     of parallel AssignStmt's.  Here, the right-hand sides should be resolved before
         //     the local variables have been added to the scope, but the left-hand sides should
         //     resolve to the newly introduced variables.
+        // 3.  The .Update is a ":-" statement, for which resolution does two steps:
+        //     First, desugar, then run the regular resolution on the desugared AST.
         // To accommodate these options, we first reach into the UpdateStmt, if any, to resolve
         // the left-hand sides of the UpdateStmt.  This will have the effect of shielding them
         // from a subsequent resolution (since expression resolution will do nothing if the .Type
@@ -9006,6 +9008,21 @@ namespace Microsoft.Dafny
           }
           // resolve the whole thing
           ResolveConcreteUpdateStmt(s.Update, codeContext);
+        }
+        if (s.Update is AssignOrReturnStmt)
+        {
+          var assignOrRet = (AssignOrReturnStmt)s.Update;
+          // resolve the LHS
+          Contract.Assert(assignOrRet.Lhss.Count == 1);
+          Contract.Assert(s.Locals.Count == 1);
+          var local = s.Locals[0];
+          var lhs = (IdentifierExpr)assignOrRet.Lhss[0];  // the LHS in this case will be an IdentifierExpr, because that's how the parser creates the VarDeclStmt
+          Contract.Assert(lhs.Type == null);  // not yet resolved
+          lhs.Var = local;
+          lhs.Type = local.Type;
+
+          // resolve the whole thing
+          ResolveAssignOrReturnStmt(assignOrRet, codeContext);
         }
         // Add the locals to the scope
         foreach (var local in s.Locals) {
@@ -10068,12 +10085,15 @@ namespace Microsoft.Dafny
       ConstrainTypeExprBool(s.Expr, "type of RHS of assign-such-that statement must be boolean (got {0})");
     }
 
-    private void ResolveAssignOrReturnStmt(AssignOrReturnStmt s, ICodeContext codeContext) {
-      // desugars "y :- MethodOrExpression" into 
-      // "var temp := MethodOrExpression; if temp.IsFailure() { return temp.PropagateFailure(); } y := temp.Extract();"
-
+    // desugars "y :- MethodOrExpression" into 
+    // "var temp := MethodOrExpression; if temp.IsFailure() { return temp.PropagateFailure(); } y := temp.Extract();"
+    private Statement DesugarAssignOrReturnStmt(AssignOrReturnStmt s) {
       // desugars "y :- MethodOrExpression" into "y := MethodOrExpression" (TODO that's not what it should do)
-      s.ResolvedStmt = new UpdateStmt(s.Rhs.tok, s.EndTok, s.Lhss, new List<AssignmentRhs>() { new ExprRhs(s.Rhs) });
+      return new UpdateStmt(s.Rhs.tok, s.EndTok, s.Lhss, new List<AssignmentRhs>() { new ExprRhs(s.Rhs) });
+    }
+
+    private void ResolveAssignOrReturnStmt(AssignOrReturnStmt s, ICodeContext codeContext) {
+      s.ResolvedStmt = DesugarAssignOrReturnStmt(s);
       ResolveStatement(s.ResolvedStmt, codeContext);
     }
 
