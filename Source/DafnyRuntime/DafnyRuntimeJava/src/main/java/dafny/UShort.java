@@ -110,10 +110,6 @@ public class UShort {
     public UShort mod(UShort other) {
         assert other.inner != 0 : "Precondition Failure";
         int i = inner % other.inner;
-        if(i < 0) {
-            i = (MAXVALUE + 1 + i)%(MAXVALUE + 1);
-        }
-        i %= (MAXVALUE + 1);
         return new UShort(i);
     }
 
@@ -138,28 +134,16 @@ public class UShort {
 
     public UShort xor(UShort other){
         int i = inner ^ other.inner;
-        if(i < 0) {
-            i = (MAXVALUE + 1 + i)%(MAXVALUE + 1);
-        }
-        i %= (MAXVALUE + 1);
         return new UShort(i);
     }
 
     public UShort or(UShort other){
         int i = inner | other.inner;
-        if(i < 0) {
-            i = (MAXVALUE + 1 + i)%(MAXVALUE + 1);
-        }
-        i %= (MAXVALUE + 1);
         return new UShort(i);
     }
 
     public UShort and(UShort other){
         int i = inner & other.inner;
-        if(i < 0) {
-            i = (MAXVALUE + 1 + i)%(MAXVALUE + 1);
-        }
-        i %= (MAXVALUE + 1);
         return new UShort(i);
     }
 
@@ -183,10 +167,6 @@ public class UShort {
 
     public UShort shiftRight(int i){
         i = inner >> i;
-        if(i < 0) {
-            i = (MAXVALUE + 1 + i)%(MAXVALUE + 1);
-        }
-        i %= (MAXVALUE + 1);
         return new UShort(i);
     }
 }

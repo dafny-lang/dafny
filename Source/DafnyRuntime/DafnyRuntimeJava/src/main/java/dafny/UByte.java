@@ -118,10 +118,6 @@ public class UByte {
     public UByte mod(UByte other){
         assert other.inner != 0 : "Precondition Failure";
         int i = inner % other.inner;
-        if(i < 0) {
-            i = (MAXVALUE + 1 + i)%(MAXVALUE + 1);
-        }
-        i %= (MAXVALUE + 1);
         return new UByte(i);
     }
 
@@ -146,28 +142,16 @@ public class UByte {
 
     public UByte xor(UByte other){
         int i = inner ^ other.inner;
-        if(i < 0) {
-            i = (MAXVALUE + 1 + i)%(MAXVALUE + 1);
-        }
-        i %= (MAXVALUE + 1);
         return new UByte(i);
     }
 
     public UByte or(UByte other){
         int i = inner | other.inner;
-        if(i < 0) {
-            i = (MAXVALUE + 1 + i)%(MAXVALUE + 1);
-        }
-        i %= (MAXVALUE + 1);
         return new UByte(i);
     }
 
     public UByte and(UByte other){
         int i = inner & other.inner;
-        if(i < 0) {
-            i = (MAXVALUE + 1 + i)%(MAXVALUE + 1);
-        }
-        i %= (MAXVALUE + 1);
         return new UByte(i);
     }
 
@@ -191,10 +175,6 @@ public class UByte {
 
     public UByte shiftRight(int i){
         i = inner >> i;
-        if(i < 0) {
-            i = (MAXVALUE + 1 + i)%(MAXVALUE + 1);
-        }
-        i %= (MAXVALUE + 1);
         return new UByte(i);
     }
 }
