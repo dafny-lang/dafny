@@ -629,6 +629,11 @@ namespace Microsoft.Dafny
         var s = (UpdateStmt)stmt;
         r = new UpdateStmt(Tok(s.Tok), Tok(s.EndTok), s.Lhss.ConvertAll(CloneExpr), s.Rhss.ConvertAll(CloneRHS), s.CanMutateKnownState);
 
+      } else if (stmt is AssignOrReturnStmt) {
+        var s = (AssignOrReturnStmt)stmt;
+        Contract.Assert(s.Lhss.Count == 1);
+        r = new AssignOrReturnStmt(Tok(s.Tok), Tok(s.EndTok), CloneExpr(s.Lhss[0]), CloneExpr(s.Rhs));
+
       } else if (stmt is VarDeclStmt) {
         var s = (VarDeclStmt)stmt;
         var lhss = s.Locals.ConvertAll(c => new LocalVariable(Tok(c.Tok), Tok(c.EndTok), c.Name, CloneType(c.OptionalType), c.IsGhost));

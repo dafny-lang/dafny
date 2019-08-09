@@ -1495,8 +1495,13 @@ namespace Microsoft.Dafny {
           wr.Write("assume ");
         }
         PrintExpression(update.Expr, true);
+      } else if (s is AssignOrReturnStmt) {
+        var stmt = (AssignOrReturnStmt)s;
+        wr.Write(" :- ");
+        PrintExpression(stmt.Rhs, true);
+
       } else {
-        Contract.Assert(s == null);  // otherwise, unknown type
+        Contract.Assert(false);  // otherwise, unknown type
       }
     }
 
