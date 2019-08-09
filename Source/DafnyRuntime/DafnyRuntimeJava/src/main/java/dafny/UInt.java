@@ -55,6 +55,10 @@ public class UInt {
         return inner;
     }
 
+    public int intValue(){
+        return inner;
+    }
+
     public double doubleValue(){
         return (double) Integer.toUnsignedLong(inner);
     }

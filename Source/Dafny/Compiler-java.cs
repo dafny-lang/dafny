@@ -774,7 +774,7 @@ namespace Microsoft.Dafny{
       }
     }
     
-    HashSet<string> unsignedTypes = new HashSet<string> {"dafny.UByte", "dafny.UShort", "dafny.UInt", "dafny.ULong"};
+    private HashSet<string> unsignedTypes = new HashSet<string> {"dafny.UByte", "dafny.UShort", "dafny.UInt", "dafny.ULong"};
 
     protected override void GetNativeInfo(NativeType.Selection sel, out string name, out string literalSuffix,
       out bool needsCastAfterArithmetic) {
@@ -795,6 +795,7 @@ namespace Microsoft.Dafny{
           break;
         case NativeType.Selection.UInt:
           name = "dafny.UInt";
+          literalSuffix = "L";
           break;
         case NativeType.Selection.Int:
           name = "Integer";
@@ -1154,11 +1155,15 @@ namespace Microsoft.Dafny{
         CompileDatatypeConstructors(dt, wr);
       }
     }
+    
+    private readonly BigInteger java_max_int = 2147483647;
 
     protected override void TrBvExpr(Expression expr, TargetWriter wr, bool inLetExprBody){
       var bv = expr.Type.AsBitVectorType;
       if (bv != null && expr is LiteralExpr literalExpr) {
-        wr.Write(bv.NativeType != null ? $"new {GetNativeTypeName(bv.NativeType)}({literalExpr.Value})" : $"BigInteger.valueOf({literalExpr.Value})");
+        // If literal is larger than Java's max int value, make it a Long instead to avoid overflow error
+        var suffix = (BigInteger)literalExpr.Value > java_max_int ? "L" : "";
+        wr.Write(bv.NativeType != null ? $"new {GetNativeTypeName(bv.NativeType)}({literalExpr.Value}{suffix})" : $"BigInteger.valueOf({literalExpr.Value}{suffix})");
       } else {
         TrParenExpr(expr, wr, inLetExprBody);
       }

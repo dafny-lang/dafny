@@ -80,37 +80,49 @@ public class UByte {
         return byteValue();
     }
 
-    //Invariant that other.inner is positive, so no underflow check needed
     public UByte add(UByte other){
         int i = inner + other.inner;
-        assert i <= MAXVALUE: "Precondition Failure";
+        i %= (MAXVALUE + 1);
         return new UByte(i);
     }
 
-    //Invariant that other.inner is positive, so no overflow check needed
     public UByte subtract(UByte other){
         int i = inner - other.inner;
-        assert 0 <= i: "Precondition Failure";
+        if(i < 0) {
+            i = (MAXVALUE + 1 + i)%(MAXVALUE + 1);
+        }
         return new UByte(i);
     }
 
-    //Invariant that other.inner is positive, so no underflow check needed
     public UByte multiply(UByte other){
         int i = inner * other.inner;
-        assert i <= MAXVALUE: "Precondition Failure";
+        if(i < 0) {
+            i = (MAXVALUE + 1 + i)%(MAXVALUE + 1);
+        }
+        i %= (MAXVALUE + 1);
         return new UByte(i);
     }
 
     //Invariant that other.inner is positive, so only nonzero check needed
     public UByte divide(UByte other){
         assert other.inner != 0 : "Precondition Failure";
-        return new UByte(inner/other.inner);
+        int i = inner/other.inner;
+        if(i < 0) {
+            i = (MAXVALUE + 1 + i)%(MAXVALUE + 1);
+        }
+        i %= (MAXVALUE + 1);
+        return new UByte(i);
     }
 
     //Invariant that other.inner is positive, so only nonzero check needed
     public UByte mod(UByte other){
         assert other.inner != 0 : "Precondition Failure";
-        return new UByte(inner%other.inner);
+        int i = inner % other.inner;
+        if(i < 0) {
+            i = (MAXVALUE + 1 + i)%(MAXVALUE + 1);
+        }
+        i %= (MAXVALUE + 1);
+        return new UByte(i);
     }
 
     @Override
@@ -133,26 +145,56 @@ public class UByte {
     }
 
     public UByte xor(UByte other){
-        return new UByte(inner ^ other.inner);
+        int i = inner ^ other.inner;
+        if(i < 0) {
+            i = (MAXVALUE + 1 + i)%(MAXVALUE + 1);
+        }
+        i %= (MAXVALUE + 1);
+        return new UByte(i);
     }
 
     public UByte or(UByte other){
-        return new UByte(inner | other.inner);
+        int i = inner | other.inner;
+        if(i < 0) {
+            i = (MAXVALUE + 1 + i)%(MAXVALUE + 1);
+        }
+        i %= (MAXVALUE + 1);
+        return new UByte(i);
     }
 
     public UByte and(UByte other){
-        return new UByte(inner & other.inner);
+        int i = inner & other.inner;
+        if(i < 0) {
+            i = (MAXVALUE + 1 + i)%(MAXVALUE + 1);
+        }
+        i %= (MAXVALUE + 1);
+        return new UByte(i);
     }
 
     public UByte not(){
-        return new UByte(~inner);
+        int i = ~inner;
+        if(i < 0) {
+            i = (MAXVALUE + 1 + i)%(MAXVALUE + 1);
+        }
+        i %= (MAXVALUE + 1);
+        return new UByte(i);
     }
 
     public UByte shiftLeft(int i){
-        return new UByte(inner << i);
+        i = inner << i;
+        if(i < 0) {
+            i = (MAXVALUE + 1 + i)%(MAXVALUE + 1);
+        }
+        i %= (MAXVALUE + 1);
+        return new UByte(i);
     }
 
     public UByte shiftRight(int i){
-        return new UByte(inner >> i);
+        i = inner >> i;
+        if(i < 0) {
+            i = (MAXVALUE + 1 + i)%(MAXVALUE + 1);
+        }
+        i %= (MAXVALUE + 1);
+        return new UByte(i);
     }
 }

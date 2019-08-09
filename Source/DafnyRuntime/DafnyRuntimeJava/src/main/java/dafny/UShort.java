@@ -72,37 +72,49 @@ public class UShort {
     }
 
 
-    //Invariant that other.inner is positive, so no underflow check needed
     public UShort add(UShort other){
         int i = inner + other.inner;
-        assert i <= MAXVALUE: "Precondition Failure";
+        i %= (MAXVALUE + 1);
         return new UShort(i);
     }
 
-    //Invariant that other.inner is positive, so no overflow check needed
     public UShort subtract(UShort other){
         int i = inner - other.inner;
-        assert i >= 0: "Precondition Failure";
+        if(i < 0) {
+            i = (MAXVALUE + 1 + i)%(MAXVALUE + 1);
+        }
         return new UShort(i);
     }
 
-    //Invariant that other.inner is positive, so no underflow check needed
     public UShort multiply(UShort other){
         int i = inner * other.inner;
-        assert i <= MAXVALUE: "Precondition Failure";
+        if(i < 0) {
+            i = (MAXVALUE + 1 + i)%(MAXVALUE + 1);
+        }
+        i %= (MAXVALUE + 1);
         return new UShort(i);
     }
     
     //Invariant that other.inner is positive, so only nonzero check needed
     public UShort divide(UShort other){
         assert other.inner != 0 : "Precondition Failure";
-        return new UShort(inner/other.inner);
+        int i = inner/other.inner;
+        if(i < 0) {
+            i = (MAXVALUE + 1 + i)%(MAXVALUE + 1);
+        }
+        i %= (MAXVALUE + 1);
+        return new UShort(i);
     }
 
     //Invariant that other.inner is positive, so only nonzero check needed
     public UShort mod(UShort other) {
         assert other.inner != 0 : "Precondition Failure";
-        return new UShort(inner % other.inner);
+        int i = inner % other.inner;
+        if(i < 0) {
+            i = (MAXVALUE + 1 + i)%(MAXVALUE + 1);
+        }
+        i %= (MAXVALUE + 1);
+        return new UShort(i);
     }
 
     @Override
@@ -125,26 +137,56 @@ public class UShort {
     }
 
     public UShort xor(UShort other){
-        return new UShort(inner ^ other.inner);
+        int i = inner ^ other.inner;
+        if(i < 0) {
+            i = (MAXVALUE + 1 + i)%(MAXVALUE + 1);
+        }
+        i %= (MAXVALUE + 1);
+        return new UShort(i);
     }
 
     public UShort or(UShort other){
-        return new UShort(inner | other.inner);
+        int i = inner | other.inner;
+        if(i < 0) {
+            i = (MAXVALUE + 1 + i)%(MAXVALUE + 1);
+        }
+        i %= (MAXVALUE + 1);
+        return new UShort(i);
     }
 
     public UShort and(UShort other){
-        return new UShort(inner & other.inner);
+        int i = inner & other.inner;
+        if(i < 0) {
+            i = (MAXVALUE + 1 + i)%(MAXVALUE + 1);
+        }
+        i %= (MAXVALUE + 1);
+        return new UShort(i);
     }
 
     public UShort not(){
-        return new UShort(~inner);
+        int i = ~inner;
+        if(i < 0) {
+            i = (MAXVALUE + 1 + i)%(MAXVALUE + 1);
+        }
+        i %= (MAXVALUE + 1);
+        return new UShort(i);
     }
 
     public UShort shiftLeft(int i){
-        return new UShort(inner << i);
+        i = inner << i;
+        if(i < 0) {
+            i = (MAXVALUE + 1 + i)%(MAXVALUE + 1);
+        }
+        i %= (MAXVALUE + 1);
+        return new UShort(i);
     }
 
     public UShort shiftRight(int i){
-        return new UShort(inner >> i);
+        i = inner >> i;
+        if(i < 0) {
+            i = (MAXVALUE + 1 + i)%(MAXVALUE + 1);
+        }
+        i %= (MAXVALUE + 1);
+        return new UShort(i);
     }
 }
