@@ -1,5 +1,5 @@
-import DafnyClasses.DafnySet;
-import DafnyClasses.DafnyMultiset;
+import dafny.DafnySet;
+import dafny.DafnyMultiset;
 import org.junit.Test;
 
 import java.math.BigInteger;

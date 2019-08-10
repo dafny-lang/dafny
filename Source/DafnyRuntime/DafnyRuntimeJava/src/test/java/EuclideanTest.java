@@ -1,4 +1,4 @@
-import DafnyClasses.DafnyEuclidean;
+import dafny.DafnyEuclidean;
 import org.junit.Test;
 
 import java.math.BigInteger;

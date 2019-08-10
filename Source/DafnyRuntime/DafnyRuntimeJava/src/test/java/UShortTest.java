@@ -1,4 +1,4 @@
-import DafnyClasses.UInt;
+import dafny.UShort;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -7,27 +7,27 @@ import static junit.framework.Assert.assertFalse;
 import static junit.framework.Assert.assertTrue;
 import static junit.framework.Assert.assertEquals;
 
-public class UIntTest {
+public class UShortTest {
 
-    UInt tenI = new UInt(10);
+    UShort tenI = new UShort(10);
     short tenUShort = 10;
-    UInt tenU = new UInt(tenUShort);
-    UInt two = new UInt(2);
-    UInt zero = new UInt(0);
-    UInt max = new UInt(0xffffffff);
+    UShort tenU = new UShort(tenUShort);
+    UShort two = new UShort(2);
+    UShort zero = new UShort(0);
+    UShort max = new UShort((short)0xffff);
 
     @Test
     public void testComparisons(){
         assertTrue(tenU.equals(tenI));
         assertFalse(tenU.equals(max));
-        assertEquals(UInt.MAXVALUE, max.value());
-        assertEquals(0, zero.value());
+        assertEquals(0xffff, max.intValue());
+        assertEquals(0, zero.intValue());
         assertTrue(tenU.compareTo(zero) > 0);
         assertTrue(tenU.compareTo(max) < 0);
         assertTrue(tenU.compareTo(tenI) == 0);
-        assertTrue(UInt.compare(tenU, zero) > 0);
-        assertTrue(UInt.compare(tenU, max) < 0);
-        assertTrue(UInt.compare(tenU, tenI) == 0);
+        assertTrue(UShort.compare(tenU, zero) > 0);
+        assertTrue(UShort.compare(tenU, max) < 0);
+        assertTrue(UShort.compare(tenU, tenI) == 0);
 
     }
 
@@ -39,7 +39,7 @@ public class UIntTest {
         long l = 10;
         assertEquals(f, tenU.floatValue());
         assertEquals(d, tenU.doubleValue());
-        assertEquals(i, tenU.value());
+        assertEquals(i, tenU.intValue());
         assertEquals(l, tenU.longValue());
         assertEquals(Integer.hashCode(10), tenU.hashCode());
         assertEquals("10", tenU.toString());
@@ -47,18 +47,16 @@ public class UIntTest {
 
     @Test
     public void testArithmetic(){
-        assertEquals(10+2, tenU.add(two).value());
-        assertEquals(UInt.MAXVALUE, max.add(zero).value());
-        assertEquals(8, tenU.subtract(two).value());
-        assertEquals(UInt.MAXVALUE-2, max.subtract(two).value());
-        assertEquals(20, tenU.multiply(two).value());
-        assertEquals(0, max.multiply(zero).value());
-        assertEquals(5, tenI.divide(two).value());
-        assertEquals(0, zero.divide(max).value());
-        assertEquals(0xffffffffl / 10, max.divide(tenI).longValue());
-        assertEquals((int)(0xffffffffl / 10), max.divide(tenI).value());
-        assertEquals(0, tenU.mod(two).value());
-        assertEquals((0xffffffffl)%10, max.mod(tenI).value());
+        assertEquals(10+2, tenU.add(two).intValue());
+        assertEquals(0xffff, max.add(zero).intValue());
+        assertEquals(8, tenU.subtract(two).intValue());
+        assertEquals(0xfffd, max.subtract(two).intValue());
+        assertEquals(20, tenU.multiply(two).intValue());
+        assertEquals(0, max.multiply(zero).intValue());
+        assertEquals(5, tenI.divide(two).intValue());
+        assertEquals(0, zero.divide(max).intValue());
+        assertEquals(0, tenU.mod(two).intValue());
+        assertEquals(0xffff%10, max.mod(tenI).intValue());
     }
 
     @Rule
@@ -67,7 +65,7 @@ public class UIntTest {
     @Test
     public void testFailures(){
         thrown.expect(AssertionError.class);
-        UInt fail = new UInt(0x100000000l);
+        UShort fail = new UShort(0xfffff);
         max.add(tenI);
         zero.subtract(two);
         max.multiply(tenU);

@@ -1,4 +1,4 @@
-import DafnyClasses.BigRational;
+import dafny.BigRational;
 import org.junit.Test;
 
 import static junit.framework.Assert.assertFalse;

@@ -1,5 +1,5 @@
-import DafnyClasses.DafnyMultiset;
-import DafnyClasses.DafnyMap;
+import dafny.DafnyMultiset;
+import dafny.DafnyMap;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;

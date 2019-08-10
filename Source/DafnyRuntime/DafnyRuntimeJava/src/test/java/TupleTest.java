@@ -1,4 +1,4 @@
-import DafnyClasses.*;
+import dafny.*;
 import org.junit.Test;
 
 import javax.swing.tree.TreePath;
