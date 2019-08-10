@@ -944,6 +944,8 @@ namespace Microsoft.Dafny{
         wr.Write($".get_{IdName(member)}()");
       } else if (isLValue && MemberSelectObjIsTrait && !member.IsStatic) { 
         wr.Write($".set_{IdName(member)}(");
+      } else if (member is Function) {
+        wr.Write($"::{IdName(member)}");
       } else {
         wr.Write($".{IdName(member)}");
       }
@@ -974,11 +976,15 @@ namespace Microsoft.Dafny{
       Contract.Assert(indices != null && 1 <= indices.Count);  // follows from precondition
       var w = wr.Fork();
       if (indices.Count == 1) {
-        wr.Write($"[{indices[0]}.intValue()]");
+        wr.Write($"[{indices[0]}");
+        if (!int.TryParse(indices[0], out _)) wr.Write(".intValue()");
+        wr.Write("]");
       } else {
         wr.Write(".elmts");
         foreach (var index in indices) {
-          wr.Write($"[{index}.intValue()]");
+          wr.Write($"[{index}");
+          if (!int.TryParse(index, out _)) wr.Write(".intValue()");
+          wr.Write("]");
         }
       }
       return w;
@@ -2722,6 +2728,54 @@ namespace Microsoft.Dafny{
           }
           wr.Write(".intValue())");
         } else {
+          var xType = elmtType.NormalizeExpand();
+          if (xType is SetType) { 
+            Type argType = ((SetType)xType).Arg; 
+            if (ComplicatedTypeParameterForCompilation(argType)) { 
+              Error(tok, "compilation of set<TRAIT> is not supported; consider introducing a ghost", wr); 
+            } 
+            wr.Write("(" + DafnySetClass + "<" + TypeName(argType, wr, tok) + ">");
+            for (int i = 0; i < dimensions.Count; i++) {
+              wr.Write("[]");
+            }
+            wr.Write(")");
+            typeNameSansBrackets = DafnySetClass;
+          } else if (xType is SeqType) { 
+            Type argType = ((SeqType)xType).Arg; 
+            if (ComplicatedTypeParameterForCompilation(argType)) { 
+              Error(tok, "compilation of seq<TRAIT> is not supported; consider introducing a ghost", wr);
+            }
+            wr.Write("(" + DafnySeqClass + "<" + TypeName(argType, wr, tok) + ">");
+            for (int i = 0; i < dimensions.Count; i++) {
+              wr.Write("[]");
+            }
+            wr.Write(")");
+            typeNameSansBrackets = DafnySeqClass;
+        
+          } else if (xType is MultiSetType) { 
+            Type argType = ((MultiSetType)xType).Arg; 
+            if (ComplicatedTypeParameterForCompilation(argType)) { 
+              Error(tok, "compilation of multiset<TRAIT> is not supported; consider introducing a ghost", wr); 
+            } 
+            wr.Write("(" + DafnyMultiSetClass + "<" + TypeName(argType, wr, tok) + ">");
+            for (int i = 0; i < dimensions.Count; i++) {
+              wr.Write("[]");
+            }
+            wr.Write(")");
+            typeNameSansBrackets = DafnyMultiSetClass;
+          } else if (xType is MapType) { 
+            Type domType = ((MapType)xType).Domain; 
+            Type ranType = ((MapType)xType).Range; 
+            if (ComplicatedTypeParameterForCompilation(domType) || ComplicatedTypeParameterForCompilation(ranType)) { 
+              Error(tok, "compilation of map<TRAIT, _> or map<_, TRAIT> is not supported; consider introducing a ghost", wr); 
+            } 
+            wr.Write("(" + DafnyMapClass + "<" + TypeName(domType, wr, tok) + "," + TypeName(ranType, wr, tok) + ">");
+            for (int i = 0; i < dimensions.Count; i++) {
+              wr.Write("[]");
+            }
+            wr.Write(")");
+            typeNameSansBrackets = DafnyMapClass;
+          }
           wr.Write($"new {typeNameSansBrackets}");
           string prefix = "[";
           foreach (var dim in dimensions) {
