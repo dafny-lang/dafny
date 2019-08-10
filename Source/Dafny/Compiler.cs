@@ -2055,15 +2055,15 @@ namespace Microsoft.Dafny {
         else if (s0.Lhs is SeqSelectExpr){
           var lhs = (SeqSelectExpr) s0.Lhs;
           TrExpr(lhs.Seq, wrTuple, false);
-          wrTuple.Write(", (int)");
-          TrParenExpr(lhs.E0,  wrTuple, false);
+          wrTuple.Write(", ");
+          EmitExprAsInt(lhs.E0, false, wrTuple);
         }
         else{
           var lhs = (MultiSelectExpr) s0.Lhs;
           TrExpr(lhs.Array, wrTuple, false);
           for (int i = 0; i < lhs.Indices.Count; i++){
-            wrTuple.Write(", (int)");
-            TrParenExpr(lhs.Indices[i], wrTuple, false);
+            wrTuple.Write(", ");
+            EmitExprAsInt(lhs.Indices[i], false, wrTuple);
           }
         }
 
@@ -2614,6 +2614,10 @@ namespace Microsoft.Dafny {
       }
     }
 
+    protected virtual bool ReturnStyleHelper(string returnStyleOutCollector) {
+      return false;
+    }
+
     void TrCallStmt(CallStmt s, string receiverReplacement, TargetWriter wr) {
       Contract.Requires(s != null);
       Contract.Assert(s.Method != null);  // follows from the fact that stmt has been successfully resolved
@@ -2762,7 +2766,7 @@ namespace Microsoft.Dafny {
         typeArgs = s.Method.TypeArgs.ConvertAll(ta => typeSubst[ta]);
         EmitActualTypeArgs(typeArgs, s.Tok, wr);
         wr.Write("(");
-        var nRTDs = EmitRuntimeTypeDescriptorsActuals(typeArgs, s.Method.TypeArgs, s.Tok, returnStyleOutCollector != null, wr);
+        var nRTDs = EmitRuntimeTypeDescriptorsActuals(typeArgs, s.Method.TypeArgs, s.Tok, ReturnStyleHelper(returnStyleOutCollector), wr);
         string sep = nRTDs == 0 ? "" : ", ";
         for (int i = 0; i < s.Method.Ins.Count; i++) {
           Formal p = s.Method.Ins[i];
@@ -2949,6 +2953,8 @@ namespace Microsoft.Dafny {
       wr.Write(")");
     }
 
+    protected virtual void WriteCast(string s, TargetWriter wr) { }
+
     /// <summary>
     /// Before calling TrExpr(expr), the caller must have spilled the let variables declared in "expr".
     /// </summary>
@@ -3038,7 +3044,7 @@ namespace Microsoft.Dafny {
         EmitMultiSetFormingExpr(e, inLetExprBody, wr);
       } else if (expr is MultiSelectExpr) {
         MultiSelectExpr e = (MultiSelectExpr)expr;
-        wr.Write("({0})", TypeName(e.Type.NormalizeExpand(), wr, e.tok));
+        WriteCast(TypeName(e.Type.NormalizeExpand(), wr, e.tok), wr);
         var w = EmitArraySelect(e.Indices, e.Type, inLetExprBody, wr);
         TrParenExpr(e.Array, w, inLetExprBody);
 

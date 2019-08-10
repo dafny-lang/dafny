@@ -144,6 +144,14 @@ namespace Microsoft.Dafny{
       EndStmt(wr);
     }
 
+    protected override void WriteCast(string s, TargetWriter wr) {
+      wr.Write($"({s})");
+    }
+
+    protected override bool ReturnStyleHelper(string returnStyleOutCollector) {
+      return returnStyleOutCollector != null;
+    }
+    
     protected override TargetWriter DeclareLocalVar(string name, Type /*?*/ type, Bpl.IToken /*?*/ tok, TargetWriter wr, Type t){
       return DeclareLocalVar(name, t, tok, wr);
     }
