@@ -160,6 +160,9 @@ namespace Microsoft.Dafny {
     protected abstract string TypeName_UDT(string fullCompileName, List<Type> typeArgs, TextWriter wr, Bpl.IToken tok);
     protected abstract string/*?*/ TypeName_Companion(Type type, TextWriter wr, Bpl.IToken tok, MemberDecl/*?*/ member);
     protected string TypeName_Companion(TopLevelDecl cls, TextWriter wr, Bpl.IToken tok) {
+      Contract.Requires(cls != null);
+      Contract.Requires(wr != null);
+      Contract.Requires(tok != null);
       return TypeName_Companion(UserDefinedType.FromTopLevelDecl(tok, cls), wr, tok, null);
     }
     /// Return the "native form" of a type, to which EmitCoercionToNativeForm coerces it.

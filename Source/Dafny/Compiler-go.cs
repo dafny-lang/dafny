@@ -3204,7 +3204,7 @@ namespace Microsoft.Dafny {
 
     protected override void EmitIntegerRange(Type type, out TargetWriter wLo, out TargetWriter wHi, TargetWriter wr) {
       if (AsNativeType(type) != null) {
-        wr.Write("{0}.IntegerRange(", TypeName_Companion(type.AsNewtype, wr, tok:null));
+        wr.Write("{0}.IntegerRange(", TypeName_Companion(type.AsNewtype, wr, tok:Bpl.Token.NoToken));
       } else {
         wr.Write("_dafny.IntegerRange(");
       }
