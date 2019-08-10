@@ -1,84 +1,57 @@
-// RUN: %dafny /compile:3 /optimize "%s" > "%t"
+// RUN: %dafny /compile:3 "%s" > "%t"
+// RUN: %diff "%s.expect" "%t"
 
-/*
-method foo() returns (i: int) {
+include "./NatOutcome.dfy"
 
-}
-
-method Main() {
-    var x: int := foo();
-    print x;
-}
-*/
-
-datatype Option<T> = None | Some(get: T)
-
-function method Unreachable<R>(): R
-    requires false 
-{
-    var o: Option<R> := None;
-    assert o.Some?;
-    o.get
-}
-
-trait NatOutcome {
-    predicate method IsFailure()
-	function method PropagateFailure(): NatOutcome requires IsFailure()
-	function method Extract(): nat requires !IsFailure()
-}
-
-class NatSuccess extends NatOutcome {
-    const value: nat
-    constructor(value: nat) {
-        this.value := value;
-    }
-    predicate method IsFailure() { 
-        false 
-    }
-	function method PropagateFailure(): NatOutcome requires IsFailure() {
-        Unreachable<NatOutcome>() 
-    }
-	function method Extract(): nat requires !IsFailure() { 
-        value
+method Switch(b: bool, v: nat) returns (res: NatOutcome) {
+    if b {
+        res := MakeNatSuccess(v);
+    } else {
+        res := MakeNatFailure("bad luck");
     }
 }
 
-class NatFailure extends NatOutcome {
-    const error: string;
-    constructor(error: string) {
-        this.error := error;
-    }
-    predicate method IsFailure() { 
-        true
-    }
-	function method PropagateFailure(): NatOutcome requires IsFailure() {
-        this
-    }
-	function method Extract(): nat requires !IsFailure() { 
-        Unreachable<nat>()
+method TestControlFlowCase(switch1: bool, switch2: bool, switch3: bool) returns (res: NatOutcome) {
+    print switch1, "_", switch2, "_", switch3, "_";
+    var n1 :- Switch(switch1, 88);
+    print n1, "_";
+    var n2: nat :- Switch(switch2, 42);
+    print n2, "_";
+    n1 :- Switch(switch3, 33);
+    print n1, "_";
+    res := MakeNatSuccess(100);
+}
+
+method TestControlFlow() {
+    var i: nat := 0;
+    while i < 8 {
+        var materialized: NatOutcome := TestControlFlowCase(i / 4 % 2 == 0, i / 2 % 2 == 0, i % 2 == 0);
+        if materialized.IsFailure() {
+            print "Failure\n";
+        } else {
+            print "Success=", materialized.Extract(), "\n";
+        }
+        i := i + 1;
     }
 }
 
-method MakeNatSuccess(n: nat) returns (res: NatOutcome) {
-    res := new NatSuccess(n);
-}
-
-method MakeNatFailure(msg: string) returns (res: NatOutcome) {
-    res := new NatFailure(msg);
-}
-
-
-method TestParsing(b: bool, n: nat, o1: NatOutcome, o2: NatOutcome) {
+method TestParsing(b: bool, n: nat, o1: NatOutcome, o2: NatOutcome) returns (res: NatOutcome) {
     // 2x2 matrix of (expr, stmt) x (explicit type, no explicit type), where stmt also tests reassignment
 
-    var stmt1: /*nat*/ NatOutcome :- MakeNatSuccess(n);
+    var stmt1: nat :- MakeNatSuccess(n);
     stmt1 :- MakeNatFailure("sorry, bad luck");
-    var use_stmt1: /*nat*/ NatOutcome := stmt1;
+    var use_stmt1: nat := stmt1;
 
     var stmt2 :- MakeNatSuccess(n);
     stmt2 :- MakeNatFailure("sorry, bad luck");
-    var use_stmt2: /*nat*/ NatOutcome := stmt2;
+    var use_stmt2: nat := stmt2;
 
+    /* expected to desugar to something like this:
+    var y: nat;
+    var temp := o1; if temp.IsFailure() { return temp.PropagateFailure(); } y := temp.Extract();
+    */
+    
+    return o1;
 }
 
 /*
@@ -100,3 +73,7 @@ method TestParsing(b: bool, n: nat, o1: NatOutcome, o2: NatOutcome) {
     var use_stmt2: nat := stmt2;
 }
 */
+
+method Main() {
+    TestControlFlow();
+}
