@@ -287,7 +287,7 @@ namespace Microsoft.Dafny{
         return isStatic ? StaticMemberWriter : InstanceMemberWriter;
       }
 
-      public BlockTargetWriter CreateConstructor(ClassDecl c, List<TypeParameter> l){
+      public BlockTargetWriter CreateConstructor(TopLevelDeclWithMembers c, List<TypeParameter> l){
         return Compiler.CreateConstructor(c, Writer(false), l);
       }
             
@@ -403,7 +403,7 @@ namespace Microsoft.Dafny{
       return wr;
     }
     
-    protected BlockTargetWriter CreateConstructor(ClassDecl c, TargetWriter wr, List<TypeParameter> l) {
+    protected BlockTargetWriter CreateConstructor(TopLevelDeclWithMembers c, TargetWriter wr, List<TypeParameter> l) {
       EmitSuppression(wr);
       wr.Write("public ");
       wr.Write(c.CompileName);
@@ -1165,12 +1165,14 @@ namespace Microsoft.Dafny{
                                                         || n.Sel.Equals(NativeType.Selection.Number));
     }
     
-    protected override void DeclareDatatype(DatatypeDecl dt, TargetWriter wr) {
+    protected override IClassWriter/*?*/ DeclareDatatype(DatatypeDecl dt, TargetWriter wr) {
       if (dt is TupleTypeDecl){
         tuples.Add(((TupleTypeDecl) dt).Dims);
+        return null;
       } else {
-        CompileDatatypeBase(dt, wr);
+        var w = CompileDatatypeBase(dt, wr);
         CompileDatatypeConstructors(dt, wr);
+        return w;
       }
     }
     
@@ -1187,7 +1189,7 @@ namespace Microsoft.Dafny{
       }
     }
 
-    void CompileDatatypeBase(DatatypeDecl dt, TargetWriter wr) {
+    IClassWriter CompileDatatypeBase(DatatypeDecl dt, TargetWriter wr) {
       string DtT = dt.CompileName;
       string DtT_protected = IdProtect(DtT);
       string DtT_TypeArgs = "";
@@ -1213,7 +1215,8 @@ namespace Microsoft.Dafny{
       // from here on, write everything into the new block created here:
       //TODO: Figure out how to resolve type checking warnings
       EmitSuppression(wr);
-      wr = wr.NewNamedBlock("public{0} class {1}", dt.IsRecordType ? "" : " abstract", DtT_protected);
+      var btw = wr.NewNamedBlock("public{0} class {1}", dt.IsRecordType ? "" : " abstract", DtT_protected);
+      wr = btw;
       // constructor
       if (dt.IsRecordType) {
         DatatypeFieldsAndConstructor(dt.Ctors[0], 0, wr);
@@ -1307,6 +1310,8 @@ namespace Microsoft.Dafny{
           }
         }
       }
+
+      return new ClassWriter(this, btw);
     }
 
     void CompileDatatypeConstructors(DatatypeDecl dt, TargetWriter wrx) {
@@ -2520,10 +2525,7 @@ namespace Microsoft.Dafny{
       }
     }
 
-    protected override void CreateDefaultConstructor(ClassDecl c, IClassWriter cw, List<TypeParameter> l){
-      Contract.Requires(cw != null);
-      Contract.Requires(c != null);
-
+    protected override void CreateDefaultConstructor(TopLevelDeclWithMembers c, IClassWriter cw, List<TypeParameter> l) {
       var w = ((ClassWriter) cw).CreateConstructor(c, l);
       NeedsInputStrings.Add(c.CompileName);
       if (w != null) {
@@ -2533,7 +2535,7 @@ namespace Microsoft.Dafny{
         }
       }
     }
-    
+
     public void CreateDafnyArrays(int i, string path) {
       path += "/Array" + i + ".java";
       using (StreamWriter sw = File.CreateText(path)) {
@@ -2698,7 +2700,7 @@ namespace Microsoft.Dafny{
       }
     }
     
-    protected override void DeclareNewtype(NewtypeDecl nt, TargetWriter wr){
+    protected override IClassWriter DeclareNewtype(NewtypeDecl nt, TargetWriter wr){
       var cw = CreateClass(IdName(nt), null, wr) as ClassWriter;
       var w = cw.StaticMemberWriter;
       if (nt.NativeType != null) {
@@ -2730,6 +2732,7 @@ namespace Microsoft.Dafny{
           w.WriteLine(");");
         }
       }
+      return cw;
     }
     
     protected override void EmitNewArray(Type elmtType, Bpl.IToken tok, List<Expression> dimensions, bool mustInitialize, TargetWriter wr) {

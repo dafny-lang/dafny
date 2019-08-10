@@ -215,12 +215,13 @@ namespace Microsoft.Dafny
       return wIter;
     }
 
-    protected override void DeclareDatatype(DatatypeDecl dt, TargetWriter wr) {
-      CompileDatatypeBase(dt, wr);
+    protected override IClassWriter/*?*/ DeclareDatatype(DatatypeDecl dt, TargetWriter wr) {
+      var w = CompileDatatypeBase(dt, wr);
       CompileDatatypeConstructors(dt, wr);
+      return w;
     }
 
-    void CompileDatatypeBase(DatatypeDecl dt, TargetWriter wr) {
+    IClassWriter CompileDatatypeBase(DatatypeDecl dt, TargetWriter wr) {
       Contract.Requires(dt != null);
       Contract.Requires(wr != null);
 
@@ -267,7 +268,8 @@ namespace Microsoft.Dafny
       }
 
       // from here on, write everything into the new block created here:
-      wr = wr.NewNamedBlock("public{0} class {1}", dt.IsRecordType ? "" : " abstract", DtT_protected);
+      var btw = wr.NewNamedBlock("public{0} class {1}", dt.IsRecordType ? "" : " abstract", DtT_protected);
+      wr = btw;
 
       // constructor
       if (dt.IsRecordType) {
@@ -396,6 +398,8 @@ namespace Microsoft.Dafny
           }
         }
       }
+
+      return new ClassWriter(this, btw);
     }
 
     void CompileDatatypeConstructors(DatatypeDecl dt, TargetWriter wrx) {
@@ -617,7 +621,7 @@ namespace Microsoft.Dafny
       }
     }
 
-    protected override void DeclareNewtype(NewtypeDecl nt, TargetWriter wr) {
+    protected override IClassWriter DeclareNewtype(NewtypeDecl nt, TargetWriter wr) {
       var cw = CreateClass(IdName(nt), null, wr) as CsharpCompiler.ClassWriter;
       var w = cw.StaticMemberWriter;
       if (nt.NativeType != null) {
@@ -635,6 +639,7 @@ namespace Microsoft.Dafny
           w.WriteLine(");");
         }
       }
+      return cw;
     }
 
     protected override void DeclareSubsetType(SubsetTypeDecl sst, TargetWriter wr) {
@@ -705,9 +710,11 @@ namespace Microsoft.Dafny
         }
       }
 
+      var customReceiver = !m.IsStatic && m.EnclosingClass is NewtypeDecl;
+
       wr.Write("{0}{1}{2}{3} {4}",
         createBody ? "public " : "",
-        m.IsStatic ? "static " : "",
+        m.IsStatic || customReceiver ? "static " : "",
         hasDllImportAttribute ? "extern " : "",
         targetReturnTypeReplacement ?? "void",
         IdName(m));
@@ -715,7 +722,16 @@ namespace Microsoft.Dafny
         wr.Write("<{0}>", TypeParameters(m.TypeArgs));
       }
       wr.Write("(");
-      int nIns = WriteFormals("", m.Ins, wr);
+      int nIns;
+      if (customReceiver) {
+        var nt = m.EnclosingClass;
+        var receiverType = UserDefinedType.FromTopLevelDecl(m.tok, nt);
+        DeclareFormal("", "_this", receiverType, m.tok, true, wr);
+        nIns = 1;
+      } else {
+        nIns = 0;
+      }
+      nIns += WriteFormals(nIns == 0 ? "" : ", ", m.Ins, wr);
       if (targetReturnTypeReplacement == null) {
         WriteFormals(nIns == 0 ? "" : ", ", m.Outs, wr);
       }
@@ -726,7 +742,7 @@ namespace Microsoft.Dafny
       } else {
         var w = wr.NewBlock(")", null, BlockTargetWriter.BraceStyle.Newline, BlockTargetWriter.BraceStyle.Newline);
         if (m.IsTailRecursive) {
-          if (!m.IsStatic) {
+          if (!m.IsStatic && !customReceiver) {
             w.WriteLine("var _this = this;");
           }
           w.IndentLess(); w.WriteLine("TAIL_CALL_START: ;");
@@ -744,12 +760,19 @@ namespace Microsoft.Dafny
     protected BlockTargetWriter/*?*/ CreateFunction(string name, List<TypeParameter>/*?*/ typeArgs, List<Formal> formals, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl member, TargetWriter wr) {
       var hasDllImportAttribute = ProcessDllImport(member, wr);
 
-      wr.Write("{0}{1}{2}{3} {4}", createBody ? "public " : "", isStatic ? "static " : "", hasDllImportAttribute ? "extern " : "", TypeName(resultType, wr, tok), name);
+      var customReceiver = !member.IsStatic && member.EnclosingClass is NewtypeDecl;
+
+      wr.Write("{0}{1}{2}{3} {4}", createBody ? "public " : "", isStatic || customReceiver ? "static " : "", hasDllImportAttribute ? "extern " : "", TypeName(resultType, wr, tok), name);
       if (typeArgs != null && typeArgs.Count != 0) {
         wr.Write("<{0}>", TypeParameters(typeArgs));
       }
       wr.Write("(");
-      WriteFormals("", formals, wr);
+      if (customReceiver) {
+        var nt = member.EnclosingClass;
+        var receiverType = UserDefinedType.FromTopLevelDecl(tok, nt);
+        DeclareFormal("", "_this", receiverType, tok, true, wr);
+      }
+      WriteFormals(customReceiver ? ", " : "", formals, wr);
       if (!createBody || hasDllImportAttribute) {
         wr.WriteLine(");");
         return null;
@@ -853,7 +876,7 @@ namespace Microsoft.Dafny
       } else if (xType is BitvectorType) {
         var t = (BitvectorType)xType;
         return t.NativeType != null ? GetNativeTypeName(t.NativeType) : "BigInteger";
-      } else if (xType.AsNewtype != null) {
+      } else if (xType.AsNewtype != null && member == null) {  // when member is given, use UserDefinedType case below
         var nativeType = xType.AsNewtype.NativeType;
         if (nativeType != null) {
           return GetNativeTypeName(nativeType);
@@ -1488,7 +1511,10 @@ namespace Microsoft.Dafny
     }
 
     protected override void EmitThis(TargetWriter wr) {
-      wr.Write(enclosingMethod != null && enclosingMethod.IsTailRecursive ? "_this" : "this");
+      var custom =
+        (enclosingMethod != null && enclosingMethod.IsTailRecursive) ||
+        thisContext is NewtypeDecl;
+      wr.Write(custom ? "_this" : "this");
     }
 
     protected override void EmitDatatypeValue(DatatypeValue dtv, string arguments, TargetWriter wr) {
