@@ -5163,7 +5163,7 @@ namespace Microsoft.Dafny {
       using (var writer = new System.IO.StringWriter())
       {
         var printer = new Printer(writer);
-        printer.PrintDatatype(d, 0);
+        printer.PrintDatatype(d, 0, null);
         data = Encoding.UTF8.GetBytes(writer.ToString());
       }
 

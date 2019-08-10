@@ -155,3 +155,14 @@ method SetComprehensionParsingRegression0()
   var s0 := set x,y;
   var s1 := set x,y | true;
 }
+
+// ------------------------- type members ------------------------------
+
+datatype Dt<A> = Blue | Bucket(diameter: real) | Business(trendy: bool, a: A)
+{
+  var x: int  // error: mutable fields not allowed in datatypes
+}
+newtype Pos = x | 0 < x witness 1
+{
+  var x: int  // error: mutable fields not allowed in newtypes
+}
