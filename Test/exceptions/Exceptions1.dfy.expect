@@ -1,0 +1,10 @@
+
+Dafny program verifier finished with 5 verified, 0 errors
+true_true_true_88_42_33_Success=100
+true_true_false_88_42_Failure
+true_false_true_88_Failure
+true_false_false_88_Failure
+false_true_true_Failure
+false_true_false_Failure
+false_false_true_Failure
+false_false_false_Failure
