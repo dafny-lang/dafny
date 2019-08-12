@@ -475,8 +475,7 @@ namespace Microsoft.Dafny{
     }
 
     private void EmitSuppression(TextWriter wr) {
-      wr.WriteLine("@SuppressWarnings(\"unchecked\")");
-      wr.WriteLine("@SuppressWarnings(\"deprecation\")");
+      wr.WriteLine("@SuppressWarnings({\"unchecked\", \"deprecation\"})");
     }
 
     string TypeParameters(List<TypeParameter> targs) {
