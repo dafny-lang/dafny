@@ -3,6 +3,8 @@ mono:
   - 5.20.1
 dist: xenial
 solution: "dafny/Source/Dafny.sln"
+jdk:
+  - oraclejdk8
 addons:
   apt:
     packages:
