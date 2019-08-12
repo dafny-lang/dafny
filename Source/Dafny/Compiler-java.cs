@@ -475,7 +475,7 @@ namespace Microsoft.Dafny{
     }
 
     private void EmitSuppression(TextWriter wr) {
-      wr.WriteLine("@SuppressWarnings({\"unchecked\", \"deprecation\"})");
+      wr.WriteLine("@SuppressWarnings(\"unchecked\")");
     }
 
     string TypeParameters(List<TypeParameter> targs) {
@@ -1594,7 +1594,7 @@ namespace Microsoft.Dafny{
       }
       var classpath = GetClassPath(targetFilename);
       foreach (var file in files) {
-        var psi = new ProcessStartInfo("javac", file) {
+        var psi = new ProcessStartInfo("javac", "-Xlint:deprecation " + file) {
           CreateNoWindow = true,
           UseShellExecute = false,
           RedirectStandardOutput = true,
