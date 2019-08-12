@@ -1,0 +1,5 @@
+TypecheckErrors.dfy(7,28): Error: incorrect type of method in-parameter (expected nat, got string)
+TypecheckErrors.dfy(8,28): Error: incorrect type of method in-parameter (expected nat, got string)
+TypecheckErrors.dfy(14,8): Error: Duplicate local-variable name: a
+TypecheckErrors.dfy(16,8): Error: Duplicate local-variable name: b
+4 resolution/type errors detected in TypecheckErrors.dfy
