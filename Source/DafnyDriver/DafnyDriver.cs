@@ -571,7 +571,7 @@ namespace Microsoft.Dafny
       if (hasMain) {
         using (var wr = new TargetWriter(0)) {
           if (DafnyOptions.O.CompileTarget is DafnyOptions.CompilationTarget.Java) {
-            wr.Write("public class {0} {{\n\t", baseName);
+            wr.WriteLine($"public class {baseName} {{");
           }
           compiler.EmitCallToMain(mainMethod, wr);
           if (DafnyOptions.O.CompileTarget is DafnyOptions.CompilationTarget.Java) {
