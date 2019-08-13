@@ -6712,10 +6712,9 @@ namespace Microsoft.Dafny {
   public class AssignOrReturnStmt : ConcreteUpdateStatement
   {
     public readonly Expression Rhs; // this is the unresolved RHS, and thus can also be a method call
-    public Statement ResolvedStmt = null;  // filled in during resolution
-
+    public readonly List<Statement> ResolvedStatements = new List<Statement>();  // contents filled in during resolution
     public override IEnumerable<Statement> SubStatements {
-      get { yield return ResolvedStmt; } // TODO does this need a null-check?
+      get { return ResolvedStatements; }
     }
 
     [ContractInvariantMethod]
@@ -6727,7 +6726,7 @@ namespace Microsoft.Dafny {
       Contract.Invariant(Rhs != null);
     }
 
-    public AssignOrReturnStmt(IToken tok, IToken endTok, Expression lhs, Expression rhs)
+    public AssignOrReturnStmt(IToken tok, IToken endTok, Expression/*?*/ lhs, Expression rhs)
       : base(tok, endTok, lhs == null ? null : new List<Expression>() { lhs })
     {
       Contract.Requires(tok != null);

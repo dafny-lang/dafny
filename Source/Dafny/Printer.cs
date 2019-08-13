@@ -1378,7 +1378,7 @@ namespace Microsoft.Dafny {
           PrintExpression(lhs, true);
           sep = ", ";
         }
-        PrintUpdateRHS(s);
+        PrintUpdateRHS(s, indent);
         wr.Write(";");
 
       } else if (stmt is CallStmt) {
@@ -1406,7 +1406,7 @@ namespace Microsoft.Dafny {
           sep = ",";
         }
         if (s.Update != null) {
-          PrintUpdateRHS(s.Update);
+          PrintUpdateRHS(s.Update, indent);
         }
         wr.Write(";");
 
@@ -1475,7 +1475,7 @@ namespace Microsoft.Dafny {
     /// <summary>
     /// Does not print LHS
     /// </summary>
-    void PrintUpdateRHS(ConcreteUpdateStatement s) {
+    void PrintUpdateRHS(ConcreteUpdateStatement s, int indent) {
       Contract.Requires(s != null);
       if (s is UpdateStmt) {
         var update = (UpdateStmt)s;
@@ -1499,6 +1499,17 @@ namespace Microsoft.Dafny {
         var stmt = (AssignOrReturnStmt)s;
         wr.Write(" :- ");
         PrintExpression(stmt.Rhs, true);
+        if (DafnyOptions.O.DafnyPrintResolvedFile != null) {
+          Contract.Assert(stmt.ResolvedStatements.Count > 0);  // filled in during resolution
+          wr.WriteLine();
+          Indent(indent); wr.WriteLine("/*---------- desugared ----------");
+          foreach (Statement r in stmt.ResolvedStatements) {
+            Indent(indent);
+            PrintStatement(r, indent);
+            wr.WriteLine();
+          }
+          Indent(indent); wr.Write("---------- end desugared ----------*/");
+        }
 
       } else {
         Contract.Assert(false);  // otherwise, unknown type
