@@ -1,4 +1,4 @@
-	/*-----------------------------------------------------------------------------
+/*-----------------------------------------------------------------------------
 //
 // Copyright (C) Microsoft Corporation.  All Rights Reserved.
 //
@@ -730,7 +730,6 @@ TOKENS
   doublecolon = "::".
   gets = ":=".
   boredSmiley = ":|".
-  getsOrReturn = ":-".
   bullet = '\u2022'.
   dot = '.'.
   backtick = "`".
@@ -2174,7 +2173,7 @@ UpdateStmt<out Statement/*!*/ s>
      Attributes attrs = null;
      IToken suchThatAssume = null;
      Expression suchThat = null;
-	 Expression exceptionExpr = null;
+     Expression exceptionExpr = null;
   .)
   Lhs<out e>                       (. x = e.tok; .)
   ( { Attribute<ref attrs> }
@@ -2294,7 +2293,7 @@ VarDeclStatement<.out Statement/*!*/ s.>
      List<AssignmentRhs> rhss = new List<AssignmentRhs>();
      IToken suchThatAssume = null;
      Expression suchThat = null;
-	 Expression exceptionExpr = null;
+     Expression exceptionExpr = null;
      Attributes attrs = null;
      IToken endTok;
      s = dummyStmt;
@@ -2319,8 +2318,8 @@ VarDeclStatement<.out Statement/*!*/ s.>
         "assume"                     (. suchThatAssume = t; .)
       ]
       Expression<out suchThat, false, true>
-	| ":-"                           (. assignTok = t; .)
-	  Expression<out exceptionExpr, false, false>
+    | ":-"                           (. assignTok = t; .)
+      Expression<out exceptionExpr, false, false>
     ]
     SYNC ";"                         (. endTok = t; .)
     (. ConcreteUpdateStatement update;
