@@ -1,4 +1,4 @@
-// RUN: %dafny "%s" > "%t"
+// RUN: %dafny "%s" /dprint:"%t.dprint" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 include "./NatOutcome.dfy"
