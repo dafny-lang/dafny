@@ -189,6 +189,14 @@ namespace Microsoft.Dafny {
     }
   }
 
+  public class ErrorReporterSink : ErrorReporter {
+    public ErrorReporterSink() {}
+
+    public override bool Message(MessageSource source, ErrorLevel level, IToken tok, string msg) {
+      return false;
+    }
+  }
+
   public class ErrorReporterWrapper : ErrorReporter {
 
     private string msgPrefix;

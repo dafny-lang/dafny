@@ -2,4 +2,12 @@ TypecheckErrors.dfy(7,28): Error: incorrect type of method in-parameter (expecte
 TypecheckErrors.dfy(8,28): Error: incorrect type of method in-parameter (expected nat, got string)
 TypecheckErrors.dfy(14,8): Error: Duplicate local-variable name: a
 TypecheckErrors.dfy(16,8): Error: Duplicate local-variable name: b
-4 resolution/type errors detected in TypecheckErrors.dfy
+TypecheckErrors.dfy(39,10): Error: member IsFailure does not exist in trait BadOutcome1
+TypecheckErrors.dfy(39,10): Error: member PropagateFailure does not exist in trait BadOutcome1
+TypecheckErrors.dfy(39,10): Error: member Extract does not exist in trait BadOutcome1
+TypecheckErrors.dfy(39,10): Error: The right-hand side of ':-', which is of type '?', must have members `IsFailure()`, `PropagateFailure()`, and `Extract()`
+TypecheckErrors.dfy(43,10): Error: member PropagateFailure does not exist in trait BadOutcome2
+TypecheckErrors.dfy(43,10): Error: The right-hand side of ':-', which is of type 'BadOutcome2?', must have members `IsFailure()`, `PropagateFailure()`, and `Extract()`
+TypecheckErrors.dfy(47,10): Error: member Extract does not exist in trait BadOutcome3
+TypecheckErrors.dfy(47,10): Error: The right-hand side of ':-', which is of type 'BadOutcome3?', must have members `IsFailure()`, `PropagateFailure()`, and `Extract()`
+12 resolution/type errors detected in TypecheckErrors.dfy
