@@ -2049,7 +2049,7 @@ namespace Microsoft.Dafny{
             preOpString = "(char) (";
             postOpString = ")";
             opString = "+";
-          } else if (resultType is UserDefinedType && !resultType.IsIntegerType && !unsignedTypes.Contains(TypeName(e0.Type, null, tok)) && !unsignedTypes.Contains(TypeName(e1.Type, null, tok))) {
+          } else if (resultType is UserDefinedType && resultType.AsNewtype == null && !resultType.IsIntegerType && !unsignedTypes.Contains(TypeName(e0.Type, null, tok)) && !unsignedTypes.Contains(TypeName(e1.Type, null, tok))) {
             opString = "+";
           } else {
             callString = "add";
@@ -2061,7 +2061,7 @@ namespace Microsoft.Dafny{
             preOpString = "(char) (";
             opString = "-";
             postOpString = ")";
-          } else if (resultType is UserDefinedType && !resultType.IsIntegerType && !unsignedTypes.Contains(TypeName(e0.Type, null, tok)) && !unsignedTypes.Contains(TypeName(e1.Type, null, tok))) {
+          } else if (resultType is UserDefinedType && resultType.AsNewtype == null && !resultType.IsIntegerType && !unsignedTypes.Contains(TypeName(e0.Type, null, tok)) && !unsignedTypes.Contains(TypeName(e1.Type, null, tok))) {
             opString = "-";
           } else {
             callString = "subtract";
