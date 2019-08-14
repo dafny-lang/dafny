@@ -14372,7 +14372,6 @@ namespace Microsoft.Dafny {
               if (useSurrogateLocal) {
                 return new Bpl.IdentifierExpr(expr.tok, translator.SurrogateName(field), translator.TrType(field.Type));
               } else if (field is ConstantField) {
-                var isLit = true;
                 var args = e.TypeApplication.ConvertAll(translator.TypeToTy);
                 Bpl.Expr result;
                 if (field.IsStatic) {
@@ -14381,12 +14380,8 @@ namespace Microsoft.Dafny {
                   Bpl.Expr obj = TrExpr(e.Obj);
                   args.Add(obj);
                   result = new Bpl.NAryExpr(expr.tok, new Bpl.FunctionCall(translator.GetReadonlyField(field)), args);
-                  isLit = translator.IsLit(obj);
                 }
                 result = translator.CondApplyUnbox(expr.tok, result, field.Type, expr.Type);
-                if (isLit) {
-                  result = MaybeLit(result, translator.TrType(expr.Type));
-                }
                 return result;
               } else {
                 Bpl.Expr obj = TrExpr(e.Obj);
