@@ -1,15 +1,15 @@
 // RUN: %dafny "%s" /dprint:"%t.dprint" > "%t"
 // RUN: %diff "%s.expect" "%t"
-
 include "./NatOutcome.dfy"
+include "./VoidOutcome.dfy"
 
-method Test() returns (res: NatOutcome) {
+method TestTypecheckingInDesugaredTerm_Nat() returns (res: NatOutcome) {
     var a0 := MakeNatSuccess("not a nat");
     var a  :- MakeNatSuccess("not a nat either");
     return a0;
 }
 
-method RedeclareVar() returns (res: NatOutcome) {
+method RedeclareVar_Nat() returns (res: NatOutcome) {
     var a := MakeNatSuccess(42);
     var a :- MakeNatSuccess(43);
     var b :- MakeNatSuccess(44);
@@ -36,7 +36,7 @@ trait BadOutcome3 {
 }
 
 method TestMissingMethods1(o: BadOutcome1) returns (res: BadOutcome1) {
-    var a :- o; return o; // TODO infers '?' for RHS of ':-' instead of 'BadOutcome1'
+    var a :- o; return o; // TODO infers 'BadOutcome1?' for RHS of ':-' instead of 'BadOutcome1' (should not infer nullable)
 }
 
 method TestMissingMethods2(o: BadOutcome2) returns (res: BadOutcome2) {
@@ -45,4 +45,36 @@ method TestMissingMethods2(o: BadOutcome2) returns (res: BadOutcome2) {
 
 method TestMissingMethods3(o: BadOutcome3) returns (res: BadOutcome3) {
     var a :- o; return o; // TODO infers 'BadOutcome3?' for RHS of ':-' instead of 'BadOutcome3' (should not infer nullable)
+}
+
+method TestTypecheckingInDesugaredTerm_Void() returns (res: VoidOutcome) {
+    :- MakeVoidFailure(|"not a string because we take its length"|);
+}
+
+trait BadVoidOutcome1 {
+    // predicate method IsFailure() // <-- deliberately commented out
+	// function method PropagateFailure(): BadVoidOutcome1 requires IsFailure() // <-- deliberately commented out
+}
+
+trait BadVoidOutcome2 {
+    predicate method IsFailure()
+	// function method PropagateFailure(): BadVoidOutcome2 requires IsFailure() // <-- deliberately commented out
+}
+
+trait BadVoidOutcome3 {
+    predicate method IsFailure()
+	function method PropagateFailure(): BadVoidOutcome3 requires IsFailure()
+	function method Extract(): nat requires !IsFailure() // <-- deliberately added, even though Void error handling must not have it
+}
+
+method TestMissingVoidMethods1(o: BadVoidOutcome1) returns (res: BadVoidOutcome1) {
+    :- o; return o;
+}
+
+method TestMissingVoidMethods2(o: BadVoidOutcome2) returns (res: BadVoidOutcome2) {
+    :- o; return o;
+}
+
+method TestMissingVoidMethods3(o: BadVoidOutcome3) returns (res: BadVoidOutcome3) {
+    :- o; return o;
 }

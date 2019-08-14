@@ -10075,17 +10075,15 @@ namespace Microsoft.Dafny
     /// Desugars "y :- MethodOrExpression" into 
     /// "var temp := MethodOrExpression; if temp.IsFailure() { return temp.PropagateFailure(); } y := temp.Extract();"
     /// and saves the result into s.ResolvedStatements.
-    /// tempLocal is returned so that we can obtain its type after resolution to check members of MethodOrExpression.
     /// </summary>
-    private void DesugarAssignOrReturnStmt(AssignOrReturnStmt s, ICodeContext codeContext, out LocalVariable tempLocal) {
+    private void ResolveAssignOrReturnStmt(AssignOrReturnStmt s, ICodeContext codeContext) {
       // TODO Do I have any responsabilities regarding the use of codeContext? Is it mutable?
 
       var temp = FreshTempVarName("valueOrError", codeContext);
-      tempLocal = new LocalVariable(s.Tok, s.Tok, temp, new InferredTypeProxy(), false);
-
+      var tempType = new InferredTypeProxy();
       s.ResolvedStatements.Add(
         // "var temp := MethodOrExpression;"
-        new VarDeclStmt(s.Tok, s.Tok, new List<LocalVariable>() { tempLocal },
+        new VarDeclStmt(s.Tok, s.Tok, new List<LocalVariable>() { new LocalVariable(s.Tok, s.Tok, temp, tempType, false) },
           new UpdateStmt(s.Tok, s.Tok, new List<Expression>() { new IdentifierExpr(s.Tok, temp) }, new List<AssignmentRhs>() { new ExprRhs(s.Rhs) })));
       s.ResolvedStatements.Add(
         // "if temp.IsFailure()"
@@ -10098,27 +10096,20 @@ namespace Microsoft.Dafny
           null
         ));
 
-      s.ResolvedStatements.Add(
-        new UpdateStmt(s.Tok, s.Tok, s.Lhss, new List<AssignmentRhs>() {
-          new ExprRhs(VarDotMethod(s.Tok, temp, "Extract"))}));
-    }
+      Contract.Assert(s.Lhss.Count <= 1);
+      if (s.Lhss.Count == 1)
+      {
+        // "y := temp.Extract();"
+        s.ResolvedStatements.Add(
+          new UpdateStmt(s.Tok, s.Tok, s.Lhss, new List<AssignmentRhs>() {
+            new ExprRhs(VarDotMethod(s.Tok, temp, "Extract"))}));
+      }
 
-    private void ResolveAssignOrReturnStmt(AssignOrReturnStmt s, ICodeContext codeContext) {
-      LocalVariable tempLocal;
-      DesugarAssignOrReturnStmt(s, codeContext, out tempLocal);
       foreach (var a in s.ResolvedStatements) {
         ResolveStatement(a, codeContext);
       }
-      // TODO void error handling is not supported yet
-      EnsureSupportsNonVoidErrorHandling(tempLocal.Tok, tempLocal.Type);
-    }
-
-    private void EnsureSupportsNonVoidErrorHandling(IToken tok, Type tp) {
-      EnsureSupportsErrorHandling(tok, tp, true);
-    }
-
-    private void EnsureSupportsVoidErrorHandling(IToken tok, Type tp) {
-      EnsureSupportsErrorHandling(tok, tp, false);
+      bool expectExtract = (s.Lhss.Count != 0);
+      EnsureSupportsErrorHandling(s.Tok, PartiallyResolveTypeForMemberSelection(s.Tok, tempType), expectExtract);
     }
 
     private void EnsureSupportsErrorHandling(IToken tok, Type tp, bool expectExtract) {
@@ -10134,7 +10125,7 @@ namespace Microsoft.Dafny
       ) {
         // more details regarding which methods are missing have already been reported by regular resolution
         origReporter.Error(MessageSource.Resolver, tok,
-          "The right-hand side of ':-', which is of type '{0}', must have members `IsFailure()`, `PropagateFailure()`, {1} `Extract()`", 
+          "The right-hand side of ':-', which is of type '{0}', must have members 'IsFailure()', 'PropagateFailure()', {1} 'Extract()'", 
           tp, expectExtract ? "and" : "but not");
       }
 
