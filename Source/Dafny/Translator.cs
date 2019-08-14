@@ -15396,14 +15396,12 @@ namespace Microsoft.Dafny {
 
         var heap = BplBoundVar(varNameGen.FreshId("#heap#"), predef.HeapType, bvars);
 
-        var subst = new Dictionary<IVariable, Expression>();
-        foreach (var bv in e.BoundVars) {
-          var ve = BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), predef.BoxType, bvars);
-
-          Bpl.Expr unboxy = translator.UnboxIfBoxed(ve, bv.Type);
-
-          subst[bv] = new BoogieWrapper(unboxy, bv.Type);
-        }
+        var ves = (from bv in e.BoundVars select
+          BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), predef.BoxType, bvars)).ToList();
+        var subst = e.BoundVars.Zip(ves, (bv, ve) => {
+          var unboxy = translator.UnboxIfBoxed(ve, bv.Type);
+          return new KeyValuePair<IVariable, Expression>(bv, new BoogieWrapper(unboxy, bv.Type));
+        }).ToDictionary(x => x.Key, x => x.Value);
         var su = new Substituter(null, subst, new Dictionary<TypeParameter, Type>());
 
         var et = new ExpressionTranslator(this, heap);
@@ -15414,10 +15412,10 @@ namespace Microsoft.Dafny {
         var ebody = et.TrExpr(Translator.Substitute(e.Body, null, subst));
         ebody = translator.BoxIfUnboxed(ebody, e.Body.Type);
 
-        Bpl.Expr reqbody = Bpl.Expr.True;
-        if (e.Range != null) {
-          reqbody = et.TrExpr(Translator.Substitute(e.Range, null, subst));
-        }
+        var isBoxes = BplAnd(ves.Zip(e.BoundVars, (ve, bv) => translator.MkIsBox(ve, bv.Type)));
+        var reqbody = e.Range == null
+          ? isBoxes
+          : BplAnd(isBoxes, et.TrExpr(Translator.Substitute(e.Range, null, subst)));
 
         var rdvars = new List<Bpl.Variable>();
         var o = BplBoundVar(varNameGen.FreshId("#o#"), predef.RefType, rdvars);
