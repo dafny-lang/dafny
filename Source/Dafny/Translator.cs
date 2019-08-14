@@ -15264,7 +15264,6 @@ namespace Microsoft.Dafny {
           //          lambda w: BoxType :: G(unbox(w)),
           //          type)".
           List<Variable> bvars = new List<Variable>();
-          var bv = e.BoundVars[0];
           List<bool> freeOfAlloc = null;
           if (FrugalHeapUseX) {
             freeOfAlloc = ComprehensionExpr.BoundedPool.HasBounds(e.Bounds, ComprehensionExpr.BoundedPool.PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc);
@@ -15275,19 +15274,22 @@ namespace Microsoft.Dafny {
 
           var wVar = new Bpl.BoundVariable(expr.tok, new Bpl.TypedIdent(expr.tok, translator.CurrentIdGenerator.FreshId("$w#"), predef.BoxType));
 
-          Bpl.Expr unboxw = translator.UnboxIfBoxed(new Bpl.IdentifierExpr(expr.tok, wVar), bv.Type);
-          Bpl.Expr typeAntecedent = translator.GetWhereClause(bv.tok, unboxw, bv.Type, this, NOALLOC);
-
           Bpl.Expr keys, values;
           if (!e.IsGeneralMapComprehension) {
+            var bv = e.BoundVars[0];
+            Bpl.Expr unboxw = translator.UnboxIfBoxed(new Bpl.IdentifierExpr(expr.tok, wVar), bv.Type);
+            Bpl.Expr typeAntecedent = translator.GetWhereClause(bv.tok, unboxw, bv.Type, this, NOALLOC);
             var subst = new Dictionary<IVariable,Expression>();
-            subst.Add(e.BoundVars[0], new BoogieWrapper(unboxw, e.BoundVars[0].Type));
+            subst.Add(bv, new BoogieWrapper(unboxw, bv.Type));
 
             var ebody = BplAnd(typeAntecedent ?? Bpl.Expr.True, TrExpr(Translator.Substitute(e.Range, null, subst)));
             keys = new Bpl.LambdaExpr(e.tok, new List<TypeVariable>(), new List<Variable> { wVar }, kv, ebody);
             ebody = TrExpr(Translator.Substitute(e.Term, null, subst));
             values = new Bpl.LambdaExpr(e.tok, new List<TypeVariable>(), new List<Variable> { wVar }, kv, BoxIfNecessary(expr.tok, ebody, e.Term.Type));
           } else {
+            var t = e.TermLeft;
+            Bpl.Expr unboxw = translator.UnboxIfBoxed(new Bpl.IdentifierExpr(expr.tok, wVar), t.Type);
+            Bpl.Expr typeAntecedent = translator.GetWhereClause(t.tok, unboxw, t.Type, this, NOALLOC);
             List<Bpl.Variable> bvs;
             List<Bpl.Expr> args;
             translator.CreateBoundVariables(e.BoundVars, out bvs, out args);
@@ -15297,7 +15299,7 @@ namespace Microsoft.Dafny {
               subst.Add(e.BoundVars[i], new BoogieWrapper(args[i], e.BoundVars[i].Type));
             }
             var rr = TrExpr(Translator.Substitute(e.Range, null, subst));
-            var ff = TrExpr(Translator.Substitute(e.TermLeft, null, subst));
+            var ff = TrExpr(Translator.Substitute(t, null, subst));
             var exst_body = BplAnd(rr, Bpl.Expr.Eq(unboxw, ff));
             var ebody = BplAnd(typeAntecedent ?? Bpl.Expr.True, new Bpl.ExistsExpr(e.tok, bvs, exst_body));
             keys = new Bpl.LambdaExpr(e.tok, new List<TypeVariable>(), new List<Variable> { wVar }, kv, ebody);

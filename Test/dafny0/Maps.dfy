@@ -243,3 +243,8 @@ method GeneralMaps3() {
     var m := map u | -2 <= u < 6 :: f(u) := u;  // error: LHS may not be defined (also, LHS non-unique)
   }
 }
+
+function UnboxTest(s: seq<seq<int>>) : map<seq<int>, seq<int>>
+{
+  map i: int | 0 <= i < |s| :: s[i] := s[i] // fine, make sure unboxing doesn't unwrap the int from the nested seq<int> on the LHS
+}
