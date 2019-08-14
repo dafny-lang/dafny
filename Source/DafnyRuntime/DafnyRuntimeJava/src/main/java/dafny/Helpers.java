@@ -89,6 +89,10 @@ public class Helpers {
         }
     }
 
+    public static Iterable<BigInteger> AllIntegers() {
+        return new AllIntegers();
+    }
+
     public static Character createCharacter(UByte t) {
         assert 0 <= t.intValue() && t.intValue() <= 65535;
         return new Character((char)t.intValue());

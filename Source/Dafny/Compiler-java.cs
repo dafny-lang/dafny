@@ -66,6 +66,7 @@ namespace Microsoft.Dafny{
 
     protected override void DeclareSpecificOutCollector(string collectorVarName, TargetWriter wr, int outCount, List<Type> types, Method m) {
       if (outCount > 1) {
+        tuples.Add(outCount);
         wr.Write($"Tuple{outCount} {collectorVarName} = ");
       } else {
         for (int i = 0; i < types.Count; i++) {
@@ -211,6 +212,8 @@ namespace Microsoft.Dafny{
     public override void EmitCallToMain(Method mainMethod, TargetWriter wr) {
       var companion = TypeName_Companion(mainMethod.EnclosingClass as ClassDecl, wr, mainMethod.tok);
       var wBody = wr.NewNamedBlock("public static void main(String[] args)");
+      var modName = mainMethod.EnclosingClass.Module.CompileName == "_module" ? "_System." : "";
+      companion = modName + companion;
       wBody.WriteLine($"\t{companion}.{IdName(mainMethod)}();");
     }
     
@@ -588,7 +591,7 @@ namespace Microsoft.Dafny{
         return IdProtect(cl.CompileName);
       }
       else{
-        return IdProtect(cl.FullCompileName);
+        return IdProtect(cl.Module.CompileName) + "." + IdProtect(cl.CompileName);
       }
     }
     
@@ -825,6 +828,7 @@ namespace Microsoft.Dafny{
       }
       if (type.IsDatatype && type.AsDatatype is TupleTypeDecl) {
         wr.Write($"Tuple{type.AsDatatype.TypeArgs.Count} {name}");
+        tuples.Add(type.AsDatatype.TypeArgs.Count);
       } else {
         if (type.IsTypeParameter) {
           EmitSuppression(wr);
@@ -1033,10 +1037,10 @@ namespace Microsoft.Dafny{
       } else {
         if (lo != null && hi != null) {
           wr.Write(".subsequence(");
-          wr.Write(((BigInteger)((LiteralExpr)lo).Value).ToString());
-          wr.Write(", ");
-          wr.Write(((BigInteger)((LiteralExpr)hi).Value).ToString());
-          wr.Write(")");
+          TrParenExpr(lo, wr, inLetExprBody);
+          wr.Write(".intValue(), ");
+          TrParenExpr(hi, wr, inLetExprBody);
+          wr.Write(".intValue())");
         }
         else if (lo != null) {
           wr.Write(".drop");
@@ -1513,6 +1517,7 @@ namespace Microsoft.Dafny{
     }
 
     public static string PublicIdProtect(string name) {
+      name = name.Replace("_module", "_System");
       if (name == "" || name.First() == '_') {
         return name; // no need to further protect this name
       }
@@ -1700,7 +1705,8 @@ namespace Microsoft.Dafny{
         wr.WriteLine("return;");
       } else if (outParams.Count == 1){
         wr.WriteLine($"return {IdName(outParams[0])};");
-      } else{
+      } else {
+        tuples.Add(outParams.Count);
         wr.WriteLine($"return new Tuple{outParams.Count}<>({Util.Comma(outParams, IdName)});");
       }
     }
@@ -2289,7 +2295,7 @@ namespace Microsoft.Dafny{
       if (xType is BoolType) {
         return "false";
       } else if (xType is CharType) {
-        return "'d'";
+        return "'D'";
       } else if (xType is IntType || xType is BigOrdinalType) {
         return "BigInteger.ZERO";
       } else if (xType is RealType) {
@@ -2352,6 +2358,9 @@ namespace Microsoft.Dafny{
                 newarr += ", 0";
               }
               newarr += ")";
+              if (arrayClass.Dims > 1) {
+                newarr += ")";
+              }
               return newarr;
             }
             newarr += $"new {typeNameSansBrackets}";
@@ -2685,7 +2694,10 @@ namespace Microsoft.Dafny{
         var nativeType = GetNativeTypeName(nt.NativeType);
         var wEnum = w.NewNamedBlock($"public static ArrayList<{nativeType}> IntegerRange(BigInteger lo, BigInteger hi)");
         wEnum.WriteLine($"ArrayList<{nativeType}> arr = new ArrayList<>();");
-        wEnum.WriteLine($"for (BigInteger j = lo; j.compareTo(hi) < 0; j.add(BigInteger.ONE)) {{ arr.add(new {nativeType}(j.intValue())); }}");
+        var numberval = "intValue()";
+        if (nativeType == "Byte" || nativeType == "Short")
+          numberval = $"{nativeType.ToLower()}Value()";
+        wEnum.WriteLine($"for (BigInteger j = lo; j.compareTo(hi) < 0; j.add(BigInteger.ONE)) {{ arr.add(new {nativeType}(j.{numberval})); }}");
         wEnum.WriteLine("return arr;");
       }
       if (nt.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
