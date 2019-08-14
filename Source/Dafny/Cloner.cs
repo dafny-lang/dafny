@@ -631,8 +631,7 @@ namespace Microsoft.Dafny
 
       } else if (stmt is AssignOrReturnStmt) {
         var s = (AssignOrReturnStmt)stmt;
-        Contract.Assert(s.Lhss.Count == 1);
-        r = new AssignOrReturnStmt(Tok(s.Tok), Tok(s.EndTok), CloneExpr(s.Lhss[0]), CloneExpr(s.Rhs));
+        r = new AssignOrReturnStmt(Tok(s.Tok), Tok(s.EndTok), s.Lhss.ConvertAll(CloneExpr), CloneExpr(s.Rhs));
 
       } else if (stmt is VarDeclStmt) {
         var s = (VarDeclStmt)stmt;

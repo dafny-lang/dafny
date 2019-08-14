@@ -2178,14 +2178,16 @@ ReturnStmt<out Statement/*!*/ s>
 UpdateStmt<out Statement/*!*/ s>
 = (. List<Expression> lhss = new List<Expression>();
      List<AssignmentRhs> rhss = new List<AssignmentRhs>();
-     Expression e;  AssignmentRhs r;
-     IToken x, endTok = Token.NoToken;
+     Expression e;
+     AssignmentRhs r;
+     IToken x = Token.NoToken;
+     IToken endTok = Token.NoToken;
      Attributes attrs = null;
      IToken suchThatAssume = null;
      Expression suchThat = null;
      Expression exceptionExpr = null;
   .)
-  Lhs<out e>                       (. x = e.tok; .)
+( Lhs<out e>                       (. x = e.tok; .)
   ( { Attribute<ref attrs> }
     ";"                            (. endTok = t; rhss.Add(new ExprRhs(e, attrs)); .)
   |                                (. lhss.Add(e); .)
@@ -2206,14 +2208,17 @@ UpdateStmt<out Statement/*!*/ s>
     ";"                            (. endTok = t; .)
   | ":"                            (. SemErr(t, "invalid statement (did you forget the 'label' keyword?)"); .)
   )
+| ":-"                             (. x = t; .)
+   Expression<out exceptionExpr, false, false>
+   ";"                             (. endTok = t; .)
+)
   (. if (suchThat != null) {
        s = new AssignSuchThatStmt(x, endTok, lhss, suchThat, suchThatAssume, null);
      } else if (exceptionExpr != null) {
-       Contract.Assert(lhss.Count >= 1);
-       if (lhss.Count != 1) {
+       if (lhss.Count > 1) {
          SemErr(x, "':-' assignments can only have one LHS");
        }
-       s = new AssignOrReturnStmt(x, endTok, lhss[0], exceptionExpr);
+       s = new AssignOrReturnStmt(x, endTok, lhss, exceptionExpr);
      } else {
        if (lhss.Count == 0 && rhss.Count == 0) {
          s = new BlockStmt(x, endTok, new List<Statement>()); // error, give empty statement
@@ -2333,18 +2338,18 @@ VarDeclStatement<.out Statement/*!*/ s.>
     ]
     SYNC ";"                         (. endTok = t; .)
     (. ConcreteUpdateStatement update;
+       var lhsExprs = new List<Expression>();
+       foreach (var lhs in lhss) {
+         lhsExprs.Add(new IdentifierExpr(lhs.Tok, lhs.Name));
+       }
        if (suchThat != null) {
-         var ies = new List<Expression>();
-         foreach (var lhs in lhss) {
-           ies.Add(new IdentifierExpr(lhs.Tok, lhs.Name));
-         }
-         update = new AssignSuchThatStmt(assignTok, endTok, ies, suchThat, suchThatAssume, attrs);
+         update = new AssignSuchThatStmt(assignTok, endTok, lhsExprs, suchThat, suchThatAssume, attrs);
        } else if (exceptionExpr != null) {
            Contract.Assert(lhss.Count >= 1);
            if (lhss.Count != 1) {
              SemErr(assignTok, "':-' assignments can only have one LHS");
            }
-           update = new AssignOrReturnStmt(assignTok, endTok, new IdentifierExpr(lhss[0].Tok, lhss[0].Name), exceptionExpr);
+           update = new AssignOrReturnStmt(assignTok, endTok, lhsExprs, exceptionExpr);
        } else if (rhss.Count == 0) {
          update = null;
        } else {

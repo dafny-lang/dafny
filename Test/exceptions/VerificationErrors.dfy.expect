@@ -1,5 +1,8 @@
-VerificationErrors.dfy(7,38): Error: assertion violation
+VerificationErrors.dfy(8,38): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+VerificationErrors.dfy(15,17): Error: assertion violation
 Execution trace:
     (0,0): anon0
 
-Dafny program verifier finished with 0 verified, 1 error
+Dafny program verifier finished with 0 verified, 2 errors

@@ -6742,18 +6742,21 @@ namespace Microsoft.Dafny {
 
     [ContractInvariantMethod]
     void ObjectInvariant() {
+      Contract.Invariant(Lhss != null);
       Contract.Invariant(
-          Lhss == null ||                      // ":- MethodOrExpresion;" which returns void success or an error
+          Lhss.Count == 0 ||                   // ":- MethodOrExpresion;" which returns void success or an error
           Lhss.Count == 1 && Lhss[0] != null   // "y :- MethodOrExpression;"
       );
       Contract.Invariant(Rhs != null);
     }
 
-    public AssignOrReturnStmt(IToken tok, IToken endTok, Expression/*?*/ lhs, Expression rhs)
-      : base(tok, endTok, lhs == null ? null : new List<Expression>() { lhs })
+    public AssignOrReturnStmt(IToken tok, IToken endTok, List<Expression> lhss, Expression rhs)
+      : base(tok, endTok, lhss)
     {
       Contract.Requires(tok != null);
       Contract.Requires(endTok != null);
+      Contract.Requires(lhss != null);
+      Contract.Requires(lhss.Count <= 1);
       Contract.Requires(rhs != null);
       Rhs = rhs;
     }

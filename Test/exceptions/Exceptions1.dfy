@@ -1,7 +1,7 @@
 // RUN: %dafny /compile:3 "%s" /rprint:"%t.rprint" > "%t"
 // RUN: %diff "%s.expect" "%t"
-
 include "./NatOutcome.dfy"
+include "./VoidOutcome.dfy"
 
 method Switch(b: bool, v: nat) returns (res: NatOutcome) {
     if b {
@@ -11,8 +11,7 @@ method Switch(b: bool, v: nat) returns (res: NatOutcome) {
     }
 }
 
-method TestControlFlowCase(switch1: bool, switch2: bool, switch3: bool) returns (res: NatOutcome) {
-    print switch1, "_", switch2, "_", switch3, "_";
+method TestControlFlowCase_Nat(switch1: bool, switch2: bool, switch3: bool) returns (res: NatOutcome) {
     var n1 :- Switch(switch1, 88);
     print n1, "_";
     var n2: nat :- Switch(switch2, 42);
@@ -22,15 +21,44 @@ method TestControlFlowCase(switch1: bool, switch2: bool, switch3: bool) returns 
     res := MakeNatSuccess(100);
 }
 
+method FailIf(b: bool) returns (res: VoidOutcome) {
+    if b {
+        res := MakeVoidSuccess();
+    } else {
+        res := MakeVoidFailure("void bad luck");
+    }
+}
+
+method TestControlFlowCase_Void(switch1: bool, switch2: bool, switch3: bool) returns (res: VoidOutcome) {
+    :- FailIf(switch1);
+    print "_";
+    :- FailIf(switch2);
+    print "_";
+    :- FailIf(switch3);
+    print "_";
+    res := MakeVoidSuccess();
+}
+
 method TestControlFlow() {
     var i: nat := 0;
     while i < 8 {
-        var materialized: NatOutcome := TestControlFlowCase(i / 4 % 2 == 0, i / 2 % 2 == 0, i % 2 == 0);
-        if materialized.IsFailure() {
+        var switch1, switch2, switch3 := i / 4 % 2 == 0, i / 2 % 2 == 0, i % 2 == 0;
+        print switch1, "_", switch2, "_", switch3, "_";
+
+        var materialized1: NatOutcome := TestControlFlowCase_Nat(switch1, switch2, switch3);
+        if materialized1.IsFailure() {
             print "Failure\n";
         } else {
-            print "Success=", materialized.Extract(), "\n";
+            print "Success=", materialized1.Extract(), "\n";
         }
+
+        var materialized2: VoidOutcome := TestControlFlowCase_Void(switch1, switch2, switch3);
+        if materialized2.IsFailure() {
+            print "VoidFailure\n";
+        } else {
+            print "VoidSuccess\n";
+        }
+
         i := i + 1;
     }
 }
