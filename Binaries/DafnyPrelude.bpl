@@ -81,12 +81,16 @@ axiom (forall t, u: Ty :: { TIMap(t,u) }   Tag(TIMap(t,u))   == TagIMap);
 // ---------------------------------------------------------------
 // -- Literals ---------------------------------------------------
 // ---------------------------------------------------------------
+function {:identity} Lit<T>(x: T): T { x }
+axiom (forall<T> x: T :: { $Box(Lit(x)) } $Box(Lit(x)) == Lit($Box(x)) );
+
+// Specialize Lit to concrete types.
+// These aren't logically required, but on some examples improve
+// verification speed
 function {:identity} LitInt(x: int): int { x }
 axiom (forall x: int :: { $Box(LitInt(x)) } $Box(LitInt(x)) == Lit($Box(x)) );
 function {:identity} LitReal(x: real): real { x }
 axiom (forall x: real :: { $Box(LitReal(x)) } $Box(LitReal(x)) == Lit($Box(x)) );
-function {:identity} Lit<T>(x: T): T { x }
-axiom (forall<T> x: T :: { $Box(Lit(x)) } $Box(Lit(x)) == Lit($Box(x)) );
 
 // ---------------------------------------------------------------
 // -- Characters -------------------------------------------------

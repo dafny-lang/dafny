@@ -1231,14 +1231,14 @@ namespace Microsoft.Dafny {
       currentModule = null;
       this.fuelContext = oldFuelContext;
     }
-    void AddRedirectingTypeDeclAxioms(bool is_alloc, RedirectingTypeDecl dd, string fullName) {
-      Contract.Requires(dd != null && dd is TopLevelDecl);
+    void AddRedirectingTypeDeclAxioms<T>(bool is_alloc, T dd, string fullName) where T : TopLevelDecl, RedirectingTypeDecl {
+      Contract.Requires(dd != null);
       Contract.Requires(dd.Var != null && dd.Constraint != null);
       Contract.Requires(fullName != null);
 
       List<Bpl.Expr> typeArgs;
       var vars = MkTyParamBinders(dd.TypeArgs, out typeArgs);
-      var o_ty = ClassTyCon((TopLevelDecl)dd, typeArgs);
+      var o_ty = ClassTyCon(dd, typeArgs);
 
       var oBplType = TrType(dd.Var.Type);
       var o = BplBoundVar(dd.Var.AssignUniqueName(dd.IdGenerator), oBplType, vars);
@@ -1266,7 +1266,7 @@ namespace Microsoft.Dafny {
         if (dd.Var.Type.IsNumericBased() || dd.Var.Type.IsBitVectorType || dd.Var.Type.IsBoolType) {
           // optimize this to only use the numeric/bitvector constraint, not the whole $Is thing on the base type
           parentConstraint = Bpl.Expr.True;
-          var udt = new UserDefinedType(dd.tok, dd.Name, (TopLevelDecl)dd, dd.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp)));
+          var udt = UserDefinedType.FromTopLevelDecl(dd.tok, dd);
           var c = Resolver.GetImpliedTypeConstraint(dd.Var, udt);
           constraint = etran.TrExpr(c);
         } else {
@@ -6421,7 +6421,7 @@ namespace Microsoft.Dafny {
         if (e.Range != null) {
           canCall = BplAnd(CanCallAssumption(e.Range, etran), BplImp(etran.TrExpr(e.Range), canCall));
         }
-        if (expr is MapComprehension mc && mc.TermLeft != null) {
+        if (expr is MapComprehension mc && mc.IsGeneralMapComprehension) {
           canCall = BplAnd(canCall, CanCallAssumption(mc.TermLeft, etran));
 
           // The translation of "map x,y | R(x,y) :: F(x,y) := G(x,y)" makes use of projection
@@ -7450,7 +7450,7 @@ namespace Microsoft.Dafny {
         var q = e as QuantifierExpr;
         var lam = e as LambdaExpr;
         var mc = e as MapComprehension;
-        if (mc != null && mc.TermLeft == null) {
+        if (mc != null && !mc.IsGeneralMapComprehension) {
           mc = null;  // mc will be non-null when "e" is a general map comprehension
         }
 
@@ -14372,7 +14372,6 @@ namespace Microsoft.Dafny {
               if (useSurrogateLocal) {
                 return new Bpl.IdentifierExpr(expr.tok, translator.SurrogateName(field), translator.TrType(field.Type));
               } else if (field is ConstantField) {
-                var isLit = true;
                 var args = e.TypeApplication.ConvertAll(translator.TypeToTy);
                 Bpl.Expr result;
                 if (field.IsStatic) {
@@ -14381,12 +14380,8 @@ namespace Microsoft.Dafny {
                   Bpl.Expr obj = TrExpr(e.Obj);
                   args.Add(obj);
                   result = new Bpl.NAryExpr(expr.tok, new Bpl.FunctionCall(translator.GetReadonlyField(field)), args);
-                  isLit = translator.IsLit(obj);
                 }
                 result = translator.CondApplyUnbox(expr.tok, result, field.Type, expr.Type);
-                if (isLit) {
-                  result = MaybeLit(result, translator.TrType(expr.Type));
-                }
                 return result;
               } else {
                 Bpl.Expr obj = TrExpr(e.Obj);
@@ -15280,7 +15275,7 @@ namespace Microsoft.Dafny {
           var wVar = new Bpl.BoundVariable(expr.tok, new Bpl.TypedIdent(expr.tok, translator.CurrentIdGenerator.FreshId("$w#"), predef.BoxType));
 
           Bpl.Expr keys, values;
-          if (e.TermLeft == null) {
+          if (!e.IsGeneralMapComprehension) {
             var bv = e.BoundVars[0];
             Bpl.Expr unboxw = translator.UnboxIfBoxed(new Bpl.IdentifierExpr(expr.tok, wVar), bv.Type);
             Bpl.Expr typeAntecedent = translator.GetWhereClause(bv.tok, unboxw, bv.Type, this, NOALLOC);
@@ -17356,7 +17351,7 @@ namespace Microsoft.Dafny {
         if (call != null && call.Function != null && call.Function.ReadsHeap) {
           foundHeap = true;
         }
-        if (expr is ApplyExpr) {
+        if (expr is ApplyExpr || expr is SeqConstructionExpr) {
           foundHeap = true;
         }
         ThisExpr thisExpr = expr as ThisExpr;
@@ -17833,7 +17828,7 @@ namespace Microsoft.Dafny {
               newExpr = new SetComprehension(expr.tok, ((SetComprehension)e).Finite, newBoundVars, newRange, newTerm, newAttrs);
             } else if (e is MapComprehension) {
               var mc = (MapComprehension)e;
-              var newTermLeft = mc.TermLeft == null ? null : Substitute(mc.TermLeft);
+              var newTermLeft = mc.IsGeneralMapComprehension ? Substitute(mc.TermLeft) : null;
               newExpr = new MapComprehension(expr.tok, mc.Finite, newBoundVars, newRange, newTermLeft, newTerm, newAttrs);
             } else if (expr is ForallExpr) {
               newExpr = new ForallExpr(expr.tok, ((QuantifierExpr)expr).TypeArgs, newBoundVars, newRange, newTerm, newAttrs);

@@ -513,7 +513,7 @@ namespace Microsoft.Dafny {
         DeclareField("Witness", true, true, sst.Rhs, sst.tok, witness.ToString(), w);
       }
       using (var wDefault = w.NewBlock("static get Default()")) {
-        var udt = new UserDefinedType(sst.tok, sst.Name, sst, sst.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp)));
+        var udt = UserDefinedType.FromTopLevelDecl(sst.tok, sst);
         var d = TypeInitializationValue(udt, wr, sst.tok, false);
         wDefault.WriteLine("return {0};", d);
       }

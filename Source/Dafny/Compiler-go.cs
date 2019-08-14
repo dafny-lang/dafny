@@ -943,7 +943,7 @@ namespace Microsoft.Dafny {
       // RTD
       {
         CreateRTD(IdName(sst), null, out var wDefaultBody, wr);
-        var udt = new UserDefinedType(sst.tok, sst.Name, sst, sst.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp)));
+        var udt = UserDefinedType.FromTopLevelDecl(sst.tok, sst);
         var d = TypeInitializationValue(udt, wr, sst.tok, false);
         wDefaultBody.WriteLine("return {0}", d);
       }
@@ -3204,7 +3204,7 @@ namespace Microsoft.Dafny {
 
     protected override void EmitIntegerRange(Type type, out TargetWriter wLo, out TargetWriter wHi, TargetWriter wr) {
       if (AsNativeType(type) != null) {
-        wr.Write("{0}.IntegerRange(", TypeName_Companion(type.AsNewtype, wr, tok:null));
+        wr.Write("{0}.IntegerRange(", TypeName_Companion(type.AsNewtype, wr, tok:Bpl.Token.NoToken));
       } else {
         wr.Write("_dafny.IntegerRange(");
       }
