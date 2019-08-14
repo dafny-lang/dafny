@@ -703,7 +703,8 @@ namespace Microsoft.Dafny{
         wr.Write(")");
       } else if (AsNativeType(e.Type) != null) {
         GetNativeInfo(AsNativeType(e.Type).Sel, out var name, out var literalSuffix, out _);
-        wr.Write($"new {name}({(BigInteger)e.Value}{literalSuffix})");
+        var cast = name == "Short" || name == "Byte" ? $"({name.ToLower()})" : "";
+        wr.Write($"new {name}({cast}{(BigInteger)e.Value}{literalSuffix})");
       } else if (e.Value is BigInteger i) {
         wr.Write($"new BigInteger(\"{i}\")");
       } else if (e.Value is Basetypes.BigDec n){
@@ -757,11 +758,11 @@ namespace Microsoft.Dafny{
         case NativeType.Selection.Byte:
           return "new dafny.UByte(0)";
         case NativeType.Selection.SByte:
-          return "new Byte(0)";
+          return "new Byte((byte)0)";
         case NativeType.Selection.UShort:
           return "new dafny.UShort";
         case NativeType.Selection.Short:
-          return "new Short(0)";
+          return "new Short((short)0)";
         case NativeType.Selection.UInt:
           return "new dafny.UInt(0)";
         case NativeType.Selection.Int:
@@ -2706,8 +2707,16 @@ namespace Microsoft.Dafny{
         if (nt.NativeType == null) {
           cw.DeclareField("Witness", true, true, nt.BaseType, nt.tok, witness.ToString());
         } else {
-          w.Write("public static {0} Witness = ({0})(", GetNativeTypeName(nt.NativeType));
+          var nativeType = GetNativeTypeName(nt.NativeType);
+          w.Write("public static {0} Witness = new {0}(", nativeType);
           w.Append(witness);
+          if (nt.Witness.Type is IntType) {
+            if(nativeType == "Short") 
+              w.Write(".shortValue()");
+            else if (nativeType == "Byte")
+              w.Write(".byteValue()");
+            else w.Write(".intValue()");
+          }
           w.WriteLine(");");
         }
       }
@@ -2806,7 +2815,8 @@ namespace Microsoft.Dafny{
           TrParenExpr(dim, wr, false);
           prefix = ".intValue(), ";
         }
-        wr.Write($".intValue(), {typeNameSansBrackets}.class)");
+        typeNameSansBrackets = elmtType.AsTypeParameter != null ? $"dafny.Helpers.getClassUnsafe(s{typeNameSansBrackets}.substring(6))" : $"{typeNameSansBrackets}.class";
+        wr.Write($".intValue(), {typeNameSansBrackets})");
       }
       if (dimensions.Count > 1) {
         wr.Write(")");

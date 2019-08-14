@@ -52,6 +52,8 @@ public class Helpers {
                     return new Boolean(false);
                 case "class java.math.BigDecimal":
                     return new BigDecimal(0);
+                case "class java.lang.Character":
+                    return 'D';
                 default:
                     String xs = s.substring(6);
                     Object o = Class.forName(xs).newInstance();

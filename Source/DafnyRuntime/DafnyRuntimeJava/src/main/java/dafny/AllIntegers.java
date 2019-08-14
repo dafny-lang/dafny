@@ -21,12 +21,13 @@ class AllIntegersIterator implements Iterator<BigInteger> {
 
     @Override
     public BigInteger next() {
+        BigInteger j = i;
         if(i.equals(BigInteger.ZERO))
             i.add(BigInteger.ONE);
         else if(i.signum() > 0)
             i.multiply(BigInteger.valueOf(-1L));
         else
             i.multiply(BigInteger.valueOf(-1L)).add(BigInteger.ONE);
-        return i;
+        return j;
     }
 }
