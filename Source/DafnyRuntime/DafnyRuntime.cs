@@ -1176,9 +1176,7 @@ namespace Dafny
 
     public static Sequence<T> SeqFromArrayPrefix<T>(T[] array, long n) {
       T[] ar = new T[n];
-      for (long i = 0; i < n; i++) {
-        ar[i] = array[i];
-      }
+      System.Array.Copy(array, 0, ar, 0, n);
       return new Sequence<T>(ar);
     }
 
@@ -1192,9 +1190,7 @@ namespace Dafny
 
     public static Sequence<T> SeqFromArraySuffix<T>(T[] array, long n) {
       T[] ar = new T[array.Length - n];
-      for (long i = n; i < array.Length; i++) {
-        ar[i - n] = array[i];
-      }
+      System.Array.Copy(array, n, ar, 0, array.Length - n);
       return new Sequence<T>(ar);
     }
 
@@ -1207,9 +1203,7 @@ namespace Dafny
 
     public static Sequence<T> SeqFromArraySlice<T>(T[] array, long lo, long hi) {
       T[] ar = new T[hi - lo];
-      for (long i = lo; i < hi; i++) {
-        ar[i - lo] = array[i];
-      }
+      System.Array.Copy(array, lo, ar, 0, hi - lo);
       return new Sequence<T>(ar);
     }
     public static Sequence<T> SeqFromArraySlice<T>(T[] array, long lo, ulong hi) {
