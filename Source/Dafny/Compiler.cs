@@ -813,14 +813,29 @@ namespace Microsoft.Dafny {
       return false;
     }
 
+    void OrderedBySCC(List<MemberDecl> decls, ClassDecl c) {
+      List<ConstantField> consts = new List<ConstantField>();
+      foreach (var decl in decls) {
+        if (decl is ConstantField) {
+          consts.Add((ConstantField)decl);
+        }
+      }
+      consts.Sort((a, b) => (c.Module.CallGraph.GetSCCRepresentativeId(b) - c.Module.CallGraph.GetSCCRepresentativeId(a)));
+      foreach (var con in consts) {
+        decls.Remove(con);
+      }
+      decls.AddRange(consts);
+    }
+    
     void CompileClassMembers(ClassDecl c, IClassWriter classWriter) {
       Contract.Requires(c != null);
       Contract.Requires(classWriter != null);
 
       var errorWr = classWriter.ErrorWriter();
-
       CheckHandleWellformed(c, errorWr);
       CheckForCapitalizationConflicts(c.Members, c.InheritedMembers);
+      OrderedBySCC(c.InheritedMembers, c);
+      OrderedBySCC(c.Members, c);
       foreach (var member in c.InheritedMembers) {
         Contract.Assert(!member.IsStatic);  // only instance members should ever be added to .InheritedMembers
         if (member.IsGhost) {
@@ -828,7 +843,6 @@ namespace Microsoft.Dafny {
         } else if (member is ConstantField && SupportsProperties) {
           if (NeedsWrappersForInheritedFields) {
             var cf = (ConstantField)member;
-
             if (cf.Rhs == null) {
               Contract.Assert(!cf.IsStatic);  // as checked above, only instance members can be inherited
               classWriter.DeclareField("_" + cf.CompileName, false, false, cf.Type, cf.tok, DefaultValue(cf.Type, errorWr, cf.tok, true));
