@@ -29,10 +29,10 @@ namespace Microsoft.Dafny{
 
     
     // Shadowing variables in Compiler.cs
-    string DafnySetClass = "dafny.DafnySet";
-    string DafnyMultiSetClass = "dafny.DafnyMultiset";
-    string DafnySeqClass = "dafny.DafnySequence"; 
-    string DafnyMapClass = "dafny.DafnyMap";
+    new string DafnySetClass = "dafny.DafnySet";
+    new string DafnyMultiSetClass = "dafny.DafnyMultiset";
+    new string DafnySeqClass = "dafny.DafnySequence"; 
+    new string DafnyMapClass = "dafny.DafnyMap";
 
     private String ModuleName;
     private String ModulePath;
@@ -58,6 +58,8 @@ namespace Microsoft.Dafny{
     }
 
     protected override bool UseReturnStyleOuts(Method m, int nonGhostOutCount) => true;
+    
+    public override bool SupportsInMemoryCompilation => false;
 
     protected override bool SupportsAmbiguousTypeDecl => false;
     protected override bool SupportsProperties => false;

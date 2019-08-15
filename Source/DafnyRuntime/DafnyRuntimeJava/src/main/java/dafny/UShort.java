@@ -166,7 +166,7 @@ public class UShort {
     }
 
     public UShort shiftRight(int i){
-        i = inner >> i;
+        i = inner >>> i;
         return new UShort(i);
     }
 }

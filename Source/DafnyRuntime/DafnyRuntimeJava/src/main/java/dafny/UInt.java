@@ -143,6 +143,6 @@ public class UInt {
     }
 
     public UInt shiftRight(int i){
-        return new UInt(inner >> i);
+        return new UInt(inner >>> i);
     }
 }

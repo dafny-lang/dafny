@@ -137,6 +137,6 @@ public class ULong {
     }
 
     public ULong shiftRight(int i){
-        return new ULong(inner >> i);
+        return new ULong(inner >>> i);
     }
 }

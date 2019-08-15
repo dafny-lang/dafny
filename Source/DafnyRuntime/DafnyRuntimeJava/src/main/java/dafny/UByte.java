@@ -174,7 +174,7 @@ public class UByte {
     }
 
     public UByte shiftRight(int i){
-        i = inner >> i;
+        i = inner >>> i;
         return new UByte(i);
     }
 }
