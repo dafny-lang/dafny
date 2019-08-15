@@ -574,7 +574,7 @@ namespace Microsoft.Dafny {
         return null;
       }
 
-      var customReceiver = !m.IsStatic && m.EnclosingClass is NewtypeDecl;
+      var customReceiver = NeedsCustomReceiver(m);
       wr.Write("{0}{1}(", m.IsStatic || customReceiver ? "static " : "", IdName(m));
       var nTypes = WriteRuntimeTypeDescriptorsFormals(m.TypeArgs, false, wr);
       if (customReceiver) {
@@ -602,7 +602,7 @@ namespace Microsoft.Dafny {
         return null;
       }
 
-      var customReceiver = !member.IsStatic && member.EnclosingClass is NewtypeDecl;
+      var customReceiver = NeedsCustomReceiver(member);
       wr.Write("{0}{1}(", isStatic || customReceiver ? "static " : "", name);
       var nTypes = typeArgs == null ? 0 : WriteRuntimeTypeDescriptorsFormals(typeArgs, false, wr);
       if (customReceiver) {

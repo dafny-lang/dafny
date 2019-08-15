@@ -891,6 +891,11 @@ namespace Microsoft.Dafny {
       decls.AddRange(consts);
     }
     
+    public static bool NeedsCustomReceiver(MemberDecl member) {
+      Contract.Requires(member != null);
+      return !member.IsStatic && member.EnclosingClass is NewtypeDecl;
+    }
+
     void CompileClassMembers(TopLevelDeclWithMembers c, IClassWriter classWriter) {
       Contract.Requires(c != null);
       Contract.Requires(classWriter != null);
@@ -2833,7 +2838,7 @@ namespace Microsoft.Dafny {
         }
         Contract.Assert(lvalues.Count == outTmps.Count);
 
-        bool customReceiver = !s.Method.IsStatic && s.Method.EnclosingClass is NewtypeDecl;
+        bool customReceiver = NeedsCustomReceiver(s.Method);
         Contract.Assert(receiverReplacement == null || !customReceiver);  // What would be done in this case? It doesn't ever happen, right?
 
         bool returnStyleOuts = UseReturnStyleOuts(s.Method, outTmps.Count);
@@ -3110,8 +3115,7 @@ namespace Microsoft.Dafny {
           GetSpecialFieldInfo(sf.SpecialId, sf.IdParam, out compiledName, out preStr, out postStr);
           wr.Write(preStr);
           var w = EmitMemberSelect(sf, false, expr.Type, wr, MemberSelectObjIsTrait);
-          bool customReceiver = !e.Member.IsStatic && e.Member.EnclosingClass is NewtypeDecl;
-          if (customReceiver) {
+          if (NeedsCustomReceiver(e.Member)) {
             w.Write(TypeName_Companion(e.Obj.Type, wr, e.tok, sf));
             TrParenExpr(e.Obj, wr, inLetExprBody);
           } else if (sf.IsStatic) {
@@ -3671,7 +3675,7 @@ namespace Microsoft.Dafny {
 
       wr = EmitCoercionIfNecessary(f.ResultType, e.Type, e.tok, wr);
 
-      bool customReceiver = !f.IsStatic && f.EnclosingClass is NewtypeDecl;
+      var customReceiver = NeedsCustomReceiver(f);
       if (f.IsStatic || customReceiver) {
         wr.Write(TypeName_Companion(e.Receiver.Type, wr, e.tok, f));
       } else {

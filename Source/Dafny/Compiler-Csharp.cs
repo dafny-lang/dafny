@@ -720,7 +720,7 @@ namespace Microsoft.Dafny
         }
       }
 
-      var customReceiver = !m.IsStatic && m.EnclosingClass is NewtypeDecl;
+      var customReceiver = NeedsCustomReceiver(m);
 
       wr.Write("{0}{1}{2}{3} {4}",
         createBody ? "public " : "",
@@ -770,7 +770,7 @@ namespace Microsoft.Dafny
     protected BlockTargetWriter/*?*/ CreateFunction(string name, List<TypeParameter>/*?*/ typeArgs, List<Formal> formals, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl member, TargetWriter wr) {
       var hasDllImportAttribute = ProcessDllImport(member, wr);
 
-      var customReceiver = !member.IsStatic && member.EnclosingClass is NewtypeDecl;
+      var customReceiver = NeedsCustomReceiver(member);
 
       wr.Write("{0}{1}{2}{3} {4}", createBody ? "public " : "", isStatic || customReceiver ? "static " : "", hasDllImportAttribute ? "extern " : "", TypeName(resultType, wr, tok), name);
       if (typeArgs != null && typeArgs.Count != 0) {

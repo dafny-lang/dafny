@@ -1078,7 +1078,7 @@ namespace Microsoft.Dafny {
     }
 
     private BlockTargetWriter CreateSubroutine(string name, List<TypeParameter>/*?*/ typeArgs, List<Formal> inParams, List<Formal> outParams, Type/*?*/ resultType, Bpl.IToken tok, bool isStatic, bool isTailRecursive, bool createBody, string ownerName, MemberDecl member, TargetWriter abstractWriter, TargetWriter concreteWriter) {
-      var customReceiver = !member.IsStatic && member.EnclosingClass is NewtypeDecl;
+      var customReceiver = NeedsCustomReceiver(member);
       TargetWriter wr;
       if (createBody || abstractWriter == null) {
         wr = concreteWriter;
@@ -2336,7 +2336,7 @@ namespace Microsoft.Dafny {
         wr.Write(".{0}()", FormatDatatypeConstructorCheckName(fieldName.Substring(3)));
       } else if (member is ConstantField cf && cf.Rhs != null) {
         wSource = wr.Fork();
-        bool customReceiver = !member.IsStatic && member.EnclosingClass is NewtypeDecl;
+        var customReceiver = NeedsCustomReceiver(member);
         wr.Write(".{0}{1}", IdName(member), customReceiver ? "" : "()");
       } else if (member is Field f && !isLValue) {
         wr = EmitCoercionIfNecessary(from:f.Type, to:expectedType, tok:null, wr:wr);
