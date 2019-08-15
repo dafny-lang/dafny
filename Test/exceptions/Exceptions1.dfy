@@ -63,28 +63,8 @@ method TestControlFlow() {
     }
 }
 
-method TestParsing(b: bool, n: nat, o1: NatOutcome, o2: NatOutcome) returns (res: NatOutcome) {
-    // 2x2 matrix of (expr, stmt) x (explicit type, no explicit type), where stmt also tests reassignment
-
-    var stmt1: nat :- MakeNatSuccess(n);
-    stmt1 :- MakeNatFailure("sorry, bad luck");
-    var use_stmt1: nat := stmt1;
-
-    var stmt2 :- MakeNatSuccess(n);
-    stmt2 :- MakeNatFailure("sorry, bad luck");
-    var use_stmt2: nat := stmt2;
-
-    /* expected to desugar to something like this:
-    var y: nat;
-    var temp := o1; if temp.IsFailure() { return temp.PropagateFailure(); } y := temp.Extract();
-    */
-    
-    return o1;
-}
-
-/*
-method TestParsing(b: bool, n: nat, o1: NatOutcome, o2: NatOutcome) {
-    // 2x2 matrix of (expr, stmt) x (explicit type, no explicit type), where stmt also tests reassignment
+method TestStatementParsing(b: bool, n: nat, o1: NatOutcome, o2: NatOutcome) returns (res: NatOutcome) {
+    // 2x2 matrix of (rhs is expr, rhs is method call) x (explicit type, no explicit type), where stmt also tests reassignment
 
     var expr1: nat :- (var x := if b then o1 else o2; x);
     var use_expr1: nat := expr1;
@@ -99,8 +79,9 @@ method TestParsing(b: bool, n: nat, o1: NatOutcome, o2: NatOutcome) {
     var stmt2 :- MakeNatSuccess(n);
     stmt2 :- MakeNatFailure("sorry, bad luck");
     var use_stmt2: nat := stmt2;
+
+    return o1;
 }
-*/
 
 method Main() {
     TestControlFlow();
