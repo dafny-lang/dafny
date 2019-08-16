@@ -1,5 +1,7 @@
 package dafny;
 
+import java.util.Objects;
+
 public class Tuple3<T0, T1, T2> {
     private T0 _0;
     private T1 _1;
@@ -18,7 +20,7 @@ public class Tuple3<T0, T1, T2> {
         if (obj == null) return false;
         if (getClass() != obj.getClass()) return false;
         Tuple3 o = (Tuple3) obj;
-        return this._0.equals(o._0) && this._1.equals(o._1) && this._2.equals(o._2);
+        return Objects.equals(this._0, o._0) && Objects.equals(this._1, o._1) && Objects.equals(this._2, o._2);
     }
 
     @Override
@@ -40,9 +42,9 @@ public class Tuple3<T0, T1, T2> {
         // https://stackoverflow.com/questions/1579721/why-are-5381-and-33-so-important-in-the-djb2-algorithm
         long hash = 5381;
         hash = ((hash << 5) + hash) + 0;
-        hash = ((hash << 5) + hash) + ((long) this._0.hashCode());
-        hash = ((hash << 5) + hash) + ((long) this._1.hashCode());
-        hash = ((hash << 5) + hash) + ((long) this._2.hashCode());
+        hash = ((hash << 5) + hash) + ((long) Objects.hashCode(_0));
+        hash = ((hash << 5) + hash) + ((long) Objects.hashCode(_1));
+        hash = ((hash << 5) + hash) + ((long) Objects.hashCode(_2));
         return (int) hash;
     }
 
