@@ -63,6 +63,9 @@ namespace Microsoft.Dafny {
       }
     }
 
+    protected string IntSelect = ",int";
+    protected string LambdaExecute = "";
+
     protected virtual void EmitHeader(Program program, TargetWriter wr) { }
     protected virtual void EmitBuiltInDecls(BuiltIns builtIns, TargetWriter wr) { }
     /// <summary>
@@ -182,14 +185,24 @@ namespace Microsoft.Dafny {
     /// In the above, if "type" is null, then it is replaced by "var" or "let".
     /// "tok" is allowed to be null if "type" is.
     /// </summary>
-    protected abstract void DeclareLocalVar(string name, Type/*?*/ type, Bpl.IToken/*?*/ tok, bool leaveRoomForRhs, string/*?*/ rhs, TargetWriter wr);
+    protected abstract void DeclareLocalVar(string name, Type/*?*/ type, Bpl.IToken /*?*/ tok, bool leaveRoomForRhs, string/*?*/ rhs, TargetWriter wr);
+
+    protected virtual void DeclareLocalVar(string name, Type /*?*/ type, Bpl.IToken /*?*/ tok, bool leaveRoomForRhs, string /*?*/ rhs, TargetWriter wr, Type t) {
+      DeclareLocalVar(name, type, tok, leaveRoomForRhs, rhs, wr);
+    }
     /// <summary>
     /// Generates:
     ///     type name = rhs;
     /// In the above, if "type" is null, then it is replaced by "var" or "let".
     /// "tok" is allowed to be null if "type" is.
     /// </summary>
-    protected void DeclareLocalVar(string name, Type/*?*/ type, Bpl.IToken/*?*/ tok, Expression rhs, bool inLetExprBody, TargetWriter wr) {
+    protected virtual void DeclareLocalVar(string name, Type /*?*/ type, Bpl.IToken /*?*/ tok, Expression rhs, bool inLetExprBody, TargetWriter wr) {
+      var w = DeclareLocalVar(name, type, tok, wr);
+      TrExpr(rhs, w, inLetExprBody);
+    }
+    
+    protected virtual void DeclareLocalVar(string name, Type /*?*/ type, Bpl.IToken /*?*/ tok, Expression rhs,
+      bool inLetExprBody, TargetWriter wr, Type t){
       var w = DeclareLocalVar(name, type, tok, wr);
       TrExpr(rhs, w, inLetExprBody);
     }
@@ -201,9 +214,15 @@ namespace Microsoft.Dafny {
     /// </summary>
     protected abstract TargetWriter DeclareLocalVar(string name, Type/*?*/ type, Bpl.IToken/*?*/ tok, TargetWriter wr);
     protected virtual void DeclareOutCollector(string collectorVarName, TargetWriter wr) { }  // called only for return-style calls
+    protected virtual void DeclareSpecificOutCollector(string collectorVarName, TargetWriter wr, int outCount, List<Type> types, Method m) {DeclareOutCollector(collectorVarName, wr); } // for languages that don't allow "let" or "var" expressions
     protected virtual bool UseReturnStyleOuts(Method m, int nonGhostOutCount) => false;
+    protected virtual BlockTargetWriter EmitMethodReturns(Method m, BlockTargetWriter wr) { return wr; } // for languages that need explicit return statements not provided by Dafny
     protected virtual bool SupportsMultipleReturns { get => false; }
     protected virtual bool NeedsCastFromTypeParameter { get => false; }
+    protected virtual bool SupportsAmbiguousTypeDecl { get => true; }
+    protected virtual bool FieldsInTraits { get => true; } // True if language's "trait" equivalent allows for non-final field declarations, false otherwise
+    protected virtual void AddTupleToSet(int i) { }
+    public int TargetTupleSize = 0;
     /// The punctuation that comes at the end of a statement.  Note that
     /// statements are followed by newlines regardless.
     protected virtual string StmtTerminator { get => ";"; }
@@ -211,9 +230,20 @@ namespace Microsoft.Dafny {
     protected abstract void DeclareLocalOutVar(string name, Type type, Bpl.IToken tok, string rhs, bool useReturnStyleOuts, TargetWriter wr);
     protected virtual void EmitActualOutArg(string actualOutParamName, TextWriter wr) { }  // actualOutParamName is always the name of a local variable; called only for non-return-style outs
     protected virtual void EmitOutParameterSplits(string outCollector, List<string> actualOutParamNames, TargetWriter wr) { }  // called only for return-style calls
+    protected virtual void EmitCastOutParameterSplits(string outCollector, List<string> actualOutParamNames, TargetWriter wr, List<Type> actualOutParamTypes, Bpl.IToken tok) { 
+      EmitOutParameterSplits(outCollector, actualOutParamNames, wr); }
 
     protected abstract void EmitActualTypeArgs(List<Type> typeArgs, Bpl.IToken tok, TextWriter wr);
     protected abstract string GenerateLhsDecl(string target, Type/*?*/ type, TextWriter wr, Bpl.IToken tok);
+
+    protected virtual TargetWriter DeclareLocalVar(string name, Type /*?*/ type, Bpl.IToken /*?*/ tok, TargetWriter wr, Type t){
+      return DeclareLocalVar(name, type, tok, wr);
+    }
+
+    protected virtual void EmitAssignment(out TargetWriter wLhs, Type /*?*/ lhsType, out TargetWriter wRhs, Type /*?*/ rhsType, TargetWriter wr, bool MemberSelectObjIsTrait) {
+      EmitAssignment(out wLhs, lhsType, out wRhs, rhsType, wr);
+    }
+
     protected virtual void EmitAssignment(out TargetWriter wLhs, Type/*?*/ lhsType, out TargetWriter wRhs, Type/*?*/ rhsType, TargetWriter wr) {
       wLhs = wr.Fork();
       wr.Write(" = ");
@@ -297,6 +327,10 @@ namespace Microsoft.Dafny {
     protected abstract void EmitBreak(string/*?*/ label, TargetWriter wr);
     protected abstract void EmitYield(TargetWriter wr);
     protected abstract void EmitAbsurd(string/*?*/ message, TargetWriter wr);
+    protected virtual void EmitAbsurd(string message, TargetWriter wr, bool needIterLimit) {
+      EmitAbsurd(message, wr);
+    }
+
     protected TargetWriter EmitIf(string guard, bool hasElse, TargetWriter wr) {
       TargetWriter guardWriter;
       var thn = EmitIf(out guardWriter, hasElse, wr);
@@ -421,6 +455,9 @@ namespace Microsoft.Dafny {
     protected abstract void EmitDatatypeValue(DatatypeValue dtv, string arguments, TargetWriter wr);
     protected abstract void GetSpecialFieldInfo(SpecialField.ID id, object idParam, out string compiledName, out string preString, out string postString);
     protected abstract TargetWriter EmitMemberSelect(MemberDecl member, bool isLValue, Type expectedType, TargetWriter wr);
+    protected virtual TargetWriter EmitMemberSelect(MemberDecl member, bool isLValue, Type expectedType, TargetWriter wr, bool MemberSelectObjIsTrait) {
+      return EmitMemberSelect(member, isLValue, expectedType, wr);
+    }
     protected void EmitArraySelect(string index, Type elmtType, TargetWriter wr) {
       EmitArraySelect(new List<string>() { index }, elmtType, wr);
     }
@@ -511,12 +548,18 @@ namespace Microsoft.Dafny {
     protected abstract void EmitSingleValueGenerator(Expression e, bool inLetExprBody, string type, TargetWriter wr);
     protected virtual void FinishModule() { }
 
+    protected virtual void OrganizeModules(Program program, out List<ModuleDefinition> modules){
+      modules = program.CompileModules;
+    }
+    
     public void Compile(Program program, TargetWriter wrx) {
       Contract.Requires(program != null);
 
       EmitHeader(program, wrx);
       EmitBuiltInDecls(program.BuiltIns, wrx);
-
+      var temp = new List<ModuleDefinition>();
+      OrganizeModules(program, out temp);
+      program.CompileModules = temp;
       foreach (ModuleDefinition m in program.CompileModules) {
         if (m.IsAbstract) {
           // the purpose of an abstract module is to skip compilation
@@ -779,14 +822,29 @@ namespace Microsoft.Dafny {
       return false;
     }
 
+    void OrderedBySCC(List<MemberDecl> decls, ClassDecl c) {
+      List<ConstantField> consts = new List<ConstantField>();
+      foreach (var decl in decls) {
+        if (decl is ConstantField) {
+          consts.Add((ConstantField)decl);
+        }
+      }
+      consts.Sort((a, b) => (c.Module.CallGraph.GetSCCRepresentativeId(b) - c.Module.CallGraph.GetSCCRepresentativeId(a)));
+      foreach (var con in consts) {
+        decls.Remove(con);
+      }
+      decls.AddRange(consts);
+    }
+    
     void CompileClassMembers(ClassDecl c, IClassWriter classWriter) {
       Contract.Requires(c != null);
       Contract.Requires(classWriter != null);
 
       var errorWr = classWriter.ErrorWriter();
-
       CheckHandleWellformed(c, errorWr);
       CheckForCapitalizationConflicts(c.Members, c.InheritedMembers);
+      OrderedBySCC(c.InheritedMembers, c);
+      OrderedBySCC(c.Members, c);
       foreach (var member in c.InheritedMembers) {
         Contract.Assert(!member.IsStatic);  // only instance members should ever be added to .InheritedMembers
         if (member.IsGhost) {
@@ -794,7 +852,6 @@ namespace Microsoft.Dafny {
         } else if (member is ConstantField && SupportsProperties) {
           if (NeedsWrappersForInheritedFields) {
             var cf = (ConstantField)member;
-
             if (cf.Rhs == null) {
               Contract.Assert(!cf.IsStatic);  // as checked above, only instance members can be inherited
               classWriter.DeclareField("_" + cf.CompileName, false, false, cf.Type, cf.tok, DefaultValue(cf.Type, errorWr, cf.tok, true));
@@ -830,6 +887,34 @@ namespace Microsoft.Dafny {
               var sw = EmitAssignmentRhs(wSet);
               EmitSetterParameter(sw);
             }
+          } else {
+            var f = (Field) member;
+            if (!FieldsInTraits && f is ConstantField cf && cf.Rhs != null) {
+              var w = new TargetWriter();
+              TrExpr(cf.Rhs, w, false);
+              var rhs = w.ToString();
+              classWriter.DeclareField(f.CompileName, false, true, f.Type, f.tok, rhs);
+            } else {
+              classWriter.DeclareField(f.CompileName, false, false, f.Type, f.tok, DefaultValue(f.Type, errorWr, f.tok, true));
+            }
+
+            if (!FieldsInTraits) { // Create getters and setters for "traits" in languages that don't allow for non-final field declarations.
+              TargetWriter wSet;
+              var wGet = classWriter.CreateGetterSetter(IdName(f), f.Type, f.tok, false, true, member, out wSet);
+              {
+                var sw = EmitReturnExpr(wGet);
+                // get { return this.{0}; }
+                EmitThis(sw);
+                sw.Write(".{0}", f.CompileName);
+              }
+              {
+                // set { this.{0} = value; }
+                EmitThis(wSet);
+                wSet.Write(".{0}", f.CompileName);
+                var sw = EmitAssignmentRhs(wSet); 
+                EmitSetterParameter(sw);
+              }
+            }
           }
         } else if (member is Function) {
           var f = (Function)member;
@@ -843,6 +928,8 @@ namespace Microsoft.Dafny {
           Contract.Assert(false);  // unexpected member
         }
       }
+
+      List<TypeParameter> l = new List<TypeParameter>();
       foreach (MemberDecl member in c.Members) {
         if (member is Field) {
           var f = (Field)member;
@@ -895,12 +982,21 @@ namespace Microsoft.Dafny {
               } else {
                 rhs = null;
               }
-              classWriter.DeclareField(IdName(f), f.IsStatic, true, f.Type, f.tok, rhs);
+              if (!(c is TraitDecl && !FieldsInTraits) || cf.IsStatic) {
+                classWriter.DeclareField(IdName(f), f.IsStatic, true, f.Type, f.tok, rhs);
+              } else { // Constant fields in traits (Java interface) should be get methods.
+                classWriter.CreateGetter(IdName(cf), cf.Type, cf.tok, false, false, cf);
+              }
             }
           } else if (c is TraitDecl && NeedsWrappersForInheritedFields) {
             TargetWriter wSet;
             var wGet = classWriter.CreateGetterSetter(IdName(f), f.Type, f.tok, f.IsStatic, false, member, out wSet);
             Contract.Assert(wSet == null && wGet == null);  // since the previous line specified no body
+          } else if (c is TraitDecl && !FieldsInTraits && !f.IsStatic) {
+            TargetWriter wSet;
+            classWriter.CreateGetterSetter(IdName(f), f.Type, f.tok, false, false, member, out wSet);
+          } else if (c is ClassDecl && f.Type.IsTypeParameter) {
+            EmitTypeParams(classWriter, l, f, errorWr);
           } else {
             classWriter.DeclareField(IdName(f), f.IsStatic, false, f.Type, f.tok, DefaultValue(f.Type, errorWr, f.tok, true));
           }
@@ -954,6 +1050,17 @@ namespace Microsoft.Dafny {
           Contract.Assert(false); throw new cce.UnreachableException();  // unexpected member
         }
       }
+      if (l.Count > 0){
+        CreateDefaultConstructor(c, classWriter, l);
+      }
+    }
+
+    protected virtual void CreateDefaultConstructor(ClassDecl c, IClassWriter cw, List<TypeParameter> l){
+    }
+
+    protected virtual void EmitTypeParams(IClassWriter classWriter, List<TypeParameter> l, Field f, TextWriter errorWr){
+      classWriter.DeclareField(IdName(f), f.IsStatic, false, f.Type, f.tok,
+        DefaultValue(f.Type, errorWr, f.tok, true));
     }
 
     void CheckHandleWellformed(ClassDecl cl, TextWriter/*?*/ errorWr) {
@@ -1080,6 +1187,9 @@ namespace Microsoft.Dafny {
             DeclareLocalOutVar(IdName(p), p.Type, p.tok, DefaultValue(p.Type, w, p.tok, true), useReturnStyleOuts, w);
           }
         }
+
+        w = EmitMethodReturns(m, w);
+
         if (m.Body == null) {
           Error(m.tok, "Method {0} has no body", w, m.FullName);
         } else {
@@ -1268,7 +1378,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    protected string TypeNameArrayBrackets(int dims) {
+    protected virtual string TypeNameArrayBrackets(int dims){
       Contract.Requires(0 <= dims);
       var name = "[";
       for (int i = 1; i < dims; i++) {
@@ -1644,7 +1754,8 @@ namespace Microsoft.Dafny {
           var lvalue = CreateLvalue(s.Lhs, wr);
           var wStmts = wr.ForkSection();
           TargetWriter wLhs, wRhs;
-          EmitAssignment(out wLhs, s.Lhs.Type, out wRhs, TypeOfRhs(s.Rhs), wr);
+          var MemberSelectObjIsTrait = s.Lhs is MemberSelectExpr && ((MemberSelectExpr)s.Lhs).Obj.Type.IsTraitType && !(((MemberSelectExpr)s.Lhs).Obj is ThisExpr);
+          EmitAssignment(out wLhs, s.Lhs.Type, out wRhs, TypeOfRhs(s.Rhs), wr, MemberSelectObjIsTrait);
           wLhs.Write(lvalue);
           TrRhs(s.Rhs, wRhs, wStmts);
         }
@@ -1841,7 +1952,7 @@ namespace Microsoft.Dafny {
             var lhs = (SeqSelectExpr) s0.Lhs;
             L = 3;
             // note, we might as well do the BigInteger-to-int cast for array indices here, before putting things into the Tuple rather than when they are extracted from the Tuple
-            tupleTypeArgs = TypeName(lhs.Seq.Type, wr, lhs.tok) + ",int";
+            tupleTypeArgs = TypeName(lhs.Seq.Type, wr, lhs.tok) + IntSelect;
             tupleTypeArgsList = new List<Type> { lhs.Seq.Type, null };
           } else {
             var lhs = (MultiSelectExpr) s0.Lhs;
@@ -1854,7 +1965,7 @@ namespace Microsoft.Dafny {
             tupleTypeArgsList = new List<Type> { lhs.Array.Type };
             for (int i = 0; i < lhs.Indices.Count; i++) {
               // note, we might as well do the BigInteger-to-int cast for array indices here, before putting things into the Tuple rather than when they are extracted from the Tuple
-              tupleTypeArgs += ",int";
+              tupleTypeArgs += IntSelect;
               tupleTypeArgsList.Add(null);
             }
 
@@ -1863,38 +1974,13 @@ namespace Microsoft.Dafny {
           tupleTypeArgsList.Add(rhs.Type);
 
           // declare and construct "ingredients"
-          using (var wrVarInit = DeclareLocalVar(ingredients, null, null, wr)) {
-            EmitEmptyTupleList(tupleTypeArgs, wrVarInit);
-          }
-
-          var wrOuter = wr;
-          wr = CompileGuardedLoops(s.BoundVars, s.Bounds, s.Range, wr);
-
-          using (var wrTuple = EmitAddTupleToList(ingredients, tupleTypeArgs, wr)) {
-            if (s0.Lhs is MemberSelectExpr) {
-              var lhs = (MemberSelectExpr) s0.Lhs;
-              TrExpr(lhs.Obj, wrTuple, false);
-            } else if (s0.Lhs is SeqSelectExpr) {
-              var lhs = (SeqSelectExpr) s0.Lhs;
-              TrExpr(lhs.Seq, wrTuple, false);
-              wrTuple.Write(", ");
-              EmitExprAsInt(lhs.E0, false, wrTuple);
-            } else {
-              var lhs = (MultiSelectExpr) s0.Lhs;
-              TrExpr(lhs.Array, wrTuple, false);
-              for (int i = 0; i < lhs.Indices.Count; i++) {
-                wrTuple.Write(", ");
-                EmitExprAsInt(lhs.Indices[i], false, wrTuple);
-              }
-            }
-            wrTuple.Write(", ");
-            TrExpr(rhs, wrTuple, false);
-          }
+          var wrOuter = EmitIngredients(wr, ingredients, L, tupleTypeArgs, s, s0, rhs);
 
           //   foreach (L-Tuple l in ingredients) {
           //     LHS[ l0, l1, l2, ..., l(L-2) ] = l(L-1);
           //   }
           TargetWriter collWriter;
+          TargetTupleSize = L;
           wr = CreateForeachLoop(tup, null, out collWriter, wrOuter);
           collWriter.Write(ingredients);
           {
@@ -1904,42 +1990,11 @@ namespace Microsoft.Dafny {
             tup = wTup.ToString();
           }
           if (s0.Lhs is MemberSelectExpr) {
-            var lhs = (MemberSelectExpr) s0.Lhs;
-            var wCoerced = EmitCoercionIfNecessary(from:null, to:tupleTypeArgsList[0], tok:s0.Tok, wr:wr);
-            EmitTupleSelect(tup, 0, wCoerced);
-            wr.Write(".{0} = ", IdMemberName(lhs));
-            wCoerced = EmitCoercionIfNecessary(from:null, to:tupleTypeArgsList[1], tok:s0.Tok, wr:wr);
-            EmitTupleSelect(tup, 1, wCoerced);
-            EndStmt(wr);
+            EmitMemberSelect(s0, tupleTypeArgsList,wr,tup);
           } else if (s0.Lhs is SeqSelectExpr) {
-            var lhs = (SeqSelectExpr) s0.Lhs;
-            TargetWriter wColl, wIndex, wValue;
-            EmitIndexCollectionUpdate(out wColl, out wIndex, out wValue, wr, nativeIndex: true);
-
-            var wCoerce = EmitCoercionIfNecessary(from:null, to:lhs.Seq.Type, tok:s0.Tok, wr:wColl);
-            EmitTupleSelect(tup, 0, wCoerce);
-
-            var wCast = EmitCoercionToNativeInt(wIndex);
-            EmitTupleSelect(tup, 1, wCast);
-
-            EmitTupleSelect(tup, 2, wValue);
-            EndStmt(wr);
+            EmitSeqSelect(s0, tupleTypeArgsList, wr, tup);
           } else {
-            var lhs = (MultiSelectExpr) s0.Lhs;
-            var wArray = new TargetWriter(wr.IndentLevel, true);
-            var wCoerced = EmitCoercionIfNecessary(from:null, to:tupleTypeArgsList[0], tok:s0.Tok, wr:wArray);
-            EmitTupleSelect(tup, 0, wCoerced);
-            var array = wArray.ToString();
-            var indices = new List<string>();
-            for (int i = 0; i < lhs.Indices.Count; i++) {
-              var wIndex = new TargetWriter();
-              EmitTupleSelect(tup, i + 1, wIndex);
-              indices.Add(wIndex.ToString());
-            }
-            EmitArraySelectAsLvalue(array, indices, tupleTypeArgsList[L - 1], wr);
-            wr.Write(" = ");
-            EmitTupleSelect(tup, L - 1, wr);
-            EndStmt(wr);
+            EmitMultiSelect(s0, tupleTypeArgsList, wr, tup, L);
           }
         }
       } else if (stmt is MatchStmt) {
@@ -2004,7 +2059,83 @@ namespace Microsoft.Dafny {
       }
     }
 
-    private TargetWriter CompileGuardedLoops(List<BoundVar> bvs, List<ComprehensionExpr.BoundedPool> bounds, Expression range, TargetWriter wr) {
+    protected virtual TargetWriter EmitIngredients(TargetWriter wr, string ingredients, int L, string tupleTypeArgs, ForallStmt s, AssignStmt s0, Expression rhs){
+      
+      using (var wrVarInit = DeclareLocalVar(ingredients, null, null, wr)){
+        EmitEmptyTupleList(tupleTypeArgs, wrVarInit);
+      }
+
+      var wrOuter = wr;
+      wr = CompileGuardedLoops(s.BoundVars, s.Bounds, s.Range, wr);
+
+      using (var wrTuple = EmitAddTupleToList(ingredients, tupleTypeArgs, wr)){
+        if (s0.Lhs is MemberSelectExpr){
+          var lhs = (MemberSelectExpr) s0.Lhs;
+          TrExpr(lhs.Obj, wrTuple, false);
+        }
+        else if (s0.Lhs is SeqSelectExpr){
+          var lhs = (SeqSelectExpr) s0.Lhs;
+          TrExpr(lhs.Seq, wrTuple, false);
+          wrTuple.Write(", ");
+          EmitExprAsInt(lhs.E0, false, wrTuple);
+        }
+        else{
+          var lhs = (MultiSelectExpr) s0.Lhs;
+          TrExpr(lhs.Array, wrTuple, false);
+          for (int i = 0; i < lhs.Indices.Count; i++){
+            wrTuple.Write(", ");
+            EmitExprAsInt(lhs.Indices[i], false, wrTuple);
+          }
+        }
+
+        wrTuple.Write(", ");
+        TrExpr(rhs, wrTuple, false);
+      }
+
+      return wrOuter;
+    }
+    
+    protected virtual void EmitMemberSelect(AssignStmt s0, List<Type> tupleTypeArgsList, TargetWriter wr, string tup){
+      var lhs = (MemberSelectExpr) s0.Lhs;
+      var wCoerced = EmitCoercionIfNecessary(from: null, to: tupleTypeArgsList[0], tok: s0.Tok, wr: wr);
+      EmitTupleSelect(tup, 0, wCoerced);
+      wr.Write(".{0} = ", IdMemberName(lhs));
+      wCoerced = EmitCoercionIfNecessary(from: null, to: tupleTypeArgsList[1], tok: s0.Tok, wr: wr);
+      EmitTupleSelect(tup, 1, wCoerced);
+      EndStmt(wr);
+    }
+
+    protected virtual void EmitSeqSelect(AssignStmt s0, List<Type> tupleTypeArgsList, TargetWriter wr, string tup){
+      var lhs = (SeqSelectExpr) s0.Lhs;
+      TargetWriter wColl, wIndex, wValue;
+      EmitIndexCollectionUpdate(out wColl, out wIndex, out wValue, wr, nativeIndex: true);
+      var wCoerce = EmitCoercionIfNecessary(from: null, to: lhs.Seq.Type, tok: s0.Tok, wr: wColl);
+      EmitTupleSelect(tup, 0, wCoerce);
+      var wCast = EmitCoercionToNativeInt(wIndex);
+      EmitTupleSelect(tup, 1, wCast);
+      EmitTupleSelect(tup, 2, wValue);
+      EndStmt(wr);
+    }
+
+    protected virtual void EmitMultiSelect(AssignStmt s0, List<Type> tupleTypeArgsList, TargetWriter wr, string tup, int L){
+      var lhs = (MultiSelectExpr) s0.Lhs;
+      var wArray = new TargetWriter(wr.IndentLevel, true);
+      var wCoerced = EmitCoercionIfNecessary(from: null, to: tupleTypeArgsList[0], tok: s0.Tok, wr: wArray);
+      EmitTupleSelect(tup, 0, wCoerced);
+      var array = wArray.ToString();
+      var indices = new List<string>();
+      for (int i = 0; i < lhs.Indices.Count; i++){
+        var wIndex = new TargetWriter();
+        EmitTupleSelect(tup, i + 1, wIndex);
+        indices.Add(wIndex.ToString());
+      }
+      EmitArraySelectAsLvalue(array, indices, tupleTypeArgsList[L - 1], wr);
+      wr.Write(" = ");
+      EmitTupleSelect(tup, L - 1, wr);
+      EndStmt(wr);
+    }
+    
+    protected TargetWriter CompileGuardedLoops(List<BoundVar> bvs, List<ComprehensionExpr.BoundedPool> bounds, Expression range, TargetWriter wr) {
       var n = bvs.Count;
       Contract.Assert(bounds.Count == n);
       for (int i = 0; i < n; i++) {
@@ -2303,7 +2434,7 @@ namespace Microsoft.Dafny {
         Contract.Assert((bound.Virtues & ComprehensionExpr.BoundedPool.PoolVirtues.Enumerable) != 0);  // if we have got this far, it must be an enumerable bound
         var bv = lhss[i];
         if (needIterLimit) {
-          DeclareLocalVar(string.Format("{0}_{1}", iterLimit, i), null, null, false, iterLimit, wr);
+          DeclareLocalVar(string.Format("{0}_{1}", iterLimit, i), null, null, false, iterLimit, wr, Type.Int);
         }
         var tmpVar = idGenerator.FreshId("_assign_such_that_");
         TargetWriter collectionWriter;
@@ -2322,8 +2453,8 @@ namespace Microsoft.Dafny {
       var wBody = EmitIf(out guardWriter, false, wr);
       TrExpr(constraint, guardWriter, inLetExprBody);
       EmitBreak(doneLabel, wBody);
-
-      EmitAbsurd(string.Format("assign-such-that search produced no value (line {0})", debuginfoLine), wrOuter);
+      // Java compiler throws unreachable error when absurd statement is written after unbounded for-loop, so we don't write it then.
+      EmitAbsurd(string.Format("assign-such-that search produced no value (line {0})", debuginfoLine), wrOuter, needIterLimit);
     }
 
     string CreateLvalue(Expression lhs, TargetWriter wr) {
@@ -2339,7 +2470,8 @@ namespace Microsoft.Dafny {
         Contract.Assert(!ll.Member.IsInstanceIndependentConstant);  // instance-independent const's don't have assignment statements
         var obj = StabilizeExpr(ll.Obj, "_obj", wr);
         var sw = new TargetWriter();
-        var w = EmitMemberSelect(ll.Member, true, lhs.Type, sw);
+        var MemberSelectObjIsTrait = ll.Obj.Type.IsTraitType && !(ll.Obj is ThisExpr);
+        var w = EmitMemberSelect(ll.Member, true, lhs.Type, sw, MemberSelectObjIsTrait);
         w.Write(obj);
         return sw.ToString();
       } else if (lhs is SeqSelectExpr) {
@@ -2448,7 +2580,7 @@ namespace Microsoft.Dafny {
         TrExpr(eRhs.Expr, wr, false);
       } else {
         var nw = idGenerator.FreshId("_nw");
-        var wRhs = DeclareLocalVar(nw, null, null, wStmts);
+        var wRhs = DeclareLocalVar(nw, null, null, wStmts, tRhs.Type);
         TrTypeRhs(tRhs, wRhs);
 
         // Proceed with initialization
@@ -2462,7 +2594,7 @@ namespace Microsoft.Dafny {
         } else if (tRhs.ElementInit != null) {
           // Compute the array-initializing function once and for all (as required by the language definition)
           string f = idGenerator.FreshId("_arrayinit");
-          DeclareLocalVar(f, null, null, tRhs.ElementInit, false, wStmts);
+          DeclareLocalVar(f, null, null, tRhs.ElementInit, false, wStmts, tRhs.ElementInit.Type);
           // Build a loop nest that will call the initializer for all indices
           var indices = Translator.Map(Enumerable.Range(0, tRhs.ArrayDimensions.Count), ii => idGenerator.FreshId("_arrayinit_" + ii));
           var w = wStmts;
@@ -2472,7 +2604,7 @@ namespace Microsoft.Dafny {
             var bound = string.Format("{0}.{1}", nw, len);
             w = CreateForLoop(indices[d], bound, w);
           }
-          var eltRhs = string.Format("{0}({1})", f, Util.Comma(indices, ArrayIndexToInt));
+          var eltRhs = string.Format("{0}{2}({1})", f, Util.Comma(indices, ArrayIndexToInt), LambdaExecute);
           var wArray = EmitArrayUpdate(indices, eltRhs, tRhs.ElementInit.Type, w);
           wArray.Write(nw);
           EndStmt(w);
@@ -2502,6 +2634,10 @@ namespace Microsoft.Dafny {
       }
     }
 
+    protected virtual bool ReturnStyleHelper(string returnStyleOutCollector) {
+      return false;
+    }
+
     void TrCallStmt(CallStmt s, string receiverReplacement, TargetWriter wr) {
       Contract.Requires(s != null);
       Contract.Assert(s.Method != null);  // follows from the fact that stmt has been successfully resolved
@@ -2524,7 +2660,7 @@ namespace Microsoft.Dafny {
           if (!p.IsGhost) {
             string inTmp = idGenerator.FreshId("_in");
             inTmps.Add(inTmp);
-            DeclareLocalVar(inTmp, null, null, s.Args[i], false, wr);
+            DeclareLocalVar(inTmp, null, null, s.Args[i], false, wr, p.Type);
           }
         }
         // Now, assign to the formals
@@ -2564,6 +2700,7 @@ namespace Microsoft.Dafny {
           }
         }
         var outTmps = new List<string>();  // contains a name for each non-ghost formal out-parameter
+        var outTypes = new List<Type>();  // contains a type for each non-ghost formal out-parameter
         for (int i = 0; i < s.Method.Outs.Count; i++) {
           Formal p = s.Method.Outs[i];
           if (!p.IsGhost) {
@@ -2616,6 +2753,7 @@ namespace Microsoft.Dafny {
             if (s.Method.IsExtern(out _, out _)) {
               type = NativeForm(type);
             }
+            outTypes.Add(type);
             DeclareLocalVar(target, type, s.Lhs[i].tok, false, null, wr);
           }
         }
@@ -2624,7 +2762,7 @@ namespace Microsoft.Dafny {
         bool returnStyleOuts = UseReturnStyleOuts(s.Method, outTmps.Count);
         var returnStyleOutCollector = outTmps.Count > 0 && returnStyleOuts && !SupportsMultipleReturns ? idGenerator.FreshId("_outcollector") : null;
         if (returnStyleOutCollector != null) {
-          DeclareOutCollector(returnStyleOutCollector, wr);
+          DeclareSpecificOutCollector(returnStyleOutCollector, wr, outTmps.Count, outTypes, s.Method);
         } else if (outTmps.Count > 0 && returnStyleOuts && SupportsMultipleReturns) {
           wr.Write("{0} = ", Util.Comma(outTmps));
         }
@@ -2644,15 +2782,11 @@ namespace Microsoft.Dafny {
           }
         }
         List<Type> typeArgs;
-        if (s.Method.TypeArgs.Count != 0) {
-          var typeSubst = s.MethodSelect.TypeArgumentSubstitutions();
-          typeArgs = s.Method.TypeArgs.ConvertAll(ta => typeSubst[ta]);
-        } else {
-          typeArgs = new List<Type>();
-        }
+        var typeSubst = s.MethodSelect.TypeArgumentSubstitutions();
+        typeArgs = s.Method.TypeArgs.ConvertAll(ta => typeSubst[ta]);
         EmitActualTypeArgs(typeArgs, s.Tok, wr);
         wr.Write("(");
-        var nRTDs = EmitRuntimeTypeDescriptorsActuals(typeArgs, s.Method.TypeArgs, s.Tok, false, wr);
+        var nRTDs = EmitRuntimeTypeDescriptorsActuals(typeArgs, s.Method.TypeArgs, s.Tok, ReturnStyleHelper(returnStyleOutCollector), wr);
         string sep = nRTDs == 0 ? "" : ", ";
         for (int i = 0; i < s.Method.Ins.Count; i++) {
           Formal p = s.Method.Ins[i];
@@ -2678,7 +2812,7 @@ namespace Microsoft.Dafny {
         wr.Write(')');
         EndStmt(wr);
         if (returnStyleOutCollector != null) {
-          EmitOutParameterSplits(returnStyleOutCollector, outTmps, wr);
+          EmitCastOutParameterSplits(returnStyleOutCollector, outTmps, wr, outTypes, s.Tok);
         }
 
         // assign to the actual LHSs
@@ -2724,7 +2858,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    void TrStmtList(List<Statement> stmts, TargetWriter writer) {
+    protected void TrStmtList(List<Statement> stmts, TargetWriter writer){
       Contract.Requires(cce.NonNullElements(stmts));
       Contract.Requires(writer != null);
       foreach (Statement ss in stmts) {
@@ -2810,6 +2944,12 @@ namespace Microsoft.Dafny {
       TrExpr(expr, wr, inLetExprBody);
       wr.Write(")");
     }
+    
+    protected virtual void TrBvExpr(Expression expr, TargetWriter wr, bool inLetExprBody){
+      Contract.Requires(expr != null);
+      Contract.Requires(wr != null);
+      TrParenExpr(expr, wr, inLetExprBody);
+    }
 
     /// <summary>
     /// Before calling TrExprList(exprs), the caller must have spilled the let variables declared in expressions in "exprs".
@@ -2833,6 +2973,8 @@ namespace Microsoft.Dafny {
       wr.Write(")");
     }
 
+    protected virtual void WriteCast(string s, TargetWriter wr) { }
+
     /// <summary>
     /// Before calling TrExpr(expr), the caller must have spilled the let variables declared in "expr".
     /// </summary>
@@ -2855,7 +2997,7 @@ namespace Microsoft.Dafny {
           // allow out parameters
           var name = string.Format("_pat_let_tv{0}", GetUniqueAstNumber(e));
           wr.Write(name);
-          DeclareLocalVar(name, null, null, false, IdName(e.Var), copyInstrWriters.Peek());
+          DeclareLocalVar(name, null, null, false, IdName(e.Var), copyInstrWriters.Peek(), e.Type);
         } else {
           wr.Write(IdName(e.Var));
         }
@@ -2877,12 +3019,13 @@ namespace Microsoft.Dafny {
 
       } else if (expr is MemberSelectExpr) {
         MemberSelectExpr e = (MemberSelectExpr)expr;
+        var MemberSelectObjIsTrait = e.Obj.Type.IsTraitType;
         SpecialField sf = e.Member as SpecialField;
         if (sf != null) {
           string compiledName, preStr, postStr;
           GetSpecialFieldInfo(sf.SpecialId, sf.IdParam, out compiledName, out preStr, out postStr);
           wr.Write(preStr);
-          var w = EmitMemberSelect(sf, false, expr.Type, wr);
+          var w = EmitMemberSelect(sf, false, expr.Type, wr, MemberSelectObjIsTrait);
           if (sf.IsStatic) {
             w.Write(TypeName_Companion(e.Obj.Type, wr, e.tok, sf));
           } else {
@@ -2890,7 +3033,7 @@ namespace Microsoft.Dafny {
           }
           wr.Write(postStr);
         } else {
-          var w = EmitMemberSelect(e.Member, false, expr.Type, wr);
+          var w = EmitMemberSelect(e.Member, false, expr.Type, wr, MemberSelectObjIsTrait);
           TrExpr(e.Obj, w, inLetExprBody);
         }
 
@@ -2919,6 +3062,7 @@ namespace Microsoft.Dafny {
         EmitMultiSetFormingExpr(e, inLetExprBody, wr);
       } else if (expr is MultiSelectExpr) {
         MultiSelectExpr e = (MultiSelectExpr)expr;
+        WriteCast(TypeName(e.Type.NormalizeExpand(), wr, e.tok), wr);
         var w = EmitArraySelect(e.Indices, e.Type, inLetExprBody, wr);
         TrParenExpr(e.Array, w, inLetExprBody);
 
@@ -3029,9 +3173,13 @@ namespace Microsoft.Dafny {
           wr.Write(postOpString);
         } else if (callString != null) {
           wr.Write(preOpString);
-          TrParenExpr(e0, wr, inLetExprBody);
+          TrBvExpr(e0, wr, inLetExprBody);
           wr.Write(".{0}(", callString);
-          TrExpr(e1, wr, inLetExprBody);
+          if (convertE1_to_int) {
+            EmitExprAsInt(e1, inLetExprBody, wr);
+          } else {
+            TrBvExpr(e1, wr, inLetExprBody);
+          }
           wr.Write(")");
           wr.Write(postOpString);
         } else if (staticCallString != null) {
@@ -3130,6 +3278,7 @@ namespace Microsoft.Dafny {
           }
         }
         // We end with applying the source expression to the delegate we just built
+        wr.Write(LambdaExecute);
         TrParenExpr(e.Source, wr, inLetExprBody);
 
       } else if (expr is QuantifierExpr) {
@@ -3179,9 +3328,7 @@ namespace Microsoft.Dafny {
         var collection_name = idGenerator.FreshId("_coll");
         var bwr = CreateIIFE0(e.Type.AsSetType, e.tok, wr);
         wr = bwr;
-        using (var wrVarInit = DeclareLocalVar(collection_name, null, null, wr)) {
-          EmitCollectionBuilder_New(e.Type.AsSetType, e.tok, wrVarInit);
-        }
+        EmitSetComprehension(wr, expr, collection_name);
         var n = e.BoundVars.Count;
         Contract.Assert(e.Bounds.Count == n);
         for (int i = 0; i < n; i++) {
@@ -3222,7 +3369,7 @@ namespace Microsoft.Dafny {
         var rantypeName = TypeName(e.Type.AsMapType.Range, wr, e.tok);
         var collection_name = idGenerator.FreshId("_coll");
         wr = CreateIIFE0(e.Type.AsMapType, e.tok, wr);
-        using (var wrVarInit = DeclareLocalVar(collection_name, null, null, wr)) {
+        using (var wrVarInit = DeclareLocalVar(collection_name, null, null, wr, e.Type.AsMapType)){
           EmitCollectionBuilder_New(e.Type.AsMapType, e.tok, wrVarInit);
         }
         var n = e.BoundVars.Count;
@@ -3302,6 +3449,13 @@ namespace Microsoft.Dafny {
       }
 
       su = new Translator.Substituter(null, sm, new Dictionary<TypeParameter, Type>());
+    }
+
+    protected virtual void EmitSetComprehension(TargetWriter wr, Expression expr, String collection_name){
+      var e = (SetComprehension) expr;
+        using (var wrVarInit = DeclareLocalVar(collection_name, null, null, wr)){
+          EmitCollectionBuilder_New(e.Type.AsSetType, e.tok, wrVarInit);
+        }
     }
 
     protected bool IsHandleComparison(Bpl.IToken tok, Expression e0, Expression e1, TextWriter errorWr) {
