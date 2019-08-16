@@ -28,4 +28,4 @@ script:
   - cd dafny/Test
   # The /optimize flag does not work on mono
   - find . -name "*.dfy" -exec sed -i 's!/optimize !!g' {} +
-  - lit -v .
+  - lit --time-tests -v .
