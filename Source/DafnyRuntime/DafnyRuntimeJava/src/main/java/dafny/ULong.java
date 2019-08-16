@@ -5,7 +5,7 @@ import java.math.BigInteger;
 // Dafny bytes are default unsigned, whereas they are signed in Java, and there is no unsigned equivalent
 public class ULong {
     private long inner;
-    public final static long MAXVALUE = 0xffffffffffffffffl;
+    public final static long MAXVALUE = 0xffffffffffffffffl; // 18446744073709551615
     public final static BigInteger MAXBI = new BigInteger("18446744073709551615");
 
     public ULong(byte by) {

@@ -937,7 +937,12 @@ namespace Microsoft.Dafny{
       }
     }
 
-    protected override TargetWriter EmitMemberSelect(MemberDecl member, bool isLValue, Type expectedType, TargetWriter wr) {
+    protected override TargetWriter EmitMemberSelect(MemberDecl member, bool isLValue, Type expectedType,
+      TargetWriter wr) {
+      return EmitMemberSelect(member, isLValue, expectedType, wr, false);
+    }
+
+    protected override TargetWriter EmitMemberSelect(MemberDecl member, bool isLValue, Type expectedType, TargetWriter wr, bool MemberSelectObjIsTrait) {
       var wSource = wr.Fork();
       if (isLValue && member is ConstantField) {
         wr.Write($".{member.CompileName}");
@@ -1842,8 +1847,11 @@ namespace Microsoft.Dafny{
       classWriter.DeclareField(IdName(f), f.IsStatic, false, f.Type, f.tok, DefaultValue(f.Type, errorWr, f.tok, true));
     }
 
-    protected override void EmitAssignment(out TargetWriter wLhs, Type /*?*/ lhsType, out TargetWriter wRhs,
-      Type /*?*/ rhsType, TargetWriter wr){
+    protected override void EmitAssignment(out TargetWriter wLhs, Type /*?*/ lhsType, out TargetWriter wRhs, Type /*?*/ rhsType, TargetWriter wr) {
+      EmitAssignment(out wLhs, lhsType, out wRhs, rhsType, wr, false);
+    }
+
+    protected override void EmitAssignment(out TargetWriter wLhs, Type /*?*/ lhsType, out TargetWriter wRhs, Type /*?*/ rhsType, TargetWriter wr, bool MemberSelectObjIsTrait){
       wLhs = wr.Fork();
       if (!MemberSelectObjIsTrait)
         wr.Write(" = ");

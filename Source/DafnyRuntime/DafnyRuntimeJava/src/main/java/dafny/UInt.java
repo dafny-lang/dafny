@@ -3,7 +3,7 @@ package dafny;
 // Dafny bytes are default unsigned, whereas they are signed in Java, and there is no unsigned equivalent
 public class UInt {
     private int inner;
-    public final static int MAXVALUE = 0xffffffff;
+    public final static int MAXVALUE = 0xffffffff; // 4294967295
     public UInt(byte by){
         //simply casting to an int will preserve the sign
         inner = Byte.toUnsignedInt(by);

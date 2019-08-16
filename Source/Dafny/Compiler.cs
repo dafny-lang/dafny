@@ -218,7 +218,6 @@ namespace Microsoft.Dafny {
     protected virtual bool NeedsCastFromTypeParameter { get => false; }
     protected virtual bool SupportsAmbiguousTypeDecl { get => true; }
     protected virtual bool FieldsInTraits { get => true; } // True if language's "trait" equivalent allows for non-final field declarations, false otherwise
-    protected bool MemberSelectObjIsTrait; // Example: if MemberSelect expression is T.x, this will be true if T is a trait, false otherwise
     protected virtual void AddTupleToSet(int i) { }
     public int TargetTupleSize = 0;
     /// The punctuation that comes at the end of a statement.  Note that
@@ -236,6 +235,10 @@ namespace Microsoft.Dafny {
 
     protected virtual TargetWriter DeclareLocalVar(string name, Type /*?*/ type, Bpl.IToken /*?*/ tok, TargetWriter wr, Type t){
       return DeclareLocalVar(name, type, tok, wr);
+    }
+
+    protected virtual void EmitAssignment(out TargetWriter wLhs, Type /*?*/ lhsType, out TargetWriter wRhs, Type /*?*/ rhsType, TargetWriter wr, bool MemberSelectObjIsTrait) {
+      EmitAssignment(out wLhs, lhsType, out wRhs, rhsType, wr);
     }
 
     protected virtual void EmitAssignment(out TargetWriter wLhs, Type/*?*/ lhsType, out TargetWriter wRhs, Type/*?*/ rhsType, TargetWriter wr) {
@@ -449,6 +452,9 @@ namespace Microsoft.Dafny {
     protected abstract void EmitDatatypeValue(DatatypeValue dtv, string arguments, TargetWriter wr);
     protected abstract void GetSpecialFieldInfo(SpecialField.ID id, object idParam, out string compiledName, out string preString, out string postString);
     protected abstract TargetWriter EmitMemberSelect(MemberDecl member, bool isLValue, Type expectedType, TargetWriter wr);
+    protected virtual TargetWriter EmitMemberSelect(MemberDecl member, bool isLValue, Type expectedType, TargetWriter wr, bool MemberSelectObjIsTrait) {
+      return EmitMemberSelect(member, isLValue, expectedType, wr);
+    }
     protected void EmitArraySelect(string index, Type elmtType, TargetWriter wr) {
       EmitArraySelect(new List<string>() { index }, elmtType, wr);
     }
@@ -956,7 +962,6 @@ namespace Microsoft.Dafny {
                   CompileReturnBody(cf.Rhs, wBody);
                 } else if (!cf.IsStatic) {
                   var sw = EmitReturnExpr(wBody);
-                  MemberSelectObjIsTrait = false;
                   var wThis = EmitMemberSelect(cf, true, f.Type, sw);
                   EmitThis(wThis);
                 } else {
@@ -1746,9 +1751,8 @@ namespace Microsoft.Dafny {
           var lvalue = CreateLvalue(s.Lhs, wr);
           var wStmts = wr.ForkSection();
           TargetWriter wLhs, wRhs;
-          MemberSelectObjIsTrait = s.Lhs is MemberSelectExpr && ((MemberSelectExpr)s.Lhs).Obj.Type.IsTraitType && !(((MemberSelectExpr)s.Lhs).Obj is ThisExpr);
-          EmitAssignment(out wLhs, s.Lhs.Type, out wRhs, TypeOfRhs(s.Rhs), wr);
-          MemberSelectObjIsTrait = false;
+          var MemberSelectObjIsTrait = s.Lhs is MemberSelectExpr && ((MemberSelectExpr)s.Lhs).Obj.Type.IsTraitType && !(((MemberSelectExpr)s.Lhs).Obj is ThisExpr);
+          EmitAssignment(out wLhs, s.Lhs.Type, out wRhs, TypeOfRhs(s.Rhs), wr, MemberSelectObjIsTrait);
           wLhs.Write(lvalue);
           TrRhs(s.Rhs, wRhs, wStmts);
         }
@@ -2463,9 +2467,8 @@ namespace Microsoft.Dafny {
         Contract.Assert(!ll.Member.IsInstanceIndependentConstant);  // instance-independent const's don't have assignment statements
         var obj = StabilizeExpr(ll.Obj, "_obj", wr);
         var sw = new TargetWriter();
-        MemberSelectObjIsTrait = ll.Obj.Type.IsTraitType && !(ll.Obj is ThisExpr);
-        var w = EmitMemberSelect(ll.Member, true, lhs.Type, sw);
-        MemberSelectObjIsTrait = false;
+        var MemberSelectObjIsTrait = ll.Obj.Type.IsTraitType && !(ll.Obj is ThisExpr);
+        var w = EmitMemberSelect(ll.Member, true, lhs.Type, sw, MemberSelectObjIsTrait);
         w.Write(obj);
         return sw.ToString();
       } else if (lhs is SeqSelectExpr) {
@@ -3013,14 +3016,13 @@ namespace Microsoft.Dafny {
 
       } else if (expr is MemberSelectExpr) {
         MemberSelectExpr e = (MemberSelectExpr)expr;
-        MemberSelectObjIsTrait = e.Obj.Type.IsTraitType;
+        var MemberSelectObjIsTrait = e.Obj.Type.IsTraitType;
         SpecialField sf = e.Member as SpecialField;
         if (sf != null) {
           string compiledName, preStr, postStr;
           GetSpecialFieldInfo(sf.SpecialId, sf.IdParam, out compiledName, out preStr, out postStr);
           wr.Write(preStr);
-          var w = EmitMemberSelect(sf, false, expr.Type, wr);
-          MemberSelectObjIsTrait = false;
+          var w = EmitMemberSelect(sf, false, expr.Type, wr, MemberSelectObjIsTrait);
           if (sf.IsStatic) {
             w.Write(TypeName_Companion(e.Obj.Type, wr, e.tok, sf));
           } else {
@@ -3028,8 +3030,7 @@ namespace Microsoft.Dafny {
           }
           wr.Write(postStr);
         } else {
-          var w = EmitMemberSelect(e.Member, false, expr.Type, wr);
-          MemberSelectObjIsTrait = false;
+          var w = EmitMemberSelect(e.Member, false, expr.Type, wr, MemberSelectObjIsTrait);
           TrExpr(e.Obj, w, inLetExprBody);
         }
 

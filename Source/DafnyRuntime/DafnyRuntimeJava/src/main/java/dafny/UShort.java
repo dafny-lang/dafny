@@ -2,7 +2,7 @@ package dafny;
 
 public class UShort {
     private int inner;
-    public final static int MAXVALUE = 0xffff;
+    public final static int MAXVALUE = 0xffff; // 65535
     public UShort(byte by){
         //simply casting to an int will preserve the sign
         inner = Byte.toUnsignedInt(by);
