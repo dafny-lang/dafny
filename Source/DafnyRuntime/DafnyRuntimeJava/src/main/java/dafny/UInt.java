@@ -59,14 +59,6 @@ public class UInt {
         return inner;
     }
 
-    public double doubleValue(){
-        return (double) Integer.toUnsignedLong(inner);
-    }
-
-    public float floatValue(){
-        return (float) Integer.toUnsignedLong(inner);
-    }
-
     public long longValue(){
         return Integer.toUnsignedLong(inner);
     }

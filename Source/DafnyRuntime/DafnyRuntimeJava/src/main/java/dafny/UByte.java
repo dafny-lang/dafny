@@ -55,14 +55,6 @@ public class UByte {
         return Integer.compareUnsigned(inner, other.inner);
     }
 
-    public double doubleValue(){
-        return (double) inner;
-    }
-
-    public float floatValue(){
-        return (float) inner;
-    }
-
     public int intValue(){
         return inner;
     }
