@@ -37,8 +37,6 @@ public class UIntTest {
         double d = 10;
         int i = 10;
         long l = 10;
-        assertEquals(f, tenU.floatValue());
-        assertEquals(d, tenU.doubleValue());
         assertEquals(i, tenU.value());
         assertEquals(l, tenU.longValue());
         assertEquals(Integer.hashCode(10), tenU.hashCode());

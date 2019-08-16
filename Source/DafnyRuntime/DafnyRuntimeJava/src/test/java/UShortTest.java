@@ -37,8 +37,6 @@ public class UShortTest {
         double d = 10;
         int i = 10;
         long l = 10;
-        assertEquals(f, tenU.floatValue());
-        assertEquals(d, tenU.doubleValue());
         assertEquals(i, tenU.intValue());
         assertEquals(l, tenU.longValue());
         assertEquals(Integer.hashCode(10), tenU.hashCode());

@@ -40,8 +40,6 @@ public class ByteTest {
         int i = 10;
         long l = 10;
         byte b2 = -1;
-        assertEquals(f, tenB.floatValue());
-        assertEquals(d, tenB.doubleValue());
         assertEquals(i, tenB.intValue());
         assertEquals(l, tenB.longValue());
         assertEquals(tenByte, tenB.byteValue());
