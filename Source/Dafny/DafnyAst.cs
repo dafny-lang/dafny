@@ -851,6 +851,17 @@ namespace Microsoft.Dafny {
           && !(udt.ResolvedClass is ArrowTypeDecl);
       }
     }
+    public bool IsTopLevelTypeWithMembers {
+      get {
+        return AsTopLevelTypeWithMembers != null;
+      }
+    }
+    public TopLevelDeclWithMembers/*?*/ AsTopLevelTypeWithMembers {
+      get {
+        var udt = NormalizeExpand() as UserDefinedType;
+        return udt != null && udt.ResolvedParam == null ? udt.ResolvedClass as TopLevelDeclWithMembers : null;
+      }
+    }
     /// <summary>
     /// Returns "true" if the type represents the "object?".
     /// </summary>
@@ -3803,8 +3814,19 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public class TraitDecl : ClassDecl
-  {
+  public abstract class TopLevelDeclWithMembers : TopLevelDecl {
+    public readonly List<MemberDecl> Members;
+    public TopLevelDeclWithMembers(IToken tok, string name, ModuleDefinition module, List<TypeParameter> typeArgs, List<MemberDecl> members, Attributes attributes)
+      : base(tok, name, module, typeArgs, attributes) {
+      Contract.Requires(tok != null);
+      Contract.Requires(name != null);
+      Contract.Requires(cce.NonNullElements(typeArgs));
+      Contract.Requires(cce.NonNullElements(members));
+      Members = members;
+    }
+  }
+
+  public class TraitDecl : ClassDecl {
     public override string WhatKind { get { return "trait"; } }
     public bool IsParent { set; get; }
     public TraitDecl(IToken tok, string name, ModuleDefinition module,
@@ -3812,10 +3834,9 @@ namespace Microsoft.Dafny {
       : base(tok, name, module, typeArgs, members, attributes, null) { }
   }
 
-  public class ClassDecl : TopLevelDecl {
+  public class ClassDecl : TopLevelDeclWithMembers {
     public override string WhatKind { get { return "class"; } }
     public override bool CanBeRevealed() { return true; }
-    public readonly List<MemberDecl> Members;
     public readonly List<MemberDecl> InheritedMembers = new List<MemberDecl>();  // these are instance fields and instance members defined with bodies in traits
     public readonly List<Type> TraitsTyp;  // these are the types that are parsed after the keyword 'extends'
     public readonly List<TraitDecl> TraitsObj = new List<TraitDecl>();  // populated during resolution
@@ -3830,13 +3851,12 @@ namespace Microsoft.Dafny {
 
     public ClassDecl(IToken tok, string name, ModuleDefinition module,
       List<TypeParameter> typeArgs, [Captured] List<MemberDecl> members, Attributes attributes, List<Type> traits)
-      : base(tok, name, module, typeArgs, attributes) {
+      : base(tok, name, module, typeArgs, members, attributes) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
       Contract.Requires(module != null);
       Contract.Requires(cce.NonNullElements(typeArgs));
       Contract.Requires(cce.NonNullElements(members));
-      Members = members;
       TraitsTyp = traits ?? new List<Type>();
       if (!IsDefaultClass && !(this is ArrowTypeDecl)) {
         NonNullTypeDecl = new NonNullTypeDecl(this);
@@ -3904,7 +3924,7 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public abstract class DatatypeDecl : TopLevelDecl, RevealableTypeDecl, ICallable
+  public abstract class DatatypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, ICallable
   {
     public override bool CanBeRevealed() { return true; }
     public readonly List<DatatypeCtor> Ctors;
@@ -3915,13 +3935,14 @@ namespace Microsoft.Dafny {
     }
 
     public DatatypeDecl(IToken tok, string name, ModuleDefinition module, List<TypeParameter> typeArgs,
-      [Captured] List<DatatypeCtor> ctors, Attributes attributes)
-      : base(tok, name, module, typeArgs, attributes) {
+      [Captured] List<DatatypeCtor> ctors, List<MemberDecl> members, Attributes attributes)
+      : base(tok, name, module, typeArgs, members, attributes) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
       Contract.Requires(module != null);
       Contract.Requires(cce.NonNullElements(typeArgs));
       Contract.Requires(cce.NonNullElements(ctors));
+      Contract.Requires(cce.NonNullElements(members));
       Contract.Requires(1 <= ctors.Count);
       Ctors = ctors;
       this.NewSelfSynonym();
@@ -3969,13 +3990,14 @@ namespace Microsoft.Dafny {
     public ES EqualitySupport = ES.NotYetComputed;
 
     public IndDatatypeDecl(IToken tok, string name, ModuleDefinition module, List<TypeParameter> typeArgs,
-      [Captured] List<DatatypeCtor> ctors, Attributes attributes)
-      : base(tok, name, module, typeArgs, ctors, attributes) {
+      [Captured] List<DatatypeCtor> ctors, List<MemberDecl> members, Attributes attributes)
+      : base(tok, name, module, typeArgs, ctors, members, attributes) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
       Contract.Requires(module != null);
       Contract.Requires(cce.NonNullElements(typeArgs));
       Contract.Requires(cce.NonNullElements(ctors));
+      Contract.Requires(cce.NonNullElements(members));
       Contract.Requires(1 <= ctors.Count);
     }
   }
@@ -3993,7 +4015,7 @@ namespace Microsoft.Dafny {
     }
 
     private TupleTypeDecl(ModuleDefinition systemModule, List<TypeParameter> typeArgs, Attributes attributes)
-      : base(Token.NoToken, BuiltIns.TupleTypeName(typeArgs.Count), systemModule, typeArgs, CreateConstructors(typeArgs), attributes) {
+      : base(Token.NoToken, BuiltIns.TupleTypeName(typeArgs.Count), systemModule, typeArgs, CreateConstructors(typeArgs), new List<MemberDecl>(), attributes) {
       Contract.Requires(systemModule != null);
       Contract.Requires(typeArgs != null);
       Dims = typeArgs.Count;
@@ -4042,13 +4064,14 @@ namespace Microsoft.Dafny {
     public CoDatatypeDecl SscRepr;  // filled in during resolution
 
     public CoDatatypeDecl(IToken tok, string name, ModuleDefinition module, List<TypeParameter> typeArgs,
-      [Captured] List<DatatypeCtor> ctors, Attributes attributes)
-      : base(tok, name, module, typeArgs, ctors, attributes) {
+      [Captured] List<DatatypeCtor> ctors, List<MemberDecl> members, Attributes attributes)
+      : base(tok, name, module, typeArgs, ctors, members, attributes) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
       Contract.Requires(module != null);
       Contract.Requires(cce.NonNullElements(typeArgs));
       Contract.Requires(cce.NonNullElements(ctors));
+      Contract.Requires(cce.NonNullElements(members));
       Contract.Requires(1 <= ctors.Count);
     }
   }
@@ -4813,7 +4836,7 @@ namespace Microsoft.Dafny {
     TopLevelDecl AsTopLevelDecl {get; }
   }
 
-  public class NewtypeDecl : TopLevelDecl, RevealableTypeDecl, RedirectingTypeDecl
+  public class NewtypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, RedirectingTypeDecl
   {
     public override string WhatKind { get { return "newtype"; } }
     public override bool CanBeRevealed() { return true; }
@@ -4823,21 +4846,23 @@ namespace Microsoft.Dafny {
     public readonly SubsetTypeDecl.WKind WitnessKind = SubsetTypeDecl.WKind.None;
     public readonly Expression/*?*/ Witness;  // non-null iff WitnessKind is Compiled or Ghost
     public NativeType NativeType; // non-null for fixed-size representations (otherwise, use BigIntegers for integers)
-    public NewtypeDecl(IToken tok, string name, ModuleDefinition module, Type baseType, Attributes attributes)
-      : base(tok, name, module, new List<TypeParameter>(), attributes) {
+    public NewtypeDecl(IToken tok, string name, ModuleDefinition module, Type baseType, List<MemberDecl> members, Attributes attributes)
+      : base(tok, name, module, new List<TypeParameter>(), members, attributes) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
       Contract.Requires(module != null);
       Contract.Requires(baseType != null);
+      Contract.Requires(members != null);
       BaseType = baseType;
     }
-    public NewtypeDecl(IToken tok, string name, ModuleDefinition module, BoundVar bv, Expression constraint, SubsetTypeDecl.WKind witnessKind, Expression witness, Attributes attributes)
-      : base(tok, name, module, new List<TypeParameter>(), attributes) {
+    public NewtypeDecl(IToken tok, string name, ModuleDefinition module, BoundVar bv, Expression constraint, SubsetTypeDecl.WKind witnessKind, Expression witness, List<MemberDecl> members, Attributes attributes)
+      : base(tok, name, module, new List<TypeParameter>(), members, attributes) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
       Contract.Requires(module != null);
       Contract.Requires(bv != null && bv.Type != null);
       Contract.Requires((witnessKind == SubsetTypeDecl.WKind.Compiled || witnessKind == SubsetTypeDecl.WKind.Ghost) == (witness != null));
+      Contract.Requires(members != null);
       BaseType = bv.Type;
       Var = bv;
       Constraint = constraint;
@@ -8424,23 +8449,23 @@ namespace Microsoft.Dafny {
     }
 
     /// <summary>
-    /// Constructs a resolved LiteralExpr representing the 'null' literal whose type is "cl"
-    /// parameterized by the type arguments of "cl" itself.
+    /// Constructs a resolved LiteralExpr representing the fictitious static-receiver literal whose type is
+    /// "cl" parameterized by the type arguments of "cl" itself.
     /// </summary>
-    public StaticReceiverExpr(IToken tok, ClassDecl cl, bool isImplicit)
+    public StaticReceiverExpr(IToken tok, TopLevelDeclWithMembers cl, bool isImplicit)
       : base(tok)
     {
       Contract.Requires(tok != null);
       Contract.Requires(cl != null);
       var typeArgs = cl.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp));
-      Type = new UserDefinedType(tok, cl.IsDefaultClass ? cl.Name : cl.Name + "?", cl, typeArgs);
+      Type = new UserDefinedType(tok, cl is ClassDecl klass && klass.IsDefaultClass ? cl.Name : cl.Name + "?", cl, typeArgs);
       UnresolvedType = Type;
       Implicit = isImplicit;
     }
 
     /// <summary>
-    /// Constructs a resolved LiteralExpr representing the 'null' literal whose type is "cl"
-    /// parameterized according to the type arguments to "t".  It is assumed that "t" denotes
+    /// Constructs a resolved LiteralExpr representing the fictitious literal whose type is
+    /// "cl" parameterized according to the type arguments to "t".  It is assumed that "t" denotes
     /// a class or trait that (possibly reflexively or transitively) extends "cl".
     /// Examples:
     /// * If "t" denotes "C(G)" and "cl" denotes "C", then the type of the StaticReceiverExpr
@@ -8452,16 +8477,18 @@ namespace Microsoft.Dafny {
     ///   a trait that in turn extends trait "W(g(Y))".  If "t" denotes type "C(G)" and "cl" denotes "W",
     ///   then type of the StaticReceiverExpr will be "T(g(f(G)))".
     /// </summary>
-    public StaticReceiverExpr(IToken tok, UserDefinedType t, ClassDecl cl, bool isImplicit)
+    public StaticReceiverExpr(IToken tok, UserDefinedType t, TopLevelDeclWithMembers cl, bool isImplicit)
       : base(tok) {
       Contract.Requires(tok != null);
       Contract.Requires(t.ResolvedClass != null);
       Contract.Requires(cl != null);
       if (t.ResolvedClass != cl) {
-        var orig = (ClassDecl)t.ResolvedClass;
-        Contract.Assert(orig.TraitsObj.Contains(cl));  // Dafny currently supports only one level of inheritance from traits
-        Contract.Assert(orig.TypeArgs.Count == 0);  // Dafny currently only allows type-parameter-less classes to extend traits
-        Contract.Assert(cl.TypeArgs.Count == 0);  // Dafny currently does not support type parameters for traits
+        if (t.ResolvedClass is ClassDecl) {
+          var orig = (ClassDecl)t.ResolvedClass;
+          Contract.Assert(orig.TraitsObj.Contains(cl));  // Dafny currently supports only one level of inheritance from traits
+          Contract.Assert(orig.TypeArgs.Count == 0);  // Dafny currently only allows type-parameter-less classes to extend traits
+          Contract.Assert(cl.TypeArgs.Count == 0);  // Dafny currently does not support type parameters for traits
+        }
         t = new UserDefinedType(tok, cl.Name, cl, new List<Type>());
       }
       Type = t;

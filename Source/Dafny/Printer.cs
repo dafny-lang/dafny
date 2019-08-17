@@ -250,6 +250,12 @@ namespace Microsoft.Dafny {
               wr.WriteLine();
             }
           }
+          if (dd.Members.Count != 0) {
+            wr.WriteLine("{");
+            PrintMembers(dd.Members, indent + IndentAmount, fileBeingPrinted);
+            Indent(indent);
+            wr.WriteLine("}");
+          }
         } else if (d is SubsetTypeDecl) {
           var dd = (SubsetTypeDecl)d;
           if (i++ != 0) { wr.WriteLine(); }
@@ -288,8 +294,9 @@ namespace Microsoft.Dafny {
           PrintType(dd.Rhs);
           wr.WriteLine();
         } else if (d is DatatypeDecl) {
+          var dd = (DatatypeDecl)d;
           if (i++ != 0) { wr.WriteLine(); }
-          PrintDatatype((DatatypeDecl)d, indent);
+          PrintDatatype(dd, indent, fileBeingPrinted);
         } else if (d is IteratorDecl) {
           var iter = (IteratorDecl)d;
           if (i++ != 0) { wr.WriteLine(); }
@@ -703,7 +710,7 @@ namespace Microsoft.Dafny {
       wr.Write(Type.TypeArgsToString(typeArgs));
     }
 
-    public void PrintDatatype(DatatypeDecl dt, int indent) {
+    public void PrintDatatype(DatatypeDecl dt, int indent, string fileBeingPrinted) {
       Contract.Requires(dt != null);
       Indent(indent);
       PrintClassMethodHelper(dt is IndDatatypeDecl ? "datatype" : "codatatype", dt.Attributes, dt.Name, dt.TypeArgs);
@@ -717,7 +724,14 @@ namespace Microsoft.Dafny {
         }
         sep = " |";
       }
-      wr.WriteLine();
+      if (dt.Members.Count == 0) {
+        wr.WriteLine();
+      } else {
+        wr.WriteLine(" {");
+        PrintMembers(dt.Members, indent + IndentAmount, fileBeingPrinted);
+        Indent(indent);
+        wr.WriteLine("}");
+      }
     }
 
     /// <summary>

@@ -215,12 +215,13 @@ namespace Microsoft.Dafny
       return wIter;
     }
 
-    protected override void DeclareDatatype(DatatypeDecl dt, TargetWriter wr) {
-      CompileDatatypeBase(dt, wr);
+    protected override IClassWriter/*?*/ DeclareDatatype(DatatypeDecl dt, TargetWriter wr) {
+      var w = CompileDatatypeBase(dt, wr);
       CompileDatatypeConstructors(dt, wr);
+      return w;
     }
 
-    void CompileDatatypeBase(DatatypeDecl dt, TargetWriter wr) {
+    IClassWriter CompileDatatypeBase(DatatypeDecl dt, TargetWriter wr) {
       Contract.Requires(dt != null);
       Contract.Requires(wr != null);
 
@@ -236,7 +237,7 @@ namespace Microsoft.Dafny
       //     }
       //   }
       //   public static Dt<T> _DafnyDefaultValue() { return Default; }
-      //   public abstract Dt<T> Get();  // for co-datatypes
+      //   public abstract Dt<T> _Get();  // for co-datatypes
       //
       //   public static create_Ctor0(field0, field1, ...) {  // for record types: create
       //     return new Dt_Ctor0(field0, field1, ...);        // for record types: new Dt
@@ -248,7 +249,7 @@ namespace Microsoft.Dafny
       //
       //   public T0 dtor_Dtor0 { get {
       //       var d = this;         // for inductive datatypes
-      //       var d = this.Get();  // for co-inductive datatypes
+      //       var d = this._Get();  // for co-inductive datatypes
       //       if (d is DT_Ctor0) { return ((DT_Ctor0)d).Dtor0; }
       //       if (d is DT_Ctor1) { return ((DT_Ctor1)d).Dtor0; }
       //       ...
@@ -267,7 +268,8 @@ namespace Microsoft.Dafny
       }
 
       // from here on, write everything into the new block created here:
-      wr = wr.NewNamedBlock("public{0} class {1}", dt.IsRecordType ? "" : " abstract", DtT_protected);
+      var btw = wr.NewNamedBlock("public{0} class {1}", dt.IsRecordType ? "" : " abstract", DtT_protected);
+      wr = btw;
 
       // constructor
       if (dt.IsRecordType) {
@@ -313,7 +315,7 @@ namespace Microsoft.Dafny
       wr.WriteLine("public static {0} _DafnyDefaultValue() {{ return Default; }}", DtT_protected);
 
       if (dt is CoDatatypeDecl) {
-        wr.WriteLine("public abstract {0} Get();", DtT_protected);
+        wr.WriteLine("public abstract {0} _Get();", DtT_protected);
       }
 
       // create methods
@@ -361,7 +363,7 @@ namespace Microsoft.Dafny
             if (!arg.IsGhost && arg.HasName) {
               //   public T0 dtor_Dtor0 { get {
               //       var d = this;         // for inductive datatypes
-              //       var d = this.Get();  // for co-inductive datatypes
+              //       var d = this._Get();  // for co-inductive datatypes
               //       if (d is DT_Ctor0) { return ((DT_Ctor0)d).Dtor0; }
               //       if (d is DT_Ctor1) { return ((DT_Ctor1)d).Dtor0; }
               //       ...
@@ -372,13 +374,13 @@ namespace Microsoft.Dafny
                 var wGet = wDtor.NewBlock("get");
                 if (dt.IsRecordType) {
                   if (dt is CoDatatypeDecl) {
-                    wGet.WriteLine("return this.Get().{0};", IdName(arg));
+                    wGet.WriteLine("return this._Get().{0};", IdName(arg));
                   } else {
                     wGet.WriteLine("return this.{0};", IdName(arg));
                   }
                 } else {
                   if (dt is CoDatatypeDecl) {
-                    wGet.WriteLine("var d = this.Get();");
+                    wGet.WriteLine("var d = this._Get();");
                   } else {
                     wGet.WriteLine("var d = this;");
                   }
@@ -396,6 +398,18 @@ namespace Microsoft.Dafny
           }
         }
       }
+
+      return new ClassWriter(this, btw);
+    }
+
+    string NeedsNew(TopLevelDeclWithMembers ty, string memberName) {
+      Contract.Requires(ty != null);
+      Contract.Requires(memberName != null);
+      if (ty.Members.Exists(member => member.Name == memberName)) {
+        return "new ";
+      } else {
+        return "";
+      }
     }
 
     void CompileDatatypeConstructors(DatatypeDecl dt, TargetWriter wrx) {
@@ -407,16 +421,16 @@ namespace Microsoft.Dafny
         //   Computer c;
         //   Dt<T> d;
         //   public Dt__Lazy(Computer c) { this.c = c; }
-        //   public override Dt<T> Get() { if (c != null) { d = c(); c = null; } return d; }
-        //   public override string ToString() { return Get().ToString(); }
+        //   public override Dt<T> _Get() { if (c != null) { d = c(); c = null; } return d; }
+        //   public override string ToString() { return _Get().ToString(); }
         // }
         var w = wrx.NewNamedBlock("public class {0}__Lazy{2} : {1}{2}", dt.CompileName, IdName(dt), typeParams);
-        w.WriteLine("public delegate {0}{1} Computer();", dt.CompileName, typeParams);
-        w.WriteLine("Computer c;");
-        w.WriteLine("{0}{1} d;", dt.CompileName, typeParams);
+        w.WriteLine("public {2}delegate {0}{1} Computer();", dt.CompileName, typeParams, NeedsNew(dt, "Computer"));
+        w.WriteLine("{0}Computer c;", NeedsNew(dt, "c"));
+        w.WriteLine("{2}{0}{1} d;", dt.CompileName, typeParams, NeedsNew(dt, "d"));
         w.WriteLine("public {0}__Lazy(Computer c) {{ this.c = c; }}", dt.CompileName);
-        w.WriteLine("public override {0}{1} Get() {{ if (c != null) {{ d = c(); c = null; }} return d; }}", dt.CompileName, typeParams);
-        w.WriteLine("public override string ToString() { return Get().ToString(); }");
+        w.WriteLine("public override {0}{1} _Get() {{ if (c != null) {{ d = c(); c = null; }} return d; }}", dt.CompileName, typeParams);
+        w.WriteLine("public override string ToString() { return _Get().ToString(); }");
       }
 
       if (dt.IsRecordType) {
@@ -442,7 +456,7 @@ namespace Microsoft.Dafny
       //   public Dt_Ctor(arguments) {  // for record types: Dt
       //     Fields = arguments;
       //   }
-      //   public override Dt<T> Get() { return this; }  // for co-datatypes only
+      //   public override Dt<T> _Get() { return this; }  // for co-datatypes only
       //   public override bool Equals(object other) {
       //     var oth = other as Dt_Ctor;  // for record types: Dt
       //     return oth != null && equals(_field0, oth._field0) && ... ;
@@ -477,7 +491,7 @@ namespace Microsoft.Dafny
 
       if (dt is CoDatatypeDecl) {
         string typeParams = dt.TypeArgs.Count == 0 ? "" : string.Format("<{0}>", TypeParameters(dt.TypeArgs));
-        wr.WriteLine("public override {0}{1} Get() {{ return this; }}", dt.CompileName, typeParams);
+        wr.WriteLine("public override {0}{1} _Get() {{ return this; }}", dt.CompileName, typeParams);
       }
 
       // Equals method
@@ -617,7 +631,7 @@ namespace Microsoft.Dafny
       }
     }
 
-    protected override void DeclareNewtype(NewtypeDecl nt, TargetWriter wr) {
+    protected override IClassWriter DeclareNewtype(NewtypeDecl nt, TargetWriter wr) {
       var cw = CreateClass(IdName(nt), null, wr) as CsharpCompiler.ClassWriter;
       var w = cw.StaticMemberWriter;
       if (nt.NativeType != null) {
@@ -635,6 +649,7 @@ namespace Microsoft.Dafny
           w.WriteLine(");");
         }
       }
+      return cw;
     }
 
     protected override void DeclareSubsetType(SubsetTypeDecl sst, TargetWriter wr) {
@@ -705,9 +720,11 @@ namespace Microsoft.Dafny
         }
       }
 
+      var customReceiver = NeedsCustomReceiver(m);
+
       wr.Write("{0}{1}{2}{3} {4}",
         createBody ? "public " : "",
-        m.IsStatic ? "static " : "",
+        m.IsStatic || customReceiver ? "static " : "",
         hasDllImportAttribute ? "extern " : "",
         targetReturnTypeReplacement ?? "void",
         IdName(m));
@@ -715,7 +732,16 @@ namespace Microsoft.Dafny
         wr.Write("<{0}>", TypeParameters(m.TypeArgs));
       }
       wr.Write("(");
-      int nIns = WriteFormals("", m.Ins, wr);
+      int nIns;
+      if (customReceiver) {
+        var nt = m.EnclosingClass;
+        var receiverType = UserDefinedType.FromTopLevelDecl(m.tok, nt);
+        DeclareFormal("", "_this", receiverType, m.tok, true, wr);
+        nIns = 1;
+      } else {
+        nIns = 0;
+      }
+      nIns += WriteFormals(nIns == 0 ? "" : ", ", m.Ins, wr);
       if (targetReturnTypeReplacement == null) {
         WriteFormals(nIns == 0 ? "" : ", ", m.Outs, wr);
       }
@@ -726,7 +752,7 @@ namespace Microsoft.Dafny
       } else {
         var w = wr.NewBlock(")", null, BlockTargetWriter.BraceStyle.Newline, BlockTargetWriter.BraceStyle.Newline);
         if (m.IsTailRecursive) {
-          if (!m.IsStatic) {
+          if (!m.IsStatic && !customReceiver) {
             w.WriteLine("var _this = this;");
           }
           w.IndentLess(); w.WriteLine("TAIL_CALL_START: ;");
@@ -744,12 +770,19 @@ namespace Microsoft.Dafny
     protected BlockTargetWriter/*?*/ CreateFunction(string name, List<TypeParameter>/*?*/ typeArgs, List<Formal> formals, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl member, TargetWriter wr) {
       var hasDllImportAttribute = ProcessDllImport(member, wr);
 
-      wr.Write("{0}{1}{2}{3} {4}", createBody ? "public " : "", isStatic ? "static " : "", hasDllImportAttribute ? "extern " : "", TypeName(resultType, wr, tok), name);
+      var customReceiver = NeedsCustomReceiver(member);
+
+      wr.Write("{0}{1}{2}{3} {4}", createBody ? "public " : "", isStatic || customReceiver ? "static " : "", hasDllImportAttribute ? "extern " : "", TypeName(resultType, wr, tok), name);
       if (typeArgs != null && typeArgs.Count != 0) {
         wr.Write("<{0}>", TypeParameters(typeArgs));
       }
       wr.Write("(");
-      WriteFormals("", formals, wr);
+      if (customReceiver) {
+        var nt = member.EnclosingClass;
+        var receiverType = UserDefinedType.FromTopLevelDecl(tok, nt);
+        DeclareFormal("", "_this", receiverType, tok, true, wr);
+      }
+      WriteFormals(customReceiver ? ", " : "", formals, wr);
       if (!createBody || hasDllImportAttribute) {
         wr.WriteLine(");");
         return null;
@@ -853,7 +886,7 @@ namespace Microsoft.Dafny
       } else if (xType is BitvectorType) {
         var t = (BitvectorType)xType;
         return t.NativeType != null ? GetNativeTypeName(t.NativeType) : "BigInteger";
-      } else if (xType.AsNewtype != null) {
+      } else if (xType.AsNewtype != null && member == null) {  // when member is given, use UserDefinedType case below
         var nativeType = xType.AsNewtype.NativeType;
         if (nativeType != null) {
           return GetNativeTypeName(nativeType);
@@ -1467,6 +1500,10 @@ namespace Microsoft.Dafny
         case "when":
         case "where":
           return "@" + name;
+        // methods with expected names
+        case "ToString":
+        case "GetHashCode":
+          return "_" + name;
         default:
           return name;
       }
@@ -1488,7 +1525,10 @@ namespace Microsoft.Dafny
     }
 
     protected override void EmitThis(TargetWriter wr) {
-      wr.Write(enclosingMethod != null && enclosingMethod.IsTailRecursive ? "_this" : "this");
+      var custom =
+        (enclosingMethod != null && enclosingMethod.IsTailRecursive) ||
+        thisContext is NewtypeDecl;
+      wr.Write(custom ? "_this" : "this");
     }
 
     protected override void EmitDatatypeValue(DatatypeValue dtv, string arguments, TargetWriter wr) {
@@ -1690,7 +1730,7 @@ namespace Microsoft.Dafny
 
     protected override void EmitDestructor(string source, Formal dtor, int formalNonGhostIndex, DatatypeCtor ctor, List<Type> typeArgs, Type bvType, TargetWriter wr) {
       var dtorName = FormalName(dtor, formalNonGhostIndex);
-      wr.Write("(({0}){1}{2}).{3}", DtCtorName(ctor, typeArgs, wr), source, ctor.EnclosingDatatype is CoDatatypeDecl ? ".Get()" : "", dtorName);
+      wr.Write("(({0}){1}{2}).{3}", DtCtorName(ctor, typeArgs, wr), source, ctor.EnclosingDatatype is CoDatatypeDecl ? "._Get()" : "", dtorName);
     }
 
     protected override BlockTargetWriter CreateLambda(List<Type> inTypes, Bpl.IToken tok, List<string> inNames, Type resultType, TargetWriter wr, bool untyped = false) {

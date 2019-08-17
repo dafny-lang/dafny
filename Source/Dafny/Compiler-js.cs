@@ -153,7 +153,7 @@ namespace Microsoft.Dafny {
       return wIter;
     }
 
-    protected override void DeclareDatatype(DatatypeDecl dt, TargetWriter wr) {
+    protected override IClassWriter/*?*/ DeclareDatatype(DatatypeDecl dt, TargetWriter wr) {
       // ===== For inductive datatypes:
       //
       // $module.Dt = class Dt {
@@ -268,14 +268,15 @@ namespace Microsoft.Dafny {
       // }
       if (dt is TupleTypeDecl) {
         // Tuple types are declared once and for all in DafnyRuntime.js
-        return;
+        return null;
       }
 
       string DtT = dt.CompileName;
       string DtT_protected = IdProtect(DtT);
 
       // from here on, write everything into the new block created here:
-      wr = wr.NewNamedBlock("$module.{0} = class {0}", DtT_protected);
+      var btw = wr.NewNamedBlock("$module.{0} = class {0}", DtT_protected);
+      wr = btw;
 
       wr.WriteLine("constructor(tag) { this.$tag = tag; }");
 
@@ -476,9 +477,11 @@ namespace Microsoft.Dafny {
           }
         }
       }
+
+      return new ClassWriter(this, btw, btw);
     }
 
-    protected override void DeclareNewtype(NewtypeDecl nt, TargetWriter wr) {
+    protected override IClassWriter DeclareNewtype(NewtypeDecl nt, TargetWriter wr) {
       var cw = CreateClass(IdName(nt), null, wr) as JavaScriptCompiler.ClassWriter;
       var w = cw.MethodWriter;
       if (nt.NativeType != null) {
@@ -502,6 +505,7 @@ namespace Microsoft.Dafny {
         var d = TypeInitializationValue(udt, wr, nt.tok, false);
         wDefault.WriteLine("return {0};", d);
       }
+      return cw;
     }
 
     protected override void DeclareSubsetType(SubsetTypeDecl sst, TargetWriter wr) {
@@ -550,7 +554,7 @@ namespace Microsoft.Dafny {
         return Compiler.CreateMethod(m, createBody, MethodWriter);
       }
       public BlockTargetWriter/*?*/ CreateFunction(string name, List<TypeParameter>/*?*/ typeArgs, List<Formal> formals, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl member) {
-        return Compiler.CreateFunction(name, typeArgs, formals, resultType, tok, isStatic, createBody, MethodWriter);
+        return Compiler.CreateFunction(name, typeArgs, formals, resultType, tok, isStatic, createBody, member, MethodWriter);
       }
       public BlockTargetWriter/*?*/ CreateGetter(string name, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl/*?*/ member) {
         return Compiler.CreateGetter(name, resultType, tok, isStatic, createBody, MethodWriter);
@@ -569,12 +573,19 @@ namespace Microsoft.Dafny {
       if (!createBody) {
         return null;
       }
-      wr.Write("{0}{1}(", m.IsStatic ? "static " : "", IdName(m));
+
+      var customReceiver = NeedsCustomReceiver(m);
+      wr.Write("{0}{1}(", m.IsStatic || customReceiver ? "static " : "", IdName(m));
       var nTypes = WriteRuntimeTypeDescriptorsFormals(m.TypeArgs, false, wr);
-      int nIns = WriteFormals(nTypes == 0 ? "" : ", ", m.Ins, wr);
+      if (customReceiver) {
+        var nt = m.EnclosingClass;
+        var receiverType = UserDefinedType.FromTopLevelDecl(m.tok, nt);
+        DeclareFormal(nTypes != 0 ? ", " : "", "_this", receiverType, m.tok, true, wr);
+      }
+      int nIns = WriteFormals(nTypes != 0 || customReceiver ? ", " : "", m.Ins, wr);
       var w = wr.NewBlock(")");
 
-      if (!m.IsStatic) {
+      if (!m.IsStatic && !customReceiver) {
         w.WriteLine("let _this = this;");
       }
       if (m.IsTailRecursive) {
@@ -586,56 +597,25 @@ namespace Microsoft.Dafny {
       return w;
     }
 
-    protected BlockTargetWriter/*?*/ CreateFunction(string name, List<TypeParameter>/*?*/ typeArgs, List<Formal> formals, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, TargetWriter wr) {
+    protected BlockTargetWriter/*?*/ CreateFunction(string name, List<TypeParameter>/*?*/ typeArgs, List<Formal> formals, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl member, TargetWriter wr) {
       if (!createBody) {
         return null;
       }
-      wr.Write("{0}{1}(", isStatic ? "static " : "", name);
+
+      var customReceiver = NeedsCustomReceiver(member);
+      wr.Write("{0}{1}(", isStatic || customReceiver ? "static " : "", name);
       var nTypes = typeArgs == null ? 0 : WriteRuntimeTypeDescriptorsFormals(typeArgs, false, wr);
-      int nIns = WriteFormals(nTypes == 0 ? "" : ", ", formals, wr);
+      if (customReceiver) {
+        var nt = member.EnclosingClass;
+        var receiverType = UserDefinedType.FromTopLevelDecl(tok, nt);
+        DeclareFormal(nTypes != 0 ? ", " : "", "_this", receiverType, tok, true, wr);
+      }
+      int nIns = WriteFormals(nTypes != 0 || customReceiver ? ", " : "", formals, wr);
       var w = wr.NewBlock(")", ";");
-      if (!isStatic) {
+      if (!isStatic && !customReceiver) {
         w.WriteLine("let _this = this;");
       }
       return w;
-    }
-
-    List<TypeParameter> UsedTypeParameters(DatatypeDecl dt) {
-      Contract.Requires(dt != null);
-
-      var idt = dt as IndDatatypeDecl;
-      if (idt == null) {
-        return dt.TypeArgs;
-      } else {
-        Contract.Assert(idt.TypeArgs.Count == idt.TypeParametersUsedInConstructionByDefaultCtor.Length);
-        var tps = new List<TypeParameter>();
-        for (int i = 0; i < idt.TypeArgs.Count; i++) {
-          if (idt.TypeParametersUsedInConstructionByDefaultCtor[i]) {
-            tps.Add(idt.TypeArgs[i]);
-          }
-        }
-        return tps;
-      }
-    }
-
-    List<Type> UsedTypeParameters(DatatypeDecl dt, List<Type> typeArgs) {
-      Contract.Requires(dt != null);
-      Contract.Requires(typeArgs != null);
-      Contract.Requires(dt.TypeArgs.Count == typeArgs.Count);
-
-      var idt = dt as IndDatatypeDecl;
-      if (idt == null) {
-        return typeArgs;
-      } else {
-        Contract.Assert(typeArgs.Count == idt.TypeParametersUsedInConstructionByDefaultCtor.Length);
-        var ts = new List<Type>();
-        for (int i = 0; i < typeArgs.Count; i++) {
-          if (idt.TypeParametersUsedInConstructionByDefaultCtor[i]) {
-            ts.Add(typeArgs[i]);
-          }
-        }
-        return ts;
-      }
     }
 
     int WriteRuntimeTypeDescriptorsFormals(List<TypeParameter> typeParams, bool useAllTypeArgs, TargetWriter wr, string prefix = "") {
@@ -723,7 +703,10 @@ namespace Microsoft.Dafny {
           var dt = (DatatypeDecl)cl;
           var w = new TargetWriter();
           w.Write("{0}.Rtd(", dt is TupleTypeDecl ? "_dafny.Tuple" : FullTypeName(udt));
-          EmitRuntimeTypeDescriptorsActuals(UsedTypeParameters(dt, udt.TypeArgs), cl.TypeArgs, udt.tok, true, w);
+          List<TypeParameter> usedTypeFormals;
+          List<Type> usedTypeArgs;
+          UsedTypeParameters(dt, udt.TypeArgs, out usedTypeFormals, out usedTypeArgs);
+          EmitRuntimeTypeDescriptorsActuals(usedTypeArgs, usedTypeFormals, udt.tok, true, w);
           w.Write(")");
           return w.ToString();
         } else if (xType.IsNonNullRefType) {
@@ -800,7 +783,7 @@ namespace Microsoft.Dafny {
       } else if (xType is BitvectorType) {
         var t = (BitvectorType)xType;
         return t.NativeType != null ? GetNativeTypeName(t.NativeType) : "BigNumber";
-      } else if (xType.AsNewtype != null) {
+      } else if (xType.AsNewtype != null && member == null) {  // when member is given, use UserDefinedType case below
         NativeType nativeType = xType.AsNewtype.NativeType;
         if (nativeType != null) {
           return GetNativeTypeName(nativeType);
@@ -944,7 +927,10 @@ namespace Microsoft.Dafny {
         var s = dt is TupleTypeDecl ? "_dafny.Tuple" : FullTypeName(udt);
         var w = new TargetWriter();
         w.Write("{0}.Rtd(", s);
-        EmitRuntimeTypeDescriptorsActuals(UsedTypeParameters(dt, udt.TypeArgs), dt.TypeArgs, udt.tok, true, w);
+        List<TypeParameter> usedTypeFormals;
+        List<Type> usedTypeArgs;
+        UsedTypeParameters(dt, udt.TypeArgs, out usedTypeFormals, out usedTypeArgs);
+        EmitRuntimeTypeDescriptorsActuals(usedTypeArgs, usedTypeFormals, udt.tok, true, w);
         w.Write(").Default");
         return w.ToString();
       } else {

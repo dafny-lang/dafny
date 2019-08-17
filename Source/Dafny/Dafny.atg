@@ -859,7 +859,7 @@ TopDecl<. ModuleDefinition module, List<MemberDecl/*!*/> membersDefaultClass, bo
   | OtherTypeDecl<dmod, module, out td>        (. module.TopLevelDecls.Add(td); .)
   | IteratorDecl<dmod, module, out iter>       (. module.TopLevelDecls.Add(iter); .)
   | TraitDecl<dmod, module, out trait>         (. module.TopLevelDecls.Add(trait); .)
-  | ClassMemberDecl<dmod, membersDefaultClass, false, !DafnyOptions.O.AllowGlobals,
+  | ClassMemberDecl<dmod, membersDefaultClass, false, true, !DafnyOptions.O.AllowGlobals,
                     !isTopLevel && DafnyOptions.O.IronDafny && isAbstract>
   ) .
 
@@ -1016,7 +1016,7 @@ ClassDecl<DeclModifierData dmodClass, ModuleDefinition/*!*/ module, out ClassDec
   "{"                                            (. bodyStart = t;  .)
   { (. dmod = new DeclModifierData(); .)
     { DeclModifier<ref dmod> }
-    ClassMemberDecl<dmod, members, true, false, false>
+    ClassMemberDecl<dmod, members, true, false, false, false>
   }
   "}"
   (. c = new ClassDecl(id, id.val, module, typeArgs, members, attrs, traits);
@@ -1044,7 +1044,7 @@ TraitDecl<DeclModifierData dmodIn, ModuleDefinition/*!*/ module, out TraitDecl/*
     "{"                                            (. bodyStart = t; .)
       {                                            (. dmod  = new DeclModifierData(); .)
         { DeclModifier<ref dmod> }
-        ClassMemberDecl<dmod, members, true, false, false>
+        ClassMemberDecl<dmod, members, true, false, false, false>
       }
     "}"
   (. trait = new TraitDecl(id, id.val, module, typeArgs, members, attrs);
@@ -1053,7 +1053,7 @@ TraitDecl<DeclModifierData dmodIn, ModuleDefinition/*!*/ module, out TraitDecl/*
     .)
   .
 
-ClassMemberDecl<. DeclModifierData dmod, List<MemberDecl> mm, bool allowConstructors, bool moduleLevelDecl, bool isWithinAbstractModule.>
+ClassMemberDecl<. DeclModifierData dmod, List<MemberDecl> mm, bool allowConstructors, bool isValueType, bool moduleLevelDecl, bool isWithinAbstractModule.>
 = (. Contract.Requires(cce.NonNullElements(mm));
      Method/*!*/ m;
      Function/*!*/ f;
@@ -1063,7 +1063,7 @@ ClassMemberDecl<. DeclModifierData dmod, List<MemberDecl> mm, bool allowConstruc
          dmod.IsStatic = false;
        }
     .)
-    FieldDecl<dmod, mm>
+    FieldDecl<dmod, isValueType, mm>
   | ConstantFieldDecl<dmod, mm, moduleLevelDecl>
   | IF(IsFunctionDecl())
     (. if (moduleLevelDecl && dmod.StaticToken != null) {
@@ -1090,6 +1090,7 @@ DatatypeDecl<DeclModifierData dmod, ModuleDefinition/*!*/ module, out DatatypeDe
      IToken bodyStart = Token.NoToken;  // dummy assignment
      bool co = false;
      CheckDeclModifiers(dmod, "Datatypes or codatatypes", AllowedDeclModifiers.None);
+     var members = new List<MemberDecl>();
   .)
   SYNC
   ( "datatype"
@@ -1101,16 +1102,11 @@ DatatypeDecl<DeclModifierData dmod, ModuleDefinition/*!*/ module, out DatatypeDe
   "="                                      (. bodyStart = t; .)
   [ "|" ] DatatypeMemberDecl<ctors>
   { "|" DatatypeMemberDecl<ctors> }
-  [ SYNC ";"
-      // This semi-colon used to be required, but it seems silly to have it.
-      // To stage the transition toward not having it at all, let's make it optional for now.  Then,
-      // in the next big version of Dafny, don't allow the semi-colon at all.
-      (. errors.Deprecated(t, "the semi-colon that used to terminate a (co)datatype declaration has been deprecated; in the new syntax, just leave off the semi-colon"); .)
-  ]
+  [ TypeMembers<module, members> ]
   (. if (co) {
-       dt = new CoDatatypeDecl(id, id.val, module, typeArgs, ctors, attrs);
+       dt = new CoDatatypeDecl(id, id.val, module, typeArgs, ctors, members, attrs);
      } else {
-       dt = new IndDatatypeDecl(id, id.val, module, typeArgs, ctors, attrs);
+       dt = new IndDatatypeDecl(id, id.val, module, typeArgs, ctors, members, attrs);
      }
      dt.BodyStartTok = bodyStart;
      dt.BodyEndTok = t;
@@ -1127,14 +1123,31 @@ DatatypeMemberDecl<.List<DatatypeCtor/*!*/>/*!*/ ctors.>
   [ FormalsOptionalIds<formals> ]
   (. ctors.Add(new DatatypeCtor(id, id.val, formals, attrs)); .)
   .
-FieldDecl<.DeclModifierData dmod, List<MemberDecl/*!*/>/*!*/ mm.>
+TypeMembers<. ModuleDefinition/*!*/ module, List<MemberDecl> members .>
+= (. DeclModifierData dmod;
+  .)
+  "{"
+  { (. dmod = new DeclModifierData(); .)
+    { DeclModifier<ref dmod> }
+    ClassMemberDecl<dmod, members, false, true, false, module.IsAbstract>
+  }
+  "}"
+  .
+FieldDecl<.DeclModifierData dmod, bool isValueType, List<MemberDecl> mm.>
 = (. Contract.Requires(cce.NonNullElements(mm));
      Attributes attrs = null;
      IToken/*!*/ id;  Type/*!*/ ty;
      CheckDeclModifiers(dmod, "Fields", AllowedDeclModifiers.Ghost);
+     if (isValueType) {
+       // we're about to produce an error; put fields into a throw-away list, so we don't return them
+       mm = new List<MemberDecl>();
+     }
   .)
   SYNC
-  "var"
+  "var"                                             (. if (isValueType) {
+                                                         SemErr(t, "mutable fields are now allowed in value types");
+                                                       }
+                                                    .)
   { Attribute<ref attrs> }
   FIdentType<out id, out ty>                        (. mm.Add(new Field(id, id.val, dmod.IsGhost, ty, attrs)); .)
   { "," FIdentType<out id, out ty>                  (. mm.Add(new Field(id, id.val, dmod.IsGhost, ty, attrs)); .)
@@ -1173,6 +1186,7 @@ NewtypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl td>
      Expression witness = null;
      bool witnessIsGhost = false;
      CheckDeclModifiers(dmod, "Newtypes", AllowedDeclModifiers.None);
+     var members = new List<MemberDecl>();
   .)
   "newtype"
   { Attribute<ref attrs> }
@@ -1188,10 +1202,13 @@ NewtypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl td>
       ]
       "witness" Expression<out witness, false, true>
     ]
-                                     (. var witnessKind = witness == null ? SubsetTypeDecl.WKind.None :
-                                          witnessIsGhost ? SubsetTypeDecl.WKind.Ghost : SubsetTypeDecl.WKind.Compiled;
-                                        td = new NewtypeDecl(id, id.val, module, new BoundVar(bvId, bvId.val, baseType), constraint, witnessKind, witness, attrs); .)
-  | Type<out baseType>               (. td = new NewtypeDecl(id, id.val, module, baseType, attrs); .)
+    [ TypeMembers<module, members> ]
+    (. var witnessKind = witness == null ? SubsetTypeDecl.WKind.None :
+       witnessIsGhost ? SubsetTypeDecl.WKind.Ghost : SubsetTypeDecl.WKind.Compiled;
+       td = new NewtypeDecl(id, id.val, module, new BoundVar(bvId, bvId.val, baseType), constraint, witnessKind, witness, members, attrs); .)
+  | Type<out baseType>
+    [ TypeMembers<module, members> ]
+    (. td = new NewtypeDecl(id, id.val, module, baseType, members, attrs); .)
   )
   .
 OtherTypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl td>

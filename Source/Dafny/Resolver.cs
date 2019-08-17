@@ -185,8 +185,7 @@ namespace Microsoft.Dafny
     readonly HashSet<RevealableTypeDecl> revealableTypes = new HashSet<RevealableTypeDecl>();
     //types that have been seen by the resolver - used for constraining type inference during exports
 
-    readonly Dictionary<ClassDecl, Dictionary<string, MemberDecl>> classMembers = new Dictionary<ClassDecl, Dictionary<string, MemberDecl>>();
-    readonly Dictionary<DatatypeDecl, Dictionary<string, MemberDecl>> datatypeMembers = new Dictionary<DatatypeDecl, Dictionary<string, MemberDecl>>();
+    readonly Dictionary<TopLevelDeclWithMembers, Dictionary<string, MemberDecl>> classMembers = new Dictionary<TopLevelDeclWithMembers, Dictionary<string, MemberDecl>>();
     readonly Dictionary<DatatypeDecl, Dictionary<string, DatatypeCtor>> datatypeCtors = new Dictionary<DatatypeDecl, Dictionary<string, DatatypeCtor>>();
     enum ValuetypeVariety { Bool = 0, Int, Real, BigOrdinal, Bitvector, Map, IMap, None }  // note, these are ordered, so they can be used as indices into valuetypeDecls
     readonly ValuetypeDecl[] valuetypeDecls;
@@ -1599,7 +1598,11 @@ namespace Microsoft.Dafny
         } else if (d is TypeSynonymDecl) {
           // nothing more to register
         } else if (d is NewtypeDecl) {
-          // nothing more to register
+          var cl = (TopLevelDeclWithMembers)d;
+          // register the names of the type members
+          var members = new Dictionary<string, MemberDecl>();
+          classMembers.Add(cl, members);
+          RegisterMembers(moduleDef, cl, members);
         } else if (d is IteratorDecl) {
           var iter = (IteratorDecl)d;
 
@@ -1737,88 +1740,13 @@ namespace Microsoft.Dafny
           }
 
         } else if (d is ClassDecl) {
-          ClassDecl cl = (ClassDecl)d;
+          var cl = (ClassDecl)d;
+          var preMemberErrs = reporter.Count(ErrorLevel.Error);
 
           // register the names of the class members
           var members = new Dictionary<string, MemberDecl>();
           classMembers.Add(cl, members);
-
-          var preMemberErrs = reporter.Count(ErrorLevel.Error);
-
-          foreach (MemberDecl m in cl.Members) {
-            if (!members.ContainsKey(m.Name)) {
-              members.Add(m.Name, m);
-              if (m is Constructor) {
-                if (cl is TraitDecl) {
-                  reporter.Error(MessageSource.Resolver, m.tok, "a trait is not allowed to declare a constructor");
-                } else {
-                  cl.HasConstructor = true;
-                }
-              } else if (m is FixpointPredicate || m is FixpointLemma) {
-                var extraName = m.Name + "#";
-                MemberDecl extraMember;
-                var cloner = new Cloner();
-                var formals = new List<Formal>();
-                Type typeOfK;
-                if ((m is FixpointPredicate && ((FixpointPredicate)m).KNat) || (m is FixpointLemma && ((FixpointLemma)m).KNat)) {
-                  typeOfK = new UserDefinedType(m.tok, "nat", (List<Type>)null);
-                } else {
-                  typeOfK = new BigOrdinalType();
-                }
-                var k = new ImplicitFormal(m.tok, "_k", typeOfK, true, false);
-                reporter.Info(MessageSource.Resolver, m.tok, string.Format("_k: {0}", k.Type));
-                formals.Add(k);
-                if (m is FixpointPredicate) {
-                  var cop = (FixpointPredicate)m;
-                  formals.AddRange(cop.Formals.ConvertAll(cloner.CloneFormal));
-
-                  List<TypeParameter> tyvars = cop.TypeArgs.ConvertAll(cloner.CloneTypeParam);
-
-                  // create prefix predicate
-                  cop.PrefixPredicate = new PrefixPredicate(cop.tok, extraName, cop.HasStaticKeyword, cop.IsProtected,
-                    tyvars, k, formals,
-                    cop.Req.ConvertAll(cloner.CloneMayBeFreeExpr),
-                    cop.Reads.ConvertAll(cloner.CloneFrameExpr),
-                    cop.Ens.ConvertAll(cloner.CloneMayBeFreeExpr),
-                    new Specification<Expression>(new List<Expression>() { new IdentifierExpr(cop.tok, k.Name) }, null),
-                    cop.Body,
-                    null,
-                    cop);
-                  extraMember = cop.PrefixPredicate;
-                  // In the call graph, add an edge from P# to P, since this will have the desired effect of detecting unwanted cycles.
-                  moduleDef.CallGraph.AddEdge(cop.PrefixPredicate, cop);
-                } else {
-                  var com = (FixpointLemma)m;
-                  // _k has already been added to 'formals', so append the original formals
-                  formals.AddRange(com.Ins.ConvertAll(cloner.CloneFormal));
-                  // prepend _k to the given decreases clause
-                  var decr = new List<Expression>();
-                  decr.Add(new IdentifierExpr(com.tok, k.Name));
-                  decr.AddRange(com.Decreases.Expressions.ConvertAll(cloner.CloneExpr));
-                  // Create prefix lemma.  Note that the body is not cloned, but simply shared.
-                  // For a colemma, the postconditions are filled in after the colemma's postconditions have been resolved.
-                  // For an inductive lemma, the preconditions are filled in after the inductive lemma's preconditions have been resolved.
-                  var req = com is CoLemma ? com.Req.ConvertAll(cloner.CloneMayBeFreeExpr) : new List<MaybeFreeExpression>();
-                  var ens = com is CoLemma ? new List<MaybeFreeExpression>() : com.Ens.ConvertAll(cloner.CloneMayBeFreeExpr);
-                  com.PrefixLemma = new PrefixLemma(com.tok, extraName, com.HasStaticKeyword,
-                    com.TypeArgs.ConvertAll(cloner.CloneTypeParam), k, formals, com.Outs.ConvertAll(cloner.CloneFormal),
-                    req, cloner.CloneSpecFrameExpr(com.Mod), ens,
-                    new Specification<Expression>(decr, null),
-                    null, // Note, the body for the prefix method will be created once the call graph has been computed and the SCC for the colemma is known
-                    cloner.CloneAttributes(com.Attributes), com);
-                  extraMember = com.PrefixLemma;
-                  // In the call graph, add an edge from M# to M, since this will have the desired effect of detecting unwanted cycles.
-                  moduleDef.CallGraph.AddEdge(com.PrefixLemma, com);
-                }
-                extraMember.InheritVisibility(m);
-                members.Add(extraName, extraMember);
-              }
-            } else if (m is Constructor && !((Constructor)m).HasName) {
-              reporter.Error(MessageSource.Resolver, m, "More than one anonymous constructor");
-            } else {
-              reporter.Error(MessageSource.Resolver, m, "Duplicate member name: {0}", m.Name);
-            }
-          }
+          RegisterMembers(moduleDef, cl, members);
 
           Contract.Assert(preMemberErrs != reporter.Count(ErrorLevel.Error) || !cl.Members.Except(members.Values).Any());
 
@@ -1832,14 +1760,14 @@ namespace Microsoft.Dafny
           }
 
         } else if (d is DatatypeDecl) {
-          DatatypeDecl dt = (DatatypeDecl)d;
+          var dt = (DatatypeDecl)d;
 
           // register the names of the constructors
           var ctors = new Dictionary<string, DatatypeCtor>();
           datatypeCtors.Add(dt, ctors);
           // ... and of the other members
           var members = new Dictionary<string, MemberDecl>();
-          datatypeMembers.Add(dt, members);
+          classMembers.Add(dt, members);
 
           foreach (DatatypeCtor ctor in dt.Ctors) {
             if (ctor.Name.EndsWith("?")) {
@@ -1906,6 +1834,8 @@ namespace Microsoft.Dafny
               ctor.Destructors.Add(dtor);
             }
           }
+          // finally, add any additional user-defined members
+          RegisterMembers(moduleDef, dt, members);
         } else {
           Contract.Assert(d is ValuetypeDecl);
         }
@@ -1926,6 +1856,87 @@ namespace Microsoft.Dafny
       return sig;
     }
 
+    void RegisterMembers(ModuleDefinition moduleDef, TopLevelDeclWithMembers cl, Dictionary<string, MemberDecl> members) {
+      Contract.Requires(moduleDef != null);
+      Contract.Requires(cl != null);
+      Contract.Requires(members != null);
+
+      foreach (MemberDecl m in cl.Members) {
+        if (!members.ContainsKey(m.Name)) {
+          members.Add(m.Name, m);
+          if (m is Constructor) {
+            Contract.Assert(cl is ClassDecl);  // the parser ensures this condition
+            if (cl is TraitDecl) {
+              reporter.Error(MessageSource.Resolver, m.tok, "a trait is not allowed to declare a constructor");
+            } else {
+              ((ClassDecl)cl).HasConstructor = true;
+            }
+          } else if (m is FixpointPredicate || m is FixpointLemma) {
+            var extraName = m.Name + "#";
+            MemberDecl extraMember;
+            var cloner = new Cloner();
+            var formals = new List<Formal>();
+            Type typeOfK;
+            if ((m is FixpointPredicate && ((FixpointPredicate)m).KNat) || (m is FixpointLemma && ((FixpointLemma)m).KNat)) {
+              typeOfK = new UserDefinedType(m.tok, "nat", (List<Type>)null);
+            } else {
+              typeOfK = new BigOrdinalType();
+            }
+            var k = new ImplicitFormal(m.tok, "_k", typeOfK, true, false);
+            reporter.Info(MessageSource.Resolver, m.tok, string.Format("_k: {0}", k.Type));
+            formals.Add(k);
+            if (m is FixpointPredicate) {
+              var cop = (FixpointPredicate)m;
+              formals.AddRange(cop.Formals.ConvertAll(cloner.CloneFormal));
+
+              List<TypeParameter> tyvars = cop.TypeArgs.ConvertAll(cloner.CloneTypeParam);
+
+              // create prefix predicate
+              cop.PrefixPredicate = new PrefixPredicate(cop.tok, extraName, cop.HasStaticKeyword, cop.IsProtected,
+                tyvars, k, formals,
+                cop.Req.ConvertAll(cloner.CloneMayBeFreeExpr),
+                cop.Reads.ConvertAll(cloner.CloneFrameExpr),
+                cop.Ens.ConvertAll(cloner.CloneMayBeFreeExpr),
+                new Specification<Expression>(new List<Expression>() { new IdentifierExpr(cop.tok, k.Name) }, null),
+                cop.Body,
+                null,
+                cop);
+              extraMember = cop.PrefixPredicate;
+              // In the call graph, add an edge from P# to P, since this will have the desired effect of detecting unwanted cycles.
+              moduleDef.CallGraph.AddEdge(cop.PrefixPredicate, cop);
+            } else {
+              var com = (FixpointLemma)m;
+              // _k has already been added to 'formals', so append the original formals
+              formals.AddRange(com.Ins.ConvertAll(cloner.CloneFormal));
+              // prepend _k to the given decreases clause
+              var decr = new List<Expression>();
+              decr.Add(new IdentifierExpr(com.tok, k.Name));
+              decr.AddRange(com.Decreases.Expressions.ConvertAll(cloner.CloneExpr));
+              // Create prefix lemma.  Note that the body is not cloned, but simply shared.
+              // For a colemma, the postconditions are filled in after the colemma's postconditions have been resolved.
+              // For an inductive lemma, the preconditions are filled in after the inductive lemma's preconditions have been resolved.
+              var req = com is CoLemma ? com.Req.ConvertAll(cloner.CloneMayBeFreeExpr) : new List<MaybeFreeExpression>();
+              var ens = com is CoLemma ? new List<MaybeFreeExpression>() : com.Ens.ConvertAll(cloner.CloneMayBeFreeExpr);
+              com.PrefixLemma = new PrefixLemma(com.tok, extraName, com.HasStaticKeyword,
+                com.TypeArgs.ConvertAll(cloner.CloneTypeParam), k, formals, com.Outs.ConvertAll(cloner.CloneFormal),
+                req, cloner.CloneSpecFrameExpr(com.Mod), ens,
+                new Specification<Expression>(decr, null),
+                null, // Note, the body for the prefix method will be created once the call graph has been computed and the SCC for the colemma is known
+                cloner.CloneAttributes(com.Attributes), com);
+              extraMember = com.PrefixLemma;
+              // In the call graph, add an edge from M# to M, since this will have the desired effect of detecting unwanted cycles.
+              moduleDef.CallGraph.AddEdge(com.PrefixLemma, com);
+            }
+            extraMember.InheritVisibility(m);
+            members.Add(extraName, extraMember);
+          }
+        } else if (m is Constructor && !((Constructor)m).HasName) {
+          reporter.Error(MessageSource.Resolver, m, "More than one anonymous constructor");
+        } else {
+          reporter.Error(MessageSource.Resolver, m, "Duplicate member name: {0}", m.Name);
+        }
+      }
+    }
 
     private ModuleSignature MakeAbstractSignature(ModuleSignature p, string Name, int Height, Dictionary<ModuleDefinition, ModuleSignature> mods, Dictionary<ModuleDefinition, ModuleDefinition> compilationModuleClones) {
       Contract.Requires(p != null);
@@ -2055,15 +2066,16 @@ namespace Microsoft.Dafny
     public void RevealAllInScope(List<TopLevelDecl> declarations, VisibilityScope scope) {
       foreach (TopLevelDecl d in declarations) {
         d.AddVisibilityScope(scope, false);
-        var cl = d as ClassDecl;
-        if (cl != null) {
+        if (d is TopLevelDeclWithMembers) {
+          var cl = (TopLevelDeclWithMembers)d;
           foreach (var mem in cl.Members) {
             if (!mem.ScopeIsInherited) {
               mem.AddVisibilityScope(scope, false);
             }
           }
-          if (cl.NonNullTypeDecl != null) {
-            cl.NonNullTypeDecl.AddVisibilityScope(scope, false);
+          var nnd = (cl as ClassDecl)?.NonNullTypeDecl;
+          if (nnd != null) {
+            nnd.AddVisibilityScope(scope, false);
           }
         }
       }
@@ -2121,6 +2133,7 @@ namespace Microsoft.Dafny
               typeRedirectionDependencies.AddEdge(dd, s);
             }
           });
+          ResolveClassMemberTypes(dd);
         } else if (d is IteratorDecl) {
           ResolveIteratorSignature((IteratorDecl)d);
         } else if (d is ClassDecl) {
@@ -2131,7 +2144,9 @@ namespace Microsoft.Dafny
             reporter.Error(MessageSource.Resolver, am.Path.Last(), "a compiled module ({0}) is not allowed to import an abstract module ({1})", def.Name, Util.Comma(".", am.Path, tok => tok.val));
           }
         } else {
-          ResolveCtorTypes((DatatypeDecl)d, datatypeDependencies, codatatypeDependencies);
+          var dd = (DatatypeDecl)d;
+          ResolveCtorTypes(dd, datatypeDependencies, codatatypeDependencies);
+          ResolveClassMemberTypes(dd);
         }
         allTypeParameters.PopMarker();
       }
@@ -2238,10 +2253,10 @@ namespace Microsoft.Dafny
           scope.PopMarker();
           allTypeParameters.PopMarker();
         }
-        if (topd is ClassDecl) {
-          var cl = (ClassDecl)topd;
+        if (topd is TopLevelDeclWithMembers) {
+          var cl = (TopLevelDeclWithMembers)topd;
           currentClass = cl;
-          foreach (MemberDecl member in cl.Members) {
+          foreach (var member in cl.Members) {
             Contract.Assert(VisibleInScope(member));
             if (member is ConstantField) {
               var field = (ConstantField)member;
@@ -2272,20 +2287,12 @@ namespace Microsoft.Dafny
         // Check type inference, which also discovers bounds, in newtype/subset-type constraints and const declarations
         foreach (TopLevelDecl topd in declarations) {
           TopLevelDecl d = topd is ClassDecl ? ((ClassDecl)topd).NonNullTypeDecl : topd;
-          if (d is NewtypeDecl || d is SubsetTypeDecl) {
-            var dd = (RedirectingTypeDecl)d;
-            if (dd.Constraint != null) {
-              allTypeParameters.PushMarker();
-              ResolveTypeParameters(d.TypeArgs, false, d);
-              CheckTypeInference(dd.Constraint, dd);
-              allTypeParameters.PopMarker();
-            }
+          if (d is RedirectingTypeDecl dd && dd.Constraint != null) {
+            CheckTypeInference(dd.Constraint, dd);
           }
-          if (topd is ClassDecl) {
-            var cl = (ClassDecl)topd;
+          if (topd is TopLevelDeclWithMembers cl) {
             foreach (var member in cl.Members) {
-              var field = member as ConstantField;
-              if (field != null && field.Rhs != null) {
+              if (member is ConstantField field && field.Rhs != null) {
                 CheckTypeInference(field.Rhs, field);
                 if (!field.IsGhost) {
                   CheckIsCompilable(field.Rhs);
@@ -2318,6 +2325,9 @@ namespace Microsoft.Dafny
               CheckIsCompilable(dd.Witness);
             }
           }
+          if (d is TopLevelDeclWithMembers dm) {
+            ResolveClassMemberBodies(dm);
+          }
         } else {
           if (!(d is IteratorDecl)) {
             // Note, attributes of iterators are resolved by ResolvedIterator, after registering any names in the iterator signature
@@ -2337,6 +2347,7 @@ namespace Microsoft.Dafny
                 AddTypeDependencyEdges((ICallable)d, formal.Type);
               }
             }
+            ResolveClassMemberBodies(dt);
           }
         }
         allTypeParameters.PopMarker();
@@ -2380,30 +2391,8 @@ namespace Microsoft.Dafny
               }
             }
           } else if (d is ClassDecl) {
-            var cl = (ClassDecl)d;
-            foreach (var member in cl.Members) {
-              var prevErrCnt = reporter.Count(ErrorLevel.Error);
-              CheckTypeInference_Member(member);
-              if (prevErrCnt == reporter.Count(ErrorLevel.Error)) {
-                if (member is Method) {
-                  var m = (Method)member;
-                  if (m.Body != null) {
-                    ComputeGhostInterest(m.Body, m.IsGhost, m);
-                    CheckExpression(m.Body, this, m);
-                    DetermineTailRecursion(m);
-                  }
-                } else if (member is Function) {
-                  var f = (Function)member;
-                  if (!f.IsGhost && f.Body != null) {
-                    CheckIsCompilable(f.Body);
-                  }
-                  DetermineTailRecursion(f);
-                }
-                if (prevErrCnt == reporter.Count(ErrorLevel.Error) && member is ICodeContext) {
-                  member.SubExpressions.Iter(e => CheckExpression(e, this, (ICodeContext)member));
-                }
-              }
-            }
+            var dd = (ClassDecl)d;
+            ResolveClassMembers_Pass1(dd);
           } else if (d is SubsetTypeDecl) {
             var dd = (SubsetTypeDecl)d;
             Contract.Assert(dd.Constraint != null);
@@ -2415,9 +2404,10 @@ namespace Microsoft.Dafny
               CheckExpression(dd.Constraint, this, dd);
             }
             FigureOutNativeType(dd);
+            ResolveClassMembers_Pass1(dd);
           } else if (d is DatatypeDecl) {
             var dd = (DatatypeDecl)d;
-            foreach (var member in datatypeMembers[dd].Values) {
+            foreach (var member in classMembers[dd].Values) {
               var dtor = member as DatatypeDestructor;
               if (dtor != null) {
                 var rolemodel = dtor.CorrespondingFormals[0];
@@ -2437,6 +2427,7 @@ namespace Microsoft.Dafny
                 }
               }
             }
+            ResolveClassMembers_Pass1(dd);
           }
         }
       }
@@ -2997,6 +2988,32 @@ namespace Microsoft.Dafny
               reporter.Error(MessageSource.Resolver, cl.tok, "class '{0}' with fields without known initializers, like '{1}' of type '{2}', must declare a constructor",
                 cl.Name, fieldWithoutKnownInitializer.Name, fieldWithoutKnownInitializer.Type);
             }
+          }
+        }
+      }
+    }
+
+    private void ResolveClassMembers_Pass1(TopLevelDeclWithMembers cl) {
+      foreach (var member in cl.Members) {
+        var prevErrCnt = reporter.Count(ErrorLevel.Error);
+        CheckTypeInference_Member(member);
+        if (prevErrCnt == reporter.Count(ErrorLevel.Error)) {
+          if (member is Method) {
+            var m = (Method)member;
+            if (m.Body != null) {
+              ComputeGhostInterest(m.Body, m.IsGhost, m);
+              CheckExpression(m.Body, this, m);
+              DetermineTailRecursion(m);
+            }
+          } else if (member is Function) {
+            var f = (Function)member;
+            if (!f.IsGhost && f.Body != null) {
+              CheckIsCompilable(f.Body);
+            }
+            DetermineTailRecursion(f);
+          }
+          if (prevErrCnt == reporter.Count(ErrorLevel.Error) && member is ICodeContext) {
+            member.SubExpressions.Iter(e => CheckExpression(e, this, (ICodeContext)member));
           }
         }
       }
@@ -7253,7 +7270,7 @@ namespace Microsoft.Dafny
       return false;
     }
 
-    ClassDecl currentClass;
+    TopLevelDeclWithMembers currentClass;
     Method currentMethod;
     bool inBodyInitContext;  // "true" only if "currentMethod is Constructor"
     readonly Scope<TypeParameter>/*!*/
@@ -7321,7 +7338,7 @@ namespace Microsoft.Dafny
     /// <summary>
     /// Assumes type parameters have already been pushed
     /// </summary>
-    void ResolveClassMemberTypes(ClassDecl cl) {
+    void ResolveClassMemberTypes(TopLevelDeclWithMembers cl) {
       Contract.Requires(cl != null);
       Contract.Requires(currentClass == null);
       Contract.Ensures(currentClass == null);
@@ -7486,7 +7503,7 @@ namespace Microsoft.Dafny
     /// <summary>
     /// Assumes type parameters have already been pushed, and that all types in class members have been resolved
     /// </summary>
-    void ResolveClassMemberBodies(ClassDecl cl) {
+    void ResolveClassMemberBodies(TopLevelDeclWithMembers cl) {
       Contract.Requires(cl != null);
       Contract.Requires(currentClass == null);
       Contract.Requires(AllTypeConstraints.Count == 0);
@@ -10716,19 +10733,6 @@ namespace Microsoft.Dafny
         }
       }
 
-      DatatypeDecl dtd = receiverType.AsDatatype;
-      if (dtd != null) {
-        MemberDecl member;
-        if (!datatypeMembers[dtd].TryGetValue(memberName, out member)) {
-          reporter.Error(MessageSource.Resolver, tok, "member {0} does not exist in datatype {1}", memberName, dtd.Name);
-          nptype = null;
-          return null;
-        } else {
-          nptype = (UserDefinedType)receiverType;
-          return member;
-        }
-      }
-
       ValuetypeDecl valuet = null;
       foreach (var vtd in valuetypeDecls) {
         if (vtd.IsThisType(receiverType)) {
@@ -10751,6 +10755,19 @@ namespace Microsoft.Dafny
             SelfTypeSubstitution.Add(resultType.TypeArg, receiverType);
             resultType.ResolvedType = receiverType;
           }
+          return member;
+        }
+      }
+
+      TopLevelDeclWithMembers tltwm = receiverType.AsTopLevelTypeWithMembers;
+      if (tltwm != null) {
+        MemberDecl member;
+        if (!classMembers[tltwm].TryGetValue(memberName, out member)) {
+          reporter.Error(MessageSource.Resolver, tok, "member {0} does not exist in {2} {1}", memberName, tltwm.Name, tltwm.WhatKind);
+          nptype = null;
+          return null;
+        } else {
+          nptype = (UserDefinedType)receiverType;
           return member;
         }
       }
@@ -11383,23 +11400,24 @@ namespace Microsoft.Dafny
       }
     }
 
-    public static UserDefinedType GetThisType(IToken tok, ClassDecl cl) {
+    public static UserDefinedType GetThisType(IToken tok, TopLevelDeclWithMembers cl) {
       Contract.Requires(tok != null);
       Contract.Requires(cl != null);
       Contract.Ensures(Contract.Result<UserDefinedType>() != null);
 
-      return UserDefinedType.FromTopLevelDecl(tok, cl.NonNullTypeDecl, cl.TypeArgs);
+      if (cl is ClassDecl cls) {
+        return UserDefinedType.FromTopLevelDecl(tok, cls.NonNullTypeDecl, cls.TypeArgs);
+      } else {
+        return UserDefinedType.FromTopLevelDecl(tok, cl, cl.TypeArgs);
+      }
     }
 
-    /// <summary>
-    /// Requires "member" to be declared in a class.
-    /// </summary>
     public static UserDefinedType GetReceiverType(IToken tok, MemberDecl member) {
       Contract.Requires(tok != null);
       Contract.Requires(member != null);
       Contract.Ensures(Contract.Result<UserDefinedType>() != null);
 
-      return GetThisType(tok, (ClassDecl)member.EnclosingClass);
+      return GetThisType(tok, (TopLevelDeclWithMembers)member.EnclosingClass);
     }
 
     public class ResolveOpts
@@ -11510,7 +11528,9 @@ namespace Microsoft.Dafny
         if (!scope.AllowInstance) {
           reporter.Error(MessageSource.Resolver, expr, "'this' is not allowed in a 'static' context");
         }
-        if (currentClass != null && !currentClass.IsDefaultClass) {
+        if (currentClass is ClassDecl cd && cd.IsDefaultClass) {
+          // there's no type
+        } else {
           expr.Type = GetThisType(expr.tok, currentClass);  // do this regardless of scope.AllowInstance, for better error reporting
         }
 
@@ -12328,7 +12348,7 @@ namespace Microsoft.Dafny
         } else {
           memberNames.Add(destructor_str);
           MemberDecl member;
-          if (!datatypeMembers[dt].TryGetValue(destructor_str, out member)) {
+          if (!classMembers[dt].TryGetValue(destructor_str, out member)) {
             reporter.Error(MessageSource.Resolver, entry.Item1, "member '{0}' does not exist in datatype '{1}'", destructor_str, dt.Name);
           } else if (!(member is DatatypeDestructor)) {
             reporter.Error(MessageSource.Resolver, entry.Item1, "member '{0}' is not a destructor in datatype '{1}'", destructor_str, dt.Name);
@@ -12960,18 +12980,18 @@ namespace Microsoft.Dafny
           reporter.Error(MessageSource.Resolver, expr.tok, "variable '{0}' does not take any type parameters", name);
         }
         r = new IdentifierExpr(expr.tok, v);
-      } else if (currentClass != null && classMembers.TryGetValue(currentClass, out members) && members.TryGetValue(name, out member)) {
+      } else if (currentClass is TopLevelDeclWithMembers cl && classMembers.TryGetValue(cl, out members) && members.TryGetValue(name, out member)) {
         // ----- 1. member of the enclosing class
         Expression receiver;
         if (member.IsStatic) {
-          receiver = new StaticReceiverExpr(expr.tok, (ClassDecl)member.EnclosingClass, true);
+          receiver = new StaticReceiverExpr(expr.tok, (TopLevelDeclWithMembers)member.EnclosingClass, true);
         } else {
           if (!scope.AllowInstance) {
             reporter.Error(MessageSource.Resolver, expr.tok, "'this' is not allowed in a 'static' context"); //TODO: Rephrase this
             // nevertheless, set "receiver" to a value so we can continue resolution
           }
           receiver = new ImplicitThisExpr(expr.tok);
-          receiver.Type = GetThisType(expr.tok, (ClassDecl)member.EnclosingClass);  // resolve here
+          receiver.Type = GetThisType(expr.tok, (TopLevelDeclWithMembers)member.EnclosingClass);  // resolve here
         }
         r = ResolveExprDotCall(expr.tok, receiver, null, member, args, expr.OptTypeArguments, opts, allowMethodCall);
       } else if (isLastNameSegment && moduleInfo.Ctors.TryGetValue(name, out pair)) {
@@ -13287,22 +13307,7 @@ namespace Microsoft.Dafny
           // expand any synonyms
           ty = new UserDefinedType(expr.tok, ri.Decl.Name, ri.Decl, ri.TypeArgs).NormalizeExpand();
         }
-        if (ty.IsRefType) {
-          // ----- LHS is a class
-          var cd = (ClassDecl)((UserDefinedType)ty).ResolvedClass;
-          Dictionary<string, MemberDecl> members;
-          if (classMembers.TryGetValue(cd, out members) && members.TryGetValue(name, out member)) {
-            if (!VisibleInScope(member)) {
-              reporter.Error(MessageSource.Resolver, expr.tok, "member '{0}' has not been imported in this scope and cannot be accessed here", name);
-            }
-            if (!member.IsStatic) {
-              reporter.Error(MessageSource.Resolver, expr.tok, "accessing member '{0}' requires an instance expression", name); //TODO Unify with similar error messages
-              // nevertheless, continue creating an expression that approximates a correct one
-            }
-            var receiver = new StaticReceiverExpr(expr.tok, (UserDefinedType)ty.NormalizeExpand(), (ClassDecl)member.EnclosingClass, false);
-            r = ResolveExprDotCall(expr.tok, receiver, null, member, args, expr.OptTypeArguments, opts, allowMethodCall);
-          }
-        } else if (ty.IsDatatype) {
+        if (ty.IsDatatype) {
           // ----- LHS is a datatype
           var dt = ty.AsDatatype;
           Dictionary<string, DatatypeCtor> members;
@@ -13321,6 +13326,22 @@ namespace Microsoft.Dafny
             }
           }
         }
+        if (r == null && ty.IsTopLevelTypeWithMembers) {
+          // ----- LHS is a class
+          var cd = (TopLevelDeclWithMembers)((UserDefinedType)ty).ResolvedClass;
+          Dictionary<string, MemberDecl> members;
+          if (classMembers.TryGetValue(cd, out members) && members.TryGetValue(name, out member)) {
+            if (!VisibleInScope(member)) {
+              reporter.Error(MessageSource.Resolver, expr.tok, "member '{0}' has not been imported in this scope and cannot be accessed here", name);
+            }
+            if (!member.IsStatic) {
+              reporter.Error(MessageSource.Resolver, expr.tok, "accessing member '{0}' requires an instance expression", name); //TODO Unify with similar error messages
+              // nevertheless, continue creating an expression that approximates a correct one
+            }
+            var receiver = new StaticReceiverExpr(expr.tok, (UserDefinedType)ty.NormalizeExpand(), (TopLevelDeclWithMembers)member.EnclosingClass, false);
+            r = ResolveExprDotCall(expr.tok, receiver, null, member, args, expr.OptTypeArguments, opts, allowMethodCall);
+          }
+        } 
         if (r == null) {
           reporter.Error(MessageSource.Resolver, expr.tok, "member '{0}' does not exist in type '{1}'", name, ri.TypeParamDecl != null ? ri.TypeParamDecl.Name : ri.Decl.Name);
         }
@@ -13333,8 +13354,7 @@ namespace Microsoft.Dafny
           if (!member.IsStatic) {
             receiver = expr.Lhs;
           } else {
-            Contract.Assert(nptype.IsRefType);  // only reference types have static methods
-            receiver = new StaticReceiverExpr(expr.tok, (UserDefinedType)nptype, (ClassDecl)member.EnclosingClass, false);
+            receiver = new StaticReceiverExpr(expr.tok, (UserDefinedType)nptype, (TopLevelDeclWithMembers)member.EnclosingClass, false);
           }
           r = ResolveExprDotCall(expr.tok, receiver, nptype, member, args, expr.OptTypeArguments, opts, allowMethodCall);
         }
