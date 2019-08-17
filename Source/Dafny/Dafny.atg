@@ -1596,11 +1596,11 @@ MethodSpec<.List<MaybeFreeExpression> req, List<FrameExpression> mod, List<Maybe
                                                              .)
     ]
     ( "requires"
-		  { Attribute<ref reqAttrs> }
+      { Attribute<ref reqAttrs> }
       [ IF(IsLabel(true))
         LabelIdent<out lbl> ":"
       ]
-		  Expression<out e, false, false> OldSemi                (. req.Add(new MaybeFreeExpression(e, isFree, lbl == null ? null : new AssertLabel(lbl, lbl.val), reqAttrs)); .)
+      Expression<out e, false, false> OldSemi                (. req.Add(new MaybeFreeExpression(e, isFree, lbl == null ? null : new AssertLabel(lbl, lbl.val), reqAttrs)); .)
     | "ensures"
       { Attribute<ref ensAttrs> }
       Expression<out e, false, false> OldSemi                (. ens.Add(new MaybeFreeExpression(e, isFree, ensAttrs)); .)
@@ -1999,18 +1999,18 @@ FunctionSpec<.List<MaybeFreeExpression/*!*/>/*!*/ reqs, List<FrameExpression/*!*
      Contract.Requires(cce.NonNullElements(reads));
      Contract.Requires(decreases == null || cce.NonNullElements(decreases));
      Expression/*!*/ e;  FrameExpression/*!*/ fe;
-		 Attributes ensAttrs = null; Attributes reqAttrs = null; .)
+     Attributes ensAttrs = null; Attributes reqAttrs = null; .)
   SYNC
   ( "requires"
-	  { Attribute<ref reqAttrs> }
-		  Expression<out e, false, false> OldSemi                (. reqs.Add(new MaybeFreeExpression(e, false, reqAttrs)); .)
+    { Attribute<ref reqAttrs> }
+    Expression<out e, false, false> OldSemi                (. reqs.Add(new MaybeFreeExpression(e, false, reqAttrs)); .)
   | "reads"
     PossiblyWildFrameExpression<out fe, false>          (. reads.Add(fe); .)
     { "," PossiblyWildFrameExpression<out fe, false>    (. reads.Add(fe); .)
     }
     OldSemi
   | "ensures"
-	  { Attribute<ref ensAttrs> }
+      { Attribute<ref ensAttrs> }
       Expression<out e, false, false> OldSemi                (. ens.Add(new MaybeFreeExpression(e, false, ensAttrs)); .)
   | "decreases"                               (. if (decreases == null) {
                                                    SemErr(t, "'decreases' clauses are meaningless for copredicates, so they are not allowed");
