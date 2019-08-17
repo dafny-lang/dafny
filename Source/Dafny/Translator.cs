@@ -18329,7 +18329,7 @@ namespace Microsoft.Dafny {
           if (newArgs != attrs.Args || prev != attrs.Prev) {
             if (attrs is UserSuppliedAttributes) {
               var usa = (UserSuppliedAttributes)attrs;
-              return new UserSuppliedAttributes(usa.tok, usa.OpenBrace, usa.Colon, usa.CloseBrace, newArgs, prev);
+              return new UserSuppliedAttributes(usa.tok, usa.OpenBrace, usa.CloseBrace, newArgs, prev);
             } else {
               return new Attributes(attrs.Name, newArgs, prev);
             }

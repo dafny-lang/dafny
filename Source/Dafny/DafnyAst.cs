@@ -516,19 +516,16 @@ namespace Microsoft.Dafny {
   {
     public readonly IToken tok;  // may be null, if the attribute was constructed internally
     public readonly IToken OpenBrace;
-    public readonly IToken Colon;
     public readonly IToken CloseBrace;
     public bool Recognized;  // set to true to indicate an attribute that is processed by some part of Dafny; this allows it to be colored in the IDE
-    public UserSuppliedAttributes(IToken tok, IToken openBrace, IToken colon, IToken closeBrace, List<Expression> args, Attributes prev)
+    public UserSuppliedAttributes(IToken tok, IToken openBrace, IToken closeBrace, List<Expression> args, Attributes prev)
       : base(tok.val, args, prev) {
       Contract.Requires(tok != null);
       Contract.Requires(openBrace != null);
-      Contract.Requires(colon != null);
       Contract.Requires(closeBrace != null);
       Contract.Requires(args != null);
       this.tok = tok;
       OpenBrace = openBrace;
-      Colon = colon;
       CloseBrace = closeBrace;
     }
   }
@@ -6183,9 +6180,8 @@ namespace Microsoft.Dafny {
     public void AddCustomizedErrorMessage(IToken tok, string s) {
       var args = new List<Expression>() { new StringLiteralExpr(tok, s, true) };
       IToken openBrace = tok;
-      IToken colon = new Token(tok.line, tok.col + 1);
       IToken closeBrace = new Token(tok.line, tok.col + 7 + s.Length + 1); // where 7 = length(":error ")
-      this.Attributes = new UserSuppliedAttributes(tok, openBrace, colon, closeBrace, args, this.Attributes);
+      this.Attributes = new UserSuppliedAttributes(tok, openBrace, closeBrace, args, this.Attributes);
     }
   }
 
@@ -10734,9 +10730,8 @@ namespace Microsoft.Dafny {
     public void AddCustomizedErrorMessage(IToken tok, string s) {
       var args = new List<Expression>() { new StringLiteralExpr(tok, s, true) };
       IToken openBrace = tok;
-      IToken colon = new Token(tok.line, tok.col + 1);
       IToken closeBrace = new Token(tok.line, tok.col + 7 + s.Length + 1); // where 7 = length(":error ")
-      this.Attributes = new UserSuppliedAttributes(tok, openBrace, colon, closeBrace, args, this.Attributes);
+      this.Attributes = new UserSuppliedAttributes(tok, openBrace, closeBrace, args, this.Attributes);
     }
   }
 
