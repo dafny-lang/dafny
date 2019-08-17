@@ -187,11 +187,6 @@ public Parser(Scanner/*!*/ scanner, Errors/*!*/ errors, Include include, ModuleD
   theVerifyThisFile = verifyThisFile;
 }
 
-bool IsAttribute() {
-  IToken x = scanner.Peek();
-  return la.kind == _lbrace && x.kind == _colon;
-}
-
 bool IsLabel(bool allowLabel) {
   if (!allowLabel) {
     return false;
@@ -220,18 +215,15 @@ bool IsGets() {
 
 // an existential guard starts with an identifier and is then followed by
 // * a colon (if the first identifier is given an explicit type),
-// * a comma (if there's a list a bound variables and the first one is not given an explicit type),
+// * a comma (if there's a list of bound variables and the first one is not given an explicit type),
 // * a start-attribute (if there's one bound variable and it is not given an explicit type and there are attributes), or
 // * a bored smiley (if there's one bound variable and it is not given an explicit type).
 bool IsExistentialGuard() {
   scanner.ResetPeek();
   if (la.kind == _ident) {
     Token x = scanner.Peek();
-    if (x.kind == _colon || x.kind == _comma || x.kind == _boredSmiley) {
+    if (x.kind == _colon || x.kind == _comma || x.kind == _boredSmiley || x.kind == _lbracecolon) {
       return true;
-    } else if (x.kind == _lbrace) {
-      x = scanner.Peek();
-      return x.kind == _colon;
     }
   }
   return false;
@@ -773,6 +765,7 @@ TOKENS
   ensures = "ensures".
   ghost = "ghost".
   witness = "witness".
+  lbracecolon = "{:".
   lbrace = '{'.
   rbrace = '}'.
   lbracket = '['.
@@ -1576,7 +1569,7 @@ MethodSpec<.List<MaybeFreeExpression> req, List<FrameExpression> mod, List<Maybe
      IToken lbl = null;
   .)
   SYNC
-  ( "modifies" { IF(IsAttribute()) Attribute<ref modAttrs> }
+  ( "modifies" { Attribute<ref modAttrs> }
                FrameExpression<out fe, false, false>         (. Util.AddFrameExpression(mod, fe, performThisDeprecatedCheck, errors); .)
                { "," FrameExpression<out fe, false, false>   (. Util.AddFrameExpression(mod, fe, performThisDeprecatedCheck, errors); .)
                }
@@ -1586,16 +1579,16 @@ MethodSpec<.List<MaybeFreeExpression> req, List<FrameExpression> mod, List<Maybe
                                                              .)
     ]
     ( "requires"
-		  { IF(IsAttribute()) Attribute<ref reqAttrs> }
+		  { Attribute<ref reqAttrs> }
       [ IF(IsLabel(true))
         LabelIdent<out lbl> ":"
       ]
 		  Expression<out e, false, false> OldSemi                (. req.Add(new MaybeFreeExpression(e, isFree, lbl == null ? null : new AssertLabel(lbl, lbl.val), reqAttrs)); .)
     | "ensures"
-      { IF(IsAttribute()) Attribute<ref ensAttrs> }
+      { Attribute<ref ensAttrs> }
       Expression<out e, false, false> OldSemi                (. ens.Add(new MaybeFreeExpression(e, isFree, ensAttrs)); .)
     )
-  | "decreases" { IF(IsAttribute()) Attribute<ref decAttrs> } DecreasesList<decreases, true, false> OldSemi
+  | "decreases" { Attribute<ref decAttrs> } DecreasesList<decreases, true, false> OldSemi
   )
   .
 IteratorSpec<.List<FrameExpression/*!*/>/*!*/ reads, List<FrameExpression/*!*/>/*!*/ mod, List<Expression/*!*/> decreases,
@@ -1606,12 +1599,12 @@ IteratorSpec<.List<FrameExpression/*!*/>/*!*/ reads, List<FrameExpression/*!*/>/
      IToken lbl = null;
   .)
   SYNC
-  ( "reads"    { IF(IsAttribute()) Attribute<ref readsAttrs> }
+  ( "reads"    { Attribute<ref readsAttrs> }
                FrameExpression<out fe, false, false>       (. reads.Add(fe); .)
                { "," FrameExpression<out fe, false, false> (. reads.Add(fe); .)
                }
                OldSemi
-  | "modifies" { IF(IsAttribute()) Attribute<ref modAttrs> }
+  | "modifies" { Attribute<ref modAttrs> }
                FrameExpression<out fe, false, false>       (. mod.Add(fe); .)
                { "," FrameExpression<out fe, false, false> (. mod.Add(fe); .)
                }
@@ -1633,7 +1626,7 @@ IteratorSpec<.List<FrameExpression/*!*/>/*!*/ reads, List<FrameExpression/*!*/>/
                                                                   req.Add(new MaybeFreeExpression(e, isFree, al, null));
                                                                 }
                                                              .)
-    | "ensures" { IF(IsAttribute()) Attribute<ref ensAttrs> }
+    | "ensures" { Attribute<ref ensAttrs> }
       Expression<out e, false, false> OldSemi                (. if (isYield) {
                                                                   yieldEns.Add(new MaybeFreeExpression(e, isFree, ensAttrs));
                                                                 } else {
@@ -1641,7 +1634,7 @@ IteratorSpec<.List<FrameExpression/*!*/>/*!*/ reads, List<FrameExpression/*!*/>/
                                                                 }
                                                              .)
     )
-  | "decreases" { IF(IsAttribute()) Attribute<ref decrAttrs> } DecreasesList<decreases, false, false> OldSemi
+  | "decreases" { Attribute<ref decrAttrs> } DecreasesList<decreases, false, false> OldSemi
   )
   .
 Formals<.bool incoming, bool allowGhostKeyword, bool allowNewKeyword, List<Formal> formals.>
@@ -1992,7 +1985,7 @@ FunctionSpec<.List<MaybeFreeExpression/*!*/>/*!*/ reqs, List<FrameExpression/*!*
 		 Attributes ensAttrs = null; Attributes reqAttrs = null; .)
   SYNC
   ( "requires"
-	  { IF(IsAttribute()) Attribute<ref reqAttrs> }
+	  { Attribute<ref reqAttrs> }
 		  Expression<out e, false, false> OldSemi                (. reqs.Add(new MaybeFreeExpression(e, false, reqAttrs)); .)
   | "reads"
     PossiblyWildFrameExpression<out fe, false>          (. reads.Add(fe); .)
@@ -2000,7 +1993,7 @@ FunctionSpec<.List<MaybeFreeExpression/*!*/>/*!*/ reqs, List<FrameExpression/*!*
     }
     OldSemi
   | "ensures"
-	  { IF(IsAttribute()) Attribute<ref ensAttrs> }
+	  { Attribute<ref ensAttrs> }
       Expression<out e, false, false> OldSemi                (. ens.Add(new MaybeFreeExpression(e, false, ensAttrs)); .)
   | "decreases"                               (. if (decreases == null) {
                                                    SemErr(t, "'decreases' clauses are meaningless for copredicates, so they are not allowed");
@@ -2509,15 +2502,15 @@ LoopSpec<.List<MaybeFreeExpression> invariants, List<Expression> decreases, ref 
     [ "free"                                      (. isFree = true; errors.Deprecated(t, "the 'free' keyword is soon to be deprecated"); .)
     ]
     "invariant"
-    { IF(IsAttribute()) Attribute<ref attrs> }
+    { Attribute<ref attrs> }
     Expression<out e, false, true>                (. invariants.Add(new MaybeFreeExpression(e, isFree, attrs)); .)
     OldSemi
   | SYNC "decreases"
-    { IF(IsAttribute()) Attribute<ref decAttrs> }
+    { Attribute<ref decAttrs> }
     DecreasesList<decreases, true, true>
     OldSemi
   | SYNC "modifies"                               (. mod = mod ?? new List<FrameExpression>(); .)
-    { IF(IsAttribute()) Attribute<ref modAttrs> }
+    { Attribute<ref modAttrs> }
     FrameExpression<out fe, false, true>          (. mod.Add(fe); .)
     { "," FrameExpression<out fe, false, true>    (. mod.Add(fe); .)
     }
@@ -2624,7 +2617,7 @@ AssertStmt<out Statement/*!*/ s, bool inExprContext>
      IToken lbl = null;
   .)
   "assert"                                     (. x = t; .)
-  { IF(IsAttribute()) Attribute<ref attrs> }
+  { Attribute<ref attrs> }
   ( [ IF(IsLabel(!inExprContext))
       LabelIdent<out lbl> ":"
     ]
@@ -2649,7 +2642,7 @@ AssumeStmt<out Statement/*!*/ s>
      IToken dotdotdot = null;
   .)
   "assume"                                     (. x = t; .)
-  { IF(IsAttribute()) Attribute<ref attrs> }
+  { Attribute<ref attrs> }
   ( Expression<out e, false, true>
   | "..."                                      (. dotdotdot = t; .)
   )
@@ -2743,7 +2736,7 @@ ModifyStmt<out Statement s>
      IToken ellipsisToken = null;
   .)
   "modify"           (. tok = t; .)
-  { IF(IsAttribute()) Attribute<ref attrs> }
+  { Attribute<ref attrs> }
   /* Note, there is an ambiguity here, because a curly brace may look like a FrameExpression and
    * may also look like a BlockStmt.  We're happy to parse the former, because if the user intended
    * the latter, then an explicit FrameExpression of {} could be given.
@@ -2777,7 +2770,7 @@ CalcStmt<out Statement s>
      IToken danglingOperator = null;
   .)
   "calc"                                                  (. x = t; .)
-  { IF(IsAttribute()) Attribute<ref attrs> }
+  { Attribute<ref attrs> }
   [ CalcOp<out opTok, out userSuppliedOp>                 (. if (userSuppliedOp.ResultOp(userSuppliedOp) == null) { // guard against non-transitive calcOp (like !=)
                                                                SemErr(opTok, "the main operator of a calculation must be transitive");
                                                              } else {
@@ -3870,7 +3863,7 @@ QuantifierDomain<.out List<BoundVar> bvars, out Attributes attrs, out Expression
   { ","
     IdentTypeOptional<out bv>                  (. bvars.Add(bv); .)
   }
-  { IF(IsAttribute()) Attribute<ref attrs> }
+  { Attribute<ref attrs> }
   [ IF(la.kind == _verticalbar)   /* Coco complains about this ambiguity, thinking that a "|" can follow a body-less forall statement; I don't see how that's possible, but this IF is good and suppresses the reported ambiguity */
     "|"
     Expression<out range, true, true>
@@ -3915,8 +3908,7 @@ Attribute<ref Attributes attrs>
      IToken x = null;
      var args = new List<Expression>();
   .)
-  "{"                         (. openBrace = t; .)
-  ":"
+  "{:"                         (. openBrace = t; .)
   (. ConvertKeywordTokenToIdent(); .)
   NoUSIdent<out x>
   [ Expressions<args> ]
