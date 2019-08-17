@@ -9744,6 +9744,20 @@ namespace Microsoft.Dafny {
       }
     }
   }
+
+  public class LetOrFailExpr : ConcreteSyntaxExpression
+  {
+    public readonly CasePattern<BoundVar> Lhs; // null means void-error handling: ":- E; F", non-null means "var pat :- E; F"
+    public readonly Expression Rhs;
+    public readonly Expression Body;
+
+    public LetOrFailExpr(IToken tok, CasePattern<BoundVar> lhs/*?*/, Expression rhs, Expression body): base(tok) {
+      Lhs = lhs;
+      Rhs = rhs;
+      Body = body;
+    }
+  }
+
   // Represents expr Name: Body
   //         or expr Name: (assert Body == Contract; Body)
   public class NamedExpr : Expression
