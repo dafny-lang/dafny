@@ -3486,9 +3486,11 @@ LetExpr<out Expression e, bool allowSemi, bool allowLambda, bool allowBitwiseOps
      var letRHSs = new List<Expression>();
      CasePattern<BoundVar> pat;
      bool exact = true;
+     bool isLetOrFail = false;
      Attributes attrs = null;
      e = dummyExpr;
   .)
+  [
     [ "ghost"                       (. isGhost = true;  x = t; .)
     ]
     "var"                           (. if (!isGhost) { x = t; } .)
@@ -3499,21 +3501,47 @@ LetExpr<out Expression e, bool allowSemi, bool allowLambda, bool allowBitwiseOps
                                        letLHSs.Add(pat);
                                     .)
     }
-    ( ":="
-    | { Attribute<ref attrs> }
-      ":|"                          (. exact = false;
+  ]
+  ( ":="
+  | { Attribute<ref attrs> }
+    ":|"                            (. exact = false;
                                        foreach (var lhs in letLHSs) {
                                          if (lhs.Arguments != null) {
                                            SemErr(lhs.tok, "LHS of let-such-that expression must be variables, not general patterns");
                                          }
                                        }
                                     .)
-    )
-    Expression<out e, false, true>        (. letRHSs.Add(e); .)
-    { "," Expression<out e, false, true>  (. letRHSs.Add(e); .)
+  | ":-"                            (. isLetOrFail = true; .)
+  )
+  (. x = x ?? t; .)
+  Expression<out e, false, true>        (. letRHSs.Add(e); .)
+  { "," Expression<out e, false, true>  (. letRHSs.Add(e); .)
+  }
+  ";"
+  Expression<out e, allowSemi, allowLambda, allowBitwiseOps>
+  (.
+    if (isLetOrFail) {
+      CasePattern<BoundVar> lhs = null;
+      if (letLHSs.Count == 1) {
+        lhs = letLHSs[0];
+	  } else if (letLHSs.Count != 0) {
+        SemErr("':-' can have at most one left-hand side");
+      }
+      Expression rhs = null;
+      Contract.Assert(letRHSs.Count > 0);
+	  if (letRHSs.Count == 1) {
+        rhs = letRHSs[0];
+	  } else {
+        SemErr("':-' must have exactly one right-hand side");
+      }
+      e = new LetOrFailExpr(x, lhs, rhs, e);
+    } else {
+      if (letLHSs.Count == 0) {
+        SemErr(x, string.Format("'{0}' needs a left-hand side", exact ? ":=" : ":|"));
+      }
+      e = new LetExpr(x, letLHSs, letRHSs, e, exact, attrs);
     }
-    ";"
-    Expression<out e, allowSemi, allowLambda, allowBitwiseOps>    (. e = new LetExpr(x, letLHSs, letRHSs, e, exact, attrs); .)
+  .)
   .
 
 NamedExpr<out Expression e, bool allowSemi, bool allowLambda, bool allowBitwiseOps>
