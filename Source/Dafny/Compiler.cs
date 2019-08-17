@@ -1860,6 +1860,12 @@ namespace Microsoft.Dafny {
           }
         }
 
+      } else if (stmt is AssignOrReturnStmt) {
+        var s = (AssignOrReturnStmt)stmt;
+        // TODO there's potential here to use target-language specific features such as exceptions
+        // to make it more target-language idiomatic and improve performance
+        TrStmtList(s.ResolvedStatements, wr);
+
       } else if (stmt is CallStmt) {
         var s = (CallStmt)stmt;
         TrCallStmt(s, null, wr);

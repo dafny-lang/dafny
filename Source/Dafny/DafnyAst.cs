@@ -516,19 +516,16 @@ namespace Microsoft.Dafny {
   {
     public readonly IToken tok;  // may be null, if the attribute was constructed internally
     public readonly IToken OpenBrace;
-    public readonly IToken Colon;
     public readonly IToken CloseBrace;
     public bool Recognized;  // set to true to indicate an attribute that is processed by some part of Dafny; this allows it to be colored in the IDE
-    public UserSuppliedAttributes(IToken tok, IToken openBrace, IToken colon, IToken closeBrace, List<Expression> args, Attributes prev)
+    public UserSuppliedAttributes(IToken tok, IToken openBrace, IToken closeBrace, List<Expression> args, Attributes prev)
       : base(tok.val, args, prev) {
       Contract.Requires(tok != null);
       Contract.Requires(openBrace != null);
-      Contract.Requires(colon != null);
       Contract.Requires(closeBrace != null);
       Contract.Requires(args != null);
       this.tok = tok;
       OpenBrace = openBrace;
-      Colon = colon;
       CloseBrace = closeBrace;
     }
   }
@@ -6210,9 +6207,8 @@ namespace Microsoft.Dafny {
     public void AddCustomizedErrorMessage(IToken tok, string s) {
       var args = new List<Expression>() { new StringLiteralExpr(tok, s, true) };
       IToken openBrace = tok;
-      IToken colon = new Token(tok.line, tok.col + 1);
       IToken closeBrace = new Token(tok.line, tok.col + 7 + s.Length + 1); // where 7 = length(":error ")
-      this.Attributes = new UserSuppliedAttributes(tok, openBrace, colon, closeBrace, args, this.Attributes);
+      this.Attributes = new UserSuppliedAttributes(tok, openBrace, closeBrace, args, this.Attributes);
     }
   }
 
@@ -6641,7 +6637,7 @@ namespace Microsoft.Dafny {
   }
 
   /// <summary>
-  /// Common superclass of UpdateStmt and AssignSuchThatStmt.
+  /// Common superclass of UpdateStmt, AssignSuchThatStmt and AssignOrReturnStmt
   /// </summary>
   public abstract class ConcreteUpdateStatement : Statement
   {
@@ -6733,6 +6729,36 @@ namespace Microsoft.Dafny {
       Contract.Requires(lhss.Count != 0 || rhss.Count == 1);
       Rhss = rhss;
       CanMutateKnownState = mutate;
+    }
+  }
+
+  public class AssignOrReturnStmt : ConcreteUpdateStatement
+  {
+    public readonly Expression Rhs; // this is the unresolved RHS, and thus can also be a method call
+    public readonly List<Statement> ResolvedStatements = new List<Statement>();  // contents filled in during resolution
+    public override IEnumerable<Statement> SubStatements {
+      get { return ResolvedStatements; }
+    }
+
+    [ContractInvariantMethod]
+    void ObjectInvariant() {
+      Contract.Invariant(Lhss != null);
+      Contract.Invariant(
+          Lhss.Count == 0 ||                   // ":- MethodOrExpresion;" which returns void success or an error
+          Lhss.Count == 1 && Lhss[0] != null   // "y :- MethodOrExpression;"
+      );
+      Contract.Invariant(Rhs != null);
+    }
+
+    public AssignOrReturnStmt(IToken tok, IToken endTok, List<Expression> lhss, Expression rhs)
+      : base(tok, endTok, lhss)
+    {
+      Contract.Requires(tok != null);
+      Contract.Requires(endTok != null);
+      Contract.Requires(lhss != null);
+      Contract.Requires(lhss.Count <= 1);
+      Contract.Requires(rhs != null);
+      Rhs = rhs;
     }
   }
 
@@ -9718,6 +9744,20 @@ namespace Microsoft.Dafny {
       }
     }
   }
+
+  public class LetOrFailExpr : ConcreteSyntaxExpression
+  {
+    public readonly CasePattern<BoundVar> Lhs; // null means void-error handling: ":- E; F", non-null means "var pat :- E; F"
+    public readonly Expression Rhs;
+    public readonly Expression Body;
+
+    public LetOrFailExpr(IToken tok, CasePattern<BoundVar> lhs/*?*/, Expression rhs, Expression body): base(tok) {
+      Lhs = lhs;
+      Rhs = rhs;
+      Body = body;
+    }
+  }
+
   // Represents expr Name: Body
   //         or expr Name: (assert Body == Contract; Body)
   public class NamedExpr : Expression
@@ -10719,9 +10759,8 @@ namespace Microsoft.Dafny {
     public void AddCustomizedErrorMessage(IToken tok, string s) {
       var args = new List<Expression>() { new StringLiteralExpr(tok, s, true) };
       IToken openBrace = tok;
-      IToken colon = new Token(tok.line, tok.col + 1);
       IToken closeBrace = new Token(tok.line, tok.col + 7 + s.Length + 1); // where 7 = length(":error ")
-      this.Attributes = new UserSuppliedAttributes(tok, openBrace, colon, closeBrace, args, this.Attributes);
+      this.Attributes = new UserSuppliedAttributes(tok, openBrace, closeBrace, args, this.Attributes);
     }
   }
 

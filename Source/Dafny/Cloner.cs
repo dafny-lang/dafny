@@ -249,7 +249,7 @@ namespace Microsoft.Dafny
         return CloneAttributes(attrs.Prev);
       } else if (attrs is UserSuppliedAttributes) {
         var usa = (UserSuppliedAttributes)attrs;
-        return new UserSuppliedAttributes(Tok(usa.tok), Tok(usa.OpenBrace), Tok(usa.Colon), Tok(usa.CloseBrace), attrs.Args.ConvertAll(CloneExpr), CloneAttributes(attrs.Prev));
+        return new UserSuppliedAttributes(Tok(usa.tok), Tok(usa.OpenBrace), Tok(usa.CloseBrace), attrs.Args.ConvertAll(CloneExpr), CloneAttributes(attrs.Prev));
       } else {
         return new Attributes(attrs.Name, attrs.Args.ConvertAll(CloneExpr), CloneAttributes(attrs.Prev));
       }
@@ -628,6 +628,10 @@ namespace Microsoft.Dafny
       } else if (stmt is UpdateStmt) {
         var s = (UpdateStmt)stmt;
         r = new UpdateStmt(Tok(s.Tok), Tok(s.EndTok), s.Lhss.ConvertAll(CloneExpr), s.Rhss.ConvertAll(CloneRHS), s.CanMutateKnownState);
+
+      } else if (stmt is AssignOrReturnStmt) {
+        var s = (AssignOrReturnStmt)stmt;
+        r = new AssignOrReturnStmt(Tok(s.Tok), Tok(s.EndTok), s.Lhss.ConvertAll(CloneExpr), CloneExpr(s.Rhs));
 
       } else if (stmt is VarDeclStmt) {
         var s = (VarDeclStmt)stmt;

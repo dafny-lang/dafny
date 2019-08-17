@@ -1,0 +1,20 @@
+TypecheckErrors.dfy(7,28): Error: incorrect type of method in-parameter (expected nat, got string)
+TypecheckErrors.dfy(8,28): Error: incorrect type of method in-parameter (expected nat, got string)
+TypecheckErrors.dfy(14,8): Error: Duplicate local-variable name: a
+TypecheckErrors.dfy(16,8): Error: Duplicate local-variable name: b
+TypecheckErrors.dfy(39,10): Error: member IsFailure does not exist in trait BadOutcome1
+TypecheckErrors.dfy(39,10): Error: member PropagateFailure does not exist in trait BadOutcome1
+TypecheckErrors.dfy(39,10): Error: member Extract does not exist in trait BadOutcome1
+TypecheckErrors.dfy(39,10): Error: The right-hand side of ':-', which is of type 'BadOutcome1?', must have members 'IsFailure()', 'PropagateFailure()', and 'Extract()'
+TypecheckErrors.dfy(43,10): Error: member PropagateFailure does not exist in trait BadOutcome2
+TypecheckErrors.dfy(43,10): Error: The right-hand side of ':-', which is of type 'BadOutcome2?', must have members 'IsFailure()', 'PropagateFailure()', and 'Extract()'
+TypecheckErrors.dfy(47,10): Error: member Extract does not exist in trait BadOutcome3
+TypecheckErrors.dfy(47,10): Error: The right-hand side of ':-', which is of type 'BadOutcome3?', must have members 'IsFailure()', 'PropagateFailure()', and 'Extract()'
+TypecheckErrors.dfy(51,22): Error: incorrect type of method in-parameter (expected string, got int)
+TypecheckErrors.dfy(71,4): Error: member IsFailure does not exist in trait BadVoidOutcome1
+TypecheckErrors.dfy(71,4): Error: member PropagateFailure does not exist in trait BadVoidOutcome1
+TypecheckErrors.dfy(71,4): Error: The right-hand side of ':-', which is of type 'BadVoidOutcome1?', must have members 'IsFailure()', 'PropagateFailure()', but not 'Extract()'
+TypecheckErrors.dfy(75,4): Error: member PropagateFailure does not exist in trait BadVoidOutcome2
+TypecheckErrors.dfy(75,4): Error: The right-hand side of ':-', which is of type 'BadVoidOutcome2?', must have members 'IsFailure()', 'PropagateFailure()', but not 'Extract()'
+TypecheckErrors.dfy(79,4): Error: The right-hand side of ':-', which is of type 'BadVoidOutcome3?', must have members 'IsFailure()', 'PropagateFailure()', but not 'Extract()'
+19 resolution/type errors detected in TypecheckErrors.dfy

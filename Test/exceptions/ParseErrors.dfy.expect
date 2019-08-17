@@ -1,0 +1,4 @@
+ParseErrors.dfy(8,20): Error: this symbol not expected in VarDeclStatement
+ParseErrors.dfy(8,15): Error: ':-' assignments can only have one LHS
+ParseErrors.dfy(14,9): Error: semi expected
+3 parse errors detected in ParseErrors.dfy

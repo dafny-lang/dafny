@@ -1392,7 +1392,10 @@ namespace Microsoft.Dafny {
           PrintExpression(lhs, true);
           sep = ", ";
         }
-        PrintUpdateRHS(s);
+        if (s.Lhss.Count > 0) {
+          wr.Write(" ");
+        }
+        PrintUpdateRHS(s, indent);
         wr.Write(";");
 
       } else if (stmt is CallStmt) {
@@ -1420,7 +1423,8 @@ namespace Microsoft.Dafny {
           sep = ",";
         }
         if (s.Update != null) {
-          PrintUpdateRHS(s.Update);
+          wr.Write(" ");
+          PrintUpdateRHS(s.Update, indent);
         }
         wr.Write(";");
 
@@ -1487,14 +1491,15 @@ namespace Microsoft.Dafny {
     }
 
     /// <summary>
-    /// Does not print LHS
+    /// Does not print LHS, nor the space one might want between LHS and RHS,
+    /// because if there's no LHS, we don't want to start with a space
     /// </summary>
-    void PrintUpdateRHS(ConcreteUpdateStatement s) {
+    void PrintUpdateRHS(ConcreteUpdateStatement s, int indent) {
       Contract.Requires(s != null);
       if (s is UpdateStmt) {
         var update = (UpdateStmt)s;
         if (update.Lhss.Count != 0) {
-          wr.Write(" := ");
+          wr.Write(":= ");
         }
         var sep = "";
         foreach (var rhs in update.Rhss) {
@@ -1504,13 +1509,29 @@ namespace Microsoft.Dafny {
         }
       } else if (s is AssignSuchThatStmt) {
         var update = (AssignSuchThatStmt)s;
-        wr.Write(" :| ");
+        wr.Write(":| ");
         if (update.AssumeToken != null) {
           wr.Write("assume ");
         }
         PrintExpression(update.Expr, true);
+      } else if (s is AssignOrReturnStmt) {
+        var stmt = (AssignOrReturnStmt)s;
+        wr.Write(":- ");
+        PrintExpression(stmt.Rhs, true);
+        if (DafnyOptions.O.DafnyPrintResolvedFile != null) {
+          Contract.Assert(stmt.ResolvedStatements.Count > 0);  // filled in during resolution
+          wr.WriteLine();
+          Indent(indent); wr.WriteLine("/*---------- desugared ----------");
+          foreach (Statement r in stmt.ResolvedStatements) {
+            Indent(indent);
+            PrintStatement(r, indent);
+            wr.WriteLine();
+          }
+          Indent(indent); wr.Write("---------- end desugared ----------*/");
+        }
+
       } else {
-        Contract.Assert(s == null);  // otherwise, unknown type
+        Contract.Assert(false);  // otherwise, unknown type
       }
     }
 
