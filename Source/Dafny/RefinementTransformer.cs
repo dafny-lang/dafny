@@ -610,11 +610,11 @@ namespace Microsoft.Dafny
             bool isIndPredicate = f is InductivePredicate;
             bool isCoPredicate = f is CoPredicate;
             if (!(member is Function) ||
-              (isPredicate && !(member is Predicate)) ||
-              (isIndPredicate && !(member is InductivePredicate)) ||
-              (isCoPredicate && !(member is CoPredicate)) ||
-              (f is TwoStatePredicate && !(member is TwoStatePredicate)) ||
-              (f is TwoStateFunction && (!(member is TwoStateFunction) || member is TwoStatePredicate))) {
+              isPredicate != (member is Predicate) ||
+              (f is InductivePredicate) != (member is InductivePredicate) ||
+              (f is CoPredicate) != (member is CoPredicate) ||
+              (f is TwoStatePredicate) != (member is TwoStatePredicate) ||
+              (f is TwoStateFunction) != (member is TwoStateFunction)) {
               reporter.Error(MessageSource.RefinementTransformer, nwMember, "a {0} declaration ({1}) can only refine a {0}", f.WhatKind, nwMember.Name);
             } else if (f.IsProtected != ((Function)member).IsProtected) {
               reporter.Error(MessageSource.RefinementTransformer, f, "a {0} in a refinement module must be declared 'protected' if and only if the refined {0} is", f.WhatKind);
