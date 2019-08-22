@@ -21,7 +21,21 @@ module ArrowVariance {
   {
     if * {
       assume forall x :: g.requires(x) && g.reads(x) == {};
-      f := g;  // error: (it would be nice if this didn't produce an error)
+      // When reads and requires clauses used to have take type arguments,
+      // the following assignment used to result in an error.
+      // The error occurred as follows: to prove that g can be assigned
+      // to f, Boogie would check that g is a total function from int to int:
+      //    assert $Is(g#0, Tclass._System.___hTotalFunc1(TInt, TInt));
+      // This can be proved if we know that for all x of type int,
+      // g.requires(x) is true. Since the translateion of the requires clause
+      // used to take a type arguments (corresponding to the function's parameter
+      // and return types), this would mean proving that
+      // g.requires(int, int, x) is true. However, since we only know that
+      // g.requires(int, nat, x) is true, we could not prove it.
+      // Now that we removed type arguments from the requires and reads clauses,
+      // the check can pass. This should not be a problem since typechecking is still
+      // performed by Dafny.
+      f := g;
     } else if * {
       assume forall x :: 0 <= f(x);
       g := f;  // error: (it would be nice if this didn't produce an error)
@@ -105,7 +119,7 @@ module XJ {
     var y: Cell :| y.data == 7;
     var y': Cell? :| y' == null || y'.data == 8;
     var y'': Cell :| true;
-    
+
     var y'3: Cell :| k == 113;  // error: cannot establish existence of LHS
     var y'4: Cell :| false;  // error: cannot establish existence of LHS
     var z: real :| Z(z);
@@ -114,7 +128,7 @@ module XJ {
 
 module Numerics {
   type neg = x: int | x < 0 witness -8
-  
+
   method IntLike() returns (ks: set<nat>, ns: set<neg>, z: bool) {
     var y := -8;
     z := y in ks;
