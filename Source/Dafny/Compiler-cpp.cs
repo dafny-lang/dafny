@@ -408,7 +408,7 @@ namespace Microsoft.Dafny {
         var error = string.Format("Asked to create a non-native newtype {0}, which is currently unsupported", nt);
         throw new Exception(error);
       }
-      var cw = CreateClass(IdName(nt), null, wr) as CppCompiler.ClassWriter;
+      var cw = CreateClass("class_" + IdName(nt), null, wr) as CppCompiler.ClassWriter;
       var w = cw.MethodWriter;
       if (nt.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
         var witness = new TargetWriter(w.IndentLevel, true);
@@ -420,7 +420,7 @@ namespace Microsoft.Dafny {
         }
         DeclareField("Witness", true, true, nt.BaseType, nt.tok, witness.ToString(), w);
       }
-      using (var wDefault = w.NewBlock("static get Default()")) {
+      using (var wDefault = w.NewBlock(string.Format("static {0} get_Default()", nt.Name))) {
         var udt = new UserDefinedType(nt.tok, nt.Name, nt, new List<Type>());
         var d = TypeInitializationValue(udt, wr, nt.tok, false);
         wDefault.WriteLine("return {0};", d);
@@ -1021,9 +1021,12 @@ namespace Microsoft.Dafny {
     // ----- Statements -------------------------------------------------------------
 
     protected override void EmitPrintStmt(TargetWriter wr, Expression arg) {
-      wr.Write("_dafny::Print(");
+      //wr.Write("_dafny::Print(");
+      //TrExpr(arg, wr, false);
+      //wr.WriteLine(");");
+      wr.Write("cout << ");
       TrExpr(arg, wr, false);
-      wr.WriteLine(");");
+      wr.WriteLine(";");
     }
 
     protected override void EmitReturn(List<Formal> outParams, TargetWriter wr) {
@@ -1144,7 +1147,7 @@ namespace Microsoft.Dafny {
         // TODO: the string should be converted to a Dafny seq<char>
         TrStringLiteral(str, wr);
       } else if (AsNativeType(e.Type) is NativeType nt) {
-        wr.Write("{0}({1})", GetNativeTypeName(nt), (BigInteger)e.Value);
+        wr.Write("({0}){1}", GetNativeTypeName(nt), (BigInteger)e.Value);
       } else if (e.Value is BigInteger i) {
         EmitIntegerLiteral(i, wr);
       } else if (e.Value is Basetypes.BigDec) {
