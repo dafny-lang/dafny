@@ -28,12 +28,27 @@ method LinearSearch(a: array<uint32>, len:uint32, key: uint32) returns (n: uint3
   }
 }
 
-method PrintArray<A>(a: array?<A>) {
+//method PrintArray<A>(a: array?<A>) {
+//  if (a == null) {
+//    print "It's null\n";
+//  } else {
+//    var i := 0;
+//    while i < a.Length {
+//      print a[i], " ";
+//      i := i + 1;
+//    }
+//    print "\n";
+//  }
+//}
+
+method PrintArray(a:array?<uint32>, len:uint32) 
+  requires a != null ==> len as int == a.Length;
+{
   if (a == null) {
     print "It's null\n";
   } else {
-    var i := 0;
-    while i < a.Length {
+    var i:uint32 := 0;
+    while i < len {
       print a[i], " ";
       i := i + 1;
     }
@@ -48,7 +63,7 @@ method Main() {
     a[i] := i;
     i := i + 1;
   }
-  PrintArray(a);
+  PrintArray(a, 23);
   var n := LinearSearch(a, 23, 17);
   print n, "\n";
   var s : seq<uint32> := a[..];
@@ -64,7 +79,8 @@ method Main() {
   a[0] := 42;
   print s, "\n";
 
-  PrintArray<uint32>(null);
+  PrintArray(null, 0);
+  //PrintArray<uint32>(null);
 }
 
 
