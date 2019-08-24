@@ -11703,7 +11703,7 @@ namespace Microsoft.Dafny
         ResolveApplySuffix(e, opts, false);
 
       } else if (expr is RevealExpr) {
-        var e = (RevealExpr) expr;
+        var e = (RevealExpr)expr;
         ResolveRevealExpr(e, opts, true);
         e.ResolvedExpression = e.Expr;
 
@@ -11819,7 +11819,7 @@ namespace Microsoft.Dafny
         ResolveFunctionCallExpr(e, opts);
 
       } else if (expr is ApplyExpr) {
-        var e = (ApplyExpr) expr;
+        var e = (ApplyExpr)expr;
         ResolveExpression(e.Function, opts);
         foreach (var arg in e.Args) {
           ResolveExpression(arg, opts);
@@ -11844,7 +11844,7 @@ namespace Microsoft.Dafny
         expr.Type = fnType == null ? new InferredTypeProxy() : fnType.Result;
 
       } else if (expr is SeqConstructionExpr) {
-        var e = (SeqConstructionExpr) expr;
+        var e = (SeqConstructionExpr)expr;
         var elementType = new InferredTypeProxy();
         ResolveExpression(e.N, opts);
         ConstrainToIntegerType(e.N, "sequence construction must use an integer-based expression for the sequence size (got {0})");
@@ -11919,7 +11919,7 @@ namespace Microsoft.Dafny
               var declKind = opts.codeContext is RedirectingTypeDecl ? ((RedirectingTypeDecl)opts.codeContext).WhatKind : ((MemberDecl)opts.codeContext).WhatKind;
               reporter.Error(MessageSource.Resolver, expr, "a {0} definition is not allowed to depend on the set of allocated references", declKind);
             }
-          break;
+            break;
           default:
             Contract.Assert(false); throw new cce.UnreachableException();  // unexpected unary operator
         }
@@ -12160,6 +12160,9 @@ namespace Microsoft.Dafny
         ResolveAttributes(e.Attributes, e, opts);
         scope.PopMarker();
         expr.Type = e.Body.Type;
+      } else if (expr is LetOrFailExpr) {
+        var e = (LetOrFailExpr)expr;
+        ResolveLetOrFailExpr(e, opts);
       } else if (expr is NamedExpr) {
         var e = (NamedExpr)expr;
         ResolveExpression(e.Body, opts);
@@ -12316,6 +12319,45 @@ namespace Microsoft.Dafny
         // some resolution error occurred
         expr.Type = new InferredTypeProxy();
       }
+    }
+
+    private Expression VarDotFunction(IToken tok, string varname, string functionname) {
+      return new ApplySuffix(tok, new ExprDotName(tok, new IdentifierExpr(tok, varname), functionname, null), new List<Expression>() { });
+    }
+
+    // TODO search for occurrences of "new LetExpr" which could benefit from this helper
+    private LetExpr LetPatIn(IToken tok, CasePattern<BoundVar> lhs, Expression rhs, Expression body) {
+      return new LetExpr(tok, new List<CasePattern<BoundVar>>() { lhs }, new List<Expression>() { rhs }, body, true);
+    }
+
+    private LetExpr LetVarIn(IToken tok, string name, Type tp, Expression rhs, Expression body) {
+      var lhs = new CasePattern<BoundVar>(tok, new BoundVar(tok, name, tp));
+      return LetPatIn(tok, lhs, rhs, body);
+    }
+
+    /// <summary>
+    ///  If expr.Lhs != null: Desugars "var x: T :- E; F" into "var temp := E; if temp.IsFailure() then temp.PropagateFailure() else var x: T := temp.Extract(); F"
+    ///  If expr.Lhs == null: Desugars "         :- E; F" into "var temp := E; if temp.IsFailure() then temp.PropagateFailure() else                             F"
+    /// </summary>
+    public void ResolveLetOrFailExpr(LetOrFailExpr expr, ResolveOpts opts) {
+      var temp = FreshTempVarName("valueOrError", opts.codeContext);
+      var tempType = new InferredTypeProxy();
+      // "var temp := E;"
+      expr.ResolvedExpression = LetVarIn(expr.tok, temp, tempType, expr.Rhs,
+        // "if temp.IsFailure()"
+        new ITEExpr(expr.tok, false, VarDotFunction(expr.tok, temp, "IsFailure"),
+          // "then temp.PropagateFailure()"
+          VarDotFunction(expr.tok, temp, "PropagateFailure"),
+          // "else"
+          expr.Lhs == null
+            // "F"
+            ? expr.Body
+            // "var x: T := temp.Extract(); F"
+            : LetPatIn(expr.tok, expr.Lhs, VarDotFunction(expr.tok, temp, "Extract"), expr.Body)));
+
+      ResolveExpression(expr.ResolvedExpression, opts);
+      bool expectExtract = (expr.Lhs != null);
+      EnsureSupportsErrorHandling(expr.tok, PartiallyResolveTypeForMemberSelection(expr.tok, tempType), expectExtract);
     }
 
     private Type SelectAppropriateArrowType(IToken tok, List<Type> typeArgs, Type resultType, bool hasReads, bool hasReq) {

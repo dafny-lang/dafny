@@ -399,6 +399,10 @@ namespace Microsoft.Dafny
         var e = (LetExpr)expr;
         return new LetExpr(Tok(e.tok), e.LHSs.ConvertAll(CloneCasePattern), e.RHSs.ConvertAll(CloneExpr), CloneExpr(e.Body), e.Exact, e.Attributes);
 
+      } else if (expr is LetOrFailExpr) {
+        var e = (LetOrFailExpr)expr;
+        return new LetOrFailExpr(Tok(e.tok), CloneCasePattern(e.Lhs), CloneExpr(e.Rhs), CloneExpr(e.Body));
+
       } else if (expr is NamedExpr) {
         var e = (NamedExpr)expr;
         return new NamedExpr(Tok(e.tok), e.Name, CloneExpr(e.Body));

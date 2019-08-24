@@ -2350,6 +2350,23 @@ namespace Microsoft.Dafny {
         PrintExpression(e.Body, !parensNeeded && isFollowedBySemicolon);
         if (parensNeeded) { wr.Write(")"); }
 
+      } else if (expr is LetOrFailExpr) {
+        // TODO should we also print the desugared version?
+        // If so, should we insert newlines?
+        var e = (LetOrFailExpr)expr;
+        bool parensNeeded = !isRightmost;
+        if (parensNeeded) { wr.Write("("); }
+        if (e.Lhs != null) {
+          if (e.Lhs.Var != null && e.Lhs.Var.IsGhost) { wr.Write("ghost "); }
+          wr.Write("var ");
+          PrintCasePattern(e.Lhs);
+          wr.Write(" :- ");
+        }
+        PrintExpression(e.Rhs, true);
+        wr.Write("; ");
+        PrintExpression(e.Body, !parensNeeded && isFollowedBySemicolon);
+        if (parensNeeded) { wr.Write(")"); }
+
       } else if (expr is QuantifierExpr) {
         QuantifierExpr e = (QuantifierExpr)expr;
 
