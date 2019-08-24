@@ -1,10 +1,10 @@
 
 SRCS=$(wildcard *.cpp)
-EXECS=$(subst .dfy,,$(SRCS))
+EXECS=$(subst .cpp,,$(SRCS))
 DAFNY=../../Binaries/dafny
 
 #all=$(TARGETS)
-all=hello integers
+all:hello integers
 
 %.cpp: %.dfy $(DAFNY)
 	$(DAFNY) /compile:0 /spillTargetCode:3 /compileTarget:cpp $<
@@ -12,3 +12,5 @@ all=hello integers
 $(EXECS): % : %.cpp ../../Binaries/DafnyRuntime.h
 	$(CXX) -o $@ $<
 
+clean:
+	rm *.cpp $(EXECS)
