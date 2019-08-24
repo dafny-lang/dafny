@@ -401,7 +401,7 @@ namespace Microsoft.Dafny
 
       } else if (expr is LetOrFailExpr) {
         var e = (LetOrFailExpr)expr;
-        return new LetOrFailExpr(Tok(e.tok), CloneCasePattern(e.Lhs), CloneExpr(e.Rhs), CloneExpr(e.Body));
+        return new LetOrFailExpr(Tok(e.tok), e.Lhs == null ? null : CloneCasePattern(e.Lhs), CloneExpr(e.Rhs), CloneExpr(e.Body));
 
       } else if (expr is NamedExpr) {
         var e = (NamedExpr)expr;
