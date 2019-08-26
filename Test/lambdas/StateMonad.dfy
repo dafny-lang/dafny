@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:0 /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %dafny /dprint:"%t.dprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 abstract module Monad {
@@ -36,10 +36,9 @@ module State refines Monad {
               match f(a) case State(g) => g(newState))
   }
 
-  lemma FunEq<X, Y>(f: X -> Y, g: X -> Y)
-    requires forall x :: f(x) == g(x) 
-    ensures f == g 
-  { assume false; }
+  lemma {:axiom} FunEq<X, Y>(f: X -> Y, g: X -> Y)
+    requires forall x :: f(x) == g(x)
+    ensures f == g
 
   lemma LeftIdentity<A,B>(x : A, f : A -> M<B>)
     ensures Bind(Return(x), f) == f(x)
@@ -56,17 +55,17 @@ module State refines Monad {
                 case (a, newState) =>
                   match f(a) case State(g) =>
                     g(newState));
-      == { 
+      == {
             FunEq(s =>
                     match ((s => (x, s))(s))
                     case (a, newState) =>
                       match f(a)
-                      case State(g) => g(newState), 
+                      case State(g) => g(newState),
                   s =>
                     match (x, s)
                     case (a, newState) =>
                       match f(a)
-                      case State(g) => g(newState)); 
+                      case State(g) => g(newState));
          }
           State(s =>
                   match (x, s) case (a, newState) =>
@@ -75,7 +74,7 @@ module State refines Monad {
       == {
             FunEq((s =>
                     match (x, s) case (a, newState) =>
-                      match f(a) case State(g) => g(newState)), 
+                      match f(a) case State(g) => g(newState)),
                   (s => match f(x) case State(g) => g(s)));
          }
           State(s => match f(x) case State(g) => g(s));
@@ -99,7 +98,7 @@ module State refines Monad {
         == {
             FunEq((s =>
                     match h(s) case (a, newState) =>
-                      match (x => Return(x))(a) case State(g) => g(newState)), 
+                      match (x => Return(x))(a) case State(g) => g(newState)),
                   (s => h(s)));
           }
           State(s => h(s));
@@ -119,8 +118,8 @@ module State refines Monad {
         ==
           match Bind(m, f) case State(h1) =>
             State(s =>
-                    match h1(s) case (a, newState) => 
-                      match g(a) case State(h1) => 
+                    match h1(s) case (a, newState) =>
+                      match g(a) case State(h1) =>
                         h1(newState));
         ==
           match (State(s =>
@@ -128,38 +127,38 @@ module State refines Monad {
                           match f(a) case State(g2) => g2(newState)))
           case State(h1) =>
             State(s =>
-                    match h1(s) case (a, newState) => 
-                      match g(a) case State(h1) => 
+                    match h1(s) case (a, newState) =>
+                      match g(a) case State(h1) =>
                         h1(newState));
         ==
           State(s =>
                   match (s => match h(s) case (a, newState) => match f(a) case State(g2) => g2(newState))(s)
-                  case (a, newState) => 
-                    match g(a) case State(h1) => 
+                  case (a, newState) =>
+                    match g(a) case State(h1) =>
                       h1(newState));
         == {
               FunEq(s =>
                       match (s => match h(s) case (a, newState) => match f(a) case State(g2) => g2(newState))(s)
-                      case (a, newState) =>  
-                        match g(a) case State(h1) => 
+                      case (a, newState) =>
+                        match g(a) case State(h1) =>
                           h1(newState),
                     s =>
                       match (match h(s) case (a, newState) => match f(a) case State(g2) => g2(newState))
-                      case (a, newState) => 
-                        match g(a) case State(h1) => 
+                      case (a, newState) =>
+                        match g(a) case State(h1) =>
                           h1(newState));
            }
           State(s =>
                   match (match h(s) case (a, newState) => match f(a) case State(g2) => g2(newState))
-                  case (a, newState) => 
-                    match g(a) case State(h1) => 
+                  case (a, newState) =>
+                    match g(a) case State(h1) =>
                       h1(newState));
-        == 
+        ==
           State(s =>
-                  match h(s) case (a, newState) => 
+                  match h(s) case (a, newState) =>
                     match f(a) case State(g2) =>
-                      match g2(newState) case (b, newState2) => 
-                          match g(b) case State(h1) => 
+                      match g2(newState) case (b, newState2) =>
+                          match g(b) case State(h1) =>
                             h1(newState2));
       }
 
@@ -170,15 +169,15 @@ module State refines Monad {
       ==
         State(s =>
                 match h(s) case (a, newState) =>
-                  match (x => Bind(f(x), g))(a) case State(g2) => 
+                  match (x => Bind(f(x), g))(a) case State(g2) =>
                     g2(newState));
       == {
-            FunEq(s => match h(s) case (a, newState) => match (x => Bind(f(x), g))(a) case State(g2) => g2(newState), 
+            FunEq(s => match h(s) case (a, newState) => match (x => Bind(f(x), g))(a) case State(g2) => g2(newState),
                   s => match h(s) case (a, newState) => match Bind(f(a), g) case State(g2) => g2(newState));
          }
         State(s =>
                 match h(s) case (a, newState) =>
-                  match Bind(f(a), g) case State(g2) => 
+                  match Bind(f(a), g) case State(g2) =>
                     g2(newState));
       == {
             FunEq((s => match h(s) case (a, newState) => match Bind(f(a), g) case State(g2) => g2(newState)),
@@ -187,7 +186,7 @@ module State refines Monad {
                             State(s =>
                                   match h2(s) case (a2, newState2) =>
                                     match g(a2) case State(g2) => g2(newState2)))
-                    case State(g3) => 
+                    case State(g3) =>
                       g3(newState)));
          }
         State(s =>
@@ -196,21 +195,21 @@ module State refines Monad {
                           State(s =>
                                 match h2(s) case (a2, newState2) =>
                                   match g(a2) case State(g2) => g2(newState2)))
-                  case State(g3) => 
+                  case State(g3) =>
                     g3(newState));
       ==
         State(s =>
                 match h(s) case (a, newState) =>
                   match f(a) case State(h2) =>
-                      match State(s => match h2(s) case (a2, newState2) => 
+                      match State(s => match h2(s) case (a2, newState2) =>
                                         match g(a2) case State(g2) => g2(newState2))
-                      case State(g3) => 
+                      case State(g3) =>
                         g3(newState));
       == { FunEq(s => match h(s) case (a, newState) =>
                         match f(a) case State(h2) =>
-                          match State(s => match h2(s) case (a2, newState2) => 
+                          match State(s => match h2(s) case (a2, newState2) =>
                             match g(a2) case State(g2) =>
-                              g2(newState2)) case State(g3) => 
+                              g2(newState2)) case State(g3) =>
                                 g3(newState),
                    s => match h(s) case (a, newState) =>
                           match f(a) case State(h2) =>
@@ -221,7 +220,7 @@ module State refines Monad {
         State(s =>
                 match h(s) case (a, newState) =>
                   match f(a) case State(h2) =>
-                    (s => match h2(s) case (a2, newState2) => 
+                    (s => match h2(s) case (a2, newState2) =>
                             match g(a2) case State(g2) => g2(newState2))(newState));
       == {
             FunEq(s => match h(s) case (a, newState) =>
@@ -231,16 +230,16 @@ module State refines Monad {
                           g2(newState2))(newState),
                   s => match h(s) case (a, newState) =>
                         match f(a) case State(h2) =>
-                          match h2(newState) case (a2, newState2) => 
+                          match h2(newState) case (a2, newState2) =>
                             match g(a2) case State(g2) =>
                               g2(newState2));
          }
         State(s =>
                 match h(s) case (a, newState) =>
                   match f(a) case State(h2) =>
-                    match h2(newState) case (a2, newState2) => 
-                      match g(a2) case State(g2) => 
-                        g2(newState2));    
+                    match h2(newState) case (a2, newState2) =>
+                      match g(a2) case State(g2) =>
+                        g2(newState2));
       }
   }
 }

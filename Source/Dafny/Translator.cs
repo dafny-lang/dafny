@@ -17341,6 +17341,10 @@ namespace Microsoft.Dafny {
         foreach (var v in e.BoundVars) {
           fvs.Remove(v);
         }
+      } else if (expr is MatchExpr me) {
+        foreach (var v in me.Cases.SelectMany(c => c.Arguments)) {
+          fvs.Remove(v);
+        }
       }
     }
 
