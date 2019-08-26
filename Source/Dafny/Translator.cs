@@ -7577,7 +7577,8 @@ namespace Microsoft.Dafny {
       } else if (expr is StmtExpr) {
         var e = (StmtExpr)expr;
         TrStmt(e.S, builder, locals, etran);
-        CheckWellformed(e.E, options, locals, builder, etran);
+        CheckWellformedWithResult(e.E, options, result, resultType, locals, builder, etran);
+        result = null;
 
       } else if (expr is ITEExpr) {
         ITEExpr e = (ITEExpr)expr;
