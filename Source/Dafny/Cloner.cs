@@ -399,6 +399,10 @@ namespace Microsoft.Dafny
         var e = (LetExpr)expr;
         return new LetExpr(Tok(e.tok), e.LHSs.ConvertAll(CloneCasePattern), e.RHSs.ConvertAll(CloneExpr), CloneExpr(e.Body), e.Exact, e.Attributes);
 
+      } else if (expr is LetOrFailExpr) {
+        var e = (LetOrFailExpr)expr;
+        return new LetOrFailExpr(Tok(e.tok), e.Lhs == null ? null : CloneCasePattern(e.Lhs), CloneExpr(e.Rhs), CloneExpr(e.Body));
+
       } else if (expr is NamedExpr) {
         var e = (NamedExpr)expr;
         return new NamedExpr(Tok(e.tok), e.Name, CloneExpr(e.Body));
@@ -628,6 +632,10 @@ namespace Microsoft.Dafny
       } else if (stmt is UpdateStmt) {
         var s = (UpdateStmt)stmt;
         r = new UpdateStmt(Tok(s.Tok), Tok(s.EndTok), s.Lhss.ConvertAll(CloneExpr), s.Rhss.ConvertAll(CloneRHS), s.CanMutateKnownState);
+
+      } else if (stmt is AssignOrReturnStmt) {
+        var s = (AssignOrReturnStmt)stmt;
+        r = new AssignOrReturnStmt(Tok(s.Tok), Tok(s.EndTok), s.Lhss.ConvertAll(CloneExpr), CloneExpr(s.Rhs));
 
       } else if (stmt is VarDeclStmt) {
         var s = (VarDeclStmt)stmt;

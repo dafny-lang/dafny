@@ -10035,6 +10035,11 @@ namespace Microsoft.Dafny {
           builder.Add(CaptureState(s));
         }
 
+      } else if (stmt is AssignOrReturnStmt) {
+        AddComment(builder, stmt, "assign-or-return statement (:-)");
+        AssignOrReturnStmt s = (AssignOrReturnStmt)stmt;
+        TrStmtList(s.ResolvedStatements, builder, locals, etran);
+
       } else if (stmt is AssignStmt) {
         AddComment(builder, stmt, "assignment statement");
         AssignStmt s = (AssignStmt)stmt;

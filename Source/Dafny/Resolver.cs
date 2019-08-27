@@ -6012,6 +6012,10 @@ namespace Microsoft.Dafny
         }
         return status;
       } else if (stmt is AssignSuchThatStmt) {
+      } else if (stmt is AssignOrReturnStmt) {
+        // TODO this should be the conservative choice, but probably we can consider this to be tail-recursive
+        // under some conditions? However, how does this interact with compiling to exceptions?
+        return TailRecursionStatus.NotTailRecursive;
       } else if (stmt is UpdateStmt) {
         var s = (UpdateStmt)stmt;
         return CheckTailRecursive(s.ResolvedStatements, enclosingMethod, ref tailCall, reportErrors);
@@ -6788,6 +6792,9 @@ namespace Microsoft.Dafny
           var s = (UpdateStmt)stmt;
           s.ResolvedStatements.Iter(ss => Visit(ss, mustBeErasable));
           s.IsGhost = s.ResolvedStatements.All(ss => ss.IsGhost);
+
+        } else if (stmt is AssignOrReturnStmt) {
+          stmt.IsGhost = false; // TODO when do we want to allow this feature in ghost code? Note that return changes control flow
 
         } else if (stmt is VarDeclStmt) {
           var s = (VarDeclStmt)stmt;
@@ -8960,8 +8967,8 @@ namespace Microsoft.Dafny
         ResolveConcreteUpdateStmt((ConcreteUpdateStatement)stmt, codeContext);
       } else if (stmt is VarDeclStmt) {
         var s = (VarDeclStmt)stmt;
-        // We have three cases.
-        Contract.Assert(s.Update == null || s.Update is UpdateStmt || s.Update is AssignSuchThatStmt);
+        // We have four cases.
+        Contract.Assert(s.Update == null || s.Update is AssignSuchThatStmt || s.Update is UpdateStmt || s.Update is AssignOrReturnStmt);
         // 0.  There is no .Update.  This is easy, we will just resolve the locals.
         // 1.  The .Update is an AssignSuchThatStmt.  This is also straightforward:  first
         //     resolve the locals, which adds them to the scope, and then resolve the .Update.
@@ -8969,6 +8976,8 @@ namespace Microsoft.Dafny
         //     of parallel AssignStmt's.  Here, the right-hand sides should be resolved before
         //     the local variables have been added to the scope, but the left-hand sides should
         //     resolve to the newly introduced variables.
+        // 3.  The .Update is a ":-" statement, for which resolution does two steps:
+        //     First, desugar, then run the regular resolution on the desugared AST.
         // To accommodate these options, we first reach into the UpdateStmt, if any, to resolve
         // the left-hand sides of the UpdateStmt.  This will have the effect of shielding them
         // from a subsequent resolution (since expression resolution will do nothing if the .Type
@@ -8999,6 +9008,20 @@ namespace Microsoft.Dafny
           }
           // resolve the whole thing
           ResolveConcreteUpdateStmt(s.Update, codeContext);
+        }
+        if (s.Update is AssignOrReturnStmt) {
+          var assignOrRet = (AssignOrReturnStmt)s.Update;
+          // resolve the LHS
+          Contract.Assert(assignOrRet.Lhss.Count == 1);
+          Contract.Assert(s.Locals.Count == 1);
+          var local = s.Locals[0];
+          var lhs = (IdentifierExpr)assignOrRet.Lhss[0];  // the LHS in this case will be an IdentifierExpr, because that's how the parser creates the VarDeclStmt
+          Contract.Assert(lhs.Type == null);  // not yet resolved
+          lhs.Var = local;
+          lhs.Type = local.Type;
+
+          // resolve the whole thing
+          ResolveAssignOrReturnStmt(assignOrRet, codeContext);
         }
         // Add the locals to the scope
         foreach (var local in s.Locals) {
@@ -9912,7 +9935,6 @@ namespace Microsoft.Dafny
 
       // First, resolve all LHS's and expression-looking RHS's.
       int errorCountBeforeCheckingLhs = reporter.Count(ErrorLevel.Error);
-      var update = s as UpdateStmt;
 
       var lhsNameSet = new HashSet<string>();  // used to check for duplicate identifiers on the left (full duplication checking for references and the like is done during verification)
       foreach (var lhs in s.Lhss) {
@@ -9926,11 +9948,14 @@ namespace Microsoft.Dafny
       }
 
       // Resolve RHSs
-      if (update == null) {
-        var suchThat = (AssignSuchThatStmt)s;  // this is the other possible subclass
-        ResolveAssignSuchThatStmt(suchThat, codeContext);
+      if (s is AssignSuchThatStmt) {
+        ResolveAssignSuchThatStmt((AssignSuchThatStmt)s, codeContext);
+      } else if (s is UpdateStmt) {
+        ResolveUpdateStmt((UpdateStmt)s, codeContext, errorCountBeforeCheckingLhs);
+      } else if (s is AssignOrReturnStmt) {
+        ResolveAssignOrReturnStmt((AssignOrReturnStmt)s, codeContext);
       } else {
-        ResolveUpdateStmt(update, codeContext, errorCountBeforeCheckingLhs);
+        Contract.Assert(false); throw new cce.UnreachableException();
       }
       ResolveAttributes(s.Attributes, s, new ResolveOpts(codeContext, true));
     }
@@ -10057,6 +10082,71 @@ namespace Microsoft.Dafny
 
       ResolveExpression(s.Expr, new ResolveOpts(codeContext, true));
       ConstrainTypeExprBool(s.Expr, "type of RHS of assign-such-that statement must be boolean (got {0})");
+    }
+
+    private Expression VarDotMethod(IToken tok, string varname, string methodname) {
+      return new ApplySuffix(tok, new ExprDotName(tok, new IdentifierExpr(tok, varname), methodname, null), new List<Expression>() { });
+    }
+
+    /// <summary>
+    /// Desugars "y :- MethodOrExpression" into 
+    /// "var temp := MethodOrExpression; if temp.IsFailure() { return temp.PropagateFailure(); } y := temp.Extract();"
+    /// and saves the result into s.ResolvedStatements.
+    /// </summary>
+    private void ResolveAssignOrReturnStmt(AssignOrReturnStmt s, ICodeContext codeContext) {
+      // TODO Do I have any responsabilities regarding the use of codeContext? Is it mutable?
+
+      var temp = FreshTempVarName("valueOrError", codeContext);
+      var tempType = new InferredTypeProxy();
+      s.ResolvedStatements.Add(
+        // "var temp := MethodOrExpression;"
+        new VarDeclStmt(s.Tok, s.Tok, new List<LocalVariable>() { new LocalVariable(s.Tok, s.Tok, temp, tempType, false) },
+          new UpdateStmt(s.Tok, s.Tok, new List<Expression>() { new IdentifierExpr(s.Tok, temp) }, new List<AssignmentRhs>() { new ExprRhs(s.Rhs) })));
+      s.ResolvedStatements.Add(
+        // "if temp.IsFailure()"
+        new IfStmt(s.Tok, s.Tok, false, VarDotMethod(s.Tok, temp, "IsFailure"),
+          // THEN: { return temp.PropagateFailure(); }
+          new BlockStmt(s.Tok, s.Tok, new List<Statement>() {
+            new ReturnStmt(s.Tok, s.Tok, new List<AssignmentRhs>() { new ExprRhs(VarDotMethod(s.Tok, temp, "PropagateFailure"))}),
+          }),
+          // ELSE: no else block
+          null
+        ));
+
+      Contract.Assert(s.Lhss.Count <= 1);
+      if (s.Lhss.Count == 1)
+      {
+        // "y := temp.Extract();"
+        s.ResolvedStatements.Add(
+          new UpdateStmt(s.Tok, s.Tok, s.Lhss, new List<AssignmentRhs>() {
+            new ExprRhs(VarDotMethod(s.Tok, temp, "Extract"))}));
+      }
+
+      foreach (var a in s.ResolvedStatements) {
+        ResolveStatement(a, codeContext);
+      }
+      bool expectExtract = (s.Lhss.Count != 0);
+      EnsureSupportsErrorHandling(s.Tok, PartiallyResolveTypeForMemberSelection(s.Tok, tempType), expectExtract);
+    }
+
+    private void EnsureSupportsErrorHandling(IToken tok, Type tp, bool expectExtract) {
+      // The "method not found" errors which will be generated here were already reported while
+      // resolving the statement, so we don't want them to reappear and redirect them into a sink.
+      var origReporter = this.reporter;
+      this.reporter = new ErrorReporterSink();
+
+      NonProxyType ignoredNptype = null;
+      if (ResolveMember(tok, tp, "IsFailure", out ignoredNptype) == null ||
+          ResolveMember(tok, tp, "PropagateFailure", out ignoredNptype) == null ||
+          (ResolveMember(tok, tp, "Extract", out ignoredNptype) != null) != expectExtract
+      ) {
+        // more details regarding which methods are missing have already been reported by regular resolution
+        origReporter.Error(MessageSource.Resolver, tok,
+          "The right-hand side of ':-', which is of type '{0}', must have members 'IsFailure()', 'PropagateFailure()', {1} 'Extract()'", 
+          tp, expectExtract ? "and" : "but not");
+      }
+
+      this.reporter = origReporter;
     }
 
     void ResolveAlternatives(List<GuardedAlternative> alternatives, AlternativeLoopStmt loopToCatchBreaks, ICodeContext codeContext) {
@@ -11613,7 +11703,7 @@ namespace Microsoft.Dafny
         ResolveApplySuffix(e, opts, false);
 
       } else if (expr is RevealExpr) {
-        var e = (RevealExpr) expr;
+        var e = (RevealExpr)expr;
         ResolveRevealExpr(e, opts, true);
         e.ResolvedExpression = e.Expr;
 
@@ -11729,7 +11819,7 @@ namespace Microsoft.Dafny
         ResolveFunctionCallExpr(e, opts);
 
       } else if (expr is ApplyExpr) {
-        var e = (ApplyExpr) expr;
+        var e = (ApplyExpr)expr;
         ResolveExpression(e.Function, opts);
         foreach (var arg in e.Args) {
           ResolveExpression(arg, opts);
@@ -11754,7 +11844,7 @@ namespace Microsoft.Dafny
         expr.Type = fnType == null ? new InferredTypeProxy() : fnType.Result;
 
       } else if (expr is SeqConstructionExpr) {
-        var e = (SeqConstructionExpr) expr;
+        var e = (SeqConstructionExpr)expr;
         var elementType = new InferredTypeProxy();
         ResolveExpression(e.N, opts);
         ConstrainToIntegerType(e.N, "sequence construction must use an integer-based expression for the sequence size (got {0})");
@@ -11829,7 +11919,7 @@ namespace Microsoft.Dafny
               var declKind = opts.codeContext is RedirectingTypeDecl ? ((RedirectingTypeDecl)opts.codeContext).WhatKind : ((MemberDecl)opts.codeContext).WhatKind;
               reporter.Error(MessageSource.Resolver, expr, "a {0} definition is not allowed to depend on the set of allocated references", declKind);
             }
-          break;
+            break;
           default:
             Contract.Assert(false); throw new cce.UnreachableException();  // unexpected unary operator
         }
@@ -12070,6 +12160,9 @@ namespace Microsoft.Dafny
         ResolveAttributes(e.Attributes, e, opts);
         scope.PopMarker();
         expr.Type = e.Body.Type;
+      } else if (expr is LetOrFailExpr) {
+        var e = (LetOrFailExpr)expr;
+        ResolveLetOrFailExpr(e, opts);
       } else if (expr is NamedExpr) {
         var e = (NamedExpr)expr;
         ResolveExpression(e.Body, opts);
@@ -12226,6 +12319,45 @@ namespace Microsoft.Dafny
         // some resolution error occurred
         expr.Type = new InferredTypeProxy();
       }
+    }
+
+    private Expression VarDotFunction(IToken tok, string varname, string functionname) {
+      return new ApplySuffix(tok, new ExprDotName(tok, new IdentifierExpr(tok, varname), functionname, null), new List<Expression>() { });
+    }
+
+    // TODO search for occurrences of "new LetExpr" which could benefit from this helper
+    private LetExpr LetPatIn(IToken tok, CasePattern<BoundVar> lhs, Expression rhs, Expression body) {
+      return new LetExpr(tok, new List<CasePattern<BoundVar>>() { lhs }, new List<Expression>() { rhs }, body, true);
+    }
+
+    private LetExpr LetVarIn(IToken tok, string name, Type tp, Expression rhs, Expression body) {
+      var lhs = new CasePattern<BoundVar>(tok, new BoundVar(tok, name, tp));
+      return LetPatIn(tok, lhs, rhs, body);
+    }
+
+    /// <summary>
+    ///  If expr.Lhs != null: Desugars "var x: T :- E; F" into "var temp := E; if temp.IsFailure() then temp.PropagateFailure() else var x: T := temp.Extract(); F"
+    ///  If expr.Lhs == null: Desugars "         :- E; F" into "var temp := E; if temp.IsFailure() then temp.PropagateFailure() else                             F"
+    /// </summary>
+    public void ResolveLetOrFailExpr(LetOrFailExpr expr, ResolveOpts opts) {
+      var temp = FreshTempVarName("valueOrError", opts.codeContext);
+      var tempType = new InferredTypeProxy();
+      // "var temp := E;"
+      expr.ResolvedExpression = LetVarIn(expr.tok, temp, tempType, expr.Rhs,
+        // "if temp.IsFailure()"
+        new ITEExpr(expr.tok, false, VarDotFunction(expr.tok, temp, "IsFailure"),
+          // "then temp.PropagateFailure()"
+          VarDotFunction(expr.tok, temp, "PropagateFailure"),
+          // "else"
+          expr.Lhs == null
+            // "F"
+            ? expr.Body
+            // "var x: T := temp.Extract(); F"
+            : LetPatIn(expr.tok, expr.Lhs, VarDotFunction(expr.tok, temp, "Extract"), expr.Body)));
+
+      ResolveExpression(expr.ResolvedExpression, opts);
+      bool expectExtract = (expr.Lhs != null);
+      EnsureSupportsErrorHandling(expr.tok, PartiallyResolveTypeForMemberSelection(expr.tok, tempType), expectExtract);
     }
 
     private Type SelectAppropriateArrowType(IToken tok, List<Type> typeArgs, Type resultType, bool hasReads, bool hasReq) {

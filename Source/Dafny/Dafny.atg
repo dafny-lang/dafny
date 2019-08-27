@@ -1,4 +1,4 @@
-	/*-----------------------------------------------------------------------------
+/*-----------------------------------------------------------------------------
 //
 // Copyright (C) Microsoft Corporation.  All Rights Reserved.
 //
@@ -1596,11 +1596,11 @@ MethodSpec<.List<MaybeFreeExpression> req, List<FrameExpression> mod, List<Maybe
                                                              .)
     ]
     ( "requires"
-		  { Attribute<ref reqAttrs> }
+      { Attribute<ref reqAttrs> }
       [ IF(IsLabel(true))
         LabelIdent<out lbl> ":"
       ]
-		  Expression<out e, false, false> OldSemi                (. req.Add(new MaybeFreeExpression(e, isFree, lbl == null ? null : new AssertLabel(lbl, lbl.val), reqAttrs)); .)
+      Expression<out e, false, false> OldSemi                (. req.Add(new MaybeFreeExpression(e, isFree, lbl == null ? null : new AssertLabel(lbl, lbl.val), reqAttrs)); .)
     | "ensures"
       { Attribute<ref ensAttrs> }
       Expression<out e, false, false> OldSemi                (. ens.Add(new MaybeFreeExpression(e, isFree, ensAttrs)); .)
@@ -1999,18 +1999,18 @@ FunctionSpec<.List<MaybeFreeExpression/*!*/>/*!*/ reqs, List<FrameExpression/*!*
      Contract.Requires(cce.NonNullElements(reads));
      Contract.Requires(decreases == null || cce.NonNullElements(decreases));
      Expression/*!*/ e;  FrameExpression/*!*/ fe;
-		 Attributes ensAttrs = null; Attributes reqAttrs = null; .)
+     Attributes ensAttrs = null; Attributes reqAttrs = null; .)
   SYNC
   ( "requires"
-	  { Attribute<ref reqAttrs> }
-		  Expression<out e, false, false> OldSemi                (. reqs.Add(new MaybeFreeExpression(e, false, reqAttrs)); .)
+    { Attribute<ref reqAttrs> }
+    Expression<out e, false, false> OldSemi                (. reqs.Add(new MaybeFreeExpression(e, false, reqAttrs)); .)
   | "reads"
     PossiblyWildFrameExpression<out fe, false>          (. reads.Add(fe); .)
     { "," PossiblyWildFrameExpression<out fe, false>    (. reads.Add(fe); .)
     }
     OldSemi
   | "ensures"
-	  { Attribute<ref ensAttrs> }
+      { Attribute<ref ensAttrs> }
       Expression<out e, false, false> OldSemi                (. ens.Add(new MaybeFreeExpression(e, false, ensAttrs)); .)
   | "decreases"                               (. if (decreases == null) {
                                                    SemErr(t, "'decreases' clauses are meaningless for copredicates, so they are not allowed");
@@ -2178,13 +2178,16 @@ ReturnStmt<out Statement/*!*/ s>
 UpdateStmt<out Statement/*!*/ s>
 = (. List<Expression> lhss = new List<Expression>();
      List<AssignmentRhs> rhss = new List<AssignmentRhs>();
-     Expression e;  AssignmentRhs r;
-     IToken x, endTok = Token.NoToken;
+     Expression e;
+     AssignmentRhs r;
+     IToken x = Token.NoToken;
+     IToken endTok = Token.NoToken;
      Attributes attrs = null;
      IToken suchThatAssume = null;
      Expression suchThat = null;
+     Expression exceptionExpr = null;
   .)
-  Lhs<out e>                       (. x = e.tok; .)
+( Lhs<out e>                       (. x = e.tok; .)
   ( { Attribute<ref attrs> }
     ";"                            (. endTok = t; rhss.Add(new ExprRhs(e, attrs)); .)
   |                                (. lhss.Add(e); .)
@@ -2199,12 +2202,23 @@ UpdateStmt<out Statement/*!*/ s>
         "assume"                   (. suchThatAssume = t; .)
       ]
       Expression<out suchThat, false, true>
+    | ":-"                         (. x = t; .)
+      Expression<out exceptionExpr, false, false>
     )
     ";"                            (. endTok = t; .)
   | ":"                            (. SemErr(t, "invalid statement (did you forget the 'label' keyword?)"); .)
   )
+| ":-"                             (. x = t; .)
+   Expression<out exceptionExpr, false, false>
+   ";"                             (. endTok = t; .)
+)
   (. if (suchThat != null) {
        s = new AssignSuchThatStmt(x, endTok, lhss, suchThat, suchThatAssume, null);
+     } else if (exceptionExpr != null) {
+       if (lhss.Count > 1) {
+         SemErr(x, "':-' assignments can only have one LHS");
+       }
+       s = new AssignOrReturnStmt(x, endTok, lhss, exceptionExpr);
      } else {
        if (lhss.Count == 0 && rhss.Count == 0) {
          s = new BlockStmt(x, endTok, new List<Statement>()); // error, give empty statement
@@ -2294,6 +2308,7 @@ VarDeclStatement<.out Statement/*!*/ s.>
      List<AssignmentRhs> rhss = new List<AssignmentRhs>();
      IToken suchThatAssume = null;
      Expression suchThat = null;
+     Expression exceptionExpr = null;
      Attributes attrs = null;
      IToken endTok;
      s = dummyStmt;
@@ -2318,15 +2333,23 @@ VarDeclStatement<.out Statement/*!*/ s.>
         "assume"                     (. suchThatAssume = t; .)
       ]
       Expression<out suchThat, false, true>
+    | ":-"                           (. assignTok = t; .)
+      Expression<out exceptionExpr, false, false>
     ]
     SYNC ";"                         (. endTok = t; .)
     (. ConcreteUpdateStatement update;
+       var lhsExprs = new List<Expression>();
+       foreach (var lhs in lhss) {
+         lhsExprs.Add(new IdentifierExpr(lhs.Tok, lhs.Name));
+       }
        if (suchThat != null) {
-         var ies = new List<Expression>();
-         foreach (var lhs in lhss) {
-           ies.Add(new IdentifierExpr(lhs.Tok, lhs.Name));
-         }
-         update = new AssignSuchThatStmt(assignTok, endTok, ies, suchThat, suchThatAssume, attrs);
+         update = new AssignSuchThatStmt(assignTok, endTok, lhsExprs, suchThat, suchThatAssume, attrs);
+       } else if (exceptionExpr != null) {
+           Contract.Assert(lhss.Count >= 1);
+           if (lhss.Count != 1) {
+             SemErr(assignTok, "':-' assignments can only have one LHS");
+           }
+           update = new AssignOrReturnStmt(assignTok, endTok, lhsExprs, exceptionExpr);
        } else if (rhss.Count == 0) {
          update = null;
        } else {
@@ -3467,12 +3490,19 @@ StmtInExpr<out Statement s>
   .
 
 LetExpr<out Expression e, bool allowSemi, bool allowLambda, bool allowBitwiseOps>
+= (. e = dummyExpr; .)
+  ( LetExprWithLHS<out e, allowSemi, allowLambda, allowBitwiseOps>
+  | LetExprWithoutLHS<out e, allowSemi, allowLambda, allowBitwiseOps>
+  ).
+
+LetExprWithLHS<out Expression e, bool allowSemi, bool allowLambda, bool allowBitwiseOps>
 = (. IToken x = null;
      bool isGhost = false;
      var letLHSs = new List<CasePattern<BoundVar>>();
      var letRHSs = new List<Expression>();
      CasePattern<BoundVar> pat;
      bool exact = true;
+     bool isLetOrFail = false;
      Attributes attrs = null;
      e = dummyExpr;
   .)
@@ -3495,12 +3525,46 @@ LetExpr<out Expression e, bool allowSemi, bool allowLambda, bool allowBitwiseOps
                                          }
                                        }
                                     .)
+    | ":-"                          (. isLetOrFail = true; .)
     )
     Expression<out e, false, true>        (. letRHSs.Add(e); .)
     { "," Expression<out e, false, true>  (. letRHSs.Add(e); .)
     }
     ";"
-    Expression<out e, allowSemi, allowLambda, allowBitwiseOps>    (. e = new LetExpr(x, letLHSs, letRHSs, e, exact, attrs); .)
+    Expression<out e, allowSemi, allowLambda, allowBitwiseOps>
+  (.
+    if (isLetOrFail) {
+      CasePattern<BoundVar> lhs = null;
+      Contract.Assert(letLHSs.Count > 0);
+      if (letLHSs.Count == 1) {
+        lhs = letLHSs[0];
+      } else {
+        SemErr("':-' can have at most one left-hand side");
+      }
+      Expression rhs = null;
+      Contract.Assert(letRHSs.Count > 0);
+      if (letRHSs.Count == 1) {
+        rhs = letRHSs[0];
+      } else {
+        SemErr("':-' must have exactly one right-hand side");
+      }
+      e = new LetOrFailExpr(x, lhs, rhs, e);
+    } else {
+      e = new LetExpr(x, letLHSs, letRHSs, e, exact, attrs);
+    }
+  .)
+  .
+
+LetExprWithoutLHS<out Expression e, bool allowSemi, bool allowLambda, bool allowBitwiseOps>
+= (. IToken x;
+     Expression rhs;
+     Expression body;
+  .)
+  ":-"                                    (. x = t; .)
+  Expression<out rhs, false, true>
+  ";"
+  Expression<out body, allowSemi, allowLambda, allowBitwiseOps>
+  (. e = new LetOrFailExpr(x, null, rhs, body); .)
   .
 
 NamedExpr<out Expression e, bool allowSemi, bool allowLambda, bool allowBitwiseOps>

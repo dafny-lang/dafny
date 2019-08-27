@@ -6637,7 +6637,7 @@ namespace Microsoft.Dafny {
   }
 
   /// <summary>
-  /// Common superclass of UpdateStmt and AssignSuchThatStmt.
+  /// Common superclass of UpdateStmt, AssignSuchThatStmt and AssignOrReturnStmt
   /// </summary>
   public abstract class ConcreteUpdateStatement : Statement
   {
@@ -6729,6 +6729,36 @@ namespace Microsoft.Dafny {
       Contract.Requires(lhss.Count != 0 || rhss.Count == 1);
       Rhss = rhss;
       CanMutateKnownState = mutate;
+    }
+  }
+
+  public class AssignOrReturnStmt : ConcreteUpdateStatement
+  {
+    public readonly Expression Rhs; // this is the unresolved RHS, and thus can also be a method call
+    public readonly List<Statement> ResolvedStatements = new List<Statement>();  // contents filled in during resolution
+    public override IEnumerable<Statement> SubStatements {
+      get { return ResolvedStatements; }
+    }
+
+    [ContractInvariantMethod]
+    void ObjectInvariant() {
+      Contract.Invariant(Lhss != null);
+      Contract.Invariant(
+          Lhss.Count == 0 ||                   // ":- MethodOrExpresion;" which returns void success or an error
+          Lhss.Count == 1 && Lhss[0] != null   // "y :- MethodOrExpression;"
+      );
+      Contract.Invariant(Rhs != null);
+    }
+
+    public AssignOrReturnStmt(IToken tok, IToken endTok, List<Expression> lhss, Expression rhs)
+      : base(tok, endTok, lhss)
+    {
+      Contract.Requires(tok != null);
+      Contract.Requires(endTok != null);
+      Contract.Requires(lhss != null);
+      Contract.Requires(lhss.Count <= 1);
+      Contract.Requires(rhs != null);
+      Rhs = rhs;
     }
   }
 
@@ -9714,6 +9744,20 @@ namespace Microsoft.Dafny {
       }
     }
   }
+
+  public class LetOrFailExpr : ConcreteSyntaxExpression
+  {
+    public readonly CasePattern<BoundVar>/*?*/ Lhs; // null means void-error handling: ":- E; F", non-null means "var pat :- E; F"
+    public readonly Expression Rhs;
+    public readonly Expression Body;
+
+    public LetOrFailExpr(IToken tok, CasePattern<BoundVar>/*?*/ lhs, Expression rhs, Expression body): base(tok) {
+      Lhs = lhs;
+      Rhs = rhs;
+      Body = body;
+    }
+  }
+
   // Represents expr Name: Body
   //         or expr Name: (assert Body == Contract; Body)
   public class NamedExpr : Expression
