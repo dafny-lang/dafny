@@ -5788,7 +5788,7 @@ namespace Microsoft.Dafny {
           args.Add(etran.HeapExpr);
         }
         if (!f.IsStatic) {
-          args.Add(new Bpl.IdentifierExpr(f.tok, etran.This, predef.RefType));
+          args.Add(new Bpl.IdentifierExpr(f.tok, etran.This));
         }
         foreach (var p in f.Formals) {
           args.Add(new Bpl.IdentifierExpr(p.tok, p.AssignUniqueName(f.IdGenerator), TrType(p.Type)));
@@ -7256,7 +7256,7 @@ namespace Microsoft.Dafny {
               if (e.Function == options.SelfCallsAllowance) {
                 allowance = Bpl.Expr.True;
                 if (!e.Function.IsStatic) {
-                  allowance = BplAnd(allowance, Bpl.Expr.Eq(etran.TrExpr(e.Receiver), new Bpl.IdentifierExpr(e.tok, etran.This, predef.RefType)));
+                  allowance = BplAnd(allowance, Bpl.Expr.Eq(etran.TrExpr(e.Receiver), new Bpl.IdentifierExpr(e.tok, etran.This)));
                 }
                 for (int i = 0; i < e.Args.Count; i++) {
                   Expression ee = e.Args[i];
@@ -13453,7 +13453,7 @@ namespace Microsoft.Dafny {
           gExprs.Add(ve);
         }
         if (ThisType != null) {
-          var th = new Bpl.IdentifierExpr(Tok, etran.This, translator.predef.RefType);
+          var th = new Bpl.IdentifierExpr(Tok, etran.This);
           gExprs.Add(th);
         }
         foreach (var v in FV_Exprs) {
