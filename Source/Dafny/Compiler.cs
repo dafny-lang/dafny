@@ -3774,7 +3774,7 @@ namespace Microsoft.Dafny {
     // ----- Indention ------------------------------
 
     public readonly int IndentLevel;
-    protected const int IndentAmount = 2;
+    public const int IndentAmount = 2;
     const string IndentAmountString = "  ";  // this should have the length IndentAmount
     public readonly string IndentString;
     public string UnIndentString => new string(' ', Math.Max(IndentLevel - IndentAmount, 0));

@@ -316,7 +316,7 @@ namespace Microsoft.Dafny{
       bool createBody, TargetWriter wr) {
       wr.Write("public {0}{1} get_{2}()", isStatic ? "static " : "", TypeName(resultType, wr, tok), name);
       if (createBody) {
-        var w = wr.NewBlock(null, null, BlockTargetWriter.BraceStyle.Newline, BlockTargetWriter.BraceStyle.Newline);
+        var w = wr.NewBlock("", null, BlockTargetWriter.BraceStyle.Newline, BlockTargetWriter.BraceStyle.Newline);
         return w;
       } else {
         wr.WriteLine(";");
@@ -338,13 +338,13 @@ namespace Microsoft.Dafny{
       wr.Write("public {0}{1} get_{2}()", isStatic ? "static " : "", TypeName(resultType, wr, tok), name);
       BlockTargetWriter wGet = null;
       if (createBody) {
-        wGet = wr.NewBlock(null, null, BlockTargetWriter.BraceStyle.Newline, BlockTargetWriter.BraceStyle.Newline);
+        wGet = wr.NewBlock("", null, BlockTargetWriter.BraceStyle.Newline, BlockTargetWriter.BraceStyle.Newline);
       } else {
         wr.WriteLine(";");
       }
       wr.Write("public {0}void set_{1}({2} value)", isStatic? "static " : "", name, TypeName(resultType, wr, tok));
       if (createBody) {
-        setterWriter = wr.NewBlock(null, null, BlockTargetWriter.BraceStyle.Newline, BlockTargetWriter.BraceStyle.Newline);
+        setterWriter = wr.NewBlock("", null, BlockTargetWriter.BraceStyle.Newline, BlockTargetWriter.BraceStyle.Newline);
       } else {
         wr.WriteLine(";");
         setterWriter = null;
@@ -657,7 +657,7 @@ namespace Microsoft.Dafny{
     protected override IClassWriter CreateClass(string name, bool isExtern, string /*?*/ fullPrintName,
       List<TypeParameter> /*?*/ typeParameters, List<Type> /*?*/ superClasses, Bpl.IToken tok, TargetWriter wr) {
       if (isExtern) {
-        return new ClassWriter(this, new BlockTargetWriter(0, "", ""));
+        return new ClassWriter(this, new BlockTargetWriter(TargetWriter.IndentAmount, "", ""));
       }
       var filename = $"{ModulePath}/{name}.java";
       var w = wr.NewFile(filename);
