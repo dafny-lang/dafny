@@ -3114,6 +3114,7 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, st
 		} else if (exceptionExpr != null) {
 		 if (lhss.Count > 1) {
 		   SemErr(x, "':-' assignments can only have one LHS");
+		   lhss = new List<Expression>() { lhss[0] };
 		 }
 		 s = new AssignOrReturnStmt(x, endTok, lhss, exceptionExpr);
 		} else {
@@ -3201,6 +3202,7 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, st
 			   Contract.Assert(lhss.Count >= 1);
 			   if (lhss.Count != 1) {
 			     SemErr(assignTok, "':-' assignments can only have one LHS");
+			     lhsExprs = new List<Expression>() { lhsExprs[0] };
 			   }
 			   update = new AssignOrReturnStmt(assignTok, endTok, lhsExprs, exceptionExpr);
 			} else if (rhss.Count == 0) {
