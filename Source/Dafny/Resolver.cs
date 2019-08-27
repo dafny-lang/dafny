@@ -10094,7 +10094,7 @@ namespace Microsoft.Dafny
     /// and saves the result into s.ResolvedStatements.
     /// </summary>
     private void ResolveAssignOrReturnStmt(AssignOrReturnStmt s, ICodeContext codeContext) {
-      // TODO Do I have any responsabilities regarding the use of codeContext? Is it mutable?
+      // TODO Do I have any responsibilities regarding the use of codeContext? Is it mutable?
 
       var temp = FreshTempVarName("valueOrError", codeContext);
       var tempType = new InferredTypeProxy();
@@ -10125,7 +10125,7 @@ namespace Microsoft.Dafny
       foreach (var a in s.ResolvedStatements) {
         ResolveStatement(a, codeContext);
       }
-      bool expectExtract = (s.Lhss.Count != 0);
+      bool expectExtract = s.Lhss.Count != 0;
       EnsureSupportsErrorHandling(s.Tok, PartiallyResolveTypeForMemberSelection(s.Tok, tempType), expectExtract);
     }
 

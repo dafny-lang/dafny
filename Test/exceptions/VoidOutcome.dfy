@@ -4,7 +4,7 @@
 
 trait VoidOutcome {
     predicate method IsFailure()
-	function method PropagateFailure(): VoidOutcome requires IsFailure()
+    function method PropagateFailure(): VoidOutcome requires IsFailure()
 }
 
 class VoidSuccess extends VoidOutcome {
@@ -12,7 +12,7 @@ class VoidSuccess extends VoidOutcome {
     predicate method IsFailure() { 
         false 
     }
-	function method PropagateFailure(): VoidOutcome requires IsFailure() {
+    function method PropagateFailure(): VoidOutcome requires IsFailure() {
         this
     }
 }
@@ -25,7 +25,7 @@ class VoidFailure extends VoidOutcome {
     predicate method IsFailure() { 
         true
     }
-	function method PropagateFailure(): VoidOutcome requires IsFailure() {
+    function method PropagateFailure(): VoidOutcome requires IsFailure() {
         this
     }
 }

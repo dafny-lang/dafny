@@ -9,7 +9,7 @@ datatype VoidOutcome =
     predicate method IsFailure() {
         this.VoidFailure?
     }
-	function method PropagateFailure(): VoidOutcome requires IsFailure() {
+    function method PropagateFailure(): VoidOutcome requires IsFailure() {
         this
     }
 }

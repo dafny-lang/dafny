@@ -14,8 +14,8 @@ function method Unreachable<R>(): R
 
 trait NatOutcome {
     predicate method IsFailure()
-	function method PropagateFailure(): NatOutcome requires IsFailure()
-	function method Extract(): nat requires !IsFailure()
+    function method PropagateFailure(): NatOutcome requires IsFailure()
+    function method Extract(): nat requires !IsFailure()
 }
 
 class NatSuccess extends NatOutcome {
@@ -26,10 +26,10 @@ class NatSuccess extends NatOutcome {
     predicate method IsFailure() { 
         false 
     }
-	function method PropagateFailure(): NatOutcome requires IsFailure() {
+    function method PropagateFailure(): NatOutcome requires IsFailure() {
         Unreachable<NatOutcome>() 
     }
-	function method Extract(): nat requires !IsFailure() { 
+    function method Extract(): nat requires !IsFailure() { 
         value
     }
 }
@@ -42,10 +42,10 @@ class NatFailure extends NatOutcome {
     predicate method IsFailure() { 
         true
     }
-	function method PropagateFailure(): NatOutcome requires IsFailure() {
+    function method PropagateFailure(): NatOutcome requires IsFailure() {
         this
     }
-	function method Extract(): nat requires !IsFailure() { 
+    function method Extract(): nat requires !IsFailure() { 
         Unreachable<nat>()
     }
 }
