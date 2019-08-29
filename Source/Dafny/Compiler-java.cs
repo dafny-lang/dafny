@@ -2194,114 +2194,105 @@ namespace Microsoft.Dafny{
       }
     }
 
-    private static int indent = 0;
-    private static String Indent(){
-      String Indent = "";
-      for (int i = 0; i <= indent; i++){
-        Indent += "    ";
-      }
-      return Indent;
-    }
-    private static void CreateTuple(int i, string path){
-      path += "/Tuple"+i+".java";
-      // Create a file to write to.
-      using (StreamWriter sw = File.CreateText(path)){
-        sw.WriteLine("package dafny;");
-        sw.WriteLine();
-        sw.Write("public class Tuple");
-        sw.Write(i);
-        if (i != 0){
-          sw.Write("<");
-          for (int j = 0; j < i; j++){
-            sw.Write("T" + j);
-            if (j != i - 1)
-              sw.Write(", ");
-            else{
-              sw.Write("> ");
-            }
+    private static void CreateTuple(int i, string path) {
+      var wrTop = new TargetWriter();
+      wrTop.WriteLine("package dafny;");
+      wrTop.WriteLine();
+      wrTop.Write("public class Tuple");
+      wrTop.Write(i);
+      if (i != 0) {
+        wrTop.Write("<");
+        for (int j = 0; j < i; j++){
+          wrTop.Write("T" + j);
+          if (j != i - 1)
+            wrTop.Write(", ");
+          else{
+            wrTop.Write(">");
           }
         }
-        sw.WriteLine("{");
-        for (int j = 0; j < i; j++){
-          sw.WriteLine(Indent() + "private T" + j + " _" + j+";");
+      }
+
+      var wr = wrTop.NewBlock("");
+      for (int j = 0; j < i; j++) {
+        wr.WriteLine("private T" + j + " _" + j + ";");
+      }
+      wr.WriteLine();
+
+      wr.Write("public Tuple" + i + "(");
+      for (int j = 0; j < i; j++){
+        wr.Write("T" + j + " _" + j);
+        if (j != i - 1)
+          wr.Write(", ");
+      }
+      using (var wrCtor = wr.NewBlock(")")) {
+        for (int j = 0; j < i; j++) {
+          wrCtor.WriteLine("this._" + j + " = _" + j + ";");
         }
-        sw.WriteLine();
-        sw.Write(Indent() + "public Tuple" + i + "(");
-        for (int j = 0; j < i; j++){
-          sw.Write("T" + j + " _" + j);
-          if (j != i - 1)
-            sw.Write(", ");
-        }
-        sw.WriteLine(") {");
-        indent++;
-        for (int j = 0; j < i; j++){
-          sw.WriteLine(Indent() + "this._" + j + " = _" + j + ";");
-        }
-        indent--;
-        sw.WriteLine(Indent() + "}");
-        sw.WriteLine(Indent() + $"public static String defaultInstanceName = Tuple{i}.class.toString();");
+      }
+
+      wr.WriteLine($"public static String defaultInstanceName = Tuple{i}.class.toString();");
+      if (i != 0) {
+        wr.WriteLine();
+        wr.Write("public Tuple" + i + "() {}");
+      }
+
+      wr.WriteLine();
+      wr.WriteLine("@Override");
+      using (var wrEquals = wr.NewBlock("public boolean equals(Object obj)")) {
+        wrEquals.WriteLine("if (this == obj) return true;");
+        wrEquals.WriteLine("if (obj == null) return false;");
+        wrEquals.WriteLine("if (getClass() != obj.getClass()) return false;");
+        wrEquals.WriteLine($"Tuple{i} o = (Tuple{i}) obj;");
         if (i != 0) {
-          sw.WriteLine();
-          sw.Write(Indent() + "public Tuple" + i + "(){}");
-        }
-        sw.WriteLine();
-        sw.WriteLine(Indent() + "@Override");
-        sw.WriteLine(Indent() + "public boolean equals(Object obj) {");
-        indent++;
-        sw.WriteLine(Indent() + "if (this == obj) return true;");
-        sw.WriteLine(Indent() + "if (obj == null) return false;");
-        sw.WriteLine(Indent() + "if (getClass() != obj.getClass()) return false;");
-        sw.WriteLine(Indent() + $"Tuple{i} o = (Tuple{i}) obj;");
-        if(i!= 0) {
-          sw.Write(Indent() + "return ");
-          for (int j = 0; j < i; j++){
-            sw.Write("this._" + j + ".equals(o._" + j + ")");
+          wrEquals.Write("return ");
+          for (int j = 0; j < i; j++) {
+            wrEquals.Write("this._" + j + ".equals(o._" + j + ")");
             if (j != i - 1)
-              sw.Write(" && ");
-            else{
-              sw.WriteLine(";");
+              wrEquals.Write(" && ");
+            else {
+              wrEquals.WriteLine(";");
             }
           }
         } else {
-          sw.WriteLine(Indent() + "return true;");
+          wrEquals.WriteLine("return true;");
         }
-        indent--;
-        sw.WriteLine(Indent() + "}");
-        sw.WriteLine();
-        sw.WriteLine(Indent() + "@Override");
-        sw.WriteLine(Indent() + "public String toString() {");
-        indent++;
-        sw.WriteLine(Indent() + "StringBuilder sb = new StringBuilder();");
-        sw.WriteLine(Indent() + "sb.append(\"(\");");
-        for (int j = 0; j < i; j++){
-          sw.WriteLine(Indent() + $"sb.append(_{j} == null ? \"\" : _{j}.toString());");
+      }
+
+      wr.WriteLine();
+      wr.WriteLine("@Override");
+      using (var wrToString = wr.NewBlock("public String toString()")) {
+        wrToString.WriteLine("StringBuilder sb = new StringBuilder();");
+        wrToString.WriteLine("sb.append(\"(\");");
+        for (int j = 0; j < i; j++) {
+          wrToString.WriteLine($"sb.append(_{j} == null ? \"\" : _{j}.toString());");
           if (j != i - 1)
-            sw.WriteLine(Indent() + "sb.append(\", \");");
+            wrToString.WriteLine("sb.append(\", \");");
         }
-        sw.WriteLine(Indent() + "sb.append(\")\");");
-        sw.WriteLine(Indent() + "return sb.toString();");
-        indent--;
-        sw.WriteLine(Indent() + "}");
-        sw.WriteLine();
-        sw.WriteLine(Indent() + "@Override");
-        sw.WriteLine(Indent() + "public int hashCode() {");
-        indent++;
-        sw.WriteLine(Indent() + "// GetHashCode method (Uses the djb2 algorithm)");
-        sw.WriteLine(Indent() + "// https://stackoverflow.com/questions/1579721/why-are-5381-and-33-so-important-in-the-djb2-algorithm");
-        sw.WriteLine(Indent() + "long hash = 5381;");
-        sw.WriteLine(Indent() + "hash = ((hash << 5) + hash) + 0;");
-        for (int j = 0; j < i; j++){
-          sw.WriteLine(Indent() + "hash = ((hash << 5) + hash) + ((long) this._" + j + ".hashCode());");
+        wrToString.WriteLine("sb.append(\")\");");
+        wrToString.WriteLine("return sb.toString();");
+      }
+
+      wr.WriteLine();
+      wr.WriteLine("@Override");
+      using (var wrHashCode = wr.NewBlock("public int hashCode()")) {
+        wrHashCode.WriteLine("// GetHashCode method (Uses the djb2 algorithm)");
+        wrHashCode.WriteLine("// https://stackoverflow.com/questions/1579721/why-are-5381-and-33-so-important-in-the-djb2-algorithm");
+        wrHashCode.WriteLine("long hash = 5381;");
+        wrHashCode.WriteLine("hash = ((hash << 5) + hash) + 0;");
+        for (int j = 0; j < i; j++) {
+          wrHashCode.WriteLine("hash = ((hash << 5) + hash) + ((long) this._" + j + ".hashCode());");
         }
-        sw.WriteLine(Indent() + "return (int) hash;");
-        indent--;
-        sw.WriteLine(Indent() + "}");
-        for (int j = 0; j < i; j++){
-          sw.WriteLine();
-          sw.WriteLine(Indent() + "public T"+j+" dtor__"+j+"() { return this._"+j+"; }");
-        }
-        sw.WriteLine("}");
-        sw.WriteLine();
+        wrHashCode.WriteLine("return (int) hash;");
+      }
+
+      for (int j = 0; j < i; j++){
+        wr.WriteLine();
+        wr.WriteLine("public T" + j + " dtor__" + j + "() { return this._" + j + "; }");
+      }
+
+      // Create a file to write to.
+      using (StreamWriter sw = File.CreateText(path + "/Tuple" + i + ".java")) {
+        sw.Write(wrTop.ToString());
       }
     }
 
@@ -2490,31 +2481,32 @@ namespace Microsoft.Dafny{
     }
 
     public void CreateLambdaFunctionInterface(int i, string path) {
-      path += "/Function" + i + ".java";
-      using (StreamWriter sw = File.CreateText(path)) {
-        sw.WriteLine("package dafny;");
-        sw.WriteLine();
-        sw.WriteLine("@FunctionalInterface");
-        sw.Write("public interface Function");
-        sw.Write(i);
-        sw.Write("<");
-        for (int j = 0; j < i + 1; j++){
-          sw.Write("T" + j);
-          if (j != i)
-            sw.Write(", ");
-          else{
-            sw.Write("> ");
-          }
+      var wr = new TargetWriter();
+      wr.WriteLine("package dafny;");
+      wr.WriteLine();
+      wr.WriteLine("@FunctionalInterface");
+      wr.Write("public interface Function");
+      wr.Write(i);
+      wr.Write("<");
+      for (int j = 0; j < i + 1; j++){
+        wr.Write("T" + j);
+        if (j != i)
+          wr.Write(", ");
+        else{
+          wr.Write(">");
         }
-        sw.WriteLine("{");
-        sw.Write(Indent() + "public T" + i + " apply(");
-        for (int j = 0; j < i; j++){
-          sw.Write("T" + j + " t" + j);
-          if (j != i - 1)
-            sw.Write(", ");
-        }
-        sw.WriteLine(");");
-        sw.WriteLine("}");
+      }
+      var wrMembers = wr.NewBlock("");
+      wrMembers.Write("public T" + i + " apply(");
+      for (int j = 0; j < i; j++){
+        wrMembers.Write("T" + j + " t" + j);
+        if (j != i - 1)
+          wrMembers.Write(", ");
+      }
+      wrMembers.WriteLine(");");
+
+      using (StreamWriter sw = File.CreateText(path + "/Function" + i + ".java")) {
+        sw.Write(wr.ToString());
       }
     }
 
@@ -2536,35 +2528,41 @@ namespace Microsoft.Dafny{
     }
 
     public void CreateDafnyArrays(int i, string path) {
-      path += "/Array" + i + ".java";
-      using (StreamWriter sw = File.CreateText(path)) {
-        sw.WriteLine("package dafny;");
-        sw.WriteLine();
-        sw.WriteLine("public class Array" + i + "<T>{");
-        sw.Write(Indent() + "public T");
+      var wrTop = new TargetWriter();
+      wrTop.WriteLine("package dafny;");
+      wrTop.WriteLine();
+
+      var wr = wrTop.NewBlock("public class Array" + i + "<T>");
+
+      wr.Write("public T");
+      for (int j = 0; j < i; j++) {
+        wr.Write("[]");
+      }
+      wr.WriteLine(" elmts;");
+
+      for (int j = 0; j < i; j++) {
+        wr.WriteLine($"public int dims{j};");
+      }
+
+      wr.Write("public Array" + i + "(");
+      for (int j = 0; j < i; j++) {
+        wr.Write("int dims" + j + ", ");
+      }
+      wr.Write("T");
+      for (int j = 0; j < i; j++) {
+        wr.Write("[]");
+      }
+      using (var wrBody = wr.NewBlock(" elmts)")) {
         for (int j = 0; j < i; j++) {
-          sw.Write("[]");
+          wrBody.WriteLine($"this.dims{j} = dims{j};");
         }
-        sw.WriteLine(" elmts;");
-        for (int j = 0; j < i; j++) {
-          sw.WriteLine(Indent() + $"public int dims{j};");
-        }
-        sw.Write(Indent() + "public Array" + i + "(");
-        for (int j = 0; j < i; j++) {
-          sw.Write("int dims" + j + ", ");
-        }
-        sw.Write("T");
-        for (int j = 0; j < i; j++) {
-          sw.Write("[]");
-        }
-        sw.WriteLine(" elmts) {");
-        for (int j = 0; j < i; j++) {
-          sw.WriteLine(Indent() + Indent() + $"this.dims{j} = dims{j};");
-        }
-        sw.WriteLine(Indent() + Indent() + "this.elmts = elmts;");
-        sw.WriteLine(Indent() + "}");
-        sw.WriteLine(Indent() + "public Array" + i + "(){}");
-        sw.WriteLine("}");
+        wrBody.WriteLine("this.elmts = elmts;");
+      }
+
+      wr.WriteLine("public Array" + i + "() {}");
+
+      using (StreamWriter sw = File.CreateText(path + "/Array" + i + ".java")) {
+        sw.Write(wrTop.ToString());
       }
     }
 
@@ -2575,50 +2573,53 @@ namespace Microsoft.Dafny{
     }
 
     public void CreateArrayInit(int i, string path) {
-      path += "/ArrayInit" + i + ".java";
-      using (StreamWriter sw = File.CreateText(path)) {
-        sw.WriteLine("package dafny;");
-        sw.WriteLine();
-        sw.WriteLine("import java.lang.reflect.Array;");
-        sw.WriteLine();
-        sw.WriteLine("public class ArrayInit" + i + "{");
-        EmitSuppression(sw);
-        sw.Write(Indent() + "public static<T> T");
+      Contract.Requires(1 <= i);
+      var wrTop = new TargetWriter();
+      wrTop.WriteLine("package dafny;");
+      wrTop.WriteLine();
+      wrTop.WriteLine("import java.lang.reflect.Array;");
+      wrTop.WriteLine();
+      var wr = wrTop.NewBlock("public class ArrayInit" + i);
+      EmitSuppression(wr);
+      wr.Write("public static<T> T");
+      for (int j = 0; j < i; j++) {
+        wr.Write("[]");
+      }
+      wr.Write(" InitNewArray(T z");
+      for (int j = 0; j < i; j++) {
+        wr.Write($", int size{j}");
+      }
+
+      using (var body = wr.NewBlock(", Class cls)")) {
+        body.Write("T");
         for (int j = 0; j < i; j++) {
-          sw.Write("[]");
+          body.Write("[]");
         }
-        sw.Write(" InitNewArray(T z");
+        body.Write(" a = (T");
         for (int j = 0; j < i; j++) {
-          sw.Write($", int size{j}");
+          body.Write("[]");
         }
-        sw.WriteLine(", Class cls) {");
-        sw.Write(Indent() + "T");
+        body.Write(")Array.newInstance(cls");
         for (int j = 0; j < i; j++) {
-          sw.Write("[]");
+          body.Write($", size{j}");
         }
-        sw.Write(" a = (T");
+        body.WriteLine(");");
+
+        var forBodyWr = body;
         for (int j = 0; j < i; j++) {
-          sw.Write("[]");
+          forBodyWr = forBodyWr.NewBlock($"for(int i{j} = 0; i{j} < size{j}; i{j}++)");
         }
-        sw.Write(")Array.newInstance(cls");
+        forBodyWr.Write("a");
         for (int j = 0; j < i; j++) {
-          sw.Write($", size{j}");
+          forBodyWr.Write($"[i{j}]");
         }
-        sw.WriteLine(");");
-        for (int j = 0; j < i; j++) {
-          sw.WriteLine($"for(int i{j} = 0; i{j} < size{j}; i{j}++) {{");
-        }
-        sw.Write("a");
-        for (int j = 0; j < i; j++) {
-          sw.Write($"[i{j}]");
-        }
-        sw.WriteLine(" = z;");
-        for (int j = 0; j < i; j++) {
-          sw.WriteLine("}");
-        }
-        sw.WriteLine("return a;");
-        sw.WriteLine(Indent() + "}");
-        sw.WriteLine("}");
+        forBodyWr.WriteLine(" = z;");
+
+        body.WriteLine("return a;");
+      }
+
+      using (StreamWriter sw = File.CreateText(path + "/ArrayInit" + i + ".java")) {
+        sw.Write(wrTop.ToString());
       }
     }
 
