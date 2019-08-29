@@ -18,7 +18,7 @@ method FindIndex(arr: seq<int>, k: int)
 
 Any static or global **constants** are named with `UPPERCASE_WITH_UNDERSCORES`.
 ```dafny
-static const MONTHS_IN_A_YEAR := 12;
+static const MONTHS_IN_A_YEAR := 12
 ```
 
 ### Method Prefix
@@ -126,7 +126,7 @@ makes more sense to group them logically.
 ### Tabs or Spaces?
 Spaces are preferred over tabs. Tabs should only be used to remain consistent with the existing code with tabs.
 
-Use 4 spaces for each indentation.
+Use 2 spaces for each indentation.
 
 ### Maximum Character Limit
 Although there is no strict requirement, it is generally recommended to have a maximum of 120 characters per line.
@@ -135,15 +135,15 @@ Although there is no strict requirement, it is generally recommended to have a m
 Every Dafny method has the following signature.
 ```dafny
 method {:<attributes>} MethodName(param1: Type, param2: Type) returns (ret: Type)
-    decreases param1
     requires P()
     modifies param2
     ensures Q()
+    decreases param1
 ```
 
-When possible, put MethodName and the `returns` statement on the same line, as the keyword `returns` is distinct from
-other method specification clauses, such as `decreases`, `requires`, `modifies`, and `ensures`, which should appear in
-this order. Each method specification clause should be on a separate line.
+When possible, put `MethodName` and the `returns` statement on the same line, as the keyword `returns` is distinct from
+other method specification clauses, such as `requires`, `modifies`, `ensures`, and `decreases`, which should appear in
+this order. Each method specification clause should be on a separate line, indented.
 
 In case the Method signature is too long, we can break it down.
 ```dafny
@@ -151,7 +151,6 @@ method {:<attributes>} MethodName(param1: Type, param2: Type,
         param3: Type, param4: Type, param5: Type)
     returns (ret1: Type, ret2: Type, ret3: Type, ret4: Type,
         ret5: Type)
-    decreases param1
     requires P1()
     requires P2()
     requires P3()
@@ -159,6 +158,7 @@ method {:<attributes>} MethodName(param1: Type, param2: Type,
     modifies param3
     ensures Q1()
     ensures Q2()
+    decreases param1
 ```
 
 Multiple `requires` or `ensures` can be combined into one:
@@ -199,6 +199,17 @@ while (i < 10) {
 }
 ```
 
+* Statements That Take Expression Arguments
+```dafny
+// YES
+assert x < 100;
+print x;
+
+// NO
+assert(x < 100);
+print(x);
+```
+
 * Simple Boolean/Arithmetic Expressions
 ```dafny
 // YES
@@ -233,16 +244,22 @@ Avoid unnecessary whitespace inside expressions.
 A type declaration should have a form of `variableName: variableType`.
 ```dafny
 // YES
-var i: int := 1;
+const one: int := 1
 class {:extern} Util {
     var {:extern} Exception: System.String
 }
 
 // NO
-var i : int := 1; // unnecessary whitespace
+const one : int := 1 // unnecessary whitespace
 class {:extern} Util {
     var {:extern} Exception : System.String // unnecessary whitespace
 }
+```
+
+Note, if the type can be inferred by Dafny, leave it out, unless you think it provides
+useful documentation in the program. So, constant `one` above is better declared as
+```dafny
+const one := 1
 ```
 
 #### Function, Method, Predicate, and Lemma Declaration
