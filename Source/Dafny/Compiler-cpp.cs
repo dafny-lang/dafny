@@ -637,9 +637,7 @@ namespace Microsoft.Dafny {
     }
 
     protected override int EmitRuntimeTypeDescriptorsActuals(List<Type> typeArgs, List<TypeParameter> formals, Bpl.IToken tok, bool useAllTypeArgs, TargetWriter wr) {
-      var error = string.Format("EmitRuntimeTypeDescriptorsActuals not yet supported");
-      throw new Exception(error);
- /*      var sep = "";
+      var sep = "";
       var c = 0;
       for (int i = 0; i < typeArgs.Count; i++) {
         var actual = typeArgs[i];
@@ -650,7 +648,7 @@ namespace Microsoft.Dafny {
           c++;
         }
       }
-      return c; */
+      return c;
     }
 
     string RuntimeTypeDescriptor(Type type, Bpl.IToken tok, TextWriter wr) {
@@ -954,7 +952,8 @@ namespace Microsoft.Dafny {
 
     protected override bool DeclareFormal(string prefix, string name, Type type, Bpl.IToken tok, bool isInParam, TextWriter wr) {
       if (isInParam) {
-        wr.Write("{2} {0}{1}", prefix, name, TypeName(type, wr, tok));
+        var s = String.Format("{0}{2} {1}", prefix, name, TypeName(type, wr, tok));
+        wr.Write("{0}{2} {1}", prefix, name, TypeName(type, wr, tok));
         return true;
       } else {
         return false;
@@ -998,16 +997,13 @@ namespace Microsoft.Dafny {
     }
 
     protected override void EmitOutParameterSplits(string outCollector, List<string> actualOutParamNames, TargetWriter wr) {
-      var error = string.Format("EmitOutParameterSplits is not yet supported");
-      throw new Exception(error);
-      /* 
       if (actualOutParamNames.Count == 1) {
         EmitAssignment(actualOutParamNames[0], null, outCollector, null, wr);
       } else {
         for (var i = 0; i < actualOutParamNames.Count; i++) {
           wr.WriteLine("{0} = {1}[{2}];", actualOutParamNames[i], outCollector, i);
         }
-      } */
+      }
     }
 
     protected override void EmitActualTypeArgs(List<Type> typeArgs, Bpl.IToken tok, TextWriter wr) {
@@ -1371,52 +1367,12 @@ namespace Microsoft.Dafny {
       }
     }
 
-    private string UserDefinedTypeName(TopLevelDecl cl, bool full, MemberDecl/*?*/ member = null) {
-      var error = string.Format("UserDefinedTypeName {0} is not yet supported", cl.Name);
-      throw new Exception(error);
-      /*
-      if (IsExternMemberOfExternModule(member, cl)) {
-        // omit the default class name ("_default") in extern modules, when the class is used to qualify an extern member
-        Contract.Assert(!cl.Module.IsDefaultModule);  // default module is not marked ":extern"
-        return IdProtect(cl.Module.CompileName);
-      } else {
-        if (cl.IsExtern(out var qual, out _)) {
-          // No need to take into account the second argument to extern, since
-          // it'll already be cl.CompileName
-          if (qual == null) {
-            qual = cl.Module.CompileName;
-          }
-          // Don't use IdName since that'll capitalize, which is unhelpful for
-          // built-in types
-          return qual + (qual == "" ? "" : ".") + cl.CompileName;
-        } else if (!full || cl.Module.IsDefaultModule || this.ModuleName == cl.Module.CompileName) {
-          return IdName(cl);
-        } else {
-          return cl.Module.CompileName + "." + IdName(cl);
-        }
-      }
-      */
-    }
-
-    private string UserDefinedTypeName(UserDefinedType udt, bool full, MemberDecl/*?*/ member = null) {
-      Contract.Requires(udt != null);
-      if (udt is ArrowType) {
-        return ArrowType.Arrow_FullCompileName;
-      }
-      var cl = udt.ResolvedClass;
-      if (cl == null) {
-        return IdProtect(udt.CompileName);
-      } else {
-        return UserDefinedTypeName(cl, full, member);
-      }
-    }
-
     protected override string FullTypeName(UserDefinedType udt, MemberDecl/*?*/ member = null) {
-      return UserDefinedTypeName(udt, full:true, member:member);
-      /* 
       Contract.Assume(udt != null);  // precondition; this ought to be declared as a Requires in the superclass
       if (udt is ArrowType) {
-        return ArrowType.Arrow_FullCompileName;
+        var error = string.Format("UserDefinedTypeName {0} is not yet supported", udt.Name);
+        throw new Exception(error);
+        //return ArrowType.Arrow_FullCompileName;
       }
       var cl = udt.ResolvedClass;
       if (cl == null) {
@@ -1428,7 +1384,7 @@ namespace Microsoft.Dafny {
         return IdProtect(cl.Module.CompileName);
       } else {
         return IdProtect(cl.Module.CompileName) + "." + IdProtect(cl.CompileName);
-      } */
+      }
     }
 
     protected override void EmitThis(TargetWriter wr) {
