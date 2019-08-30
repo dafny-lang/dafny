@@ -55,8 +55,8 @@ public class MultisetTest {
         assertTrue(testMDisjoint.disjoint(testMSubSet));
         assertTrue(testMDisjoint.disjoint(testMSubSet));
         Map<Integer, BigInteger> testMap = new HashMap<>();
-        testMap.put(1, new BigInteger("7"));
-        testMap.put(45, new BigInteger("18"));
+        testMap.put(1, BigInteger.valueOf(7));
+        testMap.put(45, BigInteger.valueOf(18));
         testMap.put(-3, BigInteger.ZERO);
         DafnyMultiset<Integer> testZeros= new DafnyMultiset<>(testMap);
         testZeros = testZeros.update(10, BigInteger.ZERO);
@@ -92,12 +92,12 @@ public class MultisetTest {
 
     @Test
     public void testCardinality(){
-        assertEquals(new BigInteger("11"), testMSet.cardinality());
-        assertEquals(new BigInteger("9"), testMSubSet.cardinality());
-        assertEquals(new BigInteger("7"), testMDisjoint.cardinality());
-        assertEquals(new BigInteger("6"), testMUnion6.cardinality());
-        assertEquals(new BigInteger("2"), testMDifference.cardinality());
-        assertEquals(new BigInteger("0"), testMEmpty.cardinality());
+        assertEquals(BigInteger.valueOf(11), testMSet.cardinality());
+        assertEquals(BigInteger.valueOf(9), testMSubSet.cardinality());
+        assertEquals(BigInteger.valueOf(7), testMDisjoint.cardinality());
+        assertEquals(BigInteger.valueOf(6), testMUnion6.cardinality());
+        assertEquals(BigInteger.valueOf(2), testMDifference.cardinality());
+        assertEquals(BigInteger.valueOf(0), testMEmpty.cardinality());
     }
 
     @Test
@@ -110,11 +110,11 @@ public class MultisetTest {
 
     @Test
     public void testUpdate(){
-        testMSet = testMSet.update(7, new BigInteger("3"));
-        assertEquals(new BigInteger("3"), testMSet.multiplicity(7));
-        testMSet = testMSet.update(8, new BigInteger("5"));
-        assertEquals(new BigInteger("5"), testMSet.multiplicity(8));
-        testMSet = testMSet.update(8, new BigInteger("0"));
+        testMSet = testMSet.update(7, BigInteger.valueOf(3));
+        assertEquals(BigInteger.valueOf(3), testMSet.multiplicity(7));
+        testMSet = testMSet.update(8, BigInteger.valueOf(5));
+        assertEquals(BigInteger.valueOf(5), testMSet.multiplicity(8));
+        testMSet = testMSet.update(8, BigInteger.valueOf(0));
         assertFalse(testMSet.contains(8));
     }
 
@@ -169,11 +169,11 @@ public class MultisetTest {
     @Test
     public void testNegativeFailures(){
         Map<Integer, BigInteger> m = new HashMap<>();
-        m.put(3, new BigInteger("-3"));
-        m.put(2, new BigInteger("0"));
+        m.put(3, BigInteger.valueOf(-3));
+        m.put(2, BigInteger.valueOf(0));
         thrown.expect(AssertionError.class);
         DafnyMultiset<Integer> willFail = new DafnyMultiset<>(m);
-        testMSet.update(16, new BigInteger("-18"));
+        testMSet.update(16, BigInteger.valueOf(-18));
     }
 
     @Test

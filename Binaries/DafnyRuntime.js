@@ -50,6 +50,9 @@ let _dafny = (function() {
   $module.Rtd_array = class {
     static get Default() { return []; }
   }
+  $module.ZERO = new BigNumber(0);
+  $module.ONE = new BigNumber(1);
+  $module.NUMBER_LIMIT = new BigNumber(0x20).multipliedBy(0x1000000000000);  // 2^53
   $module.Tuple = class Tuple extends Array {
     constructor(...elems) {
       super(...elems);
@@ -262,22 +265,20 @@ let _dafny = (function() {
     }
     static fromElements(...elmts) {
       let s = new MultiSet();
-      const one = new BigNumber(1);
       for (let e of elmts) {
-        s.add(e, one);
+        s.add(e, _dafny.ONE);
       }
       return s;
     }
     static FromArray(arr) {
       let s = new MultiSet();
-      const one = new BigNumber(1);
       for (let e of arr) {
-        s.add(e, one);
+        s.add(e, _dafny.ONE);
       }
       return s;
     }
     cardinality() {
-      let c = new BigNumber(0);
+      let c = _dafny.ZERO;
       for (let e of this) {
         let [k, n] = e;
         c = c.plus(n);
@@ -303,7 +304,7 @@ let _dafny = (function() {
     get(k) {
       let i = this.findIndex(k);
       if (i === this.length) {
-        return new BigNumber(0);
+        return _dafny.ZERO;
       } else {
         return this[i][1];
       }
@@ -411,7 +412,7 @@ let _dafny = (function() {
         for (let e of this) {
           let [k, n] = e;
           let d = n.minus(that.get(k));
-          if (d.isGreaterThan(new BigNumber(0))) {
+          if (d.isGreaterThan(0)) {
             s.push([k, d]);
           }
         }
@@ -638,7 +639,7 @@ let _dafny = (function() {
   }
   $module.BigOrdinal = class BigOrdinal {
     static get Default() {
-      return new BigNumber(0);
+      return _dafny.ZERO;
     }
     static IsLimit(ord) {
       return ord.isZero();
@@ -656,14 +657,14 @@ let _dafny = (function() {
   $module.BigRational = class BigRational {
     static get ZERO() {
       if (this._zero === undefined) {
-        this._zero = new BigRational(new BigNumber(0));
+        this._zero = new BigRational(_dafny.ZERO);
       }
       return this._zero;
     }
     constructor (n, d) {
       // requires d === undefined || 1 <= d
       this.num = n;
-      this.den = d === undefined ? new BigNumber(1) : d;
+      this.den = d === undefined ? _dafny.ONE : d;
       // invariant 1 <= den || (num == 0 && den == 0)
     }
     static get Default() {
@@ -868,9 +869,9 @@ let _dafny = (function() {
     return x.plus(y);
   }
   $module.BitwiseAnd = function(a, b) {
-    let r = new BigNumber(0);
-    const m = 0x20000000000000;  // 2^53
-    let h = new BigNumber(1);
+    let r = _dafny.ZERO;
+    const m = _dafny.NUMBER_LIMIT;  // 2^53
+    let h = _dafny.ONE;
     while (!a.isZero() && !b.isZero()) {
       let a0 = a.mod(m);
       let b0 = b.mod(m);
@@ -882,9 +883,9 @@ let _dafny = (function() {
     return r;
   }
   $module.BitwiseOr = function(a, b) {
-    let r = new BigNumber(0);
-    const m = 0x20000000000000;  // 2^53
-    let h = new BigNumber(1);
+    let r = _dafny.ZERO;
+    const m = _dafny.NUMBER_LIMIT;  // 2^53
+    let h = _dafny.ONE;
     while (!a.isZero() && !b.isZero()) {
       let a0 = a.mod(m);
       let b0 = b.mod(m);
@@ -897,9 +898,9 @@ let _dafny = (function() {
     return r;
   }
   $module.BitwiseXor = function(a, b) {
-    let r = new BigNumber(0);
-    const m = 0x20000000000000;  // 2^53
-    let h = new BigNumber(1);
+    let r = _dafny.ZERO;
+    const m = _dafny.NUMBER_LIMIT;  // 2^53
+    let h = _dafny.ONE;
     while (!a.isZero() && !b.isZero()) {
       let a0 = a.mod(m);
       let b0 = b.mod(m);
@@ -912,8 +913,8 @@ let _dafny = (function() {
     return r;
   }
   $module.BitwiseNot = function(a, bits) {
-    let r = new BigNumber(0);
-    let h = new BigNumber(1);
+    let r = _dafny.ZERO;
+    let h = _dafny.ONE;
     for (let i = 0; i < bits; i++) {
       let bit = a.mod(2);
       if (bit.isZero()) {
@@ -946,8 +947,8 @@ let _dafny = (function() {
     }
   }
   $module.AllIntegers = function*() {
-    yield new BigNumber(0);
-    for (let j = new BigNumber(1);; j = j.plus(1)) {
+    yield _dafny.ZERO;
+    for (let j = _dafny.ONE;; j = j.plus(1)) {
       yield j;
       yield j.negated();
     }
