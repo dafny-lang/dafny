@@ -70,17 +70,21 @@ namespace Microsoft.Dafny {
       }
 
       var w = wr.NewBlock(string.Format("class {0}", name), ";");
-      w.WriteLine("public:");
+      //w = w.NewBlock("public:", null, BlockTargetWriter.BraceStyle.Nothing, BlockTargetWriter.BraceStyle.Nothing);
+      w.Write("public:\n");      
+      //var w2 = w.ForkSection(true);
+      //var w2 = w.NewBlock("// Constructor");
+      var w2 = w;
 
-      w.WriteLine("// Constructor");
-      w.Write(string.Format("{0}(", name));
+      //w2.Write("// Constructor\n");
+      w2.Write(string.Format("{0}(", name));
       //var w2 = wr.NewBlock(string.Format("{0}("
       /*
       if (typeParameters != null) {
         WriteRuntimeTypeDescriptorsFormals(typeParameters, false, w);
       }
       */
-      var fieldWriter = w.NewBlock(")");
+      var fieldWriter = w2.NewBlock(")");
       /*
       if (fullPrintName != null) {
         fieldWriter.WriteLine("this._tname = \"{0}\";", fullPrintName);
@@ -94,7 +98,7 @@ namespace Microsoft.Dafny {
         }
       }
       */
-      var methodWriter = w;
+      var methodWriter = w2;
       return new ClassWriter(this, methodWriter, fieldWriter);
     }
 
@@ -781,7 +785,12 @@ namespace Microsoft.Dafny {
         Type elType = UserDefinedType.ArrayElementType(xType);
         string typeNameSansBrackets, brackets;
         TypeName_SplitArrayName(elType, wr, tok, out typeNameSansBrackets, out brackets);
-        return typeNameSansBrackets + TypeNameArrayBrackets(at.Dims) + brackets;
+        //return typeNameSansBrackets + TypeNameArrayBrackets(at.Dims) + brackets;
+        if (at.Dims == 1) {
+          return typeNameSansBrackets + "*";
+        } else {
+          throw new Exception("Multi-dimensional arrays are not currently supported");
+        }
       } else if (xType is UserDefinedType) {
         var udt = (UserDefinedType)xType;
         var s = FullTypeName(udt, member);
@@ -1028,9 +1037,9 @@ namespace Microsoft.Dafny {
     protected override void EmitReturn(List<Formal> outParams, TargetWriter wr) {
       outParams = outParams.Where(f => !f.IsGhost).ToList();
       if (!outParams.Any()) {
-        wr.WriteLine("return");
+        wr.WriteLine("return;");
       } else {
-        wr.WriteLine("return {0}", Util.Comma(outParams, IdName));
+        wr.WriteLine("return {0};", Util.Comma(outParams, IdName));
       }
     }
 
@@ -1172,6 +1181,8 @@ namespace Microsoft.Dafny {
     }
     void EmitIntegerLiteral(BigInteger i, TextWriter wr) {
       Contract.Requires(wr != null);
+      wr.Write(i);
+      /*
       if (i == 0) {
         wr.Write("_dafny.Zero");
       } else if (long.MinValue <= i && i <= long.MaxValue) {
@@ -1179,6 +1190,7 @@ namespace Microsoft.Dafny {
       } else {
         wr.Write("_dafny.IntOfString(\"{0}\")", i);
       }
+       */
     }
 
     protected override void EmitStringLiteral(string str, bool isVerbatim, TextWriter wr) {
@@ -1724,6 +1736,10 @@ namespace Microsoft.Dafny {
         case BinaryExpr.ResolvedOpcode.EqCommon: {
             if (IsHandleComparison(tok, e0, e1, errorWr)) {
               opString = "==";
+            } else if (IsDirectlyComparable(e0.Type)) {
+              opString = "==";
+            } else if (e0.Type.IsRefType) {
+              opString = "==";
             } else {
               staticCallString = "_dafny.AreEqual";
             }
@@ -1733,6 +1749,10 @@ namespace Microsoft.Dafny {
             if (IsHandleComparison(tok, e0, e1, errorWr)) {
               opString = "!=";
               postOpString = "/* handle */";
+            } else if (IsDirectlyComparable(e0.Type)) {
+              opString = "!=";
+            } else if (e0.Type.IsRefType) {
+              opString = "!=";
             } else {
               preOpString = "!";
               staticCallString = "_dafny.AreEqual";
