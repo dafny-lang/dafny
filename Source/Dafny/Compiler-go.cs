@@ -1916,8 +1916,10 @@ namespace Microsoft.Dafny {
     }
     void EmitIntegerLiteral(BigInteger i, TextWriter wr) {
       Contract.Requires(wr != null);
-      if (i == 0) {
+      if (i.IsZero) {
         wr.Write("_dafny.Zero");
+      } else if (i.IsOne) {
+        wr.Write("_dafny.One");
       } else if (long.MinValue <= i && i <= long.MaxValue) {
         wr.Write("_dafny.IntOfInt64({0})", i);
       } else {

@@ -93,8 +93,8 @@ public class DafnySequence<T> implements Iterable<T> {
 
     public DafnySequence<T> update(BigInteger b, T t) {
         //todo: should we allow i=length, and return a new sequence with t appended to the sequence?
-        assert b.compareTo(BigInteger.ZERO) >=0  &&
-                b.compareTo(new BigInteger(Integer.toString(length()))) < 0: "Precondition Violation";
+        assert b.compareTo(BigInteger.ZERO) >= 0 &&
+               b.compareTo(BigInteger.valueOf(length())) < 0: "Precondition Violation";
         return new DafnySequence<>(seq, b.intValue(), t);
     }
 

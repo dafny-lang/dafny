@@ -1168,7 +1168,11 @@ namespace Microsoft.Dafny {
     }
     void EmitIntegerLiteral(BigInteger i, TextWriter wr) {
       Contract.Requires(wr != null);
-      if (-9007199254740991 <= i && i <= 9007199254740991) {
+      if (i.IsZero) {
+        wr.Write("_dafny.ZERO");
+      } else if (i.IsOne) {
+        wr.Write("_dafny.ONE");
+      } else if (-0x20_0000_0000_0000L < i && i < 0x20_0000_0000_0000L) {  // 53 bits, plus sign
         wr.Write("new BigNumber({0})", i);
       } else {
         wr.Write("new BigNumber(\"{0}\")", i);

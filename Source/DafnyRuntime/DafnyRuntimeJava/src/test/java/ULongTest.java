@@ -17,8 +17,11 @@ public class ULongTest {
     ULong two = new ULong(2);
     ULong zero = new ULong(0);
     ULong max = new ULong(new BigInteger("18446744073709551615"));
+    ULong maxMinus1 = new ULong(new BigInteger("18446744073709551614"));
+    ULong maxMinus2 = new ULong(new BigInteger("18446744073709551613"));
     ULong large = new ULong(0xfffffffffffffff0l);
     ULong grande = new ULong(0x0ffffffffffffff0l);
+    BigInteger MAXBI = new BigInteger("18446744073709551615");  // 0xffff_ffff_ffff_ffff
 
     @Test
     public void testComparisons(){
@@ -42,10 +45,12 @@ public class ULongTest {
     @Test
     public void testArithmetic(){
         assertEquals(10+2, tenU.add(two).value());
-        assertEquals(ULong.MAXVALUE, max.add(zero).value());
+        assertEquals(0xffffffffffffffffL, max.add(zero).value());
+        assertEquals(0xfffffffffffffffeL, maxMinus1.add(zero).value());
+        assertEquals(0xfffffffffffffffdL, maxMinus2.add(zero).value());
         assertEquals(0xfffffffffffffffal, large.add(tenU).value());
         assertEquals(10-2, tenU.subtract(two).value());
-        assertEquals(ULong.MAXVALUE- 2, max.subtract(two).value());
+        assertEquals(0xffffffffffffffffL - 2, max.subtract(two).value());
         assertEquals(0xffffffffffffffe6l, large.subtract(tenU).value());
         assertEquals(10*2, tenU.multiply(two).value());
         assertEquals(0, max.multiply(zero).value());
@@ -53,11 +58,11 @@ public class ULongTest {
         assertEquals(5, tenI.divide(two).value());
         assertEquals(0, zero.divide(max).value());
         assertEquals(1, max.divide(max).value());
-        assertEquals(ULong.MAXBI.divide(BigInteger.TEN).longValue(), max.divide(tenU).value());
+        assertEquals(MAXBI.divide(BigInteger.TEN).longValue(), max.divide(tenU).value());
         assertEquals(0, tenU.mod(two).value());
-        assertEquals(ULong.MAXBI.mod(BigInteger.TEN).longValue(), max.mod(tenI).value());
+        assertEquals(MAXBI.mod(BigInteger.TEN).longValue(), max.mod(tenI).value());
         assertEquals(tenU.value(), tenU.mod(max).value());
-        assertEquals(ULong.MAXBI.divide(BigInteger.TEN).longValue(), max.divide(tenI).value());
+        assertEquals(MAXBI.divide(BigInteger.TEN).longValue(), max.divide(tenI).value());
     }
 
     @Rule
@@ -66,7 +71,7 @@ public class ULongTest {
     @Test
     public void testFailures(){
         thrown.expect(AssertionError.class);
-        ULong fail = new ULong(ULong.MAXBI.add(new BigInteger("2")));
+        ULong fail = new ULong(MAXBI.add(BigInteger.valueOf(2)));
         max.add(tenI);
         zero.subtract(two);
         max.multiply(tenU);

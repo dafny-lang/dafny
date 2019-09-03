@@ -1296,8 +1296,16 @@ namespace Microsoft.Dafny
     }
     void EmitIntegerLiteral(BigInteger i, TextWriter wr) {
       Contract.Requires(wr != null);
-      if (new BigInteger(int.MinValue) <= i && i <= new BigInteger(int.MaxValue)) {
-        wr.Write("new BigInteger({0})", i);
+      if (i.IsZero) {
+        wr.Write("BigInteger.Zero");
+      } else if (i.IsOne) {
+        wr.Write("BigInteger.One");
+      } else if (int.MinValue <= i && i <= int.MaxValue) {
+          wr.Write("new BigInteger({0})", i);
+      } else if (long.MinValue <= i && i <= long.MaxValue) {
+        wr.Write("new BigInteger({0}L)", i);
+      } else if (ulong.MinValue <= i && i <= ulong.MaxValue) {
+        wr.Write("new BigInteger({0}UL)", i);
       } else {
         wr.Write("BigInteger.Parse(\"{0}\")", i);
       }

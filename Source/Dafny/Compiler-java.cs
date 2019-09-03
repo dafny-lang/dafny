@@ -707,7 +707,15 @@ namespace Microsoft.Dafny{
         var cast = name == "Short" || name == "Byte" ? $"({name.ToLower()})" : "";
         wr.Write($"new {name}({cast}{(BigInteger)e.Value}{literalSuffix})");
       } else if (e.Value is BigInteger i) {
-        wr.Write($"new BigInteger(\"{i}\")");
+        if (i.IsZero) {
+          wr.Write("BigInteger.ZERO");
+        } else if (i.IsOne) {
+          wr.Write("BigInteger.ONE");
+        } else if (long.MinValue <= i && i <= long.MaxValue) {
+          wr.Write($"BigInteger.valueOf({i}L)");
+        } else {
+          wr.Write($"new BigInteger(\"{i}\")");
+        }
       } else if (e.Value is Basetypes.BigDec n){
         if (0 <= n.Exponent){
           wr.Write($"new dafny.BigRational(new BigInteger(\"{n.Mantissa}");
