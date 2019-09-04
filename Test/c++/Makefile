@@ -3,6 +3,8 @@ SRCS=$(wildcard *.cpp)
 EXECS=$(subst .cpp,,$(SRCS))
 DAFNY=../../Binaries/dafny
 
+CXXFLAGS += -Wno-c++11-extensions
+
 #all=$(TARGETS)
 all:hello integers
 

@@ -973,7 +973,7 @@ namespace Microsoft.Dafny {
       if (type != null) {
         wr.Write("{0} ", TypeName(type, wr, tok));
       } else {
-        wr.Write("var ");
+        wr.Write("auto ");
       }
       wr.Write("{0}", name);
       if (leaveRoomForRhs) {
@@ -989,16 +989,18 @@ namespace Microsoft.Dafny {
       if (type != null) {
         wr.Write("{0} ", TypeName(type, wr, tok));
       } else {
-        wr.Write("var ");
+        wr.Write("auto ");
       }
-      wr.Write("{0}", name);
-      return wr.Fork();       /// TODO: Not sure when this should be called
+      wr.Write("{0} = ", name);
+      var w = wr.Fork();
+      wr.WriteLine(";");
+      return w;
     }
 
     protected override bool UseReturnStyleOuts(Method m, int nonGhostOutCount) => true;
 
     protected override void DeclareOutCollector(string collectorVarName, TargetWriter wr) {
-      wr.Write("var {0} = ", collectorVarName);
+      wr.Write("auto {0} = ", collectorVarName);
     }
 
     protected override void DeclareLocalOutVar(string name, Type type, Bpl.IToken tok, string rhs, bool useReturnStyleOuts, TargetWriter wr) {
@@ -1020,7 +1022,7 @@ namespace Microsoft.Dafny {
     }
 
     protected override string GenerateLhsDecl(string target, Type/*?*/ type, TextWriter wr, Bpl.IToken tok) {
-      return "var " + target;
+      return "auto " + target;
     }
 
     // ----- Statements -------------------------------------------------------------
@@ -1069,7 +1071,7 @@ namespace Microsoft.Dafny {
     }
 
     protected override BlockTargetWriter CreateForLoop(string indexVar, string bound, TargetWriter wr) {
-      return wr.NewNamedBlock("for (var {0} = 0; {0} < {1}; {0}++)", indexVar, bound);
+      return wr.NewNamedBlock("for (auto {0} = 0; {0} < {1}; {0}++)", indexVar, bound);
     }
 
     protected override BlockTargetWriter CreateDoublingForLoop(string indexVar, int start, TargetWriter wr) {
@@ -1395,7 +1397,7 @@ namespace Microsoft.Dafny {
         Contract.Assert(!cl.Module.IsDefaultModule);  // default module is not marked ":extern"
         return IdProtect(cl.Module.CompileName);
       } else {
-        return IdProtect(cl.Module.CompileName) + "." + IdProtect(cl.CompileName);
+        return IdProtect(cl.Module.CompileName) + "::" + IdProtect(cl.CompileName);
       }
     }
 

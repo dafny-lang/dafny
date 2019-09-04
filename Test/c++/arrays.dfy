@@ -66,6 +66,7 @@ method Main() {
   PrintArray(a, 23);
   var n := LinearSearch(a, 23, 17);
   print n, "\n";
+  /*
   var s : seq<uint32> := a[..];
   print s, "\n";
   s := a[2..16];
@@ -78,6 +79,7 @@ method Main() {
   // Conversion to sequence should copy elements (sequences are immutable!)
   a[0] := 42;
   print s, "\n";
+  */
 
   PrintArray(null, 0);
   //PrintArray<uint32>(null);
