@@ -659,6 +659,10 @@ namespace Microsoft.Dafny {
     }
 
     protected void WriteFromFile(string inputFilename, TextWriter outputWriter) {
+// ******************************************************************   
+// TODO: BJP: Restore this!      
+// ******************************************************************  
+      return;
       using (var rd = new StreamReader(new FileStream(inputFilename, System.IO.FileMode.Open, System.IO.FileAccess.Read))) {
         while (true) {
           string s = rd.ReadLine();
@@ -2637,7 +2641,10 @@ namespace Microsoft.Dafny {
             wr.Write("{0}.{1}", qual, compileName);
           } else {
             wr.Write(TypeName_Companion(s.Receiver.Type, wr, s.Tok, s.Method));
-            wr.Write(".{0}", IdName(s.Method));
+// ******************************************************************   
+// TODO: Add an overrideable function for this      
+// ******************************************************************              
+            wr.Write("::{0}", IdName(s.Method));
           }
         }
         List<Type> typeArgs;
