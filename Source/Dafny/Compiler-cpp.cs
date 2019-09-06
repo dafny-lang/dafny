@@ -185,31 +185,35 @@ namespace Microsoft.Dafny {
     }
 
     protected override void DeclareDatatype(DatatypeDecl dt, TargetWriter wr) {
-      // ===== For inductive datatypes:
-      // struct Dt {
-      //   uint32_t tag;
-      //   uint32_t field0a;
-      //   uint32_t field1a;
-      //   char field1b;
+      // Given:
+      // datatype Example1 = Example1(u:uint32, b:bool)
+      // datatype Example2 = Ex2a(u:uint32) | Ex2b(b:bool)
+      //
+      // Produce:
+      // struct Example1 { 
+      //   uint32 u;
+      //   bool b;
+      //   Example1(uint32 u, bool b) : u (u), b (b) {}
+      // };
+      // bool is_Example1(struct Example1 d) { return true; }
+      //
+      // struct Example2_2a {
+      //   uint32 u;
       // };
       //
-      // bool is_Ctor0(struct Dt d) { return d.tag == 0; }
-      // bool is_Ctor1(struct Dt d) { return d.tag == 1; }
-      //        
-      // struct Dt Dt_Ctor0(uint32_t field0a) { 
-      //   struct Dt d;
-      //   d.tag = 0;
-      //   d.field0a = field0a;
-      //   return d;
-      // }
+      // struct Example2_2b {
+      //   bool b;
+      // };
       //
-      // struct Dt Dt_Ctor1(uint32_t field1a, char field1b) { 
-      //   struct Dt d;
-      //   d.tag = 1;
-      //   d.field1a = field1a;
-      //   d.field1b = field1b;
-      //   return d;
-      // }
+      // struct Example2 {
+      //   enum {TAG_2a, TAG_2b} tag;
+      //   union {
+      //     struct Example2_2a v2a;
+      //     struct Example2_2b v2b;
+      //   };
+      // };
+      // bool is_Example2_2a(struct Example2 d) { return d.tag == Example2::TAG_2a; }
+      // bool is_Example2_2b(struct Example2 d) { return d.tag == Example2::TAG_2b; }
 
       if (dt is TupleTypeDecl) {
         // Tuple types are declared once and for all in DafnyRuntime.h
@@ -219,180 +223,240 @@ namespace Microsoft.Dafny {
       string DtT = dt.CompileName;
       string DtT_protected = IdProtect(DtT);
 
-      // from here on, write everything into the new block created here:
-      wr = wr.NewNamedBlock("struct {0} {{", DtT_protected);
+      // Optimize a not-uncommon case
+      if (dt.Ctors.Count == 1) {
+        var ws = wr.NewBlock(String.Format("struct {0}", DtT_protected), ";");
+        var ctor = dt.Ctors[0];
 
-      wr.WriteLine("constructor(tag) { this.$tag = tag; }");
-
-      if (dt is CoDatatypeDecl) {
-        throw new Exception("CoDatatypeDecl is not yet supported");
-      }
-
-
-
-      // query properties
-      var i = 0;
-      foreach (var ctor in dt.Ctors) {
-        // collect the names of non-ghost arguments
+        // Declare the struct members
+        var i = 0;
         var argNames = new List<string>();
-        var k = 0;
-        foreach (var formal in ctor.Formals) {
-          if (!formal.IsGhost) {
-            argNames.Add(FormalName(formal, k));
-            k++;
-          }
-        }
-        // datatype:
-        //   static create_Ctor0(params) { let $dt = new Dt(tag); $dt.param0 = param0; ...; return $dt; }
-        
-        wr.Write("static create_{0}(", ctor.CompileName);
-        if (dt is CoDatatypeDecl) {
-          wr.Write("$dt{0}", argNames.Count == 0 ? "" : ",");
-        }
-        wr.Write(Util.Comma(argNames, nm => nm));
-        var w = wr.NewBlock(")");
-        if (dt is CoDatatypeDecl) {
-          var wThen = EmitIf("$dt === null", false, w);
-          wThen.WriteLine("$dt = new {0}({1});", DtT_protected, i);
-          wThen.WriteLine("$dt._d = $dt;");
-        } else {
-          w.WriteLine("let $dt = new {0}({1});", DtT_protected, i);
-        }
-        foreach (var arg in argNames) {
-          w.WriteLine("$dt.{0} = {0};", arg);
-        }
-        w.WriteLine("return $dt;");        
-        i++;
-      }
-
-      // query properties
-      i = 0;
-      foreach (var ctor in dt.Ctors) {
-        // get is_Ctor0() { return _D is Dt_Ctor0; }
-        wr.WriteLine("bool is_{0}(struct {1} d) {{ return d.tag == {2}; }}", ctor.CompileName, DtT_protected, i);
-        i++;
-      }
-/*
-      if (dt.HasFinitePossibleValues) {
-        Contract.Assert(dt.TypeArgs.Count == 0);
-        using (var w = wr.NewNamedBlock("static get AllSingletonConstructors()")) {
-          w.WriteLine("return this.AllSingletonConstructors_();");
-        }
-        using (var w = wr.NewNamedBlock("static *AllSingletonConstructors_()")) {
-          foreach (var ctor in dt.Ctors) {
-            Contract.Assert(ctor.Formals.Count == 0);
-            w.WriteLine("yield {0}.create_{1}({2});", DtT_protected, ctor.CompileName, dt is CoDatatypeDecl ? "null" : "");
-          }
-        }
-      }
-*/
-      // destructors
-      foreach (var ctor in dt.Ctors) {
-        foreach (var dtor in ctor.Destructors) {
-          if (dtor.EnclosingCtors[0] == ctor) {
-            var arg = dtor.CorrespondingFormals[0];
-            if (!arg.IsGhost && arg.HasName) {
-              // datatype:   get dtor_Dtor0() { return this.Dtor0; }
-              // codatatype: get dtor_Dtor0() { return this._D().Dtor0; }
-              wr.WriteLine("get dtor_{0}() {{ return this{2}.{1}; }}", arg.CompileName, IdName(arg), dt is CoDatatypeDecl ? "._D()" : "");
-            }
-          }
-        }
-      }
-
-      if (dt is IndDatatypeDecl && !(dt is TupleTypeDecl)) {
-        // toString method
-        using (var w = wr.NewBlock("toString()")) {
-          i = 0;
-          foreach (var ctor in dt.Ctors) {
-            var cw = EmitIf(string.Format("this.$tag === {0}", i), true, w);
-            var nm = (dt.Module.IsDefaultModule ? "" : dt.Module.Name + ".") + dt.Name + "." + ctor.Name;
-            cw.Write("return \"{0}\"", nm);
-            var sep = " + \"(\" + ";
-            var anyFormals = false;
-            var k = 0;
-            foreach (var arg in ctor.Formals) {
-              if (!arg.IsGhost) {
-                anyFormals = true;
-                cw.Write("{0}_dafny.toString(this.{1})", sep, FormalName(arg, k));
-                sep = " + \", \" + ";
-                k++;
-              }
-            }
-            if (anyFormals) {
-              cw.Write(" + \")\"");
-            }
-            cw.WriteLine(";");
+        foreach (Formal arg in ctor.Formals) {
+          if (!arg.IsGhost) {
+            ws.WriteLine("{0} {1};", TypeName(arg.Type, wr, arg.tok), FormalName(arg, i));
+            argNames.Add(FormalName(arg, i));
             i++;
           }
-          var wElse = w.NewBlock("");
-          wElse.WriteLine("return \"<unexpected>\";");
         }
-      }
 
-      // equals method
-      using (var w = wr.NewBlock("equals(other)")) {
-        using (var thn = EmitIf("this === other", true, w)) {
-          EmitReturnExpr("true", thn);
-        }
-        i = 0;
+        // Create a constructor
+        ws.Write("{0}(", DtT_protected);
+        WriteFormals("", ctor.Formals, ws);
+        ws.Write(")");
+        if (argNames.Count > 0) {
+          // Add initializers
+          ws.Write(" :");
+          ws.Write(Util.Comma(argNames, nm => String.Format(" {0} ({0})", nm)));
+        }        
+        ws.WriteLine(" {}");
+
+        wr.WriteLine("bool is_{0}(struct {1} d) {{ return true; }}", ctor.CompileName, DtT_protected);        
+      } else {
+
+        // Create one struct for each constructor
         foreach (var ctor in dt.Ctors) {
-          var thn = EmitIf(string.Format("this.$tag === {0}", i), true, w);
-          var guard = EmitReturnExpr(thn);
-          guard.Write("other.$tag === {0}", i);
-          var k = 0;
+          var wstruct = wr.NewBlock(String.Format("struct {0}", ctor.CompileName), ";");
+          // Declare the struct members
+          var i = 0;
           foreach (Formal arg in ctor.Formals) {
             if (!arg.IsGhost) {
-              string nm = FormalName(arg, k);
-              if (IsDirectlyComparable(arg.Type)) {
-                guard.Write(" && this.{0} === other.{0}", nm);
-              } else {
-                guard.Write(" && _dafny.areEqual(this.{0}, other.{0})", nm);
-              }
-              k++;
+              wstruct.WriteLine("{0} {1};", TypeName(arg.Type, wr, arg.tok), FormalName(arg, i));
+              i++;
             }
           }
-          i++;
         }
-        using (var els = w.NewBlock("")) {
-          els.WriteLine("return false; // unexpected");
-        }
-      }
 
-      // Note: It is important that the following be a class with a static getter Default(), as opposed
-      // to a simple "{ Default: ... }" object, because we need for any recursive calls in the default
-      // expression to be evaluated lazily. (More precisely, not evaluated at all, but that will sort
-      // itself out due to the restrictions placed by the resolver.)
-      //
-      // static Rtd(rtd...) {
-      //   return class {
-      //     static get Default() { return Dt.create_CtorK(...); }
-      //   };
-      // }
-      wr.Write("static Rtd(");
-      WriteRuntimeTypeDescriptorsFormals(UsedTypeParameters(dt), true, wr);
-      using (var wRtd = wr.NewBlock(")")) {
-        using (var wClass = wRtd.NewBlock("return class", ";")) {
-          using (var wDefault = wClass.NewBlock("static get Default()")) {
-            wDefault.Write("return ");
-            DatatypeCtor defaultCtor;
-            if (dt is IndDatatypeDecl) {
-              defaultCtor = ((IndDatatypeDecl)dt).DefaultCtor;
-            } else {
-              defaultCtor = ((CoDatatypeDecl)dt).Ctors[0];  // pick any one of them (but pick must be the same as in InitializerIsKnown and HasZeroInitializer)
-            }
-            var arguments = new TargetWriter();
-            string sep = "";
-            foreach (var f in defaultCtor.Formals) {
-              if (!f.IsGhost) {
-                arguments.Write("{0}{1}", sep, DefaultValue(f.Type, wDefault, f.tok));
-                sep = ", ";
-              }
-            }
-            EmitDatatypeValue(dt, defaultCtor, dt is CoDatatypeDecl, arguments.ToString(), wDefault);
-            wDefault.WriteLine(";");
-          }
+        // Declare the overall tagged union
+        var ws = wr.NewBlock(String.Format("struct {0}", DtT_protected), ";");
+        ws.Write("enum {");
+        ws.Write(Util.Comma(dt.Ctors, nm => String.Format(" TAG_{0}", nm)));
+        ws.Write("} tag;\n");
+        var wu = ws.NewBlock("union ", ";");
+        foreach (var ctor in dt.Ctors) {
+          wu.WriteLine("struct {0} v_{0};", ctor.CompileName);
         }
+
+        // Declare type queries
+        foreach (var ctor in dt.Ctors) {
+          wr.WriteLine("bool is_{0}(struct {1} d) {{ return d.tag == {1}::TAG_{0}; }}", ctor.CompileName, DtT_protected);  
+        }
+
+          
+  //       // from here on, write everything into the new block created here:
+  //       wr = wr.NewNamedBlock("struct {0} {{", DtT_protected);
+
+  //       wr.WriteLine("constructor(tag) { this.$tag = tag; }");
+
+  //       if (dt is CoDatatypeDecl) {
+  //         throw new Exception("CoDatatypeDecl is not yet supported");
+  //       }
+
+
+
+  //       // query properties
+  //       var i = 0;
+  //       foreach (var ctor in dt.Ctors) {
+  //         // collect the names of non-ghost arguments
+  //         var argNames = new List<string>();
+  //         var k = 0;
+  //         foreach (var formal in ctor.Formals) {
+  //           if (!formal.IsGhost) {
+  //             argNames.Add(FormalName(formal, k));
+  //             k++;
+  //           }
+  //         }
+  //         // datatype:
+  //         //   static create_Ctor0(params) { let $dt = new Dt(tag); $dt.param0 = param0; ...; return $dt; }
+          
+  //         wr.Write("static create_{0}(", ctor.CompileName);
+  //         if (dt is CoDatatypeDecl) {
+  //           wr.Write("$dt{0}", argNames.Count == 0 ? "" : ",");
+  //         }
+  //         wr.Write(Util.Comma(argNames, nm => nm));
+  //         var w = wr.NewBlock(")");
+  //         if (dt is CoDatatypeDecl) {
+  //           var wThen = EmitIf("$dt === null", false, w);
+  //           wThen.WriteLine("$dt = new {0}({1});", DtT_protected, i);
+  //           wThen.WriteLine("$dt._d = $dt;");
+  //         } else {
+  //           w.WriteLine("let $dt = new {0}({1});", DtT_protected, i);
+  //         }
+  //         foreach (var arg in argNames) {
+  //           w.WriteLine("$dt.{0} = {0};", arg);
+  //         }
+  //         w.WriteLine("return $dt;");        
+  //         i++;
+  //       }
+
+  //       // query properties
+  //       i = 0;
+  //       foreach (var ctor in dt.Ctors) {
+  //         // get is_Ctor0() { return _D is Dt_Ctor0; }
+  //         wr.WriteLine("bool is_{0}(struct {1} d) {{ return d.tag == {2}; }}", ctor.CompileName, DtT_protected, i);
+  //         i++;
+  //       }
+  // /*
+  //       if (dt.HasFinitePossibleValues) {
+  //         Contract.Assert(dt.TypeArgs.Count == 0);
+  //         using (var w = wr.NewNamedBlock("static get AllSingletonConstructors()")) {
+  //           w.WriteLine("return this.AllSingletonConstructors_();");
+  //         }
+  //         using (var w = wr.NewNamedBlock("static *AllSingletonConstructors_()")) {
+  //           foreach (var ctor in dt.Ctors) {
+  //             Contract.Assert(ctor.Formals.Count == 0);
+  //             w.WriteLine("yield {0}.create_{1}({2});", DtT_protected, ctor.CompileName, dt is CoDatatypeDecl ? "null" : "");
+  //           }
+  //         }
+  //       }
+  // */
+  //       // destructors
+  //       foreach (var ctor in dt.Ctors) {
+  //         foreach (var dtor in ctor.Destructors) {
+  //           if (dtor.EnclosingCtors[0] == ctor) {
+  //             var arg = dtor.CorrespondingFormals[0];
+  //             if (!arg.IsGhost && arg.HasName) {
+  //               // datatype:   get dtor_Dtor0() { return this.Dtor0; }
+  //               // codatatype: get dtor_Dtor0() { return this._D().Dtor0; }
+  //               wr.WriteLine("get dtor_{0}() {{ return this{2}.{1}; }}", arg.CompileName, IdName(arg), dt is CoDatatypeDecl ? "._D()" : "");
+  //             }
+  //           }
+  //         }
+  //       }
+
+  //       if (dt is IndDatatypeDecl && !(dt is TupleTypeDecl)) {
+  //         // toString method
+  //         using (var w = wr.NewBlock("toString()")) {
+  //           i = 0;
+  //           foreach (var ctor in dt.Ctors) {
+  //             var cw = EmitIf(string.Format("this.$tag === {0}", i), true, w);
+  //             var nm = (dt.Module.IsDefaultModule ? "" : dt.Module.Name + ".") + dt.Name + "." + ctor.Name;
+  //             cw.Write("return \"{0}\"", nm);
+  //             var sep = " + \"(\" + ";
+  //             var anyFormals = false;
+  //             var k = 0;
+  //             foreach (var arg in ctor.Formals) {
+  //               if (!arg.IsGhost) {
+  //                 anyFormals = true;
+  //                 cw.Write("{0}_dafny.toString(this.{1})", sep, FormalName(arg, k));
+  //                 sep = " + \", \" + ";
+  //                 k++;
+  //               }
+  //             }
+  //             if (anyFormals) {
+  //               cw.Write(" + \")\"");
+  //             }
+  //             cw.WriteLine(";");
+  //             i++;
+  //           }
+  //           var wElse = w.NewBlock("");
+  //           wElse.WriteLine("return \"<unexpected>\";");
+  //         }
+  //       }
+
+  //       // equals method
+  //       using (var w = wr.NewBlock("equals(other)")) {
+  //         using (var thn = EmitIf("this === other", true, w)) {
+  //           EmitReturnExpr("true", thn);
+  //         }
+  //         i = 0;
+  //         foreach (var ctor in dt.Ctors) {
+  //           var thn = EmitIf(string.Format("this.$tag === {0}", i), true, w);
+  //           var guard = EmitReturnExpr(thn);
+  //           guard.Write("other.$tag === {0}", i);
+  //           var k = 0;
+  //           foreach (Formal arg in ctor.Formals) {
+  //             if (!arg.IsGhost) {
+  //               string nm = FormalName(arg, k);
+  //               if (IsDirectlyComparable(arg.Type)) {
+  //                 guard.Write(" && this.{0} === other.{0}", nm);
+  //               } else {
+  //                 guard.Write(" && _dafny.areEqual(this.{0}, other.{0})", nm);
+  //               }
+  //               k++;
+  //             }
+  //           }
+  //           i++;
+  //         }
+  //         using (var els = w.NewBlock("")) {
+  //           els.WriteLine("return false; // unexpected");
+  //         }
+  //       }
+
+  //       // Note: It is important that the following be a class with a static getter Default(), as opposed
+  //       // to a simple "{ Default: ... }" object, because we need for any recursive calls in the default
+  //       // expression to be evaluated lazily. (More precisely, not evaluated at all, but that will sort
+  //       // itself out due to the restrictions placed by the resolver.)
+  //       //
+  //       // static Rtd(rtd...) {
+  //       //   return class {
+  //       //     static get Default() { return Dt.create_CtorK(...); }
+  //       //   };
+  //       // }
+  //       wr.Write("static Rtd(");
+  //       WriteRuntimeTypeDescriptorsFormals(UsedTypeParameters(dt), true, wr);
+  //       using (var wRtd = wr.NewBlock(")")) {
+  //         using (var wClass = wRtd.NewBlock("return class", ";")) {
+  //           using (var wDefault = wClass.NewBlock("static get Default()")) {
+  //             wDefault.Write("return ");
+  //             DatatypeCtor defaultCtor;
+  //             if (dt is IndDatatypeDecl) {
+  //               defaultCtor = ((IndDatatypeDecl)dt).DefaultCtor;
+  //             } else {
+  //               defaultCtor = ((CoDatatypeDecl)dt).Ctors[0];  // pick any one of them (but pick must be the same as in InitializerIsKnown and HasZeroInitializer)
+  //             }
+  //             var arguments = new TargetWriter();
+  //             string sep = "";
+  //             foreach (var f in defaultCtor.Formals) {
+  //               if (!f.IsGhost) {
+  //                 arguments.Write("{0}{1}", sep, DefaultValue(f.Type, wDefault, f.tok));
+  //                 sep = ", ";
+  //               }
+  //             }
+  //             EmitDatatypeValue(dt, defaultCtor, dt is CoDatatypeDecl, arguments.ToString(), wDefault);
+  //             wDefault.WriteLine(";");
+  //           }
+  //         }
+  //      }
       }
     }
 
@@ -626,8 +690,12 @@ namespace Microsoft.Dafny {
       Contract.Requires(typeParams != null);
       Contract.Requires(wr != null);
 
-      var error = string.Format("WriteRuntimeTypeDescriptorsFormals not yet supported");
-      throw new Exception(error);
+      if (typeParams.Count == 0) {
+        return 0;
+      } else {
+        var error = string.Format("WriteRuntimeTypeDescriptorsFormals not yet supported");
+        throw new Exception(error);
+      }
 /* 
       int c = 0;
       foreach (var tp in typeParams) {
@@ -1605,12 +1673,16 @@ namespace Microsoft.Dafny {
       return w;
     }
 
+    protected override void EmitConstructorCheck(string source, DatatypeCtor ctor, TargetWriter wr) {
+      wr.Write("is_{1}({0})", source, ctor.CompileName);
+    }
+
     protected override void EmitDestructor(string source, Formal dtor, int formalNonGhostIndex, DatatypeCtor ctor, List<Type> typeArgs, Type bvType, TargetWriter wr) {
       if (ctor.EnclosingDatatype is TupleTypeDecl) {
         wr.Write("({0})[{1}]", source, formalNonGhostIndex);
       } else {
         var dtorName = FormalName(dtor, formalNonGhostIndex);
-        wr.Write("({0}){1}.{2}", source, ctor.EnclosingDatatype is CoDatatypeDecl ? "._D()" : "", dtorName);
+        wr.Write("({0}){1}.v_{3}.{2}", source, ctor.EnclosingDatatype is CoDatatypeDecl ? "._D()" : "", dtorName, ctor.CompileName);
       }
     }
 
