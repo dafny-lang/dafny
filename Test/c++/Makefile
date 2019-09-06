@@ -9,7 +9,10 @@ CXXFLAGS += -Wno-c++11-extensions
 all:hello integers
 
 %.cpp: %.dfy $(DAFNY)
-	$(DAFNY) /compile:0 /spillTargetCode:3 /compileTarget:cpp $<
+	$(DAFNY) /noVerify /compile:0 /spillTargetCode:3 /compileTarget:cpp $<
+
+%.cs: %.dfy $(DAFNY)
+	$(DAFNY) /noVerify /compile:0 /spillTargetCode:3 /compileTarget:cs $<
 
 $(EXECS): % : %.cpp ../../Binaries/DafnyRuntime.h
 	$(CXX) -o $@ $<

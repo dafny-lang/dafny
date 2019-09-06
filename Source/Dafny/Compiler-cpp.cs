@@ -4,6 +4,7 @@
 //
 //-----------------------------------------------------------------------------
 using System;
+using System.CodeDom;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
@@ -211,6 +212,12 @@ namespace Microsoft.Dafny {
       //     struct Example2_2a v2a;
       //     struct Example2_2b v2b;
       //   };
+      //   static Example2 create_Ex2a(uint32 u) {
+      //      Example2 result;
+      //      result.tag = TAG_Ex2a;
+      //      result.v_Ex2a.u = u;
+      //      return result;
+      //    }
       // };
       // bool is_Example2_2a(struct Example2 d) { return d.tag == Example2::TAG_2a; }
       // bool is_Example2_2b(struct Example2 d) { return d.tag == Example2::TAG_2b; }
@@ -239,7 +246,7 @@ namespace Microsoft.Dafny {
           }
         }
 
-        // Create a constructor
+        // Create a constructor with arguments
         ws.Write("{0}(", DtT_protected);
         WriteFormals("", ctor.Formals, ws);
         ws.Write(")");
@@ -249,6 +256,12 @@ namespace Microsoft.Dafny {
           ws.Write(Util.Comma(argNames, nm => String.Format(" {0} ({0})", nm)));
         }        
         ws.WriteLine(" {}");
+        
+        // Create a constructor with no arguments
+        var wc = ws.NewNamedBlock("{0}()", DtT_protected);
+        foreach (var arg in ctor.Formals) {
+          wc.WriteLine("{0} = {1};", arg.CompileName, DefaultValue(arg.Type, wc, arg.tok));
+        }
 
         wr.WriteLine("bool is_{0}(struct {1} d) {{ return true; }}", ctor.CompileName, DtT_protected);        
       } else {
@@ -274,6 +287,29 @@ namespace Microsoft.Dafny {
         var wu = ws.NewBlock("union ", ";");
         foreach (var ctor in dt.Ctors) {
           wu.WriteLine("struct {0} v_{0};", ctor.CompileName);
+        }
+        
+        // Declare static "constructors" for each Dafny constructor
+        foreach (var ctor in dt.Ctors)
+        {
+          var argNames = new List<string>();
+          foreach (Formal arg in ctor.Formals)
+          {
+            if (!arg.IsGhost)
+            {
+              argNames.Add(arg.CompileName);
+            }
+          }
+
+          var wc = wr.NewNamedBlock("static {0} create_{1}({2})",
+            DtT_protected, ctor.CompileName,
+            Util.Comma(argNames, nm => nm));
+          wc.WriteLine("{0} result;", DtT_protected);
+          wc.WriteLine("result.tag = TAG_{0};", ctor.CompileName);
+          foreach (Formal arg in ctor.Formals)
+          {
+            wc.WriteLine("result.v_{0}.{1} = {1};", ctor.CompileName, arg.CompileName);
+          }
         }
 
         // Declare type queries
@@ -1487,10 +1523,16 @@ namespace Microsoft.Dafny {
       } else if (!isCoCall) {
         // Ordinary constructor (that is, one that does not guard any co-recursive calls)
         // Generate:  Dt.create_Ctor(arguments)
-        wr.Write("{0}.create_{1}({2}{3})",
-          dtName, ctorName,
-          dt is IndDatatypeDecl ? "" : arguments.Length == 0 ? "null" : "null, ",
-          arguments);
+        if (dt.Ctors.Count == 1) {
+          wr.Write("{0}({1})",
+            dtName,
+            arguments);
+        } else {
+          wr.Write("{0}.create_{1}({2})",
+            dtName, ctorName,
+            arguments);
+        }
+        
       } else {
         // Co-recursive call
         // Generate:  Dt.lazy_Ctor(($dt) => Dt.create_Ctor($dt, args))
