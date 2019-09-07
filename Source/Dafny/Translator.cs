@@ -8019,17 +8019,17 @@ namespace Microsoft.Dafny {
       return "Handle" + arity;
     }
 
-    // <summary>
-    // A representation for a function handle's `apply`, `requires`, and `reads` functions.
-    // Each of these functions has type 
-    // HandleType -> [Heap, Box, ..., Box] -> X
-    // where `X` is
-    // <list type="bullet">
-    //   <item> `Box` for `apply` </item>
-    //   <item> `bool` for `requires` </item>
-    //   <item> `Set Box` for `reads` </item>
-    // </list>
-    // </summary>
+    /// <summary>
+    /// A representation for a function handle's `apply`, `requires`, and `reads` functions.
+    /// Each of these functions has type 
+    /// HandleType -> [Heap, Box, ..., Box] -> X
+    /// where `X` is
+    /// <list type="bullet">
+    ///   <item> `Box` for `apply` </item>
+    ///   <item> `bool` for `requires` </item>
+    ///   <item> `Set Box` for `reads` </item>
+    /// </list>
+    /// </summary>
     public enum ReqReadsApp { Requires, Reads, Apply }
     
     public static string RraName(ReqReadsApp rra, int arity) {
@@ -8040,9 +8040,9 @@ namespace Microsoft.Dafny {
       return (ReqReadsApp) Enum.Parse(typeof(ReqReadsApp), char.ToUpper(rra[0]) + rra.Substring(1)); // todo (MR) super ugly
     }
 
-    // <summary>
-    // The type of the values in a `Requires`/`Reads`/`Apply` map (see type `X` in the description of <see cref="ReqReadsApp"/>)
-    // </summary>
+    /// <summary>
+    /// The type of the values in a `Requires`/`Reads`/`Apply` map (see type `X` in the description of <see cref="ReqReadsApp"/>)
+    /// </summary>
     public Bpl.Type RraReturnType(ReqReadsApp rra, Bpl.Type defaultRetType = null) {
       switch (rra) {
         case ReqReadsApp.Requires:
@@ -8056,54 +8056,56 @@ namespace Microsoft.Dafny {
       }
     }
 
-    // The type of a `Requires`/`Reads`/`Apply` function applied to a handle, i.e. the
-    // type of the map for each of the above functions:
-    // `[Heap, Box, ..., Box]bool` for `requires`
-    // `[Heap, Box, ..., Box]Set Box` for `reads`
-    // `[Heap, Box, ..., Box]Box` for `apply`
+    /// <summary>
+    /// The type of a `Requires`/`Reads`/`Apply` function applied to a handle, i.e. the
+    /// type of the map for each of the above functions:
+    /// `[Heap, Box, ..., Box]bool` for `requires`
+    /// `[Heap, Box, ..., Box]Set Box` for `reads`
+    /// `[Heap, Box, ..., Box]Box` for `apply`
+    /// </summary>
     private Bpl.Type RraMapType(
-        IToken tok,
-        int arity,
-        ReqReadsApp rra,
-        Bpl.Type handleReturnType = null
+      IToken tok,
+      int arity,
+      ReqReadsApp rra,
+      Bpl.Type handleReturnType = null
     ) {
       var mapKeyTypes = from i in Enumerable.Range(0, arity) select predef.BoxType;
       return new Bpl.MapType(tok, new List<Bpl.TypeVariable>(), Cons(predef.HeapType, mapKeyTypes.ToList()), RraReturnType(rra, handleReturnType));
     }
 
-    // <summary>
-    // Constructs a Boogie `Requires`/`Reads`/`Apply` function call applied to a handle, e.g. <c>Requires1(f)</c>
-    // </summary>
+    /// <summary>
+    /// Constructs a Boogie `Requires`/`Reads`/`Apply` function call applied to a handle, e.g. <c>Requires1(f)</c>
+    /// </summary>
     public Bpl.Expr RequiresReadsApplyFunction(
-        IToken tok,
-        int arity,
-        Bpl.Expr handle,
-        ReqReadsApp rra,
-        Bpl.Type returnType = null
+      IToken tok,
+      int arity,
+      Bpl.Expr handle,
+      ReqReadsApp rra,
+      Bpl.Type returnType = null
     ) {
       return FunctionCall(tok, RraName(rra, arity), RraMapType(tok, arity, rra, returnType), handle);
     }
 
-    // <summary>
-    // Constructs a Boogie `Requires`/`Reads`/`Apply` function call applied to a handle, heap, and function arguments,
-    // e.g. <c>Requires1(f)[heap, x]</c>
-    // </summary>
+    /// <summary>
+    /// Constructs a Boogie `Requires`/`Reads`/`Apply` function call applied to a handle, heap, and function arguments,
+    /// e.g. <c>Requires1(f)[heap, x]</c>
+    /// </summary>
     public Bpl.Expr RequiresReadsApplyCall(
-    IToken tok,
-    int arity,
-    Bpl.Expr handle,
-    List<Bpl.Expr> handleArgs,
-    Bpl.Expr heap,
-    ReqReadsApp rra,
-    Bpl.Type returnType = null
+      IToken tok,
+      int arity,
+      Bpl.Expr handle,
+      List<Bpl.Expr> handleArgs,
+      Bpl.Expr heap,
+      ReqReadsApp rra,
+      Bpl.Type returnType = null
     ) {
       var call = RequiresReadsApplyFunction(tok, arity, handle, rra, returnType);
       return new NAryExpr(tok, new MapSelect(Token.NoToken, arity + 1), Cons(call, Cons(heap, handleArgs)));
     }
 
-    // <summary>
-    // Constructs a Boogie `Requires` function call applied to a handle, heap, and function arguments
-    // </summary>
+    /// <summary>
+    /// Constructs a Boogie `Requires` function call applied to a handle, heap, and function arguments
+    /// </summary>
     public Bpl.Expr RequiresCall(
       IToken tok,
       int arity,
@@ -8114,9 +8116,9 @@ namespace Microsoft.Dafny {
       return RequiresReadsApplyCall(tok, arity, handle, handleArgs, heap, ReqReadsApp.Requires);
     }
 
-    // <summary>
-    // Constructs a Boogie `Reads` function call applied to a handle, heap, and function arguments
-    // </summary>
+    /// <summary>
+    /// Constructs a Boogie `Reads` function call applied to a handle, heap, and function arguments
+    /// </summary>
     public Bpl.Expr ReadsCall(
       IToken tok,
       int arity,
@@ -8127,9 +8129,9 @@ namespace Microsoft.Dafny {
       return RequiresReadsApplyCall(tok, arity, handle, handleArgs, heap, ReqReadsApp.Reads);
     }
 
-    // <summary>
-    // Constructs a Boogie `Apply` function call applied to a handle, heap, and function arguments
-    // </summary>
+    /// <summary>
+    /// Constructs a Boogie `Apply` function call applied to a handle, heap, and function arguments
+    /// </summary>
     public Bpl.Expr ApplyCall(
       IToken tok,
       int arity,
@@ -8319,10 +8321,10 @@ namespace Microsoft.Dafny {
       // function ReadsN(HandleType): [Heap, Box, ..., Box]Set Box
       var handleArg = new List<Bpl.Variable>() { BplFormalVar(null, predef.HandleType, true) };
       foreach (ReqReadsApp rra in Enum.GetValues(typeof(ReqReadsApp)))
-                // Apply1 is already declared in DafnyPrelude.bpl
-                if (!(rra == ReqReadsApp.Apply && arity == 1)) {
-        sink.AddTopLevelDeclaration(new Bpl.Function(
-            Token.NoToken, RraName(rra, arity), handleArg, BplFormalVar(null, RraMapType(Token.NoToken, arity, rra), false)));
+        // Apply1 is already declared in DafnyPrelude.bpl
+        if (!(rra == ReqReadsApp.Apply && arity == 1)) {
+          sink.AddTopLevelDeclaration(new Bpl.Function(
+              Token.NoToken, RraName(rra, arity), handleArg, BplFormalVar(null, RraMapType(Token.NoToken, arity, rra), false)));
       }
 
       {
@@ -8441,8 +8443,7 @@ namespace Microsoft.Dafny {
                 BplAnd(MkIs(f, ClassTyCon(ad, types)), isAlloc)))
             : MkArityEq(f, arity);
 
-          Action<Bpl.Expr, ReqReadsApp, int> AddFrameForFunction = (hN, rra, adArity) =>
-          {
+          Action<Bpl.Expr, ReqReadsApp, int> AddFrameForFunction = (hN, rra, adArity) => {
 
             // inner forall vars
             var ivars = new List<Bpl.Variable>();
@@ -8454,8 +8455,7 @@ namespace Microsoft.Dafny {
               BplAnd(
                 Bpl.Expr.Neq(o, predef.Null),
                 // Note, the MkIsAlloc conjunct of "isness" implies that everything in the reads frame is allocated in "h0", which by HeapSucc(h0,h1) also implies the frame is allocated in "h1"
-                new Bpl.NAryExpr(tok, new Bpl.MapSelect(tok, 1), new List<Bpl.Expr>
-                {
+                new Bpl.NAryExpr(tok, new Bpl.MapSelect(tok, 1), new List<Bpl.Expr> {
                   ReadsCall(tok, ad.Arity, f, boxes, hN),
                   FunctionCall(tok, BuiltinFunction.Box, null, o)
                 })
@@ -8466,8 +8466,7 @@ namespace Microsoft.Dafny {
               RequiresReadsApplyCall(tok, adArity, f, boxes, h, rra);
 
             var trigger = new List<Bpl.Expr> {heapSucc, fn(h1)};
-            if (commonNotFrugalHeapUse)
-            {
+            if (commonNotFrugalHeapUse) {
               trigger.Add(isAlloc);
             }
 

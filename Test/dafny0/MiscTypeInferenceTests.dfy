@@ -21,14 +21,14 @@ module ArrowVariance {
   {
     if * {
       assume forall x :: g.requires(x) && g.reads(x) == {};
-      // When reads and requires clauses used to have take type arguments,
+      // When reads and requires clauses used to take type arguments,
       // the following assignment used to result in an error.
       // The error occurred as follows: to prove that g can be assigned
       // to f, Boogie would check that g is a total function from int to int:
       //    assert $Is(g#0, Tclass._System.___hTotalFunc1(TInt, TInt));
       // This can be proved if we know that for all x of type int,
-      // g.requires(x) is true. Since the translateion of the requires clause
-      // used to take a type arguments (corresponding to the function's parameter
+      // g.requires(x) is true. Since the translation of the requires clause
+      // used to take type arguments (corresponding to the function's parameter
       // and return types), this would mean proving that
       // g.requires(int, int, x) is true. However, since we only know that
       // g.requires(int, nat, x) is true, we could not prove it.
