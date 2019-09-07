@@ -301,15 +301,16 @@ namespace Microsoft.Dafny {
             }
           }
 
-          var wc = wr.NewNamedBlock("static {0} create_{1}({2})",
+          var wc = ws.NewNamedBlock("static {0} create_{1}({2})",
             DtT_protected, ctor.CompileName,
-            Util.Comma(argNames, nm => nm));
+            DeclareFormals(ctor.Formals));
           wc.WriteLine("{0} result;", DtT_protected);
-          wc.WriteLine("result.tag = TAG_{0};", ctor.CompileName);
+          wc.WriteLine("result.tag = {0}::TAG_{1};", DtT_protected, ctor.CompileName);
           foreach (Formal arg in ctor.Formals)
           {
             wc.WriteLine("result.v_{0}.{1} = {1};", ctor.CompileName, arg.CompileName);
           }
+          wc.WriteLine("return result;");
         }
 
         // Declare type queries
@@ -1063,14 +1064,40 @@ namespace Microsoft.Dafny {
       */
     }
 
+    private string DeclareFormalString(string prefix, string name, Type type, Bpl.IToken tok, bool isInParam) {
+      if (isInParam) {        
+        return String.Format("{0}{2} {1}", prefix, name, TypeName(type, null, tok));
+      } else {
+        return null;
+      }
+    }
+
     protected override bool DeclareFormal(string prefix, string name, Type type, Bpl.IToken tok, bool isInParam, TextWriter wr) {
-      if (isInParam) {
-        var s = String.Format("{0}{2} {1}", prefix, name, TypeName(type, wr, tok));
-        wr.Write("{0}{2} {1}", prefix, name, TypeName(type, wr, tok));
-        return true;
+      var formal_str = DeclareFormalString(prefix, name, type, tok, isInParam);
+      if (formal_str != null) {
+        wr.Write(formal_str);
+        return true;        
       } else {
         return false;
       }
+    }
+
+    private string DeclareFormals(List<Formal> formals) {
+      var i = 0;
+      var ret = "";
+      var sep = "";
+      foreach (Formal arg in formals) {
+        if (!arg.IsGhost) {
+          string name = FormalName(arg, i);
+          string decl = DeclareFormalString(sep, name, arg.Type, arg.tok, arg.InParam);
+          if (decl != null) {
+            ret += decl;
+            sep = ", ";
+          }
+          i++;
+        }
+      }
+      return ret;
     }
 
     protected override void DeclareLocalVar(string name, Type/*?*/ type, Bpl.IToken/*?*/ tok, bool leaveRoomForRhs, string/*?*/ rhs, TargetWriter wr) {
@@ -1515,7 +1542,7 @@ namespace Microsoft.Dafny {
     }
 
     void EmitDatatypeValue(DatatypeDecl dt, DatatypeCtor ctor, bool isCoCall, string arguments, TargetWriter wr) {
-      var dtName = dt.FullCompileName;
+      var dtName = dt.CompileName;
       var ctorName = ctor.CompileName;
 
       if (dt is TupleTypeDecl) {
@@ -1528,7 +1555,7 @@ namespace Microsoft.Dafny {
             dtName,
             arguments);
         } else {
-          wr.Write("{0}.create_{1}({2})",
+          wr.Write("{0}::create_{1}({2})",
             dtName, ctorName,
             arguments);
         }
