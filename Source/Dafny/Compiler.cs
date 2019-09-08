@@ -2631,10 +2631,16 @@ namespace Microsoft.Dafny {
         }
         if (receiverReplacement != null) {
           wr.Write(IdProtect(receiverReplacement));
-          wr.Write(".{0}", IdName(s.Method));
+// ******************************************************************   
+// TODO: Add an overrideable function for this      
+// ******************************************************************             
+          wr.Write("->{0}", IdName(s.Method));
         } else if (!s.Method.IsStatic) {
           TrParenExpr(s.Receiver, wr, false);
-          wr.Write(".{0}", IdName(s.Method));
+// ******************************************************************   
+// TODO: Add an overrideable function for this      
+// ******************************************************************             
+          wr.Write("->{0}", IdName(s.Method));
         } else {
           string qual, compileName;
           if (s.Method.IsExtern(out qual, out compileName) && qual != null) {

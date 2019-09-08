@@ -65,27 +65,25 @@ namespace Microsoft.Dafny {
     protected override string GetHelperModuleName() => "_dafny";
 
     protected override IClassWriter CreateClass(string name, bool isExtern, string/*?*/ fullPrintName, List<TypeParameter>/*?*/ typeParameters, List<Type>/*?*/ superClasses, Bpl.IToken tok, TargetWriter wr) {
-      if (isExtern || (typeParameters != null && typeParameters.Count > 0) || (superClasses != null && superClasses.Count > 0)) {
-        var error = string.Format("Class {0} uses an unsupported feature: extern, generic types, and/or traits!", name);
+      if (isExtern || (superClasses != null && superClasses.Count > 0)) {
+        var error = string.Format("Class {0} uses an unsupported feature: extern and/or traits!", name);
         throw new Exception(error);
+      }
+
+      if (typeParameters != null && typeParameters.Count > 0) {
+        wr.WriteLine("template <class {0}>", TypeParameters(typeParameters));
       }
 
       var w = wr.NewBlock(string.Format("class {0}", name), ";");
       //w = w.NewBlock("public:", null, BlockTargetWriter.BraceStyle.Nothing, BlockTargetWriter.BraceStyle.Nothing);
       w.Write("public:\n");      
-      //var w2 = w.ForkSection(true);
-      //var w2 = w.NewBlock("// Constructor");
-      var w2 = w;
 
-      //w2.Write("// Constructor\n");
-      w2.Write(string.Format("{0}(", name));
-      //var w2 = wr.NewBlock(string.Format("{0}("
-      /*
-      if (typeParameters != null) {
-        WriteRuntimeTypeDescriptorsFormals(typeParameters, false, w);
-      }
-      */
-      var fieldWriter = w2.NewBlock(")");
+      w.WriteLine("// Default constructor\n {0}() {{}}", name);
+
+      //w.Write("// Constructor\n");
+      //w2.Write(string.Format("{0}(", name));
+      //var fieldWriter = w.NewBlock(")");
+      var fieldWriter = w;
       /*
       if (fullPrintName != null) {
         fieldWriter.WriteLine("this._tname = \"{0}\";", fullPrintName);
@@ -99,9 +97,11 @@ namespace Microsoft.Dafny {
         }
       }
       */
-      var methodWriter = w2;
+      var methodWriter = w;
       return new ClassWriter(this, methodWriter, fieldWriter);
     }
+
+    protected override bool SupportsProperties { get => false; }
 
     protected override IClassWriter CreateTrait(string name, bool isExtern, List<Type>/*?*/ superClasses, Bpl.IToken tok, TargetWriter wr) {
       var error = string.Format("Asked to create a trait {0}, which is currently unsupported", name);
@@ -878,30 +878,23 @@ namespace Microsoft.Dafny {
       Contract.Assume(fullCompileName != null);  // precondition; this ought to be declared as a Requires in the superclass
       Contract.Assume(typeArgs != null);  // precondition; this ought to be declared as a Requires in the superclass
       string s = IdProtect(fullCompileName);
-      return s;
+      return String.Format("std::shared_ptr<{0}>", s);
     }
 
     protected override string TypeName_Companion(Type type, TextWriter wr, Bpl.IToken tok, MemberDecl/*?*/ member) {
       // There are no companion classes for Cpp
-      return TypeName(type, wr, tok, member);
+      var t = TypeName(type, wr, tok, member);
+      t = t.Replace("*", "");   // Remove pointer type when we're using the typename in non-argument contexts
+      return t;
     }
 
     // ----- Declarations -------------------------------------------------------------
 
     protected void DeclareField(string name, bool isStatic, bool isConst, Type type, Bpl.IToken tok, string rhs, TargetWriter wr) {
-      if (isStatic || rhs != null) {
-        var error = string.Format("Field {0} is not supported because it is static or the right-hand side is non-null", name);
-        throw new Exception(error);
-      }
-      wr.WriteLine("{0} {1}", name, TypeName(type, wr, tok));
-      /*
-      if (isStatic) {
-        var w = wr.NewNamedBlock("static get {0}()", name);
-        EmitReturnExpr(rhs, w);
-      } else {
-        wr.WriteLine("this.{0} = {1};", name, rhs);
-      }
-      */
+      var stat = isStatic ? "static" : "";
+      var r = rhs != null ? rhs : DefaultValue(type, wr, tok);
+      var t = TypeName(type, wr, tok);
+      wr.WriteLine("{0} {1} {2} = {3};", stat, t, name, r);
     }
 
     private string DeclareFormalString(string prefix, string name, Type type, Bpl.IToken tok, bool isInParam) {
@@ -1004,9 +997,9 @@ namespace Microsoft.Dafny {
       //wr.Write("_dafny::Print(");
       //TrExpr(arg, wr, false);
       //wr.WriteLine(");");
-      wr.Write("cout << ");
+      wr.Write("cout << (");
       TrExpr(arg, wr, false);
-      wr.WriteLine(";");
+      wr.WriteLine(");");
     }
 
     protected override void EmitReturn(List<Formal> outParams, TargetWriter wr) {
@@ -1458,23 +1451,22 @@ namespace Microsoft.Dafny {
       }
     }
 
-    protected override TargetWriter EmitMemberSelect(MemberDecl member, bool isLValue, Type expectedType, TargetWriter wr) {
-      throw new Exception("EmitMemberSelect is not yet supported");
+    protected override TargetWriter EmitMemberSelect(MemberDecl member, bool isLValue, Type expectedType, TargetWriter wr) {      
       var wSource = wr.Fork();
       if (isLValue && member is ConstantField) {
-        wr.Write("._{0}", member.CompileName);
+        wr.Write("->{0}", member.CompileName);
       } else if (member is DatatypeDestructor dtor && dtor.EnclosingClass is TupleTypeDecl) {
         wr.Write("[{0}]", dtor.Name);
       } else if (!isLValue && member is SpecialField sf) {
         string compiledName, preStr, postStr;
         GetSpecialFieldInfo(sf.SpecialId, sf.IdParam, out compiledName, out preStr, out postStr);
         if (compiledName.Length != 0) {
-          wr.Write(".{0}", compiledName);
+          wr.Write("::{0}", compiledName);
         } else {
           // this member selection is handled by some kind of enclosing function call, so nothing to do here
         }
       } else {
-        wr.Write(".{0}", IdName(member));
+        wr.Write("->{0}", IdName(member));
       }
       return wSource;
     }
