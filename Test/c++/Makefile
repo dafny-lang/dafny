@@ -15,7 +15,7 @@ all:hello integers
 	$(DAFNY) /noVerify /compile:0 /spillTargetCode:3 /compileTarget:cs $<
 
 $(EXECS): % : %.cpp ../../Binaries/DafnyRuntime.h
-	$(CXX) -o $@ $<
+	$(CXX) $(CXXFLAGS) -o $@ $<
 
 clean:
 	rm *.cpp $(EXECS)

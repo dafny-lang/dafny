@@ -114,6 +114,13 @@ namespace Microsoft.Dafny {
       */
     }
 
+    string TypeParameters(List<TypeParameter> targs) {
+      Contract.Requires(cce.NonNullElements(targs));
+      Contract.Ensures(Contract.Result<string>() != null);
+
+      return Util.Comma(targs, tp => "typename " + IdName(tp));
+    }
+
     protected override BlockTargetWriter CreateIterator(IteratorDecl iter, TargetWriter wr) {
       // An iterator is compiled as follows:
       //   public class MyIteratorExample
@@ -470,16 +477,15 @@ namespace Microsoft.Dafny {
         return null;
       }
 
+      if (m.TypeArgs.Count != 0) {        
+        wr.WriteLine("template <{0}>", TypeParameters(m.TypeArgs));
+      }
+
       wr.Write("{0}{1} {2}",
         m.IsStatic ? "static " : "",        
         targetReturnTypeReplacement ?? "void",
         IdName(m));
 
-      if (m.TypeArgs.Count != 0) {
-        var error = string.Format("Type parameters in method {0} are not yet supported", m);
-        throw new Exception(error);
-        //wr.Write("<{0}>", TypeParameters(m.TypeArgs));
-      }
       wr.Write("(");
       int nIns = WriteFormals("", m.Ins, wr);
       if (targetReturnTypeReplacement == null) {
@@ -983,7 +989,9 @@ namespace Microsoft.Dafny {
     }
 
     protected override void EmitActualTypeArgs(List<Type> typeArgs, Bpl.IToken tok, TextWriter wr) {
-      // emit nothing
+      if (typeArgs.Count > 0) {
+        wr.Write("<{0}>", Util.Comma(typeArgs, tp => TypeName(tp, wr, tok)));
+      }
     }
 
     protected override string GenerateLhsDecl(string target, Type/*?*/ type, TextWriter wr, Bpl.IToken tok) {
