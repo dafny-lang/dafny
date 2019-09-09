@@ -98,7 +98,7 @@ namespace Microsoft.Dafny {
       }
       */
       var methodWriter = w;
-      return new ClassWriter(this, methodWriter, fieldWriter);
+      return new ClassWriter(name, this, methodWriter, fieldWriter, wr);
     }
 
     protected override bool SupportsProperties { get => false; }
@@ -354,7 +354,8 @@ namespace Microsoft.Dafny {
         var error = string.Format("Asked to create a non-native newtype {0}, which is currently unsupported", nt);
         throw new Exception(error);
       }
-      var cw = CreateClass("class_" + IdName(nt), null, wr) as CppCompiler.ClassWriter;
+      var className = "class_" + IdName(nt);
+      var cw = CreateClass(className, null, wr) as CppCompiler.ClassWriter;
       var w = cw.MethodWriter;
       if (nt.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
         var witness = new TargetWriter(w.IndentLevel, true);
@@ -364,7 +365,7 @@ namespace Microsoft.Dafny {
           TrParenExpr(nt.Witness, witness, false);
           witness.Write(".toNumber()");
         }
-        DeclareField("Witness", true, true, nt.BaseType, nt.tok, witness.ToString(), w);
+        DeclareField(className, "Witness", true, true, nt.BaseType, nt.tok, witness.ToString(), w, wr);
       }
       using (var wDefault = w.NewBlock(string.Format("static {0} get_Default()", nt.Name))) {
         var udt = new UserDefinedType(nt.tok, nt.Name, nt, new List<Type>());
@@ -381,7 +382,7 @@ namespace Microsoft.Dafny {
         throw new Exception(error);
         var witness = new TargetWriter(w.IndentLevel, true);
         TrExpr(sst.Witness, witness, false);
-        DeclareField("Witness", true, true, sst.Rhs, sst.tok, witness.ToString(), w);
+        DeclareField(IdName(sst), "Witness", true, true, sst.Rhs, sst.tok, witness.ToString(), w, wr);
       }
       /* 
       using (var wDefault = w.NewBlock("static get Default()")) {
@@ -427,17 +428,21 @@ namespace Microsoft.Dafny {
     }
 
     protected class ClassWriter : IClassWriter {
+      public string ClassName;
       public readonly CppCompiler Compiler;
       public readonly BlockTargetWriter MethodWriter;
       public readonly BlockTargetWriter FieldWriter;
+      public readonly TargetWriter Finisher;
 
-      public ClassWriter(CppCompiler compiler, BlockTargetWriter methodWriter, BlockTargetWriter fieldWriter) {
+      public ClassWriter(string className, CppCompiler compiler, BlockTargetWriter methodWriter, BlockTargetWriter fieldWriter, TargetWriter finisher) {
         Contract.Requires(compiler != null);
         Contract.Requires(methodWriter != null);
         Contract.Requires(fieldWriter != null);
+        this.ClassName = className;
         this.Compiler = compiler;
         this.MethodWriter = methodWriter;
         this.FieldWriter = fieldWriter;
+        this.Finisher = finisher;
       }
 
       public BlockTargetWriter/*?*/ CreateMethod(Method m, bool createBody) {
@@ -453,7 +458,7 @@ namespace Microsoft.Dafny {
         return Compiler.CreateGetterSetter(name, resultType, tok, isStatic, createBody, out setterWriter, MethodWriter);
       }
       public void DeclareField(string name, bool isStatic, bool isConst, Type type, Bpl.IToken tok, string rhs) {
-        Compiler.DeclareField(name, isStatic, isConst, type, tok, rhs, FieldWriter);
+        Compiler.DeclareField(ClassName, name, isStatic, isConst, type, tok, rhs, FieldWriter, Finisher);
       }
       public TextWriter/*?*/ ErrorWriter() => MethodWriter;
       public void Finish() { }
@@ -695,7 +700,8 @@ namespace Microsoft.Dafny {
       //wr.WriteLine("continue TAIL_CALL_START;");
     }
 
-    protected override string TypeName(Type type, TextWriter wr, Bpl.IToken tok, MemberDecl/*?*/ member = null) {
+    // Use class_name = true if you want the actual name of the class, not the type used when declaring variables/arguments/etc.
+    protected string TypeName(Type type, TextWriter wr, Bpl.IToken tok, MemberDecl/*?*/ member = null, bool class_name=false) {
       Contract.Ensures(Contract.Result<string>() != null);
       Contract.Assume(type != null);  // precondition; this ought to be declared as a Requires in the superclass
 
@@ -750,7 +756,11 @@ namespace Microsoft.Dafny {
             !cl.Module.IsDefaultModule) {
           s = cl.FullCompileName;
         }
-        return TypeName_UDT(s, udt.TypeArgs, wr, udt.tok);
+        if (class_name) {
+          return IdProtect(s);
+        } else {
+          return TypeName_UDT(s, udt.TypeArgs, wr, udt.tok);          
+        }
       } else if (xType is SetType) {
         Type argType = ((SetType)xType).Arg;
         if (ComplicatedTypeParameterForCompilation(argType)) {
@@ -779,6 +789,18 @@ namespace Microsoft.Dafny {
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected type
       }
+    }
+
+    protected override string TypeName(Type type, TextWriter wr, Bpl.IToken tok, MemberDecl/*?*/ member = null) {
+      Contract.Ensures(Contract.Result<string>() != null);
+      Contract.Assume(type != null);  // precondition; this ought to be declared as a Requires in the superclass
+      return TypeName(type, wr, tok, member, false);
+    }
+
+    protected string ClassName(Type type, TextWriter wr, Bpl.IToken tok, MemberDecl/*?*/ member = null) {
+      Contract.Ensures(Contract.Result<string>() != null);
+      Contract.Assume(type != null);  // precondition; this ought to be declared as a Requires in the superclass
+      return TypeName(type, wr, tok, member, true);
     }
 
     public override string TypeInitializationValue(Type type, TextWriter/*?*/ wr, Bpl.IToken/*?*/ tok, bool inAutoInitContext) {
@@ -831,7 +853,7 @@ namespace Microsoft.Dafny {
           // WKind.Special is only used with -->, ->, and non-null types:
           Contract.Assert(ArrowType.IsPartialArrowTypeName(td.Name) || ArrowType.IsTotalArrowTypeName(td.Name) || td is NonNullTypeDecl);
           if (ArrowType.IsPartialArrowTypeName(td.Name)) {
-            return "null";
+            return "nullptr";
           } else if (ArrowType.IsTotalArrowTypeName(td.Name)) {
             var rangeDefaultValue = TypeInitializationValue(udt.TypeArgs.Last(), wr, tok, inAutoInitContext);
             // return the lambda expression ((Ty0 x0, Ty1 x1, Ty2 x2) => rangeDefaultValue)
@@ -848,7 +870,7 @@ namespace Microsoft.Dafny {
             // non-null (non-array) type
             // even though the type doesn't necessarily have a known initializer, it could be that the the compiler needs to
             // lay down some bits to please the C#'s compiler's different definite-assignment rules.
-            return "null";
+            return "nullptr";
           }
         } else {
           return TypeInitializationValue(td.RhsWithArgument(udt.TypeArgs), wr, tok, inAutoInitContext);
@@ -858,7 +880,7 @@ namespace Microsoft.Dafny {
         if (Attributes.ContainsBool(cl.Attributes, "handle", ref isHandle) && isHandle) {
           return "0";
         } else {
-          return "null";
+          return "nullptr";
         }
       } else if (cl is DatatypeDecl) {
         var dt = (DatatypeDecl)cl;
@@ -883,18 +905,21 @@ namespace Microsoft.Dafny {
 
     protected override string TypeName_Companion(Type type, TextWriter wr, Bpl.IToken tok, MemberDecl/*?*/ member) {
       // There are no companion classes for Cpp
-      var t = TypeName(type, wr, tok, member);
-      t = t.Replace("*", "");   // Remove pointer type when we're using the typename in non-argument contexts
+      var t = TypeName(type, wr, tok, member, true);
       return t;
     }
 
     // ----- Declarations -------------------------------------------------------------
 
-    protected void DeclareField(string name, bool isStatic, bool isConst, Type type, Bpl.IToken tok, string rhs, TargetWriter wr) {
-      var stat = isStatic ? "static" : "";
+    protected void DeclareField(string className, string name, bool isStatic, bool isConst, Type type, Bpl.IToken tok, string rhs, TargetWriter wr, TargetWriter finisher) {
       var r = rhs != null ? rhs : DefaultValue(type, wr, tok);
       var t = TypeName(type, wr, tok);
-      wr.WriteLine("{0} {1} {2} = {3};", stat, t, name, r);
+      if (isStatic) {
+          wr.WriteLine("static {0} {1};", t, name);
+          finisher.WriteLine("{0} {1}::{2} = {3};", t, className, name, r);
+      } else {
+        wr.WriteLine("{0} {1} = {2};", t, name, r);
+      }
     }
 
     private string DeclareFormalString(string prefix, string name, Type type, Bpl.IToken tok, bool isInParam) {
@@ -991,6 +1016,10 @@ namespace Microsoft.Dafny {
       return "auto " + target;
     }
 
+    protected override void EmitNull(Type type, TargetWriter wr) {
+      wr.Write("nullptr");
+    }
+
     // ----- Statements -------------------------------------------------------------
 
     protected override void EmitPrintStmt(TargetWriter wr, Expression arg) {
@@ -1078,7 +1107,7 @@ namespace Microsoft.Dafny {
       if (cl != null && cl.Name == "object") {
         wr.Write("_dafny.NewObject()");
       } else {
-        wr.Write("std::make_shared<{0}> (", TypeName(type, wr, tok));
+        wr.Write("std::make_shared<{0}> (", TypeName(type, wr, tok, null, true));
         EmitRuntimeTypeDescriptorsActuals(type.TypeArgs, cl.TypeArgs, tok, false, wr);
         wr.Write(")");
       }
@@ -1109,7 +1138,7 @@ namespace Microsoft.Dafny {
       if (e is StaticReceiverExpr) {
         wr.Write(TypeName(e.Type, wr, e.tok));
       } else if (e.Value == null) {
-        wr.Write("NULL");
+        wr.Write("nullptr");
       } else if (e.Value is bool) {
         wr.Write((bool)e.Value ? "true" : "false");
       } else if (e is CharLiteralExpr) {
