@@ -569,7 +569,9 @@ namespace Microsoft.Dafny
       // compile the program into an assembly
       if (!completeProgram || !invokeCompiler) {
         // don't compile
-        return false;
+        // Caller interprets this as success/fail and returns an error if false,
+        //  but we didn't actually hit an error, we just didn't invoke the compiler
+        return true;  
       }
 
       object compilationResult;

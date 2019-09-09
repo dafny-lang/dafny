@@ -1,12 +1,20 @@
 
-SRCS=$(wildcard *.cpp)
-EXECS=$(subst .cpp,,$(SRCS))
+DAFNYS=$(wildcard *.dfy)
+CPPS=$(subst .dfy,.cpp,$(DAFNYS))
+EXECS=$(subst .dfy,,$(DAFNYS))
 DAFNY=../../Binaries/dafny
 
 CXXFLAGS += -Wno-c++11-extensions
 
-#all=$(TARGETS)
-all:hello integers
+.SECONDARY: $(CPPS)
+
+all:$(EXECS)
+#all:hello ints
+
+vars:
+	echo $(DAFNYS)
+	echo $(CPPS)
+	echo $(EXECS)
 
 %.cpp: %.dfy $(DAFNY)
 	$(DAFNY) /noVerify /compile:0 /spillTargetCode:3 /compileTarget:cpp $<
@@ -18,4 +26,4 @@ $(EXECS): % : %.cpp ../../Binaries/DafnyRuntime.h
 	$(CXX) $(CXXFLAGS) -o $@ $<
 
 clean:
-	rm *.cpp $(EXECS)
+	rm -f *.cpp $(EXECS)

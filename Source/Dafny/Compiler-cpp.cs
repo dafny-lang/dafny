@@ -756,7 +756,7 @@ namespace Microsoft.Dafny {
             !cl.Module.IsDefaultModule) {
           s = cl.FullCompileName;
         }
-        if (class_name) {
+        if (class_name || xType.IsTypeParameter || xType.IsDatatype) {  // Don't add pointer decorations to class names or type parameters
           return IdProtect(s);
         } else {
           return TypeName_UDT(s, udt.TypeArgs, wr, udt.tok);          
