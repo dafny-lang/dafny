@@ -1486,10 +1486,14 @@ namespace Microsoft.Dafny {
         wr.Write("->{0}", member.CompileName);
       } else if (member is DatatypeDestructor dtor && dtor.EnclosingClass is TupleTypeDecl) {
         wr.Write("[{0}]", dtor.Name);
+      //} else if (member is SpecialField sf && sf.SpecialId == SpecialField.ID.Con) {
+        
       } else if (!isLValue && member is SpecialField sf) {
         string compiledName, preStr, postStr;
         GetSpecialFieldInfo(sf.SpecialId, sf.IdParam, out compiledName, out preStr, out postStr);
-        if (compiledName.Length != 0) {
+        if (sf is ConstantField && !member.IsStatic && compiledName.Length != 0) {
+          wr.Write("->{0}", compiledName);
+        } else if (compiledName.Length != 0) {
           wr.Write("::{0}", compiledName);
         } else {
           // this member selection is handled by some kind of enclosing function call, so nothing to do here

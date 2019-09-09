@@ -25,7 +25,6 @@ method CallEm(c: MyClass, t: MyClass, i: MyClass)
   requires c.a as int + t.a as int + i.a as int < 1000;
   modifies c, t, i
 {
-  /*
   // instance fields
 
   print c.a, " ", t.a, " ", i.a, " ";
@@ -40,9 +39,7 @@ method CallEm(c: MyClass, t: MyClass, i: MyClass)
 
   print c.b, " ";
   print c.c, " ";
-  */
   print c.d, " ";
-  /*
   print c.e, " ";
   print c.F(), " ";
   print c.G(), " ";
@@ -91,9 +88,6 @@ method CallEm(c: MyClass, t: MyClass, i: MyClass)
   print MyClass.e, " ";
   print MyClass.G(), " ";
   u := MyClass.N();
-  print u, "\n";
-  */
-  var u := MyClass.N();
   print u, "\n";
 }
 

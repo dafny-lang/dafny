@@ -3440,13 +3440,13 @@ namespace Microsoft.Dafny {
       wr = EmitCoercionIfNecessary(f.ResultType, e.Type, e.tok, wr);
 
       if (f.IsStatic) {
-        wr.Write(TypeName_Companion(e.Receiver.Type, wr, e.tok, f));
+        wr.Write("{0}::", TypeName_Companion(e.Receiver.Type, wr, e.tok, f));
       } else {
         wr.Write("(");
         tr(e.Receiver, wr, inLetExprBody);
-        wr.Write(")");
+        wr.Write(")->");
       }
-      wr.Write(".{0}", IdName(f));
+      wr.Write(IdName(f));
       List<Type> typeArgs;
       if (f.TypeArgs.Count != 0) {
         typeArgs = f.TypeArgs.ConvertAll(ta => e.TypeArgumentSubstitutions[ta]);
