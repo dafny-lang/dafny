@@ -131,6 +131,11 @@ Use 2 spaces for each indentation.
 ### Maximum Character Limit
 Although there is no strict requirement, it is generally recommended to have a maximum of 120 characters per line.
 
+### Newlines
+Use newlines between sequential **functions**, **methods**, **predicates**, and **lemmas** to increase readability.
+
+End each file with a newline.
+
 ### Functions, Methods, Predicates, and Lemmas
 Every Dafny method has the following signature.
 ```dafny
