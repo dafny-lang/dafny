@@ -71,7 +71,7 @@ namespace Microsoft.Dafny {
       }
 
       if (typeParameters != null && typeParameters.Count > 0) {
-        wr.WriteLine("template <class {0}>", TypeParameters(typeParameters));
+        wr.WriteLine("template <{0}>", TypeParameters(typeParameters));
       }
 
       var w = wr.NewBlock(string.Format("class {0}", name), ";");
@@ -829,7 +829,7 @@ namespace Microsoft.Dafny {
       var udt = (UserDefinedType)xType;
       if (udt.ResolvedParam != null) {
         if (inAutoInitContext && !udt.ResolvedParam.Characteristics.MustSupportZeroInitialization) {
-          return "undefined";
+          return "nullptr";
         } else {
           return string.Format("{0}.Default", RuntimeTypeDescriptor(udt, udt.tok, wr));
         }
@@ -864,7 +864,7 @@ namespace Microsoft.Dafny {
             if (arrayClass.Dims == 1) {
               return "[]";
             } else {
-              return string.Format("_dafny.newArray(undefined, {0})", Util.Comma(arrayClass.Dims, _ => "0"));
+              return string.Format("_dafny.newArray(nullptr, {0})", Util.Comma(arrayClass.Dims, _ => "0"));
             }
           } else {
             // non-null (non-array) type
@@ -900,7 +900,10 @@ namespace Microsoft.Dafny {
       Contract.Assume(fullCompileName != null);  // precondition; this ought to be declared as a Requires in the superclass
       Contract.Assume(typeArgs != null);  // precondition; this ought to be declared as a Requires in the superclass
       string s = IdProtect(fullCompileName);
-      return String.Format("std::shared_ptr<{0}>", s);
+
+      string args = typeArgs.Count > 0
+        ? String.Format(" <{0}> ", Util.Comma(typeArgs, tp => TypeName(tp, wr, tok))) : "";
+      return String.Format("std::shared_ptr<{0}{1}>", s, args);
     }
 
     protected override string TypeName_Companion(Type type, TextWriter wr, Bpl.IToken tok, MemberDecl/*?*/ member) {
@@ -1107,7 +1110,9 @@ namespace Microsoft.Dafny {
       if (cl != null && cl.Name == "object") {
         wr.Write("_dafny.NewObject()");
       } else {
-        wr.Write("std::make_shared<{0}> (", TypeName(type, wr, tok, null, true));
+        string targs = type.TypeArgs.Count > 0
+          ? String.Format(" <{0}> ", Util.Comma(type.TypeArgs, tp => TypeName(tp, wr, tok))) : "";
+        wr.Write("std::make_shared<{0}{1}> (", TypeName(type, wr, tok, null, true), targs);
         EmitRuntimeTypeDescriptorsActuals(type.TypeArgs, cl.TypeArgs, tok, false, wr);
         wr.Write(")");
       }
