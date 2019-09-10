@@ -17,3 +17,22 @@ method Main() {
     e2 := Ex2b(true);
     Callee(e2);
 }
+
+
+datatype Option<V> = None | Some(value:V)
+
+datatype Err<V> = Fail(err:bool) | Ok(value:V)
+
+
+method matcher(e:Err<uint32>) {
+  match e 
+    case Fail(s) => print s;
+    case Ok(v) => print v;
+}
+
+method GenericTest() {
+  var v:Option<uint32> := Some(32);
+  matcher(Ok(42));
+  matcher(Fail(true));
+}
+

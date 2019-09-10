@@ -61,6 +61,29 @@ namespace Microsoft.Dafny {
       return w;
 */
     }
+    
+    private string TypeParameters(List<TypeParameter> targs) {
+      Contract.Requires(cce.NonNullElements(targs));
+      Contract.Ensures(Contract.Result<string>() != null);
+
+      return Util.Comma(targs, tp => "typename " + IdName(tp));
+    }
+
+    private string DeclareTemplate(List<TypeParameter> typeArgs) {
+      var targs = "";
+      if (typeArgs.Count > 0) {
+        targs = String.Format("template <{0}>", TypeParameters(typeArgs));
+      }
+      return targs;
+    }
+
+    private string TemplateMethod(List<TypeParameter> typeArgs) {
+      var targs = "";
+      if (typeArgs.Count > 0) {
+        targs = String.Format("<{0}>", Util.Comma(typeArgs, ta => ta.CompileName));
+      }
+      return targs;
+    }
 
     protected override string GetHelperModuleName() => "_dafny";
 
@@ -71,7 +94,7 @@ namespace Microsoft.Dafny {
       }
 
       if (typeParameters != null && typeParameters.Count > 0) {
-        wr.WriteLine("template <{0}>", TypeParameters(typeParameters));
+        wr.WriteLine(DeclareTemplate(typeParameters));
       }
 
       var w = wr.NewBlock(string.Format("class {0}", name), ";");
@@ -87,14 +110,6 @@ namespace Microsoft.Dafny {
       /*
       if (fullPrintName != null) {
         fieldWriter.WriteLine("this._tname = \"{0}\";", fullPrintName);
-      }
-
-      if (typeParameters != null) {
-        foreach (var tp in typeParameters) {
-          if (tp.Characteristics.MustSupportZeroInitialization) {
-            fieldWriter.WriteLine("this.{0} = {0};", "rtd$_" + tp.CompileName);
-          }
-        }
       }
       */
       var methodWriter = w;
@@ -112,13 +127,6 @@ namespace Microsoft.Dafny {
       var methodWriter = w;
       return new ClassWriter(this, methodWriter, fieldWriter);
       */
-    }
-
-    string TypeParameters(List<TypeParameter> targs) {
-      Contract.Requires(cce.NonNullElements(targs));
-      Contract.Ensures(Contract.Result<string>() != null);
-
-      return Util.Comma(targs, tp => "typename " + IdName(tp));
     }
 
     protected override BlockTargetWriter CreateIterator(IteratorDecl iter, TargetWriter wr) {
@@ -239,9 +247,9 @@ namespace Microsoft.Dafny {
 
       // Optimize a not-uncommon case
       if (dt.Ctors.Count == 1) {
-        var ws = wr.NewBlock(String.Format("struct {0}", DtT_protected), ";");
         var ctor = dt.Ctors[0];
-
+        var ws = wr.NewBlock(String.Format("{0}\nstruct {1}", DeclareTemplate(dt.TypeArgs), DtT_protected), ";");
+        
         // Declare the struct members
         var i = 0;
         var argNames = new List<string>();
@@ -269,13 +277,13 @@ namespace Microsoft.Dafny {
         foreach (var arg in ctor.Formals) {
           wc.WriteLine("{0} = {1};", arg.CompileName, DefaultValue(arg.Type, wc, arg.tok));
         }
-
-        wr.WriteLine("bool is_{0}(struct {1} d) {{ return true; }}", ctor.CompileName, DtT_protected);        
+        
+        wr.WriteLine("{0}\nbool is_{1}(struct {2}{3} d) {{ return true; }}", DeclareTemplate(dt.TypeArgs), ctor.CompileName, DtT_protected, TemplateMethod(dt.TypeArgs));        
       } else {
 
         // Create one struct for each constructor
         foreach (var ctor in dt.Ctors) {
-          var wstruct = wr.NewBlock(String.Format("struct {0}", ctor.CompileName), ";");
+          var wstruct = wr.NewBlock(String.Format("{0}\nstruct {1}", DeclareTemplate(dt.TypeArgs), ctor.CompileName), ";");
           // Declare the struct members
           var i = 0;
           foreach (Formal arg in ctor.Formals) {
@@ -287,13 +295,13 @@ namespace Microsoft.Dafny {
         }
 
         // Declare the overall tagged union
-        var ws = wr.NewBlock(String.Format("struct {0}", DtT_protected), ";");
+        var ws = wr.NewBlock(String.Format("{0}\nstruct {1}", DeclareTemplate(dt.TypeArgs), DtT_protected), ";");
         ws.Write("enum {");
         ws.Write(Util.Comma(dt.Ctors, nm => String.Format(" TAG_{0}", nm)));
         ws.Write("} tag;\n");
         var wu = ws.NewBlock("union ", ";");
         foreach (var ctor in dt.Ctors) {
-          wu.WriteLine("struct {0} v_{0};", ctor.CompileName);
+          wu.WriteLine("struct {0}{1} v_{0};", ctor.CompileName, TemplateMethod(dt.TypeArgs));
         }
         
         // Declare static "constructors" for each Dafny constructor
@@ -311,7 +319,7 @@ namespace Microsoft.Dafny {
           using (var wc = ws.NewNamedBlock("static {0} create_{1}({2})",
                                            DtT_protected, ctor.CompileName,
                                            DeclareFormals(ctor.Formals))) {
-            wc.WriteLine("{0} result;", DtT_protected);
+            wc.WriteLine("{0}{1} result;", DtT_protected, TemplateMethod(dt.TypeArgs));
             wc.WriteLine("result.tag = {0}::TAG_{1};", DtT_protected, ctor.CompileName);
             foreach (Formal arg in ctor.Formals)
             {
@@ -333,7 +341,7 @@ namespace Microsoft.Dafny {
 
         // Declare type queries
         foreach (var ctor in dt.Ctors) {
-          wr.WriteLine("bool is_{0}(struct {1} d) {{ return d.tag == {1}::TAG_{0}; }}", ctor.CompileName, DtT_protected);  
+          wr.WriteLine("{0}\nbool is_{1}(struct {2}{3} d) {{ return d.tag == {2}{3}::TAG_{1}; }}", DeclareTemplate(dt.TypeArgs), ctor.CompileName, DtT_protected, TemplateMethod(dt.TypeArgs));  
         }
       }
     }
@@ -483,7 +491,7 @@ namespace Microsoft.Dafny {
       }
 
       if (m.TypeArgs.Count != 0) {        
-        wr.WriteLine("template <{0}>", TypeParameters(m.TypeArgs));
+        wr.WriteLine(DeclareTemplate(m.TypeArgs));
       }
 
       wr.Write("{0}{1} {2}",
@@ -757,7 +765,7 @@ namespace Microsoft.Dafny {
           s = cl.FullCompileName;
         }
         if (class_name || xType.IsTypeParameter || xType.IsDatatype) {  // Don't add pointer decorations to class names or type parameters
-          return IdProtect(s);
+          return IdProtect(s) + ActualTypeArgs(xType.TypeArgs);
         } else {
           return TypeName_UDT(s, udt.TypeArgs, wr, udt.tok);          
         }
@@ -896,14 +904,16 @@ namespace Microsoft.Dafny {
 
     }
 
+    private string ActualTypeArgs(List<Type> typeArgs) {
+      return typeArgs.Count > 0
+        ? String.Format(" <{0}> ", Util.Comma(typeArgs, tp => TypeName(tp, null, null))) : "";
+    }
+
     protected override string TypeName_UDT(string fullCompileName, List<Type> typeArgs, TextWriter wr, Bpl.IToken tok) {
       Contract.Assume(fullCompileName != null);  // precondition; this ought to be declared as a Requires in the superclass
       Contract.Assume(typeArgs != null);  // precondition; this ought to be declared as a Requires in the superclass
       string s = IdProtect(fullCompileName);
-
-      string args = typeArgs.Count > 0
-        ? String.Format(" <{0}> ", Util.Comma(typeArgs, tp => TypeName(tp, wr, tok))) : "";
-      return String.Format("std::shared_ptr<{0}{1}>", s, args);
+      return String.Format("std::shared_ptr<{0}{1}>", s, ActualTypeArgs(typeArgs));
     }
 
     protected override string TypeName_Companion(Type type, TextWriter wr, Bpl.IToken tok, MemberDecl/*?*/ member) {
@@ -1010,9 +1020,7 @@ namespace Microsoft.Dafny {
     }
 
     protected override void EmitActualTypeArgs(List<Type> typeArgs, Bpl.IToken tok, TextWriter wr) {
-      if (typeArgs.Count > 0) {
-        wr.Write("<{0}>", Util.Comma(typeArgs, tp => TypeName(tp, wr, tok)));
-      }
+      wr.Write(ActualTypeArgs(typeArgs));
     }
 
     protected override string GenerateLhsDecl(string target, Type/*?*/ type, TextWriter wr, Bpl.IToken tok) {
@@ -1406,11 +1414,11 @@ namespace Microsoft.Dafny {
     }
 
     protected override void EmitDatatypeValue(DatatypeValue dtv, string arguments, TargetWriter wr) {
-      var dt = dtv.Ctor.EnclosingDatatype;
-      EmitDatatypeValue(dt, dtv.Ctor, dtv.IsCoCall, arguments, wr);
+      EmitDatatypeValue(dtv, dtv.Ctor, dtv.IsCoCall, arguments, wr);
     }
 
-    void EmitDatatypeValue(DatatypeDecl dt, DatatypeCtor ctor, bool isCoCall, string arguments, TargetWriter wr) {
+    void EmitDatatypeValue(DatatypeValue dtv, DatatypeCtor ctor, bool isCoCall, string arguments, TargetWriter wr) {
+      var dt = dtv.Ctor.EnclosingDatatype;
       var dtName = dt.CompileName;
       var ctorName = ctor.CompileName;
 
@@ -1420,12 +1428,13 @@ namespace Microsoft.Dafny {
         // Ordinary constructor (that is, one that does not guard any co-recursive calls)
         // Generate:  Dt.create_Ctor(arguments)
         if (dt.Ctors.Count == 1) {
-          wr.Write("{0}({1})",
+          wr.Write("{0}{1}({2})",
             dtName,
+            TemplateMethod(dt.TypeArgs), 
             arguments);
         } else {
-          wr.Write("{0}::create_{1}({2})",
-            dtName, ctorName,
+          wr.Write("{0}{1}::create_{2}({3})",
+            dtName, ActualTypeArgs(dtv.InferredTypeArgs), ctorName,
             arguments);
         }
         
