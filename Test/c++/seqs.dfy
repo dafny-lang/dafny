@@ -21,6 +21,17 @@ method Basic() {
     print "This is unexpected";
   }
 
+  var s' := s[0 := 330];
+  if s[0] == 330 {
+    assert false;
+    print "This is unexpected";
+  } else if s[0] != 1 {
+    assert false;
+    print "This is unexpected";
+  } else {
+    print "This is expected";
+  }
+
   var a := new uint32[3][12, 13, 14];
   var a_seq := a[..];
   a[0] := 42;
