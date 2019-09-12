@@ -2065,16 +2065,26 @@ namespace Microsoft.Dafny {
           wrElements = wr.Fork();
           wr.Write("].join(\"\")");
         } else {
-          wr.Write("_dafny.Seq.of(");
-          wrElements = wr.Fork();
-          wr.Write(")");
+          wr.Write("DafnySequence::Create({0}, [](uint64 i) {{ return {1}; }})", elements.Count, DefaultValue(ct.TypeArgs[0], wr, tok, inLetExprBody));
+          //wrElements = wr.Fork();
+          //wr.Write(")");
+
+          for (var i = 0; i < elements.Count; i++) {
+            wr.Write("->stuff({0}, ", i);
+            TrExpr(elements[i], wr, inLetExprBody);
+            wr.Write(")");
+          }
         }
+        
+          
+        /*
         string sep = "";
         foreach (var e in elements) {
           wrElements.Write(sep);
           TrExpr(e, wrElements, inLetExprBody);
           sep = ", ";
         }
+        */
       }
     }
 
