@@ -46,9 +46,10 @@ method Basic() {
 }
 
 method Contains() {
-    var m1 := [1];   
-    var m2 := [1, 2];   
-    var m3 := [1, 2, 3];   
+    var m1 := [1];
+    var m2 := [1, 2];
+    var m3 := [1, 2, 3];
+    var m3identical := [1, 2, 3];
     var mm := [m1, m3, m1];
 
     if m1 in mm {
@@ -67,6 +68,12 @@ method Contains() {
         print "Membership 3: This is expected\n";
     } else {
         print "Membership 3: This is unexpected\n";
+        assert false;
+    }
+    if m3identical in mm {
+        print "Membership 3 value equality: This is expected\n";
+    } else {
+        print "Membership 3 value equality: This is unexpected\n";
         assert false;
     }
 }
@@ -135,7 +142,7 @@ method M(a: array<uint32>, c: array<uint32>, alen:uint32, clen:uint32, m: uint32
   requires clen as int == c.Length
   requires k as int + m as int <= a.Length
   requires l as int + n as int <= c.Length
-  requires alen as int <  0x80000000 
+  requires alen as int <  0x80000000
   requires clen as int < (0x100000000 / 2)
   requires k as int < (0x100000000 / 2)
   requires l as int < (0x100000000 / 2)
@@ -176,7 +183,7 @@ method M(a: array<uint32>, c: array<uint32>, alen:uint32, clen:uint32, m: uint32
 //
 ///////////////////////////////////////////////////////////////
 
-method test(x:seq<uint32>) 
+method test(x:seq<uint32>)
   requires |x| == 10
 {
   var elts := x[4:2:3];
