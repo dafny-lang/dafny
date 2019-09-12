@@ -87,10 +87,18 @@ namespace Microsoft.Dafny {
 
     protected override string GetHelperModuleName() => "_dafny";
 
+    protected Exception NotSupported(String msg) {
+      return new Exception(String.Format("{0} is not yet supported", msg));
+    }
+
+    protected Exception NotSupported(String msg, Bpl.IToken tok) {
+      return new Exception(String.Format("{0} is not yet supported (at {1}:{2}:{3})", msg, tok.filename, tok.line, tok.col));
+    }
+
+
     protected override IClassWriter CreateClass(string name, bool isExtern, string/*?*/ fullPrintName, List<TypeParameter>/*?*/ typeParameters, List<Type>/*?*/ superClasses, Bpl.IToken tok, TargetWriter wr) {
       if (isExtern || (superClasses != null && superClasses.Count > 0)) {
-        var error = string.Format("Class {0} uses an unsupported feature: extern and/or traits!", name);
-        throw new Exception(error);
+        throw NotSupported(String.Format("extern and/or traits in class {0}", name), tok);
       }
 
       if (typeParameters != null && typeParameters.Count > 0) {
@@ -119,8 +127,7 @@ namespace Microsoft.Dafny {
     protected override bool SupportsProperties { get => false; }
 
     protected override IClassWriter CreateTrait(string name, bool isExtern, List<Type>/*?*/ superClasses, Bpl.IToken tok, TargetWriter wr) {
-      var error = string.Format("Asked to create a trait {0}, which is currently unsupported", name);
-      throw new Exception(error);
+      throw NotSupported(String.Format("traits in class {0}", name), tok);
       /*
       var w = wr.NewBlock(string.Format("$module.{0} = class {0}", IdProtect(name)), ";");
       var fieldWriter = w.NewBlock("constructor ()");
@@ -152,8 +159,7 @@ namespace Microsoft.Dafny {
       //       yield break;
       //     }
       //   }
-      var error = string.Format("Asked to create an iterator {0}, which is currently unsupported", iter);
-      throw new Exception(error);
+      throw NotSupported(String.Format("iterator {0}", iter));
 
      /*  var cw = CreateClass(IdName(iter), iter.TypeArgs, wr) as CppCompiler.ClassWriter;
       var w = cw.MethodWriter;
@@ -359,8 +365,7 @@ namespace Microsoft.Dafny {
         EmitIncrementVar("lo", wLoopBody);
         */
       } else {
-        var error = string.Format("Asked to create a non-native newtype {0}, which is currently unsupported", nt);
-        throw new Exception(error);
+        throw NotSupported(String.Format("non-native newtype {0}", nt));
       }
       var className = "class_" + IdName(nt);
       var cw = CreateClass(className, null, wr) as CppCompiler.ClassWriter;
@@ -386,8 +391,7 @@ namespace Microsoft.Dafny {
       var cw = CreateClass(IdName(sst), sst.TypeArgs, wr) as CppCompiler.ClassWriter;
       var w = cw.MethodWriter;
       if (sst.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
-        var error = string.Format("Asked to create a subset type {0}, which is currently unsupported", sst);
-        throw new Exception(error);
+        throw NotSupported(String.Format("subset type {0}", sst));
         var witness = new TargetWriter(w.IndentLevel, true);
         TrExpr(sst.Witness, witness, false);
         DeclareField(IdName(sst), "Witness", true, true, sst.Rhs, sst.tok, witness.ToString(), w, wr);
@@ -518,8 +522,7 @@ namespace Microsoft.Dafny {
     protected BlockTargetWriter/*?*/ CreateFunction(string name, List<TypeParameter>/*?*/ typeArgs, List<Formal> formals, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, TargetWriter wr) {
       wr.Write("{0}{1} {2}", isStatic ? "static " : "", TypeName(resultType, wr, tok), name);
       if (typeArgs != null && typeArgs.Count != 0) {
-        var error = string.Format("Type parameters in function {0} are not yet supported", name);
-        throw new Exception(error);
+        throw NotSupported(String.Format("type parameters in function {0}", name), tok);
         //wr.Write("<{0}>", TypeParameters(typeArgs));
       }
       wr.Write("(");
@@ -583,8 +586,7 @@ namespace Microsoft.Dafny {
       if (typeParams.Count == 0) {
         return 0;
       } else {
-        var error = string.Format("WriteRuntimeTypeDescriptorsFormals not yet supported");
-        throw new Exception(error);
+        throw NotSupported("WriteRuntimeTypeDescriptorsFormals");
       }
 /* 
       int c = 0;
@@ -617,8 +619,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(type != null);
       Contract.Requires(tok != null);
       Contract.Requires(wr != null);
-      var error = string.Format("RuntimeTypeDescriptor {0} not yet supported", type);
-      throw new Exception(error);
+      throw NotSupported(string.Format("RuntimeTypeDescriptor {0} not yet supported", type), tok);
 /* 
       var xType = type.NormalizeExpandKeepConstraints();
       if (xType is TypeProxy) {
@@ -748,7 +749,7 @@ namespace Microsoft.Dafny {
         if (at.Dims == 1) {
           return typeNameSansBrackets + "*";
         } else {
-          throw new Exception("Multi-dimensional arrays are not currently supported");
+          throw NotSupported("Multi-dimensional arrays");
         }
       } else if (xType is UserDefinedType) {
         var udt = (UserDefinedType)xType;
@@ -1064,8 +1065,7 @@ namespace Microsoft.Dafny {
     }
 
     protected override void EmitYield(TargetWriter wr) {
-      var error = string.Format("EmitYield is not yet supported");
-      throw new Exception(error);
+      throw NotSupported("EmitYield");
       //wr.WriteLine("yield null;");
     }
 
@@ -1135,7 +1135,7 @@ namespace Microsoft.Dafny {
         TrExpr(dimensions[0], wr, false);
         wr.Write("]");
       } else {
-        throw new Exception("Multi-dimensional arrays are not yet supported");
+        throw NotSupported("Multi-dimensional arrays", tok);
         // the general case
         /* wr.Write("_dafny.newArray({0}", initValue ?? "undefined");
         foreach (var dim in dimensions) {
@@ -1166,8 +1166,7 @@ namespace Microsoft.Dafny {
       } else if (e.Value is BigInteger i) {
         EmitIntegerLiteral(i, wr);
       } else if (e.Value is Basetypes.BigDec) {
-        var error = "EmitLiteralExpr of Basetypes.BigDec is not yet supported!";
-        throw new Exception(error);
+        throw NotSupported("EmitLiteralExpr of Basetypes.BigDec");
         /* 
         var n = (Basetypes.BigDec)e.Value;
         if (0 <= n.Exponent) {
@@ -1228,8 +1227,7 @@ namespace Microsoft.Dafny {
     }
 
     protected override TargetWriter EmitBitvectorTruncation(BitvectorType bvType, bool surroundByUnchecked, TargetWriter wr) {
-      var error = string.Format("EmitBitvectorTruncation is not yet supported");
-      throw new Exception(error);
+      throw NotSupported("EmitBitvectorTruncation");
       string nativeName = null, literalSuffix = null;
       bool needsCastAfterArithmetic = false;
       if (bvType.NativeType != null) {
@@ -1254,8 +1252,7 @@ namespace Microsoft.Dafny {
     }
 
     protected override void EmitRotate(Expression e0, Expression e1, bool isRotateLeft, TargetWriter wr, bool inLetExprBody, FCE_Arg_Translator tr) {
-      var error = string.Format(" is not yet supported");
-      throw new Exception(error);
+      throw NotSupported("EmitRotate");
       string nativeName = null, literalSuffix = null;
       bool needsCast = false;
       var nativeType = AsNativeType(e0.Type);
@@ -1279,14 +1276,12 @@ namespace Microsoft.Dafny {
     }
 
     protected override void EmitEmptyTupleList(string tupleTypeArgs, TargetWriter wr) {
-      var error = string.Format("EmitEmptyTupleList is not yet supported");
-      throw new Exception(error);
+      throw NotSupported("EmitEmptyTupleList");
       wr.Write("[]", tupleTypeArgs);
     }
 
     protected override TargetWriter EmitAddTupleToList(string ingredients, string tupleTypeArgs, TargetWriter wr) {
-      var error = string.Format("EmitAddTupleToList is not yet supported");
-      throw new Exception(error);
+      throw NotSupported("EmitAddTupleToList");
       wr.Write("{0}.push(_dafny.Tuple.of(", ingredients, tupleTypeArgs);
       var wrTuple = wr.Fork();
       wr.WriteLine("));");
@@ -1294,8 +1289,7 @@ namespace Microsoft.Dafny {
     }
 
     protected override void EmitTupleSelect(string prefix, int i, TargetWriter wr) {
-      var error = string.Format("EmitTupleSelect is not yet supported");
-      throw new Exception(error);
+      throw NotSupported("EmitTupleSelect");
       wr.Write("{0}[{1}]", prefix, i);
     }
 
@@ -1392,8 +1386,7 @@ namespace Microsoft.Dafny {
     protected override string FullTypeName(UserDefinedType udt, MemberDecl/*?*/ member = null) {
       Contract.Assume(udt != null);  // precondition; this ought to be declared as a Requires in the superclass
       if (udt is ArrowType) {
-        var error = string.Format("UserDefinedTypeName {0} is not yet supported", udt.Name);
-        throw new Exception(error);
+        throw NotSupported(string.Format("UserDefinedTypeName {0}", udt.Name));
         //return ArrowType.Arrow_FullCompileName;
       }
       var cl = udt.ResolvedClass;
@@ -1457,19 +1450,19 @@ namespace Microsoft.Dafny {
           break;
         case SpecialField.ID.ArrayLength:
         case SpecialField.ID.ArrayLengthInt:
-          var error = string.Format("C++ does not support taking an array's length");
-          throw new Exception(error);
+          throw NotSupported("taking an array's length");
+          break;
         case SpecialField.ID.Floor:
           compiledName = "int()";
           break;
         case SpecialField.ID.IsLimit:
-          throw new Exception("IsLimit is not yet supported");
+          throw NotSupported("IsLimit");
         case SpecialField.ID.IsSucc:
-          throw new Exception("IsSucc is not yet supported");
+          throw NotSupported("IsSucc");
         case SpecialField.ID.Offset:
-          throw new Exception("Offset is not yet supported");
+          throw NotSupported("Offset");
         case SpecialField.ID.IsNat:
-          throw new Exception("IsNat is not yet supported");
+          throw NotSupported("IsNat");
         case SpecialField.ID.Keys:
           compiledName = "Keys()";
           break;
@@ -1647,7 +1640,7 @@ namespace Microsoft.Dafny {
     }
 
     protected override TargetWriter CreateIIFE_ExprBody(Expression source, bool inLetExprBody, Type sourceType, Bpl.IToken sourceTok, Type resultType, Bpl.IToken resultTok, string bvName, TargetWriter wr) {
-      throw new Exception("CreateIIFE_ExprBody is not yet supported");
+      throw NotSupported("CreateIIFE_ExprBody-A", sourceTok);
       var w = wr.NewExprBlock("function ({0})", bvName);
       w.Write("return ");
       w.BodySuffix = ";" + w.NewLine;
@@ -1656,7 +1649,7 @@ namespace Microsoft.Dafny {
     }
 
     protected override TargetWriter CreateIIFE_ExprBody(string source, Type sourceType, Bpl.IToken sourceTok, Type resultType, Bpl.IToken resultTok, string bvName, TargetWriter wr) {
-      throw new Exception("CreateIIFE_ExprBody is not yet supported");
+      throw NotSupported("CreateIIFE_ExprBody-B", sourceTok);
       var w = wr.NewExprBlock("function ({0})", bvName);
       w.Write("return ");
       w.BodySuffix = ";" + w.NewLine;
@@ -1665,13 +1658,13 @@ namespace Microsoft.Dafny {
     }
 
     protected override BlockTargetWriter CreateIIFE0(Type resultType, Bpl.IToken resultTok, TargetWriter wr) {
-      throw new Exception("CreateIIFE0 is not yet supported");
+      throw NotSupported("CreateIIFE0", resultTok);
       var w = wr.NewBigExprBlock("function ()", "()");
       return w;
     }
 
     protected override BlockTargetWriter CreateIIFE1(int source, Type resultType, Bpl.IToken resultTok, string bvName, TargetWriter wr) {
-      throw new Exception("CreateIIFE1 is not yet supported");
+      throw NotSupported("CreateIIFE1", resultTok);
       var w = wr.NewExprBlock("function ({0})", bvName);
       wr.Write("({0})", source);
       return w;
@@ -2051,25 +2044,21 @@ namespace Microsoft.Dafny {
       }
     }
 
-    protected void NotSupported(String msg, Bpl.IToken tok) {
-      throw new Exception(String.Format("{0} is not yet supported (at {1}:{2}:{3})", msg, tok.filename, tok.line, tok.col));
-    }
-
     protected override void EmitCollectionDisplay(CollectionType ct, Bpl.IToken tok, List<Expression> elements, bool inLetExprBody, TargetWriter wr) {
 
       if (ct is SetType) {
-        NotSupported("EmitCollectionDisplay/set", tok);
+        throw NotSupported("EmitCollectionDisplay/set", tok);
         wr.Write("_dafny.Set.fromElements");
         TrExprList(elements, wr, inLetExprBody);
       } else if (ct is MultiSetType) {
-        NotSupported("EmitCollectionDisplay/multiset", tok);
+        throw NotSupported("EmitCollectionDisplay/multiset", tok);
         wr.Write("_dafny.MultiSet.fromElements");
         TrExprList(elements, wr, inLetExprBody);
       } else {
         Contract.Assert(ct is SeqType);  // follows from precondition
         TargetWriter wrElements;
         if (ct.Arg.IsCharType) {
-          NotSupported("EmitCollectionDisplay/string", tok);
+          throw NotSupported("EmitCollectionDisplay/string", tok);
           // We're really constructing a string.
           // TODO: It may be that ct.Arg is a type parameter that may stand for char. We currently don't catch that case here.
           wr.Write("[");
@@ -2090,7 +2079,7 @@ namespace Microsoft.Dafny {
     }
 
     protected override void EmitMapDisplay(MapType mt, Bpl.IToken tok, List<ExpressionPair> elements, bool inLetExprBody, TargetWriter wr) {
-      throw new Exception("EmitMapDisplay is not yet supported");
+      throw NotSupported("EmitMapDisplay", tok);
       wr.Write("_dafny.Map.of(");
       string sep = "";
       foreach (ExpressionPair p in elements) {
@@ -2106,7 +2095,7 @@ namespace Microsoft.Dafny {
     }
 
     protected override void EmitCollectionBuilder_New(CollectionType ct, Bpl.IToken tok, TargetWriter wr) {
-      throw new Exception("EmitCollectionBuilder_New is not yet supported");
+      throw NotSupported("EmitCollectionBuilder_New", tok);
       if (ct is SetType) {
         wr.Write("new _dafny.Set()");
       } else if (ct is MultiSetType) {
@@ -2119,7 +2108,7 @@ namespace Microsoft.Dafny {
     }
 
     protected override void EmitCollectionBuilder_Add(CollectionType ct, string collName, Expression elmt, bool inLetExprBody, TargetWriter wr) {
-      throw new Exception("EmitCollectionBuilder_Add is not yet supported");
+      throw NotSupported("EmitCollectionBuilder_Add");
       Contract.Assume(ct is SetType || ct is MultiSetType);  // follows from precondition
       wr.Write("{0}.add(", collName);
       TrExpr(elmt, wr, inLetExprBody);
@@ -2127,7 +2116,7 @@ namespace Microsoft.Dafny {
     }
 
     protected override TargetWriter EmitMapBuilder_Add(MapType mt, Bpl.IToken tok, string collName, Expression term, bool inLetExprBody, TargetWriter wr) {
-      throw new Exception("EmitMapBuilder_Add is not yet supported");
+      throw NotSupported("EmitMapBuilder_Add", tok);
       wr.Write("{0}.push([", collName);
       var termLeftWriter = wr.Fork();
       wr.Write(",");
@@ -2150,12 +2139,12 @@ namespace Microsoft.Dafny {
     public override bool CompileTargetProgram(string dafnyProgramName, string targetProgramText, string/*?*/ callToMain, string/*?*/ targetFilename, ReadOnlyCollection<string> otherFileNames,
       bool hasMain, bool runAfterCompile, TextWriter outputWriter, out object compilationResult) {
       compilationResult = null;
-      throw new Exception("Compilation of C++ files is not yet supported");
+      throw NotSupported("Compilation of C++ files is not yet supported");
     }
 
     public override bool RunTargetProgram(string dafnyProgramName, string targetProgramText, string/*?*/ callToMain, string targetFilename, ReadOnlyCollection<string> otherFileNames,
       object compilationResult, TextWriter outputWriter) {
-        throw new Exception("Running C++ programs is not yet supported");
+        throw NotSupported("Running C++ programs is not yet supported");
     }
   }
 }
