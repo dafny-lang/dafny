@@ -45,6 +45,18 @@ method Basic() {
   }
 }
 
+method ValueEquality() {
+    var m0 := [1, 2, 3];
+    var m1 := m0[1..];
+    var m2 := [2, 3];
+    if m1 == m2 {
+        print "ValueEquality: This is expected\n";
+    } else {
+        print "ValueEquality: This is unexpected\n";
+        assert false;
+    }
+}
+
 method Contains() {
     var m1 := [1];
     var m2 := [1, 2];
@@ -261,5 +273,6 @@ const Base64Alphabet := "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz012
 
 method Main() {
     Basic();
+    ValueEquality();
     Contains();
 }
