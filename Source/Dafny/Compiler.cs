@@ -659,10 +659,6 @@ namespace Microsoft.Dafny {
     }
 
     protected void WriteFromFile(string inputFilename, TextWriter outputWriter) {
-// ******************************************************************   
-// TODO: BJP: Restore this!      
-// ******************************************************************  
-      return;
       using (var rd = new StreamReader(new FileStream(inputFilename, System.IO.FileMode.Open, System.IO.FileAccess.Read))) {
         while (true) {
           string s = rd.ReadLine();
