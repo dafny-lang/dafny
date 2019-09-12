@@ -2050,18 +2050,26 @@ namespace Microsoft.Dafny {
         TrExpr(e.E, wr, inLetExprBody);
       }
     }
+
+    protected void NotSupported(String msg, Bpl.IToken tok) {
+      throw new Exception(String.Format("{0} is not yet supported (at {1}:{2}:{3})", msg, tok.filename, tok.line, tok.col));
+    }
+
     protected override void EmitCollectionDisplay(CollectionType ct, Bpl.IToken tok, List<Expression> elements, bool inLetExprBody, TargetWriter wr) {
-      throw new Exception("EmitCollectionDisplay is not yet supported");
+
       if (ct is SetType) {
+        NotSupported("EmitCollectionDisplay/set", tok);
         wr.Write("_dafny.Set.fromElements");
         TrExprList(elements, wr, inLetExprBody);
       } else if (ct is MultiSetType) {
+        NotSupported("EmitCollectionDisplay/multiset", tok);
         wr.Write("_dafny.MultiSet.fromElements");
         TrExprList(elements, wr, inLetExprBody);
       } else {
         Contract.Assert(ct is SeqType);  // follows from precondition
         TargetWriter wrElements;
         if (ct.Arg.IsCharType) {
+          NotSupported("EmitCollectionDisplay/string", tok);
           // We're really constructing a string.
           // TODO: It may be that ct.Arg is a type parameter that may stand for char. We currently don't catch that case here.
           wr.Write("[");

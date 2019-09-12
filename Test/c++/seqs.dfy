@@ -1,35 +1,35 @@
 newtype{:uint32iveType "uint"} uint32 = i:int | 0 <= i < 0x100000000
 
 method Basic() {
-  var s:seq<uint32> := [1, 2, 3];
-  print s[1];
+  var s:seq<uint32> := [1, 2, 3, 4];
+  print "Head second:", s[1], "\n";
   var end := s[1..];
-  print end[0];
+  print "Trunc first:", end[0], "\n";
   if end == s {
-    print "This is unexpected";
+    print "Head trunc: This is unexpected\n";
     assert false;
   } else {
-    print "This is expected";
+    print "Head trunc: This is expected\n";
   }
 
   var start := s[..1];
   var combine := start + end;
   if (combine == s) {
-    print "This is expected";
+    print "Combine: This is expected\n";
   } else {
     assert false;
-    print "This is unexpected";
+    print "Combine: This is unexpected\n";
   }
 
   var s' := s[0 := 330];
   if s[0] == 330 {
     assert false;
-    print "This is unexpected";
+    print "Replace: This is unexpected\n";
   } else if s[0] != 1 {
     assert false;
-    print "This is unexpected";
+    print "Replace: This is unexpected\n";
   } else {
-    print "This is expected";
+    print "Replace: This is expected\n";
   }
 
   var a := new uint32[3][12, 13, 14];
@@ -38,13 +38,38 @@ method Basic() {
   var a_seq' := a[..];
 
   if a_seq == a_seq' {
-    print "This is unexpected";
+    print "Immutability: This is unexpected\n";
     assert false;
   } else {
-    print "This is expected";
+    print "Immutability: This is expected\n";
   }
 }
 
+method Contains() {
+    var m1 := [1];   
+    var m2 := [1, 2];   
+    var m3 := [1, 2, 3];   
+    var mm := [m1, m3, m1];
+
+    if m1 in mm {
+        print "Membership 1: This is expected\n";
+    } else {
+        print "Membership 1: This is unexpected\n";
+        assert false;
+    }
+    if m2 in mm {
+        print "Membership 2: This is unexpected\n";
+        assert false;
+    } else {
+        print "Membership 2: This is expected\n";
+    }
+    if m3 in mm {
+        print "Membership 3: This is expected\n";
+    } else {
+        print "Membership 3: This is unexpected\n";
+        assert false;
+    }
+}
 
 
 /*
@@ -226,3 +251,8 @@ method Print(s: seq<char>, i: uint32, j: uint32)
 }
 const Base64Alphabet := "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 */
+
+method Main() {
+    Basic();
+    Contains();
+}
