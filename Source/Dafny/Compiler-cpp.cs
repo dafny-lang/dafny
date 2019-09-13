@@ -19,6 +19,12 @@ namespace Microsoft.Dafny {
     public CppCompiler(ErrorReporter reporter)
     : base(reporter) {
     }
+    
+    // Shadowing variables in Compiler.cs
+    new string DafnySetClass = "DafnySet";
+    new string DafnyMultiSetClass = "DafnyMultiset";
+    new string DafnySeqClass = "DafnySequence"; 
+    new string DafnyMapClass = "DafnyMap";
 
     public override string TargetLanguage => "Cpp";
 

@@ -3,9 +3,12 @@ DAFNYS=$(wildcard *.dfy)
 CPPS=$(subst .dfy,.cpp,$(DAFNYS))
 EXECS=$(subst .dfy,,$(DAFNYS))
 DAFNY=../../Binaries/dafny
-DAFNY_DEPS=$(DANFY) ../../Binaries/Dafny.exe ../../Binaries/DafnyPipeline.dll
+DAFNY_RUNTIME_DIR=../../Binaries
+DAFNY_RUNTIME_CPP=$(DAFNY_RUNTIME_DIR)/DafnyRuntime.h
+DAFNY_DEPS=$(DANFY) ../../Binaries/Dafny.exe ../../Binaries/DafnyPipeline.dll $(DAFNY_RUNTIME_CPP)
 
-CXXFLAGS += -Wno-c++11-extensions
+
+CXXFLAGS += -Wno-c++11-extensions -I$(DAFNY_RUNTIME_DIR)
 
 .SECONDARY: $(CPPS)
 
