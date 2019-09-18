@@ -91,7 +91,8 @@ method CallEm(c: MyClass, t: MyClass, i: MyClass)
   print u, "\n";
 }
 
-method Main() {
+
+method TestMyClass() {
   var c := new MyClass(3);
   var t := new MyClass(2);
   var i := new MyClass(2);
@@ -100,5 +101,58 @@ method Main() {
   var t3 : MyClass;
   t3 := t;
   CallEm(c, t, i);
+}
+
+
+class AClass {
+  var x:uint32;
+  var y:uint32;
+
+  constructor() 
+  {
+    x := 0;
+    y := 0;
+  }
+}
+
+method TestEquality() {
+  var a := new AClass();
+  a.x := 25;
+  a.y := 15;
+
+  if a == a {
+      print "EqualityReflexive: This is expected\n";
+  } else {
+      print "EqualityReflexive: This is unexpected\n";
+      assert false;
+  }
+
+  var b := new AClass();
+  b.x := 1;
+  b.y := 2;
+
+  if a == b {
+      print "ClassAndPtrDiffer: This is unexpected\n";
+      assert false;
+  } else {
+      print "ClassAndPtrDiffer: This is expected\n";
+  }
+
+  var c := new AClass();
+  c.x := 25;
+  c.y := 15;
+
+
+  if a == c {
+      print "DeepEquality: This is unexpected\n";
+      assert false;
+  } else {
+      print "DeepEquality: This is expected\n";
+  }
+}
+
+method Main() {
+  TestMyClass();
+  TestEquality();
 }
 
