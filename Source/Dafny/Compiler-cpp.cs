@@ -2071,7 +2071,10 @@ namespace Microsoft.Dafny {
           wrElements = wr.Fork();
           wr.Write("].join(\"\")");
         } else {
-          wr.Write("DafnySequence::Create({0}, [](uint64 i) {{ return {1}; }})", elements.Count, DefaultValue(ct.TypeArgs[0], wr, tok, inLetExprBody));
+          wr.Write("DafnySequence{2}::Create({0}, [](uint64 i) {{ return {1}; }})", 
+            elements.Count, 
+            DefaultValue(ct.TypeArgs[0], wr, tok, inLetExprBody),
+            TemplateMethod());
           //wrElements = wr.Fork();
           //wr.Write(")");
 
