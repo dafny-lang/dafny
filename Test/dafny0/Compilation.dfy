@@ -155,13 +155,13 @@ module M {
     A
   }
   class public {
-    var private: int;
+    var private: int const namespace: int const fallthrough: int const try: int
   }
 }
 
 method Caller() {
   var p := new M.public;
-  var x := p.private;
+  var x := p.private + p.namespace + p.fallthrough + p.try;
 }
 
 // ----- digits-identifiers for destructors -----
