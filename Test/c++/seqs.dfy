@@ -2,6 +2,7 @@ newtype{:uint32iveType "uint"} uint32 = i:int | 0 <= i < 0x100000000
 
 method Basic() {
   var s:seq<uint32> := [1, 2, 3, 4];
+  print s[1];
   print "Head second:", s[1], "\n";
   var end := s[1..];
   print "Trunc first:", end[0], "\n";

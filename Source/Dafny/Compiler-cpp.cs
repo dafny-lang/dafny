@@ -1520,7 +1520,7 @@ namespace Microsoft.Dafny {
     protected override TargetWriter EmitArraySelect(List<string> indices, Type elmtType, TargetWriter wr) {
       var w = wr.Fork();
       foreach (var index in indices) {
-        wr.Write("[{0}]", index);
+        wr.Write("->select({0})", index);
       }   
       return w;
     }
@@ -1529,9 +1529,9 @@ namespace Microsoft.Dafny {
       Contract.Assert(indices != null && 1 <= indices.Count);  // follows from precondition
       var w = wr.Fork();
       foreach (var index in indices) {
-        wr.Write("[");
+        wr.Write("->select(");
         TrExpr(index, wr, inLetExprBody);
-        wr.Write("]");
+        wr.Write(")");
       }
       return w;
     }
@@ -1552,9 +1552,9 @@ namespace Microsoft.Dafny {
       TrParenExpr(source, wr, inLetExprBody);
       if (source.Type.NormalizeExpand() is SeqType) {
         // seq
-        wr.Write("[");
+        wr.Write("->select(");
         TrExpr(index, wr, inLetExprBody);
-        wr.Write("]");
+        wr.Write(")");
       } else {
         // map or imap
         wr.Write(".get(");
@@ -2071,10 +2071,10 @@ namespace Microsoft.Dafny {
           wrElements = wr.Fork();
           wr.Write("].join(\"\")");
         } else {
-          wr.Write("DafnySequence{2}::Create({0}, [](uint64 i) {{ return {1}; }})", 
+          wr.Write("DafnySequence<{2}>::Create({0}, [](uint64 i) {{ return {1}; }})", 
             elements.Count, 
             DefaultValue(ct.TypeArgs[0], wr, tok, inLetExprBody),
-            TemplateMethod());
+            TypeName(ct.TypeArgs[0], wr, tok, null, false));
           //wrElements = wr.Fork();
           //wr.Write(")");
 
