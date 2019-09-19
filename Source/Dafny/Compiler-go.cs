@@ -2259,7 +2259,7 @@ namespace Microsoft.Dafny {
       postString = "";
       switch (id) {
         case SpecialField.ID.UseIdParam:
-          compiledName = (string)idParam;
+          compiledName = IdProtect((string)idParam);
           break;
         case SpecialField.ID.ArrayLength:
         case SpecialField.ID.ArrayLengthInt:
