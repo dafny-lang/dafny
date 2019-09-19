@@ -122,6 +122,7 @@ method Main() {
   t3 := t;
   // Upcast via function call
   CallEm(c, t, i);
+  DependentStaticConsts.Test();
 }
 
 module Module1 {
@@ -132,4 +133,20 @@ module Module2 {
   import Module1
 
   class ClassExtendingTraitInOtherModule extends Module1.TraitInModule { } 
+}
+
+module DependentStaticConsts {
+  newtype ID = x: int | 0 <= x < 100
+
+  // regression test: const's A,B,C,D should all be initialized before Suite is
+  const A: ID := 0
+  const B: ID := 1
+  const C: ID := 2
+  const Suite := map[A := "hello", B := "hi", C := "bye", D := "later"]
+  const D: ID := 3
+
+  method Test()
+  {
+    print Suite[B], " ", Suite[D], "\n";  // hi later
+  }
 }

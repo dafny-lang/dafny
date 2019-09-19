@@ -884,7 +884,7 @@ namespace Microsoft.Dafny {
           consts.Add((ConstantField)decl);
         }
       }
-      consts.Sort((a, b) => (c.Module.CallGraph.GetSCCRepresentativeId(b) - c.Module.CallGraph.GetSCCRepresentativeId(a)));
+      consts.Sort((a, b) => c.Module.CallGraph.GetSCCRepresentativeId(a) - c.Module.CallGraph.GetSCCRepresentativeId(b));
       foreach (var con in consts) {
         decls.Remove(con);
       }
