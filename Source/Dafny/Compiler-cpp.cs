@@ -1520,7 +1520,7 @@ namespace Microsoft.Dafny {
     protected override TargetWriter EmitArraySelect(List<string> indices, Type elmtType, TargetWriter wr) {
       var w = wr.Fork();
       foreach (var index in indices) {
-        wr.Write("->select({0})", index);
+        wr.Write("[{0}]", index);
       }   
       return w;
     }
@@ -1529,9 +1529,9 @@ namespace Microsoft.Dafny {
       Contract.Assert(indices != null && 1 <= indices.Count);  // follows from precondition
       var w = wr.Fork();
       foreach (var index in indices) {
-        wr.Write("->select(");
+        wr.Write("[");
         TrExpr(index, wr, inLetExprBody);
-        wr.Write(")");
+        wr.Write("]");
       }
       return w;
     }
@@ -1552,7 +1552,7 @@ namespace Microsoft.Dafny {
       TrParenExpr(source, wr, inLetExprBody);
       if (source.Type.NormalizeExpand() is SeqType) {
         // seq
-        wr.Write("->select(");
+        wr.Write(".select(");
         TrExpr(index, wr, inLetExprBody);
         wr.Write(")");
       } else {
@@ -1574,31 +1574,19 @@ namespace Microsoft.Dafny {
 
     protected override void EmitSeqSelectRange(Expression source, Expression/*?*/ lo, Expression/*?*/ hi, bool fromArray, bool inLetExprBody, TargetWriter wr) {
       if (fromArray) {
-        wr.Write("_dafny.Seq.of(...");
+        wr.Write("DafnySequence<{0}>::SeqFromArray", TypeName(source.Type, wr, source.tok, null, true));
       }
       TrParenExpr(source, wr, inLetExprBody);
-      if (lo != null) {
-        wr.Write(".slice(");
-        TrExpr(lo, wr, inLetExprBody);
-        if (hi != null) {
-          wr.Write(", ");
-          TrExpr(hi, wr, inLetExprBody);
-        }
-        wr.Write(")");
-      } else if (hi != null) {
-        wr.Write(".slice(0, ");
-        TrExpr(hi, wr, inLetExprBody);
-        wr.Write(")");
-      } else if (fromArray) {
-        wr.Write(".slice()");
+      if (hi != null) {
+        TrParenExpr(".take", hi, wr, inLetExprBody);
       }
-      if (fromArray) {
-        wr.Write(")");
+      if (lo != null) {
+        TrParenExpr(".drop", lo, wr, inLetExprBody);
       }
     }
 
     protected override void EmitSeqConstructionExpr(SeqConstructionExpr expr, bool inLetExprBody, TargetWriter wr) {
-      wr.Write("_dafny.Seq.Create(");
+      wr.Write("DafnySequence<{0}>::Create(", TypeName(expr.Type, wr, expr.tok, null, true));
       TrExpr(expr.N, wr, inLetExprBody);
       wr.Write(", ");
       TrExpr(expr.Initializer, wr, inLetExprBody);
@@ -1891,12 +1879,12 @@ namespace Microsoft.Dafny {
         case BinaryExpr.ResolvedOpcode.MultiSetEq:
         case BinaryExpr.ResolvedOpcode.MapEq:
         case BinaryExpr.ResolvedOpcode.SeqEq:
-          callString = "Equals"; break;
+          callString = "equals"; break;
         case BinaryExpr.ResolvedOpcode.SetNeq:
         case BinaryExpr.ResolvedOpcode.MultiSetNeq:
         case BinaryExpr.ResolvedOpcode.MapNeq:
         case BinaryExpr.ResolvedOpcode.SeqNeq:
-          preOpString = "!"; callString = "Equals"; break;
+          preOpString = "!"; callString = "equals"; break;
         case BinaryExpr.ResolvedOpcode.ProperSubset:
         case BinaryExpr.ResolvedOpcode.ProperMultiSubset:
           callString = "IsProperSubsetOf"; break;
@@ -1916,11 +1904,11 @@ namespace Microsoft.Dafny {
         case BinaryExpr.ResolvedOpcode.InSet:
         case BinaryExpr.ResolvedOpcode.InMultiSet:
         case BinaryExpr.ResolvedOpcode.InMap:
-          callString = "Contains"; reverseArguments = true; break;
+          callString = "contains"; reverseArguments = true; break;
         case BinaryExpr.ResolvedOpcode.NotInSet:
         case BinaryExpr.ResolvedOpcode.NotInMultiSet:
         case BinaryExpr.ResolvedOpcode.NotInMap:
-          preOpString = "!"; callString = "Contains"; reverseArguments = true; break;
+          preOpString = "!"; callString = "contains"; reverseArguments = true; break;
         case BinaryExpr.ResolvedOpcode.Union:
         case BinaryExpr.ResolvedOpcode.MultiSetUnion:
           callString = "Union"; break;
@@ -1936,11 +1924,11 @@ namespace Microsoft.Dafny {
         case BinaryExpr.ResolvedOpcode.Prefix:
           callString = "IsPrefixOf"; break;
         case BinaryExpr.ResolvedOpcode.Concat:
-          callString = "Concat"; break;
+          callString = "concatenate"; break;
         case BinaryExpr.ResolvedOpcode.InSeq:
-          callString = "Contains"; reverseArguments = true; break;
+          callString = "contains"; reverseArguments = true; break;
         case BinaryExpr.ResolvedOpcode.NotInSeq:
-          preOpString = "!"; callString = "Contains"; reverseArguments = true; break;
+          preOpString = "!"; callString = "contains"; reverseArguments = true; break;
 
         default:
           Contract.Assert(false); throw new cce.UnreachableException();  // unexpected binary expression
@@ -2071,7 +2059,7 @@ namespace Microsoft.Dafny {
           wrElements = wr.Fork();
           wr.Write("].join(\"\")");
         } else {
-          wr.Write("DafnySequence<{2}>::Create({0}, [](uint64 i) {{ return {1}; }})", 
+          wr.Write("DafnySequence<{2}>::Create({0}, [](uint64 i) -> {2} {{ return {1}; }})", 
             elements.Count, 
             DefaultValue(ct.TypeArgs[0], wr, tok, inLetExprBody),
             TypeName(ct.TypeArgs[0], wr, tok, null, false));
@@ -2079,7 +2067,7 @@ namespace Microsoft.Dafny {
           //wr.Write(")");
 
           for (var i = 0; i < elements.Count; i++) {
-            wr.Write("->stuff({0}, ", i);
+            wr.Write(".stuff({0}, ", i);
             TrExpr(elements[i], wr, inLetExprBody);
             wr.Write(")");
           }

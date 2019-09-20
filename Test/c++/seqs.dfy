@@ -47,9 +47,9 @@ method Basic() {
 }
 
 method ValueEquality() {
-    var m0 := [1, 2, 3];
-    var m1 := m0[1..];
-    var m2 := [2, 3];
+    var m0:seq<uint32> := [1, 2, 3];
+    var m1:seq<uint32> := m0[1..];
+    var m2:seq<uint32> := [2, 3];
     if m1 == m2 {
         print "ValueEquality: This is expected\n";
     } else {
@@ -59,10 +59,10 @@ method ValueEquality() {
 }
 
 method Contains() {
-    var m1 := [1];
-    var m2 := [1, 2];
-    var m3 := [1, 2, 3];
-    var m3identical := [1, 2, 3];
+    var m1:seq<uint32> := [1];
+    var m2:seq<uint32> := [1, 2];
+    var m3:seq<uint32> := [1, 2, 3];
+    var m3identical:seq<uint32> := [1, 2, 3];
     var mm := [m1, m3, m1];
 
     if m1 in mm {
