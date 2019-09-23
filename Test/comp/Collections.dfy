@@ -167,7 +167,19 @@ method Maps() {
   print "  disjoint: ", a !! b, " ", b !! c, "\n";
   print "  update: ", a[17 := 6], " ", b[17 := 6], " ", c[17 := 6], "\n";
   print "  lookup: ", 17 in a, " ", b[17], " ", c[17], "\n";
+
+  // regression tests: make sure the types of .Keys, .Values, and .Items are correct
+  var m := map[Blue := 30, Yellow := 21];
+  print "m: ", m, "\n";
+  var keys := m.Keys;
+  print "keys: ", keys, "\n";
+  var values := m.Values;
+  print "values: ", values, "\n";
+  var items := m.Items;
+  print "items: ", items, "\n";
 }
+
+datatype Color = Blue | Yellow | Red
 
 method MultiSetForming() {
   var s := {24, 23, 24};

@@ -912,7 +912,7 @@ namespace Microsoft.Dafny{
           compiledName = idParam == null ? "length" : "dims" + (int)idParam;
           if (id == SpecialField.ID.ArrayLength) {
             preString = "BigInteger.valueOf(";
-            postString += ")";
+            postString = ")";
           }
           break;
         case SpecialField.ID.Floor:
@@ -935,13 +935,13 @@ namespace Microsoft.Dafny{
           postString = ")";
           break;
         case SpecialField.ID.Keys:
-          compiledName = "keySet()";
+          compiledName = "dafnyKeySet()";
           break;
         case SpecialField.ID.Values:
-          compiledName = "values()";
+          compiledName = "dafnyValues()";
           break;
         case SpecialField.ID.Items:
-          compiledName = "entrySet()";
+          compiledName = "dafnyEntrySet()";
           break;
         case SpecialField.ID.Reads:
           compiledName = "_reads";
