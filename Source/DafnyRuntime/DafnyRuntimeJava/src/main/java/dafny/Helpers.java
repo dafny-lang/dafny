@@ -54,6 +54,8 @@ public class Helpers {
                     return new BigDecimal(0);
                 case "class java.lang.Character":
                     return 'D';
+                case "class dafny.DafnySequence":
+                    return DafnySequence.<Object> empty();
                 default:
                     String xs = s.substring(6);
                     Object o = Class.forName(xs).newInstance();

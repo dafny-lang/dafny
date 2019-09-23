@@ -49,6 +49,19 @@ public class DafnyMultiset<T> {
         }
     }
 
+    @SafeVarargs
+    public static <T> DafnyMultiset<T> of(T ... args) {
+        return new DafnyMultiset<T>(Arrays.asList(args));
+    }
+
+    private static final DafnyMultiset<Object> EMPTY = DafnyMultiset.of();
+
+    @SuppressWarnings("unchecked")
+    public static <T> DafnyMultiset<T> empty() {
+        // Safe because immutable
+        return (DafnyMultiset<T>) EMPTY;
+    }
+
     public BigInteger cardinality() {
         BigInteger b = BigInteger.ZERO;
         for (BigInteger big : innerMap.values()) {

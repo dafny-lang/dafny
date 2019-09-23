@@ -31,6 +31,19 @@ public class DafnySet<T> {
         innerSet = new HashSet<>(l);
     }
 
+    @SafeVarargs
+    public static <T> DafnySet<T> of(T ... elements) {
+        return new DafnySet<T>(Arrays.asList(elements));
+    }
+
+    private static final DafnySet<Object> EMPTY = DafnySet.of();
+
+    @SuppressWarnings("unchecked")
+    public static <T> DafnySet<T> empty() {
+        // Safe because immutable
+        return (DafnySet<T>) EMPTY;
+    }
+
     // Determines if the current object is a subset of the DafnySet passed in. Requires that the input DafnySet is not
     // null.
     public boolean isSubsetOf(DafnySet<T> other) {

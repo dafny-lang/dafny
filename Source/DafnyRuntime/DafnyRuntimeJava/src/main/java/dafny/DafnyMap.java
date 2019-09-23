@@ -18,6 +18,8 @@ public class DafnyMap<K, V> implements Map<K, V> {
         m.forEach((k, v) -> put(k, v));
     }
 
+    public static <K, V> DafnyMap<K, V> empty() { return new DafnyMap<K, V>(); }
+
     public boolean contains(K t) {
         return innerMap.containsKey(t);
     }
