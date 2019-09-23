@@ -306,38 +306,38 @@ namespace Dafny
   public class MultiSet<T>
   {
 #if DAFNY_USE_SYSTEM_COLLECTIONS_IMMUTABLE
-    readonly ImmutableDictionary<T, int> dict;
+    readonly ImmutableDictionary<T, BigInteger> dict;
 #else
-    readonly Dictionary<T, int> dict;
+    readonly Dictionary<T, BigInteger> dict;
 #endif
     readonly BigInteger occurrencesOfNull;  // stupidly, a Dictionary in .NET cannot use "null" as a key
 #if DAFNY_USE_SYSTEM_COLLECTIONS_IMMUTABLE
-    MultiSet(ImmutableDictionary<T, int>.Builder d, BigInteger occurrencesOfNull) {
+    MultiSet(ImmutableDictionary<T, BigInteger>.Builder d, BigInteger occurrencesOfNull) {
       dict = d.ToImmutable();
       this.occurrencesOfNull = occurrencesOfNull;
     }
-    public static readonly MultiSet<T> Empty = new MultiSet<T>(ImmutableDictionary<T, int>.Empty.ToBuilder(), BigInteger.Zero);
+    public static readonly MultiSet<T> Empty = new MultiSet<T>(ImmutableDictionary<T, BigInteger>.Empty.ToBuilder(), BigInteger.Zero);
 #else
-    MultiSet(Dictionary<T, int> d, BigInteger occurrencesOfNull) {
+    MultiSet(Dictionary<T, BigInteger> d, BigInteger occurrencesOfNull) {
       this.dict = d;
       this.occurrencesOfNull = occurrencesOfNull;
     }
-    public static MultiSet<T> Empty = new MultiSet<T>(new Dictionary<T, int>(0), BigInteger.Zero);
+    public static MultiSet<T> Empty = new MultiSet<T>(new Dictionary<T, BigInteger>(0), BigInteger.Zero);
 #endif
     public static MultiSet<T> FromElements(params T[] values) {
 #if DAFNY_USE_SYSTEM_COLLECTIONS_IMMUTABLE
-      var d = ImmutableDictionary<T, int>.Empty.ToBuilder();
+      var d = ImmutableDictionary<T, BigInteger>.Empty.ToBuilder();
 #else
-      var d = new Dictionary<T, int>(values.Length);
+      var d = new Dictionary<T, BigInteger>(values.Length);
 #endif
       var occurrencesOfNull = BigInteger.Zero;
       foreach (T t in values) {
         if (t == null) {
           occurrencesOfNull++;
         } else {
-          var i = 0;
+          BigInteger i;
           if (!d.TryGetValue(t, out i)) {
-            i = 0;
+            i = BigInteger.Zero;
           }
           d[t] = i + 1;
         }
@@ -346,18 +346,18 @@ namespace Dafny
     }
     public static MultiSet<T> FromCollection(ICollection<T> values) {
 #if DAFNY_USE_SYSTEM_COLLECTIONS_IMMUTABLE
-      var d = ImmutableDictionary<T, int>.Empty.ToBuilder();
+      var d = ImmutableDictionary<T, BigInteger>.Empty.ToBuilder();
 #else
-      var d = new Dictionary<T, int>();
+      var d = new Dictionary<T, BigInteger>();
 #endif
       var occurrencesOfNull = BigInteger.Zero;
       foreach (T t in values) {
         if (t == null) {
           occurrencesOfNull++;
         } else {
-          var i = 0;
+          BigInteger i;
           if (!d.TryGetValue(t, out i)) {
-            i = 0;
+            i = BigInteger.Zero;
           }
           d[t] = i + 1;
         }
@@ -366,18 +366,18 @@ namespace Dafny
     }
     public static MultiSet<T> FromSeq(Sequence<T> values) {
 #if DAFNY_USE_SYSTEM_COLLECTIONS_IMMUTABLE
-      var d = ImmutableDictionary<T, int>.Empty.ToBuilder();
+      var d = ImmutableDictionary<T, BigInteger>.Empty.ToBuilder();
 #else
-      var d = new Dictionary<T, int>();
+      var d = new Dictionary<T, BigInteger>();
 #endif
       var occurrencesOfNull = BigInteger.Zero;
       foreach (T t in values.Elements) {
         if (t == null) {
           occurrencesOfNull++;
         } else {
-          var i = 0;
+          BigInteger i;
           if (!d.TryGetValue(t, out i)) {
-            i = 0;
+            i = BigInteger.Zero;
           }
           d[t] = i + 1;
         }
@@ -386,16 +386,16 @@ namespace Dafny
     }
     public static MultiSet<T> FromSet(Set<T> values) {
 #if DAFNY_USE_SYSTEM_COLLECTIONS_IMMUTABLE
-      var d = ImmutableDictionary<T, int>.Empty.ToBuilder();
+      var d = ImmutableDictionary<T, BigInteger>.Empty.ToBuilder();
 #else
-      var d = new Dictionary<T, int>();
+      var d = new Dictionary<T, BigInteger>();
 #endif
       var containsNull = false;
       foreach (T t in values.Elements) {
         if (t == null) {
           containsNull = true;
         } else {
-          d[t] = 1;
+          d[t] = BigInteger.One;
         }
       }
       return new MultiSet<T>(d, containsNull ? BigInteger.One : BigInteger.Zero);
@@ -434,7 +434,7 @@ namespace Dafny
       }
       foreach (var kv in dict) {
         var t = Dafny.Helpers.ToString(kv.Key);
-        for (int i = 0; i < kv.Value; i++) {
+        for (var i = BigInteger.Zero; i < kv.Value; i++) {
           s += sep + t;
           sep = ", ";
         }
@@ -501,9 +501,9 @@ namespace Dafny
 #if DAFNY_USE_SYSTEM_COLLECTIONS_IMMUTABLE
         var r = dict.ToBuilder();
 #else
-        var r = new Dictionary<T, int>(dict);
+        var r = new Dictionary<T, BigInteger>(dict);
 #endif
-        r[(T)(object)t] = (int)i;
+        r[(T)(object)t] = i;
         return new MultiSet<T>(r, occurrencesOfNull);
       }
     }
@@ -513,21 +513,21 @@ namespace Dafny
       else if (other.dict.Count + other.occurrencesOfNull == 0)
         return this;
 #if DAFNY_USE_SYSTEM_COLLECTIONS_IMMUTABLE
-      var r = ImmutableDictionary<T, int>.Empty.ToBuilder();
+      var r = ImmutableDictionary<T, BigInteger>.Empty.ToBuilder();
 #else
-      var r = new Dictionary<T, int>();
+      var r = new Dictionary<T, BigInteger>();
 #endif
       foreach (T t in dict.Keys) {
-        var i = 0;
+        BigInteger i;
         if (!r.TryGetValue(t, out i)) {
-          i = 0;
+          i = BigInteger.Zero;
         }
         r[t] = i + dict[t];
       }
       foreach (T t in other.dict.Keys) {
-        var i = 0;
+        BigInteger i;
         if (!r.TryGetValue(t, out i)) {
-          i = 0;
+          i = BigInteger.Zero;
         }
         r[t] = i + other.dict[t];
       }
@@ -539,9 +539,9 @@ namespace Dafny
       else if (other.dict.Count == 0 && other.occurrencesOfNull == 0)
         return other;
 #if DAFNY_USE_SYSTEM_COLLECTIONS_IMMUTABLE
-      var r = ImmutableDictionary<T, int>.Empty.ToBuilder();
+      var r = ImmutableDictionary<T, BigInteger>.Empty.ToBuilder();
 #else
-      var r = new Dictionary<T, int>();
+      var r = new Dictionary<T, BigInteger>();
 #endif
       foreach (T t in dict.Keys) {
         if (other.dict.ContainsKey(t)) {
@@ -556,9 +556,9 @@ namespace Dafny
       else if (other.dict.Count == 0 && other.occurrencesOfNull == 0)
         return this;
 #if DAFNY_USE_SYSTEM_COLLECTIONS_IMMUTABLE
-      var r = ImmutableDictionary<T, int>.Empty.ToBuilder();
+      var r = ImmutableDictionary<T, BigInteger>.Empty.ToBuilder();
 #else
-      var r = new Dictionary<T, int>();
+      var r = new Dictionary<T, BigInteger>();
 #endif
       foreach (T t in dict.Keys) {
         if (!other.dict.ContainsKey(t)) {
@@ -591,7 +591,7 @@ namespace Dafny
           yield return default(T);
         }
         foreach (var item in dict) {
-          for (int i = 0; i < item.Value; i++) {
+          for (var i = BigInteger.Zero; i < item.Value; i++) {
             yield return item.Key;
           }
         }
