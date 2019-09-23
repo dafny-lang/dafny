@@ -155,7 +155,13 @@ public class DafnySet<T> {
 
     @Override
     public String toString() {
-        return innerSet.toString();
+        String s = "{";
+        String sep = "";
+        for (T elem : innerSet) {
+            s += sep + Helpers.toString(elem);
+            sep = ", ";
+        }
+        return s + "}";
     }
 
     public DafnyMultiset<T> asDafnyMultiset() {

@@ -188,6 +188,16 @@ public class DafnyMultiset<T> {
 
     @Override
     public String toString() {
-        return innerMap.toString();
+        String s = "multiset{";
+        String sep = "";
+        for (Map.Entry<T, BigInteger> entry : innerMap.entrySet()) {
+            String t = Helpers.toString(entry.getKey());
+            BigInteger n = entry.getValue();
+            for (BigInteger i = BigInteger.ZERO; i.compareTo(n) < 0; i = i.add(BigInteger.ONE)) {
+                s += sep + t;
+                sep = ", ";
+            }
+        }
+        return s + "}";
     }
 }

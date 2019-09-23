@@ -87,8 +87,8 @@ public class SetTest {
     public void testSetObjectMethods() {
         assertEquals(testSet, testCopy);
         assertEquals(testSet.hashCode(), testCopy.hashCode());
-        assertEquals("[1, 2, 3, 4, 5, 6, 8]", testSet.toString());
-        assertEquals("[1, 2, 3, 4, 5, 6, 8]", testCopy.toString());
+        assertEquals("{1, 2, 3, 4, 5, 6, 8}", testSet.toString());
+        assertEquals("{1, 2, 3, 4, 5, 6, 8}", testCopy.toString());
     }
 
     @Test

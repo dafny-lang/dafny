@@ -123,6 +123,14 @@ public class Helpers {
             throw new RuntimeException("Class " + s + " not found.");
         }
     }
+
+    public static <G> String toString(G g) {
+        if (g == null) {
+            return "null";
+        } else {
+            return g.toString();
+        }
+    }
 }
 
 
