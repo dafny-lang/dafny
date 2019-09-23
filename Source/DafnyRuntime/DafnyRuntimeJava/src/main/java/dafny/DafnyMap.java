@@ -184,4 +184,20 @@ public class DafnyMap<K, V> implements Map<K, V> {
     public Set<Entry<K, V>> entrySet() {
         return innerMap.entrySet();
     }
+
+    public DafnySet<K> dafnyKeySet() {
+        return new DafnySet<>(innerMap.keySet());
+    }
+
+    public DafnySet<V> dafnyValues() {
+        return new DafnySet<>(innerMap.values());
+    }
+
+    public DafnySet<Tuple2<K, V>> dafnyEntrySet() {
+        ArrayList<Tuple2<K, V>> list = new ArrayList<Tuple2<K, V>>();
+        for (Entry<K, V> entry : innerMap.entrySet()) {
+            list.add(new Tuple2<K, V>(entry.getKey(), entry.getValue()));
+        }
+        return new DafnySet<Tuple2<K, V>>(list);
+    }
 }
