@@ -79,6 +79,48 @@ method Sequences() {
   print "  prefix: ", a <= b, " ", b <= c, " ", c <= c, "\n";
   print "  proper prefix: ", a < b, " ", b < c, " ", c < c, "\n";
   print "  membership: ", 17 in a, " ", 17 in b, " ", 17 in c, "\n";
+  BoundedIntegerParameters.Test();
+}
+
+module BoundedIntegerParameters {
+  newtype short = x | 0 <= x < 0x100
+  newtype tall = x | 0 <= x < 0x1_0000
+  newtype grande = x | 0 <= x < 0x1_0000_0000
+  newtype venti = x | 0 <= x < 0x1_0000_0000_0000_0000
+  newtype little = x | -12 <= x < 12
+  newtype big = x | -12 <= x < 0x1_0000_0000_0000
+
+  method Test() {
+    Seq(5, 5, 5, 5, 5, 5);
+  }
+  
+  method Seq(u0: short, u1: tall, u2: grande, u3: venti, s0: little, s1: big)
+    requires u0 as int <= u1 as int <= u2 as int <= u3 as int < 7
+    requires 0 <= s0 as int <= s1 as int < 7
+  {
+    var data := "Bounded";
+
+    print data[..u0], " ";  // it is unfortunate how these get printed in Java
+    print data[..u1], " ";
+    print data[..u2], " ";
+    print data[..u3], " ";
+    print data[..s0], " ";
+    print data[..s1], "\n";
+    
+    print data[u0..], " ";
+    print data[u1..], " ";
+    print data[u2..], " ";
+    print data[u3..], " ";
+    print data[s0..], " ";
+    print data[s1..], "\n";
+
+    print data[u0], " ";
+    print data[u1], " ";
+    print data[u2], " ";
+    print data[u3], " ";
+    print data[s0], " ";
+    print data[s1], "\n";
+  }
 }
 
 method Strings() {

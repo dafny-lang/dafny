@@ -2406,7 +2406,7 @@ namespace Microsoft.Dafny {
       if (type is SeqType seqType) {
         TrParenExpr(source, wr, inLetExprBody);
         wr.Write(".Index(");
-        TrExpr(index, wr, inLetExprBody);
+        TrExprToBigInt(index, wr, inLetExprBody);
         wr.Write(").({0})", TypeName(seqType.Arg, wr, null));
       } else if (type is MultiSetType) {
         TrParenExpr(source, wr, inLetExprBody);
@@ -2446,7 +2446,7 @@ namespace Microsoft.Dafny {
       if (lo == null) {
         wr.Write("_dafny.NilInt");
       } else {
-        TrExpr(lo, wr, inLetExprBody);
+        TrExprToBigInt(lo, wr, inLetExprBody);
       }
 
       wr.Write(", ");
@@ -2454,10 +2454,51 @@ namespace Microsoft.Dafny {
       if (hi == null) {
         wr.Write("_dafny.NilInt");
       } else {
-        TrExpr(hi, wr, inLetExprBody);
+        TrExprToBigInt(hi, wr, inLetExprBody);
       }
 
       wr.Write(")");
+    }
+
+    void TrExprToBigInt(Expression e, TargetWriter wr, bool inLetExprBody) {
+      var nativeType = AsNativeType(e.Type);
+      if (nativeType != null) {
+        switch (nativeType.Sel) {
+          case NativeType.Selection.Byte:
+            wr.Write("_dafny.IntOfUint8(");
+            break;
+          case NativeType.Selection.UShort:
+            wr.Write("_dafny.IntOfUint16(");
+            break;
+          case NativeType.Selection.UInt:
+            wr.Write("_dafny.IntOfUint32(");
+            break;
+          case NativeType.Selection.ULong:
+            wr.Write("_dafny.IntOfUint64(");
+            break;
+          case NativeType.Selection.SByte:
+            wr.Write("_dafny.IntOfInt8(");
+            break;
+          case NativeType.Selection.Short:
+            wr.Write("_dafny.IntOfInt16(");
+            break;
+          case NativeType.Selection.Int:
+            wr.Write("_dafny.IntOfInt32(");
+            break;
+          case NativeType.Selection.Number:
+          case NativeType.Selection.Long:
+            wr.Write("_dafny.IntOfInt64(");
+            break;
+          default:
+            throw new cce.UnreachableException();  // unepxected nativeType.Selection value
+        }
+      }
+
+      TrParenExpr(e, wr, inLetExprBody);
+
+      if (nativeType != null) {
+        wr.Write(")");
+      }
     }
 
     protected override void EmitSeqConstructionExpr(SeqConstructionExpr expr, bool inLetExprBody, TargetWriter wr) {

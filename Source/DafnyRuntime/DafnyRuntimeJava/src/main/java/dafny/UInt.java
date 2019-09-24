@@ -1,5 +1,7 @@
 package dafny;
 
+import java.math.BigInteger;
+
 // Dafny bytes are default unsigned, whereas they are signed in Java, and there is no unsigned equivalent
 public class UInt {
     private int inner;
@@ -61,6 +63,10 @@ public class UInt {
 
     public long longValue(){
         return Integer.toUnsignedLong(inner);
+    }
+
+    public BigInteger asBigInteger() {
+        return BigInteger.valueOf(Integer.toUnsignedLong(inner));
     }
 
     //Invariant that other.inner is positive, so no underflow check needed
