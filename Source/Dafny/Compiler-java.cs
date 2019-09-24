@@ -578,6 +578,21 @@ namespace Microsoft.Dafny{
       }
     }
 
+    protected string CollectionTypeUnparameterizedName(CollectionType ct) {
+      if (ct is SeqType) {
+        return DafnySeqClass;
+      } else if (ct is SetType) {
+        return DafnySetClass;
+      } else if (ct is MultiSetType) {
+        return DafnyMultiSetClass;
+      } else if (ct is MapType) {
+        return DafnyMapClass;
+      } else {
+        Contract.Assert(false);  // unexpected collection type
+        throw new cce.UnreachableException();  // to please the compiler
+      }
+    }
+
     protected override string FullTypeName(UserDefinedType udt, MemberDecl /*?*/ member = null) {
       Contract.Assume(udt != null); // precondition; this ought to be declared as a Requires in the superclass
       if (udt is ArrowType) {
@@ -862,15 +877,14 @@ namespace Microsoft.Dafny{
     }
 
     protected override void EmitCollectionDisplay(CollectionType ct, Bpl.IToken tok, List<Expression> elements, bool inLetExprBody, TargetWriter wr) {
-      wr.Write($"new {TypeName(ct, wr, tok)}");
-      wr.Write("(Arrays.asList(");
+      wr.Write($"{CollectionTypeUnparameterizedName(ct)}.of(");
       string sep = "";
       foreach (Expression e in elements) {
         wr.Write(sep);
         TrExpr(e, wr, inLetExprBody);
         sep = ", ";
       }
-      wr.Write("))");
+      wr.Write(")");
     }
 
     protected override void EmitMapDisplay(MapType mt, Bpl.IToken tok, List<ExpressionPair> elements, bool inLetExprBody, TargetWriter wr) {
@@ -1029,7 +1043,7 @@ namespace Microsoft.Dafny{
 
     protected override void EmitSeqSelectRange(Expression source, Expression lo, Expression hi, bool fromArray, bool inLetExprBody, TargetWriter wr) {
       if (fromArray) {
-        wr.Write("new DafnySequence<>(Arrays.asList(Arrays.copyOfRange(");
+        wr.Write("DafnySequence.fromArrayRange(");
       }
       TrParenExpr(source, wr, inLetExprBody);
       if (fromArray) {
@@ -1048,7 +1062,7 @@ namespace Microsoft.Dafny{
           TrParenExpr(source, wr, inLetExprBody);
           wr.Write(".length");
         }
-        wr.Write(")))");
+        wr.Write(")");
       } else {
         if (lo != null && hi != null) {
           wr.Write(".subsequence(");
@@ -2317,8 +2331,13 @@ namespace Microsoft.Dafny{
       } else if (xType is BitvectorType) {
         var t = (BitvectorType)xType;
         return t.NativeType != null ? $"new {GetNativeTypeName(t.NativeType)}(0)" : "BigInteger.ZERO";
-      } else if (xType is CollectionType) {
-        return $"new {TypeName(xType, wr, tok)}()";
+      } else if (xType is CollectionType collType) {
+        string collName = CollectionTypeUnparameterizedName(collType);
+        string argNames = TypeName(collType.Arg, wr, tok);
+        if (xType is MapType mapType) {
+          argNames += "," + TypeName(mapType.Range, wr, tok);
+        }
+        return $"{collName}.<{argNames}> empty()";
       }
       var udt = (UserDefinedType)xType;
       if (udt.ResolvedParam != null) {
