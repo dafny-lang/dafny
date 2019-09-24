@@ -69,7 +69,7 @@ List.Cons(0, List.Cons(1, List.Cons(2, List.Cons(3, List.Nil))))
 0 List.Cons(1, List.Cons(2, List.Cons(3, List.Nil)))
 Stream.Next
 Stream.Next
-[Berry.Jordgubb, Berry.Smultron, Berry.Hallon]
+{Berry.Jordgubb, Berry.Smultron, Berry.Hallon}
 CoBerry.Hjortron true true false
 false
 42 q hello

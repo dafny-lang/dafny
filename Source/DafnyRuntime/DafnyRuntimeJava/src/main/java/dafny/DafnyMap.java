@@ -61,7 +61,13 @@ public class DafnyMap<K, V> implements Map<K, V> {
 
     @Override
     public String toString() {
-        return innerMap.toString();
+        String s = "map[";
+        String sep = "";
+        for (Entry<K, V> entry : innerMap.entrySet()) {
+            s += sep + Helpers.toString(entry.getKey()) + " := " + Helpers.toString(entry.getValue());
+            sep = ", ";
+        }
+        return s + "]";
     }
 
     @Override

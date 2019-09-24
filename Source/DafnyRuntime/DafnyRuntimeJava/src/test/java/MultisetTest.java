@@ -104,8 +104,8 @@ public class MultisetTest {
     public void testMSetObjectMethods(){
         assertEquals(testMSet,testCopy);
         assertEquals(testMSet.hashCode(), testCopy.hashCode());
-        assertEquals("{1=2, 2=3, 3=3, 4=1, 5=1, 7=1}",testMSet.toString());
-        assertEquals("{1=2, 2=3, 3=3, 4=1, 5=1, 7=1}",testCopy.toString());
+        assertEquals("multiset{1, 1, 2, 2, 2, 3, 3, 3, 4, 5, 7}",testMSet.toString());
+        assertEquals("multiset{1, 1, 2, 2, 2, 3, 3, 3, 4, 5, 7}",testCopy.toString());
     }
 
     @Test
