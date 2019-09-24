@@ -121,7 +121,7 @@ public class ULong {
         return Long.toUnsignedString(inner);
     }
 
-    private BigInteger asBigInteger() {
+    public BigInteger asBigInteger() {
         if (0 <= inner) {
             return BigInteger.valueOf(inner);
         } else {

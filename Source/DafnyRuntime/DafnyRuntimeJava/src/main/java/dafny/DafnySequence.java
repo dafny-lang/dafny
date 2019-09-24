@@ -77,6 +77,26 @@ public class DafnySequence<T> implements Iterable<T> {
         return seq.get(i);
     }
 
+    public T select(UByte i) {
+        return select(i.intValue());
+    }
+
+    public T select(UShort i) {
+        return select(i.intValue());
+    }
+
+    public T select(UInt i) {
+        return select(i.asBigInteger());
+    }
+
+    public T select(long i) {
+        return select(BigInteger.valueOf(i));
+    }
+
+    public T select(ULong i) {
+        return select(i.asBigInteger());
+    }
+
     public T select(BigInteger i) {
         return select(i.intValue());
     }
@@ -116,6 +136,26 @@ public class DafnySequence<T> implements Iterable<T> {
         return new DafnySequence<>(seq.subList(lo, length()));
     }
 
+    public DafnySequence<T> drop(UByte lo) {
+        return drop(lo.intValue());
+    }
+
+    public DafnySequence<T> drop(UShort lo) {
+        return drop(lo.intValue());
+    }
+
+    public DafnySequence<T> drop(UInt lo) {
+        return drop(lo.asBigInteger());
+    }
+
+    public DafnySequence<T> drop(long lo) {
+        return drop(BigInteger.valueOf(lo));
+    }
+
+    public DafnySequence<T> drop(ULong lo) {
+        return drop(lo.asBigInteger());
+    }
+
     public DafnySequence<T> drop(BigInteger lo) {
         return drop(lo.intValue());
     }
@@ -125,6 +165,26 @@ public class DafnySequence<T> implements Iterable<T> {
     public DafnySequence<T> take(int hi) {
         assert hi >= 0 && hi <= length() : "Precondition Violation";
         return new DafnySequence<>(seq.subList(0, hi));
+    }
+
+    public DafnySequence<T> take(UByte hi) {
+        return take(hi.intValue());
+    }
+
+    public DafnySequence<T> take(UShort hi) {
+        return take(hi.intValue());
+    }
+
+    public DafnySequence<T> take(UInt hi) {
+        return take(hi.asBigInteger());
+    }
+
+    public DafnySequence<T> take(long hi) {
+        return take(BigInteger.valueOf(hi));
+    }
+
+    public DafnySequence<T> take(ULong hi) {
+        return take(hi.asBigInteger());
     }
 
     public DafnySequence<T> take(BigInteger hi) {
