@@ -12,6 +12,7 @@ method Main() {
   Strings();
   Maps();
   MultiSetForming();
+  TestExplosiveUnion();
 }
 
 type IntSet = set<int>
@@ -188,4 +189,35 @@ method MultiSetForming() {
   print |m|, ": ", m[2], " ", m[23], " ", m[24], "\n";
   m := multiset(q);
   print |m|, ": ", m[2], " ", m[23], " ", m[24], "\n";
+}
+
+method ExplosiveUnion<T(0)>(a: multiset<T>, N: nat) returns (b: multiset<T>)
+  // ensures b == a^N
+{
+  if N == 0 {
+    return multiset{};
+  }
+  var n := 1;
+  b := a;
+  while n < N
+    // invariant b == a^n
+  {
+    b := b + b;  // double the multiplicities of every element in b
+    n := n + 1;
+  }
+}
+
+method TestExplosiveUnion1<T(0)>(a: multiset<T>, N: nat, t: T) {
+  var b := ExplosiveUnion(a, N);
+  print "There are ", b[t], " occurrences of ", t, " in the multiset\n";
+}
+
+class MyClass { }
+
+method TestExplosiveUnion() {
+  TestExplosiveUnion1(multiset{}, 100, 58);
+  TestExplosiveUnion1(multiset{58}, 30, 58);
+  TestExplosiveUnion1(multiset{58}, 100, 58);  // this requires BigInteger multiplicities in multisets
+  var m: multiset<MyClass?> := multiset{null};
+  TestExplosiveUnion1(m, 100, null);  // also test null, since the C# implementation does something different for null
 }
