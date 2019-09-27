@@ -2,7 +2,6 @@ newtype{:uint32iveType "uint"} uint32 = i:int | 0 <= i < 0x100000000
 
 method Basic() {
   var s:seq<uint32> := [1, 2, 3, 4];
-  print s[1];
   print "Head second:", s[1], "\n";
   var end := s[1..];
   print "Trunc first:", end[0], "\n";
@@ -46,7 +45,6 @@ method Basic() {
   }
 }
 
-/*
 method ValueEquality() {
     var m0:seq<uint32> := [1, 2, 3];
     var m1:seq<uint32> := m0[1..];
@@ -91,8 +89,6 @@ method Contains() {
         assert false;
     }
 }
-
-*/
 
 /*
 ///////////////////////////////////////////////////////////////
@@ -274,10 +270,8 @@ method Print(s: seq<char>, i: uint32, j: uint32)
 const Base64Alphabet := "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 */
 
-/*
 method Main() {
     Basic();
     ValueEquality();
     Contains();
 }
-*/

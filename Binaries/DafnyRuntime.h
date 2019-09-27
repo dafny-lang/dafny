@@ -1,3 +1,5 @@
+#pragma once
+
 #include <iostream>
 #include <string>
 #include <vector>
@@ -21,7 +23,7 @@ struct DafnySequence {
         seq = a_seq;
     }
     
-    DafnySequence(DafnySequence<T>& other) {
+    DafnySequence(const DafnySequence<T>& other) {
         seq = vector(other.seq);        
     }
     
@@ -140,10 +142,11 @@ struct DafnySequence {
     
     // TODO: slice
     
-    friend bool operator==(DafnySequence<T> s0, DafnySequence<T> s1);
+    //template <typename U> 
+    //friend bool operator==(DafnySequence<U> s0, DafnySequence<U> s1);
     
-    bool equals(DafnySequence<T> other) {
-        return *this == other;
+    bool equals(DafnySequence<T> other) {        
+        return seq == other.seq;
     }
     
     // TODO: hash
@@ -152,8 +155,10 @@ struct DafnySequence {
     vector<T> seq;
 };
 
-template <typename T>
-bool operator==(DafnySequence<T> &s0, DafnySequence<T> &s1) {
+template <typename U>
+bool operator==(DafnySequence<U> &s0, DafnySequence<U> &s1) {
+    return s0.equals(s1);
+/*
     if (s0.length() != s1.length()) {
         return false;
     }
@@ -163,4 +168,5 @@ bool operator==(DafnySequence<T> &s0, DafnySequence<T> &s1) {
         }
     }
     return true;
+*/
 }
