@@ -23,6 +23,33 @@ method Basic() {
   Test("SelfSubset", s <= s);
   Test("OtherSubset", t <= s && s <= t);
   Test("UnionIdentity", s + s == s);
+  Test("Membership", 1 in s);
+  Test("NonMembership1", !(5 in s));
+  Test("NonMembership2", !(1 in (s - {1})));
+}
+
+method SetSeq() {
+  var m1:seq<uint32> := [1];
+  var m2:seq<uint32> := [1, 2];
+  var m3:seq<uint32> := [1, 2, 3];
+  var m4:seq<uint32> := [1, 2, 3, 4];
+  var n1:seq<uint32> := [1];
+  var n2:seq<uint32> := [1, 2];
+  var n3:seq<uint32> := [1, 2, 3];
+
+  var s1:set<seq<uint32>> := { m1, m2, m3 };
+  var s2:set<seq<uint32>> := s1 - { m1 };
+
+  Test("SeqMembership1", m1 in s1);
+  Test("SeqMembership2", m2 in s1);
+  Test("SeqMembership3", m3 in s1);
+  Test("SeqNonMembership1", !(m1 in s2));
+  Test("SeqNonMembership2", !(m4 in s1));
+  Test("SeqNonMembership3", !(m4 in s2));
+
+  Test("SeqMembershipValue1", n1 in s1);
+  Test("SeqMembershipValue2", n2 in s1);
+  Test("SeqMembershipValue3", n3 in s1);
 }
 
 /*
@@ -70,10 +97,9 @@ method Contains() {
         assert false;
     }
 }
+*/
 
 method Main() {
     Basic();
-    ValueEquality();
-    Contains();
+    SetSeq();
 }
-*/
