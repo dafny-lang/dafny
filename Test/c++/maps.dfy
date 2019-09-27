@@ -19,6 +19,13 @@ method Basic() {
   Test("KeyMembership", 1 in s);
   Test("Value1", s[1] == 0);
   Test("Value2", t[2] == 1);
+
+  var u := s[1 := 42];
+  Test("Update Inequality", s != u);
+  Test("Update Immutable 1", s == s);
+  Test("Update Immutable 2", s[1] == 0);
+  Test("Update Result", u[1] == 42);
+  Test("Update Others", u[2] == 1);
 }
 
 /*

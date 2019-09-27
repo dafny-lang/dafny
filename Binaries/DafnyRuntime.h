@@ -322,6 +322,7 @@ struct DafnyMap {
         } else {
             ptr->second = v;
         }
+        return ret;
     }
     
     /*
