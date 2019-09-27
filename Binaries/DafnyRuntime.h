@@ -1,5 +1,6 @@
 #include <iostream>
 #include <string>
+#include <vector>
 
 using namespace std;
 
@@ -12,20 +13,26 @@ typedef unsigned long long uint64;
 
 template <class T>
 struct DafnySequence {
-    DafnySequence() {
-        len = 0;
-        seq = nullptr;        
+    DafnySequence() {    
     }
     
-    DafnySequence(uint64 length) {
-        len = length;
-        seq = make_shared<T[]>(new T[len]);
+    DafnySequence(uint64 len) {
+        vector<T> a_seq(len);
+        seq = a_seq;
     }
-
-    DafnySequence(DafnySequence<T>& other) {        
-        seq = make_shared<T[]>(new T[other.len]);
-        len = other.len;
-        memcpy((void*)seq.get(), (void*)other.seq.get(), len * sizeof(T));
+    
+    DafnySequence(DafnySequence<T>& other) {
+        seq = vector(other.seq);        
+    }
+    
+    DafnySequence(uint64 length, T arr[]) {
+        vector<T> a_seq(arr, arr + length);
+        seq = a_seq;
+    }
+    
+    DafnySequence(initializer_list<T> il) {
+        vector<T> a_seq(il);
+        seq = a_seq;
     }
     
     /*
@@ -45,21 +52,16 @@ struct DafnySequence {
     */
     
     static DafnySequence<T> SeqFromArray(uint64 length, T arr[]) {
-        DafnySequence<T> ret(length); 
-        for (uint64 i = 0; i < length; i++) {
-            ret.seq.get()[i] = arr[i];
-        }
+        DafnySequence<T> ret(length, arr);         
         return ret;
     }
-    
-    static DafnySequence<T> Create(uint64 length, T(*init)(uint64)) {
-        DafnySequence<T> ret(length);        
-        for (uint64 i = 0; i < length; i++) {
-            ret.seq.get()[i] = init(i);
-        }
+
+    static DafnySequence<T> Create(initializer_list<T> il) {
+        DafnySequence<T> ret(il);
         return ret;            
     }
-    
+
+    /*
     /////////////////////////////////////////////////////////////////////////////////////////////
     // WARNING: Not for ordinary use; mutates in place.  Only use with EmitCollectionDisplay
     /////////////////////////////////////////////////////////////////////////////////////////////
@@ -67,7 +69,7 @@ struct DafnySequence {
         seq[i] = t;
         return this;
     }
-    
+        */
     /*
     ~DafnySequence() {
         delete [] seq;
@@ -83,12 +85,12 @@ struct DafnySequence {
     // TODO: isPrefixOf, isPropoerPrefixOf
     
     DafnySequence<T> concatenate(DafnySequence<T> other) {
-        DafnySequence<T> ret(len + other.len);
-        for (uint64 i = 0; i < len; i++) {
+        DafnySequence<T> ret(seq.size() + other.seq.size());
+        for (uint64 i = 0; i < seq.size(); i++) {
             ret.seq[i] = seq[i];
         }            
-        for (uint64 i = 0; i < other.len; i++) {
-            ret.seq[i + len] = other.seq[i];
+        for (uint64 i = 0; i < other.seq.size(); i++) {
+            ret.seq[i + seq.size()] = other.seq[i];
         }
         return ret; 
     }
@@ -97,10 +99,10 @@ struct DafnySequence {
         return seq[i];
     }
     
-    uint64 length () { return len; }
+    uint64 length () { return seq.size(); }
     
     DafnySequence<T> update(uint64 i, T t) {
-        DafnySequence<T> ret(this);
+        DafnySequence<T> ret(*this);
         ret.seq[i] = t;
         return ret;
     }
@@ -109,7 +111,7 @@ struct DafnySequence {
     // WARNING: May break when comparing references!?
     ///////////////////////////////////////////////////////
     bool contains(T t) {
-        for (uint64 i = 0; i < len; i++) {
+        for (uint64 i = 0; i < seq.size(); i++) {
             if (seq[i] == t) {
                 return true;
             }
@@ -120,7 +122,7 @@ struct DafnySequence {
     // Returns the subsequence of values [lo..hi)
     DafnySequence<T> subsequence(uint64 lo, uint64 hi) {
         DafnySequence<T> ret(hi - lo);
-        for (uint64 i = 0; i < ret.len; i++) {
+        for (uint64 i = 0; i < ret.seq.size(); i++) {
             ret.seq[i] = seq[i + lo];
         }            
         return ret;
@@ -128,7 +130,7 @@ struct DafnySequence {
     
     // Returns the subsequence of values [lo..length())
     DafnySequence<T> drop(uint64 lo) {
-        return subsequence(lo, len);
+        return subsequence(lo, seq.size());
     }
     
     // Returns the subsequence of values [0..hi)
@@ -147,8 +149,7 @@ struct DafnySequence {
     // TODO: hash
     // TODO: toString
     
-    int len;
-    shared_ptr<T[]> seq;
+    vector<T> seq;
 };
 
 template <typename T>

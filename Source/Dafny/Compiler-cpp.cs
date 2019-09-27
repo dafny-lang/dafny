@@ -2058,7 +2058,17 @@ namespace Microsoft.Dafny {
           wr.Write("[");
           wrElements = wr.Fork();
           wr.Write("].join(\"\")");
-        } else {
+        } else
+        {
+          wr.Write("DafnySequence<{0}>::Create{{", TypeName(ct.TypeArgs[0], wr, tok, null, false));
+          for (var i = 0; i < elements.Count; i++) {
+            TrExpr(elements[i], wr, inLetExprBody);
+            if (i < elements.Count - 1)  {
+              wr.Write(",");
+            }
+          }
+          wr.Write("}");
+          /*
           wr.Write("DafnySequence<{2}>::Create({0}, [](uint64 i) -> {2} {{ return {1}; }})", 
             elements.Count, 
             DefaultValue(ct.TypeArgs[0], wr, tok, inLetExprBody),
@@ -2071,6 +2081,7 @@ namespace Microsoft.Dafny {
             TrExpr(elements[i], wr, inLetExprBody);
             wr.Write(")");
           }
+          */
         }
         
           
