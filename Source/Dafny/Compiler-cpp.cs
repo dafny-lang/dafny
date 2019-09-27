@@ -1210,6 +1210,7 @@ namespace Microsoft.Dafny {
 
     protected override void EmitStringLiteral(string str, bool isVerbatim, TextWriter wr) {
       var n = str.Length;
+      wr.Write("DafnySequence<char>(");
       if (!isVerbatim) {
         wr.Write("\"{0}\"", str);
       } else {
@@ -1230,6 +1231,7 @@ namespace Microsoft.Dafny {
         }
         wr.Write("\"");
       }
+      wr.Write(")");
     }
 
     protected override TargetWriter EmitBitvectorTruncation(BitvectorType bvType, bool surroundByUnchecked, TargetWriter wr) {
@@ -2041,11 +2043,15 @@ namespace Microsoft.Dafny {
     }
 
     protected override void EmitCollectionDisplay(CollectionType ct, Bpl.IToken tok, List<Expression> elements, bool inLetExprBody, TargetWriter wr) {
-
       if (ct is SetType) {
-        throw NotSupported("EmitCollectionDisplay/set", tok);
-        wr.Write("_dafny.Set.fromElements");
-        TrExprList(elements, wr, inLetExprBody);
+        wr.Write("DafnySet<{0}>::Create({{", TypeName(ct.TypeArgs[0], wr, tok, null, false));
+        for (var i = 0; i < elements.Count; i++) {
+          TrExpr(elements[i], wr, inLetExprBody);
+          if (i < elements.Count - 1)  {
+            wr.Write(",");
+          }
+        }
+        wr.Write("})");
       } else if (ct is MultiSetType) {
         throw NotSupported("EmitCollectionDisplay/multiset", tok);
         wr.Write("_dafny.MultiSet.fromElements");
@@ -2070,20 +2076,6 @@ namespace Microsoft.Dafny {
             }
           }
           wr.Write("})");
-          /*
-          wr.Write("DafnySequence<{2}>::Create({0}, [](uint64 i) -> {2} {{ return {1}; }})", 
-            elements.Count, 
-            DefaultValue(ct.TypeArgs[0], wr, tok, inLetExprBody),
-            TypeName(ct.TypeArgs[0], wr, tok, null, false));
-          //wrElements = wr.Fork();
-          //wr.Write(")");
-
-          for (var i = 0; i < elements.Count; i++) {
-            wr.Write(".stuff({0}, ", i);
-            TrExpr(elements[i], wr, inLetExprBody);
-            wr.Write(")");
-          }
-          */
         }
         
           
@@ -2115,16 +2107,22 @@ namespace Microsoft.Dafny {
     }
 
     protected override void EmitCollectionBuilder_New(CollectionType ct, Bpl.IToken tok, TargetWriter wr) {
-      throw NotSupported("EmitCollectionBuilder_New", tok);
+      
       if (ct is SetType) {
-        wr.Write("new _dafny.Set()");
-      } else if (ct is MultiSetType) {
+        wr.Write("DafnySet<{0}>()", TypeName(ct.TypeArgs[0], wr, tok, null, false));
+      } else {
+        throw NotSupported("EmitCollectionBuilder_New/non_set", tok);
+      }
+
+      /*
+      else if (ct is MultiSetType) {
         wr.Write("new _dafny.MultiSet()");
       } else if (ct is MapType) {
         wr.Write("new _dafny.Map()");
       } else {
         Contract.Assume(false);  // unepxected collection type
       }
+      */
     }
 
     protected override void EmitCollectionBuilder_Add(CollectionType ct, string collName, Expression elmt, bool inLetExprBody, TargetWriter wr) {

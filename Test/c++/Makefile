@@ -8,7 +8,7 @@ DAFNY_RUNTIME_CPP=$(DAFNY_RUNTIME_DIR)/DafnyRuntime.h
 DAFNY_DEPS=$(DANFY) ../../Binaries/Dafny.exe ../../Binaries/DafnyPipeline.dll $(DAFNY_RUNTIME_CPP)
 TEST_LOG=tests.log
 
-CXXFLAGS += -std=c++17 -I$(DAFNY_RUNTIME_DIR)
+CXXFLAGS += -std=c++11 -I$(DAFNY_RUNTIME_DIR)
 
 .SECONDARY: $(CPPS)
 
@@ -21,7 +21,7 @@ vars:
 	echo $(EXECS)
 
 %.cpp: %.dfy $(DAFNY) $(DAFNY_DEPS)
-	$(DAFNY) /noVerify /compile:0 /spillTargetCode:3 /compileTarget:cpp $<
+	$(DAFNY) /compile:0 /spillTargetCode:3 /compileTarget:cpp $<
 
 %.cs: %.dfy $(DAFNY) $(DAFNY_DEPS)
 	$(DAFNY) /noVerify /compile:0 /spillTargetCode:3 /compileTarget:cs $<

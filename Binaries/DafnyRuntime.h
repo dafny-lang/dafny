@@ -14,6 +14,13 @@ class _dafny {
 
 typedef unsigned long long uint64;
 
+// using boost::hash_combine
+template <class T>
+inline void hash_combine(std::size_t& seed, T const& v)
+{
+    seed ^= std::hash<T>()(v) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+}
+
 template <class T>
 struct DafnySequence {
     DafnySequence() {    
@@ -24,8 +31,12 @@ struct DafnySequence {
         seq = a_seq;
     }
     
+    DafnySequence<char>(string s) {
+        seq = vector<char>(s.begin(), s.end());        
+    }
+    
     DafnySequence(const DafnySequence<T>& other) {
-        seq = vector(other.seq);        
+        seq = vector<T>(other.seq);        
     }
     
     DafnySequence(shared_ptr<vector<T>> arr) {
@@ -103,20 +114,38 @@ struct DafnySequence {
     
     // TODO: slice
 
-    bool equals(DafnySequence<T> other) {        
+    bool equals(const DafnySequence<T> other) const {        
         return seq == other.seq;
     }
     
-    // TODO: hash
+    
     // TODO: toString
     
     vector<T> seq;
 };
 
 template <typename U>
-bool operator==(DafnySequence<U> &s0, DafnySequence<U> &s1) {
+bool operator==(const DafnySequence<U> &s0, const DafnySequence<U> &s1) {
     return s0.equals(s1);
 }
+
+inline ostream& operator<<(ostream& out, const DafnySequence<char>& val){
+    for (auto const& c:val.seq) {
+        out << c;
+    }    
+    return out;
+}
+
+template <typename U>
+struct hash<DafnySequence<U>> {
+    size_t operator()(const DafnySequence<U>& s) const {
+        size_t seed = 0;
+        for (size_t i = 0; i < s.seq.size(); i++) {      
+            hash_combine(seed, s.seq[i]);
+        }
+        return seed; 
+    }
+};
 
 
 
@@ -126,7 +155,7 @@ struct DafnySet {
     }
     
     DafnySet(const DafnySet<T>& other) {
-        set = unordered_set(other.set);        
+        set = unordered_set<T>(other.set);        
     }
 
     DafnySet(initializer_list<T> il) {
@@ -143,7 +172,7 @@ struct DafnySet {
         return DafnySet();
     }
     
-    bool isSubsetOf(const DafnySet<T>& other) {
+    bool IsSubsetOf(const DafnySet<T>& other) {
         if (set.size() > other.set.size()) {
             return false;
         }
@@ -155,11 +184,11 @@ struct DafnySet {
         return true;
     }
 
-    bool isProperSubsetOf(const DafnySet<T>& other) {
-        return isSubsetOf(other) && (size() < other.size());
+    bool IsProperSubsetOf(const DafnySet<T>& other) {
+        return IsSubsetOf(other) && (size() < other.size());
      }
 
-    bool contains(T t) {
+    bool contains(T t) const {
         return set.find(t) != set.end();
     }
     
@@ -172,20 +201,26 @@ struct DafnySet {
         return true;
     }
     
-    DafnySet<T> set_union(const DafnySet<T>& other) {
+    DafnySet<T> Union(const DafnySet<T>& other) {
         DafnySet<T> ret = DafnySet(other);
-        ret.set.insert(set.first, set.last);
+        ret.set.insert(set.begin(), set.end());
         return ret;            
     }
     
     // Returns a DafnySet containing elements only found in the current DafnySet
-    DafnySet<T> difference(const DafnySet<T>& other) {
-        DafnySet<T> ret = DafnySet(*this);
-        ret.set.remove(other.set.first, other.set.last);
+    DafnySet<T> Difference(const DafnySet<T>& other) {
+        DafnySet<T> ret;
+        for (auto const& elt:set) {
+            if (!other.contains(elt)) {
+                ret.set.insert(elt);
+            }
+        }
+        // This attempts to sort the elements (which then requires defining an ordering on DafnySeq, DafnySet, etc.)
+        //set_difference(set.begin(), set.end(), other.set.begin(), other.set.end(), inserter(ret.set, ret.set.end()));
         return ret;            
     }
     
-    DafnySet<T> intersection(const DafnySet<T>& other) {
+    DafnySet<T> Intersection(const DafnySet<T>& other) {
         DafnySet<T> ret;
         for (auto const& elt:set) {
             if (other.set.find(elt) != other.set.end()) {
@@ -195,13 +230,13 @@ struct DafnySet {
         return ret;            
     }
 
-    uint64 size () { return set.size(); }
+    uint64 size () const { return set.size(); }
     
-    bool isEmpty() { return set.empty(); }
+    bool isEmpty() const { return set.empty(); }
     
     
     bool equals(DafnySet<T> other) {        
-        return isSubsetOf(other) && other.isSubsetOf(*this);
+        return IsSubsetOf(other) && other.IsSubsetOf(*this);
     }
     
     // TODO: hash
@@ -214,3 +249,21 @@ template <typename U>
 bool operator==(DafnySet<U> &s0, DafnySet<U> &s1) {
     return s0.equals(s1);
 }
+
+inline ostream& operator<<(ostream& out, const DafnySet<unsigned int>& val){
+    for (auto const& c:val.set) {
+        out << c;
+    }    
+    return out;
+}
+
+template <typename U>
+struct hash<DafnySet<U>> {
+    size_t operator()(const DafnySet<U>& s) const {
+        size_t seed = 0;
+        for (auto const& elt:s.set) {      
+            hash_combine(seed, elt);
+        }
+        return seed; 
+    }
+};

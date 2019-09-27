@@ -6,7 +6,7 @@ method Test(name:string, b:bool)
   if b {
     print name, ": This is expected\n";
   } else {
-    print name, ": This is unexpected\n";
+    print name, ": This is *** UNEXPECTED *** !!!!\n";
   }
 }
 
