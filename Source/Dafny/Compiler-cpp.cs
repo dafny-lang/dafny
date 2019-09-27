@@ -1472,10 +1472,10 @@ namespace Microsoft.Dafny {
         case SpecialField.ID.IsNat:
           throw NotSupported("IsNat");
         case SpecialField.ID.Keys:
-          compiledName = "Keys()";
+          compiledName = "dafnyKeySet()";
           break;
         case SpecialField.ID.Values:
-          compiledName = "Values()";
+          compiledName = "dafnyValues()";
           break;
         case SpecialField.ID.Items:
           compiledName = "Items()";
@@ -1508,6 +1508,8 @@ namespace Microsoft.Dafny {
         GetSpecialFieldInfo(sf.SpecialId, sf.IdParam, out compiledName, out preStr, out postStr);
         if (sf is ConstantField && !member.IsStatic && compiledName.Length != 0) {
           wr.Write("->{0}", compiledName);
+        } else if (sf.SpecialId == SpecialField.ID.Keys || sf.SpecialId == SpecialField.ID.Values) {
+          wr.Write(".{0}", compiledName);
         } else if (compiledName.Length != 0) {
           wr.Write("::{0}", compiledName);
         } else {

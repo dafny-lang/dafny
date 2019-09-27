@@ -26,6 +26,14 @@ method Basic() {
   Test("Update Immutable 2", s[1] == 0);
   Test("Update Result", u[1] == 42);
   Test("Update Others", u[2] == 1);
+
+  var s_keys := s.Keys;
+  var t_keys := t.Keys;
+  Test("Keys equal", s_keys == t_keys);
+  Test("Keys membership 1", 1 in s_keys);
+  Test("Keys membership 2", 2 in s_keys);
+  Test("Keys membership 3", 3 in s_keys);
+  Test("Keys membership 4", 4 in s_keys);
 }
 
 /*
