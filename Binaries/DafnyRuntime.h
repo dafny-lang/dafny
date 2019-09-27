@@ -25,8 +25,8 @@ struct DafnySequence {
         seq = vector(other.seq);        
     }
     
-    DafnySequence(uint64 length, T arr[]) {
-        vector<T> a_seq(arr, arr + length);
+    DafnySequence(shared_ptr<vector<T>> arr) {
+        vector<T> a_seq(*arr);
         seq = a_seq;
     }
     
@@ -51,8 +51,8 @@ struct DafnySequence {
     }
     */
     
-    static DafnySequence<T> SeqFromArray(uint64 length, T arr[]) {
-        DafnySequence<T> ret(length, arr);         
+    static DafnySequence<T> SeqFromArray(shared_ptr<vector<T>> arr) {
+        DafnySequence<T> ret(arr);         
         return ret;
     }
 

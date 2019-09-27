@@ -753,7 +753,7 @@ namespace Microsoft.Dafny {
         TypeName_SplitArrayName(elType, wr, tok, out typeNameSansBrackets, out brackets);
         //return typeNameSansBrackets + TypeNameArrayBrackets(at.Dims) + brackets;
         if (at.Dims == 1) {
-          return typeNameSansBrackets + "*";
+          return "shared_ptr<vector<" + typeNameSansBrackets + ">>";
         } else {
           throw NotSupported("Multi-dimensional arrays");
         }
@@ -1137,9 +1137,9 @@ namespace Microsoft.Dafny {
       // TODO: Handle initValue
       if (dimensions.Count == 1) {
         // handle the common case of 1-dimensional arrays separately
-        wr.Write("new {0}[", TypeName(elmtType, wr, tok));
+        wr.Write("make_shared<vector<{0}>>(", TypeName(elmtType, wr, tok));
         TrExpr(dimensions[0], wr, false);
-        wr.Write("]");
+        wr.Write(")");
       } else {
         throw NotSupported("Multi-dimensional arrays", tok);
         // the general case
@@ -1520,7 +1520,7 @@ namespace Microsoft.Dafny {
     protected override TargetWriter EmitArraySelect(List<string> indices, Type elmtType, TargetWriter wr) {
       var w = wr.Fork();
       foreach (var index in indices) {
-        wr.Write("[{0}]", index);
+        wr.Write("->at({0})", index);
       }   
       return w;
     }
@@ -1529,9 +1529,9 @@ namespace Microsoft.Dafny {
       Contract.Assert(indices != null && 1 <= indices.Count);  // follows from precondition
       var w = wr.Fork();
       foreach (var index in indices) {
-        wr.Write("[");
+        wr.Write("->at(");
         TrExpr(index, wr, inLetExprBody);
-        wr.Write("]");
+        wr.Write(")");
       }
       return w;
     }
@@ -1574,9 +1574,11 @@ namespace Microsoft.Dafny {
 
     protected override void EmitSeqSelectRange(Expression source, Expression/*?*/ lo, Expression/*?*/ hi, bool fromArray, bool inLetExprBody, TargetWriter wr) {
       if (fromArray) {
-        wr.Write("DafnySequence<{0}>::SeqFromArray", TypeName(source.Type, wr, source.tok, null, true));
+        wr.Write("DafnySequence<{0}>::SeqFromArray", TypeName(source.Type.TypeArgs[0], wr, source.tok, null, true));
+        //wr.Write("DafnySequence<{0}>::SeqFromArray", IdName(source.GetType().AsArrayType.TypeArgs[0]));
       }
       TrParenExpr(source, wr, inLetExprBody);
+
       if (hi != null) {
         TrParenExpr(".take", hi, wr, inLetExprBody);
       }
@@ -2060,14 +2062,14 @@ namespace Microsoft.Dafny {
           wr.Write("].join(\"\")");
         } else
         {
-          wr.Write("DafnySequence<{0}>::Create{{", TypeName(ct.TypeArgs[0], wr, tok, null, false));
+          wr.Write("DafnySequence<{0}>::Create({{", TypeName(ct.TypeArgs[0], wr, tok, null, false));
           for (var i = 0; i < elements.Count; i++) {
             TrExpr(elements[i], wr, inLetExprBody);
             if (i < elements.Count - 1)  {
               wr.Write(",");
             }
           }
-          wr.Write("}");
+          wr.Write("})");
           /*
           wr.Write("DafnySequence<{2}>::Create({0}, [](uint64 i) -> {2} {{ return {1}; }})", 
             elements.Count, 
