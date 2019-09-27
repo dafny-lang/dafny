@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 #include <unordered_set>
+#include <unordered_map>
 
 using namespace std;
 
@@ -14,6 +15,10 @@ class _dafny {
 
 typedef unsigned long long uint64;
 
+/*********************************************************
+ *  UTILITIES                                            *
+ *********************************************************/
+ 
 // using boost::hash_combine
 template <class T>
 inline void hash_combine(std::size_t& seed, T const& v)
@@ -21,6 +26,9 @@ inline void hash_combine(std::size_t& seed, T const& v)
     seed ^= std::hash<T>()(v) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
 }
 
+/*********************************************************
+ *  SEQUENCES                                            *
+ *********************************************************/
 template <class T>
 struct DafnySequence {
     DafnySequence() {    
@@ -147,7 +155,9 @@ struct hash<DafnySequence<U>> {
     }
 };
 
-
+/*********************************************************
+ *  SETS                                                 *
+ *********************************************************/
 
 template <class T>
 struct DafnySet {
@@ -238,8 +248,7 @@ struct DafnySet {
     bool equals(DafnySet<T> other) {        
         return IsSubsetOf(other) && other.IsSubsetOf(*this);
     }
-    
-    // TODO: hash
+
     // TODO: toString
     
     unordered_set<T> set;
@@ -250,7 +259,8 @@ bool operator==(DafnySet<U> &s0, DafnySet<U> &s1) {
     return s0.equals(s1);
 }
 
-inline ostream& operator<<(ostream& out, const DafnySet<unsigned int>& val){
+template <typename U>
+inline ostream& operator<<(ostream& out, const DafnySet<U>& val){
     for (auto const& c:val.set) {
         out << c;
     }    
@@ -267,3 +277,155 @@ struct hash<DafnySet<U>> {
         return seed; 
     }
 };
+
+
+/*********************************************************
+ *  MAPS                                                 *
+ *********************************************************/
+
+template <class K, class V>
+struct DafnyMap {
+    DafnyMap() {    
+    }
+    
+    DafnyMap(const DafnyMap<K,V>& other) {
+        map = unordered_map<K,V>(other.map);        
+    }
+
+    DafnyMap(initializer_list<pair<const K,V>> il) {
+        unordered_map<K,V> a_map(il);
+        map = a_map;
+    }
+       
+    static DafnyMap<K,V> Create(initializer_list<pair<const K,V>> il) {
+        DafnyMap<K,V> ret(il);
+        return ret;            
+    }
+    
+    static DafnyMap<K,V> empty() {
+        return DafnyMap();
+    }
+    
+    bool contains(K t) const {
+        return map.find(t) != map.end();
+    }
+    
+    V get(K key) const {
+        return map.find(key)->second;
+    }
+    
+    DafnyMap<K, V> update(K k, V v) {
+        DafnyMap<K,V> ret(*this);
+        auto ptr = ret.map.find(k);
+        if (ptr == ret.map.end()) {
+            ret.map.emplace(k, v);
+        } else {
+            ptr->second = v;
+        }
+    }
+    
+    /*
+    bool disjoint(const DafnyMap<K,V>& other) {
+        for (auto const& elt:map) {
+            if (other.find(elt) != other.map.end()) {
+                return false;
+            }
+        }
+        return true;
+    }
+    
+    DafnyMap<K,V> Union(const DafnyMap<K,V>& other) {
+        DafnyMap<K,V> ret = DafnyMap(other);
+        ret.map.insert(map.begin(), map.end());
+        return ret;            
+    }
+    
+    
+    // Returns a DafnyMap containing elements only found in the current DafnyMap
+    DafnyMap<K,V> Difference(const DafnyMap<K,V>& other) {
+        DafnyMap<K,V> ret;
+        for (auto const& elt:map) {
+            if (!other.contains(elt)) {
+                ret.map.insert(elt);
+            }
+        }
+        // K,Vhis attempts to sort the elements (which then requires defining an ordering on DafnySeq, DafnyMap, etc.)
+        //map_difference(map.begin(), map.end(), other.map.begin(), other.map.end(), inserter(ret.map, ret.map.end()));
+        return ret;            
+    }
+    
+    DafnyMap<K,V> Intersection(const DafnyMap<K,V>& other) {
+        DafnyMap<K,V> ret;
+        for (auto const& elt:map) {
+            if (other.map.find(elt) != other.map.end()) {
+                ret.map.insert(elt);                
+            }
+        }
+        return ret;            
+    }
+    */
+
+    uint64 size () const { return map.size(); }
+    
+    bool isEmpty() const { return map.empty(); }
+    
+    DafnySet<K> dafnyKeySet() {
+        DafnySet<K> ret;
+        for (const auto& kv : map) {
+            ret.set.insert(kv.first);
+        }
+        return ret;
+    }
+    
+    DafnySet<V> dafnyValues() {
+        DafnySet<V> ret;
+        for (const auto& kv : map) {
+            ret.set.insert(kv.second);
+        }
+        return ret;
+    }
+    
+    
+    bool equals(DafnyMap<K,V> other) {
+        if (map.size() != other.size()) { return false; }
+        
+        for (const auto& kv : map) {
+            auto ptr = other.map.find(kv.first);
+            if (ptr == other.map.end()) { return false; }
+            if (ptr->second != kv.second) { return false; }
+        }        
+        return true;
+    }
+    
+    // TODO: hash
+    // TODO: toString
+    
+    unordered_map<K,V> map;
+};
+
+
+template <typename T, typename U>
+bool operator==(DafnyMap<T,U> &s0, DafnyMap<T,U> &s1) {
+    return s0.equals(s1);
+}
+
+template <typename T, typename U>
+inline ostream& operator<<(ostream& out, const DafnyMap<T,U>& val){
+    for (auto const& kv:val.map) {
+        out << "(" << kv.first << " -> " << kv.second << ")";
+    }    
+    return out;
+}
+
+template <typename T, typename U>
+struct hash<DafnyMap<T,U>> {
+    size_t operator()(const DafnyMap<T,U>& s) const {
+        size_t seed = 0;
+        for (auto const& kv:s.map) {      
+            hash_combine(seed, kv.first);
+            hash_combine(seed, kv.second);
+        }
+        return seed; 
+    }
+};
+

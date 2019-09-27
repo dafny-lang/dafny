@@ -800,7 +800,7 @@ namespace Microsoft.Dafny {
         if (ComplicatedTypeParameterForCompilation(domType) || ComplicatedTypeParameterForCompilation(ranType)) {
           Error(tok, "compilation of map<TRAIT, _> or map<_, TRAIT> is not supported; consider introducing a ghost", wr);
         }
-        return "_dafny.Map";
+        return DafnyMapClass + "<" + TypeName(domType, wr, tok) + "," + TypeName(ranType, wr, tok) + ">";
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected type
       }
@@ -2091,19 +2091,20 @@ namespace Microsoft.Dafny {
     }
 
     protected override void EmitMapDisplay(MapType mt, Bpl.IToken tok, List<ExpressionPair> elements, bool inLetExprBody, TargetWriter wr) {
-      throw NotSupported("EmitMapDisplay", tok);
-      wr.Write("_dafny.Map.of(");
+      wr.Write("DafnyMap<{0},{1}>::Create({{", 
+               TypeName(mt.TypeArgs[0], wr, tok, null, false),
+               TypeName(mt.TypeArgs[1], wr, tok, null, false));
       string sep = "";
       foreach (ExpressionPair p in elements) {
         wr.Write(sep);
-        wr.Write("[");
+        wr.Write("{");
         TrExpr(p.A, wr, inLetExprBody);
         wr.Write(",");
         TrExpr(p.B, wr, inLetExprBody);
-        wr.Write("]");
+        wr.Write("}");
         sep = ", ";
       }
-      wr.Write(")");
+      wr.Write("})");
     }
 
     protected override void EmitCollectionBuilder_New(CollectionType ct, Bpl.IToken tok, TargetWriter wr) {
