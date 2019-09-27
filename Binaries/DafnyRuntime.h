@@ -3,6 +3,7 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <unordered_set>
 
 using namespace std;
 
@@ -37,22 +38,6 @@ struct DafnySequence {
         seq = a_seq;
     }
     
-    /*
-    // Added this overload to avoid error:
-    //  copy assignment operator of 'DafnySequence<unsigned int>' is implicitly deleted 
-    //   because field 'seq' has a deleted copy assignment operator
-    DafnySequence& operator=(const DafnySequence<T>& other) {
-        if (&other == this) {
-            return *this;
-        }
-        if (len != other.len) {  // Avoid our existing allocation if we can
-            seq.reset(new T[other.len]);
-        }
-        copy(&other.seq[0], &other.seq[0] + min(len, other.len), &seq[0]);
-        return *this;
-    }
-    */
-    
     static DafnySequence<T> SeqFromArray(shared_ptr<vector<T>> arr) {
         DafnySequence<T> ret(arr);         
         return ret;
@@ -62,27 +47,6 @@ struct DafnySequence {
         DafnySequence<T> ret(il);
         return ret;            
     }
-
-    /*
-    /////////////////////////////////////////////////////////////////////////////////////////////
-    // WARNING: Not for ordinary use; mutates in place.  Only use with EmitCollectionDisplay
-    /////////////////////////////////////////////////////////////////////////////////////////////
-    DafnySequence<T> stuff(uint64 i, T t) {
-        seq[i] = t;
-        return this;
-    }
-        */
-    /*
-    ~DafnySequence() {
-        delete [] seq;
-    }
-    */
-    
-    /*
-    static DafnySequence<char> asString(string s) {
-        //return mk_shared_ptr DafnySequence
-    }
-    */
     
     // TODO: isPrefixOf, isPropoerPrefixOf
     
@@ -109,9 +73,6 @@ struct DafnySequence {
         return ret;
     }
     
-    ///////////////////////////////////////////////////////
-    // WARNING: May break when comparing references!?
-    ///////////////////////////////////////////////////////
     bool contains(T t) {
         for (uint64 i = 0; i < seq.size(); i++) {
             if (seq[i] == t) {
@@ -141,10 +102,7 @@ struct DafnySequence {
     }
     
     // TODO: slice
-    
-    //template <typename U> 
-    //friend bool operator==(DafnySequence<U> s0, DafnySequence<U> s1);
-    
+
     bool equals(DafnySequence<T> other) {        
         return seq == other.seq;
     }
@@ -158,15 +116,101 @@ struct DafnySequence {
 template <typename U>
 bool operator==(DafnySequence<U> &s0, DafnySequence<U> &s1) {
     return s0.equals(s1);
-/*
-    if (s0.length() != s1.length()) {
-        return false;
+}
+
+
+
+template <class T>
+struct DafnySet {
+    DafnySet() {    
     }
-    for (uint64 i = 0; i < s0.length(); i++) {
-        if (s0.select(i) != s1.select(i)) {
+    
+    DafnySet(const DafnySet<T>& other) {
+        set = unordered_set(other.set);        
+    }
+
+    DafnySet(initializer_list<T> il) {
+        unordered_set<T> a_set(il);
+        set = a_set;
+    }
+       
+    static DafnySet<T> Create(initializer_list<T> il) {
+        DafnySet<T> ret(il);
+        return ret;            
+    }
+    
+    static DafnySet<T> empty() {
+        return DafnySet();
+    }
+    
+    bool isSubsetOf(const DafnySet<T>& other) {
+        if (set.size() > other.set.size()) {
             return false;
         }
+        for (const auto& elt:set) {
+            if (other.set.find(elt) == other.set.end()) {
+                return false;
+             }
+        }
+        return true;
     }
-    return true;
-*/
+
+    bool isProperSubsetOf(const DafnySet<T>& other) {
+        return isSubsetOf(other) && (size() < other.size());
+     }
+
+    bool contains(T t) {
+        return set.find(t) != set.end();
+    }
+    
+    bool disjoint(const DafnySet<T>& other) {
+        for (auto const& elt:set) {
+            if (other.find(elt) != other.set.end()) {
+                return false;
+            }
+        }
+        return true;
+    }
+    
+    DafnySet<T> set_union(const DafnySet<T>& other) {
+        DafnySet<T> ret = DafnySet(other);
+        ret.set.insert(set.first, set.last);
+        return ret;            
+    }
+    
+    // Returns a DafnySet containing elements only found in the current DafnySet
+    DafnySet<T> difference(const DafnySet<T>& other) {
+        DafnySet<T> ret = DafnySet(*this);
+        ret.set.remove(other.set.first, other.set.last);
+        return ret;            
+    }
+    
+    DafnySet<T> intersection(const DafnySet<T>& other) {
+        DafnySet<T> ret;
+        for (auto const& elt:set) {
+            if (other.set.find(elt) != other.set.end()) {
+                ret.set.insert(elt);                
+            }
+        }
+        return ret;            
+    }
+
+    uint64 size () { return set.size(); }
+    
+    bool isEmpty() { return set.empty(); }
+    
+    
+    bool equals(DafnySet<T> other) {        
+        return isSubsetOf(other) && other.isSubsetOf(*this);
+    }
+    
+    // TODO: hash
+    // TODO: toString
+    
+    unordered_set<T> set;
+};
+
+template <typename U>
+bool operator==(DafnySet<U> &s0, DafnySet<U> &s1) {
+    return s0.equals(s1);
 }
