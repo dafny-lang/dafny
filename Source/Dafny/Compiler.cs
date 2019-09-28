@@ -497,6 +497,7 @@ namespace Microsoft.Dafny {
     protected virtual void EmitIntegerRange(Type type, out TargetWriter wLo, out TargetWriter wHi, TargetWriter wr) {
       if (AsNativeType(type) != null) {
         wr.Write("{0}.IntegerRange(", IdProtect(type.AsNewtype.FullCompileName));
+        //wr.Write("IntegerRange(");
       } else {
         wr.Write("{0}.IntegerRange(", GetHelperModuleName());
       }

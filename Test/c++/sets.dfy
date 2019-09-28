@@ -52,6 +52,23 @@ method SetSeq() {
   Test("SeqMembershipValue3", n3 in s1);
 }
 
+method SetComprehension(s:set<uint32>)
+  requires forall i :: 0 <= i < 10 ==> i in s;
+  requires |s| == 10;
+{
+  /*
+  var s:set<uint32> := set x:uint32 | 0 <= x < 10;
+  Test("SetComprehensionMembership1", 1 in s);
+  Test("SetComprehensionMembership2", 2 in s);
+  Test("SetComprehensionMembership9", 9 in s);
+  Test("SetComprehensionNonMembership1", !(11 in s));
+  */
+
+  var t:set<uint32> := set y:uint32 | y in s;
+  Test("SetComprehensionInEquality", t == s);
+  Test("SetComprehensionInMembership", 0 in t);
+}
+
 /*
 method ValueEquality() {
     var m0:seq<uint32> := [1, 2, 3];
@@ -102,4 +119,6 @@ method Contains() {
 method Main() {
     Basic();
     SetSeq();
+    var s := { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
+    SetComprehension(s);
 }

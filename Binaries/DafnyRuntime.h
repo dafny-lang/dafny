@@ -26,6 +26,34 @@ inline void hash_combine(std::size_t& seed, T const& v)
     seed ^= std::hash<T>()(v) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
 }
 
+// From https://stackoverflow.com/a/7185723
+class IntegerRange {
+ public:
+   class iterator {
+      friend class IntegerRange;
+    public:
+      long int operator *() const { return i_; }
+      const iterator &operator ++() { ++i_; return *this; }
+      iterator operator ++(int) { iterator copy(*this); ++i_; return copy; }
+
+      bool operator ==(const iterator &other) const { return i_ == other.i_; }
+      bool operator !=(const iterator &other) const { return i_ != other.i_; }
+
+    protected:
+      iterator(long int start) : i_ (start) { }
+
+    private:
+      unsigned long i_;
+   };
+
+   iterator begin() const { return begin_; }
+   iterator end() const { return end_; }
+   IntegerRange(long int  begin, long int end) : begin_(begin), end_(end) {}
+private:
+   iterator begin_;
+   iterator end_;
+};
+
 /*********************************************************
  *  SEQUENCES                                            *
  *********************************************************/
@@ -238,6 +266,10 @@ struct DafnySet {
             }
         }
         return ret;            
+    }
+    
+    unordered_set<T> Elements() {
+        return set;
     }
 
     uint64 size () const { return set.size(); }

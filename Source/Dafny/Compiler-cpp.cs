@@ -1105,16 +1105,13 @@ namespace Microsoft.Dafny {
     protected override BlockTargetWriter CreateForeachLoop(string boundVar, Type/*?*/ boundVarType, out TargetWriter collectionWriter, TargetWriter wr, string/*?*/ altBoundVarName = null, Type/*?*/ altVarType = null, Bpl.IToken/*?*/ tok = null) {
       wr.Write("for ({0} {1} : ", boundVarType, boundVar);
       collectionWriter = wr.Fork();
-      return wr.NewBlock(")");
-      /*
       if (altBoundVarName == null) {
         return wr.NewBlock(")");
       } else if (altVarType == null) {
         return wr.NewBlockWithPrefix(")", "{0} = {1};", altBoundVarName, boundVar);
       } else {
-        return wr.NewBlockWithPrefix(")", "let {0} = {1};", altBoundVarName, boundVar);
+        return wr.NewBlockWithPrefix(")", "auto {0} = {1};", altBoundVarName, boundVar);
       }
-      */
     }
 
     // ----- Expressions -------------------------------------------------------------
@@ -1658,8 +1655,8 @@ namespace Microsoft.Dafny {
     }
 
     protected override BlockTargetWriter CreateIIFE0(Type resultType, Bpl.IToken resultTok, TargetWriter wr) {
-      throw NotSupported("CreateIIFE0", resultTok);
-      var w = wr.NewBigExprBlock("function ()", "()");
+      //throw NotSupported("CreateIIFE0", resultTok);
+      var w = wr.NewBigExprBlock("[&] ", " ()");
       return w;
     }
 
@@ -2129,9 +2126,11 @@ namespace Microsoft.Dafny {
     }
 
     protected override void EmitCollectionBuilder_Add(CollectionType ct, string collName, Expression elmt, bool inLetExprBody, TargetWriter wr) {
-      throw NotSupported("EmitCollectionBuilder_Add");
       Contract.Assume(ct is SetType || ct is MultiSetType);  // follows from precondition
-      wr.Write("{0}.add(", collName);
+      if (ct is MultiSetType) {
+        throw NotSupported("EmitCollectionBuilder_Add/MultiSetType");
+      }
+      wr.Write("{0}.set.emplace(", collName);
       TrExpr(elmt, wr, inLetExprBody);
       wr.WriteLine(");");
     }
