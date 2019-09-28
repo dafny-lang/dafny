@@ -1059,14 +1059,17 @@ namespace Microsoft.Dafny {
     }
 
     protected override TargetWriter CreateLabeledCode(string label, TargetWriter wr) {
-      return wr.NewNamedBlock("L{0}:", label);
+      var w = wr.ForkSection();
+      wr.IndentLess();
+      wr.WriteLine("after_{0}: ;", label);
+      return w;
     }
 
     protected override void EmitBreak(string/*?*/ label, TargetWriter wr) {
       if (label == null) {
         wr.WriteLine("break;");
       } else {
-        wr.WriteLine("goto L{0};", label);
+        wr.WriteLine("goto after_{0};", label);
       }
     }
 

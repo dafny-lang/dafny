@@ -69,6 +69,15 @@ method SetComprehension(s:set<uint32>)
   Test("SetComprehensionInMembership", 0 in t);
 }
 
+method LetSuchThat() {
+    var s:set<uint32> := { 0, 1, 2, 3 };
+    var e:uint32 :| e in s;
+
+    print e, "\n";
+    Test("LetSuchThatMembership", e in s);
+    Test("LetSuchThatValue", e == 0 || e == 1 || e == 2 || e == 3);
+}
+
 /*
 method ValueEquality() {
     var m0:seq<uint32> := [1, 2, 3];
@@ -121,4 +130,5 @@ method Main() {
     SetSeq();
     var s := { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
     SetComprehension(s);
+    LetSuchThat();
 }
