@@ -362,7 +362,10 @@ namespace Microsoft.Dafny {
       
       if (nt.NativeType != null) {
         if (nt.NativeType.Name != nt.Name) {
-          wr.WriteLine("typedef {0} {1};", nt.NativeType.Name, nt.Name);
+          string nt_name_def, literalSuffice_def;
+          bool needsCastAfterArithmetic_def;
+          GetNativeInfo(nt.NativeType.Sel, out nt_name_def, out literalSuffice_def, out needsCastAfterArithmetic_def);
+          wr.WriteLine("typedef {0} {1};", nt_name_def, nt.Name);
         }
         /*
         var wIntegerRangeBody = w.NewBlock("static *IntegerRange(lo, hi)");
@@ -386,7 +389,11 @@ namespace Microsoft.Dafny {
         }
         DeclareField(className, "Witness", true, true, nt.BaseType, nt.tok, witness.ToString(), w, wr);
       }
-      using (var wDefault = w.NewBlock(string.Format("static {0} get_Default()", nt.Name))) {
+
+      string nt_name, literalSuffice;
+      bool needsCastAfterArithmetic;
+      GetNativeInfo(nt.NativeType.Sel, out nt_name, out literalSuffice, out needsCastAfterArithmetic);
+      using (var wDefault = w.NewBlock(string.Format("static {0} get_Default()", nt_name))) {
         var udt = new UserDefinedType(nt.tok, nt.Name, nt, new List<Type>());
         var d = TypeInitializationValue(udt, wr, nt.tok, false);
         wDefault.WriteLine("return {0};", d);
@@ -836,7 +843,7 @@ namespace Microsoft.Dafny {
       } else if (xType is MultiSetType) {
         return "_dafny.MultiSet.Empty";
       } else if (xType is SeqType) {
-        return "_dafny.Seq.of()";
+        return string.Format("DafnySequence<{0}>()", TypeName(xType.AsSeqType.Arg, wr, tok, null, true));
       } else if (xType is MapType) {
         return "_dafny.Map.Empty";
       }
