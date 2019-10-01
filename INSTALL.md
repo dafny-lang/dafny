@@ -76,7 +76,7 @@ Dafny's sources or who want to use the latest features from the master branch.
 3. Download and build Dafny:
 
        cd BASE-DIRECTORY
-       git clone git clone https://github.com/dafny-lang/dafny.git
+       git clone https://github.com/dafny-lang/dafny.git
        msbuild dafny/Source/Dafny.sln
 
 4. Download and unpack z3 (Dafny looks for `z3` in Binaries/z3/bin/). To know which version to install, read the commit message of the latest commit in the [history](https://github.com/dafny-lang/dafny/commits/master/Binaries/z3.exe) of `Binaries/z3.exe`.
