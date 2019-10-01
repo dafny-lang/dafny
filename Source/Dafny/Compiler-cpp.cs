@@ -1693,7 +1693,7 @@ namespace Microsoft.Dafny {
           break;
         case ResolvedUnaryOp.Cardinality:
           TrParenExpr(expr, wr, inLetExprBody);
-          wr.Write(".Cardinality()");
+          wr.Write(".size()");
           break;
         default:
           Contract.Assert(false); throw new cce.UnreachableException();  // unexpected unary expression
@@ -1765,7 +1765,8 @@ namespace Microsoft.Dafny {
             } else if (e0.Type.IsRefType) {
               opString = "==";
             } else {
-              staticCallString = "_dafny.AreEqual";
+              //staticCallString = "==";
+              opString = "==";
             }
             break;
           }
@@ -1778,8 +1779,9 @@ namespace Microsoft.Dafny {
             } else if (e0.Type.IsRefType) {
               opString = "!=";
             } else {
-              preOpString = "!";
-              staticCallString = "_dafny.AreEqual";
+              opString = "!=";
+              //preOpString = "!";
+              //staticCallString = "_dafny.AreEqual";
             }
             break;
           }
