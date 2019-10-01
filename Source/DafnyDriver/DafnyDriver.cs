@@ -459,7 +459,7 @@ namespace Microsoft.Dafny
           Contract.Assert(false);
           throw new cce.UnreachableException();
       }
-      string targetBaseName = Path.ChangeExtension(baseName, targetExtension);
+      string targetBaseName = Path.ChangeExtension(dafnyProgramName, targetExtension);
       string targetDir = Path.Combine(Path.GetDirectoryName(dafnyProgramName), targetBaseDir);
       string targetFilename = Path.Combine(targetDir, targetBaseName);
       WriteFile(targetFilename, targetProgram);
