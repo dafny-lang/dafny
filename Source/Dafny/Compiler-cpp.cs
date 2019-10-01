@@ -1131,9 +1131,10 @@ namespace Microsoft.Dafny {
       if (cl != null && cl.Name == "object") {
         wr.Write("_dafny.NewObject()");
       } else {
-        string targs = type.TypeArgs.Count > 0
-          ? String.Format(" <{0}> ", Util.Comma(type.TypeArgs, tp => TypeName(tp, wr, tok))) : "";
-        wr.Write("std::make_shared<{0}{1}> (", TypeName(type, wr, tok, null, true), targs);
+        //string targs = type.TypeArgs.Count > 0
+        //  ? String.Format(" <{0}> ", Util.Comma(type.TypeArgs, tp => TypeName(tp, wr, tok))) : "";
+        //wr.Write("std::make_shared<{0}{1}> (", TypeName(type, wr, tok, null, true), targs);
+        wr.Write("std::make_shared<{0}> (", TypeName(type, wr, tok, null, true));
         EmitRuntimeTypeDescriptorsActuals(type.TypeArgs, cl.TypeArgs, tok, false, wr);
         wr.Write(")");
       }
