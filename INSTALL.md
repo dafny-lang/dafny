@@ -25,7 +25,7 @@ Dafny's sources.
 3. Download and build Dafny:
 
        cd BASE-DIRECTORY
-       git clone https://github.com/Microsoft/dafny.git 
+       git clone https://github.com/dafny-lang/dafny.git
        msbuild dafny/Source/Dafny.sln
 
 4. Download and unpack z3 (Dafny looks for `z3` in Binaries/z3/bin/)
@@ -77,7 +77,7 @@ Dafny's sources.
 3. Download and build Dafny:
 
        cd BASE-DIRECTORY
-       git clone https://github.com/Microsoft/dafny.git 
+       git clone https://github.com/dafny-lang/dafny.git
        msbuild dafny/Source/Dafny.sln
 
 4. Download and unpack z3 (Dafny looks for `z3` in Binaries/z3/bin/)
