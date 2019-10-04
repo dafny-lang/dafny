@@ -181,11 +181,12 @@ method MInt16(m: int16, n: int16) returns (r: int16) {
 }
 
 method BvTests() {
-  // These will also be bytes/shorts in Java (though they'll be wrapped in
-  // UByte/UShort objects)
+  // These will also be bytes/shorts in Java
   print "Bitvectors:\n\n";
 
   var a: bv8 := 250;
+  a := a / 2; // check that we're using unsigned division
+  a := a * 2;
   a := a + 6;
   assert a == 0;
 
@@ -194,6 +195,8 @@ method BvTests() {
   assert b == 3;
 
   var c: bv16 := 0xfffa;
+  c := c / 2; // check that we're using unsigned division
+  c := c * 2;
   c := c + 10;
   assert c == 4;
 
