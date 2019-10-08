@@ -47,6 +47,10 @@ so these instructions mostly apply to people interested in looking at Dafny's so
 Building on Mac OS X
 ====================
 
+You can use [Homebrew](https://brew.sh) to install Dafny:
+
+       brew install dafny
+
 Tested on Mac OS X 10.12.6 (Sierra).  Note that we now have
 [official releases for Mac OS X](https://github.com/dafny-lang/dafny/releases),
 so these instructions mostly apply to people interested in looking at
