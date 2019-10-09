@@ -134,11 +134,19 @@ namespace Microsoft.Dafny
                 extension == null ? "" : extension);
               return ExitValue.PREPROCESSING_ERROR;
             }
-          } else {
+          } else if (DafnyOptions.O.CompileTarget == DafnyOptions.CompilationTarget.Go) {
             if (extension == ".go") {
               otherFiles.Add(file);
             } else {
               ExecutionEngine.printer.ErrorWriteLine(Console.Out, "*** Error: '{0}': Filename extension '{1}' is not supported. Input files must be Dafny programs (.dfy) or Go files (.go)", file,
+                extension == null ? "" : extension);
+              return ExitValue.PREPROCESSING_ERROR;
+            }
+          } else if (DafnyOptions.O.CompileTarget == DafnyOptions.CompilationTarget.Cpp) {
+            if (extension == ".h") {
+              otherFiles.Add(file);
+            } else {
+              ExecutionEngine.printer.ErrorWriteLine(Console.Out, "*** Error: '{0}': Filename extension '{1}' is not supported. Input files must be Dafny programs (.dfy) or C headers (.h)", file,
                 extension == null ? "" : extension);
               return ExitValue.PREPROCESSING_ERROR;
             }
@@ -525,7 +533,7 @@ namespace Microsoft.Dafny
           compiler = new Dafny.GoCompiler(dafnyProgram.reporter);
           break;
         case DafnyOptions.CompilationTarget.Cpp:
-          compiler = new Dafny.CppCompiler(dafnyProgram.reporter);
+          compiler = new Dafny.CppCompiler(dafnyProgram.reporter, otherFileNames);
           break;
       }
 

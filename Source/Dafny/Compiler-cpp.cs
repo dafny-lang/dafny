@@ -16,9 +16,12 @@ using Bpl = Microsoft.Boogie;
 
 namespace Microsoft.Dafny {
   public class CppCompiler : Compiler {
-    public CppCompiler(ErrorReporter reporter)
+    public CppCompiler(ErrorReporter reporter, ReadOnlyCollection<string> otherHeaders)
     : base(reporter) {
+      this.headers = otherHeaders;
     }
+
+    private ReadOnlyCollection<string> headers;
     
     // Shadowing variables in Compiler.cs
     new string DafnySetClass = "DafnySet";
@@ -31,6 +34,9 @@ namespace Microsoft.Dafny {
     protected override void EmitHeader(Program program, TargetWriter wr) {
       wr.WriteLine("// Dafny program {0} compiled into Cpp", program.Name);
       wr.WriteLine("#include \"DafnyRuntime.h\"");
+      foreach (var header in this.headers) {
+        wr.WriteLine("#include \"{0}\"", header);
+      }
       // TODO: Include appropriate .h file here
       //ReadRuntimeSystem("DafnyRuntime.h", wr);
     }
