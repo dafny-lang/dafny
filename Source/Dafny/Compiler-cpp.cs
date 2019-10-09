@@ -832,8 +832,10 @@ namespace Microsoft.Dafny {
       } else if (xType is CharType) {
         return "'D'";
       } else if (xType is IntType || xType is BigOrdinalType) {
+        Console.Error.WriteLine("WARNING: BigInt used at: " + tok);
         return "new BigNumber(0)";
       } else if (xType is RealType) {
+        Console.Error.WriteLine("WARNING: BigRational used at: " + tok);
         return "_dafny.BigRational.ZERO";
       } else if (xType is BitvectorType) {
         var t = (BitvectorType)xType;
@@ -884,7 +886,7 @@ namespace Microsoft.Dafny {
             // non-null array type; we know how to initialize them
             var arrayClass = (ArrayClassDecl)((NonNullTypeDecl)td).Class;
             if (arrayClass.Dims == 1) {
-              return "[]";
+              return "nullptr";
             } else {
               return string.Format("_dafny.newArray(nullptr, {0})", Util.Comma(arrayClass.Dims, _ => "0"));
             }
