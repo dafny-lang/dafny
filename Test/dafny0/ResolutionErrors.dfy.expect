@@ -154,10 +154,10 @@ ResolutionErrors.dfy(1089,21): Error: unresolved identifier: x
 ResolutionErrors.dfy(1092,21): Error: unresolved identifier: x
 ResolutionErrors.dfy(1099,35): Error: Wrong number of type arguments (2 instead of 1) passed to opaque type: P
 ResolutionErrors.dfy(1111,13): Error: Undeclared top-level type or type parameter: BX (did you forget to qualify a name or declare a module import 'opened?')
-ResolutionErrors.dfy(1121,6): Error: RHS (of type P<int>) not assignable to LHS (of type P<bool>) (invariant type parameter would require bool = int)
-ResolutionErrors.dfy(1126,6): Error: RHS (of type P<A>) not assignable to LHS (of type P<B>) (invariant type parameter would require B = A)
-ResolutionErrors.dfy(1131,6): Error: RHS (of type P<A>) not assignable to LHS (of type P<int>) (invariant type parameter would require int = A)
-ResolutionErrors.dfy(1132,6): Error: RHS (of type P<int>) not assignable to LHS (of type P<A>) (invariant type parameter would require A = int)
+ResolutionErrors.dfy(1121,6): Error: RHS (of type P<int>) not assignable to LHS (of type P<bool>) (non-variant type parameter would require bool = int)
+ResolutionErrors.dfy(1126,6): Error: RHS (of type P<A>) not assignable to LHS (of type P<B>) (non-variant type parameter would require B = A)
+ResolutionErrors.dfy(1131,6): Error: RHS (of type P<A>) not assignable to LHS (of type P<int>) (non-variant type parameter would require int = A)
+ResolutionErrors.dfy(1132,6): Error: RHS (of type P<int>) not assignable to LHS (of type P<A>) (non-variant type parameter would require A = int)
 ResolutionErrors.dfy(1137,13): Error: arguments must have comparable types (got P<int> and P<X>)
 ResolutionErrors.dfy(1138,13): Error: arguments must have comparable types (got P<bool> and P<X>)
 ResolutionErrors.dfy(1139,13): Error: arguments must have comparable types (got P<int> and P<bool>)

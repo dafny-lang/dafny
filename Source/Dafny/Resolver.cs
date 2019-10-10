@@ -3616,7 +3616,7 @@ namespace Microsoft.Dafny
         var errMsg = new TypeConstraint.ErrorMsgWithBase(errorMsg,
           pol < 0 ? "contravariant type parameter{0} would require {1} <: {2}" :
           pol > 0 ? "covariant type parameter{0} would require {2} <: {1}" :
-          "invariant type parameter{0} would require {1} = {2}",
+          "non-variant type parameter{0} would require {1} = {2}",
           tp, super.TypeArgs[i], sub.TypeArgs[i]);
         if (pol >= 0) {
           if (!ConstrainSubtypeRelation(super.TypeArgs[i], sub.TypeArgs[i], errMsg, keepConstraints)) {
@@ -13006,7 +13006,7 @@ namespace Microsoft.Dafny
         AddTypeDependencyEdges(context, v.Type);
         // Note, the following type constraint checks that the RHS type can be assigned to the new variable on the left. In particular, it
         // does not check that the entire RHS can be assigned to something of the type of the pattern on the left.  For example, consider
-        // a type declared as "datatype Atom<T> = MakeAtom(T)", where T is an invariant type argument.  Suppose the RHS has type Atom<nat>
+        // a type declared as "datatype Atom<T> = MakeAtom(T)", where T is a non-variant type argument.  Suppose the RHS has type Atom<nat>
         // and that the LHS is the pattern MakeAtom(x: int).  This is okay, despite the fact that Atom<nat> is not assignable to Atom<int>.
         // The reason is that the purpose of the pattern on the left is really just to provide a skeleton to introduce bound variables in.
         AddAssignableConstraint(v.Tok, v.Type, sourceType, "type of corresponding source/RHS ({1}) does not match type of bound variable ({0})");
