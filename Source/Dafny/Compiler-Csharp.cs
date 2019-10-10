@@ -46,7 +46,7 @@ namespace Microsoft.Dafny
 
       var strwr = new StringWriter();
       strwr.NewLine = wr.NewLine;
-      new Printer(strwr, DafnyOptions.PrintModes.Everything).PrintProgram(program, true);
+      new Printer(strwr, DafnyOptions.PrintModes.DllEmbed).PrintProgram(program, true);
 
       wr.Write(strwr.GetStringBuilder().Replace("\"", "\"\"").ToString());
       wr.WriteLine("\")]");
