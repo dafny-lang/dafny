@@ -393,7 +393,7 @@ namespace Microsoft.Dafny {
           TrParenExpr(nt.Witness, witness, false);
           witness.Write(".toNumber()");
         }
-        DeclareField(className, "Witness", true, true, nt.BaseType, nt.tok, witness.ToString(), w, wr);
+        DeclareField(className, nt.TypeArgs, "Witness", true, true, nt.BaseType, nt.tok, witness.ToString(), w, wr);
       }
 
       string nt_name, literalSuffice;
@@ -413,7 +413,7 @@ namespace Microsoft.Dafny {
         throw NotSupported(String.Format("subset type {0}", sst));
         var witness = new TargetWriter(w.IndentLevel, true);
         TrExpr(sst.Witness, witness, false);
-        DeclareField(IdName(sst), "Witness", true, true, sst.Rhs, sst.tok, witness.ToString(), w, wr);
+        DeclareField(IdName(sst), sst.TypeArgs, "Witness", true, true, sst.Rhs, sst.tok, witness.ToString(), w, wr);
       }
       /* 
       using (var wDefault = w.NewBlock("static get Default()")) {
@@ -488,8 +488,8 @@ namespace Microsoft.Dafny {
       public BlockTargetWriter/*?*/ CreateGetterSetter(string name, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl/*?*/ member, out TargetWriter setterWriter) {
         return Compiler.CreateGetterSetter(name, resultType, tok, isStatic, createBody, out setterWriter, MethodWriter);
       }
-      public void DeclareField(string name, bool isStatic, bool isConst, Type type, Bpl.IToken tok, string rhs) {
-        Compiler.DeclareField(ClassName, name, isStatic, isConst, type, tok, rhs, FieldWriter, Finisher);
+      public void DeclareField(string name, List<TypeParameter> targs, bool isStatic, bool isConst, Type type, Bpl.IToken tok, string rhs) {
+        Compiler.DeclareField(ClassName, targs, name, isStatic, isConst, type, tok, rhs, FieldWriter, Finisher);
       }
       public TextWriter/*?*/ ErrorWriter() => MethodWriter;
       public void Finish() { }
@@ -946,12 +946,12 @@ namespace Microsoft.Dafny {
 
     // ----- Declarations -------------------------------------------------------------
 
-    protected void DeclareField(string className, string name, bool isStatic, bool isConst, Type type, Bpl.IToken tok, string rhs, TargetWriter wr, TargetWriter finisher) {
+    protected void DeclareField(string className, List<TypeParameter> targs, string name, bool isStatic, bool isConst, Type type, Bpl.IToken tok, string rhs, TargetWriter wr, TargetWriter finisher) {
       var r = rhs != null ? rhs : DefaultValue(type, wr, tok);
       var t = TypeName(type, wr, tok);
       if (isStatic) {
           wr.WriteLine("static {0} {1};", t, name);
-          finisher.WriteLine("{0} {1}::{2} = {3};", t, className, name, r);
+          finisher.WriteLine("{5} {0} {1}{4}::{2} = {3};", t, className, name, r, TemplateMethod(targs), DeclareTemplate(targs));
       } else {
         wr.WriteLine("{0} {1} = {2};", t, name, r);
       }
