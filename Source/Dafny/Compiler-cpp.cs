@@ -89,6 +89,14 @@ namespace Microsoft.Dafny {
       return targs;
     }
 
+    private string DeclareTemplate(List<Type> typeArgs) {
+      var targs = "";
+      if (typeArgs.Count > 0) {
+        targs = String.Format("template <{0}>", Util.Comma(typeArgs, t => "typename " + TypeName(t, null, null)));
+      }
+      return targs;
+    }
+    
     private string TemplateMethod(List<TypeParameter> typeArgs) {
       var targs = "";
       if (typeArgs.Count > 0) {
@@ -406,21 +414,25 @@ namespace Microsoft.Dafny {
       }
     }
 
-    protected override void DeclareSubsetType(SubsetTypeDecl sst, TargetWriter wr) {      
-      var cw = CreateClass(IdName(sst), sst.TypeArgs, wr) as CppCompiler.ClassWriter;
+    protected override void DeclareSubsetType(SubsetTypeDecl sst, TargetWriter wr) {
+      if (sst.Name == "nat") {
+        return;  // C++ does not support Nats
+      }
+      wr.WriteLine("{2} using {1} = {0};", TypeName(sst.Var.Type, wr, sst.tok), IdName(sst), DeclareTemplate(sst.Var.Type.TypeArgs));
+      
+      var cw = CreateClass("class_" + IdName(sst), sst.TypeArgs, wr) as CppCompiler.ClassWriter;
       var w = cw.MethodWriter;
       if (sst.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
-        throw NotSupported(String.Format("subset type {0}", sst));
         var witness = new TargetWriter(w.IndentLevel, true);
         TrExpr(sst.Witness, witness, false);
         DeclareField(IdName(sst), sst.TypeArgs, "Witness", true, true, sst.Rhs, sst.tok, witness.ToString(), w, wr);
       }
-      /* 
-      using (var wDefault = w.NewBlock("static get Default()")) {
+      
+      using (var wDefault = w.NewBlock(String.Format("static {0}{1} get_Default()", IdName(sst), TemplateMethod(sst.TypeArgs)))) {
         var udt = new UserDefinedType(sst.tok, sst.Name, sst, sst.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp)));
         var d = TypeInitializationValue(udt, wr, sst.tok, false);
         wDefault.WriteLine("return {0};", d);
-      } */
+      }
     }
 
     protected override void GetNativeInfo(NativeType.Selection sel, out string name, out string literalSuffix, out bool needsCastAfterArithmetic) {
