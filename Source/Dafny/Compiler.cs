@@ -2653,7 +2653,10 @@ namespace Microsoft.Dafny {
         } else {
           string qual, compileName;
           if (s.Method.IsExtern(out qual, out compileName) && qual != null) {
-            wr.Write("{0}.{1}", qual, compileName);
+            // ******************************************************************   
+            // TODO: Add an overrideable function for the double colon used here      
+            // ******************************************************************  
+            wr.Write("{0}::{1}", qual, compileName);
           } else {
             wr.Write(TypeName_Companion(s.Receiver.Type, wr, s.Tok, s.Method));
 // ******************************************************************   
