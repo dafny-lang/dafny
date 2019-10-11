@@ -965,7 +965,7 @@ namespace Microsoft.Dafny {
     // ----- Declarations -------------------------------------------------------------
     protected override void DeclareExternType(OpaqueTypeDecl d, Expression compileTypeHint, TargetWriter wr) {
       if (compileTypeHint.AsStringLiteral() == "struct") {
-        wr.WriteLine("{0} extern struct {1} {2};", DeclareTemplate(d.TypeArgs), d.CompileName, TemplateMethod(d.TypeArgs));        
+        wr.WriteLine("// Extern declaration of {1}\n{0} struct {1} {2};", DeclareTemplate(d.TypeArgs), d.Name, TemplateMethod(d.TypeArgs));        
       } else {
         Error(d.tok, "Opaque type ('{0}') with unrecognized extern attribute {1} cannot be compiled.  Expected {{:extern compile_type_hint}} ", wr, d.FullName, compileTypeHint.AsStringLiteral());
       }
