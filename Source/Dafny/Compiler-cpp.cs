@@ -728,6 +728,10 @@ namespace Microsoft.Dafny {
       //wr.WriteLine("continue TAIL_CALL_START;");
     }
 
+    protected void Warn(string msg, Bpl.IToken tok) {
+      Console.Error.WriteLine("WARNING: {3} ({0}:{1}:{2})", tok.filename, tok.line, tok.col, msg);
+    }
+    
     // Use class_name = true if you want the actual name of the class, not the type used when declaring variables/arguments/etc.
     protected string TypeName(Type type, TextWriter wr, Bpl.IToken tok, MemberDecl/*?*/ member = null, bool class_name=false) {
       Contract.Ensures(Contract.Result<string>() != null);
@@ -744,8 +748,10 @@ namespace Microsoft.Dafny {
       } else if (xType is CharType) {
         return "char";
       } else if (xType is IntType || xType is BigOrdinalType) {
+        Warn("BigInteger used", tok);
         return "BigNumber";
       } else if (xType is RealType) {
+        Warn("BigRational used", tok);
         return "Dafny.BigRational";
       } else if (xType is BitvectorType) {
         var t = (BitvectorType)xType;
@@ -838,10 +844,10 @@ namespace Microsoft.Dafny {
       } else if (xType is CharType) {
         return "'D'";
       } else if (xType is IntType || xType is BigOrdinalType) {
-        Console.Error.WriteLine("WARNING: BigInt used at: " + tok);
+        Warn("BigInteger used", tok);
         return "new BigNumber(0)";
       } else if (xType is RealType) {
-        Console.Error.WriteLine("WARNING: BigRational used at: " + tok);
+        Warn("BigRational used", tok);
         return "_dafny.BigRational.ZERO";
       } else if (xType is BitvectorType) {
         var t = (BitvectorType)xType;
