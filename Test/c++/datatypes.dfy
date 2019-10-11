@@ -8,6 +8,9 @@ type Ex1Sub = d:Example1 | d.u == 0 witness Example1(0, true)
 type Ex2Sub = d:Example2 | d.Ex2a? && d.u == 0 witness Ex2a(0)
 type Ex3Sub = d:Example3 | d.e.b witness Example3(Example1(42, true))
 
+datatype DtPointer = DtPointer(s:seq<uint32>)
+datatype DtPointerHolder = DtPointerHolder(e:DtPointer) | Other(f:bool)
+
 method Callee(e:Example2) {
     match e {
         case Ex2a(u) => print "Case A: ", u, "\n";

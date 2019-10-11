@@ -309,7 +309,7 @@ namespace Microsoft.Dafny {
 
         // Create one struct for each constructor
         foreach (var ctor in dt.Ctors) {
-          var wstruct = wr.NewBlock(String.Format("{0}\nstruct {1}", DeclareTemplate(dt.TypeArgs), ctor.CompileName), ";");
+          var wstruct = wr.NewBlock(String.Format("{0}\nstruct {1}_{2}", DeclareTemplate(dt.TypeArgs), DtT_protected, ctor.CompileName), ";");
           // Declare the struct members
           var i = 0;
           foreach (Formal arg in ctor.Formals) {
@@ -327,7 +327,7 @@ namespace Microsoft.Dafny {
         ws.Write("} tag;\n");
         var wu = ws.NewBlock("union ", ";");
         foreach (var ctor in dt.Ctors) {
-          wu.WriteLine("struct {0}{1} v_{0};", ctor.CompileName, TemplateMethod(dt.TypeArgs));
+          wu.WriteLine("struct {2}_{0}{1} v_{0};", ctor.CompileName, TemplateMethod(dt.TypeArgs), DtT_protected);
         }
         
         // Declare static "constructors" for each Dafny constructor
@@ -362,6 +362,17 @@ namespace Microsoft.Dafny {
           foreach (Formal arg in default_ctor.Formals)
           {
             wd.WriteLine("v_{0}.{1} = {2};", default_ctor.CompileName, arg.CompileName, DefaultValue(arg.Type, wd, arg.tok));
+          }
+        }
+        
+        // Declare a default destructor
+        ws.WriteLine("~{0}() {{}}", DtT_protected);
+        
+        // Declare a default copy constructor (just in case any of our components are non-trivial, i.e., contain smart_ptr)
+        using (var wcc = ws.NewNamedBlock(String.Format("{0}(const {0} &other)", DtT_protected))) {
+          wcc.WriteLine("tag = other.tag;");
+          foreach (var ctor in dt.Ctors) {
+            wcc.WriteLine("if (tag == {0}::TAG_{1}) {{ v_{1} = other.v_{1}; }}", DtT_protected, ctor.CompileName);
           }
         }
 
