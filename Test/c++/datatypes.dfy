@@ -2,6 +2,11 @@ newtype{:nativeType "uint"} uint32 = i:int | 0 <= i < 0x100000000
 
 datatype Example1 = Example1(u:uint32, b:bool)
 datatype Example2 = Ex2a(u:uint32) | Ex2b(b:bool)
+datatype Example3 = Example3(e:Example1)
+
+type Ex1Sub = d:Example1 | d.u == 0 witness Example1(0, true)
+type Ex2Sub = d:Example2 | d.Ex2a? && d.u == 0 witness Ex2a(0)
+type Ex3Sub = d:Example3 | d.e.b witness Example3(Example1(42, true))
 
 method Callee(e:Example2) {
     match e {
@@ -17,7 +22,6 @@ method Main() {
     e2 := Ex2b(true);
     Callee(e2);
 }
-
 
 datatype Option<V> = None | Some(value:V)
 
@@ -35,4 +39,3 @@ method GenericTest() {
   matcher(Ok(42));
   matcher(Fail(true));
 }
-

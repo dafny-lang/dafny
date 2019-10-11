@@ -420,12 +420,13 @@ namespace Microsoft.Dafny {
       }
       wr.WriteLine("{2} using {1} = {0};", TypeName(sst.Var.Type, wr, sst.tok), IdName(sst), DeclareTemplate(sst.Var.Type.TypeArgs));
       
-      var cw = CreateClass("class_" + IdName(sst), sst.TypeArgs, wr) as CppCompiler.ClassWriter;
+      var className = "class_" + IdName(sst);
+      var cw = CreateClass(className, sst.TypeArgs, wr) as CppCompiler.ClassWriter;
       var w = cw.MethodWriter;
       if (sst.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
         var witness = new TargetWriter(w.IndentLevel, true);
         TrExpr(sst.Witness, witness, false);
-        DeclareField(IdName(sst), sst.TypeArgs, "Witness", true, true, sst.Rhs, sst.tok, witness.ToString(), w, wr);
+        DeclareField(className, sst.TypeArgs, "Witness", true, true, sst.Rhs, sst.tok, witness.ToString(), w, wr);
       }
       
       using (var wDefault = w.NewBlock(String.Format("static {0}{1} get_Default()", IdName(sst), TemplateMethod(sst.TypeArgs)))) {
@@ -887,7 +888,10 @@ namespace Microsoft.Dafny {
       if (cl is NewtypeDecl) {
         var td = (NewtypeDecl)cl;
         if (td.Witness != null) {
-          return TypeName_UDT(FullTypeName(udt), udt.TypeArgs, wr, udt.tok) + ".Witness";
+          return "class_" + td.CompileName + "::Witness";
+          //return TypeName(udt, wr, udt.tok, null, true) + "::Witness";
+          //return TypeName(udt, wr, udt.tok, null, true) + "()";
+          //return "Witness";
         } else if (td.NativeType != null) {
           return "0";
         } else {
@@ -896,7 +900,10 @@ namespace Microsoft.Dafny {
       } else if (cl is SubsetTypeDecl) {
         var td = (SubsetTypeDecl)cl;
         if (td.Witness != null) {
-          return TypeName_UDT(FullTypeName(udt), udt.TypeArgs, wr, udt.tok) + ".Witness";
+          return "class_" + td.CompileName + "::Witness";
+          //return TypeName(udt, wr, udt.tok, null, true) + "::Witness";
+          //return TypeName(udt, wr, udt.tok, null, true) + "()";
+          //return "Witness";
         } else if (td.WitnessKind == SubsetTypeDecl.WKind.Special) {
           // WKind.Special is only used with -->, ->, and non-null types:
           Contract.Assert(ArrowType.IsPartialArrowTypeName(td.Name) || ArrowType.IsTotalArrowTypeName(td.Name) || td is NonNullTypeDecl);
@@ -934,9 +941,12 @@ namespace Microsoft.Dafny {
         var dt = (DatatypeDecl)cl;
         var s = dt is TupleTypeDecl ? "_dafny.Tuple" : FullTypeName(udt);
         var w = new TargetWriter();
+        w.Write("{0}()", s);
+        /*
         w.Write("{0}.Rtd(", s);
         EmitRuntimeTypeDescriptorsActuals(UsedTypeParameters(dt, udt.TypeArgs), dt.TypeArgs, udt.tok, true, w);
         w.Write(").Default");
+        */
         return w.ToString();
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected type
