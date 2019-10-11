@@ -375,6 +375,15 @@ namespace Microsoft.Dafny {
             wcc.WriteLine("if (tag == {0}::TAG_{1}) {{ v_{1} = other.v_{1}; }}", DtT_protected, ctor.CompileName);
           }
         }
+        
+        // Declare a default copy assignment operator (just in case any of our components are non-trivial, i.e., contain smart_ptr)
+        using (var wcc = ws.NewNamedBlock(String.Format("{0}& operator=(const {0} other)", DtT_protected))) {
+          wcc.WriteLine("tag = other.tag;");
+          foreach (var ctor in dt.Ctors) {
+            wcc.WriteLine("if (tag == {0}::TAG_{1}) {{ v_{1} = other.v_{1}; }}", DtT_protected, ctor.CompileName);
+            wcc.WriteLine("return *this;");
+          }
+        }
 
         // Declare type queries
         foreach (var ctor in dt.Ctors) {
