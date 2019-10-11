@@ -294,7 +294,7 @@ namespace Microsoft.Dafny {
         if (argNames.Count > 0) {
           // Add initializers
           ws.Write(" :");
-          ws.Write(Util.Comma(argNames, nm => String.Format(" {0} ({0})", nm)));
+          ws.Write(Util.Comma(argNames, nm => String.Format(" {0} ({0})", IdProtect(nm))));
         }        
         ws.WriteLine(" {}");
         
@@ -323,7 +323,7 @@ namespace Microsoft.Dafny {
         // Declare the overall tagged union
         var ws = wr.NewBlock(String.Format("{0}\nstruct {1}", DeclareTemplate(dt.TypeArgs), DtT_protected), ";");
         ws.Write("enum {");
-        ws.Write(Util.Comma(dt.Ctors, nm => String.Format(" TAG_{0}", nm)));
+        ws.Write(Util.Comma(dt.Ctors, nm => String.Format(" TAG_{0}", nm.CompileName)));
         ws.Write("} tag;\n");
         var wu = ws.NewBlock("union ", ";");
         foreach (var ctor in dt.Ctors) {
