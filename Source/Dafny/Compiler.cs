@@ -64,6 +64,7 @@ namespace Microsoft.Dafny {
     }
 
     protected virtual void EmitHeader(Program program, TargetWriter wr) { }
+    protected virtual void EmitFooter(Program program, TargetWriter wr) { }   
     protected virtual void EmitBuiltInDecls(BuiltIns builtIns, TargetWriter wr) { }
     /// <summary>
     /// Emits a call to "mainMethod" as the program's entry point, if such an explicit call is
@@ -619,6 +620,7 @@ namespace Microsoft.Dafny {
 
         FinishModule();
       }
+      EmitFooter(program, wrx);
     }
 
     protected class NullClassWriter : IClassWriter {

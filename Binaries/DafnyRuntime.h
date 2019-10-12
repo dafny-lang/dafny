@@ -27,7 +27,16 @@ typedef long long int64;
 /*********************************************************
  *  UTILITIES                                            *
  *********************************************************/
- 
+
+template <typename T>
+T get_default(T*);
+
+bool get_default(bool*) { return true; }
+int get_default(int*) { return 0; }
+unsigned int get_default(unsigned int*) { return 0; }
+unsigned long get_default(unsigned long*) { return 0; }
+unsigned long long get_default(unsigned long long*) { return 0; }
+
 // using boost::hash_combine
 template <class T>
 inline void hash_combine(std::size_t& seed, T const& v)

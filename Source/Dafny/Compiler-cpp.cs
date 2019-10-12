@@ -19,9 +19,11 @@ namespace Microsoft.Dafny {
     public CppCompiler(ErrorReporter reporter, ReadOnlyCollection<string> otherHeaders)
     : base(reporter) {
       this.headers = otherHeaders;
+      this.datatypeDecls = new List<DatatypeDecl>();
     }
 
     private ReadOnlyCollection<string> headers;
+    private List<DatatypeDecl> datatypeDecls;
     
     // Shadowing variables in Compiler.cs
     new string DafnySetClass = "DafnySet";
@@ -40,6 +42,17 @@ namespace Microsoft.Dafny {
       // TODO: Include appropriate .h file here
       //ReadRuntimeSystem("DafnyRuntime.h", wr);
     }
+
+    protected override void EmitFooter(Program program, TargetWriter wr) {
+      foreach (var dt in this.datatypeDecls) {
+        var wd = wr.NewBlock(String.Format("{0} {1}::{2}{3} get_default({1}::{2}{3}* ignored)", 
+          DeclareTemplate(dt.TypeArgs),
+          dt.Module.CompileName,
+          dt.CompileName,
+          TemplateMethod(dt.TypeArgs)));
+        wd.WriteLine("return {0}::{1}{2}();", dt.Module.CompileName, dt.CompileName, TemplateMethod(dt.TypeArgs));
+      }
+    } 
 
     public override void EmitCallToMain(Method mainMethod, TargetWriter wr) {
       var w = wr.NewBlock("int main()");
@@ -267,6 +280,8 @@ namespace Microsoft.Dafny {
         // Tuple types are declared once and for all in DafnyRuntime.h
         return;
       }
+      
+      this.datatypeDecls.Add(dt);
 
       string DtT = dt.CompileName;
       string DtT_protected = IdProtect(DtT);
@@ -897,13 +912,14 @@ namespace Microsoft.Dafny {
 
       var udt = (UserDefinedType)xType;
       if (udt.ResolvedParam != null) {
-        if (Attributes.Contains(udt.ResolvedClass.Attributes, "extern")) {
+        if (udt.ResolvedClass != null && Attributes.Contains(udt.ResolvedClass.Attributes, "extern")) {
           // Assume the external definition includes a default value
           return String.Format("{1}::get_{0}_default()", IdProtect(udt.Name), udt.ResolvedClass.Module.CompileName);
         } else if (inAutoInitContext && !udt.ResolvedParam.Characteristics.MustSupportZeroInitialization) {
-          return "nullptr";
+          return String.Format("get_default<{0}>(NULL)", IdProtect(udt.Name));
         } else {
-          return string.Format("{0}.Default", RuntimeTypeDescriptor(udt, udt.tok, wr));
+          return "nullptr";
+          //return string.Format("{0}.Default", RuntimeTypeDescriptor(udt, udt.tok, wr));
         }
       }
       var cl = udt.ResolvedClass;
@@ -1587,6 +1603,8 @@ namespace Microsoft.Dafny {
           wr.Write("->{0}", compiledName);
         } else if (sf.SpecialId == SpecialField.ID.Keys || sf.SpecialId == SpecialField.ID.Values) {
           wr.Write(".{0}", compiledName);
+        } else if (sf is DatatypeDestructor) {
+          wr.Write(".{0}", sf.CompileName);
         } else if (compiledName.Length != 0) {
           wr.Write("::{0}", compiledName);
         } else {
