@@ -828,10 +828,10 @@ namespace Microsoft.Dafny {
         Contract.Assert(at != null);  // follows from type.IsArrayType
         Type elType = UserDefinedType.ArrayElementType(xType);
         string typeNameSansBrackets, brackets;
-        TypeName_SplitArrayName(elType, wr, tok, out typeNameSansBrackets, out brackets);
+        //TypeName_SplitArrayName(elType, wr, tok, out typeNameSansBrackets, out brackets);
         //return typeNameSansBrackets + TypeNameArrayBrackets(at.Dims) + brackets;
         if (at.Dims == 1) {
-          return "shared_ptr<vector<" + typeNameSansBrackets + ">>";
+          return "shared_ptr<vector<" + TypeName(elType, wr, tok, null, true) + ">>";
         } else {
           throw NotSupported("Multi-dimensional arrays");
         }
