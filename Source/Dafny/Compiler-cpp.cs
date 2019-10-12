@@ -117,6 +117,14 @@ namespace Microsoft.Dafny {
       }
       return targs;
     }
+    
+    private string TemplateMethod(List<Type> typeArgs) {
+      var targs = "";
+      if (typeArgs.Count > 0) {
+        targs = String.Format("<{0}>", Util.Comma(typeArgs, ta => TypeName(ta, null, null)));
+      }
+      return targs;
+    }
 
     protected override string GetHelperModuleName() => "_dafny";
 
@@ -302,17 +310,20 @@ namespace Microsoft.Dafny {
           }
         }
 
-        // Create a constructor with arguments
-        ws.Write("{0}(", DtT_protected);
-        WriteFormals("", ctor.Formals, ws);
-        ws.Write(")");
         if (argNames.Count > 0) {
-          // Add initializers
-          ws.Write(" :");
-          ws.Write(Util.Comma(argNames, nm => String.Format(" {0} ({0})", IdProtect(nm))));
-        }        
-        ws.WriteLine(" {}");
-        
+          // Create a constructor with arguments
+          ws.Write("{0}(", DtT_protected);
+          WriteFormals("", ctor.Formals, ws);
+          ws.Write(")");
+          if (argNames.Count > 0) {
+            // Add initializers
+            ws.Write(" :");
+            ws.Write(Util.Comma(argNames, nm => String.Format(" {0} ({0})", IdProtect(nm))));
+          }
+
+          ws.WriteLine(" {}");
+        }
+
         // Create a constructor with no arguments
         var wc = ws.NewNamedBlock("{0}()", DtT_protected);
         foreach (var arg in ctor.Formals) {
@@ -980,7 +991,7 @@ namespace Microsoft.Dafny {
         var dt = (DatatypeDecl)cl;
         var s = dt is TupleTypeDecl ? "_dafny.Tuple" : FullTypeName(udt);
         var w = new TargetWriter();
-        w.Write("{0}()", s);
+        w.Write("{0}{1}()", s, TemplateMethod(udt.TypeArgs));
         /*
         w.Write("{0}.Rtd(", s);
         EmitRuntimeTypeDescriptorsActuals(UsedTypeParameters(dt, udt.TypeArgs), dt.TypeArgs, udt.tok, true, w);

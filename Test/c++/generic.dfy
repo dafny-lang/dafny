@@ -15,6 +15,13 @@ class UseTest<T> {
   }
 }
 
+
+datatype Err<V> = Fail(b:bool) | Ok(value:V)
+method ErrTest() returns (e:Err<bool>)
+{
+  return Fail(false);
+}
+
 method Main() {
   var t := new Test(true);
   var u := new UseTest();
