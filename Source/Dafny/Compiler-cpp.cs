@@ -897,7 +897,10 @@ namespace Microsoft.Dafny {
 
       var udt = (UserDefinedType)xType;
       if (udt.ResolvedParam != null) {
-        if (inAutoInitContext && !udt.ResolvedParam.Characteristics.MustSupportZeroInitialization) {
+        if (Attributes.Contains(udt.ResolvedClass.Attributes, "extern")) {
+          // Assume the external definition includes a default value
+          return String.Format("{1}::get_{0}_default()", IdProtect(udt.Name), udt.ResolvedClass.Module.CompileName);
+        } else if (inAutoInitContext && !udt.ResolvedParam.Characteristics.MustSupportZeroInitialization) {
           return "nullptr";
         } else {
           return string.Format("{0}.Default", RuntimeTypeDescriptor(udt, udt.tok, wr));
@@ -908,7 +911,7 @@ namespace Microsoft.Dafny {
       if (cl is NewtypeDecl) {
         var td = (NewtypeDecl)cl;
         if (td.Witness != null) {
-          return "class_" + td.CompileName + "::Witness";
+          return td.Module.CompileName + "::class_" + td.CompileName + "::Witness";
           //return TypeName(udt, wr, udt.tok, null, true) + "::Witness";
           //return TypeName(udt, wr, udt.tok, null, true) + "()";
           //return "Witness";
@@ -920,7 +923,7 @@ namespace Microsoft.Dafny {
       } else if (cl is SubsetTypeDecl) {
         var td = (SubsetTypeDecl)cl;
         if (td.Witness != null) {
-          return "class_" + td.CompileName + "::Witness";
+          return td.Module.CompileName + "::class_" + td.CompileName + "::Witness";
           //return TypeName(udt, wr, udt.tok, null, true) + "::Witness";
           //return TypeName(udt, wr, udt.tok, null, true) + "()";
           //return "Witness";
@@ -1472,10 +1475,12 @@ namespace Microsoft.Dafny {
       if (cl == null) {
         return IdProtect(udt.CompileName);
       } else if (cl is ClassDecl cdecl && cdecl.IsDefaultClass && Attributes.Contains(cl.Module.Attributes, "extern") &&
-        member != null && Attributes.Contains(member.Attributes, "extern")) {
+                 member != null && Attributes.Contains(member.Attributes, "extern")) {
         // omit the default class name ("_default") in extern modules, when the class is used to qualify an extern member
-        Contract.Assert(!cl.Module.IsDefaultModule);  // default module is not marked ":extern"
+        Contract.Assert(!cl.Module.IsDefaultModule); // default module is not marked ":extern"
         return IdProtect(cl.Module.CompileName);
+      } else if (Attributes.Contains(cl.Attributes, "extern")) {
+        return IdProtect(cl.Module.CompileName) + "::" + IdProtect(cl.Name);
       } else {
         return IdProtect(cl.Module.CompileName) + "::" + IdProtect(cl.CompileName);
       }
@@ -1500,14 +1505,15 @@ namespace Microsoft.Dafny {
         // Ordinary constructor (that is, one that does not guard any co-recursive calls)
         // Generate:  Dt.create_Ctor(arguments)
         if (dt.Ctors.Count == 1) {
-          wr.Write("{0}{1}({2})",
+          wr.Write("{3}::{0}{1}({2})",
             dtName,
             TemplateMethod(dt.TypeArgs), 
-            arguments);
+            arguments,
+            dt.Module.CompileName);
         } else {
-          wr.Write("{0}{1}::create_{2}({3})",
+          wr.Write("{4}::{0}{1}::create_{2}({3})",
             dtName, ActualTypeArgs(dtv.InferredTypeArgs), ctorName,
-            arguments);
+            arguments, dt.Module.CompileName);
         }
         
       } else {

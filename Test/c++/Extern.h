@@ -5,6 +5,15 @@ using namespace std;
 typedef unsigned long long uint64;
 
 namespace Extern {
+  struct state {
+    uint64 u;
+  };
+
+  struct state get_state_default() {
+    struct state ret;
+    ret.u = 22;
+    return ret;
+  }
 
   template <typename T>
   static shared_ptr<vector<T>> newArrayFill(uint64 size, T v) {
