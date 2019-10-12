@@ -989,7 +989,7 @@ namespace Microsoft.Dafny {
         }
       } else if (cl is DatatypeDecl) {
         var dt = (DatatypeDecl)cl;
-        var s = dt is TupleTypeDecl ? "_dafny.Tuple" : FullTypeName(udt);
+        var s = dt is TupleTypeDecl ? "Tuple" + (dt as TupleTypeDecl).Dims : FullTypeName(udt);
         var w = new TargetWriter();
         w.Write("{0}{1}()", s, TemplateMethod(udt.TypeArgs));
         /*
@@ -1508,6 +1508,9 @@ namespace Microsoft.Dafny {
         return IdProtect(cl.Module.CompileName);
       } else if (Attributes.Contains(cl.Attributes, "extern")) {
         return IdProtect(cl.Module.CompileName) + "::" + IdProtect(cl.Name);
+      } else if (cl is TupleTypeDecl) {
+        var tuple = cl as TupleTypeDecl;
+        return "Tuple" + tuple.Dims;
       } else {
         return IdProtect(cl.Module.CompileName) + "::" + IdProtect(cl.CompileName);
       }
@@ -1527,7 +1530,12 @@ namespace Microsoft.Dafny {
       var ctorName = ctor.CompileName;
 
       if (dt is TupleTypeDecl) {
-        wr.Write("_dafny.Tuple.of({0})", arguments);
+        var tuple = dt as TupleTypeDecl;
+        var types = new List<Type>();
+        foreach (var arg in dtv.Arguments) {
+          types.Add(arg.Type);
+        }
+        wr.Write("Tuple{0}{1}({2})", tuple.Dims, TemplateMethod(types), arguments);
       } else if (!isCoCall) {
         // Ordinary constructor (that is, one that does not guard any co-recursive calls)
         // Generate:  Dt.create_Ctor(arguments)
@@ -1604,7 +1612,7 @@ namespace Microsoft.Dafny {
       if (isLValue && member is ConstantField) {
         wr.Write("->{0}", member.CompileName);
       } else if (member is DatatypeDestructor dtor && dtor.EnclosingClass is TupleTypeDecl) {
-        wr.Write("[{0}]", dtor.Name);
+        wr.Write(".get_{0}()", dtor.Name);
       //} else if (member is SpecialField sf && sf.SpecialId == SpecialField.ID.Con) {
         
       } else if (!isLValue && member is SpecialField sf) {

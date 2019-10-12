@@ -28,15 +28,6 @@ typedef long long int64;
  *  UTILITIES                                            *
  *********************************************************/
 
-template <typename T>
-T get_default(T*);
-
-bool get_default(bool*) { return true; }
-int get_default(int*) { return 0; }
-unsigned int get_default(unsigned int*) { return 0; }
-unsigned long get_default(unsigned long*) { return 0; }
-unsigned long long get_default(unsigned long long*) { return 0; }
-
 // using boost::hash_combine
 template <class T>
 inline void hash_combine(std::size_t& seed, T const& v)
@@ -70,6 +61,42 @@ class IntegerRange {
 private:
    iterator begin_;
    iterator end_;
+};
+
+/*********************************************************
+ *  DEFAULTS                                             *
+ *********************************************************/
+
+template <typename T>
+T get_default(T*);
+
+bool get_default(bool*) { return true; }
+int get_default(int*) { return 0; }
+unsigned int get_default(unsigned int*) { return 0; }
+unsigned long get_default(unsigned long*) { return 0; }
+unsigned long long get_default(unsigned long long*) { return 0; }
+
+/*********************************************************
+ *  TUPLES                                               *
+ *********************************************************/
+
+template <typename T0, typename T1>
+struct Tuple2 {
+  T0 t0;
+  T1 t1;
+
+  Tuple2() { 
+    t0 = get_default<T0>(NULL);
+    t1 = get_default<T0>(NULL);
+  }
+  
+  Tuple2(T0 _t0, T1 _t1) { 
+    t0 = _t0;
+    t1 = _t1;
+  }
+
+  T0 get_0() { return t0; }
+  T1 get_1() { return t1; }
 };
 
 /*********************************************************
