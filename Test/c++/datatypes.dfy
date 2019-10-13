@@ -1,5 +1,5 @@
 newtype{:nativeType "uint"} uint32 = i:int | 0 <= i < 0x100000000
-
+/*
 datatype Example1 = Example1(u:uint32, b:bool)
 datatype Example2 = Ex2a(u:uint32) | Ex2b(b:bool)
 datatype Example3 = Example3(e:Example1)
@@ -25,9 +25,9 @@ method Main() {
     e2 := Ex2b(true);
     Callee(e2);
 }
-
+*/
 datatype Option<V> = None | Some(value:V)
-
+/*
 datatype Err<V> = Fail(err:bool) | Ok(value:V)
 
 
@@ -36,9 +36,10 @@ method matcher(e:Err<uint32>) {
     case Fail(s) => print s;
     case Ok(v) => print v;
 }
-
+*/
 method GenericTest() {
   var v:Option<uint32> := Some(32);
-  matcher(Ok(42));
-  matcher(Fail(true));
+//  matcher(Ok(42));
+//  matcher(Fail(true));
+  if v.Some? { print "Got some"; }
 }

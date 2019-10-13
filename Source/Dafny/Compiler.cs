@@ -461,7 +461,7 @@ namespace Microsoft.Dafny {
     protected abstract void EmitApplyExpr(Type functionType, Bpl.IToken tok, Expression function, List<Expression> arguments, bool inLetExprBody, TargetWriter wr);
     protected abstract TargetWriter EmitBetaRedex(List<string> boundVars, List<Expression> arguments, string typeArgs, List<Type> boundTypes, Type resultType, Bpl.IToken resultTok, bool inLetExprBody, TargetWriter wr);
     protected virtual void EmitConstructorCheck(string source, DatatypeCtor ctor, TargetWriter wr) {
-      wr.Write("{0}.is_{1}", source, ctor.CompileName);
+      wr.Write("{0}.is_{1}()", source, ctor.CompileName);
     }
     /// <summary>
     /// EmitDestructor is somewhat similar to following "source" with a call to EmitMemberSelect.
