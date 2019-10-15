@@ -1,5 +1,7 @@
 newtype{:nativeType "uint"} uint32 = i:int | 0 <= i < 0x100000000
 datatype Example1 = Example1(u:uint32, b:bool)
+datatype Example4 = Ex4a | Ex4b
+/*
 datatype Example2 = Ex2a(u:uint32) | Ex2b(b:bool)
 datatype Example3 = Example3(e:Example1)
 
@@ -55,4 +57,13 @@ method Main() {
     TestDestructor();
     GenericTest();
 }
+*/
 
+method Comparison(x0:Example1, x1:Example1, y0:Example4, y1:Example4) {
+  if x0 == x1 {
+    print "Example1s are equal";
+  }
+//  if y0 == y1 {
+//    print "Example4s are equal";
+//  }
+}
