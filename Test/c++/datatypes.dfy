@@ -1,5 +1,4 @@
 newtype{:nativeType "uint"} uint32 = i:int | 0 <= i < 0x100000000
-/*
 datatype Example1 = Example1(u:uint32, b:bool)
 datatype Example2 = Ex2a(u:uint32) | Ex2b(b:bool)
 datatype Example3 = Example3(e:Example1)
@@ -18,16 +17,19 @@ method Callee(e:Example2) {
     }
 }
 
-method Main() {
+method TestDestructor() {
     var e1 := Example1(22, false);
-    var e2 := Ex2a(42);
-    Callee(e2);
-    e2 := Ex2b(true);
-    Callee(e2);
+    var x := e1.u;
+    if x == 22 {
+      print "This is expected";
+    } else {
+      assert false;
+      print "This is unexpected!!!";
+    }
 }
-*/
+
+
 datatype Option<V> = None | Some(value:V)
-/*
 datatype Err<V> = Fail(err:bool) | Ok(value:V)
 
 
@@ -36,10 +38,21 @@ method matcher(e:Err<uint32>) {
     case Fail(s) => print s;
     case Ok(v) => print v;
 }
-*/
+
 method GenericTest() {
   var v:Option<uint32> := Some(32);
-//  matcher(Ok(42));
-//  matcher(Fail(true));
-  if v.Some? { print "Got some"; }
+  matcher(Ok(42));
+  matcher(Fail(true));
+  if v.Some? { print "Got some", v.value; }
 }
+
+method Main() {
+    var e1 := Example1(22, false);
+    var e2 := Ex2a(42);
+    Callee(e2);
+    e2 := Ex2b(true);
+    Callee(e2);
+    TestDestructor();
+    GenericTest();
+}
+

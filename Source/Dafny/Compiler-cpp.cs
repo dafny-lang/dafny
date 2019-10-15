@@ -1630,8 +1630,19 @@ namespace Microsoft.Dafny {
           wr.Write("->{0}", compiledName);
         } else if (sf.SpecialId == SpecialField.ID.Keys || sf.SpecialId == SpecialField.ID.Values) {
           wr.Write(".{0}", compiledName);
-        } else if (sf is DatatypeDestructor) {
-          wr.Write(".{0}", sf.CompileName);
+        } else if (sf is DatatypeDestructor dtor2) {
+          if (dtor2.EnclosingCtors.Count > 1) {
+            NotSupported(String.Format("Using the same destructor {0} with multiple constructors is ambiguous", member.Name), dtor2.tok);
+          }
+          if (!(dtor2.EnclosingClass is IndDatatypeDecl)) {
+            NotSupported(String.Format("Unexpected use of a destructor {0} that isn't for an inductive datatype.  Panic!", member.Name), dtor2.tok);
+          }
+          var dt = dtor2.EnclosingClass as IndDatatypeDecl;
+          if (dt.Ctors.Count > 1) {
+            wr.Write(".v_{0}.{1}", dtor2.EnclosingCtors[0].CompileName, sf.CompileName);
+          } else {
+            wr.Write(".{0}", sf.CompileName);
+          }
         } else if (compiledName.Length != 0) {
           wr.Write("::{0}", compiledName);
         } else {
