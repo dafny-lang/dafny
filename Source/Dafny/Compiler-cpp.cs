@@ -280,6 +280,8 @@ namespace Microsoft.Dafny {
       //      result.v_Ex2a.u = u;
       //      return result;
       //    }
+      //    bool is_Example2_2a() { return tag == Example2::TAG_2a; }
+      //    bool is_Example2_2b() { return tag == Example2::TAG_2b; }
       // };
       // bool is_Example2_2a(struct Example2 d) { return d.tag == Example2::TAG_2a; }
       // bool is_Example2_2b(struct Example2 d) { return d.tag == Example2::TAG_2b; }
@@ -411,8 +413,9 @@ namespace Microsoft.Dafny {
           }
         }
 
-        // Declare type queries
+        // Declare type queries, both as members and general-purpose functions
         foreach (var ctor in dt.Ctors) {
+          ws.WriteLine("bool is_{0}() {{ return tag == {1}{2}::TAG_{0}; }}", ctor.CompileName, DtT_protected, TemplateMethod(dt.TypeArgs));
           wr.WriteLine("{0}\nbool is_{1}(struct {2}{3} d) {{ return d.tag == {2}{3}::TAG_{1}; }}", DeclareTemplate(dt.TypeArgs), ctor.CompileName, DtT_protected, TemplateMethod(dt.TypeArgs));  
         }
       }
@@ -1615,6 +1618,11 @@ namespace Microsoft.Dafny {
         wr.Write(".get_{0}()", dtor.Name);
       //} else if (member is SpecialField sf && sf.SpecialId == SpecialField.ID.Con) {
         
+      } else if (member is SpecialField sf2 && sf2.SpecialId == SpecialField.ID.UseIdParam && sf2.IdParam is string fieldName && fieldName.StartsWith("is_")) {
+        // Ugly hack of a check to figure out if this is a datatype query: f.Constructor?
+        //wr = EmitCoercionIfNecessary(from:sf2.Type, to:expectedType, tok:null, wr:wr);
+        wSource = wr.Fork();
+        wr.Write(".{0}()", fieldName);
       } else if (!isLValue && member is SpecialField sf) {
         string compiledName, preStr, postStr;
         GetSpecialFieldInfo(sf.SpecialId, sf.IdParam, out compiledName, out preStr, out postStr);
