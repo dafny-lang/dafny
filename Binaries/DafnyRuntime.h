@@ -70,11 +70,16 @@ private:
 template <typename T>
 T get_default(T*);
 
-bool get_default(bool*) { return true; }
-int get_default(int*) { return 0; }
-unsigned int get_default(unsigned int*) { return 0; }
-unsigned long get_default(unsigned long*) { return 0; }
-unsigned long long get_default(unsigned long long*) { return 0; }
+template <>
+bool get_default<bool>(bool*) { return true; }
+template <>
+int get_default<int>(int*) { return 0; }
+template <>
+unsigned int get_default<unsigned int>(unsigned int*) { return 0; }
+template <>
+unsigned long get_default<unsigned long>(unsigned long*) { return 0; }
+template <>
+unsigned long long get_default<unsigned long long>(unsigned long long*) { return 0; }
 
 /*********************************************************
  *  TUPLES                                               *
