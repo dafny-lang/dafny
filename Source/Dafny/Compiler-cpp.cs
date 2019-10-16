@@ -339,13 +339,17 @@ namespace Microsoft.Dafny {
             ws.WriteLine("\t\t&& left.{0} == right.{0}", arg);
         }
         ws.WriteLine(";\n}");
+        
+        // Overload the not-comparison operator
+        ws.WriteLine("friend bool operator!=(const {0} &left, const {0} &right) {{ return !(left == right); }} ", DtT_protected);
 
         wr.WriteLine("{0}\nbool is_{1}(const struct {2}{3} d) {{ return true; }}", DeclareTemplate(dt.TypeArgs), ctor.CompileName, DtT_protected, TemplateMethod(dt.TypeArgs));        
       } else {
 
         // Create one struct for each constructor
         foreach (var ctor in dt.Ctors) {
-          var wstruct = wr.NewBlock(String.Format("{0}\nstruct {1}_{2}", DeclareTemplate(dt.TypeArgs), DtT_protected, ctor.CompileName), ";");
+          string structName = string.Format("{0}_{1}", DtT_protected, ctor.CompileName);
+          var wstruct = wr.NewBlock(String.Format("{0}\nstruct {1}", DeclareTemplate(dt.TypeArgs), structName), ";");
           // Declare the struct members
           var i = 0;
           var argNames = new List<string>();
@@ -358,12 +362,15 @@ namespace Microsoft.Dafny {
           }
           
           // Overload the comparison operator
-          wstruct.WriteLine("friend bool operator==(const {0}_{1} &left, const {0}_{1} &right) {{ ", DtT_protected, ctor.CompileName);
+          wstruct.WriteLine("friend bool operator==(const {0} &left, const {0} &right) {{ ", structName);
           wstruct.Write("\treturn true ");
           foreach (var arg in argNames) {
             wstruct.WriteLine("\t\t&& left.{0} == right.{0}", arg);
           }
           wstruct.WriteLine(";\n}");
+          
+          // Overload the not-comparison operator
+          wstruct.WriteLine("friend bool operator!=(const {0} &left, const {0} &right) {{ return !(left == right); }} ", structName);
         }
 
         // Declare the overall tagged union
@@ -444,6 +451,10 @@ namespace Microsoft.Dafny {
           ws.WriteLine("\t\t|| (left.is_{0}() && right.is_{0}() && left.v_{0} == right.v_{0})", ctor.CompileName);
         }
         ws.WriteLine(";\n}");
+        
+        // Overload the not-comparison operator
+        ws.WriteLine("friend bool operator!=(const {0} &left, const {0} &right) {{ return !(left == right); }} ", DtT_protected);
+
       }
     }
 

@@ -53,8 +53,14 @@ method Comparison(x0:Example1, x1:Example1, y0:Example4, y1:Example4) {
   if x0 == x1 {
     print "Example1s are equal\n";
   }
+  if x0 != x1 {
+    print "Example1s are not equal\n";
+  }
   if y0 == y1 {
     print "Example4s are equal\n";
+  }
+  if y0 != y1 {
+    print "Example4s are not equal\n";
   }
 }
 
