@@ -871,7 +871,7 @@ namespace Microsoft.Dafny {
         //TypeName_SplitArrayName(elType, wr, tok, out typeNameSansBrackets, out brackets);
         //return typeNameSansBrackets + TypeNameArrayBrackets(at.Dims) + brackets;
         if (at.Dims == 1) {
-          return "shared_ptr<vector<" + TypeName(elType, wr, tok, null, true) + ">>";
+          return "shared_ptr<vector<" + TypeName(elType, wr, tok, null, false) + ">>";
         } else {
           throw NotSupported("Multi-dimensional arrays");
         }

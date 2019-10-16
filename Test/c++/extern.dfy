@@ -9,7 +9,6 @@ module {:extern "Extern"} Extern {
 
 module TestMod {
   import opened Extern
-
   class C {
     var s:state;
  
@@ -18,7 +17,17 @@ module TestMod {
     }
   }
 
+  class D {
+    var s:uint64;
+ 
+    constructor (i:uint64) {
+      this.s := i;
+    }
+  }
+
   method Main() {
     var a:array<uint64> := newArrayFill(5, 42);
+    var d := new D(21);
+    var b:array<D> := newArrayFill(3, d);
   }
 }
