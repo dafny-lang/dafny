@@ -1,21 +1,105 @@
 
-Dafny program verifier finished with 8 verified, 0 errors
+Dafny program verifier finished with 23 verified, 0 errors
 20 30
 10 10 18
 20 30
 10 10 18
 0 3 4 1
+int8:
+-42	 <0 Y <=0 Y ==0 N !=0 Y >0 N >=0 N 0< N 0<= N 0== N 0!= Y 0> Y 0>= Y
+0	 <0 N <=0 Y ==0 Y !=0 N >0 N >=0 Y 0< N 0<= Y 0== Y 0!= N 0> N 0>= Y
+23	 <0 N <=0 N ==0 N !=0 Y >0 Y >=0 Y 0< Y 0<= Y 0== N 0!= Y 0> N 0>= N
+int16:
+-42	 <0 Y <=0 Y ==0 N !=0 Y >0 N >=0 N 0< N 0<= N 0== N 0!= Y 0> Y 0>= Y
+0	 <0 N <=0 Y ==0 Y !=0 N >0 N >=0 Y 0< N 0<= Y 0== Y 0!= N 0> N 0>= Y
+23	 <0 N <=0 N ==0 N !=0 Y >0 Y >=0 Y 0< Y 0<= Y 0== N 0!= Y 0> N 0>= N
+int32:
+-42	 <0 Y <=0 Y ==0 N !=0 Y >0 N >=0 N 0< N 0<= N 0== N 0!= Y 0> Y 0>= Y
+0	 <0 N <=0 Y ==0 Y !=0 N >0 N >=0 Y 0< N 0<= Y 0== Y 0!= N 0> N 0>= Y
+23	 <0 N <=0 N ==0 N !=0 Y >0 Y >=0 Y 0< Y 0<= Y 0== N 0!= Y 0> N 0>= N
+int64:
+-42	 <0 Y <=0 Y ==0 N !=0 Y >0 N >=0 N 0< N 0<= N 0== N 0!= Y 0> Y 0>= Y
+0	 <0 N <=0 Y ==0 Y !=0 N >0 N >=0 Y 0< N 0<= Y 0== Y 0!= N 0> N 0>= Y
+23	 <0 N <=0 N ==0 N !=0 Y >0 Y >=0 Y 0< Y 0<= Y 0== N 0!= Y 0> N 0>= N
+uint8:
+0	 <0 N <=0 Y ==0 Y !=0 N >0 N >=0 Y 0< N 0<= Y 0== Y 0!= N 0> N 0>= Y
+23	 <0 N <=0 N ==0 N !=0 Y >0 Y >=0 Y 0< Y 0<= Y 0== N 0!= Y 0> N 0>= N
+uint16:
+0	 <0 N <=0 Y ==0 Y !=0 N >0 N >=0 Y 0< N 0<= Y 0== Y 0!= N 0> N 0>= Y
+23	 <0 N <=0 N ==0 N !=0 Y >0 Y >=0 Y 0< Y 0<= Y 0== N 0!= Y 0> N 0>= N
+uint32:
+0	 <0 N <=0 Y ==0 Y !=0 N >0 N >=0 Y 0< N 0<= Y 0== Y 0!= N 0> N 0>= Y
+23	 <0 N <=0 N ==0 N !=0 Y >0 Y >=0 Y 0< Y 0<= Y 0== N 0!= Y 0> N 0>= N
+uint64:
+0	 <0 N <=0 Y ==0 Y !=0 N >0 N >=0 Y 0< N 0<= Y 0== Y 0!= N 0> N 0>= Y
+23	 <0 N <=0 N ==0 N !=0 Y >0 Y >=0 Y 0< Y 0<= Y 0== N 0!= Y 0> N 0>= N
 
-Dafny program verifier finished with 8 verified, 0 errors
+Dafny program verifier finished with 23 verified, 0 errors
 20 30
 10 10 18
 20 30
 10 10 18
 0 3 4 1
+int8:
+-42	 <0 Y <=0 Y ==0 N !=0 Y >0 N >=0 N 0< N 0<= N 0== N 0!= Y 0> Y 0>= Y
+0	 <0 N <=0 Y ==0 Y !=0 N >0 N >=0 Y 0< N 0<= Y 0== Y 0!= N 0> N 0>= Y
+23	 <0 N <=0 N ==0 N !=0 Y >0 Y >=0 Y 0< Y 0<= Y 0== N 0!= Y 0> N 0>= N
+int16:
+-42	 <0 Y <=0 Y ==0 N !=0 Y >0 N >=0 N 0< N 0<= N 0== N 0!= Y 0> Y 0>= Y
+0	 <0 N <=0 Y ==0 Y !=0 N >0 N >=0 Y 0< N 0<= Y 0== Y 0!= N 0> N 0>= Y
+23	 <0 N <=0 N ==0 N !=0 Y >0 Y >=0 Y 0< Y 0<= Y 0== N 0!= Y 0> N 0>= N
+int32:
+-42	 <0 Y <=0 Y ==0 N !=0 Y >0 N >=0 N 0< N 0<= N 0== N 0!= Y 0> Y 0>= Y
+0	 <0 N <=0 Y ==0 Y !=0 N >0 N >=0 Y 0< N 0<= Y 0== Y 0!= N 0> N 0>= Y
+23	 <0 N <=0 N ==0 N !=0 Y >0 Y >=0 Y 0< Y 0<= Y 0== N 0!= Y 0> N 0>= N
+int64:
+-42	 <0 Y <=0 Y ==0 N !=0 Y >0 N >=0 N 0< N 0<= N 0== N 0!= Y 0> Y 0>= Y
+0	 <0 N <=0 Y ==0 Y !=0 N >0 N >=0 Y 0< N 0<= Y 0== Y 0!= N 0> N 0>= Y
+23	 <0 N <=0 N ==0 N !=0 Y >0 Y >=0 Y 0< Y 0<= Y 0== N 0!= Y 0> N 0>= N
+uint8:
+0	 <0 N <=0 Y ==0 Y !=0 N >0 N >=0 Y 0< N 0<= Y 0== Y 0!= N 0> N 0>= Y
+23	 <0 N <=0 N ==0 N !=0 Y >0 Y >=0 Y 0< Y 0<= Y 0== N 0!= Y 0> N 0>= N
+uint16:
+0	 <0 N <=0 Y ==0 Y !=0 N >0 N >=0 Y 0< N 0<= Y 0== Y 0!= N 0> N 0>= Y
+23	 <0 N <=0 N ==0 N !=0 Y >0 Y >=0 Y 0< Y 0<= Y 0== N 0!= Y 0> N 0>= N
+uint32:
+0	 <0 N <=0 Y ==0 Y !=0 N >0 N >=0 Y 0< N 0<= Y 0== Y 0!= N 0> N 0>= Y
+23	 <0 N <=0 N ==0 N !=0 Y >0 Y >=0 Y 0< Y 0<= Y 0== N 0!= Y 0> N 0>= N
+uint64:
+0	 <0 N <=0 Y ==0 Y !=0 N >0 N >=0 Y 0< N 0<= Y 0== Y 0!= N 0> N 0>= Y
+23	 <0 N <=0 N ==0 N !=0 Y >0 Y >=0 Y 0< Y 0<= Y 0== N 0!= Y 0> N 0>= N
 
-Dafny program verifier finished with 8 verified, 0 errors
+Dafny program verifier finished with 23 verified, 0 errors
 20 30
 10 10 18
 20 30
 10 10 18
 0 3 4 1
+int8:
+-42	 <0 Y <=0 Y ==0 N !=0 Y >0 N >=0 N 0< N 0<= N 0== N 0!= Y 0> Y 0>= Y
+0	 <0 N <=0 Y ==0 Y !=0 N >0 N >=0 Y 0< N 0<= Y 0== Y 0!= N 0> N 0>= Y
+23	 <0 N <=0 N ==0 N !=0 Y >0 Y >=0 Y 0< Y 0<= Y 0== N 0!= Y 0> N 0>= N
+int16:
+-42	 <0 Y <=0 Y ==0 N !=0 Y >0 N >=0 N 0< N 0<= N 0== N 0!= Y 0> Y 0>= Y
+0	 <0 N <=0 Y ==0 Y !=0 N >0 N >=0 Y 0< N 0<= Y 0== Y 0!= N 0> N 0>= Y
+23	 <0 N <=0 N ==0 N !=0 Y >0 Y >=0 Y 0< Y 0<= Y 0== N 0!= Y 0> N 0>= N
+int32:
+-42	 <0 Y <=0 Y ==0 N !=0 Y >0 N >=0 N 0< N 0<= N 0== N 0!= Y 0> Y 0>= Y
+0	 <0 N <=0 Y ==0 Y !=0 N >0 N >=0 Y 0< N 0<= Y 0== Y 0!= N 0> N 0>= Y
+23	 <0 N <=0 N ==0 N !=0 Y >0 Y >=0 Y 0< Y 0<= Y 0== N 0!= Y 0> N 0>= N
+int64:
+-42	 <0 Y <=0 Y ==0 N !=0 Y >0 N >=0 N 0< N 0<= N 0== N 0!= Y 0> Y 0>= Y
+0	 <0 N <=0 Y ==0 Y !=0 N >0 N >=0 Y 0< N 0<= Y 0== Y 0!= N 0> N 0>= Y
+23	 <0 N <=0 N ==0 N !=0 Y >0 Y >=0 Y 0< Y 0<= Y 0== N 0!= Y 0> N 0>= N
+uint8:
+0	 <0 N <=0 Y ==0 Y !=0 N >0 N >=0 Y 0< N 0<= Y 0== Y 0!= N 0> N 0>= Y
+23	 <0 N <=0 N ==0 N !=0 Y >0 Y >=0 Y 0< Y 0<= Y 0== N 0!= Y 0> N 0>= N
+uint16:
+0	 <0 N <=0 Y ==0 Y !=0 N >0 N >=0 Y 0< N 0<= Y 0== Y 0!= N 0> N 0>= Y
+23	 <0 N <=0 N ==0 N !=0 Y >0 Y >=0 Y 0< Y 0<= Y 0== N 0!= Y 0> N 0>= N
+uint32:
+0	 <0 N <=0 Y ==0 Y !=0 N >0 N >=0 Y 0< N 0<= Y 0== Y 0!= N 0> N 0>= Y
+23	 <0 N <=0 N ==0 N !=0 Y >0 Y >=0 Y 0< Y 0<= Y 0== N 0!= Y 0> N 0>= N
+uint64:
+0	 <0 N <=0 Y ==0 Y !=0 N >0 N >=0 Y 0< N 0<= Y 0== Y 0!= N 0> N 0>= Y
+23	 <0 N <=0 N ==0 N !=0 Y >0 Y >=0 Y 0< Y 0<= Y 0== N 0!= Y 0> N 0>= N

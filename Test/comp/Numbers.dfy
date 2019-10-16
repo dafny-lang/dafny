@@ -13,6 +13,7 @@ method Main() {
   MoreBvTests();
   NewTypeTest();
   OrdinalTests();
+  ZeroComparisonTests();
 }
 
 method Print(description: string, x: int) {
@@ -302,4 +303,42 @@ method PrintOrdinalInfo(o : ORDINAL) {
   print ", Offset: ", o.Offset;
   print ", IsLimit: ", o.IsLimit;
   print ", IsSucc: ", o.IsSucc, "\n";
+}
+
+method ZeroComparisonTests() {
+  print "int:\n";
+  ZCIntTests(-42);
+  ZCIntTests(0);
+  ZCIntTests(23);
+
+  print "MyNumber:\n";
+  ZCMyNumberTests(-42);
+  ZCMyNumberTests(0);
+  ZCMyNumberTests(23);
+}
+
+function method YN(b : bool) : string {
+  if b then "Y" else "N"
+}
+
+method ZCIntTests(n : int) {
+  print n, "\t",
+    " <0 ",  YN(n < 0),  " <=0 ", YN(n <= 0),
+    " ==0 ", YN(n == 0), " !=0 ", YN(n != 0),
+    " >0 ",  YN(n > 0),  " >=0 ", YN(n >= 0),
+    " 0< ",  YN(0 < n),  " 0<= ", YN(0 <= n),
+    " 0== ", YN(0 == n), " 0!= ", YN(0 != n),
+    " 0> ",  YN(0 > n),  " 0>= ", YN(0 >= n),
+    "\n";
+}
+
+method ZCMyNumberTests(n : MyNumber) {
+  print n, "\t",
+    " <0 ",  YN(n < 0),  " <=0 ", YN(n <= 0),
+    " ==0 ", YN(n == 0), " !=0 ", YN(n != 0),
+    " >0 ",  YN(n > 0),  " >=0 ", YN(n >= 0),
+    " 0< ",  YN(0 < n),  " 0<= ", YN(0 <= n),
+    " 0== ", YN(0 == n), " 0!= ", YN(0 != n),
+    " 0> ",  YN(0 > n),  " 0>= ", YN(0 >= n),
+    "\n";
 }

@@ -1402,6 +1402,20 @@ namespace Microsoft.Dafny
       }
     }
 
+    protected override bool CompareZeroUsingSign(Type type) {
+      return AsNativeType(type) == null;
+    }
+
+    protected override TargetWriter EmitSign(Type type, TargetWriter wr) {
+      // Should only be called when CompareZeroUsingSign is true
+      Contract.Assert(AsNativeType(type) == null);
+
+      TargetWriter w = wr.Fork();
+      wr.Write(".Sign");
+
+      return w;
+    }
+
     protected override void EmitEmptyTupleList(string tupleTypeArgs, TargetWriter wr) {
       wr.Write("new System.Collections.Generic.List<System.Tuple<{0}>>()", tupleTypeArgs);
     }

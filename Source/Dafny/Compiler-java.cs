@@ -1186,6 +1186,30 @@ namespace Microsoft.Dafny{
                                                         || n.Sel.Equals(NativeType.Selection.Number));
     }
 
+    protected override bool CompareZeroUsingSign(Type type) {
+      // Everything is boxed, so everything benefits from avoiding explicit 0
+      return true;
+    }
+
+    protected override TargetWriter EmitSign(Type type, TargetWriter wr) {
+      TargetWriter w;
+      var nt = AsNativeType(type);
+      if (nt == null || nt.LowerBound >= 0) {
+        w = wr.Fork();
+        wr.Write(".signum()");
+      } else {
+        if (TypeName(type, wr, Bpl.Token.NoToken) == "Long") {
+          wr.Write("Long");
+        } else {
+          wr.Write("Integer");
+        }
+        wr.Write(".signum(");
+        w = wr.Fork();
+        wr.Write(")");
+      }
+      return w;
+    }
+
     protected override IClassWriter/*?*/ DeclareDatatype(DatatypeDecl dt, TargetWriter wr) {
       if (dt is TupleTypeDecl){
         tuples.Add(((TupleTypeDecl) dt).Dims);

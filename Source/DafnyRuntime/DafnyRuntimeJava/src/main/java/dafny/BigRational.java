@@ -146,6 +146,10 @@ public class BigRational {
         return n.dtor__0().compareTo(n.dtor__1());
     }
 
+    public int signum() {
+        return this.num.signum();
+    }
+
     @Override
     public int hashCode() {
         return num.hashCode() + 29 * den.hashCode();
