@@ -434,8 +434,8 @@ namespace Microsoft.Dafny {
           wcc.WriteLine("tag = other.tag;");
           foreach (var ctor in dt.Ctors) {
             wcc.WriteLine("if (tag == {0}::TAG_{1}) {{ v_{1} = other.v_{1}; }}", DtT_protected, ctor.CompileName);
-            wcc.WriteLine("return *this;");
           }
+          wcc.WriteLine("return *this;");
         }
         
         // Declare type queries, both as members and general-purpose functions
