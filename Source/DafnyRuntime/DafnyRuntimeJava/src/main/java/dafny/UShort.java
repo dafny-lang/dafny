@@ -51,6 +51,10 @@ public class UShort {
         return Integer.compareUnsigned(inner, other.inner);
     }
 
+    public int signum() {
+        return inner == 0 ? 0 : 1;
+    }
+
     public int intValue(){
         return inner;
     }

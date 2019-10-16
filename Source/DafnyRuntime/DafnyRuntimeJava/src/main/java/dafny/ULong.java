@@ -72,6 +72,10 @@ public class ULong {
         return Long.compareUnsigned(inner, other.inner);
     }
 
+    public int signum() {
+        return inner == 0 ? 0 : 1;
+    }
+
     //Invariant that other.inner is positive, so no underflow check needed
     public ULong add(ULong other) {
         assert asBigInteger().add(other.asBigInteger()).compareTo(ULONG_LIMIT) < 0 : "Precondition Failure";
