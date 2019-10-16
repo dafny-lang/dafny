@@ -1748,7 +1748,18 @@ namespace Microsoft.Dafny {
 
     protected override void EmitSeqSelectRange(Expression source, Expression/*?*/ lo, Expression/*?*/ hi, bool fromArray, bool inLetExprBody, TargetWriter wr) {
       if (fromArray) {
-        wr.Write("DafnySequence<{0}>::SeqFromArray", TypeName(source.Type.TypeArgs[0], wr, source.tok, null, true));
+        string typeName = "";
+        if (source.Type is UserDefinedType udt && udt.ResolvedClass != null &&
+            udt.ResolvedClass is TypeSynonymDecl tsd) {
+          // Hack to workaround type synonyms wrapped around the actual array type
+          // TODO: Come up with a more systematic way of resolving this!
+          typeName = TypeName(tsd.Rhs.TypeArgs[0], wr, source.tok, null, true);
+        } else {
+          typeName = TypeName(source.Type.TypeArgs[0], wr, source.tok, null, true);
+        }
+        wr.Write("DafnySequence<{0}>::SeqFromArray", typeName);
+        //var arr = source.Type.AsArrayType;
+        // wr.Write("DafnySequence<{0}>::SeqFromArray", TypeName(arr., wr, source.tok, null, true));
         //wr.Write("DafnySequence<{0}>::SeqFromArray", IdName(source.GetType().AsArrayType.TypeArgs[0]));
       }
       TrParenExpr(source, wr, inLetExprBody);
