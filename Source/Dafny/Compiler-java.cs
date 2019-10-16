@@ -2087,6 +2087,16 @@ namespace Microsoft.Dafny{
             opString = "+";
           } else if (resultType is UserDefinedType && !resultType.IsIntegerType && !unsignedTypes.Contains(TypeName(e0.Type, null, tok)) && !unsignedTypes.Contains(TypeName(e1.Type, null, tok))) {
             opString = "+";
+            switch (TypeName(resultType, null, tok)) {
+              case "Byte":
+                preOpString = "(byte) (";
+                postOpString = ")";
+                break;
+              case "Short":
+                preOpString = "(short) (";
+                postOpString = ")";
+                break;
+            }
           } else {
             callString = "add";
           }
@@ -2099,6 +2109,16 @@ namespace Microsoft.Dafny{
             postOpString = ")";
           } else if (resultType is UserDefinedType && !resultType.IsIntegerType && !unsignedTypes.Contains(TypeName(e0.Type, null, tok)) && !unsignedTypes.Contains(TypeName(e1.Type, null, tok))) {
             opString = "-";
+            switch (TypeName(resultType, null, tok)) {
+              case "Byte":
+                preOpString = "(byte) (";
+                postOpString = ")";
+                break;
+              case "Short":
+                preOpString = "(short) (";
+                postOpString = ")";
+                break;
+            }
           } else {
             callString = "subtract";
           }
