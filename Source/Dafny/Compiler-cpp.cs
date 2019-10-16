@@ -332,7 +332,15 @@ namespace Microsoft.Dafny {
           wc.WriteLine("{0} = {1};", arg.CompileName, DefaultValue(arg.Type, wc, arg.tok));
         }
         
-        wr.WriteLine("{0}\nbool is_{1}(struct {2}{3} d) {{ return true; }}", DeclareTemplate(dt.TypeArgs), ctor.CompileName, DtT_protected, TemplateMethod(dt.TypeArgs));        
+        // Overload the comparison operator
+        ws.WriteLine("friend bool operator==(const {0} &left, const {0} &right) {{ ", DtT_protected);
+        ws.Write("\treturn true ");
+        foreach (var arg in argNames) {
+            ws.WriteLine("\t\t&& left.{0} == right.{0}", arg);
+        }
+        ws.WriteLine(";\n}");
+
+        wr.WriteLine("{0}\nbool is_{1}(const struct {2}{3} d) {{ return true; }}", DeclareTemplate(dt.TypeArgs), ctor.CompileName, DtT_protected, TemplateMethod(dt.TypeArgs));        
       } else {
 
         // Create one struct for each constructor
@@ -340,12 +348,22 @@ namespace Microsoft.Dafny {
           var wstruct = wr.NewBlock(String.Format("{0}\nstruct {1}_{2}", DeclareTemplate(dt.TypeArgs), DtT_protected, ctor.CompileName), ";");
           // Declare the struct members
           var i = 0;
+          var argNames = new List<string>();
           foreach (Formal arg in ctor.Formals) {
             if (!arg.IsGhost) {
               wstruct.WriteLine("{0} {1};", TypeName(arg.Type, wr, arg.tok), FormalName(arg, i));
+              argNames.Add(FormalName(arg, i));
               i++;
             }
           }
+          
+          // Overload the comparison operator
+          wstruct.WriteLine("friend bool operator==(const {0}_{1} &left, const {0}_{1} &right) {{ ", DtT_protected, ctor.CompileName);
+          wstruct.Write("\treturn true ");
+          foreach (var arg in argNames) {
+            wstruct.WriteLine("\t\t&& left.{0} == right.{0}", arg);
+          }
+          wstruct.WriteLine(";\n}");
         }
 
         // Declare the overall tagged union
@@ -412,12 +430,20 @@ namespace Microsoft.Dafny {
             wcc.WriteLine("return *this;");
           }
         }
-
+        
         // Declare type queries, both as members and general-purpose functions
         foreach (var ctor in dt.Ctors) {
-          ws.WriteLine("bool is_{0}() {{ return tag == {1}{2}::TAG_{0}; }}", ctor.CompileName, DtT_protected, TemplateMethod(dt.TypeArgs));
-          wr.WriteLine("{0}\nbool is_{1}(struct {2}{3} d) {{ return d.tag == {2}{3}::TAG_{1}; }}", DeclareTemplate(dt.TypeArgs), ctor.CompileName, DtT_protected, TemplateMethod(dt.TypeArgs));  
+          ws.WriteLine("bool is_{0}() const {{ return tag == {1}{2}::TAG_{0}; }}", ctor.CompileName, DtT_protected, TemplateMethod(dt.TypeArgs));
+          wr.WriteLine("{0}\nbool is_{1}(const struct {2}{3} d) {{ return d.tag == {2}{3}::TAG_{1}; }}", DeclareTemplate(dt.TypeArgs), ctor.CompileName, DtT_protected, TemplateMethod(dt.TypeArgs));  
         }
+        
+        // Overload the comparison operator
+        ws.WriteLine("friend bool operator==(const {0} &left, const {0} &right) {{ ", DtT_protected);
+        ws.Write("\treturn false");
+        foreach (var ctor in dt.Ctors) {
+          ws.WriteLine("\t\t|| (left.is_{0}() && right.is_{0}() && left.v_{0} == right.v_{0})", ctor.CompileName);
+        }
+        ws.WriteLine(";\n}");
       }
     }
 
