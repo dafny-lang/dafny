@@ -80,7 +80,7 @@ class Node<T> {
   constructor InitNode(val: T, next: Node?<T>)
     requires next != null ==> next.Valid()
     ensures Valid()
-    ensures next != null ==> content == [val] + next.content && 
+    ensures next != null ==> content == [val] + next.content &&
                              footprint == {this} + next.footprint
     ensures next == null ==> content == [val] &&
                              footprint == {this}
@@ -89,10 +89,10 @@ class Node<T> {
     this.next := next;
     if next == null {
       this.footprint := {this};
-      this.content := [val];      
+      this.content := [val];
     } else {
       this.footprint := {this} + next.footprint;
-      this.content := [val] + next.content;      
+      this.content := [val] + next.content;
     }
   }
 }

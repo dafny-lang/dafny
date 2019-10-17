@@ -1,9 +1,9 @@
 // RUN: %dafny /compile:0 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
-datatype PartRealPartGhost = PartRealPartGhost(x:int, ghost y:int) 
+datatype PartRealPartGhost = PartRealPartGhost(x:int, ghost y:int)
 
-method UpdateField() 
+method UpdateField()
 {
  var v := PartRealPartGhost(3, 4);
  ghost var g := 5;

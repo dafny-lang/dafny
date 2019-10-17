@@ -51,10 +51,10 @@ interface SetNode {
   constructor TripleBase(x: int, y: int, z: int)
     requires x < y && y < z
     ensures elems = {x y z}
-	
+
   method Find(n: int) returns (ret: bool)
     ensures ret = (n in elems)
-	
+
 }
 
 datamodel SetNode {
@@ -62,11 +62,11 @@ datamodel SetNode {
   var left: SetNode
   var right: SetNode
 
-  frame 
+  frame
     left * right
 
   invariant
     elems = {data} + (left != null ? left.elems : {}) + (right != null ? right.elems : {})
     left != null  ==> forall e :: e in left.elems ==> e < data
     right != null ==> forall e :: e in right.elems ==> e > data
-} 
+}

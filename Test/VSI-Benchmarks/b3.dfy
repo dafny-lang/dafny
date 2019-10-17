@@ -9,8 +9,8 @@
 // Instead, we used .contents.
 
 // Note:  Due to infelicities of the Dafny sequence treatment, we
-// needed to supply two lemmas, do a complicated assignment of 
-// pperm, had to write invariants over p and perm rather than pperm and we couldn't use 
+// needed to supply two lemmas, do a complicated assignment of
+// pperm, had to write invariants over p and perm rather than pperm and we couldn't use
 // "x in p".
 
 class Queue<T> {
@@ -74,11 +74,11 @@ class Benchmark3 {
     ensures |old(q.contents)| == |q.contents| + 1;
     ensures 0 <= k < |old(q.contents)| && old(q.contents[k]) == m;
     ensures forall i :: 0 <= i < |q.contents| ==> m <= q.contents[i];
-    ensures q.contents == old(q.contents)[k+1..] + old(q.contents)[..k];  
+    ensures q.contents == old(q.contents)[k+1..] + old(q.contents)[..k];
   {
     var n := |q.contents|;
     k := 0;
-    m := q.Head(); 
+    m := q.Head();
     var j := 0;
     while j < n
       invariant j <= n;
@@ -111,7 +111,7 @@ class Benchmark3 {
     var j := 0;
     while j < k
       invariant j <= k;
-      invariant q.contents == old(q.contents)[j..] + old(q.contents)[..j]; 
+      invariant q.contents == old(q.contents)[j..] + old(q.contents)[..j];
     {
       ghost var qc0 := q.contents;
       var x := q.Dequeue();
@@ -119,7 +119,7 @@ class Benchmark3 {
       RotationLemma(old(q.contents), j, qc0, q.contents);
       j := j+1;
     }
-    assert j == k;  
+    assert j == k;
   }
 
   lemma RotationLemma(O: seq, j: nat, A: seq, C: seq)

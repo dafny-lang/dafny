@@ -2,7 +2,7 @@
 // RUN: %diff "%s.expect" "%t"
 
 module TestDisjointSets {
-  method testing1() 
+  method testing1()
   {
      var a, b, c := {1,2}, {3, 4}, {5, 6};
      assert a !! b !! c;

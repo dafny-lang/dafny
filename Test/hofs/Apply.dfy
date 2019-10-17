@@ -37,7 +37,7 @@ method AllocationTest(oldcell: Cell)
   y.data := 45;
   var f := () reads y => y.data;
   assert f() == 45;
-  
+
   var z := new Cell;
   var g := () => if y == z then 30 else 45;
   assert g() == 45;

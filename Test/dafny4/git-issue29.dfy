@@ -29,12 +29,12 @@ lemma test()
 
     var a:array<uint32>;
     var a' := Identity(a);    // Works
-    var a'' := ArrayIdentity(a);  // Error    
+    var a'' := ArrayIdentity(a);  // Error
 }
 
 
 function ConcatenateSeqs<T>(ss:seq<seq<T>>) : seq<T>
-predicate WordSeqToBytes(ws:seq<uint32>) 
+predicate WordSeqToBytes(ws:seq<uint32>)
 
 method test2(M:seq<seq<uint32>>)
 {

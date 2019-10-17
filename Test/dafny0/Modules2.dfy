@@ -50,7 +50,7 @@ module Test3 {
     var d' := D.E(i);   // bad, as D is still itself ambiguous.
     var d'':= B.D.E(i); // good, just use the B version
     assert f(3) >= 0;   // bad because A and B both define f statically.
-  }  
+  }
 }
 
 module Test4 {

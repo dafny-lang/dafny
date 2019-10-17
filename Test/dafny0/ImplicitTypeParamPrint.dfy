@@ -10,7 +10,7 @@ function method funkyNil(l: List): List
 {
   match l
   case Cons(x,y) => funkyNil(y)
-  case Nil => l 
+  case Nil => l
 }
 
 method H(a: array, l: List)

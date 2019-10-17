@@ -33,7 +33,7 @@ module FacadeTests {
   module Template {
     datatype Packet = Packet(UndeclaredType)  // error: UndeclaredType
   }
-  
+
   module ClientModule {
     import T : Template
     method M() {

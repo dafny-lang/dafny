@@ -8,7 +8,7 @@ method Main()
     var fifteen : real  := 15.0;
 		var negone  : real  := -1.0;
 		var negthree : real := -3.0;
-		
+
 		print zero <= fifteen, "\n";  // true
 		print fifteen <= zero, "\n";  // false
 		print negone <= zero, "\n";   // true

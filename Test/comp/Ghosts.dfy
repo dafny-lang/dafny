@@ -13,7 +13,7 @@ method M2() returns (x: int, ghost y: int)
 {
   print "hello, M2\n";
 }
- 
+
 method M3() returns (x: int, ghost y: int, z: int)
 {
   print "hello, M3\n";

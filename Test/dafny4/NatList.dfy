@@ -11,7 +11,7 @@ method Main() {
   ns := Cons(4, Cons(10, Nil));
   print "ns = ", ns, "\n";
   print "Sum(ns) = ", Sum(ns), "\n";
-  
+
   var ns' := Cons(20, Nil);
   var ns'' := Append(ns, ns');
   print "ns' = ", ns', "\n";

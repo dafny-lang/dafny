@@ -9,8 +9,8 @@ module AlphaImpl {
 
     type Alpha = bool
 
-    predicate IsValid(a:Alpha) { 
-        a 
+    predicate IsValid(a:Alpha) {
+        a
     }
 
     method Init() returns (a:Alpha)

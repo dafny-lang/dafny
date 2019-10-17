@@ -236,7 +236,7 @@ method FindWinner'<Candidate(==)>(a: seq<Candidate>, ghost K: Candidate) returns
       }
       up := up + 1;
       assert 2 * Count(a, lo, up, k) == up - lo; // k has exactly 50% in the current window a[lo..up]
-      
+
       // We are going to start a new window a[up..up + 1] and choose a new candidate,
       // so invariants (2) and (3) will be easy to re-establish.
       // To re-establish (1) we have to prove that K has majority among a[up..], as up will become the new lo.
@@ -247,10 +247,10 @@ method FindWinner'<Candidate(==)>(a: seq<Candidate>, ghost K: Candidate) returns
         2 * Count(a, lo, |a|, K) - 2 * Count(a, lo, up, K);
         > { assert HasMajority(a, lo, |a|, K); } // loop invariant (1)
         |a| - lo - 2 * Count(a, lo, up, K);
-        >= 
+        >=
         { if (k == K) {
             calc {
-              2 * Count(a, lo, up, K);              
+              2 * Count(a, lo, up, K);
               2 * Count(a, lo, up, k);
               { assert 2 * Count(a, lo, up, k) == up - lo; } // k has 50% among a[lo..up]
               up - lo;
@@ -270,9 +270,9 @@ method FindWinner'<Candidate(==)>(a: seq<Candidate>, ghost K: Candidate) returns
         |a| - up;
       }
       assert HasMajority(a, up, |a|, K);
-      
+
       k, lo, up, c := a[up], up, up + 1, 1;
-      assert HasMajority(a, lo, |a|, K);	
+      assert HasMajority(a, lo, |a|, K);
     }
   }
   Lemma_Unique(a, lo, |a|, K, k);  // both k and K have a majority among a[lo..], so K == k
@@ -318,11 +318,11 @@ method FindWinner''<Candidate(==)>(a: seq<Candidate>, ghost K: Candidate) return
       }
       up := up + 1;
       assert 2 * Count(a, lo, up, k) == up - lo; // k has exactly 50% in the current window a[lo..up]
-      
+
       // We are going to start a new window a[up..up + 1] and choose a new candidate,
       // so invariants (2) and (3) will be easy to re-establish.
       // To re-establish (1) we have to prove that K has majority among a[up..], as up will become the new lo.
-      // The main idea is that we had enough K's in a[lo..], and there cannot be too many in a[lo..up].      
+      // The main idea is that we had enough K's in a[lo..], and there cannot be too many in a[lo..up].
       calc /* K has majority among a[up..] */ {
         true;
         // loop invariant (1)
@@ -330,7 +330,7 @@ method FindWinner''<Candidate(==)>(a: seq<Candidate>, ghost K: Candidate) return
         2 * Count(a, lo, |a|, K) > |a| - lo;
         { Lemma_Split(a, lo, up, |a|, K); }
         2 * Count(a, lo, up, K) + 2 * Count(a, up, |a|, K) > |a| - lo;
-        ==> 
+        ==>
         { if (k == K) {
             calc {
               2 * Count(a, lo, up, K);
@@ -354,9 +354,9 @@ method FindWinner''<Candidate(==)>(a: seq<Candidate>, ghost K: Candidate) return
         2 * Count(a, up, |a|, K) > (|a| - lo) - (up - lo);
         2 * Count(a, up, |a|, K) > |a| - up;
         HasMajority(a, up, |a|, K);
-      }	
+      }
       k, lo, up, c := a[up], up, up + 1, 1;
-      assert HasMajority(a, lo, |a|, K);	
+      assert HasMajority(a, lo, |a|, K);
     }
   }
   Lemma_Unique(a, lo, |a|, K, k);  // both k and K have a majority among a[lo..], so K == k

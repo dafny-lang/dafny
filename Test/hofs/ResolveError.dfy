@@ -87,7 +87,7 @@ module AritySituations {
 
     var f' := F;
     var g' := G;
-  
+
     var s0 := P(F, 5);  // error: F takes 2 arguments, but P expect a function that takes 1
     var s1 := P(G, (2,true));  // fine
 

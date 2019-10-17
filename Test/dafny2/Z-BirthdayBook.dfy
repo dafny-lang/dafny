@@ -45,7 +45,7 @@ abstract module Specification {
       // In Z notation:  known = dom birthday
       known == birthday.Keys
     }
-    
+
     // In Z, the convention is that inputs have names that end with a question
     // mark. You can do that in Dafny as well. However, this feels to me a little
     // confusing in Dafny, because a question mark at the end of an identifier is

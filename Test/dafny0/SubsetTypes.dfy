@@ -424,7 +424,7 @@ module ErrorMessagesOfFailingConstraints {
   type X = u | u % 2 == 0  // multiples of 2
   type Y = v: X | v % 3 == 0  // multiples of 6
   class C { }
-  
+
   method M0(x: int, c: C?) {
     if
     case true =>

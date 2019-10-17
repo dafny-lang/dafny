@@ -79,7 +79,7 @@ lemma CurriedIsTheSame(m: nat, n: nat)
       // Give Dafny some help unrolling these definitions
       // (note to advanced users: We need a bit more fuel
       //  to meet up with the induction hypothesis)
-      assert CurriedAckermann(m, n) == Iter(A(m-1), 0);     
+      assert CurriedAckermann(m, n) == Iter(A(m-1), 0);
   } else {
     // we help Dafny out with the following lemma:
     assert A(m)(n) == A(m-1)(Iter(A(m-1), n-1));

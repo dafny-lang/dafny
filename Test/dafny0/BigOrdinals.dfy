@@ -131,7 +131,7 @@ ghost method Members(a: ORDINAL, n: nat)
   assert a == n as ORDINAL ==> a.IsNat && a.Offset == n;
   assert a.IsNat ==> exists m: nat :: a == m as ORDINAL;
   assert a.IsNat ==> a as int == a.Offset;
-  
+
   assert a.Offset == 0 <==> a.IsLimit;
   assert a.Offset > 0 <==> a.IsSucc;
   assert a.IsNat ==> a == a.Offset as ORDINAL;

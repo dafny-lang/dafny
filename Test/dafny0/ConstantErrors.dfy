@@ -38,12 +38,12 @@ module C {  // ghost const's
 module D {  // const's with inferred types
   const pi := 3.14
   const ten := 10  // this type should be "int", not "SmallInt"
-  
+
   newtype SmallInt = x | 0 <= x < 100
   method M() returns (sm: SmallInt) {
     sm := ten;  // error: "int" is not assignable to "Smallint"
   }
-  
+
   method R() returns (r: real) {
     r := pi;
   }
@@ -68,7 +68,7 @@ module E {
     const x1: Six := 7  // error: not allowed to declare const
     const x2: Six  // error: not allowed to declare const
     const x3: Six  // error: not allowed to declare const
-  
+
     method Test() {
       print x0, " ", x1, " ", x2, "\n";
       print y, "\n";
@@ -85,7 +85,7 @@ module F {
     const x0: Six
     const x1: Six := 7
   }
-  
+
   class InstanceInit extends Trait {
     const y2: Six
     const y3: Six := 12

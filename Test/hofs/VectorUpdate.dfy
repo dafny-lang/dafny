@@ -51,7 +51,7 @@ method VectorUpdate''<A>(a : array<A>, f : (int,A) ~> A)
   }
 }
 
-method Main() 
+method Main()
 {
   var v := new int[10];
   // Hey, works as an initialiser:

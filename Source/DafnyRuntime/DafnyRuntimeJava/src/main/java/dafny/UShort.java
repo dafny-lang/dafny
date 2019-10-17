@@ -86,7 +86,7 @@ public class UShort {
         i %= (MAXVALUE + 1);
         return new UShort(i);
     }
-    
+
     //Invariant that other.inner is positive, so only nonzero check needed
     public UShort divide(UShort other){
         assert other.inner != 0 : "Precondition Failure";

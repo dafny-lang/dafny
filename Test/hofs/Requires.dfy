@@ -10,7 +10,7 @@ method Main()
 	test2();
 }
 
-predicate valid(x:int) 
+predicate valid(x:int)
 {
   x > 0
 }
@@ -24,7 +24,7 @@ function ref1(y:int) : int
 lemma assumption1()
   ensures forall a, b :: valid(a) && valid(b) && ref1(a) == ref1(b) ==> a == b;
 {
-} 
+}
 
 method test0(a: int)
 {
@@ -38,14 +38,14 @@ method test5(a: int)
   if valid(a) {
     // valid(a) is the precondition of ref1
     assert ref1.requires(a);
-  }  
-} 
+  }
+}
 method test6(a: int)
 {
   if ref1.requires(a) {
     // the precondition of ref1 is valid(a)
     assert valid(a);
-  }  
+  }
 }
 
 method test1()
@@ -53,7 +53,7 @@ method test1()
   if * {
     assert forall a, b :: valid(a) && valid(b) && ref1(a) == ref1(b) ==> a == b;
   } else {
-    assert forall a, b :: ref1.requires(a) && ref1.requires(b) && ref1(a) == ref1(b) 
+    assert forall a, b :: ref1.requires(a) && ref1.requires(b) && ref1(a) == ref1(b)
                           ==> a == b;
   }
 }
@@ -76,7 +76,7 @@ method test2()
   if * {
     assert forall a, b :: valid(a) && valid(b) && ref2(a) == ref2(b) ==> a == b;
   } else {
-    assert forall a, b :: ref2.requires(a) && ref2.requires(b) && ref2(a) == ref2(b) 
+    assert forall a, b :: ref2.requires(a) && ref2.requires(b) && ref2(a) == ref2(b)
                           ==> a == b;
   }
 }

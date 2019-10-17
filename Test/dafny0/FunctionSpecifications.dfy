@@ -165,7 +165,7 @@ function A(): int
   ensures A() == 5; // error: this result value is not what the postcondition specification says
 {
   reveal_B();  // This isn't a decreases failure, since reveal just adjusts fuel values; it doesn't mention B
-  6  
+  6
 }
 
 function {:opaque} B(): int

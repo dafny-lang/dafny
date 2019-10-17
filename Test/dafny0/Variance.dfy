@@ -60,7 +60,7 @@ module VarianceChecks {
   iterator VaryingIter<A,B,C,+HotDog,D,-Whale>()  // error (x2): all must be non-variant
   {
   }
-  
+
   datatype Dt = Ctor(Dt -> Dt)  // error: this would give rise to a logical inconsistency
 
   datatype U0<!A> = U0(A -> bool)
@@ -84,7 +84,7 @@ module Depen {
   type V1 = V0
   datatype V2 = Ctor(V1 --> bool)
 }
-  
+
 module DependencyChecks {
   type A = x: B | true  // error: bad dependency cycle
   type B = y: int | F(y)

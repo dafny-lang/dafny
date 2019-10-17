@@ -3,3 +3,13 @@ repos:
     rev: v2.2.3  # Use the ref you want to point at
     hooks:
     -   id: trailing-whitespace
+        exclude: >  # exclude generated files, third-party files, and .expect files
+            (?x)^(
+                Source/Dafny/Parser\.cs|
+                Source/Dafny/Scanner\.cs|
+                Docs/DafnyRef/madoko\.css|
+                Docs/DafnyRef/css\.sty|
+                Docs/DafnyRef/out/DafnyRef\.html|
+                third_party/Coco/.*|
+                Test/.*\.expect
+            )$

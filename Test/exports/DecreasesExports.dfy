@@ -15,8 +15,8 @@ module A {
   function f(x: T, y: int): T { if y <= 0 then x else f(x, y-1) }
 
   function g(x: T): T
-   decreases x 
-   { match x 
+   decreases x
+   { match x
      case C(x') => g(x')
      case N => x
    }
@@ -25,14 +25,14 @@ module A {
     if (y > 0) {
        F(x, y-1);
     }
-     
+
   }
 
   method G(x: T)
   decreases x
   {
     match (x) {
-       case C(x') => 
+       case C(x') =>
             G(x');
        case N =>
            assert true;

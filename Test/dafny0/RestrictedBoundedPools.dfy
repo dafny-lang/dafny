@@ -10,7 +10,7 @@ module Methods_EverythingGoes {
   class Cell {
     var data: int
   }
-  
+
   datatype List<G> = Nil | Cons(G, List<G>)
 
   method M0()
@@ -70,14 +70,14 @@ module Functions_RestrictionsApply {
   class Cell {
     var data: int
   }
-  
+
   datatype List<G> = Nil | Cons(G, List<G>)
 
   predicate M0()
   {
     forall x: Opaque :: R(x)  // error: may seem innocent enough, but it quantifies over all Opaque
   }
-  
+
   predicate E0()
   {
     exists x: Opaque :: R(x)  // error: may seem innocent enough, but it quantifies over all Opaque
@@ -141,7 +141,7 @@ module Functions_RestrictionsApply {
 
 module OtherComprehensions {
   predicate R<Y>(y: Y) { true }
-  
+
   type Opaque(==)
   type OpaqueNoAlloc(!new)
 
@@ -213,7 +213,7 @@ module Allocated0 {
   method M1() {
     assert forall c: Cell :: allocated(c) ==> c.data < 100;
   }
-  
+
   method N0() returns (s: set<Cell>) {
     s := set c: Cell | c.data < 100;  // error: this involves the allocated state
   }

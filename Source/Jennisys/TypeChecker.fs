@@ -40,28 +40,28 @@ let TypeCheck prog =
       let clist = componentNames |> List.map (fun name -> Component(GetClass name decls, GetModel name decls, GetCode name decls))
       Some(Program(clist))
 
-let MethodArgChecker prog meth varName = 
+let MethodArgChecker prog meth varName =
   let ins = GetMethodInArgs meth
   let outs = GetMethodOutArgs meth
   ins @ outs |> List.choose (fun var -> if GetVarName var = varName then GetVarType var |> FindComponentForTypeOpt prog else None) |> Utils.ListToOption
 
 // TODO: implement this
-let rec InferType prog thisComp checkLocalFunc expr = 
-  let __FindVar comp fldName = 
+let rec InferType prog thisComp checkLocalFunc expr =
+  let __FindVar comp fldName =
     let var = FindVar comp fldName |> Utils.ExtractOption
     let c = FindComponentForType prog (Utils.ExtractOption (GetVarType var)) |> Utils.ExtractOption
     Some(c)
-    
-  try 
+
+  try
     match expr with
     | ObjLiteral("this") -> Some(thisComp)
     | ObjLiteral("null") -> None
     | IdLiteral(id) -> __FindVar thisComp id
     | VarLiteral(id) -> checkLocalFunc id
-    | Dot(discr, fldName) -> 
+    | Dot(discr, fldName) ->
         match InferType prog thisComp checkLocalFunc discr with
         | Some(comp) -> __FindVar comp fldName
-        | None -> None                        
+        | None -> None
     | _ -> None
-  with 
+  with
   | ex -> None

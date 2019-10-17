@@ -40,7 +40,7 @@ class IntSet {
     modifies Repr
     ensures Valid() && fresh(Repr - old(Repr))
     ensures Contents == old(Contents) + {x}
-  { 
+  {
     var t := InsertHelper(x, root);
     root := t;
     Contents := root.Contents;

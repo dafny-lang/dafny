@@ -122,16 +122,16 @@ method Display1<D>(d: D, n: int, w: array<nat>)
   assert a[1] == 75;
   assert a[2] == 50;
   assert a[3] == 25;
-  
+
   var b := new nat[4] [100, 75, n, 25];
   assert b[2] == n;
   assert b[0] == b[1] + b[3];
-  
+
   assert 0 <= w[23];
-  
+
   var c := new D[2] [d, d];
   assert c[0] == c[1] == d;
-  
+
   var d := new char[0][];
   assert d.Length == 0;
 

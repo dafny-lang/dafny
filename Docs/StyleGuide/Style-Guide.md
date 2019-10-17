@@ -224,7 +224,7 @@ method Collatz(num: nat)
     var n := num;
     while 1 < n
         decreases *
-    { 
+    {
         n := if n % 2 == 0 then n / 2 else n * 3 + 1;
     }
 }
@@ -236,7 +236,7 @@ method Collatz(num: nat)
     var n := num;
     while (1 < n) // unnecessary parentheses
         decreases *
-    { 
+    {
         n := if ((n % 2) == 0) then (n / 2) else ((n * 3) + 1); // unnecessary parentheses
     }
 }

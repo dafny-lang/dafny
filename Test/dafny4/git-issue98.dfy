@@ -12,10 +12,9 @@ abstract module One {
     |sseq| == |actions| + 1
     && (forall i :: 0 <= i < |actions| ==> StateNext(sseq[i], sseq[i+1], actions[i]))
   }
-    
+
 }
 
 abstract module Two {
     import opened O : One
 }
-    

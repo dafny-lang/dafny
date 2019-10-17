@@ -19,7 +19,7 @@ module T refines S {
     ghost var h: int  // change from non-ghost to ghost
     ghost var j: int
     var k: int
-    method m() 
+    method m()
       ensures h == h
       ensures j == j
     {
@@ -27,7 +27,7 @@ module T refines S {
     }
   }
 }
- 
+
 method Main() {
   var c := new T.C;
   c.m();

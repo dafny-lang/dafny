@@ -41,7 +41,7 @@ class {:autocontracts} ExtensibleArray<T> {
     more := null;
     length := 0;
     M := 0;
-    
+
     Contents := [];
   }
 

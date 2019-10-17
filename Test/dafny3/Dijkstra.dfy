@@ -38,7 +38,7 @@ lemma lemma_ping(j: nat, n: nat)
   ensures j <= n ==> j <= f(n)
 {
   // The case for j == 0 is trivial
-  if 0 < j 
+  if 0 < j
   {
     calc {
       j <= f(n);

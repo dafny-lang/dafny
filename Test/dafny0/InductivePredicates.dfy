@@ -159,13 +159,13 @@ module Alt {
         assert x.n == y.n + 2;
     }
   }
-  
+
   inductive lemma MyLemma_RealNice_AndFastToo(x: natinf)
     requires Even(x)
     ensures x.N? && x.n % 2 == 0
   {
   }
-  
+
   lemma InfNotEven()
     ensures !Even(Inf)
   {
@@ -233,7 +233,7 @@ module Monotonicity {
 // ORDINAL.  The targeted monotonicity axiom helps verify this example automatically.
 module TargetedMonotonicity {
   function Next(x: int): int
-  
+
   inductive predicate P(x: int, y: int, z: int)
   {
     (x == 0 && y == z) ||

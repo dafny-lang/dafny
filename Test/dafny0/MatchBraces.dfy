@@ -71,7 +71,7 @@ function Flowers(c: Color, d: Color): int
         case Green => 1
         case Blue => 2
       }
-    case Green => 
+    case Green =>
       match d {
         case Red => 3
         case Green => 3

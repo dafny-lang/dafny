@@ -16,7 +16,7 @@ ghost method M()
    }
    else
    { assert false; }
-   
+
    if(s == iset{2})
    {
    }
@@ -25,13 +25,13 @@ ghost method M()
 }
 
 ghost method m1() {
- var s1:iset<int> := iset{}; // the empty set   
- var s2 := iset{1, 2, 3}; // set contains exactly 1, 2, and 3   
- assert s2 == iset{1,1,2,3,3,3,3}; // same as before   
+ var s1:iset<int> := iset{}; // the empty set
+ var s2 := iset{1, 2, 3}; // set contains exactly 1, 2, and 3
+ assert s2 == iset{1,1,2,3,3,3,3}; // same as before
  var s3, s4 := iset{1,2}, iset{1,4};
 
- assert s2 + s4 == iset{1,2,3,4}; // set union   
- assert s2 * s3 == iset{1,2} && s2 * s4 == iset{1}; // set intersection   
+ assert s2 + s4 == iset{1,2,3,4}; // set union
+ assert s2 * s3 == iset{1,2} && s2 * s4 == iset{1}; // set intersection
  assert s2 - s3 == iset{3}; // set difference
 
  assert (iset x | x in s2 :: x+1) == iset{2,3,4}; // set comprehension
