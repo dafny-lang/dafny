@@ -92,7 +92,7 @@ struct Tuple2 {
 
   Tuple2() { 
     t0 = get_default<T0>(NULL);
-    t1 = get_default<T0>(NULL);
+    t1 = get_default<T1>(NULL);
   }
   
   Tuple2(T0 _t0, T1 _t1) { 
