@@ -3452,15 +3452,24 @@ namespace Microsoft.Dafny {
       Function f = e.Function;
 
       wr = EmitCoercionIfNecessary(f.ResultType, e.Type, e.tok, wr);
-
-      if (f.IsStatic) {
+      
+      string qual = "";
+      string compileName = "";
+      if (f.IsExtern(out qual, out compileName) && qual != null) {
+        // ******************************************************************   
+        // TODO: Add an overrideable function for the double colon used here      
+        // ******************************************************************  
+        wr.Write("{0}::", qual);
+      } else if (f.IsStatic) {
         wr.Write("{0}::", TypeName_Companion(e.Receiver.Type, wr, e.tok, f));
+        compileName = IdName(f);
       } else {
         wr.Write("(");
         tr(e.Receiver, wr, inLetExprBody);
         wr.Write(")->");
+        compileName = IdName(f);
       }
-      wr.Write(IdName(f));
+      wr.Write(compileName);
       List<Type> typeArgs;
       if (f.TypeArgs.Count != 0) {
         typeArgs = f.TypeArgs.ConvertAll(ta => e.TypeArgumentSubstitutions[ta]);
