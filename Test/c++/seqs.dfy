@@ -1,5 +1,7 @@
 newtype{:uint32iveType "uint"} uint32 = i:int | 0 <= i < 0x100000000
 
+type fixed = t:seq<uint32> | |t| == 2 witness [0,0]
+
 method Test(name:string, b:bool) 
   requires b;
 {
@@ -68,5 +70,3 @@ method Main() {
     Contains();
     PrintTest();
 }
-
-

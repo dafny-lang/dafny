@@ -504,7 +504,14 @@ namespace Microsoft.Dafny {
       if (sst.Name == "nat") {
         return;  // C++ does not support Nats
       }
-      wr.WriteLine("{2} using {1} = {0};", TypeName(sst.Var.Type, wr, sst.tok), IdName(sst), DeclareTemplate(sst.Var.Type.TypeArgs));
+
+      string templateDecl = "";
+      if (sst.Var.Type is SeqType s) {
+        templateDecl = DeclareTemplate(s.TypeArgs[0].TypeArgs);  // We want the type args (if any) for the seq-elt type, not the seq
+      } else {
+        templateDecl = DeclareTemplate(sst.Var.Type.TypeArgs);
+      }
+      wr.WriteLine("{2} using {1} = {0};", TypeName(sst.Var.Type, wr, sst.tok), IdName(sst), templateDecl);
       
       var className = "class_" + IdName(sst);
       var cw = CreateClass(className, sst.TypeArgs, wr) as CppCompiler.ClassWriter;
