@@ -784,7 +784,7 @@ namespace Microsoft.Dafny{
         case NativeType.Selection.SByte:
           return "new Byte((byte)0)";
         case NativeType.Selection.UShort:
-          return "new dafny.UShort";
+          return "new dafny.UShort(0)";
         case NativeType.Selection.Short:
           return "new Short((short)0)";
         case NativeType.Selection.UInt:
