@@ -9485,7 +9485,8 @@ namespace Microsoft.Dafny
       // convert CasePattern in MatchCaseExpr to BoundVar and flatten the MatchCaseExpr.
       List<Tuple<CasePattern<BoundVar>, BoundVar>> patternSubst = new List<Tuple<CasePattern<BoundVar>, BoundVar>>();
       if (dtd != null) {
-        DesugarMatchCaseStmt(s, dtd, patternSubst, codeContext);
+        CompileMatchCaseStmt(s, dtd, patternSubst, codeContext);
+//        DesugarMatchCaseStmt(s, dtd, patternSubst, codeContext);
       }
 
       ISet<string> memberNamesUsed = new HashSet<string>();
@@ -9603,8 +9604,9 @@ public static RBranch CloneRBrach(RBranch branch){
 public static CasePattern<BoundVar> getPatternHead(RBranch branch){
     return branch.Patterns.FirstOrDefault(); 
 }
-public void dropPatternHead(RBranch branch){
+public static RBranch dropPatternHead(RBranch branch){
   branch.Patterns.RemoveAt(0);
+  return branch;
 }
 
 // pop a pattern from the head of the branch, return pair of the head pattern and a new branch without that pattern
@@ -9637,7 +9639,6 @@ void LetBind(RBranch branch, BoundVar var, Expression expr){
 } 
 
 
-// TODO: Fill this
 // Start with a list of n matchees and list of m branches with delayed substitution
 // if n = 0, return statement in first branch  with locally bound substitution
 // Otherwise, if all variables, add to the substitution, continue
@@ -9657,7 +9658,9 @@ void LetBind(RBranch branch, BoundVar var, Expression expr){
       // If no more work, first case matches, return (sigma body) 
       // If more than one branch, some branches may be redundant 
       // (TODO: keep track of the number of copies of each branch, and flag if some branch's count decreases to 0)
-      return branches.FirstOrDefault().Body;
+
+      //if this was the top, then return empty (since no work was to be done)
+      return top?(new List<Statement>()):branches.FirstOrDefault().Body;
 
     }
 
@@ -9756,33 +9759,24 @@ void LetBind(RBranch branch, BoundVar var, Expression expr){
 // Start with a partially resolved, potentially nested, overlapping MatchStmt
 // Returns an unnested MatchStmt with disjoint patterns
 void CompileMatchCaseStmt(MatchStmt s, DatatypeDecl dtd, List<Tuple<CasePattern<BoundVar>, BoundVar>> patterns, ICodeContext codeContext) {
-      Contract.Assert(dtd != null);
-      Dictionary<string, DatatypeCtor> ctors = datatypeCtors[dtd];
-      if (ctors == null) {
-        // there is no constructor, ???
-        return;
-      }
-
-      var ctorsList = new List<Dictionary<string, DatatypeCtor>>();
-      if (s.Source.Type.AsDatatype is TupleTypeDecl) {
-        var udt = s.Source.Type.NormalizeExpand() as UserDefinedType;
-        foreach (Type typeArg in udt.TypeArgs) {
-          var t = PartiallyResolveTypeForMemberSelection(s.Tok, typeArg).NormalizeExpand() as UserDefinedType;
-          if (t != null && t.ResolvedClass is DatatypeDecl) {
-            dtd = (DatatypeDecl)t.ResolvedClass;
-            ctorsList.Add(datatypeCtors[dtd]);
-          } else {
-            ctorsList.Add(new Dictionary<string, DatatypeCtor>());
-          }
-        }
-      }
-    // Main loop: If empty select first:
-      // If all variables, remove that matchee, push to substitutions
-      // Otherwise, For each constructors c in the datatype
-      //  Filter list for "could match c" 
-      //  Create match c b1 ... bn for arity n and fresh variables b1 ... bn
-      //  Push substitution with right 
+  Contract.Assert(dtd != null);
+  // Call CompileInnerMatchStmt
+  List<RBranch> branches = s.Cases.ConvertAll(x => new RBranch(x.CasePatterns ,x.Body));
+  List<Expression> matchees = new List<Expression>();
+  matchees.Add(s.Source);
+  var r = CompileInnerMatchStmt(matchees, true, branches, codeContext);
+  // If MatchStmt, replace s with it
+  if(r.Count == 1){
+    var newS = r.First();
+    if(newS is MatchStmt){
+      var newMS = (MatchStmt) newS;
+      s.UpdateSource(newMS.Source);
+      s.UpdateCases(newMS.Cases);
     }
+  }
+  // Otherwise, there wasn't any work to do (i.e. just variable renaming, leave s as is)
+} 
+
 
 
     /*
