@@ -91,19 +91,26 @@ struct Tuple2 {
   T0 t0;
   T1 t1;
 
-  Tuple2() { 
+  Tuple2() {
     t0 = get_default<T0>(NULL);
     t1 = get_default<T1>(NULL);
   }
-  
-  Tuple2(T0 _t0, T1 _t1) { 
+
+  Tuple2(T0 _t0, T1 _t1) {
     t0 = _t0;
     t1 = _t1;
   }
 
-  T0 get_0() { return t0; }
-  T1 get_1() { return t1; }
+  T0 get_0() const { return t0; }
+  T1 get_1() const { return t1; }
 };
+
+template <typename T0, typename T1>
+inline ostream& operator<<(ostream& out, const Tuple2<T0, T1>& val){
+  out << val.get_0();
+  out << val.get_1();
+  return out;
+}
 
 template <typename T0, typename T1, typename T2>
 struct Tuple3 {
@@ -123,10 +130,18 @@ struct Tuple3 {
     t2 = _t2;
   }
 
-  T0 get_0() { return t0; }
-  T1 get_1() { return t1; }
-  T2 get_2() { return t2; }
+  T0 get_0() const { return t0; }
+  T1 get_1() const { return t1; }
+  T2 get_2() const { return t2; }
 };
+
+template <typename T0, typename T1, typename T2>
+inline ostream& operator<<(ostream& out, const Tuple3<T0, T1, T2>& val){
+  out << val.get_0();
+  out << val.get_1();
+  out << val.get_2();
+  return out;
+}
 
 template <typename T0, typename T1, typename T2, typename T3>
 struct Tuple4 {
@@ -149,11 +164,20 @@ struct Tuple4 {
     t3 = _t3;
   }
 
-  T0 get_0() { return t0; }
-  T1 get_1() { return t1; }
-  T2 get_2() { return t2; }
-  T3 get_3() { return t3; }
+  T0 get_0() const { return t0; }
+  T1 get_1() const { return t1; }
+  T2 get_2() const { return t2; }
+  T3 get_3() const { return t3; }
 };
+
+template <typename T0, typename T1, typename T2, typename T3>
+inline ostream& operator<<(ostream& out, const Tuple4<T0, T1, T2, T3>& val){
+  out << val.get_0();
+  out << val.get_1();
+  out << val.get_2();
+  out << val.get_3();
+  return out;
+}
 
 template <typename T0, typename T1, typename T2, typename T3, typename T4>
 struct Tuple5 {
@@ -179,12 +203,22 @@ struct Tuple5 {
     t4 = _t4;
   }
 
-  T0 get_0() { return t0; }
-  T1 get_1() { return t1; }
-  T2 get_2() { return t2; }
-  T3 get_3() { return t3; }
-  T3 get_4() { return t4; }
+  T0 get_0() const { return t0; }
+  T1 get_1() const { return t1; }
+  T2 get_2() const { return t2; }
+  T3 get_3() const { return t3; }
+  T3 get_4() const { return t4; }
 };
+
+template <typename T0, typename T1, typename T2, typename T3, typename T4>
+inline ostream& operator<<(ostream& out, const Tuple5<T0, T1, T2, T3, T4>& val){
+  out << val.get_0();
+  out << val.get_1();
+  out << val.get_2();
+  out << val.get_3();
+  out << val.get_4();
+  return out;
+}
 
 /*********************************************************
  *  SEQUENCES                                            *
