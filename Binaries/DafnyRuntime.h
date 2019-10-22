@@ -105,6 +105,87 @@ struct Tuple2 {
   T1 get_1() { return t1; }
 };
 
+template <typename T0, typename T1, typename T2>
+struct Tuple3 {
+  T0 t0;
+  T1 t1;
+  T2 t2;
+
+  Tuple3() {
+    t0 = get_default<T0>(NULL);
+    t1 = get_default<T1>(NULL);
+    t2 = get_default<T2>(NULL);
+  }
+
+  Tuple3(T0 _t0, T1 _t1, T2 _t2) {
+    t0 = _t0;
+    t1 = _t1;
+    t2 = _t2;
+  }
+
+  T0 get_0() { return t0; }
+  T1 get_1() { return t1; }
+  T2 get_2() { return t2; }
+};
+
+template <typename T0, typename T1, typename T2, typename T3>
+struct Tuple4 {
+  T0 t0;
+  T1 t1;
+  T2 t2;
+  T3 t3;
+
+  Tuple4() {
+    t0 = get_default<T0>(NULL);
+    t1 = get_default<T1>(NULL);
+    t2 = get_default<T2>(NULL);
+    t3 = get_default<T3>(NULL);
+  }
+
+  Tuple4(T0 _t0, T1 _t1, T2 _t2, T3 _t3) {
+    t0 = _t0;
+    t1 = _t1;
+    t2 = _t2;
+    t3 = _t3;
+  }
+
+  T0 get_0() { return t0; }
+  T1 get_1() { return t1; }
+  T2 get_2() { return t2; }
+  T3 get_3() { return t3; }
+};
+
+template <typename T0, typename T1, typename T2, typename T3, typename T4>
+struct Tuple5 {
+  T0 t0;
+  T1 t1;
+  T2 t2;
+  T3 t3;
+  T4 t4;
+
+  Tuple5() {
+    t0 = get_default<T0>(NULL);
+    t1 = get_default<T1>(NULL);
+    t2 = get_default<T2>(NULL);
+    t3 = get_default<T3>(NULL);
+    t4 = get_default<T4>(NULL);
+  }
+
+  Tuple5(T0 _t0, T1 _t1, T2 _t2, T3 _t3, T4 _t4) {
+    t0 = _t0;
+    t1 = _t1;
+    t2 = _t2;
+    t3 = _t3;
+    t4 = _t4;
+  }
+
+  T0 get_0() { return t0; }
+  T1 get_1() { return t1; }
+  T2 get_2() { return t2; }
+  T3 get_3() { return t3; }
+  T3 get_4() { return t4; }
+};
+
 /*********************************************************
  *  SEQUENCES                                            *
  *********************************************************/
