@@ -972,6 +972,38 @@ namespace Dafny
         return this;
       return Drop((long)n);
     }
+    public Sequence<T> Subsequence(long lo, long hi) {
+      if (lo == 0 && hi == elmts.Length) {
+        return this;
+      }
+      T[] a = new T[hi - lo];
+      System.Array.Copy(elmts, lo, a, 0, hi - lo);
+      return new Sequence<T>(a);
+    }
+    public Sequence<T> Subsequence(long lo, ulong hi) {
+      return Subsequence(lo, (long)hi);
+    }
+    public Sequence<T> Subsequence(long lo, BigInteger hi) {
+      return Subsequence(lo, (long)hi);
+    }
+    public Sequence<T> Subsequence(ulong lo, long hi) {
+      return Subsequence((long)lo, hi);
+    }
+    public Sequence<T> Subsequence(ulong lo, ulong hi) {
+      return Subsequence((long)lo, (long)hi);
+    }
+    public Sequence<T> Subsequence(ulong lo, BigInteger hi) {
+      return Subsequence((long)lo, (long)hi);
+    }
+    public Sequence<T> Subsequence(BigInteger lo, long hi) {
+      return Subsequence((long)lo, hi);
+    }
+    public Sequence<T> Subsequence(BigInteger lo, ulong hi) {
+      return Subsequence((long)lo, (long)hi);
+    }
+    public Sequence<T> Subsequence(BigInteger lo, BigInteger hi) {
+      return Subsequence((long)lo, (long)hi);
+    }
   }
   public struct Pair<A, B>
   {

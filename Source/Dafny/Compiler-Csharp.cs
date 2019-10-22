@@ -1692,10 +1692,19 @@ namespace Microsoft.Dafny
       }
       TrParenExpr(source, wr, inLetExprBody);
       if (hi != null) {
-        TrParenExpr(".Take", hi, wr, inLetExprBody);
-      }
-      if (lo != null) {
-        TrParenExpr(".Drop", lo, wr, inLetExprBody);
+        if (lo != null) {
+          wr.Write(".Subsequence(");
+          TrExpr(lo, wr, inLetExprBody);
+          wr.Write(", ");
+          TrExpr(hi, wr, inLetExprBody);
+          wr.Write(")");
+        } else {
+          TrParenExpr(".Take", hi, wr, inLetExprBody);
+        }
+      } else {
+        if (lo != null) {
+          TrParenExpr(".Drop", lo, wr, inLetExprBody);
+        }
       }
     }
 
