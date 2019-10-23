@@ -9,8 +9,8 @@ trait VoidOutcome {
 
 class VoidSuccess extends VoidOutcome {
     constructor() {}
-    predicate method IsFailure() { 
-        false 
+    predicate method IsFailure() {
+        false
     }
     function method PropagateFailure(): VoidOutcome requires IsFailure() {
         this
@@ -22,7 +22,7 @@ class VoidFailure extends VoidOutcome {
     constructor(error: string) {
         this.error := error;
     }
-    predicate method IsFailure() { 
+    predicate method IsFailure() {
         true
     }
     function method PropagateFailure(): VoidOutcome requires IsFailure() {

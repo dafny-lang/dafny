@@ -1,6 +1,6 @@
 // RUN: %dafny /compile:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
-module {:extern "Modx"} Mod1 
+module {:extern "Modx"} Mod1
 {
   class {:extern "classx"} Class1
   {

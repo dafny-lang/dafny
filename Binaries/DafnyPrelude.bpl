@@ -100,7 +100,7 @@ type char;
 function char#FromInt(int): char;
 function char#ToInt(char): int;  // inverse of char#FromInt
 axiom (forall ch: char ::
-  { char#ToInt(ch) } 
+  { char#ToInt(ch) }
   char#FromInt(char#ToInt(ch)) == ch &&
   0 <= char#ToInt(ch) && char#ToInt(ch) < 65536);
 axiom (forall n: int ::
@@ -399,23 +399,23 @@ axiom (forall o,p: ORDINAL :: { ORD#Minus(o,p) }
 
 // o+m+n == o+(m+n)
 axiom (forall o: ORDINAL, m,n: int ::
-  { ORD#Plus(ORD#Plus(o, ORD#FromNat(m)), ORD#FromNat(n)) } 
+  { ORD#Plus(ORD#Plus(o, ORD#FromNat(m)), ORD#FromNat(n)) }
   0 <= m && 0 <= n ==>
   ORD#Plus(ORD#Plus(o, ORD#FromNat(m)), ORD#FromNat(n)) == ORD#Plus(o, ORD#FromNat(m+n)));
 // o-m-n == o+(m+n)
 axiom (forall o: ORDINAL, m,n: int ::
-  { ORD#Minus(ORD#Minus(o, ORD#FromNat(m)), ORD#FromNat(n)) } 
+  { ORD#Minus(ORD#Minus(o, ORD#FromNat(m)), ORD#FromNat(n)) }
   0 <= m && 0 <= n && m+n <= ORD#Offset(o) ==>
   ORD#Minus(ORD#Minus(o, ORD#FromNat(m)), ORD#FromNat(n)) == ORD#Minus(o, ORD#FromNat(m+n)));
 // o+m-n == EITHER o+(m-n) OR o-(n-m)
 axiom (forall o: ORDINAL, m,n: int ::
-  { ORD#Minus(ORD#Plus(o, ORD#FromNat(m)), ORD#FromNat(n)) } 
+  { ORD#Minus(ORD#Plus(o, ORD#FromNat(m)), ORD#FromNat(n)) }
   0 <= m && 0 <= n && n <= ORD#Offset(o) + m ==>
     (0 <= m - n ==> ORD#Minus(ORD#Plus(o, ORD#FromNat(m)), ORD#FromNat(n)) == ORD#Plus(o, ORD#FromNat(m-n))) &&
     (m - n <= 0 ==> ORD#Minus(ORD#Plus(o, ORD#FromNat(m)), ORD#FromNat(n)) == ORD#Minus(o, ORD#FromNat(n-m))));
 // o-m+n == EITHER o-(m-n) OR o+(n-m)
 axiom (forall o: ORDINAL, m,n: int ::
-  { ORD#Plus(ORD#Minus(o, ORD#FromNat(m)), ORD#FromNat(n)) } 
+  { ORD#Plus(ORD#Minus(o, ORD#FromNat(m)), ORD#FromNat(n)) }
   0 <= m && 0 <= n && n <= ORD#Offset(o) + m ==>
     (0 <= m - n ==> ORD#Plus(ORD#Minus(o, ORD#FromNat(m)), ORD#FromNat(n)) == ORD#Minus(o, ORD#FromNat(m-n))) &&
     (m - n <= 0 ==> ORD#Plus(ORD#Minus(o, ORD#FromNat(m)), ORD#FromNat(n)) == ORD#Plus(o, ORD#FromNat(n-m))));
@@ -1058,14 +1058,14 @@ function Seq#FromArray(h: Heap, a: ref): Seq Box;
 axiom (forall h: Heap, a: ref ::
   { Seq#Length(Seq#FromArray(h,a)) }
   Seq#Length(Seq#FromArray(h, a)) == _System.array.Length(a));
-axiom (forall h: Heap, a: ref :: 
-  { Seq#FromArray(h, a) } 
+axiom (forall h: Heap, a: ref ::
+  { Seq#FromArray(h, a) }
   (forall i: int ::
     // it's important to include both triggers, so that assertions about the
     // the relation between the array and the sequence can be proved in either
     // direction
     { read(h, a, IndexField(i)) }
-    { Seq#Index(Seq#FromArray(h, a): Seq Box, i) } 
+    { Seq#Index(Seq#FromArray(h, a): Seq Box, i) }
     0 <= i &&
     i < Seq#Length(Seq#FromArray(h, a))  // this will trigger the previous axiom to get a connection with _System.array.Length(a)
     ==>
@@ -1155,7 +1155,7 @@ function Map#Values<U,V>(Map U V) : Set V;
 
 axiom (forall<U,V> m: Map U V, v: V :: { Map#Values(m)[v] }
   Map#Values(m)[v] ==
-	(exists u: U :: { Map#Domain(m)[u] } { Map#Elements(m)[u] }	
+	(exists u: U :: { Map#Domain(m)[u] } { Map#Elements(m)[u] }
 	  Map#Domain(m)[u] &&
     v == Map#Elements(m)[u]));
 
@@ -1258,12 +1258,12 @@ function IMap#Values<U,V>(IMap U V) : Set V;
 
 axiom (forall<U,V> m: IMap U V, v: V :: { IMap#Values(m)[v] }
   IMap#Values(m)[v] ==
-	(exists u: U :: { IMap#Domain(m)[u] } { IMap#Elements(m)[u] }	
+	(exists u: U :: { IMap#Domain(m)[u] } { IMap#Elements(m)[u] }
 	  IMap#Domain(m)[u] &&
     v == IMap#Elements(m)[u]));
 
 // The set of Items--that is, (key,value) pairs--of a Map can be obtained by the
-// function IMap#Items.  
+// function IMap#Items.
 // Everywhere else in this axiomatization, IMap is parameterized by types U V,
 // even though Dafny only ever instantiates U V with Box Box.  This makes the
 // axiomatization more generic.  Function IMap#Items, however, returns a set of
@@ -1320,7 +1320,7 @@ axiom (forall<U, V> m: IMap U V, m': IMap U V::
     IMap#Equal(m, m') ==> m == m');
 
 // -------------------------------------------------------------------------
-// -- Provide arithmetic wrappers to improve triggering and non-linear math 
+// -- Provide arithmetic wrappers to improve triggering and non-linear math
 // -------------------------------------------------------------------------
 
 function INTERNAL_add_boogie(x:int, y:int) : int { x + y }
@@ -1347,7 +1347,7 @@ axiom (forall x,y,z: int ::
   { Mul(x, Add(y, z)) }
   Mul(x, Add(y, z)) == Add(Mul(x, y), Mul(x, z)));
 //axiom (forall x, y, z: int ::
-//  { Mul(Sub(x, y), z) }  
+//  { Mul(Sub(x, y), z) }
 //  Mul(Sub(x, y), z) == Sub(Mul(x, z), Mul(y, z)));
 #endif
 #if ARITH_MUL_DIV_MOD
@@ -1359,7 +1359,7 @@ axiom (forall x, y: int ::
 #endif
 #if ARITH_MUL_SIGN
 axiom (forall x, y: int ::
-  { Mul(x, y) }   
+  { Mul(x, y) }
   ((0 <= x && 0 <= y) || (x <= 0 && y <= 0) ==> 0 <= Mul(x, y)));
 #endif
 #if ARITH_MUL_COMM

@@ -19,7 +19,7 @@ module A {
     {
       x := 8;
     }
-    
+
     method M()
       requires Valid();
     {

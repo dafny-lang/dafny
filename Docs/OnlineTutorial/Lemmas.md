@@ -26,7 +26,7 @@ provers.
 As our first look at lemmas, we will consider a somewhat contrived example: searching
 for zero in an array. What makes this problem interesting is that the array we are
 searching in has two special properties: all elements are non-negative, and each successive
-element decreases by at most one from the previous element. In code: 
+element decreases by at most one from the previous element. In code:
 
 ``` {.editonly}
 method FindZero(a: array<int>) returns (index: int)
@@ -282,7 +282,7 @@ other lemma.
 
 When working with arrays, iteration is a natural solution to many problems.
 There are some times, however, when recursion is used to define functions or
-properties. In these cases, the lemmas usually have the same recursive structure. 
+properties. In these cases, the lemmas usually have the same recursive structure.
 To see an example of this, we will consider the problem of counting.
 
 ## Counting
@@ -433,7 +433,7 @@ Dafny gets the rest of the steps on its own (try it!). Now we can consider the o
 
 Our goal is to relate `count(a + b)` to `count(a)` and `count(b)`. If `a`
 is not the empty sequence, then when we employ our trick of following the definition to expand
-`count(a + b)`, we get: 
+`count(a + b)`, we get:
 
 ``` {.editonly}
 function count(a: seq<bool>): nat
@@ -495,7 +495,7 @@ use a smaller version of a problem to prove a larger one. To do this, we call th
 property from within our code. It is a method, so it can be invoked whenever we need it.
 
 Dafny will assume that the recursive call satisfies the specification. This is the inductive
-hypothesis, that all recursive calls of the lemma are valid. This depends crucially on the fact that 
+hypothesis, that all recursive calls of the lemma are valid. This depends crucially on the fact that
 Dafny also proves termination. This means that eventually, the lemma won't make another recursive call. In
 this instance, this is the first branch of the if statement. If there is no recursive call, then
 the lemma must be proven directly for that case. Then each call in the stack is justified in assuming
@@ -850,7 +850,7 @@ of the `if` statement. We can now use the same inductive trick as above.
 If the sequence starts at `root` and ends at `goal`, it cannot be valid because the
 sequence must at some point have a node which is not in the previous nodes next list. When we are
 given any particular sequence like this, we can break it into two cases: either the sequence is invalid
-in the link from the first node to the second, or it is broken somewhere down the line. Just like in the 
+in the link from the first node to the second, or it is broken somewhere down the line. Just like in the
 counting example, Dafny can see that if the first to second node link is not valid, then the sequence
 cannot be a path because this mirrors the definition of `path`. Thus we only have further work to do
 if the first link is valid. We can express this with another `if` statement:

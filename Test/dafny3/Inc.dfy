@@ -5,7 +5,7 @@ datatype cmd = Inc | Seq(cmd, cmd) | Repeat(cmd)
 type state = int
 
 // ---------- ORDINAL ----------
-  
+
 inductive predicate BigStep(c: cmd, s: state, t: state)
 {
   match c
@@ -132,7 +132,7 @@ inductive lemma {:induction false} BadMonotonic3(c: cmd, s: state, t: state)
 }
 
 // ---------- nat ----------
-  
+
 inductive predicate NatBigStep[nat](c: cmd, s: state, t: state)
 {
   match c
@@ -259,7 +259,7 @@ inductive lemma {:induction false} BadNatMonotonic3[nat](c: cmd, s: state, t: st
 }
 
 // ---------- coinductive ----------
-  
+
 copredicate CoBigStep(c: cmd, s: state, t: state)
 {
   match c

@@ -46,7 +46,7 @@ predicate Even(x: int) { x % 2 == 0 }
 class Container<T> {
   ghost var Contents: set<T>
   var elems: seq<T>
-    
+
   method Add(t: T)
     requires Contents == set x | x in elems
     modifies this
@@ -60,7 +60,7 @@ class Container<T> {
 class IntContainer {
   ghost var Contents: set<int>
   var elems: seq<int>
-    
+
   method Add(t: int)
     requires Contents == set x | x in elems
     modifies this

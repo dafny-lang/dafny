@@ -15,7 +15,7 @@ module M0 {
     var a: nat
     const b := 17
     var c: real
-  
+
     constructor Init(x: nat)
     {
       this.a := x;
@@ -122,7 +122,7 @@ module TypeOfThis {
       case true =>  S := {ll};
       case true =>  T := {ll};
     }
-  
+
     method Mutate()
       modifies this
     {

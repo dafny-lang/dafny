@@ -13,7 +13,7 @@ interface BHeap {
     ensures elems = {x y z}
 
   method Find(n: int) returns (ret: bool)
-    ensures ret = (n in elems)	
+    ensures ret = (n in elems)
 }
 
 datamodel BHeap {
@@ -21,7 +21,7 @@ datamodel BHeap {
   var left: BHeap
   var right: BHeap
 
-  frame 
+  frame
     left * right
 
   invariant
@@ -30,4 +30,4 @@ datamodel BHeap {
     right != null ==> forall e :: e in right.elems ==> e < data
 	left = null ==> right = null
 	(left != null && right = null) ==> left.elems = {left.data}
-} 
+}

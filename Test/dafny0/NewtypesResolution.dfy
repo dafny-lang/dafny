@@ -230,7 +230,7 @@ module IntegerBasedValues {
       case i < m.Length1 =>  // error: i and m.Length1 are of different integer-based types
     }
   }
-  
+
   method Sequences(a: seq<T>, i: Even) returns (x: T, b: seq<T>)
     requires 0 <= i;
   {

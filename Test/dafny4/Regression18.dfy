@@ -13,7 +13,7 @@ module B {
   predicate Pred(t: T)
   function method Witness(): T
     ensures Pred(Witness())
-    
+
   method Bad(x: T) returns (tt: NewT) {
     // The following once verified, because the LHS's type was normalized
     // past its constraints.

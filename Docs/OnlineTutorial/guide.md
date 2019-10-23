@@ -127,7 +127,7 @@ otherwise). Here the `if` statement checks whether `x` is less than
 zero, using the familiar comparison operator syntax, and returns the absolute value as
 appropriate. (Other comparison operators are `<=`, `>`, `<=`, `!=`
 and `==`, with the expected meaning. See the reference
-for more on operators.) 
+for more on operators.)
 
 ## Pre- and Postconditions
 
@@ -347,7 +347,7 @@ expectations of what is true at various points is actually true. You can use thi
 to check basic arithmetical facts, as above, but they can also be used in more
 complex situations. Assertions are a powerful tool for debugging annotations,
 by checking what Dafny is able to prove about your code. For example, we can
-use it to investigate what Dafny knows about the `Abs` function. 
+use it to investigate what Dafny knows about the `Abs` function.
 
 To do this, we need one more concept: local variables. Local
 variables behave exactly as you would expect, except maybe for a few issues
@@ -638,7 +638,7 @@ method Abs(x: int) returns (y: int)
 
 In general, there can be many ways to write down a given property. Most of the
 time it doesn't matter which one you pick, but a good choice can make it easier
-to understand the stated property and verify that it is correct. 
+to understand the stated property and verify that it is correct.
 
 
 But we still have an issue: there seems to be a lot of duplication. The body of the method
@@ -762,9 +762,9 @@ actually 3.
   *Write a **function** `max` that returns the larger of two given
   integer parameters. Write a test method using an `assert` that
   checks that your function is correct.*
-  
+
 ``` {.editonly}
-function max(a: int, b: int): int 
+function max(a: int, b: int): int
 {
    // Fill in an expression here.
 }
@@ -789,7 +789,7 @@ annotations, they can only appear in annotations. One cannot write:
 
 as this is not an annotation. Functions are never part of
 the final compiled program, they are just tools to help us verify our code.
-Sometimes it is convenient to use a function in real code, so one can define a 
+Sometimes it is convenient to use a function in real code, so one can define a
 `function method`, which can be called from real code. Note
 that there are restrictions on what functions can be function methods (See the
 reference for details).
@@ -801,7 +801,7 @@ reference for details).
   `max` from real code. Fix this problem using a `function method`.*
 
 ``` {.editonly}
-function max(a: int, b: int): int 
+function max(a: int, b: int): int
 {
    // Use your code from Exercise 4
 }
@@ -821,7 +821,7 @@ function max(a: int, b: int): int { ... }
   verifies, change the body of `Abs` to also use `abs`. (After doing
   this, you will realize there is not much point in having a method
   that does exactly the same thing as a function method.)*
-  
+
 ``` {.editonly}
 function abs(x: int): int
 {
@@ -1109,7 +1109,7 @@ In addition to the counter, our algorithm called for a pair
 of numbers which represent adjacent Fibonacci numbers in the sequence.
 Unsurprisingly, we will have another invariant or two to relate these numbers
 to each other and the counter. To find these invariants, we employ a common
-Dafny trick: working backwards from the postconditions. 
+Dafny trick: working backwards from the postconditions.
 
 Our postcondition for the Fibonacci method is that the
 return value `b` is equal to `fib(n)`.
@@ -1743,7 +1743,7 @@ array. We can write a quantifier that expresses the property, "if `x` is before
 
 Here we have two bound variables, `j`
 and `k`, which are both integers. The comparisons between
-the two guarantee that they are both valid indices into the array, and that 
+the two guarantee that they are both valid indices into the array, and that
 `j` is before `k`. Then the second part
 says that they are ordered properly with respect to one another. Quantifiers are just
 a type of boolean valued expression in Dafny, so we can write the sorted predicate

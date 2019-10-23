@@ -11,5 +11,5 @@
 // RUN: %diff "%s.expect" "%t"
 
 method Main() {
-    
+
 }

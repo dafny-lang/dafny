@@ -81,7 +81,7 @@ function Append<T>(a: List<T>, b: List<T>): List<T>
 
 function Rotate<T>(n: int, l: List<T>): List<T>
   requires 0 <= n;
-  ensures len(Rotate(n, l)) == len(l);  
+  ensures len(Rotate(n, l)) == len(l);
 {
   match l
   case Nil => l

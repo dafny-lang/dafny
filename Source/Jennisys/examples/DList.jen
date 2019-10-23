@@ -28,12 +28,12 @@ datamodel DNode[T] {
   var data: T
   var next: DNode[T]
   var prev: DNode[T]
-  
-  frame 
+
+  frame
     next
 
   invariant
     next = null ==> list = [data]
     next != null ==> (list = [data] + next.list  &&  next.prev = this)
 	prev != null ==> prev.next = this
-} 
+}

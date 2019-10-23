@@ -9,7 +9,7 @@
 ----------------------------
 
     $ cd Jennisys
-    $ bin/Debug/Jennisys.exe examples/<name>.jen 
+    $ bin/Debug/Jennisys.exe examples/<name>.jen
 
   The most current and complete set of examples is in the
   "examples/oopsla12" folder.  No additional Jennisys switches need be
@@ -25,4 +25,4 @@
     $ Dafny /compile:0 jennisys-synth_<example-name>.dfy
 
   Expected outputs (i.e., synthesized Dafny programs) for the examples
-  in "examples/oopsla12" can be found in the same folder. 
+  in "examples/oopsla12" can be found in the same folder.

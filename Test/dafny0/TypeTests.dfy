@@ -2,7 +2,7 @@
 // RUN: %diff "%s.expect" "%t"
 
 module Tests {
-  
+
 class C {
   function F(c: C, d: D): bool { true }
   method M(x: int) returns (y: int, c: C)
@@ -153,7 +153,7 @@ module Expl_Module {
     static method N<U>(t: T, u: U)
   }
 }
-  
+
 }  // module Tests
 
 // --------------------- more ghost tests, for assign-such-that statements

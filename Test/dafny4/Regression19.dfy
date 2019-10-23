@@ -50,15 +50,15 @@ method M(s: set<int>, r: R, q: int)
 {
   assert ContainsNothingBut5(s);  // forall
   assert YeahContains5(s);  // exists
-  
+
   NonemptySet(5, set q | q in s && q == 5);
   assert ViaSetComprehension(s);  // set comprehension
 
   NonemptyMap(5, map q | q in s && q == 5 :: true);
   assert ViaMapComprehension(s);  // map comprehension
-     
+
   assert LambdaTest(s);  // lambda expression
   assert Contains5(s);  // let expression (once had generated malformed Boogie)
-  
+
   assert RIs5(r);  // match expression
 }

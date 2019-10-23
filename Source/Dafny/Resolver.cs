@@ -10089,7 +10089,7 @@ namespace Microsoft.Dafny
     }
 
     /// <summary>
-    /// Desugars "y :- MethodOrExpression" into 
+    /// Desugars "y :- MethodOrExpression" into
     /// "var temp := MethodOrExpression; if temp.IsFailure() { return temp.PropagateFailure(); } y := temp.Extract();"
     /// and saves the result into s.ResolvedStatements.
     /// </summary>
@@ -10142,7 +10142,7 @@ namespace Microsoft.Dafny
       ) {
         // more details regarding which methods are missing have already been reported by regular resolution
         origReporter.Error(MessageSource.Resolver, tok,
-          "The right-hand side of ':-', which is of type '{0}', must have members 'IsFailure()', 'PropagateFailure()', {1} 'Extract()'", 
+          "The right-hand side of ':-', which is of type '{0}', must have members 'IsFailure()', 'PropagateFailure()', {1} 'Extract()'",
           tp, expectExtract ? "and" : "but not");
       }
 
@@ -13473,7 +13473,7 @@ namespace Microsoft.Dafny
             var receiver = new StaticReceiverExpr(expr.tok, (UserDefinedType)ty.NormalizeExpand(), (TopLevelDeclWithMembers)member.EnclosingClass, false);
             r = ResolveExprDotCall(expr.tok, receiver, null, member, args, expr.OptTypeArguments, opts, allowMethodCall);
           }
-        } 
+        }
         if (r == null) {
           reporter.Error(MessageSource.Resolver, expr.tok, "member '{0}' does not exist in type '{1}'", name, ri.TypeParamDecl != null ? ri.TypeParamDecl.Name : ri.Decl.Name);
         }

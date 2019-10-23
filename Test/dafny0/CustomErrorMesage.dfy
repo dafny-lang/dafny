@@ -2,9 +2,9 @@
 // RUN: %diff "%s.expect" "%t"
 
 method m(x:int)
-{ 
+{
   assert {:error "m: x must be positive"}  x > 0;
-} 
+}
 
 function f(x:int):int {
   assert {:error "f: x must be positive"}  x > 0;
@@ -33,7 +33,7 @@ method bar(x:int) returns (y: int)
   y := x;
 }
 
-method duplicate_array(input: array<int>, len: int) returns (output: array<int>) 
+method duplicate_array(input: array<int>, len: int) returns (output: array<int>)
   requires len == input.Length;
 {
   output := new int[len];

@@ -3,18 +3,18 @@
 
 method Main() {
   var r0, r1;
-  
+
   var d := Ctor(15);
   r0 := d.ToString();
   r1 := d.GetHashCode();
   print r0, " ", r1, "\n";
-  
+
   var c := CoCtor(15);
   r0 := c.ToString();
   r1 := c.GetHashCode();
   print c.c, " ", c.d, " ", c.Computer(), " ";
   print r0, " ", r1, "\n";
-  
+
   var n: NameclashNew := 3;
   r0 := n.ToString();
   r1 := n.GetHashCode();

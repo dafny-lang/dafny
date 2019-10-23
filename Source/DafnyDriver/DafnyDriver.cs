@@ -53,7 +53,7 @@ namespace Microsoft.Dafny
 
       if (exitValue == ExitValue.VERIFIED)
       {
-        exitValue = ProcessFiles(dafnyFiles, otherFiles.AsReadOnly(), reporter); 
+        exitValue = ProcessFiles(dafnyFiles, otherFiles.AsReadOnly(), reporter);
       }
 
       if (CommandLineOptions.Clo.XmlSink != null) {
@@ -477,7 +477,7 @@ namespace Microsoft.Dafny
         Directory.Delete(targetDir, true);
       string targetFilename = Path.Combine(targetDir, targetBaseName);
       if (targetProgram != null) {
-        WriteFile(targetFilename, targetProgram); 
+        WriteFile(targetFilename, targetProgram);
       }
 
       string relativeTarget = Path.Combine(targetBaseDir, targetBaseName);
@@ -593,7 +593,7 @@ namespace Microsoft.Dafny
         }
         targetFilename = WriteDafnyProgramToFiles(dafnyProgramName, p, completeProgram, otherFiles, outputWriter);
       }
-      
+
       if (DafnyOptions.O.CompileTarget is DafnyOptions.CompilationTarget.Java) {
         string targetBaseDir = baseName;
         string targetDir = Path.Combine(Path.GetDirectoryName(dafnyProgramName), targetBaseDir);

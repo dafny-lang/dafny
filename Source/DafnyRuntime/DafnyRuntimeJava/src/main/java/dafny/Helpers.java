@@ -30,7 +30,7 @@ public class Helpers {
     public static <T, U> U Let(T t, Function<T, U> f) {
         return f.apply(t);
     }
-    
+
     public static Object getDefault(String s) {
         if (s == null || s.startsWith("interface "))
             return null;

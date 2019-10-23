@@ -12,15 +12,15 @@ function RepeatArrayValue<T>(n:T, count:nat) : array<T>
 function Example1(len:nat) : seq<uint32>
 {
     // Error: value does not satisfy the subset constraints of 'seq<uint32>'
-    RepeatValue(5 as uint32, len)       
+    RepeatValue(5 as uint32, len)
 }
 
 function Example2(len:nat) : map<uint32, uint32>
 {
-    RepeatMapValue(5 as uint32, len)       
+    RepeatMapValue(5 as uint32, len)
 }
 
 function Example3(len:nat) : array<uint32>
 {
-    RepeatArrayValue(5 as uint32, len)       
+    RepeatArrayValue(5 as uint32, len)
 }

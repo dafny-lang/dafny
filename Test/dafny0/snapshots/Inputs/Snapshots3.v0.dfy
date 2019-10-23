@@ -2,7 +2,7 @@ method M()
 {
   if (*)
   {
-    
+
   }
   else
   {

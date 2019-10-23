@@ -155,7 +155,7 @@ function TakesANat(n: nat): bool
 }
 
 function Naturally(): nat
-  ensures TakesANat(Naturally());  // the wellformedness of this check requires 
+  ensures TakesANat(Naturally());  // the wellformedness of this check requires
 {
   17
 }

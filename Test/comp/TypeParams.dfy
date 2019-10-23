@@ -129,7 +129,7 @@ method TraitClass() {
   x := HTrait.Cadr(a.h1); print x, " ";
   x := HTrait.Cadr(a.k0); print x, " ";
   x := HTrait.Cadr(a.k1); print x, "\n";
-  
+
   var b := new WClass.Make(true);
   var y;
   y := HTrait.Cadr(b.k0); print y, " ";
@@ -175,7 +175,7 @@ method Direct() {
   var b: Eight;
   var c: Odd;
   print a, " ", b, " ", c, "\n";
-  
+
   var k0: real --> bool;
   var k1: real ~> bool;
   var k2: () --> int;

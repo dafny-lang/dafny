@@ -29,7 +29,7 @@ module OrdinaryTypeChecking {
   newtype EvenInt = x | x % 2 == 0
   newtype SmallReal = r | -4.0 <= r < 300.0
   newtype Handful = x | 0 <= x < 0x50
-  
+
   method Shifts() returns (x: int, n: nat, r: real, even: EvenInt, small: SmallReal, b67: bv67, w: bv32, seven: bv7, noll: bv0, h: Handful)
   {
     x := b67 << 3;  // error: result not assignable to an int
@@ -82,7 +82,7 @@ module ParsingRegression0 {
     x := |if 5 in s then s else t|;  // the last "|" was previously flagged as a parsing error
     x := if 5 in s then |s| else |t|;
     x := |if 5 in s then if |u| == 17 then u else s else t|;
-    
+
     x := |match c case Yellow => s|;
     x := |match c case Yellow => s case Green => if 5 in s then s else t|;
     x := |match c case Yellow => s case Green => if 5 in s then s else t case Red => u|;

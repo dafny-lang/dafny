@@ -41,7 +41,7 @@ class C {
   {
     var c: C := new C;
     if
-    case true =>  assert unchanged(this);  
+    case true =>  assert unchanged(this);
     case true =>  assert unchanged(c);  // error: 'alloc' changed
     case true =>  assert unchanged(c`f);  // error: 'alloc' changed
     case true =>  assert unchanged(this, c);  // error: 'alloc' changed for 'c'

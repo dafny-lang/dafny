@@ -251,7 +251,7 @@ namespace Microsoft.Dafny {
       var w = DeclareLocalVar(name, type, tok, wr);
       TrExpr(rhs, w, inLetExprBody);
     }
-    
+
     protected virtual void DeclareLocalVar(string name, Type /*?*/ type, Bpl.IToken /*?*/ tok, Expression rhs,
       bool inLetExprBody, TargetWriter wr, Type t){
       var w = DeclareLocalVar(name, type, tok, wr);
@@ -281,7 +281,7 @@ namespace Microsoft.Dafny {
     protected abstract void DeclareLocalOutVar(string name, Type type, Bpl.IToken tok, string rhs, bool useReturnStyleOuts, TargetWriter wr);
     protected virtual void EmitActualOutArg(string actualOutParamName, TextWriter wr) { }  // actualOutParamName is always the name of a local variable; called only for non-return-style outs
     protected virtual void EmitOutParameterSplits(string outCollector, List<string> actualOutParamNames, TargetWriter wr) { }  // called only for return-style calls
-    protected virtual void EmitCastOutParameterSplits(string outCollector, List<string> actualOutParamNames, TargetWriter wr, List<Type> actualOutParamTypes, Bpl.IToken tok) { 
+    protected virtual void EmitCastOutParameterSplits(string outCollector, List<string> actualOutParamNames, TargetWriter wr, List<Type> actualOutParamTypes, Bpl.IToken tok) {
       EmitOutParameterSplits(outCollector, actualOutParamNames, wr); }
 
     protected abstract void EmitActualTypeArgs(List<Type> typeArgs, Bpl.IToken tok, TextWriter wr);
@@ -602,7 +602,7 @@ namespace Microsoft.Dafny {
     protected virtual void OrganizeModules(Program program, out List<ModuleDefinition> modules){
       modules = program.CompileModules;
     }
-    
+
     public void Compile(Program program, TargetWriter wrx) {
       Contract.Requires(program != null);
 
@@ -890,7 +890,7 @@ namespace Microsoft.Dafny {
       }
       decls.AddRange(consts);
     }
-    
+
     public static bool NeedsCustomReceiver(MemberDecl member) {
       Contract.Requires(member != null);
       return !member.IsStatic && member.EnclosingClass is NewtypeDecl;
@@ -981,7 +981,7 @@ namespace Microsoft.Dafny {
                 // set { this.{0} = value; }
                 EmitThis(wSet);
                 wSet.Write(".{0}", f.CompileName);
-                var sw = EmitAssignmentRhs(wSet); 
+                var sw = EmitAssignmentRhs(wSet);
                 EmitSetterParameter(sw);
               }
             }
@@ -1127,7 +1127,7 @@ namespace Microsoft.Dafny {
       if (l.Count > 0){
         CreateDefaultConstructor(c, classWriter, l);
       }
-      
+
       thisContext = null;
     }
 
@@ -2145,7 +2145,7 @@ namespace Microsoft.Dafny {
     }
 
     protected virtual TargetWriter EmitIngredients(TargetWriter wr, string ingredients, int L, string tupleTypeArgs, ForallStmt s, AssignStmt s0, Expression rhs){
-      
+
       using (var wrVarInit = DeclareLocalVar(ingredients, null, null, wr)){
         EmitEmptyTupleList(tupleTypeArgs, wrVarInit);
       }
@@ -2179,7 +2179,7 @@ namespace Microsoft.Dafny {
 
       return wrOuter;
     }
-    
+
     protected virtual void EmitMemberSelect(AssignStmt s0, List<Type> tupleTypeArgsList, TargetWriter wr, string tup){
       var lhs = (MemberSelectExpr) s0.Lhs;
       var wCoerced = EmitCoercionIfNecessary(from: null, to: tupleTypeArgsList[0], tok: s0.Tok, wr: wr);
@@ -2219,7 +2219,7 @@ namespace Microsoft.Dafny {
       EmitTupleSelect(tup, L - 1, wr);
       EndStmt(wr);
     }
-    
+
     protected TargetWriter CompileGuardedLoops(List<BoundVar> bvs, List<ComprehensionExpr.BoundedPool> bounds, Expression range, TargetWriter wr) {
       var n = bvs.Count;
       Contract.Assert(bounds.Count == n);
@@ -3039,7 +3039,7 @@ namespace Microsoft.Dafny {
       TrExpr(expr, wr, inLetExprBody);
       wr.Write(")");
     }
-    
+
     protected virtual void TrBvExpr(Expression expr, TargetWriter wr, bool inLetExprBody){
       Contract.Requires(expr != null);
       Contract.Requires(wr != null);

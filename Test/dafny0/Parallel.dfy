@@ -317,7 +317,7 @@ lemma Th(step: nat, t: Nat, r: nat)
 
 // ------------------------------------------------------------------------
 // The following example once included a unsoundness bug in the translation
-    
+
 method BogosityClient()
   ensures false
 {

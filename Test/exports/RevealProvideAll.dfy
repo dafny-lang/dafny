@@ -12,7 +12,7 @@ module A {
 
   class AClass {
      function method getCT1(): T { CT1 }
-     constructor Init() {} 
+     constructor Init() {}
   }
 
 }
@@ -41,11 +41,11 @@ module C {
 
   lemma Test2(x : A.T)
   ensures x == A.getCT1() || x == A.getCT2() { }
- 
+
   method TestClass() {
     var a := new A.AClass.Init();
     var f := a.getCT1();
     assert f == A.getCT1();
   }
- 
+
 }

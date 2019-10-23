@@ -4,26 +4,26 @@
 trait T1
 {
    var f: int;
-   
+
    function method Plus (x:int, y:int) : int
      requires x>y;
    {
       x + y
    }
-   
+
    function method Mul (x:int, y:int, z:int) : int
      requires x>y;
    {
      x * y * z
    }
-   
+
    //function method BodyLess1() : int
-   
+
    static method GetPhoneNumber (code:int, n:int) returns (z:int)
    {
      z := code + n;
    }
-   
+
    method TestPhone ()
    {
      var num : int;

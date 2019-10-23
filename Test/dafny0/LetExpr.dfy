@@ -319,11 +319,11 @@ function method F_bad(d: Tuple<
 method LetSuchThat_Deterministic() returns (x: int)
 {
   if {
-    case true =>  
+    case true =>
       x := var y :| y < 0; y;  // error: not deterministic
-    case true =>  
+    case true =>
       x := var y :| y < 0; y*0;
-    case true =>  
+    case true =>
       x := var w :| w == 2*w; w;
   }
   var t := {3, 5};

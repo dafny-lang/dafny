@@ -94,7 +94,7 @@ module BoundedIntegerParameters {
   method Test() {
     Seq(5, 5, 5, 5, 5, 5);
   }
-  
+
   method Seq(u0: short, u1: tall, u2: grande, u3: venti, s0: little, s1: big)
     requires u0 as int <= u1 as int <= u2 as int <= u3 as int < 7
     requires 0 <= s0 as int <= s1 as int < 7
@@ -107,7 +107,7 @@ module BoundedIntegerParameters {
     print data[..u3], " ";
     print data[..s0], " ";
     print data[..s1], "\n";
-    
+
     print data[u0..], " ";
     print data[u1..], " ";
     print data[u2..], " ";
@@ -134,7 +134,7 @@ method Strings() {
   print "  prefix: ", a <= b, " ", b <= c, " ", c <= c, "\n";
   print "  proper prefix: ", a < b, " ", b < c, " ", c < c, "\n";
   print "  membership: ", 'u' in a, " ", 'u' in b, " ", 'u' in c, "\n";
-  
+
   var d := ['g', 'u', 'r', 'u'];
   print "  constructed as sequence: ", d, "\n";
 

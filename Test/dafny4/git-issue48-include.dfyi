@@ -3,4 +3,4 @@ module m1 {
     {
         forall i:int | i > 0 ensures true { }
     }
-} 
+}

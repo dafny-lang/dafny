@@ -5,7 +5,7 @@
 class Class { }
 
 newtype byte = x | 0 <= x < 256
-  
+
 datatype Record<G> = Make(0:Class?, 1:G, 2:Class, 3:int, 4:byte)
 
 method Main()

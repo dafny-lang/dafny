@@ -3,8 +3,8 @@ module Printer
 open Ast
 open Getters
 open AstUtils
-open PrintUtils     
-  
+open PrintUtils
+
 let rec PrintType ty =
   match ty with
   | IntType                   -> "int"
@@ -26,9 +26,9 @@ let rec PrintExpr ctx expr =
   | BoolLiteral(b)    -> sprintf "%b" b
   | BoxLiteral(id)    -> sprintf "box_%s" id
   | ObjLiteral(id)
-  | VarLiteral(id) 
+  | VarLiteral(id)
   | IdLiteral(id)     -> id
-  | VarDeclExpr(vlist, declare) -> 
+  | VarDeclExpr(vlist, declare) ->
       let decl = if declare then "var " else ""
       let vars = PrintSep ", " PrintVarDecl vlist
       sprintf "%s%s" decl vars
@@ -44,7 +44,7 @@ let rec PrintExpr ctx expr =
       let closeParen = if needParens then ")" else ""
       sprintf "%s%s %s %s%s" openParen (PrintExpr strength e0) op (PrintExpr strength e1) closeParen
   | IteExpr(c,e1,e2)  -> sprintf "%s ? %s : %s" (PrintExpr 25 c) (PrintExpr 25 e1) (PrintExpr 25 e2)
-  | SelectExpr(e,i)   -> sprintf "%s[%s]" (PrintExpr 100 e) (PrintExpr 0 i) 
+  | SelectExpr(e,i)   -> sprintf "%s[%s]" (PrintExpr 100 e) (PrintExpr 0 i)
   | UpdateExpr(e,i,v) -> sprintf "%s[%s := %s]" (PrintExpr 100 e) (PrintExpr 0 i) (PrintExpr 0 v)
   | SequenceExpr(ee)  -> sprintf "[%s]" (ee |> PrintSep " " (PrintExpr 0))
   | SeqLength(e)      -> sprintf "|%s|" (PrintExpr 0 e)
@@ -61,8 +61,8 @@ let rec PrintExpr ctx expr =
   | MethodOutSelect(mth,name)      ->
       sprintf "%s[\"%s\"]" (PrintExpr 0 mth) name
 
-let rec PrintConst cst = 
-  match cst with 
+let rec PrintConst cst =
+  match cst with
   | IntConst(v)        -> sprintf "%d" v
   | BoolConst(b)       -> sprintf "%b" b
   | BoxConst(id)       -> sprintf "box_%s" id
@@ -78,7 +78,7 @@ let rec PrintConst cst =
 let PrintSig signature =
   match signature with
   | Sig(ins, outs) ->
-      let returnClause = 
+      let returnClause =
         if outs <> [] then sprintf " returns (%s)" (outs |> PrintSep ", " PrintVarDecl)
         else ""
       sprintf "(%s)%s" (ins |> PrintSep ", " PrintVarDecl) returnClause
@@ -98,22 +98,22 @@ and PrintStmtList stmts indent printNewline =
 
 let PrintRoutine signature pre body =
   let preStr = pre |> ForeachConjunct (fun e -> sprintf "    requires %s%s" (PrintExpr 0 e) newline)
-  sprintf "%s%s%s%s" (PrintSig signature) newline preStr (PrintExpr 0 body)  
-  
+  sprintf "%s%s%s%s" (PrintSig signature) newline preStr (PrintExpr 0 body)
+
 let PrintMember m =
   match m with
-  | Field(vd) -> sprintf "  var %s%s" (PrintVarDecl vd) newline 
+  | Field(vd) -> sprintf "  var %s%s" (PrintVarDecl vd) newline
   | Method(id,signature,pre,body,true) -> sprintf "  constructor %s%s" id (PrintRoutine signature pre body)
   | Method(id,signature,pre,body,false) -> sprintf "  method %s%s" id (PrintRoutine signature pre body)
   | Invariant(_) -> ""  // invariants are handled separately
-      
+
 let PrintTopLevelDeclHeader kind id typeParams =
-  let typeParamStr = 
+  let typeParamStr =
     match typeParams with
     | [] -> ""
     | _ -> sprintf "[%s]" (typeParams |> PrintSep ", " (fun tp -> tp))
   sprintf "%s %s%s {%s" kind id typeParamStr newline
-  
+
 let PrintDecl d =
   match d with
   | Interface(id,typeParams,members) ->
@@ -121,35 +121,35 @@ let PrintDecl d =
                         (List.fold (fun acc m -> acc + (PrintMember m)) "" members)
                         newline
   | DataModel(id,typeParams,vars,frame,inv) ->
-      (PrintTopLevelDeclHeader "model" id typeParams) + 
+      (PrintTopLevelDeclHeader "model" id typeParams) +
       (vars |> List.fold (fun acc vd -> acc + "  var " + (PrintVarDecl vd) + newline) "") +
       "  frame" + newline +
       (frame |> List.fold (fun acc fr -> acc + "    " + (PrintExpr 0 fr) + newline) "") +
-      "  invariant" + newline + 
+      "  invariant" + newline +
       (inv |> ForeachConjunct (fun e -> "    " + (PrintExpr 0 e) + newline)) +
       "}" + newline
   | Code(id,typeParams) ->
       (PrintTopLevelDeclHeader "code" id typeParams) + "}" + newline
 
-let PrintMethodSignFull indent comp m = 
+let PrintMethodSignFull indent comp m =
   let idt = Indent indent
   let __PrintPrePost pfix expr = SplitIntoConjunts expr |> PrintSep newline (fun e -> pfix + (PrintExpr 0 e) + ";")
   let compName = GetComponentName comp
   match m with
-  | Method(methodName, sgn, pre, post, isConstr) ->  
+  | Method(methodName, sgn, pre, post, isConstr) ->
       let mc = if isConstr then "constructor" else "method"
       let preStr = (__PrintPrePost (idt + "  requires ") pre)
       let postStr = (__PrintPrePost (idt + "  ensures ") post)
       idt + mc + " " + compName + "." + methodName + (PrintSig sgn) + newline +
       preStr + (if preStr = "" then "" else newline) +
-      postStr      
+      postStr
   | _ -> failwithf "not a method: %O" m
 
 let Print prog =
   match prog with
   | SProgram(decls) -> List.fold (fun acc d -> acc + (PrintDecl d)) "" decls
 
-let PrintObjRefName o = 
+let PrintObjRefName o =
   match o with
   | ThisConst(_,_) -> "this";
   | NewObj(name, _) -> PrintGenSym name
