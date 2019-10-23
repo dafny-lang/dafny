@@ -9674,7 +9674,7 @@ void LetBind(RBranch branch, BoundVar var, Expression expr){
 
     Console.WriteLine("DEBUG: (CompileInnerMatchStmt) starting to handle with {0} matchees and {1} branches", matchees.Count, branches.Count);
     foreach(RBranch branch in branches){
-        Console.WriteLine("DEBUG: (CompileInnerMatchStmt) branch has {0} patterns with ctor {1}", branch.Patterns.Count);
+        Console.WriteLine("DEBUG: (CompileInnerMatchStmt) branch has {0} patterns", branch.Patterns.Count);
     }
     //Otherwise, start handling the first matchee
     Expression currMatchee = matchees.First();
@@ -9768,16 +9768,47 @@ void LetBind(RBranch branch, BoundVar var, Expression expr){
     } 
     return r;
   }
+
+
+void DebugPrintCasePattern(CasePattern<BoundVar> pattern,int ident){
+   if(pattern.Var != null){
+    Console.WriteLine("DEBUG: (DebugPrintCasePattern) branch has has id {0} and var {1}", pattern.Id, pattern.Var);
+  } else if(pattern.Ctor != null){
+    Console.WriteLine("DEBUG: (DebugPrintCasePattern) branch has id {0}, ctor {1} and {2} arguments", pattern.Id, pattern.Ctor, pattern.Arguments.Count);
+  } else {
+    Console.WriteLine("DEBUG: (DebugPrintCasePattern) branch has id {0} and {1} arguments", pattern.Id, pattern.Arguments.Count);
+  }
+  if( pattern.Arguments != null){
+    Console.WriteLine("DEBUG: (DebugPrintCasePattern) =========================== start {0}", ident);
+    foreach(CasePattern<BoundVar> pat in pattern.Arguments){
+      DebugPrintCasePattern(pat, ident+1);
+    }
+    Console.WriteLine("DEBUG: (DebugPrintCasePattern) =========================== end {0}", ident);
+  }
+
+}  
+
+// Create RBranch from an unresolved MatchCaseStmt
+RBranch RBranchOfMatchCaseStmt(MatchCaseStmt x){
+  var headPattern = new CasePattern<BoundVar>(x.tok, x.Id, x.CasePatterns);
+  var PatternList = new List<CasePattern<BoundVar>>();
+  PatternList.Add(headPattern);
+  return new RBranch(PatternList,x.Body);
+}
 // Start with a partially resolved, potentially nested, overlapping MatchStmt
 // Returns an unnested MatchStmt with disjoint patterns
 void CompileMatchCaseStmt(MatchStmt s, ICodeContext codeContext) {
     Console.WriteLine("DEBUG: (CompileMatchCaseStmt) In ");
    foreach(MatchCase mc in s.Cases){
         Console.WriteLine("DEBUG: (CompileMatchCaseStmt) case has {0} patterns with ctor {1} and id {2}", mc.CasePatterns.Count, mc.Ctor, mc.Id);
+        foreach(CasePattern<BoundVar> pattern in mc.CasePatterns){
+          DebugPrintCasePattern(pattern, 0);
+        }
     }
 
   // Call CompileInnerMatchStmt
-  List<RBranch> branches = s.Cases.ConvertAll(x => new RBranch(x.CasePatterns ,x.Body));
+  //TODO: make outer CasePattern for the MatchCase
+  List<RBranch> branches = s.Cases.ConvertAll(RBranchOfMatchCaseStmt);
   List<Expression> matchees = new List<Expression>();
   matchees.Add(s.Source);
   var r = CompileInnerMatchStmt(matchees, true, branches, codeContext);
