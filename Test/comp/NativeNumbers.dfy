@@ -6,8 +6,9 @@
 // RUN: %diff "%s.expect" "%t"
 
 method Main() {
-    Int8Test();
-    Int16Test();
+  Int8Test();
+  Int16Test();
+  BvTests();
 }
 
 // test handling of byte/short arithmetic in Java
@@ -52,3 +53,25 @@ method MInt16(m: int16, n: int16) returns (r: int16) {
   }
 }
 
+method BvTests() {
+  // These will also be bytes/shorts in Java (though they'll be wrapped in
+  // UByte/UShort objects)
+
+  var a: bv8 := 250;
+  a := a + 6;
+  assert a == 0;
+
+  var b: bv7 := 126;
+  b := b + 5;
+  assert b == 3;
+
+  var c: bv16 := 0xfffa;
+  c := c + 10;
+  assert c == 4;
+
+  var d: bv15 := 0x7ffb;
+  d := d + 6;
+  assert d == 1;
+
+  print a, " ", b, " ", c, " ", d, "\n";
+}
