@@ -108,16 +108,17 @@ parameters, however, are read only. Return statements are used when one wants
 to return before reaching the end of the body block of the method. Return
 statements can be just the return keyword (where the current value of the out
 parameters are used), or they can take a list of values to return. There are
-also compound statements, such as if statements. If statements require
+also compound statements, such as if statements. If statements do not require
 parentheses around the boolean condition, and act as one would expect:
 
 ``` {.edit}
 method Abs(x: int) returns (y: int)
 {
-   if x < 0
-      { return -x; }
-   else
-      { return x; }
+   if x < 0 {
+      return -x;
+   } else {
+      return x;
+   }
 }
 ```
 
@@ -159,10 +160,11 @@ the case of the `Abs` method, a reasonable postcondition is the following:
 method Abs(x: int) returns (y: int)
    ensures 0 <= y
 {
-   if x < 0
-      { return -x; }
-   else
-      { return x; }
+   if x < 0 {
+      return -x;
+   } else {
+      return x;
+   }
 }
 ```
 
@@ -407,10 +409,11 @@ call to `Abs` as follows:
 method Abs(x: int) returns (y: int)
    ensures 0 <= y
 {
-   if x < 0
-      { return -x; }
-   else
-      { return x; }
+   if x < 0 {
+      return -x;
+   } else {
+      return x;
+   }
 }
 method Testing()
 {
@@ -465,10 +468,11 @@ changing the existing one) to say:
 method Abs(x: int) returns (y: int)
    ensures 0 <= y
 {
-   if x < 0
-      { return -x; }
-   else
-      { return x; }
+   if x < 0 {
+      return -x;
+   } else {
+      return x;
+   }
 }
 method Testing()
 {
@@ -558,19 +562,20 @@ can partially do this with the following:
 ``` {.editonly}
 method Abs(x: int) returns (y: int)
    ensures 0 <= y
-   ensures 0 <= x ==> x == y
+   ensures 0 <= x ==> y == x
 {
-   if x < 0
-     { return -x; }
-   else
-     { return x; }
+   if x < 0 {
+      return -x;
+   } else {
+      return x;
+   }
 }
 ```
 
 ```
 method Abs(x: int) returns (y: int)
    ensures 0 <= y
-   ensures 0 <= x ==> x == y
+   ensures 0 <= x ==> y == x
 {
    // body as before
 }
@@ -580,7 +585,7 @@ This expresses exactly the property we discussed before,
 that the absolute value is the same for non-negative integers. The second
 ensures is expressed via the implication operator, which basically says that
 the left hand side implies the right in the mathematical sense (it binds more
-weakly than boolean "and" and comparisons, so the above says `0 <= x` implies `x == y`).
+weakly than boolean "and" and comparisons, so the above says `0 <= x` implies `y == x`).
 The left and right sides must both be boolean expressions.
 
 The postcondition says that after `Abs` is called, if the
@@ -596,20 +601,21 @@ to make the following complete annotation covering all cases:
 ``` {.editonly}
 method Abs(x: int) returns (y: int)
    ensures 0 <= y
-   ensures 0 <= x ==> x == y
+   ensures 0 <= x ==> y == x
    ensures x < 0 ==> y == -x
 {
-   if x < 0
-     { return -x; }
-   else
-     { return x; }
+   if x < 0 {
+      return -x;
+   } else {
+      return x;
+   }
 }
 ```
 
 ```
 method Abs(x: int) returns (y: int)
    ensures 0 <= y
-   ensures 0 <= x ==> x == y
+   ensures 0 <= x ==> y == x
    ensures x < 0 ==> y == -x
 {
    // body as before
@@ -625,10 +631,11 @@ and somewhat shorter, way of saying the same thing:
 method Abs(x: int) returns (y: int)
    ensures 0 <= y && (y == x || y == -x)
 {
-   if x < 0
-     { return -x; }
-   else
-     { return x; }
+   if x < 0 {
+      return -x;
+   } else {
+      return x;
+   }
 }
 ```
 
@@ -655,14 +662,15 @@ of doing this: functions.
 method Abs(x: int) returns (y: int)
    // Add a precondition here.
    ensures 0 <= y
-   ensures 0 <= x ==> x == y
+   ensures 0 <= x ==> y == x
    ensures x < 0 ==> y == -x
 {
    // Simplify the body to just one return statement
-   if x < 0
-     { return -x; }
-   else
-     { return x; }
+   if x < 0 {
+      return -x;
+   } else {
+      return x;
+   }
 }
 ```
 
@@ -675,7 +683,7 @@ method Abs(x: int) returns (y: int) { ... }
   *Keeping the postconditions of `Abs` the same as above, change the
   body of `Abs` to just `y := x + 2`. What precondition do you need to
   annotate the method with in order for the verification to go
-  through? What precondition doe you need if the body is `y := x + 1`?
+  through? What precondition do you need if the body is `y := x + 1`?
   What does that precondition say about when you can call the method?*
 
 ``` {.editonly}
@@ -683,7 +691,7 @@ method Abs(x: int) returns (y: int)
    // Add a precondition here so that the method verifies.
    // Don't change the postconditions.
    ensures 0 <= y
-   ensures 0 <= x ==> x == y
+   ensures 0 <= x ==> y == x
    ensures x < 0 ==> y == -x
 {
   y:= x + 2;
@@ -692,7 +700,7 @@ method Abs2(x: int) returns (y: int)
    // Add a precondition here so that the method verifies.
    // Don't change the postconditions.
    ensures 0 <= y
-   ensures 0 <= x ==> x == y
+   ensures 0 <= x ==> y == x
    ensures x < 0 ==> y == -x
 {
   y:= x + 1;
@@ -831,10 +839,11 @@ method Abs(x: int) returns (y: int)
   // Use abs here, then confirm the method still verifies.
 {
    // Then change this body to also use abs.
-   if x < 0
-     { return -x; }
-   else
-     { return x; }
+   if x < 0 {
+      return -x;
+   } else {
+      return x;
+   }
 }
 ```
 
@@ -889,7 +898,7 @@ method ComputeFib(n: nat) returns (b: nat)
 ```
 
 We haven't written the body yet, so Dafny will complain that
-our post condition doesn't hold. We need an algorithm to calculate the `n`<sup>th</sup>
+our postcondition doesn't hold. We need an algorithm to calculate the `n`<sup>th</sup>
 Fibonacci number. The basic idea is to keep a counter, and repeatedly calculate adjacent pairs
 of Fibonacci numbers until the desired number is reached. To do this, we need a loop. In Dafny, this is done
 via a *while loop*. A while loop looks like the following:
@@ -1032,7 +1041,7 @@ holds for every execution of the loop *except*
 for the very last one. Because the loop body is executed only when the loop
 guard holds, in the last iteration `i` goes from `n - 1` to `n`, but does not increase
 further, as the loop exits. Thus, we have only omitted exactly one case from
-our invariant, and repairing it relatively easy:
+our invariant, and repairing it is relatively easy:
 
 ``` {.editonly}
 method m(n: nat)
@@ -1319,11 +1328,10 @@ to forget to have the loop *make progress*, i.e. do work at each step. For
 example, we could have omitted the entire body of the loop in the previous
 program. The invariants would be correct, because they are still true upon
 entering the loop, and since the loop doesn't change anything, they would be
-preserved by the loop. But the crucial step from the loop to the postcondition
-wouldn't hold. We know that if we exit the loop, then we can assume the
+preserved by the loop. We know that *if* we exit the loop, then we can assume the
 negation of the guard and the invariants, but this says nothing about what
 happens if we never exit the loop. Thus we would like to make sure the loop ends
-at some point, which gives us a much stronger correctness guarantee
+at some point, which gives us a stronger correctness guarantee
 (the technical term is *total correctness*).
 
 ## Termination
@@ -2061,7 +2069,7 @@ interested).
 
 Even if you do not use Dafny regularly, the idea of writing
 down exactly what it is that the code does in a precise way, and using this to
-prove code correct is a useful skill. Invariants, pre- and post conditions,
+prove code correct is a useful skill. Invariants, pre- and postconditions,
 and annotations are useful in debugging code, and also as documentation for future
 developers. When modifying or adding to a codebase, they confirm that the
 guarantees of existing code are not broken. They also ensure that APIs are used
