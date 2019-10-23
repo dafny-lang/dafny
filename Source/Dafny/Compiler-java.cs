@@ -2087,6 +2087,22 @@ namespace Microsoft.Dafny{
             opString = "+";
           } else if (resultType is UserDefinedType && !resultType.IsIntegerType && !unsignedTypes.Contains(TypeName(e0.Type, null, tok)) && !unsignedTypes.Contains(TypeName(e1.Type, null, tok))) {
             opString = "+";
+            // If operating on bytes or shorts, the operation will widen both
+            // to ints and the result will be an int, so we need to cast back.
+            // See https://docs.oracle.com/javase/specs/jls/se7/html/jls-5.html#jls-5.6.2
+            switch (TypeName(resultType, null, tok)) {
+              case "Byte":
+                preOpString = "(byte) (";
+                postOpString = ")";
+                break;
+              case "Short":
+                preOpString = "(short) (";
+                postOpString = ")";
+                break;
+              default:
+                // No need to cast
+                break;
+            }
           } else {
             callString = "add";
           }
@@ -2099,6 +2115,22 @@ namespace Microsoft.Dafny{
             postOpString = ")";
           } else if (resultType is UserDefinedType && !resultType.IsIntegerType && !unsignedTypes.Contains(TypeName(e0.Type, null, tok)) && !unsignedTypes.Contains(TypeName(e1.Type, null, tok))) {
             opString = "-";
+            // If operating on bytes or shorts, the operation will widen both
+            // to ints and the result will be an int, so we need to cast back.
+            // See https://docs.oracle.com/javase/specs/jls/se7/html/jls-5.html#jls-5.6.2
+            switch (TypeName(resultType, null, tok)) {
+              case "Byte":
+                preOpString = "(byte) (";
+                postOpString = ")";
+                break;
+              case "Short":
+                preOpString = "(short) (";
+                postOpString = ")";
+                break;
+              default:
+                // No need to cast
+                break;
+            }
           } else {
             callString = "subtract";
           }
