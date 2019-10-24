@@ -1,0 +1,5 @@
+- No higher order functions even for array init.  Use extern newArrayFill (see extern.dfy) or similar
+- Avoid bare constants. Put them in the class using them 
+- We currently only support tuples up to arity 5.  A common place where you might go over that limit is print statements, which tuple the arguments
+- We don't support BigIntegers, so do not use int, or arr.Length, or sequence length, etc.
+
