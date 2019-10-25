@@ -9835,12 +9835,12 @@ RBranch RBranchOfMatchCaseStmt(MatchCaseStmt x){
 // Start with a partially resolved, potentially nested, overlapping MatchStmt
 // Returns an unnested MatchStmt with disjoint patterns
 void CompileMatchCaseStmt(MatchStmt s, ICodeContext codeContext) {
-    Console.WriteLine("DEBUG: (CompileMatchCaseStmt) In ");
+   // Console.WriteLine("DEBUG: (CompileMatchCaseStmt) In ");
 
    foreach(MatchCase mc in s.Cases){
       if(mc.Arguments != null){
        //post-resolve, skip
-       Console.WriteLine("DEBUG: (CompileMatchCaseStmt) Post-resolve ");
+       //Console.WriteLine("DEBUG: (CompileMatchCaseStmt) Post-resolve ");
         return;
       }
         //Console.WriteLine("DEBUG: (CompileMatchCaseStmt) case has {0} patterns with ctor {1} and id {2}", mc.CasePatterns.Count, mc.Ctor, mc.Id);
@@ -9848,7 +9848,7 @@ void CompileMatchCaseStmt(MatchStmt s, ICodeContext codeContext) {
          // DebugPrintCasePattern(pattern, 0);
         //}
     }
-   Console.WriteLine("DEBUG: (CompileMatchCaseStmt) Pre-resolve ");
+   //Console.WriteLine("DEBUG: (CompileMatchCaseStmt) Pre-resolve ");
   // Call CompileInnerMatchStmt
   //TODO: make outer CasePattern for the MatchCase
   List<RBranch> branches = s.Cases.ConvertAll(RBranchOfMatchCaseStmt);
@@ -9861,12 +9861,12 @@ void CompileMatchCaseStmt(MatchStmt s, ICodeContext codeContext) {
     var newMS = (MatchStmt) newS;
     s.UpdateSource(newMS.Source);
     s.UpdateCases(newMS.Cases);
-    Console.WriteLine("DEBUG: (CompileMatchCaseStmt) changed s to \n {0}", Printer.StatementToString(s));
+    //Console.WriteLine("DEBUG: (CompileMatchCaseStmt) changed s to \n {0}", Printer.StatementToString(s));
 
   } else {
     // Otherwise, there wasn't any work to do (i.e. just variable renaming, leave s as is)
     // TODO: return instead exactly r to be able to handle e.g. match xs in ys =>
-    Console.WriteLine("DEBUG: (CompileMatchCaseStmt) More than 1 stmt returned by Inner, did not change s ");
+    //Console.WriteLine("DEBUG: (CompileMatchCaseStmt) More than 1 stmt returned by Inner, did not change s ");
 
   }
 } 
