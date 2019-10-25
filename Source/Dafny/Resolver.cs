@@ -9757,7 +9757,7 @@ void LetBind(RBranch branch, CasePattern<BoundVar> cp, Expression expr){
             if(PB.Item1.Arguments != null){
               currBranch.Patterns.AddRange(PB.Item1.Arguments); // BTW this adds to the end
             }
-            currBranches.Insert(0, currBranch);
+            currBranches.Add(currBranch);
           } else if(ctors.ContainsKey(PB.Item1.Id)){
             // If pattern is a difference constructor, drop the branch
             Console.WriteLine("DEBUG: (CompileInnerMatchStmt) --> branch is different ctor");
@@ -9773,7 +9773,7 @@ void LetBind(RBranch branch, CasePattern<BoundVar> cp, Expression expr){
             currBranch.Patterns.AddRange(freshArgs);
             // -- and let-bind the correspondance to original bound variable in body
             LetBind(currBranch,PB.Item1, rhsExpr);
-            currBranches.Insert(0, currBranch);
+            currBranches.Add(currBranch);
           } 
         }
         // -- add new BVs (arguments) to matchees
