@@ -1,4 +1,4 @@
-newtype{:uint32iveType "uint"} uint32 = i:int | 0 <= i < 0x100000000
+newtype{:nativeType "uint"} uint32 = i:int | 0 <= i < 0x100000000
 
 type fixed = t:seq<uint32> | |t| == 2 witness [0,0]
 
