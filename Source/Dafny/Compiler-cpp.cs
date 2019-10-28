@@ -1756,7 +1756,8 @@ namespace Microsoft.Dafny {
     protected override void EmitSeqSelectRange(Expression source, Expression/*?*/ lo, Expression/*?*/ hi, bool fromArray, bool inLetExprBody, TargetWriter wr) {
       if (fromArray) {
         string typeName = "";
-        if (source.Type is UserDefinedType udt && udt.ResolvedClass != null &&
+        
+        if (source.Type.TypeArgs.Count == 0 && source.Type is UserDefinedType udt && udt.ResolvedClass != null &&
             udt.ResolvedClass is TypeSynonymDecl tsd) {
           // Hack to workaround type synonyms wrapped around the actual array type
           // TODO: Come up with a more systematic way of resolving this!

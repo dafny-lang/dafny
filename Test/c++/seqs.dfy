@@ -1,6 +1,16 @@
+newtype{:nativeType "byte"} uint8 = i:int | 0 <= i < 0x100
 newtype{:nativeType "uint"} uint32 = i:int | 0 <= i < 0x100000000
 
 type fixed = t:seq<uint32> | |t| == 2 witness [0,0]
+
+type buffer<T> = a:array?<T> | a == null || a.Length < 0x100000000
+type buffer_t = buffer<uint8>
+
+method BufferTest(b:buffer_t) 
+  requires b != null
+{
+  var t := b[..];
+}
 
 method Test(name:string, b:bool) 
   requires b;
