@@ -885,11 +885,12 @@ namespace Dafny
       return other is Sequence<T> && Equals((Sequence<T>)other);
     }
     public override int GetHashCode() {
-      if (Elements == null || Elements.Length == 0)
+      T[] elmts = Elements;
+      if (elmts == null || elmts.Length == 0)
         return 0;
       var hashCode = 0;
-      for (var i = 0; i < Elements.Length; i++) {
-        hashCode = (hashCode << 3) | (hashCode >> 29) ^ Dafny.Helpers.GetHashCode(Elements[i]);
+      for (var i = 0; i < elmts.Length; i++) {
+        hashCode = (hashCode << 3) | (hashCode >> 29) ^ Dafny.Helpers.GetHashCode(elmts[i]);
       }
       return hashCode;
     }
@@ -911,8 +912,9 @@ namespace Dafny
       }
     }
     bool EqualUntil(Sequence<T> other, int n) {
+      T[] elmts = Elements, otherElmts = other.Elements;
       for (int i = 0; i < n; i++) {
-        if (!Dafny.Helpers.AreEqual(Elements[i], other.Elements[i]))
+        if (!Dafny.Helpers.AreEqual(elmts[i], otherElmts[i]))
           return false;
       }
       return true;
@@ -935,9 +937,10 @@ namespace Dafny
     public bool Contains<G>(G g) {
       if (g == null || g is T) {
         var t = (T)(object)g;
-        int n = Elements.Length;
+        var elmts = Elements;
+        int n = elmts.Length;
         for (int i = 0; i < n; i++) {
-          if (Dafny.Helpers.AreEqual(t, Elements[i]))
+          if (Dafny.Helpers.AreEqual(t, elmts[i]))
             return true;
         }
       }
