@@ -9856,9 +9856,9 @@ void LetBindNonWildCard(RBranch branch, CasePattern<BoundVar> cp, Expression exp
         foreach(var PB in pairPB){
           if(ctor.Key.Equals(PB.Item1.Id)){
             // ==[3.1]== If pattern is same constructor, push the arguments as patterns and add that branch to new match
+            // After making sure the constructor is applied to the right number of arguments
             var currBranch = CloneRBranch(PB.Item2);
             if(PB.Item1.Arguments != null){
-              // TODO: make sure I cannot get partially applied ctors here
               if(!PB.Item1.Arguments.Count.Equals(ctor.Value.Formals.Count)){
                   reporter.Error(MessageSource.Resolver, mti.BranchTok[PB.Item2.BranchID], "Error while resolving the pattern, constructor {0} of arity {1} is applied to {2} arguments", ctor.Key, ctor.Value.Formals.Count, PB.Item1.Arguments.Count);
               }
@@ -9948,6 +9948,9 @@ void CompileMatchExpr(MatchExpr e, ICodeContext codeContext){
         return;
       }
     }
+    if(e.Source.Type.AsDatatype is TupleTypeDecl){
+    throw new NotImplementedException("Tuples are not handled by Match compiler yet");
+  }
  // initialize the MatchTempInfo to record position and duplication information about each branch
   MatchTempInfo mti = new MatchTempInfo(e.tok, false, e.Cases.Count());
 
@@ -10001,6 +10004,9 @@ void CompileMatchStmt(MatchStmt s, ICodeContext codeContext) {
  // initialize the MatchTempInfo to record position and duplication information about each branch
   MatchTempInfo mti = new MatchTempInfo(s.Tok, true, s.Cases.Count());
 
+  if(s.Source.Type.AsDatatype is TupleTypeDecl){
+    throw new NotImplementedException("Tuples are not handled by Match compiler yet");
+  }
   // create Rbranches from MatchCaseStmt and set the branch tokens in mti
   List<RBranch> branches = new List<RBranch>();
   for(int id = 0; id < s.Cases.Count(); id++){
@@ -10008,7 +10014,7 @@ void CompileMatchStmt(MatchStmt s, ICodeContext codeContext) {
     branches.Add(RBranchOfMatchCaseStmt(id, branch));
     mti.BranchTok[id] = branch.tok;
   }
- 
+
   List<Expression> matchees = new List<Expression>();
   matchees.Add(s.Source);
   SyntaxContainer rb = CompileRBranch(mti, matchees, branches, codeContext);
