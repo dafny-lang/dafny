@@ -9598,7 +9598,7 @@ public class MatchTempInfo{
     this.BranchIDCount = branchidcount;
     this.Tok = tok;
     this.isStmt = isstmt;
-    this.Debug = false;
+    this.Debug = true;
     this.DebugLevel = -1;
   }
 
@@ -9612,7 +9612,7 @@ public class MatchTempInfo{
     this.BranchTok = new IToken[branchidnum];
     this.BranchIDCount = init;
     this.isStmt = isstmt;
-    this.Debug = false;
+    this.Debug = true;
     this.DebugLevel = -1;
   }
   public void UpdateBranchID(int branchID, int update){
@@ -10091,13 +10091,13 @@ RBranchExpr RBranchOfMatchCaseExpr(int branchid, MatchCaseExpr x){
 /// On output, the MatchExpr has been flattened and all of its patterns are non-overlapping
 /// </summary>
 void CompileMatchExpr(MatchExpr e, ICodeContext codeContext){
-   foreach(MatchCase mc in e.Cases){
-      if(mc.Arguments != null){
-       //post-resolve, skip
-        return;
-      }
+  foreach(MatchCase mc in e.Cases){
+    if(mc.Arguments != null){
+      //post-resolve, skip
+      return;
     }
-    if(e.Source.Type.AsDatatype is TupleTypeDecl){
+  }
+  if(e.Source.Type.AsDatatype is TupleTypeDecl){
     throw new NotImplementedException("Tuples are not handled by Match compiler yet");
   }
  // initialize the MatchTempInfo to record position and duplication information about each branch
@@ -10144,6 +10144,7 @@ void CompileMatchExpr(MatchExpr e, ICodeContext codeContext){
 /// </summary>
 void CompileMatchStmt(MatchStmt s, ICodeContext codeContext) {
 
+
    foreach(MatchCase mc in s.Cases){
       if(mc.Arguments != null){
        //post-resolve, skip
@@ -10154,7 +10155,7 @@ void CompileMatchStmt(MatchStmt s, ICodeContext codeContext) {
   MatchTempInfo mti = new MatchTempInfo(s.Tok, true, s.Cases.Count());
 
   if(s.Source.Type.AsDatatype is TupleTypeDecl){
-    throw new NotImplementedException("Tuples are not handled by Match compiler yet");
+    //throw new NotImplementedException("Tuples are not handled by Match compiler yet");
   }
   // create Rbranches from MatchCaseStmt and set the branch tokens in mti
   List<RBranch> branches = new List<RBranch>();
