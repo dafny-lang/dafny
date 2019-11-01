@@ -9592,12 +9592,14 @@ public class MatchTempInfo{
   public bool isStmt;
 
   public bool Debug;
+  public int DebugLevel;
   public MatchTempInfo(IToken tok, bool isstmt, int[] branchidcount){
     this.BranchTok = new IToken[branchidcount.Length];
     this.BranchIDCount = branchidcount;
     this.Tok = tok;
     this.isStmt = isstmt;
     this.Debug = false;
+    this.DebugLevel = -1;
   }
 
  // Initialize BranchIDCount with #branchidnum 1s
@@ -9611,7 +9613,7 @@ public class MatchTempInfo{
     this.BranchIDCount = init;
     this.isStmt = isstmt;
     this.Debug = false;
-
+    this.DebugLevel = -1;
   }
   public void UpdateBranchID(int branchID, int update){
     BranchIDCount[branchID]+= update;
@@ -9839,28 +9841,28 @@ string CasePatternsToString(List<CasePattern<BoundVar>> patterns,ICodeContext co
   }
 }
 
-string RBranchToString(RBranch branch, ICodeContext context){
+string RBranchToString(RBranch branch, int indent, ICodeContext context){
   if(branch is null){
     return "null branch";
   } 
   
 
   if (branch is RBranchExpr){
-    return string.Format("> id: {0}\n-> patterns: {1}\n-> body: {2}",branch.BranchID, CasePatternsToString(branch.Patterns, context), Printer.ExprToString(((RBranchExpr)branch).Body));
+    return string.Format("{3}> id: {0}\n{3}-> patterns: {1}\n{3}-> body: {2}",branch.BranchID, CasePatternsToString(branch.Patterns, context), Printer.ExprToString(((RBranchExpr)branch).Body), new String('\t',indent));
   } else if (branch is RBranchStmt){
     List<Statement> body = ((RBranchStmt)branch).Body;
     var bodyStr = "";
     foreach(var stmt in body){
-      bodyStr += string.Format("{0};\n", Printer.StatementToString(stmt));
+      bodyStr += string.Format("{1}{0};\n", Printer.StatementToString(stmt), new String('\t',indent));
     }
-    return string.Format("> id: {0}\n-> patterns: {1}\n-> body:\n{2} \n",branch.BranchID, CasePatternsToString(branch.Patterns, context), bodyStr);
+    return string.Format("{3}> id: {0}\n{3}> patterns: {1}\n{3}-> body:\n{2} \n",branch.BranchID, CasePatternsToString(branch.Patterns, context), bodyStr, new String('\t',indent));
 
   } else {
     return "unimplemented PrintRBranch";
   }
 }
 
-string ExpressionToString(Expression matchee, ICodeContext context){
+string ExpressionToString(Expression matchee, int indent, ICodeContext context){
   string eTypeString;
     if(matchee.Type is null){
       eTypeString = "null";
@@ -9868,21 +9870,21 @@ string ExpressionToString(Expression matchee, ICodeContext context){
       var eType = PartiallyResolveTypeForMemberSelection(null, matchee.Type).NormalizeExpand();
       eTypeString = eType.TypeName(context.EnclosingModule, true);
     }
-    return string.Format("{0}:{1}", Printer.ExprToString(matchee), eTypeString);
+    return string.Format("{2}{0}:{1}", Printer.ExprToString(matchee), eTypeString, new String('\t',indent));
 }
 
 void DebugCRBranches(MatchTempInfo mti, List<Expression> matchees, List<RBranch> branches, ICodeContext context){
-  Console.WriteLine("=-------=");
-  Console.WriteLine("Current matchees:");
+  Console.WriteLine("{0}=-------=", new String('\t',mti.DebugLevel));
+  Console.WriteLine("{0}Current matchees:", new String('\t',mti.DebugLevel));
 
   foreach(Expression matchee in matchees){
-    Console.WriteLine("> {0}", ExpressionToString(matchee,context));
+    Console.WriteLine("{1}> {0}", ExpressionToString(matchee, 0, context), new String('\t',mti.DebugLevel));
   }
-  Console.WriteLine("Current branches:");
+  Console.WriteLine("{0}Current branches:", new String('\t',mti.DebugLevel));
   foreach(RBranch branch in branches){
-    Console.WriteLine("{0}", RBranchToString(branch, context));
+    Console.WriteLine("{0}", RBranchToString(branch, mti.DebugLevel, context));
   }
-    Console.WriteLine("-=======-");
+    Console.WriteLine("{0}-=======-", new String('\t',mti.DebugLevel));
 
 }
 
@@ -9898,8 +9900,11 @@ void DebugCRBranches(MatchTempInfo mti, List<Expression> matchees, List<RBranch>
 ///     continue processing the matchees
 /// </summary>
   SyntaxContainer CompileRBranch(MatchTempInfo mti, List<Expression> matchees, List<RBranch> branches, ICodeContext codeContext) {
-    if(mti.Debug) Console.WriteLine("enter");
-    if(mti.Debug){DebugCRBranches(mti, matchees, branches, codeContext);}
+    if(mti.Debug){
+      mti.DebugLevel++;
+      Console.WriteLine("{0}enter", new String('\t',mti.DebugLevel));
+      DebugCRBranches(mti, matchees, branches, codeContext);
+    }
     
     // For each branch, number of matchees (n) is the number of patterns held by the branch
     if(!branches.TrueForAll(x => matchees.Count ==  x.Patterns.Count)){
@@ -9910,9 +9915,11 @@ void DebugCRBranches(MatchTempInfo mti, List<Expression> matchees, List<RBranch>
 
     if(branches.Count == 0){
       // ==[1]== If no branch, then match is not exhaustive -- regenerate warning and return null
-      if(mti.Debug) Console.WriteLine("===[1]=== No Branch");
-      if(mti.Debug) Console.WriteLine("return");
-
+      if(mti.Debug){
+        Console.WriteLine("{0}===[1]=== No Branch", new String('\t',mti.DebugLevel));
+        Console.WriteLine("{0}return", new String('\t',mti.DebugLevel));
+        mti.DebugLevel--;
+      }  
       reporter.Warning(MessageSource.Resolver, mti.Tok, "non-exhaustive case-statement");
       return null;
     }
@@ -9920,8 +9927,9 @@ void DebugCRBranches(MatchTempInfo mti, List<Expression> matchees, List<RBranch>
     if(matchees.Count == 0){
       // ==[2]== No more matchee to process, return the first branch and decreate the count of every branches except the first one
       if(mti.Debug){
-         Console.WriteLine("===[2]=== No Matchee");
-        Console.WriteLine("return Bid:{0}", branches.First().BranchID);
+        Console.WriteLine("{0}===[2]=== No Matchee", new String('\t',mti.DebugLevel));
+        Console.WriteLine("{1}return Bid:{0}", branches.First().BranchID, new String('\t',mti.DebugLevel));
+        mti.DebugLevel--;
       }
 
       for(int i = 1; i < branches.Count(); i ++){
@@ -9957,7 +9965,7 @@ void DebugCRBranches(MatchTempInfo mti, List<Expression> matchees, List<RBranch>
 
     // ==[3]== If some of the patternHeads are constructor, create a new match with a branch for each constructor
     if(ctors != null && patternHeads.Exists(x => ctors.ContainsKey(x.Id))){
-      if(mti.Debug) Console.WriteLine("===[3]=== Mixed Case");
+      if(mti.Debug) Console.WriteLine("{0}===[3]=== Mixed Case", new String('\t',mti.DebugLevel));
 
       var newMatchCases = new List<MatchCase>();
       // Update mti -> each branch copy generates up to |ctors| copies of itself
@@ -9966,7 +9974,7 @@ void DebugCRBranches(MatchTempInfo mti, List<Expression> matchees, List<RBranch>
       }
 
       foreach(var ctor in ctors){
-        if(mti.Debug) Console.WriteLine("===[3]>>>> Ctor {0}", ctor.Key);
+        if(mti.Debug) Console.WriteLine("{1}===[3]>>>> Ctor {0}", ctor.Key, new String('\t',mti.DebugLevel));
 
         var currBranches = new List<RBranch>();
 
@@ -9982,27 +9990,33 @@ void DebugCRBranches(MatchTempInfo mti, List<Expression> matchees, List<RBranch>
         foreach(var PB in pairPB){
           if(ctor.Key.Equals(PB.Item1.Id)){
             // ==[3.1]== If pattern is same constructor, push the arguments as patterns and add that branch to new match
-            if(mti.Debug) Console.WriteLine("==[3.1]== Same Ctor Bid:{0}", PB.Item2.BranchID);
+            if(mti.Debug) Console.WriteLine("{1}==[3.1]== Same Ctor Bid:{0}", PB.Item2.BranchID, new String('\t',mti.DebugLevel));
 
             // After making sure the constructor is applied to the right number of arguments
             var currBranch = CloneRBranch(PB.Item2);
             if(PB.Item1.Arguments != null){
               if(!PB.Item1.Arguments.Count.Equals(ctor.Value.Formals.Count)){
-                  reporter.Error(MessageSource.Resolver, mti.BranchTok[PB.Item2.BranchID], "Error while resolving the pattern, constructor {0} of arity {1} is applied to {2} arguments", ctor.Key, ctor.Value.Formals.Count, PB.Item1.Arguments.Count);
+                  reporter.Error(MessageSource.Resolver, mti.BranchTok[PB.Item2.BranchID], "constructor {0} of arity {1} is applied to {2} argument(s)", ctor.Key, ctor.Value.Formals.Count, PB.Item1.Arguments.Count);
               }
               currBranch.Patterns.AddRange(PB.Item1.Arguments); 
             } else if(!ctor.Value.Formals.Count.Equals(0)){
-              reporter.Error(MessageSource.Resolver, mti.BranchTok[PB.Item2.BranchID], "Error while resolving the pattern, constructor {0} of arity {1} is applied to 0 argument", ctor.Key, ctor.Value.Formals.Count);
+              reporter.Error(MessageSource.Resolver, mti.BranchTok[PB.Item2.BranchID], "constructor {0} of arity {1} is applied to 0 argument", ctor.Key, ctor.Value.Formals.Count);
             }
             currBranches.Add(currBranch);
           } else if(ctors.ContainsKey(PB.Item1.Id)){
             // ==[3.2]== If pattern is a difference constructor, drop the branch
-            if(mti.Debug) Console.WriteLine("==[3.2]== Diff Ctor Bid:{0}", PB.Item2.BranchID);
+            if(mti.Debug) Console.WriteLine("{1}==[3.2]== Diff Ctor Bid:{0}", PB.Item2.BranchID, new String('\t',mti.DebugLevel));
             mti.UpdateBranchID(PB.Item2.BranchID, -1);
           } else {
             // ==[3.3]== If pattern is a bound variable, create new bound variables for each of the arguments of the constructor, and let-binds the matchee as original bound variable
             // n.b. this may duplicate the matchee
-            if(mti.Debug) Console.WriteLine("==[3.3]== Bound var Bid:{0}", PB.Item2.BranchID);
+            if(mti.Debug) Console.WriteLine("{1}==[3.3]== Bound var Bid:{0}", PB.Item2.BranchID, new String('\t',mti.DebugLevel));
+
+            // make sure this potential bound var is not applied to anything, in which case it is likely a mispelled constructor
+            if(PB.Item1.Arguments != null && PB.Item1.Arguments.Count != 0){
+              reporter.Error(MessageSource.Resolver, mti.BranchTok[PB.Item2.BranchID], "bound variable {0} applied to {1} argument(s).",PB.Item1.Id, PB.Item1.Arguments.Count);
+            }
+
             var currBranch = CloneRBranch(PB.Item2);
 
             List<BoundVar> freshBV = ctor.Value.Formals.ConvertAll(x => new BoundVar(new AutoGeneratedToken(x.Tok), FreshTempVarName("_mcc#", codeContext), SubstType(x.Type, subst)));
@@ -10039,12 +10053,15 @@ void DebugCRBranches(MatchTempInfo mti, List<Expression> matchees, List<RBranch>
       }
     } else {
       // ==[4]==  all head patterns are bound variables:
-      if(mti.Debug) Console.WriteLine("===[4]=== Variable Case");
+      if(mti.Debug) Console.WriteLine("{0}===[4]=== Variable Case", new String('\t',mti.DebugLevel));
       foreach(Tuple<CasePattern<BoundVar>, RBranch> PB in pairPB){
           // Optimization: Don't let-bind if name is a wildcard, either in source or generated
           LetBindNonWildCard(PB.Item2, PB.Item1, currMatchee);
       }
-      if(mti.Debug) Console.WriteLine("return");
+      if(mti.Debug){
+        Console.WriteLine("{0}return", new String('\t',mti.DebugLevel));
+        mti.DebugLevel--;
+      } 
       return CompileRBranch(mti, matchees, pairPB.ToList().ConvertAll(new Converter<Tuple<CasePattern<BoundVar>,RBranch>, RBranch>(x => x.Item2)), codeContext);
     } 
   }
