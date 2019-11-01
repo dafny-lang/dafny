@@ -506,7 +506,7 @@ namespace Microsoft.Dafny
             if (IsDirectlyComparable(arg.Type)) {
               w.Write(" && this.{0} == oth.{0}", nm);
             } else {
-              w.Write(" && Dafny.Helpers.AreEqual(this.{0}, oth.{0})", nm);
+              w.Write(" && object.Equals(this.{0}, oth.{0})", nm);
             }
             i++;
           }

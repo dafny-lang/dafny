@@ -685,7 +685,7 @@ namespace Dafny
     public bool Equals(Map<U, V> other) {
       if (hasNullValue != other.hasNullValue || dict.Count != other.dict.Count) {
         return false;
-      } else if (hasNullValue && !Dafny.Helpers.AreEqual(nullValue, other.nullValue)) {
+      } else if (hasNullValue && !object.Equals(nullValue, other.nullValue)) {
         return false;
       }
       foreach (U u in dict.Keys) {
@@ -694,7 +694,7 @@ namespace Dafny
         if (!other.dict.TryGetValue(u, out v2)) {
           return false; // other dictionary does not contain this element
         }
-        if (!Dafny.Helpers.AreEqual(v1, v2)) {
+        if (!object.Equals(v1, v2)) {
           return false;
         }
       }
@@ -907,7 +907,7 @@ namespace Dafny
     bool EqualUntil(Sequence<T> other, int n) {
       T[] elmts = Elements, otherElmts = other.Elements;
       for (int i = 0; i < n; i++) {
-        if (!Dafny.Helpers.AreEqual(elmts[i], otherElmts[i]))
+        if (!object.Equals(elmts[i], otherElmts[i]))
           return false;
       }
       return true;
@@ -933,7 +933,7 @@ namespace Dafny
         var elmts = Elements;
         int n = elmts.Length;
         for (int i = 0; i < n; i++) {
-          if (Dafny.Helpers.AreEqual(t, elmts[i]))
+          if (object.Equals(t, elmts[i]))
             return true;
         }
       }
@@ -1085,8 +1085,9 @@ namespace Dafny
     }
   }
   public partial class Helpers {
+    [Obsolete("Use object.Equals(object, object) instead.")]
     public static bool AreEqual<G>(G a, G b) {
-      return a == null ? b == null : a.Equals(b);
+      return object.Equals(a, b);
     }
     public static int GetHashCode<G>(G g) {
       return g == null ? 1001 : g.GetHashCode();
@@ -1475,7 +1476,7 @@ namespace @_System
     }
     public override bool Equals(object other) {
       var oth = other as _System.@Tuple2<T0,T1>;
-      return oth != null && Dafny.Helpers.AreEqual(this._0, oth._0) && Dafny.Helpers.AreEqual(this._1, oth._1);
+      return oth != null && object.Equals(this._0, oth._0) && object.Equals(this._1, oth._1);
     }
     public override int GetHashCode() {
       ulong hash = 5381;
