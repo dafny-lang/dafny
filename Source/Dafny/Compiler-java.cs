@@ -1629,6 +1629,7 @@ namespace Microsoft.Dafny{
     public override bool CompileTargetProgram(string dafnyProgramName, string targetProgramText, string /*?*/ callToMain, string /*?*/ targetFilename,
       ReadOnlyCollection<string> otherFileNames, bool hasMain, bool runAfterCompile, TextWriter outputWriter, out object compilationResult) {
       compilationResult = null;
+      var fileDir = Path.GetDirectoryName(targetFilename);
       foreach (var otherFileName in otherFileNames) {
         if (Path.GetExtension(otherFileName) != ".java") {
           outputWriter.WriteLine($"Unrecognized file as extra input for Java compilation: {otherFileName}");
@@ -1638,30 +1639,32 @@ namespace Microsoft.Dafny{
           return false;
         }
       }
-      var files = new List<string>();
-      foreach (string file in Directory.EnumerateFiles(Path.GetDirectoryName(targetFilename), "*.java", SearchOption.AllDirectories)) {
-        files.Add(Path.GetFullPath(file));
-      }
+      var files = Directory.EnumerateFiles(fileDir, "*.java", SearchOption.AllDirectories).Select(Path.GetFullPath).ToList();
       var classpath = GetClassPath(targetFilename);
-      foreach (var file in files) {
-        var psi = new ProcessStartInfo("javac", file) {
-          CreateNoWindow = true,
-          UseShellExecute = false,
-          RedirectStandardOutput = true,
-          RedirectStandardError = true,
-          WorkingDirectory = Path.GetFullPath(Path.GetDirectoryName(targetFilename))
-        };
-        psi.EnvironmentVariables["CLASSPATH"] = classpath;
-        var proc = Process.Start(psi);
-        while (!proc.StandardOutput.EndOfStream) {
-          outputWriter.WriteLine(proc.StandardOutput.ReadLine());
-        }
-        while (!proc.StandardError.EndOfStream) {
-          outputWriter.WriteLine(proc.StandardError.ReadLine());
-        }
-        proc.WaitForExit();
-        if (proc.ExitCode != 0) {
-          throw new Exception($"Error while compiling Java file {file}. Process exited with exit code {proc.ExitCode}");
+      if (!DafnyOptions.O.JavaNoJavac) {
+        foreach (var file in files) {
+          var psi = new ProcessStartInfo("javac", file) {
+            CreateNoWindow = true,
+            UseShellExecute = false,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            WorkingDirectory = Path.GetFullPath(fileDir)
+          };
+          psi.EnvironmentVariables["CLASSPATH"] = classpath;
+          var proc = Process.Start(psi);
+          while (!proc.StandardOutput.EndOfStream) {
+            outputWriter.WriteLine(proc.StandardOutput.ReadLine());
+          }
+
+          while (!proc.StandardError.EndOfStream) {
+            outputWriter.WriteLine(proc.StandardError.ReadLine());
+          }
+
+          proc.WaitForExit();
+          if (proc.ExitCode != 0) {
+            throw new Exception(
+              $"Error while compiling Java file {file}. Process exited with exit code {proc.ExitCode}");
+          }
         }
       }
       return true;
@@ -1708,13 +1711,13 @@ namespace Microsoft.Dafny{
         outputWriter.WriteLine($"Unable to determine package name: {externFilename}");
         return false;
       }
-      string baseName = Path.GetFileNameWithoutExtension(externFilename);
+      var baseName = Path.GetFileNameWithoutExtension(externFilename);
       var mainDir = Path.GetDirectoryName(mainProgram);
       Contract.Assert(mainDir != null);
       var tgtDir = Path.Combine(mainDir, pkgName);
       var tgtFilename = Path.Combine(tgtDir, baseName + ".java");
       Directory.CreateDirectory(tgtDir);
-      FileInfo file = new FileInfo(externFilename);
+      var file = new FileInfo(externFilename);
       file.CopyTo(tgtFilename, true);
       if (DafnyOptions.O.CompileVerbose) {
         outputWriter.WriteLine($"Additional input {externFilename} copied to {tgtFilename}");
@@ -2627,12 +2630,12 @@ namespace Microsoft.Dafny{
     }
 
     public void CompileArrayInits(string path) {
-      foreach (int i in arrayinits) {
+      foreach (var i in arrayinits) {
         CreateArrayInit(i, path);
       }
     }
 
-    public void CreateArrayInit(int i, string path) {
+    private void CreateArrayInit(int i, string path) {
       Contract.Requires(1 <= i);
       var wrTop = new TargetWriter();
       wrTop.WriteLine("package dafny;");

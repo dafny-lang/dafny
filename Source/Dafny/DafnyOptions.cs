@@ -71,6 +71,7 @@ namespace Microsoft.Dafny
     public bool RunAfterCompile = false;
     public int SpillTargetCode = 0;  // [0..4]
     public string JavaCompileTargetDirectory = null;
+    public bool JavaNoJavac = false;
     public bool DisallowIncludes = false;
     public bool DisallowExterns = false;
     public bool DisableNLarith = false;
@@ -175,6 +176,10 @@ namespace Microsoft.Dafny
           }
           return true;
 
+        case "javaNoJavac":
+          JavaNoJavac = true;
+          return true;
+
         case "compileTarget":
           if (ps.ConfirmArgumentCount(1)) {
             if (args[ps.i].Equals("cs")) {
@@ -215,6 +220,7 @@ namespace Microsoft.Dafny
             }
             return true;
           }
+
         case "out": {
             if (ps.ConfirmArgumentCount(1)) {
               DafnyPrintCompiledFile = args[ps.i];
@@ -594,6 +600,8 @@ namespace Microsoft.Dafny
                 java - Compilation to Java
   /javaCompileTargetDirectory:DIR
                 Root generated Java files at DIR
+  /javaNoRunJavac
+                Don't run javac.
   /compileVerbose:<n>
                 0 - don't print status of compilation to the console
                 1 (default) - print information such as files being written by
