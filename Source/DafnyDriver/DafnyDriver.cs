@@ -469,7 +469,7 @@ namespace Microsoft.Dafny
           throw new cce.UnreachableException();
       }
       string targetBaseName = Path.ChangeExtension(baseName, targetExtension);
-      string targetDir = Path.Combine(Path.GetDirectoryName(dafnyProgramName), targetBaseDir);
+      string targetDir = DafnyOptions.O.JavaCompileTargetDirectory ?? Path.Combine(Path.GetDirectoryName(dafnyProgramName), targetBaseDir);
       // WARNING: Make sure that Directory.Delete is only called when the compilation target is Java.
       // If called during C# or JS compilation, you will lose your entire target directory.
       // Purpose is to delete the old generated folder with the Java compilation output and replace all contents.
@@ -595,8 +595,7 @@ namespace Microsoft.Dafny
       }
 
       if (DafnyOptions.O.CompileTarget is DafnyOptions.CompilationTarget.Java) {
-        string targetBaseDir = baseName;
-        string targetDir = Path.Combine(Path.GetDirectoryName(dafnyProgramName), targetBaseDir);
+        var targetDir = DafnyOptions.O.JavaCompileTargetDirectory ?? Path.Combine(Path.GetDirectoryName(dafnyProgramName), baseName);
         var assemblyLocation = System.Reflection.Assembly.GetExecutingAssembly().Location;
         Contract.Assert(assemblyLocation != null);
         var codebase = System.IO.Path.GetDirectoryName(assemblyLocation);

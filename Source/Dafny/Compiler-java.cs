@@ -1691,13 +1691,14 @@ namespace Microsoft.Dafny{
       return true;
     }
 
-    protected string GetClassPath(string targetFilename) {
+    private static string GetClassPath(string targetFilename) {
       var assemblyLocation = Assembly.GetExecutingAssembly().Location;
       Contract.Assert(assemblyLocation != null);
       var codebase = Path.GetDirectoryName(assemblyLocation);
       Contract.Assert(codebase != null);
-      // DafnyRuntime-1.jar has already been created using Maven. It is added to the java CLASSPATH below.
-      return "." + Path.PathSeparator + Path.GetFullPath(Path.GetDirectoryName(targetFilename)) + Path.PathSeparator + Path.Combine(codebase, "DafnyRuntime-1.jar");
+      var targetPath = DafnyOptions.O.JavaCompileTargetDirectory ?? Path.GetFullPath(Path.GetDirectoryName(targetFilename));
+      var paths = new List<string> { ".", targetPath, Path.Combine(codebase, "DafnyRuntime-1.jar") };
+      return paths.Aggregate((p, acc) => p + Path.PathSeparator + acc);
     }
 
     static bool CopyExternLibraryIntoPlace(string externFilename, string mainProgram, TextWriter outputWriter) {
