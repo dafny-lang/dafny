@@ -10201,9 +10201,10 @@ void CheckLinearVariable(Type type, IVariable v){
 
 // Throw an error if the pattern is non-linear or if constructors are applied to the wrong number of arguments
 // Inspired by FindDuplicateIdentifier
-void CheckLinearPattern(Type type, CasePattern<BoundVar> cp){
+void CheckLinearPattern(Type type, CasePattern<BoundVar> cp, bool debug = false){
   if (!type.IsDatatype){
     if(cp.Var != null){
+      if(debug) Console.WriteLine("{0} is a variable of type {1}", cp.Id, type);
       CheckLinearVariable(type, cp.Var);
       return;
     } else {
@@ -10221,13 +10222,18 @@ void CheckLinearPattern(Type type, CasePattern<BoundVar> cp){
   if(ctors.TryGetValue(cp.Id, out ctor)){
     if(ctor.Formals != null && cp.Arguments != null && ctor.Formals.Count == cp.Arguments.Count){
       // if non-nullary constructor
-      var pairFA = ctor.Formals.Zip(cp.Arguments, (x,y) => new Tuple<Formal,CasePattern<BoundVar>>(x,y));
+      if(debug) Console.WriteLine("{0} is a non-nullary constructor of datatype {1}", cp.Id, type);
+      var subst = TypeSubstitutionMap(dtd.TypeArgs, type.TypeArgs);
+      var argTypes = ctor.Formals.ConvertAll<Type>(x => SubstType(x.Type, subst));
+      var pairFA = argTypes.Zip(cp.Arguments, (x,y) => new Tuple<Type,CasePattern<BoundVar>>(x,y));
       foreach(var fa in pairFA){
         // get DatatypeDecl of Formal, recursive call on argument
-         CheckLinearPattern(fa.Item1.Type, fa.Item2);
+         CheckLinearPattern(fa.Item1, fa.Item2);
       }
     } else if(ctor.Formals.Count == 0 && cp.Arguments == null){
       // else if nullary constructor
+      if(debug) Console.WriteLine("{0} is a nullary constructor of datatype {1}", cp.Id, type);
+
       return;
     } else {
       // else applied to the wrong number of arguments
@@ -10236,18 +10242,21 @@ void CheckLinearPattern(Type type, CasePattern<BoundVar> cp){
     }
   } else if (cp.Var != null) {
     // pattern is a variable
+    if(debug) Console.WriteLine("{0} is a variable of datatype {1}", cp.Id, type);
     CheckLinearVariable(type, cp.Var);
   } else {
-    reporter.Error(MessageSource.Resolver, cp.tok , "Pattern is not a constructor of the given type: {0}", cp.Id);
-
+    reporter.Error(MessageSource.Resolver, cp.tok , "Pattern {0} is not a constructor of the given type {1}", cp.Id, type);
   }
 }
 
-void CheckLinearMatchCase(Type dtd, MatchCase mc){
+void CheckLinearMatchCase(Type type, MatchCase mc, bool debug = false){
   if(mc.CasePatterns == null) return;
-  foreach(var pat in mc.CasePatterns){
-    CheckLinearPattern(dtd, pat);
+  // Parser doesn't handle top level variables properly, so we stop here for bv or nullary constructor
+  if(mc.CasePatterns.Count == 0){
+     if(debug) Console.WriteLine("{0} a top level variable or nullary constructor of type {1}", mc.Id, type);
+     return;
   }
+  CheckLinearPattern(type, new CasePattern<BoundVar>(mc.tok, mc.Id, mc.CasePatterns));
 }
 
 void CheckLinearMatchExpr(Type dtd, MatchExpr me){
