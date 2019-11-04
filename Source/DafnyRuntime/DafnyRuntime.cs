@@ -832,17 +832,10 @@ namespace Dafny
       return Empty;
     }
     public int Count {
-      get { return Elements.Length; }
+      get { return (int)LongCount; }
     }
-    public long LongCount {
-      get { return Elements.LongLength; }
-    }
+    public abstract long LongCount { get; }
     public abstract T[] Elements { get; }
-    // Return whether the sequence is known to be empty.  May return false
-    // spuriously (see ConcatSequence).
-    public virtual bool KnownEmpty {
-      get { return Elements.Length == 0; }
-    }
 
     public IEnumerable<T> UniqueElements {
       get {
@@ -928,9 +921,9 @@ namespace Dafny
       return n <= other.Elements.Length && EqualUntil(other, n);
     }
     public Sequence<T> Concat(Sequence<T> other) {
-      if (KnownEmpty)
+      if (Count == 0)
         return other;
-      else if (other.KnownEmpty)
+      else if (other.Count == 0)
         return this;
       return new ConcatSequence<T>(this, other);
     }
@@ -1018,14 +1011,21 @@ namespace Dafny
         return elmts;
       }
     }
+    public override long LongCount {
+      get {
+        return elmts.LongLength;
+      }
+    }
   }
   internal class ConcatSequence<T> : Sequence<T> {
     private Sequence<T> left, right;
     private T[] elmts = null;
+    private readonly long count;
 
     internal ConcatSequence(Sequence<T> left, Sequence<T> right) {
       this.left = left;
       this.right = right;
+      this.count = left.LongCount + right.LongCount;
     }
 
     public override T[] Elements {
@@ -1041,10 +1041,9 @@ namespace Dafny
       }
     }
 
-    public override bool KnownEmpty {
+    public override long LongCount {
       get {
-        // Check for emptiness without triggering lazy computation
-        return elmts != null && elmts.Length == 0;
+        return count;
       }
     }
 
