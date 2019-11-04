@@ -9485,6 +9485,7 @@ namespace Microsoft.Dafny
       // convert CasePattern in MatchCaseExpr to BoundVar and flatten the MatchCaseExpr.
       List<Tuple<CasePattern<BoundVar>, BoundVar>> patternSubst = new List<Tuple<CasePattern<BoundVar>, BoundVar>>();
       if (dtd != null) {
+        CheckLinearMatchStmt(dtd, s);
         CompileMatchStmt(s, codeContext);
        //DesugarMatchCaseStmt(s, dtd, patternSubst, codeContext);
       }
@@ -9813,7 +9814,7 @@ string CasePatternToString(CasePattern<BoundVar> pat, ICodeContext context){
   var v = pat.Var;
   if (v!= null){
     s += v.DisplayName;
-    if (v.Type != null) {
+    if (v.Type != null && context != null) {
       var vType = PartiallyResolveTypeForMemberSelection(null, v.Type).NormalizeExpand();
       s+= string.Format(":{0}", vType.TypeName(context.EnclosingModule, true));
     }
@@ -10145,12 +10146,12 @@ void CompileMatchExpr(MatchExpr e, ICodeContext codeContext){
 void CompileMatchStmt(MatchStmt s, ICodeContext codeContext) {
 
 
-   foreach(MatchCase mc in s.Cases){
-      if(mc.Arguments != null){
-       //post-resolve, skip
-        return;
-      }
+  foreach(MatchCase mc in s.Cases){
+    if(mc.Arguments != null){
+      //post-resolve, skip
+      return;
     }
+  }
  // initialize the MatchTempInfo to record position and duplication information about each branch
   MatchTempInfo mti = new MatchTempInfo(s.Tok, true, s.Cases.Count());
 
@@ -10190,7 +10191,67 @@ void CompileMatchStmt(MatchStmt s, ICodeContext codeContext) {
   }
 } 
 
+// Throw an error if the pattern is non-linear or if constructors are applied to the wrong number of arguments
+// Inspired by FindDuplicateIdentifier
+void CheckLinearPattern(DatatypeDecl dtd, CasePattern<BoundVar> cp){
+  Dictionary<string, DatatypeCtor> ctors = datatypeCtors[dtd];
+  if(ctors == null){
+    throw new InvalidOperationException("Datatype not found");
+  }
 
+  DatatypeCtor ctor = null;
+  // Check if the head of the pattern is a constructor or a variable
+  if(ctors.TryGetValue(cp.Id, out ctor)){
+    if(ctor.Formals != null && cp.Arguments != null && ctor.Formals.Count == cp.Arguments.Count){
+      // if non-nullary constructor
+      var pairFA = ctor.Formals.Zip(cp.Arguments, (x,y) => new Tuple<Formal,CasePattern<BoundVar>>(x,y));
+      foreach(var fa in pairFA){
+        // get DatatypeDecl of Formal, recursive call on argument
+          if(fa.Item1.Type.IsDatatype) CheckLinearPattern(fa.Item1.Type.AsDatatype, fa.Item2);
+      }
+    } else if(ctor.Formals == null && cp.Arguments == null){
+      // else if nullary constructor, stop!
+      return;
+    } else {
+      // else applied to the wrong number of arguments
+      reporter.Error(MessageSource.Resolver, cp.tok, "datatype {0} of arity {1} is applied to {2} argument(s)", cp.Id, (cp.Arguments == null? 0:cp.Arguments.Count), ctor.Formals.Count);
+
+    }
+  } else if (cp.Var != null) {
+    // pattern is a variable
+    IVariable v = cp.Var;
+    if (scope.FindInCurrentScope(v.Name) != null) {
+      reporter.Error(MessageSource.Resolver, v , "Duplicate parameter name: {0}", v.Name);
+    } else {
+      ScopePushAndReport(scope, v, "parameter");
+    }
+  } else {
+    reporter.Error(MessageSource.Resolver, cp.tok , "Pattern is not a constructor of the given type: {0}", cp.Id);
+
+  }
+}
+
+void CheckLinearMatchCase(DatatypeDecl dtd, MatchCase mc){
+  if(mc.CasePatterns == null) return;
+  foreach(var pat in mc.CasePatterns){
+    CheckLinearPattern(dtd, pat);
+  }
+}
+
+void CheckLinearMatchExpr(DatatypeDecl dtd, MatchExpr me){
+  foreach(MatchCaseExpr mc in me.Cases){
+    scope.PushMarker();
+    CheckLinearMatchCase(dtd,  mc);
+    scope.PopMarker();
+  }
+}
+void CheckLinearMatchStmt(DatatypeDecl dtd, MatchStmt ms){
+  foreach(MatchCaseStmt mc in ms.Cases){
+    scope.PushMarker();
+    CheckLinearMatchCase(dtd,  mc);
+    scope.PopMarker();
+  }
+}
 
     /*
      * Convert
@@ -13243,6 +13304,7 @@ void CompileMatchStmt(MatchStmt s, ICodeContext codeContext) {
       // convert CasePattern in MatchCaseExpr to BoundVar and flatten the MatchCaseExpr.
       List<Tuple<CasePattern<BoundVar>, BoundVar>> patternSubst = new List<Tuple<CasePattern<BoundVar>, BoundVar>>();
       if (dtd != null) {
+//        CheckLinearMatchExpr(dtd, me);
         CompileMatchExpr(me, opts.codeContext);
         //DesugarMatchCaseExpr(me, dtd, patternSubst, opts.codeContext);
       }
