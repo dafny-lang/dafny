@@ -23,6 +23,7 @@ public class Tuple3<T0, T1, T2> {
         return Objects.equals(this._0, o._0) && Objects.equals(this._1, o._1) && Objects.equals(this._2, o._2);
     }
 
+    // TODO: For array types, call Arrays.toString
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();

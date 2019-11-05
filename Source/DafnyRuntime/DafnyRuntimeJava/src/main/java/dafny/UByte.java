@@ -3,6 +3,7 @@ package dafny;
 import java.math.BigInteger;
 
 // Dafny bytes are default unsigned, whereas they are signed in Java, and there is no unsigned equivalent
+@SuppressWarnings({"unused", "WeakerAccess"})
 public class UByte {
     private int inner;
     public final static int MAXVALUE = 0xff; // 255
@@ -113,6 +114,7 @@ public class UByte {
         return new UByte(i);
     }
 
+    @SuppressWarnings("EqualsWhichDoesntCheckParameterClass") // TODO: fix this
     @Override
     public boolean equals(Object obj) {
         if (this == obj) return true;

@@ -1,13 +1,14 @@
-import dafny.UShort;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.ExpectedException;
+package dafny;
 
-import static junit.framework.Assert.assertFalse;
-import static junit.framework.Assert.assertTrue;
-import static junit.framework.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-public class UShortTest {
+import org.junit.jupiter.api.Test;
+
+class UShortTest {
 
     UShort tenI = new UShort(10);
     short tenUShort = 10;
@@ -17,24 +18,22 @@ public class UShortTest {
     UShort max = new UShort((short)0xffff);
 
     @Test
-    public void testComparisons(){
-        assertTrue(tenU.equals(tenI));
-        assertFalse(tenU.equals(max));
+    void testComparisons(){
+        assertEquals(tenU, tenI);
+        assertNotEquals(tenU, max);
         assertEquals(0xffff, max.intValue());
         assertEquals(0, zero.intValue());
         assertTrue(tenU.compareTo(zero) > 0);
         assertTrue(tenU.compareTo(max) < 0);
-        assertTrue(tenU.compareTo(tenI) == 0);
+        assertEquals(0, tenU.compareTo(tenI));
         assertTrue(UShort.compare(tenU, zero) > 0);
         assertTrue(UShort.compare(tenU, max) < 0);
-        assertTrue(UShort.compare(tenU, tenI) == 0);
+        assertEquals(0, UShort.compare(tenU, tenI));
 
     }
 
     @Test
-    public void testValues(){
-        float f = 10;
-        double d = 10;
+    void testValues(){
         int i = 10;
         long l = 10;
         assertEquals(i, tenU.intValue());
@@ -44,7 +43,7 @@ public class UShortTest {
     }
 
     @Test
-    public void testArithmetic(){
+    void testArithmetic(){
         assertEquals(10+2, tenU.add(two).intValue());
         assertEquals(0xffff, max.add(zero).intValue());
         assertEquals(8, tenU.subtract(two).intValue());
@@ -57,17 +56,10 @@ public class UShortTest {
         assertEquals(0xffff%10, max.mod(tenI).intValue());
     }
 
-    @Rule
-    public ExpectedException thrown = ExpectedException.none();
-
     @Test
-    public void testFailures(){
-        thrown.expect(AssertionError.class);
-        UShort fail = new UShort(0xfffff);
-        max.add(tenI);
-        zero.subtract(two);
-        max.multiply(tenU);
-        max.divide(zero);
-        max.mod(zero);
+    void testFailures() {
+        assertThrows(AssertionError.class, () -> new UShort(0xfffff));
+        assertThrows(AssertionError.class, () -> max.divide(zero));
+        assertThrows(AssertionError.class, () -> max.mod(zero));
     }
 }
