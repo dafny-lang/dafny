@@ -533,7 +533,7 @@ bool IsIdentColonOrBar() {
 }
 
 bool SemiFollowsCall(bool allowSemi, Expression e) {
-  return allowSemi && la.kind == _semi && (e is ApplySuffix || (e is RevealExpr && (((RevealExpr)e).Expr is ApplySuffix)));
+  return allowSemi && la.kind == _semicolon && (e is ApplySuffix || (e is RevealExpr && (((RevealExpr)e).Expr is ApplySuffix)));
 }
 
 bool IsNotEndOfCase() {
@@ -572,7 +572,7 @@ bool IsGenericInstantiation(bool inExpressionContext) {
     case _rbracket:
     case _rbrace:
     case _comma:
-    case _semi:
+    case _semicolon:
     case _then:
     case _else:
     case _case:
