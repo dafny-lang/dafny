@@ -53,7 +53,7 @@ public class Parser {
 	public const int _bullet = 31;
 	public const int _dot = 32;
 	public const int _backtick = 33;
-	public const int _semi = 34;
+	public const int _semicolon = 34;
 	public const int _darrow = 35;
 	public const int _assume = 36;
 	public const int _calc = 37;
@@ -5770,7 +5770,7 @@ public class Errors {
 			case 31: s = "bullet expected"; break;
 			case 32: s = "dot expected"; break;
 			case 33: s = "backtick expected"; break;
-			case 34: s = "semi expected"; break;
+			case 34: s = "semicolon expected"; break;
 			case 35: s = "darrow expected"; break;
 			case 36: s = "assume expected"; break;
 			case 37: s = "calc expected"; break;
