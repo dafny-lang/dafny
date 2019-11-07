@@ -725,7 +725,7 @@ TOKENS
   bullet = '\u2022'.
   dot = '.'.
   backtick = "`".
-  semi = ';'.
+  semicolon = ';'.
   darrow = "=>".
   assume = "assume".
   calc = "calc".
