@@ -645,6 +645,32 @@ namespace Microsoft.Dafny {
     }
 
     protected BlockTargetWriter/*?*/ CreateFunction(string name, List<TypeParameter>/*?*/ typeArgs, List<Formal> formals, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, TargetWriter wr) {
+      if (!createBody) {
+        return null;
+      }
+
+      if (typeArgs.Count != 0) {        
+        wr.WriteLine(DeclareTemplate(typeArgs));
+      }
+
+      wr.Write("{0}{1} {2}",
+        isStatic ? "static " : "",        
+        TypeName(resultType, wr, tok),
+        name);
+
+      wr.Write("(");
+      int nIns = WriteFormals("", formals, wr);
+
+      var w = wr.NewBlock(")", null, BlockTargetWriter.BraceStyle.Newline, BlockTargetWriter.BraceStyle.Newline);
+      
+      /*
+      var r = new TargetWriter(w.IndentLevel);
+      EmitReturn(m.Outs, r);
+      w.BodySuffix = r.ToString();
+      */
+
+      return w;
+      /*
       wr.Write("{0}{1} {2}", isStatic ? "static " : "", TypeName(resultType, wr, tok), name);
       if (typeArgs != null && typeArgs.Count != 0) {
         throw NotSupported(String.Format("type parameters in function {0}", name), tok);
@@ -664,6 +690,7 @@ namespace Microsoft.Dafny {
           return w;
         }
       }
+      */
     }
 
     List<TypeParameter> UsedTypeParameters(DatatypeDecl dt) {
