@@ -561,8 +561,9 @@ namespace Microsoft.Dafny
   /titrace      print type-inference debug info
   /view:<view1, view2>
                 print the filtered views of a module after it is resolved (/rprint).
-                if print before the module is resolved (/dprint), then everthing in the module is printed
-                if no view is specified, then everything in the module is printed.
+                If print before the module is resolved (/dprint), then everything in the module
+                is printed.
+                If no view is specified, then everything in the module is printed.
 
   /dafnyVerify:<n>
                 0 - stop after typechecking
@@ -571,7 +572,7 @@ namespace Microsoft.Dafny
                 1 (default) - upon successful verification of the Dafny
                     program, compile Dafny program to .NET assembly
                     Program.exe (if the program has a Main method) or
-                    Program.dll (othewise), where Program.dfy is the name
+                    Program.dll (otherwise), where Program.dfy is the name
                     of the last .dfy file on the command line
                 2 - always attempt to compile Dafny program to C# program
                     out.cs, regardless of verification outcome
