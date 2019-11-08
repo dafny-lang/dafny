@@ -2076,7 +2076,7 @@ namespace Microsoft.Dafny {
             var nt = AsNativeType(resultType);
             if (nt.LowerBound < BigInteger.Zero) {
               // Want Euclidean division for signed types
-              staticCallString =  "_dafny.Div" + Capitalize(GetNativeTypeName(AsNativeType(resultType)));
+              staticCallString =  "EuclideanDivision_" + GetNativeTypeName(AsNativeType(resultType));
             } else {
               // Native division is fine for unsigned
               opString = "/";

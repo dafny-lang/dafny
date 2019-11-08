@@ -221,6 +221,31 @@ inline ostream& operator<<(ostream& out, const Tuple5<T0, T1, T2, T3, T4>& val){
 }
 
 /*********************************************************
+ *  MATH                                                 *
+ *********************************************************/
+
+ 
+int64 EuclideanDivision_int64(int64 a, int64 b) {
+    if (0 <= a) {
+        if (0 <= b) {
+            // +a +b: a/b
+            return (int64)((uint64) a / (uint64) b);
+        } else {
+            // +a -b: -(a/(-b))
+            return -(int64)((uint64) a / (uint64) -b);
+        }
+    } else {
+        if (0 <= b) {
+            // -a +b: -((-a-1)/b) - 1
+            return -(int64)((((uint64) (-(a + 1)))/ (uint64) b) - 1);
+        } else {
+            // -a -b: ((-a-1)/(-b)) + 1
+            return (int64)((((uint64) (-(a + 1)))/ (uint64) -b) + 1);
+        }
+    }    
+}
+
+/*********************************************************
  *  SEQUENCES                                            *
  *********************************************************/
 template <class T>
