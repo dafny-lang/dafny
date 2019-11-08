@@ -1383,7 +1383,6 @@ namespace Microsoft.Dafny {
     }
 
     protected override TargetWriter EmitBitvectorTruncation(BitvectorType bvType, bool surroundByUnchecked, TargetWriter wr) {
-      throw NotSupported("EmitBitvectorTruncation");
       string nativeName = null, literalSuffix = null;
       bool needsCastAfterArithmetic = false;
       if (bvType.NativeType != null) {
@@ -1391,6 +1390,7 @@ namespace Microsoft.Dafny {
       }
 
       if (bvType.NativeType == null) {
+        throw NotSupported("EmitBitvectorTruncation with BigInteger value");
         wr.Write("(");
         var middle = wr.Fork();
         wr.Write(").mod(new BigNumber(2).exponentiatedBy({0}))", bvType.Width);
