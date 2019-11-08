@@ -908,8 +908,8 @@ namespace Microsoft.Dafny
 
     internal override void PreResolve(ModuleDefinition m) {
       foreach (var d in m.TopLevelDecls) {
-        if (d is ClassDecl) {
-          ProcessOpaqueClassFunctions((ClassDecl)d);
+        if (d is TopLevelDeclWithMembers) {
+          ProcessOpaqueClassFunctions((TopLevelDeclWithMembers)d);
         }
       }
     }
@@ -929,10 +929,10 @@ namespace Microsoft.Dafny
     protected void AnnotateRevealFunction(Lemma lemma, Function f) {
       Expression receiver;
       if (f.IsStatic) {
-        receiver = new StaticReceiverExpr(f.tok, (ClassDecl)f.EnclosingClass, true);
+        receiver = new StaticReceiverExpr(f.tok, (TopLevelDeclWithMembers)f.EnclosingClass, true);
       } else {
         receiver = new ImplicitThisExpr(f.tok);
-        //receiver.Type = GetThisType(expr.tok, (ClassDecl)member.EnclosingClass);  // resolve here
+        //receiver.Type = GetThisType(expr.tok, (TopLevelDeclWithMembers)member.EnclosingClass);  // resolve here
       }
       List<Type> typeApplication = null;
       if (f.TypeArgs.Count > 0) {
@@ -961,7 +961,8 @@ namespace Microsoft.Dafny
 
 
     // Tells the function to use 0 fuel by default
-    protected void ProcessOpaqueClassFunctions(ClassDecl c) {
+    protected void ProcessOpaqueClassFunctions(TopLevelDeclWithMembers c) {
+      Contract.Requires(c != null);
       List<MemberDecl> newDecls = new List<MemberDecl>();
       foreach (MemberDecl member in c.Members) {
         if (member is Function) {

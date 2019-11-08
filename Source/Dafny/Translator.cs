@@ -1038,8 +1038,8 @@ namespace Microsoft.Dafny {
     private void ComputeFunctionFuel() {
       foreach (ModuleDefinition m in program.RawModules()) {
         foreach (TopLevelDecl d in m.TopLevelDecls) {
-          if (d is ClassDecl) {
-            ClassDecl c = (ClassDecl)d;
+          if (d is TopLevelDeclWithMembers) {
+            var c = (TopLevelDeclWithMembers)d;
             foreach (MemberDecl member in c.Members) {
               if (member is Function && RevealedInScope(member)) {
                 Function f = (Function)member;

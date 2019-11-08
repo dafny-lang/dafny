@@ -3634,16 +3634,16 @@ namespace Microsoft.Dafny {
     }
 
     /// <summary>
-    /// Yields all functions and methods that are members of some class in the given list of
+    /// Yields all functions and methods that are members of some type in the given list of
     /// declarations.
-    /// Note, an iterator declaration is a class, in this sense.
+    /// Note, an iterator declaration is a type, in this sense.
     /// Note, if the given list are the top-level declarations of a module, the yield will include
     /// colemmas but not their associated prefix lemmas (which are tucked into the colemma's
     /// .PrefixLemma field).
     /// </summary>
     public static IEnumerable<ICallable> AllCallables(List<TopLevelDecl> declarations) {
       foreach (var d in declarations) {
-        var cl = d as ClassDecl;
+        var cl = d as TopLevelDeclWithMembers;
         if (cl != null) {
           foreach (var member in cl.Members) {
             var clbl = member as ICallable;
@@ -3656,7 +3656,7 @@ namespace Microsoft.Dafny {
     }
 
     /// <summary>
-    /// Yields all functions and methods that are members of some non-iterator class in the given
+    /// Yields all functions and methods that are members of some non-iterator type in the given
     /// list of declarations, as well as any IteratorDecl's in that list.
     /// </summary>
     public static IEnumerable<ICallable> AllItersAndCallables(List<TopLevelDecl> declarations) {
@@ -3664,8 +3664,8 @@ namespace Microsoft.Dafny {
         if (d is IteratorDecl) {
           var iter = (IteratorDecl)d;
           yield return iter;
-        } else if (d is ClassDecl) {
-          var cl = (ClassDecl)d;
+        } else if (d is TopLevelDeclWithMembers) {
+          var cl = (TopLevelDeclWithMembers)d;
           foreach (var member in cl.Members) {
             var clbl = member as ICallable;
             if (clbl != null) {
