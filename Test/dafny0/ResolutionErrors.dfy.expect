@@ -67,8 +67,8 @@ ResolutionErrors.dfy(416,8): Error: arguments must have comparable types (got bo
 ResolutionErrors.dfy(420,8): Error: arguments must have comparable types (got bool and int)
 ResolutionErrors.dfy(420,8): Error: arguments must have comparable types (got bool and int)
 ResolutionErrors.dfy(454,13): Error: calls to methods with side-effects are not allowed inside a hint
-ResolutionErrors.dfy(456,16): Error: a hint is not allowed to update heap locations
-ResolutionErrors.dfy(458,12): Error: a hint is not allowed to update a variable declared outside the hint
+ResolutionErrors.dfy(456,10): Error: a hint is not allowed to update heap locations
+ResolutionErrors.dfy(458,10): Error: a hint is not allowed to update a variable it doesn't declare
 ResolutionErrors.dfy(479,4): Error: More than one anonymous constructor
 ResolutionErrors.dfy(485,8): Error: when allocating an object of type 'Y', one of its constructor methods must be called
 ResolutionErrors.dfy(490,8): Error: when allocating an object of type 'Luci', one of its constructor methods must be called
@@ -89,7 +89,7 @@ ResolutionErrors.dfy(635,23): Error: 'new' is not allowed in ghost contexts
 ResolutionErrors.dfy(642,15): Error: 'new' is not allowed in ghost contexts
 ResolutionErrors.dfy(651,17): Error: 'new' is not allowed in ghost contexts
 ResolutionErrors.dfy(668,14): Error: new allocation not supported in forall statements
-ResolutionErrors.dfy(673,11): Error: the body of the enclosing forall statement is not allowed to update heap locations
+ResolutionErrors.dfy(673,7): Error: the body of the enclosing forall statement is not allowed to update heap locations
 ResolutionErrors.dfy(673,14): Error: new allocation not allowed in ghost context
 ResolutionErrors.dfy(690,26): Error: second argument to "in" must be a set, multiset, or sequence with elements of type int, or a map with domain int (instead got bool)
 ResolutionErrors.dfy(685,18): Error: second argument to "in" must be a set, multiset, or sequence with elements of type int, or a map with domain int (instead got ?)
@@ -219,14 +219,14 @@ ResolutionErrors.dfy(1436,15): Error: type of left argument to + (int) must agre
 ResolutionErrors.dfy(1436,15): Error: type of right argument to + (int) must agree with the result type (bool)
 ResolutionErrors.dfy(1436,15): Error: type of + must be of a numeric type, a bitvector type, ORDINAL, char, a sequence type, or a set-like type (instead got bool)
 ResolutionErrors.dfy(1479,20): Error: calls to methods with side-effects are not allowed inside a hint
-ResolutionErrors.dfy(1501,18): Error: a hint is not allowed to update heap locations
-ResolutionErrors.dfy(1502,23): Error: a hint is not allowed to update heap locations
+ResolutionErrors.dfy(1501,10): Error: a hint is not allowed to update heap locations
+ResolutionErrors.dfy(1502,10): Error: a hint is not allowed to update heap locations
 ResolutionErrors.dfy(1503,20): Error: calls to methods with side-effects are not allowed inside a hint
 ResolutionErrors.dfy(1506,21): Error: a while statement used inside a hint is not allowed to have a modifies clause
 ResolutionErrors.dfy(1488,24): Error: only ghost methods can be called from this context
 ResolutionErrors.dfy(1501,18): Error: Assignment to non-ghost field is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)
-ResolutionErrors.dfy(1530,18): Error: a hint is not allowed to update heap locations
-ResolutionErrors.dfy(1531,23): Error: a hint is not allowed to update heap locations
+ResolutionErrors.dfy(1530,10): Error: a hint is not allowed to update heap locations
+ResolutionErrors.dfy(1531,10): Error: a hint is not allowed to update heap locations
 ResolutionErrors.dfy(1532,11): Error: calls to methods with side-effects are not allowed inside a hint
 ResolutionErrors.dfy(1535,21): Error: a while statement used inside a hint is not allowed to have a modifies clause
 ResolutionErrors.dfy(1523,24): Error: only ghost methods can be called from this context

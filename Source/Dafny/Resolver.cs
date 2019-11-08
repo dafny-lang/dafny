@@ -5764,8 +5764,10 @@ namespace Microsoft.Dafny
         if (stmt is CalcStmt) {
           var s = (CalcStmt)stmt;
           foreach (var h in s.Hints) {
-            resolver.CheckHintRestrictions(h, new HashSet<LocalVariable>());
+            resolver.CheckHintRestrictions(h, new HashSet<LocalVariable>(), "a hint");
           }
+        } else if (stmt is AssertStmt astmt && astmt.Proof != null) {
+          resolver.CheckHintRestrictions(astmt.Proof, new HashSet<LocalVariable>(), "an assert-by body");
         }
       }
     }
@@ -10391,7 +10393,7 @@ namespace Microsoft.Dafny
       } else if (stmt is AssignSuchThatStmt) {
         var s = (AssignSuchThatStmt)stmt;
         foreach (var lhs in s.Lhss) {
-          CheckForallStatementBodyLhs(s.Tok, lhs.Resolved, kind);
+          CheckForallStatementBodyLhs(lhs.tok, lhs.Resolved, kind);
         }
       } else if (stmt is UpdateStmt) {
         var s = (UpdateStmt)stmt;
@@ -10407,7 +10409,7 @@ namespace Microsoft.Dafny
         // Are we fine?
       } else if (stmt is AssignStmt) {
         var s = (AssignStmt)stmt;
-        CheckForallStatementBodyLhs(s.Tok, s.Lhs.Resolved, kind);
+        CheckForallStatementBodyLhs(s.Lhs.tok, s.Lhs.Resolved, kind);
         var rhs = s.Rhs;  // ExprRhs and HavocRhs are fine, but TypeRhs is not
         if (rhs is TypeRhs) {
           if (kind == ForallStmt.BodyKind.Assign) {
@@ -10419,14 +10421,7 @@ namespace Microsoft.Dafny
       } else if (stmt is CallStmt) {
         var s = (CallStmt)stmt;
         foreach (var lhs in s.Lhs) {
-          var idExpr = lhs as IdentifierExpr;
-          if (idExpr != null) {
-            if (scope.ContainsDecl(idExpr.Var)) {
-              reporter.Error(MessageSource.Resolver, stmt, "body of forall statement is attempting to update a variable declared outside the forall statement");
-            }
-          } else {
-            reporter.Error(MessageSource.Resolver, stmt, "the body of the enclosing forall statement is not allowed to update heap locations");
-          }
+          CheckForallStatementBodyLhs(lhs.tok, lhs, kind);
         }
         if (s.Method.Mod.Expressions.Count != 0) {
           reporter.Error(MessageSource.Resolver, stmt, "the body of the enclosing forall statement is not allowed to update heap locations, so any call must be to a method with an empty modifies clause");
@@ -10440,6 +10435,8 @@ namespace Microsoft.Dafny
           reporter.Error(MessageSource.Resolver, s, "the body of the enclosing forall statement is not allowed to call non-ghost methods");
         }
 
+      } else if (stmt is ModifyStmt) {
+        reporter.Error(MessageSource.Resolver, stmt, "body of forall statement is not allowed to use a modify statement");
       } else if (stmt is BlockStmt) {
         var s = (BlockStmt)stmt;
         scope.PushMarker();
@@ -10523,9 +10520,10 @@ namespace Microsoft.Dafny
     /// Check that a statment is a valid hint for a calculation.
     /// ToDo: generalize the part for compound statements to take a delegate?
     /// </summary>
-    public void CheckHintRestrictions(Statement stmt, ISet<LocalVariable> localsAllowedInUpdates) {
+    public void CheckHintRestrictions(Statement stmt, ISet<LocalVariable> localsAllowedInUpdates, string where) {
       Contract.Requires(stmt != null);
       Contract.Requires(localsAllowedInUpdates != null);
+      Contract.Requires(where != null);
       if (stmt is PredicateStmt) {
         // cool
       } else if (stmt is PrintStmt) {
@@ -10533,76 +10531,81 @@ namespace Microsoft.Dafny
       } else if (stmt is RevealStmt) {
         var s = (RevealStmt)stmt;
         foreach (var ss in s.ResolvedStatements) {
-          CheckHintRestrictions(ss, localsAllowedInUpdates);
+          CheckHintRestrictions(ss, localsAllowedInUpdates, where);
         }
       } else if (stmt is BreakStmt) {
         // already checked while resolving hints
       } else if (stmt is ReturnStmt) {
-        reporter.Error(MessageSource.Resolver, stmt, "return statement is not allowed inside a hint");
+        reporter.Error(MessageSource.Resolver, stmt, "return statement is not allowed inside {0}", where);
       } else if (stmt is YieldStmt) {
-        reporter.Error(MessageSource.Resolver, stmt, "yield statement is not allowed inside a hint");
+        reporter.Error(MessageSource.Resolver, stmt, "yield statement is not allowed inside {0}", where);
       } else if (stmt is AssignSuchThatStmt) {
         var s = (AssignSuchThatStmt)stmt;
         foreach (var lhs in s.Lhss) {
-          CheckHintLhs(s.Tok, lhs.Resolved, localsAllowedInUpdates);
+          CheckHintLhs(lhs.tok, lhs.Resolved, localsAllowedInUpdates, where);
         }
       } else if (stmt is AssignStmt) {
         var s = (AssignStmt)stmt;
-        CheckHintLhs(s.Tok, s.Lhs.Resolved, localsAllowedInUpdates);
+        CheckHintLhs(s.Lhs.tok, s.Lhs.Resolved, localsAllowedInUpdates, where);
       } else if (stmt is CallStmt) {
         var s = (CallStmt)stmt;
         if (s.Method.Mod.Expressions.Count != 0) {
-          reporter.Error(MessageSource.Resolver, stmt, "calls to methods with side-effects are not allowed inside a hint");
+          reporter.Error(MessageSource.Resolver, stmt, "calls to methods with side-effects are not allowed inside {0}", where);
+        }
+        foreach (var lhs in s.Lhs) {
+          CheckHintLhs(lhs.tok, lhs.Resolved, localsAllowedInUpdates, where);
         }
       } else if (stmt is UpdateStmt) {
         var s = (UpdateStmt)stmt;
         foreach (var ss in s.ResolvedStatements) {
-          CheckHintRestrictions(ss, localsAllowedInUpdates);
+          CheckHintRestrictions(ss, localsAllowedInUpdates, where);
         }
       } else if (stmt is VarDeclStmt) {
         var s = (VarDeclStmt)stmt;
         s.Locals.Iter(local => localsAllowedInUpdates.Add(local));
         if (s.Update != null) {
-          CheckHintRestrictions(s.Update, localsAllowedInUpdates);
+          CheckHintRestrictions(s.Update, localsAllowedInUpdates, where);
         }
       } else if (stmt is LetStmt) {
         // Are we fine?
+      } else if (stmt is ModifyStmt) {
+        reporter.Error(MessageSource.Resolver, stmt, "modify statements are not allowed inside {0}", where);
       } else if (stmt is BlockStmt) {
         var s = (BlockStmt)stmt;
         var newScopeForLocals = new HashSet<LocalVariable>(localsAllowedInUpdates);
         foreach (var ss in s.Body) {
-          CheckHintRestrictions(ss, newScopeForLocals);
+          CheckHintRestrictions(ss, newScopeForLocals, where);
         }
 
       } else if (stmt is IfStmt) {
         var s = (IfStmt)stmt;
-        CheckHintRestrictions(s.Thn, localsAllowedInUpdates);
+        CheckHintRestrictions(s.Thn, localsAllowedInUpdates, where);
         if (s.Els != null) {
-          CheckHintRestrictions(s.Els, localsAllowedInUpdates);
+          CheckHintRestrictions(s.Els, localsAllowedInUpdates, where);
         }
 
       } else if (stmt is AlternativeStmt) {
         var s = (AlternativeStmt)stmt;
         foreach (var alt in s.Alternatives) {
           foreach (var ss in alt.Body) {
-            CheckHintRestrictions(ss, localsAllowedInUpdates);
+            CheckHintRestrictions(ss, localsAllowedInUpdates, where);
           }
         }
 
       } else if (stmt is WhileStmt) {
         var s = (WhileStmt)stmt;
         if (s.Mod.Expressions != null && s.Mod.Expressions.Count != 0) {
-          reporter.Error(MessageSource.Resolver, s.Mod.Expressions[0].tok, "a while statement used inside a hint is not allowed to have a modifies clause");
+          reporter.Error(MessageSource.Resolver, s.Mod.Expressions[0].tok, "a while statement used inside {0} is not allowed to have a modifies clause", where);
         }
         if (s.Body != null) {
-          CheckHintRestrictions(s.Body, localsAllowedInUpdates);
+          CheckHintRestrictions(s.Body, localsAllowedInUpdates, where);
         }
 
       } else if (stmt is AlternativeLoopStmt) {
         var s = (AlternativeLoopStmt)stmt;
         foreach (var alt in s.Alternatives) {
           foreach (var ss in alt.Body) {
-            CheckHintRestrictions(ss, localsAllowedInUpdates);
+            CheckHintRestrictions(ss, localsAllowedInUpdates, where);
           }
         }
 
@@ -10610,7 +10613,7 @@ namespace Microsoft.Dafny
         var s = (ForallStmt)stmt;
         switch (s.Kind) {
           case ForallStmt.BodyKind.Assign:
-            reporter.Error(MessageSource.Resolver, stmt, "a forall statement with heap updates is not allowed inside a hint");
+            reporter.Error(MessageSource.Resolver, stmt, "a forall statement with heap updates is not allowed inside {0}", where);
             break;
           case ForallStmt.BodyKind.Call:
           case ForallStmt.BodyKind.Proof:
@@ -10622,16 +10625,13 @@ namespace Microsoft.Dafny
         }
 
       } else if (stmt is CalcStmt) {
-        var s = (CalcStmt)stmt;
-        foreach (var h in s.Hints) {
-          CheckHintRestrictions(h, new HashSet<LocalVariable>());
-        }
+        // cool
 
       } else if (stmt is MatchStmt) {
         var s = (MatchStmt)stmt;
         foreach (var kase in s.Cases) {
           foreach (var ss in kase.Body) {
-            CheckHintRestrictions(ss, localsAllowedInUpdates);
+            CheckHintRestrictions(ss, localsAllowedInUpdates, where);
           }
         }
 
@@ -10640,15 +10640,16 @@ namespace Microsoft.Dafny
       }
     }
 
-    void CheckHintLhs(IToken tok, Expression lhs, ISet<LocalVariable> localsAllowedInUpdates) {
+    void CheckHintLhs(IToken tok, Expression lhs, ISet<LocalVariable> localsAllowedInUpdates, string where) {
       Contract.Requires(tok != null);
       Contract.Requires(lhs != null);
       Contract.Requires(localsAllowedInUpdates != null);
+      Contract.Requires(where != null);
       var idExpr = lhs as IdentifierExpr;
       if (idExpr == null) {
-        reporter.Error(MessageSource.Resolver, tok, "a hint is not allowed to update heap locations");
+        reporter.Error(MessageSource.Resolver, tok, "{0} is not allowed to update heap locations", where);
       } else if (!localsAllowedInUpdates.Contains(idExpr.Var)) {
-        reporter.Error(MessageSource.Resolver, tok, "a hint is not allowed to update a variable declared outside the hint");
+        reporter.Error(MessageSource.Resolver, tok, "{0} is not allowed to update a variable it doesn't declare", where);
       }
     }
 
