@@ -6,6 +6,12 @@ type fixed = t:seq<uint32> | |t| == 2 witness [0,0]
 type buffer<T> = a:array?<T> | a == null || a.Length < 0x100000000
 type buffer_t = buffer<uint8>
 
+method BoundedLength(s:seq<uint8>)
+  requires |s| < 10;
+{
+  var x := |s| as uint32;
+}
+
 method BufferTest(b:buffer_t) 
   requires b != null
 {

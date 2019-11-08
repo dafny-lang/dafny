@@ -2223,10 +2223,9 @@ namespace Microsoft.Dafny {
               // Optimize constant to avoid intermediate BigInteger
               wr.Write("{0}({1})", GetNativeTypeName(toNative), literal);
             } else if (u != null && u.Op == UnaryOpExpr.Opcode.Cardinality) {
-              // Optimize .Count to avoid intermediate BigInteger
-              wr.Write("{0}(", GetNativeTypeName(toNative));
+              wr.Write("({0})(", GetNativeTypeName(toNative));
               TrParenExpr(u.E, wr, inLetExprBody);
-              wr.Write(".CardinalityInt())");
+              wr.Write(".length())");
             } else if (m != null && m.MemberName == "Length" && m.Obj.Type.IsArrayType) {
               // Optimize .Length to avoid intermediate BigInteger
               wr.Write("{0}(", GetNativeTypeName(toNative));
