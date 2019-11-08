@@ -1,4 +1,9 @@
 newtype{:nativeType "uint"} uint32 = i:int | 0 <= i < 0x100000000
+
+datatype Op =
+  | NoOp
+  | PushOp(ghost id: int)
+
 datatype Example1 = Example1(u:uint32, b:bool)
 datatype Example2 = Ex2a(u:uint32) | Ex2b(b:bool)
 datatype Example3 = Example3(e:Example1)
@@ -76,4 +81,3 @@ method Main() {
     Comparison(Example1(42, false), Example1(42, true), Ex4a, Ex4a);
     Comparison(Example1(2,  false), Example1(42, false), Ex4a, Ex4b);
 }
-

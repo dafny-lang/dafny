@@ -329,7 +329,9 @@ namespace Microsoft.Dafny {
         // Create a constructor with no arguments
         var wc = ws.NewNamedBlock("{0}()", DtT_protected);
         foreach (var arg in ctor.Formals) {
-          wc.WriteLine("{0} = {1};", arg.CompileName, DefaultValue(arg.Type, wc, arg.tok));
+          if (!arg.IsGhost) {
+            wc.WriteLine("{0} = {1};", arg.CompileName, DefaultValue(arg.Type, wc, arg.tok));
+          }
         }
         
         // Overload the comparison operator
@@ -402,7 +404,9 @@ namespace Microsoft.Dafny {
             wc.WriteLine("result.tag = {0}::TAG_{1};", DtT_protected, ctor.CompileName);
             foreach (Formal arg in ctor.Formals)
             {
-              wc.WriteLine("result.v_{0}.{1} = {1};", ctor.CompileName, arg.CompileName);
+              if (!arg.IsGhost) {
+                wc.WriteLine("result.v_{0}.{1} = {1};", ctor.CompileName, arg.CompileName);
+              }
             }
             wc.WriteLine("return result;");
           }
@@ -414,7 +418,10 @@ namespace Microsoft.Dafny {
           wd.WriteLine("tag = {0}::TAG_{1};", DtT_protected, default_ctor.CompileName);
           foreach (Formal arg in default_ctor.Formals)
           {
-            wd.WriteLine("v_{0}.{1} = {2};", default_ctor.CompileName, arg.CompileName, DefaultValue(arg.Type, wd, arg.tok));
+            if (!arg.IsGhost) {
+              wd.WriteLine("v_{0}.{1} = {2};", default_ctor.CompileName, arg.CompileName,
+                DefaultValue(arg.Type, wd, arg.tok));
+            }
           }
         }
         
