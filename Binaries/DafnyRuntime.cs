@@ -1018,6 +1018,8 @@ namespace Dafny
     }
   }
   internal class ConcatSequence<T> : Sequence<T> {
+    // INVARIANT: Either left != null, right != null, and elmts == null or
+    // left == null, right == null, and elmts != null
     private Sequence<T> left, right;
     private T[] elmts = null;
     private readonly long count;
@@ -1050,27 +1052,27 @@ namespace Dafny
     private T[] ComputeElements() {
       // Traverse the tree formed by all descendants which are ConcatSequences
 
-      var list = new List<T>();
+      var ans = new T[count];
+      var nextIndex = 0L;
+
       var toVisit = new Stack<Sequence<T>>();
       toVisit.Push(right);
       toVisit.Push(left);
 
       while (toVisit.Count != 0) {
         var seq = toVisit.Pop();
-        if (seq is ConcatSequence<T>) {
-          var cs = (ConcatSequence<T>)seq;
-          if (cs.elmts != null) {
-            list.AddRange(cs.elmts);
-          } else {
-            toVisit.Push(cs.right);
-            toVisit.Push(cs.left);
-          }
+        var cs = seq as ConcatSequence<T>;
+        if (cs != null && cs.elmts == null) {
+          toVisit.Push(cs.right);
+          toVisit.Push(cs.left);
         } else {
-          list.AddRange(seq.Elements);
+          var array = seq.Elements;
+          array.CopyTo(ans, nextIndex);
+          nextIndex += array.LongLength;
         }
       }
 
-      return list.ToArray();
+      return ans;
     }
   }
   public struct Pair<A, B>
