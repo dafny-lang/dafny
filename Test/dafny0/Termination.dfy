@@ -450,3 +450,40 @@ module TerminationRefinement1 refines TerminationRefinement0 {
     ...;
   }
 }
+
+// --------------------- Include "this" for members of types where the ordering makes sense
+
+datatype Tree = Empty | Node(root: int, left: Tree, right: Tree)
+{
+  function Elements(): set<int>
+    // auto: decreases this
+  {
+    match this
+    case Empty => {}
+    case Node(x, left, right) => {x} + left.Elements() + right.Elements()
+  }
+
+  function Sum(): int
+    // auto: decreases this
+  {
+    match this
+    case Empty => 0
+    case Node(x, left, right) => x + left.Sum() + right.Sum()
+  }
+
+  method ComputeSum(n: nat) returns (s: int)
+    // auto: decreases this, n
+  {
+    match this
+    case Empty =>
+      return 0;
+    case Node(x, left, right) =>
+      if n == 0 {
+        var l := left.ComputeSum(28);
+        var r := right.ComputeSum(19);
+        return x + l + r;
+      } else {
+        s := ComputeSum(n - 1);
+      }
+  }
+}

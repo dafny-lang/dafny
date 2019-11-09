@@ -3574,14 +3574,14 @@ namespace Microsoft.Dafny {
     }
 
     /// <summary>
-    /// Return the representative elements of the SCCs that contain contain any member declaration in a
+    /// Return the representative elements of the SCCs that contain any member declaration in a
     /// class in "declarations".
     /// Note, the representative element may in some cases be a Method, not necessarily a Function.
     /// </summary>
     public static IEnumerable<ICallable> AllFunctionSCCs(List<TopLevelDecl> declarations) {
       var set = new HashSet<ICallable>();
       foreach (var d in declarations) {
-        var cl = d as ClassDecl;
+        var cl = d as TopLevelDeclWithMembers;
         if (cl != null) {
           var module = cl.Module;
           foreach (var member in cl.Members) {
@@ -3598,7 +3598,7 @@ namespace Microsoft.Dafny {
 
     public static IEnumerable<Function> AllFunctions(List<TopLevelDecl> declarations) {
       foreach (var d in declarations) {
-        var cl = d as ClassDecl;
+        var cl = d as TopLevelDeclWithMembers;
         if (cl != null) {
           foreach (var member in cl.Members) {
             var fn = member as Function;
@@ -3612,7 +3612,7 @@ namespace Microsoft.Dafny {
 
     public static IEnumerable<Field> AllFields(List<TopLevelDecl> declarations) {
       foreach (var d in declarations) {
-        var cl = d as ClassDecl;
+        var cl = d as TopLevelDeclWithMembers;
         if (cl != null) {
           foreach (var member in cl.Members) {
             var fn = member as Field;
@@ -3701,7 +3701,7 @@ namespace Microsoft.Dafny {
 
     public static IEnumerable<FixpointLemma> AllFixpointLemmas(List<TopLevelDecl> declarations) {
       foreach (var d in declarations) {
-        var cl = d as ClassDecl;
+        var cl = d as TopLevelDeclWithMembers;
         if (cl != null) {
           foreach (var member in cl.Members) {
             var m = member as FixpointLemma;
