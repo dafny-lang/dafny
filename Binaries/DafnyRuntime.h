@@ -92,8 +92,8 @@ struct Tuple2 {
   T1 t1;
 
   Tuple2() {
-    t0 = get_default<T0>(NULL);
-    t1 = get_default<T1>(NULL);
+    t0 = get_default<T0>((T0*)NULL);
+    t1 = get_default<T1>((T1*)NULL);
   }
 
   Tuple2(T0 _t0, T1 _t1) {
@@ -119,9 +119,9 @@ struct Tuple3 {
   T2 t2;
 
   Tuple3() {
-    t0 = get_default<T0>(NULL);
-    t1 = get_default<T1>(NULL);
-    t2 = get_default<T2>(NULL);
+    t0 = get_default<T0>((T0*)NULL);
+    t1 = get_default<T1>((T1*)NULL);
+    t2 = get_default<T2>((T2*)NULL);
   }
 
   Tuple3(T0 _t0, T1 _t1, T2 _t2) {
@@ -151,10 +151,10 @@ struct Tuple4 {
   T3 t3;
 
   Tuple4() {
-    t0 = get_default<T0>(NULL);
-    t1 = get_default<T1>(NULL);
-    t2 = get_default<T2>(NULL);
-    t3 = get_default<T3>(NULL);
+    t0 = get_default<T0>((T0*)NULL);
+    t1 = get_default<T1>((T1*)NULL);
+    t2 = get_default<T2>((T2*)NULL);
+    t3 = get_default<T3>((T3*)NULL);
   }
 
   Tuple4(T0 _t0, T1 _t1, T2 _t2, T3 _t3) {
@@ -188,11 +188,11 @@ struct Tuple5 {
   T4 t4;
 
   Tuple5() {
-    t0 = get_default<T0>(NULL);
-    t1 = get_default<T1>(NULL);
-    t2 = get_default<T2>(NULL);
-    t3 = get_default<T3>(NULL);
-    t4 = get_default<T4>(NULL);
+    t0 = get_default<T0>((T0*)NULL);
+    t1 = get_default<T1>((T1*)NULL);
+    t2 = get_default<T2>((T2*)NULL);
+    t3 = get_default<T3>((T3*)NULL);
+    t4 = get_default<T4>((T4*)NULL);
   }
 
   Tuple5(T0 _t0, T1 _t1, T2 _t2, T3 _t3, T4 _t4) {
@@ -286,7 +286,7 @@ struct DafnySequence {
         return ret;            
     }
     
-    // TODO: isPrefixOf, isPropoerPrefixOf
+    // TODO: isPrefixOf, isProperPrefixOf
     
     DafnySequence<T> concatenate(DafnySequence<T> other) {
         DafnySequence<T> ret(seq.size() + other.seq.size());
@@ -350,6 +350,12 @@ struct DafnySequence {
     
     vector<T> seq;
 };
+
+template <typename U>
+DafnySequence<U> get_default(DafnySequence<U> *) {
+    DafnySequence<U> ret(0);
+    return ret; 
+}
 
 template <typename U>
 bool operator==(const DafnySequence<U> &s0, const DafnySequence<U> &s1) {

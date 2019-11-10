@@ -1008,7 +1008,7 @@ namespace Microsoft.Dafny {
           // Assume the external definition includes a default value
           return String.Format("{1}::get_{0}_default()", IdProtect(udt.Name), udt.ResolvedClass.Module.CompileName);
         } else if (inAutoInitContext && !udt.ResolvedParam.Characteristics.MustSupportZeroInitialization) {
-          return String.Format("get_default<{0}>(NULL)", IdProtect(udt.Name));
+          return String.Format("get_default<{0}>(({0}*)NULL)", IdProtect(udt.Name));
         } else {
           return "nullptr";
           //return string.Format("{0}.Default", RuntimeTypeDescriptor(udt, udt.tok, wr));
