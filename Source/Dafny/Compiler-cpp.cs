@@ -45,12 +45,16 @@ namespace Microsoft.Dafny {
 
     protected override void EmitFooter(Program program, TargetWriter wr) {
       foreach (var dt in this.datatypeDecls) {
-        var wd = wr.NewBlock(String.Format("{0} {1}::{2}{3} get_default({1}::{2}{3}* ignored)", 
-          DeclareTemplate(dt.TypeArgs),
+        var wd = wr.NewBlock(String.Format("template <{0}>\nstruct get_default<{1}::{2}{3} >", 
+          TypeParameters(dt.TypeArgs),
+          dt.Module.CompileName,
+          dt.CompileName,
+          TemplateMethod(dt.TypeArgs)), ";");
+        var wc = wd.NewBlock(String.Format("static {0}::{1}{2} call()",
           dt.Module.CompileName,
           dt.CompileName,
           TemplateMethod(dt.TypeArgs)));
-        wd.WriteLine("return {0}::{1}{2}();", dt.Module.CompileName, dt.CompileName, TemplateMethod(dt.TypeArgs));
+        wc.WriteLine("return {0}::{1}{2}();", dt.Module.CompileName, dt.CompileName, TemplateMethod(dt.TypeArgs));
       }
     } 
 
@@ -1008,7 +1012,7 @@ namespace Microsoft.Dafny {
           // Assume the external definition includes a default value
           return String.Format("{1}::get_{0}_default()", IdProtect(udt.Name), udt.ResolvedClass.Module.CompileName);
         } else if (inAutoInitContext && !udt.ResolvedParam.Characteristics.MustSupportZeroInitialization) {
-          return String.Format("get_default<{0}>(({0}*)NULL)", IdProtect(udt.Name));
+          return String.Format("get_default<{0}>::call()", IdProtect(udt.Name));
         } else {
           return "nullptr";
           //return string.Format("{0}.Default", RuntimeTypeDescriptor(udt, udt.tok, wr));

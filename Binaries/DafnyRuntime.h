@@ -68,19 +68,35 @@ private:
  *  DEFAULTS                                             *
  *********************************************************/
 
-template <typename T>
-T get_default(T*);
+template<typename T>
+struct get_default {
+  static T call();
+};
 
-template <>
-bool get_default<bool>(bool*) { return true; }
-template <>
-int get_default<int>(int*) { return 0; }
-template <>
-unsigned int get_default<unsigned int>(unsigned int*) { return 0; }
-template <>
-unsigned long get_default<unsigned long>(unsigned long*) { return 0; }
-template <>
-unsigned long long get_default<unsigned long long>(unsigned long long*) { return 0; }
+template<>
+struct get_default<bool> {
+  static bool call() { return true; }
+};
+
+template<>
+struct get_default<int> {
+  static int call() { return 0; }
+};
+
+template<>
+struct get_default<unsigned int> {
+  static unsigned int call() { return 0; }
+};
+
+template<>
+struct get_default<unsigned long> {
+  static unsigned long call() { return 0; }
+};
+
+template<>
+struct get_default<unsigned long long> {
+  static unsigned long long call() { return 0; }
+};
 
 /*********************************************************
  *  TUPLES                                               *
@@ -92,8 +108,8 @@ struct Tuple2 {
   T1 t1;
 
   Tuple2() {
-    t0 = get_default<T0>((T0*)NULL);
-    t1 = get_default<T1>((T1*)NULL);
+    t0 = get_default<T0>::call();
+    t1 = get_default<T1>::call();
   }
 
   Tuple2(T0 _t0, T1 _t1) {
@@ -119,9 +135,9 @@ struct Tuple3 {
   T2 t2;
 
   Tuple3() {
-    t0 = get_default<T0>((T0*)NULL);
-    t1 = get_default<T1>((T1*)NULL);
-    t2 = get_default<T2>((T2*)NULL);
+    t0 = get_default<T0>::call();
+    t1 = get_default<T1>::call();
+    t2 = get_default<T2>::call();
   }
 
   Tuple3(T0 _t0, T1 _t1, T2 _t2) {
@@ -151,10 +167,10 @@ struct Tuple4 {
   T3 t3;
 
   Tuple4() {
-    t0 = get_default<T0>((T0*)NULL);
-    t1 = get_default<T1>((T1*)NULL);
-    t2 = get_default<T2>((T2*)NULL);
-    t3 = get_default<T3>((T3*)NULL);
+    t0 = get_default<T0>::call();
+    t1 = get_default<T1>::call();
+    t2 = get_default<T2>::call();
+    t3 = get_default<T3>::call();
   }
 
   Tuple4(T0 _t0, T1 _t1, T2 _t2, T3 _t3) {
@@ -188,11 +204,11 @@ struct Tuple5 {
   T4 t4;
 
   Tuple5() {
-    t0 = get_default<T0>((T0*)NULL);
-    t1 = get_default<T1>((T1*)NULL);
-    t2 = get_default<T2>((T2*)NULL);
-    t3 = get_default<T3>((T3*)NULL);
-    t4 = get_default<T4>((T4*)NULL);
+    t0 = get_default<T0>::call();
+    t1 = get_default<T1>::call();
+    t2 = get_default<T2>::call();
+    t3 = get_default<T3>::call();
+    t4 = get_default<T4>::call();
   }
 
   Tuple5(T0 _t0, T1 _t1, T2 _t2, T3 _t3, T4 _t4) {
@@ -352,10 +368,12 @@ struct DafnySequence {
 };
 
 template <typename U>
-DafnySequence<U> get_default(DafnySequence<U> *) {
-    DafnySequence<U> ret(0);
-    return ret; 
-}
+struct get_default<DafnySequence<U> > {
+  static DafnySequence<U> call() {
+    DafnySequence<U> ret;
+    return ret;
+  }
+};
 
 template <typename U>
 bool operator==(const DafnySequence<U> &s0, const DafnySequence<U> &s1) {
