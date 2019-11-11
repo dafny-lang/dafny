@@ -114,7 +114,7 @@ namespace Microsoft.Dafny
       return Util.Comma(targs, tp => IdName(tp));
     }
 
-    protected override IClassWriter CreateClass(string name, bool isExtern, string/*?*/ fullPrintName, List<TypeParameter>/*?*/ typeParameters, List<Type>/*?*/ superClasses, Bpl.IToken tok, TargetWriter wr) {
+    protected override IClassWriter CreateClass(string moduleName, string name, bool isExtern, string/*?*/ fullPrintName, List<TypeParameter>/*?*/ typeParameters, List<Type>/*?*/ superClasses, Bpl.IToken tok, TargetWriter wr) {
       wr.Write("public partial class {0}", name);
       if (typeParameters != null && typeParameters.Count != 0) {
         wr.Write("<{0}>", TypeParameters(typeParameters));
@@ -172,7 +172,7 @@ namespace Microsoft.Dafny
       //   }
 
       var cw =
-        CreateClass(IdName(iter), iter.TypeArgs, wr) as CsharpCompiler.ClassWriter;
+        CreateClass(iter.Module.CompileName, IdName(iter), iter.TypeArgs, wr) as CsharpCompiler.ClassWriter;
       var w = cw.InstanceMemberWriter;
       // here come the fields
       Constructor ct = null;
@@ -618,7 +618,7 @@ namespace Microsoft.Dafny
     }
 
     protected override void DeclareNewtype(NewtypeDecl nt, TargetWriter wr) {
-      var cw = CreateClass(IdName(nt), null, wr) as CsharpCompiler.ClassWriter;
+      var cw = CreateClass(nt.Module.CompileName, IdName(nt), null, wr) as CsharpCompiler.ClassWriter;
       var w = cw.StaticMemberWriter;
       if (nt.NativeType != null) {
         var wEnum = w.NewNamedBlock("public static System.Collections.Generic.IEnumerable<{0}> IntegerRange(BigInteger lo, BigInteger hi)", GetNativeTypeName(nt.NativeType));
@@ -638,7 +638,7 @@ namespace Microsoft.Dafny
     }
 
     protected override void DeclareSubsetType(SubsetTypeDecl sst, TargetWriter wr) {
-      ClassWriter cw = CreateClass(IdName(sst), sst.TypeArgs, wr) as ClassWriter;
+      ClassWriter cw = CreateClass(sst.Module.CompileName, IdName(sst), sst.TypeArgs, wr) as ClassWriter;
       if (sst.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
         var sw = new TargetWriter(cw.InstanceMemberWriter.IndentLevel, true);
         TrExpr(sst.Witness, sw, false);

@@ -56,7 +56,7 @@ namespace Microsoft.Dafny {
 
     protected override string GetHelperModuleName() => "_dafny";
 
-    protected override IClassWriter CreateClass(string name, bool isExtern, string/*?*/ fullPrintName, List<TypeParameter>/*?*/ typeParameters, List<Type>/*?*/ superClasses, Bpl.IToken tok, TargetWriter wr) {
+    protected override IClassWriter CreateClass(string moduleName, string name, bool isExtern, string/*?*/ fullPrintName, List<TypeParameter>/*?*/ typeParameters, List<Type>/*?*/ superClasses, Bpl.IToken tok, TargetWriter wr) {
       var w = wr.NewBlock(string.Format("$module.{0} = class {0}" + (isExtern ? " extends $module.{0}" : ""), name), ";");
       w.Write("constructor (");
       if (typeParameters != null) {
@@ -108,7 +108,7 @@ namespace Microsoft.Dafny {
       //     }
       //   }
 
-      var cw = CreateClass(IdName(iter), iter.TypeArgs, wr) as JavaScriptCompiler.ClassWriter;
+      var cw = CreateClass(iter.Module.CompileName, IdName(iter), iter.TypeArgs, wr) as JavaScriptCompiler.ClassWriter;
       var w = cw.MethodWriter;
       var instanceFieldsWriter = cw.FieldWriter;
       // here come the fields
@@ -479,7 +479,7 @@ namespace Microsoft.Dafny {
     }
 
     protected override void DeclareNewtype(NewtypeDecl nt, TargetWriter wr) {
-      var cw = CreateClass(IdName(nt), null, wr) as JavaScriptCompiler.ClassWriter;
+      var cw = CreateClass(nt.Module.CompileName, IdName(nt), null, wr) as JavaScriptCompiler.ClassWriter;
       var w = cw.MethodWriter;
       if (nt.NativeType != null) {
         var wIntegerRangeBody = w.NewBlock("static *IntegerRange(lo, hi)");
@@ -505,7 +505,7 @@ namespace Microsoft.Dafny {
     }
 
     protected override void DeclareSubsetType(SubsetTypeDecl sst, TargetWriter wr) {
-      var cw = CreateClass(IdName(sst), sst.TypeArgs, wr) as JavaScriptCompiler.ClassWriter;
+      var cw = CreateClass(sst.Module.CompileName, IdName(sst), sst.TypeArgs, wr) as JavaScriptCompiler.ClassWriter;
       var w = cw.MethodWriter;
       if (sst.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
         var witness = new TargetWriter(w.IndentLevel, true);

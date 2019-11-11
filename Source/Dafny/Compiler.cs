@@ -87,13 +87,13 @@ namespace Microsoft.Dafny {
       TextWriter/*?*/ ErrorWriter();  
       void Finish();
     }
-    protected IClassWriter CreateClass(string name, List<TypeParameter>/*?*/ typeParameters, TargetWriter wr) {
-      return CreateClass(name, false, null, typeParameters, null, null, wr);
+    protected IClassWriter CreateClass(string moduleName, string name, List<TypeParameter>/*?*/ typeParameters, TargetWriter wr) {
+      return CreateClass(moduleName, name, false, null, typeParameters, null, null, wr);
     }
     /// <summary>
     /// "tok" can be "null" if "superClasses" is.
     /// </summary>
-    protected abstract IClassWriter CreateClass(string name, bool isExtern, string/*?*/ fullPrintName, List<TypeParameter>/*?*/ typeParameters, List<Type>/*?*/ superClasses, Bpl.IToken tok, TargetWriter wr);
+    protected abstract IClassWriter CreateClass(string moduleName, string name, bool isExtern, string/*?*/ fullPrintName, List<TypeParameter>/*?*/ typeParameters, List<Type>/*?*/ superClasses, Bpl.IToken tok, TargetWriter wr);
     /// <summary>
     /// "tok" can be "null" if "superClasses" is.
     /// </summary>
@@ -603,7 +603,7 @@ namespace Microsoft.Dafny {
               }
             }
             if (include) {
-              var cw = CreateClass(IdName(cl), classIsExtern, cl.FullName, cl.TypeArgs, cl.TraitsTyp, cl.tok, wr);
+              var cw = CreateClass(d.Module.CompileName, IdName(cl), classIsExtern, cl.FullName, cl.TypeArgs, cl.TraitsTyp, cl.tok, wr);
               CompileClassMembers(cl, cw);
               cw.Finish();
             } else {

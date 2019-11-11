@@ -141,7 +141,7 @@ namespace Microsoft.Dafny {
     }
 
 
-    protected override IClassWriter CreateClass(string name, bool isExtern, string/*?*/ fullPrintName, List<TypeParameter>/*?*/ typeParameters, List<Type>/*?*/ superClasses, Bpl.IToken tok, TargetWriter wr) {
+    protected override IClassWriter CreateClass(string moduleName, string name, bool isExtern, string/*?*/ fullPrintName, List<TypeParameter>/*?*/ typeParameters, List<Type>/*?*/ superClasses, Bpl.IToken tok, TargetWriter wr) {
       if (isExtern || (superClasses != null && superClasses.Count > 0)) {
         throw NotSupported(String.Format("extern and/or traits in class {0}", name), tok);
       }
@@ -488,7 +488,7 @@ namespace Microsoft.Dafny {
         throw NotSupported(String.Format("non-native newtype {0}", nt));
       }
       var className = "class_" + IdName(nt);
-      var cw = CreateClass(className, null, wr) as CppCompiler.ClassWriter;
+      var cw = CreateClass(nt.Module.CompileName, className, null, wr) as CppCompiler.ClassWriter;
       var w = cw.MethodWriter;
       if (nt.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
         var witness = new TargetWriter(w.IndentLevel, true);
@@ -525,7 +525,7 @@ namespace Microsoft.Dafny {
       wr.WriteLine("{2} using {1} = {0};", TypeName(sst.Var.Type, wr, sst.tok), IdName(sst), templateDecl);
       
       var className = "class_" + IdName(sst);
-      var cw = CreateClass(className, sst.TypeArgs, wr) as CppCompiler.ClassWriter;
+      var cw = CreateClass(sst.Module.CompileName, className, sst.TypeArgs, wr) as CppCompiler.ClassWriter;
       var w = cw.MethodWriter;
       if (sst.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
         var witness = new TargetWriter(w.IndentLevel, true);
