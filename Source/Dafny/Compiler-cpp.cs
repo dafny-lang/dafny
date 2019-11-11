@@ -20,10 +20,12 @@ namespace Microsoft.Dafny {
     : base(reporter) {
       this.headers = otherHeaders;
       this.datatypeDecls = new List<DatatypeDecl>();
+      this.classDefaults = new List<string>();
     }
 
     private ReadOnlyCollection<string> headers;
     private List<DatatypeDecl> datatypeDecls;
+    private List<string> classDefaults;
     
     // Shadowing variables in Compiler.cs
     new string DafnySetClass = "DafnySet";
@@ -55,6 +57,10 @@ namespace Microsoft.Dafny {
           dt.CompileName,
           TemplateMethod(dt.TypeArgs)));
         wc.WriteLine("return {0}::{1}{2}();", dt.Module.CompileName, dt.CompileName, TemplateMethod(dt.TypeArgs));
+      }
+
+      foreach (var classDefault in classDefaults) {
+        wr.WriteLine(classDefault);
       }
     } 
 
@@ -94,8 +100,11 @@ namespace Microsoft.Dafny {
     private string TypeParameters(List<TypeParameter> targs) {
       Contract.Requires(cce.NonNullElements(targs));
       Contract.Ensures(Contract.Result<string>() != null);
-
-      return Util.Comma(targs, tp => "typename " + IdName(tp));
+      if (targs != null) {
+        return Util.Comma(targs, tp => "typename " + IdName(tp));
+      } else {
+        return "";
+      }
     }
 
     private string DeclareTemplate(List<TypeParameter> typeArgs) {
@@ -115,19 +124,28 @@ namespace Microsoft.Dafny {
     }
     
     private string TemplateMethod(List<TypeParameter> typeArgs) {
-      var targs = "";
-      if (typeArgs.Count > 0) {
-        targs = String.Format("<{0}>", Util.Comma(typeArgs, ta => ta.CompileName));
+      if (typeArgs != null) {
+        var targs = "";
+        if (typeArgs.Count > 0) {
+          targs = String.Format("<{0}>", Util.Comma(typeArgs, ta => ta.CompileName));
+        }
+        return targs;
+      } else {
+        return "";
       }
-      return targs;
     }
     
     private string TemplateMethod(List<Type> typeArgs) {
-      var targs = "";
-      if (typeArgs.Count > 0) {
-        targs = String.Format("<{0}>", Util.Comma(typeArgs, ta => TypeName(ta, null, null)));
+      if (typeArgs != null) {
+        var targs = "";
+        if (typeArgs.Count > 0) {
+          targs = String.Format("<{0}>", Util.Comma(typeArgs, ta => TypeName(ta, null, null)));
+        }
+
+        return targs;
+      } else {
+        return "";
       }
-      return targs;
     }
 
     protected override string GetHelperModuleName() => "_dafny";
@@ -155,6 +173,19 @@ namespace Microsoft.Dafny {
       w.Write("public:\n");      
 
       w.WriteLine("// Default constructor\n {0}() {{}}", name);
+      
+      // Create the code for the specialization of get_default
+      var fullName = moduleName + "::" + name;
+      var getDefaultStr = String.Format("template <{0}>\nstruct get_default<shared_ptr<{1}{2} > > {{\n",
+        TypeParameters(typeParameters),
+        fullName,
+        TemplateMethod(typeParameters));
+      getDefaultStr += String.Format("static shared_ptr<{0}{1} > call() {{\n",
+        fullName,
+        TemplateMethod(typeParameters));
+      getDefaultStr += String.Format("return shared_ptr<{0}{1} >();", fullName, TemplateMethod(typeParameters));
+      getDefaultStr += "}\n};";
+      this.classDefaults.Add(getDefaultStr);
 
       //w.Write("// Constructor\n");
       //w2.Write(string.Format("{0}(", name));
