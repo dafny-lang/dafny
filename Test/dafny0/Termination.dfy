@@ -486,4 +486,43 @@ datatype Tree = Empty | Node(root: int, left: Tree, right: Tree)
         s := ComputeSum(n - 1);
       }
   }
+
+  lemma {:induction this} EvensSumToEven()  // explicitly use "this" as quantified over by induction hypothesis
+    requires forall u :: u in Elements() ==> u % 2 == 0
+    ensures Sum() % 2 == 0
+    // auto: decreases this
+  {
+    match this
+    case Empty =>
+    case Node(x, left, right) =>
+      assert x in Elements();
+      left.EvensSumToEven();
+      right.EvensSumToEven();
+  }
+
+  lemma EvensSumToEvenAutoInduction()  // {:induction this} is the default
+    requires forall u :: u in Elements() ==> u % 2 == 0
+    ensures Sum() % 2 == 0
+    // auto: decreases this
+  {
+    match this
+    case Empty =>
+    case Node(x, left, right) =>
+      assert x in Elements();
+      left.EvensSumToEvenAutoInduction();
+      right.EvensSumToEvenAutoInduction();
+  }
+}
+
+lemma ExtEvensSumToEven(t: Tree)
+  requires forall u :: u in t.Elements() ==> u % 2 == 0
+  ensures t.Sum() % 2 == 0
+  // auto: decreases t
+{
+  match t
+  case Empty =>
+  case Node(x, left, right) =>
+    assert x in t.Elements();
+    assert left.Sum() % 2 == 0;
+    assert right.Sum() % 2 == 0;
 }

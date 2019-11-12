@@ -4288,15 +4288,27 @@ namespace Microsoft.Dafny {
           var parBoundVars = new List<BoundVar>();
           var parBounds = new List<ComprehensionExpr.BoundedPool>();
           var substMap = new Dictionary<IVariable, Expression>();
+          Expression receiverSubst = null;
           foreach (var iv in inductionVars) {
             BoundVar bv;
-            IdentifierExpr ie;
-            CloneVariableAsBoundVar(iv.tok, iv, "$ih#" + iv.Name, out bv, out ie);
+            if (iv == null) {
+              // this corresponds to "this"
+              Contract.Assert(!m.IsStatic);  // if "m" is static, "this" should never have gone into the _induction attribute
+              Contract.Assert(receiverSubst == null);  // we expect at most one
+              var receiverType = Resolver.GetThisType(m.tok, (TopLevelDeclWithMembers)m.EnclosingClass);
+              bv = new BoundVar(m.tok, CurrentIdGenerator.FreshId("$ih#this"), receiverType); // use this temporary variable counter, but for a Dafny name (the idea being that the number and the initial "_" in the name might avoid name conflicts)
+              var ie = new IdentifierExpr(m.tok, bv.Name);
+              ie.Var = bv;  // resolve here
+              ie.Type = bv.Type;  // resolve here
+              receiverSubst = ie;
+            } else {
+              IdentifierExpr ie;
+              CloneVariableAsBoundVar(iv.tok, iv, "$ih#" + iv.Name, out bv, out ie);
+              substMap.Add(iv, ie);
+            }
             parBoundVars.Add(bv);
             parBounds.Add(new ComprehensionExpr.SpecialAllocIndependenceAllocatedBoundedPool());  // record that we don't want alloc antecedents for these variables
-            substMap.Add(iv, ie);
           }
-
 
           // Generate a CallStmt for the recursive call
           List<Type> typeApplication;
@@ -4315,7 +4327,7 @@ namespace Microsoft.Dafny {
           parRange.Type = Type.Bool;  // resolve here
           foreach (var pre in m.Req) {
             if (!pre.IsFree) {
-              parRange = Expression.CreateAnd(parRange, Substitute(pre.E, null, substMap));
+              parRange = Expression.CreateAnd(parRange, Substitute(pre.E, receiverSubst, substMap));
             }
           }
           // construct an expression (generator) for:  VF' << VF
@@ -4328,7 +4340,7 @@ namespace Microsoft.Dafny {
               decrToks.Add(ee.tok);
               decrTypes.Add(ee.Type.NormalizeExpand());
               decrCaller.Add(exprTran.TrExpr(ee));
-              Expression es = Substitute(ee, null, substMap);
+              Expression es = Substitute(ee, receiverSubst, substMap);
               es = Substitute(es, null, decrSubstMap);
               decrCallee.Add(exprTran.TrExpr(es));
             }
@@ -17167,28 +17179,19 @@ namespace Microsoft.Dafny {
     }
 
     /// <summary>
-    /// Return a subset of "boundVars" (in the order giving in "boundVars") to which to apply induction to,
-    /// according to :_induction attribute in "attributes".
+    /// Return a list of variables specified by the arguments of :_induction in "attributes", if any.
+    /// If an argument of :_induction is a ThisExpr, "null" is returned as the corresponding variable.
     /// </summary>
-    List<VarType> ApplyInduction<VarType>(List<VarType> boundVars, Attributes attributes) where VarType : class, IVariable
-    {
+    List<VarType/*?*/> ApplyInduction<VarType>(List<VarType> boundVars, Attributes attributes) where VarType : class, IVariable {
       Contract.Requires(boundVars != null);
       Contract.Ensures(Contract.Result<List<VarType>>() != null);
 
       var args = Attributes.FindExpressions(attributes, "_induction");
       if (args == null) {
         return new List<VarType>();  // don't apply induction
+      } else {
+        return args.ConvertAll(e => e is ThisExpr ? null : (VarType)((IdentifierExpr)e).Var);
       }
-
-      var argsAsVars = new List<VarType>();
-      foreach (var arg in args) {
-        // We expect each "arg" to be an IdentifierExpr among "boundVars"
-        var id = (IdentifierExpr)arg;
-        var bv = (VarType)id.Var;
-        Contract.Assume(boundVars.Contains(bv));
-        argsAsVars.Add(bv);
-      }
-      return argsAsVars;
     }
 
     IEnumerable<Bpl.Expr> InductionCases(Type ty, Bpl.Expr expr, ExpressionTranslator etran) {
@@ -17231,9 +17234,9 @@ namespace Microsoft.Dafny {
     }
 
     /// <summary>
-    /// Returns true iff 'v' occurs as a free variable in 'expr'.
-    /// Parameter 'v' is allowed to be a ThisSurrogate, in which case the method return true iff 'this'
-    /// occurs in 'expr'.
+    /// Returns true iff
+    ///   (if 'v' is non-null) 'v' occurs as a free variable in 'expr' or
+    ///   (if 'lookForReceiver' is true) 'this' occurs in 'expr'.
     /// </summary>
     public static bool ContainsFreeVariable(Expression expr, bool lookForReceiver, IVariable v) {
       Contract.Requires(expr != null);

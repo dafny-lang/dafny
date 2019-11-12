@@ -1631,8 +1631,8 @@ namespace Microsoft.Dafny
         // Don't bother inferring :induction attributes.  This will also have the effect of not warning about malformed :induction attributes
       } else {
         foreach (var decl in m.TopLevelDecls) {
-          if (decl is ClassDecl) {
-            var cl = (ClassDecl)decl;
+          if (decl is TopLevelDeclWithMembers) {
+            var cl = (TopLevelDeclWithMembers)decl;
             foreach (var member in cl.Members) {
               if (member is FixpointLemma) {
                 var method = (FixpointLemma)member;
@@ -1652,7 +1652,8 @@ namespace Microsoft.Dafny
                 ProcessFunctionExpressions(function);
               }
             }
-          } else if (decl is NewtypeDecl) {
+          }
+          if (decl is NewtypeDecl) {
             var nt = (NewtypeDecl)decl;
             if (nt.Constraint != null) {
               var visitor = new Induction_Visitor(this);
@@ -1720,23 +1721,33 @@ namespace Microsoft.Dafny
         }
         // GO INFER below (all boundVars)
       } else {
-        // Here, we're expecting the arguments to {:induction args} to be a sublist of "boundVars".
+        // Here, we're expecting the arguments to {:induction args} to be a sublist of "this;boundVars", where "this" is allowed only
+        // if "lemma" denotes an instance lemma.
         var goodArguments = new List<Expression>();
-        var i = 0;
+        var i = lemma != null && !lemma.IsStatic ? -1 : 0;  // -1 says it's okay to see "this" or any other parameter; 0 <= i says it's okay to see parameter i or higher
         foreach (var arg in args) {
           var ie = arg.Resolved as IdentifierExpr;
           if (ie != null) {
-            var j = boundVars.FindIndex(i, v => v == ie.Var);
-            if (i <= j) {
+            var j = boundVars.FindIndex(v => v == ie.Var);
+            if (0 <= j && i <= j) {
               goodArguments.Add(ie);
-              i = j;
+              i = j + 1;
               continue;
             }
-            if (0 <= boundVars.FindIndex(v => v == ie.Var)) {
+            if (0 <= j) {
               reporter.Warning(MessageSource.Rewriter, arg.tok, "{0}s given as :induction arguments must be given in the same order as in the {1}; ignoring attribute",
                 lemma != null ? "lemma parameter" : "bound variable", lemma != null ? "lemma" : "quantifier");
               return;
             }
+            // fall through for j < 0
+          } else if (lemma != null && arg.Resolved is ThisExpr) {
+            if (i < 0) {
+              goodArguments.Add(arg.Resolved);
+              i = 0;
+              continue;
+            }
+            reporter.Warning(MessageSource.Rewriter, arg.tok, "lemma parameters given as :induction arguments must be given in the same order as in the lemma; ignoring attribute");
+            return;
           }
           reporter.Warning(MessageSource.Rewriter, arg.tok, "invalid :induction attribute argument; expected {0}{1}; ignoring attribute",
             i == 0 ? "'false' or 'true' or " : "",
@@ -1750,6 +1761,11 @@ namespace Microsoft.Dafny
 
       // Okay, here we go, coming up with good induction setting for the given situation
       var inductionVariables = new List<Expression>();
+      if (lemma != null && !lemma.IsStatic) {
+        if (args != null || searchExprs.Exists(expr => Translator.ContainsFreeVariable(expr, true, null))) {
+          inductionVariables.Add(new ThisExpr(lemma));
+        }
+      }
       foreach (IVariable n in boundVars) {
         if (!(n.Type.IsTypeParameter || n.Type.IsInternalTypeSynonym) && (args != null || searchExprs.Exists(expr => VarOccursInArgumentToRecursiveFunction(expr, n)))) {
           inductionVariables.Add(new IdentifierExpr(n.Tok, n));
@@ -1805,7 +1821,6 @@ namespace Microsoft.Dafny
     ///        4    if 'n' occurs as   any subexpression of                                                                       any                       argument to a recursive function
     ///        5    if 'n' occurs as   a prominent subexpression of                                                               any                       argument to a recursive function
     ///        6    if 'n' occurs as   a prominent subexpression of                                                               any decreases-influencing argument to a recursive function
-    /// Parameter 'n' is allowed to be a ThisSurrogate.
     /// </summary>
     public static bool VarOccursInArgumentToRecursiveFunction(Expression expr, IVariable n) {
       switch (DafnyOptions.O.InductionHeuristic) {
@@ -1819,7 +1834,6 @@ namespace Microsoft.Dafny
     /// Worker routine for VarOccursInArgumentToRecursiveFunction(expr,n), where the additional parameter 'exprIsProminent' says whether or
     /// not 'expr' has prominent status in its context.
     /// DafnyInductionHeuristic cases 0 and 1 are assumed to be handled elsewhere (i.e., a precondition of this method is DafnyInductionHeuristic is at least 2).
-    /// Parameter 'n' is allowed to be a ThisSurrogate.
     /// </summary>
     static bool VarOccursInArgumentToRecursiveFunction(Expression expr, IVariable n, bool exprIsProminent) {
       Contract.Requires(expr != null);
