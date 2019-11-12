@@ -451,7 +451,9 @@ namespace Microsoft.Dafny {
         ws.Write("enum {");
         ws.Write(Util.Comma(dt.Ctors, nm => String.Format(" TAG_{0}", nm.CompileName)));
         ws.Write("} tag;\n");
-        var wu = ws.NewBlock("union ", ";");
+        // TODO: The union doesn't play nicely with shared_ptr, so for now, use more memory than needed
+        //var wu = ws.NewBlock("union ", ";");
+        var wu = ws;
         foreach (var ctor in dt.Ctors) {
           wu.WriteLine("struct {2}_{0}{1} v_{0};", ctor.CompileName, TemplateMethod(dt.TypeArgs), DtT_protected);
         }
