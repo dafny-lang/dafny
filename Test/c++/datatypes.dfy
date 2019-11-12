@@ -69,6 +69,24 @@ method Comparison(x0:Example1, x1:Example1, y0:Example4, y1:Example4) {
   }
 }
 
+datatype IntList = 
+  | Nil
+  | Cons(hd:uint32, tl:IntList)
+
+method IntListLen(l:IntList) returns (len:uint32)
+{
+  match l {
+    case Nil => len := 0;
+    case Cons(hd, tl) => 
+      var len_rest := IntListLen(tl);
+      if len_rest < 0xFFFFFFFF {
+        len := len_rest + 1;
+      } else {
+        len := len_rest;
+      }
+  }
+}
+
 method Main() {
     var e1 := Example1(22, false);
     var e2 := Ex2a(42);
@@ -80,4 +98,7 @@ method Main() {
     Comparison(Example1(42, true), Example1(42, true), Ex4b, Ex4b);
     Comparison(Example1(42, false), Example1(42, true), Ex4a, Ex4a);
     Comparison(Example1(2,  false), Example1(42, false), Ex4a, Ex4b);
+
+    var len := IntListLen(Cons(15, Cons(18, Cons(330, Nil))));
+    print len;
 }

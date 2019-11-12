@@ -282,6 +282,26 @@ namespace Microsoft.Dafny {
       return wIter; */
     }
 
+    protected bool IsRecursiveConstructor(DatatypeDecl dt, DatatypeCtor ctor) {
+      foreach (var dtor in ctor.Destructors) {
+        if (dtor.Type is UserDefinedType t) {
+          if (t.ResolvedClass == dt) {
+            return true;
+          }
+        }
+      }
+
+      return false;
+    }
+    protected bool IsRecursiveDatatype(DatatypeDecl dt) {
+      foreach (var ctor in dt.Ctors) {
+        if (IsRecursiveConstructor(dt, ctor)) {
+          return true; 
+        }
+      }
+      return false;
+    }
+
     protected override void DeclareDatatype(DatatypeDecl dt, TargetWriter wr) {
       // Given:
       // datatype Example1 = Example1(u:uint32, b:bool)
@@ -325,11 +345,17 @@ namespace Microsoft.Dafny {
         // Tuple types are declared once and for all in DafnyRuntime.h
         return;
       }
-      
+
       this.datatypeDecls.Add(dt);
 
       string DtT = dt.CompileName;
       string DtT_protected = IdProtect(DtT);
+
+      if (IsRecursiveDatatype(dt)) { // Note that if this is true, there must be more than one constructor!
+        // Add some forward declarations
+        wr.WriteLine("{0}\nstruct {1};", DeclareTemplate(dt.TypeArgs), DtT_protected);
+        wr.WriteLine("bool operator==(const {0} &left, const {0} &right); ", DtT_protected);
+      }
 
       // Optimize a not-uncommon case
       if (dt.Ctors.Count == 1) {
@@ -389,11 +415,13 @@ namespace Microsoft.Dafny {
           var wstruct = wr.NewBlock(String.Format("{0}\nstruct {1}", DeclareTemplate(dt.TypeArgs), structName), ";");
           // Declare the struct members
           var i = 0;
-          var argNames = new List<string>();
           foreach (Formal arg in ctor.Formals) {
             if (!arg.IsGhost) {
-              wstruct.WriteLine("{0} {1};", TypeName(arg.Type, wr, arg.tok), FormalName(arg, i));
-              argNames.Add(FormalName(arg, i));
+              if (arg.Type is UserDefinedType udt && udt.ResolvedClass == dt) {  // Recursive declaration needs to use a pointer
+                wstruct.WriteLine("shared_ptr<{0}> {1};", TypeName(arg.Type, wr, arg.tok), FormalName(arg, i));
+              } else {
+                wstruct.WriteLine("{0} {1};", TypeName(arg.Type, wr, arg.tok), FormalName(arg, i));
+              }
               i++;
             }
           }
@@ -401,8 +429,16 @@ namespace Microsoft.Dafny {
           // Overload the comparison operator
           wstruct.WriteLine("friend bool operator==(const {0} &left, const {0} &right) {{ ", structName);
           wstruct.Write("\treturn true ");
-          foreach (var arg in argNames) {
-            wstruct.WriteLine("\t\t&& left.{0} == right.{0}", arg);
+          
+          foreach (Formal arg in ctor.Formals) {
+            if (!arg.IsGhost) {
+              if (arg.Type is UserDefinedType udt && udt.ResolvedClass == dt) {  // Recursive destructor needs to use a pointer
+                wstruct.WriteLine("\t\t&& *(left.{0}) == *(right.{0})", FormalName(arg, i));
+              } else {
+                wstruct.WriteLine("\t\t&& left.{0} == right.{0}", FormalName(arg, i));
+              }
+              i++;
+            }
           }
           wstruct.WriteLine(";\n}");
           
@@ -423,15 +459,6 @@ namespace Microsoft.Dafny {
         // Declare static "constructors" for each Dafny constructor
         foreach (var ctor in dt.Ctors)
         {
-          var argNames = new List<string>();
-          foreach (Formal arg in ctor.Formals)
-          {
-            if (!arg.IsGhost)
-            {
-              argNames.Add(arg.CompileName);
-            }
-          }
-
           using (var wc = ws.NewNamedBlock("static {0} create_{1}({2})",
                                            DtT_protected, ctor.CompileName,
                                            DeclareFormals(ctor.Formals))) {
@@ -440,7 +467,12 @@ namespace Microsoft.Dafny {
             foreach (Formal arg in ctor.Formals)
             {
               if (!arg.IsGhost) {
-                wc.WriteLine("result.v_{0}.{1} = {1};", ctor.CompileName, arg.CompileName);
+                if (arg.Type is UserDefinedType udt && udt.ResolvedClass == dt) {
+                  // This is a recursive destuctor, so we need to allocate space and copy the input in
+                  wc.WriteLine("result.v_{0}.{1} = make_shared<{2}>({1});", ctor.CompileName, arg.CompileName, DtT_protected);
+                } else {
+                  wc.WriteLine("result.v_{0}.{1} = {1};", ctor.CompileName, arg.CompileName);
+                }
               }
             }
             wc.WriteLine("return result;");
@@ -1723,7 +1755,9 @@ namespace Microsoft.Dafny {
       }
     }
 
-    protected override TargetWriter EmitMemberSelect(MemberDecl member, bool isLValue, Type expectedType, TargetWriter wr) {      
+    protected override TargetWriter EmitMemberSelect(MemberDecl member, bool isLValue, Type expectedType, TargetWriter wr) {
+      var preSource = wr.Fork();
+      wr.Write("(");
       var wSource = wr.Fork();
       if (isLValue && member is ConstantField) {
         wr.Write("->{0}", member.CompileName);
@@ -1752,6 +1786,10 @@ namespace Microsoft.Dafny {
           }
           var dt = dtor2.EnclosingClass as IndDatatypeDecl;
           if (dt.Ctors.Count > 1) {
+            if (dtor2.Type is UserDefinedType udt && udt.ResolvedClass == dt) {
+              // This a recursively defined datatype; need to dereference the pointer
+              preSource.Write("*");
+            }
             wr.Write(".v_{0}.{1}", dtor2.EnclosingCtors[0].CompileName, sf.CompileName);
           } else {
             wr.Write(".{0}", sf.CompileName);
@@ -1764,6 +1802,7 @@ namespace Microsoft.Dafny {
       } else {
         wr.Write("->{0}", IdName(member));
       }
+      wr.Write(")");
       return wSource;
     }
 
@@ -1883,7 +1922,11 @@ namespace Microsoft.Dafny {
         wr.Write("({0})[{1}]", source, formalNonGhostIndex);
       } else {
         var dtorName = FormalName(dtor, formalNonGhostIndex);
-        wr.Write("({0}){1}.v_{3}.{2}", source, ctor.EnclosingDatatype is CoDatatypeDecl ? "._D()" : "", dtorName, ctor.CompileName);
+        if (dtor.Type is UserDefinedType udt && udt.ResolvedClass == ctor.EnclosingDatatype) {
+          // Recursively defined datatype requires a dereference here
+          wr.Write("*");
+        }
+        wr.Write("(({0}){1}.v_{3}.{2})", source, ctor.EnclosingDatatype is CoDatatypeDecl ? "._D()" : "", dtorName, ctor.CompileName);
       }
     }
 
