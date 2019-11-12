@@ -564,6 +564,13 @@ namespace Microsoft.Dafny
           reporter.Info(MessageSource.Resolver, iter.tok, Printer.IteratorClassToString(iter));
         }
       }
+
+      foreach (var module in prog.Modules()) {
+        foreach (var r in rewriters) {
+          r.PostDecreasesResolve(module);
+        }
+      }
+
       // fill in other additional information
       foreach (var module in prog.Modules()) {
         foreach (var clbl in ModuleDefinition.AllItersAndCallables(module.TopLevelDecls)) {
