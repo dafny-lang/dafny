@@ -654,11 +654,11 @@ namespace Dafny
       }
       return new Map<U, V>(d, hasNullValue, nullValue);
     }
-    public static Map<U, V> FromCollection(List<Pair<U, V>> values) {
+    public static Map<U, V> FromCollection(IEnumerable<Pair<U, V>> values) {
 #if DAFNY_USE_SYSTEM_COLLECTIONS_IMMUTABLE
       var d = ImmutableDictionary<U, V>.Empty.ToBuilder();
 #else
-      var d = new Dictionary<U, V>(values.Count);
+      var d = new Dictionary<U, V>();
 #endif
       var hasNullValue = false;
       var nullValue = default(V);
