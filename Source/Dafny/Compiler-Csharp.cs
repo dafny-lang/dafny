@@ -1522,6 +1522,10 @@ namespace Microsoft.Dafny
       if (udt is ArrowType) {
         return ArrowType.Arrow_FullCompileName;
       }
+      string qualification;
+      if (member != null && member.IsExtern(out qualification, out _) && qualification != null) {
+        return qualification;
+      }
       var cl = udt.ResolvedClass;
       if (cl == null) {
         return IdProtect(udt.CompileName);
