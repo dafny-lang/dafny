@@ -10341,6 +10341,10 @@ namespace Microsoft.Dafny {
         }
         CurrentIdGenerator.Pop();
         this.fuelContext = FuelSetting.PopFuelContext();
+      } else if (stmt is NestedMatchStmt) {
+        AddComment(builder, stmt, "(nested) match statement");
+        NestedMatchStmt s = (NestedMatchStmt)stmt;
+        TrStmtList(s.ResolvedStatements, builder, locals, etran);
       } else if (stmt is MatchStmt) {
         var s = (MatchStmt)stmt;
         TrStmt_CheckWellformed(s.Source, builder, locals, etran, true);
@@ -15367,7 +15371,9 @@ namespace Microsoft.Dafny {
           var thn = translator.RemoveLit(TrExpr(e.Thn));
           var els = translator.RemoveLit(TrExpr(e.Els));
           return new NAryExpr(expr.tok, new IfThenElse(expr.tok), new List<Bpl.Expr> { g, thn, els });
-
+        } else if (expr is MatchExpr) {
+          var e = (NestedMatchExpr) expr;
+          return TrExpr(e.ResolvedExpression);
         } else if (expr is MatchExpr) {
           var e = (MatchExpr)expr;
           var ite = DesugarMatchExpr(e);

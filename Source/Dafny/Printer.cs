@@ -1353,6 +1353,18 @@ namespace Microsoft.Dafny {
         }
         Indent(indent);
         wr.Write("}");
+      } else if (stmt is NestedMatchStmt){
+        var s = (NestedMatchStmt)stmt;
+        wr.Write("/* Nested match printing unimplemented */");
+        if (DafnyOptions.O.DafnyPrintResolvedFile != null) {
+          Contract.Assert(s.ResolvedStatements.Count > 0);  // filled in during resolution
+          wr.WriteLine();
+          foreach (Statement r in s.ResolvedStatements) {
+            Indent(indent);
+            PrintStatement(r, indent);
+            wr.WriteLine();
+          }
+        }
 
       } else if (stmt is MatchStmt) {
         var s = (MatchStmt)stmt;
@@ -1706,6 +1718,13 @@ namespace Microsoft.Dafny {
             wr.WriteLine(endWithCloseParen ? ")" : "");
             return;
           }
+        }
+      } else if (expr is NestedMatchExpr) {
+        var e = (NestedMatchExpr)expr;
+        if(e.ResolvedExpression == null){
+          Indent(indent);  wr.WriteLine("/* Nested match printing unimplemented */");
+        } else {
+          PrintExtendedExpr(e.ResolvedExpression, indent, isRightmost, endWithCloseParen);
         }
       } else if (expr is MatchExpr) {
         var e = (MatchExpr)expr;

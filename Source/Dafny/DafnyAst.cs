@@ -10652,19 +10652,38 @@ namespace Microsoft.Dafny {
 
 /*
  ExtendedPattern is either:
- 1 - A ConstPattern of a LiteralExpr, representing a constant pattern
- 2 - A StringPattern of a string and a list of ExtendedPattern, representing either a bound variable or a constructor applied to n arguments
+ 1 - A LitPattern of a LiteralExpr, representing a constant pattern (holding a LiteralExpr)
+ 2 - An IdPattern of a string and a list of ExtendedPattern, representing either a bound variable or a constructor applied to n arguments
 */
 public abstract class ExtendedPattern {
+  public readonly IToken Tok;
+
+  public ExtendedPattern(IToken tok){
+    Contract.Requires(tok != null);
+    this.Tok = tok;
+  }
+
 }
 
-public class ConstPattern : ExtendedPattern {
-  public LiteralExpr Const;
+public class LitPattern : ExtendedPattern {
+  public LiteralExpr Lit;
+
+  public LitPattern(IToken tok, LiteralExpr lit) : base(tok){
+    Contract.Requires(lit != null);
+    this.Lit = lit;
+  }
 }
 
-public class StringPattern : ExtendedPattern {
-  public String Head;
+public class IdPattern : ExtendedPattern {
+  public String Id;
   public List<ExtendedPattern> Arguments;
+
+  public IdPattern(IToken tok, String id, List<ExtendedPattern> arguments) : base(tok) {
+    Contract.Requires(id != null);
+    Contract.Requires(arguments != null); // Arguments can be empty, but shouldn't be null
+    this.Id = id;
+    this.Arguments = arguments;
+  }
 }
 
 /*
@@ -10722,15 +10741,13 @@ public class NestedMatchCaseStmt : NestedMatchCase {
 /* A NestedMatchStmt contains:
  - an Expression source representing the matchee
  - a list of NestedMatchCaseStmt
- - a List<DatatypeCtor> of missing datatypes filled in by resolution
- - a List<Statement> filled in by the resolved representing the semantics meaning of the constructor
+ - a List<Statement> filled in by the resolver representing the semantics meaning of the constructor
  */
  public class NestedMatchStmt : Statement
  {
 
   private Expression source;
   private List<NestedMatchCaseStmt> cases;
-  public readonly List<DatatypeCtor> MissingCases = new List<DatatypeCtor>();  // filled in during resolution
   public readonly bool UsesOptionalBraces;
 
   public readonly List<Statement> ResolvedStatements = new List<Statement>();
@@ -10749,13 +10766,16 @@ public class NestedMatchCaseStmt : NestedMatchCase {
 
  }
 
-
+/* A NestedMatchExpr contains:
+ - an Expression source representing the matchee
+ - a list of NestedMatchCaseExpr
+ - an Expression filled in by the resolver representing the semantics meaning of the constructor
+ */
 public class NestedMatchExpr : Expression
  {
 
   private Expression source;
   private List<NestedMatchCaseExpr> cases;
-  public readonly List<DatatypeCtor> MissingCases = new List<DatatypeCtor>();  // filled in during resolution
   public readonly bool UsesOptionalBraces;
 
   public readonly Expression ResolvedExpression;
