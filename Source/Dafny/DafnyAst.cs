@@ -10652,7 +10652,7 @@ namespace Microsoft.Dafny {
 
 /*
  ExtendedPattern is either:
- 1 - A LitPattern of a LiteralExpr, representing a constant pattern (holding a LiteralExpr)
+ 1 - A LitPattern of a LiteralExpr, representing a constant pattern
  2 - An IdPattern of a string and a list of ExtendedPattern, representing either a bound variable or a constructor applied to n arguments
 */
 public abstract class ExtendedPattern {
@@ -10756,6 +10756,14 @@ public class NestedMatchCaseStmt : NestedMatchCase {
       get { return ResolvedStatements; }
     }
 
+   public Expression Source {
+      get { return source; }
+    }
+
+    public List<NestedMatchCaseStmt> Cases {
+      get { return cases; }
+    }
+
   public NestedMatchStmt(IToken tok, IToken endTok, Expression source, [Captured] List<NestedMatchCaseStmt> cases, bool usesOptionalBraces): base(tok, endTok) {
     Contract.Requires(source != null);
       Contract.Requires(cce.NonNullElements(cases));
@@ -10791,6 +10799,13 @@ public class NestedMatchExpr : Expression
     this.cases = cases;
     this.UsesOptionalBraces = usesOptionalBraces;
   }
+    public Expression Source {
+      get { return source; }
+    }
+
+    public List<NestedMatchCaseExpr> Cases {
+      get { return cases; }
+    }
 
  }
 
