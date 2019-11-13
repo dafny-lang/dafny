@@ -10650,6 +10650,130 @@ namespace Microsoft.Dafny {
     }
   }
 
+/*
+ ExtendedPattern is either:
+ 1 - A ConstPattern of a LiteralExpr, representing a constant pattern
+ 2 - A StringPattern of a string and a list of ExtendedPattern, representing either a bound variable or a constructor applied to n arguments
+*/
+public abstract class ExtendedPattern {
+}
+
+public class ConstPattern : ExtendedPattern {
+  public LiteralExpr Const;
+}
+
+public class StringPattern : ExtendedPattern {
+  public String Head;
+  public List<ExtendedPattern> Arguments;
+}
+
+/*
+NestedMatchCase contains:
+ - an ExtendedPattern
+NestedMatchCaseExpr extends it, and contains
+ - an Expression representing the body
+ - an Expression filled in by the Resolver, representing the semantics meaning of the construct
+NestedMatchCaseStmt extends it, and contains
+ - A List<Statement> representing the body
+ - A List<Statement> filled in by the Resolver, representing the semantics meaning of the constructor
+*/
+public abstract class NestedMatchCase {
+  public readonly IToken Tok;
+
+  public readonly ExtendedPattern Pat;
+
+  public NestedMatchCase(IToken tok, ExtendedPattern pat) {
+    Contract.Requires(tok != null);
+    Contract.Requires(pat != null);
+    this.Tok = tok;
+    this.Pat = pat;
+  }
+
+}
+
+public class NestedMatchCaseExpr : NestedMatchCase {
+  private Expression body;
+
+  public NestedMatchCaseExpr(IToken tok, ExtendedPattern pat, Expression body): base(tok, pat) {
+    Contract.Requires(body != null);
+    this.body = body;
+  }
+
+  public Expression Body {
+      get { return body; }
+  }
+}
+
+public class NestedMatchCaseStmt : NestedMatchCase {
+  private List<Statement> body;
+
+  public NestedMatchCaseStmt(IToken tok, ExtendedPattern pat, List<Statement> body) : base(tok, pat){
+    Contract.Requires(body != null);
+    this.body = body;
+  }
+
+
+  public List<Statement> Body {
+    get { return body; }
+  }
+}
+
+
+/* A NestedMatchStmt contains:
+ - an Expression source representing the matchee
+ - a list of NestedMatchCaseStmt
+ - a List<DatatypeCtor> of missing datatypes filled in by resolution
+ - a List<Statement> filled in by the resolved representing the semantics meaning of the constructor
+ */
+ public class NestedMatchStmt : Statement
+ {
+
+  private Expression source;
+  private List<NestedMatchCaseStmt> cases;
+  public readonly List<DatatypeCtor> MissingCases = new List<DatatypeCtor>();  // filled in during resolution
+  public readonly bool UsesOptionalBraces;
+
+  public readonly List<Statement> ResolvedStatements = new List<Statement>();
+
+   public override IEnumerable<Statement> SubStatements {
+      get { return ResolvedStatements; }
+    }
+
+  public NestedMatchStmt(IToken tok, IToken endTok, Expression source, [Captured] List<NestedMatchCaseStmt> cases, bool usesOptionalBraces): base(tok, endTok) {
+    Contract.Requires(source != null);
+      Contract.Requires(cce.NonNullElements(cases));
+      this.source = source;
+      this.cases = cases;
+      this.UsesOptionalBraces = usesOptionalBraces;
+  }
+
+ }
+
+
+public class NestedMatchExpr : Expression
+ {
+
+  private Expression source;
+  private List<NestedMatchCaseExpr> cases;
+  public readonly List<DatatypeCtor> MissingCases = new List<DatatypeCtor>();  // filled in during resolution
+  public readonly bool UsesOptionalBraces;
+
+  public readonly Expression ResolvedExpression;
+
+   public Expression SubExpression {
+      get { return ResolvedExpression; }
+    }
+
+  public NestedMatchExpr(IToken tok, Expression source, [Captured] List<NestedMatchCaseExpr> cases, bool usesOptionalBraces): base(tok) {
+    Contract.Requires(source != null);
+    Contract.Requires(cce.NonNullElements(cases));
+    this.source = source;
+    this.cases = cases;
+    this.UsesOptionalBraces = usesOptionalBraces;
+  }
+
+ }
+
   public class BoxingCastExpr : Expression {  // a BoxingCastExpr is used only as a temporary placeholding during translation
     public readonly Expression E;
     public readonly Type FromType;
