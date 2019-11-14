@@ -2578,7 +2578,7 @@ ExistentialGuard<out Expression e, bool allowLambda>
 /* Commented out, now parsed as NestedMatchStmt and resolved to MatchStmt
 * MatchStmt<out Statement/*!*/ s>
 * = (. Contract.Ensures(Contract.ValueAtReturn(out s) != null);
-*     IToken x;  Expression/*!*/ e;  MatchCaseStmt/*!*/ c;
+*     IToken x;  Expression/*!*/ e;  NestedMatchCaseStmt/*!*/ c;
 *     List<MatchCaseStmt/*!*/> cases = new List<MatchCaseStmt/*!*/>();
 *     bool usesOptionalBraces = false;
 *  .)
@@ -2630,15 +2630,20 @@ ExistentialGuard<out Expression e, bool allowLambda>
   . */
 /*------------------------------------------------------------------------*/
 ExtendedPattern<.out ExtendedPattern pat.>
-= (. IToken id; List<ExtendedPattern> arguments; pat = null;
+= (. IToken id; List<ExtendedPattern> arguments; pat = null; LiteralExpr lit; Expression te;
   .)
-( ConstAtomExpression<out lit> (. pat = new LitPattern(lit.tok, lit) .)
+( ConstAtomExpression<out te, false, false> (. if (te is LiteralExpr){
+                                                lit = (LiteralExpr)te;
+                                                pat = new LitPattern(lit.tok, lit);
+                                               } else { SemErr(t, "invalid AtomConst used in pattern");
+                                                        pat = null; }
+                                             .)
 | Ident<out id>                         (. arguments = new List<ExtendedPattern>(); .)
   [ "("
-    ExtendedPattern<out pat>            (. arguments.add(pat); .)
+    ExtendedPattern<out pat>            (. arguments.Add(pat); .)
     { "," ExtendedPattern<out pat>      (. arguments.Add(pat); .)
     }
-  ")"                                   (. pat = new IdPattern(id.tok, id, arguments).)
+  ")"                                   (. pat = new IdPattern(id, id.val, arguments); .)
   ]
 )
 (. // In case of parsing errors, make sure 'pat' still returns as non-null
@@ -2667,14 +2672,14 @@ NestedMatchStmt<out Statement/*!*/ s>
   .
 NestedCaseStatement<out NestedMatchCaseStmt/*!*/ c>
 = (. Contract.Ensures(Contract.ValueAtReturn(out c) != null);
-     IToken/*!*/ x, id;
-     ExtendedPattern/*!*/ pat;
+     IToken/*!*/ x;
+     ExtendedPattern/*!*/ pat = null;
      ExtendedPattern/*!*/ tpat;
      var body = new List<Statement/*!*/>();
   .)
   "case"                      (. x = t; .)
   ( IF(la.kind == _openparen)
-    "("                                   (. List<ExtendedPattern> arguments = new List<ExtendedPattern(); .)
+    "("                                   (. List<ExtendedPattern> arguments = new List<ExtendedPattern>(); .)
       ExtendedPattern<out tpat>            (. arguments.Add(tpat); .)
       { "," ExtendedPattern<out tpat>      (. arguments.Add(tpat); .)
       }
@@ -3692,7 +3697,7 @@ NamedExpr<out Expression e, bool allowSemi, bool allowLambda, bool allowBitwiseO
   . */
   /* start changes    */
 NestedMatchExpression<out Expression e, bool allowSemi, bool allowLambda, bool allowBitwiseOps>
-= (. Contract.Ensures(Contract.ValueAtReturn(out e) != null); IToken/*!*/ x;  MatchCaseExpr/*!*/ c;
+= (. Contract.Ensures(Contract.ValueAtReturn(out e) != null); IToken/*!*/ x;  NestedMatchCaseExpr/*!*/ c;
      List<NestedMatchCaseExpr/*!*/> cases = new List<NestedMatchCaseExpr/*!*/>();
      bool usesOptionalBraces = false;
   .)
@@ -3709,14 +3714,14 @@ NestedMatchExpression<out Expression e, bool allowSemi, bool allowLambda, bool a
   (. e = new NestedMatchExpr(x, e, cases, usesOptionalBraces); .)
 .
 NestedCaseExpression<out NestedMatchCaseExpr c, bool allowSemi, bool allowLambda, bool allowBitwiseOps>
-= (. Contract.Ensures(Contract.ValueAtReturn(out c) != null); IToken/*!*/ x, id;
-     ExtendedPattern/*!*/ pat;
+= (. Contract.Ensures(Contract.ValueAtReturn(out c) != null); IToken/*!*/ x;
+     ExtendedPattern/*!*/ pat = null;
      ExtendedPattern/*!*/ tpat;
      Expression/*!*/ body;
   .)
   "case"                      (. x = t; .)
   ( IF(la.kind == _openparen)
-    "("                                   (. List<ExtendedPattern> arguments = new List<ExtendedPattern(); .)
+    "("                                   (. List<ExtendedPattern> arguments = new List<ExtendedPattern>(); .)
       ExtendedPattern<out tpat>            (. arguments.Add(tpat); .)
       { "," ExtendedPattern<out tpat>      (. arguments.Add(tpat); .)
       }
