@@ -9393,6 +9393,12 @@ namespace Microsoft.Dafny
 
       } else if (stmt is MatchStmt) {
         ResolveMatchStmt((MatchStmt)stmt, codeContext);
+
+      } else if (stmt is NestedMatchStmt){
+        var s = (NestedMatchStmt)stmt;
+        ResolveNestedMatchStmt(s, codeContext);
+        reporter.Error(MessageSource.Resolver, s.Tok, "nested match stmt");
+
       } else if (stmt is SkeletonStatement) {
         var s = (SkeletonStatement)stmt;
         reporter.Error(MessageSource.Resolver, s.Tok, "skeleton statements are allowed only in refining methods");
@@ -9441,6 +9447,37 @@ namespace Microsoft.Dafny
           }
         }
       }
+    }
+
+
+  // ResolveNestedMatchStmt desugar a nestedmatchstmt into a series of conditionals and flat, disjoint matchstmt
+    void ResolveNestedMatchStmt(NestedMatchStmt s, ICodeContext codeContext) {
+      Contract.Requires(s != null);
+      Contract.Requires(codeContext != null);
+      Contract.Requires(s.ResolvedStatements == null);
+
+      ResolveExpression(s.Source, new ResolveOpts(codeContext, true));
+      Contract.Assert(s.Source.Type != null);  // follows from postcondition of ResolveExpression
+      var errorCount = reporter.Count(ErrorLevel.Error);
+      if (s.Source is DatatypeValue) {
+        var e = (DatatypeValue)s.Source;
+        if (e.Arguments.Count < 1) {
+          reporter.Error(MessageSource.Resolver, s.Tok, "match source tuple needs at least 1 argument");
+        }
+        foreach (var arg in e.Arguments) {
+          if (arg is DatatypeValue && ((DatatypeValue)arg).Arguments.Count < 1) {
+            reporter.Error(MessageSource.Resolver, s.Tok, "match source tuple needs at least 1 argument");
+          }
+        }
+      }
+      if (reporter.Count(ErrorLevel.Error) != errorCount) {
+        return;
+      }
+      var sourceType = PartiallyResolveTypeForMemberSelection(s.Source.tok, s.Source.Type).NormalizeExpand();
+      var dtd = sourceType.AsDatatype;
+      CheckLinearNestedMatchStmt(sourceType, s);
+      CompileNestedMatchStmt(s, codeContext);
+
     }
 
     void ResolveMatchStmt(MatchStmt s, ICodeContext codeContext) {
@@ -10147,7 +10184,7 @@ void CompileMatchExpr(MatchExpr e, ICodeContext codeContext){
     throw new NotImplementedException("Tuples are not handled by Match compiler yet");
   }
  // initialize the MatchTempInfo to record position and duplication information about each branch
-  MatchTempInfo mti = new MatchTempInfo(e.tok, false, e.Cases.Count());
+  MatchTempInfo mti = new MatchTempInfo(e.tok, false, e.Cases.Count(), true);
 
   // create Rbranches from MatchCaseStmt and set the branch tokens in mti
   List<RBranch> branches = new List<RBranch>();
@@ -10183,6 +10220,16 @@ void CompileMatchExpr(MatchExpr e, ICodeContext codeContext){
   }
 }
 
+
+/// <summary>
+/// Stmt driver for CompileRBranch
+/// Input is an unresolved NestedMatchStmt with potentially nested, overlapping patterns
+/// On output, the NestedMatchStmt has field ResolvedStatement filled with semantically equivalent code
+/// </summary>
+void CompileNestedMatchStmt(NestedMatchStmt s, ICodeContext codeContext) {
+  throw new NotImplementedException("NestedMatchStmt not implemented");
+}
+
 /// <summary>
 /// Stmt driver for CompileRBranch
 /// Input is an unresolved MatchStmt with potentially nested, overlapping patterns
@@ -10198,7 +10245,7 @@ void CompileMatchStmt(MatchStmt s, ICodeContext codeContext) {
     }
   }
  // initialize the MatchTempInfo to record position and duplication information about each branch
-  MatchTempInfo mti = new MatchTempInfo(s.Tok, true, s.Cases.Count());
+  MatchTempInfo mti = new MatchTempInfo(s.Tok, true, s.Cases.Count(), true);
 
   if(s.Source.Type.AsDatatype is TupleTypeDecl){
     //throw new NotImplementedException("Tuples are not handled by Match compiler yet");
@@ -10318,6 +10365,101 @@ void CheckLinearMatchCase(Type type, MatchCase mc, bool debug = false){
   }
 }
 
+void CheckLinearVarPattern(Type type, IdPattern pat, bool debug){
+  if(pat.Arguments.Count != 0){
+    reporter.Error(MessageSource.Resolver, pat.Tok , "Pattern {0} is not a constructor of the given type {1}", pat.Id, type);
+  }
+  if (scope.FindInCurrentScope(pat.Id) != null) {
+    reporter.Error(MessageSource.Resolver, pat.Tok , "Duplicate parameter name: {0}", pat.Id);
+  } else {
+    ScopePushAndReport(scope, new BoundVar(pat.Tok, pat.Id, type), "parameter");
+  }
+}
+
+
+// pat could be
+// 1 - A LitPattern at base type
+// 2 - An IdPattern (without argument) at base type
+// 3 - An IdPattern at datatype type representing a constructor of type
+// 4 - An IdPattern at datatype type with no arguments representing a bound variable
+void CheckLinearExtendedPattern(Type type, ExtendedPattern pat, bool debug){
+  if (!type.IsDatatype){
+    if(pat is IdPattern){
+      /* =[2]= */
+      if(debug) Console.WriteLine("[2] {0} is a variable of base type {1}",((IdPattern)pat).Id, type);
+      CheckLinearVarPattern(type, (IdPattern) pat, debug);
+      return;
+    } else if (pat is LitPattern){
+      /* =[1]= */
+      if(debug) Console.WriteLine("[2] {0} is a constant of base type {1}",((LitPattern)pat).Lit.ToString(), type);
+      return;
+    } else {
+      Contract.Assert(false); throw new cce.UnreachableException();
+    }
+  }
+  if (!(pat is IdPattern)){
+    reporter.Error(MessageSource.Resolver, pat.Tok , "Constant pattern used in place of datatype");
+  }
+  IdPattern idpat = (IdPattern) pat;
+
+  var dtd = type.AsDatatype;
+  Dictionary<string, DatatypeCtor> ctors = datatypeCtors[dtd];
+  if(ctors == null){
+    throw new InvalidOperationException("Datatype not found");
+  }
+  DatatypeCtor ctor = null;
+  // Check if the head of the pattern is a constructor or a variable
+  if(ctors.TryGetValue(idpat.Id, out ctor)){
+    /* =[3]= */
+    if(ctor.Formals != null && idpat.Arguments != null && ctor.Formals.Count == idpat.Arguments.Count){
+      // if non-nullary constructor
+      if(debug) Console.WriteLine("{0} is a non-nullary constructor of datatype {1}", idpat.Id, type);
+      var subst = TypeSubstitutionMap(dtd.TypeArgs, type.TypeArgs);
+      var argTypes = ctor.Formals.ConvertAll<Type>(x => SubstType(x.Type, subst));
+      var pairFA = argTypes.Zip(idpat.Arguments, (x,y) => new Tuple<Type,ExtendedPattern>(x,y));
+      foreach(var fa in pairFA){
+        // get DatatypeDecl of Formal, recursive call on argument
+         CheckLinearExtendedPattern(fa.Item1, fa.Item2, debug);
+      }
+    } else if(ctor.Formals.Count == 0 && idpat.Arguments == null){
+      // else if nullary constructor
+      if(debug) Console.WriteLine("{0} is a nullary constructor of datatype {1}", idpat.Id, type);
+      return;
+    } else {
+      // else applied to the wrong number of arguments
+      reporter.Error(MessageSource.Resolver, idpat.Tok, "datatype {0} of arity {1} is applied to {2} argument(s)", idpat.Id, (idpat.Arguments == null? 0:idpat.Arguments.Count), ctor.Formals.Count);
+
+    }
+  } else{
+    /* =[4]= */
+    // pattern is a variable OR error (handled in CheckLinearVarPattern)
+    if(debug) Console.WriteLine("{0} is a variable of datatype {1}", idpat.Id, type);
+    CheckLinearVarPattern(type, idpat, debug);
+  }
+}
+
+void CheckLinearNestedMatchCase(Type type, NestedMatchCase mc, bool debug = false){
+  if(debug) Console.WriteLine("Checking linear pattern: {0}",mc.Pat.ToString());
+
+  if (type.AsDatatype is TupleTypeDecl) {
+      if(debug) Console.WriteLine("Source matchee has a tuple-type");
+      var udt = type.NormalizeExpand() as UserDefinedType;
+      if(!(mc.Pat is IdPattern) || !((IdPattern)mc.Pat).Id.Equals("")) reporter.Error(MessageSource.Resolver, mc.Tok, "<In Linear> Pattern doesn't correspond to a tuple");
+      var pat = (IdPattern) mc.Pat;
+      if(udt.TypeArgs.Count != pat.Arguments.Count) reporter.Error(MessageSource.Resolver, mc.Tok, "<In Linear> case arguments count does not match source arguments count");
+
+      var pairTP = udt.TypeArgs.Zip(pat.Arguments, (x,y) => new Tuple<Type,ExtendedPattern>(x,y));
+
+      foreach (var tp in pairTP) {
+        var t = PartiallyResolveTypeForMemberSelection(mc.Tok, tp.Item1).NormalizeExpand() as UserDefinedType;
+        if(debug) Console.WriteLine("{0} is a tuple field of type {1}", tp.Item2.ToString(), t);
+        CheckLinearExtendedPattern(t, tp.Item2, debug);
+      }
+  } else {
+    CheckLinearExtendedPattern(type, mc.Pat, debug);
+  }
+}
+
 void CheckLinearMatchExpr(Type dtd, MatchExpr me){
   foreach(MatchCaseExpr mc in me.Cases){
     scope.PushMarker();
@@ -10329,6 +10471,22 @@ void CheckLinearMatchStmt(Type dtd, MatchStmt ms){
   foreach(MatchCaseStmt mc in ms.Cases){
     scope.PushMarker();
     CheckLinearMatchCase(dtd,  mc);
+    scope.PopMarker();
+  }
+}
+
+void CheckLinearNestedMatchExpr(Type dtd, NestedMatchExpr me){
+  foreach(NestedMatchCaseExpr mc in me.Cases){
+    scope.PushMarker();
+    CheckLinearNestedMatchCase(dtd,  mc);
+    scope.PopMarker();
+  }
+}
+
+void CheckLinearNestedMatchStmt(Type dtd, NestedMatchStmt ms){
+  foreach(NestedMatchCaseStmt mc in ms.Cases){
+    scope.PushMarker();
+    CheckLinearNestedMatchCase(dtd,  mc, true);
     scope.PopMarker();
   }
 }
@@ -13067,6 +13225,8 @@ void CheckLinearMatchStmt(Type dtd, MatchStmt ms){
 
       } else if (expr is MatchExpr) {
         ResolveMatchExpr((MatchExpr)expr, opts);
+      } else if (expr is NestedMatchExpr){
+                reporter.Error(MessageSource.Resolver, expr.tok, "nested match exp unimplemented");
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected expression
       }

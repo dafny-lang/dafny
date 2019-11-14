@@ -10672,6 +10672,9 @@ public class LitPattern : ExtendedPattern {
     Contract.Requires(lit != null);
     this.Lit = lit;
   }
+  public override string ToString(){
+    return Lit.ToString();
+  }
 }
 
 public class IdPattern : ExtendedPattern {
@@ -10684,6 +10687,15 @@ public class IdPattern : ExtendedPattern {
     this.Id = id;
     this.Arguments = arguments;
   }
+  public override string ToString(){
+    if(Arguments.Count == 0){
+      return Id;
+    } else {
+      List<string> cps = Arguments.ConvertAll<string>(x => x.ToString());
+      return string.Format("{0}({1})",Id, String.Join(",", cps));
+    }
+  }
+
 }
 
 /*
