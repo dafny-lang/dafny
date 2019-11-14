@@ -3954,8 +3954,8 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, st
 					arguments.Add(pat);
 				}
 				Expect(80);
-				pat = new IdPattern(id, id.val, arguments);
 			}
+			pat = new IdPattern(id, id.val, arguments);
 		} else SynErr(249);
 		if (pat == null) {
 		 pat = new IdPattern(t, "_ParseError", new List<ExtendedPattern>());

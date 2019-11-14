@@ -2643,8 +2643,8 @@ ExtendedPattern<.out ExtendedPattern pat.>
     ExtendedPattern<out pat>            (. arguments.Add(pat); .)
     { "," ExtendedPattern<out pat>      (. arguments.Add(pat); .)
     }
-  ")"                                   (. pat = new IdPattern(id, id.val, arguments); .)
-  ]
+  ")"
+  ]                                     (. pat = new IdPattern(id, id.val, arguments); .)
 )
 (. // In case of parsing errors, make sure 'pat' still returns as non-null
    if (pat == null) {
