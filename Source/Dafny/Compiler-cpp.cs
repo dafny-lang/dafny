@@ -34,6 +34,8 @@ namespace Microsoft.Dafny {
     new string DafnyMapClass = "DafnyMap";
 
     public override string TargetLanguage => "Cpp";
+    protected override string ModuleSeparator => "::";
+    protected override string ClassAccessor => "->";
 
     protected override void EmitHeader(Program program, TargetWriter wr) {
       wr.WriteLine("// Dafny program {0} compiled into Cpp", program.Name);
