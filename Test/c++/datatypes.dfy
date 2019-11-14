@@ -1,6 +1,5 @@
 newtype{:nativeType "uint"} uint32 = i:int | 0 <= i < 0x100000000
 
-/*
 datatype Op =
   | NoOp
   | PushOp(ghost id: int)
@@ -69,7 +68,7 @@ method Comparison(x0:Example1, x1:Example1, y0:Example4, y1:Example4) {
     print "Example4s are not equal\n";
   }
 }
-*/
+
 datatype IntList = 
   | Nil
   | Cons(hd:uint32, tl:IntList)
@@ -89,17 +88,17 @@ method IntListLen(l:IntList) returns (len:uint32)
 }
 
 method Main() {
-//    var e1 := Example1(22, false);
-//    var e2 := Ex2a(42);
-//    Callee(e2);
-//    e2 := Ex2b(true);
-//    Callee(e2);
-//    TestDestructor();
-//    GenericTest();
-//    Comparison(Example1(42, true), Example1(42, true), Ex4b, Ex4b);
-//    Comparison(Example1(42, false), Example1(42, true), Ex4a, Ex4a);
-//    Comparison(Example1(2,  false), Example1(42, false), Ex4a, Ex4b);
+    var e1 := Example1(22, false);
+    var e2 := Ex2a(42);
+    Callee(e2);
+    e2 := Ex2b(true);
+    Callee(e2);
+    TestDestructor();
+    GenericTest();
+    Comparison(Example1(42, true), Example1(42, true), Ex4b, Ex4b);
+    Comparison(Example1(42, false), Example1(42, true), Ex4a, Ex4a);
+    Comparison(Example1(2,  false), Example1(42, false), Ex4a, Ex4b);
 
-    var len := IntListLen(Cons(15, Nil)); //Cons(18, Cons(330, Nil))));
+    var len := IntListLen(Cons(15, Cons(18, Cons(330, Nil))));
     print len;
 }

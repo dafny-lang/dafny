@@ -1640,14 +1640,43 @@ namespace Microsoft.Dafny
 
     protected override void EmitSeqSelectRange(Expression source, Expression/*?*/ lo, Expression/*?*/ hi, bool fromArray, bool inLetExprBody, TargetWriter wr) {
       if (fromArray) {
-        wr.Write("Dafny.Helpers.SeqFromArray");
-      }
-      TrParenExpr(source, wr, inLetExprBody);
-      if (hi != null) {
-        TrParenExpr(".Take", hi, wr, inLetExprBody);
-      }
-      if (lo != null) {
-        TrParenExpr(".Drop", lo, wr, inLetExprBody);
+        if (lo == null) {
+          if (hi == null) {
+            wr.Write("Dafny.Helpers.SeqFromArray(");
+            TrParenExpr(source, wr, inLetExprBody);
+            wr.Write(")");
+          } else {
+            wr.Write("Dafny.Helpers.SeqFromArrayPrefix(");
+            TrParenExpr(source, wr, inLetExprBody);
+            wr.Write(", ");
+            TrParenExpr(hi, wr, inLetExprBody);
+            wr.Write(")");
+          }
+        } else {
+          if (hi == null) {
+            wr.Write("Dafny.Helpers.SeqFromArraySuffix(");
+            TrParenExpr(source, wr, inLetExprBody);
+            wr.Write(", ");
+            TrParenExpr(lo, wr, inLetExprBody);
+            wr.Write(")");
+          } else {
+            wr.Write("Dafny.Helpers.SeqFromArraySlice(");
+            TrParenExpr(source, wr, inLetExprBody);
+            wr.Write(", ");
+            TrParenExpr(lo, wr, inLetExprBody);
+            wr.Write(", ");
+            TrParenExpr(hi, wr, inLetExprBody);
+            wr.Write(")");
+          }
+        }
+      } else {
+        TrParenExpr(source, wr, inLetExprBody);
+        if (hi != null) {
+          TrParenExpr(".Take", hi, wr, inLetExprBody);
+        }
+        if (lo != null) {
+          TrParenExpr(".Drop", lo, wr, inLetExprBody);
+        }
       }
     }
 

@@ -1,4 +1,3 @@
-
 newtype{:nativeType "sbyte"} sbyte = i:int | -0x80 <= i < 0x80
 newtype{:nativeType "byte"} byte = i:int | 0 <= i < 0x100
 newtype{:nativeType "short"} int16 = i:int | -0x8000 <= i < 0x8000
