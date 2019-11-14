@@ -2595,7 +2595,7 @@ ExistentialGuard<out Expression e, bool allowLambda>
 *  (. s = new MatchStmt(x, t, e, cases, usesOptionalBraces); .)
 *  .
 */
-CaseStatement<out MatchCaseStmt/*!*/ c>
+/* CaseStatement<out MatchCaseStmt/*!*/ c>
 = (. Contract.Ensures(Contract.ValueAtReturn(out c) != null);
      IToken/*!*/ x, id;
      var arguments = new List<CasePattern<BoundVar>>();
@@ -2627,20 +2627,19 @@ CaseStatement<out MatchCaseStmt/*!*/ c>
       SYNC  /* see comment about SYNC above */
     }
   (. c = new MatchCaseStmt(x, name, arguments, body); .)
-  .
+  . */
 /*------------------------------------------------------------------------*/
 ExtendedPattern<.out ExtendedPattern pat.>
 = (. IToken id; List<ExtendedPattern> arguments; pat = null;
   .)
 ( ConstAtomExpression<out lit> (. pat = new LitPattern(lit.tok, lit) .)
-| Ident<out id>
-  [ "("                                 (. arguments = new List<ExtendedPattern>(); .)
+| Ident<out id>                         (. arguments = new List<ExtendedPattern>(); .)
+  [ "("
     ExtendedPattern<out pat>            (. arguments.add(pat); .)
     { "," ExtendedPattern<out pat>      (. arguments.Add(pat); .)
     }
   ")"                                   (. pat = new IdPattern(id.tok, id, arguments).)
   ]
-| Ident<out id>             (. pat = new IdPattern(id.tok, id, new List<ExtendedPattern>()) .)
 )
 (. // In case of parsing errors, make sure 'pat' still returns as non-null
    if (pat == null) {
@@ -2672,15 +2671,15 @@ NestedCaseStatement<out NestedMatchCaseStmt/*!*/ c>
      ExtendedPattern/*!*/ pat;
      ExtendedPattern/*!*/ tpat;
      var body = new List<Statement/*!*/>();
-     string/*!*/ name = "";
   .)
   "case"                      (. x = t; .)
-  ( ExtendedPattern<out pat>             (. .)
-  | "("                                   (. List<ExtendedPattern> arguments = new List<ExtendedPattern();)
+  ( IF(la.kind == _openparen)
+    "("                                   (. List<ExtendedPattern> arguments = new List<ExtendedPattern(); .)
       ExtendedPattern<out tpat>            (. arguments.Add(tpat); .)
       { "," ExtendedPattern<out tpat>      (. arguments.Add(tpat); .)
       }
     ")"                                   (. pat = new IdPattern(t, "", arguments); .)
+  | ExtendedPattern<out pat>             (. .)
   )
   "=>"
     SYNC  /* this SYNC and the one inside the loop below are used to avoid problems with the IsNotEndOfCase test. The SYNC will
@@ -3650,7 +3649,7 @@ NamedExpr<out Expression e, bool allowSemi, bool allowLambda, bool allowBitwiseO
                                         e = new NamedExpr(x, d.val, expr); .)
   .
 
-MatchExpression<out Expression e, bool allowSemi, bool allowLambda, bool allowBitwiseOps>
+/* MatchExpression<out Expression e, bool allowSemi, bool allowLambda, bool allowBitwiseOps>
 = (. Contract.Ensures(Contract.ValueAtReturn(out e) != null); IToken/*!*/ x;  MatchCaseExpr/*!*/ c;
      List<MatchCaseExpr/*!*/> cases = new List<MatchCaseExpr/*!*/>();
      bool usesOptionalBraces = false;
@@ -3666,8 +3665,8 @@ MatchExpression<out Expression e, bool allowSemi, bool allowLambda, bool allowBi
         }
   )
   (. e = new MatchExpr(x, e, cases, usesOptionalBraces); .)
-  .
-CaseExpression<out MatchCaseExpr c, bool allowSemi, bool allowLambda, bool allowBitwiseOps>
+  . */
+/* CaseExpression<out MatchCaseExpr c, bool allowSemi, bool allowLambda, bool allowBitwiseOps>
 = (. Contract.Ensures(Contract.ValueAtReturn(out c) != null); IToken/*!*/ x, id;
      var arguments = new List<CasePattern<BoundVar>>();
      CasePattern<BoundVar>/*!*/ pat;
@@ -3690,7 +3689,7 @@ CaseExpression<out MatchCaseExpr c, bool allowSemi, bool allowLambda, bool allow
   )
   "=>"
   Expression<out body, allowSemi, allowLambda, allowBitwiseOps>    (. c = new MatchCaseExpr(x, name, arguments, body); .)
-  .
+  . */
   /* start changes    */
 NestedMatchExpression<out Expression e, bool allowSemi, bool allowLambda, bool allowBitwiseOps>
 = (. Contract.Ensures(Contract.ValueAtReturn(out e) != null); IToken/*!*/ x;  MatchCaseExpr/*!*/ c;
@@ -3711,18 +3710,18 @@ NestedMatchExpression<out Expression e, bool allowSemi, bool allowLambda, bool a
 .
 NestedCaseExpression<out NestedMatchCaseExpr c, bool allowSemi, bool allowLambda, bool allowBitwiseOps>
 = (. Contract.Ensures(Contract.ValueAtReturn(out c) != null); IToken/*!*/ x, id;
-     var arguments = new List<CasePattern<BoundVar>>();
-     CasePattern<BoundVar>/*!*/ pat;
+     ExtendedPattern/*!*/ pat;
+     ExtendedPattern/*!*/ tpat;
      Expression/*!*/ body;
-     string/*!*/ name = "";
   .)
   "case"                      (. x = t; .)
-  ( ExtendedPattern<out pat>             (. .)
-  | "("                                   (. List<ExtendedPattern> arguments = new List<ExtendedPattern();)
+  ( IF(la.kind == _openparen)
+    "("                                   (. List<ExtendedPattern> arguments = new List<ExtendedPattern(); .)
       ExtendedPattern<out tpat>            (. arguments.Add(tpat); .)
       { "," ExtendedPattern<out tpat>      (. arguments.Add(tpat); .)
       }
     ")"                                   (. pat = new IdPattern(t, "", arguments); .)
+  |   ExtendedPattern<out pat>             (. .)
   )
   "=>"
   Expression<out body, allowSemi, allowLambda, allowBitwiseOps>    (. c = new NestedMatchCaseExpr(x, pat, body); .)
