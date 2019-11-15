@@ -10762,7 +10762,7 @@ public class NestedMatchCaseStmt : NestedMatchCase {
   private List<NestedMatchCaseStmt> cases;
   public readonly bool UsesOptionalBraces;
 
-  public readonly List<Statement> ResolvedStatements = new List<Statement>();
+  public List<Statement> ResolvedStatements;
 
    public override IEnumerable<Statement> SubStatements {
       get { return ResolvedStatements; }
@@ -10798,7 +10798,7 @@ public class NestedMatchExpr : Expression
   private List<NestedMatchCaseExpr> cases;
   public readonly bool UsesOptionalBraces;
 
-  public readonly Expression ResolvedExpression;
+  public  Expression ResolvedExpression;
 
    public Expression SubExpression {
       get { return ResolvedExpression; }

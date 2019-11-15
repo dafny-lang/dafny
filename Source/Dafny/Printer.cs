@@ -2534,7 +2534,12 @@ namespace Microsoft.Dafny {
         wr.Write(op);
         PrintExpr(e.E, opBindingStrength, false, parensNeeded || isRightmost, !parensNeeded && isFollowedBySemicolon, -1, keyword);
         if (parensNeeded) { wr.Write(")"); }
-
+      } else if (expr is NestedMatchExpr){
+        var e = (NestedMatchExpr)expr;
+        wr.Write("/* Nested match printing unimplemented */");
+        if (DafnyOptions.O.DafnyPrintResolvedFile != null) {
+          PrintExpr(e.ResolvedExpression, contextBindingStrength, fragileContext, isRightmost, isFollowedBySemicolon, indent);
+        }
       } else if (expr is MatchExpr) {
         var e = (MatchExpr)expr;
         if (DafnyOptions.O.DafnyPrintResolvedFile == null && e.OrigUnresolved != null) {
