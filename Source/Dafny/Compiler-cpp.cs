@@ -98,7 +98,7 @@ namespace Microsoft.Dafny {
       return w;
 */
     }
-    
+   
     private string TypeParameters(List<TypeParameter> targs) {
       Contract.Requires(cce.NonNullElements(targs));
       Contract.Ensures(Contract.Result<string>() != null);
