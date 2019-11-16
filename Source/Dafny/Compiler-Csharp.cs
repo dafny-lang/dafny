@@ -1222,27 +1222,39 @@ namespace Microsoft.Dafny
     }
 
     protected override void EmitNewArray(Type elmtType, Bpl.IToken tok, List<Expression> dimensions, bool mustInitialize, TargetWriter wr) {
+      var wrs = EmitNewArray(elmtType, tok, dimensions.Count, mustInitialize, wr);
+      for (int i = 0; i < wrs.Count; i++) {
+        TrExpr(dimensions[i], wrs[i], inLetExprBody: false);
+      }
+    }
+
+    private List<TargetWriter> EmitNewArray(Type elmtType, Bpl.IToken tok, int dimCount, bool mustInitialize, TargetWriter wr) {
+      var wrs = new List<TargetWriter>();
       if (!mustInitialize || HasSimpleZeroInitializer(elmtType)) {
         string typeNameSansBrackets, brackets;
         TypeName_SplitArrayName(elmtType, wr, tok, out typeNameSansBrackets, out brackets);
         wr.Write("new {0}", typeNameSansBrackets);
         string prefix = "[";
-        foreach (var dim in dimensions) {
-          wr.Write("{0}(int)", prefix);
-          TrParenExpr(dim, wr, false);
+        for (var d = 0; d < dimCount; d++) {
+          wr.Write("{0}(int)(", prefix);
+          var w = wr.Fork();
+          wrs.Add(w);
+          wr.Write(")");
           prefix = ", ";
         }
         wr.Write("]{0}", brackets);
       } else {
-        wr.Write("Dafny.ArrayHelpers.InitNewArray{0}<{1}>", dimensions.Count, TypeName(elmtType, wr, tok));
+        wr.Write("Dafny.ArrayHelpers.InitNewArray{0}<{1}>", dimCount, TypeName(elmtType, wr, tok));
         wr.Write("(");
         wr.Write(DefaultValue(elmtType, wr, tok));
-        foreach (var dim in dimensions) {
+        for (var d = 0; d < dimCount; d++) {
           wr.Write(", ");
-          TrParenExpr(dim, wr, false);
+          var w = wr.Fork();
+          wrs.Add(w);
         }
         wr.Write(")");
       }
+      return wrs;
     }
 
     protected override void EmitLiteralExpr(TextWriter wr, LiteralExpr e) {
@@ -1713,11 +1725,69 @@ namespace Microsoft.Dafny
     }
 
     protected override void EmitSeqConstructionExpr(SeqConstructionExpr expr, bool inLetExprBody, TargetWriter wr) {
-      wr.Write("{0}<{1}>.Create(", DafnySeqClass, TypeName(expr.Type.AsSeqType.Arg, wr, expr.tok));
-      TrExpr(expr.N, wr, inLetExprBody);
-      wr.Write(", ");
-      TrExpr(expr.Initializer, wr, inLetExprBody);
-      wr.Write(")");
+      if (expr.Initializer is LambdaExpr lam) {
+        Contract.Assert(lam.BoundVars.Count == 1);
+        EmitSeqConstructionExprFromLambda(expr.N, lam.BoundVars[0], lam.Body, inLetExprBody, wr);
+      } else {
+        wr.Write("{0}<{1}>.Create(", DafnySeqClass, TypeName(expr.Type.AsSeqType.Arg, wr, expr.tok));
+        TrExpr(expr.N, wr, inLetExprBody);
+        wr.Write(", ");
+        TrExpr(expr.Initializer, wr, inLetExprBody);
+        wr.Write(")");
+      }
+    }
+
+    // Construct a sequence for the Dafny expression seq(N, F) in the common
+    // case that f is a lambda expression.  In that case, rather than
+    // something like
+    //
+    //   var s = Dafny.Sequence.Create(N, i => ...);
+    //
+    // (which will call the lambda N times), we'd rather write
+    //
+    //   var dim = N;
+    //   var arr = new T[dim];
+    //   for (int i = 0; i < dim; i++) {
+    //     arr[i] = ...;
+    //   }
+    //   var s = Dafny.Sequence<T>.FromArray(a);
+    //
+    // and thus avoid method calls.  Unfortunately, since we can't add
+    // statements easily, we have to settle for the slightly clunkier
+    //
+    //   var s = ((System.Func<Dafny.Sequence<T>>) (() => {
+    //     var dim = N;
+    //     var arr = new T[dim];
+    //     for (int i = 0; i < dim; i++) {
+    //       arr[i] = ...;
+    //     }
+    //     return Dafny.Sequence<T>.FromArray(a);
+    //   }))();
+    private void EmitSeqConstructionExprFromLambda(Expression lengthExpr, BoundVar boundVar, Expression body, bool inLetExprBody, TargetWriter wr) {
+      wr.Write("((System.Func<{0}>) (() =>", TypeName(new SeqType(body.Type), wr, body.tok));
+      var wrLamBody = wr.NewBigExprBlock("", "))()");
+
+      var indexType = lengthExpr.Type;
+      var lengthVar = FreshId("dim");
+      DeclareLocalVar(lengthVar, indexType, lengthExpr.tok, lengthExpr, inLetExprBody, wrLamBody);
+      var arrVar = FreshId("arr");
+      wrLamBody.Write("var {0} = ", arrVar);
+      var wrDims = EmitNewArray(body.Type, body.tok, dimCount: 1, mustInitialize: false, wr: wrLamBody);
+      Contract.Assert(wrDims.Count == 1);
+      wrDims[0].Write(lengthVar);
+      wrLamBody.WriteLine(";");
+
+      var intIxVar = FreshId("i");
+      var wrLoopBody = wrLamBody.NewBlockWithPrefix("for (int {0} = 0; {0} < {1}; {0}++)", "", intIxVar, lengthVar);
+      var ixVar = IdName(boundVar);
+      wrLoopBody.WriteLine("var {0} = ({1}) {2};",
+        ixVar, TypeName(indexType, wrLoopBody, body.tok), intIxVar);
+      var wrArrName = EmitArrayUpdate(new List<string> { ixVar }, body, wrLoopBody);
+      wrArrName.Write(arrVar);
+      wrLoopBody.WriteLine(";");
+
+      wrLamBody.WriteLine("return {0}<{1}>.FromArray({2});",
+        DafnySeqClass, TypeName(body.Type, wr, body.tok), arrVar);
     }
 
     protected override void EmitMultiSetFormingExpr(MultiSetFormingExpr expr, bool inLetExprBody, TargetWriter wr) {
