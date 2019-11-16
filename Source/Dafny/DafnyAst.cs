@@ -5338,12 +5338,25 @@ namespace Microsoft.Dafny {
   /// An ImplicitFormal is a parameter that is declared implicitly, in particular the "_k" depth parameter
   /// of each colemma (for use in the comethod body only, not the specification).
   /// </summary>
-  public class ImplicitFormal : Formal
-  {
+  public class ImplicitFormal : Formal {
     public ImplicitFormal(IToken tok, string name, Type type, bool inParam, bool isGhost)
       : base(tok, name, type, inParam, isGhost) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
+      Contract.Requires(type != null);
+    }
+  }
+
+  /// <summary>
+  /// ThisSurrogate represents the implicit parameter "this". It is used to allow more uniform handling of
+  /// parameters. A pointer value of a ThisSurrogate object is not important, only the fact that it is
+  /// a ThisSurrogate is. ThisSurrogate objects are only used in specially marked places in the Dafny
+  /// implementation.
+  /// </summary>
+  public class ThisSurrogate : ImplicitFormal {
+    public ThisSurrogate(IToken tok, Type type)
+      : base(tok, "this", type, true, false) {
+      Contract.Requires(tok != null);
       Contract.Requires(type != null);
     }
   }
@@ -8661,6 +8674,32 @@ namespace Microsoft.Dafny {
     public ThisExpr(IToken tok)
       : base(tok) {
       Contract.Requires(tok != null);
+    }
+
+    /// <summary>
+    /// This constructor creates a ThisExpr and sets its Type field to denote the receiver type
+    /// of member "m". This constructor is intended to be used by post-resolution code that needs
+    /// to obtain a Dafny "this" expression.
+    /// </summary>
+    public ThisExpr(MemberDecl m)
+      : base(m.tok) {
+      Contract.Requires(m != null);
+      Contract.Requires(m.tok != null);
+      Contract.Requires(m.EnclosingClass != null);
+      Contract.Requires(!m.IsStatic);
+      Type = Resolver.GetReceiverType(m.tok, m);
+    }
+
+    /// <summary>
+    /// This constructor creates a ThisExpr and sets its Type field to denote the receiver type
+    /// of member "m". This constructor is intended to be used by post-resolution code that needs
+    /// to obtain a Dafny "this" expression.
+    /// </summary>
+    public ThisExpr(TopLevelDeclWithMembers cl)
+      : base(cl.tok) {
+      Contract.Requires(cl != null);
+      Contract.Requires(cl.tok != null);
+      Type = Resolver.GetThisType(cl.tok, cl);
     }
   }
   public class ExpressionPair {
