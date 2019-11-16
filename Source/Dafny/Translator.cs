@@ -2524,8 +2524,7 @@ namespace Microsoft.Dafny {
       }
 
       // play havoc with the heap, except at the locations prescribed by (this._reads - this._modifies - {this})
-      var th = new ThisExpr(iter.tok);
-      th.Type = Resolver.GetThisType(iter.tok, iter);  // resolve here
+      var th = new ThisExpr(iter);  // resolve here
       var rds = new MemberSelectExpr(iter.tok, th, iter.Member_Reads);
       var mod = new MemberSelectExpr(iter.tok, th, iter.Member_Modifies);
       builder.Add(new Bpl.CallCmd(iter.tok, "$IterHavoc0",
@@ -2788,29 +2787,43 @@ namespace Microsoft.Dafny {
       sink.AddTopLevelDeclaration(ax);
       // TODO(namin) Is checking f.Reads.Count==0 excluding Valid() of BinaryTree in the right way?
       //             I don't see how this in the decreasing clause would help there.
-      // danr: Let's create the literal function axioms if there is an arrow type in the signature
       if (!(f is FixpointPredicate) && f.CoClusterTarget == Function.CoCallClusterInvolvement.None &&
-        (f.Reads.Count == 0 || f.Formals.Exists(a => a.Type.IsArrowType))) {
+        f.Reads.Count == 0 &&
+        !DafnyOptions.O.Dafnycc) {
         var FVs = new HashSet<IVariable>();
+        Type usesThis = null;
+        bool dontCare0 = false, dontCare1 = false;
+        var dontCareHeapAt = new HashSet<Label>();
         foreach (var e in f.Decreases.Expressions) {
-          ComputeFreeVariables(e, FVs);
+          ComputeFreeVariables(e, FVs, ref dontCare0, ref dontCare1, dontCareHeapAt, ref usesThis);
         }
+
+        var allFormals = new List<Formal>();
         var decs = new List<Formal>();
+        if (f.IsStatic) {
+          Contract.Assert(usesThis == null);
+        } else {
+          var surrogate = new ThisSurrogate(f.tok, Resolver.GetReceiverType(f.tok, f));
+          allFormals.Add(surrogate);
+          if (usesThis != null) {
+            decs.Add(surrogate);
+          }
+        }
         foreach (var formal in f.Formals) {
+          allFormals.Add(formal);
           if (FVs.Contains(formal)) {
             decs.Add(formal);
           }
         }
-        Contract.Assert(decs.Count <= f.Formals.Count);
-        if (0 < decs.Count && decs.Count < f.Formals.Count && !DafnyOptions.O.Dafnycc) {
+
+        Contract.Assert(decs.Count <= allFormals.Count);
+        if (0 < decs.Count && decs.Count < allFormals.Count) {
           ax = FunctionAxiom(f, body, decs);
           sink.AddTopLevelDeclaration(ax);
         }
 
-        if (!DafnyOptions.O.Dafnycc) {
-          ax = FunctionAxiom(f, body, f.Formals);
-          sink.AddTopLevelDeclaration(ax);
-        }
+        ax = FunctionAxiom(f, body, allFormals);
+        sink.AddTopLevelDeclaration(ax);
       }
     }
 
@@ -3014,7 +3027,11 @@ namespace Microsoft.Dafny {
       }
     }
 
-    Bpl.Axiom FunctionAxiom(Function f, Expression body, ICollection<Formal> lits, TopLevelDecl overridingClass = null) {
+    /// <summary>
+    /// The list of formals "lits" is allowed to contain an object of type ThisSurrogate, which indicates that
+    /// the receiver parameter of the function should be included among the lit formals.
+    /// </summary>
+    Bpl.Axiom FunctionAxiom(Function f, Expression body, List<Formal>/*?*/ lits, TopLevelDecl overridingClass = null) {
       Contract.Requires(f != null);
       Contract.Requires(predef != null);
       Contract.Requires(f.EnclosingClass != null);
@@ -3146,13 +3163,23 @@ namespace Microsoft.Dafny {
       }
 
       Bpl.Expr additionalAntecedent = null;
+      Expression receiverReplacement = null;
       if (!f.IsStatic) {
         var bvThis = new Bpl.BoundVariable(f.tok, new Bpl.TypedIdent(f.tok, etran.This, TrReceiverType(f)));
         forallFormals.Add(bvThis);
         funcFormals.Add(bvThis);
         reqArgs.Add(new Bpl.IdentifierExpr(f.tok, bvThis));
         var bvThisIdExpr = new Bpl.IdentifierExpr(f.tok, bvThis);
-        args.Add(bvThisIdExpr);
+        if (lits != null && lits.Exists(p => p is ThisSurrogate)) {
+          args.Add(Lit(bvThisIdExpr));
+          var th = new ThisExpr(f);
+          var l = new UnaryOpExpr(f.tok, UnaryOpExpr.Opcode.Lit, th) {
+            Type = th.Type
+          };
+          receiverReplacement = l;
+        } else {
+          args.Add(bvThisIdExpr);
+        }
         // add well-typedness conjunct to antecedent
         Type thisType = Resolver.GetReceiverType(f.tok, f);
         Bpl.Expr wh = Bpl.Expr.And(
@@ -3192,7 +3219,7 @@ namespace Microsoft.Dafny {
 
       Bpl.Expr pre = Bpl.Expr.True;
       foreach (MaybeFreeExpression req in f.Req) {
-        pre = BplAnd(pre, etran.TrExpr(Substitute(req.E, null, substMap)));
+        pre = BplAnd(pre, etran.TrExpr(Substitute(req.E, receiverReplacement, substMap)));
       }
       var preReqAxiom = pre;
       if (f is TwoStateFunction) {
@@ -3239,7 +3266,7 @@ namespace Microsoft.Dafny {
 
       // useViaCanCall: f#canCall(args)
       Bpl.IdentifierExpr canCallFuncID = new Bpl.IdentifierExpr(f.tok, f.FullSanitizedName + "#canCall", Bpl.Type.Bool);
-      Bpl.Expr useViaCanCall = new Bpl.NAryExpr(f.tok, new Bpl.FunctionCall(canCallFuncID), Concat(tyargs,args));
+      Bpl.Expr useViaCanCall = new Bpl.NAryExpr(f.tok, new Bpl.FunctionCall(canCallFuncID), Concat(tyargs, args));
 
       // ante := useViaCanCall || (useViaContext && typeAnte && pre)
       ante = Bpl.Expr.Or(useViaCanCall, ante);
@@ -3270,7 +3297,7 @@ namespace Microsoft.Dafny {
       if (!RevealedInScope(f) || (f.IsProtected && !InVerificationScope(f))) {
         tastyVegetarianOption = Bpl.Expr.True;
       } else {
-        var bodyWithSubst = Substitute(body, null, substMap);
+        var bodyWithSubst = Substitute(body, receiverReplacement, substMap);
         if (f is PrefixPredicate) {
           var pp = (PrefixPredicate)f;
           bodyWithSubst = PrefixSubstitution(pp, bodyWithSubst);
@@ -3308,7 +3335,7 @@ namespace Microsoft.Dafny {
         comment = "override axiom for " + f.FullSanitizedName + " in class " + overridingClass.FullSanitizedName;
       }
       if (lits != null) {
-        if (lits.Count == f.Formals.Count) {
+        if (lits.Count == f.Formals.Count + (f.IsStatic ? 0 : 1)) {
           comment += " for all literals";
         } else {
           comment += " for decreasing-related literals";
@@ -4747,10 +4774,9 @@ namespace Microsoft.Dafny {
       // body of 'C.F(this, x#0)'.
       // TODO:  More work needs to be done to support any type parameters that class C might have.  These would
       // need to be quantified (existentially?) in the axiom.
-      var receiver = new ThisExpr(f.tok);
-      receiver.Type = Resolver.GetReceiverType(f.tok, f);
+      var receiver = new ThisExpr(f);
       var args = f.OverriddenFunction.Formals.ConvertAll(p => (Expression)new IdentifierExpr(p.tok, p.Name) { Var = p, Type = p.Type });
-      var pseudoBody = new FunctionCallExpr(f.tok, f.Name, new ThisExpr(f.tok), f.tok, args);
+      var pseudoBody = new FunctionCallExpr(f.tok, f.Name, new ThisExpr(f), f.tok, args);
       pseudoBody.Function = f;  // resolve here
       // TODO: the following two lines (incorrectly) assume there are no type parameters
       pseudoBody.Type = f.ResultType;  // resolve here
@@ -5306,8 +5332,7 @@ namespace Microsoft.Dafny {
 
       // set up the information used to verify the method's modifies clause
       var iteratorFrame = new List<FrameExpression>();
-      var th = new ThisExpr(iter.tok);
-      th.Type = Resolver.GetThisType(iter.tok, iter);  // resolve here
+      var th = new ThisExpr(iter);
       iteratorFrame.Add(new FrameExpression(iter.tok, th, null));
       iteratorFrame.AddRange(iter.Modifies.Expressions);
       DefineFrame(iter.tok, iteratorFrame, builder, localVariables, null);
@@ -5567,7 +5592,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(cce.NonNullElements(rw));
       Contract.Requires(substMap == null || cce.NonNullDictionaryAndValues(substMap));
       Contract.Requires(predef != null);
-      Contract.Requires(receiverReplacement == null || substMap != null);
+      Contract.Requires((substMap == null && receiverReplacement == null) || substMap != null);
       Contract.Ensures(Contract.Result<Bpl.Expr>() != null);
 
       // requires o to denote an expression of type RefType
@@ -5578,8 +5603,6 @@ namespace Microsoft.Dafny {
         Expression e = rwComponent.E;
         if (substMap != null) {
           e = Substitute(e, receiverReplacement, substMap);
-        } else {
-          Contract.Assert(receiverReplacement == null);
         }
 
         e = Resolver.FrameArrowToObjectSet(e, CurrentIdGenerator, program.BuiltIns);
@@ -8098,8 +8121,7 @@ namespace Microsoft.Dafny {
           SnocPrevH = xs => Snoc(xs, prevH);
         }
         if (f.IsStatic) {
-          // the value of 'selfExpr' won't be used, but it has to be non-null to satisfy the precondition of the call to InRWClause below
-          selfExpr = new ThisExpr(Token.NoToken);
+          selfExpr = null;
         } else {
           var selfTy = fromArrowType ? predef.HandleType : predef.RefType;
           var self = BplBoundVar("$self", selfTy, vars);
@@ -9895,8 +9917,7 @@ namespace Microsoft.Dafny {
           TrStmt(s.hiddenUpdate, builder, locals, etran);
         }
         // this.ys := this.ys + [this.y];
-        var th = new ThisExpr(iter.tok);
-        th.Type = Resolver.GetThisType(iter.tok, iter);  // resolve here
+        var th = new ThisExpr(iter);
         Contract.Assert(iter.OutsFields.Count == iter.OutsHistoryFields.Count);
         for (int i = 0; i < iter.OutsFields.Count; i++) {
           var y = iter.OutsFields[i];
@@ -10073,8 +10094,7 @@ namespace Microsoft.Dafny {
         AddComment(builder, stmt, "new;");
         fields.Iter(f => CheckDefiniteAssignmentSurrogate(s.SeparatorTok ?? s.EndTok, f, true, builder));
         fields.Iter(f => RemoveDefiniteAssignmentTrackerSurrogate(f));
-        var th = new ThisExpr(tok);
-        th.Type = Resolver.GetThisType(tok, cl);  // resolve here
+        var th = new ThisExpr(cl);
         var bplThis = (Bpl.IdentifierExpr)etran.TrExpr(th);
         SelectAllocateObject(tok, bplThis, th.Type, false, builder, etran);
         for (int i = 0; i < fields.Count; i++) {
@@ -10595,8 +10615,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(builder != null);
       Contract.Requires(etran != null);
       // havoc Heap \ {this} \ _reads \ _new;
-      var th = new ThisExpr(tok);
-      th.Type = Resolver.GetThisType(tok, iter);  // resolve here
+      var th = new ThisExpr(iter);
       var rds = new MemberSelectExpr(tok, th, iter.Member_Reads);
       var nw = new MemberSelectExpr(tok, th, iter.Member_New);
       builder.Add(new Bpl.CallCmd(tok, "$YieldHavoc",
@@ -14294,7 +14313,7 @@ namespace Microsoft.Dafny {
           }
 
         } else if (expr is ThisExpr) {
-          return new Bpl.IdentifierExpr(expr.tok, This);
+          return new Bpl.IdentifierExpr(expr.tok, This, translator.TrType(expr.Type));
 
         } else if (expr is IdentifierExpr) {
           IdentifierExpr e = (IdentifierExpr)expr;
@@ -18376,7 +18395,7 @@ namespace Microsoft.Dafny {
     {
       ISet<string> namesToAvoid = new HashSet<string>();
       public AlphaConverting_Substituter(Expression receiverReplacement, Dictionary<IVariable, Expression> substMap, Dictionary<TypeParameter, Type> typeMap)
-        : base(receiverReplacement is ImplicitThisExpr ? new ThisExpr(receiverReplacement.tok) : receiverReplacement, substMap, typeMap) {
+        : base(receiverReplacement is ImplicitThisExpr ? new ThisExpr(receiverReplacement.tok) { Type = receiverReplacement.Type } : receiverReplacement, substMap, typeMap) {
         Contract.Requires(substMap != null);
         Contract.Requires(typeMap != null);
       }

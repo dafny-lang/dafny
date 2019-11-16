@@ -34,6 +34,24 @@ lemma L4(x:int, y:int)
     assert P(x, y + 1);
 }
 
-// Local Variables:
-// dafny-prover-local-args: ("/autoTriggers:1")
-// End:
+// Include "this" among parameters of lit axioms
+
+datatype Tree = Empty | Node(left: Tree, right: Tree)
+{
+  function Elements(): set<int>
+    decreases this
+  {
+    match this
+    case Empty => {}
+    case Node(left, right) => left.Elements() + right.Elements()
+  }
+}
+
+function Sum(t: Tree): int
+predicate IsEven(x: int)
+
+lemma TimesOut(t: Tree)
+  requires forall u :: u in t.Elements() ==> IsEven(u)
+{
+  assert t.Node? ==> IsEven(Sum(t));  // error (but this once used to time out due to bad translation of member functions)
+}
