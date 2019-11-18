@@ -98,6 +98,21 @@ struct get_default<unsigned long long> {
   static unsigned long long call() { return 0; }
 };
 
+template<typename U>
+struct get_default<vector<U>> {
+  static vector<U> call() {
+    vector<U> ret;
+    return ret;
+  }
+};
+
+template<typename U>
+struct get_default<shared_ptr<U>> {
+  static shared_ptr<U> call() {
+    return make_shared<U>(get_default<U>::call());
+  }
+};
+
 /*********************************************************
  *  TUPLES                                               *
  *********************************************************/
