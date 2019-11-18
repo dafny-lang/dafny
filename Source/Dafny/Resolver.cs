@@ -6154,8 +6154,7 @@ namespace Microsoft.Dafny
           }
         } else if (expr is NestedMatchExpr){
           var e = (NestedMatchExpr)expr;
-          Visit(e.ResolvedExpression, cp);
-          return false;
+          return VisitOneExpr(e.ResolvedExpression, ref cp);
         } else if (expr is MatchExpr) {
           var e = (MatchExpr)expr;
           Visit(e.Source, CallingPosition.Neither);
