@@ -6509,6 +6509,9 @@ namespace Microsoft.Dafny {
       } else if (expr is BoogieFunctionCall) {
         var e = (BoogieFunctionCall)expr;
         return CanCallAssumption(e.Args, etran);
+      } else if (expr is NestedMatchExpr){
+        var e = (NestedMatchExpr)expr;
+        return CanCallAssumption(e.ResolvedExpression, etran);
       } else if (expr is MatchExpr) {
         var e = (MatchExpr)expr;
         var ite = etran.DesugarMatchExpr(e);
@@ -7598,7 +7601,10 @@ namespace Microsoft.Dafny {
         CheckWellformedWithResult(e.Els, options, result, resultType, locals, bElse, etran);
         builder.Add(new Bpl.IfCmd(expr.tok, etran.TrExpr(e.Test), bThen.Collect(expr.tok), null, bElse.Collect(expr.tok)));
         result = null;
-
+      } else if (expr is NestedMatchExpr){
+        NestedMatchExpr e = (NestedMatchExpr)expr;
+        CheckWellformedWithResult(e.ResolvedExpression, options, result, resultType, locals, builder, etran);
+        // TODO OS: make sure that I don't need to set result to null here
       } else if (expr is MatchExpr) {
         MatchExpr me = (MatchExpr)expr;
         CheckWellformed(me.Source, options, locals, builder, etran);
@@ -15371,7 +15377,7 @@ namespace Microsoft.Dafny {
           var thn = translator.RemoveLit(TrExpr(e.Thn));
           var els = translator.RemoveLit(TrExpr(e.Els));
           return new NAryExpr(expr.tok, new IfThenElse(expr.tok), new List<Bpl.Expr> { g, thn, els });
-        } else if (expr is MatchExpr) {
+        } else if (expr is NestedMatchExpr) {
           var e = (NestedMatchExpr) expr;
           return TrExpr(e.ResolvedExpression);
         } else if (expr is MatchExpr) {
@@ -17818,7 +17824,12 @@ namespace Microsoft.Dafny {
             var newLet = new SubstLetExpr(e.tok, e.LHSs, new List<Expression>{ rhs }, body, e.Exact, e, newSubstMap, newTypeMap);
             newExpr = newLet;
           }
-
+        } else if (expr is NestedMatchExpr){
+          var e = (NestedMatchExpr)expr;
+          var resolvedE = Substitute(e.ResolvedExpression);
+          var newNME = new NestedMatchExpr(e.tok, e.Source, e.Cases, e.UsesOptionalBraces);
+          newNME.ResolvedExpression = resolvedE;
+          newExpr = newNME;
         } else if (expr is MatchExpr) {
           var e = (MatchExpr)expr;
           var src = Substitute(e.Source);
@@ -18200,6 +18211,11 @@ namespace Microsoft.Dafny {
           rr.Op = SubstCalcOp(s.Op);
           rr.Steps.AddRange(s.Steps.ConvertAll(Substitute));
           rr.Result = Substitute(s.Result);
+          r = rr;
+        } else if (stmt is NestedMatchStmt){
+          var s = (NestedMatchStmt)stmt;
+          var rr = new NestedMatchStmt(s.Tok, s.EndTok, s.Source, s.Cases, s.UsesOptionalBraces);
+          rr.ResolvedStatements = s.ResolvedStatements.ConvertAll<Statement>(SubstStmt);
           r = rr;
         } else if (stmt is MatchStmt) {
           var s = (MatchStmt)stmt;

@@ -10768,6 +10768,13 @@ public class NestedMatchCaseStmt : NestedMatchCase {
       get { return ResolvedStatements; }
     }
 
+    public override IEnumerable<Expression> SubExpressions {
+      get {
+        foreach (var e in base.SubExpressions) { yield return e; }
+        yield return Source;
+      }
+    }
+
    public Expression Source {
       get { return source; }
     }
@@ -10783,6 +10790,7 @@ public class NestedMatchCaseStmt : NestedMatchCase {
       this.cases = cases;
       this.UsesOptionalBraces = usesOptionalBraces;
   }
+
 
  }
 
@@ -10800,9 +10808,12 @@ public class NestedMatchExpr : Expression
 
   public  Expression ResolvedExpression;
 
-   public Expression SubExpression {
-      get { return ResolvedExpression; }
-    }
+    public override IEnumerable<Expression> SubExpressions {
+      get {
+        yield return ResolvedExpression;
+        }
+      }
+
 
   public NestedMatchExpr(IToken tok, Expression source, [Captured] List<NestedMatchCaseExpr> cases, bool usesOptionalBraces): base(tok) {
     Contract.Requires(source != null);
