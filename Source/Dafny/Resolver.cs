@@ -9877,7 +9877,13 @@ SyntaxContainer MakeIfFromContainers(MatchTempInfo mti, Expression matchee, List
 
   if(blocks.Count == 0){
     if(mti.Debug) Console.WriteLine("empty blocks");
-    return def;
+    if(def is CExpr){
+      return def;
+    } else {
+      // This ensures the statements are wrapped in braces
+      var sdef = (CStmt)def;
+      return new CStmt(BlockStmtOfCStmt(sdef.Body.Tok, sdef.Body.EndTok, sdef));
+    }
   } else {
     Tuple<LiteralExpr,SyntaxContainer> currBlock = blocks.First();
     blocks = blocks.Skip(1).ToList();
@@ -10364,7 +10370,7 @@ RBranchExpr RBranchOfNestedMatchCaseExpr(int branchid, NestedMatchCaseExpr x){
 
 
 void CompileNestedMatchExpr(NestedMatchExpr e, ICodeContext codeContext) {
-  bool debug = true;
+  bool debug = false;
   if(debug) Console.WriteLine("In CompileNestedMatchExpr");
   if(e.ResolvedExpression != null){
     //post-resolve, skip
@@ -10411,7 +10417,7 @@ void CompileNestedMatchExpr(NestedMatchExpr e, ICodeContext codeContext) {
 /// On output, the NestedMatchStmt has field ResolvedStatement filled with semantically equivalent code
 /// </summary>
 void CompileNestedMatchStmt(NestedMatchStmt s, ICodeContext codeContext) {
-  bool debug = true;
+  bool debug = false;
   if(debug) Console.WriteLine("In CompileNestedMatchStmt");
 
   if(s.ResolvedStatements != null){
