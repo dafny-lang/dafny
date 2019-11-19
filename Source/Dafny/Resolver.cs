@@ -9708,12 +9708,13 @@ public class CStmt:SyntaxContainer{
 
 
 
-BlockStmt BlockStmtOfSyntaxContainer(IToken tok, IToken endTok, CStmt con){
+BlockStmt BlockStmtOfCStmt(IToken tok, IToken endTok, CStmt con){
   var stmt = con.Body;
   if (stmt is BlockStmt){
     return (BlockStmt)stmt;
   } else {
     var stmts = new List<Statement>();
+    stmts.Add(stmt);
     return new BlockStmt(tok, endTok, stmts);
   }
 }
@@ -9871,26 +9872,12 @@ void LetBindNonWildCard(RBranch branch, String name, Expression expr){
 
 // Assumes that all SyntaxContainers in blocks and def are of the same subclass
 SyntaxContainer MakeIfFromContainers(MatchTempInfo mti, Expression matchee, List<Tuple<LiteralExpr,SyntaxContainer>> blocks, SyntaxContainer def){
-  return null;
-  /*
+
   if(mti.Debug) Console.WriteLine("MakeIf with {0} blocks, default is a {1}", blocks.Count, def is CExpr?"CExpr":"StmtContainer");
 
   if(blocks.Count == 0){
     if(mti.Debug) Console.WriteLine("empty blocks");
-    if(def is CExpr){
-      if(mti.Debug) Console.WriteLine("Cexpr");
-      var tdef = (CExpr)def;
-      return new CExpr(tdef.Body);
-    } else if (def is CStmt){
-      if(mti.Debug) Console.WriteLine("CStmt");
-      var tdef = (CStmt)def;
-      return new CStmt(tdef.Body);
-    } else{
-      if(mti.Debug) Console.WriteLine("CStmts");
-      var tdef = (CStmts) def;
-      if(mti.Debug) Console.WriteLine("Casted def");
-      return (SyntaxContainer) new CStmts(tdef.Body);
-    }
+    return def;
   } else {
     Tuple<LiteralExpr,SyntaxContainer> currBlock = blocks.First();
     blocks = blocks.Skip(1).ToList();
@@ -9906,11 +9893,11 @@ SyntaxContainer MakeIfFromContainers(MatchTempInfo mti, Expression matchee, List
       var els = (CExpr) elsC;
       return new CExpr(new ITEExpr(tok, false, guard, item2.Body, els.Body));
     } else {
-      var item2 = BlockStmtOfStmtContainer(tok, endtok, (StmtContainer)currBlock.Item2);
+      var item2 = BlockStmtOfCStmt(tok, endtok, (CStmt)currBlock.Item2);
       var els = (CStmt) elsC;
       return new CStmt(new IfStmt(tok, endtok, false, guard, item2, els.Body));
     }
-  } */
+  }
 }
 
  MatchCase MakeMatchCaseFromContainer(IToken tok,KeyValuePair<string, DatatypeCtor> ctor,List<BoundVar> freshPatBV,SyntaxContainer insideContainer){
@@ -10267,7 +10254,7 @@ void DebugCRBranches(MatchTempInfo mti, List<Expression> matchees, List<RBranch>
           if(PB.Item1 is LitPattern){
             var item1 = (LitPattern)PB.Item1;
             // if pattern matches the current alternative, add it to the branch for this case, otherwise ignore it
-            if(item1.Lit.Value.Equals(currLit)){
+            if(item1.Lit.Value == currLit.Value){
               if(mti.Debug) Console.WriteLine("{1}==[3.1**]== Same lit Bid:{0}", PB.Item2.BranchID, new String('\t',mti.DebugLevel));
               var currBranch = CloneRBranch(PB.Item2);
               mti.UpdateBranchID(PB.Item2.BranchID, 1);
