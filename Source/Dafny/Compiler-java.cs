@@ -722,6 +722,10 @@ namespace Microsoft.Dafny{
         var cast = name == "Short" || name == "Byte" ? $"({name.ToLower()})" : "";
         var intValue = (BigInteger)e.Value;
         if (intValue > long.MaxValue) {
+          // The value must be a 64-bit unsigned integer, since it has a native
+          // type and unsigned long is the biggest native type
+          Contract.Assert(intValue <= ulong.MaxValue);
+
           // Represent the value as a signed 64-bit integer, which the ULong
           // constructor will reinterpret as unsigned
           intValue -= ulong.MaxValue + BigInteger.One;
