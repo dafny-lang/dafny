@@ -658,7 +658,13 @@ namespace Dafny
 #if DAFNY_USE_SYSTEM_COLLECTIONS_IMMUTABLE
       var d = ImmutableDictionary<U, V>.Empty.ToBuilder();
 #else
-      var d = new Dictionary<U, V>();
+      // Initialize the capacity if the size of the enumerable is known
+      Dictionary<U, V> d;
+      if (values is ICollection<Pair<U, V>> collection) {
+        d = new Dictionary<U, V>(collection.Count);
+      } else {
+        d = new Dictionary<U, V>();  
+      }
 #endif
       var hasNullValue = false;
       var nullValue = default(V);
@@ -1406,6 +1412,11 @@ namespace Dafny
       BigInteger aa, bb, dd;
       Normalize(this, that, out aa, out bb, out dd);
       return aa.CompareTo(bb);
+    }
+    public int Sign {
+      get {
+        return num.Sign;
+      }
     }
     public override int GetHashCode() {
       return num.GetHashCode() + 29 * den.GetHashCode();

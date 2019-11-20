@@ -659,10 +659,11 @@ namespace Dafny
       var d = ImmutableDictionary<U, V>.Empty.ToBuilder();
 #else
       // Initialize the capacity if the size of the enumerable is known
+      Dictionary<U, V> d;
       if (values is ICollection<Pair<U, V>> collection) {
-        var d = new Dictionary<U, V>(collection.Count);
+        d = new Dictionary<U, V>(collection.Count);
       } else {
-        var d = new Dictionary<U, V>();  
+        d = new Dictionary<U, V>();  
       }
 #endif
       var hasNullValue = false;
