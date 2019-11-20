@@ -64,6 +64,22 @@ public class ULong {
         return inner;
     }
 
+    public byte byteValue() {
+        return (byte) inner;
+    }
+
+    public short shortValue() {
+        return (short) inner;
+    }
+
+    public int intValue() {
+        return (int) inner;
+    }
+
+    public long longValue() {
+        return inner;
+    }
+
     public static int compare(ULong x, ULong y) {
         return x.compareTo(y);
     }

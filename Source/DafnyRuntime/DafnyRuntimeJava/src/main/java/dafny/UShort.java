@@ -55,6 +55,14 @@ public class UShort {
         return inner == 0 ? 0 : 1;
     }
 
+    public byte byteValue(){
+        return (byte) inner;
+    }
+
+    public short shortValue(){
+        return (short) inner;
+    }
+
     public int intValue(){
         return inner;
     }

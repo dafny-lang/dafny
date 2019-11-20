@@ -73,6 +73,10 @@ public class UByte {
         return (byte) inner;
     }
 
+    public short shortValue(){
+        return (short) inner;
+    }
+
     public byte value(){
         return byteValue();
     }

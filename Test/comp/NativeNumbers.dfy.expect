@@ -1,10 +1,38 @@
 
-Dafny program verifier finished with 23 verified, 0 errors
+Dafny program verifier finished with 24 verified, 0 errors
+Casting:
+
+0 0 0 0 0 0 0 0 0
+1 1 1 1 1 1 1 1 1
+2 2 2 2 2 2 2 2 2
+3 3 3 3 3 3 3 3 3
+4 4 4 4 4 4 4 4 4
+5 5 5 5 5 5 5 5 5
+6 6 6 6 6 6 6 6 6
+7 7 7 7 7 7 7 7 7
+8 8 8 8 8 8 8 8 8
+255 255 255 255 255 255 255 255
+65535 65535 65535 65535 65535 65535
+4294967295 4294967295 4294967295 4294967295
+18446744073709551615 18446744073709551615
+255 65535 4294967295 18446744073709551615
+
+Byte arithmetic:
+
 20 30
 10 10 18
+
+Short arithmetic:
+
 20 30
 10 10 18
+
+Bitvectors:
+
 0 3 4 1
+
+Comparison to zero:
+
 int8:
 -42	 <0 Y <=0 Y ==0 N !=0 Y >0 N >=0 N 0< N 0<= N 0== N 0!= Y 0> Y 0>= Y
 0	 <0 N <=0 Y ==0 Y !=0 N >0 N >=0 Y 0< N 0<= Y 0== Y 0!= N 0> N 0>= Y
@@ -34,12 +62,41 @@ uint64:
 0	 <0 N <=0 Y ==0 Y !=0 N >0 N >=0 Y 0< N 0<= Y 0== Y 0!= N 0> N 0>= Y
 23	 <0 N <=0 N ==0 N !=0 Y >0 Y >=0 Y 0< Y 0<= Y 0== N 0!= Y 0> N 0>= N
 
-Dafny program verifier finished with 23 verified, 0 errors
+
+Dafny program verifier finished with 24 verified, 0 errors
+Casting:
+
+0 0 0 0 0 0 0 0 0
+1 1 1 1 1 1 1 1 1
+2 2 2 2 2 2 2 2 2
+3 3 3 3 3 3 3 3 3
+4 4 4 4 4 4 4 4 4
+5 5 5 5 5 5 5 5 5
+6 6 6 6 6 6 6 6 6
+7 7 7 7 7 7 7 7 7
+8 8 8 8 8 8 8 8 8
+255 255 255 255 255 255 255 255
+65535 65535 65535 65535 65535 65535
+4294967295 4294967295 4294967295 4294967295
+18446744073709551615 18446744073709551615
+255 65535 4294967295 18446744073709551615
+
+Byte arithmetic:
+
 20 30
 10 10 18
+
+Short arithmetic:
+
 20 30
 10 10 18
+
+Bitvectors:
+
 0 3 4 1
+
+Comparison to zero:
+
 int8:
 -42	 <0 Y <=0 Y ==0 N !=0 Y >0 N >=0 N 0< N 0<= N 0== N 0!= Y 0> Y 0>= Y
 0	 <0 N <=0 Y ==0 Y !=0 N >0 N >=0 Y 0< N 0<= Y 0== Y 0!= N 0> N 0>= Y
@@ -69,12 +126,41 @@ uint64:
 0	 <0 N <=0 Y ==0 Y !=0 N >0 N >=0 Y 0< N 0<= Y 0== Y 0!= N 0> N 0>= Y
 23	 <0 N <=0 N ==0 N !=0 Y >0 Y >=0 Y 0< Y 0<= Y 0== N 0!= Y 0> N 0>= N
 
-Dafny program verifier finished with 23 verified, 0 errors
+
+Dafny program verifier finished with 24 verified, 0 errors
+Casting:
+
+0 0 0 0 0 0 0 0 0
+1 1 1 1 1 1 1 1 1
+2 2 2 2 2 2 2 2 2
+3 3 3 3 3 3 3 3 3
+4 4 4 4 4 4 4 4 4
+5 5 5 5 5 5 5 5 5
+6 6 6 6 6 6 6 6 6
+7 7 7 7 7 7 7 7 7
+8 8 8 8 8 8 8 8 8
+255 255 255 255 255 255 255 255
+65535 65535 65535 65535 65535 65535
+4294967295 4294967295 4294967295 4294967295
+18446744073709551615 18446744073709551615
+255 65535 4294967295 18446744073709551615
+
+Byte arithmetic:
+
 20 30
 10 10 18
+
+Short arithmetic:
+
 20 30
 10 10 18
+
+Bitvectors:
+
 0 3 4 1
+
+Comparison to zero:
+
 int8:
 -42	 <0 Y <=0 Y ==0 N !=0 Y >0 N >=0 N 0< N 0<= N 0== N 0!= Y 0> Y 0>= Y
 0	 <0 N <=0 Y ==0 Y !=0 N >0 N >=0 Y 0< N 0<= Y 0== Y 0!= N 0> N 0>= Y
@@ -103,3 +189,4 @@ uint32:
 uint64:
 0	 <0 N <=0 Y ==0 Y !=0 N >0 N >=0 Y 0< N 0<= Y 0== Y 0!= N 0> N 0>= Y
 23	 <0 N <=0 N ==0 N !=0 Y >0 Y >=0 Y 0< Y 0<= Y 0== N 0!= Y 0> N 0>= N
+

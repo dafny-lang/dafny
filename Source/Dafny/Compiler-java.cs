@@ -3075,12 +3075,18 @@ namespace Microsoft.Dafny{
             }
           } else if (fromNative != null && toNative == null) {
             // native (int or bv) -> big-integer (int or bv)
-            wr.Write("BigInteger.valueOf(");
-            TrParenExpr(e.E, wr, inLetExprBody);
-            if (!e.E.Type.IsIntegerType) {
-              wr.Write(".intValue()");
+            if (fromNative.Sel == NativeType.Selection.ULong) {
+              // Can't just use .longValue() because that may return a negative
+              TrParenExpr(e.E, wr, inLetExprBody);
+              wr.Write(".asBigInteger()");
+            } else {
+              wr.Write("BigInteger.valueOf(");
+              TrParenExpr(e.E, wr, inLetExprBody);
+              if (!e.E.Type.IsIntegerType) {
+                wr.Write(".longValue()");
+              }
+              wr.Write(")");
             }
-            wr.Write(")");
           } else {
             GetNativeInfo(toNative.Sel, out var toNativeName, out var toNativeSuffix, out var toNativeNeedsCast);
             // any (int or bv) -> native (int or bv)
@@ -3113,6 +3119,24 @@ namespace Microsoft.Dafny{
             } else {
               // no optimization applies; use the standard translation
               TrParenExpr(e.E, wr, inLetExprBody);
+              switch (toNative.Sel) {
+                case NativeType.Selection.Byte:
+                case NativeType.Selection.SByte:
+                  wr.Write(".byteValue()");
+                  break;
+                case NativeType.Selection.Short:
+                case NativeType.Selection.UShort:
+                  wr.Write(".shortValue()");
+                  break;
+                case NativeType.Selection.Int:
+                case NativeType.Selection.UInt:
+                  wr.Write(".intValue()");
+                  break;
+                case NativeType.Selection.Long:
+                case NativeType.Selection.ULong:
+                  wr.Write(".longValue()");
+                  break;
+              }
             }
             wr.Write(")");
           }
