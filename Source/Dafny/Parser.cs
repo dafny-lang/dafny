@@ -913,7 +913,7 @@ int StringToInt(string s, int defaultValue, string errString) {
 		}
 		case 46: case 47: case 48: case 49: case 50: case 51: case 60: case 61: case 65: case 66: case 67: case 104: {
 			ClassMemberDecl(dmod, membersDefaultClass, false, !DafnyOptions.O.AllowGlobals,
-!isTopLevel && DafnyOptions.O.IronDafny && isAbstract);
+!isTopLevel /* && DafnyOptions.O.IronDafny */ && isAbstract);
 			break;
 		}
 		default: SynErr(156); break;
