@@ -525,4 +525,5 @@ lemma ExtEvensSumToEven(t: Tree)
     assert x in t.Elements();
     assert left.Sum() % 2 == 0;
     assert right.Sum() % 2 == 0;
+    assert t.Sum() % 2 == 0;
 }
