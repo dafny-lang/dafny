@@ -280,7 +280,7 @@ class MyClass<A, B> {
     L(u, v);
   }
   /***
-  lemma /*{:_induction _k}*/ L#<U, V>[_k: ORDINAL](u: U, v: V)
+  lemma /*{:_induction this, _k}*/ L#<U, V>[_k: ORDINAL](u: U, v: V)
     ensures P#[_k](u, v)
     decreases _k
   {
@@ -303,7 +303,7 @@ class MyClass<A, B> {
     assert R#<char>[_k - 1]();
   }
   /***
-  lemma /*{:_induction _k}*/ M#<W>[_k: ORDINAL]()
+  lemma /*{:_induction this, _k}*/ M#<W>[_k: ORDINAL]()
     ensures R#<char>[_k]()
     decreases _k
   {
