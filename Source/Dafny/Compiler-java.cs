@@ -34,6 +34,22 @@ namespace Microsoft.Dafny{
     new string DafnySeqClass = "dafny.DafnySequence";
     new string DafnyMapClass = "dafny.DafnyMap";
 
+    const string DafnyBigRationalClass = "dafny.BigRational";
+    const string DafnyEuclideanClass = "dafny.DafnyEuclidean";
+    const string DafnyHelpersClass = "dafny.Helpers";
+
+    const string DafnyArrayClassPrefix = "dafny.Array";
+    const string DafnyArrayInitClassPrefix = "dafny.ArrayInit";
+    const string DafnyFunctionIfacePrefix = "dafny.Function";
+    const string DafnyTupleClassPrefix = "dafny.Tuple";
+
+    string DafnyArrayClass(int dim) => DafnyArrayClassPrefix + dim;
+    string DafnyArrayInitClass(int dim) => DafnyArrayInitClassPrefix + dim;
+    string DafnyTupleClass(int size) => DafnyTupleClassPrefix + size;
+
+    string DafnyFunctionIface(int arity) =>
+      arity == 1 ? "Function" : DafnyFunctionIfacePrefix + arity;
+
     private String ModuleName;
     private String ModulePath;
     private int FileCount = 0;
@@ -44,11 +60,7 @@ namespace Microsoft.Dafny{
     private HashSet<int> arrayinits = new HashSet<int>();
     private HashSet<string> NeedsInputStrings = new HashSet<string>();
 
-    private static List<Import> StandardImports =
-      new List<Import>{
-        new Import{Name = "_dafny", Path = "dafny"},
-      };
-    private readonly List<Import> Imports = new List<Import>(StandardImports);
+    private readonly List<Import> Imports = new List<Import>();
 
     //RootImportWriter writes additional imports to the main file.
     private TargetWriter RootImportWriter;
@@ -69,7 +81,7 @@ namespace Microsoft.Dafny{
     protected override void DeclareSpecificOutCollector(string collectorVarName, TargetWriter wr, int outCount, List<Type> types, Method m) {
       if (outCount > 1) {
         tuples.Add(outCount);
-        wr.Write($"Tuple{outCount} {collectorVarName} = ");
+        wr.Write($"{DafnyTupleClassPrefix}{outCount} {collectorVarName} = ");
       } else {
         for (int i = 0; i < types.Count; i++) {
           Formal p = m.Outs[i];
@@ -166,7 +178,7 @@ namespace Microsoft.Dafny{
 
     protected override TargetWriter EmitIngredients(TargetWriter wr, string ingredients, int L, string tupleTypeArgs, ForallStmt s, AssignStmt s0, Expression rhs){
       using (var wrVarInit = wr){
-        wrVarInit.Write($"ArrayList<Tuple{L}<{tupleTypeArgs}>> {ingredients} = ");
+        wrVarInit.Write($"ArrayList<{DafnyTupleClassPrefix}{L}<{tupleTypeArgs}>> {ingredients} = ");
         AddTupleToSet(L);
         EmitEmptyTupleList(tupleTypeArgs, wrVarInit);
       }
@@ -364,7 +376,7 @@ namespace Microsoft.Dafny{
       if (nonGhostOuts == 1) {
         targetReturnTypeReplacement = TypeName(m.Outs[nonGhostIndex].Type, wr, m.Outs[nonGhostIndex].tok);
       } else if (nonGhostOuts > 1) {
-        targetReturnTypeReplacement = "Tuple" + nonGhostOuts;
+        targetReturnTypeReplacement = DafnyTupleClassPrefix + nonGhostOuts;
       }
       wr.Write("{0}{1}", createBody ? "public " : "", m.IsStatic ? "static " : "");
       if (m.TypeArgs.Count != 0) {
@@ -505,7 +517,7 @@ namespace Microsoft.Dafny{
       } else if (xType is IntType || xType is BigOrdinalType) {
         return "BigInteger";
       } else if (xType is RealType) {
-        return "BigRational";
+        return DafnyBigRationalClass;
       } else if (xType is BitvectorType) {
         var t = (BitvectorType)xType;
         return t.NativeType != null ? GetNativeTypeName(t.NativeType) : "BigInteger";
@@ -521,7 +533,7 @@ namespace Microsoft.Dafny{
         ArrayClassDecl at = xType.AsArrayType;
         Contract.Assert(at != null);  // follows from type.IsArrayType
         if (at.Dims > 1) {
-          return "Array" + at.Dims;
+          return DafnyArrayClass(at.Dims);
         }
         Type elType = UserDefinedType.ArrayElementType(xType);
         string typeNameSansBrackets, brackets;
@@ -536,7 +548,10 @@ namespace Microsoft.Dafny{
         var cl = udt.ResolvedClass;
         bool isHandle = true;
         if (cl != null && Attributes.ContainsBool(cl.Attributes, "handle", ref isHandle) && isHandle) {
-          return "ULong";
+          return "dafny.ULong";
+        }
+        else if (cl is TupleTypeDecl tupleDecl) {
+          s = DafnyTupleClass(tupleDecl.TypeArgs.Count);
         }
         else if (DafnyOptions.O.IronDafny &&
                  !(xType is ArrowType) &&
@@ -597,13 +612,17 @@ namespace Microsoft.Dafny{
       Contract.Assume(udt != null); // precondition; this ought to be declared as a Requires in the superclass
       if (udt is ArrowType) {
         functions.Add(udt.TypeArgs.Count - 1);
-        return $"Function{(udt.TypeArgs.Count != 2 ? (udt.TypeArgs.Count - 1).ToString() : "")}";
+        return DafnyFunctionIface(udt.TypeArgs.Count - 1);
       }
       var cl = udt.ResolvedClass;
       if (cl == null) {
         return IdProtect(udt.CompileName);
       }
-      else if (cl.Module.CompileName == ModuleName || cl is TupleTypeDecl || cl.Module.IsDefaultModule) {
+      else if (cl is TupleTypeDecl tupleDecl)
+      {
+        return DafnyTupleClass(tupleDecl.TypeArgs.Count);
+      }
+      else if (cl.Module.CompileName == ModuleName || cl.Module.IsDefaultModule) {
         return IdProtect(cl.CompileName);
       }
       else{
@@ -650,7 +669,7 @@ namespace Microsoft.Dafny{
         if (inArgs.Exists(ComplicatedTypeParameterForCompilation)) {
           Error(tok, "compilation does not support trait types as a type parameter; consider introducing a ghost", wr);
         }
-        s += $"Tuple{inArgs.Count}<" + TypeNames(inArgs, wr, tok) + ">";
+        s += DafnyTupleClass(inArgs.Count) + "<" + TypeNames(inArgs, wr, tok) + ">";
         tuples.Add(inArgs.Count);
       } else {
         if (inArgs.Exists(ComplicatedTypeParameterForCompilation)) {
@@ -680,11 +699,7 @@ namespace Microsoft.Dafny{
       w.WriteLine($"// Dafny class {name} compiled into Java");
       w.WriteLine($"package {ModuleName};");
       w.WriteLine();
-      w.WriteLine("import java.util.*;");
-      w.WriteLine("import java.util.function.*;");
-      w.WriteLine("import java.util.Arrays;");
-      w.WriteLine("import java.lang.reflect.Array;");
-      w.WriteLine("import java.math.*;"); // TODO: Figure out all the Java imports necessary for compiled program to run.
+      EmitStandardImports(w);
       EmitImports(w, out _);
       w.WriteLine();
       //TODO: Fix implementations so they do not need this suppression
@@ -704,6 +719,14 @@ namespace Microsoft.Dafny{
       return new ClassWriter(this, w.NewBlock(""));
     }
 
+    private void EmitStandardImports(TargetWriter wr) {
+      wr.WriteLine("import java.math.BigInteger;");
+      wr.WriteLine("import java.lang.reflect.Array;");
+      wr.WriteLine("import java.util.ArrayList;");
+      wr.WriteLine("import java.util.Arrays;");
+      wr.WriteLine("import java.util.function.Function;");
+    }
+
     protected override void EmitLiteralExpr(TextWriter wr, LiteralExpr e) {
       if (e is StaticReceiverExpr) {
         wr.Write(TypeName(e.Type, wr, e.tok));
@@ -714,7 +737,7 @@ namespace Microsoft.Dafny{
       } else if (e is CharLiteralExpr) {
         wr.Write($"'{(string) e.Value}'");
       } else if (e is StringLiteralExpr str){
-        wr.Write("DafnySequence.asString(");
+        wr.Write($"{DafnySeqClass}.asString(");
         TrStringLiteral(str, wr);
         wr.Write(")");
       } else if (AsNativeType(e.Type) != null) {
@@ -743,13 +766,13 @@ namespace Microsoft.Dafny{
         }
       } else if (e.Value is Basetypes.BigDec n){
         if (0 <= n.Exponent){
-          wr.Write($"new dafny.BigRational(new BigInteger(\"{n.Mantissa}");
+          wr.Write($"new {DafnyBigRationalClass}(new BigInteger(\"{n.Mantissa}");
           for (int j = 0; j < n.Exponent; j++){
             wr.Write("0");
           }
           wr.Write("\"), BigInteger.ONE)");
         } else {
-          wr.Write("new dafny.BigRational(");
+          wr.Write($"new {DafnyBigRationalClass}(");
           wr.Write($"new BigInteger(\"{n.Mantissa}\")");
           wr.Write(", new BigInteger(\"1");
           for (int j = n.Exponent; j < 0; j++){
@@ -863,7 +886,7 @@ namespace Microsoft.Dafny{
         arrays.Add(type.AsArrayType.Dims);
       }
       if (type.IsDatatype && type.AsDatatype is TupleTypeDecl) {
-        wr.Write($"Tuple{type.AsDatatype.TypeArgs.Count} {name}");
+        wr.Write($"{DafnyTupleClass(type.AsDatatype.TypeArgs.Count)} {name}");
         tuples.Add(type.AsDatatype.TypeArgs.Count);
       } else {
         if (type.IsTypeParameter) {
@@ -1054,7 +1077,7 @@ namespace Microsoft.Dafny{
 
     protected override void EmitSeqSelectRange(Expression source, Expression lo, Expression hi, bool fromArray, bool inLetExprBody, TargetWriter wr) {
       if (fromArray) {
-        wr.Write("DafnySequence.fromArrayRange(");
+        wr.Write($"{DafnySeqClass}.fromArrayRange(");
       }
       TrParenExpr(source, wr, inLetExprBody);
       if (fromArray) {
@@ -1255,11 +1278,7 @@ namespace Microsoft.Dafny{
       wr.WriteLine($"// Dafny class {DtT_protected} compiled into Java");
       wr.WriteLine($"package {ModuleName};");
       wr.WriteLine();
-      wr.WriteLine("import java.util.*;");
-      wr.WriteLine("import java.util.function.*;");
-      wr.WriteLine("import java.util.Arrays;");
-      wr.WriteLine("import java.lang.reflect.Array;");
-      wr.WriteLine("import java.math.*;"); // TODO: Figure out all the Java imports necessary for compiled program to run.
+      EmitStandardImports(wr);
       EmitImports(wr, out _);
       wr.WriteLine();
       // from here on, write everything into the new block created here:
@@ -1380,11 +1399,7 @@ namespace Microsoft.Dafny{
         wr.WriteLine($"// Dafny class {DtCtorDeclarationName(ctor, dt.TypeArgs)} compiled into Java");
         wr.WriteLine($"package {ModuleName};");
         wr.WriteLine();
-        wr.WriteLine("import java.util.*;");
-        wr.WriteLine("import java.util.function.*;");
-        wr.WriteLine("import java.util.Arrays;");
-        wr.WriteLine("import java.lang.reflect.Array;");
-        wr.WriteLine("import java.math.*;"); // TODO: Figure out all the Java imports necessary for compiled program to run.
+        EmitStandardImports(wr);
         EmitImports(wr, out _);
         wr.WriteLine();
         EmitSuppression(wr);
@@ -1400,11 +1415,7 @@ namespace Microsoft.Dafny{
         wr.WriteLine($"// Dafny class {dt.CompileName}__Lazy compiled into Java");
         wr.WriteLine($"package {ModuleName};");
         wr.WriteLine();
-        wr.WriteLine("import java.util.*;");
-        wr.WriteLine("import java.util.function.*;");
-        wr.WriteLine("import java.util.Arrays;");
-        wr.WriteLine("import java.lang.reflect.Array;");
-        wr.WriteLine("import java.math.*;"); // TODO: Figure out all the Java imports necessary for compiled program to run.
+        EmitStandardImports(wr);
         EmitImports(wr, out _);
         wr.WriteLine();
         EmitSuppression(wr); //TODO: Fix implementations so they do not need this suppression
@@ -1552,6 +1563,9 @@ namespace Microsoft.Dafny{
       Contract.Ensures(Contract.Result<string>() != null);
 
       var dt = ctor.EnclosingDatatype;
+      if (dt is TupleTypeDecl tupleDecl) {
+        return DafnyTupleClass(tupleDecl.TypeArgs.Count);
+      }
       var dtName = IdProtect(dt.CompileName);
       return dt.IsRecordType ? dtName : dtName + "_" + ctor.CompileName;
     }
@@ -1770,7 +1784,7 @@ namespace Microsoft.Dafny{
         wr.WriteLine($"return {IdName(outParams[0])};");
       } else {
         tuples.Add(outParams.Count);
-        wr.WriteLine($"return new Tuple{outParams.Count}<>({Util.Comma(outParams, IdName)});");
+        wr.WriteLine($"return new {DafnyTupleClass(outParams.Count)}<>({Util.Comma(outParams, IdName)});");
       }
     }
 
@@ -1937,7 +1951,7 @@ namespace Microsoft.Dafny{
 
     protected override void EmitDatatypeValue(DatatypeValue dtv, string arguments, TargetWriter wr) {
       var dt = dtv.Ctor.EnclosingDatatype;
-      var dtName = dt.CompileName;
+      var dtName = dt is TupleTypeDecl tupleDecl ? DafnyTupleClass(tupleDecl.TypeArgs.Count) : dt.CompileName;
       var ctorName = dtv.Ctor.CompileName;
       var typeParams = dtv.InferredTypeArgs.Count == 0 ? "" : "<>";
       //TODO: Determine if this implementation is ever needed
@@ -1967,7 +1981,7 @@ namespace Microsoft.Dafny{
       }
       wr.Write('(');
       if (!untyped) {
-        wr.Write("(Function{0}<{1}{2}>)", inTypes.Count != 1 ? inTypes.Count.ToString() : "", Util.Comma("", inTypes, t => TypeName(t, wr, tok) + ", "), TypeName(resultType, wr, tok));
+        wr.Write("({0}<{1}{2}>)", DafnyFunctionIface(inTypes.Count), Util.Comma("", inTypes, t => TypeName(t, wr, tok) + ", "), TypeName(resultType, wr, tok));
       }
       wr.Write($"({Util.Comma(inNames, nm => nm)}) ->");
       var w = wr.NewExprBlock("");
@@ -1977,7 +1991,7 @@ namespace Microsoft.Dafny{
 
     protected override BlockTargetWriter CreateIIFE0(Type resultType, Bpl.IToken resultTok, TargetWriter wr) {
       functions.Add(0);
-      wr.Write($"((Function0<{TypeName(resultType, wr, resultTok)}>)(() ->");
+      wr.Write($"(({DafnyFunctionIface(0)}<{TypeName(resultType, wr, resultTok)}>)(() ->");
       var w = wr.NewBigExprBlock("", ")).apply()");
       return w;
     }
@@ -2171,7 +2185,7 @@ namespace Microsoft.Dafny{
         case BinaryExpr.ResolvedOpcode.Div:
           if (resultType.IsIntegerType || (AsNativeType(resultType) != null && AsNativeType(resultType).LowerBound < BigInteger.Zero)) {
             var suffix = AsNativeType(resultType) != null ? "_" + GetNativeTypeName(AsNativeType(resultType)) : "";
-            staticCallString = "DafnyEuclidean.EuclideanDivision" + suffix;
+            staticCallString = $"{DafnyEuclideanClass}.EuclideanDivision" + suffix;
           } else {
             callString = "divide";
           }
@@ -2179,7 +2193,7 @@ namespace Microsoft.Dafny{
         case BinaryExpr.ResolvedOpcode.Mod:
           if (resultType.IsIntegerType || (AsNativeType(resultType) != null && AsNativeType(resultType).LowerBound < BigInteger.Zero)) {
             var suffix = AsNativeType(resultType) != null ? "_" + GetNativeTypeName(AsNativeType(resultType)) : "";
-            staticCallString = "DafnyEuclidean.EuclideanModulus" + suffix;
+            staticCallString = $"{DafnyEuclideanClass}.EuclideanModulus" + suffix;
           } else {
             callString = "mod";
           }
@@ -2388,7 +2402,7 @@ namespace Microsoft.Dafny{
       } else if (xType is IntType || xType is BigOrdinalType) {
         return "BigInteger.ZERO";
       } else if (xType is RealType) {
-        return "BigRational.ZERO";
+        return $"{DafnyBigRationalClass}.ZERO";
       } else if (xType is BitvectorType) {
         var t = (BitvectorType)xType;
         return t.NativeType != null ? $"new {GetNativeTypeName(t.NativeType)}(0)" : "BigInteger.ZERO";
@@ -2402,7 +2416,7 @@ namespace Microsoft.Dafny{
       }
       var udt = (UserDefinedType)xType;
       if (udt.ResolvedParam != null) {
-        return $"({type}) Helpers.getDefault(s{type})";
+        return $"({type}) {DafnyHelpersClass}.getDefault(s{type})";
       }
       var cl = udt.ResolvedClass;
       Contract.Assert(cl != null);
@@ -2435,7 +2449,7 @@ namespace Microsoft.Dafny{
             string newarr = "";
             if (arrayClass.Dims > 1){
               arrays.Add(arrayClass.Dims);
-              newarr += $"new Array{arrayClass.Dims}(";
+              newarr += $"new {DafnyArrayClass(arrayClass.Dims)}(";
               for (int i = 0; i < arrayClass.Dims; i++) {
                 newarr += "0, ";
               }
@@ -2447,7 +2461,7 @@ namespace Microsoft.Dafny{
               }
               newarr += ")";
               // Java class strings are written in the format "class x", so we use substring(6) to get the classname "x"
-              newarr += $"Array.newInstance(dafny.Helpers.getClassUnsafe(s{udt.TypeArgs[0]}.substring(6))";
+              newarr += $"Array.newInstance({DafnyHelpersClass}.getClassUnsafe(s{udt.TypeArgs[0]}.substring(6))";
               for (int i = 0; i < arrayClass.Dims; i++) {
                 newarr += ", 0";
               }
@@ -2513,11 +2527,7 @@ namespace Microsoft.Dafny{
       w.WriteLine($"// Dafny trait {name} compiled into Java");
       w.WriteLine($"package {ModuleName};");
       w.WriteLine();
-      w.WriteLine("import java.util.*;");
-      w.WriteLine("import java.util.function.*;");
-      w.WriteLine("import java.util.Arrays;");
-      w.WriteLine("import java.lang.reflect.Array;");
-      w.WriteLine("import java.math.*;"); // TODO: Figure out all the Java imports necessary for compiled program to run.
+      EmitStandardImports(w);
       EmitImports(w, out _);
       w.WriteLine();
       EmitSuppression(w); //TODO: Fix implementations so they do not need this suppression
@@ -2538,11 +2548,7 @@ namespace Microsoft.Dafny{
       w.WriteLine($"// Dafny trait {name} compiled into Java");
       w.WriteLine($"package {ModuleName};");
       w.WriteLine();
-      w.WriteLine("import java.util.*;");
-      w.WriteLine("import java.util.function.*;");
-      w.WriteLine("import java.util.Arrays;");
-      w.WriteLine("import java.lang.reflect.Array;");
-      w.WriteLine("import java.math.*;"); // TODO: Figure out all the Java imports necessary for compiled program to run.
+      EmitStandardImports(w);
       EmitImports(w, out _);
       w.WriteLine();
       w.Write($"public class _Companion_{name}");
@@ -2610,7 +2616,7 @@ namespace Microsoft.Dafny{
       if (w != null) {
         foreach(TypeParameter t in l) {
           w.WriteLine($"this.s{t.Name} = s{t.Name};");
-          w.WriteLine($"{t.Name.ToLower()} = ({t.Name}) Helpers.getDefault(s{t.Name});");
+          w.WriteLine($"{t.Name.ToLower()} = ({t.Name}) {DafnyHelpersClass}.getDefault(s{t.Name});");
         }
       }
     }
@@ -2730,7 +2736,7 @@ namespace Microsoft.Dafny{
       if (boundVarType != null) {
         wr.Write($"for({TypeName(boundVarType, wr, tok)} {boundVar} : ");
       } else {
-        wr.Write($"for(Tuple{TargetTupleSize} {boundVar} : ");
+        wr.Write($"for({DafnyTupleClass(TargetTupleSize)} {boundVar} : ");
       }
       collectionWriter = wr.Fork();
       if (altBoundVarName == null) {
@@ -2827,7 +2833,7 @@ namespace Microsoft.Dafny{
       TypeName_SplitArrayName(elmtType, wr, tok, out var typeNameSansBrackets, out _);
       if (dimensions.Count > 1) {
         arrays.Add(dimensions.Count);
-        wr.Write($"new Array{dimensions.Count}<>(");
+        wr.Write($"new {DafnyArrayClass(dimensions.Count)}<>(");
         foreach (var dim in dimensions) {
           TrParenExpr(dim, wr, false);
           wr.Write(".intValue(), ");
@@ -2841,7 +2847,7 @@ namespace Microsoft.Dafny{
           }
           wr.Write(")");
           // Java class strings are written in the format "class x", so we use substring(6) to get the classname "x".
-          wr.Write($"Array.newInstance(dafny.Helpers.getClassUnsafe(s{type.ToString()}.substring(6))");
+          wr.Write($"Array.newInstance({DafnyHelpersClass}.getClassUnsafe(s{type.ToString()}.substring(6))");
           string pref = ", ";
           foreach (var dim in dimensions) {
             wr.Write(pref);
@@ -2909,14 +2915,14 @@ namespace Microsoft.Dafny{
         }
       } else {
         arrayinits.Add(dimensions.Count);
-        wr.Write($"ArrayInit{dimensions.Count}.InitNewArray({DefaultValue(elmtType, wr, tok)}");
+        wr.Write($"{DafnyArrayInitClass(dimensions.Count)}.InitNewArray({DefaultValue(elmtType, wr, tok)}");
         string prefix = ", ";
         foreach (var dim in dimensions) {
           wr.Write(prefix);
           TrParenExpr(dim, wr, false);
           prefix = ".intValue(), ";
         }
-        typeNameSansBrackets = elmtType.AsTypeParameter != null ? $"dafny.Helpers.getClassUnsafe(s{typeNameSansBrackets}.substring(6))" : $"{typeNameSansBrackets}.class";
+        typeNameSansBrackets = elmtType.AsTypeParameter != null ? $"{DafnyHelpersClass}.getClassUnsafe(s{typeNameSansBrackets}.substring(6))" : $"{typeNameSansBrackets}.class";
         wr.Write($".intValue(), {typeNameSansBrackets})");
       }
       if (dimensions.Count > 1) {
@@ -2950,7 +2956,7 @@ namespace Microsoft.Dafny{
       if (boundTypes.Count != 1) {
         functions.Add(boundTypes.Count);
       }
-      wr.Write("((Function{0}<{1}{2}>)", boundTypes.Count != 1 ? boundTypes.Count.ToString() : "", Util.Comma("", boundTypes, t => TypeName(t, wr, resultTok) + ", "), TypeName(resultType, wr, resultTok));
+      wr.Write("(({0}<{1}{2}>)", DafnyFunctionIface(boundTypes.Count), Util.Comma("", boundTypes, t => TypeName(t, wr, resultTok) + ", "), TypeName(resultType, wr, resultTok));
       wr.Write($"({Util.Comma(boundVars)}) -> ");
       var w = wr.Fork();
       wr.Write(").apply");
@@ -2962,7 +2968,7 @@ namespace Microsoft.Dafny{
       return wr.NewNamedBlock($"for (BigInteger {indexVar} = BigInteger.ZERO; {indexVar}.compareTo(BigInteger.valueOf({bound})) < 0; {indexVar} = {indexVar}.add(BigInteger.ONE))");
     }
 
-    protected override string GetHelperModuleName() => "dafny.Helpers";
+    protected override string GetHelperModuleName() => DafnyHelpersClass;
 
     protected override void EmitEmptyTupleList(string tupleTypeArgs, TargetWriter wr){
       wr.WriteLine("new ArrayList<>();");
@@ -2973,7 +2979,7 @@ namespace Microsoft.Dafny{
     }
 
     protected override TargetWriter EmitAddTupleToList(string ingredients, string tupleTypeArgs, TargetWriter wr) {
-      wr.Write($"{ingredients}.add(new Tuple");
+      wr.Write($"{ingredients}.add(new {DafnyTupleClassPrefix}");
       var wrTuple = wr.Fork();
       wr.Write("));");
       return wrTuple;
@@ -3050,7 +3056,7 @@ namespace Microsoft.Dafny{
         if (e.ToType.IsNumericBased(Type.NumericPersuation.Real)) {
           // (int or bv) -> real
           Contract.Assert(AsNativeType(e.ToType) == null);
-          wr.Write("new dafny.BigRational(");
+          wr.Write($"new {DafnyBigRationalClass}(");
           if (AsNativeType(e.E.Type) != null) {
             wr.Write("BigInteger.valueOf");
           }
@@ -3060,7 +3066,7 @@ namespace Microsoft.Dafny{
           }
           wr.Write(", BigInteger.ONE)");
         } else if (e.ToType.IsCharType) {
-          wr.Write("dafny.Helpers.createCharacter(");
+          wr.Write($"{DafnyHelpersClass}.createCharacter(");
           TrParenExpr(e.E, wr, inLetExprBody);
           wr.Write(".intValue()");
           wr.Write(")");
@@ -3174,7 +3180,7 @@ namespace Microsoft.Dafny{
 
     protected override TargetWriter CreateIIFE_ExprBody(string source, Type sourceType, Bpl.IToken sourceTok,
       Type resultType, Bpl.IToken resultTok, string bvName, TargetWriter wr) {
-      wr.Write("dafny.Helpers.Let(");
+      wr.Write($"{DafnyHelpersClass}.Let(");
       wr.Write($"{source}, {bvName} -> ");
       var w = wr.Fork();
       wr.Write(")");
@@ -3183,7 +3189,7 @@ namespace Microsoft.Dafny{
 
     protected override TargetWriter CreateIIFE_ExprBody(Expression source, bool inLetExprBody, Type sourceType, Bpl.IToken sourceTok,
       Type resultType, Bpl.IToken resultTok, string bvName, TargetWriter wr) {
-      wr.Write("dafny.Helpers.Let(");
+      wr.Write($"{DafnyHelpersClass}.Let(");
       TrExpr(source, wr, inLetExprBody);
       wr.Write($", {bvName} -> ");
       var w = wr.Fork();
@@ -3192,7 +3198,7 @@ namespace Microsoft.Dafny{
     }
 
     protected override string GetQuantifierName(string bvType) {
-      return "dafny.Helpers.Quantifier";
+      return $"{DafnyHelpersClass}.Quantifier";
     }
 
     // ABSTRACT METHOD DECLARATIONS FOR THE SAKE OF BUILDING PROGRAM
