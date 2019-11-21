@@ -9546,7 +9546,6 @@ namespace Microsoft.Dafny
 
       ISet<string> memberNamesUsed = new HashSet<string>();
       foreach (MatchCaseStmt mc in s.Cases) {
-        DatatypeCtor ctor = null;
         if (ctors != null) {
           Contract.Assert(dtd != null);
           var ctorId = mc.Ctor.Name;
@@ -9555,16 +9554,14 @@ namespace Microsoft.Dafny
             var dims = tuple.Dims;
             ctorId = BuiltIns.TupleTypeCtorNamePrefix + dims;
           }
-          if (!ctors.TryGetValue(ctorId, out ctor)) {
+          if (!ctors.ContainsKey(ctorId)) {
             reporter.Error(MessageSource.Resolver, mc.tok, "member {0} does not exist in datatype {1}", ctorId, dtd.Name);
           } else {
-            Contract.Assert(ctor != null);  // follows from postcondition of TryGetValue
-            mc.Ctor = ctor;
-            if (ctor.Formals.Count != mc.Arguments.Count) {
+            if (mc.Ctor.Formals.Count != mc.Arguments.Count) {
               if (s.Source.Type.AsDatatype is TupleTypeDecl) {
                 reporter.Error(MessageSource.Resolver, mc.tok, "case arguments count does not match source arguments count");
               } else {
-                reporter.Error(MessageSource.Resolver, mc.tok, "member {0} has wrong number of formals (found {1}, expected {2})", ctorId, mc.Arguments.Count, ctor.Formals.Count);
+                reporter.Error(MessageSource.Resolver, mc.tok, "member {0} has wrong number of formals (found {1}, expected {2})", ctorId, mc.Arguments.Count, mc.Ctor.Formals.Count);
               }
             }
             if (memberNamesUsed.Contains(ctorId)) {
@@ -9580,8 +9577,8 @@ namespace Microsoft.Dafny
           foreach (BoundVar v in mc.Arguments) {
             scope.Push(v.Name, v);
             ResolveType(v.tok, v.Type, codeContext, ResolveTypeOptionEnum.InferTypeProxies, null);
-            if (ctor != null && i < ctor.Formals.Count) {
-              Formal formal = ctor.Formals[i];
+            if (i < mc.Ctor.Formals.Count) {
+              Formal formal = mc.Ctor.Formals[i];
               Type st = SubstType(formal.Type, subst);
               ConstrainSubtypeRelation(v.Type, st, s.Tok,
                 "the declared type of the formal ({0}) does not agree with the corresponding type in the constructor's signature ({1})", v.Type, st);
@@ -13375,7 +13372,6 @@ void CheckLinearNestedMatchStmt(Type dtd, NestedMatchStmt ms){
       ISet<string> memberNamesUsed = new HashSet<string>();
       me.Type = new InferredTypeProxy();
       foreach (MatchCaseExpr mc in me.Cases) {
-        DatatypeCtor ctor = null;
         if (ctors != null) {
           Contract.Assert(dtd != null);
           var ctorId = mc.Ctor.Name;
@@ -13384,16 +13380,14 @@ void CheckLinearNestedMatchStmt(Type dtd, NestedMatchStmt ms){
             var dims = tuple.Dims;
             ctorId = BuiltIns.TupleTypeCtorNamePrefix + dims;
           }
-          if (!ctors.TryGetValue(ctorId, out ctor)) {
+          if (!ctors.ContainsKey(ctorId)) {
             reporter.Error(MessageSource.Resolver, mc.tok, "member {0} does not exist in datatype {1}", ctorId, dtd.Name);
           } else {
-            Contract.Assert(ctor != null);  // follows from postcondition of TryGetValue
-            mc.Ctor = ctor;
-            if (ctor.Formals.Count != mc.Arguments.Count) {
+            if (mc.Ctor.Formals.Count != mc.Arguments.Count) {
               if (me.Source.Type.AsDatatype is TupleTypeDecl) {
                 reporter.Error(MessageSource.Resolver, mc.tok, "case arguments count does not match source arguments count");
               } else {
-                reporter.Error(MessageSource.Resolver, mc.tok, "member {0} has wrong number of formals (found {1}, expected {2})", ctorId, mc.Arguments.Count, ctor.Formals.Count);
+                reporter.Error(MessageSource.Resolver, mc.tok, "member {0} has wrong number of formals (found {1}, expected {2})", ctorId, mc.Arguments.Count, mc.Ctor.Formals.Count);
               }
             }
             if (memberNamesUsed.Contains(ctorId)) {
@@ -13409,8 +13403,8 @@ void CheckLinearNestedMatchStmt(Type dtd, NestedMatchStmt ms){
           foreach (BoundVar v in mc.Arguments) {
             scope.Push(v.Name, v);
             ResolveType(v.tok, v.Type, opts.codeContext, ResolveTypeOptionEnum.InferTypeProxies, null);
-            if (ctor != null && i < ctor.Formals.Count) {
-              Formal formal = ctor.Formals[i];
+            if (i < mc.Ctor.Formals.Count) {
+              Formal formal = mc.Ctor.Formals[i];
               Type st = SubstType(formal.Type, subst);
               ConstrainSubtypeRelation(v.Type, st, me,
                 "the declared type of the formal ({0}) does not agree with the corresponding type in the constructor's signature ({1})", v.Type, st);
