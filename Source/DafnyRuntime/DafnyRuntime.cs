@@ -658,7 +658,13 @@ namespace Dafny
 #if DAFNY_USE_SYSTEM_COLLECTIONS_IMMUTABLE
       var d = ImmutableDictionary<U, V>.Empty.ToBuilder();
 #else
-      var d = new Dictionary<U, V>();
+      // Initialize the capacity if the size of the enumerable is known
+      Dictionary<U, V> d;
+      if (values is ICollection<Pair<U, V>> collection) {
+        d = new Dictionary<U, V>(collection.Count);
+      } else {
+        d = new Dictionary<U, V>();  
+      }
 #endif
       var hasNullValue = false;
       var nullValue = default(V);
