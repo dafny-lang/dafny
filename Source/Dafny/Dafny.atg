@@ -2575,59 +2575,8 @@ ExistentialGuard<out Expression e, bool allowLambda>
   Expression<out body, true, allowLambda>
   (. e = new ExistsExpr(x, bvars, null, body, attrs); .)
   .
-/* Commented out, now parsed as NestedMatchStmt and resolved to MatchStmt
-* MatchStmt<out Statement/*!*/ s>
-* = (. Contract.Ensures(Contract.ValueAtReturn(out s) != null);
-*     IToken x;  Expression/*!*/ e;  NestedMatchCaseStmt/*!*/ c;
-*     List<MatchCaseStmt/*!*/> cases = new List<MatchCaseStmt/*!*/>();
-*     bool usesOptionalBraces = false;
-*  .)
-*  "match"                     (. x = t; .)
-*  Expression<out e, true, true>
-*  ( IF(la.kind == _lbrace)  /* always favor brace-enclosed match body to a case-less match */
-*    "{" (. usesOptionalBraces = true; .)
-*        { CaseStatement<out c> (. cases.Add(c); .) }
-*    "}"
-*  |     { IF(la.kind == _case)  /* let each "case" bind to the closest preceding "match" */
-*          CaseStatement<out c> (. cases.Add(c); .)
-*        }
-*  )
-*  (. s = new MatchStmt(x, t, e, cases, usesOptionalBraces); .)
-*  .
-*/
-/* CaseStatement<out MatchCaseStmt/*!*/ c>
-= (. Contract.Ensures(Contract.ValueAtReturn(out c) != null);
-     IToken/*!*/ x, id;
-     var arguments = new List<CasePattern<BoundVar>>();
-     CasePattern<BoundVar>/*!*/ pat;
-     var body = new List<Statement/*!*/>();
-     string/*!*/ name = "";
-  .)
-  "case"                      (. x = t; .)
-  ( Ident<out id>             (. name = id.val; .)
-    [ "("
-       [ CasePattern<out pat>        (. arguments.Add(pat); .)
-         { "," CasePattern<out pat>  (. arguments.Add(pat); .)
-         }
-       ]
-    ")" ]
-  | "("
-      CasePattern<out pat>        (. arguments.Add(pat); .)
-      { "," CasePattern<out pat>  (. arguments.Add(pat); .)
-      }
-    ")"
-  )
-  "=>"
-    SYNC  /* this SYNC and the one inside the loop below are used to avoid problems with the IsNotEndOfCase test. The SYNC will
-           * skip until the next symbol that can legally occur here, which is either the beginning of a Stmt or whatever is allowed
-           * to follow the CaseStatement.
-           */
-    { IF(IsNotEndOfCase()) /* This is a little sketchy. It would be nicer to be able to write IF(la is start-symbol of Stmt), but Coco doesn't allow that */
-      Stmt<body>
-      SYNC  /* see comment about SYNC above */
-    }
-  (. c = new MatchCaseStmt(x, name, arguments, body); .)
-  . */
+
+
 /*------------------------------------------------------------------------*/
 ExtendedPattern<.out ExtendedPattern pat.>
 = (. IToken id; List<ExtendedPattern> arguments; pat = null; LiteralExpr lit; Expression te;
@@ -3654,48 +3603,8 @@ NamedExpr<out Expression e, bool allowSemi, bool allowLambda, bool allowBitwiseO
                                         e = new NamedExpr(x, d.val, expr); .)
   .
 
-/* MatchExpression<out Expression e, bool allowSemi, bool allowLambda, bool allowBitwiseOps>
-= (. Contract.Ensures(Contract.ValueAtReturn(out e) != null); IToken/*!*/ x;  MatchCaseExpr/*!*/ c;
-     List<MatchCaseExpr/*!*/> cases = new List<MatchCaseExpr/*!*/>();
-     bool usesOptionalBraces = false;
-  .)
-  "match"                     (. x = t; .)
-  Expression<out e, allowSemi, allowLambda, allowBitwiseOps>
-  ( IF(la.kind == _lbrace)  /* always favor brace-enclosed match body to a case-less match */
-    "{" (. usesOptionalBraces = true; .)
-        { CaseExpression<out c, true, true, allowBitwiseOps> (. cases.Add(c); .) }
-    "}"
-  |     { IF(la.kind == _case)  /* let each "case" bind to the closest preceding "match" */
-          CaseExpression<out c, allowSemi, allowLambda, allowBitwiseOps> (. cases.Add(c); .)
-        }
-  )
-  (. e = new MatchExpr(x, e, cases, usesOptionalBraces); .)
-  . */
-/* CaseExpression<out MatchCaseExpr c, bool allowSemi, bool allowLambda, bool allowBitwiseOps>
-= (. Contract.Ensures(Contract.ValueAtReturn(out c) != null); IToken/*!*/ x, id;
-     var arguments = new List<CasePattern<BoundVar>>();
-     CasePattern<BoundVar>/*!*/ pat;
-     Expression/*!*/ body;
-     string/*!*/ name = "";
-  .)
-  "case"                      (. x = t; .)
-  ( Ident<out id>             (. name = id.val; .)
-    [ "("
-       [ CasePattern<out pat>        (. arguments.Add(pat); .)
-         { "," CasePattern<out pat>  (. arguments.Add(pat); .)
-         }
-       ]
-    ")" ]
-  | "("
-      CasePattern<out pat>        (. arguments.Add(pat); .)
-      { "," CasePattern<out pat>  (. arguments.Add(pat); .)
-      }
-    ")"
-  )
-  "=>"
-  Expression<out body, allowSemi, allowLambda, allowBitwiseOps>    (. c = new MatchCaseExpr(x, name, arguments, body); .)
-  . */
-  /* start changes    */
+
+
 NestedMatchExpression<out Expression e, bool allowSemi, bool allowLambda, bool allowBitwiseOps>
 = (. Contract.Ensures(Contract.ValueAtReturn(out e) != null); IToken/*!*/ x;  NestedMatchCaseExpr/*!*/ c;
      List<NestedMatchCaseExpr/*!*/> cases = new List<NestedMatchCaseExpr/*!*/>();
@@ -3731,7 +3640,7 @@ NestedCaseExpression<out NestedMatchCaseExpr c, bool allowSemi, bool allowLambda
   "=>"
   Expression<out body, allowSemi, allowLambda, allowBitwiseOps>    (. c = new NestedMatchCaseExpr(x, pat, body); .)
 .
-/* end changes    */
+
 CasePattern<.out CasePattern<BoundVar> pat.>
 = (. IToken id;  List<CasePattern<BoundVar>> arguments;
      BoundVar bv;
