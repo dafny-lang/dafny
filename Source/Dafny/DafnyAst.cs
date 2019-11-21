@@ -7745,11 +7745,11 @@ namespace Microsoft.Dafny {
       Contract.Invariant(cce.NonNullElements(Body));
     }
 
-    public MatchCaseStmt(IToken tok, string id, [Captured] List<BoundVar> arguments, [Captured] List<Statement> body)
-      : base(tok, id, arguments)
+    public MatchCaseStmt(IToken tok, DatatypeCtor ctor, [Captured] List<BoundVar> arguments, [Captured] List<Statement> body)
+      : base(tok, ctor, arguments)
     {
       Contract.Requires(tok != null);
-      Contract.Requires(id != null);
+      Contract.Requires(ctor != null);
       Contract.Requires(cce.NonNullElements(arguments));
       Contract.Requires(cce.NonNullElements(body));
       this.body = body;
@@ -8341,7 +8341,7 @@ namespace Microsoft.Dafny {
       var newVars = old_case.Arguments.ConvertAll(cloner.CloneBoundVar);
       new_body = VarSubstituter(old_case.Arguments.ConvertAll<NonglobalVariable>(x=>(NonglobalVariable)x), newVars, new_body);
 
-      var new_case = new MatchCaseExpr(old_case.tok, old_case.Id, newVars, new_body);
+      var new_case = new MatchCaseExpr(old_case.tok, old_case.Ctor, newVars, new_body);
 
       new_case.Ctor = old_case.Ctor; // resolve here
       return new_case;
@@ -10575,22 +10575,21 @@ namespace Microsoft.Dafny {
   public abstract class MatchCase
   {
     public readonly IToken tok;
-    public readonly string Id;
     public DatatypeCtor Ctor;  // filled in by resolution
     public List<BoundVar> Arguments; // created by the resolver.
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(tok != null);
-      Contract.Invariant(Id != null);
+      Contract.Invariant(Ctor != null);
       Contract.Invariant(cce.NonNullElements(Arguments));
     }
 
-    public MatchCase(IToken tok, string id, [Captured] List<BoundVar> arguments) {
+    public MatchCase(IToken tok, DatatypeCtor ctor, [Captured] List<BoundVar> arguments) {
       Contract.Requires(tok != null);
-      Contract.Requires(id != null);
+      Contract.Requires(ctor != null);
       Contract.Requires(cce.NonNullElements(arguments));
       this.tok = tok;
-      this.Id = id;
+      this.Ctor = ctor;
       this.Arguments = arguments;
     }
   }
@@ -10603,10 +10602,10 @@ namespace Microsoft.Dafny {
       Contract.Invariant(body != null);
     }
 
-    public MatchCaseExpr(IToken tok, string id, [Captured] List<BoundVar> arguments, Expression body)
-      : base(tok, id, arguments) {
+    public MatchCaseExpr(IToken tok, DatatypeCtor ctor, [Captured] List<BoundVar> arguments, Expression body)
+      : base(tok, ctor, arguments) {
       Contract.Requires(tok != null);
-      Contract.Requires(id != null);
+      Contract.Requires(ctor != null);
       Contract.Requires(cce.NonNullElements(arguments));
       Contract.Requires(body != null);
       this.body = body;

@@ -17846,7 +17846,7 @@ namespace Microsoft.Dafny {
             if (newBoundVars != mc.Arguments || body != mc.Body) {
               anythingChanged = true;
             }
-            var newCaseExpr = new MatchCaseExpr(mc.tok, mc.Id, newBoundVars, body);
+            var newCaseExpr = new MatchCaseExpr(mc.tok, mc.Ctor, newBoundVars, body);
             newCaseExpr.Ctor = mc.Ctor;  // resolve here
             cases.Add(newCaseExpr);
           }
@@ -18334,7 +18334,7 @@ namespace Microsoft.Dafny {
       protected MatchCaseStmt SubstMatchCaseStmt(MatchCaseStmt c) {
         Contract.Requires(c != null);
         var newBoundVars = CreateBoundVarSubstitutions(c.Arguments, false);
-        var r = new MatchCaseStmt(c.tok, c.Id, newBoundVars, c.Body.ConvertAll(SubstStmt));
+        var r = new MatchCaseStmt(c.tok, c.Ctor, newBoundVars, c.Body.ConvertAll(SubstStmt));
         r.Ctor = c.Ctor;
         // undo any changes to substMap (could be optimized to do this only if newBoundVars != e.Vars)
         foreach (var bv in c.Arguments) {

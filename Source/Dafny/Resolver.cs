@@ -9543,20 +9543,13 @@ namespace Microsoft.Dafny
         subst = TypeSubstitutionMap(dtd.TypeArgs, sourceType.TypeArgs);
       }
 
-      // convert CasePattern in MatchCaseExpr to BoundVar and flatten the MatchCaseExpr.
-      List<Tuple<CasePattern<BoundVar>, BoundVar>> patternSubst = new List<Tuple<CasePattern<BoundVar>, BoundVar>>();
-      if (dtd != null) {
-//        CheckLinearMatchStmt(sourceType, s);
-//        CompileMatchStmt(s, codeContext);
-       //DesugarMatchCaseStmt(s, dtd, patternSubst, codeContext);
-      }
 
       ISet<string> memberNamesUsed = new HashSet<string>();
       foreach (MatchCaseStmt mc in s.Cases) {
         DatatypeCtor ctor = null;
         if (ctors != null) {
           Contract.Assert(dtd != null);
-          var ctorId = mc.Id;
+          var ctorId = mc.Ctor.Name;
           if (s.Source.Type.AsDatatype is TupleTypeDecl) {
             var tuple = (TupleTypeDecl)s.Source.Type.AsDatatype;
             var dims = tuple.Dims;
@@ -9575,7 +9568,7 @@ namespace Microsoft.Dafny
               }
             }
             if (memberNamesUsed.Contains(ctorId)) {
-              reporter.Error(MessageSource.Resolver, mc.tok, "member {0} appears in more than one case", mc.Id);
+              reporter.Error(MessageSource.Resolver, mc.tok, "member {0} appears in more than one case", mc.Ctor.Name);
             } else {
               memberNamesUsed.Add(ctorId);  // add mc.Id to the set of names used
             }
@@ -9610,19 +9603,6 @@ namespace Microsoft.Dafny
           ResolveStatement(ss, codeContext);
         }
         dominatingStatementLabels.PopMarker();
-        // substitute body to replace the case pat with v. This needs to happen
-        // after the body is resolved so we can scope the bv correctly.
-        if (patternSubst.Count > 0) {
-          var cloner = new MatchCaseExprSubstituteCloner(patternSubst);
-          List<Statement> list = new List<Statement>();
-          foreach (Statement ss in mc.Body) {
-            Statement clone = cloner.CloneStmt(ss);
-            // resolve it again since we just cloned it.
-            ResolveStatement(clone, codeContext);
-            list.Add(clone);
-          }
-          mc.UpdateBody(list);
-        }
 
         scope.PopMarker();
       }
@@ -9910,11 +9890,11 @@ SyntaxContainer MakeIfFromContainers(MatchTempInfo mti, Expression matchee, List
    MatchCase newMatchCase;
    if(insideContainer is CStmt){
      List<Statement> insideBranch = UnboxStmtContainer(insideContainer);
-     newMatchCase = new MatchCaseStmt(tok, ctor.Key,  freshPatBV, insideBranch);
+     newMatchCase = new MatchCaseStmt(tok, ctor.Value,  freshPatBV, insideBranch);
 
  } else {
    var insideBranch = ((CExpr)insideContainer).Body;
-    newMatchCase = new MatchCaseExpr(tok, ctor.Key,  freshPatBV, insideBranch);
+    newMatchCase = new MatchCaseExpr(tok, ctor.Value,  freshPatBV, insideBranch);
  }
   newMatchCase.Ctor = ctor.Value;
   return newMatchCase;
@@ -13392,21 +13372,13 @@ void CheckLinearNestedMatchStmt(Type dtd, NestedMatchStmt ms){
         subst = TypeSubstitutionMap(dtd.TypeArgs, sourceType.TypeArgs);
       }
 
-      // convert CasePattern in MatchCaseExpr to BoundVar and flatten the MatchCaseExpr.
-      List<Tuple<CasePattern<BoundVar>, BoundVar>> patternSubst = new List<Tuple<CasePattern<BoundVar>, BoundVar>>();
-      if (dtd != null) {
-//        CheckLinearMatchExpr(sourceType, me);
-//        CompileMatchExpr(me, opts.codeContext);
-        //DesugarMatchCaseExpr(me, dtd, patternSubst, opts.codeContext);
-      }
-
       ISet<string> memberNamesUsed = new HashSet<string>();
       me.Type = new InferredTypeProxy();
       foreach (MatchCaseExpr mc in me.Cases) {
         DatatypeCtor ctor = null;
         if (ctors != null) {
           Contract.Assert(dtd != null);
-          var ctorId = mc.Id;
+          var ctorId = mc.Ctor.Name;
           if (me.Source.Type.AsDatatype is TupleTypeDecl) {
             var tuple = (TupleTypeDecl)me.Source.Type.AsDatatype;
             var dims = tuple.Dims;
@@ -13425,7 +13397,7 @@ void CheckLinearNestedMatchStmt(Type dtd, NestedMatchStmt ms){
               }
             }
             if (memberNamesUsed.Contains(ctorId)) {
-              reporter.Error(MessageSource.Resolver, mc.tok, "member {0} appears in more than one case", mc.Id);
+              reporter.Error(MessageSource.Resolver, mc.tok, "member {0} appears in more than one case", mc.Ctor.Name);
             } else {
               memberNamesUsed.Add(ctorId);  // add mc.Id to the set of names used
             }
@@ -13456,15 +13428,6 @@ void CheckLinearNestedMatchStmt(Type dtd, NestedMatchStmt ms){
           }
         }
         ResolveExpression(mc.Body, opts);
-
-        // substitute body to replace the case pat with v. This needs to happen
-        // after the body is resolved so we can scope the bv correctly.
-        if (patternSubst.Count > 0) {
-          var cloner = new MatchCaseExprSubstituteCloner(patternSubst);
-          mc.UpdateBody(cloner.CloneExpr(mc.Body));
-          // resolve it again since we just cloned it.
-          ResolveExpression(mc.Body, opts);
-        }
 
         Contract.Assert(mc.Body.Type != null);  // follows from postcondition of ResolveExpression
         ConstrainSubtypeRelation(me.Type, mc.Body.Type, mc.Body.tok, "type of case bodies do not agree (found {0}, previous types {1})", mc.Body.Type, me.Type);

@@ -1380,7 +1380,7 @@ namespace Microsoft.Dafny {
           foreach (MatchCaseStmt mc in s.Cases) {
             wr.WriteLine();
             Indent(caseInd);
-            wr.Write("case {0}", mc.Id);
+            wr.Write("case {0}", mc.Ctor.Name);
             PrintMatchCaseArgument(mc);
             wr.Write(" =>");
             foreach (Statement bs in mc.Body) {
@@ -1742,7 +1742,7 @@ namespace Microsoft.Dafny {
           foreach (var mc in e.Cases) {
             bool isLastCase = i == e.Cases.Count - 1;
             Indent(ind);
-            wr.Write("case {0}", mc.Id);
+            wr.Write("case {0}", mc.Ctor.Name);
             PrintMatchCaseArgument(mc);
             wr.WriteLine(" =>");
             PrintExtendedExpr(mc.Body, ind + IndentAmount, isLastCase, isLastCase && (parensNeeded || endWithCloseParen));
@@ -2541,7 +2541,7 @@ namespace Microsoft.Dafny {
           int i = 0;
           foreach (var mc in e.Cases) {
             bool isLastCase = i == e.Cases.Count - 1;
-            wr.Write(" case {0}", mc.Id);
+            wr.Write(" case {0}", mc.Ctor.Name);
             PrintMatchCaseArgument(mc);
             wr.Write(" => ");
             PrintExpression(mc.Body, isRightmost && isLastCase, !parensNeeded && isFollowedBySemicolon);
