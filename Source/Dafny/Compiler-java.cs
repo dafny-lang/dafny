@@ -720,7 +720,17 @@ namespace Microsoft.Dafny{
       } else if (AsNativeType(e.Type) != null) {
         GetNativeInfo(AsNativeType(e.Type).Sel, out var name, out var literalSuffix, out _);
         var cast = name == "Short" || name == "Byte" ? $"({name.ToLower()})" : "";
-        wr.Write($"new {name}({cast}{(BigInteger)e.Value}{literalSuffix})");
+        var intValue = (BigInteger)e.Value;
+        if (intValue > long.MaxValue) {
+          // The value must be a 64-bit unsigned integer, since it has a native
+          // type and unsigned long is the biggest native type
+          Contract.Assert(intValue <= ulong.MaxValue);
+
+          // Represent the value as a signed 64-bit integer, which the ULong
+          // constructor will reinterpret as unsigned
+          intValue -= ulong.MaxValue + BigInteger.One;
+        }
+        wr.Write($"new {name}({cast}{intValue}{literalSuffix})");
       } else if (e.Value is BigInteger i) {
         if (i.IsZero) {
           wr.Write("BigInteger.ZERO");
@@ -830,6 +840,7 @@ namespace Microsoft.Dafny{
           break;
         case NativeType.Selection.ULong:
           name = "dafny.ULong";
+          literalSuffix = "L";
           break;
         case NativeType.Selection.Number:
         case NativeType.Selection.Long:
@@ -1172,18 +1183,12 @@ namespace Microsoft.Dafny{
       } else {
         if (bvType.NativeType.Bitwidth != bvType.Width) {
           // print in hex, because that looks nice
-          var t = RepresentableByInt(bvType.NativeType) ? "" : "L";
-          wr.Write($").and(new {nativeName}(0x{(1UL << bvType.Width) - 1:X}{literalSuffix}{t})))");
+          wr.Write($").and(new {nativeName}(0x{(1UL << bvType.Width) - 1:X}{literalSuffix})))");
         } else {
           wr.Write("))");  // close the parentheses for the cast
         }
       }
       return middle;
-    }
-
-    private static bool RepresentableByInt(NativeType n){
-      return !(n.Sel.Equals(NativeType.Selection.ULong) || n.Sel.Equals(NativeType.Selection.Long)
-                                                        || n.Sel.Equals(NativeType.Selection.Number));
     }
 
     protected override bool CompareZeroUsingSign(Type type) {
@@ -3074,12 +3079,18 @@ namespace Microsoft.Dafny{
             }
           } else if (fromNative != null && toNative == null) {
             // native (int or bv) -> big-integer (int or bv)
-            wr.Write("BigInteger.valueOf(");
-            TrParenExpr(e.E, wr, inLetExprBody);
-            if (!e.E.Type.IsIntegerType) {
-              wr.Write(".intValue()");
+            if (fromNative.Sel == NativeType.Selection.ULong) {
+              // Can't just use .longValue() because that may return a negative
+              TrParenExpr(e.E, wr, inLetExprBody);
+              wr.Write(".asBigInteger()");
+            } else {
+              wr.Write("BigInteger.valueOf(");
+              TrParenExpr(e.E, wr, inLetExprBody);
+              if (!e.E.Type.IsIntegerType) {
+                wr.Write(".longValue()");
+              }
+              wr.Write(")");
             }
-            wr.Write(")");
           } else {
             GetNativeInfo(toNative.Sel, out var toNativeName, out var toNativeSuffix, out var toNativeNeedsCast);
             // any (int or bv) -> native (int or bv)
@@ -3112,6 +3123,24 @@ namespace Microsoft.Dafny{
             } else {
               // no optimization applies; use the standard translation
               TrParenExpr(e.E, wr, inLetExprBody);
+              switch (toNative.Sel) {
+                case NativeType.Selection.Byte:
+                case NativeType.Selection.SByte:
+                  wr.Write(".byteValue()");
+                  break;
+                case NativeType.Selection.Short:
+                case NativeType.Selection.UShort:
+                  wr.Write(".shortValue()");
+                  break;
+                case NativeType.Selection.Int:
+                case NativeType.Selection.UInt:
+                  wr.Write(".intValue()");
+                  break;
+                case NativeType.Selection.Long:
+                case NativeType.Selection.ULong:
+                  wr.Write(".longValue()");
+                  break;
+              }
             }
             wr.Write(")");
           }

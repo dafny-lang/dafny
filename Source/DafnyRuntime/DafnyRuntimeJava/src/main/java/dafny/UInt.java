@@ -61,6 +61,14 @@ public class UInt {
         return inner;
     }
 
+    public byte byteValue(){
+        return (byte) inner;
+    }
+
+    public short shortValue(){
+        return (short) inner;
+    }
+
     public int intValue(){
         return inner;
     }
