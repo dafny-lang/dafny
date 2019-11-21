@@ -1788,30 +1788,18 @@ namespace Microsoft.Dafny {
     }
 
     public void PrintMatchCaseArgument(MatchCase mc) {
-      if (mc.Arguments != null) {
-        if (mc.Arguments.Count != 0) {
-          string sep = "(";
-          foreach (BoundVar bv in mc.Arguments) {
-            wr.Write("{0}{1}", sep, bv.DisplayName);
-            string typeName = bv.Type.TypeName(null, true);
-            if (bv.Type is NonProxyType && !typeName.StartsWith("_")) {
-              wr.Write(": {0}", typeName);
-            }
-            sep = ", ";
+      Contract.Assert(mc.Arguments != null);
+      if (mc.Arguments.Count != 0) {
+        string sep = "(";
+        foreach (BoundVar bv in mc.Arguments) {
+          wr.Write("{0}{1}", sep, bv.DisplayName);
+          string typeName = bv.Type.TypeName(null, true);
+          if (bv.Type is NonProxyType && !typeName.StartsWith("_")) {
+            wr.Write(": {0}", typeName);
           }
-          wr.Write(")");
+          sep = ", ";
         }
-      } else {
-        Contract.Assert(mc.CasePatterns != null);
-        if (mc.CasePatterns.Count != 0) {
-          string sep = "(";
-          foreach (var cp in mc.CasePatterns) {
-            wr.Write(sep);
-            PrintCasePattern(cp);
-            sep = ", ";
-          }
-          wr.Write(")");
-        }
+        wr.Write(")");
       }
     }
 

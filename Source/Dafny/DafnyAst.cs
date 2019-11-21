@@ -7755,14 +7755,6 @@ namespace Microsoft.Dafny {
       this.body = body;
     }
 
-    public MatchCaseStmt(IToken tok, string id, [Captured] List<CasePattern<BoundVar>> cps, [Captured] List<Statement> body)
-      : base(tok, id, cps) {
-      Contract.Requires(tok != null);
-      Contract.Requires(id != null);
-      Contract.Requires(cce.NonNullElements(cps));
-      Contract.Requires(cce.NonNullElements(body));
-      this.body = body;
-    }
 
     public List<Statement> Body {
       get { return body; }
@@ -10586,12 +10578,11 @@ namespace Microsoft.Dafny {
     public readonly string Id;
     public DatatypeCtor Ctor;  // filled in by resolution
     public List<BoundVar> Arguments; // created by the resolver.
-    public List<CasePattern<BoundVar>> CasePatterns; // generated from parsers. It should be converted to List<BoundVar> during resolver. Invariant:  CasePatterns != null ==> Arguments == null
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(tok != null);
       Contract.Invariant(Id != null);
-      Contract.Invariant(cce.NonNullElements(Arguments) || cce.NonNullElements(CasePatterns));
+      Contract.Invariant(cce.NonNullElements(Arguments));
     }
 
     public MatchCase(IToken tok, string id, [Captured] List<BoundVar> arguments) {
@@ -10601,15 +10592,6 @@ namespace Microsoft.Dafny {
       this.tok = tok;
       this.Id = id;
       this.Arguments = arguments;
-    }
-
-    public MatchCase(IToken tok, string id, [Captured] List<CasePattern<BoundVar>> cps) {
-      Contract.Requires(tok != null);
-      Contract.Requires(id != null);
-      Contract.Requires(cce.NonNullElements(cps));
-      this.tok = tok;
-      this.Id = id;
-      this.CasePatterns = cps;
     }
   }
 
@@ -10630,15 +10612,6 @@ namespace Microsoft.Dafny {
       this.body = body;
     }
 
-    public MatchCaseExpr(IToken tok, string id, [Captured] List<CasePattern<BoundVar>> cps, Expression body)
-      : base(tok, id, cps)
-    {
-      Contract.Requires(tok != null);
-      Contract.Requires(id != null);
-      Contract.Requires(cce.NonNullElements(cps));
-      Contract.Requires(body != null);
-      this.body = body;
-    }
 
     public Expression Body {
       get { return body; }

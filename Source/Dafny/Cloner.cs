@@ -472,14 +472,9 @@ namespace Microsoft.Dafny
 
     public MatchCaseExpr CloneMatchCaseExpr(MatchCaseExpr c) {
       Contract.Requires(c != null);
-      if (c.Arguments != null) {
-        Contract.Assert(c.CasePatterns == null);
-        return new MatchCaseExpr(Tok(c.tok), c.Id, c.Arguments.ConvertAll(CloneBoundVar), CloneExpr(c.Body));
-      } else {
-        Contract.Assert(c.Arguments == null);
-        Contract.Assert(c.CasePatterns != null);
-        return new MatchCaseExpr(Tok(c.tok), c.Id, c.CasePatterns.ConvertAll(CloneCasePattern), CloneExpr(c.Body));
-      }
+      Contract.Assert(c.Arguments != null);
+      return new MatchCaseExpr(Tok(c.tok), c.Id, c.Arguments.ConvertAll(CloneBoundVar), CloneExpr(c.Body));
+
     }
 
   public NestedMatchCaseExpr CloneNestedMatchCaseExpr(NestedMatchCaseExpr c){
@@ -675,14 +670,8 @@ namespace Microsoft.Dafny
 
     public MatchCaseStmt CloneMatchCaseStmt(MatchCaseStmt c) {
       Contract.Requires(c != null);
-      if (c.Arguments != null) {
-        Contract.Assert(c.CasePatterns == null);
-        return new MatchCaseStmt(Tok(c.tok), c.Id, c.Arguments.ConvertAll(CloneBoundVar), c.Body.ConvertAll(CloneStmt));
-      } else {
-        Contract.Assert(c.Arguments == null);
-        Contract.Assert(c.CasePatterns != null);
-        return new MatchCaseStmt(Tok(c.tok), c.Id, c.CasePatterns.ConvertAll(CloneCasePattern), c.Body.ConvertAll(CloneStmt));
-      }
+      Contract.Assert(c.Arguments != null);
+      return new MatchCaseStmt(Tok(c.tok), c.Id, c.Arguments.ConvertAll(CloneBoundVar), c.Body.ConvertAll(CloneStmt));
     }
 
    public ExtendedPattern CloneExtendedPattern(ExtendedPattern pat){
