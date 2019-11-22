@@ -5,6 +5,7 @@ phases:
       dotnet: 2.2
     commands:
       - cd ..
+      - yum install -y nuget
       - npm install bignumber.js
       - pip install lit OutputCheck pyyaml
       - find . -type f
