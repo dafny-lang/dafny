@@ -1355,7 +1355,6 @@ namespace Microsoft.Dafny {
         wr.Write("}");
       } else if (stmt is NestedMatchStmt){
         var s = (NestedMatchStmt)stmt;
-        wr.Write("/* Nested match printing unimplemented */");
         if (DafnyOptions.O.DafnyPrintResolvedFile != null) {
           Contract.Assert(s.ResolvedStatements.Count > 0);  // filled in during resolution
           wr.WriteLine();
@@ -1363,6 +1362,29 @@ namespace Microsoft.Dafny {
             Indent(indent);
             PrintStatement(r, indent);
             wr.WriteLine();
+          }
+        } else {
+          wr.Write("match ");
+          PrintExpression(s.Source, false);
+          if (s.UsesOptionalBraces) {
+            wr.Write(" {");
+          }
+          int caseInd = indent + (s.UsesOptionalBraces ? IndentAmount : 0);
+          foreach (NestedMatchCaseStmt mc in s.Cases) {
+            wr.WriteLine();
+            Indent(caseInd);
+            wr.Write("case {0}", mc.Pat.ToString());
+            wr.Write(" =>");
+            foreach (Statement bs in mc.Body) {
+              wr.WriteLine();
+              Indent(caseInd + IndentAmount);
+              PrintStatement(bs, caseInd + IndentAmount);
+            }
+          }
+          if (s.UsesOptionalBraces) {
+            wr.WriteLine();
+            Indent(indent);
+            wr.Write("}");
           }
         }
 
@@ -1722,7 +1744,26 @@ namespace Microsoft.Dafny {
       } else if (expr is NestedMatchExpr) {
         var e = (NestedMatchExpr)expr;
         if(e.ResolvedExpression == null){
-          Indent(indent);  wr.WriteLine("/* Nested match printing unimplemented */");
+          Indent(indent);
+          var parensNeeded = !isRightmost && !e.UsesOptionalBraces;
+          if (parensNeeded) { wr.Write("("); }
+          wr.Write("match ");
+          PrintExpression(e.Source, isRightmost && e.Cases.Count == 0, false);
+          if (e.UsesOptionalBraces) { wr.WriteLine(" {"); } else if (parensNeeded && e.Cases.Count == 0) { wr.WriteLine(")"); } else { wr.WriteLine(); }
+          int i = 0;
+          int ind = indent + (e.UsesOptionalBraces ? IndentAmount : 0);
+          foreach (var mc in e.Cases) {
+            bool isLastCase = i == e.Cases.Count - 1;
+            Indent(ind);
+            wr.Write("case {0}", mc.Pat.ToString());
+            wr.WriteLine(" =>");
+            PrintExtendedExpr(mc.Body, ind + IndentAmount, isLastCase, isLastCase && (parensNeeded || endWithCloseParen));
+            i++;
+          }
+          if (e.UsesOptionalBraces) {
+            Indent(indent);
+            wr.WriteLine("}");
+          }
         } else {
           PrintExtendedExpr(e.ResolvedExpression, indent, isRightmost, endWithCloseParen);
         }

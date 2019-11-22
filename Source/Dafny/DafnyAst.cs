@@ -10630,6 +10630,9 @@ namespace Microsoft.Dafny {
 public abstract class ExtendedPattern {
   public readonly IToken Tok;
 
+  public abstract override string ToString();
+
+
   public ExtendedPattern(IToken tok){
     Contract.Requires(tok != null);
     this.Tok = tok;
