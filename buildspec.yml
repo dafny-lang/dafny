@@ -4,6 +4,7 @@ phases:
     runtime-versions:
       dotnet: 2.2
     commands:
+      - die
       - cd ..
       - yum install -y nuget
       - npm install bignumber.js
