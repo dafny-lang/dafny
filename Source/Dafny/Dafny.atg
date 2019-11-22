@@ -2581,7 +2581,16 @@ ExistentialGuard<out Expression e, bool allowLambda>
 ExtendedPattern<.out ExtendedPattern pat.>
 = (. IToken id; List<ExtendedPattern> arguments; pat = null; LiteralExpr lit; Expression te;
   .)
-( ConstAtomExpression<out te, false, false> (. if (te is LiteralExpr){
+( IF(la.kind == _openparen)
+    "("                                   (. arguments = new List<ExtendedPattern>(); .)
+      ExtendedPattern<out pat>            (. arguments.Add(pat); .)
+      { "," ExtendedPattern<out pat>      (. arguments.Add(pat); .)
+      }
+    ")"                                   (. id = t;
+                                             theBuiltIns.TupleType(id, arguments.Count, true); // make sure the tuple type exists
+                                             string ctor = BuiltIns.TupleTypeCtorNamePrefix + arguments.Count;  //use the TupleTypeCtors
+                                             pat = new IdPattern(id, ctor, arguments); .)
+|  ConstAtomExpression<out te, false, false> (. if (te is LiteralExpr){
                                                 lit = (LiteralExpr)te;
                                                 pat = new LitPattern(lit.tok, lit);
                                                } else { SemErr(t, "invalid AtomConst used in pattern");
@@ -2589,9 +2598,10 @@ ExtendedPattern<.out ExtendedPattern pat.>
                                              .)
 | Ident<out id>                         (. arguments = new List<ExtendedPattern>(); .)
   [ "("
-    ExtendedPattern<out pat>            (. arguments.Add(pat); .)
-    { "," ExtendedPattern<out pat>      (. arguments.Add(pat); .)
-    }
+    [ ExtendedPattern<out pat>            (. arguments.Add(pat); .)
+      { "," ExtendedPattern<out pat>      (. arguments.Add(pat); .)
+      }
+    ]
   ")"
   ]                                     (. pat = new IdPattern(id, id.val, arguments); .)
 )
@@ -2623,18 +2633,10 @@ NestedCaseStatement<out NestedMatchCaseStmt/*!*/ c>
 = (. Contract.Ensures(Contract.ValueAtReturn(out c) != null);
      IToken/*!*/ x;
      ExtendedPattern/*!*/ pat = null;
-     ExtendedPattern/*!*/ tpat;
      var body = new List<Statement/*!*/>();
   .)
   "case"                      (. x = t; .)
-  ( IF(la.kind == _openparen)
-    "("                                   (. List<ExtendedPattern> arguments = new List<ExtendedPattern>(); .)
-      ExtendedPattern<out tpat>            (. arguments.Add(tpat); .)
-      { "," ExtendedPattern<out tpat>      (. arguments.Add(tpat); .)
-      }
-    ")"                                   (. pat = new IdPattern(t, "", arguments); .)
-  | ExtendedPattern<out pat>             (. .)
-  )
+  ExtendedPattern<out pat>             (. .)
   "=>"
     SYNC  /* this SYNC and the one inside the loop below are used to avoid problems with the IsNotEndOfCase test. The SYNC will
            * skip until the next symbol that can legally occur here, which is either the beginning of a Stmt or whatever is allowed
@@ -3625,18 +3627,10 @@ NestedMatchExpression<out Expression e, bool allowSemi, bool allowLambda, bool a
 NestedCaseExpression<out NestedMatchCaseExpr c, bool allowSemi, bool allowLambda, bool allowBitwiseOps>
 = (. Contract.Ensures(Contract.ValueAtReturn(out c) != null); IToken/*!*/ x;
      ExtendedPattern/*!*/ pat = null;
-     ExtendedPattern/*!*/ tpat;
      Expression/*!*/ body;
   .)
   "case"                      (. x = t; .)
-  ( IF(la.kind == _openparen)
-    "("                                   (. List<ExtendedPattern> arguments = new List<ExtendedPattern>(); .)
-      ExtendedPattern<out tpat>            (. arguments.Add(tpat); .)
-      { "," ExtendedPattern<out tpat>      (. arguments.Add(tpat); .)
-      }
-    ")"                                   (. pat = new IdPattern(t, "", arguments); .)
-  |   ExtendedPattern<out pat>             (. .)
-  )
+  ExtendedPattern<out pat>             (. .)
   "=>"
   Expression<out body, allowSemi, allowLambda, allowBitwiseOps>    (. c = new NestedMatchCaseExpr(x, pat, body); .)
 .

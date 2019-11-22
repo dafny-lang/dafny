@@ -1355,7 +1355,8 @@ namespace Microsoft.Dafny {
         wr.Write("}");
       } else if (stmt is NestedMatchStmt){
         var s = (NestedMatchStmt)stmt;
-        if (DafnyOptions.O.DafnyPrintResolvedFile != null) {
+//        if (DafnyOptions.O.DafnyPrintResolvedFile != null) {
+        if(s.ResolvedStatements != null){
           Contract.Assert(s.ResolvedStatements.Count > 0);  // filled in during resolution
           wr.WriteLine();
           foreach (Statement r in s.ResolvedStatements) {
@@ -2565,9 +2566,23 @@ namespace Microsoft.Dafny {
         if (parensNeeded) { wr.Write(")"); }
       } else if (expr is NestedMatchExpr){
         var e = (NestedMatchExpr)expr;
-        wr.Write("/* Nested match printing unimplemented */");
-        if (DafnyOptions.O.DafnyPrintResolvedFile != null) {
+        if (e.ResolvedExpression != null) {
           PrintExpr(e.ResolvedExpression, contextBindingStrength, fragileContext, isRightmost, isFollowedBySemicolon, indent);
+        } else {
+          var parensNeeded = !isRightmost && !e.UsesOptionalBraces;
+          if (parensNeeded) { wr.Write("("); }
+          wr.Write("match ");
+          PrintExpression(e.Source, isRightmost && e.Cases.Count == 0, !parensNeeded && isFollowedBySemicolon);
+          if (e.UsesOptionalBraces) { wr.Write(" {"); }
+          int i = 0;
+          foreach (var mc in e.Cases) {
+            bool isLastCase = i == e.Cases.Count - 1;
+            wr.Write(" case {0}", mc.Pat.ToString());
+            wr.Write(" => ");
+            PrintExpression(mc.Body, isRightmost && isLastCase, !parensNeeded && isFollowedBySemicolon);
+            i++;
+          }
+          if (e.UsesOptionalBraces) { wr.Write(" }"); } else if (parensNeeded) { wr.Write(")"); }
         }
       } else if (expr is MatchExpr) {
         var e = (MatchExpr)expr;
