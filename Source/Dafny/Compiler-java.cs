@@ -877,14 +877,12 @@ namespace Microsoft.Dafny{
         arrays.Add(type.AsArrayType.Dims);
       }
       if (type.IsDatatype && type.AsDatatype is TupleTypeDecl) {
-        wr.Write($"{DafnyTupleClass(type.AsDatatype.TypeArgs.Count)} {name}");
         tuples.Add(type.AsDatatype.TypeArgs.Count);
-      } else {
-        if (type.IsTypeParameter) {
-          EmitSuppression(wr);
-        }
-        wr.Write("{0} {1}", type != null ? TypeName(type, wr, tok) : "Object", name);
       }
+      if (type.IsTypeParameter) {
+        EmitSuppression(wr);
+      }
+      wr.Write("{0} {1}", type != null ? TypeName(type, wr, tok) : "Object", name);
       if (leaveRoomForRhs){
         Contract.Assert(rhs == null); // follows from precondition
       } else if (rhs != null){
