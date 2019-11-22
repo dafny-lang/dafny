@@ -5,8 +5,8 @@ phases:
       dotnet: 2.2
     commands:
       - cd ..
-      - sudo npm install bignumber.js
-      - sudo pip install lit OutputCheck pyyaml
+      - npm install bignumber.js
+      - pip install lit OutputCheck pyyaml
       - find . -type f
       # Get Boogie
       - git clone https://github.com/boogie-org/boogie.git
