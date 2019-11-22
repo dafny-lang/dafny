@@ -21,7 +21,7 @@ namespace Microsoft.Dafny{
   public class JavaCompiler : Compiler{
     public JavaCompiler(ErrorReporter reporter)
       : base(reporter){
-      IntSelect = ",BigInteger";
+      IntSelect = ",java.math.BigInteger";
       LambdaExecute = ".apply";
     }
 
@@ -48,7 +48,7 @@ namespace Microsoft.Dafny{
     string DafnyTupleClass(int size) => DafnyTupleClassPrefix + size;
 
     string DafnyFunctionIface(int arity) =>
-      arity == 1 ? "Function" : DafnyFunctionIfacePrefix + arity;
+      arity == 1 ? "java.util.function.Function" : DafnyFunctionIfacePrefix + arity;
 
     private String ModuleName;
     private String ModulePath;
@@ -147,7 +147,7 @@ namespace Microsoft.Dafny{
       var indices = new List<string>();
       for (int i = 0; i < lhs.Indices.Count; i++){
         var wIndex = new TargetWriter();
-        wIndex.Write("((BigInteger)");
+        wIndex.Write("((java.math.BigInteger)");
         EmitTupleSelect(tup, i + 1, wIndex);
         wIndex.Write(")");
         indices.Add(wIndex.ToString());
@@ -178,7 +178,7 @@ namespace Microsoft.Dafny{
 
     protected override TargetWriter EmitIngredients(TargetWriter wr, string ingredients, int L, string tupleTypeArgs, ForallStmt s, AssignStmt s0, Expression rhs){
       using (var wrVarInit = wr){
-        wrVarInit.Write($"ArrayList<{DafnyTupleClassPrefix}{L}<{tupleTypeArgs}>> {ingredients} = ");
+        wrVarInit.Write($"java.util.ArrayList<{DafnyTupleClassPrefix}{L}<{tupleTypeArgs}>> {ingredients} = ");
         AddTupleToSet(L);
         EmitEmptyTupleList(tupleTypeArgs, wrVarInit);
       }
@@ -515,12 +515,12 @@ namespace Microsoft.Dafny{
       } else if (xType is CharType) {
         return "Character";
       } else if (xType is IntType || xType is BigOrdinalType) {
-        return "BigInteger";
+        return "java.math.BigInteger";
       } else if (xType is RealType) {
         return DafnyBigRationalClass;
       } else if (xType is BitvectorType) {
         var t = (BitvectorType)xType;
-        return t.NativeType != null ? GetNativeTypeName(t.NativeType) : "BigInteger";
+        return t.NativeType != null ? GetNativeTypeName(t.NativeType) : "java.math.BigInteger";
       } else if (xType.AsNewtype != null) {
         var nativeType = xType.AsNewtype.NativeType;
         if (nativeType != null) {
@@ -699,7 +699,6 @@ namespace Microsoft.Dafny{
       w.WriteLine($"// Dafny class {name} compiled into Java");
       w.WriteLine($"package {ModuleName};");
       w.WriteLine();
-      EmitStandardImports(w);
       EmitImports(w, out _);
       w.WriteLine();
       //TODO: Fix implementations so they do not need this suppression
@@ -717,14 +716,6 @@ namespace Microsoft.Dafny{
         }
       }
       return new ClassWriter(this, w.NewBlock(""));
-    }
-
-    private void EmitStandardImports(TargetWriter wr) {
-      wr.WriteLine("import java.math.BigInteger;");
-      wr.WriteLine("import java.lang.reflect.Array;");
-      wr.WriteLine("import java.util.ArrayList;");
-      wr.WriteLine("import java.util.Arrays;");
-      wr.WriteLine("import java.util.function.Function;");
     }
 
     protected override void EmitLiteralExpr(TextWriter wr, LiteralExpr e) {
@@ -756,25 +747,25 @@ namespace Microsoft.Dafny{
         wr.Write($"new {name}({cast}{intValue}{literalSuffix})");
       } else if (e.Value is BigInteger i) {
         if (i.IsZero) {
-          wr.Write("BigInteger.ZERO");
+          wr.Write("java.math.BigInteger.ZERO");
         } else if (i.IsOne) {
-          wr.Write("BigInteger.ONE");
+          wr.Write("java.math.BigInteger.ONE");
         } else if (long.MinValue <= i && i <= long.MaxValue) {
-          wr.Write($"BigInteger.valueOf({i}L)");
+          wr.Write($"java.math.BigInteger.valueOf({i}L)");
         } else {
-          wr.Write($"new BigInteger(\"{i}\")");
+          wr.Write($"new java.math.BigInteger(\"{i}\")");
         }
       } else if (e.Value is Basetypes.BigDec n){
         if (0 <= n.Exponent){
-          wr.Write($"new {DafnyBigRationalClass}(new BigInteger(\"{n.Mantissa}");
+          wr.Write($"new {DafnyBigRationalClass}(new java.math.BigInteger(\"{n.Mantissa}");
           for (int j = 0; j < n.Exponent; j++){
             wr.Write("0");
           }
-          wr.Write("\"), BigInteger.ONE)");
+          wr.Write("\"), java.math.BigInteger.ONE)");
         } else {
           wr.Write($"new {DafnyBigRationalClass}(");
-          wr.Write($"new BigInteger(\"{n.Mantissa}\")");
-          wr.Write(", new BigInteger(\"1");
+          wr.Write($"new java.math.BigInteger(\"{n.Mantissa}\")");
+          wr.Write(", new java.math.BigInteger(\"1");
           for (int j = n.Exponent; j < 0; j++){
             wr.Write("0");
           }
@@ -899,7 +890,7 @@ namespace Microsoft.Dafny{
       } else if (rhs != null){
         wr.WriteLine($" = {rhs};");
       } else if (type.IsIntegerType) {
-        wr.WriteLine(" = BigInteger.ZERO;");
+        wr.WriteLine(" = java.math.BigInteger.ZERO;");
       } else {
         wr.WriteLine(";");
       }
@@ -945,7 +936,7 @@ namespace Microsoft.Dafny{
         case SpecialField.ID.ArrayLengthInt:
           compiledName = idParam == null ? "length" : "dims" + (int)idParam;
           if (id == SpecialField.ID.ArrayLength) {
-            preString = "BigInteger.valueOf(";
+            preString = "java.math.BigInteger.valueOf(";
             postString = ")";
           }
           break;
@@ -1202,7 +1193,7 @@ namespace Microsoft.Dafny{
       // --- After
       // do the truncation, if needed
       if (bvType.NativeType == null) {
-        wr.Write($").and((BigInteger.ONE.shiftLeft({bvType.Width})).subtract(BigInteger.ONE)))");
+        wr.Write($").and((java.math.BigInteger.ONE.shiftLeft({bvType.Width})).subtract(java.math.BigInteger.ONE)))");
       } else {
         if (bvType.NativeType.Bitwidth != bvType.Width) {
           // print in hex, because that looks nice
@@ -1256,7 +1247,7 @@ namespace Microsoft.Dafny{
       if (bv != null && expr is LiteralExpr literalExpr) {
         // If literal is larger than Java's max int value, make it a Long instead to avoid overflow error
         var suffix = (BigInteger)literalExpr.Value > java_max_int ? "L" : "";
-        wr.Write(bv.NativeType != null ? $"new {GetNativeTypeName(bv.NativeType)}({literalExpr.Value}{suffix})" : $"BigInteger.valueOf({literalExpr.Value}{suffix})");
+        wr.Write(bv.NativeType != null ? $"new {GetNativeTypeName(bv.NativeType)}({literalExpr.Value}{suffix})" : $"java.math.BigInteger.valueOf({literalExpr.Value}{suffix})");
       } else {
         TrParenExpr(expr, wr, inLetExprBody);
       }
@@ -1278,7 +1269,6 @@ namespace Microsoft.Dafny{
       wr.WriteLine($"// Dafny class {DtT_protected} compiled into Java");
       wr.WriteLine($"package {ModuleName};");
       wr.WriteLine();
-      EmitStandardImports(wr);
       EmitImports(wr, out _);
       wr.WriteLine();
       // from here on, write everything into the new block created here:
@@ -1344,9 +1334,9 @@ namespace Microsoft.Dafny{
       }
       if (dt.HasFinitePossibleValues) {
         Contract.Assert(dt.TypeArgs.Count == 0);
-        var w = wr.NewNamedBlock($"public static ArrayList<{DtT_protected}> AllSingletonConstructors()");
+        var w = wr.NewNamedBlock($"public static java.util.ArrayList<{DtT_protected}> AllSingletonConstructors()");
         string arraylist = "singleton_iterator";
-        w.WriteLine($"ArrayList<{DtT_protected}> {arraylist} = new ArrayList<>();");
+        w.WriteLine($"java.util.ArrayList<{DtT_protected}> {arraylist} = new java.util.ArrayList<>();");
         foreach (var ctor in dt.Ctors) {
           Contract.Assert(ctor.Formals.Count == 0);
           w.WriteLine("{0}.add(new {1}{2}());", arraylist, DtT_protected, dt.IsRecordType ? "" : $"_{ctor.CompileName}");
@@ -1399,7 +1389,6 @@ namespace Microsoft.Dafny{
         wr.WriteLine($"// Dafny class {DtCtorDeclarationName(ctor, dt.TypeArgs)} compiled into Java");
         wr.WriteLine($"package {ModuleName};");
         wr.WriteLine();
-        EmitStandardImports(wr);
         EmitImports(wr, out _);
         wr.WriteLine();
         EmitSuppression(wr);
@@ -1415,7 +1404,6 @@ namespace Microsoft.Dafny{
         wr.WriteLine($"// Dafny class {dt.CompileName}__Lazy compiled into Java");
         wr.WriteLine($"package {ModuleName};");
         wr.WriteLine();
-        EmitStandardImports(wr);
         EmitImports(wr, out _);
         wr.WriteLine();
         EmitSuppression(wr); //TODO: Fix implementations so they do not need this suppression
@@ -1886,7 +1874,7 @@ namespace Microsoft.Dafny{
 
     protected override void EmitSetComprehension(TargetWriter wr, Expression expr, String collection_name){
       var e = (SetComprehension) expr;
-      wr.Write($"ArrayList<{TypeName(((SetType)expr.Type).Arg, wr, null)}> {collection_name} = ");
+      wr.Write($"java.util.ArrayList<{TypeName(((SetType)expr.Type).Arg, wr, null)}> {collection_name} = ");
       EmitCollectionBuilder_New(e.Type.AsSetType, e.tok, wr);
       wr.WriteLine(";");
     }
@@ -2010,13 +1998,13 @@ namespace Microsoft.Dafny{
             TrParenExpr("", expr, wr, inLetExprBody);
             wr.Write(".cardinality()");
           } else if (expr.Type.AsCollectionType is SetType || expr.Type.AsCollectionType is MapType) {
-            TrParenExpr("BigInteger.valueOf(", expr, wr, inLetExprBody);
+            TrParenExpr("java.math.BigInteger.valueOf(", expr, wr, inLetExprBody);
             wr.Write(".size())");
           } else if (expr.Type.IsArrayType) {
-            TrParenExpr("BigInteger.valueOf(", expr, wr, inLetExprBody);
+            TrParenExpr("java.math.BigInteger.valueOf(", expr, wr, inLetExprBody);
             wr.Write(".length)");
           } else {
-            TrParenExpr("BigInteger.valueOf(", expr, wr, inLetExprBody);
+            TrParenExpr("java.math.BigInteger.valueOf(", expr, wr, inLetExprBody);
             wr.Write(".length())");
           }
           break;
@@ -2400,12 +2388,12 @@ namespace Microsoft.Dafny{
       } else if (xType is CharType) {
         return "'D'";
       } else if (xType is IntType || xType is BigOrdinalType) {
-        return "BigInteger.ZERO";
+        return "java.math.BigInteger.ZERO";
       } else if (xType is RealType) {
         return $"{DafnyBigRationalClass}.ZERO";
       } else if (xType is BitvectorType) {
         var t = (BitvectorType)xType;
-        return t.NativeType != null ? $"new {GetNativeTypeName(t.NativeType)}(0)" : "BigInteger.ZERO";
+        return t.NativeType != null ? $"new {GetNativeTypeName(t.NativeType)}(0)" : "java.math.BigInteger.ZERO";
       } else if (xType is CollectionType collType) {
         string collName = CollectionTypeUnparameterizedName(collType);
         string argNames = TypeName(collType.Arg, wr, tok);
@@ -2461,7 +2449,7 @@ namespace Microsoft.Dafny{
               }
               newarr += ")";
               // Java class strings are written in the format "class x", so we use substring(6) to get the classname "x"
-              newarr += $"Array.newInstance({DafnyHelpersClass}.getClassUnsafe(s{udt.TypeArgs[0]}.substring(6))";
+              newarr += $"java.lang.reflect.Array.newInstance({DafnyHelpersClass}.getClassUnsafe(s{udt.TypeArgs[0]}.substring(6))";
               for (int i = 0; i < arrayClass.Dims; i++) {
                 newarr += ", 0";
               }
@@ -2527,7 +2515,6 @@ namespace Microsoft.Dafny{
       w.WriteLine($"// Dafny trait {name} compiled into Java");
       w.WriteLine($"package {ModuleName};");
       w.WriteLine();
-      EmitStandardImports(w);
       EmitImports(w, out _);
       w.WriteLine();
       EmitSuppression(w); //TODO: Fix implementations so they do not need this suppression
@@ -2548,7 +2535,6 @@ namespace Microsoft.Dafny{
       w.WriteLine($"// Dafny trait {name} compiled into Java");
       w.WriteLine($"package {ModuleName};");
       w.WriteLine();
-      EmitStandardImports(w);
       EmitImports(w, out _);
       w.WriteLine();
       w.Write($"public class _Companion_{name}");
@@ -2671,8 +2657,6 @@ namespace Microsoft.Dafny{
       var wrTop = new TargetWriter();
       wrTop.WriteLine("package dafny;");
       wrTop.WriteLine();
-      wrTop.WriteLine("import java.lang.reflect.Array;");
-      wrTop.WriteLine();
       var wr = wrTop.NewBlock("public class ArrayInit" + i);
       EmitSuppression(wr);
       wr.Write("public static<T> T");
@@ -2693,7 +2677,7 @@ namespace Microsoft.Dafny{
         for (int j = 0; j < i; j++) {
           body.Write("[]");
         }
-        body.Write(")Array.newInstance(cls");
+        body.Write(")java.lang.reflect.Array.newInstance(cls");
         for (int j = 0; j < i; j++) {
           body.Write($", size{j}");
         }
@@ -2723,7 +2707,7 @@ namespace Microsoft.Dafny{
 
     protected override void EmitCollectionBuilder_New(CollectionType ct, Bpl.IToken tok, TargetWriter wr) {
       if (ct is SetType) {
-        wr.Write("new ArrayList<>()");
+        wr.Write("new java.util.ArrayList<>()");
       } else if (ct is MapType mt) {
         wr.Write($"new {DafnyMapClass}<>()");
       } else {
@@ -2799,12 +2783,12 @@ namespace Microsoft.Dafny{
       var w = cw.StaticMemberWriter;
       if (nt.NativeType != null) {
         var nativeType = GetNativeTypeName(nt.NativeType);
-        var wEnum = w.NewNamedBlock($"public static ArrayList<{nativeType}> IntegerRange(BigInteger lo, BigInteger hi)");
-        wEnum.WriteLine($"ArrayList<{nativeType}> arr = new ArrayList<>();");
+        var wEnum = w.NewNamedBlock($"public static java.util.ArrayList<{nativeType}> IntegerRange(java.math.BigInteger lo, java.math.BigInteger hi)");
+        wEnum.WriteLine($"java.util.ArrayList<{nativeType}> arr = new java.util.ArrayList<>();");
         var numberval = "intValue()";
         if (nativeType == "Byte" || nativeType == "Short")
           numberval = $"{nativeType.ToLower()}Value()";
-        wEnum.WriteLine($"for (BigInteger j = lo; j.compareTo(hi) < 0; j.add(BigInteger.ONE)) {{ arr.add(new {nativeType}(j.{numberval})); }}");
+        wEnum.WriteLine($"for (java.math.BigInteger j = lo; j.compareTo(hi) < 0; j.add(java.math.BigInteger.ONE)) {{ arr.add(new {nativeType}(j.{numberval})); }}");
         wEnum.WriteLine("return arr;");
       }
       if (nt.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
@@ -2847,7 +2831,7 @@ namespace Microsoft.Dafny{
           }
           wr.Write(")");
           // Java class strings are written in the format "class x", so we use substring(6) to get the classname "x".
-          wr.Write($"Array.newInstance({DafnyHelpersClass}.getClassUnsafe(s{type.ToString()}.substring(6))");
+          wr.Write($"java.lang.reflect.Array.newInstance({DafnyHelpersClass}.getClassUnsafe(s{type.ToString()}.substring(6))");
           string pref = ", ";
           foreach (var dim in dimensions) {
             wr.Write(pref);
@@ -2965,13 +2949,13 @@ namespace Microsoft.Dafny{
     }
 
     protected override BlockTargetWriter CreateForLoop(string indexVar, string bound, TargetWriter wr) {
-      return wr.NewNamedBlock($"for (BigInteger {indexVar} = BigInteger.ZERO; {indexVar}.compareTo(BigInteger.valueOf({bound})) < 0; {indexVar} = {indexVar}.add(BigInteger.ONE))");
+      return wr.NewNamedBlock($"for (java.math.BigInteger {indexVar} = java.math.BigInteger.ZERO; {indexVar}.compareTo(java.math.BigInteger.valueOf({bound})) < 0; {indexVar} = {indexVar}.add(java.math.BigInteger.ONE))");
     }
 
     protected override string GetHelperModuleName() => DafnyHelpersClass;
 
     protected override void EmitEmptyTupleList(string tupleTypeArgs, TargetWriter wr){
-      wr.WriteLine("new ArrayList<>();");
+      wr.WriteLine("new java.util.ArrayList<>();");
     }
 
     protected override void AddTupleToSet(int i) {
@@ -3001,36 +2985,36 @@ namespace Microsoft.Dafny{
     }
 
     protected override TargetWriter EmitCoercionToNativeInt(TargetWriter wr) {
-      wr.Write("((BigInteger)");
+      wr.Write("((java.math.BigInteger)");
       var w = wr.Fork();
       wr.Write(").intValue()");
       return w;
     }
 
     protected override BlockTargetWriter CreateDoublingForLoop(string indexVar, int start, TargetWriter wr) {
-      return wr.NewNamedBlock($"for (BigInteger {indexVar} = BigInteger.valueOf({start}); ; {indexVar} = {indexVar}.multiply(new BigInteger(\"2\")))");
+      return wr.NewNamedBlock($"for (java.math.BigInteger {indexVar} = java.math.BigInteger.valueOf({start}); ; {indexVar} = {indexVar}.multiply(new java.math.BigInteger(\"2\")))");
     }
 
     protected override void EmitIsZero(string varName, TargetWriter wr) {
-      wr.Write($"{varName}.equals(BigInteger.ZERO)");
+      wr.Write($"{varName}.equals(java.math.BigInteger.ZERO)");
     }
 
     protected override void EmitDecrementVar(string varName, TargetWriter wr) {
-      wr.WriteLine($"{varName} = {varName}.subtract(BigInteger.ONE);");
+      wr.WriteLine($"{varName} = {varName}.subtract(java.math.BigInteger.ONE);");
     }
 
     protected override void EmitIncrementVar(string varName, TargetWriter wr) {
-      wr.WriteLine($"{varName} = {varName}.add(BigInteger.ONE);");
+      wr.WriteLine($"{varName} = {varName}.add(java.math.BigInteger.ONE);");
     }
 
     protected override void EmitSingleValueGenerator(Expression e, bool inLetExprBody, string type, TargetWriter wr) {
-      wr.Write("Arrays.asList");
+      wr.Write("java.util.Arrays.asList");
       TrParenExpr(e, wr, inLetExprBody);
     }
 
     protected override BlockTargetWriter CreateIIFE1(int source, Type resultType, Bpl.IToken resultTok, string bvName, TargetWriter wr) {
-      wr.Write($"((Function<BigInteger, {TypeName(resultType, wr, resultTok)}>)(({bvName}) ->");
-      var w = wr.NewBigExprBlock("", $")).apply(BigInteger.valueOf({source}))");
+      wr.Write($"((java.util.function.Function<java.math.BigInteger, {TypeName(resultType, wr, resultTok)}>)(({bvName}) ->");
+      var w = wr.NewBigExprBlock("", $")).apply(java.math.BigInteger.valueOf({source}))");
       return w;
     }
 
@@ -3058,13 +3042,13 @@ namespace Microsoft.Dafny{
           Contract.Assert(AsNativeType(e.ToType) == null);
           wr.Write($"new {DafnyBigRationalClass}(");
           if (AsNativeType(e.E.Type) != null) {
-            wr.Write("BigInteger.valueOf");
+            wr.Write("java.math.BigInteger.valueOf");
           }
           TrParenExpr(e.E, wr, inLetExprBody);
           if (!e.E.Type.IsIntegerType) {
             wr.Write(".intValue()");
           }
-          wr.Write(", BigInteger.ONE)");
+          wr.Write(", java.math.BigInteger.ONE)");
         } else if (e.ToType.IsCharType) {
           wr.Write($"{DafnyHelpersClass}.createCharacter(");
           TrParenExpr(e.E, wr, inLetExprBody);
@@ -3077,7 +3061,7 @@ namespace Microsoft.Dafny{
           if (fromNative == null && toNative == null) {
             if (e.E.Type.IsCharType) {
               // char -> big-integer (int or bv or ORDINAL)
-              wr.Write("BigInteger.valueOf");
+              wr.Write("java.math.BigInteger.valueOf");
               TrParenExpr(e.E, wr, inLetExprBody);
             } else {
               // big-integer (int or bv) -> big-integer (int or bv or ORDINAL), so identity will do
@@ -3090,7 +3074,7 @@ namespace Microsoft.Dafny{
               TrParenExpr(e.E, wr, inLetExprBody);
               wr.Write(".asBigInteger()");
             } else {
-              wr.Write("BigInteger.valueOf(");
+              wr.Write("java.math.BigInteger.valueOf(");
               TrParenExpr(e.E, wr, inLetExprBody);
               if (!e.E.Type.IsIntegerType) {
                 wr.Write(".longValue()");
@@ -3113,13 +3097,13 @@ namespace Microsoft.Dafny{
                 TrParenExpr("", u.E, wr, inLetExprBody);
                 wr.Write(".cardinality()");
               } else if (u.Type.AsCollectionType is SetType || u.Type.AsCollectionType is MapType) {
-                TrParenExpr("BigInteger.valueOf(", u.E, wr, inLetExprBody);
+                TrParenExpr("java.math.BigInteger.valueOf(", u.E, wr, inLetExprBody);
                 wr.Write(".size())");
               } else if (u.Type.IsArrayType) {
-                TrParenExpr("BigInteger.valueOf(", u.E, wr, inLetExprBody);
+                TrParenExpr("java.math.BigInteger.valueOf(", u.E, wr, inLetExprBody);
                 wr.Write(".length)");
               } else {
-                TrParenExpr("BigInteger.valueOf(", u.E, wr, inLetExprBody);
+                TrParenExpr("java.math.BigInteger.valueOf(", u.E, wr, inLetExprBody);
                 wr.Write(".length())");
               }
             } else if (m != null && m.MemberName == "Length" && m.Obj.Type.IsArrayType) {
