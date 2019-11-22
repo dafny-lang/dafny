@@ -23,7 +23,7 @@ phases:
   build:
     commands:
       - msbuild Source/Dafny.sln
-      - cd dafny/Test
+      - cd Test
       # The /optimize flag does not work on mono
       - find . -name "*.dfy" -exec sed -i 's!/optimize !!g' {} +
       - lit --time-tests -v .
