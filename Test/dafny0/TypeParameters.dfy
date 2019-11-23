@@ -382,3 +382,22 @@ module ParseGenerics {
     assert {:fuel Many<real>, 10} Many(xs) == 18;  // yes
   }
 }
+
+// -------------- regression test: method call where callee is in a different class with type parameters ------
+
+module TypeSubstitutionInModifiesClause {
+  class C<T> {
+    ghost const Repr: set<object>
+    constructor ()
+      ensures fresh(Repr)
+    method Update()
+      modifies Repr
+  }
+
+  method Client() {
+    var c := new C<int>();
+    // The following call once caused malformed Boogie, because of a missing type substitution.
+    c.Update();
+  }
+}
+

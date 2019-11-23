@@ -11864,7 +11864,9 @@ namespace Microsoft.Dafny {
 
       // Check modifies clause of a subcall is a subset of the current frame.
       if (codeContext is IMethodCodeContext) {
-        CheckFrameSubset(tok, callee.Mod.Expressions, receiver, substMap, etran, builder, "call may violate context's modifies clause", null);
+        var s = new Substituter(null, new Dictionary<IVariable, Expression>(), tySubst);
+        CheckFrameSubset(tok, callee.Mod.Expressions.ConvertAll(s.SubstFrameExpr),
+          receiver, substMap, etran, builder, "call may violate context's modifies clause", null);
       }
 
       // Check termination
