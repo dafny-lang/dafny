@@ -9496,8 +9496,15 @@ namespace Microsoft.Dafny
       }
       var sourceType = PartiallyResolveTypeForMemberSelection(s.Source.tok, s.Source.Type).NormalizeExpand();
 //      var dtd = sourceType.AsDatatype;
+
+      errorCount = reporter.Count(ErrorLevel.Error);
       CheckLinearNestedMatchStmt(sourceType, s);
+      if(reporter.Count(ErrorLevel.Error) != errorCount) return;
+
+      errorCount = reporter.Count(ErrorLevel.Error);
       CompileNestedMatchStmt(s, codeContext);
+      if(reporter.Count(ErrorLevel.Error) != errorCount) return;
+
       foreach(var us in s.ResolvedStatements){
         ResolveStatement(us, codeContext);
       }
@@ -10243,11 +10250,9 @@ void DebugCRBranches(MatchTempInfo mti, List<Expression> matchees, List<RBranch>
             throw new InvalidOperationException("in Variable case with a constant pattern");
           }
           var item1  = (IdPattern)PB.Item1;
+
           if(item1.Arguments.Count != 0){
-            if(mti.Debug) Console.WriteLine("{0}Type mismatch", new String('\t',mti.DebugLevel));
-            reporter.Error(MessageSource.Resolver, mti.BranchTok[PB.Item2.BranchID], "Type mismatch: expected constructor of type {0}.  Got {1}.", dtd.Name, item1.Id);
-            // TODO: For some reason, this error gets suppressed...
-            throw new InvalidOperationException(string.Format("Type mismatch: expected constructor of type {0}.  Got {1}.", dtd.Name, item1.Id));
+            reporter.Error(MessageSource.Resolver, item1.Tok, "Type mismatch: expected constructor of type {0}.  Got {1}.", dtd.Name, item1.Id);
           }
           // Optimization: Don't let-bind if name is a wildcard, either in source or generated
           LetBindNonWildCard(PB.Item2, item1.Id, currMatchee);
@@ -10391,6 +10396,7 @@ void CheckLinearVarPattern(Type type, IdPattern pat, bool debug){
     reporter.Error(MessageSource.Resolver, pat.Tok , "Pattern {0} is not a constructor of the given type {1}", pat.Id, type);
   }
   if (scope.FindInCurrentScope(pat.Id) != null) {
+    var itok = pat.Tok;
     reporter.Error(MessageSource.Resolver, pat.Tok , "Duplicate parameter name: {0}", pat.Id);
   } else if(pat.Id.StartsWith("_")){
     // Wildcard, ignore
@@ -10475,7 +10481,7 @@ void CheckLinearExtendedPattern(Type type, ExtendedPattern pat, bool debug){
         }
       } else {
         // else applied to the wrong number of arguments
-        reporter.Error(MessageSource.Resolver, idpat.Tok, "datatype {0} of arity {1} is applied to {2} argument(s)", idpat.Id, (idpat.Arguments == null? 0:idpat.Arguments.Count), ctor.Formals.Count);
+        reporter.Error(MessageSource.Resolver, idpat.Tok, "constructor {0} of arity {2} is applied to {1} argument(s)", idpat.Id, (idpat.Arguments == null? 0:idpat.Arguments.Count), ctor.Formals.Count);
 
       }
     } else{
@@ -13288,12 +13294,15 @@ void CheckLinearNestedMatchStmt(Type dtd, NestedMatchStmt ms){
         return;
       }
       var sourceType = PartiallyResolveTypeForMemberSelection(me.Source.tok, me.Source.Type).NormalizeExpand();
+
+      errorCount = reporter.Count(ErrorLevel.Error);
       CheckLinearNestedMatchExpr(sourceType, me);
-      int prevErrorCount = reporter.Count(ErrorLevel.Error);
+      if(reporter.Count(ErrorLevel.Error) != errorCount) return;
+
+      errorCount = reporter.Count(ErrorLevel.Error);
       CompileNestedMatchExpr(me, opts.codeContext);
-      if(reporter.Count(ErrorLevel.Error) != prevErrorCount){
-        return;
-      }
+      if(reporter.Count(ErrorLevel.Error) != errorCount) return;
+
       ResolveExpression(me.ResolvedExpression, opts);
     }
 
