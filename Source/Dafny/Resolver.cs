@@ -9504,11 +9504,9 @@ namespace Microsoft.Dafny
       errorCount = reporter.Count(ErrorLevel.Error);
       CompileNestedMatchStmt(s, codeContext);
       if(reporter.Count(ErrorLevel.Error) != errorCount) return;
-
       foreach(var us in s.ResolvedStatements){
         ResolveStatement(us, codeContext);
       }
-
     }
 
     void ResolveMatchStmt(MatchStmt s, ICodeContext codeContext) {
@@ -10292,7 +10290,7 @@ RBranchExpr RBranchOfNestedMatchCaseExpr(int branchid, NestedMatchCaseExpr x){
 
 
 void CompileNestedMatchExpr(NestedMatchExpr e, ICodeContext codeContext) {
-  bool debug = false;
+  bool debug = true;
   if(debug) Console.WriteLine("In CompileNestedMatchExpr");
   if(e.ResolvedExpression != null){
     //post-resolve, skip
@@ -10329,7 +10327,7 @@ void CompileNestedMatchExpr(NestedMatchExpr e, ICodeContext codeContext) {
      throw new InvalidOperationException("Returned container should be a CExpr");
   }
 
-  if(debug) Console.WriteLine("Done CompileNestedMatchExpr with {1} error(s): \n {0}", Printer.ExtendedExprToString(e), reporter.Count(ErrorLevel.Error));
+  if(debug) Console.WriteLine("Done CompileNestedMatchExpr at line {1}: \n {0}", Printer.ExtendedExprToString(e), mti.Tok.line);
 }
 
 
@@ -10339,7 +10337,7 @@ void CompileNestedMatchExpr(NestedMatchExpr e, ICodeContext codeContext) {
 /// On output, the NestedMatchStmt has field ResolvedStatement filled with semantically equivalent code
 /// </summary>
 void CompileNestedMatchStmt(NestedMatchStmt s, ICodeContext codeContext) {
-  bool debug = false;
+  bool debug = true;
   if(debug) Console.WriteLine("In CompileNestedMatchStmt");
 
   if(s.ResolvedStatements != null){
@@ -10387,7 +10385,7 @@ void CompileNestedMatchStmt(NestedMatchStmt s, ICodeContext codeContext) {
     // rb should be a StmtContainer with a MatchCase as Body, this should be unreachable
      throw new InvalidOperationException("Returned container should be a StmtContainer");
   }
-    if(debug) Console.WriteLine("Done CompileNestedMatchStmt: \n {0}", Printer.StatementToString(s));
+    if(debug) Console.WriteLine("Done CompileNestedMatchStmt at line {1}: \n {0}", Printer.StatementToString(s), mti.Tok.line);
 
 }
 
