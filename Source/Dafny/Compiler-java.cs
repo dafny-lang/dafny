@@ -3091,21 +3091,13 @@ namespace Microsoft.Dafny{
               // Optimize constant to avoid intermediate BigInteger
               wr.Write("(" + literal + toNativeSuffix + ")");
             } else if (u != null && u.Op == UnaryOpExpr.Opcode.Cardinality) {
-              if (u.Type.AsCollectionType is MultiSetType) {
-                TrParenExpr("", u.E, wr, inLetExprBody);
-                wr.Write(".cardinality()");
-              } else if (u.Type.AsCollectionType is SetType || u.Type.AsCollectionType is MapType) {
-                TrParenExpr("java.math.BigInteger.valueOf(", u.E, wr, inLetExprBody);
-                wr.Write(".size())");
-              } else if (u.Type.IsArrayType) {
-                TrParenExpr("java.math.BigInteger.valueOf(", u.E, wr, inLetExprBody);
-                wr.Write(".length)");
-              } else {
-                TrParenExpr("java.math.BigInteger.valueOf(", u.E, wr, inLetExprBody);
-                wr.Write(".length())");
-              }
+              // Optimize || to avoid intermediate BigInteger
+              EmitCastIfSmallSignedType(toNative, wr);
+              TrParenExpr("", u.E, wr, inLetExprBody);
+              wr.Write(".cardinalityInt()");
             } else if (m != null && m.MemberName == "Length" && m.Obj.Type.IsArrayType) {
-              // Optimize .Length to avoid intermediate BigInteger
+              EmitCastIfSmallSignedType(toNative, wr);
+              // Optimize .length to avoid intermediate BigInteger
               TrParenExpr(m.Obj, wr, inLetExprBody);
               wr.Write(".length");
             } else {
@@ -3152,6 +3144,13 @@ namespace Microsoft.Dafny{
         Contract.Assert(e.ToType.IsNumericBased(Type.NumericPersuation.Int));
         // identity will do
         TrExpr(e.E, wr, inLetExprBody);
+      }
+    }
+
+    private void EmitCastIfSmallSignedType(NativeType nt, TargetWriter wr) {
+      switch (nt.Sel) {
+        case NativeType.Selection.SByte: wr.Write("(byte) "); break;
+        case NativeType.Selection.Short: wr.Write("(short) "); break;
       }
     }
 
