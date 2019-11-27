@@ -7399,6 +7399,25 @@ namespace Microsoft.Dafny {
                     Bpl.Expr.Le(x, Bpl.Expr.Add(maxInteger, y))
                   ), "Substraction will overflow"));
                   break;
+                case BinaryExpr.ResolvedOpcode.Add:
+                  // (x > 0 ^ y > 0) => (x + y <= int32.maxValue)
+                  builder.Add(Assert(expr.tok, Bpl.Expr.Imp(
+                    Bpl.Expr.And(
+                      Bpl.Expr.Gt(x, zero),
+                      Bpl.Expr.Gt(y, zero)
+                    ),
+                     Bpl.Expr.Le(x, Bpl.Expr.Sub(maxInteger, y))
+                  ), "Adition will overflow"));
+                  // (x < 0 ^ y < 0) => (x + y >= int32.minValue)
+                  builder.Add(Assert(expr.tok, Bpl.Expr.Imp(
+                    Bpl.Expr.And(
+                      Bpl.Expr.Lt(x, zero),
+                      Bpl.Expr.Lt(y, zero)
+                    ),
+                    Bpl.Expr.Ge(x, Bpl.Expr.Sub(minInteger, y))
+                  ), "Adition will underflow"));
+                  break;
+                    
                 case BinaryExpr.ResolvedOpcode.Mul:
                   // (x > 0 ^ y > 0) => (x * y <= int32.maxValue)
                   var sameSign = Bpl.Expr.Or(
@@ -7420,6 +7439,7 @@ namespace Microsoft.Dafny {
                     Bpl.Expr.Not(sameSign),
                     Bpl.Expr.Ge(x, Bpl.Expr.Div(minInteger, y))
                   ), "Multiplication will overflow"));
+                  break;
                 default:
                   break;
               }
