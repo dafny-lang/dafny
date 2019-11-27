@@ -7374,7 +7374,29 @@ namespace Microsoft.Dafny {
           case BinaryExpr.ResolvedOpcode.Sub:
           case BinaryExpr.ResolvedOpcode.Mul:
             CheckWellformed(e.E1, options, locals, builder, etran);
-            if (e.ResolvedOp == BinaryExpr.ResolvedOpcode.Sub && e.E0.Type.IsBigOrdinalType) {
+            if (e.ResolvedOp == BinaryExpr.ResolvedOpcode.Sub && e.E0.Type.IsIntegerType && e.E1.Type.IsIntegerType) {
+              var zero = Bpl.Expr.Literal(0);
+              var x = etran.TrExpr(e.E0);
+              var y = etran.TrExpr(e.E1);
+              var minInteger = Bpl.Expr.Literal(Int32.MinValue);
+              var maxInteger = Bpl.Expr.Literal(Int32.MaxValue);
+              // (x < 0 ^ y > 0) => (x - y >= int32.minValue)
+              builder.Add(Assert(expr.tok, Bpl.Expr.Imp(
+                Bpl.Expr.And(
+                  Bpl.Expr.Lt(x, zero),
+                  Bpl.Expr.Gt(y, zero)
+                ),
+                Bpl.Expr.Ge(x, Bpl.Expr.Add(minInteger, y))
+              ), "Substraction will underflow"));
+              // (x > 0 ^ y < 0) => (x - y <= int32.maxValue)
+              builder.Add(Assert(expr.tok, Bpl.Expr.Imp(
+                Bpl.Expr.And(
+                  Bpl.Expr.Gt(x, zero),
+                  Bpl.Expr.Lt(y, zero)
+                ),
+                Bpl.Expr.Le(x, Bpl.Expr.Add(maxInteger,y))
+              ), "Substraction will overflow"));
+            } else if (e.ResolvedOp == BinaryExpr.ResolvedOpcode.Sub && e.E0.Type.IsBigOrdinalType) {
               var rhsIsNat = FunctionCall(expr.tok, "ORD#IsNat", Bpl.Type.Bool, etran.TrExpr(e.E1));
               builder.Add(Assert(expr.tok, rhsIsNat, "RHS of ORDINAL subtraction must be a natural number, but the given RHS might be larger"));
               var offset0 = FunctionCall(expr.tok, "ORD#Offset", Bpl.Type.Int, etran.TrExpr(e.E0));
