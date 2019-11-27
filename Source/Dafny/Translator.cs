@@ -7375,13 +7375,13 @@ namespace Microsoft.Dafny {
           case BinaryExpr.ResolvedOpcode.Mul:
             CheckWellformed(e.E1, options, locals, builder, etran);
             if (e.E0.Type.IsIntegerType && e.E1.Type.IsIntegerType) {
+              var zero = Bpl.Expr.Literal(0);
+              var x = etran.TrExpr(e.E0);
+              var y = etran.TrExpr(e.E1);
+              var minInteger = Bpl.Expr.Literal(Int32.MinValue);
+              var maxInteger = Bpl.Expr.Literal(Int32.MaxValue);
               switch (e.ResolvedOp) {
                 case BinaryExpr.ResolvedOpcode.Sub:
-                  var zero = Bpl.Expr.Literal(0);
-                  var x = etran.TrExpr(e.E0);
-                  var y = etran.TrExpr(e.E1);
-                  var minInteger = Bpl.Expr.Literal(Int32.MinValue);
-                  var maxInteger = Bpl.Expr.Literal(Int32.MaxValue);
                   // (x < 0 ^ y > 0) => (x - y >= int32.minValue)
                   builder.Add(Assert(expr.tok, Bpl.Expr.Imp(
                     Bpl.Expr.And(
@@ -7396,9 +7396,30 @@ namespace Microsoft.Dafny {
                       Bpl.Expr.Gt(x, zero),
                       Bpl.Expr.Lt(y, zero)
                     ),
-                    Bpl.Expr.Le(x, Bpl.Expr.Add(maxInteger,y))
+                    Bpl.Expr.Le(x, Bpl.Expr.Add(maxInteger, y))
                   ), "Substraction will overflow"));
                   break;
+                case BinaryExpr.ResolvedOpcode.Mul:
+                  // (x > 0 ^ y > 0) => (x * y <= int32.maxValue)
+                  var sameSign = Bpl.Expr.Or(
+                    Bpl.Expr.And(
+                      Bpl.Expr.Gt(x, zero),
+                      Bpl.Expr.Gt(y, zero)
+                    ),
+                    Bpl.Expr.And(
+                      Bpl.Expr.Lt(x, zero),
+                      Bpl.Expr.Lt(y, zero)
+                    )
+                  );
+                  builder.Add(Assert(expr.tok, Bpl.Expr.Imp(
+                    sameSign,
+                    Bpl.Expr.Le(x, Bpl.Expr.Div(maxInteger, y))
+                  ), "Multiplication will overflow"));
+                  // (x < 0 ^ y < 0) => (x * y >= int32.minValue)
+                  builder.Add(Assert(expr.tok, Bpl.Expr.Imp(
+                    Bpl.Expr.Not(sameSign),
+                    Bpl.Expr.Ge(x, Bpl.Expr.Div(minInteger, y))
+                  ), "Multiplication will overflow"));
                 default:
                   break;
               }
