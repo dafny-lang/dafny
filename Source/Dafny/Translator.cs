@@ -7376,12 +7376,12 @@ namespace Microsoft.Dafny {
             CheckWellformed(e.E1, options, locals, builder, etran);
             if (e.E0.Type.IsIntegerType && e.E1.Type.IsIntegerType) {
               switch (e.ResolvedOp) {
-                case BinaryExpr.ResolvedOpcode.Sub:
                   var zero = Bpl.Expr.Literal(0);
                   var x = etran.TrExpr(e.E0);
                   var y = etran.TrExpr(e.E1);
                   var minInteger = Bpl.Expr.Literal(Int32.MinValue);
                   var maxInteger = Bpl.Expr.Literal(Int32.MaxValue);
+                case BinaryExpr.ResolvedOpcode.Sub:
                   // (x < 0 ^ y > 0) => (x - y >= int32.minValue)
                   builder.Add(Assert(expr.tok, Bpl.Expr.Imp(
                     Bpl.Expr.And(
@@ -7399,6 +7399,23 @@ namespace Microsoft.Dafny {
                     Bpl.Expr.Le(x, Bpl.Expr.Add(maxInteger,y))
                   ), "Substraction will overflow"));
                   break;
+                case BinaryExpr.ResolvedOpcode.Add:
+                 // (x > 0 ^ y > 0) => (x + y <= int32.maxValue)
+                  builder.Add(Assert(expr.tok, Bpl.Expr.Imp(
+                    Bpl.Expr.And(
+                      Bpl.Expr.Gt(x, zero),
+                      Bpl.Expr.Gt(y, zero)
+                    ),
+                    Bpl.Expr.Le(x, Bpl.Expr.Sub(maxInteger, y))
+                  ), "Adition will overflow"));
+                  // (x < 0 ^ y < 0) => (x + y >= int32.minValue)
+                  builder.Add(Assert(expr.tok, Bpl.Expr.Imp(
+                    Bpl.Expr.And(
+                      Bpl.Expr.Lt(x, zero),
+                      Bpl.Expr.Lt(y, zero)
+                    ),
+                    Bpl.Expr.Ge(x, Bpl.Expr.Sub(minInteger, y))
+                  ), "Adition will underflow"));
                 default:
                   break;
               }
