@@ -7398,6 +7398,9 @@ namespace Microsoft.Dafny {
                     ),
                     Bpl.Expr.Le(x, Bpl.Expr.Add(maxInteger,y))
                   ), "Substraction will overflow"));
+                  break;
+                default:
+                  break;
               }
             } else if (e.ResolvedOp == BinaryExpr.ResolvedOpcode.Sub && e.E0.Type.IsBigOrdinalType) {
               var rhsIsNat = FunctionCall(expr.tok, "ORD#IsNat", Bpl.Type.Bool, etran.TrExpr(e.E1));
