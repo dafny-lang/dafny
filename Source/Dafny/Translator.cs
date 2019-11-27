@@ -7419,7 +7419,6 @@ namespace Microsoft.Dafny {
                   break;
                     
                 case BinaryExpr.ResolvedOpcode.Mul:
-                  // (x > 0 ^ y > 0) => (x * y <= int32.maxValue)
                   var sameSign = Bpl.Expr.Or(
                     Bpl.Expr.And(
                       Bpl.Expr.Gt(x, zero),
@@ -7430,15 +7429,32 @@ namespace Microsoft.Dafny {
                       Bpl.Expr.Lt(y, zero)
                     )
                   );
+                  var xGreaterThanZero = Bpl.Expr.Gt(x, zero);
+                  var xLessThanZero = Bpl.Expr.Lt(x, zero);
+                  var yDiffZero = Bpl.Expr.Or(
+                    Bpl.Expr.Gt(y, zero),
+                    Bpl.Expr.Lt(y, zero)
+                  );
+
+                  // (x > 0 ^ y > 0) => (x * y <= int32.maxValue)
                   builder.Add(Assert(expr.tok, Bpl.Expr.Imp(
-                    sameSign,
+                    Bpl.Expr.And(yDiffZero, Bpl.Expr.And(sameSign, xGreaterThanZero)),
                     Bpl.Expr.Le(x, Bpl.Expr.Div(maxInteger, y))
                   ), "Multiplication will overflow"));
-                  // (x < 0 ^ y < 0) => (x * y >= int32.minValue)
                   builder.Add(Assert(expr.tok, Bpl.Expr.Imp(
-                    Bpl.Expr.Not(sameSign),
-                    Bpl.Expr.Ge(x, Bpl.Expr.Div(minInteger, y))
+                    Bpl.Expr.And(yDiffZero, Bpl.Expr.And(sameSign, xLessThanZero)),
+                    Bpl.Expr.Ge(x, Bpl.Expr.Div(maxInteger, y))
                   ), "Multiplication will overflow"));
+
+                  // (x < 0 ^ y > 0) => (x * y >= int32.minValue)
+                  builder.Add(Assert(expr.tok, Bpl.Expr.Imp(
+                    Bpl.Expr.And(yDiffZero, Bpl.Expr.And(Bpl.Expr.Not(sameSign), xGreaterThanZero)),
+                    Bpl.Expr.Le(x, Bpl.Expr.Div(minInteger, y))
+                  ), "Multiplication will underflow"));
+                  builder.Add(Assert(expr.tok, Bpl.Expr.Imp(
+                    Bpl.Expr.And(yDiffZero, Bpl.Expr.And(Bpl.Expr.Not(sameSign), xLessThanZero)),
+                    Bpl.Expr.Ge(x, Bpl.Expr.Div(minInteger, y))
+                  ), "Multiplication will underflow"));
                   break;
                 default:
                   break;
