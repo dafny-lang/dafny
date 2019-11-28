@@ -721,8 +721,10 @@ namespace Microsoft.Dafny
       }
 
       var customReceiver = NeedsCustomReceiver(m);
-
-      wr.Write("{0}{1}{2}{3} {4}",
+      var isTest = Attributes.Contains(m.Attributes, "test");
+      
+      wr.Write("{0}{1}{2}{3}{4} {5}",
+        isTest ? "[Xunit.Fact] " : "",
         createBody ? "public " : "",
         m.IsStatic || customReceiver ? "static " : "",
         hasDllImportAttribute ? "extern " : "",
@@ -771,8 +773,9 @@ namespace Microsoft.Dafny
       var hasDllImportAttribute = ProcessDllImport(member, wr);
 
       var customReceiver = NeedsCustomReceiver(member);
-
-      wr.Write("{0}{1}{2}{3} {4}", createBody ? "public " : "", isStatic || customReceiver ? "static " : "", hasDllImportAttribute ? "extern " : "", TypeName(resultType, wr, tok), name);
+      var isTest = Attributes.Contains(member.Attributes, "test");
+      
+      wr.Write("{0}{1}{2}{3}{4} {5}", isTest ? "[Xunit.Fact] " : "", createBody ? "public " : "", isStatic || customReceiver ? "static " : "", hasDllImportAttribute ? "extern " : "", TypeName(resultType, wr, tok), name);
       if (typeArgs != null && typeArgs.Count != 0) {
         wr.Write("<{0}>", TypeParameters(typeArgs));
       }
