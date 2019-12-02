@@ -58,7 +58,6 @@ namespace Microsoft.Dafny{
     private HashSet<int> functions = new HashSet<int>();
     private HashSet<int> arrays = new HashSet<int>();
     private HashSet<int> arrayinits = new HashSet<int>();
-    private HashSet<string> NeedsInputStrings = new HashSet<string>();
 
     private readonly List<Import> Imports = new List<Import>();
 
@@ -283,18 +282,20 @@ namespace Microsoft.Dafny{
 
     protected class ClassWriter : IClassWriter {
       public readonly JavaCompiler Compiler;
-      public readonly BlockTargetWriter InstanceMemberWriter;
-      public readonly BlockTargetWriter StaticMemberWriter;
+      public readonly TargetWriter InstanceMemberWriter;
+      public readonly TargetWriter StaticMemberWriter;
+      public readonly TargetWriter CtorBodyWriter;
 
-      public ClassWriter(JavaCompiler compiler, BlockTargetWriter instanceMemberWriter, BlockTargetWriter staticMemberWriter = null) {
+      public ClassWriter(JavaCompiler compiler, TargetWriter instanceMemberWriter, TargetWriter ctorBodyWriter, BlockTargetWriter staticMemberWriter = null) {
         Contract.Requires(compiler != null);
         Contract.Requires(instanceMemberWriter != null);
         this.Compiler = compiler;
         this.InstanceMemberWriter = instanceMemberWriter;
+        this.CtorBodyWriter = ctorBodyWriter;
         this.StaticMemberWriter = staticMemberWriter == null ? instanceMemberWriter : staticMemberWriter;
       }
 
-      public BlockTargetWriter Writer(bool isStatic) {
+      public TargetWriter Writer(bool isStatic) {
         return isStatic ? StaticMemberWriter : InstanceMemberWriter;
       }
 
@@ -316,7 +317,7 @@ namespace Microsoft.Dafny{
         return Compiler.CreateGetterSetter(name, resultType, tok, isStatic, createBody, out setterWriter, Writer(isStatic));
       }
       public void DeclareField(string name, bool isStatic, bool isConst, Type type, Bpl.IToken tok, string rhs) {
-        Compiler.DeclareField(name, isStatic, isConst, type, tok, rhs, Writer(isStatic));
+        Compiler.DeclareField(name, isStatic, isConst, type, tok, rhs, this);
       }
       public TextWriter/*?*/ ErrorWriter() => InstanceMemberWriter;
 
@@ -471,18 +472,16 @@ namespace Microsoft.Dafny{
       }
     }
 
-    protected void DeclareField(string name, bool isStatic, bool isConst, Type type, Bpl.IToken tok, string rhs, TargetWriter wr) {
+    protected void DeclareField(string name, bool isStatic, bool isConst, Type type, Bpl.IToken tok, string rhs, ClassWriter cw) {
       if (isStatic){
-        var r = RemoveParams((rhs != null) ? rhs : DefaultValue(type, wr, tok));
-        var t = RemoveParams(TypeName(type, wr, tok));
-        wr.WriteLine($"public static {t} {name} = {r};");
+        var r = RemoveParams((rhs != null) ? rhs : DefaultValue(type, cw.StaticMemberWriter, tok));
+        var t = RemoveParams(TypeName(type, cw.StaticMemberWriter, tok));
+        cw.StaticMemberWriter.WriteLine($"public static {t} {name} = {r};");
       }
       else{
-        wr.WriteLine("public {0} {1} = {2};", TypeName(type, wr, tok), name, rhs ?? DefaultValue(type, wr, tok));
-        //If the previous field is s*, then we know it is a string for getDefault, which requires warnings to be suppressed before the line
-        if (name.StartsWith("s") && name.Length == 2) {
-          EmitSuppression(wr);
-        }
+        Contract.Assert(cw.CtorBodyWriter != null, "Unexpected instance field");
+        cw.InstanceMemberWriter.WriteLine("public {0} {1};", TypeName(type, cw.InstanceMemberWriter, tok), name);
+        cw.CtorBodyWriter.WriteLine("this.{0} = {1};", name, rhs ?? DefaultValue(type, cw.CtorBodyWriter, tok, inAutoInitContext: true));
       }
     }
 
@@ -687,10 +686,34 @@ namespace Microsoft.Dafny{
       return s;
     }
 
+    //
+    // An example to show how type parameters are dealt with:
+    //
+    //   class Class<T /* needs zero initializer */, U /* does not */> {
+    //     private String sT; // type descriptor for T
+    //
+    //     // Fields are assigned in the constructor because some will
+    //     // depend on a type parameter
+    //     public T t;
+    //     public U u;
+    //
+    //     public Class(String sT) {
+    //       this.sT = sT;
+    //       this.t = dafny.Helpers.getDefault(sT);
+    //       // Note: The field must be assigned a real value before being read!
+    //       this.u = null;
+    //     }
+    //
+    //     public __ctor(U u) {
+    //       this.u = u;
+    //     }
+    //   }
+    //
     protected override IClassWriter CreateClass(string name, bool isExtern, string /*?*/ fullPrintName,
       List<TypeParameter> /*?*/ typeParameters, List<Type> /*?*/ superClasses, Bpl.IToken tok, TargetWriter wr) {
       if (isExtern) {
-        return new ClassWriter(this, new BlockTargetWriter(TargetWriter.IndentAmount, "", ""));
+        return new ClassWriter(this, new BlockTargetWriter(TargetWriter.IndentAmount, "", ""),
+          new BlockTargetWriter(TargetWriter.IndentAmount, "", ""));
       }
       var filename = $"{ModulePath}/{name}.java";
       var w = wr.NewFile(filename);
@@ -715,7 +738,23 @@ namespace Microsoft.Dafny{
           sep = ", ";
         }
       }
-      return new ClassWriter(this, w.NewBlock(""));
+      var wBody = w.NewBlock("");
+      var wTypeFields = wBody.Fork();
+
+      var relevantTypeParams =
+        typeParameters?.FindAll(tp => tp.Characteristics.MustSupportZeroInitialization);
+      wBody.Write($"public {name}(");
+      if (relevantTypeParams != null) {
+        wBody.Write(Util.Comma(relevantTypeParams, tp => $"String s{IdName(tp)}"));
+      }
+      var wCtorBody = wBody.NewBigBlock(")", "");
+      if (relevantTypeParams != null) {
+        foreach (var tp in relevantTypeParams) {
+          wTypeFields.WriteLine($"private String s{IdName(tp)};");
+          wCtorBody.WriteLine($"this.s{IdName(tp)} = s{IdName(tp)};");
+        }
+      }
+      return new ClassWriter(this, wBody, wCtorBody);
     }
 
     protected override void EmitLiteralExpr(TextWriter wr, LiteralExpr e) {
@@ -1368,7 +1407,10 @@ namespace Microsoft.Dafny{
         }
       }
 
-      return new ClassWriter(this, btw);
+      // FIXME: This is dodgy.  We can set the constructor body writer to null
+      // only because we don't expect to use it, which is only because we don't
+      // expect there to be fields.
+      return new ClassWriter(this, btw, ctorBodyWriter: null);
     }
 
     void CompileDatatypeConstructors(DatatypeDecl dt, TargetWriter wrx) {
@@ -1797,8 +1839,8 @@ namespace Microsoft.Dafny{
     protected override void EmitNew(Type type, Bpl.IToken tok, CallStmt initCall, TargetWriter wr){
       var ctor = (Constructor) initCall?.Method; // correctness of cast follows from precondition of "EmitNew"
       wr.Write($"new {TypeName(type, wr, tok)}(");
-      if (type is UserDefinedType definedType && NeedsInputStrings.Contains(definedType.CompileName)) {
-        EmitRuntimeTypeDescriptors(definedType.TypeArgs, tok, wr);
+      if (type is UserDefinedType definedType) {
+        EmitRuntimeTypeDescriptors(definedType.ResolvedClass.TypeArgs, definedType.TypeArgs, tok, wr);
       }
       if (ctor != null && ctor.IsExtern(out _, out _)) {
         // the arguments of any external constructor are placed here
@@ -1816,18 +1858,25 @@ namespace Microsoft.Dafny{
     }
 
 
-    private void EmitRuntimeTypeDescriptors(List<Type> typeArgs, Bpl.IToken tok, TargetWriter wr) {
+    private void EmitRuntimeTypeDescriptors(List<TypeParameter> typeParams, List<Type> typeArgs, Bpl.IToken tok, TargetWriter wr) {
+      Contract.Assert(typeParams.Count == typeArgs.Count);
+
       var sep = "";
-      foreach (var actual in typeArgs) {
-        SplitType(TypeName(actual, wr, tok), out _, out var n);
-        if (actual.IsDatatype){
-          wr.Write($"{sep}{n}.defaultInstanceName");
-        } else if (actual.IsTypeParameter) {
-          wr.Write($"s{n}");
-        } else {
-          wr.Write($"{sep}{n}.class.toString()");
+      for (var i = 0; i < typeParams.Count; i++) {
+        var tp = typeParams[i];
+        var actual = typeArgs[i];
+
+        if (tp.Characteristics.MustSupportZeroInitialization) {
+          SplitType(TypeName(actual, wr, tok), out _, out var n);
+          if (actual.IsDatatype){
+            wr.Write($"{sep}{n}.defaultInstanceName");
+          } else if (actual.IsTypeParameter) {
+            wr.Write($"s{n}");
+          } else {
+            wr.Write($"{sep}{n}.class.toString()");
+          }
+          sep = ", ";
         }
-        sep = ", ";
       }
     }
 
@@ -1894,12 +1943,6 @@ namespace Microsoft.Dafny{
           modules.Add(m);
         }
       }
-    }
-
-    protected override void EmitTypeParams(IClassWriter classWriter, List<TypeParameter> l, Field f, TextWriter errorWr){
-      l.Add(f.Type.AsTypeParameter);
-      classWriter.DeclareField($"s{f.Type.AsTypeParameter.Name}", false, false, Type.String(), null, "null");
-      classWriter.DeclareField(IdName(f), f.IsStatic, false, f.Type, f.tok, DefaultValue(f.Type, errorWr, f.tok, true));
     }
 
     protected override void EmitAssignment(out TargetWriter wLhs, Type /*?*/ lhsType, out TargetWriter wRhs, Type /*?*/ rhsType, TargetWriter wr) {
@@ -2402,7 +2445,12 @@ namespace Microsoft.Dafny{
       }
       var udt = (UserDefinedType)xType;
       if (udt.ResolvedParam != null) {
-        return $"({type}) {DafnyHelpersClass}.getDefault(s{type})";
+        if (!udt.ResolvedParam.Characteristics.MustSupportZeroInitialization) {
+          Contract.Assert(inAutoInitContext);
+          return "null";
+        } else {
+          return $"({type}) {DafnyHelpersClass}.getDefault(s{type})";
+        }
       }
       var cl = udt.ResolvedClass;
       Contract.Assert(cl != null);
@@ -2537,7 +2585,8 @@ namespace Microsoft.Dafny{
       w.WriteLine();
       w.Write($"public class _Companion_{name}");
       var staticMemberWriter = w.NewBlock("");
-      return new ClassWriter(this, instanceMemberWriter, staticMemberWriter);
+      var ctorBodyWriter = staticMemberWriter.NewBlock($"public _Companion_{name}()");
+      return new ClassWriter(this, instanceMemberWriter, ctorBodyWriter, staticMemberWriter);
     }
 
     protected override void EmitDestructor(string source, Formal dtor, int formalNonGhostIndex, DatatypeCtor ctor, List<Type> typeArgs, Type bvType, TargetWriter wr){
@@ -2591,17 +2640,6 @@ namespace Microsoft.Dafny{
     public void CompileDafnyArrays(string path) {
       foreach(int i in arrays){
         CreateDafnyArrays(i, path);
-      }
-    }
-
-    protected override void CreateDefaultConstructor(TopLevelDeclWithMembers c, IClassWriter cw, List<TypeParameter> l) {
-      var w = ((ClassWriter) cw).CreateConstructor(c, l);
-      NeedsInputStrings.Add(c.CompileName);
-      if (w != null) {
-        foreach(TypeParameter t in l) {
-          w.WriteLine($"this.s{t.Name} = s{t.Name};");
-          w.WriteLine($"{t.Name.ToLower()} = ({t.Name}) {DafnyHelpersClass}.getDefault(s{t.Name});");
-        }
       }
     }
 

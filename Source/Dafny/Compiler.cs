@@ -1012,7 +1012,6 @@ namespace Microsoft.Dafny {
         }
       }
 
-      List<TypeParameter> l = new List<TypeParameter>();
       foreach (MemberDecl member in c.Members) {
         if (member is Field) {
           var f = (Field)member;
@@ -1082,8 +1081,6 @@ namespace Microsoft.Dafny {
           } else if (c is TraitDecl && !FieldsInTraits && !f.IsStatic) {
             TargetWriter wSet;
             classWriter.CreateGetterSetter(IdName(f), f.Type, f.tok, false, false, member, out wSet);
-          } else if (c is ClassDecl && f.Type.IsTypeParameter) {
-            EmitTypeParams(classWriter, l, f, errorWr);
           } else {
             classWriter.DeclareField(IdName(f), f.IsStatic, false, f.Type, f.tok, DefaultValue(f.Type, errorWr, f.tok, true));
           }
@@ -1137,22 +1134,8 @@ namespace Microsoft.Dafny {
           Contract.Assert(false); throw new cce.UnreachableException();  // unexpected member
         }
       }
-      if (l.Count > 0){
-        CreateDefaultConstructor(c, classWriter, l);
-      }
 
       thisContext = null;
-    }
-
-    protected virtual void CreateDefaultConstructor(TopLevelDeclWithMembers c, IClassWriter cw, List<TypeParameter> l) {
-      Contract.Requires(c != null);
-      Contract.Requires(cw != null);
-    }
-
-    protected virtual void EmitTypeParams(IClassWriter classWriter, List<TypeParameter> l, Field f, TextWriter errorWr) {
-      classWriter.DeclareField(IdName(f), f.IsStatic, false, f.Type, f.tok,
-        DefaultValue(f.Type, errorWr, f.tok, true));
-
     }
 
     void CheckHandleWellformed(ClassDecl cl, TextWriter/*?*/ errorWr) {
