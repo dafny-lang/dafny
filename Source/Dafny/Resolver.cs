@@ -9994,8 +9994,7 @@ void DebugCRBranches(MatchTempInfo mti, List<Expression> matchees, List<RBranch>
 }
 
  /// <summary>
-/// Purpose: create a flattened MatchStmt or MatchExpr with disjoint cases
-/// Status: Need to implemented constant matching (i.e. when HeadPattern is a LitPattern)
+/// Purpose: create a decision tree with flattened MatchStmt (or MatchExpr) with disjoint cases and if-constructs
 /// Start with a list of n matchees and list of m branches, each with n patterns and a body
 /// 1 - if m = 0, then no original branch exists for the current case
 /// 2 - if n = 0, return the body of the first branch
