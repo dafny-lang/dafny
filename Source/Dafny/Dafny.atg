@@ -432,6 +432,26 @@ bool IsNotEndOfCase() {
   return la.kind != _EOF && la.kind != _rbrace && la.kind != _case;
 }
 
+/* Check if the following has a bind "<-" before any "do", ";", "{" or "}" */
+bool IsDoBind(){
+  scanner.ResetPeek();
+  Token x;
+  while(true){
+    x = scanner.Peek();
+    switch(x.kind){
+      case _lbrace:
+      case _rbrace:
+      case _semi:
+      case _EOF:
+        return false;
+      case _larrow:
+        return true;
+      default:
+        continue;
+    }
+  }
+}
+
 /* The following is the largest lookahead there is. It needs to check if what follows
  * can be nothing but "<" Type { "," Type } ">".
  */
@@ -722,6 +742,7 @@ TOKENS
   doublecolon = "::".
   gets = ":=".
   boredSmiley = ":|".
+  larrow = "<-".
   bullet = '\u2022'.
   dot = '.'.
   backtick = "`".
@@ -3507,13 +3528,12 @@ DoBinding<.out Tuple<bool, CasePattern<BoundVar>, Expression> bind.>
     Expression e;
     bind = null;
  .)
- ( ">>="
+ ( IF(IsDoBind())
    CasePattern<out pat>
    "<-"
    Expression<out e, false, true>   (. bind = new Tuple<bool, CasePattern<BoundVar>,Expression>(true, pat, e);
                                     .)
- | ">>"
-    Expression<out e, false, true>      (. bind = new Tuple<bool, CasePattern<BoundVar>,Expression>(false, null, e);
+ | Expression<out e, false, true>      (. bind = new Tuple<bool, CasePattern<BoundVar>,Expression>(false, null, e);
                                     .)
 
  ).
@@ -3523,14 +3543,12 @@ DoNotation<IToken t, out Expression e, bool allowSemi, bool allowLambda, bool al
 = (. IToken x = t;
     Tuple<bool, CasePattern<BoundVar>,Expression> bind;
      List<Tuple<bool, CasePattern<BoundVar>,Expression>> parsedBindings = new List<Tuple<bool, CasePattern<BoundVar>,Expression>>();
-     Expression lastExpr;
   .)
-  { DoBinding<out bind>              (. parsedBindings.Add(bind); .)
-    ";"
-  }
-  Expression<out lastExpr, false, true>
+  DoBinding<out bind>              (. parsedBindings.Add(bind); .)
+    {  ";" DoBinding<out bind>             (. parsedBindings.Add(bind); .)
+    }
 
-  (. e = new DoNotationExpr(x, parsedBindings, lastExpr); .)
+  (. e = new DoNotationExpr(x, parsedBindings); .)
   .
 
 LetExprWithLHS<out Expression e, bool allowSemi, bool allowLambda, bool allowBitwiseOps>

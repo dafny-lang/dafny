@@ -9765,14 +9765,11 @@ namespace Microsoft.Dafny {
 
     public List<Tuple<bool, CasePattern<BoundVar>,Expression>> BindExprs;
 
-    public Expression LastExpr;
     public Expression ResolvedExpression;
 
-    public DoNotationExpr(IToken tok, List<Tuple<bool, CasePattern<BoundVar>,Expression>> parsed, Expression lastExpr): base(tok){
+    public DoNotationExpr(IToken tok, List<Tuple<bool, CasePattern<BoundVar>,Expression>> parsed): base(tok){
       Contract.Requires(parsed != null);
-      Contract.Requires(lastExpr != null);
       BindExprs = parsed;
-      LastExpr = lastExpr;
     }
 
   }
