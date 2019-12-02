@@ -776,7 +776,7 @@ namespace Microsoft.Dafny
       var customReceiver = NeedsCustomReceiver(member);
       
       AddTestCheckerIfNeeded(name, member, wr);
-      wr.Write("{0}{1}{2}{3}  {4}", createBody ? "public " : "", isStatic || customReceiver ? "static " : "", hasDllImportAttribute ? "extern " : "", TypeName(resultType, wr, tok), name);
+      wr.Write("{0}{1}{2}{3} {4}", createBody ? "public " : "", isStatic || customReceiver ? "static " : "", hasDllImportAttribute ? "extern " : "", TypeName(resultType, wr, tok), name);
       if (typeArgs != null && typeArgs.Count != 0) {
         wr.Write("<{0}>", TypeParameters(typeArgs));
       }
