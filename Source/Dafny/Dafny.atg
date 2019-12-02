@@ -3470,6 +3470,10 @@ EndlessExpression<out Expression e, bool allowSemi, bool allowLambda, bool allow
     SetComprehensionExpr<x, true, out e, allowSemi, allowLambda, allowBitwiseOps>
   | "iset"                          (. x = t; .)
     SetComprehensionExpr<x, false, out e, allowSemi, allowLambda, true>
+  | "do"                            (. x = t; .)
+    "{"
+    DoNotation<x, out e, true, true, true>
+    "}"
   | StmtInExpr<out s>
     Expression<out e, allowSemi, allowLambda, allowBitwiseOps>    (. e = new StmtExpr(s.Tok, s, e); .)
   | LetExpr<out e, allowSemi, allowLambda, allowBitwiseOps>
@@ -3496,6 +3500,38 @@ LetExpr<out Expression e, bool allowSemi, bool allowLambda, bool allowBitwiseOps
   ( LetExprWithLHS<out e, allowSemi, allowLambda, allowBitwiseOps>
   | LetExprWithoutLHS<out e, allowSemi, allowLambda, allowBitwiseOps>
   ).
+
+DoBinding<.out Tuple<bool, CasePattern<BoundVar>, Expression> bind.>
+= (.
+    CasePattern<BoundVar> pat;
+    Expression e;
+    bind = null;
+ .)
+ ( ">>="
+   CasePattern<out pat>
+   "<-"
+   Expression<out e, false, true>   (. bind = new Tuple<bool, CasePattern<BoundVar>,Expression>(true, pat, e);
+                                    .)
+ | ">>"
+    Expression<out e, false, true>      (. bind = new Tuple<bool, CasePattern<BoundVar>,Expression>(false, null, e);
+                                    .)
+
+ ).
+
+
+DoNotation<IToken t, out Expression e, bool allowSemi, bool allowLambda, bool allowBitwiseOps>
+= (. IToken x = t;
+    Tuple<bool, CasePattern<BoundVar>,Expression> bind;
+     List<Tuple<bool, CasePattern<BoundVar>,Expression>> parsedBindings = new List<Tuple<bool, CasePattern<BoundVar>,Expression>>();
+     Expression lastExpr;
+  .)
+  { DoBinding<out bind>              (. parsedBindings.Add(bind); .)
+    ";"
+  }
+  Expression<out lastExpr, false, true>
+
+  (. e = new DoNotationExpr(x, parsedBindings, lastExpr); .)
+  .
 
 LetExprWithLHS<out Expression e, bool allowSemi, bool allowLambda, bool allowBitwiseOps>
 = (. IToken x = null;
