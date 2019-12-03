@@ -432,6 +432,14 @@ bool IsNotEndOfCase() {
   return la.kind != _EOF && la.kind != _rbrace && la.kind != _case;
 }
 
+/* Checks if the expression starts with "var" (i.e. a let expression with a lhs) */
+bool IsLetExpr(){
+   scanner.ResetPeek();
+  Token x;
+  x = scanner.Peek();
+  return (la.kind == _var || (la.kind == _ghost && x.kind == _var));
+}
+
 /* Check if the following has a bind "<-" before any "do", ";", "{" or "}" */
 bool IsDoBind(){
   scanner.ResetPeek();
@@ -3534,6 +3542,13 @@ DoBinding<.out Tuple<bool, CasePattern<BoundVar>, Expression> bind.>
    "<-"
    Expression<out e, false, true>   (. bind = new Tuple<bool, CasePattern<BoundVar>,Expression>(true, pat, e);
                                     .)
+ | IF(IsLetExpr())
+  ["ghost"]
+  "var"
+  CasePattern<out pat>
+  ":="
+  Expression<out e, false, true> (. bind = new Tuple<bool, CasePattern<BoundVar>,Expression>(false, pat, e); .)
+
  | Expression<out e, false, true>      (. bind = new Tuple<bool, CasePattern<BoundVar>,Expression>(false, null, e);
                                     .)
 

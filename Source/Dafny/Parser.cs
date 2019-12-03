@@ -542,6 +542,14 @@ bool IsNotEndOfCase() {
   return la.kind != _EOF && la.kind != _rbrace && la.kind != _case;
 }
 
+/* Checks if the expression starts with "var" (i.e. a let expression with a lhs) */
+bool IsLetExpr(){
+   scanner.ResetPeek();
+  Token x;
+  x = scanner.Peek();
+  return (la.kind == _var || (la.kind == _ghost && x.kind == _var));
+}
+
 /* Check if the following has a bind "<-" before any "do", ";", "{" or "}" */
 bool IsDoBind(){
   scanner.ResetPeek();
@@ -5599,6 +5607,15 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, st
 			Expression(out e, false, true);
 			bind = new Tuple<bool, CasePattern<BoundVar>,Expression>(true, pat, e);
 
+		} else if (IsLetExpr()) {
+			if (la.kind == 74) {
+				Get();
+			}
+			Expect(62);
+			CasePattern(out pat);
+			Expect(29);
+			Expression(out e, false, true);
+			bind = new Tuple<bool, CasePattern<BoundVar>,Expression>(false, pat, e);
 		} else if (StartOf(8)) {
 			Expression(out e, false, true);
 			bind = new Tuple<bool, CasePattern<BoundVar>,Expression>(false, null, e);

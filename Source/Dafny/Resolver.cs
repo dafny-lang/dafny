@@ -12338,8 +12338,56 @@ namespace Microsoft.Dafny
       return LetPatIn(tok, lhs, rhs, body);
     }
 
+/// <summary>
+/// Desugar "do { exprs}" into
+/// [[y <- expr; exprs]] => Bind(expr, y => [[exprs]])
+/// [[pat <- expr; exprs]] => match expr with
+///                            | pat => [[exprs]]
+///                            | #f =>  fail "Didn't match pat"
+/// [[ expr]] => expr
+/// [[expr; exprs]] => Bind(expr, _ => [[exprs]])
+/// For the moment, we are ignoring case
+///  [[let pat := expr; exprs]] => let pat := expr in [[exprs]]
+/// To convert this, we will need to modify the parser
+/// EG: have a flag indo, allow parsing of <- when in-do,
+/// </summary>
     public void ResolveDoNotationExpr(DoNotationExpr e){
-      Console.WriteLine("Resolving Do: {0}", Printer.ExprToString(e));
+      Console.WriteLine("Resolving Do of size {1}: {0}", Printer.ExprToString(e), e.BindExprs.Count);
+      if(e.ResolvedExpression != null){
+        // Already resolved
+        return;
+      }
+
+      if(e.BindExprs == null || e.BindExprs.Count == 0){
+        reporter.Error(MessageSource.Resolver, e.tok, "Empty do-expression");
+        return;
+      }
+
+      // Remove the last Expr, throw an error if it is a monadic bind
+      var lastTup = e.BindExprs.Last();
+      var cBindExprs = e.BindExprs.Select(x => x).ToList();
+      cBindExprs.RemoveAt(cBindExprs.Count - 1);
+
+      if(lastTup.Item1){
+        reporter.Error(MessageSource.Resolver, lastTup.Item3.tok, "Last expression in a do-expression should not be a monadic bind");
+      }
+      Expression lastExpr = lastTup.Item3;
+
+      // Build the resolved expression starting from the tail of cBindExprs
+      while(cBindExprs.Count != 0){
+        var cBind = cBindExprs.Last();
+        cBindExprs.RemoveAt(cBindExprs.Count - 1);
+        if(cBind.Item1){
+          reporter.Error(MessageSource.Resolver, cBind.Item3.tok, "Resolving Do Notation: Monadic bind");
+        } else if(cBind.Item3 is LetExpr){
+          reporter.Error(MessageSource.Resolver, cBind.Item3.tok, "Resolving Do Notation: Let bind");
+        } else {
+          reporter.Error(MessageSource.Resolver, cBind.Item3.tok, "Resolving Do Notation: Expr");
+        }
+        return;
+      }
+
+
       throw new NotImplementedException("Resolving Do Notation");
     }
 
