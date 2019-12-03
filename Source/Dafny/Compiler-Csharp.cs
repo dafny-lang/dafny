@@ -35,7 +35,9 @@ namespace Microsoft.Dafny
       wr.WriteLine("using System;");
       wr.WriteLine("using System.Numerics;");
       EmitDafnySourceAttribute(program, wr);
-      ReadRuntimeSystem("DafnyRuntime.cs", wr);
+      if (!DafnyOptions.O.UseRuntimeLib) {
+        ReadRuntimeSystem("DafnyRuntime.cs", wr);
+      }
     }
 
     void EmitDafnySourceAttribute(Program program, TextWriter wr) {
@@ -722,6 +724,7 @@ namespace Microsoft.Dafny
 
       var customReceiver = NeedsCustomReceiver(m);
 
+      AddTestCheckerIfNeeded(m.Name, m, wr);
       wr.Write("{0}{1}{2}{3} {4}",
         createBody ? "public " : "",
         m.IsStatic || customReceiver ? "static " : "",
@@ -771,7 +774,8 @@ namespace Microsoft.Dafny
       var hasDllImportAttribute = ProcessDllImport(member, wr);
 
       var customReceiver = NeedsCustomReceiver(member);
-
+      
+      AddTestCheckerIfNeeded(name, member, wr);
       wr.Write("{0}{1}{2}{3} {4}", createBody ? "public " : "", isStatic || customReceiver ? "static " : "", hasDllImportAttribute ? "extern " : "", TypeName(resultType, wr, tok), name);
       if (typeArgs != null && typeArgs.Count != 0) {
         wr.Write("<{0}>", TypeParameters(typeArgs));
@@ -2417,6 +2421,21 @@ namespace Microsoft.Dafny
         outputWriter.WriteLine(e.ToString());
       }
       return false;
+    }
+
+    private void AddTestCheckerIfNeeded(string name, Declaration decl, TargetWriter wr)
+    {
+      if (Attributes.Contains(decl.Attributes, "test")) {
+        // TODO: The resolver needs to check the assumptions about the declaration
+        // (i.e. must be public and static, must return a "result type", etc.)
+        wr.WriteLine("[Xunit.Fact]");
+        wr.WriteLine("public static void {0}_CheckForFailureForXunit()", name);
+        wr.WriteLine("{");
+        wr.WriteLine("  var result = {0}();", name);
+        wr.WriteLine("  Xunit.Assert.False(result.IsFailure(), \"Dafny test failed: \" + result);");
+        wr.WriteLine("}");
+        wr.WriteLine("");
+      }
     }
   }
 }
