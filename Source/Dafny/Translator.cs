@@ -18041,6 +18041,34 @@ namespace Microsoft.Dafny {
       }
 
       /// <summary>
+      /// Return a list of local variables, of the same length as 'vars' but with possible substitutions.
+      /// For any change necessary, update 'substMap' to reflect the new substitution; the caller is responsible for
+      /// undoing these changes once the updated 'substMap' has been used.
+      /// If no changes are necessary, the list returned is exactly 'vars' and 'substMap' is unchanged.
+      /// </summary>
+      protected virtual List<LocalVariable> CreateLocalVarSubstitutions(List<LocalVariable> vars, bool forceSubstitutionOfVars) {
+        bool anythingChanged = false;
+        var newVars = new List<LocalVariable>();
+        foreach (var v in vars) {
+          var tt = Resolver.SubstType(v.OptionalType, typeMap);
+          if (!forceSubstitutionOfVars && tt == v.OptionalType) {
+            newVars.Add(v);
+          } else {
+            anythingChanged = true;
+            var newVar = new LocalVariable(v.Tok, v.EndTok, v.Name, tt, v.IsGhost);
+            newVar.type = tt;  // resolve here
+            newVars.Add(newVar);
+            // update substMap to reflect the new LocalVariable substitutions
+            var ie = new IdentifierExpr(newVar.Tok, newVar.Name);
+            ie.Var = newVar;  // resolve here
+            ie.Type = newVar.Type;  // resolve here
+            substMap.Add(v, ie);
+          }
+        }
+        return anythingChanged ? newVars : vars;
+      }
+
+      /// <summary>
       /// Return a list of case patterns, of the same length as 'patterns' but with possible substitutions.
       /// For any change necessary, update 'substMap' to reflect the new substitution; the caller is responsible for
       /// undoing these changes once the updated 'substMap' has been used.
@@ -18241,7 +18269,7 @@ namespace Microsoft.Dafny {
           r = rr;
         } else if (stmt is VarDeclStmt) {
           var s = (VarDeclStmt)stmt;
-          var lhss = s.Locals.ConvertAll(c => new LocalVariable(c.Tok, c.EndTok, c.Name, c.OptionalType == null ? null : Resolver.SubstType(c.OptionalType, typeMap), c.IsGhost));
+          var lhss = CreateLocalVarSubstitutions(s.Locals, false);
           var rr = new VarDeclStmt(s.Tok, s.EndTok, lhss, (ConcreteUpdateStatement)SubstStmt(s.Update));
           r = rr;
         } else if (stmt is RevealStmt) {
@@ -18286,7 +18314,19 @@ namespace Microsoft.Dafny {
       }
 
       protected virtual BlockStmt SubstBlockStmt(BlockStmt stmt) {
-        return stmt == null ? null : new BlockStmt(stmt.Tok, stmt.EndTok, stmt.Body.ConvertAll(SubstStmt));
+        if (stmt == null) {
+          return null;
+        }
+        var prevSubstMap = new Dictionary<IVariable, Expression>(substMap);
+        var b = new BlockStmt(stmt.Tok, stmt.EndTok, stmt.Body.ConvertAll(SubstStmt));
+        if (substMap.Count != prevSubstMap.Count) {
+          // reset substMap to what it was (note that substMap is a readonly field, so we can't just change it back to prevSubstMap)
+          substMap.Clear();
+          foreach (var item in prevSubstMap) {
+            substMap.Add(item.Key, item.Value);
+          }
+        }
+        return b;
       }
 
       protected GuardedAlternative SubstGuardedAlternative(GuardedAlternative alt) {
