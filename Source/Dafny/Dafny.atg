@@ -756,6 +756,7 @@ TOKENS
   as = "as".
   by = "by".
   in = "in".
+  do = "do".
   decreases = "decreases".
   invariant = "invariant".
   function = "function".

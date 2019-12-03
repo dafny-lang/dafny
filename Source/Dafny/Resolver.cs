@@ -12339,6 +12339,7 @@ namespace Microsoft.Dafny
     }
 
     public void ResolveDoNotationExpr(DoNotationExpr e){
+      Console.WriteLine("Resolving Do: {0}", Printer.ExprToString(e));
       throw new NotImplementedException("Resolving Do Notation");
     }
 

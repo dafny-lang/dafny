@@ -2060,6 +2060,17 @@ namespace Microsoft.Dafny {
           }
         }
         if (parensNeeded) { wr.Write(")"); }
+      } else if (expr is DoNotationExpr){
+        var e = (DoNotationExpr) expr;
+        if(e.ResolvedExpression == null){
+          wr.Write("do {");
+          List<String> bindingStr = e.BindExprs.ConvertAll<String>(bind => bind.Item1? String.Format("{0}<-{1}", bind.Item2.ToString() , ExprToString(bind.Item3)) : ExprToString(bind.Item3));
+          wr.Write(String.Join(";", bindingStr));
+
+          wr.Write("}");
+        } else {
+          PrintExpression(e.ResolvedExpression, false);
+        }
 
       } else if (expr is ApplyExpr) {
         var e = (ApplyExpr)expr;
