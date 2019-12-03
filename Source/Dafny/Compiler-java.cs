@@ -363,7 +363,6 @@ namespace Microsoft.Dafny{
       }
       return wGet;
     }
-
     protected BlockTargetWriter CreateMethod(Method m, bool createBody, TargetWriter wr) {
       string targetReturnTypeReplacement = null;
       int nonGhostOuts = 0;
@@ -379,20 +378,30 @@ namespace Microsoft.Dafny{
       } else if (nonGhostOuts > 1) {
         targetReturnTypeReplacement = DafnyTupleClassPrefix + nonGhostOuts;
       }
-      wr.Write("{0}{1}", createBody ? "public " : "", m.IsStatic ? "static " : "");
+      var customReceiver = NeedsCustomReceiver(m);
+      var receiverType = UserDefinedType.FromTopLevelDecl(m.tok, m.EnclosingClass, m.TypeArgs);
+      wr.Write("{0}{1}", createBody ? "public " : "", m.IsStatic || customReceiver ? "static " : "");
       if (m.TypeArgs.Count != 0) {
         wr.Write($"<{TypeParameters(m.TypeArgs)}> ");
       }
       wr.Write("{0} {1}", targetReturnTypeReplacement ?? "void", IdName(m));
       wr.Write("(");
       var nTypes = WriteRuntimeTypeDescriptorsFormals(m, m.TypeArgs, nonGhostOuts > 0, wr);
-      WriteFormals(nTypes > 0 ? ", " : "", m.Ins, wr);
+      var sep = nTypes > 0 ? ", " : "";
+      if (customReceiver) {
+        DeclareFormal(sep, "_this", receiverType, m.tok, true, wr);
+        sep = ", ";
+      }
+      WriteFormals(sep, m.Ins, wr);
       if (!createBody) {
         wr.WriteLine(");");
         return null; // We do not want to write a function body, so instead of returning a BTW, we return null.
       } else {
         var w = wr.NewBlock(")", null, BlockTargetWriter.BraceStyle.Newline, BlockTargetWriter.BraceStyle.Newline);
         if (m.IsTailRecursive) {
+          if (!customReceiver && !m.IsStatic) {
+            w.WriteLine("{0} _this = this;", TypeName(receiverType, w, m.tok));
+          }
           w = w.NewBlock("TAIL_CALL_START: while (true)");
         }
         return w;
@@ -428,7 +437,9 @@ namespace Microsoft.Dafny{
     protected BlockTargetWriter/*?*/ CreateFunction(string name, List<TypeParameter>/*?*/ typeArgs,
       List<Formal> formals, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl member,
       TargetWriter wr) {
-      wr.Write("{0}{1}", createBody ? "public " : "", isStatic ? "static " : "");
+      var customReceiver = NeedsCustomReceiver(member);
+      var receiverType = UserDefinedType.FromTopLevelDecl(member.tok, member.EnclosingClass, typeArgs);
+      wr.Write("{0}{1}", createBody ? "public " : "", isStatic || customReceiver ? "static " : "");
       if (typeArgs != null && typeArgs.Count != 0) {
         wr.Write($"<{TypeParameters(typeArgs)}>");
         wr.Write($"{TypeName(resultType, wr, tok)} {name}(");
@@ -442,13 +453,20 @@ namespace Microsoft.Dafny{
       else{
         wr.Write($"{TypeName(resultType, wr, tok)} {name}(");
       }
-      WriteFormals("", formals, wr);
+      var sep = "";
+      var argCount = 0;
+      if (customReceiver) {
+        DeclareFormal(sep, "_this", receiverType, tok, true, wr);
+        sep = ", ";
+        argCount++;
+      }
+      argCount += WriteFormals(sep, formals, wr);
       if (!createBody) {
         wr.WriteLine(");");
         return null; // We do not want to write a function body, so instead of returning a BTW, we return null.
       } else {
         BlockTargetWriter w;
-        if (formals.Count > 1) {
+        if (argCount > 1) {
           w = wr.NewBlock(")", null, BlockTargetWriter.BraceStyle.Newline, BlockTargetWriter.BraceStyle.Newline);
         } else {
           w = wr.NewBlock(")");
@@ -907,7 +925,10 @@ namespace Microsoft.Dafny{
     }
 
     protected override void EmitThis(TargetWriter wr) {
-      wr.Write("this");
+      var custom =
+        (enclosingMethod != null && enclosingMethod.IsTailRecursive) ||
+        thisContext is NewtypeDecl;
+      wr.Write(custom ? "_this" : "this");
     }
 
     protected override void DeclareLocalVar(string name, Type /*?*/ type, Bpl.IToken /*?*/ tok, bool leaveRoomForRhs,
