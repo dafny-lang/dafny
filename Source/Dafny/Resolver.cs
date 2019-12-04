@@ -12366,11 +12366,18 @@ namespace Microsoft.Dafny
 
       if(e.Lhs.Var != null){
         // Var has been resolved at M<A>
+        var bv = e.Lhs.Var;
+        var bvt = e.Rhs.Type.NormalizeExpand();
+        Console.WriteLine("bv has type: {0}", bvt);
+        if(bvt.TypeArgs == null || bvt.TypeArgs.Count != 1){
+          reporter.Error(MessageSource.Resolver, e.Rhs.tok, "RHS of monadic bind was not a monadic computation");
+          return;
+        }
         Expression bindlhs = new NameSegment(e.Lhs.tok, "Bind", null);
         List<Expression> bindargs = new List<Expression>();
         var bvs = new List<BoundVar>() ;
         var reads = new List<FrameExpression>();
-        bvs.Add(e.Lhs.Var);
+        bvs.Add(new BoundVar(bv.tok, bv.Name, bvt.TypeArgs.First()));
         bindargs.Add(e.Rhs);
 
         var newBody = new LambdaExpr(e.Body.tok, bvs, null, reads, e.Body);
