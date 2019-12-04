@@ -1,4 +1,4 @@
-// RUN: msbuild -t:Test -v:q -noLogo > "%t".raw || true
+// RUN: msbuild -t:Restore -t:Test -v:q -noLogo > "%t".raw || true
 // Remove the absolute file path before the expected error
 // RUN: sed 's/[^:]*://' "%t".raw > "%t"
 // RUN: %diff "%s.expect" "%t"
