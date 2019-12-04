@@ -2064,9 +2064,7 @@ namespace Microsoft.Dafny {
         var e = (DoNotationExpr) expr;
         if(e.ResolvedExpression == null){
           wr.Write("do {");
-          List<String> bindingStr = e.BindExprs.ConvertAll<String>(bind => bind.Item1? String.Format("{0}<-{1}", bind.Item2.ToString() , ExprToString(bind.Item3)) : ExprToString(bind.Item3));
-          wr.Write(String.Join(";", bindingStr));
-
+          PrintExpression(e.ParsedExpression, false);
           wr.Write("}");
         } else {
           PrintExpression(e.ResolvedExpression, false);
@@ -2338,7 +2336,13 @@ namespace Microsoft.Dafny {
           PrintExpr(e.Operands[i + 1], opBindingStrength, true, i == e.Operators.Count - 1 && (parensNeeded || isRightmost), sem, -1, keyword);
         }
         if (parensNeeded) { wr.Write(")"); }
-
+      } else if (expr is MonadicBindExpr){
+        var e = (MonadicBindExpr)expr;
+        PrintCasePattern(e.Lhs);
+        wr.Write("<-");
+        PrintExpression(e.Rhs, true);
+        wr.Write(";");
+        PrintExpression(e.Body, false);
       } else if (expr is LetExpr) {
         var e = (LetExpr)expr;
         bool parensNeeded = !isRightmost;

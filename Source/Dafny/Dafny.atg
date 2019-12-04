@@ -441,7 +441,7 @@ bool IsLetExpr(){
 }
 
 /* Check if the following has a bind "<-" before any "do", ";", "{" or "}" */
-bool IsDoBind(){
+bool IsMonadicBind(){
   scanner.ResetPeek();
   Token x;
   while(true){
@@ -3262,6 +3262,8 @@ UnaryExpression<out Expression e, bool allowSemi, bool allowLambda, bool allowBi
     { IF(IsSuffix()) Suffix<ref e> }
   | IF(IsLambda(allowLambda))
     LambdaExpression<out e, allowSemi, allowBitwiseOps>  /* this is an endless expression */
+  | IF(IsMonadicBind())
+    MonadicBindExpr<out e, allowSemi, allowLambda, allowBitwiseOps>
   | EndlessExpression<out e, allowSemi, allowLambda, allowBitwiseOps>
   | NameSegment<out e>
     { IF(IsSuffix()) Suffix<ref e> }
@@ -3477,7 +3479,8 @@ EndlessExpression<out Expression e, bool allowSemi, bool allowLambda, bool allow
      bool isExistentialGuard = false;
      e = dummyExpr;
   .)
-  ( "if"                            (. x = t; .)
+
+  (  "if"                            (. x = t; .)
     ( IF(IsExistentialGuard())
       ExistentialGuard<out e, true>  (. isExistentialGuard = true; .)
     | Expression<out e, true, true>
@@ -3502,7 +3505,7 @@ EndlessExpression<out Expression e, bool allowSemi, bool allowLambda, bool allow
     SetComprehensionExpr<x, false, out e, allowSemi, allowLambda, true>
   | "do"                            (. x = t; .)
     "{"
-    DoNotation<x, out e, true, true, true>
+    Expression<out e, true, true, true>                   (. e = new DoNotationExpr(t, e); .)
     "}"
   | StmtInExpr<out s>
     Expression<out e, allowSemi, allowLambda, allowBitwiseOps>    (. e = new StmtExpr(s.Tok, s, e); .)
@@ -3530,42 +3533,6 @@ LetExpr<out Expression e, bool allowSemi, bool allowLambda, bool allowBitwiseOps
   ( LetExprWithLHS<out e, allowSemi, allowLambda, allowBitwiseOps>
   | LetExprWithoutLHS<out e, allowSemi, allowLambda, allowBitwiseOps>
   ).
-
-DoBinding<.out Tuple<bool, CasePattern<BoundVar>, Expression> bind.>
-= (.
-    CasePattern<BoundVar> pat;
-    Expression e;
-    bind = null;
- .)
- ( IF(IsDoBind())
-   CasePattern<out pat>
-   "<-"
-   Expression<out e, false, true>   (. bind = new Tuple<bool, CasePattern<BoundVar>,Expression>(true, pat, e);
-                                    .)
- | IF(IsLetExpr())
-  ["ghost"]
-  "var"
-  CasePattern<out pat>
-  ":="
-  Expression<out e, false, true> (. bind = new Tuple<bool, CasePattern<BoundVar>,Expression>(false, pat, e); .)
-
- | Expression<out e, false, true>      (. bind = new Tuple<bool, CasePattern<BoundVar>,Expression>(false, null, e);
-                                    .)
-
- ).
-
-
-DoNotation<IToken t, out Expression e, bool allowSemi, bool allowLambda, bool allowBitwiseOps>
-= (. IToken x = t;
-    Tuple<bool, CasePattern<BoundVar>,Expression> bind;
-     List<Tuple<bool, CasePattern<BoundVar>,Expression>> parsedBindings = new List<Tuple<bool, CasePattern<BoundVar>,Expression>>();
-  .)
-  DoBinding<out bind>              (. parsedBindings.Add(bind); .)
-    {  ";" DoBinding<out bind>             (. parsedBindings.Add(bind); .)
-    }
-
-  (. e = new DoNotationExpr(x, parsedBindings); .)
-  .
 
 LetExprWithLHS<out Expression e, bool allowSemi, bool allowLambda, bool allowBitwiseOps>
 = (. IToken x = null;
@@ -3669,6 +3636,22 @@ MatchExpression<out Expression e, bool allowSemi, bool allowLambda, bool allowBi
   )
   (. e = new MatchExpr(x, e, cases, usesOptionalBraces); .)
   .
+
+
+
+MonadicBindExpr<out Expression e, bool allowSemi, bool allowLambda, bool allowBitwiseOps>
+= (.
+    CasePattern<BoundVar> pat;
+    Expression e0, e1;
+ .)
+ CasePattern<out pat>
+   "<-"
+   Expression<out e0, false, true>
+   ";"
+   Expression<out e1, allowSemi, allowLambda, allowBitwiseOps>
+   (. e = new MonadicBindExpr(t, pat, e0, e1); .).
+
+
 CaseExpression<out MatchCaseExpr c, bool allowSemi, bool allowLambda, bool allowBitwiseOps>
 = (. Contract.Ensures(Contract.ValueAtReturn(out c) != null); IToken/*!*/ x, id;
      var arguments = new List<CasePattern<BoundVar>>();

@@ -9758,21 +9758,46 @@ namespace Microsoft.Dafny {
     }
   }
 
-// Represents do { ... }
-// where ... are binding expressions desugared to >>= and >>
+// Represents do { expr }
+// where expr may contain MonadicBindExpr
   public class DoNotationExpr: Expression
   {
 
-    public List<Tuple<bool, CasePattern<BoundVar>,Expression>> BindExprs;
-
+    public Expression ParsedExpression;
     public Expression ResolvedExpression;
 
-    public DoNotationExpr(IToken tok, List<Tuple<bool, CasePattern<BoundVar>,Expression>> parsed): base(tok){
+    public DoNotationExpr(IToken tok, Expression parsed): base(tok){
       Contract.Requires(parsed != null);
-      BindExprs = parsed;
+      ParsedExpression = parsed;
+    }
+
+     public DoNotationExpr(IToken tok, Expression parsed, Expression resolved): base(tok){
+      Contract.Requires(parsed != null);
+      Contract.Requires(resolved != null);
+
+      ParsedExpression = parsed;
+      ResolvedExpression = resolved;
     }
 
   }
+
+  public class MonadicBindExpr: Expression
+  {
+    public CasePattern<BoundVar> Lhs;
+
+    public Expression Rhs;
+
+    public Expression Body;
+
+
+    public MonadicBindExpr(IToken tok, CasePattern<BoundVar> lhs, Expression rhs, Expression body): base(tok) {
+      Lhs = lhs;
+      Rhs = rhs;
+      Body = body;
+    }
+  }
+
+
 
   // Represents expr Name: Body
   //         or expr Name: (assert Body == Contract; Body)

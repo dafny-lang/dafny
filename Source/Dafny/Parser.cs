@@ -551,7 +551,7 @@ bool IsLetExpr(){
 }
 
 /* Check if the following has a bind "<-" before any "do", ";", "{" or "}" */
-bool IsDoBind(){
+bool IsMonadicBind(){
   scanner.ResetPeek();
   Token x;
   while(true){
@@ -4691,6 +4691,8 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, st
 			}
 		} else if (IsLambda(allowLambda)) {
 			LambdaExpression(out e, allowSemi, allowBitwiseOps);
+		} else if (IsMonadicBind()) {
+			MonadicBindExpr(out e, allowSemi, allowLambda, allowBitwiseOps);
 		} else if (StartOf(35)) {
 			EndlessExpression(out e, allowSemi, allowLambda, allowBitwiseOps);
 		} else if (la.kind == 1) {
@@ -4943,6 +4945,18 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, st
 
 	}
 
+	void MonadicBindExpr(out Expression e, bool allowSemi, bool allowLambda, bool allowBitwiseOps) {
+		CasePattern<BoundVar> pat;
+		Expression e0, e1;
+
+		CasePattern(out pat);
+		Expect(31);
+		Expression(out e0, false, true);
+		Expect(35);
+		Expression(out e1, allowSemi, allowLambda, allowBitwiseOps);
+		e = new MonadicBindExpr(t, pat, e0, e1);
+	}
+
 	void EndlessExpression(out Expression e, bool allowSemi, bool allowLambda, bool allowBitwiseOps) {
 		IToken/*!*/ x;
 		Expression e0, e1;
@@ -5000,7 +5014,8 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, st
 			Get();
 			x = t;
 			Expect(77);
-			DoNotation(x, out e, true, true, true);
+			Expression(out e, true, true, true);
+			e = new DoNotationExpr(t, e);
 			Expect(78);
 			break;
 		}
@@ -5457,21 +5472,6 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, st
 
 	}
 
-	void DoNotation(IToken t, out Expression e, bool allowSemi, bool allowLambda, bool allowBitwiseOps) {
-		IToken x = t;
-		Tuple<bool, CasePattern<BoundVar>,Expression> bind;
-		List<Tuple<bool, CasePattern<BoundVar>,Expression>> parsedBindings = new List<Tuple<bool, CasePattern<BoundVar>,Expression>>();
-
-		DoBinding(out bind);
-		parsedBindings.Add(bind);
-		while (la.kind == 35) {
-			Get();
-			DoBinding(out bind);
-			parsedBindings.Add(bind);
-		}
-		e = new DoNotationExpr(x, parsedBindings);
-	}
-
 	void StmtInExpr(out Statement s) {
 		s = dummyStmt;
 		if (la.kind == 121) {
@@ -5596,33 +5596,6 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, st
 		e = new LetOrFailExpr(x, null, rhs, body);
 	}
 
-	void DoBinding(out Tuple<bool, CasePattern<BoundVar>, Expression> bind) {
-		CasePattern<BoundVar> pat;
-		Expression e;
-		bind = null;
-
-		if (IsDoBind()) {
-			CasePattern(out pat);
-			Expect(31);
-			Expression(out e, false, true);
-			bind = new Tuple<bool, CasePattern<BoundVar>,Expression>(true, pat, e);
-
-		} else if (IsLetExpr()) {
-			if (la.kind == 74) {
-				Get();
-			}
-			Expect(62);
-			CasePattern(out pat);
-			Expect(29);
-			Expression(out e, false, true);
-			bind = new Tuple<bool, CasePattern<BoundVar>,Expression>(false, pat, e);
-		} else if (StartOf(8)) {
-			Expression(out e, false, true);
-			bind = new Tuple<bool, CasePattern<BoundVar>,Expression>(false, null, e);
-
-		} else SynErr(292);
-	}
-
 	void CaseExpression(out MatchCaseExpr c, bool allowSemi, bool allowLambda, bool allowBitwiseOps) {
 		Contract.Ensures(Contract.ValueAtReturn(out c) != null); IToken/*!*/ x, id;
 		var arguments = new List<CasePattern<BoundVar>>();
@@ -5658,7 +5631,7 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, st
 				arguments.Add(pat);
 			}
 			Expect(82);
-		} else SynErr(293);
+		} else SynErr(292);
 		Expect(36);
 		Expression(out body, allowSemi, allowLambda, allowBitwiseOps);
 		c = new MatchCaseExpr(x, name, arguments, body);
@@ -5692,7 +5665,7 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, st
 		} else if (la.kind == 2) {
 			Get();
 			id = t;
-		} else SynErr(294);
+		} else SynErr(293);
 		Expect(29);
 		Expression(out e, true, true);
 	}
@@ -5735,7 +5708,7 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, st
 		} else if (la.kind == 71) {
 			Get();
 			x = t;
-		} else SynErr(295);
+		} else SynErr(294);
 	}
 
 
@@ -6108,10 +6081,9 @@ public class Errors {
 			case 289: s = "invalid StmtInExpr"; break;
 			case 290: s = "invalid LetExpr"; break;
 			case 291: s = "invalid LetExprWithLHS"; break;
-			case 292: s = "invalid DoBinding"; break;
-			case 293: s = "invalid CaseExpression"; break;
-			case 294: s = "invalid MemberBindingUpdate"; break;
-			case 295: s = "invalid DotSuffix"; break;
+			case 292: s = "invalid CaseExpression"; break;
+			case 293: s = "invalid MemberBindingUpdate"; break;
+			case 294: s = "invalid DotSuffix"; break;
 
       default: s = "error " + n; break;
     }

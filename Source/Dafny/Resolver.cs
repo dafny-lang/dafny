@@ -11539,9 +11539,9 @@ namespace Microsoft.Dafny
     /// <summary>
     /// "twoState" implies that "old" and "fresh" expressions are allowed.
     /// </summary>
-    public void ResolveExpression(Expression expr, ResolveOpts opts) {
+    public void ResolveExpression(Expression expr, ResolveOpts opts, bool inDoNotation = false) {
 #if TEST_TYPE_SYNONYM_TRANSPARENCY
-      ResolveExpressionX(expr, opts);
+      ResolveExpressionX(expr, opts, inDoNotation);
       // For testing purposes, change the type of "expr" to a type synonym (mwo-ha-ha-ha!)
       var t = expr.Type;
       Contract.Assert(t != null);
@@ -11549,7 +11549,7 @@ namespace Microsoft.Dafny
       var ts = new UserDefinedType(expr.tok, "type#synonym#transparency#test", sd, new List<Type>(), null);
       expr.DebugTest_ChangeType(ts);
     }
-    public void ResolveExpressionX(Expression expr, ResolveOpts opts) {
+    public void ResolveExpressionX(Expression expr, ResolveOpts opts, bool inDoNotation) {
 #endif
       Contract.Requires(expr != null);
       Contract.Requires(opts != null);
@@ -11558,6 +11558,7 @@ namespace Microsoft.Dafny
         // expression has already been resovled
         return;
       }
+
 
       // The following cases will resolve the subexpressions and will attempt to assign a type of expr.  However, if errors occur
       // and it cannot be determined what the type of expr is, then it is fine to leave expr.Type as null.  In that case, the end
@@ -12156,13 +12157,26 @@ namespace Microsoft.Dafny
             ConstrainTypeExprBool(rhs, "type of RHS of let-such-that expression must be boolean (got {0})");
           }
         }
-        ResolveExpression(e.Body, opts);
+        ResolveExpression(e.Body, opts, inDoNotation);
         ResolveAttributes(e.Attributes, e, opts);
         scope.PopMarker();
         expr.Type = e.Body.Type;
+      } else if (expr is MonadicBindExpr){
+        if(!inDoNotation){
+          reporter.Error(MessageSource.Resolver, expr.tok, "Monadic bind used outside of do-notation");
+        } else {
+          var e = (MonadicBindExpr)expr;
+          ResolveExpression(e.Rhs, opts, false);
+          Console.WriteLine("{0}| Monadic bind at type:{1}", e.tok.line, e.Rhs.Type.NormalizeExpand());
+          ResolveCasePattern(e.Lhs, e.Rhs.Type, opts.codeContext);
+          ResolveMonadicBind(e, opts);
+        }
       } else if (expr is DoNotationExpr){
-        var e = (DoNotationExpr) expr;
-        ResolveDoNotationExpr(e);
+        var e = (DoNotationExpr)expr;
+        Console.WriteLine("Resolving Do: {0}", Printer.ExprToString(e.ParsedExpression));
+        var re = new Cloner().CloneExpr(e.ParsedExpression);
+        ResolveExpression(re, opts, true);
+        e.ResolvedExpression = re;
       } else if (expr is LetOrFailExpr) {
         var e = (LetOrFailExpr)expr;
         ResolveLetOrFailExpr(e, opts);
@@ -12339,56 +12353,23 @@ namespace Microsoft.Dafny
     }
 
 /// <summary>
-/// Desugar "do { exprs}" into
-/// [[y <- expr; exprs]] => Bind(expr, y => [[exprs]])
+/// Desugar "y <\- expr; expr" into
+/// Bind(expr, y => [[exprs]])
+/// TODO: also handle
 /// [[pat <- expr; exprs]] => match expr with
 ///                            | pat => [[exprs]]
 ///                            | #f =>  fail "Didn't match pat"
-/// [[ expr]] => expr
-/// [[expr; exprs]] => Bind(expr, _ => [[exprs]])
-/// For the moment, we are ignoring case
-///  [[let pat := expr; exprs]] => let pat := expr in [[exprs]]
-/// To convert this, we will need to modify the parser
-/// EG: have a flag indo, allow parsing of <- when in-do,
+/// Assumes Lhs and Rhs have been resolved, but not Body
 /// </summary>
-    public void ResolveDoNotationExpr(DoNotationExpr e){
-      Console.WriteLine("Resolving Do of size {1}: {0}", Printer.ExprToString(e), e.BindExprs.Count);
-      if(e.ResolvedExpression != null){
-        // Already resolved
-        return;
+    public void ResolveMonadicBind(MonadicBindExpr e, ResolveOpts opt){
+      Console.WriteLine("MonadicBind!");
+      if(e.Lhs.Var != null){
+        // Var has been resolved at M<A>
+        //
+        throw new NotImplementedException("Monadic bind with a variable, unimplemented");
+      } else {
+        throw new NotImplementedException("Monadic bind with pattern, unimplemented");
       }
-
-      if(e.BindExprs == null || e.BindExprs.Count == 0){
-        reporter.Error(MessageSource.Resolver, e.tok, "Empty do-expression");
-        return;
-      }
-
-      // Remove the last Expr, throw an error if it is a monadic bind
-      var lastTup = e.BindExprs.Last();
-      var cBindExprs = e.BindExprs.Select(x => x).ToList();
-      cBindExprs.RemoveAt(cBindExprs.Count - 1);
-
-      if(lastTup.Item1){
-        reporter.Error(MessageSource.Resolver, lastTup.Item3.tok, "Last expression in a do-expression should not be a monadic bind");
-      }
-      Expression lastExpr = lastTup.Item3;
-
-      // Build the resolved expression starting from the tail of cBindExprs
-      while(cBindExprs.Count != 0){
-        var cBind = cBindExprs.Last();
-        cBindExprs.RemoveAt(cBindExprs.Count - 1);
-        if(cBind.Item1){
-          reporter.Error(MessageSource.Resolver, cBind.Item3.tok, "Resolving Do Notation: Monadic bind");
-        } else if(cBind.Item3 is LetExpr){
-          reporter.Error(MessageSource.Resolver, cBind.Item3.tok, "Resolving Do Notation: Let bind");
-        } else {
-          reporter.Error(MessageSource.Resolver, cBind.Item3.tok, "Resolving Do Notation: Expr");
-        }
-        return;
-      }
-
-
-      throw new NotImplementedException("Resolving Do Notation");
     }
 
     /// <summary>
@@ -12507,6 +12488,7 @@ namespace Microsoft.Dafny
       var exprs = new Expression[] { expr0, expr1 };
       AllXConstraints.Add(new XConstraintWithExprs(tok, constraintName, types, exprs, new TypeConstraint.ErrorMsgWithToken(tok, errMsgFormat, types)));
     }
+
 
     /// <summary>
     /// Attempts to rewrite a datatype update into more primitive operations, after doing the appropriate resolution checks.
