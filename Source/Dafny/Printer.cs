@@ -2338,11 +2338,15 @@ namespace Microsoft.Dafny {
         if (parensNeeded) { wr.Write(")"); }
       } else if (expr is MonadicBindExpr){
         var e = (MonadicBindExpr)expr;
-        PrintCasePattern(e.Lhs);
-        wr.Write("<-");
-        PrintExpression(e.Rhs, true);
-        wr.Write(";");
-        PrintExpression(e.Body, false);
+        if(e.ResolvedExpression == null){
+          PrintCasePattern(e.Lhs);
+          wr.Write("<-");
+          PrintExpression(e.Rhs, true);
+          wr.Write(";");
+          PrintExpression(e.Body, false);
+        } else {
+          PrintExpression(e.ResolvedExpression, false);
+        }
       } else if (expr is LetExpr) {
         var e = (LetExpr)expr;
         bool parensNeeded = !isRightmost;

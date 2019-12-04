@@ -12167,7 +12167,7 @@ namespace Microsoft.Dafny
         } else {
           var e = (MonadicBindExpr)expr;
           ResolveExpression(e.Rhs, opts, false);
-          Console.WriteLine("{0}| Monadic bind at type:{1}", e.tok.line, e.Rhs.Type.NormalizeExpand());
+          Console.WriteLine("{0}| Monadic bind at type:{1} from expression {2}", e.tok.line, e.Rhs.Type.NormalizeExpand(), e.Rhs.ToString());
           ResolveCasePattern(e.Lhs, e.Rhs.Type, opts.codeContext);
           ResolveMonadicBind(e, opts);
         }
@@ -12288,7 +12288,7 @@ namespace Microsoft.Dafny
           ResolveFrameExpression(read, FrameExpressionUse.Reads, opts.codeContext);
         }
 
-        ResolveExpression(e.Term, opts);
+        ResolveExpression(e.Term, opts, inDoNotation);
         Contract.Assert(e.Term.Type != null);
         scope.PopMarker();
         expr.Type = SelectAppropriateArrowType(e.tok, e.BoundVars.ConvertAll(v => v.Type), e.Body.Type, e.Reads.Count != 0, e.Range != null);
@@ -12363,10 +12363,25 @@ namespace Microsoft.Dafny
 /// </summary>
     public void ResolveMonadicBind(MonadicBindExpr e, ResolveOpts opt){
       Console.WriteLine("MonadicBind!");
+
       if(e.Lhs.Var != null){
         // Var has been resolved at M<A>
-        //
-        throw new NotImplementedException("Monadic bind with a variable, unimplemented");
+        Expression bindlhs = new NameSegment(e.Lhs.tok, "Bind", null);
+        List<Expression> bindargs = new List<Expression>();
+        var bvs = new List<BoundVar>() ;
+        var reads = new List<FrameExpression>();
+        bvs.Add(e.Lhs.Var);
+        bindargs.Add(e.Rhs);
+
+        var newBody = new LambdaExpr(e.Body.tok, bvs, null, reads, e.Body);
+        // Need to resolve this before packing in ApplySuffix to allow for monadic bind in rest of body)
+        ResolveExpression(newBody, opt, true);
+        bindargs.Add(newBody);
+
+        Expression re = new ApplySuffix(e.tok, bindlhs, bindargs);
+        ResolveExpression(re, opt);
+        e.ResolvedExpression = re;
+        Console.WriteLine("Resolved Monadic bind as {0}",Printer.ExprToString(re));
       } else {
         throw new NotImplementedException("Monadic bind with pattern, unimplemented");
       }

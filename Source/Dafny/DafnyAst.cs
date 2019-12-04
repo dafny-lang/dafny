@@ -9789,11 +9789,19 @@ namespace Microsoft.Dafny {
 
     public Expression Body;
 
+    public Expression ResolvedExpression;
 
     public MonadicBindExpr(IToken tok, CasePattern<BoundVar> lhs, Expression rhs, Expression body): base(tok) {
       Lhs = lhs;
       Rhs = rhs;
       Body = body;
+    }
+
+    public MonadicBindExpr(IToken tok, CasePattern<BoundVar> lhs, Expression rhs, Expression body, Expression resolved): base(tok) {
+      Lhs = lhs;
+      Rhs = rhs;
+      Body = body;
+      ResolvedExpression = resolved;
     }
   }
 
