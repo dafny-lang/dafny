@@ -33,6 +33,10 @@ Source/DafnyExtension/DafnyRuntime.cs
 Source/DafnyExtension/Z3-LICENSE.txt
 Source/DafnyExtension/z3.exe
 
+Test/*/bin/
+Test/*/obj/
+Test/packages
+
 Test/**/*.exe
 Test/**/*.dll
 Test/**/*.mdb

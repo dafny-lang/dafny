@@ -1,0 +1,27 @@
+<Project>
+    <Target Name="Verify"
+            Inputs="@(DafnySource)"
+            Outputs="@(DafnySource->'obj/Verification/%(Identity).verified')">
+        <Message Text="Verifying %(DafnySource.Identity)..." Importance="high"/>
+        <Exec Command="$(Dafny) %(DafnySource.Identity) /compile:0"/>
+        <Exec Command="mkdir -p `dirname obj/Verification/%(DafnySource.Identity).verified`" />
+        <Exec Command="touch obj/Verification/%(DafnySource.Identity).verified" />
+    </Target>
+    
+    <Target Name="CompileDafny"
+            AfterTargets="ResolveReferences"
+            BeforeTargets="CoreCompile"
+            Inputs="$(MSBuildProjectFile);@(DafnySource)"
+            Outputs="$(IntermediateOutputPath)$(DafnyOutputFile)">
+        <Message Text="Compiling Dafny source files to $(IntermediateOutputPath)$(DafnyOutputFile)..." Importance="high"/>
+        <Exec Command="$(Dafny) /out:$(IntermediateOutputPath)$(DafnyOutputFile) @(DafnySource, ' ') /compile:0 /spillTargetCode:3 /noVerify" />
+        <ItemGroup>
+            <Compile Include="$(IntermediateOutputPath)$(DafnyOutputFile)" />
+        </ItemGroup>
+    </Target>
+
+    <!-- TODO: Define Inputs and Outputs for this -->
+    <Target Name="CompileDafnyToJS">
+        <Exec Command="$(Dafny) /out:build/Main @(DafnySource, ' ') /compile:2 /noVerify /noIncludes /compileTarget:js /spillTargetCode:1" />
+    </Target>
+</Project>
