@@ -52,6 +52,9 @@
       <HintPath>..\packages\xunit.extensibility.execution.2.1.0\lib\net45\xunit.execution.desktop.dll</HintPath>
     </Reference>
   </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
     <PropertyGroup>
@@ -70,8 +73,7 @@
     -->
   <Import Project="../../Source/DafnyMSBuildTasks/build/DafnyMSBuildTasks.props" />
   <Import Project="../../Source/DafnyMSBuildTasks/build/DafnyMSBuildTasks.targets" />
-  
   <Target Name="Test" DependsOnTargets="Build">
-    <xunit Assemblies="$(OutDir)$(AssemblyName).dll" Reporter="verbose"/>
+    <xunit Assemblies="$(OutDir)$(AssemblyName).dll" Reporter="verbose" />
   </Target>
 </Project>
