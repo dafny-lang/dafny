@@ -16,9 +16,25 @@ let Library = (function() {
   };
 
   $module.Mixed = class Mixed {
+    constructor(n) {
+      this.n = n;
+    }
+
     // static method P()
     static P() {
       process.stdout.write("Mixed.P\n");
+    }
+
+    IP() {
+      process.stdout.write("Mixed.IP\n");
+    }
+
+    static G() {
+      return new BigNumber(1);
+    }
+
+    IG() {
+      return this.n;
     }
   }
   $module.AllExtern = class AllExtern {

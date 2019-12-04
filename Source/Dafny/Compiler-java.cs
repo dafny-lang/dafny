@@ -50,6 +50,9 @@ namespace Microsoft.Dafny{
     string DafnyFunctionIface(int arity) =>
       arity == 1 ? "java.util.function.Function" : DafnyFunctionIfacePrefix + arity;
 
+    static string FormatExternBaseClassName(string externClassName) =>
+      $"_ExternBase_{externClassName}";
+
     private String ModuleName;
     private String ModulePath;
     private int FileCount = 0;
@@ -364,6 +367,10 @@ namespace Microsoft.Dafny{
       return wGet;
     }
     protected BlockTargetWriter CreateMethod(Method m, bool createBody, TargetWriter wr) {
+      if (m.IsExtern(out _, out _) && (m.IsStatic || m is Constructor)) {
+        // No need for an abstract version of a static method or a constructor
+        return null;
+      }
       string targetReturnTypeReplacement = null;
       int nonGhostOuts = 0;
       int nonGhostIndex = 0;
@@ -380,7 +387,7 @@ namespace Microsoft.Dafny{
       }
       var customReceiver = NeedsCustomReceiver(m);
       var receiverType = UserDefinedType.FromTopLevelDecl(m.tok, m.EnclosingClass, m.TypeArgs);
-      wr.Write("{0}{1}", createBody ? "public " : "", m.IsStatic || customReceiver ? "static " : "");
+      wr.Write("public {0}{1}", !createBody ? "abstract " : "", m.IsStatic || customReceiver ? "static " : "");
       if (m.TypeArgs.Count != 0) {
         wr.Write($"<{TypeParameters(m.TypeArgs)}> ");
       }
@@ -400,7 +407,11 @@ namespace Microsoft.Dafny{
         var w = wr.NewBlock(")", null, BlockTargetWriter.BraceStyle.Newline, BlockTargetWriter.BraceStyle.Newline);
         if (m.IsTailRecursive) {
           if (!customReceiver && !m.IsStatic) {
-            w.WriteLine("{0} _this = this;", TypeName(receiverType, w, m.tok));
+            var receiverTypeName = TypeName(receiverType, w, m.tok);
+            if (m.EnclosingClass.IsExtern(out _, out _)) {
+              receiverTypeName = FormatExternBaseClassName(receiverTypeName);
+            }
+            w.WriteLine("{0} _this = this;", receiverTypeName);
           }
           w = w.NewBlock("TAIL_CALL_START: while (true)");
         }
@@ -437,9 +448,13 @@ namespace Microsoft.Dafny{
     protected BlockTargetWriter/*?*/ CreateFunction(string name, List<TypeParameter>/*?*/ typeArgs,
       List<Formal> formals, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl member,
       TargetWriter wr) {
+      if (member.IsExtern(out _, out _) && isStatic) {
+        // No need for abstract version of static method
+        return null;
+      }
       var customReceiver = NeedsCustomReceiver(member);
       var receiverType = UserDefinedType.FromTopLevelDecl(member.tok, member.EnclosingClass, typeArgs);
-      wr.Write("{0}{1}", createBody ? "public " : "", isStatic || customReceiver ? "static " : "");
+      wr.Write("public {0}{1}", !createBody ? "abstract " : "", isStatic || customReceiver ? "static " : "");
       if (typeArgs != null && typeArgs.Count != 0) {
         wr.Write($"<{TypeParameters(typeArgs)}>");
         wr.Write($"{TypeName(resultType, wr, tok)} {name}(");
@@ -704,6 +719,11 @@ namespace Microsoft.Dafny{
       return s;
     }
 
+    // We write an extern class as a base class that the actual extern class
+    // needs to extend, so the extern methods and functions need to be abstract
+    // in the base class
+    protected override bool IncludeExternMembers { get => true; }
+
     //
     // An example to show how type parameters are dealt with:
     //
@@ -729,14 +749,11 @@ namespace Microsoft.Dafny{
     //
     protected override IClassWriter CreateClass(string name, bool isExtern, string /*?*/ fullPrintName,
       List<TypeParameter> /*?*/ typeParameters, List<Type> /*?*/ superClasses, Bpl.IToken tok, TargetWriter wr) {
-      if (isExtern) {
-        return new ClassWriter(this, new BlockTargetWriter(TargetWriter.IndentAmount, "", ""),
-          new BlockTargetWriter(TargetWriter.IndentAmount, "", ""));
-      }
-      var filename = $"{ModulePath}/{name}.java";
+      var javaName = isExtern ? FormatExternBaseClassName(name) : name;
+      var filename = $"{ModulePath}/{javaName}.java";
       var w = wr.NewFile(filename);
       FileCount += 1;
-      w.WriteLine($"// Class {name}");
+      w.WriteLine($"// Class {javaName}");
       w.WriteLine($"// Dafny class {name} compiled into Java");
       w.WriteLine($"package {ModuleName};");
       w.WriteLine();
@@ -744,7 +761,8 @@ namespace Microsoft.Dafny{
       w.WriteLine();
       //TODO: Fix implementations so they do not need this suppression
       EmitSuppression(w);
-      w.Write($"public class {name}");
+      var abstractness = isExtern ? "abstract " : "";
+      w.Write($"public {abstractness}class {javaName}");
       if (typeParameters != null && typeParameters.Count != 0) {
         w.Write($"<{TypeParameters(typeParameters)}>");
       }
@@ -761,7 +779,7 @@ namespace Microsoft.Dafny{
 
       var relevantTypeParams =
         typeParameters?.FindAll(tp => tp.Characteristics.MustSupportZeroInitialization);
-      wBody.Write($"public {name}(");
+      wBody.Write($"public {javaName}(");
       if (relevantTypeParams != null) {
         wBody.Write(Util.Comma(relevantTypeParams, tp => $"String s{IdName(tp)}"));
       }

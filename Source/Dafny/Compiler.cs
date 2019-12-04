@@ -90,6 +90,7 @@ namespace Microsoft.Dafny {
       TextWriter/*?*/ ErrorWriter();
       void Finish();
     }
+    protected virtual bool IncludeExternMembers { get => false; }
     protected IClassWriter CreateClass(string name, List<TypeParameter>/*?*/ typeParameters, TargetWriter wr) {
       return CreateClass(name, false, null, typeParameters, null, null, wr);
     }
@@ -697,7 +698,7 @@ namespace Microsoft.Dafny {
             }
             var classIsExtern = false;
             if (include) {
-              classIsExtern = !DafnyOptions.O.DisallowExterns && Attributes.Contains(cl.Attributes, "extern");
+              classIsExtern = !DafnyOptions.O.DisallowExterns && Attributes.Contains(cl.Attributes, "extern") || cl.IsDefaultClass && Attributes.Contains(cl.Module.Attributes, "extern");
               if (classIsExtern && cl.Members.TrueForAll(member => member.IsGhost || Attributes.Contains(member.Attributes, "extern"))) {
                 include = false;
               }
@@ -1086,7 +1087,8 @@ namespace Microsoft.Dafny {
           }
         } else if (member is Function) {
           var f = (Function)member;
-          if (f.Body == null && !(c is TraitDecl && !f.IsStatic) && !(!DafnyOptions.O.DisallowExterns && Attributes.Contains(f.Attributes, "dllimport"))) {
+          if (f.Body == null && !(c is TraitDecl && !f.IsStatic) &&
+              !(!DafnyOptions.O.DisallowExterns && (Attributes.Contains(f.Attributes, "dllimport") || IncludeExternMembers && Attributes.Contains(f.Attributes, "extern")))) {
             // A (ghost or non-ghost) function must always have a body, except if it's an instance function in a trait.
             if (Attributes.Contains(f.Attributes, "axiom") || (!DafnyOptions.O.DisallowExterns && Attributes.Contains(f.Attributes, "extern"))) {
               // suppress error message
@@ -1109,7 +1111,8 @@ namespace Microsoft.Dafny {
           }
         } else if (member is Method) {
           var m = (Method)member;
-          if (m.Body == null && !(c is TraitDecl && !m.IsStatic) && !(!DafnyOptions.O.DisallowExterns && Attributes.Contains(m.Attributes, "dllimport"))) {
+          if (m.Body == null && !(c is TraitDecl && !m.IsStatic) &&
+              !(!DafnyOptions.O.DisallowExterns && (Attributes.Contains(m.Attributes, "dllimport") || IncludeExternMembers && Attributes.Contains(m.Attributes, "extern")))) {
             // A (ghost or non-ghost) method must always have a body, except if it's an instance method in a trait.
             if (Attributes.Contains(m.Attributes, "axiom") || (!DafnyOptions.O.DisallowExterns && Attributes.Contains(m.Attributes, "extern"))) {
               // suppress error message
@@ -1237,7 +1240,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(f != null);
       Contract.Requires(cw != null);
 
-      var w = cw.CreateFunction(IdName(f), f.TypeArgs, f.Formals, f.ResultType, f.tok, f.IsStatic, true, f);
+      var w = cw.CreateFunction(IdName(f), f.TypeArgs, f.Formals, f.ResultType, f.tok, f.IsStatic, !f.IsExtern(out _, out _), f);
       if (w != null) {
         CompileReturnBody(f.Body, w);
       }
@@ -1247,7 +1250,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(cw != null);
       Contract.Requires(m != null);
 
-      var w = cw.CreateMethod(m, true);
+      var w = cw.CreateMethod(m, !m.IsExtern(out _, out _));
       if (w != null) {
         int nonGhostOutsCount = 0;
         foreach (var p in m.Outs) {

@@ -12,7 +12,10 @@ method Main() {
 
   Library.AllDafny.M();
   Library.Mixed.M();
-  Library.Mixed.P();
+  print Library.Mixed.F(), "\n";
+  var m := new Library.Mixed(2);
+  m.IM();
+  print m.IF(), "\n";
   Library.AllExtern.P();
   assert Library.AllDafny.Seven() == Library.Mixed.Seven() == Library.AllExtern.Seven();
 }
@@ -29,9 +32,16 @@ module {:extern "Library"} Library {
     static method M() { print "AllDafny.M\n"; }
   }
   class {:extern} Mixed {
+    constructor {:extern} (n: int)
     static function Seven(): int { 7 }
-    static method M() { print "Mixed.M\n"; }
+    static method M() { print "Extern static method says: "; P(); }
     static method {:extern} P()
+    method IM() { print "Extern instance method says: "; IP(); }
+    method {:extern} IP()
+    static function method F() : int { 1000 + G() }
+    static function method {:extern} G() : int
+    function method IF() : int { 2000 + IG() }
+    function method {:extern} IG() : int
   }
   class {:extern} AllExtern {
     static function Seven(): int { 7 }
