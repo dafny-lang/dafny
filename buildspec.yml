@@ -5,8 +5,9 @@ phases:
       dotnet: 2.2
     commands:
       - cd ..
+      # TODO: Temporary - fix the dafny script to not use which instead!
+      - yum install -y which
       - yum install -y nuget
-      - yum install -y which # TODO: Temporary - fix the dafny script instead!
       - npm install bignumber.js
       - pip install lit OutputCheck pyyaml
       - find . -type f
