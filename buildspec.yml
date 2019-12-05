@@ -6,6 +6,7 @@ phases:
     commands:
       - cd ..
       # TODO: Temporary - fix the dafny script to not use which instead!
+      # See https://github.com/dafny-lang/dafny/issues/449
       - yum install -y which
       - yum install -y nuget
       - npm install bignumber.js
