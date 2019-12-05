@@ -2,7 +2,7 @@
     <Target Name="Verify"
             Inputs="@(DafnySource)"
             Outputs="@(DafnySource->'$(IntermediateOutputPath)Verification/%(Identity).verified')">
-        <Message Text="Verifying %(DafnySource.Identity)..." Importance="high"/>
+        <Message Text="Verifying: @(DafnySource, ' ')" Importance="high"/>
         <Exec Command="$(Dafny) %(DafnySource.Identity) /compile:0"/>
         <Exec Command="mkdir -p `dirname $(IntermediateOutputPath)Verification/%(DafnySource.Identity).verified`" />
         <Touch Files="$(IntermediateOutputPath)Verification/%(DafnySource.Identity).verified" AlwaysCreate="true"/>
