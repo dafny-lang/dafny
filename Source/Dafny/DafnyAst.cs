@@ -9778,6 +9778,13 @@ namespace Microsoft.Dafny {
       ParsedExpression = parsed;
       ResolvedExpression = resolved;
     }
+      public override IEnumerable<Expression> SubExpressions {
+        get {
+          if (ResolvedExpression != null) {
+            yield return ResolvedExpression;
+          }
+        }
+      }
 
   }
 
@@ -9802,6 +9809,13 @@ namespace Microsoft.Dafny {
       Rhs = rhs;
       Body = body;
       ResolvedExpression = resolved;
+    }
+    public override IEnumerable<Expression> SubExpressions {
+      get {
+        if (ResolvedExpression != null) {
+          yield return ResolvedExpression;
+        }
+      }
     }
   }
 
