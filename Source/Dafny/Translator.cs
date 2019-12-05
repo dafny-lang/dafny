@@ -6333,12 +6333,6 @@ namespace Microsoft.Dafny {
       } else if (expr is TernaryExpr) {
         var e = (TernaryExpr)expr;
         return BplAnd(CanCallAssumption(e.E0, etran), BplAnd(CanCallAssumption(e.E1, etran), CanCallAssumption(e.E2, etran)));
-      } else if (expr is DoNotationExpr){
-        var e = (DoNotationExpr)expr;
-        return CanCallAssumption(e.ResolvedExpression, etran);
-      } else if (expr is MonadicBindExpr){
-        var e = (MonadicBindExpr)expr;
-        return CanCallAssumption(e.ResolvedExpression, etran);
       } else if (expr is LetExpr) {
         var e = (LetExpr)expr;
         if (!e.Exact) {
@@ -7467,13 +7461,6 @@ namespace Microsoft.Dafny {
 
       } else if (expr is LetExpr) {
         result = CheckWellformedLetExprWithResult((LetExpr)expr, options, result, resultType, locals, builder, etran, true);
-        // passthrough do-notation
-      } else if (expr is DoNotationExpr){
-        var e = (DoNotationExpr)expr;
-        CheckWellformedWithResult(e.ResolvedExpression, options, result, resultType, locals, builder, etran);
-      } else if (expr is MonadicBindExpr){
-        var e = (MonadicBindExpr)expr;
-        CheckWellformedWithResult(e.ResolvedExpression, options, result, resultType, locals, builder, etran);
       } else if (expr is NamedExpr) {
         var e = (NamedExpr)expr;
         CheckWellformedWithResult(e.Body, options, result, resultType, locals, builder, etran);
@@ -15178,12 +15165,6 @@ namespace Microsoft.Dafny {
             default:
               Contract.Assert(false); throw new cce.UnreachableException();  // unexpected ternary expression
           }
-        } else if (expr is DoNotationExpr) {
-          var e = (DoNotationExpr)expr;
-          return TrExpr(e.ResolvedExpression);
-        } else if (expr is MonadicBindExpr) {
-          var e = (MonadicBindExpr)expr;
-          return TrExpr(e.ResolvedExpression);
         } else if (expr is LetExpr) {
           var e = (LetExpr)expr;
           if (!e.Exact) {
@@ -16646,12 +16627,6 @@ namespace Microsoft.Dafny {
       } else if (expr is RevealExpr) {
         var e = (RevealExpr)expr;
         return TrSplitExpr(e.ResolvedExpression, splits, position, heightLimit, inlineProtectedFunctions, apply_induction, etran);
-      } else if (expr is DoNotationExpr){
-        var e = (DoNotationExpr)expr;
-        return TrSplitExpr(e.ResolvedExpression, splits, position, heightLimit, inlineProtectedFunctions, apply_induction, etran);
-      } else if (expr is MonadicBindExpr){
-        var e = (MonadicBindExpr)expr;
-        return TrSplitExpr(e.ResolvedExpression, splits, position, heightLimit, inlineProtectedFunctions, apply_induction, etran);
       } else if (expr is LetExpr) {
         var e = (LetExpr)expr;
         if (!e.Exact) {
@@ -17792,14 +17767,6 @@ namespace Microsoft.Dafny {
           if (e0 != e.E0 || e1 != e.E1 || e2 != e.E2) {
             newExpr = new TernaryExpr(expr.tok, e.Op, e0, e1, e2);
           }
-        } else if (expr is DoNotationExpr){
-          var e = (DoNotationExpr)expr;
-          var es = Substitute(e.ResolvedExpression);
-          newExpr = new DoNotationExpr(e.tok, e.ParsedExpression, es);
-        } else if (expr is MonadicBindExpr){
-          var e = (MonadicBindExpr)expr;
-          var es = Substitute(e.ResolvedExpression);
-          newExpr = new MonadicBindExpr(e.tok, e.Lhs, e.Rhs, e.Body, es);
         } else if (expr is LetExpr) {
           var e = (LetExpr)expr;
           if (e.Exact) {
