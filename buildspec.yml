@@ -6,6 +6,7 @@ phases:
     commands:
       - cd ..
       - yum install -y nuget
+      - yum install -y which # TODO: Temporary - fix the dafny script instead!
       - npm install bignumber.js
       - pip install lit OutputCheck pyyaml
       - find . -type f
