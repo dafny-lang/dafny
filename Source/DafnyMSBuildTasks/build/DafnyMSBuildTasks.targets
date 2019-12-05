@@ -1,11 +1,14 @@
 <Project>
     <Target Name="Verify"
             Inputs="@(DafnySource)"
-            Outputs="@(DafnySource->'obj/Verification/%(Identity).verified')">
+            Outputs="@(DafnySource->'$(IntermediateOutputPath)Verification/%(Identity).verified')">
         <Message Text="Verifying %(DafnySource.Identity)..." Importance="high"/>
         <Exec Command="$(Dafny) %(DafnySource.Identity) /compile:0"/>
-        <Exec Command="mkdir -p `dirname obj/Verification/%(DafnySource.Identity).verified`" />
-        <Exec Command="touch obj/Verification/%(DafnySource.Identity).verified" />
+        <Exec Command="mkdir -p `dirname $(IntermediateOutputPath)Verification/%(DafnySource.Identity).verified`" />
+        <Touch Files="$(IntermediateOutputPath)Verification/%(DafnySource.Identity).verified" AlwaysCreate="true"/>
+        <ItemGroup>
+            <FileWrites Include="$(IntermediateOutputPath)Verification/%(DafnySource.Identity).verified" />
+        </ItemGroup>
     </Target>
     
     <Target Name="CompileDafny"
@@ -17,6 +20,7 @@
         <Exec Command="$(Dafny) /out:$(IntermediateOutputPath)$(DafnyOutputFile) @(DafnySource, ' ') /compile:0 /spillTargetCode:3 /noVerify" />
         <ItemGroup>
             <Compile Include="$(IntermediateOutputPath)$(DafnyOutputFile)" />
+            <FileWrites Include="$(IntermediateOutputPath)$(DafnyOutputFile)"/>
         </ItemGroup>
     </Target>
 
