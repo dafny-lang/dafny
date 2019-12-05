@@ -22,6 +22,7 @@ phases:
       - nuget restore Source/Dafny.sln
   build:
     commands:
+      - nuget restore Source/Dafny.sln
       - msbuild Source/Dafny.sln
       - cd Test
       - msbuild DafnyTests.sln
