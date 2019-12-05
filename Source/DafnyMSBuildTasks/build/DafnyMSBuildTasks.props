@@ -4,8 +4,8 @@
         <TaskFolder Condition=" '$(MSBuildRuntimeType)' != 'Core' ">net46</TaskFolder>
         <TaskAssembly>$(MSBuildThisFileDirectory)..\tasks\$(TaskFolder)\DafnyMSBuildTasks.dll</TaskAssembly>
 
-        <Dafny Condition="'$(OS)' == 'Windows_NT'">Dafny.exe</Dafny>
-        <Dafny Condition="'$(OS)' != 'Windows_NT'">dafny</Dafny>
+        <Dafny Condition="'$(OS)' == 'Windows_NT'">$(MSBuildThisFileDirectory)../../../Binaries/Dafny.exe</Dafny>
+        <Dafny Condition="'$(OS)' != 'Windows_NT'">$(MSBuildThisFileDirectory)../../../Binaries/dafny</Dafny>
 
         <!-- 
         TODO: This is to avoid lots of warnings from the Dafny-generated code
