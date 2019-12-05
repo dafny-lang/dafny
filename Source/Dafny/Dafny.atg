@@ -2934,8 +2934,13 @@ QSep = "::" | '\u2022'.
  * cardinality brackets, that is, "|expr|".
  */
 Expression<out Expression e, bool allowSemi, bool allowLambda, bool allowBitwiseOps = true>
-= (. Expression e0; IToken endTok; .)
-  EquivExpression<out e, allowSemi, allowLambda, allowBitwiseOps>
+= (. Expression e0; IToken endTok;
+     e = null; .)
+  ( "do"
+    "{"
+    EquivExpression<out e0, true, true, true>                   (. e = new DoNotationExpr(t, e0); .)
+    "}"
+  | EquivExpression<out e, allowSemi, allowLambda, allowBitwiseOps>
   [ IF(SemiFollowsCall(allowSemi, e))
     /* here we parse the ";E" that is part of a "LemmaCall;E" expression (other "S;E" expressions are parsed elsewhere) */
     ";"                       (. endTok = t; .)
@@ -2944,7 +2949,7 @@ Expression<out Expression e, bool allowSemi, bool allowLambda, bool allowBitwise
              new UpdateStmt(e.tok, endTok, new List<Expression>(), new List<AssignmentRhs>() { new ExprRhs(e, null) }),
              e0);
     .)
-  ]
+  ])
   .
 /*------------------------------------------------------------------------*/
 EquivExpression<out Expression e0, bool allowSemi, bool allowLambda, bool allowBitwiseOps>
@@ -3503,10 +3508,6 @@ EndlessExpression<out Expression e, bool allowSemi, bool allowLambda, bool allow
     SetComprehensionExpr<x, true, out e, allowSemi, allowLambda, allowBitwiseOps>
   | "iset"                          (. x = t; .)
     SetComprehensionExpr<x, false, out e, allowSemi, allowLambda, true>
-  | "do"                            (. x = t; .)
-    "{"
-    Expression<out e, true, true, true>                   (. e = new DoNotationExpr(t, e); .)
-    "}"
   | StmtInExpr<out s>
     Expression<out e, allowSemi, allowLambda, allowBitwiseOps>    (. e = new StmtExpr(s.Tok, s, e); .)
   | LetExpr<out e, allowSemi, allowLambda, allowBitwiseOps>

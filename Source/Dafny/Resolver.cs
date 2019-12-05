@@ -9314,6 +9314,8 @@ namespace Microsoft.Dafny
       } else if (stmt is CalcStmt) {
         var prevErrorCount = reporter.Count(ErrorLevel.Error);
         CalcStmt s = (CalcStmt)stmt;
+        //TODO: OS remove WriteLine from this function
+        Console.WriteLine("Resolving Calcstmt with {0} expressions", s.Lines.Count());
         // figure out s.Op
         Contract.Assert(s.Op == null);  // it hasn't been set yet
         if (s.UserSuppliedOp != null) {
@@ -9346,12 +9348,14 @@ namespace Microsoft.Dafny
           Type lineType = new InferredTypeProxy();
           var e0 = s.Lines.First();
           ResolveExpression(e0, new ResolveOpts(codeContext, true));
+          Console.WriteLine("0th line '{1}':{2} has type: {0} ", e0.Type, Printer.ExprToString(e0), e0.ToString());
           Contract.Assert(e0.Type != null);  // follows from postcondition of ResolveExpression
           var err = new TypeConstraint.ErrorMsgWithToken(e0.tok, "all lines in a calculation must have the same type (got {0} after {1})", e0.Type, lineType);
           ConstrainSubtypeRelation(lineType, e0.Type, err);
           for (int i = 1; i < s.Lines.Count; i++) {
             var e1 = s.Lines[i];
             ResolveExpression(e1, new ResolveOpts(codeContext, true));
+            Console.WriteLine("{1}th line '{2}' has type: {0} ", e1.Type, i, Printer.ExprToString(e1));
             Contract.Assert(e1.Type != null);  // follows from postcondition of ResolveExpression
             // reuse the error object if we're on the dummy line; this prevents a duplicate error message
             if (i < s.Lines.Count - 1) {
@@ -12177,6 +12181,8 @@ namespace Microsoft.Dafny
         var re = new Cloner().CloneExpr(e.ParsedExpression);
         ResolveExpression(re, opts, true);
         e.ResolvedExpression = re;
+        e.Type = re.Type;
+        Console.WriteLine("Type of Do: {0}", e.Type);
       } else if (expr is LetOrFailExpr) {
         var e = (LetOrFailExpr)expr;
         ResolveLetOrFailExpr(e, opts);
@@ -12388,7 +12394,8 @@ namespace Microsoft.Dafny
         Expression re = new ApplySuffix(e.tok, bindlhs, bindargs);
         ResolveExpression(re, opt);
         e.ResolvedExpression = re;
-        Console.WriteLine("Resolved Monadic bind as {0}",Printer.ExprToString(re));
+        e.Type = re.Type;
+        Console.WriteLine("Resolved Monadic bind as {0} at type {1}",Printer.ExprToString(re), e.Type);
       } else {
         throw new NotImplementedException("Monadic bind with pattern, unimplemented");
       }
