@@ -7,17 +7,17 @@ module AAA {
 
   iterator IterB<Qpr>()
     requires var s: set<Qpr> := {}; |s| == 0  // fine, since Qpr is used only in the specification
-  
+
   iterator IterC<Klm>()
   {
     var u: set<Klm> := {};  // error (x2): decl. of "u" and "{}" would require Klm to be declared with (==)
   }
-  
+
   iterator IterD<Klm(==)>()
   {
     var u: set<Klm> := {};  // good now
   }
-  
+
   class MyClass<GG,HH(==)> {
     function method Fib<X>(n: int, xs: set<X>): int  // this should infer X to be (==)
     {
@@ -54,7 +54,7 @@ module AAA {
     var b': Dt1<M'>;
     var c': Dt2<M'>;
   }
-  
+
   // The first type parameter in each of the following requires a (==) type
   codatatype Co0<X,A> = Make0(d: Co1)
   codatatype Co1<Y,B> = Make1(d: Co2, e: set)

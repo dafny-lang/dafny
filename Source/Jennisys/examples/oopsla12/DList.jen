@@ -34,7 +34,7 @@ datamodel DList[T] {
 
   invariant
     next = null ==> list = [data]
-    next != null ==> (list = [data] + next.list  
+    next != null ==> (list = [data] + next.list
                       &&  next.prev = this)
     prev != null ==> prev.next = this
 }

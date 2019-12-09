@@ -3574,14 +3574,14 @@ namespace Microsoft.Dafny {
     }
 
     /// <summary>
-    /// Return the representative elements of the SCCs that contain contain any member declaration in a
+    /// Return the representative elements of the SCCs that contain any member declaration in a
     /// class in "declarations".
     /// Note, the representative element may in some cases be a Method, not necessarily a Function.
     /// </summary>
     public static IEnumerable<ICallable> AllFunctionSCCs(List<TopLevelDecl> declarations) {
       var set = new HashSet<ICallable>();
       foreach (var d in declarations) {
-        var cl = d as ClassDecl;
+        var cl = d as TopLevelDeclWithMembers;
         if (cl != null) {
           var module = cl.Module;
           foreach (var member in cl.Members) {
@@ -3598,7 +3598,7 @@ namespace Microsoft.Dafny {
 
     public static IEnumerable<Function> AllFunctions(List<TopLevelDecl> declarations) {
       foreach (var d in declarations) {
-        var cl = d as ClassDecl;
+        var cl = d as TopLevelDeclWithMembers;
         if (cl != null) {
           foreach (var member in cl.Members) {
             var fn = member as Function;
@@ -3612,7 +3612,7 @@ namespace Microsoft.Dafny {
 
     public static IEnumerable<Field> AllFields(List<TopLevelDecl> declarations) {
       foreach (var d in declarations) {
-        var cl = d as ClassDecl;
+        var cl = d as TopLevelDeclWithMembers;
         if (cl != null) {
           foreach (var member in cl.Members) {
             var fn = member as Field;
@@ -3634,16 +3634,16 @@ namespace Microsoft.Dafny {
     }
 
     /// <summary>
-    /// Yields all functions and methods that are members of some class in the given list of
+    /// Yields all functions and methods that are members of some type in the given list of
     /// declarations.
-    /// Note, an iterator declaration is a class, in this sense.
+    /// Note, an iterator declaration is a type, in this sense.
     /// Note, if the given list are the top-level declarations of a module, the yield will include
     /// colemmas but not their associated prefix lemmas (which are tucked into the colemma's
     /// .PrefixLemma field).
     /// </summary>
     public static IEnumerable<ICallable> AllCallables(List<TopLevelDecl> declarations) {
       foreach (var d in declarations) {
-        var cl = d as ClassDecl;
+        var cl = d as TopLevelDeclWithMembers;
         if (cl != null) {
           foreach (var member in cl.Members) {
             var clbl = member as ICallable;
@@ -3656,7 +3656,7 @@ namespace Microsoft.Dafny {
     }
 
     /// <summary>
-    /// Yields all functions and methods that are members of some non-iterator class in the given
+    /// Yields all functions and methods that are members of some non-iterator type in the given
     /// list of declarations, as well as any IteratorDecl's in that list.
     /// </summary>
     public static IEnumerable<ICallable> AllItersAndCallables(List<TopLevelDecl> declarations) {
@@ -3664,8 +3664,8 @@ namespace Microsoft.Dafny {
         if (d is IteratorDecl) {
           var iter = (IteratorDecl)d;
           yield return iter;
-        } else if (d is ClassDecl) {
-          var cl = (ClassDecl)d;
+        } else if (d is TopLevelDeclWithMembers) {
+          var cl = (TopLevelDeclWithMembers)d;
           foreach (var member in cl.Members) {
             var clbl = member as ICallable;
             if (clbl != null) {
@@ -3701,7 +3701,7 @@ namespace Microsoft.Dafny {
 
     public static IEnumerable<FixpointLemma> AllFixpointLemmas(List<TopLevelDecl> declarations) {
       foreach (var d in declarations) {
-        var cl = d as ClassDecl;
+        var cl = d as TopLevelDeclWithMembers;
         if (cl != null) {
           foreach (var member in cl.Members) {
             var m = member as FixpointLemma;
@@ -5338,12 +5338,25 @@ namespace Microsoft.Dafny {
   /// An ImplicitFormal is a parameter that is declared implicitly, in particular the "_k" depth parameter
   /// of each colemma (for use in the comethod body only, not the specification).
   /// </summary>
-  public class ImplicitFormal : Formal
-  {
+  public class ImplicitFormal : Formal {
     public ImplicitFormal(IToken tok, string name, Type type, bool inParam, bool isGhost)
       : base(tok, name, type, inParam, isGhost) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
+      Contract.Requires(type != null);
+    }
+  }
+
+  /// <summary>
+  /// ThisSurrogate represents the implicit parameter "this". It is used to allow more uniform handling of
+  /// parameters. A pointer value of a ThisSurrogate object is not important, only the fact that it is
+  /// a ThisSurrogate is. ThisSurrogate objects are only used in specially marked places in the Dafny
+  /// implementation.
+  /// </summary>
+  public class ThisSurrogate : ImplicitFormal {
+    public ThisSurrogate(IToken tok, Type type)
+      : base(tok, "this", type, true, false) {
+      Contract.Requires(tok != null);
       Contract.Requires(type != null);
     }
   }
@@ -8661,6 +8674,32 @@ namespace Microsoft.Dafny {
     public ThisExpr(IToken tok)
       : base(tok) {
       Contract.Requires(tok != null);
+    }
+
+    /// <summary>
+    /// This constructor creates a ThisExpr and sets its Type field to denote the receiver type
+    /// of member "m". This constructor is intended to be used by post-resolution code that needs
+    /// to obtain a Dafny "this" expression.
+    /// </summary>
+    public ThisExpr(MemberDecl m)
+      : base(m.tok) {
+      Contract.Requires(m != null);
+      Contract.Requires(m.tok != null);
+      Contract.Requires(m.EnclosingClass != null);
+      Contract.Requires(!m.IsStatic);
+      Type = Resolver.GetReceiverType(m.tok, m);
+    }
+
+    /// <summary>
+    /// This constructor creates a ThisExpr and sets its Type field to denote the receiver type
+    /// of member "m". This constructor is intended to be used by post-resolution code that needs
+    /// to obtain a Dafny "this" expression.
+    /// </summary>
+    public ThisExpr(TopLevelDeclWithMembers cl)
+      : base(cl.tok) {
+      Contract.Requires(cl != null);
+      Contract.Requires(cl.tok != null);
+      Type = Resolver.GetThisType(cl.tok, cl);
     }
   }
   public class ExpressionPair {

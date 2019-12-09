@@ -39,7 +39,7 @@ module BB {
     var b := 10;  // int
     var u: int := 30;
     var t := [b, 20, u];  // seq<int>
-    s := t;  // error: type mismatch 
+    s := t;  // error: type mismatch
   }
 
   method B2() returns (s: seq<byte>) {

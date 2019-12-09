@@ -80,7 +80,7 @@ function negb (b:Bool) : Bool
 function andb (b1:Bool, b2:Bool) : Bool
 {
   match b1
-  case True => b2 
+  case True => b2
   case False => False
 }
 
@@ -421,8 +421,8 @@ lemma identity_fn_applied_twice(b: Bool)
   ensures f(f(b)) == b;
 {
 }
-  
-    
+
+
 lemma negation_fn_applied_twice(b: Bool)
   requires forall x :: f(x) == negb(x);
   ensures f(f(b)) == b;

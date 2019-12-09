@@ -1,6 +1,6 @@
-interface Number { 
+interface Number {
   var num: int
- 
+
   constructor Init(p: int)
     ensures num = p
 
@@ -34,7 +34,7 @@ interface Number {
     ensures num in {a b c d}
     ensures forall x :: x in {a b c d} ==> num <= x
 
-  constructor Abs(a: int)  
+  constructor Abs(a: int)
     ensures num in {a (-a)} && num >= 0
 
 }

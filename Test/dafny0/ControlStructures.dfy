@@ -275,7 +275,7 @@ method PF1(d: D)
   if { case false => assert false; case true => assert true; }
   if {1, 2, 3} <= {1, 2} {  // conflict between display set as guard and alternative statement is resolved
     assert false;
-  }  
+  }
   while d != D.Green {
     assert false;
   }
@@ -286,7 +286,7 @@ method PF1(d: D)
   }
   while {1, 2, 3} <= {1, 2} {
     assert false;
-  }  
+  }
 }
 
 // --------------- labels looking like numeric literals ---------------

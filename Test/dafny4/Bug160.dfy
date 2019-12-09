@@ -24,7 +24,7 @@ method test(ghost env:HostEnvironment)
 predicate sat(s:int, t:int)
 
 function{:opaque} and(x:int, y:int):int
-    ensures  forall i:int :: sat(i, and(x, y)); 
+    ensures  forall i:int :: sat(i, and(x, y));
 {
     2
 }

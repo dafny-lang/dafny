@@ -14,7 +14,7 @@ method Test(x:int)
  {
     assume exists p:int :: exists t:T :: ToInt(t) > 0;
     assert exists p:int :: exists t:T :: ToInt(t) > 0;
- } 
+ }
 
 
 

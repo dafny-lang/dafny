@@ -33,5 +33,5 @@ module C {
   function h(): AA.T { AA.f() } // error, AA is A's default export, which does not give f
   function i(): A.T { A.f() } // qualification is fine
   function j(): A.T { f() } // not okay, we don't import openness
-  
+
 }

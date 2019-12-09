@@ -1,31 +1,30 @@
-import dafny.DafnySet;
-import dafny.DafnyMultiset;
-import org.junit.Test;
+package dafny;
 
-import java.math.BigInteger;
-import java.util.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import static junit.framework.Assert.assertFalse;
-import static junit.framework.Assert.assertTrue;
-import static junit.framework.Assert.assertEquals;
-import static org.hamcrest.CoreMatchers.startsWith;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import org.junit.jupiter.api.Test;
 
-import org.junit.Rule;
-import org.junit.rules.ExpectedException;
-
-public class SetTest {
+class SetTest {
 
     DafnySet<Integer> testSet = new DafnySet<>(new HashSet<>(Arrays.asList(1, 2, 3, 4, 5, 6, 8)));
     DafnySet<Integer> testSubSet = new DafnySet<>(new HashSet<>(Arrays.asList(1, 2, 3, 4, 5, 8)));
     DafnySet<Integer> testDisjoint = new DafnySet<>(new HashSet<>(Arrays.asList(-1, -2, -6, 10)));
     DafnySet<Integer> testUnion = new DafnySet<>(new HashSet<>(Arrays.asList(1, 2, 3, 4, 5, 6, 8, -1, -2, -6, 10)));
-    DafnySet<Integer> testDifference = new DafnySet<>(new HashSet<>(Arrays.asList(6)));
-    DafnySet<Integer> testEmpty = new DafnySet<>(new HashSet<>(Arrays.asList()));
+    DafnySet<Integer> testDifference = new DafnySet<>(new HashSet<>(Collections.singletonList(6)));
+    DafnySet<Integer> testEmpty = new DafnySet<>(new HashSet<>(Collections.emptyList()));
 
     DafnySet<Integer> testCopy = new DafnySet<>(new HashSet<>(Arrays.asList(1, 2, 3, 4, 5, 6, 8)));
 
     @Test
-    public void testSubset() {
+    void testSubset() {
         assertFalse(testSet.isSubsetOf(testSubSet));
         assertTrue(testSubSet.isSubsetOf(testSet));
         assertTrue(testSet.isSubsetOf(testSet));
@@ -35,14 +34,14 @@ public class SetTest {
     }
 
     @Test
-    public void testContains() {
+    void testContains() {
         assertFalse(testSet.contains(0));
         assertTrue(testSet.contains(6));
         assertFalse(testSubSet.contains(6));
     }
 
     @Test
-    public void testDisjoint() {
+    void testDisjoint() {
         assertFalse(testSet.disjoint(testSubSet));
         assertTrue(testSet.disjoint(testDisjoint));
         assertTrue(testDisjoint.disjoint(testSubSet));
@@ -50,7 +49,7 @@ public class SetTest {
     }
 
     @Test
-    public void testUnion() {
+    void testUnion() {
         assertEquals(testSet, testSet.union(testSubSet));
         assertEquals(testUnion, testDisjoint.union(testSet));
         assertEquals(testSet, testSubSet.union(testSet));
@@ -58,7 +57,7 @@ public class SetTest {
     }
 
     @Test
-    public void testDifference() {
+    void testDifference() {
         assertEquals(testDifference, testSet.difference(testSubSet));
         assertEquals(testEmpty, testSubSet.difference(testSet));
         assertEquals(testSet, testSet.difference(testDisjoint));
@@ -66,7 +65,7 @@ public class SetTest {
     }
 
     @Test
-    public void testIntersection() {
+    void testIntersection() {
         assertEquals(testSubSet, testSubSet.intersection(testSet));
         assertEquals(testSubSet, testSubSet.intersection(testSubSet));
         assertEquals(testEmpty, testSubSet.intersection(testDisjoint));
@@ -74,7 +73,7 @@ public class SetTest {
     }
 
     @Test
-    public void testSize() {
+    void testSize() {
         assertEquals(7, testSet.size());
         assertEquals(6, testSubSet.size());
         assertEquals(4, testDisjoint.size());
@@ -84,7 +83,7 @@ public class SetTest {
     }
 
     @Test
-    public void testSetObjectMethods() {
+    void testSetObjectMethods() {
         assertEquals(testSet, testCopy);
         assertEquals(testSet.hashCode(), testCopy.hashCode());
         assertEquals("{1, 2, 3, 4, 5, 6, 8}", testSet.toString());
@@ -92,7 +91,7 @@ public class SetTest {
     }
 
     @Test
-    public void testAllSubsets(){
+    void testAllSubsets(){
         DafnySet<Integer> testSet = new DafnySet<>(new HashSet<>(Arrays.asList(1, 2, 3)));
         HashSet<DafnySet<Integer>> finalSet = new HashSet<>();
         finalSet.add(new DafnySet<>());
@@ -100,35 +99,30 @@ public class SetTest {
         finalSet.add(new DafnySet<>(new DafnySet<>(new HashSet<>(Arrays.asList(1, 2)))));
         finalSet.add(new DafnySet<>(new DafnySet<>(new HashSet<>(Arrays.asList(1, 3)))));
         finalSet.add(new DafnySet<>(new DafnySet<>(new HashSet<>(Arrays.asList(2, 3)))));
-        finalSet.add(new DafnySet<>(new DafnySet<>(new HashSet<>(Arrays.asList(1)))));
-        finalSet.add(new DafnySet<>(new DafnySet<>(new HashSet<>(Arrays.asList(2)))));
-        finalSet.add(new DafnySet<>(new DafnySet<>(new HashSet<>(Arrays.asList(3)))));
+        finalSet.add(new DafnySet<>(new DafnySet<>(new HashSet<>(Collections.singletonList(1)))));
+        finalSet.add(new DafnySet<>(new DafnySet<>(new HashSet<>(Collections.singletonList(2)))));
+        finalSet.add(new DafnySet<>(new DafnySet<>(new HashSet<>(Collections.singletonList(3)))));
         assertEquals(finalSet, testSet.AllSubsets());
     }
 
-    @Rule
-    public ExpectedException thrown = ExpectedException.none();
-
     @Test
-    public void testNullFailures() {
+    void testNullFailures() {
         List<Integer> l = null;
         Set<Integer> s = null;
-        thrown.expect(AssertionError.class);
-        thrown.expectMessage(startsWith("Precondition Violation"));
-        new DafnySet<>(l);
-        new DafnySet<>(s);
-        testSet.isSubsetOf(null);
-        testSet.isProperSubsetOf(null);
-        testSet.contains(null);
-        testSet.disjoint(null);
-        testSet.intersection(null);
-        testSet.add(null);
-        testSet.union(null);
-        testSet.difference(null);
+        assertThrows(AssertionError.class, () -> new DafnySet<>(l));
+        assertThrows(AssertionError.class, () -> new DafnySet<>(s));
+        assertThrows(AssertionError.class, () -> testSet.isSubsetOf(null));
+        assertThrows(AssertionError.class, () -> testSet.isProperSubsetOf(null));
+        assertThrows(AssertionError.class, () -> testSet.contains(null));
+        assertThrows(AssertionError.class, () -> testSet.disjoint(null));
+        assertThrows(AssertionError.class, () -> testSet.intersection(null));
+        assertThrows(AssertionError.class, () -> testSet.add(null));
+        assertThrows(AssertionError.class, () -> testSet.union(null));
+        assertThrows(AssertionError.class, () -> testSet.difference(null));
     }
 
     @Test
-    public void testAddRemove() {
+    void testAddRemove() {
         testSet.add(19);
         assertTrue(testSet.contains(19));
         assertFalse(testSet.contains(18));
@@ -149,7 +143,7 @@ public class SetTest {
     }
 
     @Test
-    public void testConversion(){
+    void testConversion(){
         assertEquals(new DafnyMultiset<>(Arrays.asList(1, 2, 3, 4, 5, 6, 8)), testSet.asDafnyMultiset());
     }
 }

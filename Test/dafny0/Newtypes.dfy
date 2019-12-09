@@ -195,7 +195,7 @@ module IntegerBasedValues {
       case true => x := t;
     }
   }
-  
+
   method Sequences(a: seq<T>, n: nat, i: Even, lo: Even, hi: Even, t: T) returns (x: T, b: seq<T>)
     requires 0 <= i && 0 <= lo <= hi
   {
@@ -323,12 +323,12 @@ module SeqTests {
     assert 0 <= many_bytes[0] as int < 0x100;
   }
 
-  method M1(many_bytes: seq<byte>, many_ints: seq<int>) 
+  method M1(many_bytes: seq<byte>, many_ints: seq<int>)
     requires |many_bytes| == 1
     requires |many_ints| == 1
   {
     assert many_bytes[0] in many_bytes;
-    assert many_ints[0] in many_ints;    
+    assert many_ints[0] in many_ints;
   }
 
   lemma Lemma2<T>(elt: T, s: seq<T>, index: nat)
@@ -337,14 +337,14 @@ module SeqTests {
     ensures elt in s
   {}
 
-  method M2(many_bytes: seq<byte>, many_ints: seq<int>) 
+  method M2(many_bytes: seq<byte>, many_ints: seq<int>)
     requires |many_bytes| == 1
     requires |many_ints| == 1
   {
     Lemma2(many_bytes[0], many_bytes, 0);
     Lemma2(many_ints[0], many_ints, 0);
     assert many_bytes[0] in many_bytes;
-    assert many_ints[0] in many_ints;    
+    assert many_ints[0] in many_ints;
   }
 
   lemma Lemma3_ints(data: seq<int>)

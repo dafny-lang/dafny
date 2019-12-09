@@ -337,7 +337,7 @@ method Main() {
   var b := uf.New();
   var c := uf.New();
   print a == b, "\n";
-  
+
   var f0 := uf.Find(b);
   var f1 := uf.Find(a);
   print f0 == b, " ", f1 == a, "\n";

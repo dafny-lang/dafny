@@ -18,7 +18,7 @@ method bar()
 
     var c:C;
     foo(c);
-    
+
     var d:D;
     foo(d);
 

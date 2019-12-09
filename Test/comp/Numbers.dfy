@@ -13,6 +13,7 @@ method Main() {
   MoreBvTests();
   NewTypeTest();
   OrdinalTests();
+  ZeroComparisonTests();
 }
 
 method Print(description: string, x: int) {
@@ -52,7 +53,7 @@ method Literals() {
   Print("", 0x8000_0001);  // int.MaxValue + 2
   Print("C# uint.MaxValue", 0xFFFF_FFFF);  // uint.MaxValue
   Print("2^32", 0x1_0000_0000);  // uint.MaxValue + 1
-  
+
   Print("JavaScript Number.MAX_SAFE_INTEGER", 0x1F_FFFF_FFFF_FFFF_FFFF);  // 2^53 -  1
   Print("2^53", 0x20_0000_0000_0000_0000);  // 2^53
   Print("JavaScript Number.MAX_SAFE_INTEGER", - 0x1F_FFFF_FFFF_FFFF_FFFF);  // - (2^53 -  1)
@@ -86,7 +87,7 @@ method Arithmetic() {
 
   PrintSeq([31 * 4, 31 * -4]);
   PrintSeq([-31 * 4, -31 * -4]);
-  
+
   PrintSeq(['3' + '4', '7' - '4' + 'N', '4' - '3' + '1']);
 
   DivMod(31, 4);
@@ -247,7 +248,7 @@ method MoreBvTests() {
   print u, " ", w, " ", B, " ", m, "\n";
   u, w, B, m := !u, !w, !B, !m;
   print u, " ", w, " ", B, " ", m, "\n";
-  
+
   B := 32;
   B := B << 2;  // 128
   B := B >> 4;  // 8
@@ -255,7 +256,7 @@ method MoreBvTests() {
   m := m << 2;  // 8
   m := m >> 1;  // 4
   print B, " ", m, "\n";
-  
+
   B := 32 | 4;
   B := B.RotateLeft(99);  // 16 | 2
   var B' := B;
@@ -302,4 +303,42 @@ method PrintOrdinalInfo(o : ORDINAL) {
   print ", Offset: ", o.Offset;
   print ", IsLimit: ", o.IsLimit;
   print ", IsSucc: ", o.IsSucc, "\n";
+}
+
+method ZeroComparisonTests() {
+  print "int:\n";
+  ZCIntTests(-42);
+  ZCIntTests(0);
+  ZCIntTests(23);
+
+  print "MyNumber:\n";
+  ZCMyNumberTests(-42);
+  ZCMyNumberTests(0);
+  ZCMyNumberTests(23);
+}
+
+function method YN(b : bool) : string {
+  if b then "Y" else "N"
+}
+
+method ZCIntTests(n : int) {
+  print n, "\t",
+    " <0 ",  YN(n < 0),  " <=0 ", YN(n <= 0),
+    " ==0 ", YN(n == 0), " !=0 ", YN(n != 0),
+    " >0 ",  YN(n > 0),  " >=0 ", YN(n >= 0),
+    " 0< ",  YN(0 < n),  " 0<= ", YN(0 <= n),
+    " 0== ", YN(0 == n), " 0!= ", YN(0 != n),
+    " 0> ",  YN(0 > n),  " 0>= ", YN(0 >= n),
+    "\n";
+}
+
+method ZCMyNumberTests(n : MyNumber) {
+  print n, "\t",
+    " <0 ",  YN(n < 0),  " <=0 ", YN(n <= 0),
+    " ==0 ", YN(n == 0), " !=0 ", YN(n != 0),
+    " >0 ",  YN(n > 0),  " >=0 ", YN(n >= 0),
+    " 0< ",  YN(0 < n),  " 0<= ", YN(0 <= n),
+    " 0== ", YN(0 == n), " 0!= ", YN(0 != n),
+    " 0> ",  YN(0 > n),  " 0>= ", YN(0 >= n),
+    "\n";
 }

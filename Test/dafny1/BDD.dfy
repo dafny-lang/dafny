@@ -36,7 +36,7 @@ module SimpleBDD
     predicate valid()
       reads this, Repr
     {
-      root in Repr && root.Repr <= Repr && root.valid() && 
+      root in Repr && root.Repr <= Repr && root.valid() &&
       n == root.n && Contents == root.Contents
     }
     constructor () {

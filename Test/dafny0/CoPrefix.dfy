@@ -169,13 +169,13 @@ module Recursion {
   {  // error: postcondition violation (when _k == 0)
     G(x);
   }
-  
+
   colemma A(x: int) { B(x); }
   colemma B(x: int)
   {
     A#[10](x);  // error: this is a recursive call, and the termination metric may not be going down
   }
-  
+
   colemma A'(x: int) { B'(x); }
   colemma B'(x: int)
   {
@@ -183,7 +183,7 @@ module Recursion {
       A'#[10](x);
     }
   }
-  
+
   colemma A''(x: int) { B''(x); }
   colemma B''(x: int)
   {
@@ -195,7 +195,7 @@ module Recursion {
 
 module PrefixEquality {
   codatatype Stream<T> = Cons(head: T, Stream)
-    
+
   colemma Test0(s: Stream, t: Stream)
     requires s.head == t.head
   {

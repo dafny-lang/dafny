@@ -26,7 +26,7 @@ predicate method Increasing(s: seq<int>, n: nat)
 {
   n < 2 ||
   (s[n-2] < s[n-1] && Increasing(s, n-1))
-} 
+}
 
 method Extend(s: seq<int>, n: nat) returns (n': nat)
   requires n < |s|

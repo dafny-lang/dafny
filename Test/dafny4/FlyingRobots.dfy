@@ -25,7 +25,7 @@ class Point {
     x != y && y != z && z != x &&
     Value == (x.val, y.val, z.val)
   }
-  
+
   var x:Cell, y:Cell, z:Cell
 
   constructor (a:int, b:int, c:int)
@@ -122,7 +122,7 @@ class Bot {
   {
     pos.z.val > 0
   }
-  
+
   predicate arms_up()
     requires (reveal Valid(); Valid())
     reads Repr
@@ -173,15 +173,15 @@ method FlyRobots(b0:Bot, b1:Bot)
 
 // The union of .Repr for the robots in "bots"
 function ArmyRepr(bots:seq<Bot>) : set<object>
-  reads set b | b in bots 
+  reads set b | b in bots
 {
   set b,o | b in bots && o in b.Repr :: o
 }
 
 // An army is a sequence of disjoint, valid robots
 predicate ValidArmy(bots:seq<Bot>)
-  reads set b | b in bots 
-  reads ArmyRepr(bots)     
+  reads set b | b in bots
+  reads ArmyRepr(bots)
 {
       (forall i :: 0 <= i < |bots| ==> bots[i].Valid())
   &&  (forall i,j :: 0 <= i < j < |bots| ==> bots[i].Repr !! bots[j].Repr)

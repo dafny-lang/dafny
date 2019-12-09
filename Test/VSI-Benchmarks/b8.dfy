@@ -4,7 +4,7 @@
 // Benchmark 8
 
 // A dictionary is a mapping between words and sequences of words
-// to set up the dictionary in main we will read a stream of words and put them into the mapping - the first element of the stream is the term, 
+// to set up the dictionary in main we will read a stream of words and put them into the mapping - the first element of the stream is the term,
 // the following words (until we read null) form the terms definition. Then the stream provides the next term etc.
 
 datatype Maybe<T> = None | Some(get: T)
@@ -48,7 +48,7 @@ class Glossary {
     rs.Open();
     var glossary := new Map<Word,seq<Word>>.Init();
     var q:Queue<Word> := new Queue<Word>.Init();
-    
+
     while true
       invariant rs.Valid() && fresh(rs.footprint)
       invariant glossary.Valid()
@@ -86,7 +86,7 @@ class Glossary {
       var r := glossary.Find(term);
       assert r.Some?;
       var definition := r.get;
-      
+
       // write term with a html anchor
       wr.PutWordInsideTag(term, term);
       var i := 0;
@@ -110,9 +110,9 @@ class Glossary {
         i:= i +1;
       }
     }
-    wr.Close();          
+    wr.Close();
   }
-    
+
 
   method readDefinition(rs:ReaderStream) returns (term:Word?, definition:seq<Word?>)
     requires rs.Valid()
@@ -138,38 +138,38 @@ class Glossary {
     }
   }
 }
-  
+
 class Word
 {
   predicate AtMost(w: Word)
 }
-  
+
 class ReaderStream {
   ghost var footprint: set<object>
   var isOpen: bool
-  
+
   predicate Valid()
     reads this, footprint
   {
     this in footprint && isOpen
   }
-  
+
   method Open() //reading
     modifies this
     ensures Valid() && fresh(footprint -{this})
   {
-    footprint := {this}; 
+    footprint := {this};
     isOpen :=true;
   }
-  
+
   method GetWord() returns (x: Word?)
     requires Valid()
     modifies footprint
     ensures Valid() && fresh(footprint - old(footprint))
   {
   }
-  
-  method Close() 
+
+  method Close()
     requires Valid()
     modifies footprint
   {
@@ -181,20 +181,20 @@ class WriterStream {
   ghost var footprint:set<object>
   var stream:seq<int>
   var isOpen:bool
-  
+
   predicate Valid()
     reads this, footprint
   {
     this in footprint && isOpen
   }
-  
+
   method Create() //writing
     modifies this
     ensures Valid() && fresh(footprint -{this})
     ensures stream == []
   {
     stream := [];
-    footprint := {this}; 
+    footprint := {this};
     isOpen:= true;
   }
   method GetCount() returns (c:int)
@@ -203,7 +203,7 @@ class WriterStream {
   {
     c:=|stream|;
   }
-  
+
   method PutWord(w:Word )
     requires Valid()
     modifies footprint
@@ -219,7 +219,7 @@ class WriterStream {
     ensures old(stream) <= stream
   {
   }
-  
+
   method PutWordInsideHyperlink(tag:Word, w:Word)
     requires Valid()
     modifies footprint
@@ -227,8 +227,8 @@ class WriterStream {
     ensures old(stream) <= stream
   {
   }
-   
-  method Close() 
+
+  method Close()
     requires Valid()
     modifies footprint
   {
@@ -236,13 +236,13 @@ class WriterStream {
   }
 }
 
-  
-  
-  
+
+
+
 class Map<Key(==),Value> {
   var keys: seq<Key>
   var values: seq<Value>
-  
+
   predicate Valid()
     reads this
   {

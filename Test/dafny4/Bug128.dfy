@@ -7,7 +7,7 @@ function GetIndexInSequence<T>(s:seq<T>, x:T) : int
 	ensures  s[GetIndexInSequence(s, x)] == x; {
 		var i :| 0 <= i < |s| && s[i] == x;
 		i
-	} 
+	}
 
 
 

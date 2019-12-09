@@ -100,5 +100,5 @@ method Main(){
   B2.m();
   var c := new C3.ASpec.C.Init();
   c.m();
-  
+
 }

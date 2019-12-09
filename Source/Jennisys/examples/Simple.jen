@@ -1,25 +1,25 @@
 interface Simple {
  var a: int
- 
+
  method Inc(p: int)
-   a := old(a) + p   
-   
+   a := old(a) + p
+
  method Init(n: int)
    a := n
-   
+
  method Max(x: int, y: int)
    ensures x < y ==> a = y
    ensures x >= y ==> a = x
-   
- 
+
+
  method Max2(x: int, y: int)
    ensures a = x || a = y
    ensures forall t :: t in {x y} ==> a >= t
-   
+
  method Max3__mod__(x: int, y: int)
    ensures a in {x y}
-   ensures forall t :: t in {x y} ==> a >= t   
-   
+   ensures forall t :: t in {x y} ==> a >= t
+
  method MaxAll__mod__(x: seq[int])
    ensures a in x
    ensures forall t :: t in x ==> a >= t

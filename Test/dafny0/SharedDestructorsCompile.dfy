@@ -15,7 +15,7 @@ method Main()
   assert s[0].x == 10 && s[0].y == 12.0;
   assert s[1].h == o && s[1].x == 6;
   assert s[2].y == 3.14;
-  
+
   var d := s[0];
   print d, ":  x=", d.x, " y=", d.y, "\n";
   d := s[1];
@@ -57,10 +57,10 @@ method Matte(d: Datte<real>)
   requires !d.CC?
 {
   var d := d;
-  
+
   var s := d.(x := 5);
   print d, " ", s, "\n";  // AA(10, 2) AA(10, 5)
-  
+
   d := BB(false, 12);
   s := d.(x := 6);
   print d, " ", s, "\n";  // BB(false, 12) BB(false, 6)

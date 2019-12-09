@@ -1,7 +1,7 @@
 // RUN: %dafny /compile:3 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
-datatype Block<Hash,Transaction,VProof> = 
+datatype Block<Hash,Transaction,VProof> =
   Block(prevBlockHash:Hash, txs:seq<Transaction>, proof:VProof)
 
 function method GenesisBlock() : Block<int,int,int> {
@@ -52,7 +52,7 @@ method TestEq()
   print o0 == o1, "\n";
   var obj := new MyClass;
   print obj == obj, " ", TestAny(obj, obj), "\n";
-  
+
   var x0 := X(true, 'e', 12, 37.5, 12, 12, 12, 12, 12, obj);
   var x1 := X(true, 'e', 12, 37.5, 12, 12, 12, 12, 12, obj);
   print [x0] == [x1], " ", TestAny([x0], [x1]), "\n";

@@ -1,7 +1,7 @@
 // RUN: %dafny /compile:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
-method test(x:seq<int>) 
+method test(x:seq<int>)
   requires |x| == 10
 {
   var elts := x[4:2:3];

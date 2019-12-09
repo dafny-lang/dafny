@@ -1,7 +1,7 @@
 method M() returns (ok: bool)
 
-  
-  
+
+
 
   ensures ok  // related location here
 {
@@ -15,8 +15,8 @@ method M() returns (ok: bool)
 method P() returns (ok: bool)
 
 
-  
+
   ensures ok  // related location here
-  
+
 {  // error: postcondition failure on this return path
 }

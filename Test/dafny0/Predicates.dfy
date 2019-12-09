@@ -50,7 +50,7 @@ module Loose {
     {
       N, Repr := 0, {this};
     }
-    
+
     method Inc()
       requires Valid();
       modifies Repr;

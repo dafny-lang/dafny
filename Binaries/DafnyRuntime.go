@@ -1891,6 +1891,12 @@ func (i Int) Cmp(j Int) int {
 	return i.impl.Cmp(j.impl)
 }
 
+// Sign returns the sign of an Int, returning -1 for negative, 0 for zero, or
+// 1 for positive.
+func (i Int) Sign() int {
+	return i.impl.Sign()
+}
+
 // EqualsGeneric compares an int to another value.
 func (i Int) EqualsGeneric(other interface{}) bool {
 	j, ok := other.(Int)
@@ -2251,6 +2257,12 @@ func (x Real) DivBy(y Real) Real {
 // for greater.
 func (x Real) Cmp(y Real) int {
 	return x.impl.Cmp(y.impl)
+}
+
+// Sign returns the sign of a Real, returning -1 for negative, 0 for zero, or
+// 1 for positive.
+func (x Real) Sign() int {
+	return x.impl.Sign()
 }
 
 // EqualsGeneric compares an int to another value.

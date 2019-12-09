@@ -23,11 +23,11 @@ type Config = {
    numLoopUnrolls            : int;
    recursiveValid            : bool;
    breakIntoDebugger         : bool;
-   minimizeGuards            : bool; 
+   minimizeGuards            : bool;
 }
 
 type CfgOption<'a> = {
-   optionName: string; 
+   optionName: string;
    optionType: string;
    optionSetter: 'a -> Config -> Config;
    descr: string;
@@ -35,23 +35,23 @@ type CfgOption<'a> = {
 
 exception InvalidCmdLineArg of string
 exception InvalidCmdLineOption of string
- 
+
 let CheckNonEmpty value optName =
   if value = "" then raise (InvalidCmdLineArg("A value for option " + optName + " must not be empty")) else value
 
 let CheckInt value optName =
-  try 
+  try
     System.Int32.Parse value
-  with 
+  with
     | ex -> raise (InvalidCmdLineArg("A value for option " + optName + " must be a boolean"))
 
 let CheckBool value optName =
   if value = "" then
     true
   else
-    try 
+    try
       System.Boolean.Parse value
-    with 
+    with
       | ex -> raise (InvalidCmdLineArg("A value for option " + optName + " must be an integer"))
 
 let cfgOptions = [
@@ -63,8 +63,8 @@ let cfgOptions = [
   { optionName = "verifyParSol";    optionType = "bool";   optionSetter = (fun v (cfg: Config) -> {cfg with verifyPartialSolutions =      CheckBool v "verifyParSol"});   descr = "verify partial solutions"; }
   { optionName = "noVerifyParSol";  optionType = "bool";   optionSetter = (fun v (cfg: Config) -> {cfg with verifyPartialSolutions = not (CheckBool v "verifyParSol")});  descr = "don't verify partial solutions"; }
   { optionName = "verifySol";       optionType = "bool";   optionSetter = (fun v (cfg: Config) -> {cfg with verifySolutions        =      CheckBool v "verifySol"});      descr = "verify final solution"; }
-  { optionName = "noVerifySol";     optionType = "bool";   optionSetter = (fun v (cfg: Config) -> {cfg with verifySolutions        = not (CheckBool v "verifySol")});     descr = "don't verify final solution"; } 
-  { optionName = "checkUnifs";      optionType = "bool";   optionSetter = (fun v (cfg: Config) -> {cfg with checkUnifications      =      CheckBool v "checkUnifs"});     descr = "verify unifications"; } 
+  { optionName = "noVerifySol";     optionType = "bool";   optionSetter = (fun v (cfg: Config) -> {cfg with verifySolutions        = not (CheckBool v "verifySol")});     descr = "don't verify final solution"; }
+  { optionName = "checkUnifs";      optionType = "bool";   optionSetter = (fun v (cfg: Config) -> {cfg with checkUnifications      =      CheckBool v "checkUnifs"});     descr = "verify unifications"; }
   { optionName = "noCheckUnifs";    optionType = "bool";   optionSetter = (fun v (cfg: Config) -> {cfg with checkUnifications      = not (CheckBool v "noCheckUnifs")});  descr = "don't verify unifications"; }
   { optionName = "genRepr";         optionType = "bool";   optionSetter = (fun v (cfg: Config) -> {cfg with genRepr                =      CheckBool v "genRepr"});        descr = "generate Repr field"; }
   { optionName = "noGenRepr";       optionType = "bool";   optionSetter = (fun v (cfg: Config) -> {cfg with genRepr                = not (CheckBool v "noGenRepr")});     descr = "don't generate Repr field"; }
@@ -83,11 +83,11 @@ let cfgOptMap = cfgOptions |> List.fold (fun acc o -> acc |> Map.add o.optionNam
 
 let newline = System.Environment.NewLine
 
-let PrintHelpMsg = 
+let PrintHelpMsg =
   let maxw = cfgOptions |> List.fold (fun acc o -> if String.length o.optionName > acc then String.length o.optionName else acc) 0
   let maxwStr = sprintf "%d" (maxw + 2)
   let strf = new Printf.StringFormat<_>("  %-" + maxwStr + "s: %-6s | %s")
-  let rec __PrintHelp optLst = 
+  let rec __PrintHelp optLst =
     match optLst with
     | fs :: []   -> (sprintf strf fs.optionName fs.optionType fs.descr)
     | fs :: rest -> (sprintf strf fs.optionName fs.optionType fs.descr) + newline + (__PrintHelp rest)
@@ -96,7 +96,7 @@ let PrintHelpMsg =
   newline +
   "Jennisys usage: Jennisys [ option ... ] filename" + newline +
   "  where <option> is one of " + newline + newline +
-  "  ----- General options -----------------------------------------------------" + newline + 
+  "  ----- General options -----------------------------------------------------" + newline +
   "        (available switches are: /, -, --)" + newline + newline +
   (__PrintHelp cfgOptions)
 
@@ -118,14 +118,14 @@ let defaultConfig: Config = {
   minimizeGuards    = true;
 }
 
-/// Should not be mutated outside the ParseCmdLineArgs method, which is 
-/// typically called only once at the beginning of the program execution 
+/// Should not be mutated outside the ParseCmdLineArgs method, which is
+/// typically called only once at the beginning of the program execution
 let mutable CONFIG = defaultConfig
 
-let ParseCmdLineArgs args = 
+let ParseCmdLineArgs args =
   let __StripSwitches str =
-    match str with 
-    | Prefix "--" x 
+    match str with
+    | Prefix "--" x
     | Prefix "-" x
     | Prefix "/" x -> x
     | _ -> str
@@ -133,7 +133,7 @@ let ParseCmdLineArgs args =
   let __Split (str: string) =
     let stripped = __StripSwitches str
     if stripped = str then
-      ("",str) 
+      ("",str)
     else
       let splits = stripped.Split([| ':' |])
       if splits.Length > 2 then raise (InvalidCmdLineOption("more than 2 colons in " + str))
@@ -144,19 +144,19 @@ let ParseCmdLineArgs args =
       else
         let x = __StripSwitches splits.[0]
         (x, "")
-                 
+
   let rec __Parse args cfg =
     match args with
-    | fs :: rest -> 
+    | fs :: rest ->
         let opt,value = __Split fs
         if opt = "" then
           __Parse rest { cfg with inputFilename = CheckNonEmpty value opt }
-        else 
+        else
           match Map.tryFind opt cfgOptMap with
           | Some(opt) -> __Parse rest (opt.optionSetter value cfg)
           | None -> raise (InvalidCmdLineOption("Unknown option: " + opt))
-    | [] -> cfg   
-    
-  (* --- function body starts here --- *)           
+    | [] -> cfg
+
+  (* --- function body starts here --- *)
   CONFIG <- __Parse args defaultConfig
 

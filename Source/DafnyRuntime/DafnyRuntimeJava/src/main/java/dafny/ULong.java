@@ -64,12 +64,32 @@ public class ULong {
         return inner;
     }
 
+    public byte byteValue() {
+        return (byte) inner;
+    }
+
+    public short shortValue() {
+        return (short) inner;
+    }
+
+    public int intValue() {
+        return (int) inner;
+    }
+
+    public long longValue() {
+        return inner;
+    }
+
     public static int compare(ULong x, ULong y) {
         return x.compareTo(y);
     }
 
     public int compareTo(ULong other) {
         return Long.compareUnsigned(inner, other.inner);
+    }
+
+    public int signum() {
+        return inner == 0 ? 0 : 1;
     }
 
     //Invariant that other.inner is positive, so no underflow check needed

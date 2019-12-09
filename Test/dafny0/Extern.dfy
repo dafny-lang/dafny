@@ -4,6 +4,7 @@
 method Main() {
   Mod1.Test();
   ConstInit.Test();
+  TwoArgumentExtern.Test();
 }
 
 module {:extern "Modx"} Mod1
@@ -61,5 +62,18 @@ module {:extern "ConstInit"} ConstInit {
     requires o != null
   {
     print if o == null then "null" else "good", "\n";
+  }
+}
+
+module TwoArgumentExtern {
+  method {:extern "ABC.DEF", "MX"} M(x: int) returns (r: int)
+
+  // git issue 423
+  function method {:extern "ABC.DEF", "FX"} F(x: int): int
+
+  method Test() {
+    var y := M(2);  // calls ABC.DEF.MX
+    var z := F(2);  // calls ABC.DEF.FX
+    print y, " ", z, "\n";  // 4 2
   }
 }

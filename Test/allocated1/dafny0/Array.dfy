@@ -314,7 +314,7 @@ module DtypeRegression {
     a[..] == b[..]
   }
 
-  method duplicate_array(input: array<int>, len: int) returns (output: array<int>) 
+  method duplicate_array(input: array<int>, len: int) returns (output: array<int>)
     requires len == input.Length
     ensures array_equal(input, output)
   {

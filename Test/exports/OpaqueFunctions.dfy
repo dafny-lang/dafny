@@ -31,14 +31,14 @@ module C {
 }
 
 module D {
-  import A = A`A 
+  import A = A`A
   function g() : nat { A.f() }
 }
 
 module E {
   import D
   import A`B
-  
+
   function h() : nat
   ensures h() == 7
   { D.g() } // revealed via A`B
@@ -63,7 +63,7 @@ module CC {
   lemma Test1()
   ensures A.f() == 0 // fails
   { }
-  
+
   lemma Test2()
   ensures A.f() == 0
   { reveal A.f(); }

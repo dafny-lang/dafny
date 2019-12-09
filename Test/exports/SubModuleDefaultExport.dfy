@@ -10,14 +10,14 @@ module E {
   }
 
   import SubEA = SubE`A
-  
+
   method Test() {
     var g : SubE.TT; // error
     var gg : SubEA.TT;
     var e : SubE.T;
     var f := e == false; // error
     var gtest := gg == 1;
-    
+
   }
 
 }

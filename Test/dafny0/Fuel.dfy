@@ -2,13 +2,13 @@
 // RUN: %diff "%s.expect" "%t"
 
 module TestModule1 {
-    function pos(x:int) : int 
+    function pos(x:int) : int
     {
         if x < 0 then 0
         else 1 + pos(x - 1)
     }
 
-    method test(y:int, z:int) 
+    method test(y:int, z:int)
         requires y > 5;
         requires z < 0;
     {
@@ -21,31 +21,31 @@ module TestModule1 {
 
 // Test with function-level fuel boost
 module TestModule2 {
-    function {:fuel 3} pos1(x:int) : int 
+    function {:fuel 3} pos1(x:int) : int
     {
         if x < 0 then 0
         else 1 + pos1(x - 1)
     }
 
-    function {:fuel 4} pos2(x:int) : int 
+    function {:fuel 4} pos2(x:int) : int
     {
         if x < 0 then 0
         else 1 + pos2(x - 1)
     }
 
-    function {:fuel 4} pos3(x:int) : int 
+    function {:fuel 4} pos3(x:int) : int
     {
         if x < 0 then 0
         else 1 + pos3(x - 1)
     }
 
-    function {:opaque} {:fuel 4} pos4(x:int) : int 
+    function {:opaque} {:fuel 4} pos4(x:int) : int
     {
         if x < 0 then 0
         else 1 + pos3(x - 1)
     }
 
-    method test(y:int, z:int) 
+    method test(y:int, z:int)
         requires y > 5;
         requires z < 0;
     {
@@ -79,13 +79,13 @@ module TestModule2 {
 
 module TestModule3 {
     // This fuel setting is equivalent to opaque, except for literals
-    function {:fuel 0,0} pos(x:int) : int 
+    function {:fuel 0,0} pos(x:int) : int
     {
         if x < 0 then 0
         else 1 + pos(x - 1)
     }
 
-    method test(y:int, z:int) 
+    method test(y:int, z:int)
         requires y > 5;
         requires z < 0;
     {
@@ -97,14 +97,14 @@ module TestModule3 {
 
 // Test fuel settings via different contexts
 module TestModule4 {
-    function pos(x:int) : int 
+    function pos(x:int) : int
     {
         if x < 0 then 0
         else 1 + pos(x - 1)
     }
 
     // Should pass
-    method {:fuel pos,3} test1(y:int, z:int) 
+    method {:fuel pos,3} test1(y:int, z:int)
         requires y > 5;
         requires z < 0;
     {
@@ -113,7 +113,7 @@ module TestModule4 {
         assert pos(y) == 3 + pos(y - 3);
     }
 
-    method {:fuel pos,0,0} test2(y:int, z:int) 
+    method {:fuel pos,0,0} test2(y:int, z:int)
         requires y > 5;
         requires z < 0;
     {
@@ -122,7 +122,7 @@ module TestModule4 {
         assert pos(y) == 3 + pos(y - 3);  // error: Should fail due to "opaque" fuel setting
     }
 
-    method test3(y:int, z:int) 
+    method test3(y:int, z:int)
         requires y > 5;
         requires z < 0;
     {
@@ -134,14 +134,14 @@ module TestModule4 {
         } else {
             assert {:fuel pos,3} pos(y) == 3 + pos(y - 3);  // Should succeed with extra fuel setting
             assert {:fuel pos,3} pos(y) == 6 + pos(y - 6);  // Should succeed thanks to previous assert turned into assume
-        } 
+        }
     }
 
-    method test4(y:int, z:int) 
+    method test4(y:int, z:int)
         requires y > 5;
         requires z < 0;
     {
-        forall t:int {:fuel pos,3} | t > 0 
+        forall t:int {:fuel pos,3} | t > 0
             ensures true;
         {
             assert pos(y) == 3 + pos(y - 3);    // Expected to pass, due to local fuel boost
@@ -165,13 +165,13 @@ module TestModule5 {
     module TestModule5a {
         module {:fuel TestModule5aiA.pos,3} TestModule5ai {
             module TestModule5aiA {
-                function pos(x:int) : int 
+                function pos(x:int) : int
                 {
                     if x < 0 then 0
                     else 1 + pos(x - 1)
                 }
 
-                method test(y:int, z:int) 
+                method test(y:int, z:int)
                     requires y > 5;
                     requires z < 0;
                 {
@@ -181,7 +181,7 @@ module TestModule5 {
                 }
             }
 
-            method test(y:int, z:int) 
+            method test(y:int, z:int)
                 requires y > 5;
                 requires z < 0;
             {
@@ -190,8 +190,8 @@ module TestModule5 {
                 assert TestModule5aiA.pos(y) == 3 + TestModule5aiA.pos(y - 3);    // Should pass due to module level fuel
             }
         }
-  
-        method test(y:int, z:int) 
+
+        method test(y:int, z:int)
             requires y > 5;
             requires z < 0;
         {
@@ -204,13 +204,13 @@ module TestModule5 {
     module {:fuel TestModule5bi.TestModule5biA.pos,3} TestModule5b {
         module  TestModule5bi {
             module TestModule5biA {
-                function pos(x:int) : int 
+                function pos(x:int) : int
                 {
                     if x < 0 then 0
                     else 1 + pos(x - 1)
                 }
 
-                method test(y:int, z:int) 
+                method test(y:int, z:int)
                     requires y > 5;
                     requires z < 0;
                 {
@@ -225,7 +225,7 @@ module TestModule5 {
 
 // Test fuel setting for multiple functions
 module TestModule6 {
-    function pos(x:int) : int 
+    function pos(x:int) : int
     {
         if x < 0 then 0
         else 1 + pos(x - 1)
@@ -238,7 +238,7 @@ module TestModule6 {
         else 1 + neg(x + 1)
     }
 
-    method test1(y:int, z:int) 
+    method test1(y:int, z:int)
         requires y > 5;
         requires z < 5;
     {
@@ -247,19 +247,19 @@ module TestModule6 {
         assert neg(z) == 3 + neg(z + 3);    // error: Should fail, due to lack of fuel
     }
 
-    method {:fuel pos,3} {:fuel neg,4} test2(y:int, z:int) 
+    method {:fuel pos,3} {:fuel neg,4} test2(y:int, z:int)
         requires y > 5;
         requires z < -5;
     {
-        assert pos(y) == 3 + pos(y - 3);    
+        assert pos(y) == 3 + pos(y - 3);
 
-        assert neg(z) == 3 + neg(z + 3);    
+        assert neg(z) == 3 + neg(z + 3);
     }
 }
 
 // Test fuel settings with multiple overlapping contexts
 module TestModule7 {
-    function {:fuel 3} pos(x:int) : int 
+    function {:fuel 3} pos(x:int) : int
     {
         if x < 0 then 0
         else 1 + pos(x - 1)
@@ -272,7 +272,7 @@ module TestModule7 {
         else 1 + neg(x + 1)
     }
 
-    method {:fuel neg,4} {:fuel pos,0,0} test1(y:int, z:int) 
+    method {:fuel neg,4} {:fuel pos,0,0} test1(y:int, z:int)
         requires y > 5;
         requires z < -5;
     {
@@ -281,7 +281,7 @@ module TestModule7 {
             assert neg(z) == 3 + neg(z + 3);    // Method fuel should override function fuel, so this succeeds
         }
 
-        forall t:int {:fuel pos,3} | t > 0 
+        forall t:int {:fuel pos,3} | t > 0
             ensures true;
         {
             assert pos(y) == 3 + pos(y - 3);    // Statement fuel should override method fuel, so this should succeed
@@ -334,7 +334,7 @@ module TestModule8 {
             if val.c == 0 then
                 var ep := parse_EndPoint(val.val.t[0]); // With default fuel, error: function precondition, destructor, index
                 CRequest(ep, val.val.t[1].u, parse_AppMessage(val.val.t[2]))    // error: index out of range, destructor
-            else 
+            else
                 CRequestNoOp()
         }
 
@@ -344,7 +344,7 @@ module TestModule8 {
             if val.c == 0 then
                 var ep := parse_EndPoint(val.val.t[0]);                      // With fuel boosted to 2 this succeeds
                 CRequest(ep, val.val.t[1].u, parse_AppMessage(val.val.t[2])) // error: destructor
-            else 
+            else
                 CRequestNoOp()
         }
 
@@ -352,14 +352,14 @@ module TestModule8 {
             requires ValInGrammar(val, CRequest_grammar());
         {
             if val.c == 0 then
-                var ep := parse_EndPoint(val.val.t[0]); 
+                var ep := parse_EndPoint(val.val.t[0]);
                 CRequest(ep, val.val.t[1].u, parse_AppMessage(val.val.t[2]))    // With one more boost, everything succeeds
-            else 
+            else
                 CRequestNoOp()
         }
 
         // With the method, everything succeeds with one less fuel boost (i.e., 2, rather than 3, as in parse_Request3)
-        method parse_Request4(val:V) returns (req:CRequest)     
+        method parse_Request4(val:V) returns (req:CRequest)
             requires ValInGrammar(val, CRequest_grammar());
         {
             if val.c == 0 {
@@ -461,13 +461,13 @@ module TestModule11 {
 }
 
 module TestModule12 {
-		function pos3(x:int) : int 
+		function pos3(x:int) : int
 		{
 				if x < 0 then 0
 				else 1 + pos4(x - 1)
 		}
 
-		function pos4(x:int) : int 
+		function pos4(x:int) : int
 		{
 				if x < 0 then 0
 				else 1 + pos3(x - 1)
@@ -476,6 +476,6 @@ module TestModule12 {
 		method {:fuel pos3,2,3} {:fuel pos4,2,3} test (y:int)
 			requires y > 3;
 		{
-				assert pos3(y) == 3 + pos4(y - 3); 
+				assert pos3(y) == 3 + pos4(y - 3);
 		}
 }

@@ -1,7 +1,7 @@
 // RUN: %dafny /compile:0 /print:"%t.print" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
-predicate isEven(x:int) 
+predicate isEven(x:int)
 {
   x % 2 == 0
 }
@@ -23,13 +23,13 @@ twostate function P2(x: int) : (z: int)
    x - 1
 }
 
-module Interface 
+module Interface
 {
   function addSome(n: nat): nat
     ensures addSome(n) > n
 }
 
-module Implementation refines Interface 
+module Implementation refines Interface
 {
   function addSome(n: nat): (z: nat)
     ensures z == n + 1
