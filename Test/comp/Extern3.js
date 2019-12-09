@@ -45,3 +45,9 @@ let Library = (function() {
 
   return $module;
 })();
+
+let OtherClass = class OtherClass {
+  static CallMe() {
+    return "OtherClass.CallMe";
+  }
+}

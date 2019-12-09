@@ -553,7 +553,7 @@ namespace Microsoft.Dafny{
       } else if (xType is BitvectorType) {
         var t = (BitvectorType)xType;
         return t.NativeType != null ? GetNativeTypeName(t.NativeType) : "java.math.BigInteger";
-      } else if (xType.AsNewtype != null) {
+      } else if (member == null && xType.AsNewtype != null) {
         var nativeType = xType.AsNewtype.NativeType;
         if (nativeType != null) {
           return GetNativeTypeName(nativeType);
@@ -593,7 +593,9 @@ namespace Microsoft.Dafny{
           s = cl.FullCompileName;
         }
 
-        return TypeName_UDT(s, udt.TypeArgs, wr, udt.tok);
+        // When accessing a static member, leave off the type arguments
+        var typeArgs = member != null ? new List<Type>() : udt.TypeArgs;
+        return TypeName_UDT(s, typeArgs, wr, udt.tok);
       } else if (xType is SetType) {
         Type argType = ((SetType)xType).Arg;
         if (ComplicatedTypeParameterForCompilation(argType)) {
@@ -645,6 +647,10 @@ namespace Microsoft.Dafny{
       if (udt is ArrowType) {
         functions.Add(udt.TypeArgs.Count - 1);
         return DafnyFunctionIface(udt.TypeArgs.Count - 1);
+      }
+      string qualification;
+      if (member != null && member.IsExtern(out qualification, out _) && qualification != null) {
+        return qualification;
       }
       var cl = udt.ResolvedClass;
       if (cl == null) {
@@ -1091,16 +1097,10 @@ namespace Microsoft.Dafny{
     }
 
     protected override string TypeName_Companion(Type type, TextWriter wr, Bpl.IToken tok, MemberDecl member){
-      if (type is UserDefinedType udt) {
-        if (udt.ResolvedClass is TraitDecl){
-          string s = IdProtect(udt.FullCompanionCompileName);
-          Contract.Assert(udt.TypeArgs.Count == 0); // traits have no type parameters
+      if (type is UserDefinedType udt && udt.ResolvedClass is TraitDecl) {
+        string s = IdProtect(udt.FullCompanionCompileName);
+        Contract.Assert(udt.TypeArgs.Count == 0); // traits have no type parameters
         return s;
-        } else if (udt.ResolvedClass.Module.CompileName == ModuleName || udt.ResolvedClass is TupleTypeDecl || udt.ResolvedClass.Module.IsDefaultModule) {
-          return IdProtect(udt.ResolvedClass.CompileName);
-        } else{
-          return IdProtect(udt.ResolvedClass.FullCompileName);
-        }
       } else {
         return TypeName(type, wr, tok, member);
       }

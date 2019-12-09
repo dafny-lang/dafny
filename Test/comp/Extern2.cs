@@ -14,6 +14,12 @@ namespace Library {
     }
   }
 
+  class OtherClass {
+    public static object CallMe() {
+      return "OtherClass.CallMe";
+    }
+  }
+
   // must be partial, since Dafny will also generate some methods into this class
   public partial class Mixed {
     private readonly BigInteger n;

@@ -25,6 +25,14 @@ func (CompanionStruct_LibClass_) CallMeNative(x int32, b bool) int32 {
   return y
 }
 
+type CompanionStruct_OtherClass_ struct{}
+
+var OtherClass = CompanionStruct_OtherClass_{}
+
+func (CompanionStruct_OtherClass_) CallMe() {
+  return "OtherClass.CallMe"
+}
+
 type Dummy__ struct{}
 
 
