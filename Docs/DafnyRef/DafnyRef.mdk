@@ -6606,7 +6606,7 @@ MonadicBindExpr(allowSemi, allowLambda) =
   ";"
   Expression(allowSemi, allowLambda)
 ````
-A "MonadicBindExpr" is syntactic sugar for a Bind expression. It may only appear in "DoExpression" blocks
+A "MonadicBindExpr" is syntactic sugar for a Bind expression. It may only appear in "DoExpression" blocks.
 If the CasePattern is a bound variable, it will be desugared as:
 ```
 Bind(Expression, CasePattern => Expression)
