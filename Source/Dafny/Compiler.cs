@@ -3370,9 +3370,6 @@ namespace Microsoft.Dafny {
             EmitReturnExpr(e.Body, true, w);
           }
         }
-      } else if (expr is NestedMatchExpr){
-        var e = (NestedMatchExpr) expr;
-        TrExpr(e.ResolvedExpression, wr, inLetExprBody);
       } else if (expr is MatchExpr) {
         var e = (MatchExpr)expr;
         // ((System.Func<SourceType, TargetType>)((SourceType _source) => {

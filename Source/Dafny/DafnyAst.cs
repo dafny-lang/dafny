@@ -10813,20 +10813,14 @@ public class NestedMatchCaseStmt : NestedMatchCase {
  - a list of NestedMatchCaseExpr
  - an Expression filled in by the resolver representing the semantics meaning of the constructor
  */
-public class NestedMatchExpr : Expression
+public class NestedMatchExpr : ConcreteSyntaxExpression
  {
 
   private Expression source;
   private List<NestedMatchCaseExpr> cases;
   public readonly bool UsesOptionalBraces;
 
-  public  Expression ResolvedExpression;
 
-    public override IEnumerable<Expression> SubExpressions {
-      get {
-        yield return ResolvedExpression;
-        }
-      }
 
 
   public NestedMatchExpr(IToken tok, Expression source, [Captured] List<NestedMatchCaseExpr> cases, bool usesOptionalBraces): base(tok) {
