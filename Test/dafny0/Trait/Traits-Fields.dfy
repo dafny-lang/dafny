@@ -11,7 +11,7 @@ class C extends J
 
 }
 
-method Main() 
+method Main()
 {
   var c := new C;
   var j: J? := new C;

@@ -129,7 +129,7 @@ method hail(N: nat)
    var n := N;
    while 1 < n
       decreases *
-   { 
+   {
       n := if n % 2 == 0 then n / 2 else n * 3 + 1;
    }
 }

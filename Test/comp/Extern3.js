@@ -14,7 +14,7 @@ let Library = (function() {
       return y;
     }
   };
-  
+
   $module.Mixed = class Mixed {
     // static method P()
     static P() {
@@ -26,6 +26,6 @@ let Library = (function() {
       process.stdout.write("AllExtern.P\n");
     }
   };
-  
+
   return $module;
 })();

@@ -89,8 +89,8 @@ class Queue<T(0)> {
     head := n;
     contents := n.tailContents;
   }
-  
-  
+
+
   method Rotate()
     requires Valid();
     requires 0 < |contents|;

@@ -343,7 +343,7 @@ abstract module M0 {
         if Legal(stmts[1..]) {
           var _, st'' := DoLemma(stmts[1..], st', env');
           Lemma_ExtendsTransitive(st, st', st'');
-        } else { 
+        } else {
         }
       } else { }
     } else {

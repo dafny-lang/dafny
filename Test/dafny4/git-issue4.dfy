@@ -8,7 +8,7 @@ function method IntToChar(i:int):char
 }
 
 function method CharToInt(i:char):int
-  
+
 {
   i as int - 48
 }

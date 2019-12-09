@@ -77,6 +77,48 @@ Execution trace:
 OpaqueFunctions.dfy(215,11): Error: assertion violation
 Execution trace:
     (0,0): anon0
+OpaqueFunctions.dfy(280,16): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon19_Then
+OpaqueFunctions.dfy(282,15): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon20_Then
+OpaqueFunctions.dfy(284,15): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon21_Then
+OpaqueFunctions.dfy(297,46): Error: result of operation might violate newtype constraint for 'Small'
+Execution trace:
+    (0,0): anon0
+    (0,0): anon25_Then
+    (0,0): anon26_Then
+    (0,0): anon27_Then
+    (0,0): anon11
+    (0,0): anon28_Then
+    (0,0): anon29_Then
+    (0,0): anon30_Then
+OpaqueFunctions.dfy(304,15): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon15_Then
+OpaqueFunctions.dfy(306,15): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon16_Then
+OpaqueFunctions.dfy(308,15): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon17_Then
+OpaqueFunctions.dfy(321,17): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon21_Then
+    (0,0): anon22_Then
+    (0,0): anon23_Then
+    (0,0): anon11
+    (0,0): anon24_Then
 OpaqueFunctions.dfy(167,15): Error: assertion violation
 Execution trace:
     (0,0): anon0
@@ -84,4 +126,4 @@ OpaqueFunctions.dfy(182,19): Error: assertion violation
 Execution trace:
     (0,0): anon0
 
-Dafny program verifier finished with 18 verified, 23 errors
+Dafny program verifier finished with 20 verified, 31 errors

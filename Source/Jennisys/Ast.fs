@@ -15,26 +15,26 @@ type Type =
   | BoolType
   | SetType of Type (* type parameter *)
   | SeqType of Type (* type parameter *)
-  | NamedType of string * string list (* type parameters *)  
+  | NamedType of string * string list (* type parameters *)
   | InstantiatedType of string * Type list (* type parameters *)
 
 type VarDecl =
-  | Var of string * Type option * (* isOld *) bool 
+  | Var of string * Type option * (* isOld *) bool
 
-(* 
-   the difference between IdLiteral and VarLiteral is that the VarLiteral is more specific, 
-   it always referes to a local variable (either method parameter or quantification variable)  
+(*
+   the difference between IdLiteral and VarLiteral is that the VarLiteral is more specific,
+   it always referes to a local variable (either method parameter or quantification variable)
 
-   ObjLiteral is a concrete object, so if two ObjLiterals have different names, 
+   ObjLiteral is a concrete object, so if two ObjLiterals have different names,
    they are different objects (as opposed to IdLiterals and VarLiterals, which can alias).
  *)
 type Expr =
   | IntLiteral of int
   | BoolLiteral of bool
   | BoxLiteral of string
-  | VarLiteral of string  
-  | IdLiteral of string 
-  | ObjLiteral of string 
+  | VarLiteral of string
+  | IdLiteral of string
+  | ObjLiteral of string
   | Star
   | Dot of Expr * string
   | UnaryExpr of string * Expr
@@ -54,7 +54,7 @@ type Expr =
   | AssertExpr of Expr
   | AssumeExpr of Expr
 
-type Const = 
+type Const =
   | IntConst   of int
   | BoolConst  of bool
   | BoxConst   of string
@@ -65,7 +65,7 @@ type Const =
   | ThisConst  of (* loc id *) string * Type option
   | VarConst   of string
   | NewObj     of (* loc id *) string * Type option
-  | Unresolved of (* loc id *) string 
+  | Unresolved of (* loc id *) string
 
 type Stmt =
   | Block of Stmt list

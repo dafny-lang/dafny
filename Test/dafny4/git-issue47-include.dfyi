@@ -1,7 +1,7 @@
 module m1 {
 
     function one() : int { 1 }
-    
+
     lemma lemma_one()
         ensures one() == 1;
     {

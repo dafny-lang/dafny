@@ -1,6 +1,6 @@
 // RUN: %dafny /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
-
+module ResolutionTests {
 lemma A(b: bool, m: int, n: int)
   requires m < n
   requires sea: m + 3 < n
@@ -63,7 +63,7 @@ twostate lemma Twol(x: int)
   requires A: 0 <= x
 {
 }
-  
+
 lemma Calc(x: int)
   requires A: x < 10
 {
@@ -111,4 +111,241 @@ twostate lemma T3(c: C)
 {
   reveal A, B, A, A;  // this can be a list
   reveal A, X, A, A;  // error: C not defined
+}
+
+}  // module ResolutionTests
+
+module GitIssue408 {
+  method Test() {
+    ghost var x := 5;
+    assert x == 6 by {
+      // regression test: the following had once been unchecked:
+      x := 6;  // error: x is declared outside the assert-by block
+    }
+    assert x == 5; // This would be provable if the assignment to x above were allowed.
+    assert false;  // And then this assertion, too.
+  }
+
+  method MoreTests() {
+    ghost var x := 5;
+    var y := 9;
+    assert x == 6 by {
+      var u := 10;  // in this ghost context, every local variable is effectively ghost
+      u := u + 1;  // this is fine, since u is declared in the assert-by block
+      ghost var v := 10;
+      v := v + x + 1;  // this is also fine, since v is declared in the assert-by block
+      y := 8;  // error: y is non-ghost (and is declared outside the assert-by block)
+    }
+  }
+
+  class C {
+    ghost var data: real
+  }
+
+  datatype Record = Record(x: int, y: int)
+  method GetRecord(c: C)
+    modifies c
+  {
+    c.data := 21.0;
+  }
+
+  ghost method Six() returns (x: int) {
+    x := 6;
+  }
+
+  method Nesting(c: C, a: array<real>, m: array2<real>)
+    requires a.Length != 0 && m.Length0 == m.Length1 == 100
+    modifies c, a, m
+  {
+    ghost var x := 5;
+
+    assert 2 < 10 by {
+      var y := 9;
+      assert 2 < 11 by {
+        var u := 11;
+        u := 20;
+        x := 20;  // error: x is declared outside this assert-by block
+        x := Six();  // error: x is declared outside this assert-by block
+        y := 20;  // error: y is declared outside this assert-by block
+        c.data := 20.0;  // error: assert-by cannot modify heap locations
+        a[0] := 20.0;  // error: assert-by cannot modify heap locations
+        m[0,0] := 20.0;  // error: assert-by cannot modify heap locations
+        modify c;  // error: assert-by cannot modify heap locations
+      }
+      c.data := 20.0;  // error: assert-by cannot modify heap locations
+      a[0] := 20.0;  // error: assert-by cannot modify heap locations
+      m[0,0] := 20.0;  // error: assert-by cannot modify heap locations
+      modify c;  // error: assert-by cannot modify heap locations
+    }
+
+    calc {
+      5;
+    ==  { x := 10; }  // error: x is declared outside the hint
+      5;
+    ==  { c.data := 20.0;  // error: hint cannot modify heap locations
+          a[0] := 20.0;  // error: hint cannot modify heap locations
+          m[0,0] := 20.0;  // error: hint cannot modify heap locations
+          modify c;  // error: hint cannot modify heap locations
+        }
+      5;
+    ==  { var y := 9;
+          y := 10;
+          x := Six();  // error: x is declared outside this hint
+          assert 2 < 12 by {
+            var u := 11;
+            u := 20;
+            x := 6;  // error: x is declared outside this assert-by block
+            y := 11;  // error: y is declared outside this assert-by block
+            calc {
+              19;
+            ==  { y := 13;  // error: y is declared outside the hint
+                  u := 21;  // error: u is declared outside the hint
+                }
+              19;
+            }
+          }
+          y := 12;
+        }
+      5;
+    }
+
+    forall f | 0 <= f < 82
+      ensures f < 100
+    {
+      var y := 9;
+      assert 2 < 4 by {
+        x := 6;  // error: x is declared outside the assert-by statement
+        y := 11;  // error: y is declared outside the assert-by statement
+      }
+      var rr := (calc { 5; =={ return; /*error: return not allowed in hint*/ } 5; } Record(6, 8));
+      var Record(xx, yy) := (calc { 5; =={ return; /*error: return not allowed in hint*/ } 5; } Record(6, 8));
+    }
+  }
+
+  method Return() {
+    label A: {
+      while true {
+        calc {
+          5;
+        ==  { return; }  // error: return not allowed in hint
+          5;
+        }
+
+        assert 2 < 3 by {
+          return;  // error: return not allowed in assert-by
+        }
+      }
+    }
+  }
+
+  iterator Iter() {
+    calc {
+      5;
+    ==  { yield; }  // error: yield not allowed in hint
+      5;
+    }
+
+    assert 2 < 3 by {
+      yield;  // error: yield not allowed in assert-by
+    }
+  }
+}
+
+module ForallStmtTests {
+  // it so happens that forall statements are checked separately from hints in
+  // the Resolver, so we use a separate module for these tests to avoid having
+  // these errors shadow the others
+
+  class C {
+    ghost var data: real
+  }
+
+  datatype Record = Record(x: int, y: int)
+  method GetRecord(c: C)
+    modifies c
+  {
+    c.data := 21.0;
+  }
+
+  ghost method Six() returns (x: int) {
+    x := 6;
+  }
+
+  method Forall(c: C, a: array<real>, m: array2<real>) {
+    ghost var x := 5;
+
+    forall f | 0 <= f < 82
+      ensures f < 100
+    {
+      var y := 9;
+      x := 6;  // error: x is declared outside forall statement
+      x := Six();  // error: x is declared outside forall statement
+      c.data := 20.0;  // error: proof-forall statement cannot modify heap locations
+      a[0] := 20.0;  // error: proof-forall statement cannot modify heap locations
+      m[0,0] := 20.0;  // error: proof-forall statement cannot modify heap locations
+      modify c;  // error: proof-forall cannot modify heap locations
+    }
+  }
+
+  method Nested(c: C, a: array<real>, m: array2<real>) {
+    ghost var x := 5;
+
+    forall f | 0 <= f < 82
+      ensures f < 100
+    {
+      var y := 9;
+      assert 2 < 4 by {
+        var w := 18;
+        forall u | 0 <= u < w {
+          x := 6;  // error: x is declared outside the forall statement
+          y := 12;  // error: y is declared outside the forall statement
+          w := 19;  // error: w is declared outside the forall statement
+        }
+      }
+    }
+  }
+
+  method Return() {
+    forall f | 0 <= f < 82
+      ensures f < 100
+    {
+      return;  // error: return not allowed in forall statement
+    }
+  }
+
+  iterator Iter() {
+    forall f | 0 <= f < 82
+      ensures f < 100
+    {
+      yield;  // error: yield not allowed in forall statement
+    }
+  }
+}
+
+module Breaks {
+  method Break() {
+    label A: {
+      while true {
+        calc {
+          5;
+        ==  { break; }  // error: break not allowed in hint
+          5;
+        ==  { break A; }  // error: break not allowed in hint
+          5;
+        }
+
+        assert 2 < 3 by {
+          break;  // error: break not allowed in assert-by
+          break A;  // error: break not allowed in assert-by
+        }
+
+        forall f | 0 <= f < 82
+          ensures f < 100
+        {
+          break;  // error: break not allowed in forall statement
+          break A;  // error: break not allowed in forall statement
+        }
+      }
+    }
+  }
 }

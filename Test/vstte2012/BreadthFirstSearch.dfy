@@ -3,11 +3,11 @@
 
 class BreadthFirstSearch<Vertex(==)>
 {
-  // The following function is left uninterpreted (for the purpose of the 
+  // The following function is left uninterpreted (for the purpose of the
   // verification problem, it can be thought of as a parameter to the class)
   function method Succ(x: Vertex): set<Vertex>
 
-  // This is the definition of what it means to be a path "p" from vertex 
+  // This is the definition of what it means to be a path "p" from vertex
   // "source" to vertex "dest"
   predicate IsPath(source: Vertex, dest: Vertex, p: List<Vertex>)
   {
@@ -21,20 +21,20 @@ class BreadthFirstSearch<Vertex(==)>
     forall v :: v in S ==> Succ(v) <= S
   }
 
-  // This is the main method to be verified.  Note, instead of using a 
-  // postcondition that talks about that there exists a path (such that ...), 
-  // this method returns, as a ghost out-parameter, that existential 
-  // witness.  The method could equally well have been written using an 
+  // This is the main method to be verified.  Note, instead of using a
+  // postcondition that talks about that there exists a path (such that ...),
+  // this method returns, as a ghost out-parameter, that existential
+  // witness.  The method could equally well have been written using an
   // existential quantifier and no ghost out-parameter.
-  method BFS(source: Vertex, dest: Vertex, ghost AllVertices: set<Vertex>) 
+  method BFS(source: Vertex, dest: Vertex, ghost AllVertices: set<Vertex>)
          returns (d: int, ghost path: List<Vertex>)
     // source and dest are among AllVertices
-    requires source in AllVertices && dest in AllVertices;  
+    requires source in AllVertices && dest in AllVertices;
     // AllVertices is closed under Succ
-    requires IsClosed(AllVertices);                         
-    // This method has two basic outcomes, as indicated by the sign of "d".  
+    requires IsClosed(AllVertices);
+    // This method has two basic outcomes, as indicated by the sign of "d".
     // More precisely, "d" is non-negative iff "source" can reach "dest".
-    // The following postcondition says that under the "0 <= d" outcome, 
+    // The following postcondition says that under the "0 <= d" outcome,
     // "path" denotes a path of length "d" from "source" to "dest":
     ensures 0 <= d ==> IsPath(source, dest, path) && length(path) == d;
     // Moreover, that path is as short as any path from "source" to "dest":
@@ -47,9 +47,9 @@ class BreadthFirstSearch<Vertex(==)>
     assert paths.Keys == {source};
     // V - all encountered vertices
     // Processed - vertices reachable from "source" is at most "d" steps
-    // C - unprocessed vertices reachable from "source" in "d" steps 
+    // C - unprocessed vertices reachable from "source" in "d" steps
     //     (but no less)
-    // N - vertices encountered and reachable from "source" in "d+1" steps 
+    // N - vertices encountered and reachable from "source" in "d+1" steps
     //     (but no less)
     d := 0;
     while C != {}
@@ -83,7 +83,7 @@ class BreadthFirstSearch<Vertex(==)>
       var v :| v in C;
       C, Processed := C - {v}, Processed + {v};
       ghost var pathToV := Find(source, v, paths);
-    
+
       if v == dest {
         forall p | IsPath(source, dest, p)
           ensures length(pathToV) <= length(p);
@@ -107,7 +107,7 @@ class BreadthFirstSearch<Vertex(==)>
       }
     }
 
-    // show that "dest" in not in any reachability set, no matter 
+    // show that "dest" in not in any reachability set, no matter
     // how many successors one follows
     forall n: nat
       ensures dest !in R(source, n, AllVertices);
@@ -119,15 +119,15 @@ class BreadthFirstSearch<Vertex(==)>
       }
     }
 
-    // Now, show what what the above means in terms of IsPath.  More 
+    // Now, show what what the above means in terms of IsPath.  More
     // precisely, show that there is no path "p" from "source" to "dest".
     forall p | IsPath(source, dest, p)
-      // this and the previous two lines will establish the 
+      // this and the previous two lines will establish the
       // absurdity of a "p" satisfying IsPath(source, dest, p)
-      ensures false;  
+      ensures false;
     {
       Lemma_IsPath_R(source, dest, p, AllVertices);
-      // a consequence of Lemma_IsPath_R is:  
+      // a consequence of Lemma_IsPath_R is:
       // dest in R(source, |p|), AllVertices)
       // but that contradicts the conclusion of the preceding forall statement
     }
@@ -137,7 +137,7 @@ class BreadthFirstSearch<Vertex(==)>
 
   // property of IsPath
 
-  lemma Lemma_IsPath_Closure(source: Vertex, dest: Vertex, 
+  lemma Lemma_IsPath_Closure(source: Vertex, dest: Vertex,
                              p: List<Vertex>, AllVertices: set<Vertex>)
     requires IsPath(source, dest, p) && source in AllVertices && IsClosed(AllVertices);
     ensures dest in AllVertices && forall v :: v in elements(p) ==> v in AllVertices;
@@ -209,14 +209,14 @@ class BreadthFirstSearch<Vertex(==)>
     m[x]
   }
 
-  ghost method UpdatePaths(vSuccs: set<Vertex>, source: Vertex, 
-                           paths: map<Vertex, List<Vertex>>, v: Vertex, pathToV: List<Vertex>) 
+  ghost method UpdatePaths(vSuccs: set<Vertex>, source: Vertex,
+                           paths: map<Vertex, List<Vertex>>, v: Vertex, pathToV: List<Vertex>)
                returns (newPaths: map<Vertex, List<Vertex>>)
     requires ValidMap(source, paths);
     requires vSuccs !! paths.Keys;
     requires forall succ :: succ in vSuccs ==> IsPath(source, succ, Cons(v, pathToV));
     ensures ValidMap(source, newPaths) && newPaths.Keys == paths.Keys + vSuccs;
-    ensures forall x :: x in paths ==> 
+    ensures forall x :: x in paths ==>
                         Find(source, x, paths) == Find(source, x, newPaths);
     ensures forall x :: x in vSuccs ==> Find(source, x, newPaths) == Cons(v, pathToV);
   {

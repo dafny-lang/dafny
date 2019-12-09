@@ -5,7 +5,7 @@
 datatype Option<T> = None | Some(get: T)
 
 function method Unreachable<R>(): R
-    requires false 
+    requires false
 {
     var o: Option<R> := None;
     assert o.Some?;
@@ -23,13 +23,13 @@ class NatSuccess extends NatOutcome {
     constructor(value: nat) {
         this.value := value;
     }
-    predicate method IsFailure() { 
-        false 
+    predicate method IsFailure() {
+        false
     }
     function method PropagateFailure(): NatOutcome requires IsFailure() {
-        Unreachable<NatOutcome>() 
+        Unreachable<NatOutcome>()
     }
-    function method Extract(): nat requires !IsFailure() { 
+    function method Extract(): nat requires !IsFailure() {
         value
     }
 }
@@ -39,13 +39,13 @@ class NatFailure extends NatOutcome {
     constructor(error: string) {
         this.error := error;
     }
-    predicate method IsFailure() { 
+    predicate method IsFailure() {
         true
     }
     function method PropagateFailure(): NatOutcome requires IsFailure() {
         this
     }
-    function method Extract(): nat requires !IsFailure() { 
+    function method Extract(): nat requires !IsFailure() {
         Unreachable<nat>()
     }
 }

@@ -1,7 +1,7 @@
 // RUN: %dafny /compile:0  "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
-datatype Ballot = Ballot(seqno:int) 
+datatype Ballot = Ballot(seqno:int)
 
 predicate BalLt(ba:Ballot, bb:Ballot)
 {

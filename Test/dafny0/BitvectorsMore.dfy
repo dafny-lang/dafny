@@ -70,7 +70,7 @@ method Q(x: bv10, y: bv10)
 method R(x: bv60, y: bv60)
 {
   var a0, a1;
-  
+
   a0, a1 := x < y, y > x;
   assert a0 == a1;
 
@@ -180,7 +180,7 @@ method TestActualShifting()
   assert a >> 0 == 3;
   assert a >> 1 == 1;
   assert a >> 2 == 0;
-  
+
   var b: bv5 := 0x18;
   assert b << 1 == 0x10;
   assert b >> 0 == 0x18;

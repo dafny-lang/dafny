@@ -3,13 +3,13 @@
 
 module A {
 
-    predicate P() 
+    predicate P()
 
     class C
     {
         static method{:axiom} M()
             ensures P();
-    } 
+    }
 }
 
 abstract module B {

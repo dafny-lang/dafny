@@ -60,12 +60,12 @@ function blink(): Stream<int>
 colemma BzipBlinkLemma()
   ensures zip(constr(0), constr(1)) == blink();
 {
-  BzipBlinkLemma(); 
+  BzipBlinkLemma();
 }
 
 
 function zip2(xs: Stream, ys: Stream): Stream
-{ 
+{
   Cons(xs.hd, zip2(ys, xs.tl))
 }
 

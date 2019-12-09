@@ -33,7 +33,7 @@ class SumOfCubes {
     ensures SumEmUp(n, m) == SumEmUp(0, m) - SumEmUp(0, n);
   {
     var k := n;
-    while (k < m) 
+    while (k < m)
       invariant n <= k && k <= m;
       invariant SumEmDown(0, n) + SumEmDown(n, k) == SumEmDown(0, k);
     {

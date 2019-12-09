@@ -26,13 +26,13 @@ Bug170.dfy(56,4): Info: AA#[_k - 1]
 Bug170.dfy(57,11): Info: A#[_k - 1]
 Bug170.dfy(38,4): Info: B#[_k - 1]
 Bug170.dfy(43,4): Info: A#[_k - 1]
-Bug170.dfy(18,18): Info: AA# {:induction _k, x}
-Bug170.dfy(26,18): Info: BB# {:induction _k, x}
-Bug170.dfy(46,10): Info: AA# {:induction _k, x}
-Bug170.dfy(53,10): Info: BB# {:induction _k, x}
 Bug170.dfy(18,18): Info: AA# decreases _k, x
 Bug170.dfy(26,18): Info: BB# decreases _k, x
 Bug170.dfy(46,10): Info: AA# decreases _k, x
 Bug170.dfy(53,10): Info: BB# decreases _k, x
+Bug170.dfy(18,18): Info: AA# {:induction _k, x}
+Bug170.dfy(26,18): Info: BB# {:induction _k, x}
+Bug170.dfy(46,10): Info: AA# {:induction _k, x}
+Bug170.dfy(53,10): Info: BB# {:induction _k, x}
 
 Dafny program verifier finished with 8 verified, 0 errors

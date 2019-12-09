@@ -251,7 +251,7 @@ namespace Microsoft.Dafny {
       var w = DeclareLocalVar(name, type, tok, wr);
       TrExpr(rhs, w, inLetExprBody);
     }
-    
+
     protected virtual void DeclareLocalVar(string name, Type /*?*/ type, Bpl.IToken /*?*/ tok, Expression rhs,
       bool inLetExprBody, TargetWriter wr, Type t){
       var w = DeclareLocalVar(name, type, tok, wr);
@@ -281,7 +281,7 @@ namespace Microsoft.Dafny {
     protected abstract void DeclareLocalOutVar(string name, Type type, Bpl.IToken tok, string rhs, bool useReturnStyleOuts, TargetWriter wr);
     protected virtual void EmitActualOutArg(string actualOutParamName, TextWriter wr) { }  // actualOutParamName is always the name of a local variable; called only for non-return-style outs
     protected virtual void EmitOutParameterSplits(string outCollector, List<string> actualOutParamNames, TargetWriter wr) { }  // called only for return-style calls
-    protected virtual void EmitCastOutParameterSplits(string outCollector, List<string> actualOutParamNames, TargetWriter wr, List<Type> actualOutParamTypes, Bpl.IToken tok) { 
+    protected virtual void EmitCastOutParameterSplits(string outCollector, List<string> actualOutParamNames, TargetWriter wr, List<Type> actualOutParamTypes, Bpl.IToken tok) {
       EmitOutParameterSplits(outCollector, actualOutParamNames, wr); }
 
     protected abstract void EmitActualTypeArgs(List<Type> typeArgs, Bpl.IToken tok, TextWriter wr);
@@ -435,6 +435,19 @@ namespace Microsoft.Dafny {
     protected delegate void FCE_Arg_Translator(Expression e, TargetWriter wr, bool inLetExpr=false);
 
     protected abstract void EmitRotate(Expression e0, Expression e1, bool isRotateLeft, TargetWriter wr, bool inLetExprBody, FCE_Arg_Translator tr);
+    /// <summary>
+    /// Return true if x < 0 should be rendered as sign(x) < 0 when x has the
+    /// given type.  Typically, this is only a win at non-native types, since
+    /// BigIntegers benefit from not having to access the number zero.
+    /// </summary>
+    protected virtual bool CompareZeroUsingSign(Type type) {
+      return false;
+    }
+    protected virtual TargetWriter EmitSign(Type type, TargetWriter wr) {
+      // Currently, this should only be called when CompareZeroUsingSign is true
+      Contract.Assert(false);
+      throw new cce.UnreachableException();
+    }
     protected abstract void EmitEmptyTupleList(string tupleTypeArgs, TargetWriter wr);
     protected abstract TargetWriter EmitAddTupleToList(string ingredients, string tupleTypeArgs, TargetWriter wr);
     protected abstract void EmitTupleSelect(string prefix, int i, TargetWriter wr);
@@ -602,7 +615,7 @@ namespace Microsoft.Dafny {
     protected virtual void OrganizeModules(Program program, out List<ModuleDefinition> modules){
       modules = program.CompileModules;
     }
-    
+
     public void Compile(Program program, TargetWriter wrx) {
       Contract.Requires(program != null);
 
@@ -890,7 +903,7 @@ namespace Microsoft.Dafny {
       }
       decls.AddRange(consts);
     }
-    
+
     public static bool NeedsCustomReceiver(MemberDecl member) {
       Contract.Requires(member != null);
       return !member.IsStatic && member.EnclosingClass is NewtypeDecl;
@@ -981,7 +994,7 @@ namespace Microsoft.Dafny {
                 // set { this.{0} = value; }
                 EmitThis(wSet);
                 wSet.Write(".{0}", f.CompileName);
-                var sw = EmitAssignmentRhs(wSet); 
+                var sw = EmitAssignmentRhs(wSet);
                 EmitSetterParameter(sw);
               }
             }
@@ -1127,7 +1140,7 @@ namespace Microsoft.Dafny {
       if (l.Count > 0){
         CreateDefaultConstructor(c, classWriter, l);
       }
-      
+
       thisContext = null;
     }
 
@@ -2145,7 +2158,7 @@ namespace Microsoft.Dafny {
     }
 
     protected virtual TargetWriter EmitIngredients(TargetWriter wr, string ingredients, int L, string tupleTypeArgs, ForallStmt s, AssignStmt s0, Expression rhs){
-      
+
       using (var wrVarInit = DeclareLocalVar(ingredients, null, null, wr)){
         EmitEmptyTupleList(tupleTypeArgs, wrVarInit);
       }
@@ -2179,7 +2192,7 @@ namespace Microsoft.Dafny {
 
       return wrOuter;
     }
-    
+
     protected virtual void EmitMemberSelect(AssignStmt s0, List<Type> tupleTypeArgsList, TargetWriter wr, string tup){
       var lhs = (MemberSelectExpr) s0.Lhs;
       var wCoerced = EmitCoercionIfNecessary(from: null, to: tupleTypeArgsList[0], tok: s0.Tok, wr: wr);
@@ -2219,7 +2232,7 @@ namespace Microsoft.Dafny {
       EmitTupleSelect(tup, L - 1, wr);
       EndStmt(wr);
     }
-    
+
     protected TargetWriter CompileGuardedLoops(List<BoundVar> bvs, List<ComprehensionExpr.BoundedPool> bounds, Expression range, TargetWriter wr) {
       var n = bvs.Count;
       Contract.Assert(bounds.Count == n);
@@ -3039,7 +3052,7 @@ namespace Microsoft.Dafny {
       TrExpr(expr, wr, inLetExprBody);
       wr.Write(")");
     }
-    
+
     protected virtual void TrBvExpr(Expression expr, TargetWriter wr, bool inLetExprBody){
       Contract.Requires(expr != null);
       Contract.Requires(wr != null);
@@ -3229,67 +3242,76 @@ namespace Microsoft.Dafny {
 
       } else if (expr is BinaryExpr) {
         var e = (BinaryExpr)expr;
-        string opString, preOpString, postOpString, callString, staticCallString;
-        bool reverseArguments, truncateResult, convertE1_to_int;
-        CompileBinOp(e.ResolvedOp, e.E0, e.E1, e.tok, expr.Type,
-          out opString,
-          out preOpString,
-          out postOpString,
-          out callString,
-          out staticCallString,
-          out reverseArguments,
-          out truncateResult,
-          out convertE1_to_int,
-          wr);
 
-        if (truncateResult && e.Type.IsBitVectorType) {
-          wr = EmitBitvectorTruncation(e.Type.AsBitVectorType, true, wr);
-        }
-        var e0 = reverseArguments ? e.E1 : e.E0;
-        var e1 = reverseArguments ? e.E0 : e.E1;
-        if (opString != null) {
-          var nativeType = AsNativeType(e.Type);
-          string nativeName = null, literalSuffix = null;
-          bool needsCast = false;
-          if (nativeType != null) {
-            GetNativeInfo(nativeType.Sel, out nativeName, out literalSuffix, out needsCast);
+        if (IsComparisonToZero(e, out var arg, out var sign, out var negated) &&
+            CompareZeroUsingSign(arg.Type)) {
+          // Transform e.g. x < BigInteger.Zero into x.Sign == -1
+          var w = EmitSign(arg.Type, wr);
+          TrParenExpr(arg, w, inLetExprBody);
+          wr.Write(negated ? " != " : " == ");
+          wr.Write(sign);
+        } else {
+          string opString, preOpString, postOpString, callString, staticCallString;
+          bool reverseArguments, truncateResult, convertE1_to_int;
+          CompileBinOp(e.ResolvedOp, e.E0, e.E1, e.tok, expr.Type,
+            out opString,
+            out preOpString,
+            out postOpString,
+            out callString,
+            out staticCallString,
+            out reverseArguments,
+            out truncateResult,
+            out convertE1_to_int,
+            wr);
+
+          if (truncateResult && e.Type.IsBitVectorType) {
+            wr = EmitBitvectorTruncation(e.Type.AsBitVectorType, true, wr);
           }
-          if (needsCast) {
-            wr.Write("(" + nativeName + ")(");
-          }
-          wr.Write(preOpString);
-          TrParenExpr(e0, wr, inLetExprBody);
-          wr.Write(" {0} ", opString);
-          if (convertE1_to_int) {
-            EmitExprAsInt(e1, inLetExprBody, wr);
-          } else {
-            TrParenExpr(e1, wr, inLetExprBody);
-          }
-          if (needsCast) {
+          var e0 = reverseArguments ? e.E1 : e.E0;
+          var e1 = reverseArguments ? e.E0 : e.E1;
+          if (opString != null) {
+            var nativeType = AsNativeType(e.Type);
+            string nativeName = null, literalSuffix = null;
+            bool needsCast = false;
+            if (nativeType != null) {
+              GetNativeInfo(nativeType.Sel, out nativeName, out literalSuffix, out needsCast);
+            }
+            if (needsCast) {
+              wr.Write("(" + nativeName + ")(");
+            }
+            wr.Write(preOpString);
+            TrParenExpr(e0, wr, inLetExprBody);
+            wr.Write(" {0} ", opString);
+            if (convertE1_to_int) {
+              EmitExprAsInt(e1, inLetExprBody, wr);
+            } else {
+              TrParenExpr(e1, wr, inLetExprBody);
+            }
+            if (needsCast) {
+              wr.Write(")");
+            }
+            wr.Write(postOpString);
+          } else if (callString != null) {
+            wr.Write(preOpString);
+            TrBvExpr(e0, wr, inLetExprBody);
+            wr.Write(".{0}(", callString);
+            if (convertE1_to_int) {
+              EmitExprAsInt(e1, inLetExprBody, wr);
+            } else {
+              TrBvExpr(e1, wr, inLetExprBody);
+            }
             wr.Write(")");
+            wr.Write(postOpString);
+          } else if (staticCallString != null) {
+            wr.Write(preOpString);
+            wr.Write("{0}(", staticCallString);
+            TrExpr(e0, wr, inLetExprBody);
+            wr.Write(", ");
+            TrExpr(e1, wr, inLetExprBody);
+            wr.Write(")");
+            wr.Write(postOpString);
           }
-          wr.Write(postOpString);
-        } else if (callString != null) {
-          wr.Write(preOpString);
-          TrBvExpr(e0, wr, inLetExprBody);
-          wr.Write(".{0}(", callString);
-          if (convertE1_to_int) {
-            EmitExprAsInt(e1, inLetExprBody, wr);
-          } else {
-            TrBvExpr(e1, wr, inLetExprBody);
-          }
-          wr.Write(")");
-          wr.Write(postOpString);
-        } else if (staticCallString != null) {
-          wr.Write(preOpString);
-          wr.Write("{0}(", staticCallString);
-          TrExpr(e0, wr, inLetExprBody);
-          wr.Write(", ");
-          TrExpr(e1, wr, inLetExprBody);
-          wr.Write(")");
-          wr.Write(postOpString);
         }
-
       } else if (expr is TernaryExpr) {
         Contract.Assume(false);  // currently, none of the ternary expressions is compilable
 
@@ -3713,6 +3735,74 @@ namespace Microsoft.Dafny {
         }
       }
       wr.Write(")");
+    }
+
+    private bool IsComparisonToZero(BinaryExpr expr, out Expression/*?*/ arg, out int sign, out bool negated) {
+      int s;
+      if (IsComparisonWithZeroOnRight(expr.Op, expr.E1, out s, out negated)) {
+        // e.g. x < 0
+        arg = expr.E0;
+        sign = s;
+        return true;
+      } else if (IsComparisonWithZeroOnRight(expr.Op, expr.E0, out s, out negated)) {
+        // e.g. 0 < x, equivalent to x < 0
+        arg = expr.E1;
+        sign = -s;
+        return true;
+      } else {
+        arg = null;
+        sign = 0;
+        return false;
+      }
+    }
+
+    private bool IsComparisonWithZeroOnRight(
+      BinaryExpr.Opcode op, Expression right,
+      out int sign, out bool negated) {
+
+      var rightVal = PartiallyEvaluate(right);
+      if (rightVal == null || rightVal != BigInteger.Zero) {
+        sign = 0; // need to assign something
+        negated = true; // need to assign something
+        return false;
+      } else {
+        switch (op) {
+          case BinaryExpr.Opcode.Lt:
+            // x < 0 <==> sign(x) == -1
+            sign = -1;
+            negated = false;
+            return true;
+          case BinaryExpr.Opcode.Le:
+            // x <= 0 <==> sign(x) != 1
+            sign = 1;
+            negated = true;
+            return true;
+          case BinaryExpr.Opcode.Eq:
+            // x == 0 <==> sign(x) == 0
+            sign = 0;
+            negated = false;
+            return true;
+          case BinaryExpr.Opcode.Neq:
+            // x != 0 <==> sign(x) != 0
+            sign = 0;
+            negated = true;
+            return true;
+          case BinaryExpr.Opcode.Gt:
+            // x > 0 <==> sign(x) == 1
+            sign = 1;
+            negated = false;
+            return true;
+          case BinaryExpr.Opcode.Ge:
+            // x >= 0 <==> sign(x) != -1
+            sign = -1;
+            negated = true;
+            return true;
+          default:
+            sign = 0; // need to assign something
+            negated = false; // ditto
+            return false;
+        }
+      }
     }
 
     public virtual bool SupportsInMemoryCompilation { get => true; }

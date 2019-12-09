@@ -116,7 +116,7 @@ method m13()
 
 class A { var x: int; }
 
-method m15(b: set<A>) 
+method m15(b: set<A>)
 {
   ghost var m := imap a | a in b :: a.x;
   var aa := new A;

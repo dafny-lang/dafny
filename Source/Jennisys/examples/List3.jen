@@ -31,8 +31,8 @@ datamodel IntList {
 
   invariant
     root = null  ==> |list| = 0
-    root != null ==> (|list| = |root.succ| + 1 && 
-                      list[0] = root.data && 
+    root != null ==> (|list| = |root.succ| + 1 &&
+                      list[0] = root.data &&
                       (forall i :: i in 1 ... |root.succ| ==> (root.succ[i-1] != null && list[i] = root.succ[i-1].data)))
 }
 
@@ -54,7 +54,7 @@ interface IntNode {
   constructor InitInc(p: int)
     ensures data = p + 1
 
-    
+
   invariant
     !(null in succ)
 }
@@ -62,10 +62,10 @@ interface IntNode {
 datamodel IntNode {
   var next: IntNode
 
-  frame 
+  frame
     next
 
   invariant
     next = null  ==> |succ| = 0
     next != null ==> (succ = [next] + next.succ)
-} 
+}

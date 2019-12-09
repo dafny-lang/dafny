@@ -12,8 +12,8 @@ module A {
   function f(): int { 818 }
   function g() : int { 819 }
 	function k() : int { 820 }
-  
-	class T 
+
+	class T
 	{
 	  static method l() {}
 	}
@@ -64,7 +64,7 @@ module E {
     case Lemon => G(d)
     case Kiwi(x) => 7
 		case Orang => 8  // error
-  } 
+  }
 }
 
 module F {
@@ -78,8 +78,8 @@ module F {
   function f(): int { 818 }
   function g() : int { 819 }
 	function k() : int { 820 }
-  
-	class T 
+
+	class T
 	{
 	  static method l() {}
 	}
@@ -128,7 +128,7 @@ module J {
     }
   }
 }
-  
+
 module K {
   module Y {
     export

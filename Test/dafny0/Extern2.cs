@@ -30,3 +30,14 @@ namespace ConstInit {
     public static C c = new C();
   }
 }
+
+namespace ABC {
+  public class DEF {
+    public static BigInteger MX(BigInteger x) {
+      return x + x;
+    }
+    public static BigInteger FX(BigInteger x) {
+      return x;
+    }
+  }
+}

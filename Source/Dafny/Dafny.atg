@@ -425,7 +425,7 @@ bool IsIdentColonOrBar() {
 }
 
 bool SemiFollowsCall(bool allowSemi, Expression e) {
-  return allowSemi && la.kind == _semi && (e is ApplySuffix || (e is RevealExpr && (((RevealExpr)e).Expr is ApplySuffix)));
+  return allowSemi && la.kind == _semicolon && (e is ApplySuffix || (e is RevealExpr && (((RevealExpr)e).Expr is ApplySuffix)));
 }
 
 bool IsNotEndOfCase() {
@@ -449,7 +449,7 @@ bool IsMonadicBind(){
     switch(x.kind){
       case _lbrace:
       case _rbrace:
-      case _semi:
+      case _semicolon:
       case _EOF:
         return false;
       case _larrow:
@@ -492,7 +492,7 @@ bool IsGenericInstantiation(bool inExpressionContext) {
     case _rbracket:
     case _rbrace:
     case _comma:
-    case _semi:
+    case _semicolon:
     case _then:
     case _else:
     case _case:
@@ -754,7 +754,7 @@ TOKENS
   bullet = '\u2022'.
   dot = '.'.
   backtick = "`".
-  semi = ';'.
+  semicolon = ';'.
   darrow = "=>".
   assume = "assume".
   calc = "calc".

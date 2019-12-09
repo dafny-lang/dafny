@@ -16,7 +16,7 @@ function Inc2(s1:string, t1:EInt): Pair
   match (s1, t1)
   case (s1, Int(x)) => (s1, Int(x + 1))
   case (s1, Unknown) => (s1, Unknown)
-} 
+}
 
 function Inc3(s1: string, t1: EInt, t2: EInt) : Pair
 {
@@ -27,7 +27,7 @@ function Inc3(s1: string, t1: EInt, t2: EInt) : Pair
   case (s1, Unknown, Int(y)) => (s1, Int(y+1))
 }
 
-type Triple = (string, EInt, EInt) 
+type Triple = (string, EInt, EInt)
 
 function Inc4(t: Triple) : Pair
 {
@@ -41,7 +41,7 @@ function Inc4(t: Triple) : Pair
 method IncM(p: Pair)
 {
   match p {
-  	case (s, Int(x)) => 
+  	case (s, Int(x)) =>
   	case (s, Unknown) =>
   }
 }
@@ -49,23 +49,23 @@ method IncM(p: Pair)
 method IncM2(s:string, t:EInt)
 {
   match (s,t) {
-  	case (s, Int(x)) => 
+  	case (s, Int(x)) =>
   	case (s, Unknown) =>
   }
 }
 
 method IncM3(s1: string, t1: EInt, t2: EInt) {
   match (s1, t1, t2)
-  case (s1, Int(x), Unknown) => 
-  case (s1, Int(x), Int(y)) => 
-  case (s1, Unknown, Unknown) => 
-  case (s1, Unknown, Int(y)) => 
+  case (s1, Int(x), Unknown) =>
+  case (s1, Int(x), Int(y)) =>
+  case (s1, Unknown, Unknown) =>
+  case (s1, Unknown, Int(y)) =>
 }
 
 method IncM4(t: Triple) {
   match t
-  case (s1, Int(x), Unknown) => 
-  case (s1, Int(x), Int(y)) => 
-  case (s1, Unknown, Unknown) => 
-  case (s1, Unknown, Int(y)) => 
+  case (s1, Int(x), Unknown) =>
+  case (s1, Int(x), Int(y)) =>
+  case (s1, Unknown, Unknown) =>
+  case (s1, Unknown, Int(y)) =>
 }

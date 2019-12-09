@@ -45,7 +45,7 @@ colemma Example6(f: FunctionHandle, g: FunctionHandle, M: LList)
       Cons(Apply(After(f, g), x), Lmap(After(f, g), xs));
       { Definition_After(f, g, x); }
       Cons(Apply(f, Apply(g, x)), Lmap(After(f, g), xs));
-    ==#[_k] // use co-induction hypothesis 
+    ==#[_k] // use co-induction hypothesis
       Cons(Apply(f, Apply(g, x)), Lmap(f, Lmap(g, xs)));
       // def. Lmap
       Lmap(f, Cons(Apply(g, x), Lmap(g, xs)));
@@ -137,7 +137,7 @@ colemma BisimulationLemma<A>(n: nat, f: FunctionHandle<LList<A>>, u: LList<A>)
     calc {
       LmapIter(n+1, f, h(f, u));
     ==#[_k-1]
-      LmapIter(n+1, f, Iterates(f, u));    
+      LmapIter(n+1, f, Iterates(f, u));
     }
     Cons(Iter(n, f, u), LmapIter(n+1, f, Iterates(f, u)));
     { Lemma26(n, f, Iterates(f, u)); }

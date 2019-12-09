@@ -152,7 +152,7 @@ class Map<Key(==),Value> {
           if k != key {
             assert k in old(M);
             var n :| n in old(Spine) && old(n.key) == k;
-            assert n.key == old(n.key);          
+            assert n.key == old(n.key);
           }
         }
       } else {

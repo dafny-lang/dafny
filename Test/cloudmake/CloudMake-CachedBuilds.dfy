@@ -47,7 +47,7 @@ abstract module M0 {
       (forall p :: p in DomSt(result) ==>
         GetSt(p, result) == GetSt(p, if p in DomSt(st') then st' else st)) &&
       (useCache ==> DomC(result) == DomC(st) + DomC(st'));
-          
+
 
   predicate Compatible(sts: set<State>)
   {
@@ -591,7 +591,7 @@ abstract module M0 {
           DoLemma(stmts[1..], st', env', useCache);
           var st'' := do(stmts[1..], st', env', useCache).snd;
           Lemma_ExtendsTransitive(st, st', st'');
-        } else { 
+        } else {
         }
       } else {
         reveal Extends();

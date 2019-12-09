@@ -2,7 +2,7 @@
 // RUN: %diff "%s.expect" "%t"
 
 method Main()
-{ 
+{
   mapTest();
   imapTest();
 }
@@ -13,7 +13,7 @@ method mapTest() {
   assert (set x | x in m) == m.Keys;
   assert (set x | x in m :: m[x]) == m.Values;
   print m.Keys, "\n";
-  print m.Values, "\n"; 
+  print m.Values, "\n";
   assert (4,5) in m.Items;
   print m.Items, "\n";
 }
@@ -24,7 +24,7 @@ method imapTest() {
   assert (iset x | x in m) == m.Keys;
   assert (iset x | x in m :: m[x]) == m.Values;
   print m.Keys, "\n";
-  print m.Values, "\n"; 
+  print m.Values, "\n";
   assert (4,5) in m.Items;
   print m.Items, "\n";
 }

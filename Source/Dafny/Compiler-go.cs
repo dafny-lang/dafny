@@ -2031,6 +2031,19 @@ namespace Microsoft.Dafny {
       }
     }
 
+    protected override bool CompareZeroUsingSign(Type type) {
+      return AsNativeType(type) == null;
+    }
+
+    protected override TargetWriter EmitSign(Type type, TargetWriter wr) {
+      // This is only called when CompareZeroUsingSign returns true
+      Contract.Assert(AsNativeType(type) == null);
+
+      var w = wr.Fork();
+      wr.Write(".Sign()");
+      return w;
+    }
+
     protected override void EmitEmptyTupleList(string tupleTypeArgs, TargetWriter wr) {
       wr.Write("_dafny.NewBuilder()");
     }

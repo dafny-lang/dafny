@@ -50,11 +50,11 @@ model SetNode {
   var left: SetNode
   var right: SetNode
 
-  frame 
+  frame
     left * right
 
   invariant
     elems = (left != null ? left.elems : []) + [data] + (right != null ? right.elems : [])
     left != null  ==> forall e :: e in left.elems ==> e < data
     right != null ==> forall e :: e in right.elems ==> e > data
-} 
+}

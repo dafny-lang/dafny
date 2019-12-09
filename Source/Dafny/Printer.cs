@@ -596,7 +596,9 @@ namespace Microsoft.Dafny {
       int state = 0;  // 0 - no members yet; 1 - previous member was a field; 2 - previous member was non-field
       foreach (MemberDecl m in members) {
         if (PrintModeSkipGeneral(m.tok, fileBeingPrinted)) { continue; }
-        if (m is Method) {
+        if (printMode == DafnyOptions.PrintModes.DllEmbed && Attributes.Contains(m.Attributes, "auto_generated")) {
+          // omit this declaration
+        } else if (m is Method) {
           if (state != 0) { wr.WriteLine(); }
           PrintMethod((Method)m, indent, false);
           var com = m as FixpointLemma;
@@ -1408,7 +1410,9 @@ namespace Microsoft.Dafny {
       } else if (stmt is VarDeclStmt) {
         var s = (VarDeclStmt)stmt;
         if (s.Locals.Exists(v => v.IsGhost) && printMode == DafnyOptions.PrintModes.NoGhost) { return; }
-        if (s.Locals.Exists(v => v.IsGhost)) {
+        if (s.Locals.TrueForAll((v => v.IsGhost))) {
+          // Emit the "ghost" modifier if all of the variables are ghost. If some are ghost, but not others,
+          // then some of these ghosts are auto-converted to ghost, so we should not emit the "ghost" keyword.
           wr.Write("ghost ");
         }
         wr.Write("var");

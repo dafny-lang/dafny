@@ -20,7 +20,7 @@ method M0() returns (x: int, n: nat, r: real, even: EvenInt, small: SmallReal, b
     case true                 => var b := r as int == r.Floor;  // error: conversion to int may fail
     case true                 => assert -4 <= small.Floor < 300;
     case true                 => even := 6.0 as EvenInt;  assert even == 6;
-  } 
+  }
 }
 
 method M1() returns (x: int, n: nat, r: real, even: EvenInt, small: SmallReal, b67: bv67, w: bv32, seven: bv7, noll: bv0)

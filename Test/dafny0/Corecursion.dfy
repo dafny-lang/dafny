@@ -86,7 +86,7 @@ module EqualityIsSuperDestructive {
 
 module MixRecursiveAndCorecursive {
   codatatype Stream<T> = Cons(head: T, tail: Stream)
-  
+
   function F(n: nat): Stream<int>
   {
     if n == 0 then

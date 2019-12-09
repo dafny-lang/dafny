@@ -29,14 +29,14 @@ method Main() {
   print "bv16: 5 - 2 == ", unry, "\n";
   unry := Unary(1);
   print "bv16: 1 - 2 == ", unry, "\n";
-  
+
   SummoTests();
-  
+
   var zz0;
   var zz1 := Bv0Stuff(zz0, 0);
   print zz0, " ", zz1, "\n";
   print zz0 < zz1, " ", zz0 <= zz1, " ", zz0 >= zz1, " ", zz0 > zz1, "\n";
-  
+
   TestCompilationTruncations();
 
   Shifts();
@@ -250,7 +250,7 @@ method Rotates()
 	x := 5;
   w, seven := 0xC00 + 2000, 127;
   PrintRotates("bv12 again", w, w.RotateLeft(x).RotateRight(x));
-  PrintRotates("bv7 again", seven, seven.RotateLeft(x).RotateRight(x)); 
+  PrintRotates("bv7 again", seven, seven.RotateLeft(x).RotateRight(x));
 }
 
 method PrintRotates<T>(s: string, a: T, b: T)

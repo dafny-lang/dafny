@@ -45,7 +45,7 @@ class Node<T> {
   {
     r := new Node.InitAsPredecessor(d, this);
   }
-  
+
 	method Print()
 		requires Valid()
 		decreases |List|
@@ -57,7 +57,7 @@ class Node<T> {
 	}
 }
 
-method Main() 
+method Main()
 {
 	var l2 := new Node(2);
   var l1 := l2.Prepend(1);

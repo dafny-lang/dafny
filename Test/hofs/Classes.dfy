@@ -51,12 +51,12 @@ class MyClass {
 	  reads this
 	{
 	  data
-	}	
+	}
   method M(that: MyClass)
 	{
 	  var fn := that.F;  // "that" is captured into the closure
 	  var d := fn();
 		assert d == that.data;  // yes
 		assert d == this.data;  // error: no reason to believe that this would hold
-	}	
+	}
 }

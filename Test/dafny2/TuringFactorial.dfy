@@ -12,10 +12,10 @@ method ComputeFactorial(n: int) returns (u: int)
 {
   var r := 1;
   u := 1;
-  while (r < n)  
+  while (r < n)
     invariant r <= n;
     invariant u == Factorial(r);
-  { 
+  {
     var v, s := u, 1;
     while (s < r + 1)
       invariant s <= r + 1;

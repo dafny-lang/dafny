@@ -14,7 +14,7 @@ twostate lemma L(c: A, new d: A)
 }
 
 class A {
-  var f: int 
+  var f: int
   var g: A?
 
   function GimmieF(): int
@@ -26,7 +26,7 @@ class A {
   twostate lemma L1(other: A) returns (res: bool)
     requires unchanged(this)
     ensures res ==> this == other
-  {  
+  {
     res := this == other;
   }
 
@@ -65,7 +65,7 @@ class A {
 
   twostate lemma L5(new a: A, new b: A)
   {}
-    
+
   twostate lemma L6(a: A)
     requires unchanged(a)
   {
@@ -102,7 +102,7 @@ class Node {
     x, next := y, nxt;
     Repr := {this} + nxt.Repr;
   }
-  
+
   function method Sum(): int
     requires Valid()
     reads Repr
@@ -203,7 +203,7 @@ class {:autocontracts} NodeAuto {
     x, next := y, nxt;
     Repr := {this} + nxt.Repr;
   }
-  
+
   function method Sum(): int
   {
     if next == null then x else x + next.Sum()

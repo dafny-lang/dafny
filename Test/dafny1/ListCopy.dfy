@@ -43,14 +43,14 @@ class Node {
         prev := tmp;
         oldListPtr := oldListPtr.nxt;
       }
-    } 
+    }
     result := newRoot;
     assert result == null || result in newRegion;
-    
+
     // everything in newRegion is fresh
     assert fresh(newRegion);
 
     // newRegion # exisitingRegion
-    assert newRegion !! existingRegion; 
+    assert newRegion !! existingRegion;
   }
 }

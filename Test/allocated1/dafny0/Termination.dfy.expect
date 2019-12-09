@@ -55,4 +55,4 @@ Execution trace:
     (0,0): anon10_Then
     (0,0): anon11_Else
 
-Dafny program verifier finished with 34 verified, 8 errors
+Dafny program verifier finished with 43 verified, 8 errors

@@ -64,10 +64,10 @@ method XP() returns (x: int, b: bool) {
   b := exists y :: y in s && y < x;
 }
 
-  
+
 method XM() returns (x: int) {
   var before, after;
-  
+
   var f := () => x;
   before := f();
   x := 2;
@@ -84,7 +84,7 @@ method XM() returns (x: int) {
 method AltControlFlow() {
   var s := [2, 29, 34, 35, 36, 59, 104, 106, 107, 107, 108, 2700];
   var lo, hi, Lo, Hi;
-  
+
   lo, hi := FindRange(s, 0, 3000);
   Lo, Hi := FindRange(s, 35, 107);
   print lo, " ", hi, " ", Lo, " ", Hi, "\n";

@@ -47,7 +47,7 @@ method TestAggregateMultiArrayUpdate() {
   PrintMatrix(m0);
   PrintMatrix(m1);
   PrintMatrix(m2);
-  
+
   print MatrixEqual(m0, m'), "\n";  // true
   m'[2,2] := 87;
   print MatrixEqual(m0, m'), "\n";  // false
@@ -97,9 +97,9 @@ method TestAggregateFieldUpdate() {
   var b := Node.Create(7);
   a.Print();
   b.Print();
-  
+
   print b.StartsWith(a), "\n";  // false
-  
+
   a.IncEverything(3);
   a.Print();
   print b.StartsWith(a), "\n";  // false
@@ -114,7 +114,7 @@ class Node {
     (next != null ==>
       next in Repr && next.Repr <= Repr && this !in next.Repr && next.Valid())
   }
-    
+
   var val: int
   var next: Node?
 

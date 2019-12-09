@@ -27,7 +27,7 @@ lemma FibLemma(n: nat)
 /*
   The 'forall' statement has the effect of applying its body simultaneously
   to all values of the bound variables---in the first example, to all k
-  satisfying 0 <= k < n, and in the second example, to all non-negative n. 
+  satisfying 0 <= k < n, and in the second example, to all non-negative n.
 */
 
 lemma FibLemma_Alternative(n: nat)
@@ -50,7 +50,7 @@ lemma FibLemma_All()
   A standard inductive definition of a generic List type and a function Append
   that concatenates two lists.  The lemma states that Append is associative,
   and its recursive body gives the inductive proof.
-  
+
   We omitted the explicit declaration and uses of the List type parameter in
   the signature of the method, since in simple cases like this, Dafny is able
   to fill these in automatically.

@@ -8,7 +8,7 @@ class VariousArrows {
   method Tests()
   {
     var c := InitArray(F);  // fine
-    var d := InitArray(F');  // fine 
+    var d := InitArray(F');  // fine
     var e := InitArray(F'');  // fine
     if * {
       var f := InitArray(G);  // error: G is not a total function

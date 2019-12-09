@@ -21,7 +21,7 @@ function UnAckedMessages3(s:SendState) : set<int>
 
 function SeqToSet<T>(s:seq<T>) : set<T>
 {
-    set i | i in s 
+    set i | i in s
 }
 
 function UnAckedMessages4(s:SendState) : set<int>

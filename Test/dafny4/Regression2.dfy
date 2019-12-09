@@ -3,7 +3,7 @@
 
 module NativeTypes {
   newtype uint64 = int
-} 
+}
 
 module ConversionModule {
   import opened NativeTypes

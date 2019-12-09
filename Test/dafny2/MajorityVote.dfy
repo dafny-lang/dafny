@@ -63,15 +63,14 @@
 // that, using Dafny's support for calculational proofs.
 
 function method Count<T(==)>(a: seq<T>, s: int, t: int, x: T): int
-  requires 0 <= s <= t <= |a|;
-  ensures Count(a, s, t, x) == 0 || x in a;
+  requires 0 <= s <= t <= |a|
 {
   if s == t then 0 else
   Count(a, s, t-1, x) + if a[t-1] == x then 1 else 0
 }
 
 predicate HasMajority<T(==)>(a: seq<T>, s: int, t: int, x: T)
-  requires 0 <= s <= t <= |a|;
+  requires 0 <= s <= t <= |a|
 {
   2 * Count(a, s, t, x) > t - s
 }
@@ -79,20 +78,20 @@ predicate HasMajority<T(==)>(a: seq<T>, s: int, t: int, x: T)
 // Here is the first version of the algorithm, the one that assumes there is a majority choice.
 
 method FindWinner<Candidate(==)>(a: seq<Candidate>, ghost K: Candidate) returns (k: Candidate)
-  requires HasMajority(a, 0, |a|, K); // K has a (strict) majority of the votes
-  ensures k == K;  // find K
+  requires HasMajority(a, 0, |a|, K) // K has a (strict) majority of the votes
+  ensures k == K  // find K
 {
   k := a[0];
   var n, c, s := 1, 1, 0;
-  while (n < |a|)
-    invariant 0 <= s <= n <= |a|;
-    invariant 2 * Count(a, s, |a|, K) > |a| - s;  // K has majority among a[s..]
-    invariant 2 * Count(a, s, n, k) > n - s;  // k has majority among a[s..n]
-    invariant c == Count(a, s, n, k);
+  while n < |a|
+    invariant 0 <= s <= n <= |a|
+    invariant 2 * Count(a, s, |a|, K) > |a| - s  // K has majority among a[s..]
+    invariant 2 * Count(a, s, n, k) > n - s  // k has majority among a[s..n]
+    invariant c == Count(a, s, n, k)
   {
-    if (a[n] == k) {
+    if a[n] == k {
       n, c := n + 1, c + 1;
-    } else if (2 * c > n + 1 - s) {
+    } else if 2 * c > n + 1 - s {
       n := n + 1;
     } else {
       n := n + 1;
@@ -133,20 +132,20 @@ method DetermineElection<Candidate(==)>(a: seq<Candidate>) returns (result: Resu
 
 method SearchForWinner<Candidate(==)>(a: seq<Candidate>, ghost hasWinner: bool, ghost K: Candidate) returns (k: Candidate)
   requires |a| != 0
-  requires hasWinner ==> 2 * Count(a, 0, |a|, K) > |a|;  // K has a (strict) majority of the votes
-  ensures hasWinner ==> k == K;  // find K
+  requires hasWinner ==> 2 * Count(a, 0, |a|, K) > |a|  // K has a (strict) majority of the votes
+  ensures hasWinner ==> k == K  // find K
 {
   k := a[0];
   var n, c, s := 1, 1, 0;
-  while (n < |a|)
-    invariant 0 <= s <= n <= |a|;
-    invariant hasWinner ==> 2 * Count(a, s, |a|, K) > |a| - s;  // K has majority among a[s..]
-    invariant 2 * Count(a, s, n, k) > n - s;  // k has majority among a[s..n]
-    invariant c == Count(a, s, n, k);
+  while n < |a|
+    invariant 0 <= s <= n <= |a|
+    invariant hasWinner ==> 2 * Count(a, s, |a|, K) > |a| - s  // K has majority among a[s..]
+    invariant 2 * Count(a, s, n, k) > n - s  // k has majority among a[s..n]
+    invariant c == Count(a, s, n, k)
   {
-    if (a[n] == k) {
+    if a[n] == k {
       n, c := n + 1, c + 1;
-    } else if (2 * c > n + 1 - s) {
+    } else if 2 * c > n + 1 - s {
       n := n + 1;
     } else {
       n := n + 1;
@@ -157,7 +156,7 @@ method SearchForWinner<Candidate(==)>(a: seq<Candidate>, ghost hasWinner: bool, 
       // tells us Count(a, s, |a|, K) == Count(a, s, n, K) + Count(a, n, |a|, K),
       // and thus we can conclude 2*Count(a, n, |a|, K) > |a|-n.
       Lemma_Split(a, s, n, |a|, K);
-      if (|a| == n) { return; }
+      if |a| == n { return; }
       k, n, c, s := a[n], n + 1, 1, n;
     }
   }
@@ -169,26 +168,26 @@ method SearchForWinner<Candidate(==)>(a: seq<Candidate>, ghost hasWinner: bool, 
 // Here are two lemmas about Count that are used in the methods above.
 
 lemma Lemma_Split<T>(a: seq<T>, s: int, t: int, u: int, x: T)
-  requires 0 <= s <= t <= u <= |a|;
-  ensures Count(a, s, t, x) + Count(a, t, u, x) == Count(a, s, u, x);
+  requires 0 <= s <= t <= u <= |a|
+  ensures Count(a, s, t, x) + Count(a, t, u, x) == Count(a, s, u, x)
 {
   /* The postcondition of this method is proved automatically via Dafny's
      induction tactic.  But if a manual proof had to be provided, it would
      look like this:
-  if (s != t) {
+  if s != t {
     Lemma_Split(a, s, t-1, u, x);
   }
   */
 }
 
 lemma Lemma_Unique<T>(a: seq<T>, s: int, t: int, x: T, y: T)
-  requires 0 <= s <= t <= |a|;
-  ensures x != y ==> Count(a, s, t, x) + Count(a, s, t, y) <= t - s;
+  requires 0 <= s <= t <= |a|
+  ensures x != y ==> Count(a, s, t, x) + Count(a, s, t, y) <= t - s
 {
   /* The postcondition of this method is proved automatically via Dafny's
      induction tactic.  But if a manual proof had to be provided, it would
      look like this:
-  if (s != t) {
+  if s != t {
     Lemma_Unique(a, s, t-1, x, y);
   }
   */
@@ -198,21 +197,21 @@ lemma Lemma_Unique<T>(a: seq<T>, s: int, t: int, x: T, y: T)
 
 // This version uses more calculations with integer formulas
 method FindWinner'<Candidate(==)>(a: seq<Candidate>, ghost K: Candidate) returns (k: Candidate)
-  requires HasMajority(a, 0, |a|, K); // K has a (strict) majority of the votes
-  ensures k == K;  // find K
+  requires HasMajority(a, 0, |a|, K) // K has a (strict) majority of the votes
+  ensures k == K  // find K
 {
   k := a[0]; // Current candidate: the first element
   var lo, up, c := 0, 1, 1; // Window: [0..1], number of occurrences of k in the window: 1
-  while (up < |a|)
-    invariant 0 <= lo < up <= |a|; // (0)
-    invariant HasMajority(a, lo, |a|, K); // (1) K has majority among a[lo..]
-    invariant HasMajority(a, lo, up, k); // (2) k has majority among a[lo..up] (in the current window)
-    invariant c == Count(a, lo, up, k); // (3)
+  while up < |a|
+    invariant 0 <= lo < up <= |a| // (0)
+    invariant HasMajority(a, lo, |a|, K) // (1) K has majority among a[lo..]
+    invariant HasMajority(a, lo, up, k) // (2) k has majority among a[lo..up] (in the current window)
+    invariant c == Count(a, lo, up, k) // (3)
   {
-    if (a[up] == k) {
+    if a[up] == k {
       // One more occurrence of k
       up, c := up + 1, c + 1;
-    } else if (2 * c > up + 1 - lo) {
+    } else if 2 * c > up + 1 - lo {
       // An occurrence of another value, but k still has the majority
       up := up + 1;
     } else {
@@ -220,59 +219,61 @@ method FindWinner'<Candidate(==)>(a: seq<Candidate>, ghost K: Candidate) returns
       // Prove that k has exactly 50% in the future window a[lo..up + 1]:
       calc /* k has 50% among a[lo..up + 1] */ {
         true;
-        // negation of the previous branch condition;
+      ==  // negation of the previous branch condition;
         2 * c <= up + 1 - lo;
-        // loop invariant (3)
+      ==  // loop invariant (3)
         2 * Count(a, lo, up, k) <= up + 1 - lo;
-        calc {
-          true;
-          // loop invariant (2)
-          HasMajority(a, lo, up, k);
-          // def. HasMajority
-          2 * Count(a, lo, up, k) > up - lo;
-          2 * Count(a, lo, up, k) >= up + 1 - lo;
-        }
+      == calc {
+           true;
+         ==  // loop invariant (2)
+           HasMajority(a, lo, up, k);
+         ==  // def. HasMajority
+           2 * Count(a, lo, up, k) > up - lo;
+         ==
+           2 * Count(a, lo, up, k) >= up + 1 - lo;
+         }
         2 * Count(a, lo, up, k) == up + 1 - lo;
       }
       up := up + 1;
       assert 2 * Count(a, lo, up, k) == up - lo; // k has exactly 50% in the current window a[lo..up]
-      
+
       // We are going to start a new window a[up..up + 1] and choose a new candidate,
       // so invariants (2) and (3) will be easy to re-establish.
       // To re-establish (1) we have to prove that K has majority among a[up..], as up will become the new lo.
       // The main idea is that we had enough K's in a[lo..], and there cannot be too many in a[lo..up].
       calc /* K has majority among a[up..] */ {
         2 * Count(a, up, |a|, K);
-        { Lemma_Split(a, lo, up, |a|, K); }
+      ==  { Lemma_Split(a, lo, up, |a|, K); }
         2 * Count(a, lo, |a|, K) - 2 * Count(a, lo, up, K);
-        > { assert HasMajority(a, lo, |a|, K); } // loop invariant (1)
+      >  { assert HasMajority(a, lo, |a|, K); } // loop invariant (1)
         |a| - lo - 2 * Count(a, lo, up, K);
-        >= 
-        { if (k == K) {
-            calc {
-              2 * Count(a, lo, up, K);              
-              2 * Count(a, lo, up, k);
-              { assert 2 * Count(a, lo, up, k) == up - lo; } // k has 50% among a[lo..up]
-              up - lo;
+      >=  { if k == K {
+              calc {
+                2 * Count(a, lo, up, K);
+              ==
+                2 * Count(a, lo, up, k);
+              ==  { assert 2 * Count(a, lo, up, k) == up - lo; } // k has 50% among a[lo..up]
+                up - lo;
+              }
+            } else {
+              calc {
+                2 * Count(a, lo, up, K);
+              <=  { Lemma_Unique(a, lo, up, k, K); }
+                2 * ((up - lo) - Count(a, lo, up, k));
+              ==  { assert 2 * Count(a, lo, up, k) == up - lo; } // k has 50% among a[lo..up]
+                up - lo;
+              }
             }
-          } else {
-            calc {
-              2 * Count(a, lo, up, K);
-              <= { Lemma_Unique(a, lo, up, k, K); }
-              2 * ((up - lo) - Count(a, lo, up, k));
-              { assert 2 * Count(a, lo, up, k) == up - lo; } // k has 50% among a[lo..up]
-              up - lo;
-            }
+            assert 2 * Count(a, lo, up, K) <= up - lo;
           }
-          assert 2 * Count(a, lo, up, K) <= up - lo;
-        }
         |a| - lo - (up - lo);
+      ==
         |a| - up;
       }
       assert HasMajority(a, up, |a|, K);
-      
+
       k, lo, up, c := a[up], up, up + 1, 1;
-      assert HasMajority(a, lo, |a|, K);	
+      assert HasMajority(a, lo, |a|, K);
     }
   }
   Lemma_Unique(a, lo, |a|, K, k);  // both k and K have a majority among a[lo..], so K == k
@@ -280,21 +281,21 @@ method FindWinner'<Candidate(==)>(a: seq<Candidate>, ghost K: Candidate) returns
 
 // This version uses more calculations with boolean formulas
 method FindWinner''<Candidate(==)>(a: seq<Candidate>, ghost K: Candidate) returns (k: Candidate)
-  requires HasMajority(a, 0, |a|, K); // K has a (strict) majority of the votes
-  ensures k == K;  // find K
+  requires HasMajority(a, 0, |a|, K)  // K has a (strict) majority of the votes
+  ensures k == K  // find K
 {
   k := a[0]; // Current candidate: the first element
   var lo, up, c := 0, 1, 1; // Window: [0..1], number of occurrences of k in the window: 1
-  while (up < |a|)
-    invariant 0 <= lo < up <= |a|; // (0)
-    invariant HasMajority(a, lo, |a|, K); // (1) K has majority among a[lo..]
-    invariant HasMajority(a, lo, up, k); // (2) k has majority among a[lo..up] (in the current window)
-    invariant c == Count(a, lo, up, k); // (3)
+  while up < |a|
+    invariant 0 <= lo < up <= |a| // (0)
+    invariant HasMajority(a, lo, |a|, K) // (1) K has majority among a[lo..]
+    invariant HasMajority(a, lo, up, k) // (2) k has majority among a[lo..up] (in the current window)
+    invariant c == Count(a, lo, up, k) // (3)
   {
-    if (a[up] == k) {
+    if a[up] == k {
       // One more occurrence of k
       up, c := up + 1, c + 1;
-    } else if (2 * c > up + 1 - lo) {
+    } else if 2 * c > up + 1 - lo {
       // An occurrence of another value, but k still has the majority
       up := up + 1;
     } else {
@@ -302,49 +303,53 @@ method FindWinner''<Candidate(==)>(a: seq<Candidate>, ghost K: Candidate) return
       // Prove that k has exactly 50% in the future window a[lo..up + 1]:
       calc /* k has 50% among a[lo..up + 1] */ {
         true;
-        // negation of the previous branch condition;
+      ==  // negation of the previous branch condition
         2 * c <= up + 1 - lo;
-        // loop invariant (3)
+      ==  // loop invariant (3)
         2 * Count(a, lo, up, k) <= up + 1 - lo;
-        calc {
-          true;
-          // loop invariant (2)
-          HasMajority(a, lo, up, k);
-          // def. HasMajority
-          2 * Count(a, lo, up, k) > up - lo;
-          2 * Count(a, lo, up, k) >= up + 1 - lo;
-        }
+      ==  calc {
+            true;
+          ==  // loop invariant (2)
+            HasMajority(a, lo, up, k);
+          ==  // def. HasMajority
+            2 * Count(a, lo, up, k) > up - lo;
+          ==
+            2 * Count(a, lo, up, k) >= up + 1 - lo;
+          }
         2 * Count(a, lo, up, k) == up + 1 - lo;
       }
       up := up + 1;
       assert 2 * Count(a, lo, up, k) == up - lo; // k has exactly 50% in the current window a[lo..up]
-      
+
       // We are going to start a new window a[up..up + 1] and choose a new candidate,
       // so invariants (2) and (3) will be easy to re-establish.
       // To re-establish (1) we have to prove that K has majority among a[up..], as up will become the new lo.
-      // The main idea is that we had enough K's in a[lo..], and there cannot be too many in a[lo..up].      
+      // The main idea is that we had enough K's in a[lo..], and there cannot be too many in a[lo..up].
       calc /* K has majority among a[up..] */ {
         true;
-        // loop invariant (1)
+      ==  // loop invariant (1)
         HasMajority(a, lo, |a|, K);
+      ==
         2 * Count(a, lo, |a|, K) > |a| - lo;
-        { Lemma_Split(a, lo, up, |a|, K); }
+      ==  { Lemma_Split(a, lo, up, |a|, K); }
         2 * Count(a, lo, up, K) + 2 * Count(a, up, |a|, K) > |a| - lo;
-        ==> 
-        { if (k == K) {
+      ==>
+        { if k == K {
             calc {
               2 * Count(a, lo, up, K);
+            ==
               2 * Count(a, lo, up, k);
-              { assert 2 * Count(a, lo, up, k) == up - lo; } // k has 50% among a[lo..up]
+            ==  { assert 2 * Count(a, lo, up, k) == up - lo; } // k has 50% among a[lo..up]
               up - lo;
             }
           } else {
             calc {
               true;
-              { Lemma_Unique(a, lo, up, k, K); }
+            ==  { Lemma_Unique(a, lo, up, k, K); }
               Count(a, lo, up, K) + Count(a, lo, up, k) <= up - lo;
+            ==
               2 * Count(a, lo, up, K) + 2 * Count(a, lo, up, k) <= 2 * (up - lo);
-              { assert 2 * Count(a, lo, up, k) == up - lo; } // k has 50% among a[lo..up]
+            ==  { assert 2 * Count(a, lo, up, k) == up - lo; } // k has 50% among a[lo..up]
               2 * Count(a, lo, up, K) <= up - lo;
             }
           }
@@ -352,11 +357,13 @@ method FindWinner''<Candidate(==)>(a: seq<Candidate>, ghost K: Candidate) return
         }
         // subtract off Count(a, lo, up, K) from the LHS and subtract off the larger amount up - lo from the RHS
         2 * Count(a, up, |a|, K) > (|a| - lo) - (up - lo);
+      ==
         2 * Count(a, up, |a|, K) > |a| - up;
+      ==
         HasMajority(a, up, |a|, K);
-      }	
+      }
       k, lo, up, c := a[up], up, up + 1, 1;
-      assert HasMajority(a, lo, |a|, K);	
+      assert HasMajority(a, lo, |a|, K);
     }
   }
   Lemma_Unique(a, lo, |a|, K, k);  // both k and K have a majority among a[lo..], so K == k
