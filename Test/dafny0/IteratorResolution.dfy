@@ -150,7 +150,7 @@ module IteratorTypeParameters {
   type Five = x | 5 <= x witness 6
   type Six = x | 6 <= x witness 6
   codatatype Stream = More(r: real, s: Stream)
-  
+
   class MyClass<A(==),B(0)> {
   }
   method TestClass() {
@@ -179,13 +179,13 @@ module IteratorTypeParameters {
     MyMethod<Stream,int>();  // error: cannot pass in Stream as type parameter A(==)
     MyMethod<Five,Six>();  // error: cannot pass in Six as type parameter B(0)
   }
-  
+
   function method MyFunction<A(==),B(0)>(): int { 65 }
   method TestFunction() {
     var x := MyFunction<Stream,int>();  // error: cannot pass in Stream as type parameter A(==)
     var y := MyFunction<Five,Six>();  // error: cannot pass in Six as type parameter B(0)
   }
-  
+
   iterator MyIter<A(==),B>(a: A) yields (b: B)
     ensures false  // never ends
   {
@@ -194,7 +194,7 @@ module IteratorTypeParameters {
       yield;  // notice that "b" has not been explicitly initialized
     }
   }
-  
+
   method GoodClient() {
     var iter := new MyIter<char,nat>('i');
     var n := iter.b;  // this could be bad, if "b" has not been properly initialized
@@ -206,7 +206,7 @@ module IteratorTypeParameters {
       i := i + 1;
     }
   }
-  
+
   method DisallowedClientA() {
     if * {
       var s;
@@ -270,7 +270,7 @@ module FilledInTypeParameters {
   }
 
   codatatype Co = More(Co)
-  
+
   method Test()
   {
     var iter := new Iter();

@@ -177,7 +177,7 @@ lemma BsimpCorrect(b: bexp, s: state)
 {
 /*  Here is one proof, which uses the induction hypothesis any anything smaller than b and also invokes
     the lemma AsimpCorrect on every arithmetic expression.
-  forall b' | b' < b { BsimpCorrect(b', s); } 
+  forall b' | b' < b { BsimpCorrect(b', s); }
   forall a { AsimpCorrect(a, s); }
     Yet another possibility is to mark the lemma with {:induction b} and to use the following line in
     the body:

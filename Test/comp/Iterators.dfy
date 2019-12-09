@@ -38,7 +38,7 @@ iterator Iter<X(==)>(a: array<X>, stop: X) yields (x: X)
 method Client()
 {
   var a := new real[6](i => i as real);
-  
+
   var iter := new Iter(a, 2.4);
   while true
     invariant iter.Valid() && fresh(iter._new)
@@ -49,7 +49,7 @@ method Client()
     print iter.x, " ";
   }
   print "\n";
-  
+
   iter := new Iter(a, 2.0);
   while true
     invariant iter.Valid() && fresh(iter._new)

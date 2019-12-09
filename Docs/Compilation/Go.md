@@ -58,7 +58,7 @@ Predefined Types
 | `set<X>`      | `_dafny.Set`      |
 | `multiset<X>` | `_dafny.MultiSet` |
 | `map<X, Y>`   | `_dafny.Map`      |
- 
+
 Here `big` refers to the Go built-in bignum library `"math/big"`.
 
 Note that nullable Dafny types (`object` and `array<X>`) are modelled as pointer
@@ -101,7 +101,7 @@ func (_this *Class) Frob(z dafny.Seq, c *Class) (_dafny.Int, _dafny.Char) {
 }
 ```
 
-**Caution:** Constant fields are represented as normal fields in generated Go 
+**Caution:** Constant fields are represented as normal fields in generated Go
 code.  There is no enforcement mechanism.  Be careful!
 
 Note that the method has a pointer receiver, and the parameter type `Class` is
@@ -230,9 +230,9 @@ type Iface_Trait_ interface {
 
 func New_Trait_() *Trait {
     _this := Trait{}
-    
+
     _this.X = _dafny.Zero
-    
+
     return &_this
 }
 ```
@@ -553,7 +553,7 @@ module {:extern "io"} IO { }
 
 module {:extern "os"} OS {
     import Builtins
-  
+
     trait {:extern "io", "Reader"} Reader { }
     class {:extern} File extends Reader { }
     method {:extern} Open(name: string) returns (file:File, error: Builtins.error?)

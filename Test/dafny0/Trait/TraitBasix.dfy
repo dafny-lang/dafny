@@ -15,17 +15,17 @@ module m1
   trait I2       //all is fine in this trait
   {
     var x: int;
-    
+
     function method Twice(): int
       reads this;
     {
       x + x
     }
-    
+
     function method F(z: int): int
       reads this;
 
-     
+
     method Compute(s: bool) returns (t: int, u: int)
       modifies this;
     {
@@ -39,16 +39,16 @@ module m1
         return t+p, u;
       }
     }
-    
+
     method Customizable(w: int) returns (p: int)
       modifies this;
 
-     
+
     static method StaticM(a: int) returns (b: int)
     {
       b := a;
     }
-    
+
     static method SS(a: int) returns (b:int)
     {
       b:=a*2;
@@ -72,30 +72,30 @@ module m1
     function method F(z: int): int
       reads this;
     {
-       z  
+       z
     }
-    var x: int; //error, x has been declared in the parent trait      
+    var x: int; //error, x has been declared in the parent trait
   }
-  
+
   class I0Child2 extends I2
   {
     method Customizable(w: int) returns (p: int)
       modifies this;
     {
-       w:=w+1;    
-    }  
+       w:=w+1;
+    }
 
-    var c1: I0Child;  
+    var c1: I0Child;
   }
-  
+
   class IXChild extends IX   //error, IX trait is undefined
   {
-  
+
   }
 }
 
 module MoreTests {
-trait I0 
+trait I0
 {
    var x: int;
    constructor I0(x0: int) // error: constructor is not allowed in a trait
@@ -120,17 +120,17 @@ method TestI1()
 trait I2       //all is fine in this trait
 {
   var x: int;
-  
+
   function method Twice(): int
     reads this;
   {
     x + x
   }
-  
+
   function method F(z: int): int
     reads this;
 
-   
+
   method Compute(s: bool) returns (t: int, u: int)
     modifies this;
   {
@@ -144,16 +144,16 @@ trait I2       //all is fine in this trait
       return t+p, u;
     }
   }
-  
+
   method Customizable(w: int) returns (p: int)
     modifies this;
 
-   
+
   static method StaticM(a: int) returns (b: int)
   {
     b := a;
   }
-  
+
   static method SS(a: int) returns (b:int)
   {
     b:=a*2;

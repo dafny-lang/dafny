@@ -1,8 +1,8 @@
 // RUN: %dafny /compile:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
-datatype MyDataType = MyConstructor(myint:int, mybool:bool) 
-                    | MyOtherConstructor(otherbool:bool) 
+datatype MyDataType = MyConstructor(myint:int, mybool:bool)
+                    | MyOtherConstructor(otherbool:bool)
                     | MyNumericConstructor(42:int)
 datatype SomeOtherType = S_O_T(non_destructor: int)
 

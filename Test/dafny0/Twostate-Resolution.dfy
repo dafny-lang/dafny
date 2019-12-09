@@ -20,7 +20,7 @@ module M1 {
 
   class K {
     var g: int
-    
+
     method M(c: C)
       requires unchanged(c)  // error: 'unchanged' not allowed here
       ensures unchanged(c)

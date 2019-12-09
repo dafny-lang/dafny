@@ -116,7 +116,7 @@ module M0 {
   twostate function F(x: int, c: C, new d: C): int
     requires allocated(c) && allocated(d)
     reads c, d
-    
+
   trait Tr {
     twostate function G(c: C?, new d: C): int
       requires c != null && allocated(c) && unchanged(c)

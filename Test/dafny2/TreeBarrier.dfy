@@ -19,12 +19,12 @@ class Node {
 
     (right != null ==> right in desc && left !in right.desc) &&
 
-    (left != null ==> 
-      left in desc && 
+    (left != null ==>
+      left in desc &&
       (right != null ==> desc == {left,right} + left.desc + right.desc)  &&
       (right == null ==> desc == {left} + left.desc)  &&
       left.validDown()) &&
-    (left == null ==> 
+    (left == null ==>
       (right != null ==> desc == {right} + right.desc)  &&
       (right == null ==> desc == {})) &&
 
@@ -73,7 +73,7 @@ class Node {
 //A
     pc := 1;
     if(left != null) {
-      while(!left.sense) 
+      while(!left.sense)
         modifies left
         invariant validDown() // this seems necessary to get the necessary unfolding of functions
         invariant valid()
@@ -87,27 +87,27 @@ class Node {
         // We assume that "left" preserves the validity of its subtree,
         // which means in particular that it goes to "blocked" only if
         // all its descendants are already blocked.
-        left.sense := *; 
+        left.sense := *;
         assume left.blocked() ==> forall m :: m in left.desc ==> m.blocked();
-      }  
+      }
     }
     if(right != null) {
-      while(!right.sense) 
+      while(!right.sense)
         modifies right
         invariant validDown() // this seems necessary to get the necessary unfolding of functions
         invariant valid()
         decreases *  // to by-pass termination checking for this loop
       {
         // analogous to the previous loop
-        right.sense := *; 
+        right.sense := *;
         assume right.blocked() ==> forall m :: m in right.desc ==> m.blocked();
-      }  
+      }
     }
 
 //B
     pc := 2;
     if(parent != null) {
-      sense := true; 
+      sense := true;
     }
 //C
     pc := 3;

@@ -1,7 +1,7 @@
 // RUN: %dafny /noNLarith /compile:0 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
-module Math__div_def_i { 
+module Math__div_def_i {
 	function my_div_pos(x:int, d:int) : int
 		requires d >  0;
 		decreases if x < 0 then (d - x) else x;
@@ -12,7 +12,7 @@ module Math__div_def_i {
 			0
 		else
 			1 + my_div_pos(x-d, d)
-	} 
-} 
+	}
+}
 
 

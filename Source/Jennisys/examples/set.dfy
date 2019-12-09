@@ -72,11 +72,11 @@ class Set {
     ensures Valid();
     ensures elems == {p, q};
   {
-    var gensym71 := new SetNode; 
+    var gensym71 := new SetNode;
     gensym71.Double(p, q);
-    this.elems := {p, q}; 
-    this.root := gensym71; 
-    this.Repr := {this} + this.root.Repr; 
+    this.elems := {p, q};
+    this.root := gensym71;
+    this.Repr := {this} + this.root.Repr;
   }
 
 }
@@ -153,12 +153,12 @@ class SetNode {
       this.right := gensym79;
       this.Repr := {this} + this.right.Repr;
     } else {
-      this.data := p; 
+      this.data := p;
       this.elems := {p};
       this.left := null;
       this.right := null;
       this.Repr := {this};
-    } 
+    }
   }
 
   method Triple(p: int, q: int, r: int)

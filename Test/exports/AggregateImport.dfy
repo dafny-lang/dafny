@@ -4,7 +4,7 @@
 module A {
   export TR reveals T
   export TO provides T
-  
+
   export TTR reveals TT
   export TTO provides TT
 

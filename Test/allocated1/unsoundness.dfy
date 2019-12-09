@@ -18,7 +18,7 @@ method M()
   var c := new Class;
   ghost var y := F();
   assert x == y;
-  
+
   assert !old(allocated(c));  // because c was newly allocated
   assert c in x;
   assert old(allocated(c));  // because c in x

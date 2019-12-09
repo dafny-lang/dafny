@@ -40,5 +40,5 @@ class C1 extends P1
     var y := 5;
     var z := Mul(x,y);
     assert (z == 10);
-  }   
+  }
 }

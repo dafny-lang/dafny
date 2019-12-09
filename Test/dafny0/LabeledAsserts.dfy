@@ -58,7 +58,7 @@ method Test(c: C)
 
   local, c.g := local + 1, local + 1;
   assert Z: c.g == local == 3;
-  
+
   assert old(c.g) < old@A(c.g) < old@B(c.g) < c.g;
   assert old@A(local) == 3 == old@B(local);  // true, because old does not affect local variables
 }
@@ -80,7 +80,7 @@ method M1(x: int, y: int, z: int)
     reveal 00_010;
     assert 0 <= z;
   }
-  
+
   reveal XX;
   assert -20 <= x;
   reveal 88;

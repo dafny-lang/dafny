@@ -41,8 +41,8 @@ let rec MyFold ee acc =
 
 %%
 
-// These are the rules of the grammar along with the F# code of the 
-// actions executed as rules are reduced.  In this case the actions 
+// These are the rules of the grammar along with the F# code of the
+// actions executed as rules are reduced.  In this case the actions
 // produce data using F# data construction terms.
 start: TopLevelDecls EOF     { SProgram($1) }
 
@@ -75,7 +75,7 @@ Pre:
     |                           { TrueLiteral }
     | REQUIRES Expr Pre         { BinaryAnd $2 $3 }
 
-Post: 
+Post:
   |                           { TrueLiteral }
   | ENSURES Expr Post         { BinaryAnd $2 $3 }
   | ID GETS Expr Post         { BinaryAnd (BinaryExpr(40,"=",IdLiteral($1),$3)) $4 }
@@ -141,7 +141,7 @@ Expr20:
     | Expr25                { $1 }
     | Expr25 IMPLIES Expr20 { BinaryExpr(20,"==>",$1,$3) }
 
-Expr25: 
+Expr25:
     | Expr30                { $1 }
     | Expr30 QMARK Expr25 COLON Expr25 { IteExpr($1,$3,$5) }
 Expr30:
@@ -154,7 +154,7 @@ Expr30and:
 Expr30or:
     | Expr40                { $1 }
     | Expr40 AND Expr30or   { BinaryOr $1 $3 }
-                                           
+
 Expr40:
     | Expr50                { $1 }
     | Expr50 EQ Expr50      { BinaryExpr(40,"=",$1,$3) }
@@ -165,10 +165,10 @@ Expr40:
     | Expr50 GREATER Expr50 { BinaryExpr(40,">",$1,$3) }
     | Expr50 IN Expr50      { BinaryExpr(40,"in",$1,$3) }
     | Expr50 NOTIN Expr50   { BinaryExpr(40,"!in",$1,$3) }
-    
+
 Expr50:
     | Expr55                   { $1 }
-    | Expr55 DOTDOTDOT Expr55  { BinaryExpr(50,"...",$1,$3) }        
+    | Expr55 DOTDOTDOT Expr55  { BinaryExpr(50,"...",$1,$3) }
 
 Expr55:
     | Expr60               { $1 }

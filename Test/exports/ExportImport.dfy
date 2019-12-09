@@ -22,7 +22,7 @@ module B {
      var tt : TT;
      var aot : BAO.T;
      var aor : BAR.T;
- 
+
      var e := tt == aot;
      var f := aot == aor;
      var g := tt == false;
@@ -42,11 +42,11 @@ module CC {
 module D {
   import B`BO
   import DAO = B.BAO
-  
+
   method Test() {
     var daot : DAO.T;
     var e := daot == false; // error
-    
+
     var btt : B.TT;
     var f := daot == btt; // error
   }
@@ -55,11 +55,11 @@ module D {
 module DD {
   import B`BR
   import DAR = B.BAR
-  
+
   method Test() {
     var daot : DAR.T;
     var e := daot == false;
-    
+
     var btt : B.TT;
     var f := daot == btt;
   }

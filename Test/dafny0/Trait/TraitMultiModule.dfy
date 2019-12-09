@@ -5,7 +5,7 @@ module M1
 {
   trait T1
   {
-    method M1 (a:int)    
+    method M1 (a:int)
   }
   class C1 extends T1
   {

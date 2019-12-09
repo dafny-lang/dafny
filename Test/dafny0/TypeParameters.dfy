@@ -222,7 +222,7 @@ module TwoLayers
 {
   import OneLayer
   datatype wrap2<T> = Wrap2(get: OneLayer.wrap<T>)
-  
+
   function F<U>(w: wrap2<U>) : OneLayer.wrap<U>
   {
     match w
@@ -243,7 +243,7 @@ module TwoLayers
 
 datatype List<T> = Nil | Cons(T, List)
 predicate InList<T>(x: T, xs: List<T>)
-predicate Subset<T(!new)>(xs: List, ys: List) 
+predicate Subset<T(!new)>(xs: List, ys: List)
 {
   forall x :: InList(x, xs) ==> InList(x, ys)
 }
@@ -363,7 +363,7 @@ module ParseGenerics {
   }
 
   datatype List<Y> = Nil | Cons(Y, List)
-  
+
   function Many(n: List): int
   {
     match n
@@ -380,5 +380,23 @@ module ParseGenerics {
     var xs := Cons(u, Cons(u, Cons(u, Cons(u, Nil))));
     // the following attribute previously caused a parsing error
     assert {:fuel Many<real>, 10} Many(xs) == 18;  // yes
+  }
+}
+
+// -------------- regression test: method call where callee is in a different class with type parameters ------
+
+module TypeSubstitutionInModifiesClause {
+  class C<T> {
+    ghost const Repr: set<object>
+    constructor ()
+      ensures fresh(Repr)
+    method Update()
+      modifies Repr
+  }
+
+  method Client() {
+    var c := new C<int>();
+    // The following call once caused malformed Boogie, because of a missing type substitution.
+    c.Update();
   }
 }

@@ -5,10 +5,10 @@ predicate {:opaque} ValidRegs()
 {
     forall i:int {:nowarn}:: true
 }
- 
+
 predicate mypredicate()
     requires ValidRegs()
- 
+
 lemma mylemma()
 {
     assume mypredicate();

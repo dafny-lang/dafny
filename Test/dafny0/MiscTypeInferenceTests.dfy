@@ -105,7 +105,7 @@ module XJ {
     var y: Cell :| y.data == 7;
     var y': Cell? :| y' == null || y'.data == 8;
     var y'': Cell :| true;
-    
+
     var y'3: Cell :| k == 113;  // error: cannot establish existence of LHS
     var y'4: Cell :| false;  // error: cannot establish existence of LHS
     var z: real :| Z(z);
@@ -114,7 +114,7 @@ module XJ {
 
 module Numerics {
   type neg = x: int | x < 0 witness -8
-  
+
   method IntLike() returns (ks: set<nat>, ns: set<neg>, z: bool) {
     var y := -8;
     z := y in ks;

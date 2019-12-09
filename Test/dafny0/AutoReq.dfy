@@ -8,13 +8,13 @@ function f(x:int) : bool
 }
 
 // Should cause a function-requires failure
-function g(y:int) : bool    
+function g(y:int) : bool
 {
   f(y)
 }
 
 // Should succeed thanks to auto-generation based on f's requirements
-function {:autoReq} h(y:int) : bool  
+function {:autoReq} h(y:int) : bool
 {
   f(y)
 }
@@ -31,7 +31,7 @@ function {:autoReq} i(y:int, b:bool) : bool
   if b then f(y + 2) else f(2*y)
 }
 
-method test() 
+method test()
 {
   // Function req violations (and assertion violations)
   if (*) {
@@ -128,7 +128,7 @@ module {:autoReq} QuantifierTestsHard {
 
   function h(s:seq<int>) : bool
   {
-    g_forall(s) 
+    g_forall(s)
   }
 
   function i(s:seq<int>) : bool
@@ -144,7 +144,7 @@ module {:autoReq} QuantifierTestsHard {
 
   function m(x:int) : bool
   function n(x:int) : bool
-  
+
   function f1(x:int) : bool
   requires x > 3;
   requires x < 16;
@@ -170,11 +170,11 @@ module CorrectReqOrdering {
   function {:autoReq} f3(z:int) : bool
   {
     f2(f1(z))
-  }     
+  }
 
 }
 
-module ShortCircuiting {  
+module ShortCircuiting {
   function f1(x:int) : bool
     requires x > 3;
 
@@ -217,7 +217,7 @@ module {:autoReq} M1 {
     }
 
     // Should succeed thanks to auto-generation based on f's requirements
-    function {:autoReq} h(y:int) : bool  
+    function {:autoReq} h(y:int) : bool
     {
       f(y)
     }
@@ -283,7 +283,7 @@ module StaticTest {
   }
 
   // Should succeed thanks to auto-generation based on f's requirements
-  function {:autoReq} h(y:int) : bool  
+  function {:autoReq} h(y:int) : bool
   {
     g(y)
   }

@@ -28,7 +28,7 @@ A module body can consist of anything that you could put at the toplevel. This i
 module Mod {
   class C {
     var f: int;
-    method m() 
+    method m()
   }
   datatype Option = A(int) | B(int)
   type T
@@ -37,7 +37,7 @@ module Mod {
 }
 ```
 
-You can also put a module inside another, in a nested fashion: 
+You can also put a module inside another, in a nested fashion:
 
 ``` {.edit}
 module Mod {
@@ -120,7 +120,7 @@ module Mod {
   assert x == 6;
 ```
 
-to the end of `m()` will verify. 
+to the end of `m()` will verify.
 
 ## Importing and Exporting Modules
 
@@ -134,7 +134,7 @@ defined outside of `Mod`, then we could import it:
 
 ``` {.editonly}
 module Helpers {
-  function method addOne(n: nat): nat 
+  function method addOne(n: nat): nat
   {
     n + 1
   }
@@ -176,7 +176,7 @@ module Helpers {
   export Spec provides addOne, addOne_result
   export Body reveals addOne
   export extends Spec
-  function method addOne(n: nat): nat 
+  function method addOne(n: nat): nat
   {
     n + 1
   }
@@ -195,7 +195,7 @@ module Helpers {
   export Spec provides addOne, addOne_result
   export Body reveals addOne
   export extends Spec
-  function method addOne(n: nat): nat 
+  function method addOne(n: nat): nat
   {
     n + 1
   }
@@ -260,7 +260,7 @@ module Helpers {
   function f(): T { 0 }
 }
 module Mod {
-  import A = Helpers  
+  import A = Helpers
   function h(): A.T { A.f() }
 }
 ```
@@ -375,7 +375,7 @@ example, we could write the previous `addOne` example as:
 
 ``` {.editonly}
 module Helpers {
-  function method addOne(n: nat): nat 
+  function method addOne(n: nat): nat
   {
     n + 1
   }
@@ -404,7 +404,7 @@ present however, so you can always use the name that was bound to get to anythin
 
 ``` {.editonly}
 module Helpers {
-  function method addOne(n: nat): nat 
+  function method addOne(n: nat): nat
   {
     n + 1
   }
@@ -452,7 +452,7 @@ is defined, any refinement of `B` can be used safely. For example, if we start w
 
 ``` {.edit}
 module Interface {
-  function method addSome(n: nat): nat 
+  function method addSome(n: nat): nat
     ensures addSome(n) > n
 }
 module Mod {
@@ -468,7 +468,7 @@ so this is actually a refinement of the `Interface` module.
 
 ``` {.edit}
 module Implementation refines Interface {
-  function method addSome(n: nat): nat 
+  function method addSome(n: nat): nat
     ensures addSome(n) == n + 1
   {
     n + 1
@@ -480,7 +480,7 @@ We can then substitute `Implementation` for `A` in a new module, by declaring a 
 
 ``` {.editonly}
 module Interface {
-  function method addSome(n: nat): nat 
+  function method addSome(n: nat): nat
     ensures addSome(n) > n
 }
 module Mod {
@@ -490,7 +490,7 @@ module Mod {
   }
 }
 module Implementation refines Interface {
-  function method addSome(n: nat): nat 
+  function method addSome(n: nat): nat
     ensures addSome(n) == n + 1
   {
     n + 1
@@ -579,22 +579,22 @@ to is name resolution. Though the rules may seem complex, usually they do what y
 identifier refers to, the rest of the identifier is looked up in the appropriate context. The full rules are as follows:
 
 * Local variables, parameters and bound variables. These are things like `x`, `y`, and `i` in `var x;`, `... returns (y: int)`, and `forall i :: ...`.
-* Classes, datatypes, and module names (provided this is not the only part of the identifier). Classes allow their static members to be accessed in this way, 
+* Classes, datatypes, and module names (provided this is not the only part of the identifier). Classes allow their static members to be accessed in this way,
     and datatypes allow their constructors to be accessed. Modules allow any of their members to be referred to like this
 * Constructor names (if unambiguous). Any datatypes that don't need qualification (so the datatype name itself doesn't
-    need a prefix), and also have a uniquely named constructor, can be referred to just by its name. So if `datatype List = Cons(List) | Nil` 
+    need a prefix), and also have a uniquely named constructor, can be referred to just by its name. So if `datatype List = Cons(List) | Nil`
     is the only datatype that declares `Cons` and `Nil` constructors, then you can write `Cons(Cons(Nil))`.
     If the constructor name is not unique, then you need to prefix it with the name of the datatype (for example `List.Cons(List.Nil))`).
     This is done per constructor, not per datatype.
 * Fields, functions, and methods of the current class (if in a static context, then only static methods and functions are allowed).
     You can refer to fields of the current class either as `this.f` or `f`,
     assuming of course that `f` hasn't be hidden by one of the above. You can always prefix `this` if needed, which cannot be hidden. (Note, a field whose name is a string of digits must always have some prefix.)
-* Static functions and methods in the enclosing module. Note, this refers only to functions and methods declared at the 
+* Static functions and methods in the enclosing module. Note, this refers only to functions and methods declared at the
   module level, not static members of a named class.
 
 Opened modules are treated at each level, after the declarations in the current module. Opened modules only affect steps 2, 3 and 5.
 If a ambiguous name is found, an error is generated, rather than continuing down the list.
-After the first identifer, the rules are basically the same, except in the new context. For example, if the first identifier is a 
+After the first identifer, the rules are basically the same, except in the new context. For example, if the first identifier is a
 module, then the next identifier looks into that module. Opened modules only apply within the module it is opened into. When looking
 up into another module, only things explicitly declared in that module are considered.
 

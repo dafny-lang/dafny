@@ -6878,6 +6878,7 @@ CasePattern =
   | IdentTypeOptional
   )
 
+
 ExtendedPattern =
   ( LiteralExpression_
   ( Ident [ "(" ExtendedPattern { "," ExtendedPattern } ")" ]

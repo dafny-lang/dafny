@@ -11,7 +11,7 @@ type Six = x | 6 <= x witness 6
 type SixAgain = six: Six | 4 <= six  // error: the attempted witness 0 is not good enough (it's not even a Six)
 type SixAgainW = six: Six | 4 <= six witness 4  // error: 4 is not a witness for the type (it's not even a Six)
 type Impossible = six: Six | six < 2  // error: this would be an empty type
-  
+
 newtype NewSix = x | 6 <= x witness 6
 newtype NewSixAgain = six: NewSix | 4 <= six as int  // error: witness 0 is not a NewSix
 newtype NewSixAgainW = six: NewSix | 4 <= six as int witness 4  // error: 4 is not a NewSix

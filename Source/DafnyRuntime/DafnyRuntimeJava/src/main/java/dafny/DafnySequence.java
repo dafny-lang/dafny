@@ -4,6 +4,7 @@ import java.math.BigInteger;
 import java.util.*;
 import java.util.function.Function;
 
+@SuppressWarnings("ALL")
 public abstract class DafnySequence<T> implements Iterable<T> {
     /*
     Invariant: forall 0<=i<length(). seq[i] == T || null
@@ -25,7 +26,7 @@ public abstract class DafnySequence<T> implements Iterable<T> {
     }
 
     public static <T> DafnySequence<T> fromArray(T[] elements) {
-        return new ArrayDafnySequence<T>(elements.clone());
+        return new ArrayDafnySequence<>(elements.clone());
     }
 
     public static <T> DafnySequence<T> fromArrayRange(T[] elements, int lo, int hi) {
@@ -138,6 +139,8 @@ public abstract class DafnySequence<T> implements Iterable<T> {
     public abstract DafnySequence<T> update(int i, T t);
 
     public DafnySequence<T> update(BigInteger b, T t) {
+        assert t != null : "Precondition Violation";
+        assert b != null : "Precondition Violation";
         //todo: should we allow i=length, and return a new sequence with t appended to the sequence?
         assert b.compareTo(BigInteger.ZERO) >= 0 &&
                b.compareTo(BigInteger.valueOf(length())) < 0: "Precondition Violation";
@@ -145,6 +148,7 @@ public abstract class DafnySequence<T> implements Iterable<T> {
     }
 
     public boolean contains(T t) {
+        assert t != null : "Precondition Violation";
         return asList().indexOf(t) != -1;
     }
 
@@ -282,7 +286,7 @@ final class ArrayDafnySequence<T> extends DafnySequence<T> {
     }
 
     private static final ArrayDafnySequence<Object> EMPTY =
-        new ArrayDafnySequence<Object>(new Object[0]);
+        new ArrayDafnySequence<>(new Object[0]);
 
     @SuppressWarnings("unchecked")
     public static <T> ArrayDafnySequence<T> empty() {
@@ -292,17 +296,18 @@ final class ArrayDafnySequence<T> extends DafnySequence<T> {
 
     @Override
     public ArrayDafnySequence<T> update(int i, T t) {
+        assert t != null : "Precondition Violation";
         //todo: should we allow i=length, and return a new sequence with t appended to the sequence?
         assert 0 <= i && i < length(): "Precondition Violation";
         Object[] newArray = seq.clone();
         newArray[i] = t;
-        return new ArrayDafnySequence<T>(newArray);
+        return new ArrayDafnySequence<>(newArray);
     }
 
     public ArrayDafnySequence<T> subsequence(int lo, int hi) {
         assert lo >= 0 && hi >= 0 && hi >= lo : "Precondition Violation";
 
-        return new ArrayDafnySequence<T>(Arrays.copyOfRange(seq, lo, hi));
+        return new ArrayDafnySequence<>(Arrays.copyOfRange(seq, lo, hi));
     }
 
     @Override
@@ -318,7 +323,7 @@ final class ArrayDafnySequence<T> extends DafnySequence<T> {
             Object[] newArray = new Object[seq.length + otherSeq.length];
             System.arraycopy(seq, 0, newArray, 0, seq.length);
             System.arraycopy(otherSeq, 0, newArray, seq.length, otherSeq.length);
-            return new ArrayDafnySequence<T>(newArray);
+            return new ArrayDafnySequence<>(newArray);
         } else {
             return super.concatenate(other);
         }

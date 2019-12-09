@@ -81,18 +81,18 @@ function sort(min: int, max: int, i: List<int>): List<int>
 module Sort
 
 type SortedRange : int => int => list int => E
-assume Nil_Sorted : forall (n:int) (m:int). n <= m <==> SortedRange n m [] 
-assume Cons_Sorted: forall (n:int) (m:int) (hd:int) (tl:list int). 
+assume Nil_Sorted : forall (n:int) (m:int). n <= m <==> SortedRange n m []
+assume Cons_Sorted: forall (n:int) (m:int) (hd:int) (tl:list int).
                SortedRange hd m tl && (n <= hd) && (hd <= m)
           <==> SortedRange n m (hd::tl)
 
-val append: n1:int -> n2:int{n1 <= n2} -> n3:int{n2 <= n3} -> n4:int{n3 <= n4} 
-         -> i:list int{SortedRange n1 n2 i} 
+val append: n1:int -> n2:int{n1 <= n2} -> n3:int{n2 <= n3} -> n4:int{n3 <= n4}
+         -> i:list int{SortedRange n1 n2 i}
          -> j:list int{SortedRange n3 n4 j}
-         -> k:list int{SortedRange n1 n4 k 
+         -> k:list int{SortedRange n1 n4 k
                       /\ (forall x. In x k <==> In x i \/ In x j)}
-let rec append n1 n2 n3 n4 i j = match i with 
-  | [] -> 
+let rec append n1 n2 n3 n4 i j = match i with
+  | [] ->
     (match j with
       | [] -> j
       | _::_ -> j)
@@ -112,15 +112,15 @@ let rec partition x l = match l with
     then (hd::lo, hi)
     else (lo, hd::hi)
 
-val sort: min:int  
-       -> max:int{min <= max} 
+val sort: min:int
+       -> max:int{min <= max}
        -> i:list int {forall x. In x i ==> (min <= x /\ x <= max)}
        -> j:list int{SortedRange min max j /\ (forall x. In x i <==> In x j)}
 let rec sort min max i = match i with
   | [] -> []
   | hd::tl ->
     let lo,hi = partition hd tl in
-    let i' = sort min hd lo in 
+    let i' = sort min hd lo in
     let j' = sort hd max hi in
     append min hd hd max i' (hd::j')
 

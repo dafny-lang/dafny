@@ -22,7 +22,7 @@ class RingBuffer<T(0)>
     data.Length == N &&
     (N == 0 ==> len == start == 0 && Contents == []) &&
     (N != 0 ==> len <= N && start < N) &&
-    Contents == if start + len <= N then data[start..start+len] 
+    Contents == if start + len <= N then data[start..start+len]
                                     else data[start..] + data[..start+len-N]
   }
 
@@ -61,7 +61,7 @@ class RingBuffer<T(0)>
     ensures Valid() && fresh(Repr - old(Repr))
     ensures Contents == old(Contents) + [x] && N == old(N)
   {
-    var nextEmpty := if start + len < data.Length 
+    var nextEmpty := if start + len < data.Length
                      then start + len else start + len - data.Length;
     data[nextEmpty] := x;
     len := len + 1;

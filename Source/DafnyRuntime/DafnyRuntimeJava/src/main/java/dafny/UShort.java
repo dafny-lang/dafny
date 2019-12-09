@@ -51,6 +51,18 @@ public class UShort {
         return Integer.compareUnsigned(inner, other.inner);
     }
 
+    public int signum() {
+        return inner == 0 ? 0 : 1;
+    }
+
+    public byte byteValue(){
+        return (byte) inner;
+    }
+
+    public short shortValue(){
+        return (short) inner;
+    }
+
     public int intValue(){
         return inner;
     }
@@ -86,7 +98,7 @@ public class UShort {
         i %= (MAXVALUE + 1);
         return new UShort(i);
     }
-    
+
     //Invariant that other.inner is positive, so only nonzero check needed
     public UShort divide(UShort other){
         assert other.inner != 0 : "Precondition Failure";

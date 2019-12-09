@@ -55,9 +55,9 @@ method m()
 ```
 
 Note that because sets can only contain at most one of each element,
-the union does not count repeated elements more than once. These 
+the union does not count repeated elements more than once. These
 operators will result in a finite set if both operands are finite,
-so they cannot generate an infinite set. Unlike the arithmetic 
+so they cannot generate an infinite set. Unlike the arithmetic
 operators, the set operators are always defined. In addition to set
 forming operators, there are comparison operators with their usual
 meanings:
@@ -101,7 +101,7 @@ method m()
 
 Sets are used in several annotations, including reads and modifies
 clauses. In this case, they can be sets of a specific object type
-(like `Nodes` in a linked list), or they can be sets of the 
+(like `Nodes` in a linked list), or they can be sets of the
 generic reference type `object`. Despite its name, this can point to
 any object or array. This is useful to bundle up all of the locations
 that a function or method might read or write when they can be different types.

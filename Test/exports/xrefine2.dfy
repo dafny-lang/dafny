@@ -6,7 +6,7 @@ module ProtocolImpl {
     export reveals *
     export Spec provides ProtoT, Init
 
-    type ProtoT = bool    
+    type ProtoT = bool
 
     predicate Init(p:ProtoT) { p }
 
@@ -44,8 +44,8 @@ module MainImpl {
 
     import HI = HostImpl
     import PI = ProtocolImpl
-    
-    method Test(h1:HISpec.HostT, h2:HISpec.HostT) 
+
+    method Test(h1:HISpec.HostT, h2:HISpec.HostT)
         requires HISpec.foo(h1) == HISpec.foo(h2);
         requires PISpec.Init(HISpec.foo(h1))
     {

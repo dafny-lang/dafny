@@ -19,7 +19,7 @@ newtype MyO = x: int | var cl: MyClass<D> := null; cl == cl  // error: D does no
 
 newtype MyQ = x: int | var cl: MaiKlass<object> := null; cl == cl  // error: MaiKlass does not exist
 
-  
+
 type Subset2<A> = x: int | exists a: A :: F(10, a) < 100
 
 type Subset3<A> = x: int | forall b: B :: F(20, b) < 100  // error: B does not exist

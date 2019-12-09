@@ -14,19 +14,19 @@
 // This file tests resolution errors.  The file Bug125more.dfy tests
 // verification on similar (bug resolution-correct) examples.
 
-abstract module AbstractModuleA 
+abstract module AbstractModuleA
 {
   type T
-} 
+}
 
-abstract module AbstractModuleB 
+abstract module AbstractModuleB
 {
   import opened AMA : AbstractModuleA
 
   method Foo(t:T)  // resolution error when inherited in AbstractModuleC: T is ambiguous
-} 
+}
 
-abstract module AbstractModuleC refines AbstractModuleB 
+abstract module AbstractModuleC refines AbstractModuleB
 {
   import opened AMA2 : AbstractModuleA
 }
@@ -34,7 +34,7 @@ abstract module AbstractModuleC refines AbstractModuleB
 // Here is another test example:
 
 module LibA {
-  class G { 
+  class G {
     static function f(x:int) : bool {
       x >= 10
     }
@@ -46,7 +46,7 @@ module LibA {
 }
 
 module LibB {
-  class G { 
+  class G {
     static function f(x:int) : bool {
       x < 10
     }
@@ -70,7 +70,7 @@ module S refines R {
   method m1() {
    assert G.f(20);  // resolution error: ambiguous reference to LibA.G / LibB.G
   }
-} 
+}
 
 module V {
   import opened LibA

@@ -57,7 +57,7 @@ class C {
   {
     x + y + c.y
   }
-  
+
   const a: int := b+2
   const b: int := 50
   function method H(c: C): int
@@ -65,7 +65,7 @@ class C {
   {
     a + b + c.b + x + y + c.y + C.y
   }
-  
+
   method M() returns (r: int)
     ensures r == 11
   {
@@ -151,7 +151,7 @@ class UninterpretedStaticsClass extends UninterpretedStaticsTrait {
 // ---------- test type/allocation axiom of const fields --------
 
 type byte = x | 0 <= x < 256
-  
+
 class MyClass {
   const B: array<byte>
 

@@ -77,7 +77,7 @@ class TrickyLets
 {
   var next: TrickyLets?
   var arr: array<char>
-  
+
   constructor (n: nat, w: TLWrapper?)
     modifies w
     ensures w != null ==> w.data == null

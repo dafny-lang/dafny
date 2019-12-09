@@ -111,7 +111,7 @@ module M0 {
   }
   twostate function F(x: int, c: C, new d: C): int
     reads c, d
-    
+
   trait Tr {
     twostate function G(c: C?, new d: C): int
       requires unchanged(c)

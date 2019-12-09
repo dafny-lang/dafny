@@ -18,14 +18,14 @@ method swap<T>(a: array<T>, i: int, j: int)
 }
 
 // This method is a direct translation of the pseudo
-// code given in the problem statement. 
+// code given in the problem statement.
 // The first postcondition expresses that the resulting
 // array is sorted, that is, all occurrences of "false"
 // come before all occurrences of "true".
-// The second postcondition expresses that the post-state 
+// The second postcondition expresses that the post-state
 // array is a permutation of the pre-state array. To express
-// this, we use Dafny's built-in multisets. The built-in 
-// function "multiset" takes an array and yields the 
+// this, we use Dafny's built-in multisets. The built-in
+// function "multiset" takes an array and yields the
 // multiset of the array elements.
 // Note that Dafny guesses a suitable ranking function
 // for the termination proof of the while loop.

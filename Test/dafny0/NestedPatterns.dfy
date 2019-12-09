@@ -2,7 +2,7 @@
 // RUN: %diff "%s.expect" "%t"
 
 datatype List<T> = Nil | Cons(head: T, tail: List<T>)
-    
+
 method MethodA<T>(xs: List<T>) returns (ys: List<T>)
 {
   match xs
@@ -10,10 +10,10 @@ method MethodA<T>(xs: List<T>) returns (ys: List<T>)
     ys := Nil;
   case Cons(h, Nil) =>
     ys := Nil;
-  case Cons(h, Cons(h', tt)) => 
+  case Cons(h, Cons(h', tt)) =>
     ys := tt;
 }
-    
+
 method MethodB<T>(xs: List<T>)
 {
   match xs
@@ -21,9 +21,9 @@ method MethodB<T>(xs: List<T>)
   case Cons(h, Nil) =>
     var x := 12;
     var xxs := Cons(Nil, Nil);
-  case Cons(h, Cons(h', tt)) => 
+  case Cons(h, Cons(h', tt)) =>
 }
-    
+
 method MethodC<T>(xs: List<T>) returns (ys: List<T>)
   requires xs.Cons? ==> !xs.tail.Cons?;
 {
@@ -41,7 +41,7 @@ method MethodD<T>(xs: List<T>) returns (ys: List<T>)
     ys := Nil;
   case Cons(h, Nil) =>
     var xxs: List<List<T>> := Cons(Nil, Nil);  // BUG: type inference is not doing the right thing on this lint
-  case Cons(h, Cons(h0, tt)) => 
+  case Cons(h, Cons(h0, tt)) =>
 }
 
 method MethodE<T>(xs: List<T>) returns (ys: List<T>)
@@ -66,7 +66,7 @@ method MethodG<T>(xs: List<T>) returns (xxs: List<List<T>>)
   case Nil =>
     xxs := Cons(Nil, Nil);  // BUG: this causes there to be an "unresolved identifier: _mc#0" error; oddly enough, the error goes away if the third case is commented out
   case Cons(h, t) =>
-  case Cons(h, Cons(ht, tt)) => 
+  case Cons(h, Cons(ht, tt)) =>
 }
 
 method AssertionFailure(xs: List)

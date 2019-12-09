@@ -4,7 +4,7 @@
 module A {
    export Spec provides T, AClass, AClass.f, AClass.Init
    export Body reveals T, AClass
- 
+
    type T = int
    class AClass {
      function method f(): T { 0 }
@@ -15,7 +15,7 @@ module A {
 
 module B {
   import A = A`Spec
-  
+
   method Test() {
     var a := new A.AClass.Init();
     var f : A.T := a.f();

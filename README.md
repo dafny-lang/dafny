@@ -36,11 +36,11 @@ Here are some ways to get started with Dafny:
   - Lecture 2: [Binary search](https://youtu.be/-_tx3lk7yn4) (21:14)
   - Lecture 3: [Dutch National Flag algorithm](https://youtu.be/dQC5m-GZYbk) (20:33)
 * New overview article: [Accessible Software Verification with Dafny](https://www.computer.org/csdl/mags/so/2017/06/mso2017060094-abs.html), IEEE Software, Nov/Dec 2017
-* [Online tutorial](http://rise4fun.com/Dafny/tutorial/guide), focusing mostly on simple imperative programs 
-* [3-page tutorial notes](http://leino.science/papers/krml233.pdf) with examples (ICSE 2013) 
+* [Online tutorial](http://rise4fun.com/Dafny/tutorial/guide), focusing mostly on simple imperative programs
+* [3-page tutorial notes](http://leino.science/papers/krml233.pdf) with examples (ICSE 2013)
 * Dafny [Quick Reference](http://research.microsoft.com/en-us/projects/dafny/reference.aspx)
-* Language reference for the [Dafny type system](http://leino.science/papers/krml243.html), which also describes available expressions for each type 
-* [Cheatsheet](https://docs.google.com/document/d/1kz5_yqzhrEyXII96eCF1YoHZhnb_6dzv-K3u79bMMis/edit?pref=2&pli=1): basic Dafny syntax on two pages 
+* Language reference for the [Dafny type system](http://leino.science/papers/krml243.html), which also describes available expressions for each type
+* [Cheatsheet](https://docs.google.com/document/d/1kz5_yqzhrEyXII96eCF1YoHZhnb_6dzv-K3u79bMMis/edit?pref=2&pli=1): basic Dafny syntax on two pages
 * Dafny Reference Manual [[html](https://github.com/dafny-lang/dafny/blob/master/Docs/DafnyRef/out/DafnyRef.html)] [[pdf](https://github.com/dafny-lang/dafny/blob/master/Docs/DafnyRef/out/DafnyRef.pdf)]
 * [Dafny Power User](http://leino.science/dafny-power-user)
 * Videos at [Verification Corner](https://www.youtube.com/channel/UCP2eLEql4tROYmIYm5mA27A)
@@ -59,6 +59,21 @@ The language itself draws pieces of influence from:
 * [Haskell-to-Dafny translator](http://www.doc.ic.ac.uk/~dcw/h2d.cgi), by Duncan White
 * [Vim-loves-Dafny mode](https://github.com/mlr-msft/vim-loves-dafny) for vim, by Michael Lowell Roberts
 * [Boogie-Friends Emacs mode](https://github.com/boogie-org/boogie-friends)
+
+# Contributors
+
+To enforce some basic style conventions, we've adopted [pre-commit](https://pre-commit.com/).  We're
+using [their default hooks](https://github.com/pre-commit/pre-commit-hooks).  When you clone
+Dafny, install pre-commit as per [the instructions](https://pre-commit.com/#install).
+For example, on OSX you do
+
+    $ brew install pre-commit
+
+Then run
+
+    $ pre-commit install
+
+This will install pre-commit hooks in your .git/hooks directory.
 
 # Code of Conduct
 

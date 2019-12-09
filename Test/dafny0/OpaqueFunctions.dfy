@@ -19,7 +19,7 @@ module A {
     {
       x := 8;
     }
-    
+
     method M()
       requires Valid();
     {
@@ -241,3 +241,84 @@ module Regression
 // but it's fine with the new fuel-based version
 function{:opaque} zero<A>():int { 0 }
 
+// ------------------------- opaque for members of non-reference types
+
+module TypeMembers {
+  trait Tr {
+    const fav: bool
+    predicate method {:opaque} IsFavorite() {
+      fav
+    }
+    static predicate method {:opaque} IsFive(x: int) {
+      x == 5
+    }
+  }
+
+  datatype Color = Carrot | Pumpkin
+  {
+    predicate method {:opaque} IsFavorite() {
+      this == Pumpkin
+    }
+    static predicate method {:opaque} IsFive(x: int) {
+      x == 5
+    }
+  }
+
+  newtype Small = x | 30 <= x < 40 witness 30
+  {
+    predicate method {:opaque} IsFavorite() {
+      this == 34
+    }
+    static predicate method {:opaque} IsFive(x: int) {
+      x == 5
+    }
+  }
+
+  method Test(tr: Tr, c: Color, s: Small) {
+    if
+    case tr.IsFavorite() =>
+      assert tr.fav;  // error: this is not known here
+    case c.IsFavorite() =>
+      assert c == Pumpkin;  // error: this is not known here
+    case s.IsFavorite() =>
+      assert s == 34;  // error: this is not known here
+    case tr.IsFavorite() =>
+      reveal tr.IsFavorite();
+      assert tr.fav;
+    case c.IsFavorite() =>
+      reveal c.IsFavorite();
+      assert c == Pumpkin;
+    case s.IsFavorite() =>
+      reveal s.IsFavorite();
+      assert s == 34;
+    case true =>
+      if tr.IsFavorite() && c.IsFavorite() && s.IsFavorite() {
+        reveal tr.IsFavorite(), c.IsFavorite(), s.IsFavorite();
+        assert !tr.fav || c == Carrot || s == 55;  // error: not true
+      }
+  }
+
+  method StaticTest(x: int) {
+    if
+    case Tr.IsFive(x) =>
+      assert x == 5;  // error: this is not known here
+    case Color.IsFive(x) =>
+      assert x == 5;  // error: this is not known here
+    case Small.IsFive(x) =>
+      assert x == 5;  // error: this is not known here
+    case Tr.IsFive(x) =>
+      reveal Tr.IsFive();
+      assert x == 5;  // error: this is not known here
+    case Color.IsFive(x) =>
+      reveal Color.IsFive();
+      assert x == 5;  // error: this is not known here
+    case Small.IsFive(x) =>
+      reveal Small.IsFive();
+      assert x == 5;  // error: this is not known here
+    case true =>
+      if Tr.IsFive(x) && Color.IsFive(x) && Small.IsFive(x) {
+        reveal Tr.IsFive(), Color.IsFive(), Small.IsFive();
+        assert x != 5;  // error: not true
+      }
+  }
+}
