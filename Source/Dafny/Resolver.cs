@@ -12168,18 +12168,15 @@ namespace Microsoft.Dafny
         } else {
           var e = (MonadicBindExpr)expr;
           ResolveExpression(e.Rhs, opts, false);
-          Console.WriteLine("{0}| Monadic bind at type:{1} from expression {2}", e.tok.line, e.Rhs.Type.NormalizeExpand(), e.Rhs.ToString());
           ResolveCasePattern(e.Lhs, e.Rhs.Type, opts.codeContext);
           ResolveMonadicBind(e, opts);
         }
       } else if (expr is DoNotationExpr){
         var e = (DoNotationExpr)expr;
-        Console.WriteLine("Resolving Do: {0}", Printer.ExprToString(e.ParsedExpression));
         var re = new Cloner().CloneExpr(e.ParsedExpression);
         ResolveExpression(re, opts, true);
         e.ResolvedExpression = re;
         e.Type = re.Type;
-        Console.WriteLine("Type of Do: {0}", e.Type);
       } else if (expr is LetOrFailExpr) {
         var e = (LetOrFailExpr)expr;
         ResolveLetOrFailExpr(e, opts);
@@ -12361,14 +12358,11 @@ namespace Microsoft.Dafny
 /// [[pat <- expr; exprs]] => match expr with
 ///                            | pat => [[exprs]]
 /// Assumes Lhs and Rhs have been resolved, but not Body
-/// TODO: make sure that Bind exists for M (where Rhs:M<?>) in the context.
 /// </summary>
     public void ResolveMonadicBind(MonadicBindExpr e, ResolveOpts opt){
-      Console.WriteLine("MonadicBind!");
       Expression newBody;
 
       var bvt = e.Rhs.Type.NormalizeExpand();
-      Console.WriteLine("RHS has type: {0}", bvt);
       if(bvt.TypeArgs == null || bvt.TypeArgs.Count != 1){
           reporter.Error(MessageSource.Resolver, e.Rhs.tok, "RHS of monadic bind was not a monadic computation");
           return;
@@ -12404,8 +12398,28 @@ namespace Microsoft.Dafny
       ResolveExpression(re, opt);
       e.ResolvedExpression = re;
       e.Type = re.Type;
-      Console.WriteLine("Resolved Monadic bind as {0} at type {1}",Printer.ExprToString(re), e.Type);
+
+      EnsureSupportsBind(e.Lhs.tok, e.Rhs.Type);
+
     }
+    /// <summary>
+    /// Throw an error if provided type M does not have a Bind method
+    /// Adapted from EnsureSupportsErrorHandling
+    /// </summary>
+    public void EnsureSupportsBind(IToken tok, Type tp){
+      var origReporter = this.reporter;
+      this.reporter = new ErrorReporterSink();
+
+      NonProxyType nptype;
+      if(ResolveMember(tok, tp, "Bind", out nptype) == null){
+        reporter.Error(MessageSource.Resolver, tok, "The right-hand side of '<-', which is of type '{0}', must have member 'Bind'", tp);
+      }
+
+
+      this.reporter = origReporter;
+
+    }
+
 
     /// <summary>
     ///  If expr.Lhs != null: Desugars "var x: T :- E; F" into "var temp := E; if temp.IsFailure() then temp.PropagateFailure() else var x: T := temp.Extract(); F"
