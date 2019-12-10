@@ -29,7 +29,7 @@ module {:extern "Library"} Library {
     static method {:extern "Library.OtherClass", "CallMe"} CallMeInAnotherClass() returns (w : object)
   }
 
-  class AllDafny {
+  class {:extern} AllDafny {
     static function Seven(): int { 7 }
     static method M() { print "AllDafny.M\n"; }
   }
