@@ -1355,17 +1355,17 @@ namespace Microsoft.Dafny {
         }
         Indent(indent);
         wr.Write("}");
+      } else if (stmt is ConcreteSyntaxStatement && ((ConcreteSyntaxStatement)stmt).ResolvedStatement != null){
+        var s = (ConcreteSyntaxStatement)stmt;
+        Indent(indent);
+        PrintStatement(s.ResolvedStatement, indent);
+        wr.WriteLine();
       } else if (stmt is NestedMatchStmt){
         var s = (NestedMatchStmt)stmt;
 //        if (DafnyOptions.O.DafnyPrintResolvedFile != null) {
-        if(s.ResolvedStatements != null){
-          Contract.Assert(s.ResolvedStatements.Count > 0);  // filled in during resolution
-          wr.WriteLine();
-          foreach (Statement r in s.ResolvedStatements) {
-            Indent(indent);
-            PrintStatement(r, indent);
-            wr.WriteLine();
-          }
+        if(s.ResolvedStatement != null){
+          // Should be caught by the ConcreteSyntaxStatement case
+          throw new NotImplementedException("");
         } else {
           wr.Write("match ");
           PrintExpression(s.Source, false);

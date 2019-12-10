@@ -10372,10 +10372,9 @@ namespace Microsoft.Dafny {
         }
         CurrentIdGenerator.Pop();
         this.fuelContext = FuelSetting.PopFuelContext();
-      } else if (stmt is NestedMatchStmt) {
-        AddComment(builder, stmt, "(nested) match statement");
-        NestedMatchStmt s = (NestedMatchStmt)stmt;
-        TrStmtList(s.ResolvedStatements, builder, locals, etran);
+      } else if (stmt is ConcreteSyntaxStatement) {
+        ConcreteSyntaxStatement s = (ConcreteSyntaxStatement)stmt;
+        TrStmt(s.ResolvedStatement, builder, locals, etran);
       } else if (stmt is MatchStmt) {
         var s = (MatchStmt)stmt;
         TrStmt_CheckWellformed(s.Source, builder, locals, etran, true);
@@ -18248,11 +18247,9 @@ namespace Microsoft.Dafny {
           rr.Steps.AddRange(s.Steps.ConvertAll(Substitute));
           rr.Result = Substitute(s.Result);
           r = rr;
-        } else if (stmt is NestedMatchStmt){
-          var s = (NestedMatchStmt)stmt;
-          var rr = new NestedMatchStmt(s.Tok, s.EndTok, s.Source, s.Cases, s.UsesOptionalBraces);
-          rr.ResolvedStatements = s.ResolvedStatements.ConvertAll<Statement>(SubstStmt);
-          r = rr;
+        } else if (stmt is ConcreteSyntaxStatement){
+          var s = (ConcreteSyntaxStatement)stmt;
+          r = SubstStmt(s.ResolvedStatement);
         } else if (stmt is MatchStmt) {
           var s = (MatchStmt)stmt;
           var rr = new MatchStmt(s.Tok, s.EndTok, Substitute(s.Source), s.Cases.ConvertAll(SubstMatchCaseStmt), s.UsesOptionalBraces);

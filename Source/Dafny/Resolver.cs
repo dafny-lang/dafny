@@ -6042,15 +6042,9 @@ namespace Microsoft.Dafny
           }
         }
         return status;
-      } else if (stmt is NestedMatchStmt){
-        // TODO: this is conservative
-        // Only tailRec if there's only one underlying statement and it is tail rec
-        var s = (NestedMatchStmt)stmt;
-        if(s.ResolvedStatements.Count == 1){
-          return CheckTailRecursive(s.ResolvedStatements.ElementAt(0), enclosingMethod, ref tailCall, reportErrors);
-        } else {
-          return TailRecursionStatus.NotTailRecursive;
-        }
+      } else if (stmt is ConcreteSyntaxStatement){
+        var s = (ConcreteSyntaxStatement)stmt;
+        return CheckTailRecursive(s.ResolvedStatement, enclosingMethod, ref tailCall, reportErrors);
       } else if (stmt is AssignSuchThatStmt) {
       } else if (stmt is AssignOrReturnStmt) {
         // TODO this should be the conservative choice, but probably we can consider this to be tail-recursive
@@ -7060,11 +7054,10 @@ namespace Microsoft.Dafny
           }
           s.Cases.Iter(kase => kase.Body.Iter(ss => Visit(ss, s.IsGhost)));
           s.IsGhost = s.IsGhost || s.Cases.All(kase => kase.Body.All(ss => ss.IsGhost));
-        } else if (stmt is NestedMatchStmt){
-          // TODO: OS this may be right? Check if the underlying statements are ghosts
-          var s = (NestedMatchStmt)stmt;
-          s.ResolvedStatements.Iter(ss => Visit(ss, mustBeErasable));
-          s.IsGhost = s.IsGhost || s.ResolvedStatements.All(ss => ss.IsGhost);
+        } else if (stmt is ConcreteSyntaxStatement){
+          var s = (ConcreteSyntaxStatement)stmt;
+          Visit(s.ResolvedStatement, mustBeErasable);
+          s.IsGhost = s.IsGhost || s.ResolvedStatement.IsGhost;
         } else if (stmt is SkeletonStatement) {
           var s = (SkeletonStatement)stmt;
           s.IsGhost = mustBeErasable;
@@ -9502,7 +9495,7 @@ namespace Microsoft.Dafny
     void ResolveNestedMatchStmt(NestedMatchStmt s, ICodeContext codeContext) {
       Contract.Requires(s != null);
       Contract.Requires(codeContext != null);
-      Contract.Requires(s.ResolvedStatements == null);
+      Contract.Requires(s.ResolvedStatement == null);
 
       ResolveExpression(s.Source, new ResolveOpts(codeContext, true));
       Contract.Assert(s.Source.Type != null);  // follows from postcondition of ResolveExpression
@@ -9531,9 +9524,7 @@ namespace Microsoft.Dafny
       errorCount = reporter.Count(ErrorLevel.Error);
       CompileNestedMatchStmt(s, codeContext);
       if(reporter.Count(ErrorLevel.Error) != errorCount) return;
-      foreach(var us in s.ResolvedStatements){
-        ResolveStatement(us, codeContext);
-      }
+      ResolveStatement(s.ResolvedStatement, codeContext);
     }
 
     void ResolveMatchStmt(MatchStmt s, ICodeContext codeContext) {
@@ -10366,7 +10357,7 @@ void CompileNestedMatchStmt(NestedMatchStmt s, ICodeContext codeContext) {
   bool debug = true;
   if(debug) Console.WriteLine("In CompileNestedMatchStmt");
 
-  if(s.ResolvedStatements != null){
+  if(s.ResolvedStatement != null){
       //post-resolve, skip
       if(debug) Console.WriteLine("post resolved, return!");
       return;
@@ -10393,9 +10384,7 @@ void CompileNestedMatchStmt(NestedMatchStmt s, ICodeContext codeContext) {
     reporter.Warning(MessageSource.Resolver, mti.Tok, "MatchStmt with no branch");
   } else if (rb is CStmt && ((CStmt)rb).Body is MatchStmt){
     // Resolve s as desugared match
-    var resMS = new List<Statement>();
-    resMS.Add(((CStmt)rb).Body);
-    s.ResolvedStatements = resMS;
+    s.ResolvedStatement = ((CStmt)rb).Body;
     if(debug) Console.WriteLine("match resolved to a CStmt");
     for(int id = 0; id < mti.BranchIDCount.Length; id++){
       if(mti.BranchIDCount[id] <=0){
@@ -10405,8 +10394,7 @@ void CompileNestedMatchStmt(NestedMatchStmt s, ICodeContext codeContext) {
   } else if(rb is CStmt && ((CStmt)rb).Body is BlockStmt){
     //there wasn't any work to do (i.e. just variable renaming), so what is left is a body with let-bindings
     if(debug) Console.WriteLine("match resolved to CStmts (i.e. CStmt with a BlockStmt)");
-    BlockStmt rbb = (BlockStmt)((CStmt)rb).Body;
-    s.ResolvedStatements =  rbb.Body;
+    s.ResolvedStatement =  ((CStmt)rb).Body;
   } else {
     // rb should be a StmtContainer with a MatchCase as Body, this should be unreachable
      throw new InvalidOperationException("Returned container should be a StmtContainer");

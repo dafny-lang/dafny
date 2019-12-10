@@ -10769,18 +10769,13 @@ public class NestedMatchCaseStmt : NestedMatchCase {
  - a list of NestedMatchCaseStmt
  - a List<Statement> filled in by the resolver representing the semantics meaning of the constructor
  */
- public class NestedMatchStmt : Statement
+ public class NestedMatchStmt : ConcreteSyntaxStatement
  {
 
   private Expression source;
   private List<NestedMatchCaseStmt> cases;
   public readonly bool UsesOptionalBraces;
 
-  public List<Statement> ResolvedStatements;
-
-   public override IEnumerable<Statement> SubStatements {
-      get { return ResolvedStatements; }
-    }
 
     public override IEnumerable<Expression> SubExpressions {
       get {
@@ -11000,6 +10995,25 @@ public class NestedMatchExpr : ConcreteSyntaxExpression
     }
   }
 
+  /// <summary>
+  /// This class represents a piece of concrete syntax in the parse tree.  During resolution,
+  /// it gets "replaced" by the statement in "ResolvedStatement".
+  /// Adapted from ConcreteSyntaxStatement
+  /// </summary>
+  public abstract class ConcreteSyntaxStatement : Statement
+  {
+    public Statement ResolvedStatement;  // filled in during resolution; after resolution, manipulation of "this" should proceed as with manipulating "this.ResolvedExpression"
+    public ConcreteSyntaxStatement(IToken tok, IToken endtok)
+      : base(tok, endtok) {
+    }
+    public override IEnumerable<Statement> SubStatements {
+      get {
+        if (ResolvedStatement != null) {
+          yield return ResolvedStatement;
+        }
+      }
+    }
+  }
   public class ParensExpression : ConcreteSyntaxExpression
   {
     public readonly Expression E;
