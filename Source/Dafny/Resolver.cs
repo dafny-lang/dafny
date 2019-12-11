@@ -421,7 +421,9 @@ namespace Microsoft.Dafny
           var preResolveErrorCount = reporter.Count(ErrorLevel.Error);
 
           ResolveModuleExport(literalDecl, sig);
+          Console.WriteLine("Resolving Module {0}",m.FullName);
           var good = ResolveModuleDefinition(m, sig);
+          Console.WriteLine("Done resolving Module {0}",m.FullName);
 
           if (good && reporter.Count(ErrorLevel.Error) == preResolveErrorCount) {
             // Check that the module export gives a self-contained view of the module.
@@ -9524,7 +9526,15 @@ namespace Microsoft.Dafny
       errorCount = reporter.Count(ErrorLevel.Error);
       CompileNestedMatchStmt(s, codeContext);
       if(reporter.Count(ErrorLevel.Error) != errorCount) return;
+      Console.WriteLine("Before Resolving statement");
+      enclosingStatementLabels.PushMarker();
       ResolveStatement(s.ResolvedStatement, codeContext);
+      enclosingStatementLabels.PopMarker();
+      Console.WriteLine("Post Resolving statement");
+
+
+//      ResolveAttributes(s.Attributes, s, new ResolveOpts(codeContext, true));
+
     }
 
     void ResolveMatchStmt(MatchStmt s, ICodeContext codeContext) {
@@ -10307,7 +10317,7 @@ RBranchExpr RBranchOfNestedMatchCaseExpr(int branchid, NestedMatchCaseExpr x){
 
 
 void CompileNestedMatchExpr(NestedMatchExpr e, ICodeContext codeContext) {
-  bool debug = true;
+  bool debug = false;
   if(debug) Console.WriteLine("In CompileNestedMatchExpr");
   if(e.ResolvedExpression != null){
     //post-resolve, skip
