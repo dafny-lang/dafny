@@ -15,6 +15,7 @@
     <AssemblyName>DafnyTests</AssemblyName>
     <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
+    <!-- Configure the Binaries directory since buildspec.yml doesn't add it to $PATH -->
     <DafnyBinariesDir>..\..\Binaries\</DafnyBinariesDir>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
