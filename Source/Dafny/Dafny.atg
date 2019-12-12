@@ -2583,9 +2583,9 @@ ExtendedPattern<.out ExtendedPattern pat.>
   .)
 ( IF(la.kind == _openparen)
     "("                                   (. arguments = new List<ExtendedPattern>(); .)
-      ExtendedPattern<out pat>            (. arguments.Add(pat); .)
+      [ ExtendedPattern<out pat>            (. arguments.Add(pat); .)
       { "," ExtendedPattern<out pat>      (. arguments.Add(pat); .)
-      }
+      }]
     ")"                                   (. id = t;
                                              theBuiltIns.TupleType(id, arguments.Count, true); // make sure the tuple type exists
                                              string ctor = BuiltIns.TupleTypeCtorNamePrefix + arguments.Count;  //use the TupleTypeCtors
