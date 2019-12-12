@@ -14,7 +14,7 @@ method Main() {
   Library.AllDafny.M();
   Library.Mixed.M();
   print Library.Mixed.F(), "\n";
-  var m := new Library.Mixed(2);
+  var m := new Library.Mixed();
   m.IM();
   print m.IF(), "\n";
   Library.AllExtern.P();
@@ -34,7 +34,7 @@ module {:extern "Library"} Library {
     static method M() { print "AllDafny.M\n"; }
   }
   class {:extern} Mixed {
-    constructor {:extern} (n: int)
+    constructor() { }
     static function Seven(): int { 7 }
     static method M() { print "Extern static method says: "; P(); }
     static method {:extern} P()

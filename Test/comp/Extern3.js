@@ -15,10 +15,14 @@ let Library = (function() {
     }
   };
 
-  $module.Mixed = class Mixed {
-    constructor(n) {
-      this.n = n;
+  $module.OtherClass = class OtherClass {
+    static CallMe() {
+      return "OtherClass.CallMe";
     }
+  }
+
+  $module.Mixed = class Mixed {
+    constructor() { }
 
     // static method P()
     static P() {
@@ -34,7 +38,7 @@ let Library = (function() {
     }
 
     IG() {
-      return this.n;
+      return new BigNumber(2);
     }
   }
   $module.AllExtern = class AllExtern {
@@ -45,9 +49,3 @@ let Library = (function() {
 
   return $module;
 })();
-
-let OtherClass = class OtherClass {
-  static CallMe() {
-    return "OtherClass.CallMe";
-  }
-}

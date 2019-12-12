@@ -3,12 +3,6 @@ package Library;
 import java.math.BigInteger;
 
 public class Mixed extends _ExternBase_Mixed {
-    private final BigInteger n;
-
-    public Mixed(BigInteger n) {
-        this.n = n;
-    }
-
     public static void P() {
         System.out.println("Mixed.P");
     }
@@ -21,6 +15,6 @@ public class Mixed extends _ExternBase_Mixed {
     }
     @Override
     public BigInteger IG() {
-        return n;
+        return BigInteger.valueOf(2);
     }
 }

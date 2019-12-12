@@ -22,12 +22,6 @@ namespace Library {
 
   // must be partial, since Dafny will also generate some methods into this class
   public partial class Mixed {
-    private readonly BigInteger n;
-
-    public Mixed(BigInteger n) {
-      this.n = n;
-    }
-
     public static void P() {
       System.Console.WriteLine("Mixed.P");
     }
@@ -38,7 +32,7 @@ namespace Library {
       return 1;
     }
     public BigInteger IG() {
-      return n;
+      return 2;
     }
   }
   // It's okay for the following class to not be partial, since Dafny won't be adding
