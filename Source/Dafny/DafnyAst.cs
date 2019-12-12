@@ -10779,8 +10779,9 @@ public class NestedMatchCaseStmt : NestedMatchCase {
 
     public override IEnumerable<Expression> SubExpressions {
       get {
-        foreach (var e in base.SubExpressions) { yield return e; }
-        yield return Source;
+        if (this.ResolvedStatement == null){
+          yield return Source;
+        }
       }
     }
 
