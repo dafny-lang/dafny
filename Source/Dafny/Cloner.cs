@@ -396,11 +396,7 @@ namespace Microsoft.Dafny
         return new ChainingExpression(Tok(e.tok), e.Operands.ConvertAll(CloneExpr), e.Operators, e.OperatorLocs.ConvertAll(Tok), e.PrefixLimits.ConvertAll(CloneExpr));
       } else if (expr is DoNotationExpr){
           var e = (DoNotationExpr) expr;
-          if(e.ResolvedExpression != null){
-            return new DoNotationExpr(Tok(e.tok), CloneExpr(e.ParsedExpression), CloneExpr(e.ResolvedExpression));
-          } else {
-            return new DoNotationExpr(Tok(e.tok), CloneExpr(e.ParsedExpression));
-          }
+          return new DoNotationExpr(Tok(e.tok), CloneExpr(e.ParsedExpression));
       } else if (expr is LetExpr) {
         var e = (LetExpr)expr;
         return new LetExpr(Tok(e.tok), e.LHSs.ConvertAll(CloneCasePattern), e.RHSs.ConvertAll(CloneExpr), CloneExpr(e.Body), e.Exact, e.Attributes);
