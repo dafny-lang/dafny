@@ -623,10 +623,6 @@ namespace Microsoft.Dafny
         }
         Contract.Assert(lines.Count == lineCount);
         r = new CalcStmt(Tok(s.Tok), Tok(s.EndTok), CloneCalcOp(s.UserSuppliedOp), lines, s.Hints.ConvertAll(CloneBlockStmt), s.StepOps.ConvertAll(CloneCalcOp), CloneAttributes(s.Attributes));
-//      } else if (stmt is ConcreteSyntaxStatement && ((ConcreteSyntaxStatement)stmt).ResolvedStatement != null){
-//        var s = (ConcreteSyntaxStatement)stmt;
-//        // If already resolved, do away with the syntax wrapper and return the cloned inner statement
-//        r = CloneStmt(s.ResolvedStatement);
       } else if (stmt is NestedMatchStmt) {
         var s = (NestedMatchStmt)stmt;
         r = new NestedMatchStmt(Tok(s.Tok), Tok(s.EndTok), CloneExpr(s.Source), s.Cases.ConvertAll(CloneNestedMatchCaseStmt), s.UsesOptionalBraces);
