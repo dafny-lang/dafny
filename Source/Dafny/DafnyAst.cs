@@ -9797,52 +9797,6 @@ namespace Microsoft.Dafny {
     }
   }
 
-// Represents do { expr }
-// where expr may contain MonadicBindExpr
-  public class DoNotationExpr: ConcreteSyntaxExpression
-  {
-
-    public Expression ParsedExpression;
-
-
-    public DoNotationExpr(IToken tok, Expression parsed): base(tok){
-      Contract.Requires(parsed != null);
-      ParsedExpression = parsed;
-    }
-
-     public DoNotationExpr(IToken tok, Expression parsed, Expression resolved): base(tok){
-      Contract.Requires(parsed != null);
-      Contract.Requires(resolved != null);
-
-      ParsedExpression = parsed;
-      ResolvedExpression = resolved;
-    }
-
-  }
-
-  public class MonadicBindExpr: ConcreteSyntaxExpression
-  {
-    public CasePattern<BoundVar> Lhs;
-
-    public Expression Rhs;
-
-    public Expression Body;
-
-
-    public MonadicBindExpr(IToken tok, CasePattern<BoundVar> lhs, Expression rhs, Expression body): base(tok) {
-      Lhs = lhs;
-      Rhs = rhs;
-      Body = body;
-    }
-
-    public MonadicBindExpr(IToken tok, CasePattern<BoundVar> lhs, Expression rhs, Expression body, Expression resolved): base(tok) {
-      Lhs = lhs;
-      Rhs = rhs;
-      Body = body;
-      ResolvedExpression = resolved;
-    }
-
-  }
 
 
 

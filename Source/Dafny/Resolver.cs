@@ -10157,24 +10157,31 @@ namespace Microsoft.Dafny
       EnsureSupportsErrorHandling(s.Tok, PartiallyResolveTypeForMemberSelection(s.Tok, tempType), expectExtract);
     }
 
-    private void EnsureSupportsErrorHandling(IToken tok, Type tp, bool expectExtract) {
-      // The "method not found" errors which will be generated here were already reported while
-      // resolving the statement, so we don't want them to reappear and redirect them into a sink.
+    private bool SupportsErrorHandling(IToken tok, Type tp, bool expectExtract) {
+      NonProxyType ignoredNptype = null;
       var origReporter = this.reporter;
       this.reporter = new ErrorReporterSink();
 
-      NonProxyType ignoredNptype = null;
-      if (ResolveMember(tok, tp, "IsFailure", out ignoredNptype) == null ||
-          ResolveMember(tok, tp, "PropagateFailure", out ignoredNptype) == null ||
-          (ResolveMember(tok, tp, "Extract", out ignoredNptype) != null) != expectExtract
+      var r = ((ResolveMember(tok, tp, "IsFailure", out ignoredNptype) != null) &&
+               (ResolveMember(tok, tp, "PropagateFailure", out ignoredNptype) != null) &&
+              ((ResolveMember(tok, tp, "Extract", out ignoredNptype) != null) == expectExtract));
+      this.reporter = origReporter;
+
+      return r;
+    }
+
+    private void EnsureSupportsErrorHandling(IToken tok, Type tp, bool expectExtract) {
+      // The "method not found" errors which will be generated here were already reported while
+      // resolving the statement, so we don't want them to reappear and redirect them into a sink.
+
+
+      if (!SupportsErrorHandling(tok, tp, expectExtract)
       ) {
         // more details regarding which methods are missing have already been reported by regular resolution
-        origReporter.Error(MessageSource.Resolver, tok,
+        reporter.Error(MessageSource.Resolver, tok,
           "The right-hand side of ':-', which is of type '{0}', must have members 'IsFailure()', 'PropagateFailure()', {1} 'Extract()'",
           tp, expectExtract ? "and" : "but not");
       }
-
-      this.reporter = origReporter;
     }
 
     void ResolveAlternatives(List<GuardedAlternative> alternatives, AlternativeLoopStmt loopToCatchBreaks, ICodeContext codeContext) {
@@ -11566,9 +11573,9 @@ namespace Microsoft.Dafny
     /// <summary>
     /// "twoState" implies that "old" and "fresh" expressions are allowed.
     /// </summary>
-    public void ResolveExpression(Expression expr, ResolveOpts opts, bool inDoNotation = false) {
+    public void ResolveExpression(Expression expr, ResolveOpts opts) {
 #if TEST_TYPE_SYNONYM_TRANSPARENCY
-      ResolveExpressionX(expr, opts, inDoNotation);
+      ResolveExpressionX(expr, opts);
       // For testing purposes, change the type of "expr" to a type synonym (mwo-ha-ha-ha!)
       var t = expr.Type;
       Contract.Assert(t != null);
@@ -11576,7 +11583,7 @@ namespace Microsoft.Dafny
       var ts = new UserDefinedType(expr.tok, "type#synonym#transparency#test", sd, new List<Type>(), null);
       expr.DebugTest_ChangeType(ts);
     }
-    public void ResolveExpressionX(Expression expr, ResolveOpts opts, bool inDoNotation) {
+    public void ResolveExpressionX(Expression expr, ResolveOpts opts) {
 #endif
       Contract.Requires(expr != null);
       Contract.Requires(opts != null);
@@ -12184,28 +12191,19 @@ namespace Microsoft.Dafny
             ConstrainTypeExprBool(rhs, "type of RHS of let-such-that expression must be boolean (got {0})");
           }
         }
-        ResolveExpression(e.Body, opts, inDoNotation);
+        ResolveExpression(e.Body, opts);
         ResolveAttributes(e.Attributes, e, opts);
         scope.PopMarker();
         expr.Type = e.Body.Type;
-      } else if (expr is MonadicBindExpr){
-        if(!inDoNotation){
-          reporter.Error(MessageSource.Resolver, expr.tok, "Monadic bind used outside of do-notation");
-        } else {
+/* Deprecated, no more MonadicBind in the AST, replaced by checks while desugaring LetOrFailExpr
+     } else if (expr is MonadicBindExpr){
           var e = (MonadicBindExpr)expr;
-          ResolveExpression(e.Rhs, opts, false);
+          ResolveExpression(e.Rhs, opts);
           ResolveCasePattern(e.Lhs, e.Rhs.Type, opts.codeContext);
-          ResolveMonadicBind(e, opts);
-        }
-      } else if (expr is DoNotationExpr){
-        var e = (DoNotationExpr)expr;
-        var re = new Cloner().CloneExpr(e.ParsedExpression);
-        ResolveExpression(re, opts, true);
-        e.ResolvedExpression = re;
-        e.Type = re.Type;
+          ResolveMonadicBind(e, opts); */
       } else if (expr is LetOrFailExpr) {
         var e = (LetOrFailExpr)expr;
-        ResolveLetOrFailExpr(e, opts);
+        ResolveBindLetOrFailExpr(e, opts);
       } else if (expr is NamedExpr) {
         var e = (NamedExpr)expr;
         ResolveExpression(e.Body, opts);
@@ -12314,7 +12312,7 @@ namespace Microsoft.Dafny
           ResolveFrameExpression(read, FrameExpressionUse.Reads, opts.codeContext);
         }
 
-        ResolveExpression(e.Term, opts, inDoNotation);
+        ResolveExpression(e.Term, opts);
         Contract.Assert(e.Term.Type != null);
         scope.PopMarker();
         expr.Type = SelectAppropriateArrowType(e.tok, e.BoundVars.ConvertAll(v => v.Type), e.Body.Type, e.Reads.Count != 0, e.Range != null);
@@ -12380,54 +12378,61 @@ namespace Microsoft.Dafny
 
 /// <summary>
 /// Desugar monadic binds.
-/// [[ y <- expr; expr]] => Bind(expr, y => [[exprs]])
-/// [[pat <- expr; exprs]] => match expr with
-///                            | pat => [[exprs]]
-/// Assumes Lhs and Rhs have been resolved, but not Body
+/// [ var y :- E; Body] ~~> Bind(E, y => Body)
+/// [ :- E; Body] ~~> Bind(E, _ => Body)
+/// Assumes that once resolved, the type of Rhs has a Bind method
 /// </summary>
-    public void ResolveMonadicBind(MonadicBindExpr e, ResolveOpts opt){
+    public void ResolveMonadicBind(LetOrFailExpr e, ResolveOpts opt){
       Expression newBody;
 
-      var bvt = e.Rhs.Type.NormalizeExpand();
-      if(bvt.TypeArgs == null || bvt.TypeArgs.Count != 1){
-          reporter.Error(MessageSource.Resolver, e.Rhs.tok, "RHS of monadic bind was not a monadic computation");
+
+      var tempType = new InferredTypeProxy();
+      BoundVar bv;
+      if(e.Lhs == null){
+        bv = new BoundVar(e.Rhs.tok, "_", tempType);
+      } else{
+        if (e.Lhs.Var != null){
+          bv = e.Lhs.Var;// new BoundVar(e.Lhs.tok, e.Lhs.Var.Name, tempType);
+          // (new Cloner()).CloneIVariable<BoundVar>(e.Lhs.Var);
+        } else {
+          reporter.Error(MessageSource.Resolver, e.tok, "The left-hand side of ':-', if present, should be a variable");
           return;
+        }
       }
-      Expression re;
 
-      if(e.Lhs.Var != null){
+      // [e.Lhs] => [e.Body]
+      var bvs = new List<BoundVar>() ;
+      bvs.Add(bv);
+      var reads = new List<FrameExpression>();
+      newBody = new LambdaExpr(e.Body.tok, bvs, null, reads, e.Body);
 
+//      ResolveExpression(newBody, opt);
+      List<Expression> bindargs = new List<Expression>();
+      bindargs.Add(newBody);
 
-        Expression bindlhs = new NameSegment(e.Lhs.tok, "Bind", null);
-        List<Expression> bindargs = new List<Expression>();
-        bindargs.Add(e.Rhs);
-        // Var has been resolved at M<A>
-        var bv = e.Lhs.Var;
+      // [e.Rhs].Bind([e.Lhs] => [e.Body])
+      Expression dotbind = new ExprDotName(e.Lhs.tok, e.Rhs, "Bind", null);
 
-        var bvs = new List<BoundVar>() ;
-        bvs.Add(new BoundVar(bv.tok, bv.Name, bvt.TypeArgs.First()));
-        var reads = new List<FrameExpression>();
-        newBody = new LambdaExpr(e.Body.tok, bvs, null, reads, e.Body);
-        // Need to resolve this before packing in ApplySuffix to allow for monadic bind in rest of body)
-        ResolveExpression(newBody, opt, true);
-        bindargs.Add(newBody);
-
-        re = new ApplySuffix(e.tok, bindlhs, bindargs);
-        ResolveExpression(re, opt);
-      } else {
-
-        var matchcase = new MatchCaseExpr(e.Rhs.tok, e.Lhs.Ctor.Name, e.Lhs.Arguments.ConvertAll(x => x.Var), e.Body);
-        matchcase.Ctor = e.Lhs.Ctor;
-
-        re = new MatchExpr(new AutoGeneratedToken(e.Body.tok), e.Rhs, Util.Singleton(matchcase), true);
-      }
-      ResolveExpression(re, opt);
-      e.ResolvedExpression = re;
-      e.Type = re.Type;
-
-      EnsureSupportsBind(e.Lhs.tok, e.Rhs.Type);
+      e.ResolvedExpression = new ApplySuffix(e.tok, dotbind, bindargs);
+//      Console.WriteLine("About to resolve {0}", Printer.ExprToString(e.ResolvedExpression));
+      ResolveExpression(e.ResolvedExpression, opt);
+//      Console.WriteLine("ResolveMonadicBind done: {0}", Printer.ExprToString(e.ResolvedExpression));
 
     }
+
+
+    public bool SupportsBind(IToken tok, Type tp){
+      NonProxyType nptype;
+      var origReporter = this.reporter;
+      this.reporter = new ErrorReporterSink();
+
+      var r = (ResolveMember(tok, tp, "Bind", out nptype) != null);
+
+      this.reporter = origReporter;
+
+      return r;
+    }
+
     /// <summary>
     /// Throw an error if provided type M does not have a Bind method
     /// Adapted from EnsureSupportsErrorHandling
@@ -12436,8 +12441,7 @@ namespace Microsoft.Dafny
       var origReporter = this.reporter;
       this.reporter = new ErrorReporterSink();
 
-      NonProxyType nptype;
-      if(ResolveMember(tok, tp, "Bind", out nptype) == null){
+      if(!SupportsBind(tok, tp)){
         reporter.Error(MessageSource.Resolver, tok, "The right-hand side of '<-', which is of type '{0}', must have member 'Bind'", tp);
       }
 
@@ -12448,6 +12452,37 @@ namespace Microsoft.Dafny
 
 
     /// <summary>
+    /// Resolve a LetOrFail as either a Monadic Bind, or a Failure-handling let-binding
+    /// (1) If the type of expr.Rhs has a Bind member, then resolve it as a MonadicBind
+    /// (2) If the type of expr.Rhs does not have a Bind member, and it can handle Failure, resolve it as a Let-or-Fail
+    /// (3) If the type of expr.Rhs has neither a Bind or a IsFailure member, throw a resolution error
+    /// </summary>
+    public void ResolveBindLetOrFailExpr(LetOrFailExpr expr, ResolveOpts opts) {
+      // Resolve a clone of Rhs to make sure its type has a Bind method or can handle failure
+
+      var tempRhs = expr.Rhs; //(new Cloner()).CloneExpr(expr.Rhs);
+      ResolveExpression(tempRhs, opts);
+      var tp = tempRhs.Type;
+
+//      Console.WriteLine("{1} Resolving LetOrFailExpr at type {2} ", Printer.ExprToString(expr), expr.tok.ToString(), tp.ToString());
+      if(SupportsBind(expr.tok, tp)){
+        // (1)
+  //      Console.WriteLine("as a Bind (rhs type:{0})", tp);
+        ResolveMonadicBind(expr, opts);
+      } else if (SupportsErrorHandling(expr.tok, tp, (expr.Lhs != null))){
+        // (2)
+//        Console.WriteLine("as a failure handling let (rhs type:{0})", tp);
+        ResolveLetOrFailExpr(expr, opts);
+      } else {
+        // (3)
+        reporter.Error(MessageSource.Resolver, expr.tok, "The right-hand side of ':-', which is of type '{0}', does not have access to a Bind or IsFailure method", tp);
+      }
+
+
+
+    }
+    /// <summary>
+    /// (2) Let-or-fail:
     ///  If expr.Lhs != null: Desugars "var x: T :- E; F" into "var temp := E; if temp.IsFailure() then temp.PropagateFailure() else var x: T := temp.Extract(); F"
     ///  If expr.Lhs == null: Desugars "         :- E; F" into "var temp := E; if temp.IsFailure() then temp.PropagateFailure() else                             F"
     /// </summary>
@@ -12468,8 +12503,8 @@ namespace Microsoft.Dafny
             : LetPatIn(expr.tok, expr.Lhs, VarDotFunction(expr.tok, temp, "Extract"), expr.Body)));
 
       ResolveExpression(expr.ResolvedExpression, opts);
-      bool expectExtract = (expr.Lhs != null);
-      EnsureSupportsErrorHandling(expr.tok, PartiallyResolveTypeForMemberSelection(expr.tok, tempType), expectExtract);
+//      bool expectExtract = (expr.Lhs != null);
+//      EnsureSupportsErrorHandling(expr.tok, PartiallyResolveTypeForMemberSelection(expr.tok, tempType), expectExtract);
     }
 
     private Type SelectAppropriateArrowType(IToken tok, List<Type> typeArgs, Type resultType, bool hasReads, bool hasReq) {
