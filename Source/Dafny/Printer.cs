@@ -2064,16 +2064,6 @@ namespace Microsoft.Dafny {
           }
         }
         if (parensNeeded) { wr.Write(")"); }
-      } else if (expr is DoNotationExpr){
-        var e = (DoNotationExpr) expr;
-        if(e.ResolvedExpression == null){
-          wr.Write("do {");
-          PrintExpression(e.ParsedExpression, false);
-          wr.Write("}");
-        } else {
-          PrintExpression(e.ResolvedExpression, false);
-        }
-
       } else if (expr is ApplyExpr) {
         var e = (ApplyExpr)expr;
         // determine if parens are needed
@@ -2340,17 +2330,6 @@ namespace Microsoft.Dafny {
           PrintExpr(e.Operands[i + 1], opBindingStrength, true, i == e.Operators.Count - 1 && (parensNeeded || isRightmost), sem, -1, keyword);
         }
         if (parensNeeded) { wr.Write(")"); }
-      } else if (expr is MonadicBindExpr){
-        var e = (MonadicBindExpr)expr;
-        if(e.ResolvedExpression == null){
-          PrintCasePattern(e.Lhs);
-          wr.Write("<-");
-          PrintExpression(e.Rhs, true);
-          wr.Write(";");
-          PrintExpression(e.Body, false);
-        } else {
-          PrintExpression(e.ResolvedExpression, false);
-        }
       } else if (expr is LetExpr) {
         var e = (LetExpr)expr;
         bool parensNeeded = !isRightmost;
@@ -2377,6 +2356,10 @@ namespace Microsoft.Dafny {
         // TODO should we also print the desugared version?
         // If so, should we insert newlines?
         var e = (LetOrFailExpr)expr;
+        if(e.ResolvedExpression != null){
+          PrintExpression(e.ResolvedExpression, !isRightmost && isFollowedBySemicolon);
+
+        } else{
         bool parensNeeded = !isRightmost;
         if (parensNeeded) { wr.Write("("); }
         if (e.Lhs != null) {
@@ -2389,7 +2372,7 @@ namespace Microsoft.Dafny {
         wr.Write("; ");
         PrintExpression(e.Body, !parensNeeded && isFollowedBySemicolon);
         if (parensNeeded) { wr.Write(")"); }
-
+        }
       } else if (expr is QuantifierExpr) {
         QuantifierExpr e = (QuantifierExpr)expr;
 
