@@ -440,25 +440,7 @@ bool IsLetExpr(){
   return (la.kind == _var || (la.kind == _ghost && x.kind == _var));
 }
 
-/* Check if the following has a bind "<-" before any "do", ";", "{" or "}" */
-bool IsMonadicBind(){
-  scanner.ResetPeek();
-  Token x;
-  while(true){
-    x = scanner.Peek();
-    switch(x.kind){
-      case _lbrace:
-      case _rbrace:
-      case _semicolon:
-      case _EOF:
-        return false;
-      case _larrow:
-        return true;
-      default:
-        continue;
-    }
-  }
-}
+
 
 /* The following is the largest lookahead there is. It needs to check if what follows
  * can be nothing but "<" Type { "," Type } ">".
@@ -764,7 +746,6 @@ TOKENS
   as = "as".
   by = "by".
   in = "in".
-  do = "do".
   decreases = "decreases".
   invariant = "invariant".
   function = "function".
@@ -2936,11 +2917,7 @@ QSep = "::" | '\u2022'.
 Expression<out Expression e, bool allowSemi, bool allowLambda, bool allowBitwiseOps = true>
 = (. Expression e0; IToken endTok;
      e = null; .)
-  ( "do"
-    "{"
-    EquivExpression<out e0, true, true, true>                   (. e = new DoNotationExpr(t, e0); .)
-    "}"
-  | EquivExpression<out e, allowSemi, allowLambda, allowBitwiseOps>
+  ( EquivExpression<out e, allowSemi, allowLambda, allowBitwiseOps>
   [ IF(SemiFollowsCall(allowSemi, e))
     /* here we parse the ";E" that is part of a "LemmaCall;E" expression (other "S;E" expressions are parsed elsewhere) */
     ";"                       (. endTok = t; .)
@@ -3267,8 +3244,6 @@ UnaryExpression<out Expression e, bool allowSemi, bool allowLambda, bool allowBi
     { IF(IsSuffix()) Suffix<ref e> }
   | IF(IsLambda(allowLambda))
     LambdaExpression<out e, allowSemi, allowBitwiseOps>  /* this is an endless expression */
-  | IF(IsMonadicBind())
-    MonadicBindExpr<out e, allowSemi, allowLambda, allowBitwiseOps>
   | EndlessExpression<out e, allowSemi, allowLambda, allowBitwiseOps>
   | NameSegment<out e>
     { IF(IsSuffix()) Suffix<ref e> }
@@ -3639,18 +3614,6 @@ MatchExpression<out Expression e, bool allowSemi, bool allowLambda, bool allowBi
   .
 
 
-
-MonadicBindExpr<out Expression e, bool allowSemi, bool allowLambda, bool allowBitwiseOps>
-= (.
-    CasePattern<BoundVar> pat;
-    Expression e0, e1;
- .)
- CasePattern<out pat>
-   "<-"
-   Expression<out e0, false, true>
-   ";"
-   Expression<out e1, allowSemi, allowLambda, allowBitwiseOps>
-   (. e = new MonadicBindExpr(t, pat, e0, e1); .).
 
 
 CaseExpression<out MatchCaseExpr c, bool allowSemi, bool allowLambda, bool allowBitwiseOps>
