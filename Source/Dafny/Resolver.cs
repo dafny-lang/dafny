@@ -10280,7 +10280,7 @@ RBranchExpr RBranchOfNestedMatchCaseExpr(int branchid, NestedMatchCaseExpr x){
 
 
 void CompileNestedMatchExpr(NestedMatchExpr e, ICodeContext codeContext) {
-  bool debug = false;
+  bool debug = true;
   if(debug) Console.WriteLine("In CompileNestedMatchExpr");
   if(e.ResolvedExpression != null){
     //post-resolve, skip
@@ -10301,8 +10301,8 @@ void CompileNestedMatchExpr(NestedMatchExpr e, ICodeContext codeContext) {
   matchees.Add(e.Source);
   SyntaxContainer rb = CompileRBranch(mti, matchees, branches, codeContext);
   if (rb is null) {
-    // Happens only if the match has no cases
-    reporter.Warning(MessageSource.Resolver, mti.Tok, "MatchExpr with no branch");
+    // Happens only if the match has no cases, create a Match with no cases as resolved expression and let ResolveMatchExpr handle it.
+    e.ResolvedExpression = new MatchExpr(e.tok, (new Cloner()).CloneExpr(e.Source), new List<MatchCaseExpr>(), e.UsesOptionalBraces);
   } else if (rb is CExpr){
     // replace e with desugared expression
     var newME = ((CExpr)rb).Body;
@@ -10327,7 +10327,7 @@ void CompileNestedMatchExpr(NestedMatchExpr e, ICodeContext codeContext) {
 /// On output, the NestedMatchStmt has field ResolvedStatement filled with semantically equivalent code
 /// </summary>
 void CompileNestedMatchStmt(NestedMatchStmt s, ICodeContext codeContext) {
-  bool debug = false;
+  bool debug = true;
   if(debug) Console.WriteLine("In CompileNestedMatchStmt");
 
   if(s.ResolvedStatement != null){
@@ -10353,8 +10353,8 @@ void CompileNestedMatchStmt(NestedMatchStmt s, ICodeContext codeContext) {
   matchees.Add(s.Source);
   SyntaxContainer rb = CompileRBranch(mti, matchees, branches, codeContext);
   if (rb is null) {
-    // Happens only if the match has no cases
-    reporter.Warning(MessageSource.Resolver, mti.Tok, "MatchStmt with no branch");
+    // Happens only if the nested match has no cases, create a MatchStmt with no branches.
+    s.ResolvedStatement = new MatchStmt(s.Tok, s.EndTok, (new Cloner()).CloneExpr(s.Source), new List<MatchCaseStmt>(), s.UsesOptionalBraces);
   } else if (rb is CStmt && ((CStmt)rb).Body is MatchStmt){
     // Resolve s as desugared match
     s.ResolvedStatement = ((CStmt)rb).Body;
