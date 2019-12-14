@@ -8,6 +8,8 @@
 //       - main program for taking a Dafny program and verifying it
 //---------------------------------------------------------------------------------------------
 
+using System.Reflection;
+
 namespace Microsoft.Dafny
 {
   using System;
@@ -72,6 +74,30 @@ namespace Microsoft.Dafny
       return (int)exitValue;
     }
 
+    private class CLIArgsResolveEventHandler
+    {
+      private string[] cliArgs;
+
+      public CLIArgsResolveEventHandler(string[] cliArgs)
+      {
+        this.cliArgs = cliArgs;
+      }
+
+      public Assembly Resolve(object sender, ResolveEventArgs args)
+      {
+        Console.WriteLine("Resolving: {0}", args.Name);
+        String shortName = args.Name.Split(',')[0];
+        List<string> matching = cliArgs.Where(arg => arg.EndsWith(shortName + ".dll")).ToList();
+        if (matching.Count == 1) {
+          string result = matching.First();
+          Console.WriteLine("Resolved to: {0}", result);
+          return Assembly.ReflectionOnlyLoadFrom(result);
+        } else {
+          return null;
+        }
+      }
+    }
+    
     public static ExitValue ProcessCommandLineArguments(string[] args, out List<DafnyFile> dafnyFiles, out List<string> otherFiles)
     {
       dafnyFiles = new List<DafnyFile>();
@@ -113,6 +139,10 @@ namespace Microsoft.Dafny
         Console.WriteLine("--------------------");
       }
 
+      CLIArgsResolveEventHandler resolveEventHandler = new CLIArgsResolveEventHandler(args);
+      AppDomain currentDomain = AppDomain.CurrentDomain;
+      currentDomain.ReflectionOnlyAssemblyResolve += resolveEventHandler.Resolve;
+      
       foreach (string file in CommandLineOptions.Clo.Files)
       { Contract.Assert(file != null);
         string extension = Path.GetExtension(file);
@@ -153,6 +183,7 @@ namespace Microsoft.Dafny
           }
         }
       }
+      
       return ExitValue.VERIFIED;
     }
 
