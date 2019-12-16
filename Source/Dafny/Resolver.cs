@@ -10280,7 +10280,7 @@ RBranchExpr RBranchOfNestedMatchCaseExpr(int branchid, NestedMatchCaseExpr x){
 
 
 void CompileNestedMatchExpr(NestedMatchExpr e, ICodeContext codeContext) {
-  bool debug = true;
+  bool debug = false;
   if(debug) Console.WriteLine("In CompileNestedMatchExpr");
   if(e.ResolvedExpression != null){
     //post-resolve, skip
@@ -10327,7 +10327,7 @@ void CompileNestedMatchExpr(NestedMatchExpr e, ICodeContext codeContext) {
 /// On output, the NestedMatchStmt has field ResolvedStatement filled with semantically equivalent code
 /// </summary>
 void CompileNestedMatchStmt(NestedMatchStmt s, ICodeContext codeContext) {
-  bool debug = true;
+  bool debug = false;
   if(debug) Console.WriteLine("In CompileNestedMatchStmt");
 
   if(s.ResolvedStatement != null){
@@ -12981,7 +12981,9 @@ void CheckLinearNestedMatchStmt(Type dtd, NestedMatchStmt ms){
       } else if (expr is MatchExpr) {
         ResolveMatchExpr((MatchExpr)expr, opts);
       } else if (expr is NestedMatchExpr){
-        ResolveNestedMatchExpr((NestedMatchExpr)expr, opts);
+        NestedMatchExpr e = (NestedMatchExpr)expr;
+        ResolveNestedMatchExpr(e, opts);
+        expr.Type = e.ResolvedExpression.Type;
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected expression
       }
