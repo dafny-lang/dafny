@@ -12382,17 +12382,18 @@ namespace Microsoft.Dafny
 /// [ :- E; Body] ~~> Bind(E, _ => Body)
 /// Assumes that once resolved, the type of Rhs has a Bind method
 /// </summary>
-    public void ResolveMonadicBind(LetOrFailExpr e, ResolveOpts opt){
+    public void ResolveMonadicBind(LetOrFailExpr e, ResolveOpts opts){
       Expression newBody;
 
-
+      // Create the bound variable used in the call to Bind
       var tempType = new InferredTypeProxy();
       BoundVar bv;
       if(e.Lhs == null){
-        bv = new BoundVar(e.Rhs.tok, "_", tempType);
-      } else{
+        bv = new BoundVar(e.Rhs.tok, FreshTempVarName("_", opts.codeContext), tempType);
+      } else {
         if (e.Lhs.Var != null){
-          bv = e.Lhs.Var;// new BoundVar(e.Lhs.tok, e.Lhs.Var.Name, tempType);
+          bv =  e.Lhs.Var;
+          //new BoundVar(e.Lhs.tok, e.Lhs.Var.Name, tempType);
           // (new Cloner()).CloneIVariable<BoundVar>(e.Lhs.Var);
         } else {
           reporter.Error(MessageSource.Resolver, e.tok, "The left-hand side of ':-', if present, should be a variable");
@@ -12415,8 +12416,9 @@ namespace Microsoft.Dafny
 
       e.ResolvedExpression = new ApplySuffix(e.tok, dotbind, bindargs);
 //      Console.WriteLine("About to resolve {0}", Printer.ExprToString(e.ResolvedExpression));
-      ResolveExpression(e.ResolvedExpression, opt);
-//      Console.WriteLine("ResolveMonadicBind done: {0}", Printer.ExprToString(e.ResolvedExpression));
+      ResolveExpression(e.ResolvedExpression, opts);
+
+     Console.WriteLine("ResolveMonadicBind done: {0} with {1} error", Printer.ExprToString(e.ResolvedExpression), reporter.Count(ErrorLevel.Error));
 
     }
 
