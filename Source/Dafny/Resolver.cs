@@ -11158,7 +11158,9 @@ void CheckLinearNestedMatchStmt(Type dtd, NestedMatchStmt ms){
 
       } else if (stmt is CalcStmt) {
           // cool
-
+      } else if (stmt is ConcreteSyntaxStatement){
+        var s = (ConcreteSyntaxStatement) stmt;
+        CheckForallStatementBodyRestrictions(s.ResolvedStatement, kind);
       } else if (stmt is MatchStmt) {
         var s = (MatchStmt)stmt;
         foreach (var kase in s.Cases) {
