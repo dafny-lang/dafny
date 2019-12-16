@@ -656,11 +656,9 @@ namespace Microsoft.Dafny{
       if (cl == null) {
         return IdProtect(udt.CompileName);
       }
-      else if (cl is TupleTypeDecl tupleDecl)
-      {
+      else if (cl is TupleTypeDecl tupleDecl) {
         return DafnyTupleClass(tupleDecl.TypeArgs.Count);
-      }
-      else if (cl.Module.CompileName == ModuleName || cl.Module.IsDefaultModule) {
+      } else if (cl.Module.CompileName == ModuleName || cl.Module.IsDefaultModule) {
         return IdProtect(cl.CompileName);
       }
       else{
