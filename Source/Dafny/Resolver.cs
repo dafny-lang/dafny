@@ -9521,7 +9521,6 @@ namespace Microsoft.Dafny
       errorCount = reporter.Count(ErrorLevel.Error);
       CheckLinearNestedMatchStmt(sourceType, s);
       if(reporter.Count(ErrorLevel.Error) != errorCount) return;
-
       errorCount = reporter.Count(ErrorLevel.Error);
       CompileNestedMatchStmt(s, codeContext);
       if(reporter.Count(ErrorLevel.Error) != errorCount) return;
@@ -10379,6 +10378,7 @@ void CompileNestedMatchStmt(NestedMatchStmt s, ICodeContext codeContext) {
 void CheckLinearVarPattern(Type type, IdPattern pat, bool debug){
   if(pat.Arguments.Count != 0){
     reporter.Error(MessageSource.Resolver, pat.Tok , "Pattern {0} is not a constructor of the given type {1}", pat.Id, type);
+    return;
   }
   if (scope.FindInCurrentScope(pat.Id) != null) {
     var itok = pat.Tok;
@@ -12985,7 +12985,10 @@ void CheckLinearNestedMatchStmt(Type dtd, NestedMatchStmt ms){
       } else if (expr is NestedMatchExpr){
         NestedMatchExpr e = (NestedMatchExpr)expr;
         ResolveNestedMatchExpr(e, opts);
-        expr.Type = e.ResolvedExpression.Type;
+        if(e.ResolvedExpression != null && e.ResolvedExpression.Type != null){
+          // i.e. no error was thrown during compiling of the NextedMatchExpr or during resolution of the ResolvedExpression
+          expr.Type = e.ResolvedExpression.Type;
+        }
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected expression
       }
@@ -13286,7 +13289,6 @@ void CheckLinearNestedMatchStmt(Type dtd, NestedMatchStmt ms){
       errorCount = reporter.Count(ErrorLevel.Error);
       CheckLinearNestedMatchExpr(sourceType, me);
       if(reporter.Count(ErrorLevel.Error) != errorCount) return;
-
       errorCount = reporter.Count(ErrorLevel.Error);
       CompileNestedMatchExpr(me, opts.codeContext);
       if(reporter.Count(ErrorLevel.Error) != errorCount) return;

@@ -11009,9 +11009,7 @@ public class NestedMatchExpr : ConcreteSyntaxExpression
     }
     public override IEnumerable<Statement> SubStatements {
       get {
-        if (ResolvedStatement != null) {
           yield return ResolvedStatement;
-        }
       }
     }
   }
