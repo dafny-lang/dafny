@@ -12204,6 +12204,10 @@ namespace Microsoft.Dafny
       } else if (expr is LetOrFailExpr) {
         var e = (LetOrFailExpr)expr;
         ResolveBindLetOrFailExpr(e, opts);
+        if(e.ResolvedExpression != null && e.ResolvedExpression.Type != null){
+          // if there wasn't an error in the desugaring and resolution the LetOrFail
+          expr.Type = e.ResolvedExpression.Type;
+        }
       } else if (expr is NamedExpr) {
         var e = (NamedExpr)expr;
         ResolveExpression(e.Body, opts);
@@ -12415,11 +12419,7 @@ namespace Microsoft.Dafny
       Expression dotbind = new ExprDotName(e.Lhs.tok, e.Rhs, "Bind", null);
 
       e.ResolvedExpression = new ApplySuffix(e.tok, dotbind, bindargs);
-//      Console.WriteLine("About to resolve {0}", Printer.ExprToString(e.ResolvedExpression));
       ResolveExpression(e.ResolvedExpression, opts);
-
-     Console.WriteLine("ResolveMonadicBind done: {0} with {1} error", Printer.ExprToString(e.ResolvedExpression), reporter.Count(ErrorLevel.Error));
-
     }
 
 
