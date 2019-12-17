@@ -625,6 +625,7 @@ namespace Microsoft.Dafny
         r = new CalcStmt(Tok(s.Tok), Tok(s.EndTok), CloneCalcOp(s.UserSuppliedOp), lines, s.Hints.ConvertAll(CloneBlockStmt), s.StepOps.ConvertAll(CloneCalcOp), CloneAttributes(s.Attributes));
       } else if (stmt is NestedMatchStmt) {
         var s = (NestedMatchStmt)stmt;
+
         r = new NestedMatchStmt(Tok(s.Tok), Tok(s.EndTok), CloneExpr(s.Source), s.Cases.ConvertAll(CloneNestedMatchCaseStmt), s.UsesOptionalBraces);
       } else if (stmt is MatchStmt) {
         var s = (MatchStmt)stmt;
@@ -1240,6 +1241,15 @@ namespace Microsoft.Dafny
       this.context = context;
       this.focalPredicates = focalPredicates;
     }
+    public override Statement CloneStmt(Statement stmt){
+      if (stmt is ConcreteSyntaxStatement){
+        var s = (ConcreteSyntaxStatement)stmt;
+        return CloneStmt(s.ResolvedStatement);
+      } else {
+        return base.CloneStmt(stmt);
+      }
+    }
+
     public override Expression CloneExpr(Expression expr) {
       if (DafnyOptions.O.RewriteFocalPredicates) {
         if (expr is FunctionCallExpr) {
