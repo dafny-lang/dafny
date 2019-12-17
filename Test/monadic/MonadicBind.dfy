@@ -1,3 +1,6 @@
+// RUN: %dafny /compile:0 "%s" > "%t"
+// RUN: %diff "%s.expect" "%t"
+
 datatype Option<A> = None | Some(get: A) {
   function method Bind<B>(f: A -> Option<B>): Option<B> {
     if this == None then None else f(get)
