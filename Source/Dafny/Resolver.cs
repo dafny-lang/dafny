@@ -10377,7 +10377,7 @@ void CompileNestedMatchStmt(NestedMatchStmt s, ICodeContext codeContext) {
 
 void CheckLinearVarPattern(Type type, IdPattern pat, bool debug){
   if(pat.Arguments.Count != 0){
-    reporter.Error(MessageSource.Resolver, pat.Tok , "Pattern {0} is not a constructor of the given type {1}", pat.Id, type);
+    reporter.Error(MessageSource.Resolver, pat.Tok , "Pattern {0} is not a constructor of the given type {1} ({2})", pat.Id, type, type is TypeProxy);
     return;
   }
   if (scope.FindInCurrentScope(pat.Id) != null) {
@@ -10403,6 +10403,8 @@ void CheckLinearExtendedPattern(Type type, ExtendedPattern pat, bool debug){
     if(debug) Console.WriteLine("NULL TYPE");
     return;
   //  Contract.Assert(false); throw new cce.UnreachableException();
+ } else if (type is TypeProxy){
+   if(debug) Console.WriteLine("PROXY TYPE");
   }
 
   if (!type.IsDatatype){
@@ -10479,14 +10481,14 @@ void CheckLinearExtendedPattern(Type type, ExtendedPattern pat, bool debug){
 }
 
 void CheckLinearNestedMatchCase(Type type, NestedMatchCase mc, bool debug = false){
-  if(debug) Console.WriteLine("Checking linear pattern: {0}",mc.Pat.ToString());
+  if(debug) Console.WriteLine("({1}) Checking linear pattern: {0}",mc.Pat.ToString(), mc.Tok.line);
   CheckLinearExtendedPattern(type, mc.Pat, debug);
 }
 
 void CheckLinearNestedMatchExpr(Type dtd, NestedMatchExpr me){
   foreach(NestedMatchCaseExpr mc in me.Cases){
     scope.PushMarker();
-    CheckLinearNestedMatchCase(dtd,  mc, false);
+    CheckLinearNestedMatchCase(dtd,  mc, true);
     scope.PopMarker();
   }
 }
@@ -10494,7 +10496,7 @@ void CheckLinearNestedMatchExpr(Type dtd, NestedMatchExpr me){
 void CheckLinearNestedMatchStmt(Type dtd, NestedMatchStmt ms){
   foreach(NestedMatchCaseStmt mc in ms.Cases){
     scope.PushMarker();
-    CheckLinearNestedMatchCase(dtd,  mc, false);
+    CheckLinearNestedMatchCase(dtd,  mc, true);
     scope.PopMarker();
   }
 }
@@ -13285,6 +13287,7 @@ void CheckLinearNestedMatchStmt(Type dtd, NestedMatchStmt ms){
         return;
       }
       var sourceType = PartiallyResolveTypeForMemberSelection(me.Source.tok, me.Source.Type).NormalizeExpand();
+
 
       errorCount = reporter.Count(ErrorLevel.Error);
       CheckLinearNestedMatchExpr(sourceType, me);
