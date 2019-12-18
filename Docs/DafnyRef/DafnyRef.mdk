@@ -6332,8 +6332,7 @@ next precedence level.
 ## Top-level expressions
 ````
 Expression(allowLemma, allowLambda) =
-   ( DoExpression(allowLemma, allowLambda)
-   | EquivExpression(allowLemma, allowLambda)
+   ( EquivExpression(allowLemma, allowLambda)
      [ ";" Expression(allowLemma, allowLambda) ]
 ````
 
@@ -6377,15 +6376,6 @@ function F_Succeeds(n: nat): int
   50 / Fact(n)
 }
 ```
-## DoExpression
-````
-DoExpression(allowSemi, allowLambda) =
-  "do"
-  "{"
-  EquivExpression(allowSemi, allowLambda)
-  "}"
-````
-A "DoExpression" delimits an expression in which "MonadicBindExpr" may occur.
 
 ## Equivalence Expressions
 ````
@@ -6521,7 +6511,6 @@ or logical (section [#sec-booleans]) negation to its operand.
 PrimaryExpression_(allowLemma, allowLambda) =
   ( NameSegment { Suffix }
   | LambdaExpression(allowLemma)
-  | MonadicBindExpr
   | MapDisplayExpr { Suffix }
   | SeqDisplayExpr { Suffix }
   | SetDisplayExpr { Suffix }
@@ -6596,25 +6585,6 @@ the precondition and reads set of the function, so the eta expansion
 of `F` looks like:
 ```
 x requires F.requires(x) reads F.reads(x) => F(x)
-```
-## Monadic Bind Expression
-````
-MonadicBindExpr(allowSemi, allowLambda) =
-  CasePattern
-  "<-"
-  Expression(false, allowLambda)
-  ";"
-  Expression(allowSemi, allowLambda)
-````
-A "MonadicBindExpr" is syntactic sugar for a Bind expression. It may only appear in "DoExpression" blocks.
-If the CasePattern is a bound variable, it will be desugared as:
-```
-Bind(Expression, CasePattern => Expression)
-```
-If the CasePattern is a constructor representing the value of the monad, it will be desugared as:
-```
-match Expression
-  case CasePattern => Expression
 ```
 
 ## Left-Hand-Side Expressions
