@@ -1,5 +1,5 @@
 
-Dafny program verifier finished with 12 verified, 0 errors
+Dafny program verifier finished with 13 verified, 0 errors
 true true false
 103 103 103 106 106 106
 203 17 0 18 8 9 69 70
@@ -8,10 +8,11 @@ true true false
 0 18 9 70
 0 18 9 70
 0 18 9 70
+70
 hi later
 21 4 42 5 1
 
-Dafny program verifier finished with 12 verified, 0 errors
+Dafny program verifier finished with 13 verified, 0 errors
 true true false
 103 103 103 106 106 106
 203 17 0 18 8 9 69 70
@@ -20,10 +21,11 @@ true true false
 0 18 9 70
 0 18 9 70
 0 18 9 70
+70
 hi later
 21 4 42 5 1
 
-Dafny program verifier finished with 12 verified, 0 errors
+Dafny program verifier finished with 13 verified, 0 errors
 true true false
 103 103 103 106 106 106
 203 17 0 18 8 9 69 70
@@ -32,10 +34,11 @@ true true false
 0 18 9 70
 0 18 9 70
 0 18 9 70
+70
 hi later
 21 4 42 5 1
 
-Dafny program verifier finished with 12 verified, 0 errors
+Dafny program verifier finished with 13 verified, 0 errors
 true true false
 103 103 103 106 106 106
 203 17 0 18 8 9 69 70
@@ -44,5 +47,6 @@ true true false
 0 18 9 70
 0 18 9 70
 0 18 9 70
+70
 hi later
 21 4 42 5 1
