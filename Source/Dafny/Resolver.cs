@@ -9515,9 +9515,12 @@ namespace Microsoft.Dafny
       if (reporter.Count(ErrorLevel.Error) != errorCount) {
         return;
       }
+      Console.WriteLine("{1} ResolvingNestedMatchStmt at type {0}", s.Source.Type, s.Tok.line);
+     // ResolveType(s.Source.tok, s.Source.Type, codeContext, ResolveTypeOptionEnum.DontInfer, null);
+//      var sourceType = s.Source.Type;
       var sourceType = PartiallyResolveTypeForMemberSelection(s.Source.tok, s.Source.Type).NormalizeExpand();
 //      var dtd = sourceType.AsDatatype;
-
+      Console.WriteLine("ResolvingNestedMatchStmt at resolved type {0}", sourceType);
       errorCount = reporter.Count(ErrorLevel.Error);
       CheckLinearNestedMatchStmt(sourceType, s);
       if(reporter.Count(ErrorLevel.Error) != errorCount) return;
@@ -12989,6 +12992,8 @@ void CheckLinearNestedMatchStmt(Type dtd, NestedMatchStmt ms){
         ResolveNestedMatchExpr(e, opts);
         if(e.ResolvedExpression != null && e.ResolvedExpression.Type != null){
           // i.e. no error was thrown during compiling of the NextedMatchExpr or during resolution of the ResolvedExpression
+//          expr.Type = new InferredTypeProxy();
+//          ConstrainSubtypeRelation(expr.Type, e.ResolvedExpression.Type, e.ResolvedExpression.tok, "");
           expr.Type = e.ResolvedExpression.Type;
         }
       } else {
@@ -13286,7 +13291,12 @@ void CheckLinearNestedMatchStmt(Type dtd, NestedMatchStmt ms){
       if (reporter.Count(ErrorLevel.Error) != errorCount) {
         return;
       }
+      Console.WriteLine("{1} ResolvingNestedMatchExpr at type {0}", me.Source.Type, me.tok.line);
+//      ResolveType(me.Source.tok, me.Source.Type, opts.codeContext, ResolveTypeOptionEnum.DontInfer, null);
       var sourceType = PartiallyResolveTypeForMemberSelection(me.Source.tok, me.Source.Type).NormalizeExpand();
+      Console.WriteLine("ResolvingNestedMatchExpr at resolved type {0}",sourceType);
+
+
 
 
       errorCount = reporter.Count(ErrorLevel.Error);
