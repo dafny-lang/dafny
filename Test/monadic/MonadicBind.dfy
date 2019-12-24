@@ -57,6 +57,12 @@ lemma FGH(list: List)
 {}
 
 
+function method H'(list: List): Option {
+  :- Tail(list);
+  Head(list)
+}
+
+
 lemma Examples() {
   var aa := Cons(5, Cons(6, Nil));
   var bb := Cons(4, aa);
