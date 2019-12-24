@@ -12416,7 +12416,7 @@ namespace Microsoft.Dafny
       bindargs.Add(newBody);
 
       // [e.Rhs].Bind([e.Lhs] => [e.Body])
-      Expression dotbind = new ExprDotName(e.Lhs.tok, e.Rhs, "Bind", null);
+      Expression dotbind = new ExprDotName(bv.tok, e.Rhs, "Bind", null);
 
       e.ResolvedExpression = new ApplySuffix(e.tok, dotbind, bindargs);
       ResolveExpression(e.ResolvedExpression, opts);
