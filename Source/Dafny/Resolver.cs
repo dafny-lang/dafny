@@ -10395,6 +10395,21 @@ void CheckLinearVarPattern(Type type, IdPattern pat, bool debug){
 }
 
 
+// This is a slow lookup of all of the occurences of ctor as a member of a datatype
+List<DatatypeCtor> getDatatypesOfCtor(String ctor){
+  List<DatatypeCtor> matchingCtors = new List<DatatypeCtor>();
+
+  foreach(var datatype in datatypeCtors){
+    var ctors =  datatype.Value;
+    DatatypeCtor val;
+
+    if(ctors.TryGetValue(ctor, out val)){
+      matchingCtors.Add(val);
+    }
+  }
+  return matchingCtors;
+}
+
 // pat could be
 // 1 - An IdPattern (without argument) at base type
 // 2 - A LitPattern at base type
@@ -10408,6 +10423,43 @@ void CheckLinearExtendedPattern(Type type, ExtendedPattern pat, bool debug){
   //  Contract.Assert(false); throw new cce.UnreachableException();
  } else if (type is TypeProxy){
    if(debug) Console.WriteLine("PROXY TYPE");
+   // Try to add Type Constraints if the head of this pat could be a constructor
+   if (pat is LitPattern){
+    throw new NotImplementedException();
+  }
+  var idpat = (IdPattern) pat;
+  var dtds = getDatatypesOfCtor(idpat.Id);
+  var dtdsC = dtds.Count();
+  if(dtdsC == 0){
+    // Then this is a variable, check it doesn't have arguments
+    CheckLinearVarPattern(type, idpat, debug);
+    return;
+  } else if (dtdsC == 1){
+    // Add typing constrain for this type (copied from ResolveDatatypeValue)
+    var ctor = dtds.First();
+    var dt = ctor.EnclosingDatatype;
+
+    var gt = new List<Type>(dt.TypeArgs.Count);
+    var subst = new Dictionary<TypeParameter, Type>();
+
+    for (int i = 0; i < dt.TypeArgs.Count; i++) {
+        Type t = new InferredTypeProxy();
+        gt.Add(t);
+        subst.Add(dt.TypeArgs[i], t);
+    }
+    // TODO: do something with the subst?
+
+    type = new UserDefinedType(pat.Tok, dt.Name, dt, gt);
+  } else {
+    // Ask for more annotations
+    reporter.Error(MessageSource.Resolver, pat.Tok , "Could not infer the type of pattern {0}, please provide more type annotations.", idpat.Id);
+    return;
+  }
+//   SolveAllTypeConstraints();
+//   if(type == null || type is TypeProxy){
+//      if(debug) Console.WriteLine("Solving all type constraints didn't help, proceed at your own risk");
+//      return;
+//   }
   }
 
   if (!type.IsDatatype){
@@ -13295,6 +13347,8 @@ void CheckLinearNestedMatchStmt(Type dtd, NestedMatchStmt ms){
 //      ResolveType(me.Source.tok, me.Source.Type, opts.codeContext, ResolveTypeOptionEnum.DontInfer, null);
       var sourceType = PartiallyResolveTypeForMemberSelection(me.Source.tok, me.Source.Type).NormalizeExpand();
       Console.WriteLine("ResolvingNestedMatchExpr at resolved type {0}",sourceType);
+//      SolveAllTypeConstraints();
+//      Console.WriteLine("\t solved at type {0}",sourceType);
 
 
 
