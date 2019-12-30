@@ -266,7 +266,7 @@ namespace Microsoft.Dafny {
     /// </summary>
     protected abstract TargetWriter DeclareLocalVar(string name, Type/*?*/ type, Bpl.IToken/*?*/ tok, TargetWriter wr);
     protected virtual void DeclareOutCollector(string collectorVarName, TargetWriter wr) { }  // called only for return-style calls
-    protected virtual void DeclareSpecificOutCollector(string collectorVarName, TargetWriter wr, int outCount, List<Type> types, Method m) {DeclareOutCollector(collectorVarName, wr); } // for languages that don't allow "let" or "var" expressions
+    protected virtual void DeclareSpecificOutCollector(string collectorVarName, TargetWriter wr, List<Type> types, List<Type> formalTypes) {DeclareOutCollector(collectorVarName, wr); } // for languages that don't allow "let" or "var" expressions
     protected virtual bool UseReturnStyleOuts(Method m, int nonGhostOutCount) => false;
     protected virtual BlockTargetWriter EmitMethodReturns(Method m, BlockTargetWriter wr) { return wr; } // for languages that need explicit return statements not provided by Dafny
     protected virtual bool SupportsMultipleReturns { get => false; }
@@ -282,7 +282,7 @@ namespace Microsoft.Dafny {
     protected abstract void DeclareLocalOutVar(string name, Type type, Bpl.IToken tok, string rhs, bool useReturnStyleOuts, TargetWriter wr);
     protected virtual void EmitActualOutArg(string actualOutParamName, TextWriter wr) { }  // actualOutParamName is always the name of a local variable; called only for non-return-style outs
     protected virtual void EmitOutParameterSplits(string outCollector, List<string> actualOutParamNames, TargetWriter wr) { }  // called only for return-style calls
-    protected virtual void EmitCastOutParameterSplits(string outCollector, List<string> actualOutParamNames, TargetWriter wr, List<Type> actualOutParamTypes, Bpl.IToken tok) {
+    protected virtual void EmitCastOutParameterSplits(string outCollector, List<string> actualOutParamNames, TargetWriter wr, List<Type> actualOutParamTypes, List<Type> formalOutParamTypes, Bpl.IToken tok) {
       EmitOutParameterSplits(outCollector, actualOutParamNames, wr); }
 
     protected abstract void EmitActualTypeArgs(List<Type> typeArgs, Bpl.IToken tok, TextWriter wr);
@@ -296,10 +296,6 @@ namespace Microsoft.Dafny {
       var w = wLhs.EmitWrite(wr);
       w = EmitCoercionIfNecessary(from:rhsType, to:lhsType, Bpl.Token.NoToken, w);
       return w;
-    }
-
-    protected virtual void EmitAssignment(out TargetWriter wLhs, Type /*?*/ lhsType, out TargetWriter wRhs, Type /*?*/ rhsType, TargetWriter wr, bool MemberSelectObjIsTrait) {
-      EmitAssignment(out wLhs, lhsType, out wRhs, rhsType, wr);
     }
 
     protected virtual void EmitAssignment(out TargetWriter wLhs, Type/*?*/ lhsType, out TargetWriter wRhs, Type/*?*/ rhsType, TargetWriter wr) {
@@ -2740,7 +2736,7 @@ namespace Microsoft.Dafny {
             w = CreateForLoop(indices[d], bound, w);
           }
           var eltRhs = string.Format("{0}{2}({1})", f, Util.Comma(indices, ArrayIndexToInt), LambdaExecute);
-          var wArray = EmitArrayUpdate(indices, eltRhs, tRhs.ElementInit.Type, w);
+          var wArray = EmitArrayUpdate(indices, eltRhs, tRhs.EType, w);
           wArray.Write(nw);
           EndStmt(w);
         } else if (tRhs.InitDisplay != null) {
@@ -2836,6 +2832,7 @@ namespace Microsoft.Dafny {
         }
         var outTmps = new List<string>();  // contains a name for each non-ghost formal out-parameter
         var outTypes = new List<Type>();  // contains a type for each non-ghost formal out-parameter
+        var outLhsTypes = new List<Type>();
         for (int i = 0; i < s.Method.Outs.Count; i++) {
           Formal p = s.Method.Outs[i];
           if (!p.IsGhost) {
@@ -2889,6 +2886,7 @@ namespace Microsoft.Dafny {
               type = NativeForm(type);
             }
             outTypes.Add(type);
+            outLhsTypes.Add(s.Lhs[i].Type);
             DeclareLocalVar(target, type, s.Lhs[i].tok, false, null, wr);
           }
         }
@@ -2900,7 +2898,7 @@ namespace Microsoft.Dafny {
         bool returnStyleOuts = UseReturnStyleOuts(s.Method, outTmps.Count);
         var returnStyleOutCollector = outTmps.Count > 0 && returnStyleOuts && !SupportsMultipleReturns ? idGenerator.FreshId("_outcollector") : null;
         if (returnStyleOutCollector != null) {
-          DeclareSpecificOutCollector(returnStyleOutCollector, wr, outTmps.Count, outTypes, s.Method);
+          DeclareSpecificOutCollector(returnStyleOutCollector, wr, outTypes, outLhsTypes);
         } else if (outTmps.Count > 0 && returnStyleOuts && SupportsMultipleReturns) {
           wr.Write("{0} = ", Util.Comma(outTmps));
         }
@@ -2957,7 +2955,7 @@ namespace Microsoft.Dafny {
         wr.Write(')');
         EndStmt(wr);
         if (returnStyleOutCollector != null) {
-          EmitCastOutParameterSplits(returnStyleOutCollector, outTmps, wr, outTypes, s.Tok);
+          EmitCastOutParameterSplits(returnStyleOutCollector, outTmps, wr, outTypes, outLhsTypes, s.Tok);
         }
 
         // assign to the actual LHSs
@@ -3086,12 +3084,6 @@ namespace Microsoft.Dafny {
       wr.Write("(");
       TrExpr(expr, wr, inLetExprBody);
       wr.Write(")");
-    }
-
-    protected virtual void TrBvExpr(Expression expr, TargetWriter wr, bool inLetExprBody){
-      Contract.Requires(expr != null);
-      Contract.Requires(wr != null);
-      TrParenExpr(expr, wr, inLetExprBody);
     }
 
     /// <summary>
@@ -3332,12 +3324,12 @@ namespace Microsoft.Dafny {
             wr.Write(postOpString);
           } else if (callString != null) {
             wr.Write(preOpString);
-            TrBvExpr(e0, wr, inLetExprBody);
+            TrParenExpr(e0, wr, inLetExprBody);
             wr.Write(".{0}(", callString);
             if (convertE1_to_int) {
               EmitExprAsInt(e1, inLetExprBody, wr);
             } else {
-              TrBvExpr(e1, wr, inLetExprBody);
+              TrParenExpr(e1, wr, inLetExprBody);
             }
             wr.Write(")");
             wr.Write(postOpString);

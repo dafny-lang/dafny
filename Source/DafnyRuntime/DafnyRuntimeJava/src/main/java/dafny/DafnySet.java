@@ -1,6 +1,5 @@
 package dafny;
 
-import java.math.BigInteger;
 import java.util.*;
 
 // A class that is equivalent to the implementation of Set in Dafny
@@ -48,7 +47,7 @@ public class DafnySet<T> {
     public static <T> Type<DafnySet<T>> _type(Type<T> elementType) {
         // Fudge the type parameter; it's not great, but it's safe because
         // (for now) type descriptors are only used for default values
-        return Type.referenceTypeWithInitializer(
+        return Type.referenceWithInitializer(
                 (Class<DafnySet<T>>) (Class<?>) DafnySet.class,
                 DafnySet::empty);
     }

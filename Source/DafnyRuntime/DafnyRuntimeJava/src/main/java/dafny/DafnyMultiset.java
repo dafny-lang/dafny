@@ -66,7 +66,7 @@ public class DafnyMultiset<T> {
     public static <T> Type<DafnyMultiset<T>> _type(Type<T> elementType) {
         // Fudge the type parameter; it's not great, but it's safe because
         // (for now) type descriptors are only used for default values
-        return Type.referenceTypeWithInitializer(
+        return Type.referenceWithInitializer(
                 (Class<DafnyMultiset<T>>) (Class<?>) DafnyMultiset.class,
                 DafnyMultiset::empty);
     }

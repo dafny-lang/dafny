@@ -75,7 +75,7 @@ public abstract class DafnySequence<T> implements Iterable<T> {
     public static <T> Type<DafnySequence<T>> _type(Type<T> elementType) {
         // Fudge the type parameter; it's not great, but it's safe because
         // (for now) type descriptors are only used for default values
-        return Type.referenceTypeWithInitializer(
+        return Type.referenceWithInitializer(
                 (Class<DafnySequence<T>>) (Class<?>) DafnySequence.class,
                 DafnySequence::empty);
     }
