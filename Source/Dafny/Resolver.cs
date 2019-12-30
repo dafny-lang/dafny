@@ -12195,16 +12195,10 @@ namespace Microsoft.Dafny
         ResolveAttributes(e.Attributes, e, opts);
         scope.PopMarker();
         expr.Type = e.Body.Type;
-/* Deprecated, no more MonadicBind in the AST, replaced by checks while desugaring LetOrFailExpr
-     } else if (expr is MonadicBindExpr){
-          var e = (MonadicBindExpr)expr;
-          ResolveExpression(e.Rhs, opts);
-          ResolveCasePattern(e.Lhs, e.Rhs.Type, opts.codeContext);
-          ResolveMonadicBind(e, opts); */
       } else if (expr is LetOrFailExpr) {
         var e = (LetOrFailExpr)expr;
         ResolveBindLetOrFailExpr(e, opts);
-        if(e.ResolvedExpression != null && e.ResolvedExpression.Type != null){
+        if(e.ResolvedExpression != null && e.ResolvedExpression.Type != null) {
           // if there wasn't an error in the desugaring and resolution the LetOrFail
           expr.Type = e.ResolvedExpression.Type;
         }
@@ -12367,7 +12361,7 @@ namespace Microsoft.Dafny
     }
 
     private Expression VarDotFunction(IToken tok, string varname, string functionname) {
-      return new ApplySuffix(tok, new ExprDotName(tok, new IdentifierExpr(tok, varname), functionname, null), new List<Expression>() { });
+      return new ApplySuffix(tok, new ExprDotName(tok, new IdentifierExpr(tok, varname), functionname, null), new List<Expression>() {});
     }
 
     // TODO search for occurrences of "new LetExpr" which could benefit from this helper
@@ -12386,16 +12380,16 @@ namespace Microsoft.Dafny
 /// [ :- E; Body] ~~> Bind(E, _ => Body)
 /// Assumes that once resolved, the type of Rhs has a Bind method
 /// </summary>
-    public void ResolveMonadicBind(LetOrFailExpr e, ResolveOpts opts){
+    public void ResolveMonadicBind(LetOrFailExpr e, ResolveOpts opts) {
       Expression newBody;
 
       // Create the bound variable used in the call to Bind
       var tempType = new InferredTypeProxy();
       BoundVar bv;
-      if(e.Lhs == null){
+      if(e.Lhs == null) {
         bv = new BoundVar(e.Rhs.tok, FreshTempVarName("_", opts.codeContext), tempType);
       } else {
-        if (e.Lhs.Var != null){
+        if (e.Lhs.Var != null) {
           bv =  e.Lhs.Var;
           //new BoundVar(e.Lhs.tok, e.Lhs.Var.Name, tempType);
           // (new Cloner()).CloneIVariable<BoundVar>(e.Lhs.Var);
@@ -12406,12 +12400,12 @@ namespace Microsoft.Dafny
       }
 
       // [e.Lhs] => [e.Body]
-      var bvs = new List<BoundVar>() ;
+      var bvs = new List<BoundVar>();
       bvs.Add(bv);
       var reads = new List<FrameExpression>();
       newBody = new LambdaExpr(e.Body.tok, bvs, null, reads, e.Body);
 
-//      ResolveExpression(newBody, opt);
+      // ResolveExpression(newBody, opt);
       List<Expression> bindargs = new List<Expression>();
       bindargs.Add(newBody);
 
@@ -12423,7 +12417,7 @@ namespace Microsoft.Dafny
     }
 
 
-    public bool SupportsBind(IToken tok, Type tp){
+    public bool SupportsBind(IToken tok, Type tp) {
       NonProxyType nptype;
       var origReporter = this.reporter;
       this.reporter = new ErrorReporterSink();
@@ -12439,11 +12433,11 @@ namespace Microsoft.Dafny
     /// Throw an error if provided type M does not have a Bind method
     /// Adapted from EnsureSupportsErrorHandling
     /// </summary>
-    public void EnsureSupportsBind(IToken tok, Type tp){
+    public void EnsureSupportsBind(IToken tok, Type tp) {
       var origReporter = this.reporter;
       this.reporter = new ErrorReporterSink();
 
-      if(!SupportsBind(tok, tp)){
+      if(!SupportsBind(tok, tp)) {
         reporter.Error(MessageSource.Resolver, tok, "The right-hand side of '<-', which is of type '{0}', must have member 'Bind'", tp);
       }
 
@@ -12466,14 +12460,11 @@ namespace Microsoft.Dafny
       ResolveExpression(tempRhs, opts);
       var tp = tempRhs.Type;
 
-//      Console.WriteLine("{1} Resolving LetOrFailExpr at type {2} ", Printer.ExprToString(expr), expr.tok.ToString(), tp.ToString());
-      if(SupportsBind(expr.tok, tp)){
+      if(SupportsBind(expr.tok, tp)) {
         // (1)
-  //      Console.WriteLine("as a Bind (rhs type:{0})", tp);
         ResolveMonadicBind(expr, opts);
-      } else if (SupportsErrorHandling(expr.tok, tp, (expr.Lhs != null))){
+      } else if (SupportsErrorHandling(expr.tok, tp, (expr.Lhs != null))) {
         // (2)
-//        Console.WriteLine("as a failure handling let (rhs type:{0})", tp);
         ResolveLetOrFailExpr(expr, opts);
       } else {
         // (3)
