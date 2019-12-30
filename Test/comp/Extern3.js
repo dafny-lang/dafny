@@ -21,6 +21,10 @@ let Library = (function() {
     }
   }
 
+  $module.AllDafny = class AllDafny {
+    // Just here so the generated class can extend it
+  }
+
   $module.Mixed = class Mixed {
     constructor() { }
 

@@ -703,24 +703,8 @@ namespace Microsoft.Dafny {
                 include = false;
               }
             }
-            // If the class is declared {:extern} but no members are, then it's
-            // not *really* an extern class, it's just a Dafny class with a
-            // specified externally-visible name.  Thus we will call CreateClass
-            // with isExtern set to false in this case.  This is particularly
-            // important for Java, where the user must provide an implementation
-            // for every extern class, and if there are no extern methods to
-            // implement, it would do nothing but extend the generated base
-            // class.  This case is less niche than it sounds, since an extern
-            // declaration on a module is useful for calling Dafny code from
-            // extern code even if the module has no extern methods, and we
-            // treat the default class of an extern module as an extern class.
-            var classHasExternMembers = classIsExtern && !cl.Members.TrueForAll(member =>
-              // Only count the one-argument {:extern}, since the two-argument
-              // form says the method isn't actually a member of the class.
-              !(member.IsExtern(out var qual, out _) && qual == null)
-            );
             if (include) {
-              var cw = CreateClass(IdName(cl), classHasExternMembers, cl.FullName, cl.TypeArgs, cl.TraitsTyp, cl.tok, wr);
+              var cw = CreateClass(IdName(cl), classIsExtern, cl.FullName, cl.TypeArgs, cl.TraitsTyp, cl.tok, wr);
               CompileClassMembers(cl, cw);
               cw.Finish();
             } else {
