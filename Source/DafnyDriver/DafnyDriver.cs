@@ -142,6 +142,14 @@ namespace Microsoft.Dafny
                 extension == null ? "" : extension);
               return ExitValue.PREPROCESSING_ERROR;
             }
+          } else if (DafnyOptions.O.CompileTarget == DafnyOptions.CompilationTarget.Php) {
+            if (extension == ".php") {
+              otherFiles.Add(file);
+            } else {
+              ExecutionEngine.printer.ErrorWriteLine(Console.Out, "*** Error: '{0}': Filename extension '{1}' is not supported. Input files must be Dafny programs (.dfy) or PHP files (.php)", file,
+                extension == null ? "" : extension);
+              return ExitValue.PREPROCESSING_ERROR;
+            }
           } else {
             if (extension == ".go") {
               otherFiles.Add(file);
@@ -464,6 +472,10 @@ namespace Microsoft.Dafny
           targetExtension = "java";
           targetBaseDir = baseName;
           break;
+        case DafnyOptions.CompilationTarget.Php:
+          targetExtension = "php";
+          targetBaseDir = baseName;
+          break;
         default:
           Contract.Assert(false);
           throw new cce.UnreachableException();
@@ -543,6 +555,9 @@ namespace Microsoft.Dafny
           break;
         case DafnyOptions.CompilationTarget.Java:
           compiler = new Dafny.JavaCompiler(dafnyProgram.reporter);
+          break;
+        case DafnyOptions.CompilationTarget.Php:
+          compiler = new Dafny.PhpCompiler(dafnyProgram.reporter);
           break;
       }
 
