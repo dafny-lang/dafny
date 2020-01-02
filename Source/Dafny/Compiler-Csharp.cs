@@ -1664,7 +1664,11 @@ namespace Microsoft.Dafny
           wr.Write("._{0}", member.CompileName);
         }, rvalueAction: wr => {
           obj(wr);
-          wr.Write(".{0}{1}", internalAccess ? "_" : "", IdName(member));
+          if (internalAccess) {
+            wr.Write("._{0}", member.CompileName);
+          } else {
+            wr.Write(".{0}", IdName(member));
+          }
         });
       } if (member is SpecialField sf) {
         string compiledName, preStr, postStr;

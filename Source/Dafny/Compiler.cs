@@ -3169,10 +3169,7 @@ namespace Microsoft.Dafny {
           wr.Write(preStr);
 
           void writeObj(TargetWriter w) {
-            if (NeedsCustomReceiver(e.Member)) {
-              w.Write(TypeName_Companion(e.Obj.Type, wr, e.tok, sf));
-              TrParenExpr(e.Obj, wr, inLetExprBody);
-            } else if (sf.IsStatic) {
+            if (NeedsCustomReceiver(e.Member) || sf.IsStatic) {
               w.Write(TypeName_Companion(e.Obj.Type, wr, e.tok, sf));
             } else {
               TrParenExpr(e.Obj, w, inLetExprBody);
@@ -3180,6 +3177,11 @@ namespace Microsoft.Dafny {
           }
 
           EmitMemberSelect(writeObj, e.Member, expr.Type).EmitRead(wr);
+
+          if (NeedsCustomReceiver(e.Member)) {
+            TrParenExpr(e.Obj, wr, inLetExprBody);
+          }
+
           wr.Write(postStr);
         } else {
           EmitMemberSelect(w => TrExpr(e.Obj, w, inLetExprBody), e.Member, expr.Type).EmitRead(wr);
