@@ -14,10 +14,25 @@ namespace Library {
     }
   }
 
+  class OtherClass {
+    public static object CallMe() {
+      return "OtherClass.CallMe";
+    }
+  }
+
   // must be partial, since Dafny will also generate some methods into this class
   public partial class Mixed {
     public static void P() {
       System.Console.WriteLine("Mixed.P");
+    }
+    public void IP() {
+      System.Console.WriteLine("Mixed.IP");
+    }
+    public static BigInteger G() {
+      return 1;
+    }
+    public BigInteger IG() {
+      return 2;
     }
   }
   // It's okay for the following class to not be partial, since Dafny won't be adding

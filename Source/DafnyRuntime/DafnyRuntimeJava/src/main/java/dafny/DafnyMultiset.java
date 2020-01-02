@@ -70,6 +70,14 @@ public class DafnyMultiset<T> {
         return b;
     }
 
+    public int cardinalityInt() {
+        int b = 0;
+        for (BigInteger big : innerMap.values()) {
+            b += big.intValue();
+        }
+        return b;
+    }
+
     // Determines if the current object is a subset of the DafnyMultiSet passed in. Requires that the input
     // Dafny MultiSet is not null.
     public boolean isSubsetOf(DafnyMultiset<T> other) {

@@ -63,6 +63,13 @@ namespace Microsoft.Dafny {
         WriteRuntimeTypeDescriptorsFormals(typeParameters, false, w);
       }
       var fieldWriter = w.NewBlock(")");
+      if (isExtern) {
+        fieldWriter.Write("super(");
+        if (typeParameters != null) {
+          WriteRuntimeTypeDescriptorsFormals(typeParameters, false, w);
+        }
+        fieldWriter.WriteLine(");");
+      }
       if (fullPrintName != null) {
         fieldWriter.WriteLine("this._tname = \"{0}\";", fullPrintName);
       }

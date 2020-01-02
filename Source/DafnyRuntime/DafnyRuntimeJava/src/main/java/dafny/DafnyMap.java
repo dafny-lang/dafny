@@ -130,6 +130,10 @@ public class DafnyMap<K, V> implements Map<K, V> {
         return innerMap.size();
     }
 
+    public int cardinalityInt() {
+        return size();
+    }
+
     @Override
     public boolean isEmpty() {
         return innerMap.isEmpty();

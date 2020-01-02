@@ -1,5 +1,6 @@
 package dafny;
 
+import java.math.BigInteger;
 import java.util.*;
 
 // A class that is equivalent to the implementation of Set in Dafny
@@ -102,6 +103,10 @@ public class DafnySet<T> {
 
     public int size() {
         return innerSet.size();
+    }
+
+    public int cardinalityInt() {
+        return size();
     }
 
     public boolean isEmpty() {
