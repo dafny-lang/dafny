@@ -97,9 +97,9 @@ public abstract class DafnySequence<T> implements Iterable<T> {
     public final DafnySequence<T> concatenate(DafnySequence<T> other) {
         assert other != null : "Precondition Violation";
 
-        if (this.length() == 0) {
+        if (this.isEmpty()) {
             return other;
-        } else if (other.length() == 0) {
+        } else if (other.isEmpty()) {
             return this;
         } else {
             return new ConcatDafnySequence<T>(this, other);
@@ -148,6 +148,10 @@ public abstract class DafnySequence<T> implements Iterable<T> {
     }
 
     public abstract int length();
+
+    public boolean isEmpty() {
+        return this.length() == 0;
+    }
 
     public final int cardinalityInt() {
         return length();
