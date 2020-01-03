@@ -443,4 +443,5 @@ ResolutionErrors.dfy(2848,8): Error: ghost variables are allowed only in specifi
 ResolutionErrors.dfy(2849,4): Error: ghost variables are allowed only in specification contexts
 ResolutionErrors.dfy(2861,13): Error: expression is not allowed to refer to constant field x
 ResolutionErrors.dfy(2863,22): Error: expression is not allowed to refer to constant field x
-440 resolution/type errors detected in ResolutionErrors.dfy
+ResolutionErrors.dfy(2874,13): Error: arguments must be of a set or multiset type (got map<X, Y>)
+441 resolution/type errors detected in ResolutionErrors.dfy

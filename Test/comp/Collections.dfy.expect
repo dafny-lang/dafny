@@ -51,7 +51,6 @@ Maps: map[] map[17 := 2, 82 := 2] map[17 := 0, 12 := 26]
   keys: {} {17, 82} {17, 12}
   values: {} {2} {0, 26}
   items: {} {(17, 2), (82, 2)} {(17, 0), (12, 26)}
-  disjoint: true false
   update: map[17 := 6] map[17 := 6, 82 := 2] map[17 := 6, 12 := 26]
   lookup: false 2 0
 m: map[Color.Blue := 30, Color.Yellow := 21]
@@ -117,7 +116,6 @@ Maps: map[] map[17 := 2, 82 := 2] map[17 := 0, 12 := 26]
   keys: {} {17, 82} {17, 12}
   values: {} {2} {0, 26}
   items: {} {(17, 2), (82, 2)} {(17, 0), (12, 26)}
-  disjoint: true false
   update: map[17 := 6] map[17 := 6, 82 := 2] map[17 := 6, 12 := 26]
   lookup: false 2 0
 m: map[Color.Blue := 30, Color.Yellow := 21]
@@ -183,7 +181,6 @@ Maps: map[] map[17 := 2, 82 := 2] map[17 := 0, 12 := 26]
   keys: {} {17, 82} {17, 12}
   values: {} {2} {0, 26}
   items: {} {(17, 2), (82, 2)} {(17, 0), (12, 26)}
-  disjoint: true false
   update: map[17 := 6] map[17 := 6, 82 := 2] map[17 := 6, 12 := 26]
   lookup: false 2 0
 m: map[Color.Blue := 30, Color.Yellow := 21]
@@ -249,7 +246,6 @@ Maps: map[] map[17 := 2, 82 := 2] map[17 := 0, 12 := 26]
   keys: {} {17, 82} {17, 12}
   values: {} {2} {0, 26}
   items: {} {(17, 2), (82, 2)} {(17, 0), (12, 26)}
-  disjoint: true false
   update: map[17 := 6] map[17 := 6, 82 := 2] map[12 := 26, 17 := 6]
   lookup: false 2 0
 m: map[Color.Yellow := 21, Color.Blue := 30]

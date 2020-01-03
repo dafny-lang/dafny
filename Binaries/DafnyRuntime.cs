@@ -663,7 +663,7 @@ namespace Dafny
       if (values is ICollection<Pair<U, V>> collection) {
         d = new Dictionary<U, V>(collection.Count);
       } else {
-        d = new Dictionary<U, V>();  
+        d = new Dictionary<U, V>();
       }
 #endif
       var hasNullValue = false;
@@ -735,20 +735,6 @@ namespace Dafny
         sep = ", ";
       }
       return s + "]";
-    }
-    public bool IsDisjointFrom(Map<U, V> other) {
-      if (hasNullValue && other.hasNullValue) {
-        return false;
-      }
-      foreach (U u in dict.Keys) {
-        if (other.dict.ContainsKey(u))
-          return false;
-      }
-      foreach (U u in other.dict.Keys) {
-        if (dict.ContainsKey(u))
-          return false;
-      }
-      return true;
     }
     public bool Contains<G>(G u) {
       return u == null ? hasNullValue : u is U && dict.ContainsKey((U)(object)u);
