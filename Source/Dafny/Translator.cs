@@ -15152,9 +15152,6 @@ namespace Microsoft.Dafny {
                                      BoxIfNecessary(expr.tok, e0, e.E0.Type));
               return Bpl.Expr.Unary(expr.tok, UnaryOperator.Opcode.Not, inMap);
             }
-            case BinaryExpr.ResolvedOpcode.MapDisjoint: {
-              return translator.FunctionCall(expr.tok, BuiltinFunction.MapDisjoint, null, e0, e1);
-            }
 
             case BinaryExpr.ResolvedOpcode.RankLt:
               return Bpl.Expr.Binary(expr.tok, BinaryOperator.Opcode.Lt,

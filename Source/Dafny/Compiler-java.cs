@@ -2297,7 +2297,6 @@ namespace Microsoft.Dafny{
           break;
         case BinaryExpr.ResolvedOpcode.Disjoint:
         case BinaryExpr.ResolvedOpcode.MultiSetDisjoint:
-        case BinaryExpr.ResolvedOpcode.MapDisjoint:
           callString = "disjoint";
           break;
         case BinaryExpr.ResolvedOpcode.InSet:
