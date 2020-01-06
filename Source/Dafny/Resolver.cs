@@ -10431,10 +10431,12 @@ void CheckLinearExtendedPattern(Type type, ExtendedPattern pat, bool debug){
   var dtds = getDatatypesOfCtor(idpat.Id);
   var dtdsC = dtds.Count();
   if(dtdsC == 0){
+    if(debug) Console.WriteLine("Proxy result: Definitely not a datatype");
     // Then this is a variable, check it doesn't have arguments
     CheckLinearVarPattern(type, idpat, debug);
     return;
   } else if (dtdsC == 1){
+    if(debug) Console.WriteLine("Proxy result: Found a matching datatype");
     // Add typing constrain for this type (copied from ResolveDatatypeValue)
     var ctor = dtds.First();
     var dt = ctor.EnclosingDatatype;
