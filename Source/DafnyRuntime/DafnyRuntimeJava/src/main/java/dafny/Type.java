@@ -2,18 +2,25 @@ package dafny;
 
 import java.math.BigInteger;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.function.Function;
 
 public abstract class Type<T> {
-    private final Class<T> javaClass;
+    final Class<T> javaClass;
 
     Type(Class<T> javaClass) {
         this.javaClass = javaClass;
     }
 
+    public final boolean isPrimitive() {
+        return javaClass.isPrimitive();
+    }
+
     public abstract T defaultValue();
 
     public abstract Array<T> newArray(int length);
+
+    public abstract Array<T> wrapArray(Object array);
 
     public abstract T getArrayElement(Object array, int index);
 
@@ -21,29 +28,28 @@ public abstract class Type<T> {
 
     public abstract void fillArray(Object array, T value);
 
-    public final Class<T> getJavaClass() {
-        return javaClass;
-    }
-
-    public final Array<T> newArray(int length, T value) {
-        Array<T> array = newArray(length);
-        array.fill(value);
-        return array;
-    }
-
     public final Object newUnwrappedArray(int length) {
-        return java.lang.reflect.Array.newInstance(getJavaClass(), length);
+        return java.lang.reflect.Array.newInstance(javaClass, length);
     }
 
-    public final Object newUnwrappedArray(int length, T value) {
-        Object array = newUnwrappedArray(length);
-        fillArray(array, value);
-        return array;
+    public final Object newUnwrappedArray(int ... dims) {
+        return java.lang.reflect.Array.newInstance(javaClass, dims);
+    }
+
+    // TODO: Benchmark this to see if it's slow (better to copy and paste for
+    // each class so that setArrayElement is inlined?)
+    public Array<T> toArray(Collection<T> coll) {
+        Object arr = newUnwrappedArray(coll.size());
+        int i = 0;
+        for (T elt : coll) {
+            setArrayElement(arr, i++, elt);
+        }
+        return wrapArray(arr);
     }
 
     @Override
     public String toString() {
-        return getJavaClass().toString();
+        return javaClass.toString();
     }
 
     public static <T> Type<T> reference(Class<T> javaClass) {
@@ -129,8 +135,15 @@ public abstract class Type<T> {
             // This cast only works because we know that T is *not* a (boxed)
             // primitive type
             T[] array = (T[])
-                    java.lang.reflect.Array.newInstance(getJavaClass(), length);
+                    java.lang.reflect.Array.newInstance(javaClass, length);
             return Array.wrap(array);
+        }
+
+        @Override
+        public Array<T> wrapArray(Object array) {
+            @SuppressWarnings("unchecked")
+            T[] castArray = (T[]) array;
+            return Array.wrap(castArray);
         }
 
         @Override
@@ -176,6 +189,11 @@ public abstract class Type<T> {
         }
 
         @Override
+        public Array<Byte> wrapArray(Object array) {
+            return Array.wrap((byte[]) array);
+        }
+
+        @Override
         public Byte getArrayElement(Object array, int index) {
             return ((byte[]) array)[index];
         }
@@ -206,6 +224,11 @@ public abstract class Type<T> {
         @Override
         public Array<Short> newArray(int length) {
             return Array.wrap(new short[length]);
+        }
+
+        @Override
+        public Array<Short> wrapArray(Object array) {
+            return Array.wrap((short[]) array);
         }
 
         @Override
@@ -242,6 +265,11 @@ public abstract class Type<T> {
         }
 
         @Override
+        public Array<Integer> wrapArray(Object array) {
+            return Array.wrap((int[]) array);
+        }
+
+        @Override
         public Integer getArrayElement(Object array, int index) {
             return ((int[]) array)[index];
         }
@@ -275,6 +303,12 @@ public abstract class Type<T> {
         }
 
         @Override
+        public Array<Long> wrapArray(Object array) {
+            return Array.wrap((long[]) array);
+        }
+
+
+        @Override
         public Long getArrayElement(Object array, int index) {
             return ((long[]) array)[index];
         }
@@ -303,6 +337,11 @@ public abstract class Type<T> {
         @Override
         public Array<Boolean> newArray(int length) {
             return Array.wrap(new boolean[length]);
+        }
+
+        @Override
+        public Array<Boolean> wrapArray(Object array) {
+            return Array.wrap((boolean[]) array);
         }
 
         @Override
@@ -339,6 +378,11 @@ public abstract class Type<T> {
         }
 
         @Override
+        public Array<Character> wrapArray(Object array) {
+            return Array.wrap((char[]) array);
+        }
+
+        @Override
         public Character getArrayElement(Object array, int index) {
             return ((char[]) array)[index];
         }
@@ -372,6 +416,11 @@ public abstract class Type<T> {
         }
 
         @Override
+        public Array<Float> wrapArray(Object array) {
+            return Array.wrap((float[]) array);
+        }
+
+        @Override
         public Float getArrayElement(Object array, int index) {
             return ((float[]) array)[index];
         }
@@ -402,6 +451,11 @@ public abstract class Type<T> {
         @Override
         public Array<Double> newArray(int length) {
             return Array.wrap(new double[length]);
+        }
+
+        @Override
+        public Array<Double> wrapArray(Object array) {
+            return Array.wrap((double[]) array);
         }
 
         @Override

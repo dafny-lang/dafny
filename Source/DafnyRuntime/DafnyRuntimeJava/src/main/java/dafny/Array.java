@@ -1,25 +1,19 @@
 package dafny;
 
 import java.util.Arrays;
+import java.util.Objects;
 
 /**
  * A wrapper for an array that may be of primitive type.  Essentially acts as
  * one "big box" for many primitives, as an alternative to putting each in their
  * own box.  Much faster than using {@link java.lang.reflect.Array} operations
  * to operate on possibly-primitive arrays.
- * <p>
- * This class only offers a minimal set of operations for the purpose of
- * compiling Dafny code to Java.  For things like copying ranges of elements,
- * use {@link #unwrap()} to get at the underlying object and then use, for
- * instance, {@link System#arraycopy} (which, unlike
- * {@link java.lang.reflect.Array#get} and {@link java.lang.reflect.Array#set},
- * is fast).
  *
  * @param <T> The type of the elements in the array, or if that type is
  *            primitive, the boxed version of that type (e.g., {@link Integer}
  *            for int).
  */
-public abstract class Array<T> {
+public abstract class Array<T> implements Cloneable {
     // Hacky way to support getting this length the same way as a real array
     public final int length;
 
@@ -33,7 +27,35 @@ public abstract class Array<T> {
 
     public abstract void fill(T value);
 
+    public final Array<T> fillThenReturn(T value) {
+        fill(value);
+        return this;
+    }
+
     public abstract Object unwrap();
+
+    public abstract Array<T> clone();
+
+    public abstract Array<T> copyOfRange(int lo, int hi);
+
+    // This implementation is slow due to unboxing; overridden by better versions
+    // where possible
+    public boolean deepEquals(Array<T> other) {
+        if (length != other.length) {
+            return false;
+        }
+        for (int i = 0; i < length; i++) {
+            if (!Objects.equals(this.get(i), other.get(i))) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    @SuppressWarnings("all")
+    public final void copy(int offset, Array<T> to, int toOffset, int length) {
+        System.arraycopy(unwrap(), offset, to.unwrap(), toOffset, length);
+    }
 
     @SuppressWarnings("unchecked")
     public static <T> Array<T> wrap(Object array) {
@@ -106,54 +128,9 @@ public abstract class Array<T> {
         return array == null ? null : new DoubleArray(array);
     }
 
-    /**
-     * Allocate a multidimensional array whose innermost layer is wrapped in
-     * {@link Array} objects.  There must be at least two dimensions given.
-     *
-     * @return An object of type <tt>Array&lt;T>[]...[]</tt>, where there is one
-     * pair of brackets for each dimension besides the innermost.
-     */
-    public static <T> Object[] newInstances(
-            Type<T> elmtType, int ... dims) {
-        return newInstances(elmtType, null, dims);
-    }
-
-    /**
-     * Allocate a multidimensional array whose innermost layer is wrapped in
-     * {@link Array} objects, initializing all elements with the given value.
-     * There must be at least two dimensions.
-     *
-     * @return An object of type <tt>Array&lt;T>[]...[]</tt>, where there is one
-     * pair of brackets for each dimension besides the innermost.
-     */
-    public static <T> Object[] newInstances(
-            Type<T> elmtType, T value, int ... dims) {
-        assert dims.length >= 2;
-
-        int[] outerDims = Arrays.copyOfRange(dims, 0, dims.length - 1);
-        Object[] arrays = (Object[])
-                java.lang.reflect.Array.newInstance(Array.class, outerDims);
-
-        init(arrays, elmtType, value, 0, dims);
-
-        return arrays;
-    }
-
-    private static <T> void init(
-            Object[] arrays, Type<T> elmtType, T value, int d, int ... dims) {
-        if (d == dims.length - 2) {
-            for (int i = 0; i < dims[d]; i++) {
-                Array<T> inner = elmtType.newArray(dims[d]);
-                if (value != null) {
-                    inner.fill(value);
-                }
-                arrays[i] = inner;
-            }
-        } else {
-            for (int i = 0; i < dims[d]; i++) {
-                init((Object[]) arrays[i], elmtType, value, d+1, dims);
-            }
-        }
+    // A dodge so that we can unconditionally generate calls to Array.wrap()
+    public static <T> Array<T> wrap(Array<T> array) {
+        return array;
     }
 
     public static Object unwrap(Array<?> array) {
@@ -194,6 +171,51 @@ public abstract class Array<T> {
 
     public static double[] unwrapDoubles(Array<Double> array) {
         return array == null ? null : ((DoubleArray) array).array;
+    }
+
+    public static <T> T[] fillThenReturn(T[] array, T value) {
+        Arrays.fill(array, value);
+        return array;
+    }
+
+    public static byte[] fillThenReturn(byte[] array, byte value) {
+        Arrays.fill(array, value);
+        return array;
+    }
+
+    public static short[] fillThenReturn(short[] array, short value) {
+        Arrays.fill(array, value);
+        return array;
+    }
+
+    public static int[] fillThenReturn(int[] array, int value) {
+        Arrays.fill(array, value);
+        return array;
+    }
+
+    public static long[] fillThenReturn(long[] array, long value) {
+        Arrays.fill(array, value);
+        return array;
+    }
+
+    public static boolean[] fillThenReturn(boolean[] array, boolean value) {
+        Arrays.fill(array, value);
+        return array;
+    }
+
+    public static char[] fillThenReturn(char[] array, char value) {
+        Arrays.fill(array, value);
+        return array;
+    }
+
+    public static float[] fillThenReturn(float[] array, float value) {
+        Arrays.fill(array, value);
+        return array;
+    }
+
+    public static double[] fillThenReturn(double[] array, double value) {
+        Arrays.fill(array, value);
+        return array;
     }
 
     @Override
@@ -242,6 +264,25 @@ final class ObjectArray<T> extends Array<T> {
     public Object unwrap() {
         return array;
     }
+
+    @Override
+    public Array<T> clone() {
+        return new ObjectArray<T>(array.clone());
+    }
+
+    @Override
+    public Array<T> copyOfRange(int lo, int hi) {
+        return new ObjectArray<T>(Arrays.copyOfRange(array, lo, hi));
+    }
+
+    @Override
+    public boolean deepEquals(Array<T> other) {
+        if (other instanceof ObjectArray<?>) {
+            return Arrays.deepEquals(array, ((ObjectArray<T>) other).array);
+        } else {
+            return super.deepEquals(other);
+        }
+    }
 }
 
 final class ByteArray extends Array<Byte> {
@@ -274,6 +315,25 @@ final class ByteArray extends Array<Byte> {
     @Override
     public Object unwrap() {
         return array;
+    }
+
+    @Override
+    public ByteArray clone() {
+        return new ByteArray(array.clone());
+    }
+
+    @Override
+    public Array<Byte> copyOfRange(int lo, int hi) {
+        return new ByteArray(Arrays.copyOfRange(array, lo, hi));
+    }
+
+    @Override
+    public boolean deepEquals(Array<Byte> other) {
+        if (other instanceof ByteArray) {
+            return Arrays.equals(array, ((ByteArray) other).array);
+        } else {
+            return super.deepEquals(other);
+        }
     }
 }
 
@@ -308,6 +368,25 @@ final class ShortArray extends Array<Short> {
     public Object unwrap() {
         return array;
     }
+
+    @Override
+    public ShortArray clone() {
+        return new ShortArray(array.clone());
+    }
+
+    @Override
+    public Array<Short> copyOfRange(int lo, int hi) {
+        return new ShortArray(Arrays.copyOfRange(array, lo, hi));
+    }
+
+    @Override
+    public boolean deepEquals(Array<Short> other) {
+        if (other instanceof ShortArray) {
+            return Arrays.equals(array, ((ShortArray) other).array);
+        } else {
+            return super.deepEquals(other);
+        }
+    }
 }
 
 final class IntArray extends Array<Integer> {
@@ -340,6 +419,25 @@ final class IntArray extends Array<Integer> {
     @Override
     public Object unwrap() {
         return array;
+    }
+
+    @Override
+    public IntArray clone() {
+        return new IntArray(array.clone());
+    }
+
+    @Override
+    public Array<Integer> copyOfRange(int lo, int hi) {
+        return new IntArray(Arrays.copyOfRange(array, lo, hi));
+    }
+
+    @Override
+    public boolean deepEquals(Array<Integer> other) {
+        if (other instanceof IntArray) {
+            return Arrays.equals(array, ((IntArray) other).array);
+        } else {
+            return super.deepEquals(other);
+        }
     }
 }
 
@@ -374,6 +472,25 @@ final class LongArray extends Array<Long> {
     public Object unwrap() {
         return array;
     }
+
+    @Override
+    public LongArray clone() {
+        return new LongArray(array.clone());
+    }
+
+    @Override
+    public Array<Long> copyOfRange(int lo, int hi) {
+        return new LongArray(Arrays.copyOfRange(array, lo, hi));
+    }
+
+    @Override
+    public boolean deepEquals(Array<Long> other) {
+        if (other instanceof LongArray) {
+            return Arrays.equals(array, ((LongArray) other).array);
+        } else {
+            return super.deepEquals(other);
+        }
+    }
 }
 
 final class BooleanArray extends Array<Boolean> {
@@ -406,6 +523,25 @@ final class BooleanArray extends Array<Boolean> {
     @Override
     public Object unwrap() {
         return array;
+    }
+
+    @Override
+    public BooleanArray clone() {
+        return new BooleanArray(array.clone());
+    }
+
+    @Override
+    public Array<Boolean> copyOfRange(int lo, int hi) {
+        return new BooleanArray(Arrays.copyOfRange(array, lo, hi));
+    }
+
+    @Override
+    public boolean deepEquals(Array<Boolean> other) {
+        if (other instanceof BooleanArray) {
+            return Arrays.equals(array, ((BooleanArray) other).array);
+        } else {
+            return super.deepEquals(other);
+        }
     }
 }
 
@@ -440,6 +576,26 @@ final class CharArray extends Array<Character> {
     public Object unwrap() {
         return array;
     }
+
+
+    @Override
+    public CharArray clone() {
+        return new CharArray(array.clone());
+    }
+
+    @Override
+    public Array<Character> copyOfRange(int lo, int hi) {
+        return new CharArray(Arrays.copyOfRange(array, lo, hi));
+    }
+
+    @Override
+    public boolean deepEquals(Array<Character> other) {
+        if (other instanceof CharArray) {
+            return Arrays.equals(array, ((CharArray) other).array);
+        } else {
+            return super.deepEquals(other);
+        }
+    }
 }
 
 final class FloatArray extends Array<Float> {
@@ -473,6 +629,25 @@ final class FloatArray extends Array<Float> {
     public Object unwrap() {
         return array;
     }
+
+    @Override
+    public FloatArray clone() {
+        return new FloatArray(array.clone());
+    }
+
+    @Override
+    public Array<Float> copyOfRange(int lo, int hi) {
+        return new FloatArray(Arrays.copyOfRange(array, lo, hi));
+    }
+
+    @Override
+    public boolean deepEquals(Array<Float> other) {
+        if (other instanceof FloatArray) {
+            return Arrays.equals(array, ((FloatArray) other).array);
+        } else {
+            return super.deepEquals(other);
+        }
+    }
 }
 
 final class DoubleArray extends Array<Double> {
@@ -505,5 +680,24 @@ final class DoubleArray extends Array<Double> {
     @Override
     public Object unwrap() {
         return array;
+    }
+
+    @Override
+    public DoubleArray clone() {
+        return new DoubleArray(array.clone());
+    }
+
+    @Override
+    public Array<Double> copyOfRange(int lo, int hi) {
+        return new DoubleArray(Arrays.copyOfRange(array, lo, hi));
+    }
+
+    @Override
+    public boolean deepEquals(Array<Double> other) {
+        if (other instanceof DoubleArray) {
+            return Arrays.equals(array, ((DoubleArray) other).array);
+        } else {
+            return super.deepEquals(other);
+        }
     }
 }

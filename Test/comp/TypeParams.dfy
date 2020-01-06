@@ -32,11 +32,8 @@ method Standard<T(0)>() {
   var e: Color := Gimmie();
   var f: real := Gimmie();
   var g: T := Gimmie();
-  print a, " ", b, " ", c, " ", d, " ", e, " ", f, " ", g, "\n";
-
-  // FIXME: This breaks Java, which initializes the field to null
-  //var h: DtZ<Color> := Gimmie();
-  //print h, "\n";
+  var h: DtZ<Color> := Gimmie();
+  print a, " ", b, " ", c, " ", d, " ", e, " ", f, " ", g, " ", h, "\n";
 
   // nullable reference types
   var x0: object? := Gimmie();
@@ -79,8 +76,7 @@ method Tp() {
 
 datatype Dt<G> = D0(G) | D1(G)
 
-// FIXME: This breaks Java
-//datatype DtZ<G(0)> = DZ0(G)
+datatype DtZ<G(0)> = DZ0(G)
 
 class Cl<X(==,0),Y(0),Z> {
   var x: X

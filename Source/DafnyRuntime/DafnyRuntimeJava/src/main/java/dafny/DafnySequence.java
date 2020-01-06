@@ -1,6 +1,5 @@
 package dafny;
 
-import java.lang.reflect.Array;
 import java.math.BigInteger;
 import java.util.*;
 import java.util.function.Function;
@@ -17,33 +16,76 @@ public abstract class DafnySequence<T> implements Iterable<T> {
     DafnySequence() { }
 
     @SafeVarargs
-    public static <T> DafnySequence<T> of(T ... elements) {
-        return DafnySequence.fromArray(elements);
+    public static <T> DafnySequence<T> of(Type<T> type, T ... elements) {
+        Array<T> array;
+        if (!type.isPrimitive()) {
+            array = Array.wrap(elements.clone());
+        } else {
+            // Need to unbox each individual element.  Slow, but it should be
+            // unusual to have a large sequence display of unknown type.
+            array = type.newArray(elements.length);
+            for (int i = 0; i < elements.length; i++) {
+                array.set(i, elements[i]);
+            }
+        }
+        return DafnySequence.fromArray(type, array);
     }
 
-    public static <T> DafnySequence<T> empty() {
-        return ArrayDafnySequence.<T> empty();
+    public static DafnySequence<Byte> of(byte ... elements) {
+        return DafnySequence.fromArray(Type.BYTE, Array.wrap(elements));
     }
 
-    public static <T> DafnySequence<T> fromArray(T[] elements) {
-        return new ArrayDafnySequence<>(elements.clone());
+    public static DafnySequence<Short> of(short ... elements) {
+        return DafnySequence.fromArray(Type.SHORT, Array.wrap(elements));
+    }
+
+    public static DafnySequence<Integer> of(int ... elements) {
+        return DafnySequence.fromArray(Type.INT, Array.wrap(elements));
+    }
+
+    public static DafnySequence<Long> of(long ... elements) {
+        return DafnySequence.fromArray(Type.LONG, Array.wrap(elements));
+    }
+
+    public static DafnySequence<Boolean> of(boolean ... elements) {
+        return DafnySequence.fromArray(Type.BOOLEAN, Array.wrap(elements));
+    }
+
+    public static DafnySequence<Character> of(char ... elements) {
+        return DafnySequence.fromArray(Type.CHAR, Array.wrap(elements));
+    }
+
+    public static DafnySequence<Float> of(float ... elements) {
+        return DafnySequence.fromArray(Type.FLOAT, Array.wrap(elements));
+    }
+
+    public static DafnySequence<Double> of(double ... elements) {
+        return DafnySequence.fromArray(Type.DOUBLE, Array.wrap(elements));
+    }
+
+    public static <T> DafnySequence<T> empty(Type<T> type) {
+        return ArrayDafnySequence.<T> empty(type);
+    }
+
+    public static <T> DafnySequence<T> fromArray(Type<T> type, Array<T> elements) {
+        return new ArrayDafnySequence<>(type, elements.clone());
     }
 
     /**
      * Return a sequence backed by the given array without making a defensive
      * copy.  Only safe if the array never changes afterward.
      */
-    public static <T> DafnySequence<T> unsafeWrapArray(T[] elements) {
-        return new ArrayDafnySequence<>(elements);
+    public static <T> DafnySequence<T> unsafeWrapArray(Type<T> type, Array<T> elements) {
+        return new ArrayDafnySequence<>(type, elements);
     }
 
-    public static <T> DafnySequence<T> fromArrayRange(T[] elements, int lo, int hi) {
-        return new ArrayDafnySequence<T>(Arrays.copyOfRange(elements, lo, hi));
+    public static <T> DafnySequence<T> fromArrayRange(Type<T> type, Array<T> elements, int lo, int hi) {
+        return new ArrayDafnySequence<T>(type, elements.copyOfRange(lo, hi));
     }
 
-    public static <T> DafnySequence<T> fromList(List<T> l) {
+    public static <T> DafnySequence<T> fromList(Type<T> type, List<T> l) {
         assert l != null: "Precondition Violation";
-        return new ArrayDafnySequence<T>(l.toArray());
+        return new ArrayDafnySequence<T>(type, type.toArray(l));
     }
 
     public static DafnySequence<Character> asString(String s){
@@ -51,7 +93,7 @@ public abstract class DafnySequence<T> implements Iterable<T> {
     }
 
     public static DafnySequence<Byte> fromBytes(byte[] bytes) {
-        return new ByteArrayDafnySequence(bytes.clone());
+        return unsafeWrapBytes(bytes.clone());
     }
 
     /**
@@ -59,45 +101,33 @@ public abstract class DafnySequence<T> implements Iterable<T> {
      * defensive copy.  Only safe if the array never changes afterward.
      */
     public static DafnySequence<Byte> unsafeWrapBytes(byte[] bytes) {
-        return new ByteArrayDafnySequence(bytes);
+        return unsafeWrapArray(Type.BYTE, Array.wrap(bytes));
     }
 
-    public static <T> DafnySequence<T> Create(BigInteger length, Function<BigInteger, T> init) {
-        // TODO This could try and create a ByteArrayDafnySequence or StringDafnySequence if possible
-        Object[] values = new Object[length.intValueExact()];
+    public static <T> DafnySequence<T> Create(Type<T> type, BigInteger length, Function<BigInteger, T> init) {
+        Array<T> values = type.newArray(length.intValueExact());
         for(BigInteger i = BigInteger.ZERO; i.compareTo(length) < 0; i = i.add(BigInteger.ONE)) {
-            values[i.intValueExact()] = init.apply(i);
+            values.set(i.intValueExact(), init.apply(i));
         }
-        return new ArrayDafnySequence<>(values);
+        return new ArrayDafnySequence<>(type, values);
     }
 
     @SuppressWarnings("unchecked")
     public static <T> Type<DafnySequence<T>> _type(Type<T> elementType) {
-        // Fudge the type parameter; it's not great, but it's safe because
-        // (for now) type descriptors are only used for default values
-        return Type.referenceWithInitializer(
+        return Type.referenceWithDefault(
                 (Class<DafnySequence<T>>) (Class<?>) DafnySequence.class,
-                DafnySequence::empty);
+                DafnySequence.empty(elementType));
     }
 
-    @SuppressWarnings("unchecked")
-    public T[] toArray(Class<T> type) {
-        return asList().toArray((T[]) Array.newInstance(type, 0));
+    public Array<T> toArray() {
+        return elementType().toArray(asList());
     }
 
     public static byte[] toByteArray(DafnySequence<Byte> seq) {
-        seq = seq.force();
-        if (seq instanceof ByteArrayDafnySequence) {
-            return ((ByteArrayDafnySequence) seq).array.clone();
-        } else {
-            byte[] ans = new byte[seq.length()];
-            int i = 0;
-            for (Byte b : seq) {
-                ans[i++] = b;
-            }
-            return ans;
-        }
+        return Array.unwrapBytes(seq.toArray());
     }
+
+    public abstract Type<T> elementType();
 
     // Determines if this DafnySequence is a prefix of other
     public boolean isPrefixOf(DafnySequence<T> other) {
@@ -292,7 +322,7 @@ public abstract class DafnySequence<T> implements Iterable<T> {
             curr += i;
         }
 
-        return new ArrayDafnySequence<>(list.toArray());
+        return fromList(_type(elementType()), list);
     }
 
     public DafnyMultiset<T> asDafnyMultiset() {
@@ -371,21 +401,31 @@ abstract class NonLazyDafnySequence<T> extends DafnySequence<T> {
 }
 
 final class ArrayDafnySequence<T> extends NonLazyDafnySequence<T> {
-    // not T[] because generics and arrays don't mix
-    private Object[] seq;
+    private Type<T> elementType;
+    private Array<T> seq;
 
     // NOTE: Input array is *shared*; must be a copy if it comes from a public input
-    ArrayDafnySequence(Object[] elements) {
+    ArrayDafnySequence(Type<T> elementType, Array<T> elements) {
+        this.elementType = elementType;
         this.seq = elements;
     }
 
-    private static final ArrayDafnySequence<Object> EMPTY =
-        new ArrayDafnySequence<>(new Object[0]);
+    Array<T> unwrap() {
+        return seq;
+    }
 
-    @SuppressWarnings("unchecked")
-    public static <T> ArrayDafnySequence<T> empty() {
-        // Safe because immutable
-        return (ArrayDafnySequence<T>) EMPTY;
+    @Override
+    public Array<T> toArray() {
+        return seq.clone();
+    }
+
+    public static <T> ArrayDafnySequence<T> empty(Type<T> type) {
+        return new ArrayDafnySequence<T>(type, type.newArray(0));
+    }
+
+    @Override
+    public Type<T> elementType() {
+        return elementType;
     }
 
     @Override
@@ -393,54 +433,69 @@ final class ArrayDafnySequence<T> extends NonLazyDafnySequence<T> {
         assert t != null : "Precondition Violation";
         //todo: should we allow i=length, and return a new sequence with t appended to the sequence?
         assert 0 <= i && i < length(): "Precondition Violation";
-        Object[] newArray = seq.clone();
-        newArray[i] = t;
-        return new ArrayDafnySequence<>(newArray);
+        Array<T> newArray = seq.clone();
+        newArray.set(i, t);
+        return new ArrayDafnySequence<>(elementType, newArray);
     }
 
     public ArrayDafnySequence<T> subsequence(int lo, int hi) {
         assert lo >= 0 && hi >= 0 && hi >= lo : "Precondition Violation";
 
-        return new ArrayDafnySequence<>(Arrays.copyOfRange(seq, lo, hi));
+        return new ArrayDafnySequence<>(elementType, seq.copyOfRange(lo, hi));
     }
 
     @Override
     Copier<T> newCopier(final int length) {
         return new Copier<T>() {
-            private final Object[] newArray = new Object[length];
+            private final Array<T> newArray = elementType.newArray(length);
             private int nextIndex = 0;
 
             @Override
             public void copyFrom(DafnySequence<T> source) {
                 source = source.force();
                 if (source instanceof ArrayDafnySequence<?>) {
-                    Object[] sourceArray = ((ArrayDafnySequence<?>) source).seq;
-                    System.arraycopy(sourceArray, 0, newArray, nextIndex, sourceArray.length);
+                    Array<T> sourceArray = ((ArrayDafnySequence<T>) source).seq;
+                    sourceArray.copy(0, newArray, nextIndex, sourceArray.length);
                     nextIndex += sourceArray.length;
                 } else {
                     for (T t : source) {
-                        newArray[nextIndex++] = t;
+                        newArray.set(nextIndex++, t);
                     }
                 }
             }
 
             @Override
             public NonLazyDafnySequence<T> result() {
-                return new ArrayDafnySequence<T>(newArray);
+                return new ArrayDafnySequence<T>(elementType, newArray);
             }
         };
     }
 
     @Override
-    @SuppressWarnings("unchecked")
     protected List<T> asList() {
-        return (List<T>) Arrays.asList(seq);
+        return new AbstractList<T>() {
+            @Override
+            public T get(int index) {
+                return seq.get(index);
+            }
+
+            @Override
+            public T set(int index, T element) {
+                T prev = seq.get(index);
+                seq.set(index, element);
+                return prev;
+            }
+
+            @Override
+            public int size() {
+                return length();
+            }
+        };
     }
 
     @Override
-    @SuppressWarnings("unchecked")
     public T select(int i) {
-        return (T) seq[i];
+        return (T) seq.get(i);
     }
 
     @Override
@@ -456,7 +511,7 @@ final class ArrayDafnySequence<T> extends NonLazyDafnySequence<T> {
     @Override
     protected boolean equalsNonLazy(NonLazyDafnySequence<T> other) {
         if (other instanceof ArrayDafnySequence<?>) {
-            return Arrays.equals(seq, ((ArrayDafnySequence<T>) other).seq);
+            return seq.deepEquals(((ArrayDafnySequence<T>) other).seq);
         } else {
             return super.equalsNonLazy(other);
         }
@@ -464,102 +519,7 @@ final class ArrayDafnySequence<T> extends NonLazyDafnySequence<T> {
 
     @Override
     public int hashCode() {
-        return Arrays.hashCode(seq);
-    }
-}
-
-final class ByteArrayDafnySequence extends NonLazyDafnySequence<Byte> {
-    final byte[] array;
-
-    // NOTE: Input array is *shared*; must be a copy if it comes from a public input
-    ByteArrayDafnySequence(byte[] elements) {
-        this.array = elements;
-    }
-
-    @Override
-    public Byte select(int i) {
-        return array[i];
-    }
-
-    @Override
-    public int length() {
-        return array.length;
-    }
-
-    @Override
-    public DafnySequence<Byte> update(int i, Byte t) {
-        byte[] newArray = array.clone();
-        return new ByteArrayDafnySequence(newArray);
-    }
-
-    @Override
-    public DafnySequence<Byte> subsequence(int lo, int hi) {
-        // XXX Share rather than copy?
-        return new ByteArrayDafnySequence(Arrays.copyOfRange(array, lo, hi));
-    }
-
-    @Override
-    Copier<Byte> newCopier(int length) {
-        return new Copier<Byte>() {
-            private final byte[] newArray = new byte[length];
-            private int nextIndex = 0;
-
-            @Override
-            public void copyFrom(DafnySequence<Byte> source) {
-                source = source.force();
-                if (source instanceof ByteArrayDafnySequence) {
-                    byte[] sourceArray = ((ByteArrayDafnySequence) source).array;
-                    System.arraycopy(sourceArray, 0, newArray, nextIndex, sourceArray.length);
-                    nextIndex += sourceArray.length;
-                } else {
-                    for (Byte t : source) {
-                        newArray[nextIndex++] = t;
-                    }
-                }
-            }
-
-            @Override
-            public NonLazyDafnySequence<Byte> result() {
-                return new ByteArrayDafnySequence(newArray);
-            }
-        };
-    }
-
-    @Override
-    public Iterator<Byte> iterator() {
-        return new Iterator<Byte>() {
-            private final int n = array.length;
-            private int i = 0;
-
-            @Override
-            public boolean hasNext() {
-                return i < n;
-            }
-
-            @Override
-            public Byte next() {
-                return array[i++];
-            }
-        };
-    }
-
-    @Override
-    public boolean equalsNonLazy(NonLazyDafnySequence<Byte> obj) {
-        if (obj instanceof ByteArrayDafnySequence) {
-            return Arrays.equals(array, ((ByteArrayDafnySequence) obj).array);
-        } else {
-            return super.equalsNonLazy(obj);
-        }
-    }
-
-    @Override
-    public int hashCode() {
-        return Arrays.hashCode(array);
-    }
-
-    @Override
-    public String toString() {
-        return Arrays.toString(array);
+        return asList().hashCode();
     }
 }
 
@@ -568,6 +528,16 @@ final class StringDafnySequence extends NonLazyDafnySequence<Character> {
 
     StringDafnySequence(String string) {
         this.string = string;
+    }
+
+    @Override
+    public Array<Character> toArray() {
+        return Array.wrap(string.toCharArray());
+    }
+
+    @Override
+    public Type<Character> elementType() {
+        return Type.CHAR;
     }
 
     @Override
@@ -663,6 +633,16 @@ final class StringDafnySequence extends NonLazyDafnySequence<Character> {
 
 abstract class LazyDafnySequence<T> extends DafnySequence<T> {
     @Override
+    public Array<T> toArray() {
+        return force().toArray();
+    }
+
+    @Override
+    public Type<T> elementType() {
+        return force().elementType();
+    }
+
+    @Override
     public T select(int i) {
         return force().select(i);
     }
@@ -707,12 +687,6 @@ final class ConcatDafnySequence<T> extends LazyDafnySequence<T> {
     // INVARIANT: Either these are both non-null and ans is null or both are
     // null and ans is non-null.
     private DafnySequence<T> left, right;
-    // XXX We're storing the combined sequence as a DafnySequence, not an array,
-    // because it might need a backing array of primitive type.  Unfortunately,
-    // this means the resulting sequence is doomed to have a bit of overhead (an
-    // extra indirect function call) on every call to select().  Hard to see how
-    // to fix this without requiring that *every* DafnySequence suffer some
-    // overhead.
     private NonLazyDafnySequence<T> ans = null;
     private final int length;
 
@@ -741,11 +715,8 @@ final class ConcatDafnySequence<T> extends LazyDafnySequence<T> {
 
     private NonLazyDafnySequence<T> computeElements() {
         // Somewhat arbitrarily, the copier will be created by the leftmost
-        // sequence.  TODO: Have enough run-time type information that this is
-        // less fallible.  In particular, the left-most sequence might
-        // unluckily be an ArrayDafnySequence for a boxed type, which would be a
-        // disaster if the other sequences are of a specialized subclass.
-        // Without passing around type descriptors, we can't avoid this.
+        // sequence.  This is fine unless native Java code is uncareful and has
+        // has created ArrayDafnySequences of boxed primitive types.
         Copier<T> copier;
 
         // Treat this instance as the root of a tree, where a

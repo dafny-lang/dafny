@@ -89,36 +89,24 @@ public class Helpers {
         };
     }
 
-    public static Character createCharacterUnsigned(byte t) {
-        assert 0 <= Byte.toUnsignedInt(t) && Byte.toUnsignedInt(t) <= 65535;
-        return new Character((char)Byte.toUnsignedInt(t));
-    }
-
-    public static Character createCharacter(int t) {
-        assert 0 <= t && t <= 65535;
-        return new Character((char)t);
-    }
-
-    public static Character createCharacter(long t) {
-        assert 0 <= t && t <= 65535;
-        return new Character((char)t);
-    }
-
-    public static Class<?> getClassUnsafe(String s) {
-        try {
-            return Class.forName(s);
-        }
-        catch(ClassNotFoundException e) {
-            throw new RuntimeException("Class " + s + " not found.");
-        }
-    }
-
     public static <G> String toString(G g) {
         if (g == null) {
             return "null";
         } else {
             return g.toString();
         }
+    }
+
+    public static int toInt(BigInteger i) {
+        return i.intValue();
+    }
+
+    public static int toInt(int i) {
+        return i;
+    }
+
+    public static int toInt(long l) {
+        return (int) l;
     }
 
     private final static BigInteger ULONG_LIMIT = new BigInteger("18446744073709551616");  // 0x1_0000_0000_0000_0000
