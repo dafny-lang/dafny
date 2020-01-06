@@ -3621,7 +3621,7 @@ namespace Microsoft.Dafny{
                 }
                 TrParenExpr(e.E, wr, inLetExprBody);
               } else {
-                if (fromNative == null) {
+                if (fromNative == null && !e.E.Type.IsCharType) {
                   TrParenExpr(e.E, wr, inLetExprBody);
                   wr.Write($".{toNativeName}Value()");
                 } else {

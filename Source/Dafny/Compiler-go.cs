@@ -2953,7 +2953,10 @@ namespace Microsoft.Dafny {
         } else if (e.ToType.IsCharType) {
           wr.Write("_dafny.Char(");
           TrParenExpr(e.E, wr, inLetExprBody);
-          wr.Write(".Int32())");
+          if (AsNativeType(e.E.Type) == null) {
+            wr.Write(".Int32()");
+          }
+          wr.Write(")");
         } else {
           // (int or bv or char) -> (int or bv or ORDINAL)
           var fromNative = AsNativeType(e.E.Type);
