@@ -105,9 +105,10 @@ public abstract class DafnySequence<T> implements Iterable<T> {
     }
 
     public static <T> DafnySequence<T> Create(Type<T> type, BigInteger length, Function<BigInteger, T> init) {
-        Array<T> values = type.newArray(length.intValueExact());
-        for(BigInteger i = BigInteger.ZERO; i.compareTo(length) < 0; i = i.add(BigInteger.ONE)) {
-            values.set(i.intValueExact(), init.apply(i));
+        int len = length.intValueExact();
+        Array<T> values = type.newArray(len);
+        for(int i = 0; i < len; i++) {
+            values.set(i, init.apply(BigInteger.valueOf(i)));
         }
         return new ArrayDafnySequence<>(type, values);
     }
@@ -401,8 +402,8 @@ abstract class NonLazyDafnySequence<T> extends DafnySequence<T> {
 }
 
 final class ArrayDafnySequence<T> extends NonLazyDafnySequence<T> {
-    private Type<T> elementType;
-    private Array<T> seq;
+    private final Type<T> elementType;
+    private final Array<T> seq;
 
     // NOTE: Input array is *shared*; must be a copy if it comes from a public input
     ArrayDafnySequence(Type<T> elementType, Array<T> elements) {
@@ -520,6 +521,11 @@ final class ArrayDafnySequence<T> extends NonLazyDafnySequence<T> {
     @Override
     public int hashCode() {
         return asList().hashCode();
+    }
+
+    @Override
+    public String verbatimString() {
+        return new String((char[]) seq.unwrap());
     }
 }
 
@@ -643,6 +649,11 @@ abstract class LazyDafnySequence<T> extends DafnySequence<T> {
     }
 
     @Override
+    protected List<T> asList() {
+        return force().asList();
+    }
+
+    @Override
     public T select(int i) {
         return force().select(i);
     }
@@ -670,6 +681,16 @@ abstract class LazyDafnySequence<T> extends DafnySequence<T> {
     @Override
     public Iterator<T> iterator() {
         return force().iterator();
+    }
+
+    @Override
+    public String toString() {
+        return force().toString();
+    }
+
+    @Override
+    public String verbatimString() {
+        return force().verbatimString();
     }
 
     @Override
