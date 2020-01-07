@@ -2282,6 +2282,14 @@ namespace Microsoft.Dafny{
           s = cl.FullCompileName;
         }
 
+        if (cl.IsExtern(out _, out _)) {
+          var td = $"{TypeClass}.<{TypeName(type, wr, tok)}> findType({s}.class";
+          if (udt.TypeArgs != null && udt.TypeArgs.Count > 0) {
+            td += $", {Util.Comma(udt.TypeArgs, arg => TypeDescriptor(arg, wr, tok))}";
+          }
+          return td + ")";
+        }
+
         List<Type> relevantTypeArgs;
         if (type is ArrowType) {
           relevantTypeArgs = type.TypeArgs;

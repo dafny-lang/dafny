@@ -1,5 +1,7 @@
 package dafny;
 
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.math.BigInteger;
 import java.util.Arrays;
 import java.util.Collection;
@@ -112,6 +114,31 @@ public abstract class Type<T> {
         // arrow types are allowed as "(0)"-constrained type arguments), but
         // it's consistent with other backends.
         return reference(functionClass);
+    }
+
+    // TODO: Cache this somehow?
+    public static <T> Type<T> findType(Class<?> cls, Type<?> ... args) {
+        Class<?>[] typeMethodArgTypes = new Class<?>[args.length];
+        for (int i = 0; i < args.length; i++) {
+            typeMethodArgTypes[i] = Type.class;
+        }
+        try {
+            Method typeMethod = cls.getMethod("_type", typeMethodArgTypes);
+            @SuppressWarnings("unchecked")
+            Type<T> ans = (Type<T>) typeMethod.invoke(null, (Object[]) args);
+            return ans;
+        } catch (NoSuchMethodException | IllegalAccessException e) {
+            @SuppressWarnings("unchecked")
+            Type<T> ans = (Type<T>) reference(cls);
+            return ans;
+        } catch (InvocationTargetException e) {
+            Throwable cause = e.getCause();
+            if (cause instanceof RuntimeException) {
+                throw (RuntimeException) cause;
+            } else {
+                throw new RuntimeException(cause);
+            }
+        }
     }
 
     private static final class ReferenceType<T> extends Type<T> {
