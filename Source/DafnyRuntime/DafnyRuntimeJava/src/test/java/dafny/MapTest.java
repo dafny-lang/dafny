@@ -22,7 +22,6 @@ class MapTest {
         assertTrue(dm.contains(1));
         HashMap<Integer, Character> d = new HashMap<>();
         d.put(6,'l');
-        assertTrue(dm.disjoint(new DafnyMap<>(d)));
         h.remove(1);
         dm.remove(1);
         assertEquals(dm, new DafnyMap<>(h));
