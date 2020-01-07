@@ -1,11 +1,20 @@
 package Library;
 
-// The Java compiler doesn't support Dafny methods in extern libraries
-public class Mixed {
+import java.math.BigInteger;
+
+public class Mixed extends _ExternBase_Mixed {
     public static void P() {
         System.out.println("Mixed.P");
     }
-    public static void M() {
-        System.out.println("Mixed.M");
+    @Override
+    public void IP() {
+        System.out.println("Mixed.IP");
+    }
+    public static BigInteger G() {
+        return BigInteger.ONE;
+    }
+    @Override
+    public BigInteger IG() {
+        return BigInteger.valueOf(2);
     }
 }

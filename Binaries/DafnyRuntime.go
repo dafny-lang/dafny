@@ -439,8 +439,8 @@ func (seq Seq) Cardinality() Int {
 }
 
 // CardinalityInt finds the length of the sequence as an int.
-func (seq Seq) CardinalityInt() Int {
-	return seq.Len()
+func (seq Seq) CardinalityInt() int {
+	return seq.LenInt()
 }
 
 // Contains finds whether the value is equal to any element in the sequence.
