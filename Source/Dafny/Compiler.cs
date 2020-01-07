@@ -1103,7 +1103,7 @@ namespace Microsoft.Dafny {
           } else if (f.IsGhost) {
             // nothing to compile, but we do check for assumes
             if (f.Body == null) {
-              Contract.Assert(c is TraitDecl && !f.IsStatic);
+              Contract.Assert(c is TraitDecl && !f.IsStatic || Attributes.Contains(f.Attributes, "extern"));
             } else {
               var v = new CheckHasNoAssumes_Visitor(this, errorWr);
               v.Visit(f.Body);
