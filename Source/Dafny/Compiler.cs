@@ -629,6 +629,9 @@ namespace Microsoft.Dafny {
           // the purpose of an abstract module is to skip compilation
           continue;
         }
+        if (!m.IsToBeCompiled) {
+          continue;
+        }
         var moduleIsExtern = false;
         string libraryName = null;
         if (!DafnyOptions.O.DisallowExterns) {
