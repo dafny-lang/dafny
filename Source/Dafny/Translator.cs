@@ -11779,8 +11779,11 @@ namespace Microsoft.Dafny {
       // Translate receiver argument, if any
       Expression receiver = bReceiver == null ? dafnyReceiver : new BoogieWrapper(bReceiver, dafnyReceiver.Type);
       if (!method.IsStatic && !(method is Constructor)) {
-        if (bReceiver == null && !(dafnyReceiver is ThisExpr)) {
-          CheckNonNull(dafnyReceiver.tok, dafnyReceiver, builder, etran, null);
+        if (bReceiver == null) {
+          TrStmt_CheckWellformed(dafnyReceiver, builder, locals, etran, true);
+          if (!(dafnyReceiver is ThisExpr)) {
+            CheckNonNull(dafnyReceiver.tok, dafnyReceiver, builder, etran, null);
+          }
         }
         ins.Add(etran.TrExpr(receiver));
       }
