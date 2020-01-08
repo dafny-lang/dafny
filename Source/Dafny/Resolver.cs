@@ -11871,7 +11871,8 @@ namespace Microsoft.Dafny
 
       } else if (expr is SeqConstructionExpr) {
         var e = (SeqConstructionExpr)expr;
-        var elementType = new InferredTypeProxy();
+        var elementType = e.ExplicitElementType ?? new InferredTypeProxy();
+        ResolveType(e.tok, elementType, opts.codeContext, ResolveTypeOptionEnum.InferTypeProxies, null);
         ResolveExpression(e.N, opts);
         ConstrainToIntegerType(e.N, "sequence construction must use an integer-based expression for the sequence size (got {0})");
         ResolveExpression(e.Initializer, opts);
