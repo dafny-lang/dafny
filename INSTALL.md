@@ -50,6 +50,8 @@ so these instructions mostly apply to people interested in looking at Dafny's so
    * install pip (https://pip.readthedocs.io/en/stable/installing/)
    * run "pip install lit" and "pip install OutputCheck"
 Navigate to the Test directory in the repo and run 'lit .'
+   * run "pip install lit" and "pip install OutputCheck"     
+Navigate to the Test directory in the repo and run 'lit .' 
 The tests take a while, depending on your machine, but emit progress output.
 
 Building on Mac OS X
