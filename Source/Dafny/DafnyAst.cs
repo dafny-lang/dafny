@@ -10693,14 +10693,27 @@ public class LitPattern : ExtendedPattern {
 
 public class IdPattern : ExtendedPattern {
   public String Id;
+
+  public Type Type; // This is the syntactic type, as extended patterns will dissapear before resolution
   public List<ExtendedPattern> Arguments;
 
   public IdPattern(IToken tok, String id, List<ExtendedPattern> arguments) : base(tok) {
     Contract.Requires(id != null);
     Contract.Requires(arguments != null); // Arguments can be empty, but shouldn't be null
     this.Id = id;
+    this.Type = new InferredTypeProxy();
     this.Arguments = arguments;
   }
+
+
+  public IdPattern(IToken tok, String id, Type type, List<ExtendedPattern> arguments) : base(tok) {
+    Contract.Requires(id != null);
+    Contract.Requires(arguments != null); // Arguments can be empty, but shouldn't be null
+    this.Id = id;
+    this.Type = type == null? new InferredTypeProxy(): type ;
+    this.Arguments = arguments;
+  }
+
   public override string ToString(){
     if(Arguments.Count == 0){
       return Id;

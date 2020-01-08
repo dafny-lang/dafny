@@ -2580,6 +2580,7 @@ ExistentialGuard<out Expression e, bool allowLambda>
 /*------------------------------------------------------------------------*/
 ExtendedPattern<.out ExtendedPattern pat.>
 = (. IToken id; List<ExtendedPattern> arguments; pat = null; LiteralExpr lit; Expression te;
+     BoundVar bv;
   .)
 ( IF(la.kind == _openparen)
     "("                                   (. arguments = new List<ExtendedPattern>(); .)
@@ -2590,20 +2591,23 @@ ExtendedPattern<.out ExtendedPattern pat.>
                                              theBuiltIns.TupleType(id, arguments.Count, true); // make sure the tuple type exists
                                              string ctor = BuiltIns.TupleTypeCtorNamePrefix + arguments.Count;  //use the TupleTypeCtors
                                              pat = new IdPattern(id, ctor, arguments); .)
-|  ConstAtomExpression<out te, false, false> (. if (te is LiteralExpr){
-                                                lit = (LiteralExpr)te;
-                                                pat = new LitPattern(lit.tok, lit);
-                                               } else { SemErr(t, "invalid AtomConst used in pattern");
-                                                        pat = null; }
-                                             .)
-| Ident<out id>                         (. arguments = new List<ExtendedPattern>(); .)
+| IF(IsIdentParen())
+ Ident<out id>                         (. arguments = new List<ExtendedPattern>(); .)
   [ "("
     [ ExtendedPattern<out pat>            (. arguments.Add(pat); .)
       { "," ExtendedPattern<out pat>      (. arguments.Add(pat); .)
       }
     ]
   ")"
-  ]                                     (. pat = new IdPattern(id, id.val, arguments); .)
+  ]
+                                    (. pat = new IdPattern(id, id.val, arguments); .)
+|  ConstAtomExpression<out te, false, false> (. if (te is LiteralExpr){
+                                                lit = (LiteralExpr)te;
+                                                pat = new LitPattern(lit.tok, lit);
+                                               } else { SemErr(t, "invalid AtomConst used in pattern");
+                                                        pat = null; }
+                                             .)
+| IdentTypeOptional<out bv>          (. pat = new IdPattern(bv.tok, bv.Name, bv.SyntacticType, new List<ExtendedPattern>()); .)
 )
 (. // In case of parsing errors, make sure 'pat' still returns as non-null
    if (pat == null) {

@@ -3932,6 +3932,7 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, st
 
 	void ExtendedPattern(out ExtendedPattern pat) {
 		IToken id; List<ExtendedPattern> arguments; pat = null; LiteralExpr lit; Expression te;
+		BoundVar bv;
 		
 		if (la.kind == _openparen) {
 			Expect(79);
@@ -3950,15 +3951,7 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, st
 			theBuiltIns.TupleType(id, arguments.Count, true); // make sure the tuple type exists
 			string ctor = BuiltIns.TupleTypeCtorNamePrefix + arguments.Count;  //use the TupleTypeCtors
 			pat = new IdPattern(id, ctor, arguments); 
-		} else if (StartOf(32)) {
-			ConstAtomExpression(out te, false, false);
-			if (te is LiteralExpr){
-			lit = (LiteralExpr)te;
-			pat = new LitPattern(lit.tok, lit);
-			} else { SemErr(t, "invalid AtomConst used in pattern");
-			       pat = null; }
-			
-		} else if (la.kind == 1) {
+		} else if (IsIdentParen()) {
 			Ident(out id);
 			arguments = new List<ExtendedPattern>(); 
 			if (la.kind == 79) {
@@ -3975,6 +3968,17 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, st
 				Expect(80);
 			}
 			pat = new IdPattern(id, id.val, arguments); 
+		} else if (StartOf(32)) {
+			ConstAtomExpression(out te, false, false);
+			if (te is LiteralExpr){
+			lit = (LiteralExpr)te;
+			pat = new LitPattern(lit.tok, lit);
+			} else { SemErr(t, "invalid AtomConst used in pattern");
+			       pat = null; }
+			
+		} else if (la.kind == 1) {
+			IdentTypeOptional(out bv);
+			pat = new IdPattern(bv.tok, bv.Name, bv.SyntacticType, new List<ExtendedPattern>()); 
 		} else SynErr(249);
 		if (pat == null) {
 		 pat = new IdPattern(t, "_ParseError", new List<ExtendedPattern>());
