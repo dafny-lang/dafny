@@ -5072,17 +5072,28 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, st
 	void SeqConstructionExpr(out Expression e) {
 		Contract.Ensures(Contract.ValueAtReturn(out e) != null);
 		IToken x = null;
+		Type explicitTypeArg = null;
 		Expression n, f;
 		e = dummyExpr;
 		
 		Expect(20);
 		x = t; 
+		if (la.kind == 81) {
+			var gt = new List<Type>(); 
+			GenericInstantiation(gt);
+			if (gt.Count > 1) {
+			 SemErr("seq type expects only one type argument");
+			} else {
+			 explicitTypeArg = gt[0];
+			}
+			
+		}
 		Expect(79);
 		Expression(out n, true, true);
 		Expect(26);
 		Expression(out f, true, true);
 		Expect(80);
-		e = new SeqConstructionExpr(x, n, f); 
+		e = new SeqConstructionExpr(x, explicitTypeArg, n, f); 
 	}
 
 	void ConstAtomExpression(out Expression e, bool allowSemi, bool allowLambda) {
