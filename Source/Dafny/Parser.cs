@@ -958,9 +958,8 @@ int StringToInt(string s, int defaultValue, string errString) {
 				Get();
 				ModuleName(out idRefined);
 			}
-			module = new ModuleDefinition(id, id.val, prefixIds, isAbstract, isProtected, false, idRefined, parent, attrs, false);
-			module.IsToBeVerified = theVerifyThisFile; 
-			module.IsToBeCompiled = theCompileThisFile; 
+			module = new ModuleDefinition(id, id.val, prefixIds, isAbstract, isProtected, false, idRefined, parent, attrs,
+				                          false, theVerifyThisFile, theCompileThisFile); 
 			
 			Expect(75);
 			module.BodyStartTok = t; 
