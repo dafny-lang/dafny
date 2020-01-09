@@ -969,10 +969,13 @@ namespace Microsoft.Dafny{
         Contract.Assert(rhs == null); // follows from precondition
       } else if (rhs != null){
         wr.WriteLine($" = {rhs};");
+        wr.Write(wr.IndentString);
       } else if (type.IsIntegerType) {
         wr.WriteLine(" = java.math.BigInteger.ZERO;");
+        wr.Write(wr.IndentString);
       } else {
         wr.WriteLine(";");
+        wr.Write(wr.IndentString);
       }
     }
 
