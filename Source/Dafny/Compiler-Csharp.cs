@@ -2410,6 +2410,11 @@ namespace Microsoft.Dafny
       var crx = (CSharpCompilationResult)compilationResult;
       var cr = crx.cr;
 
+      // Dynamically load the DLL files the target program depends on
+      foreach (var otherFileName in otherFileNames) {
+        Assembly.LoadFile(Path.GetFullPath(otherFileName));
+      }
+      
       var assemblyName = Path.GetFileName(cr.PathToAssembly);
       var entry = cr.CompiledAssembly.EntryPoint;
       try {
