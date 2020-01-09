@@ -624,15 +624,6 @@ let _dafny = (function() {
       }
       return s;
     }
-    IsDisjointFrom(that) {
-      for (let e of this) {
-        let [k, v] = e;
-        if (that.contains(k)) {
-          return false;
-        }
-      }
-      return true;
-    }
   }
   $module.newArray = function(initValue, ...dims) {
     return { dims: dims, elmts: buildArray(initValue, ...dims) };

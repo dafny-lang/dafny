@@ -774,7 +774,7 @@ namespace Microsoft.Dafny
       var hasDllImportAttribute = ProcessDllImport(member, wr);
 
       var customReceiver = NeedsCustomReceiver(member);
-      
+
       AddTestCheckerIfNeeded(name, member, wr);
       wr.Write("{0}{1}{2}{3} {4}", createBody ? "public " : "", isStatic || customReceiver ? "static " : "", hasDllImportAttribute ? "extern " : "", TypeName(resultType, wr, tok), name);
       if (typeArgs != null && typeArgs.Count != 0) {
@@ -2057,7 +2057,6 @@ namespace Microsoft.Dafny
           callString = "IsProperSupersetOf"; break;
         case BinaryExpr.ResolvedOpcode.Disjoint:
         case BinaryExpr.ResolvedOpcode.MultiSetDisjoint:
-        case BinaryExpr.ResolvedOpcode.MapDisjoint:
           callString = "IsDisjointFrom"; break;
         case BinaryExpr.ResolvedOpcode.InSet:
         case BinaryExpr.ResolvedOpcode.InMultiSet:

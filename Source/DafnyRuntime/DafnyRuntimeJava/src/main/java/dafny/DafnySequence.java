@@ -136,6 +136,10 @@ public abstract class DafnySequence<T> implements Iterable<T> {
 
     public abstract int length();
 
+    public final int cardinalityInt() {
+        return length();
+    }
+
     public abstract DafnySequence<T> update(int i, T t);
 
     public DafnySequence<T> update(BigInteger b, T t) {

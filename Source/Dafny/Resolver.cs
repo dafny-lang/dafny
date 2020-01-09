@@ -4014,7 +4014,7 @@ namespace Microsoft.Dafny
             satisfied = (t is SetType && ((SetType)t).Finite) || t is MultiSetType || t is SeqType || (t is MapType && ((MapType)t).Finite);
             break;
           case "Disjointable":
-            satisfied = t is SetType || t is MultiSetType || t is MapType;
+            satisfied = t is SetType || t is MultiSetType;
             break;
           case "MultiSetConvertible":
             satisfied = (t is SetType && ((SetType)t).Finite) || t is SeqType;
@@ -12002,7 +12002,7 @@ namespace Microsoft.Dafny
             Type disjointArgumentsType = new InferredTypeProxy();
             ConstrainSubtypeRelation(disjointArgumentsType, e.E0.Type, expr, "arguments to {2} must have a common supertype (got {0} and {1})", e.E0.Type, e.E1.Type, BinaryExpr.OpcodeString(e.Op));
             ConstrainSubtypeRelation(disjointArgumentsType, e.E1.Type, expr, "arguments to {2} must have a common supertype (got {0} and {1})", e.E0.Type, e.E1.Type, BinaryExpr.OpcodeString(e.Op));
-            AddXConstraint(expr.tok, "Disjointable", disjointArgumentsType, "arguments must be of a [multi]set or map type (got {0})");
+            AddXConstraint(expr.tok, "Disjointable", disjointArgumentsType, "arguments must be of a set or multiset type (got {0})");
             expr.Type = Type.Bool;
             break;
 
@@ -14958,8 +14958,6 @@ namespace Microsoft.Dafny
         case BinaryExpr.Opcode.Disjoint:
           if (operandType is MultiSetType) {
             return BinaryExpr.ResolvedOpcode.MultiSetDisjoint;
-          } else if (operandType is MapType) {
-            return BinaryExpr.ResolvedOpcode.MapDisjoint;
           } else {
             return BinaryExpr.ResolvedOpcode.Disjoint;
           }

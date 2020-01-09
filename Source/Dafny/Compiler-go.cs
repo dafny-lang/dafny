@@ -2910,7 +2910,6 @@ namespace Microsoft.Dafny {
           callString = "IsProperSupersetOf"; break;
         case BinaryExpr.ResolvedOpcode.Disjoint:
         case BinaryExpr.ResolvedOpcode.MultiSetDisjoint:
-        case BinaryExpr.ResolvedOpcode.MapDisjoint:
           callString = "IsDisjointFrom"; break;
         case BinaryExpr.ResolvedOpcode.InSet:
         case BinaryExpr.ResolvedOpcode.InMultiSet:
@@ -3383,13 +3382,7 @@ namespace Microsoft.Dafny {
       var tgtFilename = Path.Combine(tgtDir, pkgName + ".go");
 
       Directory.CreateDirectory(tgtDir);
-      using (var rd = new StreamReader(new FileStream(externFilename, FileMode.Open, FileAccess.Read))) {
-        using (var wr = new StreamWriter(new FileStream(tgtFilename, FileMode.OpenOrCreate, FileAccess.Write))) {
-          while (rd.ReadLine() is string line) {
-            wr.WriteLine(line);
-          }
-        }
-      }
+      File.Copy(externFilename, tgtFilename, overwrite: true);
 
       string relTgtFilename;
       var cwd = Directory.GetCurrentDirectory();
