@@ -5,22 +5,20 @@
 module Library {
   import OpaqueFunctions
   import AutoGhostRegression
-  //SOON: import ExternCode
+  import ExternCode
 
   method EntryPoint() {
     print "hello from the library\n";
 
     OpaqueFunctions.IsFive();
     AutoGhostRegression.Q();
-    //SOON: ExternCode.C();
+    ExternCode.C();
   }
 }
 
-/*SOON:
 module {:extern "ExternCode"} ExternCode {
   method {:extern} C()
 }
- */
 
 // ---------- regression tests ---------------
 
