@@ -9228,13 +9228,15 @@ namespace Microsoft.Dafny {
 
   public class SeqConstructionExpr : Expression
   {
+    public Type/*?*/ ExplicitElementType;
     public Expression N;
     public Expression Initializer;
-    public SeqConstructionExpr(IToken tok, Expression length, Expression initializer)
+    public SeqConstructionExpr(IToken tok, Type/*?*/ elementType, Expression length, Expression initializer)
       : base(tok) {
       Contract.Requires(tok != null);
       Contract.Requires(length != null);
       Contract.Requires(initializer != null);
+      ExplicitElementType = elementType;
       N = length;
       Initializer = initializer;
     }

@@ -44,6 +44,13 @@ so these instructions mostly apply to people interested in looking at Dafny's so
 7. In Visual Studio Code, open any `.dfy` file, and when asked if you want to install the Dafny extension, click "install". This will install both the latest release of Dafny (which you decided not to use), but also the editor extension (which you want to use with your locally compiled Dafny version). To make sure the editor extension uses your locally compiled Dafny version, open the Settings page, search for "dafny base path", and set it to `BASE-DIRECTORY/dafny/Binaries`.
 
 
+8. (Optional -- for testing) The Dafny test infrastructure uses a python tool 'lit'. Install it as follows:
+   * install python (https://www.python.org/downloads/)
+   * install pip (https://pip.readthedocs.io/en/stable/installing/)
+   * run "pip install lit" and "pip install OutputCheck"     
+Navigate to the Test directory in the repo and run 'lit .' 
+The tests take a while, depending on your machine, but emit progress output.
+
 Building on Mac OS X
 ====================
 
@@ -99,3 +106,10 @@ Dafny's sources or who want to use the latest features from the master branch.
 6. Run Dafny using the `dafny` shell script in the Binaries directory (it calls mono as appropriate)
 
 7. In Visual Studio Code, open any `.dfy` file, and when asked if you want to install the Dafny extension, click "install". This will install both the latest release of Dafny (which you decided not to use), but also the editor extension (which you want to use with your locally compiled Dafny version). To make sure the editor extension uses your locally compiled Dafny version, open the Settings page, search for "dafny base path", and set it to `BASE-DIRECTORY/dafny/Binaries`.
+
+8. (Optional -- for testing) The Dafny test infrastructure uses a python tool 'lit'. Install it as follows:
+   * install python (https://www.python.org/downloads/)
+   * install pip (https://pip.readthedocs.io/en/stable/installing/)
+   * run "pip install lit" and "pip install OutputCheck"	
+Navigate to the Test directory in the repo and run 'lit .'
+The tests take a while, depending on your machine, but emit progress output.

@@ -362,7 +362,8 @@ namespace Microsoft.Dafny
 
       } else if (expr is SeqConstructionExpr) {
         var e = (SeqConstructionExpr)expr;
-        return new SeqConstructionExpr(Tok(e.tok), CloneExpr(e.N), CloneExpr(e.Initializer));
+        var elemType = e.ExplicitElementType == null ? null : CloneType(e.ExplicitElementType);
+        return new SeqConstructionExpr(Tok(e.tok), elemType, CloneExpr(e.N), CloneExpr(e.Initializer));
 
       } else if (expr is MultiSetFormingExpr) {
         var e = (MultiSetFormingExpr)expr;

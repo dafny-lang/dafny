@@ -7365,7 +7365,7 @@ namespace Microsoft.Dafny {
           "sequence size might be negative"));
 
         CheckWellformed(e.Initializer, options, locals, builder, etran);
-        var eType = e.Type.AsSeqType.Arg.NormalizeExpand();
+        var eType = e.Type.AsSeqType.Arg;
         CheckElementInit(e.tok, false, new List<Expression>() {e.N}, eType, e.Initializer, null, builder, etran, options);
       } else if (expr is MultiSetFormingExpr) {
         MultiSetFormingExpr e = (MultiSetFormingExpr)expr;
@@ -7580,7 +7580,16 @@ namespace Microsoft.Dafny {
             });
           }
           BplIfIf(e.tok, guard != null, guard, newBuilder, b => {
-            CheckWellformed(body, newOptions, locals, b, newEtran);
+            Bpl.Expr resultIe = null;
+            Type rangeType = null;
+            if (lam != null) {
+              var resultName = CurrentIdGenerator.FreshId("lambdaResult#");
+              var resultVar = new Bpl.LocalVariable(body.tok, new Bpl.TypedIdent(body.tok, resultName, TrType(body.Type)));
+              locals.Add(resultVar);
+              resultIe = new Bpl.IdentifierExpr(body.tok, resultVar);
+              rangeType = lam.Type.AsArrowType.Result;
+            }
+            CheckWellformedWithResult(body, newOptions, resultIe, rangeType, locals, b, newEtran);
           });
 
           if (mc != null) {
@@ -11770,8 +11779,11 @@ namespace Microsoft.Dafny {
       // Translate receiver argument, if any
       Expression receiver = bReceiver == null ? dafnyReceiver : new BoogieWrapper(bReceiver, dafnyReceiver.Type);
       if (!method.IsStatic && !(method is Constructor)) {
-        if (bReceiver == null && !(dafnyReceiver is ThisExpr)) {
-          CheckNonNull(dafnyReceiver.tok, dafnyReceiver, builder, etran, null);
+        if (bReceiver == null) {
+          TrStmt_CheckWellformed(dafnyReceiver, builder, locals, etran, true);
+          if (!(dafnyReceiver is ThisExpr)) {
+            CheckNonNull(dafnyReceiver.tok, dafnyReceiver, builder, etran, null);
+          }
         }
         ins.Add(etran.TrExpr(receiver));
       }
@@ -17745,7 +17757,7 @@ namespace Microsoft.Dafny {
           var sn = Substitute(e.N);
           var sinit = Substitute(e.Initializer);
           if (sn != e.N || sinit != e.Initializer) {
-            newExpr = new SeqConstructionExpr(expr.tok, sn, sinit);
+            newExpr = new SeqConstructionExpr(expr.tok, e.ExplicitElementType, sn, sinit);
           }
         } else if (expr is MultiSetFormingExpr) {
           var e = (MultiSetFormingExpr)expr;

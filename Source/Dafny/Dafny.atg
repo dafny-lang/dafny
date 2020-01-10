@@ -3391,15 +3391,24 @@ MultiSetExpr<out Expression e>
 SeqConstructionExpr<out Expression e>
 = (. Contract.Ensures(Contract.ValueAtReturn(out e) != null);
      IToken x = null;
+     Type explicitTypeArg = null;
      Expression n, f;
      e = dummyExpr;
   .)
   "seq"                          (. x = t; .)
+  [ (. var gt = new List<Type>(); .)
+    GenericInstantiation<gt>     (. if (gt.Count > 1) {
+                                      SemErr("seq type expects only one type argument");
+                                    } else {
+                                      explicitTypeArg = gt[0];
+                                    }
+                                 .)
+  ]
   "("
   Expression<out n, true, true>
   ","
   Expression<out f, true, true>
-  ")"                            (. e = new SeqConstructionExpr(x, n, f); .)
+  ")"                            (. e = new SeqConstructionExpr(x, explicitTypeArg, n, f); .)
   .
 MapDisplayExpr<IToken/*!*/ mapToken, bool finite, out Expression e>
 = (. Contract.Ensures(Contract.ValueAtReturn(out e) != null);
