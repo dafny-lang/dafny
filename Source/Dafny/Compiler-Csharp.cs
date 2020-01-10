@@ -2411,7 +2411,9 @@ namespace Microsoft.Dafny
 
       // Dynamically load the DLL files the target program depends on
       foreach (var otherFileName in otherFileNames) {
-        Assembly.LoadFile(Path.GetFullPath(otherFileName));
+        if (Path.GetExtension(otherFileName) == "dll") {
+          Assembly.LoadFile(Path.GetFullPath(otherFileName));
+        }
       }
       
       var assemblyName = Path.GetFileName(cr.PathToAssembly);
