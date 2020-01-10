@@ -10,4 +10,6 @@ git-issue-478-errors.dfy(41,7): Error: Import declaration uses same name as a mo
 git-issue-478-errors.dfy(44,7): Error: Duplicate name of import: N
 git-issue-478-errors.dfy(48,14): Error: Import declaration uses same name as a module in the same scope: AA
 git-issue-478-errors.dfy(49,14): Error: Import declaration uses same name as a module in the same scope: BB
-12 resolution/type errors detected in git-issue-478-errors.dfy
+git-issue-478-errors.dfy(59,14): Error: Import declaration uses same name as a module in the same scope: X
+git-issue-478-errors.dfy(65,14): Error: Duplicate name of import: R
+14 resolution/type errors detected in git-issue-478-errors.dfy

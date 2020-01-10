@@ -1354,7 +1354,7 @@ namespace Microsoft.Dafny
             Contract.Assert(yes);
             if (prevDecl is ModuleFacadeDecl || prevDecl is AliasModuleDecl) {
               reporter.Error(MessageSource.Resolver, subdecl.tok, "Duplicate name of import: {0}", subdecl.Name);
-            } else if (tld is AliasModuleDecl importDecl && importDecl.Opened && importDecl.Name == importDecl.Path.Last().val) {
+            } else if (tld is AliasModuleDecl importDecl && importDecl.Opened && importDecl.Path.Count == 1 && importDecl.Name == importDecl.Path[0].val) {
               importDecl.ShadowsLiteralModule = true;
             } else {
               reporter.Error(MessageSource.Resolver, subdecl.tok, "Import declaration uses same name as a module in the same scope: {0}", subdecl.Name);

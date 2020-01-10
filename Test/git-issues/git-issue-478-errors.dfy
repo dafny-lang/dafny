@@ -47,3 +47,19 @@ module AA { }
 module BB { }
 import opened AA = BB  // error: can only reuse the name AA if RHS of import is AA, too
 import opened BB = AA  // error: can only reuse the name BB if RHS of import is BB, too
+
+module X {
+  const x := 12
+}
+module Y {
+  module X {
+    const x := 10
+  }
+}
+import opened X = Y.X  // error: import name same as a module's name
+
+module S {
+  module R { }
+}
+import opened R = S.R
+import opened R = S.R  // error: duplicate name of import
