@@ -1312,6 +1312,7 @@ namespace Microsoft.Dafny
       }
       moduleDecl.PrefixNamedModules.Clear();
 
+      // First, register all literal modules, and transferring their prefix-named modules downwards
       foreach (var tld in moduleDecl.TopLevelDecls) {
         if (tld is LiteralModuleDecl) {
           var subdecl = (LiteralModuleDecl)tld;
@@ -1324,29 +1325,9 @@ namespace Microsoft.Dafny
             prefixModules = null;
           }
           BindModuleName_LiteralModuleDecl(subdecl, prefixModules, bindings);
-        } else if (tld is ModuleFacadeDecl) {
-          var subdecl = (ModuleFacadeDecl)tld;
-          if (!bindings.BindName(subdecl.Name, subdecl, null)) {
-            if (tld.Module.IsDefaultModule) {
-              // the import is not in a module.
-              reporter.Error(MessageSource.Resolver, subdecl.tok, "Can't import module {0} when not inside of a module", subdecl.Name);
-            } else {
-              reporter.Error(MessageSource.Resolver, subdecl.tok, "Duplicate module name: {0}", subdecl.Name);
-            }
-          }
-        } else if (tld is AliasModuleDecl) {
-          var subdecl = (AliasModuleDecl)tld;
-          if (!bindings.BindName(subdecl.Name, subdecl, null)) {
-            if (tld.Module.IsDefaultModule) {
-              // the import is not in a module.
-              reporter.Error(MessageSource.Resolver, subdecl.tok, "Can't import module {0} when not inside of a module", subdecl.Name);
-            } else {
-              reporter.Error(MessageSource.Resolver, subdecl.tok, "Duplicate module name: {0}", subdecl.Name);
-            }
-          }
         }
       }
-      // add new modules for any remaining entries in "prefixNames"
+      // Next, add new modules for any remaining entries in "prefixNames".
       foreach (var entry in prefixNames) {
         var name = entry.Key;
         var prefixNamedModules = entry.Value;
@@ -1359,6 +1340,27 @@ namespace Microsoft.Dafny
         var subdecl = new LiteralModuleDecl(modDef, moduleDecl);
         moduleDecl.TopLevelDecls.Add(subdecl);
         BindModuleName_LiteralModuleDecl(subdecl, prefixNamedModules.ConvertAll(ShortenPrefix), bindings);
+      }
+      // Finally, go through import declarations (that is, ModuleFacadeDecl's and AliasModuleDecl's).
+      foreach (var tld in moduleDecl.TopLevelDecls) {
+        if (tld is ModuleFacadeDecl || tld is AliasModuleDecl) {
+          var subdecl = (ModuleDecl)tld;
+          if (bindings.BindName(subdecl.Name, subdecl, null)) {
+            // the add was successful
+          } else {
+            // there's already something with this name
+            ModuleDecl prevDecl;
+            var yes = bindings.TryLookup(subdecl.tok, out prevDecl);
+            Contract.Assert(yes);
+            if (prevDecl is ModuleFacadeDecl || prevDecl is AliasModuleDecl) {
+              reporter.Error(MessageSource.Resolver, subdecl.tok, "Duplicate name of import: {0}", subdecl.Name);
+            } else if (tld is AliasModuleDecl importDecl && importDecl.Opened && importDecl.Path.Count == 1 && importDecl.Name == importDecl.Path[0].val) {
+              importDecl.ShadowsLiteralModule = true;
+            } else {
+              reporter.Error(MessageSource.Resolver, subdecl.tok, "Import declaration uses same name as a module in the same scope: {0}", subdecl.Name);
+            }
+          }
+        }
       }
       return bindings;
     }
@@ -1594,6 +1596,7 @@ namespace Microsoft.Dafny
       // This is solely used to detect duplicates amongst the various e
       Dictionary<string, TopLevelDecl> toplevels = new Dictionary<string, TopLevelDecl>();
       // Now add the things present
+      var anonymousImportCount = 0;
       foreach (TopLevelDecl d in declarations) {
         Contract.Assert(d != null);
 
@@ -1602,19 +1605,33 @@ namespace Microsoft.Dafny
         }
 
         // register the class/datatype/module name
-        if (d is ModuleExportDecl export) {
-          if (sig.ExportSets.ContainsKey(d.Name)) {
-            reporter.Error(MessageSource.Resolver, d, "duplicate name of export set: {0}", d.Name);
+        {
+          TopLevelDecl registerThisDecl = null;
+          string registerUnderThisName = null;
+          if (d is ModuleExportDecl export) {
+            if (sig.ExportSets.ContainsKey(d.Name)) {
+              reporter.Error(MessageSource.Resolver, d, "duplicate name of export set: {0}", d.Name);
+            } else {
+              sig.ExportSets[d.Name] = export;
+            }
+          } else if (d is AliasModuleDecl importDecl && importDecl.ShadowsLiteralModule) {
+            // add under an anonymous name
+            registerThisDecl = d;
+            registerUnderThisName = string.Format("{0}#{1}", d.Name, anonymousImportCount);
+            anonymousImportCount++;
+          } else if (toplevels.ContainsKey(d.Name)) {
+            reporter.Error(MessageSource.Resolver, d, "duplicate name of top-level declaration: {0}", d.Name);
+          } else if (d is ClassDecl cl && cl.NonNullTypeDecl != null) {
+            registerThisDecl = cl.NonNullTypeDecl;
+            registerUnderThisName = d.Name;
           } else {
-            sig.ExportSets[d.Name] = export;
+            registerThisDecl = d;
+            registerUnderThisName = d.Name;
           }
-        } else if (toplevels.ContainsKey(d.Name)) {
-          reporter.Error(MessageSource.Resolver, d, "duplicate name of top-level declaration: {0}", d.Name);
-        } else {
-          var cl = d as ClassDecl;
-          TopLevelDecl dprime = cl != null && cl.NonNullTypeDecl != null ? cl.NonNullTypeDecl : d;
-          toplevels[d.Name] = dprime;
-          sig.TopLevels[d.Name] = dprime;
+          if (registerThisDecl != null) {
+            toplevels[registerUnderThisName] = registerThisDecl;
+            sig.TopLevels[registerUnderThisName] = registerThisDecl;
+          }
         }
         if (d is ModuleDecl) {
           // nothing to do
