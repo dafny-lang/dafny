@@ -173,6 +173,6 @@ class SequenceTest {
   @Test
   void testNullMembers() {
     Integer[] testNulls = new Integer[]{3, null, 2};
-    assertThrows(AssertionError.class, () -> DafnySequence.of(Type.INT, testNulls));
+    assertThrows(NullPointerException.class, () -> DafnySequence.of(Type.INT, testNulls));
   }
 }
