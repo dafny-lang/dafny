@@ -47,7 +47,7 @@ namespace Microsoft.Dafny {
         foreach (var adata in asm.CustomAttributes) {
           if (adata.Constructor.DeclaringType.Name == "DafnySourceAttribute") {
             foreach (var args in adata.ConstructorArguments) {
-              if (args.Type.Name == "String") {
+              if (args.Type.FullName == "System.String") {
                 sourceText = (string)args.Value;
               }
             }
