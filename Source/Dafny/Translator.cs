@@ -6155,13 +6155,14 @@ namespace Microsoft.Dafny {
         } else {
           Contract.Assert(Bpl.Type.Equals(local.TypedIdent.Type, TrType(p.Type)));
         }
-        Type t = mc.Ctor.Formals[i].Type;
+        var pTypeBase = p.Type.NormalizeExpand();
         var pIsAlloc = (isAlloc == ISALLOC) ? isAllocContext.Var(p) : NOALLOC;
-        Bpl.Expr wh = GetWhereClause(p.tok, new Bpl.IdentifierExpr(p.tok, local), p.Type, etran, pIsAlloc);
+        Bpl.Expr wh = GetWhereClause(p.tok, new Bpl.IdentifierExpr(p.tok, local), pTypeBase, etran, pIsAlloc);
         if (wh != null) {
           localTypeAssumptions.Add(TrAssumeCmd(p.tok, wh));
         }
-        args.Add(CondApplyBox(mc.tok, new Bpl.IdentifierExpr(p.tok, local), cce.NonNull(p.Type), t));
+        CheckSubrange(p.tok, new Bpl.IdentifierExpr(p.tok, local), pTypeBase, p.Type, localTypeAssumptions);
+        args.Add(CondApplyBox(mc.tok, new Bpl.IdentifierExpr(p.tok, local), cce.NonNull(p.Type), mc.Ctor.Formals[i].Type));
       }
       Bpl.IdentifierExpr id = new Bpl.IdentifierExpr(mc.tok, mc.Ctor.FullName, predef.DatatypeType);
       return new Bpl.NAryExpr(mc.tok, new Bpl.FunctionCall(id), args);
