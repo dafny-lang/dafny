@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <OutputType>Library</OutputType>
+        <AssemblyName>DafnyRuntime</AssemblyName>
+        <TargetFramework>netstandard1.1</TargetFramework>
+        <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+        <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <PackageReference Include="System.Runtime.Numerics" Version="4.3.0" />
+    </ItemGroup>
+
+</Project>
