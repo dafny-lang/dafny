@@ -123,6 +123,7 @@ method Main() {
   // Upcast via function call
   CallEm(c, t, i);
   DependentStaticConsts.Test();
+  NewtypeWithMethods.Test();
 }
 
 module Module1 {
@@ -148,5 +149,27 @@ module DependentStaticConsts {
   method Test()
   {
     print Suite[B], " ", Suite[D], "\n";  // hi later
+  }
+}
+
+newtype NewtypeWithMethods = x | 0 <= x < 42 {
+  function method double() : int {
+    this as int * 2
+  }
+
+  method divide(d : NewtypeWithMethods) returns (q : int, r : int) requires d != 0 {
+    q := (this / d) as int;
+    r := (this % d) as int;
+  }
+
+  static method Test() {
+    var a : NewtypeWithMethods := 21;
+    var b : NewtypeWithMethods;
+    b := 4;
+    var q : int;
+    var r : int;
+    q, r := a.divide(b);
+
+    print a, " ", b, " ", a.double(), " ", q, " ", r, "\n";
   }
 }

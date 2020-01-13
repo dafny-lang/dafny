@@ -1,11 +1,11 @@
 
-Dafny program verifier finished with 19 verified, 0 errors
+Dafny program verifier finished with 20 verified, 0 errors
 0 0 0 false Color.Orange 0.0 {}
 null null null null null
 {} multiset{} [] map[] {} map[]
 null null null null
-0 [] {} 0 Dt.D0(0)
-false Color.Orange {} false Dt.D0(false)
+0 [] Q {} 0 Dt.D0(0)
+false Color.Orange 42 {} false Dt.D0(false)
 NonemptyList.Atom(0)
 6 7 8 9
 true true
@@ -19,13 +19,13 @@ System.Func`2[Dafny.BigRational,System.Boolean]
 System.Func`1[System.Numerics.BigInteger]
 System.Func`3[_module.Color,Dafny.Set`1[System.UInt16],System.UInt32]
 
-Dafny program verifier finished with 19 verified, 0 errors
+Dafny program verifier finished with 20 verified, 0 errors
 0 0 0 false Color.Orange 0.0 {}
 null null null null null
 {} multiset{} [] map[] {} map[]
 null null null null
-0 [] {} 0 Dt.D0(0)
-false Color.Orange {} false Dt.D0(false)
+0 [] Q {} 0 Dt.D0(0)
+false Color.Orange 42 {} false Dt.D0(false)
 NonemptyList.Atom(0)
 6 7 8 9
 true true
@@ -39,13 +39,13 @@ function () { return false; }
 function () { return new BigNumber(0); }
 function () { return new BigNumber(0); }
 
-Dafny program verifier finished with 19 verified, 0 errors
+Dafny program verifier finished with 20 verified, 0 errors
 0 0 0 false Color.Orange 0.0 {}
 null null null null null
 {} multiset{} [] map[] {} map[]
 null null null null
-0 [] {} 0 Dt.D0(0)
-false Color.Orange {} false Dt.D0(false)
+0 [] Q {} 0 Dt.D0(0)
+false Color.Orange 42 {} false Dt.D0(false)
 NonemptyList.Atom(0)
 6 7 8 9
 true true
@@ -59,13 +59,13 @@ func(dafny.Real) bool
 func() dafny.Int
 func(main.Color, dafny.Set) uint32
 
-Dafny program verifier finished with 19 verified, 0 errors
+Dafny program verifier finished with 20 verified, 0 errors
 0 0 0 false Color.Orange 0.0 {}
 null null null null null
 {} multiset{} [] map[] {} map[]
 null null null null
-0 [] {} 0 Dt.D0()
-false Color.Orange {} false Dt.D0()
+0 [] Q {} 0 Dt.D0()
+false Color.Orange 42 {} false Dt.D0()
 NonemptyList.Atom()
 6 7 8 9
 true true

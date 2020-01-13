@@ -65,9 +65,9 @@ method GimmieMore<R(0), S(0)>() returns (r: R, s: S) { }
 // ---------- type parameters ----------
 
 method Tp() {
-  var c := new Cl<int, seq<bool>>();
+  var c := new Cl<int, seq<bool>, char>('Q');
   c.Print();
-  var d := new Cl<bool, Color>();
+  var d := new Cl<bool, Color, int>(42);
   d.Print();
   var n: NonemptyList<bv7> := Gimmie();
   print n, "\n";
@@ -75,16 +75,18 @@ method Tp() {
 
 datatype Dt<G> = D0(G) | D1(G)
 
-class Cl<X(==,0),Y(0)> {
+class Cl<X(==,0),Y(0),Z> {
   var x: X
   var y: Y
+  var zed: Z
   var u: set<X>
 
-  constructor () {
+  constructor (zed : Z) {
+    this.zed := zed;
   }
 
   method Print() {
-    print x, " ", y, " ", u, " ";
+    print x, " ", y, " ", zed, " ", u, " ";
     var w: X;
     var d: Dt<X>;
     print w, " ", d, "\n";

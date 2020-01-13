@@ -26,6 +26,7 @@ newtype {:nativeType "ulong"} uint64 = x : int | 0 <= x < 0x1_0000_0000_0000_000
 method CastTests() {
   print "Casting:\n\n";
 
+  print "Small numbers:\n";
   var i : int := 0;
   print i as int, " ",
     i as int8, " ", i as int16, " ", i as int32, " ", i as int64, " ",
@@ -71,6 +72,7 @@ method CastTests() {
     u64 as int8, " ", u64 as int16, " ", u64 as int32, " ", u64 as int64, " ",
     u64 as uint8, " ", u64 as uint16, " ", u64 as uint32, " ", u64 as uint64, "\n";
 
+  print "\nLarge unsigned numbers:\n";
   u8 := 0xff;
   print u8 as int, " ",
     u8 as int16, " ", u8 as int32, " ", u8 as int64, " ",
@@ -90,6 +92,7 @@ method CastTests() {
   print u64 as int, " ",
     u64 as uint64, "\n";
 
+  print "\nInt to large unsigned:\n";
   i := 0xff;
   print i as uint8, " ";
 
@@ -101,6 +104,32 @@ method CastTests() {
 
   i := 0xffff_ffff_ffff_ffff;
   print i as uint64, "\n";
+
+  print "\nCast from cardinality operator:\n";
+  var s : set<int> := {};
+  print |s| as int, " ",
+    |s| as int8, " ", |s| as int16, " ", |s| as int32, " ", |s| as int64, " ",
+    |s| as uint8, " ", |s| as uint16, " ", |s| as uint32, " ", |s| as uint64, "\n";
+
+  var m : multiset<int> := multiset{1};
+  print |m| as int, " ",
+    |m| as int8, " ", |m| as int16, " ", |m| as int32, " ", |m| as int64, " ",
+    |m| as uint8, " ", |m| as uint16, " ", |m| as uint32, " ", |m| as uint64, "\n";
+
+  var q : seq<int> := [1,2];
+  print |q| as int, " ",
+    |q| as int8, " ", |q| as int16, " ", |q| as int32, " ", |q| as int64, " ",
+    |q| as uint8, " ", |q| as uint16, " ", |q| as uint32, " ", |q| as uint64, "\n";
+
+  var p : map<int, string> := map[1 := "one", 2 := "two", 3 := "three"];
+  print |p| as int, " ",
+    |p| as int8, " ", |p| as int16, " ", |p| as int32, " ", |p| as int64, " ",
+    |p| as uint8, " ", |p| as uint16, " ", |p| as uint32, " ", |p| as uint64, "\n";
+
+  var a : array<int> := new int[4];
+  print a.Length as int, " ",
+    a.Length as int8, " ", a.Length as int16, " ", a.Length as int32, " ", a.Length as int64, " ",
+    a.Length as uint8, " ", a.Length as uint16, " ", a.Length as uint32, " ", a.Length as uint64, "\n";
 
   print "\n";
 }

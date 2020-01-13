@@ -4,7 +4,6 @@ import java.math.BigInteger;
 import java.util.*;
 import java.util.function.Function;
 
-@SuppressWarnings("ALL")
 public abstract class DafnySequence<T> implements Iterable<T> {
     /*
     Invariant: forall 0<=i<length(). seq[i] == T || null
@@ -95,17 +94,31 @@ public abstract class DafnySequence<T> implements Iterable<T> {
         };
     }
 
-    public DafnySequence<T> concatenate(DafnySequence<T> other) {
+    public final DafnySequence<T> concatenate(DafnySequence<T> other) {
         assert other != null : "Precondition Violation";
-        Object[] newArray = new Object[this.length() + other.length()];
-        int i = 0;
-        for (T t : this) {
-            newArray[i++] = t;
+
+        if (this.isEmpty()) {
+            return other;
+        } else if (other.isEmpty()) {
+            return this;
+        } else {
+            return new ConcatDafnySequence<T>(this, other);
         }
-        for (T t : other) {
-            newArray[i++] = t;
-        }
-        return new ArrayDafnySequence<>(newArray);
+    }
+
+    /**
+     * Build a new sequence of the same type, and a known length, by copying
+     * from a number of existing ones.
+     *
+     * Not public; only meant to be used by {@link ConcatDafnySequence}.
+     */
+    abstract Copier<T> newCopier(int length);
+
+    /** @see #newCopier(int) */
+    interface Copier<T> {
+        public void copyFrom(DafnySequence<T> source);
+
+        public DafnySequence<T> result();
     }
 
     public abstract T select(int i);
@@ -135,6 +148,14 @@ public abstract class DafnySequence<T> implements Iterable<T> {
     }
 
     public abstract int length();
+
+    public boolean isEmpty() {
+        return this.length() == 0;
+    }
+
+    public final int cardinalityInt() {
+        return length();
+    }
 
     public abstract DafnySequence<T> update(int i, T t);
 
@@ -311,22 +332,35 @@ final class ArrayDafnySequence<T> extends DafnySequence<T> {
     }
 
     @Override
-    @SuppressWarnings("unchecked")
-    protected List<T> asList() {
-        return (List) Arrays.asList(seq);
+    Copier<T> newCopier(final int length) {
+        return new Copier<T>() {
+            private final Object[] newArray = new Object[length];
+            private int nextIndex = 0;
+
+            @Override
+            public void copyFrom(DafnySequence<T> source) {
+                if (source instanceof ArrayDafnySequence<?>) {
+                    Object[] sourceArray = ((ArrayDafnySequence<?>) source).seq;
+                    System.arraycopy(sourceArray, 0, newArray, nextIndex, sourceArray.length);
+                    nextIndex += sourceArray.length;
+                } else {
+                    for (T t : source) {
+                        newArray[nextIndex++] = t;
+                    }
+                }
+            }
+
+            @Override
+            public DafnySequence<T> result() {
+                return new ArrayDafnySequence<T>(newArray);
+            }
+        };
     }
 
     @Override
-    public DafnySequence<T> concatenate(DafnySequence<T> other) {
-        if (other instanceof ArrayDafnySequence) {
-            Object[] otherSeq = ((ArrayDafnySequence) other).seq;
-            Object[] newArray = new Object[seq.length + otherSeq.length];
-            System.arraycopy(seq, 0, newArray, 0, seq.length);
-            System.arraycopy(otherSeq, 0, newArray, seq.length, otherSeq.length);
-            return new ArrayDafnySequence<>(newArray);
-        } else {
-            return super.concatenate(other);
-        }
+    @SuppressWarnings("unchecked")
+    protected List<T> asList() {
+        return (List) Arrays.asList(seq);
     }
 
     @Override
@@ -383,16 +417,29 @@ final class ByteArrayDafnySequence extends DafnySequence<Byte> {
     }
 
     @Override
-    public DafnySequence<Byte> concatenate(DafnySequence<Byte> other) {
-        if (other instanceof ByteArrayDafnySequence) {
-            byte[] otherArray = ((ByteArrayDafnySequence) other).array;
-            byte[] newArray = new byte[array.length + otherArray.length];
-            System.arraycopy(array, 0, newArray, 0, array.length);
-            System.arraycopy(otherArray, 0, newArray, array.length, otherArray.length);
-            return new ByteArrayDafnySequence(newArray);
-        } else {
-            return super.concatenate(other);
-        }
+    Copier<Byte> newCopier(int length) {
+        return new Copier<Byte>() {
+            private final byte[] newArray = new byte[length];
+            private int nextIndex = 0;
+
+            @Override
+            public void copyFrom(DafnySequence<Byte> source) {
+                if (source instanceof ByteArrayDafnySequence) {
+                    byte[] sourceArray = ((ByteArrayDafnySequence) source).array;
+                    System.arraycopy(sourceArray, 0, newArray, nextIndex, sourceArray.length);
+                    nextIndex += sourceArray.length;
+                } else {
+                    for (byte b : source) {
+                        newArray[nextIndex++] = b;
+                    }
+                }
+            }
+
+            @Override
+            public DafnySequence<Byte> result() {
+                return new ByteArrayDafnySequence(newArray);
+            }
+        };
     }
 
     @Override
@@ -473,13 +520,26 @@ final class StringDafnySequence extends DafnySequence<Character> {
     }
 
     @Override
-    public DafnySequence<Character> concatenate(DafnySequence<Character> other) {
-        if (other instanceof StringDafnySequence) {
-            String otherString = ((StringDafnySequence) other).string;
-            return new StringDafnySequence(string + otherString);
-        } else {
-            return super.concatenate(other);
-        }
+    Copier<Character> newCopier(int length) {
+        return new Copier<Character>() {
+            private final StringBuilder sb = new StringBuilder(length);
+
+            @Override
+            public void copyFrom(DafnySequence<Character> source) {
+                if (source instanceof StringDafnySequence) {
+                    sb.append(((StringDafnySequence) source).string);
+                } else {
+                    for (char c : source) {
+                        sb.append(c);
+                    }
+                }
+            }
+
+            @Override
+            public DafnySequence<Character> result() {
+                return new StringDafnySequence(sb.toString());
+            }
+        };
     }
 
     @Override
@@ -519,5 +579,119 @@ final class StringDafnySequence extends DafnySequence<Character> {
     @Override
     public String verbatimString() {
         return string;
+    }
+}
+
+final class ConcatDafnySequence<T> extends DafnySequence<T> {
+    // INVARIANT: Either these are both non-null and ans is null or both are
+    // null and ans is non-null.
+    private DafnySequence<T> left, right;
+    // XXX We're storing the combined sequence as a DafnySequence, not an array,
+    // because it might need a backing array of primitive type.  Unfortunately,
+    // this means the resulting sequence is doomed to have a bit of overhead (an
+    // extra indirect function call) on every call to select().  Hard to see how
+    // to fix this without requiring that *every* DafnySequence suffer some
+    // overhead.
+    private DafnySequence<T> ans = null;
+    private final int length;
+
+    ConcatDafnySequence(DafnySequence<T> left, DafnySequence<T> right) {
+        this.left = left;
+        this.right = right;
+        this.length = left.length() + right.length();
+    }
+
+    private DafnySequence<T> resolve() {
+        if (ans == null) {
+            ans = computeElements();
+            // Allow left and right to be garbage-collected
+            left = null;
+            right = null;
+        }
+
+        return ans;
+    }
+
+    @Override
+    public T select(int i) {
+        return resolve().select(i);
+    }
+
+    @Override
+    public int length() {
+        return length;
+    }
+
+    @Override
+    public DafnySequence<T> update(int i, T t) {
+        return resolve().update(i, t);
+    }
+
+    @Override
+    public DafnySequence<T> subsequence(int lo, int hi) {
+        return resolve().subsequence(lo, hi);
+    }
+
+    @Override
+    Copier<T> newCopier(int length) {
+        return resolve().newCopier(length);
+    }
+
+    @Override
+    public Iterator<T> iterator() {
+        return resolve().iterator();
+    }
+
+    @Override
+    public int hashCode() {
+        return resolve().hashCode();
+    }
+
+    private DafnySequence<T> computeElements() {
+        // Somewhat arbitrarily, the copier will be created by the leftmost
+        // sequence.  TODO: Have enough run-time type information that this is
+        // less fallible.  In particular, the left-most sequence might
+        // unluckily be an ArrayDafnySequence for a boxed type, which would be a
+        // disaster if the other sequences are of a specialized subclass.
+        // Without passing around type descriptors, we can't avoid this.
+        Copier<T> copier;
+
+        // Treat this instance as the root of a tree, where a
+        // ConcatDafnySequence is an internal node (with its left and right
+        // fields as children) and any other ConcatDafnySequence is a leaf node,
+        // and prepare to perform a non-recursive in-order traversal.  (We could
+        // use recursion, but there could easily be enough sequences being
+        // concatenated to exhaust the system stack.)
+        Deque<DafnySequence<T>> toVisit = new ArrayDeque<>();
+
+        toVisit.push(right);
+        DafnySequence<T> first = left;
+        while (first instanceof ConcatDafnySequence<?> &&
+                ((ConcatDafnySequence<T>) first).ans == null) {
+            toVisit.push(((ConcatDafnySequence<T>) first).right);
+            first = ((ConcatDafnySequence<T>) first).left;
+        }
+        toVisit.push(first);
+
+        copier = first.newCopier(this.length);
+
+        while (!toVisit.isEmpty()) {
+            DafnySequence<T> seq = toVisit.pop();
+
+            if (seq instanceof ConcatDafnySequence<?>) {
+                ConcatDafnySequence<T> cseq = (ConcatDafnySequence<T>) seq;
+
+                if (cseq.ans != null) {
+                    copier.copyFrom(cseq.ans);
+                } else {
+                    toVisit.push(cseq.right);
+                    toVisit.push(cseq.left);
+                }
+            } else {
+                copier.copyFrom(seq);
+            }
+        }
+
+        return copier.result();
     }
 }

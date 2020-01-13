@@ -37,6 +37,38 @@ Execution trace:
     (0,0): anon0
     (0,0): anon9_Else
     Comprehensions.dfy(148,12): anon10_Else
+Comprehensions.dfy(168,16): Error: value does not satisfy the subset constraints of 'nat'
+Execution trace:
+    (0,0): anon0
+    (0,0): anon6_Else
+    Comprehensions.dfy(168,17): anon7_Else
+Comprehensions.dfy(171,11): Error: value does not satisfy the subset constraints of 'nat'
+Execution trace:
+    (0,0): anon0
+    (0,0): anon6_Else
+    Comprehensions.dfy(171,12): anon7_Else
+Comprehensions.dfy(174,4): Error: all sequence indices must be in the domain of the initialization function
+Execution trace:
+    (0,0): anon0
+    (0,0): anon10_Else
+    Comprehensions.dfy(174,12): anon11_Else
+Comprehensions.dfy(180,38): Error: value does not satisfy the subset constraints of 'nat'
+Execution trace:
+    (0,0): anon0
+    (0,0): anon9_Else
+    (0,0): anon10_Then
+    (0,0): anon11_Else
+Comprehensions.dfy(186,30): Error: value does not satisfy the subset constraints of 'nat'
+Execution trace:
+    (0,0): anon0
+    (0,0): anon9_Else
+    (0,0): anon10_Then
+    (0,0): anon11_Then
+Comprehensions.dfy(189,16): Error: value does not satisfy the subset constraints of 'nat'
+Execution trace:
+    (0,0): anon0
+    (0,0): anon9_Else
+    Comprehensions.dfy(189,17): anon10_Else
 Comprehensions.dfy(12,13): Error: assertion violation
 Execution trace:
     (0,0): anon0
@@ -53,4 +85,4 @@ Execution trace:
     Comprehensions.dfy(74,25): anon11_Else
     (0,0): anon12_Then
 
-Dafny program verifier finished with 12 verified, 9 errors
+Dafny program verifier finished with 16 verified, 15 errors
