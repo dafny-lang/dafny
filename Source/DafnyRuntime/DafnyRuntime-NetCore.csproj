@@ -3,13 +3,17 @@
     <PropertyGroup>
         <OutputType>Library</OutputType>
         <AssemblyName>DafnyRuntime</AssemblyName>
-        <TargetFramework>netstandard1.1</TargetFramework>
+        <TargetFrameworks>netstandard2.0</TargetFrameworks>
         <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
         <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+        <DefineConstants>TRACE;ISDAFNYRUNTIMELIB</DefineConstants>
     </PropertyGroup>
 
     <ItemGroup>
       <PackageReference Include="System.Runtime.Numerics" Version="4.3.0" />
+    </ItemGroup>
+    <ItemGroup Condition="$(DefineConstants.Contains('DAFNY_USE_SYSTEM_COLLECTIONS_IMMUTABLE'))">
+      <PackageReference Include="System.Collections.Immutable" Version="1.7.0" />
     </ItemGroup>
 
 </Project>
