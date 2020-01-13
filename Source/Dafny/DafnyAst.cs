@@ -663,7 +663,7 @@ namespace Microsoft.Dafny {
           typeArgs.All(ty => !ty.TypeName(context, parseAble).StartsWith("_")))));
 
       if (typeArgs != null && typeArgs.Count > 0 &&
-          (!parseAble || !typeArgs[0].TypeName(context, parseAble).StartsWith("_"))){
+          (!parseAble || !typeArgs[0].TypeName(context, parseAble).StartsWith("_"))) {
         return string.Format("<{0}>",Util.Comma(", ", typeArgs, ty => ty.TypeName(context, parseAble)));
       }
       return "";
@@ -9733,7 +9733,7 @@ namespace Microsoft.Dafny {
     private Expression translationDesugaring;  // filled in during translation, lazily; to be accessed only via Translation.LetDesugaring; always null when Exact==true
     private Translator lastTranslatorUsed; // avoid clashing desugaring between translators
 
-    public void setTranslationDesugaring(Translator trans, Expression expr){
+    public void setTranslationDesugaring(Translator trans, Expression expr) {
       lastTranslatorUsed = trans;
       translationDesugaring = expr;
     }
@@ -10672,7 +10672,7 @@ public abstract class ExtendedPattern {
   public abstract override string ToString();
 
 
-  public ExtendedPattern(IToken tok){
+  public ExtendedPattern(IToken tok) {
     Contract.Requires(tok != null);
     this.Tok = tok;
   }
@@ -10682,11 +10682,11 @@ public abstract class ExtendedPattern {
 public class LitPattern : ExtendedPattern {
   public LiteralExpr Lit;
 
-  public LitPattern(IToken tok, LiteralExpr lit) : base(tok){
+  public LitPattern(IToken tok, LiteralExpr lit) : base(tok) {
     Contract.Requires(lit != null);
     this.Lit = lit;
   }
-  public override string ToString(){
+  public override string ToString() {
     return Lit.ToString();
   }
 }
@@ -10694,7 +10694,7 @@ public class LitPattern : ExtendedPattern {
 public class IdPattern : ExtendedPattern {
   public String Id;
 
-  public Type Type; // This is the syntactic type, as extended patterns will dissapear before resolution
+  public Type Type; // This is the syntactic type, ExtendedPatterns dissapear during resolution.
   public List<ExtendedPattern> Arguments;
 
   public IdPattern(IToken tok, String id, List<ExtendedPattern> arguments) : base(tok) {
@@ -10714,8 +10714,8 @@ public class IdPattern : ExtendedPattern {
     this.Arguments = arguments;
   }
 
-  public override string ToString(){
-    if(Arguments.Count == 0){
+  public override string ToString() {
+    if(Arguments.Count == 0) {
       return Id;
     } else {
       List<string> cps = Arguments.ConvertAll<string>(x => x.ToString());
@@ -10765,7 +10765,7 @@ public class NestedMatchCaseExpr : NestedMatchCase {
 public class NestedMatchCaseStmt : NestedMatchCase {
   private List<Statement> body;
 
-  public NestedMatchCaseStmt(IToken tok, ExtendedPattern pat, List<Statement> body) : base(tok, pat){
+  public NestedMatchCaseStmt(IToken tok, ExtendedPattern pat, List<Statement> body) : base(tok, pat) {
     Contract.Requires(body != null);
     this.body = body;
   }
@@ -10792,7 +10792,7 @@ public class NestedMatchCaseStmt : NestedMatchCase {
 
     public override IEnumerable<Expression> SubExpressions {
       get {
-        if (this.ResolvedStatement == null){
+        if (this.ResolvedStatement == null) {
           yield return Source;
         }
       }

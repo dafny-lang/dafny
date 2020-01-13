@@ -9513,22 +9513,19 @@ namespace Microsoft.Dafny
       if (reporter.Count(ErrorLevel.Error) != errorCount) {
         return;
       }
-
       var sourceType = PartiallyResolveTypeForMemberSelection(s.Source.tok, s.Source.Type).NormalizeExpand();
+
       errorCount = reporter.Count(ErrorLevel.Error);
       CheckLinearNestedMatchStmt(sourceType, s);
       if(reporter.Count(ErrorLevel.Error) != errorCount) return;
+
       errorCount = reporter.Count(ErrorLevel.Error);
       CompileNestedMatchStmt(s, codeContext);
       if(reporter.Count(ErrorLevel.Error) != errorCount) return;
+
       enclosingStatementLabels.PushMarker();
       ResolveStatement(s.ResolvedStatement, codeContext);
       enclosingStatementLabels.PopMarker();
-
-
-
-//      ResolveAttributes(s.Attributes, s, new ResolveOpts(codeContext, true));
-
     }
 
     void ResolveMatchStmt(MatchStmt s, ICodeContext codeContext) {
@@ -10154,7 +10151,8 @@ void DebugCRBranches(MatchTempInfo mti, List<Expression> matchees, List<RBranch>
       }
     }else if (dtd == null && patternHeads.Exists(x => x is LitPattern)) {
       // ==[3**]== If dtd is a base type and at least one of the pattern is a constant, create an If-then-else construct on the constant
-      if(mti.Debug) Console.WriteLine("{0}===[3**]=== Constant matching at type {1}", new String('\t',mti.DebugLevel), currMatcheeType.ToString());
+      if(mti.Debug) Console.WriteLine("{0}===[3**]=== Constant matching at type {1}",
+        new String('\t',mti.DebugLevel), currMatcheeType.ToString());
 
       // decreate the count for each branch (increases back later for each occurence)
       foreach(var PB in pairPB) {
@@ -10417,12 +10415,12 @@ void CheckLinearExtendedPattern(Type type, ExtendedPattern pat, bool debug) {
   if (!type.IsDatatype) {
     if(pat is IdPattern) {
       /* =[1]= */
-      if(debug) Console.WriteLine("==[1]== {0} is a variable of base type {1}",((IdPattern)pat).Id, type);
+      if(debug) Console.WriteLine("DEBUG: ==[1]== {0} is a variable of base type {1}",((IdPattern)pat).Id, type);
       CheckLinearVarPattern(type, (IdPattern) pat, debug);
       return;
     } else if (pat is LitPattern) {
       /* =[2]= */
-      if(debug) Console.WriteLine("==[2]== {0} is a constant of base type {1}",((LitPattern)pat).Lit.ToString(), type);
+      if(debug) Console.WriteLine("DEBUG: ==[2]== {0} is a constant of base type {1}",((LitPattern)pat).Lit.ToString(), type);
       return;
     } else {
       Contract.Assert(false); throw new cce.UnreachableException();
@@ -10431,14 +10429,14 @@ void CheckLinearExtendedPattern(Type type, ExtendedPattern pat, bool debug) {
       var udt = type.NormalizeExpand() as UserDefinedType;
       if(!(pat is IdPattern)) reporter.Error(MessageSource.Resolver, pat.Tok, "<In Linear> Pattern doesn't correspond to a tuple");
       IdPattern idpat = (IdPattern) pat;
-      if(debug) Console.WriteLine("==[3*]= {0} is a tuple type", idpat.Id);
+      if(debug) Console.WriteLine("DEBUG: ==[3*]= {0} is a tuple type", idpat.Id);
       if(udt.TypeArgs.Count != idpat.Arguments.Count) reporter.Error(MessageSource.Resolver, pat.Tok, "<In Linear> case arguments count does not match source tuple arguments count");
 
       var pairTP = udt.TypeArgs.Zip(idpat.Arguments, (x,y) => new Tuple<Type,ExtendedPattern>(x,y));
 
       foreach (var tp in pairTP) {
         var t = PartiallyResolveTypeForMemberSelection(pat.Tok, tp.Item1).NormalizeExpand();
-        if(debug) Console.WriteLine("with field {0} of type {1}", tp.Item2.ToString(), t);
+        if(debug) Console.WriteLine("DEBUG: with field {0} of type {1}", tp.Item2.ToString(), t);
         CheckLinearExtendedPattern(t, tp.Item2, debug);
       }
       return;
@@ -10460,11 +10458,11 @@ void CheckLinearExtendedPattern(Type type, ExtendedPattern pat, bool debug) {
       if(ctor.Formals != null && ctor.Formals.Count == idpat.Arguments.Count) {
         if(ctor.Formals.Count == 0) {
           // if nullary constructor
-          if(debug) Console.WriteLine("==[3]== {0} is a nullary constructor of datatype {1}", idpat.Id, type);
+          if(debug) Console.WriteLine("DEBUG: ==[3]== {0} is a nullary constructor of datatype {1}", idpat.Id, type);
           return;
         } else {
           // if non-nullary constructor
-          if(debug) Console.WriteLine("==[3]== {0} is a non-nullary constructor of datatype {1}", idpat.Id, type);
+          if(debug) Console.WriteLine("DEBUG: ==[3]== {0} is a non-nullary constructor of datatype {1}", idpat.Id, type);
           var subst = TypeSubstitutionMap(dtd.TypeArgs, type.TypeArgs);
           var argTypes = ctor.Formals.ConvertAll<Type>(x => SubstType(x.Type, subst));
           var pairFA = argTypes.Zip(idpat.Arguments, (x,y) => new Tuple<Type,ExtendedPattern>(x,y));
@@ -10481,17 +10479,21 @@ void CheckLinearExtendedPattern(Type type, ExtendedPattern pat, bool debug) {
     } else {
       /* =[4]= */
       // pattern is a variable OR error (handled in CheckLinearVarPattern)
-      if(debug) Console.WriteLine("==[4]== {0} is a variable of datatype {1}", idpat.Id, type);
+      if(debug) Console.WriteLine("DEBUG: ==[4]== {0} is a variable of datatype {1}", idpat.Id, type);
       CheckLinearVarPattern(type, idpat, debug);
     }
   }
 }
 
 void CheckLinearNestedMatchCase(Type type, NestedMatchCase mc, bool debug = false) {
-  if(debug) Console.WriteLine("({1}) Checking linear pattern: {0}",mc.Pat.ToString(), mc.Tok.line);
+  if(debug) Console.WriteLine("DEBUG: ({1}) Checking linear pattern: {0}",mc.Pat.ToString(), mc.Tok.line);
   CheckLinearExtendedPattern(type, mc.Pat, debug);
 }
 
+
+/* Ensures that all ExtendedPattern held in NestedMatchCase are linear
+*  Uses provided type to determine if IdPatterns are datatypes (of the provided type) or variables
+*/
 void CheckLinearNestedMatchExpr(Type dtd, NestedMatchExpr me) {
   foreach(NestedMatchCaseExpr mc in me.Cases) {
     scope.PushMarker();
@@ -10508,7 +10510,7 @@ void CheckLinearNestedMatchStmt(Type dtd, NestedMatchStmt ms) {
   }
 }
 
-
+   /* Deprecated, this is checked by CheckLinearNestedMatchExpr/Stmt during CompileNestedMatchExpr/Stmt */
     void FindDuplicateIdentifier<VT>(CasePattern<VT> pat, Dictionary<string, DatatypeCtor> ctors, bool topLevel) where VT: IVariable {
       Contract.Assert(ctors != null);
       DatatypeCtor ctor = null;
