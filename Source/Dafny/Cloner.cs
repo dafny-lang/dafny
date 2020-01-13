@@ -361,7 +361,8 @@ namespace Microsoft.Dafny
 
       } else if (expr is SeqConstructionExpr) {
         var e = (SeqConstructionExpr)expr;
-        return new SeqConstructionExpr(Tok(e.tok), CloneExpr(e.N), CloneExpr(e.Initializer));
+        var elemType = e.ExplicitElementType == null ? null : CloneType(e.ExplicitElementType);
+        return new SeqConstructionExpr(Tok(e.tok), elemType, CloneExpr(e.N), CloneExpr(e.Initializer));
 
       } else if (expr is MultiSetFormingExpr) {
         var e = (MultiSetFormingExpr)expr;
@@ -1003,7 +1004,14 @@ namespace Microsoft.Dafny
       this.compilationModuleClones = compilationModuleClones;
     }
 
-
+    public override TopLevelDecl CloneDeclaration(TopLevelDecl d, ModuleDefinition m) {
+      var r = base.CloneDeclaration(d, m);
+      if (d is AliasModuleDecl importDeclSource) {
+        var importDeclClone = (AliasModuleDecl)r;  // if d is AliasModuleDecl, then we expect base to return an AliasModuleDecl
+        importDeclClone.ShadowsLiteralModule = importDeclSource.ShadowsLiteralModule;
+      }
+      return r;
+    }
 
     public override Expression CloneExpr(Expression expr) {
       var me = expr as MatchExpr;

@@ -157,4 +157,35 @@ class SeqOp {
   {
     seq(n, i reads if i < 20 then {} else {this} => if i < 20 then 2.5 else x)
   }
+
+  function method XT0(n: nat): seq<int> {
+    seq<int>(n, _ => 7)
+  }
+  function method XT1(n: nat): seq<int> {
+    seq<nat>(n, _ => 7)
+  }
+  function method XT2(n: nat): seq<int> {
+    seq<nat>(n, _ => -7)  // error: -7 is not a nat
+  }
+  function method XT3(n: nat): seq<nat> {
+    seq(n, _ => -7)  // error: this is not a seq<nat>
+  }
+  function method XT4(n: nat): seq<nat> {
+    seq(n, i requires 0 <= i < 3 => 10)  // error: init function doesn't accept all indices
+  }
+  function method XT5(n: nat): seq<nat> {
+    seq(n, i requires 0 <= i < n => 10)
+  }
+  function method XT6(n: nat): seq<nat> {
+    seq(n, i => if i < n then 10 else -7)  // error: type of lambda is inferred to be int->nat, so the -7 gives an error
+  }
+  function method XT7(n: nat): seq<nat> {
+    seq(n, i => var u: int := if i < n then 10 else -7; u)  // fine: lambda has type int->int; use of this lambda always gives a nat
+  }
+  function method XT8(n: nat): seq<nat> {
+    seq(n, i => if i < n then -7 else 10)  // error: this can't be assigned to a seq<nat>
+  }
+  function method XT9(n: nat): seq<nat> {
+    seq<nat>(n, i => if i < n then -7 else 10)  // error: this can't be assigned to a seq<nat>
+  }
 }

@@ -77,24 +77,55 @@ public class Helpers {
     public static Iterable<BigInteger> IntegerRange(BigInteger lo, BigInteger hi) {
         assert lo != null || hi != null;
         if(lo == null) {
-            hi = hi.subtract(BigInteger.ONE);
-            Stream<BigInteger> infiniteSteam = Stream.iterate(hi, i -> i.subtract(BigInteger.ONE));
-            return (Iterable<BigInteger>) infiniteSteam::iterator;
+            return () -> {
+                Stream<BigInteger> infiniteStream = Stream.iterate(hi.subtract(BigInteger.ONE), i -> i.subtract(BigInteger.ONE));
+                return infiniteStream.iterator();
+            };
         } else if(hi == null) {
-            Stream<BigInteger> infiniteSteam = Stream.iterate(lo, i -> i.add(BigInteger.ONE));
-            return (Iterable<BigInteger>) infiniteSteam::iterator;
+            return () -> {
+                Stream<BigInteger> infiniteStream = Stream.iterate(lo, i -> i.add(BigInteger.ONE));
+                return infiniteStream.iterator();
+            };
         } else {
-            ArrayList<BigInteger> arr = new ArrayList<>();
-            while (lo.compareTo(hi) < 0) {
-                arr.add(lo);
-                lo = lo.add(BigInteger.ONE);
-            }
-            return arr;
+            return () -> new Iterator<BigInteger>() {
+                private BigInteger i = lo;
+
+                @Override
+                public boolean hasNext() {
+                    return i.compareTo(hi) < 0;
+                }
+
+                @Override
+                public BigInteger next() {
+                    BigInteger j = i;
+                    i = i.add(BigInteger.ONE);
+                    return j;
+                }
+            };
         }
     }
 
     public static Iterable<BigInteger> AllIntegers() {
-        return new AllIntegers();
+        return () -> new Iterator<BigInteger>() {
+            BigInteger i = BigInteger.ZERO;
+
+            @Override
+            public boolean hasNext() {
+                return true;
+            }
+
+            @Override
+            public BigInteger next() {
+                BigInteger j = i;
+                if (i.equals(BigInteger.ZERO))
+                    i = BigInteger.ONE;
+                else if (i.signum() > 0)
+                    i = i.negate();
+                else
+                    i = i.negate().add(BigInteger.ONE);
+                return j;
+            }
+        };
     }
 
     public static Character createCharacter(UByte t) {
