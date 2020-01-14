@@ -2934,6 +2934,8 @@ namespace Microsoft.Dafny {
           return JavaScriptCompiler.PublicIdProtect(name);
         case DafnyOptions.CompilationTarget.Go:
           return GoCompiler.PublicIdProtect(name);
+        case DafnyOptions.CompilationTarget.Php:
+          return PhpCompiler.PublicIdProtect(name);
         case DafnyOptions.CompilationTarget.Java:
           return GoCompiler.PublicIdProtect(name);
         default:
