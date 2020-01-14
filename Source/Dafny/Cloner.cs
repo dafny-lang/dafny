@@ -1005,7 +1005,14 @@ namespace Microsoft.Dafny
       this.compilationModuleClones = compilationModuleClones;
     }
 
-
+    public override TopLevelDecl CloneDeclaration(TopLevelDecl d, ModuleDefinition m) {
+      var r = base.CloneDeclaration(d, m);
+      if (d is AliasModuleDecl importDeclSource) {
+        var importDeclClone = (AliasModuleDecl)r;  // if d is AliasModuleDecl, then we expect base to return an AliasModuleDecl
+        importDeclClone.ShadowsLiteralModule = importDeclSource.ShadowsLiteralModule;
+      }
+      return r;
+    }
 
     public override Expression CloneExpr(Expression expr) {
       var me = expr as MatchExpr;

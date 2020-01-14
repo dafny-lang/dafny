@@ -92,7 +92,7 @@ module _System {
     var IsNat: bool  // immutable
   }
 
-  type bv {
+  type _bv {
     function method RotateLeft(w: nat): selftype
 
     function method RotateRight(w: nat): selftype
