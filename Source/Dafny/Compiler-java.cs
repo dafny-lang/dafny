@@ -506,14 +506,15 @@ namespace Microsoft.Dafny{
     }
 
     protected void DeclareField(string name, bool isStatic, bool isConst, Type type, Bpl.IToken tok, string rhs, ClassWriter cw) {
+      var f = (isConst ? " final" : "");
       if (isStatic){
         var r = RemoveParams((rhs != null) ? rhs : DefaultValue(type, cw.StaticMemberWriter, tok));
         var t = RemoveParams(TypeName(type, cw.StaticMemberWriter, tok));
-        cw.StaticMemberWriter.WriteLine($"public static {t} {name} = {r};");
+        cw.StaticMemberWriter.WriteLine($"public static{f} {t} {name} = {r};");
       }
       else{
         Contract.Assert(cw.CtorBodyWriter != null, "Unexpected instance field");
-        cw.InstanceMemberWriter.WriteLine("public {0} {1};", TypeName(type, cw.InstanceMemberWriter, tok), name);
+        cw.InstanceMemberWriter.WriteLine("public{f} {0} {1};", TypeName(type, cw.InstanceMemberWriter, tok), name);
         cw.CtorBodyWriter.WriteLine("this.{0} = {1};", name, rhs ?? DefaultValue(type, cw.CtorBodyWriter, tok, inAutoInitContext: true));
       }
     }
