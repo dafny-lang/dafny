@@ -107,7 +107,7 @@ namespace Microsoft.Dafny {
 
   public class BuiltIns
   {
-    public readonly ModuleDefinition SystemModule = new ModuleDefinition(Token.NoToken, "_System", new List<IToken>(), false, false, false, null, null, null, true);
+    public readonly ModuleDefinition SystemModule = new ModuleDefinition(Token.NoToken, "_System", new List<IToken>(), false, false, false, null, null, null, true, true, true);
     readonly Dictionary<int, ClassDecl> arrayTypeDecls = new Dictionary<int, ClassDecl>();
     public readonly Dictionary<int, ArrowTypeDecl> ArrowTypeDecls = new Dictionary<int, ArrowTypeDecl>();
     public readonly Dictionary<int, SubsetTypeDecl> PartialArrowTypeDecls = new Dictionary<int, SubsetTypeDecl>();  // same keys as arrowTypeDecl
@@ -3462,7 +3462,8 @@ namespace Microsoft.Dafny {
     public readonly bool IsProtected;
     public readonly bool IsFacade; // True iff this module represents a module facade (that is, an abstract interface)
     private readonly bool IsBuiltinName; // true if this is something like _System that shouldn't have it's name mangled.
-    public bool IsToBeVerified = true;
+    public readonly bool IsToBeVerified;
+    public readonly bool IsToBeCompiled;
 
     private ModuleSignature refinementBaseSig; // module signature of the refinementBase.
     public ModuleSignature RefinementBaseSig {
@@ -3503,7 +3504,7 @@ namespace Microsoft.Dafny {
       Contract.Invariant(CallGraph != null);
     }
 
-    public ModuleDefinition(IToken tok, string name, List<IToken> prefixIds, bool isAbstract, bool isProtected, bool isFacade, IToken refinementBase, ModuleDefinition parent, Attributes attributes, bool isBuiltinName, Parser parser = null)
+    public ModuleDefinition(IToken tok, string name, List<IToken> prefixIds, bool isAbstract, bool isProtected, bool isFacade, IToken refinementBase, ModuleDefinition parent, Attributes attributes, bool isBuiltinName, bool isToBeVerified, bool isToBeCompiled)
     {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
@@ -3520,6 +3521,8 @@ namespace Microsoft.Dafny {
       this.refinementBase = null;
       Includes = new List<Include>();
       IsBuiltinName = isBuiltinName;
+      IsToBeVerified = isToBeVerified;
+      IsToBeCompiled = isToBeCompiled;
     }
 
     VisibilityScope visibilityScope;
@@ -3734,7 +3737,7 @@ namespace Microsoft.Dafny {
 
   public class DefaultModuleDecl : ModuleDefinition {
     public DefaultModuleDecl()
-      : base(Token.NoToken, "_module", new List<IToken>(), false, false, false, null, null, null, true) {
+      : base(Token.NoToken, "_module", new List<IToken>(), false, false, false, null, null, null, true, true, true) {
     }
     public override bool IsDefaultModule {
       get {
