@@ -6,14 +6,12 @@
         <TargetFrameworks>netstandard2.0</TargetFrameworks>
         <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
         <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
-        <DefineConstants>TRACE;ISDAFNYRUNTIMELIB</DefineConstants>
-        <PackageVersion>1.0.1</PackageVersion>
+        <DefineConstants>TRACE;ISDAFNYRUNTIMELIB;DAFNY_USE_SYSTEM_COLLECTIONS_IMMUTABLE</DefineConstants>
+        <PackageVersion>1.1.0</PackageVersion>
     </PropertyGroup>
 
     <ItemGroup>
       <PackageReference Include="System.Runtime.Numerics" Version="4.3.0" />
-    </ItemGroup>
-    <ItemGroup Condition="$(DefineConstants.Contains('DAFNY_USE_SYSTEM_COLLECTIONS_IMMUTABLE'))">
       <PackageReference Include="System.Collections.Immutable" Version="1.7.0" />
     </ItemGroup>
 
