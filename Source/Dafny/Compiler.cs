@@ -3892,10 +3892,11 @@ namespace Microsoft.Dafny {
 
     // ----- Writing ------------------------------
 
-    bool indentPending;
+    bool indentPending; // generally, true iff the last char written was '\n'
 
     public override void Write(char[] buffer, int index, int count) {
       if (indentPending && count == 1 && buffer[index] == '\n') {
+        // avoid writing whitespace-only line
         indentPending = false;
       }
       AddThing(new string(buffer, index, count));
@@ -3906,15 +3907,14 @@ namespace Microsoft.Dafny {
         indentPending = false;
       }
       AddThing(value);
-      indentPending = false;
+      indentPending = value.EndsWith("\n");
     }
     public override void Write(char value) {
       if (indentPending && value == '\n') {
         indentPending = false;
       }
-      indentPending = false;
       AddThing(new string(value, 1));
-      indentPending = false;
+      indentPending = value == '\n';
     }
 
     public void RepeatWrite(int times, string template, string separator) {
