@@ -6,17 +6,17 @@ so these instructions mostly apply to people interested in looking at Dafny's so
 
 0. Dependencies: [Install Mono](https://www.mono-project.com/download/stable/#download-lin) from the official repositories; the version in most distribution repositories is too out of date. The `mono-devel` package is what you need. On Fedora, you'll also need the `msbuild` package.
 
-1. Create an empty base directory
+1. Create an empty base directory and download nuget
 
        mkdir BASE-DIRECTORY
        cd BASE-DIRECTORY
+       wget https://nuget.org/nuget.exe
 
 2. Download and build Boogie:
 
        git clone https://github.com/boogie-org/boogie
        cd boogie
-       wget https://nuget.org/nuget.exe
-       mono ./nuget.exe restore Source/Boogie.sln
+       mono ../nuget.exe restore Source/Boogie.sln
        msbuild Source/Boogie.sln
        cd ..
 
@@ -24,6 +24,7 @@ so these instructions mostly apply to people interested in looking at Dafny's so
 
        cd BASE-DIRECTORY
        git clone https://github.com/dafny-lang/dafny.git
+       mono ../nuget.exe restore dafny/Source/Boogie.sln
        msbuild dafny/Source/Dafny.sln
 
 4. Download and unpack z3 (Dafny looks for `z3` in Binaries/z3/bin/). To know which version to install, read the commit message of the latest commit in the [history](https://github.com/dafny-lang/dafny/commits/master/Binaries/z3.exe) of `Binaries/z3.exe`.
@@ -68,17 +69,17 @@ Dafny's sources or who want to use the latest features from the master branch.
        brew install mono
        brew cask install mono-mdk
 
-1. Create an empty base directory
+1. Create an empty base directory and download nuget
 
        mkdir BASE-DIRECTORY
        cd BASE-DIRECTORY
+       wget https://nuget.org/nuget.exe
 
 2. Download and build Boogie:
 
        git clone https://github.com/boogie-org/boogie
        cd boogie
-       wget https://nuget.org/nuget.exe
-       mono ./nuget.exe restore Source/Boogie.sln
+       mono ../nuget.exe restore Source/Boogie.sln
        msbuild Source/Boogie.sln
        cd ..
 
@@ -88,6 +89,7 @@ Dafny's sources or who want to use the latest features from the master branch.
 
        cd BASE-DIRECTORY
        git clone https://github.com/dafny-lang/dafny.git
+       mono ../nuget.exe restore dafny/Source/Dafny.sln
        msbuild dafny/Source/Dafny.sln
 
 4. Download and unpack z3 (Dafny looks for `z3` in Binaries/z3/bin/). To know which version to install, read the commit message of the latest commit in the [history](https://github.com/dafny-lang/dafny/commits/master/Binaries/z3.exe) of `Binaries/z3.exe`.

@@ -10,6 +10,7 @@ using System.Diagnostics.Contracts;
 using Bpl = Microsoft.Boogie;
 using System.Reflection;
 using DafnyAssembly;
+using Mono.Cecil;
 
 namespace Microsoft.Dafny {
 
@@ -41,13 +42,12 @@ namespace Microsoft.Dafny {
         SourceFileName = filePath;
       } else if (extension == ".dll") {
         isPrecompiled = true;
-        Assembly.ReflectionOnlyLoad("DafnyRuntime");
-        var asm = Assembly.ReflectionOnlyLoadFrom(filePath);
+        var asm = AssemblyDefinition.ReadAssembly(filePath);
         string sourceText = null;
-        foreach (var adata in asm.GetCustomAttributesData()) {
+        foreach (var adata in asm.CustomAttributes) {
           if (adata.Constructor.DeclaringType.Name == "DafnySourceAttribute") {
             foreach (var args in adata.ConstructorArguments) {
-              if (args.ArgumentType == System.Type.GetType("System.String")) {
+              if (args.Type.FullName == "System.String") {
                 sourceText = (string)args.Value;
               }
             }
@@ -113,7 +113,7 @@ namespace Microsoft.Dafny {
           Console.WriteLine("Parsing " + dafnyFile.FilePath);
         }
 
-        string err = ParseFile(dafnyFile, null, module, builtIns, new Errors(reporter), !dafnyFile.isPrecompiled);
+        string err = ParseFile(dafnyFile, null, module, builtIns, new Errors(reporter), !dafnyFile.isPrecompiled, !dafnyFile.isPrecompiled);
         if (err != null) {
           return err;
         }
@@ -203,10 +203,10 @@ namespace Microsoft.Dafny {
       return null; // Success
     }
 
-    private static string ParseFile(DafnyFile dafnyFile, Include include, ModuleDecl module, BuiltIns builtIns, Errors errs, bool verifyThisFile = true) {
+    private static string ParseFile(DafnyFile dafnyFile, Include include, ModuleDecl module, BuiltIns builtIns, Errors errs, bool verifyThisFile = true, bool compileThisFile = true) {
       var fn = DafnyOptions.Clo.UseBaseNameForFileName ? Path.GetFileName(dafnyFile.FilePath) : dafnyFile.FilePath;
       try {
-        int errorCount = Dafny.Parser.Parse(dafnyFile.SourceFileName, include, module, builtIns, errs, verifyThisFile);
+        int errorCount = Dafny.Parser.Parse(dafnyFile.SourceFileName, include, module, builtIns, errs, verifyThisFile, compileThisFile);
         if (errorCount != 0) {
           return string.Format("{0} parse errors detected in {1}", errorCount, fn);
         }
