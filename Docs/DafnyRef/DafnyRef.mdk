@@ -3761,35 +3761,38 @@ provides _constructor (method)s_, which are a restricted form of
 initialization methods.  A constructor is declared with the keyword
 `constructor` instead of `method`.  
 Every call to `new` for a class must be accompanied
-with a call to one of its constructors.  Moreover, a constructor
+by a call to one of its constructors.  Moreover, a constructor
 cannot be called at other times, only during object creation.  Other
 than these restrictions, there is no semantic difference between using
 ordinary initialization methods and using constructors. Classes may
 declare no constructors or one or more constructors.
 
-#### No explicit constructors
+#### Classes with no explicit constructors
 
 A class that declares no constructors has a default constructor created 
 for it. This constructor is called with the syntax
 ```
 C C := new C;
 ```
+This constructor simply initializes the fields of the class.
+The order of initialization is such that any field whose value depends on the
+value of another field is initialized after that other field. 
+It is an error if there are circular dependencies. 
+
 This constructor sets each class field to an arbitrary value
-of the field's type
-if the field declaration has no initializer 
-and to the value of the initializer expression
-if it does have an initializer. 
+of the field's type if the field declaration has no initializer 
+and to the value of the initializer expression if it does declare an initializer. 
 For the purposes of proving Dafny programs
 correct, assigning an arbitrary initial value means that the program must 
 be correct for any initial value. Compiled, executable versions of the program
 may use a specific initial value 
 (for example, but not necessarily, a zero-equivalent value).
 
-#### One or more constructors
+#### Classes with one or more constructors
 
 When one or more constructors are explicitly declared, they are named, 
 which promotes
-using names like `InitFromList` above.  
+using names like `InitFromList` above.
 Constructors must have distinct names, even if their signatures are different.
 Many classes have just
 one constructor or have a typical constructor.  Therefore, Dafny
@@ -3822,6 +3825,10 @@ a program may use `this`
  - as the receiver on the LHS, 
  - as the entire RHS of an assignment to a field of `this`, 
  - and as a member of a set on the RHS that is being assigned to a field of `this`.
+
+Furthermore, `const` fields may only be assigned to (once) in an initialization phase
+of their parent class, and then only if they do not already have an initialization
+value in their declaration.
 
 There are no restrictions on expressions or statements in the post-initialization phase. 
 
