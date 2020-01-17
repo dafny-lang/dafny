@@ -3551,7 +3551,11 @@ namespace Microsoft.Dafny {
           } else if (IsBuiltinName || externArgs != null) {
             compileName = Name;
           } else {
-            compileName = "_" + Height.ToString() + "_" + NonglobalVariable.CompilerizeName(Name);
+            if (Module != null && Module.Name != "_module") {
+              compileName = Module.CompileName + "." + NonglobalVariable.CompilerizeName(Name);
+            } else {
+              compileName = NonglobalVariable.CompilerizeName(Name);
+            }
           }
         }
         return compileName;
