@@ -6136,13 +6136,21 @@ namespace Microsoft.Dafny {
     /// If "declareLocals" is "false", then the locals are added only if they are new, that is, if
     /// they don't already exist in "locals".
     /// </summary>
-    Bpl.Expr CtorInvocation(MatchCase mc, ExpressionTranslator etran, List<Variable> locals, BoogieStmtListBuilder localTypeAssumptions, IsAllocType isAlloc, bool declareLocals = true) {
+    Bpl.Expr CtorInvocation(MatchCase mc, Type sourceType, ExpressionTranslator etran, List<Variable> locals, BoogieStmtListBuilder localTypeAssumptions, IsAllocType isAlloc, bool declareLocals = true) {
       Contract.Requires(mc != null);
+      Contract.Requires(sourceType != null);
       Contract.Requires(etran != null);
       Contract.Requires(locals != null);
       Contract.Requires(localTypeAssumptions != null);
       Contract.Requires(predef != null);
       Contract.Ensures(Contract.Result<Bpl.Expr>() != null);
+
+      sourceType = sourceType.NormalizeExpand();
+      Contract.Assert(sourceType.TypeArgs.Count == mc.Ctor.EnclosingDatatype.TypeArgs.Count);
+      var subst = new Dictionary<TypeParameter, Type>();
+      for (var i = 0; i < mc.Ctor.EnclosingDatatype.TypeArgs.Count; i++) {
+        subst.Add(mc.Ctor.EnclosingDatatype.TypeArgs[i], sourceType.TypeArgs[i]);
+      }
 
       List<Bpl.Expr> args = new List<Bpl.Expr>();
       for (int i = 0; i < mc.Arguments.Count; i++) {
@@ -6155,13 +6163,14 @@ namespace Microsoft.Dafny {
         } else {
           Contract.Assert(Bpl.Type.Equals(local.TypedIdent.Type, TrType(p.Type)));
         }
-        Type t = mc.Ctor.Formals[i].Type;
+        var pFormalType = Resolver.SubstType(mc.Ctor.Formals[i].Type, subst);
         var pIsAlloc = (isAlloc == ISALLOC) ? isAllocContext.Var(p) : NOALLOC;
-        Bpl.Expr wh = GetWhereClause(p.tok, new Bpl.IdentifierExpr(p.tok, local), p.Type, etran, pIsAlloc);
+        Bpl.Expr wh = GetWhereClause(p.tok, new Bpl.IdentifierExpr(p.tok, local), pFormalType, etran, pIsAlloc);
         if (wh != null) {
           localTypeAssumptions.Add(TrAssumeCmd(p.tok, wh));
         }
-        args.Add(CondApplyBox(mc.tok, new Bpl.IdentifierExpr(p.tok, local), cce.NonNull(p.Type), t));
+        CheckSubrange(p.tok, new Bpl.IdentifierExpr(p.tok, local), pFormalType, p.Type, localTypeAssumptions);
+        args.Add(CondApplyBox(mc.tok, new Bpl.IdentifierExpr(p.tok, local), cce.NonNull(p.Type), mc.Ctor.Formals[i].Type));
       }
       Bpl.IdentifierExpr id = new Bpl.IdentifierExpr(mc.tok, mc.Ctor.FullName, predef.DatatypeType);
       return new Bpl.NAryExpr(mc.tok, new Bpl.FunctionCall(id), args);
@@ -7674,7 +7683,7 @@ namespace Microsoft.Dafny {
         for (int i = me.Cases.Count; 0 <= --i;) {
           MatchCaseExpr mc = me.Cases[i];
           BoogieStmtListBuilder b = new BoogieStmtListBuilder(this);
-          Bpl.Expr ct = CtorInvocation(mc, etran, locals, b, NOALLOC, false);
+          Bpl.Expr ct = CtorInvocation(mc, me.Source.Type, etran, locals, b, NOALLOC, false);
           // generate:  if (src == ctor(args)) { assume args-is-well-typed; mc.Body is well-formed; assume Result == TrExpr(case); } else ...
           CheckWellformedWithResult(mc.Body, options, result, resultType, locals, b, etran);
           ifCmd = new Bpl.IfCmd(mc.tok, Bpl.Expr.Eq(src, ct), b.Collect(mc.tok), ifCmd, els);
@@ -10418,7 +10427,7 @@ namespace Microsoft.Dafny {
           // havoc all bound variables
           b = new BoogieStmtListBuilder(this);
           List<Variable> newLocals = new List<Variable>();
-          Bpl.Expr r = CtorInvocation(mc, etran, newLocals, b, s.IsGhost ? NOALLOC : ISALLOC);
+          Bpl.Expr r = CtorInvocation(mc, s.Source.Type, etran, newLocals, b, s.IsGhost ? NOALLOC : ISALLOC);
           locals.AddRange(newLocals);
 
           if (newLocals.Count != 0)
