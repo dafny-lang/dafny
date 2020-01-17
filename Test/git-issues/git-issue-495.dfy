@@ -47,3 +47,29 @@ method GetXInt(g: Gen<int>) returns (m: nat) {
   case Create(un: nat) =>  // error: g.x is an int, not a nat
     m := un;
 }
+
+newtype IntA = int
+type IntB = k: IntA | k % 2 == 0
+type IntC = k: IntB | 0 <= k
+
+method B2C(g: Gen<IntB>, m: IntA) returns (y: IntC)
+  requires m < 0 ==> m % 2 == 1  // negative numbers are odd
+{
+  if g.x == m {
+    match g
+    case Create(u: IntC) =>  // a proof obligation is generated for this line: that (u:IntB) implies (c:IntC) here
+      y := u;
+  }
+}
+
+type GenSub<Y,L,V> = g: Gen<L> | true ghost witness Create(var l: L :| true; l)
+
+method B2C'(g: GenSub<bool, IntB, real>, m: IntA) returns (y: IntC)
+  requires m < 0 ==> m % 2 == 1  // negative numbers are odd
+{
+  if g.x == m {
+    match g
+    case Create(u: IntC) =>  // a proof obligation is generated for this line: that (u:IntB) implies (c:IntC) here
+      y := u;
+  }
+}
