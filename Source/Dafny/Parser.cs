@@ -4880,7 +4880,6 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, st
 		IToken x = Token.NoToken;
 		IToken id;  BoundVar bv;
 		var bvs = new List<BoundVar>();
-		FrameExpression fe;  Expression ee;
 		var reads = new List<FrameExpression>();
 		Expression req = null;
 		Expression body = null;
@@ -4903,20 +4902,7 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, st
 			Expect(81);
 		} else SynErr(278);
 		while (la.kind == 70 || la.kind == 71) {
-			if (la.kind == 70) {
-				Get();
-				PossiblyWildFrameExpression(out fe, true);
-				reads.Add(fe); 
-				while (la.kind == 26) {
-					Get();
-					PossiblyWildFrameExpression(out fe, true);
-					reads.Add(fe); 
-				}
-			} else {
-				Get();
-				Expression(out ee, true, false);
-				req = req == null ? ee : new BinaryExpr(req.tok, BinaryExpr.Opcode.And, req, ee); 
-			}
+			LambdaSpec(ref reads,ref req);
 		}
 		LambdaArrow();
 		Expression(out body, allowSemi, true, allowBitwiseOps);
@@ -5292,6 +5278,25 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, st
 		Expect(36);
 	}
 
+	void LambdaSpec(ref List<FrameExpression> reads, ref Expression req) {
+		FrameExpression fe;  Expression ee;
+		
+		if (la.kind == 70) {
+			Get();
+			PossiblyWildFrameExpression(out fe, true);
+			reads.Add(fe); 
+			while (la.kind == 26) {
+				Get();
+				PossiblyWildFrameExpression(out fe, true);
+				reads.Add(fe); 
+			}
+		} else if (la.kind == 71) {
+			Get();
+			Expression(out ee, true, false);
+			req = req == null ? ee : new BinaryExpr(req.tok, BinaryExpr.Opcode.And, req, ee); 
+		} else SynErr(286);
+	}
+
 	void MapLiteralExpressions(out List<ExpressionPair> elements) {
 		Expression/*!*/ d, r;
 		elements = new List<ExpressionPair/*!*/>(); 
@@ -5368,7 +5373,7 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, st
 				CaseExpression(out c, allowSemi, allowLambda, allowBitwiseOps);
 				cases.Add(c); 
 			}
-		} else SynErr(286);
+		} else SynErr(287);
 		e = new MatchExpr(x, e, cases, usesOptionalBraces); 
 	}
 
@@ -5386,7 +5391,7 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, st
 		} else if (la.kind == 142 || la.kind == 143) {
 			Exists();
 			x = t; 
-		} else SynErr(287);
+		} else SynErr(288);
 		QuantifierDomain(out bvars, out attrs, out range);
 		QSep();
 		Expression(out body, allowSemi, allowLambda);
@@ -5439,7 +5444,7 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, st
 			AssumeStmt(out s);
 		} else if (la.kind == 38) {
 			CalcStmt(out s);
-		} else SynErr(288);
+		} else SynErr(289);
 	}
 
 	void LetExpr(out Expression e, bool allowSemi, bool allowLambda, bool allowBitwiseOps) {
@@ -5448,7 +5453,7 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, st
 			LetExprWithLHS(out e, allowSemi, allowLambda, allowBitwiseOps);
 		} else if (la.kind == 116) {
 			LetExprWithoutLHS(out e, allowSemi, allowLambda, allowBitwiseOps);
-		} else SynErr(289);
+		} else SynErr(290);
 	}
 
 	void NamedExpr(out Expression e, bool allowSemi, bool allowLambda, bool allowBitwiseOps) {
@@ -5473,6 +5478,8 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, st
 		CasePattern<BoundVar> pat;
 		bool exact = true;
 		bool isLetOrFail = false;
+		var reads = new List<FrameExpression>();
+		Expression req = null;
 		Attributes attrs = null;
 		e = dummyExpr;
 		
@@ -5507,10 +5514,13 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, st
 			 }
 			}
 			
-		} else if (la.kind == 116) {
-			Get();
+		} else if (la.kind == 70 || la.kind == 71 || la.kind == 116) {
+			while (la.kind == 70 || la.kind == 71) {
+				LambdaSpec(ref reads, ref req);
+			}
+			Expect(116);
 			isLetOrFail = true; 
-		} else SynErr(290);
+		} else SynErr(291);
 		Expression(out e, false, true);
 		letRHSs.Add(e); 
 		while (la.kind == 26) {
@@ -5535,7 +5545,7 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, st
 		 } else {
 		   SemErr("':-' must have exactly one right-hand side");
 		 }
-		 e = new LetOrFailExpr(x, lhs, rhs, e);
+		 e = new LetOrFailExpr(x, lhs, req, reads, rhs, e);
 		} else {
 		 e = new LetExpr(x, letLHSs, letRHSs, e, exact, attrs);
 		}
@@ -5590,7 +5600,7 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, st
 				arguments.Add(pat); 
 			}
 			Expect(81);
-		} else SynErr(291);
+		} else SynErr(292);
 		Expect(36);
 		Expression(out body, allowSemi, allowLambda, allowBitwiseOps);
 		c = new MatchCaseExpr(x, name, arguments, body); 
@@ -5624,7 +5634,7 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, st
 		} else if (la.kind == 2) {
 			Get();
 			id = t; 
-		} else SynErr(292);
+		} else SynErr(293);
 		Expect(29);
 		Expression(out e, true, true);
 	}
@@ -5667,7 +5677,7 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, st
 		} else if (la.kind == 70) {
 			Get();
 			x = t; 
-		} else SynErr(293);
+		} else SynErr(294);
 	}
 
 
@@ -6034,14 +6044,15 @@ public class Errors {
 			case 283: s = "invalid MultiSetExpr"; break;
 			case 284: s = "invalid ConstAtomExpression"; break;
 			case 285: s = "invalid Nat"; break;
-			case 286: s = "invalid MatchExpression"; break;
-			case 287: s = "invalid QuantifierGuts"; break;
-			case 288: s = "invalid StmtInExpr"; break;
-			case 289: s = "invalid LetExpr"; break;
-			case 290: s = "invalid LetExprWithLHS"; break;
-			case 291: s = "invalid CaseExpression"; break;
-			case 292: s = "invalid MemberBindingUpdate"; break;
-			case 293: s = "invalid DotSuffix"; break;
+			case 286: s = "invalid LambdaSpec"; break;
+			case 287: s = "invalid MatchExpression"; break;
+			case 288: s = "invalid QuantifierGuts"; break;
+			case 289: s = "invalid StmtInExpr"; break;
+			case 290: s = "invalid LetExpr"; break;
+			case 291: s = "invalid LetExprWithLHS"; break;
+			case 292: s = "invalid CaseExpression"; break;
+			case 293: s = "invalid MemberBindingUpdate"; break;
+			case 294: s = "invalid DotSuffix"; break;
 
       default: s = "error " + n; break;
     }

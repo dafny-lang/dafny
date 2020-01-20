@@ -3312,11 +3312,24 @@ ConstAtomExpression<out Expression e, bool allowSemi, bool allowLambda>
 
 LambdaArrow = "=>".
 
+LambdaSpec<.ref List<FrameExpression> reads, ref Expression req.>
+= (.
+    FrameExpression fe;  Expression ee;
+  .)
+  ( "reads"
+    PossiblyWildFrameExpression<out fe, true>         (. reads.Add(fe); .)
+    { ","
+      PossiblyWildFrameExpression<out fe, true>       (. reads.Add(fe); .)
+    }
+  | "requires" Expression<out ee, true, false>        (. req = req == null ? ee : new BinaryExpr(req.tok, BinaryExpr.Opcode.And, req, ee); .)
+  )
+  .
+
+
 LambdaExpression<out Expression e, bool allowSemi, bool allowBitwiseOps>
 = (. IToken x = Token.NoToken;
      IToken id;  BoundVar bv;
      var bvs = new List<BoundVar>();
-     FrameExpression fe;  Expression ee;
      var reads = new List<FrameExpression>();
      Expression req = null;
      Expression body = null;
@@ -3330,13 +3343,7 @@ LambdaExpression<out Expression e, bool allowSemi, bool allowBitwiseOps>
       ]
     ")"
   )
-  { "reads"
-    PossiblyWildFrameExpression<out fe, true>         (. reads.Add(fe); .)
-    { ","
-      PossiblyWildFrameExpression<out fe, true>       (. reads.Add(fe); .)
-    }
-  | "requires" Expression<out ee, true, false>        (. req = req == null ? ee : new BinaryExpr(req.tok, BinaryExpr.Opcode.And, req, ee); .)
-  }
+  { LambdaSpec<ref reads,ref req> }
   LambdaArrow
   Expression<out body, allowSemi, true, allowBitwiseOps>
   (. e = new LambdaExpr(x, bvs, req, reads, body);
@@ -3518,6 +3525,8 @@ LetExprWithLHS<out Expression e, bool allowSemi, bool allowLambda, bool allowBit
      CasePattern<BoundVar> pat;
      bool exact = true;
      bool isLetOrFail = false;
+     var reads = new List<FrameExpression>();
+     Expression req = null;
      Attributes attrs = null;
      e = dummyExpr;
   .)
@@ -3540,7 +3549,8 @@ LetExprWithLHS<out Expression e, bool allowSemi, bool allowLambda, bool allowBit
                                          }
                                        }
                                     .)
-    | ":-"                          (. isLetOrFail = true; .)
+    | {LambdaSpec<ref reads, ref req>}
+      ":-"                          (. isLetOrFail = true; .)
     )
     Expression<out e, false, true>        (. letRHSs.Add(e); .)
     { "," Expression<out e, false, true>  (. letRHSs.Add(e); .)
@@ -3563,7 +3573,7 @@ LetExprWithLHS<out Expression e, bool allowSemi, bool allowLambda, bool allowBit
       } else {
         SemErr("':-' must have exactly one right-hand side");
       }
-      e = new LetOrFailExpr(x, lhs, rhs, e);
+      e = new LetOrFailExpr(x, lhs, req, reads, rhs, e);
     } else {
       e = new LetExpr(x, letLHSs, letRHSs, e, exact, attrs);
     }

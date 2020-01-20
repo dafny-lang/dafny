@@ -9790,10 +9790,21 @@ namespace Microsoft.Dafny {
     public readonly Expression Rhs;
     public readonly Expression Body;
 
-    public LetOrFailExpr(IToken tok, CasePattern<BoundVar>/*?*/ lhs, Expression rhs, Expression body): base(tok) {
+    public readonly List<FrameExpression> Reads;
+    public readonly Expression Reqs;
+   public LetOrFailExpr(IToken tok, CasePattern<BoundVar>/*?*/ lhs, Expression rhs, Expression body): base(tok) {
       Lhs = lhs;
       Rhs = rhs;
       Body = body;
+      Reads = new List<FrameExpression>();
+      Reqs = null;
+    }
+    public LetOrFailExpr(IToken tok, CasePattern<BoundVar>/*?*/ lhs, Expression reqs, List<FrameExpression> reads, Expression rhs, Expression body): base(tok) {
+      Lhs = lhs;
+      Rhs = rhs;
+      Body = body;
+      Reads = reads;
+      Reqs = reqs;
     }
   }
 

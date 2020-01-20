@@ -12403,7 +12403,7 @@ namespace Microsoft.Dafny
       var bvs = new List<BoundVar>();
       bvs.Add(bv);
       var reads = new List<FrameExpression>();
-      newBody = new LambdaExpr(e.Body.tok, bvs, null, reads, e.Body);
+      newBody = new LambdaExpr(e.Body.tok, bvs, e.Reqs, e.Reads, e.Body);
 
       // ResolveExpression(newBody, opt);
       List<Expression> bindargs = new List<Expression>();
@@ -12465,6 +12465,9 @@ namespace Microsoft.Dafny
         ResolveMonadicBind(expr, opts);
       } else if (SupportsErrorHandling(expr.tok, tp, (expr.Lhs != null))) {
         // (2)
+        if(expr.Reads.Count != 0 || expr.Reqs != null){
+          reporter.Error(MessageSource.Resolver, expr.tok, "Error-handling LetOrFail does not support requires or reads clauses", tp);
+        }
         ResolveLetOrFailExpr(expr, opts);
       } else {
         // (3)
