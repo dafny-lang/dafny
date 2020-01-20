@@ -3552,7 +3552,11 @@ namespace Microsoft.Dafny {
             compileName = Name;
           } else {
             if (Module != null && Module.Name != "_module") {
-              compileName = Module.CompileName + "." + NonglobalVariable.CompilerizeName(Name);
+              // Include all names in the module tree path, to disambiguate when compiling
+              // a flat list of modules.
+              // Use an "underscore-escaped" character as a module name separator, since
+              // underscores are already used as escape characters in CompilerizeName()
+              compileName = Module.CompileName + "_m" + NonglobalVariable.CompilerizeName(Name);
             } else {
               compileName = NonglobalVariable.CompilerizeName(Name);
             }
