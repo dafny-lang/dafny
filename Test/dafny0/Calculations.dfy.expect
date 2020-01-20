@@ -1,15 +1,15 @@
 Calculations.dfy(7,5): Error: index out of range
 Execution trace:
     (0,0): anon0
-    (0,0): anon24_Then
+    (0,0): anon28_Then
 Calculations.dfy(12,14): Error: index out of range
 Execution trace:
     (0,0): anon0
-    (0,0): anon26_Then
+    (0,0): anon30_Then
 Calculations.dfy(12,18): Error: assertion violation
 Execution trace:
     (0,0): anon0
-    (0,0): anon26_Then
+    (0,0): anon30_Then
 Calculations.dfy(56,11): Error: assertion violation
 Execution trace:
     (0,0): anon0
@@ -17,11 +17,11 @@ Execution trace:
 Calculations.dfy(79,14): Error: index out of range
 Execution trace:
     (0,0): anon0
-    (0,0): anon12_Then
+    (0,0): anon14_Then
 Calculations.dfy(79,18): Error: assertion violation
 Execution trace:
     (0,0): anon0
-    (0,0): anon12_Then
+    (0,0): anon14_Then
 
 Dafny program verifier finished with 3 verified, 6 errors
 
