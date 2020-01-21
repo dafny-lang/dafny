@@ -1459,7 +1459,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    protected virtual string TypeNameArrayBrackets(int dims){
+    protected virtual string TypeNameArrayBrackets(int dims) {
       Contract.Requires(0 <= dims);
       var name = "[";
       for (int i = 1; i < dims; i++) {

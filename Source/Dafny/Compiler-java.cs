@@ -386,7 +386,7 @@ namespace Microsoft.Dafny{
         targetReturnTypeReplacement = DafnyTupleClassPrefix + nonGhostOuts;
       }
       var customReceiver = NeedsCustomReceiver(m);
-      var receiverType = UserDefinedType.FromTopLevelDecl(m.tok, m.EnclosingClass, m.TypeArgs);
+      var receiverType = UserDefinedType.FromTopLevelDecl(m.tok, m.EnclosingClass);
       wr.Write("public {0}{1}", !createBody ? "abstract " : "", m.IsStatic || customReceiver ? "static " : "");
       if (m.TypeArgs.Count != 0) {
         wr.Write($"<{TypeParameters(m.TypeArgs)}> ");
@@ -453,7 +453,7 @@ namespace Microsoft.Dafny{
         return null;
       }
       var customReceiver = NeedsCustomReceiver(member);
-      var receiverType = UserDefinedType.FromTopLevelDecl(member.tok, member.EnclosingClass, typeArgs);
+      var receiverType = UserDefinedType.FromTopLevelDecl(member.tok, member.EnclosingClass);
       wr.Write("public {0}{1}", !createBody ? "abstract " : "", isStatic || customReceiver ? "static " : "");
       if (typeArgs != null && typeArgs.Count != 0) {
         wr.Write($"<{TypeParameters(typeArgs)}>");
@@ -666,10 +666,9 @@ namespace Microsoft.Dafny{
       }
     }
 
-    protected override string TypeNameArrayBrackets(int dims){
-      Contract.Requires(0 <= dims);
+    protected override string TypeNameArrayBrackets(int dims) {
       var name = "[";
-      for (int i = 1; i < dims; i++){
+      for (int i = 1; i < dims; i++) {
         name += "][";
       }
 
