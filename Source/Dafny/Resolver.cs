@@ -6999,8 +6999,10 @@ namespace Microsoft.Dafny
           }
           if (s.Body != null) {
             Visit(s.Body, s.IsGhost);
+            if (s.Body.IsGhost && !s.Decreases.Expressions.Exists(e => e is WildcardExpr)) {
+              s.IsGhost = true;
+            }
           }
-          s.IsGhost = s.IsGhost || s.Body == null || (!s.Decreases.Expressions.Exists(e => e is WildcardExpr) && s.Body.IsGhost);
 
         } else if (stmt is AlternativeLoopStmt) {
           var s = (AlternativeLoopStmt)stmt;
@@ -9231,14 +9233,15 @@ namespace Microsoft.Dafny
       } else if (stmt is WhileStmt) {
         WhileStmt s = (WhileStmt)stmt;
         var fvs = new HashSet<IVariable>();
+        var usesHeap = false;
         if (s.Guard != null) {
           ResolveExpression(s.Guard, new ResolveOpts(codeContext, true));
           Contract.Assert(s.Guard.Type != null);  // follows from postcondition of ResolveExpression
-          Translator.ComputeFreeVariables(s.Guard, fvs);
+          Translator.ComputeFreeVariables(s.Guard, fvs, ref usesHeap);
           ConstrainTypeExprBool(s.Guard, "condition is expected to be of type bool, but is {0}");
         }
 
-        ResolveLoopSpecificationComponents(s.Invariants, s.Decreases, s.Mod, codeContext, fvs);
+        ResolveLoopSpecificationComponents(s.Invariants, s.Decreases, s.Mod, codeContext, fvs, ref usesHeap);
 
         if (s.Body != null) {
           loopStack.Add(s);  // push
@@ -9247,15 +9250,21 @@ namespace Microsoft.Dafny
           dominatingStatementLabels.PopMarker();
           loopStack.RemoveAt(loopStack.Count - 1);  // pop
         } else {
-          reporter.Warning(MessageSource.Resolver, s.Tok, "note, this loop has no body");
-          string text = "havoc {" + Util.Comma(", ", fvs, fv => fv.Name) + "};";  // always terminate with a semi-colon
-          reporter.Info(MessageSource.Resolver, s.Tok, text);
+          Contract.Assert(s.BodySurrogate == null);  // .BodySurrogate is set only once
+          s.BodySurrogate = new WhileStmt.LoopBodySurrogate(new List<IVariable>(fvs.Where(fv => fv.IsMutable)), usesHeap);
+          var text = Util.Comma(", ", s.BodySurrogate.LocalLoopTargets, fv => fv.Name);
+          if (s.BodySurrogate.UsesHeap) {
+            text += text.Length == 0 ? "$Heap" : ", $Heap";
+          }
+          text = string.Format("note, this loop has no body{0}", text.Length == 0 ? "" : " (loop frame: " + text + ")");
+          reporter.Warning(MessageSource.Resolver, s.Tok, text);
         }
 
       } else if (stmt is AlternativeLoopStmt) {
         var s = (AlternativeLoopStmt)stmt;
         ResolveAlternatives(s.Alternatives, s, codeContext);
-        ResolveLoopSpecificationComponents(s.Invariants, s.Decreases, s.Mod, codeContext, null);
+        var usesHeapDontCare = false;
+        ResolveLoopSpecificationComponents(s.Invariants, s.Decreases, s.Mod, codeContext, null, ref usesHeapDontCare);
 
       } else if (stmt is ForallStmt) {
         var s = (ForallStmt)stmt;
@@ -9449,7 +9458,7 @@ namespace Microsoft.Dafny
       }
     }
 
-    private void ResolveLoopSpecificationComponents(List<MaybeFreeExpression> invariants, Specification<Expression> decreases, Specification<FrameExpression> modifies, ICodeContext codeContext, HashSet<IVariable> fvs) {
+    private void ResolveLoopSpecificationComponents(List<MaybeFreeExpression> invariants, Specification<Expression> decreases, Specification<FrameExpression> modifies, ICodeContext codeContext, HashSet<IVariable> fvs, ref bool usesHeap) {
       Contract.Requires(invariants != null);
       Contract.Requires(decreases != null);
       Contract.Requires(modifies != null);
@@ -9460,7 +9469,7 @@ namespace Microsoft.Dafny
         ResolveExpression(inv.E, new ResolveOpts(codeContext, true));
         Contract.Assert(inv.E.Type != null);  // follows from postcondition of ResolveExpression
         if (fvs != null) {
-          Translator.ComputeFreeVariables(inv.E, fvs);
+          Translator.ComputeFreeVariables(inv.E, fvs, ref usesHeap);
         }
         ConstrainTypeExprBool(inv.E, "invariant is expected to be of type bool, but is {0}");
       }
@@ -9473,16 +9482,17 @@ namespace Microsoft.Dafny
             reporter.Error(MessageSource.Resolver, e, "a possibly infinite loop is allowed only if the enclosing method is declared (with 'decreases *') to be possibly non-terminating");
           }
         }
+        if (fvs != null) {
+          Translator.ComputeFreeVariables(e, fvs, ref usesHeap);
+        }
         // any type is fine
       }
 
       ResolveAttributes(modifies.Attributes, null, new ResolveOpts(codeContext, true));
       if (modifies.Expressions != null) {
+        usesHeap = true;  // bearing a modifies clause counts as using the heap
         foreach (FrameExpression fe in modifies.Expressions) {
           ResolveFrameExpression(fe, FrameExpressionUse.Modifies, codeContext);
-          if (fvs != null) {
-            Translator.ComputeFreeVariables(fe.E, fvs);
-          }
         }
       }
     }

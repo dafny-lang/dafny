@@ -7219,8 +7219,20 @@ namespace Microsoft.Dafny {
 
   public class WhileStmt : LoopStmt
   {
-    public readonly Expression Guard;
-    public readonly BlockStmt Body;
+    public readonly Expression/*?*/ Guard;
+    public readonly BlockStmt/*?*/ Body;
+    public LoopBodySurrogate/*?*/ BodySurrogate;  // set by Resolver; remains null unless Body==null
+
+    public class LoopBodySurrogate
+    {
+      public readonly List<IVariable> LocalLoopTargets;
+      public readonly bool UsesHeap;
+
+      public LoopBodySurrogate(List<IVariable> localLoopTargets, bool usesHeap) {
+        LocalLoopTargets = localLoopTargets;
+        UsesHeap = usesHeap;
+      }
+    }
 
     public WhileStmt(IToken tok, IToken endTok, Expression guard,
                      List<MaybeFreeExpression> invariants, Specification<Expression> decreases, Specification<FrameExpression> mod,

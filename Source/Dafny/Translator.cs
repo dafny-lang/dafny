@@ -11429,7 +11429,8 @@ namespace Microsoft.Dafny {
         initDecr = RecordDecreasesValue(theDecreases, builder, locals, etran, "$decr_init$" + suffix);
       }
 
-      // the variable w is used to coordinate the definedness checking of the loop invariant
+      // The variable w is used to coordinate the definedness checking of the loop invariant.
+      // It is also used for body-less loops to turn off invariant checking after the generated body.
       Bpl.LocalVariable wVar = new Bpl.LocalVariable(s.Tok, new Bpl.TypedIdent(s.Tok, "$w$" + suffix, Bpl.Type.Bool));
       Bpl.IdentifierExpr w = new Bpl.IdentifierExpr(s.Tok, wVar);
       locals.Add(wVar);
@@ -11465,7 +11466,6 @@ namespace Microsoft.Dafny {
         }
       }
       // check definedness of decreases clause
-      // TODO: can this check be omitted if the decreases clause is inferred?
       foreach (Expression e in theDecreases) {
         TrStmt_CheckWellformed(e, invDefinednessBuilder, locals, etran, true);
       }
@@ -11547,9 +11547,16 @@ namespace Microsoft.Dafny {
           }
           loopBodyBuilder.Add(Assert(s.Tok, decrCheck, msg));
         }
-      } else {
-        loopBodyBuilder.Add(TrAssumeCmd(s.Tok, Bpl.Expr.False));
-        // todo(maria): havoc stuff
+      } else if (s is WhileStmt && ((WhileStmt)s).BodySurrogate != null) {
+        var bodySurrogate = ((WhileStmt) s).BodySurrogate;
+        // This is a body-less loop. Havoc the targets and then set w to false, to make the loop-invariant
+        // maintenance check vaccuous.
+        var bplTargets = bodySurrogate.LocalLoopTargets.ConvertAll(v => TrVar(s.Tok, v));
+        if (bodySurrogate.UsesHeap) {
+          bplTargets.Add((Bpl.IdentifierExpr /*TODO: this cast is rather dubious*/)etran.HeapExpr);
+        }
+        loopBodyBuilder.Add(new Bpl.HavocCmd(s.Tok, bplTargets));
+        loopBodyBuilder.Add(Bpl.Cmd.SimpleAssign(s.Tok, w, Bpl.Expr.False));
       }
       // Finally, assume the well-formedness of the invariant (which has been checked once and for all above), so that the check
       // of invariant-maintenance can use the appropriate canCall predicates.
@@ -17312,6 +17319,14 @@ namespace Microsoft.Dafny {
       var dontCareHeapAt = new HashSet<Label>();
       ComputeFreeVariables(expr, fvs, ref dontCare0, ref dontCare1, dontCareHeapAt, ref dontCareT);
     }
+    public static void ComputeFreeVariables(Expression expr, ISet<IVariable> fvs, ref bool usesHeap) {
+      Contract.Requires(expr != null);
+      Contract.Requires(fvs != null);
+      bool dontCare1 = false;
+      Type dontCareT = null;
+      var dontCareHeapAt = new HashSet<Label>();
+      ComputeFreeVariables(expr, fvs, ref usesHeap, ref dontCare1, dontCareHeapAt, ref dontCareT);
+    }
     public static void ComputeFreeVariables(Expression expr, ISet<IVariable> fvs, ref bool usesHeap, ref bool usesOldHeap, ISet<Label> freeHeapAtVariables, ref Type usesThis) {
       Contract.Requires(expr != null);
 
@@ -17347,17 +17362,23 @@ namespace Microsoft.Dafny {
         }
       } else if (expr is UnchangedExpr) {
         var e = (UnchangedExpr)expr;
+        // Note, we don't have to look out for const fields here, because const fields
+        // are not allowed in unchanged expressions.
+        usesHeap = true;
         if (e.AtLabel == null) {
           usesOldHeap = true;
         } else {
           freeHeapAtVariables.Add(e.AtLabel);
         }
       } else if (expr is ApplyExpr) {
-        usesHeap = true;  // because the translation of an ApplyExpr always throws in the heap variable
-      } else if (expr is UnaryOpExpr && ((UnaryOpExpr)expr).Op == UnaryOpExpr.Opcode.Fresh) {
-        usesOldHeap = true;
-      } else if (expr is UnaryOpExpr && ((UnaryOpExpr)expr).Op == UnaryOpExpr.Opcode.Allocated) {
-        usesHeap = true;
+        usesHeap = true; // because the translation of an ApplyExpr always throws in the heap variable
+      } else if (expr is UnaryOpExpr) {
+        var e = (UnaryOpExpr) expr;
+        if (e.Op == UnaryOpExpr.Opcode.Fresh) {
+          usesOldHeap = true;
+        } else if (e.Op == UnaryOpExpr.Opcode.Allocated) {
+          usesHeap = true;
+        }
       }
 
       // visit subexpressions
