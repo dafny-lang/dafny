@@ -178,7 +178,6 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="Dafny.atg" />
-    <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Parser.cs" Visible="False" />
