@@ -152,6 +152,7 @@
     <Compile Include="Compiler-go.cs" />
     <Compile Include="Compiler-js.cs" />
     <Compile Include="Compiler-java.cs" />
+    <Compile Include="Compiler-php.cs" />
     <Compile Include="Reporting.cs" />
     <Compile Include="Triggers\QuantifiersCollection.cs" />
     <Compile Include="Triggers\QuantifierSplitter.cs" />
