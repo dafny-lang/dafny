@@ -213,7 +213,7 @@ namespace Microsoft.Dafny
         new ValuetypeDecl("int", builtIns.SystemModule, 0, t => t.IsNumericBased(Type.NumericPersuation.Int), typeArgs => Type.Int),
         new ValuetypeDecl("real", builtIns.SystemModule, 0, t => t.IsNumericBased(Type.NumericPersuation.Real), typeArgs => Type.Real),
         new ValuetypeDecl("ORDINAL", builtIns.SystemModule, 0, t => t.IsBigOrdinalType, typeArgs => Type.BigOrdinal),
-        new ValuetypeDecl("bv", builtIns.SystemModule, 0, t => t.IsBitVectorType, null),  // "bv" represents a family of classes, so no typeTester or type creator is supplied
+        new ValuetypeDecl("_bv", builtIns.SystemModule, 0, t => t.IsBitVectorType, null),  // "_bv" represents a family of classes, so no typeTester or type creator is supplied
         new ValuetypeDecl("map", builtIns.SystemModule, 2, t => t.IsMapType, typeArgs => new MapType(true, typeArgs[0], typeArgs[1])),
         new ValuetypeDecl("imap", builtIns.SystemModule, 2, t => t.IsIMapType, typeArgs => new MapType(false, typeArgs[0], typeArgs[1]))
       };
@@ -1312,6 +1312,7 @@ namespace Microsoft.Dafny
       }
       moduleDecl.PrefixNamedModules.Clear();
 
+      // First, register all literal modules, and transferring their prefix-named modules downwards
       foreach (var tld in moduleDecl.TopLevelDecls) {
         if (tld is LiteralModuleDecl) {
           var subdecl = (LiteralModuleDecl)tld;
@@ -1324,34 +1325,14 @@ namespace Microsoft.Dafny
             prefixModules = null;
           }
           BindModuleName_LiteralModuleDecl(subdecl, prefixModules, bindings);
-        } else if (tld is ModuleFacadeDecl) {
-          var subdecl = (ModuleFacadeDecl)tld;
-          if (!bindings.BindName(subdecl.Name, subdecl, null)) {
-            if (tld.Module.IsDefaultModule) {
-              // the import is not in a module.
-              reporter.Error(MessageSource.Resolver, subdecl.tok, "Can't import module {0} when not inside of a module", subdecl.Name);
-            } else {
-              reporter.Error(MessageSource.Resolver, subdecl.tok, "Duplicate module name: {0}", subdecl.Name);
-            }
-          }
-        } else if (tld is AliasModuleDecl) {
-          var subdecl = (AliasModuleDecl)tld;
-          if (!bindings.BindName(subdecl.Name, subdecl, null)) {
-            if (tld.Module.IsDefaultModule) {
-              // the import is not in a module.
-              reporter.Error(MessageSource.Resolver, subdecl.tok, "Can't import module {0} when not inside of a module", subdecl.Name);
-            } else {
-              reporter.Error(MessageSource.Resolver, subdecl.tok, "Duplicate module name: {0}", subdecl.Name);
-            }
-          }
         }
       }
-      // add new modules for any remaining entries in "prefixNames"
+      // Next, add new modules for any remaining entries in "prefixNames".
       foreach (var entry in prefixNames) {
         var name = entry.Key;
         var prefixNamedModules = entry.Value;
         var tok = prefixNamedModules.First().Item1[0];
-        var modDef = new ModuleDefinition(tok, name, new List<IToken>(), false, false, false, null, moduleDecl, null, false);
+        var modDef = new ModuleDefinition(tok, name, new List<IToken>(), false, false, false, null, moduleDecl, null, false, true, true);
         // Every module is expected to have a default class, so we create and add one now
         var defaultClass = new DefaultClassDecl(modDef, new List<MemberDecl>());
         modDef.TopLevelDecls.Add(defaultClass);
@@ -1359,6 +1340,27 @@ namespace Microsoft.Dafny
         var subdecl = new LiteralModuleDecl(modDef, moduleDecl);
         moduleDecl.TopLevelDecls.Add(subdecl);
         BindModuleName_LiteralModuleDecl(subdecl, prefixNamedModules.ConvertAll(ShortenPrefix), bindings);
+      }
+      // Finally, go through import declarations (that is, ModuleFacadeDecl's and AliasModuleDecl's).
+      foreach (var tld in moduleDecl.TopLevelDecls) {
+        if (tld is ModuleFacadeDecl || tld is AliasModuleDecl) {
+          var subdecl = (ModuleDecl)tld;
+          if (bindings.BindName(subdecl.Name, subdecl, null)) {
+            // the add was successful
+          } else {
+            // there's already something with this name
+            ModuleDecl prevDecl;
+            var yes = bindings.TryLookup(subdecl.tok, out prevDecl);
+            Contract.Assert(yes);
+            if (prevDecl is ModuleFacadeDecl || prevDecl is AliasModuleDecl) {
+              reporter.Error(MessageSource.Resolver, subdecl.tok, "Duplicate name of import: {0}", subdecl.Name);
+            } else if (tld is AliasModuleDecl importDecl && importDecl.Opened && importDecl.Path.Count == 1 && importDecl.Name == importDecl.Path[0].val) {
+              importDecl.ShadowsLiteralModule = true;
+            } else {
+              reporter.Error(MessageSource.Resolver, subdecl.tok, "Import declaration uses same name as a module in the same scope: {0}", subdecl.Name);
+            }
+          }
+        }
       }
       return bindings;
     }
@@ -1594,6 +1596,7 @@ namespace Microsoft.Dafny
       // This is solely used to detect duplicates amongst the various e
       Dictionary<string, TopLevelDecl> toplevels = new Dictionary<string, TopLevelDecl>();
       // Now add the things present
+      var anonymousImportCount = 0;
       foreach (TopLevelDecl d in declarations) {
         Contract.Assert(d != null);
 
@@ -1602,19 +1605,33 @@ namespace Microsoft.Dafny
         }
 
         // register the class/datatype/module name
-        if (d is ModuleExportDecl export) {
-          if (sig.ExportSets.ContainsKey(d.Name)) {
-            reporter.Error(MessageSource.Resolver, d, "duplicate name of export set: {0}", d.Name);
+        {
+          TopLevelDecl registerThisDecl = null;
+          string registerUnderThisName = null;
+          if (d is ModuleExportDecl export) {
+            if (sig.ExportSets.ContainsKey(d.Name)) {
+              reporter.Error(MessageSource.Resolver, d, "duplicate name of export set: {0}", d.Name);
+            } else {
+              sig.ExportSets[d.Name] = export;
+            }
+          } else if (d is AliasModuleDecl importDecl && importDecl.ShadowsLiteralModule) {
+            // add under an anonymous name
+            registerThisDecl = d;
+            registerUnderThisName = string.Format("{0}#{1}", d.Name, anonymousImportCount);
+            anonymousImportCount++;
+          } else if (toplevels.ContainsKey(d.Name)) {
+            reporter.Error(MessageSource.Resolver, d, "duplicate name of top-level declaration: {0}", d.Name);
+          } else if (d is ClassDecl cl && cl.NonNullTypeDecl != null) {
+            registerThisDecl = cl.NonNullTypeDecl;
+            registerUnderThisName = d.Name;
           } else {
-            sig.ExportSets[d.Name] = export;
+            registerThisDecl = d;
+            registerUnderThisName = d.Name;
           }
-        } else if (toplevels.ContainsKey(d.Name)) {
-          reporter.Error(MessageSource.Resolver, d, "duplicate name of top-level declaration: {0}", d.Name);
-        } else {
-          var cl = d as ClassDecl;
-          TopLevelDecl dprime = cl != null && cl.NonNullTypeDecl != null ? cl.NonNullTypeDecl : d;
-          toplevels[d.Name] = dprime;
-          sig.TopLevels[d.Name] = dprime;
+          if (registerThisDecl != null) {
+            toplevels[registerUnderThisName] = registerThisDecl;
+            sig.TopLevels[registerUnderThisName] = registerThisDecl;
+          }
         }
         if (d is ModuleDecl) {
           // nothing to do
@@ -1970,9 +1987,9 @@ namespace Microsoft.Dafny
       Contract.Requires(compilationModuleClones != null);
       var errCount = reporter.Count(ErrorLevel.Error);
 
-      var mod = new ModuleDefinition(Token.NoToken, Name + ".Abs", new List<IToken>(), true, true, true, null, null, null, false);
+      var mod = new ModuleDefinition(Token.NoToken, Name + ".Abs", new List<IToken>(), true, true, true, null, null, null, false,
+                                     p.ModuleDef.IsToBeVerified, p.ModuleDef.IsToBeCompiled);
       mod.Height = Height;
-      mod.IsToBeVerified = p.ModuleDef.IsToBeVerified;
       bool hasDefaultClass = false;
       foreach (var kv in p.TopLevels) {
         hasDefaultClass = kv.Value is DefaultClassDecl || hasDefaultClass;
@@ -4014,7 +4031,7 @@ namespace Microsoft.Dafny
             satisfied = (t is SetType && ((SetType)t).Finite) || t is MultiSetType || t is SeqType || (t is MapType && ((MapType)t).Finite);
             break;
           case "Disjointable":
-            satisfied = t is SetType || t is MultiSetType || t is MapType;
+            satisfied = t is SetType || t is MultiSetType;
             break;
           case "MultiSetConvertible":
             satisfied = (t is SetType && ((SetType)t).Finite) || t is SeqType;
@@ -6982,8 +6999,10 @@ namespace Microsoft.Dafny
           }
           if (s.Body != null) {
             Visit(s.Body, s.IsGhost);
+            if (s.Body.IsGhost && !s.Decreases.Expressions.Exists(e => e is WildcardExpr)) {
+              s.IsGhost = true;
+            }
           }
-          s.IsGhost = s.IsGhost || s.Body == null || (!s.Decreases.Expressions.Exists(e => e is WildcardExpr) && s.Body.IsGhost);
 
         } else if (stmt is AlternativeLoopStmt) {
           var s = (AlternativeLoopStmt)stmt;
@@ -9214,14 +9233,15 @@ namespace Microsoft.Dafny
       } else if (stmt is WhileStmt) {
         WhileStmt s = (WhileStmt)stmt;
         var fvs = new HashSet<IVariable>();
+        var usesHeap = false;
         if (s.Guard != null) {
           ResolveExpression(s.Guard, new ResolveOpts(codeContext, true));
           Contract.Assert(s.Guard.Type != null);  // follows from postcondition of ResolveExpression
-          Translator.ComputeFreeVariables(s.Guard, fvs);
+          Translator.ComputeFreeVariables(s.Guard, fvs, ref usesHeap);
           ConstrainTypeExprBool(s.Guard, "condition is expected to be of type bool, but is {0}");
         }
 
-        ResolveLoopSpecificationComponents(s.Invariants, s.Decreases, s.Mod, codeContext, fvs);
+        ResolveLoopSpecificationComponents(s.Invariants, s.Decreases, s.Mod, codeContext, fvs, ref usesHeap);
 
         if (s.Body != null) {
           loopStack.Add(s);  // push
@@ -9230,15 +9250,21 @@ namespace Microsoft.Dafny
           dominatingStatementLabels.PopMarker();
           loopStack.RemoveAt(loopStack.Count - 1);  // pop
         } else {
-          reporter.Warning(MessageSource.Resolver, s.Tok, "note, this loop has no body");
-          string text = "havoc {" + Util.Comma(", ", fvs, fv => fv.Name) + "};";  // always terminate with a semi-colon
-          reporter.Info(MessageSource.Resolver, s.Tok, text);
+          Contract.Assert(s.BodySurrogate == null);  // .BodySurrogate is set only once
+          s.BodySurrogate = new WhileStmt.LoopBodySurrogate(new List<IVariable>(fvs.Where(fv => fv.IsMutable)), usesHeap);
+          var text = Util.Comma(", ", s.BodySurrogate.LocalLoopTargets, fv => fv.Name);
+          if (s.BodySurrogate.UsesHeap) {
+            text += text.Length == 0 ? "$Heap" : ", $Heap";
+          }
+          text = string.Format("note, this loop has no body{0}", text.Length == 0 ? "" : " (loop frame: " + text + ")");
+          reporter.Warning(MessageSource.Resolver, s.Tok, text);
         }
 
       } else if (stmt is AlternativeLoopStmt) {
         var s = (AlternativeLoopStmt)stmt;
         ResolveAlternatives(s.Alternatives, s, codeContext);
-        ResolveLoopSpecificationComponents(s.Invariants, s.Decreases, s.Mod, codeContext, null);
+        var usesHeapDontCare = false;
+        ResolveLoopSpecificationComponents(s.Invariants, s.Decreases, s.Mod, codeContext, null, ref usesHeapDontCare);
 
       } else if (stmt is ForallStmt) {
         var s = (ForallStmt)stmt;
@@ -9432,7 +9458,7 @@ namespace Microsoft.Dafny
       }
     }
 
-    private void ResolveLoopSpecificationComponents(List<MaybeFreeExpression> invariants, Specification<Expression> decreases, Specification<FrameExpression> modifies, ICodeContext codeContext, HashSet<IVariable> fvs) {
+    private void ResolveLoopSpecificationComponents(List<MaybeFreeExpression> invariants, Specification<Expression> decreases, Specification<FrameExpression> modifies, ICodeContext codeContext, HashSet<IVariable> fvs, ref bool usesHeap) {
       Contract.Requires(invariants != null);
       Contract.Requires(decreases != null);
       Contract.Requires(modifies != null);
@@ -9443,7 +9469,7 @@ namespace Microsoft.Dafny
         ResolveExpression(inv.E, new ResolveOpts(codeContext, true));
         Contract.Assert(inv.E.Type != null);  // follows from postcondition of ResolveExpression
         if (fvs != null) {
-          Translator.ComputeFreeVariables(inv.E, fvs);
+          Translator.ComputeFreeVariables(inv.E, fvs, ref usesHeap);
         }
         ConstrainTypeExprBool(inv.E, "invariant is expected to be of type bool, but is {0}");
       }
@@ -9456,16 +9482,17 @@ namespace Microsoft.Dafny
             reporter.Error(MessageSource.Resolver, e, "a possibly infinite loop is allowed only if the enclosing method is declared (with 'decreases *') to be possibly non-terminating");
           }
         }
+        if (fvs != null) {
+          Translator.ComputeFreeVariables(e, fvs, ref usesHeap);
+        }
         // any type is fine
       }
 
       ResolveAttributes(modifies.Attributes, null, new ResolveOpts(codeContext, true));
       if (modifies.Expressions != null) {
+        usesHeap = true;  // bearing a modifies clause counts as using the heap
         foreach (FrameExpression fe in modifies.Expressions) {
           ResolveFrameExpression(fe, FrameExpressionUse.Modifies, codeContext);
-          if (fvs != null) {
-            Translator.ComputeFreeVariables(fe.E, fvs);
-          }
         }
       }
     }
@@ -11871,7 +11898,8 @@ namespace Microsoft.Dafny
 
       } else if (expr is SeqConstructionExpr) {
         var e = (SeqConstructionExpr)expr;
-        var elementType = new InferredTypeProxy();
+        var elementType = e.ExplicitElementType ?? new InferredTypeProxy();
+        ResolveType(e.tok, elementType, opts.codeContext, ResolveTypeOptionEnum.InferTypeProxies, null);
         ResolveExpression(e.N, opts);
         ConstrainToIntegerType(e.N, "sequence construction must use an integer-based expression for the sequence size (got {0})");
         ResolveExpression(e.Initializer, opts);
@@ -12002,7 +12030,7 @@ namespace Microsoft.Dafny
             Type disjointArgumentsType = new InferredTypeProxy();
             ConstrainSubtypeRelation(disjointArgumentsType, e.E0.Type, expr, "arguments to {2} must have a common supertype (got {0} and {1})", e.E0.Type, e.E1.Type, BinaryExpr.OpcodeString(e.Op));
             ConstrainSubtypeRelation(disjointArgumentsType, e.E1.Type, expr, "arguments to {2} must have a common supertype (got {0} and {1})", e.E0.Type, e.E1.Type, BinaryExpr.OpcodeString(e.Op));
-            AddXConstraint(expr.tok, "Disjointable", disjointArgumentsType, "arguments must be of a [multi]set or map type (got {0})");
+            AddXConstraint(expr.tok, "Disjointable", disjointArgumentsType, "arguments must be of a set or multiset type (got {0})");
             expr.Type = Type.Bool;
             break;
 
@@ -14958,8 +14986,6 @@ namespace Microsoft.Dafny
         case BinaryExpr.Opcode.Disjoint:
           if (operandType is MultiSetType) {
             return BinaryExpr.ResolvedOpcode.MultiSetDisjoint;
-          } else if (operandType is MapType) {
-            return BinaryExpr.ResolvedOpcode.MapDisjoint;
           } else {
             return BinaryExpr.ResolvedOpcode.Disjoint;
           }
