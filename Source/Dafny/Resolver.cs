@@ -9491,7 +9491,12 @@ namespace Microsoft.Dafny
     }
 
 
-  // ResolveNestedMatchStmt desugar a nestedmatchstmt into a series of conditionals and flat, disjoint matchstmt
+    /// <summary>
+    /// Resolves a NestedMatchStmt by
+    /// 1 - checking that all of its patterns are linear
+    /// 2 - desugaring it into a decision tree of MatchStmt and IfStmt (for constant matching)
+    /// 3 - resolving the generated (sub)statement.
+    /// </summary>
     void ResolveNestedMatchStmt(NestedMatchStmt s, ICodeContext codeContext) {
       Contract.Requires(s != null);
       Contract.Requires(codeContext != null);
@@ -9505,9 +9510,9 @@ namespace Microsoft.Dafny
 
 
       if(s.Source.Type is TypeProxy) {
-
         PartiallySolveTypeConstraints(true);
         if(debug) Console.WriteLine("DEBUG: Type of {0} was still a proxy, solving type constraints results in type {1}", Printer.ExprToString(s.Source), s.Source.Type.ToString());
+
         if(s.Source.Type is TypeProxy){
           reporter.Error(MessageSource.Resolver, s.Tok, "Could not resolve the type of the source of the match expression. Please provide additional typing annotations.");
           return;
@@ -9702,7 +9707,10 @@ public class MatchTempInfo{
 
 
 }
-
+/// <summary>
+/// A SyntaxContainer is a wrapper around either an Expression or a Statement
+/// It allows for generic functions over the two syntax spaces of Dafny
+/// </summary>
 public abstract class SyntaxContainer{
 
 }
@@ -9725,7 +9733,7 @@ public class CStmt:SyntaxContainer{
 }
 
 
-
+/// Unwraps a CStmt and returns its Body as a BlockStmt
 BlockStmt BlockStmtOfCStmt(IToken tok, IToken endTok, CStmt con) {
   var stmt = con.Body;
   if (stmt is BlockStmt) {
@@ -9736,6 +9744,11 @@ BlockStmt BlockStmtOfCStmt(IToken tok, IToken endTok, CStmt con) {
     return new BlockStmt(tok, endTok, stmts);
   }
 }
+
+
+/// <summary>
+/// RBranch is an intermediate data-structure representing a branch during pattern-match compilation
+/// </summary>
 public abstract class RBranch {
   public int BranchID;
   public List<ExtendedPattern>  Patterns;
@@ -13355,6 +13368,12 @@ void CheckLinearNestedMatchStmt(Type dtd, NestedMatchStmt ms) {
       return rewrite;
     }
 
+   /// <summary>
+    /// Resolves a NestedMatchExpr by
+    /// 1 - checking that all of its patterns are linear
+    /// 2 - desugaring it into a decision tree of MatchExpr and ITEEXpr (for constant matching)
+    /// 3 - resolving the generated (sub)expression.
+    /// </summary>
     void ResolveNestedMatchExpr(NestedMatchExpr me, ResolveOpts opts) {
       Contract.Requires(me != null);
       Contract.Requires(opts != null);
@@ -13406,7 +13425,7 @@ void CheckLinearNestedMatchStmt(Type dtd, NestedMatchStmt ms) {
       if(debug) Console.WriteLine("DEBUG: {0} ResolveNestedMatchExpr  3 - Resolving Expression", me.tok.line);
       ResolveExpression(me.ResolvedExpression, opts);
 
-      if(debug) Console.WriteLine("DEBUG: {0} ResolveNestedMatchExpr  4 - DONE");
+      if(debug) Console.WriteLine("DEBUG: {0} ResolveNestedMatchExpr   DONE");
 
     }
 
