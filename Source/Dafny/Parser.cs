@@ -132,6 +132,7 @@ readonly Include theInclude;
 readonly ModuleDecl theModule;
 readonly BuiltIns theBuiltIns;
 readonly bool theVerifyThisFile;
+readonly bool theCompileThisFile;
 int anonymousIds = 0;
 
 /// <summary>
@@ -216,17 +217,17 @@ void CheckDeclModifiers(DeclModifierData dmod, string declCaption, AllowedDeclMo
 /// Returns the number of parsing errors encountered.
 /// Note: first initialize the Scanner.
 ///</summary>
-public static int Parse (string/*!*/ filename, Include include, ModuleDecl module, BuiltIns builtIns, Errors/*!*/ errors, bool verifyThisFile=true) /* throws System.IO.IOException */ {
+public static int Parse (string/*!*/ filename, Include include, ModuleDecl module, BuiltIns builtIns, Errors/*!*/ errors, bool verifyThisFile=true, bool compileThisFile=true) /* throws System.IO.IOException */ {
   Contract.Requires(filename != null);
   Contract.Requires(module != null);
   string s;
   if (filename == "stdin.dfy") {
     s = Microsoft.Boogie.ParserHelper.Fill(System.Console.In, new List<string>());
-    return Parse(s, filename, filename, include, module, builtIns, errors, verifyThisFile);
+    return Parse(s, filename, filename, include, module, builtIns, errors, verifyThisFile, compileThisFile);
   } else {
     using (System.IO.StreamReader reader = new System.IO.StreamReader(filename)) {
       s = Microsoft.Boogie.ParserHelper.Fill(reader, new List<string>());
-      return Parse(s, filename, DafnyOptions.Clo.UseBaseNameForFileName ? Path.GetFileName(filename) : filename, include, module, builtIns, errors, verifyThisFile);
+      return Parse(s, filename, DafnyOptions.Clo.UseBaseNameForFileName ? Path.GetFileName(filename) : filename, include, module, builtIns, errors, verifyThisFile, compileThisFile);
     }
   }
 }
@@ -236,16 +237,16 @@ public static int Parse (string/*!*/ filename, Include include, ModuleDecl modul
 /// Returns the number of parsing errors encountered.
 /// Note: first initialize the Scanner.
 ///</summary>
-public static int Parse (string/*!*/ s, string/*!*/ fullFilename, string/*!*/ filename, ModuleDecl module, BuiltIns builtIns, ErrorReporter reporter, bool verifyThisFile=true) {
+public static int Parse (string/*!*/ s, string/*!*/ fullFilename, string/*!*/ filename, ModuleDecl module, BuiltIns builtIns, ErrorReporter reporter, bool verifyThisFile=true, bool compileThisFile=true) {
   Contract.Requires(s != null);
   Contract.Requires(filename != null);
   Contract.Requires(module != null);
   Errors errors = new Errors(reporter);
-  return Parse(s, fullFilename, filename, null, module, builtIns, errors, verifyThisFile);
+  return Parse(s, fullFilename, filename, null, module, builtIns, errors, verifyThisFile, compileThisFile);
 }
 
 public static Parser SetupParser(string/*!*/ s, string/*!*/ fullFilename, string/*!*/ filename, Include include, ModuleDecl module,
-                                 BuiltIns builtIns, Errors/*!*/ errors, bool verifyThisFile=true) {
+                                 BuiltIns builtIns, Errors/*!*/ errors, bool verifyThisFile=true, bool compileThisFile=true) {
   Contract.Requires(s != null);
   Contract.Requires(filename != null);
   Contract.Requires(module != null);
@@ -253,12 +254,12 @@ public static Parser SetupParser(string/*!*/ s, string/*!*/ fullFilename, string
   byte[]/*!*/ buffer = cce.NonNull( UTF8Encoding.Default.GetBytes(s));
   MemoryStream ms = new MemoryStream(buffer,false);
   Scanner scanner = new Scanner(ms, errors, fullFilename, filename);
-  return new Parser(scanner, errors, include, module, builtIns, verifyThisFile);
+  return new Parser(scanner, errors, include, module, builtIns, verifyThisFile, compileThisFile);
 }
 
 public static Expression ParseExpression(string/*!*/ s, string/*!*/ fullFilename, string/*!*/ filename, Include include, ModuleDecl module,
-                                         BuiltIns builtIns, Errors/*!*/ errors, bool verifyThisFile=true) {
-  Parser parser = SetupParser(s, fullFilename, filename, include, module, builtIns, errors, verifyThisFile);
+                                         BuiltIns builtIns, Errors/*!*/ errors, bool verifyThisFile=true, bool compileThisFile=true) {
+  Parser parser = SetupParser(s, fullFilename, filename, include, module, builtIns, errors, verifyThisFile, compileThisFile);
   parser.la = new Token();
   parser.la.val = "";
   parser.Get();
@@ -274,13 +275,13 @@ public static Expression ParseExpression(string/*!*/ s, string/*!*/ fullFilename
 /// Note: first initialize the Scanner with the given Errors sink.
 ///</summary>
 public static int Parse (string/*!*/ s, string/*!*/ fullFilename, string/*!*/ filename, Include include, ModuleDecl module,
-                         BuiltIns builtIns, Errors/*!*/ errors, bool verifyThisFile=true) {
-  Parser parser = SetupParser(s, fullFilename, filename, include, module, builtIns, errors, verifyThisFile);
+                         BuiltIns builtIns, Errors/*!*/ errors, bool verifyThisFile=true, bool compileThisFile=true) {
+  Parser parser = SetupParser(s, fullFilename, filename, include, module, builtIns, errors, verifyThisFile, compileThisFile);
   parser.Parse();
   return parser.errors.ErrorCount;
 }
 
-public Parser(Scanner/*!*/ scanner, Errors/*!*/ errors, Include include, ModuleDecl module, BuiltIns builtIns, bool verifyThisFile=true)
+public Parser(Scanner/*!*/ scanner, Errors/*!*/ errors, Include include, ModuleDecl module, BuiltIns builtIns, bool verifyThisFile=true, bool compileThisFile=true)
   : this(scanner, errors)  // the real work
 {
   // initialize readonly fields
@@ -294,6 +295,7 @@ public Parser(Scanner/*!*/ scanner, Errors/*!*/ errors, Include include, ModuleD
   theModule = module;
   theBuiltIns = builtIns;
   theVerifyThisFile = verifyThisFile;
+  theCompileThisFile = compileThisFile;
 }
 
 bool IsLabel(bool allowLabel) {
@@ -967,7 +969,9 @@ int StringToInt(string s, int defaultValue, string errString) {
 				Get();
 				ModuleName(out idRefined);
 			}
-			module = new ModuleDefinition(id, id.val, prefixIds, isAbstract, isProtected, false, idRefined, parent, attrs, false); module.IsToBeVerified = theVerifyThisFile; 
+			module = new ModuleDefinition(id, id.val, prefixIds, isAbstract, isProtected, false, idRefined, parent, attrs,
+			                              false, theVerifyThisFile, theCompileThisFile);
+			
 			Expect(76);
 			module.BodyStartTok = t; 
 			while (StartOf(1)) {
@@ -5070,17 +5074,28 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, st
 	void SeqConstructionExpr(out Expression e) {
 		Contract.Ensures(Contract.ValueAtReturn(out e) != null);
 		IToken x = null;
+		Type explicitTypeArg = null;
 		Expression n, f;
 		e = dummyExpr;
 		
 		Expect(20);
 		x = t; 
+		if (la.kind == 82) {
+			var gt = new List<Type>(); 
+			GenericInstantiation(gt);
+			if (gt.Count > 1) {
+			 SemErr("seq type expects only one type argument");
+			} else {
+			 explicitTypeArg = gt[0];
+			}
+			
+		}
 		Expect(80);
 		Expression(out n, true, true);
 		Expect(26);
 		Expression(out f, true, true);
 		Expect(81);
-		e = new SeqConstructionExpr(x, n, f); 
+		e = new SeqConstructionExpr(x, explicitTypeArg, n, f); 
 	}
 
 	void ConstAtomExpression(out Expression e, bool allowSemi, bool allowLambda) {

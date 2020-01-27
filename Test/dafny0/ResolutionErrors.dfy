@@ -2866,3 +2866,12 @@ module RegressionConstFrameExpression {
 
   }
 }
+
+// --------------- change in language semantics to forbid !! on maps ------------------------------
+
+module MapDisjointnessNoMore {
+  method M<X,Y>(a: map, b: map) {
+    assert a !! b;  // error: !! is (no longer) support on maps
+    assert a.Keys !! b.Keys;  // instead, this is the way to do it
+  }
+}

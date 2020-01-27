@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:0 /print:"%t.print" /dprint:"%t.dprint.dfy" /autoTriggers:0 "%s" > "%t"
+// RUN: %dafny /compile:0 /print:"%t.print" /dprint:"%t.dprint.dfy" "%s" > "%t"
 // RUN: %dafny /noVerify /compile:0 "%t.dprint.dfy" >> "%t"
 // RUN: %diff "%s.expect" "%t"
 
@@ -23,9 +23,9 @@ method CalcTest0(s: seq<int>) {
   assume forall x :: x in s ==> x >= 0;
   calc {
     0 < |s|;
-  ==>  { assert s[0] >= 0; }  // OK: well-formed after previous line
+  ==>  { assert s[0] in s && s[0] >= 0; }  // OK: well-formed after previous line
     s[0] >= 0;                // OK: well-formed after previous line
-  <==> { assert s[0] >= 0; }  // OK: well-formed when the previous line is well-formed
+  <==> { assert s[0] in s && s[0] >= 0; }  // OK: well-formed when the previous line is well-formed
     s[0] > 0 || s[0] == 0;    // OK: well-formed when the previous line is well-formed
   }
 
@@ -80,7 +80,7 @@ method CalcTest4(s: seq<int>)
   }
   calc {
     |s| > 0;
-  ==> { assert s[0] > 0; } // okay
+  ==> { assert s[0] in s && s[0] > 0; } // okay
   }
 
 }

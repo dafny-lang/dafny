@@ -30,7 +30,7 @@ namespace Microsoft.Dafny
       wr.WriteLine("// To recompile, use 'csc' with: /r:System.Numerics.dll");
       wr.WriteLine("// and choosing /target:exe or /target:library");
       wr.WriteLine("// You might also want to include compiler switches like:");
-      wr.WriteLine("//     /debug /nowarn:0164 /nowarn:0219 /nowarn:1717 /nowarn:0162 /nowarn:0168");
+      wr.WriteLine("//     /debug /nowarn:0164 /nowarn:0219 /nowarn:1717 /nowarn:0162 /nowarn:0168 /nowarn:0436");
       wr.WriteLine();
       wr.WriteLine("using System;");
       wr.WriteLine("using System.Numerics;");
@@ -774,7 +774,7 @@ namespace Microsoft.Dafny
       var hasDllImportAttribute = ProcessDllImport(member, wr);
 
       var customReceiver = NeedsCustomReceiver(member);
-      
+
       AddTestCheckerIfNeeded(name, member, wr);
       wr.Write("{0}{1}{2}{3} {4}", createBody ? "public " : "", isStatic || customReceiver ? "static " : "", hasDllImportAttribute ? "extern " : "", TypeName(resultType, wr, tok), name);
       if (typeArgs != null && typeArgs.Count != 0) {
@@ -2057,7 +2057,6 @@ namespace Microsoft.Dafny
           callString = "IsProperSupersetOf"; break;
         case BinaryExpr.ResolvedOpcode.Disjoint:
         case BinaryExpr.ResolvedOpcode.MultiSetDisjoint:
-        case BinaryExpr.ResolvedOpcode.MapDisjoint:
           callString = "IsDisjointFrom"; break;
         case BinaryExpr.ResolvedOpcode.InSet:
         case BinaryExpr.ResolvedOpcode.InMultiSet:
@@ -2303,7 +2302,10 @@ namespace Microsoft.Dafny
       // * CS0219/CS0168 is about unused variables
       // * CS1717 is about assignments of a variable to itself
       // * CS0162 is about unreachable code
-      cp.CompilerOptions = "/debug /nowarn:0164 /nowarn:0219 /nowarn:1717 /nowarn:0162 /nowarn:0168";
+      // * CS0436 is about types in source files that conflict with imported types (caused by
+      //   dynamically-generated types like Tuple0 that aren't part of the runtime, which are
+      //   often in pre-compiled Dafny DLLs)
+      cp.CompilerOptions = "/debug /nowarn:0164 /nowarn:0219 /nowarn:1717 /nowarn:0162 /nowarn:0168 /nowarn:0436";
       cp.ReferencedAssemblies.Add("System.Numerics.dll");
       cp.ReferencedAssemblies.Add("System.Core.dll");
       cp.ReferencedAssemblies.Add("System.dll");
@@ -2407,6 +2409,13 @@ namespace Microsoft.Dafny
       var crx = (CSharpCompilationResult)compilationResult;
       var cr = crx.cr;
 
+      // Dynamically load the DLL files the target program depends on
+      foreach (var otherFileName in otherFileNames) {
+        if (Path.GetExtension(otherFileName) == ".dll") {
+          Assembly.LoadFile(Path.GetFullPath(otherFileName));
+        }
+      }
+      
       var assemblyName = Path.GetFileName(cr.PathToAssembly);
       var entry = cr.CompiledAssembly.EntryPoint;
       try {

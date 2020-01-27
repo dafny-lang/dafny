@@ -4,8 +4,10 @@
 
 module Client {
   import Library  // this lives in DafnyLib.dll
+  import AmbiguousNestedModule = Library.AmbiguousNestedModule 
   method Main() {
     Library.EntryPoint();
+    AmbiguousNestedModule.EntryPoint();
     print "bye\n";
   }
 }
