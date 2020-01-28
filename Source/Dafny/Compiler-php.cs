@@ -103,6 +103,11 @@ namespace Microsoft.Dafny
 
         protected override IClassWriter/*?*/ DeclareDatatype(DatatypeDecl dt, TargetWriter wr) 
         {
+            if (dt is TupleTypeDecl)
+            {
+                // Tuple types are declared once and for all in DafnyRuntime.php
+                return null;
+            }
             throw new NotImplementedException("This is not currently implemented in the PHP compiler.");
         }
         
@@ -113,7 +118,18 @@ namespace Microsoft.Dafny
 
         protected override void DeclareSubsetType(SubsetTypeDecl sst, TargetWriter wr)
         {
-            throw new NotImplementedException("This is not currently implemented in the PHP compiler.");
+            var cw = CreateClass(IdName(sst), sst.TypeArgs, wr) as PhpCompiler.ClassWriter;
+            var w = cw.MethodWriter;
+            if (sst.WitnessKind == SubsetTypeDecl.WKind.Compiled)
+            {
+                throw new NotImplementedException("This is not currently implemented in the PHP compiler.");
+            }
+            using (var wDefault = w.NewBlock("public static function Default()"))
+            {
+                var udt = UserDefinedType.FromTopLevelDecl(sst.tok, sst);
+                var d = TypeInitializationValue(udt, wr, sst.tok, false);
+                wDefault.WriteLine("return {0};", d);
+            }
         }
 
         protected override void GetNativeInfo(NativeType.Selection sel, out string name, out string literalSuffix, out bool needsCastAfterArithmetic)
@@ -231,7 +247,20 @@ namespace Microsoft.Dafny
 
         int WriteRuntimeTypeDescriptorsFormals(List<TypeParameter> typeParams, bool useAllTypeArgs, TargetWriter wr, string prefix = "")
         {
-            throw new NotImplementedException("This is not currently implemented in the PHP compiler.");
+            Contract.Requires(typeParams != null);
+            Contract.Requires(wr != null);
+
+            int c = 0;
+            foreach (var tp in typeParams)
+            {
+                if (useAllTypeArgs || tp.Characteristics.MustSupportZeroInitialization)
+                {
+                    wr.Write("${0}{1}", prefix, "rtd_" + tp.CompileName);
+                    prefix = ", ";
+                    c++;
+                }
+            }
+            return c;
         }
 
         protected override int EmitRuntimeTypeDescriptorsActuals(List<Type> typeArgs, List<TypeParameter> formals, Bpl.IToken tok, bool useAllTypeArgs, TargetWriter wr)
@@ -367,7 +396,151 @@ namespace Microsoft.Dafny
 
         public override string TypeInitializationValue(Type type, TextWriter/*?*/ wr, Bpl.IToken/*?*/ tok, bool inAutoInitContext)
         {
-            throw new NotImplementedException("This is not currently implemented in the PHP compiler.");
+            var xType = type.NormalizeExpandKeepConstraints();
+            if (xType is BoolType)
+            {
+                return "false";
+            }
+            else if (xType is CharType)
+            {
+                return "'D'";
+            }
+            else if (xType is IntType || xType is BigOrdinalType)
+            {
+                return "new BigNumber(0)";
+            }
+            else if (xType is RealType)
+            {
+                return "_dafny.BigRational.ZERO";
+            }
+            else if (xType is BitvectorType)
+            {
+                var t = (BitvectorType)xType;
+                return t.NativeType != null ? "0" : "new BigNumber(0)";
+            }
+            else if (xType is SetType)
+            {
+                return "_dafny.Set.Empty";
+            }
+            else if (xType is MultiSetType)
+            {
+                return "_dafny.MultiSet.Empty";
+            }
+            else if (xType is SeqType)
+            {
+                return "_dafny.Seq.of()";
+            }
+            else if (xType is MapType)
+            {
+                return "_dafny.Map.Empty";
+            }
+
+            var udt = (UserDefinedType)xType;
+            if (udt.ResolvedParam != null)
+            {
+                if (inAutoInitContext && !udt.ResolvedParam.Characteristics.MustSupportZeroInitialization)
+                {
+                    return "undefined";
+                }
+                else
+                {
+                    return string.Format("{0}->Default", RuntimeTypeDescriptor(udt, udt.tok, wr));
+                }
+            }
+            var cl = udt.ResolvedClass;
+            Contract.Assert(cl != null);
+            if (cl is NewtypeDecl)
+            {
+                var td = (NewtypeDecl)cl;
+                if (td.Witness != null)
+                {
+                    return TypeName_UDT(FullTypeName(udt), udt.TypeArgs, wr, udt.tok) + ".Witness";
+                }
+                else if (td.NativeType != null)
+                {
+                    return "0";
+                }
+                else
+                {
+                    return TypeInitializationValue(td.BaseType, wr, tok, inAutoInitContext);
+                }
+            }
+            else if (cl is SubsetTypeDecl)
+            {
+                var td = (SubsetTypeDecl)cl;
+                if (td.Witness != null)
+                {
+                    return TypeName_UDT(FullTypeName(udt), udt.TypeArgs, wr, udt.tok) + ".Witness";
+                }
+                else if (td.WitnessKind == SubsetTypeDecl.WKind.Special)
+                {
+                    // WKind.Special is only used with -->, ->, and non-null types:
+                    Contract.Assert(ArrowType.IsPartialArrowTypeName(td.Name) || ArrowType.IsTotalArrowTypeName(td.Name) || td is NonNullTypeDecl);
+                    if (ArrowType.IsPartialArrowTypeName(td.Name))
+                    {
+                        return "null";
+                    }
+                    else if (ArrowType.IsTotalArrowTypeName(td.Name))
+                    {
+                        var rangeDefaultValue = TypeInitializationValue(udt.TypeArgs.Last(), wr, tok, inAutoInitContext);
+                        // return the lambda expression ((Ty0 x0, Ty1 x1, Ty2 x2) => rangeDefaultValue)
+                        return string.Format("function () {{ return {0}; }}", rangeDefaultValue);
+                    }
+                    else if (((NonNullTypeDecl)td).Class is ArrayClassDecl)
+                    {
+                        // non-null array type; we know how to initialize them
+                        var arrayClass = (ArrayClassDecl)((NonNullTypeDecl)td).Class;
+                        if (arrayClass.Dims == 1)
+                        {
+                            return "[]";
+                        }
+                        else
+                        {
+                            return string.Format("_dafny.newArray(null, {0})", Util.Comma(arrayClass.Dims, _ => "0"));
+                        }
+                    }
+                    else
+                    {
+                        // non-null (non-array) type
+                        // even though the type doesn't necessarily have a known initializer, it could be that the the compiler needs to
+                        // lay down some bits to please the C#'s compiler's different definite-assignment rules.
+                        return "null";
+                    }
+                }
+                else
+                {
+                    return TypeInitializationValue(td.RhsWithArgument(udt.TypeArgs), wr, tok, inAutoInitContext);
+                }
+            }
+            else if (cl is ClassDecl)
+            {
+                bool isHandle = true;
+                if (Attributes.ContainsBool(cl.Attributes, "handle", ref isHandle) && isHandle)
+                {
+                    return "0";
+                }
+                else
+                {
+                    return "null";
+                }
+            }
+            else if (cl is DatatypeDecl)
+            {
+                var dt = (DatatypeDecl)cl;
+                var s = dt is TupleTypeDecl ? "_dafny.Tuple" : FullTypeName(udt);
+                var w = new TargetWriter();
+                w.Write("{0}.Rtd(", s);
+                List<TypeParameter> usedTypeFormals;
+                List<Type> usedTypeArgs;
+                UsedTypeParameters(dt, udt.TypeArgs, out usedTypeFormals, out usedTypeArgs);
+                EmitRuntimeTypeDescriptorsActuals(usedTypeArgs, usedTypeFormals, udt.tok, true, w);
+                w.Write(").Default");
+                return w.ToString();
+            }
+            else
+            {
+                Contract.Assert(false); throw new cce.UnreachableException();  // unexpected type
+            }
         }
 
         protected override string TypeName_UDT(string fullCompileName, List<Type> typeArgs, TextWriter wr, Bpl.IToken tok)
