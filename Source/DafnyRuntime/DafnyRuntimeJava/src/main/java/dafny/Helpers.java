@@ -31,45 +31,6 @@ public class Helpers {
         return f.apply(t);
     }
 
-    public static Object getDefault(String s) {
-        if (s == null || s.startsWith("interface "))
-            return null;
-        try {
-            if (!s.startsWith("class ")){
-                Object o = Class.forName(s).newInstance();
-                if(o.toString().contains("@"))
-                    return null;
-                else
-                    return o;
-            }
-            if (s.startsWith("class [")) {
-                return null;
-            }
-            switch (s) {
-                case "class java.math.BigInteger":
-                    return BigInteger.ZERO;
-                case "class java.lang.Boolean":
-                    return new Boolean(false);
-                case "class java.math.BigDecimal":
-                    return new BigDecimal(0);
-                case "class java.lang.Character":
-                    return 'D';
-                case "class dafny.DafnySequence":
-                    return DafnySequence.<Object> empty();
-                default:
-                    String xs = s.substring(6);
-                    Object o = Class.forName(xs).newInstance();
-                    if(o.toString().contains("@"))
-                        return null;
-                    else
-                        return o;
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return null;
-    }
-
     /* Returns Iterable in range [lo, hi-1] if lo and hi are both not null.
     If lo == null, returns Iterable that infinitely ranges down from hi-1.
     If hi == null, returns Iterable that infinitely ranges up from lo.

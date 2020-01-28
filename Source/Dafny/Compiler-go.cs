@@ -1467,7 +1467,7 @@ namespace Microsoft.Dafny {
         if (td.Witness != null) {
           return TypeName_Companion(cl, wr, tok) + ".Witness()";
         } else if (td.NativeType != null) {
-          return "0";
+          return GetNativeTypeName(td.NativeType) + "(0)";
         } else {
           return TypeInitializationValue(td.BaseType, wr, tok, inAutoInitContext);
         }

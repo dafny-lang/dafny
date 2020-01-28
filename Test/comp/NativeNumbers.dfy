@@ -7,6 +7,7 @@
 
 method Main() {
   CastTests();
+  DefaultTests();
   Int8Test();
   Int16Test();
   BvTests();
@@ -130,6 +131,27 @@ method CastTests() {
   print a.Length as int, " ",
     a.Length as int8, " ", a.Length as int16, " ", a.Length as int32, " ", a.Length as int64, " ",
     a.Length as uint8, " ", a.Length as uint16, " ", a.Length as uint32, " ", a.Length as uint64, "\n";
+
+  print "\n";
+}
+
+method Gimmie<T(0)>() returns (ans : T) { }
+
+method DefaultTests() {
+  print "Defaults:\n\n";
+
+  var i : int := Gimmie();
+  var i8 : int8 := Gimmie();
+  var i16 : int16 := Gimmie();
+  var i32 : int32 := Gimmie();
+  var i64 : int64 := Gimmie();
+  var u8 : uint8 := Gimmie();
+  var u16 : uint16 := Gimmie();
+  var u32 : uint32 := Gimmie();
+  var u64 : uint64 := Gimmie();
+
+  print i, " ", i8, " ", i16, " ", i32, " ", i64, " ",
+    u8, " ", u16, " ", u32, " ", u64, "\n";
 
   print "\n";
 }
