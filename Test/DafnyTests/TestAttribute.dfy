@@ -4,25 +4,12 @@
 // RUN: sed 's/[^:]*://' "%t".raw > "%t"
 // RUN: %diff "%s.expect" "%t"
 
-module {:extern} Tests {
+include "../exceptions/VoidOutcomeDt.dfy"
 
-    datatype VoidOutcome =
-    | VoidSuccess
-    | VoidFailure(error: string)
-    {
-        predicate method IsFailure() {
-            this.VoidFailure?
-        }
-        function method PropagateFailure(): VoidOutcome requires IsFailure() {
-            this
-        }
-    }
-    
-    function method {:test} PassingTest(): VoidOutcome {
-        VoidSuccess
-    }
+function method {:test} PassingTest(): VoidOutcome {
+    VoidSuccess()
+}
 
-    function method {:test} FailingTest(): VoidOutcome {
-        VoidFailure("Whoopsie")
-    }
+function method {:test} FailingTest(): VoidOutcome {
+    VoidFailure("Whoopsie")
 }
