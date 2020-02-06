@@ -1747,29 +1747,27 @@ namespace Microsoft.Dafny{
       }
       var files = new List<string>();
       foreach (string file in Directory.EnumerateFiles(Path.GetDirectoryName(targetFilename), "*.java", SearchOption.AllDirectories)) {
-        files.Add(Path.GetFullPath(file));
+        files.Add($"\"{Path.GetFullPath(file)}\"");
       }
       var classpath = GetClassPath(targetFilename);
-      foreach (var file in files) {
-        var psi = new ProcessStartInfo("javac", file) {
-          CreateNoWindow = true,
-          UseShellExecute = false,
-          RedirectStandardOutput = true,
-          RedirectStandardError = true,
-          WorkingDirectory = Path.GetFullPath(Path.GetDirectoryName(targetFilename))
-        };
-        psi.EnvironmentVariables["CLASSPATH"] = classpath;
-        var proc = Process.Start(psi);
-        while (!proc.StandardOutput.EndOfStream) {
-          outputWriter.WriteLine(proc.StandardOutput.ReadLine());
-        }
-        while (!proc.StandardError.EndOfStream) {
-          outputWriter.WriteLine(proc.StandardError.ReadLine());
-        }
-        proc.WaitForExit();
-        if (proc.ExitCode != 0) {
-          throw new Exception($"Error while compiling Java file {file}. Process exited with exit code {proc.ExitCode}");
-        }
+      var psi = new ProcessStartInfo("javac", string.Join(" ", files)) {
+        CreateNoWindow = true,
+        UseShellExecute = false,
+        RedirectStandardOutput = true,
+        RedirectStandardError = true,
+        WorkingDirectory = Path.GetFullPath(Path.GetDirectoryName(targetFilename))
+      };
+      psi.EnvironmentVariables["CLASSPATH"] = classpath;
+      var proc = Process.Start(psi);
+      while (!proc.StandardOutput.EndOfStream) {
+        outputWriter.WriteLine(proc.StandardOutput.ReadLine());
+      }
+      while (!proc.StandardError.EndOfStream) {
+        outputWriter.WriteLine(proc.StandardError.ReadLine());
+      }
+      proc.WaitForExit();
+      if (proc.ExitCode != 0) {
+        throw new Exception($"Error while compiling Java files. Process exited with exit code {proc.ExitCode}");
       }
       return true;
     }
