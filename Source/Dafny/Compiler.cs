@@ -1106,6 +1106,10 @@ namespace Microsoft.Dafny {
               var v = new CheckHasNoAssumes_Visitor(this, errorWr);
               v.Visit(f.Body);
             }
+
+            if (Attributes.Contains(f.Attributes, "test")) {
+              Error(f.tok, "Function {0} must be compiled to use the {{:test}} attribute", errorWr, f.FullName);
+            }
           } else if (c is TraitDecl && !f.IsStatic) {
             var w = classWriter.CreateFunction(IdName(f), f.TypeArgs, f.Formals, f.ResultType, f.tok, false, false, f);
             Contract.Assert(w == null);  // since we requested no body
