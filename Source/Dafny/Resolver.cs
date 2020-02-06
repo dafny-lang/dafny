@@ -7512,7 +7512,7 @@ namespace Microsoft.Dafny
               var classMethod = (Method)clMember;
 
               // Copy trait's extern attribute onto class if class does not provide one
-              if(!Attributes.Contains(classMethod.Attributes, "extern") && Attributes.Contains(traitMethod.Attributes, "extern")) {
+              if (!Attributes.Contains(classMethod.Attributes, "extern") && Attributes.Contains(traitMethod.Attributes, "extern")) {
                 var traitExternArgs = Attributes.FindExpressions(traitMethod.Attributes, "extern");
                 classMethod.Attributes = new Attributes("extern", traitExternArgs, classMethod.Attributes);
               }
@@ -12226,7 +12226,7 @@ namespace Microsoft.Dafny
       } else if (expr is LetOrFailExpr) {
         var e = (LetOrFailExpr)expr;
         ResolveBindLetOrFailExpr(e, opts);
-        if(e.ResolvedExpression != null && e.ResolvedExpression.Type != null) {
+        if (e.ResolvedExpression != null && e.ResolvedExpression.Type != null) {
           // if there wasn't an error in the desugaring and resolution the LetOrFail
           expr.Type = e.ResolvedExpression.Type;
         }
@@ -12402,25 +12402,23 @@ namespace Microsoft.Dafny
       return LetPatIn(tok, lhs, rhs, body);
     }
 
-/// <summary>
-/// Desugar monadic binds.
-/// [ var y :- E; Body] ~~> Bind(E, y => Body)
-/// [ :- E; Body] ~~> Bind(E, _ => Body)
-/// Assumes that once resolved, the type of Rhs has a Bind method
-/// </summary>
+    /// <summary>
+    /// Desugar monadic binds.
+    /// [ var y :- E; Body] ~~> Bind(E, y => Body)
+    /// [ :- E; Body] ~~> Bind(E, _ => Body)
+    /// Assumes that once resolved, the type of Rhs has a Bind method
+    /// </summary>
     public void ResolveMonadicBind(LetOrFailExpr e, ResolveOpts opts) {
       Expression newBody;
 
       // Create the bound variable used in the call to Bind
       var tempType = new InferredTypeProxy();
       BoundVar bv;
-      if(e.Lhs == null) {
+      if (e.Lhs == null) {
         bv = new BoundVar(e.Rhs.tok, FreshTempVarName("_", opts.codeContext), tempType);
       } else {
         if (e.Lhs.Var != null) {
           bv =  e.Lhs.Var;
-          //new BoundVar(e.Lhs.tok, e.Lhs.Var.Name, tempType);
-          // (new Cloner()).CloneIVariable<BoundVar>(e.Lhs.Var);
         } else {
           reporter.Error(MessageSource.Resolver, e.tok, "The left-hand side of ':-', if present, should be a variable");
           return;
@@ -12444,7 +12442,6 @@ namespace Microsoft.Dafny
       ResolveExpression(e.ResolvedExpression, opts);
     }
 
-
     public bool SupportsBind(IToken tok, Type tp) {
       NonProxyType nptype;
       var origReporter = this.reporter;
@@ -12465,10 +12462,9 @@ namespace Microsoft.Dafny
       var origReporter = this.reporter;
       this.reporter = new ErrorReporterSink();
 
-      if(!SupportsBind(tok, tp)) {
-        reporter.Error(MessageSource.Resolver, tok, "The right-hand side of '<-', which is of type '{0}', must have member 'Bind'", tp);
+      if (!SupportsBind(tok, tp)) {
+        reporter.Error(MessageSource.Resolver, tok, "The right-hand side of ':-', which is of type '{0}', must have member 'Bind'", tp);
       }
-
 
       this.reporter = origReporter;
 
@@ -12488,12 +12484,12 @@ namespace Microsoft.Dafny
       ResolveExpression(tempRhs, opts);
       var tp = tempRhs.Type;
 
-      if(SupportsBind(expr.tok, tp)) {
+      if (SupportsBind(expr.tok, tp)) {
         // (1)
         ResolveMonadicBind(expr, opts);
       } else if (SupportsErrorHandling(expr.tok, tp, (expr.Lhs != null))) {
         // (2)
-        if(expr.Reads.Count != 0 || expr.Reqs != null){
+        if (expr.Reads.Count != 0 || expr.Reqs != null) {
           reporter.Error(MessageSource.Resolver, expr.tok, "Error-handling LetOrFail does not support requires or reads clauses", tp);
         }
         ResolveLetOrFailExpr(expr, opts);
@@ -12527,8 +12523,6 @@ namespace Microsoft.Dafny
             : LetPatIn(expr.tok, expr.Lhs, VarDotFunction(expr.tok, temp, "Extract"), expr.Body)));
 
       ResolveExpression(expr.ResolvedExpression, opts);
-//      bool expectExtract = (expr.Lhs != null);
-//      EnsureSupportsErrorHandling(expr.tok, PartiallyResolveTypeForMemberSelection(expr.tok, tempType), expectExtract);
     }
 
     private Type SelectAppropriateArrowType(IToken tok, List<Type> typeArgs, Type resultType, bool hasReads, bool hasReq) {

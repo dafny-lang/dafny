@@ -9816,7 +9816,7 @@ namespace Microsoft.Dafny {
 
     public readonly List<FrameExpression> Reads;
     public readonly Expression Reqs;
-   public LetOrFailExpr(IToken tok, CasePattern<BoundVar>/*?*/ lhs, Expression rhs, Expression body): base(tok) {
+    public LetOrFailExpr(IToken tok, CasePattern<BoundVar>/*?*/ lhs, Expression rhs, Expression body): base(tok) {
       Lhs = lhs;
       Rhs = rhs;
       Body = body;
@@ -10621,30 +10621,6 @@ namespace Microsoft.Dafny {
       Id = bv.Name;
       Var = bv;
     }
-  public override string ToString(){
-    Contract.Requires(this != null);
-    var v = this.Var;
-    string c = "";
-    if (v != null) {
-      c+=(v.DisplayName);
-      if (v.OptionalType is NonProxyType || DafnyOptions.O.DafnyPrintResolvedFile != null) {
-        c+=(": "+v.OptionalType.TypeName(null, true));
-      }
-      } else {
-        if (this.Id.StartsWith(BuiltIns.TupleTypeCtorNamePrefix)) {
-          Contract.Assert(this.Arguments != null);
-        } else {
-          c+=(this.Id);
-        }
-        if (this.Arguments != null) {
-          c+=("(");
-          List<String> argStr = this.Arguments.ConvertAll<String>(arg => arg.ToString());
-          c+= String.Join(",", argStr);
-          c+=")";
-        }
-      }
-      return c;
-  }
 
     /// <summary>
     /// Sets the Expr field.  Assumes the CasePattern and its arguments to have been successfully resolved, except for assigning

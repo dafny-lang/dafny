@@ -436,9 +436,8 @@ bool IsNotEndOfCase() {
 
 /* Checks if the expression starts with "var" (i.e. a let expression with a lhs) */
 bool IsLetExpr(){
-   scanner.ResetPeek();
-  Token x;
-  x = scanner.Peek();
+  scanner.ResetPeek();
+  var x = scanner.Peek();
   return (la.kind == _var || (la.kind == _ghost && x.kind == _var));
 }
 
@@ -734,7 +733,6 @@ TOKENS
   doublecolon = "::".
   gets = ":=".
   boredSmiley = ":|".
-  larrow = "<-".
   bullet = '\u2022'.
   dot = '.'.
   backtick = "`".
@@ -2921,7 +2919,7 @@ QSep = "::" | '\u2022'.
 Expression<out Expression e, bool allowSemi, bool allowLambda, bool allowBitwiseOps = true>
 = (. Expression e0; IToken endTok;
      e = null; .)
-  ( EquivExpression<out e, allowSemi, allowLambda, allowBitwiseOps>
+  EquivExpression<out e, allowSemi, allowLambda, allowBitwiseOps>
   [ IF(SemiFollowsCall(allowSemi, e))
     /* here we parse the ";E" that is part of a "LemmaCall;E" expression (other "S;E" expressions are parsed elsewhere) */
     ";"                       (. endTok = t; .)
@@ -2930,7 +2928,7 @@ Expression<out Expression e, bool allowSemi, bool allowLambda, bool allowBitwise
              new UpdateStmt(e.tok, endTok, new List<Expression>(), new List<AssignmentRhs>() { new ExprRhs(e, null) }),
              e0);
     .)
-  ])
+  ]
   .
 /*------------------------------------------------------------------------*/
 EquivExpression<out Expression e0, bool allowSemi, bool allowLambda, bool allowBitwiseOps>
@@ -3347,7 +3345,7 @@ LambdaExpression<out Expression e, bool allowSemi, bool allowBitwiseOps>
       ]
     ")"
   )
-  { LambdaSpec<ref reads,ref req> }
+  { LambdaSpec<ref reads, ref req> }
   LambdaArrow
   Expression<out body, allowSemi, true, allowBitwiseOps>
   (. e = new LambdaExpr(x, bvs, req, reads, body);
@@ -3480,7 +3478,7 @@ EndlessExpression<out Expression e, bool allowSemi, bool allowLambda, bool allow
      e = dummyExpr;
   .)
 
-  (  "if"                            (. x = t; .)
+  ( "if"                             (. x = t; .)
     ( IF(IsExistentialGuard())
       ExistentialGuard<out e, true>  (. isExistentialGuard = true; .)
     | Expression<out e, true, true>
@@ -3562,7 +3560,7 @@ LetExprWithLHS<out Expression e, bool allowSemi, bool allowLambda, bool allowBit
                                          }
                                        }
                                     .)
-    | {LambdaSpec<ref reads, ref req>}
+    | { LambdaSpec<ref reads, ref req> }
       ":-"                          (. isLetOrFail = true; .)
     )
     Expression<out e, false, true>        (. letRHSs.Add(e); .)
