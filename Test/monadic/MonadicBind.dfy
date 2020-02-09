@@ -2,7 +2,7 @@
 // RUN: %diff "%s.expect" "%t"
 
 datatype Option<A> = None | Some(get: A) {
- function method Bind<B>(f: A --> Option<B>): Option<B>
+  function method Bind<B>(f: A --> Option<B>): Option<B>
     requires this == None || f.requires(this.get)
   {
     if this == None then None else f(get)
@@ -54,19 +54,13 @@ function method I(list: List): Option {
   Some(list.head)
 }
 
-
 lemma FG(list: List)
   ensures F(list) == G(list)
 {}
 
-
 lemma FGH(list: List)
   ensures F(list) == G(list) == H(list)
 {}
-
-
-
-
 
 lemma Examples() {
   var aa := Cons(5, Cons(6, Nil));
