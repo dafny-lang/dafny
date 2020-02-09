@@ -2579,12 +2579,10 @@ ExistentialGuard<out Expression e, bool allowLambda>
 
 /*------------------------------------------------------------------------*/
 ExtendedPattern<.out ExtendedPattern pat.>
-= (. IToken id;
-     List<ExtendedPattern> arguments;
-     pat = null;
-     LiteralExpr lit;
-     Expression te;
-     BoundVar bv;
+= (. IToken id; List<ExtendedPattern> arguments;
+    LiteralExpr lit; Expression te; BoundVar bv;
+    pat = null;
+
   .)
   ( IF(la.kind == _openparen)
     "("                                   (. arguments = new List<ExtendedPattern>(); .)
@@ -2607,7 +2605,7 @@ ExtendedPattern<.out ExtendedPattern pat.>
      ")"
      ]
                                            (. pat = new IdPattern(id, id.val, arguments); .)
-  |  ConstAtomExpression<out te, false, false>   (. if (te is LiteralExpr){
+  | ConstAtomExpression<out te, false, false>   (. if (te is LiteralExpr){
                                                       lit = (LiteralExpr)te;
                                                       pat = new LitPattern(lit.tok, lit);
                                                     } else {
@@ -2625,9 +2623,7 @@ ExtendedPattern<.out ExtendedPattern pat.>
   .
 NestedMatchStmt<out Statement/*!*/ s>
 = (. Contract.Ensures(Contract.ValueAtReturn(out s) != null);
-     IToken x;
-     Expression/*!*/ e;
-     NestedMatchCaseStmt/*!*/ c;
+     IToken x; Expression/*!*/ e; NestedMatchCaseStmt/*!*/ c;
      List<NestedMatchCaseStmt/*!*/> cases = new List<NestedMatchCaseStmt/*!*/>();
      bool usesOptionalBraces = false;
   .)
@@ -3619,8 +3615,6 @@ NamedExpr<out Expression e, bool allowSemi, bool allowLambda, bool allowBitwiseO
                                         e = new NamedExpr(x, d.val, expr); .)
   .
 
-
-
 NestedMatchExpression<out Expression e, bool allowSemi, bool allowLambda, bool allowBitwiseOps>
 = (. Contract.Ensures(Contract.ValueAtReturn(out e) != null); IToken/*!*/ x;  NestedMatchCaseExpr/*!*/ c;
      List<NestedMatchCaseExpr/*!*/> cases = new List<NestedMatchCaseExpr/*!*/>();
@@ -3638,6 +3632,7 @@ NestedMatchExpression<out Expression e, bool allowSemi, bool allowLambda, bool a
   )
   (. e = new NestedMatchExpr(x, e, cases, usesOptionalBraces); .)
 .
+
 NestedCaseExpression<out NestedMatchCaseExpr c, bool allowSemi, bool allowLambda, bool allowBitwiseOps>
 = (. Contract.Ensures(Contract.ValueAtReturn(out c) != null); IToken/*!*/ x;
      ExtendedPattern/*!*/ pat = null;

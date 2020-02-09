@@ -13,4 +13,3 @@ repos:
                 third_party/Coco/.*|
                 Test/.*\.expect
             )$
-

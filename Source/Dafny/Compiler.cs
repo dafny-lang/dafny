@@ -2098,6 +2098,7 @@ namespace Microsoft.Dafny {
       } else if (stmt is ConcreteSyntaxStatement) {
         var s = (ConcreteSyntaxStatement) stmt;
         TrStmt(s.ResolvedStatement, wr);
+
       } else if (stmt is MatchStmt) {
         MatchStmt s = (MatchStmt)stmt;
         // Type source = e;

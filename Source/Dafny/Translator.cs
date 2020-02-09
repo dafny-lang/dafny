@@ -18247,7 +18247,7 @@ namespace Microsoft.Dafny {
           rr.Steps.AddRange(s.Steps.ConvertAll(Substitute));
           rr.Result = Substitute(s.Result);
           r = rr;
-        } else if (stmt is ConcreteSyntaxStatement){
+        } else if (stmt is ConcreteSyntaxStatement) {
           var s = (ConcreteSyntaxStatement)stmt;
           r = SubstStmt(s.ResolvedStatement);
         } else if (stmt is MatchStmt) {

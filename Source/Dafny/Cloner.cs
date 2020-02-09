@@ -474,13 +474,12 @@ namespace Microsoft.Dafny
       Contract.Requires(c != null);
       Contract.Assert(c.Arguments != null);
       return new MatchCaseExpr(Tok(c.tok), c.Ctor, c.Arguments.ConvertAll(CloneBoundVar), CloneExpr(c.Body));
-
     }
 
-  public NestedMatchCaseExpr CloneNestedMatchCaseExpr(NestedMatchCaseExpr c) {
-    Contract.Requires(c != null);
-    return new NestedMatchCaseExpr(Tok(c.Tok), CloneExtendedPattern(c.Pat), CloneExpr(c.Body));
-  }
+    public NestedMatchCaseExpr CloneNestedMatchCaseExpr(NestedMatchCaseExpr c) {
+      Contract.Requires(c != null);
+      return new NestedMatchCaseExpr(Tok(c.Tok), CloneExtendedPattern(c.Pat), CloneExpr(c.Body));
+    }
 
     public virtual Expression CloneApplySuffix(ApplySuffix e) {
         return new ApplySuffix(Tok(e.tok), CloneExpr(e.Lhs), e.Args.ConvertAll(CloneExpr));
@@ -625,8 +624,8 @@ namespace Microsoft.Dafny
         r = new CalcStmt(Tok(s.Tok), Tok(s.EndTok), CloneCalcOp(s.UserSuppliedOp), lines, s.Hints.ConvertAll(CloneBlockStmt), s.StepOps.ConvertAll(CloneCalcOp), CloneAttributes(s.Attributes));
       } else if (stmt is NestedMatchStmt) {
         var s = (NestedMatchStmt)stmt;
-
         r = new NestedMatchStmt(Tok(s.Tok), Tok(s.EndTok), CloneExpr(s.Source), s.Cases.ConvertAll(CloneNestedMatchCaseStmt), s.UsesOptionalBraces);
+
       } else if (stmt is MatchStmt) {
         var s = (MatchStmt)stmt;
         r = new MatchStmt(Tok(s.Tok), Tok(s.EndTok), CloneExpr(s.Source), s.Cases.ConvertAll(CloneMatchCaseStmt), s.UsesOptionalBraces);
@@ -675,22 +674,22 @@ namespace Microsoft.Dafny
       return new MatchCaseStmt(Tok(c.tok), c.Ctor, c.Arguments.ConvertAll(CloneBoundVar), c.Body.ConvertAll(CloneStmt));
     }
 
-   public ExtendedPattern CloneExtendedPattern(ExtendedPattern pat) {
-     if(pat is LitPattern) {
-       var p = (LitPattern)pat;
-       return new LitPattern(p.Tok, (LiteralExpr)CloneExpr(p.Lit));
-     } else if (pat is IdPattern) {
-       var p = (IdPattern)pat;
-       return new IdPattern(p.Tok, p.Id, p.Arguments.ConvertAll(CloneExtendedPattern));
-     } else {
-      Contract.Assert(false);
-      return null;
-     }
-   }
-  public NestedMatchCaseStmt CloneNestedMatchCaseStmt(NestedMatchCaseStmt c) {
-    Contract.Requires(c != null);
-    return new NestedMatchCaseStmt(c.Tok, CloneExtendedPattern(c.Pat), c.Body.ConvertAll(CloneStmt));
-  }
+    public ExtendedPattern CloneExtendedPattern(ExtendedPattern pat) {
+      if(pat is LitPattern) {
+        var p = (LitPattern)pat;
+        return new LitPattern(p.Tok, (LiteralExpr)CloneExpr(p.Lit));
+      } else if (pat is IdPattern) {
+        var p = (IdPattern)pat;
+        return new IdPattern(p.Tok, p.Id, p.Arguments.ConvertAll(CloneExtendedPattern));
+      } else {
+        Contract.Assert(false);
+        return null;
+      }
+    }
+    public NestedMatchCaseStmt CloneNestedMatchCaseStmt(NestedMatchCaseStmt c) {
+      Contract.Requires(c != null);
+      return new NestedMatchCaseStmt(c.Tok, CloneExtendedPattern(c.Pat), c.Body.ConvertAll(CloneStmt));
+    }
     public CalcStmt.CalcOp CloneCalcOp(CalcStmt.CalcOp op) {
       if (op == null) {
         return null;

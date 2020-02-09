@@ -1355,15 +1355,16 @@ namespace Microsoft.Dafny {
         }
         Indent(indent);
         wr.Write("}");
+
       } else if (stmt is ConcreteSyntaxStatement && ((ConcreteSyntaxStatement)stmt).ResolvedStatement != null){
         var s = (ConcreteSyntaxStatement)stmt;
         Indent(indent);
         PrintStatement(s.ResolvedStatement, indent);
         wr.WriteLine();
-      } else if (stmt is NestedMatchStmt){
+
+      } else if (stmt is NestedMatchStmt) {
         var s = (NestedMatchStmt)stmt;
-//        if (DafnyOptions.O.DafnyPrintResolvedFile != null) {
-        if(s.ResolvedStatement != null){
+        if (s.ResolvedStatement != null) {
           // Should be caught by the ConcreteSyntaxStatement case
           throw new NotImplementedException("");
         } else {
@@ -1746,9 +1747,10 @@ namespace Microsoft.Dafny {
             return;
           }
         }
+
       } else if (expr is NestedMatchExpr) {
         var e = (NestedMatchExpr)expr;
-        if(e.ResolvedExpression == null){
+        if (e.ResolvedExpression == null) {
           Indent(indent);
           var parensNeeded = !isRightmost && !e.UsesOptionalBraces;
           if (parensNeeded) { wr.Write("("); }
@@ -1772,6 +1774,7 @@ namespace Microsoft.Dafny {
         } else {
           PrintExtendedExpr(e.ResolvedExpression, indent, isRightmost, endWithCloseParen);
         }
+
       } else if (expr is MatchExpr) {
         var e = (MatchExpr)expr;
         if (DafnyOptions.O.DafnyPrintResolvedFile == null && e.OrigUnresolved != null) {
@@ -1799,6 +1802,7 @@ namespace Microsoft.Dafny {
             wr.WriteLine("}");
           }
         }
+
       } else if (expr is LetExpr) {
         var e = (LetExpr)expr;
         Indent(indent);

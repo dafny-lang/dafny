@@ -10661,134 +10661,121 @@ namespace Microsoft.Dafny {
     }
   }
 
-/*
- ExtendedPattern is either:
- 1 - A LitPattern of a LiteralExpr, representing a constant pattern
- 2 - An IdPattern of a string and a list of ExtendedPattern, representing either a bound variable or a constructor applied to n arguments
-*/
-public abstract class ExtendedPattern {
-  public readonly IToken Tok;
+  /*
+  ExtendedPattern is either:
+  1 - A LitPattern of a LiteralExpr, representing a constant pattern
+  2 - An IdPattern of a string and a list of ExtendedPattern, representing either a bound variable or a constructor applied to n arguments
+  */
+  public abstract class ExtendedPattern
+  {
+    public readonly IToken Tok;
 
-  public abstract override string ToString();
+    public abstract override string ToString();
 
+    public ExtendedPattern(IToken tok) {
+      Contract.Requires(tok != null);
+      this.Tok = tok;
+    }
 
-  public ExtendedPattern(IToken tok) {
-    Contract.Requires(tok != null);
-    this.Tok = tok;
   }
 
-}
+  public class LitPattern : ExtendedPattern
+  {
+    public LiteralExpr Lit;
 
-public class LitPattern : ExtendedPattern {
-  public LiteralExpr Lit;
-
-  public LitPattern(IToken tok, LiteralExpr lit) : base(tok) {
-    Contract.Requires(lit != null);
-    this.Lit = lit;
-  }
-  public override string ToString() {
-    return Lit.ToString();
-  }
-}
-
-public class IdPattern : ExtendedPattern {
-  public String Id;
-
-  public Type Type; // This is the syntactic type, ExtendedPatterns dissapear during resolution.
-  public List<ExtendedPattern> Arguments;
-
-  public IdPattern(IToken tok, String id, List<ExtendedPattern> arguments) : base(tok) {
-    Contract.Requires(id != null);
-    Contract.Requires(arguments != null); // Arguments can be empty, but shouldn't be null
-    this.Id = id;
-    this.Type = new InferredTypeProxy();
-    this.Arguments = arguments;
-  }
-
-
-  public IdPattern(IToken tok, String id, Type type, List<ExtendedPattern> arguments) : base(tok) {
-    Contract.Requires(id != null);
-    Contract.Requires(arguments != null); // Arguments can be empty, but shouldn't be null
-    this.Id = id;
-    this.Type = type == null? new InferredTypeProxy(): type ;
-    this.Arguments = arguments;
-  }
-
-  public override string ToString() {
-    if(Arguments.Count == 0) {
-      return Id;
-    } else {
-      List<string> cps = Arguments.ConvertAll<string>(x => x.ToString());
-      return string.Format("{0}({1})",Id, String.Join(",", cps));
+    public LitPattern(IToken tok, LiteralExpr lit) : base(tok) {
+      Contract.Requires(lit != null);
+      this.Lit = lit;
+    }
+    public override string ToString() {
+      return Lit.ToString();
     }
   }
 
-}
+  public class IdPattern : ExtendedPattern
+  {
+    public String Id;
 
-/*
-NestedMatchCase contains:
- - an ExtendedPattern
-NestedMatchCaseExpr extends it, and contains
- - an Expression representing the body
- - an Expression filled in by the Resolver, representing the semantics meaning of the construct
-NestedMatchCaseStmt extends it, and contains
- - A List<Statement> representing the body
- - A List<Statement> filled in by the Resolver, representing the semantics meaning of the constructor
-*/
-public abstract class NestedMatchCase {
-  public readonly IToken Tok;
+    public Type Type; // This is the syntactic type, ExtendedPatterns dissapear during resolution.
+    public List<ExtendedPattern> Arguments;
 
-  public readonly ExtendedPattern Pat;
+    public IdPattern(IToken tok, String id, List<ExtendedPattern> arguments) : base(tok) {
+      Contract.Requires(id != null);
+      Contract.Requires(arguments != null); // Arguments can be empty, but shouldn't be null
+      this.Id = id;
+      this.Type = new InferredTypeProxy();
+      this.Arguments = arguments;
+    }
 
-  public NestedMatchCase(IToken tok, ExtendedPattern pat) {
-    Contract.Requires(tok != null);
-    Contract.Requires(pat != null);
-    this.Tok = tok;
-    this.Pat = pat;
+    public IdPattern(IToken tok, String id, Type type, List<ExtendedPattern> arguments) : base(tok) {
+      Contract.Requires(id != null);
+      Contract.Requires(arguments != null); // Arguments can be empty, but shouldn't be null
+      this.Id = id;
+      this.Type = type == null? new InferredTypeProxy(): type ;
+      this.Arguments = arguments;
+    }
+
+    public override string ToString() {
+      if(Arguments.Count == 0) {
+        return Id;
+      } else {
+        List<string> cps = Arguments.ConvertAll<string>(x => x.ToString());
+        return string.Format("{0}({1})",Id, String.Join(",", cps));
+      }
+    }
+
   }
 
-}
+  public abstract class NestedMatchCase
+  {
+    public readonly IToken Tok;
 
-public class NestedMatchCaseExpr : NestedMatchCase {
-  private Expression body;
+    public readonly ExtendedPattern Pat;
 
-  public NestedMatchCaseExpr(IToken tok, ExtendedPattern pat, Expression body): base(tok, pat) {
-    Contract.Requires(body != null);
-    this.body = body;
+    public NestedMatchCase(IToken tok, ExtendedPattern pat) {
+      Contract.Requires(tok != null);
+      Contract.Requires(pat != null);
+      this.Tok = tok;
+      this.Pat = pat;
+    }
+
   }
 
-  public Expression Body {
+  public class NestedMatchCaseExpr : NestedMatchCase
+  {
+    private Expression body;
+
+    public NestedMatchCaseExpr(IToken tok, ExtendedPattern pat, Expression body): base(tok, pat) {
+      Contract.Requires(body != null);
+      this.body = body;
+    }
+
+    public Expression Body {
+        get { return body; }
+    }
+  }
+
+  public class NestedMatchCaseStmt : NestedMatchCase
+  {
+    private List<Statement> body;
+
+    public NestedMatchCaseStmt(IToken tok, ExtendedPattern pat, List<Statement> body) : base(tok, pat) {
+      Contract.Requires(body != null);
+      this.body = body;
+    }
+
+
+    public List<Statement> Body {
       get { return body; }
-  }
-}
-
-public class NestedMatchCaseStmt : NestedMatchCase {
-  private List<Statement> body;
-
-  public NestedMatchCaseStmt(IToken tok, ExtendedPattern pat, List<Statement> body) : base(tok, pat) {
-    Contract.Requires(body != null);
-    this.body = body;
+    }
   }
 
+  public class NestedMatchStmt : ConcreteSyntaxStatement
+    {
 
-  public List<Statement> Body {
-    get { return body; }
-  }
-}
-
-
-/* A NestedMatchStmt contains:
- - an Expression source representing the matchee
- - a list of NestedMatchCaseStmt
- - a List<Statement> filled in by the resolver representing the semantics meaning of the constructor
- */
- public class NestedMatchStmt : ConcreteSyntaxStatement
- {
-
-  private Expression source;
-  private List<NestedMatchCaseStmt> cases;
-  public readonly bool UsesOptionalBraces;
-
+    private Expression source;
+    private List<NestedMatchCaseStmt> cases;
+    public readonly bool UsesOptionalBraces;
 
     public override IEnumerable<Expression> SubExpressions {
       get {
@@ -10798,7 +10785,7 @@ public class NestedMatchCaseStmt : NestedMatchCase {
       }
     }
 
-   public Expression Source {
+    public Expression Source {
       get { return source; }
     }
 
@@ -10806,39 +10793,28 @@ public class NestedMatchCaseStmt : NestedMatchCase {
       get { return cases; }
     }
 
-  public NestedMatchStmt(IToken tok, IToken endTok, Expression source, [Captured] List<NestedMatchCaseStmt> cases, bool usesOptionalBraces): base(tok, endTok) {
-    Contract.Requires(source != null);
+    public NestedMatchStmt(IToken tok, IToken endTok, Expression source, [Captured] List<NestedMatchCaseStmt> cases, bool usesOptionalBraces): base(tok, endTok) {
+      Contract.Requires(source != null);
       Contract.Requires(cce.NonNullElements(cases));
       this.source = source;
       this.cases = cases;
       this.UsesOptionalBraces = usesOptionalBraces;
+    }
   }
 
+  public class NestedMatchExpr : ConcreteSyntaxExpression
+  {
+    private Expression source;
+    private List<NestedMatchCaseExpr> cases;
+    public readonly bool UsesOptionalBraces;
 
- }
-
-/* A NestedMatchExpr contains:
- - an Expression source representing the matchee
- - a list of NestedMatchCaseExpr
- - an Expression filled in by the resolver representing the semantics meaning of the constructor
- */
-public class NestedMatchExpr : ConcreteSyntaxExpression
- {
-
-  private Expression source;
-  private List<NestedMatchCaseExpr> cases;
-  public readonly bool UsesOptionalBraces;
-
-
-
-
-  public NestedMatchExpr(IToken tok, Expression source, [Captured] List<NestedMatchCaseExpr> cases, bool usesOptionalBraces): base(tok) {
-    Contract.Requires(source != null);
-    Contract.Requires(cce.NonNullElements(cases));
-    this.source = source;
-    this.cases = cases;
-    this.UsesOptionalBraces = usesOptionalBraces;
-  }
+    public NestedMatchExpr(IToken tok, Expression source, [Captured] List<NestedMatchCaseExpr> cases, bool usesOptionalBraces): base(tok) {
+      Contract.Requires(source != null);
+      Contract.Requires(cce.NonNullElements(cases));
+      this.source = source;
+      this.cases = cases;
+      this.UsesOptionalBraces = usesOptionalBraces;
+    }
     public Expression Source {
       get { return source; }
     }
@@ -10846,8 +10822,7 @@ public class NestedMatchExpr : ConcreteSyntaxExpression
     public List<NestedMatchCaseExpr> Cases {
       get { return cases; }
     }
-
- }
+  }
 
   public class BoxingCastExpr : Expression {  // a BoxingCastExpr is used only as a temporary placeholding during translation
     public readonly Expression E;
