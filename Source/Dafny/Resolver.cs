@@ -10849,6 +10849,28 @@ namespace Microsoft.Dafny
       }
       Contract.Assert(receiverType is NonProxyType);  // there are only two kinds of types: proxies and non-proxies
 
+      foreach (var valuet in valuetypeDecls) {
+        if (valuet.IsThisType(receiverType)) {
+          MemberDecl member;
+          if (valuet.Members.TryGetValue(memberName, out member)) {
+            SelfType resultType = null;
+            if (member is SpecialFunction) {
+              resultType = ((SpecialFunction)member).ResultType as SelfType;
+            } else if (member is SpecialField) {
+              resultType = ((SpecialField)member).Type as SelfType;
+            }
+            if (resultType != null) {
+              SelfTypeSubstitution = new Dictionary<TypeParameter, Type>();
+              SelfTypeSubstitution.Add(resultType.TypeArg, receiverType);
+              resultType.ResolvedType = receiverType;
+            }
+            nptype = (NonProxyType)receiverType;
+            return member;
+          }
+          break;
+        }
+      }
+
       var ctype = receiverType.NormalizeExpand() as UserDefinedType;
       var cd = ctype == null ? null : ctype.ResolvedClass as TopLevelDeclWithMembers;
       if (cd != null) {
@@ -10860,40 +10882,14 @@ namespace Microsoft.Dafny
           } else {
             reporter.Error(MessageSource.Resolver, tok, "member {0} does not exist in {2} {1}", memberName, cd.Name, cd.WhatKind);
           }
-          nptype = null;
-          return null;
         } else if (!VisibleInScope(member)) {
           reporter.Error(MessageSource.Resolver, tok, "member '{0}' has not been imported in this scope and cannot be accessed here", memberName);
         } else {
           nptype = ctype;
           return member;
         }
-      }
-
-      ValuetypeDecl valuet = null;
-      foreach (var vtd in valuetypeDecls) {
-        if (vtd.IsThisType(receiverType)) {
-          valuet = vtd;
-          break;
-        }
-      }
-      if (valuet != null) {
-        MemberDecl member;
-        if (valuet.Members.TryGetValue(memberName, out member)) {
-          nptype = (NonProxyType)receiverType;
-          SelfType resultType = null;
-          if (member is SpecialFunction) {
-            resultType = ((SpecialFunction)member).ResultType as SelfType;
-          } else if (member is SpecialField) {
-            resultType = ((SpecialField)member).Type as SelfType;
-          }
-          if (resultType != null) {
-            SelfTypeSubstitution = new Dictionary<TypeParameter, Type>();
-            SelfTypeSubstitution.Add(resultType.TypeArg, receiverType);
-            resultType.ResolvedType = receiverType;
-          }
-          return member;
-        }
+        nptype = null;
+        return null;
       }
 
       reporter.Error(MessageSource.Resolver, tok, "type {0} does not have a member {1}", receiverType, memberName);
