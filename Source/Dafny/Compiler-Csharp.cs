@@ -2415,7 +2415,7 @@ namespace Microsoft.Dafny
           Assembly.LoadFile(Path.GetFullPath(otherFileName));
         }
       }
-      
+
       var assemblyName = Path.GetFileName(cr.PathToAssembly);
       var entry = cr.CompiledAssembly.EntryPoint;
       try {
@@ -2438,12 +2438,9 @@ namespace Microsoft.Dafny
         // TODO: The resolver needs to check the assumptions about the declaration
         // (i.e. must be public and static, must return a "result type", etc.)
         wr.WriteLine("[Xunit.Fact]");
-        wr.WriteLine("public static void {0}_CheckForFailureForXunit()", name);
-        wr.WriteLine("{");
-        wr.WriteLine("  var result = {0}();", name);
-        wr.WriteLine("  Xunit.Assert.False(result.IsFailure(), \"Dafny test failed: \" + result);");
-        wr.WriteLine("}");
-        wr.WriteLine("");
+        wr = wr.NewNamedBlock("public static void {0}_CheckForFailureForXunit()", name);
+        wr.WriteLine("var result = {0}();", name);
+        wr.WriteLine("Xunit.Assert.False(result.IsFailure(), \"Dafny test failed: \" + result);");
       }
     }
   }
