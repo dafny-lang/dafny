@@ -20,33 +20,54 @@ public abstract class Type<T> {
 
     public abstract T defaultValue();
 
-    public abstract Array<T> newArray(int length);
+    public abstract boolean isInstance(Object object);
 
-    public abstract Array<T> wrapArray(Object array);
+    public abstract Type<?> arrayType();
+
+    public final Object newArray(int length) {
+        // Unlike most others, this Array operation is fast
+        return java.lang.reflect.Array.newInstance(javaClass, length);
+    }
+
+    public final Object newArray(int ... dims) {
+        return java.lang.reflect.Array.newInstance(javaClass, dims);
+    }
 
     public abstract T getArrayElement(Object array, int index);
 
     public abstract void setArrayElement(Object array, int index, T value);
 
+    public final int getArrayLength(Object array) {
+        // Unlike most others, this Array operation is fast
+        return java.lang.reflect.Array.getLength(array);
+    }
+
+    public abstract Object cloneArray(Object array);
+
     public abstract void fillArray(Object array, T value);
 
-    public final Object newUnwrappedArray(int length) {
-        return java.lang.reflect.Array.newInstance(javaClass, length);
+    public final Object fillThenReturnArray(Object array, T value) {
+        fillArray(array, value);
+        return array;
     }
 
-    public final Object newUnwrappedArray(int ... dims) {
-        return java.lang.reflect.Array.newInstance(javaClass, dims);
+    @SuppressWarnings("all")
+    public final void copyArrayTo(Object src, int srcPos,
+            Object dest, int destPos, int length) {
+        System.arraycopy(src, srcPos, dest, destPos, length);
     }
+
+    public abstract boolean arrayDeepEquals(Object array1, Object array2);
 
     // TODO: Benchmark this to see if it's slow (better to copy and paste for
     // each class so that setArrayElement is inlined?)
-    public Array<T> toArray(Collection<T> coll) {
-        Object arr = newUnwrappedArray(coll.size());
+    public Object toArray(Collection<T> coll) {
+        Object arr = newArray(coll.size());
         int i = 0;
         for (T elt : coll) {
             setArrayElement(arr, i++, elt);
         }
-        return wrapArray(arr);
+        return arr;
     }
 
     @Override
@@ -98,14 +119,6 @@ public abstract class Type<T> {
     public static final Type<float[]> FLOAT_ARRAY = reference(float[].class);
     public static final Type<double[]> DOUBLE_ARRAY = reference(double[].class);
 
-    public static <T> Type<T[]> unwrappedArrayOfReference(Type<T> eltType) {
-        assert !eltType.javaClass.isPrimitive();
-
-        @SuppressWarnings("unchecked")
-        Class<T[]> arrayClass = (Class<T[]>) eltType.newUnwrappedArray(0).getClass();
-        return reference(arrayClass);
-    }
-
     public static <A, R> Type<Function<A, R>> function(Type<A> argType, Type<R> returnType) {
         @SuppressWarnings("unchecked")
         Class<Function<A, R>> functionClass =
@@ -135,6 +148,8 @@ public abstract class Type<T> {
             Throwable cause = e.getCause();
             if (cause instanceof RuntimeException) {
                 throw (RuntimeException) cause;
+            } else if (cause instanceof Error) {
+                throw (Error) cause;
             } else {
                 throw new RuntimeException(cause);
             }
@@ -143,6 +158,7 @@ public abstract class Type<T> {
 
     private static final class ReferenceType<T> extends Type<T> {
         private final Initializer<T> initializer;
+        private Type<?> arrayType;
 
         public ReferenceType(Class<T> javaClass, Initializer<T> initializer) {
             super(javaClass);
@@ -157,20 +173,17 @@ public abstract class Type<T> {
             return initializer.defaultValue();
         }
 
-        public Array<T> newArray(int length) {
-            @SuppressWarnings("unchecked")
-            // This cast only works because we know that T is *not* a (boxed)
-            // primitive type
-            T[] array = (T[])
-                    java.lang.reflect.Array.newInstance(javaClass, length);
-            return Array.wrap(array);
+        @Override
+        public boolean isInstance(Object object) {
+            return javaClass.isInstance(object);
         }
 
         @Override
-        public Array<T> wrapArray(Object array) {
-            @SuppressWarnings("unchecked")
-            T[] castArray = (T[]) array;
-            return Array.wrap(castArray);
+        public Type<?> arrayType() {
+            if (arrayType == null) {
+                arrayType = reference(newArray(0).getClass());
+            }
+            return arrayType;
         }
 
         @Override
@@ -188,6 +201,13 @@ public abstract class Type<T> {
         }
 
         @Override
+        public Object cloneArray(Object array) {
+            @SuppressWarnings("unchecked")
+            T[] castArray = (T[]) array;
+            return castArray.clone();
+        }
+
+        @Override
         public void fillArray(Object array, T value) {
             @SuppressWarnings("unchecked")
             T[] castArray = (T[]) array;
@@ -195,6 +215,15 @@ public abstract class Type<T> {
             for (int i = 0; i < n; i++) {
                 castArray[i] = value;
             }
+        }
+
+        @Override
+        public boolean arrayDeepEquals(Object array1, Object array2) {
+            @SuppressWarnings("unchecked")
+            T[] castArray1 = (T[]) array1;
+            @SuppressWarnings("unchecked")
+            T[] castArray2 = (T[]) array2;
+            return Arrays.deepEquals(castArray1, castArray2);
         }
     }
 
@@ -211,13 +240,13 @@ public abstract class Type<T> {
         }
 
         @Override
-        public Array<Byte> newArray(int length) {
-            return Array.wrap(new byte[length]);
+        public boolean isInstance(Object object) {
+            return object instanceof Byte;
         }
 
         @Override
-        public Array<Byte> wrapArray(Object array) {
-            return Array.wrap((byte[]) array);
+        public Type<?> arrayType() {
+            return BYTE_ARRAY;
         }
 
         @Override
@@ -231,8 +260,19 @@ public abstract class Type<T> {
         }
 
         @Override
+        public Object cloneArray(Object array) {
+            return ((byte[]) array).clone();
+        }
+
+        @Override
         public void fillArray(Object array, Byte value) {
             Arrays.fill((byte[]) array, value);
+        }
+
+        @Override
+        public boolean arrayDeepEquals(Object array1, Object array2) {
+            byte[] castArray1 = (byte[]) array1, castArray2 = (byte[]) array2;
+            return Arrays.equals(castArray1, castArray2);
         }
     }
 
@@ -249,13 +289,13 @@ public abstract class Type<T> {
         }
 
         @Override
-        public Array<Short> newArray(int length) {
-            return Array.wrap(new short[length]);
+        public boolean isInstance(Object object) {
+            return object instanceof Short;
         }
 
         @Override
-        public Array<Short> wrapArray(Object array) {
-            return Array.wrap((short[]) array);
+        public Type<?> arrayType() {
+            return SHORT_ARRAY;
         }
 
         @Override
@@ -269,8 +309,19 @@ public abstract class Type<T> {
         }
 
         @Override
+        public Object cloneArray(Object array) {
+            return ((short[]) array).clone();
+        }
+
+        @Override
         public void fillArray(Object array, Short value) {
             Arrays.fill((short[]) array, value);
+        }
+
+        @Override
+        public boolean arrayDeepEquals(Object array1, Object array2) {
+            short[] castArray1 = (short[]) array1, castArray2 = (short[]) array2;
+            return Arrays.equals(castArray1, castArray2);
         }
     }
 
@@ -287,13 +338,13 @@ public abstract class Type<T> {
         }
 
         @Override
-        public Array<Integer> newArray(int length) {
-            return Array.wrap(new int[length]);
+        public boolean isInstance(Object object) {
+            return object instanceof Integer;
         }
 
         @Override
-        public Array<Integer> wrapArray(Object array) {
-            return Array.wrap((int[]) array);
+        public Type<?> arrayType() {
+            return INT_ARRAY;
         }
 
         @Override
@@ -307,8 +358,19 @@ public abstract class Type<T> {
         }
 
         @Override
+        public Object cloneArray(Object array) {
+            return ((int[]) array).clone();
+        }
+
+        @Override
         public void fillArray(Object array, Integer value) {
             Arrays.fill((int[]) array, value);
+        }
+
+        @Override
+        public boolean arrayDeepEquals(Object array1, Object array2) {
+            int[] castArray1 = (int[]) array1, castArray2 = (int[]) array2;
+            return Arrays.equals(castArray1, castArray2);
         }
     }
 
@@ -325,15 +387,14 @@ public abstract class Type<T> {
         }
 
         @Override
-        public Array<Long> newArray(int length) {
-            return Array.wrap(new long[length]);
+        public boolean isInstance(Object object) {
+            return object instanceof Long;
         }
 
         @Override
-        public Array<Long> wrapArray(Object array) {
-            return Array.wrap((long[]) array);
+        public Type<?> arrayType() {
+            return LONG_ARRAY;
         }
-
 
         @Override
         public Long getArrayElement(Object array, int index) {
@@ -346,8 +407,19 @@ public abstract class Type<T> {
         }
 
         @Override
+        public Object cloneArray(Object array) {
+            return ((long[]) array).clone();
+        }
+
+        @Override
         public void fillArray(Object array, Long value) {
             Arrays.fill((long[]) array, value);
+        }
+
+        @Override
+        public boolean arrayDeepEquals(Object array1, Object array2) {
+            long[] castArray1 = (long[]) array1, castArray2 = (long[]) array2;
+            return Arrays.equals(castArray1, castArray2);
         }
     }
 
@@ -362,13 +434,13 @@ public abstract class Type<T> {
         }
 
         @Override
-        public Array<Boolean> newArray(int length) {
-            return Array.wrap(new boolean[length]);
+        public boolean isInstance(Object object) {
+            return object instanceof Boolean;
         }
 
         @Override
-        public Array<Boolean> wrapArray(Object array) {
-            return Array.wrap((boolean[]) array);
+        public Type<?> arrayType() {
+            return BOOLEAN_ARRAY;
         }
 
         @Override
@@ -382,8 +454,19 @@ public abstract class Type<T> {
         }
 
         @Override
+        public Object cloneArray(Object array) {
+            return ((boolean[]) array).clone();
+        }
+
+        @Override
         public void fillArray(Object array, Boolean value) {
             Arrays.fill((boolean[]) array, value);
+        }
+
+        @Override
+        public boolean arrayDeepEquals(Object array1, Object array2) {
+            boolean[] castArray1 = (boolean[]) array1, castArray2 = (boolean[]) array2;
+            return Arrays.equals(castArray1, castArray2);
         }
     }
 
@@ -400,13 +483,13 @@ public abstract class Type<T> {
         }
 
         @Override
-        public Array<Character> newArray(int length) {
-            return Array.wrap(new char[length]);
+        public boolean isInstance(Object object) {
+            return object instanceof Character;
         }
 
         @Override
-        public Array<Character> wrapArray(Object array) {
-            return Array.wrap((char[]) array);
+        public Type<?> arrayType() {
+            return CHAR_ARRAY;
         }
 
         @Override
@@ -420,8 +503,19 @@ public abstract class Type<T> {
         }
 
         @Override
+        public Object cloneArray(Object array) {
+            return ((char[]) array).clone();
+        }
+
+        @Override
         public void fillArray(Object array, Character value) {
             Arrays.fill((char[]) array, value);
+        }
+
+        @Override
+        public boolean arrayDeepEquals(Object array1, Object array2) {
+            char[] castArray1 = (char[]) array1, castArray2 = (char[]) array2;
+            return Arrays.equals(castArray1, castArray2);
         }
     }
 
@@ -438,13 +532,13 @@ public abstract class Type<T> {
         }
 
         @Override
-        public Array<Float> newArray(int length) {
-            return Array.wrap(new float[length]);
+        public boolean isInstance(Object object) {
+            return object instanceof Float;
         }
 
         @Override
-        public Array<Float> wrapArray(Object array) {
-            return Array.wrap((float[]) array);
+        public Type<?> arrayType() {
+            return FLOAT_ARRAY;
         }
 
         @Override
@@ -458,8 +552,19 @@ public abstract class Type<T> {
         }
 
         @Override
+        public Object cloneArray(Object array) {
+            return ((float[]) array).clone();
+        }
+
+        @Override
         public void fillArray(Object array, Float value) {
             Arrays.fill((float[]) array, value);
+        }
+
+        @Override
+        public boolean arrayDeepEquals(Object array1, Object array2) {
+            float[] castArray1 = (float[]) array1, castArray2 = (float[]) array2;
+            return Arrays.equals(castArray1, castArray2);
         }
     }
 
@@ -476,13 +581,13 @@ public abstract class Type<T> {
         }
 
         @Override
-        public Array<Double> newArray(int length) {
-            return Array.wrap(new double[length]);
+        public boolean isInstance(Object object) {
+            return object instanceof Double;
         }
 
         @Override
-        public Array<Double> wrapArray(Object array) {
-            return Array.wrap((double[]) array);
+        public Type<?> arrayType() {
+            return DOUBLE_ARRAY;
         }
 
         @Override
@@ -496,8 +601,19 @@ public abstract class Type<T> {
         }
 
         @Override
+        public Object cloneArray(Object array) {
+            return ((double[]) array).clone();
+        }
+
+        @Override
         public void fillArray(Object array, Double value) {
             Arrays.fill((double[]) array, value);
+        }
+
+        @Override
+        public boolean arrayDeepEquals(Object array1, Object array2) {
+            double[] castArray1 = (double[]) array1, castArray2 = (double[]) array2;
+            return Arrays.equals(castArray1, castArray2);
         }
     }
 }

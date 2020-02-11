@@ -34,18 +34,15 @@ namespace Microsoft.Dafny{
     new string DafnySeqClass = "dafny.DafnySequence";
     new string DafnyMapClass = "dafny.DafnyMap";
 
-    const string DafnyArrayClass = "dafny.Array";
     const string DafnyBigRationalClass = "dafny.BigRational";
     const string DafnyEuclideanClass = "dafny.DafnyEuclidean";
     const string DafnyHelpersClass = "dafny.Helpers";
     const string TypeClass = "dafny.Type";
 
-    const string DafnyArrayInitClassPrefix = "dafny.ArrayInit";
     const string DafnyFunctionIfacePrefix = "dafny.Function";
     const string DafnyMultiArrayClassPrefix = "dafny.Array";
     const string DafnyTupleClassPrefix = "dafny.Tuple";
 
-    string DafnyArrayInitClass(int dim) => DafnyArrayInitClassPrefix + dim;
     string DafnyMultiArrayClass(int dim) => DafnyMultiArrayClassPrefix + dim;
     string DafnyTupleClass(int size) => DafnyTupleClassPrefix + size;
 
@@ -152,25 +149,50 @@ namespace Microsoft.Dafny{
       var wOuts = new List<TargetWriter>();
       for (var i = 0; i < lhsNames.Count; i++){
         wr.Write($"{lhsNames[i]} = ");
-        TargetWriter wRhs;
-        if (formalTypes[i].IsArrayType && formalTypes[i].AsArrayType.Dims == 1 && UserDefinedType.ArrayElementType(formalTypes[i]).IsTypeParameter &&
-            (!lhsTypes[i].IsArrayType || !UserDefinedType.ArrayElementType(lhsTypes[i]).IsTypeParameter)) {
-          if (!lhsTypes[i].IsObjectQ) {
-            wr.Write($"(({TypeName(lhsTypes[i], wr, Bpl.Token.NoToken)}) ");
-          }
-          wr.Write("(");
-          wRhs = wr.Fork();
-          wr.Write(").unwrap()");
-          if (!lhsTypes[i].IsObjectQ) {
-            wr.Write(")");
-          }
-        } else {
-          // No need to worry about the other direction, since you'll never have a type parameter as the LHS
-          // and a fixed type as the RHS
-          wRhs = wr.Fork();
-        }
+        //
+        // Suppose we have:
+        //
+        //   method Foo<A>(a : A) returns (arr : array<A>)
+        //
+        // This is compiled to:
+        //
+        //   public <A> Object Foo(A a)
+        //
+        // (There's also an argument for the type descriptor, but I'm omitting
+        // it for clarity.)  Foo returns Object, not A[], since A could be
+        // primitive and primitives cannot be generic parameters in Java
+        // (*sigh*).  So when we call it:
+        //
+        //   var arr : int[] := Foo(42);
+        //
+        // we have to add a type cast:
+        //
+        //   BigInteger[] arr = (BigInteger[]) Foo(new BigInteger(42));
+        //
+        // Things can get more complicated than this, however.  If the method returns
+        // the array as part of a tuple:
+        //
+        //   method Foo<A>(a : A) returns (pair : (array<A>, array<A>))
+        //
+        // then we get:
+        //
+        //   public <A> Tuple2<Object, Object> Foo(A a)
+        //
+        // and we have to write:
+        //
+        //   BigInteger[] arr = (Pair<BigInteger[], BigInteger[]>) (Object) Foo(new BigInteger(42));
+        //
+        // (Note the extra cast to Object, since Java doesn't allow a cast to
+        // change a type parameter, as that's unsound in general.  It just
+        // happens to be okay here!)
+        //
+        // Rather than try and exhaustively check for all the circumstances
+        // where a cast is necessary, for the moment we just always cast to the
+        // LHS type via Object, which is redundant 99% of the time but not
+        // harmful.
+        wr.Write($"({TypeName(lhsTypes[i], wr, Bpl.Token.NoToken)}) (Object) ");
         if (lhsNames.Count == 1) {
-          wRhs.Write(outCollector);
+          wr.Write(outCollector);
         } else {
           wr.Write($"{outCollector}.dtor__{i}()");
         }
@@ -654,15 +676,7 @@ namespace Microsoft.Dafny{
         ArrayClassDecl at = xType.AsArrayType;
         Contract.Assert(at != null);  // follows from type.IsArrayType
         Type elType = UserDefinedType.ArrayElementType(xType);
-        string elTypeName = TypeName(elType, wr, tok);
-        if (at.Dims > 1) {
-          arrays.Add(at.Dims);
-          return $"{DafnyMultiArrayClass(at.Dims)}<{elTypeName}>";
-        } else if (elType.AsTypeParameter is TypeParameter tp) {
-          return $"{DafnyArrayClass}<{IdName(tp)}>";
-        } else {
-          return $"{TypeName(elType, wr, tok, boxed: false)}[]";
-        }
+        return ArrayTypeName(elType, at.Dims, wr, tok);
       } else if (xType is UserDefinedType) {
         var udt = (UserDefinedType)xType;
         var s = FullTypeName(udt, member);
@@ -716,6 +730,17 @@ namespace Microsoft.Dafny{
         return DafnyMapClass + "<" + BoxedTypeName(domType, wr, tok) + "," + BoxedTypeName(ranType, wr, tok) + ">";
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected type
+      }
+    }
+
+    string ArrayTypeName(Type elType, int dims, TextWriter wr, Bpl.IToken tok) {
+      if (dims > 1) {
+        arrays.Add(dims);
+        return $"{DafnyMultiArrayClass(dims)}<{BoxedTypeName(elType, wr, tok)}>";
+      } else if (elType.IsTypeParameter) {
+        return "java.lang.Object";
+      } else {
+        return $"{TypeName(elType, wr, tok)}[]";
       }
     }
 
@@ -1143,10 +1168,18 @@ namespace Microsoft.Dafny{
           break;
         case SpecialField.ID.ArrayLength:
         case SpecialField.ID.ArrayLengthInt:
-          compiledName = idParam == null ? "length" : "dim" + (int)idParam;
-          if (id == SpecialField.ID.ArrayLength) {
-            preString = "java.math.BigInteger.valueOf(";
+          if (idParam == null) {
+            // Works on both fixed array types like array<int> (=> BigInteger[])
+            // or generic array types like array<A> (=> Object) and (unlike most
+            // of java.lang.reflect.Array) is fast
+            preString = "java.lang.reflect.Array.getLength(";
             postString = ")";
+          } else {
+            compiledName = "dim" + (int)idParam;
+          }
+          if (id == SpecialField.ID.ArrayLength) {
+            preString = "java.math.BigInteger.valueOf(" + preString;
+            postString = postString + ")";
           }
           break;
         case SpecialField.ID.Floor:
@@ -1298,12 +1331,14 @@ namespace Microsoft.Dafny{
       wIndices = new List<TargetWriter>();
       TargetWriter w;
       if (dimCount == 1) {
-        w = wr.Fork();
         if (elmtType.IsTypeParameter) {
-          wr.Write(".get(");
+          wr.Write($"{FormatTypeDescriptorVariable(elmtType.AsTypeParameter)}.getArrayElement(");
+          w = wr.Fork();
+          wr.Write(", ");
           wIndices.Add(wr.Fork());
           wr.Write(")");
         } else {
+          w = wr.Fork();
           wr.Write("[");
           wIndices.Add(wr.Fork());
           wr.Write("]");
@@ -1337,10 +1372,12 @@ namespace Microsoft.Dafny{
     protected override TargetWriter EmitArrayUpdate(List<string> indices, string rhs, Type elmtType, TargetWriter wr) {
       TargetWriter w;
       if (indices.Count == 1) {
-        w = wr.Fork();
         if (elmtType.IsTypeParameter) {
-          wr.Write($".set({DafnyHelpersClass}.toInt({indices[0]}), {rhs})");
+          wr.Write($"{FormatTypeDescriptorVariable(elmtType.AsTypeParameter)}.setArrayElement(");
+          w = wr.Fork();
+          wr.Write($", {DafnyHelpersClass}.toInt({indices[0]}), {rhs})");
         } else {
+          w = wr.Fork();
           wr.Write($"[{DafnyHelpersClass}.toInt({indices[0]})] = {rhs}");
         }
       } else {
@@ -1358,7 +1395,7 @@ namespace Microsoft.Dafny{
 
     protected override ILvalue EmitArraySelectAsLvalue(string array, List<string> indices, Type elmtType) {
       if (elmtType.IsTypeParameter) {
-        return new ArrayMethodLvalue(this, array, indices, elmtType);
+        return new GenericArrayElementLvalue(this, array, indices, elmtType.AsTypeParameter);
       } else {
         return SimpleLvalue(wr => {
           var wArray = EmitArraySelect(indices, elmtType, wr);
@@ -1367,35 +1404,42 @@ namespace Microsoft.Dafny{
       }
     }
 
-    private class ArrayMethodLvalue : ILvalue {
+    private class GenericArrayElementLvalue : ILvalue {
       private readonly JavaCompiler Compiler;
       private readonly string Array;
       private readonly List<string> Indices;
-      private readonly Type ElmtType;
+      private readonly TypeParameter ElmtTypeParameter;
 
-      public ArrayMethodLvalue(JavaCompiler compiler, string array, List<string> indices, Type elmtType) {
+      public GenericArrayElementLvalue(JavaCompiler compiler, string array, List<string> indices, TypeParameter elmtTypeParameter) {
         Compiler = compiler;
         Array = array;
         Indices = indices;
-        ElmtType = elmtType;
+        ElmtTypeParameter = elmtTypeParameter;
       }
 
       public void EmitRead(TargetWriter wr) {
-        var wArray = Compiler.EmitArraySelect(Indices, ElmtType, wr);
+        var wArray = Compiler.EmitArraySelect(Indices, new UserDefinedType(ElmtTypeParameter), wr);
         wArray.Write(Array);
       }
 
       public TargetWriter EmitWrite(TargetWriter wr) {
-        wr.Write($"{Array}.set({Util.Comma("", Indices, ix => $"[{DafnyHelpersClass}.toInt({ix})]")}), ");
-        var w = wr.Fork();
-        wr.Write(")");
+        TargetWriter w;
+        if (Indices.Count == 1) {
+          wr.Write($"{FormatTypeDescriptorVariable(ElmtTypeParameter)}.setArrayElement({Array}, ");
+          w = wr.Fork();
+          wr.Write(")");
+        } else {
+          wr.Write($"{Array}.set({Util.Comma("", Indices, ix => $"[{DafnyHelpersClass}.toInt({ix})]")}), ");
+          w = wr.Fork();
+          wr.Write(")");
+        }
         return w;
       }
     }
 
     protected override void EmitSeqSelectRange(Expression source, Expression lo, Expression hi, bool fromArray, bool inLetExprBody, TargetWriter wr) {
       if (fromArray) {
-        wr.Write($"{DafnySeqClass}.fromArrayRange({TypeDescriptor(source.Type.TypeArgs[0], wr, source.tok)}, {DafnyArrayClass}.wrap");
+        wr.Write($"{DafnySeqClass}.fromRawArrayRange({TypeDescriptor(source.Type.TypeArgs[0], wr, source.tok)}, ");
       }
       TrParenExpr(source, wr, inLetExprBody);
       if (fromArray) {
@@ -1409,8 +1453,8 @@ namespace Microsoft.Dafny{
         if (hi != null) {
           TrExprAsInt(hi, wr, inLetExprBody);
         } else {
+          wr.Write("java.lang.reflect.Array.getLength");
           TrParenExpr(source, wr, inLetExprBody);
-          wr.Write(".length");
         }
         wr.Write(")");
       } else {
@@ -2258,7 +2302,7 @@ namespace Microsoft.Dafny{
               throw new cce.UnreachableException();
           }
         } else {
-          return $"{TypeClass}.unwrappedArray({TypeDescriptor(elType, wr, tok)})";
+          return $"({TypeDescriptor(elType, wr, tok)}).arrayType()";
         }
       } else if (type.IsTypeParameter) {
         return FormatTypeDescriptorVariable(type.AsTypeParameter.CompileName);
@@ -2414,42 +2458,6 @@ namespace Microsoft.Dafny{
       EndStmt(wr);
     }
 
-    protected override TargetWriter EmitCoercionIfNecessary(Type/*?*/ from, Type/*?*/ to, Bpl.IToken tok, TargetWriter wr) {
-      if (from == null || to == null) {
-        return wr;
-      }
-      from = from.NormalizeExpand();
-      to = to.NormalizeExpand();
-      if (from.Equals(to)) {
-        return wr;
-      }
-
-      if (from.IsArrayType && from.AsArrayType.Dims == 1 || to.IsArrayType && to.AsArrayType.Dims == 1) {
-        // Convert between T[] and Array<T>
-        var fromElmtType = from.IsArrayType ? UserDefinedType.ArrayElementType(from) : null;
-        var toElmtType = to.IsArrayType ? UserDefinedType.ArrayElementType(to) : null;
-
-        if (fromElmtType != null && fromElmtType.IsTypeParameter && (toElmtType == null || !toElmtType.IsTypeParameter)) {
-          if (!to.IsObjectQ) {
-            wr.Write($"(({TypeName(to, wr, tok)}) ");
-          }
-          wr.Write("(");
-          var w = wr.Fork();
-          wr.Write(").unwrap()");
-          if (!to.IsObjectQ) {
-            wr.Write(")");
-          }
-          return w;
-        } else if (toElmtType != null && toElmtType.IsTypeParameter && (fromElmtType == null || !fromElmtType.IsTypeParameter)) {
-          wr.Write($"{DafnyArrayClass}.wrap(");
-          var w = wr.Fork();
-          wr.Write(")");
-          return w;
-        }
-      }
-      return wr;
-    }
-
     protected override void EmitDatatypeValue(DatatypeValue dtv, string arguments, TargetWriter wr) {
       var dt = dtv.Ctor.EnclosingDatatype;
       EmitDatatypeValue(dt, dtv.Ctor, dtv.IsCoCall, arguments, wr);
@@ -2522,8 +2530,8 @@ namespace Microsoft.Dafny{
             TrParenExpr("java.math.BigInteger.valueOf(", expr, wr, inLetExprBody);
             wr.Write(".size())");
           } else if (expr.Type.IsArrayType) {
-            TrParenExpr("java.math.BigInteger.valueOf(", expr, wr, inLetExprBody);
-            wr.Write(".length)");
+            TrParenExpr("java.math.BigInteger.valueOf(java.lang.reflect.Array.getLength", expr, wr, inLetExprBody);
+            wr.Write(")");
           } else {
             TrParenExpr("java.math.BigInteger.valueOf(", expr, wr, inLetExprBody);
             wr.Write(".length())");
@@ -2996,7 +3004,7 @@ namespace Microsoft.Dafny{
 
             if (elType.IsTypeParameter) {
               bareArray =
-                $"(Object{Util.Repeat("[]", arrayClass.Dims - 1)}) {TypeDescriptor(elType, wr, tok)}.newUnwrappedArray({Util.Comma(Enumerable.Repeat("0", arrayClass.Dims))})";
+                $"(Object{Util.Repeat("[]", arrayClass.Dims - 1)}) {TypeDescriptor(elType, wr, tok)}.newArray({Util.Comma(Enumerable.Repeat("0", arrayClass.Dims))})";
             } else {
               bareArray = $"new {TypeName(elType, wr, tok)}{Util.Repeat("[0]", arrayClass.Dims)}";
             }
@@ -3380,16 +3388,12 @@ namespace Microsoft.Dafny{
         if (mustInitialize) {
           wr.Write($".fillThenReturn({DefaultValue(elmtType, wr, tok)})");
         }
-      } else if (elmtType.IsTypeParameter) {
-        wr.Write($"{TypeDescriptor(elmtType, wr, tok)}.wrapArray(");
-        wBareArray = wr.Fork();
-        wr.Write(")");
-        if (mustInitialize) {
-          wr.Write($".fillThenReturn({DefaultValue(elmtType, wr, tok)})");
-        }
       } else {
+        if (!elmtType.IsTypeParameter) {
+          wr.Write($"({ArrayTypeName(elmtType, dimensions.Count, wr, tok)}) ");
+        }
         if (mustInitialize) {
-          wr.Write("dafny.Array.fillThenReturn(");
+          wr.Write($"{TypeDescriptor(elmtType, wr, tok)}.fillThenReturnArray(");
         }
         wBareArray = wr.Fork();
         if (mustInitialize) {
@@ -3398,7 +3402,10 @@ namespace Microsoft.Dafny{
       }
 
       if (elmtType.IsTypeParameter) {
-        wBareArray.Write($"(Object{Util.Repeat("[]", dimensions.Count - 1)}) {TypeDescriptor(elmtType, wr, tok)}.newUnwrappedArray(");
+        if (dimensions.Count > 1) {
+          wBareArray.Write($"(Object{Util.Repeat("[]", dimensions.Count - 1)}) ");
+        }
+        wBareArray.Write($"{TypeDescriptor(elmtType, wr, tok)}.newArray(");
         var sep = "";
         foreach (var dim in dimensions) {
           wBareArray.Write(sep);
@@ -3444,7 +3451,7 @@ namespace Microsoft.Dafny{
     }
 
     protected override BlockTargetWriter CreateForLoop(string indexVar, string bound, TargetWriter wr) {
-      return wr.NewNamedBlock($"for (java.math.BigInteger {indexVar} = java.math.BigInteger.ZERO; {indexVar}.compareTo(java.math.BigInteger.valueOf({bound})) < 0; {indexVar} = {indexVar}.add(java.math.BigInteger.ONE))");
+      return wr.NewNamedBlock($"for (java.math.BigInteger {indexVar} = java.math.BigInteger.ZERO; {indexVar}.compareTo({bound}) < 0; {indexVar} = {indexVar}.add(java.math.BigInteger.ONE))");
     }
 
     protected override string GetHelperModuleName() => DafnyHelpersClass;
@@ -3615,8 +3622,17 @@ namespace Microsoft.Dafny{
             } else if (m != null && m.MemberName == "Length" && m.Obj.Type.IsArrayType) {
               // Optimize .length to avoid intermediate BigInteger
               wr.Write(CastIfSmallNativeType(e.ToType));
-              TrParenExpr(m.Obj, wr, inLetExprBody);
-              wr.Write(".length");
+              var elmtType = UserDefinedType.ArrayElementType(m.Obj.Type);
+              TargetWriter w;
+              if (elmtType.IsTypeParameter) {
+                wr.Write($"{FormatTypeDescriptorVariable(elmtType.AsTypeParameter)}.getArrayLength(");
+                w = wr.Fork();
+                wr.Write(")");
+              } else {
+                w = wr.Fork();
+                wr.Write(".length");
+              }
+              TrParenExpr(m.Obj, w, inLetExprBody);
             } else {
               // no optimization applies; use the standard translation
               if (fromNative != null && fromNative.LowerBound >= 0 && NativeTypeSize(fromNative) < NativeTypeSize(toNative)) {

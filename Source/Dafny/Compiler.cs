@@ -2734,9 +2734,9 @@ namespace Microsoft.Dafny {
           var indices = Translator.Map(Enumerable.Range(0, tRhs.ArrayDimensions.Count), ii => idGenerator.FreshId("_arrayinit_" + ii));
           var w = wStmts;
           for (var d = 0; d < tRhs.ArrayDimensions.Count; d++) {
-            string len, p0, p1;
-            GetSpecialFieldInfo(SpecialField.ID.ArrayLengthInt, tRhs.ArrayDimensions.Count == 1 ? null : (object)d, out len, out p0, out p1);
-            var bound = string.Format("{0}.{1}", nw, len);
+            string len, pre, post;
+            GetSpecialFieldInfo(SpecialField.ID.ArrayLength, tRhs.ArrayDimensions.Count == 1 ? null : (object)d, out len, out pre, out post);
+            var bound = string.Format("{0}{1}{2}{3}", pre, nw, len == "" ? "" : "." + len, post);
             w = CreateForLoop(indices[d], bound, w);
           }
           var eltRhs = string.Format("{0}{2}({1})", f, Util.Comma(indices, ArrayIndexToInt), LambdaExecute);
