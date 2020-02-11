@@ -1,20 +1,29 @@
+TypecheckErrors.dfy(3,8): Error: the included file NatOutcome.dfy contains error(s)
+NatOutcome.dfy(5,9): Error: duplicate name of top-level declaration: Option
 TypecheckErrors.dfy(7,28): Error: incorrect type of method in-parameter (expected nat, got string)
 TypecheckErrors.dfy(8,28): Error: incorrect type of method in-parameter (expected nat, got string)
 TypecheckErrors.dfy(14,8): Error: Duplicate local-variable name: a
 TypecheckErrors.dfy(16,8): Error: Duplicate local-variable name: b
-TypecheckErrors.dfy(39,10): Error: member IsFailure does not exist in trait BadOutcome1
-TypecheckErrors.dfy(39,10): Error: member PropagateFailure does not exist in trait BadOutcome1
-TypecheckErrors.dfy(39,10): Error: member Extract does not exist in trait BadOutcome1
-TypecheckErrors.dfy(39,10): Error: The right-hand side of ':-', which is of type 'BadOutcome1?', must have members 'IsFailure()', 'PropagateFailure()', and 'Extract()'
-TypecheckErrors.dfy(43,10): Error: member PropagateFailure does not exist in trait BadOutcome2
+TypecheckErrors.dfy(39,10): Error: The right-hand side of ':-', which is of type '?', must have members 'IsFailure()', 'PropagateFailure()', and 'Extract()'
 TypecheckErrors.dfy(43,10): Error: The right-hand side of ':-', which is of type 'BadOutcome2?', must have members 'IsFailure()', 'PropagateFailure()', and 'Extract()'
-TypecheckErrors.dfy(47,10): Error: member Extract does not exist in trait BadOutcome3
 TypecheckErrors.dfy(47,10): Error: The right-hand side of ':-', which is of type 'BadOutcome3?', must have members 'IsFailure()', 'PropagateFailure()', and 'Extract()'
 TypecheckErrors.dfy(51,22): Error: incorrect type of method in-parameter (expected string, got int)
-TypecheckErrors.dfy(71,4): Error: member IsFailure does not exist in trait BadVoidOutcome1
-TypecheckErrors.dfy(71,4): Error: member PropagateFailure does not exist in trait BadVoidOutcome1
-TypecheckErrors.dfy(71,4): Error: The right-hand side of ':-', which is of type 'BadVoidOutcome1?', must have members 'IsFailure()', 'PropagateFailure()', but not 'Extract()'
-TypecheckErrors.dfy(75,4): Error: member PropagateFailure does not exist in trait BadVoidOutcome2
+TypecheckErrors.dfy(71,4): Error: The right-hand side of ':-', which is of type '?', must have members 'IsFailure()', 'PropagateFailure()', but not 'Extract()'
 TypecheckErrors.dfy(75,4): Error: The right-hand side of ':-', which is of type 'BadVoidOutcome2?', must have members 'IsFailure()', 'PropagateFailure()', but not 'Extract()'
-TypecheckErrors.dfy(79,4): Error: The right-hand side of ':-', which is of type 'BadVoidOutcome3?', must have members 'IsFailure()', 'PropagateFailure()', but not 'Extract()'
-19 resolution/type errors detected in TypecheckErrors.dfy
+TypecheckErrors.dfy(79,4): Error: The right-hand side of ':-', which is of type '?', must have members 'IsFailure()', 'PropagateFailure()', but not 'Extract()'
+TypecheckErrors.dfy(119,14): Error: Type of right-hand side of ':-' (Option<?>) has ambiguous selection of PropagateFailure... members for the needed type (real): PropagateFailureThisIsReal, PropagateFailureNoThisIs
+TypecheckErrors.dfy(120,13): Error: Type of right-hand side of ':-' (Option<?>) has ambiguous selection of PropagateFailure... members for the needed type (real): PropagateFailureThisIsReal, PropagateFailureNoThisIs
+TypecheckErrors.dfy(124,8): Error: number of return parameters does not match declaration (found 1, expected 2)
+TypecheckErrors.dfy(145,14): Error: Type of right-hand side of ':-' (?) has ambiguous selection of PropagateFailure... members for the needed type (MayThrow<real>): PropagateFailure, PropagateFailureTakeThis
+TypecheckErrors.dfy(145,14): Error: Member selection requires a subtype of MayThrow?<real> (got something more like MayThrow<bool>) (non-variant type parameter would require real = bool)
+TypecheckErrors.dfy(151,14): Error: Type of right-hand side of ':-' (?) has ambiguous selection of PropagateFailure... members for the needed type (MayThrow<real>): PropagateFailure, PropagateFailureTakeThis
+TypecheckErrors.dfy(182,13): Error: Type of right-hand side of ':-' (Fika) has ambiguous selection of PropagateFailure... members for the needed type (Fika): PropagateFailureX, PropagateFailureY
+TypecheckErrors.dfy(186,13): Error: Type of right-hand side of ':-' (Fika) has ambiguous selection of PropagateFailure... members for the needed type (Option<real>): PropagateFailureZ0, PropagateFailureZ1
+TypecheckErrors.dfy(186,13): Error: RHS (of type Option<bool>) not assignable to LHS (of type Option<real>) (non-variant type parameter would require real = bool)
+TypecheckErrors.dfy(191,2): Error: The right-hand side of ':-', which is of type 'Fika', must have members 'IsFailure()', 'PropagateFailure()', but not 'Extract()'
+TypecheckErrors.dfy(205,13): Error: The right-hand side of ':-', which is of type 'NoGood', must have members 'IsFailure()', 'PropagateFailure()', and 'Extract()'
+TypecheckErrors.dfy(220,8): Error: The right-hand side of ':-', which is of type 'SansExtract', must have members 'IsFailure()', 'PropagateFailure()', and 'Extract()'
+TypecheckErrors.dfy(224,2): Error: RHS (of type int) not assignable to LHS (of type real)
+TypecheckErrors.dfy(228,2): Error: Type of right-hand side of ':-' (SansExtract) has ambiguous selection of PropagateFailure... members for the needed type (bool): PropagateFailureX, PropagateFailureY
+NatOutcome.dfy(10,24): Error: the name 'None' denotes a datatype constructor, but does not do so uniquely; add an explicit qualification (for example, 'Option.None')
+28 resolution/type errors detected in TypecheckErrors.dfy

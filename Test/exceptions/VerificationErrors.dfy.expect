@@ -1,3 +1,13 @@
+VerificationErrors.dfy(98,10): Error BP5003: A postcondition might not hold on this return path.
+VerificationErrors.dfy(95,14): Related location: This is the postcondition that might not hold.
+Execution trace:
+    (0,0): anon0
+    (0,0): anon4_Then
+VerificationErrors.dfy(107,10): Error BP5003: A postcondition might not hold on this return path.
+VerificationErrors.dfy(104,14): Related location: This is the postcondition that might not hold.
+Execution trace:
+    (0,0): anon0
+    (0,0): anon4_Then
 VerificationErrors.dfy(8,38): Error: assertion violation
 Execution trace:
     (0,0): anon0
@@ -5,4 +15,4 @@ VerificationErrors.dfy(15,17): Error: assertion violation
 Execution trace:
     (0,0): anon0
 
-Dafny program verifier finished with 0 verified, 2 errors
+Dafny program verifier finished with 6 verified, 4 errors

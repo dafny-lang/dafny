@@ -772,6 +772,11 @@ namespace Microsoft.Dafny {
     [Pure]
     public abstract bool Equals(Type that);
 
+    public virtual bool SameBase(Type that) {
+      Contract.Requires(that != null);
+      return Equals(that);
+    }
+
     public bool IsBoolType { get { return NormalizeExpand() is BoolType; } }
     public bool IsCharType { get { return NormalizeExpand() is CharType; } }
     public bool IsIntegerType { get { return NormalizeExpand() is IntType; } }
@@ -2568,6 +2573,17 @@ namespace Microsoft.Dafny {
         }
       } else {
         return i.Equals(that);
+      }
+    }
+
+    public override bool SameBase(Type that) {
+      var i = NormalizeExpand();
+      if (i is UserDefinedType) {
+        var ii = (UserDefinedType)i;
+        var t = that.NormalizeExpand() as UserDefinedType;
+        return t != null && ii.ResolvedParam == t.ResolvedParam && ii.ResolvedClass == t.ResolvedClass;
+      } else {
+        return i.SameBase(that);
       }
     }
 
@@ -6784,6 +6800,22 @@ namespace Microsoft.Dafny {
       Contract.Requires(lhss.Count <= 1);
       Contract.Requires(rhs != null);
       Rhs = rhs;
+    }
+
+    /// <summary>
+    /// Retrieve the result type of function "member" or the type of the single out-parameter of
+    /// method "member", if possible. Otherwise, return "null".
+    /// </summary>
+    public static Type/*?*/ GetReturnType(MemberDecl member) {
+      Contract.Requires(member != null);
+      if (member is Method m) {
+        if (m.Outs.Count == 1) {
+          return m.Outs[0].Type;
+        }
+      } else if (member is Function f) {
+        return f.ResultType;
+      }
+      return null;
     }
   }
 

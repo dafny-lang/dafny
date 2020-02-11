@@ -7325,6 +7325,7 @@ namespace Microsoft.Dafny
 
     TopLevelDeclWithMembers currentClass;
     Method currentMethod;
+    Type/*?*/ currentLetOrFailContext;  // the type that a propagated failure must have; "null" implies ":-" would be a resolution error
     bool inBodyInitContext;  // "true" only if "currentMethod is Constructor"
     readonly Scope<TypeParameter>/*!*/
       allTypeParameters = new Scope<TypeParameter>();
@@ -8236,6 +8237,9 @@ namespace Microsoft.Dafny
 
         // Resolve body
         if (m.Body != null) {
+          Contract.Assert(currentLetOrFailContext == null);
+          currentLetOrFailContext = AssignOrReturnStmt.GetReturnType(m);
+
           var com = m as FixpointLemma;
           if (com != null && com.PrefixLemma != null) {
             // The body may mentioned the implicitly declared parameter _k.  Throw it into the
@@ -8258,6 +8262,7 @@ namespace Microsoft.Dafny
           ResolveBlockStatement(m.Body, m);
           dominatingStatementLabels.PopMarker();
           SolveAllTypeConstraints();
+          currentLetOrFailContext = null;
         }
 
         // attributes are allowed to mention both in- and out-parameters (including the implicit _k, for colemmas)
@@ -10148,59 +10153,103 @@ namespace Microsoft.Dafny
     /// and saves the result into s.ResolvedStatements.
     /// </summary>
     private void ResolveAssignOrReturnStmt(AssignOrReturnStmt s, ICodeContext codeContext) {
-      // TODO Do I have any responsibilities regarding the use of codeContext? Is it mutable?
+      Contract.Requires(s != null);
+      Contract.Requires(codeContext != null);
 
       var temp = FreshTempVarName("valueOrError", codeContext);
       var tempType = new InferredTypeProxy();
-      s.ResolvedStatements.Add(
+      var initializeTemp =
         // "var temp := MethodOrExpression;"
         new VarDeclStmt(s.Tok, s.Tok, new List<LocalVariable>() { new LocalVariable(s.Tok, s.Tok, temp, tempType, false) },
-          new UpdateStmt(s.Tok, s.Tok, new List<Expression>() { new IdentifierExpr(s.Tok, temp) }, new List<AssignmentRhs>() { new ExprRhs(s.Rhs) })));
-      s.ResolvedStatements.Add(
+          new UpdateStmt(s.Tok, s.Tok, new List<Expression>() { new IdentifierExpr(s.Tok, temp) }, new List<AssignmentRhs>() { new ExprRhs(s.Rhs) }));
+      ResolveStatement(initializeTemp, codeContext);
+
+      var propagateFailureMemberName = EnsureSupportsErrorHandling(s.Tok, tempType, s.Lhss.Count != 0);
+      if (propagateFailureMemberName == null) {
+        // an error has already been reported, so let's just quit here
+        return;
+      }
+
+      s.ResolvedStatements.Add(initializeTemp);
+      var checkForFailureStmt =
         // "if temp.IsFailure()"
         new IfStmt(s.Tok, s.Tok, false, VarDotMethod(s.Tok, temp, "IsFailure"),
           // THEN: { return temp.PropagateFailure(); }
           new BlockStmt(s.Tok, s.Tok, new List<Statement>() {
-            new ReturnStmt(s.Tok, s.Tok, new List<AssignmentRhs>() { new ExprRhs(VarDotMethod(s.Tok, temp, "PropagateFailure"))}),
+            new ReturnStmt(s.Tok, s.Tok, new List<AssignmentRhs>() { new ExprRhs(VarDotMethod(s.Tok, temp, propagateFailureMemberName))}),
           }),
           // ELSE: no else block
-          null
-        ));
+          null);
+      ResolveStatement(checkForFailureStmt, codeContext);
+      s.ResolvedStatements.Add(checkForFailureStmt);
 
       Contract.Assert(s.Lhss.Count <= 1);
-      if (s.Lhss.Count == 1)
-      {
+      if (s.Lhss.Count == 1) {
+        var extractStmt =
         // "y := temp.Extract();"
-        s.ResolvedStatements.Add(
           new UpdateStmt(s.Tok, s.Tok, s.Lhss, new List<AssignmentRhs>() {
-            new ExprRhs(VarDotMethod(s.Tok, temp, "Extract"))}));
+            new ExprRhs(VarDotMethod(s.Tok, temp, "Extract"))});
+        ResolveStatement(extractStmt, codeContext);
+        s.ResolvedStatements.Add(extractStmt);
       }
-
-      foreach (var a in s.ResolvedStatements) {
-        ResolveStatement(a, codeContext);
-      }
-      bool expectExtract = s.Lhss.Count != 0;
-      EnsureSupportsErrorHandling(s.Tok, PartiallyResolveTypeForMemberSelection(s.Tok, tempType), expectExtract);
     }
 
-    private void EnsureSupportsErrorHandling(IToken tok, Type tp, bool expectExtract) {
-      // The "method not found" errors which will be generated here were already reported while
-      // resolving the statement, so we don't want them to reappear and redirect them into a sink.
+    /// <summary>
+    /// Checks that type "tp" has the members required to support error handling.
+    /// If it does not, an error is reported and "null" is returned. If it does, then
+    /// the name of the appropriate "PropagateFailure..." member is returned.
+    /// "expectExtract" is "true" to say "tp" must have an "Extract" member and "false"
+    /// to say "tp" must not have an "Extract" member.
+    /// </summary>
+    private string/*?*/ EnsureSupportsErrorHandling(IToken tok, Type tp, bool expectExtract) {
+      Contract.Requires(tok != null);
+      Contract.Requires(tp != null);
+
+      // Suppress any "method not found" errors that may be generated here, so redirect them into a sink.
       var origReporter = this.reporter;
       this.reporter = new ErrorReporterSink();
 
-      NonProxyType ignoredNptype = null;
-      if (ResolveMember(tok, tp, "IsFailure", out ignoredNptype) == null ||
-          ResolveMember(tok, tp, "PropagateFailure", out ignoredNptype) == null ||
-          (ResolveMember(tok, tp, "Extract", out ignoredNptype) != null) != expectExtract
-      ) {
-        // more details regarding which methods are missing have already been reported by regular resolution
+      string propagateFailureName = null;
+      if (ResolveMember(tok, tp, "IsFailure", out _) != null &&
+          (ResolveMember(tok, tp, "Extract", out _) != null) == expectExtract) {
+        // find an appropriate PropagateFailure member
+        NonProxyType nonproxyType;
+        var plainPropagateFailure = ResolveMember(tok, tp, "PropagateFailure", out nonproxyType);
+        if (plainPropagateFailure != null) {
+          propagateFailureName = plainPropagateFailure.Name;
+          // see if there's a "PropagateFailure..." member with a more precise type; if so, choose it instead
+          var cl = nonproxyType.AsTopLevelTypeWithMembers;
+          if (currentLetOrFailContext != null && cl != null) {
+            string better = null;
+            foreach (var m in cl.Members) {
+              if (m.Name.StartsWith("PropagateFailure")) {
+                var rt = AssignOrReturnStmt.GetReturnType(m);
+                if (rt != null && rt.SameBase(currentLetOrFailContext)) {
+                  if (better == null) {
+                    better = m.Name;
+                  } else {
+                    origReporter.Error(MessageSource.Resolver, tok,
+                      "Type of right-hand side of ':-' ({0}) has ambiguous selection of PropagateFailure... members for the needed type ({1}): {2}, {3}",
+                      tp, currentLetOrFailContext, better, m.Name);
+                  }
+                }
+              }
+            }
+            if (better != null) {
+              propagateFailureName = better;
+            }
+          }
+        }
+      }
+
+      if (propagateFailureName == null) {
         origReporter.Error(MessageSource.Resolver, tok,
           "The right-hand side of ':-', which is of type '{0}', must have members 'IsFailure()', 'PropagateFailure()', {1} 'Extract()'",
           tp, expectExtract ? "and" : "but not");
       }
 
       this.reporter = origReporter;
+      return propagateFailureName;
     }
 
     void ResolveAlternatives(List<GuardedAlternative> alternatives, AlternativeLoopStmt loopToCatchBreaks, ICodeContext codeContext) {
@@ -12394,14 +12443,23 @@ namespace Microsoft.Dafny
     ///  If expr.Lhs == null: Desugars "         :- E; F" into "var temp := E; if temp.IsFailure() then temp.PropagateFailure() else                             F"
     /// </summary>
     public void ResolveLetOrFailExpr(LetOrFailExpr expr, ResolveOpts opts) {
+      Contract.Requires(expr != null);
+      Contract.Requires(opts != null);
+
+      ResolveExpression(expr.Rhs, opts);
+      var propagateFailureMemberName = EnsureSupportsErrorHandling(expr.tok, expr.Rhs.Type, expr.Lhs != null);
+      if (propagateFailureMemberName == null) {
+        // an error has already been reported, so let's just quit here
+        return;
+      }
+
       var temp = FreshTempVarName("valueOrError", opts.codeContext);
-      var tempType = new InferredTypeProxy();
       // "var temp := E;"
-      expr.ResolvedExpression = LetVarIn(expr.tok, temp, tempType, expr.Rhs,
+      expr.ResolvedExpression = LetVarIn(expr.tok, temp, expr.Rhs.Type, expr.Rhs,
         // "if temp.IsFailure()"
         new ITEExpr(expr.tok, false, VarDotFunction(expr.tok, temp, "IsFailure"),
           // "then temp.PropagateFailure()"
-          VarDotFunction(expr.tok, temp, "PropagateFailure"),
+          VarDotFunction(expr.tok, temp, propagateFailureMemberName),
           // "else"
           expr.Lhs == null
             // "F"
@@ -12410,8 +12468,6 @@ namespace Microsoft.Dafny
             : LetPatIn(expr.tok, expr.Lhs, VarDotFunction(expr.tok, temp, "Extract"), expr.Body)));
 
       ResolveExpression(expr.ResolvedExpression, opts);
-      bool expectExtract = (expr.Lhs != null);
-      EnsureSupportsErrorHandling(expr.tok, PartiallyResolveTypeForMemberSelection(expr.tok, tempType), expectExtract);
     }
 
     private Type SelectAppropriateArrowType(IToken tok, List<Type> typeArgs, Type resultType, bool hasReads, bool hasReq) {
