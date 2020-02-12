@@ -9827,16 +9827,44 @@ List<Statement> UnboxStmtContainer(SyntaxContainer con) {
 
 
 
-// letbind a variable of name "name" and type "type" as "expr" on the body of "branch"
-void LetBind(RBranch branch, String name, Type type, Expression expr) {
+// let-bind a variable of name "name" and type "type" as "expr" on the body of "branch"
+void LetBind(RBranch branch, String name, Type type, Expression expr, bool substitute = false) {
+    BoundVar oldVar = null;
+
+    // OS TODO: warning: substitution is currently non capture-avoiding
+    if(substitute){
+      if(expr is IdentifierExpr){
+        var idExpr = (IdentifierExpr)expr;
+        oldVar = new BoundVar(expr.tok, idExpr.Name, idExpr.Type);
+      } else if (expr is NameSegment) {
+        var nsExpr = (NameSegment)expr;
+        oldVar = new BoundVar(expr.tok, nsExpr.Name, nsExpr.Type);
+      } else {
+        substitute = false;
+      }
+    }
 
     if (branch is RBranchStmt) {
-      var cLVar = new LocalVariable(expr.tok, expr.tok, name, type, false);
-      var cPat = new CasePattern<LocalVariable>(cLVar.EndTok, cLVar);
-      var cLet = new LetStmt(cLVar.Tok, cLVar.Tok, cPat, expr);
-      ((RBranchStmt)branch).Body.Insert(0, cLet);
+      if(substitute){
+        MatchCaseExprSubstituteCloner cloner = new MatchCaseExprSubstituteCloner(new BoundVar(expr.tok, name, type), oldVar);
+        List<Statement> list = new List<Statement>();
 
+        foreach (Statement ss in ((RBranchStmt)branch).Body) {
+          Statement clone = cloner.CloneStmt(ss);
+          list.Add(clone);
+          }
+        ((RBranchStmt)branch).Body = list;
+      } else {
+        var cLVar = new LocalVariable(expr.tok, expr.tok, name, type, false);
+        var cPat = new CasePattern<LocalVariable>(cLVar.EndTok, cLVar);
+        var cLet = new LetStmt(cLVar.Tok, cLVar.Tok, cPat, expr);
+        ((RBranchStmt)branch).Body.Insert(0, cLet);
+      }
     } else if (branch is RBranchExpr) {
+      if(substitute){
+        MatchCaseExprSubstituteCloner cloner = new MatchCaseExprSubstituteCloner(new BoundVar(expr.tok, name, type), oldVar);
+        ((RBranchExpr)branch).Body = cloner.CloneExpr(((RBranchExpr)branch).Body);
+      } else {
       var cBVar = new BoundVar(expr.tok, name, type);
       var cPat = new CasePattern<BoundVar>(cBVar.Tok, cBVar);
       var cPats = new List<CasePattern<BoundVar>>();
@@ -9845,8 +9873,8 @@ void LetBind(RBranch branch, String name, Type type, Expression expr) {
       exprs.Add(expr);
       var cLet = new LetExpr(cBVar.tok, cPats, exprs, ((RBranchExpr)branch).Body, true);
       ((RBranchExpr)branch).Body = cLet;
+      }
     }
-
     return;
 }
 
@@ -9854,7 +9882,7 @@ void LetBind(RBranch branch, String name, Type type, Expression expr) {
 // Otherwise do nothing
 void LetBindNonWildCard(RBranch branch, String name, Type type, Expression expr) {
   if (!name.StartsWith("_")) {
-    LetBind(branch, name, type, expr);
+    LetBind(branch, name, type, expr, false);
   }
 }
 
