@@ -131,8 +131,8 @@ namespace Microsoft.Dafny{
       for (var i = 0; i < formalTypes.Count; i++) {
         var formalType = formalTypes[i];
         var lhsType = lhsTypes[i];
-        if (formalType.IsArrayType && formalType.AsArrayType.Dims == 1 && UserDefinedType.ArrayElementType(formalType).IsTypeParameter && (!lhsType.IsArrayType || !UserDefinedType.ArrayElementType(lhsType).IsTypeParameter)) {
-          returnedTypes.Add($"dafny.Array<{BoxedTypeName(UserDefinedType.ArrayElementType(lhsType), wr, Bpl.Token.NoToken)}>");
+        if (formalType.IsArrayType && formalType.AsArrayType.Dims == 1 && UserDefinedType.ArrayElementType(formalType).IsTypeParameter) {
+          returnedTypes.Add("java.lang.Object");
         } else {
           returnedTypes.Add(TypeName(lhsType, wr, Bpl.Token.NoToken, boxed: types.Count > 1));
         }
@@ -3015,8 +3015,6 @@ namespace Microsoft.Dafny{
                 newarr += "0, ";
               }
               newarr += $"{bareArray})";
-            } else if (elType.IsTypeParameter) {
-              newarr = $"{TypeDescriptor(elType, wr, tok)}.wrapArray({bareArray})";
             } else {
               newarr = bareArray;
             }
