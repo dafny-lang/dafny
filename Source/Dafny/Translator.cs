@@ -9271,7 +9271,7 @@ namespace Microsoft.Dafny {
           var th = new Bpl.IdentifierExpr(tok, "this", TrType(receiverType));
           wh = Bpl.Expr.And(
             ReceiverNotNull(th),
-            GetWhereClause(tok, th, receiverType, etran, NOALLOC));
+            GetWhereClause(tok, th, receiverType, etran, IsAllocType.NEVERALLOC));
         } else {
           var th = new Bpl.IdentifierExpr(tok, "this", TrType(receiverType));
           wh = Bpl.Expr.And(
@@ -12501,7 +12501,7 @@ namespace Microsoft.Dafny {
       Bpl.Expr isAlloc;
       if (type.IsNumericBased() || type.IsBitVectorType || type.IsBoolType || type.IsCharType || type.IsBigOrdinalType) {
         isAlloc = null;
-      } else if ((AlwaysUseHeap || alloc == ISALLOC) && etran.HeapExpr != null) {
+      } else if (((AlwaysUseHeap && alloc != IsAllocType.NEVERALLOC) || alloc == ISALLOC) && etran.HeapExpr != null) {
         isAlloc = MkIsAlloc(x, normType, etran.HeapExpr);
       } else {
         isAlloc = null;
@@ -14009,7 +14009,7 @@ namespace Microsoft.Dafny {
 
     }
 
-    internal enum IsAllocType { ISALLOC, NOALLOC };
+    internal enum IsAllocType { ISALLOC, NOALLOC, NEVERALLOC };  // NEVERALLOC is like NOALLOC, but overrides AlwaysAlloc
     static IsAllocType ISALLOC { get { return IsAllocType.ISALLOC; } }
     static IsAllocType NOALLOC { get { return IsAllocType.NOALLOC; } }
 
