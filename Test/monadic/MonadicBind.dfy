@@ -59,8 +59,8 @@ function method H(list: List): Option {
 
 /* The following uses :- with a requires clause */
 function method I(list: List): Option {
-  var _ requires list != Nil :- Tail(list);
-  Some(list.head)
+  var cdr requires list != Nil :- Tail(list);
+  Head(cdr)
 }
 
 
@@ -84,6 +84,6 @@ method Main() {
   var zz := Cons(6, Nil);
   var aa := Cons(5, zz);
   var bb := Cons(4, aa);
-  print "Third element of [4::5::6] is:", H(bb), " is the second element of [5::6]:", I(aa), "?", if H(bb) == I(aa) then " yes" else " no";
-  print "The second element of [6] is:", I(zz), "?", if I(zz) == None then " yes" else " no";
+  print "Third element of [4::5::6] is:", H(bb), " is the second element of [5::6]:", I(aa), "?", if H(bb) == I(aa) then " yes" else " no","\n";
+  print "The second element of [6] is:", I(zz), "?", if I(zz) == None then " yes" else " no","\n";
 }
