@@ -1,13 +1,16 @@
-// RUN: %dafny /compile:0 "%s" > "%t"
+// RUN: %dafny /compile:3 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 datatype Option<A> = None | Some(get: A) {
   function method Bind<B>(f: A --> Option<B>): Option<B>
     requires this == None || f.requires(this.get)
+    reads if this == None then {} else f.reads(this.get)
   {
     if this == None then None else f(get)
   }
 }
+
+
 
 // -------------------------------
 
@@ -18,6 +21,12 @@ function method Head(list: List): Option {
 }
 function method Tail(list: List): Option<List> {
   if list == Nil then None else Some(list.tail)
+}
+
+// -------------------------------
+
+class Cell {
+  var data: int
 }
 
 // -------------------------------
@@ -54,6 +63,7 @@ function method I(list: List): Option {
   Some(list.head)
 }
 
+
 lemma FG(list: List)
   ensures F(list) == G(list)
 {}
@@ -68,4 +78,12 @@ lemma Examples() {
   assert F(aa) == None && F(bb) == Some(6);
   assert G(aa) == None && G(bb) == Some(6);
   assert H(aa) == None && H(bb) == Some(6);
+}
+
+method Main() {
+  var zz := Cons(6, Nil);
+  var aa := Cons(5, zz);
+  var bb := Cons(4, aa);
+  print "Third element of [4::5::6] is:", H(bb), " is the second element of [5::6]:", I(aa), "?", if H(bb) == I(aa) then " yes" else " no";
+  print "The second element of [6] is:", I(zz), "?", if I(zz) == None then " yes" else " no";
 }

@@ -12405,22 +12405,27 @@ namespace Microsoft.Dafny
     /// <summary>
     /// Desugar monadic binds.
     /// [ var y :- E; Body] ~~> Bind(E, y => Body)
-    /// [ :- E; Body] ~~> Bind(E, _ => Body)
+    /// [ :- E; Body] ~[ if allowNoLhs = true ]~> Bind(E, _ => Body)
     /// Assumes that once resolved, the type of Rhs has a Bind method
     /// </summary>
-    public void ResolveMonadicBind(LetOrFailExpr e, ResolveOpts opts) {
+    public void ResolveMonadicBind(LetOrFailExpr e, ResolveOpts opts, bool allowNoLhs = true) {
       Expression newBody;
 
       // Create the bound variable used in the call to Bind
       var tempType = new InferredTypeProxy();
       BoundVar bv;
       if (e.Lhs == null) {
-        bv = new BoundVar(e.Rhs.tok, FreshTempVarName("_", opts.codeContext), tempType);
+        if(allowNoLhs) {
+          bv = new BoundVar(e.Rhs.tok, FreshTempVarName("_", opts.codeContext), tempType);
+        } else {
+          reporter.Error(MessageSource.Resolver, e.tok, "Monadic bind ':-' expects a variable as left-hand side");
+          return;
+        }
       } else {
         if (e.Lhs.Var != null) {
           bv =  e.Lhs.Var;
         } else {
-          reporter.Error(MessageSource.Resolver, e.tok, "The left-hand side of ':-', if present, should be a variable");
+          reporter.Error(MessageSource.Resolver, e.tok, "The left-hand side of ':-' should be a variable");
           return;
         }
       }
