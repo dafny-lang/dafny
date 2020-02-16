@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:0 "%s" > "%t"
+// RUN: %dafny /compile:3 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 /*
@@ -10,8 +10,6 @@ datatype Alt = A(int) | B(int)
 datatype MyOption = Some(v: Alt) | None
 datatype MyPair = Pair(x:Alt, y:Alt)
 datatype List<T> = Nil | Cons(head: T, tail: List)
-
-
 
 // Nested Patterns
 method NestingTest (xs:List<int>) returns (r:int)
@@ -70,4 +68,12 @@ lemma sorted_inv(z: int, l: List<int>)
     case Cons(a, Cons(b, Cons(c, Nil))) =>
     case Cons(a, b) =>
   }
+}
+
+method Main() {
+  var aa := Cons(6, Nil);
+  var bb := Cons(5, aa);
+  var cc := Cons(4, bb);
+
+
 }
