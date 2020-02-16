@@ -74,6 +74,16 @@ method Main() {
   var aa := Cons(6, Nil);
   var bb := Cons(5, aa);
   var cc := Cons(4, bb);
+  var dd := Cons(4, cc);
+  var ee := Cons(3, dd);
+  var ff := Cons(2, ee);
+  var gg := Cons(1, ff);
 
-
+  var r:int;
+  r := NestingTest(aa);
+  print "NestingTest([6]) = ", r, ", should return 6 \n";
+  r := NestedVariableTest(ff);
+  print "NestedVariableTest([2::3::4::5::6]) = ", r, ", should return 0 \n";
+  r := ConstantTest(ee);
+  print "ConstantTest([3::4::5::6]) = ", r, ", should return 2 \n";
 }
