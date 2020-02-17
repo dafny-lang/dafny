@@ -12415,7 +12415,7 @@ namespace Microsoft.Dafny
       var tempType = new InferredTypeProxy();
       BoundVar bv;
       if (e.Lhs == null) {
-        if(allowNoLhs) {
+        if (allowNoLhs) {
           bv = new BoundVar(e.Rhs.tok, FreshTempVarName("_", opts.codeContext), tempType);
         } else {
           reporter.Error(MessageSource.Resolver, e.tok, "Monadic bind ':-' expects a variable as left-hand side");
