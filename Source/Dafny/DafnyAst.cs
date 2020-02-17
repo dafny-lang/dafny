@@ -10672,9 +10672,12 @@ namespace Microsoft.Dafny {
 
     public abstract override string ToString();
 
-    public ExtendedPattern(IToken tok) {
+    public bool IsGhost;
+
+    public ExtendedPattern(IToken tok, bool isGhost = false) {
       Contract.Requires(tok != null);
       this.Tok = tok;
+      this.IsGhost = isGhost;
     }
 
   }
@@ -10683,7 +10686,7 @@ namespace Microsoft.Dafny {
   {
     public LiteralExpr Lit;
 
-    public LitPattern(IToken tok, LiteralExpr lit) : base(tok) {
+    public LitPattern(IToken tok, LiteralExpr lit, bool isGhost = false) : base(tok, isGhost) {
       Contract.Requires(lit != null);
       this.Lit = lit;
     }
@@ -10699,7 +10702,8 @@ namespace Microsoft.Dafny {
     public Type Type; // This is the syntactic type, ExtendedPatterns dissapear during resolution.
     public List<ExtendedPattern> Arguments;
 
-    public IdPattern(IToken tok, String id, List<ExtendedPattern> arguments) : base(tok) {
+
+    public IdPattern(IToken tok, String id, List<ExtendedPattern> arguments, bool isGhost = false) : base(tok, isGhost) {
       Contract.Requires(id != null);
       Contract.Requires(arguments != null); // Arguments can be empty, but shouldn't be null
       this.Id = id;
@@ -10707,12 +10711,13 @@ namespace Microsoft.Dafny {
       this.Arguments = arguments;
     }
 
-    public IdPattern(IToken tok, String id, Type type, List<ExtendedPattern> arguments) : base(tok) {
+    public IdPattern(IToken tok, String id, Type type, List<ExtendedPattern> arguments, bool isGhost = false) : base(tok, isGhost) {
       Contract.Requires(id != null);
       Contract.Requires(arguments != null); // Arguments can be empty, but shouldn't be null
       this.Id = id;
       this.Type = type == null? new InferredTypeProxy(): type ;
       this.Arguments = arguments;
+      this.IsGhost = isGhost;
     }
 
     public override string ToString() {
