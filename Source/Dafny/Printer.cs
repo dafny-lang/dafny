@@ -1355,42 +1355,43 @@ namespace Microsoft.Dafny {
         }
         Indent(indent);
         wr.Write("}");
-
+      } else if (stmt is NestedMatchStmt) {
+        // OS: Print ResolvedStatement, if present, as comment
+        var s = (NestedMatchStmt)stmt;
+        if (s.ResolvedStatement != null && DafnyOptions.O.DafnyPrintResolvedFile != null) {
+          wr.WriteLine();
+          Indent(indent); wr.WriteLine("/*---------- desugared ----------");
+          Indent(indent); PrintStatement(s.ResolvedStatement, indent);
+          Indent(indent); wr.WriteLine("---------- end desugared ----------*/");
+        }
+        Indent(indent);
+        wr.Write("match ");
+        PrintExpression(s.Source, false);
+        if (s.UsesOptionalBraces) {
+          wr.Write(" {");
+        }
+        int caseInd = indent + (s.UsesOptionalBraces ? IndentAmount : 0);
+        foreach (NestedMatchCaseStmt mc in s.Cases) {
+          wr.WriteLine();
+          Indent(caseInd);
+          wr.Write("case {0}", mc.Pat.ToString());
+          wr.Write(" =>");
+          foreach (Statement bs in mc.Body) {
+            wr.WriteLine();
+            Indent(caseInd + IndentAmount);
+            PrintStatement(bs, caseInd + IndentAmount);
+          }
+        }
+        if (s.UsesOptionalBraces) {
+          wr.WriteLine();
+          Indent(indent);
+          wr.Write("}");
+        }
       } else if (stmt is ConcreteSyntaxStatement && ((ConcreteSyntaxStatement)stmt).ResolvedStatement != null){
         var s = (ConcreteSyntaxStatement)stmt;
         Indent(indent);
         PrintStatement(s.ResolvedStatement, indent);
         wr.WriteLine();
-
-      } else if (stmt is NestedMatchStmt) {
-        var s = (NestedMatchStmt)stmt;
-        if (s.ResolvedStatement != null) {
-          // Should be caught by the ConcreteSyntaxStatement case
-          throw new NotImplementedException("");
-        } else {
-          wr.Write("match ");
-          PrintExpression(s.Source, false);
-          if (s.UsesOptionalBraces) {
-            wr.Write(" {");
-          }
-          int caseInd = indent + (s.UsesOptionalBraces ? IndentAmount : 0);
-          foreach (NestedMatchCaseStmt mc in s.Cases) {
-            wr.WriteLine();
-            Indent(caseInd);
-            wr.Write("case {0}", mc.Pat.ToString());
-            wr.Write(" =>");
-            foreach (Statement bs in mc.Body) {
-              wr.WriteLine();
-              Indent(caseInd + IndentAmount);
-              PrintStatement(bs, caseInd + IndentAmount);
-            }
-          }
-          if (s.UsesOptionalBraces) {
-            wr.WriteLine();
-            Indent(indent);
-            wr.Write("}");
-          }
-        }
 
       } else if (stmt is MatchStmt) {
         var s = (MatchStmt)stmt;
@@ -1750,7 +1751,13 @@ namespace Microsoft.Dafny {
 
       } else if (expr is NestedMatchExpr) {
         var e = (NestedMatchExpr)expr;
-        if (e.ResolvedExpression == null) {
+        if (DafnyOptions.O.DafnyPrintResolvedFile != null) {
+          if(e.ResolvedExpression != null){
+            wr.WriteLine();
+            Indent(indent);wr.WriteLine("/*---------- desugared ----------");
+            PrintExtendedExpr(e.ResolvedExpression, indent, isRightmost, endWithCloseParen);
+            Indent(indent); wr.WriteLine("---------- end desugared ----------*/");
+          }
           Indent(indent);
           var parensNeeded = !isRightmost && !e.UsesOptionalBraces;
           if (parensNeeded) { wr.Write("("); }
