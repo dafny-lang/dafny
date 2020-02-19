@@ -1,20 +1,410 @@
-DirtyLoops.dfy(7,4): Warning: note, this forall statement has no body
-DirtyLoops.dfy(13,4): Warning: note, this loop has no body
-DirtyLoops.dfy(20,4): Warning: note, this loop has no body
-DirtyLoops.dfy(31,4): Warning: note, this loop has no body
-DirtyLoops.dfy(40,4): Warning: note, this forall statement has no body
-DirtyLoops.dfy(43,4): Warning: note, this forall statement has no body
-DirtyLoops.dfy(43,4): Warning: the conclusion of the body of this forall statement will not be known outside the forall statement; consider using an 'ensures' clause
-DirtyLoops.dfy(43,4): Warning: /!\ No terms found to trigger on.
+DirtyLoops.dfy(26,2): Warning: note, this loop has no body (loop frame: i)
+DirtyLoops.dfy(35,2): Warning: note, this loop has no body (loop frame: i)
+DirtyLoops.dfy(46,2): Warning: note, this loop has no body (loop frame: i)
+DirtyLoops.dfy(55,2): Warning: note, this loop has no body (loop frame: i, s)
+DirtyLoops.dfy(68,2): Warning: note, this loop has no body (loop frame: i, s, $Heap)
+DirtyLoops.dfy(80,2): Warning: note, this loop has no body (loop frame: i, s, r)
+DirtyLoops.dfy(88,2): Warning: note, this loop has no body
+DirtyLoops.dfy(106,2): Warning: note, this loop has no body (loop frame: i)
+DirtyLoops.dfy(118,2): Warning: note, this loop has no body (loop frame: i)
+DirtyLoops.dfy(130,2): Warning: note, this loop has no body (loop frame: i, $Heap)
+DirtyLoops.dfy(145,2): Warning: note, this loop has no body (loop frame: i, $Heap)
+DirtyLoops.dfy(159,2): Warning: note, this loop has no body (loop frame: i, $Heap)
+DirtyLoops.dfy(173,2): Warning: note, this loop has no body (loop frame: i, $Heap)
+DirtyLoops.dfy(189,2): Warning: note, this loop has no body (loop frame: i, $Heap)
+DirtyLoops.dfy(203,2): Warning: note, this loop has no body (loop frame: i, $Heap)
+DirtyLoops.dfy(216,2): Warning: note, this loop has no body (loop frame: i, $Heap)
+DirtyLoops.dfy(229,2): Warning: note, this loop has no body (loop frame: i, k)
+DirtyLoops.dfy(242,2): Warning: note, this loop has no body (loop frame: i, $Heap)
+DirtyLoops.dfy(251,2): Warning: note, this loop has no body (loop frame: i)
+DirtyLoops.dfy(260,2): Warning: note, this loop has no body (loop frame: i, $Heap)
+DirtyLoops.dfy(268,2): Warning: note, this loop has no body (loop frame: i, $Heap)
+DirtyLoops.dfy(279,2): Warning: note, this loop has no body (loop frame: i, k)
+DirtyLoops.dfy(293,2): Warning: note, this loop has no body (loop frame: i, k)
+DirtyLoops.dfy(305,2): Warning: note, this loop has no body (loop frame: i, k, $Heap)
+DirtyLoops.dfy(319,2): Warning: note, this loop has no body (loop frame: i, $Heap)
+DirtyLoops.dfy(332,2): Warning: note, this loop has no body (loop frame: i)
+DirtyLoops.dfy(343,2): Warning: note, this loop has no body (loop frame: i)
+DirtyLoops.dfy(354,2): Warning: note, this loop has no body (loop frame: i, k, $Heap)
+DirtyLoops.dfy(365,2): Warning: note, this loop has no body (loop frame: i, k, $Heap)
+DirtyLoops.dfy(377,2): Warning: note, this loop has no body (loop frame: i, k, $Heap)
+DirtyLoops.dfy(388,2): Warning: note, this loop has no body (loop frame: i, k)
+DirtyLoops.dfy(400,2): Warning: note, this loop has no body (loop frame: i, k, $Heap)
+DirtyLoops.dfy(413,2): Warning: note, this loop has no body (loop frame: i, k, $Heap)
+DirtyLoops.dfy(497,2): Warning: note, this forall statement has no body
+DirtyLoops.dfy(504,2): Warning: note, this forall statement has no body
+DirtyLoops.dfy(512,2): Warning: note, this forall statement has no body
+DirtyLoops.dfy(515,2): Warning: note, this forall statement has no body
+DirtyLoops.dfy(515,2): Warning: the conclusion of the body of this forall statement will not be known outside the forall statement; consider using an 'ensures' clause
+DirtyLoops.dfy(427,4): Warning: note, this loop has no body (loop frame: $Heap)
+DirtyLoops.dfy(436,4): Warning: note, this loop has no body (loop frame: $Heap)
+DirtyLoops.dfy(452,6): Warning: note, this loop has no body (loop frame: i, $Heap)
+DirtyLoops.dfy(468,6): Warning: note, this loop has no body (loop frame: i, $Heap)
+DirtyLoops.dfy(485,6): Warning: note, this loop has no body (loop frame: j, $Heap)
+DirtyLoops.dfy(515,2): Warning: /!\ No terms found to trigger on.
+DirtyLoops.dfy(30,11): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    DirtyLoops.dfy(26,3): anon9_LoopHead
+    (0,0): anon9_LoopBody
+    DirtyLoops.dfy(26,3): anon10_Else
+    (0,0): anon12_Then
+DirtyLoops.dfy(39,11): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    DirtyLoops.dfy(35,3): anon9_LoopHead
+    (0,0): anon9_LoopBody
+    DirtyLoops.dfy(35,3): anon10_Else
+    (0,0): anon12_Then
+DirtyLoops.dfy(48,11): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    DirtyLoops.dfy(46,3): anon7_LoopHead
+    (0,0): anon7_LoopBody
+    DirtyLoops.dfy(46,3): anon8_Else
+    (0,0): anon9_Then
+DirtyLoops.dfy(57,11): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    DirtyLoops.dfy(55,3): anon7_LoopHead
+    (0,0): anon7_LoopBody
+    DirtyLoops.dfy(55,3): anon8_Else
+    (0,0): anon9_Then
+DirtyLoops.dfy(59,12): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    DirtyLoops.dfy(55,3): anon7_LoopHead
+    (0,0): anon7_LoopBody
+    DirtyLoops.dfy(55,3): anon8_Else
+    (0,0): anon9_Then
+DirtyLoops.dfy(70,11): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    DirtyLoops.dfy(68,3): anon7_LoopHead
+    (0,0): anon7_LoopBody
+    DirtyLoops.dfy(68,3): anon8_Else
+    (0,0): anon9_Then
+DirtyLoops.dfy(72,11): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    DirtyLoops.dfy(68,3): anon7_LoopHead
+    (0,0): anon7_LoopBody
+    DirtyLoops.dfy(68,3): anon8_Else
+    (0,0): anon9_Then
+DirtyLoops.dfy(82,11): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    DirtyLoops.dfy(80,3): anon7_LoopHead
+    (0,0): anon7_LoopBody
+    DirtyLoops.dfy(80,3): anon8_Else
+    (0,0): anon9_Then
+DirtyLoops.dfy(83,11): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    DirtyLoops.dfy(80,3): anon7_LoopHead
+    (0,0): anon7_LoopBody
+    DirtyLoops.dfy(80,3): anon8_Else
+    (0,0): anon9_Then
+DirtyLoops.dfy(90,11): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    DirtyLoops.dfy(88,3): anon7_LoopHead
+    (0,0): anon7_LoopBody
+    DirtyLoops.dfy(88,3): anon8_Else
+    (0,0): anon9_Then
+DirtyLoops.dfy(110,11): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    DirtyLoops.dfy(106,3): anon9_LoopHead
+    (0,0): anon9_LoopBody
+    DirtyLoops.dfy(106,3): anon10_Else
+    (0,0): anon12_Then
+DirtyLoops.dfy(122,11): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    DirtyLoops.dfy(118,3): anon11_LoopHead
+    (0,0): anon11_LoopBody
+    DirtyLoops.dfy(118,3): anon12_Else
+    (0,0): anon15_Then
+DirtyLoops.dfy(136,14): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    DirtyLoops.dfy(130,3): anon11_LoopHead
+    (0,0): anon11_LoopBody
+    DirtyLoops.dfy(130,3): anon12_Else
+    (0,0): anon15_Then
+DirtyLoops.dfy(137,11): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    DirtyLoops.dfy(130,3): anon11_LoopHead
+    (0,0): anon11_LoopBody
+    DirtyLoops.dfy(130,3): anon12_Else
+    (0,0): anon15_Then
+DirtyLoops.dfy(149,14): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    DirtyLoops.dfy(145,3): anon11_LoopHead
+    (0,0): anon11_LoopBody
+    DirtyLoops.dfy(145,3): anon12_Else
+    (0,0): anon15_Then
+DirtyLoops.dfy(151,11): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    DirtyLoops.dfy(145,3): anon11_LoopHead
+    (0,0): anon11_LoopBody
+    DirtyLoops.dfy(145,3): anon12_Else
+    (0,0): anon15_Then
+DirtyLoops.dfy(164,14): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    DirtyLoops.dfy(159,3): anon11_LoopHead
+    (0,0): anon11_LoopBody
+    DirtyLoops.dfy(159,3): anon12_Else
+    (0,0): anon15_Then
+DirtyLoops.dfy(165,14): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    DirtyLoops.dfy(159,3): anon11_LoopHead
+    (0,0): anon11_LoopBody
+    DirtyLoops.dfy(159,3): anon12_Else
+    (0,0): anon15_Then
+DirtyLoops.dfy(180,14): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    DirtyLoops.dfy(173,3): anon11_LoopHead
+    (0,0): anon11_LoopBody
+    DirtyLoops.dfy(173,3): anon12_Else
+    (0,0): anon15_Then
+DirtyLoops.dfy(181,11): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    DirtyLoops.dfy(173,3): anon11_LoopHead
+    (0,0): anon11_LoopBody
+    DirtyLoops.dfy(173,3): anon12_Else
+    (0,0): anon15_Then
+DirtyLoops.dfy(193,14): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    DirtyLoops.dfy(189,3): anon11_LoopHead
+    (0,0): anon11_LoopBody
+    DirtyLoops.dfy(189,3): anon12_Else
+    (0,0): anon15_Then
+DirtyLoops.dfy(195,14): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    DirtyLoops.dfy(189,3): anon11_LoopHead
+    (0,0): anon11_LoopBody
+    DirtyLoops.dfy(189,3): anon12_Else
+    (0,0): anon15_Then
+DirtyLoops.dfy(196,11): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    DirtyLoops.dfy(189,3): anon11_LoopHead
+    (0,0): anon11_LoopBody
+    DirtyLoops.dfy(189,3): anon12_Else
+    (0,0): anon15_Then
+DirtyLoops.dfy(208,11): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    DirtyLoops.dfy(203,3): anon9_LoopHead
+    (0,0): anon9_LoopBody
+    DirtyLoops.dfy(203,3): anon10_Else
+    (0,0): anon12_Then
+DirtyLoops.dfy(221,11): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    DirtyLoops.dfy(216,3): anon8_LoopHead
+    (0,0): anon8_LoopBody
+    DirtyLoops.dfy(216,3): anon9_Else
+    (0,0): anon11_Then
+DirtyLoops.dfy(234,11): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    DirtyLoops.dfy(229,3): anon9_LoopHead
+    (0,0): anon9_LoopBody
+    DirtyLoops.dfy(229,3): anon10_Else
+    (0,0): anon12_Then
+DirtyLoops.dfy(244,11): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    DirtyLoops.dfy(242,3): anon7_LoopHead
+    (0,0): anon7_LoopBody
+    DirtyLoops.dfy(242,3): anon8_Else
+    (0,0): anon9_Then
+DirtyLoops.dfy(253,11): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    DirtyLoops.dfy(251,3): anon7_LoopHead
+    (0,0): anon7_LoopBody
+    DirtyLoops.dfy(251,3): anon8_Else
+    (0,0): anon9_Then
+DirtyLoops.dfy(261,13): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    DirtyLoops.dfy(260,3): anon7_LoopHead
+    (0,0): anon7_LoopBody
+    DirtyLoops.dfy(260,3): anon8_Else
+    (0,0): anon9_Then
+DirtyLoops.dfy(270,13): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    DirtyLoops.dfy(268,3): anon7_LoopHead
+    (0,0): anon7_LoopBody
+    DirtyLoops.dfy(268,3): anon8_Else
+    (0,0): anon9_Then
+DirtyLoops.dfy(285,11): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    DirtyLoops.dfy(279,3): anon7_LoopHead
+    (0,0): anon7_LoopBody
+    DirtyLoops.dfy(279,3): anon8_Else
+    (0,0): anon9_Then
+DirtyLoops.dfy(297,11): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    DirtyLoops.dfy(293,3): anon9_LoopHead
+    (0,0): anon9_LoopBody
+    DirtyLoops.dfy(293,3): anon10_Else
+    (0,0): anon11_Then
+    (0,0): anon12_Then
+    (0,0): anon8
+DirtyLoops.dfy(298,11): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    DirtyLoops.dfy(293,3): anon9_LoopHead
+    (0,0): anon9_LoopBody
+    DirtyLoops.dfy(293,3): anon10_Else
+    (0,0): anon11_Then
+    DirtyLoops.dfy(296,18): anon12_Else
+    (0,0): anon8
+DirtyLoops.dfy(308,11): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    DirtyLoops.dfy(305,3): anon9_LoopHead
+    (0,0): anon9_LoopBody
+    DirtyLoops.dfy(305,3): anon10_Else
+    DirtyLoops.dfy(305,15): anon11_Else
+    (0,0): anon5
+    (0,0): anon12_Then
+DirtyLoops.dfy(309,11): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    DirtyLoops.dfy(305,3): anon9_LoopHead
+    (0,0): anon9_LoopBody
+    DirtyLoops.dfy(305,3): anon10_Else
+    DirtyLoops.dfy(305,15): anon11_Else
+    (0,0): anon5
+    (0,0): anon12_Then
+DirtyLoops.dfy(321,13): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    DirtyLoops.dfy(319,3): anon7_LoopHead
+    (0,0): anon7_LoopBody
+    DirtyLoops.dfy(319,3): anon8_Else
+    (0,0): anon9_Then
+DirtyLoops.dfy(356,13): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    DirtyLoops.dfy(354,3): anon7_LoopHead
+    (0,0): anon7_LoopBody
+    DirtyLoops.dfy(354,3): anon8_Else
+    (0,0): anon9_Then
+DirtyLoops.dfy(369,13): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    DirtyLoops.dfy(365,3): anon7_LoopHead
+    (0,0): anon7_LoopBody
+    DirtyLoops.dfy(365,3): anon8_Else
+    (0,0): anon9_Then
+DirtyLoops.dfy(380,9): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    DirtyLoops.dfy(377,3): anon7_LoopHead
+    (0,0): anon7_LoopBody
+    DirtyLoops.dfy(377,3): anon8_Else
+    (0,0): anon9_Then
+DirtyLoops.dfy(401,18): Error BP5004: This loop invariant might not hold on entry.
+DirtyLoops.dfy(401,18): Related message: loop invariant violation
+Execution trace:
+    (0,0): anon0
+DirtyLoops.dfy(414,16): Error: target object may be null
+Execution trace:
+    (0,0): anon0
+    DirtyLoops.dfy(413,3): anon6_LoopHead
+    (0,0): anon6_LoopBody
+    (0,0): anon7_Then
+DirtyLoops.dfy(506,22): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+    (0,0): anon6_Else
+    (0,0): anon7_Then
+    (0,0): anon5
+DirtyLoops.dfy(452,6): Error: loop modifies clause may violate context's modifies clause
+Execution trace:
+    (0,0): anon0
+    DirtyLoops.dfy(446,5): anon12_LoopHead
+    (0,0): anon12_LoopBody
+    DirtyLoops.dfy(446,5): anon13_Else
+    DirtyLoops.dfy(446,5): anon14_Else
+DirtyLoops.dfy(468,6): Error: loop modifies clause may violate context's modifies clause
+Execution trace:
+    (0,0): anon0
+    DirtyLoops.dfy(462,5): anon12_LoopHead
+    (0,0): anon12_LoopBody
+    DirtyLoops.dfy(462,5): anon13_Else
+    DirtyLoops.dfy(462,5): anon14_Else
+DirtyLoops.dfy(485,6): Error: loop modifies clause may violate context's modifies clause
+Execution trace:
+    (0,0): anon0
+    DirtyLoops.dfy(480,5): anon12_LoopHead
+    (0,0): anon12_LoopBody
+    DirtyLoops.dfy(480,5): anon13_Else
+    DirtyLoops.dfy(480,5): anon14_Else
 
-Dafny program verifier finished with 4 verified, 0 errors
-DirtyLoops.dfy.tmp.dprint.dfy(8,4): Warning: note, this forall statement has no body
-DirtyLoops.dfy.tmp.dprint.dfy(15,4): Warning: note, this loop has no body
-DirtyLoops.dfy.tmp.dprint.dfy(22,4): Warning: note, this loop has no body
-DirtyLoops.dfy.tmp.dprint.dfy(33,4): Warning: note, this loop has no body
-DirtyLoops.dfy.tmp.dprint.dfy(43,4): Warning: note, this forall statement has no body
-DirtyLoops.dfy.tmp.dprint.dfy(45,4): Warning: note, this forall statement has no body
-DirtyLoops.dfy.tmp.dprint.dfy(45,4): Warning: the conclusion of the body of this forall statement will not be known outside the forall statement; consider using an 'ensures' clause
-DirtyLoops.dfy.tmp.dprint.dfy(45,4): Warning: /!\ No terms found to trigger on.
+Dafny program verifier finished with 21 verified, 45 errors
+DirtyLoops.dfy.tmp.dprint.dfy(426,4): Warning: note, this loop has no body (loop frame: $Heap)
+DirtyLoops.dfy.tmp.dprint.dfy(435,4): Warning: note, this loop has no body (loop frame: $Heap)
+DirtyLoops.dfy.tmp.dprint.dfy(451,6): Warning: note, this loop has no body (loop frame: i, $Heap)
+DirtyLoops.dfy.tmp.dprint.dfy(467,6): Warning: note, this loop has no body (loop frame: i, $Heap)
+DirtyLoops.dfy.tmp.dprint.dfy(484,6): Warning: note, this loop has no body (loop frame: j, $Heap)
+DirtyLoops.dfy.tmp.dprint.dfy(8,2): Warning: note, this loop has no body (loop frame: i)
+DirtyLoops.dfy.tmp.dprint.dfy(18,2): Warning: note, this loop has no body (loop frame: i)
+DirtyLoops.dfy.tmp.dprint.dfy(29,2): Warning: note, this loop has no body (loop frame: i)
+DirtyLoops.dfy.tmp.dprint.dfy(39,2): Warning: note, this loop has no body (loop frame: i, s)
+DirtyLoops.dfy.tmp.dprint.dfy(54,2): Warning: note, this loop has no body (loop frame: i, s, $Heap)
+DirtyLoops.dfy.tmp.dprint.dfy(67,2): Warning: note, this loop has no body (loop frame: i, s, r)
+DirtyLoops.dfy.tmp.dprint.dfy(76,2): Warning: note, this loop has no body
+DirtyLoops.dfy.tmp.dprint.dfy(87,2): Warning: note, this loop has no body (loop frame: i)
+DirtyLoops.dfy.tmp.dprint.dfy(99,2): Warning: note, this loop has no body (loop frame: i)
+DirtyLoops.dfy.tmp.dprint.dfy(111,2): Warning: note, this loop has no body (loop frame: i, $Heap)
+DirtyLoops.dfy.tmp.dprint.dfy(125,2): Warning: note, this loop has no body (loop frame: i, $Heap)
+DirtyLoops.dfy.tmp.dprint.dfy(138,2): Warning: note, this loop has no body (loop frame: i, $Heap)
+DirtyLoops.dfy.tmp.dprint.dfy(151,2): Warning: note, this loop has no body (loop frame: i, $Heap)
+DirtyLoops.dfy.tmp.dprint.dfy(167,2): Warning: note, this loop has no body (loop frame: i, $Heap)
+DirtyLoops.dfy.tmp.dprint.dfy(181,2): Warning: note, this loop has no body (loop frame: i, $Heap)
+DirtyLoops.dfy.tmp.dprint.dfy(193,2): Warning: note, this loop has no body (loop frame: i, $Heap)
+DirtyLoops.dfy.tmp.dprint.dfy(205,2): Warning: note, this loop has no body (loop frame: i, k)
+DirtyLoops.dfy.tmp.dprint.dfy(217,2): Warning: note, this loop has no body (loop frame: i, $Heap)
+DirtyLoops.dfy.tmp.dprint.dfy(226,2): Warning: note, this loop has no body (loop frame: i)
+DirtyLoops.dfy.tmp.dprint.dfy(236,2): Warning: note, this loop has no body (loop frame: i, $Heap)
+DirtyLoops.dfy.tmp.dprint.dfy(245,2): Warning: note, this loop has no body (loop frame: i, $Heap)
+DirtyLoops.dfy.tmp.dprint.dfy(255,2): Warning: note, this loop has no body (loop frame: i, k)
+DirtyLoops.dfy.tmp.dprint.dfy(268,2): Warning: note, this loop has no body (loop frame: i, k)
+DirtyLoops.dfy.tmp.dprint.dfy(281,2): Warning: note, this loop has no body (loop frame: i, k, $Heap)
+DirtyLoops.dfy.tmp.dprint.dfy(295,2): Warning: note, this loop has no body (loop frame: i, $Heap)
+DirtyLoops.dfy.tmp.dprint.dfy(308,2): Warning: note, this loop has no body (loop frame: i)
+DirtyLoops.dfy.tmp.dprint.dfy(319,2): Warning: note, this loop has no body (loop frame: i)
+DirtyLoops.dfy.tmp.dprint.dfy(330,2): Warning: note, this loop has no body (loop frame: i, k, $Heap)
+DirtyLoops.dfy.tmp.dprint.dfy(341,2): Warning: note, this loop has no body (loop frame: i, k, $Heap)
+DirtyLoops.dfy.tmp.dprint.dfy(353,2): Warning: note, this loop has no body (loop frame: i, k, $Heap)
+DirtyLoops.dfy.tmp.dprint.dfy(364,2): Warning: note, this loop has no body (loop frame: i, k)
+DirtyLoops.dfy.tmp.dprint.dfy(374,2): Warning: note, this loop has no body (loop frame: i, k, $Heap)
+DirtyLoops.dfy.tmp.dprint.dfy(385,2): Warning: note, this loop has no body (loop frame: i, k, $Heap)
+DirtyLoops.dfy.tmp.dprint.dfy(391,2): Warning: note, this forall statement has no body
+DirtyLoops.dfy.tmp.dprint.dfy(398,2): Warning: note, this forall statement has no body
+DirtyLoops.dfy.tmp.dprint.dfy(407,2): Warning: note, this forall statement has no body
+DirtyLoops.dfy.tmp.dprint.dfy(409,2): Warning: note, this forall statement has no body
+DirtyLoops.dfy.tmp.dprint.dfy(409,2): Warning: the conclusion of the body of this forall statement will not be known outside the forall statement; consider using an 'ensures' clause
+DirtyLoops.dfy.tmp.dprint.dfy(409,2): Warning: /!\ No terms found to trigger on.
 
 Dafny program verifier finished with 0 verified, 0 errors
