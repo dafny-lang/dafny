@@ -1,3 +1,5 @@
+LetExpr.dfy(206,4): Warning: /!\ No terms found to trigger on.
+LetExpr.dfy(45,2): Warning: /!\ No terms found to trigger on.
 LetExpr.dfy(340,18): Error: value does not satisfy the subset constraints of 'nat'
 Execution trace:
     (0,0): anon0

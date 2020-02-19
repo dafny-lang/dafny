@@ -20,7 +20,7 @@ MY_OS=$(uname -s)
 if [ "${MY_OS:0:5}" == "MINGW" ] || [ "${MY_OS:0:6}" == "CYGWIN" ]; then
     "$DAFNY" "$@"
 else
-    MONO=$(which mono)
+    MONO=$(type -p mono)
     if [[ ! -x "$MONO" ]]; then
 	echo "Error: Dafny requires Mono to run on non-Windows systems."
 	exit 1

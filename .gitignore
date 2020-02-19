@@ -24,6 +24,7 @@ Package/
 
 Source/*/bin/
 Source/*/obj/
+Source/*/obj_core/
 Source/packages
 
 Source/Dafny/Parser.cs.old
@@ -35,6 +36,7 @@ Source/DafnyExtension/z3.exe
 
 Test/*/bin/
 Test/*/obj/
+Test/*/obj_core/
 Test/packages
 
 Test/**/*.exe
