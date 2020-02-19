@@ -14,7 +14,7 @@ so these instructions mostly apply to people interested in looking at Dafny's so
 
 2. Download and build Boogie:
 
-       git clone https://github.com/boogie-org/boogie
+       git clone --branch v2.4.2 https://github.com/boogie-org/boogie
        cd boogie
        mono ../nuget.exe restore Source/Boogie.sln
        msbuild Source/Boogie.sln
@@ -77,7 +77,7 @@ Dafny's sources or who want to use the latest features from the master branch.
 
 2. Download and build Boogie:
 
-       git clone https://github.com/boogie-org/boogie
+       git clone --branch v2.4.2 https://github.com/boogie-org/boogie
        cd boogie
        mono ../nuget.exe restore Source/Boogie.sln
        msbuild Source/Boogie.sln

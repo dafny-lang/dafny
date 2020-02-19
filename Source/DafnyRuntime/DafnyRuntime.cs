@@ -660,7 +660,8 @@ namespace Dafny
 #else
       // Initialize the capacity if the size of the enumerable is known
       Dictionary<U, V> d;
-      if (values is ICollection<Pair<U, V>> collection) {
+      if (values is ICollection<Pair<U, V>>) {
+        var collection = (ICollection<Pair<U, V>>)values;
         d = new Dictionary<U, V>(collection.Count);
       } else {
         d = new Dictionary<U, V>();
