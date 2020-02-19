@@ -1,5 +1,5 @@
 
 Dafny program verifier finished with 1 verified, 0 errors
 struct.S byte.arguments
-_0_enum_Compile.goto.switch _0_enum_Compile.goto.switch
+enum_Compile.goto.switch enum_Compile.goto.switch
 20 + 20 == 40

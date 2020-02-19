@@ -89,7 +89,7 @@ method CastTests() {
     u32 as int64, " ",
     u32 as uint32, " ", u32 as uint64, "\n";
 
-  u64 := 0xffff_ffff_ffff_ffff;
+  u64 := 0xffff_ffff_ffff_ffff as uint64; // test explicit conversion of literal
   print u64 as int, " ",
     u64 as uint64, "\n";
 

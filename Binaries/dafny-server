@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-MONO=$(which mono)
+MONO=$(type -p mono)
 
 # find the source directory for this script even if it's been symlinked [issue #185]
 # from https://stackoverflow.com/questions/59895/

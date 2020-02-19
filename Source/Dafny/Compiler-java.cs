@@ -477,7 +477,7 @@ namespace Microsoft.Dafny{
         targetReturnTypeReplacement = DafnyTupleClassPrefix + nonGhostOuts;
       }
       var customReceiver = NeedsCustomReceiver(m);
-      var receiverType = UserDefinedType.FromTopLevelDecl(m.tok, m.EnclosingClass, m.TypeArgs);
+      var receiverType = UserDefinedType.FromTopLevelDecl(m.tok, m.EnclosingClass);
       wr.Write("public {0}{1}", !createBody ? "abstract " : "", m.IsStatic || customReceiver ? "static " : "");
       if (m.TypeArgs.Count != 0) {
         wr.Write($"<{TypeParameters(m.TypeArgs)}> ");
@@ -544,7 +544,7 @@ namespace Microsoft.Dafny{
         return null;
       }
       var customReceiver = NeedsCustomReceiver(member);
-      var receiverType = UserDefinedType.FromTopLevelDecl(member.tok, member.EnclosingClass, typeArgs);
+      var receiverType = UserDefinedType.FromTopLevelDecl(member.tok, member.EnclosingClass);
       wr.Write("public {0}{1}", !createBody ? "abstract " : "", isStatic || customReceiver ? "static " : "");
       if (typeArgs != null && typeArgs.Count != 0) {
         wr.Write($"<{TypeParameters(typeArgs)}>");
@@ -783,10 +783,9 @@ namespace Microsoft.Dafny{
       }
     }
 
-    protected override string TypeNameArrayBrackets(int dims){
-      Contract.Requires(0 <= dims);
+    protected override string TypeNameArrayBrackets(int dims) {
       var name = "[";
-      for (int i = 1; i < dims; i++){
+      for (int i = 1; i < dims; i++) {
         name += "][";
       }
 
@@ -946,11 +945,15 @@ namespace Microsoft.Dafny{
     }
 
     private string CastIfSmallNativeType(Type t) {
-      JavaNativeType? jnt = AsJavaNativeType(t);
-      switch (jnt) {
+      var nt = AsNativeType(t);
+      return nt == null ? "" : CastIfSmallNativeType(nt);
+    }
+
+    private string CastIfSmallNativeType(NativeType nt) {
+      switch (AsJavaNativeType(nt)) {
         case JavaNativeType.Byte: return "(byte) ";
         case JavaNativeType.Short: return "(short) ";
-        default: return ""; // includes jnt == null case
+        default: return "";
       }
     }
 
@@ -968,20 +971,7 @@ namespace Microsoft.Dafny{
         TrStringLiteral(str, wr);
         wr.Write(")");
       } else if (AsNativeType(e.Type) is NativeType nt) {
-        GetNativeInfo(nt.Sel, out var name, out var literalSuffix, out _);
-        var intValue = (BigInteger)e.Value;
-        if (intValue > long.MaxValue) {
-          // The value must be a 64-bit unsigned integer, since it has a native
-          // type and unsigned long is the biggest native type
-          Contract.Assert(intValue <= ulong.MaxValue);
-
-          // Represent the value as a signed 64-bit integer
-          intValue -= ulong.MaxValue + BigInteger.One;
-        } else if (nt.Sel == NativeType.Selection.UInt && intValue > int.MaxValue) {
-          // Represent the value as a signed 32-bit integer
-          intValue -= uint.MaxValue + BigInteger.One;
-        }
-        wr.Write($"{CastIfSmallNativeType(e.Type)}{intValue}{literalSuffix}");
+        EmitNativeIntegerLiteral((BigInteger) e.Value, nt, wr);
       } else if (e.Value is BigInteger i) {
         if (i.IsZero) {
           wr.Write("java.math.BigInteger.ZERO");
@@ -1036,6 +1026,23 @@ namespace Microsoft.Dafny{
         }
         wr.Write("\"");
       }
+    }
+
+    void EmitNativeIntegerLiteral(BigInteger value, NativeType nt, TextWriter wr) {
+      GetNativeInfo(nt.Sel, out var name, out var literalSuffix, out _);
+      var intValue = value;
+      if (intValue > long.MaxValue) {
+        // The value must be a 64-bit unsigned integer, since it has a native
+        // type and unsigned long is the biggest native type
+        Contract.Assert(intValue <= ulong.MaxValue);
+
+        // Represent the value as a signed 64-bit integer
+        intValue -= ulong.MaxValue + BigInteger.One;
+      } else if (nt.Sel == NativeType.Selection.UInt && intValue > int.MaxValue) {
+        // Represent the value as a signed 32-bit integer
+        intValue -= uint.MaxValue + BigInteger.One;
+      }
+      wr.Write($"{CastIfSmallNativeType(nt)}{intValue}{literalSuffix}");
     }
 
     protected string GetNativeDefault(NativeType nt) {
@@ -2097,29 +2104,27 @@ namespace Microsoft.Dafny{
       }
       var files = new List<string>();
       foreach (string file in Directory.EnumerateFiles(Path.GetDirectoryName(targetFilename), "*.java", SearchOption.AllDirectories)) {
-        files.Add(Path.GetFullPath(file));
+        files.Add($"\"{Path.GetFullPath(file)}\"");
       }
       var classpath = GetClassPath(targetFilename);
-      foreach (var file in files) {
-        var psi = new ProcessStartInfo("javac", file) {
-          CreateNoWindow = true,
-          UseShellExecute = false,
-          RedirectStandardOutput = true,
-          RedirectStandardError = true,
-          WorkingDirectory = Path.GetFullPath(Path.GetDirectoryName(targetFilename))
-        };
-        psi.EnvironmentVariables["CLASSPATH"] = classpath;
-        var proc = Process.Start(psi);
-        while (!proc.StandardOutput.EndOfStream) {
-          outputWriter.WriteLine(proc.StandardOutput.ReadLine());
-        }
-        while (!proc.StandardError.EndOfStream) {
-          outputWriter.WriteLine(proc.StandardError.ReadLine());
-        }
-        proc.WaitForExit();
-        if (proc.ExitCode != 0) {
-          throw new Exception($"Error while compiling Java file {file}. Process exited with exit code {proc.ExitCode}");
-        }
+      var psi = new ProcessStartInfo("javac", string.Join(" ", files)) {
+        CreateNoWindow = true,
+        UseShellExecute = false,
+        RedirectStandardOutput = true,
+        RedirectStandardError = true,
+        WorkingDirectory = Path.GetFullPath(Path.GetDirectoryName(targetFilename))
+      };
+      psi.EnvironmentVariables["CLASSPATH"] = classpath;
+      var proc = Process.Start(psi);
+      while (!proc.StandardOutput.EndOfStream) {
+        outputWriter.WriteLine(proc.StandardOutput.ReadLine());
+      }
+      while (!proc.StandardError.EndOfStream) {
+        outputWriter.WriteLine(proc.StandardError.ReadLine());
+      }
+      proc.WaitForExit();
+      if (proc.ExitCode != 0) {
+        throw new Exception($"Error while compiling Java files. Process exited with exit code {proc.ExitCode}");
       }
       return true;
     }
@@ -3611,7 +3616,7 @@ namespace Microsoft.Dafny{
             MemberSelectExpr m = e.E.Resolved as MemberSelectExpr;
             if (literal != null) {
               // Optimize constant to avoid intermediate BigInteger
-              wr.Write(CastIfSmallNativeType(e.ToType) + "(" + literal + toNativeSuffix + ")");
+              EmitNativeIntegerLiteral((BigInteger) literal, toNative, wr);
             } else if (u != null && u.Op == UnaryOpExpr.Opcode.Cardinality) {
               // Optimize || to avoid intermediate BigInteger
               wr.Write(CastIfSmallNativeType(e.ToType));

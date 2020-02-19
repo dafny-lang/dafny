@@ -11,13 +11,13 @@ cl' { u: 12, x: 0, ': 3.14, nes: {57, 20} }
 x: real :: 0.0 versus 0.0
 ch: char :: 'D' versus '\0'
 s: set :: {} versus {}
-d: Xt :: _0_AdvancedZeroInitialization_Compile.Xt.MakeXt(0, []) versus _0_AdvancedZeroInitialization_Compile.Xt.MakeXt(0, [])
-y: Yt<seq> :: _0_AdvancedZeroInitialization_Compile.Yt.MakeYt(0, []) versus _0_AdvancedZeroInitialization_Compile.Yt.MakeYt(0, [])
-z: Yt<Even> :: _0_AdvancedZeroInitialization_Compile.Yt.MakeYt(0, 0) versus _0_AdvancedZeroInitialization_Compile.Yt.MakeYt(0, 0)
+d: Xt :: AdvancedZeroInitialization_Compile.Xt.MakeXt(0, []) versus AdvancedZeroInitialization_Compile.Xt.MakeXt(0, [])
+y: Yt<seq> :: AdvancedZeroInitialization_Compile.Yt.MakeYt(0, []) versus AdvancedZeroInitialization_Compile.Yt.MakeYt(0, [])
+z: Yt<Even> :: AdvancedZeroInitialization_Compile.Yt.MakeYt(0, 0) versus AdvancedZeroInitialization_Compile.Yt.MakeYt(0, 0)
 
 x: real :: 0.0 versus 0.0
 ch: char :: 'D' versus '\0'
 s: set :: {} versus {}
-d: Xt :: _0_AdvancedZeroInitialization_Compile.Xt.MakeXt(0, []) versus _0_AdvancedZeroInitialization_Compile.Xt.MakeXt(0, [])
-y: Yt<seq> :: _0_AdvancedZeroInitialization_Compile.Yt.MakeYt(0, []) versus _0_AdvancedZeroInitialization_Compile.Yt.MakeYt(0, [])
-z: Yt<Even> :: _0_AdvancedZeroInitialization_Compile.Yt.MakeYt(0, 0) versus _0_AdvancedZeroInitialization_Compile.Yt.MakeYt(0, 0)
+d: Xt :: AdvancedZeroInitialization_Compile.Xt.MakeXt(0, []) versus AdvancedZeroInitialization_Compile.Xt.MakeXt(0, [])
+y: Yt<seq> :: AdvancedZeroInitialization_Compile.Yt.MakeYt(0, []) versus AdvancedZeroInitialization_Compile.Yt.MakeYt(0, [])
+z: Yt<Even> :: AdvancedZeroInitialization_Compile.Yt.MakeYt(0, 0) versus AdvancedZeroInitialization_Compile.Yt.MakeYt(0, 0)
