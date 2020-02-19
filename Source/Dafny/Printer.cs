@@ -1751,37 +1751,38 @@ namespace Microsoft.Dafny {
 
       } else if (expr is NestedMatchExpr) {
         var e = (NestedMatchExpr)expr;
-        if (DafnyOptions.O.DafnyPrintResolvedFile != null) {
-          if(e.ResolvedExpression != null){
+        if(e.ResolvedExpression != null && DafnyOptions.O.DafnyPrintResolvedFile != null){
             wr.WriteLine();
             Indent(indent);wr.WriteLine("/*---------- desugared ----------");
             PrintExtendedExpr(e.ResolvedExpression, indent, isRightmost, endWithCloseParen);
             Indent(indent); wr.WriteLine("---------- end desugared ----------*/");
-          }
-          Indent(indent);
-          var parensNeeded = !isRightmost && !e.UsesOptionalBraces;
-          if (parensNeeded) { wr.Write("("); }
-          wr.Write("match ");
-          PrintExpression(e.Source, isRightmost && e.Cases.Count == 0, false);
-          if (e.UsesOptionalBraces) { wr.WriteLine(" {"); } else if (parensNeeded && e.Cases.Count == 0) { wr.WriteLine(")"); } else { wr.WriteLine(); }
-          int i = 0;
-          int ind = indent + (e.UsesOptionalBraces ? IndentAmount : 0);
-          foreach (var mc in e.Cases) {
-            bool isLastCase = i == e.Cases.Count - 1;
-            Indent(ind);
-            wr.Write("case {0}", mc.Pat.ToString());
-            wr.WriteLine(" =>");
-            PrintExtendedExpr(mc.Body, ind + IndentAmount, isLastCase, isLastCase && (parensNeeded || endWithCloseParen));
-            i++;
-          }
-          if (e.UsesOptionalBraces) {
-            Indent(indent);
-            wr.WriteLine("}");
-          }
-        } else {
-          PrintExtendedExpr(e.ResolvedExpression, indent, isRightmost, endWithCloseParen);
         }
-
+        Indent(indent);
+        var parensNeeded = !isRightmost && !e.UsesOptionalBraces;
+        if (parensNeeded) { wr.Write("("); }
+        wr.Write("match ");
+        PrintExpression(e.Source, isRightmost && e.Cases.Count == 0, false);
+        if (e.UsesOptionalBraces) {
+          wr.WriteLine(" {");
+        } else if (parensNeeded && e.Cases.Count == 0) {
+          wr.WriteLine(")");
+        } else {
+          wr.WriteLine();
+        }
+        int i = 0;
+        int ind = indent + (e.UsesOptionalBraces ? IndentAmount : 0);
+        foreach (var mc in e.Cases) {
+          bool isLastCase = i == e.Cases.Count - 1;
+          Indent(ind);
+          wr.Write("case {0}", mc.Pat.ToString());
+          wr.WriteLine(" =>");
+          PrintExtendedExpr(mc.Body, ind + IndentAmount, isLastCase, isLastCase && (parensNeeded || endWithCloseParen));
+          i++;
+        }
+        if (e.UsesOptionalBraces) {
+          Indent(indent);
+          wr.WriteLine("}");
+        }
       } else if (expr is MatchExpr) {
         var e = (MatchExpr)expr;
         if (DafnyOptions.O.DafnyPrintResolvedFile == null && e.OrigUnresolved != null) {
