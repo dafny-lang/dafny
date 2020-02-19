@@ -810,19 +810,7 @@ namespace Microsoft.Dafny{
         TrStringLiteral(str, wr);
         wr.Write(")");
       } else if (AsNativeType(e.Type) != null) {
-        GetNativeInfo(AsNativeType(e.Type).Sel, out var name, out var literalSuffix, out _);
-        var cast = name == "Short" || name == "Byte" ? $"({name.ToLower()})" : "";
-        var intValue = (BigInteger)e.Value;
-        if (intValue > long.MaxValue) {
-          // The value must be a 64-bit unsigned integer, since it has a native
-          // type and unsigned long is the biggest native type
-          Contract.Assert(intValue <= ulong.MaxValue);
-
-          // Represent the value as a signed 64-bit integer, which the ULong
-          // constructor will reinterpret as unsigned
-          intValue -= ulong.MaxValue + BigInteger.One;
-        }
-        wr.Write($"new {name}({cast}{intValue}{literalSuffix})");
+        EmitNativeIntegerLiteral((BigInteger) e.Value, AsNativeType(e.Type), wr);
       } else if (e.Value is BigInteger i) {
         if (i.IsZero) {
           wr.Write("java.math.BigInteger.ZERO");
@@ -877,6 +865,22 @@ namespace Microsoft.Dafny{
         }
         wr.Write("\"");
       }
+    }
+
+    void EmitNativeIntegerLiteral(BigInteger value, NativeType nt, TextWriter wr) {
+      GetNativeInfo(nt.Sel, out var name, out var literalSuffix, out _);
+      var cast = name == "Short" || name == "Byte" ? $"({name.ToLower()})" : "";
+      var intValue = value;
+      if (intValue > long.MaxValue) {
+        // The value must be a 64-bit unsigned integer, since it has a native
+        // type and unsigned long is the biggest native type
+        Contract.Assert(intValue <= ulong.MaxValue);
+
+        // Represent the value as a signed 64-bit integer, which the ULong
+        // constructor will reinterpret as unsigned
+        intValue -= ulong.MaxValue + BigInteger.One;
+      }
+      wr.Write($"new {name}({cast}{intValue}{literalSuffix})");
     }
 
     protected string GetNativeDefault(NativeType.Selection sel) {
@@ -3160,7 +3164,7 @@ namespace Microsoft.Dafny{
             MemberSelectExpr m = e.E.Resolved as MemberSelectExpr;
             if (literal != null) {
               // Optimize constant to avoid intermediate BigInteger
-              wr.Write("(" + literal + toNativeSuffix + ")");
+              EmitNativeIntegerLiteral((BigInteger) literal, toNative, wr);
             } else if (u != null && u.Op == UnaryOpExpr.Opcode.Cardinality) {
               // Optimize || to avoid intermediate BigInteger
               EmitCastIfSmallSignedType(toNative, wr);
