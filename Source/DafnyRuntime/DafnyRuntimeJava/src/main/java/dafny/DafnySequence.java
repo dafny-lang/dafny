@@ -80,7 +80,7 @@ public abstract class DafnySequence<T> implements Iterable<T> {
      * copy.  Only safe if the array never changes afterward.
      */
     public static <T> DafnySequence<T> unsafeWrapArray(Array<T> elements) {
-        return new ArrayDafnySequence<>(elements);
+        return new ArrayDafnySequence<>(elements, true);
     }
 
     public static <T> DafnySequence<T> unsafeWrapRawArray(Type<T> type, Object elements) {
@@ -419,14 +419,25 @@ abstract class NonLazyDafnySequence<T> extends DafnySequence<T> {
 
 final class ArrayDafnySequence<T> extends NonLazyDafnySequence<T> {
     private final Array<T> seq;
+    @SuppressWarnings("unused")
+    private boolean unsafe; // for debugging purposes
 
     // NOTE: Input array is *shared*; must be a copy if it comes from a public input
+    ArrayDafnySequence(Type<T> elementType, Object elements, boolean unsafe) {
+        this(Array.wrap(elementType, elements), unsafe);
+    }
+
     ArrayDafnySequence(Type<T> elementType, Object elements) {
         this(Array.wrap(elementType, elements));
     }
 
+    ArrayDafnySequence(Array<T> elements, boolean unsafe) {
+        this.seq = elements;
+        this.unsafe = unsafe;
+    }
+
     ArrayDafnySequence(Array<T> array) {
-        this.seq = array;
+        this(array, false);
     }
 
     Array<T> unwrap() {

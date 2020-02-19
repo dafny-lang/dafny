@@ -1,5 +1,6 @@
 package dafny;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -13,23 +14,24 @@ import org.junit.jupiter.api.Test;
 
 class SequenceTest {
 
-  Integer[] testSequenceArr = new Integer[]{1, 3, 2, 4, 2, 4, 6, 5, 4, 1, 7};
-  Integer[] testSequencePreArr = new Integer[]{1, 3, 2, 4, 2, 4};
-  Integer[] testSequenceNPreArr = new Integer[]{1, 3, 2, 4, 2, 5};
-  Integer[] testSequenceNPre2Arr = new Integer[]{1, 3, 2, 4, 2, 4, 6, 5, 4, 1, 7, 3};
-  Integer[] testSequenceSubArr = new Integer[]{2, 4, 6, 5};
-  Integer[] testSequenceTakeArr = new Integer[]{1, 3, 2, 4, 2};
-  Integer[] testSequenceDropArr = new Integer[]{4, 6, 5, 4, 1, 7};
-  Integer[] testSequenceEmptyArr = new Integer[]{};
-  DafnySequence<Integer> testSequence = DafnySequence.of(Type.INT, testSequenceArr);
-  DafnySequence<Integer> testSequencePre = DafnySequence.of(Type.INT, testSequencePreArr);
-  DafnySequence<Integer> testSequenceNPre = DafnySequence.of(Type.INT, testSequenceNPreArr);
-  DafnySequence<Integer> testSequenceNPre2 = DafnySequence.of(Type.INT, testSequenceNPre2Arr);
-  DafnySequence<Integer> testSequenceSub = DafnySequence.of(Type.INT, testSequenceSubArr);
-  DafnySequence<Integer> testSequenceDrop = DafnySequence.of(Type.INT, testSequenceDropArr);
-  DafnySequence<Integer> testSequenceTake = DafnySequence.of(Type.INT, testSequenceTakeArr);
-  DafnySequence<Integer> testSequenceEmpty = DafnySequence.of(Type.INT, testSequenceEmptyArr);
-  DafnySequence<Integer> testCopy = DafnySequence.of(Type.INT, testSequenceArr);
+  int[] testSequenceArr = new int[]{1, 3, 2, 4, 2, 4, 6, 5, 4, 1, 7};
+  int[] testSequencePreArr = new int[]{1, 3, 2, 4, 2, 4};
+  int[] testSequenceNPreArr = new int[]{1, 3, 2, 4, 2, 5};
+  int[] testSequenceNPre2Arr = new int[]{1, 3, 2, 4, 2, 4, 6, 5, 4, 1, 7, 3};
+  int[] testSequenceSubArr = new int[]{2, 4, 6, 5};
+  int[] testSequenceTakeArr = new int[]{1, 3, 2, 4, 2};
+  int[] testSequenceDropArr = new int[]{4, 6, 5, 4, 1, 7};
+  int[] testSequenceEmptyArr = new int[]{};
+  DafnySequence<Integer> testSequence = DafnySequence.of(testSequenceArr);
+  DafnySequence<Integer> testSequencePre = DafnySequence.of(testSequencePreArr);
+  DafnySequence<Integer> testSequenceNPre = DafnySequence.of(testSequenceNPreArr);
+  DafnySequence<Integer> testSequenceNPre2 = DafnySequence.of(testSequenceNPre2Arr);
+  DafnySequence<Integer> testSequenceSub = DafnySequence.of(testSequenceSubArr);
+  DafnySequence<Integer> testSequenceDrop = DafnySequence.of(testSequenceDropArr);
+  DafnySequence<Integer> testSequenceTake = DafnySequence.of(testSequenceTakeArr);
+  DafnySequence<Integer> testSequenceEmpty = DafnySequence.of(testSequenceEmptyArr);
+  DafnySequence<Integer> testCopy = DafnySequence.of(testSequenceArr);
+  DafnySequence<Integer> testWrappedSequence = DafnySequence.unsafeWrapRawArray(Type.INT, testSequenceArr);
 
   @Test
   void testSequencePrefix() {
@@ -174,5 +176,24 @@ class SequenceTest {
   void testNullMembers() {
     Integer[] testNulls = new Integer[]{3, null, 2};
     assertThrows(NullPointerException.class, () -> DafnySequence.of(Type.INT, testNulls));
+  }
+
+  @Test
+  void testArrayConversion() {
+    assertEquals(testSequence, testWrappedSequence);
+    int[] convertedArr = (int[]) testSequence.toRawArray();
+    assertArrayEquals(convertedArr, testSequenceArr);
+
+    byte[] byteArr = new byte[testSequenceArr.length];
+    for (int i = 0; i < testSequenceArr.length; i++) {
+      byteArr[i] = (byte) testSequenceArr[i];
+    }
+
+    DafnySequence<Byte> testByteSequence = DafnySequence.fromBytes(byteArr);
+    DafnySequence<Byte> testWrappedByteSequence = DafnySequence.unsafeWrapBytes(byteArr);
+    assertEquals(testByteSequence, testWrappedByteSequence);
+
+    byte[] convertedByteArr = DafnySequence.toByteArray(testByteSequence);
+    assertArrayEquals(byteArr, convertedByteArr);
   }
 }
