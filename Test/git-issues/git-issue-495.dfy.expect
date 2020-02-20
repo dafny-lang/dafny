@@ -11,7 +11,7 @@ git-issue-495.dfy(20,5): Error: value does not satisfy the subset constraints of
 Execution trace:
     (0,0): anon0
     (0,0): anon4_Else
-git-issue-495.dfy(47,14): Error: value does not satisfy the subset constraints of 'nat'
+git-issue-495.dfy(45,8): Error: value does not satisfy the subset constraints of 'nat'
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Then
