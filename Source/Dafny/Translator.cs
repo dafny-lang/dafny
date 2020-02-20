@@ -14855,7 +14855,7 @@ namespace Microsoft.Dafny {
           var oe1 = e1;
           var lit0 = translator.GetLit(e0);
           var lit1 = translator.GetLit(e1);
-          bool liftLit = lit0 != null && lit1 != null;
+          bool liftLit = translator.IsLit(e0) && translator.IsLit(e1);
           // NOTE(namin): We usually avoid keeping literals, because their presence might mess up triggers that do not expect them.
           //              Still for equality-related operations, it's useful to keep them instead of lifting them, so that they can be propagated.
           bool keepLits = false;
@@ -15234,8 +15234,22 @@ namespace Microsoft.Dafny {
             List<Bpl.Variable> lhss;
             List<Bpl.Expr> rhss;
             TrLetExprPieces(e, out lhss, out rhss);
+            // in the translation of body, treat a let-bound variable as IsLit if its RHS definition is IsLit
+            Contract.Assert(lhss.Count == rhss.Count);  // this is a postcondition of TrLetExprPieces
+            var previousCount = translator.letBoundVariablesWithLitRHS.Count;
+            for (var i = 0; i < lhss.Count; i++) {
+              if (translator.IsLit(rhss[i])) {
+                translator.letBoundVariablesWithLitRHS.Add(lhss[i].Name);
+              }
+              i++;
+            }
+            var body = TrExpr(e.Body);
+            foreach (var v in lhss) {
+              translator.letBoundVariablesWithLitRHS.Remove(v.Name);
+            }
+            Contract.Assert(previousCount == translator.letBoundVariablesWithLitRHS.Count);
             // in the following, use the token for Body instead of the token for the whole let expression; this gives better error locations
-            return new Bpl.LetExpr(e.Body.tok, lhss, rhss, null, TrExpr(e.Body));
+            return new Bpl.LetExpr(e.Body.tok, lhss, rhss, null, body);
           }
         } else if (expr is NamedExpr) {
           return TrExpr(((NamedExpr)expr).Body);
@@ -16086,7 +16100,12 @@ namespace Microsoft.Dafny {
       return GetLit(expr) ?? expr;
     }
 
+    readonly ISet<string> letBoundVariablesWithLitRHS = new HashSet<string>();
+
     bool IsLit(Bpl.Expr expr) {
+      if (expr is Bpl.IdentifierExpr ie) {
+        return letBoundVariablesWithLitRHS.Contains(ie.Name);
+      }
       return GetLit(expr) != null;
     }
 
