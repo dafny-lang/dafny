@@ -1363,8 +1363,8 @@ namespace Microsoft.Dafny {
           Indent(indent); wr.WriteLine("/*---------- desugared ----------");
           Indent(indent); PrintStatement(s.ResolvedStatement, indent);
           Indent(indent); wr.WriteLine("---------- end desugared ----------*/");
+          Indent(indent);
         }
-        Indent(indent);
         wr.Write("match ");
         PrintExpression(s.Source, false);
         if (s.UsesOptionalBraces) {

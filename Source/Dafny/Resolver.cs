@@ -10119,8 +10119,9 @@ void DebugCRBranches(MatchTempInfo mti, List<Expression> matchees, List<RBranch>
         var currBranches = new List<RBranch>();
 
         // create a bound variable for each formal to use in the MatchCase for this constructor
+        // using the currMatchee.tok to get a location closer to the error if something goes wrong
         var freshPatBV = ctor.Value.Formals.ConvertAll(
-          x => CreatePatBV(x.Tok , SubstType(x.Type, subst), codeContext));
+          x => CreatePatBV(currMatchee.tok, SubstType(x.Type, subst), codeContext));
 
         // rhs to bind to head-patterns that are bound variables
         var rhsExpr = currMatchee;
@@ -10139,8 +10140,8 @@ void DebugCRBranches(MatchTempInfo mti, List<Expression> matchees, List<RBranch>
                 if (!(item1.Arguments.Count.Equals(ctor.Value.Formals.Count))) {
                     reporter.Error(MessageSource.Resolver, mti.BranchTok[PB.Item2.BranchID], "constructor {0} of arity {1} is applied to {2} argument(s)", ctor.Key, ctor.Value.Formals.Count, item1.Arguments.Count);
                 }
-                // mark patterns standing in for ghost field
                 for(int ii = 0; ii < item1.Arguments.Count; ii++){
+                  // mark patterns standing in for ghost field
                   item1.Arguments[ii].IsGhost = item1.Arguments[ii].IsGhost || ctor.Value.Formals[ii].IsGhost;
                 }
                 currBranch.Patterns.AddRange(item1.Arguments);
@@ -10486,7 +10487,7 @@ void DebugCRBranches(MatchTempInfo mti, List<Expression> matchees, List<RBranch>
           if (idpat.Arguments.Count == 0){
             CheckLinearVarPattern(udt, idpat, debug);
           } else {
-            reporter.Error(MessageSource.Resolver, pat.Tok, "case arguments count does not match source tuple arguments count");
+            reporter.Error(MessageSource.Resolver, pat.Tok, "case arguments count does not match source arguments count");
           }
         }
 

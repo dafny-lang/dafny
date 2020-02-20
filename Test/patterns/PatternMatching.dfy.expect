@@ -1,5 +1,5 @@
 
 Dafny program verifier finished with 1 verified, 0 errors
-NestingTest([6]) = 6, should return 6
-NestedVariableTest([2::3::4::5::6]) = 0, should return 0
-ConstantTest([3::4::5::6]) = 2, should return 2
+NestingTest([6]) = 6, should return 6 
+NestedVariableTest([2::3::4::5::6]) = 0, should return 0 
+ConstantTest([3::4::5::6]) = 2, should return 2 

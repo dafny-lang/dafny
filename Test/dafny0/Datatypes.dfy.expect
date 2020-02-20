@@ -6,7 +6,7 @@ Execution trace:
     (0,0): anon14_Else
     (0,0): anon15_Then
     (0,0): anon6
-Datatypes.dfy(298,11): Error: missing case in case statement: Appendix
+Datatypes.dfy(298,17): Error: missing case in case statement: Appendix
 Execution trace:
     (0,0): anon0
     (0,0): anon13_Then
@@ -28,15 +28,17 @@ Datatypes.dfy(356,7): Error: missing case in case statement: Cons
 Execution trace:
     (0,0): anon0
     (0,0): anon10_Else
-    (0,0): anon11_Then
+    (0,0): anon11_Else
     (0,0): anon12_Then
+    (0,0): anon13_Then
 Datatypes.dfy(356,7): Error: missing case in case statement: Nil
 Execution trace:
     (0,0): anon0
     (0,0): anon10_Else
-    (0,0): anon11_Then
-    (0,0): anon12_Else
-    (0,0): anon13_Then
+    (0,0): anon11_Else
+    (0,0): anon12_Then
+    (0,0): anon13_Else
+    (0,0): anon14_Then
 Datatypes.dfy(377,21): Error: RHS is not certain to look like the pattern 'AAA'
 Execution trace:
     (0,0): anon0
