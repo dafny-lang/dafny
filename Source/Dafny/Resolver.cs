@@ -7326,11 +7326,10 @@ namespace Microsoft.Dafny
     TopLevelDeclWithMembers currentClass;
     Method currentMethod;
     bool inBodyInitContext;  // "true" only if "currentMethod is Constructor"
-    readonly Scope<TypeParameter>/*!*/
-      allTypeParameters = new Scope<TypeParameter>();
+    readonly Scope<TypeParameter>/*!*/ allTypeParameters = new Scope<TypeParameter>();
     readonly Scope<IVariable>/*!*/ scope = new Scope<IVariable>();
     Scope<Statement>/*!*/ enclosingStatementLabels = new Scope<Statement>();
-    Scope<Label>/*!*/ dominatingStatementLabels = new Scope<Label>();
+    readonly Scope<Label>/*!*/ dominatingStatementLabels = new Scope<Label>();
     List<Statement> loopStack = new List<Statement>();  // the enclosing loops (from which it is possible to break out)
 
     /// <summary>
@@ -9082,17 +9081,15 @@ namespace Microsoft.Dafny
           ResolveConcreteUpdateStmt(s.Update, codeContext);
         }
         // Update the VarDeclStmt's ghost status according to its components
-        foreach (var local in s.Locals)
-        {
-          if (Attributes.Contains(local.Attributes, "assumption"))
-          {
-            if (currentMethod == null)
-            {
+        foreach (var local in s.Locals) {
+          if (Attributes.Contains(local.Attributes, "assumption")) {
+            if (currentMethod != null) {
+              ConstrainSubtypeRelation(Type.Bool, local.type, local.Tok, "assumption variable must be of type 'bool'");
+              if (!local.IsGhost) {
+                reporter.Error(MessageSource.Resolver, local.Tok, "assumption variable must be ghost");
+              }
+            } else {
               reporter.Error(MessageSource.Resolver, local.Tok, "assumption variable can only be declared in a method");
-            }
-            ConstrainSubtypeRelation(Type.Bool, local.type, local.Tok, "assumption variable must be of type 'bool'");
-            if (!local.IsGhost) {
-              reporter.Error(MessageSource.Resolver, local.Tok, "assumption variable must be ghost");
             }
           }
         }
@@ -9135,8 +9132,7 @@ namespace Microsoft.Dafny
             CheckIsLvalue(lhs, codeContext);
 
             var localVar = var as LocalVariable;
-            if (localVar != null && currentMethod != null && Attributes.Contains(localVar.Attributes, "assumption"))
-            {
+            if (localVar != null && currentMethod != null && Attributes.Contains(localVar.Attributes, "assumption")) {
               var rhs = s.Rhs as ExprRhs;
               var expr = (rhs != null ? rhs.Expr : null);
               var binaryExpr = expr as BinaryExpr;
@@ -9144,13 +9140,11 @@ namespace Microsoft.Dafny
                   && (binaryExpr.Op == BinaryExpr.Opcode.And)
                   && (binaryExpr.E0.Resolved is IdentifierExpr)
                   && ((IdentifierExpr)(binaryExpr.E0.Resolved)).Var == localVar
-                  && !currentMethod.AssignedAssumptionVariables.Contains(localVar))
-              {
+                  && !currentMethod.AssignedAssumptionVariables.Contains(localVar)) {
                 currentMethod.AssignedAssumptionVariables.Add(localVar);
-              }
-              else
-              {
-                reporter.Error(MessageSource.Resolver, stmt, string.Format("there may be at most one assignment to an assumption variable, the RHS of which must match the expression \"{0} && <boolean expression>\"", localVar.Name));
+              } else {
+                reporter.Error(MessageSource.Resolver, stmt,
+                  string.Format("there may be at most one assignment to an assumption variable, the RHS of which must match the expression \"{0} && <boolean expression>\"", localVar.Name));
               }
             }
           }
@@ -10855,9 +10849,31 @@ namespace Microsoft.Dafny
       }
       Contract.Assert(receiverType is NonProxyType);  // there are only two kinds of types: proxies and non-proxies
 
-      UserDefinedType ctype = UserDefinedType.DenotesClass(receiverType);
-      if (ctype != null) {
-        var cd = (ClassDecl)ctype.ResolvedClass;  // correctness of cast follows from postcondition of DenotesClass
+      foreach (var valuet in valuetypeDecls) {
+        if (valuet.IsThisType(receiverType)) {
+          MemberDecl member;
+          if (valuet.Members.TryGetValue(memberName, out member)) {
+            SelfType resultType = null;
+            if (member is SpecialFunction) {
+              resultType = ((SpecialFunction)member).ResultType as SelfType;
+            } else if (member is SpecialField) {
+              resultType = ((SpecialField)member).Type as SelfType;
+            }
+            if (resultType != null) {
+              SelfTypeSubstitution = new Dictionary<TypeParameter, Type>();
+              SelfTypeSubstitution.Add(resultType.TypeArg, receiverType);
+              resultType.ResolvedType = receiverType;
+            }
+            nptype = (NonProxyType)receiverType;
+            return member;
+          }
+          break;
+        }
+      }
+
+      var ctype = receiverType.NormalizeExpand() as UserDefinedType;
+      var cd = ctype == null ? null : ctype.ResolvedClass as TopLevelDeclWithMembers;
+      if (cd != null) {
         Contract.Assert(ctype.TypeArgs.Count == cd.TypeArgs.Count);  // follows from the fact that ctype was resolved
         MemberDecl member;
         if (!classMembers[cd].TryGetValue(memberName, out member)) {
@@ -10866,53 +10882,14 @@ namespace Microsoft.Dafny
           } else {
             reporter.Error(MessageSource.Resolver, tok, "member {0} does not exist in {2} {1}", memberName, cd.Name, cd.WhatKind);
           }
-          nptype = null;
-          return null;
         } else if (!VisibleInScope(member)) {
           reporter.Error(MessageSource.Resolver, tok, "member '{0}' has not been imported in this scope and cannot be accessed here", memberName);
         } else {
           nptype = ctype;
           return member;
         }
-      }
-
-      ValuetypeDecl valuet = null;
-      foreach (var vtd in valuetypeDecls) {
-        if (vtd.IsThisType(receiverType)) {
-          valuet = vtd;
-          break;
-        }
-      }
-      if (valuet != null) {
-        MemberDecl member;
-        if (valuet.Members.TryGetValue(memberName, out member)) {
-          nptype = (NonProxyType)receiverType;
-          SelfType resultType = null;
-          if (member is SpecialFunction) {
-            resultType = ((SpecialFunction)member).ResultType as SelfType;
-          } else if (member is SpecialField) {
-            resultType = ((SpecialField)member).Type as SelfType;
-          }
-          if (resultType != null) {
-            SelfTypeSubstitution = new Dictionary<TypeParameter, Type>();
-            SelfTypeSubstitution.Add(resultType.TypeArg, receiverType);
-            resultType.ResolvedType = receiverType;
-          }
-          return member;
-        }
-      }
-
-      TopLevelDeclWithMembers tltwm = receiverType.AsTopLevelTypeWithMembers;
-      if (tltwm != null) {
-        MemberDecl member;
-        if (!classMembers[tltwm].TryGetValue(memberName, out member)) {
-          reporter.Error(MessageSource.Resolver, tok, "member {0} does not exist in {2} {1}", memberName, tltwm.Name, tltwm.WhatKind);
-          nptype = null;
-          return null;
-        } else {
-          nptype = (UserDefinedType)receiverType;
-          return member;
-        }
+        nptype = null;
+        return null;
       }
 
       reporter.Error(MessageSource.Resolver, tok, "type {0} does not have a member {1}", receiverType, memberName);

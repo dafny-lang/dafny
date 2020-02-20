@@ -165,10 +165,19 @@ lemma Same2<T>(pat: seq<T>, a: seq<T>)
   } else if a != [] && pat[0] == a[0] {
     if pat[1..] <= a[1..] {
     } else {
+      var x := a[0];
       var k :| 0 <= k < |pat[1..]| && pat[1..][..k] + pat[1..][k+1..] <= a[1..];
       calc {
         pat[1..][..k] + pat[1..][k+1..] <= a[1..];
+      ==  { assert pat[1..][k+1..] == pat[k+2..]; }
+        pat[1..][..k] + pat[k+2..] <= a[1..];
       ==
+        [x] + (pat[1..][..k] + pat[k+2..]) <= [x] + a[1..];
+      ==  { assert [x] + a[1..] == a; }
+        [x] + (pat[1..][..k] + pat[k+2..]) <= a;
+      ==
+        ([x] + pat[1..][..k]) + pat[k+2..] <= a;
+      ==  { assert [x] + pat[1..][..k] == pat[..k+1]; }
         pat[..k+1] + pat[k+2..] <= a;
       }
     }
