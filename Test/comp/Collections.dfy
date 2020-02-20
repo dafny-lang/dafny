@@ -165,7 +165,6 @@ method Maps() {
   print "  keys: ", a.Keys, " ", b.Keys, " ", c.Keys, "\n";
   print "  values: ", a.Values, " ", b.Values, " ", c.Values, "\n";
   print "  items: ", a.Items, " ", b.Items, " ", c.Items, "\n";
-  print "  disjoint: ", a !! b, " ", b !! c, "\n";
   print "  update: ", a[17 := 6], " ", b[17 := 6], " ", c[17 := 6], "\n";
   print "  lookup: ", 17 in a, " ", b[17], " ", c[17], "\n";
 

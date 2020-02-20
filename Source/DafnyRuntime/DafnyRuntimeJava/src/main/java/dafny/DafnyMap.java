@@ -24,14 +24,6 @@ public class DafnyMap<K, V> implements Map<K, V> {
         return innerMap.containsKey(t);
     }
 
-    public boolean disjoint(DafnyMap<K, V> other) {
-        assert other != null : "Precondition Violation";
-        for (K t : other.innerMap.keySet()) {
-            if (innerMap.containsKey(t)) return false;
-        }
-        return true;
-    }
-
     public DafnyMap<K, V> update(K k, V v) {
         HashMap<K, V> copy = new HashMap<>(innerMap);
         copy.put(k, v);
@@ -128,6 +120,10 @@ public class DafnyMap<K, V> implements Map<K, V> {
     @Override
     public int size() {
         return innerMap.size();
+    }
+
+    public int cardinalityInt() {
+        return size();
     }
 
     @Override

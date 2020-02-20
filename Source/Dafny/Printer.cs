@@ -2169,7 +2169,11 @@ namespace Microsoft.Dafny {
 
       } else if (expr is SeqConstructionExpr) {
         var e = (SeqConstructionExpr)expr;
-        wr.Write("seq(");
+        wr.Write("seq");
+        if (e.ExplicitElementType != null) {
+          wr.Write("<{0}>", e.ExplicitElementType);
+        }
+        wr.Write("(");
         PrintExpression(e.N, false);
         wr.Write(", ");
         PrintExpression(e.Initializer, false);

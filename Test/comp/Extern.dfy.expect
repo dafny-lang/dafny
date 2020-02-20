@@ -1,32 +1,40 @@
 
-Dafny program verifier finished with 2 verified, 0 errors
+Dafny program verifier finished with 6 verified, 0 errors
 Hello
-31 62 45
+31 62 45 OtherClass.CallMe
 AllDafny.M
-Mixed.M
-Mixed.P
+Extern static method says: Mixed.P
+1001
+Extern instance method says: Mixed.IP
+2002
 AllExtern.P
 
-Dafny program verifier finished with 2 verified, 0 errors
+Dafny program verifier finished with 6 verified, 0 errors
 Hello
-31 62 45
+31 62 45 OtherClass.CallMe
 AllDafny.M
-Mixed.M
-Mixed.P
+Extern static method says: Mixed.P
+1001
+Extern instance method says: Mixed.IP
+2002
 AllExtern.P
 
-Dafny program verifier finished with 2 verified, 0 errors
+Dafny program verifier finished with 6 verified, 0 errors
 Hello
-31 62 45
+31 62 45 OtherClass.CallMe
 AllDafny.M
-Mixed.M
-Mixed.P
+Extern static method says: Mixed.P
+1001
+Extern instance method says: Mixed.IP
+2002
 AllExtern.P
 
-Dafny program verifier finished with 2 verified, 0 errors
+Dafny program verifier finished with 6 verified, 0 errors
 Hello
-31 62 45
+31 62 45 OtherClass.CallMe
 AllDafny.M
-Mixed.M
-Mixed.P
+Extern static method says: Mixed.P
+1001
+Extern instance method says: Mixed.IP
+2002
 AllExtern.P

@@ -5,15 +5,14 @@ phases:
       dotnet: 2.2
     commands:
       - cd ..
-      # TODO: Temporary - fix the dafny script to not use which instead!
-      # See https://github.com/dafny-lang/dafny/issues/449
-      - yum install -y which
       - yum install -y nuget
       - npm install bignumber.js
       - pip install lit OutputCheck pyyaml
       - find . -type f
       # Get Boogie
-      - git clone https://github.com/boogie-org/boogie.git
+      # Some recent changes have broken one of our test cases, so lock down to a specific
+      # release for now. See https://github.com/dafny-lang/dafny/issues/476.
+      - git clone --branch v2.4.2 https://github.com/boogie-org/boogie.git
       - nuget restore boogie/Source/Boogie.sln
       - msbuild boogie/Source/Boogie.sln
       # Get Z3
