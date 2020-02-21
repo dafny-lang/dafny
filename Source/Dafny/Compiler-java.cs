@@ -580,7 +580,7 @@ namespace Microsoft.Dafny{
         var cl = udt.ResolvedClass;
         bool isHandle = true;
         if (cl != null && Attributes.ContainsBool(cl.Attributes, "handle", ref isHandle) && isHandle) {
-          return "dafny.ULong";
+          return "Long";
         }
         else if (cl is TupleTypeDecl tupleDecl) {
           s = DafnyTupleClass(tupleDecl.TypeArgs.Count);
@@ -796,6 +796,21 @@ namespace Microsoft.Dafny{
       return new ClassWriter(this, wBody, wCtorBody);
     }
 
+    private string CastIfSmallNativeType(Type t) {
+      var nt = AsNativeType(t);
+      return nt == null ? "" : CastIfSmallNativeType(nt);
+    }
+
+    private string CastIfSmallNativeType(NativeType nt) {
+      GetNativeInfo(nt.Sel, out var name, out _, out _);
+      return name == "Short" || name == "Byte" ? $"({name.ToLower()}) " : "";
+    }
+
+    private string BoxedCastIfSmallNativeType(Type t) {
+      GetNativeInfo(AsNativeType(t).Sel, out var name, out _, out _);
+      return name == "Short" || name == "Byte" ? $"({name}) ({name.ToLower()}) " : "";
+    }
+
     protected override void EmitLiteralExpr(TextWriter wr, LiteralExpr e) {
       if (e is StaticReceiverExpr) {
         wr.Write(TypeName(e.Type, wr, e.tok));
@@ -869,36 +884,33 @@ namespace Microsoft.Dafny{
 
     void EmitNativeIntegerLiteral(BigInteger value, NativeType nt, TextWriter wr) {
       GetNativeInfo(nt.Sel, out var name, out var literalSuffix, out _);
-      var cast = name == "Short" || name == "Byte" ? $"({name.ToLower()})" : "";
       var intValue = value;
       if (intValue > long.MaxValue) {
         // The value must be a 64-bit unsigned integer, since it has a native
         // type and unsigned long is the biggest native type
         Contract.Assert(intValue <= ulong.MaxValue);
 
-        // Represent the value as a signed 64-bit integer, which the ULong
-        // constructor will reinterpret as unsigned
+        // Represent the value as a signed 64-bit integer
         intValue -= ulong.MaxValue + BigInteger.One;
+      } else if (nt.Sel == NativeType.Selection.UInt && intValue > int.MaxValue) {
+        // Represent the value as a signed 32-bit integer
+        intValue -= uint.MaxValue + BigInteger.One;
       }
-      wr.Write($"new {name}({cast}{intValue}{literalSuffix})");
+      wr.Write($"new {name}({CastIfSmallNativeType(nt)}{intValue}{literalSuffix})");
     }
 
     protected string GetNativeDefault(NativeType.Selection sel) {
       switch (sel) {
         case NativeType.Selection.Byte:
-          return "new dafny.UByte(0)";
         case NativeType.Selection.SByte:
           return "new Byte((byte)0)";
         case NativeType.Selection.UShort:
-          return "new dafny.UShort(0)";
         case NativeType.Selection.Short:
           return "new Short((short)0)";
         case NativeType.Selection.UInt:
-          return "new dafny.UInt(0)";
         case NativeType.Selection.Int:
           return "0";
         case NativeType.Selection.ULong:
-          return "new dafny.ULong(0)";
         case NativeType.Selection.Number:
         case NativeType.Selection.Long:
           return "0L";
@@ -908,41 +920,50 @@ namespace Microsoft.Dafny{
       }
     }
 
-    private HashSet<string> unsignedTypes = new HashSet<string> {"dafny.UByte", "dafny.UShort", "dafny.UInt", "dafny.ULong"};
-
     protected override void GetNativeInfo(NativeType.Selection sel, out string name, out string literalSuffix,
       out bool needsCastAfterArithmetic) {
       literalSuffix = "";
       needsCastAfterArithmetic = false;
       switch (sel) {
         case NativeType.Selection.Byte:
-          name = "dafny.UByte";
-          break;
         case NativeType.Selection.SByte:
           name = "Byte";
           break;
         case NativeType.Selection.UShort:
-          name = "dafny.UShort";
-          break;
         case NativeType.Selection.Short:
           name = "Short";
           break;
         case NativeType.Selection.UInt:
-          name = "dafny.UInt";
-          literalSuffix = "L";
-          break;
         case NativeType.Selection.Int:
           name = "Integer";
           break;
         case NativeType.Selection.ULong:
-          name = "dafny.ULong";
-          literalSuffix = "L";
-          break;
         case NativeType.Selection.Number:
         case NativeType.Selection.Long:
           name = "Long";
           literalSuffix = "L";
           break;
+        default:
+          Contract.Assert(false);  // unexpected native type
+          throw new cce.UnreachableException();  // to please the compiler
+      }
+    }
+
+    private string GetUnboxedNativeTypeName(NativeType nt) {
+      switch (nt.Sel) {
+        case NativeType.Selection.Byte:
+        case NativeType.Selection.SByte:
+          return "byte";
+        case NativeType.Selection.UShort:
+        case NativeType.Selection.Short:
+          return "short";
+        case NativeType.Selection.UInt:
+        case NativeType.Selection.Int:
+          return "int";
+        case NativeType.Selection.ULong:
+        case NativeType.Selection.Number:
+        case NativeType.Selection.Long:
+          return "long";
         default:
           Contract.Assert(false);  // unexpected native type
           throw new cce.UnreachableException();  // to please the compiler
@@ -1219,19 +1240,25 @@ namespace Microsoft.Dafny{
       if (nativeType != null) {
         GetNativeInfo(nativeType.Sel, out nativeName, out literalSuffix, out needsCast);
       }
+      var leftShift = nativeType == null ? ".shiftLeft" : "<<";
+      var rightShift = nativeType == null ? ".shiftRight" : ">>>";
       // ( e0 op1 e1) | (e0 op2 (width - e1))
       if (needsCast) {
-        wr.Write("(" + nativeName + ")(");
+        wr.Write("(" + nativeName + ")(" + CastIfSmallNativeType(e0.Type) + "(");
       }
       wr.Write("(");
-      EmitShift(e0, e1, isRotateLeft ? ".shiftLeft" : ".shiftRight", isRotateLeft, nativeType, true, wr, inLetExprBody, tr);
+      EmitShift(e0, e1, isRotateLeft ? leftShift : rightShift, isRotateLeft, nativeType, true, wr, inLetExprBody, tr);
       wr.Write(")");
-      wr.Write (".or");
+      if (nativeType == null) {
+        wr.Write (".or");
+      } else {
+        wr.Write ("|");
+      }
       wr.Write("(");
-      EmitShift(e0, e1, isRotateLeft ? ".shiftRight" : ".shiftLeft", !isRotateLeft, nativeType, false, wr, inLetExprBody, tr);
+      EmitShift(e0, e1, isRotateLeft ? rightShift : leftShift, !isRotateLeft, nativeType, false, wr, inLetExprBody, tr);
       wr.Write(")))");
       if (needsCast) {
-        wr.Write(")");
+        wr.Write("))");
       }
     }
 
@@ -1263,7 +1290,7 @@ namespace Microsoft.Dafny{
       if (bvType.NativeType == null) {
         wr.Write("((");
       } else {
-        wr.Write($"({nativeName})((");
+        wr.Write($"({nativeName}) {CastIfSmallNativeType(bvType)}((");
       }
       // --- Middle
       var middle = wr.Fork();
@@ -1274,7 +1301,7 @@ namespace Microsoft.Dafny{
       } else {
         if (bvType.NativeType.Bitwidth != bvType.Width) {
           // print in hex, because that looks nice
-          wr.Write($").and(new {nativeName}(0x{(1UL << bvType.Width) - 1:X}{literalSuffix})))");
+          wr.Write($") & {CastIfSmallNativeType(bvType)}0x{(1UL << bvType.Width) - 1:X}{literalSuffix})");
         } else {
           wr.Write("))");  // close the parentheses for the cast
         }
@@ -1290,16 +1317,15 @@ namespace Microsoft.Dafny{
     protected override TargetWriter EmitSign(Type type, TargetWriter wr) {
       TargetWriter w;
       var nt = AsNativeType(type);
-      if (nt == null || nt.LowerBound >= 0) {
+      if (nt == null) {
         w = wr.Fork();
         wr.Write(".signum()");
+      } else if (nt.LowerBound >= 0) {
+        wr.Write("(");
+        w = wr.Fork();
+        wr.Write(" == 0 ? 0 : 1)");
       } else {
-        if (TypeName(type, wr, Bpl.Token.NoToken) == "Long") {
-          wr.Write("Long");
-        } else {
-          wr.Write("Integer");
-        }
-        wr.Write(".signum(");
+        wr.Write($"{HelperClass(nt)}.signum(");
         w = wr.Fork();
         wr.Write(")");
       }
@@ -1324,7 +1350,7 @@ namespace Microsoft.Dafny{
       if (bv != null && expr is LiteralExpr literalExpr) {
         // If literal is larger than Java's max int value, make it a Long instead to avoid overflow error
         var suffix = (BigInteger)literalExpr.Value > java_max_int ? "L" : "";
-        wr.Write(bv.NativeType != null ? $"new {GetNativeTypeName(bv.NativeType)}({literalExpr.Value}{suffix})" : $"java.math.BigInteger.valueOf({literalExpr.Value}{suffix})");
+        wr.Write(bv.NativeType != null ? $"new {GetNativeTypeName(bv.NativeType)}({CastIfSmallNativeType(bv)}{literalExpr.Value}{suffix})" : $"java.math.BigInteger.valueOf({literalExpr.Value}{suffix})");
       } else {
         TrParenExpr(expr, wr, inLetExprBody);
       }
@@ -1648,6 +1674,34 @@ namespace Microsoft.Dafny{
       wr.Write("System.out.print(");
       if (arg.Type.IsArrowType) {
         wr.Write(IdName(((IdentifierExpr) ((ConcreteSyntaxExpression)arg).ResolvedExpression).Var) + " == null ? null : \"Function\"");
+      } else if (AsNativeType(arg.Type) != null && AsNativeType(arg.Type).LowerBound >= 0) {
+        var nativeName = GetNativeTypeName(AsNativeType(arg.Type));
+        switch (AsNativeType(arg.Type).Sel) {
+          case NativeType.Selection.Byte:
+            wr.Write("Integer.toUnsignedString(Byte.toUnsignedInt(");
+            TrExpr(arg, wr, false);
+            wr.Write("))");
+            break;
+          case NativeType.Selection.UShort:
+            wr.Write("Integer.toUnsignedString(Short.toUnsignedInt(");
+            TrExpr(arg, wr, false);
+            wr.Write("))");
+            break;
+          case NativeType.Selection.UInt:
+            wr.Write("Integer.toUnsignedString(");
+            TrExpr(arg, wr, false);
+            wr.Write(")");
+            break;
+          case NativeType.Selection.ULong:
+            wr.Write("Long.toUnsignedString(");
+            TrExpr(arg, wr, false);
+            wr.Write(")");
+            break;
+          default:
+            // Should be an unsigned type by assumption
+            Contract.Assert(false);
+            throw new cce.UnreachableException();
+        }
       } else {
         TrExpr(arg, wr, false);
         if (arg.Type.AsCollectionType != null && arg.Type.AsCollectionType.AsSeqType!= null && arg.Type.AsCollectionType.AsSeqType.Arg is CharType){
@@ -2007,9 +2061,9 @@ namespace Microsoft.Dafny{
       to = to.NormalizeExpand();
       if (from is BitvectorType && to is BitvectorType && ((BitvectorType)from).NativeType != null){
         GetNativeInfo(((BitvectorType)from).NativeType.Sel, out var p, out _, out _);
-        wr.Write($"new {p}(");
+        wr.Write($"new {p}({CastIfSmallNativeType(from)}(");
         var w = wr.Fork();
-        wr.Write(")");
+        wr.Write("))");
         return w;
       }
       return wr;
@@ -2069,8 +2123,12 @@ namespace Microsoft.Dafny{
           TrParenExpr("!", expr, wr, inLetExprBody);
           break;
         case ResolvedUnaryOp.BitwiseNot:
-          TrParenExpr("", expr, wr, inLetExprBody);
-          wr.Write(".not()");
+          if (AsNativeType(expr.Type) != null) {
+            TrParenExpr(BoxedCastIfSmallNativeType(expr.Type) + "~", expr, wr, inLetExprBody);
+          } else {
+            TrParenExpr("", expr, wr, inLetExprBody);
+            wr.Write(".not()");
+          }
           break;
         case ResolvedUnaryOp.Cardinality:
           if (expr.Type.AsCollectionType is MultiSetType) {
@@ -2092,6 +2150,18 @@ namespace Microsoft.Dafny{
       }
     }
 
+    // Find the class with static methods like "divideUnsigned" for the type
+    private string HelperClass(NativeType nt) {
+      switch (nt.Sel) {
+        case NativeType.Selection.Long:
+        case NativeType.Selection.ULong:
+        case NativeType.Selection.Number:
+          return "Long";
+        default:
+          return "Integer";
+      }
+    }
+
     protected override void CompileBinOp(BinaryExpr.ResolvedOpcode op, Expression e0, Expression e1, Bpl.IToken tok,
       Type resultType, out string opString,
       out string preOpString, out string postOpString, out string callString, out string staticCallString,
@@ -2104,6 +2174,23 @@ namespace Microsoft.Dafny{
       reverseArguments = false;
       truncateResult = false;
       convertE1_to_int = false;
+
+      void doPossiblyNativeBinOp(string o, string name, out string preOpS, out string opS,
+        out string postOpS, out string callS) {
+        if (AsNativeType(resultType) != null) {
+          var nativeName = GetNativeTypeName(AsNativeType(resultType));
+          preOpS = $"({nativeName}) {CastIfSmallNativeType(resultType)} (";
+          opS = o;
+          postOpS = ")";
+          callS = null;
+        } else {
+          callS = name;
+          preOpS = "";
+          opS = null;
+          postOpS = "";
+        }
+      }
+
       switch (op){
         case BinaryExpr.ResolvedOpcode.Iff:
           opString = "==";
@@ -2119,13 +2206,13 @@ namespace Microsoft.Dafny{
           opString = "&&";
           break;
         case BinaryExpr.ResolvedOpcode.BitwiseAnd:
-          callString = "and";
+          doPossiblyNativeBinOp("&", "and", out preOpString, out opString, out postOpString, out callString);
           break;
         case BinaryExpr.ResolvedOpcode.BitwiseOr:
-          callString = "or";
+          doPossiblyNativeBinOp("|", "or", out preOpString, out opString, out postOpString, out callString);
           break;
         case BinaryExpr.ResolvedOpcode.BitwiseXor:
-          callString = "xor";
+          doPossiblyNativeBinOp("^", "xor", out preOpString, out opString, out postOpString, out callString);
           break;
         case BinaryExpr.ResolvedOpcode.EqCommon:{
           if (IsHandleComparison(tok, e0, e1, errorWr)) {
@@ -2153,40 +2240,51 @@ namespace Microsoft.Dafny{
           break;
         }
         case BinaryExpr.ResolvedOpcode.Lt:
-          callString = "compareTo";
-          postOpString = " < 0";
+        case BinaryExpr.ResolvedOpcode.Le:
+        case BinaryExpr.ResolvedOpcode.Ge:
+        case BinaryExpr.ResolvedOpcode.Gt:
+          if (AsNativeType(resultType) != null && AsNativeType(resultType).LowerBound >= 0) {
+            staticCallString = GetNativeTypeName(AsNativeType(resultType)) + ".compareUnsigned";
+          } else {
+            callString = "compareTo";
+          }
+          switch(op) {
+            case BinaryExpr.ResolvedOpcode.Lt:
+              postOpString = " < 0";
+              break;
+            case BinaryExpr.ResolvedOpcode.Le:
+              postOpString = " <= 0";
+              break;
+            case BinaryExpr.ResolvedOpcode.Ge:
+              postOpString = " >= 0";
+              break;
+            case BinaryExpr.ResolvedOpcode.Gt:
+              postOpString = " > 0";
+              break;
+            default:
+              Contract.Assert(false);
+              throw new cce.UnreachableException();
+          }
           break;
         case BinaryExpr.ResolvedOpcode.LtChar:
           opString = "<";
           break;
-        case BinaryExpr.ResolvedOpcode.Le:
-          callString = "compareTo";
-          postOpString = " <= 0";
-          break;
         case BinaryExpr.ResolvedOpcode.LeChar:
           opString = "<=";
           break;
-        case BinaryExpr.ResolvedOpcode.Ge:
-          callString = "compareTo";
-          postOpString = " >= 0";
-          break;
         case BinaryExpr.ResolvedOpcode.GeChar:
           opString = ">=";
-          break;
-        case BinaryExpr.ResolvedOpcode.Gt:
-          callString = "compareTo";
-          postOpString = " > 0";
           break;
         case BinaryExpr.ResolvedOpcode.GtChar:
           opString = ">";
           break;
         case BinaryExpr.ResolvedOpcode.LeftShift:
-          callString = "shiftLeft";
+          doPossiblyNativeBinOp("<<", "shiftLeft", out preOpString, out opString, out postOpString, out callString);
           truncateResult = true;
           convertE1_to_int = true;
           break;
         case BinaryExpr.ResolvedOpcode.RightShift:
-          callString = "shiftRight";
+          doPossiblyNativeBinOp(">>>", "shiftRight", out preOpString, out opString, out postOpString, out callString);
           convertE1_to_int = true;
           break;
         case BinaryExpr.ResolvedOpcode.Add:
@@ -2195,26 +2293,8 @@ namespace Microsoft.Dafny{
             preOpString = "(char) (";
             postOpString = ")";
             opString = "+";
-          } else if (resultType is UserDefinedType && !resultType.IsIntegerType && !unsignedTypes.Contains(TypeName(e0.Type, null, tok)) && !unsignedTypes.Contains(TypeName(e1.Type, null, tok))) {
-            opString = "+";
-            // If operating on bytes or shorts, the operation will widen both
-            // to ints and the result will be an int, so we need to cast back.
-            // See https://docs.oracle.com/javase/specs/jls/se7/html/jls-5.html#jls-5.6.2
-            switch (TypeName(resultType, null, tok)) {
-              case "Byte":
-                preOpString = "(byte) (";
-                postOpString = ")";
-                break;
-              case "Short":
-                preOpString = "(short) (";
-                postOpString = ")";
-                break;
-              default:
-                // No need to cast
-                break;
-            }
           } else {
-            callString = "add";
+            doPossiblyNativeBinOp("+", "add", out preOpString, out opString, out postOpString, out callString);
           }
           break;
         case BinaryExpr.ResolvedOpcode.Sub:
@@ -2223,36 +2303,21 @@ namespace Microsoft.Dafny{
             preOpString = "(char) (";
             opString = "-";
             postOpString = ")";
-          } else if (resultType is UserDefinedType && !resultType.IsIntegerType && !unsignedTypes.Contains(TypeName(e0.Type, null, tok)) && !unsignedTypes.Contains(TypeName(e1.Type, null, tok))) {
-            opString = "-";
-            // If operating on bytes or shorts, the operation will widen both
-            // to ints and the result will be an int, so we need to cast back.
-            // See https://docs.oracle.com/javase/specs/jls/se7/html/jls-5.html#jls-5.6.2
-            switch (TypeName(resultType, null, tok)) {
-              case "Byte":
-                preOpString = "(byte) (";
-                postOpString = ")";
-                break;
-              case "Short":
-                preOpString = "(short) (";
-                postOpString = ")";
-                break;
-              default:
-                // No need to cast
-                break;
-            }
           } else {
-            callString = "subtract";
+            doPossiblyNativeBinOp("-", "subtract", out preOpString, out opString, out postOpString, out callString);
           }
           break;
         case BinaryExpr.ResolvedOpcode.Mul:
-          callString = "multiply";
+          doPossiblyNativeBinOp("*", "multiply", out preOpString, out opString, out postOpString, out callString);
           truncateResult = true;
           break;
         case BinaryExpr.ResolvedOpcode.Div:
           if (resultType.IsIntegerType || (AsNativeType(resultType) != null && AsNativeType(resultType).LowerBound < BigInteger.Zero)) {
             var suffix = AsNativeType(resultType) != null ? "_" + GetNativeTypeName(AsNativeType(resultType)) : "";
             staticCallString = $"{DafnyEuclideanClass}.EuclideanDivision" + suffix;
+          } else if (AsNativeType(resultType) != null) {
+            preOpString = CastIfSmallNativeType(resultType);
+            staticCallString = HelperClass(AsNativeType(resultType)) + ".divideUnsigned";
           } else {
             callString = "divide";
           }
@@ -2261,6 +2326,9 @@ namespace Microsoft.Dafny{
           if (resultType.IsIntegerType || (AsNativeType(resultType) != null && AsNativeType(resultType).LowerBound < BigInteger.Zero)) {
             var suffix = AsNativeType(resultType) != null ? "_" + GetNativeTypeName(AsNativeType(resultType)) : "";
             staticCallString = $"{DafnyEuclideanClass}.EuclideanModulus" + suffix;
+          } else if (AsNativeType(resultType) != null) {
+            preOpString = CastIfSmallNativeType(resultType);
+            staticCallString = HelperClass(AsNativeType(resultType)) + ".remainderUnsigned";
           } else {
             callString = "mod";
           }
@@ -2471,7 +2539,7 @@ namespace Microsoft.Dafny{
         return $"{DafnyBigRationalClass}.ZERO";
       } else if (xType is BitvectorType) {
         var t = (BitvectorType)xType;
-        return t.NativeType != null ? $"new {GetNativeTypeName(t.NativeType)}(0)" : "java.math.BigInteger.ZERO";
+        return t.NativeType != null ? $"new {GetNativeTypeName(t.NativeType)}({CastIfSmallNativeType(t)}0)" : "java.math.BigInteger.ZERO";
       } else if (xType is CollectionType collType) {
         string collName = CollectionTypeUnparameterizedName(collType);
         string argNames = TypeName(collType.Arg, wr, tok);
@@ -3108,6 +3176,29 @@ namespace Microsoft.Dafny{
       wr.Write(")");
     }
 
+    // Warning: NOT the same as NativeType.Bitwidth, which is zero except for
+    // bitvector types
+    private static int NativeTypeSize(NativeType nt) {
+      switch (nt.Sel) {
+        case NativeType.Selection.Byte:
+        case NativeType.Selection.SByte:
+          return 8;
+        case NativeType.Selection.Short:
+        case NativeType.Selection.UShort:
+          return 16;
+        case NativeType.Selection.Int:
+        case NativeType.Selection.UInt:
+          return 32;
+        case NativeType.Selection.Long:
+        case NativeType.Selection.ULong:
+        case NativeType.Selection.Number:
+          return 64;
+        default:
+          Contract.Assert(false);
+          throw new cce.UnreachableException();
+      }
+    }
+
     protected override void EmitConversionExpr(ConversionExpr e, bool inLetExprBody, TargetWriter wr) {
       if (e.E.Type.IsNumericBased(Type.NumericPersuation.Int) || e.E.Type.IsBitVectorType || e.E.Type.IsCharType) {
         if (e.ToType.IsNumericBased(Type.NumericPersuation.Real)) {
@@ -3144,16 +3235,24 @@ namespace Microsoft.Dafny{
             // native (int or bv) -> big-integer (int or bv)
             if (fromNative.Sel == NativeType.Selection.ULong) {
               // Can't just use .longValue() because that may return a negative
+              wr.Write($"{DafnyHelpersClass}.unsignedLongToBigInteger");
               TrParenExpr(e.E, wr, inLetExprBody);
-              wr.Write(".asBigInteger()");
             } else {
               wr.Write("java.math.BigInteger.valueOf(");
-              TrParenExpr(e.E, wr, inLetExprBody);
-              if (!e.E.Type.IsIntegerType) {
-                wr.Write(".longValue()");
+              if (fromNative.LowerBound >= 0) {
+                TrParenExpr($"{GetNativeTypeName(fromNative)}.toUnsignedLong", e.E, wr, inLetExprBody);
+              } else {
+                TrParenExpr(e.E, wr, inLetExprBody);
+                if (!e.E.Type.IsIntegerType) {
+                  wr.Write(".longValue()");
+                }
               }
               wr.Write(")");
             }
+          } else if (fromNative != null && NativeTypeSize(toNative) == NativeTypeSize(fromNative)) {
+            // native (int or bv) -> native (int or bv)
+            // Cast between signed and unsigned, which have the same Java type
+            TrParenExpr(e.E, wr, inLetExprBody);
           } else {
             GetNativeInfo(toNative.Sel, out var toNativeName, out var toNativeSuffix, out var toNativeNeedsCast);
             // any (int or bv) -> native (int or bv)
@@ -3167,34 +3266,29 @@ namespace Microsoft.Dafny{
               EmitNativeIntegerLiteral((BigInteger) literal, toNative, wr);
             } else if (u != null && u.Op == UnaryOpExpr.Opcode.Cardinality) {
               // Optimize || to avoid intermediate BigInteger
-              EmitCastIfSmallSignedType(toNative, wr);
+              wr.Write(CastIfSmallNativeType(e.ToType));
               TrParenExpr("", u.E, wr, inLetExprBody);
               wr.Write(".cardinalityInt()");
             } else if (m != null && m.MemberName == "Length" && m.Obj.Type.IsArrayType) {
-              EmitCastIfSmallSignedType(toNative, wr);
               // Optimize .length to avoid intermediate BigInteger
+              wr.Write(CastIfSmallNativeType(e.ToType));
               TrParenExpr(m.Obj, wr, inLetExprBody);
               wr.Write(".length");
             } else {
               // no optimization applies; use the standard translation
-              TrParenExpr(e.E, wr, inLetExprBody);
-              switch (toNative.Sel) {
-                case NativeType.Selection.Byte:
-                case NativeType.Selection.SByte:
-                  wr.Write(".byteValue()");
-                  break;
-                case NativeType.Selection.Short:
-                case NativeType.Selection.UShort:
-                  wr.Write(".shortValue()");
-                  break;
-                case NativeType.Selection.Int:
-                case NativeType.Selection.UInt:
-                  wr.Write(".intValue()");
-                  break;
-                case NativeType.Selection.Long:
-                case NativeType.Selection.ULong:
-                  wr.Write(".longValue()");
-                  break;
+              if (fromNative != null && fromNative.LowerBound >= 0 && NativeTypeSize(fromNative) < NativeTypeSize(toNative)) {
+                // Widening an unsigned value; careful!!
+                wr.Write($"{CastIfSmallNativeType(e.ToType)}{GetNativeTypeName(fromNative)}");
+                if (NativeTypeSize(toNative) == 64) {
+                  wr.Write(".toUnsignedLong(");
+                } else {
+                  wr.Write(".toUnsignedInt(");
+                }
+                TrParenExpr(e.E, wr, inLetExprBody);
+                wr.Write(")");
+              } else {
+                TrParenExpr(e.E, wr, inLetExprBody);
+                wr.Write($".{GetUnboxedNativeTypeName(toNative)}Value()");
               }
             }
             wr.Write(")");
@@ -3219,13 +3313,6 @@ namespace Microsoft.Dafny{
         Contract.Assert(e.ToType.IsNumericBased(Type.NumericPersuation.Int));
         // identity will do
         TrExpr(e.E, wr, inLetExprBody);
-      }
-    }
-
-    private void EmitCastIfSmallSignedType(NativeType nt, TargetWriter wr) {
-      switch (nt.Sel) {
-        case NativeType.Selection.SByte: wr.Write("(byte) "); break;
-        case NativeType.Selection.Short: wr.Write("(short) "); break;
       }
     }
 
