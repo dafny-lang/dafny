@@ -211,6 +211,10 @@ namespace Microsoft.Dafny {
     }
     protected abstract void EmitJumpToTailCallStart(TargetWriter wr);
     protected abstract string TypeName(Type type, TextWriter wr, Bpl.IToken tok, MemberDecl/*?*/ member = null);
+    // For cases where a type looks different when it's an argument, such as (*sigh*) Java primitives
+    protected virtual string TypeArgumentName(Type type, TextWriter wr, Bpl.IToken tok) {
+      return TypeName(type, wr, tok);
+    }
     public abstract string TypeInitializationValue(Type type, TextWriter/*?*/ wr, Bpl.IToken/*?*/ tok, bool inAutoInitContext);
     protected abstract string TypeName_UDT(string fullCompileName, List<Type> typeArgs, TextWriter wr, Bpl.IToken tok);
     protected abstract string/*?*/ TypeName_Companion(Type type, TextWriter wr, Bpl.IToken tok, MemberDecl/*?*/ member);
@@ -266,7 +270,7 @@ namespace Microsoft.Dafny {
     /// </summary>
     protected abstract TargetWriter DeclareLocalVar(string name, Type/*?*/ type, Bpl.IToken/*?*/ tok, TargetWriter wr);
     protected virtual void DeclareOutCollector(string collectorVarName, TargetWriter wr) { }  // called only for return-style calls
-    protected virtual void DeclareSpecificOutCollector(string collectorVarName, TargetWriter wr, int outCount, List<Type> types, Method m) {DeclareOutCollector(collectorVarName, wr); } // for languages that don't allow "let" or "var" expressions
+    protected virtual void DeclareSpecificOutCollector(string collectorVarName, TargetWriter wr, List<Type> types, List<Type> formalTypes, List<Type> lhsTypes) {DeclareOutCollector(collectorVarName, wr); } // for languages that don't allow "let" or "var" expressions
     protected virtual bool UseReturnStyleOuts(Method m, int nonGhostOutCount) => false;
     protected virtual BlockTargetWriter EmitMethodReturns(Method m, BlockTargetWriter wr) { return wr; } // for languages that need explicit return statements not provided by Dafny
     protected virtual bool SupportsMultipleReturns { get => false; }
@@ -282,7 +286,7 @@ namespace Microsoft.Dafny {
     protected abstract void DeclareLocalOutVar(string name, Type type, Bpl.IToken tok, string rhs, bool useReturnStyleOuts, TargetWriter wr);
     protected virtual void EmitActualOutArg(string actualOutParamName, TextWriter wr) { }  // actualOutParamName is always the name of a local variable; called only for non-return-style outs
     protected virtual void EmitOutParameterSplits(string outCollector, List<string> actualOutParamNames, TargetWriter wr) { }  // called only for return-style calls
-    protected virtual void EmitCastOutParameterSplits(string outCollector, List<string> actualOutParamNames, TargetWriter wr, List<Type> actualOutParamTypes, Bpl.IToken tok) {
+    protected virtual void EmitCastOutParameterSplits(string outCollector, List<string> actualOutParamNames, TargetWriter wr, List<Type> actualOutParamTypes, List<Type> formalOutParamTypes, List<Type> lhsTypes, Bpl.IToken tok) {
       EmitOutParameterSplits(outCollector, actualOutParamNames, wr); }
 
     protected abstract void EmitActualTypeArgs(List<Type> typeArgs, Bpl.IToken tok, TextWriter wr);
@@ -296,10 +300,6 @@ namespace Microsoft.Dafny {
       var w = wLhs.EmitWrite(wr);
       w = EmitCoercionIfNecessary(from:rhsType, to:lhsType, tok: Bpl.Token.NoToken, wr: w);
       return w;
-    }
-
-    protected virtual void EmitAssignment(out TargetWriter wLhs, Type /*?*/ lhsType, out TargetWriter wRhs, Type /*?*/ rhsType, TargetWriter wr, bool MemberSelectObjIsTrait) {
-      EmitAssignment(out wLhs, lhsType, out wRhs, rhsType, wr);
     }
 
     protected virtual void EmitAssignment(out TargetWriter wLhs, Type/*?*/ lhsType, out TargetWriter wRhs, Type/*?*/ rhsType, TargetWriter wr) {
@@ -1103,7 +1103,7 @@ namespace Microsoft.Dafny {
           } else if (f.IsGhost) {
             // nothing to compile, but we do check for assumes
             if (f.Body == null) {
-              Contract.Assert(c is TraitDecl && !f.IsStatic);
+              Contract.Assert(c is TraitDecl && !f.IsStatic || Attributes.Contains(f.Attributes, "extern"));
             } else {
               var v = new CheckHasNoAssumes_Visitor(this, errorWr);
               v.Visit(f.Body);
@@ -2039,13 +2039,13 @@ namespace Microsoft.Dafny {
           if (s0.Lhs is MemberSelectExpr) {
             var lhs = (MemberSelectExpr) s0.Lhs;
             L = 2;
-            tupleTypeArgs = TypeName(lhs.Obj.Type, wr, lhs.tok);
+            tupleTypeArgs = TypeArgumentName(lhs.Obj.Type, wr, lhs.tok);
             tupleTypeArgsList = new List<Type> { lhs.Obj.Type };
           } else if (s0.Lhs is SeqSelectExpr) {
             var lhs = (SeqSelectExpr) s0.Lhs;
             L = 3;
             // note, we might as well do the BigInteger-to-int cast for array indices here, before putting things into the Tuple rather than when they are extracted from the Tuple
-            tupleTypeArgs = TypeName(lhs.Seq.Type, wr, lhs.tok) + IntSelect;
+            tupleTypeArgs = TypeArgumentName(lhs.Seq.Type, wr, lhs.tok) + IntSelect;
             tupleTypeArgsList = new List<Type> { lhs.Seq.Type, null };
           } else {
             var lhs = (MultiSelectExpr) s0.Lhs;
@@ -2054,7 +2054,7 @@ namespace Microsoft.Dafny {
               Error(lhs.tok, "compiler currently does not support assignments to more-than-6-dimensional arrays in forall statements", wr);
               return;
             }
-            tupleTypeArgs = TypeName(lhs.Array.Type, wr, lhs.tok);
+            tupleTypeArgs = TypeArgumentName(lhs.Array.Type, wr, lhs.tok);
             tupleTypeArgsList = new List<Type> { lhs.Array.Type };
             for (int i = 0; i < lhs.Indices.Count; i++) {
               // note, we might as well do the BigInteger-to-int cast for array indices here, before putting things into the Tuple rather than when they are extracted from the Tuple
@@ -2063,7 +2063,7 @@ namespace Microsoft.Dafny {
             }
 
           }
-          tupleTypeArgs += "," + TypeName(rhs.Type, wr, rhs.tok);
+          tupleTypeArgs += "," + TypeArgumentName(rhs.Type, wr, rhs.tok);
           tupleTypeArgsList.Add(rhs.Type);
 
           // declare and construct "ingredients"
@@ -2738,13 +2738,13 @@ namespace Microsoft.Dafny {
           var indices = Translator.Map(Enumerable.Range(0, tRhs.ArrayDimensions.Count), ii => idGenerator.FreshId("_arrayinit_" + ii));
           var w = wStmts;
           for (var d = 0; d < tRhs.ArrayDimensions.Count; d++) {
-            string len, p0, p1;
-            GetSpecialFieldInfo(SpecialField.ID.ArrayLengthInt, tRhs.ArrayDimensions.Count == 1 ? null : (object)d, out len, out p0, out p1);
-            var bound = string.Format("{0}.{1}", nw, len);
+            string len, pre, post;
+            GetSpecialFieldInfo(SpecialField.ID.ArrayLength, tRhs.ArrayDimensions.Count == 1 ? null : (object)d, out len, out pre, out post);
+            var bound = string.Format("{0}{1}{2}{3}", pre, nw, len == "" ? "" : "." + len, post);
             w = CreateForLoop(indices[d], bound, w);
           }
           var eltRhs = string.Format("{0}{2}({1})", f, Util.Comma(indices, ArrayIndexToInt), LambdaExecute);
-          var wArray = EmitArrayUpdate(indices, eltRhs, tRhs.ElementInit.Type, w);
+          var wArray = EmitArrayUpdate(indices, eltRhs, tRhs.EType, w);
           wArray.Write(nw);
           EndStmt(w);
         } else if (tRhs.InitDisplay != null) {
@@ -2771,10 +2771,6 @@ namespace Microsoft.Dafny {
       } else {
         return null;
       }
-    }
-
-    protected virtual bool ReturnStyleHelper(string returnStyleOutCollector) {
-      return false;
     }
 
     void TrCallStmt(CallStmt s, string receiverReplacement, TargetWriter wr) {
@@ -2840,6 +2836,8 @@ namespace Microsoft.Dafny {
         }
         var outTmps = new List<string>();  // contains a name for each non-ghost formal out-parameter
         var outTypes = new List<Type>();  // contains a type for each non-ghost formal out-parameter
+        var outFormalTypes = new List<Type>(); // contains the type as it appears in the method type (possibly includes type parameters)
+        var outLhsTypes = new List<Type>(); // contains the type as it appears on the LHS (may give types for those parameters)
         for (int i = 0; i < s.Method.Outs.Count; i++) {
           Formal p = s.Method.Outs[i];
           if (!p.IsGhost) {
@@ -2893,6 +2891,8 @@ namespace Microsoft.Dafny {
               type = NativeForm(type);
             }
             outTypes.Add(type);
+            outFormalTypes.Add(p.Type);
+            outLhsTypes.Add(s.Lhs[i].Type);
             DeclareLocalVar(target, type, s.Lhs[i].tok, false, null, wr);
           }
         }
@@ -2904,7 +2904,7 @@ namespace Microsoft.Dafny {
         bool returnStyleOuts = UseReturnStyleOuts(s.Method, outTmps.Count);
         var returnStyleOutCollector = outTmps.Count > 0 && returnStyleOuts && !SupportsMultipleReturns ? idGenerator.FreshId("_outcollector") : null;
         if (returnStyleOutCollector != null) {
-          DeclareSpecificOutCollector(returnStyleOutCollector, wr, outTmps.Count, outTypes, s.Method);
+          DeclareSpecificOutCollector(returnStyleOutCollector, wr, outTypes, outFormalTypes, outLhsTypes);
         } else if (outTmps.Count > 0 && returnStyleOuts && SupportsMultipleReturns) {
           wr.Write("{0} = ", Util.Comma(outTmps));
         }
@@ -2931,7 +2931,7 @@ namespace Microsoft.Dafny {
         typeArgs = s.Method.TypeArgs.ConvertAll(ta => typeSubst[ta]);
         EmitActualTypeArgs(typeArgs, s.Tok, wr);
         wr.Write("(");
-        var nRTDs = EmitRuntimeTypeDescriptorsActuals(typeArgs, s.Method.TypeArgs, s.Tok, ReturnStyleHelper(returnStyleOutCollector), wr);
+        var nRTDs = EmitRuntimeTypeDescriptorsActuals(typeArgs, s.Method.TypeArgs, s.Tok, false, wr);
         string sep = nRTDs == 0 ? "" : ", ";
         if (customReceiver) {
           TrExpr(s.Receiver, wr, false);
@@ -2961,7 +2961,7 @@ namespace Microsoft.Dafny {
         wr.Write(')');
         EndStmt(wr);
         if (returnStyleOutCollector != null) {
-          EmitCastOutParameterSplits(returnStyleOutCollector, outTmps, wr, outTypes, s.Tok);
+          EmitCastOutParameterSplits(returnStyleOutCollector, outTmps, wr, outTypes, outFormalTypes, outLhsTypes, s.Tok);
         }
 
         // assign to the actual LHSs
@@ -2972,7 +2972,7 @@ namespace Microsoft.Dafny {
             if (lvalue != null) {
               // The type information here takes care both of implicit upcasts and
               // implicit downcasts from type parameters (see above).
-              TargetWriter wRhs = EmitAssignment(lvalue, s.Lhs[j].Type, p.Type, wr);
+              TargetWriter wRhs = EmitAssignment(lvalue, s.Lhs[j].Type, outTypes[l], wr);
               if (s.Method.IsExtern(out _, out _)) {
                 wRhs = EmitCoercionFromNativeForm(p.Type, s.Tok, wRhs);
               }
@@ -3090,12 +3090,6 @@ namespace Microsoft.Dafny {
       wr.Write("(");
       TrExpr(expr, wr, inLetExprBody);
       wr.Write(")");
-    }
-
-    protected virtual void TrBvExpr(Expression expr, TargetWriter wr, bool inLetExprBody){
-      Contract.Requires(expr != null);
-      Contract.Requires(wr != null);
-      TrParenExpr(expr, wr, inLetExprBody);
     }
 
     /// <summary>
@@ -3336,12 +3330,12 @@ namespace Microsoft.Dafny {
             wr.Write(postOpString);
           } else if (callString != null) {
             wr.Write(preOpString);
-            TrBvExpr(e0, wr, inLetExprBody);
+            TrParenExpr(e0, wr, inLetExprBody);
             wr.Write(".{0}(", callString);
             if (convertE1_to_int) {
               EmitExprAsInt(e1, inLetExprBody, wr);
             } else {
-              TrBvExpr(e1, wr, inLetExprBody);
+              TrParenExpr(e1, wr, inLetExprBody);
             }
             wr.Write(")");
             wr.Write(postOpString);
