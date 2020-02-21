@@ -154,9 +154,9 @@ namespace Microsoft.Dafny{
         wIndex.Write(")");
         indices.Add(wIndex.ToString());
       }
-      EmitArraySelectAsLvalue(array, indices, tupleTypeArgsList[L - 1], wr);
-      wr.Write(" = ");
-      EmitTupleSelect(tup, L - 1, wr);
+      var lv = EmitArraySelectAsLvalue(array, indices, tupleTypeArgsList[L - 1]);
+      var wrRhs = EmitAssignment(lv, tupleTypeArgsList[L - 1], null, wr);
+      EmitTupleSelect(tup, L - 1, wrRhs);
       EndStmt(wr);
     }
 
@@ -1087,31 +1087,66 @@ namespace Microsoft.Dafny{
       }
     }
 
-    protected override TargetWriter EmitMemberSelect(MemberDecl member, bool isLValue, Type expectedType,
-      TargetWriter wr) {
-      return EmitMemberSelect(member, isLValue, expectedType, wr, false);
-    }
-
-    protected override TargetWriter EmitMemberSelect(MemberDecl member, bool isLValue, Type expectedType, TargetWriter wr, bool MemberSelectObjIsTrait) {
-      var wSource = wr.Fork();
-      if (isLValue && member is ConstantField) {
-        wr.Write($".{member.CompileName}");
-      } else if (!isLValue && member is SpecialField sf) {
+    protected override ILvalue EmitMemberSelect(Action<TargetWriter> obj, MemberDecl member, Type expectedType, bool internalAccess = false) {
+      if (member.EnclosingClass is TraitDecl && !member.IsStatic) {
+        return new GetterSetterLvalue(obj, IdName(member));
+      } else if (member is ConstantField) {
+        return SuffixLvalue(obj, $".{member.CompileName}");
+      } else if (member is SpecialField sf) {
         GetSpecialFieldInfo(sf.SpecialId, sf.IdParam, out var compiledName, out _, out _);
         if (compiledName.Length != 0){
-          wr.Write(".{0}{1}{2}", MemberSelectObjIsTrait && !sf.IsStatic ? "get_" : "", compiledName,
-            (MemberSelectObjIsTrait && !sf.IsStatic) || member.EnclosingClass is DatatypeDecl ? "()" : "");
+          if (member.EnclosingClass is DatatypeDecl) {
+            return new GetterSetterLvalue(obj, getter: compiledName, setter: null);
+          } else {
+            return SuffixLvalue(obj, $".{compiledName}");
+          }
+        } else {
+          // Assume it's already handled by the caller
+          return SimpleLvalue(obj);
         }
-      } else if (!isLValue && MemberSelectObjIsTrait && !member.IsStatic) {
-        wr.Write($".get_{IdName(member)}()");
-      } else if (isLValue && MemberSelectObjIsTrait && !member.IsStatic) {
-        wr.Write($".set_{IdName(member)}(");
       } else if (member is Function) {
-        wr.Write($"::{IdName(member)}");
+        return SuffixLvalue(obj, $"::{IdName(member)}");
       } else {
-        wr.Write($".{IdName(member)}");
+        return SuffixLvalue(obj, $".{IdName(member)}");
       }
-      return wSource;
+    }
+
+    // FIXME This is a bit sketchy: Rather than encapsulating the idea of an
+    // lvalue, both EmitRead() and EmitWrite() assume (as does
+    // EmitMemberSelect()) that the member has already been written and we need
+    // only write the part starting with the period.  Cleaning up this logic
+    // would require reworking the way EmitMemberSelect() is called.
+    private class GetterSetterLvalue : ILvalue {
+      private readonly Action<TargetWriter> Object;
+      private readonly string Getter;
+      private readonly string/*?*/ Setter;
+
+      public GetterSetterLvalue(Action<TargetWriter> obj, string name) {
+        this.Object = obj;
+        this.Getter = $"get_{name}";
+        this.Setter = $"set_{name}";
+      }
+
+      public GetterSetterLvalue(Action<TargetWriter> obj, string getter, string/*?*/ setter) {
+        this.Object = obj;
+        this.Getter = getter;
+        this.Setter = setter;
+      }
+
+      public void EmitRead(TargetWriter wr) {
+        Object(wr);
+        wr.Write($".{Getter}()");
+      }
+
+      public TargetWriter EmitWrite(TargetWriter wr) {
+        Contract.Assert(Setter != null, "Unexpected write to read-only property");
+
+        Object(wr);
+        wr.Write($".{Setter}(");
+        var w = wr.Fork();
+        wr.WriteLine(");");
+        return w;
+      }
     }
 
     protected override void EmitConstructorCheck(string source, DatatypeCtor ctor, TargetWriter wr){

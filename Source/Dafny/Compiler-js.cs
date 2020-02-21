@@ -1436,24 +1436,29 @@ namespace Microsoft.Dafny {
       }
     }
 
-    protected override TargetWriter EmitMemberSelect(MemberDecl member, bool isLValue, Type expectedType, TargetWriter wr) {
-      var wSource = wr.Fork();
-      if (isLValue && member is ConstantField) {
-        wr.Write("._{0}", member.CompileName);
+    protected override ILvalue EmitMemberSelect(Action<TargetWriter> obj, MemberDecl member, Type expectedType, bool internalAccess = false) {
+      if (member is ConstantField) {
+        return SimpleLvalue(lvalueAction: wr => {
+          obj(wr);
+          wr.Write("._{0}", member.CompileName);
+        }, rvalueAction: wr => {
+          obj(wr);
+          wr.Write(".{0}{1}", internalAccess ? "_" : "", member.CompileName);
+        });
       } else if (member is DatatypeDestructor dtor && dtor.EnclosingClass is TupleTypeDecl) {
-        wr.Write("[{0}]", dtor.Name);
-      } else if (!isLValue && member is SpecialField sf) {
+        return SuffixLvalue(obj, "[{0}]", dtor.Name);
+      } else if (member is SpecialField sf) {
         string compiledName, preStr, postStr;
         GetSpecialFieldInfo(sf.SpecialId, sf.IdParam, out compiledName, out preStr, out postStr);
         if (compiledName.Length != 0) {
-          wr.Write(".{0}", compiledName);
+          return SuffixLvalue(obj, ".{0}", compiledName);
         } else {
           // this member selection is handled by some kind of enclosing function call, so nothing to do here
+          return SimpleLvalue(obj);
         }
       } else {
-        wr.Write(".{0}", IdName(member));
+        return SuffixLvalue(obj, ".{0}", IdName(member));
       }
-      return wSource;
     }
 
     protected override TargetWriter EmitArraySelect(List<string> indices, Type elmtType, TargetWriter wr) {

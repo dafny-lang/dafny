@@ -292,6 +292,12 @@ namespace Microsoft.Dafny {
       return DeclareLocalVar(name, type, tok, wr);
     }
 
+    protected virtual TargetWriter EmitAssignment(ILvalue wLhs, Type/*?*/ lhsType, Type/*?*/ rhsType, TargetWriter wr) {
+      var w = wLhs.EmitWrite(wr);
+      w = EmitCoercionIfNecessary(from:rhsType, to:lhsType, Bpl.Token.NoToken, w);
+      return w;
+    }
+
     protected virtual void EmitAssignment(out TargetWriter wLhs, Type /*?*/ lhsType, out TargetWriter wRhs, Type /*?*/ rhsType, TargetWriter wr, bool MemberSelectObjIsTrait) {
       EmitAssignment(out wLhs, lhsType, out wRhs, rhsType, wr);
     }
@@ -328,9 +334,9 @@ namespace Microsoft.Dafny {
       return w;
     }
 
-    protected virtual void EmitMultiAssignment(out List<TargetWriter> wLhss, List<Type> lhsTypes, out List<TargetWriter> wRhss, List<Type> rhsTypes, TargetWriter wr) {
+    protected virtual void EmitMultiAssignment(List<ILvalue> lhss, List<Type> lhsTypes, out List<TargetWriter> wRhss, List<Type> rhsTypes, TargetWriter wr) {
+      Contract.Assert(lhss.Count == lhsTypes.Count);
       Contract.Assert(lhsTypes.Count == rhsTypes.Count);
-      wLhss = new List<TargetWriter>();
       wRhss = new List<TargetWriter>();
       var rhsVars = new List<string>();
       foreach (var lhsType in lhsTypes) {
@@ -344,9 +350,7 @@ namespace Microsoft.Dafny {
 
       Contract.Assert(rhsVars.Count == lhsTypes.Count);
       for (int i = 0; i < rhsVars.Count; i++) {
-        TargetWriter wLhs, wRhsVar;
-        EmitAssignment(out wLhs, lhsTypes[i], out wRhsVar, rhsTypes[i], wr);
-        wLhss.Add(wLhs);
+        TargetWriter wRhsVar = EmitAssignment(lhss[i], lhsTypes[i], rhsTypes[i], wr);
         wRhsVar.Write(rhsVars[i]);
       }
     }
@@ -519,18 +523,17 @@ namespace Microsoft.Dafny {
     }
     protected abstract void EmitDatatypeValue(DatatypeValue dtv, string arguments, TargetWriter wr);
     protected abstract void GetSpecialFieldInfo(SpecialField.ID id, object idParam, out string compiledName, out string preString, out string postString);
-    protected abstract TargetWriter EmitMemberSelect(MemberDecl member, bool isLValue, Type expectedType, TargetWriter wr);
-    protected virtual TargetWriter EmitMemberSelect(MemberDecl member, bool isLValue, Type expectedType, TargetWriter wr, bool MemberSelectObjIsTrait) {
-      return EmitMemberSelect(member, isLValue, expectedType, wr);
-    }
+    protected abstract ILvalue EmitMemberSelect(Action<TargetWriter> obj, MemberDecl member, Type expectedType, bool internalAccess = false);
     protected void EmitArraySelect(string index, Type elmtType, TargetWriter wr) {
       EmitArraySelect(new List<string>() { index }, elmtType, wr);
     }
     protected abstract TargetWriter EmitArraySelect(List<string> indices, Type elmtType, TargetWriter wr);
     protected abstract TargetWriter EmitArraySelect(List<Expression> indices, Type elmtType, bool inLetExprBody, TargetWriter wr);
-    protected virtual void EmitArraySelectAsLvalue(string array, List<string> indices, Type elmtType, TargetWriter wr) {
-      wr.Write(array);
-      EmitArraySelect(indices, elmtType, wr);
+    protected virtual ILvalue EmitArraySelectAsLvalue(string array, List<string> indices, Type elmtType) {
+      return SimpleLvalue(wr => {
+        wr.Write(array);
+        EmitArraySelect(indices, elmtType, wr); 
+      });
     }
     protected virtual TargetWriter EmitArrayUpdate(List<string> indices, string rhs, Type elmtType, TargetWriter wr) {
       var w = EmitArraySelect(indices, elmtType, wr);
@@ -1055,8 +1058,7 @@ namespace Microsoft.Dafny {
                   CompileReturnBody(cf.Rhs, wBody);
                 } else if (!cf.IsStatic) {
                   var sw = EmitReturnExpr(wBody);
-                  var wThis = EmitMemberSelect(cf, true, f.Type, sw);
-                  EmitThis(wThis);
+                  EmitMemberSelect(EmitThis, cf, f.Type, internalAccess: true).EmitRead(sw);
                 } else {
                   EmitReturnExpr(DefaultValue(cf.Type, wBody, cf.tok, true), wBody);
                 }
@@ -1821,10 +1823,13 @@ namespace Microsoft.Dafny {
           }
 
           var wStmts = wr.ForkSection();
-          List<TargetWriter> wLhss, wRhss;
-          EmitMultiAssignment(out wLhss, lhsTypes, out wRhss, rhsTypes, wr);
-          for (int i = 0; i < wLhss.Count; i++) {
-            wLhss[i].Write(CreateLvalue(lhss[i], wStmts));
+          var lvalues = new List<ILvalue>();
+          foreach (Expression lhs in lhss) {
+            lvalues.Add(CreateLvalue(lhs, wStmts));
+          }
+          List<TargetWriter> wRhss;
+          EmitMultiAssignment(lvalues, lhsTypes, out wRhss, rhsTypes, wr);
+          for (int i = 0; i < wRhss.Count; i++) {
             TrRhs(rhss[i], wRhss[i], wStmts);
           }
         }
@@ -1838,10 +1843,7 @@ namespace Microsoft.Dafny {
         } else {
           var lvalue = CreateLvalue(s.Lhs, wr);
           var wStmts = wr.ForkSection();
-          TargetWriter wLhs, wRhs;
-          var MemberSelectObjIsTrait = s.Lhs is MemberSelectExpr && ((MemberSelectExpr)s.Lhs).Obj.Type.IsTraitType && !(((MemberSelectExpr)s.Lhs).Obj is ThisExpr);
-          EmitAssignment(out wLhs, s.Lhs.Type, out wRhs, TypeOfRhs(s.Rhs), wr, MemberSelectObjIsTrait);
-          wLhs.Write(lvalue);
+          var wRhs = EmitAssignment(lvalue, s.Lhs.Type, TypeOfRhs(s.Rhs), wr);
           TrRhs(s.Rhs, wRhs, wStmts);
         }
 
@@ -2220,9 +2222,9 @@ namespace Microsoft.Dafny {
         EmitTupleSelect(tup, i + 1, wIndex);
         indices.Add(wIndex.ToString());
       }
-      EmitArraySelectAsLvalue(array, indices, tupleTypeArgsList[L - 1], wr);
-      wr.Write(" = ");
-      EmitTupleSelect(tup, L - 1, wr);
+      var lvalue = EmitArraySelectAsLvalue(array, indices, tupleTypeArgsList[L - 1]);
+      var wRhs = lvalue.EmitWrite(wr);
+      EmitTupleSelect(tup, L - 1, wRhs);
       EndStmt(wr);
     }
 
@@ -2548,30 +2550,78 @@ namespace Microsoft.Dafny {
       EmitAbsurd(string.Format("assign-such-that search produced no value (line {0})", debuginfoLine), wrOuter, needIterLimit);
     }
 
-    string CreateLvalue(Expression lhs, TargetWriter wr) {
+    protected interface ILvalue {
+      void EmitRead(TargetWriter wr);
+
+      /// Write an assignment expression (or equivalent) for the lvalue,
+      /// returning a TargetWriter for the RHS.  IMPORTANT: Whoever calls
+      /// EmitWrite is responsible for making the types match up (as by
+      /// EmitCoercionIfNecessary), for example by going through the overload
+      /// of EmitAssignment that takes an ILvalue.
+      TargetWriter EmitWrite(TargetWriter wr);
+    }
+
+    protected ILvalue SimpleLvalue(Action<TargetWriter> action) {
+      return new SimpleLvalueImpl(this, action);
+    }
+
+    protected ILvalue SimpleLvalue(Action<TargetWriter> lvalueAction, Action<TargetWriter> rvalueAction) {
+      return new SimpleLvalueImpl(this, lvalueAction, rvalueAction);
+    }
+
+    protected ILvalue StringLvalue(string str) {
+      return new SimpleLvalueImpl(this, wr => wr.Write(str));
+    }
+
+    protected ILvalue SuffixLvalue(Action<TargetWriter> action, string str, params object[] args) {
+      return new SimpleLvalueImpl(this, wr => { action(wr); wr.Write(str, args); });
+    }
+
+    private class SimpleLvalueImpl : ILvalue {
+      private readonly Compiler Compiler;
+      private readonly Action<TargetWriter> LvalueAction, RvalueAction;
+
+      public SimpleLvalueImpl(Compiler compiler, Action<TargetWriter> action) {
+        Compiler = compiler;
+        LvalueAction = action;
+        RvalueAction = action;
+      }
+
+      public SimpleLvalueImpl(Compiler compiler, Action<TargetWriter> lvalueAction, Action<TargetWriter> rvalueAction) {
+        Compiler = compiler;
+        LvalueAction = lvalueAction;
+        RvalueAction = rvalueAction;
+      }
+
+      public void EmitRead(TargetWriter wr) {
+        RvalueAction(wr);
+      }
+
+      public TargetWriter EmitWrite(TargetWriter wr) {
+        Compiler.EmitAssignment(out var wLhs, null, out var wRhs, null, wr);
+        LvalueAction(wLhs);
+        return wRhs;
+      }
+    }
+
+    ILvalue CreateLvalue(Expression lhs, TargetWriter wr) {
       Contract.Requires(lhs != null);
       Contract.Requires(wr != null);
 
       lhs = lhs.Resolved;
       if (lhs is IdentifierExpr) {
         var ll = (IdentifierExpr)lhs;
-        return IdName(ll.Var);
+        return StringLvalue(IdName(ll.Var));
       } else if (lhs is MemberSelectExpr) {
         var ll = (MemberSelectExpr)lhs;
         Contract.Assert(!ll.Member.IsInstanceIndependentConstant);  // instance-independent const's don't have assignment statements
         var obj = StabilizeExpr(ll.Obj, "_obj", wr);
-        var sw = new TargetWriter();
-        var MemberSelectObjIsTrait = ll.Obj.Type.IsTraitType && !(ll.Obj is ThisExpr);
-        var w = EmitMemberSelect(ll.Member, true, lhs.Type, sw, MemberSelectObjIsTrait);
-        w.Write(obj);
-        return sw.ToString();
+        return EmitMemberSelect(w => w.Write(obj), ll.Member, lhs.Type);
       } else if (lhs is SeqSelectExpr) {
         var ll = (SeqSelectExpr)lhs;
         var arr = StabilizeExpr(ll.Seq, "_arr", wr);
         var index = StabilizeExpr(ll.E0, "_index", wr);
-        var sw = new TargetWriter();
-        EmitArraySelectAsLvalue(arr, new List<string>() { index }, ll.Type, sw);
-        return sw.ToString();
+        return EmitArraySelectAsLvalue(arr, new List<string>() { index }, ll.Type);
       } else {
         var ll = (MultiSelectExpr)lhs;
         string arr = StabilizeExpr(ll.Array, "_arr", wr);
@@ -2581,9 +2631,7 @@ namespace Microsoft.Dafny {
           indices.Add(StabilizeExpr(idx, "_index" + i + "_", wr));
           i++;
         }
-        var sw = new TargetWriter();
-        EmitArraySelectAsLvalue(arr, indices, ll.Type, sw);
-        return sw.ToString();
+        return EmitArraySelectAsLvalue(arr, indices, ll.Type);
       }
     }
 
@@ -2775,7 +2823,7 @@ namespace Microsoft.Dafny {
       } else {
         // compile call as a regular call
 
-        var lvalues = new List<string/*?*/>();  // contains an entry for each non-ghost formal out-parameter, but the entry is null if the actual out-parameter is ghost
+        var lvalues = new List<ILvalue>();  // contains an entry for each non-ghost formal out-parameter, but the entry is null if the actual out-parameter is ghost
         Contract.Assert(s.Lhs.Count == s.Method.Outs.Count);
         for (int i = 0; i < s.Method.Outs.Count; i++) {
           Formal p = s.Method.Outs[i];
@@ -2924,9 +2972,7 @@ namespace Microsoft.Dafny {
             if (lvalue != null) {
               // The type information here takes care both of implicit upcasts and
               // implicit downcasts from type parameters (see above).
-              TargetWriter wLhs, wRhs;
-              EmitAssignment(out wLhs, s.Lhs[j].Type, out wRhs, p.Type, wr);
-              wLhs.Write(lvalue);
+              TargetWriter wRhs = EmitAssignment(lvalue, s.Lhs[j].Type, p.Type, wr);
               if (s.Method.IsExtern(out _, out _)) {
                 wRhs = EmitCoercionFromNativeForm(p.Type, s.Tok, wRhs);
               }
@@ -3120,25 +3166,29 @@ namespace Microsoft.Dafny {
 
       } else if (expr is MemberSelectExpr) {
         MemberSelectExpr e = (MemberSelectExpr)expr;
-        var MemberSelectObjIsTrait = e.Obj.Type.IsTraitType;
         SpecialField sf = e.Member as SpecialField;
         if (sf != null) {
           string compiledName, preStr, postStr;
           GetSpecialFieldInfo(sf.SpecialId, sf.IdParam, out compiledName, out preStr, out postStr);
           wr.Write(preStr);
-          var w = EmitMemberSelect(sf, false, expr.Type, wr, MemberSelectObjIsTrait);
-          if (NeedsCustomReceiver(e.Member)) {
-            w.Write(TypeName_Companion(e.Obj.Type, wr, e.tok, sf));
-            TrParenExpr(e.Obj, wr, inLetExprBody);
-          } else if (sf.IsStatic) {
-            w.Write(TypeName_Companion(e.Obj.Type, wr, e.tok, sf));
-          } else {
-            TrParenExpr(e.Obj, w, inLetExprBody);
+
+          void writeObj(TargetWriter w) {
+            if (NeedsCustomReceiver(e.Member) || sf.IsStatic) {
+              w.Write(TypeName_Companion(e.Obj.Type, wr, e.tok, sf));
+            } else {
+              TrParenExpr(e.Obj, w, inLetExprBody);
+            }
           }
+
+          EmitMemberSelect(writeObj, e.Member, expr.Type).EmitRead(wr);
+
+          if (NeedsCustomReceiver(e.Member)) {
+            TrParenExpr(e.Obj, wr, inLetExprBody);
+          }
+
           wr.Write(postStr);
         } else {
-          var w = EmitMemberSelect(e.Member, false, expr.Type, wr, MemberSelectObjIsTrait);
-          TrExpr(e.Obj, w, inLetExprBody);
+          EmitMemberSelect(w => TrExpr(e.Obj, w, inLetExprBody), e.Member, expr.Type).EmitRead(wr);
         }
 
       } else if (expr is SeqSelectExpr) {
