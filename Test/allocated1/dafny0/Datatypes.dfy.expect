@@ -72,5 +72,12 @@ Datatypes.dfy(225,16): Error: destructor 'c' can only be applied to datatype val
 Execution trace:
     (0,0): anon0
     (0,0): anon5_Then
+Datatypes.dfy(48,21): Error: target object may not be allocated
+Execution trace:
+    (0,0): anon0
+    (0,0): anon12_Else
+    (0,0): anon13_Else
+    (0,0): anon14_Then
+    (0,0): anon15_Then
 
-Dafny program verifier finished with 28 verified, 13 errors
+Dafny program verifier finished with 27 verified, 14 errors
