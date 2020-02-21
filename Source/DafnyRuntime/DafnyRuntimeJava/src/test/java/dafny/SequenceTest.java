@@ -1,5 +1,6 @@
 package dafny;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -30,6 +31,7 @@ class SequenceTest {
   DafnySequence<Integer> testSequenceTake = DafnySequence.fromArray(testSequenceTakeArr);
   DafnySequence<Integer> testSequenceEmpty = DafnySequence.fromArray(testSequenceEmptyArr);
   DafnySequence<Integer> testCopy = DafnySequence.fromArray(testSequenceArr);
+  DafnySequence<Integer> testWrappedSequence = DafnySequence.unsafeWrapArray(testSequenceArr);
 
   @Test
   void testSequencePrefix() {
@@ -176,5 +178,24 @@ class SequenceTest {
     DafnySequence<Integer> testNull = DafnySequence.fromArray(testNulls);
     assertThrows(AssertionError.class, () -> testNull.update(0, null));
     assertEquals(testNull, DafnySequence.fromArray(new Integer[]{3, null, 2}));
+  }
+
+  @Test
+  void testArrayConversion() {
+    assertEquals(testSequence, testWrappedSequence);
+    Integer[] convertedArr = testSequence.toArray(Integer.class);
+    assertArrayEquals(convertedArr, testSequenceArr);
+
+    byte[] byteArr = new byte[testSequenceArr.length];
+    for (int i = 0; i < testSequenceArr.length; i++) {
+      byteArr[i] = (byte) (int) testSequenceArr[i];
+    }
+
+    DafnySequence<Byte> testByteSequence = DafnySequence.fromBytes(byteArr);
+    DafnySequence<Byte> testWrappedByteSequence = DafnySequence.unsafeWrapBytes(byteArr);
+    assertEquals(testByteSequence, testWrappedByteSequence);
+
+    byte[] convertedByteArr = DafnySequence.toByteArray(testByteSequence);
+    assertArrayEquals(byteArr, convertedByteArr);
   }
 }
