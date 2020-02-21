@@ -46,7 +46,6 @@ public abstract class DafnySequence<T> implements Iterable<T> {
         return new ArrayDafnySequence<T>(l.toArray());
     }
 
-    // XXX Shouldn't this be fromString()???
     public static DafnySequence<Character> asString(String s){
         return new StringDafnySequence(s);
     }
@@ -78,6 +77,14 @@ public abstract class DafnySequence<T> implements Iterable<T> {
      */
     public static DafnySequence<UByte> unsafeWrapBytesUnsigned(byte[] bytes) {
         return new UnsignedByteArrayDafnySequence(bytes);
+    }
+
+    /**
+     * Return a sequence backed by the given byte array without making a
+     * defensive copy.  Only safe if the array never changes afterward.
+     */
+    public static DafnySequence<Byte> unsafeWrapBytes(byte[] bytes) {
+        return new ByteArrayDafnySequence(bytes);
     }
 
     public static <T> DafnySequence<T> Create(BigInteger length, Function<BigInteger, T> init) {
@@ -190,24 +197,24 @@ public abstract class DafnySequence<T> implements Iterable<T> {
 
     public abstract T select(int i);
 
-    public T select(UByte i) {
-        return select(i.intValue());
+    public T selectUnsigned(byte i) {
+        return select(Byte.toUnsignedInt(i));
     }
 
-    public T select(UShort i) {
-        return select(i.intValue());
+    public T selectUnsigned(short i) {
+        return select(Short.toUnsignedInt(i));
     }
 
-    public T select(UInt i) {
-        return select(i.asBigInteger());
+    public T selectUnsigned(int i) {
+        return select(Integer.toUnsignedLong(i));
     }
 
     public T select(long i) {
         return select(BigInteger.valueOf(i));
     }
 
-    public T select(ULong i) {
-        return select(i.asBigInteger());
+    public T selectUnsigned(long i) {
+        return select(Helpers.unsignedLongToBigInteger(i));
     }
 
     public T select(BigInteger i) {
@@ -250,24 +257,24 @@ public abstract class DafnySequence<T> implements Iterable<T> {
         return subsequence(lo, length());
     }
 
-    public DafnySequence<T> drop(UByte lo) {
-        return drop(lo.intValue());
+    public DafnySequence<T> dropUnsigned(byte lo) {
+        return drop(Byte.toUnsignedInt(lo));
     }
 
-    public DafnySequence<T> drop(UShort lo) {
-        return drop(lo.intValue());
+    public DafnySequence<T> dropUnsigned(short lo) {
+        return drop(Short.toUnsignedInt(lo));
     }
 
-    public DafnySequence<T> drop(UInt lo) {
-        return drop(lo.asBigInteger());
+    public DafnySequence<T> dropUnsigned(int lo) {
+        return drop(Integer.toUnsignedLong(lo));
     }
 
     public DafnySequence<T> drop(long lo) {
         return drop(BigInteger.valueOf(lo));
     }
 
-    public DafnySequence<T> drop(ULong lo) {
-        return drop(lo.asBigInteger());
+    public DafnySequence<T> dropUnsigned(long lo) {
+        return drop(Helpers.unsignedLongToBigInteger(lo));
     }
 
     public DafnySequence<T> drop(BigInteger lo) {
@@ -281,24 +288,24 @@ public abstract class DafnySequence<T> implements Iterable<T> {
         return subsequence(0, hi);
     }
 
-    public DafnySequence<T> take(UByte hi) {
-        return take(hi.intValue());
+    public DafnySequence<T> takeUnsigned(byte hi) {
+        return take(Byte.toUnsignedInt(hi));
     }
 
-    public DafnySequence<T> take(UShort hi) {
-        return take(hi.intValue());
+    public DafnySequence<T> takeUnsigned(short hi) {
+        return take(Short.toUnsignedInt(hi));
     }
 
-    public DafnySequence<T> take(UInt hi) {
-        return take(hi.asBigInteger());
+    public DafnySequence<T> takeUnsigned(int hi) {
+        return take(Integer.toUnsignedLong(hi));
     }
 
     public DafnySequence<T> take(long hi) {
         return take(BigInteger.valueOf(hi));
     }
 
-    public DafnySequence<T> take(ULong hi) {
-        return take(hi.asBigInteger());
+    public DafnySequence<T> takeUnsigned(long hi) {
+        return take(Helpers.unsignedLongToBigInteger(hi));
     }
 
     public DafnySequence<T> take(BigInteger hi) {
@@ -563,8 +570,8 @@ abstract class AbstractByteArrayDafnySequence<T> extends NonLazyDafnySequence<T>
     }
 
     @Override
-    public Iterator<T> iterator() {
-        return new Iterator<T>() {
+    public Iterator<Byte> iterator() {
+        return new Iterator<Byte>() {
             private final int n = array.length;
             private int i = 0;
 

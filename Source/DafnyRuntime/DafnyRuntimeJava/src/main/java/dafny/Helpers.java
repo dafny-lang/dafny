@@ -128,19 +128,14 @@ public class Helpers {
         };
     }
 
-    public static Character createCharacter(UByte t) {
-        assert 0 <= t.intValue() && t.intValue() <= 65535;
-        return new Character((char)t.intValue());
+    public static Character createCharacterUnsigned(byte t) {
+        assert 0 <= Byte.toUnsignedInt(t) && Byte.toUnsignedInt(t) <= 65535;
+        return new Character((char)Byte.toUnsignedInt(t));
     }
 
-    public static Character createCharacter(UInt t) {
-        assert 0 <= t.value() && t.value() <= 65535;
-        return new Character((char)t.value());
-    }
-
-    public static Character createCharacter(ULong t) {
-        assert 0 <= t.value() && t.value() <= 65535;
-        return new Character((char)t.value());
+    public static Character createCharacter(int t) {
+        assert 0 <= t && t <= 65535;
+        return new Character((char)t);
     }
 
     public static Character createCharacter(long t) {
@@ -148,7 +143,7 @@ public class Helpers {
         return new Character((char)t);
     }
 
-    public static Class getClassUnsafe(String s) {
+    public static Class<?> getClassUnsafe(String s) {
         try {
             return Class.forName(s);
         }
@@ -162,6 +157,16 @@ public class Helpers {
             return "null";
         } else {
             return g.toString();
+        }
+    }
+
+    private final static BigInteger ULONG_LIMIT = new BigInteger("18446744073709551616");  // 0x1_0000_0000_0000_0000
+
+    public static BigInteger unsignedLongToBigInteger(long l) {
+        if (0 <= l) {
+            return BigInteger.valueOf(l);
+        } else {
+            return BigInteger.valueOf(l).add(ULONG_LIMIT);
         }
     }
 }
