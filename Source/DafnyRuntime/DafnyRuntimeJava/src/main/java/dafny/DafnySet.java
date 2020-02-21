@@ -7,7 +7,6 @@ import java.util.*;
 public class DafnySet<T> {
     private Set<T> innerSet;
 
-
     public DafnySet() {
         innerSet = new HashSet<>();
     }
@@ -43,6 +42,15 @@ public class DafnySet<T> {
     public static <T> DafnySet<T> empty() {
         // Safe because immutable
         return (DafnySet<T>) EMPTY;
+    }
+
+    @SuppressWarnings("unchecked")
+    public static <T> Type<DafnySet<T>> _type(Type<T> elementType) {
+        // Fudge the type parameter; it's not great, but it's safe because
+        // (for now) type descriptors are only used for default values
+        return Type.referenceTypeWithInitializer(
+                (Class<DafnySet<T>>) (Class<?>) DafnySet.class,
+                DafnySet::empty);
     }
 
     // Determines if the current object is a subset of the DafnySet passed in. Requires that the input DafnySet is not

@@ -1,5 +1,5 @@
 
-Dafny program verifier finished with 24 verified, 0 errors
+Dafny program verifier finished with 25 verified, 0 errors
 Casting:
 
 Small numbers:
@@ -28,6 +28,10 @@ Cast from cardinality operator:
 2 2 2 2 2 2 2 2 2
 3 3 3 3 3 3 3 3 3
 4 4 4 4 4 4 4 4 4
+
+Defaults:
+
+0 0 0 0 0 0 0 0 0
 
 Byte arithmetic:
 
@@ -75,7 +79,7 @@ uint64:
 23	 <0 N <=0 N ==0 N !=0 Y >0 Y >=0 Y 0< Y 0<= Y 0== N 0!= Y 0> N 0>= N
 
 
-Dafny program verifier finished with 24 verified, 0 errors
+Dafny program verifier finished with 25 verified, 0 errors
 Casting:
 
 Small numbers:
@@ -104,6 +108,10 @@ Cast from cardinality operator:
 2 2 2 2 2 2 2 2 2
 3 3 3 3 3 3 3 3 3
 4 4 4 4 4 4 4 4 4
+
+Defaults:
+
+0 0 0 0 0 0 0 0 0
 
 Byte arithmetic:
 
@@ -151,7 +159,7 @@ uint64:
 23	 <0 N <=0 N ==0 N !=0 Y >0 Y >=0 Y 0< Y 0<= Y 0== N 0!= Y 0> N 0>= N
 
 
-Dafny program verifier finished with 24 verified, 0 errors
+Dafny program verifier finished with 25 verified, 0 errors
 Casting:
 
 Small numbers:
@@ -180,6 +188,10 @@ Cast from cardinality operator:
 2 2 2 2 2 2 2 2 2
 3 3 3 3 3 3 3 3 3
 4 4 4 4 4 4 4 4 4
+
+Defaults:
+
+0 0 0 0 0 0 0 0 0
 
 Byte arithmetic:
 
