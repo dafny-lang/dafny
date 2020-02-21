@@ -8916,6 +8916,11 @@ namespace Microsoft.Dafny
           enclosingStatementLabels = prevLblStmts;
           loopStack = prevLoopStack;
         }
+        var expectStmt = stmt as ExpectStmt;
+        if (expectStmt != null && expectStmt.Message != null) {
+          ResolveExpression(expectStmt.Message, new ResolveOpts(codeContext, true));
+          Contract.Assert(expectStmt.Message.Type != null);  // follows from postcondition of ResolveExpression
+        }
 
       } else if (stmt is PrintStmt) {
         var s = (PrintStmt)stmt;
@@ -10149,6 +10154,8 @@ namespace Microsoft.Dafny
     /// <summary>
     /// Desugars "y :- MethodOrExpression" into
     /// "var temp := MethodOrExpression; if temp.IsFailure() { return temp.PropagateFailure(); } y := temp.Extract();"
+    /// and "y :- expect MethodOrExpression" into
+    /// "var temp := MethodOrExpression; expect !temp.IsFailure(), temp.PropagateFailure(); y := temp.Extract();"
     /// and saves the result into s.ResolvedStatements.
     /// </summary>
     private void ResolveAssignOrReturnStmt(AssignOrReturnStmt s, ICodeContext codeContext) {
@@ -10160,16 +10167,25 @@ namespace Microsoft.Dafny
         // "var temp := MethodOrExpression;"
         new VarDeclStmt(s.Tok, s.Tok, new List<LocalVariable>() { new LocalVariable(s.Tok, s.Tok, temp, tempType, false) },
           new UpdateStmt(s.Tok, s.Tok, new List<Expression>() { new IdentifierExpr(s.Tok, temp) }, new List<AssignmentRhs>() { new ExprRhs(s.Rhs) })));
-      s.ResolvedStatements.Add(
-        // "if temp.IsFailure()"
-        new IfStmt(s.Tok, s.Tok, false, VarDotMethod(s.Tok, temp, "IsFailure"),
-          // THEN: { return temp.PropagateFailure(); }
-          new BlockStmt(s.Tok, s.Tok, new List<Statement>() {
-            new ReturnStmt(s.Tok, s.Tok, new List<AssignmentRhs>() { new ExprRhs(VarDotMethod(s.Tok, temp, "PropagateFailure"))}),
-          }),
-          // ELSE: no else block
-          null
-        ));
+      if (s.ExpectToken != null)
+      {
+        var notFailureExpr = new UnaryOpExpr(s.Tok, UnaryOpExpr.Opcode.Not, VarDotMethod(s.Tok, temp, "IsFailure"));
+        var propogateFailureCall = VarDotMethod(s.Tok, temp, "PropagateFailure");
+        s.ResolvedStatements.Add(
+          // "expect !temp.IsFailure(), temp.PropagateFailure()"
+          new ExpectStmt(s.Tok, s.Tok, notFailureExpr, propogateFailureCall, null));
+      } else {
+        s.ResolvedStatements.Add(
+          // "if temp.IsFailure()"
+          new IfStmt(s.Tok, s.Tok, false, VarDotMethod(s.Tok, temp, "IsFailure"),
+            // THEN: { return temp.PropagateFailure(); }
+            new BlockStmt(s.Tok, s.Tok, new List<Statement>() {
+              new ReturnStmt(s.Tok, s.Tok, new List<AssignmentRhs>() { new ExprRhs(VarDotMethod(s.Tok, temp, "PropagateFailure"))}),
+            }),
+            // ELSE: no else block
+            null
+          ));
+      }
 
       Contract.Assert(s.Lhss.Count <= 1);
       if (s.Lhss.Count == 1)
