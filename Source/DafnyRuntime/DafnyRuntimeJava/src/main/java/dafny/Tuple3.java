@@ -7,6 +7,11 @@ public class Tuple3<T0, T1, T2> {
     private T1 _1;
     private T2 _2;
 
+    @SuppressWarnings("unchecked")
+    public static <T0, T1, T2> Type<Tuple3<T0, T1, T2>> _type(Type<T0> t0, Type<T1> t1, Type<T2> t2) {
+        return (Type<Tuple3<T0, T1, T2>>) (Type<?>) Type.referenceType(Tuple3.class);
+    }
+
     public Tuple3(T0 _0, T1 _1, T2 _2) {
         this._0 = _0;
         this._1 = _1;

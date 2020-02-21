@@ -80,6 +80,14 @@ method MultipleDimensions() {
 
   var cube := new int[3,0,4]((_,_,_) => 16);
   print "cube dims: ", cube.Length0, " ", cube.Length1, " ", cube.Length2, "\n";
+
+//  var jagged := new array<int>[5];
+//  var i := 0;
+//  while i < 5 {
+//    jagged[i] := new int[i];
+//    i := i + 1;
+//  }
+//  PrintArray(jagged);
 }
 
 method PrintMatrix(m: array2<int>) {
