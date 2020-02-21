@@ -32,7 +32,8 @@ method Standard<T(0)>() {
   var e: Color := Gimmie();
   var f: real := Gimmie();
   var g: T := Gimmie();
-  print a, " ", b, " ", c, " ", d, " ", e, " ", f, " ", g, "\n";
+  var h: DtZ<Color> := Gimmie();
+  print a, " ", b, " ", c, " ", d, " ", e, " ", f, " ", g, " ", h, "\n";
 
   // nullable reference types
   var x0: object? := Gimmie();
@@ -74,6 +75,8 @@ method Tp() {
 }
 
 datatype Dt<G> = D0(G) | D1(G)
+
+datatype DtZ<G(0)> = DZ0(G)
 
 class Cl<X(==,0),Y(0),Z> {
   var x: X

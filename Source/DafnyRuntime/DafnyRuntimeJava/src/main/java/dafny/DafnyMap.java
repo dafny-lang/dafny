@@ -25,7 +25,7 @@ public class DafnyMap<K, V> implements Map<K, V> {
             Type<K> keyType, Type<V> valueType) {
         // Fudge the type parameters; it's not great, but it's safe because
         // (for now) type descriptors are only used for default values
-        return Type.referenceTypeWithInitializer(
+        return Type.referenceWithInitializer(
                 (Class<DafnyMap<K, V>>) (Class<?>) DafnyMap.class,
                 DafnyMap::empty);
     }

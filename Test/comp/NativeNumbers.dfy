@@ -132,6 +132,24 @@ method CastTests() {
     a.Length as int8, " ", a.Length as int16, " ", a.Length as int32, " ", a.Length as int64, " ",
     a.Length as uint8, " ", a.Length as uint16, " ", a.Length as uint32, " ", a.Length as uint64, "\n";
 
+  print "\nCharacters:\n";
+  var c : char := 'C';
+  print c, " ", c as int, " ",
+    c as int8, " ", c as int16, " ", c as int32, " ", c as int64, " ",
+    c as uint8, " ", c as uint16, " ", c as uint32, " ", c as uint64, "\n";
+
+  i := 0; c := i as char; i := c as int;
+  i8 := 0x7f; c := i8 as char; i8 := c as int8;
+  u8 := 0xff; c := u8 as char; u8 := c as uint8;
+  i16 := 0x7fff; c := i16 as char; i16 := c as int16;
+  u16 := 0xffff; c := u16 as char; u16 := c as uint16;
+  i32 := 0xffff; c := i32 as char; i32 := c as int32;
+  u32 := 0xffff; c := u32 as char; u32 := c as uint32;
+  i64 := 0xffff; c := i64 as char; i64 := c as int64;
+  u64 := 0xffff; c := u64 as char; u64 := c as uint64;
+  print i, " ", i8, " ", i16, " ", i32, " ", i64, " ",
+    u8, " ", u16, " ", u32, " ", u64, "\n";
+
   print "\n";
 }
 
