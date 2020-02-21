@@ -294,7 +294,7 @@ namespace Microsoft.Dafny {
 
     protected virtual TargetWriter EmitAssignment(ILvalue wLhs, Type/*?*/ lhsType, Type/*?*/ rhsType, TargetWriter wr) {
       var w = wLhs.EmitWrite(wr);
-      w = EmitCoercionIfNecessary(from:rhsType, to:lhsType, Bpl.Token.NoToken, w);
+      w = EmitCoercionIfNecessary(from:rhsType, to:lhsType, tok: Bpl.Token.NoToken, wr: w);
       return w;
     }
 
@@ -532,7 +532,7 @@ namespace Microsoft.Dafny {
     protected virtual ILvalue EmitArraySelectAsLvalue(string array, List<string> indices, Type elmtType) {
       return SimpleLvalue(wr => {
         wr.Write(array);
-        EmitArraySelect(indices, elmtType, wr); 
+        EmitArraySelect(indices, elmtType, wr);
       });
     }
     protected virtual TargetWriter EmitArrayUpdate(List<string> indices, string rhs, Type elmtType, TargetWriter wr) {

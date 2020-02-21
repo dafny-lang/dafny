@@ -803,7 +803,7 @@ namespace Microsoft.Dafny{
         }
       }
 
-      EmitTypeMethod(javaName, typeParameters, defaultValue: null, wBody);
+      EmitTypeMethod(javaName, typeParameters, defaultValue: null, wr: wBody);
       return new ClassWriter(this, wBody, wCtorBody);
     }
 
