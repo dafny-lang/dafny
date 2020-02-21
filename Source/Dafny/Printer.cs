@@ -1130,7 +1130,8 @@ namespace Microsoft.Dafny {
         if (printMode == DafnyOptions.PrintModes.NoGhost) { return; }
         Expression expr = ((PredicateStmt)stmt).Expr;
         var assertStmt = stmt as AssertStmt;
-        wr.Write(assertStmt != null ? "assert" : "assume");
+        var expectStmt = stmt as ExpectStmt;
+        wr.Write(assertStmt != null ? "assert" : (expectStmt != null ? "expect" : "assume"));
         if (stmt.Attributes != null) {
           PrintAttributes(stmt.Attributes);
         }
@@ -1142,6 +1143,9 @@ namespace Microsoft.Dafny {
         if (assertStmt != null && assertStmt.Proof != null) {
           wr.Write(" by ");
           PrintStatement(assertStmt.Proof, indent);
+        } else if (expectStmt != null && expectStmt.Message != null) {
+          wr.Write(", ");
+          PrintExpression(expectStmt.Message, true);
         } else {
           wr.Write(";");
         }
@@ -1447,6 +1451,9 @@ namespace Microsoft.Dafny {
         } else if (s.S is AssertStmt) {
           Contract.Assert(s.ConditionOmitted);
           wr.Write("assert ...;");
+        } else if (s.S is ExpectStmt) {
+          Contract.Assert(s.ConditionOmitted);
+          wr.Write("expect ...;");
         } else if (s.S is AssumeStmt) {
           Contract.Assert(s.ConditionOmitted);
           wr.Write("assume ...;");
@@ -2484,7 +2491,7 @@ namespace Microsoft.Dafny {
       } else if (expr is StmtExpr) {
         var e = (StmtExpr)expr;
         bool parensNeeded;
-        if (e.S is AssertStmt || e.S is AssumeStmt || e.S is CalcStmt) {
+        if (e.S is AssertStmt || e.S is ExpectStmt || e.S is AssumeStmt || e.S is CalcStmt) {
           parensNeeded = !isRightmost;
         } else {
           parensNeeded = !isRightmost || isFollowedBySemicolon;

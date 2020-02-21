@@ -1,6 +1,7 @@
+// RUN: %dafny /compile:3 "%s" > "%t"
+// RUN: %diff "%s.expect" "%t"
 
-
-class OOAgent {
+datatype OOAgent = | OO7 {
   function method Talk(): bool {
     true
   }
@@ -10,11 +11,11 @@ class OOAgent {
 }
 
 method TestExpect() {
-  var jamesBond := new OOAgent();
+  var jamesBond := OO7;
   // Do you...
   expect jamesBond.Talk();
   // No Mr. Bond, I...
-  expect jamesBond.Die(); // Error: expectation violation
+  expect jamesBond.Die(); // Runtime error: expectation violation
 }
 
 method Main() {

@@ -9891,6 +9891,13 @@ namespace Microsoft.Dafny {
             builder.Add(TrAssumeCmd(stmt.Tok, etran.TrExpr(s.Expr)));
             stmtContext = StmtType.NONE;
           }
+        } else if (stmt is ExpectStmt) {
+          AddComment(builder, stmt, "expect statement");
+          ExpectStmt s = (ExpectStmt)stmt;
+          stmtContext = StmtType.ASSUME;
+          TrStmt_CheckWellformed(s.Expr, builder, locals, etran, false);
+          builder.Add(TrAssumeCmd(stmt.Tok, etran.TrExpr(s.Expr), etran.TrAttributes(stmt.Attributes, null)));
+          stmtContext = StmtType.NONE;  // done with translating expect stmt.
         } else if (stmt is AssumeStmt) {
           AddComment(builder, stmt, "assume statement");
           AssumeStmt s = (AssumeStmt)stmt;
@@ -18225,9 +18232,9 @@ namespace Microsoft.Dafny {
         } else if (stmt is AssertStmt) {
           var s = (AssertStmt)stmt;
           r = new AssertStmt(s.Tok, s.EndTok, Substitute(s.Expr), SubstBlockStmt(s.Proof), s.Label, SubstAttributes(s.Attributes));
-        } else if (stmt is AssumeStmt) {
-          var s = (AssumeStmt)stmt;
-          r = new AssumeStmt(s.Tok, s.EndTok, Substitute(s.Expr), SubstAttributes(s.Attributes));
+        } else if (stmt is ExpectStmt) {
+          var s = (ExpectStmt)stmt;
+          r = new ExpectStmt(s.Tok, s.EndTok, Substitute(s.Expr), Substitute(s.Message), SubstAttributes(s.Attributes));
         } else if (stmt is BreakStmt) {
           var s = (BreakStmt)stmt;
           BreakStmt rr;

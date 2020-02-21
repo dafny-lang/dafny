@@ -1868,6 +1868,17 @@ namespace Microsoft.Dafny {
         // to make it more target-language idiomatic and improve performance
         TrStmtList(s.ResolvedStatements, wr);
 
+      } else if (stmt is ExpectStmt) {
+        var s = (ExpectStmt)stmt;
+        // TODO there's potential here to use target-language specific features such as exceptions
+        // to make it more target-language idiomatic and improve performance
+        TargetWriter guardWriter;
+        TargetWriter bodyWriter = EmitIf(out guardWriter, false, wr);
+        var negated = new UnaryOpExpr(s.Tok, UnaryOpExpr.Opcode.Not, s.Expr);
+        negated.Type = Type.Bool;
+        TrExpr(negated, guardWriter, false);
+        EmitAbsurd("expectation violation", bodyWriter);
+
       } else if (stmt is CallStmt) {
         var s = (CallStmt)stmt;
         TrCallStmt(s, null, wr);

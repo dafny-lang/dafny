@@ -6237,6 +6237,27 @@ namespace Microsoft.Dafny {
     }
   }
 
+  public class ExpectStmt : PredicateStmt
+  {
+    public readonly Expression Message;
+    public ExpectStmt(IToken tok, IToken endTok, Expression expr, Expression message, Attributes attrs)
+      : base(tok, endTok, expr, attrs) {
+      Contract.Requires(tok != null);
+      Contract.Requires(endTok != null);
+      Contract.Requires(expr != null);
+      this.Message = message;
+    }
+    
+    public override IEnumerable<Expression> SubExpressions {
+      get {
+        foreach (var e in base.SubExpressions) { yield return e; }
+        if (Message != null) {
+          yield return Message;
+        }
+      }
+    }
+  }
+
   public class AssumeStmt : PredicateStmt {
     public AssumeStmt(IToken tok, IToken endTok, Expression expr, Attributes attrs)
       : base(tok, endTok, expr, attrs) {
@@ -6760,6 +6781,7 @@ namespace Microsoft.Dafny {
   public class AssignOrReturnStmt : ConcreteUpdateStatement
   {
     public readonly Expression Rhs; // this is the unresolved RHS, and thus can also be a method call
+    public readonly IToken ExpectToken; // TODO-RS: Implement!
     public readonly List<Statement> ResolvedStatements = new List<Statement>();  // contents filled in during resolution
     public override IEnumerable<Statement> SubStatements {
       get { return ResolvedStatements; }
@@ -6775,7 +6797,7 @@ namespace Microsoft.Dafny {
       Contract.Invariant(Rhs != null);
     }
 
-    public AssignOrReturnStmt(IToken tok, IToken endTok, List<Expression> lhss, Expression rhs)
+    public AssignOrReturnStmt(IToken tok, IToken endTok, List<Expression> lhss, Expression rhs, IToken expectToken)
       : base(tok, endTok, lhss)
     {
       Contract.Requires(tok != null);
@@ -6784,6 +6806,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(lhss.Count <= 1);
       Contract.Requires(rhs != null);
       Rhs = rhs;
+      ExpectToken = expectToken;
     }
   }
 
