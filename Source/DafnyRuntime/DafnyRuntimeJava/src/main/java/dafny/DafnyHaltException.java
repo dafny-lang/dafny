@@ -2,7 +2,7 @@ package dafny;
 
 public class DafnyHaltException extends RuntimeException {
 
-    public DafnyHaltException(String message) {
-        super(message);
+    public DafnyHaltException(DafnySequence<Character> message) {
+        super(message.verbatimString());
     }
 }

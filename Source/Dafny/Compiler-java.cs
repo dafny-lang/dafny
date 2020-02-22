@@ -229,7 +229,7 @@ namespace Microsoft.Dafny{
       var wBody = wr.NewNamedBlock("public static void main(String[] args)");
       var modName = mainMethod.EnclosingClass.Module.CompileName == "_module" ? "_System." : "";
       companion = modName + companion;
-      wBody.WriteLine($"{companion}.{IdName(mainMethod)}();");
+      wBody.WriteLine($"{DafnyHelpersClass}.WithHaltHandling({companion}::{IdName(mainMethod)});");
     }
 
     void EmitImports(TargetWriter wr, out TargetWriter importWriter){

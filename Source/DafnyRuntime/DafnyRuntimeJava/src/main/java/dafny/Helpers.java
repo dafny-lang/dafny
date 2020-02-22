@@ -164,6 +164,14 @@ public class Helpers {
             return g.toString();
         }
     }
+    
+    public static void WithHaltHandling(Runnable runnable) {
+        try {
+            runnable.run();
+        } catch (DafnyHaltException e) {
+            System.err.println("Program halted: " + e.getMessage());
+        }
+    }
 }
 
 
