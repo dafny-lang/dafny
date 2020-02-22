@@ -1879,8 +1879,7 @@ namespace Microsoft.Dafny {
         var negated = new UnaryOpExpr(s.Tok, UnaryOpExpr.Opcode.Not, s.Expr);
         negated.Type = Type.Bool;
         TrExpr(negated, guardWriter, false);
-        var message = s.Message != null ? s.Message : new StringLiteralExpr(s.Tok, "expectation violation", false);
-        EmitHalt(message, bodyWriter);
+        EmitHalt(s.Message, bodyWriter);
 
       } else if (stmt is CallStmt) {
         var s = (CallStmt)stmt;

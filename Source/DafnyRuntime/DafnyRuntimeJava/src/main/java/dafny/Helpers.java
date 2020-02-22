@@ -165,7 +165,7 @@ public class Helpers {
         }
     }
     
-    public static void WithHaltHandling(Runnable runnable) {
+    public static void withHaltHandling(Runnable runnable) {
         try {
             runnable.run();
         } catch (DafnyHaltException e) {

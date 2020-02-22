@@ -229,7 +229,7 @@ namespace Microsoft.Dafny{
       var wBody = wr.NewNamedBlock("public static void main(String[] args)");
       var modName = mainMethod.EnclosingClass.Module.CompileName == "_module" ? "_System." : "";
       companion = modName + companion;
-      wBody.WriteLine($"{DafnyHelpersClass}.WithHaltHandling({companion}::{IdName(mainMethod)});");
+      wBody.WriteLine($"{DafnyHelpersClass}.withHaltHandling({companion}::{IdName(mainMethod)});");
     }
 
     void EmitImports(TargetWriter wr, out TargetWriter importWriter){
@@ -1642,17 +1642,23 @@ namespace Microsoft.Dafny{
 
     protected override void EmitPrintStmt(TargetWriter wr, Expression arg) {
       wr.Write("System.out.print(");
+      EmitToString(wr, arg);
+      wr.WriteLine(");");
+    }
+
+    protected void EmitToString(TargetWriter wr, Expression arg) {
       if (arg.Type.IsArrowType) {
         wr.Write(IdName(((IdentifierExpr) ((ConcreteSyntaxExpression)arg).ResolvedExpression).Var) + " == null ? null : \"Function\"");
       } else {
         TrExpr(arg, wr, false);
         if (arg.Type.AsCollectionType != null && arg.Type.AsCollectionType.AsSeqType!= null && arg.Type.AsCollectionType.AsSeqType.Arg is CharType){
           wr.Write(".verbatimString()");
+        } else {
+          wr.Write(".toString()");
         }
       }
-      wr.WriteLine(");");
     }
-
+    
     protected override string IdProtect(string name) {
       return PublicIdProtect(name);
     }
@@ -2852,7 +2858,7 @@ namespace Microsoft.Dafny{
 
     protected override void EmitHalt(Expression messageExpr, TargetWriter wr) {
       wr.Write("throw new dafny.DafnyHaltException(");
-      TrExpr(messageExpr, wr, false);
+      EmitToString(wr, messageExpr);
       wr.WriteLine(");");
     }
 

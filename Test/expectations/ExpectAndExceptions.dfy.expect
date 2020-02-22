@@ -1,3 +1,6 @@
 
 Dafny program verifier finished with 2 verified, 0 errors
 Program halted: NatOutcome.NatFailure(Kaboom!)
+
+Dafny program verifier finished with 2 verified, 0 errors
+Program halted: NatOutcome.NatFailure(Kaboom!)

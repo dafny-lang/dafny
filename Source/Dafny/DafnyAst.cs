@@ -6239,7 +6239,7 @@ namespace Microsoft.Dafny {
 
   public class ExpectStmt : PredicateStmt
   {
-    public readonly Expression Message;
+    public Expression Message;
     public ExpectStmt(IToken tok, IToken endTok, Expression expr, Expression message, Attributes attrs)
       : base(tok, endTok, expr, attrs) {
       Contract.Requires(tok != null);

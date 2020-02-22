@@ -8917,7 +8917,10 @@ namespace Microsoft.Dafny
           loopStack = prevLoopStack;
         }
         var expectStmt = stmt as ExpectStmt;
-        if (expectStmt != null && expectStmt.Message != null) {
+        if (expectStmt != null) {
+          if (expectStmt.Message == null) {
+            expectStmt.Message = new StringLiteralExpr(s.Tok, "expectation violation", false);
+          }
           ResolveExpression(expectStmt.Message, new ResolveOpts(codeContext, true));
           Contract.Assert(expectStmt.Message.Type != null);  // follows from postcondition of ResolveExpression
         }
