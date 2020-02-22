@@ -1,1 +1,3 @@
-TODO: runtime hook to print predictable output when an expect statment fails
+
+Dafny program verifier finished with 1 verified, 0 errors
+Program halted: expectation violation

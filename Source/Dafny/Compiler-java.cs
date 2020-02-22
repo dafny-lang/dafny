@@ -2840,6 +2840,7 @@ namespace Microsoft.Dafny{
       if (message == null) {
         message = "unexpected control point";
       }
+      
       wr.WriteLine($"throw new IllegalArgumentException(\"{message}\");");
     }
 
@@ -2847,6 +2848,12 @@ namespace Microsoft.Dafny{
       if (!needIterLimit) {
         EmitAbsurd(message, wr);
       }
+    }
+
+    protected override void EmitHalt(Expression messageExpr, TargetWriter wr) {
+      wr.Write("throw new dafny.DafnyHaltException(");
+      TrExpr(messageExpr, wr, false);
+      wr.WriteLine(");");
     }
 
     protected override IClassWriter DeclareNewtype(NewtypeDecl nt, TargetWriter wr){

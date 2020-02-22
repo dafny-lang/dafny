@@ -1461,6 +1461,12 @@ namespace Dafny
       return a * bReciprocal;
     }
   }
+
+  public class HaltException : Exception {
+    public HaltException(object message) : base(message.ToString())
+    {
+    }
+  }
 }
 
 namespace @_System

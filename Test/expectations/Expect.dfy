@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:3 "%s" > "%t"
+// RUN: %dafny /compile:3 /compileTarget:go "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 datatype OOAgent = | OO7 {
