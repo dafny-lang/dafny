@@ -1394,6 +1394,16 @@ namespace Microsoft.Dafny
         ITEExpr e = (ITEExpr)expr;
         reqs.AddRange(generateAutoReqs(e.Test));
         reqs.Add(Expression.CreateITE(e.Test, andify(e.Thn.tok, generateAutoReqs(e.Thn)), andify(e.Els.tok, generateAutoReqs(e.Els))));
+      } else if (expr is NestedMatchExpr){
+        // Generate autoReq on e.ResolvedExpression, but also on the unresolved body in case something (e.g. another cloner) clears the resolved expression
+        var e = (NestedMatchExpr)expr;
+
+        var autoReqs = generateAutoReqs(e.ResolvedExpression);
+
+        // OSTODO: Make sure it is safe to use a shallow copy of e here
+        var newMatch = new NestedMatchExpr(e.tok, e.Source, e.Cases, e.UsesOptionalBraces);
+        newMatch.ResolvedExpression = andify(e.tok, autoReqs);
+        reqs.Add(newMatch);
       } else if (expr is ConcreteSyntaxExpression) {
         var e = (ConcreteSyntaxExpression)expr;
         reqs.AddRange(generateAutoReqs(e.ResolvedExpression));
