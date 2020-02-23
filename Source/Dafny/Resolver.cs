@@ -6777,10 +6777,10 @@ namespace Microsoft.Dafny
         Contract.Requires(stmt != null);
         Contract.Assume(!codeContext.IsGhost || mustBeErasable);  // (this is really a precondition) codeContext.IsGhost ==> mustBeErasable
 
-        if (stmt is AssertStmt) {
+        if (stmt is AssertStmt || stmt is AssumeStmt) {
           stmt.IsGhost = true;
-          var assertStmt = (AssertStmt)stmt;
-          if (assertStmt.Proof != null) {
+          var assertStmt = stmt as AssertStmt;
+          if (assertStmt != null && assertStmt.Proof != null) {
             Visit(assertStmt.Proof, true);
           }
 
