@@ -14,8 +14,9 @@ so these instructions mostly apply to people interested in looking at Dafny's so
 
 2. Download and build Boogie:
 
-       git clone --branch v2.4.2 https://github.com/boogie-org/boogie
+       git clone https://github.com/boogie-org/boogie
        cd boogie
+       git checkout fd500e1acd56ee390a880f859783c2a7a164d9d2
        mono ../nuget.exe restore Source/Boogie.sln
        msbuild Source/Boogie.sln
        cd ..
@@ -48,8 +49,8 @@ so these instructions mostly apply to people interested in looking at Dafny's so
 8. (Optional -- for testing) The Dafny test infrastructure uses a python tool 'lit'. Install it as follows:
    * install python (https://www.python.org/downloads/)
    * install pip (https://pip.readthedocs.io/en/stable/installing/)
-   * run "pip install lit" and "pip install OutputCheck"     
-Navigate to the Test directory in the repo and run 'lit .' 
+   * run "pip install lit" and "pip install OutputCheck"
+Navigate to the Test directory in the repo and run 'lit .'
 The tests take a while, depending on your machine, but emit progress output.
 
 Building on Mac OS X
@@ -112,6 +113,6 @@ Dafny's sources or who want to use the latest features from the master branch.
 8. (Optional -- for testing) The Dafny test infrastructure uses a python tool 'lit'. Install it as follows:
    * install python (https://www.python.org/downloads/)
    * install pip (https://pip.readthedocs.io/en/stable/installing/)
-   * run "pip install lit" and "pip install OutputCheck"	
+   * run "pip install lit" and "pip install OutputCheck"
 Navigate to the Test directory in the repo and run 'lit .'
 The tests take a while, depending on your machine, but emit progress output.
