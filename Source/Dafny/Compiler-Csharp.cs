@@ -2465,12 +2465,13 @@ namespace Microsoft.Dafny
       }
     }
     
-    public override void EmitCallToMain(Method mainMethod, TargetWriter wr)
-    {
-      var className = mainMethod.EnclosingClass.Module.CompileName + "." + mainMethod.EnclosingClass.FullCompileName;
+    public override void EmitCallToMain(Method mainMethod, TargetWriter wr) {
+      var companion = TypeName_Companion(mainMethod.EnclosingClass as ClassDecl, wr, mainMethod.tok);
       var wClass = wr.NewNamedBlock("class __CallToMain");
       var wBody = wClass.NewNamedBlock("public static void Main()");
-      wBody.WriteLine($"{GetHelperModuleName()}.WithHaltHandling({className}.{IdName(mainMethod)});");
+      var modName = mainMethod.EnclosingClass.Module.CompileName == "_module" ? "_module." : "";
+      companion = modName + companion;
+      wBody.WriteLine($"{GetHelperModuleName()}.WithHaltHandling({companion}.{IdName(mainMethod)});");
     }
   }
 }

@@ -1650,11 +1650,18 @@ namespace Microsoft.Dafny{
       if (arg.Type.IsArrowType) {
         wr.Write(IdName(((IdentifierExpr) ((ConcreteSyntaxExpression)arg).ResolvedExpression).Var) + " == null ? null : \"Function\"");
       } else {
+        // TODO-RS: This doesn't handle strings printed out as part of datatypes
+        bool isString = arg.Type.AsCollectionType != null && 
+                        arg.Type.AsCollectionType.AsSeqType != null &&
+                        arg.Type.AsCollectionType.AsSeqType.Arg is CharType;
+        if (!isString) {
+          wr.Write("String.valueOf(");
+        }
         TrExpr(arg, wr, false);
-        if (arg.Type.AsCollectionType != null && arg.Type.AsCollectionType.AsSeqType!= null && arg.Type.AsCollectionType.AsSeqType.Arg is CharType){
+        if (isString) {
           wr.Write(".verbatimString()");
         } else {
-          wr.Write(".toString()");
+          wr.Write(")");
         }
       }
     }
