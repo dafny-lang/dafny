@@ -18235,6 +18235,9 @@ namespace Microsoft.Dafny {
         } else if (stmt is ExpectStmt) {
           var s = (ExpectStmt)stmt;
           r = new ExpectStmt(s.Tok, s.EndTok, Substitute(s.Expr), Substitute(s.Message), SubstAttributes(s.Attributes));
+        } else if (stmt is AssumeStmt) {
+          var s = (AssumeStmt)stmt;
+          r = new AssumeStmt(s.Tok, s.EndTok, Substitute(s.Expr), SubstAttributes(s.Attributes));
         } else if (stmt is BreakStmt) {
           var s = (BreakStmt)stmt;
           BreakStmt rr;

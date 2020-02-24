@@ -6786,6 +6786,13 @@ namespace Microsoft.Dafny
 
         } else if (stmt is ExpectStmt) {
           stmt.IsGhost = false;
+          var s = (ExpectStmt)stmt;
+          if (mustBeErasable) {
+            Error(stmt, "expect statement is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)");
+          } else {
+            resolver.CheckIsCompilable(s.Expr);
+            resolver.CheckIsCompilable(s.Message);
+          }
 
         } else if (stmt is PrintStmt) {
           var s = (PrintStmt)stmt;
@@ -14001,7 +14008,7 @@ namespace Microsoft.Dafny
     }
 
     /// <summary>
-    /// Generate an error for every non-ghost feature used in "expr".
+    /// Generate an error for every ghost feature used in "expr".
     /// Requires "expr" to have been successfully resolved.
     /// </summary>
     void CheckIsCompilable(Expression expr) {
