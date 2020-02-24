@@ -4,37 +4,50 @@
 // RUN: sed 's/[^:]*://' "%t".raw > "%t"
 // RUN: %diff "%s.expect" "%t"
 
-module {:extern} Tests {
+include "../../Test/exceptions/VoidOutcomeDT.dfy"
+include "../../Test/exceptions/NatOutcomeDT.dfy"
 
-    datatype VoidOutcome =
-    | VoidSuccess
-    | VoidFailure(error: string)
-    {
-        predicate method IsFailure() {
-            this.VoidFailure?
-        }
-        function method PropagateFailure(): VoidOutcome requires IsFailure() {
-            this
-        }
-    }
-    
-    function method {:test} PassingTest(): VoidOutcome {
-        VoidSuccess
-    }
+function method SafeDivide(a: nat, b: nat): NatOutcome {
+    if b == 0 then 
+        NatFailure("Divide by zero") 
+    else 
+        NatSuccess(a/b)
+}
 
-    function method {:test} FailingTest(): VoidOutcome {
-        VoidFailure("Whoopsie")
-    }
+method UnsafeDivide(a: nat, b: nat) returns (r: nat) {
+    expect b != 0;
+    return a/b;
+}
 
-    method {:test} PassingTestUsingExpect() {
-        expect 2 + 2 == 4;
-    }
+function method {:test} PassingTest(): VoidOutcome {
+    VoidSuccess
+}
 
-    method {:test} FailingTestUsingExpect() {
-        expect 2 + 2 == 5;
-    }
+function method {:test} FailingTest(): VoidOutcome {
+    VoidFailure("Whoopsie")
+}
 
-    method {:test} FailingTestUsingExpectWithMessage() {
-        expect 2 + 2 == 5, "Down with DoubleThink!";
-    }
+method {:test} PassingTestUsingExpect() {
+    expect 2 + 2 == 4;
+}
+
+method {:test} FailingTestUsingExpect() {
+    expect 2 + 2 == 5;
+}
+
+method {:test} FailingTestUsingExpectWithMessage() {
+    expect 2 + 2 == 5, "Down with DoubleThink!";
+}
+
+method {:test} PassingTestUsingAssignOrHalt() {
+    var x := 5;
+    var y := 2;
+    var q :- expect SafeDivide(x, y);
+    expect q == 2;
+}
+
+method {:test} FailingTestUsingAssignOrHalt() {
+    var x := 5;
+    var y := 0;
+    var q :- expect SafeDivide(x, y);
 }
