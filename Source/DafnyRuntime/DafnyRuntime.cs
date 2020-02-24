@@ -1280,6 +1280,14 @@ namespace Dafny
     public static A Id<A>(A a) {
       return a;
     }
+    
+    public static void WithHaltHandling(Action action) {
+      try {
+        action();
+      } catch (HaltException e) {
+        System.Console.WriteLine("Program halted: " + e.Message);
+      }
+    }
   }
 
   public class BigOrdinal {

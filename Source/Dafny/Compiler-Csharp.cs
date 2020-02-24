@@ -1547,6 +1547,7 @@ namespace Microsoft.Dafny
         // methods with expected names
         case "ToString":
         case "GetHashCode":
+        case "Main":
           return "_" + name;
         default:
           return name;
@@ -2368,7 +2369,8 @@ namespace Microsoft.Dafny
         }
         crx.cr = provider.CompileAssemblyFromFile(cp, sourceFiles);
       } else {
-        crx.cr = provider.CompileAssemblyFromSource(cp, targetProgramText);
+        var p = callToMain == null ? targetProgramText : targetProgramText + callToMain; 
+        crx.cr = provider.CompileAssemblyFromSource(cp, p);
       }
 
       if (crx.cr.Errors.Count != 0) {
@@ -2451,6 +2453,14 @@ namespace Microsoft.Dafny
         wr.WriteLine("}");
         wr.WriteLine("");
       }
+    }
+    
+    public override void EmitCallToMain(Method mainMethod, TargetWriter wr)
+    {
+      var className = mainMethod.EnclosingClass.Module.CompileName + "." + mainMethod.EnclosingClass.FullCompileName;
+      var wClass = wr.NewNamedBlock("class __CallToMain");
+      var wBody = wClass.NewNamedBlock("public static void Main()");
+      wBody.WriteLine($"{GetHelperModuleName()}.WithHaltHandling({className}.{IdName(mainMethod)});");
     }
   }
 }
