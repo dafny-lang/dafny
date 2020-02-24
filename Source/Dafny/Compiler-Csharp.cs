@@ -1664,22 +1664,31 @@ namespace Microsoft.Dafny
       }
     }
 
-    protected override TargetWriter EmitMemberSelect(MemberDecl member, bool isLValue, Type expectedType, TargetWriter wr) {
-      var wSource = wr.Fork();
-      if (isLValue && member is ConstantField) {
-        wr.Write("._{0}", member.CompileName);
-      } else if (!isLValue && member is SpecialField sf) {
+    protected override ILvalue EmitMemberSelect(System.Action<TargetWriter> obj, MemberDecl member, Type expectedType, bool internalAccess = false) {
+      if (member is ConstantField) {
+        return SimpleLvalue(lvalueAction: wr => {
+          obj(wr);
+          wr.Write("._{0}", member.CompileName);
+        }, rvalueAction: wr => {
+          obj(wr);
+          if (internalAccess) {
+            wr.Write("._{0}", member.CompileName);
+          } else {
+            wr.Write(".{0}", IdName(member));
+          }
+        });
+      } if (member is SpecialField sf) {
         string compiledName, preStr, postStr;
         GetSpecialFieldInfo(sf.SpecialId, sf.IdParam, out compiledName, out preStr, out postStr);
         if (compiledName.Length != 0) {
-          wr.Write(".{0}", compiledName);
+          return SuffixLvalue(obj, ".{0}", compiledName);
         } else {
           // this member selection is handled by some kind of enclosing function call, so nothing to do here
+          return SimpleLvalue(obj);
         }
       } else {
-        wr.Write(".{0}", IdName(member));
+        return SuffixLvalue(obj, ".{0}", IdName(member));
       }
-      return wSource;
     }
 
     protected override TargetWriter EmitArraySelect(List<string> indices, Type elmtType, TargetWriter wr) {
@@ -2423,7 +2432,7 @@ namespace Microsoft.Dafny
           Assembly.LoadFile(Path.GetFullPath(otherFileName));
         }
       }
-      
+
       var assemblyName = Path.GetFileName(cr.PathToAssembly);
       var entry = cr.CompiledAssembly.EntryPoint;
       try {
@@ -2455,12 +2464,9 @@ namespace Microsoft.Dafny
         
         wr.WriteLine("[Xunit.Fact]");
         if (hasReturnValue) {
-          wr.WriteLine("public static void {0}_CheckForFailureForXunit()", name);
-          wr.WriteLine("{");
+          wr = wr.NewNamedBlock("public static void {0}_CheckForFailureForXunit()", name);
           wr.WriteLine("  var result = {0}();", name);
           wr.WriteLine("  Xunit.Assert.False(result.IsFailure(), \"Dafny test failed: \" + result);");
-          wr.WriteLine("}");
-          wr.WriteLine("");
         }
       }
     }

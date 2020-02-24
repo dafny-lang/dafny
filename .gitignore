@@ -36,6 +36,7 @@ Source/DafnyExtension/z3.exe
 
 Test/*/bin/
 Test/*/obj/
+Test/*/obj_core/
 Test/packages
 
 Test/**/*.exe

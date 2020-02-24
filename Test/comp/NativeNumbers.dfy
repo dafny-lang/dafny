@@ -7,6 +7,7 @@
 
 method Main() {
   CastTests();
+  DefaultTests();
   Int8Test();
   Int16Test();
   BvTests();
@@ -88,7 +89,7 @@ method CastTests() {
     u32 as int64, " ",
     u32 as uint32, " ", u32 as uint64, "\n";
 
-  u64 := 0xffff_ffff_ffff_ffff;
+  u64 := 0xffff_ffff_ffff_ffff as uint64; // test explicit conversion of literal
   print u64 as int, " ",
     u64 as uint64, "\n";
 
@@ -130,6 +131,45 @@ method CastTests() {
   print a.Length as int, " ",
     a.Length as int8, " ", a.Length as int16, " ", a.Length as int32, " ", a.Length as int64, " ",
     a.Length as uint8, " ", a.Length as uint16, " ", a.Length as uint32, " ", a.Length as uint64, "\n";
+
+  print "\nCharacters:\n";
+  var c : char := 'C';
+  print c, " ", c as int, " ",
+    c as int8, " ", c as int16, " ", c as int32, " ", c as int64, " ",
+    c as uint8, " ", c as uint16, " ", c as uint32, " ", c as uint64, "\n";
+
+  i := 0; c := i as char; i := c as int;
+  i8 := 0x7f; c := i8 as char; i8 := c as int8;
+  u8 := 0xff; c := u8 as char; u8 := c as uint8;
+  i16 := 0x7fff; c := i16 as char; i16 := c as int16;
+  u16 := 0xffff; c := u16 as char; u16 := c as uint16;
+  i32 := 0xffff; c := i32 as char; i32 := c as int32;
+  u32 := 0xffff; c := u32 as char; u32 := c as uint32;
+  i64 := 0xffff; c := i64 as char; i64 := c as int64;
+  u64 := 0xffff; c := u64 as char; u64 := c as uint64;
+  print i, " ", i8, " ", i16, " ", i32, " ", i64, " ",
+    u8, " ", u16, " ", u32, " ", u64, "\n";
+
+  print "\n";
+}
+
+method Gimmie<T(0)>() returns (ans : T) { }
+
+method DefaultTests() {
+  print "Defaults:\n\n";
+
+  var i : int := Gimmie();
+  var i8 : int8 := Gimmie();
+  var i16 : int16 := Gimmie();
+  var i32 : int32 := Gimmie();
+  var i64 : int64 := Gimmie();
+  var u8 : uint8 := Gimmie();
+  var u16 : uint16 := Gimmie();
+  var u32 : uint32 := Gimmie();
+  var u64 : uint64 := Gimmie();
+
+  print i, " ", i8, " ", i16, " ", i32, " ", i64, " ",
+    u8, " ", u16, " ", u32, " ", u64, "\n";
 
   print "\n";
 }
@@ -181,11 +221,12 @@ method MInt16(m: int16, n: int16) returns (r: int16) {
 }
 
 method BvTests() {
-  // These will also be bytes/shorts in Java (though they'll be wrapped in
-  // UByte/UShort objects)
+  // These will also be bytes/shorts in Java
   print "Bitvectors:\n\n";
 
   var a: bv8 := 250;
+  a := a / 2; // check that we're using unsigned division
+  a := a * 2;
   a := a + 6;
   assert a == 0;
 
@@ -194,6 +235,8 @@ method BvTests() {
   assert b == 3;
 
   var c: bv16 := 0xfffa;
+  c := c / 2; // check that we're using unsigned division
+  c := c * 2;
   c := c + 10;
   assert c == 4;
 

@@ -6,6 +6,12 @@ Execution trace:
 LetExpr.dfy(344,13): Error: value does not satisfy the subset constraints of 'nat'
 Execution trace:
     (0,0): anon0
+LetExpr.dfy(390,33): Error: assertion violation
+Execution trace:
+    (0,0): anon0
+LetExpr.dfy(403,24): Error: assertion violation
+Execution trace:
+    (0,0): anon0
 LetExpr.dfy(9,11): Error: assertion violation
 Execution trace:
     (0,0): anon0
@@ -42,7 +48,7 @@ Execution trace:
     (0,0): anon0
     (0,0): anon11_Then
 
-Dafny program verifier finished with 29 verified, 11 errors
+Dafny program verifier finished with 37 verified, 13 errors
 LetExpr.dfy.tmp.dprint.dfy(281,4): Warning: /!\ No terms found to trigger on.
 LetExpr.dfy.tmp.dprint.dfy(46,2): Warning: /!\ No terms found to trigger on.
 
