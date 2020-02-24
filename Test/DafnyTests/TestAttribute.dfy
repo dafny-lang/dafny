@@ -25,4 +25,16 @@ module {:extern} Tests {
     function method {:test} FailingTest(): VoidOutcome {
         VoidFailure("Whoopsie")
     }
+
+    method {:test} PassingTestUsingExpect() {
+        expect 2 + 2 == 4;
+    }
+
+    method {:test} FailingTestUsingExpect() {
+        expect 2 + 2 == 5;
+    }
+
+    method {:test} FailingTestUsingExpectWithMessage() {
+        expect 2 + 2 == 5, "Down with DoubleThink!";
+    }
 }

@@ -2445,13 +2445,23 @@ namespace Microsoft.Dafny
       if (Attributes.Contains(decl.Attributes, "test")) {
         // TODO: The resolver needs to check the assumptions about the declaration
         // (i.e. must be public and static, must return a "result type", etc.)
+        bool hasReturnValue = false;
+        if (decl is Function) {
+          hasReturnValue = true;
+        } else if (decl is Method) {
+          var method = (Method) decl;
+          hasReturnValue = method.Outs.Count > 1;
+        }
+        
         wr.WriteLine("[Xunit.Fact]");
-        wr.WriteLine("public static void {0}_CheckForFailureForXunit()", name);
-        wr.WriteLine("{");
-        wr.WriteLine("  var result = {0}();", name);
-        wr.WriteLine("  Xunit.Assert.False(result.IsFailure(), \"Dafny test failed: \" + result);");
-        wr.WriteLine("}");
-        wr.WriteLine("");
+        if (hasReturnValue) {
+          wr.WriteLine("public static void {0}_CheckForFailureForXunit()", name);
+          wr.WriteLine("{");
+          wr.WriteLine("  var result = {0}();", name);
+          wr.WriteLine("  Xunit.Assert.False(result.IsFailure(), \"Dafny test failed: \" + result);");
+          wr.WriteLine("}");
+          wr.WriteLine("");
+        }
       }
     }
     
