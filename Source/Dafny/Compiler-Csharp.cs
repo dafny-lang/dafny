@@ -99,7 +99,7 @@ namespace Microsoft.Dafny
 
     protected override BlockTargetWriter CreateStaticMain(IClassWriter cw) {
       var wr = (cw as CsharpCompiler.ClassWriter).StaticMemberWriter;
-      return wr.NewBlock("public static void Main(string[] args)");
+      return wr.NewBlock("public static void _Main(string[] args)");
     }
 
     protected override TargetWriter CreateModule(string moduleName, bool isDefault, bool isExtern, string/*?*/ libraryName, TargetWriter wr) {
