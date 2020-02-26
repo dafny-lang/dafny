@@ -2474,10 +2474,13 @@ namespace Microsoft.Dafny
     public override void EmitCallToMain(Method mainMethod, TargetWriter wr) {
       var companion = TypeName_Companion(mainMethod.EnclosingClass as ClassDecl, wr, mainMethod.tok);
       var wClass = wr.NewNamedBlock("class __CallToMain");
-      var wBody = wClass.NewNamedBlock("public static void Main()");
+      var wBody = wClass.NewNamedBlock("public static void Main(string[] args)");
       var modName = mainMethod.EnclosingClass.Module.CompileName == "_module" ? "_module." : "";
       companion = modName + companion;
-      wBody.WriteLine($"{GetHelperModuleName()}.WithHaltHandling({companion}.{IdName(mainMethod)});");
+      // TODO-RS: If the Dafny main method was an instance method, this call *would* be ambiguous except
+      // for the fact that only the static version the compiler inserts accepts the string[] argument.
+      // If Dafny wants to support command-line arguments at some point, this may have to be refactored.
+      wBody.WriteLine($"{GetHelperModuleName()}.WithHaltHandling({companion}.{IdName(mainMethod)}, args);");
     }
   }
 }

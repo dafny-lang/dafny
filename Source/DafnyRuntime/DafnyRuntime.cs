@@ -1281,11 +1281,11 @@ namespace Dafny
       return a;
     }
     
-    public static void WithHaltHandling(Action action) {
+    public static void WithHaltHandling(Action<string[]> mainMethod, string[] args) {
       try {
-        action();
+        mainMethod(args);
       } catch (HaltException e) {
-        System.Console.WriteLine("Program halted: " + e.Message);
+        Console.WriteLine("Program halted: " + e.Message);
       }
     }
   }
