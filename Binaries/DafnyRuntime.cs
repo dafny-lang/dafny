@@ -1281,9 +1281,9 @@ namespace Dafny
       return a;
     }
     
-    public static void WithHaltHandling(Action<string[]> mainMethod, string[] args) {
+    public static void WithHaltHandling(Action action) {
       try {
-        mainMethod(args);
+        action();
       } catch (HaltException e) {
         Console.WriteLine("Program halted: " + e.Message);
       }

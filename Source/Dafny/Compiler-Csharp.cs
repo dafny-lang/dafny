@@ -99,7 +99,7 @@ namespace Microsoft.Dafny
 
     protected override BlockTargetWriter CreateStaticMain(IClassWriter cw) {
       var wr = (cw as CsharpCompiler.ClassWriter).StaticMemberWriter;
-      return wr.NewBlock("public static void _Main(string[] args)");
+      return wr.NewBlock("public static void _StaticMain()");
     }
 
     protected override TargetWriter CreateModule(string moduleName, bool isDefault, bool isExtern, string/*?*/ libraryName, TargetWriter wr) {
@@ -2477,10 +2477,10 @@ namespace Microsoft.Dafny
       var wBody = wClass.NewNamedBlock("public static void Main(string[] args)");
       var modName = mainMethod.EnclosingClass.Module.CompileName == "_module" ? "_module." : "";
       companion = modName + companion;
-      // TODO-RS: If the Dafny main method was an instance method, this call *would* be ambiguous except
-      // for the fact that only the static version the compiler inserts accepts the string[] argument.
-      // If Dafny wants to support command-line arguments at some point, this may have to be refactored.
-      wBody.WriteLine($"{GetHelperModuleName()}.WithHaltHandling({companion}.{IdName(mainMethod)}, args);");
+
+      var idName = mainMethod.IsStatic ? IdName(mainMethod) : "_StaticMain";
+
+      wBody.WriteLine($"{GetHelperModuleName()}.WithHaltHandling({companion}.{idName});");
     }
   }
 }
