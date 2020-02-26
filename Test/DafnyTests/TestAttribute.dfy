@@ -4,8 +4,8 @@
 // RUN: sed 's/[^:]*://' "%t".raw > "%t"
 // RUN: %diff "%s.expect" "%t"
 
-include "../../Test/exceptions/VoidOutcomeDT.dfy"
-include "../../Test/exceptions/NatOutcomeDT.dfy"
+include "../exceptions/VoidOutcomeDT.dfy"
+include "../exceptions/NatOutcomeDT.dfy"
 
 function method SafeDivide(a: nat, b: nat): NatOutcome {
     if b == 0 then 
@@ -17,6 +17,14 @@ function method SafeDivide(a: nat, b: nat): NatOutcome {
 method UnsafeDivide(a: nat, b: nat) returns (r: nat) {
     expect b != 0;
     return a/b;
+}
+
+method FailUnless(p: bool) returns (r: VoidOutcome) ensures r.VoidSuccess? ==> p {
+    if p {
+        return VoidSuccess;
+    } else {
+        return VoidFailure("requirement failed");
+    }
 }
 
 function method {:test} PassingTest(): VoidOutcome {
@@ -50,4 +58,12 @@ method {:test} FailingTestUsingAssignOrHalt() {
     var x := 5;
     var y := 0;
     var q :- expect SafeDivide(x, y);
+}
+
+method {:test} PassingTestUsingNoLHSAssignOrHalt() {
+    :- expect FailUnless(true);
+}
+
+method {:test} FailingTestUsingNoLHSAssignOrHalt() {
+    :- expect FailUnless(false);
 }

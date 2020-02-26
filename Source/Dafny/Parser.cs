@@ -3148,6 +3148,10 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, st
 		} else if (la.kind == 116) {
 			Get();
 			x = t; 
+			if (la.kind == _expect) {
+				Expect(90);
+				exceptionExpect = t; 
+			}
 			Expression(out exceptionExpr, false, false);
 			Expect(34);
 			endTok = t; 

@@ -2219,6 +2219,9 @@ UpdateStmt<out Statement/*!*/ s>
   | ":"                            (. SemErr(t, "invalid statement (did you forget the 'label' keyword?)"); .)
   )
 | ":-"                             (. x = t; .)
+   [ IF(la.kind == _expect)        /* an Expression can also begin with an "expect", so this says to resolve it to pick up any "expect" here */
+     "expect"                      (. exceptionExpect = t; .)
+   ]
    Expression<out exceptionExpr, false, false>
    ";"                             (. endTok = t; .)
 )
