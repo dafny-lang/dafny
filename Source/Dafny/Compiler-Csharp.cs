@@ -99,6 +99,8 @@ namespace Microsoft.Dafny
 
     protected override BlockTargetWriter CreateStaticMain(IClassWriter cw) {
       var wr = (cw as CsharpCompiler.ClassWriter).StaticMemberWriter;
+      // See EmitCallToMain() - this is named differently because otherwise C# tries
+      // to resolve the reference to the instance-level Main method
       return wr.NewBlock("public static void _StaticMain()");
     }
 
@@ -2465,8 +2467,8 @@ namespace Microsoft.Dafny
         wr.WriteLine("[Xunit.Fact]");
         if (hasReturnValue) {
           wr = wr.NewNamedBlock("public static void {0}_CheckForFailureForXunit()", name);
-          wr.WriteLine("  var result = {0}();", name);
-          wr.WriteLine("  Xunit.Assert.False(result.IsFailure(), \"Dafny test failed: \" + result);");
+          wr.WriteLine("var result = {0}();", name);
+          wr.WriteLine("Xunit.Assert.False(result.IsFailure(), \"Dafny test failed: \" + result);");
         }
       }
     }

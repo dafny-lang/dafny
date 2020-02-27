@@ -556,7 +556,7 @@ namespace Microsoft.Dafny
 
       } else if (stmt is ExpectStmt) {
         var s = (ExpectStmt)stmt;
-        r = new ExpectStmt(Tok(s.Tok), Tok(s.EndTok), CloneExpr(s.Expr), CloneExpr(s.Message), null);
+        r = new ExpectStmt(Tok(s.Tok), Tok(s.EndTok), CloneExpr(s.Expr), CloneExpr(s.Message), CloneAttributes(s.Attributes));
 
       } else if (stmt is AssumeStmt) {
         var s = (AssumeStmt)stmt;

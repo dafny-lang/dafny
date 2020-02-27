@@ -6791,6 +6791,8 @@ namespace Microsoft.Dafny
             Error(stmt, "expect statement is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)");
           } else {
             resolver.CheckIsCompilable(s.Expr);
+            // If not provided, the message is populated with a default value in resolution 
+            Contract.Assert(s.Message != null);
             resolver.CheckIsCompilable(s.Message);
           }
 
@@ -10171,8 +10173,7 @@ namespace Microsoft.Dafny
         // "var temp := MethodOrExpression;"
         new VarDeclStmt(s.Tok, s.Tok, new List<LocalVariable>() { new LocalVariable(s.Tok, s.Tok, temp, tempType, false) },
           new UpdateStmt(s.Tok, s.Tok, new List<Expression>() { new IdentifierExpr(s.Tok, temp) }, new List<AssignmentRhs>() { new ExprRhs(s.Rhs) })));
-      if (s.ExpectToken != null)
-      {
+      if (s.ExpectToken != null) {
         var notFailureExpr = new UnaryOpExpr(s.Tok, UnaryOpExpr.Opcode.Not, VarDotMethod(s.Tok, temp, "IsFailure"));
         var propogateFailureCall = VarDotMethod(s.Tok, temp, "PropagateFailure");
         s.ResolvedStatements.Add(

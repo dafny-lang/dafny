@@ -2888,6 +2888,6 @@ module ExpectStatements {
   method M() {
     ghost var g := 5;
     expect forall i : int :: i == i;  // error: quantifiers in non-ghost contexts must be compilable
-    expect false, if g == 5 then "boom" else "splat"; // 
+    expect false, if g == 5 then "boom" else "splat"; // error: ghost variables are allowed only in specification contexts
   }
 }
