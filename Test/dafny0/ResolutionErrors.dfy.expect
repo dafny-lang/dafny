@@ -444,4 +444,7 @@ ResolutionErrors.dfy(2849,4): Error: ghost variables are allowed only in specifi
 ResolutionErrors.dfy(2861,13): Error: expression is not allowed to refer to constant field x
 ResolutionErrors.dfy(2863,22): Error: expression is not allowed to refer to constant field x
 ResolutionErrors.dfy(2874,13): Error: arguments must be of a set or multiset type (got map<X, Y>)
-441 resolution/type errors detected in ResolutionErrors.dfy
+ResolutionErrors.dfy(2884,4): Error: expect statement is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)
+ResolutionErrors.dfy(2890,11): Error: quantifiers in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce or compile a bounded set of values for 'i'
+ResolutionErrors.dfy(2891,21): Error: ghost variables are allowed only in specification contexts
+444 resolution/type errors detected in ResolutionErrors.dfy

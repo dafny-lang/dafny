@@ -6069,6 +6069,7 @@ namespace Microsoft.Dafny
           return CheckTailRecursive(s.Update, enclosingMethod, ref tailCall, reportErrors);
         }
       } else if (stmt is LetStmt) {
+      } else if (stmt is ExpectStmt) {
       } else {
         Contract.Assert(false);  // unexpected statement type
       }
@@ -6776,11 +6777,23 @@ namespace Microsoft.Dafny
         Contract.Requires(stmt != null);
         Contract.Assume(!codeContext.IsGhost || mustBeErasable);  // (this is really a precondition) codeContext.IsGhost ==> mustBeErasable
 
-        if (stmt is PredicateStmt) {
+        if (stmt is AssertStmt || stmt is AssumeStmt) {
           stmt.IsGhost = true;
           var assertStmt = stmt as AssertStmt;
           if (assertStmt != null && assertStmt.Proof != null) {
             Visit(assertStmt.Proof, true);
+          }
+
+        } else if (stmt is ExpectStmt) {
+          stmt.IsGhost = false;
+          var s = (ExpectStmt)stmt;
+          if (mustBeErasable) {
+            Error(stmt, "expect statement is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)");
+          } else {
+            resolver.CheckIsCompilable(s.Expr);
+            // If not provided, the message is populated with a default value in resolution 
+            Contract.Assert(s.Message != null);
+            resolver.CheckIsCompilable(s.Message);
           }
 
         } else if (stmt is PrintStmt) {
@@ -8911,6 +8924,14 @@ namespace Microsoft.Dafny
           enclosingStatementLabels = prevLblStmts;
           loopStack = prevLoopStack;
         }
+        var expectStmt = stmt as ExpectStmt;
+        if (expectStmt != null) {
+          if (expectStmt.Message == null) {
+            expectStmt.Message = new StringLiteralExpr(s.Tok, "expectation violation", false);
+          }
+          ResolveExpression(expectStmt.Message, new ResolveOpts(codeContext, true));
+          Contract.Assert(expectStmt.Message.Type != null);  // follows from postcondition of ResolveExpression
+        }
 
       } else if (stmt is PrintStmt) {
         var s = (PrintStmt)stmt;
@@ -10139,6 +10160,8 @@ namespace Microsoft.Dafny
     /// <summary>
     /// Desugars "y :- MethodOrExpression" into
     /// "var temp := MethodOrExpression; if temp.IsFailure() { return temp.PropagateFailure(); } y := temp.Extract();"
+    /// and "y :- expect MethodOrExpression" into
+    /// "var temp := MethodOrExpression; expect !temp.IsFailure(), temp.PropagateFailure(); y := temp.Extract();"
     /// and saves the result into s.ResolvedStatements.
     /// </summary>
     private void ResolveAssignOrReturnStmt(AssignOrReturnStmt s, ICodeContext codeContext) {
@@ -10150,16 +10173,24 @@ namespace Microsoft.Dafny
         // "var temp := MethodOrExpression;"
         new VarDeclStmt(s.Tok, s.Tok, new List<LocalVariable>() { new LocalVariable(s.Tok, s.Tok, temp, tempType, false) },
           new UpdateStmt(s.Tok, s.Tok, new List<Expression>() { new IdentifierExpr(s.Tok, temp) }, new List<AssignmentRhs>() { new ExprRhs(s.Rhs) })));
-      s.ResolvedStatements.Add(
-        // "if temp.IsFailure()"
-        new IfStmt(s.Tok, s.Tok, false, VarDotMethod(s.Tok, temp, "IsFailure"),
-          // THEN: { return temp.PropagateFailure(); }
-          new BlockStmt(s.Tok, s.Tok, new List<Statement>() {
-            new ReturnStmt(s.Tok, s.Tok, new List<AssignmentRhs>() { new ExprRhs(VarDotMethod(s.Tok, temp, "PropagateFailure"))}),
-          }),
-          // ELSE: no else block
-          null
-        ));
+      if (s.ExpectToken != null) {
+        var notFailureExpr = new UnaryOpExpr(s.Tok, UnaryOpExpr.Opcode.Not, VarDotMethod(s.Tok, temp, "IsFailure"));
+        var propogateFailureCall = VarDotMethod(s.Tok, temp, "PropagateFailure");
+        s.ResolvedStatements.Add(
+          // "expect !temp.IsFailure(), temp.PropagateFailure()"
+          new ExpectStmt(s.Tok, s.Tok, notFailureExpr, propogateFailureCall, null));
+      } else {
+        s.ResolvedStatements.Add(
+          // "if temp.IsFailure()"
+          new IfStmt(s.Tok, s.Tok, false, VarDotMethod(s.Tok, temp, "IsFailure"),
+            // THEN: { return temp.PropagateFailure(); }
+            new BlockStmt(s.Tok, s.Tok, new List<Statement>() {
+              new ReturnStmt(s.Tok, s.Tok, new List<AssignmentRhs>() { new ExprRhs(VarDotMethod(s.Tok, temp, "PropagateFailure"))}),
+            }),
+            // ELSE: no else block
+            null
+          ));
+      }
 
       Contract.Assert(s.Lhss.Count <= 1);
       if (s.Lhss.Count == 1)
@@ -13955,7 +13986,7 @@ namespace Microsoft.Dafny
     }
 
     /// <summary>
-    /// Generate an error for every non-ghost feature used in "expr".
+    /// Generate an error for every ghost feature used in "expr".
     /// Requires "expr" to have been successfully resolved.
     /// </summary>
     void CheckIsCompilable(Expression expr) {

@@ -99,7 +99,9 @@ namespace Microsoft.Dafny
 
     protected override BlockTargetWriter CreateStaticMain(IClassWriter cw) {
       var wr = (cw as CsharpCompiler.ClassWriter).StaticMemberWriter;
-      return wr.NewBlock("public static void Main(string[] args)");
+      // See EmitCallToMain() - this is named differently because otherwise C# tries
+      // to resolve the reference to the instance-level Main method
+      return wr.NewBlock("public static void _StaticMain()");
     }
 
     protected override TargetWriter CreateModule(string moduleName, bool isDefault, bool isExtern, string/*?*/ libraryName, TargetWriter wr) {
@@ -1172,6 +1174,12 @@ namespace Microsoft.Dafny
       wr.WriteLine("throw new System.Exception(\"{0}\");", message);
     }
 
+    protected override void EmitHalt(Expression/*?*/ messageExpr, TargetWriter wr) {
+      wr.Write("throw new Dafny.HaltException(");
+      TrExpr(messageExpr, wr, false);
+      wr.WriteLine(");");
+    }
+
     protected override BlockTargetWriter CreateForLoop(string indexVar, string bound, TargetWriter wr) {
       return wr.NewNamedBlock("for (var {0} = 0; {0} < {1}; {0}++)", indexVar, bound);
     }
@@ -1541,6 +1549,7 @@ namespace Microsoft.Dafny
         // methods with expected names
         case "ToString":
         case "GetHashCode":
+        case "Main":
           return "_" + name;
         default:
           return name;
@@ -2371,7 +2380,8 @@ namespace Microsoft.Dafny
         }
         crx.cr = provider.CompileAssemblyFromFile(cp, sourceFiles);
       } else {
-        crx.cr = provider.CompileAssemblyFromSource(cp, targetProgramText);
+        var p = callToMain == null ? targetProgramText : targetProgramText + callToMain; 
+        crx.cr = provider.CompileAssemblyFromSource(cp, p);
       }
 
       if (crx.cr.Errors.Count != 0) {
@@ -2446,11 +2456,33 @@ namespace Microsoft.Dafny
       if (Attributes.Contains(decl.Attributes, "test")) {
         // TODO: The resolver needs to check the assumptions about the declaration
         // (i.e. must be public and static, must return a "result type", etc.)
+        bool hasReturnValue = false;
+        if (decl is Function) {
+          hasReturnValue = true;
+        } else if (decl is Method) {
+          var method = (Method) decl;
+          hasReturnValue = method.Outs.Count > 1;
+        }
+        
         wr.WriteLine("[Xunit.Fact]");
-        wr = wr.NewNamedBlock("public static void {0}_CheckForFailureForXunit()", name);
-        wr.WriteLine("var result = {0}();", name);
-        wr.WriteLine("Xunit.Assert.False(result.IsFailure(), \"Dafny test failed: \" + result);");
+        if (hasReturnValue) {
+          wr = wr.NewNamedBlock("public static void {0}_CheckForFailureForXunit()", name);
+          wr.WriteLine("var result = {0}();", name);
+          wr.WriteLine("Xunit.Assert.False(result.IsFailure(), \"Dafny test failed: \" + result);");
+        }
       }
+    }
+    
+    public override void EmitCallToMain(Method mainMethod, TargetWriter wr) {
+      var companion = TypeName_Companion(mainMethod.EnclosingClass as ClassDecl, wr, mainMethod.tok);
+      var wClass = wr.NewNamedBlock("class __CallToMain");
+      var wBody = wClass.NewNamedBlock("public static void Main(string[] args)");
+      var modName = mainMethod.EnclosingClass.Module.CompileName == "_module" ? "_module." : "";
+      companion = modName + companion;
+
+      var idName = mainMethod.IsStatic ? IdName(mainMethod) : "_StaticMain";
+
+      wBody.WriteLine($"{GetHelperModuleName()}.WithHaltHandling({companion}.{idName});");
     }
   }
 }

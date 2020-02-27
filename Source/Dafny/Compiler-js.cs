@@ -27,7 +27,7 @@ namespace Microsoft.Dafny {
     }
 
     public override void EmitCallToMain(Method mainMethod, TargetWriter wr) {
-      wr.WriteLine("{0}.{1}();", mainMethod.EnclosingClass.FullCompileName, IdName(mainMethod));
+      wr.WriteLine("_dafny.HandleHaltExceptions({0}.{1});", mainMethod.EnclosingClass.FullCompileName, IdName(mainMethod));
     }
 
     protected override BlockTargetWriter CreateStaticMain(IClassWriter cw) {
@@ -1066,6 +1066,12 @@ namespace Microsoft.Dafny {
       wr.WriteLine("throw new Error(\"{0}\");", message);
     }
 
+    protected override void EmitHalt(Expression/*?*/ messageExpr, TargetWriter wr) {
+      wr.Write("throw new _dafny.HaltException(");
+      TrExpr(messageExpr, wr, false);
+      wr.WriteLine(");");
+    }
+    
     protected override BlockTargetWriter CreateForLoop(string indexVar, string bound, TargetWriter wr) {
       return wr.NewNamedBlock("for (let {0} = 0; {0} < {1}; {0}++)", indexVar, bound);
     }

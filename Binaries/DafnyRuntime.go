@@ -2578,3 +2578,9 @@ func max(n, m int) int {
 		return m
 	}
 }
+
+func CatchHalt() {
+    if r := recover(); r != nil {
+        fmt.Println("Program halted:", r)
+    }
+}

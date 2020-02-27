@@ -84,6 +84,7 @@ namespace Microsoft.Dafny {
       var companion = TypeName_Companion(mainMethod.EnclosingClass as ClassDecl, wr, mainMethod.tok);
 
       var wBody = wr.NewNamedBlock("func main()");
+      wBody.WriteLine("defer _dafny.CatchHalt()");
       wBody.WriteLine("{0}.{1}()", companion, IdName(mainMethod));
     }
 
@@ -1777,6 +1778,12 @@ namespace Microsoft.Dafny {
         message = "unexpected control point";
       }
       wr.WriteLine("panic(\"{0}\")", message);
+    }
+
+    protected override void EmitHalt(Expression messageExpr, TargetWriter wr) {
+      wr.Write("panic(");
+      TrExpr(messageExpr, wr, false);
+      wr.WriteLine(");");
     }
 
     protected override BlockTargetWriter CreateWhileLoop(out TargetWriter guardWriter, TargetWriter wr) {

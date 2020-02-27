@@ -320,7 +320,7 @@ namespace Microsoft.Dafny{
       var wBody = wr.NewNamedBlock("public static void main(String[] args)");
       var modName = mainMethod.EnclosingClass.Module.CompileName == "_module" ? "_System." : "";
       companion = modName + companion;
-      wBody.WriteLine($"{companion}.{IdName(mainMethod)}();");
+      wBody.WriteLine($"{DafnyHelpersClass}.withHaltHandling({companion}::{IdName(mainMethod)});");
     }
 
     void EmitImports(TargetWriter wr, out TargetWriter importWriter){
@@ -1971,6 +1971,11 @@ namespace Microsoft.Dafny{
 
     protected override void EmitPrintStmt(TargetWriter wr, Expression arg) {
       wr.Write("System.out.print(");
+      EmitToString(wr, arg);
+      wr.WriteLine(");");
+    }
+
+    protected void EmitToString(TargetWriter wr, Expression arg) {
       if (arg.Type.IsArrowType) {
         wr.Write(IdName(((IdentifierExpr) ((ConcreteSyntaxExpression)arg).ResolvedExpression).Var) + " == null ? null : \"Function\"");
       } else if (AsNativeType(arg.Type) != null && AsNativeType(arg.Type).LowerBound >= 0) {
@@ -2002,14 +2007,22 @@ namespace Microsoft.Dafny{
             throw new cce.UnreachableException();
         }
       } else {
+        // TODO-RS: This doesn't handle strings printed out as part of datatypes
+        bool isString = arg.Type.AsCollectionType != null && 
+                        arg.Type.AsCollectionType.AsSeqType != null &&
+                        arg.Type.AsCollectionType.AsSeqType.Arg is CharType;
+        if (!isString) {
+          wr.Write("String.valueOf(");
+        }
         TrExpr(arg, wr, false);
-        if (arg.Type.AsCollectionType != null && arg.Type.AsCollectionType.AsSeqType!= null && arg.Type.AsCollectionType.AsSeqType.Arg is CharType){
+        if (isString) {
           wr.Write(".verbatimString()");
+        } else {
+          wr.Write(")");
         }
       }
-      wr.WriteLine(");");
     }
-
+    
     protected override string IdProtect(string name) {
       return PublicIdProtect(name);
     }
@@ -3317,6 +3330,7 @@ namespace Microsoft.Dafny{
       if (message == null) {
         message = "unexpected control point";
       }
+      
       wr.WriteLine($"throw new IllegalArgumentException(\"{message}\");");
     }
 
@@ -3324,6 +3338,12 @@ namespace Microsoft.Dafny{
       if (!needIterLimit) {
         EmitAbsurd(message, wr);
       }
+    }
+
+    protected override void EmitHalt(Expression messageExpr, TargetWriter wr) {
+      wr.Write("throw new dafny.DafnyHaltException(");
+      EmitToString(wr, messageExpr);
+      wr.WriteLine(");");
     }
 
     protected override IClassWriter DeclareNewtype(NewtypeDecl nt, TargetWriter wr){

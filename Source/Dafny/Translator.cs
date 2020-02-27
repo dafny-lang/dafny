@@ -9891,6 +9891,26 @@ namespace Microsoft.Dafny {
             builder.Add(TrAssumeCmd(stmt.Tok, etran.TrExpr(s.Expr)));
             stmtContext = StmtType.NONE;
           }
+        } else if (stmt is ExpectStmt) {
+          AddComment(builder, stmt, "expect statement");
+          ExpectStmt s = (ExpectStmt)stmt;
+          stmtContext = StmtType.ASSUME;
+          TrStmt_CheckWellformed(s.Expr, builder, locals, etran, false);
+          
+          // Need to check the message is well-formed, assuming the expected expression
+          // does NOT hold:
+          //
+          // if Not(TrExpr[[ s.Expr ]]) {
+          //  CheckWellformed[[ s.Message ]]
+          //  assume false;
+          // }
+          BoogieStmtListBuilder thnBuilder = new BoogieStmtListBuilder(this);
+          TrStmt_CheckWellformed(s.Message, thnBuilder, locals, etran, false);
+          thnBuilder.Add(TrAssumeCmd(stmt.Tok, new Bpl.LiteralExpr(stmt.Tok, false), etran.TrAttributes(stmt.Attributes, null)));
+          Bpl.StmtList thn = thnBuilder.Collect(s.Tok);
+          builder.Add(new Bpl.IfCmd(stmt.Tok, Bpl.Expr.Not(etran.TrExpr(s.Expr)), thn, null, null));
+
+          stmtContext = StmtType.NONE;  // done with translating expect stmt.
         } else if (stmt is AssumeStmt) {
           AddComment(builder, stmt, "assume statement");
           AssumeStmt s = (AssumeStmt)stmt;
@@ -18244,6 +18264,9 @@ namespace Microsoft.Dafny {
         } else if (stmt is AssertStmt) {
           var s = (AssertStmt)stmt;
           r = new AssertStmt(s.Tok, s.EndTok, Substitute(s.Expr), SubstBlockStmt(s.Proof), s.Label, SubstAttributes(s.Attributes));
+        } else if (stmt is ExpectStmt) {
+          var s = (ExpectStmt)stmt;
+          r = new ExpectStmt(s.Tok, s.EndTok, Substitute(s.Expr), Substitute(s.Message), SubstAttributes(s.Attributes));
         } else if (stmt is AssumeStmt) {
           var s = (AssumeStmt)stmt;
           r = new AssumeStmt(s.Tok, s.EndTok, Substitute(s.Expr), SubstAttributes(s.Attributes));

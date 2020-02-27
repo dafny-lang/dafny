@@ -965,6 +965,22 @@ let _dafny = (function() {
   $module.SingleValue = function*(v) {
     yield v;
   }
+  $module.HaltException = class HaltException extends Error {
+    constructor(message) {
+      super(message)
+    }
+  }
+  $module.HandleHaltExceptions = function(f) {
+    try {
+      f()
+    } catch (e) {
+      if (e instanceof _dafny.HaltException) {
+        process.stdout.write("Program halted: " + e.message + "\n")
+      } else {
+        throw e
+      }
+    }
+  }
   return $module;
 
   // What follows are routines private to the Dafny runtime

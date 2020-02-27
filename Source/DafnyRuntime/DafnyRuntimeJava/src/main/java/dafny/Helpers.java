@@ -118,6 +118,14 @@ public class Helpers {
             return BigInteger.valueOf(l).add(ULONG_LIMIT);
         }
     }
+    
+    public static void withHaltHandling(Runnable runnable) {
+        try {
+            runnable.run();
+        } catch (DafnyHaltException e) {
+            System.err.println("Program halted: " + e.getMessage());
+        }
+    }
 }
 
 

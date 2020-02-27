@@ -1280,6 +1280,14 @@ namespace Dafny
     public static A Id<A>(A a) {
       return a;
     }
+    
+    public static void WithHaltHandling(Action action) {
+      try {
+        action();
+      } catch (HaltException e) {
+        Console.WriteLine("Program halted: " + e.Message);
+      }
+    }
   }
 
   public class BigOrdinal {
@@ -1459,6 +1467,12 @@ namespace Dafny
         bReciprocal = new BigRational(-b.den, -b.num);
       }
       return a * bReciprocal;
+    }
+  }
+
+  public class HaltException : Exception {
+    public HaltException(object message) : base(message.ToString())
+    {
     }
   }
 }
