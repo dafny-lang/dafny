@@ -10175,10 +10175,9 @@ namespace Microsoft.Dafny
           new UpdateStmt(s.Tok, s.Tok, new List<Expression>() { new IdentifierExpr(s.Tok, temp) }, new List<AssignmentRhs>() { new ExprRhs(s.Rhs) })));
       if (s.ExpectToken != null) {
         var notFailureExpr = new UnaryOpExpr(s.Tok, UnaryOpExpr.Opcode.Not, VarDotMethod(s.Tok, temp, "IsFailure"));
-        var propogateFailureCall = VarDotMethod(s.Tok, temp, "PropagateFailure");
         s.ResolvedStatements.Add(
-          // "expect !temp.IsFailure(), temp.PropagateFailure()"
-          new ExpectStmt(s.Tok, s.Tok, notFailureExpr, propogateFailureCall, null));
+          // "expect !temp.IsFailure(), temp"
+          new ExpectStmt(s.Tok, s.Tok, notFailureExpr, new IdentifierExpr(s.Tok, temp), null));
       } else {
         s.ResolvedStatements.Add(
           // "if temp.IsFailure()"
