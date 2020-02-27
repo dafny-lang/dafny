@@ -5,7 +5,7 @@
 // RUN: %dafny /compile:3 /compileTarget:js "%s" >> "%t"
 // RUN: %diff "%s.expect" "%t"
 
-include "../exceptions/NatOutcomeDT.dfy"
+include "../exceptions/NatOutcomeDt.dfy"
 
 method TestAssignOrHalt() {
     var stmt1: nat :- expect NatSuccess(42);

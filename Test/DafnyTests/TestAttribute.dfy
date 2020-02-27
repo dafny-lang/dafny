@@ -4,8 +4,8 @@
 // RUN: sed 's/[^:]*://' "%t".raw > "%t"
 // RUN: %diff "%s.expect" "%t"
 
-include "../exceptions/VoidOutcomeDT.dfy"
-include "../exceptions/NatOutcomeDT.dfy"
+include "../exceptions/VoidOutcomeDt.dfy"
+include "../exceptions/NatOutcomeDt.dfy"
 
 function method SafeDivide(a: nat, b: nat): NatOutcome {
     if b == 0 then 
