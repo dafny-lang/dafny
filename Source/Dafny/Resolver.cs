@@ -3075,9 +3075,6 @@ namespace Microsoft.Dafny
           }
           return;
         }
-      } else if (expr is NestedMatchExpr) {
-        var e = (NestedMatchExpr)expr;
-        CheckDestructsAreAbstemiousCompliant(e.ResolvedExpression);
       } else if (expr is MatchExpr) {
         var e = (MatchExpr)expr;
         if (e.Source.Type.IsCoDatatype) {

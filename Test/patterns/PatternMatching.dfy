@@ -8,60 +8,61 @@
 
 datatype Alt = A(int) | B(int)
 datatype MyOption = Some(v: Alt) | None
-datatype MyPair = Pair(x:Alt, y:Alt)
+datatype MyPair = Pair(x: Alt, y: Alt)
 datatype List<T> = Nil | Cons(head: T, tail: List)
 
 // Nested Patterns
-method NestingTest (xs:List<int>) returns (r:int)
+method NestingTest(xs: List<int>) returns (r: int)
 {
-    match xs
-     case Cons(y, Cons(z, zs)) => return z;
-     case Cons(y, Nil) => return y;
-     case Nil => return 0;
+  match xs {
+    case Cons(y, Cons(z, zs)) => return z;
+    case Cons(y, Nil) => return y;
+    case Nil => return 0;
+  }
 }
 
 
 // Ordered match with variables
-method NestedVariableTest(x:List<int>) returns (r:int)
+method NestedVariableTest(x: List<int>) returns (r: int)
 {
-    match x {
-        case Cons(a, Cons(b, tl1)) => r := 0;
-        case Cons(c, tl2) => r:=1;
-        case d => r := 2;
-    }
+  match x {
+    case Cons(a, Cons(b, tl1)) => r := 0;
+    case Cons(c, tl2) => r := 1;
+    case d => r := 2;
+  }
 }
 
 // Nested, Ordered patterns
 method OrderedTest(x: MyOption ) returns (r: int)
 {
-    match x {
-        case Some(A(i)) => r:=0;
-        case Some(_) => r := 1;
-	case None => r := 2;
-   }
+  match x {
+    case Some(A(i)) => r := 0;
+    case Some(_) => r := 1;
+    case None => r := 2;
+  }
 }
 
 // Empty matching context
-method VariableTest(x:List<int>) returns (r:int)
+method VariableTest(x: List<int>) returns (r: int)
 {
-    match x {
-        case a => r := 1;
-    }
+  match x {
+    case a => r := 1;
+  }
 }
 
 
 // Test interleaving of constant and constructor testing
-method ConstantTest(x:List<int>) returns (r:int)
+method ConstantTest(x: List<int>) returns (r: int)
 {
-    match x {
-        case Cons(1, tl1) => r := 0;
-        case Cons(c, Cons(2, tl2)) => r:=1;
-        case d => r := 2;
-    }
+  match x {
+    case Cons(1, tl1) => r := 0;
+    case Cons(c, Cons(2, tl2)) => r := 1;
+    case d => r := 2;
+  }
 }
 
 // Nested, ordered expression match
-lemma sorted_inv(z: int, l: List<int>)
+lemma SortedInv(z: int, l: List<int>)
 {
   match l {
     case Nil =>
@@ -69,6 +70,66 @@ lemma sorted_inv(z: int, l: List<int>)
     case Cons(a, b) =>
   }
 }
+
+
+// Boolean literals test, without default case
+method BoolTest(x: bool) returns (r: int)
+{
+  match x {
+    case true => r := 0;
+    case false => r := 1;
+  }
+}
+
+// Literal tests, with a default case
+method IntTest(x: int) returns (r: int)
+{
+  match x {
+    case 1 => r := 0;
+    case 2 => r := 1;
+    case n => r := n;
+  }
+}
+
+method StringTest(x: string) returns (r: int)
+{
+  match x {
+    case "zero" => r := 0;
+    case "one" => r := 1;
+    case "one" => r := 3;  // unreachable
+    case c => r := 2;
+  }
+}
+
+method CharTest(x: char) returns (r: int)
+{
+  match x {
+    case 'a' => r := 0;
+    case 'b' => r := 1;
+    case n => r := 2;
+  }
+}
+
+method RealTest(x: real) returns (r: int)
+{
+  match x {
+    case 1.0 => r := 0;
+    case 1609.344 => r := 1;
+    case c => r := 2;
+  }
+}
+
+// matching on Seq is not supported by the parser
+/*
+method SequenceTest(x: seq<int>) returns (r: int)
+{
+  match x {
+    case [3, 1, 4, 1, 5, 9, 3] => r := 7;
+    case [] => r := 0;
+    case s  => r := -1;
+  }
+}
+*/
 
 method Main() {
   var aa := Cons(6, Nil);
