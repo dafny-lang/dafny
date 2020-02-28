@@ -6,7 +6,7 @@ Execution trace:
     (0,0): anon14_Else
     (0,0): anon15_Then
     (0,0): anon6
-Datatypes.dfy(298,17): Error: missing case in case statement: Appendix
+Datatypes.dfy(298,11): Error: missing case in case statement: Appendix
 Execution trace:
     (0,0): anon0
     (0,0): anon13_Then
