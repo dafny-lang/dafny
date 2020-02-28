@@ -1,4 +1,4 @@
-NestedPatterns.dfy(69,2): Warning: this branch is redundant 
+NestedPatterns.dfy(69,2): Warning: this branch is redundant
 NestedPatterns.dfy(75,11): Error: member _#Make1 does not exist in type List<_T0>
 NestedPatterns.dfy(76,18): Error: member _#Make1 does not exist in type List<_T0>
 NestedPatterns.dfy(84,23): Error: Duplicate parameter name: h

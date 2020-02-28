@@ -474,7 +474,7 @@ namespace Microsoft.Dafny
 
     public MatchCaseExpr CloneMatchCaseExpr(MatchCaseExpr c) {
       Contract.Requires(c != null);
-      Contract.Assert(c.Arguments != null);
+      Contract.Requires(c.Arguments != null);
       return new MatchCaseExpr(Tok(c.tok), c.Ctor, c.Arguments.ConvertAll(CloneBoundVar), CloneExpr(c.Body));
     }
 

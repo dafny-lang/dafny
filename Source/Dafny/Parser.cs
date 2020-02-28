@@ -3355,7 +3355,7 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, st
 
 	void NestedMatchStmt(out Statement/*!*/ s) {
 		Contract.Ensures(Contract.ValueAtReturn(out s) != null);
-		IToken x;  Expression/*!*/ e;  NestedMatchCaseStmt/*!*/ c;
+		IToken x; Expression/*!*/ e; NestedMatchCaseStmt/*!*/ c;
 		List<NestedMatchCaseStmt/*!*/> cases = new List<NestedMatchCaseStmt/*!*/>();
 		bool usesOptionalBraces = false;
 		
@@ -3935,11 +3935,13 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, st
 	}
 
 	void ExtendedPattern(out ExtendedPattern pat) {
-		IToken id; List<ExtendedPattern> arguments; pat = null; LiteralExpr lit; Expression te;
-		BoundVar bv;
+		IToken id; List<ExtendedPattern> arguments;
+		LiteralExpr lit; Expression te; BoundVar bv;
+		pat = null;
 		
 		if (la.kind == _openparen) {
 			Expect(79);
+			id = t;
 			arguments = new List<ExtendedPattern>(); 
 			if (StartOf(22)) {
 				ExtendedPattern(out pat);
@@ -3951,34 +3953,39 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, st
 				}
 			}
 			Expect(80);
-			id = t;
-			theBuiltIns.TupleType(id, arguments.Count, true); // make sure the tuple type exists
-			string ctor = BuiltIns.TupleTypeCtorNamePrefix + arguments.Count;  //use the TupleTypeCtors
-			pat = new IdPattern(id, ctor, arguments); 
+			if (arguments.Count == 1) {
+			 SemErr(t, "parentheses are not allowed around a pattern");
+			} else {
+			 // make sure the tuple type exists
+			 theBuiltIns.TupleType(id, arguments.Count, true);
+			 //use the TupleTypeCtors
+			 string ctor = BuiltIns.TupleTypeCtorNamePrefix + arguments.Count;
+			 pat = new IdPattern(id, ctor, arguments);
+			} 
 		} else if (IsIdentParen()) {
 			Ident(out id);
 			arguments = new List<ExtendedPattern>(); 
-			if (la.kind == 79) {
-				Get();
-				if (StartOf(22)) {
+			Expect(79);
+			if (StartOf(22)) {
+				ExtendedPattern(out pat);
+				arguments.Add(pat); 
+				while (la.kind == 26) {
+					Get();
 					ExtendedPattern(out pat);
 					arguments.Add(pat); 
-					while (la.kind == 26) {
-						Get();
-						ExtendedPattern(out pat);
-						arguments.Add(pat); 
-					}
 				}
-				Expect(80);
 			}
+			Expect(80);
 			pat = new IdPattern(id, id.val, arguments); 
 		} else if (StartOf(32)) {
 			ConstAtomExpression(out te, false, false);
 			if (te is LiteralExpr){
-			lit = (LiteralExpr)te;
-			pat = new LitPattern(lit.tok, lit);
-			} else { SemErr(t, "invalid AtomConst used in pattern");
-			       pat = null; }
+			  lit = (LiteralExpr)te;
+			  pat = new LitPattern(lit.tok, lit);
+			} else {
+			  SemErr(t, "invalid AtomConst used in pattern");
+			  pat = null;
+			}
 			
 		} else if (la.kind == 1) {
 			IdentTypeOptional(out bv);

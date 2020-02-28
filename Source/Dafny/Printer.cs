@@ -1387,7 +1387,7 @@ namespace Microsoft.Dafny {
           Indent(indent);
           wr.Write("}");
         }
-      } else if (stmt is ConcreteSyntaxStatement && ((ConcreteSyntaxStatement)stmt).ResolvedStatement != null){
+      } else if (stmt is ConcreteSyntaxStatement && ((ConcreteSyntaxStatement)stmt).ResolvedStatement != null) {
         var s = (ConcreteSyntaxStatement)stmt;
         Indent(indent);
         PrintStatement(s.ResolvedStatement, indent);
@@ -1751,11 +1751,11 @@ namespace Microsoft.Dafny {
 
       } else if (expr is NestedMatchExpr) {
         var e = (NestedMatchExpr)expr;
-        if(e.ResolvedExpression != null && DafnyOptions.O.DafnyPrintResolvedFile != null){
-            wr.WriteLine();
-            Indent(indent);wr.WriteLine("/*---------- desugared ----------");
-            PrintExtendedExpr(e.ResolvedExpression, indent, isRightmost, endWithCloseParen);
-            Indent(indent); wr.WriteLine("---------- end desugared ----------*/");
+        if (e.ResolvedExpression != null && DafnyOptions.O.DafnyPrintResolvedFile != null) {
+          wr.WriteLine();
+          Indent(indent);wr.WriteLine("/*---------- desugared ----------");
+          PrintExtendedExpr(e.ResolvedExpression, indent, isRightmost, endWithCloseParen);
+          Indent(indent); wr.WriteLine("---------- end desugared ----------*/");
         }
         Indent(indent);
         var parensNeeded = !isRightmost && !e.UsesOptionalBraces;

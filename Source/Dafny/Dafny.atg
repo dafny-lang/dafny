@@ -2586,28 +2586,30 @@ ExtendedPattern<.out ExtendedPattern pat.>
 = (. IToken id; List<ExtendedPattern> arguments;
     LiteralExpr lit; Expression te; BoundVar bv;
     pat = null;
-
   .)
   ( IF(la.kind == _openparen)
-    "("                                   (. arguments = new List<ExtendedPattern>(); .)
+    "("                                   (. id = t;
+                                             arguments = new List<ExtendedPattern>(); .)
       [ ExtendedPattern<out pat>          (. arguments.Add(pat); .)
       { "," ExtendedPattern<out pat>      (. arguments.Add(pat); .)
       }]
-    ")"                                   (. id = t;
-                                             // make sure the tuple type exists
-                                             theBuiltIns.TupleType(id, arguments.Count, true);
-                                             //use the TupleTypeCtors
-                                             string ctor = BuiltIns.TupleTypeCtorNamePrefix + arguments.Count;
-                                             pat = new IdPattern(id, ctor, arguments); .)
+    ")"                                    (. if (arguments.Count == 1) {
+                                                SemErr(t, "parentheses are not allowed around a pattern");
+                                              } else {
+                                                // make sure the tuple type exists
+                                                theBuiltIns.TupleType(id, arguments.Count, true);
+                                                //use the TupleTypeCtors
+                                                string ctor = BuiltIns.TupleTypeCtorNamePrefix + arguments.Count;
+                                                pat = new IdPattern(id, ctor, arguments);
+                                               } .)
   | IF(IsIdentParen())
     Ident<out id>                          (. arguments = new List<ExtendedPattern>(); .)
-    [ "("
-     [ ExtendedPattern<out pat>            (. arguments.Add(pat); .)
+    "("
+      [ ExtendedPattern<out pat>            (. arguments.Add(pat); .)
         { "," ExtendedPattern<out pat>     (. arguments.Add(pat); .)
         }
-     ]
+      ]
      ")"
-     ]
                                            (. pat = new IdPattern(id, id.val, arguments); .)
   | ConstAtomExpression<out te, false, false>   (. if (te is LiteralExpr){
                                                       lit = (LiteralExpr)te;
@@ -2617,8 +2619,8 @@ ExtendedPattern<.out ExtendedPattern pat.>
                                                       pat = null;
                                                     }
                                                 .)
-    | IdentTypeOptional<out bv>          (. pat = new IdPattern(bv.tok, bv.Name, bv.SyntacticType, new List<ExtendedPattern>()); .)
-    )
+  | IdentTypeOptional<out bv>          (. pat = new IdPattern(bv.tok, bv.Name, bv.SyntacticType, new List<ExtendedPattern>()); .)
+  )
   (. // In case of parsing errors, make sure 'pat' still returns as non-null
     if (pat == null) {
       pat = new IdPattern(t, "_ParseError", new List<ExtendedPattern>());

@@ -423,7 +423,6 @@ namespace Microsoft.Dafny
           ResolveModuleExport(literalDecl, sig);
           var good = ResolveModuleDefinition(m, sig);
 
-
           if (good && reporter.Count(ErrorLevel.Error) == preResolveErrorCount) {
             // Check that the module export gives a self-contained view of the module.
             CheckModuleExportConsistency(m);
@@ -5507,7 +5506,6 @@ namespace Microsoft.Dafny
         }
       }
       protected override void VisitOneExpr(Expression expr) {
-
         if (expr is LiteralExpr) {
           var e = (LiteralExpr)expr;
           var t = e.Type as BitvectorType;
@@ -5624,7 +5622,6 @@ namespace Microsoft.Dafny
           CheckTypeIsDetermined(expr.tok, expr.Type, "variable");
         } else if (CheckTypeIsDetermined(expr.tok, expr.Type, "expression")) {
           if (expr is BinaryExpr) {
-
             var e = (BinaryExpr)expr;
             e.ResolvedOp = ResolveOp(e.Op, e.E1.Type);
             // Check for useless comparisons with "null"
@@ -6786,7 +6783,6 @@ namespace Microsoft.Dafny
       /// </summary>
       public void Visit(Statement stmt, bool mustBeErasable) {
         Contract.Requires(stmt != null);
-//        Console.WriteLine("DEBUG: visit pre assume: isghost:{0}, mustbeerasable:{1}, statement:{2}", codeContext.IsGhost, mustBeErasable, stmt.ToString());
         Contract.Assume(!codeContext.IsGhost || mustBeErasable);  // (this is really a precondition) codeContext.IsGhost ==> mustBeErasable
 
         if (stmt is PredicateStmt) {
@@ -9533,7 +9529,7 @@ namespace Microsoft.Dafny
 
         if (debug) Console.WriteLine("DEBUG: Type of {0} was still a proxy, solving type constraints results in type {1}", Printer.ExprToString(s.Source), s.Source.Type.ToString());
 
-        if (s.Source.Type is TypeProxy){
+        if (s.Source.Type is TypeProxy) {
           reporter.Error(MessageSource.Resolver, s.Tok, "Could not resolve the type of the source of the match expression. Please provide additional typing annotations.");
           return;
         }
@@ -9688,206 +9684,173 @@ namespace Microsoft.Dafny
       }
     }
 
+  /* Temporary information about the Match being desugared  */
+  public class MatchTempInfo {
+    public IToken Tok;
 
-/* Temporary information about the Match being desugared  */
-public class MatchTempInfo{
-  public IToken Tok;
-
-  public IToken[] BranchTok;
+    public IToken[] BranchTok;
 
     public int[] BranchIDCount; // Records the number of copies of each branch
 
-  public bool isStmt; // true if we are desugaring a MatchStmt, false if a MatchExpr
+    public bool isStmt; // true if we are desugaring a MatchStmt, false if a MatchExpr
 
-  public bool Debug;
-  public int DebugLevel;
-  public MatchTempInfo(IToken tok, bool isstmt, int[] branchidcount, bool debug = false) {
-    this.BranchTok = new IToken[branchidcount.Length];
-    this.BranchIDCount = branchidcount;
-    this.Tok = tok;
-    this.isStmt = isstmt;
-    this.Debug = debug;
-    this.DebugLevel = -1;
-  }
-
- // Initialize BranchIDCount with #branchidnum 1s
- public MatchTempInfo(IToken tok, bool isstmt,  int branchidnum, bool debug = false) {
-    int[] init = new int[branchidnum];
-    for(int i = 0; i < branchidnum; i++) {
-      init[i] = 1;
+    public bool Debug;
+    public int DebugLevel;
+    public MatchTempInfo(IToken tok, bool isstmt, int[] branchidcount, bool debug = false) {
+      this.BranchTok = new IToken[branchidcount.Length];
+      this.BranchIDCount = branchidcount;
+      this.Tok = tok;
+      this.isStmt = isstmt;
+      this.Debug = debug;
+      this.DebugLevel = -1;
     }
-    this.Tok = tok;
-    this.BranchTok = new IToken[branchidnum];
-    this.BranchIDCount = init;
-    this.isStmt = isstmt;
-    this.Debug = debug;
-    this.DebugLevel = -1;
+
+  // Initialize BranchIDCount with #branchidnum 1s
+  public MatchTempInfo(IToken tok, bool isstmt,  int branchidnum, bool debug = false) {
+      int[] init = new int[branchidnum];
+      for(int i = 0; i < branchidnum; i++) {
+        init[i] = 1;
+      }
+      this.Tok = tok;
+      this.BranchTok = new IToken[branchidnum];
+      this.BranchIDCount = init;
+      this.isStmt = isstmt;
+      this.Debug = debug;
+      this.DebugLevel = -1;
+    }
+    public void UpdateBranchID(int branchID, int update) {
+      BranchIDCount[branchID]+= update;
+    }
   }
-  public void UpdateBranchID(int branchID, int update) {
-    BranchIDCount[branchID]+= update;
+
+  /// <summary>
+  /// A SyntaxContainer is a wrapper around either an Expression or a Statement
+  /// It allows for generic functions over the two syntax spaces of Dafny
+  /// </summary>
+  public abstract class SyntaxContainer
+  {}
+
+  public class CExpr : SyntaxContainer
+  {
+    public Expression Body;
+
+    public CExpr(Expression body) {
+      this.Body = body;
+    }
   }
-}
 
-/// <summary>
-/// A SyntaxContainer is a wrapper around either an Expression or a Statement
-/// It allows for generic functions over the two syntax spaces of Dafny
-/// </summary>
-public abstract class SyntaxContainer
-{}
+  public class CStmt : SyntaxContainer
+  {
+    public Statement Body;
 
-public class CExpr:SyntaxContainer
-{
-  public Expression Body;
-
-  public CExpr(Expression body) {
-    this.Body = body;
+    public CStmt(Statement body) {
+      this.Body = body;
+    }
   }
-}
 
-public class CStmt:SyntaxContainer
-{
-  public Statement Body;
-
-  public CStmt(Statement body) {
-    this.Body = body;
+  /// Unwraps a CStmt and returns its Body as a BlockStmt
+  BlockStmt BlockStmtOfCStmt(IToken tok, IToken endTok, CStmt con) {
+    var stmt = con.Body;
+    if (stmt is BlockStmt) {
+      return (BlockStmt)stmt;
+    } else {
+      var stmts = new List<Statement>();
+      stmts.Add(stmt);
+      return new BlockStmt(tok, endTok, stmts);
+    }
   }
-}
 
-/// Unwraps a CStmt and returns its Body as a BlockStmt
-BlockStmt BlockStmtOfCStmt(IToken tok, IToken endTok, CStmt con) {
-  var stmt = con.Body;
-  if (stmt is BlockStmt) {
-    return (BlockStmt)stmt;
-  } else {
-    var stmts = new List<Statement>();
-    stmts.Add(stmt);
-    return new BlockStmt(tok, endTok, stmts);
+  /// <summary>
+  /// RBranch is an intermediate data-structure representing a branch during pattern-match compilation
+  /// </summary>
+  public abstract class RBranch {
+    public int BranchID;
+    public List<ExtendedPattern>  Patterns;
+
   }
-}
 
-/// <summary>
-/// RBranch is an intermediate data-structure representing a branch during pattern-match compilation
-/// </summary>
-public abstract class RBranch {
-  public int BranchID;
-  public List<ExtendedPattern>  Patterns;
+  public class RBranchStmt : RBranch {
 
-}
+    public List<Statement> Body;
 
-public class RBranchStmt:RBranch {
-
-  public List<Statement> Body;
-
-  public RBranchStmt(int branchid, List<ExtendedPattern> patterns,  List<Statement> body) {
-    this.BranchID = branchid;
-    this.Patterns = patterns;
-    this.Body = body;
+    public RBranchStmt(int branchid, List<ExtendedPattern> patterns,  List<Statement> body) {
+      this.BranchID = branchid;
+      this.Patterns = patterns;
+      this.Body = body;
+    }
   }
-}
 
-public  class RBranchExpr:RBranch {
+  public  class RBranchExpr : RBranch {
 
-  public Expression Body;
+    public Expression Body;
 
-  public RBranchExpr(int branchid, List<ExtendedPattern> patterns,  Expression body) {
-    this.BranchID = branchid;
-    this.Patterns = patterns;
-    this.Body = body;
+    public RBranchExpr(int branchid, List<ExtendedPattern> patterns,  Expression body) {
+      this.BranchID = branchid;
+      this.Patterns = patterns;
+      this.Body = body;
+    }
   }
-}
 
-// deep clone Patterns and Body
-public static RBranchStmt CloneRBranchStmt(RBranchStmt branch) {
-  Cloner cloner = new Cloner();
-  return new RBranchStmt(branch.BranchID, branch.Patterns.ConvertAll(x => cloner.CloneExtendedPattern(x)), branch.Body.ConvertAll(x=> cloner.CloneStmt(x)));
-}
-
-public static RBranchExpr CloneRBranchExpr(RBranchExpr branch) {
-  Cloner cloner = new Cloner();
-  return new RBranchExpr(branch.BranchID, branch.Patterns.ConvertAll(x => cloner.CloneExtendedPattern(x)), cloner.CloneExpr(branch.Body));
-}
-
-public static RBranch CloneRBranch(RBranch branch) {
-  if (DafnyOptions.O.MatchCompilerDebug) Console.WriteLine("DEBUG: Cloning RBranch: {0}",branch.BranchID);
-
-  if (branch is RBranchStmt) {
-    return CloneRBranchStmt((RBranchStmt)branch);
-  } else {
-    return CloneRBranchExpr((RBranchExpr)branch);
+  // deep clone Patterns and Body
+  public static RBranchStmt CloneRBranchStmt(RBranchStmt branch) {
+    Cloner cloner = new Cloner();
+    return new RBranchStmt(branch.BranchID, branch.Patterns.ConvertAll(x => cloner.CloneExtendedPattern(x)), branch.Body.ConvertAll(x=> cloner.CloneStmt(x)));
   }
-}
 
-public static ExtendedPattern getPatternHead(RBranch branch) {
-    return branch.Patterns.First();
-}
-
-public static RBranch dropPatternHead(RBranch branch) {
-  branch.Patterns.RemoveAt(0);
-  return branch;
-}
-
-SyntaxContainer PackBody(IToken tok, RBranch branch) {
-  if (branch is RBranchStmt) {
-    return new CStmt(new BlockStmt(tok, tok, ((RBranchStmt)branch).Body));
-  } else if (branch is RBranchExpr) {
-    return new CExpr(((RBranchExpr)branch).Body);
-  } else {
-     throw new System.ArgumentException("unexpected subclass of RBranch");
+  public static RBranchExpr CloneRBranchExpr(RBranchExpr branch) {
+    Cloner cloner = new Cloner();
+    return new RBranchExpr(branch.BranchID, branch.Patterns.ConvertAll(x => cloner.CloneExtendedPattern(x)), cloner.CloneExpr(branch.Body));
   }
-}
 
-List<Statement> UnboxStmtContainer(SyntaxContainer con) {
-  if (con is CStmt) {
-    var r = new List<Statement>();
-    r.Add(((CStmt)con).Body);
-    return r;
-  } else {
-    throw new System.ArgumentException("expected a StmtContainer");
+  public static RBranch CloneRBranch(RBranch branch) {
+    if (DafnyOptions.O.MatchCompilerDebug) Console.WriteLine("DEBUG: Cloning RBranch: {0}",branch.BranchID);
+
+    if (branch is RBranchStmt) {
+      return CloneRBranchStmt((RBranchStmt)branch);
+    } else {
+      return CloneRBranchExpr((RBranchExpr)branch);
+    }
   }
-}
+
+  public static ExtendedPattern getPatternHead(RBranch branch) {
+      return branch.Patterns.First();
+  }
+
+  public static RBranch dropPatternHead(RBranch branch) {
+    branch.Patterns.RemoveAt(0);
+    return branch;
+  }
+
+  SyntaxContainer PackBody(IToken tok, RBranch branch) {
+    if (branch is RBranchStmt) {
+      return new CStmt(new BlockStmt(tok, tok, ((RBranchStmt)branch).Body));
+    } else if (branch is RBranchExpr) {
+      return new CExpr(((RBranchExpr)branch).Body);
+    } else {
+      throw new System.ArgumentException("unexpected subclass of RBranch");
+    }
+  }
+
+  List<Statement> UnboxStmtContainer(SyntaxContainer con) {
+    if (con is CStmt) {
+      var r = new List<Statement>();
+      r.Add(((CStmt)con).Body);
+      return r;
+    } else {
+      throw new System.ArgumentException("expected a StmtContainer");
+    }
+  }
 
 
 
 // let-bind a variable of name "name" and type "type" as "expr" on the body of "branch"
-void LetBind(RBranch branch, String name, Type type, bool isGhost, Expression expr, bool substitute = false) {
-    BoundVar oldVar = null;
-
-
-
-    // OS TODO: warning: substitution is currently non capture-avoiding
-    if(substitute){
-      if(expr is IdentifierExpr){
-        var idExpr = (IdentifierExpr)expr;
-        oldVar = new BoundVar(expr.tok, idExpr.Name, idExpr.Type);
-      } else if (expr is NameSegment) {
-        var nsExpr = (NameSegment)expr;
-        oldVar = new BoundVar(expr.tok, nsExpr.Name, nsExpr.Type);
-      } else {
-        substitute = false;
-      }
-    }
-
+  void LetBind(RBranch branch, String name, Type type, bool isGhost, Expression expr) {
     if (branch is RBranchStmt) {
-      if(substitute){
-        MatchCaseExprSubstituteCloner cloner = new MatchCaseExprSubstituteCloner(new BoundVar(expr.tok, name, type), oldVar);
-        List<Statement> list = new List<Statement>();
-
-        foreach (Statement ss in ((RBranchStmt)branch).Body) {
-          Statement clone = cloner.CloneStmt(ss);
-          list.Add(clone);
-          }
-        ((RBranchStmt)branch).Body = list;
-      } else {
-        var cLVar = new LocalVariable(expr.tok, expr.tok, name, type, isGhost);
-        var cPat = new CasePattern<LocalVariable>(cLVar.EndTok, cLVar);
-        var cLet = new LetStmt(cLVar.Tok, cLVar.Tok, cPat, expr);
-        ((RBranchStmt)branch).Body.Insert(0, cLet);
-      }
+      var cLVar = new LocalVariable(expr.tok, expr.tok, name, type, isGhost);
+      var cPat = new CasePattern<LocalVariable>(cLVar.EndTok, cLVar);
+      var cLet = new LetStmt(cLVar.Tok, cLVar.Tok, cPat, expr);
+      ((RBranchStmt)branch).Body.Insert(0, cLet);
     } else if (branch is RBranchExpr) {
-      if(substitute){
-        MatchCaseExprSubstituteCloner cloner = new MatchCaseExprSubstituteCloner(new BoundVar(expr.tok, name, type), oldVar);
-        ((RBranchExpr)branch).Body = cloner.CloneExpr(((RBranchExpr)branch).Body);
-      } else {
       var cBVar = new BoundVar(expr.tok, name, type);
       cBVar.IsGhost = isGhost;
       var cPat = new CasePattern<BoundVar>(cBVar.Tok, cBVar);
@@ -9897,77 +9860,75 @@ void LetBind(RBranch branch, String name, Type type, bool isGhost, Expression ex
       exprs.Add(expr);
       var cLet = new LetExpr(cBVar.tok, cPats, exprs, ((RBranchExpr)branch).Body, true);
       ((RBranchExpr)branch).Body = cLet;
-      }
     }
     return;
-}
-
-// If cp is not a wildcard, replace branch.Body with let cp = expr in branch.Body
-// Otherwise do nothing
-void LetBindNonWildCard(RBranch branch, String name, Type type, bool isGhost, Expression expr) {
-  if (!name.StartsWith("_")) {
-    LetBind(branch, name, type, isGhost, expr, false);
   }
-}
 
-// Assumes that all SyntaxContainers in blocks and def are of the same subclass
-SyntaxContainer MakeIfFromContainers(MatchTempInfo mti, Expression matchee, List<Tuple<LiteralExpr,SyntaxContainer>> blocks, SyntaxContainer def) {
-  if (mti.Debug) Console.WriteLine("MakeIf with {0} blocks, default is a {1}", blocks.Count, def is CExpr?"CExpr":"StmtContainer");
-
-  if (blocks.Count == 0) {
-    if (mti.Debug) Console.WriteLine("empty blocks");
-    if (def is null) {
-      if (mti.Debug) Console.WriteLine("null default");
-      return null;
-    } else if (def is CExpr) {
-      if (mti.Debug) Console.WriteLine("CExpr");
-      return def;
-    } else {
-      // This ensures the statements are wrapped in braces
-      if (mti.Debug) Console.WriteLine("CStmt");
-      var sdef = (CStmt)def;
-      return new CStmt(BlockStmtOfCStmt(sdef.Body.Tok, sdef.Body.EndTok, sdef));
-    }
-  } else {
-    Tuple<LiteralExpr,SyntaxContainer> currBlock = blocks.First();
-    blocks = blocks.Skip(1).ToList();
-    if (mti.Debug) Console.WriteLine("head of blocks is a {0}", currBlock.Item2 is CExpr?"CExpr":"StmtContainer");
-
-    IToken tok = matchee.tok;
-    IToken endtok = matchee.tok;
-    Expression guard = new BinaryExpr(tok, BinaryExpr.Opcode.Eq, matchee, currBlock.Item1);
-
-    var elsC = MakeIfFromContainers(mti, matchee, blocks, def);
-
-    if (currBlock.Item2 is CExpr) {
-      var item2 = (CExpr) currBlock.Item2;
-      if(elsC is null){
-        // handle an empty default
-        // assert guard; item2.Body
-        var ag = new AssertStmt(tok, endtok, guard, null, null, null);
-        return new CExpr(new StmtExpr(tok, ag, item2.Body));
-
-      } else {
-        var els = (CExpr) elsC;
-        return new CExpr(new ITEExpr(tok, false, guard, item2.Body, els.Body));
-      }
-    } else {
-      var item2 = BlockStmtOfCStmt(tok, endtok, (CStmt)currBlock.Item2);
-      if(elsC is null){
-        // handle an empty default
-        // assert guard; item2.Body
-        var ag = new AssertStmt(tok, endtok, guard, null, null, null);
-        var body = new List<Statement>();
-        body.Add(ag);
-        body.AddRange(item2.Body);
-        return new CStmt(new BlockStmt(tok, endtok, body));
-      } else {
-        var els = (CStmt) elsC;
-        return new CStmt(new IfStmt(tok, endtok, false, guard, item2, els.Body));
-      }
+  // If cp is not a wildcard, replace branch.Body with let cp = expr in branch.Body
+  // Otherwise do nothing
+  void LetBindNonWildCard(RBranch branch, String name, Type type, bool isGhost, Expression expr) {
+    if (!name.StartsWith("_")) {
+      LetBind(branch, name, type, isGhost, expr);
     }
   }
-}
+
+  // Assumes that all SyntaxContainers in blocks and def are of the same subclass
+  SyntaxContainer MakeIfFromContainers(MatchTempInfo mti, Expression matchee, List<Tuple<LiteralExpr,SyntaxContainer>> blocks, SyntaxContainer def) {
+    if (mti.Debug) Console.WriteLine("MakeIf with {0} blocks, default is a {1}", blocks.Count, def is CExpr?"CExpr":"StmtContainer");
+
+    if (blocks.Count == 0) {
+      if (mti.Debug) Console.WriteLine("empty blocks");
+      if (def is null) {
+        if (mti.Debug) Console.WriteLine("null default");
+        return null;
+      } else if (def is CExpr) {
+        if (mti.Debug) Console.WriteLine("CExpr");
+        return def;
+      } else {
+        // This ensures the statements are wrapped in braces
+        if (mti.Debug) Console.WriteLine("CStmt");
+        var sdef = (CStmt)def;
+        return new CStmt(BlockStmtOfCStmt(sdef.Body.Tok, sdef.Body.EndTok, sdef));
+      }
+    } else {
+      Tuple<LiteralExpr,SyntaxContainer> currBlock = blocks.First();
+      blocks = blocks.Skip(1).ToList();
+      if (mti.Debug) Console.WriteLine("head of blocks is a {0}", currBlock.Item2 is CExpr?"CExpr":"StmtContainer");
+
+      IToken tok = matchee.tok;
+      IToken endtok = matchee.tok;
+      Expression guard = new BinaryExpr(tok, BinaryExpr.Opcode.Eq, matchee, currBlock.Item1);
+
+      var elsC = MakeIfFromContainers(mti, matchee, blocks, def);
+
+      if (currBlock.Item2 is CExpr) {
+        var item2 = (CExpr) currBlock.Item2;
+        if (elsC is null) {
+          // handle an empty default
+          // assert guard; item2.Body
+          var ag = new AssertStmt(tok, endtok, guard, null, null, null);
+          return new CExpr(new StmtExpr(tok, ag, item2.Body));
+        } else {
+          var els = (CExpr) elsC;
+          return new CExpr(new ITEExpr(tok, false, guard, item2.Body, els.Body));
+        }
+      } else {
+        var item2 = BlockStmtOfCStmt(tok, endtok, (CStmt)currBlock.Item2);
+        if (elsC is null) {
+          // handle an empty default
+          // assert guard; item2.Body
+          var ag = new AssertStmt(tok, endtok, guard, null, null, null);
+          var body = new List<Statement>();
+          body.Add(ag);
+          body.AddRange(item2.Body);
+          return new CStmt(new BlockStmt(tok, endtok, body));
+        } else {
+          var els = (CStmt) elsC;
+          return new CStmt(new IfStmt(tok, endtok, false, guard, item2, els.Body));
+        }
+      }
+    }
+  }
 
   MatchCase MakeMatchCaseFromContainer(IToken tok,KeyValuePair<string, DatatypeCtor> ctor,List<BoundVar> freshPatBV,SyntaxContainer insideContainer) {
     MatchCase newMatchCase;
@@ -9982,67 +9943,67 @@ SyntaxContainer MakeIfFromContainers(MatchTempInfo mti, Expression matchee, List
     return newMatchCase;
   }
 
-string RBranchToString(RBranch branch, int indent, ICodeContext context) {
-  if (branch is null) {
-    return "null branch";
-  }
-
-  if (branch is RBranchExpr) {
-    return string.Format("{3}> id: {0}\n{3}-> patterns: <{1}>\n{3}-> body: {2}", branch.BranchID, String.Join(",", branch.Patterns.ConvertAll(x => x.ToString())), Printer.ExprToString(((RBranchExpr)branch).Body), new String('\t',indent));
-  } else if (branch is RBranchStmt) {
-    List<Statement> body = ((RBranchStmt)branch).Body;
-    var bodyStr = "";
-    foreach(var stmt in body) {
-      bodyStr += string.Format("{1}{0};\n", Printer.StatementToString(stmt), new String('\t',indent));
+  string RBranchToString(RBranch branch, int indent, ICodeContext context) {
+    if (branch is null) {
+      return "null branch";
     }
-    return string.Format("{3}> id: {0}\n{3}> patterns: <{1}>\n{3}-> body:\n{2} \n", branch.BranchID, String.Join(",", branch.Patterns.ConvertAll(x => x.ToString())), bodyStr, new String('\t',indent));
-  } else {
-    return "unimplemented PrintRBranch";
-  }
-}
 
-string ExpressionToString(Expression matchee, int indent, ICodeContext context) {
-  string eTypeString;
-    if (matchee.Type is null) {
-      eTypeString = "null";
+    if (branch is RBranchExpr) {
+      return string.Format("{3}> id: {0}\n{3}-> patterns: <{1}>\n{3}-> body: {2}", branch.BranchID, String.Join(",", branch.Patterns.ConvertAll(x => x.ToString())), Printer.ExprToString(((RBranchExpr)branch).Body), new String('\t',indent));
+    } else if (branch is RBranchStmt) {
+      List<Statement> body = ((RBranchStmt)branch).Body;
+      var bodyStr = "";
+      foreach (var stmt in body) {
+        bodyStr += string.Format("{1}{0};\n", Printer.StatementToString(stmt), new String('\t',indent));
+      }
+      return string.Format("{3}> id: {0}\n{3}> patterns: <{1}>\n{3}-> body:\n{2} \n", branch.BranchID, String.Join(",", branch.Patterns.ConvertAll(x => x.ToString())), bodyStr, new String('\t',indent));
     } else {
-      var eType = PartiallyResolveTypeForMemberSelection(null, matchee.Type).NormalizeExpand();
-      eTypeString = eType.TypeName(context.EnclosingModule, true);
+      return "unimplemented PrintRBranch";
     }
-    return string.Format("{2}{0}:{1}", Printer.ExprToString(matchee), eTypeString, new String('\t',indent));
-}
-BoundVar CreatePatBV(IToken oldtok ,Type supertype, ICodeContext codeContext) {
-  var tok = oldtok;
-  var name = FreshTempVarName("_mcc#", codeContext);
-  var type = new InferredTypeProxy();
-  var err = new TypeConstraint.ErrorMsgWithToken(oldtok, "Variable {2} should have supertype {1} (got {0})", type, supertype, name);
-  ConstrainSubtypeRelation(supertype, type, err);
-  return new BoundVar(tok, name, type);
-}
-
-IdPattern CreateFreshId(IToken oldtok ,Type supertype, ICodeContext codeContext, bool isGhost = false){
-  var tok = oldtok;
-  var name = FreshTempVarName("_mcc#", codeContext);
-  var type = new InferredTypeProxy();
-  var err = new TypeConstraint.ErrorMsgWithToken(oldtok, "Variable {2} should have supertype {1} (got {0})", type, supertype, name);
-
-  ConstrainSubtypeRelation(supertype, type, err);
-  return new IdPattern(tok, name, type, new List<ExtendedPattern>(), isGhost);
-}
-
-void DebugCRBranches(MatchTempInfo mti, List<Expression> matchees, List<RBranch> branches, ICodeContext context) {
-  Console.WriteLine("{0}=-------=", new String('\t',mti.DebugLevel));
-  Console.WriteLine("{0}Current matchees:", new String('\t',mti.DebugLevel));
-
-  foreach(Expression matchee in matchees) {
-    Console.WriteLine("{1}> {0}", ExpressionToString(matchee, 0, context), new String('\t',mti.DebugLevel));
   }
-  Console.WriteLine("{0}Current branches:", new String('\t',mti.DebugLevel));
-  foreach(RBranch branch in branches) {
-    Console.WriteLine("{0}", RBranchToString(branch, mti.DebugLevel, context));
+
+  string ExpressionToString(Expression matchee, int indent, ICodeContext context) {
+    string eTypeString;
+      if (matchee.Type is null) {
+        eTypeString = "null";
+      } else {
+        var eType = PartiallyResolveTypeForMemberSelection(null, matchee.Type).NormalizeExpand();
+        eTypeString = eType.TypeName(context.EnclosingModule, true);
+      }
+      return string.Format("{2}{0}:{1}", Printer.ExprToString(matchee), eTypeString, new String('\t',indent));
   }
-    Console.WriteLine("{0}-=======-", new String('\t',mti.DebugLevel));
-}
+  BoundVar CreatePatBV(IToken oldtok ,Type supertype, ICodeContext codeContext) {
+    var tok = oldtok;
+    var name = FreshTempVarName("_mcc#", codeContext);
+    var type = new InferredTypeProxy();
+    var err = new TypeConstraint.ErrorMsgWithToken(oldtok, "Variable {2} should have supertype {1} (got {0})", type, supertype, name);
+    ConstrainSubtypeRelation(supertype, type, err);
+    return new BoundVar(tok, name, type);
+  }
+
+  IdPattern CreateFreshId(IToken oldtok ,Type supertype, ICodeContext codeContext, bool isGhost = false) {
+    var tok = oldtok;
+    var name = FreshTempVarName("_mcc#", codeContext);
+    var type = new InferredTypeProxy();
+    var err = new TypeConstraint.ErrorMsgWithToken(oldtok, "Variable {2} should have supertype {1} (got {0})", type, supertype, name);
+
+    ConstrainSubtypeRelation(supertype, type, err);
+    return new IdPattern(tok, name, type, new List<ExtendedPattern>(), isGhost);
+  }
+
+  void DebugCRBranches(MatchTempInfo mti, List<Expression> matchees, List<RBranch> branches, ICodeContext context) {
+    Console.WriteLine("{0}=-------=", new String('\t',mti.DebugLevel));
+    Console.WriteLine("{0}Current matchees:", new String('\t',mti.DebugLevel));
+
+    foreach(Expression matchee in matchees) {
+      Console.WriteLine("{1}> {0}", ExpressionToString(matchee, 0, context), new String('\t',mti.DebugLevel));
+    }
+    Console.WriteLine("{0}Current branches:", new String('\t',mti.DebugLevel));
+    foreach(RBranch branch in branches) {
+      Console.WriteLine("{0}", RBranchToString(branch, mti.DebugLevel, context));
+    }
+      Console.WriteLine("{0}-=======-", new String('\t',mti.DebugLevel));
+  }
 
   /// <summary>
   /// Purpose: create a decision tree with flattened MatchStmt (or MatchExpr) with disjoint cases and if-constructs
@@ -10090,7 +10051,7 @@ void DebugCRBranches(MatchTempInfo mti, List<Expression> matchees, List<RBranch>
         mti.DebugLevel--;
       }
 
-      for(int i = 1; i < branches.Count(); i ++) {
+      for (int i = 1; i < branches.Count(); i ++) {
         mti.UpdateBranchID(branches.ElementAt(i).BranchID, -1);
       }
       return PackBody(mti.BranchTok[branches.First().BranchID], branches.First());
@@ -10161,7 +10122,7 @@ void DebugCRBranches(MatchTempInfo mti, List<Expression> matchees, List<RBranch>
                 if (!(item1.Arguments.Count.Equals(ctor.Value.Formals.Count))) {
                     reporter.Error(MessageSource.Resolver, mti.BranchTok[PB.Item2.BranchID], "constructor {0} of arity {1} is applied to {2} argument(s)", ctor.Key, ctor.Value.Formals.Count, item1.Arguments.Count);
                 }
-                for(int ii = 0; ii < item1.Arguments.Count; ii++){
+                for (int ii = 0; ii < item1.Arguments.Count; ii++) {
                   // mark patterns standing in for ghost field
                   item1.Arguments[ii].IsGhost = item1.Arguments[ii].IsGhost || ctor.Value.Formals[ii].IsGhost;
                 }
@@ -10290,7 +10251,7 @@ void DebugCRBranches(MatchTempInfo mti, List<Expression> matchees, List<RBranch>
         }
       }
       SyntaxContainer defaultBlock = CompileRBranch(mti, matchees.Select(x => x).ToList(), defaultBranches, codeContext);
-      if (defaultBlock is null){
+      if (defaultBlock is null) {
         if (mti.Debug) Console.WriteLine("DEBUG: 3** with no default provided");
       }
       // Create If-construct joining the alternatives
@@ -10302,7 +10263,7 @@ void DebugCRBranches(MatchTempInfo mti, List<Expression> matchees, List<RBranch>
       // ==[4]==  all head patterns are bound variables:
       if (mti.Debug) Console.WriteLine("DEBUG: {0}===[4]=== Variable Case", new String('\t',mti.DebugLevel));
 
-      foreach(Tuple<ExtendedPattern, RBranch> PB in pairPB) {
+      foreach (Tuple<ExtendedPattern, RBranch> PB in pairPB) {
           if (!(PB.Item1 is IdPattern)) {
             throw new InvalidOperationException("in Variable case with a constant pattern");
           }
@@ -10310,7 +10271,7 @@ void DebugCRBranches(MatchTempInfo mti, List<Expression> matchees, List<RBranch>
 
           if (item1.Arguments.Count != 0) {
             if (dtd == null) {
-              if (mti.Debug){
+              if (mti.Debug) {
                 Console.WriteLine("DEBUG: Trying to resolve currmatchee one more time: {0} {1}", currMatchee.Type.ToString(), currMatcheeType.ToString());
                 SolveAllTypeConstraints();
                 Console.WriteLine("DEBUG: type:{0} currMatchee:{1}", PartiallyResolveTypeForMemberSelection(currMatchee.tok, currMatchee.Type).NormalizeExpand().ToString(), currMatcheeType.ToString());
@@ -10490,8 +10451,8 @@ void DebugCRBranches(MatchTempInfo mti, List<Expression> matchees, List<RBranch>
         if (debug) Console.WriteLine("DEBUG: ==[3*]= {0} is a tuple type", idpat.Id);
 
         //We expect the number of arguments in the type of the matchee and the provided pattern to match, except if the pattern is a bound variable
-        if (udt.TypeArgs.Count != idpat.Arguments.Count){
-          if (idpat.Arguments.Count == 0){
+        if (udt.TypeArgs.Count != idpat.Arguments.Count) {
+          if (idpat.Arguments.Count == 0) {
             CheckLinearVarPattern(udt, idpat, debug);
           } else {
             reporter.Error(MessageSource.Resolver, pat.Tok, "case arguments count does not match source arguments count");
@@ -13311,9 +13272,8 @@ void DebugCRBranches(MatchTempInfo mti, List<Expression> matchees, List<RBranch>
 
       if (me.Source.Type is TypeProxy) {
         PartiallySolveTypeConstraints(true);
-          if (debug) Console.WriteLine("DEBUG: Type of {0} was still a proxy, solving type constraints results in type {1}", Printer.ExprToString(me.Source), me.Source.Type.ToString());
-
-        if (me.Source.Type is TypeProxy){
+        if (debug) Console.WriteLine("DEBUG: Type of {0} was still a proxy, solving type constraints results in type {1}", Printer.ExprToString(me.Source), me.Source.Type.ToString());
+        if (me.Source.Type is TypeProxy) {
           reporter.Error(MessageSource.Resolver, me.tok, "Could not resolve the type of the source of the match expression. Please provide additional typing annotations.");
           return;
         }
