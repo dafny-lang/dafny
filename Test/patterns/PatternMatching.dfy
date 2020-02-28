@@ -119,6 +119,19 @@ method RealTest(x: real) returns (r: int)
   }
 }
 
+newtype N = x | x == 0 || x == 3 || x == 7
+
+method NewTypeTest() returns (r: int) {
+  var u: N := 0;
+  match u {
+    case 0 => r := 0;
+    case 3 => r := 1;
+    case 7 => r := 2;
+  }
+  return;
+}
+
+
 // matching on Seq is not supported by the parser
 /*
 method SequenceTest(x: seq<int>) returns (r: int)

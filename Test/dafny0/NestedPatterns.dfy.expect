@@ -1,7 +1,7 @@
-dafny0/NestedPatterns.dfy(69,2): Warning: this branch is redundant
-dafny0/NestedPatterns.dfy(86,23): Error: Duplicate parameter name: h
-dafny0/NestedPatterns.dfy(94,20): Error: Duplicate parameter name: h
-dafny0/NestedPatterns.dfy(102,23): Error: Duplicate parameter name: e
-dafny0/NestedPatterns.dfy(118,7): Error: case arguments count does not match source arguments count
-dafny0/NestedPatterns.dfy(124,2): Error: match source tuple needs at least 1 argument
+NestedPatterns.dfy(69,2): Warning: this branch is redundant
+NestedPatterns.dfy(86,23): Error: Duplicate parameter name: h
+NestedPatterns.dfy(94,20): Error: Duplicate parameter name: h
+NestedPatterns.dfy(102,23): Error: Duplicate parameter name: e
+NestedPatterns.dfy(118,7): Error: case arguments count does not match source arguments count
+NestedPatterns.dfy(124,2): Error: match source tuple needs at least 1 argument
 5 resolution/type errors detected in NestedPatterns.dfy

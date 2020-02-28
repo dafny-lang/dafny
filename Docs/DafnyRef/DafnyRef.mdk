@@ -5829,11 +5829,11 @@ MatchStmt = "match" Expression(allowLemma: true, allowLambda: true)
 CaseStatement = CaseBinding_ "=>" { Stmt }
 ````
 
-The `match` statement is used to do case analysis on a value of inductive,  co-inductive or base type, or of a tuple. The expression after the `match` keyword is called the _selector_. The expression is evaluated and then matched against
+The `match` statement is used to do case analysis on a value of inductive or co-inductive datatype (which includes the built-in tuple types), a base type, or newtype. The expression after the `match` keyword is called the _selector_. The expression is evaluated and then matched against
 each clause in order until a matching clause is found.
 
 The identifier after the `case` keyword in a case clause, if present,
-must be either the name of one of the data type's constructors, or a
+must be either the name of one of the datatype's constructors (when the selector is a value of a datatype), a literal (when the selector is a value of a base type or a newtype), or a
 variable, in which case the clause matches any constructors.
 If the constructor takes parameters then a parenthesis-enclosed
 list of patterns must follow the
@@ -5842,7 +5842,7 @@ has parameters. If the optional type is given it must be the same
 as the type of the corresponding parameter of the constructor.
 If no type is given then the type of the corresponding parameter
 is the type assigned to the identifier. If the identifier
-represent a variable, it cannot be applied to pattenrs.
+represents a variable, it cannot be applied to arguments.
  If the variable is not used
 in a case, it can be replaced by an underscore.
 
@@ -6864,7 +6864,7 @@ var k := 10 / x; // error, may divide by 0.
 var m := if x != 0 then 10 / x else 1; // ok, guarded
 ```
 
-## Case Bindings, Patterns and Extended Patterns
+## Case Bindings, Patterns, and Extended Patterns
 ````
 CaseBinding_ =
   "case"
@@ -7709,7 +7709,7 @@ for integral types and BitRational for real types.
 * `{:nativeType "typename"}` - This form has an native integral
 type name as a string literal. Acceptable values are: "byte",
 "sbyte", "ushort", "short", "uint", "int", "ulong" and "long".
-An error is reported if the given data type cannot hold all the
+An error is reported if the given datatype cannot hold all the
 values that satisfy the constraint.
 
 

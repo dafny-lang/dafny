@@ -78,7 +78,6 @@ namespace Microsoft.Dafny {
     }
   }
 
-
   public class Include : IComparable
   {
     public readonly IToken tok;
@@ -432,7 +431,6 @@ namespace Microsoft.Dafny {
       return null;
     }
 
-
     /// <summary>
     /// Same as FindExpressions, but returns all matches
     /// </summary>
@@ -530,7 +528,6 @@ namespace Microsoft.Dafny {
     }
   }
 
-
   public class VisibilityScope {
     private static uint maxScopeID = 0;
 
@@ -575,7 +572,6 @@ namespace Microsoft.Dafny {
       return scopeTokens.Count == 0;
     }
 
-
     //However augmenting with a null scope does nothing
     public void Augment(VisibilityScope other) {
       if (other != null) {
@@ -598,7 +594,6 @@ namespace Microsoft.Dafny {
     }
 
   }
-
 
   // ------------------------------------------------------------------------------------------------------
 
@@ -625,7 +620,6 @@ namespace Microsoft.Dafny {
       scopes = new List<VisibilityScope>();
       scopesEnabled = false;
     }
-
 
     public static void PopScope() {
       Contract.Assert(scopes.Count > 0);
@@ -654,7 +648,6 @@ namespace Microsoft.Dafny {
       Contract.Assert(scopesEnabled);
       scopesEnabled = false;
     }
-
 
     public static string TypeArgsToString(ModuleDefinition/*?*/ context, List<Type> typeArgs, bool parseAble = false) {
       Contract.Requires(typeArgs == null ||
@@ -2976,7 +2969,6 @@ namespace Microsoft.Dafny {
       }
     }
 
-
     public void InheritVisibility(Declaration d, bool onlyRevealed = true) {
       Contract.Assert(opaqueScope.IsEmpty());
       Contract.Assert(revealScope.IsEmpty());
@@ -4922,7 +4914,6 @@ namespace Microsoft.Dafny {
     }
   }
 
-
   public abstract class TypeSynonymDeclBase : TopLevelDecl, RedirectingTypeDecl
   {
     public override string WhatKind { get { return "type synonym"; } }
@@ -5021,7 +5012,6 @@ namespace Microsoft.Dafny {
       : base(tok, name, characteristics, typeArgs, module, rhs, attributes) {
     }
   }
-
 
 
   public class SubsetTypeDecl : TypeSynonymDecl, RedirectingTypeDecl
@@ -5523,7 +5513,6 @@ namespace Microsoft.Dafny {
       }
     }
 
-
     bool ICodeContext.IsGhost { get { return this.IsGhost; } }
     List<TypeParameter> ICodeContext.TypeArgs { get { return this.TypeArgs; } }
     List<Formal> ICodeContext.Ins { get { return this.Formals; } }
@@ -5750,7 +5739,6 @@ namespace Microsoft.Dafny {
         }
       }
     }
-
 
     [ContractInvariantMethod]
     void ObjectInvariant() {
@@ -7792,7 +7780,6 @@ namespace Microsoft.Dafny {
       this.body = body;
     }
 
-
     public List<Statement> Body {
       get { return body; }
     }
@@ -7977,7 +7964,6 @@ namespace Microsoft.Dafny {
         }
       }
     }
-
 
     protected Type type;
     public Type Type {  // filled in during resolution
@@ -9688,7 +9674,6 @@ namespace Microsoft.Dafny {
       Contract.Invariant(E1 != null);
     }
 
-
     public BinaryExpr(IToken tok, Opcode op, Expression e0, Expression e1)
       : base(tok) {
       Contract.Requires(tok != null);
@@ -10417,7 +10402,6 @@ namespace Microsoft.Dafny {
 
   }
 
-
   public class WildcardExpr : Expression
   {  // a WildcardExpr can occur only in reads clauses and a loop's decreases clauses (with different meanings)
     public WildcardExpr(IToken tok)
@@ -10674,7 +10658,6 @@ namespace Microsoft.Dafny {
       this.body = body;
     }
 
-
     public Expression Body {
       get { return body; }
     }
@@ -10708,7 +10691,7 @@ namespace Microsoft.Dafny {
 
   public class LitPattern : ExtendedPattern
   {
-    public LiteralExpr Lit;
+    public readonly LiteralExpr Lit;
 
     public LitPattern(IToken tok, LiteralExpr lit, bool isGhost = false) : base(tok, isGhost) {
       Contract.Requires(lit != null);
@@ -10721,11 +10704,11 @@ namespace Microsoft.Dafny {
 
   public class IdPattern : ExtendedPattern
   {
-    public String Id;
+    public readonly String Id;
 
-    public Type Type; // This is the syntactic type, ExtendedPatterns dissapear during resolution.
-    public List<ExtendedPattern> Arguments;
+    public readonly Type Type; // This is the syntactic type, ExtendedPatterns dissapear during resolution.
 
+    public readonly List<ExtendedPattern> Arguments;
 
     public IdPattern(IToken tok, String id, List<ExtendedPattern> arguments, bool isGhost = false) : base(tok, isGhost) {
       Contract.Requires(id != null);
@@ -10772,38 +10755,29 @@ namespace Microsoft.Dafny {
 
   public class NestedMatchCaseExpr : NestedMatchCase
   {
-    private Expression body;
+    public readonly Expression Body;
 
     public NestedMatchCaseExpr(IToken tok, ExtendedPattern pat, Expression body): base(tok, pat) {
       Contract.Requires(body != null);
-      this.body = body;
-    }
-
-    public Expression Body {
-        get { return body; }
+      this.Body = body;
     }
   }
 
   public class NestedMatchCaseStmt : NestedMatchCase
   {
-    private List<Statement> body;
+    public readonly List<Statement> Body;
 
     public NestedMatchCaseStmt(IToken tok, ExtendedPattern pat, List<Statement> body) : base(tok, pat) {
       Contract.Requires(body != null);
-      this.body = body;
-    }
-
-
-    public List<Statement> Body {
-      get { return body; }
+      this.Body = body;
     }
   }
 
   public class NestedMatchStmt : ConcreteSyntaxStatement
     {
 
-    private Expression source;
-    private List<NestedMatchCaseStmt> cases;
+    public readonly Expression Source;
+    public readonly List<NestedMatchCaseStmt> Cases;
     public readonly bool UsesOptionalBraces;
 
     public override IEnumerable<Expression> SubExpressions {
@@ -10814,42 +10788,27 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public Expression Source {
-      get { return source; }
-    }
-
-    public List<NestedMatchCaseStmt> Cases {
-      get { return cases; }
-    }
-
     public NestedMatchStmt(IToken tok, IToken endTok, Expression source, [Captured] List<NestedMatchCaseStmt> cases, bool usesOptionalBraces): base(tok, endTok) {
       Contract.Requires(source != null);
       Contract.Requires(cce.NonNullElements(cases));
-      this.source = source;
-      this.cases = cases;
+      this.Source = source;
+      this.Cases = cases;
       this.UsesOptionalBraces = usesOptionalBraces;
     }
   }
 
   public class NestedMatchExpr : ConcreteSyntaxExpression
   {
-    private Expression source;
-    private List<NestedMatchCaseExpr> cases;
+    public readonly Expression Source;
+    public readonly List<NestedMatchCaseExpr> Cases;
     public readonly bool UsesOptionalBraces;
 
     public NestedMatchExpr(IToken tok, Expression source, [Captured] List<NestedMatchCaseExpr> cases, bool usesOptionalBraces): base(tok) {
       Contract.Requires(source != null);
       Contract.Requires(cce.NonNullElements(cases));
-      this.source = source;
-      this.cases = cases;
+      this.Source = source;
+      this.Cases = cases;
       this.UsesOptionalBraces = usesOptionalBraces;
-    }
-    public Expression Source {
-      get { return source; }
-    }
-
-    public List<NestedMatchCaseExpr> Cases {
-      get { return cases; }
     }
   }
 
@@ -10906,7 +10865,6 @@ namespace Microsoft.Dafny {
       get { yield return E; }
     }
   }
-
 
   public class MaybeFreeExpression {
     public readonly Expression E;
@@ -10966,7 +10924,6 @@ namespace Microsoft.Dafny {
       this.Attributes = new UserSuppliedAttributes(tok, openBrace, closeBrace, args, this.Attributes);
     }
   }
-
 
   public class FrameExpression {
     public readonly IToken tok;
@@ -11088,7 +11045,6 @@ namespace Microsoft.Dafny {
       }
     }
   }
-
 
   /// <summary>
   /// An AutoGeneratedExpression is simply a wrapper around an expression.  This expression tells the generation of hover text (in the Dafny IDE)
@@ -11313,7 +11269,6 @@ namespace Microsoft.Dafny {
     {
       Contract.Invariant(Expressions == null || cce.NonNullElements<T>(Expressions));
     }
-
 
     public Specification(List<T> exprs, Attributes attrs)
     {
