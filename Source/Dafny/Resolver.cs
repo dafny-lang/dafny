@@ -9916,7 +9916,10 @@ SyntaxContainer MakeIfFromContainers(MatchTempInfo mti, Expression matchee, List
 
   if (blocks.Count == 0) {
     if (mti.Debug) Console.WriteLine("empty blocks");
-    if (def is CExpr) {
+    if (def is null) {
+      if (mti.Debug) Console.WriteLine("null default");
+      return null;
+    } else if (def is CExpr) {
       if (mti.Debug) Console.WriteLine("CExpr");
       return def;
     } else {
@@ -9938,12 +9941,30 @@ SyntaxContainer MakeIfFromContainers(MatchTempInfo mti, Expression matchee, List
 
     if (currBlock.Item2 is CExpr) {
       var item2 = (CExpr) currBlock.Item2;
-      var els = (CExpr) elsC;
-      return new CExpr(new ITEExpr(tok, false, guard, item2.Body, els.Body));
+      if(elsC is null){
+        // handle an empty default
+        // assert guard; item2.Body
+        var ag = new AssertStmt(tok, endtok, guard, null, null, null);
+        return new CExpr(new StmtExpr(tok, ag, item2.Body));
+
+      } else {
+        var els = (CExpr) elsC;
+        return new CExpr(new ITEExpr(tok, false, guard, item2.Body, els.Body));
+      }
     } else {
       var item2 = BlockStmtOfCStmt(tok, endtok, (CStmt)currBlock.Item2);
-      var els = (CStmt) elsC;
-      return new CStmt(new IfStmt(tok, endtok, false, guard, item2, els.Body));
+      if(elsC is null){
+        // handle an empty default
+        // assert guard; item2.Body
+        var ag = new AssertStmt(tok, endtok, guard, null, null, null);
+        var body = new List<Statement>();
+        body.Add(ag);
+        body.AddRange(item2.Body);
+        return new CStmt(new BlockStmt(tok, endtok, body));
+      } else {
+        var els = (CStmt) elsC;
+        return new CStmt(new IfStmt(tok, endtok, false, guard, item2, els.Body));
+      }
     }
   }
 }
@@ -10270,15 +10291,7 @@ void DebugCRBranches(MatchTempInfo mti, List<Expression> matchees, List<RBranch>
       }
       SyntaxContainer defaultBlock = CompileRBranch(mti, matchees.Select(x => x).ToList(), defaultBranches, codeContext);
       if (defaultBlock is null){
-        // No alternative cases were provided. We create an unreachable ("assert FALSE") default block
-        if (mti.isStmt){
-          if (mti.Debug) Console.WriteLine("DEBUG: 3** with no default provided, creating default stmt ", pairPB.Count());
-          var emptybody = new BlockStmt(currMatchee.tok, currMatchee.tok, new List<Statement>());
-          defaultBlock = new CStmt(emptybody);
-        } else {
-         if (mti.Debug) Console.WriteLine("DEBUG: 3** with no default provided, creating empty isExpr", pairPB.Count());
-         defaultBlock = null;
-        }
+        if (mti.Debug) Console.WriteLine("DEBUG: 3** with no default provided");
       }
       // Create If-construct joining the alternatives
       var ifcon = MakeIfFromContainers(mti, currMatchee, currBlocks, defaultBlock);
@@ -10408,21 +10421,15 @@ void DebugCRBranches(MatchTempInfo mti, List<Expression> matchees, List<RBranch>
       // Happens only if the nested match has no cases, create a MatchStmt with no branches.
       s.ResolvedStatement = new MatchStmt(s.Tok, s.EndTok, (new Cloner()).CloneExpr(s.Source), new List<MatchCaseStmt>(), s.UsesOptionalBraces);
 
-    } else if (rb is CStmt && ((CStmt)rb).Body is MatchStmt) {
+    } else if (rb is CStmt) {
       // Resolve s as desugared match
       s.ResolvedStatement = ((CStmt)rb).Body;
       if (debug) Console.WriteLine("DEBUG: match resolved to a CStmt");
       for(int id = 0; id < mti.BranchIDCount.Length; id++) {
         if (mti.BranchIDCount[id] <=0) {
-          reporter.Warning(MessageSource.Resolver, mti.BranchTok[id], "this branch is redundant ");
+          reporter.Warning(MessageSource.Resolver, mti.BranchTok[id], "this branch is redundant");
         }
       }
-
-    } else if (rb is CStmt && ((CStmt)rb).Body is BlockStmt) {
-      //there wasn't any work to do (i.e. just variable renaming), so what is left is a body with let-bindings
-      if (debug) Console.WriteLine("DEBUG: match resolved to CStmts (i.e. CStmt with a BlockStmt)");
-      s.ResolvedStatement =  ((CStmt)rb).Body;
-
     } else {
       // rb should be a StmtContainer with a MatchCase as Body, this should be unreachable
       throw new InvalidOperationException("Returned container should be a StmtContainer");
