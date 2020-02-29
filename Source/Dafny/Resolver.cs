@@ -9960,22 +9960,22 @@ namespace Microsoft.Dafny
       }
       return string.Format("{2}{0}:{1}", Printer.ExprToString(matchee), eTypeString, new String('\t', indent));
   }
-  BoundVar CreatePatBV(IToken oldtok , Type supertype, ICodeContext codeContext) {
+  BoundVar CreatePatBV(IToken oldtok , Type subtype, ICodeContext codeContext) {
     var tok = oldtok;
     var name = FreshTempVarName("_mcc#", codeContext);
     var type = new InferredTypeProxy();
-    var err = new TypeConstraint.ErrorMsgWithToken(oldtok, "Variable {2} should have supertype {1} (got {0})", type, supertype, name);
-    ConstrainSubtypeRelation(supertype, type, err);
+    var err = new TypeConstraint.ErrorMsgWithToken(oldtok, "the declared type of the formal ({0}) does not agree with the corresponding type in the constructor's signature ({1})", type, subtype, name);
+    ConstrainSubtypeRelation(type, subtype, err);
     return new BoundVar(tok, name, type);
   }
 
-  IdPattern CreateFreshId(IToken oldtok , Type supertype, ICodeContext codeContext, bool isGhost = false) {
+  IdPattern CreateFreshId(IToken oldtok , Type subtype, ICodeContext codeContext, bool isGhost = false) {
     var tok = oldtok;
     var name = FreshTempVarName("_mcc#", codeContext);
     var type = new InferredTypeProxy();
-    var err = new TypeConstraint.ErrorMsgWithToken(oldtok, "Variable {2} should have supertype {1} (got {0})", type, supertype, name);
+    var err = new TypeConstraint.ErrorMsgWithToken(oldtok, "the declared type of the formal ({0}) does not agree with the corresponding type in the constructor's signature ({1})", type, subtype, name);
 
-    ConstrainSubtypeRelation(supertype, type, err);
+    ConstrainSubtypeRelation(type, subtype, err);
     return new IdPattern(tok, name, type, new List<ExtendedPattern>(), isGhost);
   }
 
