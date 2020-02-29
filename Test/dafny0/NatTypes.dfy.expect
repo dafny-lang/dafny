@@ -38,7 +38,7 @@ Execution trace:
     (0,0): anon0
     (0,0): anon9_Then
     (0,0): anon13_Then
-dafny0/NatTypes.dfy(91,15): Error: assertion violation
+NatTypes.dfy(91,15): Error: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Then
