@@ -9754,18 +9754,23 @@ namespace Microsoft.Dafny
   /// RBranch is an intermediate data-structure representing a branch during pattern-match compilation
   /// </summary>
   public abstract class RBranch {
+    public readonly IToken Tok;
     public int BranchID;
     public List<ExtendedPattern>  Patterns;
 
+    public RBranch(IToken tok, int branchid, List<ExtendedPattern> patterns) {
+      this.Tok = tok;
+      this.BranchID = branchid;
+      this.Patterns = patterns;
+    }
   }
 
   public class RBranchStmt : RBranch {
 
     public List<Statement> Body;
 
-    public RBranchStmt(int branchid, List<ExtendedPattern> patterns,  List<Statement> body) {
-      this.BranchID = branchid;
-      this.Patterns = patterns;
+    public RBranchStmt(IToken tok, int branchid, List<ExtendedPattern> patterns,  List<Statement> body)
+      : base(tok, branchid, patterns) {
       this.Body = body;
     }
   }
@@ -9774,9 +9779,8 @@ namespace Microsoft.Dafny
 
     public Expression Body;
 
-    public RBranchExpr(int branchid, List<ExtendedPattern> patterns,  Expression body) {
-      this.BranchID = branchid;
-      this.Patterns = patterns;
+    public RBranchExpr(IToken tok, int branchid, List<ExtendedPattern> patterns,  Expression body)
+      : base(tok, branchid, patterns) {
       this.Body = body;
     }
   }
@@ -9784,12 +9788,12 @@ namespace Microsoft.Dafny
   // deep clone Patterns and Body
   public static RBranchStmt CloneRBranchStmt(RBranchStmt branch) {
     Cloner cloner = new Cloner();
-    return new RBranchStmt(branch.BranchID, branch.Patterns.ConvertAll(x => cloner.CloneExtendedPattern(x)), branch.Body.ConvertAll(x=> cloner.CloneStmt(x)));
+    return new RBranchStmt(branch.Tok, branch.BranchID, branch.Patterns.ConvertAll(x => cloner.CloneExtendedPattern(x)), branch.Body.ConvertAll(x=> cloner.CloneStmt(x)));
   }
 
   public static RBranchExpr CloneRBranchExpr(RBranchExpr branch) {
     Cloner cloner = new Cloner();
-    return new RBranchExpr(branch.BranchID, branch.Patterns.ConvertAll(x => cloner.CloneExtendedPattern(x)), cloner.CloneExpr(branch.Body));
+    return new RBranchExpr(branch.Tok, branch.BranchID, branch.Patterns.ConvertAll(x => cloner.CloneExtendedPattern(x)), cloner.CloneExpr(branch.Body));
   }
 
   public static RBranch CloneRBranch(RBranch branch) {
@@ -9817,7 +9821,7 @@ namespace Microsoft.Dafny
     } else if (branch is RBranchExpr) {
       return new CExpr(((RBranchExpr)branch).Body);
     } else {
-      throw new System.ArgumentException("unexpected subclass of RBranch");
+      Contract.Assert(false); throw new cce.UnreachableException();  // RBranch has only two implementations
     }
   }
 
@@ -9827,19 +9831,29 @@ namespace Microsoft.Dafny
       r.Add(((CStmt)con).Body);
       return r;
     } else {
-      throw new System.ArgumentException("expected a StmtContainer");
+      throw new NotImplementedException("Bug in CompileRBranch: expected a StmtContainer");
     }
   }
 
 // let-bind a variable of name "name" and type "type" as "expr" on the body of "branch"
-  void LetBind(RBranch branch, String name, Type type, bool isGhost, Expression expr) {
+  void LetBind(RBranch branch, String name, Type type, bool isGhost, Expression genexpr) {
+    // if the expression is a generated IdentifierExpr, replace its token by the branch's
+    Expression expr = genexpr;
+    if (genexpr is IdentifierExpr) {
+      var idexpr = (IdentifierExpr) genexpr;
+      if (idexpr.Name.StartsWith("_")) {
+        expr = new IdentifierExpr(branch.Tok, idexpr.Var) {Type = idexpr.Type};
+      }
+    }
+
+    Console.WriteLine("In LetBind for var {0}, expr Tok {1} (old:{4}), branch id {2} branch tok {3}", name, expr.tok.line, branch.BranchID, branch.Tok.line, genexpr.tok.line);
     if (branch is RBranchStmt) {
-      var cLVar = new LocalVariable(expr.tok, expr.tok, name, type, isGhost);
+      var cLVar = new LocalVariable(branch.Tok, branch.Tok, name, type, isGhost);
       var cPat = new CasePattern<LocalVariable>(cLVar.EndTok, cLVar);
       var cLet = new LetStmt(cLVar.Tok, cLVar.Tok, cPat, expr);
       ((RBranchStmt)branch).Body.Insert(0, cLet);
     } else if (branch is RBranchExpr) {
-      var cBVar = new BoundVar(expr.tok, name, type);
+      var cBVar = new BoundVar(branch.Tok, name, type);
       cBVar.IsGhost = isGhost;
       var cPat = new CasePattern<BoundVar>(cBVar.Tok, cBVar);
       var cPats = new List<CasePattern<BoundVar>>();
@@ -9865,16 +9879,15 @@ namespace Microsoft.Dafny
     if (mti.Debug) Console.WriteLine("MakeIf with {0} blocks, default is a {1}", blocks.Count, def is CExpr? "CExpr" : "StmtContainer");
 
     if (blocks.Count == 0) {
-      if (mti.Debug) Console.WriteLine("empty blocks");
       if (def is null) {
-        if (mti.Debug) Console.WriteLine("null default");
+        if (mti.Debug) Console.WriteLine("MakeIf: default block is null");
         return null;
       } else if (def is CExpr) {
-        if (mti.Debug) Console.WriteLine("CExpr");
+        if (mti.Debug) Console.WriteLine("MakeIf: default block is a CExpr");
         return def;
       } else {
         // This ensures the statements are wrapped in braces
-        if (mti.Debug) Console.WriteLine("CStmt");
+        if (mti.Debug) Console.WriteLine("MakeIf: default block is a CStmt");
         var sdef = (CStmt)def;
         return new CStmt(BlockStmtOfCStmt(sdef.Body.Tok, sdef.Body.EndTok, sdef));
       }
@@ -9932,9 +9945,7 @@ namespace Microsoft.Dafny
   }
 
   string RBranchToString(RBranch branch, int indent, ICodeContext context) {
-    if (branch is null) {
-      return "null branch";
-    }
+    if (branch is null) return "null branch";
 
     if (branch is RBranchExpr) {
       return string.Format("{3}> id: {0}\n{3}-> patterns: <{1}>\n{3}-> body: {2}", branch.BranchID, String.Join(",", branch.Patterns.ConvertAll(x => x.ToString())), Printer.ExprToString(((RBranchExpr)branch).Body), new String('\t', indent));
@@ -9946,20 +9957,10 @@ namespace Microsoft.Dafny
       }
       return string.Format("{3}> id: {0}\n{3}> patterns: <{1}>\n{3}-> body:\n{2} \n", branch.BranchID, String.Join(",", branch.Patterns.ConvertAll(x => x.ToString())), bodyStr, new String('\t', indent));
     } else {
-      return "unimplemented PrintRBranch";
+      Contract.Assert(false); throw new cce.UnreachableException();
     }
   }
 
-  string ExpressionToString(Expression matchee, int indent, ICodeContext context) {
-    string eTypeString;
-      if (matchee.Type is null) {
-        eTypeString = "null";
-      } else {
-        var eType = PartiallyResolveTypeForMemberSelection(null, matchee.Type).NormalizeExpand();
-        eTypeString = eType.TypeName(context.EnclosingModule, true);
-      }
-      return string.Format("{2}{0}:{1}", Printer.ExprToString(matchee), eTypeString, new String('\t', indent));
-  }
   BoundVar CreatePatBV(IToken oldtok , Type subtype, ICodeContext codeContext) {
     var tok = oldtok;
     var name = FreshTempVarName("_mcc#", codeContext);
@@ -9974,7 +9975,6 @@ namespace Microsoft.Dafny
     var name = FreshTempVarName("_mcc#", codeContext);
     var type = new InferredTypeProxy();
     var err = new TypeConstraint.ErrorMsgWithToken(oldtok, "the declared type of the formal ({0}) does not agree with the corresponding type in the constructor's signature ({1})", type, subtype, name);
-
     ConstrainSubtypeRelation(type, subtype, err);
     return new IdPattern(tok, name, type, new List<ExtendedPattern>(), isGhost);
   }
@@ -9984,7 +9984,7 @@ namespace Microsoft.Dafny
     Console.WriteLine("{0}Current matchees:", new String('\t', mti.DebugLevel));
 
     foreach(Expression matchee in matchees) {
-      Console.WriteLine("{1}> {0}", ExpressionToString(matchee, 0, context), new String('\t', mti.DebugLevel));
+      Console.WriteLine("{1}> {0}", Printer.ExprToString(matchee), new String('\t', mti.DebugLevel));
     }
     Console.WriteLine("{0}Current branches:", new String('\t', mti.DebugLevel));
     foreach(RBranch branch in branches) {
@@ -9994,7 +9994,7 @@ namespace Microsoft.Dafny
   }
 
   /// <summary>
-  /// Purpose: create a decision tree with flattened MatchStmt (or MatchExpr) with disjoint cases and if-constructs
+  /// Create a decision tree with flattened MatchStmt (or MatchExpr) with disjoint cases and if-constructs
   /// Start with a list of n matchees and list of m branches, each with n patterns and a body
   /// 1 - if m = 0, then no original branch exists for the current case, return null
   /// 2 - if n = 0, return the body of the first branch
@@ -10251,7 +10251,7 @@ namespace Microsoft.Dafny
 
       foreach (Tuple<ExtendedPattern, RBranch> PB in pairPB) {
           if (!(PB.Item1 is IdPattern)) {
-            throw new InvalidOperationException("in Variable case with a constant pattern");
+            Contract.Assert(false); throw new cce.UnreachableException(); // in Variable case with a constant pattern
           }
           var item1  = (IdPattern)PB.Item1;
 
@@ -10262,8 +10262,7 @@ namespace Microsoft.Dafny
                 SolveAllTypeConstraints();
                 Console.WriteLine("DEBUG: type:{0} currMatchee:{1}", PartiallyResolveTypeForMemberSelection(currMatchee.tok, currMatchee.Type).NormalizeExpand().ToString(), currMatcheeType.ToString());
               }
-
-              throw new NotImplementedException("Bug in CompileRExpr: non-nullary constructors of a non-datatype");
+              Contract.Assert(false); throw new cce.UnreachableException(); // non-nullary constructors of a non-datatype;
             } else {
               reporter.Error(MessageSource.Resolver, item1.Tok, "Type mismatch: expected constructor of type {0}.  Got {1}.", dtd.Name, item1.Id);
             }
@@ -10279,20 +10278,19 @@ namespace Microsoft.Dafny
     }
   }
 
-  /* Create an RBranch to use with CompileRBranch,
-    also resolve the Body */
+  /* Create an RBranch to use with CompileRBranch */
   RBranchStmt RBranchOfNestedMatchCaseStmt(int branchid, NestedMatchCaseStmt x, ICodeContext codeContext) {
     var pats = new List<ExtendedPattern>();
     pats.Add(x.Pat);
     Cloner cloner = new Cloner();
     var rBody = x.Body.ConvertAll(cloner.CloneStmt);
-    return new RBranchStmt(branchid, pats , rBody);
+    return new RBranchStmt(x.Tok, branchid, pats , rBody);
   }
 
   RBranchExpr RBranchOfNestedMatchCaseExpr(int branchid, NestedMatchCaseExpr x) {
     var pats = new List<ExtendedPattern>();
     pats.Add(x.Pat);
-    return new RBranchExpr(branchid, pats , x.Body);
+    return new RBranchExpr(x.Tok, branchid, pats , x.Body);
   }
 
   void CompileNestedMatchExpr(NestedMatchExpr e, ICodeContext codeContext) {
@@ -10329,8 +10327,7 @@ namespace Microsoft.Dafny
         }
       }
     } else {
-      // rb should not be a StmtContainer, this is unreachable
-      throw new InvalidOperationException("Returned container should be a CExpr, likely caused by a bug in CompileRBranch.");
+      Contract.Assert(false); throw new cce.UnreachableException(); // Returned container should be a CExpr
     }
 
     if (debug) Console.WriteLine("DEBUG: Done CompileNestedMatchExpr at line {1}: \n {0}", Printer.ExtendedExprToString(e), mti.Tok.line);
@@ -10378,8 +10375,7 @@ namespace Microsoft.Dafny
         }
       }
     } else {
-      // rb should be a StmtContainer with a MatchCase as Body, this should be unreachable
-      throw new InvalidOperationException("Returned container should be a StmtContainer");
+      Contract.Assert(false); throw new cce.UnreachableException(); // Returned container should be a StmtContainer
     }
 
     if (debug) Console.WriteLine("DEBUG: Done CompileNestedMatchStmt at line {1}: \n {0}", Printer.StatementToString(s), mti.Tok.line);
@@ -10460,7 +10456,7 @@ namespace Microsoft.Dafny
       var dtd = type.AsDatatype;
       Dictionary<string, DatatypeCtor> ctors = datatypeCtors[dtd];
       if (ctors == null) {
-        throw new InvalidOperationException("Datatype not found");
+        Contract.Assert(false); throw new cce.UnreachableException();  // Datatype not found
       }
       DatatypeCtor ctor = null;
       // Check if the head of the pattern is a constructor or a variable
@@ -10501,7 +10497,8 @@ namespace Microsoft.Dafny
     CheckLinearExtendedPattern(type, mc.Pat, debug);
   }
 
-  /* Ensures that all ExtendedPattern held in NestedMatchCase are linear
+  /*
+  *  Ensures that all ExtendedPattern held in NestedMatchCase are linear
   *  Uses provided type to determine if IdPatterns are datatypes (of the provided type) or variables
   */
   void CheckLinearNestedMatchExpr(Type dtd, NestedMatchExpr me) {
