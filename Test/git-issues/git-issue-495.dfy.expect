@@ -1,9 +1,9 @@
-git-issue-495.dfy(7,8): Error: value does not satisfy the subset constraints of 'nat'
+git-issue-495.dfy(9,7): Error: value does not satisfy the subset constraints of 'nat'
 Execution trace:
     (0,0): anon0
     (0,0): anon6_Else
     (0,0): anon7_Then
-git-issue-495.dfy(13,8): Error: value does not satisfy the subset constraints of 'nat'
+git-issue-495.dfy(15,7): Error: value does not satisfy the subset constraints of 'nat'
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Then
@@ -11,7 +11,7 @@ git-issue-495.dfy(20,5): Error: value does not satisfy the subset constraints of
 Execution trace:
     (0,0): anon0
     (0,0): anon4_Else
-git-issue-495.dfy(45,8): Error: value does not satisfy the subset constraints of 'nat'
+git-issue-495.dfy(47,7): Error: value does not satisfy the subset constraints of 'nat'
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Then
