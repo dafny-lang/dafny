@@ -9845,8 +9845,6 @@ namespace Microsoft.Dafny
         expr = new IdentifierExpr(branch.Tok, idexpr.Var) {Type = idexpr.Type};
       }
     }
-
-    Console.WriteLine("In LetBind for var {0}, expr Tok {1} (old:{4}), branch id {2} branch tok {3}", name, expr.tok.line, branch.BranchID, branch.Tok.line, genexpr.tok.line);
     if (branch is RBranchStmt) {
       var cLVar = new LocalVariable(branch.Tok, branch.Tok, name, type, isGhost);
       var cPat = new CasePattern<LocalVariable>(cLVar.EndTok, cLVar);
@@ -10284,13 +10282,13 @@ namespace Microsoft.Dafny
     pats.Add(x.Pat);
     Cloner cloner = new Cloner();
     var rBody = x.Body.ConvertAll(cloner.CloneStmt);
-    return new RBranchStmt(x.Tok, branchid, pats , rBody);
+    return new RBranchStmt(x.Pat.Tok, branchid, pats , rBody);
   }
 
   RBranchExpr RBranchOfNestedMatchCaseExpr(int branchid, NestedMatchCaseExpr x) {
     var pats = new List<ExtendedPattern>();
     pats.Add(x.Pat);
-    return new RBranchExpr(x.Tok, branchid, pats , x.Body);
+    return new RBranchExpr(x.Pat.Tok, branchid, pats , x.Body);
   }
 
   void CompileNestedMatchExpr(NestedMatchExpr e, ICodeContext codeContext) {
