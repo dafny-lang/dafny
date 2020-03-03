@@ -797,7 +797,13 @@ namespace Dafny
     }
   }
 
-  public abstract class Sequence<T>
+  public interface Sequence<out T> {
+    long LongCount { get; }
+
+    T[] Elements { get; }
+  }
+  
+  public abstract class AbstractSequence<T>: Sequence<T>
   {
     public static Sequence<T> Empty {
       get {
@@ -829,7 +835,6 @@ namespace Dafny
     }
     public abstract long LongCount { get; }
     public abstract T[] Elements { get; }
-
     public IEnumerable<T> UniqueElements {
       get {
         var st = Set<T>.FromElements(Elements);
@@ -916,7 +921,7 @@ namespace Dafny
     public Sequence<T> Concat(Sequence<T> other) {
       if (Count == 0)
         return other;
-      else if (other.Count == 0)
+      else if (other.LongCount == 0)
         return this;
       return new ConcatSequence<T>(this, other);
     }
@@ -993,7 +998,7 @@ namespace Dafny
       return Subsequence((long)lo, (long)hi);
     }
   }
-  internal class ArraySequence<T> : Sequence<T> {
+  internal class ArraySequence<T> : AbstractSequence<T> {
     private readonly T[] elmts;
 
     internal ArraySequence(T[] ee) {
@@ -1010,7 +1015,7 @@ namespace Dafny
       }
     }
   }
-  internal class ConcatSequence<T> : Sequence<T> {
+  internal class ConcatSequence<T> : AbstractSequence<T> {
     // INVARIANT: Either left != null, right != null, and elmts == null or
     // left == null, right == null, and elmts != null
     private Sequence<T> left, right;

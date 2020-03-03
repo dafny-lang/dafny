@@ -930,9 +930,6 @@ namespace Microsoft.Dafny
         return DafnySetClass + "<" + TypeName(argType, wr, tok) + ">";
       } else if (xType is SeqType) {
         Type argType = ((SeqType)xType).Arg;
-        if (ComplicatedTypeParameterForCompilation(argType)) {
-          Error(tok, "compilation of seq<TRAIT> is not supported; consider introducing a ghost", wr);
-        }
         return DafnySeqClass + "<" + TypeName(argType, wr, tok) + ">";
       } else if (xType is MultiSetType) {
         Type argType = ((MultiSetType)xType).Arg;
