@@ -797,20 +797,20 @@ namespace Dafny
     }
   }
 
-  public interface Sequence<out T> {
+  public interface ISequence<out T> {
     long LongCount { get; }
 
     T[] Elements { get; }
   }
   
-  public abstract class AbstractSequence<T>: Sequence<T>
+  public abstract class Sequence<T>: ISequence<T>
   {
-    public static Sequence<T> Empty {
+    public static ISequence<T> Empty {
       get {
         return new ArraySequence<T>(new T[0]);
       }
     }
-    public static Sequence<T> Create(BigInteger length, System.Func<BigInteger, T> init) {
+    public static ISequence<T> Create(BigInteger length, System.Func<BigInteger, T> init) {
       var len = (int)length;
       var values = new T[len];
       for (int i = 0; i < len; i++) {
@@ -818,16 +818,16 @@ namespace Dafny
       }
       return new ArraySequence<T>(values);
     }
-    public static Sequence<T> FromArray(T[] values) {
+    public static ISequence<T> FromArray(T[] values) {
       return new ArraySequence<T>(values);
     }
-    public static Sequence<T> FromElements(params T[] values) {
+    public static ISequence<T> FromElements(params T[] values) {
       return new ArraySequence<T>(values);
     }
-    public static Sequence<char> FromString(string s) {
+    public static ISequence<char> FromString(string s) {
       return new ArraySequence<char>(s.ToCharArray());
     }
-    public static Sequence<T> _DafnyDefaultValue() {
+    public static ISequence<T> _DafnyDefaultValue() {
       return Empty;
     }
     public int Count {
@@ -857,15 +857,15 @@ namespace Dafny
     public T Select(BigInteger index) {
       return Elements[(int)index];
     }
-    public Sequence<T> Update(long index, T t) {
+    public ISequence<T> Update(long index, T t) {
       T[] a = (T[])Elements.Clone();
       a[index] = t;
       return new ArraySequence<T>(a);
     }
-    public Sequence<T> Update(ulong index, T t) {
+    public ISequence<T> Update(ulong index, T t) {
       return Update((long)index, t);
     }
-    public Sequence<T> Update(BigInteger index, T t) {
+    public ISequence<T> Update(BigInteger index, T t) {
       return Update((long)index, t);
     }
     public bool Equals(Sequence<T> other) {
@@ -902,7 +902,7 @@ namespace Dafny
         return s + "]";
       }
     }
-    bool EqualUntil(Sequence<T> other, int n) {
+    bool EqualUntil(ISequence<T> other, int n) {
       T[] elmts = Elements, otherElmts = other.Elements;
       for (int i = 0; i < n; i++) {
         if (!object.Equals(elmts[i], otherElmts[i]))
@@ -910,15 +910,15 @@ namespace Dafny
       }
       return true;
     }
-    public bool IsProperPrefixOf(Sequence<T> other) {
+    public bool IsProperPrefixOf(ISequence<T> other) {
       int n = Elements.Length;
       return n < other.Elements.Length && EqualUntil(other, n);
     }
-    public bool IsPrefixOf(Sequence<T> other) {
+    public bool IsPrefixOf(ISequence<T> other) {
       int n = Elements.Length;
       return n <= other.Elements.Length && EqualUntil(other, n);
     }
-    public Sequence<T> Concat(Sequence<T> other) {
+    public ISequence<T> Concat(ISequence<T> other) {
       if (Count == 0)
         return other;
       else if (other.LongCount == 0)
@@ -998,7 +998,7 @@ namespace Dafny
       return Subsequence((long)lo, (long)hi);
     }
   }
-  internal class ArraySequence<T> : AbstractSequence<T> {
+  internal class ArraySequence<T> : Sequence<T> {
     private readonly T[] elmts;
 
     internal ArraySequence(T[] ee) {
@@ -1015,14 +1015,14 @@ namespace Dafny
       }
     }
   }
-  internal class ConcatSequence<T> : AbstractSequence<T> {
+  internal class ConcatSequence<T> : Sequence<T> {
     // INVARIANT: Either left != null, right != null, and elmts == null or
     // left == null, right == null, and elmts != null
-    private Sequence<T> left, right;
+    private ISequence<T> left, right;
     private T[] elmts = null;
     private readonly long count;
 
-    internal ConcatSequence(Sequence<T> left, Sequence<T> right) {
+    internal ConcatSequence(ISequence<T> left, ISequence<T> right) {
       this.left = left;
       this.right = right;
       this.count = left.LongCount + right.LongCount;
@@ -1053,7 +1053,7 @@ namespace Dafny
       var ans = new T[count];
       var nextIndex = 0L;
 
-      var toVisit = new Stack<Sequence<T>>();
+      var toVisit = new Stack<ISequence<T>>();
       toVisit.Push(right);
       toVisit.Push(left);
 
