@@ -99,7 +99,6 @@ namespace Microsoft.Dafny{
           return JavaNativeType.Int;
         case NativeType.Selection.Long:
         case NativeType.Selection.ULong:
-        case NativeType.Selection.Number:
           return JavaNativeType.Long;
         default:
           Contract.Assert(false);
@@ -2008,7 +2007,7 @@ namespace Microsoft.Dafny{
         }
       } else {
         // TODO-RS: This doesn't handle strings printed out as part of datatypes
-        bool isString = arg.Type.AsCollectionType != null && 
+        bool isString = arg.Type.AsCollectionType != null &&
                         arg.Type.AsCollectionType.AsSeqType != null &&
                         arg.Type.AsCollectionType.AsSeqType.Arg is CharType;
         if (!isString) {
@@ -2022,7 +2021,7 @@ namespace Microsoft.Dafny{
         }
       }
     }
-    
+
     protected override string IdProtect(string name) {
       return PublicIdProtect(name);
     }
@@ -3330,7 +3329,7 @@ namespace Microsoft.Dafny{
       if (message == null) {
         message = "unexpected control point";
       }
-      
+
       wr.WriteLine($"throw new IllegalArgumentException(\"{message}\");");
     }
 
