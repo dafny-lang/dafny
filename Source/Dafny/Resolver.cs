@@ -10183,6 +10183,7 @@ namespace Microsoft.Dafny
           var lpat = (LitPattern)pat;
           if (!alternatives.Exists(x => x.Value.Equals(lpat.Lit.Value))) {
             alternatives.Add(lpat.Lit);
+            if (mti.Debug) Console.WriteLine("DEBUG: {0}===[3**]>>> Found alternative lit {1}", new String('\t', mti.DebugLevel), lpat.ToString());
           }
         }
       }
@@ -10197,7 +10198,7 @@ namespace Microsoft.Dafny
             var item1 = (LitPattern)PB.Item1;
 
             // if pattern matches the current alternative, add it to the branch for this case, otherwise ignore it
-            if (item1.Lit.Value == currLit.Value) {
+            if (item1.Lit.Value.Equals(currLit.Value)) {
               if (mti.Debug) Console.WriteLine("DEBUG: {1}==[3.1**]== Same lit Bid:{0}", PB.Item2.BranchID, new String('\t', mti.DebugLevel));
               var currBranch = CloneRBranch(PB.Item2);
               mti.UpdateBranchID(PB.Item2.BranchID, 1);
@@ -10417,7 +10418,7 @@ namespace Microsoft.Dafny
         return;
       } else if (pat is LitPattern) {
         /* =[2]= */
-        if (debug) Console.WriteLine("DEBUG: ==[2]== {0} is a constant of base type {1}",((LitPattern)pat).Lit.ToString(), type);
+        if (debug) Console.WriteLine("DEBUG: ==[2]== {0} is a constant of base type {1}",Printer.ExprToString(((LitPattern)pat).Lit), type);
         return;
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();

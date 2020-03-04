@@ -10698,7 +10698,7 @@ namespace Microsoft.Dafny {
       this.Lit = lit;
     }
     public override string ToString() {
-      return Lit.ToString();
+      return Printer.ExprToString(Lit);
     }
   }
 

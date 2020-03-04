@@ -131,6 +131,14 @@ method NewTypeTest() returns (r: int) {
   return;
 }
 
+datatype PairOfNumbers = P(int, int)
+method M(p: PairOfNumbers) returns (r:int) {
+  match p
+  case P(11, 10) => r := 0;
+  case P(11, a) => r := 1;
+  case P(10, 11) => r := 2;
+  case _ => r := 3;
+}
 
 // matching on Seq is not supported by the parser
 /*
