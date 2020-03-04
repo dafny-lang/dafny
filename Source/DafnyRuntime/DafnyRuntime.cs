@@ -1125,7 +1125,13 @@ namespace Dafny
       System.Console.Write(ToString(g));
     }
     public static G Default<G>() {
-      System.Type ty = typeof(G);
+      Type ty = typeof(G);
+      // TODO-RS: How to generalize this?
+      if (ty.Name.Equals("ISequence`1")) {
+        Type classType = Type.GetType("Dafny.Sequence`1");
+        Type parameterizedClassType = classType.MakeGenericType(ty.GenericTypeArguments);
+        ty = parameterizedClassType;
+      }
       System.Reflection.MethodInfo mInfo = ty.GetMethod("_DafnyDefaultValue");
       if (mInfo != null) {
         G g = (G)mInfo.Invoke(null, null);
