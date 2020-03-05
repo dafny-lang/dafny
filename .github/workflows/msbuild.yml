@@ -1,0 +1,21 @@
+name: .NET Core
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Add msbuild to PATH
+      uses: microsoft/setup-msbuild@v1.0.0
+        with:
+          vs-version: [16.3]
+    - name: Build with msbuild
+      run: msbuild Source/Dafny.sln
