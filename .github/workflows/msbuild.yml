@@ -31,7 +31,7 @@ jobs:
     - name: Nuget Restore Boogie
       run: nuget restore boogie/Source/Boogie.sln
     - name: Build Boogie
-      run: ${{ msbuild }} boogie/Source/Boogie.sln
+      run: ${{ matrix.msbuild }} boogie/Source/Boogie.sln
     - name: Checkout Dafny
       uses: actions/checkout@v2
       with:
@@ -44,7 +44,7 @@ jobs:
     - name: Nuget Restore Dafny
       run: nuget restore dafny/Source/Dafny.sln
     - name: Build Dafny
-      run: ${{ msbuild }} dafny/Source/Dafny.sln
+      run: ${{ matrix.msbuild }} dafny/Source/Dafny.sln
     - uses: actions/setup-python@v1
     - name: Upgrade outdated pip
       run: python -m pip install --upgrade pip
