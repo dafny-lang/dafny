@@ -999,7 +999,6 @@ namespace Microsoft.Dafny {
         case NativeType.Selection.ULong:
           name = "uint64";
           break;
-        case NativeType.Selection.Number:
         case NativeType.Selection.Long:
           name = "int64";
           break;
@@ -2490,12 +2489,11 @@ namespace Microsoft.Dafny {
           case NativeType.Selection.Int:
             wr.Write("_dafny.IntOfInt32(");
             break;
-          case NativeType.Selection.Number:
           case NativeType.Selection.Long:
             wr.Write("_dafny.IntOfInt64(");
             break;
           default:
-            throw new cce.UnreachableException();  // unepxected nativeType.Selection value
+            throw new cce.UnreachableException();  // unexpected nativeType.Selection value
         }
       }
 

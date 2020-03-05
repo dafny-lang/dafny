@@ -2216,8 +2216,7 @@ namespace Microsoft.Dafny
       new NativeType("short", -0x8000, 0x8000, 0, NativeType.Selection.Short, DafnyOptions.CompilationTarget.Csharp | DafnyOptions.CompilationTarget.Go | DafnyOptions.CompilationTarget.Java),
       new NativeType("uint", 0, 0x1_0000_0000, 32, NativeType.Selection.UInt, DafnyOptions.CompilationTarget.Csharp | DafnyOptions.CompilationTarget.Go | DafnyOptions.CompilationTarget.Java),
       new NativeType("int", -0x8000_0000, 0x8000_0000, 0, NativeType.Selection.Int, DafnyOptions.CompilationTarget.Csharp | DafnyOptions.CompilationTarget.Go | DafnyOptions.CompilationTarget.Java),
-      new NativeType("number", -0x1f_ffff_ffff_ffff, 0x20_0000_0000_0000, 0, NativeType.Selection.Number,
-        DafnyOptions.CompilationTarget.Csharp | DafnyOptions.CompilationTarget.JavaScript | DafnyOptions.CompilationTarget.Go | DafnyOptions.CompilationTarget.Java),  // JavaScript integers
+      new NativeType("number", -0x1f_ffff_ffff_ffff, 0x20_0000_0000_0000, 0, NativeType.Selection.Number, DafnyOptions.CompilationTarget.JavaScript),  // JavaScript integers
       new NativeType("ulong", 0, new BigInteger(0x1_0000_0000) * new BigInteger(0x1_0000_0000), 64, NativeType.Selection.ULong, DafnyOptions.CompilationTarget.Csharp | DafnyOptions.CompilationTarget.Go | DafnyOptions.CompilationTarget.Java),
       new NativeType("long", Int64.MinValue, 0x8000_0000_0000_0000, 0, NativeType.Selection.Long, DafnyOptions.CompilationTarget.Csharp | DafnyOptions.CompilationTarget.Go | DafnyOptions.CompilationTarget.Java),
     };
@@ -3123,35 +3122,50 @@ namespace Microsoft.Dafny
 
     private void FigureOutNativeType(NewtypeDecl dd) {
       Contract.Requires(dd != null);
-      bool? boolNativeType = null;
-      NativeType stringNativeType = null;
-      object nativeTypeAttr = true;
-      bool hasNativeTypeAttr = Attributes.ContainsMatchingValue(dd.Attributes, "nativeType", ref nativeTypeAttr,
-        new Attributes.MatchingValueOption[] {
-                Attributes.MatchingValueOption.Empty,
-                Attributes.MatchingValueOption.Bool,
-                Attributes.MatchingValueOption.String },
-        err => reporter.Error(MessageSource.Resolver, dd, err));
-      if (hasNativeTypeAttr) {
-        if (nativeTypeAttr is bool) {
-          boolNativeType = (bool)nativeTypeAttr;
-        } else {
-          var keyString = (string)nativeTypeAttr;
-          foreach (var nativeT in NativeTypes) {
-            if (nativeT.Name == keyString) {
-              if ((nativeT.CompilationTargets & DafnyOptions.O.CompileTarget) == 0) {
-                reporter.Error(MessageSource.Resolver, dd, "nativeType '{0}' not supported on the current compilation target", keyString);
-              } else {
-                stringNativeType = nativeT;
-              }
-              break;
-            }
+
+      // Look at the :nativeType attribute, if any
+      bool mustUseNativeType;
+      List<NativeType> nativeTypeChoices = null;  // null means "no preference"
+      var args = Attributes.FindExpressions(dd.Attributes, "nativeType");
+      if (args != null && !dd.BaseType.IsNumericBased(Type.NumericPersuation.Int)) {
+        reporter.Error(MessageSource.Resolver, dd, ":nativeType can only be used on integral types");
+        return;
+      } else if (args == null) {
+        // There was no :nativeType attribute
+        mustUseNativeType = false;
+      } else if (args.Count == 0) {
+        mustUseNativeType = true;
+      } else {
+        var arg0Lit = args[0] as LiteralExpr;
+        if (arg0Lit != null && arg0Lit.Value is bool) {
+          if (!(bool)arg0Lit.Value) {
+            // {:nativeType false} says "don't use native type", so our work here is done
+            return;
           }
-          if (stringNativeType == null) {
-            reporter.Error(MessageSource.Resolver, dd, "nativeType '{0}' not known", keyString);
+          mustUseNativeType = true;
+        } else {
+          mustUseNativeType = true;
+          nativeTypeChoices = new List<NativeType>();
+          foreach (var arg in args) {
+            if (arg is LiteralExpr lit && lit.Value is string s) {
+              // Get the NativeType for "s"
+              foreach (var nativeT in NativeTypes) {
+                if (nativeT.Name == s) {
+                  nativeTypeChoices.Add(nativeT);
+                  goto FoundNativeType;
+                }
+              }
+              reporter.Error(MessageSource.Resolver, dd, ":nativeType '{0}' not known", s);
+              return;
+              FoundNativeType: ;
+            } else {
+              reporter.Error(MessageSource.Resolver, arg, "unexpected :nativeType argument");
+              return;
+            }
           }
         }
       }
+
       // Figure out the variable and constraint.  Usually, these would be just .Var and .Constraint, but
       // in the case .Var is null, these can be computed from the .BaseType recursively.
       var ddVar = dd.Var;
@@ -3164,66 +3178,87 @@ namespace Microsoft.Dafny
         ddVar = ddWhereConstraintsAre.Var;
         ddConstraint = ddWhereConstraintsAre.Constraint;
       }
-      if (stringNativeType != null || boolNativeType == true) {
-        if (!dd.BaseType.IsNumericBased(Type.NumericPersuation.Int)) {
-          reporter.Error(MessageSource.Resolver, dd, "nativeType can only be used on integral types");
-        }
-        if (ddVar == null) {
-          reporter.Error(MessageSource.Resolver, dd, "nativeType can only be used if newtype specifies a constraint");
-        }
+      List<ComprehensionExpr.BoundedPool> bounds;
+      if (ddVar == null) {
+        // There are no bounds at all
+        bounds = new List<ComprehensionExpr.BoundedPool>();
+      } else {
+        bounds = DiscoverAllBounds_SingleVar(ddVar, ddConstraint);
       }
-      if (ddVar != null) {
-        Func<Expression, BigInteger?> GetConst = null;
-        GetConst = (Expression e) => {
-          int m = 1;
-          BinaryExpr bin = e as BinaryExpr;
-          if (bin != null && bin.Op == BinaryExpr.Opcode.Sub && GetConst(bin.E0) == BigInteger.Zero) {
-            m = -1;
-            e = bin.E1;
-          }
-          LiteralExpr l = e as LiteralExpr;
-          if (l != null && l.Value is BigInteger) {
-            return m * (BigInteger)l.Value;
-          }
-          return null;
-        };
-        var bounds = DiscoverAllBounds_SingleVar(ddVar, ddConstraint);
-        List<NativeType> potentialNativeTypes =
-          (stringNativeType != null) ? new List<NativeType> { stringNativeType } :
-          (boolNativeType == false) ? new List<NativeType>() :
-          NativeTypes.Where(nt => (nt.CompilationTargets & DafnyOptions.O.CompileTarget) != 0).ToList();
-        foreach (var nt in potentialNativeTypes) {
-          bool lowerOk = false;
-          bool upperOk = false;
-          foreach (var bound in bounds) {
-            if (bound is ComprehensionExpr.IntBoundedPool) {
-              var bnd = (ComprehensionExpr.IntBoundedPool)bound;
-              if (bnd.LowerBound != null) {
-                BigInteger? lower = GetConst(bnd.LowerBound);
-                if (lower != null && nt.LowerBound <= lower) {
-                  lowerOk = true;
-                }
+
+      // Find which among the allowable native types can hold "dd". Give an
+      // error for any user-specified native type that's not big enough.
+      var bigEnoughNativeTypes = new List<NativeType>();
+      // But first, define a local, recursive function GetConst:
+      Func<Expression, BigInteger?> GetConst = null;
+      GetConst = (Expression e) => {
+        int m = 1;
+        BinaryExpr bin = e as BinaryExpr;
+        if (bin != null && bin.Op == BinaryExpr.Opcode.Sub && GetConst(bin.E0) == BigInteger.Zero) {
+          m = -1;
+          e = bin.E1;
+        }
+        LiteralExpr l = e as LiteralExpr;
+        if (l != null && l.Value is BigInteger) {
+          return m * (BigInteger)l.Value;
+        }
+        return null;
+      };
+      // Now, then, let's go through them types.
+      foreach (var nativeT in nativeTypeChoices ?? NativeTypes) {
+        bool lowerOk = false;
+        bool upperOk = false;
+        foreach (var bound in bounds) {
+          if (bound is ComprehensionExpr.IntBoundedPool) {
+            var bnd = (ComprehensionExpr.IntBoundedPool)bound;
+            if (bnd.LowerBound != null) {
+              BigInteger? lower = GetConst(bnd.LowerBound);
+              if (lower != null && nativeT.LowerBound <= lower) {
+                lowerOk = true;
               }
-              if (bnd.UpperBound != null) {
-                BigInteger? upper = GetConst(bnd.UpperBound);
-                if (upper != null && upper <= nt.UpperBound) {
-                  upperOk = true;
-                }
+            }
+            if (bnd.UpperBound != null) {
+              BigInteger? upper = GetConst(bnd.UpperBound);
+              if (upper != null && upper <= nativeT.UpperBound) {
+                upperOk = true;
               }
             }
           }
-          if (lowerOk && upperOk) {
-            dd.NativeType = nt;
-            break;
-          }
         }
-        if (dd.NativeType == null && (boolNativeType == true || stringNativeType != null)) {
-          reporter.Error(MessageSource.Resolver, dd, "Dafny's heuristics cannot find a compatible native type.  " +
-            "Hint: try writing a newtype constraint of the form 'i:int | lowerBound <= i < upperBound && (...any additional constraints...)'");
+        if (lowerOk && upperOk) {
+          bigEnoughNativeTypes.Add(nativeT);
+        } else if (nativeTypeChoices != null) {
+          reporter.Error(MessageSource.Resolver, dd,
+            "Dafny's heuristics failed to confirm '{0}' to be a compatible native type.  " +
+            "Hint: try writing a newtype constraint of the form 'i:int | lowerBound <= i < upperBound && (...any additional constraints...)'",
+            nativeT.Name);
+          return;
         }
-        if (dd.NativeType != null && stringNativeType == null) {
+      }
+
+      // Finally, of the big-enough native types, pick the first one that is
+      // supported by the selected target compiler.
+      foreach (var nativeT in bigEnoughNativeTypes) {
+        if ((nativeT.CompilationTargets & DafnyOptions.O.CompileTarget) != 0) {
+          dd.NativeType = nativeT;
+          break;
+        }
+      }
+      if (dd.NativeType != null) {
+        // Give an info message saying which type was selected--unless the user requested
+        // one particular native type, in which case that must have been the one picked.
+        if (nativeTypeChoices != null && nativeTypeChoices.Count == 1) {
+          Contract.Assert(dd.NativeType == nativeTypeChoices[0]);
+        } else {
           reporter.Info(MessageSource.Resolver, dd.tok, "{:nativeType \"" + dd.NativeType.Name + "\"}");
         }
+      } else if (nativeTypeChoices != null) {
+        reporter.Error(MessageSource.Resolver, dd,
+          "None of the types given in :nativeType arguments is supported by the current compilation target. Try supplying others.");
+      } else if (mustUseNativeType) {
+        reporter.Error(MessageSource.Resolver, dd,
+          "Dafny's heuristics cannot find a compatible native type.  " +
+          "Hint: try writing a newtype constraint of the form 'i:int | lowerBound <= i < upperBound && (...any additional constraints...)'");
       }
     }
 
@@ -6791,7 +6826,7 @@ namespace Microsoft.Dafny
             Error(stmt, "expect statement is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)");
           } else {
             resolver.CheckIsCompilable(s.Expr);
-            // If not provided, the message is populated with a default value in resolution 
+            // If not provided, the message is populated with a default value in resolution
             Contract.Assert(s.Message != null);
             resolver.CheckIsCompilable(s.Message);
           }

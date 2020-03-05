@@ -270,7 +270,7 @@ method MoreBvTests() {
   print u, "\n";  // as 0 as ever
 }
 
-newtype {:nativeType "number"} MyNumber = x | -100 <= x < 0x10_0000_0000
+newtype {:nativeType "number", "long"} MyNumber = x | -100 <= x < 0x10_0000_0000
 
 method NewTypeTest() {
   var a, b := 200, 300;

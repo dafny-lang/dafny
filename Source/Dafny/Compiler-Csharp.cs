@@ -666,9 +666,6 @@ namespace Microsoft.Dafny
     }
 
     protected override void GetNativeInfo(NativeType.Selection sel, out string name, out string literalSuffix, out bool needsCastAfterArithmetic) {
-      if (sel == NativeType.Selection.Number) {
-        sel = NativeType.Selection.Long;
-      }
       base.GetNativeInfo(sel, out name, out literalSuffix, out needsCastAfterArithmetic);
     }
 
@@ -2380,7 +2377,7 @@ namespace Microsoft.Dafny
         }
         crx.cr = provider.CompileAssemblyFromFile(cp, sourceFiles);
       } else {
-        var p = callToMain == null ? targetProgramText : targetProgramText + callToMain; 
+        var p = callToMain == null ? targetProgramText : targetProgramText + callToMain;
         crx.cr = provider.CompileAssemblyFromSource(cp, p);
       }
 
@@ -2463,7 +2460,7 @@ namespace Microsoft.Dafny
           var method = (Method) decl;
           hasReturnValue = method.Outs.Count > 1;
         }
-        
+
         wr.WriteLine("[Xunit.Fact]");
         if (hasReturnValue) {
           wr = wr.NewNamedBlock("public static void {0}_CheckForFailureForXunit()", name);
@@ -2472,7 +2469,7 @@ namespace Microsoft.Dafny
         }
       }
     }
-    
+
     public override void EmitCallToMain(Method mainMethod, TargetWriter wr) {
       var companion = TypeName_Companion(mainMethod.EnclosingClass as ClassDecl, wr, mainMethod.tok);
       var wClass = wr.NewNamedBlock("class __CallToMain");
