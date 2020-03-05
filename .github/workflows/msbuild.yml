@@ -19,10 +19,10 @@ jobs:
         ref: v2.4.2
         path: boogie
     - name: Build Boogie
-      run: msbuild boogie/Source/Boogie.sln
+      run: msbuild /restore boogie/Source/Boogie.sln
     - name: Checkout Dafny
       uses: actions/checkout@v2
       with:
         path: dafny
     - name: Build Dafny
-      run: msbuild dafny/Source/Dafny.sln
+      run: msbuild /restore dafny/Source/Dafny.sln
