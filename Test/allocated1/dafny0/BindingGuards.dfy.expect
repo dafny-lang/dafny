@@ -21,7 +21,7 @@ BindingGuards.dfy(147,2): Error: alternative cases fail to cover all possibiltie
 Execution trace:
     (0,0): anon0
     (0,0): anon7_Else
-BindingGuards.dfy(272,2): Error: missing case in case statement: Blue
+BindingGuards.dfy(272,2): Error: missing case in match statement: Blue
 Execution trace:
     (0,0): anon0
     BindingGuards.dfy(268,3): anon19_LoopHead
@@ -32,7 +32,7 @@ Execution trace:
     (0,0): anon12
     (0,0): anon23_Else
     (0,0): anon24_Then
-BindingGuards.dfy(272,2): Error: missing case in case statement: Green
+BindingGuards.dfy(272,2): Error: missing case in match statement: Green
 Execution trace:
     (0,0): anon0
     BindingGuards.dfy(268,3): anon19_LoopHead
