@@ -1126,11 +1126,10 @@ namespace Dafny
     }
     public static G Default<G>() {
       Type ty = typeof(G);
-      // TODO-RS: How to generalize this?
-      if (ty.Name.Equals("ISequence`1")) {
-        Type classType = Type.GetType("Dafny.Sequence`1");
-        Type parameterizedClassType = classType.MakeGenericType(ty.GenericTypeArguments);
-        ty = parameterizedClassType;
+      // If ty is Dafny.ISequence<T> for some concrete T, use Dafny.Sequence<T> instead
+      // TODO-RS: How to generalize these mappings?
+      if (typeof(ISequence<>) == ty.GetGenericTypeDefinition()) {
+        ty = typeof(Sequence<>).MakeGenericType(ty.GenericTypeArguments);
       }
       System.Reflection.MethodInfo mInfo = ty.GetMethod("_DafnyDefaultValue");
       if (mInfo != null) {
