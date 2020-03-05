@@ -1,4 +1,4 @@
-name: .NET Core
+name: Build and Test - Ubuntu
 
 on:
   push:
@@ -31,3 +31,7 @@ jobs:
       run: nuget restore dafny/Source/Dafny.sln
     - name: Build Dafny
       run: msbuild dafny/Source/Dafny.sln
+    - name: Install lit
+      run: pip install lit OutputCheck pyyaml
+    - name: Run lit tests
+      run: lit --time-tests -v dafny/Test/comp
