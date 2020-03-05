@@ -15,13 +15,11 @@ jobs:
       matrix:
         os: [ubuntu-latest, windows-latest]
         lit-test-paths: ["."]
-        include:
-          - os: ubuntu-latest
-            msbuild: msbuild
-          - os: windows-latest
-            msbuild: MSBuild.exe
     steps:
     - uses: nuget/setup-nuget@v1
+    - name: Add msbuild to PATH
+      if: matrix.os == "windows-latest"
+      uses: microsoft/setup-msbuild@v1.0.0
     - name: Checkout Boogie
       uses: actions/checkout@v2
       with:
