@@ -42,8 +42,8 @@ datatype Dt<+A> = Atom(get: A)
 method H() {
   var c := new Class0;
   var a: Dt<Class0> := Atom(c);
-  var b: Dt<object>;
-  b := a;  // compilation error: this would be hard to compile to C#
+  var b: Dt<object>; // compilation error: compilation does not support trait types as a type parameter; consider introducing a ghost
+  b := a;  
   print a, " and ", b, "\n";
 }
 
@@ -51,8 +51,8 @@ method I()
 {
   var c := new Class0;
   var a: Dt<Class0> := Atom(c);
-  var b: Dt<object>;
-  b := a;  // compilation error: this would be hard to compile to C#
+  var b: Dt<object>; // compilation error: compilation does not support trait types as a type parameter; consider introducing a ghost
+  b := a;
   print a, " and ", b, "\n";
 }
 
@@ -60,9 +60,9 @@ method J()
 {
   var c0 := new Class0;
   var c1 := new Class1;
-  var s: set<Tr> := {c0, c1};
+  var s: set<Tr> := {c0, c1}; // compilation error: compilation of set<TRAIT> is not supported; consider introducing a ghost
   var t: set<Class0> := {c0};
-  s := t;  // compilation error: this would be hard to compile to C#
+  s := t;
   print s, " and ", t, "\n";
 }
 
@@ -70,9 +70,9 @@ method K()
 {
   var c0 := new Class0;
   var c1 := new Class1;
-  var s: seq<Tr> := [c0, c1];
+  var s: seq<Tr> := [c0, c1]; // no error, this is supported
   var t: seq<Class0> := [c0];
-  s := t;  // no error, this is supported
+  s := t;
   print s, " and ", t, "\n";
 }
 
