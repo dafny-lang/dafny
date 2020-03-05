@@ -18,7 +18,7 @@ jobs:
     steps:
     - uses: nuget/setup-nuget@v1
     - name: Add msbuild to PATH
-      if: matrix.os == "windows-latest"
+      if: matrix.os == 'windows-latest'
       uses: microsoft/setup-msbuild@v1.0.0
     - name: Checkout Boogie
       uses: actions/checkout@v2
