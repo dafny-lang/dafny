@@ -41,5 +41,7 @@ jobs:
       run: python -m pip install --upgrade pip
     - name: Install lit
       run: pip install lit OutputCheck pyyaml
+    - uses: actions/setup-node@v1
+    - run: npm install bignumber.js
     - name: Run lit tests
       run: lit --time-tests -v dafny/Test/comp
