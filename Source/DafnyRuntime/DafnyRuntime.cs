@@ -1128,8 +1128,8 @@ namespace Dafny
       Type ty = typeof(G);
       // If ty is Dafny.ISequence<T> for some concrete T, use Dafny.Sequence<T> instead
       // TODO-RS: How to generalize these mappings?
-      if (typeof(ISequence<>) == ty.GetGenericTypeDefinition()) {
-        ty = typeof(Sequence<>).MakeGenericType(ty.GenericTypeArguments);
+      if (ty.IsGenericType && typeof(Dafny.ISequence<>) == ty.GetGenericTypeDefinition()) {
+        ty = typeof(Dafny.Sequence<>).MakeGenericType(ty.GenericTypeArguments);
       }
       System.Reflection.MethodInfo mInfo = ty.GetMethod("_DafnyDefaultValue");
       if (mInfo != null) {
