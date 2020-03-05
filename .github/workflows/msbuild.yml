@@ -1,4 +1,4 @@
-name: Build and Test - Ubuntu
+name: Build and Test
 
 on:
   push:
@@ -9,8 +9,11 @@ on:
 jobs:
   build:
 
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
 
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
     steps:
     - uses: nuget/setup-nuget@v1
     - name: Checkout Boogie
