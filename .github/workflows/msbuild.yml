@@ -12,6 +12,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+    - uses: nuget/setup-nuget@v1
     - name: Checkout Boogie
       uses: actions/checkout@v2
       with:
