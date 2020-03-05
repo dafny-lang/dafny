@@ -19,7 +19,7 @@ jobs:
         ref: v2.4.2
         path: boogie
     - name: Build Boogie
-      run: msbuild boogie/Source/Dafny.sln
+      run: msbuild boogie/Source/Boogie.sln
     - name: Checkout Dafny
       uses: actions/checkout@v2
       with:
