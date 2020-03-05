@@ -7673,7 +7673,7 @@ namespace Microsoft.Dafny {
             }
             builder.Add(new Bpl.HavocCmd(me.tok, havocIds));
           }
-          b.Add(Assert(me.tok, Bpl.Expr.False, "missing case in case statement: " + missingCtor.Name));
+          b.Add(Assert(me.tok, Bpl.Expr.False, "missing case in match expression: " + missingCtor.Name));
 
           Bpl.Expr guard = Bpl.Expr.Eq(src, r);
           ifCmd = new Bpl.IfCmd(me.tok, guard, b.Collect(me.tok), ifCmd, els);
@@ -10417,7 +10417,7 @@ namespace Microsoft.Dafny {
             }
             builder.Add(new Bpl.HavocCmd(s.Tok, havocIds));
           }
-          b.Add(Assert(s.Tok, Bpl.Expr.False, "missing case in case statement: " + missingCtor.Name));
+          b.Add(Assert(s.Tok, Bpl.Expr.False, "missing case in match statement: " + missingCtor.Name));
 
           Bpl.Expr guard = Bpl.Expr.Eq(source, r);
           ifCmd = new Bpl.IfCmd(s.Tok, guard, b.Collect(s.Tok), ifCmd, els);
