@@ -14,6 +14,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest]
+        lit-test-paths: ["comp dafny0 dafny1", "dafny2 dafny3 dafny4"]
     steps:
     - uses: nuget/setup-nuget@v1
     - name: Checkout Boogie
@@ -47,4 +48,6 @@ jobs:
     - uses: actions/setup-node@v1
     - run: npm install bignumber.js
     - name: Run lit tests
-      run: lit --time-tests -v dafny/Test
+      run: |
+        cd dafny/Test
+        lit --time-tests -v ${{ matrix.lit-test-paths }}
