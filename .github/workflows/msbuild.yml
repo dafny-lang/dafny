@@ -15,9 +15,9 @@ jobs:
       matrix:
         os: [ubuntu-latest, windows-latest]
         lit-test-paths: [
-          'allocated1 cloudmake comp',
-          'dafny0 dafny1 dafny2 dafny3 dafny4 DafnyTests',
-          'exceptions exports git-issues hofs irondafny0 lambdas',
+          'allocated1 cloudmake comp dafny0',
+          'dafny1 dafny2 dafny3',
+          'dafny4 DafnyTests exceptions exports git-issues hofs irondafny0 lambdas',
           'server triggers tutorial vacid0 VerifyThis2015 VSComp2010 VSI-Benchmarks vstte2012 wishlist']
       fail-fast: false
     steps:
