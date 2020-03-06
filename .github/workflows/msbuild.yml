@@ -13,7 +13,8 @@ jobs:
 
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest]
+        # Windows build is not yet working due to issues with the checked-in z3.exe
+        os: [ubuntu-latest]
         shard: [1, 2, 3, 4, 5]
       fail-fast: false
     steps:
