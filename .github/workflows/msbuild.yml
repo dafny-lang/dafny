@@ -53,4 +53,4 @@ jobs:
     - uses: actions/setup-node@v1
     - run: npm install bignumber.js
     - name: Run lit tests
-      run: lit --time-tests -v --num-shards=5 --run-shard=${{ shard }} dafny/Test
+      run: lit --time-tests -v --num-shards=5 --run-shard=${{ matrix.shard }} dafny/Test
