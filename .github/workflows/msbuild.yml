@@ -20,6 +20,7 @@ jobs:
           exports git-issues hofs irondafny0 lambdas
           server triggers tutorial vacid0 VerifyThis2015
           VSComp2010 VSI-Benchmarks vstte2012 wishlist
+      fail-fast: false
     steps:
     - uses: nuget/setup-nuget@v1
     - name: Add msbuild to PATH
