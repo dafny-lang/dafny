@@ -364,7 +364,7 @@ namespace Dafny
       }
       return new MultiSet<T>(d, occurrencesOfNull);
     }
-    public static MultiSet<T> FromSeq(Sequence<T> values) {
+    public static MultiSet<T> FromSeq(ISequence<T> values) {
 #if DAFNY_USE_SYSTEM_COLLECTIONS_IMMUTABLE
       var d = ImmutableDictionary<T, BigInteger>.Empty.ToBuilder();
 #else
@@ -797,14 +797,42 @@ namespace Dafny
     }
   }
 
-  public abstract class Sequence<T>
+  public interface ISequence<out T> {
+    long LongCount { get; }
+    int Count { get; }
+    T[] Elements { get; }
+    IEnumerable<T> UniqueElements { get; }
+    T Select(ulong index);
+    T Select(long index);
+    T Select(uint index);
+    T Select(int index);
+    T Select(BigInteger index);
+    bool Contains<G>(G g);
+    ISequence<T> Take(long m);
+    ISequence<T> Take(ulong n);
+    ISequence<T> Take(BigInteger n);
+    ISequence<T> Drop(long m);
+    ISequence<T> Drop(ulong n);
+    ISequence<T> Drop(BigInteger n);
+    ISequence<T> Subsequence(long lo, long hi);
+    ISequence<T> Subsequence(long lo, ulong hi);
+    ISequence<T> Subsequence(long lo, BigInteger hi);
+    ISequence<T> Subsequence(ulong lo, long hi);
+    ISequence<T> Subsequence(ulong lo, ulong hi);
+    ISequence<T> Subsequence(ulong lo, BigInteger hi);
+    ISequence<T> Subsequence(BigInteger lo, long hi);
+    ISequence<T> Subsequence(BigInteger lo, ulong hi);
+    ISequence<T> Subsequence(BigInteger lo, BigInteger hi);
+  }
+  
+  public abstract class Sequence<T>: ISequence<T>
   {
-    public static Sequence<T> Empty {
+    public static ISequence<T> Empty {
       get {
         return new ArraySequence<T>(new T[0]);
       }
     }
-    public static Sequence<T> Create(BigInteger length, System.Func<BigInteger, T> init) {
+    public static ISequence<T> Create(BigInteger length, System.Func<BigInteger, T> init) {
       var len = (int)length;
       var values = new T[len];
       for (int i = 0; i < len; i++) {
@@ -812,24 +840,57 @@ namespace Dafny
       }
       return new ArraySequence<T>(values);
     }
-    public static Sequence<T> FromArray(T[] values) {
+    public static ISequence<T> FromArray(T[] values) {
       return new ArraySequence<T>(values);
     }
-    public static Sequence<T> FromElements(params T[] values) {
+    public static ISequence<T> FromElements(params T[] values) {
       return new ArraySequence<T>(values);
     }
-    public static Sequence<char> FromString(string s) {
+    public static ISequence<char> FromString(string s) {
       return new ArraySequence<char>(s.ToCharArray());
     }
-    public static Sequence<T> _DafnyDefaultValue() {
+    public static ISequence<T> _DafnyDefaultValue() {
       return Empty;
+    }
+    public static ISequence<T> Update(ISequence<T> sequence, long index, T t) {
+      T[] a = (T[])sequence.Elements.Clone();
+      a[index] = t;
+      return new ArraySequence<T>(a);
+    }
+    public static ISequence<T> Update(ISequence<T> sequence, ulong index, T t) {
+      return Update(sequence, (long)index, t);
+    }
+    public static ISequence<T> Update(ISequence<T> sequence, BigInteger index, T t) {
+      return Update(sequence, (long)index, t);
+    }
+    public static bool EqualUntil(ISequence<T> left, ISequence<T> right, int n) {
+      T[] leftElmts = left.Elements, rightElmts = right.Elements;
+      for (int i = 0; i < n; i++) {
+        if (!object.Equals(leftElmts[i], rightElmts[i]))
+          return false;
+      }
+      return true;
+    }
+    public static bool IsPrefixOf(ISequence<T> left, ISequence<T> right) {
+      int n = left.Elements.Length;
+      return n <= right.Elements.Length && EqualUntil(left, right, n);
+    }
+    public static bool IsProperPrefixOf(ISequence<T> left, ISequence<T> right) {
+      int n = left.Elements.Length;
+      return n < right.Elements.Length && EqualUntil(left, right, n);
+    }
+    public static ISequence<T> Concat(ISequence<T> left, ISequence<T> right) {
+      if (left.Count == 0)
+        return right;
+      else if (right.LongCount == 0)
+        return left;
+      return new ConcatSequence<T>(left, right);
     }
     public int Count {
       get { return (int)LongCount; }
     }
     public abstract long LongCount { get; }
     public abstract T[] Elements { get; }
-
     public IEnumerable<T> UniqueElements {
       get {
         var st = Set<T>.FromElements(Elements);
@@ -852,23 +913,12 @@ namespace Dafny
     public T Select(BigInteger index) {
       return Elements[(int)index];
     }
-    public Sequence<T> Update(long index, T t) {
-      T[] a = (T[])Elements.Clone();
-      a[index] = t;
-      return new ArraySequence<T>(a);
-    }
-    public Sequence<T> Update(ulong index, T t) {
-      return Update((long)index, t);
-    }
-    public Sequence<T> Update(BigInteger index, T t) {
-      return Update((long)index, t);
-    }
-    public bool Equals(Sequence<T> other) {
+    public bool Equals(ISequence<T> other) {
       int n = Elements.Length;
-      return n == other.Elements.Length && EqualUntil(other, n);
+      return n == other.Elements.Length && EqualUntil(this, other, n);
     }
     public override bool Equals(object other) {
-      return other is Sequence<T> && Equals((Sequence<T>)other);
+      return other is Sequence<T> && Equals((ISequence<T>)other);
     }
     public override int GetHashCode() {
       T[] elmts = Elements;
@@ -897,29 +947,6 @@ namespace Dafny
         return s + "]";
       }
     }
-    bool EqualUntil(Sequence<T> other, int n) {
-      T[] elmts = Elements, otherElmts = other.Elements;
-      for (int i = 0; i < n; i++) {
-        if (!object.Equals(elmts[i], otherElmts[i]))
-          return false;
-      }
-      return true;
-    }
-    public bool IsProperPrefixOf(Sequence<T> other) {
-      int n = Elements.Length;
-      return n < other.Elements.Length && EqualUntil(other, n);
-    }
-    public bool IsPrefixOf(Sequence<T> other) {
-      int n = Elements.Length;
-      return n <= other.Elements.Length && EqualUntil(other, n);
-    }
-    public Sequence<T> Concat(Sequence<T> other) {
-      if (Count == 0)
-        return other;
-      else if (other.Count == 0)
-        return this;
-      return new ConcatSequence<T>(this, other);
-    }
     public bool Contains<G>(G g) {
       if (g == null || g is T) {
         var t = (T)(object)g;
@@ -932,35 +959,35 @@ namespace Dafny
       }
       return false;
     }
-    public Sequence<T> Take(long m) {
+    public ISequence<T> Take(long m) {
       if (Elements.LongLength == m)
         return this;
       T[] a = new T[m];
       System.Array.Copy(Elements, a, m);
       return new ArraySequence<T>(a);
     }
-    public Sequence<T> Take(ulong n) {
+    public ISequence<T> Take(ulong n) {
       return Take((long)n);
     }
-    public Sequence<T> Take(BigInteger n) {
+    public ISequence<T> Take(BigInteger n) {
       return Take((long)n);
     }
-    public Sequence<T> Drop(long m) {
+    public ISequence<T> Drop(long m) {
       if (m == 0)
         return this;
       T[] a = new T[Elements.Length - m];
       System.Array.Copy(Elements, m, a, 0, Elements.Length - m);
       return new ArraySequence<T>(a);
     }
-    public Sequence<T> Drop(ulong n) {
+    public ISequence<T> Drop(ulong n) {
       return Drop((long)n);
     }
-    public Sequence<T> Drop(BigInteger n) {
+    public ISequence<T> Drop(BigInteger n) {
       if (n.IsZero)
         return this;
       return Drop((long)n);
     }
-    public Sequence<T> Subsequence(long lo, long hi) {
+    public ISequence<T> Subsequence(long lo, long hi) {
       if (lo == 0 && hi == Elements.Length) {
         return this;
       }
@@ -968,28 +995,28 @@ namespace Dafny
       System.Array.Copy(Elements, lo, a, 0, hi - lo);
       return new ArraySequence<T>(a);
     }
-    public Sequence<T> Subsequence(long lo, ulong hi) {
+    public ISequence<T> Subsequence(long lo, ulong hi) {
       return Subsequence(lo, (long)hi);
     }
-    public Sequence<T> Subsequence(long lo, BigInteger hi) {
+    public ISequence<T> Subsequence(long lo, BigInteger hi) {
       return Subsequence(lo, (long)hi);
     }
-    public Sequence<T> Subsequence(ulong lo, long hi) {
+    public ISequence<T> Subsequence(ulong lo, long hi) {
       return Subsequence((long)lo, hi);
     }
-    public Sequence<T> Subsequence(ulong lo, ulong hi) {
+    public ISequence<T> Subsequence(ulong lo, ulong hi) {
       return Subsequence((long)lo, (long)hi);
     }
-    public Sequence<T> Subsequence(ulong lo, BigInteger hi) {
+    public ISequence<T> Subsequence(ulong lo, BigInteger hi) {
       return Subsequence((long)lo, (long)hi);
     }
-    public Sequence<T> Subsequence(BigInteger lo, long hi) {
+    public ISequence<T> Subsequence(BigInteger lo, long hi) {
       return Subsequence((long)lo, hi);
     }
-    public Sequence<T> Subsequence(BigInteger lo, ulong hi) {
+    public ISequence<T> Subsequence(BigInteger lo, ulong hi) {
       return Subsequence((long)lo, (long)hi);
     }
-    public Sequence<T> Subsequence(BigInteger lo, BigInteger hi) {
+    public ISequence<T> Subsequence(BigInteger lo, BigInteger hi) {
       return Subsequence((long)lo, (long)hi);
     }
   }
@@ -1013,11 +1040,11 @@ namespace Dafny
   internal class ConcatSequence<T> : Sequence<T> {
     // INVARIANT: Either left != null, right != null, and elmts == null or
     // left == null, right == null, and elmts != null
-    private Sequence<T> left, right;
+    private ISequence<T> left, right;
     private T[] elmts = null;
     private readonly long count;
 
-    internal ConcatSequence(Sequence<T> left, Sequence<T> right) {
+    internal ConcatSequence(ISequence<T> left, ISequence<T> right) {
       this.left = left;
       this.right = right;
       this.count = left.LongCount + right.LongCount;
@@ -1048,7 +1075,7 @@ namespace Dafny
       var ans = new T[count];
       var nextIndex = 0L;
 
-      var toVisit = new Stack<Sequence<T>>();
+      var toVisit = new Stack<ISequence<T>>();
       toVisit.Push(right);
       toVisit.Push(left);
 
@@ -1098,7 +1125,12 @@ namespace Dafny
       System.Console.Write(ToString(g));
     }
     public static G Default<G>() {
-      System.Type ty = typeof(G);
+      Type ty = typeof(G);
+      // If ty is Dafny.ISequence<T> for some concrete T, use Dafny.Sequence<T> instead
+      // TODO-RS: How to generalize these mappings?
+      if (ty.IsGenericType && typeof(Dafny.ISequence<>) == ty.GetGenericTypeDefinition()) {
+        ty = typeof(Dafny.Sequence<>).MakeGenericType(ty.GenericTypeArguments);
+      }
       System.Reflection.MethodInfo mInfo = ty.GetMethod("_DafnyDefaultValue");
       if (mInfo != null) {
         G g = (G)mInfo.Invoke(null, null);

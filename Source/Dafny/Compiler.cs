@@ -1435,7 +1435,8 @@ namespace Microsoft.Dafny {
 
     protected readonly string DafnySetClass = "Dafny.Set";
     protected readonly string DafnyMultiSetClass = "Dafny.MultiSet";
-    protected readonly string DafnySeqClass = "Dafny.Sequence";
+    protected readonly string DafnySeqClass = "Dafny.ISequence";
+    protected readonly string DafnySeqHelperClass = "Dafny.Sequence";
     protected readonly string DafnyMapClass = "Dafny.Map";
 
     protected NativeType AsNativeType(Type typ) {

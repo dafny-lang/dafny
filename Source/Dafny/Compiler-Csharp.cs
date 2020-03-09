@@ -927,9 +927,6 @@ namespace Microsoft.Dafny
         return DafnySetClass + "<" + TypeName(argType, wr, tok) + ">";
       } else if (xType is SeqType) {
         Type argType = ((SeqType)xType).Arg;
-        if (ComplicatedTypeParameterForCompilation(argType)) {
-          Error(tok, "compilation of seq<TRAIT> is not supported; consider introducing a ghost", wr);
-        }
         return DafnySeqClass + "<" + TypeName(argType, wr, tok) + ">";
       } else if (xType is MultiSetType) {
         Type argType = ((MultiSetType)xType).Arg;
@@ -949,6 +946,16 @@ namespace Microsoft.Dafny
       }
     }
 
+    public string TypeHelperName(Type type, TextWriter wr, Bpl.IToken tok) {
+      var xType = type.NormalizeExpand();
+      if (xType is SeqType) {
+        Type argType = ((SeqType)xType).Arg;
+        return "Dafny.Sequence" + "<" + TypeName(argType, wr, tok) + ">";
+      } else {
+        return TypeName(type, wr, tok);
+      }
+    }
+    
     public override string TypeInitializationValue(Type type, TextWriter/*?*/ wr, Bpl.IToken/*?*/ tok, bool inAutoInitContext) {
       var xType = type.NormalizeExpandKeepConstraints();
 
@@ -964,7 +971,7 @@ namespace Microsoft.Dafny
         var t = (BitvectorType)xType;
         return t.NativeType != null ? "0" : "BigInteger.Zero";
       } else if (xType is CollectionType) {
-        return TypeName(xType, wr, tok) + ".Empty";
+        return TypeHelperName(xType, wr, tok) + ".Empty";
       }
 
       var udt = (UserDefinedType)xType;
@@ -1283,7 +1290,7 @@ namespace Microsoft.Dafny
         wr.Write("'{0}'", (string)e.Value);
       } else if (e is StringLiteralExpr) {
         var str = (StringLiteralExpr)e;
-        wr.Write("{0}<char>.FromString(", DafnySeqClass);
+        wr.Write("{0}<char>.FromString(", DafnySeqHelperClass);
         TrStringLiteral(str, wr);
         wr.Write(")");
       } else if (AsNativeType(e.Type) != null) {
@@ -1727,12 +1734,23 @@ namespace Microsoft.Dafny
     }
 
     protected override void EmitIndexCollectionUpdate(Expression source, Expression index, Expression value, bool inLetExprBody, TargetWriter wr, bool nativeIndex = false) {
-      TrParenExpr(source, wr, inLetExprBody);
-      wr.Write(".Update(");
-      TrExpr(index, wr, inLetExprBody);
-      wr.Write(", ");
-      TrExpr(value, wr, inLetExprBody);
-      wr.Write(")");
+      var xType = source.Type.NormalizeExpand();
+      if (xType is SeqType) {
+        wr.Write(TypeHelperName(xType, wr, source.tok) + ".Update(");
+        TrParenExpr(source, wr, inLetExprBody);
+        wr.Write(",");
+        TrExpr(index, wr, inLetExprBody);
+        wr.Write(", ");
+        TrExpr(value, wr, inLetExprBody);
+        wr.Write(")");
+      } else {
+        TrParenExpr(source, wr, inLetExprBody);
+        wr.Write(".Update(");
+        TrExpr(index, wr, inLetExprBody);
+        wr.Write(", ");
+        TrExpr(value, wr, inLetExprBody);
+        wr.Write(")");
+      }
     }
 
     protected override void EmitSeqSelectRange(Expression source, Expression/*?*/ lo, Expression/*?*/ hi, bool fromArray, bool inLetExprBody, TargetWriter wr) {
@@ -1820,7 +1838,7 @@ namespace Microsoft.Dafny
       wrLoopBody.WriteLine(";");
 
       wrLamBody.WriteLine("return {0}<{1}>.FromArray({2});",
-        DafnySeqClass, TypeName(body.Type, wr, body.tok), arrVar);
+        DafnySeqHelperClass, TypeName(body.Type, wr, body.tok), arrVar);
     }
 
     protected override void EmitMultiSetFormingExpr(MultiSetFormingExpr expr, bool inLetExprBody, TargetWriter wr) {
@@ -2092,11 +2110,11 @@ namespace Microsoft.Dafny
           callString = "Difference"; break;
 
         case BinaryExpr.ResolvedOpcode.ProperPrefix:
-          callString = "IsProperPrefixOf"; break;
+          staticCallString = TypeHelperName(e0.Type, errorWr, e0.tok) + ".IsProperPrefixOf"; break;
         case BinaryExpr.ResolvedOpcode.Prefix:
-          callString = "IsPrefixOf"; break;
+          staticCallString = TypeHelperName(e0.Type, errorWr, e0.tok) + ".IsPrefixOf"; break;
         case BinaryExpr.ResolvedOpcode.Concat:
-          callString = "Concat"; break;
+          staticCallString = TypeHelperName(e0.Type, errorWr, e0.tok) + ".Concat"; break;
         case BinaryExpr.ResolvedOpcode.InSeq:
           callString = "Contains"; reverseArguments = true; break;
         case BinaryExpr.ResolvedOpcode.NotInSeq:
@@ -2203,12 +2221,12 @@ namespace Microsoft.Dafny
     }
 
     protected override void EmitCollectionDisplay(CollectionType ct, Bpl.IToken tok, List<Expression> elements, bool inLetExprBody, TargetWriter wr) {
-      wr.Write("{0}.FromElements", TypeName(ct, wr, tok));
+      wr.Write("{0}.FromElements", TypeHelperName(ct, wr, tok));
       TrExprList(elements, wr, inLetExprBody);
     }
 
     protected override void EmitMapDisplay(MapType mt, Bpl.IToken tok, List<ExpressionPair> elements, bool inLetExprBody, TargetWriter wr) {
-      wr.Write("{0}.FromElements", TypeName(mt, wr, tok));
+      wr.Write("{0}.FromElements", TypeHelperName(mt, wr, tok));
       wr.Write("(");
       string sep = "";
       foreach (ExpressionPair p in elements) {
