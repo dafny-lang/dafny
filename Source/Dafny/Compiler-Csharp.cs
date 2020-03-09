@@ -2356,7 +2356,6 @@ namespace Microsoft.Dafny
       };
 
       if (DafnyOptions.O.Optimize) {
-        cp.CompilerOptions += " /optimize /define:DAFNY_USE_SYSTEM_COLLECTIONS_IMMUTABLE";
         cp.CompilerOptions += " /lib:" + crx.libPath;
         foreach (var filename in crx.immutableDllFileNames) {
           cp.ReferencedAssemblies.Add(filename);

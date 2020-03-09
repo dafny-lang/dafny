@@ -14,15 +14,11 @@ namespace DafnyAssembly {
 namespace Dafny
 {
   using System.Collections.Generic;
-  // set this option if you want to use System.Collections.Immutable and if you know what you're doing.
-#if DAFNY_USE_SYSTEM_COLLECTIONS_IMMUTABLE
   using System.Collections.Immutable;
   using System.Linq;
-#endif
 
   public class Set<T>
   {
-#if DAFNY_USE_SYSTEM_COLLECTIONS_IMMUTABLE
     readonly ImmutableHashSet<T> setImpl;
     readonly bool containsNull;
     Set(ImmutableHashSet<T> d, bool containsNull) {
@@ -78,36 +74,6 @@ namespace Dafny
         }
       }
     }
-#else
-    readonly HashSet<T> setImpl;
-    Set(HashSet<T> s) {
-      this.setImpl = s;
-    }
-    public static readonly Set<T> Empty = new Set<T>(new HashSet<T>());
-    public static Set<T> FromElements(params T[] values) {
-      return FromCollection(values);
-    }
-    public static Set<T> FromCollection(IEnumerable<T> values) {
-      var s = new HashSet<T>(values);
-      return new Set<T>(s);
-    }
-    public static Set<T> FromCollectionPlusOne(IEnumerable<T> values, T oneMoreValue) {
-      var s = new HashSet<T>(values);
-      s.Add(oneMoreValue);
-      return new Set<T>(s);
-    }
-    public int Count {
-      get { return this.setImpl.Count; }
-    }
-    public long LongCount {
-      get { return this.setImpl.Count; }
-    }
-    public IEnumerable<T> Elements {
-      get {
-        return this.setImpl;
-      }
-    }
-#endif
 
     public static Set<T> _DafnyDefaultValue() {
       return Empty;
@@ -123,22 +89,14 @@ namespace Dafny
         elmts.AddRange(this.setImpl);
         var n = elmts.Count;
         var which = new bool[n];
-#if DAFNY_USE_SYSTEM_COLLECTIONS_IMMUTABLE
         var s = ImmutableHashSet<T>.Empty.ToBuilder();
-#else
-        var s = new HashSet<T>();
-#endif
         while (true) {
-#if DAFNY_USE_SYSTEM_COLLECTIONS_IMMUTABLE
           // yield both the subset without null and, if null is in the original set, the subset with null included
           var ihs = s.ToImmutable();
           yield return new Set<T>(ihs, false);
           if (containsNull) {
             yield return new Set<T>(ihs, true);
           }
-#else
-          yield return new Set<T>(new HashSet<T>(s));
-#endif
           // "add 1" to "which", as if doing a carry chain.  For every digit changed, change the membership of the corresponding element in "s".
           int i = 0;
           for (; i < n && which[i]; i++) {
@@ -155,22 +113,16 @@ namespace Dafny
       }
     }
     public bool Equals(Set<T> other) {
-#if DAFNY_USE_SYSTEM_COLLECTIONS_IMMUTABLE
       return containsNull == other.containsNull && this.setImpl.SetEquals(other.setImpl);
-#else
-      return this.setImpl.Count == other.setImpl.Count && IsSubsetOf(other);
-#endif
     }
     public override bool Equals(object other) {
       return other is Set<T> && Equals((Set<T>)other);
     }
     public override int GetHashCode() {
       var hashCode = 1;
-#if DAFNY_USE_SYSTEM_COLLECTIONS_IMMUTABLE
       if (containsNull) {
         hashCode = hashCode * (Dafny.Helpers.GetHashCode(default(T)) + 3);
       }
-#endif
       foreach (var t in this.setImpl) {
         hashCode = hashCode * (Dafny.Helpers.GetHashCode(t)+3);
       }
@@ -179,12 +131,10 @@ namespace Dafny
     public override string ToString() {
       var s = "{";
       var sep = "";
-#if DAFNY_USE_SYSTEM_COLLECTIONS_IMMUTABLE
       if (containsNull) {
         s += sep + Dafny.Helpers.ToString(default(T));
         sep = ", ";
       }
-#endif
       foreach (var t in this.setImpl) {
         s += sep + Dafny.Helpers.ToString(t);
         sep = ", ";
@@ -195,11 +145,9 @@ namespace Dafny
       return this.Count < other.Count && IsSubsetOf(other);
     }
     public bool IsSubsetOf(Set<T> other) {
-#if DAFNY_USE_SYSTEM_COLLECTIONS_IMMUTABLE
       if (this.containsNull && !other.containsNull) {
         return false;
       }
-#endif
       if (other.setImpl.Count < this.setImpl.Count)
         return false;
       foreach (T t in this.setImpl) {
@@ -215,14 +163,10 @@ namespace Dafny
       return other.IsProperSubsetOf(this);
     }
     public bool IsDisjointFrom(Set<T> other) {
-#if DAFNY_USE_SYSTEM_COLLECTIONS_IMMUTABLE
       if (this.containsNull && other.containsNull) {
         return false;
       }
       ImmutableHashSet<T> a, b;
-#else
-      HashSet<T> a, b;
-#endif
       if (this.setImpl.Count < other.setImpl.Count) {
         a = this.setImpl; b = other.setImpl;
       } else {
@@ -235,13 +179,8 @@ namespace Dafny
       return true;
     }
     public bool Contains<G>(G t) {
-#if DAFNY_USE_SYSTEM_COLLECTIONS_IMMUTABLE
       return t == null ? containsNull : t is T && this.setImpl.Contains((T)(object)t);
-#else
-      return (t == null || t is T) && this.setImpl.Contains((T)(object)t);
-#endif
     }
-#if DAFNY_USE_SYSTEM_COLLECTIONS_IMMUTABLE
     public Set<T> Union(Set<T> other) {
       return new Set<T>(this.setImpl.Union(other.setImpl), containsNull || other.containsNull);
     }
@@ -251,85 +190,19 @@ namespace Dafny
     public Set<T> Difference(Set<T> other) {
         return new Set<T>(this.setImpl.Except(other.setImpl), containsNull && !other.containsNull);
     }
-#else
-    public Set<T> Union(Set<T> other) {
-      if (this.setImpl.Count == 0)
-        return other;
-      else if (other.setImpl.Count == 0)
-        return this;
-      HashSet<T> a, b;
-      if (this.setImpl.Count < other.setImpl.Count) {
-        a = this.setImpl; b = other.setImpl;
-      } else {
-        a = other.setImpl; b = this.setImpl;
-      }
-      var r = new HashSet<T>();
-      foreach (T t in b)
-        r.Add(t);
-      foreach (T t in a)
-        r.Add(t);
-      return new Set<T>(r);
-    }
-    public Set<T> Intersect(Set<T> other) {
-      if (this.setImpl.Count == 0)
-        return this;
-      else if (other.setImpl.Count == 0)
-        return other;
-      HashSet<T> a, b;
-      if (this.setImpl.Count < other.setImpl.Count) {
-        a = this.setImpl; b = other.setImpl;
-      } else {
-        a = other.setImpl; b = this.setImpl;
-      }
-      var r = new HashSet<T>();
-      foreach (T t in a) {
-        if (b.Contains(t))
-          r.Add(t);
-      }
-      return new Set<T>(r);
-    }
-    public Set<T> Difference(Set<T> other) {
-      if (this.setImpl.Count == 0)
-        return this;
-      else if (other.setImpl.Count == 0)
-        return this;
-      var r = new HashSet<T>();
-      foreach (T t in this.setImpl) {
-        if (!other.setImpl.Contains(t))
-          r.Add(t);
-      }
-      return new Set<T>(r);
-    }
-#endif
   }
 
   public class MultiSet<T>
   {
-#if DAFNY_USE_SYSTEM_COLLECTIONS_IMMUTABLE
     readonly ImmutableDictionary<T, BigInteger> dict;
-#else
-    readonly Dictionary<T, BigInteger> dict;
-#endif
     readonly BigInteger occurrencesOfNull;  // stupidly, a Dictionary in .NET cannot use "null" as a key
-#if DAFNY_USE_SYSTEM_COLLECTIONS_IMMUTABLE
     MultiSet(ImmutableDictionary<T, BigInteger>.Builder d, BigInteger occurrencesOfNull) {
       dict = d.ToImmutable();
       this.occurrencesOfNull = occurrencesOfNull;
     }
     public static readonly MultiSet<T> Empty = new MultiSet<T>(ImmutableDictionary<T, BigInteger>.Empty.ToBuilder(), BigInteger.Zero);
-#else
-    MultiSet(Dictionary<T, BigInteger> d, BigInteger occurrencesOfNull) {
-      this.dict = d;
-      this.occurrencesOfNull = occurrencesOfNull;
-    }
-    public static MultiSet<T> Empty = new MultiSet<T>(new Dictionary<T, BigInteger>(0), BigInteger.Zero);
-#endif
     public static MultiSet<T> FromElements(params T[] values) {
-#if DAFNY_USE_SYSTEM_COLLECTIONS_IMMUTABLE
       var d = ImmutableDictionary<T, BigInteger>.Empty.ToBuilder();
-#else
-      var d = new Dictionary<T, BigInteger>(values.Length);
-#endif
       var occurrencesOfNull = BigInteger.Zero;
       foreach (T t in values) {
         if (t == null) {
@@ -345,11 +218,7 @@ namespace Dafny
       return new MultiSet<T>(d, occurrencesOfNull);
     }
     public static MultiSet<T> FromCollection(ICollection<T> values) {
-#if DAFNY_USE_SYSTEM_COLLECTIONS_IMMUTABLE
       var d = ImmutableDictionary<T, BigInteger>.Empty.ToBuilder();
-#else
-      var d = new Dictionary<T, BigInteger>();
-#endif
       var occurrencesOfNull = BigInteger.Zero;
       foreach (T t in values) {
         if (t == null) {
@@ -365,11 +234,7 @@ namespace Dafny
       return new MultiSet<T>(d, occurrencesOfNull);
     }
     public static MultiSet<T> FromSeq(ISequence<T> values) {
-#if DAFNY_USE_SYSTEM_COLLECTIONS_IMMUTABLE
       var d = ImmutableDictionary<T, BigInteger>.Empty.ToBuilder();
-#else
-      var d = new Dictionary<T, BigInteger>();
-#endif
       var occurrencesOfNull = BigInteger.Zero;
       foreach (T t in values.Elements) {
         if (t == null) {
@@ -385,11 +250,7 @@ namespace Dafny
       return new MultiSet<T>(d, occurrencesOfNull);
     }
     public static MultiSet<T> FromSet(Set<T> values) {
-#if DAFNY_USE_SYSTEM_COLLECTIONS_IMMUTABLE
       var d = ImmutableDictionary<T, BigInteger>.Empty.ToBuilder();
-#else
-      var d = new Dictionary<T, BigInteger>();
-#endif
       var containsNull = false;
       foreach (T t in values.Elements) {
         if (t == null) {
@@ -491,18 +352,10 @@ namespace Dafny
       if (Select(t) == i) {
         return this;
       } else if (t == null) {
-#if DAFNY_USE_SYSTEM_COLLECTIONS_IMMUTABLE
         var r = dict.ToBuilder();
-#else
-        var r = dict;
-#endif
         return new MultiSet<T>(r, i);
       } else {
-#if DAFNY_USE_SYSTEM_COLLECTIONS_IMMUTABLE
         var r = dict.ToBuilder();
-#else
-        var r = new Dictionary<T, BigInteger>(dict);
-#endif
         r[(T)(object)t] = i;
         return new MultiSet<T>(r, occurrencesOfNull);
       }
@@ -512,11 +365,7 @@ namespace Dafny
         return other;
       else if (other.dict.Count + other.occurrencesOfNull == 0)
         return this;
-#if DAFNY_USE_SYSTEM_COLLECTIONS_IMMUTABLE
       var r = ImmutableDictionary<T, BigInteger>.Empty.ToBuilder();
-#else
-      var r = new Dictionary<T, BigInteger>();
-#endif
       foreach (T t in dict.Keys) {
         BigInteger i;
         if (!r.TryGetValue(t, out i)) {
@@ -538,11 +387,7 @@ namespace Dafny
         return this;
       else if (other.dict.Count == 0 && other.occurrencesOfNull == 0)
         return other;
-#if DAFNY_USE_SYSTEM_COLLECTIONS_IMMUTABLE
       var r = ImmutableDictionary<T, BigInteger>.Empty.ToBuilder();
-#else
-      var r = new Dictionary<T, BigInteger>();
-#endif
       foreach (T t in dict.Keys) {
         if (other.dict.ContainsKey(t)) {
           r.Add(t, other.dict[t] < dict[t] ? other.dict[t] : dict[t]);
@@ -555,11 +400,7 @@ namespace Dafny
         return this;
       else if (other.dict.Count == 0 && other.occurrencesOfNull == 0)
         return this;
-#if DAFNY_USE_SYSTEM_COLLECTIONS_IMMUTABLE
       var r = ImmutableDictionary<T, BigInteger>.Empty.ToBuilder();
-#else
-      var r = new Dictionary<T, BigInteger>();
-#endif
       foreach (T t in dict.Keys) {
         if (!other.dict.ContainsKey(t)) {
           r.Add(t, dict[t]);
@@ -612,36 +453,19 @@ namespace Dafny
 
   public class Map<U, V>
   {
-#if DAFNY_USE_SYSTEM_COLLECTIONS_IMMUTABLE
     readonly ImmutableDictionary<U, V> dict;
-#else
-    readonly Dictionary<U, V> dict;
-#endif
     readonly bool hasNullValue;  // true when "null" is a key of the Map
     readonly V nullValue;  // if "hasNullValue", the value that "null" maps to
 
-#if DAFNY_USE_SYSTEM_COLLECTIONS_IMMUTABLE
     Map(ImmutableDictionary<U, V>.Builder d, bool hasNullValue, V nullValue) {
       dict = d.ToImmutable();
       this.hasNullValue = hasNullValue;
       this.nullValue = nullValue;
     }
     public static readonly Map<U, V> Empty = new Map<U, V>(ImmutableDictionary<U, V>.Empty.ToBuilder(), false, default(V));
-#else
-    Map(Dictionary<U, V> d, bool hasNullValue, V nullValue) {
-      this.dict = d;
-      this.hasNullValue = hasNullValue;
-      this.nullValue = nullValue;
-    }
-    public static readonly Map<U, V> Empty = new Map<U, V>(new Dictionary<U, V>(), false, default(V));
-#endif
 
     public static Map<U, V> FromElements(params Pair<U, V>[] values) {
-#if DAFNY_USE_SYSTEM_COLLECTIONS_IMMUTABLE
       var d = ImmutableDictionary<U, V>.Empty.ToBuilder();
-#else
-      var d = new Dictionary<U, V>(values.Length);
-#endif
       var hasNullValue = false;
       var nullValue = default(V);
       foreach (Pair<U, V> p in values) {
@@ -655,18 +479,7 @@ namespace Dafny
       return new Map<U, V>(d, hasNullValue, nullValue);
     }
     public static Map<U, V> FromCollection(IEnumerable<Pair<U, V>> values) {
-#if DAFNY_USE_SYSTEM_COLLECTIONS_IMMUTABLE
       var d = ImmutableDictionary<U, V>.Empty.ToBuilder();
-#else
-      // Initialize the capacity if the size of the enumerable is known
-      Dictionary<U, V> d;
-      if (values is ICollection<Pair<U, V>>) {
-        var collection = (ICollection<Pair<U, V>>)values;
-        d = new Dictionary<U, V>(collection.Count);
-      } else {
-        d = new Dictionary<U, V>();
-      }
-#endif
       var hasNullValue = false;
       var nullValue = default(V);
       foreach (Pair<U, V> p in values) {
@@ -744,7 +557,6 @@ namespace Dafny
       // evidently, the following will throw some exception if "index" in not a key of the map
       return index == null && hasNullValue ? nullValue : dict[index];
     }
-#if DAFNY_USE_SYSTEM_COLLECTIONS_IMMUTABLE
     public Map<U, V> Update(U index, V val) {
       var d = dict.ToBuilder();
       if (index == null) {
@@ -754,17 +566,6 @@ namespace Dafny
         return new Map<U, V>(d, hasNullValue, nullValue);
       }
     }
-#else
-    public Map<U, V> Update(U index, V val) {
-      if (index == null) {
-        return new Map<U, V>(dict, true, val);
-      } else {
-        var d = new Dictionary<U, V>(dict);
-        d[index] = val;
-        return new Map<U, V>(d, hasNullValue, nullValue);
-      }
-    }
-#endif
     public Set<U> Keys {
       get {
         if (hasNullValue) {
