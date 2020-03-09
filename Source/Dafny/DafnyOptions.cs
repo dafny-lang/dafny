@@ -706,6 +706,8 @@ namespace Microsoft.Dafny
                 0 - Don't rewrite predicates in the body of prefix lemmas.
                 1 (default) - In the body of prefix lemmas, rewrite any use of a focal predicate
                               P to P#[_k-1].
+  /optimize     Produce optimized C# code, meaning:
+                  - passes /optimize flag to csc.exe.
   /optimizeResolution:<n>
                 0 - Resolve and translate all methods
                 1 - Translate methods only in the call graph of current verification target

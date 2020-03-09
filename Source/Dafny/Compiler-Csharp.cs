@@ -2356,6 +2356,7 @@ namespace Microsoft.Dafny
       };
 
       if (DafnyOptions.O.Optimize) {
+        cp.CompilerOptions += " /optimize ";
         cp.CompilerOptions += " /lib:" + crx.libPath;
         foreach (var filename in crx.immutableDllFileNames) {
           cp.ReferencedAssemblies.Add(filename);
