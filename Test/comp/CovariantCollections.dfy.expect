@@ -1,0 +1,39 @@
+
+Dafny program verifier finished with 2 verified, 0 errors
+Sequences: [] [_module.Integer, _module.Integer, _module.Integer, _module.Integer] [_module.Integer, _module.Integer]
+  cardinality: 0 4 2
+  update: [_module.Integer, _module.Integer, _module.Integer, _module.Integer] [_module.Integer, _module.Integer]
+  index: _module.Integer _module.Integer
+  subsequence ([lo..hi]): [_module.Integer, _module.Integer] [_module.Integer]
+  subsequence ([lo..]): [_module.Integer, _module.Integer, _module.Integer] [_module.Integer]
+  subsequence ([..hi]): [_module.Integer, _module.Integer, _module.Integer][_module.Integer]
+  subsequence ([..]): [] [_module.Integer, _module.Integer, _module.Integer, _module.Integer] [_module.Integer, _module.Integer]
+  concatenation: [_module.Integer, _module.Integer, _module.Integer, _module.Integer] [_module.Integer, _module.Integer, _module.Integer, _module.Integer, _module.Integer, _module.Integer]
+  prefix: true false true
+  proper prefix: true false false
+  membership: false true true
+
+Dafny program verifier finished with 2 verified, 0 errors
+Sequences: [] [_module.Integer, _module.Integer, _module.Integer, _module.Integer] [_module.Integer, _module.Integer]
+  cardinality: 0 4 2
+  update: [_module.Integer, _module.Integer, _module.Integer, _module.Integer] [_module.Integer, _module.Integer]
+  index: _module.Integer _module.Integer
+  subsequence ([lo..hi]): [_module.Integer, _module.Integer] [_module.Integer]
+  subsequence ([lo..]): [_module.Integer, _module.Integer, _module.Integer] [_module.Integer]
+  subsequence ([..hi]): [_module.Integer, _module.Integer, _module.Integer][_module.Integer]
+  subsequence ([..]): [] [_module.Integer, _module.Integer, _module.Integer, _module.Integer] [_module.Integer, _module.Integer]
+  concatenation: [_module.Integer, _module.Integer, _module.Integer, _module.Integer] [_module.Integer, _module.Integer, _module.Integer, _module.Integer, _module.Integer, _module.Integer]
+  prefix: true false true
+  proper prefix: true false false
+  membership: false true true
+
+Dafny program verifier finished with 2 verified, 0 errors
+Sequences: [] [_module.Integer, _module.Integer, _module.Integer, _module.Integer] [_module.Integer, _module.Integer]
+  cardinality: 0 4 2
+  update: [_module.Integer, _module.Integer, _module.Integer, _module.Integer] [_module.Integer, _module.Integer]
+  index: Program halted: interface conversion: interface {} is *main.Integer, not *main.Number
+
+Dafny program verifier finished with 2 verified, 0 errors
+CovariantCollections.dfy(34,6): Error: compilation of seq<TRAIT> is not supported; consider introducing a ghost
+CovariantCollections.dfy(35,6): Error: compilation of seq<TRAIT> is not supported; consider introducing a ghost
+File CovariantCollections/CovariantCollections.java contains the partially compiled program
