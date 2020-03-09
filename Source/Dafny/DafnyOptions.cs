@@ -450,58 +450,95 @@ namespace Microsoft.Dafny
     {:handle}
       TODO
 
-	{:dllimport}
+    {:dllimport}
       TODO
 
-	{:compile}
+    {:compile}
       TODO
 
-	{:main}
+    {:main}
       TODO
 
-	{:axiom}
+    {:axiom}
       TODO
 
-	{:abstemious}
+    {:abstemious}
       TODO
 
-	{:nativeType}
+    {:nativeType}
+      Can be applied to newtype declarations for integer types and
+      indicates an expectation of what native type (or not) the
+      newtype should compile to.
+
+      If a newtype declaration has no explicit :nativeType attribute,
+      then the compiler still attempts to find a suitable native numeric
+      type, which is then reflected in an informational message or
+      hovertext.
+
+      {:nativeType} and {:nativeType true} say that the type is expected
+      to compile to some native numeric type, but leaves it to the
+      compiler to choose which one. If no suitable native target type is
+      found, an error is generated.
+
+      {:nativeType false} says to avoid using a native numeric type.
+      Instead, the type will be compiled as an unbounded integer.
+
+      {:nativeType X} where X is one of the following strings:
+        ""byte""      8 bits, unsigned
+        ""sbyte""     8 bits, signed
+        ""ushort""    16 bits, unsigned
+        ""short""     16 bits, signed
+        ""uint""      32 bits, unsigned
+        ""int""       32 bits, signed
+        ""number""    53 bits, signed
+        ""ulong""     64 bits, unsigned
+        ""long""      64 bits, signed
+      says to use the indicated target type. If the target compiler
+      does not support X, then an error is generated. Also, if, after
+      scrutinizing the constraint predicate, the compiler cannot confirm
+      that the type's values will fit in X, an error is generated.
+
+      {:nativeType XX} where XX is a list of strings from the list above,
+      says to use the first X in XX that the compiler supports. If
+      the compiler doesn't support any native type in XX, then an error
+      is generated. Also, unless the compiler can confirm that all of
+      the listed native types can fit the type's values, an error is
+      generated.
+
+    {:tailrecursion}
       TODO
 
-	{:tailrecursion}
+    {:termination}
       TODO
 
-	{:termination}
+    {:warnShadowing}
       TODO
 
-	{:warnShadowing}
+    {:verify}
       TODO
 
-	{:verify}
+    {:autocontracts}
       TODO
 
-	{:autocontracts}
+    {:opaque}
       TODO
 
-	{:opaque}
+    {:autoReq}
       TODO
 
-	{:autoReq}
+    {:timeLimitMultiplier}
       TODO
 
-	{:timeLimitMultiplier}
+    {:no_inline}
       TODO
 
-	{:no_inline}
+    {:nowarn}
       TODO
 
-	{:nowarn}
+    {:autotriggers}
       TODO
 
-	{:autotriggers}
-      TODO
-
-	{:trigger}
+    {:trigger}
       TODO
 ");
     }
