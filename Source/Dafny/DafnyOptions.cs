@@ -554,7 +554,7 @@ namespace Microsoft.Dafny
       var platform = (int)System.Environment.OSVersion.Platform;
 
       // http://www.mono-project.com/docs/faq/technical/
-      var isUnix = platform == 4 || platform == 128;
+      var isUnix = platform == 4 || platform == 6 || platform == 128;
 
       var z3binName = isUnix ? "z3" : "z3.exe";
       var dafnyBinDir = System.IO.Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
