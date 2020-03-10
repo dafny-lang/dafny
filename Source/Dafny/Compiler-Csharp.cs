@@ -2356,11 +2356,11 @@ namespace Microsoft.Dafny
       };
 
       if (DafnyOptions.O.Optimize) {
-        cp.CompilerOptions += " /optimize ";
-        cp.CompilerOptions += " /lib:" + crx.libPath;
-        foreach (var filename in crx.immutableDllFileNames) {
-          cp.ReferencedAssemblies.Add(filename);
-        }
+        cp.CompilerOptions += " /optimize";
+      }
+      cp.CompilerOptions += " /lib:" + crx.libPath;
+      foreach (var filename in crx.immutableDllFileNames) {
+        cp.ReferencedAssemblies.Add(filename);
       }
 
       int numOtherSourceFiles = 0;
@@ -2418,18 +2418,13 @@ namespace Microsoft.Dafny
         if (DafnyOptions.O.CompileVerbose) {
           outputWriter.WriteLine("Compiled assembly into {0}", assemblyName);
         }
-        if (DafnyOptions.O.Optimize) {
-          var outputDir = Path.GetDirectoryName(dafnyProgramName);
-          if (string.IsNullOrWhiteSpace(outputDir)) {
-            outputDir = ".";
-          }
-          foreach (var filename in crx.immutableDllFileNames) {
-            var destPath = outputDir + Path.DirectorySeparatorChar + filename;
-            File.Copy(crx.libPath + filename, destPath, true);
-            if (DafnyOptions.O.CompileVerbose) {
-              outputWriter.WriteLine("Copied /optimize dependency {0} to {1}", filename, outputDir);
-            }
-          }
+        var outputDir = Path.GetDirectoryName(dafnyProgramName);
+        if (string.IsNullOrWhiteSpace(outputDir)) {
+          outputDir = ".";
+        }
+        foreach (var filename in crx.immutableDllFileNames) {
+          var destPath = outputDir + Path.DirectorySeparatorChar + filename;
+          File.Copy(crx.libPath + filename, destPath, true);
         }
       }
 
