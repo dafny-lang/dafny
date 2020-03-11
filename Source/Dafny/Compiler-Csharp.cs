@@ -2349,8 +2349,7 @@ namespace Microsoft.Dafny
         cp.ReferencedAssemblies.Add(crx.libPath + "DafnyRuntime.dll");
       }
 
-      // System.Collections.Immutable.dll is required in all cases.
-      // However, mono does not require any additional DLLs.
+      // DLL requirements differ based on whether we are using mono
       crx.immutableDllFileNames = new List<string>() {
         "System.Collections.Immutable.dll",
         "System.Runtime.dll"
