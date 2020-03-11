@@ -2352,13 +2352,13 @@ namespace Microsoft.Dafny
       // System.Collections.Immutable.dll is required in all cases.
       // However, mono does not require any additional DLLs.
       crx.immutableDllFileNames = new List<string>() {
-        "System.Collections.Immutable.dll"
+        "System.Collections.Immutable.dll",
+        "System.Runtime.dll"
       };
       // http://www.mono-project.com/docs/faq/technical/
       var platform = (int)System.Environment.OSVersion.Platform;
       var isUnix = platform == 4 || platform == 6 || platform == 128;
       if (!isUnix) {
-          crx.immutableDllFileNames.Add("System.Runtime.dll");
           crx.immutableDllFileNames.Add("netstandard.dll");
       }
 

@@ -125,6 +125,8 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
+    <PackageReference Include="System.Collections.Immutable" Version="1.7.0" />
+    <Reference Include="System.ComponentModel.Composition" />
     <Reference Include="System.Core" />
     <Reference Include="System.Numerics" />
     <Reference Include="System.Xml.Linq" />
@@ -132,8 +134,8 @@
     <Reference Include="Microsoft.CSharp" />
     <Reference Include="System.Data" />
     <Reference Include="System.Xml" />
-    <Reference Include="System.Collections.Immutable" />
     <Reference Include="System.Runtime" />
+    <Reference Include="System.Collections" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="DafnyRuntime.cs">
