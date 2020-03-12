@@ -2349,18 +2349,24 @@ namespace Microsoft.Dafny
         cp.ReferencedAssemblies.Add(crx.libPath + "DafnyRuntime.dll");
       }
 
+      // DLL requirements differ based on whether we are using mono
       crx.immutableDllFileNames = new List<string>() {
         "System.Collections.Immutable.dll",
-        "System.Runtime.dll",
-        "netstandard.dll"
+        "System.Runtime.dll"
       };
+      // http://www.mono-project.com/docs/faq/technical/
+      var platform = (int)System.Environment.OSVersion.Platform;
+      var isUnix = platform == 4 || platform == 6 || platform == 128;
+      if (!isUnix) {
+          crx.immutableDllFileNames.Add("netstandard.dll");
+      }
 
       if (DafnyOptions.O.Optimize) {
-        cp.CompilerOptions += " /optimize /define:DAFNY_USE_SYSTEM_COLLECTIONS_IMMUTABLE";
-        cp.CompilerOptions += " /lib:" + crx.libPath;
-        foreach (var filename in crx.immutableDllFileNames) {
-          cp.ReferencedAssemblies.Add(filename);
-        }
+        cp.CompilerOptions += " /optimize";
+      }
+      cp.CompilerOptions += " /lib:" + crx.libPath;
+      foreach (var filename in crx.immutableDllFileNames) {
+        cp.ReferencedAssemblies.Add(filename);
       }
 
       int numOtherSourceFiles = 0;
@@ -2418,18 +2424,13 @@ namespace Microsoft.Dafny
         if (DafnyOptions.O.CompileVerbose) {
           outputWriter.WriteLine("Compiled assembly into {0}", assemblyName);
         }
-        if (DafnyOptions.O.Optimize) {
-          var outputDir = Path.GetDirectoryName(dafnyProgramName);
-          if (string.IsNullOrWhiteSpace(outputDir)) {
-            outputDir = ".";
-          }
-          foreach (var filename in crx.immutableDllFileNames) {
-            var destPath = outputDir + Path.DirectorySeparatorChar + filename;
-            File.Copy(crx.libPath + filename, destPath, true);
-            if (DafnyOptions.O.CompileVerbose) {
-              outputWriter.WriteLine("Copied /optimize dependency {0} to {1}", filename, outputDir);
-            }
-          }
+        var outputDir = Path.GetDirectoryName(dafnyProgramName);
+        if (string.IsNullOrWhiteSpace(outputDir)) {
+          outputDir = ".";
+        }
+        foreach (var filename in crx.immutableDllFileNames) {
+          var destPath = outputDir + Path.DirectorySeparatorChar + filename;
+          File.Copy(crx.libPath + filename, destPath, true);
         }
       }
 

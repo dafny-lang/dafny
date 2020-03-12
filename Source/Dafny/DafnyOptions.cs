@@ -554,7 +554,7 @@ namespace Microsoft.Dafny
       var platform = (int)System.Environment.OSVersion.Platform;
 
       // http://www.mono-project.com/docs/faq/technical/
-      var isUnix = platform == 4 || platform == 128;
+      var isUnix = platform == 4 || platform == 6 || platform == 128;
 
       var z3binName = isUnix ? "z3" : "z3.exe";
       var dafnyBinDir = System.IO.Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
@@ -707,10 +707,6 @@ namespace Microsoft.Dafny
                 1 (default) - In the body of prefix lemmas, rewrite any use of a focal predicate
                               P to P#[_k-1].
   /optimize     Produce optimized C# code, meaning:
-                  - selects optimized C# prelude by passing
-                    /define:DAFNY_USE_SYSTEM_COLLECTIONS_IMMUTABLE to csc.exe (requires
-                    System.Collections.Immutable.dll in the source directory to successfully
-                    compile).
                   - passes /optimize flag to csc.exe.
   /optimizeResolution:<n>
                 0 - Resolve and translate all methods
