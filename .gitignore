@@ -5,6 +5,7 @@
 *.userprefs
 *.vsix
 *.vsixmanifest
+*.DS_Store
 *~
 
 .idea/
@@ -47,6 +48,7 @@ Test/**/Output/
 Test/server/model.bvd
 Test/dafny0/Extern.cs
 Test/dafny0/ExternCopyFromTrait.cs
+Test/dafny0/DafnyLibClient.cs
 Test/git-issues/github-issue-305-*.cs
 Test/desktop/*
 Test/node_modules/
