@@ -13,7 +13,6 @@
     <ItemGroup>
       <PackageReference Include="System.Runtime.Numerics" Version="4.3.0" />
       <PackageReference Include="System.Collections.Immutable" Version="1.7.0" />
-      <PackageReference Include="System.Runtime" Version="4.3.1" />
     </ItemGroup>
 
 </Project>
