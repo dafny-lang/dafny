@@ -9766,16 +9766,15 @@ namespace Microsoft.Dafny
   }
 
   public class RBranchStmt : RBranch {
-
     public List<Statement> Body;
 
     public RBranchStmt(IToken tok, int branchid, List<ExtendedPattern> patterns,  List<Statement> body)
       : base(tok, branchid, patterns) {
-      this.Body = body;
+        this.Body = body;
     }
   }
 
-  public  class RBranchExpr : RBranch {
+  public class RBranchExpr : RBranch {
 
     public Expression Body;
 
@@ -9788,7 +9787,7 @@ namespace Microsoft.Dafny
   // deep clone Patterns and Body
   public static RBranchStmt CloneRBranchStmt(RBranchStmt branch) {
     Cloner cloner = new Cloner();
-    return new RBranchStmt(branch.Tok, branch.BranchID, branch.Patterns.ConvertAll(x => cloner.CloneExtendedPattern(x)), branch.Body.ConvertAll(x=> cloner.CloneStmt(x)));
+    return new RBranchStmt(branch.Tok, branch.EndTok, branch.BranchID, branch.Patterns.ConvertAll(x => cloner.CloneExtendedPattern(x)), branch.Body.ConvertAll(x=> cloner.CloneStmt(x)));
   }
 
   public static RBranchExpr CloneRBranchExpr(RBranchExpr branch) {
@@ -9836,22 +9835,26 @@ namespace Microsoft.Dafny
   }
 
 // let-bind a variable of name "name" and type "type" as "expr" on the body of "branch"
-  void LetBind(RBranch branch, String name, Type type, bool isGhost, Expression genexpr) {
-    // if the expression is a generated IdentifierExpr, replace its token by the branch's
-    Expression expr = genexpr;
+  void LetBind(RBranch branch, IdPattern var, Expression genexpr) {
+      var name = var.Id;
+      var type = var.Type;
+      var isGhost = var.IsGhost;
+
+      // if the expression is a generated IdentifierExpr, replace its token by the branch's
+      Expression expr = genexpr;
     if (genexpr is IdentifierExpr) {
       var idexpr = (IdentifierExpr) genexpr;
       if (idexpr.Name.StartsWith("_")) {
-        expr = new IdentifierExpr(branch.Tok, idexpr.Var) {Type = idexpr.Type};
+        expr = new IdentifierExpr(var.Tok, idexpr.Var) {Type = idexpr.Type};
       }
     }
     if (branch is RBranchStmt) {
-      var cLVar = new LocalVariable(branch.Tok, branch.Tok, name, type, isGhost);
+      var cLVar = new LocalVariable(var.Tok, var.Tok, name, type, isGhost);
       var cPat = new CasePattern<LocalVariable>(cLVar.EndTok, cLVar);
       var cLet = new LetStmt(cLVar.Tok, cLVar.Tok, cPat, expr);
       ((RBranchStmt)branch).Body.Insert(0, cLet);
     } else if (branch is RBranchExpr) {
-      var cBVar = new BoundVar(branch.Tok, name, type);
+      var cBVar = new BoundVar(var.Tok, name, type);
       cBVar.IsGhost = isGhost;
       var cPat = new CasePattern<BoundVar>(cBVar.Tok, cBVar);
       var cPats = new List<CasePattern<BoundVar>>();
@@ -9866,9 +9869,9 @@ namespace Microsoft.Dafny
 
   // If cp is not a wildcard, replace branch.Body with let cp = expr in branch.Body
   // Otherwise do nothing
-  void LetBindNonWildCard(RBranch branch, String name, Type type, bool isGhost, Expression expr) {
-    if (!name.StartsWith("_")) {
-      LetBind(branch, name, type, isGhost, expr);
+  void LetBindNonWildCard(RBranch branch, IdPattern var, Expression expr) {
+    if (!var.Id.StartsWith("_")) {
+      LetBind(branch, var, expr);
     }
   }
 
@@ -9905,7 +9908,9 @@ namespace Microsoft.Dafny
         if (elsC is null) {
           // handle an empty default
           // assert guard; item2.Body
-          var ag = new AssertStmt(tok, endtok, guard, null, null, null);
+          var errorMessage = new StringLiteralExpr(tok, string.Format("Not all possibilities for constants of type {0} have been covered", matchee.Type.ToString()), true);
+          var attr = new Attributes("error", new List<Expression>(){ errorMessage }, null);
+          var ag = new AssertStmt(tok, endtok, guard, null, null, attr);
           return new CExpr(new StmtExpr(tok, ag, item2.Body));
         } else {
           var els = (CExpr) elsC;
@@ -9916,7 +9921,9 @@ namespace Microsoft.Dafny
         if (elsC is null) {
           // handle an empty default
           // assert guard; item2.Body
-          var ag = new AssertStmt(tok, endtok, guard, null, null, null);
+          var errorMessage = new StringLiteralExpr(tok, string.Format("Not all possibilities for constants of type {0} have been covered", matchee.Type.ToString()), true);
+          var attr = new Attributes("error", new List<Expression>(){ errorMessage }, null);
+          var ag = new AssertStmt(tok, endtok, guard, null, null, attr);
           var body = new List<Statement>();
           body.Add(ag);
           body.AddRange(item2.Body);
@@ -10133,10 +10140,10 @@ namespace Microsoft.Dafny
               var currBranch = CloneRBranch(PB.Item2);
 
               List<IdPattern> freshArgs = ctor.Value.Formals.ConvertAll(x =>
-                CreateFreshId(x.Tok, SubstType(x.Type, subst), codeContext, x.IsGhost));
+                CreateFreshId(item1.Tok, SubstType(x.Type, subst), codeContext, x.IsGhost));
 
               currBranch.Patterns.AddRange(freshArgs);
-              LetBindNonWildCard(currBranch, item1.Id, item1.Type, item1.IsGhost, rhsExpr);
+              LetBindNonWildCard(currBranch, item1, rhsExpr);
               currBranches.Add(currBranch);
             }
           } else {
@@ -10212,7 +10219,7 @@ namespace Microsoft.Dafny
             if (mti.Debug) Console.WriteLine("DEBUG: {1}==[3.3**]== Bound var Bid:{0}", PB.Item2.BranchID, new String('\t',mti.DebugLevel));
             var item1 = (IdPattern)PB.Item1;
             var currBranch = CloneRBranch(PB.Item2);
-            LetBindNonWildCard(currBranch, item1.Id, item1.Type, item1.IsGhost, cloner.CloneExpr(currLit));
+            LetBindNonWildCard(currBranch, item1, cloner.CloneExpr(currLit));
             mti.UpdateBranchID(PB.Item2.BranchID, 1);
             currBranches.Add(currBranch);
           } else {
@@ -10231,7 +10238,7 @@ namespace Microsoft.Dafny
           // Pattern is a bound variable, clone and let-bind the Lit
           var item1 = (IdPattern)PB.Item1;
           var currBranch = CloneRBranch(PB.Item2);
-          LetBindNonWildCard(currBranch, item1.Id, item1.Type, item1.IsGhost, currMatchee);
+          LetBindNonWildCard(currBranch, item1, currMatchee);
           mti.UpdateBranchID(PB.Item2.BranchID, 1);
           defaultBranches.Add(currBranch);
         }
@@ -10267,7 +10274,7 @@ namespace Microsoft.Dafny
             }
           }
           // Optimization: Don't let-bind if name is a wildcard, either in source or generated
-          LetBindNonWildCard(PB.Item2, item1.Id, item1.Type, item1.IsGhost, currMatchee);
+          LetBindNonWildCard(PB.Item2, item1, currMatchee);
       }
       if (mti.Debug) {
         Console.WriteLine("DEBUG: {0}return", new String('\t', mti.DebugLevel));
@@ -10283,13 +10290,13 @@ namespace Microsoft.Dafny
     pats.Add(x.Pat);
     Cloner cloner = new Cloner();
     var rBody = x.Body.ConvertAll(cloner.CloneStmt);
-    return new RBranchStmt(x.Pat.Tok, branchid, pats , rBody);
+    return new RBranchStmt(x.Tok, branchid, pats , rBody);
   }
 
   RBranchExpr RBranchOfNestedMatchCaseExpr(int branchid, NestedMatchCaseExpr x) {
     var pats = new List<ExtendedPattern>();
     pats.Add(x.Pat);
-    return new RBranchExpr(x.Pat.Tok, branchid, pats , x.Body);
+    return new RBranchExpr(x.Tok, branchid, pats , x.Body);
   }
 
   void CompileNestedMatchExpr(NestedMatchExpr e, ICodeContext codeContext) {
