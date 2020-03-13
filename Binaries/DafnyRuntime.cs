@@ -732,16 +732,17 @@ namespace Dafny
       return hashCode;
     }
     public override string ToString() {
-      if (Elements is char[]) {
+      T[] elmts = Elements;
+      if (elmts is char[]) {
         var s = "";
-        foreach (var t in Elements) {
+        foreach (var t in elmts) {
           s += t.ToString();
         }
         return s;
       } else {
         var s = "[";
         var sep = "";
-        foreach (var t in Elements) {
+        foreach (var t in elmts) {
           s += sep + Dafny.Helpers.ToString(t);
           sep = ", ";
         }
@@ -751,12 +752,7 @@ namespace Dafny
     public bool Contains<G>(G g) {
       if (g == null || g is T) {
         var t = (T)(object)g;
-        var elmts = Elements;
-        int n = elmts.Length;
-        for (int i = 0; i < n; i++) {
-          if (object.Equals(t, elmts[i]))
-            return true;
-        }
+        return Elements.Contains(t);
       }
       return false;
     }
@@ -822,27 +818,29 @@ namespace Dafny
     }
   }
   internal class ArraySequence<T> : Sequence<T> {
-    private readonly T[] elmts;
+    private readonly ImmutableArray<T> elmts;
 
     internal ArraySequence(T[] ee) {
-      elmts = ee;
+      elmts = ImmutableArray.Create<T>(ee);
     }
+
     public override T[] Elements {
-      get {
-        return elmts;
+      get
+      {
+        return elmts.ToArray();
       }
     }
     public override long LongCount {
       get {
-        return elmts.LongLength;
+        return elmts.LongCount();
       }
     }
   }
   internal class ConcatSequence<T> : Sequence<T> {
-    // INVARIANT: Either left != null, right != null, and elmts == null or
-    // left == null, right == null, and elmts != null
+    // INVARIANT: Either left != null, right != null, and elmts's underlying array == null or
+    // left == null, right == null, and elmts's underlying array != null
     private ISequence<T> left, right;
-    private T[] elmts = null;
+    private ImmutableArray<T> elmts;
     private readonly long count;
 
     internal ConcatSequence(ISequence<T> left, ISequence<T> right) {
@@ -853,14 +851,16 @@ namespace Dafny
 
     public override T[] Elements {
       get {
-        if (elmts == null) {
+        // IsDefault returns true if the underlying array is a null reference
+        // https://devblogs.microsoft.com/dotnet/please-welcome-immutablearrayt/
+        if (elmts.IsDefault) {
           elmts = ComputeElements();
           // We don't need the original sequences anymore; let them be
           // garbage-collected
           left = null;
           right = null;
         }
-        return elmts;
+        return elmts.ToArray();
       }
     }
 
@@ -870,12 +870,9 @@ namespace Dafny
       }
     }
 
-    private T[] ComputeElements() {
+    private ImmutableArray<T> ComputeElements() {
       // Traverse the tree formed by all descendants which are ConcatSequences
-
-      var ans = new T[count];
-      var nextIndex = 0L;
-
+      var ansBuilder = ImmutableArray.CreateBuilder<T>();
       var toVisit = new Stack<ISequence<T>>();
       toVisit.Push(right);
       toVisit.Push(left);
@@ -888,12 +885,10 @@ namespace Dafny
           toVisit.Push(cs.left);
         } else {
           var array = seq.Elements;
-          array.CopyTo(ans, nextIndex);
-          nextIndex += array.LongLength;
+          ansBuilder.AddRange(array);
         }
       }
-
-      return ans;
+      return ansBuilder.ToImmutable();
     }
   }
   public struct Pair<A, B>
