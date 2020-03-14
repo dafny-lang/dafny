@@ -506,7 +506,27 @@ namespace Microsoft.Dafny
       generated.
 
     {:tailrecursion}
-      TODO
+      Can be applied to methods and functions to direct compilation of
+      recursive calls as tail calls.
+
+      A method or function is _tail recursive_ if all of the following
+      points apply:
+      * It is not mutually recursive with another method or function.
+      * Ignoring any parts of the method/function body that is ghost,
+        every recursive call is a tail call (that is, the body has no
+        more work to do after a recursive call). Note that any ghost
+        code that follows a recursive method call is ignored.
+      * In the case of a function, the function is not used as a
+        first-class value inside the function body.
+
+      By default, Dafny compiles tail recursive methods and functions
+      using tail calls.
+
+      {:tailrecursion false} is used to turn off tail calls.
+
+      {:tailrecursion} or {:tailrecursion true} is used to confirm
+      that the method/function is compiled and tail recursive. If it
+      is not, an error is given.
 
     {:termination}
       TODO

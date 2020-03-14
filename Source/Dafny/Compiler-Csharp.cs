@@ -790,13 +790,19 @@ namespace Microsoft.Dafny
         wr.WriteLine(");");
         return null;
       } else {
+        BlockTargetWriter w;
         if (formals.Count > 1) {
-          var w = wr.NewBlock(")", null, BlockTargetWriter.BraceStyle.Newline, BlockTargetWriter.BraceStyle.Newline);
-          return w;
+          w = wr.NewBlock(")", null, BlockTargetWriter.BraceStyle.Newline, BlockTargetWriter.BraceStyle.Newline);
         } else {
-          var w = wr.NewBlock(")");
-          return w;
+          w = wr.NewBlock(")");
         }
+        if (member is Function f && f.IsTailRecursive) {
+          if (!isStatic && !customReceiver) {
+            w.WriteLine("var _this = this;");
+          }
+          w.IndentLess(); w.WriteLine("TAIL_CALL_START: ;");
+        }
+        return w;
       }
     }
 
@@ -955,7 +961,7 @@ namespace Microsoft.Dafny
         return TypeName(type, wr, tok);
       }
     }
-    
+
     public override string TypeInitializationValue(Type type, TextWriter/*?*/ wr, Bpl.IToken/*?*/ tok, bool inAutoInitContext) {
       var xType = type.NormalizeExpandKeepConstraints();
 
@@ -1582,6 +1588,7 @@ namespace Microsoft.Dafny
     protected override void EmitThis(TargetWriter wr) {
       var custom =
         (enclosingMethod != null && enclosingMethod.IsTailRecursive) ||
+        (enclosingFunction != null && enclosingFunction.IsTailRecursive) ||
         thisContext is NewtypeDecl;
       wr.Write(custom ? "_this" : "this");
     }

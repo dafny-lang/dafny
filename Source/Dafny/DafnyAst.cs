@@ -5394,6 +5394,7 @@ namespace Microsoft.Dafny {
     public override bool CanBeRevealed() { return true; }
     public readonly bool IsProtected;
     public bool IsRecursive;  // filled in during resolution
+    public bool IsTailRecursive;  // filled in during resolution
     public bool IsFueled;  // filled in during resolution if anyone tries to adjust this function's fuel
     public readonly List<TypeParameter> TypeArgs;
     public readonly List<Formal> Formals;
@@ -6247,7 +6248,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(expr != null);
       this.Message = message;
     }
-    
+
     public override IEnumerable<Expression> SubExpressions {
       get {
         foreach (var e in base.SubExpressions) { yield return e; }

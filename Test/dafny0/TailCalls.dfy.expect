@@ -4,4 +4,10 @@ TailCalls.dfy(139,17): Error: the recursive call to 'Run' is not tail recursive 
 TailCalls.dfy(21,16): Error: this recursive call is not recognized as being tail recursive, because it is followed by non-ghost code
 TailCalls.dfy(38,24): Error: sorry, tail-call optimizations are not supported for mutually recursive methods
 TailCalls.dfy(43,24): Error: sorry, tail-call optimizations are not supported for mutually recursive methods
-6 resolution/type errors detected in TailCalls.dfy
+TailCalls.dfy(171,13): Error: to be tail recursive, every use of this function must be part of a tail call
+TailCalls.dfy(174,6): Error: to be tail recursive, every use of this function must be part of a tail call
+TailCalls.dfy(176,4): Error: to be tail recursive, every use of this function must be part of a tail call
+TailCalls.dfy(178,13): Error: to be tail recursive, every use of this function must be part of a tail call
+TailCalls.dfy(181,6): Error: to be tail recursive, every use of this function must be part of a tail call
+TailCalls.dfy(188,26): Error: tail recursion can be specified only for function that will be compiled, not for ghost functions
+12 resolution/type errors detected in TailCalls.dfy
