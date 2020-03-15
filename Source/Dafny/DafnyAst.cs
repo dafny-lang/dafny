@@ -6247,7 +6247,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(expr != null);
       this.Message = message;
     }
-    
+
     public override IEnumerable<Expression> SubExpressions {
       get {
         foreach (var e in base.SubExpressions) { yield return e; }
@@ -9187,26 +9187,6 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public class RevealExpr : Expression
-  {
-    public readonly Expression Expr;
-    public Expression ResolvedExpression;
-
-    public override IEnumerable<Expression> SubExpressions {
-      get {
-        if (ResolvedExpression != null) {
-          yield return ResolvedExpression;
-        }
-      }
-    }
-
-    public RevealExpr(IToken tok, Expression expr)
-      : base(tok)
-    {
-      this.Expr = expr;
-    }
-  }
-
   public class FunctionCallExpr : Expression {
     public readonly string Name;
     public readonly Expression Receiver;
@@ -10502,6 +10482,8 @@ namespace Microsoft.Dafny {
       } else if (S is CalcStmt) {
         var s = (CalcStmt)S;
         return s.Result;
+      } else if (S is RevealStmt) {
+        return new LiteralExpr(tok, true);  // one could use the definition axiom or the referenced labeled assertions, but "true" is conservative and much simpler :)
       } else if (S is UpdateStmt) {
         return new LiteralExpr(tok, true);  // one could use the postcondition of the method, suitably instantiated, but "true" is conservative and much simpler :)
       } else {

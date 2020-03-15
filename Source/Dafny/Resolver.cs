@@ -10089,11 +10089,6 @@ namespace Microsoft.Dafny
             var cRhs = ResolveApplySuffix(a, new ResolveOpts(codeContext, true), true);
             isEffectful = cRhs != null;
             methodCallInfo = methodCallInfo ?? cRhs;
-          } else if (er.Expr is RevealExpr) {
-            var r = (RevealExpr)er.Expr;
-            var cRhs = ResolveRevealExpr(r, new ResolveOpts(codeContext, true), true);
-            isEffectful = cRhs != null;
-            methodCallInfo = methodCallInfo ?? cRhs;
           } else {
             ResolveExpression(er.Expr, new ResolveOpts(codeContext, true));
             isEffectful = false;
@@ -11796,11 +11791,6 @@ namespace Microsoft.Dafny
       } else if (expr is ApplySuffix) {
         var e = (ApplySuffix)expr;
         ResolveApplySuffix(e, opts, false);
-
-      } else if (expr is RevealExpr) {
-        var e = (RevealExpr)expr;
-        ResolveRevealExpr(e, opts, true);
-        e.ResolvedExpression = e.Expr;
 
       } else if (expr is MemberSelectExpr) {
         var e = (MemberSelectExpr)expr;
@@ -13818,17 +13808,6 @@ namespace Microsoft.Dafny
         this.Callee = callee;
         this.Args = args;
       }
-    }
-
-    MethodCallInformation ResolveRevealExpr(RevealExpr e, ResolveOpts opts, bool allowMethodCall) {
-      var revealOpts = new ResolveOpts(opts.codeContext, opts.twoState, true, opts.isPostCondition, opts.InsideOld);
-      MethodCallInformation info = null;
-      if (e.Expr is ApplySuffix) {
-        info = ResolveApplySuffix((ApplySuffix)e.Expr, revealOpts, true);
-      } else {
-        ResolveExpression(e.Expr, revealOpts);
-      }
-      return info;
     }
 
     MethodCallInformation ResolveApplySuffix(ApplySuffix e, ResolveOpts opts, bool allowMethodCall) {
