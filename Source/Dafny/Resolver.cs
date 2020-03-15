@@ -5871,12 +5871,10 @@ namespace Microsoft.Dafny
         } else if (hasTailRecursionPreference || sccSize == 1) {
           CallStmt tailCall = null;
           var status = CheckTailRecursive(m.Body.Body, m, ref tailCall, hasTailRecursionPreference);
-          if (status != TailRecursionStatus.NotTailRecursive) {
+          if (status != TailRecursionStatus.NotTailRecursive && tailCall != null) {
+            // this means there was at least one recursive call
             m.IsTailRecursive = true;
-            if (tailCall != null) {
-              // this means there was at least one recursive call
-              reporter.Info(MessageSource.Resolver, m.tok, "tail recursive");
-            }
+            reporter.Info(MessageSource.Resolver, m.tok, "tail recursive");
           }
         }
       }
