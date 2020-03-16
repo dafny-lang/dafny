@@ -707,7 +707,7 @@ namespace Dafny
     }
     public IEnumerable<T> UniqueElements {
       get {
-        var st = Set<T>.FromElements(ImmutableElements.ToArray());
+        var st = Set<T>.FromCollection(ImmutableElements);
         return st.Elements;
       }
     }
@@ -773,9 +773,10 @@ namespace Dafny
     public ISequence<T> Take(long m) {
       if (ImmutableElements.Length == m)
         return this;
-      T[] a = new T[m];
-      System.Array.Copy(Elements, a, m);
-      return new ArraySequence<T>(a);
+      int length = checked((int)m);
+      T[] tmp = new T[length];
+      ImmutableElements.CopyTo(0, tmp, 0, length);
+      return new ArraySequence<T>(tmp);
     }
     public ISequence<T> Take(ulong n) {
       return Take((long)n);
@@ -785,14 +786,12 @@ namespace Dafny
     }
     public ISequence<T> Drop(long m)
     {
-      int elem = checked((int)m);
-      if (elem == 0)
+      int startingElement = checked((int)m);
+      if (startingElement == 0)
         return this;
-      int length = ImmutableElements.Length - elem;
+      int length = ImmutableElements.Length - startingElement;
       T[] tmp = new T[length];
-      // Doing the copy directly is faster than calling ImmutableArray's RemoveRange method, which performs the
-      // copy step twice (since it removes a range from the, potential, middle of an array)
-      System.Array.Copy(ImmutableElements.ToArray(), m, tmp, 0, length);
+      ImmutableElements.CopyTo(startingElement, tmp, 0, length);
       return new ArraySequence<T>(tmp);
     }
     public ISequence<T> Drop(ulong n) {
@@ -807,8 +806,11 @@ namespace Dafny
       if (lo == 0 && hi == ImmutableElements.Length) {
         return this;
       }
-      T[] tmp = new T[hi - lo];
-      System.Array.Copy(ImmutableElements.ToArray(), lo, tmp, 0, hi - lo);
+      int startingIndex = checked((int) lo);
+      int endingIndex = checked((int)hi);
+      var length = endingIndex - startingIndex;
+      T[] tmp = new T[length];
+      ImmutableElements.CopyTo(startingIndex, tmp, 0, length);
       return new ArraySequence<T>(tmp);
     }
     public ISequence<T> Subsequence(long lo, ulong hi) {
