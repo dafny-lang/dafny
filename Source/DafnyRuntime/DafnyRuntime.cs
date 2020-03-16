@@ -654,9 +654,9 @@ namespace Dafny
       return Empty;
     }
     public static ISequence<T> Update(ISequence<T> sequence, long index, T t) {
-      T[] a = (T[])sequence.Elements.Clone();
-      a[index] = t;
-      return new ArraySequence<T>(a);
+      T[] tmp = (T[])sequence.Elements.Clone();
+      tmp[index] = t;
+      return new ArraySequence<T>(tmp);
     }
     public static ISequence<T> Update(ISequence<T> sequence, ulong index, T t) {
       return Update(sequence, (long)index, t);
@@ -681,49 +681,60 @@ namespace Dafny
       return n < right.Elements.Length && EqualUntil(left, right, n);
     }
     public static ISequence<T> Concat(ISequence<T> left, ISequence<T> right) {
-      if (left.Count == 0)
+      if (left.Count == 0) {
         return right;
-      else if (right.LongCount == 0)
+      }
+      if (right.Count == 0) {
         return left;
+      }
       return new ConcatSequence<T>(left, right);
     }
     public int Count {
-      get { return (int)LongCount; }
+      get { return checked((int)LongCount); }
     }
     public abstract long LongCount { get; }
-    public abstract T[] Elements { get; }
+    // ImmutableElements cannot be public in the interface since ImmutableArray<T> leads to a
+    // "covariant type T occurs in invariant position" error. There do not appear to be interfaces for ImmutableArray<T>
+    // that resolve this.
+    protected abstract ImmutableArray<T> ImmutableElements { get; }
+
+    public T[] Elements
+    {
+      get { return ImmutableElements.ToArray(); }
+    }
     public IEnumerable<T> UniqueElements {
       get {
-        var st = Set<T>.FromElements(Elements);
+        var st = Set<T>.FromElements(ImmutableElements.ToArray());
         return st.Elements;
       }
     }
 
     public T Select(ulong index) {
-      return Elements[index];
+      return ImmutableElements[checked((int)index)];
     }
     public T Select(long index) {
-      return Elements[index];
+      return ImmutableElements[checked((int)index)];
     }
     public T Select(uint index) {
-      return Elements[index];
+      return ImmutableElements[checked((int)index)];
     }
     public T Select(int index) {
-      return Elements[index];
+      return ImmutableElements[index];
     }
     public T Select(BigInteger index) {
-      return Elements[(int)index];
+      return ImmutableElements[(int)index];
     }
     public bool Equals(ISequence<T> other) {
-      int n = Elements.Length;
+      int n = ImmutableElements.Length;
       return n == other.Elements.Length && EqualUntil(this, other, n);
     }
     public override bool Equals(object other) {
       return other is Sequence<T> && Equals((ISequence<T>)other);
     }
     public override int GetHashCode() {
-      T[] elmts = Elements;
-      if (elmts == null || elmts.Length == 0)
+      ImmutableArray<T> elmts = ImmutableElements;
+      // https://devblogs.microsoft.com/dotnet/please-welcome-immutablearrayt/
+      if (elmts.IsDefaultOrEmpty)
         return 0;
       var hashCode = 0;
       for (var i = 0; i < elmts.Length; i++) {
@@ -732,8 +743,8 @@ namespace Dafny
       return hashCode;
     }
     public override string ToString() {
-      T[] elmts = Elements;
-      if (elmts is char[]) {
+      ImmutableArray<T> elmts = ImmutableElements;
+      if (elmts.ToArray() is char[]) {
         var s = "";
         foreach (var t in elmts) {
           s += t.ToString();
@@ -752,12 +763,12 @@ namespace Dafny
     public bool Contains<G>(G g) {
       if (g == null || g is T) {
         var t = (T)(object)g;
-        return Elements.Contains(t);
+        return ImmutableElements.Contains(t);
       }
       return false;
     }
     public ISequence<T> Take(long m) {
-      if (Elements.LongLength == m)
+      if (ImmutableElements.Length == m)
         return this;
       T[] a = new T[m];
       System.Array.Copy(Elements, a, m);
@@ -769,12 +780,16 @@ namespace Dafny
     public ISequence<T> Take(BigInteger n) {
       return Take((long)n);
     }
-    public ISequence<T> Drop(long m) {
-      if (m == 0)
+    public ISequence<T> Drop(long m)
+    {
+      int elem = checked((int)m);
+      if (elem == 0)
         return this;
-      T[] a = new T[Elements.Length - m];
-      System.Array.Copy(Elements, m, a, 0, Elements.Length - m);
-      return new ArraySequence<T>(a);
+      T[] tmp = new T[ImmutableElements.Length - (int)m];
+      // Doing the copy directly is faster than calling ImmutableArray's RemoveRange method, which performs the
+      // copy step twice (since it removes a range from the, potential, middle of an array)
+      System.Array.Copy(ImmutableElements.ToArray(), m, tmp, 0, ImmutableElements.Length - (int)m);
+      return new ArraySequence<T>(tmp);
     }
     public ISequence<T> Drop(ulong n) {
       return Drop((long)n);
@@ -785,12 +800,12 @@ namespace Dafny
       return Drop((long)n);
     }
     public ISequence<T> Subsequence(long lo, long hi) {
-      if (lo == 0 && hi == Elements.Length) {
+      if (lo == 0 && hi == ImmutableElements.Length) {
         return this;
       }
-      T[] a = new T[hi - lo];
-      System.Array.Copy(Elements, lo, a, 0, hi - lo);
-      return new ArraySequence<T>(a);
+      T[] tmp = new T[hi - lo];
+      System.Array.Copy(ImmutableElements.ToArray(), lo, tmp, 0, hi - lo);
+      return new ArraySequence<T>(tmp);
     }
     public ISequence<T> Subsequence(long lo, ulong hi) {
       return Subsequence(lo, (long)hi);
@@ -820,14 +835,17 @@ namespace Dafny
   internal class ArraySequence<T> : Sequence<T> {
     private readonly ImmutableArray<T> elmts;
 
+    internal ArraySequence(ImmutableArray<T> ee) {
+      elmts = ee;
+    }
     internal ArraySequence(T[] ee) {
       elmts = ImmutableArray.Create<T>(ee);
     }
 
-    public override T[] Elements {
+    protected override ImmutableArray<T> ImmutableElements {
       get
       {
-        return elmts.ToArray();
+        return elmts;
       }
     }
     public override long LongCount {
@@ -849,7 +867,7 @@ namespace Dafny
       this.count = left.LongCount + right.LongCount;
     }
 
-    public override T[] Elements {
+    protected override ImmutableArray<T> ImmutableElements {
       get {
         // IsDefault returns true if the underlying array is a null reference
         // https://devblogs.microsoft.com/dotnet/please-welcome-immutablearrayt/
@@ -860,7 +878,7 @@ namespace Dafny
           left = null;
           right = null;
         }
-        return elmts.ToArray();
+        return elmts;
       }
     }
 
