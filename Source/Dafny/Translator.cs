@@ -6547,9 +6547,6 @@ namespace Microsoft.Dafny {
       } else if (expr is ConcreteSyntaxExpression) {
         var e = (ConcreteSyntaxExpression)expr;
         return CanCallAssumption(e.ResolvedExpression, etran);
-      } else if (expr is RevealExpr) {
-        var e = (RevealExpr)expr;
-        return CanCallAssumption(e.ResolvedExpression, etran);
       } else if (expr is BoogieFunctionCall) {
         var e = (BoogieFunctionCall)expr;
         return CanCallAssumption(e.Args, etran);
@@ -7709,11 +7706,6 @@ namespace Microsoft.Dafny {
 
       } else if (expr is ConcreteSyntaxExpression) {
         var e = (ConcreteSyntaxExpression)expr;
-        CheckWellformedWithResult(e.ResolvedExpression, options, result, resultType, locals, builder, etran);
-        result = null;
-
-      } else if (expr is RevealExpr) {
-        var e = (RevealExpr)expr;
         CheckWellformedWithResult(e.ResolvedExpression, options, result, resultType, locals, builder, etran);
         result = null;
 
@@ -9896,7 +9888,7 @@ namespace Microsoft.Dafny {
           ExpectStmt s = (ExpectStmt)stmt;
           stmtContext = StmtType.ASSUME;
           TrStmt_CheckWellformed(s.Expr, builder, locals, etran, false);
-          
+
           // Need to check the message is well-formed, assuming the expected expression
           // does NOT hold:
           //
@@ -15469,10 +15461,6 @@ namespace Microsoft.Dafny {
           var e = (ConcreteSyntaxExpression)expr;
           return TrExpr(e.ResolvedExpression);
 
-        } else if (expr is RevealExpr) {
-          var e = (RevealExpr)expr;
-          return TrExpr(e.ResolvedExpression);
-
         } else if (expr is BoxingCastExpr) {
           BoxingCastExpr e = (BoxingCastExpr)expr;
           return translator.CondApplyBox(e.tok, TrExpr(e.E), e.FromType, e.ToType);
@@ -16721,10 +16709,6 @@ namespace Microsoft.Dafny {
 
       } else if (expr is ConcreteSyntaxExpression) {
         var e = (ConcreteSyntaxExpression)expr;
-        return TrSplitExpr(e.ResolvedExpression, splits, position, heightLimit, inlineProtectedFunctions, apply_induction, etran);
-
-      } else if (expr is RevealExpr) {
-        var e = (RevealExpr)expr;
         return TrSplitExpr(e.ResolvedExpression, splits, position, heightLimit, inlineProtectedFunctions, apply_induction, etran);
 
       } else if (expr is LetExpr) {
@@ -18001,10 +17985,6 @@ namespace Microsoft.Dafny {
 
         } else if (expr is ConcreteSyntaxExpression) {
           var e = (ConcreteSyntaxExpression)expr;
-          return Substitute(e.ResolvedExpression);
-
-        } else if (expr is RevealExpr) {
-          var e = (RevealExpr)expr;
           return Substitute(e.ResolvedExpression);
 
         } else if (expr is BoogieFunctionCall) {

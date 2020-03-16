@@ -1968,11 +1968,6 @@ namespace Microsoft.Dafny {
         PrintActualArguments(e.Args, name);
         if (parensNeeded) { wr.Write(")"); }
 
-      } else if (expr is RevealExpr) {
-        var e = (RevealExpr)expr;
-        wr.Write("reveal ");
-        PrintExpression(e.Expr, true);
-
       } else if (expr is MemberSelectExpr) {
         MemberSelectExpr e = (MemberSelectExpr)expr;
         // determine if parens are needed
