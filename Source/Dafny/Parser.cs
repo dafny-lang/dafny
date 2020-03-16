@@ -536,7 +536,7 @@ bool IsIdentColonOrBar() {
 }
 
 bool SemiFollowsCall(bool allowSemi, Expression e) {
-  return allowSemi && la.kind == _semicolon && (e is ApplySuffix || (e is RevealExpr && (((RevealExpr)e).Expr is ApplySuffix)));
+  return allowSemi && la.kind == _semicolon && e is ApplySuffix;
 }
 
 bool IsNotEndOfCase() {
@@ -5018,7 +5018,7 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, st
 			SetComprehensionExpr(x, false, out e, allowSemi, allowLambda, true);
 			break;
 		}
-		case 36: case 37: case 90: case 120: {
+		case 36: case 37: case 89: case 90: case 120: {
 			StmtInExpr(out s);
 			Expression(out e, allowSemi, allowLambda, allowBitwiseOps);
 			e = new StmtExpr(s.Tok, s, e); 
@@ -5038,12 +5038,6 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, st
 			Get();
 			x = t; 
 			MapComprehensionExpr(x, false, out e, allowSemi, allowLambda, true);
-			break;
-		}
-		case 89: {
-			Get();
-			Expression(out e, false, false, allowBitwiseOps);
-			e = new RevealExpr(e.tok, e); 
 			break;
 		}
 		case 112: {
@@ -5490,6 +5484,8 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, st
 			ExpectStmt(out s);
 		} else if (la.kind == 36) {
 			AssumeStmt(out s);
+		} else if (la.kind == 89) {
+			RevealStmt(out s);
 		} else if (la.kind == 37) {
 			CalcStmt(out s);
 		} else SynErr(289);

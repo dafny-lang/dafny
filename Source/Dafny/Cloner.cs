@@ -329,9 +329,6 @@ namespace Microsoft.Dafny
       } else if (expr is ApplySuffix) {
         var e = (ApplySuffix) expr;
         return CloneApplySuffix(e);
-      } else if (expr is RevealExpr) {
-        var e = (RevealExpr) expr;
-        return new RevealExpr(Tok(e.tok), CloneExpr(e.Expr));
       } else if (expr is MemberSelectExpr) {
         var e = (MemberSelectExpr)expr;
         return new MemberSelectExpr(Tok(e.tok), CloneExpr(e.Obj), e.MemberName);
