@@ -689,10 +689,13 @@ namespace Dafny
       }
       return new ConcatSequence<T>(left, right);
     }
-    public int Count {
-      get { return checked((int)LongCount); }
+    // Make Count a public abstract instead of LongCount, since the "array size is limited to a total of 4 billion
+    // elements, and to a maximum index of 0X7FEFFFFF". Therefore, as a protection, limit this to int32.
+    // https://docs.microsoft.com/en-us/dotnet/api/system.array
+    public abstract int Count  { get; }
+    public long LongCount {
+      get { return Count; }
     }
-    public abstract long LongCount { get; }
     // ImmutableElements cannot be public in the interface since ImmutableArray<T> leads to a
     // "covariant type T occurs in invariant position" error. There do not appear to be interfaces for ImmutableArray<T>
     // that resolve this.
@@ -785,10 +788,11 @@ namespace Dafny
       int elem = checked((int)m);
       if (elem == 0)
         return this;
-      T[] tmp = new T[ImmutableElements.Length - (int)m];
+      int length = ImmutableElements.Length - elem;
+      T[] tmp = new T[length];
       // Doing the copy directly is faster than calling ImmutableArray's RemoveRange method, which performs the
       // copy step twice (since it removes a range from the, potential, middle of an array)
-      System.Array.Copy(ImmutableElements.ToArray(), m, tmp, 0, ImmutableElements.Length - (int)m);
+      System.Array.Copy(ImmutableElements.ToArray(), m, tmp, 0, length);
       return new ArraySequence<T>(tmp);
     }
     public ISequence<T> Drop(ulong n) {
@@ -848,9 +852,9 @@ namespace Dafny
         return elmts;
       }
     }
-    public override long LongCount {
+    public override int Count {
       get {
-        return elmts.LongCount();
+        return elmts.Length;
       }
     }
   }
@@ -859,12 +863,12 @@ namespace Dafny
     // left == null, right == null, and elmts's underlying array != null
     private ISequence<T> left, right;
     private ImmutableArray<T> elmts;
-    private readonly long count;
+    private readonly int count;
 
     internal ConcatSequence(ISequence<T> left, ISequence<T> right) {
       this.left = left;
       this.right = right;
-      this.count = left.LongCount + right.LongCount;
+      this.count = left.Count + right.Count;
     }
 
     protected override ImmutableArray<T> ImmutableElements {
@@ -882,7 +886,7 @@ namespace Dafny
       }
     }
 
-    public override long LongCount {
+    public override int Count {
       get {
         return count;
       }
