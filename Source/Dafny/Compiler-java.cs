@@ -580,6 +580,16 @@ namespace Microsoft.Dafny{
         } else {
           w = wr.NewBlock(")");
         }
+        if (member is Function f && f.IsTailRecursive) {
+          if (!isStatic && !customReceiver) {
+            var receiverTypeName = TypeName(receiverType, w, f.tok);
+            if (f.EnclosingClass.IsExtern(out _, out _)) {
+              receiverTypeName = FormatExternBaseClassName(receiverTypeName);
+            }
+            w.WriteLine("{0} _this = this;", receiverTypeName);
+          }
+          w = w.NewBlock("TAIL_CALL_START: while (true)");
+        }
         return w;
       }
     }
@@ -1097,6 +1107,7 @@ namespace Microsoft.Dafny{
     protected override void EmitThis(TargetWriter wr) {
       var custom =
         (enclosingMethod != null && enclosingMethod.IsTailRecursive) ||
+        (enclosingFunction != null && enclosingFunction.IsTailRecursive) ||
         thisContext is NewtypeDecl;
       wr.Write(custom ? "_this" : "this");
     }

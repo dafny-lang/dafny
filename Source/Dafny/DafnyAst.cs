@@ -5394,6 +5394,7 @@ namespace Microsoft.Dafny {
     public override bool CanBeRevealed() { return true; }
     public readonly bool IsProtected;
     public bool IsRecursive;  // filled in during resolution
+    public bool IsTailRecursive;  // filled in during resolution
     public bool IsFueled;  // filled in during resolution if anyone tries to adjust this function's fuel
     public readonly List<TypeParameter> TypeArgs;
     public readonly List<Formal> Formals;

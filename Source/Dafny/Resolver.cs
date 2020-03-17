@@ -3051,7 +3051,9 @@ namespace Microsoft.Dafny
             if (!f.IsGhost && f.Body != null) {
               CheckIsCompilable(f.Body);
             }
-            DetermineTailRecursion(f);
+            if (f.Body != null) {
+              DetermineTailRecursion(f);
+            }
           }
           if (prevErrCnt == reporter.Count(ErrorLevel.Error) && member is ICodeContext) {
             member.SubExpressions.Iter(e => CheckExpression(e, this, (ICodeContext)member));
@@ -5854,6 +5856,34 @@ namespace Microsoft.Dafny
     // ----- CheckTailRecursive -----------------------------------------------------------------------------
     // ------------------------------------------------------------------------------------------------------
 #region CheckTailRecursive
+    void DetermineTailRecursion(Method m) {
+      Contract.Requires(m != null);
+      Contract.Requires(m.Body != null);
+      bool tail = true;
+      bool hasTailRecursionPreference = Attributes.ContainsBool(m.Attributes, "tailrecursion", ref tail);
+      if (hasTailRecursionPreference && !tail) {
+        // the user specifically requested no tail recursion, so do nothing else
+      } else if (hasTailRecursionPreference && tail && m.IsGhost) {
+        reporter.Error(MessageSource.Resolver, m.tok, "tail recursion can be specified only for methods that will be compiled, not for ghost methods");
+      } else {
+        var module = m.EnclosingClass.Module;
+        var sccSize = module.CallGraph.GetSCCSize(m);
+        if (hasTailRecursionPreference && 2 <= sccSize) {
+          reporter.Error(MessageSource.Resolver, m.tok, "sorry, tail-call optimizations are not supported for mutually recursive methods");
+        } else if (hasTailRecursionPreference || sccSize == 1) {
+          CallStmt tailCall = null;
+          var status = CheckTailRecursive(m.Body.Body, m, ref tailCall, hasTailRecursionPreference);
+          if (status != TailRecursionStatus.NotTailRecursive) {
+            m.IsTailRecursive = true;
+            if (tailCall != null) {
+              // this means there was at least one recursive call
+              reporter.Info(MessageSource.Resolver, m.tok, "tail recursive");
+            }
+          }
+        }
+      }
+    }
+
     enum TailRecursionStatus
     {
       NotTailRecursive, // contains code that makes the enclosing method body not tail recursive (in way that is supported)
@@ -5862,7 +5892,7 @@ namespace Microsoft.Dafny
     }
 
     /// <summary>
-    /// Checks if "stmts" can be considered tail recursive, and (provided "reportsError" is true) reports an error if not.
+    /// Checks if "stmts" can be considered tail recursive, and (provided "reportError" is true) reports an error if not.
     /// Note, the current implementation is rather conservative in its analysis; upon need, the
     /// algorithm could be improved.
     /// In the current implementation, "enclosingMethod" is not allowed to be a mutually recursive method.
@@ -5897,41 +5927,6 @@ namespace Microsoft.Dafny
         }
       }
       return status;
-    }
-
-    void DetermineTailRecursion(Function f) {
-      Contract.Requires(f != null);
-      bool tail = true;
-      if (Attributes.ContainsBool(f.Attributes, "tailrecursion", ref tail) && tail) {
-        reporter.Error(MessageSource.Resolver, f.tok, "sorry, tail-call functions are not supported");
-      }
-    }
-
-    void DetermineTailRecursion(Method m) {
-      Contract.Requires(m != null);
-      bool tail = true;
-      bool hasTailRecursionPreference = Attributes.ContainsBool(m.Attributes, "tailrecursion", ref tail);
-      if (hasTailRecursionPreference && !tail) {
-        // the user specifically requested no tail recursion, so do nothing else
-      } else if (hasTailRecursionPreference && tail && m.IsGhost) {
-        reporter.Error(MessageSource.Resolver, m.tok, "tail recursion can be specified only for methods that will be compiled, not for ghost methods");
-      } else {
-        var module = m.EnclosingClass.Module;
-        var sccSize = module.CallGraph.GetSCCSize(m);
-        if (hasTailRecursionPreference && 2 <= sccSize) {
-          reporter.Error(MessageSource.Resolver, m.tok, "sorry, tail-call optimizations are not supported for mutually recursive methods");
-        } else if (hasTailRecursionPreference || sccSize == 1) {
-          CallStmt tailCall = null;
-          var status = CheckTailRecursive(m.Body.Body, m, ref tailCall, hasTailRecursionPreference);
-          if (status != TailRecursionStatus.NotTailRecursive) {
-            m.IsTailRecursive = true;
-            if (tailCall != null) {
-              // this means there was at least one recursive call
-              reporter.Info(MessageSource.Resolver, m.tok, "tail recursive");
-            }
-          }
-        }
-      }
     }
 
     /// <summary>
@@ -6111,6 +6106,201 @@ namespace Microsoft.Dafny
       return TailRecursionStatus.CanBeFollowedByAnything;
     }
 #endregion CheckTailRecursive
+
+    // ------------------------------------------------------------------------------------------------------
+    // ----- CheckTailRecursiveExpr -------------------------------------------------------------------------
+    // ------------------------------------------------------------------------------------------------------
+#region CheckTailRecursiveExpr
+    void DetermineTailRecursion(Function f) {
+      Contract.Requires(f != null);
+      Contract.Requires(f.Body != null);
+      bool tail = true;
+      bool hasTailRecursionPreference = Attributes.ContainsBool(f.Attributes, "tailrecursion", ref tail);
+      if (hasTailRecursionPreference && !tail) {
+        // the user specifically requested no tail recursion, so do nothing else
+      } else if (hasTailRecursionPreference && tail && f.IsGhost) {
+        reporter.Error(MessageSource.Resolver, f.tok, "tail recursion can be specified only for function that will be compiled, not for ghost functions");
+      } else {
+        var module = f.EnclosingClass.Module;
+        var sccSize = module.CallGraph.GetSCCSize(f);
+        if (hasTailRecursionPreference && 2 <= sccSize) {
+          reporter.Error(MessageSource.Resolver, f.tok, "sorry, tail-call optimizations are not supported for mutually recursive functions");
+        } else if (hasTailRecursionPreference || sccSize == 1) {
+          var status = CheckTailRecursiveExpr(f.Body, f, hasTailRecursionPreference);
+          if (status != TailRecursionExprStatus.NotTailRecursive) {
+            f.IsTailRecursive = true;
+            if (status != TailRecursionExprStatus.TriviallyTailRecursive) {
+              // this means there was at least one recursive call
+              reporter.Info(MessageSource.Resolver, f.tok, "tail recursive");
+            }
+          }
+        }
+      }
+    }
+
+    enum TailRecursionExprStatus
+    {
+      TriviallyTailRecursive, // contains no recursive calls (in non-ghost expressions)
+      TailRecursive, // all recursive calls (in non-ghost expressions) are tail calls
+      NotTailRecursive, // contains some non-ghost recursive call outside of a tail-call position
+    }
+
+    TailRecursionExprStatus TRES_Or(TailRecursionExprStatus a, TailRecursionExprStatus b) {
+      if (a == TailRecursionExprStatus.NotTailRecursive || b == TailRecursionExprStatus.NotTailRecursive) {
+        return TailRecursionExprStatus.NotTailRecursive;
+      } else if (a == TailRecursionExprStatus.TailRecursive || b == TailRecursionExprStatus.TailRecursive) {
+        return TailRecursionExprStatus.TailRecursive;
+      } else {
+        return TailRecursionExprStatus.TriviallyTailRecursive;
+      }
+    }
+
+    /// <summary>
+    /// Checks if "expr" can be considered tail recursive, and (provided "reportError" is true) reports an error if not.
+    /// Note, the current implementation is rather conservative in its analysis; upon need, the
+    /// algorithm could be improved.
+    /// In the current implementation, "enclosingFunction" is not allowed to be a mutually recursive function.
+    /// </summary>
+    TailRecursionExprStatus CheckTailRecursiveExpr(Expression expr, Function enclosingFunction, bool reportErrors) {
+      Contract.Requires(expr != null);
+      Contract.Requires(enclosingFunction != null);
+
+      expr = expr.Resolved;
+
+      if (expr is FunctionCallExpr) {
+        var e = (FunctionCallExpr)expr;
+        var status = e.Function == enclosingFunction ? TailRecursionExprStatus.TailRecursive : TailRecursionExprStatus.TriviallyTailRecursive;
+        for (var i = 0; i < e.Function.Formals.Count; i++) {
+          if (!e.Function.Formals[i].IsGhost) {
+            var s = CheckHasNoRecursiveCall(e.Args[i], enclosingFunction, reportErrors);
+            status = TRES_Or(status, s);
+          }
+        }
+        return status;
+
+      } else if (expr is LetExpr) {
+        var e = (LetExpr)expr;
+        var status = TailRecursionExprStatus.TriviallyTailRecursive;
+        for (var i = 0; i < e.LHSs.Count; i++) {
+          var pat = e.LHSs[i];
+          if (pat.Vars.ToList().Exists(bv => !bv.IsGhost)) {
+            if (e.Exact) {
+              var s = CheckHasNoRecursiveCall(e.RHSs[i], enclosingFunction, reportErrors);
+              status = TRES_Or(status, s);
+            } else {
+              // We have detected the existence of a non-ghost LHS, so check the RHS
+              Contract.Assert(e.RHSs.Count == 1);
+              status = CheckHasNoRecursiveCall(e.RHSs[0], enclosingFunction, reportErrors);
+              break;
+            }
+          }
+        }
+        var st = CheckTailRecursiveExpr(e.Body, enclosingFunction, reportErrors);
+        return TRES_Or(status, st);
+
+      } else if (expr is ITEExpr) {
+        var e = (ITEExpr)expr;
+        var s0 = CheckHasNoRecursiveCall(e.Test, enclosingFunction, reportErrors);
+        var s1 = CheckTailRecursiveExpr(e.Thn, enclosingFunction, reportErrors);
+        var s2 = CheckTailRecursiveExpr(e.Els, enclosingFunction, reportErrors);
+        return TRES_Or(s0, TRES_Or(s1, s2));
+
+      } else if (expr is MatchExpr) {
+        var e = (MatchExpr)expr;
+        var status = CheckHasNoRecursiveCall(e.Source, enclosingFunction, reportErrors);
+        foreach (var kase in e.Cases) {
+          var s = CheckTailRecursiveExpr(kase.Body, enclosingFunction, reportErrors);
+          status = TRES_Or(status, s);
+        }
+        return status;
+
+      } else if (expr is StmtExpr) {
+        var e = (StmtExpr)expr;
+        // ignore the statement, since it is ghost
+        return CheckTailRecursiveExpr(e.E, enclosingFunction, reportErrors);
+      }
+
+      return CheckHasNoRecursiveCall(expr, enclosingFunction, reportErrors);
+    }
+
+    /// <summary>
+    /// If "expr" contains a recursive call to "enclosingFunction" in some non-ghost sub-expressions,
+    /// then returns TailRecursionExprStatus.NotTailRecursive (and if "reportErrors" is "true", then
+    /// reports an error about the recursive call), else returns TailRecursionExprStatus.TriviallyTailRecursive.
+    /// </summary>
+    TailRecursionExprStatus CheckHasNoRecursiveCall(Expression expr, Function enclosingFunction, bool reportErrors) {
+      Contract.Requires(expr != null);
+      Contract.Requires(enclosingFunction != null);
+
+      var status = TailRecursionExprStatus.TriviallyTailRecursive;
+
+      if (expr is FunctionCallExpr) {
+        var e = (FunctionCallExpr)expr;
+        if (e.Function == enclosingFunction) {
+          if (reportErrors) {
+            reporter.Error(MessageSource.Resolver, expr, "to be tail recursive, every use of this function must be part of a tail call");
+          }
+          status = TailRecursionExprStatus.NotTailRecursive;
+        }
+        // skip ghost sub-expressions
+        for (var i = 0; i < e.Function.Formals.Count; i++) {
+          if (!e.Function.Formals[i].IsGhost) {
+            var s = CheckHasNoRecursiveCall(e.Args[i], enclosingFunction, reportErrors);
+            status = TRES_Or(status, s);
+          }
+        }
+        return status;
+
+      } else if (expr is MemberSelectExpr) {
+        var e = (MemberSelectExpr)expr;
+        if (e.Member == enclosingFunction) {
+          if (reportErrors) {
+            reporter.Error(MessageSource.Resolver, expr, "to be tail recursive, every use of this function must be part of a tail call");
+          }
+          return TailRecursionExprStatus.NotTailRecursive;
+        }
+
+      } else if (expr is LetExpr) {
+        var e = (LetExpr)expr;
+        // skip ghost sub-expressions
+        for (var i = 0; i < e.LHSs.Count; i++) {
+          var pat = e.LHSs[i];
+          if (pat.Vars.ToList().Exists(bv => !bv.IsGhost)) {
+            if (e.Exact) {
+              var s = CheckHasNoRecursiveCall(e.RHSs[i], enclosingFunction, reportErrors);
+              status = TRES_Or(status, s);
+            } else {
+              // We have detected the existence of a non-ghost LHS, so check the RHS
+              Contract.Assert(e.RHSs.Count == 1);
+              status = CheckHasNoRecursiveCall(e.RHSs[0], enclosingFunction, reportErrors);
+              break;
+            }
+          }
+        }
+        var st = CheckHasNoRecursiveCall(e.Body, enclosingFunction, reportErrors);
+        return TRES_Or(status, st);
+
+      }  else if (expr is DatatypeValue) {
+        var e = (DatatypeValue)expr;
+        // skip ghost sub-expressions
+        for (var i = 0; i < e.Ctor.Formals.Count; i++) {
+          if (!e.Ctor.Formals[i].IsGhost) {
+            var s = CheckHasNoRecursiveCall(e.Arguments[i], enclosingFunction, reportErrors);
+            status = TRES_Or(status, s);
+          }
+        }
+        return status;
+
+      }
+
+      foreach (var ee in expr.SubExpressions) {
+        var s = CheckHasNoRecursiveCall(ee, enclosingFunction, reportErrors);
+        status = TRES_Or(status, s);
+      }
+      return status;
+    }
+
+#endregion CheckTailRecursiveExpr
 
     // ------------------------------------------------------------------------------------------------------
     // ----- FuelAdjustmentChecks ---------------------------------------------------------------------------

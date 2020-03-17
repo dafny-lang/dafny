@@ -622,6 +622,9 @@ namespace Microsoft.Dafny {
       if (!isStatic && !customReceiver) {
         w.WriteLine("let _this = this;");
       }
+      if (member is Function f && f.IsTailRecursive) {
+        w = w.NewBlock("TAIL_CALL_START: while (true)");
+      }
       return w;
     }
 
@@ -1071,7 +1074,7 @@ namespace Microsoft.Dafny {
       TrExpr(messageExpr, wr, false);
       wr.WriteLine(");");
     }
-    
+
     protected override BlockTargetWriter CreateForLoop(string indexVar, string bound, TargetWriter wr) {
       return wr.NewNamedBlock("for (let {0} = 0; {0} < {1}; {0}++)", indexVar, bound);
     }

@@ -140,3 +140,57 @@ class TailConstructorRegressionTest'
     }
   }
 }
+
+// ------------ tail-recursive functions --------------------------
+
+function method {:tailrecursion} R(n: nat): nat
+  decreases n
+{
+  if n % 5 == 0 then
+    10
+  else if n % 5 == 1 then
+    R(n - 1)
+  else if n % 5 == 2 then
+    R(n - 2)
+  else if n % 5 == 3 then
+    ghost var r := R(n - 2);  // fine, R is used in ghost expression
+    assert R(n - 2) == 10;  // fine, R is used in ghost expression
+    R(n - 2)
+  else
+    U(-2, R(n - 1))  // fine, R is used for ghost parameter
+}
+
+function method U(x: int, ghost y: int): nat
+  requires x < y
+{
+  if x < 0 then -x else x
+}
+
+function method {:tailrecursion} Q(n: nat): nat {
+  if n % 5 == 0 then
+    var s := Q;  // error: this use of Q is not a tail call
+    10
+  else if n % 5 == 1 then
+    Q(Q(n - 1))  // error: inner Q is not a tail call
+  else if n % 5 == 2 then
+    Q(n - 2) + 3  // error: Q is not a tail call
+  else if n % 5 == 3 then
+    var r := Q(n - 2);  // error: not a tail call
+    Q(n - 2)
+  else
+    U(Q(n - 1), Q(n - 1) + 10)  // error: first Q has to be a tail call
+}
+
+function {:tailrecursion false} Gh0(n: nat): nat {  // fine
+  15
+}
+
+function {:tailrecursion} Gh1(n: nat): nat {  // error: {:tailrecursion true} cannot be used with ghost functions
+  15
+}
+
+ghost method {:tailrecursion false} Gh2(n: nat) {  // fine
+}
+
+ghost method {:tailrecursion} Gh3(n: nat) {  // error: {:tailrecursion true} cannot be used with ghost methods
+}
