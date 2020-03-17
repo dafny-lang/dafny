@@ -746,11 +746,8 @@ namespace Dafny
       return hashCode;
     }
     public override string ToString() {
-      // To avoid copying the entire list in order to check if this is a char[], perform a 0-length copy, this will
-      // correctly distinguish between a char[] or other T[].
       // This is required because (ImmutableElements is ImmutableArray<char>) is not a valid type check
       var typeCheckTmp = new T[0];
-      ImmutableElements.CopyTo(0, typeCheckTmp, 0, 0);
       ImmutableArray<T> elmts = ImmutableElements;
       if (typeCheckTmp is char[]) {
         var s = "";
