@@ -188,3 +188,9 @@ function {:tailrecursion false} Gh0(n: nat): nat {  // fine
 function {:tailrecursion} Gh1(n: nat): nat {  // error: {:tailrecursion true} cannot be used with ghost functions
   15
 }
+
+ghost method {:tailrecursion false} Gh2(n: nat) {  // fine
+}
+
+ghost method {:tailrecursion} Gh3(n: nat) {  // error: {:tailrecursion true} cannot be used with ghost methods
+}

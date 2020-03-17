@@ -3050,6 +3050,8 @@ namespace Microsoft.Dafny
             var f = (Function)member;
             if (!f.IsGhost && f.Body != null) {
               CheckIsCompilable(f.Body);
+            }
+            if (f.Body != null) {
               DetermineTailRecursion(f);
             }
           }
