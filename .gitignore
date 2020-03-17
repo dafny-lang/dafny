@@ -18,6 +18,7 @@ Binaries/z3*
 Binaries/Dafny.exe
 Binaries/Dafny.vshost.exe
 Binaries/DafnyServer.exe
+Binaries/DafnyRuntime.cs
 Binaries/export/
 Binaries/mono_crash*
 

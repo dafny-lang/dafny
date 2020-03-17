@@ -10,4 +10,5 @@ TailCalls.dfy(176,4): Error: to be tail recursive, every use of this function mu
 TailCalls.dfy(178,13): Error: to be tail recursive, every use of this function must be part of a tail call
 TailCalls.dfy(181,6): Error: to be tail recursive, every use of this function must be part of a tail call
 TailCalls.dfy(188,26): Error: tail recursion can be specified only for function that will be compiled, not for ghost functions
-12 resolution/type errors detected in TailCalls.dfy
+TailCalls.dfy(195,30): Error: tail recursion can be specified only for methods that will be compiled, not for ghost methods
+13 resolution/type errors detected in TailCalls.dfy
