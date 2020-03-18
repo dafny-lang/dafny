@@ -6125,12 +6125,10 @@ namespace Microsoft.Dafny
           reporter.Error(MessageSource.Resolver, f.tok, "sorry, tail-call optimizations are not supported for mutually recursive functions");
         } else if (hasTailRecursionPreference || sccSize == 1) {
           var status = CheckTailRecursiveExpr(f.Body, f, hasTailRecursionPreference);
-          if (status != TailRecursionExprStatus.NotTailRecursive) {
+          if (status == TailRecursionExprStatus.TailRecursive) {
+            // this means there was at least one recursive call
             f.IsTailRecursive = true;
-            if (status != TailRecursionExprStatus.TriviallyTailRecursive) {
-              // this means there was at least one recursive call
-              reporter.Info(MessageSource.Resolver, f.tok, "tail recursive");
-            }
+            reporter.Info(MessageSource.Resolver, f.tok, "tail recursive");
           }
         }
       }
