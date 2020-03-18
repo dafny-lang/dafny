@@ -753,13 +753,6 @@ namespace Microsoft.Dafny
         return null;
       } else {
         var w = wr.NewBlock(")", null, BlockTargetWriter.BraceStyle.Newline, BlockTargetWriter.BraceStyle.Newline);
-        if (m.IsTailRecursive) {
-          if (!m.IsStatic && !customReceiver) {
-            w.WriteLine("var _this = this;");
-          }
-          w.IndentLess(); w.WriteLine("TAIL_CALL_START: ;");
-        }
-
         if (targetReturnTypeReplacement != null) {
           var r = new TargetWriter(w.IndentLevel);
           EmitReturn(m.Outs, r);
@@ -795,12 +788,6 @@ namespace Microsoft.Dafny
           w = wr.NewBlock(")", null, BlockTargetWriter.BraceStyle.Newline, BlockTargetWriter.BraceStyle.Newline);
         } else {
           w = wr.NewBlock(")");
-        }
-        if (member is Function f && f.IsTailRecursive) {
-          if (!isStatic && !customReceiver) {
-            w.WriteLine("var _this = this;");
-          }
-          w.IndentLess(); w.WriteLine("TAIL_CALL_START: ;");
         }
         return w;
       }
@@ -868,6 +855,15 @@ namespace Microsoft.Dafny
         return true;
       }
       return false;
+    }
+
+    protected override BlockTargetWriter EmitTailCallStructure(MemberDecl member, BlockTargetWriter wr) {
+      Contract.Assume((member is Method m0 && m0.IsTailRecursive) || (member is Function f0 && f0.IsTailRecursive)); // precondition
+      if (!member.IsStatic && !NeedsCustomReceiver(member)) {
+        wr.WriteLine("var _this = this;");
+      }
+      wr.IndentLess(); wr.WriteLine("TAIL_CALL_START: ;");
+      return wr;
     }
 
     protected override void EmitJumpToTailCallStart(TargetWriter wr) {

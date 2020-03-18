@@ -1105,12 +1105,6 @@ namespace Microsoft.Dafny {
 
       if (createBody) {
         var w = wr.NewBlock("");
-
-        if (isTailRecursive) {
-          w.WriteLine("goto TAIL_CALL_START");
-          w.WriteLine("TAIL_CALL_START:");
-        }
-
         if (outParams.Any()) {
           var r = new TargetWriter(w.IndentLevel);
           EmitReturn(outParams, r);
@@ -1333,6 +1327,12 @@ namespace Microsoft.Dafny {
       if (!cw.AnyInstanceFields) {
         cw.InstanceFieldWriter.WriteLine("dummy byte");
       }
+    }
+
+    protected override BlockTargetWriter EmitTailCallStructure(MemberDecl member, BlockTargetWriter wr) {
+      wr.WriteLine("goto TAIL_CALL_START");
+      wr.WriteLine("TAIL_CALL_START:");
+      return wr;
     }
 
     protected override void EmitJumpToTailCallStart(TargetWriter wr) {

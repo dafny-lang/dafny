@@ -494,18 +494,7 @@ namespace Microsoft.Dafny{
         wr.WriteLine(");");
         return null; // We do not want to write a function body, so instead of returning a BTW, we return null.
       } else {
-        var w = wr.NewBlock(")", null, BlockTargetWriter.BraceStyle.Newline, BlockTargetWriter.BraceStyle.Newline);
-        if (m.IsTailRecursive) {
-          if (!customReceiver && !m.IsStatic) {
-            var receiverTypeName = TypeName(receiverType, w, m.tok);
-            if (m.EnclosingClass.IsExtern(out _, out _)) {
-              receiverTypeName = FormatExternBaseClassName(receiverTypeName);
-            }
-            w.WriteLine("{0} _this = this;", receiverTypeName);
-          }
-          w = w.NewBlock("TAIL_CALL_START: while (true)");
-        }
-        return w;
+        return wr.NewBlock(")", null, BlockTargetWriter.BraceStyle.Newline, BlockTargetWriter.BraceStyle.Newline);
       }
     }
 
@@ -579,16 +568,6 @@ namespace Microsoft.Dafny{
           w = wr.NewBlock(")", null, BlockTargetWriter.BraceStyle.Newline, BlockTargetWriter.BraceStyle.Newline);
         } else {
           w = wr.NewBlock(")");
-        }
-        if (member is Function f && f.IsTailRecursive) {
-          if (!isStatic && !customReceiver) {
-            var receiverTypeName = TypeName(receiverType, w, f.tok);
-            if (f.EnclosingClass.IsExtern(out _, out _)) {
-              receiverTypeName = FormatExternBaseClassName(receiverTypeName);
-            }
-            w.WriteLine("{0} _this = this;", receiverTypeName);
-          }
-          w = w.NewBlock("TAIL_CALL_START: while (true)");
         }
         return w;
       }
@@ -3270,6 +3249,18 @@ namespace Microsoft.Dafny{
       using (StreamWriter sw = File.CreateText(path + "/Array" + i + ".java")) {
         sw.Write(wrTop.ToString());
       }
+    }
+
+    protected override BlockTargetWriter EmitTailCallStructure(MemberDecl member, BlockTargetWriter wr) {
+      if (!member.IsStatic && !NeedsCustomReceiver(member)) {
+        var receiverType = UserDefinedType.FromTopLevelDecl(member.tok, member.EnclosingClass);
+        var receiverTypeName = TypeName(receiverType, wr, member.tok);
+        if (member.EnclosingClass.IsExtern(out _, out _)) {
+          receiverTypeName = FormatExternBaseClassName(receiverTypeName);
+        }
+        wr.WriteLine("{0} _this = this;", receiverTypeName);
+      }
+      return wr.NewBlock("TAIL_CALL_START: while (true)");
     }
 
     protected override void EmitJumpToTailCallStart(TargetWriter wr) {
