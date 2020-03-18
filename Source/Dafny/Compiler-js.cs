@@ -595,13 +595,14 @@ namespace Microsoft.Dafny {
       if (!m.IsStatic && !customReceiver) {
         w.WriteLine("let _this = this;");
       }
-      if (m.IsTailRecursive) {
-        w = w.NewBlock("TAIL_CALL_START: while (true)");
-      }
-      var r = new TargetWriter(w.IndentLevel);
-      EmitReturn(m.Outs, r);
-      w.BodySuffix = r.ToString();
       return w;
+    }
+
+    protected override BlockTargetWriter EmitMethodReturns(Method m, BlockTargetWriter wr) {
+      var r = new TargetWriter(wr.IndentLevel);
+      EmitReturn(m.Outs, r);
+      wr.BodySuffix = r.ToString();
+      return wr;
     }
 
     protected BlockTargetWriter/*?*/ CreateFunction(string name, List<TypeParameter>/*?*/ typeArgs, List<Formal> formals, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl member, TargetWriter wr) {
@@ -621,9 +622,6 @@ namespace Microsoft.Dafny {
       var w = wr.NewBlock(")", ";");
       if (!isStatic && !customReceiver) {
         w.WriteLine("let _this = this;");
-      }
-      if (member is Function f && f.IsTailRecursive) {
-        w = w.NewBlock("TAIL_CALL_START: while (true)");
       }
       return w;
     }
@@ -766,6 +764,16 @@ namespace Microsoft.Dafny {
         setterWriter = null;
         return null;
       }
+    }
+
+    protected override BlockTargetWriter EmitTailCallStructure(MemberDecl member, BlockTargetWriter wr) {
+      var w = wr.NewBlock("TAIL_CALL_START: while (true)");
+      if (member is Method m) {
+        var r = new TargetWriter(w.IndentLevel);
+        EmitReturn(m.Outs, r);
+        w.BodySuffix = r.ToString();
+      }
+      return w;
     }
 
     protected override void EmitJumpToTailCallStart(TargetWriter wr) {

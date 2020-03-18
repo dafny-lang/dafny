@@ -18,6 +18,9 @@ method Main() {
   x := l0.G(2_000_000, 0);  // too large argument without tail-calls
   y := l0.H(2_000_000, 0);  // too large argument without tail-calls
   print x, " ", y, "\n";  // 1_000_000 1_000_000
+
+  var total := PrintSum(10, 0, "");
+  print " == ", total, "\n";
 }
 
 method {:tailrecursion} M(n: nat, a: nat) returns (r: nat) {
@@ -61,5 +64,14 @@ class Link {
     reads *
   {
     if n == 0 then a else next.H(n - 1, a + x)
+  }
+}
+
+method PrintSum(n: nat, acc: nat, prefix: string) returns (total: nat) {
+  if n == 0 {
+    total := acc;  // test that this fall-through is handled correctly
+  } else {
+    print prefix, n;
+    total := PrintSum(n - 1, n + acc, " + "); // tail recursion
   }
 }

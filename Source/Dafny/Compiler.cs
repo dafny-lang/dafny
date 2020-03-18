@@ -210,6 +210,13 @@ namespace Microsoft.Dafny {
       Contract.Requires(wr != null);
       return 0;
     }
+    /// <summary>
+    /// EmitTailCallStructure evolves "wr" into a structure that can be used as the jump target
+    /// for tail calls (see EmitJumpToTailCallStart).
+    /// The precondition of the method is:
+    ///     (member is Method m0 && m0.IsTailRecursive) || (member is Function f0 && f0.IsTailRecursive)
+    /// </summary>
+    protected abstract BlockTargetWriter EmitTailCallStructure(MemberDecl member, BlockTargetWriter wr);
     protected abstract void EmitJumpToTailCallStart(TargetWriter wr);
     protected abstract string TypeName(Type type, TextWriter wr, Bpl.IToken tok, MemberDecl/*?*/ member = null);
     // For cases where a type looks different when it's an argument, such as (*sigh*) Java primitives
@@ -1254,6 +1261,9 @@ namespace Microsoft.Dafny {
 
       var w = cw.CreateFunction(IdName(f), f.TypeArgs, f.Formals, f.ResultType, f.tok, f.IsStatic, !f.IsExtern(out _, out _), f);
       if (w != null) {
+        if (f.IsTailRecursive) {
+          w = EmitTailCallStructure(f, w);
+        }
         Contract.Assert(enclosingFunction == null);
         enclosingFunction = f;
         CompileReturnBody(f.Body, w);
@@ -1268,6 +1278,10 @@ namespace Microsoft.Dafny {
 
       var w = cw.CreateMethod(m, !m.IsExtern(out _, out _));
       if (w != null) {
+        if (m.IsTailRecursive) {
+          w = EmitTailCallStructure(m, w);
+        }
+
         int nonGhostOutsCount = 0;
         foreach (var p in m.Outs) {
           if (!p.IsGhost) {
