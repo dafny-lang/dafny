@@ -6176,7 +6176,6 @@ namespace Microsoft.Dafny
       Contract.Requires(enclosingFunction != null);
 
       expr = expr.Resolved;
-
       if (expr is FunctionCallExpr) {
         var e = (FunctionCallExpr)expr;
         var status = e.Function == enclosingFunction ? Function.TailStatus.TailRecursive : Function.TailStatus.TriviallyTailRecursive;
@@ -6242,10 +6241,47 @@ namespace Microsoft.Dafny
         }
         return status;
 
-      } else if (allowAccumulator && expr is BinaryExpr bin && expr.Type.NormalizeExpandKeepConstraints() == expr.Type.NormalizeExpand()) {
-        // a binary expression whose type does not depend on type constraints (so, we're free to treat associative
-        // operators as associative)
-        if (bin.ResolvedOp == BinaryExpr.ResolvedOpcode.Add) {
+      } else if (allowAccumulator && expr is BinaryExpr bin) {
+        var accumulationOp = Function.TailStatus.TriviallyTailRecursive; // use TriviallyTailRecursive to mean bin.ResolvedOp does not support accumulation
+        bool accumulatesOnlyOnRight = false;
+        switch (bin.ResolvedOp) {
+          case BinaryExpr.ResolvedOpcode.Add:
+            if (enclosingFunction.ResultType.AsBitVectorType == null && !enclosingFunction.ResultType.IsCharType) {
+              accumulationOp = Function.TailStatus.Accumulate_Add;
+            }
+            break;
+          case BinaryExpr.ResolvedOpcode.Sub:
+            if (enclosingFunction.ResultType.AsBitVectorType == null && !enclosingFunction.ResultType.IsCharType) {
+              accumulationOp = Function.TailStatus.AccumulateRight_Sub;
+              accumulatesOnlyOnRight = true;
+            }
+            break;
+          case BinaryExpr.ResolvedOpcode.Mul:
+            if (enclosingFunction.ResultType.AsBitVectorType == null) {
+              accumulationOp = Function.TailStatus.Accumulate_Mul;
+            }
+            break;
+          case BinaryExpr.ResolvedOpcode.Union:
+            accumulationOp = Function.TailStatus.Accumulate_SetUnion;
+            break;
+          case BinaryExpr.ResolvedOpcode.SetDifference:
+            accumulationOp = Function.TailStatus.AccumulateRight_SetDifference;
+            accumulatesOnlyOnRight = true;
+            break;
+          case BinaryExpr.ResolvedOpcode.MultiSetUnion:
+            accumulationOp = Function.TailStatus.Accumulate_MultiSetUnion;
+            break;
+          case BinaryExpr.ResolvedOpcode.MultiSetDifference:
+            accumulationOp = Function.TailStatus.AccumulateRight_MultiSetDifference;
+            accumulatesOnlyOnRight = true;
+            break;
+          case BinaryExpr.ResolvedOpcode.Concat:
+            accumulationOp = Function.TailStatus.AccumulateLeft_Concat;  // could also be AccumulateRight_Concat--make more precise below
+            break;
+          default:
+            break;
+        }
+        if (accumulationOp != Function.TailStatus.TriviallyTailRecursive) {
           var s0 = CheckTailRecursiveExpr(bin.E0, enclosingFunction, false, reportErrors);
           Function.TailStatus s1;
           switch (s0) {
@@ -6256,21 +6292,30 @@ namespace Microsoft.Dafny
               return s0;
             case Function.TailStatus.TriviallyTailRecursive:
               // We are in a state that would allow AcculumateLeftTailRecursive. See what bin.E1 is like:
-              s1 = CheckTailRecursiveExpr(bin.E1, enclosingFunction, false, reportErrors);
+              if (accumulatesOnlyOnRight) {
+                s1 = CheckHasNoRecursiveCall(bin.E1, enclosingFunction, reportErrors);
+              } else {
+                s1 = CheckTailRecursiveExpr(bin.E1, enclosingFunction, false, reportErrors);
+              }
               if (s1 == Function.TailStatus.TailRecursive) {
-                bin.AccumulatesForTailRecursion = true;
-                return Function.TailStatus.AcculumateLeftTailRecursive;
+                bin.AccumulatesForTailRecursion = BinaryExpr.AccumulationOperand.Left;
               } else {
                 Contract.Assert(s1 == Function.TailStatus.TriviallyTailRecursive || s1 == Function.TailStatus.NotTailRecursive);
                 return s1;
               }
+              return accumulationOp;
             case Function.TailStatus.TailRecursive:
-              // We are in a state that would allow AccumulateRightTailRecursive. Check that the enclosing
+              // We are in a state that would allow right-accumulative tail recursion. Check that the enclosing
               // function is not mentioned in bin.E1.
               s1 = CheckHasNoRecursiveCall(bin.E1, enclosingFunction, reportErrors);
               if (s1 == Function.TailStatus.TriviallyTailRecursive) {
-                bin.AccumulatesForTailRecursion = true;
-                return Function.TailStatus.AccumulateRightTailRecursive;
+                bin.AccumulatesForTailRecursion = BinaryExpr.AccumulationOperand.Right;
+                if (accumulationOp == Function.TailStatus.AccumulateLeft_Concat) {
+                  // switch to AccumulateRight_Concat, since we had approximated it as AccumulateLeft_Concat above
+                  return Function.TailStatus.AccumulateRight_Concat;
+                } else {
+                  return accumulationOp;
+                }
               } else {
                 Contract.Assert(s1 == Function.TailStatus.NotTailRecursive);
                 return s1;

@@ -521,7 +521,7 @@ namespace Microsoft.Dafny
       For a function F, this definition is extended to additionally allow
       tail calls to appear in simple expressions like ""E + F(...)"" or
       ""F(...) + E"" for certain operators ""+"" where E does not mention
-      F, provided that all such expression have the same form. These
+      F, provided that all such expressions are compatible. These
       are called _simple accumulator_ tail calls.
 
       By default, Dafny compiles tail recursive methods and functions

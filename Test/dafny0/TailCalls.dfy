@@ -200,17 +200,43 @@ ghost method {:tailrecursion} Gh3(n: nat) {  // error: {:tailrecursion true} can
 function method {:tailrecursion} TriangleNumber(n: nat): nat {
   if n == 0 then
     0
-  else if n % 2 == 0 then // error: then/else use different accumulators
+  else if n % 2 == 0 then
     TriangleNumber(n - 1) + n
   else
     n + TriangleNumber(n - 1)
+}
+
+newtype MyInt = int
+function method {:tailrecursion} SumMyInt(n: MyInt): MyInt
+  requires 0 <= n
+{
+  if n == 0 then 0 else n + SumMyInt(n - 1)
+}
+
+newtype MyConstrainedInt = x | x % 2 == 0
+function method {:tailrecursion} SumMyConstrainedInt(n: nat): MyConstrainedInt { // error: constrained types cannot be auto-accumulator tail recursive
+  if n == 0 then 0 else (2 * n) as MyConstrainedInt + SumMyConstrainedInt(n - 1)
+}
+
+type Even = x | x % 2 == 0
+function method {:tailrecursion} SumEven(n: nat): Even { // error: constrained types cannot be auto-accumulator tail recursive
+  if n == 0 then 0 else (2 * n) as Even + SumEven(n - 1)
+}
+
+function method {:tailrecursion} TriangleNumberSeq(n: nat): seq<nat> {
+  if n == 0 then
+    [0]
+  else if n % 2 == 0 then // error: then/else use different accumulators
+    TriangleNumberSeq(n - 1) + [n]
+  else
+    [n] + TriangleNumberSeq(n - 1)
 }
 
 datatype List = Nil | Cons(head: int, tail: List)
 
 function method {:tailrecursion} Sum(xs: List, u: int): int {
   var uu := u + 1;
-  if u % 2 == 0 then // error: then/else use different accumulators
+  if u % 2 == 0 then
     match xs {
       case Nil =>
         assert xs.Nil?; // test StmtExpr
@@ -227,6 +253,28 @@ function method {:tailrecursion} Sum(xs: List, u: int): int {
         zero
       case Cons(x, rest) =>
         xs.head + Sum(xs.tail, uu) // left accumulator
+    }
+}
+
+function method {:tailrecursion} Tum(xs: List, u: int): seq<int> {
+  var uu := u + 1;  // test let expr
+  if u % 2 == 0 then // error: then/else use different accumulators
+    match xs {
+      case Nil =>
+        assert xs.Nil?; // test StmtExpr
+        var zero := 0; // test let expr
+        [zero]
+      case Cons(x, rest) =>
+        Tum(xs.tail, uu) + [xs.head] // right accumulator
+    }
+  else
+    match xs {
+      case Nil =>
+        assert xs.Nil?;
+        var zero := 0;
+        [zero]
+      case Cons(x, rest) =>
+        [xs.head] + Tum(xs.tail, uu) // left accumulator
     }
 }
 
@@ -249,9 +297,28 @@ function method {:tailrecursion} Hum(xs: List, b: bool): int {
 }
 
 function method {:tailrecursion} Mum(xs: List, b: bool): int {
-  match xs // error: cases have different kinds of accumulators
+  match xs
   case Nil =>
     if b then 15 + Mum(xs, false) else 0
   case Cons(x, rest) =>
     Mum(xs.tail, b) + xs.head
+}
+
+function method {:tailrecursion} Bum(xs: List, b: bool): int {
+  match xs
+  case Nil =>
+    if b then 15 - Bum(xs, false) else 0  // error: - only supports tail call on left (accumulator on right)
+  case Cons(x, rest) =>
+    Bum(xs.tail, b) - xs.head
+}
+
+function method {:tailrecursion} TailBv(n: bv5): bv5 {
+  if n == 0 then 0 else TailBv(n - 1) + n  // error: because bitvector types are (currently) not supported in tail calls
+}
+
+function method {:tailrecursion} TailChar(n: int): char
+  requires 0 <= n <= 20
+  ensures TailChar(n) as int == 60 + n
+{
+  if n == 0 then 60 as char else TailChar(n - 1) + 1 as char  // error: because char is (currently) not supported in tail calls
 }
