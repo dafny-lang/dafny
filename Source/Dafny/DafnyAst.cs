@@ -5394,7 +5394,9 @@ namespace Microsoft.Dafny {
     public override bool CanBeRevealed() { return true; }
     public readonly bool IsProtected;
     public bool IsRecursive;  // filled in during resolution
-    public bool IsTailRecursive;  // filled in during resolution
+    public TailStatus TailRecursion;  // filled in during resolution; NotTailRecursive = no tail recursion; TriviallyTailRecursive is never used here
+    public bool IsTailRecursive => TailRecursion != TailStatus.NotTailRecursive;
+    public bool IsAccumulatorTailRecursive => IsTailRecursive && TailRecursion != Function.TailStatus.TailRecursive;
     public bool IsFueled;  // filled in during resolution if anyone tries to adjust this function's fuel
     public readonly List<TypeParameter> TypeArgs;
     public readonly List<Formal> Formals;
@@ -5413,6 +5415,15 @@ namespace Microsoft.Dafny {
     public bool ContainsQuantifier {
       set { containsQuantifier = value; }
       get { return containsQuantifier;  }
+    }
+
+    public enum TailStatus
+    {
+      TriviallyTailRecursive, // contains no recursive calls (in non-ghost expressions)
+      TailRecursive, // all recursive calls (in non-ghost expressions) are tail calls
+      NotTailRecursive, // contains some non-ghost recursive call outside of a tail-call position
+      AcculumateLeftTailRecursive, // E + F, where E has no tail call and F is a tail call
+      AccumulateRightTailRecursive, // F + E, where E has no tail call and F is a tail call
     }
 
     public override IEnumerable<Expression> SubExpressions {
@@ -9694,6 +9705,7 @@ namespace Microsoft.Dafny {
     }
     public readonly Expression E0;
     public readonly Expression E1;
+    public bool AccumulatesForTailRecursion = false; // set by Resolver
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(E0 != null);

@@ -194,3 +194,64 @@ ghost method {:tailrecursion false} Gh2(n: nat) {  // fine
 
 ghost method {:tailrecursion} Gh3(n: nat) {  // error: {:tailrecursion true} cannot be used with ghost methods
 }
+
+// ----- auto-accumulator tail recursion -----
+
+function method {:tailrecursion} TriangleNumber(n: nat): nat {
+  if n == 0 then
+    0
+  else if n % 2 == 0 then // error: then/else use different accumulators
+    TriangleNumber(n - 1) + n
+  else
+    n + TriangleNumber(n - 1)
+}
+
+datatype List = Nil | Cons(head: int, tail: List)
+
+function method {:tailrecursion} Sum(xs: List, u: int): int {
+  var uu := u + 1;
+  if u % 2 == 0 then // error: then/else use different accumulators
+    match xs {
+      case Nil =>
+        assert xs.Nil?; // test StmtExpr
+        var zero := 0; // test let expr
+        zero
+      case Cons(x, rest) =>
+        Sum(xs.tail, uu) + xs.head // right accumulator
+    }
+  else
+    match xs {
+      case Nil =>
+        assert xs.Nil?;
+        var zero := 0;
+        zero
+      case Cons(x, rest) =>
+        xs.head + Sum(xs.tail, uu) // left accumulator
+    }
+}
+
+function method {:tailrecursion} Gum(xs: List): int {
+  match xs
+  case Nil =>
+    assert xs.Nil?;
+    var zero := 0;
+    zero
+  case Cons(x, rest) =>
+    xs.head + Gum(xs.tail) + xs.head // error: this is not a simple accumulating tail call
+}
+
+function method {:tailrecursion} Hum(xs: List, b: bool): int {
+  match xs
+  case Nil =>
+    if b then Hum(xs, false) else 0
+  case Cons(x, rest) =>
+    Hum(xs.tail, b) + xs.head
+}
+
+function method {:tailrecursion} Mum(xs: List, b: bool): int {
+  match xs // error: cases have different kinds of accumulators
+  case Nil =>
+    if b then 15 + Mum(xs, false) else 0
+  case Cons(x, rest) =>
+    Mum(xs.tail, b) + xs.head
+}

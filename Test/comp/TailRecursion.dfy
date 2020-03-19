@@ -21,6 +21,8 @@ method Main() {
 
   var total := PrintSum(10, 0, "");
   print " == ", total, "\n";
+
+  AutoAccumulatorTests();
 }
 
 method {:tailrecursion} M(n: nat, a: nat) returns (r: nat) {
@@ -74,4 +76,31 @@ method PrintSum(n: nat, acc: nat, prefix: string) returns (total: nat) {
     print prefix, n;
     total := PrintSum(n - 1, n + acc, " + "); // tail recursion
   }
+}
+
+// ----- auto-accumulator tail recursion -----
+
+method AutoAccumulatorTests() {
+  print "TriangleNumber(10) = ", TriangleNumber(10), "\n";
+  var xs := Cons(100, Cons(40, Cons(60, Nil)));
+  print "Sum(", xs, ") = ", Sum(xs), "\n";
+}
+
+function method {:tailrecursion} TriangleNumber(n: nat): nat {
+  if n == 0 then // test if-then-else
+    0
+  else
+    n + TriangleNumber(n - 1) // test left accumulator
+}
+
+datatype List = Nil | Cons(head: int, tail: List)
+
+function method {:tailrecursion} Sum(xs: List): int {
+  match xs // test match
+  case Nil =>
+    assert xs.Nil?; // test StmtExpr
+    var zero := 0; // test let expr
+    zero
+  case Cons(x, rest) =>
+    Sum(xs.tail) + xs.head // test right accumulator
 }

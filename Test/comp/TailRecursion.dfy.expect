@@ -1,20 +1,28 @@
 
-Dafny program verifier finished with 7 verified, 0 errors
+Dafny program verifier finished with 10 verified, 0 errors
 2000000 2000000
 1000000 1000000
 10 + 9 + 8 + 7 + 6 + 5 + 4 + 3 + 2 + 1 == 55
+TriangleNumber(10) = 55
+Sum(List.Cons(100, List.Cons(40, List.Cons(60, List.Nil)))) = 200
 
-Dafny program verifier finished with 7 verified, 0 errors
+Dafny program verifier finished with 10 verified, 0 errors
 2000000 2000000
 1000000 1000000
 10 + 9 + 8 + 7 + 6 + 5 + 4 + 3 + 2 + 1 == 55
+TriangleNumber(10) = 55
+Sum(List.Cons(100, List.Cons(40, List.Cons(60, List.Nil)))) = 200
 
-Dafny program verifier finished with 7 verified, 0 errors
+Dafny program verifier finished with 10 verified, 0 errors
 2000000 2000000
 1000000 1000000
 10 + 9 + 8 + 7 + 6 + 5 + 4 + 3 + 2 + 1 == 55
+TriangleNumber(10) = 55
+Sum(List.Cons(100, List.Cons(40, List.Cons(60, List.Nil)))) = 200
 
-Dafny program verifier finished with 7 verified, 0 errors
+Dafny program verifier finished with 10 verified, 0 errors
 2000000 2000000
 1000000 1000000
 10 + 9 + 8 + 7 + 6 + 5 + 4 + 3 + 2 + 1 == 55
+TriangleNumber(10) = 55
+Sum(List.Cons(100, List.Cons(40, List.Cons(60, List.Nil)))) = 200
