@@ -2208,8 +2208,10 @@ namespace Microsoft.Dafny
           Contract.Assert(AsNativeType(e.ToType) == null);
           TrExpr(e.E, wr, inLetExprBody);
         } else {
-          // real -> (int or bv)
-          if (AsNativeType(e.ToType) != null) {
+          // real -> (int or bv or char)
+          if (e.ToType.IsCharType) {
+            wr.Write("(char)");
+          } else if (AsNativeType(e.ToType) != null) {
             wr.Write("({0})", GetNativeTypeName(AsNativeType(e.ToType)));
           }
           TrParenExpr(e.E, wr, inLetExprBody);

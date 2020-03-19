@@ -3025,6 +3025,10 @@ namespace Microsoft.Dafny {
           // real -> real
           Contract.Assert(AsNativeType(e.ToType) == null);
           TrExpr(e.E, wr, inLetExprBody);
+        } else if (e.ToType.IsCharType) {
+          wr.Write("_dafny.Char(");
+          TrParenExpr(e.E, wr, inLetExprBody);
+          wr.Write(".Int().Int32())");
         } else {
           // real -> (int or bv)
           TrParenExpr(e.E, wr, inLetExprBody);
