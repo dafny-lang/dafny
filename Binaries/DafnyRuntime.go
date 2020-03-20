@@ -410,12 +410,12 @@ func (seq Seq) IndexInt(i int) interface{} {
 }
 
 // Update returns a new sequence with the given index set to the given value.
-func (seq Seq) Update(i Int, v interface{}) interface{} {
+func (seq Seq) Update(i Int, v interface{}) Seq {
 	return seq.UpdateInt(i.Int(), v)
 }
 
 // UpdateInt returns a new sequence with the given index set to the given value.
-func (seq Seq) UpdateInt(i int, v interface{}) interface{} {
+func (seq Seq) UpdateInt(i int, v interface{}) Seq {
 	arr := make([]interface{}, len(seq.contents))
 	copy(arr, seq.contents[:i])
 	arr[i] = v
