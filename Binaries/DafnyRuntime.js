@@ -466,10 +466,16 @@ let _dafny = (function() {
     toString() {
       return "[" + arrayElementsToString(this) + "]";
     }
-    update(i, v) {
-      let t = this.slice();
-      t[i] = v;
-      return t;
+    static update(s, i, v) {
+      if (typeof s === "string") {
+        let p = s.slice(0, i);
+        let q = s.slice(i.toNumber() + 1);
+        return p.concat(v, q);
+      } else {
+        let t = s.slice();
+        t[i] = v;
+        return t;
+      }
     }
     equals(other) {
       if (this === other) {
