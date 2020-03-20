@@ -1985,7 +1985,10 @@ namespace Microsoft.Dafny {
         } else if (e.ToType.IsCharType) {
           wr.Write("String.fromCharCode(");
           TrParenExpr(e.E, wr, inLetExprBody);
-          wr.Write(".toNumber())");
+          if (AsNativeType(e.E.Type) == null) {
+            wr.Write(".toNumber()");
+          }
+          wr.Write(")");
         } else {
           // (int or bv or char) -> (int or bv or ORDINAL)
           var fromNative = AsNativeType(e.E.Type);
@@ -2043,6 +2046,10 @@ namespace Microsoft.Dafny {
           // real -> real
           Contract.Assert(AsNativeType(e.ToType) == null);
           TrExpr(e.E, wr, inLetExprBody);
+        } else if (e.ToType.IsCharType) {
+          wr.Write("String.fromCharCode(");
+          TrParenExpr(e.E, wr, inLetExprBody);
+          wr.Write(".toBigNumber().toNumber())");
         } else {
           // real -> (int or bv)
           TrParenExpr(e.E, wr, inLetExprBody);
