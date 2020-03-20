@@ -3486,7 +3486,7 @@ namespace Microsoft.Dafny {
           // exists k':ORDINAL | _k' LESS _k :: pp(_k', args)
           // Here, instead of using the usual ORD#Less, we use the semantically equivalent ORD#LessThanLimit, because this
           // allows us to write a good trigger for a targeted monotonicity axiom.  That axiom, in turn, makes the
-          // automatica verification more powerful for inductive lemmas that have more than one focal-predicate term.
+          // automatic verification more powerful for inductive lemmas that have more than one focal-predicate term.
           var smaller = new BinaryExpr(kprime.tok, BinaryExpr.Opcode.Lt, kprime, k) {
             ResolvedOp = BinaryExpr.ResolvedOpcode.LessThanLimit,
             Type = Type.Bool
@@ -7993,6 +7993,8 @@ namespace Microsoft.Dafny {
         Bpl.Expr be;
         if (expr.Type.IsNumericBased() || expr.Type.IsBitVectorType) {
           be = ConvertExpression(expr.tok, o, expr.Type, toType);
+        } else if (expr.Type.IsBigOrdinalType) {
+          be = FunctionCall(expr.tok, "ORD#Offset", Bpl.Type.Int, o);
         } else {
           be = o;
         }

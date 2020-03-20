@@ -1,5 +1,5 @@
 
-Dafny program verifier finished with 16 verified, 0 errors
+Dafny program verifier finished with 17 verified, 0 errors
 Sets: {} {17, 82} {12, 17}
   cardinality: 0 2 2
   union: {17, 82} {12, 17, 82}
@@ -38,6 +38,10 @@ Sequences: [] [17, 82, 17, 82] [12, 17]
 Bound Bound Bound Bound Bound Bound
 ed ed ed ed ed ed
 e e e e e e
+hello
+hEllo
+[2, 4, 6, 8, 10]
+[2, 0, 6, 8, 10]
 Strings:  uRuR gu
   cardinality: 0 4 2
   concatenation: uRuR uRuRgu
@@ -64,7 +68,7 @@ There are 536870912 occurrences of 58 in the multiset
 There are 633825300114114700748351602688 occurrences of 58 in the multiset
 There are 633825300114114700748351602688 occurrences of null in the multiset
 
-Dafny program verifier finished with 16 verified, 0 errors
+Dafny program verifier finished with 17 verified, 0 errors
 Sets: {} {17, 82} {12, 17}
   cardinality: 0 2 2
   union: {17, 82} {17, 82, 12}
@@ -103,6 +107,10 @@ Sequences: [] [17, 82, 17, 82] [12, 17]
 Bound Bound Bound Bound Bound Bound
 ed ed ed ed ed ed
 e e e e e e
+hello
+hEllo
+[2, 4, 6, 8, 10]
+[2, 0, 6, 8, 10]
 Strings:  uRuR gu
   cardinality: 0 4 2
   concatenation: uRuR uRuRgu
@@ -129,7 +137,7 @@ There are 536870912 occurrences of 58 in the multiset
 There are 633825300114114700748351602688 occurrences of 58 in the multiset
 There are 633825300114114700748351602688 occurrences of null in the multiset
 
-Dafny program verifier finished with 16 verified, 0 errors
+Dafny program verifier finished with 17 verified, 0 errors
 Sets: {} {17, 82} {12, 17}
   cardinality: 0 2 2
   union: {17, 82} {17, 82, 12}
@@ -168,6 +176,10 @@ Sequences: [] [17, 82, 17, 82] [12, 17]
 Bound Bound Bound Bound Bound Bound
 ed ed ed ed ed ed
 e e e e e e
+hello
+hEllo
+[2, 4, 6, 8, 10]
+[2, 0, 6, 8, 10]
 Strings:  uRuR gu
   cardinality: 0 4 2
   concatenation: uRuR uRuRgu
@@ -194,7 +206,7 @@ There are 536870912 occurrences of 58 in the multiset
 There are 633825300114114700748351602688 occurrences of 58 in the multiset
 There are 633825300114114700748351602688 occurrences of null in the multiset
 
-Dafny program verifier finished with 16 verified, 0 errors
+Dafny program verifier finished with 17 verified, 0 errors
 Sets: {} {17, 82} {17, 12}
   cardinality: 0 2 2
   union: {17, 82} {17, 82, 12}
@@ -233,6 +245,10 @@ Sequences: [] [17, 82, 17, 82] [12, 17]
 [B, o, u, n, d] [B, o, u, n, d] [B, o, u, n, d] [B, o, u, n, d] [B, o, u, n, d] [B, o, u, n, d]
 [e, d] [e, d] [e, d] [e, d] [e, d] [e, d]
 e e e e e e
+hello
+hEllo
+[2, 4, 6, 8, 10]
+[2, 0, 6, 8, 10]
 Strings:  uRuR gu
   cardinality: 0 4 2
   concatenation: uRuR uRuRgu

@@ -1536,8 +1536,14 @@ namespace Microsoft.Dafny {
     }
 
     protected override void EmitIndexCollectionUpdate(Expression source, Expression index, Expression value, bool inLetExprBody, TargetWriter wr, bool nativeIndex = false) {
-      TrParenExpr(source, wr, inLetExprBody);
-      wr.Write(".update(");
+      if (source.Type.AsSeqType != null) {
+        wr.Write("_dafny.Seq.update(");
+        TrExpr(source, wr, inLetExprBody);
+        wr.Write(", ");
+      } else {
+        TrParenExpr(source, wr, inLetExprBody);
+        wr.Write(".update(");
+      }
       TrExpr(index, wr, inLetExprBody);
       wr.Write(", ");
       TrExpr(value, wr, inLetExprBody);
@@ -1979,7 +1985,10 @@ namespace Microsoft.Dafny {
         } else if (e.ToType.IsCharType) {
           wr.Write("String.fromCharCode(");
           TrParenExpr(e.E, wr, inLetExprBody);
-          wr.Write(".toNumber())");
+          if (AsNativeType(e.E.Type) == null) {
+            wr.Write(".toNumber()");
+          }
+          wr.Write(")");
         } else {
           // (int or bv or char) -> (int or bv or ORDINAL)
           var fromNative = AsNativeType(e.E.Type);
@@ -2037,6 +2046,10 @@ namespace Microsoft.Dafny {
           // real -> real
           Contract.Assert(AsNativeType(e.ToType) == null);
           TrExpr(e.E, wr, inLetExprBody);
+        } else if (e.ToType.IsCharType) {
+          wr.Write("String.fromCharCode(");
+          TrParenExpr(e.E, wr, inLetExprBody);
+          wr.Write(".toBigNumber().toNumber())");
         } else {
           // real -> (int or bv)
           TrParenExpr(e.E, wr, inLetExprBody);
