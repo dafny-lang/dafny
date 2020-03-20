@@ -371,8 +371,8 @@ method ConvertFromReal(x: real)
 method ConvertFromORDINAL(x: ORDINAL)
   requires 0 <= x < 128
 {
-  // ORDINAL doesn't (currently) support many type conversions; this could use more support
-  // print x as int, /** " ", x as real, " ", x as ORDINAL, " ", x as bv7,**/ " ", x as uint32, /** " ", x as char,**/ "\n";
+  // ORDINAL doesn't (currently) support many type conversions
+  print x as int, /** " ", x as real, " ", x as ORDINAL, " ", x as bv7,**/ " ", x as uint32, /** " ", x as char,**/ "\n";
 }
 
 method ConvertFromBv(x: bv7)
@@ -389,5 +389,6 @@ method ConvertFromUInt32(x: uint32)
 method ConvertFromChar(x: char)
   requires 0 as char <= x < 128 as char
 {
+  // char doesn't (currently) support many type conversions
   print x as int, /** " ", x as real, " ", x as ORDINAL, " ", x as bv7,**/ " ", x as uint32, /** " ", x as char,**/ "\n";
 }

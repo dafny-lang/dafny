@@ -1,5 +1,5 @@
 
-Dafny program verifier finished with 28 verified, 0 errors
+Dafny program verifier finished with 29 verified, 0 errors
 0
 0
 3
@@ -86,11 +86,12 @@ MyNumber:
 23	 <0 N <=0 N ==0 N !=0 Y >0 Y >=0 Y 0< Y 0<= Y 0== N 0!= Y 0> N 0>= N
 120 120.0 120 120 120 x
 120 120.0 120 120 120 x
+120 120
 120 120.0 120 120 120 x
 120 120.0 120 120 120 x
 120 120
 
-Dafny program verifier finished with 28 verified, 0 errors
+Dafny program verifier finished with 29 verified, 0 errors
 0
 0
 3
@@ -177,11 +178,12 @@ MyNumber:
 23	 <0 N <=0 N ==0 N !=0 Y >0 Y >=0 Y 0< Y 0<= Y 0== N 0!= Y 0> N 0>= N
 120 120.0 120 120 120 x
 120 120.0 120 120 120 x
+120 120
 120 120.0 120 120 120 x
 120 120.0 120 120 120 x
 120 120
 
-Dafny program verifier finished with 28 verified, 0 errors
+Dafny program verifier finished with 29 verified, 0 errors
 0
 0
 3
@@ -268,11 +270,12 @@ MyNumber:
 23	 <0 N <=0 N ==0 N !=0 Y >0 Y >=0 Y 0< Y 0<= Y 0== N 0!= Y 0> N 0>= N
 120 120.0 120 120 120 x
 120 120.0 120 120 120 x
+120 120
 120 120.0 120 120 120 x
 120 120.0 120 120 120 x
 120 120
 
-Dafny program verifier finished with 28 verified, 0 errors
+Dafny program verifier finished with 29 verified, 0 errors
 0
 0
 3
@@ -359,6 +362,7 @@ MyNumber:
 23	 <0 N <=0 N ==0 N !=0 Y >0 Y >=0 Y 0< Y 0<= Y 0== N 0!= Y 0> N 0>= N
 120 120.0 120 120 120 x
 120 120.0 120 120 120 x
+120 120
 120 120.0 120 120 120 x
 120 120.0 120 120 120 x
 120 120

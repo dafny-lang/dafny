@@ -3704,8 +3704,10 @@ namespace Microsoft.Dafny{
       } else {
         Contract.Assert(e.E.Type.IsBigOrdinalType);
         Contract.Assert(e.ToType.IsNumericBased(Type.NumericPersuation.Int));
-        // identity will do
-        TrExpr(e.E, wr, inLetExprBody);
+        TrParenExpr(e.E, wr, inLetExprBody);
+        if (AsNativeType(e.ToType) != null) {
+          wr.Write($".{GetNativeTypeName(AsNativeType(e.ToType))}Value()");
+        }
       }
     }
 
