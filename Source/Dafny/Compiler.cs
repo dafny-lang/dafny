@@ -102,7 +102,7 @@ namespace Microsoft.Dafny {
     /// <summary>
     /// "tok" can be "null" if "superClasses" is.
     /// </summary>
-    protected abstract IClassWriter CreateTrait(string name, bool isExtern, List<Type>/*?*/ superClasses, Bpl.IToken tok, TargetWriter wr);
+    protected abstract IClassWriter CreateTrait(string name, bool isExtern, List<TypeParameter>/*?*/ typeParameters, List<Type>/*?*/ superClasses, Bpl.IToken tok, TargetWriter wr);
     /// If this returns false, it is assumed that the implementation handles inherited fields on its own.
     protected virtual bool NeedsWrappersForInheritedFields { get => true; }
     protected virtual bool SupportsProperties { get => true; }
@@ -702,7 +702,7 @@ namespace Microsoft.Dafny {
           } else if (d is TraitDecl) {
             // writing the trait
             var trait = (TraitDecl)d;
-            var w = CreateTrait(trait.CompileName, trait.IsExtern(out _, out _), null, null, wr);
+            var w = CreateTrait(trait.CompileName, trait.IsExtern(out _, out _), trait.TypeArgs, null, null, wr);
             CompileClassMembers(trait, w);
           } else if (d is ClassDecl) {
             var cl = (ClassDecl)d;

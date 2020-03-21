@@ -78,6 +78,8 @@ method Main()
   print "From OtherModule.X: ", seven, " and ", b, "\n";
 
   TestFields.Test();
+
+  Generics.Test();
 }
 
 module OtherModule {
@@ -113,5 +115,34 @@ module TestFields {
     j.f := 18;
     assert c.f == 18;
     print "c.f= ", c.f, " j.f= ", j.f, "\n";
+  }
+}
+
+module Generics {
+  trait Identity {
+    method Call<T>(x: T) returns (r: T)
+  }   
+
+  class IdentityImpl extends Identity {
+    method Call<T>(x: T) returns (r: T) {
+      r := x;
+    }
+  } 
+
+  trait Function<T, R> {
+    method Call(t: T) returns (r: R)
+  }
+
+  class Triple extends Function<int, int> {
+    constructor() {}
+    method Call(t: int) returns (r: int) {
+      r := 3*t;
+    }
+  }
+
+  method Test() {
+    var tripler := new Triple();
+    var x := tripler.Call(42);
+    print "x=", x, "\n";
   }
 }

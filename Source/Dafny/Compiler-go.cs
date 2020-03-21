@@ -340,7 +340,7 @@ namespace Microsoft.Dafny {
       return cw;
     }
 
-    protected override IClassWriter CreateTrait(string name, bool isExtern, List<Type>/*?*/ superClasses, Bpl.IToken tok, TargetWriter wr) {
+    protected override IClassWriter CreateTrait(string name, bool isExtern, List<TypeParameter>/*?*/ typeParameters, List<Type>/*?*/ superClasses, Bpl.IToken tok, TargetWriter wr) {
       //
       // type Trait struct {
       //   Iface_Trait_ // see comments on CreateClass
@@ -378,8 +378,12 @@ namespace Microsoft.Dafny {
       var abstractMethodWriter = wr.NewNamedBlock("type {0} interface", FormatTraitInterfaceName(name));
       var concreteMethodWriter = wr.ForkSection();
 
-      CreateInitializer(name, wr, out var instanceFieldInitWriter, out var traitInitWriter, rtdParamWriter:out _);
+      CreateInitializer(name, wr, out var instanceFieldInitWriter, out var traitInitWriter, out var rtdParamWriter);
 
+      if (typeParameters != null) {
+        WriteRuntimeTypeDescriptorsFields(typeParameters, true, instanceFieldWriter, instanceFieldInitWriter, rtdParamWriter);
+      }
+      
       var staticFieldWriter = wr.NewNamedBlock("type {0} struct", FormatCompanionTypeName(name));
       var staticFieldInitWriter = wr.NewNamedBlock("var {0} = {1}", FormatCompanionName(name), FormatCompanionTypeName(name));
 

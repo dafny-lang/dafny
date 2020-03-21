@@ -837,8 +837,8 @@ namespace Microsoft.Dafny
                     if (o.Characteristics.DisallowReferenceTypes != n.Characteristics.DisallowReferenceTypes) {
                       reporter.Error(MessageSource.RefinementTransformer, n.tok, "type parameter '{0}' is not allowed to change the no-reference-type requirement", n.Name);
                     }
-          }
-        }
+                }
+            }
         }
     }
 

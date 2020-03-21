@@ -3071,7 +3071,7 @@ namespace Microsoft.Dafny{
       DeclareLocalVar(name, type, tok, false, rhs, wr);
     }
 
-    protected override IClassWriter CreateTrait(string name, bool isExtern, List<Type> superClasses, Bpl.IToken tok, TargetWriter wr) {
+    protected override IClassWriter CreateTrait(string name, bool isExtern, List<TypeParameter>/*?*/ typeParameters, List<Type> superClasses, Bpl.IToken tok, TargetWriter wr) {
       var filename = $"{ModulePath}/{name}.java";
       var w = wr.NewFile(filename);
       FileCount += 1;
@@ -3082,7 +3082,11 @@ namespace Microsoft.Dafny{
       EmitImports(w, out _);
       w.WriteLine();
       EmitSuppression(w); //TODO: Fix implementations so they do not need this suppression
-      w.Write($"public interface {IdProtect(name)}");
+      var typeParamString = "";
+      if (typeParameters != null && typeParameters.Count != 0) {
+        typeParamString = $"<{TypeParameters(typeParameters)}>";
+      }
+      w.Write($"public interface {IdProtect(name)}{typeParamString}");
       if (superClasses != null) {
         string sep = " implements ";
         foreach (var trait in superClasses) {

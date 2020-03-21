@@ -133,8 +133,11 @@ namespace Microsoft.Dafny
       return new ClassWriter(this, wr.NewBlock(""));
     }
 
-    protected override IClassWriter CreateTrait(string name, bool isExtern, List<Type>/*?*/ superClasses, Bpl.IToken tok, TargetWriter wr) {
+    protected override IClassWriter CreateTrait(string name, bool isExtern, List<TypeParameter>/*?*/ typeParameters, List<Type>/*?*/ superClasses, Bpl.IToken tok, TargetWriter wr) {
       wr.Write("public interface {0}", IdProtect(name));
+      if (typeParameters != null && typeParameters.Count != 0) {
+        wr.Write("<{0}>", TypeParameters(typeParameters));
+      }
       if (superClasses != null) {
         string sep = " : ";
         foreach (var trait in superClasses) {

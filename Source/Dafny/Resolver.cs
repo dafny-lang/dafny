@@ -2346,9 +2346,6 @@ namespace Microsoft.Dafny
       // Now, we're ready for the other declarations, along with any witness clauses of newtype/subset-type declarations.
       foreach (TopLevelDecl d in declarations) {
         Contract.Assert(AllTypeConstraints.Count == 0);
-        if (d is TraitDecl && d.TypeArgs.Count > 0) {
-          reporter.Error(MessageSource.Resolver, d, "sorry, traits with type parameters are not supported");
-        }
         allTypeParameters.PushMarker();
         ResolveTypeParameters(d.TypeArgs, false, d);
         if (d is NewtypeDecl || d is SubsetTypeDecl) {
@@ -7754,7 +7751,7 @@ namespace Microsoft.Dafny
               //adding a call graph edge from the trait method to that of class
               cl.Module.CallGraph.AddEdge(traitMethod, classMethod);
 
-              refinementTransformer.CheckOverride_MethodParameters(classMethod, traitMethod);
+//              refinementTransformer.CheckOverride_MethodParameters(classMethod, traitMethod);
 
               var traitMethodAllowsNonTermination = Contract.Exists(traitMethod.Decreases.Expressions, e => e is WildcardExpr);
               var classMethodAllowsNonTermination = Contract.Exists(classMethod.Decreases.Expressions, e => e is WildcardExpr);
