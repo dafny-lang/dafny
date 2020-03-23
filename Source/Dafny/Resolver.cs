@@ -9718,7 +9718,9 @@ namespace Microsoft.Dafny
   /// It allows for generic functions over the two syntax spaces of Dafny
   /// </summary>
   public abstract class SyntaxContainer
-  {}
+  {
+      public IToken Tok;
+  }
 
   public class CExpr : SyntaxContainer
   {
@@ -9726,6 +9728,10 @@ namespace Microsoft.Dafny
 
     public CExpr(Expression body) {
       this.Body = body;
+    }
+    public CExpr(IToken tok, Expression body) {
+        this.Tok = tok;
+        this.Body = body;
     }
   }
 
@@ -9735,6 +9741,10 @@ namespace Microsoft.Dafny
 
     public CStmt(Statement body) {
       this.Body = body;
+    }
+    public CStmt(IToken tok, Statement body) {
+        this.Tok = tok;
+        this.Body = body;
     }
   }
 
@@ -9787,7 +9797,7 @@ namespace Microsoft.Dafny
   // deep clone Patterns and Body
   public static RBranchStmt CloneRBranchStmt(RBranchStmt branch) {
     Cloner cloner = new Cloner();
-    return new RBranchStmt(branch.Tok, branch.EndTok, branch.BranchID, branch.Patterns.ConvertAll(x => cloner.CloneExtendedPattern(x)), branch.Body.ConvertAll(x=> cloner.CloneStmt(x)));
+    return new RBranchStmt(branch.Tok, branch.BranchID, branch.Patterns.ConvertAll(x => cloner.CloneExtendedPattern(x)), branch.Body.ConvertAll(x=> cloner.CloneStmt(x)));
   }
 
   public static RBranchExpr CloneRBranchExpr(RBranchExpr branch) {
@@ -9816,9 +9826,9 @@ namespace Microsoft.Dafny
 
   SyntaxContainer PackBody(IToken tok, RBranch branch) {
     if (branch is RBranchStmt) {
-      return new CStmt(new BlockStmt(tok, tok, ((RBranchStmt)branch).Body));
+      return new CStmt(tok, new BlockStmt(tok, tok, ((RBranchStmt)branch).Body));
     } else if (branch is RBranchExpr) {
-      return new CExpr(((RBranchExpr)branch).Body);
+      return new CExpr(tok, ((RBranchExpr)branch).Body);
     } else {
       Contract.Assert(false); throw new cce.UnreachableException();  // RBranch has only two implementations
     }
@@ -10160,8 +10170,9 @@ namespace Microsoft.Dafny
           // If no branch matches this constructor, drop the case
           continue;
         } else {
-          // Otherwise, add the case the new match created at [3]
-          MatchCase newMatchCase = MakeMatchCaseFromContainer(currMatchee.tok, ctor, freshPatBV, insideContainer);
+            // Otherwise, add the case the new match created at [3]
+            var tok = insideContainer.Tok is null ? currMatchee.tok : insideContainer.Tok;
+            MatchCase newMatchCase = MakeMatchCaseFromContainer(tok, ctor, freshPatBV, insideContainer);
           newMatchCases.Add(newMatchCase);
         }
       }
@@ -10173,7 +10184,7 @@ namespace Microsoft.Dafny
         var newMatchExpr = new MatchExpr(mti.Tok, currMatchee, newMatchCases.ConvertAll(x => (MatchCaseExpr) x), true);
         return new CExpr(newMatchExpr);
       }
-    }else if (dtd == null && patternHeads.Exists(x => x is LitPattern)) {
+    } else if (dtd == null && patternHeads.Exists(x => x is LitPattern)) {
       // ==[3**]== If dtd is a base type and at least one of the pattern is a constant, create an If-then-else construct on the constant
       if (mti.Debug) Console.WriteLine("{0}===[3**]=== Constant matching at type {1}",
         new String('\t', mti.DebugLevel), currMatcheeType.ToString());
