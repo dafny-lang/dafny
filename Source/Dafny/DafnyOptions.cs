@@ -512,15 +512,21 @@ namespace Microsoft.Dafny
       A method or function is _tail recursive_ if all of the following
       points apply:
       * It is not mutually recursive with another method or function.
-      * Ignoring any parts of the method/function body that is ghost,
+      * Ignoring any parts of the method/function body that are ghost,
         every recursive call is a tail call (that is, the body has no
         more work to do after a recursive call). Note that any ghost
         code that follows a recursive method call is ignored.
       * In the case of a function, the function is not used as a
         first-class value inside the function body.
+      For a function F, this definition is extended to additionally allow
+      tail calls to appear in simple expressions like ""E + F(...)"" or
+      ""F(...) + E"" for certain operators ""+"" where E does not mention
+      F, provided that all such expressions are compatible. These
+      are called _simple accumulator_ tail calls.
 
       By default, Dafny compiles tail recursive methods and functions
-      using tail calls.
+      using tail calls, automatically handling simple accumulator tail
+      calls.
 
       {:tailrecursion false} is used to turn off tail calls.
 
