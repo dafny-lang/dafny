@@ -7712,11 +7712,12 @@ namespace Microsoft.Dafny {
 
     private Expression source;
     private List<MatchCaseStmt> cases;
+    public readonly MatchingContext Context;
     public readonly List<DatatypeCtor> MissingCases = new List<DatatypeCtor>();  // filled in during resolution
     public readonly bool UsesOptionalBraces;
     public MatchStmt OrigUnresolved;  // the resolver makes this clone of the MatchStmt before it starts desugaring it
 
-    public MatchStmt(IToken tok, IToken endTok, Expression source, [Captured] List<MatchCaseStmt> cases, bool usesOptionalBraces)
+    public MatchStmt(IToken tok, IToken endTok, Expression source, [Captured] List<MatchCaseStmt> cases, bool usesOptionalBraces, MatchingContext context = null)
       : base(tok, endTok) {
       Contract.Requires(tok != null);
       Contract.Requires(endTok != null);
@@ -7725,6 +7726,7 @@ namespace Microsoft.Dafny {
       this.source = source;
       this.cases = cases;
       this.UsesOptionalBraces = usesOptionalBraces;
+      this.Context = context is null? new HoleCtx() : context;
     }
 
     public Expression Source {
@@ -10500,6 +10502,7 @@ namespace Microsoft.Dafny {
   public class MatchExpr : Expression {  // a MatchExpr is an "extended expression" and is only allowed in certain places
     private Expression source;
     private List<MatchCaseExpr> cases;
+    public readonly MatchingContext Context;
     public readonly List<DatatypeCtor> MissingCases = new List<DatatypeCtor>();  // filled in during resolution
     public readonly bool UsesOptionalBraces;
     public MatchExpr OrigUnresolved;  // the resolver makes this clone of the MatchExpr before it starts desugaring it
@@ -10511,7 +10514,7 @@ namespace Microsoft.Dafny {
       Contract.Invariant(cce.NonNullElements(MissingCases));
     }
 
-    public MatchExpr(IToken tok, Expression source, [Captured] List<MatchCaseExpr> cases, bool usesOptionalBraces)
+    public MatchExpr(IToken tok, Expression source, [Captured] List<MatchCaseExpr> cases, bool usesOptionalBraces, MatchingContext context = null)
       : base(tok) {
       Contract.Requires(tok != null);
       Contract.Requires(source != null);
@@ -10519,6 +10522,7 @@ namespace Microsoft.Dafny {
       this.source = source;
       this.cases = cases;
       this.UsesOptionalBraces = usesOptionalBraces;
+      this.Context = context is null? new HoleCtx() : context;
     }
 
     public Expression Source {
@@ -10667,6 +10671,140 @@ namespace Microsoft.Dafny {
       this.body = body;
     }
   }
+  /*
+  MatchingContext is either:
+  1 - a HoleCtx
+  2 - A ForallCtx
+  3 - an IdCtx of a string and a list of MatchingContext
+  4 - a LitCtx
+  */
+  public abstract class MatchingContext
+  {
+    public abstract override string ToString();
+
+    public virtual MatchingContext AbstractAllHoles() {
+      return this;
+    }
+    public MatchingContext AbstractHole() {
+      return this.FillHole(new ForallCtx());
+    }
+    public virtual MatchingContext FillHole(MatchingContext curr) {
+      return this;
+    }
+
+  }
+
+  public class LitCtx : MatchingContext
+  {
+    public readonly LiteralExpr Lit;
+    public LitCtx(LiteralExpr lit) {
+      Contract.Requires(lit != null);
+      this.Lit = lit;
+    }
+    public override string ToString() {
+      return Printer.ExprToString(Lit);
+    }
+  }
+
+  public class HoleCtx : MatchingContext
+  {
+    public HoleCtx() {
+    }
+    public override string ToString() {
+      return "*";
+    }
+    public override MatchingContext AbstractAllHoles() {
+      return new ForallCtx();
+    }
+    public override MatchingContext FillHole(MatchingContext curr) {
+      return curr;
+    }
+
+  }
+
+  public class ForallCtx : MatchingContext
+  {
+    public ForallCtx() {
+    }
+
+    public override string ToString() {
+      return "_";
+    }
+
+  }
+
+  public class IdCtx : MatchingContext
+  {
+    public readonly String Id;
+    public readonly List<MatchingContext> Arguments;
+
+    public IdCtx(String id, List<MatchingContext> arguments) {
+      Contract.Requires(id != null);
+      Contract.Requires(arguments != null); // Arguments can be empty, but shouldn't be null
+      this.Id = id;
+      this.Arguments = arguments;
+    }
+
+    public IdCtx(KeyValuePair<string, DatatypeCtor> ctor) {
+      List<MatchingContext> arguments = Enumerable.Repeat((MatchingContext)new HoleCtx(), ctor.Value.Formals.Count).ToList();
+      this.Id = ctor.Key;
+      this.Arguments = arguments;
+    }
+
+    public override string ToString() {
+      if(Arguments.Count == 0) {
+        return Id;
+      } else {
+        List<string> cps = Arguments.ConvertAll<string>(x => x.ToString());
+        return string.Format("{0}({1})",Id, String.Join(",", cps));
+      }
+    }
+    public override MatchingContext AbstractAllHoles() {
+      return new IdCtx(this.Id, this.Arguments.ConvertAll<MatchingContext>(x => x.AbstractAllHoles()));
+    }
+    private bool ReplaceLeftmost(MatchingContext curr, out MatchingContext newcontext) {
+      var newArguments = new List<MatchingContext>();
+      for (var i = 0; i < this.Arguments.Count; i++) {
+        var arg = this.Arguments.ElementAt(i);
+        if (arg is HoleCtx) {
+          newArguments.Add(curr);
+          i++;
+          while (i < this.Arguments.Count) {
+            newArguments.Add(this.Arguments.ElementAt(i));
+            i++;
+          }
+          newcontext = new IdCtx(this.Id, newArguments);
+          return true;
+        } else if (arg is IdCtx) {
+          var idarg = (IdCtx) arg;
+          MatchingContext newarg;
+          if (idarg.ReplaceLeftmost(curr, out newarg)) {
+            newArguments.Add(newarg);
+            i++;
+            while (i < this.Arguments.Count) {
+              newArguments.Add(this.Arguments.ElementAt(i));
+              i++;
+            }
+            newcontext = new IdCtx(this.Id, newArguments);
+            return true;
+          } else {
+            newArguments.Add(newarg);
+          }
+        } else { // Forall or LitCtx
+          newArguments.Add(arg);
+        }
+      }
+
+      newcontext = new IdCtx(this.Id, newArguments);
+      return false;
+    }
+    public override MatchingContext FillHole(MatchingContext curr) {
+      MatchingContext newcontext;
+      ReplaceLeftmost(curr, out newcontext);
+      return newcontext;
+    }
+
+  }
 
   /*
   ExtendedPattern is either:
@@ -10688,7 +10826,6 @@ namespace Microsoft.Dafny {
     }
 
   }
-
   public class LitPattern : ExtendedPattern
   {
     public readonly LiteralExpr Lit;

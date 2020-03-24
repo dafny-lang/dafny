@@ -10067,6 +10067,11 @@ namespace Microsoft.Dafny
     return CtxFillOneHole(context, new IdPattern(tok, "_", new List<ExtendedPattern>()));
   }
 
+  ExtendedPattern CtxMakeCtor(IToken tok, KeyValuePair<string, DatatypeCtor> ctor) {
+    List<ExtendedPattern> ctorargs = Enumerable.Repeat((ExtendedPattern) new IdPattern(tok, "*", new List<ExtendedPattern>()), ctor.Value.Formals.Count).ToList();
+    return (ExtendedPattern) new IdPattern(tok, ctor.Key, ctorargs);
+  }
+
 
     /// <summary>
     /// Create a decision tree with flattened MatchStmt (or MatchExpr) with disjoint cases and if-constructs
@@ -10080,7 +10085,7 @@ namespace Microsoft.Dafny
     ///     continue processing the matchees
     /// Invariants: on return, MissingBranch.count should be the entree's matchees.count
     /// </summary>
-    SyntaxContainer CompileRBranch(MatchTempInfo mti, ExtendedPattern context, List<Expression> matchees, List<RBranch> branches, ICodeContext codeContext) {
+    SyntaxContainer CompileRBranch(MatchTempInfo mti, MatchingContext context, List<Expression> matchees, List<RBranch> branches, ICodeContext codeContext) {
     if (mti.Debug) {
       mti.DebugLevel++;
       Console.WriteLine("DEBUG: {0}enter", new String('\t', mti.DebugLevel));
@@ -10097,11 +10102,10 @@ namespace Microsoft.Dafny
 
     if (branches.Count == 0) {
       // ==[1]== If no branch, then match is not syntactically exhaustive -- return null
-      CtxAbstractAllHoles(context);
       if (mti.Debug) {
         Console.WriteLine("DEBUG: {0}===[1]=== No Branch", new String('\t', mti.DebugLevel));
         Console.WriteLine("DEBUG: {0}return", new String('\t', mti.DebugLevel));
-        Console.WriteLine("{2}{0} Potential exhaustiveness failure on context: {1}", mti.Tok.line, context.ToString(), new String('\t', mti.DebugLevel));
+        Console.WriteLine("{2}{0} Potential exhaustiveness failure on context: {1}", mti.Tok.line, context.AbstractAllHoles().ToString(), new String('\t', mti.DebugLevel));
         mti.DebugLevel--;
       }
       // OS: (Semantics) exhaustiveness is checked by the verifier, so no need for a warning here
@@ -10228,9 +10232,8 @@ namespace Microsoft.Dafny
         List<Expression> cmatchees= matchees.Select(x => x).ToList();
         cmatchees.AddRange(freshMatchees);
           // Update the current context
-          List<ExtendedPattern> ctorargs = Enumerable.Repeat((ExtendedPattern) new IdPattern(currMatchee.tok, "*", new List<ExtendedPattern>()), ctor.Value.Formals.Count).ToList();
-          ExtendedPattern ctorctx = (ExtendedPattern) new IdPattern(currMatchee.tok, ctor.Key, ctorargs);
-          ExtendedPattern newcontext = CtxFillOneHole(context, ctorctx);
+          MatchingContext ctorctx = new IdCtx(ctor);
+          MatchingContext newcontext = context.FillHole(ctorctx);
           var insideContainer = CompileRBranch(mti, newcontext, cmatchees, currBranches, codeContext);
         if (insideContainer is null) {
             // If no branch matches this constructor, drop the case
@@ -10245,10 +10248,10 @@ namespace Microsoft.Dafny
       }
       // Generate and pack the right kind of Match
       if (mti.isStmt) {
-        var newMatchStmt = new MatchStmt(mti.Tok, mti.EndTok, currMatchee, newMatchCases.ConvertAll(x => (MatchCaseStmt) x), true);
+        var newMatchStmt = new MatchStmt(mti.Tok, mti.EndTok, currMatchee, newMatchCases.ConvertAll(x => (MatchCaseStmt) x), true, context);
         return new CStmt(newMatchStmt);
       } else {
-        var newMatchExpr = new MatchExpr(mti.Tok, currMatchee, newMatchCases.ConvertAll(x => (MatchCaseExpr) x), true);
+        var newMatchExpr = new MatchExpr(mti.Tok, currMatchee, newMatchCases.ConvertAll(x => (MatchCaseExpr) x), true, context);
         return new CExpr(newMatchExpr);
       }
     } else if (dtd == null && patternHeads.Exists(x => x is LitPattern)) {
@@ -10305,7 +10308,7 @@ namespace Microsoft.Dafny
           }
         }
           // Update the current context
-          ExtendedPattern newcontext = CtxFillOneHole(context, new LitPattern(currMatchee.tok, currLit));
+          MatchingContext newcontext = context.FillHole(new LitCtx(currLit));
 
           // Recur on the current alternative
           var currBlock = CompileRBranch(mti, newcontext, matchees.Select(x => x).ToList(), currBranches, codeContext);
@@ -10324,7 +10327,8 @@ namespace Microsoft.Dafny
           defaultBranches.Add(currBranch);
         }
       }
-      SyntaxContainer defaultBlock = defaultBranches.Count == 0? null : CompileRBranch(mti, CtxAbstractOneHole(currMatchee.tok, context), matchees.Select(x => x).ToList(), defaultBranches, codeContext);
+      // defaultBranches.Count check is to avoid adding "missing branches" when default is not present
+      SyntaxContainer defaultBlock = defaultBranches.Count == 0? null : CompileRBranch(mti, context.AbstractHole(), matchees.Select(x => x).ToList(), defaultBranches, codeContext);
       if (defaultBlock is null) {
         if (mti.Debug) Console.WriteLine("DEBUG: 3** with no default provided");
       }
@@ -10361,7 +10365,7 @@ namespace Microsoft.Dafny
         Console.WriteLine("DEBUG: {0}return", new String('\t', mti.DebugLevel));
         mti.DebugLevel--;
       }
-      return CompileRBranch(mti, CtxAbstractOneHole(currMatchee.tok, context), matchees, pairPB.ToList().ConvertAll(new Converter<Tuple<ExtendedPattern, RBranch>, RBranch>(x => x.Item2)), codeContext);
+      return CompileRBranch(mti, context.AbstractHole(), matchees, pairPB.ToList().ConvertAll(new Converter<Tuple<ExtendedPattern, RBranch>, RBranch>(x => x.Item2)), codeContext);
     }
   }
 
@@ -10400,7 +10404,7 @@ namespace Microsoft.Dafny
 
     List<Expression> matchees = new List<Expression>();
     matchees.Add(e.Source);
-    SyntaxContainer rb = CompileRBranch(mti, new IdPattern(e.tok, "*", new List<ExtendedPattern>()), matchees, branches, codeContext);
+    SyntaxContainer rb = CompileRBranch(mti, new HoleCtx(), matchees, branches, codeContext);
     if (rb is null) {
       // Happens only if the match has no cases, create a Match with no cases as resolved expression and let ResolveMatchExpr handle it.
       e.ResolvedExpression = new MatchExpr(e.tok, (new Cloner()).CloneExpr(e.Source), new List<MatchCaseExpr>(), e.UsesOptionalBraces);
@@ -10447,7 +10451,7 @@ namespace Microsoft.Dafny
     }
     List<Expression> matchees = new List<Expression>();
     matchees.Add(s.Source);
-    SyntaxContainer rb = CompileRBranch(mti, new IdPattern(s.Tok, "*", new List<ExtendedPattern>()), matchees, branches, codeContext);
+    SyntaxContainer rb = CompileRBranch(mti, new HoleCtx(), matchees, branches, codeContext);
     if (rb is null) {
       // Happens only if the nested match has no cases, create a MatchStmt with no branches.
       s.ResolvedStatement = new MatchStmt(s.Tok, s.EndTok, (new Cloner()).CloneExpr(s.Source), new List<MatchCaseStmt>(), s.UsesOptionalBraces);
