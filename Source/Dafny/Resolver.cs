@@ -9810,8 +9810,6 @@ namespace Microsoft.Dafny
   }
 
   public static RBranch CloneRBranch(RBranch branch) {
-    if (DafnyOptions.O.MatchCompilerDebug) Console.WriteLine("DEBUG: Cloning RBranch: {0}", branch.BranchID);
-
     if (branch is RBranchStmt) {
       return CloneRBranchStmt((RBranchStmt)branch);
     } else {
@@ -9923,7 +9921,7 @@ namespace Microsoft.Dafny
           // handle an empty default
           // assert guard; item2.Body
           var contextStr = context.FillHole(new IdCtx(string.Format("c:{0}",matchee.Type.ToString()), new List<MatchingContext>())).AbstractAllHoles().ToString();
-          var errorMessage = new StringLiteralExpr(tok, string.Format("missing case in match expression: not all possibilities for constant 'c' in context {0} have been covered", contextStr), true);
+          var errorMessage = new StringLiteralExpr(tok, string.Format("missing case in match expression: {0} (not all possibilities for constant 'c' in context have been covered)", contextStr), true);
           var attr = new Attributes("error", new List<Expression>(){ errorMessage }, null);
           var ag = new AssertStmt(tok, endtok, guard, null, null, attr);
           return new CExpr(new StmtExpr(tok, ag, item2.Body));
@@ -9937,7 +9935,7 @@ namespace Microsoft.Dafny
           // handle an empty default
           // assert guard; item2.Body
           var contextStr = context.FillHole(new IdCtx(string.Format("c:{0}",matchee.Type.ToString()), new List<MatchingContext>())).AbstractAllHoles().ToString();
-          var errorMessage = new StringLiteralExpr(tok, string.Format("missing case in match statement: not all possibilities for constant 'c' in context {0} have been covered", contextStr), true);
+          var errorMessage = new StringLiteralExpr(tok, string.Format("missing case in match statement: {0} (not all possibilities for constant 'c' have been covered)", contextStr), true);
           var attr = new Attributes("error", new List<Expression>(){ errorMessage }, null);
           var ag = new AssertStmt(tok, endtok, guard, null, null, attr);
           var body = new List<Statement>();
@@ -10000,8 +9998,10 @@ namespace Microsoft.Dafny
     return new IdPattern(tok, name, type, new List<ExtendedPattern>(), isGhost);
   }
 
-  void DebugCRBranches(MatchTempInfo mti, List<Expression> matchees, List<RBranch> branches, ICodeContext context) {
+  void DebugCRBranches(MatchTempInfo mti, MatchingContext context, List<Expression> matchees, List<RBranch> branches, ICodeContext codeContext) {
     Console.WriteLine("{0}=-------=", new String('\t', mti.DebugLevel));
+    Console.WriteLine("{0}Current context:", new String('\t', mti.DebugLevel));
+    Console.WriteLine("{1}> {0}", context.ToString(), new String('\t', mti.DebugLevel));
     Console.WriteLine("{0}Current matchees:", new String('\t', mti.DebugLevel));
 
     foreach(Expression matchee in matchees) {
@@ -10009,7 +10009,7 @@ namespace Microsoft.Dafny
     }
     Console.WriteLine("{0}Current branches:", new String('\t', mti.DebugLevel));
     foreach(RBranch branch in branches) {
-      Console.WriteLine("{0}", RBranchToString(branch, mti.DebugLevel, context));
+      Console.WriteLine("{0}", RBranchToString(branch, mti.DebugLevel, codeContext));
     }
       Console.WriteLine("{0}-=======-", new String('\t', mti.DebugLevel));
   }
@@ -10031,8 +10031,7 @@ namespace Microsoft.Dafny
     if (mti.Debug) {
       mti.DebugLevel++;
       Console.WriteLine("DEBUG: {0}enter", new String('\t', mti.DebugLevel));
-      DebugCRBranches(mti, matchees, branches, codeContext);
-      Console.WriteLine("with current context: {0}", context.ToString());
+      DebugCRBranches(mti, context, matchees, branches, codeContext);
     }
 
     // For each branch, number of matchees (n) is the number of patterns held by the branch

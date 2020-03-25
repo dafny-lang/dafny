@@ -1,7 +1,12 @@
-// This file demonstrates verification errors related to pattern matching
+// RUN: %dafny /errorLimit:15 "%s" > "%t"
+// RUN: %diff "%s.expect" "%t"
 
+/*
+*  This file demonstrates verification errors related to pattern matching
+*/
 
 // missing case in match expression : Nil
+
 datatype List<T> = Nil | Cons(head: T, tail: List)
 
 function F(xs: List<int>): int {
@@ -11,6 +16,7 @@ function F(xs: List<int>): int {
 }
 
 // missing case in match statement
+
 method N(xs: List<int>) returns (r: int)
 {
   match xs {
@@ -19,14 +25,27 @@ method N(xs: List<int>) returns (r: int)
   }
 }
 
-
 // Not all possibilities for constants of type real have been covered
+
 method U(d: real) {
   match d
   case 15.0 =>
 }
 
+// More test about missing cases in presence of complexe structures and literals
+
+datatype Tree = Leaf | Branch(left:Tree, b:bool, right: Tree)
+
+method TreeTest(t:Tree) {
+  match t {
+    case Branch(Branch(left, true, right1), b, right2) =>
+    case Branch(Leaf, b, Leaf) =>
+  }
+}
+
+
 // value does not satisfy the subset constraints of 'nat'
+
 datatype Dt = Make(d: int)
 
 function method GetNat(dt: Dt): nat {

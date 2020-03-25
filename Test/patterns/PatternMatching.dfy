@@ -34,6 +34,8 @@ method NestedVariableTest(x: List<int>) returns (r: int)
 
 // Nested, Ordered patterns
 method OrderedTest(x: MyOption ) returns (r: int)
+  ensures x == None ==> r == 2
+  ensures x != None ==> r < 2
 {
   match x {
     case Some(A(i)) => r := 0;
@@ -46,7 +48,7 @@ method OrderedTest(x: MyOption ) returns (r: int)
 method VariableTest(x: List<int>) returns (r: int)
 {
   match x {
-    case a => r := 1;
+    case a => assert a == x; r := 1;
   }
 }
 
@@ -92,6 +94,7 @@ method IntTest(x: int) returns (r: int)
 }
 
 method StringTest(x: string) returns (r: int)
+ ensures r == 2 || x == "zero" || x == "one"
 {
   match x {
     case "zero" => r := 0;
@@ -121,8 +124,10 @@ method RealTest(x: real) returns (r: int)
 
 newtype N = x | x == 0 || x == 3 || x == 7
 
-method NewTypeTest() returns (r: int) {
-  var u: N := 0;
+method NewTypeTest() returns (r: int)
+  ensures r == 1
+{
+  var u: N := 3;
   match u {
     case 0 => r := 0;
     case 3 => r := 1;
@@ -131,14 +136,19 @@ method NewTypeTest() returns (r: int) {
   return;
 }
 
-datatype PairOfNumbers = P(int, int)
-method M(p: PairOfNumbers) returns (r:int) {
+datatype PairOfNumbers = P(0:int, 1:int)
+method M(p: PairOfNumbers) returns (r:int)
+  ensures p.0 == 11 && p.1 == 10 ==> r == 0
+  ensures p.0 == 11 && p.1 != 10 ==> r == 1
+  ensures p.0 == 11 || p.1 == 11 || r == 3
+{
   match p
-  case P(11, 10) => r := 0;
+  case P(11, 10) => assert p.0 != 10; r := 0;
   case P(11, a) => r := 1;
-  case P(10, 11) => r := 2;
+  case P(10, 11) => assert p.1 == 11; r := 2;
   case _ => r := 3;
 }
+
 
 // matching on Seq is not supported by the parser
 /*
@@ -168,4 +178,10 @@ method Main() {
   print "NestedVariableTest([2::3::4::5::6]) = ", r, ", should return 0 \n";
   r := ConstantTest(ee);
   print "ConstantTest([3::4::5::6]) = ", r, ", should return 2 \n";
+
+  r := M(P(11,10));
+  print "M(P(11,10)) = ", r, ", should return 0 \n";
+  r := M(P(-1,10));
+  print "M(P(-1,10)) = ", r, ", should return 3 \n";
+
 }
