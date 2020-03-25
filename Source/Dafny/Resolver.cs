@@ -9890,7 +9890,7 @@ namespace Microsoft.Dafny
   }
 
   // Assumes that all SyntaxContainers in blocks and def are of the same subclass
-  SyntaxContainer MakeIfFromContainers(MatchTempInfo mti, Expression matchee, List<Tuple<LiteralExpr, SyntaxContainer>> blocks, SyntaxContainer def) {
+  SyntaxContainer MakeIfFromContainers(MatchTempInfo mti, MatchingContext context, Expression matchee, List<Tuple<LiteralExpr, SyntaxContainer>> blocks, SyntaxContainer def) {
     if (mti.Debug) Console.WriteLine("MakeIf with {0} blocks, default is a {1}", blocks.Count, def is CExpr? "CExpr" : "StmtContainer");
 
     if (blocks.Count == 0) {
@@ -9915,14 +9915,15 @@ namespace Microsoft.Dafny
       IToken endtok = matchee.tok;
       Expression guard = new BinaryExpr(tok, BinaryExpr.Opcode.Eq, matchee, currBlock.Item1);
 
-      var elsC = MakeIfFromContainers(mti, matchee, blocks, def);
+      var elsC = MakeIfFromContainers(mti, context, matchee, blocks, def);
 
       if (currBlock.Item2 is CExpr) {
         var item2 = (CExpr) currBlock.Item2;
         if (elsC is null) {
           // handle an empty default
           // assert guard; item2.Body
-          var errorMessage = new StringLiteralExpr(tok, string.Format("Not all possibilities for constants of type {0} have been covered", matchee.Type.ToString()), true);
+          var contextStr = context.FillHole(new IdCtx(string.Format("c:{0}",matchee.Type.ToString()), new List<MatchingContext>())).AbstractAllHoles().ToString();
+          var errorMessage = new StringLiteralExpr(tok, string.Format("missing case in match expression: not all possibilities for constant 'c' in context {0} have been covered", contextStr), true);
           var attr = new Attributes("error", new List<Expression>(){ errorMessage }, null);
           var ag = new AssertStmt(tok, endtok, guard, null, null, attr);
           return new CExpr(new StmtExpr(tok, ag, item2.Body));
@@ -9935,7 +9936,8 @@ namespace Microsoft.Dafny
         if (elsC is null) {
           // handle an empty default
           // assert guard; item2.Body
-          var errorMessage = new StringLiteralExpr(tok, string.Format("Not all possibilities for constants of type {0} have been covered", matchee.Type.ToString()), true);
+          var contextStr = context.FillHole(new IdCtx(string.Format("c:{0}",matchee.Type.ToString()), new List<MatchingContext>())).AbstractAllHoles().ToString();
+          var errorMessage = new StringLiteralExpr(tok, string.Format("missing case in match statement: not all possibilities for constant 'c' in context {0} have been covered", contextStr), true);
           var attr = new Attributes("error", new List<Expression>(){ errorMessage }, null);
           var ag = new AssertStmt(tok, endtok, guard, null, null, attr);
           var body = new List<Statement>();
@@ -10010,66 +10012,6 @@ namespace Microsoft.Dafny
       Console.WriteLine("{0}", RBranchToString(branch, mti.DebugLevel, context));
     }
       Console.WriteLine("{0}-=======-", new String('\t', mti.DebugLevel));
-  }
-
-    // Make all "*" into "_"
-  ExtendedPattern CtxAbstractAllHoles(ExtendedPattern econtext)
-    {
-      if (econtext is LitPattern) return econtext;
-      var context = (IdPattern)econtext;
-      if (context.Id.StartsWith("*")) {
-        return new IdPattern(context.Tok, "*", new List<ExtendedPattern>());
-      } else {
-        return new IdPattern(context.Tok, context.Id, context.Arguments.ConvertAll(CtxAbstractAllHoles));
-      }
-  }
-
-  // Find the leftmost "*" in context and replace it with curr
-  bool CtxReplaceLeftmost(ExtendedPattern econtext, ExtendedPattern curr, out ExtendedPattern newcontext) {
-    if (econtext is LitPattern) {
-      newcontext = econtext;
-      return false;
-    }
-    var context = (IdPattern)econtext;
-
-      if (context.Id.StartsWith("*")) {
-        newcontext = curr;
-        return true;
-      } else {
-        var newArguments = new List<ExtendedPattern>();
-        for (var i = 0; i < context.Arguments.Count; i++) {
-          ExtendedPattern innercontext;
-          if(CtxReplaceLeftmost(context.Arguments.ElementAt(i), curr, out innercontext)) {
-            newArguments.Add(innercontext);
-            i++;
-            while(i < context.Arguments.Count) {
-              newArguments.Add(context.Arguments.ElementAt(i));
-              i++;
-            }
-            newcontext = new IdPattern(context.Tok, context.Id, newArguments);
-            return true;
-          } else {
-            newArguments.Add(innercontext);
-          }
-        }
-
-        newcontext = new IdPattern(context.Tok, context.Id, newArguments);
-        return false;
-      }
-  }
-
-  ExtendedPattern CtxFillOneHole(ExtendedPattern context, ExtendedPattern curr) {
-    ExtendedPattern newcontext;
-    CtxReplaceLeftmost(context, curr, out newcontext);
-    return newcontext;
-  }
-  ExtendedPattern CtxAbstractOneHole(IToken tok, ExtendedPattern context) {
-    return CtxFillOneHole(context, new IdPattern(tok, "_", new List<ExtendedPattern>()));
-  }
-
-  ExtendedPattern CtxMakeCtor(IToken tok, KeyValuePair<string, DatatypeCtor> ctor) {
-    List<ExtendedPattern> ctorargs = Enumerable.Repeat((ExtendedPattern) new IdPattern(tok, "*", new List<ExtendedPattern>()), ctor.Value.Formals.Count).ToList();
-    return (ExtendedPattern) new IdPattern(tok, ctor.Key, ctorargs);
   }
 
 
@@ -10195,7 +10137,7 @@ namespace Microsoft.Dafny
                   // mark patterns standing in for ghost field
                   item1.Arguments[ii].IsGhost = item1.Arguments[ii].IsGhost || ctor.Value.Formals[ii].IsGhost;
                 }
-                currBranch.Patterns.AddRange(item1.Arguments);
+                currBranch.Patterns.InsertRange(0, item1.Arguments);
               } else if (!ctor.Value.Formals.Count.Equals(0)) {
                 reporter.Error(MessageSource.Resolver, mti.BranchTok[PB.Item2.BranchID], "constructor {0} of arity {1} is applied to 0 argument", ctor.Key, ctor.Value.Formals.Count);
               }
@@ -10219,7 +10161,7 @@ namespace Microsoft.Dafny
               List<IdPattern> freshArgs = ctor.Value.Formals.ConvertAll(x =>
                 CreateFreshId(item1.Tok, SubstType(x.Type, subst), codeContext, x.IsGhost));
 
-              currBranch.Patterns.AddRange(freshArgs);
+              currBranch.Patterns.InsertRange(0, freshArgs);
               LetBindNonWildCard(currBranch, item1, rhsExpr);
               currBranches.Add(currBranch);
             }
@@ -10230,7 +10172,7 @@ namespace Microsoft.Dafny
         // Add variables corresponding to the arguments of the current constructor (ctor) to the matchees
         List<IdentifierExpr> freshMatchees = freshPatBV.ConvertAll(x => new IdentifierExpr(x.tok, x) { Var = x, Type = x.Type});
         List<Expression> cmatchees= matchees.Select(x => x).ToList();
-        cmatchees.AddRange(freshMatchees);
+        cmatchees.InsertRange(0, freshMatchees);
           // Update the current context
           MatchingContext ctorctx = new IdCtx(ctor);
           MatchingContext newcontext = context.FillHole(ctorctx);
@@ -10333,7 +10275,7 @@ namespace Microsoft.Dafny
         if (mti.Debug) Console.WriteLine("DEBUG: 3** with no default provided");
       }
       // Create If-construct joining the alternatives
-      var ifcon = MakeIfFromContainers(mti, currMatchee, currBlocks, defaultBlock);
+      var ifcon = MakeIfFromContainers(mti, context, currMatchee, currBlocks, defaultBlock);
       return ifcon;
 
     } else {
