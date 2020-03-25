@@ -1157,10 +1157,7 @@ namespace Microsoft.Dafny {
       super = super.NormalizeExpand();
       sub = sub.NormalizeExpand();
       var polarities = GetPolarities(super);
-      Contract.Assert(super.IsTraitType ? polarities.Count == 0 : polarities.Count == super.TypeArgs.Count && polarities.Count == sub.TypeArgs.Count);
-      if (super.IsTraitType) {
-        return true;
-      }
+      Contract.Assert(polarities.Count == super.TypeArgs.Count && polarities.Count == sub.TypeArgs.Count);
       var allGood = true;
       for (int i = 0; allGood && i < polarities.Count; i++) {
         switch (polarities[i]) {
@@ -1686,9 +1683,6 @@ namespace Microsoft.Dafny {
         } else if (aa is ClassDecl && bb is ClassDecl) {
           var A = (ClassDecl)aa;
           var B = (ClassDecl)bb;
-          // Here are the assumptions about the type system that the rest of this code depends on:
-          Contract.Assert(!(A is TraitDecl) || (A.TypeArgs.Count == 0 && ((TraitDecl)A).TraitsTyp.Count == 0));
-          Contract.Assert(!(B is TraitDecl) || (B.TypeArgs.Count == 0 && ((TraitDecl)B).TraitsTyp.Count == 0));
           if (A.DerivesFrom(B)) {
             var udtB = (UserDefinedType)b;
             return abNonNullTypes ? UserDefinedType.CreateNonNullType(udtB) : udtB;

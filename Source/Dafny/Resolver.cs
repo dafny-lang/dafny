@@ -3855,8 +3855,16 @@ namespace Microsoft.Dafny
           return polarities;
         } else if (clSub is ClassDecl && ((ClassDecl)clSub).DerivesFrom(clSuper)) {
           // cool
-          Contract.Assert(clSuper.TypeArgs.Count == 0);  // traits are currently not allowed to have any type parameters
-          return new List<int>();
+          var polarities = new List<int>();
+          Contract.Assert(clSuper.TypeArgs.Count == udfSuper.TypeArgs.Count);
+          Contract.Assert(clSuper.TypeArgs.Count == udfSub.TypeArgs.Count);
+          foreach (var tp in clSuper.TypeArgs) {
+            var polarity =
+              tp.Variance == TypeParameter.TPVariance.Co ? 1 :
+              tp.Variance == TypeParameter.TPVariance.Contra ? -1 : 0;
+            polarities.Add(polarity);
+          }
+          return polarities;
         } else {
           return null;
         }
@@ -7574,47 +7582,52 @@ namespace Microsoft.Dafny
       Contract.Ensures(currentClass == null);
       currentClass = cl;
 
-      if (cl.TraitsTyp.Count > 0 && cl.TypeArgs.Count > 0) {
-        reporter.Error(MessageSource.Resolver, cl.tok, "sorry, traits are currently supported only for classes that take no type arguments");  // TODO: do the work to remove this limitation
-      }
+      // TODO-RS: Type parameters here
+      WithResolvedTypeParameters(cl, () => {
 
-      // Resolve names of traits extended
-      foreach (var tt in cl.TraitsTyp) {
-        var prevErrorCount = reporter.Count(ErrorLevel.Error);
-        ResolveType_ClassName(cl.tok, tt, new NoContext(cl.Module), ResolveTypeOptionEnum.DontInfer, null);
-        if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
-          var udt = tt as UserDefinedType;
-          if (udt != null && udt.ResolvedClass is NonNullTypeDecl && ((NonNullTypeDecl)udt.ResolvedClass).ViewAsClass is TraitDecl) {
-            var trait = (TraitDecl)((NonNullTypeDecl)udt.ResolvedClass).ViewAsClass;
-            //disallowing inheritance in multi module case
-            bool termination = true;
-            if (cl.Module == trait.Module || (Attributes.ContainsBool(trait.Attributes, "termination", ref termination) && !termination)) {
-              // all is good (or the user takes responsibility for the lack of termination checking)
-              cl.TraitsObj.Add(trait);
+        // Resolve names of traits extended
+        foreach (var tt in cl.TraitsTyp) {
+          var prevErrorCount = reporter.Count(ErrorLevel.Error);
+          ResolveType_ClassName(cl.tok, tt, new NoContext(cl.Module), ResolveTypeOptionEnum.DontInfer, null);
+          if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
+            var udt = tt as UserDefinedType;
+            if (udt != null && udt.ResolvedClass is NonNullTypeDecl &&
+                ((NonNullTypeDecl) udt.ResolvedClass).ViewAsClass is TraitDecl) {
+              var trait = (TraitDecl) ((NonNullTypeDecl) udt.ResolvedClass).ViewAsClass;
+              //disallowing inheritance in multi module case
+              bool termination = true;
+              if (cl.Module == trait.Module ||
+                  (Attributes.ContainsBool(trait.Attributes, "termination", ref termination) && !termination)) {
+                // all is good (or the user takes responsibility for the lack of termination checking)
+                cl.TraitsObj.Add(trait);
+              } else {
+                reporter.Error(MessageSource.Resolver, udt.tok,
+                  "class '{0}' is in a different module than trait '{1}'. A class may only extend a trait in the same module.",
+                  cl.Name, trait.FullName);
+              }
             } else {
-              reporter.Error(MessageSource.Resolver, udt.tok, "class '{0}' is in a different module than trait '{1}'. A class may only extend a trait in the same module.", cl.Name, trait.FullName);
+              reporter.Error(MessageSource.Resolver, udt != null ? udt.tok : cl.tok,
+                "a class can only extend traits (found '{0}')", tt);
             }
-          } else {
-            reporter.Error(MessageSource.Resolver, udt != null ? udt.tok : cl.tok, "a class can only extend traits (found '{0}')", tt);
           }
         }
-      }
 
-      // Inherit members from traits.  What we do here is simply to register names, and in particular to register
-      // names that are no already in the class.
-      var members = classMembers[cl];
-      foreach (var trait in cl.TraitsObj) {
-        foreach (var traitMember in trait.Members) {
-          MemberDecl classMember;
-          if (members.TryGetValue(traitMember.Name, out classMember)) {
-            // the class already declares or inherits a member with this name, so we take no further action at this time
-          } else {
-            // register the trait member in the class
-            members.Add(traitMember.Name, traitMember);
+        // Inherit members from traits.  What we do here is simply to register names, and in particular to register
+        // names that are no already in the class.
+        var members = classMembers[cl];
+        foreach (var trait in cl.TraitsObj) {
+          foreach (var traitMember in trait.Members) {
+            MemberDecl classMember;
+            if (members.TryGetValue(traitMember.Name, out classMember)) {
+              // the class already declares or inherits a member with this name, so we take no further action at this time
+            } else {
+              // register the trait member in the class
+              members.Add(traitMember.Name, traitMember);
+            }
           }
         }
-      }
-
+      });
+      
       currentClass = null;
     }
 
@@ -8198,6 +8211,16 @@ namespace Microsoft.Dafny
       }
     }
 
+    void WithResolvedTypeParameters(TopLevelDecl d, Action a) {
+      allTypeParameters.PushMarker();
+      try {
+        ResolveTypeParameters(d.TypeArgs, false, d);
+        a.Invoke();
+      } finally {
+        allTypeParameters.PopMarker();
+      }
+    }
+    
     void ScopePushAndReport(Scope<IVariable> scope, IVariable v, string kind) {
       Contract.Requires(scope != null);
       Contract.Requires(v != null);

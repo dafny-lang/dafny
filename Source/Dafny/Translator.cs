@@ -2198,7 +2198,7 @@ namespace Microsoft.Dafny {
       } else if (c is ClassDecl) {
         //this adds: axiom implements$J(class.C);
         foreach (var trait in ((ClassDecl)c).TraitsObj) {
-          var arg = ClassTyCon(c, new List<Expr>());  // TODO: this needs more work if overridingClass has type parameters
+          var arg = ClassTyCon(c, new List<Expr>());  // TODO-RS: this needs more work if overridingClass has type parameters
           var expr = FunctionCall(c.tok, "implements$" + trait.FullSanitizedName, Bpl.Type.Bool, arg);
           var implements_axiom = new Bpl.Axiom(c.tok, expr);
           sink.AddTopLevelDeclaration(implements_axiom);
