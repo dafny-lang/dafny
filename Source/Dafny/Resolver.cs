@@ -1979,7 +1979,7 @@ namespace Microsoft.Dafny
               // In the call graph, add an edge from M# to M, since this will have the desired effect of detecting unwanted cycles.
               moduleDef.CallGraph.AddEdge(com.PrefixLemma, com);
             }
-            extraMember.InheritVisibility(m);
+            extraMember.InheritVisibility(m, false);
             members.Add(extraName, extraMember);
           }
         } else if (m is Constructor && !((Constructor)m).HasName) {

@@ -285,10 +285,10 @@ module Client_ProvideExtreme {
 
   lemma Lemma(k: ORDINAL, r: real)
     requires E.P(r)
-    // TODO: requires E.P#[k](r)
+    requires E.P#[k](r)
   {
     E.L(r);
-    // TODO: E.L#[k](r);
+    E.L#[k](r);
     assert E.OpaqueFunction(r) == 10 by {
       reveal E.OpaqueFunction();  // error: no reveal lemma
     }
@@ -303,7 +303,7 @@ module Client_RevealExtreme {
     requires E.P#[k](r)
   {
     E.L(r);
-    // TODO: E.L#[k](r);
+    E.L#[k](r);
     assert E.OpaqueFunction(r) == 10 by {
       reveal E.OpaqueFunction();
     }
