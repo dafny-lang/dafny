@@ -8,7 +8,7 @@ Inc.dfy(83,12): Related location: This is the postcondition that might not hold.
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Then
-Inc.dfy(92,8): Error BP5003: A postcondition might not hold on this return path.
+Inc.dfy(93,2): Error BP5003: A postcondition might not hold on this return path.
 Inc.dfy(90,12): Related location: This is the postcondition that might not hold.
 Execution trace:
     (0,0): anon0
@@ -19,7 +19,7 @@ Inc.dfy(110,12): Related location: This is the postcondition that might not hold
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Then
-Inc.dfy(119,8): Error BP5003: A postcondition might not hold on this return path.
+Inc.dfy(120,2): Error BP5003: A postcondition might not hold on this return path.
 Inc.dfy(117,12): Related location: This is the postcondition that might not hold.
 Execution trace:
     (0,0): anon0
@@ -35,7 +35,7 @@ Inc.dfy(210,12): Related location: This is the postcondition that might not hold
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Then
-Inc.dfy(219,8): Error BP5003: A postcondition might not hold on this return path.
+Inc.dfy(220,2): Error BP5003: A postcondition might not hold on this return path.
 Inc.dfy(217,12): Related location: This is the postcondition that might not hold.
 Execution trace:
     (0,0): anon0
@@ -46,7 +46,7 @@ Inc.dfy(237,12): Related location: This is the postcondition that might not hold
 Execution trace:
     (0,0): anon0
     (0,0): anon3_Then
-Inc.dfy(246,8): Error BP5003: A postcondition might not hold on this return path.
+Inc.dfy(247,2): Error BP5003: A postcondition might not hold on this return path.
 Inc.dfy(244,12): Related location: This is the postcondition that might not hold.
 Execution trace:
     (0,0): anon0
