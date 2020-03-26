@@ -2875,3 +2875,19 @@ module MapDisjointnessNoMore {
     assert a.Keys !! b.Keys;  // instead, this is the way to do it
   }
 }
+
+// --------------- expect statements ------------------------------
+
+module ExpectStatements {
+
+  function UnsafeDivide(a: int, b: int): int {
+    expect b != 0;  // expect statement is not allowed in this context
+    a / b
+  }
+
+  method M() {
+    ghost var g := 5;
+    expect forall i : int :: i == i;  // error: quantifiers in non-ghost contexts must be compilable
+    expect false, if g == 5 then "boom" else "splat"; // error: ghost variables are allowed only in specification contexts
+  }
+}

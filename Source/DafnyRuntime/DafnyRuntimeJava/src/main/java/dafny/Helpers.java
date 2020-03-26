@@ -31,45 +31,6 @@ public class Helpers {
         return f.apply(t);
     }
 
-    public static Object getDefault(String s) {
-        if (s == null || s.startsWith("interface "))
-            return null;
-        try {
-            if (!s.startsWith("class ")){
-                Object o = Class.forName(s).newInstance();
-                if(o.toString().contains("@"))
-                    return null;
-                else
-                    return o;
-            }
-            if (s.startsWith("class [")) {
-                return null;
-            }
-            switch (s) {
-                case "class java.math.BigInteger":
-                    return BigInteger.ZERO;
-                case "class java.lang.Boolean":
-                    return new Boolean(false);
-                case "class java.math.BigDecimal":
-                    return new BigDecimal(0);
-                case "class java.lang.Character":
-                    return 'D';
-                case "class dafny.DafnySequence":
-                    return DafnySequence.<Object> empty();
-                default:
-                    String xs = s.substring(6);
-                    Object o = Class.forName(xs).newInstance();
-                    if(o.toString().contains("@"))
-                        return null;
-                    else
-                        return o;
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return null;
-    }
-
     /* Returns Iterable in range [lo, hi-1] if lo and hi are both not null.
     If lo == null, returns Iterable that infinitely ranges down from hi-1.
     If hi == null, returns Iterable that infinitely ranges up from lo.
@@ -128,40 +89,41 @@ public class Helpers {
         };
     }
 
-    public static Character createCharacter(UByte t) {
-        assert 0 <= t.intValue() && t.intValue() <= 65535;
-        return new Character((char)t.intValue());
-    }
-
-    public static Character createCharacter(UInt t) {
-        assert 0 <= t.value() && t.value() <= 65535;
-        return new Character((char)t.value());
-    }
-
-    public static Character createCharacter(ULong t) {
-        assert 0 <= t.value() && t.value() <= 65535;
-        return new Character((char)t.value());
-    }
-
-    public static Character createCharacter(long t) {
-        assert 0 <= t && t <= 65535;
-        return new Character((char)t);
-    }
-
-    public static Class getClassUnsafe(String s) {
-        try {
-            return Class.forName(s);
-        }
-        catch(ClassNotFoundException e) {
-            throw new RuntimeException("Class " + s + " not found.");
-        }
-    }
-
     public static <G> String toString(G g) {
         if (g == null) {
             return "null";
         } else {
             return g.toString();
+        }
+    }
+
+    public static int toInt(BigInteger i) {
+        return i.intValue();
+    }
+
+    public static int toInt(int i) {
+        return i;
+    }
+
+    public static int toInt(long l) {
+        return (int) l;
+    }
+
+    private final static BigInteger ULONG_LIMIT = new BigInteger("18446744073709551616");  // 0x1_0000_0000_0000_0000
+
+    public static BigInteger unsignedLongToBigInteger(long l) {
+        if (0 <= l) {
+            return BigInteger.valueOf(l);
+        } else {
+            return BigInteger.valueOf(l).add(ULONG_LIMIT);
+        }
+    }
+    
+    public static void withHaltHandling(Runnable runnable) {
+        try {
+            runnable.run();
+        } catch (DafnyHaltException e) {
+            System.err.println("Program halted: " + e.getMessage());
         }
     }
 }

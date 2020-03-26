@@ -33,7 +33,7 @@ public class DafnyEuclidean {
                 // +a -b: -(a/(-b))
                 // if value of b is 0x80000000, then there is no positive representation for integers, so use uint
                 if (b == Integer.MIN_VALUE)
-                    return new UInt(a).divide(new UInt(Integer.MIN_VALUE)).value() * -1;
+                    return Integer.divideUnsigned(a, Integer.MIN_VALUE) * -1;
                 else return -(a / -b);
             }
         } else {
@@ -45,7 +45,7 @@ public class DafnyEuclidean {
             } else {
                 // -a -b: ((-a-1)/(-b)) + 1
                 if (b == Integer.MIN_VALUE)
-                    return new UInt(-(a + 1)).divide(new UInt(Integer.MIN_VALUE)).value() + 1;
+                    return Integer.divideUnsigned(-(a + 1), Integer.MIN_VALUE) + 1;
                 else return (-(a + 1)) / (-b) + 1;
             }
         }
@@ -61,7 +61,7 @@ public class DafnyEuclidean {
                 // +a -b: -(a/(-b))
                 // if value of b is 0x8000000000000000L, then there is no positive representation for longs,
                 // so use ulong
-                if (b == Long.MIN_VALUE) return new ULong(a).divide(new ULong(Long.MIN_VALUE)).value() * -1;
+                if (b == Long.MIN_VALUE) return Long.divideUnsigned(a, Long.MIN_VALUE) * -1;
                 else return -(a / -b);
             }
         } else {
@@ -73,7 +73,7 @@ public class DafnyEuclidean {
             } else {
                 // -a -b: ((-a-1)/(-b)) + 1
                 if (b == Long.MIN_VALUE)
-                    return new ULong(-(a + 1)).divide(new ULong(Long.MIN_VALUE)).value() + 1;
+                    return Long.divideUnsigned(-(a + 1), Long.MIN_VALUE) + 1;
                 else return (-(a + 1)) / (-b) + 1;
             }
         }
@@ -116,7 +116,7 @@ public class DafnyEuclidean {
         assert b != 0 : "Precondition Failure";
         if (0 <= a) {
             // +a: a % b'
-            if (b == Integer.MIN_VALUE) return (int) new UInt(a).mod(new UInt(b)).value();
+            if (b == Integer.MIN_VALUE) return Integer.remainderUnsigned(a, b);
             else if (b < 0) return a % -b;
             else return a % b;
         } else {
@@ -126,10 +126,10 @@ public class DafnyEuclidean {
             if (a == Integer.MIN_VALUE || b == Integer.MIN_VALUE) {
                 if (a == b) return 0;
                 else if (b == Integer.MIN_VALUE) {
-                    return new UInt(b).subtract(new UInt(-a).mod(new UInt(b))).value();
+                    return b - Integer.remainderUnsigned(-a, b);
                 } else {
                     int bp = b < 0 ? -b : b;
-                    return new UInt(bp).subtract(new UInt(a).mod(new UInt(bp))).value();
+                    return bp - Integer.remainderUnsigned(a, bp);
                 }
             } else {
                 int bp = b < 0 ? -b : b;
@@ -143,7 +143,7 @@ public class DafnyEuclidean {
         assert b != 0 : "Precondition Failure";
         if (0 <= a) {
             // +a: a % b'
-            if (b == Long.MIN_VALUE) return (int) new ULong(a).mod(new ULong(b)).value();
+            if (b == Long.MIN_VALUE) return Long.remainderUnsigned(a, b);
             else if (b < 0) return a % -b;
             else return a % b;
         } else {
@@ -153,10 +153,10 @@ public class DafnyEuclidean {
             if (a == Long.MIN_VALUE || b == Long.MIN_VALUE) {
                 if (a == b) return 0;
                 else if (b == Long.MIN_VALUE) {
-                    return new ULong(b).subtract(new ULong(-a).mod(new ULong(b))).value();
+                    return b - Long.remainderUnsigned(-a, b);
                 } else {
                     long bp = b < 0 ? -b : b;
-                    return new ULong(bp).subtract(new ULong(a).mod(new ULong(bp))).value();
+                    return bp - Long.remainderUnsigned(a, bp);
                 }
             } else {
                 long bp = b < 0 ? -b : b;

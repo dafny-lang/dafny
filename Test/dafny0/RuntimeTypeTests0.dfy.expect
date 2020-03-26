@@ -1,6 +1,6 @@
 
 Dafny program verifier finished with 4 verified, 0 errors
-RuntimeTypeTests0.dfy(37,9): Error: compilation does not support trait types as a type parameter; consider introducing a ghost
-RuntimeTypeTests0.dfy(46,9): Error: compilation does not support trait types as a type parameter; consider introducing a ghost
-RuntimeTypeTests0.dfy(55,6): Error: compilation of set<TRAIT> is not supported; consider introducing a ghost
-RuntimeTypeTests0.dfy(55,20): Error: compilation of set<TRAIT> is not supported; consider introducing a ghost
+RuntimeTypeTests0.dfy(45,9): Error: compilation does not support trait types as a type parameter; consider introducing a ghost
+RuntimeTypeTests0.dfy(54,9): Error: compilation does not support trait types as a type parameter; consider introducing a ghost
+RuntimeTypeTests0.dfy(63,6): Error: compilation of set<TRAIT> is not supported; consider introducing a ghost
+RuntimeTypeTests0.dfy(63,20): Error: compilation of set<TRAIT> is not supported; consider introducing a ghost

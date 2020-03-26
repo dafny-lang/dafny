@@ -1,0 +1,12 @@
+
+Dafny program verifier finished with 2 verified, 0 errors
+Program halted: NatOutcome.NatFailure(Kaboom!)
+
+Dafny program verifier finished with 2 verified, 0 errors
+Program halted: NatOutcome.NatFailure(Kaboom!)
+
+Dafny program verifier finished with 2 verified, 0 errors
+Program halted: NatOutcome.NatFailure([K, a, b, o, o, m, !])
+
+Dafny program verifier finished with 2 verified, 0 errors
+Program halted: NatOutcome.NatFailure(Kaboom!)

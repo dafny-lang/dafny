@@ -5384,6 +5384,9 @@ namespace Microsoft.Dafny {
     public override bool CanBeRevealed() { return true; }
     public readonly bool IsProtected;
     public bool IsRecursive;  // filled in during resolution
+    public TailStatus TailRecursion = TailStatus.NotTailRecursive;  // filled in during resolution; NotTailRecursive = no tail recursion; TriviallyTailRecursive is never used here
+    public bool IsTailRecursive => TailRecursion != TailStatus.NotTailRecursive;
+    public bool IsAccumulatorTailRecursive => IsTailRecursive && TailRecursion != Function.TailStatus.TailRecursive;
     public bool IsFueled;  // filled in during resolution if anyone tries to adjust this function's fuel
     public readonly List<TypeParameter> TypeArgs;
     public readonly List<Formal> Formals;
@@ -5402,6 +5405,23 @@ namespace Microsoft.Dafny {
     public bool ContainsQuantifier {
       set { containsQuantifier = value; }
       get { return containsQuantifier;  }
+    }
+
+    public enum TailStatus
+    {
+      TriviallyTailRecursive, // contains no recursive calls (in non-ghost expressions)
+      TailRecursive, // all recursive calls (in non-ghost expressions) are tail calls
+      NotTailRecursive, // contains some non-ghost recursive call outside of a tail-call position
+      // E + F or F + E, where E has no tail call and F is a tail call
+      Accumulate_Add,
+      AccumulateRight_Sub,
+      Accumulate_Mul,
+      Accumulate_SetUnion,
+      AccumulateRight_SetDifference,
+      Accumulate_MultiSetUnion,
+      AccumulateRight_MultiSetDifference,
+      AccumulateLeft_Concat,
+      AccumulateRight_Concat,
     }
 
     public override IEnumerable<Expression> SubExpressions {
@@ -6225,6 +6245,27 @@ namespace Microsoft.Dafny {
     }
   }
 
+  public class ExpectStmt : PredicateStmt
+  {
+    public Expression Message;
+    public ExpectStmt(IToken tok, IToken endTok, Expression expr, Expression message, Attributes attrs)
+      : base(tok, endTok, expr, attrs) {
+      Contract.Requires(tok != null);
+      Contract.Requires(endTok != null);
+      Contract.Requires(expr != null);
+      this.Message = message;
+    }
+
+    public override IEnumerable<Expression> SubExpressions {
+      get {
+        foreach (var e in base.SubExpressions) { yield return e; }
+        if (Message != null) {
+          yield return Message;
+        }
+      }
+    }
+  }
+
   public class AssumeStmt : PredicateStmt {
     public AssumeStmt(IToken tok, IToken endTok, Expression expr, Attributes attrs)
       : base(tok, endTok, expr, attrs) {
@@ -6748,6 +6789,7 @@ namespace Microsoft.Dafny {
   public class AssignOrReturnStmt : ConcreteUpdateStatement
   {
     public readonly Expression Rhs; // this is the unresolved RHS, and thus can also be a method call
+    public readonly IToken ExpectToken;
     public readonly List<Statement> ResolvedStatements = new List<Statement>();  // contents filled in during resolution
     public override IEnumerable<Statement> SubStatements {
       get { return ResolvedStatements; }
@@ -6763,7 +6805,7 @@ namespace Microsoft.Dafny {
       Contract.Invariant(Rhs != null);
     }
 
-    public AssignOrReturnStmt(IToken tok, IToken endTok, List<Expression> lhss, Expression rhs)
+    public AssignOrReturnStmt(IToken tok, IToken endTok, List<Expression> lhss, Expression rhs, IToken expectToken)
       : base(tok, endTok, lhss)
     {
       Contract.Requires(tok != null);
@@ -6772,6 +6814,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(lhss.Count <= 1);
       Contract.Requires(rhs != null);
       Rhs = rhs;
+      ExpectToken = expectToken;
     }
   }
 
@@ -9144,26 +9187,6 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public class RevealExpr : Expression
-  {
-    public readonly Expression Expr;
-    public Expression ResolvedExpression;
-
-    public override IEnumerable<Expression> SubExpressions {
-      get {
-        if (ResolvedExpression != null) {
-          yield return ResolvedExpression;
-        }
-      }
-    }
-
-    public RevealExpr(IToken tok, Expression expr)
-      : base(tok)
-    {
-      this.Expr = expr;
-    }
-  }
-
   public class FunctionCallExpr : Expression {
     public readonly string Name;
     public readonly Expression Receiver;
@@ -9670,6 +9693,8 @@ namespace Microsoft.Dafny {
     }
     public readonly Expression E0;
     public readonly Expression E1;
+    public enum AccumulationOperand { None, Left, Right }
+    public AccumulationOperand AccumulatesForTailRecursion = AccumulationOperand.None; // set by Resolver
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(E0 != null);
@@ -10457,6 +10482,8 @@ namespace Microsoft.Dafny {
       } else if (S is CalcStmt) {
         var s = (CalcStmt)S;
         return s.Result;
+      } else if (S is RevealStmt) {
+        return new LiteralExpr(tok, true);  // one could use the definition axiom or the referenced labeled assertions, but "true" is conservative and much simpler :)
       } else if (S is UpdateStmt) {
         return new LiteralExpr(tok, true);  // one could use the postcondition of the method, suitably instantiated, but "true" is conservative and much simpler :)
       } else {

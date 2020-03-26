@@ -5,4 +5,4 @@ has the following parts:
 host: localhost:8080
 pathname: /default.htm
 search: year=1915&month=august&day=29
-Parse error: parse http://localhost:8080/default.htm%: invalid URL escape "%"
+Parse error: parse "http://localhost:8080/default.htm%": invalid URL escape "%"
