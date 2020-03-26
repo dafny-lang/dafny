@@ -859,6 +859,15 @@ namespace Microsoft.Dafny {
         return udt != null && udt.ResolvedParam == null ? udt.ResolvedClass as TopLevelDeclWithMembers : null;
       }
     }
+    public TopLevelDeclWithMembers/*?*/ AsTopLevelTypeWithMembersBypassInternalSynonym {
+      get {
+        var udt = NormalizeExpand() as UserDefinedType;
+        if (udt != null && udt.ResolvedClass is InternalTypeSynonymDecl isyn) {
+          udt = isyn.RhsWithArgumentIgnoringScope(udt.TypeArgs) as UserDefinedType;
+        }
+        return udt != null && udt.ResolvedParam == null ? udt.ResolvedClass as TopLevelDeclWithMembers : null;
+      }
+    }
     /// <summary>
     /// Returns "true" if the type represents the "object?".
     /// </summary>
