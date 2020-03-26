@@ -84,6 +84,7 @@ namespace Microsoft.Dafny {
       var companion = TypeName_Companion(mainMethod.EnclosingClass as ClassDecl, wr, mainMethod.tok);
 
       var wBody = wr.NewNamedBlock("func main()");
+      wBody.WriteLine("defer _dafny.CatchHalt()");
       wBody.WriteLine("{0}.{1}()", companion, IdName(mainMethod));
     }
 
@@ -998,7 +999,6 @@ namespace Microsoft.Dafny {
         case NativeType.Selection.ULong:
           name = "uint64";
           break;
-        case NativeType.Selection.Number:
         case NativeType.Selection.Long:
           name = "int64";
           break;
@@ -1070,14 +1070,14 @@ namespace Microsoft.Dafny {
     }
 
     protected BlockTargetWriter/*?*/ CreateMethod(Method m, bool createBody, string ownerName, TargetWriter abstractWriter, TargetWriter concreteWriter) {
-      return CreateSubroutine(IdName(m), m.TypeArgs, m.Ins, m.Outs, null, m.tok, m.IsStatic, m.IsTailRecursive, createBody, ownerName, m, abstractWriter, concreteWriter);
+      return CreateSubroutine(IdName(m), m.TypeArgs, m.Ins, m.Outs, null, m.tok, m.IsStatic, createBody, ownerName, m, abstractWriter, concreteWriter);
     }
 
     protected BlockTargetWriter/*?*/ CreateFunction(string name, List<TypeParameter>/*?*/ typeArgs, List<Formal> formals, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl member, string ownerName, TargetWriter abstractWriter, TargetWriter concreteWriter) {
-      return CreateSubroutine(name, typeArgs, formals, new List<Formal>(), resultType, tok, isStatic, false, createBody, ownerName, member, abstractWriter, concreteWriter);
+      return CreateSubroutine(name, typeArgs, formals, new List<Formal>(), resultType, tok, isStatic, createBody, ownerName, member, abstractWriter, concreteWriter);
     }
 
-    private BlockTargetWriter CreateSubroutine(string name, List<TypeParameter>/*?*/ typeArgs, List<Formal> inParams, List<Formal> outParams, Type/*?*/ resultType, Bpl.IToken tok, bool isStatic, bool isTailRecursive, bool createBody, string ownerName, MemberDecl member, TargetWriter abstractWriter, TargetWriter concreteWriter) {
+    private BlockTargetWriter CreateSubroutine(string name, List<TypeParameter>/*?*/ typeArgs, List<Formal> inParams, List<Formal> outParams, Type/*?*/ resultType, Bpl.IToken tok, bool isStatic, bool createBody, string ownerName, MemberDecl member, TargetWriter abstractWriter, TargetWriter concreteWriter) {
       var customReceiver = NeedsCustomReceiver(member);
       TargetWriter wr;
       if (createBody || abstractWriter == null) {
@@ -1105,12 +1105,6 @@ namespace Microsoft.Dafny {
 
       if (createBody) {
         var w = wr.NewBlock("");
-
-        if (isTailRecursive) {
-          w.WriteLine("goto TAIL_CALL_START");
-          w.WriteLine("TAIL_CALL_START:");
-        }
-
         if (outParams.Any()) {
           var r = new TargetWriter(w.IndentLevel);
           EmitReturn(outParams, r);
@@ -1335,6 +1329,12 @@ namespace Microsoft.Dafny {
       }
     }
 
+    protected override BlockTargetWriter EmitTailCallStructure(MemberDecl member, BlockTargetWriter wr) {
+      wr.WriteLine("goto TAIL_CALL_START");
+      wr.WriteLine("TAIL_CALL_START:");
+      return wr;
+    }
+
     protected override void EmitJumpToTailCallStart(TargetWriter wr) {
       wr.WriteLine("goto TAIL_CALL_START");
     }
@@ -1467,7 +1467,7 @@ namespace Microsoft.Dafny {
         if (td.Witness != null) {
           return TypeName_Companion(cl, wr, tok) + ".Witness()";
         } else if (td.NativeType != null) {
-          return "0";
+          return GetNativeTypeName(td.NativeType) + "(0)";
         } else {
           return TypeInitializationValue(td.BaseType, wr, tok, inAutoInitContext);
         }
@@ -1723,31 +1723,17 @@ namespace Microsoft.Dafny {
 
     // ----- Statements -------------------------------------------------------------
 
-    protected override void EmitMultiAssignment(out List<TargetWriter> wLhss, List<Type> lhsTypes, out List<TargetWriter> wRhss, List<Type> rhsTypes, TargetWriter wr) {
-      Contract.Assert(lhsTypes.Count == rhsTypes.Count);
-      wLhss = new List<TargetWriter>();
-      wRhss = new List<TargetWriter>();
-
-      var sep = "";
-      foreach (var _ in lhsTypes) {
-        wr.Write(sep);
-        var wLhs = wr.Fork();
-        wLhss.Add(wLhs);
-        sep = ", ";
-      }
-
-      wr.Write(" = ");
-
-      sep = "";
-      for (int i = 0; i < rhsTypes.Count; i++) {
-        wr.Write(sep);
-        var wRhs = wr.Fork();
-        wRhs = EmitCoercionIfNecessary(from:rhsTypes[i], to:lhsTypes[i], tok:null, wr:wRhs);
-        wRhss.Add(wRhs);
-        sep = ", ";
-      }
-
-      wr.WriteLine();
+    protected override void EmitMultiAssignment(List<ILvalue> wLhss, List<Type> lhsTypes, out List<TargetWriter> wRhss, List<Type> rhsTypes, TargetWriter wr) {
+      // TODO Go actually supports multi-assignment, but that will only work
+      // in the simple (but very typical) case where an lvalue represents an
+      // actual lvalue that is written via an assignment statement.  (Actually,
+      // currently *all* Go lvalues work this way, but in the future we could
+      // implement getters and setters via ILvalueWriter.)
+      //
+      // Given a way to inquire whether a given lvalue is an actual lvalue in
+      // the target, we could implement multi-assignment for the special case
+      // where all lvalues are real lvalues.
+      base.EmitMultiAssignment(wLhss, lhsTypes, out wRhss, rhsTypes, wr);
     }
 
     protected override void EmitPrintStmt(TargetWriter wr, Expression arg) {
@@ -1791,6 +1777,12 @@ namespace Microsoft.Dafny {
         message = "unexpected control point";
       }
       wr.WriteLine("panic(\"{0}\")", message);
+    }
+
+    protected override void EmitHalt(Expression messageExpr, TargetWriter wr) {
+      wr.Write("panic(");
+      TrExpr(messageExpr, wr, false);
+      wr.WriteLine(");");
     }
 
     protected override BlockTargetWriter CreateWhileLoop(out TargetWriter guardWriter, TargetWriter wr) {
@@ -2320,48 +2312,45 @@ namespace Microsoft.Dafny {
       }
     }
 
-    protected override TargetWriter EmitMemberSelect(MemberDecl member, bool isLValue, Type expectedType, TargetWriter wr) {
-      TargetWriter wSource;
+    protected override ILvalue EmitMemberSelect(Action<TargetWriter> obj, MemberDecl member, Type expectedType, bool internalAccess = false) {
       if (member is DatatypeDestructor dtor) {
-        wr = EmitCoercionIfNecessary(from:dtor.Type, to:expectedType, tok:null, wr:wr);
-        if (dtor.EnclosingClass is TupleTypeDecl) {
-          wr.Write("(*(");
-          wSource = wr.Fork();
-          wr.Write(").IndexInt({0}))", dtor.Name);
-        } else {
-          wSource = wr.Fork();
-          wr.Write(".{0}()", FormatDatatypeDestructorName(dtor.CompileName));
-        }
-      } else if (!isLValue && member is SpecialField sf && sf.SpecialId != SpecialField.ID.UseIdParam) {
-        wr = EmitCoercionIfNecessary(from:sf.Type, to:expectedType, tok:null, wr:wr);
-        wSource = wr.Fork();
-        string compiledName;
-        GetSpecialFieldInfo(sf.SpecialId, sf.IdParam, out compiledName, out _, out _);
-        if (compiledName.Length != 0) {
-          wr.Write(".{0}", Capitalize(compiledName));
-        } else {
-          // this member selection is handled by some kind of enclosing function call, so nothing to do here
-        }
+        return SimpleLvalue(wr => {
+          wr = EmitCoercionIfNecessary(from:dtor.Type, to:expectedType, tok:null, wr:wr);
+          if (dtor.EnclosingClass is TupleTypeDecl) {
+            wr.Write("(*(");
+            obj(wr);
+            wr.Write(").IndexInt({0}))", dtor.Name);
+          } else {
+            obj(wr);
+            wr.Write(".{0}()", FormatDatatypeDestructorName(dtor.CompileName));
+          }
+        });
+      } else if (member is SpecialField sf && sf.SpecialId != SpecialField.ID.UseIdParam) {
+        return SimpleLvalue(wr => {
+          wr = EmitCoercionIfNecessary(from:sf.Type, to:expectedType, tok:null, wr:wr);
+          obj(wr);
+          string compiledName;
+          GetSpecialFieldInfo(sf.SpecialId, sf.IdParam, out compiledName, out _, out _);
+          if (compiledName.Length != 0) {
+            wr.Write(".{0}", Capitalize(compiledName));
+          } else {
+            // this member selection is handled by some kind of enclosing function call, so nothing to do here
+          }
+        });
       } else if (member is SpecialField sf2 && sf2.SpecialId == SpecialField.ID.UseIdParam && sf2.IdParam is string fieldName && fieldName.StartsWith("is_")) {
         // sf2 is needed here only because the scope rules for these pattern matches are asinine: sf is *still in scope* but it's useless because it may not have been assigned to!
-
-        wr = EmitCoercionIfNecessary(from:sf2.Type, to:expectedType, tok:null, wr:wr);
-        wSource = wr.Fork();
-        // FIXME This is a pretty awful string hack.
-        wr.Write(".{0}()", FormatDatatypeConstructorCheckName(fieldName.Substring(3)));
+        return SimpleLvalue(wr => {
+          wr = EmitCoercionIfNecessary(from:sf2.Type, to:expectedType, tok:null, wr:wr);
+          obj(wr);
+          // FIXME This is a pretty awful string hack.
+          wr.Write(".{0}()", FormatDatatypeConstructorCheckName(fieldName.Substring(3)));
+        });
       } else if (member is ConstantField cf && cf.Rhs != null) {
-        wSource = wr.Fork();
         var customReceiver = NeedsCustomReceiver(member);
-        wr.Write(".{0}{1}", IdName(member), customReceiver ? "" : "()");
-      } else if (member is Field f && !isLValue) {
-        wr = EmitCoercionIfNecessary(from:f.Type, to:expectedType, tok:null, wr:wr);
-        wSource = wr.Fork();
-        wr.Write(".{0}", IdName(member));
+        return SuffixLvalue(obj, ".{0}{1}", IdName(member), customReceiver ? "" : "()");
       } else {
-        wSource = wr.Fork();
-        wr.Write(".{0}", IdName(member));
+        return SuffixLvalue(obj, ".{0}", IdName(member));
       }
-      return wSource;
     }
 
     // TODO We might be able to be more consistent about whether indices are ints or Ints and avoid this
@@ -2392,8 +2381,10 @@ namespace Microsoft.Dafny {
       return w;
     }
 
-    protected override void EmitArraySelectAsLvalue(string array, List<string> indices, Type elmtType, TargetWriter wr) {
-      wr.Write("*({0}.Index({1}))", array, Util.Comma(indices, IntOfAny));
+    protected override ILvalue EmitArraySelectAsLvalue(string array, List<string> indices, Type elmtType) {
+      return SimpleLvalue(wr =>
+        wr.Write("*({0}.Index({1}))", array, Util.Comma(indices, IntOfAny))
+      );
     }
 
     protected override TargetWriter EmitArrayUpdate(List<string> indices, string rhs, Type elmtType, TargetWriter wr) {
@@ -2498,12 +2489,11 @@ namespace Microsoft.Dafny {
           case NativeType.Selection.Int:
             wr.Write("_dafny.IntOfInt32(");
             break;
-          case NativeType.Selection.Number:
           case NativeType.Selection.Long:
             wr.Write("_dafny.IntOfInt64(");
             break;
           default:
-            throw new cce.UnreachableException();  // unepxected nativeType.Selection value
+            throw new cce.UnreachableException();  // unexpected nativeType.Selection value
         }
       }
 
@@ -2968,7 +2958,10 @@ namespace Microsoft.Dafny {
         } else if (e.ToType.IsCharType) {
           wr.Write("_dafny.Char(");
           TrParenExpr(e.E, wr, inLetExprBody);
-          wr.Write(".Int32())");
+          if (AsNativeType(e.E.Type) == null) {
+            wr.Write(".Int32()");
+          }
+          wr.Write(")");
         } else {
           // (int or bv or char) -> (int or bv or ORDINAL)
           var fromNative = AsNativeType(e.E.Type);
@@ -3032,6 +3025,10 @@ namespace Microsoft.Dafny {
           // real -> real
           Contract.Assert(AsNativeType(e.ToType) == null);
           TrExpr(e.E, wr, inLetExprBody);
+        } else if (e.ToType.IsCharType) {
+          wr.Write("_dafny.Char(");
+          TrParenExpr(e.E, wr, inLetExprBody);
+          wr.Write(".Int().Int32())");
         } else {
           // real -> (int or bv)
           TrParenExpr(e.E, wr, inLetExprBody);

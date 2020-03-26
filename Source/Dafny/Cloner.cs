@@ -329,9 +329,6 @@ namespace Microsoft.Dafny
       } else if (expr is ApplySuffix) {
         var e = (ApplySuffix) expr;
         return CloneApplySuffix(e);
-      } else if (expr is RevealExpr) {
-        var e = (RevealExpr) expr;
-        return new RevealExpr(Tok(e.tok), CloneExpr(e.Expr));
       } else if (expr is MemberSelectExpr) {
         var e = (MemberSelectExpr)expr;
         return new MemberSelectExpr(Tok(e.tok), CloneExpr(e.Obj), e.MemberName);
@@ -554,6 +551,10 @@ namespace Microsoft.Dafny
         var s = (AssertStmt)stmt;
         r = new AssertStmt(Tok(s.Tok), Tok(s.EndTok), CloneExpr(s.Expr), CloneBlockStmt(s.Proof), s.Label == null ? null : new AssertLabel(Tok(s.Label.Tok), s.Label.Name), null);
 
+      } else if (stmt is ExpectStmt) {
+        var s = (ExpectStmt)stmt;
+        r = new ExpectStmt(Tok(s.Tok), Tok(s.EndTok), CloneExpr(s.Expr), CloneExpr(s.Message), CloneAttributes(s.Attributes));
+
       } else if (stmt is AssumeStmt) {
         var s = (AssumeStmt)stmt;
         r = new AssumeStmt(Tok(s.Tok), Tok(s.EndTok), CloneExpr(s.Expr), null);
@@ -637,7 +638,7 @@ namespace Microsoft.Dafny
 
       } else if (stmt is AssignOrReturnStmt) {
         var s = (AssignOrReturnStmt)stmt;
-        r = new AssignOrReturnStmt(Tok(s.Tok), Tok(s.EndTok), s.Lhss.ConvertAll(CloneExpr), CloneExpr(s.Rhs));
+        r = new AssignOrReturnStmt(Tok(s.Tok), Tok(s.EndTok), s.Lhss.ConvertAll(CloneExpr), CloneExpr(s.Rhs), s.ExpectToken == null ? null : Tok(s.ExpectToken));
 
       } else if (stmt is VarDeclStmt) {
         var s = (VarDeclStmt)stmt;

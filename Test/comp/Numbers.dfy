@@ -14,6 +14,7 @@ method Main() {
   NewTypeTest();
   OrdinalTests();
   ZeroComparisonTests();
+  TestConversions();
 }
 
 method Print(description: string, x: int) {
@@ -270,7 +271,7 @@ method MoreBvTests() {
   print u, "\n";  // as 0 as ever
 }
 
-newtype {:nativeType "number"} MyNumber = x | -100 <= x < 0x10_0000_0000
+newtype {:nativeType "number", "long"} MyNumber = x | -100 <= x < 0x10_0000_0000
 
 method NewTypeTest() {
   var a, b := 200, 300;
@@ -341,4 +342,53 @@ method ZCMyNumberTests(n : MyNumber) {
     " 0== ", YN(0 == n), " 0!= ", YN(0 != n),
     " 0> ",  YN(0 > n),  " 0>= ", YN(0 >= n),
     "\n";
+}
+
+method TestConversions() {
+  ConvertFromInt(120);
+  ConvertFromReal(120.0);
+  ConvertFromORDINAL(120);
+  ConvertFromBv(120);
+  ConvertFromUInt32(120);
+  ConvertFromChar('x');
+}
+
+newtype uint32 = x | 0 <= x < 0x1_0000_0000
+
+method ConvertFromInt(x: int)
+  requires 0 <= x < 128
+{
+  print x as int, " ", x as real, " ", x as ORDINAL, " ", x as bv7, " ", x as uint32, " ", x as char, "\n";
+}
+
+method ConvertFromReal(x: real)
+  requires x.Floor as real == x
+  requires 0 <= x.Floor < 128
+{
+  print x as int, " ", x as real, " ", x as ORDINAL, " ", x as bv7, " ", x as uint32, " ", x as char, "\n";
+}
+
+method ConvertFromORDINAL(x: ORDINAL)
+  requires 0 <= x < 128
+{
+  // ORDINAL doesn't (currently) support many type conversions
+  print x as int, /** " ", x as real, " ", x as ORDINAL, " ", x as bv7,**/ " ", x as uint32, /** " ", x as char,**/ "\n";
+}
+
+method ConvertFromBv(x: bv7)
+{
+  print x as int, " ", x as real, " ", x as ORDINAL, " ", x as bv7, " ", x as uint32, " ", x as char, "\n";
+}
+
+method ConvertFromUInt32(x: uint32)
+  requires 0 <= x < 128
+{
+  print x as int, " ", x as real, " ", x as ORDINAL, " ", x as bv7, " ", x as uint32, " ", x as char, "\n";
+}
+
+method ConvertFromChar(x: char)
+  requires 0 as char <= x < 128 as char
+{
+  // char doesn't (currently) support many type conversions
+  print x as int, /** " ", x as real, " ", x as ORDINAL, " ", x as bv7,**/ " ", x as uint32, /** " ", x as char,**/ "\n";
 }

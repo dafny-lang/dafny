@@ -3486,7 +3486,7 @@ namespace Microsoft.Dafny {
           // exists k':ORDINAL | _k' LESS _k :: pp(_k', args)
           // Here, instead of using the usual ORD#Less, we use the semantically equivalent ORD#LessThanLimit, because this
           // allows us to write a good trigger for a targeted monotonicity axiom.  That axiom, in turn, makes the
-          // automatica verification more powerful for inductive lemmas that have more than one focal-predicate term.
+          // automatic verification more powerful for inductive lemmas that have more than one focal-predicate term.
           var smaller = new BinaryExpr(kprime.tok, BinaryExpr.Opcode.Lt, kprime, k) {
             ResolvedOp = BinaryExpr.ResolvedOpcode.LessThanLimit,
             Type = Type.Bool
@@ -6547,9 +6547,6 @@ namespace Microsoft.Dafny {
       } else if (expr is ConcreteSyntaxExpression) {
         var e = (ConcreteSyntaxExpression)expr;
         return CanCallAssumption(e.ResolvedExpression, etran);
-      } else if (expr is RevealExpr) {
-        var e = (RevealExpr)expr;
-        return CanCallAssumption(e.ResolvedExpression, etran);
       } else if (expr is BoogieFunctionCall) {
         var e = (BoogieFunctionCall)expr;
         return CanCallAssumption(e.Args, etran);
@@ -7712,11 +7709,6 @@ namespace Microsoft.Dafny {
         CheckWellformedWithResult(e.ResolvedExpression, options, result, resultType, locals, builder, etran);
         result = null;
 
-      } else if (expr is RevealExpr) {
-        var e = (RevealExpr)expr;
-        CheckWellformedWithResult(e.ResolvedExpression, options, result, resultType, locals, builder, etran);
-        result = null;
-
       } else if (expr is BoogieFunctionCall) {
         var e = (BoogieFunctionCall)expr;
         foreach (var arg in e.Args) {
@@ -8001,6 +7993,8 @@ namespace Microsoft.Dafny {
         Bpl.Expr be;
         if (expr.Type.IsNumericBased() || expr.Type.IsBitVectorType) {
           be = ConvertExpression(expr.tok, o, expr.Type, toType);
+        } else if (expr.Type.IsBigOrdinalType) {
+          be = FunctionCall(expr.tok, "ORD#Offset", Bpl.Type.Int, o);
         } else {
           be = o;
         }
@@ -9891,6 +9885,26 @@ namespace Microsoft.Dafny {
             builder.Add(TrAssumeCmd(stmt.Tok, etran.TrExpr(s.Expr)));
             stmtContext = StmtType.NONE;
           }
+        } else if (stmt is ExpectStmt) {
+          AddComment(builder, stmt, "expect statement");
+          ExpectStmt s = (ExpectStmt)stmt;
+          stmtContext = StmtType.ASSUME;
+          TrStmt_CheckWellformed(s.Expr, builder, locals, etran, false);
+
+          // Need to check the message is well-formed, assuming the expected expression
+          // does NOT hold:
+          //
+          // if Not(TrExpr[[ s.Expr ]]) {
+          //  CheckWellformed[[ s.Message ]]
+          //  assume false;
+          // }
+          BoogieStmtListBuilder thnBuilder = new BoogieStmtListBuilder(this);
+          TrStmt_CheckWellformed(s.Message, thnBuilder, locals, etran, false);
+          thnBuilder.Add(TrAssumeCmd(stmt.Tok, new Bpl.LiteralExpr(stmt.Tok, false), etran.TrAttributes(stmt.Attributes, null)));
+          Bpl.StmtList thn = thnBuilder.Collect(s.Tok);
+          builder.Add(new Bpl.IfCmd(stmt.Tok, Bpl.Expr.Not(etran.TrExpr(s.Expr)), thn, null, null));
+
+          stmtContext = StmtType.NONE;  // done with translating expect stmt.
         } else if (stmt is AssumeStmt) {
           AddComment(builder, stmt, "assume statement");
           AssumeStmt s = (AssumeStmt)stmt;
@@ -15449,10 +15463,6 @@ namespace Microsoft.Dafny {
           var e = (ConcreteSyntaxExpression)expr;
           return TrExpr(e.ResolvedExpression);
 
-        } else if (expr is RevealExpr) {
-          var e = (RevealExpr)expr;
-          return TrExpr(e.ResolvedExpression);
-
         } else if (expr is BoxingCastExpr) {
           BoxingCastExpr e = (BoxingCastExpr)expr;
           return translator.CondApplyBox(e.tok, TrExpr(e.E), e.FromType, e.ToType);
@@ -16701,10 +16711,6 @@ namespace Microsoft.Dafny {
 
       } else if (expr is ConcreteSyntaxExpression) {
         var e = (ConcreteSyntaxExpression)expr;
-        return TrSplitExpr(e.ResolvedExpression, splits, position, heightLimit, inlineProtectedFunctions, apply_induction, etran);
-
-      } else if (expr is RevealExpr) {
-        var e = (RevealExpr)expr;
         return TrSplitExpr(e.ResolvedExpression, splits, position, heightLimit, inlineProtectedFunctions, apply_induction, etran);
 
       } else if (expr is LetExpr) {
@@ -17983,10 +17989,6 @@ namespace Microsoft.Dafny {
           var e = (ConcreteSyntaxExpression)expr;
           return Substitute(e.ResolvedExpression);
 
-        } else if (expr is RevealExpr) {
-          var e = (RevealExpr)expr;
-          return Substitute(e.ResolvedExpression);
-
         } else if (expr is BoogieFunctionCall) {
           var e = (BoogieFunctionCall)expr;
           bool anythingChanged = false;
@@ -18244,6 +18246,9 @@ namespace Microsoft.Dafny {
         } else if (stmt is AssertStmt) {
           var s = (AssertStmt)stmt;
           r = new AssertStmt(s.Tok, s.EndTok, Substitute(s.Expr), SubstBlockStmt(s.Proof), s.Label, SubstAttributes(s.Attributes));
+        } else if (stmt is ExpectStmt) {
+          var s = (ExpectStmt)stmt;
+          r = new ExpectStmt(s.Tok, s.EndTok, Substitute(s.Expr), Substitute(s.Message), SubstAttributes(s.Attributes));
         } else if (stmt is AssumeStmt) {
           var s = (AssumeStmt)stmt;
           r = new AssumeStmt(s.Tok, s.EndTok, Substitute(s.Expr), SubstAttributes(s.Attributes));

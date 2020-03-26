@@ -1061,6 +1061,22 @@ namespace Microsoft.Dafny
                 i++; j++;
               }
 
+            } else if (S is ExpectStmt) {
+              var skel = (ExpectStmt)S;
+              Contract.Assert(c.ConditionOmitted);
+              var oldExpect = oldS as ExpectStmt;
+              if (oldExpect == null) {
+                reporter.Error(MessageSource.RefinementTransformer, cur.Tok, "expect template does not match inherited statement");
+                i++;
+              } else {
+                var e = refinementCloner.CloneExpr(oldExpect.Expr);
+                var message = refinementCloner.CloneExpr(oldExpect.Message);
+                var attrs = refinementCloner.MergeAttributes(oldExpect.Attributes, skel.Attributes);
+                body.Add(new ExpectStmt(skel.Tok, skel.EndTok, e, message, attrs));
+                reporter.Info(MessageSource.RefinementTransformer, c.ConditionEllipsis, Printer.ExprToString(e));
+                i++; j++;
+              }
+
             } else if (S is AssumeStmt) {
               var skel = (AssumeStmt)S;
               Contract.Assert(c.ConditionOmitted);
@@ -1345,6 +1361,8 @@ namespace Microsoft.Dafny
         var S = ((SkeletonStatement)nxt).S;
         if (S is AssertStmt) {
           return other is PredicateStmt;
+        } else if (S is ExpectStmt) {
+          return other is ExpectStmt;
         } else if (S is AssumeStmt) {
           return other is AssumeStmt;
         } else if (S is IfStmt) {

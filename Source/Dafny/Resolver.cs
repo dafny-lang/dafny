@@ -2216,8 +2216,7 @@ namespace Microsoft.Dafny
       new NativeType("short", -0x8000, 0x8000, 0, NativeType.Selection.Short, DafnyOptions.CompilationTarget.Csharp | DafnyOptions.CompilationTarget.Go | DafnyOptions.CompilationTarget.Java),
       new NativeType("uint", 0, 0x1_0000_0000, 32, NativeType.Selection.UInt, DafnyOptions.CompilationTarget.Csharp | DafnyOptions.CompilationTarget.Go | DafnyOptions.CompilationTarget.Java),
       new NativeType("int", -0x8000_0000, 0x8000_0000, 0, NativeType.Selection.Int, DafnyOptions.CompilationTarget.Csharp | DafnyOptions.CompilationTarget.Go | DafnyOptions.CompilationTarget.Java),
-      new NativeType("number", -0x1f_ffff_ffff_ffff, 0x20_0000_0000_0000, 0, NativeType.Selection.Number,
-        DafnyOptions.CompilationTarget.Csharp | DafnyOptions.CompilationTarget.JavaScript | DafnyOptions.CompilationTarget.Go | DafnyOptions.CompilationTarget.Java),  // JavaScript integers
+      new NativeType("number", -0x1f_ffff_ffff_ffff, 0x20_0000_0000_0000, 0, NativeType.Selection.Number, DafnyOptions.CompilationTarget.JavaScript),  // JavaScript integers
       new NativeType("ulong", 0, new BigInteger(0x1_0000_0000) * new BigInteger(0x1_0000_0000), 64, NativeType.Selection.ULong, DafnyOptions.CompilationTarget.Csharp | DafnyOptions.CompilationTarget.Go | DafnyOptions.CompilationTarget.Java),
       new NativeType("long", Int64.MinValue, 0x8000_0000_0000_0000, 0, NativeType.Selection.Long, DafnyOptions.CompilationTarget.Csharp | DafnyOptions.CompilationTarget.Go | DafnyOptions.CompilationTarget.Java),
     };
@@ -3052,7 +3051,9 @@ namespace Microsoft.Dafny
             if (!f.IsGhost && f.Body != null) {
               CheckIsCompilable(f.Body);
             }
-            DetermineTailRecursion(f);
+            if (f.Body != null) {
+              DetermineTailRecursion(f);
+            }
           }
           if (prevErrCnt == reporter.Count(ErrorLevel.Error) && member is ICodeContext) {
             member.SubExpressions.Iter(e => CheckExpression(e, this, (ICodeContext)member));
@@ -3123,35 +3124,50 @@ namespace Microsoft.Dafny
 
     private void FigureOutNativeType(NewtypeDecl dd) {
       Contract.Requires(dd != null);
-      bool? boolNativeType = null;
-      NativeType stringNativeType = null;
-      object nativeTypeAttr = true;
-      bool hasNativeTypeAttr = Attributes.ContainsMatchingValue(dd.Attributes, "nativeType", ref nativeTypeAttr,
-        new Attributes.MatchingValueOption[] {
-                Attributes.MatchingValueOption.Empty,
-                Attributes.MatchingValueOption.Bool,
-                Attributes.MatchingValueOption.String },
-        err => reporter.Error(MessageSource.Resolver, dd, err));
-      if (hasNativeTypeAttr) {
-        if (nativeTypeAttr is bool) {
-          boolNativeType = (bool)nativeTypeAttr;
-        } else {
-          var keyString = (string)nativeTypeAttr;
-          foreach (var nativeT in NativeTypes) {
-            if (nativeT.Name == keyString) {
-              if ((nativeT.CompilationTargets & DafnyOptions.O.CompileTarget) == 0) {
-                reporter.Error(MessageSource.Resolver, dd, "nativeType '{0}' not supported on the current compilation target", keyString);
-              } else {
-                stringNativeType = nativeT;
-              }
-              break;
-            }
+
+      // Look at the :nativeType attribute, if any
+      bool mustUseNativeType;
+      List<NativeType> nativeTypeChoices = null;  // null means "no preference"
+      var args = Attributes.FindExpressions(dd.Attributes, "nativeType");
+      if (args != null && !dd.BaseType.IsNumericBased(Type.NumericPersuation.Int)) {
+        reporter.Error(MessageSource.Resolver, dd, ":nativeType can only be used on integral types");
+        return;
+      } else if (args == null) {
+        // There was no :nativeType attribute
+        mustUseNativeType = false;
+      } else if (args.Count == 0) {
+        mustUseNativeType = true;
+      } else {
+        var arg0Lit = args[0] as LiteralExpr;
+        if (arg0Lit != null && arg0Lit.Value is bool) {
+          if (!(bool)arg0Lit.Value) {
+            // {:nativeType false} says "don't use native type", so our work here is done
+            return;
           }
-          if (stringNativeType == null) {
-            reporter.Error(MessageSource.Resolver, dd, "nativeType '{0}' not known", keyString);
+          mustUseNativeType = true;
+        } else {
+          mustUseNativeType = true;
+          nativeTypeChoices = new List<NativeType>();
+          foreach (var arg in args) {
+            if (arg is LiteralExpr lit && lit.Value is string s) {
+              // Get the NativeType for "s"
+              foreach (var nativeT in NativeTypes) {
+                if (nativeT.Name == s) {
+                  nativeTypeChoices.Add(nativeT);
+                  goto FoundNativeType;
+                }
+              }
+              reporter.Error(MessageSource.Resolver, dd, ":nativeType '{0}' not known", s);
+              return;
+              FoundNativeType: ;
+            } else {
+              reporter.Error(MessageSource.Resolver, arg, "unexpected :nativeType argument");
+              return;
+            }
           }
         }
       }
+
       // Figure out the variable and constraint.  Usually, these would be just .Var and .Constraint, but
       // in the case .Var is null, these can be computed from the .BaseType recursively.
       var ddVar = dd.Var;
@@ -3164,66 +3180,87 @@ namespace Microsoft.Dafny
         ddVar = ddWhereConstraintsAre.Var;
         ddConstraint = ddWhereConstraintsAre.Constraint;
       }
-      if (stringNativeType != null || boolNativeType == true) {
-        if (!dd.BaseType.IsNumericBased(Type.NumericPersuation.Int)) {
-          reporter.Error(MessageSource.Resolver, dd, "nativeType can only be used on integral types");
-        }
-        if (ddVar == null) {
-          reporter.Error(MessageSource.Resolver, dd, "nativeType can only be used if newtype specifies a constraint");
-        }
+      List<ComprehensionExpr.BoundedPool> bounds;
+      if (ddVar == null) {
+        // There are no bounds at all
+        bounds = new List<ComprehensionExpr.BoundedPool>();
+      } else {
+        bounds = DiscoverAllBounds_SingleVar(ddVar, ddConstraint);
       }
-      if (ddVar != null) {
-        Func<Expression, BigInteger?> GetConst = null;
-        GetConst = (Expression e) => {
-          int m = 1;
-          BinaryExpr bin = e as BinaryExpr;
-          if (bin != null && bin.Op == BinaryExpr.Opcode.Sub && GetConst(bin.E0) == BigInteger.Zero) {
-            m = -1;
-            e = bin.E1;
-          }
-          LiteralExpr l = e as LiteralExpr;
-          if (l != null && l.Value is BigInteger) {
-            return m * (BigInteger)l.Value;
-          }
-          return null;
-        };
-        var bounds = DiscoverAllBounds_SingleVar(ddVar, ddConstraint);
-        List<NativeType> potentialNativeTypes =
-          (stringNativeType != null) ? new List<NativeType> { stringNativeType } :
-          (boolNativeType == false) ? new List<NativeType>() :
-          NativeTypes.Where(nt => (nt.CompilationTargets & DafnyOptions.O.CompileTarget) != 0).ToList();
-        foreach (var nt in potentialNativeTypes) {
-          bool lowerOk = false;
-          bool upperOk = false;
-          foreach (var bound in bounds) {
-            if (bound is ComprehensionExpr.IntBoundedPool) {
-              var bnd = (ComprehensionExpr.IntBoundedPool)bound;
-              if (bnd.LowerBound != null) {
-                BigInteger? lower = GetConst(bnd.LowerBound);
-                if (lower != null && nt.LowerBound <= lower) {
-                  lowerOk = true;
-                }
+
+      // Find which among the allowable native types can hold "dd". Give an
+      // error for any user-specified native type that's not big enough.
+      var bigEnoughNativeTypes = new List<NativeType>();
+      // But first, define a local, recursive function GetConst:
+      Func<Expression, BigInteger?> GetConst = null;
+      GetConst = (Expression e) => {
+        int m = 1;
+        BinaryExpr bin = e as BinaryExpr;
+        if (bin != null && bin.Op == BinaryExpr.Opcode.Sub && GetConst(bin.E0) == BigInteger.Zero) {
+          m = -1;
+          e = bin.E1;
+        }
+        LiteralExpr l = e as LiteralExpr;
+        if (l != null && l.Value is BigInteger) {
+          return m * (BigInteger)l.Value;
+        }
+        return null;
+      };
+      // Now, then, let's go through them types.
+      foreach (var nativeT in nativeTypeChoices ?? NativeTypes) {
+        bool lowerOk = false;
+        bool upperOk = false;
+        foreach (var bound in bounds) {
+          if (bound is ComprehensionExpr.IntBoundedPool) {
+            var bnd = (ComprehensionExpr.IntBoundedPool)bound;
+            if (bnd.LowerBound != null) {
+              BigInteger? lower = GetConst(bnd.LowerBound);
+              if (lower != null && nativeT.LowerBound <= lower) {
+                lowerOk = true;
               }
-              if (bnd.UpperBound != null) {
-                BigInteger? upper = GetConst(bnd.UpperBound);
-                if (upper != null && upper <= nt.UpperBound) {
-                  upperOk = true;
-                }
+            }
+            if (bnd.UpperBound != null) {
+              BigInteger? upper = GetConst(bnd.UpperBound);
+              if (upper != null && upper <= nativeT.UpperBound) {
+                upperOk = true;
               }
             }
           }
-          if (lowerOk && upperOk) {
-            dd.NativeType = nt;
-            break;
-          }
         }
-        if (dd.NativeType == null && (boolNativeType == true || stringNativeType != null)) {
-          reporter.Error(MessageSource.Resolver, dd, "Dafny's heuristics cannot find a compatible native type.  " +
-            "Hint: try writing a newtype constraint of the form 'i:int | lowerBound <= i < upperBound && (...any additional constraints...)'");
+        if (lowerOk && upperOk) {
+          bigEnoughNativeTypes.Add(nativeT);
+        } else if (nativeTypeChoices != null) {
+          reporter.Error(MessageSource.Resolver, dd,
+            "Dafny's heuristics failed to confirm '{0}' to be a compatible native type.  " +
+            "Hint: try writing a newtype constraint of the form 'i:int | lowerBound <= i < upperBound && (...any additional constraints...)'",
+            nativeT.Name);
+          return;
         }
-        if (dd.NativeType != null && stringNativeType == null) {
+      }
+
+      // Finally, of the big-enough native types, pick the first one that is
+      // supported by the selected target compiler.
+      foreach (var nativeT in bigEnoughNativeTypes) {
+        if ((nativeT.CompilationTargets & DafnyOptions.O.CompileTarget) != 0) {
+          dd.NativeType = nativeT;
+          break;
+        }
+      }
+      if (dd.NativeType != null) {
+        // Give an info message saying which type was selected--unless the user requested
+        // one particular native type, in which case that must have been the one picked.
+        if (nativeTypeChoices != null && nativeTypeChoices.Count == 1) {
+          Contract.Assert(dd.NativeType == nativeTypeChoices[0]);
+        } else {
           reporter.Info(MessageSource.Resolver, dd.tok, "{:nativeType \"" + dd.NativeType.Name + "\"}");
         }
+      } else if (nativeTypeChoices != null) {
+        reporter.Error(MessageSource.Resolver, dd,
+          "None of the types given in :nativeType arguments is supported by the current compilation target. Try supplying others.");
+      } else if (mustUseNativeType) {
+        reporter.Error(MessageSource.Resolver, dd,
+          "Dafny's heuristics cannot find a compatible native type.  " +
+          "Hint: try writing a newtype constraint of the form 'i:int | lowerBound <= i < upperBound && (...any additional constraints...)'");
       }
     }
 
@@ -5819,6 +5856,32 @@ namespace Microsoft.Dafny
     // ----- CheckTailRecursive -----------------------------------------------------------------------------
     // ------------------------------------------------------------------------------------------------------
 #region CheckTailRecursive
+    void DetermineTailRecursion(Method m) {
+      Contract.Requires(m != null);
+      Contract.Requires(m.Body != null);
+      bool tail = true;
+      bool hasTailRecursionPreference = Attributes.ContainsBool(m.Attributes, "tailrecursion", ref tail);
+      if (hasTailRecursionPreference && !tail) {
+        // the user specifically requested no tail recursion, so do nothing else
+      } else if (hasTailRecursionPreference && tail && m.IsGhost) {
+        reporter.Error(MessageSource.Resolver, m.tok, "tail recursion can be specified only for methods that will be compiled, not for ghost methods");
+      } else {
+        var module = m.EnclosingClass.Module;
+        var sccSize = module.CallGraph.GetSCCSize(m);
+        if (hasTailRecursionPreference && 2 <= sccSize) {
+          reporter.Error(MessageSource.Resolver, m.tok, "sorry, tail-call optimizations are not supported for mutually recursive methods");
+        } else if (hasTailRecursionPreference || sccSize == 1) {
+          CallStmt tailCall = null;
+          var status = CheckTailRecursive(m.Body.Body, m, ref tailCall, hasTailRecursionPreference);
+          if (status != TailRecursionStatus.NotTailRecursive && tailCall != null) {
+            // this means there was at least one recursive call
+            m.IsTailRecursive = true;
+            reporter.Info(MessageSource.Resolver, m.tok, "tail recursive");
+          }
+        }
+      }
+    }
+
     enum TailRecursionStatus
     {
       NotTailRecursive, // contains code that makes the enclosing method body not tail recursive (in way that is supported)
@@ -5827,7 +5890,7 @@ namespace Microsoft.Dafny
     }
 
     /// <summary>
-    /// Checks if "stmts" can be considered tail recursive, and (provided "reportsError" is true) reports an error if not.
+    /// Checks if "stmts" can be considered tail recursive, and (provided "reportError" is true) reports an error if not.
     /// Note, the current implementation is rather conservative in its analysis; upon need, the
     /// algorithm could be improved.
     /// In the current implementation, "enclosingMethod" is not allowed to be a mutually recursive method.
@@ -5862,41 +5925,6 @@ namespace Microsoft.Dafny
         }
       }
       return status;
-    }
-
-    void DetermineTailRecursion(Function f) {
-      Contract.Requires(f != null);
-      bool tail = true;
-      if (Attributes.ContainsBool(f.Attributes, "tailrecursion", ref tail) && tail) {
-        reporter.Error(MessageSource.Resolver, f.tok, "sorry, tail-call functions are not supported");
-      }
-    }
-
-    void DetermineTailRecursion(Method m) {
-      Contract.Requires(m != null);
-      bool tail = true;
-      bool hasTailRecursionPreference = Attributes.ContainsBool(m.Attributes, "tailrecursion", ref tail);
-      if (hasTailRecursionPreference && !tail) {
-        // the user specifically requested no tail recursion, so do nothing else
-      } else if (hasTailRecursionPreference && tail && m.IsGhost) {
-        reporter.Error(MessageSource.Resolver, m.tok, "tail recursion can be specified only for methods that will be compiled, not for ghost methods");
-      } else {
-        var module = m.EnclosingClass.Module;
-        var sccSize = module.CallGraph.GetSCCSize(m);
-        if (hasTailRecursionPreference && 2 <= sccSize) {
-          reporter.Error(MessageSource.Resolver, m.tok, "sorry, tail-call optimizations are not supported for mutually recursive methods");
-        } else if (hasTailRecursionPreference || sccSize == 1) {
-          CallStmt tailCall = null;
-          var status = CheckTailRecursive(m.Body.Body, m, ref tailCall, hasTailRecursionPreference);
-          if (status != TailRecursionStatus.NotTailRecursive) {
-            m.IsTailRecursive = true;
-            if (tailCall != null) {
-              // this means there was at least one recursive call
-              reporter.Info(MessageSource.Resolver, m.tok, "tail recursive");
-            }
-          }
-        }
-      }
     }
 
     /// <summary>
@@ -6069,12 +6097,322 @@ namespace Microsoft.Dafny
           return CheckTailRecursive(s.Update, enclosingMethod, ref tailCall, reportErrors);
         }
       } else if (stmt is LetStmt) {
+      } else if (stmt is ExpectStmt) {
       } else {
         Contract.Assert(false);  // unexpected statement type
       }
       return TailRecursionStatus.CanBeFollowedByAnything;
     }
 #endregion CheckTailRecursive
+
+    // ------------------------------------------------------------------------------------------------------
+    // ----- CheckTailRecursiveExpr -------------------------------------------------------------------------
+    // ------------------------------------------------------------------------------------------------------
+#region CheckTailRecursiveExpr
+    void DetermineTailRecursion(Function f) {
+      Contract.Requires(f != null);
+      Contract.Requires(f.Body != null);
+      bool tail = true;
+      bool hasTailRecursionPreference = Attributes.ContainsBool(f.Attributes, "tailrecursion", ref tail);
+      if (hasTailRecursionPreference && !tail) {
+        // the user specifically requested no tail recursion, so do nothing else
+      } else if (hasTailRecursionPreference && tail && f.IsGhost) {
+        reporter.Error(MessageSource.Resolver, f.tok, "tail recursion can be specified only for function that will be compiled, not for ghost functions");
+      } else {
+        var module = f.EnclosingClass.Module;
+        var sccSize = module.CallGraph.GetSCCSize(f);
+        if (hasTailRecursionPreference && 2 <= sccSize) {
+          reporter.Error(MessageSource.Resolver, f.tok, "sorry, tail-call optimizations are not supported for mutually recursive functions");
+        } else if (hasTailRecursionPreference || sccSize == 1) {
+          var status = CheckTailRecursiveExpr(f.Body, f, true, hasTailRecursionPreference);
+          if (status != Function.TailStatus.TriviallyTailRecursive && status != Function.TailStatus.NotTailRecursive) {
+            // this means there was at least one recursive call
+            f.TailRecursion = status;
+            if (status == Function.TailStatus.TailRecursive) {
+              reporter.Info(MessageSource.Resolver, f.tok, "tail recursive");
+            } else {
+              reporter.Info(MessageSource.Resolver, f.tok, "auto-accumulator tail recursive");
+            }
+          }
+        }
+      }
+    }
+
+    Function.TailStatus TRES_Or(Function.TailStatus a, Function.TailStatus b) {
+      if (a == Function.TailStatus.NotTailRecursive || b == Function.TailStatus.NotTailRecursive) {
+        return Function.TailStatus.NotTailRecursive;
+      } else if (a == Function.TailStatus.TriviallyTailRecursive) {
+        return b;
+      } else if (b == Function.TailStatus.TriviallyTailRecursive) {
+        return a;
+      } else if (a == Function.TailStatus.TailRecursive) {
+        return b;
+      } else if (b == Function.TailStatus.TailRecursive) {
+        return a;
+      } else if (a == b) {
+        return a;
+      } else {
+        return Function.TailStatus.NotTailRecursive;
+      }
+    }
+
+    /// <summary>
+    /// Checks if "expr" can be considered tail recursive, and (provided "reportError" is true) reports an error if not.
+    /// Note, the current implementation is rather conservative in its analysis; upon need, the
+    /// algorithm could be improved.
+    /// In the current implementation, "enclosingFunction" is not allowed to be a mutually recursive function.
+    ///
+    /// If "allowAccumulator" is "true", then tail recursion also allows expressions of the form "E * F"
+    /// and "F * E" where "F" is a tail-recursive expression without an accumulator, "E" has no occurrences
+    /// of the enclosing function, and "*" is an associative and eager operator with a known (left or right, respectively)
+    /// unit element. If "*" is such an operator, then "allowAccumulator" also allows expressions of
+    /// the form "F - E', where "-" is an operator that satisfies "(A - X) - Y == A - (X * Y)".
+    ///
+    /// If "allowAccumulator" is "false", then this method returns one of these three values:
+    ///     TriviallyTailRecursive, TailRecursive, NotTailRecursive
+    /// </summary>
+    Function.TailStatus CheckTailRecursiveExpr(Expression expr, Function enclosingFunction, bool allowAccumulator, bool reportErrors) {
+      Contract.Requires(expr != null);
+      Contract.Requires(enclosingFunction != null);
+
+      expr = expr.Resolved;
+      if (expr is FunctionCallExpr) {
+        var e = (FunctionCallExpr)expr;
+        var status = e.Function == enclosingFunction ? Function.TailStatus.TailRecursive : Function.TailStatus.TriviallyTailRecursive;
+        for (var i = 0; i < e.Function.Formals.Count; i++) {
+          if (!e.Function.Formals[i].IsGhost) {
+            var s = CheckHasNoRecursiveCall(e.Args[i], enclosingFunction, reportErrors);
+            status = TRES_Or(status, s);
+          }
+        }
+        return status;
+
+      } else if (expr is LetExpr) {
+        var e = (LetExpr)expr;
+        var status = Function.TailStatus.TriviallyTailRecursive;
+        for (var i = 0; i < e.LHSs.Count; i++) {
+          var pat = e.LHSs[i];
+          if (pat.Vars.ToList().Exists(bv => !bv.IsGhost)) {
+            if (e.Exact) {
+              var s = CheckHasNoRecursiveCall(e.RHSs[i], enclosingFunction, reportErrors);
+              status = TRES_Or(status, s);
+            } else {
+              // We have detected the existence of a non-ghost LHS, so check the RHS
+              Contract.Assert(e.RHSs.Count == 1);
+              status = CheckHasNoRecursiveCall(e.RHSs[0], enclosingFunction, reportErrors);
+              break;
+            }
+          }
+        }
+        var st = CheckTailRecursiveExpr(e.Body, enclosingFunction, allowAccumulator, reportErrors);
+        return TRES_Or(status, st);
+
+      } else if (expr is ITEExpr) {
+        var e = (ITEExpr)expr;
+        var s0 = CheckHasNoRecursiveCall(e.Test, enclosingFunction, reportErrors);
+        var s1 = CheckTailRecursiveExpr(e.Thn, enclosingFunction, allowAccumulator, reportErrors);
+        var s2 = CheckTailRecursiveExpr(e.Els, enclosingFunction, allowAccumulator, reportErrors);
+        var status = TRES_Or(s0, TRES_Or(s1, s2));
+        if (reportErrors && status == Function.TailStatus.NotTailRecursive) {
+          // We get here for one of the following reasons:
+          //   *  e.Test mentions the function (in which case an error has already been reported),
+          //   *  either e.Thn or e.Els was determined to be NotTailRecursive (in which case an
+          //      error has already been reported),
+          //   *  e.Thn and e.Els have different kinds of accumulator needs
+          if (s0 != Function.TailStatus.NotTailRecursive && s1 != Function.TailStatus.NotTailRecursive && s2 != Function.TailStatus.NotTailRecursive) {
+            reporter.Error(MessageSource.Resolver, expr, "if-then-else branches have different accumulator needs for tail recursion");
+          }
+        }
+        return status;
+
+      } else if (expr is MatchExpr) {
+        var e = (MatchExpr)expr;
+        var status = CheckHasNoRecursiveCall(e.Source, enclosingFunction, reportErrors);
+        var newError = reportErrors && status != Function.TailStatus.NotTailRecursive;
+        foreach (var kase in e.Cases) {
+          var s = CheckTailRecursiveExpr(kase.Body, enclosingFunction, allowAccumulator, reportErrors);
+          newError = newError && s != Function.TailStatus.NotTailRecursive;
+          status = TRES_Or(status, s);
+        }
+        if (status == Function.TailStatus.NotTailRecursive && newError) {
+          // see comments above for ITEExpr
+          // "newError" is "true" when: "reportErrors", and neither e.Source nor a kase.Body returned NotTailRecursive
+          reporter.Error(MessageSource.Resolver, expr, "cases have different accumulator needs for tail recursion");
+        }
+        return status;
+
+      } else if (allowAccumulator && expr is BinaryExpr bin) {
+        var accumulationOp = Function.TailStatus.TriviallyTailRecursive; // use TriviallyTailRecursive to mean bin.ResolvedOp does not support accumulation
+        bool accumulatesOnlyOnRight = false;
+        switch (bin.ResolvedOp) {
+          case BinaryExpr.ResolvedOpcode.Add:
+            if (enclosingFunction.ResultType.AsBitVectorType == null && !enclosingFunction.ResultType.IsCharType) {
+              accumulationOp = Function.TailStatus.Accumulate_Add;
+            }
+            break;
+          case BinaryExpr.ResolvedOpcode.Sub:
+            if (enclosingFunction.ResultType.AsBitVectorType == null && !enclosingFunction.ResultType.IsCharType) {
+              accumulationOp = Function.TailStatus.AccumulateRight_Sub;
+              accumulatesOnlyOnRight = true;
+            }
+            break;
+          case BinaryExpr.ResolvedOpcode.Mul:
+            if (enclosingFunction.ResultType.AsBitVectorType == null) {
+              accumulationOp = Function.TailStatus.Accumulate_Mul;
+            }
+            break;
+          case BinaryExpr.ResolvedOpcode.Union:
+            accumulationOp = Function.TailStatus.Accumulate_SetUnion;
+            break;
+          case BinaryExpr.ResolvedOpcode.SetDifference:
+            accumulationOp = Function.TailStatus.AccumulateRight_SetDifference;
+            accumulatesOnlyOnRight = true;
+            break;
+          case BinaryExpr.ResolvedOpcode.MultiSetUnion:
+            accumulationOp = Function.TailStatus.Accumulate_MultiSetUnion;
+            break;
+          case BinaryExpr.ResolvedOpcode.MultiSetDifference:
+            accumulationOp = Function.TailStatus.AccumulateRight_MultiSetDifference;
+            accumulatesOnlyOnRight = true;
+            break;
+          case BinaryExpr.ResolvedOpcode.Concat:
+            accumulationOp = Function.TailStatus.AccumulateLeft_Concat;  // could also be AccumulateRight_Concat--make more precise below
+            break;
+          default:
+            break;
+        }
+        if (accumulationOp != Function.TailStatus.TriviallyTailRecursive) {
+          var s0 = CheckTailRecursiveExpr(bin.E0, enclosingFunction, false, reportErrors);
+          Function.TailStatus s1;
+          switch (s0) {
+            case Function.TailStatus.NotTailRecursive:
+              // Any errors have already been reported, but still descend down bin.E1 (possibly reporting
+              // more errors) before returning with NotTailRecursive
+              s1 = CheckTailRecursiveExpr(bin.E1, enclosingFunction, false, reportErrors);
+              return s0;
+            case Function.TailStatus.TriviallyTailRecursive:
+              // We are in a state that would allow AcculumateLeftTailRecursive. See what bin.E1 is like:
+              if (accumulatesOnlyOnRight) {
+                s1 = CheckHasNoRecursiveCall(bin.E1, enclosingFunction, reportErrors);
+              } else {
+                s1 = CheckTailRecursiveExpr(bin.E1, enclosingFunction, false, reportErrors);
+              }
+              if (s1 == Function.TailStatus.TailRecursive) {
+                bin.AccumulatesForTailRecursion = BinaryExpr.AccumulationOperand.Left;
+              } else {
+                Contract.Assert(s1 == Function.TailStatus.TriviallyTailRecursive || s1 == Function.TailStatus.NotTailRecursive);
+                return s1;
+              }
+              return accumulationOp;
+            case Function.TailStatus.TailRecursive:
+              // We are in a state that would allow right-accumulative tail recursion. Check that the enclosing
+              // function is not mentioned in bin.E1.
+              s1 = CheckHasNoRecursiveCall(bin.E1, enclosingFunction, reportErrors);
+              if (s1 == Function.TailStatus.TriviallyTailRecursive) {
+                bin.AccumulatesForTailRecursion = BinaryExpr.AccumulationOperand.Right;
+                if (accumulationOp == Function.TailStatus.AccumulateLeft_Concat) {
+                  // switch to AccumulateRight_Concat, since we had approximated it as AccumulateLeft_Concat above
+                  return Function.TailStatus.AccumulateRight_Concat;
+                } else {
+                  return accumulationOp;
+                }
+              } else {
+                Contract.Assert(s1 == Function.TailStatus.NotTailRecursive);
+                return s1;
+              }
+            default:
+              Contract.Assert(false); // unexpected case
+              throw new cce.UnreachableException();
+          }
+        }
+        // not an operator that allows accumulation, so drop down below
+      } else if (expr is StmtExpr) {
+        var e = (StmtExpr)expr;
+        // ignore the statement part, since it is ghost
+        return CheckTailRecursiveExpr(e.E, enclosingFunction, allowAccumulator, reportErrors);
+      }
+
+      return CheckHasNoRecursiveCall(expr, enclosingFunction, reportErrors);
+    }
+
+    /// <summary>
+    /// If "expr" contains a recursive call to "enclosingFunction" in some non-ghost sub-expressions,
+    /// then returns TailStatus.NotTailRecursive (and if "reportErrors" is "true", then
+    /// reports an error about the recursive call), else returns TailStatus.TriviallyTailRecursive.
+    /// </summary>
+    Function.TailStatus CheckHasNoRecursiveCall(Expression expr, Function enclosingFunction, bool reportErrors) {
+      Contract.Requires(expr != null);
+      Contract.Requires(enclosingFunction != null);
+
+      var status = Function.TailStatus.TriviallyTailRecursive;
+
+      if (expr is FunctionCallExpr) {
+        var e = (FunctionCallExpr)expr;
+        if (e.Function == enclosingFunction) {
+          if (reportErrors) {
+            reporter.Error(MessageSource.Resolver, expr, "to be tail recursive, every use of this function must be part of a tail call or a simple accumulating tail call");
+          }
+          status = Function.TailStatus.NotTailRecursive;
+        }
+        // skip ghost sub-expressions
+        for (var i = 0; i < e.Function.Formals.Count; i++) {
+          if (!e.Function.Formals[i].IsGhost) {
+            var s = CheckHasNoRecursiveCall(e.Args[i], enclosingFunction, reportErrors);
+            status = TRES_Or(status, s);
+          }
+        }
+        return status;
+
+      } else if (expr is MemberSelectExpr) {
+        var e = (MemberSelectExpr)expr;
+        if (e.Member == enclosingFunction) {
+          if (reportErrors) {
+            reporter.Error(MessageSource.Resolver, expr, "to be tail recursive, every use of this function must be part of a tail call or a simple accumulating tail call");
+          }
+          return Function.TailStatus.NotTailRecursive;
+        }
+
+      } else if (expr is LetExpr) {
+        var e = (LetExpr)expr;
+        // skip ghost sub-expressions
+        for (var i = 0; i < e.LHSs.Count; i++) {
+          var pat = e.LHSs[i];
+          if (pat.Vars.ToList().Exists(bv => !bv.IsGhost)) {
+            if (e.Exact) {
+              var s = CheckHasNoRecursiveCall(e.RHSs[i], enclosingFunction, reportErrors);
+              status = TRES_Or(status, s);
+            } else {
+              // We have detected the existence of a non-ghost LHS, so check the RHS
+              Contract.Assert(e.RHSs.Count == 1);
+              status = CheckHasNoRecursiveCall(e.RHSs[0], enclosingFunction, reportErrors);
+              break;
+            }
+          }
+        }
+        var st = CheckHasNoRecursiveCall(e.Body, enclosingFunction, reportErrors);
+        return TRES_Or(status, st);
+
+      }  else if (expr is DatatypeValue) {
+        var e = (DatatypeValue)expr;
+        // skip ghost sub-expressions
+        for (var i = 0; i < e.Ctor.Formals.Count; i++) {
+          if (!e.Ctor.Formals[i].IsGhost) {
+            var s = CheckHasNoRecursiveCall(e.Arguments[i], enclosingFunction, reportErrors);
+            status = TRES_Or(status, s);
+          }
+        }
+        return status;
+
+      }
+
+      foreach (var ee in expr.SubExpressions) {
+        var s = CheckHasNoRecursiveCall(ee, enclosingFunction, reportErrors);
+        status = TRES_Or(status, s);
+      }
+      return status;
+    }
+
+#endregion CheckTailRecursiveExpr
 
     // ------------------------------------------------------------------------------------------------------
     // ----- FuelAdjustmentChecks ---------------------------------------------------------------------------
@@ -6776,11 +7114,23 @@ namespace Microsoft.Dafny
         Contract.Requires(stmt != null);
         Contract.Assume(!codeContext.IsGhost || mustBeErasable);  // (this is really a precondition) codeContext.IsGhost ==> mustBeErasable
 
-        if (stmt is PredicateStmt) {
+        if (stmt is AssertStmt || stmt is AssumeStmt) {
           stmt.IsGhost = true;
           var assertStmt = stmt as AssertStmt;
           if (assertStmt != null && assertStmt.Proof != null) {
             Visit(assertStmt.Proof, true);
+          }
+
+        } else if (stmt is ExpectStmt) {
+          stmt.IsGhost = false;
+          var s = (ExpectStmt)stmt;
+          if (mustBeErasable) {
+            Error(stmt, "expect statement is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)");
+          } else {
+            resolver.CheckIsCompilable(s.Expr);
+            // If not provided, the message is populated with a default value in resolution
+            Contract.Assert(s.Message != null);
+            resolver.CheckIsCompilable(s.Message);
           }
 
         } else if (stmt is PrintStmt) {
@@ -8911,6 +9261,14 @@ namespace Microsoft.Dafny
           enclosingStatementLabels = prevLblStmts;
           loopStack = prevLoopStack;
         }
+        var expectStmt = stmt as ExpectStmt;
+        if (expectStmt != null) {
+          if (expectStmt.Message == null) {
+            expectStmt.Message = new StringLiteralExpr(s.Tok, "expectation violation", false);
+          }
+          ResolveExpression(expectStmt.Message, new ResolveOpts(codeContext, true));
+          Contract.Assert(expectStmt.Message.Type != null);  // follows from postcondition of ResolveExpression
+        }
 
       } else if (stmt is PrintStmt) {
         var s = (PrintStmt)stmt;
@@ -8930,7 +9288,7 @@ namespace Microsoft.Dafny
               var e = (ApplySuffix)expr;
               var methodCallInfo = ResolveApplySuffix(e, opts, true);
               if (methodCallInfo == null) {
-                reporter.Error(MessageSource.Resolver, expr.tok, "function {0} does not have the reveal lemma", e.Lhs);
+                reporter.Error(MessageSource.Resolver, expr.tok, "expression has no reveal lemma");
               } else {
                 var call = new CallStmt(methodCallInfo.Tok, s.EndTok, new List<Expression>(), methodCallInfo.Callee, methodCallInfo.Args);
                 s.ResolvedStatements.Add(call);
@@ -10033,11 +10391,6 @@ namespace Microsoft.Dafny
             var cRhs = ResolveApplySuffix(a, new ResolveOpts(codeContext, true), true);
             isEffectful = cRhs != null;
             methodCallInfo = methodCallInfo ?? cRhs;
-          } else if (er.Expr is RevealExpr) {
-            var r = (RevealExpr)er.Expr;
-            var cRhs = ResolveRevealExpr(r, new ResolveOpts(codeContext, true), true);
-            isEffectful = cRhs != null;
-            methodCallInfo = methodCallInfo ?? cRhs;
           } else {
             ResolveExpression(er.Expr, new ResolveOpts(codeContext, true));
             isEffectful = false;
@@ -10139,6 +10492,8 @@ namespace Microsoft.Dafny
     /// <summary>
     /// Desugars "y :- MethodOrExpression" into
     /// "var temp := MethodOrExpression; if temp.IsFailure() { return temp.PropagateFailure(); } y := temp.Extract();"
+    /// and "y :- expect MethodOrExpression" into
+    /// "var temp := MethodOrExpression; expect !temp.IsFailure(), temp.PropagateFailure(); y := temp.Extract();"
     /// and saves the result into s.ResolvedStatements.
     /// </summary>
     private void ResolveAssignOrReturnStmt(AssignOrReturnStmt s, ICodeContext codeContext) {
@@ -10150,16 +10505,23 @@ namespace Microsoft.Dafny
         // "var temp := MethodOrExpression;"
         new VarDeclStmt(s.Tok, s.Tok, new List<LocalVariable>() { new LocalVariable(s.Tok, s.Tok, temp, tempType, false) },
           new UpdateStmt(s.Tok, s.Tok, new List<Expression>() { new IdentifierExpr(s.Tok, temp) }, new List<AssignmentRhs>() { new ExprRhs(s.Rhs) })));
-      s.ResolvedStatements.Add(
-        // "if temp.IsFailure()"
-        new IfStmt(s.Tok, s.Tok, false, VarDotMethod(s.Tok, temp, "IsFailure"),
-          // THEN: { return temp.PropagateFailure(); }
-          new BlockStmt(s.Tok, s.Tok, new List<Statement>() {
-            new ReturnStmt(s.Tok, s.Tok, new List<AssignmentRhs>() { new ExprRhs(VarDotMethod(s.Tok, temp, "PropagateFailure"))}),
-          }),
-          // ELSE: no else block
-          null
-        ));
+      if (s.ExpectToken != null) {
+        var notFailureExpr = new UnaryOpExpr(s.Tok, UnaryOpExpr.Opcode.Not, VarDotMethod(s.Tok, temp, "IsFailure"));
+        s.ResolvedStatements.Add(
+          // "expect !temp.IsFailure(), temp"
+          new ExpectStmt(s.Tok, s.Tok, notFailureExpr, new IdentifierExpr(s.Tok, temp), null));
+      } else {
+        s.ResolvedStatements.Add(
+          // "if temp.IsFailure()"
+          new IfStmt(s.Tok, s.Tok, false, VarDotMethod(s.Tok, temp, "IsFailure"),
+            // THEN: { return temp.PropagateFailure(); }
+            new BlockStmt(s.Tok, s.Tok, new List<Statement>() {
+              new ReturnStmt(s.Tok, s.Tok, new List<AssignmentRhs>() { new ExprRhs(VarDotMethod(s.Tok, temp, "PropagateFailure"))}),
+            }),
+            // ELSE: no else block
+            null
+          ));
+      }
 
       Contract.Assert(s.Lhss.Count <= 1);
       if (s.Lhss.Count == 1)
@@ -11731,11 +12093,6 @@ namespace Microsoft.Dafny
       } else if (expr is ApplySuffix) {
         var e = (ApplySuffix)expr;
         ResolveApplySuffix(e, opts, false);
-
-      } else if (expr is RevealExpr) {
-        var e = (RevealExpr)expr;
-        ResolveRevealExpr(e, opts, true);
-        e.ResolvedExpression = e.Expr;
 
       } else if (expr is MemberSelectExpr) {
         var e = (MemberSelectExpr)expr;
@@ -13755,17 +14112,6 @@ namespace Microsoft.Dafny
       }
     }
 
-    MethodCallInformation ResolveRevealExpr(RevealExpr e, ResolveOpts opts, bool allowMethodCall) {
-      var revealOpts = new ResolveOpts(opts.codeContext, opts.twoState, true, opts.isPostCondition, opts.InsideOld);
-      MethodCallInformation info = null;
-      if (e.Expr is ApplySuffix) {
-        info = ResolveApplySuffix((ApplySuffix)e.Expr, revealOpts, true);
-      } else {
-        ResolveExpression(e.Expr, revealOpts);
-      }
-      return info;
-    }
-
     MethodCallInformation ResolveApplySuffix(ApplySuffix e, ResolveOpts opts, bool allowMethodCall) {
       Contract.Requires(e != null);
       Contract.Requires(opts != null);
@@ -13955,7 +14301,7 @@ namespace Microsoft.Dafny
     }
 
     /// <summary>
-    /// Generate an error for every non-ghost feature used in "expr".
+    /// Generate an error for every ghost feature used in "expr".
     /// Requires "expr" to have been successfully resolved.
     /// </summary>
     void CheckIsCompilable(Expression expr) {

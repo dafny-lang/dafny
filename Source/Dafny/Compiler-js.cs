@@ -27,7 +27,7 @@ namespace Microsoft.Dafny {
     }
 
     public override void EmitCallToMain(Method mainMethod, TargetWriter wr) {
-      wr.WriteLine("{0}.{1}();", mainMethod.EnclosingClass.FullCompileName, IdName(mainMethod));
+      wr.WriteLine("_dafny.HandleHaltExceptions({0}.{1});", mainMethod.EnclosingClass.FullCompileName, IdName(mainMethod));
     }
 
     protected override BlockTargetWriter CreateStaticMain(IClassWriter cw) {
@@ -595,13 +595,14 @@ namespace Microsoft.Dafny {
       if (!m.IsStatic && !customReceiver) {
         w.WriteLine("let _this = this;");
       }
-      if (m.IsTailRecursive) {
-        w = w.NewBlock("TAIL_CALL_START: while (true)");
-      }
-      var r = new TargetWriter(w.IndentLevel);
-      EmitReturn(m.Outs, r);
-      w.BodySuffix = r.ToString();
       return w;
+    }
+
+    protected override BlockTargetWriter EmitMethodReturns(Method m, BlockTargetWriter wr) {
+      var r = new TargetWriter(wr.IndentLevel);
+      EmitReturn(m.Outs, r);
+      wr.BodySuffix = r.ToString();
+      return wr;
     }
 
     protected BlockTargetWriter/*?*/ CreateFunction(string name, List<TypeParameter>/*?*/ typeArgs, List<Formal> formals, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl member, TargetWriter wr) {
@@ -763,6 +764,16 @@ namespace Microsoft.Dafny {
         setterWriter = null;
         return null;
       }
+    }
+
+    protected override BlockTargetWriter EmitTailCallStructure(MemberDecl member, BlockTargetWriter wr) {
+      var w = wr.NewBlock("TAIL_CALL_START: while (true)");
+      if (member is Method m) {
+        var r = new TargetWriter(w.IndentLevel);
+        EmitReturn(m.Outs, r);
+        w.BodySuffix = r.ToString();
+      }
+      return w;
     }
 
     protected override void EmitJumpToTailCallStart(TargetWriter wr) {
@@ -1064,6 +1075,12 @@ namespace Microsoft.Dafny {
         message = "unexpected control point";
       }
       wr.WriteLine("throw new Error(\"{0}\");", message);
+    }
+
+    protected override void EmitHalt(Expression/*?*/ messageExpr, TargetWriter wr) {
+      wr.Write("throw new _dafny.HaltException(");
+      TrExpr(messageExpr, wr, false);
+      wr.WriteLine(");");
     }
 
     protected override BlockTargetWriter CreateForLoop(string indexVar, string bound, TargetWriter wr) {
@@ -1436,24 +1453,29 @@ namespace Microsoft.Dafny {
       }
     }
 
-    protected override TargetWriter EmitMemberSelect(MemberDecl member, bool isLValue, Type expectedType, TargetWriter wr) {
-      var wSource = wr.Fork();
-      if (isLValue && member is ConstantField) {
-        wr.Write("._{0}", member.CompileName);
+    protected override ILvalue EmitMemberSelect(Action<TargetWriter> obj, MemberDecl member, Type expectedType, bool internalAccess = false) {
+      if (member is ConstantField) {
+        return SimpleLvalue(lvalueAction: wr => {
+          obj(wr);
+          wr.Write("._{0}", member.CompileName);
+        }, rvalueAction: wr => {
+          obj(wr);
+          wr.Write(".{0}{1}", internalAccess ? "_" : "", member.CompileName);
+        });
       } else if (member is DatatypeDestructor dtor && dtor.EnclosingClass is TupleTypeDecl) {
-        wr.Write("[{0}]", dtor.Name);
-      } else if (!isLValue && member is SpecialField sf) {
+        return SuffixLvalue(obj, "[{0}]", dtor.Name);
+      } else if (member is SpecialField sf) {
         string compiledName, preStr, postStr;
         GetSpecialFieldInfo(sf.SpecialId, sf.IdParam, out compiledName, out preStr, out postStr);
         if (compiledName.Length != 0) {
-          wr.Write(".{0}", compiledName);
+          return SuffixLvalue(obj, ".{0}", compiledName);
         } else {
           // this member selection is handled by some kind of enclosing function call, so nothing to do here
+          return SimpleLvalue(obj);
         }
       } else {
-        wr.Write(".{0}", IdName(member));
+        return SuffixLvalue(obj, ".{0}", IdName(member));
       }
-      return wSource;
     }
 
     protected override TargetWriter EmitArraySelect(List<string> indices, Type elmtType, TargetWriter wr) {
@@ -1514,8 +1536,14 @@ namespace Microsoft.Dafny {
     }
 
     protected override void EmitIndexCollectionUpdate(Expression source, Expression index, Expression value, bool inLetExprBody, TargetWriter wr, bool nativeIndex = false) {
-      TrParenExpr(source, wr, inLetExprBody);
-      wr.Write(".update(");
+      if (source.Type.AsSeqType != null) {
+        wr.Write("_dafny.Seq.update(");
+        TrExpr(source, wr, inLetExprBody);
+        wr.Write(", ");
+      } else {
+        TrParenExpr(source, wr, inLetExprBody);
+        wr.Write(".update(");
+      }
       TrExpr(index, wr, inLetExprBody);
       wr.Write(", ");
       TrExpr(value, wr, inLetExprBody);
@@ -1957,7 +1985,10 @@ namespace Microsoft.Dafny {
         } else if (e.ToType.IsCharType) {
           wr.Write("String.fromCharCode(");
           TrParenExpr(e.E, wr, inLetExprBody);
-          wr.Write(".toNumber())");
+          if (AsNativeType(e.E.Type) == null) {
+            wr.Write(".toNumber()");
+          }
+          wr.Write(")");
         } else {
           // (int or bv or char) -> (int or bv or ORDINAL)
           var fromNative = AsNativeType(e.E.Type);
@@ -2015,6 +2046,10 @@ namespace Microsoft.Dafny {
           // real -> real
           Contract.Assert(AsNativeType(e.ToType) == null);
           TrExpr(e.E, wr, inLetExprBody);
+        } else if (e.ToType.IsCharType) {
+          wr.Write("String.fromCharCode(");
+          TrParenExpr(e.E, wr, inLetExprBody);
+          wr.Write(".toBigNumber().toNumber())");
         } else {
           // real -> (int or bv)
           TrParenExpr(e.E, wr, inLetExprBody);

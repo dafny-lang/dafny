@@ -6,7 +6,13 @@ public class Tuple2<T0, T1> {
     private T0 _0;
     private T1 _1;
 
-    public static String defaultInstanceName = Tuple2.class.toString();
+    @SuppressWarnings("unchecked")
+    private static final Type<Tuple2<?, ?>> TYPE =
+            (Type<Tuple2<?, ?>>) (Type<?>) Type.reference(Tuple2.class);
+    @SuppressWarnings("unchecked")
+    public static <T0, T1> Type<Tuple2<T0, T1>> _type() {
+        return (Type<Tuple2<T0, T1>>) (Type<?>) TYPE;
+    }
 
     public Tuple2(){
     }

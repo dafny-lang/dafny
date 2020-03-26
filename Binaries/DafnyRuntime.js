@@ -466,10 +466,16 @@ let _dafny = (function() {
     toString() {
       return "[" + arrayElementsToString(this) + "]";
     }
-    update(i, v) {
-      let t = this.slice();
-      t[i] = v;
-      return t;
+    static update(s, i, v) {
+      if (typeof s === "string") {
+        let p = s.slice(0, i);
+        let q = s.slice(i.toNumber() + 1);
+        return p.concat(v, q);
+      } else {
+        let t = s.slice();
+        t[i] = v;
+        return t;
+      }
     }
     equals(other) {
       if (this === other) {
@@ -964,6 +970,22 @@ let _dafny = (function() {
   }
   $module.SingleValue = function*(v) {
     yield v;
+  }
+  $module.HaltException = class HaltException extends Error {
+    constructor(message) {
+      super(message)
+    }
+  }
+  $module.HandleHaltExceptions = function(f) {
+    try {
+      f()
+    } catch (e) {
+      if (e instanceof _dafny.HaltException) {
+        process.stdout.write("Program halted: " + e.message + "\n")
+      } else {
+        throw e
+      }
+    }
   }
   return $module;
 

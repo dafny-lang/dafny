@@ -427,7 +427,7 @@ bool IsIdentColonOrBar() {
 }
 
 bool SemiFollowsCall(bool allowSemi, Expression e) {
-  return allowSemi && la.kind == _semicolon && (e is ApplySuffix || (e is RevealExpr && (((RevealExpr)e).Expr is ApplySuffix)));
+  return allowSemi && la.kind == _semicolon && e is ApplySuffix;
 }
 
 bool IsNotEndOfCase() {
@@ -783,6 +783,7 @@ TOKENS
   notIn = "!in" CONTEXT (nonidchar).
   ellipsis = "...".
   reveal = "reveal".
+  expect = "expect".
 COMMENTS FROM "/*" TO "*/" NESTED
 COMMENTS FROM "//" TO lf
 IGNORE cr + lf + tab
@@ -2109,6 +2110,7 @@ OneStmt<out Statement/*!*/ s>
   SYNC
   ( BlockStmt<out bs, out bodyStart, out bodyEnd>  (. s = bs; .)
   | AssertStmt<out s, false>
+  | ExpectStmt<out s>
   | AssumeStmt<out s>
   | PrintStmt<out s>
   | RevealStmt<out s>
@@ -2189,6 +2191,7 @@ UpdateStmt<out Statement/*!*/ s>
      Attributes attrs = null;
      IToken suchThatAssume = null;
      Expression suchThat = null;
+     IToken exceptionExpect = null;
      Expression exceptionExpr = null;
   .)
 ( Lhs<out e>                       (. x = e.tok; .)
@@ -2207,12 +2210,18 @@ UpdateStmt<out Statement/*!*/ s>
       ]
       Expression<out suchThat, false, true>
     | ":-"                         (. x = t; .)
+      [ IF(la.kind == _expect)     /* an Expression can also begin with an "expect", so this says to resolve it to pick up any "expect" here */
+        "expect"                   (. exceptionExpect = t; .)
+      ]
       Expression<out exceptionExpr, false, false>
     )
     ";"                            (. endTok = t; .)
   | ":"                            (. SemErr(t, "invalid statement (did you forget the 'label' keyword?)"); .)
   )
 | ":-"                             (. x = t; .)
+   [ IF(la.kind == _expect)        /* an Expression can also begin with an "expect", so this says to resolve it to pick up any "expect" here */
+     "expect"                      (. exceptionExpect = t; .)
+   ]
    Expression<out exceptionExpr, false, false>
    ";"                             (. endTok = t; .)
 )
@@ -2223,7 +2232,7 @@ UpdateStmt<out Statement/*!*/ s>
          SemErr(x, "':-' assignments can only have one LHS");
          lhss = new List<Expression>() { lhss[0] };
        }
-       s = new AssignOrReturnStmt(x, endTok, lhss, exceptionExpr);
+       s = new AssignOrReturnStmt(x, endTok, lhss, exceptionExpr, exceptionExpect);
      } else {
        if (lhss.Count == 0 && rhss.Count == 0) {
          s = new BlockStmt(x, endTok, new List<Statement>()); // error, give empty statement
@@ -2313,6 +2322,7 @@ VarDeclStatement<.out Statement/*!*/ s.>
      List<AssignmentRhs> rhss = new List<AssignmentRhs>();
      IToken suchThatAssume = null;
      Expression suchThat = null;
+     IToken exceptionExpect = null;
      Expression exceptionExpr = null;
      Attributes attrs = null;
      IToken endTok;
@@ -2339,6 +2349,9 @@ VarDeclStatement<.out Statement/*!*/ s.>
       ]
       Expression<out suchThat, false, true>
     | ":-"                           (. assignTok = t; .)
+      [ IF(la.kind == _expect)     /* an Expression can also begin with an "expect", so this says to resolve it to pick up any "expect" here */
+        "expect"                   (. exceptionExpect = t; .)
+      ]
       Expression<out exceptionExpr, false, false>
     ]
     SYNC ";"                         (. endTok = t; .)
@@ -2355,7 +2368,7 @@ VarDeclStatement<.out Statement/*!*/ s.>
              SemErr(assignTok, "':-' assignments can only have one LHS");
              lhsExprs = new List<Expression>() { lhsExprs[0] };
            }
-           update = new AssignOrReturnStmt(assignTok, endTok, lhsExprs, exceptionExpr);
+           update = new AssignOrReturnStmt(assignTok, endTok, lhsExprs, exceptionExpr, exceptionExpect);
        } else if (rhss.Count == 0) {
          update = null;
        } else {
@@ -2656,6 +2669,25 @@ AssertStmt<out Statement/*!*/ s, bool inExprContext>
        s = new SkeletonStatement(new AssertStmt(x, t, new LiteralExpr(x, true), null, null, attrs), dotdotdot, null);
      } else {
        s = new AssertStmt(x, t, e, proof, lbl == null ? null : new AssertLabel(lbl, lbl.val), attrs);
+     }
+  .)
+  .
+ExpectStmt<out Statement/*!*/ s>
+= (. Contract.Ensures(Contract.ValueAtReturn(out s) != null); IToken/*!*/ x;
+     Expression e = dummyExpr; Expression m = null; Attributes attrs = null;
+     IToken dotdotdot = null;
+  .)
+  "expect"                                     (. x = t; .)
+  { Attribute<ref attrs> }
+  ( Expression<out e, false, true>
+  | "..."                                      (. dotdotdot = t; .)
+  )
+  [ "," Expression<out m, false, true> ]
+  ";"
+  (. if (dotdotdot != null) {
+       s = new SkeletonStatement(new ExpectStmt(x, t, new LiteralExpr(x, true), m, attrs), dotdotdot, null);
+     } else {
+       s = new ExpectStmt(x, t, e, m, attrs);
      }
   .)
   .
@@ -3490,8 +3522,6 @@ EndlessExpression<out Expression e, bool allowSemi, bool allowLambda, bool allow
     MapComprehensionExpr<x, true, out e, allowSemi, allowLambda, allowBitwiseOps>
   | "imap"                          (. x = t; .)
     MapComprehensionExpr<x, false, out e, allowSemi, allowLambda, true>
-  | "reveal"
-    Expression<out e, false, false, allowBitwiseOps> (. e = new RevealExpr(e.tok, e); .)
   | NamedExpr<out e, allowSemi, allowLambda, allowBitwiseOps>
   )
   .
@@ -3499,7 +3529,9 @@ EndlessExpression<out Expression e, bool allowSemi, bool allowLambda, bool allow
 StmtInExpr<out Statement s>
 = (. s = dummyStmt; .)
   ( AssertStmt<out s, true>
+  | ExpectStmt<out s>
   | AssumeStmt<out s>
+  | RevealStmt<out s>
   | CalcStmt<out s>
   )
   .

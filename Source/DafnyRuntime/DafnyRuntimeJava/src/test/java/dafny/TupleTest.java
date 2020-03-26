@@ -17,10 +17,10 @@ class TupleTest {
   DafnyMultiset<Integer> testMSet = new DafnyMultiset<>(
       Arrays.asList(1, 2, 3, 1, 2, 4, 3, 5, 7, 3, 2));
   Integer[] testSequenceArr = new Integer[]{1, 3, 2, 4, 2, 4, 6, 5, 4, 1, 7};
-  DafnySequence<Integer> testSequence = DafnySequence.fromList(Arrays.asList(testSequenceArr));
+  DafnySequence<Integer> testSequence = DafnySequence.fromList(Type.INT, Arrays.asList(testSequenceArr));
   Character[] testStringArr = new Character[]{'1', '3', '2', '4', '2', '4', '6', '5', '4', '1',
       '7'};
-  DafnySequence<Character> testString = DafnySequence.fromList(Arrays.asList(testStringArr));
+  DafnySequence<Character> testString = DafnySequence.fromList(Type.CHAR, Arrays.asList(testStringArr));
   Integer integer = 3;
   String string = "Hello";
   StringBuilder sb = new StringBuilder();

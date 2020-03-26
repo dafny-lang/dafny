@@ -14,15 +14,11 @@ namespace DafnyAssembly {
 namespace Dafny
 {
   using System.Collections.Generic;
-  // set this option if you want to use System.Collections.Immutable and if you know what you're doing.
-#if DAFNY_USE_SYSTEM_COLLECTIONS_IMMUTABLE
   using System.Collections.Immutable;
   using System.Linq;
-#endif
 
   public class Set<T>
   {
-#if DAFNY_USE_SYSTEM_COLLECTIONS_IMMUTABLE
     readonly ImmutableHashSet<T> setImpl;
     readonly bool containsNull;
     Set(ImmutableHashSet<T> d, bool containsNull) {
@@ -78,36 +74,6 @@ namespace Dafny
         }
       }
     }
-#else
-    readonly HashSet<T> setImpl;
-    Set(HashSet<T> s) {
-      this.setImpl = s;
-    }
-    public static readonly Set<T> Empty = new Set<T>(new HashSet<T>());
-    public static Set<T> FromElements(params T[] values) {
-      return FromCollection(values);
-    }
-    public static Set<T> FromCollection(IEnumerable<T> values) {
-      var s = new HashSet<T>(values);
-      return new Set<T>(s);
-    }
-    public static Set<T> FromCollectionPlusOne(IEnumerable<T> values, T oneMoreValue) {
-      var s = new HashSet<T>(values);
-      s.Add(oneMoreValue);
-      return new Set<T>(s);
-    }
-    public int Count {
-      get { return this.setImpl.Count; }
-    }
-    public long LongCount {
-      get { return this.setImpl.Count; }
-    }
-    public IEnumerable<T> Elements {
-      get {
-        return this.setImpl;
-      }
-    }
-#endif
 
     public static Set<T> _DafnyDefaultValue() {
       return Empty;
@@ -123,22 +89,14 @@ namespace Dafny
         elmts.AddRange(this.setImpl);
         var n = elmts.Count;
         var which = new bool[n];
-#if DAFNY_USE_SYSTEM_COLLECTIONS_IMMUTABLE
         var s = ImmutableHashSet<T>.Empty.ToBuilder();
-#else
-        var s = new HashSet<T>();
-#endif
         while (true) {
-#if DAFNY_USE_SYSTEM_COLLECTIONS_IMMUTABLE
           // yield both the subset without null and, if null is in the original set, the subset with null included
           var ihs = s.ToImmutable();
           yield return new Set<T>(ihs, false);
           if (containsNull) {
             yield return new Set<T>(ihs, true);
           }
-#else
-          yield return new Set<T>(new HashSet<T>(s));
-#endif
           // "add 1" to "which", as if doing a carry chain.  For every digit changed, change the membership of the corresponding element in "s".
           int i = 0;
           for (; i < n && which[i]; i++) {
@@ -155,22 +113,16 @@ namespace Dafny
       }
     }
     public bool Equals(Set<T> other) {
-#if DAFNY_USE_SYSTEM_COLLECTIONS_IMMUTABLE
       return containsNull == other.containsNull && this.setImpl.SetEquals(other.setImpl);
-#else
-      return this.setImpl.Count == other.setImpl.Count && IsSubsetOf(other);
-#endif
     }
     public override bool Equals(object other) {
       return other is Set<T> && Equals((Set<T>)other);
     }
     public override int GetHashCode() {
       var hashCode = 1;
-#if DAFNY_USE_SYSTEM_COLLECTIONS_IMMUTABLE
       if (containsNull) {
         hashCode = hashCode * (Dafny.Helpers.GetHashCode(default(T)) + 3);
       }
-#endif
       foreach (var t in this.setImpl) {
         hashCode = hashCode * (Dafny.Helpers.GetHashCode(t)+3);
       }
@@ -179,12 +131,10 @@ namespace Dafny
     public override string ToString() {
       var s = "{";
       var sep = "";
-#if DAFNY_USE_SYSTEM_COLLECTIONS_IMMUTABLE
       if (containsNull) {
         s += sep + Dafny.Helpers.ToString(default(T));
         sep = ", ";
       }
-#endif
       foreach (var t in this.setImpl) {
         s += sep + Dafny.Helpers.ToString(t);
         sep = ", ";
@@ -195,11 +145,9 @@ namespace Dafny
       return this.Count < other.Count && IsSubsetOf(other);
     }
     public bool IsSubsetOf(Set<T> other) {
-#if DAFNY_USE_SYSTEM_COLLECTIONS_IMMUTABLE
       if (this.containsNull && !other.containsNull) {
         return false;
       }
-#endif
       if (other.setImpl.Count < this.setImpl.Count)
         return false;
       foreach (T t in this.setImpl) {
@@ -215,14 +163,10 @@ namespace Dafny
       return other.IsProperSubsetOf(this);
     }
     public bool IsDisjointFrom(Set<T> other) {
-#if DAFNY_USE_SYSTEM_COLLECTIONS_IMMUTABLE
       if (this.containsNull && other.containsNull) {
         return false;
       }
       ImmutableHashSet<T> a, b;
-#else
-      HashSet<T> a, b;
-#endif
       if (this.setImpl.Count < other.setImpl.Count) {
         a = this.setImpl; b = other.setImpl;
       } else {
@@ -235,13 +179,8 @@ namespace Dafny
       return true;
     }
     public bool Contains<G>(G t) {
-#if DAFNY_USE_SYSTEM_COLLECTIONS_IMMUTABLE
       return t == null ? containsNull : t is T && this.setImpl.Contains((T)(object)t);
-#else
-      return (t == null || t is T) && this.setImpl.Contains((T)(object)t);
-#endif
     }
-#if DAFNY_USE_SYSTEM_COLLECTIONS_IMMUTABLE
     public Set<T> Union(Set<T> other) {
       return new Set<T>(this.setImpl.Union(other.setImpl), containsNull || other.containsNull);
     }
@@ -251,85 +190,19 @@ namespace Dafny
     public Set<T> Difference(Set<T> other) {
         return new Set<T>(this.setImpl.Except(other.setImpl), containsNull && !other.containsNull);
     }
-#else
-    public Set<T> Union(Set<T> other) {
-      if (this.setImpl.Count == 0)
-        return other;
-      else if (other.setImpl.Count == 0)
-        return this;
-      HashSet<T> a, b;
-      if (this.setImpl.Count < other.setImpl.Count) {
-        a = this.setImpl; b = other.setImpl;
-      } else {
-        a = other.setImpl; b = this.setImpl;
-      }
-      var r = new HashSet<T>();
-      foreach (T t in b)
-        r.Add(t);
-      foreach (T t in a)
-        r.Add(t);
-      return new Set<T>(r);
-    }
-    public Set<T> Intersect(Set<T> other) {
-      if (this.setImpl.Count == 0)
-        return this;
-      else if (other.setImpl.Count == 0)
-        return other;
-      HashSet<T> a, b;
-      if (this.setImpl.Count < other.setImpl.Count) {
-        a = this.setImpl; b = other.setImpl;
-      } else {
-        a = other.setImpl; b = this.setImpl;
-      }
-      var r = new HashSet<T>();
-      foreach (T t in a) {
-        if (b.Contains(t))
-          r.Add(t);
-      }
-      return new Set<T>(r);
-    }
-    public Set<T> Difference(Set<T> other) {
-      if (this.setImpl.Count == 0)
-        return this;
-      else if (other.setImpl.Count == 0)
-        return this;
-      var r = new HashSet<T>();
-      foreach (T t in this.setImpl) {
-        if (!other.setImpl.Contains(t))
-          r.Add(t);
-      }
-      return new Set<T>(r);
-    }
-#endif
   }
 
   public class MultiSet<T>
   {
-#if DAFNY_USE_SYSTEM_COLLECTIONS_IMMUTABLE
     readonly ImmutableDictionary<T, BigInteger> dict;
-#else
-    readonly Dictionary<T, BigInteger> dict;
-#endif
     readonly BigInteger occurrencesOfNull;  // stupidly, a Dictionary in .NET cannot use "null" as a key
-#if DAFNY_USE_SYSTEM_COLLECTIONS_IMMUTABLE
     MultiSet(ImmutableDictionary<T, BigInteger>.Builder d, BigInteger occurrencesOfNull) {
       dict = d.ToImmutable();
       this.occurrencesOfNull = occurrencesOfNull;
     }
     public static readonly MultiSet<T> Empty = new MultiSet<T>(ImmutableDictionary<T, BigInteger>.Empty.ToBuilder(), BigInteger.Zero);
-#else
-    MultiSet(Dictionary<T, BigInteger> d, BigInteger occurrencesOfNull) {
-      this.dict = d;
-      this.occurrencesOfNull = occurrencesOfNull;
-    }
-    public static MultiSet<T> Empty = new MultiSet<T>(new Dictionary<T, BigInteger>(0), BigInteger.Zero);
-#endif
     public static MultiSet<T> FromElements(params T[] values) {
-#if DAFNY_USE_SYSTEM_COLLECTIONS_IMMUTABLE
       var d = ImmutableDictionary<T, BigInteger>.Empty.ToBuilder();
-#else
-      var d = new Dictionary<T, BigInteger>(values.Length);
-#endif
       var occurrencesOfNull = BigInteger.Zero;
       foreach (T t in values) {
         if (t == null) {
@@ -345,11 +218,7 @@ namespace Dafny
       return new MultiSet<T>(d, occurrencesOfNull);
     }
     public static MultiSet<T> FromCollection(ICollection<T> values) {
-#if DAFNY_USE_SYSTEM_COLLECTIONS_IMMUTABLE
       var d = ImmutableDictionary<T, BigInteger>.Empty.ToBuilder();
-#else
-      var d = new Dictionary<T, BigInteger>();
-#endif
       var occurrencesOfNull = BigInteger.Zero;
       foreach (T t in values) {
         if (t == null) {
@@ -364,12 +233,8 @@ namespace Dafny
       }
       return new MultiSet<T>(d, occurrencesOfNull);
     }
-    public static MultiSet<T> FromSeq(Sequence<T> values) {
-#if DAFNY_USE_SYSTEM_COLLECTIONS_IMMUTABLE
+    public static MultiSet<T> FromSeq(ISequence<T> values) {
       var d = ImmutableDictionary<T, BigInteger>.Empty.ToBuilder();
-#else
-      var d = new Dictionary<T, BigInteger>();
-#endif
       var occurrencesOfNull = BigInteger.Zero;
       foreach (T t in values.Elements) {
         if (t == null) {
@@ -385,11 +250,7 @@ namespace Dafny
       return new MultiSet<T>(d, occurrencesOfNull);
     }
     public static MultiSet<T> FromSet(Set<T> values) {
-#if DAFNY_USE_SYSTEM_COLLECTIONS_IMMUTABLE
       var d = ImmutableDictionary<T, BigInteger>.Empty.ToBuilder();
-#else
-      var d = new Dictionary<T, BigInteger>();
-#endif
       var containsNull = false;
       foreach (T t in values.Elements) {
         if (t == null) {
@@ -491,18 +352,10 @@ namespace Dafny
       if (Select(t) == i) {
         return this;
       } else if (t == null) {
-#if DAFNY_USE_SYSTEM_COLLECTIONS_IMMUTABLE
         var r = dict.ToBuilder();
-#else
-        var r = dict;
-#endif
         return new MultiSet<T>(r, i);
       } else {
-#if DAFNY_USE_SYSTEM_COLLECTIONS_IMMUTABLE
         var r = dict.ToBuilder();
-#else
-        var r = new Dictionary<T, BigInteger>(dict);
-#endif
         r[(T)(object)t] = i;
         return new MultiSet<T>(r, occurrencesOfNull);
       }
@@ -512,11 +365,7 @@ namespace Dafny
         return other;
       else if (other.dict.Count + other.occurrencesOfNull == 0)
         return this;
-#if DAFNY_USE_SYSTEM_COLLECTIONS_IMMUTABLE
       var r = ImmutableDictionary<T, BigInteger>.Empty.ToBuilder();
-#else
-      var r = new Dictionary<T, BigInteger>();
-#endif
       foreach (T t in dict.Keys) {
         BigInteger i;
         if (!r.TryGetValue(t, out i)) {
@@ -538,11 +387,7 @@ namespace Dafny
         return this;
       else if (other.dict.Count == 0 && other.occurrencesOfNull == 0)
         return other;
-#if DAFNY_USE_SYSTEM_COLLECTIONS_IMMUTABLE
       var r = ImmutableDictionary<T, BigInteger>.Empty.ToBuilder();
-#else
-      var r = new Dictionary<T, BigInteger>();
-#endif
       foreach (T t in dict.Keys) {
         if (other.dict.ContainsKey(t)) {
           r.Add(t, other.dict[t] < dict[t] ? other.dict[t] : dict[t]);
@@ -555,11 +400,7 @@ namespace Dafny
         return this;
       else if (other.dict.Count == 0 && other.occurrencesOfNull == 0)
         return this;
-#if DAFNY_USE_SYSTEM_COLLECTIONS_IMMUTABLE
       var r = ImmutableDictionary<T, BigInteger>.Empty.ToBuilder();
-#else
-      var r = new Dictionary<T, BigInteger>();
-#endif
       foreach (T t in dict.Keys) {
         if (!other.dict.ContainsKey(t)) {
           r.Add(t, dict[t]);
@@ -612,36 +453,19 @@ namespace Dafny
 
   public class Map<U, V>
   {
-#if DAFNY_USE_SYSTEM_COLLECTIONS_IMMUTABLE
     readonly ImmutableDictionary<U, V> dict;
-#else
-    readonly Dictionary<U, V> dict;
-#endif
     readonly bool hasNullValue;  // true when "null" is a key of the Map
     readonly V nullValue;  // if "hasNullValue", the value that "null" maps to
 
-#if DAFNY_USE_SYSTEM_COLLECTIONS_IMMUTABLE
     Map(ImmutableDictionary<U, V>.Builder d, bool hasNullValue, V nullValue) {
       dict = d.ToImmutable();
       this.hasNullValue = hasNullValue;
       this.nullValue = nullValue;
     }
     public static readonly Map<U, V> Empty = new Map<U, V>(ImmutableDictionary<U, V>.Empty.ToBuilder(), false, default(V));
-#else
-    Map(Dictionary<U, V> d, bool hasNullValue, V nullValue) {
-      this.dict = d;
-      this.hasNullValue = hasNullValue;
-      this.nullValue = nullValue;
-    }
-    public static readonly Map<U, V> Empty = new Map<U, V>(new Dictionary<U, V>(), false, default(V));
-#endif
 
     public static Map<U, V> FromElements(params Pair<U, V>[] values) {
-#if DAFNY_USE_SYSTEM_COLLECTIONS_IMMUTABLE
       var d = ImmutableDictionary<U, V>.Empty.ToBuilder();
-#else
-      var d = new Dictionary<U, V>(values.Length);
-#endif
       var hasNullValue = false;
       var nullValue = default(V);
       foreach (Pair<U, V> p in values) {
@@ -655,18 +479,7 @@ namespace Dafny
       return new Map<U, V>(d, hasNullValue, nullValue);
     }
     public static Map<U, V> FromCollection(IEnumerable<Pair<U, V>> values) {
-#if DAFNY_USE_SYSTEM_COLLECTIONS_IMMUTABLE
       var d = ImmutableDictionary<U, V>.Empty.ToBuilder();
-#else
-      // Initialize the capacity if the size of the enumerable is known
-      Dictionary<U, V> d;
-      if (values is ICollection<Pair<U, V>>) {
-        var collection = (ICollection<Pair<U, V>>)values;
-        d = new Dictionary<U, V>(collection.Count);
-      } else {
-        d = new Dictionary<U, V>();
-      }
-#endif
       var hasNullValue = false;
       var nullValue = default(V);
       foreach (Pair<U, V> p in values) {
@@ -744,7 +557,6 @@ namespace Dafny
       // evidently, the following will throw some exception if "index" in not a key of the map
       return index == null && hasNullValue ? nullValue : dict[index];
     }
-#if DAFNY_USE_SYSTEM_COLLECTIONS_IMMUTABLE
     public Map<U, V> Update(U index, V val) {
       var d = dict.ToBuilder();
       if (index == null) {
@@ -754,17 +566,6 @@ namespace Dafny
         return new Map<U, V>(d, hasNullValue, nullValue);
       }
     }
-#else
-    public Map<U, V> Update(U index, V val) {
-      if (index == null) {
-        return new Map<U, V>(dict, true, val);
-      } else {
-        var d = new Dictionary<U, V>(dict);
-        d[index] = val;
-        return new Map<U, V>(d, hasNullValue, nullValue);
-      }
-    }
-#endif
     public Set<U> Keys {
       get {
         if (hasNullValue) {
@@ -797,14 +598,42 @@ namespace Dafny
     }
   }
 
-  public abstract class Sequence<T>
+  public interface ISequence<out T> {
+    long LongCount { get; }
+    int Count { get; }
+    T[] Elements { get; }
+    IEnumerable<T> UniqueElements { get; }
+    T Select(ulong index);
+    T Select(long index);
+    T Select(uint index);
+    T Select(int index);
+    T Select(BigInteger index);
+    bool Contains<G>(G g);
+    ISequence<T> Take(long m);
+    ISequence<T> Take(ulong n);
+    ISequence<T> Take(BigInteger n);
+    ISequence<T> Drop(long m);
+    ISequence<T> Drop(ulong n);
+    ISequence<T> Drop(BigInteger n);
+    ISequence<T> Subsequence(long lo, long hi);
+    ISequence<T> Subsequence(long lo, ulong hi);
+    ISequence<T> Subsequence(long lo, BigInteger hi);
+    ISequence<T> Subsequence(ulong lo, long hi);
+    ISequence<T> Subsequence(ulong lo, ulong hi);
+    ISequence<T> Subsequence(ulong lo, BigInteger hi);
+    ISequence<T> Subsequence(BigInteger lo, long hi);
+    ISequence<T> Subsequence(BigInteger lo, ulong hi);
+    ISequence<T> Subsequence(BigInteger lo, BigInteger hi);
+  }
+  
+  public abstract class Sequence<T>: ISequence<T>
   {
-    public static Sequence<T> Empty {
+    public static ISequence<T> Empty {
       get {
         return new ArraySequence<T>(new T[0]);
       }
     }
-    public static Sequence<T> Create(BigInteger length, System.Func<BigInteger, T> init) {
+    public static ISequence<T> Create(BigInteger length, System.Func<BigInteger, T> init) {
       var len = (int)length;
       var values = new T[len];
       for (int i = 0; i < len; i++) {
@@ -812,67 +641,103 @@ namespace Dafny
       }
       return new ArraySequence<T>(values);
     }
-    public static Sequence<T> FromArray(T[] values) {
+    public static ISequence<T> FromArray(T[] values) {
       return new ArraySequence<T>(values);
     }
-    public static Sequence<T> FromElements(params T[] values) {
+    public static ISequence<T> FromElements(params T[] values) {
       return new ArraySequence<T>(values);
     }
-    public static Sequence<char> FromString(string s) {
+    public static ISequence<char> FromString(string s) {
       return new ArraySequence<char>(s.ToCharArray());
     }
-    public static Sequence<T> _DafnyDefaultValue() {
+    public static ISequence<T> _DafnyDefaultValue() {
       return Empty;
     }
-    public int Count {
-      get { return (int)LongCount; }
+    public static ISequence<T> Update(ISequence<T> sequence, long index, T t) {
+      T[] tmp = (T[])sequence.Elements.Clone();
+      tmp[index] = t;
+      return new ArraySequence<T>(tmp);
     }
-    public abstract long LongCount { get; }
-    public abstract T[] Elements { get; }
+    public static ISequence<T> Update(ISequence<T> sequence, ulong index, T t) {
+      return Update(sequence, (long)index, t);
+    }
+    public static ISequence<T> Update(ISequence<T> sequence, BigInteger index, T t) {
+      return Update(sequence, (long)index, t);
+    }
+    public static bool EqualUntil(ISequence<T> left, ISequence<T> right, int n) {
+      T[] leftElmts = left.Elements, rightElmts = right.Elements;
+      for (int i = 0; i < n; i++) {
+        if (!object.Equals(leftElmts[i], rightElmts[i]))
+          return false;
+      }
+      return true;
+    }
+    public static bool IsPrefixOf(ISequence<T> left, ISequence<T> right) {
+      int n = left.Elements.Length;
+      return n <= right.Elements.Length && EqualUntil(left, right, n);
+    }
+    public static bool IsProperPrefixOf(ISequence<T> left, ISequence<T> right) {
+      int n = left.Elements.Length;
+      return n < right.Elements.Length && EqualUntil(left, right, n);
+    }
+    public static ISequence<T> Concat(ISequence<T> left, ISequence<T> right) {
+      if (left.Count == 0) {
+        return right;
+      }
+      if (right.Count == 0) {
+        return left;
+      }
+      return new ConcatSequence<T>(left, right);
+    }
+    // Make Count a public abstract instead of LongCount, since the "array size is limited to a total of 4 billion
+    // elements, and to a maximum index of 0X7FEFFFFF". Therefore, as a protection, limit this to int32.
+    // https://docs.microsoft.com/en-us/dotnet/api/system.array
+    public abstract int Count  { get; }
+    public long LongCount {
+      get { return Count; }
+    }
+    // ImmutableElements cannot be public in the interface since ImmutableArray<T> leads to a
+    // "covariant type T occurs in invariant position" error. There do not appear to be interfaces for ImmutableArray<T>
+    // that resolve this.
+    protected abstract ImmutableArray<T> ImmutableElements { get; }
 
+    public T[] Elements
+    {
+      get { return ImmutableElements.ToArray(); }
+    }
     public IEnumerable<T> UniqueElements {
       get {
-        var st = Set<T>.FromElements(Elements);
+        var st = Set<T>.FromCollection(ImmutableElements);
         return st.Elements;
       }
     }
 
     public T Select(ulong index) {
-      return Elements[index];
+      return ImmutableElements[checked((int)index)];
     }
     public T Select(long index) {
-      return Elements[index];
+      return ImmutableElements[checked((int)index)];
     }
     public T Select(uint index) {
-      return Elements[index];
+      return ImmutableElements[checked((int)index)];
     }
     public T Select(int index) {
-      return Elements[index];
+      return ImmutableElements[index];
     }
     public T Select(BigInteger index) {
-      return Elements[(int)index];
+      return ImmutableElements[(int)index];
     }
-    public Sequence<T> Update(long index, T t) {
-      T[] a = (T[])Elements.Clone();
-      a[index] = t;
-      return new ArraySequence<T>(a);
-    }
-    public Sequence<T> Update(ulong index, T t) {
-      return Update((long)index, t);
-    }
-    public Sequence<T> Update(BigInteger index, T t) {
-      return Update((long)index, t);
-    }
-    public bool Equals(Sequence<T> other) {
-      int n = Elements.Length;
-      return n == other.Elements.Length && EqualUntil(other, n);
+    public bool Equals(ISequence<T> other) {
+      int n = ImmutableElements.Length;
+      return n == other.Elements.Length && EqualUntil(this, other, n);
     }
     public override bool Equals(object other) {
-      return other is Sequence<T> && Equals((Sequence<T>)other);
+      return other is Sequence<T> && Equals((ISequence<T>)other);
     }
     public override int GetHashCode() {
-      T[] elmts = Elements;
-      if (elmts == null || elmts.Length == 0)
+      ImmutableArray<T> elmts = ImmutableElements;
+      // https://devblogs.microsoft.com/dotnet/please-welcome-immutablearrayt/
+      if (elmts.IsDefaultOrEmpty)
         return 0;
       var hashCode = 0;
       for (var i = 0; i < elmts.Length; i++) {
@@ -881,151 +746,140 @@ namespace Dafny
       return hashCode;
     }
     public override string ToString() {
-      if (Elements is char[]) {
+      // This is required because (ImmutableElements is ImmutableArray<char>) is not a valid type check
+      var typeCheckTmp = new T[0];
+      ImmutableArray<T> elmts = ImmutableElements;
+      if (typeCheckTmp is char[]) {
         var s = "";
-        foreach (var t in Elements) {
+        foreach (var t in elmts) {
           s += t.ToString();
         }
         return s;
       } else {
         var s = "[";
         var sep = "";
-        foreach (var t in Elements) {
+        foreach (var t in elmts) {
           s += sep + Dafny.Helpers.ToString(t);
           sep = ", ";
         }
         return s + "]";
       }
     }
-    bool EqualUntil(Sequence<T> other, int n) {
-      T[] elmts = Elements, otherElmts = other.Elements;
-      for (int i = 0; i < n; i++) {
-        if (!object.Equals(elmts[i], otherElmts[i]))
-          return false;
-      }
-      return true;
-    }
-    public bool IsProperPrefixOf(Sequence<T> other) {
-      int n = Elements.Length;
-      return n < other.Elements.Length && EqualUntil(other, n);
-    }
-    public bool IsPrefixOf(Sequence<T> other) {
-      int n = Elements.Length;
-      return n <= other.Elements.Length && EqualUntil(other, n);
-    }
-    public Sequence<T> Concat(Sequence<T> other) {
-      if (Count == 0)
-        return other;
-      else if (other.Count == 0)
-        return this;
-      return new ConcatSequence<T>(this, other);
-    }
     public bool Contains<G>(G g) {
       if (g == null || g is T) {
         var t = (T)(object)g;
-        var elmts = Elements;
-        int n = elmts.Length;
-        for (int i = 0; i < n; i++) {
-          if (object.Equals(t, elmts[i]))
-            return true;
-        }
+        return ImmutableElements.Contains(t);
       }
       return false;
     }
-    public Sequence<T> Take(long m) {
-      if (Elements.LongLength == m)
+    public ISequence<T> Take(long m) {
+      if (ImmutableElements.Length == m)
         return this;
-      T[] a = new T[m];
-      System.Array.Copy(Elements, a, m);
-      return new ArraySequence<T>(a);
+      int length = checked((int)m);
+      T[] tmp = new T[length];
+      ImmutableElements.CopyTo(0, tmp, 0, length);
+      return new ArraySequence<T>(tmp);
     }
-    public Sequence<T> Take(ulong n) {
+    public ISequence<T> Take(ulong n) {
       return Take((long)n);
     }
-    public Sequence<T> Take(BigInteger n) {
+    public ISequence<T> Take(BigInteger n) {
       return Take((long)n);
     }
-    public Sequence<T> Drop(long m) {
-      if (m == 0)
+    public ISequence<T> Drop(long m)
+    {
+      int startingElement = checked((int)m);
+      if (startingElement == 0)
         return this;
-      T[] a = new T[Elements.Length - m];
-      System.Array.Copy(Elements, m, a, 0, Elements.Length - m);
-      return new ArraySequence<T>(a);
+      int length = ImmutableElements.Length - startingElement;
+      T[] tmp = new T[length];
+      ImmutableElements.CopyTo(startingElement, tmp, 0, length);
+      return new ArraySequence<T>(tmp);
     }
-    public Sequence<T> Drop(ulong n) {
+    public ISequence<T> Drop(ulong n) {
       return Drop((long)n);
     }
-    public Sequence<T> Drop(BigInteger n) {
+    public ISequence<T> Drop(BigInteger n) {
       if (n.IsZero)
         return this;
       return Drop((long)n);
     }
-    public Sequence<T> Subsequence(long lo, long hi) {
-      if (lo == 0 && hi == Elements.Length) {
+    public ISequence<T> Subsequence(long lo, long hi) {
+      if (lo == 0 && hi == ImmutableElements.Length) {
         return this;
       }
-      T[] a = new T[hi - lo];
-      System.Array.Copy(Elements, lo, a, 0, hi - lo);
-      return new ArraySequence<T>(a);
+      int startingIndex = checked((int) lo);
+      int endingIndex = checked((int)hi);
+      var length = endingIndex - startingIndex;
+      T[] tmp = new T[length];
+      ImmutableElements.CopyTo(startingIndex, tmp, 0, length);
+      return new ArraySequence<T>(tmp);
     }
-    public Sequence<T> Subsequence(long lo, ulong hi) {
+    public ISequence<T> Subsequence(long lo, ulong hi) {
       return Subsequence(lo, (long)hi);
     }
-    public Sequence<T> Subsequence(long lo, BigInteger hi) {
+    public ISequence<T> Subsequence(long lo, BigInteger hi) {
       return Subsequence(lo, (long)hi);
     }
-    public Sequence<T> Subsequence(ulong lo, long hi) {
+    public ISequence<T> Subsequence(ulong lo, long hi) {
       return Subsequence((long)lo, hi);
     }
-    public Sequence<T> Subsequence(ulong lo, ulong hi) {
+    public ISequence<T> Subsequence(ulong lo, ulong hi) {
       return Subsequence((long)lo, (long)hi);
     }
-    public Sequence<T> Subsequence(ulong lo, BigInteger hi) {
+    public ISequence<T> Subsequence(ulong lo, BigInteger hi) {
       return Subsequence((long)lo, (long)hi);
     }
-    public Sequence<T> Subsequence(BigInteger lo, long hi) {
+    public ISequence<T> Subsequence(BigInteger lo, long hi) {
       return Subsequence((long)lo, hi);
     }
-    public Sequence<T> Subsequence(BigInteger lo, ulong hi) {
+    public ISequence<T> Subsequence(BigInteger lo, ulong hi) {
       return Subsequence((long)lo, (long)hi);
     }
-    public Sequence<T> Subsequence(BigInteger lo, BigInteger hi) {
+    public ISequence<T> Subsequence(BigInteger lo, BigInteger hi) {
       return Subsequence((long)lo, (long)hi);
     }
   }
   internal class ArraySequence<T> : Sequence<T> {
-    private readonly T[] elmts;
+    private readonly ImmutableArray<T> elmts;
 
-    internal ArraySequence(T[] ee) {
+    internal ArraySequence(ImmutableArray<T> ee) {
       elmts = ee;
     }
-    public override T[] Elements {
-      get {
+    internal ArraySequence(T[] ee) {
+      elmts = ImmutableArray.Create<T>(ee);
+    }
+
+    protected override ImmutableArray<T> ImmutableElements {
+      get
+      {
         return elmts;
       }
     }
-    public override long LongCount {
+    public override int Count {
       get {
-        return elmts.LongLength;
+        return elmts.Length;
       }
     }
   }
   internal class ConcatSequence<T> : Sequence<T> {
-    // INVARIANT: Either left != null, right != null, and elmts == null or
-    // left == null, right == null, and elmts != null
-    private Sequence<T> left, right;
-    private T[] elmts = null;
-    private readonly long count;
+    // INVARIANT: Either left != null, right != null, and elmts's underlying array == null or
+    // left == null, right == null, and elmts's underlying array != null
+    private ISequence<T> left, right;
+    private ImmutableArray<T> elmts;
+    private readonly int count;
 
-    internal ConcatSequence(Sequence<T> left, Sequence<T> right) {
+    internal ConcatSequence(ISequence<T> left, ISequence<T> right) {
       this.left = left;
       this.right = right;
-      this.count = left.LongCount + right.LongCount;
+      this.count = left.Count + right.Count;
     }
 
-    public override T[] Elements {
+    protected override ImmutableArray<T> ImmutableElements {
       get {
-        if (elmts == null) {
+        // IsDefault returns true if the underlying array is a null reference
+        // https://devblogs.microsoft.com/dotnet/please-welcome-immutablearrayt/
+        if (elmts.IsDefault) {
           elmts = ComputeElements();
           // We don't need the original sequences anymore; let them be
           // garbage-collected
@@ -1036,19 +890,16 @@ namespace Dafny
       }
     }
 
-    public override long LongCount {
+    public override int Count {
       get {
         return count;
       }
     }
 
-    private T[] ComputeElements() {
+    private ImmutableArray<T> ComputeElements() {
       // Traverse the tree formed by all descendants which are ConcatSequences
-
-      var ans = new T[count];
-      var nextIndex = 0L;
-
-      var toVisit = new Stack<Sequence<T>>();
+      var ansBuilder = ImmutableArray.CreateBuilder<T>();
+      var toVisit = new Stack<ISequence<T>>();
       toVisit.Push(right);
       toVisit.Push(left);
 
@@ -1060,12 +911,10 @@ namespace Dafny
           toVisit.Push(cs.left);
         } else {
           var array = seq.Elements;
-          array.CopyTo(ans, nextIndex);
-          nextIndex += array.LongLength;
+          ansBuilder.AddRange(array);
         }
       }
-
-      return ans;
+      return ansBuilder.ToImmutable();
     }
   }
   public struct Pair<A, B>
@@ -1098,7 +947,12 @@ namespace Dafny
       System.Console.Write(ToString(g));
     }
     public static G Default<G>() {
-      System.Type ty = typeof(G);
+      Type ty = typeof(G);
+      // If ty is Dafny.ISequence<T> for some concrete T, use Dafny.Sequence<T> instead
+      // TODO-RS: How to generalize these mappings?
+      if (ty.IsGenericType && typeof(Dafny.ISequence<>) == ty.GetGenericTypeDefinition()) {
+        ty = typeof(Dafny.Sequence<>).MakeGenericType(ty.GenericTypeArguments);
+      }
       System.Reflection.MethodInfo mInfo = ty.GetMethod("_DafnyDefaultValue");
       if (mInfo != null) {
         G g = (G)mInfo.Invoke(null, null);
@@ -1280,6 +1134,14 @@ namespace Dafny
     public static A Id<A>(A a) {
       return a;
     }
+    
+    public static void WithHaltHandling(Action action) {
+      try {
+        action();
+      } catch (HaltException e) {
+        Console.WriteLine("Program halted: " + e.Message);
+      }
+    }
   }
 
   public class BigOrdinal {
@@ -1459,6 +1321,12 @@ namespace Dafny
         bReciprocal = new BigRational(-b.den, -b.num);
       }
       return a * bReciprocal;
+    }
+  }
+
+  public class HaltException : Exception {
+    public HaltException(object message) : base(message.ToString())
+    {
     }
   }
 }

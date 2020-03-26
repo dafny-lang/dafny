@@ -1,5 +1,74 @@
 
-Dafny program verifier finished with 16 verified, 0 errors
+Dafny program verifier finished with 17 verified, 0 errors
+Sets: {} {17, 82} {12, 17}
+  cardinality: 0 2 2
+  union: {17, 82} {12, 17, 82}
+  intersection: {} {17}
+  difference: {} {82}
+  disjoint: true false
+  subset: true false true
+  proper subset: true false false
+  membership: false true true
+false true
+|s|=4 |S|=16
+{{a, c, d}, {a, b, c}, {}, {a}, {b}, {c}, {d}, {a, b, c, d}, {b, c, d}, {a, b, d}, {a, b}, {a, c}, {a, d}, {b, c}, {b, d}, {c, d}}
+Multisets: multiset{} multiset{17, 17, 82, 82} multiset{12, 17}
+  cardinality: 0 4 2
+  union: multiset{17, 17, 82, 82} multiset{12, 17, 17, 17, 82, 82}
+  intersection: multiset{} multiset{17}
+  difference: multiset{} multiset{17, 82, 82}
+  disjoint: true false
+  subset: true false true
+  proper subset: true false false
+  membership: false true true
+  update: multiset{17, 17} multiset{17, 17, 82, 82} multiset{12, 17, 17}
+  multiplicity: 0 2 1
+Sequences: [] [17, 82, 17, 82] [12, 17]
+  cardinality: 0 4 2
+  update: [42, 82, 17, 82] [42, 17]
+  index: 17 12
+  subsequence ([lo..hi]): [82, 17] [17]
+  subsequence ([lo..]): [82, 17, 82] [17]
+  subsequence ([..hi]): [17, 82, 17][12]
+  subsequence ([..]): [] [17, 82, 17, 82] [12, 17]
+  concatenation: [17, 82, 17, 82] [17, 82, 17, 82, 12, 17]
+  prefix: true false true
+  proper prefix: true false false
+  membership: false true true
+Bound Bound Bound Bound Bound Bound
+ed ed ed ed ed ed
+e e e e e e
+hello
+hEllo
+[2, 4, 6, 8, 10]
+[2, 0, 6, 8, 10]
+Strings:  uRuR gu
+  cardinality: 0 4 2
+  concatenation: uRuR uRuRgu
+  prefix: true false true
+  proper prefix: true false false
+  membership: false true true
+  constructed as sequence: guru
+  mix: hello-d ddd-hello
+Maps: map[] map[17 := 2, 82 := 2] map[12 := 26, 17 := 0]
+  cardinality: 0 2 2
+  keys: {} {17, 82} {12, 17}
+  values: {} {2} {0, 26}
+  items: {} {(17, 2), (82, 2)} {(12, 26), (17, 0)}
+  update: map[17 := 6] map[17 := 6, 82 := 2] map[12 := 26, 17 := 6]
+  lookup: false 2 0
+m: map[Color.Blue := 30, Color.Yellow := 21]
+keys: {Color.Blue, Color.Yellow}
+values: {21, 30}
+items: {(Color.Blue, 30), (Color.Yellow, 21)}
+2: 0 1 1
+3: 0 1 2
+There are 0 occurrences of 58 in the multiset
+There are 536870912 occurrences of 58 in the multiset
+There are 633825300114114700748351602688 occurrences of 58 in the multiset
+There are 633825300114114700748351602688 occurrences of null in the multiset
+
+Dafny program verifier finished with 17 verified, 0 errors
 Sets: {} {17, 82} {12, 17}
   cardinality: 0 2 2
   union: {17, 82} {17, 82, 12}
@@ -38,6 +107,10 @@ Sequences: [] [17, 82, 17, 82] [12, 17]
 Bound Bound Bound Bound Bound Bound
 ed ed ed ed ed ed
 e e e e e e
+hello
+hEllo
+[2, 4, 6, 8, 10]
+[2, 0, 6, 8, 10]
 Strings:  uRuR gu
   cardinality: 0 4 2
   concatenation: uRuR uRuRgu
@@ -64,7 +137,7 @@ There are 536870912 occurrences of 58 in the multiset
 There are 633825300114114700748351602688 occurrences of 58 in the multiset
 There are 633825300114114700748351602688 occurrences of null in the multiset
 
-Dafny program verifier finished with 16 verified, 0 errors
+Dafny program verifier finished with 17 verified, 0 errors
 Sets: {} {17, 82} {12, 17}
   cardinality: 0 2 2
   union: {17, 82} {17, 82, 12}
@@ -103,6 +176,10 @@ Sequences: [] [17, 82, 17, 82] [12, 17]
 Bound Bound Bound Bound Bound Bound
 ed ed ed ed ed ed
 e e e e e e
+hello
+hEllo
+[2, 4, 6, 8, 10]
+[2, 0, 6, 8, 10]
 Strings:  uRuR gu
   cardinality: 0 4 2
   concatenation: uRuR uRuRgu
@@ -129,72 +206,7 @@ There are 536870912 occurrences of 58 in the multiset
 There are 633825300114114700748351602688 occurrences of 58 in the multiset
 There are 633825300114114700748351602688 occurrences of null in the multiset
 
-Dafny program verifier finished with 16 verified, 0 errors
-Sets: {} {17, 82} {12, 17}
-  cardinality: 0 2 2
-  union: {17, 82} {17, 82, 12}
-  intersection: {} {17}
-  difference: {} {82}
-  disjoint: true false
-  subset: true false true
-  proper subset: true false false
-  membership: false true true
-false true
-|s|=4 |S|=16
-{{}, {a}, {b}, {b, a}, {c}, {c, a}, {c, b}, {c, b, a}, {d}, {d, a}, {d, b}, {d, b, a}, {d, c}, {d, c, a}, {d, c, b}, {d, c, b, a}}
-Multisets: multiset{} multiset{17, 17, 82, 82} multiset{12, 17}
-  cardinality: 0 4 2
-  union: multiset{17, 17, 82, 82} multiset{17, 17, 17, 82, 82, 12}
-  intersection: multiset{} multiset{17}
-  difference: multiset{} multiset{17, 82, 82}
-  disjoint: true false
-  subset: true false true
-  proper subset: true false false
-  membership: false true true
-  update: multiset{17, 17} multiset{17, 17, 82, 82} multiset{12, 17, 17}
-  multiplicity: 0 2 1
-Sequences: [] [17, 82, 17, 82] [12, 17]
-  cardinality: 0 4 2
-  update: [42, 82, 17, 82] [42, 17]
-  index: 17 12
-  subsequence ([lo..hi]): [82, 17] [17]
-  subsequence ([lo..]): [82, 17, 82] [17]
-  subsequence ([..hi]): [17, 82, 17][12]
-  subsequence ([..]): [] [17, 82, 17, 82] [12, 17]
-  concatenation: [17, 82, 17, 82] [17, 82, 17, 82, 12, 17]
-  prefix: true false true
-  proper prefix: true false false
-  membership: false true true
-Bound Bound Bound Bound Bound Bound
-ed ed ed ed ed ed
-e e e e e e
-Strings:  uRuR gu
-  cardinality: 0 4 2
-  concatenation: uRuR uRuRgu
-  prefix: true false true
-  proper prefix: true false false
-  membership: false true true
-  constructed as sequence: guru
-  mix: hello-d ddd-hello
-Maps: map[] map[17 := 2, 82 := 2] map[17 := 0, 12 := 26]
-  cardinality: 0 2 2
-  keys: {} {17, 82} {17, 12}
-  values: {} {2} {0, 26}
-  items: {} {(17, 2), (82, 2)} {(17, 0), (12, 26)}
-  update: map[17 := 6] map[17 := 6, 82 := 2] map[17 := 6, 12 := 26]
-  lookup: false 2 0
-m: map[Color.Blue := 30, Color.Yellow := 21]
-keys: {Color.Blue, Color.Yellow}
-values: {30, 21}
-items: {(Color.Blue, 30), (Color.Yellow, 21)}
-2: 0 1 1
-3: 0 1 2
-There are 0 occurrences of 58 in the multiset
-There are 536870912 occurrences of 58 in the multiset
-There are 633825300114114700748351602688 occurrences of 58 in the multiset
-There are 633825300114114700748351602688 occurrences of null in the multiset
-
-Dafny program verifier finished with 16 verified, 0 errors
+Dafny program verifier finished with 17 verified, 0 errors
 Sets: {} {17, 82} {17, 12}
   cardinality: 0 2 2
   union: {17, 82} {17, 82, 12}
@@ -233,6 +245,10 @@ Sequences: [] [17, 82, 17, 82] [12, 17]
 [B, o, u, n, d] [B, o, u, n, d] [B, o, u, n, d] [B, o, u, n, d] [B, o, u, n, d] [B, o, u, n, d]
 [e, d] [e, d] [e, d] [e, d] [e, d] [e, d]
 e e e e e e
+hello
+hEllo
+[2, 4, 6, 8, 10]
+[2, 0, 6, 8, 10]
 Strings:  uRuR gu
   cardinality: 0 4 2
   concatenation: uRuR uRuRgu

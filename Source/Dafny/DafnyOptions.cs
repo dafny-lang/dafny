@@ -450,58 +450,121 @@ namespace Microsoft.Dafny
     {:handle}
       TODO
 
-	{:dllimport}
+    {:dllimport}
       TODO
 
-	{:compile}
+    {:compile}
       TODO
 
-	{:main}
+    {:main}
       TODO
 
-	{:axiom}
+    {:axiom}
       TODO
 
-	{:abstemious}
+    {:abstemious}
       TODO
 
-	{:nativeType}
+    {:nativeType}
+      Can be applied to newtype declarations for integer types and
+      indicates an expectation of what native type (or not) the
+      newtype should compile to.
+
+      If a newtype declaration has no explicit :nativeType attribute,
+      then the compiler still attempts to find a suitable native numeric
+      type, which is then reflected in an informational message or
+      hovertext.
+
+      {:nativeType} and {:nativeType true} say that the type is expected
+      to compile to some native numeric type, but leaves it to the
+      compiler to choose which one. If no suitable native target type is
+      found, an error is generated.
+
+      {:nativeType false} says to avoid using a native numeric type.
+      Instead, the type will be compiled as an unbounded integer.
+
+      {:nativeType X} where X is one of the following strings:
+        ""byte""      8 bits, unsigned
+        ""sbyte""     8 bits, signed
+        ""ushort""    16 bits, unsigned
+        ""short""     16 bits, signed
+        ""uint""      32 bits, unsigned
+        ""int""       32 bits, signed
+        ""number""    53 bits, signed
+        ""ulong""     64 bits, unsigned
+        ""long""      64 bits, signed
+      says to use the indicated target type. If the target compiler
+      does not support X, then an error is generated. Also, if, after
+      scrutinizing the constraint predicate, the compiler cannot confirm
+      that the type's values will fit in X, an error is generated.
+
+      {:nativeType XX} where XX is a list of strings from the list above,
+      says to use the first X in XX that the compiler supports. If
+      the compiler doesn't support any native type in XX, then an error
+      is generated. Also, unless the compiler can confirm that all of
+      the listed native types can fit the type's values, an error is
+      generated.
+
+    {:tailrecursion}
+      Can be applied to methods and functions to direct compilation of
+      recursive calls as tail calls.
+
+      A method or function is _tail recursive_ if all of the following
+      points apply:
+      * It is not mutually recursive with another method or function.
+      * Ignoring any parts of the method/function body that are ghost,
+        every recursive call is a tail call (that is, the body has no
+        more work to do after a recursive call). Note that any ghost
+        code that follows a recursive method call is ignored.
+      * In the case of a function, the function is not used as a
+        first-class value inside the function body.
+      For a function F, this definition is extended to additionally allow
+      tail calls to appear in simple expressions like ""E + F(...)"" or
+      ""F(...) + E"" for certain operators ""+"" where E does not mention
+      F, provided that all such expressions are compatible. These
+      are called _simple accumulator_ tail calls.
+
+      By default, Dafny compiles tail recursive methods and functions
+      using tail calls, automatically handling simple accumulator tail
+      calls.
+
+      {:tailrecursion false} is used to turn off tail calls.
+
+      {:tailrecursion} or {:tailrecursion true} is used to confirm
+      that the method/function is compiled and tail recursive. If it
+      is not, an error is given.
+
+    {:termination}
       TODO
 
-	{:tailrecursion}
+    {:warnShadowing}
       TODO
 
-	{:termination}
+    {:verify}
       TODO
 
-	{:warnShadowing}
+    {:autocontracts}
       TODO
 
-	{:verify}
+    {:opaque}
       TODO
 
-	{:autocontracts}
+    {:autoReq}
       TODO
 
-	{:opaque}
+    {:timeLimitMultiplier}
       TODO
 
-	{:autoReq}
+    {:no_inline}
       TODO
 
-	{:timeLimitMultiplier}
+    {:nowarn}
       TODO
 
-	{:no_inline}
+    {:autotriggers}
       TODO
 
-	{:nowarn}
-      TODO
-
-	{:autotriggers}
-      TODO
-
-	{:trigger}
+    {:trigger}
       TODO
 ");
     }
@@ -517,7 +580,7 @@ namespace Microsoft.Dafny
       var platform = (int)System.Environment.OSVersion.Platform;
 
       // http://www.mono-project.com/docs/faq/technical/
-      var isUnix = platform == 4 || platform == 128;
+      var isUnix = platform == 4 || platform == 6 || platform == 128;
 
       var z3binName = isUnix ? "z3" : "z3.exe";
       var dafnyBinDir = System.IO.Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
@@ -670,10 +733,6 @@ namespace Microsoft.Dafny
                 1 (default) - In the body of prefix lemmas, rewrite any use of a focal predicate
                               P to P#[_k-1].
   /optimize     Produce optimized C# code, meaning:
-                  - selects optimized C# prelude by passing
-                    /define:DAFNY_USE_SYSTEM_COLLECTIONS_IMMUTABLE to csc.exe (requires
-                    System.Collections.Immutable.dll in the source directory to successfully
-                    compile).
                   - passes /optimize flag to csc.exe.
   /optimizeResolution:<n>
                 0 - Resolve and translate all methods

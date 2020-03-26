@@ -20,6 +20,16 @@ public class DafnyMap<K, V> implements Map<K, V> {
 
     public static <K, V> DafnyMap<K, V> empty() { return new DafnyMap<K, V>(); }
 
+    @SuppressWarnings("unchecked")
+    public static <K, V> Type<DafnyMap<K, V>> _type(
+            Type<K> keyType, Type<V> valueType) {
+        // Fudge the type parameters; it's not great, but it's safe because
+        // (for now) type descriptors are only used for default values
+        return Type.referenceWithInitializer(
+                (Class<DafnyMap<K, V>>) (Class<?>) DafnyMap.class,
+                DafnyMap::empty);
+    }
+
     public boolean contains(K t) {
         return innerMap.containsKey(t);
     }
