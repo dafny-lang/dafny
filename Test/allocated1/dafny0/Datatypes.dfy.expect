@@ -6,14 +6,14 @@ Execution trace:
     (0,0): anon14_Else
     (0,0): anon15_Then
     (0,0): anon6
-Datatypes.dfy(298,11): Error: missing case in match expression: Appendix
+Datatypes.dfy(298,11): Error: missing case in match expression: Appendix(_)
 Execution trace:
     (0,0): anon0
     (0,0): anon13_Then
     (0,0): anon14_Else
     (0,0): anon15_Else
     (0,0): anon16_Then
-Datatypes.dfy(349,4): Error: missing case in match expression: Cons
+Datatypes.dfy(349,4): Error: missing case in match expression: Cons(_,_)
 Execution trace:
     (0,0): anon0
     (0,0): anon7_Else
@@ -24,7 +24,7 @@ Execution trace:
     (0,0): anon7_Else
     (0,0): anon8_Else
     (0,0): anon9_Then
-Datatypes.dfy(356,7): Error: missing case in match expression: Cons
+Datatypes.dfy(356,7): Error: missing case in match expression: Cons(_,_)
 Execution trace:
     (0,0): anon0
     (0,0): anon10_Else

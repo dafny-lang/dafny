@@ -111,7 +111,7 @@ hello
 hEllo
 [2, 4, 6, 8, 10]
 [2, 0, 6, 8, 10]
-Strings:  uRuR gu
+Strings: [] [u, R, u, R] [g, u]
   cardinality: 0 4 2
   concatenation: uRuR uRuRgu
   prefix: true false true
