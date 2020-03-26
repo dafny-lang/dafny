@@ -219,11 +219,11 @@ module Client_RevealTypes {
   method SubsetEquality(t: G.Trait, tn: G.Trait?, k: G.Klass, kn: G.Klass?, d: G.Dt)
     requires t == tn && k == kn
   method UsesValid(t: G.Trait, k: G.Klass, d: G.Dt)
-    requires t.Valid() && k.Valid() && d.Valid()  // error (TODO 3x): unknown identifiers Valid
+    requires t.Valid() && k.Valid() && d.Valid()  // error (3x): unknown identifiers Valid
   method UsesStatic(t: G.Trait, k: G.Klass, d: G.Dt)
-    requires G.Trait.N == G.Klass.N == G.Dt.N  // error (TODO 3x): unknown identifiers Valid
+    requires G.Trait.N == G.Klass.N == G.Dt.N  // error (3x): unknown identifiers Valid
   method UsesField(t: G.Trait, k: G.Klass, d: G.Dt)
-    requires t.M == k.M == d.M  // error (TODO 3x): unknown identifiers Valid
+    requires t.M == k.M == d.M  // error (3x): unknown identifiers Valid
   method Constructor() {
     var k := new G.Klass();  // fine; the anonymous constructor gets exported with the class
   }

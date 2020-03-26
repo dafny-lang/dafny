@@ -1012,9 +1012,8 @@ namespace Microsoft.Dafny
               reporter.Error(MessageSource.Resolver, export.ClassIdTok, "'{0}' is not a top-level type declaration", export.ClassId);
               continue;
             }
-            if (cldecl is ClassDecl) {
+            if (cldecl is ClassDecl && ((ClassDecl)cldecl).NonNullTypeDecl != null) {
               // cldecl is a possibly-null type (syntactically given with a question mark at the end)
-              Contract.Assert(((ClassDecl)cldecl).NonNullTypeDecl != null);
               reporter.Error(MessageSource.Resolver, export.ClassIdTok, "'{0}' is not a type that can declare members", export.ClassId);
               continue;
             }
@@ -1033,7 +1032,13 @@ namespace Microsoft.Dafny
               continue;
             }
             decl = lmem;
-          } else if (sig.TopLevels.TryGetValue(name, out tdecl) && (!(tdecl is ClassDecl) || ((ClassDecl)tdecl).NonNullTypeDecl == null)) {  // pretend that C? types are not there
+          } else if (sig.TopLevels.TryGetValue(name, out tdecl) && tdecl is ClassDecl && ((ClassDecl)tdecl).NonNullTypeDecl != null) {
+            // cldecl is a possibly-null type (syntactically given with a question mark at the end)
+            var nn = ((ClassDecl)tdecl).NonNullTypeDecl;
+            Contract.Assert(nn != null);
+            reporter.Error(MessageSource.Resolver, export.Tok, "Types '{0}' and '{1}' are exported together, which is accomplished by listing the name '{0}'", nn.Name, name);
+            continue;
+          } else if (sig.TopLevels.TryGetValue(name, out tdecl) && (!(tdecl is ClassDecl) || ((ClassDecl)tdecl).NonNullTypeDecl == null)) {
             // Member of the enclosing module
             decl = tdecl.ViewAsClass;  // interpret the export as a class name, not a type name
           } else if (sig.StaticMembers.TryGetValue(name, out member)) {
@@ -1065,8 +1070,10 @@ namespace Microsoft.Dafny
               cl.NonNullTypeDecl.AddVisibilityScope(d.ThisScope, false);  // the associated non-null type is always exported as revealed
             }
             if (!export.Opaque) {
-              foreach (var mdecl in cl.Members) {
-                mdecl.AddVisibilityScope(d.ThisScope, false);
+              // add the anonymous constructor, if any
+              var anonymousConstructor = cl.Members.Find(mdecl => mdecl.Name == "_ctor");
+              if (anonymousConstructor != null) {
+                anonymousConstructor.AddVisibilityScope(d.ThisScope, false);
               }
             }
           }
@@ -1234,6 +1241,8 @@ namespace Microsoft.Dafny
           if (export.Decl is MemberDecl member) {
             if (!member.EnclosingClass.IsVisibleInScope(decl.Signature.VisibilityScope)) {
               reporter.Error(MessageSource.Resolver, export.Tok, "Cannot export type member '{0}' without providing its enclosing {1} '{2}'", member.Name, member.EnclosingClass.WhatKind, member.EnclosingClass.Name);
+            } else if (member is Constructor && !member.EnclosingClass.IsRevealedInScope(decl.Signature.VisibilityScope)) {
+              reporter.Error(MessageSource.Resolver, export.Tok, "Cannot export constructor '{0}' without revealing its enclosing {1} '{2}'", member.Name, member.EnclosingClass.WhatKind, member.EnclosingClass.Name);
             }
           }
         }

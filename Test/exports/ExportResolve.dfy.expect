@@ -8,8 +8,8 @@ ExportResolve.dfy(14,12): Error: 'DtValue' is not a top-level type declaration
 ExportResolve.dfy(16,18): Error: No member 'Magenta' found in type 'Color'
 ExportResolve.dfy(17,18): Error: No member 'More?' found in type 'Color'
 ExportResolve.dfy(18,18): Error: No member 'u' found in type 'Color'
-ExportResolve.dfy(19,12): Error: 'Trait?' must be a member of 'NamesThatDontExist' to be exported
-ExportResolve.dfy(20,12): Error: 'Klass?' must be a member of 'NamesThatDontExist' to be exported
+ExportResolve.dfy(19,12): Error: Types 'Trait' and 'Trait?' are exported together, which is accomplished by listing the name 'Trait'
+ExportResolve.dfy(20,12): Error: Types 'Klass' and 'Klass?' are exported together, which is accomplished by listing the name 'Klass'
 ExportResolve.dfy(22,13): Error: 'DoesNotExist' must be a member of 'NamesThatDontExist' to be exported
 ExportResolve.dfy(23,13): Error: 'Trait?' is not a type that can declare members
 ExportResolve.dfy(24,13): Error: 'Klass?' is not a type that can declare members
@@ -20,8 +20,8 @@ ExportResolve.dfy(29,13): Error: 'DtValue' is not a top-level type declaration
 ExportResolve.dfy(31,19): Error: No member 'Magenta' found in type 'Color'
 ExportResolve.dfy(32,19): Error: No member 'More?' found in type 'Color'
 ExportResolve.dfy(33,19): Error: No member 'u' found in type 'Color'
-ExportResolve.dfy(34,13): Error: 'Trait?' must be a member of 'NamesThatDontExist' to be exported
-ExportResolve.dfy(35,13): Error: 'Klass?' must be a member of 'NamesThatDontExist' to be exported
+ExportResolve.dfy(34,13): Error: Types 'Trait' and 'Trait?' are exported together, which is accomplished by listing the name 'Trait'
+ExportResolve.dfy(35,13): Error: Types 'Klass' and 'Klass?' are exported together, which is accomplished by listing the name 'Klass'
 ExportResolve.dfy(39,16): Error: No member 'X' found in type 'Dt'
 ExportResolve.dfy(40,16): Error: No member 'Cons?' found in type 'Dt'
 ExportResolve.dfy(41,16): Error: No member 'u' found in type 'Dt'
@@ -61,8 +61,14 @@ ExportResolve.dfy(205,22): Error: member 'M' has not been imported in this scope
 ExportResolve.dfy(205,29): Error: member 'M' has not been imported in this scope and cannot be accessed here
 ExportResolve.dfy(207,13): Error: member '_ctor' has not been imported in this scope and cannot be accessed here
 ExportResolve.dfy(207,10): Error: when allocating an object of type 'Klass', one of its constructor methods must be called
+ExportResolve.dfy(222,15): Error: member 'Valid' has not been imported in this scope and cannot be accessed here
+ExportResolve.dfy(222,28): Error: member 'Valid' has not been imported in this scope and cannot be accessed here
 ExportResolve.dfy(222,41): Error: member 'Valid' has not been imported in this scope and cannot be accessed here
+ExportResolve.dfy(224,21): Error: member 'N' has not been imported in this scope and cannot be accessed here
+ExportResolve.dfy(224,34): Error: member 'N' has not been imported in this scope and cannot be accessed here
 ExportResolve.dfy(224,44): Error: member 'N' has not been imported in this scope and cannot be accessed here
+ExportResolve.dfy(226,15): Error: member 'M' has not been imported in this scope and cannot be accessed here
+ExportResolve.dfy(226,22): Error: member 'M' has not been imported in this scope and cannot be accessed here
 ExportResolve.dfy(226,29): Error: member 'M' has not been imported in this scope and cannot be accessed here
 ExportResolve.dfy(237,20): Error: unresolved identifier: X
 ExportResolve.dfy(237,28): Error: member 'More?' has not been imported in this scope and cannot be accessed here
@@ -71,4 +77,4 @@ ExportResolve.dfy(249,13): Error: member '_ctor' has not been imported in this s
 ExportResolve.dfy(249,10): Error: when allocating an object of type 'Klass', one of its constructor methods must be called
 ExportResolve.dfy(293,15): Error: unresolved identifier: reveal_OpaqueFunction
 ExportResolve.dfy(293,29): Error: expression has no reveal lemma
-73 resolution/type errors detected in ExportResolve.dfy
+79 resolution/type errors detected in ExportResolve.dfy

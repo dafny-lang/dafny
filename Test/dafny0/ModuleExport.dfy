@@ -5,7 +5,7 @@ module A {
 	export A reveals f provides h
 	export E1 provides f reveals g
 	export E2 extends A, E1 reveals T
-  export Friend extends A reveals g, T
+  export Friend extends A reveals g, T provides T.l
 	export Fruit reveals Data
 
   method h() {}
@@ -132,7 +132,7 @@ module J {
 module K {
   module Y {
     export
-      provides C, C.Valid, C.Init, C.Print, C.G
+      reveals C provides C.Valid, C.Init, C.Print, C.G
 
     class C {
       predicate Valid() { true }
@@ -152,8 +152,8 @@ module K {
 module L {
   module Z {
     export
-      provides C, C.Init, C.Print
-      reveals C.Valid, C.G
+      provides C.Init, C.Print
+      reveals C, C.Valid, C.G
 
     class C {
       predicate Valid() { true }
@@ -173,8 +173,8 @@ module L {
 module M {
   module W {
     export
-      provides C, C.Valid, C.Print, C.G
-      provides C._ctor  // this is how one names the "anonymous" constructor
+      provides C.Valid, C.Print, C.G
+      reveals C  // by revealing a class, the anonymous constructor (if any) is also provided
 
     class C {
       predicate Valid() { true }
