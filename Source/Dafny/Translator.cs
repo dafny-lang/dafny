@@ -2197,10 +2197,13 @@ namespace Microsoft.Dafny {
         sink.AddTopLevelDeclaration(implement_intr);
       } else if (c is ClassDecl) {
         //this adds: axiom implements$J(class.C);
+        List<Bpl.Expr> tyexprs;
+        var vars = MkTyParamBinders(GetTypeParams(c), out tyexprs);
+
         foreach (var trait in ((ClassDecl)c).TraitsObj) {
-          var arg = ClassTyCon(c, new List<Expr>());  // TODO-RS: this needs more work if overridingClass has type parameters
+          var arg = ClassTyCon(c, tyexprs);
           var expr = FunctionCall(c.tok, "implements$" + trait.FullSanitizedName, Bpl.Type.Bool, arg);
-          var implements_axiom = new Bpl.Axiom(c.tok, expr);
+          var implements_axiom = new Bpl.Axiom(c.tok, BplForall(vars, null, expr));
           sink.AddTopLevelDeclaration(implements_axiom);
         }
       }
