@@ -1946,6 +1946,10 @@ namespace Microsoft.Dafny {
         return TypeArgs.Exists(t => t.ContainsProxy(proxy));
       }
     }
+    
+    public virtual List<Type> ParentTypes() {
+      return new List<Type>();
+    }
   }
 
   /// <summary>
@@ -2697,6 +2701,10 @@ namespace Microsoft.Dafny {
         Contract.Assume(false);  // the MayInvolveReferences getter requires the Type to have been successfully resolved
         return true;
       }
+    }
+
+    public override List<Type> ParentTypes() {
+      return ResolvedClass.ParentTypes(TypeArgs);
     }
   }
 
@@ -3823,6 +3831,10 @@ namespace Microsoft.Dafny {
           return this;
         }
       }
+    }
+
+    public virtual List<Type> ParentTypes(List<Type> typeArgs) {
+      return new List<Type>();
     }
   }
 
@@ -5022,6 +5034,10 @@ namespace Microsoft.Dafny {
     public override bool CanBeRevealed() {
       return true;
     }
+    
+    public override List<Type> ParentTypes(List<Type> typeArgs) {
+      return new List<Type>{ RhsWithArgument((typeArgs)) };
+    }
   }
 
   public class TypeSynonymDecl : TypeSynonymDeclBase, RedirectingTypeDecl, RevealableTypeDecl {
@@ -5100,6 +5116,19 @@ namespace Microsoft.Dafny {
       Contract.Requires(tps != null);
       Contract.Requires(id != null);
       Class = cl;
+    }
+   
+    public override List<Type> ParentTypes(List<Type> typeArgs) {
+      List<Type> result = new List<Type>(base.ParentTypes(typeArgs));
+      
+      foreach (var rhsParentType in Class.ParentTypes(typeArgs)) {
+        var rhsParentUdt = rhsParentType as UserDefinedType;
+        if (rhsParentUdt != null && rhsParentUdt.ResolvedClass is ClassDecl) {
+          result.Add(UserDefinedType.CreateNonNullType(rhsParentUdt));
+        }
+      }
+
+      return result;
     }
   }
 

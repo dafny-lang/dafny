@@ -3687,7 +3687,7 @@ namespace Microsoft.Dafny
       Contract.Requires(super != null && !(super is TypeProxy));
       Contract.Requires(sub != null && !(sub is TypeProxy));
       Contract.Requires(errorMsg != null);
-      List<int> polarities = ConstrainTypeHead_ModuloSubsetTypeParents(super, ref sub);
+      List<int> polarities = ConstrainTypeHead_Recursive(super, ref sub);
       if (polarities == null) {
         errorMsg.FlagAsError();
         return false;
@@ -3720,53 +3720,29 @@ namespace Microsoft.Dafny
 
     /// <summary>
     /// This is a more liberal version of "ConstrainTypeHead" below. It is willing to move "sub"
-    /// upward toward its subset-type parents until it finds a head that matches "super", if any.
+    /// upward toward its parents until it finds a head that matches "super", if any.
     /// </summary>
-    private List<int> ConstrainTypeHead_ModuloSubsetTypeParents(Type super, ref Type sub) {
+    private List<int> ConstrainTypeHead_Recursive(Type super, ref Type sub) {
       Contract.Requires(super != null);
       Contract.Requires(sub != null);
 
-      // Before we do anything else, make a note of whether or not both "a" and "b" are non-null types.
-      var abNonNullTypes = super.IsNonNullRefType && sub.IsNonNullRefType;
-
       super = super.NormalizeExpandKeepConstraints();
-      var X = sub.NormalizeExpandKeepConstraints();
-      UserDefinedType prevX = null;
-      while (true) {
-        var polarities = ConstrainTypeHead(super, X);
+      sub = sub.NormalizeExpandKeepConstraints();
+       
+      var polarities = ConstrainTypeHead(super, sub);
+      if (polarities != null) {
+        return polarities;
+      }
+
+      foreach (var subParentType in sub.ParentTypes()) {
+        sub = subParentType;
+        polarities = ConstrainTypeHead_Recursive(super, ref sub);
         if (polarities != null) {
-          sub = X;
           return polarities;
         }
-        var udt = X as UserDefinedType;
-        if (udt != null && udt.ResolvedClass is SubsetTypeDecl) {
-          var sst = (SubsetTypeDecl)udt.ResolvedClass;
-          prevX = udt;
-          X = sst.RhsWithArgument(udt.TypeArgs).NormalizeExpandKeepConstraints();
-        } else {
-          // There is one more thing to check.  If we started with two non-null types, then we
-          // have just moved X down from "sub" to the base-most type and prevX is the non-null
-          // version of X.  If "super" is exactly a non-null type, then the head of "sub" is a
-          // subtype of the head of "super" if the head of "sub.parent" is a subtype of the head
-          // of "super.parent".  And since the type parameters of a possibly null type are the
-          // same as those for the corresponding non-null type, we can just answer our question
-          // by asking it for prevX and super.parent.
-          if (abNonNullTypes) {
-            Contract.Assert(prevX != null && prevX.ResolvedClass is NonNullTypeDecl);
-            var udtSuper = super as UserDefinedType;
-            if (udtSuper != null && udtSuper.ResolvedClass is NonNullTypeDecl) {
-              var nnt = (NonNullTypeDecl)udtSuper.ResolvedClass;
-              super = nnt.RhsWithArgument(udtSuper.TypeArgs);
-              polarities = ConstrainTypeHead(super, X);
-              if (polarities != null) {
-                sub = prevX;
-                return polarities;
-              }
-            }
-          }
-          return null;
-        }
       }
+      
+      return null;
     }
 
     /// <summary>
