@@ -1201,6 +1201,10 @@ namespace Microsoft.Dafny {
         }
       } else {
         AddTypeDecl(d.SelfSynonymDecl());
+        var dd = d as TopLevelDeclWithMembers;
+        if (dd != null) {
+          AddClassMembers(dd, true);
+        }
       }
     }
 

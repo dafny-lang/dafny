@@ -15,6 +15,7 @@ using System.Collections.ObjectModel;
 using System.Diagnostics.SymbolStore;
 using System.Net.Security;
 using System.Text;
+using Microsoft.Basetypes;
 
 
 namespace Microsoft.Dafny {
@@ -964,7 +965,7 @@ namespace Microsoft.Dafny {
               EmitThis(sw);
               sw.Write("._{0}", cf.CompileName);
             } else {
-              CompileReturnBody(cf.Rhs, w);
+              CompileReturnBody(cf.Rhs, w, null);
             }
           }
         } else if (member is Field) {
@@ -1065,7 +1066,7 @@ namespace Microsoft.Dafny {
               }
               if (wBody != null) {
                 if (cf.Rhs != null) {
-                  CompileReturnBody(cf.Rhs, wBody);
+                  CompileReturnBody(cf.Rhs, wBody, null);
                 } else if (!cf.IsStatic) {
                   var sw = EmitReturnExpr(wBody);
                   EmitMemberSelect(EmitThis, cf, f.Type, internalAccess: true).EmitRead(sw);
@@ -1261,12 +1262,43 @@ namespace Microsoft.Dafny {
 
       var w = cw.CreateFunction(IdName(f), f.TypeArgs, f.Formals, f.ResultType, f.tok, f.IsStatic, !f.IsExtern(out _, out _), f);
       if (w != null) {
+        IVariable accVar = null;
         if (f.IsTailRecursive) {
+          if (f.IsAccumulatorTailRecursive) {
+            accVar = new LocalVariable(f.tok, f.tok, "_accumulator", f.ResultType, false) {
+              type = f.ResultType
+            };
+            Expression unit;
+            if (f.ResultType.IsNumericBased(Type.NumericPersuation.Int) || f.ResultType.IsBigOrdinalType) {
+              unit = new LiteralExpr(f.tok, f.TailRecursion == Function.TailStatus.Accumulate_Mul ? 1 : 0);
+              unit.Type = f.ResultType;
+            } else if (f.ResultType.IsNumericBased(Type.NumericPersuation.Real)) {
+              unit = new LiteralExpr(f.tok, f.TailRecursion == Function.TailStatus.Accumulate_Mul ? BigDec.FromInt(1) : BigDec.ZERO);
+              unit.Type = f.ResultType;
+            } else if (f.ResultType.IsBitVectorType) {
+              var n = f.TailRecursion == Function.TailStatus.Accumulate_Mul ? 1 : 0;
+              unit = new LiteralExpr(f.tok, n);
+              unit.Type = f.ResultType;
+            } else if (f.ResultType.AsSetType != null) {
+              unit = new SetDisplayExpr(f.tok, !f.ResultType.IsISetType, new List<Expression>());
+              unit.Type = f.ResultType;
+            } else if (f.ResultType.AsMultiSetType != null) {
+              unit = new MultiSetDisplayExpr(f.tok, new List<Expression>());
+              unit.Type = f.ResultType;
+            } else if (f.ResultType.AsSeqType != null) {
+              unit = new SeqDisplayExpr(f.tok, new List<Expression>());
+              unit.Type = f.ResultType;
+            } else {
+              Contract.Assert(false);  // unexpected type
+              throw new cce.UnreachableException();
+            }
+            DeclareLocalVar(IdName(accVar), accVar.Type, f.tok, unit, false, w);
+          }
           w = EmitTailCallStructure(f, w);
         }
         Contract.Assert(enclosingFunction == null);
         enclosingFunction = f;
-        CompileReturnBody(f.Body, w);
+        CompileReturnBody(f.Body, w, accVar);
         Contract.Assert(enclosingFunction == f);
         enclosingFunction = null;
       }
@@ -1386,8 +1418,11 @@ namespace Microsoft.Dafny {
       }
     }
 
-    void TrExprOpt(Expression expr, TargetWriter wr, bool inLetExprBody) {
+    void TrExprOpt(Expression expr, TargetWriter wr, IVariable/*?*/ accumulatorVar) {
       Contract.Requires(expr != null);
+      Contract.Requires(wr != null);
+      Contract.Requires(accumulatorVar == null || (enclosingFunction != null && enclosingFunction.IsAccumulatorTailRecursive));
+
       expr = expr.Resolved;
       if (expr is LetExpr) {
         var e = (LetExpr)expr;
@@ -1395,22 +1430,24 @@ namespace Microsoft.Dafny {
           for (int i = 0; i < e.LHSs.Count; i++) {
             var lhs = e.LHSs[i];
             if (Contract.Exists(lhs.Vars, bv => !bv.IsGhost)) {
-              TrCasePatternOpt(lhs, e.RHSs[i], wr, inLetExprBody);
+              TrCasePatternOpt(lhs, e.RHSs[i], wr, false);
             }
           }
-          TrExprOpt(e.Body, wr, inLetExprBody);
+          TrExprOpt(e.Body, wr, accumulatorVar);
         } else {
           // We haven't optimized the other cases, so fallback to normal compilation
-          EmitReturnExpr(e, inLetExprBody, wr);
+          EmitReturnExpr(e, false, wr);
         }
+
       } else if (expr is ITEExpr) {
         var e = (ITEExpr)expr;
         TargetWriter guardWriter;
         var thn = EmitIf(out guardWriter, true, wr);
-        TrExpr(e.Test, guardWriter, inLetExprBody);
-        TrExprOpt(e.Thn, thn, inLetExprBody);
+        TrExpr(e.Test, guardWriter, false);
+        TrExprOpt(e.Thn, thn, accumulatorVar);
         var els = wr.NewBlock("");
-        TrExprOpt(e.Els, els, inLetExprBody);
+        TrExprOpt(e.Els, els, accumulatorVar);
+
       } else if (expr is MatchExpr) {
         var e = (MatchExpr)expr;
         //   var _source = E;
@@ -1424,7 +1461,7 @@ namespace Microsoft.Dafny {
         //     ...
         //   }
         string source = idGenerator.FreshId("_source");
-        DeclareLocalVar(source, e.Source.Type, e.Source.tok, e.Source, inLetExprBody, wr);
+        DeclareLocalVar(source, e.Source.Type, e.Source.tok, e.Source, false, wr);
 
         if (e.Cases.Count == 0) {
           // the verifier would have proved we never get here; still, we need some code that will compile
@@ -1434,63 +1471,133 @@ namespace Microsoft.Dafny {
           var sourceType = (UserDefinedType)e.Source.Type.NormalizeExpand();
           foreach (MatchCaseExpr mc in e.Cases) {
             var w = MatchCasePrelude(source, sourceType, mc.Ctor, mc.Arguments, i, e.Cases.Count, wr);
-            TrExprOpt(mc.Body, w, inLetExprBody);
+            TrExprOpt(mc.Body, w, accumulatorVar);
             i++;
           }
         }
+
       } else if (expr is StmtExpr) {
         var e = (StmtExpr)expr;
-        TrExprOpt(e.E, wr, inLetExprBody);
-      } else if (expr is FunctionCallExpr) {
-        var e = (FunctionCallExpr)expr;
-        if (e.Function == enclosingFunction && enclosingFunction.IsTailRecursive) {
-          // compile call as tail-recursive
+        TrExprOpt(e.E, wr, accumulatorVar);
 
-          // assign the actual in-parameters to temporary variables
-          var inTmps = new List<string>();
-          if (!e.Function.IsStatic) {
+      } else if (expr is FunctionCallExpr fce && fce.Function == enclosingFunction && enclosingFunction.IsTailRecursive) {
+        var e = fce;
+        // compile call as tail-recursive
+
+        // assign the actual in-parameters to temporary variables
+        var inTmps = new List<string>();
+        if (!e.Function.IsStatic) {
+          string inTmp = idGenerator.FreshId("_in");
+          inTmps.Add(inTmp);
+          DeclareLocalVar(inTmp, null, null, e.Receiver, false, wr);
+        }
+        for (int i = 0; i < e.Function.Formals.Count; i++) {
+          Formal p = e.Function.Formals[i];
+          if (!p.IsGhost) {
             string inTmp = idGenerator.FreshId("_in");
             inTmps.Add(inTmp);
-            DeclareLocalVar(inTmp, null, null, e.Receiver, inLetExprBody, wr);
+            DeclareLocalVar(inTmp, null, null, e.Args[i], false, wr, p.Type);
           }
-          for (int i = 0; i < e.Function.Formals.Count; i++) {
-            Formal p = e.Function.Formals[i];
-            if (!p.IsGhost) {
-              string inTmp = idGenerator.FreshId("_in");
-              inTmps.Add(inTmp);
-              DeclareLocalVar(inTmp, null, null, e.Args[i], inLetExprBody, wr, p.Type);
-            }
-          }
-          // Now, assign to the formals
-          int n = 0;
-          if (!e.Function.IsStatic) {
-            wr.Write("_this = {0}", inTmps[n]);
+        }
+        // Now, assign to the formals
+        int n = 0;
+        if (!e.Function.IsStatic) {
+          wr.Write("_this = {0}", inTmps[n]);
+          EndStmt(wr);
+          n++;
+        }
+        foreach (var p in e.Function.Formals) {
+          if (!p.IsGhost) {
+            wr.Write("{0} = {1}", p.CompileName, inTmps[n]);
             EndStmt(wr);
             n++;
           }
-          foreach (var p in e.Function.Formals) {
-            if (!p.IsGhost) {
-              wr.Write("{0} = {1}", p.CompileName, inTmps[n]);
-              EndStmt(wr);
-              n++;
-            }
-          }
-          Contract.Assert(n == inTmps.Count);
-          // finally, the jump back to the head of the function
-          EmitJumpToTailCallStart(wr);
-
-        } else {
-          // regular function call
-          EmitReturnExpr(expr, inLetExprBody, wr);
         }
+        Contract.Assert(n == inTmps.Count);
+        // finally, the jump back to the head of the function
+        EmitJumpToTailCallStart(wr);
+
+      } else if (expr is BinaryExpr bin && bin.AccumulatesForTailRecursion != BinaryExpr.AccumulationOperand.None) {
+        Contract.Assert(accumulatorVar != null);
+        Contract.Assert(enclosingFunction != null);
+        Contract.Assert(enclosingFunction.IsAccumulatorTailRecursive);
+        Expression tailTerm;
+        Expression rhs;
+        var acc = new IdentifierExpr(expr.tok, accumulatorVar);
+        if (bin.AccumulatesForTailRecursion == BinaryExpr.AccumulationOperand.Left) {
+          rhs = new BinaryExpr(bin.tok, bin.ResolvedOp, acc, bin.E0);
+          tailTerm = bin.E1;
+        } else {
+          switch (bin.ResolvedOp) {
+            case BinaryExpr.ResolvedOpcode.Sub:
+              rhs = new BinaryExpr(bin.tok, BinaryExpr.ResolvedOpcode.Add, bin.E1, acc);
+              break;
+            case BinaryExpr.ResolvedOpcode.SetDifference:
+              rhs = new BinaryExpr(bin.tok, BinaryExpr.ResolvedOpcode.Union, bin.E1, acc);
+              break;
+            case BinaryExpr.ResolvedOpcode.MultiSetDifference:
+              rhs = new BinaryExpr(bin.tok, BinaryExpr.ResolvedOpcode.MultiSetUnion, bin.E1, acc);
+              break;
+            default:
+              rhs = new BinaryExpr(bin.tok, bin.ResolvedOp, bin.E1, acc);
+              break;
+          }
+          tailTerm = bin.E0;
+        }
+        TargetWriter wLhs, wRhs;
+        EmitAssignment(out wLhs, enclosingFunction.ResultType, out wRhs, enclosingFunction.ResultType, wr);
+        TrExpr(acc, wLhs, false);
+        TrExpr(rhs, wRhs, false);
+        TrExprOpt(tailTerm, wr, accumulatorVar);
+
       } else {
         // We haven't optimized any other cases, so fallback to normal compilation
-        EmitReturnExpr(expr, inLetExprBody, wr);
+        if (enclosingFunction != null && enclosingFunction.IsAccumulatorTailRecursive) {
+          // Remember to include the accumulator
+          Contract.Assert(accumulatorVar != null);
+          var acc = new IdentifierExpr(expr.tok, accumulatorVar);
+          switch (enclosingFunction.TailRecursion) {
+            case Function.TailStatus.Accumulate_Add:
+              expr = new BinaryExpr(expr.tok, BinaryExpr.ResolvedOpcode.Add, expr, acc);
+              break;
+            case Function.TailStatus.AccumulateRight_Sub:
+              expr = new BinaryExpr(expr.tok, BinaryExpr.ResolvedOpcode.Sub, expr, acc);
+              break;
+            case Function.TailStatus.Accumulate_Mul:
+              expr = new BinaryExpr(expr.tok, BinaryExpr.ResolvedOpcode.Mul, expr, acc);
+              break;
+            case Function.TailStatus.Accumulate_SetUnion:
+              expr = new BinaryExpr(expr.tok, BinaryExpr.ResolvedOpcode.Union, expr, acc);
+              break;
+            case Function.TailStatus.AccumulateRight_SetDifference:
+              expr = new BinaryExpr(expr.tok, BinaryExpr.ResolvedOpcode.SetDifference, expr, acc);
+              break;
+            case Function.TailStatus.Accumulate_MultiSetUnion:
+              expr = new BinaryExpr(expr.tok, BinaryExpr.ResolvedOpcode.MultiSetUnion, expr, acc);
+              break;
+            case Function.TailStatus.AccumulateRight_MultiSetDifference:
+              expr = new BinaryExpr(expr.tok, BinaryExpr.ResolvedOpcode.MultiSetDifference, expr, acc);
+              break;
+            case Function.TailStatus.AccumulateLeft_Concat:
+              expr = new BinaryExpr(expr.tok, BinaryExpr.ResolvedOpcode.Concat, acc, expr); // note order of operands
+              break;
+            case Function.TailStatus.AccumulateRight_Concat:
+              expr = new BinaryExpr(expr.tok, BinaryExpr.ResolvedOpcode.Concat, expr, acc);
+              break;
+            default:
+              Contract.Assert(false); // unexpected TailStatus
+              throw new cce.UnreachableException();
+          }
+        } else {
+          Contract.Assert(accumulatorVar == null);
+        }
+        EmitReturnExpr(expr, false, wr);
       }
     }
 
-    void CompileReturnBody(Expression body, TargetWriter wr) {
-      TrExprOpt(body.Resolved, wr, false);
+    void CompileReturnBody(Expression body, TargetWriter wr, IVariable/*?*/ accumulatorVar) {
+      Contract.Requires(accumulatorVar == null || (enclosingFunction != null && enclosingFunction.IsAccumulatorTailRecursive));
+      TrExprOpt(body.Resolved, wr, accumulatorVar);
     }
 
     // ----- Type ---------------------------------------------------------------------------------
