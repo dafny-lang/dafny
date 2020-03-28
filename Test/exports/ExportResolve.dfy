@@ -10,7 +10,7 @@ module NamesThatDontExist {
     reveals Trait.Valid, Klass.Valid  // fine
     reveals Trait.NotThere  // error: not a member
     reveals TypeSynonym.Valid  // error: not a type declaration with members
-    reveals Opaque.Valid  // error: not a type declaration with members
+    reveals Opaque.Valid  // error: not a member
     reveals DtValue.Valid  // error: not a type declaration with members
     reveals Color, Dt, Dt.Valid, Dt.M, Dt.N  // all good
     reveals Color.Magenta  // error: cannot mention datatype constructor in export
@@ -25,7 +25,7 @@ module NamesThatDontExist {
     provides Trait.Valid, Klass.Valid  // fine
     provides Trait.NotThere  // error: not a member
     provides TypeSynonym.Valid  // error: not a type declaration with members
-    provides Opaque.Valid  // error: not a type declaration with members
+    provides Opaque.Valid  // error: not a member
     provides DtValue.Valid  // error: not a type declaration with members
     provides Color, Dt.Valid, Dt.M, Dt.N  // all good
     provides Color.Magenta  // error: cannot mention datatype constructor in export
@@ -79,22 +79,21 @@ module NamesThatDontExist {
 module ConsistencyErrors {
   // Providing a type exports the type name as an opaque type, along with any
   // type characteristics, type parameters, and the variance of the type parameters.
-  // In the case of a class C, both type C and C? are exported.
-  // But no datatype constructors, discriminators, or destructors, class constructors,
-  // or type members are exported.
+  // In the case of a class C, only type C can be provided, not C? (but both can be revealed).
+  // Export a type does not automatically export datatype constructors, discriminators, or
+  // destructors, class constructors, or type members are exported -- separate declarations
+  // are needed for these (if allowed at all).
   export ProvideTypes
     provides Trait, Klass, Dt
   export P0 extends ProvideTypes  // error: export set not consistent (X, More?, u)
-    provides DatatypeSignature  // TODO: should be error
-  export P1 extends ProvideTypes
-    provides Nullity  // TODO: should be error
+    provides DatatypeSignature
+  export P1 extends ProvideTypes  // error: export set not consistent
+    provides References
   export P2 extends ProvideTypes  // error: export set not consistent
-    provides SubsetEquality
-  export P3 extends ProvideTypes  // error: export set not consistent
     provides UsesValid
-  export P4 extends ProvideTypes  // error: export set not consistent
+  export P3 extends ProvideTypes  // error: export set not consistent
     provides UsesStatic
-  export P5 extends ProvideTypes  // error: export set not consistent
+  export P4 extends ProvideTypes  // error: export set not consistent
     provides UsesField
 
   export Constructor
@@ -118,12 +117,10 @@ module ConsistencyErrors {
     static const N := 101
   }
 
-  method DatatypeSignature(t: Trait, tn: Trait?, k: Klass, kn: Klass?, d: Dt)
+  method DatatypeSignature(t: Trait, k: Klass, d: Dt)
     requires d == X == Dt.X || (d.More? && d.u == 16)
-  method Nullity(t: Trait, tn: Trait?, k: Klass, kn: Klass?, d: Dt)
-    requires tn == null || kn == null
-  method SubsetEquality(t: Trait, tn: Trait?, k: Klass, kn: Klass?, d: Dt)
-    requires t == tn && k == kn
+  method References(t: Trait, k: Klass, d: Dt)
+    requires (var o: object? := t; o) == (var o: object? := k; o)
   method UsesValid(t: Trait, k: Klass, d: Dt)
     requires t.Valid() && k.Valid() && d.Valid()
   method UsesStatic(t: Trait, k: Klass, d: Dt)

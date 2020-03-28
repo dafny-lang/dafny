@@ -790,8 +790,6 @@ namespace Microsoft.Dafny {
           currentDeclaration = d;
           if (d is OpaqueTypeDecl) {
             AddTypeDecl((OpaqueTypeDecl)d);
-          } else if (d is RevealableTypeDecl) {
-            AddTypeDecl((RevealableTypeDecl)d);
           } else if (d is ModuleDecl) {
             // submodules have already been added as a top level module, ignore this.
           } else if (d is ClassDecl) {
@@ -803,6 +801,8 @@ namespace Microsoft.Dafny {
             if (d is IteratorDecl) {
               AddIteratorSpecAndBody((IteratorDecl)d);
             }
+          } else if (d is RevealableTypeDecl) {
+            AddTypeDecl((RevealableTypeDecl)d);
           } else {
             Contract.Assert(false);
           }

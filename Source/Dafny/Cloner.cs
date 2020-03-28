@@ -900,25 +900,25 @@ namespace Microsoft.Dafny
       basem.TopLevelDecls.RemoveAll(t => t is AliasModuleDecl ?
         vismap[((AliasModuleDecl)t).Signature.ModuleDef].IsEmpty() : isInvisibleClone(t));
 
-      basem.TopLevelDecls.FindAll(t => t is ClassDecl).
-        ForEach(t => ((ClassDecl)t).Members.RemoveAll(isInvisibleClone));
+      basem.TopLevelDecls.FindAll(t => t is TopLevelDeclWithMembers).
+        ForEach(t => ((TopLevelDeclWithMembers)t).Members.RemoveAll(isInvisibleClone));
 
       return basem;
     }
 
     public override TopLevelDecl CloneDeclaration(TopLevelDecl d, ModuleDefinition m) {
-
       var based = base.CloneDeclaration(d, m);
-
-      if (d is RevealableTypeDecl && !RevealedInScope(d)) {
-        var dd = (RevealableTypeDecl)d;
+      if ((d is RevealableTypeDecl || d is TopLevelDeclWithMembers) && !(d is ClassDecl cd && cd.IsDefaultClass) && !RevealedInScope(d)) {
         var tps = d.TypeArgs.ConvertAll(CloneTypeParam);
         var characteristics = TypeParameter.GetExplicitCharacteristics(d);
-        based = new OpaqueTypeDecl(Tok(d.tok), d.Name, m, characteristics, tps, CloneAttributes(d.Attributes));
+        var otd = new OpaqueTypeDecl(Tok(d.tok), d.Name, m, characteristics, tps, CloneAttributes(d.Attributes));
+        if (based is TopLevelDeclWithMembers tm) {
+          otd.Members.AddRange(tm.Members);
+        }
+        based = otd;
       }
 
       reverseMap.Add(based, d);
-
       return based;
 
     }

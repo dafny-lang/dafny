@@ -865,7 +865,7 @@ namespace Microsoft.Dafny {
         if (udt != null && udt.ResolvedClass is InternalTypeSynonymDecl isyn) {
           udt = isyn.RhsWithArgumentIgnoringScope(udt.TypeArgs) as UserDefinedType;
         }
-        return udt != null && udt.ResolvedParam == null ? udt.ResolvedClass as TopLevelDeclWithMembers : null;
+        return udt?.ResolvedClass as TopLevelDeclWithMembers;
       }
     }
     /// <summary>
@@ -4729,7 +4729,7 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public class OpaqueTypeDecl : TopLevelDecl, TypeParameter.ParentType, RevealableTypeDecl
+  public class OpaqueTypeDecl : TopLevelDeclWithMembers, TypeParameter.ParentType, RevealableTypeDecl
   {
     public override string WhatKind { get { return "opaque type"; } }
     public override bool CanBeRevealed() { return true; }
@@ -4746,7 +4746,7 @@ namespace Microsoft.Dafny {
     }
 
     public OpaqueTypeDecl(IToken tok, string name, ModuleDefinition module, TypeParameter.TypeParameterCharacteristics characteristics, List<TypeParameter> typeArgs, Attributes attributes)
-      : base(tok, name, module, typeArgs, attributes) {
+      : base(tok, name, module, typeArgs, new List<MemberDecl>(), attributes) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
       Contract.Requires(module != null);
@@ -5072,7 +5072,7 @@ namespace Microsoft.Dafny {
     /// </summary>
     public NonNullTypeDecl(ClassDecl cl)
       : this(cl, cl.TypeArgs.ConvertAll(tp => new TypeParameter(tp.tok, tp.Name, tp.VarianceSyntax, tp.Characteristics)))
- {
+    {
       Contract.Requires(cl != null);
     }
 

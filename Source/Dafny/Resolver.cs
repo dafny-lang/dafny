@@ -1036,7 +1036,11 @@ namespace Microsoft.Dafny
             // cldecl is a possibly-null type (syntactically given with a question mark at the end)
             var nn = ((ClassDecl)tdecl).NonNullTypeDecl;
             Contract.Assert(nn != null);
-            reporter.Error(MessageSource.Resolver, export.Tok, "Types '{0}' and '{1}' are exported together, which is accomplished by listing the name '{0}'", nn.Name, name);
+            reporter.Error(MessageSource.Resolver, export.Tok,
+              export.Opaque ?
+              "Type '{1}' can only be revealed, not provided" :
+              "Types '{0}' and '{1}' are exported together, which is accomplished by revealing the name '{0}'",
+              nn.Name, name);
             continue;
           } else if (sig.TopLevels.TryGetValue(name, out tdecl) && (!(tdecl is ClassDecl) || ((ClassDecl)tdecl).NonNullTypeDecl == null)) {
             // Member of the enclosing module
@@ -1252,6 +1256,13 @@ namespace Microsoft.Dafny
         var scope = decl.Signature.VisibilityScope;
         Cloner cloner = new ScopeCloner(scope);
         var exportView = cloner.CloneModuleDefinition(m, m.Name);
+        if (DafnyOptions.O.DafnyPrintExportedViews.Contains(decl.FullName)) {
+          var wr = Console.Out;
+          wr.WriteLine("/* ===== export set {0}", decl.FullName);
+          var pr = new Printer(wr);
+          pr.PrintTopLevelDecls(exportView.TopLevelDecls, 0, null, null);
+          wr.WriteLine("*/");
+        }
 
         var testSig = RegisterTopLevelDecls(exportView, true);
         //testSig.Refines = refinementTransformer.RefinedSig;
@@ -1654,11 +1665,9 @@ namespace Microsoft.Dafny
         }
         if (d is ModuleDecl) {
           // nothing to do
-        } else if (d is OpaqueTypeDecl) {
-          // nothing more to register
         } else if (d is TypeSynonymDecl) {
           // nothing more to register
-        } else if (d is NewtypeDecl) {
+        } else if (d is NewtypeDecl || d is OpaqueTypeDecl) {
           var cl = (TopLevelDeclWithMembers)d;
           // register the names of the type members
           var members = new Dictionary<string, MemberDecl>();
@@ -2174,9 +2183,7 @@ namespace Microsoft.Dafny
         Contract.Assert(d != null);
         allTypeParameters.PushMarker();
         ResolveTypeParameters(d.TypeArgs, true, d);
-        if (d is OpaqueTypeDecl) {
-          // do nothing
-        } else if (d is TypeSynonymDecl) {
+        if (d is TypeSynonymDecl) {
           var dd = (TypeSynonymDecl)d;
           ResolveType(dd.tok, dd.Rhs, dd, ResolveTypeOptionEnum.AllowPrefix, dd.TypeArgs);
           dd.Rhs.ForeachTypeComponent(ty => {
@@ -2197,17 +2204,17 @@ namespace Microsoft.Dafny
           ResolveClassMemberTypes(dd);
         } else if (d is IteratorDecl) {
           ResolveIteratorSignature((IteratorDecl)d);
-        } else if (d is ClassDecl) {
-          ResolveClassMemberTypes((ClassDecl)d);
         } else if (d is ModuleDecl) {
           var decl = (ModuleDecl)d;
           if (!def.IsAbstract && decl is AliasModuleDecl am && decl.Signature.IsAbstract) {
             reporter.Error(MessageSource.Resolver, am.Path.Last(), "a compiled module ({0}) is not allowed to import an abstract module ({1})", def.Name, Util.Comma(".", am.Path, tok => tok.val));
           }
-        } else {
+        } else if (d is DatatypeDecl) {
           var dd = (DatatypeDecl)d;
           ResolveCtorTypes(dd, datatypeDependencies, codatatypeDependencies);
           ResolveClassMemberTypes(dd);
+        } else {
+          ResolveClassMemberTypes((TopLevelDeclWithMembers)d);
         }
         allTypeParameters.PopMarker();
       }
@@ -2397,9 +2404,6 @@ namespace Microsoft.Dafny
             var iter = (IteratorDecl)d;
             ResolveIterator(iter);
             ResolveClassMemberBodies(iter);  // resolve the automatically generated members
-          } else if (d is ClassDecl) {
-            var cl = (ClassDecl)d;
-            ResolveClassMemberBodies(cl);
           } else if (d is DatatypeDecl) {
             var dt = (DatatypeDecl)d;
             foreach (var ctor in dt.Ctors) {
@@ -2408,6 +2412,9 @@ namespace Microsoft.Dafny
               }
             }
             ResolveClassMemberBodies(dt);
+          } else if (d is TopLevelDeclWithMembers) {
+            var dd = (TopLevelDeclWithMembers)d;
+            ResolveClassMemberBodies(dd);
           }
         }
         allTypeParameters.PopMarker();
@@ -2623,7 +2630,7 @@ namespace Microsoft.Dafny
             prefixLemma.Body = new BlockStmt(com.tok, condBody.EndTok, new List<Statement>() { condBody });
           }
           // The prefix lemma now has all its components, so it's finally time we resolve it
-          currentClass = (ClassDecl)prefixLemma.EnclosingClass;
+          currentClass = (TopLevelDeclWithMembers)prefixLemma.EnclosingClass;
           allTypeParameters.PushMarker();
           ResolveTypeParameters(currentClass.TypeArgs, false, currentClass);
           ResolveTypeParameters(prefixLemma.TypeArgs, false, prefixLemma);
