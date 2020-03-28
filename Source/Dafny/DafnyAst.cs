@@ -3875,6 +3875,19 @@ namespace Microsoft.Dafny {
       Contract.Requires(b != null);
       return this == b || this.TraitsObj.Exists(tr => tr.DerivesFrom(b));
     }
+
+    public List<Type> TraitsWithArgument(List<Type> typeArgs) {
+      Contract.Requires(typeArgs != null);
+      Contract.Requires(typeArgs.Count == TypeArgs.Count);
+      // Instantiate with the actual type arguments
+      if (typeArgs.Count == 0) {
+        // this optimization seems worthwhile
+        return TraitsTyp;
+      } else {
+        var subst = Resolver.TypeSubstitutionMap(TypeArgs, typeArgs);
+        return TraitsTyp.ConvertAll(traitType => Resolver.SubstType(traitType, subst));
+      }
+    }
   }
 
   public class DefaultClassDecl : ClassDecl {
