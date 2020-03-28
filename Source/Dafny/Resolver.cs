@@ -7717,23 +7717,18 @@ namespace Microsoft.Dafny
           ResolveType_ClassName(cl.tok, tt, new NoContext(cl.Module), ResolveTypeOptionEnum.DontInfer, null);
           if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
             var udt = tt as UserDefinedType;
-            if (udt != null && udt.ResolvedClass is NonNullTypeDecl &&
-                ((NonNullTypeDecl) udt.ResolvedClass).ViewAsClass is TraitDecl) {
-              var trait = (TraitDecl) ((NonNullTypeDecl) udt.ResolvedClass).ViewAsClass;
+            if (udt != null && udt.ResolvedClass is NonNullTypeDecl && ((NonNullTypeDecl)udt.ResolvedClass).ViewAsClass is TraitDecl) {
+              var trait = (TraitDecl)((NonNullTypeDecl)udt.ResolvedClass).ViewAsClass;
               //disallowing inheritance in multi module case
               bool termination = true;
-              if (cl.Module == trait.Module ||
-                  (Attributes.ContainsBool(trait.Attributes, "termination", ref termination) && !termination)) {
+              if (cl.Module == trait.Module || (Attributes.ContainsBool(trait.Attributes, "termination", ref termination) && !termination)) {
                 // all is good (or the user takes responsibility for the lack of termination checking)
                 cl.TraitsObj.Add(trait);
               } else {
-                reporter.Error(MessageSource.Resolver, udt.tok,
-                  "class '{0}' is in a different module than trait '{1}'. A class may only extend a trait in the same module.",
-                  cl.Name, trait.FullName);
+                reporter.Error(MessageSource.Resolver, udt.tok, "class '{0}' is in a different module than trait '{1}'. A class may only extend a trait in the same module.", cl.Name, trait.FullName);
               }
             } else {
-              reporter.Error(MessageSource.Resolver, udt != null ? udt.tok : cl.tok,
-                "a class can only extend traits (found '{0}')", tt);
+              reporter.Error(MessageSource.Resolver, udt != null ? udt.tok : cl.tok, "a class can only extend traits (found '{0}')", tt);
             }
           }
         }
