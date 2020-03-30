@@ -554,7 +554,7 @@ namespace Microsoft.Dafny {
       if (other != null) {
         Tuple<int, bool> result;
         if (cached.TryGetValue(other, out result)) {
-          if (result.Item1 == other.scopeTokens.Count()) {
+          if (result.Item1 == other.scopeTokens.Count) {
             return result.Item2;
           } else {
             if (result.Item2) {
@@ -563,7 +563,7 @@ namespace Microsoft.Dafny {
           }
         }
         var isoverlap = overlaps(other.scopeTokens, this.scopeTokens);
-        cached[other] = new Tuple<int, bool>(other.scopeTokens.Count(), isoverlap);
+        cached[other] = new Tuple<int, bool>(other.scopeTokens.Count, isoverlap);
         return isoverlap;
 
       }
