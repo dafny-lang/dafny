@@ -585,7 +585,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public VisibilityScope(bool newScope, string name) {
+    public VisibilityScope(string name) {
       scopeTokens.Add(maxScopeID);
       scopeIds.Add(name);
       if (maxScopeID == uint.MaxValue) {
@@ -3344,7 +3344,7 @@ namespace Microsoft.Dafny {
       Extends = extends;
       ProvideAll = provideAll;
       RevealAll = revealAll;
-      ThisScope = new VisibilityScope(true, this.FullCompileName);
+      ThisScope = new VisibilityScope(this.FullCompileName);
     }
 
     public void SetupDefaultSignature() {
@@ -3539,7 +3539,7 @@ namespace Microsoft.Dafny {
     public VisibilityScope VisibilityScope {
       get {
         if (visibilityScope == null) {
-          visibilityScope = new VisibilityScope(true, this.CompileName);
+          visibilityScope = new VisibilityScope(this.CompileName);
         }
         return visibilityScope;
       }

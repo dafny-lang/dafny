@@ -1220,7 +1220,7 @@ namespace Microsoft.Dafny
           }
         }
 
-        VisibilityScope newscope = new VisibilityScope(true, e.Item1.Name);
+        VisibilityScope newscope = new VisibilityScope(e.Item1.Name);
 
         foreach (var rt in declScopes) {
           if (!rt.Value.HasValue)
