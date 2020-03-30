@@ -1096,12 +1096,10 @@ namespace Microsoft.Dafny
         ModuleSignature signature = decl.Signature;
         signature.ModuleDef = m;
 
-
         foreach (var top in sig.TopLevels.Where(t => t.Value.IsVisibleInScope(signature.VisibilityScope) && t.Value.CanBeExported())) {
           if (!signature.TopLevels.ContainsKey(top.Key)) {
             signature.TopLevels.Add(top.Key, top.Value);
           }
-
           if (top.Value is DatatypeDecl && top.Value.IsRevealedInScope(signature.VisibilityScope)) {
             foreach (var ctor in ((DatatypeDecl)top.Value).Ctors) {
               if (!signature.Ctors.ContainsKey(ctor.Name)) {
@@ -1109,15 +1107,12 @@ namespace Microsoft.Dafny
               }
             }
           }
-
-          foreach (var mem in sig.StaticMembers.Where(t => t.Value.IsVisibleInScope(signature.VisibilityScope) && t.Value.CanBeExported())) {
-            if (!signature.StaticMembers.ContainsKey(mem.Key)) {
-              signature.StaticMembers.Add(mem.Key, (MemberDecl)mem.Value);
-            }
-          }
-
         }
-
+        foreach (var mem in sig.StaticMembers.Where(t => t.Value.IsVisibleInScope(signature.VisibilityScope) && t.Value.CanBeExported())) {
+          if (!signature.StaticMembers.ContainsKey(mem.Key)) {
+            signature.StaticMembers.Add(mem.Key, (MemberDecl)mem.Value);
+          }
+        }
       }
 
 
