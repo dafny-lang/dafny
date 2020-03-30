@@ -5192,7 +5192,7 @@ namespace Microsoft.Dafny
       t = t.NormalizeExpand();
       var tproxy = t as TypeProxy;
       if (tproxy == null) {
-        var polarities = ConstrainTypeHead(t, t);
+        var polarities = Type.GetPolarities(t).ConvertAll(TypeParameter.Direction);
         Contract.Assert(polarities != null);
         Contract.Assert(polarities.Count <= t.TypeArgs.Count);
         for (int i = 0; i < polarities.Count; i++) {

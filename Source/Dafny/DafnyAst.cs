@@ -1157,7 +1157,7 @@ namespace Microsoft.Dafny {
     /// Returns "true" iff "sub" is a subtype of "super".
     /// Expects that neither "super" nor "sub" is an unresolved proxy.
     /// </summary>
-    public static bool IsSupertype(Type super, Type sub) {
+    public static bool IsSupertype(Type super, Type sub, bool ignoreTypeParameters = false) {
       Contract.Requires(super != null);
       Contract.Requires(sub != null);
       if (!IsHeadSupertypeOf(super, sub)) {
@@ -3104,7 +3104,7 @@ namespace Microsoft.Dafny {
     /// NonVariant_Permissive    !      - non-variant
     /// Covariant_Strict         +      - co-variant, no uses left of an arrow
     /// Covariant_Permissive     *      - co-variant
-    /// Contravarianct           -       - contra-variant
+    /// Contravariant            -      - contra-variant
     /// </summary>
     public enum TPVarianceSyntax { NonVariant_Strict, NonVariant_Permissive, Covariant_Strict, Covariant_Permissive, Contravariance }
     public enum TPVariance { Co, Non, Contra }
@@ -3116,6 +3116,16 @@ namespace Microsoft.Dafny {
           return TPVariance.Co;
         default:
           return v;
+      }
+    }
+    public static int Direction(TPVariance v) {
+      switch (v) {
+        case TPVariance.Co:
+          return 1;
+        case TPVariance.Contra:
+          return -1;
+        default:
+          return 0;
       }
     }
     public TPVarianceSyntax VarianceSyntax;
@@ -3893,6 +3903,8 @@ namespace Microsoft.Dafny {
       }
     }
 
+    // TODO-RS: This needs to go away, since it ignores trait type parameters
+    // and therefore will lead to errors later.
     internal bool DerivesFrom(TopLevelDecl b) {
       Contract.Requires(b != null);
       return this == b || this.TraitsObj.Exists(tr => tr.DerivesFrom(b));
