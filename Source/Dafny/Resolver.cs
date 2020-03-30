@@ -3839,18 +3839,6 @@ namespace Microsoft.Dafny
             polarities.Add(polarity);
           }
           return polarities;
-        } else if (clSub is ClassDecl && ((ClassDecl)clSub).DerivesFrom(clSuper)) {
-          // cool
-          var polarities = new List<int>();
-          Contract.Assert(clSuper.TypeArgs.Count == udfSuper.TypeArgs.Count);
-          Contract.Assert(clSuper.TypeArgs.Count == udfSub.TypeArgs.Count);
-          foreach (var tp in clSuper.TypeArgs) {
-            var polarity =
-              tp.Variance == TypeParameter.TPVariance.Co ? 1 :
-              tp.Variance == TypeParameter.TPVariance.Contra ? -1 : 0;
-            polarities.Add(polarity);
-          }
-          return polarities;
         } else {
           return null;
         }

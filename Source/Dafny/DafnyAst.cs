@@ -1166,6 +1166,7 @@ namespace Microsoft.Dafny {
       super = super.NormalizeExpand();
       sub = sub.NormalizeExpand();
       var polarities = GetPolarities(super);
+      // TODO-RS: Not always true!
       Contract.Assert(polarities.Count == super.TypeArgs.Count && polarities.Count == sub.TypeArgs.Count);
       var allGood = true;
       for (int i = 0; allGood && i < polarities.Count; i++) {
@@ -3908,6 +3909,10 @@ namespace Microsoft.Dafny {
         var subst = Resolver.TypeSubstitutionMap(TypeArgs, typeArgs);
         return TraitsTyp.ConvertAll(traitType => Resolver.SubstType(traitType, subst));
       }
+    }
+
+    public override List<Type> ParentTypes(List<Type> typeArgs) {
+      return TraitsWithArgument(typeArgs);
     }
   }
 

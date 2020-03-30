@@ -132,27 +132,27 @@ module Generics {
   // TODO-RS: Call this something else: Closure? Method?
   trait Function<T, R> {
     method Call(t: T) returns (r: R)
-    // method Compose<S>(f: Function<S, T>) returns (res: Function<S, R>) {
-    //   res := new ComposedFunction(f, this);
-    // }
+    method Compose<S>(f: Function<S, T>) returns (res: Function<S, R>) {
+      res := new ComposedFunction(f, this);
+    }
   }
 
   type IntFunction<T> = Function<T, int>
 
-  // class ComposedFunction<S, T, R> extends Function<S, R> {
-  //   const first: Function<S, T>
-  //   const second: Function<T, R>
+  class ComposedFunction<S, T, R> extends Function<S, R> {
+    const first: Function<S, T>
+    const second: Function<T, R>
 
-  //   constructor(first: Function<S, T>, second: Function<T, R>) {
-  //     this.first := first;
-  //     this.second := second;
-  //   }
+    constructor(first: Function<S, T>, second: Function<T, R>) {
+      this.first := first;
+      this.second := second;
+    }
 
-  //   method Call(s: S) returns (r: R) {
-  //     var t := first.Call(s);
-  //     r := second.Call(t);
-  //   }
-  // }
+    method Call(s: S) returns (r: R) {
+      var t := first.Call(s);
+      r := second.Call(t);
+    }
+  }
 
   class Triple extends Function<int, int> {
     constructor() {}
