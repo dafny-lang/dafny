@@ -2090,7 +2090,12 @@ namespace Microsoft.Dafny
               Contract.Assert(Object.ReferenceEquals(p.ModuleDef, pp.Signature.ModuleDef));
               ModuleSignature merged = MergeSignature(p, pp.Signature);
               merged.ModuleDef = pp.Signature.ModuleDef;
-              merged.CompileSignature = MergeSignature(p.CompileSignature, pp.Signature.CompileSignature);
+              if (p.CompileSignature != null) {
+                Contract.Assert(pp.Signature.CompileSignature != null);
+                merged.CompileSignature = MergeSignature(p.CompileSignature, pp.Signature.CompileSignature);
+              } else {
+                Contract.Assert(pp.Signature.CompileSignature == null);
+              }
               p = merged;
             } else {
               reporter.Error(MessageSource.Resolver, export, "no export set {0} in module {1}", export.val, decl.Name);
