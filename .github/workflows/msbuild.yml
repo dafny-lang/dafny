@@ -43,7 +43,7 @@ jobs:
     - name: Nuget Restore Dafny
       run: nuget restore dafny/Source/Dafny.sln
       env:
-        MONO_TLS_PROVIDER: legacy
+        MONO_TLS_PROVIDER: thisshouldfail
     - name: Build Dafny
       run: msbuild dafny/Source/Dafny.sln
     - uses: actions/setup-python@v1
