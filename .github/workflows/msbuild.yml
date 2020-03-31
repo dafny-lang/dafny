@@ -19,6 +19,8 @@ jobs:
       fail-fast: false
     steps:
     - uses: nuget/setup-nuget@v1
+    - name: Sync cert store
+      run: curl https://curl.haxx.se/ca/cacert.pem > ~/cacert.pem && sudo cert-sync ~/cacert.pem
     - name: Add msbuild to PATH
       if: matrix.os == 'windows-latest'
       uses: microsoft/setup-msbuild@v1.0.0
