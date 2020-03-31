@@ -106,8 +106,8 @@ module I {
 
 module J {
   module X {
-    // providing a class provides the types C and C? and also provides the info about whether or not the class has a constructor
-    export provides C, D
+    // revealing a class provides the types C and C? and also provides the info about whether or not the class has a constructor
+    export reveals C, D
     class C {
       constructor Init() { }
     }

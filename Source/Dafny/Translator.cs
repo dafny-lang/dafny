@@ -792,15 +792,6 @@ namespace Microsoft.Dafny {
             AddTypeDecl((OpaqueTypeDecl)d);
           } else if (d is ModuleDecl) {
             // submodules have already been added as a top level module, ignore this.
-          } else if (d is ClassDecl) {
-            var cl = (ClassDecl)d;
-            AddClassMembers(cl, DafnyOptions.O.OptimizeResolution < 1);
-            if (cl.NonNullTypeDecl != null) {
-              AddTypeDecl(cl.NonNullTypeDecl);
-            }
-            if (d is IteratorDecl) {
-              AddIteratorSpecAndBody((IteratorDecl)d);
-            }
           } else if (d is RevealableTypeDecl) {
             AddTypeDecl((RevealableTypeDecl)d);
           } else {
@@ -1188,6 +1179,15 @@ namespace Microsoft.Dafny {
           var dd = (NewtypeDecl)d;
           AddTypeDecl(dd);
           AddClassMembers(dd, true);
+        } else if (d is ClassDecl) {
+          var cl = (ClassDecl)d;
+          AddClassMembers(cl, DafnyOptions.O.OptimizeResolution < 1);
+          if (cl.NonNullTypeDecl != null) {
+            AddTypeDecl(cl.NonNullTypeDecl);
+          }
+          if (d is IteratorDecl) {
+            AddIteratorSpecAndBody((IteratorDecl)d);
+          }
         } else if (d is DatatypeDecl) {
           var dd = (DatatypeDecl)d;
           AddDatatype(dd);
@@ -2807,7 +2807,7 @@ namespace Microsoft.Dafny {
         if (f.IsStatic) {
           Contract.Assert(usesThis == null);
         } else {
-          var surrogate = new ThisSurrogate(f.tok, Resolver.GetReceiverType(f.tok, f));
+          var surrogate = new ThisSurrogate(f.tok, GetReceiverType(f.tok, f));
           allFormals.Add(surrogate);
           if (usesThis != null) {
             decs.Add(surrogate);
@@ -2930,7 +2930,7 @@ namespace Microsoft.Dafny {
         var bvThisIdExpr = new Bpl.IdentifierExpr(f.tok, bvThis);
         args.Add(bvThisIdExpr);
         // add well-typedness conjunct to antecedent
-        Type thisType = Resolver.GetReceiverType(f.tok, f);
+        Type thisType = GetReceiverType(f.tok, f);
         Bpl.Expr wh = Bpl.Expr.And(
           ReceiverNotNull(bvThisIdExpr),
           (f is TwoStateFunction ? etran.Old : etran).GoodRef(f.tok, bvThisIdExpr, thisType));
@@ -3185,7 +3185,7 @@ namespace Microsoft.Dafny {
           args.Add(bvThisIdExpr);
         }
         // add well-typedness conjunct to antecedent
-        Type thisType = Resolver.GetReceiverType(f.tok, f);
+        Type thisType = GetReceiverType(f.tok, f);
         Bpl.Expr wh = Bpl.Expr.And(
           ReceiverNotNull(bvThisIdExpr),
           (f is TwoStateFunction ? etran.Old : etran).GoodRef(f.tok, bvThisIdExpr, thisType));
@@ -3355,7 +3355,27 @@ namespace Microsoft.Dafny {
 
     Bpl.Type TrReceiverType(MemberDecl f) {
       Contract.Requires(f != null);
-      return TrType(Resolver.GetReceiverType(f.tok, f));
+      return TrType(GetReceiverType(f.tok, f));
+    }
+
+    UserDefinedType GetReceiverType(IToken tok, MemberDecl member) {
+      Contract.Requires(tok != null);
+      Contract.Requires(member != null);
+      Contract.Ensures(Contract.Result<UserDefinedType>() != null);
+
+      return GetThisType(tok, (TopLevelDeclWithMembers)member.EnclosingClass);
+    }
+
+    UserDefinedType GetThisType(IToken tok, TopLevelDeclWithMembers cl) {
+      Contract.Requires(tok != null);
+      Contract.Requires(cl != null);
+      Contract.Ensures(Contract.Result<UserDefinedType>() != null);
+
+      if (cl is ClassDecl cls && cl.IsRevealedInScope(currentScope)) {
+        return UserDefinedType.FromTopLevelDecl(tok, cls.NonNullTypeDecl, cls.TypeArgs);
+      } else {
+        return UserDefinedType.FromTopLevelDecl(tok, cl, cl.TypeArgs);
+      }
     }
 
     Bpl.Expr ReceiverNotNull(Bpl.Expr th) {
@@ -3533,7 +3553,7 @@ namespace Microsoft.Dafny {
         receiver = new StaticReceiverExpr(tok, (ClassDecl)member.EnclosingClass, true);  // this also resolves it
       } else {
         receiver = new ImplicitThisExpr(tok);
-        receiver.Type = Resolver.GetThisType(tok, (TopLevelDeclWithMembers)member.EnclosingClass);  // resolve here
+        receiver.Type = Resolver.GetReceiverType(tok, member);  // resolve here
       }
 
       arguments = new List<Expression>();
@@ -3761,7 +3781,7 @@ namespace Microsoft.Dafny {
         prefixArgsLimited.Add(bvThisIdExpr);
         prefixArgsLimitedM.Add(bvThisIdExpr);
         // add well-typedness conjunct to antecedent
-        Type thisType = Resolver.GetReceiverType(tok, pp);
+        Type thisType = GetReceiverType(tok, pp);
         Bpl.Expr wh = Bpl.Expr.And(
           ReceiverNotNull(bvThisIdExpr),
           GetWhereClause(tok, bvThisIdExpr, thisType, etran, NOALLOC));
@@ -3995,7 +4015,7 @@ namespace Microsoft.Dafny {
         // h, o
         Bpl.Expr h, o;
         var hVar = BplBoundVar("$h", predef.HeapType, out h);
-        var oVar = BplBoundVar("$o", TrType(Resolver.GetThisType(c.tok, c)), out o);
+        var oVar = BplBoundVar("$o", TrType(GetThisType(c.tok, c)), out o);
 
         // TClassA(G)
         Bpl.Expr o_ty = ClassTyCon(c, tyexprs);
@@ -4299,7 +4319,7 @@ namespace Microsoft.Dafny {
               // this corresponds to "this"
               Contract.Assert(!m.IsStatic);  // if "m" is static, "this" should never have gone into the _induction attribute
               Contract.Assert(receiverSubst == null);  // we expect at most one
-              var receiverType = Resolver.GetThisType(m.tok, (TopLevelDeclWithMembers)m.EnclosingClass);
+              var receiverType = GetThisType(m.tok, (TopLevelDeclWithMembers)m.EnclosingClass);
               bv = new BoundVar(m.tok, CurrentIdGenerator.FreshId("$ih#this"), receiverType); // use this temporary variable counter, but for a Dafny name (the idea being that the number and the initial "_" in the name might avoid name conflicts)
               var ie = new IdentifierExpr(m.tok, bv.Name);
               ie.Var = bv;  // resolve here
@@ -4661,7 +4681,7 @@ namespace Microsoft.Dafny {
           var th = new Bpl.IdentifierExpr(f.tok, "this", TrReceiverType(f));
           Bpl.Expr wh = Bpl.Expr.And(
             ReceiverNotNull(th),
-            etran.GoodRef(f.tok, th, Resolver.GetReceiverType(f.tok, f)));
+            etran.GoodRef(f.tok, th, GetReceiverType(f.tok, f)));
           Bpl.Formal thVar = new Bpl.Formal(f.tok, new Bpl.TypedIdent(f.tok, "this", TrReceiverType(f), wh), true);
           inParams.Add(thVar);
         }
@@ -5523,7 +5543,7 @@ namespace Microsoft.Dafny {
         bvars.Add(thVar);
         f0args.Add(th); f1args.Add(th); f0argsCanCall.Add(th); f1argsCanCall.Add(th);
 
-        Type thisType = Resolver.GetReceiverType(f.tok, f);
+        Type thisType = GetReceiverType(f.tok, f);
         Bpl.Expr wh = Bpl.Expr.And(ReceiverNotNull(th), GetWhereClause(f.tok, th, thisType, etran0, useAlloc));
         wellFormed = Bpl.Expr.And(wellFormed, wh);
       }
@@ -5704,7 +5724,7 @@ namespace Microsoft.Dafny {
         var th = new Bpl.IdentifierExpr(f.tok, "this", TrReceiverType(f));
         Bpl.Expr wh = Bpl.Expr.And(
           ReceiverNotNull(th),
-          (f is TwoStateFunction ? etran.Old : etran).GoodRef(f.tok, th, Resolver.GetReceiverType(f.tok, f)));
+          (f is TwoStateFunction ? etran.Old : etran).GoodRef(f.tok, th, GetReceiverType(f.tok, f)));
         Bpl.Formal thVar = new Bpl.Formal(f.tok, new Bpl.TypedIdent(f.tok, "this", TrReceiverType(f), wh), true);
         inParams.Add(thVar);
       }
@@ -6084,7 +6104,7 @@ namespace Microsoft.Dafny {
       // parameters of the procedure
       List<Variable> inParams = MkTyParamFormals(GetTypeParams(decl.EnclosingClass));
       if (!decl.IsStatic) {
-        var receiverType = Resolver.GetThisType(decl.tok, (TopLevelDeclWithMembers)decl.EnclosingClass);
+        var receiverType = GetThisType(decl.tok, (TopLevelDeclWithMembers)decl.EnclosingClass);
         Contract.Assert(VisibleInScope(receiverType));
 
         var th = new Bpl.IdentifierExpr(decl.tok, "this", TrReceiverType(decl));
@@ -9261,7 +9281,7 @@ namespace Microsoft.Dafny {
       // Add type parameters first, always!
       inParams.AddRange(MkTyParamFormals(GetTypeParams(m)));
       if (includeReceiver) {
-        var receiverType = m is MemberDecl ? Resolver.GetReceiverType(tok, (MemberDecl)m) : Resolver.GetThisType(tok, (IteratorDecl)m);
+        var receiverType = m is MemberDecl ? GetReceiverType(tok, (MemberDecl)m) : GetThisType(tok, (IteratorDecl)m);
         Contract.Assert(VisibleInScope(receiverType));
 
         Bpl.Expr wh;

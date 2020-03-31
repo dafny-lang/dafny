@@ -1032,19 +1032,18 @@ namespace Microsoft.Dafny
               continue;
             }
             decl = lmem;
-          } else if (sig.TopLevels.TryGetValue(name, out tdecl) && tdecl is ClassDecl && ((ClassDecl)tdecl).NonNullTypeDecl != null) {
-            // cldecl is a possibly-null type (syntactically given with a question mark at the end)
-            var nn = ((ClassDecl)tdecl).NonNullTypeDecl;
-            Contract.Assert(nn != null);
-            reporter.Error(MessageSource.Resolver, export.Tok,
-              export.Opaque ?
-              "Type '{1}' can only be revealed, not provided" :
-              "Types '{0}' and '{1}' are exported together, which is accomplished by revealing the name '{0}'",
-              nn.Name, name);
-            continue;
-          } else if (sig.TopLevels.TryGetValue(name, out tdecl) && (!(tdecl is ClassDecl) || ((ClassDecl)tdecl).NonNullTypeDecl == null)) {
+          } else if (sig.TopLevels.TryGetValue(name, out tdecl)) {
+            if (tdecl is ClassDecl && ((ClassDecl)tdecl).NonNullTypeDecl != null) {
+              // cldecl is a possibly-null type (syntactically given with a question mark at the end)
+              var nn = ((ClassDecl)tdecl).NonNullTypeDecl;
+              Contract.Assert(nn != null);
+              reporter.Error(MessageSource.Resolver, export.Tok,
+                export.Opaque ? "Type '{1}' can only be revealed, not provided" : "Types '{0}' and '{1}' are exported together, which is accomplished by revealing the name '{0}'",
+                nn.Name, name);
+              continue;
+            }
             // Member of the enclosing module
-            decl = tdecl.ViewAsClass;  // interpret the export as a class name, not a type name
+            decl = tdecl;
           } else if (sig.StaticMembers.TryGetValue(name, out member)) {
             decl = member;
           } else if (sig.ExportSets.ContainsKey(name)) {
@@ -1066,20 +1065,18 @@ namespace Microsoft.Dafny
           }
 
           export.Decl = decl;
-          decl.AddVisibilityScope(d.ThisScope, export.Opaque);
-
-          if (export.Decl is ClassDecl) {
-            var cl = (ClassDecl)export.Decl;
-            if (cl.NonNullTypeDecl != null) {
-              cl.NonNullTypeDecl.AddVisibilityScope(d.ThisScope, false);  // the associated non-null type is always exported as revealed
-            }
+          if (decl is NonNullTypeDecl nntd) {
+            nntd.Class.AddVisibilityScope(d.ThisScope, export.Opaque);
             if (!export.Opaque) {
+              nntd.AddVisibilityScope(d.ThisScope, export.Opaque);
               // add the anonymous constructor, if any
-              var anonymousConstructor = cl.Members.Find(mdecl => mdecl.Name == "_ctor");
+              var anonymousConstructor = nntd.Class.Members.Find(mdecl => mdecl.Name == "_ctor");
               if (anonymousConstructor != null) {
                 anonymousConstructor.AddVisibilityScope(d.ThisScope, false);
               }
             }
+          } else {
+            decl.AddVisibilityScope(d.ThisScope, export.Opaque);
           }
         }
       }
@@ -1096,9 +1093,36 @@ namespace Microsoft.Dafny
         ModuleSignature signature = decl.Signature;
         signature.ModuleDef = m;
 
-        foreach (var top in sig.TopLevels.Where(t => t.Value.IsVisibleInScope(signature.VisibilityScope) && t.Value.CanBeExported())) {
-          if (!signature.TopLevels.ContainsKey(top.Key)) {
-            signature.TopLevels.Add(top.Key, top.Value);
+        foreach (var top in sig.TopLevels) {
+          if (!top.Value.CanBeExported() || !top.Value.IsVisibleInScope(signature.VisibilityScope)) {
+            continue;
+          }
+          if (top.Value is NonNullTypeDecl) {
+            Contract.Assert(top.Value.IsRevealedInScope(signature.VisibilityScope));  // TODO: if this always holds, then the logic below can be simplified
+            // process both C and C? when processing C?
+            continue;
+          }
+          if (top.Value is ClassDecl cl && cl.NonNullTypeDecl != null) {
+            Contract.Assert(top.Key.EndsWith("?"));
+            if (top.Value.IsRevealedInScope(signature.VisibilityScope)) {
+              // add C? -> class decl
+              if (!signature.TopLevels.ContainsKey(top.Key)) {
+                signature.TopLevels.Add(top.Key, cl);
+              }
+              // add C -> non-null type decl
+              if (!signature.TopLevels.ContainsKey(cl.Name)) {
+                signature.TopLevels.Add(cl.Name, cl.NonNullTypeDecl);
+              }
+            } else {
+              // add C -> class decl
+              if (!signature.TopLevels.ContainsKey(cl.Name)) {
+                signature.TopLevels.Add(cl.Name, cl);
+              }
+            }
+          } else {
+            if (!signature.TopLevels.ContainsKey(top.Key)) {
+              signature.TopLevels.Add(top.Key, top.Value);
+            }
           }
           if (top.Value is DatatypeDecl && top.Value.IsRevealedInScope(signature.VisibilityScope)) {
             foreach (var ctor in ((DatatypeDecl)top.Value).Ctors) {
@@ -1242,6 +1266,8 @@ namespace Microsoft.Dafny
               reporter.Error(MessageSource.Resolver, export.Tok, "Cannot export type member '{0}' without providing its enclosing {1} '{2}'", member.Name, member.EnclosingClass.WhatKind, member.EnclosingClass.Name);
             } else if (member is Constructor && !member.EnclosingClass.IsRevealedInScope(decl.Signature.VisibilityScope)) {
               reporter.Error(MessageSource.Resolver, export.Tok, "Cannot export constructor '{0}' without revealing its enclosing {1} '{2}'", member.Name, member.EnclosingClass.WhatKind, member.EnclosingClass.Name);
+            } else if (member is Field && !(member is ConstantField) && !member.EnclosingClass.IsRevealedInScope(decl.Signature.VisibilityScope)) {
+              reporter.Error(MessageSource.Resolver, export.Tok, "Cannot export mutable field '{0}' without revealing its enclosing {1} '{2}'", member.Name, member.EnclosingClass.WhatKind, member.EnclosingClass.Name);
             }
           }
         }
@@ -1502,7 +1528,27 @@ namespace Microsoft.Dafny
       }
       // add for the module itself
       foreach (var kv in m.TopLevels) {
-        Contract.Assert(EquivIfPresent(info.TopLevels, kv.Key, kv.Value));
+        if (info.TopLevels.TryGetValue(kv.Key, out var infoValue)) {
+          if (infoValue != kv.Value) {
+            // This only happens if one signature contains the name C as a class C (because it
+            // provides C) and the other signature contains the name C as a non-null type decl
+            // (because it reveals C and C?). The merge output will contain the non-null type decl
+            // for the key (and we expect the mapping "C? -> class C" to be placed in the
+            // merge output as well, by the end of this loop).
+            if (infoValue is ClassDecl) {
+              var cd = (ClassDecl)infoValue;
+              Contract.Assert(cd.NonNullTypeDecl == kv.Value);
+              info.TopLevels[kv.Key] = kv.Value;
+            } else if (kv.Value is ClassDecl) {
+              var cd = (ClassDecl)kv.Value;
+              Contract.Assert(cd.NonNullTypeDecl == infoValue);
+              // info.TopLevel[kv.Key] already has the right value
+            } else {
+              Contract.Assert(false);  // unexpected
+            }
+            continue;
+          }
+        }
         info.TopLevels[kv.Key] = kv.Value;
       }
       foreach (var kv in m.Ctors) {
@@ -13569,7 +13615,7 @@ namespace Microsoft.Dafny
           // resolution to any such suffix. For now, we create a temporary expression that will never be seen by the compiler
           // or verifier, just to have a placeholder where we can recorded what we have found.
           if (!isLastNameSegment) {
-            if (decl is ClassDecl && ((ClassDecl)decl).NonNullTypeDecl != null) {
+            if (decl is ClassDecl cd && cd.NonNullTypeDecl != null && name != cd.NonNullTypeDecl.Name) {
               // A possibly-null type C? was mentioned. But it does not have any further members. The program should have used
               // the name of the class, C. Report an error and continue.
               reporter.Error(MessageSource.Resolver, expr.tok, "To access members of {0} '{1}', write '{1}', not '{2}'", decl.WhatKind, decl.Name, name);
@@ -13601,7 +13647,9 @@ namespace Microsoft.Dafny
         expr.Type = new InferredTypeProxy();
       } else {
         expr.ResolvedExpression = r;
-        expr.Type = r.Type;
+        var rt = r.Type;
+        var nt = rt.UseInternalSynonym();
+        expr.Type = nt;
       }
       return rWithArgs;
     }
@@ -13819,7 +13867,7 @@ namespace Microsoft.Dafny
             // resolution to any such suffix. For now, we create a temporary expression that will never be seen by the compiler
             // or verifier, just to have a placeholder where we can recorded what we have found.
             if (!isLastNameSegment) {
-              if (decl is ClassDecl && ((ClassDecl)decl).NonNullTypeDecl != null) {
+              if (decl is ClassDecl cd && cd.NonNullTypeDecl != null && name != cd.NonNullTypeDecl.Name) {
                 // A possibly-null type C? was mentioned. But it does not have any further members. The program should have used
                 // the name of the class, C. Report an error and continue.
                 reporter.Error(MessageSource.Resolver, expr.tok, "To access members of {0} '{1}', write '{1}', not '{2}'", decl.WhatKind, decl.Name, name);

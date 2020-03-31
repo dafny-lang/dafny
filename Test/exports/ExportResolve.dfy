@@ -46,7 +46,7 @@ module NamesThatDontExist {
     provides Dt.Cons?  // error: datatype discriminators cannot be individually exported
     provides Dt.u  // error: datatype denstructors cannot be individually exported
 
-  class Trait {
+  trait Trait {
     predicate Valid() { true }
   }
   class Klass {
@@ -98,11 +98,22 @@ module ConsistencyErrors {
 
   export Constructor
     provides Klass.FromInt  // error: cannot provide constructor without revealing enclosing class
+  export FieldsInProvidedType
+    provides Trait, Klass
+    provides Trait.x  // error: a mutable field can only be provided in a revealed type
+    provides Klass.x  // error: a mutable field can only be provided in a revealed type
+    provides Trait.M, Trait.N
+    provides Klass.M, Klass.N
+  export FieldsInRevealedType
+    reveals Trait, Klass
+    provides Trait.M, Trait.N, Trait.x
+    provides Klass.M, Klass.N, Klass.x
 
-  class Trait {
+  trait Trait {
     predicate Valid() { true }
     const M := 100
     static const N := 101
+    var x: int
   }
   class Klass {
     constructor () { }
@@ -110,6 +121,7 @@ module ConsistencyErrors {
     predicate Valid() { true }
     const M := 100
     static const N := 101
+    var x: int
   }
   datatype Dt = X | Y | More(u: int) {
     predicate Valid() { true }
@@ -118,7 +130,7 @@ module ConsistencyErrors {
   }
 
   method DatatypeSignature(t: Trait, k: Klass, d: Dt)
-    requires d == X == Dt.X || (d.More? && d.u == 16)
+    requires d == X == Dt.X || (d.More? && d.u == 16)  // TODO: could change error message about Dt.X to say "opaque type" instead of "type" | TODO: in the other err msg, put single-quotes around ID
   method References(t: Trait, k: Klass, d: Dt)
     requires (var o: object? := t; o) == (var o: object? := k; o)
   method UsesValid(t: Trait, k: Klass, d: Dt)
@@ -127,6 +139,27 @@ module ConsistencyErrors {
     requires Trait.N == Klass.N == Dt.N
   method UsesField(t: Trait, k: Klass, d: Dt)
     requires t.M == k.M == d.M
+
+  export WhatIsKnownAboutProvidedClass0
+    provides Trait
+    provides Convert
+  export WhatIsKnownAboutProvidedClass1
+    provides Trait
+    reveals Convert  // error: because Trait cannot be converted to object
+  export WhatIsKnownAboutProvidedClass2
+    provides Trait
+    provides Convert?  // error: because Trait? is not a known type in this export set
+  export WhatIsKnownAboutProvidedClass3
+    provides Trait
+    reveals Convert?  // error: because Trait? is not a known type in this export set
+  export WhatIsKnownAboutRevealedClass0
+    reveals Trait
+    provides Convert, Convert?
+  export WhatIsKnownAboutRevealedClass1
+    reveals Trait
+    reveals Convert, Convert?
+  function method Convert(x: Trait): object { x }
+  function method Convert?(x: Trait?): object? { x }
 }
 
 module GoodExports {
@@ -153,7 +186,7 @@ module GoodExports {
     reveals Klass
     provides Klass.FromInt
 
-  class Trait {
+  trait Trait {
     predicate Valid() { true }
     const M := 100
     static const N := 101
@@ -188,12 +221,10 @@ module Client_ProvideTypes {
   // This module checks that the outside world looks like it does inside module ConsistencyErrors above.
   import G = GoodExports`JustProvideTypes
 
-  method DatatypeSignature(t: G.Trait, tn: G.Trait?, k: G.Klass, kn: G.Klass?, d: G.Dt)
+  method DatatypeSignature(t: G.Trait, k: G.Klass, d: G.Dt)
     requires d == G.X || (d.More? && d.u == 16)  // error (3x): unknown identifiers X, More?, u
-  method Nullity(t: G.Trait, tn: G.Trait?, k: G.Klass, kn: G.Klass?, d: G.Dt)
-    requires tn == null || kn == null  // TODO: should be error
-  method SubsetEquality(t: G.Trait, tn: G.Trait?, k: G.Klass, kn: G.Klass?, d: G.Dt)
-    requires t == tn && k == kn  // TODO: should be error
+  method References(t: G.Trait, k: G.Klass, d: G.Dt)
+    requires (var o: object? := t; o) == (var o: object? := k; o)
   method UsesValid(t: G.Trait, k: G.Klass, d: G.Dt)
     requires t.Valid() && k.Valid() && d.Valid()  // error (3x): unknown identifiers Valid
   method UsesStatic(t: G.Trait, k: G.Klass, d: G.Dt)
@@ -230,12 +261,10 @@ module Client_MembersOfProvidedTypes {
   // This module checks that the outside world looks like it does inside module ConsistencyErrors above.
   import G = GoodExports`MembersOfProvidedTypes
 
-  method DatatypeSignature(t: G.Trait, tn: G.Trait?, k: G.Klass, kn: G.Klass?, d: G.Dt)
+  method DatatypeSignature(t: G.Trait, k: G.Klass, d: G.Dt)
     requires d == G.X || (d.More? && d.u == 16)  // error (3x): unknown identifiers X, More?, u
-  method Nullity(t: G.Trait, tn: G.Trait?, k: G.Klass, kn: G.Klass?, d: G.Dt)
-    requires tn == null || kn == null  // TODO: should be error
-  method SubsetEquality(t: G.Trait, tn: G.Trait?, k: G.Klass, kn: G.Klass?, d: G.Dt)
-    requires t == tn && k == kn  // TODO: should be error
+  method References(t: G.Trait, k: G.Klass, d: G.Dt)
+    requires (var o: object? := t; o) == (var o: object? := k; o)
   method UsesValid(t: G.Trait, k: G.Klass, d: G.Dt)
     requires t.Valid() && k.Valid() && d.Valid()
   method UsesStatic(t: G.Trait, k: G.Klass, d: G.Dt)

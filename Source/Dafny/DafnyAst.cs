@@ -182,6 +182,7 @@ namespace Microsoft.Dafny {
         }
         arrayTypeDecls.Add(dims, arrayClass);
         SystemModule.TopLevelDecls.Add(arrayClass);
+        CreateArrowTypeDecl(dims);  // also create an arrow type with this arity, since it may be used in an initializing expression for the array
       }
       UserDefinedType udt = new UserDefinedType(tok, arrayName, optTypeArgs);
       return udt;
@@ -764,6 +765,29 @@ namespace Microsoft.Dafny {
     [Pure]
     public Type NormalizeExpandKeepConstraints() {
       return NormalizeExpand(true);
+    }
+
+    /// <summary>
+    /// Return "the type that "this" stands for, getting to the bottom of proxies and following type synonyms.
+    /// </summary>
+    public Type UseInternalSynonym() {
+      Contract.Ensures(Contract.Result<Type>() != null);
+      Contract.Ensures(!(Contract.Result<Type>() is TypeProxy) || ((TypeProxy)Contract.Result<Type>()).T == null);  // return a proxy only if .T == null
+
+      Type type = Normalize();
+      var scope = Type.GetScope();
+      var rtd = type.AsRevealableType;
+      if (rtd != null) {
+        var udt = (UserDefinedType)type;
+        if (!rtd.AsTopLevelDecl.IsVisibleInScope(scope)) {
+          Contract.Assert(false);
+        }
+        if (!rtd.IsRevealedInScope(scope)) {
+          return rtd.SelfSynonym(type.TypeArgs, udt.NamePath);
+        }
+      }
+
+      return type;
     }
 
     /// <summary>
@@ -2484,12 +2508,13 @@ namespace Microsoft.Dafny {
     /// <summary>
     /// This constructor constructs a resolved class/datatype/iterator/subset-type/newtype type
     /// </summary>
-    public UserDefinedType(IToken tok, string name, TopLevelDecl cd, [Captured] List<Type> typeArgs) {
+    public UserDefinedType(IToken tok, string name, TopLevelDecl cd, [Captured] List<Type> typeArgs, Expression/*?*/ namePath = null) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
       Contract.Requires(cd != null);
       Contract.Requires(cce.NonNullElements(typeArgs));
       Contract.Requires(cd.TypeArgs.Count == typeArgs.Count);
+      Contract.Requires(namePath == null || namePath is NameSegment || namePath is ExprDotName);
       // The following is almost a precondition. In a few places, the source program names a class, not a type,
       // and in then name==cd.Name for a ClassDecl.
       //Contract.Requires(!(cd is ClassDecl) || cd is DefaultClassDecl || cd is ArrowTypeDecl || name == cd.Name + "?");
@@ -2499,11 +2524,15 @@ namespace Microsoft.Dafny {
       this.Name = name;
       this.ResolvedClass = cd;
       this.TypeArgs = typeArgs;
-      var ns = new NameSegment(tok, name, typeArgs.Count == 0 ? null : typeArgs);
-      var r = new Resolver_IdentifierExpr(tok, cd, typeArgs);
-      ns.ResolvedExpression = r;
-      ns.Type = r.Type;
-      this.NamePath = ns;
+      if (namePath == null) {
+        var ns = new NameSegment(tok, name, typeArgs.Count == 0 ? null : typeArgs);
+        var r = new Resolver_IdentifierExpr(tok, cd, typeArgs);
+        ns.ResolvedExpression = r;
+        ns.Type = r.Type;
+        this.NamePath = ns;
+      } else {
+        this.NamePath = namePath;
+      }
     }
 
     public static UserDefinedType CreateNonNullType(UserDefinedType udtNullableType) {
@@ -3852,7 +3881,7 @@ namespace Microsoft.Dafny {
       : base(tok, name, module, typeArgs, members, attributes, null) { }
   }
 
-  public class ClassDecl : TopLevelDeclWithMembers {
+  public class ClassDecl : TopLevelDeclWithMembers, RevealableTypeDecl {
     public override string WhatKind { get { return "class"; } }
     public override bool CanBeRevealed() { return true; }
     public readonly List<MemberDecl> InheritedMembers = new List<MemberDecl>();  // these are instance fields and instance members defined with bodies in traits
@@ -3879,6 +3908,7 @@ namespace Microsoft.Dafny {
       if (!IsDefaultClass && !(this is ArrowTypeDecl)) {
         NonNullTypeDecl = new NonNullTypeDecl(this);
       }
+      this.NewSelfSynonym();
     }
     public virtual bool IsDefaultClass {
       get {
@@ -3890,6 +3920,8 @@ namespace Microsoft.Dafny {
       Contract.Requires(b != null);
       return this == b || this.TraitsObj.Exists(tr => tr.DerivesFrom(b));
     }
+
+    TopLevelDecl RevealableTypeDecl.AsTopLevelDecl { get => this; }
   }
 
   public class DefaultClassDecl : ClassDecl {
@@ -4745,8 +4777,8 @@ namespace Microsoft.Dafny {
       Contract.Invariant(TheType != null && Name == TheType.Name);
     }
 
-    public OpaqueTypeDecl(IToken tok, string name, ModuleDefinition module, TypeParameter.TypeParameterCharacteristics characteristics, List<TypeParameter> typeArgs, Attributes attributes)
-      : base(tok, name, module, typeArgs, new List<MemberDecl>(), attributes) {
+    public OpaqueTypeDecl(IToken tok, string name, ModuleDefinition module, TypeParameter.TypeParameterCharacteristics characteristics, List<TypeParameter> typeArgs, List<MemberDecl> members, Attributes attributes)
+      : base(tok, name, module, typeArgs, members, attributes) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
       Contract.Requires(module != null);
@@ -4819,13 +4851,14 @@ namespace Microsoft.Dafny {
       tsdMap.Add(d, tsd);
     }
 
-    public static UserDefinedType SelfSynonym(this RevealableTypeDecl rtd, List<Type> args) {
+    public static UserDefinedType SelfSynonym(this RevealableTypeDecl rtd, List<Type> args, Expression/*?*/ namePath = null) {
       Contract.Requires(args != null);
+      Contract.Requires(namePath == null || namePath is NameSegment || namePath is ExprDotName);
       var d = rtd.AsTopLevelDecl;
       Contract.Assert(tsdMap.ContainsKey(d));
       var typeSynonym = tsdMap[d];
       Contract.Assert(typeSynonym.TypeArgs.Count == args.Count);
-      return new UserDefinedType(typeSynonym.tok, typeSynonym.Name, typeSynonym, args);
+      return new UserDefinedType(typeSynonym.tok, typeSynonym.Name, typeSynonym, args, namePath);
     }
 
     public static InternalTypeSynonymDecl SelfSynonymDecl(this RevealableTypeDecl rtd) {

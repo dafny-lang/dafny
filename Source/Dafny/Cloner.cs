@@ -44,7 +44,7 @@ namespace Microsoft.Dafny
 
       if (d is OpaqueTypeDecl) {
         var dd = (OpaqueTypeDecl)d;
-        return new OpaqueTypeDecl(Tok(dd.tok), dd.Name, m, CloneTPChar(dd.TheType.Characteristics), dd.TypeArgs.ConvertAll(CloneTypeParam), CloneAttributes(dd.Attributes));
+        return new OpaqueTypeDecl(Tok(dd.tok), dd.Name, m, CloneTPChar(dd.TheType.Characteristics), dd.TypeArgs.ConvertAll(CloneTypeParam), dd.Members.ConvertAll(CloneMember), CloneAttributes(dd.Attributes));
       } else if (d is SubsetTypeDecl) {
         Contract.Assume(!(d is NonNullTypeDecl));  // don't clone the non-null type declaration; close the class, which will create a new non-null type declaration
         var dd = (SubsetTypeDecl)d;
@@ -911,10 +911,8 @@ namespace Microsoft.Dafny
       if ((d is RevealableTypeDecl || d is TopLevelDeclWithMembers) && !(d is ClassDecl cd && cd.IsDefaultClass) && !RevealedInScope(d)) {
         var tps = d.TypeArgs.ConvertAll(CloneTypeParam);
         var characteristics = TypeParameter.GetExplicitCharacteristics(d);
-        var otd = new OpaqueTypeDecl(Tok(d.tok), d.Name, m, characteristics, tps, CloneAttributes(d.Attributes));
-        if (based is TopLevelDeclWithMembers tm) {
-          otd.Members.AddRange(tm.Members);
-        }
+        var members = based is TopLevelDeclWithMembers tm ? tm.Members : new List<MemberDecl>();
+        var otd = new OpaqueTypeDecl(Tok(d.tok), d.Name, m, characteristics, tps, members, CloneAttributes(d.Attributes));
         based = otd;
       }
 

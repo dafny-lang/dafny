@@ -139,12 +139,12 @@ abstract module Regression {
 module ModuleContainTraitAndClass {
   export X
     reveals g0
-    provides Trait, Class
+    reveals Trait, Class
     reveals Trait.s0, Trait.t0, Trait.t1
     reveals Class.r0, Class.c0, Class.c1
   export Y
     provides g0
-    provides Trait, Class
+    reveals Trait, Class
     provides Trait.s0, Trait.t0, Trait.t1
     provides Class.r0, Class.c0, Class.c1
 

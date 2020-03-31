@@ -1221,6 +1221,7 @@ int StringToInt(string s, int defaultValue, string errString) {
 		Expression witness = null;
 		bool witnessIsGhost = false;
 		var kind = "Opaque type";
+		var members = new List<MemberDecl>();
 		
 		Expect(63);
 		while (la.kind == 74) {
@@ -1233,43 +1234,47 @@ int StringToInt(string s, int defaultValue, string errString) {
 		if (la.kind == 81) {
 			GenericParameters(typeArgs, true);
 		}
-		if (la.kind == 96) {
-			Get();
-			if (IsIdentColonOrBar()) {
-				NoUSIdent(out bvId);
-				if (la.kind == 25) {
-					Get();
-					Type(out ty);
-				}
-				if (ty == null) { ty = new InferredTypeProxy(); } 
-				Expect(27);
-				Expression(out constraint, false, true);
-				if (IsWitness()) {
-					if (la.kind == 72) {
+		if (la.kind == 75 || la.kind == 96) {
+			if (la.kind == 96) {
+				Get();
+				if (IsIdentColonOrBar()) {
+					NoUSIdent(out bvId);
+					if (la.kind == 25) {
 						Get();
-						witnessIsGhost = true; 
+						Type(out ty);
 					}
-					Expect(73);
-					Expression(out witness, false, true);
-				}
-				var witnessKind = witness == null ? SubsetTypeDecl.WKind.None :
-				 witnessIsGhost ? SubsetTypeDecl.WKind.Ghost : SubsetTypeDecl.WKind.Compiled;
-				td = new SubsetTypeDecl(id, id.val, characteristics, typeArgs, module, new BoundVar(bvId, bvId.val, ty), constraint, witnessKind, witness, attrs);
-				kind = "Subset type";
-				
-			} else if (StartOf(5)) {
-				Type(out ty);
-				td = new TypeSynonymDecl(id, id.val, characteristics, typeArgs, module, ty, attrs);
-				kind = "Type synonym";
-				
-			} else SynErr(170);
+					if (ty == null) { ty = new InferredTypeProxy(); } 
+					Expect(27);
+					Expression(out constraint, false, true);
+					if (IsWitness()) {
+						if (la.kind == 72) {
+							Get();
+							witnessIsGhost = true; 
+						}
+						Expect(73);
+						Expression(out witness, false, true);
+					}
+					var witnessKind = witness == null ? SubsetTypeDecl.WKind.None :
+					 witnessIsGhost ? SubsetTypeDecl.WKind.Ghost : SubsetTypeDecl.WKind.Compiled;
+					td = new SubsetTypeDecl(id, id.val, characteristics, typeArgs, module, new BoundVar(bvId, bvId.val, ty), constraint, witnessKind, witness, attrs);
+					kind = "Subset type";
+					
+				} else if (StartOf(5)) {
+					Type(out ty);
+					td = new TypeSynonymDecl(id, id.val, characteristics, typeArgs, module, ty, attrs);
+					kind = "Type synonym";
+					
+				} else SynErr(170);
+			} else {
+				TypeMembers(module, members);
+			}
 		}
 		if (td == null) {
 		 if (module is DefaultModuleDecl) {
 		   // opaque type declarations at the very outermost program scope get an automatic (!new)
 		   characteristics.DisallowReferenceTypes = true;
 		 }
-		 td = new OpaqueTypeDecl(id, id.val, module, characteristics, typeArgs, attrs);
+		 td = new OpaqueTypeDecl(id, id.val, module, characteristics, typeArgs, members, attrs);
 		}
 		
 		CheckDeclModifiers(dmod, kind, AllowedDeclModifiers.None); 
