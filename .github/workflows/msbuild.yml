@@ -17,8 +17,6 @@ jobs:
       fail-fast: false
     steps:
     - uses: nuget/setup-nuget@v1
-      with:
-        nuget-version: latest
     - name: Add msbuild to PATH
       if: matrix.os == 'windows-latest'
       uses: microsoft/setup-msbuild@v1.0.0
