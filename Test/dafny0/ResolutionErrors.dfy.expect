@@ -124,8 +124,8 @@ ResolutionErrors.dfy(932,4): Error: LHS of array assignment must denote an array
 ResolutionErrors.dfy(933,4): Error: LHS of array assignment must denote an array element (found seq<int>)
 ResolutionErrors.dfy(954,4): Warning: note, this forall statement has no body
 ResolutionErrors.dfy(955,11): Error: unresolved identifier: s
-ResolutionErrors.dfy(974,18): Error: member 3 does not exist in datatype _tuple#3
-ResolutionErrors.dfy(974,28): Error: member x does not exist in datatype _tuple#2
+ResolutionErrors.dfy(974,18): Error: member '3' does not exist in datatype '_tuple#3'
+ResolutionErrors.dfy(974,28): Error: member 'x' does not exist in datatype '_tuple#2'
 ResolutionErrors.dfy(973,18): Error: condition is expected to be of type bool, but is int
 ResolutionErrors.dfy(967,39): Error: RHS (of type (int, real, int)) not assignable to LHS (of type (int, real, int, real))
 ResolutionErrors.dfy(966,34): Error: RHS (of type (int, int, real)) not assignable to LHS (of type (int, real, int)) (covariant type parameter 1 would require int <: real)

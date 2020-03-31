@@ -130,7 +130,7 @@ module ConsistencyErrors {
   }
 
   method DatatypeSignature(t: Trait, k: Klass, d: Dt)
-    requires d == X == Dt.X || (d.More? && d.u == 16)  // TODO: could change error message about Dt.X to say "opaque type" instead of "type" | TODO: in the other err msg, put single-quotes around ID
+    requires d == X == Dt.X || (d.More? && d.u == 16)
   method References(t: Trait, k: Klass, d: Dt)
     requires (var o: object? := t; o) == (var o: object? := k; o)
   method UsesValid(t: Trait, k: Klass, d: Dt)

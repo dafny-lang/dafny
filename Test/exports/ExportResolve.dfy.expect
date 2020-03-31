@@ -31,23 +31,23 @@ ExportResolve.dfy(47,16): Error: No member 'u' found in type 'Dt'
 ExportResolve.dfy(70,15): Error: 'L' cannot be revealed in an export. Use "provides" instead.
 ExportResolve.dfy(133,18): Error: Raised while checking export set P0: unresolved identifier: X
 ExportResolve.dfy(133,26): Error: Raised while checking export set P0: member 'X' does not exist in opaque type 'Dt'
-ExportResolve.dfy(133,34): Error: Raised while checking export set P0: member More? does not exist in opaque type Dt
-ExportResolve.dfy(133,45): Error: Raised while checking export set P0: member u does not exist in opaque type Dt
+ExportResolve.dfy(133,34): Error: Raised while checking export set P0: member 'More?' does not exist in opaque type 'Dt'
+ExportResolve.dfy(133,45): Error: Raised while checking export set P0: member 'u' does not exist in opaque type 'Dt'
 ExportResolve.dfy(88,9): Error: This export set is not consistent: P0
 ExportResolve.dfy(135,18): Error: Raised while checking export set P1: type of corresponding source/RHS (Trait) does not match type of bound variable (object?)
 ExportResolve.dfy(135,46): Error: Raised while checking export set P1: type of corresponding source/RHS (Klass) does not match type of bound variable (object?)
 ExportResolve.dfy(90,9): Error: This export set is not consistent: P1
-ExportResolve.dfy(137,15): Error: Raised while checking export set P2: member Valid does not exist in opaque type Trait
-ExportResolve.dfy(137,28): Error: Raised while checking export set P2: member Valid does not exist in opaque type Klass
-ExportResolve.dfy(137,41): Error: Raised while checking export set P2: member Valid does not exist in opaque type Dt
+ExportResolve.dfy(137,15): Error: Raised while checking export set P2: member 'Valid' does not exist in opaque type 'Trait'
+ExportResolve.dfy(137,28): Error: Raised while checking export set P2: member 'Valid' does not exist in opaque type 'Klass'
+ExportResolve.dfy(137,41): Error: Raised while checking export set P2: member 'Valid' does not exist in opaque type 'Dt'
 ExportResolve.dfy(92,9): Error: This export set is not consistent: P2
 ExportResolve.dfy(139,19): Error: Raised while checking export set P3: member 'N' does not exist in opaque type 'Trait'
 ExportResolve.dfy(139,30): Error: Raised while checking export set P3: member 'N' does not exist in opaque type 'Klass'
 ExportResolve.dfy(139,38): Error: Raised while checking export set P3: member 'N' does not exist in opaque type 'Dt'
 ExportResolve.dfy(94,9): Error: This export set is not consistent: P3
-ExportResolve.dfy(141,15): Error: Raised while checking export set P4: member M does not exist in opaque type Trait
-ExportResolve.dfy(141,22): Error: Raised while checking export set P4: member M does not exist in opaque type Klass
-ExportResolve.dfy(141,29): Error: Raised while checking export set P4: member M does not exist in opaque type Dt
+ExportResolve.dfy(141,15): Error: Raised while checking export set P4: member 'M' does not exist in opaque type 'Trait'
+ExportResolve.dfy(141,22): Error: Raised while checking export set P4: member 'M' does not exist in opaque type 'Klass'
+ExportResolve.dfy(141,29): Error: Raised while checking export set P4: member 'M' does not exist in opaque type 'Dt'
 ExportResolve.dfy(96,9): Error: This export set is not consistent: P4
 ExportResolve.dfy(100,19): Error: Cannot export type member 'FromInt' without providing its enclosing class 'Klass'
 ExportResolve.dfy(103,19): Error: Cannot export mutable field 'x' without revealing its enclosing trait 'Trait'
