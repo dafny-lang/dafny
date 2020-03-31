@@ -27,6 +27,22 @@ module _System {
   type {:axiom} array(==)<arg> = c: array?<arg> | c != null /*special witness*/
   */
 
+  class {:compile false} /*_#Func1*/ -T0 ~> +R {
+    function requires(x0: T0): bool
+      reads reads(x0)
+
+    function reads(x0: T0): set<object?>
+      reads reads(x0)
+  }
+
+  type {:compile false} /*_#PartialFunc1*/ -T0 --> +R = f: T0 ~> R
+    | forall x0: T0 :: f.reads(x0) == {}
+    /*special witness*/
+
+  type {:compile false} /*_#TotalFunc1*/ -T0 -> +R = f: T0 --> R
+    | forall x0: T0 :: f.requires(x0)
+    /*special witness*/
+
   class {:compile false} /*_#Func0*/ () ~> +R {
     function requires(): bool
       reads reads()
@@ -44,22 +60,6 @@ module _System {
     /*special witness*/
 
   datatype {:compile false} /*_tuple#2*/ (+T0, +T1) = _#Make2(0: T0, 1: T1)
-
-  class {:compile false} /*_#Func1*/ -T0 ~> +R {
-    function requires(x0: T0): bool
-      reads reads(x0)
-
-    function reads(x0: T0): set<object?>
-      reads reads(x0)
-  }
-
-  type {:compile false} /*_#PartialFunc1*/ -T0 --> +R = f: T0 ~> R
-    | forall x0: T0 :: f.reads(x0) == {}
-    /*special witness*/
-
-  type {:compile false} /*_#TotalFunc1*/ -T0 -> +R = f: T0 --> R
-    | forall x0: T0 :: f.requires(x0)
-    /*special witness*/
 
   type bool { }
 
