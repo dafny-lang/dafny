@@ -1160,30 +1160,7 @@ namespace Microsoft.Dafny {
     public static bool IsSupertype(Type super, Type sub, bool ignoreTypeParameters = false) {
       Contract.Requires(super != null);
       Contract.Requires(sub != null);
-      if (!IsHeadSupertypeOf(super, sub)) {
-        return false;
-      }
-      super = super.NormalizeExpand();
-      sub = sub.NormalizeExpand();
-      var polarities = GetPolarities(super);
-      // TODO-RS: Not always true!
-      Contract.Assert(polarities.Count == super.TypeArgs.Count && polarities.Count == sub.TypeArgs.Count);
-      var allGood = true;
-      for (int i = 0; allGood && i < polarities.Count; i++) {
-        switch (polarities[i]) {
-          case TypeParameter.TPVariance.Co:
-            allGood = IsSupertype(super.TypeArgs[i], sub.TypeArgs[i]);
-            break;
-          case TypeParameter.TPVariance.Contra:
-            allGood = IsSupertype(sub.TypeArgs[i], super.TypeArgs[i]);
-            break;
-          case TypeParameter.TPVariance.Non:
-          default:  // "default" shouldn't ever happen
-            allGood = Equal_Improved(super.TypeArgs[i], sub.TypeArgs[i]);
-            break;
-        }
-      }
-      return allGood;
+      return sub.IsSubtypeOf(super, ignoreTypeParameters);
     }
 
     /// <summary>
@@ -1951,6 +1928,51 @@ namespace Microsoft.Dafny {
     public virtual List<Type> ParentTypes() {
       return new List<Type>();
     }
+
+    public virtual bool IsSubtypeOf(Type super, bool ignoreTypeArguments) {
+      Contract.Requires(super != null);
+
+      super = super.NormalizeExpandKeepConstraints();
+      
+      // TODO-RS: Handle this with parent types as well
+      if (super is IntVarietiesSupertype) {
+        return IsNumericBased(NumericPersuation.Int);
+      } else if (super is RealVarietiesSupertype) {
+        return IsNumericBased(NumericPersuation.Real);
+      }
+
+      var sub = NormalizeExpandKeepConstraints();
+      if (SameHead(sub, super)) {
+        if (ignoreTypeArguments) {
+          return true;
+        } else if (CompatibleTypeArgs(super, sub)) {
+          return true;
+        }
+      }
+
+      return ParentTypes().Any(parentType => parentType.IsSubtypeOf(super, ignoreTypeArguments));
+    }
+
+    public static bool CompatibleTypeArgs(Type super, Type sub) {
+      var polarities = GetPolarities(super);
+      Contract.Assert(polarities.Count == super.TypeArgs.Count && polarities.Count == sub.TypeArgs.Count);
+      var allGood = true;
+      for (int i = 0; allGood && i < polarities.Count; i++) {
+        switch (polarities[i]) {
+          case TypeParameter.TPVariance.Co:
+            allGood = IsSupertype(super.TypeArgs[i], sub.TypeArgs[i]);
+            break;
+          case TypeParameter.TPVariance.Contra:
+            allGood = IsSupertype(sub.TypeArgs[i], super.TypeArgs[i]);
+            break;
+          case TypeParameter.TPVariance.Non:
+          default:  // "default" shouldn't ever happen
+            allGood = Equal_Improved(super.TypeArgs[i], sub.TypeArgs[i]);
+            break;
+        }
+      }
+      return allGood;
+    }
   }
 
   /// <summary>
@@ -2706,6 +2728,18 @@ namespace Microsoft.Dafny {
 
     public override List<Type> ParentTypes() {
       return ResolvedClass.ParentTypes(TypeArgs);
+    }
+
+    public override bool IsSubtypeOf(Type super, bool ignoreTypeArguments) {
+      Contract.Requires(super != null);
+
+      super = super.NormalizeExpandKeepConstraints();
+
+      if (ResolvedClass is ClassDecl && super.IsObjectQ) {
+        return true;
+      }
+      
+      return base.IsSubtypeOf(super, ignoreTypeArguments);
     }
   }
 
@@ -3924,7 +3958,7 @@ namespace Microsoft.Dafny {
     }
 
     public override List<Type> ParentTypes(List<Type> typeArgs) {
-      return TraitsWithArgument(typeArgs);
+      return TraitsWithArgument(typeArgs).Concat1(());
     }
   }
 

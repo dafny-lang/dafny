@@ -3722,7 +3722,7 @@ namespace Microsoft.Dafny
     /// This is a more liberal version of "ConstrainTypeHead" below. It is willing to move "sub"
     /// upward toward its parents until it finds a head that matches "super", if any.
     /// </summary>
-    private List<int> ConstrainTypeHead_Recursive(Type super, ref Type sub) {
+    private static List<int> ConstrainTypeHead_Recursive(Type super, ref Type sub) {
       Contract.Requires(super != null);
       Contract.Requires(sub != null);
 
@@ -3756,7 +3756,7 @@ namespace Microsoft.Dafny
     /// "sub" is of some type that can (in general) have type parameters.
     /// See also note about Dafny's current type system in the description of method "ImposeSubtypingConstraint".
     /// </summary>
-    private List<int> ConstrainTypeHead(Type super, Type sub) {
+    private static List<int> ConstrainTypeHead(Type super, Type sub) {
       Contract.Requires(super != null && !(super is TypeProxy));
       Contract.Requires(sub != null && !(sub is TypeProxy));
       if (super is IntVarietiesSupertype) {
@@ -3833,9 +3833,7 @@ namespace Microsoft.Dafny
           Contract.Assert(clSuper.TypeArgs.Count == udfSuper.TypeArgs.Count);
           Contract.Assert(clSuper.TypeArgs.Count == udfSub.TypeArgs.Count);
           foreach (var tp in clSuper.TypeArgs) {
-            var polarity =
-              tp.Variance == TypeParameter.TPVariance.Co ? 1 :
-              tp.Variance == TypeParameter.TPVariance.Contra ? -1 : 0;
+            var polarity = TypeParameter.Direction(tp.Variance);
             polarities.Add(polarity);
           }
           return polarities;
@@ -3844,7 +3842,7 @@ namespace Microsoft.Dafny
         }
       }
     }
-    private bool KeepConstraints(Type super, Type sub) {
+    private static bool KeepConstraints(Type super, Type sub) {
       Contract.Requires(super != null && !(super is TypeProxy));
       Contract.Requires(sub != null && !(sub is TypeProxy));
       if (super is IntVarietiesSupertype) {
