@@ -10699,11 +10699,18 @@ namespace Microsoft.Dafny {
     }
   }
   /*
+  MatchingContext represents the context
+  in which a pattern-match takes place during pattern-matching compilation
+
   MatchingContext is either:
   1 - a HoleCtx
+      standing for one of the current selectors in pattern-matching compilation
   2 - A ForallCtx
+      standing for a pattern-match over any expression
   3 - an IdCtx of a string and a list of MatchingContext
+      standing for a pattern-match over a constructor
   4 - a LitCtx
+      standing for a pattern-match over a constant
   */
   public abstract class MatchingContext
   {

@@ -13,7 +13,7 @@ Execution trace:
     (0,0): anon8_Then
     (0,0): anon9_Else
     (0,0): anon10_Then
-PatternMatchingErrors.dfy(31,8): Error: missing case in match statement: c:real (not all possibilities for constant 'c' have been covered)
+PatternMatchingErrors.dfy(31,2): Error: missing case in match statement: c:real (not all possibilities for constant 'c' have been covered)
 Execution trace:
     (0,0): anon0
 PatternMatchingErrors.dfy(40,2): Error: missing case in match statement: Leaf
@@ -28,7 +28,7 @@ Execution trace:
     (0,0): anon11_Then
     (0,0): anon12_Else
     (0,0): anon13_Then
-PatternMatchingErrors.dfy(40,8): Error: missing case in match statement: Branch(Branch(_,c:bool,_),_,_) (not all possibilities for constant 'c' have been covered)
+PatternMatchingErrors.dfy(40,2): Error: missing case in match statement: Branch(Branch(_,c:bool,_),_,_) (not all possibilities for constant 'c' have been covered)
 Execution trace:
     (0,0): anon0
     (0,0): anon10_Then
