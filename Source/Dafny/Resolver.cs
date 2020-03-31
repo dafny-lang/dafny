@@ -13937,7 +13937,8 @@ namespace Microsoft.Dafny
           }
         }
         if (r == null) {
-          reporter.Error(MessageSource.Resolver, expr.tok, "member '{0}' does not exist in type '{1}'", name, ri.TypeParamDecl != null ? ri.TypeParamDecl.Name : ri.Decl.Name);
+          reporter.Error(MessageSource.Resolver, expr.tok, "member '{0}' does not exist in {2} '{1}'", name, ri.TypeParamDecl != null ? ri.TypeParamDecl.Name : ri.Decl.Name,
+            ri.TypeParamDecl != null ? "type" : ri.Decl.WhatKind);
         }
       } else if (lhs != null) {
         // ----- 4. Look up name in the type of the Lhs
