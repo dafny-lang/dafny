@@ -17,6 +17,8 @@ jobs:
       fail-fast: false
     steps:
     - uses: nuget/setup-nuget@v1
+      with:
+        nuget-version: 5.5.0
     - name: Add msbuild to PATH
       if: matrix.os == 'windows-latest'
       uses: microsoft/setup-msbuild@v1.0.0
@@ -42,8 +44,6 @@ jobs:
         cp -r z3* dafny/Binaries/z3
     - name: Nuget Restore Dafny
       run: nuget restore dafny/Source/Dafny.sln
-      env:
-        MONO_TLS_PROVIDER: thisshouldfail
     - name: Build Dafny
       run: msbuild dafny/Source/Dafny.sln
     - uses: actions/setup-python@v1
