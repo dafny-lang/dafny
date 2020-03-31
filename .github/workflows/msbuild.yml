@@ -19,8 +19,8 @@ jobs:
       fail-fast: false
     steps:
     - uses: nuget/setup-nuget@v1
-    - name: Sync cert store
-      run: sudo cert-sync /etc/ssl/certs/ca-certificates.crt
+    - name: Switch Mono TLS Provider to Fix SSL Handshake Issues
+      run: export MONO_TLS_PROVIDER=legacy
     - name: Add msbuild to PATH
       if: matrix.os == 'windows-latest'
       uses: microsoft/setup-msbuild@v1.0.0
