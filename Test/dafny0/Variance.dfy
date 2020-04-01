@@ -49,11 +49,6 @@ module VarianceChecks {
     | BorrowD(MyData<int,int,int,E,int>)  // error: - passed in as (default)
     | BorrowE(MyData<int,int,int,int,E>)
 
-  type MyDataPartialSyn<+A, *B, !C, -E> = MyData<A, B, C, int, E>
-  type MyDataPartialSyn2<!C, -E> = MyDataPartialSyn<int, int, C, E>
-  const mySyn: MyDataPartialSyn2<int, int>;
-  const myData: MyData<int, int, int, int, int> := mySyn;
-
   class VaryingClass<A,B,C,+HotDog,D,-Whale>  // error (x2): all must be non-variant
   {
     var f: HotDog -> Whale  // not a problem here
