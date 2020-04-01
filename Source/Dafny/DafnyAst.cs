@@ -10714,27 +10714,28 @@ namespace Microsoft.Dafny {
   */
   public abstract class MatchingContext
   {
-    public abstract override string ToString();
-
     public virtual MatchingContext AbstractAllHoles() {
       return this;
     }
+
     public MatchingContext AbstractHole() {
       return this.FillHole(new ForallCtx());
     }
+
     public virtual MatchingContext FillHole(MatchingContext curr) {
       return this;
     }
-
   }
 
   public class LitCtx : MatchingContext
   {
     public readonly LiteralExpr Lit;
+
     public LitCtx(LiteralExpr lit) {
       Contract.Requires(lit != null);
       this.Lit = lit;
     }
+
     public override string ToString() {
       return Printer.ExprToString(Lit);
     }
@@ -10742,29 +10743,28 @@ namespace Microsoft.Dafny {
 
   public class HoleCtx : MatchingContext
   {
-    public HoleCtx() {
-    }
+    public HoleCtx() {}
+
     public override string ToString() {
       return "*";
     }
+
     public override MatchingContext AbstractAllHoles() {
       return new ForallCtx();
     }
+
     public override MatchingContext FillHole(MatchingContext curr) {
       return curr;
     }
-
   }
 
   public class ForallCtx : MatchingContext
   {
-    public ForallCtx() {
-    }
+    public ForallCtx() {}
 
     public override string ToString() {
       return "_";
     }
-
   }
 
   public class IdCtx : MatchingContext
@@ -10786,58 +10786,62 @@ namespace Microsoft.Dafny {
     }
 
     public override string ToString() {
-      if(Arguments.Count == 0) {
+      if (Arguments.Count == 0) {
         return Id;
       } else {
         List<string> cps = Arguments.ConvertAll<string>(x => x.ToString());
         return string.Format("{0}({1})",Id, String.Join(",", cps));
       }
     }
+
     public override MatchingContext AbstractAllHoles() {
       return new IdCtx(this.Id, this.Arguments.ConvertAll<MatchingContext>(x => x.AbstractAllHoles()));
     }
+
+    // Find the first (leftmost) occurence of HoleCtx and replace it with curr
+    // Returns false if no HoleCtx is found
     private bool ReplaceLeftmost(MatchingContext curr, out MatchingContext newcontext) {
       var newArguments = new List<MatchingContext>();
-      for (var i = 0; i < this.Arguments.Count; i++) {
-        var arg = this.Arguments.ElementAt(i);
-        if (arg is HoleCtx) {
-          newArguments.Add(curr);
-          i++;
-          while (i < this.Arguments.Count) {
-            newArguments.Add(this.Arguments.ElementAt(i));
-            i++;
-          }
-          newcontext = new IdCtx(this.Id, newArguments);
-          return true;
-        } else if (arg is IdCtx) {
-          var idarg = (IdCtx) arg;
-          MatchingContext newarg;
-          if (idarg.ReplaceLeftmost(curr, out newarg)) {
-            newArguments.Add(newarg);
-            i++;
-            while (i < this.Arguments.Count) {
-              newArguments.Add(this.Arguments.ElementAt(i));
-              i++;
+      bool foundHole = false;
+      int currArgIndex = 0;
+
+      while (!foundHole && currArgIndex < this.Arguments.Count) {
+        var arg = this.Arguments.ElementAt(currArgIndex);
+        switch (arg) {
+          case HoleCtx _:
+            foundHole = true;
+            newArguments.Add(curr);
+            break;
+          case IdCtx argId:
+            MatchingContext newarg;
+            if (argId.ReplaceLeftmost(curr, out newarg)) {
+              foundHole = true;
+              newArguments.Add(newarg);
             }
-            newcontext = new IdCtx(this.Id, newArguments);
-            return true;
-          } else {
-            newArguments.Add(newarg);
-          }
-        } else { // Forall or LitCtx
-          newArguments.Add(arg);
+            break;
+          default:
+            newArguments.Add(arg);
+            break;
+        }
+        currArgIndex++;
+      }
+
+      if (foundHole) {
+        while (currArgIndex < this.Arguments.Count) {
+          newArguments.Add(this.Arguments.ElementAt(currArgIndex));
+          currArgIndex++;
         }
       }
 
       newcontext = new IdCtx(this.Id, newArguments);
-      return false;
+      return foundHole;
     }
+
     public override MatchingContext FillHole(MatchingContext curr) {
       MatchingContext newcontext;
       ReplaceLeftmost(curr, out newcontext);
       return newcontext;
     }
-
   }
 
   /*
@@ -10848,9 +10852,6 @@ namespace Microsoft.Dafny {
   public abstract class ExtendedPattern
   {
     public readonly IToken Tok;
-
-    public abstract override string ToString();
-
     public bool IsGhost;
 
     public ExtendedPattern(IToken tok, bool isGhost = false) {
@@ -10858,7 +10859,6 @@ namespace Microsoft.Dafny {
       this.Tok = tok;
       this.IsGhost = isGhost;
     }
-
   }
   public class LitPattern : ExtendedPattern
   {
@@ -10868,6 +10868,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(lit != null);
       this.Lit = lit;
     }
+
     public override string ToString() {
       return Printer.ExprToString(Lit);
     }
@@ -10876,9 +10877,7 @@ namespace Microsoft.Dafny {
   public class IdPattern : ExtendedPattern
   {
     public readonly String Id;
-
     public readonly Type Type; // This is the syntactic type, ExtendedPatterns dissapear during resolution.
-
     public readonly List<ExtendedPattern> Arguments;
 
     public IdPattern(IToken tok, String id, List<ExtendedPattern> arguments, bool isGhost = false) : base(tok, isGhost) {
@@ -10899,20 +10898,18 @@ namespace Microsoft.Dafny {
     }
 
     public override string ToString() {
-      if(Arguments.Count == 0) {
+      if (Arguments.Count == 0) {
         return Id;
       } else {
         List<string> cps = Arguments.ConvertAll<string>(x => x.ToString());
-        return string.Format("{0}({1})",Id, String.Join(",", cps));
+        return string.Format("{0}({1})", Id, String.Join(",", cps));
       }
     }
-
   }
 
   public abstract class NestedMatchCase
   {
     public readonly IToken Tok;
-
     public readonly ExtendedPattern Pat;
 
     public NestedMatchCase(IToken tok, ExtendedPattern pat) {
@@ -10921,7 +10918,6 @@ namespace Microsoft.Dafny {
       this.Tok = tok;
       this.Pat = pat;
     }
-
   }
 
   public class NestedMatchCaseExpr : NestedMatchCase
@@ -10945,8 +10941,7 @@ namespace Microsoft.Dafny {
   }
 
   public class NestedMatchStmt : ConcreteSyntaxStatement
-    {
-
+  {
     public readonly Expression Source;
     public readonly List<NestedMatchCaseStmt> Cases;
     public readonly bool UsesOptionalBraces;
