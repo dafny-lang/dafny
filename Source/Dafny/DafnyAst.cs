@@ -2727,7 +2727,7 @@ namespace Microsoft.Dafny {
     }
 
     public override List<Type> ParentTypes() {
-      return ResolvedClass.ParentTypes(TypeArgs);
+      return ResolvedClass != null ? ResolvedClass.ParentTypes(TypeArgs) : base.ParentTypes();
     }
 
     public override bool IsSubtypeOf(Type super, bool ignoreTypeArguments) {
@@ -3958,7 +3958,7 @@ namespace Microsoft.Dafny {
     }
 
     public override List<Type> ParentTypes(List<Type> typeArgs) {
-      return TraitsWithArgument(typeArgs).Concat1(());
+      return TraitsWithArgument(typeArgs);
     }
   }
 
