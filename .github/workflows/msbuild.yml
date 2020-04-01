@@ -18,7 +18,7 @@ jobs:
         shard: [1, 2, 3, 4, 5]
       fail-fast: false
     steps:
-      uses: actions/setup-dotnet@v1
+    - uses: actions/setup-dotnet@v1
       with:
         dotnet-version: '4.8'
     - name: Add msbuild to PATH
