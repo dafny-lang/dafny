@@ -335,3 +335,103 @@ module Client_RevealExtreme {
     }
   }
 }
+
+module MultipleNamesForTheSameThing {
+  module A {
+    export
+      provides T, T.F
+    export Friends
+      reveals T
+      provides T.F
+    newtype T = x | 0 <= x < 80 {
+      function F(): T { this }
+      predicate Q() { true }
+    }
+  }
+  module B {
+    import A
+    type G = A.T
+  }
+  module C {
+    export
+      reveals X, Y
+      provides Z, B
+    export Friends extends C
+      reveals Z
+    import B
+    type X = B.G
+    type Y = B.A.T
+    type Z = X
+  }
+  module D {
+    export
+      provides A
+      reveals U
+    import A
+    type U = A.T
+  }
+  module PublicCaller {
+    import A
+    import B
+    import C
+    import D
+
+    method M(o: A.T) returns (t: A.T, g: B.G, x: C.X, y: C.Y, z: C.Z, d: D.A.T, u: D.U) {
+      t, g, x, y, d, u := o, o, o, o, o, o;
+      t, g, x, y, d, u := g, g, g, g, g, g;
+      t, g, x, y, d, u := x, x, x, x, x, x;
+      t, g, x, y, d, u := y, y, y, y, y, y;
+      t, g, x, y, d, u := d, d, d, d, d, d;
+      t, g, x, y, d, u := u, u, u, u, u, u;
+
+      z := x;  // error: nothing is known about C.Z
+      z := o;  // error: nothing is known about C.Z
+      t := 76;  // error: nothing is known about A.T
+      assert u.F() == x;
+      assert o.Q();  // error: Q has not been imported
+    }
+  }
+  module FriendCaller {
+    import A`Friends
+    import B
+    import C
+    import D
+
+    method M() returns (t: A.T, g: B.G, x: C.X, y: C.Y, z: C.Z, d: D.A.T, u: D.U) {
+      var o: A.T := 76;
+      t, g, x, y, d, u := o, o, o, o, o, o;
+      t, g, x, y, d, u := g, g, g, g, g, g;
+      t, g, x, y, d, u := x, x, x, x, x, x;
+      t, g, x, y, d, u := y, y, y, y, y, y;
+      t, g, x, y, d, u := d, d, d, d, d, d;
+      t, g, x, y, d, u := u, u, u, u, u, u;
+
+      z := x;  // error: nothing is known about C.Z
+      z := o;  // error: nothing is known about C.Z
+      t := 76;  // fine
+      assert u.F() == x;
+      assert o.Q();  // error: Q has not been imported
+    }
+  }
+  module CloseFriendCaller {
+    import A`Friends
+    import B
+    import C`Friends
+    import D
+
+    method M(o: A.T) returns (t: A.T, g: B.G, x: C.X, y: C.Y, z: C.Z, d: D.A.T, u: D.U) {
+      t, g, x, y, d, u := o, o, o, o, o, o;
+      t, g, x, y, d, u := g, g, g, g, g, g;
+      t, g, x, y, d, u := x, x, x, x, x, x;
+      t, g, x, y, d, u := y, y, y, y, y, y;
+      t, g, x, y, d, u := d, d, d, d, d, d;
+      t, g, x, y, d, u := u, u, u, u, u, u;
+
+      z := x;
+      z := o;
+      t := 76;
+      assert u.F() == x;
+      assert o.Q();  // error: Q has not been imported
+    }
+  }
+}

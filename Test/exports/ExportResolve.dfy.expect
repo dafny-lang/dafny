@@ -90,4 +90,12 @@ ExportResolve.dfy(267,46): Error: type of corresponding source/RHS (G.Klass) doe
 ExportResolve.dfy(275,10): Error: new can be applied only to reference types (got G.Klass)
 ExportResolve.dfy(319,15): Error: unresolved identifier: reveal_OpaqueFunction
 ExportResolve.dfy(319,29): Error: expression has no reveal lemma
-92 resolution/type errors detected in ExportResolve.dfy
+ExportResolve.dfy(391,15): Error: member 'Q' has not been imported in this scope and cannot be accessed here
+ExportResolve.dfy(387,8): Error: RHS (of type C.X) not assignable to LHS (of type C.Z)
+ExportResolve.dfy(388,8): Error: RHS (of type A.T) not assignable to LHS (of type C.Z)
+ExportResolve.dfy(389,8): Error: RHS (of type int) not assignable to LHS (of type A.T)
+ExportResolve.dfy(413,15): Error: member 'Q' has not been imported in this scope and cannot be accessed here
+ExportResolve.dfy(409,8): Error: RHS (of type C.X) not assignable to LHS (of type C.Z)
+ExportResolve.dfy(410,8): Error: RHS (of type A.T) not assignable to LHS (of type C.Z)
+ExportResolve.dfy(434,15): Error: member 'Q' has not been imported in this scope and cannot be accessed here
+100 resolution/type errors detected in ExportResolve.dfy
