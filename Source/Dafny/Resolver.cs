@@ -3836,7 +3836,12 @@ namespace Microsoft.Dafny
             var polarity = TypeParameter.Direction(tp.Variance);
             polarities.Add(polarity);
           }
+
           return polarities;
+        } else if (udfSub.IsRefType && super.IsObjectQ) {
+          return new List<int>();
+        } else if (udfSub.IsNonNullRefType && super.IsObject) {
+          return new List<int>();
         } else {
           return null;
         }

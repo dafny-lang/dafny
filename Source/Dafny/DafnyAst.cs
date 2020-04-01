@@ -874,7 +874,7 @@ namespace Microsoft.Dafny {
     public bool IsObjectQ {
       get {
         var udt = NormalizeExpandKeepConstraints() as UserDefinedType;
-        return udt != null && udt.ResolvedClass is ClassDecl && ((ClassDecl)udt.ResolvedClass).Name == "object";
+        return udt != null && udt.ResolvedClass is ClassDecl && ((ClassDecl)udt.ResolvedClass).IsObject;
       }
     }
     /// <summary>
@@ -908,6 +908,18 @@ namespace Microsoft.Dafny {
             return null;
           }
         }
+      }
+    }
+    /// <summary>
+    /// Returns "true" if the type represents the "object?".
+    /// </summary>
+    public bool IsObject {
+      get {
+        if (IsNonNullRefType) {
+          var nonNullRefDecl = (NonNullTypeDecl)AsNonNullRefType.ResolvedClass;
+          return nonNullRefDecl.Class.IsObject;
+        }
+        return false;
       }
     }
     public bool IsTraitType {
@@ -1933,21 +1945,9 @@ namespace Microsoft.Dafny {
       Contract.Requires(super != null);
 
       super = super.NormalizeExpandKeepConstraints();
-      
-      // TODO-RS: Handle this with parent types as well
-      if (super is IntVarietiesSupertype) {
-        return IsNumericBased(NumericPersuation.Int);
-      } else if (super is RealVarietiesSupertype) {
-        return IsNumericBased(NumericPersuation.Real);
-      }
-
       var sub = NormalizeExpandKeepConstraints();
       if (SameHead(sub, super)) {
-        if (ignoreTypeArguments) {
-          return true;
-        } else if (CompatibleTypeArgs(super, sub)) {
-          return true;
-        }
+        return ignoreTypeArguments || CompatibleTypeArgs(super, sub);
       }
 
       return ParentTypes().Any(parentType => parentType.IsSubtypeOf(super, ignoreTypeArguments));
@@ -2759,7 +2759,12 @@ namespace Microsoft.Dafny {
 
       super = super.NormalizeExpandKeepConstraints();
 
-      if (ResolvedClass is ClassDecl && super.IsObjectQ) {
+      // Specifically handle object as the implicit supertype of classes and traits.
+      // "object?" is handled by Builtins rather than the Type hierarchy, so unfortunately
+      // it can't be returned in ParentTypes().
+      if (IsRefType && super.IsObjectQ) {
+        return true;
+      } else if (IsNonNullRefType && super.IsObject) {
         return true;
       }
       
@@ -3983,6 +3988,12 @@ namespace Microsoft.Dafny {
 
     public override List<Type> ParentTypes(List<Type> typeArgs) {
       return TraitsWithArgument(typeArgs);
+    }
+
+    public bool IsObject {
+      get {
+        return Name == "object";
+      }
     }
   }
 
