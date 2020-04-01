@@ -8,7 +8,9 @@ on:
 
 jobs:
   build:
+
     runs-on: ${{ matrix.os }}
+
     strategy:
       matrix:
         # Windows build is not yet working due to issues with the checked-in z3.exe
@@ -16,9 +18,9 @@ jobs:
         shard: [1, 2, 3, 4, 5]
       fail-fast: false
     steps:
-    - uses: nuget/setup-nuget@v1
+      uses: actions/setup-dotnet@v1
       with:
-        nuget-version: 5.5.0
+        dotnet-version: '4.8'
     - name: Add msbuild to PATH
       if: matrix.os == 'windows-latest'
       uses: microsoft/setup-msbuild@v1.0.0
