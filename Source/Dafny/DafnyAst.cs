@@ -5120,10 +5120,6 @@ namespace Microsoft.Dafny {
     public override bool CanBeRevealed() {
       return true;
     }
-    
-    public override List<Type> ParentTypes(List<Type> typeArgs) {
-      return new List<Type>{ RhsWithArgument((typeArgs)) };
-    }
   }
 
   public class TypeSynonymDecl : TypeSynonymDeclBase, RedirectingTypeDecl, RevealableTypeDecl {
@@ -5170,6 +5166,10 @@ namespace Microsoft.Dafny {
     Expression RedirectingTypeDecl.Constraint { get { return Constraint; } }
     WKind RedirectingTypeDecl.WitnessKind { get { return WitnessKind; } }
     Expression RedirectingTypeDecl.Witness { get { return Witness; } }
+    
+    public override List<Type> ParentTypes(List<Type> typeArgs) {
+      return new List<Type>{ RhsWithArgument((typeArgs)) };
+    }
   }
 
   public class NonNullTypeDecl : SubsetTypeDecl
