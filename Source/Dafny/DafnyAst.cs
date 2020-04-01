@@ -2047,6 +2047,12 @@ namespace Microsoft.Dafny {
     public override bool Equals(Type that) {
       return that.IsIntegerType;
     }
+    public override bool IsSubtypeOf(Type super, bool ignoreTypeArguments) {
+      if (super is IntVarietiesSupertype) {
+        return true;
+      }
+      return base.IsSubtypeOf(super, ignoreTypeArguments);
+    }
   }
 
   public class RealType : BasicType {
@@ -2056,6 +2062,12 @@ namespace Microsoft.Dafny {
     }
     public override bool Equals(Type that) {
       return that.IsRealType;
+    }
+    public override bool IsSubtypeOf(Type super, bool ignoreTypeArguments) {
+      if (super is RealVarietiesSupertype) {
+        return true;
+      }
+      return base.IsSubtypeOf(super, ignoreTypeArguments);
     }
   }
 
@@ -2067,6 +2079,12 @@ namespace Microsoft.Dafny {
     }
     public override bool Equals(Type that) {
       return that.IsBigOrdinalType;
+    }
+    public override bool IsSubtypeOf(Type super, bool ignoreTypeArguments) {
+      if (super is IntVarietiesSupertype) {
+        return true;
+      }
+      return base.IsSubtypeOf(super, ignoreTypeArguments);
     }
   }
 
@@ -2093,6 +2111,12 @@ namespace Microsoft.Dafny {
     public override bool Equals(Type that) {
       var bv = that.NormalizeExpand() as BitvectorType;
       return bv != null && bv.Width == Width;
+    }
+    public override bool IsSubtypeOf(Type super, bool ignoreTypeArguments) {
+      if (super is IntVarietiesSupertype) {
+        return true;
+      }
+      return base.IsSubtypeOf(super, ignoreTypeArguments);
     }
   }
 
