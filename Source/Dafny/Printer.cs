@@ -434,6 +434,14 @@ namespace Microsoft.Dafny {
     void PrintModuleExportDecl(ModuleExportDecl m, int indent, string fileBeingPrinted) {
       Contract.Requires(m != null);
 
+      if (m.RevealAll) {
+        Indent(indent);
+        wr.WriteLine("reveals *");
+      }
+      if (m.ProvideAll) {
+        Indent(indent);
+        wr.WriteLine("provides *");
+      }
       var i = 0;
       while (i < m.Exports.Count) {
         var start = i;
