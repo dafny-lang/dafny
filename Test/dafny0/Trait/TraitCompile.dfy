@@ -131,7 +131,7 @@ module Generics {
 
   // TODO-RS: Call this something else: Closure? Method?
   trait Function<T, R> {
-    method Call(t: T) returns (r: R)
+    method Call(t: T) returns (r: R) decreases *
     method Compose<S>(f: Function<S, T>) returns (res: Function<S, R>) {
       res := new ComposedFunction(f, this);
     }
@@ -148,7 +148,7 @@ module Generics {
       this.second := second;
     }
 
-    method Call(s: S) returns (r: R) {
+    method Call(s: S) returns (r: R) decreases * {
       var t := first.Call(s);
       r := second.Call(t);
     }
