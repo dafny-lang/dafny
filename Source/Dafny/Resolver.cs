@@ -1259,6 +1259,7 @@ namespace Microsoft.Dafny
           continue;
 
         ModuleExportDecl decl = (ModuleExportDecl)top;
+        var prevErrors = reporter.Count(ErrorLevel.Error);
 
         foreach (var export in decl.Exports) {
           if (export.Decl is MemberDecl member) {
@@ -1272,8 +1273,6 @@ namespace Microsoft.Dafny
           }
         }
 
-        reporter = new ErrorReporterWrapper(reporter,
-          String.Format("Raised while checking export set {0}: ", decl.Name));
         var scope = decl.Signature.VisibilityScope;
         Cloner cloner = new ScopeCloner(scope);
         var exportView = cloner.CloneModuleDefinition(m, m.Name);
@@ -1284,7 +1283,12 @@ namespace Microsoft.Dafny
           pr.PrintTopLevelDecls(exportView.TopLevelDecls, 0, null, null);
           wr.WriteLine("*/");
         }
+        if (reporter.Count(ErrorLevel.Error) != prevErrors) {
+          continue;
+        }
 
+        reporter = new ErrorReporterWrapper(reporter,
+          String.Format("Raised while checking export set {0}: ", decl.Name));
         var testSig = RegisterTopLevelDecls(exportView, true);
         //testSig.Refines = refinementTransformer.RefinedSig;
         ResolveModuleDefinition(exportView, testSig);
@@ -1294,9 +1298,7 @@ namespace Microsoft.Dafny
         if (wasError) {
           reporter.Error(MessageSource.Resolver, decl.tok, "This export set is not consistent: {0}", decl.Name);
         }
-
       }
-
 
       moduleInfo = oldModuleInfo;
     }

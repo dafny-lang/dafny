@@ -1422,31 +1422,35 @@ namespace Microsoft.Dafny
 
           if (revealAll || me.ProvideAll) {
 
-              foreach (var newt in declarations) {
-                if (!newt.CanBeExported())
-                  continue;
+            foreach (var newt in declarations) {
+              if (!newt.CanBeExported()) {
+                continue;
+              }
 
-                if (!(newt is DefaultClassDecl)) {
-                  me.Exports.Add(new ExportSignature(newt.tok, newt.Name, !revealAll || !newt.CanBeRevealed()));
-                }
+              if (!(newt is DefaultClassDecl)) {
+                me.Exports.Add(new ExportSignature(newt.tok, newt.Name, !revealAll || !newt.CanBeRevealed()));
+              }
 
-                if (newt is ClassDecl) {
-                  var cl = (ClassDecl)newt;
+              if (newt is TopLevelDeclWithMembers) {
+                var cl = (TopLevelDeclWithMembers)newt;
 
-                  foreach (var mem in cl.Members) {
-                    var opaque = !revealAll || !mem.CanBeRevealed();
-                    if (newt is DefaultClassDecl) {
-                      me.Exports.Add(new ExportSignature(mem.tok, mem.Name, opaque));
-                    } else {
-                      me.Exports.Add(new ExportSignature(cl.tok, cl.Name, mem.tok, mem.Name, opaque));
-                    }
+                foreach (var mem in cl.Members) {
+                  var opaque = !revealAll || !mem.CanBeRevealed();
+                  if (newt is DefaultClassDecl) {
+                    me.Exports.Add(new ExportSignature(mem.tok, mem.Name, opaque));
+                  } else if (opaque && mem is Constructor) {
+                    // "provides *" does not pick up class constructors
+                  } else if (opaque && mem is Field field && !(mem is ConstantField)) {
+                    // "provides *" does not pick up mutable fields
+                  } else {
+                    me.Exports.Add(new ExportSignature(cl.tok, cl.Name, mem.tok, mem.Name, opaque));
                   }
                 }
               }
             }
+          }
           me.RevealAll = false;
           me.ProvideAll = false;
-
         }
       }
     }
