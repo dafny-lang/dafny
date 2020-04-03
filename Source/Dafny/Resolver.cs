@@ -1003,20 +1003,31 @@ namespace Microsoft.Dafny
           string name = export.Id;
 
           if (export.ClassId != null) {
-            if (sig.TopLevels.TryGetValue(export.ClassId, out cldecl) &&
-              ((cldecl is ClassDecl && ((ClassDecl)cldecl).NonNullTypeDecl == null) || cldecl is NonNullTypeDecl)) {  // we are looking for a class name, not a type name
-              var cl = (ClassDecl)cldecl.ViewAsClass;
-              var lmem = cl.Members.FirstOrDefault(l => l.Name == export.Id);
-              if (lmem != null) {
-                decl = lmem;
-              } else {
-                reporter.Error(MessageSource.Resolver, export.Tok, "No member '{0}' found in class '{1}'", export.Id, export.ClassId);
-                continue;
-              }
-            } else {
-              reporter.Error(MessageSource.Resolver, export.ClassIdTok, "No class '{0}' found", export.ClassId);
+            if (!sig.TopLevels.TryGetValue(export.ClassId, out cldecl)) {
+              reporter.Error(MessageSource.Resolver, export.ClassIdTok, "'{0}' is not a top-level type declaration", export.ClassId);
               continue;
             }
+            if (cldecl is ClassDecl) {
+              // cldecl is a possibly-null type (syntactically given with a question mark at the end)
+              Contract.Assert(((ClassDecl)cldecl).NonNullTypeDecl != null);
+              reporter.Error(MessageSource.Resolver, export.ClassIdTok, "'{0}' is not a type that can declare members", export.ClassId);
+              continue;
+            }
+            if (cldecl is NonNullTypeDecl) {
+              // cldecl was given syntactically like the name of a class, but here it's referring to the corresponding non-null subset type
+              cldecl = cldecl.ViewAsClass;
+            }
+            var mt = cldecl as TopLevelDeclWithMembers;
+            if (mt == null) {
+              reporter.Error(MessageSource.Resolver, export.ClassIdTok, "'{0}' is not a type that can declare members", export.ClassId);
+              continue;
+            }
+            var lmem = mt.Members.FirstOrDefault(l => l.Name == export.Id);
+            if (lmem == null) {
+              reporter.Error(MessageSource.Resolver, export.Tok, "No member '{0}' found in type '{1}'", export.Id, export.ClassId);
+              continue;
+            }
+            decl = lmem;
           } else if (sig.TopLevels.TryGetValue(name, out tdecl) && (!(tdecl is ClassDecl) || ((ClassDecl)tdecl).NonNullTypeDecl == null)) {  // pretend that C? types are not there
             // Member of the enclosing module
             decl = tdecl.ViewAsClass;  // interpret the export as a class name, not a type name
@@ -1213,10 +1224,9 @@ namespace Microsoft.Dafny
         ModuleExportDecl decl = (ModuleExportDecl)top;
 
         foreach (var export in decl.Exports) {
-          if (export.Decl is MemberDecl) {
-            var member = (MemberDecl)export.Decl;
+          if (export.Decl is MemberDecl member) {
             if (!member.EnclosingClass.IsVisibleInScope(decl.Signature.VisibilityScope)) {
-              reporter.Error(MessageSource.Resolver, export.Tok, "Cannot export class member '{0}' without providing its enclosing {1} '{2}'", member.Name, member.EnclosingClass.WhatKind, member.EnclosingClass.Name);
+              reporter.Error(MessageSource.Resolver, export.Tok, "Cannot export type member '{0}' without providing its enclosing {1} '{2}'", member.Name, member.EnclosingClass.WhatKind, member.EnclosingClass.Name);
             }
           }
         }
@@ -1961,7 +1971,7 @@ namespace Microsoft.Dafny
               // In the call graph, add an edge from M# to M, since this will have the desired effect of detecting unwanted cycles.
               moduleDef.CallGraph.AddEdge(com.PrefixLemma, com);
             }
-            extraMember.InheritVisibility(m);
+            extraMember.InheritVisibility(m, false);
             members.Add(extraName, extraMember);
           }
         } else if (m is Constructor && !((Constructor)m).HasName) {
@@ -11819,7 +11829,7 @@ namespace Microsoft.Dafny
       }
 
       var ctype = receiverType.NormalizeExpand() as UserDefinedType;
-      var cd = ctype == null ? null : ctype.ResolvedClass as TopLevelDeclWithMembers;
+      var cd = ctype?.AsTopLevelTypeWithMembersBypassInternalSynonym;
       if (cd != null) {
         Contract.Assert(ctype.TypeArgs.Count == cd.TypeArgs.Count);  // follows from the fact that ctype was resolved
         MemberDecl member;
@@ -14228,9 +14238,9 @@ namespace Microsoft.Dafny
             }
           }
         }
-        if (r == null && ty.IsTopLevelTypeWithMembers) {
-          // ----- LHS is a class
-          var cd = (TopLevelDeclWithMembers)((UserDefinedType)ty).ResolvedClass;
+        var cd = r == null ? ty.AsTopLevelTypeWithMembersBypassInternalSynonym : null;
+        if (cd != null) {
+          // ----- LHS is a type with members
           Dictionary<string, MemberDecl> members;
           if (classMembers.TryGetValue(cd, out members) && members.TryGetValue(name, out member)) {
             if (!VisibleInScope(member)) {
