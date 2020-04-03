@@ -215,11 +215,11 @@ method Main() {
   var t4 := Branch(Leaf, false, t3);
 
   var r0 := MultipleNestedMatch(A(0), t1, gg);
-  var r1 := MultipleNestedMatch(B(0), t3, Nil);
-  var r2 := MultipleNestedMatch(B(0), t2, Nil);
+  var r1 := MultipleNestedMatch(A(0), t3, Nil);
+  var r2 := MultipleNestedMatch(A(0), t2, Nil);
   var r3 := MultipleNestedMatch(B(0), t3, ff);
   var r4 := MultipleNestedMatch(A(0), t3, ee);
-  var r5 := MultipleNestedMatch(A(0), t4, cc);
+  var r5 := MultipleNestedMatch(A(0), t4, bb);
   print "Testing MultipleNestedMatch: ", r0, r1, r2, r3, r4, r5, ", should return 012345";
 
 }

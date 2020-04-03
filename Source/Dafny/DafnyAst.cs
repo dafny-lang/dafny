@@ -10823,10 +10823,8 @@ namespace Microsoft.Dafny {
             break;
           case IdCtx argId:
             MatchingContext newarg;
-            if (argId.ReplaceLeftmost(curr, out newarg)) {
-              foundHole = true;
-              newArguments.Add(newarg);
-            }
+            foundHole = argId.ReplaceLeftmost(curr, out newarg);
+            newArguments.Add(newarg);
             break;
           default:
             newArguments.Add(arg);
