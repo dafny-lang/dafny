@@ -17,9 +17,7 @@ namespace Microsoft.Dafny {
     DafnyOptions.PrintModes printMode;
     bool afterResolver;
     bool printingExportSet = false;
-
     bool printingDesugared = false;
-
 
     [ContractInvariantMethod]
     void ObjectInvariant()

@@ -9860,7 +9860,7 @@ namespace Microsoft.Dafny
       Contract.Requires(codeContext != null);
       Contract.Requires(s.ResolvedStatement == null);
 
-      bool debug = DafnyOptions.O.MatchCompilerDebug;
+      bool debugMatch = DafnyOptions.O.MatchCompilerDebug;
 
       ResolveExpression(s.Source, new ResolveOpts(codeContext, true));
       Contract.Assert(s.Source.Type != null);  // follows from postcondition of ResolveExpression
@@ -9868,7 +9868,7 @@ namespace Microsoft.Dafny
       if (s.Source.Type is TypeProxy) {
         PartiallySolveTypeConstraints(true);
 
-        if (debug) Console.WriteLine("DEBUG: Type of {0} was still a proxy, solving type constraints results in type {1}", Printer.ExprToString(s.Source), s.Source.Type.ToString());
+        if (debugMatch) Console.WriteLine("DEBUG: Type of {0} was still a proxy, solving type constraints results in type {1}", Printer.ExprToString(s.Source), s.Source.Type.ToString());
 
         if (s.Source.Type is TypeProxy) {
           reporter.Error(MessageSource.Resolver, s.Tok, "Could not resolve the type of the source of the match expression. Please provide additional typing annotations.");
@@ -10038,7 +10038,7 @@ namespace Microsoft.Dafny
 
       public MatchTempInfo(IToken tok, int branchidnum, ICodeContext codeContext, bool debug = false) {
         int[] init = new int[branchidnum];
-        for(int i = 0; i < branchidnum; i++) {
+        for (int i = 0; i < branchidnum; i++) {
           init[i] = 1;
         }
         this.Tok = tok;
@@ -10053,7 +10053,7 @@ namespace Microsoft.Dafny
 
       public MatchTempInfo(IToken tok, IToken endtok, int branchidnum, ICodeContext codeContext, bool debug = false) {
         int[] init = new int[branchidnum];
-        for(int i = 0; i < branchidnum; i++) {
+        for (int i = 0; i < branchidnum; i++) {
           init[i] = 1;
         }
         this.Tok = tok;
@@ -10077,7 +10077,7 @@ namespace Microsoft.Dafny
     /// </summary>
     private abstract class SyntaxContainer
     {
-        public IToken Tok;
+      public IToken Tok;
     }
 
     private class CExpr : SyntaxContainer
@@ -10089,8 +10089,8 @@ namespace Microsoft.Dafny
       }
 
       public CExpr(IToken tok, Expression body) {
-          this.Tok = tok;
-          this.Body = body;
+        this.Tok = tok;
+        this.Body = body;
       }
     }
 
@@ -10103,8 +10103,8 @@ namespace Microsoft.Dafny
       }
 
       public CStmt(IToken tok, Statement body) {
-          this.Tok = tok;
-          this.Body = body;
+        this.Tok = tok;
+        this.Body = body;
       }
     }
 
@@ -10222,25 +10222,25 @@ namespace Microsoft.Dafny
       }
     }
 
-  // let-bind a variable of name "name" and type "type" as "expr" on the body of "branch"
-    private void LetBind(RBranch branch, IdPattern var, Expression genexpr) {
-        var name = var.Id;
-        var type = var.Type;
-        var isGhost = var.IsGhost;
+    // let-bind a variable of name "name" and type "type" as "expr" on the body of "branch"
+    private void LetBind(RBranch branch, IdPattern var, Expression genExpr) {
+      var name = var.Id;
+      var type = var.Type;
+      var isGhost = var.IsGhost;
 
-        // if the expression is a generated IdentifierExpr, replace its token by the branch's
-        Expression expr = genexpr;
-      if (genexpr is IdentifierExpr idexpr) {
-        if (idexpr.Name.StartsWith("_")) {
-          expr = new IdentifierExpr(var.Tok, idexpr.Var) {Type = idexpr.Type};
+      // if the expression is a generated IdentifierExpr, replace its token by the branch's
+      Expression expr = genExpr;
+      if (genExpr is IdentifierExpr idExpr) {
+        if (idExpr.Name.StartsWith("_")) {
+          expr = new IdentifierExpr(var.Tok, idExpr.Var) {Type = idExpr.Type};
         }
       }
-      if (branch is RBranchStmt) {
+      if (branch is RBranchStmt branchStmt) {
         var cLVar = new LocalVariable(var.Tok, var.Tok, name, type, isGhost);
         var cPat = new CasePattern<LocalVariable>(cLVar.EndTok, cLVar);
         var cLet = new LetStmt(cLVar.Tok, cLVar.Tok, cPat, expr);
-        ((RBranchStmt)branch).Body.Insert(0, cLet);
-      } else if (branch is RBranchExpr) {
+        branchStmt.Body.Insert(0, cLet);
+      } else if (branch is RBranchExpr branchExpr) {
         var cBVar = new BoundVar(var.Tok, name, type);
         cBVar.IsGhost = isGhost;
         var cPat = new CasePattern<BoundVar>(cBVar.Tok, cBVar);
@@ -10248,8 +10248,8 @@ namespace Microsoft.Dafny
         cPats.Add(cPat);
         var exprs = new List<Expression>();
         exprs.Add(expr);
-        var cLet = new LetExpr(cBVar.tok, cPats, exprs, ((RBranchExpr)branch).Body, true);
-        ((RBranchExpr)branch).Body = cLet;
+        var cLet = new LetExpr(cBVar.tok, cPats, exprs, branchExpr.Body, true);
+        branchExpr.Body = cLet;
       }
       return;
     }
@@ -10362,7 +10362,7 @@ namespace Microsoft.Dafny
       foreach(RBranch branch in branches) {
         Console.WriteLine(branch.ToString());
       }
-        Console.WriteLine("\t-=======-");
+      Console.WriteLine("\t-=======-");
     }
 
     /*
@@ -10658,7 +10658,7 @@ namespace Microsoft.Dafny
 
       // create Rbranches from MatchCaseExpr and set the branch tokens in mti
       List<RBranch> branches = new List<RBranch>();
-      for(int id = 0; id < e.Cases.Count(); id++) {
+      for (int id = 0; id < e.Cases.Count(); id++) {
         var branch = e.Cases.ElementAt(id);
         branches.Add(new RBranchExpr(id, branch));
         mti.BranchTok[id] = branch.Tok;
@@ -10674,7 +10674,7 @@ namespace Microsoft.Dafny
         // replace e with desugared expression
         var newME = ((CExpr)rb).Body;
         e.ResolvedExpression = newME;
-        for(int id = 0; id < mti.BranchIDCount.Length; id++) {
+        for (int id = 0; id < mti.BranchIDCount.Length; id++) {
           if (mti.BranchIDCount[id] <= 0) {
             reporter.Warning(MessageSource.Resolver, mti.BranchTok[id], "this branch is redundant ");
           }
@@ -10693,8 +10693,8 @@ namespace Microsoft.Dafny
     /// </summary>
     private void CompileNestedMatchStmt(NestedMatchStmt s, ICodeContext codeContext) {
       if (s.ResolvedStatement != null) {
-          //post-resolve, skip
-          return;
+        //post-resolve, skip
+        return;
       }
 
       if (DafnyOptions.O.MatchCompilerDebug) Console.WriteLine("DEBUG: CompileNestedMatchStmt for match at line {0}", s.Tok.line);
@@ -10704,7 +10704,7 @@ namespace Microsoft.Dafny
 
       // create Rbranches from NestedMatchCaseStmt and set the branch tokens in mti
       List<RBranch> branches = new List<RBranch>();
-      for(int id = 0; id < s.Cases.Count(); id++) {
+      for (int id = 0; id < s.Cases.Count(); id++) {
         var branch = s.Cases.ElementAt(id);
         branches.Add(new RBranchStmt(id, branch));
         mti.BranchTok[id] = branch.Tok;
@@ -10720,7 +10720,7 @@ namespace Microsoft.Dafny
         // Resolve s as desugared match
         s.ResolvedStatement = ((CStmt)rb).Body;
 
-        for(int id = 0; id < mti.BranchIDCount.Length; id++) {
+        for (int id = 0; id < mti.BranchIDCount.Length; id++) {
           if (mti.BranchIDCount[id] <= 0) {
             reporter.Warning(MessageSource.Resolver, mti.BranchTok[id], "this branch is redundant");
           }

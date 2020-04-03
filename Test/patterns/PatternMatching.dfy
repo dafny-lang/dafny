@@ -149,6 +149,31 @@ method M(p: PairOfNumbers) returns (r:int)
   case _ => r := 3;
 }
 
+datatype Tree = Leaf | Branch(left:Tree, b:bool, right: Tree)
+
+method MultipleNestedMatch(x: Alt, y: Tree, z: List<nat>) returns (r: nat)
+{
+  match x {
+    case A(i) =>
+      match y {
+        case Branch(_, _, Branch(_, b, _)) =>
+	  match (b, z) {
+	    case (true, Cons(n, _)) => r := n;
+	    case (_, Nil) => r := 1;
+	    case (false, Cons(n, _)) => r := n+1;
+	  }
+	case Branch(Branch(_, b, _), _, _) =>
+	  match (b, z) {
+	    case (true, Cons(n, _)) => r := n;
+	    case (false, Cons(n, _)) => r := n+1;
+	    case (_, Nil) => r := 2;
+	  }
+	case _ => r := 0;
+      }
+    case B(i) => r := 3;
+  }
+}
+
 
 // matching on Seq is not supported by the parser
 /*
@@ -183,5 +208,18 @@ method Main() {
   print "M(P(11,10)) = ", r, ", should return 0 \n";
   r := M(P(-1,10));
   print "M(P(-1,10)) = ", r, ", should return 3 \n";
+
+  var t1 := Branch(Leaf, true, Leaf);
+  var t2 := Branch(t1, false, Leaf);
+  var t3 := Branch(t2, true, t2);
+  var t4 := Branch(Leaf, false, t3);
+
+  var r0 := MultipleNestedMatch(A(0), t1, gg);
+  var r1 := MultipleNestedMatch(B(0), t3, Nil);
+  var r2 := MultipleNestedMatch(B(0), t2, Nil);
+  var r3 := MultipleNestedMatch(B(0), t3, ff);
+  var r4 := MultipleNestedMatch(A(0), t3, ee);
+  var r5 := MultipleNestedMatch(A(0), t4, cc);
+  print "Testing MultipleNestedMatch: ", r0, r1, r2, r3, r4, r5, ", should return 012345";
 
 }
