@@ -576,7 +576,7 @@ module StarsGood {
 
 module StarsGoodClient_All {
   import S = StarsGood`ProvideAll
-  method M(b: S.B, c: S.C) {
+  method M(b: S.B, c: S.C, d: S.D) {
     var f0 := b.F();
     var g0 := b.G();
     var u0 := c.u;  // error: u has not been exported
@@ -587,12 +587,7 @@ module StarsGoodClient_All {
     r0 := S.E.PI;
     r0 := S.F.PI;
 
-    var d: S.D;
-    d.M();  // error: to use d, it must first be initialized  // TODO
-    d := new S.D;  // error: D is not known to be a class type  // TODO
     var u1 := d.u;  // error: D.u is not exported
-
-    var e := new S.E;  // error: E is not known to be a class type
 
     var f: S.F;
     if * {
@@ -620,7 +615,7 @@ module StarsGoodClient_AllAndMore {
     r0 := S.F.PI;
 
     var d: S.D;
-    d.M();  // error: to use d, it must first be initialized  // TODO
+
     d := new S.D;  // error: no constructors of D are known, but that doesn't mean there aren't any
     var u1 := d.u;
 

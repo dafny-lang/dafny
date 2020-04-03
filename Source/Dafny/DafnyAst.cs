@@ -748,9 +748,19 @@ namespace Microsoft.Dafny {
         //A hidden type may become visible in another scope
         var isyn = type.AsInternalTypeSynonym;
         if (isyn != null) {
-          Contract.Assert(isyn.IsVisibleInScope(scope));
+          var udt = (UserDefinedType)type;
+
+          if (!isyn.IsVisibleInScope(scope)) {
+            // This can only mean "isyn" refers to a class/trait that is only provided, not revealed. For a provided class/trait,
+            // it is the non-null type declaration that is visible, not the class/trait declaration itself.
+            var rhs = isyn.RhsWithArgumentIgnoringScope(udt.TypeArgs);
+            Contract.Assert(rhs is UserDefinedType);
+            var cl = ((UserDefinedType)rhs).ResolvedClass as ClassDecl;
+            Contract.Assert(cl != null && cl.NonNullTypeDecl != null);
+            Contract.Assert(cl.NonNullTypeDecl.IsVisibleInScope(scope));
+          }
+
           if (isyn.IsRevealedInScope(scope)) {
-            var udt = (UserDefinedType)type;
             type = isyn.RhsWithArgument(udt.TypeArgs);
             continue;
           } else {
@@ -8645,14 +8655,14 @@ namespace Microsoft.Dafny {
       Contract.Requires(tok != null);
       Contract.Requires(t.ResolvedClass != null);
       Contract.Requires(cl != null);
-      if (t.ResolvedClass != cl) {
-        if (t.ResolvedClass is ClassDecl) {
+      Contract.Requires(t.TypeArgs.Count == cl.TypeArgs.Count());
+      if (t.ResolvedClass != cl || t.Name != cl.Name) {  // t may be using the name "C?", and we'd prefer it read "C"
+        if (t.ResolvedClass != cl && t.ResolvedClass is ClassDecl) {
           var orig = (ClassDecl)t.ResolvedClass;
           Contract.Assert(orig.TraitsObj.Contains(cl));  // Dafny currently supports only one level of inheritance from traits
           Contract.Assert(orig.TypeArgs.Count == 0);  // Dafny currently only allows type-parameter-less classes to extend traits
-          Contract.Assert(cl.TypeArgs.Count == 0);  // Dafny currently does not support type parameters for traits
         }
-        t = new UserDefinedType(tok, cl.Name, cl, new List<Type>());
+        t = new UserDefinedType(tok, cl.Name, cl, t.TypeArgs);
       }
       Type = t;
       UnresolvedType = Type;
