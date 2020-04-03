@@ -18,6 +18,9 @@ namespace Microsoft.Dafny {
     bool afterResolver;
     bool printingExportSet = false;
 
+    bool printingDesugared = false;
+
+
     [ContractInvariantMethod]
     void ObjectInvariant()
     {
@@ -853,15 +856,10 @@ namespace Microsoft.Dafny {
     // ----------------------------- PrintMethod -----------------------------
 
     const int IndentAmount = 2; // The amount of indent for each new scope
-    const string BunchaSpaces = "                                ";
     void Indent(int amount)
     {
       Contract.Requires(0 <= amount);
-
-      while (0 < amount) {
-        wr.Write(BunchaSpaces.Substring(0, amount));
-        amount -= BunchaSpaces.Length;
-      }
+      wr.Write(new String(' ', amount));
     }
 
     private bool PrintModeSkipFunctionOrMethod(bool IsGhost, Attributes attributes, string name)
@@ -1364,34 +1362,48 @@ namespace Microsoft.Dafny {
       } else if (stmt is NestedMatchStmt) {
         // OS: Print ResolvedStatement, if present, as comment
         var s = (NestedMatchStmt)stmt;
+
         if (s.ResolvedStatement != null && DafnyOptions.O.DafnyPrintResolvedFile != null) {
           wr.WriteLine();
-          Indent(indent); wr.WriteLine("/*---------- desugared ----------");
-          Indent(indent); PrintStatement(s.ResolvedStatement, indent);
-          Indent(indent); wr.WriteLine("---------- end desugared ----------*/");
-          Indent(indent);
-        }
-        wr.Write("match ");
-        PrintExpression(s.Source, false);
-        if (s.UsesOptionalBraces) {
-          wr.Write(" {");
-        }
-        int caseInd = indent + (s.UsesOptionalBraces ? IndentAmount : 0);
-        foreach (NestedMatchCaseStmt mc in s.Cases) {
-          wr.WriteLine();
-          Indent(caseInd);
-          wr.Write("case {0}", mc.Pat.ToString());
-          wr.Write(" =>");
-          foreach (Statement bs in mc.Body) {
-            wr.WriteLine();
-            Indent(caseInd + IndentAmount);
-            PrintStatement(bs, caseInd + IndentAmount);
+          if (!printingDesugared) {
+            Indent(indent); wr.WriteLine("/*---------- desugared ----------");
           }
-        }
-        if (s.UsesOptionalBraces) {
-          wr.WriteLine();
+
+          var savedDesugarMode = printingDesugared;
+          printingDesugared = true;
+          Indent(indent); PrintStatement(s.ResolvedStatement, indent);
+          printingDesugared = savedDesugarMode;
+
+          if (!printingDesugared) {
+            Indent(indent); wr.WriteLine("---------- end desugared ----------*/");
+          }
           Indent(indent);
-          wr.Write("}");
+        }
+
+        if (!printingDesugared) {
+          wr.Write("match ");
+          PrintExpression(s.Source, false);
+          if (s.UsesOptionalBraces) {
+            wr.Write(" {");
+          }
+          int caseInd = indent + (s.UsesOptionalBraces ? IndentAmount : 0);
+          foreach (NestedMatchCaseStmt mc in s.Cases) {
+            wr.WriteLine();
+            Indent(caseInd);
+            wr.Write("case ");
+            PrintExtendedPattern(mc.Pat);
+            wr.Write(" =>");
+            foreach (Statement bs in mc.Body) {
+              wr.WriteLine();
+              Indent(caseInd + IndentAmount);
+              PrintStatement(bs, caseInd + IndentAmount);
+            }
+          }
+          if (s.UsesOptionalBraces) {
+            wr.WriteLine();
+            Indent(indent);
+            wr.Write("}");
+          }
         }
       } else if (stmt is ConcreteSyntaxStatement && ((ConcreteSyntaxStatement)stmt).ResolvedStatement != null) {
         var s = (ConcreteSyntaxStatement)stmt;
@@ -1413,7 +1425,8 @@ namespace Microsoft.Dafny {
           foreach (MatchCaseStmt mc in s.Cases) {
             wr.WriteLine();
             Indent(caseInd);
-            wr.Write("case {0}", mc.Ctor.Name);
+            wr.Write("case ");
+            if (!mc.Ctor.Name.StartsWith(BuiltIns.TupleTypeCtorNamePrefix)) wr.Write(mc.Ctor.Name);
             PrintMatchCaseArgument(mc);
             wr.Write(" =>");
             foreach (Statement bs in mc.Body) {
@@ -1762,35 +1775,47 @@ namespace Microsoft.Dafny {
         var e = (NestedMatchExpr)expr;
         if (e.ResolvedExpression != null && DafnyOptions.O.DafnyPrintResolvedFile != null) {
           wr.WriteLine();
-          Indent(indent);wr.WriteLine("/*---------- desugared ----------");
+          if (!printingDesugared) {
+            Indent(indent); wr.WriteLine("/*---------- desugared ----------");
+          }
+
+          var savedDesugarMode = printingDesugared;
+          printingDesugared = true;
           PrintExtendedExpr(e.ResolvedExpression, indent, isRightmost, endWithCloseParen);
-          Indent(indent); wr.WriteLine("---------- end desugared ----------*/");
+          printingDesugared = savedDesugarMode;
+
+          if (!printingDesugared) {
+            Indent(indent); wr.WriteLine("---------- end desugared ----------*/");
+          }
         }
-        Indent(indent);
-        var parensNeeded = !isRightmost && !e.UsesOptionalBraces;
-        if (parensNeeded) { wr.Write("("); }
-        wr.Write("match ");
-        PrintExpression(e.Source, isRightmost && e.Cases.Count == 0, false);
-        if (e.UsesOptionalBraces) {
-          wr.WriteLine(" {");
-        } else if (parensNeeded && e.Cases.Count == 0) {
-          wr.WriteLine(")");
-        } else {
-          wr.WriteLine();
-        }
-        int i = 0;
-        int ind = indent + (e.UsesOptionalBraces ? IndentAmount : 0);
-        foreach (var mc in e.Cases) {
-          bool isLastCase = i == e.Cases.Count - 1;
-          Indent(ind);
-          wr.Write("case {0}", mc.Pat.ToString());
-          wr.WriteLine(" =>");
-          PrintExtendedExpr(mc.Body, ind + IndentAmount, isLastCase, isLastCase && (parensNeeded || endWithCloseParen));
-          i++;
-        }
-        if (e.UsesOptionalBraces) {
+        if (!printingDesugared) {
           Indent(indent);
-          wr.WriteLine("}");
+          var parensNeeded = !isRightmost && !e.UsesOptionalBraces;
+          if (parensNeeded) { wr.Write("("); }
+          wr.Write("match ");
+          PrintExpression(e.Source, isRightmost && e.Cases.Count == 0, false);
+          if (e.UsesOptionalBraces) {
+            wr.WriteLine(" {");
+          } else if (parensNeeded && e.Cases.Count == 0) {
+            wr.WriteLine(")");
+          } else {
+            wr.WriteLine();
+          }
+          int i = 0;
+          int ind = indent + (e.UsesOptionalBraces ? IndentAmount : 0);
+          foreach (var mc in e.Cases) {
+            bool isLastCase = i == e.Cases.Count - 1;
+            Indent(ind);
+            wr.Write("case ");
+            PrintExtendedPattern(mc.Pat);
+            wr.WriteLine(" =>");
+            PrintExtendedExpr(mc.Body, ind + IndentAmount, isLastCase, isLastCase && (parensNeeded || endWithCloseParen));
+            i++;
+          }
+          if (e.UsesOptionalBraces) {
+            Indent(indent);
+            wr.WriteLine("}");
+        }
         }
       } else if (expr is MatchExpr) {
         var e = (MatchExpr)expr;
@@ -2682,6 +2707,33 @@ namespace Microsoft.Dafny {
         }
       }
     }
+
+    // Main difference with .ToString is that tuple constructors are not printed.
+    void PrintExtendedPattern(ExtendedPattern pat) {
+      Contract.Requires(pat != null);
+      switch (pat) {
+        case IdPattern idPat:
+          if (idPat.Id.StartsWith(BuiltIns.TupleTypeCtorNamePrefix)) {
+          } else {
+            wr.Write(idPat.Id);
+          }
+          if (idPat.Arguments.Count != 0) {
+            wr.Write("(");
+            var sep = "";
+            foreach (var arg in idPat.Arguments) {
+              wr.Write(sep);
+              PrintExtendedPattern(arg);
+              sep = ", ";
+            }
+            wr.Write(")");
+          }
+          break;
+        case LitPattern litPat:
+          wr.Write(litPat.ToString());
+          break;
+      }
+    }
+
 
     private void PrintQuantifierDomain(List<BoundVar> boundVars, Attributes attrs, Expression range) {
       Contract.Requires(boundVars != null);
