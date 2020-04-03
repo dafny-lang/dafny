@@ -908,12 +908,16 @@ namespace Microsoft.Dafny
 
     public override TopLevelDecl CloneDeclaration(TopLevelDecl d, ModuleDefinition m) {
       var based = base.CloneDeclaration(d, m);
-      if ((d is RevealableTypeDecl || d is TopLevelDeclWithMembers) && !(d is ClassDecl cd && cd.IsDefaultClass) && !RevealedInScope(d)) {
+      if ((d is RevealableTypeDecl || d is TopLevelDeclWithMembers) && !(d is ClassDecl cd && cd.NonNullTypeDecl == null) && !RevealedInScope(d)) {
         var tps = d.TypeArgs.ConvertAll(CloneTypeParam);
         var characteristics = TypeParameter.GetExplicitCharacteristics(d);
         var members = based is TopLevelDeclWithMembers tm ? tm.Members : new List<MemberDecl>();
         var otd = new OpaqueTypeDecl(Tok(d.tok), d.Name, m, characteristics, tps, members, CloneAttributes(d.Attributes));
         based = otd;
+        if (d is ClassDecl) {
+          reverseMap.Add(based, ((ClassDecl)d).NonNullTypeDecl);
+          return based;
+        }
       }
 
       reverseMap.Add(based, d);

@@ -1415,13 +1415,20 @@ namespace Microsoft.Dafny
       var declarations = m.TopLevelDecls;
 
       foreach (var d in declarations) {
-        if (d is ModuleExportDecl) {
-          var me = (ModuleExportDecl)d;
-
+        if (d is ModuleExportDecl me) {
           var revealAll = me.RevealAll || DafnyOptions.O.DisableScopes;
 
-          if (revealAll || me.ProvideAll) {
+          HashSet<string> explicitlyRevealedTopLevelIDs = null;
+          if (!revealAll) {
+            explicitlyRevealedTopLevelIDs = new HashSet<string>();
+            foreach (var esig in me.Exports) {
+              if (esig.ClassId == null && !esig.Opaque) {
+                explicitlyRevealedTopLevelIDs.Add(esig.Id);
+              }
+            }
+          }
 
+          if (revealAll || me.ProvideAll) {
             foreach (var newt in declarations) {
               if (!newt.CanBeExported()) {
                 continue;
@@ -1433,15 +1440,17 @@ namespace Microsoft.Dafny
 
               if (newt is TopLevelDeclWithMembers) {
                 var cl = (TopLevelDeclWithMembers)newt;
+                var newtIsRevealed = revealAll || explicitlyRevealedTopLevelIDs.Contains(newt.Name);
 
                 foreach (var mem in cl.Members) {
                   var opaque = !revealAll || !mem.CanBeRevealed();
                   if (newt is DefaultClassDecl) {
+                    // add everything from the default class
                     me.Exports.Add(new ExportSignature(mem.tok, mem.Name, opaque));
-                  } else if (opaque && mem is Constructor) {
-                    // "provides *" does not pick up class constructors
-                  } else if (opaque && mem is Field field && !(mem is ConstantField)) {
-                    // "provides *" does not pick up mutable fields
+                  } else if (mem is Constructor && !newtIsRevealed) {
+                    // "provides *" does not pick up class constructors, unless the class is to be revealed
+                  } else if (opaque && mem is Field field && !(mem is ConstantField) && !newtIsRevealed) {
+                    // "provides *" does not pick up mutable fields, unless the class is to be revealed
                   } else {
                     me.Exports.Add(new ExportSignature(cl.tok, cl.Name, mem.tok, mem.Name, opaque));
                   }
@@ -1449,8 +1458,6 @@ namespace Microsoft.Dafny
               }
             }
           }
-          me.RevealAll = false;
-          me.ProvideAll = false;
         }
       }
     }

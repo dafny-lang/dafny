@@ -98,4 +98,17 @@ ExportResolve.dfy(413,15): Error: member 'Q' has not been imported in this scope
 ExportResolve.dfy(409,8): Error: RHS (of type C.X) not assignable to LHS (of type C.Z)
 ExportResolve.dfy(410,8): Error: RHS (of type A.T) not assignable to LHS (of type C.Z)
 ExportResolve.dfy(434,15): Error: member 'Q' has not been imported in this scope and cannot be accessed here
-100 resolution/type errors detected in ExportResolve.dfy
+ExportResolve.dfy(450,15): Error: Cannot export mutable field 'u' without revealing its enclosing class 'C'
+ExportResolve.dfy(452,15): Error: Cannot export constructor 'FromInt' without revealing its enclosing class 'C'
+ExportResolve.dfy(497,34): Error: Raised while checking export set ProvideAllAndThenSome: unresolved identifier: X?
+ExportResolve.dfy(483,9): Error: This export set is not consistent: ProvideAllAndThenSome
+ExportResolve.dfy(559,16): Error: member 'u' has not been imported in this scope and cannot be accessed here
+ExportResolve.dfy(570,16): Error: member 'u' has not been imported in this scope and cannot be accessed here
+ExportResolve.dfy(577,19): Error: member 'FromInt' does not exist in type 'F' or cannot be part of type name
+ExportResolve.dfy(577,8): Error: new can be applied only to reference types (got S.F.FromInt)
+ExportResolve.dfy(581,18): Error: member 'u' has not been imported in this scope and cannot be accessed here
+ExportResolve.dfy(601,6): Error: when allocating an object of type 'D', one of its constructor methods must be called
+ExportResolve.dfy(609,19): Error: member 'FromInt' does not exist in type 'F' or cannot be part of type name
+ExportResolve.dfy(609,8): Error: new can be applied only to reference types (got S.F.FromInt)
+ExportResolve.dfy(613,18): Error: member 'u' has not been imported in this scope and cannot be accessed here
+113 resolution/type errors detected in ExportResolve.dfy

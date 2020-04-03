@@ -435,3 +435,184 @@ module MultipleNamesForTheSameThing {
     }
   }
 }
+
+module StarLookupErrors {
+  export RevealAll
+    reveals *
+  export RevealAllAndThenSome
+    reveals *
+    provides C.FromInt  // redundant in the face of "reveals *"
+    provides B.F  // redundant in the face of "reveals *"
+  export ProvideAll  // this excludes constructors and mutable fields
+    provides *
+  export ProvideAllAndThenSome
+    provides *
+    provides C.u  // error: cannot export mutable field without revealing class
+    provides C.n
+    provides C.FromInt  // error: cannot export constructor without revealing class
+    provides C.PI
+  export ProvideAllAndThenSomeMore
+    provides *
+    reveals C
+    provides C.u
+    provides C.FromInt
+
+  datatype B = X | Y {
+    function method F(): int { if X? then 0 else 1 }
+    function method G(): int { 5 }
+  }
+  class C {
+    var u: int
+    const n: int
+    static const PI := 3.14
+    constructor () { }
+    constructor FromInt(x: int) { }
+    method M() { }
+  }
+}
+
+module StarConsistencyErrors {
+  export RevealAll
+    reveals *
+  export RevealAllAndThenSome
+    reveals *
+    provides C.FromInt  // redundant in the face of "reveals *"
+    provides B.F  // redundant in the face of "reveals *"
+  export ProvideAll  // this excludes constructors and mutable fields
+    provides *
+  export ProvideAllAndThenSome
+    provides *
+    provides C.PI
+    reveals B.F  // error: functon body mentions X?, which isn't exported
+    reveals B.G
+  export ProvideAllAndThenSomeMore
+    provides *
+    reveals C
+    provides C.u
+    provides C.FromInt
+    provides B.F  // just providing it is fine
+    reveals B.G
+
+  datatype B = X | Y {
+    function method F(): int { if X? then 0 else 1 }
+    function method G(): int { 5 }
+  }
+  class C {
+    var u: int
+    const n: int
+    static const PI := 3.14
+    constructor () { }
+    constructor FromInt(x: int) { }
+    method M() { }
+  }
+}
+
+module StarsGood {
+  export ProvideAll  // this excludes constructors and mutable fields
+    provides *
+  export ProvideAllAndThenSomeMore
+    provides *
+    reveals C
+    provides C.u, C.FromInt, B.F, B.G
+    reveals D
+    reveals E
+
+  datatype B = X | Y {
+    function method F(): int { if X? then 0 else 1 }
+    function method G(): int { 5 }
+  }
+  class C {
+    var u: int
+    const n: int
+    static const PI := 3.14
+    constructor () { }
+    constructor FromInt(x: int) { }
+    method M() { }
+  }
+  class D {
+    var u: int
+    static const PI := 3.14
+    constructor FromInt(x: int) { }
+    method M() { }
+  }
+  class E {
+    var u: int
+    static const PI := 3.14
+    method M() { }
+  }
+  class F {
+    var u: int
+    static const PI := 3.14
+    constructor FromInt(x: int) { }
+    method M() { }
+    static method Make() returns (f: F) {
+      f := new F.FromInt(93);
+    }
+  }
+}
+
+module StarsGoodClient_All {
+  import S = StarsGood`ProvideAll
+  method M(b: S.B, c: S.C) {
+    var f0 := b.F();
+    var g0 := b.G();
+    var u0 := c.u;  // error: u has not been exported
+    var n0 := c.n;
+
+    var r0 := S.C.PI;
+    r0 := S.D.PI;
+    r0 := S.E.PI;
+    r0 := S.F.PI;
+
+    var d: S.D;
+    d.M();  // error: to use d, it must first be initialized  // TODO
+    d := new S.D;  // error: D is not known to be a class type  // TODO
+    var u1 := d.u;  // error: D.u is not exported
+
+    var e := new S.E;  // error: E is not known to be a class type
+
+    var f: S.F;
+    if * {
+      f.M();  // error: to use d, it must first be initialized
+      f := new S.F.FromInt(5);  // error (x2): FromInt has not been exported, and S.F.FromInt is not a class type
+    } else {
+      f := S.F.Make();
+      f.M();
+      var u1 := f.u;  // error: u has not been exported
+    }
+  }
+}
+
+module StarsGoodClient_AllAndMore {
+  import S = StarsGood`ProvideAllAndThenSomeMore
+  method M(b: S.B, c: S.C) {
+    var f0 := b.F();
+    var g0 := b.G();
+    var u0 := c.u;
+    var n0 := c.n;
+
+    var r0 := S.C.PI;
+    r0 := S.D.PI;
+    r0 := S.E.PI;
+    r0 := S.F.PI;
+
+    var d: S.D;
+    d.M();  // error: to use d, it must first be initialized  // TODO
+    d := new S.D;  // error: no constructors of D are known, but that doesn't mean there aren't any
+    var u1 := d.u;
+
+    var e := new S.E;  // error: it is not known if E has any constructors or not, so this is not allowed  // TODO
+
+    var f: S.F;
+    if * {
+      f.M();  // error: to use d, it must first be initialized
+      f := new S.F.FromInt(5);  // error: FromInt has not been exported, and it also isn't known that F is a class type
+    } else {
+      f := S.F.Make();
+      f.M();
+      var u1 := f.u;  // error: u has not been exported
+    }
+  }
+}
+
+// TODO: what's the difference between reveals/provides a field? For instance fields, should just allow one (provides). For static const with initializers, can allow reveals as well. This should be tested with verification.

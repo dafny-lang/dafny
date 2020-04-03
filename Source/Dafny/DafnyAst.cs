@@ -726,7 +726,11 @@ namespace Microsoft.Dafny {
           var udt = (UserDefinedType)type;
 
           if (!rtd.AsTopLevelDecl.IsVisibleInScope(scope)) {
-            Contract.Assert(false);
+            // This can only mean "rtd" is a class/trait that is only provided, not revealed. For a provided class/trait,
+            // it is the non-null type declaration that is visible, not the class/trait declaration itself.
+            var cl = rtd as ClassDecl;
+            Contract.Assert(cl != null && cl.NonNullTypeDecl != null);
+            Contract.Assert(cl.NonNullTypeDecl.IsVisibleInScope(scope));
           }
 
           if (rtd.IsRevealedInScope(scope)) {
@@ -780,7 +784,11 @@ namespace Microsoft.Dafny {
       if (rtd != null) {
         var udt = (UserDefinedType)type;
         if (!rtd.AsTopLevelDecl.IsVisibleInScope(scope)) {
-          Contract.Assert(false);
+          // This can only mean "rtd" is a class/trait that is only provided, not revealed. For a provided class/trait,
+          // it is the non-null type declaration that is visible, not the class/trait declaration itself.
+          var cl = rtd as ClassDecl;
+          Contract.Assert(cl != null && cl.NonNullTypeDecl != null);
+          Contract.Assert(cl.NonNullTypeDecl.IsVisibleInScope(scope));
         }
         if (!rtd.IsRevealedInScope(scope)) {
           return rtd.SelfSynonym(type.TypeArgs, udt.NamePath);
@@ -888,6 +896,9 @@ namespace Microsoft.Dafny {
         var udt = NormalizeExpand() as UserDefinedType;
         if (udt != null && udt.ResolvedClass is InternalTypeSynonymDecl isyn) {
           udt = isyn.RhsWithArgumentIgnoringScope(udt.TypeArgs) as UserDefinedType;
+          if (udt?.ResolvedClass is NonNullTypeDecl nntd) {
+            return nntd.Class;
+          }
         }
         return udt?.ResolvedClass as TopLevelDeclWithMembers;
       }
