@@ -124,7 +124,7 @@ module J {
       var c: X.C;
       c := new X.C;  // error: must call a constructor
       c := new X.C.Init();  // error: alas, no constructor is visible
-      var d := new X.D;  // fine, since it is known that X.D has no constructor
+      var d := new X.D;  // error: even though D has no constructor, the absence of imported constructor does not let us conclude there aren't any
     }
   }
 }

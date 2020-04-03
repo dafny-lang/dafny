@@ -15,11 +15,13 @@ method Main() {
   var i: int :| 0 <= i < 256 && GoodInteger(i);
   print "b=", b, "  i=", i, "\n";
   var m0 := new MyClass;
-  var m17 := new M17.AnotherClass;
+  var m17 := new M17.AnotherClass();
 }
 
 class MyClass { }
 
 module M17 {
-  class AnotherClass { }
+  class AnotherClass {
+    constructor () { }
+  }
 }

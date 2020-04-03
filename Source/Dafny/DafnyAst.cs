@@ -909,7 +909,7 @@ namespace Microsoft.Dafny {
     public bool IsObjectQ {
       get {
         var udt = NormalizeExpandKeepConstraints() as UserDefinedType;
-        return udt != null && udt.ResolvedClass is ClassDecl && ((ClassDecl)udt.ResolvedClass).Name == "object";
+        return udt != null && udt.ResolvedClass is ClassDecl && ((ClassDecl)udt.ResolvedClass).IsObjectTrait;
       }
     }
     /// <summary>
@@ -3925,6 +3925,10 @@ namespace Microsoft.Dafny {
       get {
         return false;
       }
+    }
+
+    public bool IsObjectTrait {
+      get => Name == "object";
     }
 
     internal bool DerivesFrom(TopLevelDecl b) {

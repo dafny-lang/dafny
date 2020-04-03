@@ -18,7 +18,7 @@ ResolutionErrors.dfy(62,9): Error: unresolved identifier: M
 ResolutionErrors.dfy(63,16): Error: accessing member 'M' requires an instance expression
 ResolutionErrors.dfy(64,9): Error: unresolved identifier: N
 ResolutionErrors.dfy(67,10): Error: non-function expression (of type int) is called with parameters
-ResolutionErrors.dfy(68,16): Error: member 'z' does not exist in class 'Global'
+ResolutionErrors.dfy(68,16): Error: member 'z' does not exist in subset type 'Global'
 ResolutionErrors.dfy(116,11): Error: ghost variables are allowed only in specification contexts
 ResolutionErrors.dfy(117,11): Error: function calls are allowed only in specification contexts (consider declaring the function a 'function method')
 ResolutionErrors.dfy(121,13): Error: ghost variables are allowed only in specification contexts

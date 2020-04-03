@@ -601,7 +601,7 @@ module StarsGoodClient_AllAndMore {
     d := new S.D;  // error: no constructors of D are known, but that doesn't mean there aren't any
     var u1 := d.u;
 
-    var e := new S.E;  // error: it is not known if E has any constructors or not, so this is not allowed  // TODO
+    var e := new S.E;  // error: it is not known if E has any constructors or not, so this is not allowed
 
     var f: S.F;
     if * {

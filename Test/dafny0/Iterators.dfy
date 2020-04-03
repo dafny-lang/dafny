@@ -381,3 +381,17 @@ module ITER_F {
     }
   }
 }
+
+module ModuleWithIterator {
+  export
+    reveals Iter
+  iterator Iter(x: int) yields (y: int) {
+  }
+}
+
+module IteratorClient_Reveals {
+  import ModuleWithIterator
+  method M() {
+    var iter := new ModuleWithIterator.Iter(5);
+  }
+}
