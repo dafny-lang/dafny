@@ -48,11 +48,15 @@ module NamesThatDontExist {
 
   trait Trait {
     predicate Valid() { true }
+    method M() { }
+    var x: int
   }
   class Klass {
     constructor () { }
     constructor FromInt(w: int) { }
     predicate Valid() { true }
+    method M() { }
+    var x: int
   }
   type TypeSynonym = Klass
   type Opaque
@@ -74,6 +78,25 @@ module NamesThatDontExist {
   // are.)
   inductive predicate P(r: real)
   inductive lemma L(r: real)
+
+  method G()
+
+  export ThingsThatCannotBeRevealed
+    reveals G  // error: cannot be used with reveals
+    provides Trait, Klass
+    reveals Trait.M  // error: cannot be used with reveals
+    reveals Trait.x  // error: cannot be used with reveals
+    reveals Klass.M  // error: cannot be used with reveals
+    reveals Klass.x  // error: cannot be used with reveals
+    reveals Klass.FromInt  // error: cannot be used with reveals
+  export ThoseThingsCanBeProvided
+    provides G
+    provides Trait, Klass
+    provides Trait.M
+    provides Trait.x
+    provides Klass.M
+    provides Klass.x
+    provides Klass.FromInt
 }
 
 module ConsistencyErrors {
@@ -614,5 +637,3 @@ module StarsGoodClient_AllAndMore {
     }
   }
 }
-
-// TODO: what's the difference between reveals/provides a field? For instance fields, should just allow one (provides). For static const with initializers, can allow reveals as well. This should be tested with verification.
