@@ -18,7 +18,10 @@ jobs:
         shard: [1, 2, 3, 4, 5]
       fail-fast: false
     steps:
-    - uses: nuget/setup-nuget@v1
+    - name: Setup Nuget
+      uses: nuget/setup-nuget@v1
+    - name: Manually sync certs
+      run: cert-sync /etc/ssl/certs/ca-certificates.crt
     - name: Add msbuild to PATH
       if: matrix.os == 'windows-latest'
       uses: microsoft/setup-msbuild@v1.0.0

@@ -1,0 +1,74 @@
+ExportResolve.dfy(7,12): Error: 'DoesNotExist' must be a member of 'NamesThatDontExist' to be exported
+ExportResolve.dfy(8,12): Error: 'Trait?' is not a type that can declare members
+ExportResolve.dfy(9,12): Error: 'Klass?' is not a type that can declare members
+ExportResolve.dfy(11,18): Error: No member 'NotThere' found in type 'Trait'
+ExportResolve.dfy(12,12): Error: 'TypeSynonym' is not a type that can declare members
+ExportResolve.dfy(13,12): Error: 'Opaque' is not a type that can declare members
+ExportResolve.dfy(14,12): Error: 'DtValue' is not a top-level type declaration
+ExportResolve.dfy(16,18): Error: No member 'Magenta' found in type 'Color'
+ExportResolve.dfy(17,18): Error: No member 'More?' found in type 'Color'
+ExportResolve.dfy(18,18): Error: No member 'u' found in type 'Color'
+ExportResolve.dfy(19,12): Error: 'Trait?' must be a member of 'NamesThatDontExist' to be exported
+ExportResolve.dfy(20,12): Error: 'Klass?' must be a member of 'NamesThatDontExist' to be exported
+ExportResolve.dfy(22,13): Error: 'DoesNotExist' must be a member of 'NamesThatDontExist' to be exported
+ExportResolve.dfy(23,13): Error: 'Trait?' is not a type that can declare members
+ExportResolve.dfy(24,13): Error: 'Klass?' is not a type that can declare members
+ExportResolve.dfy(26,19): Error: No member 'NotThere' found in type 'Trait'
+ExportResolve.dfy(27,13): Error: 'TypeSynonym' is not a type that can declare members
+ExportResolve.dfy(28,13): Error: 'Opaque' is not a type that can declare members
+ExportResolve.dfy(29,13): Error: 'DtValue' is not a top-level type declaration
+ExportResolve.dfy(31,19): Error: No member 'Magenta' found in type 'Color'
+ExportResolve.dfy(32,19): Error: No member 'More?' found in type 'Color'
+ExportResolve.dfy(33,19): Error: No member 'u' found in type 'Color'
+ExportResolve.dfy(34,13): Error: 'Trait?' must be a member of 'NamesThatDontExist' to be exported
+ExportResolve.dfy(35,13): Error: 'Klass?' must be a member of 'NamesThatDontExist' to be exported
+ExportResolve.dfy(39,16): Error: No member 'X' found in type 'Dt'
+ExportResolve.dfy(40,16): Error: No member 'Cons?' found in type 'Dt'
+ExportResolve.dfy(41,16): Error: No member 'u' found in type 'Dt'
+ExportResolve.dfy(45,16): Error: No member 'X' found in type 'Dt'
+ExportResolve.dfy(46,16): Error: No member 'Cons?' found in type 'Dt'
+ExportResolve.dfy(47,16): Error: No member 'u' found in type 'Dt'
+ExportResolve.dfy(70,15): Error: 'L' cannot be revealed in an export. Use "provides" instead.
+ExportResolve.dfy(122,18): Error: Raised while checking export set P0: unresolved identifier: X
+ExportResolve.dfy(122,26): Error: Raised while checking export set P0: member 'X' does not exist in type 'Dt'
+ExportResolve.dfy(122,34): Error: Raised while checking export set P0: type Dt does not have a member More?
+ExportResolve.dfy(122,45): Error: Raised while checking export set P0: type Dt does not have a member u
+ExportResolve.dfy(87,9): Error: This export set is not consistent: P0
+ExportResolve.dfy(128,15): Error: Raised while checking export set P3: member Valid does not exist in class Trait
+ExportResolve.dfy(128,28): Error: Raised while checking export set P3: member Valid does not exist in class Klass
+ExportResolve.dfy(128,41): Error: Raised while checking export set P3: type Dt does not have a member Valid
+ExportResolve.dfy(93,9): Error: This export set is not consistent: P3
+ExportResolve.dfy(130,19): Error: Raised while checking export set P4: member 'N' does not exist in type 'Trait'
+ExportResolve.dfy(130,30): Error: Raised while checking export set P4: member 'N' does not exist in type 'Klass'
+ExportResolve.dfy(130,38): Error: Raised while checking export set P4: member 'N' does not exist in type 'Dt'
+ExportResolve.dfy(95,9): Error: This export set is not consistent: P4
+ExportResolve.dfy(132,15): Error: Raised while checking export set P5: member M does not exist in class Trait
+ExportResolve.dfy(132,22): Error: Raised while checking export set P5: member M does not exist in class Klass
+ExportResolve.dfy(132,29): Error: Raised while checking export set P5: type Dt does not have a member M
+ExportResolve.dfy(97,9): Error: This export set is not consistent: P5
+ExportResolve.dfy(101,19): Error: Cannot export type member 'FromInt' without providing its enclosing class 'Klass'
+ExportResolve.dfy(195,20): Error: unresolved identifier: X
+ExportResolve.dfy(195,28): Error: member 'More?' has not been imported in this scope and cannot be accessed here
+ExportResolve.dfy(195,39): Error: member 'u' has not been imported in this scope and cannot be accessed here
+ExportResolve.dfy(201,15): Error: member 'Valid' has not been imported in this scope and cannot be accessed here
+ExportResolve.dfy(201,28): Error: member 'Valid' has not been imported in this scope and cannot be accessed here
+ExportResolve.dfy(201,41): Error: member 'Valid' has not been imported in this scope and cannot be accessed here
+ExportResolve.dfy(203,21): Error: member 'N' has not been imported in this scope and cannot be accessed here
+ExportResolve.dfy(203,34): Error: member 'N' has not been imported in this scope and cannot be accessed here
+ExportResolve.dfy(203,44): Error: member 'N' has not been imported in this scope and cannot be accessed here
+ExportResolve.dfy(205,15): Error: member 'M' has not been imported in this scope and cannot be accessed here
+ExportResolve.dfy(205,22): Error: member 'M' has not been imported in this scope and cannot be accessed here
+ExportResolve.dfy(205,29): Error: member 'M' has not been imported in this scope and cannot be accessed here
+ExportResolve.dfy(207,13): Error: member '_ctor' has not been imported in this scope and cannot be accessed here
+ExportResolve.dfy(207,10): Error: when allocating an object of type 'Klass', one of its constructor methods must be called
+ExportResolve.dfy(222,41): Error: member 'Valid' has not been imported in this scope and cannot be accessed here
+ExportResolve.dfy(224,44): Error: member 'N' has not been imported in this scope and cannot be accessed here
+ExportResolve.dfy(226,29): Error: member 'M' has not been imported in this scope and cannot be accessed here
+ExportResolve.dfy(237,20): Error: unresolved identifier: X
+ExportResolve.dfy(237,28): Error: member 'More?' has not been imported in this scope and cannot be accessed here
+ExportResolve.dfy(237,39): Error: member 'u' has not been imported in this scope and cannot be accessed here
+ExportResolve.dfy(249,13): Error: member '_ctor' has not been imported in this scope and cannot be accessed here
+ExportResolve.dfy(249,10): Error: when allocating an object of type 'Klass', one of its constructor methods must be called
+ExportResolve.dfy(293,15): Error: unresolved identifier: reveal_OpaqueFunction
+ExportResolve.dfy(293,29): Error: expression has no reveal lemma
+73 resolution/type errors detected in ExportResolve.dfy
