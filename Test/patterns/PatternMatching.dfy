@@ -198,16 +198,16 @@ method Main() {
 
   var r:int;
   r := NestingTest(aa);
-  print "NestingTest([6]) = ", r, ", should return 6 \n";
+  print "NestingTest([6]) = ", r, ", should return 6\n";
   r := NestedVariableTest(ff);
-  print "NestedVariableTest([2::3::4::5::6]) = ", r, ", should return 0 \n";
+  print "NestedVariableTest([2::3::4::5::6]) = ", r, ", should return 0\n";
   r := ConstantTest(ee);
-  print "ConstantTest([3::4::5::6]) = ", r, ", should return 2 \n";
+  print "ConstantTest([3::4::5::6]) = ", r, ", should return 2\n";
 
   r := M(P(11,10));
-  print "M(P(11,10)) = ", r, ", should return 0 \n";
+  print "M(P(11,10)) = ", r, ", should return 0\n";
   r := M(P(-1,10));
-  print "M(P(-1,10)) = ", r, ", should return 3 \n";
+  print "M(P(-1,10)) = ", r, ", should return 3\n";
 
   var t1 := Branch(Leaf, true, Leaf);
   var t2 := Branch(t1, false, Leaf);
@@ -220,6 +220,6 @@ method Main() {
   var r3 := MultipleNestedMatch(B(0), t3, ff);
   var r4 := MultipleNestedMatch(A(0), t3, ee);
   var r5 := MultipleNestedMatch(A(0), t4, bb);
-  print "Testing MultipleNestedMatch: ", r0, r1, r2, r3, r4, r5, ", should return 012345";
+  print "Testing MultipleNestedMatch: ", r0, r1, r2, r3, r4, r5, ", should return 012345\n";
 
 }
