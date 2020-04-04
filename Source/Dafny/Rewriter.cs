@@ -1399,8 +1399,6 @@ namespace Microsoft.Dafny
         var e = (NestedMatchExpr)expr;
 
         var autoReqs = generateAutoReqs(e.ResolvedExpression);
-
-        // OSTODO: Make sure it is safe to use a shallow copy of e here
         var newMatch = new NestedMatchExpr(e.tok, e.Source, e.Cases, e.UsesOptionalBraces);
         newMatch.ResolvedExpression = andify(e.tok, autoReqs);
         reqs.Add(newMatch);

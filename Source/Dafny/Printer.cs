@@ -1358,7 +1358,7 @@ namespace Microsoft.Dafny {
         Indent(indent);
         wr.Write("}");
       } else if (stmt is NestedMatchStmt) {
-        // OS: Print ResolvedStatement, if present, as comment
+        // Print ResolvedStatement, if present, as comment
         var s = (NestedMatchStmt)stmt;
 
         if (s.ResolvedStatement != null && DafnyOptions.O.DafnyPrintResolvedFile != null) {
