@@ -9154,15 +9154,13 @@ namespace Microsoft.Dafny {
       Contract.Requires(field != null);
       Contract.Requires(obj.Type != null);  // "obj" is required to be resolved
       this.Member = field;  // resolve here
+      var receiverType = obj.Type.NormalizeExpand();
       if (field.EnclosingClass is TraitDecl) {
-        // It could be that the type of "obj" is a class that implements the trait.  If so,
-        // it would be necessary to map the class type instantiation to a type instantiation
-        // of the trait.  However, at present in Dafny, traits take no type arguments, so
-        // our job is easy.
-        Contract.Assert(field.EnclosingClass.TypeArgs.Count == 0);
-        this.TypeApplication = new List<Type>();
+        var traitDecl = ((ClassDecl) field.EnclosingClass).NonNullTypeDecl;
+        var traitType = receiverType.ParentTypes().Find(t =>
+          t is UserDefinedType && ((UserDefinedType)t).ResolvedClass == traitDecl);
+        this.TypeApplication = traitType.TypeArgs;
       } else {
-        var receiverType = obj.Type.NormalizeExpand();
         this.TypeApplication = receiverType.TypeArgs;  // resolve here
       }
       Contract.Assert(field.EnclosingClass == null || this.TypeApplication.Count == field.EnclosingClass.TypeArgs.Count);

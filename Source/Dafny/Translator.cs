@@ -3300,7 +3300,7 @@ namespace Microsoft.Dafny {
 
       Bpl.Trigger tr = BplTriggerHeap(this, f.tok, funcAppl,
         (AlwaysUseHeap || f.ReadsHeap || !readsHeap) ? null : etran.HeapExpr);
-      Bpl.Expr tastyVegetarianOption;
+      Bpl.Expr tastyVegetarianOption; // a.k.a. the "meat" of the operation :)
       if (!RevealedInScope(f) || (f.IsProtected && !InVerificationScope(f))) {
         tastyVegetarianOption = Bpl.Expr.True;
       } else {
@@ -4791,15 +4791,16 @@ namespace Microsoft.Dafny {
       // trait's function, so we call FunctionAxiom to generate a conditional axiom (that is, we pass in the "overridingClass"
       // parameter to FunctionAxiom, which will add 'dtype(this) == class.C' as an additional antecedent) for a
       // body of 'C.F(this, x#0)'.
-      // TODO:  More work needs to be done to support any type parameters that class C might have.  These would
-      // need to be quantified (existentially?) in the axiom.
       var receiver = new ThisExpr(f);
       var args = f.OverriddenFunction.Formals.ConvertAll(p => (Expression)new IdentifierExpr(p.tok, p.Name) { Var = p, Type = p.Type });
       var pseudoBody = new FunctionCallExpr(f.tok, f.Name, new ThisExpr(f), f.tok, args);
       pseudoBody.Function = f;  // resolve here
-      // TODO: the following two lines (incorrectly) assume there are no type parameters
+      // TODO-RS: the following two lines (incorrectly) assume there are no type parameters
       pseudoBody.Type = f.ResultType;  // resolve here
       pseudoBody.TypeArgumentSubstitutions = new Dictionary<TypeParameter,Type>();  // resolve here
+      for (int i = 0; i < f.EnclosingClass.TypeArgs.Count; i++) {
+        pseudoBody.TypeArgumentSubstitutions.Add(f.EnclosingClass.TypeArgs[i], receiver.Type.TypeArgs[i]);
+      }
       sink.AddTopLevelDeclaration(FunctionAxiom(f.OverriddenFunction, pseudoBody, null, f.EnclosingClass));
     }
 
@@ -12458,7 +12459,13 @@ namespace Microsoft.Dafny {
 
     static public List<TypeParameter> GetTypeParams(TopLevelDecl d) {
       Contract.Requires(d is ClassDecl || d is DatatypeDecl || d is NewtypeDecl || d is ValuetypeDecl);
-      return d.TypeArgs;
+      IEnumerable<TypeParameter> result = d.TypeArgs;
+//      if (d is ClassDecl) {
+//        foreach (TraitDecl t in ((ClassDecl) d).TraitsObj) {
+//          result = result.Concat(t.TypeArgs);
+//        }
+//      }
+      return result.ToList();
     }
 
     static List<TypeParameter> GetTypeParams(Function f) {

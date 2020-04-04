@@ -7675,7 +7675,6 @@ namespace Microsoft.Dafny
       Contract.Ensures(currentClass == null);
       currentClass = cl;
 
-      // TODO-RS: Type parameters here
       WithResolvedTypeParameters(cl, () => {
 
         // Resolve names of traits extended
@@ -7692,7 +7691,7 @@ namespace Microsoft.Dafny
                 // all is good (or the user takes responsibility for the lack of termination checking)
                 cl.TraitsObj.Add(trait);
               } else {
-                reporter.Error(MessageSource.Resolver, udt.tok, "class '{0}' is in a different module than trait '{1}'. A class may only extend a trait in the same module.", cl.Name, trait.FullName);
+                reporter.Error(MessageSource.Resolver, udt.tok, "class '{0}' is in a different module than trait '{1}'. A class may only extend a trait in the same module, unless that trait is annotated with {{:termination false}}.", cl.Name, trait.FullName);
               }
             } else {
               reporter.Error(MessageSource.Resolver, udt != null ? udt.tok : cl.tok, "a class can only extend traits (found '{0}')", tt);
@@ -7852,7 +7851,7 @@ namespace Microsoft.Dafny
               //adding a call graph edge from the trait method to that of class
               cl.Module.CallGraph.AddEdge(traitMethod, classMethod);
 
-//              refinementTransformer.CheckOverride_MethodParameters(classMethod, traitMethod);
+              refinementTransformer.CheckOverride_MethodParameters(classMethod, traitMethod);
 
               var traitMethodAllowsNonTermination = Contract.Exists(traitMethod.Decreases.Expressions, e => e is WildcardExpr);
               var classMethodAllowsNonTermination = Contract.Exists(classMethod.Decreases.Expressions, e => e is WildcardExpr);
