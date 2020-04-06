@@ -328,7 +328,7 @@ lemma LeastSignificantDigitIsAlmostMod(a: seq<int>, lowDigit: int, base: nat)
   requires 2 <= base && lowDigit <= 0 < lowDigit + base && IsSkewNumber(a, lowDigit, base);
   requires a != [];
   ensures var mod := eval(a, base) % base; a[0] == mod || a[0] == mod - base;
-{ assume false;  // TODO: temporary hack to get around Z3's fickleness and make progress with check-in
+{
   var n := eval(a, base);
   var d, m := n / base, n % base;
   assert base * d + m == n;
@@ -340,8 +340,8 @@ lemma LeastSignificantDigitIsAlmostMod(a: seq<int>, lowDigit: int, base: nat)
   assert base * nrest + a[0] == n;
 
   var p := MulProperty(base, d, m, nrest, a[0]);
-  assert -base <= a[0] - m < base;
-  assert -base == -1 * base && base == 1 * base;
+  assert -(base as int) <= a[0] - m < base;
+  assert -(base as int) == -1 * base && base == 1 * base;
   assert -1 * base <= a[0] - m < 1 * base;
   if {
     case p == -1 =>  assert a[0] == m - base;
