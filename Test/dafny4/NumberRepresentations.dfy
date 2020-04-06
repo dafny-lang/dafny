@@ -38,7 +38,7 @@ lemma test_eval()
 // consider digits that are drawn from a consecutive range of "base" integers
 // including 0.  That is, each digit lies in the half-open interval [lowDigit..lowDigit+base].
 
-predicate IsSkewNumber(digits: seq<int>, lowDigit: int, base: nat)
+predicate IsSkewNumber(digits: seq<int>, lowDigit: int, base: int)
 {
   2 <= base &&  // there must be at least two distinct digits in the number representation
   lowDigit <= 0 < lowDigit + base &&  // digits must include 0
@@ -48,7 +48,7 @@ predicate IsSkewNumber(digits: seq<int>, lowDigit: int, base: nat)
 // The following theorem says that any natural number is representable as a sequence
 // of digits in the range [0..base].
 
-lemma CompleteNat(n: nat, base: nat) returns (digits: seq<int>)
+lemma CompleteNat(n: nat, base: int) returns (digits: seq<int>)
   requires 2 <= base
   ensures IsSkewNumber(digits, 0, base) && eval(digits, base) == n
 {
@@ -91,7 +91,7 @@ lemma MulSign(x: int, y: int)
 // The following theorem says that, provided there's some digit with the same sign as "n",
 // then "n" can be represented.
 
-lemma Complete(n: int, lowDigit: int, base: nat) returns (digits: seq<int>)
+lemma Complete(n: int, lowDigit: int, base: int) returns (digits: seq<int>)
   requires 2 <= base && lowDigit <= 0 < lowDigit + base
   requires 0 <= lowDigit ==> 0 <= n  // without negative digits, only non-negative numbers can be formed
   requires lowDigit + base <= 1 ==> n <= 0  // without positive digits, only positive numbers can be formed
@@ -109,8 +109,7 @@ lemma Complete(n: int, lowDigit: int, base: nat) returns (digits: seq<int>)
   }
 }
 
-ghost method inc(a: seq<int>, lowDigit: int, base: nat) returns (b: seq<int>)
-  requires 2 <= base && lowDigit <= 0 < lowDigit + base
+ghost method inc(a: seq<int>, lowDigit: int, base: int) returns (b: seq<int>)
   requires IsSkewNumber(a, lowDigit, base)
   requires eval(a, base) == 0 ==> 1 < lowDigit + base
   ensures IsSkewNumber(b, lowDigit, base) && eval(b, base) == eval(a, base) + 1
@@ -125,8 +124,7 @@ ghost method inc(a: seq<int>, lowDigit: int, base: nat) returns (b: seq<int>)
   }
 }
 
-ghost method dec(a: seq<int>, lowDigit: int, base: nat) returns (b: seq<int>)
-  requires 2 <= base && lowDigit <= 0 < lowDigit + base
+ghost method dec(a: seq<int>, lowDigit: int, base: int) returns (b: seq<int>)
   requires IsSkewNumber(a, lowDigit, base)
   requires eval(a, base) == 0 ==> lowDigit < 0
   ensures IsSkewNumber(b, lowDigit, base) && eval(b, base) == eval(a, base) - 1
@@ -166,7 +164,7 @@ lemma TrimProperty(a: seq<int>)
   assert forall b {:trigger trim(b)} :: |trim(b)| <= |b|;
 }
 
-lemma TrimPreservesValue(digits: seq<int>, base: nat)
+lemma TrimPreservesValue(digits: seq<int>, base: int)
   requires 2 <= base
   ensures eval(digits, base) == eval(trim(digits), base)
 {
@@ -177,7 +175,7 @@ lemma TrimPreservesValue(digits: seq<int>, base: nat)
   }
 }
 
-lemma LeadingZeroInsignificant(digits: seq<int>, base: nat)
+lemma LeadingZeroInsignificant(digits: seq<int>, base: int)
   requires 2 <= base
   ensures eval(digits, base) == eval(digits + [0], base)
 {
@@ -200,10 +198,9 @@ lemma LeadingZeroInsignificant(digits: seq<int>, base: nat)
 
 // We now get on with proving the uniqueness of the representation
 
-lemma UniqueRepresentation(a: seq<int>, b: seq<int>, lowDigit: int, base: nat)
-  requires 2 <= base && lowDigit <= 0 < lowDigit + base
-  requires a == trim(a) && b == trim(b)
+lemma UniqueRepresentation(a: seq<int>, b: seq<int>, lowDigit: int, base: int)
   requires IsSkewNumber(a, lowDigit, base) && IsSkewNumber(b, lowDigit, base)
+  requires a == trim(a) && b == trim(b)
   requires eval(a, base) == eval(b, base)
   ensures a == b
 {
@@ -233,8 +230,7 @@ lemma UniqueRepresentation(a: seq<int>, b: seq<int>, lowDigit: int, base: nat)
   }
 }
 
-lemma {:induction false} ZeroIsUnique(a: seq<int>, lowDigit: int, base: nat)
-//  requires 2 <= base && lowDigit <= 0 < lowDigit + base
+lemma {:induction false} ZeroIsUnique(a: seq<int>, lowDigit: int, base: int)
   requires IsSkewNumber(a, lowDigit, base)
   requires T: a == trim(a)
   requires E0: eval(a, base) == 0
@@ -245,7 +241,7 @@ lemma {:induction false} ZeroIsUnique(a: seq<int>, lowDigit: int, base: nat)
     var b := base * a1;
     assert a[0] + b == eval(a, base);
 
-    assert R: -(base as int) < lowDigit <= a[0] < lowDigit + base <= base by {
+    assert R: -base < lowDigit <= a[0] < lowDigit + base <= base by {
       assert a[0] in a;
     }
 
@@ -274,7 +270,7 @@ lemma {:induction false} ZeroIsUnique(a: seq<int>, lowDigit: int, base: nat)
     ==  { reveal E0; }
       a[0] + base <= 0;
     ==
-      a[0] <= -(base as int);
+      a[0] <= -base;
     ==>  { reveal R; }
       false;
     }
@@ -324,10 +320,11 @@ lemma {:induction false} ZeroIsUnique(a: seq<int>, lowDigit: int, base: nat)
   }
 }
 
-lemma LeastSignificantDigitIsAlmostMod(a: seq<int>, lowDigit: int, base: nat)
-  requires 2 <= base && lowDigit <= 0 < lowDigit + base && IsSkewNumber(a, lowDigit, base)
+lemma LeastSignificantDigitIsAlmostMod(a: seq<int>, lowDigit: int, base: int)
+  requires IsSkewNumber(a, lowDigit, base)
   requires a != []
-  ensures var mod := eval(a, base) % base; a[0] == mod || a[0] == mod - base
+  ensures var mod := eval(a, base) % base;
+    a[0] == mod || a[0] == mod - base
 {
   var n := eval(a, base);
   var d, m := n / base, n % base;
@@ -340,8 +337,8 @@ lemma LeastSignificantDigitIsAlmostMod(a: seq<int>, lowDigit: int, base: nat)
   assert base * nrest + a[0] == n;
 
   var p := MulProperty(base, d, m, nrest, a[0]);
-  assert -(base as int) <= a[0] - m < base;
-  assert -(base as int) == -1 * base && base == 1 * base;
+  assert -base <= a[0] - m < base;
+  assert -base == -1 * base && base == 1 * base;
   assert -1 * base <= a[0] - m < 1 * base;
   if {
     case p == -1 =>  assert a[0] == m - base;
