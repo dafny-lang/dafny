@@ -7,8 +7,8 @@
 // that eval can be defined without regard to the sign or magnitude of the digits.
 
 function eval(digits: seq<int>, base: int): int
-  requires 2 <= base;
-  decreases digits;  // see comment in test_eval()
+  requires 2 <= base
+  decreases digits  // see comment in test_eval()
 {
   if |digits| == 0 then 0 else digits[0] + base * eval(digits[1..], base)
 }
@@ -40,7 +40,7 @@ lemma test_eval()
 
 predicate IsSkewNumber(digits: seq<int>, lowDigit: int, base: nat)
 {
-  2 <= base &&  // there must be at least two digits
+  2 <= base &&  // there must be at least two distinct digits in the number representation
   lowDigit <= 0 < lowDigit + base &&  // digits must include 0
   forall d :: d in digits ==> lowDigit <= d < lowDigit + base  // every digit is in this range
 }
@@ -49,8 +49,8 @@ predicate IsSkewNumber(digits: seq<int>, lowDigit: int, base: nat)
 // of digits in the range [0..base].
 
 lemma CompleteNat(n: nat, base: nat) returns (digits: seq<int>)
-  requires 2 <= base;
-  ensures IsSkewNumber(digits, 0, base) && eval(digits, base) == n;
+  requires 2 <= base
+  ensures IsSkewNumber(digits, 0, base) && eval(digits, base) == n
 {
   if n < base {
     digits := [n];
@@ -83,8 +83,8 @@ lemma CompleteNat(n: nat, base: nat) returns (digits: seq<int>)
 
 // we used the following lemma to prove the theorem above
 lemma MulSign(x: int, y: int)
-  requires x * y <= 0;
-  ensures x <= 0 || y <= 0;
+  requires x * y <= 0
+  ensures x <= 0 || y <= 0
 {
 }
 
@@ -92,11 +92,11 @@ lemma MulSign(x: int, y: int)
 // then "n" can be represented.
 
 lemma Complete(n: int, lowDigit: int, base: nat) returns (digits: seq<int>)
-  requires 2 <= base && lowDigit <= 0 < lowDigit + base;
-  requires 0 <= lowDigit ==> 0 <= n;  // without negative digits, only non-negative numbers can be formed
-  requires lowDigit + base <= 1 ==> n <= 0;  // without positive digits, only positive numbers can be formed
-  ensures IsSkewNumber(digits, lowDigit, base) && eval(digits, base) == n;
-  decreases if 0 <= n then n else -n;
+  requires 2 <= base && lowDigit <= 0 < lowDigit + base
+  requires 0 <= lowDigit ==> 0 <= n  // without negative digits, only non-negative numbers can be formed
+  requires lowDigit + base <= 1 ==> n <= 0  // without positive digits, only positive numbers can be formed
+  ensures IsSkewNumber(digits, lowDigit, base) && eval(digits, base) == n
+  decreases if 0 <= n then n else -n
 {
   if lowDigit <= n < lowDigit + base{
     digits := [n];
@@ -110,10 +110,10 @@ lemma Complete(n: int, lowDigit: int, base: nat) returns (digits: seq<int>)
 }
 
 ghost method inc(a: seq<int>, lowDigit: int, base: nat) returns (b: seq<int>)
-  requires 2 <= base && lowDigit <= 0 < lowDigit + base;
-  requires IsSkewNumber(a, lowDigit, base);
-  requires eval(a, base) == 0 ==> 1 < lowDigit + base;
-  ensures IsSkewNumber(b, lowDigit, base) && eval(b, base) == eval(a, base) + 1;
+  requires 2 <= base && lowDigit <= 0 < lowDigit + base
+  requires IsSkewNumber(a, lowDigit, base)
+  requires eval(a, base) == 0 ==> 1 < lowDigit + base
+  ensures IsSkewNumber(b, lowDigit, base) && eval(b, base) == eval(a, base) + 1
 {
   if a == [] {
     b := [1];
@@ -126,10 +126,10 @@ ghost method inc(a: seq<int>, lowDigit: int, base: nat) returns (b: seq<int>)
 }
 
 ghost method dec(a: seq<int>, lowDigit: int, base: nat) returns (b: seq<int>)
-  requires 2 <= base && lowDigit <= 0 < lowDigit + base;
-  requires IsSkewNumber(a, lowDigit, base);
-  requires eval(a, base) == 0 ==> lowDigit < 0;
-  ensures IsSkewNumber(b, lowDigit, base) && eval(b, base) == eval(a, base) - 1;
+  requires 2 <= base && lowDigit <= 0 < lowDigit + base
+  requires IsSkewNumber(a, lowDigit, base)
+  requires eval(a, base) == 0 ==> lowDigit < 0
+  ensures IsSkewNumber(b, lowDigit, base) && eval(b, base) == eval(a, base) - 1
 {
   if a == [] {
     b := [-1];
@@ -155,20 +155,20 @@ function trim(digits: seq<int>): seq<int>
 
 lemma TrimResult(digits: seq<int>)
   ensures var last := |trim(digits)| - 1;
-    0 <= last ==> trim(digits)[last] != 0;
+    0 <= last ==> trim(digits)[last] != 0
 {
 }
 
 lemma TrimProperty(a: seq<int>)
-  requires a == trim(a);
-  ensures a == [] || a[1..] == trim(a[1..]);
+  requires a == trim(a)
+  ensures a == [] || a[1..] == trim(a[1..])
 {
   assert forall b {:trigger trim(b)} :: |trim(b)| <= |b|;
 }
 
 lemma TrimPreservesValue(digits: seq<int>, base: nat)
-  requires 2 <= base;
-  ensures eval(digits, base) == eval(trim(digits), base);
+  requires 2 <= base
+  ensures eval(digits, base) == eval(trim(digits), base)
 {
   var last := |digits| - 1;
   if |digits| != 0 && digits[last] == 0 {
@@ -178,8 +178,8 @@ lemma TrimPreservesValue(digits: seq<int>, base: nat)
 }
 
 lemma LeadingZeroInsignificant(digits: seq<int>, base: nat)
-  requires 2 <= base;
-  ensures eval(digits, base) == eval(digits + [0], base);
+  requires 2 <= base
+  ensures eval(digits, base) == eval(digits + [0], base)
 {
   if |digits| != 0 {
     var d := digits[0];
@@ -201,11 +201,11 @@ lemma LeadingZeroInsignificant(digits: seq<int>, base: nat)
 // We now get on with proving the uniqueness of the representation
 
 lemma UniqueRepresentation(a: seq<int>, b: seq<int>, lowDigit: int, base: nat)
-  requires 2 <= base && lowDigit <= 0 < lowDigit + base;
-  requires a == trim(a) && b == trim(b);
-  requires IsSkewNumber(a, lowDigit, base) && IsSkewNumber(b, lowDigit, base);
-  requires eval(a, base) == eval(b, base);
-  ensures a == b;
+  requires 2 <= base && lowDigit <= 0 < lowDigit + base
+  requires a == trim(a) && b == trim(b)
+  requires IsSkewNumber(a, lowDigit, base) && IsSkewNumber(b, lowDigit, base)
+  requires eval(a, base) == eval(b, base)
+  ensures a == b
 {
   if eval(a, base) == 0 {
     ZeroIsUnique(a, lowDigit, base);
@@ -325,9 +325,9 @@ lemma {:induction false} ZeroIsUnique(a: seq<int>, lowDigit: int, base: nat)
 }
 
 lemma LeastSignificantDigitIsAlmostMod(a: seq<int>, lowDigit: int, base: nat)
-  requires 2 <= base && lowDigit <= 0 < lowDigit + base && IsSkewNumber(a, lowDigit, base);
-  requires a != [];
-  ensures var mod := eval(a, base) % base; a[0] == mod || a[0] == mod - base;
+  requires 2 <= base && lowDigit <= 0 < lowDigit + base && IsSkewNumber(a, lowDigit, base)
+  requires a != []
+  ensures var mod := eval(a, base) % base; a[0] == mod || a[0] == mod - base
 {
   var n := eval(a, base);
   var d, m := n / base, n % base;
@@ -350,9 +350,9 @@ lemma LeastSignificantDigitIsAlmostMod(a: seq<int>, lowDigit: int, base: nat)
 }
 
 lemma MulProperty(k: int, a: int, x: int, b: int, y: int) returns (p: int)
-  requires 0 < k;
-  requires k * a + x == k * b + y;
-  ensures y - x == k * p;
+  requires 0 < k
+  requires k * a + x == k * b + y
+  ensures y - x == k * p
 {
   calc {
     k * a + x == k * b + y;
@@ -363,7 +363,7 @@ lemma MulProperty(k: int, a: int, x: int, b: int, y: int) returns (p: int)
 }
 
 lemma MulInverse(x: int, a: int, b: int, y: int)
-  requires x != 0 && x * a + y == x * b + y;
-  ensures a == b;
+  requires x != 0 && x * a + y == x * b + y
+  ensures a == b
 {
 }
