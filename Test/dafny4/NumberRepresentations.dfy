@@ -233,19 +233,94 @@ lemma UniqueRepresentation(a: seq<int>, b: seq<int>, lowDigit: int, base: nat)
   }
 }
 
-lemma ZeroIsUnique(a: seq<int>, lowDigit: int, base: nat)
-  requires 2 <= base && lowDigit <= 0 < lowDigit + base
-  requires a == trim(a)
+lemma {:induction false} ZeroIsUnique(a: seq<int>, lowDigit: int, base: nat)
+//  requires 2 <= base && lowDigit <= 0 < lowDigit + base
   requires IsSkewNumber(a, lowDigit, base)
-  requires eval(a, base) == 0
+  requires T: a == trim(a)
+  requires E0: eval(a, base) == 0
   ensures a == []
 {
   if a != [] {
-    if eval(a[1..], base) == 0 {
-      TrimProperty(a);
-      // ZeroIsUnique(a[1..], lowDigit, base);
+    var a1 := eval(a[1..], base);
+    var b := base * a1;
+    assert a[0] + b == eval(a, base);
+
+    assert R: -(base as int) < lowDigit <= a[0] < lowDigit + base <= base by {
+      assert a[0] in a;
     }
-    assert false;
+
+    // next, consider three cases: a1 is negative, a1 is 0, a1 is positive
+
+    calc {
+      a1 <= -1;
+    ==  // multiply both sides by base
+      b <= base * -1;
+    ==  // add a[0] to both sides
+      a[0] + b <= a[0] - base;
+    ==  { reveal E0; }
+      0 <= a[0] - base;
+    ==
+      base <= a[0];
+    ==>  { reveal R; }
+      false;
+    }
+
+    calc {
+      1 <= a1;
+    ==  // multiply both sides by base
+      base <= base * a1;
+    ==  // add a[0] to both sides
+      a[0] + base <= a[0] + base * a1;
+    ==  { reveal E0; }
+      a[0] + base <= 0;
+    ==
+      a[0] <= -(base as int);
+    ==>  { reveal R; }
+      false;
+    }
+
+    if a1 == 0 {
+      assert |a| == 1 by {
+        assert IsSkewNumber(a[1..], lowDigit, base) by {
+          assert forall d :: d in a[1..] ==> d in a;
+        }
+        assert a[1..] == trim(a[1..]) by {
+          reveal T;
+          TrimProperty(a);
+        }
+        ZeroIsUnique(a[1..], lowDigit, base);
+      }
+
+      calc {
+        true;
+      ==
+        a1 == 0;
+      ==>  // multiply both sides by base
+        base * a1 == 0;
+      ==  // add a[0] to both sides
+        a[0] + base * a1 == a[0];
+      ==  { reveal E0; }
+        0 == a[0];
+      }
+
+      calc {
+        a;
+      ==  { reveal T; }
+        trim(a);
+      ==  // def. trim
+        if |a| != 0 && a[|a| - 1] == 0 then trim(a[..|a|-1]) else a;
+      ==  { assert |a| == 1; }
+        if a[0] == 0 then trim(a[..0]) else a;
+      ==  { assert a[0] == 0; }
+        trim(a[..0]);
+      ==  { assert a[..0] == []; }
+        trim([]);
+      ==  // def. trim
+        [];
+      !=
+        a;
+      }
+    }
   }
 }
 
