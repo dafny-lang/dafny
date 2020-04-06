@@ -1066,6 +1066,19 @@ namespace Microsoft.Dafny {
     /// <summary>
     /// For every revealed type (class or trait) C that extends a trait J, add:
     ///   axiom IsTraitParent(class.C, class.J);
+    /// Note:
+    ///   At this time, a trait cannot extend another trait (which is enforced in the parser).
+    ///   However, that may change in the future. This method is forward compatible with such a change.
+    /// Note:
+    ///   The IsTraitParent predicates are currently not used for anything in the Boogie axiomatization.
+    ///   The idea is that these would be used to determine certain type relationships during verification.
+    ///   To be useful, there also needs to be a way to determine the _absence_ of trait-parent relationships.
+    ///   For example, suppose one can tell from the looking at the "extends" clauses in a program
+    ///   that a class C does not (directly or transitively) extend a trait T. Then, given variables c and t
+    ///   of static types C and T, respectively, the verifier should be able to infer c != t. This is not
+    ///   possible today. It will require an axiomatization of _all_ possible parent traits, not just
+    ///   saying that some are possible. When this becomes needed, the axiomatization will need to be
+    ///   embellished.
     /// </summary>
     private void AddTraitParentAxioms() {
       foreach (ModuleDefinition m in program.RawModules()) {
