@@ -273,7 +273,6 @@ namespace Microsoft.Dafny {
       public readonly Bpl.Type Ty;
       public readonly Bpl.Type TyTag;
       public readonly Bpl.Expr Null;
-      public readonly Bpl.Expr NoTraitAtAll;
       public readonly Bpl.Constant AllocField;
       [ContractInvariantMethod]
       void ObjectInvariant() {
@@ -309,7 +308,6 @@ namespace Microsoft.Dafny {
         Contract.Invariant(Ty != null);
         Contract.Invariant(TyTag != null);
         Contract.Invariant(Null != null);
-        Contract.Invariant(NoTraitAtAll != null);
         Contract.Invariant(AllocField != null);
       }
 
@@ -447,7 +445,6 @@ namespace Microsoft.Dafny {
         this.DtCtorId = new Bpl.CtorType(Token.NoToken, dtCtorId, new List<Bpl.Type>());
         this.AllocField = allocField;
         this.Null = new Bpl.IdentifierExpr(Token.NoToken, "null", refT);
-        this.NoTraitAtAll = new Bpl.IdentifierExpr(Token.NoToken, "NoTraitAtAll", ClassNameType);
       }
     }
 
@@ -1067,55 +1064,42 @@ namespace Microsoft.Dafny {
     }
 
     /// <summary>
-    /// adding TraitParent axioms
-    /// if a class A extends trait J and B does not extend anything, then this method adds the followings to the sink:
-    ///   axiom TraitParent(class.A) == class.J;
-    ///   axiom TraitParent(class.B) == NoTraitAtAll;
+    /// For every revealed type (class or trait) C that extends a trait J, add:
+    ///   axiom IsTraitParent(class.C, class.J);
+    /// Note:
+    ///   At this time, a trait cannot extend another trait (which is enforced in the parser).
+    ///   However, that may change in the future. This method is forward compatible with such a change.
+    /// Note:
+    ///   The IsTraitParent predicates are currently not used for anything in the Boogie axiomatization.
+    ///   The idea is that these would be used to determine certain type relationships during verification.
+    ///   To be useful, there also needs to be a way to determine the _absence_ of trait-parent relationships.
+    ///   For example, suppose one can tell from the looking at the "extends" clauses in a program
+    ///   that a class C does not (directly or transitively) extend a trait T. Then, given variables c and t
+    ///   of static types C and T, respectively, the verifier should be able to infer c != t. This is not
+    ///   possible today. It will require an axiomatization of _all_ possible parent traits, not just
+    ///   saying that some are possible. When this becomes needed, the axiomatization will need to be
+    ///   embellished.
     /// </summary>
-    private void AddTraitParentAxioms()
-    {
-        foreach (ModuleDefinition m in program.RawModules())
-        {
-            if (m.TopLevelDecls.Any(d => (d is ClassDecl && ((ClassDecl)d).TraitsObj.Count > 0) || (d is TraitDecl)))
-            {
-                foreach (TopLevelDecl d in m.TopLevelDecls)
-                {
-                  if (!VisibleInScope(d)) {
-                    continue;
-                  }
-                    if (d is ClassDecl)
-                    {
-                        var c = (ClassDecl)d;
-                        if (c.TraitsObj.Count > 0)
-                        {
-                            foreach (TraitDecl traitObj in c.TraitsObj)
-                            {
-                              if (!VisibleInScope(traitObj)) {
-                                continue;
-                              }
-                              //this adds: axiom TraitParent(class.A) == class.J; Where A extends J
-                              Bpl.Constant trait = GetClass(traitObj);
-                              Bpl.Expr traitId_expr = new Bpl.IdentifierExpr(traitObj.tok, trait);
+    private void AddTraitParentAxioms() {
+      foreach (ModuleDefinition m in program.RawModules()) {
+        foreach (TopLevelDecl d in m.TopLevelDecls) {
+          var c = d as ClassDecl;
+          if (c == null || !RevealedInScope(d)) {
+            continue;
+          }
+          foreach (TraitDecl tr in c.TraitsObj) {
+            Contract.Assert(RevealedInScope((Declaration)tr)); // the resolver allows "class/trait C extends J" only if J is known to be a trait
 
-                              var id = new Bpl.IdentifierExpr(c.tok, GetClass(c));
-                              var funCallExpr = FunctionCall(c.tok, BuiltinFunction.TraitParent, null, id);
-                              var traitParentAxiom = new Bpl.Axiom(c.tok, Bpl.Expr.Eq(funCallExpr, traitId_expr));
+            // axiom IsTraitParent(class.C, class.J);
+            var classIdExpr = new Bpl.IdentifierExpr(c.tok, GetClass(c));
+            var traitIdExpr = new Bpl.IdentifierExpr(c.tok, GetClass(tr));
 
-                              sink.AddTopLevelDeclaration(traitParentAxiom);
-                            }
-                        }
-                        else
-                        {
-                          var id = new Bpl.IdentifierExpr(c.tok, GetClass(c));
-                          var funCallExpr = FunctionCall(c.tok, BuiltinFunction.TraitParent, null, id);
-                          var traitParentAxiom = new Bpl.Axiom(c.tok, Bpl.Expr.Eq(funCallExpr, predef.NoTraitAtAll));
-
-                          sink.AddTopLevelDeclaration(traitParentAxiom);
-                        }
-                    }
-                }
-            }
+            var isTraitParent = FunctionCall(c.tok, BuiltinFunction.IsTraitParent, null, classIdExpr, traitIdExpr);
+            var traitParentAxiom = new Bpl.Axiom(c.tok, isTraitParent);
+            sink.AddTopLevelDeclaration(traitParentAxiom);
+          }
         }
+      }
     }
 
     /// <summary>
@@ -15981,7 +15965,7 @@ namespace Microsoft.Dafny {
       Is, IsBox,
       IsAlloc, IsAllocBox,
 
-      TraitParent,
+      IsTraitParent,
 
       SetCard,
       SetEmpty,
@@ -16178,10 +16162,10 @@ namespace Microsoft.Dafny {
           Contract.Assert(typeInstantiation == null);
           return FunctionCall(tok, "$IsAllocBox", Bpl.Type.Bool, args);
 
-        case BuiltinFunction.TraitParent:
-          Contract.Assert(args.Length == 1);
+        case BuiltinFunction.IsTraitParent:
+          Contract.Assert(args.Length == 2);
           Contract.Assert(typeInstantiation == null);
-          return FunctionCall(tok, "TraitParent", predef.ClassNameType, args);
+          return FunctionCall(tok, "IsTraitParent", Bpl.Type.Bool, args);
 
         case BuiltinFunction.SetCard:
           Contract.Assert(args.Length == 1);

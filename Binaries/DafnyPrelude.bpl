@@ -127,8 +127,7 @@ const null: ref;
 // -- Traits -----------------------------------------------------
 // ---------------------------------------------------------------
 
-const unique NoTraitAtAll: ClassName;
-function TraitParent(ClassName): ClassName;
+function IsTraitParent(classOrTrait: ClassName, traitParent: ClassName): bool;
 
 // ---------------------------------------------------------------
 // -- Boxing and unboxing ----------------------------------------
