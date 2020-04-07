@@ -69,12 +69,14 @@ method MethodG<T>(xs: List<T>) returns (xxs: List<List<T>>)
   case Cons(h, Cons(ht, tt)) =>
 }
 
+/* Error: parentheses are not allowed around a pattern
 method AssertionFailure(xs: List)
 {
   match xs
   case (Nil) =>  // BUG: this line causes an assertion in the Dafny implementation (what should happen is that "(Nil)" should not be allowed here)
   case (Cons(h, t)) =>  // BUG: ditto
 }
+*/
 
 method DuplicateIdentifierInPattern0<T>(xs: List<T>)
 {

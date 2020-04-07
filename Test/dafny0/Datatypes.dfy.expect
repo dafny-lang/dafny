@@ -6,37 +6,39 @@ Execution trace:
     (0,0): anon14_Else
     (0,0): anon15_Then
     (0,0): anon6
-Datatypes.dfy(298,11): Error: missing case in case statement: Appendix
+Datatypes.dfy(298,11): Error: missing case in match expression: Appendix(_)
 Execution trace:
     (0,0): anon0
     (0,0): anon13_Then
     (0,0): anon14_Else
     (0,0): anon15_Else
     (0,0): anon16_Then
-Datatypes.dfy(349,4): Error: missing case in case statement: Cons
+Datatypes.dfy(349,4): Error: missing case in match expression: Cons(_,_)
 Execution trace:
     (0,0): anon0
     (0,0): anon7_Else
     (0,0): anon8_Then
-Datatypes.dfy(349,4): Error: missing case in case statement: Nil
+Datatypes.dfy(349,4): Error: missing case in match expression: Nil
 Execution trace:
     (0,0): anon0
     (0,0): anon7_Else
     (0,0): anon8_Else
     (0,0): anon9_Then
-Datatypes.dfy(356,7): Error: missing case in case statement: Cons
+Datatypes.dfy(356,7): Error: missing case in match expression: Cons(_,_)
 Execution trace:
     (0,0): anon0
     (0,0): anon10_Else
-    (0,0): anon11_Then
+    (0,0): anon11_Else
     (0,0): anon12_Then
-Datatypes.dfy(356,7): Error: missing case in case statement: Nil
+    (0,0): anon13_Then
+Datatypes.dfy(356,7): Error: missing case in match expression: Nil
 Execution trace:
     (0,0): anon0
     (0,0): anon10_Else
-    (0,0): anon11_Then
-    (0,0): anon12_Else
-    (0,0): anon13_Then
+    (0,0): anon11_Else
+    (0,0): anon12_Then
+    (0,0): anon13_Else
+    (0,0): anon14_Then
 Datatypes.dfy(377,21): Error: RHS is not certain to look like the pattern 'AAA'
 Execution trace:
     (0,0): anon0

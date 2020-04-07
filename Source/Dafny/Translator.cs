@@ -7636,7 +7636,6 @@ namespace Microsoft.Dafny {
         CheckWellformedWithResult(e.Els, options, result, resultType, locals, bElse, etran);
         builder.Add(new Bpl.IfCmd(expr.tok, etran.TrExpr(e.Test), bThen.Collect(expr.tok), null, bElse.Collect(expr.tok)));
         result = null;
-
       } else if (expr is MatchExpr) {
         MatchExpr me = (MatchExpr)expr;
         CheckWellformed(me.Source, options, locals, builder, etran);
@@ -7659,7 +7658,9 @@ namespace Microsoft.Dafny {
             }
             builder.Add(new Bpl.HavocCmd(me.tok, havocIds));
           }
-          b.Add(Assert(me.tok, Bpl.Expr.False, "missing case in case statement: " + missingCtor.Name));
+
+          String missingStr = me.Context.FillHole(new IdCtx(new KeyValuePair<string, DatatypeCtor>(missingCtor.Name, missingCtor))).AbstractAllHoles().ToString();
+          b.Add(Assert(me.tok, Bpl.Expr.False, "missing case in match expression: " + missingStr));
 
           Bpl.Expr guard = Bpl.Expr.Eq(src, r);
           ifCmd = new Bpl.IfCmd(me.tok, guard, b.Collect(me.tok), ifCmd, els);
@@ -10393,6 +10394,9 @@ namespace Microsoft.Dafny {
         }
         CurrentIdGenerator.Pop();
         this.fuelContext = FuelSetting.PopFuelContext();
+      } else if (stmt is ConcreteSyntaxStatement) {
+        ConcreteSyntaxStatement s = (ConcreteSyntaxStatement)stmt;
+        TrStmt(s.ResolvedStatement, builder, locals, etran);
       } else if (stmt is MatchStmt) {
         var s = (MatchStmt)stmt;
         TrStmt_CheckWellformed(s.Source, builder, locals, etran, true);
@@ -10417,7 +10421,8 @@ namespace Microsoft.Dafny {
             }
             builder.Add(new Bpl.HavocCmd(s.Tok, havocIds));
           }
-          b.Add(Assert(s.Tok, Bpl.Expr.False, "missing case in case statement: " + missingCtor.Name));
+          String missingStr = s.Context.FillHole(new IdCtx(new KeyValuePair<string, DatatypeCtor>(missingCtor.Name, missingCtor))).AbstractAllHoles().ToString();
+          b.Add(Assert(s.Tok, Bpl.Expr.False, "missing case in match statement: " + missingStr));
 
           Bpl.Expr guard = Bpl.Expr.Eq(source, r);
           ifCmd = new Bpl.IfCmd(s.Tok, guard, b.Collect(s.Tok), ifCmd, els);
@@ -15441,7 +15446,6 @@ namespace Microsoft.Dafny {
           var thn = translator.RemoveLit(TrExpr(e.Thn));
           var els = translator.RemoveLit(TrExpr(e.Els));
           return new NAryExpr(expr.tok, new IfThenElse(expr.tok), new List<Bpl.Expr> { g, thn, els });
-
         } else if (expr is MatchExpr) {
           var e = (MatchExpr)expr;
           var ite = DesugarMatchExpr(e);
@@ -17888,7 +17892,6 @@ namespace Microsoft.Dafny {
             var newLet = new SubstLetExpr(e.tok, e.LHSs, new List<Expression>{ rhs }, body, e.Exact, e, newSubstMap, newTypeMap);
             newExpr = newLet;
           }
-
         } else if (expr is MatchExpr) {
           var e = (MatchExpr)expr;
           var src = Substitute(e.Source);
@@ -17905,7 +17908,7 @@ namespace Microsoft.Dafny {
             if (newBoundVars != mc.Arguments || body != mc.Body) {
               anythingChanged = true;
             }
-            var newCaseExpr = new MatchCaseExpr(mc.tok, mc.Id, newBoundVars, body);
+            var newCaseExpr = new MatchCaseExpr(mc.tok, mc.Ctor, newBoundVars, body);
             newCaseExpr.Ctor = mc.Ctor;  // resolve here
             cases.Add(newCaseExpr);
           }
@@ -18298,6 +18301,9 @@ namespace Microsoft.Dafny {
           rr.Steps.AddRange(s.Steps.ConvertAll(Substitute));
           rr.Result = Substitute(s.Result);
           r = rr;
+        } else if (stmt is ConcreteSyntaxStatement) {
+          var s = (ConcreteSyntaxStatement)stmt;
+          r = SubstStmt(s.ResolvedStatement);
         } else if (stmt is MatchStmt) {
           var s = (MatchStmt)stmt;
           var rr = new MatchStmt(s.Tok, s.EndTok, Substitute(s.Source), s.Cases.ConvertAll(SubstMatchCaseStmt), s.UsesOptionalBraces);
@@ -18427,7 +18433,7 @@ namespace Microsoft.Dafny {
       protected MatchCaseStmt SubstMatchCaseStmt(MatchCaseStmt c) {
         Contract.Requires(c != null);
         var newBoundVars = CreateBoundVarSubstitutions(c.Arguments, false);
-        var r = new MatchCaseStmt(c.tok, c.Id, newBoundVars, c.Body.ConvertAll(SubstStmt));
+        var r = new MatchCaseStmt(c.tok, c.Ctor, newBoundVars, c.Body.ConvertAll(SubstStmt));
         r.Ctor = c.Ctor;
         // undo any changes to substMap (could be optimized to do this only if newBoundVars != e.Vars)
         foreach (var bv in c.Arguments) {

@@ -54,6 +54,7 @@ namespace Microsoft.Dafny
     public int Induction = 3;
     public int InductionHeuristic = 6;
     public bool TypeInferenceDebug = false;
+    public bool MatchCompilerDebug = false;
     public string DafnyPrelude = null;
     public string DafnyPrintFile = null;
     public enum PrintModes { Everything, DllEmbed, NoIncludes, NoGhost };
@@ -231,6 +232,10 @@ namespace Microsoft.Dafny
             }
             return true;
           }
+
+        case "pmtrace":
+          MatchCompilerDebug = true;
+          return true;
 
         case "titrace":
           TypeInferenceDebug = true;
@@ -623,6 +628,7 @@ namespace Microsoft.Dafny
   /rprint:<file>
                 print Dafny program after resolving it
                 (use - as <file> to print to console)
+  /pmtrace      print pattern-match compiler debug info
   /titrace      print type-inference debug info
   /view:<view1, view2>
                 print the filtered views of a module after it is resolved (/rprint).
