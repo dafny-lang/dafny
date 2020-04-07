@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:0 /dprint:"%t.dprint" /autoTriggers:0 "%s" > "%t"
+// RUN: %dafny /compile:0 /dprint:"%t.dprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // We consider a number representation that consists of a sequence of digits.  The least
@@ -7,8 +7,8 @@
 // that eval can be defined without regard to the sign or magnitude of the digits.
 
 function eval(digits: seq<int>, base: int): int
-  requires 2 <= base;
-  decreases digits;  // see comment in test_eval()
+  requires 2 <= base
+  decreases digits  // see comment in test_eval()
 {
   if |digits| == 0 then 0 else digits[0] + base * eval(digits[1..], base)
 }
@@ -38,19 +38,19 @@ lemma test_eval()
 // consider digits that are drawn from a consecutive range of "base" integers
 // including 0.  That is, each digit lies in the half-open interval [lowDigit..lowDigit+base].
 
-predicate IsSkewNumber(digits: seq<int>, lowDigit: int, base: nat)
+predicate IsSkewNumber(digits: seq<int>, lowDigit: int, base: int)
 {
-  2 <= base &&  // there must be at least two digits
+  2 <= base &&  // there must be at least two distinct digits in the number representation
   lowDigit <= 0 < lowDigit + base &&  // digits must include 0
-  forall d :: d in digits ==> lowDigit <= d < lowDigit + base  // every digit is in this range
+  forall i :: 0 <= i < |digits| ==> lowDigit <= digits[i] < lowDigit + base  // every digit is in this range
 }
 
 // The following theorem says that any natural number is representable as a sequence
 // of digits in the range [0..base].
 
-lemma CompleteNat(n: nat, base: nat) returns (digits: seq<int>)
-  requires 2 <= base;
-  ensures IsSkewNumber(digits, 0, base) && eval(digits, base) == n;
+lemma CompleteNat(n: nat, base: int) returns (digits: seq<int>)
+  requires 2 <= base
+  ensures IsSkewNumber(digits, 0, base) && eval(digits, base) == n
 {
   if n < base {
     digits := [n];
@@ -83,20 +83,20 @@ lemma CompleteNat(n: nat, base: nat) returns (digits: seq<int>)
 
 // we used the following lemma to prove the theorem above
 lemma MulSign(x: int, y: int)
-  requires x * y <= 0;
-  ensures x <= 0 || y <= 0;
+  requires x * y <= 0
+  ensures x <= 0 || y <= 0
 {
 }
 
 // The following theorem says that, provided there's some digit with the same sign as "n",
 // then "n" can be represented.
 
-lemma Complete(n: int, lowDigit: int, base: nat) returns (digits: seq<int>)
-  requires 2 <= base && lowDigit <= 0 < lowDigit + base;
-  requires 0 <= lowDigit ==> 0 <= n;  // without negative digits, only non-negative numbers can be formed
-  requires lowDigit + base <= 1 ==> n <= 0;  // without positive digits, only positive numbers can be formed
-  ensures IsSkewNumber(digits, lowDigit, base) && eval(digits, base) == n;
-  decreases if 0 <= n then n else -n;
+lemma Complete(n: int, lowDigit: int, base: int) returns (digits: seq<int>)
+  requires 2 <= base && lowDigit <= 0 < lowDigit + base
+  requires 0 <= lowDigit ==> 0 <= n  // without negative digits, only non-negative numbers can be formed
+  requires lowDigit + base <= 1 ==> n <= 0  // without positive digits, only positive numbers can be formed
+  ensures IsSkewNumber(digits, lowDigit, base) && eval(digits, base) == n
+  decreases if 0 <= n then n else -n
 {
   if lowDigit <= n < lowDigit + base{
     digits := [n];
@@ -109,11 +109,10 @@ lemma Complete(n: int, lowDigit: int, base: nat) returns (digits: seq<int>)
   }
 }
 
-ghost method inc(a: seq<int>, lowDigit: int, base: nat) returns (b: seq<int>)
-  requires 2 <= base && lowDigit <= 0 < lowDigit + base;
-  requires IsSkewNumber(a, lowDigit, base);
-  requires eval(a, base) == 0 ==> 1 < lowDigit + base;
-  ensures IsSkewNumber(b, lowDigit, base) && eval(b, base) == eval(a, base) + 1;
+ghost method inc(a: seq<int>, lowDigit: int, base: int) returns (b: seq<int>)
+  requires IsSkewNumber(a, lowDigit, base)
+  requires eval(a, base) == 0 ==> 1 < lowDigit + base
+  ensures IsSkewNumber(b, lowDigit, base) && eval(b, base) == eval(a, base) + 1
 {
   if a == [] {
     b := [1];
@@ -125,11 +124,10 @@ ghost method inc(a: seq<int>, lowDigit: int, base: nat) returns (b: seq<int>)
   }
 }
 
-ghost method dec(a: seq<int>, lowDigit: int, base: nat) returns (b: seq<int>)
-  requires 2 <= base && lowDigit <= 0 < lowDigit + base;
-  requires IsSkewNumber(a, lowDigit, base);
-  requires eval(a, base) == 0 ==> lowDigit < 0;
-  ensures IsSkewNumber(b, lowDigit, base) && eval(b, base) == eval(a, base) - 1;
+ghost method dec(a: seq<int>, lowDigit: int, base: int) returns (b: seq<int>)
+  requires IsSkewNumber(a, lowDigit, base)
+  requires eval(a, base) == 0 ==> lowDigit < 0
+  ensures IsSkewNumber(b, lowDigit, base) && eval(b, base) == eval(a, base) - 1
 {
   if a == [] {
     b := [-1];
@@ -155,20 +153,20 @@ function trim(digits: seq<int>): seq<int>
 
 lemma TrimResult(digits: seq<int>)
   ensures var last := |trim(digits)| - 1;
-    0 <= last ==> trim(digits)[last] != 0;
+    0 <= last ==> trim(digits)[last] != 0
 {
 }
 
 lemma TrimProperty(a: seq<int>)
-  requires a == trim(a);
-  ensures a == [] || a[1..] == trim(a[1..]);
+  requires a == trim(a)
+  ensures a == [] || a[1..] == trim(a[1..])
 {
-  assert forall b {:trigger trim(b)} :: |trim(b)| <= |b|;
+  assert forall b :: |trim(b)| <= |b|;
 }
 
-lemma TrimPreservesValue(digits: seq<int>, base: nat)
-  requires 2 <= base;
-  ensures eval(digits, base) == eval(trim(digits), base);
+lemma TrimPreservesValue(digits: seq<int>, base: int)
+  requires 2 <= base
+  ensures eval(digits, base) == eval(trim(digits), base)
 {
   var last := |digits| - 1;
   if |digits| != 0 && digits[last] == 0 {
@@ -177,9 +175,9 @@ lemma TrimPreservesValue(digits: seq<int>, base: nat)
   }
 }
 
-lemma LeadingZeroInsignificant(digits: seq<int>, base: nat)
-  requires 2 <= base;
-  ensures eval(digits, base) == eval(digits + [0], base);
+lemma LeadingZeroInsignificant(digits: seq<int>, base: int)
+  requires 2 <= base
+  ensures eval(digits, base) == eval(digits + [0], base)
 {
   if |digits| != 0 {
     var d := digits[0];
@@ -200,12 +198,11 @@ lemma LeadingZeroInsignificant(digits: seq<int>, base: nat)
 
 // We now get on with proving the uniqueness of the representation
 
-lemma UniqueRepresentation(a: seq<int>, b: seq<int>, lowDigit: int, base: nat)
-  requires 2 <= base && lowDigit <= 0 < lowDigit + base;
-  requires a == trim(a) && b == trim(b);
-  requires IsSkewNumber(a, lowDigit, base) && IsSkewNumber(b, lowDigit, base);
-  requires eval(a, base) == eval(b, base);
-  ensures a == b;
+lemma UniqueRepresentation(a: seq<int>, b: seq<int>, lowDigit: int, base: int)
+  requires IsSkewNumber(a, lowDigit, base) && IsSkewNumber(b, lowDigit, base)
+  requires a == trim(a) && b == trim(b)
+  requires eval(a, base) == eval(b, base)
+  ensures a == b
 {
   if eval(a, base) == 0 {
     ZeroIsUnique(a, lowDigit, base);
@@ -233,51 +230,204 @@ lemma UniqueRepresentation(a: seq<int>, b: seq<int>, lowDigit: int, base: nat)
   }
 }
 
-lemma ZeroIsUnique(a: seq<int>, lowDigit: int, base: nat)
-  requires 2 <= base && lowDigit <= 0 < lowDigit + base
-  requires a == trim(a)
+lemma {:induction false} ZeroIsUnique(a: seq<int>, lowDigit: int, base: int)
   requires IsSkewNumber(a, lowDigit, base)
-  requires eval(a, base) == 0
+  requires T: a == trim(a)
+  requires E0: eval(a, base) == 0
   ensures a == []
 {
   if a != [] {
-    if eval(a[1..], base) == 0 {
-      TrimProperty(a);
-      // ZeroIsUnique(a[1..], lowDigit, base);
+    var a1 := eval(a[1..], base);
+    var b := base * a1;
+    assert a[0] + b == eval(a, base);
+
+    assert R: -base < lowDigit <= a[0] < lowDigit + base <= base by {
+      assert a[0] in a;
     }
-    assert false;
+
+    // next, consider three cases: a1 is negative, a1 is 0, a1 is positive
+
+    calc {
+      a1 <= -1;
+    ==  // multiply both sides by base
+      b <= base * -1;
+    ==  // add a[0] to both sides
+      a[0] + b <= a[0] - base;
+    ==  { reveal E0; }
+      0 <= a[0] - base;
+    ==
+      base <= a[0];
+    ==>  { reveal R; }
+      false;
+    }
+
+    calc {
+      1 <= a1;
+    ==  // multiply both sides by base
+      base <= base * a1;
+    ==  // add a[0] to both sides
+      a[0] + base <= a[0] + base * a1;
+    ==  { reveal E0; }
+      a[0] + base <= 0;
+    ==
+      a[0] <= -base;
+    ==>  { reveal R; }
+      false;
+    }
+
+    if a1 == 0 {
+      assert |a| == 1 by {
+        assert IsSkewNumber(a[1..], lowDigit, base) by {
+          assert forall d :: d in a[1..] ==> d in a;
+        }
+        assert a[1..] == trim(a[1..]) by {
+          reveal T;
+          TrimProperty(a);
+        }
+        ZeroIsUnique(a[1..], lowDigit, base);
+      }
+
+      calc {
+        true;
+      ==
+        a1 == 0;
+      ==>  // multiply both sides by base
+        base * a1 == 0;
+      ==  // add a[0] to both sides
+        a[0] + base * a1 == a[0];
+      ==  { reveal E0; }
+        0 == a[0];
+      }
+
+      calc {
+        a;
+      ==  { reveal T; }
+        trim(a);
+      ==  // def. trim
+        if |a| != 0 && a[|a| - 1] == 0 then trim(a[..|a|-1]) else a;
+      ==  { assert |a| == 1; }
+        if a[0] == 0 then trim(a[..0]) else a;
+      ==  { assert a[0] == 0; }
+        trim(a[..0]);
+      ==  { assert a[..0] == []; }
+        trim([]);
+      ==  // def. trim
+        [];
+      !=
+        a;
+      }
+    }
   }
 }
 
-lemma LeastSignificantDigitIsAlmostMod(a: seq<int>, lowDigit: int, base: nat)
-  requires 2 <= base && lowDigit <= 0 < lowDigit + base && IsSkewNumber(a, lowDigit, base);
-  requires a != [];
-  ensures var mod := eval(a, base) % base; a[0] == mod || a[0] == mod - base;
-{ assume false;  // TODO: temporary hack to get around Z3's fickleness and make progress with check-in
+lemma LeastSignificantDigitIsAlmostMod(a: seq<int>, lowDigit: int, base: int)
+  requires IsSkewNumber(a, lowDigit, base)
+  requires a != []
+  ensures var mod := eval(a, base) % base;
+    a[0] == mod || a[0] == mod - base
+{
+  if 0 <= a[0] {
+    LeastSignificantDigitIsAlmostMod_Pos(a, lowDigit, base);
+  } else {
+    LeastSignificantDigitIsAlmostMod_Neg(a, lowDigit, base);
+  }
+}
+
+lemma LeastSignificantDigitIsAlmostMod_Pos(a: seq<int>, lowDigit: int, base: int)
+  requires IsSkewNumber(a, lowDigit, base)
+  requires a != [] && 0 <= a[0]
+  ensures eval(a, base) % base == a[0]
+{
   var n := eval(a, base);
+  var a1 := eval(a[1..], base);
+  var b := base * a1;
+  assert a[0] + b == n;
+
+  calc {
+    n % base;
+  ==
+    (a[0] + base * a1) % base;
+  ==  { ModProperty(a[0], a1, base); }
+    a[0] % base;
+  ==  { assert a[0] in a; assert 0 <= a[0] < base; }
+    a[0];
+  }
+}
+
+lemma LeastSignificantDigitIsAlmostMod_Neg(a: seq<int>, lowDigit: int, base: int)
+  requires IsSkewNumber(a, lowDigit, base)
+  requires a != [] && a[0] < 0
+  ensures eval(a, base) % base == a[0] + base
+{
+  var n := eval(a, base);
+  var a1 := eval(a[1..], base);
+  var b := base * a1;
+  assert a[0] + b == n;
+
+  var aPlus, a1minus := a[0] + base, a1 - 1;
+  calc {
+    n % base;
+  ==
+    (a[0] + base * a1) % base;
+  ==  { assert base * a1 == base + base * a1minus; }
+    (a[0] + (base + base * a1minus)) % base;
+  ==
+    ((a[0] + base) + base * a1minus) % base;
+  ==  { ModProperty(a[0] + base, a1minus, base); }
+    (a[0] + base) % base;
+  ==  { assert a[0] in a; assert 0 <= a[0] + base < base; }
+    a[0] + base;
+  }
+}
+
+
+lemma ModProperty(n: int, k: int, base: int)
+  requires 2 <= base
+  ensures (n + base * k) % base == n % base
+{
   var d, m := n / base, n % base;
   assert base * d + m == n;
-  assert 0 <= m < base;
+  assert R: 0 <= m < base;
 
-  assert lowDigit <= a[0] < lowDigit + base;
-  var arest := a[1..];
-  var nrest := eval(arest, base);
-  assert base * nrest + a[0] == n;
+  var n' := n + base * k;
+  var d', m' := n' / base, n' % base;
+  assert base * d' + m' == n';
+  assert R': 0 <= m' < base;
 
-  var p := MulProperty(base, d, m, nrest, a[0]);
-  assert -base <= a[0] - m < base;
-  assert -base == -1 * base && base == 1 * base;
-  assert -1 * base <= a[0] - m < 1 * base;
-  if {
-    case p == -1 =>  assert a[0] == m - base;
-    case p == 0 =>  assert a[0] == m;
+  assert -base < m' - m < base by {
+    reveal R, R';
   }
+
+  var y := m' - base * k;
+  var p := MulProperty(base, d, m, d', y);
+  var pk := p + k;
+  calc {
+    true;
+    // postcondition of MulProperty
+    y - m == base * p;
+    // def. m'
+    m' - base * k - m == base * p;
+    // add base*k to both sides
+    m' - m == base * p + base * k;
+    // distribute * and +
+    m' - m == base * pk;
+  }
+  if
+  case pk < 0 =>
+    assert base * pk <= -base;
+    assert false;
+  case 0 < pk =>
+    assert base <= base * pk;
+    assert false;
+  case pk == 0 =>
+    assert base * pk == 0;
+    assert m' == m;
 }
 
 lemma MulProperty(k: int, a: int, x: int, b: int, y: int) returns (p: int)
-  requires 0 < k;
-  requires k * a + x == k * b + y;
-  ensures y - x == k * p;
+  requires 0 < k
+  requires k * a + x == k * b + y
+  ensures y - x == k * p
 {
   calc {
     k * a + x == k * b + y;
@@ -288,7 +438,7 @@ lemma MulProperty(k: int, a: int, x: int, b: int, y: int) returns (p: int)
 }
 
 lemma MulInverse(x: int, a: int, b: int, y: int)
-  requires x != 0 && x * a + y == x * b + y;
-  ensures a == b;
+  requires x != 0 && x * a + y == x * b + y
+  ensures a == b
 {
 }

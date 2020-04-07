@@ -277,7 +277,6 @@ namespace Microsoft.Dafny {
       public readonly Bpl.Type Ty;
       public readonly Bpl.Type TyTag;
       public readonly Bpl.Expr Null;
-      public readonly Bpl.Expr NoTraitAtAll;
       public readonly Bpl.Constant AllocField;
       [ContractInvariantMethod]
       void ObjectInvariant() {
@@ -313,7 +312,6 @@ namespace Microsoft.Dafny {
         Contract.Invariant(Ty != null);
         Contract.Invariant(TyTag != null);
         Contract.Invariant(Null != null);
-        Contract.Invariant(NoTraitAtAll != null);
         Contract.Invariant(AllocField != null);
       }
 
@@ -451,7 +449,6 @@ namespace Microsoft.Dafny {
         this.DtCtorId = new Bpl.CtorType(Token.NoToken, dtCtorId, new List<Bpl.Type>());
         this.AllocField = allocField;
         this.Null = new Bpl.IdentifierExpr(Token.NoToken, "null", refT);
-        this.NoTraitAtAll = new Bpl.IdentifierExpr(Token.NoToken, "NoTraitAtAll", ClassNameType);
       }
     }
 
@@ -1062,55 +1059,42 @@ namespace Microsoft.Dafny {
     }
 
     /// <summary>
-    /// adding TraitParent axioms
-    /// if a class A extends trait J and B does not extend anything, then this method adds the followings to the sink:
-    ///   axiom TraitParent(class.A) == class.J;
-    ///   axiom TraitParent(class.B) == NoTraitAtAll;
+    /// For every revealed type (class or trait) C that extends a trait J, add:
+    ///   axiom IsTraitParent(class.C, class.J);
+    /// Note:
+    ///   At this time, a trait cannot extend another trait (which is enforced in the parser).
+    ///   However, that may change in the future. This method is forward compatible with such a change.
+    /// Note:
+    ///   The IsTraitParent predicates are currently not used for anything in the Boogie axiomatization.
+    ///   The idea is that these would be used to determine certain type relationships during verification.
+    ///   To be useful, there also needs to be a way to determine the _absence_ of trait-parent relationships.
+    ///   For example, suppose one can tell from the looking at the "extends" clauses in a program
+    ///   that a class C does not (directly or transitively) extend a trait T. Then, given variables c and t
+    ///   of static types C and T, respectively, the verifier should be able to infer c != t. This is not
+    ///   possible today. It will require an axiomatization of _all_ possible parent traits, not just
+    ///   saying that some are possible. When this becomes needed, the axiomatization will need to be
+    ///   embellished.
     /// </summary>
-    private void AddTraitParentAxioms()
-    {
-        foreach (ModuleDefinition m in program.RawModules())
-        {
-            if (m.TopLevelDecls.Any(d => (d is ClassDecl && ((ClassDecl)d).TraitsObj.Count > 0) || (d is TraitDecl)))
-            {
-                foreach (TopLevelDecl d in m.TopLevelDecls)
-                {
-                  if (!VisibleInScope(d)) {
-                    continue;
-                  }
-                    if (d is ClassDecl)
-                    {
-                        var c = (ClassDecl)d;
-                        if (c.TraitsObj.Count > 0)
-                        {
-                            foreach (TraitDecl traitObj in c.TraitsObj)
-                            {
-                              if (!VisibleInScope(traitObj)) {
-                                continue;
-                              }
-                              //this adds: axiom TraitParent(class.A) == class.J; Where A extends J
-                              Bpl.Constant trait = GetClass(traitObj);
-                              Bpl.Expr traitId_expr = new Bpl.IdentifierExpr(traitObj.tok, trait);
+    private void AddTraitParentAxioms() {
+      foreach (ModuleDefinition m in program.RawModules()) {
+        foreach (TopLevelDecl d in m.TopLevelDecls) {
+          var c = d as ClassDecl;
+          if (c == null || !RevealedInScope(d)) {
+            continue;
+          }
+          foreach (TraitDecl tr in c.TraitsObj) {
+            Contract.Assert(RevealedInScope((Declaration)tr)); // the resolver allows "class/trait C extends J" only if J is known to be a trait
 
-                              var id = new Bpl.IdentifierExpr(c.tok, GetClass(c));
-                              var funCallExpr = FunctionCall(c.tok, BuiltinFunction.TraitParent, null, id);
-                              var traitParentAxiom = new Bpl.Axiom(c.tok, Bpl.Expr.Eq(funCallExpr, traitId_expr));
+            // axiom IsTraitParent(class.C, class.J);
+            var classIdExpr = new Bpl.IdentifierExpr(c.tok, GetClass(c));
+            var traitIdExpr = new Bpl.IdentifierExpr(c.tok, GetClass(tr));
 
-                              sink.AddTopLevelDeclaration(traitParentAxiom);
-                            }
-                        }
-                        else
-                        {
-                          var id = new Bpl.IdentifierExpr(c.tok, GetClass(c));
-                          var funCallExpr = FunctionCall(c.tok, BuiltinFunction.TraitParent, null, id);
-                          var traitParentAxiom = new Bpl.Axiom(c.tok, Bpl.Expr.Eq(funCallExpr, predef.NoTraitAtAll));
-
-                          sink.AddTopLevelDeclaration(traitParentAxiom);
-                        }
-                    }
-                }
-            }
+            var isTraitParent = FunctionCall(c.tok, BuiltinFunction.IsTraitParent, null, classIdExpr, traitIdExpr);
+            var traitParentAxiom = new Bpl.Axiom(c.tok, isTraitParent);
+            sink.AddTopLevelDeclaration(traitParentAxiom);
+          }
         }
+      }
     }
 
     /// <summary>
@@ -7658,7 +7642,6 @@ namespace Microsoft.Dafny {
         CheckWellformedWithResult(e.Els, options, result, resultType, locals, bElse, etran);
         builder.Add(new Bpl.IfCmd(expr.tok, etran.TrExpr(e.Test), bThen.Collect(expr.tok), null, bElse.Collect(expr.tok)));
         result = null;
-
       } else if (expr is MatchExpr) {
         MatchExpr me = (MatchExpr)expr;
         CheckWellformed(me.Source, options, locals, builder, etran);
@@ -7681,7 +7664,9 @@ namespace Microsoft.Dafny {
             }
             builder.Add(new Bpl.HavocCmd(me.tok, havocIds));
           }
-          b.Add(Assert(me.tok, Bpl.Expr.False, "missing case in case statement: " + missingCtor.Name));
+
+          String missingStr = me.Context.FillHole(new IdCtx(new KeyValuePair<string, DatatypeCtor>(missingCtor.Name, missingCtor))).AbstractAllHoles().ToString();
+          b.Add(Assert(me.tok, Bpl.Expr.False, "missing case in match expression: " + missingStr));
 
           Bpl.Expr guard = Bpl.Expr.Eq(src, r);
           ifCmd = new Bpl.IfCmd(me.tok, guard, b.Collect(me.tok), ifCmd, els);
@@ -10415,6 +10400,9 @@ namespace Microsoft.Dafny {
         }
         CurrentIdGenerator.Pop();
         this.fuelContext = FuelSetting.PopFuelContext();
+      } else if (stmt is ConcreteSyntaxStatement) {
+        ConcreteSyntaxStatement s = (ConcreteSyntaxStatement)stmt;
+        TrStmt(s.ResolvedStatement, builder, locals, etran);
       } else if (stmt is MatchStmt) {
         var s = (MatchStmt)stmt;
         TrStmt_CheckWellformed(s.Source, builder, locals, etran, true);
@@ -10439,7 +10427,8 @@ namespace Microsoft.Dafny {
             }
             builder.Add(new Bpl.HavocCmd(s.Tok, havocIds));
           }
-          b.Add(Assert(s.Tok, Bpl.Expr.False, "missing case in case statement: " + missingCtor.Name));
+          String missingStr = s.Context.FillHole(new IdCtx(new KeyValuePair<string, DatatypeCtor>(missingCtor.Name, missingCtor))).AbstractAllHoles().ToString();
+          b.Add(Assert(s.Tok, Bpl.Expr.False, "missing case in match statement: " + missingStr));
 
           Bpl.Expr guard = Bpl.Expr.Eq(source, r);
           ifCmd = new Bpl.IfCmd(s.Tok, guard, b.Collect(s.Tok), ifCmd, els);
@@ -15463,7 +15452,6 @@ namespace Microsoft.Dafny {
           var thn = translator.RemoveLit(TrExpr(e.Thn));
           var els = translator.RemoveLit(TrExpr(e.Els));
           return new NAryExpr(expr.tok, new IfThenElse(expr.tok), new List<Bpl.Expr> { g, thn, els });
-
         } else if (expr is MatchExpr) {
           var e = (MatchExpr)expr;
           var ite = DesugarMatchExpr(e);
@@ -15987,7 +15975,7 @@ namespace Microsoft.Dafny {
       Is, IsBox,
       IsAlloc, IsAllocBox,
 
-      TraitParent,
+      IsTraitParent,
 
       SetCard,
       SetEmpty,
@@ -16184,10 +16172,10 @@ namespace Microsoft.Dafny {
           Contract.Assert(typeInstantiation == null);
           return FunctionCall(tok, "$IsAllocBox", Bpl.Type.Bool, args);
 
-        case BuiltinFunction.TraitParent:
-          Contract.Assert(args.Length == 1);
+        case BuiltinFunction.IsTraitParent:
+          Contract.Assert(args.Length == 2);
           Contract.Assert(typeInstantiation == null);
-          return FunctionCall(tok, "TraitParent", predef.ClassNameType, args);
+          return FunctionCall(tok, "IsTraitParent", Bpl.Type.Bool, args);
 
         case BuiltinFunction.SetCard:
           Contract.Assert(args.Length == 1);
@@ -17910,7 +17898,6 @@ namespace Microsoft.Dafny {
             var newLet = new SubstLetExpr(e.tok, e.LHSs, new List<Expression>{ rhs }, body, e.Exact, e, newSubstMap, newTypeMap);
             newExpr = newLet;
           }
-
         } else if (expr is MatchExpr) {
           var e = (MatchExpr)expr;
           var src = Substitute(e.Source);
@@ -17927,7 +17914,7 @@ namespace Microsoft.Dafny {
             if (newBoundVars != mc.Arguments || body != mc.Body) {
               anythingChanged = true;
             }
-            var newCaseExpr = new MatchCaseExpr(mc.tok, mc.Id, newBoundVars, body);
+            var newCaseExpr = new MatchCaseExpr(mc.tok, mc.Ctor, newBoundVars, body);
             newCaseExpr.Ctor = mc.Ctor;  // resolve here
             cases.Add(newCaseExpr);
           }
@@ -18320,6 +18307,9 @@ namespace Microsoft.Dafny {
           rr.Steps.AddRange(s.Steps.ConvertAll(Substitute));
           rr.Result = Substitute(s.Result);
           r = rr;
+        } else if (stmt is ConcreteSyntaxStatement) {
+          var s = (ConcreteSyntaxStatement)stmt;
+          r = SubstStmt(s.ResolvedStatement);
         } else if (stmt is MatchStmt) {
           var s = (MatchStmt)stmt;
           var rr = new MatchStmt(s.Tok, s.EndTok, Substitute(s.Source), s.Cases.ConvertAll(SubstMatchCaseStmt), s.UsesOptionalBraces);
@@ -18449,7 +18439,7 @@ namespace Microsoft.Dafny {
       protected MatchCaseStmt SubstMatchCaseStmt(MatchCaseStmt c) {
         Contract.Requires(c != null);
         var newBoundVars = CreateBoundVarSubstitutions(c.Arguments, false);
-        var r = new MatchCaseStmt(c.tok, c.Id, newBoundVars, c.Body.ConvertAll(SubstStmt));
+        var r = new MatchCaseStmt(c.tok, c.Ctor, newBoundVars, c.Body.ConvertAll(SubstStmt));
         r.Ctor = c.Ctor;
         // undo any changes to substMap (could be optimized to do this only if newBoundVars != e.Vars)
         foreach (var bv in c.Arguments) {

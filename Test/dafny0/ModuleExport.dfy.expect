@@ -5,8 +5,7 @@ ModuleExport.dfy(32,7): Error: expected method call, found expression
 ModuleExport.dfy(42,11): Error: unresolved identifier: k
 ModuleExport.dfy(52,9): Error: unresolved identifier: g
 ModuleExport.dfy(53,9): Error: unresolved identifier: k
-ModuleExport.dfy(66,2): Error: Type mismatch: expected constructor of type Data.  Got Orang.
-ModuleExport.dfy(66,2): Error: member 'Orang' does not exist in datatype 'Data'
+ModuleExport.dfy(66,2): Warning: this branch is redundant 
 ModuleExport.dfy(70,7): Error: Public2 must be an export of F to be extended
 ModuleExport.dfy(74,34): Error: 'g2' must be a member of 'F' to be exported
 ModuleExport.dfy(100,9): Error: no default export set declared in module: G
@@ -18,4 +17,4 @@ ModuleExport.dfy(224,11): Error: Undeclared top-level type or type parameter: X 
 ModuleExport.dfy(259,13): Error: no default export set declared in module: ModuleName4
 ModuleExport.dfy(262,25): Error: no export set 'Y' in module 'ModuleName4'
 ModuleExport.dfy(266,9): Error: duplicate name of export set: X
-20 resolution/type errors detected in ModuleExport.dfy
+18 resolution/type errors detected in ModuleExport.dfy
