@@ -29,7 +29,7 @@ jobs:
       uses: actions/checkout@v2
       with:
         repository: boogie-org/boogie
-        ref: v2.4.2
+        ref: v2.4.21
         path: boogie
     - name: Nuget Restore Boogie
       run: nuget restore boogie/Source/Boogie.sln

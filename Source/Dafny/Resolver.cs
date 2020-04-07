@@ -10143,7 +10143,7 @@ namespace Microsoft.Dafny
     private class RBranchStmt : RBranch {
       public List<Statement> Body;
 
-      public RBranchStmt(IToken tok, int branchid, List<ExtendedPattern> patterns,  List<Statement> body) : base(tok, branchid, patterns) {
+      public RBranchStmt(IToken tok, int branchid, List<ExtendedPattern> patterns, List<Statement> body) : base(tok, branchid, patterns) {
         this.Body = body;
       }
 
@@ -10595,7 +10595,7 @@ namespace Microsoft.Dafny
        // Get the datatype of the matchee
       var currMatcheeType = PartiallyResolveTypeForMemberSelection(currMatchee.tok, currMatchee.Type).NormalizeExpand();
       if (currMatcheeType is TypeProxy) {
-          PartiallySolveTypeConstraints(true);
+        PartiallySolveTypeConstraints(true);
       }
       var dtd = currMatcheeType.AsDatatype;
 
@@ -10846,7 +10846,7 @@ namespace Microsoft.Dafny
     private void CheckLinearNestedMatchExpr(Type dtd, NestedMatchExpr me) {
       foreach(NestedMatchCaseExpr mc in me.Cases) {
         scope.PushMarker();
-        CheckLinearNestedMatchCase(dtd,  mc);
+        CheckLinearNestedMatchCase(dtd, mc);
         scope.PopMarker();
       }
     }
@@ -10854,7 +10854,7 @@ namespace Microsoft.Dafny
     private void CheckLinearNestedMatchStmt(Type dtd, NestedMatchStmt ms) {
       foreach(NestedMatchCaseStmt mc in ms.Cases) {
         scope.PushMarker();
-        CheckLinearNestedMatchCase(dtd,  mc);
+        CheckLinearNestedMatchCase(dtd, mc);
         scope.PopMarker();
       }
     }

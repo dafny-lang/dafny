@@ -10807,7 +10807,7 @@ namespace Microsoft.Dafny {
       return new IdCtx(this.Id, this.Arguments.ConvertAll<MatchingContext>(x => x.AbstractAllHoles()));
     }
 
-    // Find the first (leftmost) occurence of HoleCtx and replace it with curr
+    // Find the first (leftmost) occurrence of HoleCtx and replace it with curr
     // Returns false if no HoleCtx is found
     private bool ReplaceLeftmost(MatchingContext curr, out MatchingContext newcontext) {
       var newArguments = new List<MatchingContext>();
