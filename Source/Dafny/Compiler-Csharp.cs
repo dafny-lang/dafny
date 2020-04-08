@@ -118,7 +118,7 @@ namespace Microsoft.Dafny
       return Util.Comma(targs, tp => IdName(tp));
     }
 
-    protected override IClassWriter CreateClass(string name, bool isExtern, string/*?*/ fullPrintName, List<TypeParameter>/*?*/ typeParameters, List<Type>/*?*/ superClasses, Bpl.IToken tok, TargetWriter wr) {
+    protected override IClassWriter CreateClass(string moduleName, string name, bool isExtern, string/*?*/ fullPrintName, List<TypeParameter>/*?*/ typeParameters, List<Type>/*?*/ superClasses, Bpl.IToken tok, TargetWriter wr) {
       wr.Write("public partial class {0}", name);
       if (typeParameters != null && typeParameters.Count != 0) {
         wr.Write("<{0}>", TypeParameters(typeParameters));
@@ -176,14 +176,14 @@ namespace Microsoft.Dafny
       //   }
 
       var cw =
-        CreateClass(IdName(iter), iter.TypeArgs, wr) as CsharpCompiler.ClassWriter;
+        CreateClass(iter.Module.CompileName, IdName(iter), iter.TypeArgs, wr) as CsharpCompiler.ClassWriter;
       var w = cw.InstanceMemberWriter;
       // here come the fields
       Constructor ct = null;
       foreach (var member in iter.Members) {
         var f = member as Field;
         if (f != null && !f.IsGhost) {
-          cw.DeclareField(IdName(f), false, false, f.Type, f.tok, DefaultValue(f.Type, w, f.tok));
+          cw.DeclareField(IdName(f), iter.TypeArgs, false, false, f.Type, f.tok, DefaultValue(f.Type, w, f.tok));
         } else if (member is Constructor) {
           Contract.Assert(ct == null);  // we're expecting just one constructor
           ct = (Constructor)member;
@@ -636,7 +636,7 @@ namespace Microsoft.Dafny
     }
 
     protected override IClassWriter DeclareNewtype(NewtypeDecl nt, TargetWriter wr) {
-      var cw = CreateClass(IdName(nt), null, wr) as CsharpCompiler.ClassWriter;
+      var cw = CreateClass(nt.Module.CompileName, IdName(nt), null, wr) as CsharpCompiler.ClassWriter;
       var w = cw.StaticMemberWriter;
       if (nt.NativeType != null) {
         var wEnum = w.NewNamedBlock("public static System.Collections.Generic.IEnumerable<{0}> IntegerRange(BigInteger lo, BigInteger hi)", GetNativeTypeName(nt.NativeType));
@@ -646,7 +646,7 @@ namespace Microsoft.Dafny
         var witness = new TargetWriter(w.IndentLevel, true);
         TrExpr(nt.Witness, witness, false);
         if (nt.NativeType == null) {
-          cw.DeclareField("Witness", true, true, nt.BaseType, nt.tok, witness.ToString());
+          cw.DeclareField("Witness", nt.TypeArgs, true, true, nt.BaseType, nt.tok, witness.ToString());
         } else {
           w.Write("public static readonly {0} Witness = ({0})(", GetNativeTypeName(nt.NativeType));
           w.Append(witness);
@@ -657,11 +657,11 @@ namespace Microsoft.Dafny
     }
 
     protected override void DeclareSubsetType(SubsetTypeDecl sst, TargetWriter wr) {
-      ClassWriter cw = CreateClass(IdName(sst), sst.TypeArgs, wr) as ClassWriter;
+      ClassWriter cw = CreateClass(sst.Module.CompileName, IdName(sst), sst.TypeArgs, wr) as ClassWriter;
       if (sst.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
         var sw = new TargetWriter(cw.InstanceMemberWriter.IndentLevel, true);
         TrExpr(sst.Witness, sw, false);
-        cw.DeclareField("Witness", true, true, sst.Rhs, sst.tok, sw.ToString());
+        cw.DeclareField("Witness", sst.TypeArgs, true, true, sst.Rhs, sst.tok, sw.ToString());
       }
     }
 
@@ -698,7 +698,7 @@ namespace Microsoft.Dafny
       public BlockTargetWriter/*?*/ CreateGetterSetter(string name, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl/*?*/ member, out TargetWriter setterWriter) {
         return Compiler.CreateGetterSetter(name, resultType, tok, isStatic, createBody, out setterWriter, Writer(isStatic));
       }
-      public void DeclareField(string name, bool isStatic, bool isConst, Type type, Bpl.IToken tok, string rhs) {
+      public void DeclareField(string name, List<TypeParameter> targs, bool isStatic, bool isConst, Type type, Bpl.IToken tok, string rhs) {
         Compiler.DeclareField(name, isStatic, isConst, type, tok, rhs, Writer(isStatic));
       }
       public TextWriter/*?*/ ErrorWriter() => InstanceMemberWriter;
