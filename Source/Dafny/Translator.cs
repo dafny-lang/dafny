@@ -175,6 +175,10 @@ namespace Microsoft.Dafny {
     [Pure]
     bool VisibleInScope(Declaration d) {
       Contract.Requires(d != null);
+      if (d is ClassDecl cl && cl.NonNullTypeDecl != null) {
+        // "provides" is recorded in the non-null type declaration, not the class
+        return cl.NonNullTypeDecl.IsVisibleInScope(currentScope);
+      }
       return d.IsVisibleInScope(currentScope);
     }
 
@@ -787,19 +791,10 @@ namespace Microsoft.Dafny {
           currentDeclaration = d;
           if (d is OpaqueTypeDecl) {
             AddTypeDecl((OpaqueTypeDecl)d);
-          } else if (d is RevealableTypeDecl) {
-            AddTypeDecl((RevealableTypeDecl)d);
           } else if (d is ModuleDecl) {
             // submodules have already been added as a top level module, ignore this.
-          } else if (d is ClassDecl) {
-            var cl = (ClassDecl)d;
-            AddClassMembers(cl, DafnyOptions.O.OptimizeResolution < 1);
-            if (cl.NonNullTypeDecl != null) {
-              AddTypeDecl(cl.NonNullTypeDecl);
-            }
-            if (d is IteratorDecl) {
-              AddIteratorSpecAndBody((IteratorDecl)d);
-            }
+          } else if (d is RevealableTypeDecl) {
+            AddTypeDecl((RevealableTypeDecl)d);
           } else {
             Contract.Assert(false);
           }
@@ -1172,6 +1167,15 @@ namespace Microsoft.Dafny {
           var dd = (NewtypeDecl)d;
           AddTypeDecl(dd);
           AddClassMembers(dd, true);
+        } else if (d is ClassDecl) {
+          var cl = (ClassDecl)d;
+          AddClassMembers(cl, DafnyOptions.O.OptimizeResolution < 1);
+          if (cl.NonNullTypeDecl != null) {
+            AddTypeDecl(cl.NonNullTypeDecl);
+          }
+          if (d is IteratorDecl) {
+            AddIteratorSpecAndBody((IteratorDecl)d);
+          }
         } else if (d is DatatypeDecl) {
           var dd = (DatatypeDecl)d;
           AddDatatype(dd);
@@ -2224,21 +2228,12 @@ namespace Microsoft.Dafny {
           AddFunction_Top((Function)member);
         } else if (member is Method) {
           if (includeMethods || InVerificationScope(member) || referencedMembers.Contains(member)) {
-            AddMember_Top(member);
+            AddMethod_Top((Method)member);
           }
         } else {
           Contract.Assert(false); throw new cce.UnreachableException();  // unexpected member
         }
       }
-    }
-
-    void AddMember_Top(MemberDecl mem) {
-      Contract.Requires(mem is Method);
-
-      if (mem is Method) {
-        AddMethod_Top((Method)mem);
-      }
-
     }
 
     void AddFunction_Top(Function f) {
@@ -3517,7 +3512,7 @@ namespace Microsoft.Dafny {
         receiver = new StaticReceiverExpr(tok, (ClassDecl)member.EnclosingClass, true);  // this also resolves it
       } else {
         receiver = new ImplicitThisExpr(tok);
-        receiver.Type = Resolver.GetThisType(tok, (TopLevelDeclWithMembers)member.EnclosingClass);  // resolve here
+        receiver.Type = Resolver.GetReceiverType(tok, member);  // resolve here
       }
 
       arguments = new List<Expression>();
@@ -3985,11 +3980,19 @@ namespace Microsoft.Dafny {
         Bpl.Expr o_ty = ClassTyCon(c, tyexprs);
 
         var isGoodHeap = FunctionCall(c.tok, BuiltinFunction.IsGoodHeap, null, h);
-        Bpl.Expr is_o = BplAnd(
-          ReceiverNotNull(o),
-          c is TraitDecl ? MkIs(o, o_ty) : DType(o, o_ty));  // $Is(o, ..)  or  dtype(o) == o_ty
-        var udt = UserDefinedType.FromTopLevelDecl(c.tok, c);
-        Bpl.Expr isalloc_o = c is ClassDecl ? IsAlloced(c.tok, h, o) : MkIsAlloc(o, udt, h);
+        Bpl.Expr isalloc_o;
+        if (!(c is ClassDecl)) {
+          var udt = UserDefinedType.FromTopLevelDecl(c.tok, c);
+          isalloc_o = MkIsAlloc(o, udt, h);
+        } else if (RevealedInScope(c)) {
+          isalloc_o = IsAlloced(c.tok, h, o);
+        } else {
+          // c is only provided, not revealed, in the scope. Use the non-null type decl's internal synonym
+          var cl = (ClassDecl)c;
+          Contract.Assert(cl.NonNullTypeDecl != null);
+          var udt = UserDefinedType.FromTopLevelDecl(c.tok, cl.NonNullTypeDecl);
+          isalloc_o = MkIsAlloc(o, udt, h);
+        }
 
         Bpl.Expr indexBounds = Bpl.Expr.True;
         Bpl.Expr oDotF;
@@ -4039,6 +4042,9 @@ namespace Microsoft.Dafny {
           // Note: for the allocation axiom, isGoodHeap is added back in for !f.IsMutable below
         }
         if (!(f is ConstantField)) {
+          Bpl.Expr is_o = BplAnd(
+            ReceiverNotNull(o),
+            c is TraitDecl ? MkIs(o, o_ty) : DType(o, o_ty));  // $Is(o, ..)  or  dtype(o) == o_ty
           ante = BplAnd(ante, is_o);
         }
         ante = BplAnd(ante, indexBounds);
@@ -8694,7 +8700,7 @@ namespace Microsoft.Dafny {
       var inner_name = GetClass(td).TypedIdent.Name;
       string name = "T" + inner_name;
       // Create the type constructor
-      if (!(td is ClassDecl && td.Name == "object")) {  // the type constructor for "object" is in DafnyPrelude.bpl
+      if (!(td is ClassDecl cl && cl.IsObjectTrait)) {  // the type constructor for "object" is in DafnyPrelude.bpl
         Bpl.Variable tyVarOut = BplFormalVar(null, predef.Ty, false);
         List<Bpl.Variable> args = new List<Bpl.Variable>(
           Enumerable.Range(0, arity).Select(i =>

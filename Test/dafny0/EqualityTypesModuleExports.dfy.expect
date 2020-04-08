@@ -42,10 +42,10 @@ EqualityTypesModuleExports.dfy(214,7): Error: type 'Opa', which does not support
 EqualityTypesModuleExports.dfy(230,8): Error: type parameter (A) passed to type S must support equality (got GGG.Opa'<int>)
 EqualityTypesModuleExports.dfy(231,8): Error: type parameter (A) passed to type S must support equality (got GGG.Syn'<int>)
 EqualityTypesModuleExports.dfy(232,8): Error: type parameter (A) passed to type S must support equality (got GGG.Sub'<int>)
-EqualityTypesModuleExports.dfy(249,7): Error: == can only be applied to expressions of types that support equality (got XT)
-EqualityTypesModuleExports.dfy(252,7): Error: == can only be applied to expressions of types that support equality (got YT)
-EqualityTypesModuleExports.dfy(255,7): Error: == can only be applied to expressions of types that support equality (got ZT)
-EqualityTypesModuleExports.dfy(258,7): Error: == can only be applied to expressions of types that support equality (got WT)
+EqualityTypesModuleExports.dfy(249,7): Error: == can only be applied to expressions of types that support equality (got WWW0.XT)
+EqualityTypesModuleExports.dfy(252,7): Error: == can only be applied to expressions of types that support equality (got WWW0.YT)
+EqualityTypesModuleExports.dfy(255,7): Error: == can only be applied to expressions of types that support equality (got WWW0.ZT)
+EqualityTypesModuleExports.dfy(258,7): Error: == can only be applied to expressions of types that support equality (got WWW0.WT)
 EqualityTypesModuleExports.dfy(283,7): Error: type 'A' declared as supporting equality, but the RHS type (QQQ1.Syn<int>) does not
 EqualityTypesModuleExports.dfy(298,7): Error: type 'ExportedType' declared as supporting equality, but the RHS type (PrivateType<A>) does not
 EqualityTypesModuleExports.dfy(346,4): Error: == can only be applied to expressions of types that support equality (got List<A>)

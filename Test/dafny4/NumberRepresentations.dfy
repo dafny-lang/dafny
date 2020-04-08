@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:0 /dprint:"%t.dprint" /autoTriggers:0 "%s" > "%t"
+// RUN: %dafny /compile:0 /dprint:"%t.dprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // We consider a number representation that consists of a sequence of digits.  The least
@@ -42,7 +42,7 @@ predicate IsSkewNumber(digits: seq<int>, lowDigit: int, base: int)
 {
   2 <= base &&  // there must be at least two distinct digits in the number representation
   lowDigit <= 0 < lowDigit + base &&  // digits must include 0
-  forall d :: d in digits ==> lowDigit <= d < lowDigit + base  // every digit is in this range
+  forall i :: 0 <= i < |digits| ==> lowDigit <= digits[i] < lowDigit + base  // every digit is in this range
 }
 
 // The following theorem says that any natural number is representable as a sequence
@@ -161,7 +161,7 @@ lemma TrimProperty(a: seq<int>)
   requires a == trim(a)
   ensures a == [] || a[1..] == trim(a[1..])
 {
-  assert forall b {:trigger trim(b)} :: |trim(b)| <= |b|;
+  assert forall b :: |trim(b)| <= |b|;
 }
 
 lemma TrimPreservesValue(digits: seq<int>, base: int)
@@ -326,24 +326,102 @@ lemma LeastSignificantDigitIsAlmostMod(a: seq<int>, lowDigit: int, base: int)
   ensures var mod := eval(a, base) % base;
     a[0] == mod || a[0] == mod - base
 {
+  if 0 <= a[0] {
+    LeastSignificantDigitIsAlmostMod_Pos(a, lowDigit, base);
+  } else {
+    LeastSignificantDigitIsAlmostMod_Neg(a, lowDigit, base);
+  }
+}
+
+lemma LeastSignificantDigitIsAlmostMod_Pos(a: seq<int>, lowDigit: int, base: int)
+  requires IsSkewNumber(a, lowDigit, base)
+  requires a != [] && 0 <= a[0]
+  ensures eval(a, base) % base == a[0]
+{
   var n := eval(a, base);
+  var a1 := eval(a[1..], base);
+  var b := base * a1;
+  assert a[0] + b == n;
+
+  calc {
+    n % base;
+  ==
+    (a[0] + base * a1) % base;
+  ==  { ModProperty(a[0], a1, base); }
+    a[0] % base;
+  ==  { assert a[0] in a; assert 0 <= a[0] < base; }
+    a[0];
+  }
+}
+
+lemma LeastSignificantDigitIsAlmostMod_Neg(a: seq<int>, lowDigit: int, base: int)
+  requires IsSkewNumber(a, lowDigit, base)
+  requires a != [] && a[0] < 0
+  ensures eval(a, base) % base == a[0] + base
+{
+  var n := eval(a, base);
+  var a1 := eval(a[1..], base);
+  var b := base * a1;
+  assert a[0] + b == n;
+
+  var aPlus, a1minus := a[0] + base, a1 - 1;
+  calc {
+    n % base;
+  ==
+    (a[0] + base * a1) % base;
+  ==  { assert base * a1 == base + base * a1minus; }
+    (a[0] + (base + base * a1minus)) % base;
+  ==
+    ((a[0] + base) + base * a1minus) % base;
+  ==  { ModProperty(a[0] + base, a1minus, base); }
+    (a[0] + base) % base;
+  ==  { assert a[0] in a; assert 0 <= a[0] + base < base; }
+    a[0] + base;
+  }
+}
+
+
+lemma ModProperty(n: int, k: int, base: int)
+  requires 2 <= base
+  ensures (n + base * k) % base == n % base
+{
   var d, m := n / base, n % base;
   assert base * d + m == n;
-  assert 0 <= m < base;
+  assert R: 0 <= m < base;
 
-  assert lowDigit <= a[0] < lowDigit + base;
-  var arest := a[1..];
-  var nrest := eval(arest, base);
-  assert base * nrest + a[0] == n;
+  var n' := n + base * k;
+  var d', m' := n' / base, n' % base;
+  assert base * d' + m' == n';
+  assert R': 0 <= m' < base;
 
-  var p := MulProperty(base, d, m, nrest, a[0]);
-  assert -base <= a[0] - m < base;
-  assert -base == -1 * base && base == 1 * base;
-  assert -1 * base <= a[0] - m < 1 * base;
-  if {
-    case p == -1 =>  assert a[0] == m - base;
-    case p == 0 =>  assert a[0] == m;
+  assert -base < m' - m < base by {
+    reveal R, R';
   }
+
+  var y := m' - base * k;
+  var p := MulProperty(base, d, m, d', y);
+  var pk := p + k;
+  calc {
+    true;
+    // postcondition of MulProperty
+    y - m == base * p;
+    // def. m'
+    m' - base * k - m == base * p;
+    // add base*k to both sides
+    m' - m == base * p + base * k;
+    // distribute * and +
+    m' - m == base * pk;
+  }
+  if
+  case pk < 0 =>
+    assert base * pk <= -base;
+    assert false;
+  case 0 < pk =>
+    assert base <= base * pk;
+    assert false;
+  case pk == 0 =>
+    assert base * pk == 0;
+    assert m' == m;
 }
 
 lemma MulProperty(k: int, a: int, x: int, b: int, y: int) returns (p: int)

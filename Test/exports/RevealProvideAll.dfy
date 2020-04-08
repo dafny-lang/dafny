@@ -2,7 +2,7 @@
 // RUN: %diff "%s.expect" "%t"
 
 module A {
-  export Spec provides *
+  export Spec reveals AClass provides *  // when class is revealed, "provides *" also provides all the constructors of the class
   export Body reveals *
 
   datatype T = CT1 | CT2
