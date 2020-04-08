@@ -630,6 +630,8 @@ namespace Microsoft.Dafny {
     protected abstract void EmitSingleValueGenerator(Expression e, bool inLetExprBody, string type, TargetWriter wr);
     protected virtual void FinishModule() { }
 
+    protected virtual void DeclareExternType(OpaqueTypeDecl d, Expression compileTypeHint, TargetWriter wr) { }
+
     protected virtual void OrganizeModules(Program program, out List<ModuleDefinition> modules){
       modules = program.CompileModules;
     }
@@ -670,7 +672,17 @@ namespace Microsoft.Dafny {
           wr.WriteLine();
           if (d is OpaqueTypeDecl) {
             var at = (OpaqueTypeDecl)d;
-            Error(d.tok, "Opaque type ('{0}') cannot be compiled", wr, at.FullName);
+            bool externP = Attributes.Contains(at.Attributes, "extern");
+            if (externP) {
+              var exprs = Attributes.FindExpressions(at.Attributes, "extern");
+              if (exprs != null && exprs.Count >= 1) {
+                DeclareExternType(at, exprs[0], wr);
+              } else {
+                Error(d.tok, "Opaque type ('{0}') with missing extern attribute cannot be compiled.  Expected {{:extern compile_type_hint}} ", wr, at.FullName);
+              }
+            } else {
+              Error(d.tok, "Opaque type ('{0}') cannot be compiled", wr, at.FullName);
+            }
           } else if (d is TypeSynonymDecl) {
             var sst = d as SubsetTypeDecl;
             if (sst != null) {
