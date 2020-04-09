@@ -3123,7 +3123,6 @@ namespace Microsoft.Dafny {
         } else {
           string qual, compileName;
           if (s.Method.IsExtern(out qual, out compileName) && qual != null) {
-            //wr.Write("{0}{1}{2}{1}{3}", qual, ModuleSeparator, s.Method.EnclosingClass.CompileName, compileName);
             wr.Write("{0}{1}{2}", qual, ModuleSeparator, compileName);
           } else {
             wr.Write(TypeName_Companion(s.Receiver.Type, wr, s.Tok, s.Method));
@@ -3948,7 +3947,6 @@ namespace Microsoft.Dafny {
       string compileName = "";
       if (f.IsExtern(out qual, out compileName) && qual != null) {
         wr.Write("{0}{1}", qual, ModuleSeparator);
-        //wr.Write("{0}{1}{2}{1}", qual, ModuleSeparator, e.Function.EnclosingClass.CompileName);
       } else if (f.IsStatic || customReceiver) {
         wr.Write("{0}{1}", TypeName_Companion(e.Receiver.Type, wr, e.tok, f), ModuleSeparator);
         compileName = IdName(f);
