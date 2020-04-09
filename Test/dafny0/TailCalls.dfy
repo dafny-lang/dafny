@@ -322,3 +322,30 @@ function method {:tailrecursion} TailChar(n: int): char
 {
   if n == 0 then 60 as char else TailChar(n - 1) + 1 as char  // error: because char is (currently) not supported in tail calls
 }
+
+// ------------ regression tests --------------------------
+
+method DoSomethingElse() {
+}
+
+method {:tailrecursion} MissingReport(n: nat, acc: nat) returns (r: nat)
+  ensures r == n + acc
+{
+  ghost var g := 10;  // this initial ghost statement once caused the rest of the method body to be ignored
+  if n == 0 {
+    return acc;
+  } else {
+    r := MissingReport(n - 1, acc + 1);  // error: not a tail call
+    DoSomethingElse();
+  }
+}
+
+method {:tailrecursion} NoRecursiveCalls(n: nat, acc: nat) returns (r: nat)
+  ensures r == n + acc
+{
+  ghost var g := 10;
+  var u := 8;
+  DoSomethingElse();
+  u := u + 3;
+  g := g + u;
+}

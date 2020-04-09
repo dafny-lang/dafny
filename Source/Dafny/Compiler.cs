@@ -1943,7 +1943,6 @@ namespace Microsoft.Dafny {
       if (stmt.IsGhost) {
         var v = new CheckHasNoAssumes_Visitor(this, wr);
         v.Visit(stmt);
-        wr.WriteLine("{ }");
         return;
       }
       if (stmt is PrintStmt) {
