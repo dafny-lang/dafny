@@ -2503,7 +2503,9 @@ namespace Microsoft.Dafny
 
       var idName = mainMethod.IsStatic ? IdName(mainMethod) : "_StaticMain";
 
+      Coverage.EmitSetup(wBody);
       wBody.WriteLine($"{GetHelperModuleName()}.WithHaltHandling({companion}.{idName});");
+      Coverage.EmitTearDown(wBody);
     }
   }
 }
