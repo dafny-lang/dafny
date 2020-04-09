@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE language SYSTEM "language.dtd">
+<language name="Dafny" version="2" kateversion="5.0" section="Sources" extensions="*.dfy" author="Robin Salkeld" license="MIT">
+	<highlighting>
+		<list name="keywords">
+      <item>true</item>
+			<item>false</item>
+      <item>var</item>
+      <item>method</item>
+      <item>assert</item>
+    </list>
+    <list name="types">
+			<item>bool</item>
+			<item>char</item>
+			<item>int</item>
+			<item>nat</item>
+			<item>real</item>
+			<item>set</item>
+			<item>iset</item>
+      <item>multiset</item>
+			<item>seq</item>
+			<item>string</item>
+			<item>map</item>
+			<item>imap</item>
+			<item>object</item>
+      <item>array</item>
+		</list>
+    <list name="verification keywords">
+      <item>requires</item>
+      <item>ensures</item>
+      <item>modifies</item>
+      <item>reads</item>
+      <item>invariant</item>
+      <item>decreases</item>
+      <item>provides</item>
+      <item>reveals</item>
+    </list>
+    <contexts>
+			<context name = "Normal" attribute = "Normal Text" lineEndContext="#stay">
+				<keyword attribute = "Keyword" String = "keywords" context="#stay" />
+				<keyword attribute = "Types" String = "types" context="#stay" />
+				<keyword attribute = "Assertions" String = "verification keywords" context="#stay" />
+
+				<Int attribute = "Decimal" context="#stay" />
+				<Float attribute = "Float" context="#stay" />
+				<HlCChar attribute = "Char" context="#stay" />
+				<DetectChar attribute = "String" char = "&quot;" context="Quoted String" />
+
+				<Detect2Chars attribute = "Comment" char = "/" char1 = "/" context="SingleLineComment" />
+        <Detect2Chars attribute = "Comment" char = "/" char1 = "*" context="MultiLineComment" />
+			</context>
+
+			<context name = "Quoted String" attribute = "String" lineEndContext="#pop">
+				<DetectChar attribute = "String" char = "&quot;" context="#pop" />
+			</context>
+
+      <context name="SingleLineComment" attribute="Comment" lineEndContext="#pop"/>
+      <context name="MultiLineComment" attribute="Comment" lineEndContext="#stay">
+        <Detect2Chars attribute="Comment" context="#pop" char="*" char1="/"/>
+      </context>
+			<context name = "Documentation" attribute="Comment" lineEndContext="#pop" />
+		</contexts>
+
+		<itemDatas>
+			<itemData name="Normal Text" defStyleNum="dsNormal" />
+
+			<itemData name="Keyword"     defStyleNum="dsKeyword" />
+			<itemData name="Types"       defStyleNum="dsDataType" />
+			<itemData name="Assertions"  defStyleNum="dsOthers" />
+
+			<itemData name="Decimal"     defStyleNum="dsDecVal" />
+			<itemData name="Float"       defStyleNum="dsFloat" />
+			<itemData name="Char"        defStyleNum="dsChar" />
+			<itemData name="String"      defStyleNum="dsString" />
+
+			<itemData name="Comment"     defStyleNum="dsComment" />
+		</itemDatas>
+  </highlighting>
+
+	<general>
+		<comments>
+			<comment name="singleLine" start="//" />
+      <comment name="multiLine" start="/*" end="*/" />
+		</comments>
+		<keywords casesensitive="1" />
+	</general>
+</language>
