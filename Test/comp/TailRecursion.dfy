@@ -52,6 +52,20 @@ method {:tailrecursion} TestMethod(n: nat, acc: nat) returns (r: nat) {
 method {:tailrecursion} GhostAfterCall(n: nat, acc: nat) returns (r: nat) {
   ghost var g := 10;
   if n == 0 {
+    // make sure ghost compilation doesn't produce malformed code
+    var u := 20;
+    if acc == 300 {
+      u := u + 1;
+    } else {
+      // empty (thus ghost) else
+    }
+    if acc == 300 {
+    } else if g < 25 {  // ghost if
+    }
+    if acc == 300 {
+      u := u + 1;
+    }  // this has an omitted else
+
     return acc;
   } else {
     r := GhostAfterCall(n - 1, acc + 1);
@@ -88,6 +102,8 @@ method {:tailrecursion} GhostAfterCall(n: nat, acc: nat) returns (r: nat) {
     }
     if n == 1 {
       label LabeledStatement: assert true;
+    }
+    while 15 < 14 {  // this compiles to nothing, since the whole statement is ghost
     }
   }
 }
