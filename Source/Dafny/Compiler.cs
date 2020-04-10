@@ -2164,9 +2164,14 @@ namespace Microsoft.Dafny {
           if (DafnyOptions.O.ForbidNondeterminism) {
             Error(s.Tok, "nondeterministic loop forbidden by /definiteAssignment:3 option", wr);
           }
-          // this loop is allowed to stop iterating at any time; we choose to never iterate; but we still emit a loop structure
-          var guardWriter = EmitWhile(s.Body.Tok, new List<Statement>(), wr);
-          guardWriter.Write("false");
+          // This loop is allowed to stop iterating at any time. We choose to never iterate, but we still
+          // emit a loop structure. The structure "while (false) { }" comes to mind, but that results in
+          // an "unreachable code" error from Java, so we instead use "while (true) { break; }".
+          TargetWriter guardWriter;
+          var wBody = CreateWhileLoop(out guardWriter, wr);
+          guardWriter.Write("true");
+          EmitBreak(s.Labels?.Data.AssignUniqueId(idGenerator), wBody);
+          Coverage.UnusedInstrumentationPoint(s.Body.Tok, "while body");
         } else {
           var guardWriter = EmitWhile(s.Body.Tok, s.Body.Body, wr);
           TrExpr(s.Guard, guardWriter, false);
