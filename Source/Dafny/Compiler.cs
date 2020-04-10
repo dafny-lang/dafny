@@ -22,6 +22,7 @@ namespace Microsoft.Dafny {
   public abstract class Compiler {
     public Compiler(ErrorReporter reporter) {
       Reporter = reporter;
+      Coverage = new CoverageInstrumenter(this);
     }
 
     public abstract string TargetLanguage { get; }
@@ -53,6 +54,8 @@ namespace Microsoft.Dafny {
     }
 
     public ErrorReporter Reporter;
+
+    public CoverageInstrumenter Coverage;
 
     protected void Error(Bpl.IToken tok, string msg, TextWriter/*?*/ wr, params object[] args) {
       Contract.Requires(msg != null);
@@ -291,7 +294,7 @@ namespace Microsoft.Dafny {
     /// The punctuation that comes at the end of a statement.  Note that
     /// statements are followed by newlines regardless.
     protected virtual string StmtTerminator { get => ";"; }
-    protected void EndStmt(TargetWriter wr) { wr.WriteLine(StmtTerminator); }
+    public void EndStmt(TargetWriter wr) { wr.WriteLine(StmtTerminator); }
     protected abstract void DeclareLocalOutVar(string name, Type type, Bpl.IToken tok, string rhs, bool useReturnStyleOuts, TargetWriter wr);
     protected virtual void EmitActualOutArg(string actualOutParamName, TextWriter wr) { }  // actualOutParamName is always the name of a local variable; called only for non-return-style outs
     protected virtual void EmitOutParameterSplits(string outCollector, List<string> actualOutParamNames, TargetWriter wr) { }  // called only for return-style calls
@@ -415,9 +418,10 @@ namespace Microsoft.Dafny {
         return thn;
       }
     }
-    protected virtual TargetWriter EmitWhile(List<Statement> body, TargetWriter wr) {  // returns the guard writer
+    protected virtual TargetWriter EmitWhile(Bpl.IToken tok, List<Statement> body, TargetWriter wr) {  // returns the guard writer
       TargetWriter guardWriter;
       var wBody = CreateWhileLoop(out guardWriter, wr);
+      Coverage.Instrument(tok, "while body", wBody);
       TrStmtList(body, wBody);
       return guardWriter;
     }
@@ -1259,6 +1263,7 @@ namespace Microsoft.Dafny {
     private void CompileFunction(Function f, IClassWriter cw) {
       Contract.Requires(f != null);
       Contract.Requires(cw != null);
+      Contract.Requires(f.Body != null);
 
       var w = cw.CreateFunction(IdName(f), f.TypeArgs, f.Formals, f.ResultType, f.tok, f.IsStatic, !f.IsExtern(out _, out _), f);
       if (w != null) {
@@ -1296,6 +1301,7 @@ namespace Microsoft.Dafny {
           }
           w = EmitTailCallStructure(f, w);
         }
+        Coverage.Instrument(f.Body.tok, $"entry to function {f.FullName}", w);
         Contract.Assert(enclosingFunction == null);
         enclosingFunction = f;
         CompileReturnBody(f.Body, w, accVar);
@@ -1307,12 +1313,14 @@ namespace Microsoft.Dafny {
     private void CompileMethod(Method m, IClassWriter cw) {
       Contract.Requires(cw != null);
       Contract.Requires(m != null);
+      Contract.Requires(m.Body != null);
 
       var w = cw.CreateMethod(m, !m.IsExtern(out _, out _));
       if (w != null) {
         if (m.IsTailRecursive) {
           w = EmitTailCallStructure(m, w);
         }
+        Coverage.Instrument(m.Body.Tok, $"entry to method {m.FullName}", w);
 
         int nonGhostOutsCount = 0;
         foreach (var p in m.Outs) {
@@ -1444,8 +1452,13 @@ namespace Microsoft.Dafny {
         TargetWriter guardWriter;
         var thn = EmitIf(out guardWriter, true, wr);
         TrExpr(e.Test, guardWriter, false);
+        Coverage.Instrument(e.Thn.tok, "then branch", thn);
         TrExprOpt(e.Thn, thn, accumulatorVar);
-        var els = wr.NewBlock("");
+        TargetWriter els = wr;
+        if (!(e.Els is ITEExpr)) {
+          els = wr.NewBlock("", null, BlockTargetWriter.BraceStyle.Nothing);
+          Coverage.Instrument(e.Thn.tok, "else branch", els);
+        }
         TrExprOpt(e.Els, els, accumulatorVar);
 
       } else if (expr is MatchExpr) {
@@ -2083,26 +2096,41 @@ namespace Microsoft.Dafny {
           if (s.Els == null) {
             // let's compile the "else" branch, since that involves no work
             // (still, let's leave a marker in the source code to indicate that this is what we did)
+            Coverage.UnusedInstrumentationPoint(s.Thn.Tok, "then branch");
+            wr = wr.NewBlock("if (!false) ");
+            Coverage.Instrument(s.Tok, "implicit else branch", wr);
             wr.WriteLine("if (!false) { }");
           } else {
             // let's compile the "then" branch
-            wr.Write("if (true) ");
-            TrStmt(s.Thn, wr);
+            wr = wr.NewBlock("if (true) ");
+            Coverage.Instrument(s.Thn.Tok, "then branch", wr);
+            TrStmtList(s.Thn.Body, wr);
+            Coverage.UnusedInstrumentationPoint(s.Els.Tok, "else branch");
           }
         } else {
           if (s.IsBindingGuard && DafnyOptions.O.ForbidNondeterminism) {
             Error(s.Tok, "binding if statement forbidden by /definiteAssignment:3 option", wr);
           }
           TargetWriter guardWriter;
-          var thenWriter = EmitIf(out guardWriter, s.Els != null, wr);
+          var coverageForElse = Coverage.IsRecording && !(s.Els is IfStmt);
+          var thenWriter = EmitIf(out guardWriter, s.Els != null || coverageForElse, wr);
           TrExpr(s.IsBindingGuard ? Translator.AlphaRename((ExistsExpr)s.Guard, "eg_d") : s.Guard, guardWriter, false);
 
           // We'd like to do "TrStmt(s.Thn, indent)", except we want the scope of any existential variables to come inside the block
           if (s.IsBindingGuard) {
             IntroduceAndAssignBoundVars((ExistsExpr)s.Guard, thenWriter);
           }
+          Coverage.Instrument(s.Thn.Tok, "then branch", thenWriter);
           TrStmtList(s.Thn.Body, thenWriter);
 
+          if (coverageForElse) {
+            wr = wr.NewBlock("", null, BlockTargetWriter.BraceStyle.Nothing);
+            if (s.Els == null) {
+              Coverage.Instrument(s.Tok, "implicit else branch", wr);
+            } else {
+              Coverage.Instrument(s.Els.Tok, "else branch", wr);
+            }
+          }
           if (s.Els != null) {
             TrStmtNonempty(s.Els, wr);
           }
@@ -2120,6 +2148,7 @@ namespace Microsoft.Dafny {
           if (alternative.IsBindingGuard) {
             IntroduceAndAssignBoundVars((ExistsExpr)alternative.Guard, thn);
           }
+          Coverage.Instrument(alternative.Tok, "if-case branch", thn);
           TrStmtList(alternative.Body, thn);
         }
         using (var wElse = wr.NewBlock("", null, BlockTargetWriter.BraceStyle.Nothing)) {
@@ -2135,11 +2164,16 @@ namespace Microsoft.Dafny {
           if (DafnyOptions.O.ForbidNondeterminism) {
             Error(s.Tok, "nondeterministic loop forbidden by /definiteAssignment:3 option", wr);
           }
-          // this loop is allowed to stop iterating at any time; we choose to never iterate; but we still emit a loop structure
-          var guardWriter = EmitWhile(new List<Statement>(), wr);
-          guardWriter.Write("false");
+          // This loop is allowed to stop iterating at any time. We choose to never iterate, but we still
+          // emit a loop structure. The structure "while (false) { }" comes to mind, but that results in
+          // an "unreachable code" error from Java, so we instead use "while (true) { break; }".
+          TargetWriter guardWriter;
+          var wBody = CreateWhileLoop(out guardWriter, wr);
+          guardWriter.Write("true");
+          EmitBreak(s.Labels?.Data.AssignUniqueId(idGenerator), wBody);
+          Coverage.UnusedInstrumentationPoint(s.Body.Tok, "while body");
         } else {
-          var guardWriter = EmitWhile(s.Body.Body, wr);
+          var guardWriter = EmitWhile(s.Body.Tok, s.Body.Body, wr);
           TrExpr(s.Guard, guardWriter, false);
         }
 
@@ -2156,6 +2190,7 @@ namespace Microsoft.Dafny {
             TargetWriter guardWriter;
             var thn = EmitIf(out guardWriter, true, w);
             TrExpr(alternative.Guard, guardWriter, false);
+            Coverage.Instrument(alternative.Tok, "while-case branch", thn);
             TrStmtList(alternative.Body, thn);
           }
           using (var wElse = w.NewBlock("")) {
@@ -4084,6 +4119,86 @@ namespace Microsoft.Dafny {
       Contract.Requires(otherFileNames.Count == 0 || targetFilename != null);
       Contract.Requires(outputWriter != null);
       return true;
+    }
+  }
+
+  public class CoverageInstrumenter
+  {
+    private readonly Compiler compiler;
+    private List<(Bpl.IToken, string)>/*?*/ legend;  // non-null implies DafnyOptions.O.CoverageLegendFile is non-null
+
+    public CoverageInstrumenter(Compiler compiler) {
+      this.compiler = compiler;
+      if (DafnyOptions.O.CoverageLegendFile != null) {
+        legend = new List<(Bpl.IToken, string)>();
+      }
+    }
+
+    public bool IsRecording {
+      get => legend != null;
+    }
+
+    public void Instrument(Bpl.IToken tok, string description, TargetWriter wr) {
+      Contract.Requires(tok != null);
+      Contract.Requires(description != null);
+      Contract.Requires(wr != null || !IsRecording);
+      if (legend != null) {
+        wr.Write("DafnyProfiling.CodeCoverage.Record({0})", legend.Count);
+        compiler.EndStmt(wr);
+        legend.Add((tok, description));
+      }
+    }
+
+    public void UnusedInstrumentationPoint(Bpl.IToken tok, string description) {
+      Contract.Requires(tok != null);
+      Contract.Requires(description != null);
+      if (legend != null) {
+        legend.Add((tok, description));
+      }
+    }
+
+    public void InstrumentExpr(Bpl.IToken tok, string description, bool resultValue, TargetWriter wr) {
+      Contract.Requires(tok != null);
+      Contract.Requires(description != null);
+      Contract.Requires(wr != null || !IsRecording);
+      if (legend != null) {
+        // The "Record" call always returns "true", so we negate it to get the value "false"
+        wr.Write("{1}DafnyProfiling.CodeCoverage.Record({0})", legend.Count, resultValue ? "" : "!");
+        legend.Add((tok, description));
+      }
+    }
+
+    /// <summary>
+    /// Should be called once "n" has reached its final value
+    /// </summary>
+    public void EmitSetup(TargetWriter wr) {
+      Contract.Requires(wr != null);
+      if (legend != null) {
+        wr.Write("DafnyProfiling.CodeCoverage.Setup({0})", legend.Count);
+        compiler.EndStmt(wr);
+      }
+    }
+
+    public void EmitTearDown(TargetWriter wr) {
+      Contract.Requires(wr != null);
+      if (legend != null) {
+        wr.Write("DafnyProfiling.CodeCoverage.TearDown()");
+        compiler.EndStmt(wr);
+      }
+    }
+
+    public void WriteLegendFile() {
+      if (legend != null) {
+        var filename = DafnyOptions.O.CoverageLegendFile;
+        Contract.Assert(filename != null);
+        using (TextWriter wr = filename == "-" ? System.Console.Out : new StreamWriter(new FileStream(Path.GetFullPath(filename), System.IO.FileMode.Create))) {
+          for (var i = 0; i < legend.Count; i++) {
+            var e = legend[i];
+            wr.WriteLine("{0}: {1}({2},{3}): {4}", i, e.Item1.filename, e.Item1.line, e.Item1.col, e.Item2);
+          }
+        }
+        legend = null;
+      }
     }
   }
 
