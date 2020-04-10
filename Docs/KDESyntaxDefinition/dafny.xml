@@ -99,6 +99,9 @@
 				<keyword attribute = "Types" String = "types" context="#stay" />
 				<keyword attribute = "Assertions" String = "verification keywords" context="#stay" />
 
+        <RegExpr attribute = "Types" String="bv0|bv[1-9]\d*"/>
+        <RegExpr attribute = "Types" String="array[2-9]\d*"/>
+
 				<Int attribute = "Decimal" context="#stay" />
 				<Float attribute = "Float" context="#stay" />
 				<HlCChar attribute = "Char" context="#stay" />
@@ -109,7 +112,8 @@
 			</context>
 
 			<context name = "Quoted String" attribute = "String" lineEndContext="#pop">
-				<DetectChar attribute = "String" char = "&quot;" context="#pop" />
+				<Detect2Chars attribute="String" context="#stay" char="\\" char1="&quot;"/>
+        <DetectChar attribute="String" char="&quot;" context="#pop" />
 			</context>
 
       <context name="SingleLineComment" attribute="Comment" lineEndContext="#pop"/>
