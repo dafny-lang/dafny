@@ -6,7 +6,7 @@ public class CodeCoverage {
         tallies = new int[size];
     }
     public static void TearDown() {
-        for (var i = 0; i < tallies.length; i++) {
+        for (int i = 0; i < tallies.length; i++) {
             System.out.println(i + ": " + tallies[i]);
         }
         tallies = null;
