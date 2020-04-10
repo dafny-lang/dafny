@@ -1936,6 +1936,15 @@ namespace Microsoft.Dafny {
       }
     }
 
+    void TrStmtNonempty(Statement stmt, TargetWriter wr) {
+      Contract.Requires(stmt != null);
+      Contract.Requires(wr != null);
+      TrStmt(stmt, wr);
+      if (stmt.IsGhost) {
+        wr.WriteLine("{ }");
+      }
+    }
+
     void TrStmt(Statement stmt, TargetWriter wr) {
       Contract.Requires(stmt != null);
       Contract.Requires(wr != null);
@@ -1943,7 +1952,6 @@ namespace Microsoft.Dafny {
       if (stmt.IsGhost) {
         var v = new CheckHasNoAssumes_Visitor(this, wr);
         v.Visit(stmt);
-        wr.WriteLine("{ }");
         return;
       }
       if (stmt is PrintStmt) {
@@ -2096,7 +2104,7 @@ namespace Microsoft.Dafny {
           TrStmtList(s.Thn.Body, thenWriter);
 
           if (s.Els != null) {
-            TrStmt(s.Els, wr);
+            TrStmtNonempty(s.Els, wr);
           }
         }
 

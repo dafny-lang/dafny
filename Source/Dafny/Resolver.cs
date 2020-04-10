@@ -5971,7 +5971,7 @@ namespace Microsoft.Dafny
     TailRecursionStatus CheckTailRecursive(Statement stmt, Method enclosingMethod, ref CallStmt tailCall, bool reportErrors) {
       Contract.Requires(stmt != null);
       if (stmt.IsGhost) {
-        return TailRecursionStatus.NotTailRecursive;
+        return TailRecursionStatus.CanBeFollowedByAnything;
       }
       if (stmt is PrintStmt) {
       } else if (stmt is RevealStmt) {
@@ -7240,10 +7240,10 @@ namespace Microsoft.Dafny
               local.IsGhost = true;
             }
           }
-          s.IsGhost = (s.Update == null || s.Update.IsGhost) && s.Locals.All(v => v.IsGhost);
           if (s.Update != null) {
             Visit(s.Update, mustBeErasable);
           }
+          s.IsGhost = (s.Update == null || s.Update.IsGhost) && s.Locals.All(v => v.IsGhost);
 
         } else if (stmt is LetStmt) {
           var s = (LetStmt)stmt;
