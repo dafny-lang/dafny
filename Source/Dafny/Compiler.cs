@@ -418,9 +418,10 @@ namespace Microsoft.Dafny {
         return thn;
       }
     }
-    protected virtual TargetWriter EmitWhile(List<Statement> body, TargetWriter wr) {  // returns the guard writer
+    protected virtual TargetWriter EmitWhile(Bpl.IToken tok, List<Statement> body, TargetWriter wr) {  // returns the guard writer
       TargetWriter guardWriter;
       var wBody = CreateWhileLoop(out guardWriter, wr);
+      Coverage.Instrument(tok, "while body", wBody);
       TrStmtList(body, wBody);
       return guardWriter;
     }
@@ -1262,6 +1263,7 @@ namespace Microsoft.Dafny {
     private void CompileFunction(Function f, IClassWriter cw) {
       Contract.Requires(f != null);
       Contract.Requires(cw != null);
+      Contract.Requires(f.Body != null);
 
       var w = cw.CreateFunction(IdName(f), f.TypeArgs, f.Formals, f.ResultType, f.tok, f.IsStatic, !f.IsExtern(out _, out _), f);
       if (w != null) {
@@ -1299,6 +1301,7 @@ namespace Microsoft.Dafny {
           }
           w = EmitTailCallStructure(f, w);
         }
+        Coverage.Instrument(f.Body.tok, $"entry to function {f.FullName}", w);
         Contract.Assert(enclosingFunction == null);
         enclosingFunction = f;
         CompileReturnBody(f.Body, w, accVar);
@@ -1449,8 +1452,13 @@ namespace Microsoft.Dafny {
         TargetWriter guardWriter;
         var thn = EmitIf(out guardWriter, true, wr);
         TrExpr(e.Test, guardWriter, false);
+        Coverage.Instrument(e.Thn.tok, "then branch", thn);
         TrExprOpt(e.Thn, thn, accumulatorVar);
-        var els = wr.NewBlock("", null, BlockTargetWriter.BraceStyle.Nothing);
+        TargetWriter els = wr;
+        if (!(e.Els is ITEExpr)) {
+          els = wr.NewBlock("", null, BlockTargetWriter.BraceStyle.Nothing);
+          Coverage.Instrument(e.Thn.tok, "else branch", els);
+        }
         TrExprOpt(e.Els, els, accumulatorVar);
 
       } else if (expr is MatchExpr) {
@@ -2140,6 +2148,7 @@ namespace Microsoft.Dafny {
           if (alternative.IsBindingGuard) {
             IntroduceAndAssignBoundVars((ExistsExpr)alternative.Guard, thn);
           }
+          Coverage.Instrument(alternative.Tok, "if-case branch", thn);
           TrStmtList(alternative.Body, thn);
         }
         using (var wElse = wr.NewBlock("", null, BlockTargetWriter.BraceStyle.Nothing)) {
@@ -2156,10 +2165,10 @@ namespace Microsoft.Dafny {
             Error(s.Tok, "nondeterministic loop forbidden by /definiteAssignment:3 option", wr);
           }
           // this loop is allowed to stop iterating at any time; we choose to never iterate; but we still emit a loop structure
-          var guardWriter = EmitWhile(new List<Statement>(), wr);
+          var guardWriter = EmitWhile(s.Body.Tok, new List<Statement>(), wr);
           guardWriter.Write("false");
         } else {
-          var guardWriter = EmitWhile(s.Body.Body, wr);
+          var guardWriter = EmitWhile(s.Body.Tok, s.Body.Body, wr);
           TrExpr(s.Guard, guardWriter, false);
         }
 
@@ -2176,6 +2185,7 @@ namespace Microsoft.Dafny {
             TargetWriter guardWriter;
             var thn = EmitIf(out guardWriter, true, w);
             TrExpr(alternative.Guard, guardWriter, false);
+            Coverage.Instrument(alternative.Tok, "while-case branch", thn);
             TrStmtList(alternative.Body, thn);
           }
           using (var wElse = w.NewBlock("")) {
