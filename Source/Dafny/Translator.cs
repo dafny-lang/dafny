@@ -11484,6 +11484,13 @@ namespace Microsoft.Dafny {
       }
       if (codeContext is IMethodCodeContext) {
         var modifiesClause = ((IMethodCodeContext)codeContext).Modifies.Expressions;
+        if (codeContext is IteratorDecl) {
+          // add "this" to the explicit modifies clause
+          var explicitModifies = modifiesClause;
+          modifiesClause = new List<FrameExpression>();
+          modifiesClause.Add(new FrameExpression(s.Tok, new ThisExpr((IteratorDecl)codeContext), null));
+          modifiesClause.AddRange(explicitModifies);
+        }
         // include boilerplate invariants
         foreach (BoilerplateTriple tri in GetTwoStateBoilerplate(s.Tok, modifiesClause, s.IsGhost, etranPreLoop, etran, etran.Old)) {
           if (tri.IsFree) {
@@ -11495,6 +11502,14 @@ namespace Microsoft.Dafny {
         }
         // add a free invariant which says that the heap hasn't changed outside of the modifies clause.
         invariants.Add(TrAssumeCmd(s.Tok, FrameConditionUsingDefinedFrame(s.Tok, etranPreLoop, etran, updatedFrameEtran)));
+        // for iterators, add "fresh(_new)" as an invariant
+        if (codeContext is IteratorDecl iter) {
+          var th = new ThisExpr(iter);
+          var thisDotNew = new MemberSelectExpr(s.Tok, th, iter.Member_New);
+          var fr = new UnaryOpExpr(s.Tok, UnaryOpExpr.Opcode.Fresh, thisDotNew);
+          fr.Type = Type.Bool;
+          invariants.Add(TrAssertCmd(s.Tok, etran.TrExpr(fr)));
+        }
       }
 
       // include a free invariant that says that all definite-assignment trackers have only become more "true"
