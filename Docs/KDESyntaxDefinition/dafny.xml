@@ -1,117 +1,119 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE language SYSTEM "language.dtd">
-<language name="Dafny" version="2" kateversion="5.0" section="Sources" extensions="*.dfy" author="Robin Salkeld" license="MIT">
+<language name="Dafny" version="3" kateversion="5.0" section="Sources" extensions="*.dfy" author="Robin Salkeld" license="MIT">
   <highlighting>
     <list name="keywords">
-      <item>class</item>
-      <item>trait</item>
-      <item>datatype</item>
-      <item>codatatype</item>
-      <item>newtype</item>
-      <item>type</item>
-      <item>iterator</item>
-      <item>function</item>
-      <item>predicate</item>
-      <item>copredicate</item>
-      <item>inductive</item>
-      <item>twostate</item>
-      <item>var</item>
-      <item>const</item>
-      <item>method</item>
-      <item>constructor</item>
-      <item>lemma</item>
-      <item>colemma</item>
-      <item>ghost</item>
-      <item>static</item>
       <item>abstract</item>
-      <item>protected</item>
-      <item>module</item>
-      <item>import</item>
-      <item>as</item>
-      <item>opened</item>
-      <item>export</item>
-      <item>include</item>
-      <item>extends</item>
-      <item>refines</item>
-      <item>returns</item>
-      <item>yields</item>
-      <item>assert</item>
-      <item>by</item>
-      <item>assume</item>
-      <item>expect</item>
-      <item>reveal</item>
-      <item>break</item>
-      <item>then</item>
-      <item>else</item>
-      <item>if</item>
-      <item>label</item>
-      <item>return</item>
-      <item>yield</item>
-      <item>while</item>
-      <item>print</item>
-      <item>where</item>
-      <item>old</item>
       <item>allocated</item>
-      <item>unchanged</item>
-      <item>forall</item>
-      <item>exists</item>
-      <item>new</item>
+      <item>as</item>
+      <item>assert</item>
+      <item>assume</item>
+      <item>break</item>
+      <item>by</item>
       <item>calc</item>
-      <item>modify</item>
-      <item>in</item>
-      <item>this</item>
-      <item>fresh</item>
-      <item>match</item>
       <item>case</item>
+      <item>class</item>
+      <item>codatatype</item>
+      <item>colemma</item>
+      <item>const</item>
+      <item>constructor</item>
+      <item>copredicate</item>
+      <item>datatype</item>
+      <item>else</item>
+      <item>exists</item>
+      <item>expect</item>
+      <item>export</item>
+      <item>extends</item>
       <item>false</item>
-      <item>true</item>
+      <item>forall</item>
+      <item>fresh</item>
+      <item>function</item>
+      <item>ghost</item>
+      <item>if</item>
+      <item>import</item>
+      <item>in</item>
+      <item>include</item>
+      <item>inductive</item>
+      <item>iterator</item>
+      <item>label</item>
+      <item>lemma</item>
+      <item>match</item>
+      <item>method</item>
+      <item>modify</item>
+      <item>module</item>
+      <item>new</item>
+      <item>newtype</item>
       <item>null</item>
+      <item>old</item>
+      <item>opened</item>
+      <item>predicate</item>
+      <item>print</item>
+      <item>protected</item>
+      <item>refines</item>
+      <item>return</item>
+      <item>returns</item>
+      <item>reveal</item>
+      <item>static</item>
+      <item>then</item>
+      <item>this</item>
+      <item>trait</item>
+      <item>true</item>
+      <item>twostate</item>
+      <item>type</item>
+      <item>unchanged</item>
+      <item>var</item>
+      <item>where</item>
+      <item>while</item>
+      <item>yield</item>
+      <item>yields</item>
     </list>
     <list name="types">
+      <item>array</item>
       <item>bool</item>
       <item>char</item>
-      <item>int</item>
-      <item>nat</item>
-      <item>real</item>
-      <item>set</item>
-      <item>iset</item>
-      <item>multiset</item>
-      <item>seq</item>
-      <item>string</item>
-      <item>map</item>
       <item>imap</item>
+      <item>int</item>
+      <item>iset</item>
+      <item>map</item>
+      <item>multiset</item>
+      <item>nat</item>
       <item>object</item>
-      <item>array</item>
+      <item>real</item>
+      <item>seq</item>
+      <item>set</item>
+      <item>string</item>
     </list>
+
     <list name="verification keywords">
-      <item>requires</item>
-      <item>ensures</item>
-      <item>modifies</item>
-      <item>reads</item>
-      <item>invariant</item>
       <item>decreases</item>
+      <item>ensures</item>
+      <item>invariant</item>
+      <item>modifies</item>
       <item>provides</item>
+      <item>reads</item>
+      <item>requires</item>
       <item>reveals</item>
     </list>
+
     <contexts>
-      <context name = "Normal" attribute = "Normal Text" lineEndContext="#stay">
-        <keyword attribute = "Keyword" String = "keywords" context="#stay" />
-        <keyword attribute = "Types" String = "types" context="#stay" />
-        <keyword attribute = "Assertions" String = "verification keywords" context="#stay" />
+      <context name="Normal" attribute="Normal Text" lineEndContext="#stay">
+        <keyword attribute="Keyword" String="keywords" context="#stay" />
+        <keyword attribute="Types" String="types" context="#stay" />
+        <keyword attribute="Assertions" String="verification keywords" context="#stay" />
 
-        <RegExpr attribute = "Types" String="bv0|bv[1-9]\d*"/>
-        <RegExpr attribute = "Types" String="array[2-9]\d*"/>
+        <RegExpr attribute="Types" String="bv0|bv[1-9]\d*"/>
+        <RegExpr attribute="Types" String="array[2-9]\d*"/>
 
-        <Int attribute = "Decimal" context="#stay" />
-        <Float attribute = "Float" context="#stay" />
-        <HlCChar attribute = "Char" context="#stay" />
-        <DetectChar attribute = "String" char = "&quot;" context="Quoted String" />
+        <Int attribute="Decimal" context="#stay" />
+        <Float attribute="Float" context="#stay" />
+        <HlCChar attribute="Char" context="#stay" />
+        <DetectChar attribute="String" char="&quot;" context="Quoted String" />
 
-        <Detect2Chars attribute = "Comment" char = "/" char1 = "/" context="SingleLineComment" />
-        <Detect2Chars attribute = "Comment" char = "/" char1 = "*" context="MultiLineComment" />
+        <Detect2Chars attribute="Comment" char="/" char1="/" context="SingleLineComment" />
+        <Detect2Chars attribute="Comment" char="/" char1="*" context="MultiLineComment" />
       </context>
 
-      <context name = "Quoted String" attribute = "String" lineEndContext="#pop">
+      <context name="Quoted String" attribute="String" lineEndContext="#pop">
         <Detect2Chars attribute="String" context="#stay" char="\\" char1="&quot;"/>
         <DetectChar attribute="String" char="&quot;" context="#pop" />
       </context>
@@ -120,7 +122,7 @@
       <context name="MultiLineComment" attribute="Comment" lineEndContext="#stay">
         <Detect2Chars attribute="Comment" context="#pop" char="*" char1="/"/>
       </context>
-      <context name = "Documentation" attribute="Comment" lineEndContext="#pop" />
+      <context name="Documentation" attribute="Comment" lineEndContext="#pop" />
     </contexts>
 
     <itemDatas>
