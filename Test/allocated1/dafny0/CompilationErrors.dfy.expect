@@ -1,5 +1,7 @@
+CompilationErrors.dfy(52,2): Warning: note, this loop has no body (loop frame: x)
+CompilationErrors.dfy(62,4): Warning: note, this loop has no body (loop frame: x)
 
-Dafny program verifier finished with 2 verified, 0 errors
+Dafny program verifier finished with 4 verified, 0 errors
 CompilationErrors.dfy(3,8): Error: the included file CompilationErrors.dfy contains error(s)
 CompilationErrors.dfy(6,13): Error: Method _module._default.M has no body
 CompilationErrors.dfy(7,7): Error: Method _module._default.P has no body
@@ -9,6 +11,8 @@ CompilationErrors.dfy(22,2): Error: an assume statement cannot be compiled
 CompilationErrors.dfy(25,2): Error: an assume statement cannot be compiled
 CompilationErrors.dfy(30,2): Error: an assume statement cannot be compiled
 CompilationErrors.dfy(39,6): Error: an assume statement cannot be compiled
+CompilationErrors.dfy(52,2): Error: a while statement without a body cannot be compiled
+CompilationErrors.dfy(62,4): Error: a while statement without a body cannot be compiled
 CompilationErrors.dfy(4,5): Error: Opaque type ('_module.MyType') cannot be compiled
 CompilationErrors.dfy(5,9): Error: Iterator _module.Iter has no body
 CompilationErrors.dfy(12,6): Error: an assume statement cannot be compiled
