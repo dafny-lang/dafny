@@ -11399,7 +11399,7 @@ namespace Microsoft.Dafny {
     delegate void BodyTranslator(BoogieStmtListBuilder builder, ExpressionTranslator etran);
 
 
-    void TrLoop(LoopStmt s, Expression Guard, BodyTranslator bodyTr,
+    void TrLoop(LoopStmt s, Expression Guard, BodyTranslator/*?*/ bodyTr,
                 BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran) {
       Contract.Requires(s != null);
       Contract.Requires(builder != null);
@@ -11532,20 +11532,32 @@ namespace Microsoft.Dafny {
         invariants.Add(TrAssumeCmd(s.Tok, decrCheck));
       }
 
-      BoogieStmtListBuilder loopBodyBuilder = new BoogieStmtListBuilder(this);
+      var loopBodyBuilder = new BoogieStmtListBuilder(this);
       loopBodyBuilder.Add(CaptureState(s.Tok, true, "after some loop iterations"));
-      // as the first thing inside the loop, generate:  if (!w) { CheckWellformed(inv); assume false; }
+
+      // As the first thing inside the loop, generate:  if (!w) { CheckWellformed(inv); assume false; }
       invDefinednessBuilder.Add(TrAssumeCmd(s.Tok, Bpl.Expr.False));
       loopBodyBuilder.Add(new Bpl.IfCmd(s.Tok, Bpl.Expr.Not(w), invDefinednessBuilder.Collect(s.Tok), null, null));
-      // generate:  CheckWellformed(guard); if (!guard) { break; }
+
+      // Generate:  CheckWellformed(guard); if (!guard) { break; }
+      // but if this is a body-less loop, put all of that inside:  if (*) { ... }
+      // Without this, Boogie's abstract interpreter may figure out that the loop guard is always false
+      // on entry to the loop, and then Boogie wouldn't consider this a loop at all. (See also comment
+      // in methods GuardAlwaysHoldsOnEntry_BodyLessLoop and GuardAlwaysHoldsOnEntry_LoopWithBody in
+      // Test/dafny0/DirtyLoops.dfy.)
+      var isBodyLessLoop = s is WhileStmt && ((WhileStmt)s).BodySurrogate != null;
+      var whereToBuildLoopGuard = isBodyLessLoop ? new BoogieStmtListBuilder(this) : loopBodyBuilder;
       Bpl.Expr guard = null;
       if (Guard != null) {
-        TrStmt_CheckWellformed(Guard, loopBodyBuilder, locals, etran, true);
+        TrStmt_CheckWellformed(Guard, whereToBuildLoopGuard, locals, etran, true);
         guard = Bpl.Expr.Not(etran.TrExpr(Guard));
       }
-      BoogieStmtListBuilder guardBreak = new BoogieStmtListBuilder(this);
+      var guardBreak = new BoogieStmtListBuilder(this);
       guardBreak.Add(new Bpl.BreakCmd(s.Tok, null));
-      loopBodyBuilder.Add(new Bpl.IfCmd(s.Tok, guard, guardBreak.Collect(s.Tok), null, null));
+      whereToBuildLoopGuard.Add(new Bpl.IfCmd(s.Tok, guard, guardBreak.Collect(s.Tok), null, null));
+      if (isBodyLessLoop) {
+        loopBodyBuilder.Add(new Bpl.IfCmd(s.Tok, null, whereToBuildLoopGuard.Collect(s.Tok), null, null));
+      }
 
       if (bodyTr != null) {
         // termination checking
@@ -11575,8 +11587,8 @@ namespace Microsoft.Dafny {
           }
           loopBodyBuilder.Add(Assert(s.Tok, decrCheck, msg));
         }
-      } else if (s is WhileStmt && ((WhileStmt)s).BodySurrogate != null) {
-        var bodySurrogate = ((WhileStmt) s).BodySurrogate;
+      } else if (isBodyLessLoop) {
+        var bodySurrogate = ((WhileStmt)s).BodySurrogate;
         // This is a body-less loop. Havoc the targets and then set w to false, to make the loop-invariant
         // maintenance check vaccuous.
         var bplTargets = bodySurrogate.LocalLoopTargets.ConvertAll(v => TrVar(s.Tok, v));
