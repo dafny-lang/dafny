@@ -41,3 +41,25 @@ function MyCalcFunction(): int
   }
   12
 }
+
+// -------------------------- body-less loops
+
+method BodyLessLoop_NonGhost(y: int)
+  requires y <= 100
+  ensures false
+{
+  var x := y;
+  while true  // error: cannot be compiled
+    invariant x <= 100
+}
+
+method BodyLessLoop_Ghost(ghost y: int)
+  requires y <= 100
+  ensures false
+{
+  if y == y {  // that makes this a ghost statement
+    var x := y;
+    while true  // error: cannot be compiled
+      invariant x <= 100
+  }
+}

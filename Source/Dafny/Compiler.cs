@@ -1943,6 +1943,7 @@ namespace Microsoft.Dafny {
         } else if (stmt is WhileStmt) {
           var s = (WhileStmt)stmt;
           if (s.Body == null) {
+            // this checks ghost body-less while statements
             compiler.Error(stmt.Tok, "a while statement without a body cannot be compiled", wr);
           }
         }
@@ -2158,6 +2159,8 @@ namespace Microsoft.Dafny {
       } else if (stmt is WhileStmt) {
         WhileStmt s = (WhileStmt)stmt;
         if (s.Body == null) {
+          // this checks non-ghost body-less while statements
+          Error(stmt.Tok, "a while statement without a body cannot be compiled", wr);
           return;
         }
         if (s.Guard == null) {
