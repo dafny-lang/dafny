@@ -10,6 +10,10 @@ method Main() {
   var y := F(2_000_000, 0);
   print x, " ", y, "\n";  // 2_000_000 2_000_000
 
+  x := TestMethod(2_000_000, 0);  // too large argument without tail-calls
+  y := GhostAfterCall(2_000_000, 0);  // too large argument without tail-calls
+  print x, " ", y, "\n";  // 2_000_000 2_000_000
+
   // create a cycle of 2 links
   var l0 := new Link(0);
   var l1 := new Link(1);
@@ -27,7 +31,7 @@ method Main() {
 
 method {:tailrecursion} M(n: nat, a: nat) returns (r: nat) {
   if n == 0 {
-    return a;
+    r := a;
   } else {
     // do a test that would fail if the actual parameters are not first
     // computed into temporaries, before they are assigned to the formals
@@ -36,7 +40,76 @@ method {:tailrecursion} M(n: nat, a: nat) returns (r: nat) {
   }
 }
 
+method {:tailrecursion} TestMethod(n: nat, acc: nat) returns (r: nat) {
+  if n == 0 {
+    r := acc + 1;
+    return r - 1;
+  } else {
+    r := TestMethod(n - 1, acc + 1);
+  }
+}
+
+method {:tailrecursion} GhostAfterCall(n: nat, acc: nat) returns (r: nat) {
+  ghost var g := 10;
+  if n == 0 {
+    // make sure ghost compilation doesn't produce malformed code
+    var u := 20;
+    if acc == 300 {
+      u := u + 1;
+    } else {
+      // empty (thus ghost) else
+    }
+    if acc == 300 {
+    } else if g < 25 {  // ghost if
+    }
+    if acc == 300 {
+      u := u + 1;
+    }  // this has an omitted else
+
+    return acc;
+  } else {
+    r := GhostAfterCall(n - 1, acc + 1);
+    // all of what follows is ghost; this tests that nothing is emitted
+    // (Java would complain if any code were omitted after a "continue;")
+    ghost var gg := 10;
+    { }
+    { g := g + 1; }
+    { ghost var h := 8; g := g + 1; }
+    {
+      // if with ghost guards
+      if g % 2 == 0 {
+        // empty
+      } else if g % 3 == 0 {
+        g := g + 1;  // ghost assignment
+      }  // else omitted
+    }
+    {
+      // if with compilable guards
+      if n % 2 == 0 {
+        // empty
+      } else if n % 3 == 0 {
+        g := g + 1;  // ghost assignment
+      }  // else omitted
+    }
+    {
+      { }  // nested block
+      g := g + 1;
+      { ghost var i: int; }
+      { if n % 5 == 0 { } else { } }  // explicit else block
+    }
+    if n == 0 {
+      label LabeledBlock: { }
+    }
+    if n == 1 {
+      label LabeledStatement: assert true;
+    }
+    while 15 < 14 {  // this compiles to nothing, since the whole statement is ghost
+    }
+  }
+}
+
 function method {:tailrecursion} F(n: nat, a: nat): nat {
+  ghost var irrelevantGhost := 10;
   if n == 0 then
     a
   else

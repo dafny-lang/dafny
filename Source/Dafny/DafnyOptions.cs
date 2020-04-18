@@ -54,6 +54,7 @@ namespace Microsoft.Dafny
     public int Induction = 3;
     public int InductionHeuristic = 6;
     public bool TypeInferenceDebug = false;
+    public bool MatchCompilerDebug = false;
     public string DafnyPrelude = null;
     public string DafnyPrintFile = null;
     public enum PrintModes { Everything, DllEmbed, NoIncludes, NoGhost };
@@ -67,6 +68,7 @@ namespace Microsoft.Dafny
     public CompilationTarget CompileTarget = CompilationTarget.Csharp;
     public bool CompileVerbose = true;
     public string DafnyPrintCompiledFile = null;
+    public string CoverageLegendFile = null;
     public bool ForceCompile = false;
     public bool RunAfterCompile = false;
     public int SpillTargetCode = 0;  // [0..4]
@@ -217,6 +219,13 @@ namespace Microsoft.Dafny
             return true;
           }
 
+        case "coverage": {
+          if (ps.ConfirmArgumentCount(1)) {
+            CoverageLegendFile = args[ps.i];
+          }
+          return true;
+        }
+
         case "dafnycc":
           Dafnycc = true;
           Induction = 0;
@@ -231,6 +240,10 @@ namespace Microsoft.Dafny
             }
             return true;
           }
+
+        case "pmtrace":
+          MatchCompilerDebug = true;
+          return true;
 
         case "titrace":
           TypeInferenceDebug = true;
@@ -623,6 +636,7 @@ namespace Microsoft.Dafny
   /rprint:<file>
                 print Dafny program after resolving it
                 (use - as <file> to print to console)
+  /pmtrace      print pattern-match compiler debug info
   /titrace      print type-inference debug info
   /view:<view1, view2>
                 print the filtered views of a module after it is resolved (/rprint).
@@ -671,6 +685,11 @@ namespace Microsoft.Dafny
                 higher, if manually specified).
   /out:<file>
                 filename and location for the generated .cs, .dll or .exe files
+  /coverage:<file>
+                The compiler emits branch-coverage calls and outputs into
+                <file> a legend that gives a description of each
+                source-location identifier used in the branch-coverage calls.
+                (use - as <file> to print to console)
   /dafnycc      Disable features not supported by DafnyCC
   /noCheating:<n>
                 0 (default) - allow assume statements and free invariants

@@ -3,6 +3,7 @@
 
 module A {
   class C {
+    constructor () { }
     var f: int;
   }
   datatype D = E(int) | F(int)
@@ -18,8 +19,8 @@ module B {
 module Test {
   import opened A // nice shorthand for import opened A = A; (see below)
   method m() {
-    var c := new C;   // fine, as A was opened
-    var c' := new A.C;// also fine, as A is bound
+    var c := new C();   // fine, as A was opened
+    var c' := new A.C();// also fine, as A is bound
     var i := 43;
     var d  := E(i);     // these all refer to the same value
     var d' := A.E(i);
@@ -33,8 +34,8 @@ module Test {
 module Test2 {
   import opened B : A
   method m() {
-    var c := new C;   // fine, as A was opened
-    var c' := new B.C;// also fine, as A is bound
+    var c := new C();   // fine, as A was opened
+    var c' := new B.C();// also fine, as A is bound
     assert B.f(0) >= 0;
   }
 }
@@ -43,8 +44,8 @@ module Test3 {
   import opened A
   import opened B // everything in B clashes with A
   method m() {
-    var c := new C;    // bad, ambiguous between A.C and B.C
-    var c' := new A.C; // good: qualified.
+    var c := new C();    // bad, ambiguous between A.C and B.C
+    var c' := new A.C(); // good: qualified.
     var i := 43;
     var d  := E(i);     // bad, as both A and B give a definition of E
     var d' := D.E(i);   // bad, as D is still itself ambiguous.

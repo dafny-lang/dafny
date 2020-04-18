@@ -103,6 +103,7 @@ abstract module S {
 
 module T refines S {
   class C {
+    constructor () { }
     method m() {
       print "in T.C.m()";
     }
@@ -113,11 +114,11 @@ module A {
    import Y : T
    import Z = T
    method run() {
-     var x := new X.C;
+     var x := new X.C();
      x.m();
-     var y := new Y.C;
+     var y := new Y.C();
      y.m();
-     var z := new Z.C;
+     var z := new Z.C();
      z.m();
    }
 }
@@ -141,7 +142,7 @@ module A1 {
    import X : T1
    method run() {
      X.do();
-     var x := new X.B.C;
+     var x := new X.B.C();
      x.m();
    }
 }
@@ -155,12 +156,13 @@ module M {
     A
   }
   class public {
+    constructor() { }
     var private: int const namespace: int const fallthrough: int const try: int
   }
 }
 
 method Caller() {
-  var p := new M.public;
+  var p := new M.public();
   var x := p.private + p.namespace + p.fallthrough + p.try;
 }
 

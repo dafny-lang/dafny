@@ -1,29 +1,29 @@
-ControlStructures.dfy(8,2): Error: missing case in case statement: Purple
+ControlStructures.dfy(8,2): Error: missing case in match statement: Purple
 Execution trace:
     (0,0): anon0
     (0,0): anon6_Else
     (0,0): anon7_Else
     (0,0): anon8_Then
-ControlStructures.dfy(8,2): Error: missing case in case statement: Blue
+ControlStructures.dfy(8,2): Error: missing case in match statement: Blue
 Execution trace:
     (0,0): anon0
     (0,0): anon6_Else
     (0,0): anon7_Else
     (0,0): anon8_Else
     (0,0): anon9_Then
-ControlStructures.dfy(17,2): Error: missing case in case statement: Purple
+ControlStructures.dfy(17,2): Error: missing case in match statement: Purple
 Execution trace:
     (0,0): anon0
     (0,0): anon6_Else
     (0,0): anon7_Else
     (0,0): anon8_Then
-ControlStructures.dfy(46,4): Error: missing case in case statement: Red
+ControlStructures.dfy(46,4): Error: missing case in match statement: Red
 Execution trace:
     (0,0): anon0
     (0,0): anon8_Then
     (0,0): anon9_Else
     (0,0): anon10_Then
-ControlStructures.dfy(54,2): Error: missing case in case statement: Red
+ControlStructures.dfy(54,2): Error: missing case in match expression: Red
 Execution trace:
     (0,0): anon0
     (0,0): anon9_Else

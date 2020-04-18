@@ -5829,22 +5829,21 @@ MatchStmt = "match" Expression(allowLemma: true, allowLambda: true)
 CaseStatement = CaseBinding_ "=>" { Stmt }
 ````
 
-The `match` statement is used to do case analysis on a value of inductive
-or co-inductive type. The form with no leading ``Ident`` is for matching
-tuples. The expression after the `match` keyword is the (co)inductive
-value being matched. The expression is evaluated and then matched against
-each of the case clauses.
+The `match` statement is used to do case analysis on a value of inductive or co-inductive datatype (which includes the built-in tuple types), a base type, or newtype. The expression after the `match` keyword is called the _selector_. The expression is evaluated and then matched against
+each clause in order until a matching clause is found.
 
-There must be a case clause for each constructor of the data type.
 The identifier after the `case` keyword in a case clause, if present,
-must be the name of one of the data type's constructors.
+must be either the name of one of the datatype's constructors (when the selector is a value of a datatype), a literal (when the selector is a value of a base type or a newtype), or a
+variable, in which case the clause matches any constructors.
 If the constructor takes parameters then a parenthesis-enclosed
-list of identifiers (with optional type) must follow the
-constructor. There must be as many identifiers as the constructor
+list of patterns must follow the
+constructor. There must be as many patterns as the constructor
 has parameters. If the optional type is given it must be the same
 as the type of the corresponding parameter of the constructor.
 If no type is given then the type of the corresponding parameter
-is the type assigned to the identifier. If an identifier is not used
+is the type assigned to the identifier. If the identifier
+represents a variable, it cannot be applied to arguments.
+ If the variable is not used
 in a case, it can be replaced by an underscore.
 
 When an inductive value that was created using constructor
@@ -6865,12 +6864,12 @@ var k := 10 / x; // error, may divide by 0.
 var m := if x != 0 then 10 / x else 1; // ok, guarded
 ```
 
-## Case Bindings and Patterns
+## Case Bindings, Patterns, and Extended Patterns
 ````
 CaseBinding_ =
   "case"
-  ( Ident [ "(" [CasePattern { "," CasePattern } ] ")" ]
-  | "(" [ CasePattern { "," CasePattern } ] ")"
+  ( ExtendedPattern
+  | "(" [ ExtendedPattern { "," ExtendedPattern } ] ")"
   )
 
 CasePattern =
@@ -6878,28 +6877,37 @@ CasePattern =
   | "(" [ CasePattern { "," Casepattern } ] ")"
   | IdentTypeOptional
   )
+
+
+ExtendedPattern =
+  ( LiteralExpression_
+  ( Ident [ "(" ExtendedPattern { "," ExtendedPattern } ")" ]
 ````
 
-Case bindings and patterns are used for (possibly nested)
-pattern matching on inductive or coinductive values.
+Case bindings and extended patterns are used for (possibly nested)
+pattern matching on inductive, coinductive or base type values.
 The ``CaseBinding_`` construct is used in
 ``CaseStatement`` and ``CaseExpression``s.
-Besides its use in ``CaseBinding_``, ``CasePattern``s are used
+``CasePattern``s are used
 in ``LetExpr``s and ``VarDeclStatement``s.
 
 When matching an inductive or coinductive value in
-a ``MatchStmt`` or ``MatchExpression``, there must be
-a ``CaseBinding_`` for each constructor. A tuple is
+a ``MatchStmt`` or ``MatchExpression``, the ``ExtendedPattern``
+must either correspond to a constructor of the type of the value,
+or a bound variable. A tuple is
 considered to have a single constructor.
-The ``Ident`` of the ``CaseBinding_`` must match the name
+The ``Ident`` of the ``CaseBinding_`` must either match the name
 of a constructor (or in the case of a tuple, the ``Ident`` is
-absent and the second alternative is chosen).
-The ``CasePattern``s inside the parentheses are then
+absent and the second alternative is chosen), or not be applied to a tuple of ``ExtendedPattern``.
+The ``ExtendedPattern``s inside the parentheses are then
 matched against the arguments that were given to the
 constructor when the value was constructed.
-The number of ``CasePattern``s must match the number
+The number of ``ExtendedPattern`` must match the number
 of parameters to the constructor (or the arity of the
 tuple).
+When matching a value of base type, the ``ExtendedPattern`` should
+either be a ``LiteralExpression_`` of the same type as the value,
+or a single identifier matching all values of this type.
 
 The ``CasePattern``s may be nested. The set of non-constructor-name
 identifiers contained in a ``CaseBinding_`` must be distinct.
@@ -6921,12 +6929,11 @@ CaseExpression(allowLemma, allowLambda) =
 
 A ``MatchExpression`` is used to conditionally evaluate and select an
 expression depending on the value of an algebraic type, i.e. an inductive
-type, or a co-inductive type.
+type, a co-inductive type, or a base type.
 
 The ``Expression`` following the `match` keyword is called the
-_selector_. There must be a ``CaseExpression`` for each constructor of
-the type of the selector. The ``Ident`` following the `case` keyword in a
-``CaseExpression`` is the name of a constructor of the selector's type.
+_selector_. The selector is evaluated and then matched against each ``CaseExpression`` in order until a matching clause is found. An ``Ident`` following the `case` keyword in a
+``CaseExpression`` is either the name of a constructor of the selector's type, or a bound variable.
 It may be absent if the expression being matched is a tuple since these
 have no constructor name.
 
@@ -6938,15 +6945,16 @@ If the constructor has no parameters then the
 ``CaseExpression`` must not have a following ``CasePattern`` list (though
 optional empty parentheses are allowed).
 
-All of the identifiers in the ``CasePattern``s must be distinct.
+All of the variables in the ``CasePattern``s must be distinct.
 If types for the identifiers are not given then types are inferred
 from the types of the constructor's parameters. If types are
 given then they must agree with the types of the
 corresponding parameters.
 
 A ``MatchExpression`` is evaluated by first evaluating the selector.
-Then the ``CaseClause`` is selected for the constructor that was
-used to construct the evaluated selector. If the constructor had
+The ``ExtendedPattern`` of each ``CaseClause`` are then compared in order
+ with the resulting value until a matching pattern is found.
+If the constructor had
 parameters then the actual values used to construct the selector
 value are bound to the identifiers in the identifier list.
 The expression to the right of the `=>` in the ``CaseClause`` is then
@@ -7701,7 +7709,7 @@ for integral types and BitRational for real types.
 * `{:nativeType "typename"}` - This form has an native integral
 type name as a string literal. Acceptable values are: "byte",
 "sbyte", "ushort", "short", "uint", "int", "ulong" and "long".
-An error is reported if the given data type cannot hold all the
+An error is reported if the given datatype cannot hold all the
 values that satisfy the constraint.
 
 

@@ -1,4 +1,4 @@
-CoResolution.dfy(18,11): Error: member Undeclared# does not exist in class TestClass
+CoResolution.dfy(18,11): Error: member 'Undeclared#' does not exist in class 'TestClass'
 CoResolution.dfy(19,6): Error: unresolved identifier: Undeclared#
 CoResolution.dfy(22,9): Error: unresolved identifier: _k
 CoResolution.dfy(41,8): Error: == can only be applied to expressions of types that support equality (got Stream<_T0>)

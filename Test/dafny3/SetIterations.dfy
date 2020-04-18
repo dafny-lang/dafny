@@ -9,13 +9,13 @@ function Count<T>(s: set<T>): int
 }
 
 method Copy<T>(s: set<T>) returns (t: set<T>)
-  ensures s == t;
+  ensures s == t
 {
   t := {};
   var r := s;
-  while (r != {})
-    invariant s == r + t;
-    decreases r;
+  while r != {}
+    invariant s == r + t
+    decreases r
   {
     var x :| x in r;
     r, t := r - {x}, t + {x};
@@ -23,13 +23,13 @@ method Copy<T>(s: set<T>) returns (t: set<T>)
 }
 
 method CopyFaster<T>(s: set<T>) returns (t: set<T>)
-  ensures s == t;
+  ensures s == t
 {
   t := {};
   var r := s;
-  while (r != {})
-    invariant s == r + t;
-    decreases r;
+  while r != {}
+    invariant s == r + t
+    decreases r
   {
     var p :| p != {} && p <= r;  // pick a nonempty subset of r
     r, t := r - p, t + p;
@@ -37,19 +37,19 @@ method CopyFaster<T>(s: set<T>) returns (t: set<T>)
 }
 
 method CopyFastest<T>(s: set<T>) returns (t: set<T>)
-  ensures s == t;
+  ensures s == t
 {
   t := s;  // :)
 }
 
 iterator Iter<T>(s: set<T>) yields (x: T)
-  yield ensures x in s && x !in xs[..|xs|-1];
-  ensures s == set z | z in xs;
+  yield ensures x in s && x !in xs[..|xs|-1]
+  ensures s == set z | z in xs
 {
   var r := s;
-  while (r != {})
-    invariant forall z :: z in xs ==> x !in r;  // r and xs are disjoint
-    invariant s == r + set z | z in xs;
+  while r != {}
+    invariant forall z :: z in xs ==> z !in r  // r and xs are disjoint
+    invariant s == r + set z | z in xs
   {
     var y :| y in r;
     r, x := r - {y}, y;
@@ -59,17 +59,17 @@ iterator Iter<T>(s: set<T>) yields (x: T)
 }
 
 method UseIterToCopy<T(0)>(s: set<T>) returns (t: set<T>)
-  ensures s == t;
+  ensures s == t
 {
   t := {};
   var m := new Iter(s);
-  while (true)
-    invariant m.Valid() && fresh(m._new);
-    invariant t == set z | z in m.xs;
-    decreases s - t;
+  while true
+    invariant m.Valid() && fresh(m._new)
+    invariant t == set z | z in m.xs
+    decreases s - t
   {
     var more := m.MoveNext();
-    if (!more) { break; }
+    if !more { break; }
     t := t + {m.x};
   }
 }

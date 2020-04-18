@@ -100,5 +100,17 @@ method Main(){
   B2.m();
   var c := new C3.ASpec.C.Init();
   c.m();
+}
 
+// ---------- regressions -------------
+
+abstract module Regression_A {
+  export Spec provides x
+  export Body reveals x
+  const x: int := 80
+}
+
+abstract module Regression_B {
+  // once upon a time, merging two export sets of an abstract module caused a crash
+  import Regression_A`{Body,Spec}
 }
