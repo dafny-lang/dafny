@@ -2030,7 +2030,9 @@ namespace Microsoft.Dafny {
       } else if (expr is NameSegment) {
         var e = (NameSegment)expr;
         wr.Write(e.Name);
-        PrintTypeInstantiation(e.OptTypeArguments);
+        if (e.OptTypeArguments != null) {
+          PrintTypeInstantiation(e.OptTypeArguments);
+        }
 
       } else if (expr is ExprDotName) {
         var e = (ExprDotName)expr;
@@ -2042,6 +2044,16 @@ namespace Microsoft.Dafny {
         if (parensNeeded) { wr.Write("("); }
         if (!e.Lhs.IsImplicit) {
           PrintExpr(e.Lhs, opBindingStrength, false, false, !parensNeeded && isFollowedBySemicolon, -1, keyword);
+          if (e.Lhs.Type is Resolver_IdentifierExpr.ResolverType_Type) {
+            Contract.Assert(e.Lhs is NameSegment || e.Lhs is ExprDotName);  // these are the only expressions whose .Type can be ResolverType_Type
+            if (DafnyOptions.O.DafnyPrintResolvedFile != null && DafnyOptions.O.PrintMode == DafnyOptions.PrintModes.Everything) {
+              // The printing of e.Lhs printed the type arguments only if they were given explicitly in the input.
+              var optionalTypeArgs = e.Lhs is NameSegment ns ? ns.OptTypeArguments : ((ExprDotName)e.Lhs).OptTypeArguments;
+              if (optionalTypeArgs == null && e.Lhs.Resolved is Resolver_IdentifierExpr ri) {
+                PrintTypeInstantiation(ri.TypeArgs);
+              }
+            }
+          }
           wr.Write(".");
         }
         wr.Write(e.SuffixName);
