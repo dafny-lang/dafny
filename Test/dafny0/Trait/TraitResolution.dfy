@@ -17,7 +17,6 @@ module M0 {
   }
 }
 
-
 module M1 {
   trait Tr<X(0)> {
     var w: X
@@ -55,5 +54,14 @@ module M3 {
     function method H(y: Y): bv10 {
       F((y, y), 5.0)
     }
+  }
+}
+
+module M4 {
+  trait Tr<X> {
+    method M<A>(a: A, x: (X,A))
+  }
+  class Cl<Y> extends Tr<Y> {
+    method M<B>(a: B, x: int) { }  // error: type of x is int instead of the expected (Y, B)
   }
 }

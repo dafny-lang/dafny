@@ -7889,7 +7889,7 @@ namespace Microsoft.Dafny
               //adding a call graph edge from the trait method to that of class
               cl.Module.CallGraph.AddEdge(traitMethod, classMethod);
 
-              refinementTransformer.CheckOverride_MethodParameters(classMethod, traitMethod);
+              refinementTransformer.CheckOverride_MethodParameters(classMethod, traitMethod, cl.ParentFormalTypeParametersToActuals);
 
               var traitMethodAllowsNonTermination = Contract.Exists(traitMethod.Decreases.Expressions, e => e is WildcardExpr);
               var classMethodAllowsNonTermination = Contract.Exists(classMethod.Decreases.Expressions, e => e is WildcardExpr);
@@ -7911,7 +7911,7 @@ namespace Microsoft.Dafny
               //adding a call graph edge from the trait method to that of class
               cl.Module.CallGraph.AddEdge(traitFunction, classFunction);
 
-              refinementTransformer.CheckOverride_FunctionParameters(classFunction, traitFunction);
+              refinementTransformer.CheckOverride_FunctionParameters(classFunction, traitFunction, cl.ParentFormalTypeParametersToActuals);
             }
 
           } else {

@@ -1,3 +1,4 @@
+TraitResolution.dfy(65,22): Error: the type of in-parameter 'x' is different from the type of the same in-parameter in the corresponding method in the module it overrides ('int' instead of '(Y, B)')
 // Dafny 2.3.0.10506
 // Command Line Options: -nologo -countVerificationErrors:0 -useBaseNameForFileName -compileVerbose:0 /compile:0 /rprint:- /dafnyVerify:0 /Users/leino/Source/dafny/Test/dafny0/Trait/TraitResolution.dfy
 // TraitResolution.dfy
@@ -173,7 +174,6 @@ module M1 {
   */
 
   lemma M(c: Cl<int>)
-    decreases c
   {
     ghost var x: (int, int) := c.w;
   }
@@ -204,7 +204,6 @@ module M2 {
   */
 
   lemma M(c: Cl<int>)
-    decreases c
   {
     ghost var aa: (int, int);
     ghost var bb: real;
@@ -239,3 +238,30 @@ module M3 {
   type {:axiom} Cl(==)<Y> = c: Cl?<Y> | c != null /*special witness*/
   */
 }
+
+module M4 {
+  /* CALL GRAPH for module M4:
+   * SCC at height 2:
+   *   Tr.M
+   * SCC at height 1:
+   *   Cl.M
+   * SCC at height 0:
+   *   _tuple#2
+   */
+  trait Tr<X> {
+    method M<A>(a: A, x: (X, A))
+  }
+  /*-- non-null type
+  type {:axiom} Tr(==)<X> = c: Tr?<X> | c != null /*special witness*/
+  */
+
+  class Cl<Y> extends Tr<Y> {
+    method M<B>(a: B, x: int)
+    {
+    }
+  }
+  /*-- non-null type
+  type {:axiom} Cl(==)<Y> = c: Cl?<Y> | c != null /*special witness*/
+  */
+}
+1 resolution/type errors detected in TraitResolution.dfy
