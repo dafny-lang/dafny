@@ -3957,13 +3957,21 @@ namespace Microsoft.Dafny {
 
   public abstract class TopLevelDeclWithMembers : TopLevelDecl {
     public readonly List<MemberDecl> Members;
-    public TopLevelDeclWithMembers(IToken tok, string name, ModuleDefinition module, List<TypeParameter> typeArgs, List<MemberDecl> members, Attributes attributes)
+
+    // The following fields keep track of parent traits
+    public readonly List<MemberDecl> InheritedMembers = new List<MemberDecl>();  // these are instance fields and instance members defined with bodies in traits
+    public readonly List<Type> TraitsTyp;  // these are the types that are parsed after the keyword 'extends'
+    public readonly List<TraitDecl> TraitsObj = new List<TraitDecl>();  // populated during resolution
+    public readonly Dictionary<TypeParameter, Type> ParentFormalTypeParametersToActuals = new Dictionary<TypeParameter, Type>();  // maps parent traits' type parameters to actuals
+
+    public TopLevelDeclWithMembers(IToken tok, string name, ModuleDefinition module, List<TypeParameter> typeArgs, List<MemberDecl> members, Attributes attributes, List<Type>/*?*/ traits = null)
       : base(tok, name, module, typeArgs, attributes) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
       Contract.Requires(cce.NonNullElements(typeArgs));
       Contract.Requires(cce.NonNullElements(members));
       Members = members;
+      TraitsTyp = traits ?? new List<Type>();
     }
   }
 
@@ -3978,9 +3986,6 @@ namespace Microsoft.Dafny {
   public class ClassDecl : TopLevelDeclWithMembers, RevealableTypeDecl {
     public override string WhatKind { get { return "class"; } }
     public override bool CanBeRevealed() { return true; }
-    public readonly List<MemberDecl> InheritedMembers = new List<MemberDecl>();  // these are instance fields and instance members defined with bodies in traits
-    public readonly List<Type> TraitsTyp;  // these are the types that are parsed after the keyword 'extends'
-    public readonly List<TraitDecl> TraitsObj = new List<TraitDecl>();  // populated during resolution
     public bool HasConstructor;  // filled in (early) during resolution; true iff there exists a member that is a Constructor
     public readonly NonNullTypeDecl NonNullTypeDecl;
     [ContractInvariantMethod]
@@ -3992,13 +3997,12 @@ namespace Microsoft.Dafny {
 
     public ClassDecl(IToken tok, string name, ModuleDefinition module,
       List<TypeParameter> typeArgs, [Captured] List<MemberDecl> members, Attributes attributes, List<Type> traits)
-      : base(tok, name, module, typeArgs, members, attributes) {
+      : base(tok, name, module, typeArgs, members, attributes, traits) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
       Contract.Requires(module != null);
       Contract.Requires(cce.NonNullElements(typeArgs));
       Contract.Requires(cce.NonNullElements(members));
-      TraitsTyp = traits ?? new List<Type>();
       if (!IsDefaultClass && !(this is ArrowTypeDecl)) {
         NonNullTypeDecl = new NonNullTypeDecl(this);
       }
@@ -9157,6 +9161,39 @@ namespace Microsoft.Dafny {
           i++;
         }
       }
+      return subst;
+    }
+
+    public Dictionary<TypeParameter, Type> TypeArgumentSubstitutionsWithParents() {
+      Contract.Requires(WasResolved());
+      Contract.Ensures(Contract.Result<Dictionary<TypeParameter, Type>>() != null);
+
+      var receiverType = Obj.Type.AsNonNullRefType;
+      if (receiverType == null) {
+        return TypeArgumentSubstitutions();
+      }
+      var cl = (TopLevelDeclWithMembers)((NonNullTypeDecl)receiverType.ResolvedClass).ViewAsClass;
+
+      var icallable = Member as ICallable;
+      Contract.Assert(cl.TypeArgs.Count + (icallable == null ? 0 : icallable.TypeArgs.Count) == TypeApplication.Count);  // a consequence of proper resolution
+      var subst = new Dictionary<TypeParameter, Type>();
+      var i = 0;
+      foreach (var tp in cl.TypeArgs) {
+        subst.Add(tp, TypeApplication[i]);
+        i++;
+      }
+      if (icallable != null) {
+        foreach (var tp in icallable.TypeArgs) {
+          subst.Add(tp, TypeApplication[i]);
+          i++;
+        }
+      }
+
+      foreach (var entry in cl.ParentFormalTypeParametersToActuals) {
+        var v = Resolver.SubstType(entry.Value, subst);
+        subst.Add(entry.Key, v);
+      }
+
       return subst;
     }
 

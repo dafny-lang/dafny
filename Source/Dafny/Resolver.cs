@@ -7718,13 +7718,16 @@ namespace Microsoft.Dafny
           ResolveType_ClassName(cl.tok, tt, new NoContext(cl.Module), ResolveTypeOptionEnum.DontInfer, null);
           if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
             var udt = tt as UserDefinedType;
-            if (udt != null && udt.ResolvedClass is NonNullTypeDecl && ((NonNullTypeDecl)udt.ResolvedClass).ViewAsClass is TraitDecl) {
-              var trait = (TraitDecl)((NonNullTypeDecl)udt.ResolvedClass).ViewAsClass;
-              //disallowing inheritance in multi module case
+            if (udt != null && udt.ResolvedClass is NonNullTypeDecl nntd && nntd.ViewAsClass is TraitDecl trait) {
+              // disallowing inheritance in multi module case
               bool termination = true;
               if (cl.Module == trait.Module || (Attributes.ContainsBool(trait.Attributes, "termination", ref termination) && !termination)) {
                 // all is good (or the user takes responsibility for the lack of termination checking)
                 cl.TraitsObj.Add(trait);
+                Contract.Assert(trait.TypeArgs.Count == udt.TypeArgs.Count);
+                for (var i = 0; i < trait.TypeArgs.Count; i++) {
+                  cl.ParentFormalTypeParametersToActuals.Add(trait.TypeArgs[i], udt.TypeArgs[i]);
+                }
               } else {
                 reporter.Error(MessageSource.Resolver, udt.tok, "class '{0}' is in a different module than trait '{1}'. A class may only extend a trait in the same module, unless that trait is annotated with {{:termination false}}.", cl.Name, trait.FullName);
               }
@@ -11981,11 +11984,12 @@ namespace Microsoft.Dafny
                   } else {
                     // pick the supertype "mbr.EnclosingClass" of "cl"
                     Contract.Assert(mbr.EnclosingClass is TraitDecl);  // a proper supertype of a ClassDecl must be a TraitDecl
-                    var pickItFromHere = new UserDefinedType(tok, mbr.EnclosingClass.Name, mbr.EnclosingClass, new List<Type>());
+                    var proxyTypeArgs = mbr.EnclosingClass.TypeArgs.ConvertAll(_ => (Type)new InferredTypeProxy());
+                    var pickItFromHere = new UserDefinedType(tok, mbr.EnclosingClass.Name, mbr.EnclosingClass, proxyTypeArgs);
                     if (DafnyOptions.O.TypeInferenceDebug) {
                       Console.WriteLine("  ----> improved to {0} through meet and member lookup", pickItFromHere);
                     }
-                    ConstrainSubtypeRelation(pickItFromHere, meet, tok, "Member selection requires a subtype of {0} (got something more like {1})", pickItFromHere, meet);
+                    ConstrainSubtypeRelation(pickItFromHere, t, tok, "Member selection requires a subtype of {0} (got something more like {1})", pickItFromHere, t);
                     return pickItFromHere;
                   }
                 }
@@ -13910,14 +13914,14 @@ namespace Microsoft.Dafny
         // ----- 1. member of the enclosing class
         Expression receiver;
         if (member.IsStatic) {
-          receiver = new StaticReceiverExpr(expr.tok, (TopLevelDeclWithMembers)member.EnclosingClass, true);
+          receiver = new StaticReceiverExpr(expr.tok, UserDefinedType.FromTopLevelDecl(expr.tok, currentClass, currentClass.TypeArgs), (TopLevelDeclWithMembers)member.EnclosingClass, true);
         } else {
           if (!scope.AllowInstance) {
             reporter.Error(MessageSource.Resolver, expr.tok, "'this' is not allowed in a 'static' context"); //TODO: Rephrase this
             // nevertheless, set "receiver" to a value so we can continue resolution
           }
           receiver = new ImplicitThisExpr(expr.tok);
-          receiver.Type = GetThisType(expr.tok, (TopLevelDeclWithMembers)member.EnclosingClass);  // resolve here
+          receiver.Type = GetThisType(expr.tok, currentClass);  // resolve here
         }
         r = ResolveExprDotCall(expr.tok, receiver, null, member, args, expr.OptTypeArguments, opts, allowMethodCall);
       } else if (isLastNameSegment && moduleInfo.Ctors.TryGetValue(name, out pair)) {
@@ -14427,7 +14431,7 @@ namespace Microsoft.Dafny
         if (optTypeArguments != null) {
           reporter.Error(MessageSource.Resolver, tok, "a field ({0}) does not take any type arguments (got {1})", field.Name, optTypeArguments.Count);
         }
-        subst = BuildTypeArgumentSubstitute(subst);
+        subst = BuildTypeArgumentSubstitute(subst, receiverTypeBound ?? receiver.Type);
         rr.Type = SubstType(field.Type, subst);
         AddCallGraphEdgeForField(opts.codeContext, field, rr);
       } else if (member is Function) {
@@ -14444,7 +14448,7 @@ namespace Microsoft.Dafny
           rr.TypeApplication.Add(ta);
           subst.Add(fn.TypeArgs[i], ta);
         }
-        subst = BuildTypeArgumentSubstitute(subst);
+        subst = BuildTypeArgumentSubstitute(subst, receiverTypeBound ?? receiver.Type);
         rr.Type = SelectAppropriateArrowType(fn.tok,
           fn.Formals.ConvertAll(f => SubstType(f.Type, subst)),
           SubstType(fn.ResultType, subst),
@@ -14601,17 +14605,8 @@ namespace Microsoft.Dafny
               Contract.Assert(!(mse.Obj is StaticReceiverExpr) || callee.IsStatic);  // this should have been checked already
               Contract.Assert(callee.Formals.Count == rr.Args.Count);  // this should have been checked already
               // build the type substitution map
-              rr.TypeArgumentSubstitutions = new Dictionary<TypeParameter, Type>();
-              int enclosingTypeArgsCount = callee.EnclosingClass == null ? 0 : callee.EnclosingClass.TypeArgs.Count;
-              Contract.Assert(mse.TypeApplication.Count == enclosingTypeArgsCount + callee.TypeArgs.Count);
-              for (int i = 0; i < enclosingTypeArgsCount; i++) {
-                rr.TypeArgumentSubstitutions.Add(callee.EnclosingClass.TypeArgs[i], mse.TypeApplication[i]);
-              }
-
-              for (int i = 0; i < callee.TypeArgs.Count; i++) {
-                rr.TypeArgumentSubstitutions.Add(callee.TypeArgs[i], mse.TypeApplication[enclosingTypeArgsCount + i]);
-              }
-              Dictionary<TypeParameter, Type> subst = BuildTypeArgumentSubstitute(rr.TypeArgumentSubstitutions);
+              rr.TypeArgumentSubstitutions = mse.TypeArgumentSubstitutionsWithParents();
+              var subst = BuildTypeArgumentSubstitute(rr.TypeArgumentSubstitutions);
 
               // type check the arguments
 #if DEBUG
@@ -14649,10 +14644,10 @@ namespace Microsoft.Dafny
       return null;
     }
 
-    private Dictionary<TypeParameter, Type> BuildTypeArgumentSubstitute(Dictionary<TypeParameter, Type> typeArgumentSubstitutions) {
+    private Dictionary<TypeParameter, Type> BuildTypeArgumentSubstitute(Dictionary<TypeParameter, Type> typeArgumentSubstitutions, Type/*?*/ receiverTypeBound = null) {
       Contract.Requires(typeArgumentSubstitutions != null);
 
-      Dictionary<TypeParameter, Type> subst = new Dictionary<TypeParameter, Type>();
+      var subst = new Dictionary<TypeParameter, Type>();
       foreach (var entry in typeArgumentSubstitutions) {
         subst.Add(entry.Key, entry.Value);
       }
@@ -14662,6 +14657,24 @@ namespace Microsoft.Dafny
           subst.Add(entry.Key, entry.Value);
         }
       }
+
+      if (receiverTypeBound != null) {
+        TopLevelDeclWithMembers cl;
+        var udt = receiverTypeBound?.AsNonNullRefType;
+        if (udt != null) {
+          cl = (TopLevelDeclWithMembers)((NonNullTypeDecl)udt.ResolvedClass).ViewAsClass;
+        } else {
+          udt = receiverTypeBound.NormalizeExpand() as UserDefinedType;
+          cl = udt?.ResolvedClass as TopLevelDeclWithMembers;
+        }
+        if (cl != null) {
+          foreach (var entry in cl.ParentFormalTypeParametersToActuals) {
+            var v = SubstType(entry.Value, subst);
+            subst.Add(entry.Key, v);
+          }
+        }
+      }
+
       return subst;
     }
 
