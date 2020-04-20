@@ -7825,7 +7825,6 @@ namespace Microsoft.Dafny
     void InheritTraitMembers(ClassDecl cl) {
       Contract.Requires(cl != null);
 
-      var refinementTransformer = new RefinementTransformer(reporter);
       //merging class members with parent members if any
       var clMembers = classMembers[cl];
       foreach (TraitDecl trait in cl.TraitsObj) {
@@ -7889,7 +7888,7 @@ namespace Microsoft.Dafny
               //adding a call graph edge from the trait method to that of class
               cl.Module.CallGraph.AddEdge(traitMethod, classMethod);
 
-              refinementTransformer.CheckOverride_MethodParameters(classMethod, traitMethod, cl.ParentFormalTypeParametersToActuals);
+              CheckOverride_MethodParameters(classMethod, traitMethod, cl.ParentFormalTypeParametersToActuals);
 
               var traitMethodAllowsNonTermination = Contract.Exists(traitMethod.Decreases.Expressions, e => e is WildcardExpr);
               var classMethodAllowsNonTermination = Contract.Exists(classMethod.Decreases.Expressions, e => e is WildcardExpr);
@@ -7911,11 +7910,103 @@ namespace Microsoft.Dafny
               //adding a call graph edge from the trait method to that of class
               cl.Module.CallGraph.AddEdge(traitFunction, classFunction);
 
-              refinementTransformer.CheckOverride_FunctionParameters(classFunction, traitFunction, cl.ParentFormalTypeParametersToActuals);
+              CheckOverride_FunctionParameters(classFunction, traitFunction, cl.ParentFormalTypeParametersToActuals);
             }
 
           } else {
             Contract.Assert(false);  // unexpected member
+          }
+        }
+      }
+    }
+
+    public void CheckOverride_FunctionParameters(Function nw, Function old, Dictionary<TypeParameter, Type> classTypeMap) {
+      Contract.Requires(nw != null);
+      Contract.Requires(old != null);
+      Contract.Requires(classTypeMap != null);
+      var typeMap = CheckOverride_TypeParameters(nw.tok, old.TypeArgs, nw.TypeArgs, nw.Name, "function", classTypeMap);
+      CheckOverride_ResolvedParameters(nw.tok, old.Formals, nw.Formals, nw.Name, "function", "parameter", typeMap);
+      var oldResultType = Resolver.SubstType(old.ResultType, typeMap);
+      if (!nw.ResultType.Equals(oldResultType)) {
+        reporter.Error(MessageSource.RefinementTransformer, nw, "the result type of function '{0}' ({1}) differs from the result type of the corresponding function in the module it overrides ({2})",
+          nw.Name, nw.ResultType, oldResultType);
+      }
+    }
+
+    public void CheckOverride_MethodParameters(Method nw, Method old, Dictionary<TypeParameter, Type> classTypeMap) {
+      Contract.Requires(nw != null);
+      Contract.Requires(old != null);
+      Contract.Requires(classTypeMap != null);
+      var typeMap = CheckOverride_TypeParameters(nw.tok, old.TypeArgs, nw.TypeArgs, nw.Name, "method", classTypeMap);
+      CheckOverride_ResolvedParameters(nw.tok, old.Ins, nw.Ins, nw.Name, "method", "in-parameter", typeMap);
+      CheckOverride_ResolvedParameters(nw.tok, old.Outs, nw.Outs, nw.Name, "method", "out-parameter", typeMap);
+    }
+
+    private Dictionary<TypeParameter, Type> CheckOverride_TypeParameters(IToken tok, List<TypeParameter> old, List<TypeParameter> nw, string name, string thing, Dictionary<TypeParameter, Type> classTypeMap) {
+      Contract.Requires(tok != null);
+      Contract.Requires(old != null);
+      Contract.Requires(nw != null);
+      Contract.Requires(name != null);
+      Contract.Requires(thing != null);
+      var typeMap = old.Count == 0 ? classTypeMap : new Dictionary<TypeParameter, Type>(classTypeMap);
+      if (old.Count != nw.Count) {
+        reporter.Error(MessageSource.RefinementTransformer, tok,
+          "{0} '{1}' is declared with a different number of type parameters ({2} instead of {3}) than the corresponding {0} in the module it overrides", thing, name, nw.Count, old.Count);
+      } else {
+        for (int i = 0; i < old.Count; i++) {
+          var o = old[i];
+          var n = nw[i];
+          typeMap.Add(o, new UserDefinedType(tok, n));
+          // Check type characteristics
+          if (o.Characteristics.EqualitySupport != TypeParameter.EqualitySupportValue.InferredRequired && o.Characteristics.EqualitySupport != n.Characteristics.EqualitySupport) {
+            reporter.Error(MessageSource.RefinementTransformer, n.tok, "type parameter '{0}' is not allowed to change the requirement of supporting equality", n.Name);
+          }
+          if (o.Characteristics.MustSupportZeroInitialization != n.Characteristics.MustSupportZeroInitialization) {
+            reporter.Error(MessageSource.RefinementTransformer, n.tok, "type parameter '{0}' is not allowed to change the requirement of supporting zero initialization", n.Name);
+          }
+          if (o.Characteristics.DisallowReferenceTypes != n.Characteristics.DisallowReferenceTypes) {
+            reporter.Error(MessageSource.RefinementTransformer, n.tok, "type parameter '{0}' is not allowed to change the no-reference-type requirement", n.Name);
+          }
+
+        }
+      }
+      return typeMap;
+    }
+
+    private void CheckOverride_ResolvedParameters(IToken tok, List<Formal> old, List<Formal> nw, string name, string thing, string parameterKind, Dictionary<TypeParameter, Type> typeMap) {
+      Contract.Requires(tok != null);
+      Contract.Requires(old != null);
+      Contract.Requires(nw != null);
+      Contract.Requires(name != null);
+      Contract.Requires(thing != null);
+      Contract.Requires(parameterKind != null);
+      Contract.Requires(typeMap != null);
+      if (old.Count != nw.Count) {
+        reporter.Error(MessageSource.RefinementTransformer, tok, "{0} '{1}' is declared with a different number of {2} ({3} instead of {4}) than the corresponding {0} in the module it overrides",
+          thing, name, parameterKind, nw.Count, old.Count);
+      } else {
+        for (int i = 0; i < old.Count; i++) {
+          var o = old[i];
+          var n = nw[i];
+          if (!o.IsGhost && n.IsGhost) {
+            reporter.Error(MessageSource.RefinementTransformer, n.tok, "{0} '{1}' of {2} {3} cannot be changed, compared to the corresponding {2} in the module it overrides, from non-ghost to ghost",
+              parameterKind, n.Name, thing, name);
+          } else if (o.IsGhost && !n.IsGhost) {
+            reporter.Error(MessageSource.RefinementTransformer, n.tok, "{0} '{1}' of {2} {3} cannot be changed, compared to the corresponding {2} in the module it overrides, from ghost to non-ghost",
+              parameterKind, n.Name, thing, name);
+          } else if (!o.IsOld && n.IsOld) {
+            reporter.Error(MessageSource.RefinementTransformer, n.tok, "{0} '{1}' of {2} {3} cannot be changed, compared to the corresponding {2} in the module it overrides, from non-new to new",
+              parameterKind, n.Name, thing, name);
+          } else if (o.IsOld && !n.IsOld) {
+            reporter.Error(MessageSource.RefinementTransformer, n.tok, "{0} '{1}' of {2} {3} cannot be changed, compared to the corresponding {2} in the module it overrides, from new to non-new",
+              parameterKind, n.Name, thing, name);
+          } else {
+            var oo = Resolver.SubstType(o.Type, typeMap);
+            if (!n.Type.Equals(oo)) {
+              reporter.Error(MessageSource.RefinementTransformer, n.tok,
+                "the type of {0} '{1}' is different from the type of the same {0} in the corresponding {2} in the module it overrides ('{3}' instead of '{4}')",
+                parameterKind, n.Name, thing, n.Type, oo);
+            }
           }
         }
       }
