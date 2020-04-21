@@ -667,8 +667,12 @@ namespace Microsoft.Dafny{
         Contract.Assert(at != null);  // follows from type.IsArrayType
         Type elType = UserDefinedType.ArrayElementType(xType);
         return ArrayTypeName(elType, at.Dims, wr, tok);
-      } else if (xType is UserDefinedType) {
-        var udt = (UserDefinedType)xType;
+      } else if (xType is UserDefinedType udt) {
+        if (udt.ResolvedParam != null) {
+          if (thisContext != null && thisContext.ParentFormalTypeParametersToActuals.TryGetValue(udt.ResolvedParam, out var instantiatedTypeParameter)) {
+            return TypeName(instantiatedTypeParameter, wr, tok, member);
+          }
+        }
         var s = FullTypeName(udt, member);
         if (s.Equals("string")){
           return "String";
@@ -899,7 +903,7 @@ namespace Microsoft.Dafny{
       if (relevantTypeParams != null) {
         foreach (var tp in relevantTypeParams) {
           var fieldName = FormatTypeDescriptorVariable(tp.CompileName);
-          var decl = $"{TypeClass}<{IdName(tp)}> {fieldName}";
+          var decl = $"{TypeClass}<{tp.CompileName}> {fieldName}";
           wTypeFields.WriteLine($"private {decl};");
           wCtorParams.Write($"{sep}{decl}");
           wCtorBody.WriteLine($"this.{fieldName} = {fieldName};");
@@ -924,7 +928,7 @@ namespace Microsoft.Dafny{
       }
       wr.Write($"public static {typeParamString}{TypeClass}<{typeName}{typeParamString}> _type(");
       if (usedTypeParams != null) {
-        wr.Write(Util.Comma(usedTypeParams, tp => $"{TypeClass}<{IdName(tp)}> {FormatTypeDescriptorVariable(tp.CompileName)}"));
+        wr.Write(Util.Comma(usedTypeParams, tp => $"{TypeClass}<{tp.CompileName}> {FormatTypeDescriptorVariable(tp.CompileName)}"));
       }
       var wTypeMethodBody = wr.NewBigBlock(")", "");
       if (usedTypeParams == null || usedTypeParams.Count == 0) {
@@ -1658,7 +1662,7 @@ namespace Microsoft.Dafny{
           w.WriteLine("return theDefault;");
         }
       } else {
-        var w = wr.NewBigBlock($"public static <{typeArgsStr}> {dt}<{typeArgsStr}> Default({Util.Comma(usedTypeArgs, tp => $"{TypeClass}<{IdName(tp)}> {FormatTypeDescriptorVariable(tp)}")})", "");
+        var w = wr.NewBigBlock($"public static <{typeArgsStr}> {dt}<{typeArgsStr}> Default({Util.Comma(usedTypeArgs, tp => $"{TypeClass}<{tp.CompileName}> {FormatTypeDescriptorVariable(tp)}")})", "");
         w.Write("return ");
         wDefault = w.Fork();
         w.WriteLine(";");
@@ -2400,7 +2404,7 @@ namespace Microsoft.Dafny{
       int c = 0;
       foreach (var tp in typeParams) {
         if (useAllTypeArgs || tp.Characteristics.MustSupportZeroInitialization){
-          wr.Write($"{prefix}{TypeClass}<{tp.Name}> {FormatTypeDescriptorVariable(tp.Name)}");
+          wr.Write($"{prefix}{TypeClass}<{tp.CompileName}> {FormatTypeDescriptorVariable(tp)}");
           prefix = ", ";
           c++;
         }
@@ -3107,7 +3111,7 @@ namespace Microsoft.Dafny{
       w.WriteLine();
       EmitImports(w, out _);
       w.WriteLine();
-      w.Write($"public class _Companion_{name}");
+      w.Write($"public class _Companion_{name}{typeParamString}");
       var staticMemberWriter = w.NewBlock("");
       var ctorBodyWriter = staticMemberWriter.NewBlock($"public _Companion_{name}()");
       return new ClassWriter(this, instanceMemberWriter, ctorBodyWriter, staticMemberWriter);

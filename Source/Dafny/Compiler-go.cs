@@ -1318,7 +1318,12 @@ namespace Microsoft.Dafny {
 
       var embed = UnqualifiedClassName(superType, instanceFieldInitWriter, tok);
 
-      instanceFieldInitWriter.WriteLine("_this.{0} = {1}()", embed, TypeName_Initializer(superType, instanceFieldInitWriter, tok));
+      instanceFieldInitWriter.Write("_this.{0} = {1}(", embed, TypeName_Initializer(superType, instanceFieldInitWriter, tok));
+      if (superType is UserDefinedType udf) {
+        Contract.Assert(udf.ResolvedClass != null);
+        EmitRuntimeTypeDescriptorsActuals(superType.TypeArgs, udf.ResolvedClass.TypeArgs, tok, true, instanceFieldInitWriter);
+      }
+      instanceFieldInitWriter.WriteLine(")");
 
       if (superType.IsTraitType) {
         traitInitWriter.WriteLine("_this.{0}.{1} = &_this", embed, FormatTraitInterfaceName(embed));

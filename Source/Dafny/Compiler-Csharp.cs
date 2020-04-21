@@ -149,6 +149,9 @@ namespace Microsoft.Dafny
 
       //writing the _Companion class
       wr.Write("public class _Companion_{0}", name);
+      if (typeParameters != null && typeParameters.Count != 0) {
+        wr.Write("<{0}>", TypeParameters(typeParameters));
+      }
       var staticMemberWriter = wr.NewBlock("");
 
       return new ClassWriter(this, instanceMemberWriter, staticMemberWriter);
@@ -909,8 +912,12 @@ namespace Microsoft.Dafny
         string typeNameSansBrackets, brackets;
         TypeName_SplitArrayName(elType, wr, tok, out typeNameSansBrackets, out brackets);
         return typeNameSansBrackets + TypeNameArrayBrackets(at.Dims) + brackets;
-      } else if (xType is UserDefinedType) {
-        var udt = (UserDefinedType)xType;
+      } else if (xType is UserDefinedType udt) {
+        if (udt.ResolvedParam != null) {
+          if (thisContext != null && thisContext.ParentFormalTypeParametersToActuals.TryGetValue(udt.ResolvedParam, out var instantiatedTypeParameter)) {
+            return TypeName(instantiatedTypeParameter, wr, tok, member);
+          }
+        }
         var s = FullTypeName(udt, member);
         var cl = udt.ResolvedClass;
         bool isHandle = true;

@@ -2499,7 +2499,7 @@ namespace Microsoft.Dafny {
     public string CompileName {
       get {
         if (compileName == null) {
-          compileName = NonglobalVariable.CompilerizeName(Name);
+          compileName = ResolvedParam != null ? ResolvedParam.CompileName : ResolvedClass.CompileName;
         }
         return compileName;
       }
@@ -3068,7 +3068,7 @@ namespace Microsoft.Dafny {
     IToken INamedRegion.BodyStartTok { get { return BodyStartTok; } }
     IToken INamedRegion.BodyEndTok { get { return BodyEndTok; } }
     string INamedRegion.Name { get { return Name; } }
-    string compileName;
+    protected string compileName;
 
     private VisibilityScope opaqueScope = new VisibilityScope();
     private VisibilityScope revealScope = new VisibilityScope();
@@ -3202,6 +3202,20 @@ namespace Microsoft.Dafny {
         Contract.Requires(Parent == null);  // set it only once
         Contract.Requires(value != null);
         parent = value;
+      }
+    }
+
+    public override string CompileName {
+      get {
+        if (compileName == null) {
+          var name = Name;
+          if (parent is MemberDecl && !name.StartsWith("_")) {
+            // prepend "_" to type parameters of functions and methods, to ensure they don't clash with type parameters of the enclosing type
+            name = "_" + name;
+          }
+          compileName = NonglobalVariable.CompilerizeName(name);
+        }
+        return compileName;
       }
     }
 

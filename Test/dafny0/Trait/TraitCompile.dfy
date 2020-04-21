@@ -118,16 +118,28 @@ module TestFields {
   }
 }
 
+module GenericBasics {
+  // To compile these correctly requires that certain type-parameter renamings be done.
+
+  trait Tr<A, B> {
+    method Inst(x: int, a: A, b: B) { }
+    static method Stat(y: int, a: A, b: B) { }
+  }
+
+  class Cl<Q> extends Tr<Q, int> {
+  }
+}
+
 module Generics {
   trait Identity {
     method Call<T>(x: T) returns (r: T)
-  }   
+  }
 
   class IdentityImpl extends Identity {
     method Call<T>(x: T) returns (r: T) {
       r := x;
     }
-  } 
+  }
 
   // TODO-RS: Call this something else: Closure? Method?
   trait Function<T, R> {
@@ -139,16 +151,16 @@ module Generics {
 
   type IntFunction<T> = Function<T, int>
 
-  class ComposedFunction<S, T, R> extends Function<S, R> {
+  class ComposedFunction<S, T, RR> extends Function<S, RR> {
     const first: Function<S, T>
-    const second: Function<T, R>
+    const second: Function<T, RR>
 
-    constructor(first: Function<S, T>, second: Function<T, R>) {
+    constructor(first: Function<S, T>, second: Function<T, RR>) {
       this.first := first;
       this.second := second;
     }
 
-    method Call(s: S) returns (r: R) decreases * {
+    method Call(s: S) returns (r: RR) decreases * {
       var t := first.Call(s);
       r := second.Call(t);
     }
