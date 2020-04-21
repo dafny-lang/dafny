@@ -6296,35 +6296,23 @@ namespace Microsoft.Dafny {
         var e = (UnaryExpr)expr;
         return CanCallAssumption(e.E, etran);
       } else if (expr is BinaryExpr) {
-        BinaryExpr e = (BinaryExpr)expr;
+        // The short-circuiting boolean operators &&, ||, and ==> end up duplicating their
+        // left argument. Therefore, we first try to re-associate the expression to make
+        // left arguments smaller.
+        if (ReAssociateToTheRight(ref expr)) {
+          return CanCallAssumption(expr, etran);
+        }
+        var e = (BinaryExpr)expr;
+
         Bpl.Expr t0 = CanCallAssumption(e.E0, etran);
         Bpl.Expr t1 = CanCallAssumption(e.E1, etran);
-        Bpl.Expr antecedent;
         switch (e.ResolvedOp) {
           case BinaryExpr.ResolvedOpcode.And:
-          case BinaryExpr.ResolvedOpcode.Imp: {
-              var be = e.E0 as BinaryExpr;
-              if (be != null && (be.ResolvedOp == BinaryExpr.ResolvedOpcode.And ||
-                be.ResolvedOp == BinaryExpr.ResolvedOpcode.Imp ||
-                be.ResolvedOp == BinaryExpr.ResolvedOpcode.Or)) {
-                antecedent = BplAnd(CanCallAssumption(be.E1, etran), etran.TrExpr(be.E1));
-              } else {
-                antecedent = etran.TrExpr(e.E0);
-              }
-              t1 = BplImp(antecedent, t1);
-            }
+          case BinaryExpr.ResolvedOpcode.Imp:
+            t1 = BplImp(etran.TrExpr(e.E0), t1);
             break;
-          case BinaryExpr.ResolvedOpcode.Or: {
-              var be = e.E0 as BinaryExpr;
-              if (be != null && (be.ResolvedOp == BinaryExpr.ResolvedOpcode.And ||
-                be.ResolvedOp == BinaryExpr.ResolvedOpcode.Imp ||
-                be.ResolvedOp == BinaryExpr.ResolvedOpcode.Or)) {
-                antecedent = BplAnd(CanCallAssumption(be.E1, etran), Bpl.Expr.Not(etran.TrExpr(be.E1)));
-              } else {
-                antecedent = Bpl.Expr.Not(etran.TrExpr(e.E0));
-              }
-              t1 = BplImp(antecedent, t1);
-            }
+          case BinaryExpr.ResolvedOpcode.Or:
+            t1 = BplImp(Bpl.Expr.Not(etran.TrExpr(e.E0)), t1);
             break;
           case BinaryExpr.ResolvedOpcode.EqCommon:
           case BinaryExpr.ResolvedOpcode.NeqCommon: {
@@ -6580,6 +6568,41 @@ namespace Microsoft.Dafny {
           AddCasePatternVarSubstitutions(arg, de, substMap);
         }
       }
+    }
+
+    /// <summary>
+    /// If "expr" is a binary boolean operation, then try to re-associate it to make the left argument smaller.
+    /// If it is possible, then "true" is returned and "expr" returns as the re-associated expression (no boolean simplifications are performed).
+    /// If not, then "false" is returned and "expr" is unchanged.
+    /// </summary>
+    bool ReAssociateToTheRight(ref Expression expr) {
+      if (expr is BinaryExpr top && Expression.StripParens(top.E0) is BinaryExpr left) {
+        // We have an expression of the form "(A oo B) pp C"
+        var A = left.E0;
+        var oo = left.ResolvedOp;
+        var B = left.E1;
+        var pp = top.ResolvedOp;
+        var C = top.E1;
+
+        if (oo == BinaryExpr.ResolvedOpcode.And && pp == BinaryExpr.ResolvedOpcode.And) {
+          // rewrite    (A && B) && C    into    A && (B && C)
+          expr = Expression.CreateAnd(A, Expression.CreateAnd(B, C, false), false);
+          return true;
+        } else if (oo == BinaryExpr.ResolvedOpcode.And && pp == BinaryExpr.ResolvedOpcode.Imp) {
+          // rewrite    (A && B) ==> C    into    A ==> (B ==> C)
+          expr = Expression.CreateImplies(A, Expression.CreateImplies(B, C, false), false);
+          return true;
+        } else if (oo == BinaryExpr.ResolvedOpcode.Or && pp == BinaryExpr.ResolvedOpcode.Or) {
+          // rewrite    (A || B) || C    into    A || (B || C)
+          expr = Expression.CreateOr(A, Expression.CreateOr(B, C, false), false);
+          return true;
+        } else if (oo == BinaryExpr.ResolvedOpcode.Imp && pp == BinaryExpr.ResolvedOpcode.Or) {
+          // rewrite    (A ==> B) || C    into    A ==> (B || C)
+          expr = Expression.CreateImplies(A, Expression.CreateOr(B, C, false), false);
+          return true;
+        }
+      }
+      return false;
     }
 
     void CheckCasePatternShape<VT>(CasePattern<VT> pat, Bpl.Expr rhs, IToken rhsTok, Type rhsType, BoogieStmtListBuilder builder) where VT: IVariable {

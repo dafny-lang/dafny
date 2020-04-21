@@ -8550,14 +8550,14 @@ namespace Microsoft.Dafny {
     /// <summary>
     /// Create a resolved expression of the form "e0 && e1"
     /// </summary>
-    public static Expression CreateAnd(Expression a, Expression b) {
+    public static Expression CreateAnd(Expression a, Expression b, bool allowSimplification = true) {
       Contract.Requires(a != null);
       Contract.Requires(b != null);
       Contract.Requires(a.Type.IsBoolType && b.Type.IsBoolType);
       Contract.Ensures(Contract.Result<Expression>() != null);
-      if (LiteralExpr.IsTrue(a)) {
+      if (allowSimplification && LiteralExpr.IsTrue(a)) {
         return b;
-      } else if (LiteralExpr.IsTrue(b)) {
+      } else if (allowSimplification && LiteralExpr.IsTrue(b)) {
         return a;
       } else {
         var and = new BinaryExpr(a.tok, BinaryExpr.Opcode.And, a, b);
@@ -8570,18 +8570,38 @@ namespace Microsoft.Dafny {
     /// <summary>
     /// Create a resolved expression of the form "e0 ==> e1"
     /// </summary>
-    public static Expression CreateImplies(Expression a, Expression b) {
+    public static Expression CreateImplies(Expression a, Expression b, bool allowSimplification = true) {
       Contract.Requires(a != null);
       Contract.Requires(b != null);
       Contract.Requires(a.Type.IsBoolType && b.Type.IsBoolType);
       Contract.Ensures(Contract.Result<Expression>() != null);
-      if (LiteralExpr.IsTrue(a) || LiteralExpr.IsTrue(b)) {
+      if (allowSimplification && (LiteralExpr.IsTrue(a) || LiteralExpr.IsTrue(b))) {
         return b;
       } else {
         var imp = new BinaryExpr(a.tok, BinaryExpr.Opcode.Imp, a, b);
         imp.ResolvedOp = BinaryExpr.ResolvedOpcode.Imp;  // resolve here
         imp.Type = Type.Bool;  // resolve here
         return imp;
+      }
+    }
+
+    /// <summary>
+    /// Create a resolved expression of the form "e0 || e1"
+    /// </summary>
+    public static Expression CreateOr(Expression a, Expression b, bool allowSimplification = true) {
+      Contract.Requires(a != null);
+      Contract.Requires(b != null);
+      Contract.Requires(a.Type.IsBoolType && b.Type.IsBoolType);
+      Contract.Ensures(Contract.Result<Expression>() != null);
+      if (allowSimplification && LiteralExpr.IsTrue(a)) {
+        return a;
+      } else if (allowSimplification && LiteralExpr.IsTrue(b)) {
+        return b;
+      } else {
+        var or = new BinaryExpr(a.tok, BinaryExpr.Opcode.Or, a, b);
+        or.ResolvedOp = BinaryExpr.ResolvedOpcode.Or;  // resolve here
+        or.Type = Type.Bool;  // resolve here
+        return or;
       }
     }
 
