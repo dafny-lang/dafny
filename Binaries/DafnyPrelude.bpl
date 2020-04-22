@@ -180,13 +180,14 @@ axiom (forall<T> v : T, t : Ty, h : Heap ::
     ( $IsAllocBox($Box(v), t, h) <==> $IsAlloc(v,t,h) ));
 
 // ---------------------------------------------------------------
-// -- Is and IsAlloc ---------------------------------------------
+// -- Is, IsAlloc, and Arity -------------------------------------
 // ---------------------------------------------------------------
 
 // Type-argument to $Is is the /representation type/,
 // the second value argument to $Is is the actual type.
 function $Is<T>(T,Ty): bool;           // no heap for now
 function $IsAlloc<T>(T,Ty,Heap): bool;
+function $Arity(HandleType): int;
 
 // Corresponding entries for boxes...
 // This could probably be solved by having Box also inhabit Ty
@@ -311,7 +312,7 @@ axiom (forall s: [ref]bool :: { SetRef_to_SetBox(s) }
 
 // Functions ApplyN, RequiresN, and ReadsN are generated on demand by the translator,
 // but Apply1 is referred to in the prelude, so its definition is hardcoded here.
-function Apply1(Ty, Ty, Heap, HandleType, Box): Box;
+function Apply1(HandleType): [Heap,Box]Box;
 
 // ---------------------------------------------------------------
 // -- Datatypes --------------------------------------------------
@@ -952,7 +953,7 @@ axiom (forall ty: Ty, heap: Heap, len: int, init: HandleType ::
 axiom (forall ty: Ty, heap: Heap, len: int, init: HandleType, i: int ::
   { Seq#Index(Seq#Create(ty, heap, len, init), i) }
   $IsGoodHeap(heap) && 0 <= i && i < len ==>
-  Seq#Index(Seq#Create(ty, heap, len, init), i) == Apply1(TInt, TSeq(ty), heap, init, $Box(i)));
+  Seq#Index(Seq#Create(ty, heap, len, init), i) == Apply1(init)[heap, $Box(i)]);
 
 function Seq#Append<T>(Seq T, Seq T): Seq T;
 axiom (forall<T> s0: Seq T, s1: Seq T :: { Seq#Length(Seq#Append(s0,s1)) }

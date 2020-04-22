@@ -4500,9 +4500,9 @@ namespace Microsoft.Dafny {
         Contract.Ensures(Contract.Result<string>() != null);
 
         if (Name == "requires") {
-          return Translator.Requires(((ArrowTypeDecl)EnclosingClass).Arity);
+          return Translator.RraName(Translator.ReqReadsApp.Requires, ((ArrowTypeDecl)EnclosingClass).Arity);
         } else if (Name == "reads") {
-          return Translator.Reads(((ArrowTypeDecl)EnclosingClass).Arity);
+          return Translator.RraName(Translator.ReqReadsApp.Reads, ((ArrowTypeDecl)EnclosingClass).Arity);
         } else {
           return EnclosingClass.FullSanitizedName + "." + CompileName;
         }
@@ -4514,9 +4514,9 @@ namespace Microsoft.Dafny {
         Contract.Ensures(Contract.Result<string>() != null);
 
         if (Name == "requires") {
-          return Translator.Requires(((ArrowTypeDecl)EnclosingClass).Arity);
+          return Translator.RraName(Translator.ReqReadsApp.Requires, ((ArrowTypeDecl)EnclosingClass).Arity);
         } else if (Name == "reads") {
-          return Translator.Reads(((ArrowTypeDecl)EnclosingClass).Arity);
+          return Translator.RraName(Translator.ReqReadsApp.Reads, ((ArrowTypeDecl)EnclosingClass).Arity);
         } else {
           return EnclosingClass.FullSanitizedRefinementName + "." + CompileName;
         }
