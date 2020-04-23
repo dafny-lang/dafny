@@ -1149,7 +1149,6 @@ namespace Microsoft.Dafny {
 
     void AddTypeDecl(OpaqueTypeDecl td) {
       Contract.Requires(td != null);
-      var nm = nameTypeParam(td.TheType);
       AddTypeDecl_Aux(td.tok, nameTypeParam(td.TheType), td.TypeArgs);
     }
 
@@ -3017,15 +3016,18 @@ namespace Microsoft.Dafny {
     /// The list of formals "lits" is allowed to contain an object of type ThisSurrogate, which indicates that
     /// the receiver parameter of the function should be included among the lit formals.
     /// </summary>
-    Bpl.Axiom FunctionAxiom(Function f, Expression body, List<Formal>/*?*/ lits, TopLevelDecl overridingClass = null) {
+    Bpl.Axiom FunctionAxiom(Function f, Expression/*?*/ body, List<Formal>/*?*/ lits, Function/*?*/ overridingFunction = null) {
       Contract.Requires(f != null);
       Contract.Requires(predef != null);
       Contract.Requires(f.EnclosingClass != null);
-      Contract.Requires(!f.IsStatic || overridingClass == null);
-      Contract.Requires(overridingClass == null || body is FunctionCallExpr);  // pseudo body (see caller)
+      Contract.Requires(!f.IsStatic || overridingFunction == null);
+      Contract.Requires(overridingFunction == null || body is FunctionCallExpr);  // pseudo body (see caller)
+      Contract.Requires(overridingFunction == null || overridingFunction.EnclosingClass is TopLevelDeclWithMembers);
 
       // only if body is null, we will return null:
       Contract.Ensures((Contract.Result<Bpl.Axiom>() == null) == (body == null));
+
+      var inClassComment = overridingFunction == null ? "" : " in class " + overridingFunction.EnclosingClass.FullSanitizedName;
 
       bool readsHeap = AlwaysUseHeap || f.ReadsHeap;
       foreach (MaybeFreeExpression e in f.Req) {
@@ -3056,7 +3058,7 @@ namespace Microsoft.Dafny {
       //   (forall s, $Heap, formals ::                  // let args := $Heap,formals
       //       { f(Succ(s), args) }                      // (*)
       //       (f#canCall(args) || USE_VIA_CONTEXT) &&
-      //       dtype(this) == overridingClass            // if "overridingClass" != null
+      //       dtype(this) == overridingFunction.EnclosingClass  // if "overridingFunction" != null
       //       ==>
       //       BODY-can-make-its-calls &&
       //       f(Succ(s), args) == BODY);                // (*)
@@ -3103,18 +3105,18 @@ namespace Microsoft.Dafny {
 
       // quantify over the type arguments, and add them first to the arguments
       List<Bpl.Expr> args = new List<Bpl.Expr>();
-      List<Bpl.Expr> reqArgs = new List<Bpl.Expr>();
-      List<Bpl.Expr> tyargs;
-      var forallFormals = MkTyParamBinders(GetTypeParams(f), out tyargs);
-      var funcFormals = MkTyParamBinders(GetTypeParams(f), out tyargs);
-      reqArgs.AddRange(tyargs);
+      List<Bpl.Expr> tyargs = GetTypeArguments(f, overridingFunction).ConvertAll(TypeToTy);
+
+      var forallFormals = MkTyParamBinders(GetTypeParams(overridingFunction ?? f), out _);
+      var funcFormals = MkTyParamBinders(GetTypeParams(f), out _);
+      var reqFuncArguments = new List<Bpl.Expr>(tyargs);
 
       Bpl.BoundVariable layer;
       if (f.IsFuelAware()) {
         layer = new Bpl.BoundVariable(f.tok, new Bpl.TypedIdent(f.tok, "$ly", predef.LayerType));
         forallFormals.Add(layer);
         funcFormals.Add(layer);
-        reqArgs.Add(new Bpl.IdentifierExpr(f.tok, layer));
+        reqFuncArguments.Add(new Bpl.IdentifierExpr(f.tok, layer));
         // Note, "layer" is not added to "args" here; rather, that's done below, as needed
       } else {
         layer = null;
@@ -3126,7 +3128,7 @@ namespace Microsoft.Dafny {
         forallFormals.Add(bvPrevHeap);
         funcFormals.Add(bvPrevHeap);
         args.Add(etran.Old.HeapExpr);
-        reqArgs.Add(new Bpl.IdentifierExpr(f.tok, bvPrevHeap));
+        reqFuncArguments.Add(new Bpl.IdentifierExpr(f.tok, bvPrevHeap));
         // ante:  $IsGoodHeap($prevHeap) &&
         ante = BplAnd(ante, FunctionCall(f.tok, BuiltinFunction.IsGoodHeap, null, etran.Old.HeapExpr));
       }
@@ -3136,7 +3138,7 @@ namespace Microsoft.Dafny {
       if (AlwaysUseHeap || f.ReadsHeap) {
         funcFormals.Add(bv);
         args.Add(new Bpl.IdentifierExpr(f.tok, bv));
-        reqArgs.Add(new Bpl.IdentifierExpr(f.tok, bv));
+        reqFuncArguments.Add(new Bpl.IdentifierExpr(f.tok, bv));
       }
       // ante:  $IsGoodHeap($Heap) && $HeapSucc($prevHeap, $Heap) && this != null && formals-have-the-expected-types &&
       if (AlwaysUseHeap || readsHeap) {
@@ -3151,10 +3153,10 @@ namespace Microsoft.Dafny {
       Bpl.Expr additionalAntecedent = null;
       Expression receiverReplacement = null;
       if (!f.IsStatic) {
-        var bvThis = new Bpl.BoundVariable(f.tok, new Bpl.TypedIdent(f.tok, etran.This, TrReceiverType(f)));
+        var bvThis = new Bpl.BoundVariable(f.tok, new Bpl.TypedIdent(f.tok, etran.This, TrReceiverType(overridingFunction ?? f)));
         forallFormals.Add(bvThis);
         funcFormals.Add(bvThis);
-        reqArgs.Add(new Bpl.IdentifierExpr(f.tok, bvThis));
+        reqFuncArguments.Add(new Bpl.IdentifierExpr(f.tok, bvThis));
         var bvThisIdExpr = new Bpl.IdentifierExpr(f.tok, bvThis);
         if (lits != null && lits.Exists(p => p is ThisSurrogate)) {
           args.Add(Lit(bvThisIdExpr));
@@ -3167,14 +3169,14 @@ namespace Microsoft.Dafny {
           args.Add(bvThisIdExpr);
         }
         // add well-typedness conjunct to antecedent
-        Type thisType = Resolver.GetReceiverType(f.tok, f);
+        Type thisType = Resolver.GetReceiverType(f.tok, overridingFunction ?? f);
         Bpl.Expr wh = Bpl.Expr.And(
           ReceiverNotNull(bvThisIdExpr),
           (f is TwoStateFunction ? etran.Old : etran).GoodRef(f.tok, bvThisIdExpr, thisType));
         ante = BplAnd(ante, wh);
-        if (overridingClass != null) {
-          // additionalAntecednet := dtype(this) == overridingClass
-          additionalAntecedent = DType(bvThisIdExpr, ClassTyCon(overridingClass, new List<Expr>()));  // TODO: this needs more work if overridingClass has type parameters
+        if (overridingFunction != null) {
+          // additionalAntecednet := dtype(this) == overridingFunction.EnclosingClass
+          additionalAntecedent = DType(bvThisIdExpr, TypeToTy(thisType));
         }
       }
 
@@ -3184,7 +3186,7 @@ namespace Microsoft.Dafny {
         bv = new Bpl.BoundVariable(p.tok, new Bpl.TypedIdent(p.tok, p.AssignUniqueName(currentDeclaration.IdGenerator), TrType(p.Type)));
         forallFormals.Add(bv);
         funcFormals.Add(bv);
-        reqArgs.Add(new Bpl.IdentifierExpr(f.tok, bv));
+        reqFuncArguments.Add(new Bpl.IdentifierExpr(f.tok, bv));
         Bpl.Expr formal = new Bpl.IdentifierExpr(p.tok, bv);
         if (lits != null && lits.Contains(p) && !substMap.ContainsKey(p)) {
           args.Add(Lit(formal));
@@ -3224,20 +3226,20 @@ namespace Microsoft.Dafny {
 
       // Add the precondition function and its axiom (which is equivalent to the anteReqAxiom)
       if (body == null || (RevealedInScope(f) && lits == null)) {
-        if (overridingClass == null) {
+        if (overridingFunction == null) {
           var precondF = new Bpl.Function(f.tok,
             RequiresName(f), new List<Bpl.TypeVariable>(),
             funcFormals.ConvertAll(v => (Bpl.Variable)BplFormalVar(null, v.TypedIdent.Type, true)),
             BplFormalVar(null, Bpl.Type.Bool, false));
           sink.AddTopLevelDeclaration(precondF);
         }
-        var appl = FunctionCall(f.tok, RequiresName(f), Bpl.Type.Bool, reqArgs);
+        var appl = FunctionCall(f.tok, RequiresName(f), Bpl.Type.Bool, reqFuncArguments);
         Bpl.Trigger trig = BplTriggerHeap(this, f.tok, appl,
           (AlwaysUseHeap || f.ReadsHeap || !readsHeap) ? null : etran.HeapExpr);
         // axiom (forall params :: { f#requires(params) }  ante ==> f#requires(params) == pre);
         sink.AddTopLevelDeclaration(new Axiom(f.tok,
           BplForall(forallFormals, trig, BplImp(anteReqAxiom, Bpl.Expr.Eq(appl, preReqAxiom))),
-          "#requires axiom for " + f.FullSanitizedName));
+          "#requires axiom for " + f.FullSanitizedName + inClassComment));
       }
       if (body == null || !RevealedInScope(f)) {
         return null;
@@ -3298,7 +3300,7 @@ namespace Microsoft.Dafny {
         ExpressionTranslator etranBody;
         if (layer == null) {
           etranBody = etran;
-        } else if (overridingClass != null) {
+        } else if (overridingFunction != null) {
           var pseudoBody = (FunctionCallExpr)body;
           etranBody = etran.LimitedFunctions(pseudoBody.Function, LayerSucc(ly));
         } else {
@@ -3315,10 +3317,10 @@ namespace Microsoft.Dafny {
       Bpl.Expr ax = BplForall(f.tok, new List<Bpl.TypeVariable>(), forallFormals, kv, tr, Bpl.Expr.Imp(ante, tastyVegetarianOption));
       var activate = AxiomActivation(f, etran);
       string comment;
-      if (overridingClass == null) {
+      if (overridingFunction == null) {
         comment = "definition axiom for " + f.FullSanitizedName;
       } else {
-        comment = "override axiom for " + f.FullSanitizedName + " in class " + overridingClass.FullSanitizedName;
+        comment = "override axiom for " + f.FullSanitizedName + inClassComment;
       }
       if (lits != null) {
         if (lits.Count == f.Formals.Count + (f.IsStatic ? 0 : 1)) {
@@ -3328,7 +3330,7 @@ namespace Microsoft.Dafny {
         }
       }
       if (RevealedInScope(f)) {
-        comment += "(revealed)";
+        comment += " (revealed)";
       } else if (!RevealedInScope(f)) {
         comment += " (opaque)";
       }
@@ -4733,7 +4735,6 @@ namespace Microsoft.Dafny {
           substMap.Add(f.OverriddenFunction.Result, ie);
         }
 
-        Bpl.StmtList stmts;
         //adding assume Pre’; assert P; // this checks that Pre’ implies P
         AddFunctionOverrideReqsChk(f, builder, etran, substMap);
 
@@ -4744,9 +4745,10 @@ namespace Microsoft.Dafny {
         AddFunctionOverrideSubsetChk(f, builder, etran, localVariables, substMap);
 
         //adding assume Q; assert Post’;
+        //adding assume J.F(ins) == C.F(ins);
         AddFunctionOverrideEnsChk(f, builder, etran, substMap, implInParams, implOutParams.Count == 0 ? null : implOutParams[0]);
 
-        stmts = builder.Collect(f.tok);
+        var stmts = builder.Collect(f.tok);
 
         if (EmitImplementation(f.Attributes)) {
           // emit the impl only when there are proof obligations.
@@ -4769,6 +4771,7 @@ namespace Microsoft.Dafny {
     {
       Contract.Requires(f != null);
       Contract.Requires(!f.IsStatic);  // only instance functions can be overridden
+      Contract.Requires(f.EnclosingClass is TopLevelDeclWithMembers);
       Contract.Requires(sink != null && predef != null);
 
       // Essentially, the function override axiom looks like:
@@ -4778,20 +4781,19 @@ namespace Microsoft.Dafny {
       //     ==>
       //     J.F($heap, this, x#0) == C.F($heap, this, x#0));
       // but it also has the various usual antecedents.  Essentially, the override gives a part of the body of the
-      // trait's function, so we call FunctionAxiom to generate a conditional axiom (that is, we pass in the "overridingClass"
+      // trait's function, so we call FunctionAxiom to generate a conditional axiom (that is, we pass in the "overridingFunction"
       // parameter to FunctionAxiom, which will add 'dtype(this) == class.C' as an additional antecedent) for a
       // body of 'C.F(this, x#0)'.
+      var cl = (TopLevelDeclWithMembers)f.EnclosingClass;
       var receiver = new ThisExpr(f);
       var args = f.OverriddenFunction.Formals.ConvertAll(p => (Expression)new IdentifierExpr(p.tok, p.Name) { Var = p, Type = p.Type });
       var pseudoBody = new FunctionCallExpr(f.tok, f.Name, new ThisExpr(f), f.tok, args);
       pseudoBody.Function = f;  // resolve here
-      // TODO-RS: the following two lines (incorrectly) assume there are no type parameters
       pseudoBody.Type = f.ResultType;  // resolve here
       pseudoBody.TypeArgumentSubstitutions = new Dictionary<TypeParameter,Type>();  // resolve here
-      for (int i = 0; i < f.EnclosingClass.TypeArgs.Count; i++) {
-        pseudoBody.TypeArgumentSubstitutions.Add(f.EnclosingClass.TypeArgs[i], receiver.Type.TypeArgs[i]);
-      }
-      sink.AddTopLevelDeclaration(FunctionAxiom(f.OverriddenFunction, pseudoBody, null, f.EnclosingClass));
+      f.EnclosingClass.TypeArgs.ForEach(tp => pseudoBody.TypeArgumentSubstitutions.Add(tp, (Type)new UserDefinedType(tp.tok, tp)));
+      f.TypeArgs.ForEach(tp => pseudoBody.TypeArgumentSubstitutions.Add(tp, (Type)new UserDefinedType(tp.tok, tp)));
+      sink.AddTopLevelDeclaration(FunctionAxiom(f.OverriddenFunction, pseudoBody, null, f));
     }
 
     private void AddFunctionOverrideEnsChk(Function f, BoogieStmtListBuilder builder, ExpressionTranslator etran, Dictionary<IVariable, Expression> substMap, List<Bpl.Variable> implInParams, Bpl.Variable/*?*/ resultVariable)
@@ -4807,6 +4809,10 @@ namespace Microsoft.Dafny {
       Bpl.FunctionCall funcIdT = new Bpl.FunctionCall(new Bpl.IdentifierExpr(f.OverriddenFunction.tok, f.OverriddenFunction.FullSanitizedName, TrType(f.OverriddenFunction.ResultType)));
       List<Bpl.Expr> argsC = new List<Bpl.Expr>();
       List<Bpl.Expr> argsT = new List<Bpl.Expr>();
+      // add type arguments
+      argsT.AddRange(GetTypeArguments(f.OverriddenFunction, f).ConvertAll(TypeToTy));
+      argsC.AddRange(GetTypeArguments(f, null).ConvertAll(TypeToTy));
+      // add fuel arguments
       if (f.IsFuelAware())
       {
         argsC.Add(etran.layerInterCluster.GetFunctionFuel(f));
@@ -4815,6 +4821,7 @@ namespace Microsoft.Dafny {
       {
         argsT.Add(etran.layerInterCluster.GetFunctionFuel(f));
       }
+      // add heap arguments
       if (f is TwoStateFunction) {
         argsC.Add(etran.Old.HeapExpr);
         argsT.Add(etran.Old.HeapExpr);
@@ -4827,6 +4834,7 @@ namespace Microsoft.Dafny {
       {
         argsT.Add(etran.HeapExpr);
       }
+      // add "ordinary" parameters
       foreach (Variable p in implInParams)
       {
         argsC.Add(new Bpl.IdentifierExpr(f.tok, p));
@@ -4852,6 +4860,38 @@ namespace Microsoft.Dafny {
           }
         }
       }
+    }
+
+    /// <summary>
+    /// Return type arguments for function "f".
+    /// Given:
+    ///     class/trait Tr[A,B] {
+    ///       function f[C,D](...): ...
+    ///     }
+    /// When "overridingFunction" is null, return:
+    ///     [A, B, C, D]
+    /// When "overridingFunction" is non-null and stands for:
+    ///     class/trait Cl[G] extends Tr[X(G),Y(G)] {
+    ///       function f[R,S](...): ...
+    ///     }
+    /// returns:
+    ///     [X(G), Y(G), R, S]
+    /// </summary>
+    private List<Type> GetTypeArguments(Function f, Function/*?*/ overridingFunction) {
+      Contract.Requires(f != null);
+      Contract.Requires(overridingFunction == null || overridingFunction.EnclosingClass is TopLevelDeclWithMembers);
+      Contract.Requires(overridingFunction == null || f.TypeArgs.Count == overridingFunction.TypeArgs.Count);
+
+      List<Type> tyargs;
+      if (overridingFunction == null) {
+        tyargs = f.EnclosingClass.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp.tok, tp));
+      } else {
+        var cl = (TopLevelDeclWithMembers)overridingFunction.EnclosingClass;
+        var typeMap = cl.ParentFormalTypeParametersToActuals;
+        tyargs = f.EnclosingClass.TypeArgs.ConvertAll(tp => typeMap[tp]);
+      }
+      tyargs.AddRange((overridingFunction ?? f).TypeArgs.ConvertAll(tp => new UserDefinedType(tp.tok, tp)));
+      return tyargs;
     }
 
     private void HavocFunctionFrameLocations(Function f, BoogieStmtListBuilder builder, ExpressionTranslator etran, List<Variable> localVariables)
@@ -15750,7 +15790,6 @@ namespace Microsoft.Dafny {
         // first add type arguments
         var tyParams = GetTypeParams(e.Function);
         var tySubst = e.TypeArgumentSubstitutions;
-        Contract.Assert(tyParams.Count == tySubst.Count);
         args.AddRange(translator.trTypeArgs(tySubst, tyParams));
 
         if (layerArgument != null) {

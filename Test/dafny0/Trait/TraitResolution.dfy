@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:0 /rprint:- /dafnyVerify:0 "%s" > "%t"
+// RUN: %dafny /env:0 /rprint:- /compile:0 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module M0 {
