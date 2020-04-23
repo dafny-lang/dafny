@@ -3180,10 +3180,12 @@ namespace Microsoft.Dafny {
         }
       }
 
+      var typeMap = overridingFunction == null ? new Dictionary<TypeParameter, Type>() : GetTypeArgumentSubstitutionMap(f, overridingFunction);
       var anteReqAxiom = ante;  // note that antecedent so far is the same for #requires axioms, even the receiver parameter of a two-state function
       var substMap = new Dictionary<IVariable, Expression>();
       foreach (Formal p in f.Formals) {
-        bv = new Bpl.BoundVariable(p.tok, new Bpl.TypedIdent(p.tok, p.AssignUniqueName(currentDeclaration.IdGenerator), TrType(p.Type)));
+        var pType = Resolver.SubstType(p.Type, typeMap);
+        bv = new Bpl.BoundVariable(p.tok, new Bpl.TypedIdent(p.tok, p.AssignUniqueName(currentDeclaration.IdGenerator), TrType(pType)));
         forallFormals.Add(bv);
         funcFormals.Add(bv);
         reqFuncArguments.Add(new Bpl.IdentifierExpr(f.tok, bv));
@@ -3199,9 +3201,9 @@ namespace Microsoft.Dafny {
           args.Add(formal);
         }
         // add well-typedness conjunct to antecedent
-        Bpl.Expr wh = GetWhereClause(p.tok, formal, p.Type, p.IsOld ? etran.Old : etran, NOALLOC);
+        Bpl.Expr wh = GetWhereClause(p.tok, formal, pType, p.IsOld ? etran.Old : etran, NOALLOC);
         if (wh != null) { ante = BplAnd(ante, wh); }
-        wh = GetWhereClause(p.tok, formal, p.Type, etran, NOALLOC);
+        wh = GetWhereClause(p.tok, formal, pType, etran, NOALLOC);
         if (wh != null) { anteReqAxiom = BplAnd(anteReqAxiom, wh); }
       }
 
@@ -3307,8 +3309,12 @@ namespace Microsoft.Dafny {
           etranBody = etran.LimitedFunctions(f, ly);
         }
 
+        var funcApplInOverride = etranBody.TrExpr(bodyWithSubst);
+        if (overridingFunction != null && ModeledAsBoxType(f.ResultType)) {
+          funcApplInOverride = BoxIfUnboxed(funcApplInOverride, overridingFunction.ResultType);
+        }
         tastyVegetarianOption = BplAnd(CanCallAssumption(bodyWithSubst, etranBody),
-          BplAnd(TrFunctionSideEffect(bodyWithSubst, etranBody),Bpl.Expr.Eq(funcAppl, etranBody.TrExpr(bodyWithSubst))));
+          BplAnd(TrFunctionSideEffect(bodyWithSubst, etranBody),Bpl.Expr.Eq(funcAppl, funcApplInOverride)));
       }
       QKeyValue kv = null;
       if (lits != null) {
@@ -3331,7 +3337,7 @@ namespace Microsoft.Dafny {
       }
       if (RevealedInScope(f)) {
         comment += " (revealed)";
-      } else if (!RevealedInScope(f)) {
+      } else {
         comment += " (opaque)";
       }
       return new Bpl.Axiom(f.tok, Bpl.Expr.Imp(activate, ax), comment);
@@ -4842,7 +4848,11 @@ namespace Microsoft.Dafny {
       }
       Bpl.Expr funcExpC = new Bpl.NAryExpr(f.tok, funcIdC, argsC);
       Bpl.Expr funcExpT = new Bpl.NAryExpr(f.OverriddenFunction.tok, funcIdT, argsT);
-      builder.Add(TrAssumeCmd(f.tok, Bpl.Expr.Eq(funcExpC, funcExpT)));
+      var funcExpCPossiblyBoxed = funcExpC;
+      if (ModeledAsBoxType(f.OverriddenFunction.ResultType)) {
+        funcExpCPossiblyBoxed = BoxIfUnboxed(funcExpCPossiblyBoxed, f.ResultType);
+      }
+      builder.Add(TrAssumeCmd(f.tok, Bpl.Expr.Eq(funcExpCPossiblyBoxed, funcExpT)));
 
       //generating assume C.F(ins) == out, if a result variable was given
       if (resultVariable != null) {
@@ -4863,8 +4873,10 @@ namespace Microsoft.Dafny {
     }
 
     /// <summary>
-    /// Return type arguments for function "f".
-    /// Given:
+    /// Return type arguments for function "f", where any type parameters are in terms of
+    /// the context of "overridingFunction ?? f".
+    ///
+    /// In more symbols, suppose "f" is declared as follows:
     ///     class/trait Tr[A,B] {
     ///       function f[C,D](...): ...
     ///     }
@@ -4874,10 +4886,12 @@ namespace Microsoft.Dafny {
     ///     class/trait Cl[G] extends Tr[X(G),Y(G)] {
     ///       function f[R,S](...): ...
     ///     }
-    /// returns:
+    /// return:
     ///     [X(G), Y(G), R, S]
+    ///
+    /// See also GetTypeArgumentSubstitutionMap.
     /// </summary>
-    private List<Type> GetTypeArguments(Function f, Function/*?*/ overridingFunction) {
+    private static List<Type> GetTypeArguments(Function f, Function/*?*/ overridingFunction) {
       Contract.Requires(f != null);
       Contract.Requires(overridingFunction == null || overridingFunction.EnclosingClass is TopLevelDeclWithMembers);
       Contract.Requires(overridingFunction == null || f.TypeArgs.Count == overridingFunction.TypeArgs.Count);
@@ -4892,6 +4906,45 @@ namespace Microsoft.Dafny {
       }
       tyargs.AddRange((overridingFunction ?? f).TypeArgs.ConvertAll(tp => new UserDefinedType(tp.tok, tp)));
       return tyargs;
+    }
+
+    /// <summary>
+    /// Return a type-parameter substitution map for function "f", as instantiated by the context of "overridingFunction".
+    ///
+    /// In more symbols, suppose "f" is declared as follows:
+    ///     class/trait Tr[A,B] {
+    ///       function f[C,D](...): ...
+    ///     }
+    /// and "overridingFunction" is declared as follows:
+    ///     class/trait Cl[G] extends Tr[X(G),Y(G)] {
+    ///       function f[R,S](...): ...
+    ///     }
+    /// Then, return the following map:
+    ///     A -> X(G)
+    ///     B -> Y(G)
+    ///     C -> R
+    ///     D -> S
+    ///
+    /// See also GetTypeArguments.
+    /// </summary>
+    private static Dictionary<TypeParameter, Type> GetTypeArgumentSubstitutionMap(Function f, Function overridingFunction) {
+      Contract.Requires(f != null);
+      Contract.Requires(overridingFunction != null);
+      Contract.Requires(overridingFunction.EnclosingClass is TopLevelDeclWithMembers);
+      Contract.Requires(f.TypeArgs.Count == overridingFunction.TypeArgs.Count);
+
+      var typeMap = new Dictionary<TypeParameter, Type>();
+
+      var cl = (TopLevelDeclWithMembers)overridingFunction.EnclosingClass;
+      var classTypeMap = cl.ParentFormalTypeParametersToActuals;
+      f.EnclosingClass.TypeArgs.ForEach(tp => typeMap.Add(tp, classTypeMap[tp]));
+
+      for (var i = 0; i < f.TypeArgs.Count; i++) {
+        var otp = overridingFunction.TypeArgs[i];
+        typeMap.Add(f.TypeArgs[i], new UserDefinedType(otp.tok, otp));
+      }
+
+      return typeMap;
     }
 
     private void HavocFunctionFrameLocations(Function f, BoogieStmtListBuilder builder, ExpressionTranslator etran, List<Variable> localVariables)

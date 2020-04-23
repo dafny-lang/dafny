@@ -79,6 +79,7 @@ method Main()
 
   TestFields.Test();
 
+  GenericBasics.Test();
   Generics.Test();
 }
 
@@ -124,9 +125,19 @@ module GenericBasics {
   trait Tr<A, B> {
     method Inst(x: int, a: A, b: B) { }
     static method Stat(y: int, a: A, b: B) { }
+    function method Teen<R>(a: (A, R)): B
   }
 
   class Cl<Q> extends Tr<Q, int> {
+    constructor () { }
+    function method Teen<S>(a: (Q, S)): int { 12 }
+  }
+
+  method Test() {
+    var c: Cl<real> := new Cl();
+    var t: Tr<real, int> := c;
+    print "c.Teen<bool>() == ", c.Teen<bool>((0.8, true)), "\n";
+    print "t.Teen<bv9>() == ", t.Teen<bv9>((0.5, 100)), "\n";
   }
 }
 

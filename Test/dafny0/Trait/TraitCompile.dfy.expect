@@ -1,5 +1,5 @@
 
-Dafny program verifier finished with 14 verified, 0 errors
+Dafny program verifier finished with 16 verified, 0 errors
 y=120
 x=12
 d=800
@@ -19,4 +19,6 @@ This is OtherModule.P(7.0)
 From OtherModule.X: 7 and true
 c.f= 15 j.f= 15
 c.f= 18 j.f= 18
+c.Teen<bool>() == 12
+t.Teen<bv9>() == 12
 x=126
