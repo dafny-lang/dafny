@@ -675,13 +675,14 @@ namespace Microsoft.Dafny {
             bool externP = Attributes.Contains(at.Attributes, "extern");
             if (externP) {
               var exprs = Attributes.FindExpressions(at.Attributes, "extern");
-              if (exprs != null && exprs.Count >= 1) {
+              Contract.Assert(exprs != null);  // because externP is true
+              if (exprs.Count == 1) {
                 DeclareExternType(at, exprs[0], wr);
               } else {
-                Error(d.tok, "Opaque type ('{0}') with missing extern attribute cannot be compiled.  Expected {{:extern compile_type_hint}} ", wr, at.FullName);
+                Error(d.tok, "Opaque type ('{0}') with extern attribute requires a compile hint.  Expected {{:extern compile_type_hint}} ", wr, at.FullName);
               }
             } else {
-              Error(d.tok, "Opaque type ('{0}') cannot be compiled", wr, at.FullName);
+              Error(d.tok, "Opaque type ('{0}') cannot be compiled; perhaps make it a type synonym or use :extern.", wr, at.FullName);
             }
           } else if (d is TypeSynonymDecl) {
             var sst = d as SubsetTypeDecl;

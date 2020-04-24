@@ -434,6 +434,7 @@ namespace Microsoft.Dafny
       The extern modifier is used
         * to alter the CompileName of entities such as modules, classes, methods, etc.,
         * to alter the ReferenceName of the entities,
+        * to decide how to define external opaque types,
         * to decide whether to emit target code or not, and
         * to decide whether a declaration is allowed not to have a body.
       The CompileName is the name for the entity when translating to one of the target languages.
@@ -443,6 +444,7 @@ namespace Microsoft.Dafny
       :extern takes 0, 1, or 2 (possibly empty) string arguments:
         - 0: Dafny will use the Dafny name as the CompileName and not affect the ReferenceName
         - 1: Dafny will use s1 as the CompileName, and replaces the last portion of the ReferenceName by s1.
+             When used on an opaque type, s1 is used as a hint as to how to declare that type when compiling.
         - 2: Dafny will use s2 as the CompileName.
              Dafny will use a combination of s1 and s2 such as for example s1.s2 as the ReferenceName
              It may also be the case that one of the arguments is simply ignored.
