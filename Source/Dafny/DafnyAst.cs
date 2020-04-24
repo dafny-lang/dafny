@@ -9174,22 +9174,25 @@ namespace Microsoft.Dafny {
     public readonly Expression Obj;
     public readonly string MemberName;
     public MemberDecl Member;          // filled in by resolution, will be a Field or Function
-    public List<Type> TypeApplication; // If Member is a Function or Method, then TypeApplication is the list of type arguments used with the enclosing class and the function/method itself; if it is a Field, then TypeApplication is the list of type arguments used with the enclosing class
+
+    /// If Member is a Function or Method, then TypeApplication is the list of type arguments used with the receiver
+    /// type and the function/method itself. If it is a Field, then TypeApplication is the list of type arguments used
+    /// with the receiver type. The receiver type may be different than the enclosing class of the member; this will
+    /// happen if the member is declared in a trait and the receiver is of some type that extends that trait.
+    public List<Type> TypeApplication;
 
     public Dictionary<TypeParameter, Type> TypeArgumentSubstitutions() {
       Contract.Requires(WasResolved());
       Contract.Ensures(Contract.Result<Dictionary<TypeParameter, Type>>() != null);
       Contract.Ensures(Contract.Result<Dictionary<TypeParameter, Type>>().Count == TypeApplication.Count);
 
-      var icallable = Member as ICallable;
-      Contract.Assert(Member.EnclosingClass.TypeArgs.Count + (icallable == null ? 0 : icallable.TypeArgs.Count) == TypeApplication.Count);  // a consequence of proper resolution
       var subst = new Dictionary<TypeParameter, Type>();
       var i = 0;
       foreach (var tp in Member.EnclosingClass.TypeArgs) {
         subst.Add(tp, TypeApplication[i]);
         i++;
       }
-      if (icallable != null) {
+      if (Member is ICallable icallable) {
         foreach (var tp in icallable.TypeArgs) {
           subst.Add(tp, TypeApplication[i]);
           i++;
