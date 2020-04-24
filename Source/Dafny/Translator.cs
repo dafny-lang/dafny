@@ -3175,8 +3175,8 @@ namespace Microsoft.Dafny {
           (f is TwoStateFunction ? etran.Old : etran).GoodRef(f.tok, bvThisIdExpr, thisType));
         ante = BplAnd(ante, wh);
         if (overridingFunction != null) {
-          // additionalAntecednet := dtype(this) == overridingFunction.EnclosingClass
-          additionalAntecedent = DType(bvThisIdExpr, TypeToTy(thisType));
+          // additionalAntecednet := dtype(this) == overridingFunction.EnclosingClass (note: use the C? version of the type name)
+          additionalAntecedent = DType(bvThisIdExpr, TypeToTy(thisType.NormalizeExpand()));
         }
       }
 
