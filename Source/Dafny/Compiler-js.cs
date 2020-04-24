@@ -115,7 +115,7 @@ namespace Microsoft.Dafny {
       //     }
       //   }
 
-      var cw = CreateClass(iter.Module.CompileName, IdName(iter), iter.TypeArgs, wr) as JavaScriptCompiler.ClassWriter;
+      var cw = CreateClass(IdProtect(iter.Module.CompileName), IdName(iter), iter.TypeArgs, wr) as JavaScriptCompiler.ClassWriter;
       var w = cw.MethodWriter;
       var instanceFieldsWriter = cw.FieldWriter;
       // here come the fields
@@ -489,7 +489,7 @@ namespace Microsoft.Dafny {
     }
 
     protected override IClassWriter DeclareNewtype(NewtypeDecl nt, TargetWriter wr) {
-      var cw = CreateClass(nt.Module.CompileName, IdName(nt), null, wr) as JavaScriptCompiler.ClassWriter;
+      var cw = CreateClass(IdProtect(nt.Module.CompileName), IdName(nt), null, wr) as JavaScriptCompiler.ClassWriter;
       var w = cw.MethodWriter;
       if (nt.NativeType != null) {
         var wIntegerRangeBody = w.NewBlock("static *IntegerRange(lo, hi)");
@@ -516,7 +516,7 @@ namespace Microsoft.Dafny {
     }
 
     protected override void DeclareSubsetType(SubsetTypeDecl sst, TargetWriter wr) {
-      var cw = CreateClass(sst.Module.CompileName, IdName(sst), sst.TypeArgs, wr) as JavaScriptCompiler.ClassWriter;
+      var cw = CreateClass(IdProtect(sst.Module.CompileName), IdName(sst), sst.TypeArgs, wr) as JavaScriptCompiler.ClassWriter;
       var w = cw.MethodWriter;
       if (sst.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
         var witness = new TargetWriter(w.IndentLevel, true);

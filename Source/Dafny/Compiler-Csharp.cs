@@ -176,7 +176,7 @@ namespace Microsoft.Dafny
       //   }
 
       var cw =
-        CreateClass(iter.Module.CompileName, IdName(iter), iter.TypeArgs, wr) as CsharpCompiler.ClassWriter;
+        CreateClass(IdProtect(iter.Module.CompileName), IdName(iter), iter.TypeArgs, wr) as CsharpCompiler.ClassWriter;
       var w = cw.InstanceMemberWriter;
       // here come the fields
       Constructor ct = null;
@@ -636,7 +636,7 @@ namespace Microsoft.Dafny
     }
 
     protected override IClassWriter DeclareNewtype(NewtypeDecl nt, TargetWriter wr) {
-      var cw = CreateClass(nt.Module.CompileName, IdName(nt), null, wr) as CsharpCompiler.ClassWriter;
+      var cw = CreateClass(IdProtect(nt.Module.CompileName), IdName(nt), null, wr) as CsharpCompiler.ClassWriter;
       var w = cw.StaticMemberWriter;
       if (nt.NativeType != null) {
         var wEnum = w.NewNamedBlock("public static System.Collections.Generic.IEnumerable<{0}> IntegerRange(BigInteger lo, BigInteger hi)", GetNativeTypeName(nt.NativeType));
@@ -657,7 +657,7 @@ namespace Microsoft.Dafny
     }
 
     protected override void DeclareSubsetType(SubsetTypeDecl sst, TargetWriter wr) {
-      ClassWriter cw = CreateClass(sst.Module.CompileName, IdName(sst), sst.TypeArgs, wr) as ClassWriter;
+      ClassWriter cw = CreateClass(IdProtect(sst.Module.CompileName), IdName(sst), sst.TypeArgs, wr) as ClassWriter;
       if (sst.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
         var sw = new TargetWriter(cw.InstanceMemberWriter.IndentLevel, true);
         TrExpr(sst.Witness, sw, false);

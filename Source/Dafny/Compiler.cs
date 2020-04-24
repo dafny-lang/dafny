@@ -737,7 +737,7 @@ namespace Microsoft.Dafny {
               }
             }
             if (include) {
-              var cw = CreateClass(d.Module.CompileName, IdName(cl), classIsExtern, cl.FullName, cl.TypeArgs, cl.TraitsTyp, cl.tok, wr);
+              var cw = CreateClass(IdProtect(d.Module.CompileName), IdName(cl), classIsExtern, cl.FullName, cl.TypeArgs, cl.TraitsTyp, cl.tok, wr);
               CompileClassMembers(cl, cw);
               cw.Finish();
             } else {
