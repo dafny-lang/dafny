@@ -91,7 +91,7 @@ namespace Microsoft.Dafny {
       BlockTargetWriter/*?*/ CreateFunction(string name, List<TypeParameter>/*?*/ typeArgs, List<Formal> formals, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl member);
       BlockTargetWriter/*?*/ CreateGetter(string name, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl/*?*/ member);  // returns null iff !createBody
       BlockTargetWriter/*?*/ CreateGetterSetter(string name, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl/*?*/ member, out TargetWriter setterWriter);  // if createBody, then result and setterWriter are non-null, else both are null
-      void DeclareField(string name, List<TypeParameter> targs, bool isStatic, bool isConst, Type type, Bpl.IToken tok, string rhs);
+      void DeclareField(string name, TopLevelDecl enclosingDecl, bool isStatic, bool isConst, Type type, Bpl.IToken tok, string rhs);
       TextWriter/*?*/ ErrorWriter();
       void Finish();
     }
@@ -783,7 +783,7 @@ namespace Microsoft.Dafny {
           return null;
         }
       }
-      public void DeclareField(string name, List<TypeParameter> targs, bool isStatic, bool isConst, Type type, Bpl.IToken tok, string rhs) { }
+      public void DeclareField(string name, TopLevelDecl enclosingDecl, bool isStatic, bool isConst, Type type, Bpl.IToken tok, string rhs) { }
 
       public TextWriter/*?*/ ErrorWriter() {
         return null; // match the old behavior of Compile() where this is used
@@ -972,7 +972,7 @@ namespace Microsoft.Dafny {
             var cf = (ConstantField)member;
             if (cf.Rhs == null) {
               Contract.Assert(!cf.IsStatic);  // as checked above, only instance members can be inherited
-              classWriter.DeclareField("_" + cf.CompileName, c.TypeArgs, false, false, cf.Type, cf.tok, DefaultValue(cf.Type, errorWr, cf.tok, true));
+              classWriter.DeclareField("_" + cf.CompileName, c, false, false, cf.Type, cf.tok, DefaultValue(cf.Type, errorWr, cf.tok, true));
             }
             var w = classWriter.CreateGetter(IdName(cf), cf.Type, cf.tok, false, true, member);
             Contract.Assert(w != null);  // since the previous line asked for a body
@@ -989,7 +989,7 @@ namespace Microsoft.Dafny {
           if (NeedsWrappersForInheritedFields) {
             var f = (Field)member;
             // every field is inherited
-            classWriter.DeclareField("_" + f.CompileName, c.TypeArgs, false, false, f.Type, f.tok, DefaultValue(f.Type, errorWr, f.tok, true));
+            classWriter.DeclareField("_" + f.CompileName, c, false, false, f.Type, f.tok, DefaultValue(f.Type, errorWr, f.tok, true));
             TargetWriter wSet;
             var wGet = classWriter.CreateGetterSetter(IdName(f), f.Type, f.tok, false, true, member, out wSet);
             {
@@ -1011,9 +1011,9 @@ namespace Microsoft.Dafny {
               var w = new TargetWriter();
               TrExpr(cf.Rhs, w, false);
               var rhs = w.ToString();
-              classWriter.DeclareField(f.CompileName, c.TypeArgs, false, true, f.Type, f.tok, rhs);
+              classWriter.DeclareField(f.CompileName, c, false, true, f.Type, f.tok, rhs);
             } else {
-              classWriter.DeclareField(f.CompileName, c.TypeArgs, false, false, f.Type, f.tok, DefaultValue(f.Type, errorWr, f.tok, true));
+              classWriter.DeclareField(f.CompileName, c, false, false, f.Type, f.tok, DefaultValue(f.Type, errorWr, f.tok, true));
             }
 
             if (!FieldsInTraits) { // Create getters and setters for "traits" in languages that don't allow for non-final field declarations.
@@ -1074,7 +1074,7 @@ namespace Microsoft.Dafny {
                 Contract.Assert(wBody == null);  // since the previous line said not to create a body
               } else if (cf.Rhs == null) {
                 // create a backing field, since this constant field may be assigned in constructors
-                classWriter.DeclareField("_" + f.CompileName, c.TypeArgs, false, false, f.Type, f.tok, DefaultValue(f.Type, errorWr, f.tok, true));
+                classWriter.DeclareField("_" + f.CompileName, c, false, false, f.Type, f.tok, DefaultValue(f.Type, errorWr, f.tok, true));
                 wBody = classWriter.CreateGetter(IdName(cf), cf.Type, cf.tok, false, true, cf);
                 Contract.Assert(wBody != null);  // since the previous line asked for a body
               } else {
@@ -1103,7 +1103,7 @@ namespace Microsoft.Dafny {
                 rhs = null;
               }
               if (!(c is TraitDecl && !FieldsInTraits) || cf.IsStatic) {
-                classWriter.DeclareField(IdName(f), c.TypeArgs, f.IsStatic, true, f.Type, f.tok, rhs);
+                classWriter.DeclareField(IdName(f), c, f.IsStatic, true, f.Type, f.tok, rhs);
               } else { // Constant fields in traits (Java interface) should be get methods.
                 classWriter.CreateGetter(IdName(cf), cf.Type, cf.tok, false, false, cf);
               }
@@ -1116,7 +1116,7 @@ namespace Microsoft.Dafny {
             TargetWriter wSet;
             classWriter.CreateGetterSetter(IdName(f), f.Type, f.tok, false, false, member, out wSet);
           } else {
-            classWriter.DeclareField(IdName(f), c.TypeArgs, f.IsStatic, false, f.Type, f.tok, DefaultValue(f.Type, errorWr, f.tok, true));
+            classWriter.DeclareField(IdName(f), c, f.IsStatic, false, f.Type, f.tok, DefaultValue(f.Type, errorWr, f.tok, true));
           }
         } else if (member is Function) {
           var f = (Function)member;
