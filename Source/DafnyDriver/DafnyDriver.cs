@@ -602,6 +602,8 @@ namespace Microsoft.Dafny
       }
       bool completeProgram = dafnyProgram.reporter.Count(ErrorLevel.Error) == oldErrorCount;
 
+      compiler.Coverage.WriteLegendFile();
+
       // blurt out the code to a file, if requested, or if other files were specified for the C# command line.
       string targetFilename = null;
       if (DafnyOptions.O.SpillTargetCode > 0 || otherFileNames.Count > 0 || (invokeCompiler && !compiler.SupportsInMemoryCompilation))

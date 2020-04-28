@@ -19,6 +19,9 @@ namespace Microsoft.Dafny {
   public class GoCompiler : Compiler {
     public GoCompiler(ErrorReporter reporter)
     : base(reporter) {
+      if (DafnyOptions.O.CoverageLegendFile != null) {
+        Imports.Add(new Import {Name = "DafnyProfiling", Path = "DafnyProfiling"});
+      }
     }
 
     public override string TargetLanguage => "Go";
@@ -85,7 +88,9 @@ namespace Microsoft.Dafny {
 
       var wBody = wr.NewNamedBlock("func main()");
       wBody.WriteLine("defer _dafny.CatchHalt()");
+      Coverage.EmitSetup(wBody);
       wBody.WriteLine("{0}.{1}()", companion, IdName(mainMethod));
+      Coverage.EmitTearDown(wBody);
     }
 
     TargetWriter CreateDescribedSection(string desc, TargetWriter wr, params object[] args) {

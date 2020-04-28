@@ -1,5 +1,5 @@
 // RUN: %dafny /compile:0 /dprint:"%t.dprint.dfy" "%s" > "%t"
-// RUN: %dafny /noVerify /compile:1 "%t.dprint.dfy" >> "%t"
+// RUN: %dafny /noVerify "%t.dprint.dfy" >> "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // For a body-less loop specification, a local variable or
@@ -513,4 +513,34 @@ method F2() {
     ensures P(y)
 
   forall x: int  // this once used to crash Dafny
+}
+
+// loop guard that definitely holds on entry to the loop
+
+method GuardAlwaysHoldsOnEntry_BodyLessLoop() {
+  // Without a loop body, we want the effect that the loop specification--that
+  // is, the loop guard, the loop invariant, and the loop frame--says all there
+  // is to say about the loop. Dafny supplies three 3 pieces to Boogie and then
+  // lets Boogie's loop usual processing do the rest. If the guard necessarily
+  // holds initially and this gets noticed by Boogie, then Boogie treats this as
+  // no loop at all. That kind of cleverness is sound, but when demonstrating
+  // the concepts of loop reasoning, it just looks confusing. Therefore, Dafny
+  // counteracts this in its Boogie encoding of body-less loop, which is what
+  // this method tests.
+  var x := 20;
+  while x < 20
+    invariant x % 2 == 0
+  assert x == 20;  // error (see comment above)
+}
+
+method GuardAlwaysHoldsOnEntry_LoopWithBody() {
+  // When the Dafny program supplies a loop body, then Dafny allows Boogie to
+  // be as clever as it wishes, as is demonstrated by this test case.
+  var x := 20;
+  while x < 20
+    invariant x % 2 == 0
+  {
+    assert false;  // thanks to Boogie's abstract interpreter, the verifier knows we never get here
+  }
+  assert x == 20;  // ... and can prove this assertion
 }
