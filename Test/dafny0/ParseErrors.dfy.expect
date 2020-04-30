@@ -38,6 +38,6 @@ ParseErrors.dfy(143,22): Error: formal cannot be declared 'ghost' in this contex
 ParseErrors.dfy(155,19): Error: verticalbar expected
 ParseErrors.dfy(155,18): Error: a set comprehension with more than one bound variable must have a term expression
 ParseErrors.dfy(156,22): Error: a set comprehension with more than one bound variable must have a term expression
-ParseErrors.dfy(163,2): Error: mutable fields are now allowed in value types
-ParseErrors.dfy(167,2): Error: mutable fields are now allowed in value types
+ParseErrors.dfy(163,2): Error: mutable fields are not allowed in value types
+ParseErrors.dfy(167,2): Error: mutable fields are not allowed in value types
 42 parse errors detected in ParseErrors.dfy

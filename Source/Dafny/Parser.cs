@@ -1581,7 +1581,7 @@ int StringToInt(string s, int defaultValue, string errString) {
 		while (!(la.kind == 0 || la.kind == 60)) {SynErr(179); Get();}
 		Expect(60);
 		if (isValueType) {
-		 SemErr(t, "mutable fields are now allowed in value types");
+		 SemErr(t, "mutable fields are not allowed in value types");
 		}
 		
 		while (la.kind == 74) {

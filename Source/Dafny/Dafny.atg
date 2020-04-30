@@ -1143,7 +1143,7 @@ FieldDecl<.DeclModifierData dmod, bool isValueType, List<MemberDecl> mm.>
   .)
   SYNC
   "var"                                             (. if (isValueType) {
-                                                         SemErr(t, "mutable fields are now allowed in value types");
+                                                         SemErr(t, "mutable fields are not allowed in value types");
                                                        }
                                                     .)
   { Attribute<ref attrs> }
