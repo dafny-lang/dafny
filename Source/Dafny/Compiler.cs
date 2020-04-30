@@ -944,7 +944,15 @@ namespace Microsoft.Dafny {
         CheckHandleWellformed((ClassDecl)c, errorWr);
       }
 
-      var inheritedMembers = c is ClassDecl ? ((ClassDecl)c).InheritedMembers : new List<MemberDecl>();
+      List<MemberDecl> inheritedMembers;
+      Dictionary<TypeParameter, Type> typeMap;
+      if (c is TopLevelDeclWithMembers cl) {
+        inheritedMembers = cl.InheritedMembers;
+        typeMap = cl.ParentFormalTypeParametersToActuals;
+      } else {
+        inheritedMembers = new List<MemberDecl>();
+        typeMap = null; // not used when there are no inherited members
+      }
 
       CheckForCapitalizationConflicts(c.Members, inheritedMembers);
       OrderedBySCC(inheritedMembers, c);
@@ -957,11 +965,12 @@ namespace Microsoft.Dafny {
         } else if (member is ConstantField && SupportsProperties) {
           if (NeedsWrappersForInheritedFields) {
             var cf = (ConstantField)member;
+            var cfType = Resolver.SubstType(cf.Type, typeMap);
             if (cf.Rhs == null) {
               Contract.Assert(!cf.IsStatic);  // as checked above, only instance members can be inherited
-              classWriter.DeclareField("_" + cf.CompileName, false, false, cf.Type, cf.tok, DefaultValue(cf.Type, errorWr, cf.tok, true));
+              classWriter.DeclareField("_" + cf.CompileName, false, false, cfType, cf.tok, DefaultValue(cfType, errorWr, cf.tok, true));
             }
-            var w = classWriter.CreateGetter(IdName(cf), cf.Type, cf.tok, false, true, member);
+            var w = classWriter.CreateGetter(IdName(cf), cfType, cf.tok, false, true, member);
             Contract.Assert(w != null);  // since the previous line asked for a body
             if (cf.Rhs == null) {
               var sw = EmitReturnExpr(w);
@@ -973,12 +982,13 @@ namespace Microsoft.Dafny {
             }
           }
         } else if (member is Field) {
+          var f = (Field)member;
+          var fType = Resolver.SubstType(f.Type, typeMap);
           if (NeedsWrappersForInheritedFields) {
-            var f = (Field)member;
             // every field is inherited
-            classWriter.DeclareField("_" + f.CompileName, false, false, f.Type, f.tok, DefaultValue(f.Type, errorWr, f.tok, true));
+            classWriter.DeclareField("_" + f.CompileName, false, false, fType, f.tok, DefaultValue(fType, errorWr, f.tok, true));
             TargetWriter wSet;
-            var wGet = classWriter.CreateGetterSetter(IdName(f), f.Type, f.tok, false, true, member, out wSet);
+            var wGet = classWriter.CreateGetterSetter(IdName(f), fType, f.tok, false, true, member, out wSet);
             {
               var sw = EmitReturnExpr(wGet);
               // get { return this._{0}; }
@@ -993,19 +1003,18 @@ namespace Microsoft.Dafny {
               EmitSetterParameter(sw);
             }
           } else {
-            var f = (Field) member;
             if (!FieldsInTraits && f is ConstantField cf && cf.Rhs != null) {
               var w = new TargetWriter();
               TrExpr(cf.Rhs, w, false);
               var rhs = w.ToString();
-              classWriter.DeclareField(f.CompileName, false, true, f.Type, f.tok, rhs);
+              classWriter.DeclareField(f.CompileName, false, true, fType, f.tok, rhs);
             } else {
-              classWriter.DeclareField(f.CompileName, false, false, f.Type, f.tok, DefaultValue(f.Type, errorWr, f.tok, true));
+              classWriter.DeclareField(f.CompileName, false, false, fType, f.tok, DefaultValue(fType, errorWr, f.tok, true));
             }
 
             if (!FieldsInTraits) { // Create getters and setters for "traits" in languages that don't allow for non-final field declarations.
               TargetWriter wSet;
-              var wGet = classWriter.CreateGetterSetter(IdName(f), f.Type, f.tok, false, true, member, out wSet);
+              var wGet = classWriter.CreateGetterSetter(IdName(f), fType, f.tok, false, true, member, out wSet);
               {
                 var sw = EmitReturnExpr(wGet);
                 // get { return this.{0}; }
@@ -1028,7 +1037,7 @@ namespace Microsoft.Dafny {
         } else if (member is Method) {
           var method = (Method)member;
           Contract.Assert(method.Body != null);
-          CompileMethod(method, classWriter);
+          CompileMethod(method, classWriter, c.ParentFormalTypeParametersToActuals);
         } else {
           Contract.Assert(false);  // unexpected member
         }
@@ -1155,7 +1164,7 @@ namespace Microsoft.Dafny {
             var w = classWriter.CreateMethod(m, false);
             Contract.Assert(w == null);  // since we requested no body
           } else {
-            CompileMethod(m, classWriter);
+            CompileMethod(m, classWriter, null);
           }
         } else {
           Contract.Assert(false); throw new cce.UnreachableException();  // unexpected member
@@ -1310,7 +1319,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    private void CompileMethod(Method m, IClassWriter cw) {
+    private void CompileMethod(Method m, IClassWriter cw, Dictionary<TypeParameter, Type>/*?*/ parentTypeParameterTypeMap) {
       Contract.Requires(cw != null);
       Contract.Requires(m != null);
       Contract.Requires(m.Body != null);
@@ -1332,7 +1341,8 @@ namespace Microsoft.Dafny {
         var useReturnStyleOuts = UseReturnStyleOuts(m, nonGhostOutsCount);
         foreach (var p in m.Outs) {
           if (!p.IsGhost) {
-            DeclareLocalOutVar(IdName(p), p.Type, p.tok, DefaultValue(p.Type, w, p.tok, true), useReturnStyleOuts, w);
+            var pType = parentTypeParameterTypeMap == null ? p.Type : Resolver.SubstType(p.Type, parentTypeParameterTypeMap);
+            DeclareLocalOutVar(IdName(p), pType, p.tok, DefaultValue(pType, w, p.tok, true), useReturnStyleOuts, w);
           }
         }
 
@@ -3160,7 +3170,7 @@ namespace Microsoft.Dafny {
           }
         }
         List<Type> typeArgs;
-        var typeSubst = s.MethodSelect.TypeArgumentSubstitutions();
+        var typeSubst = s.MethodSelect.TypeArgumentSubstitutionsWithParents();
         typeArgs = s.Method.TypeArgs.ConvertAll(ta => typeSubst[ta]);
         EmitActualTypeArgs(typeArgs, s.Tok, wr);
         wr.Write("(");

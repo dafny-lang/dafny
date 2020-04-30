@@ -10259,7 +10259,9 @@ namespace Microsoft.Dafny {
         for (int i = 0; i < fields.Count; i++) {
           // assume $Heap[this, f] == this.f;
           var mse = new MemberSelectExpr(tok, th, fields[i]);
-          builder.Add(new Bpl.AssumeCmd(tok, Bpl.Expr.Eq(etran.TrExpr(mse), new Bpl.IdentifierExpr(tok, localSurrogates[i]))));
+          Bpl.Expr surr = new Bpl.IdentifierExpr(tok, localSurrogates[i]);
+          surr = CondApplyUnbox(tok, surr, fields[i].Type, mse.Type);
+          builder.Add(new Bpl.AssumeCmd(tok, Bpl.Expr.Eq(etran.TrExpr(mse), surr)));
         }
         CommitAllocatedObject(tok, bplThis, null, builder, etran);
 
@@ -11803,7 +11805,7 @@ namespace Microsoft.Dafny {
       List<Bpl.IdentifierExpr> bLhss;
       Bpl.Expr[] ignore1, ignore2;
       string[] ignore3;
-      var tySubst = s.MethodSelect.TypeArgumentSubstitutions();
+      var tySubst = s.MethodSelect.TypeArgumentSubstitutionsWithParents();
       ProcessLhss(s.Lhs, true, true, builder, locals, etran, out lhsBuilders, out bLhss, out ignore1, out ignore2, out ignore3);
       Contract.Assert(s.Lhs.Count == lhsBuilders.Count);
       Contract.Assert(s.Lhs.Count == bLhss.Count);
@@ -12755,7 +12757,7 @@ namespace Microsoft.Dafny {
           var field = (Field)fse.Member;
           Contract.Assert(VisibleInScope(field));
           lhsType = field.Type;
-          rhsTypeConstraint = Resolver.SubstType(lhsType, fse.TypeArgumentSubstitutions());
+          rhsTypeConstraint = Resolver.SubstType(lhsType, fse.TypeArgumentSubstitutionsWithParents());
         } else if (lhs is SeqSelectExpr) {
           var e = (SeqSelectExpr)lhs;
           lhsType = null;  // for an array update, always make sure the value assigned is boxed

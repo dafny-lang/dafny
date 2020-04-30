@@ -122,22 +122,177 @@ module TestFields {
 module GenericBasics {
   // To compile these correctly requires that certain type-parameter renamings be done.
 
-  trait Tr<A, B> {
-    method Inst(x: int, a: A, b: B) { }
-    static method Stat(y: int, a: A, b: B) { }
+  trait Tr<A, B(0)> {
+    var xyz: B
+    const abc: B
+    static const def: B
+
+    method Inst(x: int, a: A, b: B) returns (bb: B) { bb := b; }
+    static method Stat(y: int, a: A, b: B) returns (bb: B) { bb := b; }
+
     function method Teen<R>(a: (A, R)): B
+    static function method STeen<R>(a: (A, R), b: B): B { b }
+
+    // here are some functions with/without a named result value, which is treated separately in the verifier; these tests check on box/unbox-ing in the verifier
+    function method RValue0<X>(x: X): B
+    function method RValue1<X>(x: X): (r: B)
+    function method RValue2<X>(x: X): B
+    function method RValue3<X>(x: X): (r: B)
+
+    method ReferToTraitMembers(a: A, b: B, tt: Tr<bool, real>)
+      modifies this
+    {
+      xyz := b;
+      this.xyz := b;
+      var x := xyz;
+      var y := this.xyz;
+
+      var bb := Inst(0, a, b);
+      bb := this.Inst(0, a, b);
+      var rr := tt.Inst(0, true, 5.0);
+
+      bb := Stat(1, a, b);
+      bb := this.Stat(1, a, b);
+      rr := tt.Stat(1, true, 5.0);
+      bb := Tr.Stat(1, a, b);
+      var ss := Tr.Stat(2, [2], {2});  // calls method in Tr<seq<int>, set<int>>
+
+      bb := Teen<bv7>((a, 70));
+      bb := this.Teen<bv7>((a, 70));
+      rr := tt.Teen<bv7>((false, 70));
+
+      bb := STeen<bv7>((a, 70), b);
+      bb := this.STeen<bv7>((a, 70), b);
+      rr := tt.STeen<bv7>((false, 70), 0.71);
+      bb := Tr.STeen<bv7>((false, 70), b);
+      ss := Tr<seq<int>, set<int>>.STeen<bv7>(([], 70), {80});
+    }
   }
 
+  // Cl has fewer type parameters than Tr
   class Cl<Q> extends Tr<Q, int> {
-    constructor () { }
+    constructor () {
+      abc := 100;
+      this.abc := 101;
+      xyz := 20;
+      this.xyz := 21;
+      new;
+      xyz := 22;
+      this.xyz := 23;
+    }
+    method ReferToMembers(a: Q, b: int)
+      modifies this
+    {
+      xyz := b;
+      this.xyz := b;
+      var x := xyz;
+      var y := this.xyz;
+
+      var tt: Tr<Q, int> := this;
+
+      var bb := Inst(0, a, b);
+      bb := this.Inst(0, a, b);
+      bb := tt.Inst(0, a, b);
+
+      bb := Stat(1, a, b);
+      bb := this.Stat(1, a, b);
+      bb := tt.Stat(1, a, b);
+      bb := Tr.Stat(1, a, b);
+      var ss := Tr.Stat(2, [2], {2});  // calls method in Tr<seq<int>, set<int>>
+
+      bb := Teen<bv7>((a, 70));
+      bb := this.Teen<bv7>((a, 70));
+      var rr := tt.Teen<bv7>((a, 70));
+
+      bb := STeen<bv7>((a, 70), b);
+      bb := this.STeen<bv7>((a, 70), b);
+      rr := tt.STeen<bv7>((a, 70), 71);
+      bb := Tr.STeen<bv7>((false, 70), b);
+      ss := Tr<seq<int>, set<int>>.STeen<bv7>(([], 70), {80});
+    }
+
     function method Teen<S>(a: (Q, S)): int { 12 }
+//    static function method STeen<S>(a: (Q, S)): int { 13 }
+
+    function method RValue0<XX>(x: XX): int { 5 }
+    function method RValue1<XX>(x: XX): int { 5 }
+    function method RValue2<XX>(x: XX): (r: int) { 5 }
+    function method RValue3<XX>(x: XX): (r: int) { 5 }
+  }
+
+
+  // Mega has more type parameters than Tr
+  class Mega<P, Q, L> extends Tr<(Q, L), int> {
+    constructor () {
+      abc := 100;
+      this.abc := 101;
+      xyz := 20;
+      this.xyz := 21;
+      new;
+      xyz := 22;
+      this.xyz := 23;
+    }
+    method ReferToMembers(a: (Q, L), b: int)
+      modifies this
+    {
+      xyz := b;
+      this.xyz := b;
+      var x := xyz;
+      var y := this.xyz;
+
+      var tt: Tr<(Q, L), int> := this;
+
+      var bb := Inst(0, a, b);
+      bb := this.Inst(0, a, b);
+      bb := tt.Inst(0, a, b);
+
+      bb := Stat(1, a, b);
+      bb := this.Stat(1, a, b);
+      bb := tt.Stat(1, a, b);
+      bb := Tr.Stat(1, a, b);
+      var ss := Tr.Stat(2, [2], {2});  // calls method in Tr<seq<int>, set<int>>
+
+      bb := Teen<bv7>((a, 70));
+      bb := this.Teen<bv7>((a, 70));
+      var rr := tt.Teen<bv7>((a, 70));
+
+      bb := STeen<bv7>((a, 70), b);
+      bb := this.STeen<bv7>((a, 70), b);
+      rr := tt.STeen<bv7>((a, 70), 71);
+      bb := Tr.STeen<bv7>((false, 70), b);
+      ss := Tr<seq<int>, set<int>>.STeen<bv7>(([], 70), {80});
+    }
+
+    function method Teen<S>(a: ((Q, L), S)): int { 12 }
+//    static function method STeen<S>(a: ((Q, L), S)): int { 13 }
+
+    function method RValue0<XX>(x: XX): int { 5 }
+    function method RValue1<XX>(x: XX): int { 5 }
+    function method RValue2<XX>(x: XX): (r: int) { 5 }
+    function method RValue3<XX>(x: XX): (r: int) { 5 }
   }
 
   method Test() {
     var c: Cl<real> := new Cl();
-    var t: Tr<real, int> := c;
-    print "c.Teen<bool>() == ", c.Teen<bool>((0.8, true)), "\n";
-    print "t.Teen<bv9>() == ", t.Teen<bv9>((0.5, 100)), "\n";
+    var m: Mega<bool, real, object> := new Mega();
+    var ts: seq<Tr<real, int>> := [c, m];
+    var i := 0;
+    while i < |ts| {
+      var t := ts[i];
+      print t.xyz, " ";
+      print t.abc, " ";
+      print t.def, " ";
+      var bb := t.Inst(50, 51.0, 52);
+      print bb, " ";
+      bb := t.Stat(50, 51.0, 52);
+      print bb, " ";
+      print t.Teen<bv9>((0.5, 100)), " ";
+      print t.STeen<bv9>((0.5, 100), 53), " ";
+      print t.RValue0<(bv2,bv3)>((3, 3)), " ";
+      print t.RValue1<(bv2,bv3)>((3, 3)), " ";
+      print t.RValue2<(bv2,bv3)>((3, 3)), " ";
+      print t.RValue3<(bv2,bv3)>((3, 3)), "\n";
+    }
   }
 }
 

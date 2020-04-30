@@ -6783,7 +6783,7 @@ namespace Microsoft.Dafny
           return false;
         } else if (stmt is CallStmt) {
           var s = (CallStmt)stmt;
-          var subst = s.MethodSelect.TypeArgumentSubstitutions();
+          var subst = s.MethodSelect.TypeArgumentSubstitutionsWithParents();
           Contract.Assert(s.Method.TypeArgs.Count <= subst.Count);
           var i = 0;
           foreach (var formalTypeArg in s.Method.TypeArgs) {
@@ -11345,7 +11345,7 @@ namespace Microsoft.Dafny
           }
         }
         // type check the arguments
-        var subst = s.MethodSelect.TypeArgumentSubstitutions();
+        var subst = s.MethodSelect.TypeArgumentSubstitutionsWithParents();
         for (int i = 0; i < callee.Ins.Count; i++) {
           var it = callee.Ins[i].Type;
           Type st = SubstType(it, subst);
