@@ -3023,9 +3023,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(!f.IsStatic || overridingFunction == null);
       Contract.Requires(overridingFunction == null || body is FunctionCallExpr);  // pseudo body (see caller)
       Contract.Requires(overridingFunction == null || overridingFunction.EnclosingClass is TopLevelDeclWithMembers);
-
-      // only if body is null, we will return null:
-      Contract.Ensures((Contract.Result<Bpl.Axiom>() == null) == (body == null));
+      Contract.Ensures((Contract.Result<Bpl.Axiom>() == null) == (body == null));  // return null iff body is null
 
       var inClassComment = overridingFunction == null ? "" : " in class " + overridingFunction.EnclosingClass.FullSanitizedName;
 
@@ -3057,11 +3055,21 @@ namespace Microsoft.Dafny {
       //   ==>
       //   (forall s, $Heap, formals ::                  // let args := $Heap,formals
       //       { f(Succ(s), args) }                      // (*)
-      //       (f#canCall(args) || USE_VIA_CONTEXT) &&
-      //       dtype(this) == overridingFunction.EnclosingClass  // if "overridingFunction" != null
+      //       (f#canCall(args) || USE_VIA_CONTEXT)
       //       ==>
       //       BODY-can-make-its-calls &&
       //       f(Succ(s), args) == BODY);                // (*)
+      //
+      // OR, if "overridingFunction" != null:
+      //
+      // axiom  // override axiom
+      //   AXIOM_ACTIVATION
+      //   ==>
+      //   (forall s, $Heap, formals ::                  // let args := $Heap,formals
+      //       { f(Succ(s), args), f'(Succ(s), args') }  // (*)
+      //       dtype(this) == overridingFunction.EnclosingClass
+      //       ==>
+      //       f(Succ(s), args) == f'(Succ(s), args');   // (*)
       //
       // where:
       //
@@ -3106,6 +3114,7 @@ namespace Microsoft.Dafny {
       // quantify over the type arguments, and add them first to the arguments
       List<Bpl.Expr> args = new List<Bpl.Expr>();
       List<Bpl.Expr> tyargs = GetTypeArguments(f, overridingFunction).ConvertAll(TypeToTy);
+      List<Bpl.Expr> tyargsOverridingFunction = overridingFunction == null ? null : GetTypeArguments(overridingFunction, null).ConvertAll(TypeToTy);
 
       var forallFormals = MkTyParamBinders(GetTypeParams(overridingFunction ?? f), out _);
       var funcFormals = MkTyParamBinders(GetTypeParams(f), out _);
@@ -3227,17 +3236,16 @@ namespace Microsoft.Dafny {
       }
 
       // Add the precondition function and its axiom (which is equivalent to the anteReqAxiom)
-      if (body == null || (RevealedInScope(f) && lits == null)) {
-        if (overridingFunction == null) {
-          var precondF = new Bpl.Function(f.tok,
-            RequiresName(f), new List<Bpl.TypeVariable>(),
-            funcFormals.ConvertAll(v => (Bpl.Variable)BplFormalVar(null, v.TypedIdent.Type, true)),
-            BplFormalVar(null, Bpl.Type.Bool, false));
-          sink.AddTopLevelDeclaration(precondF);
-        }
+      if (overridingFunction == null && (body == null || (RevealedInScope(f) && lits == null))) {
+        var precondF = new Bpl.Function(f.tok,
+          RequiresName(f), new List<Bpl.TypeVariable>(),
+          funcFormals.ConvertAll(v => (Bpl.Variable)BplFormalVar(null, v.TypedIdent.Type, true)),
+          BplFormalVar(null, Bpl.Type.Bool, false));
+        sink.AddTopLevelDeclaration(precondF);
+
         var appl = FunctionCall(f.tok, RequiresName(f), Bpl.Type.Bool, reqFuncArguments);
         Bpl.Trigger trig = BplTriggerHeap(this, f.tok, appl,
-          (AlwaysUseHeap || f.ReadsHeap || !readsHeap) ? null : etran.HeapExpr);
+          !(AlwaysUseHeap || f.ReadsHeap || readsHeap) ? null : etran.HeapExpr);
         // axiom (forall params :: { f#requires(params) }  ante ==> f#requires(params) == pre);
         sink.AddTopLevelDeclaration(new Axiom(f.tok,
           BplForall(forallFormals, trig, BplImp(anteReqAxiom, Bpl.Expr.Eq(appl, preReqAxiom))),
@@ -3261,7 +3269,7 @@ namespace Microsoft.Dafny {
       // ante := useViaCanCall || (useViaContext && typeAnte && pre)
       ante = Bpl.Expr.Or(useViaCanCall, ante);
       if (additionalAntecedent != null) {
-        ante = Bpl.Expr.And(ante, additionalAntecedent);
+        ante = additionalAntecedent;
       }
 
       Bpl.Expr funcAppl;
@@ -3280,9 +3288,28 @@ namespace Microsoft.Dafny {
         funcArgs.AddRange(args);
         funcAppl = new Bpl.NAryExpr(f.tok, new Bpl.FunctionCall(funcID), funcArgs);
       }
+      Bpl.Expr overridingFuncAppl = null;  // used only if overridingFunction != null
+      if (overridingFunction != null) {
+        var funcID = new Bpl.IdentifierExpr(overridingFunction.tok, overridingFunction.FullSanitizedName, TrType(overridingFunction.ResultType));
+        var funcArgs = new List<Bpl.Expr>();
+        funcArgs.AddRange(tyargsOverridingFunction);
+        if (layer != null) {
+          var ly = new Bpl.IdentifierExpr(overridingFunction.tok, layer);
+          funcArgs.Add(LayerSucc(ly));
+        }
+        funcArgs.AddRange(args);
+        overridingFuncAppl = new Bpl.NAryExpr(overridingFunction.tok, new Bpl.FunctionCall(funcID), funcArgs);
+      }
 
-      Bpl.Trigger tr = BplTriggerHeap(this, f.tok, funcAppl,
-        (AlwaysUseHeap || f.ReadsHeap || !readsHeap) ? null : etran.HeapExpr);
+      Bpl.Trigger tr;
+      if (overridingFunction == null) {
+        tr = BplTriggerHeap(this, f.tok, funcAppl, !(AlwaysUseHeap || f.ReadsHeap || readsHeap) ? null : etran.HeapExpr);
+      } else {
+        tr = BplTriggerHeap(this, overridingFunction.tok,
+          funcAppl,
+          !(AlwaysUseHeap || f.ReadsHeap || overridingFunction.ReadsHeap || readsHeap) ? null : etran.HeapExpr,
+          overridingFuncAppl);
+      }
       Bpl.Expr tastyVegetarianOption; // a.k.a. the "meat" of the operation :)
       if (!RevealedInScope(f) || (f.IsProtected && !InVerificationScope(f))) {
         tastyVegetarianOption = Bpl.Expr.True;
@@ -3309,12 +3336,14 @@ namespace Microsoft.Dafny {
           etranBody = etran.LimitedFunctions(f, ly);
         }
 
-        var funcApplInOverride = etranBody.TrExpr(bodyWithSubst);
         if (overridingFunction != null && ModeledAsBoxType(f.ResultType)) {
-          funcApplInOverride = BoxIfUnboxed(funcApplInOverride, overridingFunction.ResultType);
+          var funcApplInOverride = BoxIfUnboxed(overridingFuncAppl, overridingFunction.ResultType);
+          tastyVegetarianOption = Bpl.Expr.Eq(funcAppl, funcApplInOverride);
+        } else {
+          var trbody = etranBody.TrExpr(bodyWithSubst);
+          tastyVegetarianOption = BplAnd(CanCallAssumption(bodyWithSubst, etranBody),
+            BplAnd(TrFunctionSideEffect(bodyWithSubst, etranBody), Bpl.Expr.Eq(funcAppl, trbody)));
         }
-        tastyVegetarianOption = BplAnd(CanCallAssumption(bodyWithSubst, etranBody),
-          BplAnd(TrFunctionSideEffect(bodyWithSubst, etranBody),Bpl.Expr.Eq(funcAppl, funcApplInOverride)));
       }
       QKeyValue kv = null;
       if (lits != null) {
@@ -4786,7 +4815,7 @@ namespace Microsoft.Dafny {
       //     this != null && dtype(this) == class.C
       //     ==>
       //     J.F($heap, this, x#0) == C.F($heap, this, x#0));
-      // but it also has the various usual antecedents.  Essentially, the override gives a part of the body of the
+      // (without the other usual antecedents).  Essentially, the override gives a part of the body of the
       // trait's function, so we call FunctionAxiom to generate a conditional axiom (that is, we pass in the "overridingFunction"
       // parameter to FunctionAxiom, which will add 'dtype(this) == class.C' as an additional antecedent) for a
       // body of 'C.F(this, x#0)'.
@@ -18893,10 +18922,19 @@ namespace Microsoft.Dafny {
       return new Bpl.Trigger(e.tok, true, new List<Bpl.Expr> { e });
     }
 
-    static Bpl.Trigger BplTriggerHeap(Translator translator, IToken tok, Bpl.Expr e, Bpl.Expr optionalHeap) {
-      return (optionalHeap == null) ? new Bpl.Trigger(tok, true, new List<Bpl.Expr> { e }) :
-        new Bpl.Trigger(tok, true, new List<Bpl.Expr> {
-          e, translator.FunctionCall(tok, BuiltinFunction.IsGoodHeap, null, optionalHeap) });
+    static Bpl.Trigger BplTriggerHeap(Translator translator, IToken tok, Bpl.Expr e, Bpl.Expr/*?*/ optionalHeap, Bpl.Expr/*?*/ ePrime = null) {
+      Contract.Requires(translator != null);
+      Contract.Requires(tok != null);
+      Contract.Requires(e != null);
+
+      var exprs = new List<Bpl.Expr> {e};
+      if (ePrime != null) {
+        exprs.Add(ePrime);
+      }
+      if (optionalHeap != null) {
+        exprs.Add(translator.FunctionCall(tok, BuiltinFunction.IsGoodHeap, null, optionalHeap));
+      }
+      return new Bpl.Trigger(tok, true, exprs);
     }
 
     static Bpl.Axiom BplAxiom(Bpl.Expr e) {

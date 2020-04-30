@@ -274,7 +274,7 @@ module GenericBasics {
 
   method Test() {
     var c: Cl<real> := new Cl();
-    var m: Mega<bool, real, object> := new Mega();
+    var m: Mega<bool, real, Cl<real>> := new Mega();
     var ts: seq<Tr<real, int>> := [c, m];
     var i := 0;
     while i < |ts| {
@@ -292,6 +292,7 @@ module GenericBasics {
       print t.RValue1<(bv2,bv3)>((3, 3)), " ";
       print t.RValue2<(bv2,bv3)>((3, 3)), " ";
       print t.RValue3<(bv2,bv3)>((3, 3)), "\n";
+      i := i + 1;
     }
   }
 }

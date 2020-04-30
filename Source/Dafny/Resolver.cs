@@ -14374,7 +14374,7 @@ namespace Microsoft.Dafny
           if (!member.IsStatic) {
             receiver = expr.Lhs;
           } else {
-            receiver = new StaticReceiverExpr(expr.tok, (UserDefinedType)nptype, (TopLevelDeclWithMembers)member.EnclosingClass, false);
+            receiver = new StaticReceiverExpr(expr.tok, nptype, false) {Type = nptype};
           }
           r = ResolveExprDotCall(expr.tok, receiver, nptype, member, args, expr.OptTypeArguments, opts, allowMethodCall);
         }

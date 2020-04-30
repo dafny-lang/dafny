@@ -8780,8 +8780,7 @@ namespace Microsoft.Dafny {
     ///   will be "C(G)".
     /// * Suppose "C" is a class that extends a trait "T"; then, if "t" denotes "C" and "cl" denotes
     ///   "T", then the type of the StaticReceiverExpr will be "T".
-    /// * In the future, Dafny will support type parameters for traits and for classes that implement
-    ///   traits.  Then, suppose "C(X)" is a class that extends "T(f(X))", and that "T(Y)" is
+    /// * Suppose "C(X)" is a class that extends "T(f(X))", and that "T(Y)" is
     ///   a trait that in turn extends trait "W(g(Y))".  If "t" denotes type "C(G)" and "cl" denotes "W",
     ///   then type of the StaticReceiverExpr will be "T(g(f(G)))".
     /// </summary>
@@ -8790,16 +8789,18 @@ namespace Microsoft.Dafny {
       Contract.Requires(tok != null);
       Contract.Requires(t.ResolvedClass != null);
       Contract.Requires(cl != null);
-      Contract.Requires(t.TypeArgs.Count == cl.TypeArgs.Count());
-      if (t.ResolvedClass != cl || t.Name != cl.Name) {  // t may be using the name "C?", and we'd prefer it read "C"
-        if (t.ResolvedClass != cl && t.ResolvedClass is ClassDecl) {
-          var orig = (ClassDecl)t.ResolvedClass;
-          Contract.Assert(orig.TraitsObj.Contains(cl));  // Dafny currently supports only one level of inheritance from traits
-          Contract.Assert(orig.TypeArgs.Count == 0);  // Dafny currently only allows type-parameter-less classes to extend traits
-        }
-        t = new UserDefinedType(tok, cl.Name, cl, t.TypeArgs);
+      if (t.ResolvedClass != cl) {
+        Contract.Assert(t.ResolvedClass is TopLevelDeclWithMembers);
+        var top = (TopLevelDeclWithMembers)t.ResolvedClass;
+        var clArgsInTermsOfTFormals = cl.TypeArgs.ConvertAll(tp => top.ParentFormalTypeParametersToActuals[tp]);
+        var subst = Resolver.TypeSubstitutionMap(top.TypeArgs, t.TypeArgs);
+        var typeArgs = clArgsInTermsOfTFormals.ConvertAll(ty => Resolver.SubstType(ty, subst));
+        Type = new UserDefinedType(tok, cl.Name, cl, typeArgs);
+      } else if (t.Name != cl.Name) {  // t may be using the name "C?", and we'd prefer it read "C"
+        Type = new UserDefinedType(tok, cl.Name, cl, t.TypeArgs);
+      } else {
+        Type = t;
       }
-      Type = t;
       UnresolvedType = Type;
       Implicit = isImplicit;
     }
@@ -9205,14 +9206,23 @@ namespace Microsoft.Dafny {
       Contract.Requires(WasResolved());
       Contract.Ensures(Contract.Result<Dictionary<TypeParameter, Type>>() != null);
 
+      // Determine the class
+      TopLevelDeclWithMembers cl;
+      // Expand the type down to its non-null type, if any
       var receiverType = Obj.Type.AsNonNullRefType;
-      if (receiverType == null) {
-        return TypeArgumentSubstitutions();
+      if (receiverType != null) {
+        cl = (TopLevelDeclWithMembers)((NonNullTypeDecl)receiverType.ResolvedClass).ViewAsClass;  // TODO: why is this ever any different than what the else branch does?
+      } else {
+        // Expand type all the way
+        receiverType = Obj.Type.NormalizeExpand() as UserDefinedType;
+        cl = receiverType?.ResolvedClass as TopLevelDeclWithMembers;
       }
-      var cl = (TopLevelDeclWithMembers)((NonNullTypeDecl)receiverType.ResolvedClass).ViewAsClass;
+      if (cl == null) {
+        return TypeArgumentSubstitutions();  // TODO: do we ever get here? (it seems Obj.Type must be a value type)
+      }
 
+      // build map from class+member formal type parameters to types
       var icallable = Member as ICallable;
-      Contract.Assert(cl.TypeArgs.Count + (icallable == null ? 0 : icallable.TypeArgs.Count) == TypeApplication.Count);  // a consequence of proper resolution
       var subst = new Dictionary<TypeParameter, Type>();
       var i = 0;
       foreach (var tp in cl.TypeArgs) {
@@ -9226,6 +9236,7 @@ namespace Microsoft.Dafny {
         }
       }
 
+      // add in the mappings from parent types' formal type parameters to types
       foreach (var entry in cl.ParentFormalTypeParametersToActuals) {
         var v = Resolver.SubstType(entry.Value, subst);
         subst.Add(entry.Key, v);

@@ -1071,11 +1071,8 @@ namespace Microsoft.Dafny
     }
 
     protected override string TypeName_Companion(Type type, TextWriter wr, Bpl.IToken tok, MemberDecl/*?*/ member) {
-      var udt = type as UserDefinedType;
-      if (udt != null && udt.ResolvedClass is TraitDecl) {
-        string s = udt.FullCompanionCompileName;
-        Contract.Assert(udt.TypeArgs.Count == 0);  // traits have no type parameters
-        return s;
+      if (type is UserDefinedType udt && udt.ResolvedClass is TraitDecl) {
+        return TypeName_UDT(udt.FullCompanionCompileName, udt.TypeArgs, wr, tok);
       } else {
         return TypeName(type, wr, tok, member);
       }
