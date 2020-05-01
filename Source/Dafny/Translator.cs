@@ -3040,7 +3040,7 @@ namespace Microsoft.Dafny {
           f.ReadsHeap ? new Bpl.IdentifierExpr(f.tok, predef.HeapVarName, predef.HeapType) : null,
           new Bpl.IdentifierExpr(f.tok, bvPrevHeap));
       } else {
-        etran = AlwaysUseHeap || readsHeap ?
+        etran = readsHeap ?
           new ExpressionTranslator(this, predef, f.tok) :
           new ExpressionTranslator(this, predef, (Bpl.Expr)null);
       }
@@ -3136,7 +3136,7 @@ namespace Microsoft.Dafny {
         reqArgs.Add(new Bpl.IdentifierExpr(f.tok, bv));
       }
       // ante:  $IsGoodHeap($Heap) && $HeapSucc($prevHeap, $Heap) && this != null && formals-have-the-expected-types &&
-      if (AlwaysUseHeap || readsHeap) {
+      if (readsHeap) {
         forallFormals.Add(bv);
         goodHeap = FunctionCall(f.tok, BuiltinFunction.IsGoodHeap, null, etran.HeapExpr);
         ante = BplAnd(ante, goodHeap);
@@ -3229,8 +3229,7 @@ namespace Microsoft.Dafny {
           sink.AddTopLevelDeclaration(precondF);
         }
         var appl = FunctionCall(f.tok, RequiresName(f), Bpl.Type.Bool, reqArgs);
-        Bpl.Trigger trig = BplTriggerHeap(this, f.tok, appl,
-          (AlwaysUseHeap || f.ReadsHeap || !readsHeap) ? null : etran.HeapExpr);
+        Bpl.Trigger trig = BplTriggerHeap(this, f.tok, appl, readsHeap ? etran.HeapExpr : null);
         // axiom (forall params :: { f#requires(params) }  ante ==> f#requires(params) == pre);
         sink.AddTopLevelDeclaration(new Axiom(f.tok,
           BplForall(forallFormals, trig, BplImp(anteReqAxiom, Bpl.Expr.Eq(appl, preReqAxiom))),
@@ -3274,8 +3273,7 @@ namespace Microsoft.Dafny {
         funcAppl = new Bpl.NAryExpr(f.tok, new Bpl.FunctionCall(funcID), funcArgs);
       }
 
-      Bpl.Trigger tr = BplTriggerHeap(this, f.tok, funcAppl,
-        (AlwaysUseHeap || f.ReadsHeap || !readsHeap) ? null : etran.HeapExpr);
+      Bpl.Trigger tr = BplTriggerHeap(this, f.tok, funcAppl, readsHeap ? etran.HeapExpr : null);
       Bpl.Expr tastyVegetarianOption;
       if (!RevealedInScope(f) || (f.IsProtected && !InVerificationScope(f))) {
         tastyVegetarianOption = Bpl.Expr.True;
