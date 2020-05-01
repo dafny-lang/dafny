@@ -3043,7 +3043,7 @@ namespace Microsoft.Dafny {
           f.ReadsHeap ? new Bpl.IdentifierExpr(f.tok, predef.HeapVarName, predef.HeapType) : null,
           new Bpl.IdentifierExpr(f.tok, bvPrevHeap));
       } else {
-        etran = AlwaysUseHeap || readsHeap ?
+        etran = readsHeap ?
           new ExpressionTranslator(this, predef, f.tok) :
           new ExpressionTranslator(this, predef, (Bpl.Expr)null);
       }
@@ -3150,7 +3150,7 @@ namespace Microsoft.Dafny {
         reqFuncArguments.Add(new Bpl.IdentifierExpr(f.tok, bv));
       }
       // ante:  $IsGoodHeap($Heap) && $HeapSucc($prevHeap, $Heap) && this != null && formals-have-the-expected-types &&
-      if (AlwaysUseHeap || readsHeap) {
+      if (readsHeap) {
         forallFormals.Add(bv);
         goodHeap = FunctionCall(f.tok, BuiltinFunction.IsGoodHeap, null, etran.HeapExpr);
         ante = BplAnd(ante, goodHeap);
@@ -3244,8 +3244,7 @@ namespace Microsoft.Dafny {
         sink.AddTopLevelDeclaration(precondF);
 
         var appl = FunctionCall(f.tok, RequiresName(f), Bpl.Type.Bool, reqFuncArguments);
-        Bpl.Trigger trig = BplTriggerHeap(this, f.tok, appl,
-          !(AlwaysUseHeap || f.ReadsHeap || readsHeap) ? null : etran.HeapExpr);
+        Bpl.Trigger trig = BplTriggerHeap(this, f.tok, appl, readsHeap ? etran.HeapExpr : null);
         // axiom (forall params :: { f#requires(params) }  ante ==> f#requires(params) == pre);
         sink.AddTopLevelDeclaration(new Axiom(f.tok,
           BplForall(forallFormals, trig, BplImp(anteReqAxiom, Bpl.Expr.Eq(appl, preReqAxiom))),
@@ -3303,11 +3302,11 @@ namespace Microsoft.Dafny {
 
       Bpl.Trigger tr;
       if (overridingFunction == null) {
-        tr = BplTriggerHeap(this, f.tok, funcAppl, !(AlwaysUseHeap || f.ReadsHeap || readsHeap) ? null : etran.HeapExpr);
+        tr = BplTriggerHeap(this, f.tok, funcAppl, readsHeap ? etran.HeapExpr : null);
       } else {
         tr = BplTriggerHeap(this, overridingFunction.tok,
           funcAppl,
-          !(AlwaysUseHeap || f.ReadsHeap || overridingFunction.ReadsHeap || readsHeap) ? null : etran.HeapExpr,
+          readsHeap || overridingFunction.ReadsHeap ? etran.HeapExpr : null,
           overridingFuncAppl);
       }
       Bpl.Expr tastyVegetarianOption; // a.k.a. the "meat" of the operation :)

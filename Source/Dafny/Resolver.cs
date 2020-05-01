@@ -8571,9 +8571,9 @@ namespace Microsoft.Dafny
           "an unchanged expression must denote an object or a collection of objects (instead got {0})");
       }
       if (fe.FieldName != null) {
-        NonProxyType nptype;
-        MemberDecl member = ResolveMember(fe.E.tok, eventualRefType, fe.FieldName, out nptype);
-        UserDefinedType ctype = (UserDefinedType)nptype;  // correctness of cast follows from the DenotesClass test above
+        NonProxyType tentativeReceiverType;
+        var member = ResolveMember(fe.E.tok, eventualRefType, fe.FieldName, out tentativeReceiverType);
+        var ctype = (UserDefinedType)tentativeReceiverType;  // correctness of cast follows from the DenotesClass test above
         if (member == null) {
           // error has already been reported by ResolveMember
         } else if (!(member is Field)) {
@@ -11245,10 +11245,9 @@ namespace Microsoft.Dafny
       var origReporter = this.reporter;
       this.reporter = new ErrorReporterSink();
 
-      NonProxyType ignoredNptype = null;
-      if (ResolveMember(tok, tp, "IsFailure", out ignoredNptype) == null ||
-          ResolveMember(tok, tp, "PropagateFailure", out ignoredNptype) == null ||
-          (ResolveMember(tok, tp, "Extract", out ignoredNptype) != null) != expectExtract
+      if (ResolveMember(tok, tp, "IsFailure", out _) == null ||
+          ResolveMember(tok, tp, "PropagateFailure", out _) == null ||
+          (ResolveMember(tok, tp, "Extract", out _) != null) != expectExtract
       ) {
         // more details regarding which methods are missing have already been reported by regular resolution
         origReporter.Error(MessageSource.Resolver, tok,
@@ -11899,17 +11898,27 @@ namespace Microsoft.Dafny
       }
     }
 
-    MemberDecl ResolveMember(IToken tok, Type receiverType, string memberName, out NonProxyType nptype) {
+    /// <summary>
+    /// Resolve "memberName" in what currently is known as "receiverType". If "receiverType" is an unresolved
+    /// proxy type, try to solve enough type constraints and use heuristics to figure out which type contains
+    /// "memberName" and return that enclosing type as "tentativeReceiverType". However, try not to make
+    /// type-inference decisions about "receiverType"; instead, lay down the further constraints that need to
+    /// be satisfied in order for "tentativeReceiverType" to be where "memberName" is found.
+    /// Consequently, if "memberName" is found and returned as a "MemberDecl", it may still be the case that
+    /// "receiverType" is an unresolved proxy type and that, after solving more type constraints, "receiverType"
+    /// eventually gets set to a type more specific than "tentativeReceiverType".
+    /// </summary>
+    MemberDecl ResolveMember(IToken tok, Type receiverType, string memberName, out NonProxyType tentativeReceiverType) {
       Contract.Requires(tok != null);
       Contract.Requires(receiverType != null);
       Contract.Requires(memberName != null);
-      Contract.Ensures(Contract.Result<MemberDecl>() == null || Contract.ValueAtReturn(out nptype) != null);
+      Contract.Ensures(Contract.Result<MemberDecl>() == null || Contract.ValueAtReturn(out tentativeReceiverType) != null);
 
       receiverType = PartiallyResolveTypeForMemberSelection(tok, receiverType, memberName);
 
       if (receiverType is TypeProxy) {
         reporter.Error(MessageSource.Resolver, tok, "type of the receiver is not fully determined at this program point", receiverType);
-        nptype = null;
+        tentativeReceiverType = null;
         return null;
       }
       Contract.Assert(receiverType is NonProxyType);  // there are only two kinds of types: proxies and non-proxies
@@ -11929,7 +11938,7 @@ namespace Microsoft.Dafny
               SelfTypeSubstitution.Add(resultType.TypeArg, receiverType);
               resultType.ResolvedType = receiverType;
             }
-            nptype = (NonProxyType)receiverType;
+            tentativeReceiverType = (NonProxyType)receiverType;
             return member;
           }
           break;
@@ -11950,15 +11959,15 @@ namespace Microsoft.Dafny
         } else if (!VisibleInScope(member)) {
           reporter.Error(MessageSource.Resolver, tok, "member '{0}' has not been imported in this scope and cannot be accessed here", memberName);
         } else {
-          nptype = ctype;
+          tentativeReceiverType = ctype;
           return member;
         }
-        nptype = null;
+        tentativeReceiverType = null;
         return null;
       }
 
       reporter.Error(MessageSource.Resolver, tok, "type {0} does not have a member {1}", receiverType, memberName);
-      nptype = null;
+      tentativeReceiverType = null;
       return null;
     }
 
@@ -12804,8 +12813,8 @@ namespace Microsoft.Dafny
         var e = (MemberSelectExpr)expr;
         ResolveExpression(e.Obj, opts);
         Contract.Assert(e.Obj.Type != null);  // follows from postcondition of ResolveExpression
-        NonProxyType nptype;
-        MemberDecl member = ResolveMember(expr.tok, e.Obj.Type, e.MemberName, out nptype);
+        NonProxyType tentativeReceiverType;
+        var member = ResolveMember(expr.tok, e.Obj.Type, e.MemberName, out tentativeReceiverType);
         if (member == null) {
           // error has already been reported by ResolveMember
         } else if (member is Function) {
@@ -12817,7 +12826,7 @@ namespace Microsoft.Dafny
           // build the type substitution map
           e.TypeApplication = new List<Type>();
           Dictionary<TypeParameter, Type> subst;
-          var ctype = nptype as UserDefinedType;
+          var ctype = tentativeReceiverType as UserDefinedType;
           if (ctype == null) {
             subst = new Dictionary<TypeParameter, Type>();
           } else {
@@ -12846,7 +12855,7 @@ namespace Microsoft.Dafny
           if (e.Obj is StaticReceiverExpr && !field.IsStatic) {
             reporter.Error(MessageSource.Resolver, expr, "a field must be selected via an object, not just a class name");
           }
-          var ctype = nptype as UserDefinedType;
+          var ctype = tentativeReceiverType as UserDefinedType;
           if (ctype == null) {
             e.Type = field.Type;
           } else {
@@ -12857,7 +12866,7 @@ namespace Microsoft.Dafny
           }
           AddCallGraphEdgeForField(opts.codeContext, field, e);
         } else {
-          reporter.Error(MessageSource.Resolver, expr, "member {0} in type {1} does not refer to a field or a function", e.MemberName, nptype);
+          reporter.Error(MessageSource.Resolver, expr, "member {0} in type {1} does not refer to a field or a function", e.MemberName, tentativeReceiverType);
         }
 
       } else if (expr is SeqSelectExpr) {
@@ -14367,16 +14376,16 @@ namespace Microsoft.Dafny
         }
       } else if (lhs != null) {
         // ----- 4. Look up name in the type of the Lhs
-        NonProxyType nptype;
-        member = ResolveMember(expr.tok, expr.Lhs.Type, name, out nptype);
+        NonProxyType tentativeReceiverType;
+        member = ResolveMember(expr.tok, expr.Lhs.Type, name, out tentativeReceiverType);
         if (member != null) {
           Expression receiver;
           if (!member.IsStatic) {
             receiver = expr.Lhs;
           } else {
-            receiver = new StaticReceiverExpr(expr.tok, nptype, false) {Type = nptype};
+            receiver = new StaticReceiverExpr(expr.tok, tentativeReceiverType, false) {Type = tentativeReceiverType};
           }
-          r = ResolveExprDotCall(expr.tok, receiver, nptype, member, args, expr.OptTypeArguments, opts, allowMethodCall);
+          r = ResolveExprDotCall(expr.tok, receiver, tentativeReceiverType, member, args, expr.OptTypeArguments, opts, allowMethodCall);
         }
       }
 
@@ -14978,11 +14987,11 @@ namespace Microsoft.Dafny
 
       ResolveReceiver(e.Receiver, opts);
       Contract.Assert(e.Receiver.Type != null);  // follows from postcondition of ResolveExpression
-      NonProxyType nptype;
 
-      MemberDecl member = ResolveMember(e.tok, e.Receiver.Type, e.Name, out nptype);
+      NonProxyType tentativeReceiverType;
+      var member = ResolveMember(e.tok, e.Receiver.Type, e.Name, out tentativeReceiverType);
 #if !NO_WORK_TO_BE_DONE
-      UserDefinedType ctype = (UserDefinedType)nptype;
+      var ctype = (UserDefinedType)tentativeReceiverType;
 #endif
       if (member == null) {
         // error has already been reported by ResolveMember
