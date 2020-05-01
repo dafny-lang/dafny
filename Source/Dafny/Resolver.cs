@@ -14383,7 +14383,11 @@ namespace Microsoft.Dafny
           if (!member.IsStatic) {
             receiver = expr.Lhs;
           } else {
+#if OLD
             receiver = new StaticReceiverExpr(expr.tok, tentativeReceiverType, false) {Type = tentativeReceiverType};
+#else
+            receiver = new StaticReceiverExpr(expr.tok, (UserDefinedType)tentativeReceiverType, (TopLevelDeclWithMembers)member.EnclosingClass, false);
+#endif
           }
           r = ResolveExprDotCall(expr.tok, receiver, tentativeReceiverType, member, args, expr.OptTypeArguments, opts, allowMethodCall);
         }
