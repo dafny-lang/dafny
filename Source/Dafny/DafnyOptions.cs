@@ -68,6 +68,7 @@ namespace Microsoft.Dafny
     public CompilationTarget CompileTarget = CompilationTarget.Csharp;
     public bool CompileVerbose = true;
     public string DafnyPrintCompiledFile = null;
+    public string CoverageLegendFile = null;
     public bool ForceCompile = false;
     public bool RunAfterCompile = false;
     public int SpillTargetCode = 0;  // [0..4]
@@ -217,6 +218,13 @@ namespace Microsoft.Dafny
             }
             return true;
           }
+
+        case "coverage": {
+          if (ps.ConfirmArgumentCount(1)) {
+            CoverageLegendFile = args[ps.i];
+          }
+          return true;
+        }
 
         case "dafnycc":
           Dafnycc = true;
@@ -679,6 +687,11 @@ namespace Microsoft.Dafny
                 higher, if manually specified).
   /out:<file>
                 filename and location for the generated .cs, .dll or .exe files
+  /coverage:<file>
+                The compiler emits branch-coverage calls and outputs into
+                <file> a legend that gives a description of each
+                source-location identifier used in the branch-coverage calls.
+                (use - as <file> to print to console)
   /dafnycc      Disable features not supported by DafnyCC
   /noCheating:<n>
                 0 (default) - allow assume statements and free invariants

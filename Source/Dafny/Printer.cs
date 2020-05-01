@@ -224,7 +224,14 @@ namespace Microsoft.Dafny {
           if (i++ != 0) { wr.WriteLine(); }
           Indent(indent);
           PrintClassMethodHelper("type", at.Attributes, at.Name + TPCharacteristicsSuffix(at.TheType.Characteristics), d.TypeArgs);
-          wr.WriteLine();
+          if (at.Members.Count == 0) {
+            wr.WriteLine();
+          } else {
+            wr.WriteLine(" {");
+            PrintMembers(at.Members, indent + IndentAmount, fileBeingPrinted);
+            Indent(indent);
+            wr.WriteLine("}");
+          }
         } else if (d is NewtypeDecl) {
           var dd = (NewtypeDecl)d;
           if (i++ != 0) { wr.WriteLine(); }
@@ -428,6 +435,14 @@ namespace Microsoft.Dafny {
     void PrintModuleExportDecl(ModuleExportDecl m, int indent, string fileBeingPrinted) {
       Contract.Requires(m != null);
 
+      if (m.RevealAll) {
+        Indent(indent);
+        wr.WriteLine("reveals *");
+      }
+      if (m.ProvideAll) {
+        Indent(indent);
+        wr.WriteLine("provides *");
+      }
       var i = 0;
       while (i < m.Exports.Count) {
         var start = i;

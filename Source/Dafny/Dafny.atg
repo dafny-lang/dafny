@@ -1143,7 +1143,7 @@ FieldDecl<.DeclModifierData dmod, bool isValueType, List<MemberDecl> mm.>
   .)
   SYNC
   "var"                                             (. if (isValueType) {
-                                                         SemErr(t, "mutable fields are now allowed in value types");
+                                                         SemErr(t, "mutable fields are not allowed in value types");
                                                        }
                                                     .)
   { Attribute<ref attrs> }
@@ -1220,6 +1220,7 @@ OtherTypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl t
      Expression witness = null;
      bool witnessIsGhost = false;
      var kind = "Opaque type";
+     var members = new List<MemberDecl>();
   .)
   "type"
   { Attribute<ref attrs> }
@@ -1247,13 +1248,14 @@ OtherTypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl t
                                 kind = "Type synonym";
                              .)
     )
+  | TypeMembers<module, members>
   ]
                              (. if (td == null) {
                                   if (module is DefaultModuleDecl) {
                                     // opaque type declarations at the very outermost program scope get an automatic (!new)
                                     characteristics.DisallowReferenceTypes = true;
                                   }
-                                  td = new OpaqueTypeDecl(id, id.val, module, characteristics, typeArgs, attrs);
+                                  td = new OpaqueTypeDecl(id, id.val, module, characteristics, typeArgs, members, attrs);
                                 }
                              .)
   (. CheckDeclModifiers(dmod, kind, AllowedDeclModifiers.None); .)

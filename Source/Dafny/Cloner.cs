@@ -44,7 +44,7 @@ namespace Microsoft.Dafny
 
       if (d is OpaqueTypeDecl) {
         var dd = (OpaqueTypeDecl)d;
-        return new OpaqueTypeDecl(Tok(dd.tok), dd.Name, m, CloneTPChar(dd.TheType.Characteristics), dd.TypeArgs.ConvertAll(CloneTypeParam), CloneAttributes(dd.Attributes));
+        return new OpaqueTypeDecl(Tok(dd.tok), dd.Name, m, CloneTPChar(dd.TheType.Characteristics), dd.TypeArgs.ConvertAll(CloneTypeParam), dd.Members.ConvertAll(CloneMember), CloneAttributes(dd.Attributes));
       } else if (d is SubsetTypeDecl) {
         Contract.Assume(!(d is NonNullTypeDecl));  // don't clone the non-null type declaration; close the class, which will create a new non-null type declaration
         var dd = (SubsetTypeDecl)d;
@@ -89,7 +89,7 @@ namespace Microsoft.Dafny
         var ens = dd.Ensures.ConvertAll(CloneMayBeFreeExpr);
         var yens = dd.YieldEnsures.ConvertAll(CloneMayBeFreeExpr);
         var body = CloneBlockStmt(dd.Body);
-        var iter = new IteratorDecl(Tok(dd.tok), dd.Name, dd.Module,
+        var iter = new IteratorDecl(Tok(dd.tok), dd.Name, m,
           tps, ins, outs, reads, mod, decr,
           req, ens, yreq, yens,
           body, CloneAttributes(dd.Attributes), dd.SignatureEllipsis);
@@ -915,25 +915,27 @@ namespace Microsoft.Dafny
       basem.TopLevelDecls.RemoveAll(t => t is AliasModuleDecl ?
         vismap[((AliasModuleDecl)t).Signature.ModuleDef].IsEmpty() : isInvisibleClone(t));
 
-      basem.TopLevelDecls.FindAll(t => t is ClassDecl).
-        ForEach(t => ((ClassDecl)t).Members.RemoveAll(isInvisibleClone));
+      basem.TopLevelDecls.FindAll(t => t is TopLevelDeclWithMembers).
+        ForEach(t => ((TopLevelDeclWithMembers)t).Members.RemoveAll(isInvisibleClone));
 
       return basem;
     }
 
     public override TopLevelDecl CloneDeclaration(TopLevelDecl d, ModuleDefinition m) {
-
       var based = base.CloneDeclaration(d, m);
-
-      if (d is RevealableTypeDecl && !RevealedInScope(d)) {
-        var dd = (RevealableTypeDecl)d;
+      if ((d is RevealableTypeDecl || d is TopLevelDeclWithMembers) && !(d is ClassDecl cd && cd.NonNullTypeDecl == null) && !RevealedInScope(d)) {
         var tps = d.TypeArgs.ConvertAll(CloneTypeParam);
         var characteristics = TypeParameter.GetExplicitCharacteristics(d);
-        based = new OpaqueTypeDecl(Tok(d.tok), d.Name, m, characteristics, tps, CloneAttributes(d.Attributes));
+        var members = based is TopLevelDeclWithMembers tm ? tm.Members : new List<MemberDecl>();
+        var otd = new OpaqueTypeDecl(Tok(d.tok), d.Name, m, characteristics, tps, members, CloneAttributes(d.Attributes));
+        based = otd;
+        if (d is ClassDecl) {
+          reverseMap.Add(based, ((ClassDecl)d).NonNullTypeDecl);
+          return based;
+        }
       }
 
       reverseMap.Add(based, d);
-
       return based;
 
     }

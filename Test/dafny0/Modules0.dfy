@@ -238,7 +238,7 @@ module CTr {
 module CTs {
   import B = BTr_corrected
   method P() {
-    var y := new B.Y;
+    var y := new B.Y();
     var x := y.N();  // this is allowed and will correctly infer the type of x to
                      // be X, but X could not have been mentioned explicitly
     var q := x.M();
@@ -301,10 +301,10 @@ module Local {
 // ------ qualified type names ----------------------------------
 
 module Q_Imp {
-  class Node { }
+  class Node { constructor () { } }
   datatype List<T> = Nil | Cons(T, List)
   class Klassy {
-    method Init()
+    constructor Init()
   }
 }
 
@@ -313,7 +313,7 @@ module Q_M {
   method MyMethod(root: Q_Imp.Node, S: set<Node>)
     requires root in S;  // error: the element type of S does not agree with the type of root
   {
-    var i := new Q_Imp.Node;
+    var i := new Q_Imp.Node();
     var j := new Node;
     assert i != j;  // error: i and j have different types
     var k: LongLostModule.Node;  // error: undeclared module
@@ -372,6 +372,7 @@ module X1_corrected {
 module BTr_corrected {
   import A = ATr
   class Y {
+    constructor () { }
     method N() returns (x: A.X?)
       ensures x != null;
   }

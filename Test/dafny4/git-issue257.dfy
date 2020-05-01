@@ -6,30 +6,31 @@ module  M {
     function f() : nat
   }
   class C extends T {
+    constructor () { }
     function f() : nat { 0 }
   }
 }
 
 method Test0() {
-  var c := new M.C;
+  var c := new M.C();
   assert c.f() == 0;
   var g : M.T := c;
   assert g.f() == 0;  // used to fail, but shouldn't
 }
 
 method Test1() {
-  var c := new M.C;  // type is inferred to M.T? :(
+  var c := new M.C();  // type is inferred to M.T? :(
   var g : M.T := c;
   assert c.f() == 0;  // which causes this to fail
 }
 
 method Test2() {
-  var c := new M.C;
+  var c := new M.C();
   assert c.f() == 0;
 }
 
 method Test3() {
-  var c: M.C := new M.C;  // explicitly ask for type M.C
+  var c: M.C := new M.C();  // explicitly ask for type M.C
   var g : M.T := c;
   assert c.f() == 0;
 }

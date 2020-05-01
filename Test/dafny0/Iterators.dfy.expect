@@ -65,6 +65,70 @@ Execution trace:
     Iterators.dfy(197,3): anon17_Else
     Iterators.dfy(197,3): anon19_Else
     (0,0): anon21_Then
+Iterators.dfy(436,18): Error BP5005: This loop invariant might not be maintained by the loop.
+Iterators.dfy(436,18): Related message: loop invariant violation
+Execution trace:
+    (0,0): anon0
+    Iterators.dfy(435,5): anon6_LoopHead
+    (0,0): anon6_LoopBody
+    Iterators.dfy(435,5): anon7_Else
+    Iterators.dfy(435,5): anon8_Else
+Iterators.dfy(437,23): Error BP5005: This loop invariant might not be maintained by the loop.
+Iterators.dfy(437,23): Related message: loop invariant violation
+Execution trace:
+    (0,0): anon0
+    Iterators.dfy(435,5): anon6_LoopHead
+    (0,0): anon6_LoopBody
+    Iterators.dfy(435,5): anon7_Else
+    Iterators.dfy(435,5): anon8_Else
+Iterators.dfy(438,23): Error BP5005: This loop invariant might not be maintained by the loop.
+Iterators.dfy(438,23): Related message: loop invariant violation
+Execution trace:
+    (0,0): anon0
+    Iterators.dfy(435,5): anon6_LoopHead
+    (0,0): anon6_LoopBody
+    Iterators.dfy(435,5): anon7_Else
+    Iterators.dfy(435,5): anon8_Else
+Iterators.dfy(459,16): Error BP5005: This loop invariant might not be maintained by the loop.
+Iterators.dfy(459,16): Related message: loop invariant violation
+Execution trace:
+    (0,0): anon0
+    Iterators.dfy(458,3): anon9_LoopHead
+    (0,0): anon9_LoopBody
+    Iterators.dfy(458,3): anon10_Else
+    Iterators.dfy(458,3): anon11_Else
+    (0,0): anon12_Then
+    (0,0): anon8
+Iterators.dfy(460,21): Error BP5005: This loop invariant might not be maintained by the loop.
+Iterators.dfy(460,21): Related message: loop invariant violation
+Execution trace:
+    (0,0): anon0
+    Iterators.dfy(458,3): anon9_LoopHead
+    (0,0): anon9_LoopBody
+    Iterators.dfy(458,3): anon10_Else
+    Iterators.dfy(458,3): anon11_Else
+    (0,0): anon12_Then
+    (0,0): anon8
+Iterators.dfy(461,21): Error BP5005: This loop invariant might not be maintained by the loop.
+Iterators.dfy(461,21): Related message: loop invariant violation
+Execution trace:
+    (0,0): anon0
+    Iterators.dfy(458,3): anon9_LoopHead
+    (0,0): anon9_LoopBody
+    Iterators.dfy(458,3): anon10_Else
+    Iterators.dfy(458,3): anon11_Else
+    (0,0): anon12_Then
+    (0,0): anon8
+Iterators.dfy(470,4): Error: possible violation of yield-ensures condition
+Iterators.dfy(451,21): Related location
+Execution trace:
+    (0,0): anon0
+    Iterators.dfy(458,3): anon9_LoopHead
+    (0,0): anon9_LoopBody
+    Iterators.dfy(458,3): anon10_Else
+    Iterators.dfy(458,3): anon11_Else
+    (0,0): anon12_Then
+    (0,0): anon8
 Iterators.dfy(40,21): Error BP5002: A precondition for this call might not hold.
 Iterators.dfy(4,9): Related location: This is the precondition that might not hold.
 Execution trace:
@@ -99,5 +163,29 @@ Execution trace:
     Iterators.dfy(225,3): anon15_Else
     Iterators.dfy(225,3): anon18_Else
     (0,0): anon19_Else
+Iterators.dfy(413,16): Error BP5005: This loop invariant might not be maintained by the loop.
+Iterators.dfy(413,16): Related message: loop invariant violation
+Execution trace:
+    (0,0): anon0
+    Iterators.dfy(412,3): anon6_LoopHead
+    (0,0): anon6_LoopBody
+    Iterators.dfy(412,3): anon7_Else
+    Iterators.dfy(412,3): anon8_Else
+Iterators.dfy(414,21): Error BP5005: This loop invariant might not be maintained by the loop.
+Iterators.dfy(414,21): Related message: loop invariant violation
+Execution trace:
+    (0,0): anon0
+    Iterators.dfy(412,3): anon6_LoopHead
+    (0,0): anon6_LoopBody
+    Iterators.dfy(412,3): anon7_Else
+    Iterators.dfy(412,3): anon8_Else
+Iterators.dfy(415,21): Error BP5005: This loop invariant might not be maintained by the loop.
+Iterators.dfy(415,21): Related message: loop invariant violation
+Execution trace:
+    (0,0): anon0
+    Iterators.dfy(412,3): anon6_LoopHead
+    (0,0): anon6_LoopBody
+    Iterators.dfy(412,3): anon7_Else
+    Iterators.dfy(412,3): anon8_Else
 
-Dafny program verifier finished with 30 verified, 20 errors
+Dafny program verifier finished with 35 verified, 30 errors

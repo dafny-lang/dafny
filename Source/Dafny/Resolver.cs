@@ -1007,9 +1007,8 @@ namespace Microsoft.Dafny
               reporter.Error(MessageSource.Resolver, export.ClassIdTok, "'{0}' is not a top-level type declaration", export.ClassId);
               continue;
             }
-            if (cldecl is ClassDecl) {
+            if (cldecl is ClassDecl && ((ClassDecl)cldecl).NonNullTypeDecl != null) {
               // cldecl is a possibly-null type (syntactically given with a question mark at the end)
-              Contract.Assert(((ClassDecl)cldecl).NonNullTypeDecl != null);
               reporter.Error(MessageSource.Resolver, export.ClassIdTok, "'{0}' is not a type that can declare members", export.ClassId);
               continue;
             }
@@ -1028,9 +1027,18 @@ namespace Microsoft.Dafny
               continue;
             }
             decl = lmem;
-          } else if (sig.TopLevels.TryGetValue(name, out tdecl) && (!(tdecl is ClassDecl) || ((ClassDecl)tdecl).NonNullTypeDecl == null)) {  // pretend that C? types are not there
+          } else if (sig.TopLevels.TryGetValue(name, out tdecl)) {
+            if (tdecl is ClassDecl && ((ClassDecl)tdecl).NonNullTypeDecl != null) {
+              // cldecl is a possibly-null type (syntactically given with a question mark at the end)
+              var nn = ((ClassDecl)tdecl).NonNullTypeDecl;
+              Contract.Assert(nn != null);
+              reporter.Error(MessageSource.Resolver, export.Tok,
+                export.Opaque ? "Type '{1}' can only be revealed, not provided" : "Types '{0}' and '{1}' are exported together, which is accomplished by revealing the name '{0}'",
+                nn.Name, name);
+              continue;
+            }
             // Member of the enclosing module
-            decl = tdecl.ViewAsClass;  // interpret the export as a class name, not a type name
+            decl = tdecl;
           } else if (sig.StaticMembers.TryGetValue(name, out member)) {
             decl = member;
           } else if (sig.ExportSets.ContainsKey(name)) {
@@ -1052,18 +1060,18 @@ namespace Microsoft.Dafny
           }
 
           export.Decl = decl;
-          decl.AddVisibilityScope(d.ThisScope, export.Opaque);
-
-          if (export.Decl is ClassDecl) {
-            var cl = (ClassDecl)export.Decl;
-            if (cl.NonNullTypeDecl != null) {
-              cl.NonNullTypeDecl.AddVisibilityScope(d.ThisScope, false);  // the associated non-null type is always exported as revealed
-            }
+          if (decl is NonNullTypeDecl nntd) {
+            nntd.AddVisibilityScope(d.ThisScope, export.Opaque);
             if (!export.Opaque) {
-              foreach (var mdecl in cl.Members) {
-                mdecl.AddVisibilityScope(d.ThisScope, false);
+              nntd.Class.AddVisibilityScope(d.ThisScope, export.Opaque);
+              // add the anonymous constructor, if any
+              var anonymousConstructor = nntd.Class.Members.Find(mdecl => mdecl.Name == "_ctor");
+              if (anonymousConstructor != null) {
+                anonymousConstructor.AddVisibilityScope(d.ThisScope, false);
               }
             }
+          } else {
+            decl.AddVisibilityScope(d.ThisScope, export.Opaque);
           }
         }
       }
@@ -1080,11 +1088,13 @@ namespace Microsoft.Dafny
         ModuleSignature signature = decl.Signature;
         signature.ModuleDef = m;
 
-        foreach (var top in sig.TopLevels.Where(t => t.Value.IsVisibleInScope(signature.VisibilityScope) && t.Value.CanBeExported())) {
+        foreach (var top in sig.TopLevels) {
+          if (!top.Value.CanBeExported() || !top.Value.IsVisibleInScope(signature.VisibilityScope)) {
+            continue;
+          }
           if (!signature.TopLevels.ContainsKey(top.Key)) {
             signature.TopLevels.Add(top.Key, top.Value);
           }
-
           if (top.Value is DatatypeDecl && top.Value.IsRevealedInScope(signature.VisibilityScope)) {
             foreach (var ctor in ((DatatypeDecl)top.Value).Ctors) {
               if (!signature.Ctors.ContainsKey(ctor.Name)) {
@@ -1092,15 +1102,12 @@ namespace Microsoft.Dafny
               }
             }
           }
-
-          foreach (var mem in sig.StaticMembers.Where(t => t.Value.IsVisibleInScope(signature.VisibilityScope) && t.Value.CanBeExported())) {
-            if (!signature.StaticMembers.ContainsKey(mem.Key)) {
-              signature.StaticMembers.Add(mem.Key, (MemberDecl)mem.Value);
-            }
-          }
-
         }
-
+        foreach (var mem in sig.StaticMembers.Where(t => t.Value.IsVisibleInScope(signature.VisibilityScope) && t.Value.CanBeExported())) {
+          if (!signature.StaticMembers.ContainsKey(mem.Key)) {
+            signature.StaticMembers.Add(mem.Key, (MemberDecl)mem.Value);
+          }
+        }
       }
 
       // set the default export set, if it exists
@@ -1122,7 +1129,7 @@ namespace Microsoft.Dafny
         }
       }
 
-      HashSet<Tuple<Declaration, bool>> exported = new HashSet<Tuple<Declaration, bool>>();
+      var exported = new HashSet<Tuple<Declaration, bool>>();
 
       //some decls may not be set due to resolution errors
       foreach (var e in sortedExportDecls.SelectMany(e => e.Exports).Where(e => e.Decl != null)) {
@@ -1130,13 +1137,8 @@ namespace Microsoft.Dafny
         exported.Add(new Tuple<Declaration, bool>(decl, e.Opaque));
         if (!e.Opaque && decl.CanBeRevealed()) {
           exported.Add(new Tuple<Declaration, bool>(decl, true));
-        }
-
-        if (decl is ClassDecl && ((ClassDecl)decl).NonNullTypeDecl != null) {
-          decl = ((ClassDecl)decl).NonNullTypeDecl;
-          exported.Add(new Tuple<Declaration, bool>(decl, e.Opaque));
-          if (!e.Opaque && decl.CanBeRevealed()) {
-            exported.Add(new Tuple<Declaration, bool>(decl, true));
+          if (decl is NonNullTypeDecl nntd) {
+            exported.Add(new Tuple<Declaration, bool>(nntd.Class, true));
           }
         }
 
@@ -1202,7 +1204,7 @@ namespace Microsoft.Dafny
           }
         }
 
-        VisibilityScope newscope = new VisibilityScope(true, e.Item1.Name);
+        VisibilityScope newscope = new VisibilityScope(e.Item1.Name);
 
         foreach (var rt in declScopes) {
           if (!rt.Value.HasValue)
@@ -1222,21 +1224,38 @@ namespace Microsoft.Dafny
           continue;
 
         ModuleExportDecl decl = (ModuleExportDecl)top;
+        var prevErrors = reporter.Count(ErrorLevel.Error);
 
         foreach (var export in decl.Exports) {
           if (export.Decl is MemberDecl member) {
-            if (!member.EnclosingClass.IsVisibleInScope(decl.Signature.VisibilityScope)) {
+            // For classes and traits, the visibility test is performed on the corresponding non-null type
+            var enclosingType = member.EnclosingClass is ClassDecl cl && cl.NonNullTypeDecl != null ? cl.NonNullTypeDecl : member.EnclosingClass;
+            if (!enclosingType.IsVisibleInScope(decl.Signature.VisibilityScope)) {
               reporter.Error(MessageSource.Resolver, export.Tok, "Cannot export type member '{0}' without providing its enclosing {1} '{2}'", member.Name, member.EnclosingClass.WhatKind, member.EnclosingClass.Name);
+            } else if (member is Constructor && !member.EnclosingClass.IsRevealedInScope(decl.Signature.VisibilityScope)) {
+              reporter.Error(MessageSource.Resolver, export.Tok, "Cannot export constructor '{0}' without revealing its enclosing {1} '{2}'", member.Name, member.EnclosingClass.WhatKind, member.EnclosingClass.Name);
+            } else if (member is Field && !(member is ConstantField) && !member.EnclosingClass.IsRevealedInScope(decl.Signature.VisibilityScope)) {
+              reporter.Error(MessageSource.Resolver, export.Tok, "Cannot export mutable field '{0}' without revealing its enclosing {1} '{2}'", member.Name, member.EnclosingClass.WhatKind, member.EnclosingClass.Name);
             }
           }
         }
 
-        reporter = new ErrorReporterWrapper(reporter,
-          String.Format("Raised while checking export set {0}: ", decl.Name));
         var scope = decl.Signature.VisibilityScope;
         Cloner cloner = new ScopeCloner(scope);
         var exportView = cloner.CloneModuleDefinition(m, m.Name);
+        if (DafnyOptions.O.DafnyPrintExportedViews.Contains(decl.FullName)) {
+          var wr = Console.Out;
+          wr.WriteLine("/* ===== export set {0}", decl.FullName);
+          var pr = new Printer(wr);
+          pr.PrintTopLevelDecls(exportView.TopLevelDecls, 0, null, null);
+          wr.WriteLine("*/");
+        }
+        if (reporter.Count(ErrorLevel.Error) != prevErrors) {
+          continue;
+        }
 
+        reporter = new ErrorReporterWrapper(reporter,
+          String.Format("Raised while checking export set {0}: ", decl.Name));
         var testSig = RegisterTopLevelDecls(exportView, true);
         //testSig.Refines = refinementTransformer.RefinedSig;
         ResolveModuleDefinition(exportView, testSig);
@@ -1246,7 +1265,6 @@ namespace Microsoft.Dafny
         if (wasError) {
           reporter.Error(MessageSource.Resolver, decl.tok, "This export set is not consistent: {0}", decl.Name);
         }
-
       }
 
       moduleInfo = oldModuleInfo;
@@ -1479,7 +1497,27 @@ namespace Microsoft.Dafny
       }
       // add for the module itself
       foreach (var kv in m.TopLevels) {
-        Contract.Assert(EquivIfPresent(info.TopLevels, kv.Key, kv.Value));
+        if (info.TopLevels.TryGetValue(kv.Key, out var infoValue)) {
+          if (infoValue != kv.Value) {
+            // This only happens if one signature contains the name C as a class C (because it
+            // provides C) and the other signature contains the name C as a non-null type decl
+            // (because it reveals C and C?). The merge output will contain the non-null type decl
+            // for the key (and we expect the mapping "C? -> class C" to be placed in the
+            // merge output as well, by the end of this loop).
+            if (infoValue is ClassDecl) {
+              var cd = (ClassDecl)infoValue;
+              Contract.Assert(cd.NonNullTypeDecl == kv.Value);
+              info.TopLevels[kv.Key] = kv.Value;
+            } else if (kv.Value is ClassDecl) {
+              var cd = (ClassDecl)kv.Value;
+              Contract.Assert(cd.NonNullTypeDecl == infoValue);
+              // info.TopLevel[kv.Key] already has the right value
+            } else {
+              Contract.Assert(false);  // unexpected
+            }
+            continue;
+          }
+        }
         info.TopLevels[kv.Key] = kv.Value;
       }
       foreach (var kv in m.Ctors) {
@@ -1637,11 +1675,9 @@ namespace Microsoft.Dafny
         }
         if (d is ModuleDecl) {
           // nothing to do
-        } else if (d is OpaqueTypeDecl) {
-          // nothing more to register
         } else if (d is TypeSynonymDecl) {
           // nothing more to register
-        } else if (d is NewtypeDecl) {
+        } else if (d is NewtypeDecl || d is OpaqueTypeDecl) {
           var cl = (TopLevelDeclWithMembers)d;
           // register the names of the type members
           var members = new Dictionary<string, MemberDecl>();
@@ -2067,7 +2103,12 @@ namespace Microsoft.Dafny
               Contract.Assert(Object.ReferenceEquals(p.ModuleDef, pp.Signature.ModuleDef));
               ModuleSignature merged = MergeSignature(p, pp.Signature);
               merged.ModuleDef = pp.Signature.ModuleDef;
-              merged.CompileSignature = MergeSignature(p.CompileSignature, pp.Signature.CompileSignature);
+              if (p.CompileSignature != null) {
+                Contract.Assert(pp.Signature.CompileSignature != null);
+                merged.CompileSignature = MergeSignature(p.CompileSignature, pp.Signature.CompileSignature);
+              } else {
+                Contract.Assert(pp.Signature.CompileSignature == null);
+              }
               p = merged;
             } else {
               reporter.Error(MessageSource.Resolver, export, "no export set {0} in module {1}", export.val, decl.Name);
@@ -2155,9 +2196,7 @@ namespace Microsoft.Dafny
         Contract.Assert(d != null);
         allTypeParameters.PushMarker();
         ResolveTypeParameters(d.TypeArgs, true, d);
-        if (d is OpaqueTypeDecl) {
-          // do nothing
-        } else if (d is TypeSynonymDecl) {
+        if (d is TypeSynonymDecl) {
           var dd = (TypeSynonymDecl)d;
           ResolveType(dd.tok, dd.Rhs, dd, ResolveTypeOptionEnum.AllowPrefix, dd.TypeArgs);
           dd.Rhs.ForeachTypeComponent(ty => {
@@ -2178,17 +2217,17 @@ namespace Microsoft.Dafny
           ResolveClassMemberTypes(dd);
         } else if (d is IteratorDecl) {
           ResolveIteratorSignature((IteratorDecl)d);
-        } else if (d is ClassDecl) {
-          ResolveClassMemberTypes((ClassDecl)d);
         } else if (d is ModuleDecl) {
           var decl = (ModuleDecl)d;
           if (!def.IsAbstract && decl is AliasModuleDecl am && decl.Signature.IsAbstract) {
             reporter.Error(MessageSource.Resolver, am.Path.Last(), "a compiled module ({0}) is not allowed to import an abstract module ({1})", def.Name, Util.Comma(".", am.Path, tok => tok.val));
           }
-        } else {
+        } else if (d is DatatypeDecl) {
           var dd = (DatatypeDecl)d;
           ResolveCtorTypes(dd, datatypeDependencies, codatatypeDependencies);
           ResolveClassMemberTypes(dd);
+        } else {
+          ResolveClassMemberTypes((TopLevelDeclWithMembers)d);
         }
         allTypeParameters.PopMarker();
       }
@@ -2378,9 +2417,6 @@ namespace Microsoft.Dafny
             var iter = (IteratorDecl)d;
             ResolveIterator(iter);
             ResolveClassMemberBodies(iter);  // resolve the automatically generated members
-          } else if (d is ClassDecl) {
-            var cl = (ClassDecl)d;
-            ResolveClassMemberBodies(cl);
           } else if (d is DatatypeDecl) {
             var dt = (DatatypeDecl)d;
             foreach (var ctor in dt.Ctors) {
@@ -2389,6 +2425,9 @@ namespace Microsoft.Dafny
               }
             }
             ResolveClassMemberBodies(dt);
+          } else if (d is TopLevelDeclWithMembers) {
+            var dd = (TopLevelDeclWithMembers)d;
+            ResolveClassMemberBodies(dd);
           }
         }
         allTypeParameters.PopMarker();
@@ -2603,7 +2642,7 @@ namespace Microsoft.Dafny
             prefixLemma.Body = new BlockStmt(com.tok, condBody.EndTok, new List<Statement>() { condBody });
           }
           // The prefix lemma now has all its components, so it's finally time we resolve it
-          currentClass = (ClassDecl)prefixLemma.EnclosingClass;
+          currentClass = (TopLevelDeclWithMembers)prefixLemma.EnclosingClass;
           allTypeParameters.PushMarker();
           ResolveTypeParameters(currentClass.TypeArgs, false, currentClass);
           ResolveTypeParameters(prefixLemma.TypeArgs, false, prefixLemma);
@@ -5932,7 +5971,7 @@ namespace Microsoft.Dafny
     TailRecursionStatus CheckTailRecursive(Statement stmt, Method enclosingMethod, ref CallStmt tailCall, bool reportErrors) {
       Contract.Requires(stmt != null);
       if (stmt.IsGhost) {
-        return TailRecursionStatus.NotTailRecursive;
+        return TailRecursionStatus.CanBeFollowedByAnything;
       }
       if (stmt is PrintStmt) {
       } else if (stmt is RevealStmt) {
@@ -7201,10 +7240,10 @@ namespace Microsoft.Dafny
               local.IsGhost = true;
             }
           }
-          s.IsGhost = (s.Update == null || s.Update.IsGhost) && s.Locals.All(v => v.IsGhost);
           if (s.Update != null) {
             Visit(s.Update, mustBeErasable);
           }
+          s.IsGhost = (s.Update == null || s.Update.IsGhost) && s.Locals.All(v => v.IsGhost);
 
         } else if (stmt is LetStmt) {
           var s = (LetStmt)stmt;
@@ -9971,7 +10010,7 @@ namespace Microsoft.Dafny
             ctorId = BuiltIns.TupleTypeCtorNamePrefix + dims;
           }
           if (!ctors.ContainsKey(ctorId)) {
-            reporter.Error(MessageSource.Resolver, mc.tok, "member {0} does not exist in datatype {1}", ctorId, dtd.Name);
+            reporter.Error(MessageSource.Resolver, mc.tok, "member '{0}' does not exist in datatype '{1}'", ctorId, dtd.Name);
           } else {
             if (mc.Ctor.Formals.Count != mc.Arguments.Count) {
               if (s.Source.Type.AsDatatype is TupleTypeDecl) {
@@ -11755,8 +11794,9 @@ namespace Microsoft.Dafny
             var udt = rr.EType.NormalizeExpand() as UserDefinedType;
             if (udt != null) {
               var cl = (ClassDecl)udt.ResolvedClass;  // cast is guaranteed by the call to rr.EType.IsRefType above, together with the "rr.EType is UserDefinedType" test
-              if (!callsConstructor && cl.HasConstructor) {
-                reporter.Error(MessageSource.Resolver, stmt, "when allocating an object of type '{0}', one of its constructor methods must be called", cl.Name);
+              if (!callsConstructor && !cl.IsObjectTrait && !udt.IsArrayType && (cl.HasConstructor || cl.Module != currentClass.Module)) {
+                reporter.Error(MessageSource.Resolver, stmt, "when allocating an object of {1}type '{0}', one of its constructor methods must be called", cl.Name,
+                  cl.HasConstructor ? "" : "imported ");
               }
             }
           }
@@ -11830,7 +11870,7 @@ namespace Microsoft.Dafny
           if (memberName == "_ctor") {
             reporter.Error(MessageSource.Resolver, tok, "{0} {1} does not have an anonymous constructor", cd.WhatKind, cd.Name);
           } else {
-            reporter.Error(MessageSource.Resolver, tok, "member {0} does not exist in {2} {1}", memberName, cd.Name, cd.WhatKind);
+            reporter.Error(MessageSource.Resolver, tok, "member '{0}' does not exist in {2} '{1}'", memberName, cd.Name, cd.WhatKind);
           }
         } else if (!VisibleInScope(member)) {
           reporter.Error(MessageSource.Resolver, tok, "member '{0}' has not been imported in this scope and cannot be accessed here", memberName);
@@ -12475,7 +12515,7 @@ namespace Microsoft.Dafny
       Contract.Requires(cl != null);
       Contract.Ensures(Contract.Result<UserDefinedType>() != null);
 
-      if (cl is ClassDecl cls) {
+      if (cl is ClassDecl cls && cls.NonNullTypeDecl != null) {
         return UserDefinedType.FromTopLevelDecl(tok, cls.NonNullTypeDecl, cls.TypeArgs);
       } else {
         return UserDefinedType.FromTopLevelDecl(tok, cl, cl.TypeArgs);
@@ -13685,7 +13725,7 @@ namespace Microsoft.Dafny
             ctorId = BuiltIns.TupleTypeCtorNamePrefix + dims;
           }
           if (!ctors.ContainsKey(ctorId)) {
-            reporter.Error(MessageSource.Resolver, mc.tok, "member {0} does not exist in datatype {1}", ctorId, dtd.Name);
+            reporter.Error(MessageSource.Resolver, mc.tok, "member '{0}' does not exist in datatype '{1}'", ctorId, dtd.Name);
           } else {
             if (mc.Ctor.Formals.Count != mc.Arguments.Count) {
               if (me.Source.Type.AsDatatype is TupleTypeDecl) {
@@ -13928,12 +13968,10 @@ namespace Microsoft.Dafny
           // resolution to any such suffix. For now, we create a temporary expression that will never be seen by the compiler
           // or verifier, just to have a placeholder where we can recorded what we have found.
           if (!isLastNameSegment) {
-            if (decl is ClassDecl && ((ClassDecl)decl).NonNullTypeDecl != null) {
+            if (decl is ClassDecl cd && cd.NonNullTypeDecl != null && name != cd.NonNullTypeDecl.Name) {
               // A possibly-null type C? was mentioned. But it does not have any further members. The program should have used
               // the name of the class, C. Report an error and continue.
               reporter.Error(MessageSource.Resolver, expr.tok, "To access members of {0} '{1}', write '{1}', not '{2}'", decl.WhatKind, decl.Name, name);
-            } else {
-              decl = decl.ViewAsClass;
             }
           }
           r = CreateResolver_IdentifierExpr(expr.tok, name, expr.OptTypeArguments, decl);
@@ -13960,7 +13998,9 @@ namespace Microsoft.Dafny
         expr.Type = new InferredTypeProxy();
       } else {
         expr.ResolvedExpression = r;
-        expr.Type = r.Type;
+        var rt = r.Type;
+        var nt = rt.UseInternalSynonym();
+        expr.Type = nt;
       }
       return rWithArgs;
     }
@@ -14178,12 +14218,10 @@ namespace Microsoft.Dafny
             // resolution to any such suffix. For now, we create a temporary expression that will never be seen by the compiler
             // or verifier, just to have a placeholder where we can recorded what we have found.
             if (!isLastNameSegment) {
-              if (decl is ClassDecl && ((ClassDecl)decl).NonNullTypeDecl != null) {
+              if (decl is ClassDecl cd && cd.NonNullTypeDecl != null && name != cd.NonNullTypeDecl.Name) {
                 // A possibly-null type C? was mentioned. But it does not have any further members. The program should have used
                 // the name of the class, C. Report an error and continue.
                 reporter.Error(MessageSource.Resolver, expr.tok, "To access members of {0} '{1}', write '{1}', not '{2}'", decl.WhatKind, decl.Name, name);
-              } else {
-                decl = decl.ViewAsClass;
               }
             }
             r = CreateResolver_IdentifierExpr(expr.tok, name, expr.OptTypeArguments, decl);
@@ -14248,7 +14286,8 @@ namespace Microsoft.Dafny
           }
         }
         if (r == null) {
-          reporter.Error(MessageSource.Resolver, expr.tok, "member '{0}' does not exist in type '{1}'", name, ri.TypeParamDecl != null ? ri.TypeParamDecl.Name : ri.Decl.Name);
+          reporter.Error(MessageSource.Resolver, expr.tok, "member '{0}' does not exist in {2} '{1}'", name, ri.TypeParamDecl != null ? ri.TypeParamDecl.Name : ri.Decl.Name,
+            ri.TypeParamDecl != null ? "type" : ri.Decl.WhatKind);
         }
       } else if (lhs != null) {
         // ----- 4. Look up name in the type of the Lhs

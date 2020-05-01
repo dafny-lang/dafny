@@ -175,6 +175,10 @@ namespace Microsoft.Dafny {
     [Pure]
     bool VisibleInScope(Declaration d) {
       Contract.Requires(d != null);
+      if (d is ClassDecl cl && cl.NonNullTypeDecl != null) {
+        // "provides" is recorded in the non-null type declaration, not the class
+        return cl.NonNullTypeDecl.IsVisibleInScope(currentScope);
+      }
       return d.IsVisibleInScope(currentScope);
     }
 
@@ -787,19 +791,10 @@ namespace Microsoft.Dafny {
           currentDeclaration = d;
           if (d is OpaqueTypeDecl) {
             AddTypeDecl((OpaqueTypeDecl)d);
-          } else if (d is RevealableTypeDecl) {
-            AddTypeDecl((RevealableTypeDecl)d);
           } else if (d is ModuleDecl) {
             // submodules have already been added as a top level module, ignore this.
-          } else if (d is ClassDecl) {
-            var cl = (ClassDecl)d;
-            AddClassMembers(cl, DafnyOptions.O.OptimizeResolution < 1);
-            if (cl.NonNullTypeDecl != null) {
-              AddTypeDecl(cl.NonNullTypeDecl);
-            }
-            if (d is IteratorDecl) {
-              AddIteratorSpecAndBody((IteratorDecl)d);
-            }
+          } else if (d is RevealableTypeDecl) {
+            AddTypeDecl((RevealableTypeDecl)d);
           } else {
             Contract.Assert(false);
           }
@@ -1172,6 +1167,15 @@ namespace Microsoft.Dafny {
           var dd = (NewtypeDecl)d;
           AddTypeDecl(dd);
           AddClassMembers(dd, true);
+        } else if (d is ClassDecl) {
+          var cl = (ClassDecl)d;
+          AddClassMembers(cl, DafnyOptions.O.OptimizeResolution < 1);
+          if (cl.NonNullTypeDecl != null) {
+            AddTypeDecl(cl.NonNullTypeDecl);
+          }
+          if (d is IteratorDecl) {
+            AddIteratorSpecAndBody((IteratorDecl)d);
+          }
         } else if (d is DatatypeDecl) {
           var dd = (DatatypeDecl)d;
           AddDatatype(dd);
@@ -2224,21 +2228,12 @@ namespace Microsoft.Dafny {
           AddFunction_Top((Function)member);
         } else if (member is Method) {
           if (includeMethods || InVerificationScope(member) || referencedMembers.Contains(member)) {
-            AddMember_Top(member);
+            AddMethod_Top((Method)member);
           }
         } else {
           Contract.Assert(false); throw new cce.UnreachableException();  // unexpected member
         }
       }
-    }
-
-    void AddMember_Top(MemberDecl mem) {
-      Contract.Requires(mem is Method);
-
-      if (mem is Method) {
-        AddMethod_Top((Method)mem);
-      }
-
     }
 
     void AddFunction_Top(Function f) {
@@ -3517,7 +3512,7 @@ namespace Microsoft.Dafny {
         receiver = new StaticReceiverExpr(tok, (ClassDecl)member.EnclosingClass, true);  // this also resolves it
       } else {
         receiver = new ImplicitThisExpr(tok);
-        receiver.Type = Resolver.GetThisType(tok, (TopLevelDeclWithMembers)member.EnclosingClass);  // resolve here
+        receiver.Type = Resolver.GetReceiverType(tok, member);  // resolve here
       }
 
       arguments = new List<Expression>();
@@ -3985,11 +3980,19 @@ namespace Microsoft.Dafny {
         Bpl.Expr o_ty = ClassTyCon(c, tyexprs);
 
         var isGoodHeap = FunctionCall(c.tok, BuiltinFunction.IsGoodHeap, null, h);
-        Bpl.Expr is_o = BplAnd(
-          ReceiverNotNull(o),
-          c is TraitDecl ? MkIs(o, o_ty) : DType(o, o_ty));  // $Is(o, ..)  or  dtype(o) == o_ty
-        var udt = UserDefinedType.FromTopLevelDecl(c.tok, c);
-        Bpl.Expr isalloc_o = c is ClassDecl ? IsAlloced(c.tok, h, o) : MkIsAlloc(o, udt, h);
+        Bpl.Expr isalloc_o;
+        if (!(c is ClassDecl)) {
+          var udt = UserDefinedType.FromTopLevelDecl(c.tok, c);
+          isalloc_o = MkIsAlloc(o, udt, h);
+        } else if (RevealedInScope(c)) {
+          isalloc_o = IsAlloced(c.tok, h, o);
+        } else {
+          // c is only provided, not revealed, in the scope. Use the non-null type decl's internal synonym
+          var cl = (ClassDecl)c;
+          Contract.Assert(cl.NonNullTypeDecl != null);
+          var udt = UserDefinedType.FromTopLevelDecl(c.tok, cl.NonNullTypeDecl);
+          isalloc_o = MkIsAlloc(o, udt, h);
+        }
 
         Bpl.Expr indexBounds = Bpl.Expr.True;
         Bpl.Expr oDotF;
@@ -4039,6 +4042,9 @@ namespace Microsoft.Dafny {
           // Note: for the allocation axiom, isGoodHeap is added back in for !f.IsMutable below
         }
         if (!(f is ConstantField)) {
+          Bpl.Expr is_o = BplAnd(
+            ReceiverNotNull(o),
+            c is TraitDecl ? MkIs(o, o_ty) : DType(o, o_ty));  // $Is(o, ..)  or  dtype(o) == o_ty
           ante = BplAnd(ante, is_o);
         }
         ante = BplAnd(ante, indexBounds);
@@ -6286,35 +6292,23 @@ namespace Microsoft.Dafny {
         var e = (UnaryExpr)expr;
         return CanCallAssumption(e.E, etran);
       } else if (expr is BinaryExpr) {
-        BinaryExpr e = (BinaryExpr)expr;
+        // The short-circuiting boolean operators &&, ||, and ==> end up duplicating their
+        // left argument. Therefore, we first try to re-associate the expression to make
+        // left arguments smaller.
+        if (ReAssociateToTheRight(ref expr)) {
+          return CanCallAssumption(expr, etran);
+        }
+        var e = (BinaryExpr)expr;
+
         Bpl.Expr t0 = CanCallAssumption(e.E0, etran);
         Bpl.Expr t1 = CanCallAssumption(e.E1, etran);
-        Bpl.Expr antecedent;
         switch (e.ResolvedOp) {
           case BinaryExpr.ResolvedOpcode.And:
-          case BinaryExpr.ResolvedOpcode.Imp: {
-              var be = e.E0 as BinaryExpr;
-              if (be != null && (be.ResolvedOp == BinaryExpr.ResolvedOpcode.And ||
-                be.ResolvedOp == BinaryExpr.ResolvedOpcode.Imp ||
-                be.ResolvedOp == BinaryExpr.ResolvedOpcode.Or)) {
-                antecedent = BplAnd(CanCallAssumption(be.E1, etran), etran.TrExpr(be.E1));
-              } else {
-                antecedent = etran.TrExpr(e.E0);
-              }
-              t1 = BplImp(antecedent, t1);
-            }
+          case BinaryExpr.ResolvedOpcode.Imp:
+            t1 = BplImp(etran.TrExpr(e.E0), t1);
             break;
-          case BinaryExpr.ResolvedOpcode.Or: {
-              var be = e.E0 as BinaryExpr;
-              if (be != null && (be.ResolvedOp == BinaryExpr.ResolvedOpcode.And ||
-                be.ResolvedOp == BinaryExpr.ResolvedOpcode.Imp ||
-                be.ResolvedOp == BinaryExpr.ResolvedOpcode.Or)) {
-                antecedent = BplAnd(CanCallAssumption(be.E1, etran), Bpl.Expr.Not(etran.TrExpr(be.E1)));
-              } else {
-                antecedent = Bpl.Expr.Not(etran.TrExpr(e.E0));
-              }
-              t1 = BplImp(antecedent, t1);
-            }
+          case BinaryExpr.ResolvedOpcode.Or:
+            t1 = BplImp(Bpl.Expr.Not(etran.TrExpr(e.E0)), t1);
             break;
           case BinaryExpr.ResolvedOpcode.EqCommon:
           case BinaryExpr.ResolvedOpcode.NeqCommon: {
@@ -6570,6 +6564,41 @@ namespace Microsoft.Dafny {
           AddCasePatternVarSubstitutions(arg, de, substMap);
         }
       }
+    }
+
+    /// <summary>
+    /// If "expr" is a binary boolean operation, then try to re-associate it to make the left argument smaller.
+    /// If it is possible, then "true" is returned and "expr" returns as the re-associated expression (no boolean simplifications are performed).
+    /// If not, then "false" is returned and "expr" is unchanged.
+    /// </summary>
+    bool ReAssociateToTheRight(ref Expression expr) {
+      if (expr is BinaryExpr top && Expression.StripParens(top.E0) is BinaryExpr left) {
+        // We have an expression of the form "(A oo B) pp C"
+        var A = left.E0;
+        var oo = left.ResolvedOp;
+        var B = left.E1;
+        var pp = top.ResolvedOp;
+        var C = top.E1;
+
+        if (oo == BinaryExpr.ResolvedOpcode.And && pp == BinaryExpr.ResolvedOpcode.And) {
+          // rewrite    (A && B) && C    into    A && (B && C)
+          expr = Expression.CreateAnd(A, Expression.CreateAnd(B, C, false), false);
+          return true;
+        } else if (oo == BinaryExpr.ResolvedOpcode.And && pp == BinaryExpr.ResolvedOpcode.Imp) {
+          // rewrite    (A && B) ==> C    into    A ==> (B ==> C)
+          expr = Expression.CreateImplies(A, Expression.CreateImplies(B, C, false), false);
+          return true;
+        } else if (oo == BinaryExpr.ResolvedOpcode.Or && pp == BinaryExpr.ResolvedOpcode.Or) {
+          // rewrite    (A || B) || C    into    A || (B || C)
+          expr = Expression.CreateOr(A, Expression.CreateOr(B, C, false), false);
+          return true;
+        } else if (oo == BinaryExpr.ResolvedOpcode.Imp && pp == BinaryExpr.ResolvedOpcode.Or) {
+          // rewrite    (A ==> B) || C    into    A ==> (B || C)
+          expr = Expression.CreateImplies(A, Expression.CreateOr(B, C, false), false);
+          return true;
+        }
+      }
+      return false;
     }
 
     void CheckCasePatternShape<VT>(CasePattern<VT> pat, Bpl.Expr rhs, IToken rhsTok, Type rhsType, BoogieStmtListBuilder builder) where VT: IVariable {
@@ -8694,7 +8723,7 @@ namespace Microsoft.Dafny {
       var inner_name = GetClass(td).TypedIdent.Name;
       string name = "T" + inner_name;
       // Create the type constructor
-      if (!(td is ClassDecl && td.Name == "object")) {  // the type constructor for "object" is in DafnyPrelude.bpl
+      if (!(td is ClassDecl cl && cl.IsObjectTrait)) {  // the type constructor for "object" is in DafnyPrelude.bpl
         Bpl.Variable tyVarOut = BplFormalVar(null, predef.Ty, false);
         List<Bpl.Variable> args = new List<Bpl.Variable>(
           Enumerable.Range(0, arity).Select(i =>
@@ -11393,7 +11422,7 @@ namespace Microsoft.Dafny {
     delegate void BodyTranslator(BoogieStmtListBuilder builder, ExpressionTranslator etran);
 
 
-    void TrLoop(LoopStmt s, Expression Guard, BodyTranslator bodyTr,
+    void TrLoop(LoopStmt s, Expression Guard, BodyTranslator/*?*/ bodyTr,
                 BoogieStmtListBuilder builder, List<Variable> locals, ExpressionTranslator etran) {
       Contract.Requires(s != null);
       Contract.Requires(builder != null);
@@ -11478,6 +11507,13 @@ namespace Microsoft.Dafny {
       }
       if (codeContext is IMethodCodeContext) {
         var modifiesClause = ((IMethodCodeContext)codeContext).Modifies.Expressions;
+        if (codeContext is IteratorDecl) {
+          // add "this" to the explicit modifies clause
+          var explicitModifies = modifiesClause;
+          modifiesClause = new List<FrameExpression>();
+          modifiesClause.Add(new FrameExpression(s.Tok, new ThisExpr((IteratorDecl)codeContext), null));
+          modifiesClause.AddRange(explicitModifies);
+        }
         // include boilerplate invariants
         foreach (BoilerplateTriple tri in GetTwoStateBoilerplate(s.Tok, modifiesClause, s.IsGhost, etranPreLoop, etran, etran.Old)) {
           if (tri.IsFree) {
@@ -11489,6 +11525,14 @@ namespace Microsoft.Dafny {
         }
         // add a free invariant which says that the heap hasn't changed outside of the modifies clause.
         invariants.Add(TrAssumeCmd(s.Tok, FrameConditionUsingDefinedFrame(s.Tok, etranPreLoop, etran, updatedFrameEtran)));
+        // for iterators, add "fresh(_new)" as an invariant
+        if (codeContext is IteratorDecl iter) {
+          var th = new ThisExpr(iter);
+          var thisDotNew = new MemberSelectExpr(s.Tok, th, iter.Member_New);
+          var fr = new UnaryOpExpr(s.Tok, UnaryOpExpr.Opcode.Fresh, thisDotNew);
+          fr.Type = Type.Bool;
+          invariants.Add(TrAssertCmd(s.Tok, etran.TrExpr(fr)));
+        }
       }
 
       // include a free invariant that says that all definite-assignment trackers have only become more "true"
@@ -11511,20 +11555,32 @@ namespace Microsoft.Dafny {
         invariants.Add(TrAssumeCmd(s.Tok, decrCheck));
       }
 
-      BoogieStmtListBuilder loopBodyBuilder = new BoogieStmtListBuilder(this);
+      var loopBodyBuilder = new BoogieStmtListBuilder(this);
       loopBodyBuilder.Add(CaptureState(s.Tok, true, "after some loop iterations"));
-      // as the first thing inside the loop, generate:  if (!w) { CheckWellformed(inv); assume false; }
+
+      // As the first thing inside the loop, generate:  if (!w) { CheckWellformed(inv); assume false; }
       invDefinednessBuilder.Add(TrAssumeCmd(s.Tok, Bpl.Expr.False));
       loopBodyBuilder.Add(new Bpl.IfCmd(s.Tok, Bpl.Expr.Not(w), invDefinednessBuilder.Collect(s.Tok), null, null));
-      // generate:  CheckWellformed(guard); if (!guard) { break; }
+
+      // Generate:  CheckWellformed(guard); if (!guard) { break; }
+      // but if this is a body-less loop, put all of that inside:  if (*) { ... }
+      // Without this, Boogie's abstract interpreter may figure out that the loop guard is always false
+      // on entry to the loop, and then Boogie wouldn't consider this a loop at all. (See also comment
+      // in methods GuardAlwaysHoldsOnEntry_BodyLessLoop and GuardAlwaysHoldsOnEntry_LoopWithBody in
+      // Test/dafny0/DirtyLoops.dfy.)
+      var isBodyLessLoop = s is WhileStmt && ((WhileStmt)s).BodySurrogate != null;
+      var whereToBuildLoopGuard = isBodyLessLoop ? new BoogieStmtListBuilder(this) : loopBodyBuilder;
       Bpl.Expr guard = null;
       if (Guard != null) {
-        TrStmt_CheckWellformed(Guard, loopBodyBuilder, locals, etran, true);
+        TrStmt_CheckWellformed(Guard, whereToBuildLoopGuard, locals, etran, true);
         guard = Bpl.Expr.Not(etran.TrExpr(Guard));
       }
-      BoogieStmtListBuilder guardBreak = new BoogieStmtListBuilder(this);
+      var guardBreak = new BoogieStmtListBuilder(this);
       guardBreak.Add(new Bpl.BreakCmd(s.Tok, null));
-      loopBodyBuilder.Add(new Bpl.IfCmd(s.Tok, guard, guardBreak.Collect(s.Tok), null, null));
+      whereToBuildLoopGuard.Add(new Bpl.IfCmd(s.Tok, guard, guardBreak.Collect(s.Tok), null, null));
+      if (isBodyLessLoop) {
+        loopBodyBuilder.Add(new Bpl.IfCmd(s.Tok, null, whereToBuildLoopGuard.Collect(s.Tok), null, null));
+      }
 
       if (bodyTr != null) {
         // termination checking
@@ -11554,8 +11610,8 @@ namespace Microsoft.Dafny {
           }
           loopBodyBuilder.Add(Assert(s.Tok, decrCheck, msg));
         }
-      } else if (s is WhileStmt && ((WhileStmt)s).BodySurrogate != null) {
-        var bodySurrogate = ((WhileStmt) s).BodySurrogate;
+      } else if (isBodyLessLoop) {
+        var bodySurrogate = ((WhileStmt)s).BodySurrogate;
         // This is a body-less loop. Havoc the targets and then set w to false, to make the loop-invariant
         // maintenance check vaccuous.
         var bplTargets = bodySurrogate.LocalLoopTargets.ConvertAll(v => TrVar(s.Tok, v));

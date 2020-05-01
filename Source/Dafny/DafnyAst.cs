@@ -181,6 +181,7 @@ namespace Microsoft.Dafny {
         }
         arrayTypeDecls.Add(dims, arrayClass);
         SystemModule.TopLevelDecls.Add(arrayClass);
+        CreateArrowTypeDecl(dims);  // also create an arrow type with this arity, since it may be used in an initializing expression for the array
       }
       UserDefinedType udt = new UserDefinedType(tok, arrayName, optTypeArgs);
       return udt;
@@ -551,7 +552,7 @@ namespace Microsoft.Dafny {
       if (other != null) {
         Tuple<int, bool> result;
         if (cached.TryGetValue(other, out result)) {
-          if (result.Item1 == other.scopeTokens.Count()) {
+          if (result.Item1 == other.scopeTokens.Count) {
             return result.Item2;
           } else {
             if (result.Item2) {
@@ -560,7 +561,7 @@ namespace Microsoft.Dafny {
           }
         }
         var isoverlap = overlaps(other.scopeTokens, this.scopeTokens);
-        cached[other] = new Tuple<int, bool>(other.scopeTokens.Count(), isoverlap);
+        cached[other] = new Tuple<int, bool>(other.scopeTokens.Count, isoverlap);
         return isoverlap;
 
       }
@@ -581,7 +582,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public VisibilityScope(bool newScope, string name) {
+    public VisibilityScope(string name) {
       scopeTokens.Add(maxScopeID);
       scopeIds.Add(name);
       if (maxScopeID == uint.MaxValue) {
@@ -718,7 +719,11 @@ namespace Microsoft.Dafny {
           var udt = (UserDefinedType)type;
 
           if (!rtd.AsTopLevelDecl.IsVisibleInScope(scope)) {
-            Contract.Assert(false);
+            // This can only mean "rtd" is a class/trait that is only provided, not revealed. For a provided class/trait,
+            // it is the non-null type declaration that is visible, not the class/trait declaration itself.
+            var cl = rtd as ClassDecl;
+            Contract.Assert(cl != null && cl.NonNullTypeDecl != null);
+            Contract.Assert(cl.NonNullTypeDecl.IsVisibleInScope(scope));
           }
 
           if (rtd.IsRevealedInScope(scope)) {
@@ -736,9 +741,19 @@ namespace Microsoft.Dafny {
         //A hidden type may become visible in another scope
         var isyn = type.AsInternalTypeSynonym;
         if (isyn != null) {
-          Contract.Assert(isyn.IsVisibleInScope(scope));
+          var udt = (UserDefinedType)type;
+
+          if (!isyn.IsVisibleInScope(scope)) {
+            // This can only mean "isyn" refers to a class/trait that is only provided, not revealed. For a provided class/trait,
+            // it is the non-null type declaration that is visible, not the class/trait declaration itself.
+            var rhs = isyn.RhsWithArgumentIgnoringScope(udt.TypeArgs);
+            Contract.Assert(rhs is UserDefinedType);
+            var cl = ((UserDefinedType)rhs).ResolvedClass as ClassDecl;
+            Contract.Assert(cl != null && cl.NonNullTypeDecl != null);
+            Contract.Assert(cl.NonNullTypeDecl.IsVisibleInScope(scope));
+          }
+
           if (isyn.IsRevealedInScope(scope)) {
-            var udt = (UserDefinedType)type;
             type = isyn.RhsWithArgument(udt.TypeArgs);
             continue;
           } else {
@@ -757,6 +772,33 @@ namespace Microsoft.Dafny {
     [Pure]
     public Type NormalizeExpandKeepConstraints() {
       return NormalizeExpand(true);
+    }
+
+    /// <summary>
+    /// Return "the type that "this" stands for, getting to the bottom of proxies and following type synonyms.
+    /// </summary>
+    public Type UseInternalSynonym() {
+      Contract.Ensures(Contract.Result<Type>() != null);
+      Contract.Ensures(!(Contract.Result<Type>() is TypeProxy) || ((TypeProxy)Contract.Result<Type>()).T == null);  // return a proxy only if .T == null
+
+      Type type = Normalize();
+      var scope = Type.GetScope();
+      var rtd = type.AsRevealableType;
+      if (rtd != null) {
+        var udt = (UserDefinedType)type;
+        if (!rtd.AsTopLevelDecl.IsVisibleInScope(scope)) {
+          // This can only mean "rtd" is a class/trait that is only provided, not revealed. For a provided class/trait,
+          // it is the non-null type declaration that is visible, not the class/trait declaration itself.
+          var cl = rtd as ClassDecl;
+          Contract.Assert(cl != null && cl.NonNullTypeDecl != null);
+          Contract.Assert(cl.NonNullTypeDecl.IsVisibleInScope(scope));
+        }
+        if (!rtd.IsRevealedInScope(scope)) {
+          return rtd.SelfSynonym(type.TypeArgs, udt.NamePath);
+        }
+      }
+
+      return type;
     }
 
     /// <summary>
@@ -857,8 +899,11 @@ namespace Microsoft.Dafny {
         var udt = NormalizeExpand() as UserDefinedType;
         if (udt != null && udt.ResolvedClass is InternalTypeSynonymDecl isyn) {
           udt = isyn.RhsWithArgumentIgnoringScope(udt.TypeArgs) as UserDefinedType;
+          if (udt?.ResolvedClass is NonNullTypeDecl nntd) {
+            return nntd.Class;
+          }
         }
-        return udt != null && udt.ResolvedParam == null ? udt.ResolvedClass as TopLevelDeclWithMembers : null;
+        return udt?.ResolvedClass as TopLevelDeclWithMembers;
       }
     }
     /// <summary>
@@ -867,7 +912,7 @@ namespace Microsoft.Dafny {
     public bool IsObjectQ {
       get {
         var udt = NormalizeExpandKeepConstraints() as UserDefinedType;
-        return udt != null && udt.ResolvedClass is ClassDecl && ((ClassDecl)udt.ResolvedClass).Name == "object";
+        return udt != null && udt.ResolvedClass is ClassDecl && ((ClassDecl)udt.ResolvedClass).IsObjectTrait;
       }
     }
     /// <summary>
@@ -2477,12 +2522,13 @@ namespace Microsoft.Dafny {
     /// <summary>
     /// This constructor constructs a resolved class/datatype/iterator/subset-type/newtype type
     /// </summary>
-    public UserDefinedType(IToken tok, string name, TopLevelDecl cd, [Captured] List<Type> typeArgs) {
+    public UserDefinedType(IToken tok, string name, TopLevelDecl cd, [Captured] List<Type> typeArgs, Expression/*?*/ namePath = null) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
       Contract.Requires(cd != null);
       Contract.Requires(cce.NonNullElements(typeArgs));
       Contract.Requires(cd.TypeArgs.Count == typeArgs.Count);
+      Contract.Requires(namePath == null || namePath is NameSegment || namePath is ExprDotName);
       // The following is almost a precondition. In a few places, the source program names a class, not a type,
       // and in then name==cd.Name for a ClassDecl.
       //Contract.Requires(!(cd is ClassDecl) || cd is DefaultClassDecl || cd is ArrowTypeDecl || name == cd.Name + "?");
@@ -2492,11 +2538,15 @@ namespace Microsoft.Dafny {
       this.Name = name;
       this.ResolvedClass = cd;
       this.TypeArgs = typeArgs;
-      var ns = new NameSegment(tok, name, typeArgs.Count == 0 ? null : typeArgs);
-      var r = new Resolver_IdentifierExpr(tok, cd, typeArgs);
-      ns.ResolvedExpression = r;
-      ns.Type = r.Type;
-      this.NamePath = ns;
+      if (namePath == null) {
+        var ns = new NameSegment(tok, name, typeArgs.Count == 0 ? null : typeArgs);
+        var r = new Resolver_IdentifierExpr(tok, cd, typeArgs);
+        ns.ResolvedExpression = r;
+        ns.Type = r.Type;
+        this.NamePath = ns;
+      } else {
+        this.NamePath = namePath;
+      }
     }
 
     public static UserDefinedType CreateNonNullType(UserDefinedType udtNullableType) {
@@ -3336,7 +3386,7 @@ namespace Microsoft.Dafny {
       Extends = extends;
       ProvideAll = provideAll;
       RevealAll = revealAll;
-      ThisScope = new VisibilityScope(true, this.FullCompileName);
+      ThisScope = new VisibilityScope(this.FullCompileName);
     }
 
     public void SetupDefaultSignature() {
@@ -3531,7 +3581,7 @@ namespace Microsoft.Dafny {
     public VisibilityScope VisibilityScope {
       get {
         if (visibilityScope == null) {
-          visibilityScope = new VisibilityScope(true, this.CompileName);
+          visibilityScope = new VisibilityScope(this.CompileName);
         }
         return visibilityScope;
       }
@@ -3844,7 +3894,7 @@ namespace Microsoft.Dafny {
       : base(tok, name, module, typeArgs, members, attributes, null) { }
   }
 
-  public class ClassDecl : TopLevelDeclWithMembers {
+  public class ClassDecl : TopLevelDeclWithMembers, RevealableTypeDecl {
     public override string WhatKind { get { return "class"; } }
     public override bool CanBeRevealed() { return true; }
     public readonly List<MemberDecl> InheritedMembers = new List<MemberDecl>();  // these are instance fields and instance members defined with bodies in traits
@@ -3871,6 +3921,7 @@ namespace Microsoft.Dafny {
       if (!IsDefaultClass && !(this is ArrowTypeDecl)) {
         NonNullTypeDecl = new NonNullTypeDecl(this);
       }
+      this.NewSelfSynonym();
     }
     public virtual bool IsDefaultClass {
       get {
@@ -3878,10 +3929,16 @@ namespace Microsoft.Dafny {
       }
     }
 
+    public bool IsObjectTrait {
+      get => Name == "object";
+    }
+
     internal bool DerivesFrom(TopLevelDecl b) {
       Contract.Requires(b != null);
       return this == b || this.TraitsObj.Exists(tr => tr.DerivesFrom(b));
     }
+
+    TopLevelDecl RevealableTypeDecl.AsTopLevelDecl { get => this; }
   }
 
   public class DefaultClassDecl : ClassDecl {
@@ -4721,7 +4778,7 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public class OpaqueTypeDecl : TopLevelDecl, TypeParameter.ParentType, RevealableTypeDecl
+  public class OpaqueTypeDecl : TopLevelDeclWithMembers, TypeParameter.ParentType, RevealableTypeDecl
   {
     public override string WhatKind { get { return "opaque type"; } }
     public override bool CanBeRevealed() { return true; }
@@ -4737,8 +4794,8 @@ namespace Microsoft.Dafny {
       Contract.Invariant(TheType != null && Name == TheType.Name);
     }
 
-    public OpaqueTypeDecl(IToken tok, string name, ModuleDefinition module, TypeParameter.TypeParameterCharacteristics characteristics, List<TypeParameter> typeArgs, Attributes attributes)
-      : base(tok, name, module, typeArgs, attributes) {
+    public OpaqueTypeDecl(IToken tok, string name, ModuleDefinition module, TypeParameter.TypeParameterCharacteristics characteristics, List<TypeParameter> typeArgs, List<MemberDecl> members, Attributes attributes)
+      : base(tok, name, module, typeArgs, members, attributes) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
       Contract.Requires(module != null);
@@ -4811,13 +4868,14 @@ namespace Microsoft.Dafny {
       tsdMap.Add(d, tsd);
     }
 
-    public static UserDefinedType SelfSynonym(this RevealableTypeDecl rtd, List<Type> args) {
+    public static UserDefinedType SelfSynonym(this RevealableTypeDecl rtd, List<Type> args, Expression/*?*/ namePath = null) {
       Contract.Requires(args != null);
+      Contract.Requires(namePath == null || namePath is NameSegment || namePath is ExprDotName);
       var d = rtd.AsTopLevelDecl;
       Contract.Assert(tsdMap.ContainsKey(d));
       var typeSynonym = tsdMap[d];
       Contract.Assert(typeSynonym.TypeArgs.Count == args.Count);
-      return new UserDefinedType(typeSynonym.tok, typeSynonym.Name, typeSynonym, args);
+      return new UserDefinedType(typeSynonym.tok, typeSynonym.Name, typeSynonym, args, namePath);
     }
 
     public static InternalTypeSynonymDecl SelfSynonymDecl(this RevealableTypeDecl rtd) {
@@ -5062,7 +5120,7 @@ namespace Microsoft.Dafny {
     /// </summary>
     public NonNullTypeDecl(ClassDecl cl)
       : this(cl, cl.TypeArgs.ConvertAll(tp => new TypeParameter(tp.tok, tp.Name, tp.VarianceSyntax, tp.Characteristics)))
- {
+    {
       Contract.Requires(cl != null);
     }
 
@@ -8357,14 +8415,14 @@ namespace Microsoft.Dafny {
     /// <summary>
     /// Create a resolved expression of the form "e0 && e1"
     /// </summary>
-    public static Expression CreateAnd(Expression a, Expression b) {
+    public static Expression CreateAnd(Expression a, Expression b, bool allowSimplification = true) {
       Contract.Requires(a != null);
       Contract.Requires(b != null);
       Contract.Requires(a.Type.IsBoolType && b.Type.IsBoolType);
       Contract.Ensures(Contract.Result<Expression>() != null);
-      if (LiteralExpr.IsTrue(a)) {
+      if (allowSimplification && LiteralExpr.IsTrue(a)) {
         return b;
-      } else if (LiteralExpr.IsTrue(b)) {
+      } else if (allowSimplification && LiteralExpr.IsTrue(b)) {
         return a;
       } else {
         var and = new BinaryExpr(a.tok, BinaryExpr.Opcode.And, a, b);
@@ -8377,18 +8435,38 @@ namespace Microsoft.Dafny {
     /// <summary>
     /// Create a resolved expression of the form "e0 ==> e1"
     /// </summary>
-    public static Expression CreateImplies(Expression a, Expression b) {
+    public static Expression CreateImplies(Expression a, Expression b, bool allowSimplification = true) {
       Contract.Requires(a != null);
       Contract.Requires(b != null);
       Contract.Requires(a.Type.IsBoolType && b.Type.IsBoolType);
       Contract.Ensures(Contract.Result<Expression>() != null);
-      if (LiteralExpr.IsTrue(a) || LiteralExpr.IsTrue(b)) {
+      if (allowSimplification && (LiteralExpr.IsTrue(a) || LiteralExpr.IsTrue(b))) {
         return b;
       } else {
         var imp = new BinaryExpr(a.tok, BinaryExpr.Opcode.Imp, a, b);
         imp.ResolvedOp = BinaryExpr.ResolvedOpcode.Imp;  // resolve here
         imp.Type = Type.Bool;  // resolve here
         return imp;
+      }
+    }
+
+    /// <summary>
+    /// Create a resolved expression of the form "e0 || e1"
+    /// </summary>
+    public static Expression CreateOr(Expression a, Expression b, bool allowSimplification = true) {
+      Contract.Requires(a != null);
+      Contract.Requires(b != null);
+      Contract.Requires(a.Type.IsBoolType && b.Type.IsBoolType);
+      Contract.Ensures(Contract.Result<Expression>() != null);
+      if (allowSimplification && LiteralExpr.IsTrue(a)) {
+        return a;
+      } else if (allowSimplification && LiteralExpr.IsTrue(b)) {
+        return b;
+      } else {
+        var or = new BinaryExpr(a.tok, BinaryExpr.Opcode.Or, a, b);
+        or.ResolvedOp = BinaryExpr.ResolvedOpcode.Or;  // resolve here
+        or.Type = Type.Bool;  // resolve here
+        return or;
       }
     }
 
@@ -8577,14 +8655,14 @@ namespace Microsoft.Dafny {
       Contract.Requires(tok != null);
       Contract.Requires(t.ResolvedClass != null);
       Contract.Requires(cl != null);
-      if (t.ResolvedClass != cl) {
-        if (t.ResolvedClass is ClassDecl) {
+      Contract.Requires(t.TypeArgs.Count == cl.TypeArgs.Count());
+      if (t.ResolvedClass != cl || t.Name != cl.Name) {  // t may be using the name "C?", and we'd prefer it read "C"
+        if (t.ResolvedClass != cl && t.ResolvedClass is ClassDecl) {
           var orig = (ClassDecl)t.ResolvedClass;
           Contract.Assert(orig.TraitsObj.Contains(cl));  // Dafny currently supports only one level of inheritance from traits
           Contract.Assert(orig.TypeArgs.Count == 0);  // Dafny currently only allows type-parameter-less classes to extend traits
-          Contract.Assert(cl.TypeArgs.Count == 0);  // Dafny currently does not support type parameters for traits
         }
-        t = new UserDefinedType(tok, cl.Name, cl, new List<Type>());
+        t = new UserDefinedType(tok, cl.Name, cl, t.TypeArgs);
       }
       Type = t;
       UnresolvedType = Type;

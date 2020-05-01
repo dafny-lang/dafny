@@ -381,3 +381,107 @@ module ITER_F {
     }
   }
 }
+
+module ModuleWithIterator {
+  export
+    reveals Iter
+  iterator Iter(x: int) yields (y: int) {
+  }
+}
+
+module IteratorClient_Reveals {
+  import ModuleWithIterator
+  method M() {
+    var iter := new ModuleWithIterator.Iter(5);
+  }
+}
+
+
+// ----- loop frames -------------------------------------------------------
+// The following contains a regression test, where "this" should be included
+// in the loop frame of any loop in an iterator body.
+
+method LoopFrame_OrdinaryMethod(c: Cell) returns (y: int)
+  modifies c
+  decreases *
+{
+  y := 10;
+  c.data := 10;
+  var d := new Cell;
+  d.data := 10;
+  while true
+    invariant y <= 11  // error: may be violated by loop body
+    invariant d.data <= 11  // error: may be violated by loop body
+    invariant c.data <= 11  // error: may be violated by loop body
+    decreases *
+  {
+    y := y + 1;
+    c.data := c.data + 1;
+    d.data := d.data + 1;
+  }
+}
+
+class Cls {
+  var y: int
+  constructor LoopFrame_Constructor(c: Cell)
+    modifies c
+    decreases *
+  {
+    y := 10;
+    new;
+    c.data := 10;
+    var d := new Cell;
+    d.data := 10;
+    while true
+      invariant y <= 11  // error: may be violated by loop body
+      invariant d.data <= 11  // error: may be violated by loop body
+      invariant c.data <= 11  // error: may be violated by loop body
+      decreases *
+    {
+      y := y + 1;
+      c.data := c.data + 1;
+      d.data := d.data + 1;
+    }
+  }
+}
+
+iterator LoopFrame_Iter(c: Cell) yields (y: int)
+  reads c
+  modifies c
+  yield ensures |ys| <= 2
+{
+  yield;
+  y := 10;
+  c.data := 10;
+  var d := new Cell;
+  d.data := 10;
+  while true
+    invariant y <= 11  // error: may be violated by loop body
+    invariant d.data <= 11  // error: may be violated by loop body
+    invariant c.data <= 11  // error: may be violated by loop body
+  {
+    if * {
+      this.y := this.y + 1;
+    } else {
+      y := y + 1;
+    }
+    c.data := c.data + 1;
+    d.data := d.data + 1;
+    yield;  // error: this may violate the "yield ensures"
+  }
+}
+
+iterator NewRemainsFresh(x: nat) yields (y: nat)
+{
+  while *
+  {
+    assert 0 <= x + y;
+    if * {
+      assert forall z :: z in _new ==> fresh(z);
+    }
+    var c := new Cell;
+    yield;
+    assert forall z :: z in _new ==> fresh(z);
+  }
+  assert forall z :: z in _new ==> fresh(z);
+}

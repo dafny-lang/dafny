@@ -10,7 +10,7 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>DafnyTests</RootNamespace>
     <AssemblyName>DafnyTests</AssemblyName>
-    <TargetFrameworkVersion>v4.5.2</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <!-- Configure the Binaries directory since buildspec.yml doesn't add it to $PATH -->
     <DafnyBinariesDir>..\..\Binaries\</DafnyBinariesDir>
