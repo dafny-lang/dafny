@@ -3031,7 +3031,7 @@ namespace Microsoft.Dafny {
       foreach (MaybeFreeExpression e in f.Req) {
         readsHeap = readsHeap || UsesHeap(e.E);
       }
-      if (body != null && UsesHeap(body)) {
+      if (overridingFunction == null && body != null && UsesHeap(body)) {
         readsHeap = true;
       }
 
