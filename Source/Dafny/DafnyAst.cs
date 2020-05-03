@@ -9180,6 +9180,8 @@ namespace Microsoft.Dafny {
     /// type and the function/method itself. If it is a Field, then TypeApplication is the list of type arguments used
     /// with the receiver type. The receiver type may be different than the enclosing class of the member; this will
     /// happen if the member is declared in a trait and the receiver is of some type that extends that trait.
+    /// However, for a static member, the said receiver type is always the enclosing class of the member, even if
+    /// the type of an explicitly given receiver is some subclass thereof.
     public List<Type> TypeApplication;
 
     public Dictionary<TypeParameter, Type> TypeArgumentSubstitutions() {
