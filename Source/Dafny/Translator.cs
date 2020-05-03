@@ -3067,7 +3067,8 @@ namespace Microsoft.Dafny {
       //   ==>
       //   (forall s, $Heap, formals ::                  // let args := $Heap,formals
       //       { f(Succ(s), args), f'(Succ(s), args') }  // (*)
-      //       dtype(this) == overridingFunction.EnclosingClass
+      //       { f(Succ(s), args), $Is(this, T') }       // (*)
+      //       $Is(this, T')                             // where T' is overridingFunction.EnclosingClass
       //       ==>
       //       f(Succ(s), args) == f'(Succ(s), args');   // (*)
       //
@@ -3160,6 +3161,7 @@ namespace Microsoft.Dafny {
       }
 
       Bpl.Expr additionalAntecedent = null;
+      Bpl.Expr additionalTrigger = null;
       Expression receiverReplacement = null;
       if (!f.IsStatic) {
         var bvThis = new Bpl.BoundVariable(f.tok, new Bpl.TypedIdent(f.tok, etran.This, TrReceiverType(overridingFunction ?? f)));
@@ -3184,8 +3186,9 @@ namespace Microsoft.Dafny {
           (f is TwoStateFunction ? etran.Old : etran).GoodRef(f.tok, bvThisIdExpr, thisType));
         ante = BplAnd(ante, wh);
         if (overridingFunction != null) {
-          // additionalAntecednet := dtype(this) == overridingFunction.EnclosingClass (note: use the C? version of the type name)
-          additionalAntecedent = DType(bvThisIdExpr, TypeToTy(thisType.NormalizeExpand()));
+          // $Is(this, C)
+          additionalTrigger = (f is TwoStateFunction ? etran.Old : etran).GoodRef(f.tok, bvThisIdExpr, thisType);
+          additionalAntecedent = Bpl.Expr.And(ReceiverNotNull(bvThisIdExpr), additionalTrigger);
         }
       }
 
@@ -3304,10 +3307,13 @@ namespace Microsoft.Dafny {
       if (overridingFunction == null) {
         tr = BplTriggerHeap(this, f.tok, funcAppl, readsHeap ? etran.HeapExpr : null);
       } else {
+        // { f(Succ(s), args), f'(Succ(s), args') }
         tr = BplTriggerHeap(this, overridingFunction.tok,
           funcAppl,
           readsHeap || overridingFunction.ReadsHeap ? etran.HeapExpr : null,
           overridingFuncAppl);
+        // { f(Succ(s), args), $Is(this, T') }
+        tr = new Bpl.Trigger(overridingFunction.tok, true, new List<Bpl.Expr>() { funcAppl, additionalTrigger }, tr);
       }
       Bpl.Expr tastyVegetarianOption; // a.k.a. the "meat" of the operation :)
       if (!RevealedInScope(f) || (f.IsProtected && !InVerificationScope(f))) {
