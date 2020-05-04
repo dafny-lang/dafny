@@ -3027,7 +3027,7 @@ namespace Microsoft.Dafny {
 
       var inClassComment = overridingFunction == null ? "" : " in class " + overridingFunction.EnclosingClass.FullSanitizedName;
 
-      bool readsHeap = AlwaysUseHeap || f.ReadsHeap;
+      bool readsHeap = AlwaysUseHeap || f.ReadsHeap || (overridingFunction != null && overridingFunction.ReadsHeap);
       foreach (MaybeFreeExpression e in f.Req) {
         readsHeap = readsHeap || UsesHeap(e.E);
       }
@@ -3114,6 +3114,7 @@ namespace Microsoft.Dafny {
 
       // quantify over the type arguments, and add them first to the arguments
       List<Bpl.Expr> args = new List<Bpl.Expr>();
+      List<Bpl.Expr> argsOverriddenFunction = new List<Bpl.Expr>();
       List<Bpl.Expr> tyargs = GetTypeArguments(f, overridingFunction).ConvertAll(TypeToTy);
       List<Bpl.Expr> tyargsOverridingFunction = overridingFunction == null ? null : GetTypeArguments(overridingFunction, null).ConvertAll(TypeToTy);
 
@@ -3138,17 +3139,22 @@ namespace Microsoft.Dafny {
         forallFormals.Add(bvPrevHeap);
         funcFormals.Add(bvPrevHeap);
         args.Add(etran.Old.HeapExpr);
+        argsOverriddenFunction.Add(etran.Old.HeapExpr);
         reqFuncArguments.Add(new Bpl.IdentifierExpr(f.tok, bvPrevHeap));
         // ante:  $IsGoodHeap($prevHeap) &&
         ante = BplAnd(ante, FunctionCall(f.tok, BuiltinFunction.IsGoodHeap, null, etran.Old.HeapExpr));
       }
       Bpl.Expr goodHeap = null;
       var bv = new Bpl.BoundVariable(f.tok, new Bpl.TypedIdent(f.tok, predef.HeapVarName, predef.HeapType));
-
       if (AlwaysUseHeap || f.ReadsHeap) {
         funcFormals.Add(bv);
+      }
+      if (AlwaysUseHeap || f.ReadsHeap) {
         args.Add(new Bpl.IdentifierExpr(f.tok, bv));
         reqFuncArguments.Add(new Bpl.IdentifierExpr(f.tok, bv));
+      }
+      if (overridingFunction != null && (AlwaysUseHeap || overridingFunction.ReadsHeap)) {
+        argsOverriddenFunction.Add(new Bpl.IdentifierExpr(overridingFunction.tok, bv));
       }
       // ante:  $IsGoodHeap($Heap) && $HeapSucc($prevHeap, $Heap) && this != null && formals-have-the-expected-types &&
       if (readsHeap) {
@@ -3171,6 +3177,7 @@ namespace Microsoft.Dafny {
         var bvThisIdExpr = new Bpl.IdentifierExpr(f.tok, bvThis);
         if (lits != null && lits.Exists(p => p is ThisSurrogate)) {
           args.Add(Lit(bvThisIdExpr));
+          argsOverriddenFunction.Add(Lit(bvThisIdExpr));
           var th = new ThisExpr(f);
           var l = new UnaryOpExpr(f.tok, UnaryOpExpr.Opcode.Lit, th) {
             Type = th.Type
@@ -3178,6 +3185,7 @@ namespace Microsoft.Dafny {
           receiverReplacement = l;
         } else {
           args.Add(bvThisIdExpr);
+          argsOverriddenFunction.Add(bvThisIdExpr);
         }
         // add well-typedness conjunct to antecedent
         Type thisType = Resolver.GetReceiverType(f.tok, overridingFunction ?? f);
@@ -3187,7 +3195,7 @@ namespace Microsoft.Dafny {
         ante = BplAnd(ante, wh);
         if (overridingFunction != null) {
           // $Is(this, C)
-          additionalTrigger = (f is TwoStateFunction ? etran.Old : etran).GoodRef(f.tok, bvThisIdExpr, thisType);
+          additionalTrigger = GetWhereClause(overridingFunction.tok, bvThisIdExpr, thisType, f is TwoStateFunction ? etran.Old : etran, NOALLOC);
           additionalAntecedent = Bpl.Expr.And(ReceiverNotNull(bvThisIdExpr), additionalTrigger);
         }
       }
@@ -3204,6 +3212,7 @@ namespace Microsoft.Dafny {
         Bpl.Expr formal = new Bpl.IdentifierExpr(p.tok, bv);
         if (lits != null && lits.Contains(p) && !substMap.ContainsKey(p)) {
           args.Add(Lit(formal));
+          argsOverriddenFunction.Add(Lit(formal));
           var ie = new IdentifierExpr(p.tok, p.AssignUniqueName(f.IdGenerator));
           ie.Var = p; ie.Type = ie.Var.Type;
           var l = new UnaryOpExpr(p.tok, UnaryOpExpr.Opcode.Lit, ie);
@@ -3211,6 +3220,7 @@ namespace Microsoft.Dafny {
           substMap.Add(p, l);
         } else {
           args.Add(formal);
+          argsOverriddenFunction.Add(formal);
         }
         // add well-typedness conjunct to antecedent
         Bpl.Expr wh = GetWhereClause(p.tok, formal, pType, p.IsOld ? etran.Old : etran, NOALLOC);
@@ -3299,7 +3309,7 @@ namespace Microsoft.Dafny {
           var ly = new Bpl.IdentifierExpr(overridingFunction.tok, layer);
           funcArgs.Add(LayerSucc(ly));
         }
-        funcArgs.AddRange(args);
+        funcArgs.AddRange(argsOverriddenFunction);
         overridingFuncAppl = new Bpl.NAryExpr(overridingFunction.tok, new Bpl.FunctionCall(funcID), funcArgs);
       }
 
@@ -3310,10 +3320,14 @@ namespace Microsoft.Dafny {
         // { f(Succ(s), args), f'(Succ(s), args') }
         tr = BplTriggerHeap(this, overridingFunction.tok,
           funcAppl,
-          readsHeap || overridingFunction.ReadsHeap ? etran.HeapExpr : null,
+          readsHeap ? etran.HeapExpr : null,
           overridingFuncAppl);
         // { f(Succ(s), args), $Is(this, T') }
-        tr = new Bpl.Trigger(overridingFunction.tok, true, new List<Bpl.Expr>() { funcAppl, additionalTrigger }, tr);
+        var exprs = new List<Bpl.Expr>() {funcAppl, additionalTrigger};
+        if (readsHeap) {
+          exprs.Add(FunctionCall(overridingFunction.tok, BuiltinFunction.IsGoodHeap, null, etran.HeapExpr));
+        }
+        tr = new Bpl.Trigger(overridingFunction.tok, true, exprs, tr);
       }
       Bpl.Expr tastyVegetarianOption; // a.k.a. the "meat" of the operation :)
       if (!RevealedInScope(f) || (f.IsProtected && !InVerificationScope(f))) {
@@ -3331,23 +3345,14 @@ namespace Microsoft.Dafny {
             ly = LayerSucc(ly);
           }
         }
-        ExpressionTranslator etranBody;
-        if (layer == null) {
-          etranBody = etran;
-        } else if (overridingFunction != null) {
-          var pseudoBody = (FunctionCallExpr)body;
-          etranBody = etran.LimitedFunctions(pseudoBody.Function, LayerSucc(ly));
-        } else {
-          etranBody = etran.LimitedFunctions(f, ly);
-        }
-
-        if (overridingFunction != null && ModeledAsBoxType(f.ResultType)) {
-          var funcApplInOverride = BoxIfUnboxed(overridingFuncAppl, overridingFunction.ResultType);
-          tastyVegetarianOption = Bpl.Expr.Eq(funcAppl, funcApplInOverride);
-        } else {
+        if (overridingFunction == null) {
+          var etranBody = layer == null ? etran : etran.LimitedFunctions(f, ly);
           var trbody = etranBody.TrExpr(bodyWithSubst);
           tastyVegetarianOption = BplAnd(CanCallAssumption(bodyWithSubst, etranBody),
             BplAnd(TrFunctionSideEffect(bodyWithSubst, etranBody), Bpl.Expr.Eq(funcAppl, trbody)));
+        } else {
+          var funcApplInOverride = ModeledAsBoxType(f.ResultType) ? BoxIfUnboxed(overridingFuncAppl, overridingFunction.ResultType) : overridingFuncAppl;
+          tastyVegetarianOption = Bpl.Expr.Eq(funcAppl, funcApplInOverride);
         }
       }
       QKeyValue kv = null;
@@ -15888,6 +15893,7 @@ namespace Microsoft.Dafny {
           args.Add(Old.HeapExpr);
         }
         if (!omitHeapArgument && (AlwaysUseHeap || e.Function.ReadsHeap)) {
+          Contract.Assert(HeapExpr != null);
           args.Add(HeapExpr);
           // if the function doesn't use heaps, but always use heap as an argument
           // we want to quantify over the heap so that heap in the trigger can match over
