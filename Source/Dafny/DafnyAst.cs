@@ -1561,6 +1561,10 @@ namespace Microsoft.Dafny {
 
     /// <summary>
     /// Does a best-effort to compute the meet of "a" and "b", returning "null" if not successful.
+    ///
+    /// Since some type parameters may still be proxies, it could be that the returned type is not
+    /// really a meet, so the caller should set up additional constraints that the result is
+    /// assignable to both a and b.
     /// </summary>
     public static Type Meet(Type a, Type b, BuiltIns builtIns) {
       Contract.Requires(a != null);
@@ -1727,21 +1731,14 @@ namespace Microsoft.Dafny {
           } else if (B.HeadDerivesFrom(A)) {
             var udtA = (UserDefinedType)a;
             return abNonNullTypes ? UserDefinedType.CreateNonNullType(udtA) : udtA;
-          } else if (A is TraitDecl || B is TraitDecl) {
-            return abNonNullTypes ? UserDefinedType.CreateNonNullType(builtIns.ObjectQ()) : builtIns.ObjectQ();
           }
-          // A and B are classes. They always have object as a common supertype, but they may also both be extending some other
+          // A and B are classes or traits. They always have object as a common supertype, but they may also both be extending some other
           // trait.  If such a trait is unique, pick it. (Unfortunately, this makes the meet operation not associative.)
-          var commonTraits = new List<Type>();
-          foreach (var at in A.TraitsTyp) {
-            if (B.TraitsTyp.Exists(bt => at.Equals(bt))) {
-              commonTraits.Add(at);
-            }
-          }
+          var commonTraits = TopLevelDeclWithMembers.CommonTraits(A, B);
           if (commonTraits.Count == 1) {
-            var udtTrait = (UserDefinedType)commonTraits[0];  // in a successfully resolved program, we expect all .TraitsTyp to be a UserDefinedType
-            Contract.Assert(udtTrait.ResolvedClass is NonNullTypeDecl);  // in fact, we expect it to be the non-null version of the trait type
-            return abNonNullTypes ? udtTrait : udtTrait.NormalizeExpand();
+            var typeMap = Resolver.TypeSubstitutionMap(A.TypeArgs, a.TypeArgs);
+            var r = (UserDefinedType)Resolver.SubstType(commonTraits[0], typeMap);
+            return abNonNullTypes ? UserDefinedType.CreateNonNullType(r) : r;
           } else {
             // the unfortunate part is when commonTraits.Count > 1 here :(
             return abNonNullTypes ? UserDefinedType.CreateNonNullType(builtIns.ObjectQ()) : builtIns.ObjectQ();
@@ -1754,6 +1751,10 @@ namespace Microsoft.Dafny {
 
     /// <summary>
     /// Does a best-effort to compute the join of "a" and "b", returning "null" if not successful.
+    ///
+    /// Since some type parameters may still be proxies, it could be that the returned type is not
+    /// really a join, so the caller should set up additional constraints that the result is
+    /// assignable to both a and b.
     /// </summary>
     public static Type Join(Type a, Type b, BuiltIns builtIns) {
       Contract.Requires(a != null);
@@ -2600,6 +2601,13 @@ namespace Microsoft.Dafny {
       Contract.Requires(udtNullableType.ResolvedClass is ClassDecl);
       var cl = (ClassDecl)udtNullableType.ResolvedClass;
       return new UserDefinedType(udtNullableType.tok, cl.NonNullTypeDecl.Name, cl.NonNullTypeDecl, udtNullableType.TypeArgs);
+    }
+
+    public static UserDefinedType CreateNullableType(UserDefinedType udtNonNullType) {
+      Contract.Requires(udtNonNullType != null);
+      Contract.Requires(udtNonNullType.ResolvedClass is NonNullTypeDecl);
+      var nntd = (NonNullTypeDecl)udtNonNullType.ResolvedClass;
+      return new UserDefinedType(udtNonNullType.tok, nntd.Class.Name + "?", nntd.Class, udtNonNullType.TypeArgs);
     }
 
     /// <summary>
@@ -3964,7 +3972,18 @@ namespace Microsoft.Dafny {
       }
     }
 
+    /// <summary>
+    /// Return the list of parent types of "this", where there type parameters
+    /// of "this" have been instantiated by "typeArgs". For example, for a subset
+    /// type, the return value is the RHS type, appropriately instantiated. As
+    /// two other examples, given
+    ///     class C<X> extends J<X, int>
+    /// C.ParentTypes(real) = J<real, int>    // non-null types C and J
+    /// C?.ParentTypes(real) = J?<real, int>  // possibly-null type C? and J?
+    /// </summary>
     public virtual List<Type> ParentTypes(List<Type> typeArgs) {
+      Contract.Requires(typeArgs != null);
+      Contract.Requires(this.TypeArgs.Count == typeArgs.Count);
       return new List<Type>();
     }
   }
@@ -3974,7 +3993,7 @@ namespace Microsoft.Dafny {
 
     // The following fields keep track of parent traits
     public readonly List<MemberDecl> InheritedMembers = new List<MemberDecl>();  // these are instance fields and instance members defined with bodies in traits
-    public readonly List<Type> TraitsTyp;  // these are the types that are parsed after the keyword 'extends'
+    public readonly List<Type> TraitsTyp;  // these are the types that are parsed after the keyword 'extends'; note, for a successfully resolved program, there are UserDefinedType's where .ResolvedClas is NonNullTypeDecl
     public readonly List<TraitDecl> TraitsObj = new List<TraitDecl>();  // populated during resolution
     public readonly Dictionary<TypeParameter, Type> ParentFormalTypeParametersToActuals = new Dictionary<TypeParameter, Type>();  // maps parent traits' type parameters to actuals
 
@@ -3986,6 +4005,45 @@ namespace Microsoft.Dafny {
       Contract.Requires(cce.NonNullElements(members));
       Members = members;
       TraitsTyp = traits ?? new List<Type>();
+    }
+
+    public static List<UserDefinedType> CommonTraits(TopLevelDeclWithMembers a, TopLevelDeclWithMembers b) {
+      Contract.Requires(a != null);
+      Contract.Requires(b != null);
+      var aa = a.TraitAncestors();
+      var bb = b.TraitAncestors();
+      aa.IntersectWith(bb);
+      var types = new List<UserDefinedType>();
+      foreach (var t in aa) {
+        var typeArgs = t.TypeArgs.ConvertAll(tp => a.ParentFormalTypeParametersToActuals[tp]);
+        var u = new UserDefinedType(t.tok, t.Name + "?", t, typeArgs);
+        types.Add(u);
+      }
+      return types;
+    }
+
+    /// <summary>
+    /// Returns the set of transitive parent traits (not including "this" itself).
+    /// This method assumes the .TraitsTyp fields have been checked for various cycle restrictions.
+    /// </summary>
+    public ISet<TraitDecl> TraitAncestors() {
+      var s = new HashSet<TraitDecl>();
+      AddTraitAncestors(s);
+      return s;
+    }
+    /// <summary>
+    /// Adds to "s" the transitive parent traits (not including "this" itself).
+    /// This method assumes the .TraitsTyp fields have been checked for various cycle restrictions.
+    /// </summary>
+    private void AddTraitAncestors(ISet<TraitDecl> s) {
+      Contract.Requires(s != null);
+      foreach (var parent in TraitsTyp) {
+        var udt = (UserDefinedType)parent;  // in a successfully resolved program, we expect all .TraitsTyp to be a UserDefinedType
+        var nntd = (NonNullTypeDecl)udt.ResolvedClass;  // we expect the trait type to be the non-null version of the trait type
+        var tr = (TraitDecl)nntd.Class;
+        s.Add(tr);
+        tr.AddTraitAncestors(s);
+      }
     }
   }
 
@@ -4037,9 +4095,10 @@ namespace Microsoft.Dafny {
       return this == b || this.TraitsObj.Exists(tr => tr.HeadDerivesFrom(b));
     }
 
-    public List<Type> TraitsWithArgument(List<Type> typeArgs) {
+    public List<Type> NonNullTraitsWithArgument(List<Type> typeArgs) {
       Contract.Requires(typeArgs != null);
       Contract.Requires(typeArgs.Count == TypeArgs.Count);
+
       // Instantiate with the actual type arguments
       if (typeArgs.Count == 0) {
         // this optimization seems worthwhile
@@ -4050,8 +4109,16 @@ namespace Microsoft.Dafny {
       }
     }
 
+    public List<Type> PossiblyNullTraitsWithArgument(List<Type> typeArgs) {
+      Contract.Requires(typeArgs != null);
+      Contract.Requires(typeArgs.Count == TypeArgs.Count);
+      // Instantiate with the actual type arguments
+      var subst = Resolver.TypeSubstitutionMap(TypeArgs, typeArgs);
+      return TraitsTyp.ConvertAll(traitType => (Type)UserDefinedType.CreateNullableType((UserDefinedType)Resolver.SubstType(traitType, subst)));
+    }
+
     public override List<Type> ParentTypes(List<Type> typeArgs) {
-      return TraitsWithArgument(typeArgs);
+      return PossiblyNullTraitsWithArgument(typeArgs);
     }
 
     TopLevelDecl RevealableTypeDecl.AsTopLevelDecl { get => this; }
@@ -5227,7 +5294,7 @@ namespace Microsoft.Dafny {
     Expression RedirectingTypeDecl.Witness { get { return Witness; } }
 
     public override List<Type> ParentTypes(List<Type> typeArgs) {
-      return new List<Type>{ RhsWithArgument((typeArgs)) };
+      return new List<Type>{ RhsWithArgument(typeArgs) };
     }
   }
 

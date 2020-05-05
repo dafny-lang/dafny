@@ -14,20 +14,20 @@ module m1
 
   trait I2       //all is fine in this trait
   {
-    var x: int;
+    var x: int
 
     function method Twice(): int
-      reads this;
+      reads this
     {
       x + x
     }
 
     function method F(z: int): int
-      reads this;
+      reads this
 
 
     method Compute(s: bool) returns (t: int, u: int)
-      modifies this;
+      modifies this
     {
       if s {
         t, u := F(F(15)), Twice();
@@ -41,7 +41,7 @@ module m1
     }
 
     method Customizable(w: int) returns (p: int)
-      modifies this;
+      modifies this
 
 
     static method StaticM(a: int) returns (b: int)
@@ -56,8 +56,8 @@ module m1
   }
 
   method I2Client(j: I2) returns (p: int)     //all is fine in this client method
-    requires j != null;
-    modifies j;
+    requires j != null
+    modifies j
   {
     j.x := 100;
     var h := j.Twice() + j.F(j.Twice());
@@ -70,22 +70,22 @@ module m1
   class I0Child extends I2  //errors, body-less methods/functions in the parent have not implemented here
   {
     function method F(z: int): int
-      reads this;
+      reads this
     {
        z
     }
-    var x: int; //error, x has been declared in the parent trait
+    var x: int //error, x has been declared in the parent trait
   }
 
   class I0Child2 extends I2
   {
     method Customizable(w: int) returns (p: int)
-      modifies this;
+      modifies this
     {
        w:=w+1;
     }
 
-    var c1: I0Child;
+    var c1: I0Child
   }
 
   class IXChild extends IX   //error, IX trait is undefined
@@ -95,80 +95,92 @@ module m1
 }
 
 module MoreTests {
-trait I0
-{
-   var x: int;
-   constructor I0(x0: int) // error: constructor is not allowed in a trait
-   {
-     x:=x0;
-   }
-}
-
-trait I1
-{
-  function M1(x:int,y:int) :int
+  trait I0
   {
-    x*y
-  }
-}
-
-method TestI1()
-{
-  var i1 := new I1;   //error: new is not allowed in a trait
-}
-
-trait I2       //all is fine in this trait
-{
-  var x: int;
-
-  function method Twice(): int
-    reads this;
-  {
-    x + x
-  }
-
-  function method F(z: int): int
-    reads this;
-
-
-  method Compute(s: bool) returns (t: int, u: int)
-    modifies this;
-  {
-    if s {
-      t, u := F(F(15)), Twice();
-    } else {
-      t := Twice();
-      x := F(45);
-      u := Twice();
-      var p := Customizable(u);
-      return t+p, u;
+    var x: int
+    constructor I0(x0: int) // error: constructor is not allowed in a trait
+    {
+      x:=x0;
     }
   }
 
-  method Customizable(w: int) returns (p: int)
-    modifies this;
-
-
-  static method StaticM(a: int) returns (b: int)
+  trait I1
   {
-    b := a;
+    function M1(x:int,y:int) :int
+    {
+      x*y
+    }
   }
 
-  static method SS(a: int) returns (b:int)
+  method TestI1()
   {
-    b:=a*2;
+    var i1 := new I1;   //error: new is not allowed in a trait
   }
-}
 
-method I2Client(j: I2) returns (p: int)     //all is fine in this client method
-  requires j != null;
-  modifies j;
-{
-  j.x := 100;
-  var h := j.Twice() + j.F(j.Twice());
-  var a, b := j.Compute(h < 33);
-  var c, d := j.Compute(33 <= h);
-  p := j.Customizable(a + b + c + d);
-  p := I2.StaticM(p);
-}
+  trait I2       //all is fine in this trait
+  {
+    var x: int
+
+    function method Twice(): int
+      reads this
+    {
+      x + x
+    }
+
+    function method F(z: int): int
+      reads this
+
+
+    method Compute(s: bool) returns (t: int, u: int)
+      modifies this
+    {
+      if s {
+        t, u := F(F(15)), Twice();
+      } else {
+        t := Twice();
+        x := F(45);
+        u := Twice();
+        var p := Customizable(u);
+        return t+p, u;
+      }
+    }
+
+    method Customizable(w: int) returns (p: int)
+      modifies this
+
+
+    static method StaticM(a: int) returns (b: int)
+    {
+      b := a;
+    }
+
+    static method SS(a: int) returns (b:int)
+    {
+      b:=a*2;
+    }
+  }
+
+  method I2Client(j: I2) returns (p: int)     //all is fine in this client method
+    requires j != null
+    modifies j
+  {
+    j.x := 100;
+    var h := j.Twice() + j.F(j.Twice());
+    var a, b := j.Compute(h < 33);
+    var c, d := j.Compute(33 <= h);
+    p := j.Customizable(a + b + c + d);
+    p := I2.StaticM(p);
+  }
 }  // MoreTests
+
+module TypeInference {
+  trait Tr<X> { }
+  class A extends Tr<int> { }
+  class B extends Tr<real> { }
+
+  method M(a: A, b: B) {
+    var t;
+    t := a;
+    t := b;  // error: cannot assign Tr<real> to Tr<int>
+  }
+}  // TypeInference

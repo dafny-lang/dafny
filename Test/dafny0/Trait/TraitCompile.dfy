@@ -222,7 +222,7 @@ module GenericBasics {
 
 
   // Mega has more type parameters than Tr
-  class Mega<P, Q, L> extends Tr<(Q, L), int> {
+  class Mega<P, Q, L> extends Tr<Q, int> {
     constructor () {
       abc := 100;
       this.abc := 101;
@@ -232,7 +232,7 @@ module GenericBasics {
       xyz := 22;
       this.xyz := 23;
     }
-    method ReferToMembers(a: (Q, L), b: int)
+    method ReferToMembers(a: Q, b: int)
       modifies this
     {
       xyz := b;
@@ -240,7 +240,7 @@ module GenericBasics {
       var x := xyz;
       var y := this.xyz;
 
-      var tt: Tr<(Q, L), int> := this;
+      var tt: Tr<Q, int> := this;
 
       var bb := Inst(0, a, b);
       bb := this.Inst(0, a, b);
@@ -263,7 +263,7 @@ module GenericBasics {
       ss := Tr<seq<int>, set<int>>.STeen<bv7>(([], 70), {80});
     }
 
-    function method Teen<S>(a: ((Q, L), S)): int { 12 }
+    function method Teen<S>(a: (Q, S)): int { 12 }
 //    static function method STeen<S>(a: ((Q, L), S)): int { 13 }
 
     function method RValue0<XX>(x: XX): int { 5 }
