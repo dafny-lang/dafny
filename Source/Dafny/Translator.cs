@@ -4726,7 +4726,7 @@ namespace Microsoft.Dafny {
     private void AddFunctionOverrideCheckImpl(Function f)
     {
         Contract.Requires(f != null);
-        //Contract.Requires(proc != null);
+        Contract.Requires(f.EnclosingClass is TopLevelDeclWithMembers);
         Contract.Requires(sink != null && predef != null);
         Contract.Requires(f.OverriddenFunction != null);
         Contract.Requires(f.Formals.Count == f.OverriddenFunction.Formals.Count);
@@ -4821,7 +4821,10 @@ namespace Microsoft.Dafny {
 
         BoogieStmtListBuilder builder = new BoogieStmtListBuilder(this);
         List<Variable> localVariables = new List<Variable>();
-        //GenerateImplPrelude(m, wellformednessProc, inParams, outParams, builder, localVariables);
+
+        // assume traitTypeParameter == G(overrideTypeParameters);
+        AddOverrideCheckTypeArgumentInstantiations(f, builder, localVariables);
+
         if (f is TwoStateFunction) {
           // $Heap := current$Heap;
           var heap = (Bpl.IdentifierExpr /*TODO: this cast is somewhat dubious*/)ordinaryEtran.HeapExpr;
@@ -4875,6 +4878,32 @@ namespace Microsoft.Dafny {
         }
 
         Reset();
+    }
+
+    private void AddOverrideCheckTypeArgumentInstantiations(MemberDecl member, BoogieStmtListBuilder builder, List<Variable> localVariables) {
+      Contract.Requires(member is Function || member is Method);
+      Contract.Requires(member.EnclosingClass is TopLevelDeclWithMembers);
+      Contract.Requires(builder != null);
+      Contract.Requires(localVariables != null);
+
+      MemberDecl overriddenMember;
+      List<TypeParameter> overriddenTypeParameters;
+      if (member is Function) {
+        var o = ((Function)member).OverriddenFunction;
+        overriddenMember = o;
+        overriddenTypeParameters = o.TypeArgs;
+      } else {
+        var o = ((Method)member).OverriddenMethod;
+        overriddenMember = o;
+        overriddenTypeParameters = o.TypeArgs;
+      }
+      var typeMap = GetTypeArgumentSubstitutionMap(overriddenMember, member);
+      foreach (var tp in Concat(overriddenMember.EnclosingClass.TypeArgs, overriddenTypeParameters)) {
+        var local = BplLocalVar(nameTypeParam(tp), predef.Ty, out var lhs);
+        localVariables.Add(local);
+        var rhs = TypeToTy(typeMap[tp]);
+        builder.Add(new Bpl.AssumeCmd(tp.tok, Bpl.Expr.Eq(lhs, rhs)));
+      }
     }
 
     private void AddFunctionOverrideEnsChk(Function f, BoogieStmtListBuilder builder, ExpressionTranslator etran, Dictionary<IVariable, Expression> substMap, List<Bpl.Variable> implInParams, Bpl.Variable/*?*/ resultVariable)
@@ -5002,21 +5031,23 @@ namespace Microsoft.Dafny {
     ///
     /// See also GetTypeArguments.
     /// </summary>
-    private static Dictionary<TypeParameter, Type> GetTypeArgumentSubstitutionMap(Function f, Function overridingFunction) {
-      Contract.Requires(f != null);
-      Contract.Requires(overridingFunction != null);
-      Contract.Requires(overridingFunction.EnclosingClass is TopLevelDeclWithMembers);
-      Contract.Requires(f.TypeArgs.Count == overridingFunction.TypeArgs.Count);
+    private static Dictionary<TypeParameter, Type> GetTypeArgumentSubstitutionMap(MemberDecl member, MemberDecl overridingMember) {
+      Contract.Requires(member is Function || member is Method);
+      Contract.Requires(overridingMember is Function || overridingMember is Method);
+      Contract.Requires(overridingMember.EnclosingClass is TopLevelDeclWithMembers);
+      Contract.Requires(((ICallable)member).TypeArgs.Count == ((ICallable)overridingMember).TypeArgs.Count);
 
       var typeMap = new Dictionary<TypeParameter, Type>();
 
-      var cl = (TopLevelDeclWithMembers)overridingFunction.EnclosingClass;
+      var cl = (TopLevelDeclWithMembers)overridingMember.EnclosingClass;
       var classTypeMap = cl.ParentFormalTypeParametersToActuals;
-      f.EnclosingClass.TypeArgs.ForEach(tp => typeMap.Add(tp, classTypeMap[tp]));
+      member.EnclosingClass.TypeArgs.ForEach(tp => typeMap.Add(tp, classTypeMap[tp]));
 
-      for (var i = 0; i < f.TypeArgs.Count; i++) {
-        var otp = overridingFunction.TypeArgs[i];
-        typeMap.Add(f.TypeArgs[i], new UserDefinedType(otp.tok, otp));
+      var origTypeArgs = ((ICallable)member).TypeArgs;
+      var overridingTypeArgs = ((ICallable)overridingMember).TypeArgs;
+      for (var i = 0; i < origTypeArgs.Count; i++) {
+        var otp = overridingTypeArgs[i];
+        typeMap.Add(origTypeArgs[i], new UserDefinedType(otp.tok, otp));
       }
 
       return typeMap;
@@ -5122,7 +5153,10 @@ namespace Microsoft.Dafny {
         var builder = new BoogieStmtListBuilder(this);
         var etran = new ExpressionTranslator(this, predef, m.tok);
         var localVariables = new List<Variable>();
-        //GenerateImplPrelude(m, wellformednessProc, inParams, outParams, builder, localVariables);
+
+        // assume traitTypeParameter == G(overrideTypeParameters);
+        AddOverrideCheckTypeArgumentInstantiations(m, builder, localVariables);
+
         if (m is TwoStateLemma) {
           // $Heap := current$Heap;
           var heap = (Bpl.IdentifierExpr /*TODO: this cast is somewhat dubious*/)new ExpressionTranslator(this, predef, m.tok).HeapExpr;
