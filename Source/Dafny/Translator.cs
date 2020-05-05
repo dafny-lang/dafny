@@ -14743,7 +14743,8 @@ namespace Microsoft.Dafny {
               if (useSurrogateLocal) {
                 return new Bpl.IdentifierExpr(expr.tok, translator.SurrogateName(field), translator.TrType(field.Type));
               } else if (field is ConstantField) {
-                var args = e.TypeApplication.ConvertAll(translator.TypeToTy);
+                var typeMap = e.TypeArgumentSubstitutionsWithParents();
+                var args = GetTypeParams(field.EnclosingClass).ConvertAll(tp => translator.TypeToTy(typeMap[tp]));
                 Bpl.Expr result;
                 if (field.IsStatic) {
                   result = new Bpl.NAryExpr(expr.tok, new Bpl.FunctionCall(translator.GetReadonlyField(field)), args);
@@ -14772,7 +14773,8 @@ namespace Microsoft.Dafny {
               }
             },
             fn => {
-              var args = e.TypeApplication.ConvertAll(translator.TypeToTy);
+              var typeMap = e.TypeArgumentSubstitutionsWithParents();
+              var args = GetTypeParams(fn).ConvertAll(tp => translator.TypeToTy(typeMap[tp]));
               if (fn.IsFuelAware()) {
                 args.Add(this.layerInterCluster.GetFunctionFuel(fn));
               }
