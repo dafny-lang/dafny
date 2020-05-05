@@ -1256,10 +1256,10 @@ namespace Microsoft.Dafny {
         }
         var tt = ((UserDefinedType)t).ResolvedClass as ClassDecl;
         var uu = ((UserDefinedType)u).ResolvedClass as ClassDecl;
-        if (uu.DerivesFrom(tt)) {
+        if (uu.HeadDerivesFrom(tt)) {
           a = b = t;
           return true;
-        } else if (tt.DerivesFrom(uu)) {
+        } else if (tt.HeadDerivesFrom(uu)) {
           a = b = u;
           return true;
         }
@@ -1387,7 +1387,7 @@ namespace Microsoft.Dafny {
               }
             } else if (udtSub.ResolvedClass is ClassDecl) {
               var cl = (ClassDecl)udtSub.ResolvedClass;
-              return cl.DerivesFrom(udtSuper.ResolvedClass);
+              return cl.HeadDerivesFrom(udtSuper.ResolvedClass);
             } else {
               return false;
             }
@@ -1721,10 +1721,10 @@ namespace Microsoft.Dafny {
         } else if (aa is ClassDecl && bb is ClassDecl) {
           var A = (ClassDecl)aa;
           var B = (ClassDecl)bb;
-          if (A.DerivesFrom(B)) {
+          if (A.HeadDerivesFrom(B)) {
             var udtB = (UserDefinedType)b;
             return abNonNullTypes ? UserDefinedType.CreateNonNullType(udtB) : udtB;
-          } else if (B.DerivesFrom(A)) {
+          } else if (B.HeadDerivesFrom(A)) {
             var udtA = (UserDefinedType)a;
             return abNonNullTypes ? UserDefinedType.CreateNonNullType(udtA) : udtA;
           } else if (A is TraitDecl || B is TraitDecl) {
@@ -1947,10 +1947,10 @@ namespace Microsoft.Dafny {
         } else if (aa is ClassDecl && bb is ClassDecl) {
           var A = (ClassDecl)aa;
           var B = (ClassDecl)bb;
-          if (A.DerivesFrom(B)) {
+          if (A.HeadDerivesFrom(B)) {
             Contract.Assert(B is TraitDecl && b.TypeArgs.Count == 0);
             return a;
-          } else if (B.DerivesFrom(A)) {
+          } else if (B.HeadDerivesFrom(A)) {
             Contract.Assert(A is TraitDecl && a.TypeArgs.Count == 0);
             return b;
           } else {
@@ -4032,11 +4032,9 @@ namespace Microsoft.Dafny {
       get => Name == "object";
     }
 
-    // TODO-RS: This needs to go away, since it ignores trait type parameters
-    // and therefore will lead to errors later.
-    internal bool DerivesFrom(TopLevelDecl b) {
+    internal bool HeadDerivesFrom(TopLevelDecl b) {
       Contract.Requires(b != null);
-      return this == b || this.TraitsObj.Exists(tr => tr.DerivesFrom(b));
+      return this == b || this.TraitsObj.Exists(tr => tr.HeadDerivesFrom(b));
     }
 
     public List<Type> TraitsWithArgument(List<Type> typeArgs) {
