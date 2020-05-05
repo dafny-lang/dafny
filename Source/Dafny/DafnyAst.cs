@@ -9273,22 +9273,33 @@ namespace Microsoft.Dafny {
       Contract.Requires(obj != null);
       Contract.Requires(field != null);
       Contract.Requires(obj.Type != null);  // "obj" is required to be resolved
+
       this.Member = field;  // resolve here
+
       var receiverType = obj.Type.NormalizeExpand();
-      if (field.EnclosingClass is TraitDecl) {
-        var traitDecl = ((ClassDecl) field.EnclosingClass).NonNullTypeDecl;
-        var traitType = receiverType.ParentTypes().Find(t =>
-          t is UserDefinedType && ((UserDefinedType)t).ResolvedClass == traitDecl);
-        this.TypeApplication = traitType.TypeArgs;
+      this.TypeApplication = receiverType.TypeArgs;  // resolve here
+
+      var typeMap = new Dictionary<TypeParameter, Type>();
+      if (receiverType is UserDefinedType udt) {
+        var cl = udt.ResolvedClass as TopLevelDeclWithMembers;
+        Contract.Assert(cl != null);
+        Contract.Assert(cl.TypeArgs.Count == TypeApplication.Count);
+        for (var i = 0; i < cl.TypeArgs.Count; i++) {
+          typeMap.Add(cl.TypeArgs[i], TypeApplication[i]);
+        }
+        foreach (var entry in cl.ParentFormalTypeParametersToActuals) {
+          var v = Resolver.SubstType(entry.Value, typeMap);
+          typeMap.Add(entry.Key, v);
+        }
+      } else if (field.EnclosingClass == null) {
+        // leave typeMap as the empty substitution
       } else {
-        this.TypeApplication = receiverType.TypeArgs;  // resolve here
+        Contract.Assert(field.EnclosingClass.TypeArgs.Count == TypeApplication.Count);
+        for (var i = 0; i < field.EnclosingClass.TypeArgs.Count; i++) {
+          typeMap.Add(field.EnclosingClass.TypeArgs[i], TypeApplication[i]);
+        }
       }
-      Contract.Assert(field.EnclosingClass == null || this.TypeApplication.Count == field.EnclosingClass.TypeArgs.Count);
-      var subst = new Dictionary<TypeParameter, Type>();
-      for (int i = 0; i < this.TypeApplication.Count; i++) {
-        subst.Add(field.EnclosingClass.TypeArgs[i], this.TypeApplication[i]);
-      }
-      this.Type = Resolver.SubstType(field.Type, subst);  // resolve here
+      this.Type = Resolver.SubstType(field.Type, typeMap);  // resolve here
     }
 
     public void MemberSelectCase(Action<Field> fieldK, Action<Function> functionK) {
