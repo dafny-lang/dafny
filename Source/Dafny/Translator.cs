@@ -1082,7 +1082,7 @@ namespace Microsoft.Dafny {
           if (c == null || !RevealedInScope(d)) {
             continue;
           }
-          foreach (TraitDecl tr in c.TraitParentHeads) {
+          foreach (TraitDecl tr in c.ParentTraitHeads) {
             Contract.Assert(RevealedInScope((Declaration)tr)); // the resolver allows "class/trait C extends J" only if J is known to be a trait
 
             // axiom IsTraitParent(class.C, class.J);
@@ -2191,7 +2191,7 @@ namespace Microsoft.Dafny {
         List<Bpl.Expr> tyexprs;
         var vars = MkTyParamBinders(GetTypeParams(c), out tyexprs);
 
-        foreach (var trait in ((ClassDecl)c).TraitParentHeads) {
+        foreach (var trait in ((ClassDecl)c).ParentTraitHeads) {
           var arg = ClassTyCon(c, tyexprs);
           var expr = FunctionCall(c.tok, "implements$" + trait.FullSanitizedName, Bpl.Type.Bool, arg);
           var implements_axiom = new Bpl.Axiom(c.tok, BplForall(vars, null, expr));
@@ -12708,13 +12708,7 @@ namespace Microsoft.Dafny {
 
     static public List<TypeParameter> GetTypeParams(TopLevelDecl d) {
       Contract.Requires(d is ClassDecl || d is DatatypeDecl || d is NewtypeDecl || d is ValuetypeDecl);
-      IEnumerable<TypeParameter> result = d.TypeArgs;
-//      if (d is ClassDecl) {
-//        foreach (TraitDecl t in ((ClassDecl) d).TraitsObj) {
-//          result = result.Concat(t.TypeArgs);
-//        }
-//      }
-      return result.ToList();
+      return d.TypeArgs;
     }
 
     static List<TypeParameter> GetTypeParams(Function f) {

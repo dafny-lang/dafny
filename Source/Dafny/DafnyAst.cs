@@ -3993,13 +3993,13 @@ namespace Microsoft.Dafny {
 
     // The following fields keep track of parent traits
     public readonly List<MemberDecl> InheritedMembers = new List<MemberDecl>();  // these are instance fields and instance members defined with bodies in traits
-    public readonly List<Type> TraitsTyp;  // these are the types that are parsed after the keyword 'extends'; note, for a successfully resolved program, there are UserDefinedType's where .ResolvedClas is NonNullTypeDecl
+    public readonly List<Type> ParentTraits;  // these are the types that are parsed after the keyword 'extends'; note, for a successfully resolved program, there are UserDefinedType's where .ResolvedClas is NonNullTypeDecl
     public readonly Dictionary<TypeParameter, Type> ParentFormalTypeParametersToActuals = new Dictionary<TypeParameter, Type>();  // maps parent traits' type parameters to actuals
 
     /// <summary>
     /// TraitParentHeads contains the head of each distinct trait parent. It is initialized during resolution.
     /// </summary>
-    public readonly List<TraitDecl> TraitParentHeads = new List<TraitDecl>();
+    public readonly List<TraitDecl> ParentTraitHeads = new List<TraitDecl>();
 
     public TopLevelDeclWithMembers(IToken tok, string name, ModuleDefinition module, List<TypeParameter> typeArgs, List<MemberDecl> members, Attributes attributes, List<Type>/*?*/ traits = null)
       : base(tok, name, module, typeArgs, attributes) {
@@ -4008,7 +4008,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(cce.NonNullElements(typeArgs));
       Contract.Requires(cce.NonNullElements(members));
       Members = members;
-      TraitsTyp = traits ?? new List<Type>();
+      ParentTraits = traits ?? new List<Type>();
     }
 
     public static List<UserDefinedType> CommonTraits(TopLevelDeclWithMembers a, TopLevelDeclWithMembers b) {
@@ -4028,7 +4028,7 @@ namespace Microsoft.Dafny {
 
     /// <summary>
     /// Returns the set of transitive parent traits (not including "this" itself).
-    /// This method assumes the .TraitsTyp fields have been checked for various cycle restrictions.
+    /// This method assumes the .ParentTraits fields have been checked for various cycle restrictions.
     /// </summary>
     public ISet<TraitDecl> TraitAncestors() {
       var s = new HashSet<TraitDecl>();
@@ -4037,12 +4037,12 @@ namespace Microsoft.Dafny {
     }
     /// <summary>
     /// Adds to "s" the transitive parent traits (not including "this" itself).
-    /// This method assumes the .TraitsTyp fields have been checked for various cycle restrictions.
+    /// This method assumes the .ParentTraits fields have been checked for various cycle restrictions.
     /// </summary>
     private void AddTraitAncestors(ISet<TraitDecl> s) {
       Contract.Requires(s != null);
-      foreach (var parent in TraitsTyp) {
-        var udt = (UserDefinedType)parent;  // in a successfully resolved program, we expect all .TraitsTyp to be a UserDefinedType
+      foreach (var parent in ParentTraits) {
+        var udt = (UserDefinedType)parent;  // in a successfully resolved program, we expect all .ParentTraits to be a UserDefinedType
         var nntd = (NonNullTypeDecl)udt.ResolvedClass;  // we expect the trait type to be the non-null version of the trait type
         var tr = (TraitDecl)nntd.Class;
         s.Add(tr);
@@ -4067,7 +4067,7 @@ namespace Microsoft.Dafny {
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(cce.NonNullElements(Members));
-      Contract.Invariant(TraitsTyp != null);
+      Contract.Invariant(ParentTraits != null);
     }
 
     public ClassDecl(IToken tok, string name, ModuleDefinition module,
@@ -4095,7 +4095,7 @@ namespace Microsoft.Dafny {
 
     internal bool HeadDerivesFrom(TopLevelDecl b) {
       Contract.Requires(b != null);
-      return this == b || this.TraitParentHeads.Exists(tr => tr.HeadDerivesFrom(b));
+      return this == b || this.ParentTraitHeads.Exists(tr => tr.HeadDerivesFrom(b));
     }
 
     public List<Type> NonNullTraitsWithArgument(List<Type> typeArgs) {
@@ -4105,10 +4105,10 @@ namespace Microsoft.Dafny {
       // Instantiate with the actual type arguments
       if (typeArgs.Count == 0) {
         // this optimization seems worthwhile
-        return TraitsTyp;
+        return ParentTraits;
       } else {
         var subst = Resolver.TypeSubstitutionMap(TypeArgs, typeArgs);
-        return TraitsTyp.ConvertAll(traitType => Resolver.SubstType(traitType, subst));
+        return ParentTraits.ConvertAll(traitType => Resolver.SubstType(traitType, subst));
       }
     }
 
@@ -4117,7 +4117,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(typeArgs.Count == TypeArgs.Count);
       // Instantiate with the actual type arguments
       var subst = Resolver.TypeSubstitutionMap(TypeArgs, typeArgs);
-      return TraitsTyp.ConvertAll(traitType => (Type)UserDefinedType.CreateNullableType((UserDefinedType)Resolver.SubstType(traitType, subst)));
+      return ParentTraits.ConvertAll(traitType => (Type)UserDefinedType.CreateNullableType((UserDefinedType)Resolver.SubstType(traitType, subst)));
     }
 
     public override List<Type> ParentTypes(List<Type> typeArgs) {

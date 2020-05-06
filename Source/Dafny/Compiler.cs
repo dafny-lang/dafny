@@ -725,7 +725,7 @@ namespace Microsoft.Dafny {
               }
             }
             if (include) {
-              var cw = CreateClass(IdName(cl), classIsExtern, cl.FullName, cl.TypeArgs, cl.TraitsTyp, cl.tok, wr);
+              var cw = CreateClass(IdName(cl), classIsExtern, cl.FullName, cl.TypeArgs, cl.ParentTraits, cl.tok, wr);
               CompileClassMembers(cl, cw);
               cw.Finish();
             } else {
@@ -1178,7 +1178,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(cl != null);
       var isHandle = true;
       if (Attributes.ContainsBool(cl.Attributes, "handle", ref isHandle) && isHandle) {
-        foreach (var trait in cl.TraitParentHeads) {
+        foreach (var trait in cl.ParentTraitHeads) {
           isHandle = true;
           if (Attributes.ContainsBool(trait.Attributes, "handle", ref isHandle) && isHandle) {
             // all is good

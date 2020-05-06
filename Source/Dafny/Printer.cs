@@ -580,7 +580,7 @@ namespace Microsoft.Dafny {
       Indent(indent);
       PrintClassMethodHelper((c is TraitDecl) ? "trait" : "class", c.Attributes, c.Name, c.TypeArgs);
       string sep = " extends ";
-      foreach (var trait in c.TraitsTyp) {
+      foreach (var trait in c.ParentTraits) {
         wr.Write(sep);
         PrintType(trait);
         sep = ", ";

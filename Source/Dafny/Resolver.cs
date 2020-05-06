@@ -7713,7 +7713,7 @@ namespace Microsoft.Dafny
       WithResolvedTypeParameters(cl, () => {
 
         // Resolve names of traits extended
-        foreach (var tt in cl.TraitsTyp) {
+        foreach (var tt in cl.ParentTraits) {
           var prevErrorCount = reporter.Count(ErrorLevel.Error);
           ResolveType(cl.tok, tt, new NoContext(cl.Module), ResolveTypeOptionEnum.DontInfer, null);
           if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
@@ -7722,8 +7722,8 @@ namespace Microsoft.Dafny
               // disallowing inheritance in multi module case
               bool termination = true;
               if (cl.Module == trait.Module || (Attributes.ContainsBool(trait.Attributes, "termination", ref termination) && !termination)) {
-                if (!cl.TraitParentHeads.Contains(trait)) {
-                  cl.TraitParentHeads.Add(trait);
+                if (!cl.ParentTraitHeads.Contains(trait)) {
+                  cl.ParentTraitHeads.Add(trait);
                   // all is good (or the user takes responsibility for the lack of termination checking)
                   Contract.Assert(trait.TypeArgs.Count == udt.TypeArgs.Count);
                   for (var i = 0; i < trait.TypeArgs.Count; i++) {
@@ -7742,7 +7742,7 @@ namespace Microsoft.Dafny
         // Inherit members from traits.  What we do here is simply to register names, and in particular to register
         // names that are not already in the class (or in a duplicate parent trait).
         var members = classMembers[cl];
-        foreach (var trait in cl.TraitParentHeads) {
+        foreach (var trait in cl.ParentTraitHeads) {
           foreach (var traitMember in trait.Members) {
             MemberDecl classMember;
             if (members.TryGetValue(traitMember.Name, out classMember)) {
@@ -7829,9 +7829,9 @@ namespace Microsoft.Dafny
 
       //merging class members with parent members if any
       var clMembers = classMembers[cl];
-      foreach (TraitDecl trait in cl.TraitParentHeads) {
+      foreach (TraitDecl trait in cl.ParentTraitHeads) {
         // check that any duplicate parent heads denote the same types
-        var parentsWithSameHead = cl.TraitsTyp.Where(parent => ((parent as UserDefinedType)?.ResolvedClass as NonNullTypeDecl)?.Class == trait).ToList();
+        var parentsWithSameHead = cl.ParentTraits.Where(parent => ((parent as UserDefinedType)?.ResolvedClass as NonNullTypeDecl)?.Class == trait).ToList();
         Contract.Assert(1 <= parentsWithSameHead.Count);
         var badDuplicates = false;
         for (var i = 1; i < parentsWithSameHead.Count; i++) {
@@ -12267,7 +12267,7 @@ namespace Microsoft.Dafny
       if (classMembers[cl].TryGetValue(memberName, out member)) {
         foundSoFar.Add(member);
       }
-      cl.TraitParentHeads.ForEach(trait => FindAllMembers(trait, memberName, foundSoFar));
+      cl.ParentTraitHeads.ForEach(trait => FindAllMembers(trait, memberName, foundSoFar));
     }
 
     /// <summary>
