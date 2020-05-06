@@ -7895,6 +7895,13 @@ namespace Microsoft.Dafny
               reporter.Error(MessageSource.Resolver, clMember.tok, "member '{0}' in class '{1}' overrides fully defined method inherited from trait '{2}'", clMember.Name, cl.Name, trait.Name);
             } else if (!(clMember is Method)) {
               reporter.Error(MessageSource.Resolver, clMember.tok, "non-method member '{0}' overrides method '{1}' inherited from trait '{2}'", clMember.Name, traitMethod.Name, trait.Name);
+            } else if (clMember is Lemma != traitMember is Lemma ||
+                       clMember is TwoStateLemma != traitMember is TwoStateLemma ||
+                       clMember is InductiveLemma != traitMember is InductiveLemma ||
+                       clMember is CoLemma != traitMember is CoLemma) {
+              reporter.Error(MessageSource.Resolver, clMember.tok, "{0} '{1}' in '{2}' can only be overridden by a {0} (got {3})", traitMember.WhatKind, traitMember.Name, trait.Name, clMember.WhatKind);
+            } else if (clMember.IsGhost != traitMember.IsGhost) {
+              reporter.Error(MessageSource.Resolver, clMember.tok, "overridden {0} '{1}' in '{2}' has different ghost/compiled status than in trait '{3}'", clMember.WhatKind, clMember.Name, cl.Name, trait.Name);
             } else {
               var classMethod = (Method)clMember;
 
@@ -7924,6 +7931,12 @@ namespace Microsoft.Dafny
               reporter.Error(MessageSource.Resolver, clMember.tok, "member '{0}' in class '{1}' overrides fully defined function inherited from trait '{2}'", clMember.Name, cl.Name, trait.Name);
             } else if (!(clMember is Function)) {
               reporter.Error(MessageSource.Resolver, clMember.tok, "non-function member '{0}' overrides function '{1}' inherited from trait '{2}'", clMember.Name, traitFunction.Name, trait.Name);
+            } else if (clMember is TwoStateFunction != traitMember is TwoStateFunction ||
+                       clMember is InductivePredicate != traitMember is InductivePredicate ||
+                       clMember is CoPredicate != traitMember is CoPredicate) {
+              reporter.Error(MessageSource.Resolver, clMember.tok, "{0} '{1}' in '{2}' can only be overridden by a {0} (got {3})", traitMember.WhatKind, traitMember.Name, trait.Name, clMember.WhatKind);
+            } else if (clMember.IsGhost != traitMember.IsGhost) {
+              reporter.Error(MessageSource.Resolver, clMember.tok, "overridden {0} '{1}' in '{2}' has different ghost/compiled status than in trait '{3}'", clMember.WhatKind, clMember.Name, cl.Name, trait.Name);
             } else {
               var classFunction = (Function)clMember;
               classFunction.OverriddenFunction = traitFunction;
@@ -7944,11 +7957,17 @@ namespace Microsoft.Dafny
       Contract.Requires(nw != null);
       Contract.Requires(old != null);
       Contract.Requires(classTypeMap != null);
+
       var typeMap = CheckOverride_TypeParameters(nw.tok, old.TypeArgs, nw.TypeArgs, nw.Name, "function", classTypeMap);
+      if (nw is FixpointPredicate nwFix && old is FixpointPredicate oldFix && nwFix.KNat != oldFix.KNat) {
+        reporter.Error(MessageSource.Resolver, nw,
+          "the type of special parameter '_k' of {0} '{1}' ({2}) must be the same as in the overridden {0} ({3})",
+          nw.WhatKind, nw.Name, nwFix.KNat ? "nat" : "ORDINAL", oldFix.KNat ? "nat" : "ORDINAL");
+      }
       CheckOverride_ResolvedParameters(nw.tok, old.Formals, nw.Formals, nw.Name, "function", "parameter", typeMap);
       var oldResultType = Resolver.SubstType(old.ResultType, typeMap);
       if (!nw.ResultType.Equals(oldResultType)) {
-        reporter.Error(MessageSource.RefinementTransformer, nw, "the result type of function '{0}' ({1}) differs from the result type of the corresponding function in the module it overrides ({2})",
+        reporter.Error(MessageSource.Resolver, nw, "the result type of function '{0}' ({1}) differs from the result type of the corresponding function in the module it overrides ({2})",
           nw.Name, nw.ResultType, oldResultType);
       }
     }
@@ -7958,6 +7977,11 @@ namespace Microsoft.Dafny
       Contract.Requires(old != null);
       Contract.Requires(classTypeMap != null);
       var typeMap = CheckOverride_TypeParameters(nw.tok, old.TypeArgs, nw.TypeArgs, nw.Name, "method", classTypeMap);
+      if (nw is FixpointLemma nwFix && old is FixpointLemma oldFix && nwFix.KNat != oldFix.KNat) {
+        reporter.Error(MessageSource.Resolver, nw,
+          "the type of special parameter '_k' of {0} '{1}' ({2}) must be the same as in the overridden {0} ({3})",
+          nw.WhatKind, nw.Name, nwFix.KNat ? "nat" : "ORDINAL", oldFix.KNat ? "nat" : "ORDINAL");
+      }
       CheckOverride_ResolvedParameters(nw.tok, old.Ins, nw.Ins, nw.Name, "method", "in-parameter", typeMap);
       CheckOverride_ResolvedParameters(nw.tok, old.Outs, nw.Outs, nw.Name, "method", "out-parameter", typeMap);
     }
@@ -7970,7 +7994,7 @@ namespace Microsoft.Dafny
       Contract.Requires(thing != null);
       var typeMap = old.Count == 0 ? classTypeMap : new Dictionary<TypeParameter, Type>(classTypeMap);
       if (old.Count != nw.Count) {
-        reporter.Error(MessageSource.RefinementTransformer, tok,
+        reporter.Error(MessageSource.Resolver, tok,
           "{0} '{1}' is declared with a different number of type parameters ({2} instead of {3}) than the corresponding {0} in the module it overrides", thing, name, nw.Count, old.Count);
       } else {
         for (int i = 0; i < old.Count; i++) {
@@ -7979,13 +8003,13 @@ namespace Microsoft.Dafny
           typeMap.Add(o, new UserDefinedType(tok, n));
           // Check type characteristics
           if (o.Characteristics.EqualitySupport != TypeParameter.EqualitySupportValue.InferredRequired && o.Characteristics.EqualitySupport != n.Characteristics.EqualitySupport) {
-            reporter.Error(MessageSource.RefinementTransformer, n.tok, "type parameter '{0}' is not allowed to change the requirement of supporting equality", n.Name);
+            reporter.Error(MessageSource.Resolver, n.tok, "type parameter '{0}' is not allowed to change the requirement of supporting equality", n.Name);
           }
           if (o.Characteristics.MustSupportZeroInitialization != n.Characteristics.MustSupportZeroInitialization) {
-            reporter.Error(MessageSource.RefinementTransformer, n.tok, "type parameter '{0}' is not allowed to change the requirement of supporting zero initialization", n.Name);
+            reporter.Error(MessageSource.Resolver, n.tok, "type parameter '{0}' is not allowed to change the requirement of supporting zero initialization", n.Name);
           }
           if (o.Characteristics.DisallowReferenceTypes != n.Characteristics.DisallowReferenceTypes) {
-            reporter.Error(MessageSource.RefinementTransformer, n.tok, "type parameter '{0}' is not allowed to change the no-reference-type requirement", n.Name);
+            reporter.Error(MessageSource.Resolver, n.tok, "type parameter '{0}' is not allowed to change the no-reference-type requirement", n.Name);
           }
 
         }
@@ -8002,28 +8026,28 @@ namespace Microsoft.Dafny
       Contract.Requires(parameterKind != null);
       Contract.Requires(typeMap != null);
       if (old.Count != nw.Count) {
-        reporter.Error(MessageSource.RefinementTransformer, tok, "{0} '{1}' is declared with a different number of {2} ({3} instead of {4}) than the corresponding {0} in the module it overrides",
+        reporter.Error(MessageSource.Resolver, tok, "{0} '{1}' is declared with a different number of {2} ({3} instead of {4}) than the corresponding {0} in the module it overrides",
           thing, name, parameterKind, nw.Count, old.Count);
       } else {
         for (int i = 0; i < old.Count; i++) {
           var o = old[i];
           var n = nw[i];
           if (!o.IsGhost && n.IsGhost) {
-            reporter.Error(MessageSource.RefinementTransformer, n.tok, "{0} '{1}' of {2} {3} cannot be changed, compared to the corresponding {2} in the module it overrides, from non-ghost to ghost",
+            reporter.Error(MessageSource.Resolver, n.tok, "{0} '{1}' of {2} {3} cannot be changed, compared to the corresponding {2} in the module it overrides, from non-ghost to ghost",
               parameterKind, n.Name, thing, name);
           } else if (o.IsGhost && !n.IsGhost) {
-            reporter.Error(MessageSource.RefinementTransformer, n.tok, "{0} '{1}' of {2} {3} cannot be changed, compared to the corresponding {2} in the module it overrides, from ghost to non-ghost",
+            reporter.Error(MessageSource.Resolver, n.tok, "{0} '{1}' of {2} {3} cannot be changed, compared to the corresponding {2} in the module it overrides, from ghost to non-ghost",
               parameterKind, n.Name, thing, name);
           } else if (!o.IsOld && n.IsOld) {
-            reporter.Error(MessageSource.RefinementTransformer, n.tok, "{0} '{1}' of {2} {3} cannot be changed, compared to the corresponding {2} in the module it overrides, from non-new to new",
+            reporter.Error(MessageSource.Resolver, n.tok, "{0} '{1}' of {2} {3} cannot be changed, compared to the corresponding {2} in the module it overrides, from non-new to new",
               parameterKind, n.Name, thing, name);
           } else if (o.IsOld && !n.IsOld) {
-            reporter.Error(MessageSource.RefinementTransformer, n.tok, "{0} '{1}' of {2} {3} cannot be changed, compared to the corresponding {2} in the module it overrides, from new to non-new",
+            reporter.Error(MessageSource.Resolver, n.tok, "{0} '{1}' of {2} {3} cannot be changed, compared to the corresponding {2} in the module it overrides, from new to non-new",
               parameterKind, n.Name, thing, name);
           } else {
             var oo = Resolver.SubstType(o.Type, typeMap);
             if (!n.Type.Equals(oo)) {
-              reporter.Error(MessageSource.RefinementTransformer, n.tok,
+              reporter.Error(MessageSource.Resolver, n.tok,
                 "the type of {0} '{1}' is different from the type of the same {0} in the corresponding {2} in the module it overrides ('{3}' instead of '{4}')",
                 parameterKind, n.Name, thing, n.Type, oo);
             }
