@@ -158,3 +158,19 @@ module DuplicateInheritedMembers {
   class Q extends C, A { }  // error: A and B both contain a member "data"
   class R extends D, A { }  // error: A and B both contain a member "data"
 }
+
+module StaticMembers {
+  trait Tr {
+    static const Cnst: object  // error: the type of this static const requires an initializing expression
+
+    // the following static members must also be given bodies, but that's checked by the compiler (see TraitCompileErrors.dfy)
+    static function method Func(): int
+    static method Method()
+    static twostate function TwoF(): int
+    static twostate lemma TwoL()
+    static inductive predicate P()
+    static copredicate Q()
+    static inductive lemma IL()
+    static colemma CL()
+  }
+}

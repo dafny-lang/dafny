@@ -33,6 +33,7 @@ TraitResolution.dfy(140,59): Error: duplicate trait parents with the same head t
 TraitResolution.dfy(148,8): Error: member name 'data' in class 'P' inherited from both traits 'B' and 'A'
 TraitResolution.dfy(151,8): Error: member name 'data' in class 'Q' inherited from both traits 'C' and 'A'
 TraitResolution.dfy(154,13): Error: member name 'data' in class 'R' inherited from both traits 'D' and 'A'
+TraitResolution.dfy(164,17): Error: static non-ghost const field 'Cnst' of type 'object' (which does not have a default compiled value) must give a defining value
 // TraitResolution.dfy
 
 /*
@@ -519,4 +520,71 @@ module DuplicateInheritedMembers {
   type {:axiom} R(==) = c: R? | c != null /*special witness*/
   */
 }
-35 resolution/type errors detected in TraitResolution.dfy
+
+module StaticMembers {
+  /* CALL GRAPH for module StaticMembers:
+   * SCC at height 11:
+   *   Tr.TwoF
+   * SCC at height 10:
+   *   Tr.Func
+   * SCC at height 9:
+   *   Tr.Cnst
+   * SCC at height 8:
+   *   object
+   * SCC at height 7:
+   *   Tr.CL#
+   * SCC at height 6:
+   *   Tr.CL
+   * SCC at height 5:
+   *   Tr.IL#
+   * SCC at height 4:
+   *   Tr.IL
+   * SCC at height 3:
+   *   Tr.Q#
+   * SCC at height 2:
+   *   Tr.Q
+   * SCC at height 1:
+   *   Tr.P#
+   * SCC at height 0:
+   *   Tr.P
+   */
+  trait Tr {
+    static const Cnst: object
+
+    static function method Func(): int
+
+    static method Method()
+
+    static twostate function TwoF(): int
+
+    static twostate lemma TwoL()
+
+    static inductive predicate P()
+    /*** (note, what is printed here does not show substitutions of calls to prefix predicates)
+    static predicate P#[_k: ORDINAL]()
+      decreases _k
+    ***/
+
+    static copredicate Q()
+    /*** (note, what is printed here does not show substitutions of calls to prefix predicates)
+    static predicate Q#[_k: ORDINAL]()
+      decreases _k
+    ***/
+
+    static inductive lemma IL()
+    /***
+    static lemma IL#[_k: ORDINAL]()
+      decreases _k
+    ***/
+
+    static colemma CL()
+    /***
+    static lemma CL#[_k: ORDINAL]()
+      decreases _k
+    ***/
+  }
+  /*-- non-null type
+  type {:axiom} Tr(==) = c: Tr? | c != null /*special witness*/
+  */
+}
+36 resolution/type errors detected in TraitResolution.dfy

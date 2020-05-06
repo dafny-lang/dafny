@@ -7877,6 +7877,9 @@ namespace Microsoft.Dafny
             // The class inherits the member from two places
             reporter.Error(MessageSource.Resolver, clMember.tok, "member name '{0}' in class '{1}' inherited from both traits '{2}' and '{3}'", traitMember.Name, cl.Name, clMember.EnclosingClass.Name, trait.Name);
 
+          } else if (traitMember.IsStatic) {
+            reporter.Error(MessageSource.Resolver, clMember.tok, "static {0} '{1}' is inherited from trait '{2}' and is not allowed to be re-declared", traitMember.WhatKind, traitMember.Name, trait.Name);
+
           } else if (traitMember is Field) {
             // The class is not allowed to do anything with the field other than silently inherit it.
             if (clMember is Field) {
