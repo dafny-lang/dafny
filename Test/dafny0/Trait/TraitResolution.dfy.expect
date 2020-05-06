@@ -1,4 +1,4 @@
-TraitResolution.dfy(65,22): Error: the type of in-parameter 'x' is different from the type of the same in-parameter in the corresponding method in the module it overrides ('int' instead of '(Y, B)')
+TraitResolution.dfy(65,22): Error: the type of in-parameter 'x' is different from the type of the corresponding in-parameter in trait method ('int' instead of '(Y, B)')
 TraitResolution.dfy(89,11): Error: new can be applied only to class types (got A?)
 TraitResolution.dfy(90,11): Error: new can be applied only to class types (got ASynonym)
 TraitResolution.dfy(93,11): Error: new can be applied only to class types (got B?)

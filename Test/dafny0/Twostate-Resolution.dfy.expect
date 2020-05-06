@@ -362,8 +362,8 @@ Twostate-Resolution.dfy(243,27): Error: two-state lemmas can only be used in two
 Twostate-Resolution.dfy(244,26): Error: unchanged expressions are not allowed in this context
 Twostate-Resolution.dfy(246,26): Error: fresh expressions are not allowed in this context
 Twostate-Resolution.dfy(248,26): Error: old expressions are not allowed in this context
-Twostate-Resolution.dfy(264,29): Error: parameter 'c' of function A cannot be changed, compared to the corresponding function in the module it overrides, from new to non-new
-Twostate-Resolution.dfy(265,25): Error: parameter 'c' of function B cannot be changed, compared to the corresponding function in the module it overrides, from non-new to new
-Twostate-Resolution.dfy(267,25): Error: in-parameter 'c' of method L cannot be changed, compared to the corresponding method in the module it overrides, from new to non-new
-Twostate-Resolution.dfy(268,21): Error: in-parameter 'c' of method M cannot be changed, compared to the corresponding method in the module it overrides, from non-new to new
+Twostate-Resolution.dfy(264,29): Error: parameter 'c' of function A cannot be changed, compared to in the overridden function, from new to non-new
+Twostate-Resolution.dfy(265,25): Error: parameter 'c' of function B cannot be changed, compared to in the overridden function, from non-new to new
+Twostate-Resolution.dfy(267,25): Error: in-parameter 'c' of method L cannot be changed, compared to in the overridden method, from new to non-new
+Twostate-Resolution.dfy(268,21): Error: in-parameter 'c' of method M cannot be changed, compared to in the overridden method, from non-new to new
 43 resolution/type errors detected in Twostate-Resolution.dfy
