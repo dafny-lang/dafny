@@ -1,4 +1,31 @@
 TraitResolution.dfy(65,22): Error: the type of in-parameter 'x' is different from the type of the same in-parameter in the corresponding method in the module it overrides ('int' instead of '(Y, B)')
+TraitResolution.dfy(89,11): Error: new can be applied only to class types (got A?)
+TraitResolution.dfy(90,11): Error: new can be applied only to class types (got ASynonym)
+TraitResolution.dfy(93,11): Error: new can be applied only to class types (got B?)
+TraitResolution.dfy(93,11): Error: when allocating an object of type 'B', one of its constructor methods must be called
+TraitResolution.dfy(96,11): Error: new can be applied only to class types (got C?<A>)
+TraitResolution.dfy(98,11): Error: new can be applied only to class types (got C?<A?>)
+TraitResolution.dfy(101,11): Error: new can be applied only to class types (got D?<A>)
+TraitResolution.dfy(101,11): Error: when allocating an object of type 'D', one of its constructor methods must be called
+TraitResolution.dfy(103,11): Error: new can be applied only to class types (got D?<A?>)
+TraitResolution.dfy(103,11): Error: when allocating an object of type 'D', one of its constructor methods must be called
+TraitResolution.dfy(105,11): Error: new can be applied only to class types (got D<A>)
+TraitResolution.dfy(105,11): Error: when allocating an object of type 'D', one of its constructor methods must be called
+TraitResolution.dfy(107,11): Error: new can be applied only to class types (got D<A?>)
+TraitResolution.dfy(107,11): Error: when allocating an object of type 'D', one of its constructor methods must be called
+TraitResolution.dfy(108,11): Error: new can be applied only to class types (got DSynonym<A?>)
+TraitResolution.dfy(108,11): Error: when allocating an object of type 'D', one of its constructor methods must be called
+TraitResolution.dfy(109,11): Error: new can be applied only to class types (got DSynonym<A?>)
+TraitResolution.dfy(109,11): Error: when allocating an object of type 'D', one of its constructor methods must be called
+TraitResolution.dfy(112,11): Error: new can be applied only to class types (got object?)
+TraitResolution.dfy(113,11): Error: new can be applied only to class types (got ObjectSynonym)
+TraitResolution.dfy(114,11): Error: new can be applied only to class types (got ObjectWithConstraint)
+TraitResolution.dfy(117,13): Error: new can be applied only to class types (got array?<int>)
+TraitResolution.dfy(119,11): Error: new can be applied only to class types (got int)
+TraitResolution.dfy(121,11): Error: new can be applied only to class types (got Tr<int>)
+TraitResolution.dfy(122,11): Error: new can be applied only to class types (got Tr?<int>)
+TraitResolution.dfy(123,11): Error: new can be applied only to class types (got Tr<int>)
+TraitResolution.dfy(124,11): Error: new can be applied only to class types (got Tr<int>)
 // TraitResolution.dfy
 
 /*
@@ -262,4 +289,124 @@ module M4 {
   type {:axiom} Cl(==)<Y> = c: Cl?<Y> | c != null /*special witness*/
   */
 }
-1 resolution/type errors detected in TraitResolution.dfy
+
+module NewMustMentionAClassName {
+  /* CALL GRAPH for module NewMustMentionAClassName:
+   * SCC at height 15:
+   *   M
+   * SCC at height 14:
+   *   Tr
+   * SCC at height 13:
+   *   array
+   * SCC at height 12:
+   *   D.Init
+   * SCC at height 11:
+   *   D._ctor
+   * SCC at height 10:
+   *   C
+   * SCC at height 9:
+   *   B._ctor
+   * SCC at height 8:
+   *   B
+   * SCC at height 7:
+   *   ObjectWithConstraint
+   * SCC at height 6:
+   *   ObjectSynonym
+   * SCC at height 5:
+   *   object
+   * SCC at height 4:
+   *   DSynonym
+   * SCC at height 3:
+   *   D
+   * SCC at height 2:
+   *   _tuple#2
+   * SCC at height 1:
+   *   ASynonym
+   * SCC at height 0:
+   *   A
+   */
+  trait Tr<X> {
+    method Make()
+    {
+    }
+  }
+  /*-- non-null type
+  type {:axiom} Tr(==)<X> = c: Tr?<X> | c != null /*special witness*/
+  */
+
+  class A extends Tr<int> { }
+  /*-- non-null type
+  type {:axiom} A(==) = c: A? | c != null /*special witness*/
+  */
+
+  class B extends Tr<int> {
+    constructor ()
+    {
+    }
+  }
+  /*-- non-null type
+  type {:axiom} B(==) = c: B? | c != null /*special witness*/
+  */
+
+  class C<G> extends Tr<G> { }
+  /*-- non-null type
+  type {:axiom} C(==)<G> = c: C?<G> | c != null /*special witness*/
+  */
+
+  class D<G> extends Tr<G> {
+    constructor ()
+    {
+    }
+
+    constructor Init()
+    {
+    }
+  }
+  /*-- non-null type
+  type {:axiom} D(==)<G> = c: D?<G> | c != null /*special witness*/
+  */
+
+  type ASynonym = A
+
+  type DSynonym<H> = D<(H, int)>
+
+  type ObjectSynonym = object
+
+  type ObjectWithConstraint = o: object
+    | true
+
+  method M()
+  {
+    var a0: A := new A;
+    var a1 := new A?;
+    var a2 := new ASynonym;
+    var b0: B := new B();
+    var b1 := new B?();
+    var c0: C<A> := new C<A>;
+    var c1 := new C?<A>;
+    var c2: C<A?> := new C<A?>;
+    var c3 := new C?<A?>;
+    var d0: D<A> := new D<A>();
+    var d1 := new D?<A>();
+    var d2: D<A?> := new D<A?>();
+    var d3 := new D?<A?>();
+    var d4: D<A> := new D<A>.Init();
+    var d5 := new D?<A>.Init();
+    var d6: D<A?> := new D<A?>.Init();
+    var d7 := new D?<A?>.Init();
+    var d8 := new DSynonym<A?>();
+    var d9 := new DSynonym<A?>.Init();
+    var o0: object := new object;
+    var o1 := new object?;
+    var o2 := new ObjectSynonym;
+    var o3 := new ObjectWithConstraint;
+    var arr0: array<int> := new array<int>;
+    var arr1 := new array?<int>;
+    var i0 := new int;
+    var t0 := new Tr<int>;
+    var t1 := new Tr?<int>;
+    var t2 := new Tr<int>.Make();
+    var t3 := new Tr?<int>.Make();
+  }
+}
+28 resolution/type errors detected in TraitResolution.dfy

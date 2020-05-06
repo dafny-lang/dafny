@@ -7715,7 +7715,7 @@ namespace Microsoft.Dafny
         // Resolve names of traits extended
         foreach (var tt in cl.TraitsTyp) {
           var prevErrorCount = reporter.Count(ErrorLevel.Error);
-          ResolveType_ClassName(cl.tok, tt, new NoContext(cl.Module), ResolveTypeOptionEnum.DontInfer, null);
+          ResolveType(cl.tok, tt, new NoContext(cl.Module), ResolveTypeOptionEnum.DontInfer, null);
           if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
             var udt = tt as UserDefinedType;
             if (udt != null && udt.ResolvedClass is NonNullTypeDecl nntd && nntd.ViewAsClass is TraitDecl trait) {
@@ -9063,22 +9063,6 @@ namespace Microsoft.Dafny
       /// extend defaultTypeArguments to a sufficient length
       /// </summary>
       AllowPrefixExtend,
-    }
-
-    /// <summary>
-    /// See ResolveTypeOption for a description of the option/defaultTypeArguments parameters.
-    /// This method differs from the other ResolveType methods in that it looks at the type name given
-    /// as a class name.  In other words, if "type" is given as "C" where "C" is a class, then "type" will
-    /// silently resolve to the class "C", not the non-null type "C".  Conversely, if "type" is given
-    /// as "C?" where "C" is a class, then an error will be emitted (as, to recover from this error,
-    /// "type" will resolve to the class "C".
-    /// </summary>
-    public void ResolveType_ClassName(IToken tok, Type type, ICodeContext context, ResolveTypeOptionEnum eopt, List<TypeParameter> defaultTypeArguments) {
-      Contract.Requires(tok != null);
-      Contract.Requires(type != null);
-      Contract.Requires(context != null);
-      Contract.Requires(eopt != ResolveTypeOptionEnum.AllowPrefixExtend);
-      ResolveType(tok, type, context, eopt, defaultTypeArguments);
     }
 
     /// <summary>
@@ -11809,9 +11793,8 @@ namespace Microsoft.Dafny
         } else {
           bool callsConstructor = false;
           if (rr.Arguments == null) {
-            ResolveType_ClassName(stmt.Tok, rr.EType, codeContext, ResolveTypeOptionEnum.InferTypeProxies, null);
-            var udt = rr.EType as UserDefinedType;
-            var cl = udt == null ? null : udt.ResolvedClass as NonNullTypeDecl;
+            ResolveType(stmt.Tok, rr.EType, codeContext, ResolveTypeOptionEnum.InferTypeProxies, null);
+            var cl = (rr.EType as UserDefinedType)?.ResolvedClass as NonNullTypeDecl;
             if (cl != null && !(rr.EType.IsTraitType && !rr.EType.NormalizeExpand().IsObjectQ)) {
               // life is good
             } else {
@@ -11837,8 +11820,9 @@ namespace Microsoft.Dafny
               initCallName = "_ctor";
               initCallTok = rr.Tok;
             }
-            if (!rr.EType.IsRefType) {
-              reporter.Error(MessageSource.Resolver, stmt, "new can be applied only to reference types (got {0})", rr.EType);
+            var cl = (rr.EType as UserDefinedType)?.ResolvedClass as NonNullTypeDecl;
+            if (cl == null || rr.EType.IsTraitType) {
+              reporter.Error(MessageSource.Resolver, stmt, "new can be applied only to class types (got {0})", rr.EType);
             } else {
               // ---------- new C.Init(EE)
               Contract.Assert(initCallName != null);

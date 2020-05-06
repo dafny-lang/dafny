@@ -65,3 +65,62 @@ module M4 {
     method M<B>(a: B, x: int) { }  // error: type of x is int instead of the expected (Y, B)
   }
 }
+
+module NewMustMentionAClassName {
+  trait Tr<X> {
+    method Make() { }
+  }
+
+  class A extends Tr<int> { }
+  class B extends Tr<int> { constructor () { } }
+  class C<G> extends Tr<G> { }
+  class D<G> extends Tr<G> {
+    constructor () { }
+    constructor Init() { }
+  }
+
+  type ASynonym = A
+  type DSynonym<H> = D<(H, int)>
+  type ObjectSynonym = object
+  type ObjectWithConstraint = o: object | true
+
+  method M() {
+    var a0 := new A;
+    var a1 := new A?;  // error: expects A, not A?
+    var a2 := new ASynonym;  // error: must mention class name directly, not a type
+
+    var b0 := new B();
+    var b1 := new B?();  // error: expects B, not B?
+
+    var c0 := new C<A>;
+    var c1 := new C?<A>;  // error: expects C, not C?
+    var c2 := new C<A?>;
+    var c3 := new C?<A?>;  // error: expects C, not C?
+
+    var d0 := new D<A>();
+    var d1 := new D?<A>();  // error: expects D, not D?
+    var d2 := new D<A?>();
+    var d3 := new D?<A?>();  // error: expects D, not D?
+    var d4 := new D<A>.Init();
+    var d5 := new D?<A>.Init();  // error: expects D, not D?
+    var d6 := new D<A?>.Init();
+    var d7 := new D?<A?>.Init();  // error: expects D, not D?
+    var d8 := new DSynonym<A?>();  // error: must mention class name directly, not a type
+    var d9 := new DSynonym<A?>.Init();  // error: must mention class name directly, not a type
+
+    var o0 := new object;
+    var o1 := new object?;  // error: expects object, not object?
+    var o2 := new ObjectSynonym;  // error: must denote a class directly
+    var o3 := new ObjectWithConstraint;  // error: must denote a class directly
+
+    var arr0 := new array<int>;  // weird, but allowed
+    var arr1 := new array?<int>;  // error: expects array, not array?
+
+    var i0 := new int;  // error: Come on! int? Whazzup with that?
+
+    var t0 := new Tr<int>;  // error: not a class
+    var t1 := new Tr?<int>;  // error: not a class
+    var t2 := new Tr<int>.Make();  // error: not a class
+    var t3 := new Tr?<int>.Make();  // error: not a class
+  }
+}
