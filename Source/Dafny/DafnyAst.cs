@@ -3994,8 +3994,12 @@ namespace Microsoft.Dafny {
     // The following fields keep track of parent traits
     public readonly List<MemberDecl> InheritedMembers = new List<MemberDecl>();  // these are instance fields and instance members defined with bodies in traits
     public readonly List<Type> TraitsTyp;  // these are the types that are parsed after the keyword 'extends'; note, for a successfully resolved program, there are UserDefinedType's where .ResolvedClas is NonNullTypeDecl
-    public readonly List<TraitDecl> TraitsObj = new List<TraitDecl>();  // populated during resolution
     public readonly Dictionary<TypeParameter, Type> ParentFormalTypeParametersToActuals = new Dictionary<TypeParameter, Type>();  // maps parent traits' type parameters to actuals
+
+    /// <summary>
+    /// TraitParentHeads contains the head of each distinct trait parent. It is initialized during resolution.
+    /// </summary>
+    public readonly List<TraitDecl> TraitParentHeads = new List<TraitDecl>();
 
     public TopLevelDeclWithMembers(IToken tok, string name, ModuleDefinition module, List<TypeParameter> typeArgs, List<MemberDecl> members, Attributes attributes, List<Type>/*?*/ traits = null)
       : base(tok, name, module, typeArgs, attributes) {
@@ -4064,7 +4068,6 @@ namespace Microsoft.Dafny {
     void ObjectInvariant() {
       Contract.Invariant(cce.NonNullElements(Members));
       Contract.Invariant(TraitsTyp != null);
-      Contract.Invariant(TraitsObj != null);
     }
 
     public ClassDecl(IToken tok, string name, ModuleDefinition module,
@@ -4092,7 +4095,7 @@ namespace Microsoft.Dafny {
 
     internal bool HeadDerivesFrom(TopLevelDecl b) {
       Contract.Requires(b != null);
-      return this == b || this.TraitsObj.Exists(tr => tr.HeadDerivesFrom(b));
+      return this == b || this.TraitParentHeads.Exists(tr => tr.HeadDerivesFrom(b));
     }
 
     public List<Type> NonNullTraitsWithArgument(List<Type> typeArgs) {

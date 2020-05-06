@@ -1178,7 +1178,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(cl != null);
       var isHandle = true;
       if (Attributes.ContainsBool(cl.Attributes, "handle", ref isHandle) && isHandle) {
-        foreach (var trait in cl.TraitsObj) {
+        foreach (var trait in cl.TraitParentHeads) {
           isHandle = true;
           if (Attributes.ContainsBool(trait.Attributes, "handle", ref isHandle) && isHandle) {
             // all is good

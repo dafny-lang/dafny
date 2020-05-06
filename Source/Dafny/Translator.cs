@@ -1082,7 +1082,7 @@ namespace Microsoft.Dafny {
           if (c == null || !RevealedInScope(d)) {
             continue;
           }
-          foreach (TraitDecl tr in c.TraitsObj) {
+          foreach (TraitDecl tr in c.TraitParentHeads) {
             Contract.Assert(RevealedInScope((Declaration)tr)); // the resolver allows "class/trait C extends J" only if J is known to be a trait
 
             // axiom IsTraitParent(class.C, class.J);
@@ -2191,7 +2191,7 @@ namespace Microsoft.Dafny {
         List<Bpl.Expr> tyexprs;
         var vars = MkTyParamBinders(GetTypeParams(c), out tyexprs);
 
-        foreach (var trait in ((ClassDecl)c).TraitsObj) {
+        foreach (var trait in ((ClassDecl)c).TraitParentHeads) {
           var arg = ClassTyCon(c, tyexprs);
           var expr = FunctionCall(c.tok, "implements$" + trait.FullSanitizedName, Bpl.Type.Bool, arg);
           var implements_axiom = new Bpl.Axiom(c.tok, BplForall(vars, null, expr));

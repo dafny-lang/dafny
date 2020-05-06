@@ -7722,8 +7722,8 @@ namespace Microsoft.Dafny
               // disallowing inheritance in multi module case
               bool termination = true;
               if (cl.Module == trait.Module || (Attributes.ContainsBool(trait.Attributes, "termination", ref termination) && !termination)) {
+                cl.TraitParentHeads.Add(trait);
                 // all is good (or the user takes responsibility for the lack of termination checking)
-                cl.TraitsObj.Add(trait);
                 Contract.Assert(trait.TypeArgs.Count == udt.TypeArgs.Count);
                 for (var i = 0; i < trait.TypeArgs.Count; i++) {
                   cl.ParentFormalTypeParametersToActuals.Add(trait.TypeArgs[i], udt.TypeArgs[i]);
@@ -7738,9 +7738,9 @@ namespace Microsoft.Dafny
         }
 
         // Inherit members from traits.  What we do here is simply to register names, and in particular to register
-        // names that are no already in the class.
+        // names that are not already in the class (or in a duplicate parent trait).
         var members = classMembers[cl];
-        foreach (var trait in cl.TraitsObj) {
+        foreach (var trait in cl.TraitParentHeads) {
           foreach (var traitMember in trait.Members) {
             MemberDecl classMember;
             if (members.TryGetValue(traitMember.Name, out classMember)) {
@@ -7827,7 +7827,7 @@ namespace Microsoft.Dafny
 
       //merging class members with parent members if any
       var clMembers = classMembers[cl];
-      foreach (TraitDecl trait in cl.TraitsObj) {
+      foreach (TraitDecl trait in cl.TraitParentHeads) {
         //merging current class members with the inheriting trait
         foreach (var traitMember in trait.Members) {
           var clMember = clMembers[traitMember.Name];
@@ -12266,7 +12266,7 @@ namespace Microsoft.Dafny
       if (classMembers[cl].TryGetValue(memberName, out member)) {
         foundSoFar.Add(member);
       }
-      cl.TraitsObj.ForEach(trait => FindAllMembers(trait, memberName, foundSoFar));
+      cl.TraitParentHeads.ForEach(trait => FindAllMembers(trait, memberName, foundSoFar));
     }
 
     /// <summary>
