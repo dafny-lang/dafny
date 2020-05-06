@@ -26,6 +26,13 @@ TraitResolution.dfy(121,11): Error: new can be applied only to class types (got 
 TraitResolution.dfy(122,11): Error: new can be applied only to class types (got Tr?<int>)
 TraitResolution.dfy(123,11): Error: new can be applied only to class types (got Tr<int>)
 TraitResolution.dfy(124,11): Error: new can be applied only to class types (got Tr<int>)
+TraitResolution.dfy(129,16): Error: member name 'data' in class 'P' inherited from both traits 'A' and 'B'
+TraitResolution.dfy(139,27): Error: duplicate trait parents with the same head type must also have the same type arguments (got C<Even> and C<int>)
+TraitResolution.dfy(140,42): Error: duplicate trait parents with the same head type must also have the same type arguments (got C<int> and C<real>)
+TraitResolution.dfy(140,59): Error: duplicate trait parents with the same head type must also have the same type arguments (got C<int> and C<Even>)
+TraitResolution.dfy(148,8): Error: member name 'data' in class 'P' inherited from both traits 'B' and 'A'
+TraitResolution.dfy(151,8): Error: member name 'data' in class 'Q' inherited from both traits 'C' and 'A'
+TraitResolution.dfy(154,13): Error: member name 'data' in class 'R' inherited from both traits 'D' and 'A'
 // TraitResolution.dfy
 
 /*
@@ -409,4 +416,107 @@ module NewMustMentionAClassName {
     var t3 := new Tr?<int>.Make();
   }
 }
-28 resolution/type errors detected in TraitResolution.dfy
+
+module DuplicateParents {
+  /* CALL GRAPH for module DuplicateParents:
+   */
+  trait A {
+    var data: int
+  }
+  /*-- non-null type
+  type {:axiom} A(==) = c: A? | c != null /*special witness*/
+  */
+
+  trait B {
+    var data: int
+  }
+  /*-- non-null type
+  type {:axiom} B(==) = c: B? | c != null /*special witness*/
+  */
+
+  trait C<X> { }
+  /*-- non-null type
+  type {:axiom} C(==)<X> = c: C?<X> | c != null /*special witness*/
+  */
+
+  type IntSynonym = int
+
+  type Even = x: ?
+    | x % 2 == 0
+
+  class P extends A, A, B, A { }
+  /*-- non-null type
+  type {:axiom} P(==) = c: P? | c != null /*special witness*/
+  */
+
+  class Q extends C<int>, C<int> { }
+  /*-- non-null type
+  type {:axiom} Q(==) = c: Q? | c != null /*special witness*/
+  */
+
+  class R extends C<IntSynonym>, C<int> { }
+  /*-- non-null type
+  type {:axiom} R(==) = c: R? | c != null /*special witness*/
+  */
+
+  class S extends C<Even>, C<int> { }
+  /*-- non-null type
+  type {:axiom} S(==) = c: S? | c != null /*special witness*/
+  */
+
+  class T extends C<int>, C<int>, C<int>, C<real>, C<int>, C<Even> { }
+  /*-- non-null type
+  type {:axiom} T(==) = c: T? | c != null /*special witness*/
+  */
+}
+
+module DuplicateInheritedMembers {
+  /* CALL GRAPH for module DuplicateInheritedMembers:
+   */
+  trait A {
+    var data: int
+  }
+  /*-- non-null type
+  type {:axiom} A(==) = c: A? | c != null /*special witness*/
+  */
+
+  trait B {
+    var data: int
+  }
+  /*-- non-null type
+  type {:axiom} B(==) = c: B? | c != null /*special witness*/
+  */
+
+  trait C {
+    var data: real
+  }
+  /*-- non-null type
+  type {:axiom} C(==) = c: C? | c != null /*special witness*/
+  */
+
+  trait D {
+    function data(): int
+    {
+      5
+    }
+  }
+  /*-- non-null type
+  type {:axiom} D(==) = c: D? | c != null /*special witness*/
+  */
+
+  class P extends B, A { }
+  /*-- non-null type
+  type {:axiom} P(==) = c: P? | c != null /*special witness*/
+  */
+
+  class Q extends C, A { }
+  /*-- non-null type
+  type {:axiom} Q(==) = c: Q? | c != null /*special witness*/
+  */
+
+  class R extends D, A { }
+  /*-- non-null type
+  type {:axiom} R(==) = c: R? | c != null /*special witness*/
+  */
+}
+35 resolution/type errors detected in TraitResolution.dfy

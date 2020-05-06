@@ -7722,11 +7722,13 @@ namespace Microsoft.Dafny
               // disallowing inheritance in multi module case
               bool termination = true;
               if (cl.Module == trait.Module || (Attributes.ContainsBool(trait.Attributes, "termination", ref termination) && !termination)) {
-                cl.TraitParentHeads.Add(trait);
-                // all is good (or the user takes responsibility for the lack of termination checking)
-                Contract.Assert(trait.TypeArgs.Count == udt.TypeArgs.Count);
-                for (var i = 0; i < trait.TypeArgs.Count; i++) {
-                  cl.ParentFormalTypeParametersToActuals.Add(trait.TypeArgs[i], udt.TypeArgs[i]);
+                if (!cl.TraitParentHeads.Contains(trait)) {
+                  cl.TraitParentHeads.Add(trait);
+                  // all is good (or the user takes responsibility for the lack of termination checking)
+                  Contract.Assert(trait.TypeArgs.Count == udt.TypeArgs.Count);
+                  for (var i = 0; i < trait.TypeArgs.Count; i++) {
+                    cl.ParentFormalTypeParametersToActuals.Add(trait.TypeArgs[i], udt.TypeArgs[i]);
+                  }
                 }
               } else {
                 reporter.Error(MessageSource.Resolver, udt.tok, "class '{0}' is in a different module than trait '{1}'. A class may only extend a trait in the same module, unless that trait is annotated with {{:termination false}}.", cl.Name, trait.FullName);
@@ -7828,6 +7830,21 @@ namespace Microsoft.Dafny
       //merging class members with parent members if any
       var clMembers = classMembers[cl];
       foreach (TraitDecl trait in cl.TraitParentHeads) {
+        // check that any duplicate parent heads denote the same types
+        var parentsWithSameHead = cl.TraitsTyp.Where(parent => ((parent as UserDefinedType)?.ResolvedClass as NonNullTypeDecl)?.Class == trait).ToList();
+        Contract.Assert(1 <= parentsWithSameHead.Count);
+        var badDuplicates = false;
+        for (var i = 1; i < parentsWithSameHead.Count; i++) {
+          if (!parentsWithSameHead[0].Equals(parentsWithSameHead[i])) {
+            reporter.Error(MessageSource.Resolver, ((UserDefinedType)parentsWithSameHead[i]).tok,
+              "duplicate trait parents with the same head type must also have the same type arguments (got {0} and {1})",
+              parentsWithSameHead[0], parentsWithSameHead[i]);
+            badDuplicates = true;
+          }
+        }
+        if (badDuplicates) {
+          continue;
+        }
         //merging current class members with the inheriting trait
         foreach (var traitMember in trait.Members) {
           var clMember = clMembers[traitMember.Name];

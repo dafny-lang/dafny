@@ -124,3 +124,37 @@ module NewMustMentionAClassName {
     var t3 := new Tr?<int>.Make();  // error: not a class
   }
 }
+
+module DuplicateParents {
+  trait A { var data: int }
+  trait B { var data: int }
+  trait C<X> { }
+
+  type IntSynonym = int
+  type Even = x | x % 2 == 0
+
+  class P extends A, A, B, A { }  // error: A and B both contain a member "data"
+  class Q extends C<int>, C<int> { }
+  class R extends C<IntSynonym>, C<int> { }
+  class S extends C<Even>, C<int> { }  // error: cannot extend C in different ways
+  class T extends C<int>, C<int>, C<int>, C<real>, C<int>, C<Even> { }  // error: cannot extend C in different ways
+}
+
+module DuplicateInheritedMembers {
+  trait A {
+    var data: int
+  }
+  trait B {
+    var data: int
+  }
+  trait C {
+    var data: real
+  }
+  trait D {
+    function data(): int { 5 }
+  }
+
+  class P extends B, A { }  // error: A and B both contain a member "data"
+  class Q extends C, A { }  // error: A and B both contain a member "data"
+  class R extends D, A { }  // error: A and B both contain a member "data"
+}
