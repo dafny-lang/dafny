@@ -1068,11 +1068,11 @@ int StringToInt(string s, int defaultValue, string errString) {
 		Contract.Requires(module != null);
 		Contract.Ensures(Contract.ValueAtReturn(out c) != null);
 		IToken/*!*/ id;
-		Type trait = null;
-		List<Type>/*!*/ traits = new List<Type>();
+		Type parentTrait;
+		List<Type> parentTraits = new List<Type>();
 		Attributes attrs = null;
-		List<TypeParameter/*!*/> typeArgs = new List<TypeParameter/*!*/>();
-		List<MemberDecl/*!*/> members = new List<MemberDecl/*!*/>();
+		List<TypeParameter> typeArgs = new List<TypeParameter>();
+		List<MemberDecl> members = new List<MemberDecl>();
 		IToken bodyStart;
 		CheckDeclModifiers(dmodClass, "Classes", AllowedDeclModifiers.None);
 		DeclModifierData dmod;
@@ -1088,12 +1088,12 @@ int StringToInt(string s, int defaultValue, string errString) {
 		}
 		if (la.kind == 99) {
 			Get();
-			Type(out trait);
-			traits.Add(trait); 
+			Type(out parentTrait);
+			parentTraits.Add(parentTrait); 
 			while (la.kind == 26) {
 				Get();
-				Type(out trait);
-				traits.Add(trait); 
+				Type(out parentTrait);
+				parentTraits.Add(parentTrait); 
 			}
 		}
 		Expect(75);
@@ -1106,7 +1106,7 @@ int StringToInt(string s, int defaultValue, string errString) {
 			ClassMemberDecl(dmod, members, true, false, false, false);
 		}
 		Expect(76);
-		c = new ClassDecl(id, id.val, module, typeArgs, members, attrs, traits);
+		c = new ClassDecl(id, id.val, module, typeArgs, members, attrs, parentTraits);
 		c.BodyStartTok = bodyStart;
 		c.BodyEndTok = t;
 		
@@ -1355,6 +1355,8 @@ int StringToInt(string s, int defaultValue, string errString) {
 		Contract.Ensures(Contract.ValueAtReturn(out trait) != null);
 		CheckDeclModifiers(dmodIn, "Traits", AllowedDeclModifiers.None);
 		IToken/*!*/ id;
+		Type parentTrait;
+		List<Type> parentTraits = new List<Type>();
 		Attributes attrs = null;
 		List<TypeParameter/*!*/> typeArgs = new List<TypeParameter/*!*/>(); //traits should not support type parameters at the moment
 		List<MemberDecl/*!*/> members = new List<MemberDecl/*!*/>();
@@ -1370,6 +1372,16 @@ int StringToInt(string s, int defaultValue, string errString) {
 		if (la.kind == 81) {
 			GenericParameters(typeArgs, true);
 		}
+		if (la.kind == 99) {
+			Get();
+			Type(out parentTrait);
+			parentTraits.Add(parentTrait); 
+			while (la.kind == 26) {
+				Get();
+				Type(out parentTrait);
+				parentTraits.Add(parentTrait); 
+			}
+		}
 		Expect(75);
 		bodyStart = t; 
 		while (StartOf(4)) {
@@ -1380,7 +1392,7 @@ int StringToInt(string s, int defaultValue, string errString) {
 			ClassMemberDecl(dmod, members, true, false, false, false);
 		}
 		Expect(76);
-		trait = new TraitDecl(id, id.val, module, typeArgs, members, attrs);
+		trait = new TraitDecl(id, id.val, module, typeArgs, members, attrs, parentTraits);
 		trait.BodyStartTok = bodyStart;
 		trait.BodyEndTok = t;
 		
