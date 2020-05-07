@@ -2650,6 +2650,9 @@ namespace Microsoft.Dafny
         }
       }
 
+      // Check for cycles among parent traits
+      CheckParentTraitsAcyclic(declarations);
+
       // Perform the stratosphere check on inductive datatypes, and compute to what extent the inductive datatypes require equality support
       foreach (var dtd in datatypeDependencies.TopologicallySortedComponents()) {
         if (datatypeDependencies.GetSCCRepresentative(dtd) == dtd) {
@@ -8179,6 +8182,24 @@ namespace Microsoft.Dafny
         foreach (var ta in ((UserDefinedType)tp).TypeArgs) {
           AddDatatypeDependencyEdge(dt, ta, dependencies);
         }
+      }
+    }
+
+    void CheckParentTraitsAcyclic(List<TopLevelDecl> declarations) {
+      Contract.Requires(declarations != null);
+
+      var parentRelation = new Graph<TopLevelDeclWithMembers>();
+      foreach (var decl in declarations) {
+        if (decl is TopLevelDeclWithMembers trait) {
+          foreach (var parent in trait.ParentTraitHeads) {
+            parentRelation.AddEdge(trait, parent);
+          }
+        }
+      }
+
+      foreach (var cycle in parentRelation.AllCycles()) {
+        var cy = Util.Comma(" -> ", cycle, m => m.Name);
+        reporter.Error(MessageSource.Resolver, cycle[0], "trait definitions contain a cycle: {0}", cy);
       }
     }
 

@@ -1,2 +1,4 @@
-
-Dafny program verifier finished with 0 verified, 0 errors
+TraitsExtendingTraits.dfy(23,8): Error: trait definitions contain a cycle: A -> B
+TraitsExtendingTraits.dfy(26,8): Error: trait definitions contain a cycle: SelfLoop
+TraitsExtendingTraits.dfy(28,8): Error: trait definitions contain a cycle: K -> M -> L
+3 resolution/type errors detected in TraitsExtendingTraits.dfy
