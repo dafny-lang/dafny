@@ -1059,39 +1059,61 @@ namespace Microsoft.Dafny {
     }
 
     /// <summary>
-    /// For every revealed type (class or trait) C that extends a trait J, add:
-    ///   axiom IsTraitParent(class.C, class.J);
+    /// For every revealed type (class or trait) C<T> that extends a trait J<G(T)>, add:
+    ///   axiom (forall T: Ty, $o: ref ::
+    ///       { $Is($o, C(T)) }
+    ///       $o != null && $Is($o, C(T)) ==> $Is($o, J(G(T)));
+    ///   axiom (forall T: Ty, $Heap: Heap, $o: ref ::
+    ///       { $IsAlloc($o, C(T), $Heap) }
+    ///       $o != null && $IsAlloc($o, C(T), $Heap) ==> $IsAlloc($o, J(G(T)), $Heap);
     /// Note:
-    ///   At this time, a trait cannot extend another trait (which is enforced in the parser).
-    ///   However, that may change in the future. This method is forward compatible with such a change.
-    /// Note:
-    ///   The IsTraitParent predicates are currently not used for anything in the Boogie axiomatization.
-    ///   The idea is that these would be used to determine certain type relationships during verification.
-    ///   To be useful, there also needs to be a way to determine the _absence_ of trait-parent relationships.
+    ///   It is sometimes useful also to be able to determine the _absence_ of trait-parent relationships.
     ///   For example, suppose one can tell from the looking at the "extends" clauses in a program
     ///   that a class C does not (directly or transitively) extend a trait T. Then, given variables c and t
     ///   of static types C and T, respectively, the verifier should be able to infer c != t. This is not
-    ///   possible today. It will require an axiomatization of _all_ possible parent traits, not just
+    ///   possible with the axioms below. It will require an axiomatization of _all_ possible parent traits, not just
     ///   saying that some are possible. When this becomes needed, the axiomatization will need to be
     ///   embellished.
     /// </summary>
     private void AddTraitParentAxioms() {
       foreach (ModuleDefinition m in program.RawModules()) {
         foreach (TopLevelDecl d in m.TopLevelDecls) {
-          var c = d as ClassDecl;
+          var c = d as TopLevelDeclWithMembers;
           if (c == null || !RevealedInScope(d)) {
             continue;
           }
-          foreach (TraitDecl tr in c.ParentTraitHeads) {
-            Contract.Assert(RevealedInScope((Declaration)tr)); // the resolver allows "class/trait C extends J" only if J is known to be a trait
+          foreach (var parentType in c.ParentTraits) {
+            Bpl.Expr heap; var heapVar = BplBoundVar("$heap", predef.HeapType, out heap);
+            Bpl.Expr o; var oVar = BplBoundVar("$o", predef.RefType, out o);
+            Bpl.Expr oNotNull = Bpl.Expr.Neq(o, predef.Null);
 
-            // axiom IsTraitParent(class.C, class.J);
-            var classIdExpr = new Bpl.IdentifierExpr(c.tok, GetClass(c));
-            var traitIdExpr = new Bpl.IdentifierExpr(c.tok, GetClass(tr));
+            List<Bpl.Expr> tyexprs;
+            var bvarsTypeParameters = MkTyParamBinders(GetTypeParams(c), out tyexprs);
 
-            var isTraitParent = FunctionCall(c.tok, BuiltinFunction.IsTraitParent, null, classIdExpr, traitIdExpr);
-            var traitParentAxiom = new Bpl.Axiom(c.tok, isTraitParent);
-            sink.AddTopLevelDeclaration(traitParentAxiom);
+            // axiom (forall T: Ty, $o: ref ::
+            //     { $Is($o, C(T)) }
+            //     $o != null && $Is($o, C(T)) ==> $Is($o, J(G(T)));
+            var isC = MkIs(o, UserDefinedType.FromTopLevelDecl(c.tok, c));
+            var isJ = MkIs(o, parentType);
+            var bvs = new List<Bpl.Variable>();
+            bvs.AddRange(bvarsTypeParameters);
+            bvs.Add(oVar);
+            var tr = BplTrigger(isC);
+            var body = BplImp(BplAnd(oNotNull, isC), isJ);
+            sink.AddTopLevelDeclaration(new Bpl.Axiom(c.tok, new Bpl.ForallExpr(c.tok, bvs, tr, body)));
+
+            // axiom (forall T: Ty, $Heap: Heap, $o: ref ::
+            //     { $IsAlloc($o, C(T), $Heap) }
+            //     $o != null && $IsAlloc($o, C(T), $Heap) ==> $IsAlloc($o, J(G(T)), $Heap);
+            var isAllocC = MkIsAlloc(o, UserDefinedType.FromTopLevelDecl(c.tok, c), heap);
+            var isAllocJ = MkIsAlloc(o, parentType, heap);
+            bvs = new List<Bpl.Variable>();
+            bvs.AddRange(bvarsTypeParameters);
+            bvs.Add(oVar);
+            bvs.Add(heapVar);
+            tr = BplTrigger(isAllocC);
+            body = BplImp(BplAnd(oNotNull, isAllocC), isAllocJ);
+            sink.AddTopLevelDeclaration(new Bpl.Axiom(c.tok, new Bpl.ForallExpr(c.tok, bvs, tr, body)));
           }
         }
       }
