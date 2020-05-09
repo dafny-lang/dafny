@@ -4001,6 +4001,51 @@ namespace Microsoft.Dafny {
     /// </summary>
     public readonly List<TraitDecl> ParentTraitHeads = new List<TraitDecl>();
 
+    public InheritanceInformationClass ParentTypeInformation;  // filled in during resolution
+    public class InheritanceInformationClass
+    {
+      private readonly Dictionary<TraitDecl, List<(Type, List<TraitDecl> /*via this parent path*/)>> info = new Dictionary<TraitDecl, List<(Type, List<TraitDecl>)>>();
+
+      public void Record(TraitDecl traitHead, UserDefinedType parentType) {
+        Contract.Requires(traitHead != null);
+        Contract.Requires(parentType != null);
+        Contract.Requires(parentType.ResolvedClass is NonNullTypeDecl nntd && nntd.ViewAsClass == traitHead);
+
+        if (!info.TryGetValue(traitHead, out var list)) {
+          list = new List<(Type, List<TraitDecl>)>();
+          info.Add(traitHead, list);
+        }
+        list.Add((parentType, new List<TraitDecl>()));
+      }
+
+      public void Extend(TraitDecl parent, InheritanceInformationClass parentInfo, Dictionary<TypeParameter, Type> typeMap) {
+        Contract.Requires(parent != null);
+        Contract.Requires(parentInfo != null);
+        Contract.Requires(typeMap != null);
+
+        foreach (var entry in parentInfo.info) {
+          var traitHead = entry.Key;
+          if (!info.TryGetValue(traitHead, out var list)) {
+            list = new List<(Type, List<TraitDecl>)>();
+            info.Add(traitHead, list);
+          }
+          foreach (var pair in entry.Value) {
+            var ty = Resolver.SubstType(pair.Item1, typeMap);
+            // prepend the path with "parent"
+            var parentPath = new List<TraitDecl>() {parent};
+            parentPath.AddRange(pair.Item2);
+            list.Add((ty, parentPath));
+          }
+        }
+      }
+
+      public IEnumerable<List<(Type, List<TraitDecl>)>> GetTypeInstantiationGroups() {
+        foreach (var pair in info.Values) {
+          yield return pair;
+        }
+      }
+    }
+
     public TopLevelDeclWithMembers(IToken tok, string name, ModuleDefinition module, List<TypeParameter> typeArgs, List<MemberDecl> members, Attributes attributes, List<Type>/*?*/ traits = null)
       : base(tok, name, module, typeArgs, attributes) {
       Contract.Requires(tok != null);
@@ -4662,6 +4707,21 @@ namespace Microsoft.Dafny {
 
     public TopLevelDecl EnclosingClass;  // filled in during resolution
     public MemberDecl RefinementBase;  // filled in during the pre-resolution refinement transformation; null if the member is new here
+    public MemberDecl OverriddenMember;  // filled in during resolution; non-null if the member overrides a member in a parent trait
+
+    /// <summary>
+    /// Returns "true" if "this" is a (possibly transitive) override of "possiblyOverriddenMember".
+    /// </summary>
+    public bool Overrides(MemberDecl possiblyOverriddenMember) {
+      Contract.Requires(possiblyOverriddenMember != null);
+      for (var th = this; th != null; th = th.OverriddenMember) {
+        if (th == possiblyOverriddenMember) {
+          return true;
+        }
+      }
+      return false;
+    }
+
     public MemberDecl(IToken tok, string name, bool hasStaticKeyword, bool isGhost, Attributes attributes)
       : base(tok, name, attributes) {
       Contract.Requires(tok != null);

@@ -138,6 +138,17 @@ module DuplicateParents {
   class R extends C<IntSynonym>, C<int> { }
   class S extends C<Even>, C<int> { }  // error: cannot extend C in different ways
   class T extends C<int>, C<int>, C<int>, C<real>, C<int>, C<Even> { }  // error: cannot extend C in different ways
+
+  trait X0 extends C<(real, int)> { }
+  trait X1<U> extends X0 { }
+  trait X2<U> extends C<seq<U>> { }
+  trait X3<U, V> extends C<(U, V)> { }
+  trait X4<U> extends X3<U, int> { }
+  trait X5<U> extends X3<real, U> { }
+  trait X6 extends X4<real>, X0, X5<int> { }  // all of these work out to extend C<(real, int)>
+  trait X7 extends X2<bool> { }
+  trait X8 extends X6, X7, X1<array<bv19>> { }  // error: extends C<(real, int)> and C<seq<bool>> (just 1 error message)
+  trait X9 extends X7, X6, X1<array<bv19>> { }  // error: extends C<(real, int)> and C<seq<bool>> (just 1 error message)
 }
 
 module DuplicateInheritedMembers {

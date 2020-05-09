@@ -31,3 +31,76 @@ module ForbiddenCycles {
 
   trait P extends B { }
 }
+
+module DuplicateMembers {
+  trait A {
+    var data: int
+    var karljohan: real
+  }
+  trait Q {
+    var mumble: int
+  }
+  trait B {
+    var data: int
+    var sopp: int
+    var fluga: real
+  }
+  trait C extends A, Q {
+    var fluga: real
+    var svamp: real
+  }
+  trait D extends B {
+    var karljohan: real
+    var svamp: real
+  }
+  trait X extends C, D {  // error (x4): duplicate members: data, fluga, karljohan, svamp
+  }
+
+  class J extends Y, D {  // error: duplicate member "sopp"
+  }
+  trait Y {
+    function sopp(): real
+  }
+  class K extends D, Y {  // error: duplicate member "sopp"
+  }
+  class L extends Y, D {  // error: duplicate member "sopp"
+  }
+
+  class Diamond extends Elva, Tolv {
+  }
+  trait Elva extends Tio {
+    function balalaika(): nat
+  }
+  trait Tolv extends Tio {
+    function banjo(): nat
+  }
+  trait Tio {
+    function munspel(): nat
+    function banjo(): nat
+    function balalaika(): nat
+  }
+
+  class InheritedOverrideAndOriginal extends Left, Right {
+    // everything is fine
+  }
+  trait Left {
+    method M() { }  // this is an override
+  }
+  trait Right {
+  }
+  trait Orig {
+    method M()
+  }
+
+  class TwoOverrides extends Left2, Right2 {  // error: inherits two unrelated overrides of M
+  }
+  trait Left2 {
+    method M() { }  // this is an override
+  }
+  trait Right2 {
+    method M() { }  // this is an override
+  }
+  trait Orig2 {
+    method M()
+  }
+}
