@@ -5,7 +5,8 @@ module M0 {
   trait TrX<X> {
     function F(x: X): int { 15 }
   }
-  trait Tr<X> extends TrX<X> { }
+  trait Tr<X> extends TrX<X> {
+  }
   class Cl<Y> extends Tr<Y> {
     lemma M() {
       var v := this;  // Cl<Y>
@@ -21,7 +22,8 @@ module M1 {
   trait TrX<X(0)> {
     var w: X
   }
-  trait Tr<X> extends TrX<X> { }
+  trait Tr<X> extends TrX<X> {
+  }
   class Cl<Y> extends Tr<(Y,Y)> {
   }
 
@@ -34,7 +36,8 @@ module M2 {
   trait TrX<X, W> {
     function method F(x: X, w: W): bv10 { 15 }
   }
-  trait Tr<X, W> extends TrX<X, W> { }
+  trait Tr<X, W> extends TrX<X, W> {
+  }
   class Cl<Y> extends Tr<(Y,Y), real> {
   }
 
@@ -49,7 +52,8 @@ module M3 {
   trait TrX<X, W> {
     function method F(x: X, w: W): bv10 { 15 }
   }
-  trait Tr<X, W> extends TrX<X, W> { }
+  trait Tr<X, W> extends TrX<X, W> {
+  }
   class Cl<Y> extends Tr<(Y,Y), real> {
     function method H(y: Y): bv10 {
       F((y, y), 5.0)
@@ -60,7 +64,8 @@ module M4 {
   trait TrX<X> {
     method M<A>(a: A, x: (X,A))
   }
-  trait Tr<X> extends TrX<X> { }
+  trait Tr<X> extends TrX<X> {
+  }
   class Cl<Y> extends Tr<Y> {
     method M<B>(a: B, x: int) { }  // error: type of x is int instead of the expected (Y, B)
   }
@@ -125,67 +130,6 @@ module NewMustMentionAClassName {
   }
 }
 
-module DuplicateParents {
-  trait A { var data: int }
-  trait B { var data: int }
-  trait C<X> { }
-
-  type IntSynonym = int
-  type Even = x | x % 2 == 0
-
-  class P extends A, A, B, A { }  // error: A and B both contain a member "data"
-  class Q extends C<int>, C<int> { }
-  class R extends C<IntSynonym>, C<int> { }
-  class S extends C<Even>, C<int> { }  // error: cannot extend C in different ways
-  class T extends C<int>, C<int>, C<int>, C<real>, C<int>, C<Even> { }  // error: cannot extend C in different ways
-
-  trait X0 extends C<(real, int)> { }
-  trait X1<U> extends X0 { }
-  trait X2<U> extends C<seq<U>> { }
-  trait X3<U, V> extends C<(U, V)> { }
-  trait X4<U> extends X3<U, int> { }
-  trait X5<U> extends X3<real, U> { }
-  trait X6 extends X4<real>, X0, X5<int> { }  // all of these work out to extend C<(real, int)>
-  trait X7 extends X2<bool> { }
-  trait X8 extends X6, X7, X1<array<bv19>> { }  // error: extends C<(real, int)> and C<seq<bool>> (just 1 error message)
-  trait X9 extends X7, X6, X1<array<bv19>> { }  // error: extends C<(real, int)> and C<seq<bool>> (just 1 error message)
-}
-
-module DuplicateInheritedMembers {
-  trait A {
-    var data: int
-  }
-  trait B {
-    var data: int
-  }
-  trait C {
-    var data: real
-  }
-  trait D {
-    function data(): int { 5 }
-  }
-
-  class P extends B, A { }  // error: A and B both contain a member "data"
-  class Q extends C, A { }  // error: A and B both contain a member "data"
-  class R extends D, A { }  // error: A and B both contain a member "data"
-}
-
-module StaticMembers {
-  trait Tr {
-    static const Cnst: object  // error: the type of this static const requires an initializing expression
-
-    // the following static members must also be given bodies, but that's checked by the compiler (see TraitCompileErrors.dfy)
-    static function method Func(): int
-    static method Method()
-    static twostate function TwoF(): int
-    static twostate lemma TwoL()
-    static inductive predicate P()
-    static copredicate Q()
-    static inductive lemma IL()
-    static colemma CL()
-  }
-}
-
 module CannotRedeclareMembers {
   trait Tr {
     var civ: object
@@ -231,7 +175,8 @@ module CannotRedeclareMembers {
     static method csm3() { }
     static ghost method gsm3() { }
   }
-  trait TrY extends Tr { }
+  trait TrY extends Tr {
+  }
   class Cl extends TrY {
     var civ: object  // error: cannot redeclare
     ghost var giv: object  // error: cannot redeclare
@@ -294,7 +239,8 @@ module MemberMismatch {
     inductive lemma R()
     colemma S()
   }
-  trait A3 extends AAA { }
+  trait A3 extends AAA {
+  }
   class SwitchGhostStatus extends A3 {
     function F(): bool  // error: ghost mismatch
     function method G(): bool  // error: ghost mismatch
@@ -384,7 +330,8 @@ module PredicateFunctionBool {
     predicate M()
     twostate predicate N()
   }
-  trait AAA extends A4 { }
+  trait AAA extends A4 {
+  }
   class C extends AAA {
     predicate F() { true }
     twostate predicate G() { true }
@@ -402,7 +349,9 @@ module ExtremeKMismatch {
     inductive lemma K()
     inductive lemma L[nat]()
     inductive lemma M[ORDINAL]()
-  }  trait AAA extends A4 { }
+  }
+  trait AAA extends A4 {
+  }
   class C0 extends AAA {
     inductive predicate P()
     inductive predicate Q()  // error: nat vs ORDINAL
