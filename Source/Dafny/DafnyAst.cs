@@ -4006,6 +4006,14 @@ namespace Microsoft.Dafny {
     {
       private readonly Dictionary<TraitDecl, List<(Type, List<TraitDecl> /*via this parent path*/)>> info = new Dictionary<TraitDecl, List<(Type, List<TraitDecl>)>>();
 
+      /// <summary>
+      /// Returns a subset of the trait's ParentTraits, but not repeating any head type.
+      /// Assumes the declaration has been successfully resolved.
+      /// </summary>
+      public List<Type> UniqueParentTraits() {
+        return info.ToList().ConvertAll(entry => entry.Value[0].Item1);
+      }
+
       public void Record(TraitDecl traitHead, UserDefinedType parentType) {
         Contract.Requires(traitHead != null);
         Contract.Requires(parentType != null);

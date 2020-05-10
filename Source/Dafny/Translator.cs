@@ -4585,13 +4585,15 @@ namespace Microsoft.Dafny {
       definiteAssignmentTrackers.Add(p.UniqueName, ie);
     }
 
-    void AddDefiniteAssignmentTrackerSurrogate(Field field, List<Variable> localVariables) {
+    void AddDefiniteAssignmentTrackerSurrogate(Field field, TopLevelDeclWithMembers enclosingClass, List<Variable> localVariables) {
       Contract.Requires(field != null);
       Contract.Requires(localVariables != null);
 
       if (DafnyOptions.O.DefiniteAssignmentLevel == 0 || field.IsGhost) {
         return;
-      } else if (DafnyOptions.O.DefiniteAssignmentLevel == 1 && Compiler.InitializerIsKnown(field.Type)) {
+      }
+      var type = Resolver.SubstType(field.Type, enclosingClass.ParentFormalTypeParametersToActuals);
+      if (DafnyOptions.O.DefiniteAssignmentLevel == 1 && Compiler.InitializerIsKnown(type)) {
         return;
       }
       var nm = SurrogateName(field);
@@ -10372,7 +10374,7 @@ namespace Microsoft.Dafny {
         fields.RemoveAll(f => f == null);
         var localSurrogates = fields.ConvertAll(f => new Bpl.LocalVariable(f.tok, new TypedIdent(f.tok, SurrogateName(f), TrType(f.Type))));
         locals.AddRange(localSurrogates);
-        fields.Iter(f => AddDefiniteAssignmentTrackerSurrogate(f, locals));
+        fields.Iter(f => AddDefiniteAssignmentTrackerSurrogate(f, cl, locals));
 
         Contract.Assert(!inBodyInitContext);
         inBodyInitContext = true;

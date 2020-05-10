@@ -109,33 +109,3 @@ class FixedImpl extends Spec<int> {
     ensures Repr == old(Repr)
     decreases Repr
 }
-
-// -----------------------------------------------------
-
-module TestParentTraitRelation {
-  trait BTrait {
-    ghost var Repr: set<object>
-    predicate Valid()
-      reads this, Repr
-      ensures Valid() ==> this in Repr
-    method SomeMethod()
-      requires Valid()
-      modifies Repr
-      ensures Valid() && fresh(Repr - old(Repr))
-  }
-
-  trait CTrait {
-    ghost var Repr: set<object>
-    predicate Valid()
-      reads this, Repr
-      ensures Valid() ==> this in Repr
-  }
-
-  method doSomething(b: BTrait, c: BTrait)
-    requires b.Valid() && c.Valid() && b.Repr !! c.Repr
-    modifies b.Repr
-    ensures b.Valid() && c.Valid()
-  {
-    b.SomeMethod();
-  }
-}

@@ -707,7 +707,7 @@ namespace Microsoft.Dafny {
           } else if (d is TraitDecl) {
             // writing the trait
             var trait = (TraitDecl)d;
-            var w = CreateTrait(trait.CompileName, trait.IsExtern(out _, out _), trait.TypeArgs, null, null, wr);
+            var w = CreateTrait(trait.CompileName, trait.IsExtern(out _, out _), trait.TypeArgs, trait.ParentTypeInformation.UniqueParentTraits(), trait.tok, wr);
             CompileClassMembers(trait, w);
           } else if (d is ClassDecl) {
             var cl = (ClassDecl)d;
@@ -725,7 +725,7 @@ namespace Microsoft.Dafny {
               }
             }
             if (include) {
-              var cw = CreateClass(IdName(cl), classIsExtern, cl.FullName, cl.TypeArgs, cl.ParentTraits, cl.tok, wr);
+              var cw = CreateClass(IdName(cl), classIsExtern, cl.FullName, cl.TypeArgs, cl.ParentTypeInformation.UniqueParentTraits(), cl.tok, wr);
               CompileClassMembers(cl, cw);
               cw.Finish();
             } else {
@@ -946,7 +946,7 @@ namespace Microsoft.Dafny {
 
       List<MemberDecl> inheritedMembers;
       Dictionary<TypeParameter, Type> typeMap;
-      if (c is TopLevelDeclWithMembers cl) {
+      if (c is TopLevelDeclWithMembers cl && !(c is TraitDecl)) {
         inheritedMembers = cl.InheritedMembers;
         typeMap = cl.ParentFormalTypeParametersToActuals;
       } else {
@@ -1044,7 +1044,9 @@ namespace Microsoft.Dafny {
       }
 
       foreach (MemberDecl member in c.Members) {
-        if (member is Field) {
+        if (c is TraitDecl && member.OverriddenMember != null) {
+          // emit nothing in the trait; this member will be emitted in the classes that extend this trait
+        } else if (member is Field) {
           var f = (Field)member;
           if (f.IsGhost) {
             // emit nothing, but check for assumes
