@@ -2249,7 +2249,7 @@ namespace Microsoft.Dafny
         // Now that all traits have been resolved, let classes inherit the trait members
         foreach (var d in declarations) {
           if (d is TopLevelDeclWithMembers cl) {
-            InheritTraitMembers(cl);
+            InheritedTraitMembers(cl);
           }
         }
       }
@@ -7914,116 +7914,99 @@ namespace Microsoft.Dafny
       currentClass = null;
     }
 
-    void InheritTraitMembers(TopLevelDeclWithMembers cl) {
+    /// <summary>
+    /// This method checks the rules for inherited and overridden members. It also populates .InheritedMembers with the
+    /// non-static members that are inherited from parent traits.
+    /// </summary>
+    void InheritedTraitMembers(TopLevelDeclWithMembers cl) {
       Contract.Requires(cl != null);
       Contract.Requires(cl.ParentTypeInformation != null);
 
-      //merging class members with parent members if any
-      var clMembers = classMembers[cl];
-      foreach (TraitDecl trait in cl.ParentTraitHeads) {
-        //merging current class members with the inheriting trait
-        foreach (var traitMember in trait.Members) {
-          var clMember = clMembers[traitMember.Name];
-          if (clMember == traitMember) {
-            // The member is the one inherited from the trait (and the class does not itself define a member with this name).  This
-            // is fine for fields and for functions and methods with bodies.  However, for a body-less function or method, the class
-            // is required to at least redeclare the member with its signature.  (It should also provide a stronger specification,
-            // but that will be checked by the verifier.  And it should also have a body, but that will be checked by the compiler.)
-            if (traitMember is Field) {
-              var field = (Field)traitMember;
-              if (!field.IsStatic) {
-                cl.InheritedMembers.Add(field);
-              }
-            } else if (traitMember is Function) {
-              var func = (Function)traitMember;
-              if (func.Body == null) {
-                reporter.Error(MessageSource.Resolver, cl.tok, "class '{0}' does not implement trait function '{1}.{2}'", cl.Name, trait.Name, traitMember.Name);
-              } else if (!func.IsStatic) {
-                cl.InheritedMembers.Add(func);
-              }
-            } else if (traitMember is Method) {
-              var method = (Method)traitMember;
-              if (method.Body == null) {
-                reporter.Error(MessageSource.Resolver, cl.tok, "class '{0}' does not implement trait method '{1}.{2}'", cl.Name, trait.Name, traitMember.Name);
-              } else if (!method.IsStatic) {
-                cl.InheritedMembers.Add(method);
-              }
-            }
-          } else if (clMember.EnclosingClass != cl) {
-            // The class inherits the member from two places
-            reporter.Error(MessageSource.Resolver, cl.tok, "member name '{0}' in class '{1}' inherited from both traits '{2}' and '{3}'", traitMember.Name, cl.Name, clMember.EnclosingClass.Name, trait.Name);
+      foreach (var member in classMembers[cl].Values) {
+        if (member is PrefixPredicate || member is PrefixLemma) {
+          // these are handled with the corresponding extremem predicate/lemma
+          continue;
+        }
+        if (member.EnclosingClass != cl) {
+          // The member is the one inherited from a trait (and the class does not itself define a member with this name).  This
+          // is fine for fields and for functions and methods with bodies. However, if "cl" is not itself a trait, then for a body-less function
+          // or method, "cl" is required to at least redeclare the member with its signature.  (It should also provide a stronger specification,
+          // but that will be checked by the verifier.  And it should also have a body, but that will be checked by the compiler.)
+          if (member.IsStatic) {
+            // nothing to do
+          } else if (member is Field || (member as Function)?.Body != null || (member as Method)?.Body != null) {
+            // member is a field or a fully defined function or method
+            cl.InheritedMembers.Add(member);
+          } else if (cl is TraitDecl) {
+            // there are no expectations that a field needs to repeat the signature of inherited body-less members
+          } else {
+            reporter.Error(MessageSource.Resolver, cl.tok, "{0} '{1}' does not implement trait {2} '{3}.{4}'", cl.WhatKind, cl.Name, member.WhatKind, member.EnclosingClass.Name, member.Name);
+          }
+          continue;
+        }
+        if (member.OverriddenMember == null) {
+          // this member has nothing to do with the parent traits
+          continue;
+        }
 
-          } else if (traitMember.IsStatic) {
-            reporter.Error(MessageSource.Resolver, clMember.tok, "static {0} '{1}' is inherited from trait '{2}' and is not allowed to be re-declared", traitMember.WhatKind, traitMember.Name, trait.Name);
+        var traitMember = member.OverriddenMember;
+        var trait = traitMember.EnclosingClass;
+        if (traitMember.IsStatic) {
+          reporter.Error(MessageSource.Resolver, member.tok, "static {0} '{1}' is inherited from trait '{2}' and is not allowed to be re-declared",
+            traitMember.WhatKind, traitMember.Name, trait.Name);
+        } else if (member.IsStatic) {
+          reporter.Error(MessageSource.Resolver, member.tok, "static member '{0}' overrides non-static member in trait '{1}'", member.Name, trait.Name);
+        } else if (traitMember is Field) {
+          // The class is not allowed to do anything with the field other than silently inherit it.
+          reporter.Error(MessageSource.Resolver, member.tok, "{0} '{1}' is inherited from trait '{2}' and is not allowed to be re-declared", traitMember.WhatKind, traitMember.Name, trait.Name);
+        } else if ((traitMember as Function)?.Body != null || (traitMember as Method)?.Body != null) {
+          // the overridden member is a fully defined function or method, so the class is not allowed to do anything with it other than silently inherit it
+          reporter.Error(MessageSource.Resolver, member.tok, "fully defined {0} '{1}' is inherited from trait '{2}' and is not allowed to be re-declared",
+            traitMember.WhatKind, traitMember.Name, trait.Name);
+        } else if (member is Lemma != traitMember is Lemma ||
+                   member is TwoStateLemma != traitMember is TwoStateLemma ||
+                   member is InductiveLemma != traitMember is InductiveLemma ||
+                   member is CoLemma != traitMember is CoLemma ||
+                   member is TwoStateFunction != traitMember is TwoStateFunction ||
+                   member is InductivePredicate != traitMember is InductivePredicate ||
+                   member is CoPredicate != traitMember is CoPredicate) {
+          reporter.Error(MessageSource.Resolver, member.tok, "{0} '{1}' in '{2}' can only be overridden by a {0} (got {3})", traitMember.WhatKind, traitMember.Name, trait.Name, member.WhatKind);
+        } else if (member.IsGhost != traitMember.IsGhost) {
+          reporter.Error(MessageSource.Resolver, member.tok, "overridden {0} '{1}' in '{2}' has different ghost/compiled status than in trait '{3}'",
+            traitMember.WhatKind, traitMember.Name, cl.Name, trait.Name);
+        } else {
+          // Copy trait member's extern attribute onto class member if class does not provide one
+          if (!Attributes.Contains(member.Attributes, "extern") && Attributes.Contains(traitMember.Attributes, "extern")) {
+            var traitExternArgs = Attributes.FindExpressions(traitMember.Attributes, "extern");
+            member.Attributes = new Attributes("extern", traitExternArgs, member.Attributes);
+          }
 
-          } else if (traitMember is Field) {
-            // The class is not allowed to do anything with the field other than silently inherit it.
-            if (clMember is Field) {
-              reporter.Error(MessageSource.Resolver, clMember.tok, "field '{0}' is inherited from trait '{1}' and is not allowed to be re-declared", traitMember.Name, trait.Name);
-            } else {
-              reporter.Error(MessageSource.Resolver, clMember.tok, "member name '{0}' in class '{1}' clashes with inherited field from trait '{2}'", traitMember.Name, cl.Name, trait.Name);
-            }
-
-          } else if (traitMember is Method) {
+          if (traitMember is Method) {
+            var classMethod = (Method)member;
             var traitMethod = (Method)traitMember;
-            if (traitMethod.Body != null) {
-              // The method was defined in the trait, so the class is not allowed to do anything with the method other than silently inherit it.
-              reporter.Error(MessageSource.Resolver, clMember.tok, "member '{0}' in class '{1}' overrides fully defined method inherited from trait '{2}'", clMember.Name, cl.Name, trait.Name);
-            } else if (!(clMember is Method)) {
-              reporter.Error(MessageSource.Resolver, clMember.tok, "non-method member '{0}' overrides method '{1}' inherited from trait '{2}'", clMember.Name, traitMethod.Name, trait.Name);
-            } else if (clMember is Lemma != traitMember is Lemma ||
-                       clMember is TwoStateLemma != traitMember is TwoStateLemma ||
-                       clMember is InductiveLemma != traitMember is InductiveLemma ||
-                       clMember is CoLemma != traitMember is CoLemma) {
-              reporter.Error(MessageSource.Resolver, clMember.tok, "{0} '{1}' in '{2}' can only be overridden by a {0} (got {3})", traitMember.WhatKind, traitMember.Name, trait.Name, clMember.WhatKind);
-            } else if (clMember.IsGhost != traitMember.IsGhost) {
-              reporter.Error(MessageSource.Resolver, clMember.tok, "overridden {0} '{1}' in '{2}' has different ghost/compiled status than in trait '{3}'", clMember.WhatKind, clMember.Name, cl.Name, trait.Name);
-            } else {
-              var classMethod = (Method)clMember;
+            classMethod.OverriddenMethod = traitMethod;
+            //adding a call graph edge from the trait method to that of class
+            cl.Module.CallGraph.AddEdge(traitMethod, classMethod);
 
-              // Copy trait's extern attribute onto class if class does not provide one
-              if (!Attributes.Contains(classMethod.Attributes, "extern") && Attributes.Contains(traitMethod.Attributes, "extern")) {
-                var traitExternArgs = Attributes.FindExpressions(traitMethod.Attributes, "extern");
-                classMethod.Attributes = new Attributes("extern", traitExternArgs, classMethod.Attributes);
-              }
+            CheckOverride_MethodParameters(classMethod, traitMethod, cl.ParentFormalTypeParametersToActuals);
 
-              classMethod.OverriddenMethod = traitMethod;
-              //adding a call graph edge from the trait method to that of class
-              cl.Module.CallGraph.AddEdge(traitMethod, classMethod);
-
-              CheckOverride_MethodParameters(classMethod, traitMethod, cl.ParentFormalTypeParametersToActuals);
-
-              var traitMethodAllowsNonTermination = Contract.Exists(traitMethod.Decreases.Expressions, e => e is WildcardExpr);
-              var classMethodAllowsNonTermination = Contract.Exists(classMethod.Decreases.Expressions, e => e is WildcardExpr);
-              if (classMethodAllowsNonTermination && !traitMethodAllowsNonTermination) {
-                reporter.Error(MessageSource.Resolver, classMethod.tok, "not allowed to override a terminating method with a possibly non-terminating method ('{0}')", classMethod.Name);
-              }
+            var traitMethodAllowsNonTermination = Contract.Exists(traitMethod.Decreases.Expressions, e => e is WildcardExpr);
+            var classMethodAllowsNonTermination = Contract.Exists(classMethod.Decreases.Expressions, e => e is WildcardExpr);
+            if (classMethodAllowsNonTermination && !traitMethodAllowsNonTermination) {
+              reporter.Error(MessageSource.Resolver, classMethod.tok, "not allowed to override a terminating method with a possibly non-terminating method ('{0}')", classMethod.Name);
             }
 
           } else if (traitMember is Function) {
+            var classFunction = (Function)member;
             var traitFunction = (Function)traitMember;
-            if (traitFunction.Body != null) {
-              // The function was defined in the trait, so the class is not allowed to do anything with the function other than silently inherit it.
-              reporter.Error(MessageSource.Resolver, clMember.tok, "member '{0}' in class '{1}' overrides fully defined function inherited from trait '{2}'", clMember.Name, cl.Name, trait.Name);
-            } else if (!(clMember is Function)) {
-              reporter.Error(MessageSource.Resolver, clMember.tok, "non-function member '{0}' overrides function '{1}' inherited from trait '{2}'", clMember.Name, traitFunction.Name, trait.Name);
-            } else if (clMember is TwoStateFunction != traitMember is TwoStateFunction ||
-                       clMember is InductivePredicate != traitMember is InductivePredicate ||
-                       clMember is CoPredicate != traitMember is CoPredicate) {
-              reporter.Error(MessageSource.Resolver, clMember.tok, "{0} '{1}' in '{2}' can only be overridden by a {0} (got {3})", traitMember.WhatKind, traitMember.Name, trait.Name, clMember.WhatKind);
-            } else if (clMember.IsGhost != traitMember.IsGhost) {
-              reporter.Error(MessageSource.Resolver, clMember.tok, "overridden {0} '{1}' in '{2}' has different ghost/compiled status than in trait '{3}'", clMember.WhatKind, clMember.Name, cl.Name, trait.Name);
-            } else {
-              var classFunction = (Function)clMember;
-              classFunction.OverriddenFunction = traitFunction;
-              //adding a call graph edge from the trait method to that of class
-              cl.Module.CallGraph.AddEdge(traitFunction, classFunction);
+            classFunction.OverriddenFunction = traitFunction;
+            //adding a call graph edge from the trait function to that of class
+            cl.Module.CallGraph.AddEdge(traitFunction, classFunction);
 
-              CheckOverride_FunctionParameters(classFunction, traitFunction, cl.ParentFormalTypeParametersToActuals);
-            }
+            CheckOverride_FunctionParameters(classFunction, traitFunction, cl.ParentFormalTypeParametersToActuals);
 
           } else {
-            Contract.Assert(false);  // unexpected member
+            Contract.Assert(false); // unexpected member
           }
         }
       }

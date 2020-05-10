@@ -56,7 +56,6 @@ module M3 {
     }
   }
 }
-
 module M4 {
   trait TrX<X> {
     method M<A>(a: A, x: (X,A))
@@ -188,7 +187,7 @@ module StaticMembers {
 }
 
 module CannotRedeclareMembers {
-  trait TrX {
+  trait Tr {
     var civ: object
     ghost var giv: object
     const cic: object
@@ -232,8 +231,8 @@ module CannotRedeclareMembers {
     static method csm3() { }
     static ghost method gsm3() { }
   }
-  trait Tr extends TrX { }
-  class Cl extends Tr {
+  trait TrY extends Tr { }
+  class Cl extends TrY {
     var civ: object  // error: cannot redeclare
     ghost var giv: object  // error: cannot redeclare
     const cic: object  // error: cannot redeclare
@@ -280,7 +279,7 @@ module CannotRedeclareMembers {
 }
 
 module MemberMismatch {
-  trait A4 {
+  trait AAA {
     function method F(): bool
     function G(): bool
     twostate function H(): bool
@@ -295,8 +294,8 @@ module MemberMismatch {
     inductive lemma R()
     colemma S()
   }
-  trait AAA extends A4 { }
-  class SwitchGhostStatus extends AAA {
+  trait A3 extends AAA { }
+  class SwitchGhostStatus extends A3 {
     function F(): bool  // error: ghost mismatch
     function method G(): bool  // error: ghost mismatch
     twostate function H(): bool
@@ -312,7 +311,7 @@ module MemberMismatch {
     colemma S()
   }
 
-  class SwitchLemma extends AAA {
+  class SwitchLemma extends A3 {
     function method F(): bool
     function G(): bool
     twostate function H(): bool
@@ -328,7 +327,7 @@ module MemberMismatch {
     colemma S()
   }
 
-  class SwitchTwoState extends AAA {
+  class SwitchTwoState extends A3 {
     function method F(): bool
     function G(): bool
     twostate function H(): bool
@@ -344,7 +343,7 @@ module MemberMismatch {
     colemma S()
   }
 
-  class SwitchExtreme0 extends AAA {
+  class SwitchExtreme0 extends A3 {
     function method F(): bool
     function G(): bool
     twostate function H(): bool
@@ -360,7 +359,7 @@ module MemberMismatch {
     inductive lemma S()  // error: coind. vs ind.
   }
 
-  class SwitchExtreme1 extends AAA {
+  class SwitchExtreme1 extends A3 {
     function method F(): bool
     function G(): bool
     twostate function H(): bool
@@ -394,7 +393,6 @@ module PredicateFunctionBool {
     twostate function N(): bool { true }
   }
 }
-
 module ExtremeKMismatch {
   trait A4 {
     inductive predicate P()
@@ -404,8 +402,7 @@ module ExtremeKMismatch {
     inductive lemma K()
     inductive lemma L[nat]()
     inductive lemma M[ORDINAL]()
-  }
-  trait AAA extends A4 { }
+  }  trait AAA extends A4 { }
   class C0 extends AAA {
     inductive predicate P()
     inductive predicate Q()  // error: nat vs ORDINAL

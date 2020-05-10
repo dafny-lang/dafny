@@ -38,14 +38,14 @@ TraitResolution.dfy(170,8): Error: class 'R' inherits a member named 'data' from
 TraitResolution.dfy(175,17): Error: static non-ghost const field 'Cnst' of type 'object' (which does not have a default compiled value) must give a defining value
 TraitResolution.dfy(236,8): Error: field 'civ' is inherited from trait 'Tr' and is not allowed to be re-declared
 TraitResolution.dfy(237,14): Error: field 'giv' is inherited from trait 'Tr' and is not allowed to be re-declared
-TraitResolution.dfy(238,10): Error: field 'cic' is inherited from trait 'Tr' and is not allowed to be re-declared
-TraitResolution.dfy(239,16): Error: field 'gic' is inherited from trait 'Tr' and is not allowed to be re-declared
+TraitResolution.dfy(238,10): Error: const field 'cic' is inherited from trait 'Tr' and is not allowed to be re-declared
+TraitResolution.dfy(239,16): Error: const field 'gic' is inherited from trait 'Tr' and is not allowed to be re-declared
 TraitResolution.dfy(240,17): Error: static const field 'csc' is inherited from trait 'Tr' and is not allowed to be re-declared
 TraitResolution.dfy(241,23): Error: static const field 'gsc' is inherited from trait 'Tr' and is not allowed to be re-declared
-TraitResolution.dfy(247,20): Error: member 'cif2' in class 'Cl' overrides fully defined function inherited from trait 'Tr'
-TraitResolution.dfy(248,13): Error: member 'gif2' in class 'Cl' overrides fully defined function inherited from trait 'Tr'
-TraitResolution.dfy(249,20): Error: member 'cif3' in class 'Cl' overrides fully defined function inherited from trait 'Tr'
-TraitResolution.dfy(250,13): Error: member 'gif3' in class 'Cl' overrides fully defined function inherited from trait 'Tr'
+TraitResolution.dfy(247,20): Error: fully defined function 'cif2' is inherited from trait 'Tr' and is not allowed to be re-declared
+TraitResolution.dfy(248,13): Error: fully defined function 'gif2' is inherited from trait 'Tr' and is not allowed to be re-declared
+TraitResolution.dfy(249,20): Error: fully defined function 'cif3' is inherited from trait 'Tr' and is not allowed to be re-declared
+TraitResolution.dfy(250,13): Error: fully defined function 'gif3' is inherited from trait 'Tr' and is not allowed to be re-declared
 TraitResolution.dfy(252,27): Error: static function 'csf0' is inherited from trait 'Tr' and is not allowed to be re-declared
 TraitResolution.dfy(253,20): Error: static function 'gsf0' is inherited from trait 'Tr' and is not allowed to be re-declared
 TraitResolution.dfy(254,27): Error: static function 'csf1' is inherited from trait 'Tr' and is not allowed to be re-declared
@@ -54,10 +54,10 @@ TraitResolution.dfy(256,27): Error: static function 'csf2' is inherited from tra
 TraitResolution.dfy(257,20): Error: static function 'gsf2' is inherited from trait 'Tr' and is not allowed to be re-declared
 TraitResolution.dfy(258,27): Error: static function 'csf3' is inherited from trait 'Tr' and is not allowed to be re-declared
 TraitResolution.dfy(259,20): Error: static function 'gsf3' is inherited from trait 'Tr' and is not allowed to be re-declared
-TraitResolution.dfy(265,11): Error: member 'cim2' in class 'Cl' overrides fully defined method inherited from trait 'Tr'
-TraitResolution.dfy(266,17): Error: member 'gim2' in class 'Cl' overrides fully defined method inherited from trait 'Tr'
-TraitResolution.dfy(267,11): Error: member 'cim3' in class 'Cl' overrides fully defined method inherited from trait 'Tr'
-TraitResolution.dfy(268,17): Error: member 'gim3' in class 'Cl' overrides fully defined method inherited from trait 'Tr'
+TraitResolution.dfy(265,11): Error: fully defined method 'cim2' is inherited from trait 'Tr' and is not allowed to be re-declared
+TraitResolution.dfy(266,17): Error: fully defined method 'gim2' is inherited from trait 'Tr' and is not allowed to be re-declared
+TraitResolution.dfy(267,11): Error: fully defined method 'cim3' is inherited from trait 'Tr' and is not allowed to be re-declared
+TraitResolution.dfy(268,17): Error: fully defined method 'gim3' is inherited from trait 'Tr' and is not allowed to be re-declared
 TraitResolution.dfy(270,18): Error: static method 'csm0' is inherited from trait 'Tr' and is not allowed to be re-declared
 TraitResolution.dfy(271,24): Error: static method 'gsm0' is inherited from trait 'Tr' and is not allowed to be re-declared
 TraitResolution.dfy(272,18): Error: static method 'csm1' is inherited from trait 'Tr' and is not allowed to be re-declared
