@@ -118,3 +118,63 @@ module TraitsExtendingTraits {
       assert x <= 20;  // error: this is not provable
   }
 }
+
+// -----
+
+module StandardIdiom {
+  trait ValidReprIdiom {
+    ghost var Repr: set<object>
+
+    predicate Valid()
+      reads this, Repr
+      ensures Valid() ==> this in Repr
+  }
+
+  class Filter extends ValidReprIdiom {
+    const next: ValidReprIdiom
+
+    predicate Valid()
+      reads this, Repr
+      ensures Valid() ==> this in Repr
+    {
+      this in Repr &&
+      next in Repr && next.Repr <= Repr && this !in next.Repr && next.Valid()
+    }
+
+    constructor(next: ValidReprIdiom) {
+      this.next := next;
+    }
+  }
+
+  class ABC extends ValidReprIdiom {
+    predicate Valid()
+      reads this, Repr
+      ensures Valid() ==> this in Repr
+    {
+      this in Repr
+    }
+
+    constructor()
+      ensures Valid() && fresh(Repr)
+    {
+      Repr := {this};
+    }
+  }
+}
+
+module OverrideWithDifferentFuels {
+  trait Tr {
+    function method F(x: nat): nat
+  }
+  class Cl extends Tr {
+    function method F(x: nat): nat {
+      if x == 0 then 0 else F(x - 1)
+    }
+  }
+  method Test(c: Cl) {
+    var t: Tr := c;
+    var x := t.F(5);
+    var y := c.F(5);
+    assert x == y;
+  }
+}

@@ -5894,7 +5894,7 @@ namespace Microsoft.Dafny {
     bool ICodeContext.MustReverify { get { return false; } }
 
     [Pure]
-    public bool IsFuelAware() { return IsRecursive || IsFueled; }
+    public bool IsFuelAware() { return IsRecursive || IsFueled || (OverriddenFunction != null && OverriddenFunction.IsFuelAware()); }
     public virtual bool ReadsHeap { get { return Reads.Count != 0; } }
   }
 

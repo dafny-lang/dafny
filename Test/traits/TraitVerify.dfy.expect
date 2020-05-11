@@ -19,4 +19,4 @@ TraitVerify.dfy(30,7): Error: value does not satisfy the subset constraints of '
 Execution trace:
     (0,0): anon0
 
-Dafny program verifier finished with 7 verified, 6 errors
+Dafny program verifier finished with 17 verified, 6 errors
