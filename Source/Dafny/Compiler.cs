@@ -521,20 +521,29 @@ namespace Microsoft.Dafny {
     protected virtual void EmitNull(Type type, TargetWriter wr) {
       wr.Write("null");
     }
-    protected virtual void EmitITE(Expression guard, Expression thn, Expression els, bool inLetExprBody, TargetWriter wr) {
+    protected virtual void EmitITE(Expression guard, Expression thn, Expression els, Type resultType, bool inLetExprBody, TargetWriter wr) {
       Contract.Requires(guard != null);
       Contract.Requires(thn != null);
       Contract.Requires(thn.Type != null);
       Contract.Requires(els != null);
+      Contract.Requires(resultType != null);
       Contract.Requires(wr != null);
 
+      resultType = resultType.NormalizeExpand();
       wr.Write("(");
       TrExpr(guard, wr, inLetExprBody);
       wr.Write(") ? (");
-      TrExpr(thn, wr, inLetExprBody);
+      TrExpr(thn, resultType.Equals(thn.Type.NormalizeExpand()) ? wr : EmitCast(resultType, wr), inLetExprBody);
       wr.Write(") : (");
-      TrExpr(els, wr, inLetExprBody);
+      TrExpr(els, resultType.Equals(els.Type.NormalizeExpand()) ? wr : EmitCast(resultType, wr), inLetExprBody);
       wr.Write(")");
+    }
+
+    protected virtual TargetWriter EmitCast(Type toType, TargetWriter wr) {
+      wr.Write("({0})(", TypeName(toType, wr, Bpl.Token.NoToken));
+      var exprWr = wr.Fork();
+      wr.Write(")");
+      return exprWr;
     }
     protected abstract void EmitDatatypeValue(DatatypeValue dtv, string arguments, TargetWriter wr);
     protected abstract void GetSpecialFieldInfo(SpecialField.ID id, object idParam, out string compiledName, out string preString, out string postString);
@@ -3815,7 +3824,7 @@ namespace Microsoft.Dafny {
 
       } else if (expr is ITEExpr) {
         var e = (ITEExpr)expr;
-        EmitITE(e.Test, e.Thn, e.Els, inLetExprBody, wr);
+        EmitITE(e.Test, e.Thn, e.Els, e.Type, inLetExprBody, wr);
 
       } else if (expr is ConcreteSyntaxExpression) {
         var e = (ConcreteSyntaxExpression)expr;

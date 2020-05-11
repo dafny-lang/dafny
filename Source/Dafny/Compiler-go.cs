@@ -2236,7 +2236,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    protected override void EmitITE(Expression guard, Expression thn, Expression els, bool inLetExprBody, TargetWriter wr) {
+    protected override void EmitITE(Expression guard, Expression thn, Expression els, Type resultType, bool inLetExprBody, TargetWriter wr) {
       wr.Write("(func () {0} {{ if ", TypeName(thn.Type, wr, null));
       TrExpr(guard, wr, inLetExprBody);
       wr.Write(" { return ");

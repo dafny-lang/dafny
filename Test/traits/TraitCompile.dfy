@@ -275,10 +275,15 @@ module GenericBasics {
   method Test() {
     var c: Cl<real> := new Cl();
     var m: Mega<bool, real, Cl<real>> := new Mega();
-    var ts: seq<Tr<real, int>> := [c, m];
+    // not all compile targets support seq<TRAIT> yet; therefore, we code around it, to at least get calls via "t: Tr"
+    ghost var ts: seq<Tr<real, int>> := [c, m];
+    var t: Tr;
     var i := 0;
-    while i < |ts| {
-      var t := ts[i];
+    while i < 2
+      invariant 0 <= i <= 2
+    {
+      t := if i == 0 then c else m;
+      assert t == ts[i];
       print t.xyz, " ";
       print t.abc, " ";
       print t.def, " ";
