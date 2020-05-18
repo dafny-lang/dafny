@@ -227,6 +227,7 @@ namespace Microsoft.Dafny {
           null, null, null);
         readsIS.Function = reads;  // just so we can really claim the member declarations are resolved
         readsIS.TypeArgumentSubstitutions = Util.Dict(tps, tys);  // ditto
+        readsIS.TypeApplication_JustFunction = new List<Type>();  // ditto
         var arrowDecl = new ArrowTypeDecl(tps, req, reads, SystemModule, DontCompile());
         ArrowTypeDecls.Add(arity, arrowDecl);
         SystemModule.TopLevelDecls.Add(arrowDecl);
@@ -285,6 +286,7 @@ namespace Microsoft.Dafny {
       var fn = new MemberSelectExpr(tok, f, member.Name) {
         Member = member,
         TypeApplication = f.Type.TypeArgs,
+        TypeApplication_JustMember = new List<Type>(),
         Type = member.Type
       };
       Expression body = new ApplyExpr(tok, fn, args);
@@ -5922,6 +5924,7 @@ namespace Microsoft.Dafny {
           prefixPredCall.TypeArgumentSubstitutions[p.Key] = p.Value;
         }
       }  // resolved here.
+      prefixPredCall.TypeApplication_JustFunction = fexp.TypeApplication_JustFunction;
 
       prefixPredCall.Type = fexp.Type;  // resolve here
       prefixPredCall.CoCall = fexp.CoCall;  // resolve here
@@ -9251,6 +9254,7 @@ namespace Microsoft.Dafny {
     /// However, for a static member, the said receiver type is always the enclosing class of the member, even if
     /// the type of an explicitly given receiver is some subclass thereof.
     public List<Type> TypeApplication;
+    public List<Type> TypeApplication_JustMember;
 
     public Dictionary<TypeParameter, Type> TypeArgumentSubstitutions() {
       Contract.Requires(WasResolved());
@@ -9346,6 +9350,7 @@ namespace Microsoft.Dafny {
 
       var receiverType = obj.Type.NormalizeExpand();
       this.TypeApplication = receiverType.TypeArgs;  // resolve here
+      this.TypeApplication_JustMember = new List<Type>();
 
       var typeMap = new Dictionary<TypeParameter, Type>();
       if (receiverType is UserDefinedType udt) {
@@ -9541,6 +9546,7 @@ namespace Microsoft.Dafny {
     public readonly IToken OpenParen;  // can be null if Args.Count == 0
     public readonly List<Expression> Args;
     public Dictionary<TypeParameter, Type> TypeArgumentSubstitutions;  // created, initialized, and used by resolution (and also used by translation)
+    public List<Type> TypeApplication_JustFunction;  // created, initialized, and used by resolution (and also used by translation)
     public enum CoCallResolution {
       No,
       Yes,

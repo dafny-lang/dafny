@@ -139,7 +139,10 @@ namespace Microsoft.Dafny
                     Fi = ll.Obj;
                     lhsBuilder = e => {
                       var l = new MemberSelectExpr(ll.tok, e, ll.MemberName);
-                      l.Member = ll.Member; l.TypeApplication = ll.TypeApplication; l.Type = ll.Type;
+                      l.Member = ll.Member;
+                      l.TypeApplication = ll.TypeApplication;
+                      l.TypeApplication_JustMember = ll.TypeApplication_JustMember;
+                      l.Type = ll.Type;
                       return l; };
                   } else if (lhs is SeqSelectExpr) {
                     var ll = (SeqSelectExpr)lhs;
@@ -865,6 +868,7 @@ namespace Microsoft.Dafny
       for (int i = 0; i < Valid.EnclosingClass.TypeArgs.Count; i++) {
         call.TypeArgumentSubstitutions.Add(Valid.EnclosingClass.TypeArgs[i], receiver.Type.TypeArgs[i]);
       }
+      call.TypeApplication_JustFunction = new List<Type>();
       callingContext.EnclosingModule.CallGraph.AddEdge(callingContext, Valid);
       return call;
     }
@@ -939,19 +943,19 @@ namespace Microsoft.Dafny
         receiver = new ImplicitThisExpr(f.tok);
         //receiver.Type = GetThisType(expr.tok, (TopLevelDeclWithMembers)member.EnclosingClass);  // resolve here
       }
-      List<Type> typeApplication = null;
-      if (f.TypeArgs.Count > 0) {
-        typeApplication = new List<Type>();
-        for (int i = 0; i < f.TypeArgs.Count; i++) {
-          // doesn't matter what type, just so we have it to make the resolver happy when resolving function member of
-          // the fuel attribute. This might not be needed after fixing codeplex issue #172.
-          typeApplication.Add(new IntType());
-        }
+      var typeApplication = new List<Type>();
+      var typeApplication_JustForMember = new List<Type>();
+      for (int i = 0; i < f.TypeArgs.Count; i++) {
+        // doesn't matter what type, just so we have it to make the resolver happy when resolving function member of
+        // the fuel attribute. This might not be needed after fixing codeplex issue #172.
+        typeApplication.Add(new IntType());
+        typeApplication_JustForMember.Add(new IntType());
       }
-      var nameSegment = new NameSegment(f.tok, f.Name, typeApplication);
+      var nameSegment = new NameSegment(f.tok, f.Name, f.TypeArgs.Count == 0 ? null : typeApplication);
       var rr = new MemberSelectExpr(f.tok, receiver, f.Name);
       rr.Member = f;
-      rr.TypeApplication = typeApplication ?? new List<Type>();
+      rr.TypeApplication = typeApplication;
+      rr.TypeApplication_JustMember = typeApplication_JustForMember;
       List<Type> args = new List<Type>();
       for (int i = 0; i < f.Formals.Count; i++) {
         args.Add(new IntType());

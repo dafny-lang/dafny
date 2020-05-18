@@ -2547,6 +2547,7 @@ namespace Microsoft.Dafny {
       foreach (var p in iter.TypeArgs) {
         validCall.TypeArgumentSubstitutions[p] = new UserDefinedType(p);
       } // resolved here.
+      validCall.TypeApplication_JustFunction = new List<Type>(); // resolved here
 
       builder.Add(TrAssumeCmd(iter.tok, etran.TrExpr(validCall)));
 
@@ -3594,6 +3595,7 @@ namespace Microsoft.Dafny {
         ppCall.Function = pp;
         ppCall.Type = Type.Bool;
         ppCall.TypeArgumentSubstitutions = typeArgumentSubstitutions;
+        ppCall.TypeApplication_JustFunction = pp.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp.tok, tp));
 
         Attributes triggerAttr = new Attributes("trigger", new List<Expression> { ppCall }, null);
         Expression limitCalls;
@@ -4450,6 +4452,7 @@ namespace Microsoft.Dafny {
           var methodSel = new MemberSelectExpr(m.tok, recursiveCallReceiver, m.Name);
           methodSel.Member = m;  // resolve here
           methodSel.TypeApplication = typeApplication;
+          methodSel.TypeApplication_JustMember = m.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp.tok, tp));
           methodSel.Type = new InferredTypeProxy();
           var recursiveCall = new CallStmt(m.tok, m.tok, new List<Expression>(), methodSel, recursiveCallArgs);
           recursiveCall.IsGhost = m.IsGhost;  // resolve here
@@ -14941,7 +14944,8 @@ namespace Microsoft.Dafny {
               return TrExpr(new FunctionCallExpr(e.tok, fn.Name, mem.Obj, e.tok, e.Args) {
                 Function = fn,
                 Type = e.Type,
-                TypeArgumentSubstitutions = Util.Dict(GetTypeParams(fn), mem.TypeApplication)
+                TypeArgumentSubstitutions = Util.Dict(GetTypeParams(fn), mem.TypeApplication),
+                TypeApplication_JustFunction = mem.TypeApplication_JustMember
               });
             }
           }
@@ -17820,6 +17824,7 @@ namespace Microsoft.Dafny {
             newFce.Type = e.Type;
           }
           newFce.TypeArgumentSubstitutions = e.TypeArgumentSubstitutions;  // resolve here
+          newFce.TypeApplication_JustFunction = e.TypeApplication_JustFunction;  // resolve here
           return newFce;
         }
         return base.Substitute(expr);
@@ -18001,6 +18006,7 @@ namespace Microsoft.Dafny {
           MemberSelectExpr fseNew = new MemberSelectExpr(fse.tok, substE, fse.MemberName);
           fseNew.Member = fse.Member;
           fseNew.TypeApplication = fse.TypeApplication.ConvertAll(t => Resolver.SubstType(t, typeMap));
+          fseNew.TypeApplication_JustMember = fse.TypeApplication_JustMember.ConvertAll(t => Resolver.SubstType(t, typeMap));
           newExpr = fseNew;
         } else if (expr is SeqSelectExpr) {
           SeqSelectExpr sse = (SeqSelectExpr)expr;
@@ -18037,12 +18043,14 @@ namespace Microsoft.Dafny {
           Expression receiver = Substitute(e.Receiver);
           List<Expression> newArgs = SubstituteExprList(e.Args);
           var newTypeInstantiation = SubstituteTypeMap(e.TypeArgumentSubstitutions);
-          if (receiver != e.Receiver || newArgs != e.Args || newTypeInstantiation != e.TypeArgumentSubstitutions) {
+          var newTypeApplication = SubstituteTypeList(e.TypeApplication_JustFunction);
+          if (receiver != e.Receiver || newArgs != e.Args || newTypeInstantiation != e.TypeArgumentSubstitutions || newTypeApplication != e.TypeApplication_JustFunction) {
             FunctionCallExpr newFce = new FunctionCallExpr(expr.tok, e.Name, receiver, e.OpenParen, newArgs);
             newFce.Function = e.Function;  // resolve on the fly (and set newFce.Type below, at end)
             newFce.CoCall = e.CoCall;  // also copy the co-call status
             newFce.CoCallHint = e.CoCallHint;  // and any co-call hint
             newFce.TypeArgumentSubstitutions = newTypeInstantiation;
+            newFce.TypeApplication_JustFunction = newTypeApplication;
             newExpr = newFce;
           }
 
@@ -18498,7 +18506,6 @@ namespace Microsoft.Dafny {
         var newTmap = new Dictionary<TypeParameter, Type>();
         var i = 0;
         foreach (var maplet in tmap) {
-          cce.LoopInvariant(newTmap == null || newTmap.Count == i);
           var tt = Resolver.SubstType(maplet.Value, typeMap);
           if (tt != maplet.Value) {
             anythingChanged = true;
@@ -18510,6 +18517,30 @@ namespace Microsoft.Dafny {
           return newTmap;
         } else {
           return tmap;
+        }
+      }
+
+      protected List<Type> SubstituteTypeList(List<Type> types) {
+        Contract.Requires(types != null);
+        Contract.Ensures(Contract.Result<List<Type>>() != null);
+        if (types.Count == 0) {  // optimization
+          return types;
+        }
+        bool anythingChanged = false;
+        var newTypes = new List<Type>();
+        var i = 0;
+        foreach (var ty in types) {
+          var tt = Resolver.SubstType(ty, typeMap);
+          if (tt != ty) {
+            anythingChanged = true;
+          }
+          newTypes.Add(tt);
+          i++;
+        }
+        if (anythingChanged) {
+          return newTypes;
+        } else {
+          return types;
         }
       }
 
