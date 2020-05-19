@@ -114,6 +114,11 @@ namespace Microsoft.Dafny
         return CommandLineArgumentsResult.OK_EXIT_EARLY;
       }
 
+      if (CommandLineOptions.Clo.HelpRequested)
+      {
+        return CommandLineArgumentsResult.OK_EXIT_EARLY;
+      }
+
       if (CommandLineOptions.Clo.Files.Count == 0)
       {
         ExecutionEngine.printer.ErrorWriteLine(Console.Out, "*** Error: No input files were specified.");
