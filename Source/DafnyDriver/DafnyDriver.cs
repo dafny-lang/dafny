@@ -23,6 +23,7 @@ namespace Microsoft.Dafny
 
   public class DafnyDriver
   {
+    // TODO: Refactor so that non-errors (NOT_VERIFIED, DONT_PROCESS_FILES) don't result in non-zero exit codes
     public enum ExitValue { VERIFIED = 0, PREPROCESSING_ERROR, DAFNY_ERROR, COMPILE_ERROR, NOT_VERIFIED, DONT_PROCESS_FILES }
 
     public static int Main(string[] args)
