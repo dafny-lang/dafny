@@ -286,6 +286,7 @@ namespace Microsoft.Dafny {
       var fn = new MemberSelectExpr(tok, f, member.Name) {
         Member = member,
         TypeApplication = f.Type.TypeArgs,
+        TypeApplication_AtEnclosingClass = f.Type.TypeArgs,
         TypeApplication_JustMember = new List<Type>(),
         Type = member.Type
       };
@@ -962,6 +963,22 @@ namespace Microsoft.Dafny {
           }
         }
       }
+    }
+    /// <summary>
+    /// Returns the type "parent<X>", where "X" is a list of type parameters that makes "parent<X>" a supertype of "this".
+    /// Requires "this" to be some type "C<Y>" and "parent" to be among the reflexive, transitive parent traits of "C".
+    /// </summary>
+    public UserDefinedType AsParentType(TopLevelDecl parent) {
+      Contract.Requires(parent != null);
+      var udt = (UserDefinedType)NormalizeExpand();
+      var cl = (TopLevelDeclWithMembers)udt.ResolvedClass;
+      if (cl == parent) {
+        return udt;
+      }
+      var typeMapParents = cl.ParentFormalTypeParametersToActuals;
+      var typeMapUdt = Resolver.TypeSubstitutionMap(cl.TypeArgs, udt.TypeArgs);
+      var typeArgs = parent.TypeArgs.ConvertAll(tp => Resolver.SubstType(typeMapParents[tp], typeMapUdt));
+      return new UserDefinedType(udt.tok, parent.Name, parent, typeArgs);
     }
     public bool IsTraitType {
       get {
@@ -9254,7 +9271,48 @@ namespace Microsoft.Dafny {
     /// However, for a static member, the said receiver type is always the enclosing class of the member, even if
     /// the type of an explicitly given receiver is some subclass thereof.
     public List<Type> TypeApplication;
+    public List<Type> TypeApplication_AtEnclosingClass;
     public List<Type> TypeApplication_JustMember;
+
+    /// <summary>
+    /// Returns a mapping from formal type parameters to actual type arguments. For example, given
+    ///     trait T<A> {
+    ///       function F<X>(): bv8 { ... }
+    ///     }
+    ///     class C<B, D> extends T<map<B, D>> { }
+    /// and MemberSelectExpr o.F<int> where o has type C<real, bool>, the type map returned is
+    ///     A -> map<real, bool>
+    ///     X -> int
+    /// To also include B and D in the mapping, use TypeArgumentSubstitutionsWithParents instead.
+    /// </summary>
+    public Dictionary<TypeParameter, Type> TypeArgumentSubstitutionsAtMemberDeclaration() {
+      Contract.Requires(WasResolved());
+      Contract.Ensures(Contract.Result<Dictionary<TypeParameter, Type>>() != null);
+
+      var subst = new Dictionary<TypeParameter, Type>();
+
+      // Add the mappings from the member's own type parameters
+      if (Member is ICallable icallable) {
+        Contract.Assert(TypeApplication_JustMember.Count == icallable.TypeArgs.Count);
+        for (var i = 0; i < icallable.TypeArgs.Count; i++) {
+          subst.Add(icallable.TypeArgs[i], TypeApplication_JustMember[i]);
+        }
+      } else {
+        Contract.Assert(TypeApplication_JustMember.Count == 0);
+      }
+
+      // Add the mappings from the enclosing class.
+      TopLevelDecl cl = Member.EnclosingClass;
+      // Expand the type down to its non-null type, if any
+      if (cl != null) {
+        Contract.Assert(cl.TypeArgs.Count == TypeApplication_AtEnclosingClass.Count);
+        for (var i = 0; i < cl.TypeArgs.Count; i++) {
+          subst.Add(cl.TypeArgs[i], TypeApplication_AtEnclosingClass[i]);
+        }
+      }
+
+      return subst;
+    }
 
     /// <summary>
     /// Returns a mapping from formal type parameters to actual type arguments. For example, given
@@ -9267,6 +9325,9 @@ namespace Microsoft.Dafny {
     ///     B -> real
     ///     D -> bool
     ///     X -> int
+    /// NOTE: This method should be called only when all types have been fully and successfully
+    /// resolved. During type inference, when there may still be some unresolved proxies, use
+    /// TypeArgumentSubstitutionsAtMemberDeclaration instead.
     /// </summary>
     public Dictionary<TypeParameter, Type> TypeArgumentSubstitutionsWithParents() {
       Contract.Requires(WasResolved());
@@ -9342,6 +9403,7 @@ namespace Microsoft.Dafny {
 
       var receiverType = obj.Type.NormalizeExpand();
       this.TypeApplication = receiverType.TypeArgs;  // resolve here
+      this.TypeApplication_AtEnclosingClass = receiverType.TypeArgs;
       this.TypeApplication_JustMember = new List<Type>();
 
       var typeMap = new Dictionary<TypeParameter, Type>();

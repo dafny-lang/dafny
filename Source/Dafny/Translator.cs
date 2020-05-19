@@ -4452,6 +4452,7 @@ namespace Microsoft.Dafny {
           var methodSel = new MemberSelectExpr(m.tok, recursiveCallReceiver, m.Name);
           methodSel.Member = m;  // resolve here
           methodSel.TypeApplication = typeApplication;
+          methodSel.TypeApplication_AtEnclosingClass = m.EnclosingClass.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp.tok, tp));
           methodSel.TypeApplication_JustMember = m.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp.tok, tp));
           methodSel.Type = new InferredTypeProxy();
           var recursiveCall = new CallStmt(m.tok, m.tok, new List<Expression>(), methodSel, recursiveCallArgs);
@@ -15975,7 +15976,7 @@ namespace Microsoft.Dafny {
 
         // first add type arguments
         var tyParams = GetTypeParams(e.Function);
-        var tySubst = e.TypeArgumentSubstitutions;
+        var tySubst = e.TypeArgumentSubstitutionsWithParents();
         args.AddRange(translator.trTypeArgs(tySubst, tyParams));
 
         if (layerArgument != null) {
@@ -18006,6 +18007,12 @@ namespace Microsoft.Dafny {
           MemberSelectExpr fseNew = new MemberSelectExpr(fse.tok, substE, fse.MemberName);
           fseNew.Member = fse.Member;
           fseNew.TypeApplication = fse.TypeApplication.ConvertAll(t => Resolver.SubstType(t, typeMap));
+          if (fse.Member.EnclosingClass == null) {
+            // this can happen for special members, like ORDINAL.Offset()
+            fseNew.TypeApplication_AtEnclosingClass = new List<Type>();
+          } else {
+            fseNew.TypeApplication_AtEnclosingClass = fse.Member.EnclosingClass.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp.tok, tp));
+          }
           fseNew.TypeApplication_JustMember = fse.TypeApplication_JustMember.ConvertAll(t => Resolver.SubstType(t, typeMap));
           newExpr = fseNew;
         } else if (expr is SeqSelectExpr) {

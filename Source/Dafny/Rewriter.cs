@@ -141,6 +141,7 @@ namespace Microsoft.Dafny
                       var l = new MemberSelectExpr(ll.tok, e, ll.MemberName);
                       l.Member = ll.Member;
                       l.TypeApplication = ll.TypeApplication;
+                      l.TypeApplication_AtEnclosingClass = ll.TypeApplication_AtEnclosingClass;
                       l.TypeApplication_JustMember = ll.TypeApplication_JustMember;
                       l.Type = ll.Type;
                       return l; };
@@ -955,6 +956,7 @@ namespace Microsoft.Dafny
       var rr = new MemberSelectExpr(f.tok, receiver, f.Name);
       rr.Member = f;
       rr.TypeApplication = typeApplication;
+      rr.TypeApplication_AtEnclosingClass = typeApplication;
       rr.TypeApplication_JustMember = typeApplication_JustForMember;
       List<Type> args = new List<Type>();
       for (int i = 0; i < f.Formals.Count; i++) {

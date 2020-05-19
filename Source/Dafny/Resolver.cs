@@ -9,6 +9,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
 using System.Diagnostics.Contracts;
+using System.Linq.Expressions;
 using Microsoft.Boogie;
 
 namespace Microsoft.Dafny
@@ -2614,6 +2615,7 @@ namespace Microsoft.Dafny
               var methodSel = new MemberSelectExpr(com.tok, recursiveCallReceiver, prefixLemma.Name);
               methodSel.Member = prefixLemma;  // resolve here
               methodSel.TypeApplication = typeApplication;
+              methodSel.TypeApplication_AtEnclosingClass = prefixLemma.EnclosingClass.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp.tok, tp));
               methodSel.TypeApplication_JustMember = prefixLemma.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp.tok, tp));
               methodSel.Type = new InferredTypeProxy();
               var recursiveCall = new CallStmt(com.tok, com.tok, new List<Expression>(), methodSel, recursiveCallArgs);
@@ -11373,7 +11375,7 @@ namespace Microsoft.Dafny
           }
         }
         // type check the arguments
-        var subst = s.MethodSelect.TypeArgumentSubstitutionsWithParents();
+        var subst = s.MethodSelect.TypeArgumentSubstitutionsAtMemberDeclaration();
         for (int i = 0; i < callee.Ins.Count; i++) {
           var it = callee.Ins[i].Type;
           Type st = SubstType(it, subst);
@@ -12854,6 +12856,7 @@ namespace Microsoft.Dafny
           }
           // build the type substitution map
           e.TypeApplication = new List<Type>();
+          e.TypeApplication_AtEnclosingClass = tentativeReceiverType.TypeArgs;
           e.TypeApplication_JustMember = new List<Type>();
           Dictionary<TypeParameter, Type> subst;
           var ctype = tentativeReceiverType as UserDefinedType;
@@ -12883,6 +12886,7 @@ namespace Microsoft.Dafny
           } else {
             e.TypeApplication = field.EnclosingClass.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp));
           }
+          e.TypeApplication_AtEnclosingClass = tentativeReceiverType.TypeArgs;
           e.TypeApplication_JustMember = new List<Type>();
           if (e.Obj is StaticReceiverExpr && !field.IsStatic) {
             reporter.Error(MessageSource.Resolver, expr, "a field must be selected via an object, not just a class name");
@@ -14542,18 +14546,25 @@ namespace Microsoft.Dafny
       // parameters used in this NameSegment/ExprDotName.
       // Add to "subst" the type parameters given to the member's class/datatype
       rr.TypeApplication = new List<Type>();
+      rr.TypeApplication_AtEnclosingClass = new List<Type>();
       rr.TypeApplication_JustMember = new List<Type>();
       Dictionary<TypeParameter, Type> subst;
       var rType = (receiverTypeBound ?? receiver.Type).NormalizeExpand();
       if (rType is UserDefinedType udt && udt.ResolvedClass != null) {
         subst = TypeSubstitutionMap(udt.ResolvedClass.TypeArgs, udt.TypeArgs);
         rr.TypeApplication.AddRange(udt.TypeArgs);
+        if (member.EnclosingClass == null) {
+          // this can happen for some special members, like real.Floor
+        } else {
+          rr.TypeApplication_AtEnclosingClass.AddRange(rType.AsParentType(member.EnclosingClass).TypeArgs);
+        }
       } else {
         var vtd = AsValuetypeDecl(rType);
         if (vtd != null) {
           Contract.Assert(vtd.TypeArgs.Count == rType.TypeArgs.Count);
           subst = TypeSubstitutionMap(vtd.TypeArgs, rType.TypeArgs);
           rr.TypeApplication.AddRange(rType.TypeArgs);
+          rr.TypeApplication_AtEnclosingClass.AddRange(rType.TypeArgs);
         } else {
           Contract.Assert(rType.TypeArgs.Count == 0);
           subst = new Dictionary<TypeParameter, Type>();
@@ -14741,7 +14752,7 @@ namespace Microsoft.Dafny
               Contract.Assert(!(mse.Obj is StaticReceiverExpr) || callee.IsStatic);  // this should have been checked already
               Contract.Assert(callee.Formals.Count == rr.Args.Count);  // this should have been checked already
               // build the type substitution map
-              rr.TypeArgumentSubstitutions = mse.TypeArgumentSubstitutionsWithParents();
+              rr.TypeArgumentSubstitutions = mse.TypeArgumentSubstitutionsAtMemberDeclaration();
               rr.TypeApplication_JustFunction = mse.TypeApplication_JustMember;
               var subst = BuildTypeArgumentSubstitute(rr.TypeArgumentSubstitutions);
 
