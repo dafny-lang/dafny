@@ -9256,31 +9256,35 @@ namespace Microsoft.Dafny {
     public List<Type> TypeApplication;
     public List<Type> TypeApplication_JustMember;
 
-    public Dictionary<TypeParameter, Type> TypeArgumentSubstitutions() {
-      Contract.Requires(WasResolved());
-      Contract.Ensures(Contract.Result<Dictionary<TypeParameter, Type>>() != null);
-      Contract.Ensures(Contract.Result<Dictionary<TypeParameter, Type>>().Count == TypeApplication.Count);
-
-      var subst = new Dictionary<TypeParameter, Type>();
-      var i = 0;
-      foreach (var tp in Member.EnclosingClass.TypeArgs) {
-        subst.Add(tp, TypeApplication[i]);
-        i++;
-      }
-      if (Member is ICallable icallable) {
-        foreach (var tp in icallable.TypeArgs) {
-          subst.Add(tp, TypeApplication[i]);
-          i++;
-        }
-      }
-      return subst;
-    }
-
+    /// <summary>
+    /// Returns a mapping from formal type parameters to actual type arguments. For example, given
+    ///     trait T<A> {
+    ///       function F<X>(): bv8 { ... }
+    ///     }
+    ///     class C<B, D> extends T<map<B, D>> { }
+    /// and MemberSelectExpr o.F<int> where o has type C<real, bool>, the type map returned is
+    ///     A -> map<real, bool>
+    ///     B -> real
+    ///     D -> bool
+    ///     X -> int
+    /// </summary>
     public Dictionary<TypeParameter, Type> TypeArgumentSubstitutionsWithParents() {
       Contract.Requires(WasResolved());
       Contract.Ensures(Contract.Result<Dictionary<TypeParameter, Type>>() != null);
 
-      // Determine the class
+      var subst = new Dictionary<TypeParameter, Type>();
+
+      // Add the mappings from the member's own type parameters
+      if (Member is ICallable icallable) {
+        Contract.Assert(TypeApplication_JustMember.Count == icallable.TypeArgs.Count);
+        for (var i = 0; i < icallable.TypeArgs.Count; i++) {
+          subst.Add(icallable.TypeArgs[i], TypeApplication_JustMember[i]);
+        }
+      } else {
+        Contract.Assert(TypeApplication_JustMember.Count == 0);
+      }
+
+      // Add the mappings from the receiver's type "cl"
       TopLevelDeclWithMembers cl;
       // Expand the type down to its non-null type, if any
       var receiverType = Obj.Type.AsNonNullRefType;
@@ -9291,29 +9295,17 @@ namespace Microsoft.Dafny {
         receiverType = Obj.Type.NormalizeExpand() as UserDefinedType;
         cl = receiverType?.ResolvedClass as TopLevelDeclWithMembers;
       }
-      if (cl == null) {
-        return TypeArgumentSubstitutions();  // TODO: do we ever get here? (it seems Obj.Type must be a value type)
-      }
-
-      // build map from class+member formal type parameters to types
-      var icallable = Member as ICallable;
-      var subst = new Dictionary<TypeParameter, Type>();
-      var i = 0;
-      foreach (var tp in cl.TypeArgs) {
-        subst.Add(tp, TypeApplication[i]);
-        i++;
-      }
-      if (icallable != null) {
-        foreach (var tp in icallable.TypeArgs) {
-          subst.Add(tp, TypeApplication[i]);
-          i++;
+      if (cl != null) {
+        Contract.Assert(cl.TypeArgs.Count == receiverType.TypeArgs.Count);
+        for (var i = 0; i < cl.TypeArgs.Count; i++) {
+          subst.Add(cl.TypeArgs[i], receiverType.TypeArgs[i]);
         }
-      }
 
-      // add in the mappings from parent types' formal type parameters to types
-      foreach (var entry in cl.ParentFormalTypeParametersToActuals) {
-        var v = Resolver.SubstType(entry.Value, subst);
-        subst.Add(entry.Key, v);
+        // Add in the mappings from parent types' formal type parameters to types
+        foreach (var entry in cl.ParentFormalTypeParametersToActuals) {
+          var v = Resolver.SubstType(entry.Value, subst);
+          subst.Add(entry.Key, v);
+        }
       }
 
       return subst;
@@ -9547,6 +9539,58 @@ namespace Microsoft.Dafny {
     public readonly List<Expression> Args;
     public Dictionary<TypeParameter, Type> TypeArgumentSubstitutions;  // created, initialized, and used by resolution (and also used by translation)
     public List<Type> TypeApplication_JustFunction;  // created, initialized, and used by resolution (and also used by translation)
+
+    /// <summary>
+    /// Returns a mapping from formal type parameters to actual type arguments. For example, given
+    ///     trait T<A> {
+    ///       function F<X>(): bv8 { ... }
+    ///     }
+    ///     class C<B, D> extends T<map<B, D>> { }
+    /// and FunctionCallExpr o.F<int>(args) where o has type C<real, bool>, the type map returned is
+    ///     A -> map<real, bool>
+    ///     B -> real
+    ///     D -> bool
+    ///     X -> int
+    /// </summary>
+    public Dictionary<TypeParameter, Type> TypeArgumentSubstitutionsWithParents() {
+      Contract.Requires(WasResolved());
+      Contract.Ensures(Contract.Result<Dictionary<TypeParameter, Type>>() != null);
+
+      var subst = new Dictionary<TypeParameter, Type>();
+
+      // Add the mappings from the function's own type parameters
+      Contract.Assert(TypeApplication_JustFunction.Count == Function.TypeArgs.Count);
+      for (var i = 0; i < Function.TypeArgs.Count; i++) {
+        subst.Add(Function.TypeArgs[i], TypeApplication_JustFunction[i]);
+      }
+
+      // Add the mappings from the receiver's type "cl"
+      TopLevelDeclWithMembers cl;
+      // Expand the type down to its non-null type, if any
+      var receiverType = Receiver.Type.AsNonNullRefType;
+      if (receiverType != null) {
+        cl = (TopLevelDeclWithMembers)((NonNullTypeDecl)receiverType.ResolvedClass).ViewAsClass;  // TODO: why is this ever any different than what the else branch does?
+      } else {
+        // Expand type all the way
+        receiverType = Receiver.Type.NormalizeExpand() as UserDefinedType;
+        cl = receiverType?.ResolvedClass as TopLevelDeclWithMembers;
+      }
+      if (cl != null) {
+        Contract.Assert(cl.TypeArgs.Count == receiverType.TypeArgs.Count);
+        for (var i = 0; i < cl.TypeArgs.Count; i++) {
+          subst.Add(cl.TypeArgs[i], receiverType.TypeArgs[i]);
+        }
+
+        // Add in the mappings from parent types' formal type parameters to types
+        foreach (var entry in cl.ParentFormalTypeParametersToActuals) {
+          var v = Resolver.SubstType(entry.Value, subst);
+          subst.Add(entry.Key, v);
+        }
+      }
+
+      return subst;
+    }
+
     public enum CoCallResolution {
       No,
       Yes,
