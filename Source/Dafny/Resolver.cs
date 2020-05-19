@@ -14753,6 +14753,7 @@ namespace Microsoft.Dafny
               Contract.Assert(callee.Formals.Count == rr.Args.Count);  // this should have been checked already
               // build the type substitution map
               rr.TypeArgumentSubstitutions = mse.TypeArgumentSubstitutionsAtMemberDeclaration();
+              rr.TypeApplication_AtEnclosingClass = mse.TypeApplication_AtEnclosingClass;
               rr.TypeApplication_JustFunction = mse.TypeApplication_JustMember;
               var subst = BuildTypeArgumentSubstitute(rr.TypeArgumentSubstitutions);
 
@@ -15079,10 +15080,15 @@ namespace Microsoft.Dafny
           }
           // build the type substitution map
           e.TypeArgumentSubstitutions = new Dictionary<TypeParameter, Type>();
-          e.TypeApplication_JustFunction = new List<Type>();
           for (int i = 0; i < ctype.TypeArgs.Count; i++) {
             e.TypeArgumentSubstitutions.Add(cce.NonNull(ctype.ResolvedClass).TypeArgs[i], ctype.TypeArgs[i]);
           }
+          var typeThatEnclosesMember = ctype.AsParentType(member.EnclosingClass);
+          e.TypeApplication_AtEnclosingClass = new List<Type>();
+          for (int i = 0; i < typeThatEnclosesMember.TypeArgs.Count; i++) {
+            e.TypeApplication_AtEnclosingClass.Add(typeThatEnclosesMember.TypeArgs[i]);
+          }
+          e.TypeApplication_JustFunction = new List<Type>();
           foreach (TypeParameter p in function.TypeArgs) {
             var ty = new ParamTypeProxy(p);
             e.TypeArgumentSubstitutions.Add(p, ty);

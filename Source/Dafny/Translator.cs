@@ -2547,6 +2547,7 @@ namespace Microsoft.Dafny {
       foreach (var p in iter.TypeArgs) {
         validCall.TypeArgumentSubstitutions[p] = new UserDefinedType(p);
       } // resolved here.
+      validCall.TypeApplication_AtEnclosingClass = iter.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp));
       validCall.TypeApplication_JustFunction = new List<Type>(); // resolved here
 
       builder.Add(TrAssumeCmd(iter.tok, etran.TrExpr(validCall)));
@@ -3595,7 +3596,8 @@ namespace Microsoft.Dafny {
         ppCall.Function = pp;
         ppCall.Type = Type.Bool;
         ppCall.TypeArgumentSubstitutions = typeArgumentSubstitutions;
-        ppCall.TypeApplication_JustFunction = pp.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp.tok, tp));
+        ppCall.TypeApplication_AtEnclosingClass = pp.EnclosingClass.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp));
+        ppCall.TypeApplication_JustFunction = pp.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp));
 
         Attributes triggerAttr = new Attributes("trigger", new List<Expression> { ppCall }, null);
         Expression limitCalls;
@@ -14946,6 +14948,7 @@ namespace Microsoft.Dafny {
                 Function = fn,
                 Type = e.Type,
                 TypeArgumentSubstitutions = Util.Dict(GetTypeParams(fn), mem.TypeApplication),
+                TypeApplication_AtEnclosingClass = mem.TypeApplication_AtEnclosingClass,
                 TypeApplication_JustFunction = mem.TypeApplication_JustMember
               });
             }
@@ -17825,6 +17828,7 @@ namespace Microsoft.Dafny {
             newFce.Type = e.Type;
           }
           newFce.TypeArgumentSubstitutions = e.TypeArgumentSubstitutions;  // resolve here
+          newFce.TypeApplication_AtEnclosingClass = e.TypeApplication_AtEnclosingClass;  // resolve here
           newFce.TypeApplication_JustFunction = e.TypeApplication_JustFunction;  // resolve here
           return newFce;
         }
@@ -18050,14 +18054,18 @@ namespace Microsoft.Dafny {
           Expression receiver = Substitute(e.Receiver);
           List<Expression> newArgs = SubstituteExprList(e.Args);
           var newTypeInstantiation = SubstituteTypeMap(e.TypeArgumentSubstitutions);
-          var newTypeApplication = SubstituteTypeList(e.TypeApplication_JustFunction);
-          if (receiver != e.Receiver || newArgs != e.Args || newTypeInstantiation != e.TypeArgumentSubstitutions || newTypeApplication != e.TypeApplication_JustFunction) {
+          var newTypeApplicationAtEnclosingClass = SubstituteTypeList(e.TypeApplication_AtEnclosingClass);
+          var newTypeApplicationJustFunction = SubstituteTypeList(e.TypeApplication_JustFunction);
+          if (receiver != e.Receiver || newArgs != e.Args || newTypeInstantiation != e.TypeArgumentSubstitutions ||
+              newTypeApplicationAtEnclosingClass != e.TypeApplication_AtEnclosingClass ||
+              newTypeApplicationJustFunction != e.TypeApplication_JustFunction) {
             FunctionCallExpr newFce = new FunctionCallExpr(expr.tok, e.Name, receiver, e.OpenParen, newArgs);
             newFce.Function = e.Function;  // resolve on the fly (and set newFce.Type below, at end)
             newFce.CoCall = e.CoCall;  // also copy the co-call status
             newFce.CoCallHint = e.CoCallHint;  // and any co-call hint
             newFce.TypeArgumentSubstitutions = newTypeInstantiation;
-            newFce.TypeApplication_JustFunction = newTypeApplication;
+            newFce.TypeApplication_AtEnclosingClass = newTypeApplicationAtEnclosingClass;
+            newFce.TypeApplication_JustFunction = newTypeApplicationJustFunction;
             newExpr = newFce;
           }
 

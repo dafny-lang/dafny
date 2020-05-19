@@ -227,6 +227,7 @@ namespace Microsoft.Dafny {
           null, null, null);
         readsIS.Function = reads;  // just so we can really claim the member declarations are resolved
         readsIS.TypeArgumentSubstitutions = Util.Dict(tps, tys);  // ditto
+        readsIS.TypeApplication_AtEnclosingClass = tys;  // ditto
         readsIS.TypeApplication_JustFunction = new List<Type>();  // ditto
         var arrowDecl = new ArrowTypeDecl(tps, req, reads, SystemModule, DontCompile());
         ArrowTypeDecls.Add(arity, arrowDecl);
@@ -5941,6 +5942,7 @@ namespace Microsoft.Dafny {
           prefixPredCall.TypeArgumentSubstitutions[p.Key] = p.Value;
         }
       }  // resolved here.
+      prefixPredCall.TypeApplication_AtEnclosingClass = fexp.TypeApplication_AtEnclosingClass;
       prefixPredCall.TypeApplication_JustFunction = fexp.TypeApplication_JustFunction;
 
       prefixPredCall.Type = fexp.Type;  // resolve here
@@ -9367,6 +9369,8 @@ namespace Microsoft.Dafny {
           var v = Resolver.SubstType(entry.Value, subst);
           subst.Add(entry.Key, v);
         }
+      } else {
+        Contract.Assert(false); // DEBUG: TODO: remove -- this is just for debugging
       }
 
       return subst;
@@ -9600,6 +9604,7 @@ namespace Microsoft.Dafny {
     public readonly IToken OpenParen;  // can be null if Args.Count == 0
     public readonly List<Expression> Args;
     public Dictionary<TypeParameter, Type> TypeArgumentSubstitutions;  // created, initialized, and used by resolution (and also used by translation)
+    public List<Type> TypeApplication_AtEnclosingClass;
     public List<Type> TypeApplication_JustFunction;  // created, initialized, and used by resolution (and also used by translation)
 
     /// <summary>
@@ -9613,6 +9618,8 @@ namespace Microsoft.Dafny {
     ///     B -> real
     ///     D -> bool
     ///     X -> int
+    /// NOTE: This method should be called only when all types have been fully and successfully
+    /// resolved.
     /// </summary>
     public Dictionary<TypeParameter, Type> TypeArgumentSubstitutionsWithParents() {
       Contract.Requires(WasResolved());
@@ -9648,6 +9655,8 @@ namespace Microsoft.Dafny {
           var v = Resolver.SubstType(entry.Value, subst);
           subst.Add(entry.Key, v);
         }
+      } else {
+        Contract.Assert(false); // DEBUG: TODO: remove -- this is just for debugging
       }
 
       return subst;

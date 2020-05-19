@@ -869,6 +869,7 @@ namespace Microsoft.Dafny
       for (int i = 0; i < Valid.EnclosingClass.TypeArgs.Count; i++) {
         call.TypeArgumentSubstitutions.Add(Valid.EnclosingClass.TypeArgs[i], receiver.Type.TypeArgs[i]);
       }
+      call.TypeApplication_AtEnclosingClass = receiver.Type.TypeArgs;
       call.TypeApplication_JustFunction = new List<Type>();
       callingContext.EnclosingModule.CallGraph.AddEdge(callingContext, Valid);
       return call;
