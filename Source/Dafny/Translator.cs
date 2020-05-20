@@ -8332,6 +8332,9 @@ namespace Microsoft.Dafny {
     // Note: Prefer to call ClassTyCon or TypeToTy instead.
     private string GetClassTyCon(TopLevelDecl dl) {
       Contract.Requires(dl != null);
+      if (dl is InternalTypeSynonymDecl isyn) {
+        dl = ((UserDefinedType)isyn.Rhs).ResolvedClass;
+      }
       string name;
       if (classConstants.TryGetValue(dl, out name)) {
         Contract.Assert(name != null);
@@ -17963,7 +17966,11 @@ namespace Microsoft.Dafny {
 
         Expression newExpr = null;  // set to non-null value only if substitution has any effect; if non-null, the .Type of newExpr will be filled in at end
 
-        if (expr is LiteralExpr || expr is WildcardExpr || expr is BoogieWrapper) {
+        if (expr is StaticReceiverExpr) {
+          var e = (StaticReceiverExpr)expr;
+          var ty = Resolver.SubstType(e.Type, typeMap);
+          return new StaticReceiverExpr(e.tok, ty, e.IsImplicit) {Type = ty};
+        } else if (expr is LiteralExpr || expr is WildcardExpr || expr is BoogieWrapper) {
           // nothing to substitute
         } else if (expr is ThisExpr) {
           return receiverReplacement == null ? expr : receiverReplacement;

@@ -971,8 +971,17 @@ namespace Microsoft.Dafny {
     /// </summary>
     public UserDefinedType AsParentType(TopLevelDecl parent) {
       Contract.Requires(parent != null);
+
       var udt = (UserDefinedType)NormalizeExpand();
-      var cl = (TopLevelDeclWithMembers)udt.ResolvedClass;
+      if (udt.ResolvedClass is InternalTypeSynonymDecl isyn) {
+        udt = isyn.RhsWithArgumentIgnoringScope(udt.TypeArgs) as UserDefinedType;
+      }
+      TopLevelDeclWithMembers cl;
+      if (udt.ResolvedClass is NonNullTypeDecl nntd) {
+        cl = (TopLevelDeclWithMembers)nntd.ViewAsClass;
+      } else {
+        cl = (TopLevelDeclWithMembers)udt.ResolvedClass;
+      }
       if (cl == parent) {
         return udt;
       }
@@ -9335,39 +9344,49 @@ namespace Microsoft.Dafny {
       Contract.Requires(WasResolved());
       Contract.Ensures(Contract.Result<Dictionary<TypeParameter, Type>>() != null);
 
+      return TypeArgumentSubstitutionsWithParentsAux(Obj.Type, Member, TypeApplication_JustMember);
+    }
+
+    public static Dictionary<TypeParameter, Type> TypeArgumentSubstitutionsWithParentsAux(Type receiverType, MemberDecl member, List<Type> typeApplicationMember) {
+      Contract.Requires(receiverType != null);
+      Contract.Requires(member != null);
+      Contract.Requires(typeApplicationMember != null);
+      Contract.Ensures(Contract.Result<Dictionary<TypeParameter, Type>>() != null);
+
       var subst = new Dictionary<TypeParameter, Type>();
 
       // Add the mappings from the member's own type parameters
-      if (Member is ICallable icallable) {
-        Contract.Assert(TypeApplication_JustMember.Count == icallable.TypeArgs.Count);
+      if (member is ICallable icallable) {
+        Contract.Assert(typeApplicationMember.Count == icallable.TypeArgs.Count);
         for (var i = 0; i < icallable.TypeArgs.Count; i++) {
-          subst.Add(icallable.TypeArgs[i], TypeApplication_JustMember[i]);
+          subst.Add(icallable.TypeArgs[i], typeApplicationMember[i]);
         }
       } else {
-        Contract.Assert(TypeApplication_JustMember.Count == 0);
+        Contract.Assert(typeApplicationMember.Count == 0);
       }
 
       // Add the mappings from the receiver's type "cl"
-      TopLevelDeclWithMembers cl;
-      // Expand the type down to its non-null type, if any
-      var receiverType = Obj.Type.AsNonNullRefType;
-      if (receiverType != null) {
-        cl = (TopLevelDeclWithMembers)((NonNullTypeDecl)receiverType.ResolvedClass).ViewAsClass;  // TODO: why is this ever any different than what the else branch does?
-      } else {
-        // Expand type all the way
-        receiverType = Obj.Type.NormalizeExpand() as UserDefinedType;
-        cl = receiverType?.ResolvedClass as TopLevelDeclWithMembers;
+      var udt = (UserDefinedType)receiverType.NormalizeExpand();
+      if (udt.ResolvedClass is InternalTypeSynonymDecl isyn) {
+        udt = isyn.RhsWithArgumentIgnoringScope(udt.TypeArgs) as UserDefinedType;
       }
+      if (udt.ResolvedClass is NonNullTypeDecl nntd) {
+        udt = nntd.RhsWithArgumentIgnoringScope(udt.TypeArgs) as UserDefinedType;
+      }
+      var cl = udt?.ResolvedClass;
+
       if (cl != null) {
-        Contract.Assert(cl.TypeArgs.Count == receiverType.TypeArgs.Count);
+        Contract.Assert(cl.TypeArgs.Count == udt.TypeArgs.Count);
         for (var i = 0; i < cl.TypeArgs.Count; i++) {
-          subst.Add(cl.TypeArgs[i], receiverType.TypeArgs[i]);
+          subst.Add(cl.TypeArgs[i], udt.TypeArgs[i]);
         }
 
         // Add in the mappings from parent types' formal type parameters to types
-        foreach (var entry in cl.ParentFormalTypeParametersToActuals) {
-          var v = Resolver.SubstType(entry.Value, subst);
-          subst.Add(entry.Key, v);
+        if (cl is TopLevelDeclWithMembers cls) {
+          foreach (var entry in cls.ParentFormalTypeParametersToActuals) {
+            var v = Resolver.SubstType(entry.Value, subst);
+            subst.Add(entry.Key, v);
+          }
         }
       } else {
         Contract.Assert(false); // DEBUG: TODO: remove -- this is just for debugging
@@ -9625,41 +9644,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(WasResolved());
       Contract.Ensures(Contract.Result<Dictionary<TypeParameter, Type>>() != null);
 
-      var subst = new Dictionary<TypeParameter, Type>();
-
-      // Add the mappings from the function's own type parameters
-      Contract.Assert(TypeApplication_JustFunction.Count == Function.TypeArgs.Count);
-      for (var i = 0; i < Function.TypeArgs.Count; i++) {
-        subst.Add(Function.TypeArgs[i], TypeApplication_JustFunction[i]);
-      }
-
-      // Add the mappings from the receiver's type "cl"
-      TopLevelDeclWithMembers cl;
-      // Expand the type down to its non-null type, if any
-      var receiverType = Receiver.Type.AsNonNullRefType;
-      if (receiverType != null) {
-        cl = (TopLevelDeclWithMembers)((NonNullTypeDecl)receiverType.ResolvedClass).ViewAsClass;  // TODO: why is this ever any different than what the else branch does?
-      } else {
-        // Expand type all the way
-        receiverType = Receiver.Type.NormalizeExpand() as UserDefinedType;
-        cl = receiverType?.ResolvedClass as TopLevelDeclWithMembers;
-      }
-      if (cl != null) {
-        Contract.Assert(cl.TypeArgs.Count == receiverType.TypeArgs.Count);
-        for (var i = 0; i < cl.TypeArgs.Count; i++) {
-          subst.Add(cl.TypeArgs[i], receiverType.TypeArgs[i]);
-        }
-
-        // Add in the mappings from parent types' formal type parameters to types
-        foreach (var entry in cl.ParentFormalTypeParametersToActuals) {
-          var v = Resolver.SubstType(entry.Value, subst);
-          subst.Add(entry.Key, v);
-        }
-      } else {
-        Contract.Assert(false); // DEBUG: TODO: remove -- this is just for debugging
-      }
-
-      return subst;
+      return MemberSelectExpr.TypeArgumentSubstitutionsWithParentsAux(Receiver.Type, Function, TypeApplication_JustFunction);
     }
 
     public enum CoCallResolution {

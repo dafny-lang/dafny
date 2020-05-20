@@ -420,3 +420,39 @@ module ExtremeKMismatch {
     inductive lemma M[ORDINAL]()
   }
 }
+
+// The tests in ProvidingModule and ImporterOfProvidingModule contain two
+// regression tests, namely type parameters of the imported types and the
+// duplicate generation of type tags for imported datatypes, which during
+// one part of development were done incorrectly.
+module ProvidingModule {
+  export
+    provides Trait, Trait.M, Trait.N
+    provides Klass, Klass.M, Klass.N
+    provides Dt, Dt.M, Dt.N
+
+  trait Trait<AA> {
+    const M := 100
+    ghost const N: AA
+  }
+  class Klass<BB> {
+    constructor () { }
+    const M := 100
+    ghost const N: BB
+  }
+  datatype Dt<CC> = X | Y | More(u: int) {
+    const M := 100
+    ghost const N: CC
+  }
+}
+
+module ImporterOfProvidingModule {
+  import G = ProvidingModule
+
+  method UsesField(t: G.Trait<int>, k: G.Klass<int>, d: G.Dt<int>) {
+    var s := t.M + k.M + d.M;
+    ghost var a := t.N;
+    ghost var b := k.N;
+    ghost var c := d.N;
+  }
+}
