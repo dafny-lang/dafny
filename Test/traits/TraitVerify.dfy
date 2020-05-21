@@ -178,3 +178,42 @@ module OverrideWithDifferentFuels {
     assert x == y;
   }
 }
+
+module MyModule1 {
+  trait {:termination false} MyTrait {
+    ghost const Repr: set<object>
+    predicate Valid() reads this, Repr ensures Valid() ==> this in Repr
+  }
+
+  class MyClass2 extends MyTrait {
+    var someVar: MyTrait
+
+    predicate Valid() reads this, Repr ensures Valid() ==> this in Repr
+    {
+      this in Repr &&
+      someVar in Repr && someVar.Repr <= Repr && this !in someVar.Repr && someVar.Valid()
+    }
+
+    constructor (someVar: MyTrait)
+      requires someVar.Valid()
+      ensures Valid() && fresh(Repr - someVar.Repr)
+    {
+      this.someVar := someVar;
+      this.Repr := {this} + someVar.Repr;
+    }
+  }
+}
+
+module MyModule2 {
+  import MyModule1
+
+  class MyClass1 extends MyModule1.MyTrait {
+    predicate Valid() reads this, Repr ensures Valid() ==> this in Repr { this in Repr }
+    constructor () ensures Valid() && fresh(Repr) { this.Repr := {this}; }
+  }
+
+  method Run() {
+    var myClass1 := new MyClass1();
+    var myClass2 := new MyModule1.MyClass2(myClass1);
+  }
+}
