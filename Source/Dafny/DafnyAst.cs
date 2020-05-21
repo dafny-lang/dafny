@@ -9416,7 +9416,8 @@ namespace Microsoft.Dafny {
     void ObjectInvariant() {
       Contract.Invariant(Obj != null);
       Contract.Invariant(MemberName != null);
-      Contract.Invariant((Member != null) == (TypeApplication != null));  // TypeApplication is set whenever Member is set
+      Contract.Invariant((Member != null) == (TypeApplication_AtEnclosingClass != null));  // TypeApplication_* are set whenever Member is set
+      Contract.Invariant((Member != null) == (TypeApplication_JustMember != null));  // TypeApplication_* are set whenever Member is set
     }
 
     public MemberSelectExpr(IToken tok, Expression obj, string memberName)
@@ -9450,9 +9451,9 @@ namespace Microsoft.Dafny {
       if (receiverType is UserDefinedType udt) {
         var cl = udt.ResolvedClass as TopLevelDeclWithMembers;
         Contract.Assert(cl != null);
-        Contract.Assert(cl.TypeArgs.Count == TypeApplication.Count);
+        Contract.Assert(cl.TypeArgs.Count == TypeApplication_AtEnclosingClass.Count);
         for (var i = 0; i < cl.TypeArgs.Count; i++) {
-          typeMap.Add(cl.TypeArgs[i], TypeApplication[i]);
+          typeMap.Add(cl.TypeArgs[i], TypeApplication_AtEnclosingClass[i]);
         }
         foreach (var entry in cl.ParentFormalTypeParametersToActuals) {
           var v = Resolver.SubstType(entry.Value, typeMap);
@@ -9461,9 +9462,9 @@ namespace Microsoft.Dafny {
       } else if (field.EnclosingClass == null) {
         // leave typeMap as the empty substitution
       } else {
-        Contract.Assert(field.EnclosingClass.TypeArgs.Count == TypeApplication.Count);
+        Contract.Assert(field.EnclosingClass.TypeArgs.Count == TypeApplication_AtEnclosingClass.Count);
         for (var i = 0; i < field.EnclosingClass.TypeArgs.Count; i++) {
-          typeMap.Add(field.EnclosingClass.TypeArgs[i], TypeApplication[i]);
+          typeMap.Add(field.EnclosingClass.TypeArgs[i], TypeApplication_AtEnclosingClass[i]);
         }
       }
       this.Type = Resolver.SubstType(field.Type, typeMap);  // resolve here
@@ -9644,6 +9645,17 @@ namespace Microsoft.Dafny {
     public List<Type> TypeApplication_JustFunction;  // created, initialized, and used by resolution (and also used by translation)
 
     /// <summary>
+    /// Return a mapping from each type parameter of the function and its enclosing class to actual type arguments.
+    /// This method should only be called on fully and successfully resolved FunctionCallExpr's.
+    /// </summary>
+    public Dictionary<TypeParameter, Type> GetTypeArgumentSubstitutions() {
+      var typeMap = new Dictionary<TypeParameter, Type>();
+      Util.AddToDict(typeMap, Function.EnclosingClass.TypeArgs, TypeApplication_AtEnclosingClass);
+      Util.AddToDict(typeMap, Function.TypeArgs, TypeApplication_JustFunction);
+      return typeMap;
+    }
+
+    /// <summary>
     /// Returns a mapping from formal type parameters to actual type arguments. For example, given
     ///     trait T<A> {
     ///       function F<X>(): bv8 { ... }
@@ -9682,13 +9694,11 @@ namespace Microsoft.Dafny {
       Contract.Invariant(Receiver != null);
       Contract.Invariant(cce.NonNullElements(Args));
       Contract.Invariant(
-        Function == null || TypeArgumentSubstitutions == null ||
-        Contract.ForAll(
-          Function.TypeArgs,
-            a => TypeArgumentSubstitutions.ContainsKey(a)) &&
-        Contract.ForAll(
-          TypeArgumentSubstitutions.Keys,
-            a => Function.TypeArgs.Contains(a) || Function.EnclosingClass.TypeArgs.Contains(a)));
+        Function == null || TypeApplication_AtEnclosingClass == null ||
+        Function.EnclosingClass.TypeArgs.Count == TypeApplication_AtEnclosingClass.Count);
+      Contract.Invariant(
+        Function == null || TypeApplication_JustFunction == null ||
+        Function.TypeArgs.Count == TypeApplication_JustFunction.Count);
     }
 
     public Function Function;  // filled in by resolution

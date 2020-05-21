@@ -3991,12 +3991,10 @@ namespace Microsoft.Dafny {
         wr.Write(")");
       }
       wr.Write(".{0}", IdName(f));
-      List<Type> typeArgs;
-      if (f.TypeArgs.Count != 0) {
-        typeArgs = f.TypeArgs.ConvertAll(ta => e.TypeArgumentSubstitutions[ta]);
+      Contract.Assert(f.TypeArgs.Count == e.TypeApplication_JustFunction.Count);
+      List<Type> typeArgs = e.TypeApplication_JustFunction;
+      if (typeArgs.Count != 0) {
         EmitActualTypeArgs(typeArgs, f.tok, wr);
-      } else {
-        typeArgs = new List<Type>();
       }
       wr.Write("(");
       var nRTDs = EmitRuntimeTypeDescriptorsActuals(typeArgs, f.TypeArgs, e.tok, false, wr);

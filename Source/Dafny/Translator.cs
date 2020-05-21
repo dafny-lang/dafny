@@ -7452,7 +7452,7 @@ namespace Microsoft.Dafny {
             Formal p = e.Function.Formals[i];
             // Note, in the following, the "##" makes the variable invisible in BVD.  An alternative would be to communicate
             // to BVD what this variable stands for and display it as such to the user.
-            Type et = Resolver.SubstType(p.Type, e.TypeArgumentSubstitutions);
+            Type et = Resolver.SubstType(p.Type, e.GetTypeArgumentSubstitutions());
             LocalVariable local = new LocalVariable(p.tok, p.tok, "##" + p.Name, et, p.IsGhost);
             local.type = local.OptionalType;  // resolve local here
             IdentifierExpr ie = new IdentifierExpr(local.Tok, local.AssignUniqueName(currentDeclaration.IdGenerator));
@@ -7512,7 +7512,7 @@ namespace Microsoft.Dafny {
           }
           // check that the preconditions for the call hold
           foreach (MaybeFreeExpression p in e.Function.Req) {
-            Expression precond = Substitute(p.E, e.Receiver, substMap, e.TypeArgumentSubstitutions);
+            Expression precond = Substitute(p.E, e.Receiver, substMap, e.GetTypeArgumentSubstitutions());
             bool splitHappened;  // we don't actually care
             string errorMessage = CustomErrorMessage(p.Attributes);
             foreach (var ss in TrSplitExpr(precond, etran, true, out splitHappened)) {
@@ -7533,7 +7533,7 @@ namespace Microsoft.Dafny {
           }
           if (options.DoReadsChecks) {
             // check that the callee reads only what the caller is already allowed to read
-            var s = new Substituter(null, new Dictionary<IVariable, Expression>(), e.TypeArgumentSubstitutions);
+            var s = new Substituter(null, new Dictionary<IVariable, Expression>(), e.GetTypeArgumentSubstitutions());
             CheckFrameSubset(expr.tok,
               e.Function.Reads.ConvertAll(s.SubstFrameExpr),
               e.Receiver, substMap, etran, options.AssertSink(this, builder), "insufficient reads clause to invoke function", options.AssertKv);
@@ -7583,7 +7583,7 @@ namespace Microsoft.Dafny {
               if (e.CoCallHint != null) {
                 hint = hint == null ? e.CoCallHint : string.Format("{0}; {1}", hint, e.CoCallHint);
               }
-              CheckCallTermination(expr.tok, contextDecreases, calleeDecreases, allowance, e.Receiver, substMap, e.TypeArgumentSubstitutions,
+              CheckCallTermination(expr.tok, contextDecreases, calleeDecreases, allowance, e.Receiver, substMap, e.GetTypeArgumentSubstitutions(),
                 etran, etran, builder, codeContext.InferredDecreases, hint);
             }
           }
@@ -14946,6 +14946,13 @@ namespace Microsoft.Dafny {
             var mem = recv as MemberSelectExpr;
             var fn = mem == null ? null : mem.Member as Function;
             if (fn != null) {
+#if DEBUG
+              var both = Util.Concat(mem.TypeApplication_AtEnclosingClass, mem.TypeApplication_JustMember);
+              Contract.Assert(mem.TypeApplication.Count == both.Count);
+              for (var i = 0; i < both.Count; i++) {
+                Contract.Assert(both[i].Equals(mem.TypeApplication[i]));
+              }
+#endif
               return TrExpr(new FunctionCallExpr(e.tok, fn.Name, mem.Obj, e.tok, e.Args) {
                 Function = fn,
                 Type = e.Type,
@@ -17249,7 +17256,7 @@ namespace Microsoft.Dafny {
             } else {
               // inline this body
               var typeSpecializedBody = GetSubstitutedBody(fexp, f);
-              var typeSpecializedResultType = Resolver.SubstType(f.ResultType, fexp.TypeArgumentSubstitutions);
+              var typeSpecializedResultType = Resolver.SubstType(f.ResultType, fexp.GetTypeArgumentSubstitutions());
 
               // recurse on body
               var ss = new List<SplitExprInfo>();
@@ -17500,7 +17507,7 @@ namespace Microsoft.Dafny {
       Contract.Assert(fexp.Args.Count == f.Formals.Count);
       for (int i = 0; i < f.Formals.Count; i++) {
         Formal p = f.Formals[i];
-        var formalType = Resolver.SubstType(p.Type, fexp.TypeArgumentSubstitutions);
+        var formalType = Resolver.SubstType(p.Type, fexp.GetTypeArgumentSubstitutions());
         Expression arg = fexp.Args[i];
         arg = new BoxingCastExpr(arg, cce.NonNull(arg.Type), formalType);
         arg.Type = formalType;  // resolve here
@@ -17511,7 +17518,7 @@ namespace Microsoft.Dafny {
         var pp = (PrefixPredicate)f;
         body = PrefixSubstitution(pp, body);
       }
-      body = Substitute(body, fexp.Receiver, substMap, fexp.TypeArgumentSubstitutions);
+      body = Substitute(body, fexp.Receiver, substMap, fexp.GetTypeArgumentSubstitutions());
       return body;
     }
 
@@ -17599,7 +17606,7 @@ namespace Microsoft.Dafny {
       ComputeFreeTypeVariables(expr.Type, fvs);
       if (expr is FunctionCallExpr) {
         var e = (FunctionCallExpr)expr;
-        e.TypeArgumentSubstitutions.Iter(kv => ComputeFreeTypeVariables(kv.Value, fvs));
+        Util.Concat(e.TypeApplication_AtEnclosingClass, e.TypeApplication_JustFunction).Iter(ty => ComputeFreeTypeVariables(ty, fvs));
       }
       expr.SubExpressions.Iter(ee => ComputeFreeTypeVariables(ee, fvs));
     }
