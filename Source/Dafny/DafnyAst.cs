@@ -289,7 +289,7 @@ namespace Microsoft.Dafny {
         TypeApplication = f.Type.TypeArgs,
         TypeApplication_AtEnclosingClass = f.Type.TypeArgs,
         TypeApplication_JustMember = new List<Type>(),
-        Type = member.Type
+        Type = GetTypeOfFunction(member, new List<Type>(), tps.ConvertAll(tp => (Type)new UserDefinedType(tp)))
       };
       Expression body = new ApplyExpr(tok, fn, args);
       body.Type = member.ResultType;  // resolve here
@@ -302,6 +302,22 @@ namespace Microsoft.Dafny {
         body = new ForallExpr(tok, bvs, null, body, null) { Type = Type.Bool, Bounds = bounds };
       }
       return body;
+    }
+
+    Type GetTypeOfFunction(Function f, List<Type> typeArgumentsClass, List<Type> typeArgumentsMember) {
+      Contract.Requires(f != null);
+      Contract.Requires(f.EnclosingClass != null);
+      Contract.Requires(typeArgumentsClass != null);
+      Contract.Requires(typeArgumentsMember != null);
+      Contract.Requires(typeArgumentsClass.Count == f.EnclosingClass.TypeArgs.Count);
+      Contract.Requires(typeArgumentsMember.Count == f.TypeArgs.Count);
+
+      var atd = ArrowTypeDecls[f.Formals.Count];
+
+      var formals = Util.Concat(f.EnclosingClass.TypeArgs, f.TypeArgs);
+      var actuals = Util.Concat(typeArgumentsClass, typeArgumentsMember);
+      var typeMap = Resolver.TypeSubstitutionMap(formals, actuals);
+      return new ArrowType(f.tok, atd, f.Formals.ConvertAll(arg => Resolver.SubstType(arg.Type, typeMap)), Resolver.SubstType(f.ResultType, typeMap));
     }
 
     public TupleTypeDecl TupleType(IToken tok, int dims, bool allowCreationOfNewType) {
