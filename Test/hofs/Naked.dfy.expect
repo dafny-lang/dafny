@@ -15,10 +15,10 @@ Execution trace:
     (0,0): anon0
     (0,0): anon7_Else
     (0,0): anon8_Else
-Naked.dfy(22,12): Error: cannot use naked function in recursive setting. Possible solution: eta expansion.
+Naked.dfy(22,14): Error: cannot use naked function in recursive setting. Possible solution: eta expansion.
 Execution trace:
     (0,0): anon0
-Naked.dfy(26,13): Error: cannot use naked function in recursive setting. Possible solution: eta expansion.
+Naked.dfy(26,15): Error: cannot use naked function in recursive setting. Possible solution: eta expansion.
 Execution trace:
     (0,0): anon0
 Naked.dfy(30,44): Error: possible violation of function precondition
@@ -29,18 +29,27 @@ Execution trace:
 Naked.dfy(32,14): Error: cannot use naked function in recursive setting. Possible solution: eta expansion.
 Execution trace:
     (0,0): anon0
-Naked.dfy(38,8): Error: cannot use naked function in recursive setting. Possible solution: eta expansion.
+Naked.dfy(38,10): Error: cannot use naked function in recursive setting. Possible solution: eta expansion.
 Execution trace:
     (0,0): anon0
-Naked.dfy(42,9): Error: cannot use naked function in recursive setting. Possible solution: eta expansion.
+Naked.dfy(42,11): Error: cannot use naked function in recursive setting. Possible solution: eta expansion.
 Execution trace:
     (0,0): anon0
-Naked.dfy(45,29): Error: cannot prove termination; try supplying a decreases clause
+Naked.dfy(46,4): Error: cannot prove termination; try supplying a decreases clause
 Execution trace:
     (0,0): anon0
     (0,0): anon4_Else
-Naked.dfy(48,10): Error: cannot use naked function in recursive setting. Possible solution: eta expansion.
+Naked.dfy(49,10): Error: cannot use naked function in recursive setting. Possible solution: eta expansion.
+Execution trace:
+    (0,0): anon0
+Naked.dfy(56,12): Error: cannot use naked function in recursive setting. Possible solution: eta expansion.
+Execution trace:
+    (0,0): anon0
+Naked.dfy(60,13): Error: cannot use naked function in recursive setting. Possible solution: eta expansion.
+Execution trace:
+    (0,0): anon0
+Naked.dfy(67,12): Error: cannot use naked function in recursive setting. Possible solution: eta expansion.
 Execution trace:
     (0,0): anon0
 
-Dafny program verifier finished with 1 verified, 11 errors
+Dafny program verifier finished with 2 verified, 14 errors

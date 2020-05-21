@@ -5759,11 +5759,12 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public Type Type {
-      get {
-        // Note, the following returned type can contain type parameters from the function and its enclosing class
-        return new ArrowType(tok, Formals.ConvertAll(f => f.Type), ResultType);
-      }
+    public Type GetMemberType(ArrowTypeDecl atd) {
+      Contract.Requires(atd != null);
+      Contract.Requires(atd.Arity == Formals.Count);
+
+      // Note, the following returned type can contain type parameters from the function and its enclosing class
+      return new ArrowType(tok, atd, Formals.ConvertAll(f => f.Type), ResultType);
     }
 
     public bool AllowsNontermination {

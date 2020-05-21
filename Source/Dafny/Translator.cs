@@ -7407,7 +7407,7 @@ namespace Microsoft.Dafny {
           fnCoreType = v.Var.Type;
         } else if (fnCore is MemberSelectExpr) {
           var m = (MemberSelectExpr)fnCore;
-          fnCoreType = m.Member is Field ? ((Field)m.Member).Type : ((Function)m.Member).Type;
+          fnCoreType = m.Member is Field ? ((Field)m.Member).Type : ((Function)m.Member).GetMemberType((ArrowTypeDecl)tt.ResolvedClass);
         } else {
           fnCoreType = fnCore.Type;
         }
@@ -8386,8 +8386,7 @@ namespace Microsoft.Dafny {
           formals.Add(BplFormalVar(null, predef.LayerType, true));
         }
 
-        var enclosingArrow = f.EnclosingClass as ArrowTypeDecl;
-        var fromArrowType = enclosingArrow != null;
+        var fromArrowType = f.EnclosingClass is ArrowTypeDecl;
 
         Func<List<Bpl.Expr>, List<Bpl.Expr>> SnocSelf = x => x;
         Func<List<Bpl.Expr>, List<Bpl.Expr>> SnocPrevH = x => x;
@@ -8406,8 +8405,8 @@ namespace Microsoft.Dafny {
           var self = BplBoundVar("$self", selfTy, vars);
           formals.Add(BplFormalVar(null, selfTy, true));
           SnocSelf = xs => Snoc(xs, self);
-          selfExpr = new BoogieWrapper(self, fromArrowType ? f.Type : program.BuiltIns.ObjectQ());
-                                          // ^ is this an ok type for this wrapper?
+          var wrapperType = UserDefinedType.FromTopLevelDecl(f.tok, f.EnclosingClass);
+          selfExpr = new BoogieWrapper(self, wrapperType);
         }
 
         // F#Handle(Ty, .., Ty, LayerType, ref) : HandleType
@@ -18018,12 +18017,7 @@ namespace Microsoft.Dafny {
           MemberSelectExpr fseNew = new MemberSelectExpr(fse.tok, substE, fse.MemberName);
           fseNew.Member = fse.Member;
           fseNew.TypeApplication = fse.TypeApplication.ConvertAll(t => Resolver.SubstType(t, typeMap));
-          if (fse.Member.EnclosingClass == null) {
-            // this can happen for special members, like ORDINAL.Offset()
-            fseNew.TypeApplication_AtEnclosingClass = new List<Type>();
-          } else {
-            fseNew.TypeApplication_AtEnclosingClass = fse.Member.EnclosingClass.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp.tok, tp));
-          }
+          fseNew.TypeApplication_AtEnclosingClass = fse.TypeApplication_AtEnclosingClass.ConvertAll(t => Resolver.SubstType(t, typeMap));
           fseNew.TypeApplication_JustMember = fse.TypeApplication_JustMember.ConvertAll(t => Resolver.SubstType(t, typeMap));
           newExpr = fseNew;
         } else if (expr is SeqSelectExpr) {
