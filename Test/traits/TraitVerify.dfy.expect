@@ -1,11 +1,11 @@
-TraitVerify.dfy(82,4): Error: field 'y0', which is subject to definite-assignment rules, might not have been defined at this point in the constructor body
+TraitVerify.dfy(130,4): Error: field 'y0', which is subject to definite-assignment rules, might not have been defined at this point in the constructor body
 Execution trace:
     (0,0): anon0
-TraitVerify.dfy(112,15): Error: assertion violation
+TraitVerify.dfy(160,15): Error: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon7_Then
-TraitVerify.dfy(118,15): Error: assertion violation
+TraitVerify.dfy(166,15): Error: assertion violation
 Execution trace:
     (0,0): anon0
     (0,0): anon9_Then
@@ -19,4 +19,4 @@ TraitVerify.dfy(30,7): Error: value does not satisfy the subset constraints of '
 Execution trace:
     (0,0): anon0
 
-Dafny program verifier finished with 26 verified, 6 errors
+Dafny program verifier finished with 30 verified, 6 errors

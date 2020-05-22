@@ -2908,3 +2908,15 @@ module TypeParameterScopes {
     }
   }
 }
+
+// --------------- type of function members (regression tests) ------------------------------
+
+module TypeOfFunctionMember {
+  function Fo<X>(x: X): int
+
+  lemma M() {
+    // Both of the following once crashed the type checker
+    var rd := Fo<real>.reads;
+    var rq := Fo<real>.requires;
+  }
+}

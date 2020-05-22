@@ -3180,9 +3180,7 @@ namespace Microsoft.Dafny {
             wr.Write(".{0}", IdName(s.Method));
           }
         }
-        List<Type> typeArgs;
-        var typeSubst = s.MethodSelect.TypeArgumentSubstitutionsWithParents();
-        typeArgs = s.Method.TypeArgs.ConvertAll(ta => typeSubst[ta]);
+        var typeArgs = s.MethodSelect.TypeApplication_JustMember;
         EmitActualTypeArgs(typeArgs, s.Tok, wr);
         wr.Write("(");
         var nRTDs = EmitRuntimeTypeDescriptorsActuals(typeArgs, s.Method.TypeArgs, s.Tok, false, wr);
@@ -4002,12 +4000,10 @@ namespace Microsoft.Dafny {
         wr.Write(")");
       }
       wr.Write(".{0}", IdName(f));
-      List<Type> typeArgs;
-      if (f.TypeArgs.Count != 0) {
-        typeArgs = f.TypeArgs.ConvertAll(ta => e.TypeArgumentSubstitutions[ta]);
+      Contract.Assert(f.TypeArgs.Count == e.TypeApplication_JustFunction.Count);
+      List<Type> typeArgs = e.TypeApplication_JustFunction;
+      if (typeArgs.Count != 0) {
         EmitActualTypeArgs(typeArgs, f.tok, wr);
-      } else {
-        typeArgs = new List<Type>();
       }
       wr.Write("(");
       var nRTDs = EmitRuntimeTypeDescriptorsActuals(typeArgs, f.TypeArgs, e.tok, false, wr);

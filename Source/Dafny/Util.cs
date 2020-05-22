@@ -100,6 +100,16 @@ namespace Microsoft.Dafny {
       return res;
     }
 
+    public static void AddToDict<A,B>(Dictionary<A,B> dict, List<A> xs, List<B> ys) {
+      Contract.Requires(dict != null);
+      Contract.Requires(xs != null);
+      Contract.Requires(ys != null);
+      Contract.Requires(xs.Count == ys.Count);
+      for (var i = 0; i < xs.Count; i++) {
+        dict.Add(xs[i], ys[i]);
+      }
+    }
+
     /// <summary>
     /// Returns s but with all occurrences of '_' removed.
     /// </summary>
