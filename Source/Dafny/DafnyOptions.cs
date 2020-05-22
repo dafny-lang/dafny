@@ -107,6 +107,7 @@ namespace Microsoft.Dafny
       false
 #endif
     ;
+    public bool PrintVersionAndExit = false;
 
     protected override bool ParseOption(string name, Bpl.CommandLineOptionEngine.CommandLineParseState ps) {
       var args = ps.args;  // convenient synonym
@@ -411,6 +412,10 @@ namespace Microsoft.Dafny
               DafnyVerify = false;
             }
           }
+          return true;
+
+        case "version":
+          PrintVersionAndExit = true;
           return true;
 
         default:
@@ -819,6 +824,7 @@ namespace Microsoft.Dafny
   /disableScopes
                 Treat all export sets as 'export reveal *'. i.e. don't hide function bodies
                 or type definitions during translation.
+  /version      Print the Dafny version number and exit.
 ");
       base.Usage();  // also print the Boogie options
     }
