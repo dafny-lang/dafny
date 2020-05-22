@@ -23,7 +23,8 @@ namespace Microsoft.Dafny
 
   public class DafnyDriver
   {
-    public enum ExitValue { VERIFIED = 0, PREPROCESSING_ERROR, DAFNY_ERROR, COMPILE_ERROR, NOT_VERIFIED }
+    // TODO: Refactor so that non-errors (NOT_VERIFIED, DONT_PROCESS_FILES) don't result in non-zero exit codes
+    public enum ExitValue { VERIFIED = 0, PREPROCESSING_ERROR, DAFNY_ERROR, COMPILE_ERROR, NOT_VERIFIED, DONT_PROCESS_FILES }
 
     public static int Main(string[] args)
     {
@@ -85,6 +86,12 @@ namespace Microsoft.Dafny
       } catch (ProverException pe) {
         ExecutionEngine.printer.ErrorWriteLine(Console.Out, "*** ProverException: {0}", pe.Message);
         return ExitValue.PREPROCESSING_ERROR;
+      }
+
+      if (DafnyOptions.O.PrintVersionAndExit)
+      {
+        Console.WriteLine(CommandLineOptions.Clo.Version);
+        return ExitValue.DONT_PROCESS_FILES;
       }
 
       if (CommandLineOptions.Clo.Files.Count == 0)
