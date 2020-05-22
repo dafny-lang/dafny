@@ -3330,12 +3330,12 @@ namespace Microsoft.Dafny {
 
     /// <summary>
     /// Essentially, the function override axiom looks like:
-    ///   axiom (forall $heap: HeapType, typeArgs: Ty, this: ref, x#0: int ::
-    ///     { J.F(Succ(s), $heap, G(typeArgs), this, x#0), C.F(Succ(s), $heap, typeArgs, this, x#0) }
-    ///     { J.F(Succ(s), $heap, G(typeArgs), this, x#0), $Is(this, C) }
+    ///   axiom (forall $heap: HeapType, typeArgs: Ty, this: ref, x#0: int, fuel: LayerType ::
+    ///     { J.F(fuel, $heap, G(typeArgs), this, x#0), C.F(fuel, $heap, typeArgs, this, x#0) }
+    ///     { J.F(fuel, $heap, G(typeArgs), this, x#0), $Is(this, C) }
     ///     this != null && $Is(this, C)
     ///     ==>
-    ///     J.F(Succ(s), $heap, G(typeArgs), this, x#0) == C.F(Succ(s), $heap, typeArgs, this, x#0));
+    ///     J.F(fuel, $heap, G(typeArgs), this, x#0) == C.F(fuel, $heap, typeArgs, this, x#0));
     /// (without the other usual antecedents).  Essentially, the override gives a part of the body of the
     /// trait's function, so we call FunctionAxiom to generate a conditional axiom (that is, we pass in the "overridingFunction"
     /// parameter to FunctionAxiom, which will add 'dtype(this) == class.C' as an additional antecedent) for a
@@ -3379,11 +3379,17 @@ namespace Microsoft.Dafny {
 
       // Add the fuel argument
       if (f.IsFuelAware()) {
-        var layer = new Bpl.BoundVariable(f.tok, new Bpl.TypedIdent(f.tok, "$ly", predef.LayerType));
-        forallFormals.Add(layer);
-        var ly = new Bpl.IdentifierExpr(f.tok, layer);
-        argsJF.Add(LayerSucc(ly));
-        argsCF.Add(LayerSucc(ly));
+        Contract.Assert(overridingFunction.IsFuelAware());  // f.IsFuelAware() ==> overridingFunction.IsFuelAware()
+        var fuel = new Bpl.BoundVariable(f.tok, new Bpl.TypedIdent(f.tok, "$fuel", predef.LayerType));
+        forallFormals.Add(fuel);
+        var ly = new Bpl.IdentifierExpr(f.tok, fuel);
+        argsJF.Add(ly);
+        argsCF.Add(ly);
+      } else if (overridingFunction.IsFuelAware()) {
+        // We can't use a bound variable $fuel, because then one of the triggers won't be mentioning this $fuel.
+        // Instead, we do the next best thing: use the literal $LZ.
+        var ly = new Bpl.IdentifierExpr(f.tok, "$LZ",predef.LayerType); // $LZ
+        argsCF.Add(ly);
       }
 
       // Add heap arguments
@@ -4562,13 +4568,15 @@ namespace Microsoft.Dafny {
       definiteAssignmentTrackers.Add(p.UniqueName, ie);
     }
 
-    void AddDefiniteAssignmentTrackerSurrogate(Field field, List<Variable> localVariables) {
+    void AddDefiniteAssignmentTrackerSurrogate(Field field, TopLevelDeclWithMembers enclosingClass, List<Variable> localVariables) {
       Contract.Requires(field != null);
       Contract.Requires(localVariables != null);
 
       if (DafnyOptions.O.DefiniteAssignmentLevel == 0 || field.IsGhost) {
         return;
-      } else if (DafnyOptions.O.DefiniteAssignmentLevel == 1 && Compiler.InitializerIsKnown(field.Type)) {
+      }
+      var type = Resolver.SubstType(field.Type, enclosingClass.ParentFormalTypeParametersToActuals);
+      if (DafnyOptions.O.DefiniteAssignmentLevel == 1 && Compiler.InitializerIsKnown(type)) {
         return;
       }
       var nm = SurrogateName(field);
@@ -10351,7 +10359,7 @@ namespace Microsoft.Dafny {
         fields.RemoveAll(f => f == null);
         var localSurrogates = fields.ConvertAll(f => new Bpl.LocalVariable(f.tok, new TypedIdent(f.tok, SurrogateName(f), TrType(f.Type))));
         locals.AddRange(localSurrogates);
-        fields.Iter(f => AddDefiniteAssignmentTrackerSurrogate(f, locals));
+        fields.Iter(f => AddDefiniteAssignmentTrackerSurrogate(f, cl, locals));
 
         Contract.Assert(!inBodyInitContext);
         inBodyInitContext = true;

@@ -3092,7 +3092,7 @@ namespace Microsoft.Dafny{
       }
       w.Write($"public interface {IdProtect(name)}{typeParamString}");
       if (superClasses != null) {
-        string sep = " implements ";
+        string sep = " extends ";
         foreach (var trait in superClasses) {
           w.Write($"{sep}{TypeName(trait, w, tok)}");
           sep = ", ";

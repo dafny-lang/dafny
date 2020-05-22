@@ -135,7 +135,7 @@ namespace Microsoft.Dafny {
       NatDecl = new SubsetTypeDecl(Token.NoToken, "nat", new TypeParameter.TypeParameterCharacteristics(TypeParameter.EqualitySupportValue.InferredRequired, false, false), new List<TypeParameter>(), SystemModule, bvNat, natConstraint, SubsetTypeDecl.WKind.None, null, ax);
       SystemModule.TopLevelDecls.Add(NatDecl);
       // create trait 'object'
-      ObjectDecl = new TraitDecl(Token.NoToken, "object", SystemModule, new List<TypeParameter>(), new List<MemberDecl>(), DontCompile());
+      ObjectDecl = new TraitDecl(Token.NoToken, "object", SystemModule, new List<TypeParameter>(), new List<MemberDecl>(), DontCompile(), null);
       SystemModule.TopLevelDecls.Add(ObjectDecl);
       // add one-dimensional arrays, since they may arise during type checking
       // Arrays of other dimensions may be added during parsing as the parser detects the need for these
@@ -4044,6 +4044,59 @@ namespace Microsoft.Dafny {
     /// </summary>
     public readonly List<TraitDecl> ParentTraitHeads = new List<TraitDecl>();
 
+    public InheritanceInformationClass ParentTypeInformation;  // filled in during resolution
+    public class InheritanceInformationClass
+    {
+      private readonly Dictionary<TraitDecl, List<(Type, List<TraitDecl> /*via this parent path*/)>> info = new Dictionary<TraitDecl, List<(Type, List<TraitDecl>)>>();
+
+      /// <summary>
+      /// Returns a subset of the trait's ParentTraits, but not repeating any head type.
+      /// Assumes the declaration has been successfully resolved.
+      /// </summary>
+      public List<Type> UniqueParentTraits() {
+        return info.ToList().ConvertAll(entry => entry.Value[0].Item1);
+      }
+
+      public void Record(TraitDecl traitHead, UserDefinedType parentType) {
+        Contract.Requires(traitHead != null);
+        Contract.Requires(parentType != null);
+        Contract.Requires(parentType.ResolvedClass is NonNullTypeDecl nntd && nntd.ViewAsClass == traitHead);
+
+        if (!info.TryGetValue(traitHead, out var list)) {
+          list = new List<(Type, List<TraitDecl>)>();
+          info.Add(traitHead, list);
+        }
+        list.Add((parentType, new List<TraitDecl>()));
+      }
+
+      public void Extend(TraitDecl parent, InheritanceInformationClass parentInfo, Dictionary<TypeParameter, Type> typeMap) {
+        Contract.Requires(parent != null);
+        Contract.Requires(parentInfo != null);
+        Contract.Requires(typeMap != null);
+
+        foreach (var entry in parentInfo.info) {
+          var traitHead = entry.Key;
+          if (!info.TryGetValue(traitHead, out var list)) {
+            list = new List<(Type, List<TraitDecl>)>();
+            info.Add(traitHead, list);
+          }
+          foreach (var pair in entry.Value) {
+            var ty = Resolver.SubstType(pair.Item1, typeMap);
+            // prepend the path with "parent"
+            var parentPath = new List<TraitDecl>() {parent};
+            parentPath.AddRange(pair.Item2);
+            list.Add((ty, parentPath));
+          }
+        }
+      }
+
+      public IEnumerable<List<(Type, List<TraitDecl>)>> GetTypeInstantiationGroups() {
+        foreach (var pair in info.Values) {
+          yield return pair;
+        }
+      }
+    }
+
     public TopLevelDeclWithMembers(IToken tok, string name, ModuleDefinition module, List<TypeParameter> typeArgs, List<MemberDecl> members, Attributes attributes, List<Type>/*?*/ traits = null)
       : base(tok, name, module, typeArgs, attributes) {
       Contract.Requires(tok != null);
@@ -4098,8 +4151,8 @@ namespace Microsoft.Dafny {
     public override string WhatKind { get { return "trait"; } }
     public bool IsParent { set; get; }
     public TraitDecl(IToken tok, string name, ModuleDefinition module,
-      List<TypeParameter> typeArgs, [Captured] List<MemberDecl> members, Attributes attributes)
-      : base(tok, name, module, typeArgs, members, attributes, null) { }
+      List<TypeParameter> typeArgs, [Captured] List<MemberDecl> members, Attributes attributes, List<Type>/*?*/ traits)
+      : base(tok, name, module, typeArgs, members, attributes, traits) { }
   }
 
   public class ClassDecl : TopLevelDeclWithMembers, RevealableTypeDecl {
@@ -4114,7 +4167,7 @@ namespace Microsoft.Dafny {
     }
 
     public ClassDecl(IToken tok, string name, ModuleDefinition module,
-      List<TypeParameter> typeArgs, [Captured] List<MemberDecl> members, Attributes attributes, List<Type> traits)
+      List<TypeParameter> typeArgs, [Captured] List<MemberDecl> members, Attributes attributes, List<Type>/*?*/ traits)
       : base(tok, name, module, typeArgs, members, attributes, traits) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
@@ -4705,6 +4758,21 @@ namespace Microsoft.Dafny {
 
     public TopLevelDecl EnclosingClass;  // filled in during resolution
     public MemberDecl RefinementBase;  // filled in during the pre-resolution refinement transformation; null if the member is new here
+    public MemberDecl OverriddenMember;  // filled in during resolution; non-null if the member overrides a member in a parent trait
+
+    /// <summary>
+    /// Returns "true" if "this" is a (possibly transitive) override of "possiblyOverriddenMember".
+    /// </summary>
+    public bool Overrides(MemberDecl possiblyOverriddenMember) {
+      Contract.Requires(possiblyOverriddenMember != null);
+      for (var th = this; th != null; th = th.OverriddenMember) {
+        if (th == possiblyOverriddenMember) {
+          return true;
+        }
+      }
+      return false;
+    }
+
     public MemberDecl(IToken tok, string name, bool hasStaticKeyword, bool isGhost, Attributes attributes)
       : base(tok, name, attributes) {
       Contract.Requires(tok != null);
@@ -5870,7 +5938,7 @@ namespace Microsoft.Dafny {
     bool ICodeContext.MustReverify { get { return false; } }
 
     [Pure]
-    public bool IsFuelAware() { return IsRecursive || IsFueled; }
+    public bool IsFuelAware() { return IsRecursive || IsFueled || (OverriddenFunction != null && OverriddenFunction.IsFuelAware()); }
     public virtual bool ReadsHeap { get { return Reads.Count != 0; } }
   }
 

@@ -87,7 +87,7 @@ module m1
 
     var c1: I0Child
   }
-
+} module DoesNotExist {
   class IXChild extends IX   //error, IX trait is undefined
   {
 

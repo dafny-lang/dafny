@@ -521,20 +521,29 @@ namespace Microsoft.Dafny {
     protected virtual void EmitNull(Type type, TargetWriter wr) {
       wr.Write("null");
     }
-    protected virtual void EmitITE(Expression guard, Expression thn, Expression els, bool inLetExprBody, TargetWriter wr) {
+    protected virtual void EmitITE(Expression guard, Expression thn, Expression els, Type resultType, bool inLetExprBody, TargetWriter wr) {
       Contract.Requires(guard != null);
       Contract.Requires(thn != null);
       Contract.Requires(thn.Type != null);
       Contract.Requires(els != null);
+      Contract.Requires(resultType != null);
       Contract.Requires(wr != null);
 
+      resultType = resultType.NormalizeExpand();
       wr.Write("(");
       TrExpr(guard, wr, inLetExprBody);
       wr.Write(") ? (");
-      TrExpr(thn, wr, inLetExprBody);
+      TrExpr(thn, resultType.Equals(thn.Type.NormalizeExpand()) ? wr : EmitCast(resultType, wr), inLetExprBody);
       wr.Write(") : (");
-      TrExpr(els, wr, inLetExprBody);
+      TrExpr(els, resultType.Equals(els.Type.NormalizeExpand()) ? wr : EmitCast(resultType, wr), inLetExprBody);
       wr.Write(")");
+    }
+
+    protected virtual TargetWriter EmitCast(Type toType, TargetWriter wr) {
+      wr.Write("({0})(", TypeName(toType, wr, Bpl.Token.NoToken));
+      var exprWr = wr.Fork();
+      wr.Write(")");
+      return exprWr;
     }
     protected abstract void EmitDatatypeValue(DatatypeValue dtv, string arguments, TargetWriter wr);
     protected abstract void GetSpecialFieldInfo(SpecialField.ID id, object idParam, out string compiledName, out string preString, out string postString);
@@ -707,7 +716,7 @@ namespace Microsoft.Dafny {
           } else if (d is TraitDecl) {
             // writing the trait
             var trait = (TraitDecl)d;
-            var w = CreateTrait(trait.CompileName, trait.IsExtern(out _, out _), trait.TypeArgs, null, null, wr);
+            var w = CreateTrait(trait.CompileName, trait.IsExtern(out _, out _), trait.TypeArgs, trait.ParentTypeInformation.UniqueParentTraits(), trait.tok, wr);
             CompileClassMembers(trait, w);
           } else if (d is ClassDecl) {
             var cl = (ClassDecl)d;
@@ -725,7 +734,7 @@ namespace Microsoft.Dafny {
               }
             }
             if (include) {
-              var cw = CreateClass(IdName(cl), classIsExtern, cl.FullName, cl.TypeArgs, cl.ParentTraits, cl.tok, wr);
+              var cw = CreateClass(IdName(cl), classIsExtern, cl.FullName, cl.TypeArgs, cl.ParentTypeInformation.UniqueParentTraits(), cl.tok, wr);
               CompileClassMembers(cl, cw);
               cw.Finish();
             } else {
@@ -946,7 +955,7 @@ namespace Microsoft.Dafny {
 
       List<MemberDecl> inheritedMembers;
       Dictionary<TypeParameter, Type> typeMap;
-      if (c is TopLevelDeclWithMembers cl) {
+      if (c is TopLevelDeclWithMembers cl && !(c is TraitDecl)) {
         inheritedMembers = cl.InheritedMembers;
         typeMap = cl.ParentFormalTypeParametersToActuals;
       } else {
@@ -1044,7 +1053,9 @@ namespace Microsoft.Dafny {
       }
 
       foreach (MemberDecl member in c.Members) {
-        if (member is Field) {
+        if (c is TraitDecl && member.OverriddenMember != null) {
+          // emit nothing in the trait; this member will be emitted in the classes that extend this trait
+        } else if (member is Field) {
           var f = (Field)member;
           if (f.IsGhost) {
             // emit nothing, but check for assumes
@@ -3811,7 +3822,7 @@ namespace Microsoft.Dafny {
 
       } else if (expr is ITEExpr) {
         var e = (ITEExpr)expr;
-        EmitITE(e.Test, e.Thn, e.Els, inLetExprBody, wr);
+        EmitITE(e.Test, e.Thn, e.Els, e.Type, inLetExprBody, wr);
 
       } else if (expr is ConcreteSyntaxExpression) {
         var e = (ConcreteSyntaxExpression)expr;

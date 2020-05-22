@@ -81,6 +81,8 @@ method Main()
 
   GenericBasics.Test();
   Generics.Test();
+
+  TraitsExtendingTraits.Test();
 }
 
 module OtherModule {
@@ -212,7 +214,6 @@ module GenericBasics {
     }
 
     function method Teen<S>(a: (Q, S)): int { 12 }
-//    static function method STeen<S>(a: (Q, S)): int { 13 }
 
     function method RValue0<XX>(x: XX): int { 5 }
     function method RValue1<XX>(x: XX): int { 5 }
@@ -264,7 +265,6 @@ module GenericBasics {
     }
 
     function method Teen<S>(a: (Q, S)): int { 12 }
-//    static function method STeen<S>(a: ((Q, L), S)): int { 13 }
 
     function method RValue0<XX>(x: XX): int { 5 }
     function method RValue1<XX>(x: XX): int { 5 }
@@ -275,10 +275,15 @@ module GenericBasics {
   method Test() {
     var c: Cl<real> := new Cl();
     var m: Mega<bool, real, Cl<real>> := new Mega();
-    var ts: seq<Tr<real, int>> := [c, m];
+    // not all compile targets support seq<TRAIT> yet; therefore, we code around it, to at least get calls via "t: Tr"
+    ghost var ts: seq<Tr<real, int>> := [c, m];
+    var t: Tr;
     var i := 0;
-    while i < |ts| {
-      var t := ts[i];
+    while i < 2
+      invariant 0 <= i <= 2
+    {
+      t := if i == 0 then c else m;
+      assert t == ts[i];
       print t.xyz, " ";
       print t.abc, " ";
       print t.def, " ";
@@ -344,5 +349,96 @@ module Generics {
     var tripler := new Triple();
     var x := tripler.Call(42);
     print "x=", x, "\n";
+  }
+}
+
+module TraitsExtendingTraits {
+  type Odd = x | x % 2 == 1 witness 9
+
+  /*
+   A     B  C
+   |    /\ / \
+   K   M  N  |
+    \ /  /  /
+     \  /  /
+      \ | /
+        G
+   */
+
+  trait A<Y0, Y1> {
+    var y0: Y0
+    const y1: Y1
+    method SetY(y: Y0)
+      modifies this
+    {
+      y0 := y;
+    }
+    function method GetY(): Y0
+      reads this
+    {
+      y0
+    }
+    function method GetY'(): Y0
+      reads this
+  }
+  trait B {
+    var b: bool
+    method Quantity() returns (x: int)
+    method Twice() returns (x: int)
+  }
+  trait C {
+  }
+
+  trait K<Y> extends A<Y, Odd> {
+    const k := y1
+    function method GetY'(): Y
+      reads this
+    {
+      y0
+    }
+  }
+
+  trait M extends B {
+    method Quantity() returns (x: int)
+      ensures 0 <= x <= 20
+    {
+      return 15;
+    }
+  }
+  trait N extends B, C {
+    method Twice() returns (x: int) {
+      x := Quantity();
+      x := 2 * x;
+    }
+  }
+
+  class G<X> extends K<X>, K<X>, M, N, C {
+    constructor (x: X) {
+      y0 := x;
+    }
+  }
+
+  method Test() {
+    var g := new G<real>(5.2);
+    print g.y0, " ", g.y1, " ", g.b, "\n";  // 5.2 9 false
+    var m: M := g;
+    var n: N := g;
+    m.b := true;
+    print g.b, " ", m.b, " ", n.b, "\n";  // true true true
+    print g.GetY(), " ", g.GetY'(), "\n"; // 5.2 5.2
+    g.SetY(1.2);
+    print g.GetY(), " ", g.GetY'(), "\n";  // 1.2 1.2
+
+    var q := g.Quantity();
+    assert 0 <= q <= 20;
+    var qq := g.Twice();
+    print q, " ", qq, "\n";  // 15 30
+    q := m.Quantity();
+    assert 0 <= q <= 20;
+    qq := m.Twice();
+    print q, " ", qq, "\n";  // 15 30
+    q := n.Quantity();
+    qq := n.Twice();
+    print q, " ", qq, "\n";  // 15 30
   }
 }

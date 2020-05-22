@@ -1369,6 +1369,10 @@ namespace Microsoft.Dafny {
       wr.Write("_this");
     }
 
+    protected override TargetWriter EmitCast(Type toType, TargetWriter wr) {
+      return wr;
+    }
+
     protected override void EmitDatatypeValue(DatatypeValue dtv, string arguments, TargetWriter wr) {
       var dt = dtv.Ctor.EnclosingDatatype;
       EmitDatatypeValue(dt, dtv.Ctor, dtv.IsCoCall, arguments, wr);

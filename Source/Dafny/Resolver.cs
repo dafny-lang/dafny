@@ -2184,14 +2184,6 @@ namespace Microsoft.Dafny
         sig.VisibilityScope.Augment(sig.Refines.VisibilityScope);
       }*/
 
-      // resolve the trait names that a class extends and register the trait members in the classes that inherit them
-      foreach (TopLevelDecl d in declarations) {
-        var cl = d as ClassDecl;
-        if (cl != null) {
-          RegisterInheritedMembers(cl);
-        }
-      }
-
       var typeRedirectionDependencies = new Graph<RedirectingTypeDecl>();  // this concerns the type directions, not their constraints (which are checked for cyclic dependencies later)
       foreach (TopLevelDecl d in ModuleDefinition.AllDeclarationsAndNonNullTypeDecls(declarations)) {
         Contract.Assert(d != null);
@@ -2233,11 +2225,33 @@ namespace Microsoft.Dafny
         allTypeParameters.PopMarker();
       }
 
-      // Now that all traits have been resolved, let classes inherit the trait members
-      foreach (var d in declarations) {
-        var cl = d as ClassDecl;
-        if (cl != null) {
-          InheritTraitMembers(cl);
+      // Resolve the parent-trait types and fill in .ParentTraitHeads
+      var prevErrorCount = reporter.Count(ErrorLevel.Error);
+      var parentRelation = new Graph<TopLevelDeclWithMembers>();
+      foreach (TopLevelDecl d in declarations) {
+        if (d is TopLevelDeclWithMembers cl) {
+          ResolveParentTraitTypes(cl, parentRelation);
+        }
+      }
+      // Check for cycles among parent traits
+      foreach (var cycle in parentRelation.AllCycles()) {
+        var cy = Util.Comma(" -> ", cycle, m => m.Name);
+        reporter.Error(MessageSource.Resolver, cycle[0], "trait definitions contain a cycle: {0}", cy);
+      }
+      if (prevErrorCount == reporter.Count(ErrorLevel.Error)) {
+        // Register the trait members in the classes that inherit them
+        foreach (TopLevelDecl d in declarations) {
+          if (d is TopLevelDeclWithMembers cl) {
+            RegisterInheritedMembers(cl);
+          }
+        }
+      }
+      if (prevErrorCount == reporter.Count(ErrorLevel.Error)) {
+        // Now that all traits have been resolved, let classes inherit the trait members
+        foreach (var d in declarations) {
+          if (d is TopLevelDeclWithMembers cl) {
+            InheritedTraitMembers(cl);
+          }
         }
       }
 
@@ -7697,62 +7711,138 @@ namespace Microsoft.Dafny
     List<Statement> loopStack = new List<Statement>();  // the enclosing loops (from which it is possible to break out)
 
     /// <summary>
-    /// This method resolves the types that have been given after the 'extends' keyword.  Then, it populates
-    /// the string->MemberDecl table for "cl" to make sure that all inherited names are accounted for.  Further
-    /// checks are done later, elsewhere.
+    /// Resolves the types along .ParentTraits and fills in .ParentTraitHeads
     /// </summary>
-    void RegisterInheritedMembers(ClassDecl cl) {
+    void ResolveParentTraitTypes(TopLevelDeclWithMembers cl, Graph<TopLevelDeclWithMembers> parentRelation) {
       Contract.Requires(cl != null);
       Contract.Requires(currentClass == null);
       Contract.Ensures(currentClass == null);
+
       currentClass = cl;
-
-      WithResolvedTypeParameters(cl, () => {
-
-        // Resolve names of traits extended
-        foreach (var tt in cl.ParentTraits) {
-          var prevErrorCount = reporter.Count(ErrorLevel.Error);
-          ResolveType(cl.tok, tt, new NoContext(cl.Module), ResolveTypeOptionEnum.DontInfer, null);
-          if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
-            var udt = tt as UserDefinedType;
-            if (udt != null && udt.ResolvedClass is NonNullTypeDecl nntd && nntd.ViewAsClass is TraitDecl trait) {
-              // disallowing inheritance in multi module case
-              bool termination = true;
-              if (cl.Module == trait.Module || (Attributes.ContainsBool(trait.Attributes, "termination", ref termination) && !termination)) {
-                if (!cl.ParentTraitHeads.Contains(trait)) {
-                  cl.ParentTraitHeads.Add(trait);
-                  // all is good (or the user takes responsibility for the lack of termination checking)
-                  Contract.Assert(trait.TypeArgs.Count == udt.TypeArgs.Count);
-                  for (var i = 0; i < trait.TypeArgs.Count; i++) {
-                    cl.ParentFormalTypeParametersToActuals.Add(trait.TypeArgs[i], udt.TypeArgs[i]);
-                  }
-                }
-              } else {
-                reporter.Error(MessageSource.Resolver, udt.tok, "class '{0}' is in a different module than trait '{1}'. A class may only extend a trait in the same module, unless that trait is annotated with {{:termination false}}.", cl.Name, trait.FullName);
+      allTypeParameters.PushMarker();
+      ResolveTypeParameters(cl.TypeArgs, false, cl);
+      foreach (var tt in cl.ParentTraits) {
+        var prevErrorCount = reporter.Count(ErrorLevel.Error);
+        ResolveType(cl.tok, tt, new NoContext(cl.Module), ResolveTypeOptionEnum.DontInfer, null);
+        if (prevErrorCount == reporter.Count(ErrorLevel.Error)) {
+          var udt = tt as UserDefinedType;
+          if (udt != null && udt.ResolvedClass is NonNullTypeDecl nntd && nntd.ViewAsClass is TraitDecl trait) {
+            // disallowing inheritance in multi module case
+            bool termination = true;
+            if (cl.Module == trait.Module || (Attributes.ContainsBool(trait.Attributes, "termination", ref termination) && !termination)) {
+              // all is good (or the user takes responsibility for the lack of termination checking)
+              if (!cl.ParentTraitHeads.Contains(trait)) {
+                cl.ParentTraitHeads.Add(trait);
+                parentRelation.AddEdge(cl, trait);
               }
             } else {
-              reporter.Error(MessageSource.Resolver, udt != null ? udt.tok : cl.tok, "a class can only extend traits (found '{0}')", tt);
+              reporter.Error(MessageSource.Resolver, udt.tok, "{0} '{1}' is in a different module than trait '{2}'. A {0} may only extend a trait in the same module, unless that trait is annotated with {{:termination false}}.", cl.WhatKind, cl.Name, trait.FullName);
             }
+          } else {
+            reporter.Error(MessageSource.Resolver, udt != null ? udt.tok : cl.tok, "a {0} can only extend traits (found '{1}')", cl.WhatKind, tt);
           }
         }
-
-        // Inherit members from traits.  What we do here is simply to register names, and in particular to register
-        // names that are not already in the class (or in a duplicate parent trait).
-        var members = classMembers[cl];
-        foreach (var trait in cl.ParentTraitHeads) {
-          foreach (var traitMember in trait.Members) {
-            MemberDecl classMember;
-            if (members.TryGetValue(traitMember.Name, out classMember)) {
-              // the class already declares or inherits a member with this name, so we take no further action at this time
-            } else {
-              // register the trait member in the class
-              members.Add(traitMember.Name, traitMember);
-            }
-          }
-        }
-      });
-
+      }
+      allTypeParameters.PopMarker();
       currentClass = null;
+    }
+
+    /// <summary>
+    /// This method idempotently fills in .InheritanceInformation, .ParentFormalTypeParametersToActuals, and the
+    /// name->MemberDecl table for "cl" and the transitive parent traits of "cl". It also checks that every (transitive)
+    /// parent trait is instantiated with the same type parameters
+    /// The method assumes that all types along .ParentTraits have been successfully resolved and .ParentTraitHeads been filled in.
+    /// </summary>
+    void RegisterInheritedMembers(TopLevelDeclWithMembers cl) {
+      Contract.Requires(cl != null);
+
+      if (cl.ParentTypeInformation != null) {
+        return;
+      }
+      cl.ParentTypeInformation = new TopLevelDeclWithMembers.InheritanceInformationClass();
+
+      // populate .ParentTypeInformation and .ParentFormalTypeParametersToActuals for the immediate parent traits
+      foreach (var tt in cl.ParentTraits) {
+        var udt = (UserDefinedType)tt;
+        var nntd = (NonNullTypeDecl)udt.ResolvedClass;
+        var trait = (TraitDecl)nntd.ViewAsClass;
+        cl.ParentTypeInformation.Record(trait, udt);
+        Contract.Assert(trait.TypeArgs.Count == udt.TypeArgs.Count);
+        for (var i = 0; i < trait.TypeArgs.Count; i++) {
+          // there may be duplciate parent traits, which haven't been checked for yet, so add mapping only for the first occurrence of each type parameter
+          if (!cl.ParentFormalTypeParametersToActuals.ContainsKey(trait.TypeArgs[i])) {
+            cl.ParentFormalTypeParametersToActuals.Add(trait.TypeArgs[i], udt.TypeArgs[i]);
+          }
+        }
+      }
+
+      // populate .ParentTypeInformation and .ParentFormalTypeParametersToActuals for the transitive parent traits
+      foreach (var trait in cl.ParentTraitHeads) {
+        // make sure the parent trait has been processed; then, incorporate its inheritance information
+        RegisterInheritedMembers(trait);
+        cl.ParentTypeInformation.Extend(trait, trait.ParentTypeInformation, cl.ParentFormalTypeParametersToActuals);
+        foreach (var entry in trait.ParentFormalTypeParametersToActuals) {
+          var v = Resolver.SubstType(entry.Value, cl.ParentFormalTypeParametersToActuals);
+          if (!cl.ParentFormalTypeParametersToActuals.ContainsKey(entry.Key)) {
+            cl.ParentFormalTypeParametersToActuals.Add(entry.Key, v);
+          }
+        }
+      }
+
+      // Check that every (transitive) parent trait is instantiated with the same type parameters
+      foreach (var group in cl.ParentTypeInformation.GetTypeInstantiationGroups()) {
+        Contract.Assert(1 <= group.Count);
+        var ty = group[0].Item1;
+        for (var i = 1; i < group.Count; i++) {
+          if (!group.GetRange(0, i).Exists(pair => pair.Item1.Equals(group[i].Item1))) {
+            var via0 = group[0].Item2.Count == 0 ? "" : " (via " + Util.Comma(", ", group[0].Item2, traitDecl => traitDecl.Name) + ")";
+            var via1 = group[i].Item2.Count == 0 ? "" : " (via " + Util.Comma(", ", group[i].Item2, traitDecl => traitDecl.Name) + ")";
+            reporter.Error(MessageSource.Resolver, cl.tok,
+              "duplicate trait parents with the same head type must also have the same type arguments; got {0}{1} and {2}{3}",
+              ty, via0, group[i].Item1, via1);
+          }
+        }
+      }
+
+      // Update the name->MemberDecl table for the class. Report an error if the same name refers to more than one member,
+      // except when such duplication is purely that one member, say X, is inherited and the other is an override of X.
+      var inheritedMembers = new Dictionary<string, MemberDecl>();
+      foreach (var trait in cl.ParentTraitHeads) {
+        foreach (var traitMember in classMembers[trait].Values) {  // TODO: rather than using .Values, it would be nice to use something that gave a deterministic order
+          if (!inheritedMembers.TryGetValue(traitMember.Name, out var prevMember)) {
+            // record "traitMember" as an inherited member
+            inheritedMembers.Add(traitMember.Name, traitMember);
+          } else if (traitMember == prevMember) {
+            // same member, inherited two different ways
+          } else if (traitMember.Overrides(prevMember)) {
+            // we're inheriting "prevMember" and "traitMember" from different parent traits, where "traitMember" is an override of "prevMember"
+            Contract.Assert(traitMember.EnclosingClass != cl && prevMember.EnclosingClass != cl && traitMember.EnclosingClass != prevMember.EnclosingClass); // sanity checks
+            // re-map "traitMember.Name" to point to the overriding member
+            inheritedMembers[traitMember.Name] = traitMember;
+          } else if (prevMember.Overrides(traitMember)) {
+            // we're inheriting "prevMember" and "traitMember" from different parent traits, where "prevMember" is an override of "traitMember"
+            Contract.Assert(traitMember.EnclosingClass != cl && prevMember.EnclosingClass != cl && traitMember.EnclosingClass != prevMember.EnclosingClass); // sanity checks
+            // keep the mapping to "prevMember"
+          } else {
+            // "prevMember" and "traitMember" refer to different members (with the same name)
+            reporter.Error(MessageSource.Resolver, cl.tok, "{0} '{1}' inherits a member named '{2}' from both traits '{3}' and '{4}'",
+              cl.WhatKind, cl.Name, traitMember.Name, prevMember.EnclosingClass.Name, traitMember.EnclosingClass.Name);
+          }
+        }
+      }
+      // Incorporate the inherited members into the name->MemberDecl mapping of "cl"
+      var members = classMembers[cl];
+      foreach (var entry in inheritedMembers) {
+        var name = entry.Key;
+        var traitMember = entry.Value;
+        if (!members.TryGetValue(name, out var clMember)) {
+          members.Add(name, traitMember);
+        } else {
+          Contract.Assert(clMember.EnclosingClass == cl);  // sanity check
+          Contract.Assert(clMember.OverriddenMember == null);  // sanity check
+          clMember.OverriddenMember = traitMember;
+        }
+      }
     }
 
     /// <summary>
@@ -7821,130 +7911,99 @@ namespace Microsoft.Dafny
       currentClass = null;
     }
 
-    void InheritTraitMembers(ClassDecl cl) {
+    /// <summary>
+    /// This method checks the rules for inherited and overridden members. It also populates .InheritedMembers with the
+    /// non-static members that are inherited from parent traits.
+    /// </summary>
+    void InheritedTraitMembers(TopLevelDeclWithMembers cl) {
       Contract.Requires(cl != null);
+      Contract.Requires(cl.ParentTypeInformation != null);
 
-      //merging class members with parent members if any
-      var clMembers = classMembers[cl];
-      foreach (TraitDecl trait in cl.ParentTraitHeads) {
-        // check that any duplicate parent heads denote the same types
-        var parentsWithSameHead = cl.ParentTraits.Where(parent => ((parent as UserDefinedType)?.ResolvedClass as NonNullTypeDecl)?.Class == trait).ToList();
-        Contract.Assert(1 <= parentsWithSameHead.Count);
-        var badDuplicates = false;
-        for (var i = 1; i < parentsWithSameHead.Count; i++) {
-          if (!parentsWithSameHead[0].Equals(parentsWithSameHead[i])) {
-            reporter.Error(MessageSource.Resolver, ((UserDefinedType)parentsWithSameHead[i]).tok,
-              "duplicate trait parents with the same head type must also have the same type arguments (got {0} and {1})",
-              parentsWithSameHead[0], parentsWithSameHead[i]);
-            badDuplicates = true;
-          }
-        }
-        if (badDuplicates) {
+      foreach (var member in classMembers[cl].Values) {
+        if (member is PrefixPredicate || member is PrefixLemma) {
+          // these are handled with the corresponding extremem predicate/lemma
           continue;
         }
-        //merging current class members with the inheriting trait
-        foreach (var traitMember in trait.Members) {
-          var clMember = clMembers[traitMember.Name];
-          if (clMember == traitMember) {
-            // The member is the one inherited from the trait (and the class does not itself define a member with this name).  This
-            // is fine for fields and for functions and methods with bodies.  However, for a body-less function or method, the class
-            // is required to at least redeclare the member with its signature.  (It should also provide a stronger specification,
-            // but that will be checked by the verifier.  And it should also have a body, but that will be checked by the compiler.)
-            if (traitMember is Field) {
-              var field = (Field)traitMember;
-              if (!field.IsStatic) {
-                cl.InheritedMembers.Add(field);
-              }
-            } else if (traitMember is Function) {
-              var func = (Function)traitMember;
-              if (func.Body == null) {
-                reporter.Error(MessageSource.Resolver, cl.tok, "class '{0}' does not implement trait function '{1}.{2}'", cl.Name, trait.Name, traitMember.Name);
-              } else if (!func.IsStatic) {
-                cl.InheritedMembers.Add(func);
-              }
-            } else if (traitMember is Method) {
-              var method = (Method)traitMember;
-              if (method.Body == null) {
-                reporter.Error(MessageSource.Resolver, cl.tok, "class '{0}' does not implement trait method '{1}.{2}'", cl.Name, trait.Name, traitMember.Name);
-              } else if (!method.IsStatic) {
-                cl.InheritedMembers.Add(method);
-              }
-            }
-          } else if (clMember.EnclosingClass != cl) {
-            // The class inherits the member from two places
-            reporter.Error(MessageSource.Resolver, clMember.tok, "member name '{0}' in class '{1}' inherited from both traits '{2}' and '{3}'", traitMember.Name, cl.Name, clMember.EnclosingClass.Name, trait.Name);
+        if (member.EnclosingClass != cl) {
+          // The member is the one inherited from a trait (and the class does not itself define a member with this name).  This
+          // is fine for fields and for functions and methods with bodies. However, if "cl" is not itself a trait, then for a body-less function
+          // or method, "cl" is required to at least redeclare the member with its signature.  (It should also provide a stronger specification,
+          // but that will be checked by the verifier.  And it should also have a body, but that will be checked by the compiler.)
+          if (member.IsStatic) {
+            // nothing to do
+          } else if (member is Field || (member as Function)?.Body != null || (member as Method)?.Body != null) {
+            // member is a field or a fully defined function or method
+            cl.InheritedMembers.Add(member);
+          } else if (cl is TraitDecl) {
+            // there are no expectations that a field needs to repeat the signature of inherited body-less members
+          } else {
+            reporter.Error(MessageSource.Resolver, cl.tok, "{0} '{1}' does not implement trait {2} '{3}.{4}'", cl.WhatKind, cl.Name, member.WhatKind, member.EnclosingClass.Name, member.Name);
+          }
+          continue;
+        }
+        if (member.OverriddenMember == null) {
+          // this member has nothing to do with the parent traits
+          continue;
+        }
 
-          } else if (traitMember.IsStatic) {
-            reporter.Error(MessageSource.Resolver, clMember.tok, "static {0} '{1}' is inherited from trait '{2}' and is not allowed to be re-declared", traitMember.WhatKind, traitMember.Name, trait.Name);
+        var traitMember = member.OverriddenMember;
+        var trait = traitMember.EnclosingClass;
+        if (traitMember.IsStatic) {
+          reporter.Error(MessageSource.Resolver, member.tok, "static {0} '{1}' is inherited from trait '{2}' and is not allowed to be re-declared",
+            traitMember.WhatKind, traitMember.Name, trait.Name);
+        } else if (member.IsStatic) {
+          reporter.Error(MessageSource.Resolver, member.tok, "static member '{0}' overrides non-static member in trait '{1}'", member.Name, trait.Name);
+        } else if (traitMember is Field) {
+          // The class is not allowed to do anything with the field other than silently inherit it.
+          reporter.Error(MessageSource.Resolver, member.tok, "{0} '{1}' is inherited from trait '{2}' and is not allowed to be re-declared", traitMember.WhatKind, traitMember.Name, trait.Name);
+        } else if ((traitMember as Function)?.Body != null || (traitMember as Method)?.Body != null) {
+          // the overridden member is a fully defined function or method, so the class is not allowed to do anything with it other than silently inherit it
+          reporter.Error(MessageSource.Resolver, member.tok, "fully defined {0} '{1}' is inherited from trait '{2}' and is not allowed to be re-declared",
+            traitMember.WhatKind, traitMember.Name, trait.Name);
+        } else if (member is Lemma != traitMember is Lemma ||
+                   member is TwoStateLemma != traitMember is TwoStateLemma ||
+                   member is InductiveLemma != traitMember is InductiveLemma ||
+                   member is CoLemma != traitMember is CoLemma ||
+                   member is TwoStateFunction != traitMember is TwoStateFunction ||
+                   member is InductivePredicate != traitMember is InductivePredicate ||
+                   member is CoPredicate != traitMember is CoPredicate) {
+          reporter.Error(MessageSource.Resolver, member.tok, "{0} '{1}' in '{2}' can only be overridden by a {0} (got {3})", traitMember.WhatKind, traitMember.Name, trait.Name, member.WhatKind);
+        } else if (member.IsGhost != traitMember.IsGhost) {
+          reporter.Error(MessageSource.Resolver, member.tok, "overridden {0} '{1}' in '{2}' has different ghost/compiled status than in trait '{3}'",
+            traitMember.WhatKind, traitMember.Name, cl.Name, trait.Name);
+        } else {
+          // Copy trait member's extern attribute onto class member if class does not provide one
+          if (!Attributes.Contains(member.Attributes, "extern") && Attributes.Contains(traitMember.Attributes, "extern")) {
+            var traitExternArgs = Attributes.FindExpressions(traitMember.Attributes, "extern");
+            member.Attributes = new Attributes("extern", traitExternArgs, member.Attributes);
+          }
 
-          } else if (traitMember is Field) {
-            // The class is not allowed to do anything with the field other than silently inherit it.
-            if (clMember is Field) {
-              reporter.Error(MessageSource.Resolver, clMember.tok, "field '{0}' is inherited from trait '{1}' and is not allowed to be re-declared", traitMember.Name, trait.Name);
-            } else {
-              reporter.Error(MessageSource.Resolver, clMember.tok, "member name '{0}' in class '{1}' clashes with inherited field from trait '{2}'", traitMember.Name, cl.Name, trait.Name);
-            }
-
-          } else if (traitMember is Method) {
+          if (traitMember is Method) {
+            var classMethod = (Method)member;
             var traitMethod = (Method)traitMember;
-            if (traitMethod.Body != null) {
-              // The method was defined in the trait, so the class is not allowed to do anything with the method other than silently inherit it.
-              reporter.Error(MessageSource.Resolver, clMember.tok, "member '{0}' in class '{1}' overrides fully defined method inherited from trait '{2}'", clMember.Name, cl.Name, trait.Name);
-            } else if (!(clMember is Method)) {
-              reporter.Error(MessageSource.Resolver, clMember.tok, "non-method member '{0}' overrides method '{1}' inherited from trait '{2}'", clMember.Name, traitMethod.Name, trait.Name);
-            } else if (clMember is Lemma != traitMember is Lemma ||
-                       clMember is TwoStateLemma != traitMember is TwoStateLemma ||
-                       clMember is InductiveLemma != traitMember is InductiveLemma ||
-                       clMember is CoLemma != traitMember is CoLemma) {
-              reporter.Error(MessageSource.Resolver, clMember.tok, "{0} '{1}' in '{2}' can only be overridden by a {0} (got {3})", traitMember.WhatKind, traitMember.Name, trait.Name, clMember.WhatKind);
-            } else if (clMember.IsGhost != traitMember.IsGhost) {
-              reporter.Error(MessageSource.Resolver, clMember.tok, "overridden {0} '{1}' in '{2}' has different ghost/compiled status than in trait '{3}'", clMember.WhatKind, clMember.Name, cl.Name, trait.Name);
-            } else {
-              var classMethod = (Method)clMember;
+            classMethod.OverriddenMethod = traitMethod;
+            //adding a call graph edge from the trait method to that of class
+            cl.Module.CallGraph.AddEdge(traitMethod, classMethod);
 
-              // Copy trait's extern attribute onto class if class does not provide one
-              if (!Attributes.Contains(classMethod.Attributes, "extern") && Attributes.Contains(traitMethod.Attributes, "extern")) {
-                var traitExternArgs = Attributes.FindExpressions(traitMethod.Attributes, "extern");
-                classMethod.Attributes = new Attributes("extern", traitExternArgs, classMethod.Attributes);
-              }
+            CheckOverride_MethodParameters(classMethod, traitMethod, cl.ParentFormalTypeParametersToActuals);
 
-              classMethod.OverriddenMethod = traitMethod;
-              //adding a call graph edge from the trait method to that of class
-              cl.Module.CallGraph.AddEdge(traitMethod, classMethod);
-
-              CheckOverride_MethodParameters(classMethod, traitMethod, cl.ParentFormalTypeParametersToActuals);
-
-              var traitMethodAllowsNonTermination = Contract.Exists(traitMethod.Decreases.Expressions, e => e is WildcardExpr);
-              var classMethodAllowsNonTermination = Contract.Exists(classMethod.Decreases.Expressions, e => e is WildcardExpr);
-              if (classMethodAllowsNonTermination && !traitMethodAllowsNonTermination) {
-                reporter.Error(MessageSource.Resolver, classMethod.tok, "not allowed to override a terminating method with a possibly non-terminating method ('{0}')", classMethod.Name);
-              }
+            var traitMethodAllowsNonTermination = Contract.Exists(traitMethod.Decreases.Expressions, e => e is WildcardExpr);
+            var classMethodAllowsNonTermination = Contract.Exists(classMethod.Decreases.Expressions, e => e is WildcardExpr);
+            if (classMethodAllowsNonTermination && !traitMethodAllowsNonTermination) {
+              reporter.Error(MessageSource.Resolver, classMethod.tok, "not allowed to override a terminating method with a possibly non-terminating method ('{0}')", classMethod.Name);
             }
 
           } else if (traitMember is Function) {
+            var classFunction = (Function)member;
             var traitFunction = (Function)traitMember;
-            if (traitFunction.Body != null) {
-              // The function was defined in the trait, so the class is not allowed to do anything with the function other than silently inherit it.
-              reporter.Error(MessageSource.Resolver, clMember.tok, "member '{0}' in class '{1}' overrides fully defined function inherited from trait '{2}'", clMember.Name, cl.Name, trait.Name);
-            } else if (!(clMember is Function)) {
-              reporter.Error(MessageSource.Resolver, clMember.tok, "non-function member '{0}' overrides function '{1}' inherited from trait '{2}'", clMember.Name, traitFunction.Name, trait.Name);
-            } else if (clMember is TwoStateFunction != traitMember is TwoStateFunction ||
-                       clMember is InductivePredicate != traitMember is InductivePredicate ||
-                       clMember is CoPredicate != traitMember is CoPredicate) {
-              reporter.Error(MessageSource.Resolver, clMember.tok, "{0} '{1}' in '{2}' can only be overridden by a {0} (got {3})", traitMember.WhatKind, traitMember.Name, trait.Name, clMember.WhatKind);
-            } else if (clMember.IsGhost != traitMember.IsGhost) {
-              reporter.Error(MessageSource.Resolver, clMember.tok, "overridden {0} '{1}' in '{2}' has different ghost/compiled status than in trait '{3}'", clMember.WhatKind, clMember.Name, cl.Name, trait.Name);
-            } else {
-              var classFunction = (Function)clMember;
-              classFunction.OverriddenFunction = traitFunction;
-              //adding a call graph edge from the trait method to that of class
-              cl.Module.CallGraph.AddEdge(traitFunction, classFunction);
+            classFunction.OverriddenFunction = traitFunction;
+            //adding a call graph edge from the trait function to that of class
+            cl.Module.CallGraph.AddEdge(traitFunction, classFunction);
 
-              CheckOverride_FunctionParameters(classFunction, traitFunction, cl.ParentFormalTypeParametersToActuals);
-            }
+            CheckOverride_FunctionParameters(classFunction, traitFunction, cl.ParentFormalTypeParametersToActuals);
 
           } else {
-            Contract.Assert(false);  // unexpected member
+            Contract.Assert(false); // unexpected member
           }
         }
       }
@@ -8465,16 +8524,6 @@ namespace Microsoft.Dafny
             reporter.Warning(MessageSource.Resolver, tp.tok, "Shadowed type-parameter name: {0}", tp.Name);
           }
         }
-      }
-    }
-
-    void WithResolvedTypeParameters(TopLevelDecl d, Action a) {
-      allTypeParameters.PushMarker();
-      try {
-        ResolveTypeParameters(d.TypeArgs, false, d);
-        a.Invoke();
-      } finally {
-        allTypeParameters.PopMarker();
       }
     }
 
@@ -14192,7 +14241,7 @@ namespace Microsoft.Dafny
 #endif
       } else {
         // ----- None of the above
-        reporter.Error(MessageSource.Resolver, expr.tok, "Undeclared top-level type or type parameter: {0} (did you forget to qualify a name or declare a module import 'opened?')", expr.Name);
+        reporter.Error(MessageSource.Resolver, expr.tok, "Undeclared top-level type or type parameter: {0} (did you forget to qualify a name or declare a module import 'opened'?)", expr.Name);
       }
 
       if (r == null) {

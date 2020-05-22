@@ -1,11 +1,12 @@
-// RUN: %dafny /env:0 /rprint:- /compile:0 "%s" > "%t"
+// RUN: %dafny /compile:0 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module M0 {
-  trait Tr<X> {
+  trait TrX<X> {
     function F(x: X): int { 15 }
   }
-
+  trait Tr<X> extends TrX<X> {
+  }
   class Cl<Y> extends Tr<Y> {
     lemma M() {
       var v := this;  // Cl<Y>
@@ -18,10 +19,11 @@ module M0 {
 }
 
 module M1 {
-  trait Tr<X(0)> {
+  trait TrX<X(0)> {
     var w: X
   }
-
+  trait Tr<X> extends TrX<X> {
+  }
   class Cl<Y> extends Tr<(Y,Y)> {
   }
 
@@ -31,10 +33,11 @@ module M1 {
 }
 
 module M2 {
-  trait Tr<X, W> {
+  trait TrX<X, W> {
     function method F(x: X, w: W): bv10 { 15 }
   }
-
+  trait Tr<X, W> extends TrX<X, W> {
+  }
   class Cl<Y> extends Tr<(Y,Y), real> {
   }
 
@@ -46,20 +49,22 @@ module M2 {
 }
 
 module M3 {
-  trait Tr<X, W> {
+  trait TrX<X, W> {
     function method F(x: X, w: W): bv10 { 15 }
   }
-
+  trait Tr<X, W> extends TrX<X, W> {
+  }
   class Cl<Y> extends Tr<(Y,Y), real> {
     function method H(y: Y): bv10 {
       F((y, y), 5.0)
     }
   }
 }
-
 module M4 {
-  trait Tr<X> {
+  trait TrX<X> {
     method M<A>(a: A, x: (X,A))
+  }
+  trait Tr<X> extends TrX<X> {
   }
   class Cl<Y> extends Tr<Y> {
     method M<B>(a: B, x: int) { }  // error: type of x is int instead of the expected (Y, B)
@@ -67,10 +72,10 @@ module M4 {
 }
 
 module NewMustMentionAClassName {
-  trait Tr<X> {
+  trait TrX<X> {
     method Make() { }
   }
-
+  trait Tr<X> extends TrX<X> { }
   class A extends Tr<int> { }
   class B extends Tr<int> { constructor () { } }
   class C<G> extends Tr<G> { }
@@ -125,56 +130,6 @@ module NewMustMentionAClassName {
   }
 }
 
-module DuplicateParents {
-  trait A { var data: int }
-  trait B { var data: int }
-  trait C<X> { }
-
-  type IntSynonym = int
-  type Even = x | x % 2 == 0
-
-  class P extends A, A, B, A { }  // error: A and B both contain a member "data"
-  class Q extends C<int>, C<int> { }
-  class R extends C<IntSynonym>, C<int> { }
-  class S extends C<Even>, C<int> { }  // error: cannot extend C in different ways
-  class T extends C<int>, C<int>, C<int>, C<real>, C<int>, C<Even> { }  // error: cannot extend C in different ways
-}
-
-module DuplicateInheritedMembers {
-  trait A {
-    var data: int
-  }
-  trait B {
-    var data: int
-  }
-  trait C {
-    var data: real
-  }
-  trait D {
-    function data(): int { 5 }
-  }
-
-  class P extends B, A { }  // error: A and B both contain a member "data"
-  class Q extends C, A { }  // error: A and B both contain a member "data"
-  class R extends D, A { }  // error: A and B both contain a member "data"
-}
-
-module StaticMembers {
-  trait Tr {
-    static const Cnst: object  // error: the type of this static const requires an initializing expression
-
-    // the following static members must also be given bodies, but that's checked by the compiler (see TraitCompileErrors.dfy)
-    static function method Func(): int
-    static method Method()
-    static twostate function TwoF(): int
-    static twostate lemma TwoL()
-    static inductive predicate P()
-    static copredicate Q()
-    static inductive lemma IL()
-    static colemma CL()
-  }
-}
-
 module CannotRedeclareMembers {
   trait Tr {
     var civ: object
@@ -220,8 +175,9 @@ module CannotRedeclareMembers {
     static method csm3() { }
     static ghost method gsm3() { }
   }
-
-  class Cl extends Tr {
+  trait TrY extends Tr {
+  }
+  class Cl extends TrY {
     var civ: object  // error: cannot redeclare
     ghost var giv: object  // error: cannot redeclare
     const cic: object  // error: cannot redeclare
@@ -283,8 +239,9 @@ module MemberMismatch {
     inductive lemma R()
     colemma S()
   }
-
-  class SwitchGhostStatus extends AAA {
+  trait A3 extends AAA {
+  }
+  class SwitchGhostStatus extends A3 {
     function F(): bool  // error: ghost mismatch
     function method G(): bool  // error: ghost mismatch
     twostate function H(): bool
@@ -300,7 +257,7 @@ module MemberMismatch {
     colemma S()
   }
 
-  class SwitchLemma extends AAA {
+  class SwitchLemma extends A3 {
     function method F(): bool
     function G(): bool
     twostate function H(): bool
@@ -316,7 +273,7 @@ module MemberMismatch {
     colemma S()
   }
 
-  class SwitchTwoState extends AAA {
+  class SwitchTwoState extends A3 {
     function method F(): bool
     function G(): bool
     twostate function H(): bool
@@ -332,7 +289,7 @@ module MemberMismatch {
     colemma S()
   }
 
-  class SwitchExtreme0 extends AAA {
+  class SwitchExtreme0 extends A3 {
     function method F(): bool
     function G(): bool
     twostate function H(): bool
@@ -348,7 +305,7 @@ module MemberMismatch {
     inductive lemma S()  // error: coind. vs ind.
   }
 
-  class SwitchExtreme1 extends AAA {
+  class SwitchExtreme1 extends A3 {
     function method F(): bool
     function G(): bool
     twostate function H(): bool
@@ -366,12 +323,14 @@ module MemberMismatch {
 }
 
 module PredicateFunctionBool {
-  trait AAA {
+  trait A4 {
     function F(): bool
     twostate function G(): bool
 
     predicate M()
     twostate predicate N()
+  }
+  trait AAA extends A4 {
   }
   class C extends AAA {
     predicate F() { true }
@@ -381,9 +340,8 @@ module PredicateFunctionBool {
     twostate function N(): bool { true }
   }
 }
-
 module ExtremeKMismatch {
-  trait AAA {
+  trait A4 {
     inductive predicate P()
     inductive predicate Q[nat]()
     inductive predicate R[ORDINAL]()
@@ -391,6 +349,8 @@ module ExtremeKMismatch {
     inductive lemma K()
     inductive lemma L[nat]()
     inductive lemma M[ORDINAL]()
+  }
+  trait AAA extends A4 {
   }
   class C0 extends AAA {
     inductive predicate P()
@@ -418,41 +378,5 @@ module ExtremeKMismatch {
     inductive lemma K[ORDINAL]()
     inductive lemma L[ORDINAL]()  // error: nat vs ORDINAL
     inductive lemma M[ORDINAL]()
-  }
-}
-
-// The tests in ProvidingModule and ImporterOfProvidingModule contain two
-// regression tests, namely type parameters of the imported types and the
-// duplicate generation of type tags for imported datatypes, which during
-// one part of development were done incorrectly.
-module ProvidingModule {
-  export
-    provides Trait, Trait.M, Trait.N
-    provides Klass, Klass.M, Klass.N
-    provides Dt, Dt.M, Dt.N
-
-  trait Trait<AA> {
-    const M := 100
-    ghost const N: AA
-  }
-  class Klass<BB> {
-    constructor () { }
-    const M := 100
-    ghost const N: BB
-  }
-  datatype Dt<CC> = X | Y | More(u: int) {
-    const M := 100
-    ghost const N: CC
-  }
-}
-
-module ImporterOfProvidingModule {
-  import G = ProvidingModule
-
-  method UsesField(t: G.Trait<int>, k: G.Klass<int>, d: G.Dt<int>) {
-    var s := t.M + k.M + d.M;
-    ghost var a := t.N;
-    ghost var b := k.N;
-    ghost var c := d.N;
   }
 }
