@@ -226,7 +226,6 @@ namespace Microsoft.Dafny {
           new Specification<Expression>(new List<Expression>(), null),
           null, null, null);
         readsIS.Function = reads;  // just so we can really claim the member declarations are resolved
-        readsIS.TypeArgumentSubstitutions = Util.Dict(tps, tys);  // ditto
         readsIS.TypeApplication_AtEnclosingClass = tys;  // ditto
         readsIS.TypeApplication_JustFunction = new List<Type>();  // ditto
         var arrowDecl = new ArrowTypeDecl(tps, req, reads, SystemModule, DontCompile());
@@ -286,7 +285,6 @@ namespace Microsoft.Dafny {
       }
       var fn = new MemberSelectExpr(tok, f, member.Name) {
         Member = member,
-        TypeApplication = f.Type.TypeArgs,
         TypeApplication_AtEnclosingClass = f.Type.TypeArgs,
         TypeApplication_JustMember = new List<Type>(),
         Type = GetTypeOfFunction(member, new List<Type>(), tps.ConvertAll(tp => (Type)new UserDefinedType(tp)))
@@ -5952,25 +5950,8 @@ namespace Microsoft.Dafny {
       args.AddRange(fexp.Args);
       var prefixPredCall = new FunctionCallExpr(fexp.tok, this.PrefixPredicate.Name, fexp.Receiver, fexp.OpenParen, args);
       prefixPredCall.Function = this.PrefixPredicate;  // resolve here
-
-      prefixPredCall.TypeArgumentSubstitutions = new Dictionary<TypeParameter, Type>();
-      var old_to_new = new Dictionary<TypeParameter, TypeParameter>();
-      for (int i = 0; i < this.TypeArgs.Count; i++) {
-        old_to_new[this.TypeArgs[i]] = this.PrefixPredicate.TypeArgs[i];
-      }
-      foreach (var p in fexp.TypeArgumentSubstitutions) {
-        TypeParameter tp;
-        if (old_to_new.TryGetValue(p.Key, out tp)) {
-          // p.Key denotes a type parameter of the predicate
-          prefixPredCall.TypeArgumentSubstitutions[tp] = p.Value;
-        } else {
-          // p.Key denotes a type parameter of the enclosing class; it is the same for the prefix predicate
-          prefixPredCall.TypeArgumentSubstitutions[p.Key] = p.Value;
-        }
-      }  // resolved here.
-      prefixPredCall.TypeApplication_AtEnclosingClass = fexp.TypeApplication_AtEnclosingClass;
-      prefixPredCall.TypeApplication_JustFunction = fexp.TypeApplication_JustFunction;
-
+      prefixPredCall.TypeApplication_AtEnclosingClass = fexp.TypeApplication_AtEnclosingClass;  // resolve here
+      prefixPredCall.TypeApplication_JustFunction = fexp.TypeApplication_JustFunction;  // resolve here
       prefixPredCall.Type = fexp.Type;  // resolve here
       prefixPredCall.CoCall = fexp.CoCall;  // resolve here
       return prefixPredCall;
@@ -9292,15 +9273,17 @@ namespace Microsoft.Dafny {
     public readonly string MemberName;
     public MemberDecl Member;          // filled in by resolution, will be a Field or Function
 
-    /// If Member is a Function or Method, then TypeApplication is the list of type arguments used with the receiver
-    /// type and the function/method itself. If it is a Field, then TypeApplication is the list of type arguments used
-    /// with the receiver type. The receiver type may be different than the enclosing class of the member; this will
-    /// happen if the member is declared in a trait and the receiver is of some type that extends that trait.
-    /// However, for a static member, the said receiver type is always the enclosing class of the member, even if
-    /// the type of an explicitly given receiver is some subclass thereof.
-    public List<Type> TypeApplication;
-    public List<Type> TypeApplication_AtEnclosingClass;
-    public List<Type> TypeApplication_JustMember;
+    /// <summary>
+    /// TypeApplication_AtEnclosingClass is the list of type arguments used to instantiate the type that
+    /// declares Member (which is some supertype of the receiver type).
+    /// </summary>
+    public List<Type> TypeApplication_AtEnclosingClass;  // filled in during resolution
+
+    /// <summary>
+    ///  TypeApplication_JustMember is the list of type arguments used to instantiate the type parameters
+    /// of Member.
+    /// </summary>
+    public List<Type> TypeApplication_JustMember;  // filled in during resolution
 
     /// <summary>
     /// Returns a mapping from formal type parameters to actual type arguments. For example, given
@@ -9443,7 +9426,6 @@ namespace Microsoft.Dafny {
       this.Member = field;  // resolve here
 
       var receiverType = obj.Type.NormalizeExpand();
-      this.TypeApplication = receiverType.TypeArgs;  // resolve here
       this.TypeApplication_AtEnclosingClass = receiverType.TypeArgs;
       this.TypeApplication_JustMember = new List<Type>();
 
@@ -9640,9 +9622,8 @@ namespace Microsoft.Dafny {
     public readonly Expression Receiver;
     public readonly IToken OpenParen;  // can be null if Args.Count == 0
     public readonly List<Expression> Args;
-    public Dictionary<TypeParameter, Type> TypeArgumentSubstitutions;  // created, initialized, and used by resolution (and also used by translation)
-    public List<Type> TypeApplication_AtEnclosingClass;
-    public List<Type> TypeApplication_JustFunction;  // created, initialized, and used by resolution (and also used by translation)
+    public List<Type> TypeApplication_AtEnclosingClass;  // filled in during resolution
+    public List<Type> TypeApplication_JustFunction;  // filled in during resolution
 
     /// <summary>
     /// Return a mapping from each type parameter of the function and its enclosing class to actual type arguments.

@@ -140,7 +140,6 @@ namespace Microsoft.Dafny
                     lhsBuilder = e => {
                       var l = new MemberSelectExpr(ll.tok, e, ll.MemberName);
                       l.Member = ll.Member;
-                      l.TypeApplication = ll.TypeApplication;
                       l.TypeApplication_AtEnclosingClass = ll.TypeApplication_AtEnclosingClass;
                       l.TypeApplication_JustMember = ll.TypeApplication_JustMember;
                       l.Type = ll.Type;
@@ -864,11 +863,6 @@ namespace Microsoft.Dafny
       var call = new FunctionCallExpr(tok, Valid.Name, receiver, tok, new List<Expression>());
       call.Function = Valid;
       call.Type = Type.Bool;
-      // Add the identity substitution to this call
-      call.TypeArgumentSubstitutions = new Dictionary<TypeParameter, Type>();
-      for (int i = 0; i < Valid.EnclosingClass.TypeArgs.Count; i++) {
-        call.TypeArgumentSubstitutions.Add(Valid.EnclosingClass.TypeArgs[i], receiver.Type.TypeArgs[i]);
-      }
       call.TypeApplication_AtEnclosingClass = receiver.Type.TypeArgs;
       call.TypeApplication_JustFunction = new List<Type>();
       callingContext.EnclosingModule.CallGraph.AddEdge(callingContext, Valid);
@@ -956,7 +950,6 @@ namespace Microsoft.Dafny
       var nameSegment = new NameSegment(f.tok, f.Name, f.TypeArgs.Count == 0 ? null : typeApplication);
       var rr = new MemberSelectExpr(f.tok, receiver, f.Name);
       rr.Member = f;
-      rr.TypeApplication = typeApplication;
       rr.TypeApplication_AtEnclosingClass = typeApplication;
       rr.TypeApplication_JustMember = typeApplication_JustForMember;
       List<Type> args = new List<Type>();

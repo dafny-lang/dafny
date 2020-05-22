@@ -2607,14 +2607,11 @@ namespace Microsoft.Dafny
                 }
               }
 
-              List<Type> typeApplication;
-              Dictionary<TypeParameter, Type> typeArgumentSubstitutions;  // not used
               Expression recursiveCallReceiver;
               List<Expression> recursiveCallArgs;
-              Translator.RecursiveCallParameters(com.tok, prefixLemma, prefixLemma.TypeArgs, prefixLemma.Ins, substMap, out typeApplication, out typeArgumentSubstitutions, out recursiveCallReceiver, out recursiveCallArgs);
+              Translator.RecursiveCallParameters(com.tok, prefixLemma, prefixLemma.TypeArgs, prefixLemma.Ins, substMap, out _, out _, out recursiveCallReceiver, out recursiveCallArgs);
               var methodSel = new MemberSelectExpr(com.tok, recursiveCallReceiver, prefixLemma.Name);
               methodSel.Member = prefixLemma;  // resolve here
-              methodSel.TypeApplication = typeApplication;
               methodSel.TypeApplication_AtEnclosingClass = prefixLemma.EnclosingClass.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp.tok, tp));
               methodSel.TypeApplication_JustMember = prefixLemma.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp.tok, tp));
               methodSel.Type = new InferredTypeProxy();
@@ -12856,7 +12853,6 @@ namespace Microsoft.Dafny
             reporter.Error(MessageSource.Resolver, e.tok, "a two-state function can be used only in a two-state context");
           }
           // build the type substitution map
-          e.TypeApplication = new List<Type>();
           e.TypeApplication_AtEnclosingClass = tentativeReceiverType.TypeArgs;
           e.TypeApplication_JustMember = new List<Type>();
           Dictionary<TypeParameter, Type> subst;
@@ -12865,13 +12861,10 @@ namespace Microsoft.Dafny
             subst = new Dictionary<TypeParameter, Type>();
           } else {
             subst = TypeSubstitutionMap(ctype.ResolvedClass.TypeArgs, ctype.TypeArgs);
-            // instantiate all type arguments from the functions. no polymorphic application
-            e.TypeApplication.AddRange(ctype.TypeArgs);
           }
           foreach (var tp in fn.TypeArgs) {
             Type prox = new InferredTypeProxy();
             subst[tp] = prox;
-            e.TypeApplication.Add(prox);
             e.TypeApplication_JustMember.Add(prox);
           }
           subst = BuildTypeArgumentSubstitute(subst);
@@ -12881,12 +12874,6 @@ namespace Microsoft.Dafny
         } else if (member is Field) {
           var field = (Field)member;
           e.Member = field;
-          if (field.EnclosingClass == null) {
-            // "field" is some built-in field
-            e.TypeApplication = new List<Type>();
-          } else {
-            e.TypeApplication = field.EnclosingClass.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp));
-          }
           e.TypeApplication_AtEnclosingClass = tentativeReceiverType.TypeArgs;
           e.TypeApplication_JustMember = new List<Type>();
           if (e.Obj is StaticReceiverExpr && !field.IsStatic) {
@@ -14546,14 +14533,12 @@ namespace Microsoft.Dafny
       // Now, fill in rr.Type.  This requires taking into consideration the type parameters passed to the receiver's type as well as any type
       // parameters used in this NameSegment/ExprDotName.
       // Add to "subst" the type parameters given to the member's class/datatype
-      rr.TypeApplication = new List<Type>();
       rr.TypeApplication_AtEnclosingClass = new List<Type>();
       rr.TypeApplication_JustMember = new List<Type>();
       Dictionary<TypeParameter, Type> subst;
       var rType = (receiverTypeBound ?? receiver.Type).NormalizeExpand();
       if (rType is UserDefinedType udt && udt.ResolvedClass != null) {
         subst = TypeSubstitutionMap(udt.ResolvedClass.TypeArgs, udt.TypeArgs);
-        rr.TypeApplication.AddRange(udt.TypeArgs);
         if (member.EnclosingClass == null) {
           // this can happen for some special members, like real.Floor
         } else {
@@ -14564,7 +14549,6 @@ namespace Microsoft.Dafny
         if (vtd != null) {
           Contract.Assert(vtd.TypeArgs.Count == rType.TypeArgs.Count);
           subst = TypeSubstitutionMap(vtd.TypeArgs, rType.TypeArgs);
-          rr.TypeApplication.AddRange(rType.TypeArgs);
           rr.TypeApplication_AtEnclosingClass.AddRange(rType.TypeArgs);
         } else {
           Contract.Assert(rType.TypeArgs.Count == 0);
@@ -14591,7 +14575,6 @@ namespace Microsoft.Dafny
         }
         for (int i = 0; i < fn.TypeArgs.Count; i++) {
           var ta = i < suppliedTypeArguments ? optTypeArguments[i] : new InferredTypeProxy();
-          rr.TypeApplication.Add(ta);
           rr.TypeApplication_JustMember.Add(ta);
           subst.Add(fn.TypeArgs[i], ta);
         }
@@ -14614,7 +14597,6 @@ namespace Microsoft.Dafny
         }
         for (int i = 0; i < m.TypeArgs.Count; i++) {
           var ta = i < suppliedTypeArguments ? optTypeArguments[i] : new InferredTypeProxy();
-          rr.TypeApplication.Add(ta);
           rr.TypeApplication_JustMember.Add(ta);
         }
         rr.Type = new InferredTypeProxy();  // fill in this field, in order to make "rr" resolved
@@ -14752,8 +14734,6 @@ namespace Microsoft.Dafny
               rr.Function = callee;
               Contract.Assert(!(mse.Obj is StaticReceiverExpr) || callee.IsStatic);  // this should have been checked already
               Contract.Assert(callee.Formals.Count == rr.Args.Count);  // this should have been checked already
-              // build the type substitution map
-              rr.TypeArgumentSubstitutions = mse.TypeArgumentSubstitutionsAtMemberDeclaration();
               rr.TypeApplication_AtEnclosingClass = mse.TypeApplication_AtEnclosingClass;
               rr.TypeApplication_JustFunction = mse.TypeApplication_JustMember;
               var subst = BuildTypeArgumentSubstitute(mse.TypeArgumentSubstitutionsAtMemberDeclaration());
@@ -15080,10 +15060,8 @@ namespace Microsoft.Dafny
             }
           }
           // build the type substitution map
-          e.TypeArgumentSubstitutions = new Dictionary<TypeParameter, Type>();
           var typeMap = new Dictionary<TypeParameter, Type>();
           for (int i = 0; i < ctype.TypeArgs.Count; i++) {
-            e.TypeArgumentSubstitutions.Add(cce.NonNull(ctype.ResolvedClass).TypeArgs[i], ctype.TypeArgs[i]);
             typeMap.Add(ctype.ResolvedClass.TypeArgs[i], ctype.TypeArgs[i]);
           }
           var typeThatEnclosesMember = ctype.AsParentType(member.EnclosingClass);
@@ -15094,7 +15072,6 @@ namespace Microsoft.Dafny
           e.TypeApplication_JustFunction = new List<Type>();
           foreach (TypeParameter p in function.TypeArgs) {
             var ty = new ParamTypeProxy(p);
-            e.TypeArgumentSubstitutions.Add(p, ty);
             typeMap.Add(p, ty);
             e.TypeApplication_JustFunction.Add(ty);
           }

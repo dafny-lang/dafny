@@ -2542,12 +2542,7 @@ namespace Microsoft.Dafny {
       var validCall = new FunctionCallExpr(iter.tok, "Valid", th, iter.tok, new List<Expression>());
       validCall.Function = iter.Member_Valid;  // resolve here
       validCall.Type = Type.Bool;  // resolve here
-
-      validCall.TypeArgumentSubstitutions = new Dictionary<TypeParameter, Type>();
-      foreach (var p in iter.TypeArgs) {
-        validCall.TypeArgumentSubstitutions[p] = new UserDefinedType(p);
-      } // resolved here.
-      validCall.TypeApplication_AtEnclosingClass = iter.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp));
+      validCall.TypeApplication_AtEnclosingClass = iter.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp));  // resolve here
       validCall.TypeApplication_JustFunction = new List<Type>(); // resolved here
 
       builder.Add(TrAssumeCmd(iter.tok, etran.TrExpr(validCall)));
@@ -3587,15 +3582,12 @@ namespace Microsoft.Dafny {
 
         var substMap = new Dictionary<IVariable, Expression>();
         substMap.Add(pp.K, kprime);
-        List<Type> typeApplication;  // not used
-        Dictionary<TypeParameter, Type> typeArgumentSubstitutions;
         Expression recursiveCallReceiver;
         List<Expression> recursiveCallArgs;
-        RecursiveCallParameters(pp.tok, pp, pp.TypeArgs, pp.Formals, substMap, out typeApplication, out typeArgumentSubstitutions, out recursiveCallReceiver, out recursiveCallArgs);
+        RecursiveCallParameters(pp.tok, pp, pp.TypeArgs, pp.Formals, substMap, out _, out _, out recursiveCallReceiver, out recursiveCallArgs);
         var ppCall = new FunctionCallExpr(pp.tok, pp.Name, recursiveCallReceiver, pp.tok, recursiveCallArgs);
         ppCall.Function = pp;
         ppCall.Type = Type.Bool;
-        ppCall.TypeArgumentSubstitutions = typeArgumentSubstitutions;
         ppCall.TypeApplication_AtEnclosingClass = pp.EnclosingClass.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp));
         ppCall.TypeApplication_JustFunction = pp.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp));
 
@@ -4446,14 +4438,11 @@ namespace Microsoft.Dafny {
           }
 
           // Generate a CallStmt for the recursive call
-          List<Type> typeApplication;
-          Dictionary<TypeParameter, Type> typeArgumentSubstitutions;  // not used
           Expression recursiveCallReceiver;
           List<Expression> recursiveCallArgs;
-          RecursiveCallParameters(m.tok, m, m.TypeArgs, m.Ins, substMap, out typeApplication, out typeArgumentSubstitutions, out recursiveCallReceiver, out recursiveCallArgs);
+          RecursiveCallParameters(m.tok, m, m.TypeArgs, m.Ins, substMap, out _, out _, out recursiveCallReceiver, out recursiveCallArgs);
           var methodSel = new MemberSelectExpr(m.tok, recursiveCallReceiver, m.Name);
           methodSel.Member = m;  // resolve here
-          methodSel.TypeApplication = typeApplication;
           methodSel.TypeApplication_AtEnclosingClass = m.EnclosingClass.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp.tok, tp));
           methodSel.TypeApplication_JustMember = m.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp.tok, tp));
           methodSel.Type = new InferredTypeProxy();
@@ -14946,17 +14935,9 @@ namespace Microsoft.Dafny {
             var mem = recv as MemberSelectExpr;
             var fn = mem == null ? null : mem.Member as Function;
             if (fn != null) {
-#if DEBUG
-              var both = Util.Concat(mem.TypeApplication_AtEnclosingClass, mem.TypeApplication_JustMember);
-              Contract.Assert(mem.TypeApplication.Count == both.Count);
-              for (var i = 0; i < both.Count; i++) {
-                Contract.Assert(both[i].Equals(mem.TypeApplication[i]));
-              }
-#endif
               return TrExpr(new FunctionCallExpr(e.tok, fn.Name, mem.Obj, e.tok, e.Args) {
                 Function = fn,
                 Type = e.Type,
-                TypeArgumentSubstitutions = Util.Dict(GetTypeParams(fn), mem.TypeApplication),
                 TypeApplication_AtEnclosingClass = mem.TypeApplication_AtEnclosingClass,
                 TypeApplication_JustFunction = mem.TypeApplication_JustMember
               });
@@ -17836,7 +17817,6 @@ namespace Microsoft.Dafny {
             newFce.Function = e.Function;
             newFce.Type = e.Type;
           }
-          newFce.TypeArgumentSubstitutions = e.TypeArgumentSubstitutions;  // resolve here
           newFce.TypeApplication_AtEnclosingClass = e.TypeApplication_AtEnclosingClass;  // resolve here
           newFce.TypeApplication_JustFunction = e.TypeApplication_JustFunction;  // resolve here
           return newFce;
@@ -18023,7 +18003,6 @@ namespace Microsoft.Dafny {
           Expression substE = Substitute(fse.Obj);
           MemberSelectExpr fseNew = new MemberSelectExpr(fse.tok, substE, fse.MemberName);
           fseNew.Member = fse.Member;
-          fseNew.TypeApplication = fse.TypeApplication.ConvertAll(t => Resolver.SubstType(t, typeMap));
           fseNew.TypeApplication_AtEnclosingClass = fse.TypeApplication_AtEnclosingClass.ConvertAll(t => Resolver.SubstType(t, typeMap));
           fseNew.TypeApplication_JustMember = fse.TypeApplication_JustMember.ConvertAll(t => Resolver.SubstType(t, typeMap));
           newExpr = fseNew;
@@ -18061,17 +18040,15 @@ namespace Microsoft.Dafny {
           FunctionCallExpr e = (FunctionCallExpr)expr;
           Expression receiver = Substitute(e.Receiver);
           List<Expression> newArgs = SubstituteExprList(e.Args);
-          var newTypeInstantiation = SubstituteTypeMap(e.TypeArgumentSubstitutions);
           var newTypeApplicationAtEnclosingClass = SubstituteTypeList(e.TypeApplication_AtEnclosingClass);
           var newTypeApplicationJustFunction = SubstituteTypeList(e.TypeApplication_JustFunction);
-          if (receiver != e.Receiver || newArgs != e.Args || newTypeInstantiation != e.TypeArgumentSubstitutions ||
+          if (receiver != e.Receiver || newArgs != e.Args ||
               newTypeApplicationAtEnclosingClass != e.TypeApplication_AtEnclosingClass ||
               newTypeApplicationJustFunction != e.TypeApplication_JustFunction) {
             FunctionCallExpr newFce = new FunctionCallExpr(expr.tok, e.Name, receiver, e.OpenParen, newArgs);
             newFce.Function = e.Function;  // resolve on the fly (and set newFce.Type below, at end)
             newFce.CoCall = e.CoCall;  // also copy the co-call status
             newFce.CoCallHint = e.CoCallHint;  // and any co-call hint
-            newFce.TypeArgumentSubstitutions = newTypeInstantiation;
             newFce.TypeApplication_AtEnclosingClass = newTypeApplicationAtEnclosingClass;
             newFce.TypeApplication_JustFunction = newTypeApplicationJustFunction;
             newExpr = newFce;
