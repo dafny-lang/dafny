@@ -9,6 +9,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
 using System.Diagnostics.Contracts;
+using System.Linq.Expressions;
 using Microsoft.Boogie;
 
 namespace Microsoft.Dafny
@@ -2606,14 +2607,13 @@ namespace Microsoft.Dafny
                 }
               }
 
-              List<Type> typeApplication;
-              Dictionary<TypeParameter, Type> typeArgumentSubstitutions;  // not used
               Expression recursiveCallReceiver;
               List<Expression> recursiveCallArgs;
-              Translator.RecursiveCallParameters(com.tok, prefixLemma, prefixLemma.TypeArgs, prefixLemma.Ins, substMap, out typeApplication, out typeArgumentSubstitutions, out recursiveCallReceiver, out recursiveCallArgs);
+              Translator.RecursiveCallParameters(com.tok, prefixLemma, prefixLemma.TypeArgs, prefixLemma.Ins, substMap, out recursiveCallReceiver, out recursiveCallArgs);
               var methodSel = new MemberSelectExpr(com.tok, recursiveCallReceiver, prefixLemma.Name);
               methodSel.Member = prefixLemma;  // resolve here
-              methodSel.TypeApplication = typeApplication;
+              methodSel.TypeApplication_AtEnclosingClass = prefixLemma.EnclosingClass.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp.tok, tp));
+              methodSel.TypeApplication_JustMember = prefixLemma.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp.tok, tp));
               methodSel.Type = new InferredTypeProxy();
               var recursiveCall = new CallStmt(com.tok, com.tok, new List<Expression>(), methodSel, recursiveCallArgs);
               recursiveCall.IsGhost = prefixLemma.IsGhost;  // resolve here
@@ -5566,7 +5566,7 @@ namespace Microsoft.Dafny
             if (!IsDetermined(bv.Type.Normalize())) {
               resolver.reporter.Error(MessageSource.Resolver, bv.tok, "type of bound variable '{0}' could not be determined; please specify the type explicitly", bv.Name);
             } else if (codeContext is FixpointPredicate) {
-              CheckContainsNoOrdinal(bv.tok, bv.Type, string.Format("type of bound variable '{0}' is not allowed to use type ORDINAL", bv.Name));
+              CheckContainsNoOrdinal(bv.tok, bv.Type, string.Format("type of bound variable '{0}' ('{1}') is not allowed to use type ORDINAL", bv.Name, bv.Type));
             }
           }
           // apply bounds discovery to quantifiers, finite sets, and finite maps
@@ -5628,26 +5628,32 @@ namespace Microsoft.Dafny
         } else if (expr is MemberSelectExpr) {
           var e = (MemberSelectExpr)expr;
           if (e.Member is Function || e.Member is Method) {
-            foreach (var p in e.TypeApplication) {
+            var i = 0;
+            foreach (var p in Util.Concat(e.TypeApplication_AtEnclosingClass, e.TypeApplication_JustMember)) {
+              var tp = i < e.TypeApplication_AtEnclosingClass.Count ? e.Member.EnclosingClass.TypeArgs[i] : ((ICallable)e.Member).TypeArgs[i - e.TypeApplication_AtEnclosingClass.Count];
               if (!IsDetermined(p.Normalize())) {
-                resolver.reporter.Error(MessageSource.Resolver, e.tok, "type '{0}' to the {2} '{1}' is not determined", p, e.Member.Name, e.Member.WhatKind);
+                resolver.reporter.Error(MessageSource.Resolver, e.tok, "type parameter '{0}' (inferred to be '{1}') to the {2} '{3}' could not be determined", tp.Name, p, e.Member.WhatKind, e.Member.Name);
               } else {
-                CheckContainsNoOrdinal(e.tok, p, string.Format("type '{0}' to the {2} '{1}' is not allowed to use ORDINAL", p, e.Member.Name, e.Member.WhatKind));
+                CheckContainsNoOrdinal(e.tok, p, string.Format("type parameter '{0}' (passed in as '{1}') to the {2} '{3}' is not allowed to use ORDINAL", tp.Name, p, e.Member.WhatKind, e.Member.Name));
               }
+              i++;
             }
           }
         } else if (expr is FunctionCallExpr) {
           var e = (FunctionCallExpr)expr;
-          foreach (var p in e.TypeArgumentSubstitutions) {
-            if (!IsDetermined(p.Value.Normalize())) {
-              resolver.reporter.Error(MessageSource.Resolver, e.tok, "type variable '{0}' in the function call to '{1}' could not be determined{2}", p.Key.Name, e.Name,
+          var i = 0;
+          foreach (var p in Util.Concat(e.TypeApplication_AtEnclosingClass, e.TypeApplication_JustFunction)) {
+            var tp = i < e.TypeApplication_AtEnclosingClass.Count ? e.Function.EnclosingClass.TypeArgs[i] : e.Function.TypeArgs[i - e.TypeApplication_AtEnclosingClass.Count];
+            if (!IsDetermined(p.Normalize())) {
+              resolver.reporter.Error(MessageSource.Resolver, e.tok, "type parameter '{0}' (inferred to be '{1}') in the function call to '{2}' could not be determined{3}", tp.Name, p, e.Name,
                 (e.Name.StartsWith("reveal_"))
                 ? ". If you are making an opaque function, make sure that the function can be called."
                 : ""
               );
             } else {
-              CheckContainsNoOrdinal(e.tok, p.Value, string.Format("type argument to function call '{1}' (for type variable '{0}') is not allowed to use type ORDINAL", p.Key.Name, e.Name));
+              CheckContainsNoOrdinal(e.tok, p, string.Format("type parameter '{0}' (passed in as '{1}') to function call '{2}' is not allowed to use ORDINAL", tp.Name, p, e.Name));
             }
+            i++;
           }
         } else if (expr is LetExpr) {
           var e = (LetExpr)expr;
@@ -5996,10 +6002,10 @@ namespace Microsoft.Dafny
           // Moreover, it can be considered a tail recursive call only if the type parameters are the same
           // as in the caller.
           var classTypeParameterCount = s.Method.EnclosingClass.TypeArgs.Count;
-          Contract.Assert(s.MethodSelect.TypeApplication.Count == classTypeParameterCount + s.Method.TypeArgs.Count);
+          Contract.Assert(s.MethodSelect.TypeApplication_JustMember.Count == s.Method.TypeArgs.Count);
           for (int i = 0; i < s.Method.TypeArgs.Count; i++) {
             var formal = s.Method.TypeArgs[i];
-            var actual = s.MethodSelect.TypeApplication[classTypeParameterCount + i].AsTypeParameter;
+            var actual = s.MethodSelect.TypeApplication_JustMember[i].AsTypeParameter;
             if (formal != actual) {
               if (reportErrors) {
                 reporter.Error(MessageSource.Resolver, s.Tok,
@@ -6783,36 +6789,30 @@ namespace Microsoft.Dafny
           return false;
         } else if (stmt is CallStmt) {
           var s = (CallStmt)stmt;
-          var subst = s.MethodSelect.TypeArgumentSubstitutionsWithParents();
-          Contract.Assert(s.Method.TypeArgs.Count <= subst.Count);
-          var i = 0;
-          foreach (var formalTypeArg in s.Method.TypeArgs) {
-            var actualTypeArg = subst[formalTypeArg];
+          Contract.Assert(s.Method.TypeArgs.Count == s.MethodSelect.TypeApplication_JustMember.Count);
+          for (var i = 0; i < s.Method.TypeArgs.Count; i++) {
+            var formalTypeArg = s.Method.TypeArgs[i];
+            var actualTypeArg = s.MethodSelect.TypeApplication_JustMember[i];
             CheckEqualityTypes_Type(s.Tok, actualTypeArg);
             string whatIsWrong, hint;
             if (!CheckCharacteristics(formalTypeArg.Characteristics, actualTypeArg, out whatIsWrong, out hint)) {
               resolver.reporter.Error(MessageSource.Resolver, s.Tok, "type parameter{0} ({1}) passed to method {2} must support {4} (got {3}){5}",
                 s.Method.TypeArgs.Count == 1 ? "" : " " + i, formalTypeArg.Name, s.Method.Name, actualTypeArg, whatIsWrong, hint);
             }
-            i++;
           }
           // recursively visit all subexpressions (which are all actual parameters) passed in for non-ghost formal parameters
           Contract.Assert(s.Lhs.Count == s.Method.Outs.Count);
-          i = 0;
-          foreach (var ee in s.Lhs) {
+          for (var i = 0; i < s.Method.Outs.Count; i++) {
             if (!s.Method.Outs[i].IsGhost) {
-              Visit(ee, st);
+              Visit(s.Lhs[i], st);
             }
-            i++;
           }
           Visit(s.Receiver, st);
           Contract.Assert(s.Args.Count == s.Method.Ins.Count);
-          i = 0;
-          foreach (var ee in s.Args) {
+          for (var i = 0; i < s.Method.Ins.Count; i++) {
             if (!s.Method.Ins[i].IsGhost) {
-              Visit(ee, st);
+              Visit(s.Args[i], st);
             }
-            i++;
           }
           return false;  // we've done what there is to be done
         } else if (stmt is ForallStmt) {
@@ -6905,7 +6905,7 @@ namespace Microsoft.Dafny
           if (e.Member is Function || e.Member is Method) {
             var i = 0;
             foreach (var tp in ((ICallable)e.Member).TypeArgs) {
-              var actualTp = e.TypeApplication[e.Member.EnclosingClass.TypeArgs.Count + i];
+              var actualTp = e.TypeApplication_JustMember[i];
               CheckEqualityTypes_Type(e.tok, actualTp);
               string whatIsWrong, hint;
               if (!CheckCharacteristics(tp.Characteristics, actualTp, out whatIsWrong, out hint)) {
@@ -6917,27 +6917,24 @@ namespace Microsoft.Dafny
           }
         } else if (expr is FunctionCallExpr) {
           var e = (FunctionCallExpr)expr;
-          Contract.Assert(e.Function.TypeArgs.Count <= e.TypeArgumentSubstitutions.Count);
-          var i = 0;
-          foreach (var formalTypeArg in e.Function.TypeArgs) {
-            var actualTypeArg = e.TypeArgumentSubstitutions[formalTypeArg];
+          Contract.Assert(e.Function.TypeArgs.Count == e.TypeApplication_JustFunction.Count);
+          for (var i = 0; i < e.Function.TypeArgs.Count; i++) {
+            var formalTypeArg = e.Function.TypeArgs[i];
+            var actualTypeArg = e.TypeApplication_JustFunction[i];
             CheckEqualityTypes_Type(e.tok, actualTypeArg);
             string whatIsWrong, hint;
             if (!CheckCharacteristics(formalTypeArg.Characteristics, actualTypeArg, out whatIsWrong, out hint)) {
               resolver.reporter.Error(MessageSource.Resolver, e.tok, "type parameter{0} ({1}) passed to function {2} must support {4} (got {3}){5}",
                 e.Function.TypeArgs.Count == 1 ? "" : " " + i, formalTypeArg.Name, e.Function.Name, actualTypeArg, whatIsWrong, hint);
             }
-            i++;
           }
           // recursively visit all subexpressions (which are all actual parameters) passed in for non-ghost formal parameters
           Visit(e.Receiver, st);
           Contract.Assert(e.Args.Count == e.Function.Formals.Count);
-          i = 0;
-          foreach (var ee in e.Args) {
+          for (var i = 0; i < e.Args.Count; i++) {
             if (!e.Function.Formals[i].IsGhost) {
-              Visit(ee, st);
+              Visit(e.Args[i], st);
             }
-            i++;
           }
           return false;  // we've done what there is to be done
         } else if (expr is SetDisplayExpr || expr is MultiSetDisplayExpr || expr is MapDisplayExpr || expr is SeqConstructionExpr || expr is MultiSetFormingExpr || expr is StaticReceiverExpr) {
@@ -11372,7 +11369,7 @@ namespace Microsoft.Dafny
           }
         }
         // type check the arguments
-        var subst = s.MethodSelect.TypeArgumentSubstitutionsWithParents();
+        var subst = s.MethodSelect.TypeArgumentSubstitutionsAtMemberDeclaration();
         for (int i = 0; i < callee.Ins.Count; i++) {
           var it = callee.Ins[i].Type;
           Type st = SubstType(it, subst);
@@ -12482,9 +12479,7 @@ namespace Microsoft.Dafny
         }
       } else if (type is ArrowType) {
         var t = (ArrowType)type;
-        var at = new ArrowType(t.tok, t.Args.ConvertAll(u => SubstType(u, subst)), SubstType(t.Result, subst));
-        at.ResolvedClass = t.ResolvedClass;
-        return at;
+        return new ArrowType(t.tok, (ArrowTypeDecl)t.ResolvedClass, t.Args.ConvertAll(u => SubstType(u, subst)), SubstType(t.Result, subst));
       } else if (type is UserDefinedType) {
         var t = (UserDefinedType)type;
         if (t.ResolvedParam != null) {
@@ -12852,20 +12847,19 @@ namespace Microsoft.Dafny
             reporter.Error(MessageSource.Resolver, e.tok, "a two-state function can be used only in a two-state context");
           }
           // build the type substitution map
-          e.TypeApplication = new List<Type>();
+          e.TypeApplication_AtEnclosingClass = tentativeReceiverType.TypeArgs;
+          e.TypeApplication_JustMember = new List<Type>();
           Dictionary<TypeParameter, Type> subst;
           var ctype = tentativeReceiverType as UserDefinedType;
           if (ctype == null) {
             subst = new Dictionary<TypeParameter, Type>();
           } else {
             subst = TypeSubstitutionMap(ctype.ResolvedClass.TypeArgs, ctype.TypeArgs);
-            // instantiate all type arguments from the functions. no polymorphic application
-            e.TypeApplication.AddRange(ctype.TypeArgs);
           }
           foreach (var tp in fn.TypeArgs) {
             Type prox = new InferredTypeProxy();
             subst[tp] = prox;
-            e.TypeApplication.Add(prox);
+            e.TypeApplication_JustMember.Add(prox);
           }
           subst = BuildTypeArgumentSubstitute(subst);
           e.Type = SelectAppropriateArrowType(fn.tok, fn.Formals.ConvertAll(f => SubstType(f.Type, subst)), SubstType(fn.ResultType, subst),
@@ -12874,12 +12868,8 @@ namespace Microsoft.Dafny
         } else if (member is Field) {
           var field = (Field)member;
           e.Member = field;
-          if (field.EnclosingClass == null) {
-            // "field" is some built-in field
-            e.TypeApplication = new List<Type>();
-          } else {
-            e.TypeApplication = field.EnclosingClass.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp));
-          }
+          e.TypeApplication_AtEnclosingClass = tentativeReceiverType.TypeArgs;
+          e.TypeApplication_JustMember = new List<Type>();
           if (e.Obj is StaticReceiverExpr && !field.IsStatic) {
             reporter.Error(MessageSource.Resolver, expr, "a field must be selected via an object, not just a class name");
           }
@@ -14537,18 +14527,23 @@ namespace Microsoft.Dafny
       // Now, fill in rr.Type.  This requires taking into consideration the type parameters passed to the receiver's type as well as any type
       // parameters used in this NameSegment/ExprDotName.
       // Add to "subst" the type parameters given to the member's class/datatype
-      rr.TypeApplication = new List<Type>();
+      rr.TypeApplication_AtEnclosingClass = new List<Type>();
+      rr.TypeApplication_JustMember = new List<Type>();
       Dictionary<TypeParameter, Type> subst;
       var rType = (receiverTypeBound ?? receiver.Type).NormalizeExpand();
       if (rType is UserDefinedType udt && udt.ResolvedClass != null) {
         subst = TypeSubstitutionMap(udt.ResolvedClass.TypeArgs, udt.TypeArgs);
-        rr.TypeApplication.AddRange(udt.TypeArgs);
+        if (member.EnclosingClass == null) {
+          // this can happen for some special members, like real.Floor
+        } else {
+          rr.TypeApplication_AtEnclosingClass.AddRange(rType.AsParentType(member.EnclosingClass).TypeArgs);
+        }
       } else {
         var vtd = AsValuetypeDecl(rType);
         if (vtd != null) {
           Contract.Assert(vtd.TypeArgs.Count == rType.TypeArgs.Count);
           subst = TypeSubstitutionMap(vtd.TypeArgs, rType.TypeArgs);
-          rr.TypeApplication.AddRange(rType.TypeArgs);
+          rr.TypeApplication_AtEnclosingClass.AddRange(rType.TypeArgs);
         } else {
           Contract.Assert(rType.TypeArgs.Count == 0);
           subst = new Dictionary<TypeParameter, Type>();
@@ -14574,7 +14569,7 @@ namespace Microsoft.Dafny
         }
         for (int i = 0; i < fn.TypeArgs.Count; i++) {
           var ta = i < suppliedTypeArguments ? optTypeArguments[i] : new InferredTypeProxy();
-          rr.TypeApplication.Add(ta);
+          rr.TypeApplication_JustMember.Add(ta);
           subst.Add(fn.TypeArgs[i], ta);
         }
         subst = BuildTypeArgumentSubstitute(subst, receiverTypeBound ?? receiver.Type);
@@ -14596,7 +14591,7 @@ namespace Microsoft.Dafny
         }
         for (int i = 0; i < m.TypeArgs.Count; i++) {
           var ta = i < suppliedTypeArguments ? optTypeArguments[i] : new InferredTypeProxy();
-          rr.TypeApplication.Add(ta);
+          rr.TypeApplication_JustMember.Add(ta);
         }
         rr.Type = new InferredTypeProxy();  // fill in this field, in order to make "rr" resolved
       }
@@ -14733,9 +14728,9 @@ namespace Microsoft.Dafny
               rr.Function = callee;
               Contract.Assert(!(mse.Obj is StaticReceiverExpr) || callee.IsStatic);  // this should have been checked already
               Contract.Assert(callee.Formals.Count == rr.Args.Count);  // this should have been checked already
-              // build the type substitution map
-              rr.TypeArgumentSubstitutions = mse.TypeArgumentSubstitutionsWithParents();
-              var subst = BuildTypeArgumentSubstitute(rr.TypeArgumentSubstitutions);
+              rr.TypeApplication_AtEnclosingClass = mse.TypeApplication_AtEnclosingClass;
+              rr.TypeApplication_JustFunction = mse.TypeApplication_JustMember;
+              var subst = BuildTypeArgumentSubstitute(mse.TypeArgumentSubstitutionsAtMemberDeclaration());
 
               // type check the arguments
 #if DEBUG
@@ -15059,14 +15054,22 @@ namespace Microsoft.Dafny
             }
           }
           // build the type substitution map
-          e.TypeArgumentSubstitutions = new Dictionary<TypeParameter, Type>();
+          var typeMap = new Dictionary<TypeParameter, Type>();
           for (int i = 0; i < ctype.TypeArgs.Count; i++) {
-            e.TypeArgumentSubstitutions.Add(cce.NonNull(ctype.ResolvedClass).TypeArgs[i], ctype.TypeArgs[i]);
+            typeMap.Add(ctype.ResolvedClass.TypeArgs[i], ctype.TypeArgs[i]);
           }
+          var typeThatEnclosesMember = ctype.AsParentType(member.EnclosingClass);
+          e.TypeApplication_AtEnclosingClass = new List<Type>();
+          for (int i = 0; i < typeThatEnclosesMember.TypeArgs.Count; i++) {
+            e.TypeApplication_AtEnclosingClass.Add(typeThatEnclosesMember.TypeArgs[i]);
+          }
+          e.TypeApplication_JustFunction = new List<Type>();
           foreach (TypeParameter p in function.TypeArgs) {
-            e.TypeArgumentSubstitutions.Add(p, new ParamTypeProxy(p));
+            var ty = new ParamTypeProxy(p);
+            typeMap.Add(p, ty);
+            e.TypeApplication_JustFunction.Add(ty);
           }
-          Dictionary<TypeParameter, Type> subst = BuildTypeArgumentSubstitute(e.TypeArgumentSubstitutions);
+          Dictionary<TypeParameter, Type> subst = BuildTypeArgumentSubstitute(typeMap);
 
           // type check the arguments
           for (int i = 0; i < function.Formals.Count; i++) {

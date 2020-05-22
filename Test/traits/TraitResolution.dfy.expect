@@ -1651,4 +1651,83 @@ module ExtremeKMismatch {
   type {:axiom} C2(==) = c: C2? | c != null /*special witness*/
   */
 }
+
+module ProvidingModule {
+  /* CALL GRAPH for module ProvidingModule:
+   * SCC at height 4:
+   *   Klass.N
+   * SCC at height 3:
+   *   Klass.M
+   * SCC at height 2:
+   *   Trait.N
+   * SCC at height 1:
+   *   Trait.M
+   * SCC at height 0:
+   *   Klass._ctor
+   */
+
+  export 
+    provides Trait, Trait.M, Trait.N, Klass, Klass.M, Klass.N, Dt, Dt.M, Dt.N
+    /*----- exported view:
+      type {:axiom} /*{:_provided}*/ Trait(==)<AA> = c: Trait?<AA> | c != null /*special witness*/
+      const M: int := 100
+      ghost const N: AA
+      type {:axiom} /*{:_provided}*/ Klass(==)<BB> = c: Klass?<BB> | c != null /*special witness*/
+      const M: int := 100
+      ghost const N: BB
+      datatype /*{:_provided}*/ Dt<CC> = X | Y | More(u: int) {
+        const M: int := 100
+        ghost const N: CC
+      }
+      const M: int := 100
+      ghost const N: CC
+    -----*/
+
+  trait Trait<AA> {
+    const M: int := 100
+    ghost const N: AA
+  }
+  /*-- non-null type
+  type {:axiom} /*{:_provided}*/ Trait(==)<AA> = c: Trait?<AA> | c != null /*special witness*/
+  */
+
+  class Klass<BB> {
+    constructor ()
+    {
+    }
+
+    const M: int := 100
+    ghost const N: BB
+  }
+  /*-- non-null type
+  type {:axiom} /*{:_provided}*/ Klass(==)<BB> = c: Klass?<BB> | c != null /*special witness*/
+  */
+
+  datatype /*{:_provided}*/ Dt<CC> = X | Y | More(u: int) {
+    const M: int := 100
+    ghost const N: CC
+  }
+}
+
+module ImporterOfProvidingModule {
+  /* CALL GRAPH for module ImporterOfProvidingModule:
+   * SCC at height 3:
+   *   UsesField
+   * SCC at height 2:
+   *   Dt
+   * SCC at height 1:
+   *   Klass
+   * SCC at height 0:
+   *   Trait
+   */
+
+  import G = ProvidingModule
+  method UsesField(t: G.Trait<int>, k: G.Klass<int>, d: G.Dt<int>)
+  {
+    var s: int := t.M + k.M + d.M;
+    ghost var a: AA := t.N;
+    ghost var b: BB := k.N;
+    ghost var c: int := d.N;
+  }
+}
 92 resolution/type errors detected in TraitResolution.dfy

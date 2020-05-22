@@ -436,7 +436,8 @@ namespace Microsoft.Dafny.Triggers {
     private static bool ShallowEq(MemberSelectExpr expr1, MemberSelectExpr expr2) {
       return expr1.MemberName == expr2.MemberName &&
              expr1.Member == expr2.Member &&
-             TriggerUtils.SameLists(expr1.TypeApplication, expr2.TypeApplication, TypeEq);
+             TriggerUtils.SameLists(expr1.TypeApplication_AtEnclosingClass, expr2.TypeApplication_AtEnclosingClass, TypeEq) &&
+             TriggerUtils.SameLists(expr1.TypeApplication_JustMember, expr2.TypeApplication_JustMember, TypeEq);
     }
 
     internal static bool TypeEq(Type type1, Type type2) {

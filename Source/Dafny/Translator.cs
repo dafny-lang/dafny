@@ -2542,11 +2542,8 @@ namespace Microsoft.Dafny {
       var validCall = new FunctionCallExpr(iter.tok, "Valid", th, iter.tok, new List<Expression>());
       validCall.Function = iter.Member_Valid;  // resolve here
       validCall.Type = Type.Bool;  // resolve here
-
-      validCall.TypeArgumentSubstitutions = new Dictionary<TypeParameter, Type>();
-      foreach (var p in iter.TypeArgs) {
-        validCall.TypeArgumentSubstitutions[p] = new UserDefinedType(p);
-      } // resolved here.
+      validCall.TypeApplication_AtEnclosingClass = iter.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp));  // resolve here
+      validCall.TypeApplication_JustFunction = new List<Type>(); // resolved here
 
       builder.Add(TrAssumeCmd(iter.tok, etran.TrExpr(validCall)));
 
@@ -3585,15 +3582,14 @@ namespace Microsoft.Dafny {
 
         var substMap = new Dictionary<IVariable, Expression>();
         substMap.Add(pp.K, kprime);
-        List<Type> typeApplication;  // not used
-        Dictionary<TypeParameter, Type> typeArgumentSubstitutions;
         Expression recursiveCallReceiver;
         List<Expression> recursiveCallArgs;
-        RecursiveCallParameters(pp.tok, pp, pp.TypeArgs, pp.Formals, substMap, out typeApplication, out typeArgumentSubstitutions, out recursiveCallReceiver, out recursiveCallArgs);
+        RecursiveCallParameters(pp.tok, pp, pp.TypeArgs, pp.Formals, substMap, out recursiveCallReceiver, out recursiveCallArgs);
         var ppCall = new FunctionCallExpr(pp.tok, pp.Name, recursiveCallReceiver, pp.tok, recursiveCallArgs);
         ppCall.Function = pp;
         ppCall.Type = Type.Bool;
-        ppCall.TypeArgumentSubstitutions = typeArgumentSubstitutions;
+        ppCall.TypeApplication_AtEnclosingClass = pp.EnclosingClass.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp));
+        ppCall.TypeApplication_JustFunction = pp.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp));
 
         Attributes triggerAttr = new Attributes("trigger", new List<Expression> { ppCall }, null);
         Expression limitCalls;
@@ -3631,8 +3627,7 @@ namespace Microsoft.Dafny {
     }
 
     public static void RecursiveCallParameters(IToken tok, MemberDecl member, List<TypeParameter> typeParams, List<Formal> ins,
-      Dictionary<IVariable, Expression>/*?*/ substMap,
-      out List<Type> typeApplication, out Dictionary<TypeParameter,Type> typeArgumentSubstitutions,
+      Dictionary<IVariable, Expression> substMap,
       out Expression receiver, out List<Expression> arguments) {
       Contract.Requires(tok != null);
       Contract.Requires(member != null);
@@ -3640,8 +3635,6 @@ namespace Microsoft.Dafny {
       Contract.Requires(typeParams != null);
       Contract.Requires(ins != null);
       Contract.Requires(substMap != null);
-      Contract.Ensures(Contract.ValueAtReturn(out typeApplication) != null);
-      Contract.Ensures(Contract.ValueAtReturn(out typeArgumentSubstitutions) != null);
       Contract.Ensures(Contract.ValueAtReturn(out receiver) != null);
       Contract.Ensures(Contract.ValueAtReturn(out arguments) != null);
 
@@ -3663,21 +3656,6 @@ namespace Microsoft.Dafny {
           ie.Type = inFormal.Type;  // resolve here
           arguments.Add(ie);
         }
-      }
-
-      typeArgumentSubstitutions = new Dictionary<TypeParameter, Type>();
-      typeApplication = new List<Type>();
-      Contract.Assert(((TopLevelDeclWithMembers)member.EnclosingClass).TypeArgs.Count == receiver.Type.TypeArgs.Count);
-      for (int i = 0; i < receiver.Type.TypeArgs.Count; i++) {
-        var tp = ((TopLevelDeclWithMembers)member.EnclosingClass).TypeArgs[i];
-        var ta = receiver.Type.TypeArgs[i];
-        typeApplication.Add(ta);
-        typeArgumentSubstitutions.Add(tp, ta);
-      }
-      foreach (var tp in typeParams) {
-        var ta = new UserDefinedType(tp);
-        typeApplication.Add(ta);
-        typeArgumentSubstitutions.Add(tp, ta);
       }
     }
 
@@ -4442,14 +4420,13 @@ namespace Microsoft.Dafny {
           }
 
           // Generate a CallStmt for the recursive call
-          List<Type> typeApplication;
-          Dictionary<TypeParameter, Type> typeArgumentSubstitutions;  // not used
           Expression recursiveCallReceiver;
           List<Expression> recursiveCallArgs;
-          RecursiveCallParameters(m.tok, m, m.TypeArgs, m.Ins, substMap, out typeApplication, out typeArgumentSubstitutions, out recursiveCallReceiver, out recursiveCallArgs);
+          RecursiveCallParameters(m.tok, m, m.TypeArgs, m.Ins, substMap, out recursiveCallReceiver, out recursiveCallArgs);
           var methodSel = new MemberSelectExpr(m.tok, recursiveCallReceiver, m.Name);
           methodSel.Member = m;  // resolve here
-          methodSel.TypeApplication = typeApplication;
+          methodSel.TypeApplication_AtEnclosingClass = m.EnclosingClass.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp.tok, tp));
+          methodSel.TypeApplication_JustMember = m.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp.tok, tp));
           methodSel.Type = new InferredTypeProxy();
           var recursiveCall = new CallStmt(m.tok, m.tok, new List<Expression>(), methodSel, recursiveCallArgs);
           recursiveCall.IsGhost = m.IsGhost;  // resolve here
@@ -7401,7 +7378,7 @@ namespace Microsoft.Dafny {
           fnCoreType = v.Var.Type;
         } else if (fnCore is MemberSelectExpr) {
           var m = (MemberSelectExpr)fnCore;
-          fnCoreType = m.Member is Field ? ((Field)m.Member).Type : ((Function)m.Member).Type;
+          fnCoreType = m.Member is Field ? ((Field)m.Member).Type : ((Function)m.Member).GetMemberType((ArrowTypeDecl)tt.ResolvedClass);
         } else {
           fnCoreType = fnCore.Type;
         }
@@ -7446,7 +7423,7 @@ namespace Microsoft.Dafny {
             Formal p = e.Function.Formals[i];
             // Note, in the following, the "##" makes the variable invisible in BVD.  An alternative would be to communicate
             // to BVD what this variable stands for and display it as such to the user.
-            Type et = Resolver.SubstType(p.Type, e.TypeArgumentSubstitutions);
+            Type et = Resolver.SubstType(p.Type, e.GetTypeArgumentSubstitutions());
             LocalVariable local = new LocalVariable(p.tok, p.tok, "##" + p.Name, et, p.IsGhost);
             local.type = local.OptionalType;  // resolve local here
             IdentifierExpr ie = new IdentifierExpr(local.Tok, local.AssignUniqueName(currentDeclaration.IdGenerator));
@@ -7506,7 +7483,7 @@ namespace Microsoft.Dafny {
           }
           // check that the preconditions for the call hold
           foreach (MaybeFreeExpression p in e.Function.Req) {
-            Expression precond = Substitute(p.E, e.Receiver, substMap, e.TypeArgumentSubstitutions);
+            Expression precond = Substitute(p.E, e.Receiver, substMap, e.GetTypeArgumentSubstitutions());
             bool splitHappened;  // we don't actually care
             string errorMessage = CustomErrorMessage(p.Attributes);
             foreach (var ss in TrSplitExpr(precond, etran, true, out splitHappened)) {
@@ -7527,7 +7504,7 @@ namespace Microsoft.Dafny {
           }
           if (options.DoReadsChecks) {
             // check that the callee reads only what the caller is already allowed to read
-            var s = new Substituter(null, new Dictionary<IVariable, Expression>(), e.TypeArgumentSubstitutions);
+            var s = new Substituter(null, new Dictionary<IVariable, Expression>(), e.GetTypeArgumentSubstitutions());
             CheckFrameSubset(expr.tok,
               e.Function.Reads.ConvertAll(s.SubstFrameExpr),
               e.Receiver, substMap, etran, options.AssertSink(this, builder), "insufficient reads clause to invoke function", options.AssertKv);
@@ -7577,7 +7554,7 @@ namespace Microsoft.Dafny {
               if (e.CoCallHint != null) {
                 hint = hint == null ? e.CoCallHint : string.Format("{0}; {1}", hint, e.CoCallHint);
               }
-              CheckCallTermination(expr.tok, contextDecreases, calleeDecreases, allowance, e.Receiver, substMap, e.TypeArgumentSubstitutions,
+              CheckCallTermination(expr.tok, contextDecreases, calleeDecreases, allowance, e.Receiver, substMap, e.GetTypeArgumentSubstitutions(),
                 etran, etran, builder, codeContext.InferredDecreases, hint);
             }
           }
@@ -8326,6 +8303,9 @@ namespace Microsoft.Dafny {
     // Note: Prefer to call ClassTyCon or TypeToTy instead.
     private string GetClassTyCon(TopLevelDecl dl) {
       Contract.Requires(dl != null);
+      if (dl is InternalTypeSynonymDecl isyn) {
+        dl = ((UserDefinedType)isyn.Rhs).ResolvedClass;
+      }
       string name;
       if (classConstants.TryGetValue(dl, out name)) {
         Contract.Assert(name != null);
@@ -8377,8 +8357,7 @@ namespace Microsoft.Dafny {
           formals.Add(BplFormalVar(null, predef.LayerType, true));
         }
 
-        var enclosingArrow = f.EnclosingClass as ArrowTypeDecl;
-        var fromArrowType = enclosingArrow != null;
+        var fromArrowType = f.EnclosingClass is ArrowTypeDecl;
 
         Func<List<Bpl.Expr>, List<Bpl.Expr>> SnocSelf = x => x;
         Func<List<Bpl.Expr>, List<Bpl.Expr>> SnocPrevH = x => x;
@@ -8397,8 +8376,8 @@ namespace Microsoft.Dafny {
           var self = BplBoundVar("$self", selfTy, vars);
           formals.Add(BplFormalVar(null, selfTy, true));
           SnocSelf = xs => Snoc(xs, self);
-          selfExpr = new BoogieWrapper(self, fromArrowType ? f.Type : program.BuiltIns.ObjectQ());
-                                          // ^ is this an ok type for this wrapper?
+          var wrapperType = UserDefinedType.FromTopLevelDecl(f.tok, f.EnclosingClass);
+          selfExpr = new BoogieWrapper(self, wrapperType);
         }
 
         // F#Handle(Ty, .., Ty, LayerType, ref) : HandleType
@@ -11489,21 +11468,21 @@ namespace Microsoft.Dafny {
           if (additionalRange != null) {
             ante = BplAnd(ante, additionalRange(substMap, initEtran));
           }
-          tr = TrTrigger(callEtran, expr.Attributes, expr.tok, bvars, substMap, s0.MethodSelect.TypeArgumentSubstitutions());
+          tr = TrTrigger(callEtran, expr.Attributes, expr.tok, bvars, substMap, s0.MethodSelect.TypeArgumentSubstitutionsWithParents());
           post = callEtran.TrExpr(Substitute(expr.Term, null, substMap));
         } else {
           ante = initEtran.TrBoundVariablesRename(boundVars, bvars, out substMap, out antitriggerBoundVarTypes);
           for (int i = 0; i < s0.Method.Ins.Count; i++) {
-            var arg = Substitute(s0.Args[i], null, substMap, s0.MethodSelect.TypeArgumentSubstitutions());  // substitute the renamed bound variables for the declared ones
+            var arg = Substitute(s0.Args[i], null, substMap, s0.MethodSelect.TypeArgumentSubstitutionsWithParents());  // substitute the renamed bound variables for the declared ones
             argsSubstMap.Add(s0.Method.Ins[i], new BoogieWrapper(initEtran.TrExpr(arg), s0.Args[i].Type));
           }
           ante = BplAnd(ante, initEtran.TrExpr(Substitute(range, null, substMap)));
           if (additionalRange != null) {
             ante = BplAnd(ante, additionalRange(substMap, initEtran));
           }
-          var receiver = new BoogieWrapper(initEtran.TrExpr(Substitute(s0.Receiver, null, substMap, s0.MethodSelect.TypeArgumentSubstitutions())), s0.Receiver.Type);
+          var receiver = new BoogieWrapper(initEtran.TrExpr(Substitute(s0.Receiver, null, substMap, s0.MethodSelect.TypeArgumentSubstitutionsWithParents())), s0.Receiver.Type);
           foreach (var ens in s0.Method.Ens) {
-            var p = Substitute(ens.E, receiver, argsSubstMap, s0.MethodSelect.TypeArgumentSubstitutions());  // substitute the call's actuals for the method's formals
+            var p = Substitute(ens.E, receiver, argsSubstMap, s0.MethodSelect.TypeArgumentSubstitutionsWithParents());  // substitute the call's actuals for the method's formals
             post = BplAnd(post, callEtran.TrExpr(p));
           }
           tr = antitriggerBoundVarTypes;
@@ -11987,7 +11966,7 @@ namespace Microsoft.Dafny {
           Contract.Assert(field != null);
           Contract.Assert(VisibleInScope(field));
           lhsType = field.Type;
-          rhsTypeConstraint = Resolver.SubstType(lhsType, fse.TypeArgumentSubstitutions());
+          rhsTypeConstraint = Resolver.SubstType(lhsType, fse.TypeArgumentSubstitutionsWithParents());
         } else if (lhs is SeqSelectExpr) {
           var e = (SeqSelectExpr)lhs;
           lhsType = null;  // for arrays, always make sure the value assigned is boxed
@@ -12933,7 +12912,7 @@ namespace Microsoft.Dafny {
           var field = (Field)fse.Member;
           Contract.Assert(VisibleInScope(field));
           lhsType = field.Type;
-          rhsTypeConstraint = Resolver.SubstType(lhsType, fse.TypeArgumentSubstitutions());
+          rhsTypeConstraint = Resolver.SubstType(lhsType, fse.TypeArgumentSubstitutionsWithParents());
         } else if (lhs is SeqSelectExpr) {
           var e = (SeqSelectExpr)lhs;
           lhsType = null;  // for an array update, always make sure the value assigned is boxed
@@ -14941,7 +14920,8 @@ namespace Microsoft.Dafny {
               return TrExpr(new FunctionCallExpr(e.tok, fn.Name, mem.Obj, e.tok, e.Args) {
                 Function = fn,
                 Type = e.Type,
-                TypeArgumentSubstitutions = Util.Dict(GetTypeParams(fn), mem.TypeApplication)
+                TypeApplication_AtEnclosingClass = mem.TypeApplication_AtEnclosingClass,
+                TypeApplication_JustFunction = mem.TypeApplication_JustMember
               });
             }
           }
@@ -15971,7 +15951,7 @@ namespace Microsoft.Dafny {
 
         // first add type arguments
         var tyParams = GetTypeParams(e.Function);
-        var tySubst = e.TypeArgumentSubstitutions;
+        var tySubst = e.TypeArgumentSubstitutionsWithParents();
         args.AddRange(translator.trTypeArgs(tySubst, tyParams));
 
         if (layerArgument != null) {
@@ -17239,7 +17219,7 @@ namespace Microsoft.Dafny {
             } else {
               // inline this body
               var typeSpecializedBody = GetSubstitutedBody(fexp, f);
-              var typeSpecializedResultType = Resolver.SubstType(f.ResultType, fexp.TypeArgumentSubstitutions);
+              var typeSpecializedResultType = Resolver.SubstType(f.ResultType, fexp.GetTypeArgumentSubstitutions());
 
               // recurse on body
               var ss = new List<SplitExprInfo>();
@@ -17490,7 +17470,7 @@ namespace Microsoft.Dafny {
       Contract.Assert(fexp.Args.Count == f.Formals.Count);
       for (int i = 0; i < f.Formals.Count; i++) {
         Formal p = f.Formals[i];
-        var formalType = Resolver.SubstType(p.Type, fexp.TypeArgumentSubstitutions);
+        var formalType = Resolver.SubstType(p.Type, fexp.GetTypeArgumentSubstitutions());
         Expression arg = fexp.Args[i];
         arg = new BoxingCastExpr(arg, cce.NonNull(arg.Type), formalType);
         arg.Type = formalType;  // resolve here
@@ -17501,7 +17481,7 @@ namespace Microsoft.Dafny {
         var pp = (PrefixPredicate)f;
         body = PrefixSubstitution(pp, body);
       }
-      body = Substitute(body, fexp.Receiver, substMap, fexp.TypeArgumentSubstitutions);
+      body = Substitute(body, fexp.Receiver, substMap, fexp.GetTypeArgumentSubstitutions());
       return body;
     }
 
@@ -17589,7 +17569,7 @@ namespace Microsoft.Dafny {
       ComputeFreeTypeVariables(expr.Type, fvs);
       if (expr is FunctionCallExpr) {
         var e = (FunctionCallExpr)expr;
-        e.TypeArgumentSubstitutions.Iter(kv => ComputeFreeTypeVariables(kv.Value, fvs));
+        Util.Concat(e.TypeApplication_AtEnclosingClass, e.TypeApplication_JustFunction).Iter(ty => ComputeFreeTypeVariables(ty, fvs));
       }
       expr.SubExpressions.Iter(ee => ComputeFreeTypeVariables(ee, fvs));
     }
@@ -17819,7 +17799,8 @@ namespace Microsoft.Dafny {
             newFce.Function = e.Function;
             newFce.Type = e.Type;
           }
-          newFce.TypeArgumentSubstitutions = e.TypeArgumentSubstitutions;  // resolve here
+          newFce.TypeApplication_AtEnclosingClass = e.TypeApplication_AtEnclosingClass;  // resolve here
+          newFce.TypeApplication_JustFunction = e.TypeApplication_JustFunction;  // resolve here
           return newFce;
         }
         return base.Substitute(expr);
@@ -17953,7 +17934,11 @@ namespace Microsoft.Dafny {
 
         Expression newExpr = null;  // set to non-null value only if substitution has any effect; if non-null, the .Type of newExpr will be filled in at end
 
-        if (expr is LiteralExpr || expr is WildcardExpr || expr is BoogieWrapper) {
+        if (expr is StaticReceiverExpr) {
+          var e = (StaticReceiverExpr)expr;
+          var ty = Resolver.SubstType(e.Type, typeMap);
+          return new StaticReceiverExpr(e.tok, ty, e.IsImplicit) {Type = ty};
+        } else if (expr is LiteralExpr || expr is WildcardExpr || expr is BoogieWrapper) {
           // nothing to substitute
         } else if (expr is ThisExpr) {
           return receiverReplacement == null ? expr : receiverReplacement;
@@ -18000,7 +17985,8 @@ namespace Microsoft.Dafny {
           Expression substE = Substitute(fse.Obj);
           MemberSelectExpr fseNew = new MemberSelectExpr(fse.tok, substE, fse.MemberName);
           fseNew.Member = fse.Member;
-          fseNew.TypeApplication = fse.TypeApplication.ConvertAll(t => Resolver.SubstType(t, typeMap));
+          fseNew.TypeApplication_AtEnclosingClass = fse.TypeApplication_AtEnclosingClass.ConvertAll(t => Resolver.SubstType(t, typeMap));
+          fseNew.TypeApplication_JustMember = fse.TypeApplication_JustMember.ConvertAll(t => Resolver.SubstType(t, typeMap));
           newExpr = fseNew;
         } else if (expr is SeqSelectExpr) {
           SeqSelectExpr sse = (SeqSelectExpr)expr;
@@ -18036,13 +18022,17 @@ namespace Microsoft.Dafny {
           FunctionCallExpr e = (FunctionCallExpr)expr;
           Expression receiver = Substitute(e.Receiver);
           List<Expression> newArgs = SubstituteExprList(e.Args);
-          var newTypeInstantiation = SubstituteTypeMap(e.TypeArgumentSubstitutions);
-          if (receiver != e.Receiver || newArgs != e.Args || newTypeInstantiation != e.TypeArgumentSubstitutions) {
+          var newTypeApplicationAtEnclosingClass = SubstituteTypeList(e.TypeApplication_AtEnclosingClass);
+          var newTypeApplicationJustFunction = SubstituteTypeList(e.TypeApplication_JustFunction);
+          if (receiver != e.Receiver || newArgs != e.Args ||
+              newTypeApplicationAtEnclosingClass != e.TypeApplication_AtEnclosingClass ||
+              newTypeApplicationJustFunction != e.TypeApplication_JustFunction) {
             FunctionCallExpr newFce = new FunctionCallExpr(expr.tok, e.Name, receiver, e.OpenParen, newArgs);
             newFce.Function = e.Function;  // resolve on the fly (and set newFce.Type below, at end)
             newFce.CoCall = e.CoCall;  // also copy the co-call status
             newFce.CoCallHint = e.CoCallHint;  // and any co-call hint
-            newFce.TypeArgumentSubstitutions = newTypeInstantiation;
+            newFce.TypeApplication_AtEnclosingClass = newTypeApplicationAtEnclosingClass;
+            newFce.TypeApplication_JustFunction = newTypeApplicationJustFunction;
             newExpr = newFce;
           }
 
@@ -18498,7 +18488,6 @@ namespace Microsoft.Dafny {
         var newTmap = new Dictionary<TypeParameter, Type>();
         var i = 0;
         foreach (var maplet in tmap) {
-          cce.LoopInvariant(newTmap == null || newTmap.Count == i);
           var tt = Resolver.SubstType(maplet.Value, typeMap);
           if (tt != maplet.Value) {
             anythingChanged = true;
@@ -18510,6 +18499,30 @@ namespace Microsoft.Dafny {
           return newTmap;
         } else {
           return tmap;
+        }
+      }
+
+      protected List<Type> SubstituteTypeList(List<Type> types) {
+        Contract.Requires(types != null);
+        Contract.Ensures(Contract.Result<List<Type>>() != null);
+        if (types.Count == 0) {  // optimization
+          return types;
+        }
+        bool anythingChanged = false;
+        var newTypes = new List<Type>();
+        var i = 0;
+        foreach (var ty in types) {
+          var tt = Resolver.SubstType(ty, typeMap);
+          if (tt != ty) {
+            anythingChanged = true;
+          }
+          newTypes.Add(tt);
+          i++;
+        }
+        if (anythingChanged) {
+          return newTypes;
+        } else {
+          return types;
         }
       }
 
