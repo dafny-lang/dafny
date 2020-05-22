@@ -3584,7 +3584,7 @@ namespace Microsoft.Dafny {
         substMap.Add(pp.K, kprime);
         Expression recursiveCallReceiver;
         List<Expression> recursiveCallArgs;
-        RecursiveCallParameters(pp.tok, pp, pp.TypeArgs, pp.Formals, substMap, out _, out _, out recursiveCallReceiver, out recursiveCallArgs);
+        RecursiveCallParameters(pp.tok, pp, pp.TypeArgs, pp.Formals, substMap, out recursiveCallReceiver, out recursiveCallArgs);
         var ppCall = new FunctionCallExpr(pp.tok, pp.Name, recursiveCallReceiver, pp.tok, recursiveCallArgs);
         ppCall.Function = pp;
         ppCall.Type = Type.Bool;
@@ -3627,8 +3627,7 @@ namespace Microsoft.Dafny {
     }
 
     public static void RecursiveCallParameters(IToken tok, MemberDecl member, List<TypeParameter> typeParams, List<Formal> ins,
-      Dictionary<IVariable, Expression>/*?*/ substMap,
-      out List<Type> typeApplication, out Dictionary<TypeParameter,Type> typeArgumentSubstitutions,
+      Dictionary<IVariable, Expression> substMap,
       out Expression receiver, out List<Expression> arguments) {
       Contract.Requires(tok != null);
       Contract.Requires(member != null);
@@ -3636,8 +3635,6 @@ namespace Microsoft.Dafny {
       Contract.Requires(typeParams != null);
       Contract.Requires(ins != null);
       Contract.Requires(substMap != null);
-      Contract.Ensures(Contract.ValueAtReturn(out typeApplication) != null);
-      Contract.Ensures(Contract.ValueAtReturn(out typeArgumentSubstitutions) != null);
       Contract.Ensures(Contract.ValueAtReturn(out receiver) != null);
       Contract.Ensures(Contract.ValueAtReturn(out arguments) != null);
 
@@ -3659,21 +3656,6 @@ namespace Microsoft.Dafny {
           ie.Type = inFormal.Type;  // resolve here
           arguments.Add(ie);
         }
-      }
-
-      typeArgumentSubstitutions = new Dictionary<TypeParameter, Type>();
-      typeApplication = new List<Type>();
-      Contract.Assert(((TopLevelDeclWithMembers)member.EnclosingClass).TypeArgs.Count == receiver.Type.TypeArgs.Count);
-      for (int i = 0; i < receiver.Type.TypeArgs.Count; i++) {
-        var tp = ((TopLevelDeclWithMembers)member.EnclosingClass).TypeArgs[i];
-        var ta = receiver.Type.TypeArgs[i];
-        typeApplication.Add(ta);
-        typeArgumentSubstitutions.Add(tp, ta);
-      }
-      foreach (var tp in typeParams) {
-        var ta = new UserDefinedType(tp);
-        typeApplication.Add(ta);
-        typeArgumentSubstitutions.Add(tp, ta);
       }
     }
 
@@ -4440,7 +4422,7 @@ namespace Microsoft.Dafny {
           // Generate a CallStmt for the recursive call
           Expression recursiveCallReceiver;
           List<Expression> recursiveCallArgs;
-          RecursiveCallParameters(m.tok, m, m.TypeArgs, m.Ins, substMap, out _, out _, out recursiveCallReceiver, out recursiveCallArgs);
+          RecursiveCallParameters(m.tok, m, m.TypeArgs, m.Ins, substMap, out recursiveCallReceiver, out recursiveCallArgs);
           var methodSel = new MemberSelectExpr(m.tok, recursiveCallReceiver, m.Name);
           methodSel.Member = m;  // resolve here
           methodSel.TypeApplication_AtEnclosingClass = m.EnclosingClass.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp.tok, tp));
