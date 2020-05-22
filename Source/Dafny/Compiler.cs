@@ -3169,9 +3169,7 @@ namespace Microsoft.Dafny {
             wr.Write(".{0}", IdName(s.Method));
           }
         }
-        List<Type> typeArgs;
-        var typeSubst = s.MethodSelect.TypeArgumentSubstitutionsWithParents();
-        typeArgs = s.Method.TypeArgs.ConvertAll(ta => typeSubst[ta]);
+        var typeArgs = s.MethodSelect.TypeApplication_JustMember;
         EmitActualTypeArgs(typeArgs, s.Tok, wr);
         wr.Write("(");
         var nRTDs = EmitRuntimeTypeDescriptorsActuals(typeArgs, s.Method.TypeArgs, s.Tok, false, wr);

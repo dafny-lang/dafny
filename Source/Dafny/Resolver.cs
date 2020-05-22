@@ -6789,36 +6789,30 @@ namespace Microsoft.Dafny
           return false;
         } else if (stmt is CallStmt) {
           var s = (CallStmt)stmt;
-          var subst = s.MethodSelect.TypeArgumentSubstitutionsWithParents();
-          Contract.Assert(s.Method.TypeArgs.Count <= subst.Count);
-          var i = 0;
-          foreach (var formalTypeArg in s.Method.TypeArgs) {
-            var actualTypeArg = subst[formalTypeArg];
+          Contract.Assert(s.Method.TypeArgs.Count == s.MethodSelect.TypeApplication_JustMember.Count);
+          for (var i = 0; i < s.Method.TypeArgs.Count; i++) {
+            var formalTypeArg = s.Method.TypeArgs[i];
+            var actualTypeArg = s.MethodSelect.TypeApplication_JustMember[i];
             CheckEqualityTypes_Type(s.Tok, actualTypeArg);
             string whatIsWrong, hint;
             if (!CheckCharacteristics(formalTypeArg.Characteristics, actualTypeArg, out whatIsWrong, out hint)) {
               resolver.reporter.Error(MessageSource.Resolver, s.Tok, "type parameter{0} ({1}) passed to method {2} must support {4} (got {3}){5}",
                 s.Method.TypeArgs.Count == 1 ? "" : " " + i, formalTypeArg.Name, s.Method.Name, actualTypeArg, whatIsWrong, hint);
             }
-            i++;
           }
           // recursively visit all subexpressions (which are all actual parameters) passed in for non-ghost formal parameters
           Contract.Assert(s.Lhs.Count == s.Method.Outs.Count);
-          i = 0;
-          foreach (var ee in s.Lhs) {
+          for (var i = 0; i < s.Method.Outs.Count; i++) {
             if (!s.Method.Outs[i].IsGhost) {
-              Visit(ee, st);
+              Visit(s.Lhs[i], st);
             }
-            i++;
           }
           Visit(s.Receiver, st);
           Contract.Assert(s.Args.Count == s.Method.Ins.Count);
-          i = 0;
-          foreach (var ee in s.Args) {
+          for (var i = 0; i < s.Method.Ins.Count; i++) {
             if (!s.Method.Ins[i].IsGhost) {
-              Visit(ee, st);
+              Visit(s.Args[i], st);
             }
-            i++;
           }
           return false;  // we've done what there is to be done
         } else if (stmt is ForallStmt) {
