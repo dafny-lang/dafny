@@ -5569,7 +5569,7 @@ namespace Microsoft.Dafny
             if (!IsDetermined(bv.Type.Normalize())) {
               resolver.reporter.Error(MessageSource.Resolver, bv.tok, "type of bound variable '{0}' could not be determined; please specify the type explicitly", bv.Name);
             } else if (codeContext is FixpointPredicate) {
-              CheckContainsNoOrdinal(bv.tok, bv.Type, string.Format("type of bound variable '{0}' is not allowed to use type ORDINAL", bv.Name));
+              CheckContainsNoOrdinal(bv.tok, bv.Type, string.Format("type of bound variable '{0}' ('{1}') is not allowed to use type ORDINAL", bv.Name, bv.Type));
             }
           }
           // apply bounds discovery to quantifiers, finite sets, and finite maps
@@ -5635,9 +5635,9 @@ namespace Microsoft.Dafny
             foreach (var p in Util.Concat(e.TypeApplication_AtEnclosingClass, e.TypeApplication_JustMember)) {
               var tp = i < e.TypeApplication_AtEnclosingClass.Count ? e.Member.EnclosingClass.TypeArgs[i] : ((ICallable)e.Member).TypeArgs[i - e.TypeApplication_AtEnclosingClass.Count];
               if (!IsDetermined(p.Normalize())) {
-                resolver.reporter.Error(MessageSource.Resolver, e.tok, "type parameter '{0}' to the {2} '{1}' is not determined", tp.Name, e.Member.Name, e.Member.WhatKind);
+                resolver.reporter.Error(MessageSource.Resolver, e.tok, "type parameter '{0}' (inferred to be '{1}') to the {2} '{3}' could not be determined", tp.Name, p, e.Member.WhatKind, e.Member.Name);
               } else {
-                CheckContainsNoOrdinal(e.tok, p, string.Format("type parameter '{0}' to the {2} '{1}' is not allowed to use ORDINAL", tp.Name, e.Member.Name, e.Member.WhatKind));
+                CheckContainsNoOrdinal(e.tok, p, string.Format("type parameter '{0}' (passed in as '{1}') to the {2} '{3}' is not allowed to use ORDINAL", tp.Name, p, e.Member.WhatKind, e.Member.Name));
               }
               i++;
             }
@@ -5648,13 +5648,13 @@ namespace Microsoft.Dafny
           foreach (var p in Util.Concat(e.TypeApplication_AtEnclosingClass, e.TypeApplication_JustFunction)) {
             var tp = i < e.TypeApplication_AtEnclosingClass.Count ? e.Function.EnclosingClass.TypeArgs[i] : e.Function.TypeArgs[i - e.TypeApplication_AtEnclosingClass.Count];
             if (!IsDetermined(p.Normalize())) {
-              resolver.reporter.Error(MessageSource.Resolver, e.tok, "type parameter '{0}' in the function call to '{1}' could not be determined{2}", tp.Name, e.Name,
+              resolver.reporter.Error(MessageSource.Resolver, e.tok, "type parameter '{0}' (inferred to be '{1}') in the function call to '{2}' could not be determined{3}", tp.Name, p, e.Name,
                 (e.Name.StartsWith("reveal_"))
                 ? ". If you are making an opaque function, make sure that the function can be called."
                 : ""
               );
             } else {
-              CheckContainsNoOrdinal(e.tok, p, string.Format("type argument to function call '{1}' (for type variable '{0}') is not allowed to use type ORDINAL", tp.Name, e.Name));
+              CheckContainsNoOrdinal(e.tok, p, string.Format("type parameter '{0}' (passed in as '{1}') to function call '{2}' is not allowed to use ORDINAL", tp.Name, p, e.Name));
             }
             i++;
           }
