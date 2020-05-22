@@ -226,7 +226,8 @@ namespace Microsoft.Dafny {
           new Specification<Expression>(new List<Expression>(), null),
           null, null, null);
         readsIS.Function = reads;  // just so we can really claim the member declarations are resolved
-        readsIS.TypeArgumentSubstitutions = Util.Dict(tps, tys);  // ditto
+        readsIS.TypeApplication_AtEnclosingClass = tys;  // ditto
+        readsIS.TypeApplication_JustFunction = new List<Type>();  // ditto
         var arrowDecl = new ArrowTypeDecl(tps, req, reads, SystemModule, DontCompile());
         ArrowTypeDecls.Add(arity, arrowDecl);
         SystemModule.TopLevelDecls.Add(arrowDecl);
@@ -284,8 +285,9 @@ namespace Microsoft.Dafny {
       }
       var fn = new MemberSelectExpr(tok, f, member.Name) {
         Member = member,
-        TypeApplication = f.Type.TypeArgs,
-        Type = member.Type
+        TypeApplication_AtEnclosingClass = f.Type.TypeArgs,
+        TypeApplication_JustMember = new List<Type>(),
+        Type = GetTypeOfFunction(member, new List<Type>(), tps.ConvertAll(tp => (Type)new UserDefinedType(tp)))
       };
       Expression body = new ApplyExpr(tok, fn, args);
       body.Type = member.ResultType;  // resolve here
@@ -298,6 +300,22 @@ namespace Microsoft.Dafny {
         body = new ForallExpr(tok, bvs, null, body, null) { Type = Type.Bool, Bounds = bounds };
       }
       return body;
+    }
+
+    Type GetTypeOfFunction(Function f, List<Type> typeArgumentsClass, List<Type> typeArgumentsMember) {
+      Contract.Requires(f != null);
+      Contract.Requires(f.EnclosingClass != null);
+      Contract.Requires(typeArgumentsClass != null);
+      Contract.Requires(typeArgumentsMember != null);
+      Contract.Requires(typeArgumentsClass.Count == f.EnclosingClass.TypeArgs.Count);
+      Contract.Requires(typeArgumentsMember.Count == f.TypeArgs.Count);
+
+      var atd = ArrowTypeDecls[f.Formals.Count];
+
+      var formals = Util.Concat(f.EnclosingClass.TypeArgs, f.TypeArgs);
+      var actuals = Util.Concat(typeArgumentsClass, typeArgumentsMember);
+      var typeMap = Resolver.TypeSubstitutionMap(formals, actuals);
+      return new ArrowType(f.tok, atd, f.Formals.ConvertAll(arg => Resolver.SubstType(arg.Type, typeMap)), Resolver.SubstType(f.ResultType, typeMap));
     }
 
     public TupleTypeDecl TupleType(IToken tok, int dims, bool allowCreationOfNewType) {
@@ -907,12 +925,25 @@ namespace Microsoft.Dafny {
       }
     }
     /// <summary>
-    /// Returns "true" if the type represents the "object?".
+    /// Returns "true" if the type represents the type "object?".
     /// </summary>
     public bool IsObjectQ {
       get {
         var udt = NormalizeExpandKeepConstraints() as UserDefinedType;
         return udt != null && udt.ResolvedClass is ClassDecl && ((ClassDecl)udt.ResolvedClass).IsObjectTrait;
+      }
+    }
+    /// <summary>
+    /// Returns "true" if the type represents the type "object".
+    /// </summary>
+    public bool IsObject {
+      get {
+        var nn = AsNonNullRefType;
+        if (nn != null) {
+          var nonNullRefDecl = (NonNullTypeDecl)nn.ResolvedClass;
+          return nonNullRefDecl.Class.IsObjectTrait;
+        }
+        return false;
       }
     }
     /// <summary>
@@ -947,6 +978,31 @@ namespace Microsoft.Dafny {
           }
         }
       }
+    }
+    /// <summary>
+    /// Returns the type "parent<X>", where "X" is a list of type parameters that makes "parent<X>" a supertype of "this".
+    /// Requires "this" to be some type "C<Y>" and "parent" to be among the reflexive, transitive parent traits of "C".
+    /// </summary>
+    public UserDefinedType AsParentType(TopLevelDecl parent) {
+      Contract.Requires(parent != null);
+
+      var udt = (UserDefinedType)NormalizeExpand();
+      if (udt.ResolvedClass is InternalTypeSynonymDecl isyn) {
+        udt = isyn.RhsWithArgumentIgnoringScope(udt.TypeArgs) as UserDefinedType;
+      }
+      TopLevelDeclWithMembers cl;
+      if (udt.ResolvedClass is NonNullTypeDecl nntd) {
+        cl = (TopLevelDeclWithMembers)nntd.ViewAsClass;
+      } else {
+        cl = (TopLevelDeclWithMembers)udt.ResolvedClass;
+      }
+      if (cl == parent) {
+        return udt;
+      }
+      var typeMapParents = cl.ParentFormalTypeParametersToActuals;
+      var typeMapUdt = Resolver.TypeSubstitutionMap(cl.TypeArgs, udt.TypeArgs);
+      var typeArgs = parent.TypeArgs.ConvertAll(tp => Resolver.SubstType(typeMapParents[tp], typeMapUdt));
+      return new UserDefinedType(udt.tok, parent.Name, parent, typeArgs);
     }
     public bool IsTraitType {
       get {
@@ -1195,35 +1251,10 @@ namespace Microsoft.Dafny {
     /// Returns "true" iff "sub" is a subtype of "super".
     /// Expects that neither "super" nor "sub" is an unresolved proxy.
     /// </summary>
-    public static bool IsSupertype(Type super, Type sub) {
+    public static bool IsSupertype(Type super, Type sub, bool ignoreTypeParameters = false) {
       Contract.Requires(super != null);
       Contract.Requires(sub != null);
-      if (!IsHeadSupertypeOf(super, sub)) {
-        return false;
-      }
-      super = super.NormalizeExpand();
-      sub = sub.NormalizeExpand();
-      var polarities = GetPolarities(super);
-      Contract.Assert(super.IsTraitType ? polarities.Count == 0 : polarities.Count == super.TypeArgs.Count && polarities.Count == sub.TypeArgs.Count);
-      if (super.IsTraitType) {
-        return true;
-      }
-      var allGood = true;
-      for (int i = 0; allGood && i < polarities.Count; i++) {
-        switch (polarities[i]) {
-          case TypeParameter.TPVariance.Co:
-            allGood = IsSupertype(super.TypeArgs[i], sub.TypeArgs[i]);
-            break;
-          case TypeParameter.TPVariance.Contra:
-            allGood = IsSupertype(sub.TypeArgs[i], super.TypeArgs[i]);
-            break;
-          case TypeParameter.TPVariance.Non:
-          default:  // "default" shouldn't ever happen
-            allGood = Equal_Improved(super.TypeArgs[i], sub.TypeArgs[i]);
-            break;
-        }
-      }
-      return allGood;
+      return sub.IsSubtypeOf(super, ignoreTypeParameters);
     }
 
     /// <summary>
@@ -1268,10 +1299,10 @@ namespace Microsoft.Dafny {
         }
         var tt = ((UserDefinedType)t).ResolvedClass as ClassDecl;
         var uu = ((UserDefinedType)u).ResolvedClass as ClassDecl;
-        if (uu.DerivesFrom(tt)) {
+        if (uu.HeadDerivesFrom(tt)) {
           a = b = t;
           return true;
-        } else if (tt.DerivesFrom(uu)) {
+        } else if (tt.HeadDerivesFrom(uu)) {
           a = b = u;
           return true;
         }
@@ -1399,7 +1430,7 @@ namespace Microsoft.Dafny {
               }
             } else if (udtSub.ResolvedClass is ClassDecl) {
               var cl = (ClassDecl)udtSub.ResolvedClass;
-              return cl.DerivesFrom(udtSuper.ResolvedClass);
+              return cl.HeadDerivesFrom(udtSuper.ResolvedClass);
             } else {
               return false;
             }
@@ -1573,6 +1604,10 @@ namespace Microsoft.Dafny {
 
     /// <summary>
     /// Does a best-effort to compute the meet of "a" and "b", returning "null" if not successful.
+    ///
+    /// Since some type parameters may still be proxies, it could be that the returned type is not
+    /// really a meet, so the caller should set up additional constraints that the result is
+    /// assignable to both a and b.
     /// </summary>
     public static Type Meet(Type a, Type b, BuiltIns builtIns) {
       Contract.Requires(a != null);
@@ -1733,30 +1768,20 @@ namespace Microsoft.Dafny {
         } else if (aa is ClassDecl && bb is ClassDecl) {
           var A = (ClassDecl)aa;
           var B = (ClassDecl)bb;
-          // Here are the assumptions about the type system that the rest of this code depends on:
-          Contract.Assert(!(A is TraitDecl) || (A.TypeArgs.Count == 0 && ((TraitDecl)A).TraitsTyp.Count == 0));
-          Contract.Assert(!(B is TraitDecl) || (B.TypeArgs.Count == 0 && ((TraitDecl)B).TraitsTyp.Count == 0));
-          if (A.DerivesFrom(B)) {
+          if (A.HeadDerivesFrom(B)) {
             var udtB = (UserDefinedType)b;
             return abNonNullTypes ? UserDefinedType.CreateNonNullType(udtB) : udtB;
-          } else if (B.DerivesFrom(A)) {
+          } else if (B.HeadDerivesFrom(A)) {
             var udtA = (UserDefinedType)a;
             return abNonNullTypes ? UserDefinedType.CreateNonNullType(udtA) : udtA;
-          } else if (A is TraitDecl || B is TraitDecl) {
-            return abNonNullTypes ? UserDefinedType.CreateNonNullType(builtIns.ObjectQ()) : builtIns.ObjectQ();
           }
-          // A and B are classes. They always have object as a common supertype, but they may also both be extending some other
+          // A and B are classes or traits. They always have object as a common supertype, but they may also both be extending some other
           // trait.  If such a trait is unique, pick it. (Unfortunately, this makes the meet operation not associative.)
-          var commonTraits = new List<Type>();
-          foreach (var at in A.TraitsTyp) {
-            if (B.TraitsTyp.Exists(bt => at.Equals(bt))) {
-              commonTraits.Add(at);
-            }
-          }
+          var commonTraits = TopLevelDeclWithMembers.CommonTraits(A, B);
           if (commonTraits.Count == 1) {
-            var udtTrait = (UserDefinedType)commonTraits[0];  // in a successfully resolved program, we expect all .TraitsTyp to be a UserDefinedType
-            Contract.Assert(udtTrait.ResolvedClass is NonNullTypeDecl);  // in fact, we expect it to be the non-null version of the trait type
-            return abNonNullTypes ? udtTrait : udtTrait.NormalizeExpand();
+            var typeMap = Resolver.TypeSubstitutionMap(A.TypeArgs, a.TypeArgs);
+            var r = (UserDefinedType)Resolver.SubstType(commonTraits[0], typeMap);
+            return abNonNullTypes ? UserDefinedType.CreateNonNullType(r) : r;
           } else {
             // the unfortunate part is when commonTraits.Count > 1 here :(
             return abNonNullTypes ? UserDefinedType.CreateNonNullType(builtIns.ObjectQ()) : builtIns.ObjectQ();
@@ -1769,6 +1794,10 @@ namespace Microsoft.Dafny {
 
     /// <summary>
     /// Does a best-effort to compute the join of "a" and "b", returning "null" if not successful.
+    ///
+    /// Since some type parameters may still be proxies, it could be that the returned type is not
+    /// really a join, so the caller should set up additional constraints that the result is
+    /// assignable to both a and b.
     /// </summary>
     public static Type Join(Type a, Type b, BuiltIns builtIns) {
       Contract.Requires(a != null);
@@ -1962,10 +1991,10 @@ namespace Microsoft.Dafny {
         } else if (aa is ClassDecl && bb is ClassDecl) {
           var A = (ClassDecl)aa;
           var B = (ClassDecl)bb;
-          if (A.DerivesFrom(B)) {
+          if (A.HeadDerivesFrom(B)) {
             Contract.Assert(B is TraitDecl && b.TypeArgs.Count == 0);
             return a;
-          } else if (B.DerivesFrom(A)) {
+          } else if (B.HeadDerivesFrom(A)) {
             Contract.Assert(A is TraitDecl && a.TypeArgs.Count == 0);
             return b;
           } else {
@@ -1989,6 +2018,43 @@ namespace Microsoft.Dafny {
       } else {
         return TypeArgs.Exists(t => t.ContainsProxy(proxy));
       }
+    }
+
+    public virtual List<Type> ParentTypes() {
+      return new List<Type>();
+    }
+
+    public virtual bool IsSubtypeOf(Type super, bool ignoreTypeArguments) {
+      Contract.Requires(super != null);
+
+      super = super.NormalizeExpandKeepConstraints();
+      var sub = NormalizeExpandKeepConstraints();
+      if (SameHead(sub, super)) {
+        return ignoreTypeArguments || CompatibleTypeArgs(super, sub);
+      }
+
+      return ParentTypes().Any(parentType => parentType.IsSubtypeOf(super, ignoreTypeArguments));
+    }
+
+    public static bool CompatibleTypeArgs(Type super, Type sub) {
+      var polarities = GetPolarities(super);
+      Contract.Assert(polarities.Count == super.TypeArgs.Count && polarities.Count == sub.TypeArgs.Count);
+      var allGood = true;
+      for (int i = 0; allGood && i < polarities.Count; i++) {
+        switch (polarities[i]) {
+          case TypeParameter.TPVariance.Co:
+            allGood = IsSupertype(super.TypeArgs[i], sub.TypeArgs[i]);
+            break;
+          case TypeParameter.TPVariance.Contra:
+            allGood = IsSupertype(sub.TypeArgs[i], super.TypeArgs[i]);
+            break;
+          case TypeParameter.TPVariance.Non:
+          default:  // "default" shouldn't ever happen
+            allGood = Equal_Improved(super.TypeArgs[i], sub.TypeArgs[i]);
+            break;
+        }
+      }
+      return allGood;
     }
   }
 
@@ -2064,6 +2130,12 @@ namespace Microsoft.Dafny {
     public override bool Equals(Type that) {
       return that.IsIntegerType;
     }
+    public override bool IsSubtypeOf(Type super, bool ignoreTypeArguments) {
+      if (super is IntVarietiesSupertype) {
+        return true;
+      }
+      return base.IsSubtypeOf(super, ignoreTypeArguments);
+    }
   }
 
   public class RealType : BasicType {
@@ -2073,6 +2145,12 @@ namespace Microsoft.Dafny {
     }
     public override bool Equals(Type that) {
       return that.IsRealType;
+    }
+    public override bool IsSubtypeOf(Type super, bool ignoreTypeArguments) {
+      if (super is RealVarietiesSupertype) {
+        return true;
+      }
+      return base.IsSubtypeOf(super, ignoreTypeArguments);
     }
   }
 
@@ -2084,6 +2162,12 @@ namespace Microsoft.Dafny {
     }
     public override bool Equals(Type that) {
       return that.IsBigOrdinalType;
+    }
+    public override bool IsSubtypeOf(Type super, bool ignoreTypeArguments) {
+      if (super is IntVarietiesSupertype) {
+        return true;
+      }
+      return base.IsSubtypeOf(super, ignoreTypeArguments);
     }
   }
 
@@ -2110,6 +2194,12 @@ namespace Microsoft.Dafny {
     public override bool Equals(Type that) {
       var bv = that.NormalizeExpand() as BitvectorType;
       return bv != null && bv.Width == Width;
+    }
+    public override bool IsSubtypeOf(Type super, bool ignoreTypeArguments) {
+      if (super is IntVarietiesSupertype) {
+        return true;
+      }
+      return base.IsSubtypeOf(super, ignoreTypeArguments);
     }
   }
 
@@ -2453,7 +2543,7 @@ namespace Microsoft.Dafny {
     public string CompileName {
       get {
         if (compileName == null) {
-          compileName = NonglobalVariable.CompilerizeName(Name);
+          compileName = ResolvedParam != null ? ResolvedParam.CompileName : ResolvedClass.CompileName;
         }
         return compileName;
       }
@@ -2554,6 +2644,13 @@ namespace Microsoft.Dafny {
       Contract.Requires(udtNullableType.ResolvedClass is ClassDecl);
       var cl = (ClassDecl)udtNullableType.ResolvedClass;
       return new UserDefinedType(udtNullableType.tok, cl.NonNullTypeDecl.Name, cl.NonNullTypeDecl, udtNullableType.TypeArgs);
+    }
+
+    public static UserDefinedType CreateNullableType(UserDefinedType udtNonNullType) {
+      Contract.Requires(udtNonNullType != null);
+      Contract.Requires(udtNonNullType.ResolvedClass is NonNullTypeDecl);
+      var nntd = (NonNullTypeDecl)udtNonNullType.ResolvedClass;
+      return new UserDefinedType(udtNonNullType.tok, nntd.Class.Name + "?", nntd.Class, udtNonNullType.TypeArgs);
     }
 
     /// <summary>
@@ -2746,6 +2843,27 @@ namespace Microsoft.Dafny {
         Contract.Assume(false);  // the MayInvolveReferences getter requires the Type to have been successfully resolved
         return true;
       }
+    }
+
+    public override List<Type> ParentTypes() {
+      return ResolvedClass != null ? ResolvedClass.ParentTypes(TypeArgs) : base.ParentTypes();
+    }
+
+    public override bool IsSubtypeOf(Type super, bool ignoreTypeArguments) {
+      Contract.Requires(super != null);
+
+      super = super.NormalizeExpandKeepConstraints();
+
+      // Specifically handle object as the implicit supertype of classes and traits.
+      // "object?" is handled by Builtins rather than the Type hierarchy, so unfortunately
+      // it can't be returned in ParentTypes().
+      if (IsRefType && super.IsObjectQ) {
+        return true;
+      } else if (IsNonNullRefType && super.IsObject) {
+        return true;
+      }
+
+      return base.IsSubtypeOf(super, ignoreTypeArguments);
     }
   }
 
@@ -3001,7 +3119,7 @@ namespace Microsoft.Dafny {
     IToken INamedRegion.BodyStartTok { get { return BodyStartTok; } }
     IToken INamedRegion.BodyEndTok { get { return BodyEndTok; } }
     string INamedRegion.Name { get { return Name; } }
-    string compileName;
+    protected string compileName;
 
     private VisibilityScope opaqueScope = new VisibilityScope();
     private VisibilityScope revealScope = new VisibilityScope();
@@ -3138,12 +3256,26 @@ namespace Microsoft.Dafny {
       }
     }
 
+    public override string CompileName {
+      get {
+        if (compileName == null) {
+          var name = Name;
+          if (parent is MemberDecl && !name.StartsWith("_")) {
+            // prepend "_" to type parameters of functions and methods, to ensure they don't clash with type parameters of the enclosing type
+            name = "_" + name;
+          }
+          compileName = NonglobalVariable.CompilerizeName(name);
+        }
+        return compileName;
+      }
+    }
+
     /// <summary>
     /// NonVariant_Strict     (default) - non-variant, no uses left of an arrow
     /// NonVariant_Permissive    !      - non-variant
     /// Covariant_Strict         +      - co-variant, no uses left of an arrow
     /// Covariant_Permissive     *      - co-variant
-    /// Contravarianct           -       - contra-variant
+    /// Contravariant            -      - contra-variant
     /// </summary>
     public enum TPVarianceSyntax { NonVariant_Strict, NonVariant_Permissive, Covariant_Strict, Covariant_Permissive, Contravariance }
     public enum TPVariance { Co, Non, Contra }
@@ -3155,6 +3287,16 @@ namespace Microsoft.Dafny {
           return TPVariance.Co;
         default:
           return v;
+      }
+    }
+    public static int Direction(TPVariance v) {
+      switch (v) {
+        case TPVariance.Co:
+          return 1;
+        case TPVariance.Contra:
+          return -1;
+        default:
+          return 0;
       }
     }
     public TPVarianceSyntax VarianceSyntax;
@@ -3872,17 +4014,83 @@ namespace Microsoft.Dafny {
         }
       }
     }
+
+    /// <summary>
+    /// Return the list of parent types of "this", where there type parameters
+    /// of "this" have been instantiated by "typeArgs". For example, for a subset
+    /// type, the return value is the RHS type, appropriately instantiated. As
+    /// two other examples, given
+    ///     class C<X> extends J<X, int>
+    /// C.ParentTypes(real) = J<real, int>    // non-null types C and J
+    /// C?.ParentTypes(real) = J?<real, int>  // possibly-null type C? and J?
+    /// </summary>
+    public virtual List<Type> ParentTypes(List<Type> typeArgs) {
+      Contract.Requires(typeArgs != null);
+      Contract.Requires(this.TypeArgs.Count == typeArgs.Count);
+      return new List<Type>();
+    }
   }
 
   public abstract class TopLevelDeclWithMembers : TopLevelDecl {
     public readonly List<MemberDecl> Members;
-    public TopLevelDeclWithMembers(IToken tok, string name, ModuleDefinition module, List<TypeParameter> typeArgs, List<MemberDecl> members, Attributes attributes)
+
+    // The following fields keep track of parent traits
+    public readonly List<MemberDecl> InheritedMembers = new List<MemberDecl>();  // these are instance fields and instance members defined with bodies in traits
+    public readonly List<Type> ParentTraits;  // these are the types that are parsed after the keyword 'extends'; note, for a successfully resolved program, there are UserDefinedType's where .ResolvedClas is NonNullTypeDecl
+    public readonly Dictionary<TypeParameter, Type> ParentFormalTypeParametersToActuals = new Dictionary<TypeParameter, Type>();  // maps parent traits' type parameters to actuals
+
+    /// <summary>
+    /// TraitParentHeads contains the head of each distinct trait parent. It is initialized during resolution.
+    /// </summary>
+    public readonly List<TraitDecl> ParentTraitHeads = new List<TraitDecl>();
+
+    public TopLevelDeclWithMembers(IToken tok, string name, ModuleDefinition module, List<TypeParameter> typeArgs, List<MemberDecl> members, Attributes attributes, List<Type>/*?*/ traits = null)
       : base(tok, name, module, typeArgs, attributes) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
       Contract.Requires(cce.NonNullElements(typeArgs));
       Contract.Requires(cce.NonNullElements(members));
       Members = members;
+      ParentTraits = traits ?? new List<Type>();
+    }
+
+    public static List<UserDefinedType> CommonTraits(TopLevelDeclWithMembers a, TopLevelDeclWithMembers b) {
+      Contract.Requires(a != null);
+      Contract.Requires(b != null);
+      var aa = a.TraitAncestors();
+      var bb = b.TraitAncestors();
+      aa.IntersectWith(bb);
+      var types = new List<UserDefinedType>();
+      foreach (var t in aa) {
+        var typeArgs = t.TypeArgs.ConvertAll(tp => a.ParentFormalTypeParametersToActuals[tp]);
+        var u = new UserDefinedType(t.tok, t.Name + "?", t, typeArgs);
+        types.Add(u);
+      }
+      return types;
+    }
+
+    /// <summary>
+    /// Returns the set of transitive parent traits (not including "this" itself).
+    /// This method assumes the .ParentTraits fields have been checked for various cycle restrictions.
+    /// </summary>
+    public ISet<TraitDecl> TraitAncestors() {
+      var s = new HashSet<TraitDecl>();
+      AddTraitAncestors(s);
+      return s;
+    }
+    /// <summary>
+    /// Adds to "s" the transitive parent traits (not including "this" itself).
+    /// This method assumes the .ParentTraits fields have been checked for various cycle restrictions.
+    /// </summary>
+    private void AddTraitAncestors(ISet<TraitDecl> s) {
+      Contract.Requires(s != null);
+      foreach (var parent in ParentTraits) {
+        var udt = (UserDefinedType)parent;  // in a successfully resolved program, we expect all .ParentTraits to be a UserDefinedType
+        var nntd = (NonNullTypeDecl)udt.ResolvedClass;  // we expect the trait type to be the non-null version of the trait type
+        var tr = (TraitDecl)nntd.Class;
+        s.Add(tr);
+        tr.AddTraitAncestors(s);
+      }
     }
   }
 
@@ -3897,27 +4105,22 @@ namespace Microsoft.Dafny {
   public class ClassDecl : TopLevelDeclWithMembers, RevealableTypeDecl {
     public override string WhatKind { get { return "class"; } }
     public override bool CanBeRevealed() { return true; }
-    public readonly List<MemberDecl> InheritedMembers = new List<MemberDecl>();  // these are instance fields and instance members defined with bodies in traits
-    public readonly List<Type> TraitsTyp;  // these are the types that are parsed after the keyword 'extends'
-    public readonly List<TraitDecl> TraitsObj = new List<TraitDecl>();  // populated during resolution
     public bool HasConstructor;  // filled in (early) during resolution; true iff there exists a member that is a Constructor
     public readonly NonNullTypeDecl NonNullTypeDecl;
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(cce.NonNullElements(Members));
-      Contract.Invariant(TraitsTyp != null);
-      Contract.Invariant(TraitsObj != null);
+      Contract.Invariant(ParentTraits != null);
     }
 
     public ClassDecl(IToken tok, string name, ModuleDefinition module,
       List<TypeParameter> typeArgs, [Captured] List<MemberDecl> members, Attributes attributes, List<Type> traits)
-      : base(tok, name, module, typeArgs, members, attributes) {
+      : base(tok, name, module, typeArgs, members, attributes, traits) {
       Contract.Requires(tok != null);
       Contract.Requires(name != null);
       Contract.Requires(module != null);
       Contract.Requires(cce.NonNullElements(typeArgs));
       Contract.Requires(cce.NonNullElements(members));
-      TraitsTyp = traits ?? new List<Type>();
       if (!IsDefaultClass && !(this is ArrowTypeDecl)) {
         NonNullTypeDecl = new NonNullTypeDecl(this);
       }
@@ -3933,9 +4136,35 @@ namespace Microsoft.Dafny {
       get => Name == "object";
     }
 
-    internal bool DerivesFrom(TopLevelDecl b) {
+    internal bool HeadDerivesFrom(TopLevelDecl b) {
       Contract.Requires(b != null);
-      return this == b || this.TraitsObj.Exists(tr => tr.DerivesFrom(b));
+      return this == b || this.ParentTraitHeads.Exists(tr => tr.HeadDerivesFrom(b));
+    }
+
+    public List<Type> NonNullTraitsWithArgument(List<Type> typeArgs) {
+      Contract.Requires(typeArgs != null);
+      Contract.Requires(typeArgs.Count == TypeArgs.Count);
+
+      // Instantiate with the actual type arguments
+      if (typeArgs.Count == 0) {
+        // this optimization seems worthwhile
+        return ParentTraits;
+      } else {
+        var subst = Resolver.TypeSubstitutionMap(TypeArgs, typeArgs);
+        return ParentTraits.ConvertAll(traitType => Resolver.SubstType(traitType, subst));
+      }
+    }
+
+    public List<Type> PossiblyNullTraitsWithArgument(List<Type> typeArgs) {
+      Contract.Requires(typeArgs != null);
+      Contract.Requires(typeArgs.Count == TypeArgs.Count);
+      // Instantiate with the actual type arguments
+      var subst = Resolver.TypeSubstitutionMap(TypeArgs, typeArgs);
+      return ParentTraits.ConvertAll(traitType => (Type)UserDefinedType.CreateNullableType((UserDefinedType)Resolver.SubstType(traitType, subst)));
+    }
+
+    public override List<Type> ParentTypes(List<Type> typeArgs) {
+      return PossiblyNullTraitsWithArgument(typeArgs);
     }
 
     TopLevelDecl RevealableTypeDecl.AsTopLevelDecl { get => this; }
@@ -5109,6 +5338,10 @@ namespace Microsoft.Dafny {
     Expression RedirectingTypeDecl.Constraint { get { return Constraint; } }
     WKind RedirectingTypeDecl.WitnessKind { get { return WitnessKind; } }
     Expression RedirectingTypeDecl.Witness { get { return Witness; } }
+
+    public override List<Type> ParentTypes(List<Type> typeArgs) {
+      return new List<Type>{ RhsWithArgument(typeArgs) };
+    }
   }
 
   public class NonNullTypeDecl : SubsetTypeDecl
@@ -5141,6 +5374,19 @@ namespace Microsoft.Dafny {
       Contract.Requires(tps != null);
       Contract.Requires(id != null);
       Class = cl;
+    }
+
+    public override List<Type> ParentTypes(List<Type> typeArgs) {
+      List<Type> result = new List<Type>(base.ParentTypes(typeArgs));
+
+      foreach (var rhsParentType in Class.ParentTypes(typeArgs)) {
+        var rhsParentUdt = rhsParentType as UserDefinedType;
+        if (rhsParentUdt != null && rhsParentUdt.ResolvedClass is ClassDecl) {
+          result.Add(UserDefinedType.CreateNonNullType(rhsParentUdt));
+        }
+      }
+
+      return result;
     }
   }
 
@@ -5511,11 +5757,12 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public Type Type {
-      get {
-        // Note, the following returned type can contain type parameters from the function and its enclosing class
-        return new ArrowType(tok, Formals.ConvertAll(f => f.Type), ResultType);
-      }
+    public Type GetMemberType(ArrowTypeDecl atd) {
+      Contract.Requires(atd != null);
+      Contract.Requires(atd.Arity == Formals.Count);
+
+      // Note, the following returned type can contain type parameters from the function and its enclosing class
+      return new ArrowType(tok, atd, Formals.ConvertAll(f => f.Type), ResultType);
     }
 
     public bool AllowsNontermination {
@@ -5703,23 +5950,8 @@ namespace Microsoft.Dafny {
       args.AddRange(fexp.Args);
       var prefixPredCall = new FunctionCallExpr(fexp.tok, this.PrefixPredicate.Name, fexp.Receiver, fexp.OpenParen, args);
       prefixPredCall.Function = this.PrefixPredicate;  // resolve here
-
-      prefixPredCall.TypeArgumentSubstitutions = new Dictionary<TypeParameter, Type>();
-      var old_to_new = new Dictionary<TypeParameter, TypeParameter>();
-      for (int i = 0; i < this.TypeArgs.Count; i++) {
-        old_to_new[this.TypeArgs[i]] = this.PrefixPredicate.TypeArgs[i];
-      }
-      foreach (var p in fexp.TypeArgumentSubstitutions) {
-        TypeParameter tp;
-        if (old_to_new.TryGetValue(p.Key, out tp)) {
-          // p.Key denotes a type parameter of the predicate
-          prefixPredCall.TypeArgumentSubstitutions[tp] = p.Value;
-        } else {
-          // p.Key denotes a type parameter of the enclosing class; it is the same for the prefix predicate
-          prefixPredCall.TypeArgumentSubstitutions[p.Key] = p.Value;
-        }
-      }  // resolved here.
-
+      prefixPredCall.TypeApplication_AtEnclosingClass = fexp.TypeApplication_AtEnclosingClass;  // resolve here
+      prefixPredCall.TypeApplication_JustFunction = fexp.TypeApplication_JustFunction;  // resolve here
       prefixPredCall.Type = fexp.Type;  // resolve here
       prefixPredCall.CoCall = fexp.CoCall;  // resolve here
       return prefixPredCall;
@@ -8645,8 +8877,7 @@ namespace Microsoft.Dafny {
     ///   will be "C(G)".
     /// * Suppose "C" is a class that extends a trait "T"; then, if "t" denotes "C" and "cl" denotes
     ///   "T", then the type of the StaticReceiverExpr will be "T".
-    /// * In the future, Dafny will support type parameters for traits and for classes that implement
-    ///   traits.  Then, suppose "C(X)" is a class that extends "T(f(X))", and that "T(Y)" is
+    /// * Suppose "C(X)" is a class that extends "T(f(X))", and that "T(Y)" is
     ///   a trait that in turn extends trait "W(g(Y))".  If "t" denotes type "C(G)" and "cl" denotes "W",
     ///   then type of the StaticReceiverExpr will be "T(g(f(G)))".
     /// </summary>
@@ -8655,16 +8886,18 @@ namespace Microsoft.Dafny {
       Contract.Requires(tok != null);
       Contract.Requires(t.ResolvedClass != null);
       Contract.Requires(cl != null);
-      Contract.Requires(t.TypeArgs.Count == cl.TypeArgs.Count());
-      if (t.ResolvedClass != cl || t.Name != cl.Name) {  // t may be using the name "C?", and we'd prefer it read "C"
-        if (t.ResolvedClass != cl && t.ResolvedClass is ClassDecl) {
-          var orig = (ClassDecl)t.ResolvedClass;
-          Contract.Assert(orig.TraitsObj.Contains(cl));  // Dafny currently supports only one level of inheritance from traits
-          Contract.Assert(orig.TypeArgs.Count == 0);  // Dafny currently only allows type-parameter-less classes to extend traits
-        }
-        t = new UserDefinedType(tok, cl.Name, cl, t.TypeArgs);
+      if (t.ResolvedClass != cl) {
+        var top = t.AsTopLevelTypeWithMembersBypassInternalSynonym;
+        Contract.Assert(top != null);
+        var clArgsInTermsOfTFormals = cl.TypeArgs.ConvertAll(tp => top.ParentFormalTypeParametersToActuals[tp]);
+        var subst = Resolver.TypeSubstitutionMap(top.TypeArgs, t.TypeArgs);
+        var typeArgs = clArgsInTermsOfTFormals.ConvertAll(ty => Resolver.SubstType(ty, subst));
+        Type = new UserDefinedType(tok, cl.Name, cl, typeArgs);
+      } else if (t.Name != cl.Name) {  // t may be using the name "C?", and we'd prefer it read "C"
+        Type = new UserDefinedType(tok, cl.Name, cl, t.TypeArgs);
+      } else {
+        Type = t;
       }
-      Type = t;
       UnresolvedType = Type;
       Implicit = isImplicit;
     }
@@ -9039,27 +9272,126 @@ namespace Microsoft.Dafny {
     public readonly Expression Obj;
     public readonly string MemberName;
     public MemberDecl Member;          // filled in by resolution, will be a Field or Function
-    public List<Type> TypeApplication; // If Member is a Function or Method, then TypeApplication is the list of type arguments used with the enclosing class and the function/method itself; if it is a Field, then TypeApplication is the list of type arguments used with the enclosing class
 
-    public Dictionary<TypeParameter, Type> TypeArgumentSubstitutions() {
+    /// <summary>
+    /// TypeApplication_AtEnclosingClass is the list of type arguments used to instantiate the type that
+    /// declares Member (which is some supertype of the receiver type).
+    /// </summary>
+    public List<Type> TypeApplication_AtEnclosingClass;  // filled in during resolution
+
+    /// <summary>
+    ///  TypeApplication_JustMember is the list of type arguments used to instantiate the type parameters
+    /// of Member.
+    /// </summary>
+    public List<Type> TypeApplication_JustMember;  // filled in during resolution
+
+    /// <summary>
+    /// Returns a mapping from formal type parameters to actual type arguments. For example, given
+    ///     trait T<A> {
+    ///       function F<X>(): bv8 { ... }
+    ///     }
+    ///     class C<B, D> extends T<map<B, D>> { }
+    /// and MemberSelectExpr o.F<int> where o has type C<real, bool>, the type map returned is
+    ///     A -> map<real, bool>
+    ///     X -> int
+    /// To also include B and D in the mapping, use TypeArgumentSubstitutionsWithParents instead.
+    /// </summary>
+    public Dictionary<TypeParameter, Type> TypeArgumentSubstitutionsAtMemberDeclaration() {
       Contract.Requires(WasResolved());
       Contract.Ensures(Contract.Result<Dictionary<TypeParameter, Type>>() != null);
-      Contract.Ensures(Contract.Result<Dictionary<TypeParameter, Type>>().Count == TypeApplication.Count);
 
-      var icallable = Member as ICallable;
-      Contract.Assert(Member.EnclosingClass.TypeArgs.Count + (icallable == null ? 0 : icallable.TypeArgs.Count) == TypeApplication.Count);  // a consequence of proper resolution
       var subst = new Dictionary<TypeParameter, Type>();
-      var i = 0;
-      foreach (var tp in Member.EnclosingClass.TypeArgs) {
-        subst.Add(tp, TypeApplication[i]);
-        i++;
+
+      // Add the mappings from the member's own type parameters
+      if (Member is ICallable icallable) {
+        Contract.Assert(TypeApplication_JustMember.Count == icallable.TypeArgs.Count);
+        for (var i = 0; i < icallable.TypeArgs.Count; i++) {
+          subst.Add(icallable.TypeArgs[i], TypeApplication_JustMember[i]);
+        }
+      } else {
+        Contract.Assert(TypeApplication_JustMember.Count == 0);
       }
-      if (icallable != null) {
-        foreach (var tp in icallable.TypeArgs) {
-          subst.Add(tp, TypeApplication[i]);
-          i++;
+
+      // Add the mappings from the enclosing class.
+      TopLevelDecl cl = Member.EnclosingClass;
+      // Expand the type down to its non-null type, if any
+      if (cl != null) {
+        Contract.Assert(cl.TypeArgs.Count == TypeApplication_AtEnclosingClass.Count);
+        for (var i = 0; i < cl.TypeArgs.Count; i++) {
+          subst.Add(cl.TypeArgs[i], TypeApplication_AtEnclosingClass[i]);
         }
       }
+
+      return subst;
+    }
+
+    /// <summary>
+    /// Returns a mapping from formal type parameters to actual type arguments. For example, given
+    ///     trait T<A> {
+    ///       function F<X>(): bv8 { ... }
+    ///     }
+    ///     class C<B, D> extends T<map<B, D>> { }
+    /// and MemberSelectExpr o.F<int> where o has type C<real, bool>, the type map returned is
+    ///     A -> map<real, bool>
+    ///     B -> real
+    ///     D -> bool
+    ///     X -> int
+    /// NOTE: This method should be called only when all types have been fully and successfully
+    /// resolved. During type inference, when there may still be some unresolved proxies, use
+    /// TypeArgumentSubstitutionsAtMemberDeclaration instead.
+    /// </summary>
+    public Dictionary<TypeParameter, Type> TypeArgumentSubstitutionsWithParents() {
+      Contract.Requires(WasResolved());
+      Contract.Ensures(Contract.Result<Dictionary<TypeParameter, Type>>() != null);
+
+      return TypeArgumentSubstitutionsWithParentsAux(Obj.Type, Member, TypeApplication_JustMember);
+    }
+
+    public static Dictionary<TypeParameter, Type> TypeArgumentSubstitutionsWithParentsAux(Type receiverType, MemberDecl member, List<Type> typeApplicationMember) {
+      Contract.Requires(receiverType != null);
+      Contract.Requires(member != null);
+      Contract.Requires(typeApplicationMember != null);
+      Contract.Ensures(Contract.Result<Dictionary<TypeParameter, Type>>() != null);
+
+      var subst = new Dictionary<TypeParameter, Type>();
+
+      // Add the mappings from the member's own type parameters
+      if (member is ICallable icallable) {
+        Contract.Assert(typeApplicationMember.Count == icallable.TypeArgs.Count);
+        for (var i = 0; i < icallable.TypeArgs.Count; i++) {
+          subst.Add(icallable.TypeArgs[i], typeApplicationMember[i]);
+        }
+      } else {
+        Contract.Assert(typeApplicationMember.Count == 0);
+      }
+
+      // Add the mappings from the receiver's type "cl"
+      var udt = (UserDefinedType)receiverType.NormalizeExpand();
+      if (udt.ResolvedClass is InternalTypeSynonymDecl isyn) {
+        udt = isyn.RhsWithArgumentIgnoringScope(udt.TypeArgs) as UserDefinedType;
+      }
+      if (udt.ResolvedClass is NonNullTypeDecl nntd) {
+        udt = nntd.RhsWithArgumentIgnoringScope(udt.TypeArgs) as UserDefinedType;
+      }
+      var cl = udt?.ResolvedClass;
+
+      if (cl != null) {
+        Contract.Assert(cl.TypeArgs.Count == udt.TypeArgs.Count);
+        for (var i = 0; i < cl.TypeArgs.Count; i++) {
+          subst.Add(cl.TypeArgs[i], udt.TypeArgs[i]);
+        }
+
+        // Add in the mappings from parent types' formal type parameters to types
+        if (cl is TopLevelDeclWithMembers cls) {
+          foreach (var entry in cls.ParentFormalTypeParametersToActuals) {
+            var v = Resolver.SubstType(entry.Value, subst);
+            subst.Add(entry.Key, v);
+          }
+        }
+      } else {
+        Contract.Assert(false); // DEBUG: TODO: remove -- this is just for debugging
+      }
+
       return subst;
     }
 
@@ -9067,7 +9399,8 @@ namespace Microsoft.Dafny {
     void ObjectInvariant() {
       Contract.Invariant(Obj != null);
       Contract.Invariant(MemberName != null);
-      Contract.Invariant((Member != null) == (TypeApplication != null));  // TypeApplication is set whenever Member is set
+      Contract.Invariant((Member != null) == (TypeApplication_AtEnclosingClass != null));  // TypeApplication_* are set whenever Member is set
+      Contract.Invariant((Member != null) == (TypeApplication_JustMember != null));  // TypeApplication_* are set whenever Member is set
     }
 
     public MemberSelectExpr(IToken tok, Expression obj, string memberName)
@@ -9089,24 +9422,34 @@ namespace Microsoft.Dafny {
       Contract.Requires(obj != null);
       Contract.Requires(field != null);
       Contract.Requires(obj.Type != null);  // "obj" is required to be resolved
+
       this.Member = field;  // resolve here
-      if (field.EnclosingClass is TraitDecl) {
-        // It could be that the type of "obj" is a class that implements the trait.  If so,
-        // it would be necessary to map the class type instantiation to a type instantiation
-        // of the trait.  However, at present in Dafny, traits take no type arguments, so
-        // our job is easy.
-        Contract.Assert(field.EnclosingClass.TypeArgs.Count == 0);
-        this.TypeApplication = new List<Type>();
+
+      var receiverType = obj.Type.NormalizeExpand();
+      this.TypeApplication_AtEnclosingClass = receiverType.TypeArgs;
+      this.TypeApplication_JustMember = new List<Type>();
+
+      var typeMap = new Dictionary<TypeParameter, Type>();
+      if (receiverType is UserDefinedType udt) {
+        var cl = udt.ResolvedClass as TopLevelDeclWithMembers;
+        Contract.Assert(cl != null);
+        Contract.Assert(cl.TypeArgs.Count == TypeApplication_AtEnclosingClass.Count);
+        for (var i = 0; i < cl.TypeArgs.Count; i++) {
+          typeMap.Add(cl.TypeArgs[i], TypeApplication_AtEnclosingClass[i]);
+        }
+        foreach (var entry in cl.ParentFormalTypeParametersToActuals) {
+          var v = Resolver.SubstType(entry.Value, typeMap);
+          typeMap.Add(entry.Key, v);
+        }
+      } else if (field.EnclosingClass == null) {
+        // leave typeMap as the empty substitution
       } else {
-        var receiverType = obj.Type.NormalizeExpand();
-        this.TypeApplication = receiverType.TypeArgs;  // resolve here
+        Contract.Assert(field.EnclosingClass.TypeArgs.Count == TypeApplication_AtEnclosingClass.Count);
+        for (var i = 0; i < field.EnclosingClass.TypeArgs.Count; i++) {
+          typeMap.Add(field.EnclosingClass.TypeArgs[i], TypeApplication_AtEnclosingClass[i]);
+        }
       }
-      Contract.Assert(field.EnclosingClass == null || this.TypeApplication.Count == field.EnclosingClass.TypeArgs.Count);
-      var subst = new Dictionary<TypeParameter, Type>();
-      for (int i = 0; i < this.TypeApplication.Count; i++) {
-        subst.Add(field.EnclosingClass.TypeArgs[i], this.TypeApplication[i]);
-      }
-      this.Type = Resolver.SubstType(field.Type, subst);  // resolve here
+      this.Type = Resolver.SubstType(field.Type, typeMap);  // resolve here
     }
 
     public void MemberSelectCase(Action<Field> fieldK, Action<Function> functionK) {
@@ -9279,7 +9622,41 @@ namespace Microsoft.Dafny {
     public readonly Expression Receiver;
     public readonly IToken OpenParen;  // can be null if Args.Count == 0
     public readonly List<Expression> Args;
-    public Dictionary<TypeParameter, Type> TypeArgumentSubstitutions;  // created, initialized, and used by resolution (and also used by translation)
+    public List<Type> TypeApplication_AtEnclosingClass;  // filled in during resolution
+    public List<Type> TypeApplication_JustFunction;  // filled in during resolution
+
+    /// <summary>
+    /// Return a mapping from each type parameter of the function and its enclosing class to actual type arguments.
+    /// This method should only be called on fully and successfully resolved FunctionCallExpr's.
+    /// </summary>
+    public Dictionary<TypeParameter, Type> GetTypeArgumentSubstitutions() {
+      var typeMap = new Dictionary<TypeParameter, Type>();
+      Util.AddToDict(typeMap, Function.EnclosingClass.TypeArgs, TypeApplication_AtEnclosingClass);
+      Util.AddToDict(typeMap, Function.TypeArgs, TypeApplication_JustFunction);
+      return typeMap;
+    }
+
+    /// <summary>
+    /// Returns a mapping from formal type parameters to actual type arguments. For example, given
+    ///     trait T<A> {
+    ///       function F<X>(): bv8 { ... }
+    ///     }
+    ///     class C<B, D> extends T<map<B, D>> { }
+    /// and FunctionCallExpr o.F<int>(args) where o has type C<real, bool>, the type map returned is
+    ///     A -> map<real, bool>
+    ///     B -> real
+    ///     D -> bool
+    ///     X -> int
+    /// NOTE: This method should be called only when all types have been fully and successfully
+    /// resolved.
+    /// </summary>
+    public Dictionary<TypeParameter, Type> TypeArgumentSubstitutionsWithParents() {
+      Contract.Requires(WasResolved());
+      Contract.Ensures(Contract.Result<Dictionary<TypeParameter, Type>>() != null);
+
+      return MemberSelectExpr.TypeArgumentSubstitutionsWithParentsAux(Receiver.Type, Function, TypeApplication_JustFunction);
+    }
+
     public enum CoCallResolution {
       No,
       Yes,
@@ -9298,13 +9675,11 @@ namespace Microsoft.Dafny {
       Contract.Invariant(Receiver != null);
       Contract.Invariant(cce.NonNullElements(Args));
       Contract.Invariant(
-        Function == null || TypeArgumentSubstitutions == null ||
-        Contract.ForAll(
-          Function.TypeArgs,
-            a => TypeArgumentSubstitutions.ContainsKey(a)) &&
-        Contract.ForAll(
-          TypeArgumentSubstitutions.Keys,
-            a => Function.TypeArgs.Contains(a) || Function.EnclosingClass.TypeArgs.Contains(a)));
+        Function == null || TypeApplication_AtEnclosingClass == null ||
+        Function.EnclosingClass.TypeArgs.Count == TypeApplication_AtEnclosingClass.Count);
+      Contract.Invariant(
+        Function == null || TypeApplication_JustFunction == null ||
+        Function.TypeArgs.Count == TypeApplication_JustFunction.Count);
     }
 
     public Function Function;  // filled in by resolution

@@ -78,6 +78,22 @@ module _System {
 
   datatype {:compile false} /*_tuple#2*/ (+T0, +T1) = _#Make2(0: T0, 1: T1)
 
+  class {:compile false} /*_#Func2*/ (-T0, -T1) ~> +R {
+    function requires(x0: T0, x1: T1): bool
+      reads reads(x0, x1)
+
+    function reads(x0: T0, x1: T1): set<object?>
+      reads reads(x0, x1)
+  }
+
+  type {:compile false} /*_#PartialFunc2*/ (-T0, -T1) --> +R = f: (T0, T1) ~> R
+    | forall x0: T0, x1: T1 :: f.reads(x0, x1) == {}
+    /*special witness*/
+
+  type {:compile false} /*_#TotalFunc2*/ (-T0, -T1) -> +R = f: (T0, T1) --> R
+    | forall x0: T0, x1: T1 :: f.requires(x0, x1)
+    /*special witness*/
+
   type bool { }
 
   type int { }
@@ -780,5 +796,56 @@ module Arrays_and_SubsetTypes {
       }
     }
   }
+}
+
+module TypeArgumentPrintTests {
+  /* CALL GRAPH for module TypeArgumentPrintTests:
+   * SCC at height 3:
+   *   B.H
+   * SCC at height 2:
+   *   A.F
+   * SCC at height 1:
+   *   Cl.M
+   * SCC at height 0:
+   *   Tr
+   */
+  trait Tr<X> { }
+  /*-- non-null type
+  type {:axiom} Tr(==)<X> = c: Tr?<X> | c != null /*special witness*/
+  */
+
+  class Cl<Y> extends Tr<Y> {
+    lemma M()
+    {
+      ghost var u: Tr<Y> := this;
+      ghost var v: Tr<Y> := this;
+    }
+  }
+  /*-- non-null type
+  type {:axiom} Cl(==)<Y> = c: Cl?<Y> | c != null /*special witness*/
+  */
+
+  class A<X> {
+    static function method F(x: X): int
+    {
+      15
+    }
+  }
+  /*-- non-null type
+  type {:axiom} A(==)<X> = c: A?<X> | c != null /*special witness*/
+  */
+
+  class B<Y> {
+    function method H(y: Y, b: bool): int
+    {
+      if b then
+        A<Y>.F(y)
+      else
+        A<Y>.F(y)
+    }
+  }
+  /*-- non-null type
+  type {:axiom} B(==)<Y> = c: B?<Y> | c != null /*special witness*/
+  */
 }
 17 resolution/type errors detected in TypeConstraints.dfy

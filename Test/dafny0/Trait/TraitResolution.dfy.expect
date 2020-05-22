@@ -1,0 +1,1733 @@
+TraitResolution.dfy(65,22): Error: the type of in-parameter 'x' is different from the type of the corresponding in-parameter in trait method ('int' instead of '(Y, B)')
+TraitResolution.dfy(89,11): Error: new can be applied only to class types (got A?)
+TraitResolution.dfy(90,11): Error: new can be applied only to class types (got ASynonym)
+TraitResolution.dfy(93,11): Error: new can be applied only to class types (got B?)
+TraitResolution.dfy(93,11): Error: when allocating an object of type 'B', one of its constructor methods must be called
+TraitResolution.dfy(96,11): Error: new can be applied only to class types (got C?<A>)
+TraitResolution.dfy(98,11): Error: new can be applied only to class types (got C?<A?>)
+TraitResolution.dfy(101,11): Error: new can be applied only to class types (got D?<A>)
+TraitResolution.dfy(101,11): Error: when allocating an object of type 'D', one of its constructor methods must be called
+TraitResolution.dfy(103,11): Error: new can be applied only to class types (got D?<A?>)
+TraitResolution.dfy(103,11): Error: when allocating an object of type 'D', one of its constructor methods must be called
+TraitResolution.dfy(105,11): Error: new can be applied only to class types (got D<A>)
+TraitResolution.dfy(105,11): Error: when allocating an object of type 'D', one of its constructor methods must be called
+TraitResolution.dfy(107,11): Error: new can be applied only to class types (got D<A?>)
+TraitResolution.dfy(107,11): Error: when allocating an object of type 'D', one of its constructor methods must be called
+TraitResolution.dfy(108,11): Error: new can be applied only to class types (got DSynonym<A?>)
+TraitResolution.dfy(108,11): Error: when allocating an object of type 'D', one of its constructor methods must be called
+TraitResolution.dfy(109,11): Error: new can be applied only to class types (got DSynonym<A?>)
+TraitResolution.dfy(109,11): Error: when allocating an object of type 'D', one of its constructor methods must be called
+TraitResolution.dfy(112,11): Error: new can be applied only to class types (got object?)
+TraitResolution.dfy(113,11): Error: new can be applied only to class types (got ObjectSynonym)
+TraitResolution.dfy(114,11): Error: new can be applied only to class types (got ObjectWithConstraint)
+TraitResolution.dfy(117,13): Error: new can be applied only to class types (got array?<int>)
+TraitResolution.dfy(119,11): Error: new can be applied only to class types (got int)
+TraitResolution.dfy(121,11): Error: new can be applied only to class types (got Tr<int>)
+TraitResolution.dfy(122,11): Error: new can be applied only to class types (got Tr?<int>)
+TraitResolution.dfy(123,11): Error: new can be applied only to class types (got Tr<int>)
+TraitResolution.dfy(124,11): Error: new can be applied only to class types (got Tr<int>)
+TraitResolution.dfy(129,16): Error: member name 'data' in class 'P' inherited from both traits 'A' and 'B'
+TraitResolution.dfy(139,27): Error: duplicate trait parents with the same head type must also have the same type arguments (got C<Even> and C<int>)
+TraitResolution.dfy(140,42): Error: duplicate trait parents with the same head type must also have the same type arguments (got C<int> and C<real>)
+TraitResolution.dfy(140,59): Error: duplicate trait parents with the same head type must also have the same type arguments (got C<int> and C<Even>)
+TraitResolution.dfy(148,8): Error: member name 'data' in class 'P' inherited from both traits 'B' and 'A'
+TraitResolution.dfy(151,8): Error: member name 'data' in class 'Q' inherited from both traits 'C' and 'A'
+TraitResolution.dfy(154,13): Error: member name 'data' in class 'R' inherited from both traits 'D' and 'A'
+TraitResolution.dfy(164,17): Error: static non-ghost const field 'Cnst' of type 'object' (which does not have a default compiled value) must give a defining value
+TraitResolution.dfy(225,8): Error: field 'civ' is inherited from trait 'Tr' and is not allowed to be re-declared
+TraitResolution.dfy(226,14): Error: field 'giv' is inherited from trait 'Tr' and is not allowed to be re-declared
+TraitResolution.dfy(227,10): Error: field 'cic' is inherited from trait 'Tr' and is not allowed to be re-declared
+TraitResolution.dfy(228,16): Error: field 'gic' is inherited from trait 'Tr' and is not allowed to be re-declared
+TraitResolution.dfy(229,17): Error: static const field 'csc' is inherited from trait 'Tr' and is not allowed to be re-declared
+TraitResolution.dfy(230,23): Error: static const field 'gsc' is inherited from trait 'Tr' and is not allowed to be re-declared
+TraitResolution.dfy(236,20): Error: member 'cif2' in class 'Cl' overrides fully defined function inherited from trait 'Tr'
+TraitResolution.dfy(237,13): Error: member 'gif2' in class 'Cl' overrides fully defined function inherited from trait 'Tr'
+TraitResolution.dfy(238,20): Error: member 'cif3' in class 'Cl' overrides fully defined function inherited from trait 'Tr'
+TraitResolution.dfy(239,13): Error: member 'gif3' in class 'Cl' overrides fully defined function inherited from trait 'Tr'
+TraitResolution.dfy(241,27): Error: static function 'csf0' is inherited from trait 'Tr' and is not allowed to be re-declared
+TraitResolution.dfy(242,20): Error: static function 'gsf0' is inherited from trait 'Tr' and is not allowed to be re-declared
+TraitResolution.dfy(243,27): Error: static function 'csf1' is inherited from trait 'Tr' and is not allowed to be re-declared
+TraitResolution.dfy(244,20): Error: static function 'gsf1' is inherited from trait 'Tr' and is not allowed to be re-declared
+TraitResolution.dfy(245,27): Error: static function 'csf2' is inherited from trait 'Tr' and is not allowed to be re-declared
+TraitResolution.dfy(246,20): Error: static function 'gsf2' is inherited from trait 'Tr' and is not allowed to be re-declared
+TraitResolution.dfy(247,27): Error: static function 'csf3' is inherited from trait 'Tr' and is not allowed to be re-declared
+TraitResolution.dfy(248,20): Error: static function 'gsf3' is inherited from trait 'Tr' and is not allowed to be re-declared
+TraitResolution.dfy(254,11): Error: member 'cim2' in class 'Cl' overrides fully defined method inherited from trait 'Tr'
+TraitResolution.dfy(255,17): Error: member 'gim2' in class 'Cl' overrides fully defined method inherited from trait 'Tr'
+TraitResolution.dfy(256,11): Error: member 'cim3' in class 'Cl' overrides fully defined method inherited from trait 'Tr'
+TraitResolution.dfy(257,17): Error: member 'gim3' in class 'Cl' overrides fully defined method inherited from trait 'Tr'
+TraitResolution.dfy(259,18): Error: static method 'csm0' is inherited from trait 'Tr' and is not allowed to be re-declared
+TraitResolution.dfy(260,24): Error: static method 'gsm0' is inherited from trait 'Tr' and is not allowed to be re-declared
+TraitResolution.dfy(261,18): Error: static method 'csm1' is inherited from trait 'Tr' and is not allowed to be re-declared
+TraitResolution.dfy(262,24): Error: static method 'gsm1' is inherited from trait 'Tr' and is not allowed to be re-declared
+TraitResolution.dfy(263,18): Error: static method 'csm2' is inherited from trait 'Tr' and is not allowed to be re-declared
+TraitResolution.dfy(264,24): Error: static method 'gsm2' is inherited from trait 'Tr' and is not allowed to be re-declared
+TraitResolution.dfy(265,18): Error: static method 'csm3' is inherited from trait 'Tr' and is not allowed to be re-declared
+TraitResolution.dfy(266,24): Error: static method 'gsm3' is inherited from trait 'Tr' and is not allowed to be re-declared
+TraitResolution.dfy(288,13): Error: overridden function 'F' in 'SwitchGhostStatus' has different ghost/compiled status than in trait 'AAA'
+TraitResolution.dfy(289,20): Error: overridden function 'G' in 'SwitchGhostStatus' has different ghost/compiled status than in trait 'AAA'
+TraitResolution.dfy(292,17): Error: overridden method 'M' in 'SwitchGhostStatus' has different ghost/compiled status than in trait 'AAA'
+TraitResolution.dfy(293,11): Error: overridden method 'N' in 'SwitchGhostStatus' has different ghost/compiled status than in trait 'AAA'
+TraitResolution.dfy(309,10): Error: method 'N' in 'AAA' can only be overridden by a method (got lemma)
+TraitResolution.dfy(310,17): Error: lemma 'L' in 'AAA' can only be overridden by a lemma (got method)
+TraitResolution.dfy(325,19): Error: method 'N' in 'AAA' can only be overridden by a method (got twostate lemma)
+TraitResolution.dfy(326,19): Error: lemma 'L' in 'AAA' can only be overridden by a lemma (got twostate lemma)
+TraitResolution.dfy(327,10): Error: twostate lemma 'K' in 'AAA' can only be overridden by a twostate lemma (got lemma)
+TraitResolution.dfy(345,16): Error: inductive predicate 'P' in 'AAA' can only be overridden by a inductive predicate (got copredicate)
+TraitResolution.dfy(346,24): Error: copredicate 'Q' in 'AAA' can only be overridden by a copredicate (got inductive predicate)
+TraitResolution.dfy(347,12): Error: inductive lemma 'R' in 'AAA' can only be overridden by a inductive lemma (got colemma)
+TraitResolution.dfy(348,20): Error: colemma 'S' in 'AAA' can only be overridden by a colemma (got inductive lemma)
+TraitResolution.dfy(358,20): Error: lemma 'L' in 'AAA' can only be overridden by a lemma (got inductive lemma)
+TraitResolution.dfy(361,14): Error: inductive predicate 'P' in 'AAA' can only be overridden by a inductive predicate (got predicate)
+TraitResolution.dfy(362,14): Error: copredicate 'Q' in 'AAA' can only be overridden by a copredicate (got predicate)
+TraitResolution.dfy(363,10): Error: inductive lemma 'R' in 'AAA' can only be overridden by a inductive lemma (got lemma)
+TraitResolution.dfy(364,10): Error: colemma 'S' in 'AAA' can only be overridden by a colemma (got lemma)
+TraitResolution.dfy(397,24): Error: the type of special parameter '_k' of inductive predicate 'Q' (ORDINAL) must be the same as in the overridden inductive predicate (nat)
+TraitResolution.dfy(401,20): Error: the type of special parameter '_k' of inductive lemma 'L' (ORDINAL) must be the same as in the overridden inductive lemma (nat)
+TraitResolution.dfy(405,24): Error: the type of special parameter '_k' of inductive predicate 'P' (nat) must be the same as in the overridden inductive predicate (ORDINAL)
+TraitResolution.dfy(407,24): Error: the type of special parameter '_k' of inductive predicate 'R' (nat) must be the same as in the overridden inductive predicate (ORDINAL)
+TraitResolution.dfy(409,20): Error: the type of special parameter '_k' of inductive lemma 'K' (nat) must be the same as in the overridden inductive lemma (ORDINAL)
+TraitResolution.dfy(411,20): Error: the type of special parameter '_k' of inductive lemma 'M' (nat) must be the same as in the overridden inductive lemma (ORDINAL)
+TraitResolution.dfy(415,24): Error: the type of special parameter '_k' of inductive predicate 'Q' (ORDINAL) must be the same as in the overridden inductive predicate (nat)
+TraitResolution.dfy(419,20): Error: the type of special parameter '_k' of inductive lemma 'L' (ORDINAL) must be the same as in the overridden inductive lemma (nat)
+// TraitResolution.dfy
+
+/*
+module _System {
+  /* CALL GRAPH for module _System:
+   * SCC at height 2:
+   *   RotateRight
+   * SCC at height 1:
+   *   RotateLeft
+   * SCC at height 0:
+   *   nat
+   */
+  type string(==) = seq<char>
+
+  type {:axiom} nat(==) = x: int
+    | 0 <= x
+
+  trait {:compile false} object { }
+  /*-- non-null type
+  type {:axiom} object(==) = c: object? | c != null /*special witness*/
+  */
+
+  class {:compile false} array<arg> {
+    var Length: int  // immutable
+  }
+  /*-- non-null type
+  type {:axiom} array(==)<arg> = c: array?<arg> | c != null /*special witness*/
+  */
+
+  class {:compile false} /*_#Func1*/ -T0 ~> +R {
+    function requires(x0: T0): bool
+      reads reads(x0)
+
+    function reads(x0: T0): set<object?>
+      reads reads(x0)
+  }
+
+  type {:compile false} /*_#PartialFunc1*/ -T0 --> +R = f: T0 ~> R
+    | forall x0: T0 :: f.reads(x0) == {}
+    /*special witness*/
+
+  type {:compile false} /*_#TotalFunc1*/ -T0 -> +R = f: T0 --> R
+    | forall x0: T0 :: f.requires(x0)
+    /*special witness*/
+
+  class {:compile false} /*_#Func0*/ () ~> +R {
+    function requires(): bool
+      reads reads()
+
+    function reads(): set<object?>
+      reads reads()
+  }
+
+  type {:compile false} /*_#PartialFunc0*/ () --> +R = f: () ~> R
+    | f.reads() == {}
+    /*special witness*/
+
+  type {:compile false} /*_#TotalFunc0*/ () -> +R = f: () --> R
+    | f.requires()
+    /*special witness*/
+
+  datatype {:compile false} /*_tuple#2*/ (+T0, +T1) = _#Make2(0: T0, 1: T1)
+
+  class {:compile false} /*_#Func2*/ (-T0, -T1) ~> +R {
+    function requires(x0: T0, x1: T1): bool
+      reads reads(x0, x1)
+
+    function reads(x0: T0, x1: T1): set<object?>
+      reads reads(x0, x1)
+  }
+
+  type {:compile false} /*_#PartialFunc2*/ (-T0, -T1) --> +R = f: (T0, T1) ~> R
+    | forall x0: T0, x1: T1 :: f.reads(x0, x1) == {}
+    /*special witness*/
+
+  type {:compile false} /*_#TotalFunc2*/ (-T0, -T1) -> +R = f: (T0, T1) --> R
+    | forall x0: T0, x1: T1 :: f.requires(x0, x1)
+    /*special witness*/
+
+  type bool { }
+
+  type int { }
+
+  type real {
+    var Floor: int  // immutable
+  }
+
+  type ORDINAL {
+    var IsLimit: bool  // immutable
+    var IsSucc: bool  // immutable
+    var Offset: int  // immutable
+    var IsNat: bool  // immutable
+  }
+
+  type _bv {
+    function method RotateLeft(w: nat): selftype
+
+    function method RotateRight(w: nat): selftype
+  }
+
+  type map<T, U> {
+    var Keys: set<T>  // immutable
+    var Values: set<U>  // immutable
+    var Items: set<(T, U)>  // immutable
+  }
+
+  type imap<T, U> {
+    var Keys: iset<T>  // immutable
+    var Values: iset<U>  // immutable
+    var Items: iset<(T, U)>  // immutable
+  }
+
+  datatype /*_tuple#0*/ () = _#Make0
+}
+// bitvector types in use: bv10
+*/
+
+/* CALL GRAPH for module _module:
+ */
+
+module M0 {
+  /* CALL GRAPH for module M0:
+   * SCC at height 2:
+   *   Cl.M
+   * SCC at height 1:
+   *   Tr.F
+   * SCC at height 0:
+   *   Tr
+   */
+  trait Tr<X> {
+    function F(x: X): int
+    {
+      15
+    }
+  }
+  /*-- non-null type
+  type {:axiom} Tr(==)<X> = c: Tr?<X> | c != null /*special witness*/
+  */
+
+  class Cl<Y> extends Tr<Y> {
+    lemma M()
+    {
+      ghost var v: Cl<Y> := this;
+      ghost var u: Tr<Y> := this;
+      ghost var f: Y -> int := v.F;
+      ghost var g: Y -> int := this.F;
+    }
+  }
+  /*-- non-null type
+  type {:axiom} Cl(==)<Y> = c: Cl?<Y> | c != null /*special witness*/
+  */
+}
+
+module M1 {
+  /* CALL GRAPH for module M1:
+   * SCC at height 1:
+   *   M
+   * SCC at height 0:
+   *   Cl
+   */
+  trait Tr<X(0)> {
+    var w: X
+  }
+  /*-- non-null type
+  type {:axiom} Tr(==)<X(0)> = c: Tr?<X> | c != null /*special witness*/
+  */
+
+  class Cl<Y> extends Tr<(Y, Y)> { }
+  /*-- non-null type
+  type {:axiom} Cl(==)<Y> = c: Cl?<Y> | c != null /*special witness*/
+  */
+
+  lemma M(c: Cl<int>)
+  {
+    ghost var x: (int, int) := c.w;
+  }
+}
+
+module M2 {
+  /* CALL GRAPH for module M2:
+   * SCC at height 2:
+   *   M
+   * SCC at height 1:
+   *   Tr.F
+   * SCC at height 0:
+   *   Cl
+   */
+  trait Tr<X, W> {
+    function method F(x: X, w: W): bv10
+    {
+      15
+    }
+  }
+  /*-- non-null type
+  type {:axiom} Tr(==)<X, W> = c: Tr?<X, W> | c != null /*special witness*/
+  */
+
+  class Cl<Y> extends Tr<(Y, Y), real> { }
+  /*-- non-null type
+  type {:axiom} Cl(==)<Y> = c: Cl?<Y> | c != null /*special witness*/
+  */
+
+  lemma M(c: Cl<int>)
+  {
+    ghost var aa: (int, int);
+    ghost var bb: real;
+    ghost var u: bv10 := c.F(aa, bb);
+  }
+}
+
+module M3 {
+  /* CALL GRAPH for module M3:
+   * SCC at height 1:
+   *   Cl.H
+   * SCC at height 0:
+   *   Tr.F
+   */
+  trait Tr<X, W> {
+    function method F(x: X, w: W): bv10
+    {
+      15
+    }
+  }
+  /*-- non-null type
+  type {:axiom} Tr(==)<X, W> = c: Tr?<X, W> | c != null /*special witness*/
+  */
+
+  class Cl<Y> extends Tr<(Y, Y), real> {
+    function method H(y: Y): bv10
+    {
+      F((y, y), 5.0)
+    }
+  }
+  /*-- non-null type
+  type {:axiom} Cl(==)<Y> = c: Cl?<Y> | c != null /*special witness*/
+  */
+}
+
+module M4 {
+  /* CALL GRAPH for module M4:
+   * SCC at height 2:
+   *   Tr.M
+   * SCC at height 1:
+   *   Cl.M
+   * SCC at height 0:
+   *   _tuple#2
+   */
+  trait Tr<X> {
+    method M<A>(a: A, x: (X, A))
+  }
+  /*-- non-null type
+  type {:axiom} Tr(==)<X> = c: Tr?<X> | c != null /*special witness*/
+  */
+
+  class Cl<Y> extends Tr<Y> {
+    method M<B>(a: B, x: int)
+    {
+    }
+  }
+  /*-- non-null type
+  type {:axiom} Cl(==)<Y> = c: Cl?<Y> | c != null /*special witness*/
+  */
+}
+
+module NewMustMentionAClassName {
+  /* CALL GRAPH for module NewMustMentionAClassName:
+   * SCC at height 15:
+   *   M
+   * SCC at height 14:
+   *   Tr
+   * SCC at height 13:
+   *   array
+   * SCC at height 12:
+   *   D.Init
+   * SCC at height 11:
+   *   D._ctor
+   * SCC at height 10:
+   *   C
+   * SCC at height 9:
+   *   B._ctor
+   * SCC at height 8:
+   *   B
+   * SCC at height 7:
+   *   ObjectWithConstraint
+   * SCC at height 6:
+   *   ObjectSynonym
+   * SCC at height 5:
+   *   object
+   * SCC at height 4:
+   *   DSynonym
+   * SCC at height 3:
+   *   D
+   * SCC at height 2:
+   *   _tuple#2
+   * SCC at height 1:
+   *   ASynonym
+   * SCC at height 0:
+   *   A
+   */
+  trait Tr<X> {
+    method Make()
+    {
+    }
+  }
+  /*-- non-null type
+  type {:axiom} Tr(==)<X> = c: Tr?<X> | c != null /*special witness*/
+  */
+
+  class A extends Tr<int> { }
+  /*-- non-null type
+  type {:axiom} A(==) = c: A? | c != null /*special witness*/
+  */
+
+  class B extends Tr<int> {
+    constructor ()
+    {
+    }
+  }
+  /*-- non-null type
+  type {:axiom} B(==) = c: B? | c != null /*special witness*/
+  */
+
+  class C<G> extends Tr<G> { }
+  /*-- non-null type
+  type {:axiom} C(==)<G> = c: C?<G> | c != null /*special witness*/
+  */
+
+  class D<G> extends Tr<G> {
+    constructor ()
+    {
+    }
+
+    constructor Init()
+    {
+    }
+  }
+  /*-- non-null type
+  type {:axiom} D(==)<G> = c: D?<G> | c != null /*special witness*/
+  */
+
+  type ASynonym = A
+
+  type DSynonym<H> = D<(H, int)>
+
+  type ObjectSynonym = object
+
+  type ObjectWithConstraint = o: object
+    | true
+
+  method M()
+  {
+    var a0: A := new A;
+    var a1 := new A?;
+    var a2 := new ASynonym;
+    var b0: B := new B();
+    var b1 := new B?();
+    var c0: C<A> := new C<A>;
+    var c1 := new C?<A>;
+    var c2: C<A?> := new C<A?>;
+    var c3 := new C?<A?>;
+    var d0: D<A> := new D<A>();
+    var d1 := new D?<A>();
+    var d2: D<A?> := new D<A?>();
+    var d3 := new D?<A?>();
+    var d4: D<A> := new D<A>.Init();
+    var d5 := new D?<A>.Init();
+    var d6: D<A?> := new D<A?>.Init();
+    var d7 := new D?<A?>.Init();
+    var d8 := new DSynonym<A?>();
+    var d9 := new DSynonym<A?>.Init();
+    var o0: object := new object;
+    var o1 := new object?;
+    var o2 := new ObjectSynonym;
+    var o3 := new ObjectWithConstraint;
+    var arr0: array<int> := new array<int>;
+    var arr1 := new array?<int>;
+    var i0 := new int;
+    var t0 := new Tr<int>;
+    var t1 := new Tr?<int>;
+    var t2 := new Tr<int>.Make();
+    var t3 := new Tr?<int>.Make();
+  }
+}
+
+module DuplicateParents {
+  /* CALL GRAPH for module DuplicateParents:
+   */
+  trait A {
+    var data: int
+  }
+  /*-- non-null type
+  type {:axiom} A(==) = c: A? | c != null /*special witness*/
+  */
+
+  trait B {
+    var data: int
+  }
+  /*-- non-null type
+  type {:axiom} B(==) = c: B? | c != null /*special witness*/
+  */
+
+  trait C<X> { }
+  /*-- non-null type
+  type {:axiom} C(==)<X> = c: C?<X> | c != null /*special witness*/
+  */
+
+  type IntSynonym = int
+
+  type Even = x: ?
+    | x % 2 == 0
+
+  class P extends A, A, B, A { }
+  /*-- non-null type
+  type {:axiom} P(==) = c: P? | c != null /*special witness*/
+  */
+
+  class Q extends C<int>, C<int> { }
+  /*-- non-null type
+  type {:axiom} Q(==) = c: Q? | c != null /*special witness*/
+  */
+
+  class R extends C<IntSynonym>, C<int> { }
+  /*-- non-null type
+  type {:axiom} R(==) = c: R? | c != null /*special witness*/
+  */
+
+  class S extends C<Even>, C<int> { }
+  /*-- non-null type
+  type {:axiom} S(==) = c: S? | c != null /*special witness*/
+  */
+
+  class T extends C<int>, C<int>, C<int>, C<real>, C<int>, C<Even> { }
+  /*-- non-null type
+  type {:axiom} T(==) = c: T? | c != null /*special witness*/
+  */
+}
+
+module DuplicateInheritedMembers {
+  /* CALL GRAPH for module DuplicateInheritedMembers:
+   */
+  trait A {
+    var data: int
+  }
+  /*-- non-null type
+  type {:axiom} A(==) = c: A? | c != null /*special witness*/
+  */
+
+  trait B {
+    var data: int
+  }
+  /*-- non-null type
+  type {:axiom} B(==) = c: B? | c != null /*special witness*/
+  */
+
+  trait C {
+    var data: real
+  }
+  /*-- non-null type
+  type {:axiom} C(==) = c: C? | c != null /*special witness*/
+  */
+
+  trait D {
+    function data(): int
+    {
+      5
+    }
+  }
+  /*-- non-null type
+  type {:axiom} D(==) = c: D? | c != null /*special witness*/
+  */
+
+  class P extends B, A { }
+  /*-- non-null type
+  type {:axiom} P(==) = c: P? | c != null /*special witness*/
+  */
+
+  class Q extends C, A { }
+  /*-- non-null type
+  type {:axiom} Q(==) = c: Q? | c != null /*special witness*/
+  */
+
+  class R extends D, A { }
+  /*-- non-null type
+  type {:axiom} R(==) = c: R? | c != null /*special witness*/
+  */
+}
+
+module StaticMembers {
+  /* CALL GRAPH for module StaticMembers:
+   * SCC at height 11:
+   *   Tr.TwoF
+   * SCC at height 10:
+   *   Tr.Func
+   * SCC at height 9:
+   *   Tr.Cnst
+   * SCC at height 8:
+   *   object
+   * SCC at height 7:
+   *   Tr.CL#
+   * SCC at height 6:
+   *   Tr.CL
+   * SCC at height 5:
+   *   Tr.IL#
+   * SCC at height 4:
+   *   Tr.IL
+   * SCC at height 3:
+   *   Tr.Q#
+   * SCC at height 2:
+   *   Tr.Q
+   * SCC at height 1:
+   *   Tr.P#
+   * SCC at height 0:
+   *   Tr.P
+   */
+  trait Tr {
+    static const Cnst: object
+
+    static function method Func(): int
+
+    static method Method()
+
+    static twostate function TwoF(): int
+
+    static twostate lemma TwoL()
+
+    static inductive predicate P()
+    /*** (note, what is printed here does not show substitutions of calls to prefix predicates)
+    static predicate P#[_k: ORDINAL]()
+      decreases _k
+    ***/
+
+    static copredicate Q()
+    /*** (note, what is printed here does not show substitutions of calls to prefix predicates)
+    static predicate Q#[_k: ORDINAL]()
+      decreases _k
+    ***/
+
+    static inductive lemma IL()
+    /***
+    static lemma IL#[_k: ORDINAL]()
+      decreases _k
+    ***/
+
+    static colemma CL()
+    /***
+    static lemma CL#[_k: ORDINAL]()
+      decreases _k
+    ***/
+  }
+  /*-- non-null type
+  type {:axiom} Tr(==) = c: Tr? | c != null /*special witness*/
+  */
+}
+
+module CannotRedeclareMembers {
+  /* CALL GRAPH for module CannotRedeclareMembers:
+   * SCC at height 24:
+   *   Tr.gim1
+   * SCC at height 23:
+   *   Cl.gim1
+   * SCC at height 22:
+   *   Tr.cim1
+   * SCC at height 21:
+   *   Cl.cim1
+   * SCC at height 20:
+   *   Tr.gim0
+   * SCC at height 19:
+   *   Cl.gim0
+   * SCC at height 18:
+   *   Tr.cim0
+   * SCC at height 17:
+   *   Cl.cim0
+   * SCC at height 16:
+   *   Tr.gif1
+   * SCC at height 15:
+   *   Cl.gif1
+   * SCC at height 14:
+   *   Tr.cif1
+   * SCC at height 13:
+   *   Cl.cif1
+   * SCC at height 12:
+   *   Tr.gif0
+   * SCC at height 11:
+   *   Cl.gif0
+   * SCC at height 10:
+   *   Tr.cif0
+   * SCC at height 9:
+   *   Cl.cif0
+   * SCC at height 8:
+   *   Cl.gsc
+   * SCC at height 7:
+   *   Cl.csc
+   * SCC at height 6:
+   *   Cl.gic
+   * SCC at height 5:
+   *   Cl.cic
+   * SCC at height 4:
+   *   Tr.gsc
+   * SCC at height 3:
+   *   Tr.csc
+   * SCC at height 2:
+   *   Tr.gic
+   * SCC at height 1:
+   *   Tr.cic
+   * SCC at height 0:
+   *   object
+   */
+  trait Tr {
+    var civ: object
+    ghost var giv: object
+    const cic: object
+    ghost const gic: object
+    static const csc: object
+    static ghost const gsc: object
+
+    function method cif0(): int
+
+    function gif0(): int
+
+    function method cif1(): int
+
+    function gif1(): int
+
+    function method cif2(): int
+    {
+      5
+    }
+
+    function gif2(): int
+    {
+      5
+    }
+
+    function method cif3(): int
+    {
+      5
+    }
+
+    function gif3(): int
+    {
+      5
+    }
+
+    static function method csf0(): int
+
+    static function gsf0(): int
+
+    static function method csf1(): int
+
+    static function gsf1(): int
+
+    static function method csf2(): int
+    {
+      2
+    }
+
+    static function gsf2(): int
+    {
+      2
+    }
+
+    static function method csf3(): int
+    {
+      2
+    }
+
+    static function gsf3(): int
+    {
+      2
+    }
+
+    method cim0()
+
+    ghost method gim0()
+
+    method cim1()
+
+    ghost method gim1()
+
+    method cim2()
+    {
+    }
+
+    ghost method gim2()
+    {
+    }
+
+    method cim3()
+    {
+    }
+
+    ghost method gim3()
+    {
+    }
+
+    static method csm0()
+
+    ghost static method gsm0()
+
+    static method csm1()
+
+    ghost static method gsm1()
+
+    static method csm2()
+    {
+    }
+
+    ghost static method gsm2()
+    {
+    }
+
+    static method csm3()
+    {
+    }
+
+    ghost static method gsm3()
+    {
+    }
+  }
+  /*-- non-null type
+  type {:axiom} Tr(==) = c: Tr? | c != null /*special witness*/
+  */
+
+  class Cl extends Tr {
+    var civ: object
+    ghost var giv: object
+    const cic: object
+    ghost const gic: object
+    static const csc: object
+    static ghost const gsc: object
+
+    function method cif0(): int
+
+    function gif0(): int
+
+    function method cif1(): int
+    {
+      5
+    }
+
+    function gif1(): int
+    {
+      5
+    }
+
+    function method cif2(): int
+
+    function gif2(): int
+
+    function method cif3(): int
+    {
+      5
+    }
+
+    function gif3(): int
+    {
+      5
+    }
+
+    static function method csf0(): int
+
+    static function gsf0(): int
+
+    static function method csf1(): int
+    {
+      2
+    }
+
+    static function gsf1(): int
+    {
+      2
+    }
+
+    static function method csf2(): int
+
+    static function gsf2(): int
+
+    static function method csf3(): int
+    {
+      2
+    }
+
+    static function gsf3(): int
+    {
+      2
+    }
+
+    method cim0()
+
+    ghost method gim0()
+
+    method cim1()
+    {
+    }
+
+    ghost method gim1()
+    {
+    }
+
+    method cim2()
+
+    ghost method gim2()
+
+    method cim3()
+    {
+    }
+
+    ghost method gim3()
+    {
+    }
+
+    static method csm0()
+
+    ghost static method gsm0()
+
+    static method csm1()
+    {
+    }
+
+    ghost static method gsm1()
+    {
+    }
+
+    static method csm2()
+
+    ghost static method gsm2()
+
+    static method csm3()
+    {
+    }
+
+    ghost static method gsm3()
+    {
+    }
+  }
+  /*-- non-null type
+  type {:axiom} Cl(==) = c: Cl? | c != null /*special witness*/
+  */
+}
+
+module MemberMismatch {
+  /* CALL GRAPH for module MemberMismatch:
+   * SCC at height 73:
+   *   AAA.N
+   * SCC at height 72:
+   *   SwitchExtreme1.N
+   * SCC at height 71:
+   *   SwitchExtreme0.N
+   * SCC at height 70:
+   *   AAA.M
+   * SCC at height 69:
+   *   SwitchExtreme1.M
+   * SCC at height 68:
+   *   SwitchExtreme0.M
+   * SCC at height 67:
+   *   SwitchTwoState.M
+   * SCC at height 66:
+   *   SwitchLemma.M
+   * SCC at height 65:
+   *   AAA.G
+   * SCC at height 64:
+   *   SwitchExtreme1.G
+   * SCC at height 63:
+   *   SwitchExtreme0.G
+   * SCC at height 62:
+   *   SwitchTwoState.G
+   * SCC at height 61:
+   *   SwitchLemma.G
+   * SCC at height 60:
+   *   AAA.F
+   * SCC at height 59:
+   *   SwitchExtreme1.F
+   * SCC at height 58:
+   *   SwitchExtreme0.F
+   * SCC at height 57:
+   *   SwitchTwoState.F
+   * SCC at height 56:
+   *   SwitchLemma.F
+   * SCC at height 55:
+   *   AAA.K
+   * SCC at height 54:
+   *   SwitchExtreme1.K
+   * SCC at height 53:
+   *   SwitchExtreme0.K
+   * SCC at height 52:
+   *   SwitchLemma.K
+   * SCC at height 51:
+   *   SwitchGhostStatus.K
+   * SCC at height 50:
+   *   AAA.L
+   * SCC at height 49:
+   *   SwitchExtreme0.L
+   * SCC at height 48:
+   *   SwitchGhostStatus.L
+   * SCC at height 47:
+   *   AAA.H
+   * SCC at height 46:
+   *   SwitchExtreme1.H
+   * SCC at height 45:
+   *   SwitchExtreme0.H
+   * SCC at height 44:
+   *   SwitchTwoState.H
+   * SCC at height 43:
+   *   SwitchLemma.H
+   * SCC at height 42:
+   *   SwitchGhostStatus.H
+   * SCC at height 41:
+   *   SwitchExtreme1.L#
+   * SCC at height 40:
+   *   SwitchExtreme1.L
+   * SCC at height 39:
+   *   SwitchExtreme0.S#
+   * SCC at height 38:
+   *   SwitchExtreme0.S
+   * SCC at height 37:
+   *   SwitchExtreme0.R#
+   * SCC at height 36:
+   *   SwitchExtreme0.R
+   * SCC at height 35:
+   *   SwitchExtreme0.Q#
+   * SCC at height 34:
+   *   SwitchExtreme0.Q
+   * SCC at height 33:
+   *   SwitchExtreme0.P#
+   * SCC at height 32:
+   *   SwitchExtreme0.P
+   * SCC at height 31:
+   *   SwitchTwoState.S#
+   * SCC at height 30:
+   *   SwitchTwoState.R#
+   * SCC at height 29:
+   *   SwitchTwoState.Q#
+   * SCC at height 28:
+   *   SwitchTwoState.P#
+   * SCC at height 27:
+   *   SwitchLemma.S#
+   * SCC at height 26:
+   *   SwitchLemma.R#
+   * SCC at height 25:
+   *   SwitchLemma.Q#
+   * SCC at height 24:
+   *   SwitchLemma.P#
+   * SCC at height 23:
+   *   SwitchGhostStatus.S#
+   * SCC at height 22:
+   *   SwitchGhostStatus.R#
+   * SCC at height 21:
+   *   SwitchGhostStatus.Q#
+   * SCC at height 20:
+   *   SwitchGhostStatus.P#
+   * SCC at height 19:
+   *   AAA.S#
+   * SCC at height 18:
+   *   AAA.S
+   * SCC at height 17:
+   *   SwitchTwoState.S
+   * SCC at height 16:
+   *   SwitchLemma.S
+   * SCC at height 15:
+   *   SwitchGhostStatus.S
+   * SCC at height 14:
+   *   AAA.R#
+   * SCC at height 13:
+   *   AAA.R
+   * SCC at height 12:
+   *   SwitchTwoState.R
+   * SCC at height 11:
+   *   SwitchLemma.R
+   * SCC at height 10:
+   *   SwitchGhostStatus.R
+   * SCC at height 9:
+   *   AAA.Q#
+   * SCC at height 8:
+   *   AAA.Q
+   * SCC at height 7:
+   *   SwitchTwoState.Q
+   * SCC at height 6:
+   *   SwitchLemma.Q
+   * SCC at height 5:
+   *   SwitchGhostStatus.Q
+   * SCC at height 4:
+   *   AAA.P#
+   * SCC at height 3:
+   *   AAA.P
+   * SCC at height 2:
+   *   SwitchTwoState.P
+   * SCC at height 1:
+   *   SwitchLemma.P
+   * SCC at height 0:
+   *   SwitchGhostStatus.P
+   */
+  trait AAA {
+    function method F(): bool
+
+    function G(): bool
+
+    twostate function H(): bool
+
+    method M()
+
+    ghost method N()
+
+    lemma L()
+
+    twostate lemma K()
+
+    inductive predicate P()
+    /*** (note, what is printed here does not show substitutions of calls to prefix predicates)
+    predicate P#[_k: ORDINAL]()
+      decreases _k
+    ***/
+
+    copredicate Q()
+    /*** (note, what is printed here does not show substitutions of calls to prefix predicates)
+    predicate Q#[_k: ORDINAL]()
+      decreases _k
+    ***/
+
+    inductive lemma R()
+    /***
+    lemma R#[_k: ORDINAL]()
+      decreases _k
+    ***/
+
+    colemma S()
+    /***
+    lemma S#[_k: ORDINAL]()
+      decreases _k
+    ***/
+  }
+  /*-- non-null type
+  type {:axiom} AAA(==) = c: AAA? | c != null /*special witness*/
+  */
+
+  class SwitchGhostStatus extends AAA {
+    function F(): bool
+
+    function method G(): bool
+
+    twostate function H(): bool
+
+    ghost method M()
+
+    method N()
+
+    lemma L()
+
+    twostate lemma K()
+
+    inductive predicate P()
+    /*** (note, what is printed here does not show substitutions of calls to prefix predicates)
+    predicate P#[_k: ORDINAL]()
+      decreases _k
+    ***/
+
+    copredicate Q()
+    /*** (note, what is printed here does not show substitutions of calls to prefix predicates)
+    predicate Q#[_k: ORDINAL]()
+      decreases _k
+    ***/
+
+    inductive lemma R()
+    /***
+    lemma R#[_k: ORDINAL]()
+      decreases _k
+    ***/
+
+    colemma S()
+    /***
+    lemma S#[_k: ORDINAL]()
+      decreases _k
+    ***/
+  }
+  /*-- non-null type
+  type {:axiom} SwitchGhostStatus(==) = c: SwitchGhostStatus? | c != null /*special witness*/
+  */
+
+  class SwitchLemma extends AAA {
+    function method F(): bool
+
+    function G(): bool
+
+    twostate function H(): bool
+
+    method M()
+
+    lemma N()
+
+    ghost method L()
+
+    twostate lemma K()
+
+    inductive predicate P()
+    /*** (note, what is printed here does not show substitutions of calls to prefix predicates)
+    predicate P#[_k: ORDINAL]()
+      decreases _k
+    ***/
+
+    copredicate Q()
+    /*** (note, what is printed here does not show substitutions of calls to prefix predicates)
+    predicate Q#[_k: ORDINAL]()
+      decreases _k
+    ***/
+
+    inductive lemma R()
+    /***
+    lemma R#[_k: ORDINAL]()
+      decreases _k
+    ***/
+
+    colemma S()
+    /***
+    lemma S#[_k: ORDINAL]()
+      decreases _k
+    ***/
+  }
+  /*-- non-null type
+  type {:axiom} SwitchLemma(==) = c: SwitchLemma? | c != null /*special witness*/
+  */
+
+  class SwitchTwoState extends AAA {
+    function method F(): bool
+
+    function G(): bool
+
+    twostate function H(): bool
+
+    method M()
+
+    twostate lemma N()
+
+    twostate lemma L()
+
+    lemma K()
+
+    inductive predicate P()
+    /*** (note, what is printed here does not show substitutions of calls to prefix predicates)
+    predicate P#[_k: ORDINAL]()
+      decreases _k
+    ***/
+
+    copredicate Q()
+    /*** (note, what is printed here does not show substitutions of calls to prefix predicates)
+    predicate Q#[_k: ORDINAL]()
+      decreases _k
+    ***/
+
+    inductive lemma R()
+    /***
+    lemma R#[_k: ORDINAL]()
+      decreases _k
+    ***/
+
+    colemma S()
+    /***
+    lemma S#[_k: ORDINAL]()
+      decreases _k
+    ***/
+  }
+  /*-- non-null type
+  type {:axiom} SwitchTwoState(==) = c: SwitchTwoState? | c != null /*special witness*/
+  */
+
+  class SwitchExtreme0 extends AAA {
+    function method F(): bool
+
+    function G(): bool
+
+    twostate function H(): bool
+
+    method M()
+
+    ghost method N()
+
+    lemma L()
+
+    twostate lemma K()
+
+    copredicate P()
+    /*** (note, what is printed here does not show substitutions of calls to prefix predicates)
+    predicate P#[_k: ORDINAL]()
+      decreases _k
+    ***/
+
+    inductive predicate Q()
+    /*** (note, what is printed here does not show substitutions of calls to prefix predicates)
+    predicate Q#[_k: ORDINAL]()
+      decreases _k
+    ***/
+
+    colemma R()
+    /***
+    lemma R#[_k: ORDINAL]()
+      decreases _k
+    ***/
+
+    inductive lemma S()
+    /***
+    lemma S#[_k: ORDINAL]()
+      decreases _k
+    ***/
+  }
+  /*-- non-null type
+  type {:axiom} SwitchExtreme0(==) = c: SwitchExtreme0? | c != null /*special witness*/
+  */
+
+  class SwitchExtreme1 extends AAA {
+    function method F(): bool
+
+    function G(): bool
+
+    twostate function H(): bool
+
+    method M()
+
+    ghost method N()
+
+    inductive lemma L()
+    /***
+    lemma L#[_k: ORDINAL]()
+      decreases _k
+    ***/
+
+    twostate lemma K()
+
+    predicate P()
+
+    predicate Q()
+
+    lemma R()
+
+    lemma S()
+  }
+  /*-- non-null type
+  type {:axiom} SwitchExtreme1(==) = c: SwitchExtreme1? | c != null /*special witness*/
+  */
+}
+
+module PredicateFunctionBool {
+  /* CALL GRAPH for module PredicateFunctionBool:
+   * SCC at height 7:
+   *   AAA.N
+   * SCC at height 6:
+   *   C.N
+   * SCC at height 5:
+   *   AAA.M
+   * SCC at height 4:
+   *   C.M
+   * SCC at height 3:
+   *   AAA.G
+   * SCC at height 2:
+   *   C.G
+   * SCC at height 1:
+   *   AAA.F
+   * SCC at height 0:
+   *   C.F
+   */
+  trait AAA {
+    function F(): bool
+
+    twostate function G(): bool
+
+    predicate M()
+
+    twostate predicate N()
+  }
+  /*-- non-null type
+  type {:axiom} AAA(==) = c: AAA? | c != null /*special witness*/
+  */
+
+  class C extends AAA {
+    predicate F()
+    {
+      true
+    }
+
+    twostate predicate G()
+    {
+      true
+    }
+
+    function M(): bool
+    {
+      true
+    }
+
+    twostate function N(): bool
+    {
+      true
+    }
+  }
+  /*-- non-null type
+  type {:axiom} C(==) = c: C? | c != null /*special witness*/
+  */
+}
+
+module ExtremeKMismatch {
+  /* CALL GRAPH for module ExtremeKMismatch:
+   * SCC at height 48:
+   *   C2.M#
+   * SCC at height 47:
+   *   C2.L#
+   * SCC at height 46:
+   *   C2.K#
+   * SCC at height 45:
+   *   C2.R#
+   * SCC at height 44:
+   *   C2.Q#
+   * SCC at height 43:
+   *   C2.P#
+   * SCC at height 42:
+   *   C1.M#
+   * SCC at height 41:
+   *   C1.L#
+   * SCC at height 40:
+   *   C1.K#
+   * SCC at height 39:
+   *   C1.R#
+   * SCC at height 38:
+   *   C1.Q#
+   * SCC at height 37:
+   *   C1.P#
+   * SCC at height 36:
+   *   C0.M#
+   * SCC at height 35:
+   *   C0.L#
+   * SCC at height 34:
+   *   C0.K#
+   * SCC at height 33:
+   *   C0.R#
+   * SCC at height 32:
+   *   C0.Q#
+   * SCC at height 31:
+   *   C0.P#
+   * SCC at height 30:
+   *   AAA.M#
+   * SCC at height 29:
+   *   AAA.M
+   * SCC at height 28:
+   *   C2.M
+   * SCC at height 27:
+   *   C1.M
+   * SCC at height 26:
+   *   C0.M
+   * SCC at height 25:
+   *   AAA.L#
+   * SCC at height 24:
+   *   AAA.L
+   * SCC at height 23:
+   *   C2.L
+   * SCC at height 22:
+   *   C1.L
+   * SCC at height 21:
+   *   C0.L
+   * SCC at height 20:
+   *   AAA.K#
+   * SCC at height 19:
+   *   AAA.K
+   * SCC at height 18:
+   *   C2.K
+   * SCC at height 17:
+   *   C1.K
+   * SCC at height 16:
+   *   C0.K
+   * SCC at height 15:
+   *   AAA.R#
+   * SCC at height 14:
+   *   AAA.R
+   * SCC at height 13:
+   *   C2.R
+   * SCC at height 12:
+   *   C1.R
+   * SCC at height 11:
+   *   C0.R
+   * SCC at height 10:
+   *   AAA.Q#
+   * SCC at height 9:
+   *   nat
+   * SCC at height 8:
+   *   AAA.Q
+   * SCC at height 7:
+   *   C2.Q
+   * SCC at height 6:
+   *   C1.Q
+   * SCC at height 5:
+   *   C0.Q
+   * SCC at height 4:
+   *   AAA.P#
+   * SCC at height 3:
+   *   AAA.P
+   * SCC at height 2:
+   *   C2.P
+   * SCC at height 1:
+   *   C1.P
+   * SCC at height 0:
+   *   C0.P
+   */
+  trait AAA {
+    inductive predicate P()
+    /*** (note, what is printed here does not show substitutions of calls to prefix predicates)
+    predicate P#[_k: ORDINAL]()
+      decreases _k
+    ***/
+
+    inductive predicate Q[nat]()
+    /*** (note, what is printed here does not show substitutions of calls to prefix predicates)
+    predicate Q#[_k: nat]()
+      decreases _k
+    ***/
+
+    inductive predicate R[ORDINAL]()
+    /*** (note, what is printed here does not show substitutions of calls to prefix predicates)
+    predicate R#[_k: ORDINAL]()
+      decreases _k
+    ***/
+
+    inductive lemma K()
+    /***
+    lemma K#[_k: ORDINAL]()
+      decreases _k
+    ***/
+
+    inductive lemma L[nat]()
+    /***
+    lemma L#[_k: nat]()
+      decreases _k
+    ***/
+
+    inductive lemma M[ORDINAL]()
+    /***
+    lemma M#[_k: ORDINAL]()
+      decreases _k
+    ***/
+  }
+  /*-- non-null type
+  type {:axiom} AAA(==) = c: AAA? | c != null /*special witness*/
+  */
+
+  class C0 extends AAA {
+    inductive predicate P()
+    /*** (note, what is printed here does not show substitutions of calls to prefix predicates)
+    predicate P#[_k: ORDINAL]()
+      decreases _k
+    ***/
+
+    inductive predicate Q()
+    /*** (note, what is printed here does not show substitutions of calls to prefix predicates)
+    predicate Q#[_k: ORDINAL]()
+      decreases _k
+    ***/
+
+    inductive predicate R()
+    /*** (note, what is printed here does not show substitutions of calls to prefix predicates)
+    predicate R#[_k: ORDINAL]()
+      decreases _k
+    ***/
+
+    inductive lemma K()
+    /***
+    lemma K#[_k: ORDINAL]()
+      decreases _k
+    ***/
+
+    inductive lemma L()
+    /***
+    lemma L#[_k: ORDINAL]()
+      decreases _k
+    ***/
+
+    inductive lemma M()
+    /***
+    lemma M#[_k: ORDINAL]()
+      decreases _k
+    ***/
+  }
+  /*-- non-null type
+  type {:axiom} C0(==) = c: C0? | c != null /*special witness*/
+  */
+
+  class C1 extends AAA {
+    inductive predicate P[nat]()
+    /*** (note, what is printed here does not show substitutions of calls to prefix predicates)
+    predicate P#[_k: nat]()
+      decreases _k
+    ***/
+
+    inductive predicate Q[nat]()
+    /*** (note, what is printed here does not show substitutions of calls to prefix predicates)
+    predicate Q#[_k: nat]()
+      decreases _k
+    ***/
+
+    inductive predicate R[nat]()
+    /*** (note, what is printed here does not show substitutions of calls to prefix predicates)
+    predicate R#[_k: nat]()
+      decreases _k
+    ***/
+
+    inductive lemma K[nat]()
+    /***
+    lemma K#[_k: nat]()
+      decreases _k
+    ***/
+
+    inductive lemma L[nat]()
+    /***
+    lemma L#[_k: nat]()
+      decreases _k
+    ***/
+
+    inductive lemma M[nat]()
+    /***
+    lemma M#[_k: nat]()
+      decreases _k
+    ***/
+  }
+  /*-- non-null type
+  type {:axiom} C1(==) = c: C1? | c != null /*special witness*/
+  */
+
+  class C2 extends AAA {
+    inductive predicate P[ORDINAL]()
+    /*** (note, what is printed here does not show substitutions of calls to prefix predicates)
+    predicate P#[_k: ORDINAL]()
+      decreases _k
+    ***/
+
+    inductive predicate Q[ORDINAL]()
+    /*** (note, what is printed here does not show substitutions of calls to prefix predicates)
+    predicate Q#[_k: ORDINAL]()
+      decreases _k
+    ***/
+
+    inductive predicate R[ORDINAL]()
+    /*** (note, what is printed here does not show substitutions of calls to prefix predicates)
+    predicate R#[_k: ORDINAL]()
+      decreases _k
+    ***/
+
+    inductive lemma K[ORDINAL]()
+    /***
+    lemma K#[_k: ORDINAL]()
+      decreases _k
+    ***/
+
+    inductive lemma L[ORDINAL]()
+    /***
+    lemma L#[_k: ORDINAL]()
+      decreases _k
+    ***/
+
+    inductive lemma M[ORDINAL]()
+    /***
+    lemma M#[_k: ORDINAL]()
+      decreases _k
+    ***/
+  }
+  /*-- non-null type
+  type {:axiom} C2(==) = c: C2? | c != null /*special witness*/
+  */
+}
+
+module ProvidingModule {
+  /* CALL GRAPH for module ProvidingModule:
+   * SCC at height 4:
+   *   Klass.N
+   * SCC at height 3:
+   *   Klass.M
+   * SCC at height 2:
+   *   Trait.N
+   * SCC at height 1:
+   *   Trait.M
+   * SCC at height 0:
+   *   Klass._ctor
+   */
+
+  export 
+    provides Trait, Trait.M, Trait.N, Klass, Klass.M, Klass.N, Dt, Dt.M, Dt.N
+    /*----- exported view:
+      type {:axiom} /*{:_provided}*/ Trait(==)<AA> = c: Trait?<AA> | c != null /*special witness*/
+      const M: int := 100
+      ghost const N: AA
+      type {:axiom} /*{:_provided}*/ Klass(==)<BB> = c: Klass?<BB> | c != null /*special witness*/
+      const M: int := 100
+      ghost const N: BB
+      datatype /*{:_provided}*/ Dt<CC> = X | Y | More(u: int) {
+        const M: int := 100
+        ghost const N: CC
+      }
+      const M: int := 100
+      ghost const N: CC
+    -----*/
+
+  trait Trait<AA> {
+    const M: int := 100
+    ghost const N: AA
+  }
+  /*-- non-null type
+  type {:axiom} /*{:_provided}*/ Trait(==)<AA> = c: Trait?<AA> | c != null /*special witness*/
+  */
+
+  class Klass<BB> {
+    constructor ()
+    {
+    }
+
+    const M: int := 100
+    ghost const N: BB
+  }
+  /*-- non-null type
+  type {:axiom} /*{:_provided}*/ Klass(==)<BB> = c: Klass?<BB> | c != null /*special witness*/
+  */
+
+  datatype /*{:_provided}*/ Dt<CC> = X | Y | More(u: int) {
+    const M: int := 100
+    ghost const N: CC
+  }
+}
+
+module ImporterOfProvidingModule {
+  /* CALL GRAPH for module ImporterOfProvidingModule:
+   * SCC at height 3:
+   *   UsesField
+   * SCC at height 2:
+   *   Dt
+   * SCC at height 1:
+   *   Klass
+   * SCC at height 0:
+   *   Trait
+   */
+
+  import G = ProvidingModule
+  method UsesField(t: G.Trait<int>, k: G.Klass<int>, d: G.Dt<int>)
+  {
+    var s: int := t.M + k.M + d.M;
+    ghost var a: AA := t.N;
+    ghost var b: BB := k.N;
+    ghost var c: int := d.N;
+  }
+}
+92 resolution/type errors detected in TraitResolution.dfy

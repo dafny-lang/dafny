@@ -133,8 +133,11 @@ namespace Microsoft.Dafny
       return new ClassWriter(this, wr.NewBlock(""));
     }
 
-    protected override IClassWriter CreateTrait(string name, bool isExtern, List<Type>/*?*/ superClasses, Bpl.IToken tok, TargetWriter wr) {
+    protected override IClassWriter CreateTrait(string name, bool isExtern, List<TypeParameter>/*?*/ typeParameters, List<Type>/*?*/ superClasses, Bpl.IToken tok, TargetWriter wr) {
       wr.Write("public interface {0}", IdProtect(name));
+      if (typeParameters != null && typeParameters.Count != 0) {
+        wr.Write("<{0}>", TypeParameters(typeParameters));
+      }
       if (superClasses != null) {
         string sep = " : ";
         foreach (var trait in superClasses) {
@@ -146,6 +149,9 @@ namespace Microsoft.Dafny
 
       //writing the _Companion class
       wr.Write("public class _Companion_{0}", name);
+      if (typeParameters != null && typeParameters.Count != 0) {
+        wr.Write("<{0}>", TypeParameters(typeParameters));
+      }
       var staticMemberWriter = wr.NewBlock("");
 
       return new ClassWriter(this, instanceMemberWriter, staticMemberWriter);
@@ -906,8 +912,12 @@ namespace Microsoft.Dafny
         string typeNameSansBrackets, brackets;
         TypeName_SplitArrayName(elType, wr, tok, out typeNameSansBrackets, out brackets);
         return typeNameSansBrackets + TypeNameArrayBrackets(at.Dims) + brackets;
-      } else if (xType is UserDefinedType) {
-        var udt = (UserDefinedType)xType;
+      } else if (xType is UserDefinedType udt) {
+        if (udt.ResolvedParam != null) {
+          if (thisContext != null && thisContext.ParentFormalTypeParametersToActuals.TryGetValue(udt.ResolvedParam, out var instantiatedTypeParameter)) {
+            return TypeName(instantiatedTypeParameter, wr, tok, member);
+          }
+        }
         var s = FullTypeName(udt, member);
         var cl = udt.ResolvedClass;
         bool isHandle = true;
@@ -1061,11 +1071,8 @@ namespace Microsoft.Dafny
     }
 
     protected override string TypeName_Companion(Type type, TextWriter wr, Bpl.IToken tok, MemberDecl/*?*/ member) {
-      var udt = type as UserDefinedType;
-      if (udt != null && udt.ResolvedClass is TraitDecl) {
-        string s = udt.FullCompanionCompileName;
-        Contract.Assert(udt.TypeArgs.Count == 0);  // traits have no type parameters
-        return s;
+      if (type is UserDefinedType udt && udt.ResolvedClass is TraitDecl) {
+        return TypeName_UDT(udt.FullCompanionCompileName, udt.TypeArgs, wr, tok);
       } else {
         return TypeName(type, wr, tok, member);
       }

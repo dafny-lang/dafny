@@ -35,11 +35,11 @@ EqualityTypes.dfy(238,24): Error: set argument type must support equality (got C
 EqualityTypes.dfy(239,21): Error: multiset argument type must support equality (got Co)
 EqualityTypes.dfy(241,8): Error: map domain type must support equality (got Co)
 EqualityTypes.dfy(241,14): Error: map domain type must support equality (got Co)
-EqualityTypes.dfy(255,13): Error: type variable 'T' in the function call to 'UG' could not be determined
-EqualityTypes.dfy(256,4): Error: type '?' to the method 'UP' is not determined
+EqualityTypes.dfy(255,13): Error: type parameter 'T' (inferred to be '?') in the function call to 'UG' could not be determined
+EqualityTypes.dfy(256,4): Error: type parameter 'T' (inferred to be '?') to the method 'UP' could not be determined
 EqualityTypes.dfy(259,8): Error: the type of this local variable is underspecified
-EqualityTypes.dfy(261,4): Error: type 'set<?>' to the method 'Callee' is not determined
-EqualityTypes.dfy(264,4): Error: type 'TakesParam<?>' to the method 'Callee' is not determined
+EqualityTypes.dfy(261,4): Error: type parameter 'T' (inferred to be 'set<?>') to the method 'Callee' could not be determined
+EqualityTypes.dfy(264,4): Error: type parameter 'T' (inferred to be 'TakesParam<?>') to the method 'Callee' could not be determined
 EqualityTypes.dfy(284,14): Error: type parameter (T) passed to method Callee must support equality (got Dt)
 EqualityTypes.dfy(285,23): Error: type parameter (T) passed to method Callee must support equality (got Stream<int>)
 EqualityTypes.dfy(289,8): Error: set argument type must support equality (got Dt)
