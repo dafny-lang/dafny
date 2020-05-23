@@ -3023,6 +3023,7 @@ ImpliesExpliesExpression<out Expression e0, bool allowSemi, bool allowLambda, bo
                                                                  e0 = new BinaryExpr(x, BinaryExpr.Opcode.Exp, e1, e0);
                                                               .)
       }
+      [ IF(IsImpliesOp()) ImpliesOp (. SemErr(t, "Ambiguous use of ==> and <==. Use parentheses to disambiguate."); .) ]
     )
   ]
   .
@@ -3033,6 +3034,7 @@ ImpliesExpression<out Expression e0, bool allowSemi, bool allowLambda, bool allo
     ImpliesOp                                               (. x = t; .)
     ImpliesExpression<out e1, allowSemi, allowLambda, allowBitwiseOps>       (. e0 = new BinaryExpr(x, BinaryExpr.Opcode.Imp, e0, e1); .)
   ]
+  [ IF(IsExpliesOp()) ExpliesOp (. SemErr(t, "Ambiguous use of ==> and <==. Use parentheses to disambiguate."); .) ]
   .
 /*------------------------------------------------------------------------*/
 LogicalExpression<out Expression e0, bool allowSemi, bool allowLambda, bool allowBitwiseOps>
@@ -3046,6 +3048,7 @@ LogicalExpression<out Expression e0, bool allowSemi, bool allowLambda, bool allo
       AndOp                                                     (. x = t; .)
       RelationalExpression<out e1, allowSemi, allowLambda, allowBitwiseOps>      (. e0 = new BinaryExpr(x, BinaryExpr.Opcode.And, e0, e1); .)
     }
+    [ IF(IsOrOp()) OrOp (. SemErr(t, "Ambiguous use of && and ||. Use parentheses to disambiguate."); .) ]
     (. if (e0 == first) {
          // There was only one conjunct. To make sure that the type checker still checks it to
          // be a boolean, we conjoin "true" to its left.
@@ -3058,6 +3061,7 @@ LogicalExpression<out Expression e0, bool allowSemi, bool allowLambda, bool allo
       OrOp                                                      (. x = t; .)
       RelationalExpression<out e1, allowSemi, allowLambda, allowBitwiseOps>      (. e0 = new BinaryExpr(x, BinaryExpr.Opcode.Or, e0, e1); .)
     }
+    [ IF(IsAndOp()) AndOp (. SemErr(t, "Ambiguous use of && and ||. Use parentheses to disambiguate."); .) ]
     (. if (e0 == first) {
          // There was only one disjunct. To make sure that the type checker still checks it to
          // be a boolean, we disjoin [sic] "false" to its left.
@@ -3072,12 +3076,14 @@ LogicalExpression<out Expression e0, bool allowSemi, bool allowLambda, bool allo
           AndOp                                                 (. x = t; .)
           RelationalExpression<out e1, allowSemi, allowLambda, allowBitwiseOps>  (. e0 = new BinaryExpr(x, BinaryExpr.Opcode.And, e0, e1); .)
         }
+        [ IF(IsOrOp()) OrOp (. SemErr(t, "Ambiguous use of && and ||. Use parentheses to disambiguate."); .) ]
       | OrOp                                                    (. x = t; .)
         RelationalExpression<out e1, allowSemi, allowLambda, allowBitwiseOps>    (. e0 = new BinaryExpr(x, BinaryExpr.Opcode.Or, e0, e1); .)
         { IF(IsOrOp())  /* read a disjunction as far as possible */
           OrOp                                                  (. x = t; .)
           RelationalExpression<out e1, allowSemi, allowLambda, allowBitwiseOps>  (. e0 = new BinaryExpr(x, BinaryExpr.Opcode.Or, e0, e1); .)
         }
+        [ IF(IsAndOp()) AndOp (. SemErr(t, "Ambiguous use of && and ||. Use parentheses to disambiguate."); .) ]
       )
     ]
   )
@@ -3264,6 +3270,7 @@ BitvectorFactor<out Expression e0, bool allowSemi, bool allowLambda, bool allowB
         "&"                                                           (. x = t; .)
         AsExpression<out e1, allowSemi, allowLambda, allowBitwiseOps> (. e0 = new BinaryExpr(x, op, e0, e1); .)
       }
+      [ IF(IsBitwiseOp()) ( "|" | "^" )  (. SemErr(t, "Ambiguous use of &, |, ^. Use parentheses to disambiguate."); .) ]
     | (. op = BinaryExpr.Opcode.BitwiseOr; .)
       "|"                                                             (. x = t; .)
       AsExpression<out e1, allowSemi, allowLambda, allowBitwiseOps>   (. e0 = new BinaryExpr(x, op, e0, e1); .)
@@ -3271,6 +3278,7 @@ BitvectorFactor<out Expression e0, bool allowSemi, bool allowLambda, bool allowB
         "|"                                                           (. x = t; .)
         AsExpression<out e1, allowSemi, allowLambda, allowBitwiseOps> (. e0 = new BinaryExpr(x, op, e0, e1); .)
       }
+      [ IF(IsBitwiseOp()) ( "^" | "&" )  (. SemErr(t, "Ambiguous use of &, |, ^. Use parentheses to disambiguate."); .) ]
     | (. op = BinaryExpr.Opcode.BitwiseXor; .)
       "^"                                                             (. x = t; .)
       AsExpression<out e1, allowSemi, allowLambda, allowBitwiseOps>   (. e0 = new BinaryExpr(x, op, e0, e1); .)
@@ -3278,6 +3286,7 @@ BitvectorFactor<out Expression e0, bool allowSemi, bool allowLambda, bool allowB
         "^"                                                           (. x = t; .)
         AsExpression<out e1, allowSemi, allowLambda, allowBitwiseOps> (. e0 = new BinaryExpr(x, op, e0, e1); .)
       }
+      [ IF(IsBitwiseOp()) ( "&" | "|" )  (. SemErr(t, "Ambiguous use of &, |, ^. Use parentheses to disambiguate."); .) ]
     )
   ]
   .
