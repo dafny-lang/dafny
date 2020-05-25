@@ -364,6 +364,7 @@ namespace Microsoft.Dafny {
       for (int i = 0; i < rhsVars.Count; i++) {
         TargetWriter wRhsVar = EmitAssignment(lhss[i], lhsTypes[i], rhsTypes[i], wr);
         wRhsVar.Write(rhsVars[i]);
+        EndStmt(wr);
       }
     }
 
