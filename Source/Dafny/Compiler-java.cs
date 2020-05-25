@@ -1425,7 +1425,7 @@ namespace Microsoft.Dafny{
       public TargetWriter EmitWrite(TargetWriter wr) {
         TargetWriter w;
         if (Indices.Count == 1) {
-          wr.Write($"{FormatTypeDescriptorVariable(ElmtTypeParameter)}.setArrayElement({Array}, ");
+          wr.Write($"{FormatTypeDescriptorVariable(ElmtTypeParameter)}.setArrayElement({Array}, {Indices[0]}.intValue(),");
           w = wr.Fork();
           wr.Write(")");
         } else {
