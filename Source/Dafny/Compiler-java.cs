@@ -1147,15 +1147,19 @@ namespace Microsoft.Dafny{
     }
 
     protected override void EmitMapDisplay(MapType mt, Bpl.IToken tok, List<ExpressionPair> elements, bool inLetExprBody, TargetWriter wr) {
-      wr.Write("new dafny.DafnyMap() {{{{\n");
+      wr.Write("dafny.DafnyMap.fromElements");
+      wr.Write("(");
+      string sep = "";
       foreach (ExpressionPair p in elements) {
-        wr.Write("put(");
+        wr.Write(sep);
+        wr.Write("new dafny.Tuple2(");
         TrExpr(p.A, wr, inLetExprBody);
         wr.Write(", ");
         TrExpr(p.B, wr, inLetExprBody);
-        wr.Write(");\n");
+        wr.Write(")");
+        sep = ", ";
       }
-      wr.Write("}}}}");
+      wr.Write(")");
     }
 
     protected override void GetSpecialFieldInfo(SpecialField.ID id, object idParam, out string compiledName, out string preString, out string postString) {
