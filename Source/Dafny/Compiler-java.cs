@@ -3431,26 +3431,17 @@ namespace Microsoft.Dafny{
         }
       }
 
-      if (elmtType.IsTypeParameter) {
-        if (dimensions.Count > 1) {
-          wBareArray.Write($"(Object{Util.Repeat("[]", dimensions.Count - 1)}) ");
-        }
-        wBareArray.Write($"{TypeDescriptor(elmtType, wr, tok)}.newArray(");
-        var sep = "";
-        foreach (var dim in dimensions) {
-          wBareArray.Write(sep);
-          TrExprAsInt(dim, wBareArray, inLetExprBody: false);
-          sep = ", ";
-        }
-        wBareArray.Write(")");
-      } else {
-        wBareArray.Write($"new {TypeName(elmtType, wr, tok)}");
-        foreach (var dim in dimensions) {
-          wBareArray.Write("[");
-          TrExprAsInt(dim, wBareArray, inLetExprBody: false);
-          wBareArray.Write("]");
-        }
+      if (dimensions.Count > 1) {
+        wBareArray.Write($"(Object{Util.Repeat("[]", dimensions.Count - 1)}) ");
       }
+      wBareArray.Write($"{TypeDescriptor(elmtType, wr, tok)}.newArray(");
+      var sep = "";
+      foreach (var dim in dimensions) {
+        wBareArray.Write(sep);
+        TrExprAsInt(dim, wBareArray, inLetExprBody: false);
+        sep = ", ";
+      }
+      wBareArray.Write(")");
     }
 
     protected override int EmitRuntimeTypeDescriptorsActuals(List<Type> typeArgs, List<TypeParameter> formals, Bpl.IToken tok, bool useAllTypeArgs, TargetWriter wr) {
