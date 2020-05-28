@@ -893,15 +893,13 @@ namespace Microsoft.Dafny{
       var wBody = w.NewBlock("");
       var wTypeFields = wBody.Fork();
 
-      var relevantTypeParams =
-        typeParameters?.FindAll(tp => tp.Characteristics.MustSupportZeroInitialization);
       wBody.Write($"public {javaName}(");
       var wCtorParams = wBody.Fork();
       var wCtorBody = wBody.NewBigBlock(")", "");
 
       sep = "";
-      if (relevantTypeParams != null) {
-        foreach (var tp in relevantTypeParams) {
+      if (typeParameters != null) {
+        foreach (var tp in typeParameters) {
           var fieldName = FormatTypeDescriptorVariable(tp.CompileName);
           var decl = $"{TypeClass}<{tp.CompileName}> {fieldName}";
           wTypeFields.WriteLine($"private {decl};");
@@ -2237,7 +2235,7 @@ namespace Microsoft.Dafny{
       var ctor = (Constructor) initCall?.Method; // correctness of cast follows from precondition of "EmitNew"
       wr.Write($"new {TypeName(type, wr, tok)}(");
       if (type is UserDefinedType definedType) {
-        EmitRuntimeTypeDescriptors(definedType.ResolvedClass.TypeArgs, definedType.TypeArgs, useAll: false, tok, wr);
+        EmitRuntimeTypeDescriptors(definedType.ResolvedClass.TypeArgs, definedType.TypeArgs, useAll: true, tok, wr);
       }
       if (ctor != null && ctor.IsExtern(out _, out _)) {
         // the arguments of any external constructor are placed here
