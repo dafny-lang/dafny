@@ -1680,7 +1680,7 @@ namespace Microsoft.Dafny
       }
     }
 
-    protected override ILvalue EmitMemberSelect(System.Action<TargetWriter> obj, MemberDecl member, Type expectedType, bool internalAccess = false) {
+    protected override ILvalue EmitMemberSelect(System.Action<TargetWriter> obj, MemberDecl member, List<Type> typeArgs, Type expectedType, bool internalAccess = false) {
       if (member is ConstantField) {
         return SimpleLvalue(lvalueAction: wr => {
           obj(wr);

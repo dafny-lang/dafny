@@ -1079,7 +1079,7 @@ namespace Microsoft.Dafny {
     }
 
     protected BlockTargetWriter/*?*/ CreateMethod(Method m, bool createBody, string ownerName, TargetWriter abstractWriter, TargetWriter concreteWriter) {
-      return CreateSubroutine(IdName(m), m.TypeArgs, m.Ins, m.Outs, null, m.tok, m.IsStatic, createBody, ownerName, m, abstractWriter, concreteWriter);
+      return CreateSubroutine(IdName(m), CombineTypeParameters(m), m.Ins, m.Outs, null, m.tok, m.IsStatic, createBody, ownerName, m, abstractWriter, concreteWriter);
     }
 
     protected BlockTargetWriter/*?*/ CreateFunction(string name, List<TypeParameter>/*?*/ typeArgs, List<Formal> formals, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl member, string ownerName, TargetWriter abstractWriter, TargetWriter concreteWriter) {
@@ -1313,6 +1313,8 @@ namespace Microsoft.Dafny {
       }
     }
 
+    protected override bool SupportsStaticsInGenericClasses => false;
+
     private void AddSuperType(Type superType, Bpl.IToken tok, TargetWriter instanceFieldWriter, TargetWriter instanceFieldInitWriter, TargetWriter traitInitWriter, TargetWriter staticFieldWriter, TargetWriter staticFieldInitWriter) {
       instanceFieldWriter.WriteLine("{0}", TypeName(superType, instanceFieldWriter, tok));
 
@@ -1469,7 +1471,7 @@ namespace Microsoft.Dafny {
         } else {
           var w = new TargetWriter(0, true);
           w = EmitCoercionIfNecessary(from:null, to:xType, tok:tok, wr:w);
-          w.Write(RuntimeTypeDescriptor(udt, udt.tok, wr));
+          w.Write(RuntimeTypeDescriptor(udt, udt.tok, wr, inAutoInitContext));
           w.Write(".Default()");
           return w.ToString();
         }
@@ -2326,7 +2328,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    protected override ILvalue EmitMemberSelect(Action<TargetWriter> obj, MemberDecl member, Type expectedType, bool internalAccess = false) {
+    protected override ILvalue EmitMemberSelect(Action<TargetWriter> obj, MemberDecl member, List<Type> typeArgs, Type expectedType, bool internalAccess = false) {
       if (member is DatatypeDestructor dtor) {
         return SimpleLvalue(wr => {
           wr = EmitCoercionIfNecessary(from:dtor.Type, to:expectedType, tok:null, wr:wr);

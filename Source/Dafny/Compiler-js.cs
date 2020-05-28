@@ -582,6 +582,8 @@ namespace Microsoft.Dafny {
       public void Finish() { }
     }
 
+    protected override bool SupportsStaticsInGenericClasses => false;
+
     protected BlockTargetWriter/*?*/ CreateMethod(Method m, bool createBody, TargetWriter wr) {
       if (!createBody) {
         return null;
@@ -589,7 +591,7 @@ namespace Microsoft.Dafny {
 
       var customReceiver = NeedsCustomReceiver(m);
       wr.Write("{0}{1}(", m.IsStatic || customReceiver ? "static " : "", IdName(m));
-      var nTypes = WriteRuntimeTypeDescriptorsFormals(m.TypeArgs, false, wr);
+      var nTypes = WriteRuntimeTypeDescriptorsFormals(CombineTypeParameters(m), false, wr);
       if (customReceiver) {
         var nt = m.EnclosingClass;
         var receiverType = UserDefinedType.FromTopLevelDecl(m.tok, nt);
@@ -662,7 +664,7 @@ namespace Microsoft.Dafny {
       return c;
     }
 
-    string RuntimeTypeDescriptor(Type type, Bpl.IToken tok, TextWriter wr) {
+    string RuntimeTypeDescriptor(Type type, Bpl.IToken tok, TextWriter wr, bool inInitializer = false) {
       Contract.Requires(type != null);
       Contract.Requires(tok != null);
       Contract.Requires(wr != null);
@@ -704,7 +706,7 @@ namespace Microsoft.Dafny {
         var udt = (UserDefinedType)xType;
         var tp = udt.ResolvedParam;
         if (tp != null) {
-          return string.Format("{0}rtd$_{1}", tp.Parent is ClassDecl ? "this." : "", tp.CompileName);
+          return string.Format("{0}rtd$_{1}", !inInitializer && tp.Parent is ClassDecl ? "this." : "", tp.CompileName);
         }
         var cl = udt.ResolvedClass;
         Contract.Assert(cl != null);
@@ -895,7 +897,7 @@ namespace Microsoft.Dafny {
         if (inAutoInitContext && !udt.ResolvedParam.Characteristics.MustSupportZeroInitialization) {
           return "undefined";
         } else {
-          return string.Format("{0}.Default", RuntimeTypeDescriptor(udt, udt.tok, wr));
+          return string.Format("{0}.Default", RuntimeTypeDescriptor(udt, udt.tok, wr, inAutoInitContext));
         }
       }
       var cl = udt.ResolvedClass;
@@ -1463,7 +1465,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    protected override ILvalue EmitMemberSelect(Action<TargetWriter> obj, MemberDecl member, Type expectedType, bool internalAccess = false) {
+    protected override ILvalue EmitMemberSelect(Action<TargetWriter> obj, MemberDecl member, List<Type> typeArgs, Type expectedType, bool internalAccess = false) {
       if (member is ConstantField) {
         return SimpleLvalue(lvalueAction: wr => {
           obj(wr);

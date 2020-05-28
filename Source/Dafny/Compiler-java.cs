@@ -419,6 +419,8 @@ namespace Microsoft.Dafny{
       public void Finish() { }
     }
 
+    protected override bool SupportsStaticsInGenericClasses => false;
+
     protected BlockTargetWriter CreateGetter(string name, Type resultType, Bpl.IToken tok, bool isStatic,
       bool createBody, TargetWriter wr) {
       wr.Write("public {0}{1} get_{2}()", isStatic ? "static " : "", TypeName(resultType, wr, tok), name);
@@ -480,12 +482,13 @@ namespace Microsoft.Dafny{
       var customReceiver = NeedsCustomReceiver(m);
       var receiverType = UserDefinedType.FromTopLevelDecl(m.tok, m.EnclosingClass);
       wr.Write("public {0}{1}", !createBody ? "abstract " : "", m.IsStatic || customReceiver ? "static " : "");
-      if (m.TypeArgs.Count != 0) {
-        wr.Write($"<{TypeParameters(m.TypeArgs)}> ");
+      var typeArgs = CombineTypeParameters(m);
+      if (typeArgs.Count != 0) {
+        wr.Write($"<{TypeParameters(typeArgs)}> ");
       }
       wr.Write("{0} {1}", targetReturnTypeReplacement ?? "void", IdName(m));
       wr.Write("(");
-      var nTypes = WriteRuntimeTypeDescriptorsFormals(m, m.TypeArgs, useAllTypeArgs: true, wr);
+      var nTypes = WriteRuntimeTypeDescriptorsFormals(m, typeArgs, useAllTypeArgs: true, wr);
       var sep = nTypes > 0 ? ", " : "";
       if (customReceiver) {
         DeclareFormal(sep, "_this", receiverType, m.tok, true, wr);
@@ -1227,11 +1230,12 @@ namespace Microsoft.Dafny{
       }
     }
 
-    protected override ILvalue EmitMemberSelect(Action<TargetWriter> obj, MemberDecl member, Type expectedType, bool internalAccess = false) {
+    protected override ILvalue EmitMemberSelect(Action<TargetWriter> obj, MemberDecl member, List<Type> typeArgs, Type expectedType, bool internalAccess = false) {
       if (member.EnclosingClass is TraitDecl && !member.IsStatic) {
         return new GetterSetterLvalue(obj, IdName(member));
       } else if (member is ConstantField) {
-        return SuffixLvalue(obj, $".{member.CompileName}");
+        Contract.Assert(!(member.IsStatic && member.EnclosingClass.TypeArgs.Count != 0));
+        return SuffixLvalue(obj, $".{IdName(member)}");
       } else if (member is SpecialField sf) {
         GetSpecialFieldInfo(sf.SpecialId, sf.IdParam, out var compiledName, out _, out _);
         if (compiledName.Length != 0){
@@ -1245,7 +1249,10 @@ namespace Microsoft.Dafny{
           return SimpleLvalue(obj);
         }
       } else if (member is Function) {
-        return SuffixLvalue(obj, $"::{IdName(member)}");
+        var wr = new TargetWriter();
+        EmitNameAndActualTypeArgs(IdName(member), typeArgs, member.tok, wr);
+        var nameAndTypeArgs = wr.ToString();
+        return SuffixLvalue(obj, $"::{nameAndTypeArgs}");
       } else {
         return SuffixLvalue(obj, $".{IdName(member)}");
       }
@@ -1289,13 +1296,17 @@ namespace Microsoft.Dafny{
       }
     }
 
-    protected override void EmitConstructorCheck(string source, DatatypeCtor ctor, TargetWriter wr){
+    protected override void EmitConstructorCheck(string source, DatatypeCtor ctor, TargetWriter wr) {
       wr.Write($"{source}.is_{ctor.CompileName}()");
     }
 
-    protected override string TypeName_Companion(Type type, TextWriter wr, Bpl.IToken tok, MemberDecl member){
+    protected override string TypeName_Companion(Type type, TextWriter wr, Bpl.IToken tok, MemberDecl member) {
       if (type is UserDefinedType udt && udt.ResolvedClass is TraitDecl) {
-        return TypeName_UDT(udt.FullCompanionCompileName, udt.TypeArgs, wr, tok);
+        if (member.IsStatic && member.EnclosingClass.TypeArgs.Count != 0) {
+          return IdProtect(udt.FullCompanionCompileName);
+        } else {
+          return TypeName_UDT(udt.FullCompanionCompileName, udt.TypeArgs, wr, tok);
+        }
       } else {
         return TypeName(type, wr, tok, member);
       }
@@ -2221,12 +2232,15 @@ namespace Microsoft.Dafny{
       return t.IsBoolType || t.IsCharType || t.IsRefType || AsJavaNativeType(t) != null;
     }
 
-    protected override void EmitActualTypeArgs(List<Type> typeArgs, Bpl.IToken tok, TextWriter wr)
-    {
-      // Todo: see if there is ever a time in java where this is necessary
-//      if (typeArgs.Count != 0) {
-//        wr.Write("<" + TypeNames(typeArgs, wr, tok) + ">");
-//      }
+    protected override void EmitActualTypeArgs(List<Type> typeArgs, Bpl.IToken tok, TextWriter wr) {
+      if (typeArgs.Count != 0) {
+        wr.Write("<" + BoxedTypeNames(typeArgs, wr, tok) + ">");
+      }
+    }
+
+    protected override void EmitNameAndActualTypeArgs(string protectedName, List<Type> typeArgs, Bpl.IToken tok, TextWriter wr) {
+      EmitActualTypeArgs(typeArgs, tok, wr);
+      wr.Write(protectedName);
     }
 
     protected override string GenerateLhsDecl(string target, Type type, TextWriter wr, Bpl.IToken tok){
