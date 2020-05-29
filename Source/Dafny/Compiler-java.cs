@@ -540,7 +540,7 @@ namespace Microsoft.Dafny{
       var receiverType = UserDefinedType.FromTopLevelDecl(member.tok, member.EnclosingClass);
       wr.Write("public {0}{1}", !createBody ? "abstract " : "", isStatic || customReceiver ? "static " : "");
       if (typeArgs != null && typeArgs.Count != 0) {
-        wr.Write($"<{TypeParameters(typeArgs)}>");
+        wr.Write($"<{TypeParameters(typeArgs)}> ");
         wr.Write($"{TypeName(resultType, wr, tok)} {name}(");
       }
       else if (isStatic && resultType.TypeArgs.Count > 0 && resultType.TypeArgs[0].IsTypeParameter){
@@ -921,7 +921,7 @@ namespace Microsoft.Dafny{
     private void EmitTypeMethod(string typeName, List<TypeParameter> typeParams, List<TypeParameter> usedTypeParams, string/*?*/ initializer, TargetWriter wr) {
       var typeParamString = "";
       if (typeParams != null && typeParams.Count != 0) {
-        typeParamString = $"<{TypeParameters(typeParams)}>";
+        typeParamString = $"<{TypeParameters(typeParams)}> ";
       }
 
       var typeDescriptorCast = $"({TypeClass}<{typeName}{typeParamString}>) ({TypeClass}<?>)";
