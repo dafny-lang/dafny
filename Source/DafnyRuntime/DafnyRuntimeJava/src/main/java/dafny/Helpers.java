@@ -10,6 +10,7 @@ import java.util.function.*;
 import java.util.ArrayList;
 import java.lang.Iterable;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 public class Helpers {
@@ -87,6 +88,10 @@ public class Helpers {
                 return j;
             }
         };
+    }
+
+    public static Iterable<Character> AllChars() {
+        return () -> IntStream.range(0, 0x1000).<Character>mapToObj(i -> Character.valueOf((char)i)).iterator();
     }
 
     public static <G> String toString(G g) {
