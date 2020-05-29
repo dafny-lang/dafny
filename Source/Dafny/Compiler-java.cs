@@ -897,6 +897,12 @@ namespace Microsoft.Dafny{
       var wCtorParams = wBody.Fork();
       var wCtorBody = wBody.NewBigBlock(")", "");
 
+      // TODO-RS: This used to filter to only type parameters with the MustSupportZeroInitialization
+      // characteristic. That isn't enough for the Java runtime though, in which dafny.Sequence<T> needs
+      // a type descriptor in order to optimize for primitive types. Requiring them for all type parameters
+      // helps, but is still incomplete since other areas of the compiler are not providing them all the time.
+      // This isn't yet exposed by the test suite so we can get away with this for now, but will need to address
+      // the issue more completely soon.
       sep = "";
       if (typeParameters != null) {
         foreach (var tp in typeParameters) {
