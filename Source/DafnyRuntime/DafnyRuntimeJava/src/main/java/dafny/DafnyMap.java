@@ -20,6 +20,14 @@ public class DafnyMap<K, V> implements Map<K, V> {
 
     public static <K, V> DafnyMap<K, V> empty() { return new DafnyMap<K, V>(); }
 
+    public static <K, V> DafnyMap<K, V> fromElements(Tuple2<K, V> ... pairs) {
+        DafnyMap<K, V> result = new DafnyMap<K, V>();
+        for (Tuple2<K, V> pair : pairs) {
+            result.put(pair.dtor__0(), pair.dtor__1());
+        }
+        return result;
+    }
+
     @SuppressWarnings("unchecked")
     public static <K, V> Type<DafnyMap<K, V>> _type(
             Type<K> keyType, Type<V> valueType) {
