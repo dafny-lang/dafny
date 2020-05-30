@@ -109,7 +109,7 @@ namespace Microsoft.Dafny {
     /// <summary>
     /// "tok" can be "null" if "superClasses" is.
     /// </summary>
-    protected abstract IClassWriter CreateTrait(string name, bool isExtern, List<Type>/*?*/ superClasses, Bpl.IToken tok, TargetWriter wr);
+    protected abstract IClassWriter CreateTrait(string name, bool isExtern, List<TypeParameter>/*?*/ typeParameters, List<Type>/*?*/ superClasses, Bpl.IToken tok, TargetWriter wr);
     /// If this returns false, it is assumed that the implementation handles inherited fields on its own.
     protected virtual bool NeedsWrappersForInheritedFields { get => true; }
     protected virtual bool SupportsProperties { get => true; }
@@ -367,6 +367,7 @@ namespace Microsoft.Dafny {
       for (int i = 0; i < rhsVars.Count; i++) {
         TargetWriter wRhsVar = EmitAssignment(lhss[i], lhsTypes[i], rhsTypes[i], wr);
         wRhsVar.Write(rhsVars[i]);
+        EndStmt(wr);
       }
     }
 
@@ -524,20 +525,29 @@ namespace Microsoft.Dafny {
     protected virtual void EmitNull(Type type, TargetWriter wr) {
       wr.Write("null");
     }
-    protected virtual void EmitITE(Expression guard, Expression thn, Expression els, bool inLetExprBody, TargetWriter wr) {
+    protected virtual void EmitITE(Expression guard, Expression thn, Expression els, Type resultType, bool inLetExprBody, TargetWriter wr) {
       Contract.Requires(guard != null);
       Contract.Requires(thn != null);
       Contract.Requires(thn.Type != null);
       Contract.Requires(els != null);
+      Contract.Requires(resultType != null);
       Contract.Requires(wr != null);
 
+      resultType = resultType.NormalizeExpand();
       wr.Write("(");
       TrExpr(guard, wr, inLetExprBody);
       wr.Write(") ? (");
-      TrExpr(thn, wr, inLetExprBody);
+      TrExpr(thn, resultType.Equals(thn.Type.NormalizeExpand()) ? wr : EmitCast(resultType, wr), inLetExprBody);
       wr.Write(") : (");
-      TrExpr(els, wr, inLetExprBody);
+      TrExpr(els, resultType.Equals(els.Type.NormalizeExpand()) ? wr : EmitCast(resultType, wr), inLetExprBody);
       wr.Write(")");
+    }
+
+    protected virtual TargetWriter EmitCast(Type toType, TargetWriter wr) {
+      wr.Write("({0})(", TypeName(toType, wr, Bpl.Token.NoToken));
+      var exprWr = wr.Fork();
+      wr.Write(")");
+      return exprWr;
     }
     protected abstract void EmitDatatypeValue(DatatypeValue dtv, string arguments, TargetWriter wr);
     protected abstract void GetSpecialFieldInfo(SpecialField.ID id, object idParam, out string compiledName, out string preString, out string postString);
@@ -723,7 +733,7 @@ namespace Microsoft.Dafny {
           } else if (d is TraitDecl) {
             // writing the trait
             var trait = (TraitDecl)d;
-            var w = CreateTrait(trait.CompileName, trait.IsExtern(out _, out _), null, null, wr);
+            var w = CreateTrait(trait.CompileName, trait.IsExtern(out _, out _), trait.TypeArgs, trait.ParentTypeInformation.UniqueParentTraits(), trait.tok, wr);
             CompileClassMembers(trait, w);
           } else if (d is ClassDecl) {
             var cl = (ClassDecl)d;
@@ -741,7 +751,7 @@ namespace Microsoft.Dafny {
               }
             }
             if (include) {
-              var cw = CreateClass(IdProtect(d.Module.CompileName), IdName(cl), classIsExtern, cl.FullName, cl.TypeArgs, cl.TraitsTyp, cl.tok, wr);
+              var cw = CreateClass(IdProtect(d.Module.CompileName), IdName(cl), classIsExtern, cl.FullName, cl.TypeArgs, cl.ParentTypeInformation.UniqueParentTraits(), cl.tok, wr);
               CompileClassMembers(cl, cw);
               cw.Finish();
             } else {
@@ -961,7 +971,15 @@ namespace Microsoft.Dafny {
         CheckHandleWellformed((ClassDecl)c, errorWr);
       }
 
-      var inheritedMembers = c is ClassDecl ? ((ClassDecl)c).InheritedMembers : new List<MemberDecl>();
+      List<MemberDecl> inheritedMembers;
+      Dictionary<TypeParameter, Type> typeMap;
+      if (c is TopLevelDeclWithMembers cl && !(c is TraitDecl)) {
+        inheritedMembers = cl.InheritedMembers;
+        typeMap = cl.ParentFormalTypeParametersToActuals;
+      } else {
+        inheritedMembers = new List<MemberDecl>();
+        typeMap = null; // not used when there are no inherited members
+      }
 
       CheckForCapitalizationConflicts(c.Members, inheritedMembers);
       OrderedBySCC(inheritedMembers, c);
@@ -974,11 +992,12 @@ namespace Microsoft.Dafny {
         } else if (member is ConstantField && SupportsProperties) {
           if (NeedsWrappersForInheritedFields) {
             var cf = (ConstantField)member;
+            var cfType = Resolver.SubstType(cf.Type, typeMap);
             if (cf.Rhs == null) {
               Contract.Assert(!cf.IsStatic);  // as checked above, only instance members can be inherited
-              classWriter.DeclareField("_" + cf.CompileName, c, false, false, cf.Type, cf.tok, DefaultValue(cf.Type, errorWr, cf.tok, true));
+              classWriter.DeclareField("_" + cf.CompileName, c, false, false, cfType, cf.tok, DefaultValue(cfType, errorWr, cf.tok, true));
             }
-            var w = classWriter.CreateGetter(IdName(cf), cf.Type, cf.tok, false, true, member);
+            var w = classWriter.CreateGetter(IdName(cf), cfType, cf.tok, false, true, member);
             Contract.Assert(w != null);  // since the previous line asked for a body
             if (cf.Rhs == null) {
               var sw = EmitReturnExpr(w);
@@ -990,12 +1009,13 @@ namespace Microsoft.Dafny {
             }
           }
         } else if (member is Field) {
+          var f = (Field)member;
+          var fType = Resolver.SubstType(f.Type, typeMap);
           if (NeedsWrappersForInheritedFields) {
-            var f = (Field)member;
             // every field is inherited
-            classWriter.DeclareField("_" + f.CompileName, c, false, false, f.Type, f.tok, DefaultValue(f.Type, errorWr, f.tok, true));
+            classWriter.DeclareField("_" + f.CompileName, c, false, false, fType, f.tok, DefaultValue(fType, errorWr, f.tok, true));
             TargetWriter wSet;
-            var wGet = classWriter.CreateGetterSetter(IdName(f), f.Type, f.tok, false, true, member, out wSet);
+            var wGet = classWriter.CreateGetterSetter(IdName(f), fType, f.tok, false, true, member, out wSet);
             {
               var sw = EmitReturnExpr(wGet);
               // get { return this._{0}; }
@@ -1010,19 +1030,18 @@ namespace Microsoft.Dafny {
               EmitSetterParameter(sw);
             }
           } else {
-            var f = (Field) member;
             if (!FieldsInTraits && f is ConstantField cf && cf.Rhs != null) {
               var w = new TargetWriter();
               TrExpr(cf.Rhs, w, false);
               var rhs = w.ToString();
-              classWriter.DeclareField(f.CompileName, c, false, true, f.Type, f.tok, rhs);
+              classWriter.DeclareField(f.CompileName, c, false, true, fType, f.tok, rhs);
             } else {
-              classWriter.DeclareField(f.CompileName, c, false, false, f.Type, f.tok, DefaultValue(f.Type, errorWr, f.tok, true));
+              classWriter.DeclareField(f.CompileName, c, false, false, fType, f.tok, DefaultValue(fType, errorWr, f.tok, true));
             }
 
             if (!FieldsInTraits) { // Create getters and setters for "traits" in languages that don't allow for non-final field declarations.
               TargetWriter wSet;
-              var wGet = classWriter.CreateGetterSetter(IdName(f), f.Type, f.tok, false, true, member, out wSet);
+              var wGet = classWriter.CreateGetterSetter(IdName(f), fType, f.tok, false, true, member, out wSet);
               {
                 var sw = EmitReturnExpr(wGet);
                 // get { return this.{0}; }
@@ -1045,14 +1064,16 @@ namespace Microsoft.Dafny {
         } else if (member is Method) {
           var method = (Method)member;
           Contract.Assert(method.Body != null);
-          CompileMethod(method, classWriter);
+          CompileMethod(method, classWriter, c.ParentFormalTypeParametersToActuals);
         } else {
           Contract.Assert(false);  // unexpected member
         }
       }
 
       foreach (MemberDecl member in c.Members) {
-        if (member is Field) {
+        if (c is TraitDecl && member.OverriddenMember != null) {
+          // emit nothing in the trait; this member will be emitted in the classes that extend this trait
+        } else if (member is Field) {
           var f = (Field)member;
           if (f.IsGhost) {
             // emit nothing, but check for assumes
@@ -1172,7 +1193,7 @@ namespace Microsoft.Dafny {
             var w = classWriter.CreateMethod(m, false);
             Contract.Assert(w == null);  // since we requested no body
           } else {
-            CompileMethod(m, classWriter);
+            CompileMethod(m, classWriter, null);
           }
         } else {
           Contract.Assert(false); throw new cce.UnreachableException();  // unexpected member
@@ -1186,7 +1207,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(cl != null);
       var isHandle = true;
       if (Attributes.ContainsBool(cl.Attributes, "handle", ref isHandle) && isHandle) {
-        foreach (var trait in cl.TraitsObj) {
+        foreach (var trait in cl.ParentTraitHeads) {
           isHandle = true;
           if (Attributes.ContainsBool(trait.Attributes, "handle", ref isHandle) && isHandle) {
             // all is good
@@ -1327,7 +1348,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    private void CompileMethod(Method m, IClassWriter cw) {
+    private void CompileMethod(Method m, IClassWriter cw, Dictionary<TypeParameter, Type>/*?*/ parentTypeParameterTypeMap) {
       Contract.Requires(cw != null);
       Contract.Requires(m != null);
       Contract.Requires(m.Body != null);
@@ -1349,7 +1370,8 @@ namespace Microsoft.Dafny {
         var useReturnStyleOuts = UseReturnStyleOuts(m, nonGhostOutsCount);
         foreach (var p in m.Outs) {
           if (!p.IsGhost) {
-            DeclareLocalOutVar(IdName(p), p.Type, p.tok, DefaultValue(p.Type, w, p.tok, true), useReturnStyleOuts, w);
+            var pType = parentTypeParameterTypeMap == null ? p.Type : Resolver.SubstType(p.Type, parentTypeParameterTypeMap);
+            DeclareLocalOutVar(IdName(p), pType, p.tok, DefaultValue(pType, w, p.tok, true), useReturnStyleOuts, w);
           }
         }
 
@@ -3176,9 +3198,7 @@ namespace Microsoft.Dafny {
             wr.Write("{0}{1}", ModuleSeparator, IdName(s.Method));
           }
         }
-        List<Type> typeArgs;
-        var typeSubst = s.MethodSelect.TypeArgumentSubstitutions();
-        typeArgs = s.Method.TypeArgs.ConvertAll(ta => typeSubst[ta]);
+        var typeArgs = s.MethodSelect.TypeApplication_JustMember;
         EmitActualTypeArgs(typeArgs, s.Tok, wr);
         wr.Write("(");
         var nRTDs = EmitRuntimeTypeDescriptorsActuals(typeArgs, s.Method.TypeArgs, s.Tok, false, wr);
@@ -3820,7 +3840,7 @@ namespace Microsoft.Dafny {
 
       } else if (expr is ITEExpr) {
         var e = (ITEExpr)expr;
-        EmitITE(e.Test, e.Thn, e.Els, inLetExprBody, wr);
+        EmitITE(e.Test, e.Thn, e.Els, e.Type, inLetExprBody, wr);
 
       } else if (expr is ConcreteSyntaxExpression) {
         var e = (ConcreteSyntaxExpression)expr;
@@ -4004,12 +4024,10 @@ namespace Microsoft.Dafny {
         compileName = IdName(f);
       }
       wr.Write(compileName);
-      List<Type> typeArgs;
-      if (f.TypeArgs.Count != 0) {
-        typeArgs = f.TypeArgs.ConvertAll(ta => e.TypeArgumentSubstitutions[ta]);
+      Contract.Assert(f.TypeArgs.Count == e.TypeApplication_JustFunction.Count);
+      List<Type> typeArgs = e.TypeApplication_JustFunction;
+      if (typeArgs.Count != 0) {
         EmitActualTypeArgs(typeArgs, f.tok, wr);
-      } else {
-        typeArgs = new List<Type>();
       }
       wr.Write("(");
       var nRTDs = EmitRuntimeTypeDescriptorsActuals(typeArgs, f.TypeArgs, e.tok, false, wr);
