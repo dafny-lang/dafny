@@ -6,7 +6,7 @@ Dafny is a programming language with a program verifier. As you type in your pro
 
     * sources
     * [binary downloads](https://github.com/dafny-lang/dafny/releases) for Windows, Mac, GNU/Linux, and FreeBSD
-    * the [issue tracker](https://github.com/dafny-lang/dafny/issues) (old issues are on [codeplex](https://dafny.codeplex.com/workitem/list/basic))
+    * the [issue tracker](https://github.com/dafny-lang/dafny/issues)
     * the wiki, including [frequently asked questions](https://github.com/dafny-lang/dafny/wiki/FAQ)
 
 # Community
