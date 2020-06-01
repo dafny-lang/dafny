@@ -1465,7 +1465,8 @@ namespace Microsoft.Dafny {
       }
     }
 
-    protected override ILvalue EmitMemberSelect(Action<TargetWriter> obj, MemberDecl member, List<Type> typeArgs, Type expectedType, bool internalAccess = false) {
+    protected override ILvalue EmitMemberSelect(Action<TargetWriter> obj, MemberDecl member, List<Type> typeArgs, Dictionary<TypeParameter, Type> typeMap, Type expectedType,
+      bool internalAccess = false) {
       if (member is ConstantField) {
         return SimpleLvalue(lvalueAction: wr => {
           obj(wr);
@@ -1485,8 +1486,39 @@ namespace Microsoft.Dafny {
           // this member selection is handled by some kind of enclosing function call, so nothing to do here
           return SimpleLvalue(obj);
         }
+      } else if (member is Function fn) {
+        var wr = new TargetWriter();
+        EmitNameAndActualTypeArgs(IdName(member), typeArgs, member.tok, wr);
+        if (typeArgs.Count == 0) {
+          return SuffixLvalue(obj, ".{0}", IdName(member));
+        } else {
+          // we need an eta conversion for the type-descriptor parameters
+          // (T0 a0, T1 a1, ...) -> obj.F(rtd0, rtd1, ..., a0, a1, ...)
+          wr.Write("(");
+          var sep = "";
+          foreach (var ty in typeArgs) {
+            wr.Write("{0}{1}", sep, RuntimeTypeDescriptor(ty, fn.tok, wr));
+            sep = ", ";
+          }
+          var prefixWr = new TargetWriter();
+          var prefixSep = "";
+          prefixWr.Write("(");
+          foreach (var arg in fn.Formals) {
+            if (!arg.IsGhost) {
+              var name = idGenerator.FreshId("_eta");
+              var ty = Resolver.SubstType(arg.Type, typeMap);
+              prefixWr.Write("{0}{1}", prefixSep, name);
+              wr.Write("{0}{1}", sep, name);
+              sep = ", ";
+              prefixSep = ", ";
+            }
+          }
+          prefixWr.Write(") => ");
+          wr.Write(")");
+          return EnclosedLvalue(prefixWr.ToString(), obj, $".{wr.ToString()}");
+        }
       } else {
-        return SuffixLvalue(obj, ".{0}", IdName(member));
+        return SuffixLvalue(obj, $".{IdName(member)}");
       }
     }
 

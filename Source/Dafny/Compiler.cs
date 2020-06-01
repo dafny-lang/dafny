@@ -32,7 +32,7 @@ namespace Microsoft.Dafny {
     protected Method enclosingMethod;  // non-null when a method body is being translated
     protected Function enclosingFunction;  // non-null when a function body is being translated
 
-    FreshIdGenerator idGenerator = new FreshIdGenerator();
+    protected readonly FreshIdGenerator idGenerator = new FreshIdGenerator();
 
     static FreshIdGenerator compileNameIdGenerator = new FreshIdGenerator();
     public static string FreshId() {
@@ -554,7 +554,7 @@ namespace Microsoft.Dafny {
     }
     protected abstract void EmitDatatypeValue(DatatypeValue dtv, string arguments, TargetWriter wr);
     protected abstract void GetSpecialFieldInfo(SpecialField.ID id, object idParam, out string compiledName, out string preString, out string postString);
-    protected abstract ILvalue EmitMemberSelect(Action<TargetWriter> obj, MemberDecl member, List<Type> typeArgs, Type expectedType, bool internalAccess = false);
+    protected abstract ILvalue EmitMemberSelect(Action<TargetWriter> obj, MemberDecl member, List<Type> typeArgs, Dictionary<TypeParameter, Type> typeMap, Type expectedType, bool internalAccess = false);
     protected void EmitArraySelect(string index, Type elmtType, TargetWriter wr) {
       EmitArraySelect(new List<string>() { index }, elmtType, wr);
     }
@@ -1109,7 +1109,9 @@ namespace Microsoft.Dafny {
                   CompileReturnBody(cf.Rhs, wBody, null);
                 } else if (!cf.IsStatic) {
                   var sw = EmitReturnExpr(wBody);
-                  EmitMemberSelect(EmitThis, cf, CombineTypeParameters(cf).ConvertAll(tp => (Type)new UserDefinedType(tp)), f.Type, internalAccess: true).EmitRead(sw);
+                  var typeSubst = new Dictionary<TypeParameter, Type>();
+                  cf.EnclosingClass.TypeArgs.ForEach(tp => typeSubst.Add(tp, (Type)new UserDefinedType(tp)));
+                  EmitMemberSelect(EmitThis, cf, CombineTypeParameters(cf).ConvertAll(tp => (Type)new UserDefinedType(tp)), typeSubst, f.Type, internalAccess: true).EmitRead(sw);
                 } else {
                   EmitReturnExpr(DefaultValue(cf.Type, wBody, cf.tok, true), wBody);
                 }
@@ -2869,6 +2871,10 @@ namespace Microsoft.Dafny {
       return new SimpleLvalueImpl(this, wr => { action(wr); wr.Write(str, args); });
     }
 
+    protected ILvalue EnclosedLvalue(string prefix, Action<TargetWriter> action, string suffixStr, params object[] suffixArgs) {
+      return new SimpleLvalueImpl(this, wr => { wr.Write(prefix); action(wr); wr.Write(suffixStr, suffixArgs); });
+    }
+
     private class SimpleLvalueImpl : ILvalue {
       private readonly Compiler Compiler;
       private readonly Action<TargetWriter> LvalueAction, RvalueAction;
@@ -2908,7 +2914,7 @@ namespace Microsoft.Dafny {
         var ll = (MemberSelectExpr)lhs;
         Contract.Assert(!ll.Member.IsInstanceIndependentConstant);  // instance-independent const's don't have assignment statements
         var obj = StabilizeExpr(ll.Obj, "_obj", wr);
-        return EmitMemberSelect(w => w.Write(obj), ll.Member, ll.TypeApplication_JustMember, lhs.Type);
+        return EmitMemberSelect(w => w.Write(obj), ll.Member, ll.TypeApplication_JustMember, ll.TypeArgumentSubstitutionsWithParents(), lhs.Type);
       } else if (lhs is SeqSelectExpr) {
         var ll = (SeqSelectExpr)lhs;
         var arr = StabilizeExpr(ll.Seq, "_arr", wr);
@@ -3477,7 +3483,7 @@ namespace Microsoft.Dafny {
             }
 
             var typeArgs = CombineTypeArguments(e.Member, e.TypeApplication_AtEnclosingClass, e.TypeApplication_JustMember);
-            EmitMemberSelect(writeObj, e.Member, typeArgs, expr.Type).EmitRead(wr);
+            EmitMemberSelect(writeObj, e.Member, typeArgs, e.TypeArgumentSubstitutionsWithParents(), expr.Type).EmitRead(wr);
           }
 
           if (NeedsCustomReceiver(e.Member)) {
@@ -3487,10 +3493,12 @@ namespace Microsoft.Dafny {
           wr.Write(postStr);
         } else if (NeedsCustomReceiver(e.Member) || e.Member.IsStatic) {
           var typeArgs = CombineTypeArguments(e.Member, e.TypeApplication_AtEnclosingClass, e.TypeApplication_JustMember);
-          EmitMemberSelect(w => w.Write(TypeName_Companion(e.Obj.Type, wr, e.tok, e.Member)), e.Member, typeArgs, expr.Type).EmitRead(wr);
+          var typeMap = e.TypeArgumentSubstitutionsWithParents();
+          EmitMemberSelect(w => w.Write(TypeName_Companion(e.Obj.Type, wr, e.tok, e.Member)), e.Member, typeArgs, typeMap, expr.Type).EmitRead(wr);
         } else {
           var typeArgs = CombineTypeArguments(e.Member, e.TypeApplication_AtEnclosingClass, e.TypeApplication_JustMember);
-          EmitMemberSelect(w => TrExpr(e.Obj, w, inLetExprBody), e.Member, typeArgs, expr.Type).EmitRead(wr);
+          var typeMap = e.TypeArgumentSubstitutionsWithParents();
+          EmitMemberSelect(w => TrExpr(e.Obj, w, inLetExprBody), e.Member, typeArgs, typeMap, expr.Type).EmitRead(wr);
         }
 
       } else if (expr is SeqSelectExpr) {
@@ -4037,6 +4045,24 @@ namespace Microsoft.Dafny {
       } else {
         CompileFunctionCallExpr(e, wr, inLetExprBody, tr);
       }
+    }
+
+    public class TypeArgumentInstantiation
+    {
+      /// <summary>
+      /// A type parameter comes from either a class/trait/datatype/... or a method/function.
+      /// "formalIsMemberSpecific" is "false" to indicate the former, and "true" to indicate the latter.
+      /// </summary>
+      public TypeArgumentInstantiation(TypeParameter formal, Type actual, bool formalIsMemberSpecific) {
+        Contract.Requires(formal != null);
+        Contract.Requires(actual != null);
+        Formal = formal;
+        Actual = actual;
+        FormalIsMemberSpecific = formalIsMemberSpecific;
+      }
+      public readonly TypeParameter Formal;
+      public readonly Type Actual;
+      public bool FormalIsMemberSpecific;
     }
 
     void CompileFunctionCallExpr(FunctionCallExpr e, TargetWriter wr, bool inLetExprBody, FCE_Arg_Translator tr) {

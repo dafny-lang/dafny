@@ -14,25 +14,26 @@ method GenericClass() {
   var bb, aa, gg, hh, f2, f3;
   f2 := (x, y) => (x, y);
   f3 := (x, y, z) => (x, y, z);
+  print f2(0, 1), " ", f3(true, 2, 3), "\n";
 
   // class membes
   bb, aa := Class.M(22, 23);
-//  f2 := Class.F;
+  f2 := Class.F;
   print Class<int>.K, " ", Class<int>.N, " ", Class.F(20, 21), " ", f2(20, 21), " ", bb, " ", aa, "\n";
 
   // datatype members
   bb, aa := Datatype.M(22, 23);
-//  f2 := Datatype.F;
+  f2 := Datatype.F;
   print Datatype<int>.K, " ", Datatype<int>.N, " ", Datatype.F(20, 21), " ", f2(20, 21), " ", bb, " ", aa, "\n";
 
   // trait members
   gg, hh, bb := Trait.M'(true, 22, 23);
-//  f3 := Trait.F';
+  f3 := Trait.F';
   print Trait<int, int>.K', " ", Trait<int, int>.N', " ", Trait.F'(true, 20, 21), " ", f3(true, 20, 21), " ", gg, " ", hh, " ", bb, "\n";
 
   // trait members referenced via class
   gg, hh, bb := Class.M'(true, 22, 23);
-//  f3 := Class.F';
+  f3 := Class.F';
   print Class<int>.K', " ", Class<int>.N', " ", Class.F'(true, 20, 21), " ", f3(true, 20, 21), " ", gg, " ", hh, " ", bb, "\n";
 
   // now, try the same thing, but using a receiver value whose static type says where to find the member
