@@ -3776,11 +3776,8 @@ namespace Microsoft.Dafny{
       throw new NotImplementedException();
     }
 
-    /// <summary>
-    /// Transforms a legal file name (without extension or directcory) into
-    /// a legal class name in the target language
-    /// </summary>
     public override string TransformToClassName(string baseName) {
+      Contract.Assert(baseName != null);
       return System.Text.RegularExpressions.Regex.Replace(baseName, "[^_A-Za-z0-9\\$]", "_");
     }
   }

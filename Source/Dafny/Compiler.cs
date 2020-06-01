@@ -105,9 +105,12 @@ namespace Microsoft.Dafny {
     }
     
         
-    // Transforms a legal file name (without extension or directcory) into 
-    // a legal class name in the target language
+    /// <summary>
+    /// Transforms a legal file name (without extension or directcory) into
+    /// a legal class name in the target language
+    /// </summary>
     public virtual string TransformToClassName(string baseName) {
+      Contract.Assert(baseName != null);
       return baseName;
     }
 
