@@ -99,6 +99,14 @@ namespace Microsoft.Dafny {
     protected IClassWriter CreateClass(string name, List<TypeParameter>/*?*/ typeParameters, TargetWriter wr) {
       return CreateClass(name, false, null, typeParameters, null, null, wr);
     }
+    
+        
+    // Transforms a legal file name (without extension or directcory) into 
+    // a legal class name in the target language
+    public virtual string TransformToClassName(string baseName) {
+      return baseName;
+    }
+
     /// <summary>
     /// "tok" can be "null" if "superClasses" is.
     /// </summary>
