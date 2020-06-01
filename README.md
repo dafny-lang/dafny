@@ -4,10 +4,10 @@
 
 Dafny is a programming language with a program verifier. As you type in your program, the verifier constantly looks over your shoulders and flags any errors. This github site contains these materials:
 
-    * sources
-    * [binary downloads](https://github.com/dafny-lang/dafny/releases) for Windows, Mac, GNU/Linux, and FreeBSD
-    * the [issue tracker](https://github.com/dafny-lang/dafny/issues)
-    * the wiki, including [frequently asked questions](https://github.com/dafny-lang/dafny/wiki/FAQ)
+* sources
+* [binary downloads](https://github.com/dafny-lang/dafny/releases) for Windows, Mac, GNU/Linux, and FreeBSD
+* the [issue tracker](https://github.com/dafny-lang/dafny/issues)
+* the wiki, including [frequently asked questions](https://github.com/dafny-lang/dafny/wiki/FAQ)
 
 # Community
 
