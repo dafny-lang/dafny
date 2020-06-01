@@ -84,5 +84,4 @@ Source/.vs
 
 /Source/DafnyRuntime/DafnyRuntimeJava/.gradle
 /Source/DafnyRuntime/DafnyRuntimeJava/build
-/Source/DafnyRuntime/DafnyRuntimeJava/gradle
 *.class
