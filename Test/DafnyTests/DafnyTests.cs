@@ -31,6 +31,16 @@ namespace DafnyTests {
                 dafnyProcess.StartInfo.FileName = "dafny";
                 dafnyProcess.StartInfo.Arguments = Path.Combine(TEST_ROOT, filePath);
                 dafnyProcess.StartInfo.Arguments += " /compile:3";
+                // Expected output does not contain logo
+                dafnyProcess.StartInfo.Arguments += " -nologo -countVerificationErrors:0";
+
+                // We do not want absolute or relative paths in error messages, just the basename of the file
+                dafnyProcess.StartInfo.Arguments += " -useBaseNameForFileName";
+
+                // We do not want output such as "Compiled program written to Foo.cs"
+                // from the compilers, since that changes with the target language
+                dafnyProcess.StartInfo.Arguments += " -compileVerbose:0";
+                
                 foreach (var otherArgument in otherArguments) {
                     dafnyProcess.StartInfo.Arguments += " " + otherArgument;
                 }
@@ -52,7 +62,8 @@ namespace DafnyTests {
         [ClassData(typeof(TestData))]
         public void ValidProgramOutput(String inputPath, String targetLanguage) {
             string output = RunDafnyProgram(inputPath, "/compileTarget:" + targetLanguage);
-            Console.Out.Write(output);
+            string expectedOutput = File.ReadAllText(Path.Combine(TEST_ROOT, inputPath + ".expect"));
+            Assert.Equal(expectedOutput, output);
         }
     }
 }
