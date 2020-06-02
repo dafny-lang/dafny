@@ -401,7 +401,7 @@ namespace Microsoft.Dafny{
       public BlockTargetWriter/*?*/ CreateMethod(Method m, bool createBody) {
         return Compiler.CreateMethod(m, createBody, Writer(m.IsStatic));
       }
-      public BlockTargetWriter/*?*/ CreateFunction(string name, List<TypeParameter>/*?*/ typeArgs, List<Formal> formals, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl member) {
+      public BlockTargetWriter/*?*/ CreateFunction(string name, List<TypeParameter> typeArgs, List<Formal> formals, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl member) {
         return Compiler.CreateFunction(name, typeArgs, formals, resultType, tok, isStatic, createBody, member, Writer(isStatic));
       }
 
@@ -529,7 +529,7 @@ namespace Microsoft.Dafny{
       return w;
     }
 
-    protected BlockTargetWriter/*?*/ CreateFunction(string name, List<TypeParameter>/*?*/ typeArgs,
+    protected BlockTargetWriter/*?*/ CreateFunction(string name, List<TypeParameter> typeArgs,
       List<Formal> formals, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl member,
       TargetWriter wr) {
       if (member.IsExtern(out _, out _) && isStatic) {
@@ -539,17 +539,10 @@ namespace Microsoft.Dafny{
       var customReceiver = NeedsCustomReceiver(member);
       var receiverType = UserDefinedType.FromTopLevelDecl(member.tok, member.EnclosingClass);
       wr.Write("public {0}{1}", !createBody ? "abstract " : "", isStatic || customReceiver ? "static " : "");
-      if (typeArgs != null && typeArgs.Count != 0) {
+      if (typeArgs.Count != 0) {
         wr.Write($"<{TypeParameters(typeArgs)}> ");
         wr.Write($"{TypeName(resultType, wr, tok)} {name}(");
-      }
-      else if (isStatic && resultType.TypeArgs.Count > 0 && resultType.TypeArgs[0].IsTypeParameter){
-        string t = "";
-        string n = "";
-        SplitType(TypeName(resultType, wr, tok), out t, out n);
-        wr.Write($"{t} {n} {name}(");
-      }
-      else{
+      } else{
         wr.Write($"{TypeName(resultType, wr, tok)} {name}(");
       }
       var sep = "";
@@ -575,21 +568,6 @@ namespace Microsoft.Dafny{
           w = wr.NewBlock(")");
         }
         return w;
-      }
-    }
-
-    private void SplitType(string s, out string t, out string n){
-      string pat = @"([^<]+)(<.*>)";
-      Regex r = new Regex(pat);
-      Match m = r.Match(s);
-      if (m.Groups.Count < 2){
-        n = s;
-
-        t = null;
-      }
-      else{
-        n = m.Groups[1].Captures[0].Value;
-        t = m.Groups[2].Captures[0].Value;
       }
     }
 
