@@ -345,7 +345,7 @@ namespace Microsoft.Dafny {
       return cw;
     }
 
-    protected override IClassWriter CreateTrait(string name, bool isExtern, List<Type>/*?*/ superClasses, Bpl.IToken tok, TargetWriter wr) {
+    protected override IClassWriter CreateTrait(string name, bool isExtern, List<TypeParameter>/*?*/ typeParameters, List<Type>/*?*/ superClasses, Bpl.IToken tok, TargetWriter wr) {
       //
       // type Trait struct {
       //   Iface_Trait_ // see comments on CreateClass
@@ -383,7 +383,11 @@ namespace Microsoft.Dafny {
       var abstractMethodWriter = wr.NewNamedBlock("type {0} interface", FormatTraitInterfaceName(name));
       var concreteMethodWriter = wr.ForkSection();
 
-      CreateInitializer(name, wr, out var instanceFieldInitWriter, out var traitInitWriter, rtdParamWriter:out _);
+      CreateInitializer(name, wr, out var instanceFieldInitWriter, out var traitInitWriter, out var rtdParamWriter);
+
+      if (typeParameters != null) {
+        WriteRuntimeTypeDescriptorsFields(typeParameters, true, instanceFieldWriter, instanceFieldInitWriter, rtdParamWriter);
+      }
 
       var staticFieldWriter = wr.NewNamedBlock("type {0} struct", FormatCompanionTypeName(name));
       var staticFieldInitWriter = wr.NewNamedBlock("var {0} = {1}", FormatCompanionName(name), FormatCompanionTypeName(name));
@@ -1314,7 +1318,12 @@ namespace Microsoft.Dafny {
 
       var embed = UnqualifiedClassName(superType, instanceFieldInitWriter, tok);
 
-      instanceFieldInitWriter.WriteLine("_this.{0} = {1}()", embed, TypeName_Initializer(superType, instanceFieldInitWriter, tok));
+      instanceFieldInitWriter.Write("_this.{0} = {1}(", embed, TypeName_Initializer(superType, instanceFieldInitWriter, tok));
+      if (superType is UserDefinedType udf) {
+        Contract.Assert(udf.ResolvedClass != null);
+        EmitRuntimeTypeDescriptorsActuals(superType.TypeArgs, udf.ResolvedClass.TypeArgs, tok, true, instanceFieldInitWriter);
+      }
+      instanceFieldInitWriter.WriteLine(")");
 
       if (superType.IsTraitType) {
         traitInitWriter.WriteLine("_this.{0}.{1} = &_this", embed, FormatTraitInterfaceName(embed));
@@ -2227,7 +2236,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    protected override void EmitITE(Expression guard, Expression thn, Expression els, bool inLetExprBody, TargetWriter wr) {
+    protected override void EmitITE(Expression guard, Expression thn, Expression els, Type resultType, bool inLetExprBody, TargetWriter wr) {
       wr.Write("(func () {0} {{ if ", TypeName(thn.Type, wr, null));
       TrExpr(guard, wr, inLetExprBody);
       wr.Write(" { return ");

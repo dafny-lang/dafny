@@ -86,9 +86,13 @@ namespace Microsoft.Dafny {
       return new ClassWriter(this, methodWriter, fieldWriter);
     }
 
-    protected override IClassWriter CreateTrait(string name, bool isExtern, List<Type>/*?*/ superClasses, Bpl.IToken tok, TargetWriter wr) {
+    protected override IClassWriter CreateTrait(string name, bool isExtern, List<TypeParameter>/*?*/ typeParameters, List<Type>/*?*/ superClasses, Bpl.IToken tok, TargetWriter wr) {
       var w = wr.NewBlock(string.Format("$module.{0} = class {0}", IdProtect(name)), ";");
-      var fieldWriter = w.NewBlock("constructor ()");
+      w.Write("constructor (");
+      if (typeParameters != null) {
+        WriteRuntimeTypeDescriptorsFormals(typeParameters, false, w);
+      }
+      var fieldWriter = w.NewBlock(")");
       var methodWriter = w;
       return new ClassWriter(this, methodWriter, fieldWriter);
     }
@@ -1363,6 +1367,10 @@ namespace Microsoft.Dafny {
 
     protected override void EmitThis(TargetWriter wr) {
       wr.Write("_this");
+    }
+
+    protected override TargetWriter EmitCast(Type toType, TargetWriter wr) {
+      return wr;
     }
 
     protected override void EmitDatatypeValue(DatatypeValue dtv, string arguments, TargetWriter wr) {

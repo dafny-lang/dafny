@@ -1,8 +1,8 @@
 UserSpecifiedTypeParameters.dfy(26,10): Error: the type of this variable is underspecified
-UserSpecifiedTypeParameters.dfy(26,24): Error: type variable 'T' in the function call to 'H' could not be determined
-UserSpecifiedTypeParameters.dfy(26,24): Error: type variable 'U' in the function call to 'H' could not be determined
-UserSpecifiedTypeParameters.dfy(46,22): Error: Undeclared top-level type or type parameter: b (did you forget to qualify a name or declare a module import 'opened?')
-UserSpecifiedTypeParameters.dfy(46,26): Error: Undeclared top-level type or type parameter: c (did you forget to qualify a name or declare a module import 'opened?')
+UserSpecifiedTypeParameters.dfy(26,24): Error: type parameter 'T' (inferred to be '?') in the function call to 'H' could not be determined
+UserSpecifiedTypeParameters.dfy(26,24): Error: type parameter 'U' (inferred to be '?') in the function call to 'H' could not be determined
+UserSpecifiedTypeParameters.dfy(46,22): Error: Undeclared top-level type or type parameter: b (did you forget to qualify a name or declare a module import 'opened'?)
+UserSpecifiedTypeParameters.dfy(46,26): Error: Undeclared top-level type or type parameter: c (did you forget to qualify a name or declare a module import 'opened'?)
 UserSpecifiedTypeParameters.dfy(46,18): Error: variable 'a' does not take any type parameters
 UserSpecifiedTypeParameters.dfy(46,30): Error: non-function expression (of type int) is called with parameters
 UserSpecifiedTypeParameters.dfy(46,16): Error: wrong number of arguments to function application (function 'F' expects 2, got 1)

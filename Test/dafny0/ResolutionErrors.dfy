@@ -2891,3 +2891,32 @@ module ExpectStatements {
     expect false, if g == 5 then "boom" else "splat"; // error: ghost variables are allowed only in specification contexts
   }
 }
+
+// --------------- type-parameter scopes ------------------------------
+
+module TypeParameterScopes {
+  class C<X> {
+    function method G(): X
+    method M<X>(f: X) {
+      var h: X := f;
+      var k: X := G();  // error: this is the wrong X
+    }
+    function method F<X>(f: X): int {
+      var h: X := f;
+      var k: X := G();  // error: this is the wrong X
+      10
+    }
+  }
+}
+
+// --------------- type of function members (regression tests) ------------------------------
+
+module TypeOfFunctionMember {
+  function Fo<X>(x: X): int
+
+  lemma M() {
+    // Both of the following once crashed the type checker
+    var rd := Fo<real>.reads;
+    var rq := Fo<real>.requires;
+  }
+}

@@ -1,5 +1,5 @@
 
-Dafny program verifier finished with 6 verified, 0 errors
+Dafny program verifier finished with 41 verified, 0 errors
 y=120
 x=12
 d=800
@@ -19,3 +19,13 @@ This is OtherModule.P(7.0)
 From OtherModule.X: 7 and true
 c.f= 15 j.f= 15
 c.f= 18 j.f= 18
+23 101 0 52 52 12 53 5 5 5 5
+23 101 0 52 52 12 53 5 5 5 5
+x=126
+5.2 9 false
+true true true
+5.2 5.2
+1.2 1.2
+15 30
+15 30
+15 30

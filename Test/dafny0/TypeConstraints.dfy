@@ -441,3 +441,28 @@ module Arrays_and_SubsetTypes {
     }
   }
 }
+
+module TypeArgumentPrintTests {
+  trait Tr<X> { }
+
+  class Cl<Y> extends Tr<Y> {
+    lemma M() {
+      var u: Tr := this;  // should print as "var u: Tr<Y> := this;"
+      var v: Tr<Y> := this;  // should print as "var v: Tr<Y> := this;"
+    }
+  }
+
+  // -----
+  class A<X> {
+    static function method F(x: X): int { 15 }
+  }
+
+  class B<Y> {
+    function method H(y: Y, b: bool): int {
+      if b then
+        A.F(y)  // should print as A<Y>.F(y)
+      else
+        A<Y>.F(y)  // should print as A<Y>.F(y)
+    }
+  }
+}

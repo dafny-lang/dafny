@@ -1,0 +1,11 @@
+TraitVerify.dfy(21,7): Error: value does not satisfy the subset constraints of 'Tr<int>' (possible cause: it may be null)
+Execution trace:
+    (0,0): anon0
+TraitVerify.dfy(25,7): Error: value does not satisfy the subset constraints of 'Tr<int>' (possible cause: it may be null)
+Execution trace:
+    (0,0): anon0
+TraitVerify.dfy(30,7): Error: value does not satisfy the subset constraints of 'A' (it may be null)
+Execution trace:
+    (0,0): anon0
+
+Dafny program verifier finished with 4 verified, 3 errors
