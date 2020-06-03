@@ -182,35 +182,28 @@ namespace Microsoft.Dafny {
       }
     }
 
-    protected void UsedTypeParameters(DatatypeDecl dt, List<Type> typeArgs, out List<TypeParameter> usedTypeFormals, out List<Type> usedTypeArgs) {
+    protected List<TypeArgumentInstantiation> UsedTypeParameters(DatatypeDecl dt, List<Type> typeArgs) {
       Contract.Requires(dt != null);
       Contract.Requires(typeArgs != null);
       Contract.Requires(dt.TypeArgs.Count == typeArgs.Count);
-      Contract.Ensures(Contract.ValueAtReturn<List<TypeParameter>>(out usedTypeFormals) != null);
-      Contract.Ensures(Contract.ValueAtReturn<List<TypeParameter>>(out usedTypeFormals) != null);
-      Contract.Ensures(Contract.ValueAtReturn<List<TypeParameter>>(out usedTypeFormals).Count == Contract.ValueAtReturn<List<TypeParameter>>(out usedTypeFormals).Count);
 
       var idt = dt as IndDatatypeDecl;
       if (idt == null) {
-        usedTypeFormals = dt.TypeArgs;
-        usedTypeArgs = typeArgs;
+        return TypeArgumentInstantiation.ListFromClass(dt, typeArgs);
       } else {
         Contract.Assert(typeArgs.Count == idt.TypeParametersUsedInConstructionByDefaultCtor.Length);
-        usedTypeArgs = new List<Type>();
-        usedTypeFormals = new List<TypeParameter>();
+        var r = new List<TypeArgumentInstantiation>();
         for (int i = 0; i < typeArgs.Count; i++) {
           if (idt.TypeParametersUsedInConstructionByDefaultCtor[i]) {
-            usedTypeFormals.Add(dt.TypeArgs[i]);
-            usedTypeArgs.Add(typeArgs[i]);
+            r.Add(new TypeArgumentInstantiation(dt.TypeArgs[i], typeArgs[i], false));
           }
         }
+        return r;
       }
     }
 
-    protected virtual int EmitRuntimeTypeDescriptorsActuals(List<Type> typeArgs, List<TypeParameter> formals, Bpl.IToken tok, bool useAllTypeArgs, TargetWriter wr) {
+    protected virtual int EmitRuntimeTypeDescriptorsActuals(List<TypeArgumentInstantiation> typeArgs, Bpl.IToken tok, bool useAllTypeArgs, TargetWriter wr) {
       Contract.Requires(typeArgs != null);
-      Contract.Requires(formals != null);
-      Contract.Requires(typeArgs.Count == formals.Count);
       Contract.Requires(tok != null);
       Contract.Requires(wr != null);
       return 0;
@@ -554,7 +547,80 @@ namespace Microsoft.Dafny {
     }
     protected abstract void EmitDatatypeValue(DatatypeValue dtv, string arguments, TargetWriter wr);
     protected abstract void GetSpecialFieldInfo(SpecialField.ID id, object idParam, out string compiledName, out string preString, out string postString);
-    protected abstract ILvalue EmitMemberSelect(Action<TargetWriter> obj, MemberDecl member, List<Type> typeArgs, Dictionary<TypeParameter, Type> typeMap, Type expectedType, bool internalAccess = false);
+
+    /// <summary>
+    /// A "TypeArgumentInstantiation" is essentially a pair consisting of a formal type parameter and an actual type for that parameter.
+    /// </summary>
+    public class TypeArgumentInstantiation
+    {
+      public readonly TypeParameter Formal;
+      public readonly Type Actual;
+      /// <summary>
+      /// A type parameter comes from either a class/trait/datatype/... or a method/function.
+      /// "ParentIsMember" is "false" to indicate the former, and "true" to indicate the latter.
+      /// </summary>
+      public bool ParentIsMember;
+
+      public TypeArgumentInstantiation(TypeParameter formal, Type actual, bool parentIsMember) {
+        Contract.Requires(formal != null);
+        Contract.Requires(actual != null);
+        Formal = formal;
+        Actual = actual;
+        ParentIsMember = parentIsMember;
+        Contract.Assert(parentIsMember == (formal.Parent is MemberDecl));  // TODO: if this is really always true, then the field can be a property getter instead, computing its result from "formal"
+      }
+
+      /// <summary>
+      /// Uses "formal" for both formal and actual.
+      /// </summary>
+      public TypeArgumentInstantiation(TypeParameter formal) {
+        Contract.Requires(formal != null);
+        Formal = formal;
+        Actual = new UserDefinedType(formal);
+        ParentIsMember = formal.Parent is MemberDecl;
+      }
+
+      public static List<TypeArgumentInstantiation> ListFromMember(MemberDecl member, List<Type> /*?*/ classActuals, List<Type> /*?*/ memberActuals) {
+        Contract.Requires(member is Function || member is Method);
+        Contract.Requires(classActuals == null || classActuals.Count == member.EnclosingClass.TypeArgs.Count);
+        Contract.Requires(memberActuals == null || memberActuals.Count == (member is ICallable ic ? ic.TypeArgs.Count : 0));
+
+        var r = new List<TypeArgumentInstantiation>();
+        void add(List<TypeParameter> formals, List<Type> actuals, bool belongToMember) {
+          Contract.Assert(formals.Count == actuals.Count);
+          for (var i = 0; i < formals.Count; i++) {
+            r.Add(new TypeArgumentInstantiation(formals[i], actuals[i], belongToMember));
+          }
+        };
+
+        if (classActuals != null) {
+          add(member.EnclosingClass.TypeArgs, classActuals, false);
+        }
+        if (memberActuals != null && member is ICallable icallable) {
+          add(icallable.TypeArgs, memberActuals, true);
+        }
+        return r;
+      }
+
+      public static List<TypeArgumentInstantiation> ListFromClass(TopLevelDecl cl, List<Type> actuals) {
+        Contract.Requires(cl != null);
+        Contract.Requires(actuals != null);
+        Contract.Requires(cl.TypeArgs.Count == actuals.Count);
+
+        var r = new List<TypeArgumentInstantiation>();
+        for (var i = 0; i < cl.TypeArgs.Count; i++) {
+          r.Add(new TypeArgumentInstantiation(cl.TypeArgs[i], actuals[i], false));
+        }
+        return r;
+      }
+
+      public static List<TypeArgumentInstantiation> ListFromFormals(List<TypeParameter> formals, bool belongToMember) {
+        Contract.Requires(formals != null);
+        return formals.ConvertAll(tp => new TypeArgumentInstantiation(tp, new UserDefinedType(tp), belongToMember));
+      }
+    }
+
+    protected abstract ILvalue EmitMemberSelect(Action<TargetWriter> obj, MemberDecl member, List<TypeArgumentInstantiation> typeArgs, Dictionary<TypeParameter, Type> typeMap, Type expectedType, bool internalAccess = false);
     protected void EmitArraySelect(string index, Type elmtType, TargetWriter wr) {
       EmitArraySelect(new List<string>() { index }, elmtType, wr);
     }
@@ -1111,7 +1177,7 @@ namespace Microsoft.Dafny {
                   var sw = EmitReturnExpr(wBody);
                   var typeSubst = new Dictionary<TypeParameter, Type>();
                   cf.EnclosingClass.TypeArgs.ForEach(tp => typeSubst.Add(tp, (Type)new UserDefinedType(tp)));
-                  EmitMemberSelect(EmitThis, cf, CombineTypeParameters(cf).ConvertAll(tp => (Type)new UserDefinedType(tp)), typeSubst, f.Type, internalAccess: true).EmitRead(sw);
+                  EmitMemberSelect(EmitThis, cf, CombineTypeParameters(cf).ConvertAll(tp => new TypeArgumentInstantiation(tp)), typeSubst, f.Type, internalAccess: true).EmitRead(sw);
                 } else {
                   EmitReturnExpr(DefaultValue(cf.Type, wBody, cf.tok, true), wBody);
                 }
@@ -1202,26 +1268,23 @@ namespace Microsoft.Dafny {
 
     protected List<TypeParameter> CombineTypeParameters(MemberDecl member) {
       Contract.Requires(member != null);
-      var prefix = member.IsStatic && !SupportsStaticsInGenericClasses ? member.EnclosingClass.TypeArgs : null;
-      // return Concat(prefix, member.TypeArgs), essentially, but prefix may be null and member may not have .TypeArgs
-      if (!(member is ICallable ic)) {
-        // a field
-        return prefix ?? new List<TypeParameter>();
-      } else if (prefix == null) {
-        return ic.TypeArgs;
-      } else {
-        return Util.Concat(prefix, ic.TypeArgs);
-      }
+      var classActuals = member.EnclosingClass.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp));
+      var memberActuals = member is ICallable ic ? ic.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp)) : null;
+      var typeArgs = CombineTypeArguments(member, classActuals, memberActuals);
+      return typeArgs.ConvertAll(ta => ta.Formal);
     }
 
-    protected List<Type> CombineTypeArguments(MemberDecl member, List<Type> typeArgsEnclosingClass, List<Type> typeArgsMember) {
+    protected List<TypeArgumentInstantiation> CombineTypeArguments(MemberDecl member, List<Type> typeArgsEnclosingClass, List<Type> typeArgsMember) {
       Contract.Requires(member != null);
       Contract.Requires(typeArgsEnclosingClass != null);
       Contract.Requires(typeArgsMember != null);
-      if (member.IsStatic && !SupportsStaticsInGenericClasses) {
-        return Util.Concat(typeArgsEnclosingClass, typeArgsMember);
+      if (member is Field) {
+        var formals = member.EnclosingClass != null ? member.EnclosingClass.TypeArgs : new List<TypeParameter>();  // some special fields have .EnclosingClass == null
+        return TypeArgumentInstantiation.ListFromFormals(formals, false);
+      } else if (member.IsStatic && !SupportsStaticsInGenericClasses) {
+        return TypeArgumentInstantiation.ListFromMember(member, typeArgsEnclosingClass, typeArgsMember);
       } else {
-        return typeArgsMember;
+        return TypeArgumentInstantiation.ListFromMember(member, null, typeArgsMember);
       }
     }
 
@@ -2914,7 +2977,8 @@ namespace Microsoft.Dafny {
         var ll = (MemberSelectExpr)lhs;
         Contract.Assert(!ll.Member.IsInstanceIndependentConstant);  // instance-independent const's don't have assignment statements
         var obj = StabilizeExpr(ll.Obj, "_obj", wr);
-        return EmitMemberSelect(w => w.Write(obj), ll.Member, ll.TypeApplication_JustMember, ll.TypeArgumentSubstitutionsWithParents(), lhs.Type);
+        var typeArgs = TypeArgumentInstantiation.ListFromMember(ll.Member, null, ll.TypeApplication_JustMember);
+        return EmitMemberSelect(w => w.Write(obj), ll.Member, typeArgs, ll.TypeArgumentSubstitutionsWithParents(), lhs.Type);
       } else if (lhs is SeqSelectExpr) {
         var ll = (SeqSelectExpr)lhs;
         var arr = StabilizeExpr(ll.Seq, "_arr", wr);
@@ -3228,9 +3292,9 @@ namespace Microsoft.Dafny {
         }
         var formalTypeParameters = CombineTypeParameters(s.Method);
         var actualTypeArguments = CombineTypeArguments(s.Method, s.MethodSelect.TypeApplication_AtEnclosingClass, s.MethodSelect.TypeApplication_JustMember);
-        EmitNameAndActualTypeArgs(protectedName, actualTypeArguments, s.Tok, wr);
+        EmitNameAndActualTypeArgs(protectedName, actualTypeArguments.ConvertAll(ta => ta.Actual), s.Tok, wr);
         wr.Write("(");
-        var nRTDs = EmitRuntimeTypeDescriptorsActuals(actualTypeArguments, formalTypeParameters, s.Tok, false, wr);
+        var nRTDs = EmitRuntimeTypeDescriptorsActuals(actualTypeArguments, s.Tok, false, wr);
         string sep = nRTDs == 0 ? "" : ", ";
         if (customReceiver) {
           TrExpr(s.Receiver, wr, false);
@@ -3471,7 +3535,8 @@ namespace Microsoft.Dafny {
             wr.Write("{0}.", TypeName_Companion(e.Obj.Type, wr, e.tok, sf));
             EmitNameAndActualTypeArgs(IdName(e.Member), typeArgs, e.tok, wr);
             wr.Write("(");
-            EmitRuntimeTypeDescriptorsActuals(typeArgs, sf.EnclosingClass.TypeArgs, e.tok, false, wr);
+            var tas = TypeArgumentInstantiation.ListFromClass(sf.EnclosingClass, typeArgs);
+            EmitRuntimeTypeDescriptorsActuals(tas, e.tok, false, wr);
             wr.Write(")");
           } else {
             void writeObj(TargetWriter w) {
@@ -4047,24 +4112,6 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public class TypeArgumentInstantiation
-    {
-      /// <summary>
-      /// A type parameter comes from either a class/trait/datatype/... or a method/function.
-      /// "formalIsMemberSpecific" is "false" to indicate the former, and "true" to indicate the latter.
-      /// </summary>
-      public TypeArgumentInstantiation(TypeParameter formal, Type actual, bool formalIsMemberSpecific) {
-        Contract.Requires(formal != null);
-        Contract.Requires(actual != null);
-        Formal = formal;
-        Actual = actual;
-        FormalIsMemberSpecific = formalIsMemberSpecific;
-      }
-      public readonly TypeParameter Formal;
-      public readonly Type Actual;
-      public bool FormalIsMemberSpecific;
-    }
-
     void CompileFunctionCallExpr(FunctionCallExpr e, TargetWriter wr, bool inLetExprBody, FCE_Arg_Translator tr) {
       Contract.Requires(e != null && e.Function != null);
       Contract.Requires(wr != null);
@@ -4082,12 +4129,10 @@ namespace Microsoft.Dafny {
         wr.Write(")");
       }
       wr.Write(".");
-      var formalTypeParameters = CombineTypeParameters(f);
       var actualTypeArguments = CombineTypeArguments(f, e.TypeApplication_AtEnclosingClass, e.TypeApplication_JustFunction);
-      Contract.Assert(formalTypeParameters.Count == actualTypeArguments.Count);
-      EmitNameAndActualTypeArgs(IdName(f), actualTypeArguments, f.tok, wr);
+      EmitNameAndActualTypeArgs(IdName(f), actualTypeArguments.ConvertAll(ta => ta.Actual), f.tok, wr);
       wr.Write("(");
-      var nRTDs = EmitRuntimeTypeDescriptorsActuals(actualTypeArguments, formalTypeParameters, e.tok, false, wr);
+      var nRTDs = EmitRuntimeTypeDescriptorsActuals(actualTypeArguments, e.tok, false, wr);
       string sep = nRTDs == 0 ? "" : ", ";
       if (customReceiver) {
         TrExpr(e.Receiver, wr, inLetExprBody);

@@ -1199,14 +1199,12 @@ namespace Microsoft.Dafny {
       }
     }
 
-    protected override int EmitRuntimeTypeDescriptorsActuals(List<Type> typeArgs, List<TypeParameter> formals, Bpl.IToken tok, bool useAllTypeArgs, TargetWriter wr) {
+    protected override int EmitRuntimeTypeDescriptorsActuals(List<TypeArgumentInstantiation> typeArgs, Bpl.IToken tok, bool useAllTypeArgs, TargetWriter wr) {
       var sep = "";
       var c = 0;
-      for (int i = 0; i < typeArgs.Count; i++) {
-        var actual = typeArgs[i];
-        var formal = formals[i];
-        if (useAllTypeArgs || formal.Characteristics.MustSupportZeroInitialization) {
-          wr.Write("{0}{1}", sep, RuntimeTypeDescriptor(actual, tok, wr));
+      foreach (var ta in typeArgs) {
+        if (useAllTypeArgs || ta.Formal.Characteristics.MustSupportZeroInitialization) {
+          wr.Write("{0}{1}", sep, RuntimeTypeDescriptor(ta.Actual, tok, wr));
           sep = ", ";
           c++;
         }
@@ -1271,15 +1269,12 @@ namespace Microsoft.Dafny {
         } else if (cl is ClassDecl || cl is DatatypeDecl) {
           var w = new TargetWriter();
           w.Write("{0}(", cl is TupleTypeDecl ? "_dafny.TupleType" : TypeName_RTD(xType, w, tok));
-          List<TypeParameter> usedTypeFormals;
-          List<Type> usedTypeArgs;
           if (cl is DatatypeDecl dt) {
-            UsedTypeParameters(dt, udt.TypeArgs, out usedTypeFormals, out usedTypeArgs);
+            EmitRuntimeTypeDescriptorsActuals(UsedTypeParameters(dt, udt.TypeArgs), udt.tok, true, w);
           } else {
-            usedTypeArgs = udt.TypeArgs;
-            usedTypeFormals = cl.TypeArgs;
+            var typeArgs = TypeArgumentInstantiation.ListFromClass(cl, udt.TypeArgs);
+            EmitRuntimeTypeDescriptorsActuals(typeArgs, udt.tok, true, w);
           }
-          EmitRuntimeTypeDescriptorsActuals(usedTypeArgs, usedTypeFormals, udt.tok, true, w);
           w.Write(")");
           return w.ToString();
         } else if (xType.IsNonNullRefType) {
@@ -1321,9 +1316,10 @@ namespace Microsoft.Dafny {
       var embed = UnqualifiedClassName(superType, instanceFieldInitWriter, tok);
 
       instanceFieldInitWriter.Write("_this.{0} = {1}(", embed, TypeName_Initializer(superType, instanceFieldInitWriter, tok));
-      if (superType is UserDefinedType udf) {
-        Contract.Assert(udf.ResolvedClass != null);
-        EmitRuntimeTypeDescriptorsActuals(superType.TypeArgs, udf.ResolvedClass.TypeArgs, tok, true, instanceFieldInitWriter);
+      if (superType is UserDefinedType udt) {
+        Contract.Assert(udt.ResolvedClass != null);
+        var typeArgs = TypeArgumentInstantiation.ListFromClass(udt.ResolvedClass, superType.TypeArgs);
+        EmitRuntimeTypeDescriptorsActuals(typeArgs, tok, true, instanceFieldInitWriter);
       }
       instanceFieldInitWriter.WriteLine(")");
 
@@ -1855,13 +1851,13 @@ namespace Microsoft.Dafny {
     // ----- Expressions -------------------------------------------------------------
 
     protected override void EmitNew(Type type, Bpl.IToken tok, CallStmt/*?*/ initCall, TargetWriter wr) {
-      var cl = (type.NormalizeExpand() as UserDefinedType)?.ResolvedClass;
+      var cl = ((UserDefinedType)type.NormalizeExpand()).ResolvedClass;
       if (cl != null) {
         if (cl.Name == "object") {
           wr.Write("new(struct{})");
         } else {
           wr.Write("{0}(", TypeName_Initializer(type, wr, tok));
-          EmitRuntimeTypeDescriptorsActuals(type.TypeArgs, cl.TypeArgs, tok, true, wr);
+          EmitRuntimeTypeDescriptorsActuals(TypeArgumentInstantiation.ListFromClass(cl, type.TypeArgs), tok, true, wr);
           wr.Write(")");
         }
       } else {
@@ -2328,7 +2324,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    protected override ILvalue EmitMemberSelect(Action<TargetWriter> obj, MemberDecl member, List<Type> typeArgs, Dictionary<TypeParameter, Type> typeMap, Type expectedType, bool internalAccess = false) {
+    protected override ILvalue EmitMemberSelect(Action<TargetWriter> obj, MemberDecl member, List<TypeArgumentInstantiation> typeArgs, Dictionary<TypeParameter, Type> typeMap, Type expectedType, bool internalAccess = false) {
       if (member is DatatypeDestructor dtor) {
         return SimpleLvalue(wr => {
           wr = EmitCoercionIfNecessary(from:dtor.Type, to:expectedType, tok:null, wr:wr);

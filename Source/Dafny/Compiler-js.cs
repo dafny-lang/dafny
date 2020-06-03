@@ -649,14 +649,12 @@ namespace Microsoft.Dafny {
       return c;
     }
 
-    protected override int EmitRuntimeTypeDescriptorsActuals(List<Type> typeArgs, List<TypeParameter> formals, Bpl.IToken tok, bool useAllTypeArgs, TargetWriter wr) {
+    protected override int EmitRuntimeTypeDescriptorsActuals(List<TypeArgumentInstantiation> typeArgs, Bpl.IToken tok, bool useAllTypeArgs, TargetWriter wr) {
       var sep = "";
       var c = 0;
-      for (int i = 0; i < typeArgs.Count; i++) {
-        var actual = typeArgs[i];
-        var formal = formals[i];
-        if (useAllTypeArgs || formal.Characteristics.MustSupportZeroInitialization) {
-          wr.Write("{0}{1}", sep, RuntimeTypeDescriptor(actual, tok, wr));
+      foreach (var ta in typeArgs) {
+        if (useAllTypeArgs || ta.Formal.Characteristics.MustSupportZeroInitialization) {
+          wr.Write("{0}{1}", sep, RuntimeTypeDescriptor(ta.Actual, tok, wr));
           sep = ", ";
           c++;
         }
@@ -719,10 +717,7 @@ namespace Microsoft.Dafny {
           var dt = (DatatypeDecl)cl;
           var w = new TargetWriter();
           w.Write("{0}.Rtd(", dt is TupleTypeDecl ? "_dafny.Tuple" : FullTypeName(udt));
-          List<TypeParameter> usedTypeFormals;
-          List<Type> usedTypeArgs;
-          UsedTypeParameters(dt, udt.TypeArgs, out usedTypeFormals, out usedTypeArgs);
-          EmitRuntimeTypeDescriptorsActuals(usedTypeArgs, usedTypeFormals, udt.tok, true, w);
+          EmitRuntimeTypeDescriptorsActuals(UsedTypeParameters(dt, udt.TypeArgs), udt.tok, true, w);
           w.Write(")");
           return w.ToString();
         } else if (xType.IsNonNullRefType) {
@@ -953,10 +948,7 @@ namespace Microsoft.Dafny {
         var s = dt is TupleTypeDecl ? "_dafny.Tuple" : FullTypeName(udt);
         var w = new TargetWriter();
         w.Write("{0}.Rtd(", s);
-        List<TypeParameter> usedTypeFormals;
-        List<Type> usedTypeArgs;
-        UsedTypeParameters(dt, udt.TypeArgs, out usedTypeFormals, out usedTypeArgs);
-        EmitRuntimeTypeDescriptorsActuals(usedTypeArgs, usedTypeFormals, udt.tok, true, w);
+        EmitRuntimeTypeDescriptorsActuals(UsedTypeParameters(dt, udt.TypeArgs), udt.tok, true, w);
         w.Write(").Default");
         return w.ToString();
       } else {
@@ -1126,12 +1118,12 @@ namespace Microsoft.Dafny {
     // ----- Expressions -------------------------------------------------------------
 
     protected override void EmitNew(Type type, Bpl.IToken tok, CallStmt/*?*/ initCall, TargetWriter wr) {
-      var cl = (type.NormalizeExpand() as UserDefinedType)?.ResolvedClass;
-      if (cl != null && cl.Name == "object") {
+      var cl = ((UserDefinedType)type.NormalizeExpand()).ResolvedClass;
+      if (cl.Name == "object") {
         wr.Write("_dafny.NewObject()");
       } else {
         wr.Write("new {0}(", TypeName(type, wr, tok));
-        EmitRuntimeTypeDescriptorsActuals(type.TypeArgs, cl.TypeArgs, tok, false, wr);
+        EmitRuntimeTypeDescriptorsActuals(TypeArgumentInstantiation.ListFromClass(cl, type.TypeArgs), tok, false, wr);
         wr.Write(")");
       }
     }
@@ -1465,7 +1457,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    protected override ILvalue EmitMemberSelect(Action<TargetWriter> obj, MemberDecl member, List<Type> typeArgs, Dictionary<TypeParameter, Type> typeMap, Type expectedType,
+    protected override ILvalue EmitMemberSelect(Action<TargetWriter> obj, MemberDecl member, List<TypeArgumentInstantiation> typeArgs, Dictionary<TypeParameter, Type> typeMap, Type expectedType,
       bool internalAccess = false) {
       if (member is ConstantField) {
         return SimpleLvalue(lvalueAction: wr => {
