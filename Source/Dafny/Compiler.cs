@@ -350,11 +350,21 @@ namespace Microsoft.Dafny {
       var w = EmitAssignmentRhs(wr);
       TrExpr(rhs, w, inLetExprBody);
     }
+
     protected virtual TargetWriter EmitAssignmentRhs(TargetWriter wr) {
       wr.Write(" = ");
       var w = wr.Fork();
       EndStmt(wr);
       return w;
+    }
+
+    protected virtual string EmitAssignmentLhs(Expression e, TargetWriter wr) {
+      string target = idGenerator.FreshId("_lhs");
+      wr.Write(GenerateLhsDecl(target, e.Type, wr, null));
+      wr.Write(" = ");
+      TrExpr(e,wr,false);
+      EndStmt(wr);
+      return target;
     }
 
     protected virtual void EmitMultiAssignment(List<Expression> lhsExprs, List<ILvalue> lhss, List<Type> lhsTypes, out List<TargetWriter> wRhss,
@@ -386,28 +396,14 @@ namespace Microsoft.Dafny {
             ExprDotName memExpr = lexpr as ExprDotName;
             Expression rec = memExpr.Lhs;
             MemberSelectExpr resolved = lexpr.Resolved as MemberSelectExpr;
-            string targetRec = idGenerator.FreshId("_lhs");
-            wr.Write(GenerateLhsDecl(targetRec, rec.Type, wr, null));
-            wr.Write(" = ");
-            TrExpr(rec,wr,false);
-            EndStmt(wr);
+            string targetRec = EmitAssignmentLhs(rec, wr);
             ILvalue newLhs = EmitMemberSelect(w => w.Write(targetRec), resolved.Member, lhsTypes[i]);
             lhssn.Add(newLhs);
           } else if (lexpr is SeqSelectExpr) {
             SeqSelectExpr seqExpr = lexpr as SeqSelectExpr;
-            Expression array = seqExpr.Seq;
-            Expression index = seqExpr.E0;
-            string targetArray = idGenerator.FreshId("_lhs");
-            wr.Write(GenerateLhsDecl(targetArray, array.Type, wr, null));
-            wr.Write(" = ");
-            TrExpr(array,wr,false);
-            EndStmt(wr);
-            string target2 = idGenerator.FreshId("_lhs");
-            wr.Write(GenerateLhsDecl(target2, index.Type, wr, null));
-            wr.Write(" = ");
-            TrExpr(index,wr,false);
-            EndStmt(wr);
-            ILvalue newLhs = EmitArraySelectAsLvalue(targetArray, new List<string>() { target2 }, lhsTypes[i]);
+            string targetArray = EmitAssignmentLhs(seqExpr.Seq, wr);
+            string targetIndex = EmitAssignmentLhs(seqExpr.E0, wr);
+            ILvalue newLhs = EmitArraySelectAsLvalue(targetArray, new List<string>() { targetIndex }, lhsTypes[i]);
             lhssn.Add(newLhs);
           } else if (lexpr is MultiSelectExpr) {
             MultiSelectExpr seqExpr = lexpr as MultiSelectExpr;
@@ -420,17 +416,11 @@ namespace Microsoft.Dafny {
             EndStmt(wr);
             var targetIndices = new List<string>();
             foreach (var index in indices) {
-              string targetIndex = idGenerator.FreshId("_lhs");
-              wr.Write(GenerateLhsDecl(targetIndex, index.Type, wr, null));
-              wr.Write(" = ");
-              TrExpr(index, wr, false);
-              EndStmt(wr);
+              string targetIndex = EmitAssignmentLhs(index, wr);
               targetIndices.Add(targetIndex);
             }
-
             ILvalue newLhs = EmitArraySelectAsLvalue(targetArray, targetIndices, lhsTypes[i]);
             lhssn.Add(newLhs);
-
           } else  {
             Contract.Assert(false); // Unknown kind of expression
             lhssn.Add(lhs);
