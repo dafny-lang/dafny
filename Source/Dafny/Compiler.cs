@@ -377,12 +377,12 @@ namespace Microsoft.Dafny {
         for (int i = 0; i < lhss.Count; ++i) {
           Expression lexpr = lhsExprs[i];
           ILvalue lhs = lhss[i];
-          if (lexpr is NameSegment) {
+          if (lexpr is NameSegment || lexpr is IdentifierExpr) {
             lhssn.Add(lhs);
           } else if (lexpr is MemberSelectExpr) {
             lhssn.Add(lhs);
           } else if (lexpr is ExprDotName) {
-            ExprDotName memExpr = (ExprDotName) lexpr;
+            ExprDotName memExpr = lexpr as ExprDotName;
             Expression rec = memExpr.Lhs;
             MemberSelectExpr resolved = lexpr.Resolved as MemberSelectExpr;
             string targetRec = idGenerator.FreshId("_lhs");
@@ -393,7 +393,7 @@ namespace Microsoft.Dafny {
             ILvalue newLhs = EmitMemberSelect(w => w.Write(targetRec), resolved.Member, lhsTypes[i]);
             lhssn.Add(newLhs);
           } else if (lexpr is SeqSelectExpr) {
-            SeqSelectExpr seqExpr = (SeqSelectExpr) lexpr;
+            SeqSelectExpr seqExpr = lexpr as SeqSelectExpr;
             Expression array = seqExpr.Seq;
             Expression index = seqExpr.E0;
             string targetArray = idGenerator.FreshId("_lhs");
@@ -3030,7 +3030,7 @@ namespace Microsoft.Dafny {
 
     private class SimpleLvalueImpl : ILvalue {
       private readonly Compiler Compiler;
-      public readonly Action<TargetWriter> LvalueAction, RvalueAction;
+      private readonly Action<TargetWriter> LvalueAction, RvalueAction;
 
       public SimpleLvalueImpl(Compiler compiler, Action<TargetWriter> action) {
         Compiler = compiler;
