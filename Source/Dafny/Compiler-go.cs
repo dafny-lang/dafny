@@ -2360,6 +2360,40 @@ namespace Microsoft.Dafny {
       } else if (member is ConstantField cf && cf.Rhs != null) {
         var customReceiver = NeedsCustomReceiver(member);
         return SuffixLvalue(obj, ".{0}{1}", IdName(member), customReceiver ? "" : "()");
+      } else if (member is Function fn) {
+        typeArgs = typeArgs.Where(ta => ta.Formal.Characteristics.MustSupportZeroInitialization).ToList();
+        if (typeArgs.Count == 0) {
+          return SuffixLvalue(obj, ".{0}", IdName(member));
+        } else {
+          // we need an eta conversion for the type-descriptor parameters
+          // func (a0 T0, a1 T1, ...) ResultType { return obj.F(rtd0, rtd1, ..., a0, a1, ...); }
+          // Start by writing to the suffix:  F(rtd0, rtd1, ...
+          var suffixWr = new TargetWriter();
+          suffixWr.Write(IdName(member));
+          suffixWr.Write("(");
+          var suffixSep = "";
+          foreach (var ta in typeArgs) {
+            suffixWr.Write("{0}{1}", suffixSep, RuntimeTypeDescriptor(ta.Actual, fn.tok, suffixWr));
+            suffixSep = ", ";
+          }
+          // Write the prefix and the rest of the suffix
+          var prefixWr = new TargetWriter();
+          var prefixSep = "";
+          prefixWr.Write("func (");
+          foreach (var arg in fn.Formals) {
+            if (!arg.IsGhost) {
+              var name = idGenerator.FreshId("_eta");
+              var ty = Resolver.SubstType(arg.Type, typeMap);
+              prefixWr.Write($"{prefixSep}{name} {TypeName(ty, prefixWr, arg.tok)}");
+              suffixWr.Write("{0}{1}", suffixSep, name);
+              suffixSep = ", ";
+              prefixSep = ", ";
+            }
+          }
+          prefixWr.Write(") {0} {{ return ", TypeName(Resolver.SubstType(fn.ResultType, typeMap), prefixWr, fn.tok));
+          suffixWr.Write("); }}");  // need double curly-brace, because EnclosedLvalue will Write suffix with arguments
+          return EnclosedLvalue(prefixWr.ToString(), obj, $".{suffixWr.ToString()}");
+        }
       } else {
         return SuffixLvalue(obj, ".{0}", IdName(member));
       }
