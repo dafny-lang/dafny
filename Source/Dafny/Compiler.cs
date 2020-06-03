@@ -3019,7 +3019,7 @@ namespace Microsoft.Dafny {
 
     private class SimpleLvalueImpl : ILvalue {
       private readonly Compiler Compiler;
-      public readonly Action<TargetWriter> LvalueAction, RvalueAction;
+      private readonly Action<TargetWriter> LvalueAction, RvalueAction;
 
       public SimpleLvalueImpl(Compiler compiler, Action<TargetWriter> action) {
         Compiler = compiler;
