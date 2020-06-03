@@ -195,7 +195,7 @@ namespace Microsoft.Dafny {
         var r = new List<TypeArgumentInstantiation>();
         for (int i = 0; i < typeArgs.Count; i++) {
           if (idt.TypeParametersUsedInConstructionByDefaultCtor[i]) {
-            r.Add(new TypeArgumentInstantiation(dt.TypeArgs[i], typeArgs[i], false));
+            r.Add(new TypeArgumentInstantiation(dt.TypeArgs[i], typeArgs[i]));
           }
         }
         return r;
@@ -555,19 +555,12 @@ namespace Microsoft.Dafny {
     {
       public readonly TypeParameter Formal;
       public readonly Type Actual;
-      /// <summary>
-      /// A type parameter comes from either a class/trait/datatype/... or a method/function.
-      /// "ParentIsMember" is "false" to indicate the former, and "true" to indicate the latter.
-      /// </summary>
-      public bool ParentIsMember;
 
-      public TypeArgumentInstantiation(TypeParameter formal, Type actual, bool parentIsMember) {
+      public TypeArgumentInstantiation(TypeParameter formal, Type actual) {
         Contract.Requires(formal != null);
         Contract.Requires(actual != null);
         Formal = formal;
         Actual = actual;
-        ParentIsMember = parentIsMember;
-        Contract.Assert(parentIsMember == (formal.Parent is MemberDecl));  // TODO: if this is really always true, then the field can be a property getter instead, computing its result from "formal"
       }
 
       /// <summary>
@@ -577,7 +570,6 @@ namespace Microsoft.Dafny {
         Contract.Requires(formal != null);
         Formal = formal;
         Actual = new UserDefinedType(formal);
-        ParentIsMember = formal.Parent is MemberDecl;
       }
 
       public static List<TypeArgumentInstantiation> ListFromMember(MemberDecl member, List<Type> /*?*/ classActuals, List<Type> /*?*/ memberActuals) {
@@ -586,18 +578,18 @@ namespace Microsoft.Dafny {
         Contract.Requires(memberActuals == null || memberActuals.Count == (member is ICallable ic ? ic.TypeArgs.Count : 0));
 
         var r = new List<TypeArgumentInstantiation>();
-        void add(List<TypeParameter> formals, List<Type> actuals, bool belongToMember) {
+        void add(List<TypeParameter> formals, List<Type> actuals) {
           Contract.Assert(formals.Count == actuals.Count);
           for (var i = 0; i < formals.Count; i++) {
-            r.Add(new TypeArgumentInstantiation(formals[i], actuals[i], belongToMember));
+            r.Add(new TypeArgumentInstantiation(formals[i], actuals[i]));
           }
         };
 
         if (classActuals != null) {
-          add(member.EnclosingClass.TypeArgs, classActuals, false);
+          add(member.EnclosingClass.TypeArgs, classActuals);
         }
         if (memberActuals != null && member is ICallable icallable) {
-          add(icallable.TypeArgs, memberActuals, true);
+          add(icallable.TypeArgs, memberActuals);
         }
         return r;
       }
@@ -609,14 +601,14 @@ namespace Microsoft.Dafny {
 
         var r = new List<TypeArgumentInstantiation>();
         for (var i = 0; i < cl.TypeArgs.Count; i++) {
-          r.Add(new TypeArgumentInstantiation(cl.TypeArgs[i], actuals[i], false));
+          r.Add(new TypeArgumentInstantiation(cl.TypeArgs[i], actuals[i]));
         }
         return r;
       }
 
-      public static List<TypeArgumentInstantiation> ListFromFormals(List<TypeParameter> formals, bool belongToMember) {
+      public static List<TypeArgumentInstantiation> ListFromFormals(List<TypeParameter> formals) {
         Contract.Requires(formals != null);
-        return formals.ConvertAll(tp => new TypeArgumentInstantiation(tp, new UserDefinedType(tp), belongToMember));
+        return formals.ConvertAll(tp => new TypeArgumentInstantiation(tp, new UserDefinedType(tp)));
       }
     }
 
@@ -1280,7 +1272,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(typeArgsMember != null);
       if (member is Field) {
         var formals = member.EnclosingClass != null ? member.EnclosingClass.TypeArgs : new List<TypeParameter>();  // some special fields have .EnclosingClass == null
-        return TypeArgumentInstantiation.ListFromFormals(formals, false);
+        return TypeArgumentInstantiation.ListFromFormals(formals);
       } else if (member.IsStatic && !SupportsStaticsInGenericClasses) {
         return TypeArgumentInstantiation.ListFromMember(member, typeArgsEnclosingClass, typeArgsMember);
       } else {
