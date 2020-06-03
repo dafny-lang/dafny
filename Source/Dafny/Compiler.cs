@@ -394,14 +394,16 @@ namespace Microsoft.Dafny {
             lhssn.Add(lhs);
           } else if (lexpr is MemberSelectExpr) {
             MemberSelectExpr resolved = lexpr as MemberSelectExpr;
-            string targetRec = EmitAssignmentLhs(resolved.Obj, wr);
-            ILvalue newLhs = EmitMemberSelect(w => w.Write(targetRec), resolved.Member, lhsTypes[i]);
+            string target = EmitAssignmentLhs(resolved.Obj, wr);
+            ILvalue newLhs = EmitMemberSelect(w => w.Write(target),
+                                              resolved.Member, lhsTypes[i]);
             lhssn.Add(newLhs);
           } else if (lexpr is SeqSelectExpr) {
             SeqSelectExpr seqExpr = lexpr as SeqSelectExpr;
             string targetArray = EmitAssignmentLhs(seqExpr.Seq, wr);
             string targetIndex = EmitAssignmentLhs(seqExpr.E0, wr);
-            ILvalue newLhs = EmitArraySelectAsLvalue(targetArray, new List<string>() { targetIndex }, lhsTypes[i]);
+            ILvalue newLhs = EmitArraySelectAsLvalue(targetArray,
+                            new List<string>() { targetIndex }, lhsTypes[i]);
             lhssn.Add(newLhs);
           } else if (lexpr is MultiSelectExpr) {
             MultiSelectExpr seqExpr = lexpr as MultiSelectExpr;
