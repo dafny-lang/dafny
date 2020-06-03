@@ -3,24 +3,14 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using FluentAssertions;
 using Xunit;
+using Xunit.Abstractions;
+using Xunit.Sdk;
+using Assert = Xunit.Assert;
 
 namespace DafnyTests {
 
-    public class TestData : IEnumerable<object[]> {
-        public IEnumerator<object[]> GetEnumerator() {
-            var filePaths = new string[] {"comp/Hello.dfy"};
-            var languages = new string[] {"cs", "java", "go", "js"};
-            foreach (var filePath in filePaths) {
-                foreach (var language in languages) {
-                    yield return new object[] { filePath, language };
-                }
-            }
-        }
-
-        IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
-    }
-    
     public class DafnyTests {
 
         private static string DAFNY_ROOT = new DirectoryInfo(Directory.GetCurrentDirectory()).Parent.Parent.Parent.Parent.FullName;
@@ -51,19 +41,31 @@ namespace DafnyTests {
                 dafnyProcess.StartInfo.WorkingDirectory = TEST_ROOT;
                 dafnyProcess.Start();
                 dafnyProcess.WaitForExit();
+                string output = dafnyProcess.StandardOutput.ReadToEnd();
+                string error = dafnyProcess.StandardError.ReadToEnd();
                 if (dafnyProcess.ExitCode != 0) {
-                    Assert.True(false, dafnyProcess.StandardError.ReadToEnd());
+                    Assert.True(false, output);
                 }
-                return dafnyProcess.StandardOutput.ReadToEnd();
+                return output;
             }
         }
         
-        [SkippableTheory()]
-        [ClassData(typeof(TestData))]
+        public static IEnumerable<object[]> TestData() {
+            var filePaths = new string[] {"comp/Hello.dfy"};
+            var languages = new string[] {"cs", "java", "go", "js"};
+            foreach (var filePath in filePaths) {
+                foreach (var language in languages) {
+                    yield return new object[] { filePath, language };
+                }
+            }
+        }
+
+        [ParallelTheory]
+        [MemberData(nameof(TestData))]
         public void ValidProgramOutput(String inputPath, String targetLanguage) {
             string output = RunDafnyProgram(inputPath, "/compileTarget:" + targetLanguage);
             string expectedOutput = File.ReadAllText(Path.Combine(TEST_ROOT, inputPath + ".expect"));
-            Assert.Equal(expectedOutput, output);
+            output.Should().Be(expectedOutput);
         }
     }
 }
