@@ -354,7 +354,8 @@ namespace Microsoft.Dafny {
       return w;
     }
 
-    protected virtual void EmitMultiAssignment(List<ILvalue> lhss, List<Type> lhsTypes, out List<TargetWriter> wRhss, List<Type> rhsTypes, TargetWriter wr) {
+    protected virtual void EmitMultiAssignment(List<Expression> lhsExprs, List<ILvalue> lhss, List<Type> lhsTypes, out List<TargetWriter> wRhss,
+      List<Type> rhsTypes, TargetWriter wr) {
       Contract.Assert(lhss.Count == lhsTypes.Count);
       Contract.Assert(lhsTypes.Count == rhsTypes.Count);
       wRhss = new List<TargetWriter>();
@@ -368,9 +369,77 @@ namespace Microsoft.Dafny {
         EndStmt(wr);
       }
 
+      List<ILvalue> lhssn;
+      if (lhss.Count > 1) {
+        lhssn = new List<ILvalue>();
+        for (int i = 0; i < lhss.Count; ++i) {
+          Expression lexpr = lhsExprs[i];
+          ILvalue lhs = lhss[i];
+          if (lexpr is NameSegment) {
+            lhssn.Add(lhs);
+          } else if (lexpr is MemberSelectExpr) {
+            lhssn.Add(lhs);
+          } else if (lexpr is ExprDotName) {
+            ExprDotName memExpr = (ExprDotName) lexpr;
+            Expression rec = memExpr.Lhs;
+            MemberSelectExpr resolved = lexpr.Resolved as MemberSelectExpr;
+            string targetRec = idGenerator.FreshId("_lhs");
+            wr.Write(GenerateLhsDecl(targetRec, rec.Type, wr, null));
+            wr.Write(" = ");
+            TrExpr(rec,wr,false);
+            EndStmt(wr);
+            ILvalue newLhs = EmitMemberSelect(w => w.Write(targetRec), resolved.Member, lhsTypes[i]);
+            lhssn.Add(newLhs);
+          } else if (lexpr is SeqSelectExpr) {
+            SeqSelectExpr seqExpr = (SeqSelectExpr) lexpr;
+            Expression array = seqExpr.Seq;
+            Expression index = seqExpr.E0;
+            string targetArray = idGenerator.FreshId("_lhs");
+            wr.Write(GenerateLhsDecl(targetArray, array.Type, wr, null));
+            wr.Write(" = ");
+            TrExpr(array,wr,false);
+            EndStmt(wr);
+            string target2 = idGenerator.FreshId("_lhs");
+            wr.Write(GenerateLhsDecl(target2, index.Type, wr, null));
+            wr.Write(" = ");
+            TrExpr(index,wr,false);
+            EndStmt(wr);
+            ILvalue newLhs = EmitArraySelectAsLvalue(targetArray, new List<string>() { target2 }, lhsTypes[i]);
+            lhssn.Add(newLhs);
+          } else if (lexpr is MultiSelectExpr) {
+            MultiSelectExpr seqExpr = lexpr as MultiSelectExpr;
+            Expression array = seqExpr.Array;
+            List<Expression> indices = seqExpr.Indices;
+            string targetArray = idGenerator.FreshId("_lhs");
+            wr.Write(GenerateLhsDecl(targetArray, array.Type, wr, null));
+            wr.Write(" = ");
+            TrExpr(array,wr,false);
+            EndStmt(wr);
+            var targetIndices = new List<string>();
+            foreach (var index in indices) {
+              string targetIndex = idGenerator.FreshId("_lhs");
+              wr.Write(GenerateLhsDecl(targetIndex, index.Type, wr, null));
+              wr.Write(" = ");
+              TrExpr(index, wr, false);
+              EndStmt(wr);
+              targetIndices.Add(targetIndex);
+            }
+
+            ILvalue newLhs = EmitArraySelectAsLvalue(targetArray, targetIndices, lhsTypes[i]);
+            lhssn.Add(newLhs);
+
+          } else  {
+            Contract.Assert(false); // Unknown kind of expression
+            lhssn.Add(lhs);
+          }
+        }
+      } else {
+        lhssn = lhss;
+      }
+
       Contract.Assert(rhsVars.Count == lhsTypes.Count);
       for (int i = 0; i < rhsVars.Count; i++) {
-        TargetWriter wRhsVar = EmitAssignment(lhss[i], lhsTypes[i], rhsTypes[i], wr);
+        TargetWriter wRhsVar = EmitAssignment(lhssn[i], lhsTypes[i], rhsTypes[i], wr);
         wRhsVar.Write(rhsVars[i]);
         EndStmt(wr);
       }
@@ -2052,7 +2121,7 @@ namespace Microsoft.Dafny {
             lvalues.Add(CreateLvalue(lhs, wStmts));
           }
           List<TargetWriter> wRhss;
-          EmitMultiAssignment(lvalues, lhsTypes, out wRhss, rhsTypes, wr);
+          EmitMultiAssignment(lhss, lvalues, lhsTypes, out wRhss, rhsTypes, wr);
           for (int i = 0; i < wRhss.Count; i++) {
             TrRhs(rhss[i], wRhss[i], wStmts);
           }
@@ -2842,7 +2911,7 @@ namespace Microsoft.Dafny {
 
     private class SimpleLvalueImpl : ILvalue {
       private readonly Compiler Compiler;
-      private readonly Action<TargetWriter> LvalueAction, RvalueAction;
+      public readonly Action<TargetWriter> LvalueAction, RvalueAction;
 
       public SimpleLvalueImpl(Compiler compiler, Action<TargetWriter> action) {
         Compiler = compiler;
