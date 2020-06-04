@@ -491,7 +491,7 @@ namespace Microsoft.Dafny
 
     #region Compilation
 
-    static string WriteDafnyProgramToFiles(string dafnyProgramName, string targetProgram, bool completeProgram, Dictionary<String, String> otherFiles, TextWriter outputWriter)
+    static string WriteDafnyProgramToFiles(Compiler compiler, string dafnyProgramName, string targetProgram, bool completeProgram, Dictionary<String, String> otherFiles, TextWriter outputWriter)
     {
       string targetExtension;
       string baseName = Path.GetFileNameWithoutExtension(dafnyProgramName);
@@ -510,6 +510,7 @@ namespace Microsoft.Dafny
         case DafnyOptions.CompilationTarget.Java:
           targetExtension = "java";
           targetBaseDir = baseName;
+          baseName = compiler.TransformToClassName(baseName);
           break;
         case DafnyOptions.CompilationTarget.Php:
           targetExtension = "php";
@@ -622,8 +623,8 @@ namespace Microsoft.Dafny
       if (hasMain) {
         using (var wr = new TargetWriter(0)) {
           if (DafnyOptions.O.CompileTarget is DafnyOptions.CompilationTarget.Java) {
-            dafnyProgramName = dafnyProgramName.Replace('-', '_');
-            wr.WriteLine($"public class {baseName.Replace('-', '_')} {{");
+            baseName = compiler.TransformToClassName(baseName);
+            wr.WriteLine($"public class {baseName} {{");
           }
           compiler.EmitCallToMain(mainMethod, wr);
           if (DafnyOptions.O.CompileTarget is DafnyOptions.CompilationTarget.Java) {
@@ -644,11 +645,11 @@ namespace Microsoft.Dafny
         if (DafnyOptions.O.CompileTarget is DafnyOptions.CompilationTarget.Java && callToMain == null) {
           p = null;
         }
-        targetFilename = WriteDafnyProgramToFiles(dafnyProgramName, p, completeProgram, otherFiles, outputWriter);
+        targetFilename = WriteDafnyProgramToFiles(compiler, dafnyProgramName, p, completeProgram, otherFiles, outputWriter);
       }
 
       if (DafnyOptions.O.CompileTarget is DafnyOptions.CompilationTarget.Java) {
-        string targetBaseDir = baseName;
+        string targetBaseDir = Path.GetFileNameWithoutExtension(dafnyProgramName);
         string targetDir = Path.Combine(Path.GetDirectoryName(dafnyProgramName), targetBaseDir);
         var assemblyLocation = System.Reflection.Assembly.GetExecutingAssembly().Location;
         Contract.Assert(assemblyLocation != null);
