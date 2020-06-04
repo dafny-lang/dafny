@@ -208,6 +208,9 @@ namespace Microsoft.Dafny
           }
         }
       }
+      if (dafnyFiles.Count == 0) { ExecutionEngine.printer.ErrorWriteLine(Console.Out, "*** Error: The command-line contains no .dfy files");
+        return CommandLineArgumentsResult.PREPROCESSING_ERROR;
+      }
       return CommandLineArgumentsResult.OK;
     }
 
