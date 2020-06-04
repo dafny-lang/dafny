@@ -1216,8 +1216,9 @@ namespace Microsoft.Dafny{
       }
     }
 
-    protected override ILvalue EmitMemberSelect(Action<TargetWriter> obj, MemberDecl member, List<TypeArgumentInstantiation> typeArgs, Dictionary<TypeParameter, Type> typeMap, Type expectedType, bool internalAccess = false) {
-      if (member.EnclosingClass is TraitDecl && !member.IsStatic) {
+    protected override ILvalue EmitMemberSelect(Action<TargetWriter> obj, MemberDecl member, List<TypeArgumentInstantiation> typeArgs, Dictionary<TypeParameter, Type> typeMap,
+      Type expectedType, string/*?*/ additionalCustomParameter, bool internalAccess = false) {
+      if (member is Field && member.EnclosingClass is TraitDecl && !member.IsStatic) {
         return new GetterSetterLvalue(obj, IdName(member));
       } else if (member is ConstantField) {
         Contract.Assert(!(member.IsStatic && member.EnclosingClass.TypeArgs.Count != 0));
@@ -1237,15 +1238,19 @@ namespace Microsoft.Dafny{
       } else if (member is Function) {
         var wr = new TargetWriter();
         EmitNameAndActualTypeArgs(IdName(member), typeArgs.ConvertAll(ta => ta.Actual), member.tok, wr);
-        if (typeArgs.Count == 0) {
+        if (typeArgs.Count == 0 && additionalCustomParameter == null) {
           var nameAndTypeArgs = wr.ToString();
           return SuffixLvalue(obj, $"::{nameAndTypeArgs}");
         } else {
           // we need an eta conversion for the type-descriptor parameters
-          // (T0 a0, T1 a1, ...) -> obj.F(rtd0, rtd1, ..., a0, a1, ...)
+          // (T0 a0, T1 a1, ...) -> obj.F(additionalCustomParameter, rtd0, rtd1, ..., a0, a1, ...)
           var fn = (Function)member;
           wr.Write("(");
           var sep = "";
+          if (additionalCustomParameter != null) {
+            wr.Write("{0}{1}", sep, additionalCustomParameter);
+            sep = ", ";
+          }
           foreach (var ta in typeArgs) {
             wr.Write("{0}{1}", sep, TypeDescriptor(ta.Actual, wr, fn.tok));
             sep = ", ";

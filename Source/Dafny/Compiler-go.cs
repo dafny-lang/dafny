@@ -2324,10 +2324,11 @@ namespace Microsoft.Dafny {
       }
     }
 
-    protected override ILvalue EmitMemberSelect(Action<TargetWriter> obj, MemberDecl member, List<TypeArgumentInstantiation> typeArgs, Dictionary<TypeParameter, Type> typeMap, Type expectedType, bool internalAccess = false) {
+    protected override ILvalue EmitMemberSelect(Action<TargetWriter> obj, MemberDecl member, List<TypeArgumentInstantiation> typeArgs, Dictionary<TypeParameter, Type> typeMap,
+      Type expectedType, string/*?*/ additionalCustomParameter, bool internalAccess = false) {
       if (member is DatatypeDestructor dtor) {
         return SimpleLvalue(wr => {
-          wr = EmitCoercionIfNecessary(from:dtor.Type, to:expectedType, tok:null, wr:wr);
+          wr = EmitCoercionIfNecessary(dtor.Type, expectedType, Bpl.Token.NoToken, wr);
           if (dtor.EnclosingClass is TupleTypeDecl) {
             wr.Write("(*(");
             obj(wr);
@@ -2339,7 +2340,7 @@ namespace Microsoft.Dafny {
         });
       } else if (member is SpecialField sf && sf.SpecialId != SpecialField.ID.UseIdParam) {
         return SimpleLvalue(wr => {
-          wr = EmitCoercionIfNecessary(from:sf.Type, to:expectedType, tok:null, wr:wr);
+          wr = EmitCoercionIfNecessary(sf.Type, expectedType, Bpl.Token.NoToken, wr);
           obj(wr);
           string compiledName;
           GetSpecialFieldInfo(sf.SpecialId, sf.IdParam, out compiledName, out _, out _);
@@ -2352,7 +2353,7 @@ namespace Microsoft.Dafny {
       } else if (member is SpecialField sf2 && sf2.SpecialId == SpecialField.ID.UseIdParam && sf2.IdParam is string fieldName && fieldName.StartsWith("is_")) {
         // sf2 is needed here only because the scope rules for these pattern matches are asinine: sf is *still in scope* but it's useless because it may not have been assigned to!
         return SimpleLvalue(wr => {
-          wr = EmitCoercionIfNecessary(from:sf2.Type, to:expectedType, tok:null, wr:wr);
+          wr = EmitCoercionIfNecessary(sf2.Type, expectedType, Bpl.Token.NoToken, wr);
           obj(wr);
           // FIXME This is a pretty awful string hack.
           wr.Write(".{0}()", FormatDatatypeConstructorCheckName(fieldName.Substring(3)));
@@ -2362,8 +2363,9 @@ namespace Microsoft.Dafny {
         return SuffixLvalue(obj, ".{0}{1}", IdName(member), customReceiver ? "" : "()");
       } else if (member is Function fn) {
         typeArgs = typeArgs.Where(ta => ta.Formal.Characteristics.MustSupportZeroInitialization).ToList();
-        if (typeArgs.Count == 0) {
-          return SuffixLvalue(obj, ".{0}", IdName(member));
+        if (typeArgs.Count == 0 && additionalCustomParameter == null) {
+          var lvalue = SuffixLvalue(obj, ".{0}", IdName(member));
+          return CoercedLvalue(lvalue, fn.GetMemberType((ArrowTypeDecl)expectedType.AsArrowType.ResolvedClass), expectedType);
         } else {
           // we need an eta conversion for the type-descriptor parameters
           // func (a0 T0, a1 T1, ...) ResultType { return obj.F(rtd0, rtd1, ..., a0, a1, ...); }
@@ -2374,6 +2376,10 @@ namespace Microsoft.Dafny {
           var suffixSep = "";
           foreach (var ta in typeArgs) {
             suffixWr.Write("{0}{1}", suffixSep, RuntimeTypeDescriptor(ta.Actual, fn.tok, suffixWr));
+            suffixSep = ", ";
+          }
+          if (additionalCustomParameter != null) {
+            suffixWr.Write("{0}{1}", suffixSep, additionalCustomParameter);
             suffixSep = ", ";
           }
           // Write the prefix and the rest of the suffix
@@ -2390,12 +2396,25 @@ namespace Microsoft.Dafny {
               prefixSep = ", ";
             }
           }
-          prefixWr.Write(") {0} {{ return ", TypeName(Resolver.SubstType(fn.ResultType, typeMap), prefixWr, fn.tok));
-          suffixWr.Write("); }}");  // need double curly-brace, because EnclosedLvalue will Write suffix with arguments
-          return EnclosedLvalue(prefixWr.ToString(), obj, $".{suffixWr.ToString()}");
+          var resultType = Resolver.SubstType(fn.ResultType, typeMap);
+          prefixWr.Write(") {0} {{ return ", TypeName(resultType, prefixWr, fn.tok));
+          suffixWr.Write(")");
+          var suffix = suffixWr.ToString();
+          return EnclosedLvalue(
+            prefixWr.ToString(),
+            wr => {
+              var wCall = EmitCoercionIfNecessary(fn.ResultType, resultType, Bpl.Token.NoToken, wr:wr);
+              obj(wCall);
+              wCall.Write(".");
+              wCall.Write(suffix);
+              wr.Write("; }");
+            },
+            "");
         }
       } else {
-        return SuffixLvalue(obj, ".{0}", IdName(member));
+        var field = (Field)member;
+        var lvalue = SuffixLvalue(obj, ".{0}", IdName(member));
+        return CoercedLvalue(lvalue, field.Type, expectedType);
       }
     }
 

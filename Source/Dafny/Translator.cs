@@ -8365,8 +8365,6 @@ namespace Microsoft.Dafny {
           formals.Add(BplFormalVar(null, predef.LayerType, true));
         }
 
-        var fromArrowType = f.EnclosingClass is ArrowTypeDecl;
-
         Func<List<Bpl.Expr>, List<Bpl.Expr>> SnocSelf = x => x;
         Func<List<Bpl.Expr>, List<Bpl.Expr>> SnocPrevH = x => x;
         Expression selfExpr;
@@ -8380,7 +8378,7 @@ namespace Microsoft.Dafny {
         if (f.IsStatic) {
           selfExpr = null;
         } else {
-          var selfTy = fromArrowType ? predef.HandleType : predef.RefType;
+          var selfTy = TrType(UserDefinedType.FromTopLevelDecl(f.tok, f.EnclosingClass));
           var self = BplBoundVar("$self", selfTy, vars);
           formals.Add(BplFormalVar(null, selfTy, true));
           SnocSelf = xs => Snoc(xs, self);
@@ -8440,7 +8438,7 @@ namespace Microsoft.Dafny {
           var fhandle = FunctionCall(f.tok, name, predef.HandleType, SnocSelf(SnocPrevH(args)));
           var lhs = FunctionCall(f.tok, Requires(arity), Bpl.Type.Bool, Concat(tyargs, Cons(h, Cons(fhandle, lhs_args))));
           Bpl.Expr rhs;
-          if (fromArrowType) {
+          if (f.EnclosingClass is ArrowTypeDecl) {
             // In case this is the /requires/ or /reads/ function, then there is no precondition
             rhs = Bpl.Expr.True;
           } else {
