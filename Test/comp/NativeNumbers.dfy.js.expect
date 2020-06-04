@@ -1,0 +1,9 @@
+NativeNumbers.dfy(17,30): Error: None of the types given in :nativeType arguments is supported by the current compilation target. Try supplying others.
+NativeNumbers.dfy(18,30): Error: None of the types given in :nativeType arguments is supported by the current compilation target. Try supplying others.
+NativeNumbers.dfy(19,28): Error: None of the types given in :nativeType arguments is supported by the current compilation target. Try supplying others.
+NativeNumbers.dfy(20,29): Error: None of the types given in :nativeType arguments is supported by the current compilation target. Try supplying others.
+NativeNumbers.dfy(22,29): Error: None of the types given in :nativeType arguments is supported by the current compilation target. Try supplying others.
+NativeNumbers.dfy(23,31): Error: None of the types given in :nativeType arguments is supported by the current compilation target. Try supplying others.
+NativeNumbers.dfy(24,29): Error: None of the types given in :nativeType arguments is supported by the current compilation target. Try supplying others.
+NativeNumbers.dfy(25,30): Error: None of the types given in :nativeType arguments is supported by the current compilation target. Try supplying others.
+8 resolution/type errors detected in NativeNumbers.dfy

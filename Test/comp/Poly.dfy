@@ -1,7 +1,3 @@
-// Currently only enabled for Go due to seq<TRAIT> etc.
-// RUN: %dafny /compile:3 /spillTargetCode:2 /compileTarget:go "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
-
 trait Shape {
     function method Center(): (real, real) reads this
     method PrintCenter() {
