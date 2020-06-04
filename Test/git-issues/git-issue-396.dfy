@@ -3,7 +3,7 @@ datatype Foo = Bar(value: int)
 method GetValue(f: Foo) returns (i: int) {
     match f {
         case Bar(Bar) => {
-            return 72;
+            return 72 + Bar;
         }
     }
 }
