@@ -1029,7 +1029,7 @@ simply as a way to give a new name, perhaps
 a shorthand name, to a module. For example,
 
 ```
-include "MyModule.dfy" // declares module MyModule
+module MyModule { ... } // declares module MyModule
 import MyModule  // error: cannot add a module name MyModule 
                  // because there already is one
 import M = MyModule // OK. M and MyModule are equivalent
