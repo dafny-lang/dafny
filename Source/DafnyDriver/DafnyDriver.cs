@@ -162,8 +162,16 @@ namespace Microsoft.Dafny
           if (extension == ".cs" || extension == ".dll") {
             otherFiles.Add(file);
           } else if (!isDafnyFile) {
-            ExecutionEngine.printer.ErrorWriteLine(Console.Out, "*** Error: '{0}': Filename extension '{1}' is not supported. Input files must be Dafny programs (.dfy) or C# files (.cs) or managed DLLS (.dll)", file,
-              extension == null ? "" : extension);
+            if (extension == "" && file.Length > 0 && (file[0] == '/' || file[0] == '-')) {
+              ExecutionEngine.printer.ErrorWriteLine(Console.Out,
+                "*** Error: Command-line argument '{0}' is neither a recognized option nor a filename with a supported extension (.dfy, .cs, .dll).",
+                file);
+            } else {
+              ExecutionEngine.printer.ErrorWriteLine(Console.Out,
+                "*** Error: '{0}': Filename extension '{1}' is not supported. Input files must be Dafny programs (.dfy) or C# files (.cs) or managed DLLS (.dll)",
+                file,
+                extension == null ? "" : extension);
+            }
             return CommandLineArgumentsResult.PREPROCESSING_ERROR;
           }
         } else if (DafnyOptions.O.CompileTarget == DafnyOptions.CompilationTarget.JavaScript) {
