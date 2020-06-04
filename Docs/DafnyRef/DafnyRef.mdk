@@ -1083,7 +1083,7 @@ with common names. The `opened` keyword can be used with any kind of
 
 An `import opened` can occur at the top-level as well. For example,
 ```
-include "MyModule.dfy" // declares module MyModule
+module MyModule { ... } // declares module MyModule
 import MyModule  // error: cannot add a module name MyModule 
                  // because there already is one
 import opened MyModule // does not declare a new module, but does
@@ -3760,7 +3760,8 @@ objects being constructed only in certain ways.  For this purpose, Dafny
 provides _constructor (method)s_, which are a restricted form of
 initialization methods.  A constructor is declared with the keyword
 `constructor` instead of `method`.  
-Every call to `new` for a class must be accompanied
+When a class contains a
+constructor, every call to `new` for a class must be accompanied
 by a call to one of its constructors.  Moreover, a constructor
 cannot be called at other times, only during object creation.  Other
 than these restrictions, there is no semantic difference between using
@@ -3811,7 +3812,7 @@ The named constructor is invoked as
 ```
 The anonymous constructor is invoked as
 ```
-  Item i := new Item(42,43);
+  Item i := new Item(42, 43);
 ```
 dropping the "`.`".
 
@@ -3826,8 +3827,8 @@ a program may use `this`
  - as the entire RHS of an assignment to a field of `this`, 
  - and as a member of a set on the RHS that is being assigned to a field of `this`.
 
-Furthermore, `const` fields may only be assigned to (once) in an initialization phase
-of their parent class, and then only if they do not already have an initialization
+Furthermore, `const` fields may only be assigned to in an initialization phase (and more than once)
+of their enclosing class, and then only if they do not already have an initialization
 value in their declaration.
 
 There are no restrictions on expressions or statements in the post-initialization phase. 
