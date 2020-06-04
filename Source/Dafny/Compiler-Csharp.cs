@@ -1148,7 +1148,14 @@ namespace Microsoft.Dafny
 
     protected override void EmitPrintStmt(TargetWriter wr, Expression arg) {
       wr.Write("Dafny.Helpers.Print(");
-      TrExpr(arg, wr, false);
+      var t = arg.Type as ArrowType;
+      var ttt = arg.Type as UserDefinedType;
+      if (arg is NameSegment && arg.Resolved is MemberSelectExpr) {
+        wr.Write("\"Function\"");
+      } else {
+        TrExpr(arg, wr, false);
+      }
+
       wr.WriteLine(");");
     }
 

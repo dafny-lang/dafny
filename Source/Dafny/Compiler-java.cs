@@ -1978,7 +1978,9 @@ namespace Microsoft.Dafny{
 
     protected void EmitToString(TargetWriter wr, Expression arg) {
       if (arg.Type.IsArrowType) {
-        wr.Write(IdName(((IdentifierExpr) ((ConcreteSyntaxExpression)arg).ResolvedExpression).Var) + " == null ? null : \"Function\"");
+        var expr = ((ConcreteSyntaxExpression)arg).ResolvedExpression;
+        if (expr is IdentifierExpr) wr.Write(IdName(((IdentifierExpr) expr).Var) + " == null ? null : \"Function\"");
+        else wr.Write("\"Function\"");
       } else if (AsNativeType(arg.Type) != null && AsNativeType(arg.Type).LowerBound >= 0) {
         var nativeName = GetNativeTypeName(AsNativeType(arg.Type));
         switch (AsNativeType(arg.Type).Sel) {
