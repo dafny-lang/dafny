@@ -1,5 +1,5 @@
 
 Dafny program verifier finished with 2 verified, 0 errors
-CovariantCollections.dfy(34,6): Error: compilation of seq<TRAIT> is not supported; consider introducing a ghost
-CovariantCollections.dfy(35,6): Error: compilation of seq<TRAIT> is not supported; consider introducing a ghost
+CovariantCollections.dfy(28,6): Error: compilation of seq<TRAIT> is not supported; consider introducing a ghost
+CovariantCollections.dfy(29,6): Error: compilation of seq<TRAIT> is not supported; consider introducing a ghost
 File CovariantCollections/CovariantCollections.java contains the partially compiled program

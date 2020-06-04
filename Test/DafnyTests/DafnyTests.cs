@@ -55,21 +55,24 @@ namespace DafnyTests {
                 dafnyProcess.StartInfo.RedirectStandardOutput = true;
                 dafnyProcess.StartInfo.RedirectStandardError = true;
                 dafnyProcess.StartInfo.CreateNoWindow = true;
-                dafnyProcess.StartInfo.WorkingDirectory = Path.Combine(DAFNY_ROOT, "Binaries");
+                // Necessary for JS to find bignumber.js
+                dafnyProcess.StartInfo.WorkingDirectory = TEST_ROOT;
                 
                 // Only preserve specific whitelisted environment variables
                 dafnyProcess.StartInfo.EnvironmentVariables.Clear();
                 dafnyProcess.StartInfo.EnvironmentVariables.Add("PATH", System.Environment.GetEnvironmentVariable("PATH"));
-                
+                // Go requires this or GOCACHE
+                dafnyProcess.StartInfo.EnvironmentVariables.Add("HOME", System.Environment.GetEnvironmentVariable("HOME"));
+
                 dafnyProcess.Start();
                 dafnyProcess.WaitForExit();
                 string output = dafnyProcess.StandardOutput.ReadToEnd();
+                string error = dafnyProcess.StandardError.ReadToEnd();
                 if (dafnyProcess.ExitCode != 0) {
-                    string error = dafnyProcess.StandardError.ReadToEnd();
                     Assert.True(false, output + "\n" + error);
                 }
 
-                return output;
+                return output + error;
             }
         }
 
