@@ -1148,7 +1148,7 @@ namespace Microsoft.Dafny
 
     protected override void EmitPrintStmt(TargetWriter wr, Expression arg) {
       wr.Write("Dafny.Helpers.Print");
-      if (arg.Type is ArrowType) {
+      if (arg.Type.AsArrowType != null) {
         string typestr = TypeName(arg.Type, wr, null, null);
         wr.Write("<" + typestr+ " >");
       }
