@@ -401,7 +401,7 @@ namespace Microsoft.Dafny{
       public BlockTargetWriter/*?*/ CreateMethod(Method m, bool createBody) {
         return Compiler.CreateMethod(m, createBody, Writer(m.IsStatic));
       }
-      public BlockTargetWriter/*?*/ CreateFunction(string name, List<TypeParameter>/*?*/ typeArgs, List<Formal> formals, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl member) {
+      public BlockTargetWriter/*?*/ CreateFunction(string name, List<TypeParameter> typeArgs, List<Formal> formals, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl member) {
         return Compiler.CreateFunction(name, typeArgs, formals, resultType, tok, isStatic, createBody, member, Writer(isStatic));
       }
 
@@ -418,6 +418,8 @@ namespace Microsoft.Dafny{
 
       public void Finish() { }
     }
+
+    protected override bool SupportsStaticsInGenericClasses => false;
 
     protected BlockTargetWriter CreateGetter(string name, Type resultType, Bpl.IToken tok, bool isStatic,
       bool createBody, TargetWriter wr) {
@@ -480,12 +482,13 @@ namespace Microsoft.Dafny{
       var customReceiver = NeedsCustomReceiver(m);
       var receiverType = UserDefinedType.FromTopLevelDecl(m.tok, m.EnclosingClass);
       wr.Write("public {0}{1}", !createBody ? "abstract " : "", m.IsStatic || customReceiver ? "static " : "");
-      if (m.TypeArgs.Count != 0) {
-        wr.Write($"<{TypeParameters(m.TypeArgs)}> ");
+      var typeArgs = CombineTypeParameters(m);
+      if (typeArgs.Count != 0) {
+        wr.Write($"<{TypeParameters(typeArgs)}> ");
       }
       wr.Write("{0} {1}", targetReturnTypeReplacement ?? "void", IdName(m));
       wr.Write("(");
-      var nTypes = WriteRuntimeTypeDescriptorsFormals(m, m.TypeArgs, useAllTypeArgs: true, wr);
+      var nTypes = WriteRuntimeTypeDescriptorsFormals(m, typeArgs, useAllTypeArgs: true, wr);
       var sep = nTypes > 0 ? ", " : "";
       if (customReceiver) {
         DeclareFormal(sep, "_this", receiverType, m.tok, true, wr);
@@ -526,7 +529,7 @@ namespace Microsoft.Dafny{
       return w;
     }
 
-    protected BlockTargetWriter/*?*/ CreateFunction(string name, List<TypeParameter>/*?*/ typeArgs,
+    protected BlockTargetWriter/*?*/ CreateFunction(string name, List<TypeParameter> typeArgs,
       List<Formal> formals, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl member,
       TargetWriter wr) {
       if (member.IsExtern(out _, out _) && isStatic) {
@@ -536,17 +539,10 @@ namespace Microsoft.Dafny{
       var customReceiver = NeedsCustomReceiver(member);
       var receiverType = UserDefinedType.FromTopLevelDecl(member.tok, member.EnclosingClass);
       wr.Write("public {0}{1}", !createBody ? "abstract " : "", isStatic || customReceiver ? "static " : "");
-      if (typeArgs != null && typeArgs.Count != 0) {
-        wr.Write($"<{TypeParameters(typeArgs)}>");
+      if (typeArgs.Count != 0) {
+        wr.Write($"<{TypeParameters(typeArgs)}> ");
         wr.Write($"{TypeName(resultType, wr, tok)} {name}(");
-      }
-      else if (isStatic && resultType.TypeArgs.Count > 0 && resultType.TypeArgs[0].IsTypeParameter){
-        string t = "";
-        string n = "";
-        SplitType(TypeName(resultType, wr, tok), out t, out n);
-        wr.Write($"{t} {n} {name}(");
-      }
-      else{
+      } else{
         wr.Write($"{TypeName(resultType, wr, tok)} {name}(");
       }
       var sep = "";
@@ -572,21 +568,6 @@ namespace Microsoft.Dafny{
           w = wr.NewBlock(")");
         }
         return w;
-      }
-    }
-
-    private void SplitType(string s, out string t, out string n){
-      string pat = @"([^<]+)(<.*>)";
-      Regex r = new Regex(pat);
-      Match m = r.Match(s);
-      if (m.Groups.Count < 2){
-        n = s;
-
-        t = null;
-      }
-      else{
-        n = m.Groups[1].Captures[0].Value;
-        t = m.Groups[2].Captures[0].Value;
       }
     }
 
@@ -922,7 +903,7 @@ namespace Microsoft.Dafny{
     private void EmitTypeMethod(string typeName, List<TypeParameter> typeParams, List<TypeParameter> usedTypeParams, string/*?*/ initializer, TargetWriter wr) {
       var typeParamString = "";
       if (typeParams != null && typeParams.Count != 0) {
-        typeParamString = $"<{TypeParameters(typeParams)}>";
+        typeParamString = $"<{TypeParameters(typeParams)}> ";
       }
 
       var typeDescriptorCast = $"({TypeClass}<{typeName}{typeParamString}>) ({TypeClass}<?>)";
@@ -1235,11 +1216,12 @@ namespace Microsoft.Dafny{
       }
     }
 
-    protected override ILvalue EmitMemberSelect(Action<TargetWriter> obj, MemberDecl member, Type expectedType, bool internalAccess = false) {
+    protected override ILvalue EmitMemberSelect(Action<TargetWriter> obj, MemberDecl member, List<TypeArgumentInstantiation> typeArgs, Dictionary<TypeParameter, Type> typeMap, Type expectedType, bool internalAccess = false) {
       if (member.EnclosingClass is TraitDecl && !member.IsStatic) {
         return new GetterSetterLvalue(obj, IdName(member));
       } else if (member is ConstantField) {
-        return SuffixLvalue(obj, $".{member.CompileName}");
+        Contract.Assert(!(member.IsStatic && member.EnclosingClass.TypeArgs.Count != 0));
+        return SuffixLvalue(obj, $".{IdName(member)}");
       } else if (member is SpecialField sf) {
         GetSpecialFieldInfo(sf.SpecialId, sf.IdParam, out var compiledName, out _, out _);
         if (compiledName.Length != 0){
@@ -1253,7 +1235,38 @@ namespace Microsoft.Dafny{
           return SimpleLvalue(obj);
         }
       } else if (member is Function) {
-        return SuffixLvalue(obj, $"::{IdName(member)}");
+        var wr = new TargetWriter();
+        EmitNameAndActualTypeArgs(IdName(member), typeArgs.ConvertAll(ta => ta.Actual), member.tok, wr);
+        if (typeArgs.Count == 0) {
+          var nameAndTypeArgs = wr.ToString();
+          return SuffixLvalue(obj, $"::{nameAndTypeArgs}");
+        } else {
+          // we need an eta conversion for the type-descriptor parameters
+          // (T0 a0, T1 a1, ...) -> obj.F(rtd0, rtd1, ..., a0, a1, ...)
+          var fn = (Function)member;
+          wr.Write("(");
+          var sep = "";
+          foreach (var ta in typeArgs) {
+            wr.Write("{0}{1}", sep, TypeDescriptor(ta.Actual, wr, fn.tok));
+            sep = ", ";
+          }
+          var prefixWr = new TargetWriter();
+          var prefixSep = "";
+          prefixWr.Write("(");
+          foreach (var arg in fn.Formals) {
+            if (!arg.IsGhost) {
+              var name = idGenerator.FreshId("_eta");
+              var ty = Resolver.SubstType(arg.Type, typeMap);
+              prefixWr.Write($"{prefixSep}{BoxedTypeName(ty, prefixWr, arg.tok)} {name}");
+              wr.Write("{0}{1}", sep, name);
+              sep = ", ";
+              prefixSep = ", ";
+            }
+          }
+          prefixWr.Write(") -> ");
+          wr.Write(")");
+          return EnclosedLvalue(prefixWr.ToString(), obj, $".{wr.ToString()}");
+        }
       } else {
         return SuffixLvalue(obj, $".{IdName(member)}");
       }
@@ -1297,13 +1310,17 @@ namespace Microsoft.Dafny{
       }
     }
 
-    protected override void EmitConstructorCheck(string source, DatatypeCtor ctor, TargetWriter wr){
+    protected override void EmitConstructorCheck(string source, DatatypeCtor ctor, TargetWriter wr) {
       wr.Write($"{source}.is_{ctor.CompileName}()");
     }
 
-    protected override string TypeName_Companion(Type type, TextWriter wr, Bpl.IToken tok, MemberDecl member){
+    protected override string TypeName_Companion(Type type, TextWriter wr, Bpl.IToken tok, MemberDecl member) {
       if (type is UserDefinedType udt && udt.ResolvedClass is TraitDecl) {
-        return TypeName_UDT(udt.FullCompanionCompileName, udt.TypeArgs, wr, tok);
+        if (member.IsStatic && member.EnclosingClass.TypeArgs.Count != 0) {
+          return IdProtect(udt.FullCompanionCompileName);
+        } else {
+          return TypeName_UDT(udt.FullCompanionCompileName, udt.TypeArgs, wr, tok);
+        }
       } else {
         return TypeName(type, wr, tok, member);
       }
@@ -2229,12 +2246,15 @@ namespace Microsoft.Dafny{
       return t.IsBoolType || t.IsCharType || t.IsRefType || AsJavaNativeType(t) != null;
     }
 
-    protected override void EmitActualTypeArgs(List<Type> typeArgs, Bpl.IToken tok, TextWriter wr)
-    {
-      // Todo: see if there is ever a time in java where this is necessary
-//      if (typeArgs.Count != 0) {
-//        wr.Write("<" + TypeNames(typeArgs, wr, tok) + ">");
-//      }
+    protected override void EmitActualTypeArgs(List<Type> typeArgs, Bpl.IToken tok, TextWriter wr) {
+      if (typeArgs.Count != 0) {
+        wr.Write("<" + BoxedTypeNames(typeArgs, wr, tok) + ">");
+      }
+    }
+
+    protected override void EmitNameAndActualTypeArgs(string protectedName, List<Type> typeArgs, Bpl.IToken tok, TextWriter wr) {
+      EmitActualTypeArgs(typeArgs, tok, wr);
+      wr.Write(protectedName);
     }
 
     protected override string GenerateLhsDecl(string target, Type type, TextWriter wr, Bpl.IToken tok){
@@ -2359,7 +2379,7 @@ namespace Microsoft.Dafny{
         } else if (cl is TupleTypeDecl) {
           relevantTypeArgs = new List<Type>();
         } else if (cl is DatatypeDecl dt) {
-          UsedTypeParameters(dt, udt.TypeArgs, out _, out relevantTypeArgs);
+          relevantTypeArgs = UsedTypeParameters(dt, udt.TypeArgs).ConvertAll(ta => ta.Actual);
         } else {
           relevantTypeArgs = new List<Type>();
           for (int i = 0; i < cl.TypeArgs.Count; i++) {
@@ -3064,8 +3084,8 @@ namespace Microsoft.Dafny{
         if (cl is TupleTypeDecl || inAutoInitContext) {
           return $"({s}{typeargs})null";
         }
-        UsedTypeParameters(dt, udt.TypeArgs, out _, out var usedTypeArgs);
-        return $"{s}.{typeargs}Default({Util.Comma(usedTypeArgs, ta => TypeDescriptor(ta, wr, tok))})";
+        var usedTypeArgs = UsedTypeParameters(dt, udt.TypeArgs);
+        return $"{s}.{typeargs}Default({Util.Comma(usedTypeArgs, ta => TypeDescriptor(ta.Actual, wr, tok))})";
       } else {
         Contract.Assert(false);
         throw new cce.UnreachableException(); // unexpected type
@@ -3454,15 +3474,13 @@ namespace Microsoft.Dafny{
       wBareArray.Write(")");
     }
 
-    protected override int EmitRuntimeTypeDescriptorsActuals(List<Type> typeArgs, List<TypeParameter> formals, Bpl.IToken tok, bool useAllTypeArgs, TargetWriter wr) {
+    protected override int EmitRuntimeTypeDescriptorsActuals(List<TypeArgumentInstantiation> typeArgs, Bpl.IToken tok, bool useAllTypeArgs, TargetWriter wr) {
       var sep = "";
       var c = 0;
-      for (int i = 0; i < typeArgs.Count; i++) {
-        var actual = typeArgs[i];
-        var formal = formals[i];
+      foreach (var ta in typeArgs) {
         // Ignore useAllTypeArgs; we always need all of them
         wr.Write(sep);
-        wr.Write(TypeDescriptor(actual, wr, tok));
+        wr.Write(TypeDescriptor(ta.Actual, wr, tok));
         sep = ", ";
         c++;
       }

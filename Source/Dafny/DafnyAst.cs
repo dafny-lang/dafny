@@ -9434,12 +9434,14 @@ namespace Microsoft.Dafny {
       }
 
       // Add the mappings from the receiver's type "cl"
-      var udt = (UserDefinedType)receiverType.NormalizeExpand();
-      if (udt.ResolvedClass is InternalTypeSynonymDecl isyn) {
-        udt = isyn.RhsWithArgumentIgnoringScope(udt.TypeArgs) as UserDefinedType;
-      }
-      if (udt.ResolvedClass is NonNullTypeDecl nntd) {
-        udt = nntd.RhsWithArgumentIgnoringScope(udt.TypeArgs) as UserDefinedType;
+      var udt = receiverType.NormalizeExpand() as UserDefinedType;
+      if (udt != null) {
+        if (udt.ResolvedClass is InternalTypeSynonymDecl isyn) {
+          udt = isyn.RhsWithArgumentIgnoringScope(udt.TypeArgs) as UserDefinedType;
+        }
+        if (udt.ResolvedClass is NonNullTypeDecl nntd) {
+          udt = nntd.RhsWithArgumentIgnoringScope(udt.TypeArgs) as UserDefinedType;
+        }
       }
       var cl = udt?.ResolvedClass;
 
@@ -9456,8 +9458,6 @@ namespace Microsoft.Dafny {
             subst.Add(entry.Key, v);
           }
         }
-      } else {
-        Contract.Assert(false); // DEBUG: TODO: remove -- this is just for debugging
       }
 
       return subst;

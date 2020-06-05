@@ -695,7 +695,7 @@ namespace Microsoft.Dafny
       public BlockTargetWriter/*?*/ CreateMethod(Method m, bool createBody) {
         return Compiler.CreateMethod(m, createBody, Writer(m.IsStatic));
       }
-      public BlockTargetWriter/*?*/ CreateFunction(string name, List<TypeParameter>/*?*/ typeArgs, List<Formal> formals, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl member) {
+      public BlockTargetWriter/*?*/ CreateFunction(string name, List<TypeParameter> typeArgs, List<Formal> formals, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl member) {
         return Compiler.CreateFunction(name, typeArgs, formals, resultType, tok, isStatic, createBody, member, Writer(isStatic));
       }
       public BlockTargetWriter/*?*/ CreateGetter(string name, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl/*?*/ member) {
@@ -768,14 +768,14 @@ namespace Microsoft.Dafny
       }
     }
 
-    protected BlockTargetWriter/*?*/ CreateFunction(string name, List<TypeParameter>/*?*/ typeArgs, List<Formal> formals, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl member, TargetWriter wr) {
+    protected BlockTargetWriter/*?*/ CreateFunction(string name, List<TypeParameter> typeArgs, List<Formal> formals, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl member, TargetWriter wr) {
       var hasDllImportAttribute = ProcessDllImport(member, wr);
 
       var customReceiver = NeedsCustomReceiver(member);
 
       AddTestCheckerIfNeeded(name, member, wr);
       wr.Write("{0}{1}{2}{3} {4}", createBody ? "public " : "", isStatic || customReceiver ? "static " : "", hasDllImportAttribute ? "extern " : "", TypeName(resultType, wr, tok), name);
-      if (typeArgs != null && typeArgs.Count != 0) {
+      if (typeArgs.Count != 0) {
         wr.Write("<{0}>", TypeParameters(typeArgs));
       }
       wr.Write("(");
@@ -1680,7 +1680,7 @@ namespace Microsoft.Dafny
       }
     }
 
-    protected override ILvalue EmitMemberSelect(System.Action<TargetWriter> obj, MemberDecl member, Type expectedType, bool internalAccess = false) {
+    protected override ILvalue EmitMemberSelect(System.Action<TargetWriter> obj, MemberDecl member, List<TypeArgumentInstantiation> typeArgs, Dictionary<TypeParameter, Type> typeMap, Type expectedType, bool internalAccess = false) {
       if (member is ConstantField) {
         return SimpleLvalue(lvalueAction: wr => {
           obj(wr);
