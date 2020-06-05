@@ -104,9 +104,12 @@ namespace Microsoft.Dafny {
     }
     
         
-    // Transforms a legal file name (without extension or directcory) into 
-    // a legal class name in the target language
+    /// <summary>
+    /// Transforms a legal file name (without extension or directory) into
+    /// a legal class name in the target language
+    /// </summary>
     public virtual string TransformToClassName(string baseName) {
+      Contract.Requires(baseName != null);
       return baseName;
     }
 
@@ -359,7 +362,7 @@ namespace Microsoft.Dafny {
     }
 
     protected virtual string EmitAssignmentLhs(Expression e, TargetWriter wr) {
-      string target = idGenerator.FreshId("_lhs");
+      var target = idGenerator.FreshId("_lhs");
       wr.Write(GenerateLhsDecl(target, e.Type, wr, null));
       wr.Write(" = ");
       TrExpr(e,wr,false);
@@ -386,17 +389,13 @@ namespace Microsoft.Dafny {
       if (lhss.Count > 1) {
         lhssn = new List<ILvalue>();
         for (int i = 0; i < lhss.Count; ++i) {
-          Expression lexpr = lhsExprs[i];
+          Expression lexpr = lhsExprs[i].Resolved;
           ILvalue lhs = lhss[i];
-          if (lexpr is NameSegment || lexpr is IdentifierExpr) {
+          if (lexpr is IdentifierExpr) {
             lhssn.Add(lhs);
           } else if (lexpr is MemberSelectExpr) {
-            lhssn.Add(lhs);
-          } else if (lexpr is ExprDotName) {
-            ExprDotName memExpr = lexpr as ExprDotName;
-            Expression rec = memExpr.Lhs;
-            MemberSelectExpr resolved = lexpr.Resolved as MemberSelectExpr;
-            string targetRec = EmitAssignmentLhs(rec, wr);
+            MemberSelectExpr resolved = lexpr as MemberSelectExpr;
+            string targetRec = EmitAssignmentLhs(resolved.Obj, wr);
             ILvalue newLhs = EmitMemberSelect(w => w.Write(targetRec), resolved.Member, lhsTypes[i]);
             lhssn.Add(newLhs);
           } else if (lexpr is SeqSelectExpr) {
@@ -409,11 +408,7 @@ namespace Microsoft.Dafny {
             MultiSelectExpr seqExpr = lexpr as MultiSelectExpr;
             Expression array = seqExpr.Array;
             List<Expression> indices = seqExpr.Indices;
-            string targetArray = idGenerator.FreshId("_lhs");
-            wr.Write(GenerateLhsDecl(targetArray, array.Type, wr, null));
-            wr.Write(" = ");
-            TrExpr(array,wr,false);
-            EndStmt(wr);
+            string targetArray = EmitAssignmentLhs(array, wr);
             var targetIndices = new List<string>();
             foreach (var index in indices) {
               string targetIndex = EmitAssignmentLhs(index, wr);
