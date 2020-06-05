@@ -86,13 +86,13 @@ namespace DafnyTests {
                         var languages = new string[] {"cs", "java", "go", "js"};
                         foreach (var language in languages) {
                             yield return new object[]
-                                {filePath, arguments.Concat(new[] {"/compile:3", "/compileTarget:" + language}).ToArray()};
+                                {filePath, String.Join(" ",arguments.Concat(new[] {"/compile:3", "/compileTarget:" + language}))};
                         }
                     } else {
-                        yield return new object[] {filePath, arguments};
+                        yield return new object[] {filePath, String.Join(" ", arguments)};
                     }
                 } else {
-                    yield return new object[] {filePath, new[] { "/compile:0" }};
+                    yield return new object[] {filePath, "/compile:0"};
                 }
             }
         }
@@ -121,12 +121,13 @@ namespace DafnyTests {
         
         [ParallelTheory]
         [MemberData(nameof(AllTestFiles))]
-        public void Test(string file, string[] args) {
+        public void Test(string file, string args) {
             string fullInputPath = Path.Combine(TEST_ROOT, file);
+            string[] arguments = args.Split();
             
             string expectedOutputPath = fullInputPath + ".expect";
             bool specialCase = false;
-            string compileTarget = args.FirstOrDefault(arg => arg.StartsWith("/compileTarget:"));
+            string compileTarget = arguments.FirstOrDefault(arg => arg.StartsWith("/compileTarget:"));
             if (compileTarget != null) {
                 string language = compileTarget.Substring("/compileTarget:".Length);
                 var specialCasePath = fullInputPath + "." + language + ".expect";
@@ -137,7 +138,7 @@ namespace DafnyTests {
             }
             string expectedOutput = File.ReadAllText(expectedOutputPath);
 
-            string output = RunDafny(new List<string>{ fullInputPath }.Concat(args));
+            string output = RunDafny(new List<string>{ fullInputPath }.Concat(arguments));
             
             AssertEqualWithDiff(expectedOutput, output);
             Skip.If(specialCase, "Confirmed known exception for arguments: " + args);
