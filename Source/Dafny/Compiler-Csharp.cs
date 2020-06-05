@@ -1147,10 +1147,13 @@ namespace Microsoft.Dafny
     // ----- Statements -------------------------------------------------------------
 
     protected override void EmitPrintStmt(TargetWriter wr, Expression arg) {
-      wr.Write("Dafny.Helpers.Print<");
-      string typestr = TypeName(arg.Type, wr, null, null);
-      wr.Write(typestr);
-      wr.Write(" >(");
+      wr.Write("Dafny.Helpers.Print");
+      if (arg.Type is ArrowType) {
+        string typestr = TypeName(arg.Type, wr, null, null);
+        wr.Write("<" + typestr+ " >");
+      }
+
+      wr.Write("(");
       // var t = arg.Type as ArrowType;
       // var ttt = arg.Type as UserDefinedType;
       // if (arg is NameSegment && arg.Resolved is MemberSelectExpr) {
