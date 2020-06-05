@@ -162,8 +162,16 @@ namespace Microsoft.Dafny
           if (extension == ".cs" || extension == ".dll") {
             otherFiles.Add(file);
           } else if (!isDafnyFile) {
-            ExecutionEngine.printer.ErrorWriteLine(Console.Out, "*** Error: '{0}': Filename extension '{1}' is not supported. Input files must be Dafny programs (.dfy) or C# files (.cs) or managed DLLS (.dll)", file,
-              extension == null ? "" : extension);
+            if (extension == "" && file.Length > 0 && (file[0] == '/' || file[0] == '-')) {
+              ExecutionEngine.printer.ErrorWriteLine(Console.Out,
+                "*** Error: Command-line argument '{0}' is neither a recognized option nor a filename with a supported extension (.dfy, .cs, .dll).",
+                file);
+            } else {
+              ExecutionEngine.printer.ErrorWriteLine(Console.Out,
+                "*** Error: '{0}': Filename extension '{1}' is not supported. Input files must be Dafny programs (.dfy) or C# files (.cs) or managed DLLS (.dll)",
+                file,
+                extension == null ? "" : extension);
+            }
             return CommandLineArgumentsResult.PREPROCESSING_ERROR;
           }
         } else if (DafnyOptions.O.CompileTarget == DafnyOptions.CompilationTarget.JavaScript) {
@@ -199,6 +207,9 @@ namespace Microsoft.Dafny
             return CommandLineArgumentsResult.PREPROCESSING_ERROR;
           }
         }
+      }
+      if (dafnyFiles.Count == 0) { ExecutionEngine.printer.ErrorWriteLine(Console.Out, "*** Error: The command-line contains no .dfy files");
+        return CommandLineArgumentsResult.PREPROCESSING_ERROR;
       }
       return CommandLineArgumentsResult.OK;
     }
@@ -491,7 +502,7 @@ namespace Microsoft.Dafny
 
     #region Compilation
 
-    static string WriteDafnyProgramToFiles(string dafnyProgramName, string targetProgram, bool completeProgram, Dictionary<String, String> otherFiles, TextWriter outputWriter)
+    static string WriteDafnyProgramToFiles(Compiler compiler, string dafnyProgramName, string targetProgram, bool completeProgram, Dictionary<String, String> otherFiles, TextWriter outputWriter)
     {
       string targetExtension;
       string baseName = Path.GetFileNameWithoutExtension(dafnyProgramName);
@@ -510,6 +521,7 @@ namespace Microsoft.Dafny
         case DafnyOptions.CompilationTarget.Java:
           targetExtension = "java";
           targetBaseDir = baseName;
+          baseName = compiler.TransformToClassName(baseName);
           break;
         case DafnyOptions.CompilationTarget.Php:
           targetExtension = "php";
@@ -622,8 +634,8 @@ namespace Microsoft.Dafny
       if (hasMain) {
         using (var wr = new TargetWriter(0)) {
           if (DafnyOptions.O.CompileTarget is DafnyOptions.CompilationTarget.Java) {
-            dafnyProgramName = dafnyProgramName.Replace('-', '_');
-            wr.WriteLine($"public class {baseName.Replace('-', '_')} {{");
+            baseName = compiler.TransformToClassName(baseName);
+            wr.WriteLine($"public class {baseName} {{");
           }
           compiler.EmitCallToMain(mainMethod, wr);
           if (DafnyOptions.O.CompileTarget is DafnyOptions.CompilationTarget.Java) {
@@ -644,11 +656,11 @@ namespace Microsoft.Dafny
         if (DafnyOptions.O.CompileTarget is DafnyOptions.CompilationTarget.Java && callToMain == null) {
           p = null;
         }
-        targetFilename = WriteDafnyProgramToFiles(dafnyProgramName, p, completeProgram, otherFiles, outputWriter);
+        targetFilename = WriteDafnyProgramToFiles(compiler, dafnyProgramName, p, completeProgram, otherFiles, outputWriter);
       }
 
       if (DafnyOptions.O.CompileTarget is DafnyOptions.CompilationTarget.Java) {
-        string targetBaseDir = baseName;
+        string targetBaseDir = Path.GetFileNameWithoutExtension(dafnyProgramName);
         string targetDir = Path.Combine(Path.GetDirectoryName(dafnyProgramName), targetBaseDir);
         var assemblyLocation = System.Reflection.Assembly.GetExecutingAssembly().Location;
         Contract.Assert(assemblyLocation != null);
