@@ -625,8 +625,9 @@ namespace Microsoft.Dafny
     public override void Usage() {
       Console.WriteLine(@"  ---- Dafny options ---------------------------------------------------------
 
-  Multiple .dfy files supplied on the command line are concatenated into one
-  Dafny program.
+ All the .dfy files supplied on the command line along with files recursively 
+ included by 'include' directives are considered a single Dafny program; 
+ however only those files listed on the command line are verified.
 
   /dprelude:<file>
                 choose Dafny prelude file
@@ -656,12 +657,9 @@ namespace Microsoft.Dafny
                 1 - continue on to translation, verification, and compilation
   /compile:<n>  0 - do not compile Dafny program
                 1 (default) - upon successful verification of the Dafny
-                    program, compile Dafny program to .NET assembly
-                    Program.exe (if the program has a Main method) or
-                    Program.dll (otherwise), where Program.dfy is the name
-                    of the last .dfy file on the command line
-                2 - always attempt to compile Dafny program to C# program
-                    out.cs, regardless of verification outcome
+                    program, compile it to the designated target language
+                2 - always attempt to compile Dafny program to the target
+                    language, regardless of verification outcome
                 3 - if there is a Main method and there are no verification
                     errors, compiles program in memory (i.e., does not write
                     an output file) and runs it
@@ -680,18 +678,19 @@ namespace Microsoft.Dafny
   /spillTargetCode:<n>
                 0 (default) - don't write the compiled Dafny program (but
                     still compile it, if /compile indicates to do so)
-                1 - write the compiled Dafny program as a .cs file, if it
-                    is being compiled
-                2 - write the compiled Dafny program as a .cs file, provided
-                    it passes the verifier, regardless of /compile setting
-                3 - write the compiled Dafny program as a .cs file, regardless
-                    of verification outcome and /compile setting
+                1 - write the compiled Dafny program in the target language, 
+                    if it is being compiled
+                2 - write the compiled Dafny program in the target language, 
+                    provided it passes the verifier, regardless of /compile 
+                    setting
+                3 - write the compiled Dafny program in the target language, 
+                    regardless of verification outcome and /compile setting
                 NOTE: If there are .cs or .dll files on the command line, then
                 the compiled Dafny program will also be written. More precisely,
                 such files on the command line implies /spillTargetCode:1 (or
                 higher, if manually specified).
   /out:<file>
-                filename and location for the generated .cs, .dll or .exe files
+                filename and location for the generated target language files
   /coverage:<file>
                 The compiler emits branch-coverage calls and outputs into
                 <file> a legend that gives a description of each
