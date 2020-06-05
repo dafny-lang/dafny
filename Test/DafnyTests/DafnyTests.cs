@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.CodeDom.Compiler;
 using System.Collections;
 using System.Collections.Generic;
@@ -18,16 +19,12 @@ namespace DafnyTests {
 
         private static string DAFNY_ROOT = new DirectoryInfo(Directory.GetCurrentDirectory()).Parent.Parent.Parent.Parent.Parent.FullName;
         private static string DAFNY_EXE = Path.Combine(DAFNY_ROOT, "Binaries/Dafny.exe");
-        private static string TEST_ROOT = Path.Combine(DAFNY_ROOT, "Test");
+        private static string TEST_ROOT = Path.Combine(DAFNY_ROOT, "Test") + Path.DirectorySeparatorChar;
         private static string COMP_DIR = Path.Combine(TEST_ROOT, "comp") + Path.DirectorySeparatorChar;
         
         
-        private string RunDafnyProgram(string filePath, params string[] arguments) {
+        public static string RunDafny(IEnumerable<string> arguments) {
             List<string> dafnyArguments = new List<string> {
-
-                filePath,
-                "/compile:3",
-                
                 // Expected output does not contain logo
                 "-nologo",
                 "-countVerificationErrors:0",
@@ -40,14 +37,11 @@ namespace DafnyTests {
                 "-compileVerbose:0"
             };
             dafnyArguments.AddRange(arguments);
-            return RunDafny(dafnyArguments);
-        }
-
-        public static string RunDafny(IEnumerable<string> arguments) {
+            
             using (Process dafnyProcess = new Process()) {
                 dafnyProcess.StartInfo.FileName = "mono";
                 dafnyProcess.StartInfo.ArgumentList.Add(DAFNY_EXE);
-                foreach (var argument in arguments) {
+                foreach (var argument in dafnyArguments) {
                     dafnyProcess.StartInfo.ArgumentList.Add(argument);
                 }
 
@@ -76,14 +70,29 @@ namespace DafnyTests {
             }
         }
 
-        public static IEnumerable<object[]> TestData() {
-            var filePaths = Directory.GetFiles(COMP_DIR, "*.dfy")
-                                     .Select(path => GetRelativePath(COMP_DIR, path));
-//            var filePaths = new string[] {"NativeNumbers.dfy"};
-            var languages = new string[] {"cs", "java", "go", "js"};
+        public static IEnumerable<object[]> AllTestFiles() {
+            var filePaths = Directory.GetFiles(TEST_ROOT, "*.dfy", SearchOption.AllDirectories)
+                                     .Select(path => GetRelativePath(TEST_ROOT, path));
             foreach (var filePath in filePaths) {
-                foreach (var language in languages) {
-                    yield return new object[] { filePath, language };
+                // Parse the arguments to testdafny on the "shebang" line
+                // TODO: override with environment variable from testdafny itself when executed
+                string shebang = File.ReadLines(Path.Combine(TEST_ROOT, filePath)).FirstOrDefault();
+                int semiIndex = shebang.IndexOf(";");
+                if (semiIndex >= 0) {
+                    string[] chunks = shebang.Substring(0, semiIndex).Split();
+                    List<string> arguments = chunks.Skip(3).ToList();
+
+                    if (!arguments.Any(arg => arg.StartsWith("/compile:"))) {
+                        var languages = new string[] {"cs", "java", "go", "js"};
+                        foreach (var language in languages) {
+                            yield return new object[]
+                                {filePath, arguments.Concat(new[] {"/compile:3", "/compileTarget:" + language}).ToArray()};
+                        }
+                    } else {
+                        yield return new object[] {filePath, arguments};
+                    }
+                } else {
+                    yield return new object[] {filePath, new[] { "/compile:0" }};
                 }
             }
         }
@@ -111,19 +120,27 @@ namespace DafnyTests {
         }
         
         [ParallelTheory]
-        [MemberData(nameof(TestData))]
-        public void ValidProgramOutput(String program, String language) {
-            string fullInputPath = Path.Combine(COMP_DIR, program);
+        [MemberData(nameof(AllTestFiles))]
+        public void Test(string file, string[] args) {
+            string fullInputPath = Path.Combine(TEST_ROOT, file);
             
             string expectedOutputPath = fullInputPath + ".expect";
-            string expectedLangOutputPath = fullInputPath + "." + language + ".expect";
-            bool langSpecific = File.Exists(expectedLangOutputPath);
-            string expectedOutput = langSpecific ? File.ReadAllText(expectedLangOutputPath) : File.ReadAllText(expectedOutputPath);
-            
-            string output = RunDafnyProgram(fullInputPath, "/compileTarget:" + language);
+            bool specialCase = false;
+            string compileTarget = args.FirstOrDefault(arg => arg.StartsWith("/compileTarget:"));
+            if (compileTarget != null) {
+                string language = compileTarget.Substring("/compileTarget:".Length);
+                var specialCasePath = fullInputPath + "." + language + ".expect";
+                if (File.Exists(specialCasePath)) {
+                    specialCase = true;
+                    expectedOutputPath = specialCasePath;
+                }
+            }
+            string expectedOutput = File.ReadAllText(expectedOutputPath);
+
+            string output = RunDafny(new List<string>{ fullInputPath }.Concat(args));
             
             AssertEqualWithDiff(expectedOutput, output);
-            Skip.If(langSpecific, "Confirmed language-specific behavior");
+            Skip.If(specialCase, "Confirmed known exception for arguments: " + args);
         }
     }
 }

@@ -1,3 +1,5 @@
+//usr/bin/env testdafny "$0"; exit
+
 method M1() returns (x: int)
 {
   print "hello, M1\n";

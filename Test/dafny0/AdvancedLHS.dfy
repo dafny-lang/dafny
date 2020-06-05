@@ -1,5 +1,5 @@
-// RUN: %dafny /compile:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+//usr/bin/env testdafny "$0" /compile:0; exit
+
 
 class C {
   var x: C?

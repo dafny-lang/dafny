@@ -1,3 +1,5 @@
+//usr/bin/env testdafny "$0"; exit
+
 method Main() {
   Literals();
   Arithmetic();

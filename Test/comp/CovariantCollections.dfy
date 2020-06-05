@@ -1,3 +1,5 @@
+//usr/bin/env testdafny "$0"; exit
+
 method Main() {
   // TODO-RS: Just testing the recent support for covariance in sequneces in C# for now.
   // These also work in Javascript, but hit runtime type errors in Go and still don't

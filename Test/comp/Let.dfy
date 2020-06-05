@@ -1,3 +1,5 @@
+//usr/bin/env testdafny "$0"; exit
+
 method M() returns (x: int) {
   x := var y := 50; y;  // non-top-level let
 }
