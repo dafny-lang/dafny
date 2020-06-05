@@ -1,9 +1,0 @@
-git-issue-604a.dfy(13,13): Error: assertion violation
-Execution trace:
-    (0,0): anon0
-    git-issue-604a.dfy(9,5): anon9_LoopHead
-    (0,0): anon9_LoopBody
-    git-issue-604a.dfy(9,5): anon10_Else
-    (0,0): anon12_Then
-
-Dafny program verifier finished with 0 verified, 1 error
