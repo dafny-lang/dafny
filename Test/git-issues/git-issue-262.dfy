@@ -4,12 +4,12 @@
 // RUN: %dafny /compile:4 /compileTarget:java "%s" >> "%t"
 // RUN: %diff "%s.expect" "%t"
 
-function method tst (x : nat) : nat {
+function method tst(x: nat): nat {
     x + 1
 }
 
 method Main() {
-    var f := tst;
-    print f, "\n";
-    print tst, "\n";
+  var f := tst;
+  print f, "\n";
+  print tst, "\n";
 }

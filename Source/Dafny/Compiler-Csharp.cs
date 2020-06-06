@@ -1150,18 +1150,10 @@ namespace Microsoft.Dafny
       wr.Write("Dafny.Helpers.Print");
       if (arg.Type.AsArrowType != null) {
         string typestr = TypeName(arg.Type, wr, null, null);
-        wr.Write("<" + typestr+ " >");
+        wr.Write("<" + typestr + " >");
       }
-
-      wr.Write("(");
-      // var t = arg.Type as ArrowType;
-      // var ttt = arg.Type as UserDefinedType;
-      // if (arg is NameSegment && arg.Resolved is MemberSelectExpr) {
-      //   wr.Write("\"Function\"");
-      // } else {
-        TrExpr(arg, wr, false);
-      // }
-
+      wr.Write("("); 
+      TrExpr(arg, wr, false);
       wr.WriteLine(");");
     }
 
