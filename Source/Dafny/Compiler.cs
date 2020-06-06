@@ -395,8 +395,8 @@ namespace Microsoft.Dafny {
           } else if (lexpr is MemberSelectExpr) {
             MemberSelectExpr resolved = lexpr as MemberSelectExpr;
             string target = EmitAssignmentLhs(resolved.Obj, wr);
-            ILvalue newLhs = EmitMemberSelect(w => w.Write(target),
-                                              resolved.Member, lhsTypes[i]);
+            var typeArgs = TypeArgumentInstantiation.ListFromMember(resolved.Member, null, resolved.TypeApplication_JustMember);
+            ILvalue newLhs =  EmitMemberSelect(w => w.Write(target), resolved.Member, typeArgs, resolved.TypeArgumentSubstitutionsWithParents(), resolved.Type);
             lhssn.Add(newLhs);
           } else if (lexpr is SeqSelectExpr) {
             SeqSelectExpr seqExpr = lexpr as SeqSelectExpr;
