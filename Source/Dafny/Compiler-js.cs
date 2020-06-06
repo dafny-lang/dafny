@@ -1457,8 +1457,8 @@ namespace Microsoft.Dafny {
       }
     }
 
-    protected override ILvalue EmitMemberSelect(Action<TargetWriter> obj, MemberDecl member, List<TypeArgumentInstantiation> typeArgs, Dictionary<TypeParameter, Type> typeMap, Type expectedType,
-      bool internalAccess = false) {
+    protected override ILvalue EmitMemberSelect(Action<TargetWriter> obj, MemberDecl member, List<TypeArgumentInstantiation> typeArgs, Dictionary<TypeParameter, Type> typeMap,
+      Type expectedType, string/*?*/ additionalCustomParameter, bool internalAccess = false) {
       if (member is ConstantField) {
         return SimpleLvalue(lvalueAction: wr => {
           obj(wr);
@@ -1480,7 +1480,7 @@ namespace Microsoft.Dafny {
         }
       } else if (member is Function fn) {
         typeArgs = typeArgs.Where(ta => ta.Formal.Characteristics.MustSupportZeroInitialization).ToList();
-        if (typeArgs.Count == 0) {
+        if (typeArgs.Count == 0 && additionalCustomParameter == null) {
           return SuffixLvalue(obj, ".{0}", IdName(member));
         } else {
           // we need an eta conversion for the type-descriptor parameters
@@ -1492,6 +1492,10 @@ namespace Microsoft.Dafny {
           var suffixSep = "";
           foreach (var ta in typeArgs) {
             suffixWr.Write("{0}{1}", suffixSep, RuntimeTypeDescriptor(ta.Actual, fn.tok, suffixWr));
+            suffixSep = ", ";
+          }
+          if (additionalCustomParameter != null) {
+            suffixWr.Write("{0}{1}", suffixSep, additionalCustomParameter);
             suffixSep = ", ";
           }
           // Write the prefix and the rest of the suffix

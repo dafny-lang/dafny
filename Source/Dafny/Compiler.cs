@@ -679,7 +679,14 @@ namespace Microsoft.Dafny {
       }
     }
 
-    protected abstract ILvalue EmitMemberSelect(Action<TargetWriter> obj, MemberDecl member, List<TypeArgumentInstantiation> typeArgs, Dictionary<TypeParameter, Type> typeMap, Type expectedType, bool internalAccess = false);
+    /// <summary>
+    /// The "additionalCustomParameter" is used when the member is an instance function that requires customer-receiver support.
+    /// This parameter is then to be added between any run-time type descriptors and the "normal" arguments. The caller will
+    /// arrange for "additionalCustomParameter" to be properly bound.
+    /// </summary>
+    protected abstract ILvalue EmitMemberSelect(Action<TargetWriter> obj, MemberDecl member, List<TypeArgumentInstantiation> typeArgs, Dictionary<TypeParameter, Type> typeMap,
+      Type expectedType, string/*?*/ additionalCustomParameter = null, bool internalAccess = false);
+
     protected void EmitArraySelect(string index, Type elmtType, TargetWriter wr) {
       EmitArraySelect(new List<string>() { index }, elmtType, wr);
     }
@@ -2513,7 +2520,7 @@ namespace Microsoft.Dafny {
             tup = wTup.ToString();
           }
           if (s0.Lhs is MemberSelectExpr) {
-            EmitMemberSelect(s0, tupleTypeArgsList,wr,tup);
+            EmitMemberSelect(s0, tupleTypeArgsList, wr, tup);
           } else if (s0.Lhs is SeqSelectExpr) {
             EmitSeqSelect(s0, tupleTypeArgsList, wr, tup);
           } else {
@@ -2622,7 +2629,7 @@ namespace Microsoft.Dafny {
       return wrOuter;
     }
 
-    protected virtual void EmitMemberSelect(AssignStmt s0, List<Type> tupleTypeArgsList, TargetWriter wr, string tup){
+    protected virtual void EmitMemberSelect(AssignStmt s0, List<Type> tupleTypeArgsList, TargetWriter wr, string tup) {
       var lhs = (MemberSelectExpr) s0.Lhs;
       var wCoerced = EmitCoercionIfNecessary(from: null, to: tupleTypeArgsList[0], tok: s0.Tok, wr: wr);
       EmitTupleSelect(tup, 0, wCoerced);
@@ -3015,6 +3022,10 @@ namespace Microsoft.Dafny {
       return new SimpleLvalueImpl(this, wr => { wr.Write(prefix); action(wr); wr.Write(suffixStr, suffixArgs); });
     }
 
+    protected ILvalue CoercedLvalue(ILvalue lvalue, Type/*?*/ from, Type/*?*/ to) {
+      return new CoercedLvalueImpl(this, lvalue, from, to);
+    }
+
     private class SimpleLvalueImpl : ILvalue {
       private readonly Compiler Compiler;
       private readonly Action<TargetWriter> LvalueAction, RvalueAction;
@@ -3039,6 +3050,30 @@ namespace Microsoft.Dafny {
         Compiler.EmitAssignment(out var wLhs, null, out var wRhs, null, wr);
         LvalueAction(wLhs);
         return wRhs;
+      }
+    }
+
+    private class CoercedLvalueImpl : ILvalue
+    {
+      private readonly Compiler Compiler;
+      private readonly ILvalue lvalue;
+      private readonly Type /*?*/ from;
+      private readonly Type /*?*/ to;
+
+      public CoercedLvalueImpl(Compiler compiler, ILvalue lvalue, Type/*?*/ from, Type/*?*/ to) {
+        Compiler = compiler;
+        this.lvalue = lvalue;
+        this.from = from;
+        this.to = to;
+      }
+
+      public void EmitRead(TargetWriter wr) {
+        wr = Compiler.EmitCoercionIfNecessary(from, to, Bpl.Token.NoToken, wr);
+        lvalue.EmitRead(wr);
+      }
+
+      public TargetWriter EmitWrite(TargetWriter wr) {
+        return lvalue.EmitWrite(wr);
       }
     }
 
@@ -3633,6 +3668,15 @@ namespace Microsoft.Dafny {
           }
 
           wr.Write(postStr);
+        } else if (NeedsCustomReceiver(e.Member) && e.Member is Function && !e.Member.IsStatic) {
+          var fn = (Function)e.Member;
+          // need to eta-expand wrap the receiver
+          var typeArgs = CombineTypeArguments(e.Member, e.TypeApplication_AtEnclosingClass, e.TypeApplication_JustMember);
+          var typeMap = e.TypeArgumentSubstitutionsWithParents();
+          var receiverName = idGenerator.FreshId("_eta_this");
+          var wBody = CreateIIFE_ExprBody(e.Obj, inLetExprBody, e.Obj.Type, e.Obj.tok, Resolver.SubstType(e.Type, typeMap),
+            e.tok, receiverName, wr);
+          EmitMemberSelect(w => w.Write(TypeName_Companion(e.Obj.Type, wr, e.tok, e.Member)), e.Member, typeArgs, typeMap, expr.Type, receiverName).EmitRead(wBody);
         } else if (NeedsCustomReceiver(e.Member) || e.Member.IsStatic) {
           var typeArgs = CombineTypeArguments(e.Member, e.TypeApplication_AtEnclosingClass, e.TypeApplication_JustMember);
           var typeMap = e.TypeArgumentSubstitutionsWithParents();
