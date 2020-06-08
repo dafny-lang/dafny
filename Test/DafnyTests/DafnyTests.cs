@@ -11,6 +11,10 @@ using Microsoft.Extensions.DependencyModel;
 using Xunit;
 using Xunit.Abstractions;
 using Xunit.Sdk;
+using YamlDotNet.Core;
+using YamlDotNet.RepresentationModel;
+using YamlDotNet.Serialization;
+using YamlDotNet.Serialization.NamingConventions;
 using Assert = Xunit.Assert;
 
 namespace DafnyTests {
@@ -21,7 +25,6 @@ namespace DafnyTests {
         private static string DAFNY_EXE = Path.Combine(DAFNY_ROOT, "Binaries/Dafny.exe");
         private static string TEST_ROOT = Path.Combine(DAFNY_ROOT, "Test") + Path.DirectorySeparatorChar;
         private static string COMP_DIR = Path.Combine(TEST_ROOT, "comp") + Path.DirectorySeparatorChar;
-        
         
         public static string RunDafny(IEnumerable<string> arguments) {
             List<string> dafnyArguments = new List<string> {
@@ -70,29 +73,80 @@ namespace DafnyTests {
             }
         }
 
-        public static IEnumerable<object[]> AllTestFiles() {
-            var filePaths = Directory.GetFiles(TEST_ROOT, "*.dfy", SearchOption.AllDirectories)
-                                     .Select(path => GetRelativePath(TEST_ROOT, path));
-            foreach (var filePath in filePaths) {
-                // Parse the arguments to testdafny on the "shebang" line
-                // TODO: override with environment variable from testdafny itself when executed
-                string shebang = File.ReadLines(Path.Combine(TEST_ROOT, filePath)).FirstOrDefault();
-                int semiIndex = shebang.IndexOf(";");
-                if (semiIndex >= 0) {
-                    string[] chunks = shebang.Substring(0, semiIndex).Split();
-                    List<string> arguments = chunks.Skip(3).ToList();
-
-                    if (!arguments.Any(arg => arg.StartsWith("/compile:"))) {
-                        var languages = new string[] {"cs", "java", "go", "js"};
-                        foreach (var language in languages) {
-                            yield return new object[]
-                                {filePath, String.Join(" ",arguments.Concat(new[] {"/compile:3", "/compileTarget:" + language}))};
-                        }
-                    } else {
-                        yield return new object[] {filePath, String.Join(" ", arguments)};
+        private static string GetTestCaseConfigString(string filePath) {
+            // TODO-RS: Figure out how to do this cleanly on a TextReader instead,
+            // and to handle things like nested comments.
+            string fullText = File.ReadAllText(filePath);
+            var commentStart = fullText.IndexOf("/*");
+            if (commentStart >= 0) {
+                var commentEnd = fullText.IndexOf("*/", commentStart + 2);
+                if (commentEnd >= 0) {
+                    var commentContent = fullText.Substring(commentStart + 2, commentEnd - commentStart - 2).Trim();
+                    if (commentContent.StartsWith("---")) {
+                        return commentContent;
                     }
-                } else {
-                    yield return new object[] {filePath, "/compile:0"};
+                }
+            }
+
+            return null;
+        }
+
+        private static IEnumerable<YamlNode> Expand(YamlNode node) {
+            if (node is YamlSequenceNode seqNode) {
+                return seqNode.SelectMany(child => Expand(child));
+            } else if (node is YamlMappingNode mappingNode) {
+                return CartesianProduct(mappingNode.Select(ExpandValue)).Select(FromPairs);
+            } else {
+                return new[]{ node };
+            }
+        }
+
+        private static IEnumerable<KeyValuePair<YamlNode, YamlNode>> ExpandValue(KeyValuePair<YamlNode, YamlNode> pair) {
+            return Expand(pair.Value).Select(v => KeyValuePair.Create(pair.Key, v));
+        }
+
+        private static YamlMappingNode FromPairs(IEnumerable<KeyValuePair<YamlNode, YamlNode>> pairs) {
+            var result = new YamlMappingNode();
+            foreach (var pair in pairs) {
+                result.Add(pair.Key, pair.Value);
+            }
+
+            return result;
+        }
+        
+        /**
+         * Source: https://docs.microsoft.com/en-us/archive/blogs/ericlippert/computing-a-cartesian-product-with-linq
+         */
+        private static IEnumerable<IEnumerable<T>> CartesianProduct<T>(IEnumerable<IEnumerable<T>> sequences)
+        {
+            IEnumerable<IEnumerable<T>> emptyProduct = new[] { Enumerable.Empty<T>() };
+            return sequences.Aggregate(
+                emptyProduct,
+                (accumulator, sequence) =>
+                    from accseq in accumulator
+                    from item in sequence
+                    select accseq.Concat(new[] {item}));
+        }
+        
+        public static IEnumerable<object[]> AllTestFiles() {
+//            var filePaths = Directory.GetFiles(TEST_ROOT, "*.dfy", SearchOption.AllDirectories)
+//                                     .Select(path => GetRelativePath(TEST_ROOT, path));
+            var filePaths = new[] { "dafny4/git-issue250.dfy" };
+            foreach (var filePath in filePaths) {
+                var fullFilePath = Path.Combine(TEST_ROOT, filePath);
+                string configString = GetTestCaseConfigString(fullFilePath);
+                if (configString != null) {
+                    var yamlStream = new YamlStream();
+                    yamlStream.Load(new StringReader(configString));
+                    if (yamlStream.Documents[0].RootNode is YamlMappingNode mapping) {
+                        Console.WriteLine(mapping["compile"]);
+                    }
+                }
+                
+                var languages = new string[] {"cs", "java", "go", "js"};
+                foreach (var language in languages) {
+                    yield return new object[]
+                        {filePath, String.Join(" ", new[] {"/compile:3", "/compileTarget:" + language})};
                 }
             }
         }
@@ -138,10 +192,15 @@ namespace DafnyTests {
             }
             string expectedOutput = File.ReadAllText(expectedOutputPath);
 
-            string output = RunDafny(new List<string>{ fullInputPath }.Concat(arguments));
+            string output = RunDafny(new List<string>{ file }.Concat(arguments));
             
             AssertEqualWithDiff(expectedOutput, output);
             Skip.If(specialCase, "Confirmed known exception for arguments: " + args);
+        }
+
+        [Fact]
+        public void ExpandTest() {
+            
         }
     }
 }
