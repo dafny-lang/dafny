@@ -1,0 +1,5 @@
+git-issue-356-errors.dfy(9,10): Error: the real-based number must be an integer (if you want truncation, apply .Floor to the real-based number)
+Execution trace:
+    (0,0): anon0
+
+Dafny program verifier finished with 0 verified, 1 error

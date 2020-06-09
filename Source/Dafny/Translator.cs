@@ -8091,12 +8091,18 @@ namespace Microsoft.Dafny {
           r = FunctionCall(tok, "nat_from_bv" + fromWidth, Bpl.Type.Int, r);
           if (toType.IsNumericBased(Type.NumericPersuation.Real)) {
             r = FunctionCall(tok, BuiltinFunction.IntToReal, null, r);
+          } else if (toType.IsCharType) {
+            r = FunctionCall(tok, BuiltinFunction.CharFromInt, null, r);
           }
           return r;
         }
       }
       if (fromType.IsNumericBased(Type.NumericPersuation.Real)) {
         if (toType.IsNumericBased(Type.NumericPersuation.Real)) {
+          return r;
+        } else if (toType.IsCharType) {
+          r = FunctionCall(tok, BuiltinFunction.RealToInt, null, r);
+          r = FunctionCall(tok, BuiltinFunction.CharFromInt, null, r);
           return r;
         }
         r = FunctionCall(tok, BuiltinFunction.RealToInt, null, r);
