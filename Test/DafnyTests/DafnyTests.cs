@@ -1,21 +1,13 @@
 using System;
-using System.Linq;
-using System.CodeDom.Compiler;
-using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using DiffMatchPatch;
-using Microsoft.Extensions.DependencyModel;
 using Xunit;
-using Xunit.Abstractions;
 using Xunit.Sdk;
-using YamlDotNet.Core;
 using YamlDotNet.RepresentationModel;
 using YamlDotNet.Serialization;
-using YamlDotNet.Serialization.NamingConventions;
-using Assert = Xunit.Assert;
 
 namespace DafnyTests {
 
@@ -57,9 +49,9 @@ namespace DafnyTests {
                 
                 // Only preserve specific whitelisted environment variables
                 dafnyProcess.StartInfo.EnvironmentVariables.Clear();
-                dafnyProcess.StartInfo.EnvironmentVariables.Add("PATH", System.Environment.GetEnvironmentVariable("PATH"));
+                dafnyProcess.StartInfo.EnvironmentVariables.Add("PATH", Environment.GetEnvironmentVariable("PATH"));
                 // Go requires this or GOCACHE
-                dafnyProcess.StartInfo.EnvironmentVariables.Add("HOME", System.Environment.GetEnvironmentVariable("HOME"));
+                dafnyProcess.StartInfo.EnvironmentVariables.Add("HOME", Environment.GetEnvironmentVariable("HOME"));
 
                 dafnyProcess.Start();
                 dafnyProcess.WaitForExit();
@@ -129,28 +121,55 @@ namespace DafnyTests {
         }
         
         public static IEnumerable<object[]> AllTestFiles() {
-//            var filePaths = Directory.GetFiles(TEST_ROOT, "*.dfy", SearchOption.AllDirectories)
-//                                     .Select(path => GetRelativePath(TEST_ROOT, path));
-            var filePaths = new[] { "dafny4/git-issue250.dfy" };
-            foreach (var filePath in filePaths) {
-                var fullFilePath = Path.Combine(TEST_ROOT, filePath);
-                string configString = GetTestCaseConfigString(fullFilePath);
-                if (configString != null) {
-                    var yamlStream = new YamlStream();
-                    yamlStream.Load(new StringReader(configString));
-                    if (yamlStream.Documents[0].RootNode is YamlMappingNode mapping) {
-                        Console.WriteLine(mapping["compile"]);
-                    }
-                }
-                
-                var languages = new string[] {"cs", "java", "go", "js"};
-                foreach (var language in languages) {
-                    yield return new object[]
-                        {filePath, String.Join(" ", new[] {"/compile:3", "/compileTarget:" + language})};
-                }
-            }
+            var filePaths = Directory.GetFiles(TEST_ROOT, "*.dfy", SearchOption.AllDirectories)
+                                     .Select(path => GetRelativePath(TEST_ROOT, path));
+            return filePaths.SelectMany(TestCasesForDafnyFile);
         }
 
+        private static IEnumerable<object[]> TestCasesForDafnyFile(string filePath) {
+            var fullFilePath = Path.Combine(TEST_ROOT, filePath);
+            string configString = GetTestCaseConfigString(fullFilePath); 
+            IEnumerable<YamlNode> configs;
+            if (configString != null) {
+                var yamlStream = new YamlStream();
+                yamlStream.Load(new StringReader(configString));
+                var config = yamlStream.Documents[0].RootNode;
+                configs = Expand(config);
+            } else {
+                configs = new[] { new YamlMappingNode() };
+            }
+
+            IEnumerable<YamlMappingNode> mappings = configs.SelectMany<YamlNode, YamlMappingNode>(config => {
+                if (config is YamlMappingNode mapping) {
+                    return ResolveCompile(filePath, mapping);
+                } else {
+                    throw new ArgumentException("Bad test case configuration: " + config);
+                }
+            });
+
+            return mappings.Select(mapping => {
+                var flags = mapping.Select(pair => "/" + pair.Key + ":" + pair.Value);
+                return new[] {filePath, String.Join(" ", flags)};
+            });
+        }
+
+        private static IEnumerable<YamlMappingNode> ResolveCompile(string filePath, YamlMappingNode mapping) {
+            if (!mapping.Children.ContainsKey(new YamlScalarNode("compile"))) {
+                mapping.Add("compile", "3");
+            }
+
+            if (mapping["compile"].Equals(new YamlScalarNode("3")) && !mapping.Children.ContainsKey("compileTarget")) {
+                var languages = new string[] {"cs", "java", "go", "js"};
+                foreach (var language in languages) {
+                    var withLanguage = new YamlMappingNode(mapping.Children);
+                    withLanguage.Add("compileTarget", language);
+                    yield return withLanguage;
+                }
+            } else {
+                yield return mapping;
+            }
+        } 
+        
         // TODO-RS: Replace with Path.GetRelativePath() if we move to .NET Core 3.1
         private static string GetRelativePath(string relativeTo, string path) {
             var fullRelativeTo = Path.GetFullPath(relativeTo);
@@ -181,6 +200,7 @@ namespace DafnyTests {
             
             string expectedOutputPath = fullInputPath + ".expect";
             bool specialCase = false;
+            // TODO-RS: Broken now that args are a single string. Needs a custom arguments class.
             string compileTarget = arguments.FirstOrDefault(arg => arg.StartsWith("/compileTarget:"));
             if (compileTarget != null) {
                 string language = compileTarget.Substring("/compileTarget:".Length);
@@ -198,9 +218,24 @@ namespace DafnyTests {
             Skip.If(specialCase, "Confirmed known exception for arguments: " + args);
         }
 
-        [Fact]
-        public void ExpandTest() {
-            
+        [Theory]
+        [InlineData("multiple.yml", "multiple.expect.yml")]
+        public void ExpandTest(string inputPath, string expectedOutputPath) {
+            string fullInputPath = Path.Combine(TEST_ROOT, "DafnyTests/YamlTests/" + inputPath);
+            string fullExpectedOutputPath = Path.Combine(TEST_ROOT, "DafnyTests/YamlTests/" + expectedOutputPath);
+
+            using (var reader = File.OpenText(fullInputPath)) {
+                var yamlStream = new YamlStream();
+                yamlStream.Load(reader);
+                var root = yamlStream.Documents[0].RootNode;
+                var expanded = Expand(root);
+                
+                var outputWriter = new StringWriter();
+                var serializer = new SerializerBuilder().Build();
+                serializer.Serialize(outputWriter, expanded);
+                string expectedOutput = File.ReadAllText(fullExpectedOutputPath);
+                Assert.Equal(expectedOutput, outputWriter.ToString());
+            }
         }
     }
 }
