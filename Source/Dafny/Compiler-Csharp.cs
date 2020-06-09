@@ -761,7 +761,7 @@ namespace Microsoft.Dafny
         var w = wr.NewBlock(")", null, BlockTargetWriter.BraceStyle.Newline, BlockTargetWriter.BraceStyle.Newline);
         if (targetReturnTypeReplacement != null) {
           var r = new TargetWriter(w.IndentLevel);
-          EmitReturn(m.Outs, m.OverriddenMethod?.Original.Outs, r);
+          EmitReturn(m.Outs, r);
           w.BodySuffix = r.ToString();
         }
         return w;
@@ -1157,7 +1157,7 @@ namespace Microsoft.Dafny
       wr.WriteLine(");");
     }
 
-    protected override void EmitReturn(List<Formal> outParams, List<Formal>/*?*/ overriddenOutParams, TargetWriter wr) {
+    protected override void EmitReturn(List<Formal> outParams, TargetWriter wr) {
       outParams = outParams.Where(f => !f.IsGhost).ToList();
       if (outParams.Count == 1) {
         wr.WriteLine("return {0};", IdName(outParams[0]));

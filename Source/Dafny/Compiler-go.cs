@@ -1815,7 +1815,7 @@ namespace Microsoft.Dafny {
       wr.WriteLine(")");
     }
 
-    protected override void EmitReturn(List<Formal> outParams, List<Formal>/*?*/ overriddenOutParams, TargetWriter wr) {
+    protected override void EmitReturn(List<Formal> outParams, TargetWriter wr) {
       EmitReturnWithCoercions(outParams, null, null, wr);
     }
 

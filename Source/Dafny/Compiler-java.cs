@@ -512,7 +512,7 @@ namespace Microsoft.Dafny{
       }
       if (!m.Body.Body.OfType<ReturnStmt>().Any() && (nonGhostOuts > 0 || m.IsTailRecursive)) { // If method has out parameters or is tail-recursive but no explicit return statement in Dafny
         var r = new TargetWriter(wr.IndentLevel);
-        EmitReturn(m.Outs, m.OverriddenMethod?.Original.Outs, r);
+        EmitReturn(m.Outs, r);
         wr.BodySuffix = r.ToString();
         wr = wr.NewBlock("if(true)"); // Ensure no unreachable error is thrown for the return statement
       }
@@ -2245,7 +2245,7 @@ namespace Microsoft.Dafny{
       }
     }
 
-    protected override void EmitReturn(List<Formal> outParams, List<Formal>/*?*/ overriddenOutParams, TargetWriter wr) {
+    protected override void EmitReturn(List<Formal> outParams, TargetWriter wr) {
       outParams = outParams.Where(f => !f.IsGhost).ToList();
       if (outParams.Count == 0){
         wr.WriteLine("return;");

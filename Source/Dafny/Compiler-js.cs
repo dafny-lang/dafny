@@ -609,7 +609,7 @@ namespace Microsoft.Dafny {
 
     protected override BlockTargetWriter EmitMethodReturns(Method m, BlockTargetWriter wr) {
       var r = new TargetWriter(wr.IndentLevel);
-      EmitReturn(m.Outs, m.OverriddenMethod?.Original.Outs, r);
+      EmitReturn(m.Outs, r);
       wr.BodySuffix = r.ToString();
       return wr;
     }
@@ -774,7 +774,7 @@ namespace Microsoft.Dafny {
       var w = wr.NewBlock("TAIL_CALL_START: while (true)");
       if (member is Method m) {
         var r = new TargetWriter(w.IndentLevel);
-        EmitReturn(m.Outs, m.OverriddenMethod?.Original.Outs, r);
+        EmitReturn(m.Outs, r);
         w.BodySuffix = r.ToString();
       }
       return w;
@@ -1044,7 +1044,7 @@ namespace Microsoft.Dafny {
       wr.WriteLine("));");
     }
 
-    protected override void EmitReturn(List<Formal> outParams, List<Formal>/*?*/ overriddenOutParams, TargetWriter wr) {
+    protected override void EmitReturn(List<Formal> outParams, TargetWriter wr) {
       outParams = outParams.Where(f => !f.IsGhost).ToList();
       if (outParams.Count == 0) {
         wr.WriteLine("return;");

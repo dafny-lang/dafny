@@ -437,7 +437,7 @@ namespace Microsoft.Dafny {
       wr.Write("value");
     }
     protected abstract void EmitPrintStmt(TargetWriter wr, Expression arg);
-    protected abstract void EmitReturn(List<Formal> outParams, List<Formal>/*?*/ overriddenOutParams, TargetWriter wr);
+    protected abstract void EmitReturn(List<Formal> outParams, TargetWriter wr);
     protected virtual void EmitReturnExpr(Expression expr, Type resultType, bool inLetExprBody, TargetWriter wr) {  // emits "return <expr>;" for function bodies
       var w = EmitReturnExpr(wr);
       TrExpr(expr, w, inLetExprBody);
@@ -2202,7 +2202,7 @@ namespace Microsoft.Dafny {
         if (s is YieldStmt) {
           EmitYield(wr);
         } else {
-          EmitReturn(this.enclosingMethod.Outs, this.enclosingMethod.OverriddenMethod?.Original.Outs, wr);
+          EmitReturn(this.enclosingMethod.Outs, wr);
         }
       } else if (stmt is UpdateStmt) {
         var s = (UpdateStmt)stmt;
