@@ -1,12 +1,12 @@
   class MyClass {
-    ghost const repr : object
+    ghost const repr: object
   }
 
-  datatype D1 = D1(o : MyClass)
+  datatype D1 = D1(o: MyClass)
   {
-    ghost const objs : set<object> := getObjs()
+    ghost const objs: set<object> := getObjs()
 
-    function getObjs() : set<object>
+    function getObjs(): set<object>
       reads o
       { {o, o.repr} }
   }
