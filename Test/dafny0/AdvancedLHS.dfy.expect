@@ -1,4 +1,4 @@
-AdvancedLHS.dfy(34,22): Error: target object may be null
+AdvancedLHS.dfy(36,22): Error: target object may be null
 Execution trace:
     (0,0): anon0
     (0,0): anon11_Else

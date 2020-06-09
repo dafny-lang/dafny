@@ -1,6 +1,8 @@
-//usr/bin/env testdafny "$0" /compile:0; exit
-
-
+/*
+---
+compile: 0 
+allocated: [1, 3] 
+*/
 class C {
   var x: C?
 

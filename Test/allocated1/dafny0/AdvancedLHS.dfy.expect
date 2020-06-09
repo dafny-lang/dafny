@@ -1,6 +1,0 @@
-AdvancedLHS.dfy(34,22): Error: target object may be null
-Execution trace:
-    (0,0): anon0
-    (0,0): anon11_Else
-
-Dafny program verifier finished with 3 verified, 1 error
