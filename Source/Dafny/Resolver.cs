@@ -4079,6 +4079,9 @@ namespace Microsoft.Dafny
           case "NumericOrBitvector":
             satisfied = t.IsNumericBased() || t.IsBitVectorType;
             break;
+          case "NumericOrBitvectorOrChar":
+            satisfied = t.IsNumericBased() || t.IsBitVectorType || t.IsCharType;
+            break;
           case "NumericOrBitvectorOrCharOrORDINAL":
             satisfied = t.IsNumericBased() || t.IsBitVectorType || t.IsCharType || t.IsBigOrdinalType;
             break;
@@ -13107,7 +13110,7 @@ namespace Microsoft.Dafny
           } else if (e.ToType.IsBitVectorType) {
             AddXConstraint(expr.tok, "NumericOrBitvector", e.E.Type, "type conversion to a bitvector-based type is allowed only from numeric and bitvector types (got {0})");
           } else if (e.ToType.IsCharType) {
-            AddXConstraint(expr.tok, "NumericOrBitvector", e.E.Type, "type conversion to a char type is allowed only from numeric and bitvector types (got {0})");
+            AddXConstraint(expr.tok, "NumericOrBitvectorOrChar", e.E.Type, "type conversion to a char type is allowed only from numeric and bitvector types (got {0})");
           } else if (e.ToType.IsBigOrdinalType) {
             AddXConstraint(expr.tok, "NumericOrBitvector", e.E.Type, "type conversion to an ORDINAL type is allowed only from numeric and bitvector types (got {0})");
           } else {

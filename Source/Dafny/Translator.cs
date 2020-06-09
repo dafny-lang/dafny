@@ -8064,6 +8064,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(toType != null);
       toType = toType.NormalizeExpand();
       fromType = fromType.NormalizeExpand();
+      if (fromType.Equals(toType)) return r;
       if (fromType.IsBitVectorType) {
         var fromWidth = fromType.AsBitVectorType.Width;
         if (toType.IsBitVectorType) {
