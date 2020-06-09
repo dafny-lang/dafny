@@ -1147,7 +1147,12 @@ namespace Microsoft.Dafny
     // ----- Statements -------------------------------------------------------------
 
     protected override void EmitPrintStmt(TargetWriter wr, Expression arg) {
-      wr.Write("Dafny.Helpers.Print(");
+      wr.Write("Dafny.Helpers.Print");
+      if (arg.Type.AsArrowType != null) {
+        string typestr = TypeName(arg.Type, wr, null, null);
+        wr.Write("<" + typestr + " >");
+      }
+      wr.Write("(");
       TrExpr(arg, wr, false);
       wr.WriteLine(");");
     }

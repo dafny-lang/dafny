@@ -2009,7 +2009,12 @@ namespace Microsoft.Dafny{
 
     protected void EmitToString(TargetWriter wr, Expression arg) {
       if (arg.Type.IsArrowType) {
-        wr.Write(IdName(((IdentifierExpr) ((ConcreteSyntaxExpression)arg).ResolvedExpression).Var) + " == null ? null : \"Function\"");
+        var expr = arg.Resolved;
+        if (expr is IdentifierExpr id) {
+          wr.Write(IdName(id.Var) + " == null ? null : \"Function\"");
+        } else {
+          wr.Write("\"Function\"");
+        }
       } else if (AsNativeType(arg.Type) != null && AsNativeType(arg.Type).LowerBound >= 0) {
         var nativeName = GetNativeTypeName(AsNativeType(arg.Type));
         switch (AsNativeType(arg.Type).Sel) {
@@ -3804,11 +3809,8 @@ namespace Microsoft.Dafny{
       throw new NotImplementedException();
     }
 
-    /// <summary>
-    /// Transforms a legal file name (without extension or directcory) into
-    /// a legal class name in the target language
-    /// </summary>
     public override string TransformToClassName(string baseName) {
+      Contract.Requires(baseName != null);
       return System.Text.RegularExpressions.Regex.Replace(baseName, "[^_A-Za-z0-9\\$]", "_");
     }
   }
