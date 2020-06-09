@@ -200,7 +200,6 @@ namespace DafnyTests {
             
             string expectedOutputPath = fullInputPath + ".expect";
             bool specialCase = false;
-            // TODO-RS: Broken now that args are a single string. Needs a custom arguments class.
             string compileTarget = arguments.FirstOrDefault(arg => arg.StartsWith("/compileTarget:"));
             if (compileTarget != null) {
                 string language = compileTarget.Substring("/compileTarget:".Length);
