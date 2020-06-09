@@ -22,7 +22,7 @@ module M1 {
     var w: X
   }
 
-  class Cl<Y> extends Tr<(Y,Y)> {
+  class Cl<Y(0)> extends Tr<(Y,Y)> {
   }
 
   lemma M(c: Cl<int>) {

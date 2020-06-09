@@ -86,6 +86,7 @@ method Main()
   Generics.Test();
 
   TraitsExtendingTraits.Test();
+  TypeDescriptorTests.Test();
 }
 
 module OtherModule {
@@ -559,5 +560,22 @@ module TypeDescriptorTests {
     f := y.N'(f);
     f := x.M'(f);
     f := x.N'(f);
+
+    print f(7), "\n";
+  }
+
+  trait TraitDependency<X> {
+    const a: X
+    const b: (X, X) := (a, c)
+    const c: X
+  }
+  class TraitDependencyClass extends TraitDependency<int> {
+  }
+
+  method Test() {
+    var c := new TraitDependencyClass;
+    print c.a, " ", c.b, " ", c.c, "\n";
+
+    CallerT();
   }
 }

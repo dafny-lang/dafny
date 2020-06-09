@@ -3066,7 +3066,7 @@ namespace Microsoft.Dafny
                   var f = (Field)member;
                   if (f is ConstantField && ((ConstantField)f).Rhs != null) {
                     // fine
-                  } else if (!Compiler.InitializerIsKnown(f.Type)) {
+                  } else if (!Compiler.InitializerIsKnown(Resolver.SubstType(f.Type, cl.ParentFormalTypeParametersToActuals))) {
                     fieldWithoutKnownInitializer = f;
                     break;
                   }
@@ -3076,7 +3076,7 @@ namespace Microsoft.Dafny
             // go through inherited members...
             if (fieldWithoutKnownInitializer != null) {
               reporter.Error(MessageSource.Resolver, cl.tok, "class '{0}' with fields without known initializers, like '{1}' of type '{2}', must declare a constructor",
-                cl.Name, fieldWithoutKnownInitializer.Name, fieldWithoutKnownInitializer.Type);
+                cl.Name, fieldWithoutKnownInitializer.Name, Resolver.SubstType(fieldWithoutKnownInitializer.Type, cl.ParentFormalTypeParametersToActuals));
             }
           }
         }

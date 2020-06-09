@@ -1,5 +1,5 @@
 
-Dafny program verifier finished with 62 verified, 0 errors
+Dafny program verifier finished with 63 verified, 0 errors
 y=120
 x=12
 d=800
@@ -31,8 +31,10 @@ true true true
 15 30
 15 30
 15 30
+0 (0, 0) 0
+8
 
-Dafny program verifier finished with 62 verified, 0 errors
+Dafny program verifier finished with 63 verified, 0 errors
 y=120
 x=12
 d=800
@@ -64,8 +66,10 @@ true true true
 15 30
 15 30
 15 30
+0 (0, 0) 0
+8
 
-Dafny program verifier finished with 62 verified, 0 errors
+Dafny program verifier finished with 63 verified, 0 errors
 y=120
 x=12
 d=800
@@ -97,8 +101,10 @@ true true true
 15 30
 15 30
 15 30
+0 (0, 0) 0
+8
 
-Dafny program verifier finished with 62 verified, 0 errors
+Dafny program verifier finished with 63 verified, 0 errors
 y=120
 x=12
 d=800
@@ -130,3 +136,5 @@ true true true
 15 30
 15 30
 15 30
+0 (0, 0) 0
+8
