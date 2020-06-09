@@ -1,0 +1,3 @@
+git-issue-343.dfy(5,13): Error: wrong number of indices for multi-selection
+git-issue-343.dfy(5,13): Error: incorrect type for selection into seq<int> (got seq<int>)
+2 resolution/type errors detected in git-issue-343.dfy
