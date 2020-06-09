@@ -1068,6 +1068,16 @@ namespace Microsoft.Dafny {
         }
         Compiler.DeclareField(name, IsExtern, isStatic, isConst, type, tok, rhs, ClassName, FieldWriter(isStatic), FieldInitWriter(isStatic), ConcreteMethodWriter);
       }
+
+      public void InitializeField(Field field, Type instantiatedFieldType, TopLevelDeclWithMembers enclosingClass) {
+        var tok = field.tok;
+        var lvalue = Compiler.EmitMemberSelect(w => w.Write("_this"), UserDefinedType.FromTopLevelDecl(tok, enclosingClass), field,
+        new List<TypeArgumentInstantiation>(), enclosingClass.ParentFormalTypeParametersToActuals, instantiatedFieldType);
+        var wRHS = lvalue.EmitWrite(FieldInitWriter(false));
+        Compiler.EmitCoercionIfNecessary(instantiatedFieldType, field.Type, tok, wRHS);
+        wRHS.Write(Compiler.DefaultValue(instantiatedFieldType, ErrorWriter(), tok, true));
+      }
+
       public TextWriter/*?*/ ErrorWriter() => ConcreteMethodWriter;
 
       public void AddSuperType(Type superType, Bpl.IToken tok) {
@@ -2414,7 +2424,7 @@ namespace Microsoft.Dafny {
     }
 
     protected override ILvalue EmitMemberSelect(Action<TargetWriter> obj, Type objType, MemberDecl member, List<TypeArgumentInstantiation> typeArgs, Dictionary<TypeParameter, Type> typeMap,
-      Type expectedType, string/*?*/ additionalCustomParameter, bool internalAccess = false) {
+      Type expectedType, string/*?*/ additionalCustomParameter = null, bool internalAccess = false) {
       if (member is DatatypeDestructor dtor) {
         return SimpleLvalue(wr => {
           wr = EmitCoercionIfNecessary(dtor.Type, expectedType, Bpl.Token.NoToken, wr);

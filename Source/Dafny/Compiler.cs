@@ -95,6 +95,11 @@ namespace Microsoft.Dafny {
       BlockTargetWriter/*?*/ CreateGetter(string name, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl/*?*/ member);  // returns null iff !createBody
       BlockTargetWriter/*?*/ CreateGetterSetter(string name, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl/*?*/ member, out TargetWriter setterWriter);  // if createBody, then result and setterWriter are non-null, else both are null
       void DeclareField(string name, TopLevelDecl enclosingDecl, bool isStatic, bool isConst, Type type, Bpl.IToken tok, string rhs);
+      /// <summary>
+      /// InitializeField is called for inherited fields. It is in lieu of calling DeclareField and is called only if
+      /// ClassesRedeclareInheritedFields==false for the compiler.
+      /// </summary>
+      void InitializeField(Field field, Type instantiatedFieldType, TopLevelDeclWithMembers enclosingClass);
       TextWriter/*?*/ ErrorWriter();
       void Finish();
     }
@@ -935,6 +940,8 @@ namespace Microsoft.Dafny {
       }
       public void DeclareField(string name, TopLevelDecl enclosingDecl, bool isStatic, bool isConst, Type type, Bpl.IToken tok, string rhs) { }
 
+      public void InitializeField(Field field, Type instantiatedFieldType, TopLevelDeclWithMembers enclosingClass) { }
+
       public TextWriter/*?*/ ErrorWriter() {
         return null; // match the old behavior of Compile() where this is used
       }
@@ -1152,7 +1159,18 @@ namespace Microsoft.Dafny {
         } else if (member is Field) {
           var f = (Field)member;
           var fType = Resolver.SubstType(f.Type, typeMap);
-          if (NeedsWrappersForInheritedFields) {
+          if (!ClassesRedeclareInheritedFields) {
+            if (c is TraitDecl) {
+              // a trait inheriting a field from another trait; do nothing
+            } else if (f is ConstantField cf && cf.Rhs != null) {
+              // this initialization is done elsewhere
+            } else {
+              // the field has already been declared in the parent trait, but we initialize it here (since the type of the field
+              // in the parent trait may have involved some type parameter that been been instantiated here)
+              // InitializeField(TopLevelDeclWithMembers enclosingClass,
+              classWriter.InitializeField(f, fType, c);
+            }
+          } else if (NeedsWrappersForInheritedFields) {
             // every field is inherited
             classWriter.DeclareField("_" + f.CompileName, c, false, false, fType, f.tok, DefaultValue(fType, errorWr, f.tok, true));
             TargetWriter wSet;
@@ -1171,9 +1189,7 @@ namespace Microsoft.Dafny {
               EmitSetterParameter(sw);
             }
           } else {
-            if (!ClassesRedeclareInheritedFields) {
-              // nothing to do here
-            } else if (!TraitsSupportMutableFields && f is ConstantField cf && cf.Rhs != null) {
+            if (!TraitsSupportMutableFields && f is ConstantField cf && cf.Rhs != null) {
               var w = new TargetWriter();
               TrExpr(cf.Rhs, w, false);
               var rhs = w.ToString();
@@ -1182,7 +1198,7 @@ namespace Microsoft.Dafny {
               classWriter.DeclareField(f.CompileName, c, false, false, fType, f.tok, DefaultValue(fType, errorWr, f.tok, true));
             }
 
-            if (ClassesRedeclareInheritedFields && !TraitsSupportMutableFields) { // Create getters and setters for "traits" in languages that don't support those or mutable fields directly
+            if (!TraitsSupportMutableFields) { // Create getters and setters for "traits" in languages that don't support those or mutable fields directly
               TargetWriter wSet;
               var wGet = classWriter.CreateGetterSetter(IdName(f), fType, f.tok, false, true, member, out wSet);
               {
