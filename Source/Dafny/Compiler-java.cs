@@ -481,7 +481,7 @@ namespace Microsoft.Dafny{
       }
       var customReceiver = NeedsCustomReceiver(m);
       var receiverType = UserDefinedType.FromTopLevelDecl(m.tok, m.EnclosingClass);
-      wr.Write("public {0}{1}", !createBody ? "abstract " : "", m.IsStatic || customReceiver ? "static " : "");
+      wr.Write("public {0}{1}", !createBody && !(m.EnclosingClass is TraitDecl) ? "abstract " : "", m.IsStatic || customReceiver ? "static " : "");
       var typeArgs = CombineTypeParameters(m);
       if (typeArgs.Count != 0) {
         wr.Write($"<{TypeParameters(typeArgs)}> ");
@@ -538,7 +538,7 @@ namespace Microsoft.Dafny{
       }
       var customReceiver = NeedsCustomReceiver(member);
       var receiverType = UserDefinedType.FromTopLevelDecl(member.tok, member.EnclosingClass);
-      wr.Write("public {0}{1}", !createBody ? "abstract " : "", isStatic || customReceiver ? "static " : "");
+      wr.Write("public {0}{1}", !createBody && !(member.EnclosingClass is TraitDecl) ? "abstract " : "", isStatic || customReceiver ? "static " : "");
       if (typeArgs.Count != 0) {
         wr.Write($"<{TypeParameters(typeArgs)}> ");
         wr.Write($"{TypeName(resultType, wr, tok)} {name}(");
