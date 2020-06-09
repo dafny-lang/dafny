@@ -118,7 +118,8 @@ namespace Microsoft.Dafny
       return Util.Comma(targs, tp => IdName(tp));
     }
 
-    protected override IClassWriter CreateClass(string moduleName, string name, bool isExtern, string/*?*/ fullPrintName, List<TypeParameter>/*?*/ typeParameters, List<Type>/*?*/ superClasses, Bpl.IToken tok, TargetWriter wr) {
+    protected override IClassWriter CreateClass(string moduleName, string name, bool isExtern, string/*?*/ fullPrintName,
+      List<TypeParameter> typeParameters, TopLevelDecl cls, List<Type>/*?*/ superClasses, Bpl.IToken tok, TargetWriter wr) {
       wr.Write("public partial class {0}", name);
       if (typeParameters != null && typeParameters.Count != 0) {
         wr.Write("<{0}>", TypeParameters(typeParameters));
@@ -181,8 +182,7 @@ namespace Microsoft.Dafny
       //     }
       //   }
 
-      var cw =
-        CreateClass(IdProtect(iter.Module.CompileName), IdName(iter), iter.TypeArgs, wr) as CsharpCompiler.ClassWriter;
+      var cw = CreateClass(IdProtect(iter.Module.CompileName), IdName(iter), iter, wr) as CsharpCompiler.ClassWriter;
       var w = cw.InstanceMemberWriter;
       // here come the fields
       Constructor ct = null;
@@ -663,7 +663,7 @@ namespace Microsoft.Dafny
     }
 
     protected override void DeclareSubsetType(SubsetTypeDecl sst, TargetWriter wr) {
-      ClassWriter cw = CreateClass(IdProtect(sst.Module.CompileName), IdName(sst), sst.TypeArgs, wr) as ClassWriter;
+      ClassWriter cw = CreateClass(IdProtect(sst.Module.CompileName), IdName(sst), sst, wr) as ClassWriter;
       if (sst.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
         var sw = new TargetWriter(cw.InstanceMemberWriter.IndentLevel, true);
         TrExpr(sst.Witness, sw, false);
@@ -761,7 +761,7 @@ namespace Microsoft.Dafny
         var w = wr.NewBlock(")", null, BlockTargetWriter.BraceStyle.Newline, BlockTargetWriter.BraceStyle.Newline);
         if (targetReturnTypeReplacement != null) {
           var r = new TargetWriter(w.IndentLevel);
-          EmitReturn(m.Outs, r);
+          EmitReturn(m.Outs, m.OverriddenMethod?.Original.Outs, r);
           w.BodySuffix = r.ToString();
         }
         return w;
@@ -1152,7 +1152,7 @@ namespace Microsoft.Dafny
       wr.WriteLine(");");
     }
 
-    protected override void EmitReturn(List<Formal> outParams, TargetWriter wr) {
+    protected override void EmitReturn(List<Formal> outParams, List<Formal>/*?*/ overriddenOutParams, TargetWriter wr) {
       outParams = outParams.Where(f => !f.IsGhost).ToList();
       if (outParams.Count == 1) {
         wr.WriteLine("return {0};", IdName(outParams[0]));
@@ -1680,7 +1680,7 @@ namespace Microsoft.Dafny
       }
     }
 
-    protected override ILvalue EmitMemberSelect(System.Action<TargetWriter> obj, MemberDecl member, List<TypeArgumentInstantiation> typeArgs, Dictionary<TypeParameter, Type> typeMap,
+    protected override ILvalue EmitMemberSelect(System.Action<TargetWriter> obj, Type objType, MemberDecl member, List<TypeArgumentInstantiation> typeArgs, Dictionary<TypeParameter, Type> typeMap,
       Type expectedType, string/*?*/ additionalCustomParameter, bool internalAccess = false) {
       if (member is ConstantField) {
         return SimpleLvalue(lvalueAction: wr => {

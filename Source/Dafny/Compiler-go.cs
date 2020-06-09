@@ -172,7 +172,8 @@ namespace Microsoft.Dafny {
 
     protected override string GetHelperModuleName() => "_dafny";
 
-    protected override IClassWriter CreateClass(string moduleName, string name, bool isExtern, string/*?*/ fullPrintName, List<TypeParameter>/*?*/ typeParameters, List<Type>/*?*/ superClasses, Bpl.IToken tok, TargetWriter wr) {
+    protected override IClassWriter CreateClass(string moduleName, string name, bool isExtern, string/*?*/ fullPrintName,
+      List<TypeParameter> typeParameters, TopLevelDecl cls, List<Type>/*?*/ superClasses, Bpl.IToken tok, TargetWriter wr) {
       return CreateClass(name, isExtern, fullPrintName, typeParameters, superClasses, tok, wr, includeRtd: true, includeEquals: true);
     }
 
@@ -301,7 +302,7 @@ namespace Microsoft.Dafny {
       CreateInitializer(name, w, out var instanceFieldInitWriter, out var traitInitWriter, out var rtdParamWriter);
 
       if (typeParameters != null) {
-        WriteRuntimeTypeDescriptorsFields(typeParameters, true, instanceFieldWriter, instanceFieldInitWriter, rtdParamWriter);
+        WriteRuntimeTypeDescriptorsFields(typeParameters, false, instanceFieldWriter, instanceFieldInitWriter, rtdParamWriter);
       }
 
       w.WriteLine();
@@ -386,7 +387,7 @@ namespace Microsoft.Dafny {
       CreateInitializer(name, wr, out var instanceFieldInitWriter, out var traitInitWriter, out var rtdParamWriter);
 
       if (typeParameters != null) {
-        WriteRuntimeTypeDescriptorsFields(typeParameters, true, instanceFieldWriter, instanceFieldInitWriter, rtdParamWriter);
+        WriteRuntimeTypeDescriptorsFields(typeParameters, false, instanceFieldWriter, instanceFieldInitWriter, rtdParamWriter);
       }
 
       var staticFieldWriter = wr.NewNamedBlock("type {0} struct", FormatCompanionTypeName(name));
@@ -967,9 +968,9 @@ namespace Microsoft.Dafny {
         usedParams = new List<TypeParameter>();
       }
       wr.Write("func {0}(", FormatRTDName(typeName));
-      WriteRuntimeTypeDescriptorsFormals(usedParams, true, wr);
+      WriteRuntimeTypeDescriptorsFormals(usedParams, false, wr);
       var wTypeMethod = wr.NewBlock(") _dafny.Type");
-      wTypeMethod.WriteLine("return type_{0}_{{{1}}}", typeName, Util.Comma(usedParams, tp => FormatRTDName(tp.CompileName)));
+      wTypeMethod.WriteLine("return type_{0}_{{{1}}}", typeName, Util.Comma(usedParams.Where(tp => NeedsTypeDescriptor(tp)), tp => FormatRTDName(tp.CompileName)));
 
       wr.WriteLine();
       var wType = wr.NewNamedBlock("type type_{0}_ struct", typeName);
@@ -1079,14 +1080,34 @@ namespace Microsoft.Dafny {
     }
 
     protected BlockTargetWriter/*?*/ CreateMethod(Method m, bool createBody, string ownerName, TargetWriter abstractWriter, TargetWriter concreteWriter) {
-      return CreateSubroutine(IdName(m), CombineTypeParameters(m), m.Ins, m.Outs, null, m.tok, m.IsStatic, createBody, ownerName, m, abstractWriter, concreteWriter);
+      return CreateSubroutine(IdName(m), CombineTypeParameters(m), m.Ins, m.Outs, null,
+        m.OverriddenMethod?.Original.Ins, m.OverriddenMethod?.Original.Outs, null,
+        m.tok, m.IsStatic, createBody, ownerName, m, abstractWriter, concreteWriter);
     }
 
     protected BlockTargetWriter/*?*/ CreateFunction(string name, List<TypeParameter> typeArgs, List<Formal> formals, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl member, string ownerName, TargetWriter abstractWriter, TargetWriter concreteWriter) {
-      return CreateSubroutine(name, typeArgs, formals, new List<Formal>(), resultType, tok, isStatic, createBody, ownerName, member, abstractWriter, concreteWriter);
+      var fnOverridden = (member as Function)?.OverriddenFunction?.Original;
+      return CreateSubroutine(name, typeArgs, formals, new List<Formal>(), resultType,
+        fnOverridden?.Formals, fnOverridden == null ? null : new List<Formal>(), fnOverridden?.ResultType,
+        tok, isStatic, createBody, ownerName, member, abstractWriter, concreteWriter);
     }
 
-    private BlockTargetWriter CreateSubroutine(string name, List<TypeParameter> typeArgs, List<Formal> inParams, List<Formal> outParams, Type/*?*/ resultType, Bpl.IToken tok, bool isStatic, bool createBody, string ownerName, MemberDecl member, TargetWriter abstractWriter, TargetWriter concreteWriter) {
+    private BlockTargetWriter CreateSubroutine(string name, List<TypeParameter> typeArgs,
+      List<Formal> inParams, List<Formal> outParams, Type/*?*/ resultType,
+      List<Formal>/*?*/ overriddenInParams, List<Formal>/*?*/ overriddenOutParams, Type/*?*/ overriddenResultType,
+      Bpl.IToken tok, bool isStatic, bool createBody, string ownerName, MemberDecl member, TargetWriter abstractWriter, TargetWriter concreteWriter) {
+      Contract.Requires(name != null);
+      Contract.Requires(typeArgs != null);
+      Contract.Requires(inParams != null);
+      Contract.Requires(outParams != null);
+      Contract.Requires(overriddenInParams == null || overriddenInParams.Count == inParams.Count);
+      Contract.Requires(overriddenOutParams == null || overriddenOutParams.Count == outParams.Count);
+      Contract.Requires(tok != null);
+      Contract.Requires(ownerName != null);
+      Contract.Requires(member != null);
+      Contract.Requires(abstractWriter != null);
+      Contract.Requires(concreteWriter != null);
+
       var customReceiver = NeedsCustomReceiver(member);
       TargetWriter wr;
       if (createBody || abstractWriter == null) {
@@ -1105,18 +1126,43 @@ namespace Microsoft.Dafny {
       if (customReceiver) {
         wr.Write("{0}_this {1}", nTypes != 0 ? ", " : "", TypeName(UserDefinedType.FromTopLevelDecl(tok, member.EnclosingClass), wr, tok));
       }
-      var _ = WriteFormals(nTypes != 0 || customReceiver ? ", " : "", inParams, wr);
+      var _ = WriteFormals(nTypes != 0 || customReceiver ? ", " : "", overriddenInParams ?? inParams, wr, inParams);
       wr.Write(")");
 
-      // TODO: Maybe consider using named result parameters, since they're
-      // actually close to how Dafny method outs work
-      WriteOutTypes(outParams, resultType, wr, tok);
+      // TODO: Maybe consider using named result parameters, since they're actually close to how Dafny method outs work
+      if (overriddenOutParams != null) {
+        WriteOutTypes(overriddenOutParams, overriddenResultType, wr, tok);
+      } else {
+        WriteOutTypes(outParams, resultType, wr, tok);
+      }
 
       if (createBody) {
         var w = wr.NewBlock("");
+        // Go doesn't have type parameters. Instead, the empty interface type is used as the type of what would have been type parameters.
+        // If this is a routine inherited from a trait, then the Dafny signature of the method may have replaced the trait's type parameters.
+        // Go has no direct support for this idiom. Instead, we re-declare the in-parameters with the actual type, let the re-declarations
+        // shadow the given (generic) in-parameters, and then do a cast on entry to the body.
+        if (thisContext != null) {
+          w = w.NewBlock("");
+          for (var i = 0; i < inParams.Count; i++) {
+            var p = (overriddenInParams ?? inParams)[i];
+            var instantiatedType = Resolver.SubstType(p.Type, thisContext.ParentFormalTypeParametersToActuals);
+            if (!instantiatedType.Equals(p.Type)) {
+              // var p instantiatedType = p.(instantiatedType)
+              var pName = IdName(inParams[i]);
+              DeclareLocalVar(pName, instantiatedType, p.tok, true, null, w);
+              var wRhs = EmitAssignmentRhs(w);
+              wRhs = EmitCoercionIfNecessary(p.Type, instantiatedType, p.tok, wRhs);
+              wRhs.Write(pName);
+              EmitDummyVariableUse(pName, w);
+            }
+          }
+        } else {
+          Contract.Assert(overriddenInParams == null);
+        }
         if (outParams.Any()) {
           var r = new TargetWriter(w.IndentLevel);
-          EmitReturn(outParams, r);
+          EmitReturnWithCoercions(outParams, overriddenOutParams, thisContext.ParentFormalTypeParametersToActuals, r);
           w.BodySuffix = r.ToString();
         }
         return w;
@@ -1152,10 +1198,11 @@ namespace Microsoft.Dafny {
     void WriteRuntimeTypeDescriptorsFields(List<TypeParameter> typeParams, bool useAllTypeArgs, BlockTargetWriter wr, TargetWriter/*?*/ wInit, TargetWriter/*?*/ wParams) {
       Contract.Requires(typeParams != null);
       Contract.Requires(wr != null);
+      useAllTypeArgs = false;  // DEBUG
 
       var sep = "";
       foreach (var tp in typeParams) {
-        if (useAllTypeArgs || tp.Characteristics.MustSupportZeroInitialization) {
+        if (useAllTypeArgs || NeedsTypeDescriptor(tp)) {
           var name = FormatRTDName(tp.CompileName);
 
           wr.WriteLine("{0} _dafny.Type", name);
@@ -1175,10 +1222,11 @@ namespace Microsoft.Dafny {
     int WriteRuntimeTypeDescriptorsFormals(List<TypeParameter> typeParams, bool useAllTypeArgs, TargetWriter wr, string prefix = "") {
       Contract.Requires(typeParams != null);
       Contract.Requires(wr != null);
+      useAllTypeArgs = false;  // DEBUG
 
       int c = 0;
       foreach (var tp in typeParams) {
-        if (useAllTypeArgs || tp.Characteristics.MustSupportZeroInitialization) {
+        if (useAllTypeArgs || NeedsTypeDescriptor(tp)) {
           wr.Write("{0}{1} _dafny.Type", prefix, FormatRTDName(tp.CompileName));
           prefix = ", ";
           c++;
@@ -1190,20 +1238,27 @@ namespace Microsoft.Dafny {
     void WriteRuntimeTypeDescriptorsLocals(List<TypeParameter> typeParams, bool useAllTypeArgs, TargetWriter wr) {
       Contract.Requires(typeParams != null);
       Contract.Requires(wr != null);
+      useAllTypeArgs = false;  // DEBUG
 
       foreach (var tp in typeParams) {
-        if (useAllTypeArgs || tp.Characteristics.MustSupportZeroInitialization) {
+        if (useAllTypeArgs || NeedsTypeDescriptor(tp)) {
           wr.WriteLine("{0} := _this.{0}", FormatRTDName(tp.CompileName));
-          wr.WriteLine("_ = {0}", FormatRTDName(tp.CompileName));
+          EmitDummyVariableUse(FormatRTDName(tp.CompileName), wr);
         }
       }
     }
 
+    private bool NeedsTypeDescriptor(TypeParameter tp) {
+      Contract.Requires(tp != null);
+      return tp.Characteristics.MustSupportZeroInitialization;
+    }
+
     protected override int EmitRuntimeTypeDescriptorsActuals(List<TypeArgumentInstantiation> typeArgs, Bpl.IToken tok, bool useAllTypeArgs, TargetWriter wr) {
+      useAllTypeArgs = false;  // DEBUG
       var sep = "";
       var c = 0;
       foreach (var ta in typeArgs) {
-        if (useAllTypeArgs || ta.Formal.Characteristics.MustSupportZeroInitialization) {
+        if (useAllTypeArgs || NeedsTypeDescriptor(ta.Formal)) {
           wr.Write("{0}{1}", sep, RuntimeTypeDescriptor(ta.Actual, tok, wr));
           sep = ", ";
           c++;
@@ -1655,7 +1710,7 @@ namespace Microsoft.Dafny {
         wBody.WriteLine("return {0}", rhs);
       } else {
         if (rhs == null) {
-          rhs = DefaultValue(type, initWriter, tok);
+          rhs = DefaultValue(type, initWriter, tok, true);
         }
 
         wr.WriteLine("{0} {1}", name, TypeName(type, initWriter, tok));
@@ -1697,11 +1752,17 @@ namespace Microsoft.Dafny {
 
       if (!leaveRoomForRhs) {
         wr.WriteLine();
-
-        wr.WriteLine("var _ = {0}", name);
+        EmitDummyVariableUse(name, wr);
       }
 
       return w;
+    }
+
+    void EmitDummyVariableUse(string variableName, TargetWriter wr) {
+      Contract.Requires(variableName != null);
+      Contract.Requires(wr != null);
+
+      wr.WriteLine("_ = {0}", variableName);
     }
 
     protected override void DeclareLocalVar(string name, Type type, Bpl.IToken tok, bool leaveRoomForRhs, string rhs, TargetWriter wr) {
@@ -1754,13 +1815,38 @@ namespace Microsoft.Dafny {
       wr.WriteLine(")");
     }
 
-    protected override void EmitReturn(List<Formal> formals, TargetWriter wr) {
-      var outParams = formals.Where(f => !f.IsGhost).ToList();
-      if (!outParams.Any()) {
-        wr.WriteLine("return");
-      } else {
-        wr.WriteLine("return {0}", Util.Comma(outParams, IdName));
+    protected override void EmitReturn(List<Formal> outParams, List<Formal>/*?*/ overriddenOutParams, TargetWriter wr) {
+      EmitReturnWithCoercions(outParams, null, null, wr);
+    }
+
+    protected override void EmitReturnExpr(Expression expr, Type resultType, bool inLetExprBody, TargetWriter wr) {
+      var w = EmitReturnExpr(wr);
+      var fromType = thisContext == null ? null : Resolver.SubstType(expr.Type, thisContext.ParentFormalTypeParametersToActuals);
+      w = EmitCoercionIfNecessary(fromType, resultType, expr.tok, w);
+      TrExpr(expr, w, inLetExprBody);
+    }
+
+    protected void EmitReturnWithCoercions(List<Formal> outParams, List<Formal>/*?*/ overriddenOutParams, Dictionary<TypeParameter, Type>/*?*/ typeMap, TargetWriter wr) {
+      wr.Write("return");
+      var sep = " ";
+      for (var i = 0; i < outParams.Count; i++) {
+        var f = outParams[i];
+        if (!f.IsGhost) {
+          wr.Write(sep);
+          TargetWriter wOutParam;
+          if (overriddenOutParams == null && typeMap != null) {
+            wOutParam = EmitCoercionIfNecessary(Resolver.SubstType(f.Type, typeMap), f.Type, f.tok, wr);
+          } else if (overriddenOutParams != null) {
+            // ignore typeMap
+            wOutParam = EmitCoercionIfNecessary(f.Type, overriddenOutParams[i].Type, f.tok, wr);
+          } else {
+            wOutParam = wr;
+          }
+          wOutParam.Write(IdName(f));
+          sep = ", ";
+        }
       }
+      wr.WriteLine();
     }
 
     protected override TargetWriter CreateLabeledCode(string label, TargetWriter wr) {
@@ -1857,7 +1943,7 @@ namespace Microsoft.Dafny {
           wr.Write("new(struct{})");
         } else {
           wr.Write("{0}(", TypeName_Initializer(type, wr, tok));
-          EmitRuntimeTypeDescriptorsActuals(TypeArgumentInstantiation.ListFromClass(cl, type.TypeArgs), tok, true, wr);
+          EmitRuntimeTypeDescriptorsActuals(TypeArgumentInstantiation.ListFromClass(cl, type.TypeArgs), tok, false, wr);
           wr.Write(")");
         }
       } else {
@@ -2235,12 +2321,14 @@ namespace Microsoft.Dafny {
     }
 
     protected override void EmitITE(Expression guard, Expression thn, Expression els, Type resultType, bool inLetExprBody, TargetWriter wr) {
-      wr.Write("(func () {0} {{ if ", TypeName(thn.Type, wr, null));
+      wr.Write("(func () {0} {{ if ", TypeName(resultType, wr, null));
       TrExpr(guard, wr, inLetExprBody);
       wr.Write(" { return ");
-      TrExpr(thn, wr, inLetExprBody);
+      var wBranch = EmitCoercionIfNecessary(thn.Type, resultType, thn.tok, wr);
+      TrExpr(thn, wBranch, inLetExprBody);
       wr.Write(" }; return ");
-      TrExpr(els, wr, inLetExprBody);
+      wBranch = EmitCoercionIfNecessary(els.Type, resultType, thn.tok, wr);
+      TrExpr(els, wBranch, inLetExprBody);
       wr.Write(" })() ");
     }
 
@@ -2324,7 +2412,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    protected override ILvalue EmitMemberSelect(Action<TargetWriter> obj, MemberDecl member, List<TypeArgumentInstantiation> typeArgs, Dictionary<TypeParameter, Type> typeMap,
+    protected override ILvalue EmitMemberSelect(Action<TargetWriter> obj, Type objType, MemberDecl member, List<TypeArgumentInstantiation> typeArgs, Dictionary<TypeParameter, Type> typeMap,
       Type expectedType, string/*?*/ additionalCustomParameter, bool internalAccess = false) {
       if (member is DatatypeDestructor dtor) {
         return SimpleLvalue(wr => {
@@ -2362,7 +2450,7 @@ namespace Microsoft.Dafny {
         var customReceiver = NeedsCustomReceiver(member);
         return SuffixLvalue(obj, ".{0}{1}", IdName(member), customReceiver ? "" : "()");
       } else if (member is Function fn) {
-        typeArgs = typeArgs.Where(ta => ta.Formal.Characteristics.MustSupportZeroInitialization).ToList();
+        typeArgs = typeArgs.Where(ta => NeedsTypeDescriptor(ta.Formal)).ToList();
         if (typeArgs.Count == 0 && additionalCustomParameter == null) {
           var lvalue = SuffixLvalue(obj, ".{0}", IdName(member));
           return CoercedLvalue(lvalue, fn.GetMemberType((ArrowTypeDecl)expectedType.AsArrowType.ResolvedClass), expectedType);
@@ -2413,7 +2501,12 @@ namespace Microsoft.Dafny {
         }
       } else {
         var field = (Field)member;
-        var lvalue = SuffixLvalue(obj, ".{0}", IdName(member));
+        var enclosingType = Resolver.SubstType(UserDefinedType.FromTopLevelDecl(field.tok, field.EnclosingClass), typeMap);
+        var lvalue = SuffixLvalue(w => {
+            var wObj = EmitCoercionIfNecessary(objType, enclosingType, field.tok, w);
+            obj(wObj);
+          },
+          ".{0}", IdName(member));
         return CoercedLvalue(lvalue, field.Type, expectedType);
       }
     }

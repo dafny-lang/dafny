@@ -1,5 +1,5 @@
 
-Dafny program verifier finished with 41 verified, 0 errors
+Dafny program verifier finished with 62 verified, 0 errors
 y=120
 x=12
 d=800
@@ -20,7 +20,108 @@ From OtherModule.X: 7 and true
 c.f= 15 j.f= 15
 c.f= 18 j.f= 18
 23 101 0 52 52 12 53 5 5 5 5
+12 33 34 18.8
 23 101 0 52 52 12 53 5 5 5 5
+12 33 34 18.8
+x=126
+5.2 9 false
+true true true
+5.2 5.2
+1.2 1.2
+15 30
+15 30
+15 30
+
+Dafny program verifier finished with 62 verified, 0 errors
+y=120
+x=12
+d=800
+a5=407
+t=1212
+z=30
+z'=30
+w=30
+d=1000
+a5=507
+t=1512
+t=1512
+t=1515
+This is OtherModule.P(7.0)
+From OtherModule.Y: 7 and true
+This is OtherModule.P(7.0)
+From OtherModule.X: 7 and true
+c.f= 15 j.f= 15
+c.f= 18 j.f= 18
+23 101 0 52 52 12 53 5 5 5 5
+12 33 34 18.8
+23 101 0 52 52 12 53 5 5 5 5
+12 33 34 18.8
+x=126
+5.2 9 false
+true true true
+5.2 5.2
+1.2 1.2
+15 30
+15 30
+15 30
+
+Dafny program verifier finished with 62 verified, 0 errors
+y=120
+x=12
+d=800
+a5=407
+t=1212
+z=30
+z'=30
+w=30
+d=1000
+a5=507
+t=1512
+t=1512
+t=1515
+This is OtherModule.P(7.0)
+From OtherModule.Y: 7 and true
+This is OtherModule.P(7.0)
+From OtherModule.X: 7 and true
+c.f= 15 j.f= 15
+c.f= 18 j.f= 18
+23 101 0 52 52 12 53 5 5 5 5
+12 33 34 18.8
+23 101 0 52 52 12 53 5 5 5 5
+12 33 34 18.8
+x=126
+5.2 9 false
+true true true
+5.2 5.2
+1.2 1.2
+15 30
+15 30
+15 30
+
+Dafny program verifier finished with 62 verified, 0 errors
+y=120
+x=12
+d=800
+a5=407
+t=1212
+z=30
+z'=30
+w=30
+d=1000
+a5=507
+t=1512
+t=1512
+t=1515
+This is OtherModule.P(7.0)
+From OtherModule.Y: 7 and true
+This is OtherModule.P(7.0)
+From OtherModule.X: 7 and true
+c.f= 15 j.f= 15
+c.f= 18 j.f= 18
+23 101 0 52 52 12 53 5 5 5 5
+12 33 34 18.8
+23 101 0 52 52 12 53 5 5 5 5
+12 33 34 18.8
 x=126
 5.2 9 false
 true true true

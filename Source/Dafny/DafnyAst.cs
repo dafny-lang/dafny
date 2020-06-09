@@ -5782,6 +5782,8 @@ namespace Microsoft.Dafny {
     public readonly IToken SignatureEllipsis;
     public bool IsBuiltin;
     public Function OverriddenFunction;
+    public Function Original => OverriddenFunction == null ? this : OverriddenFunction.Original;
+
     public bool containsQuantifier;
     public bool ContainsQuantifier {
       set { containsQuantifier = value; }
@@ -6108,6 +6110,7 @@ namespace Microsoft.Dafny {
     public bool IsTailRecursive;  // filled in during resolution
     public readonly ISet<IVariable> AssignedAssumptionVariables = new HashSet<IVariable>();
     public Method OverriddenMethod;
+    public Method Original => OverriddenMethod == null ? this : OverriddenMethod.Original;
     private static BlockStmt emptyBody = new BlockStmt(Token.NoToken, Token.NoToken, new List<Statement>());
 
     public override IEnumerable<Expression> SubExpressions {

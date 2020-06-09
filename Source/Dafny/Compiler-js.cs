@@ -58,7 +58,8 @@ namespace Microsoft.Dafny {
 
     protected override string GetHelperModuleName() => "_dafny";
 
-    protected override IClassWriter CreateClass(string moduleName, string name, bool isExtern, string/*?*/ fullPrintName, List<TypeParameter>/*?*/ typeParameters, List<Type>/*?*/ superClasses, Bpl.IToken tok, TargetWriter wr) {
+    protected override IClassWriter CreateClass(string moduleName, string name, bool isExtern, string/*?*/ fullPrintName,
+      List<TypeParameter> typeParameters, TopLevelDecl cls, List<Type>/*?*/ superClasses, Bpl.IToken tok, TargetWriter wr) {
       var w = wr.NewBlock(string.Format("$module.{0} = class {0}" + (isExtern ? " extends $module.{0}" : ""), name), ";");
       w.Write("constructor (");
       if (typeParameters != null) {
@@ -121,7 +122,7 @@ namespace Microsoft.Dafny {
       //     }
       //   }
 
-      var cw = CreateClass(IdProtect(iter.Module.CompileName), IdName(iter), iter.TypeArgs, wr) as JavaScriptCompiler.ClassWriter;
+      var cw = CreateClass(IdProtect(iter.Module.CompileName), IdName(iter), iter, wr) as JavaScriptCompiler.ClassWriter;
       var w = cw.MethodWriter;
       var instanceFieldsWriter = cw.FieldWriter;
       // here come the fields
@@ -522,7 +523,7 @@ namespace Microsoft.Dafny {
     }
 
     protected override void DeclareSubsetType(SubsetTypeDecl sst, TargetWriter wr) {
-      var cw = CreateClass(IdProtect(sst.Module.CompileName), IdName(sst), sst.TypeArgs, wr) as JavaScriptCompiler.ClassWriter;
+      var cw = CreateClass(IdProtect(sst.Module.CompileName), IdName(sst), sst, wr) as JavaScriptCompiler.ClassWriter;
       var w = cw.MethodWriter;
       if (sst.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
         var witness = new TargetWriter(w.IndentLevel, true);
@@ -608,7 +609,7 @@ namespace Microsoft.Dafny {
 
     protected override BlockTargetWriter EmitMethodReturns(Method m, BlockTargetWriter wr) {
       var r = new TargetWriter(wr.IndentLevel);
-      EmitReturn(m.Outs, r);
+      EmitReturn(m.Outs, m.OverriddenMethod?.Original.Outs, r);
       wr.BodySuffix = r.ToString();
       return wr;
     }
@@ -773,7 +774,7 @@ namespace Microsoft.Dafny {
       var w = wr.NewBlock("TAIL_CALL_START: while (true)");
       if (member is Method m) {
         var r = new TargetWriter(w.IndentLevel);
-        EmitReturn(m.Outs, r);
+        EmitReturn(m.Outs, m.OverriddenMethod?.Original.Outs, r);
         w.BodySuffix = r.ToString();
       }
       return w;
@@ -1043,7 +1044,7 @@ namespace Microsoft.Dafny {
       wr.WriteLine("));");
     }
 
-    protected override void EmitReturn(List<Formal> outParams, TargetWriter wr) {
+    protected override void EmitReturn(List<Formal> outParams, List<Formal>/*?*/ overriddenOutParams, TargetWriter wr) {
       outParams = outParams.Where(f => !f.IsGhost).ToList();
       if (outParams.Count == 0) {
         wr.WriteLine("return;");
@@ -1457,7 +1458,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    protected override ILvalue EmitMemberSelect(Action<TargetWriter> obj, MemberDecl member, List<TypeArgumentInstantiation> typeArgs, Dictionary<TypeParameter, Type> typeMap,
+    protected override ILvalue EmitMemberSelect(Action<TargetWriter> obj, Type objType, MemberDecl member, List<TypeArgumentInstantiation> typeArgs, Dictionary<TypeParameter, Type> typeMap,
       Type expectedType, string/*?*/ additionalCustomParameter, bool internalAccess = false) {
       if (member is ConstantField) {
         return SimpleLvalue(lvalueAction: wr => {

@@ -1,4 +1,7 @@
-// RUN: %dafny /compile:3 /spillTargetCode:3 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
+// RUN: %dafny /compile:3 /compileTarget:cs "%s" > "%t"
+// RUN: %dafny /compile:3 /compileTarget:java "%s" >> "%t"
+// RUN: %dafny /compile:3 /compileTarget:js "%s" >> "%t"
+// RUN: %dafny /compile:3 /compileTarget:go "%s" >> "%t"
 // RUN: %diff "%s.expect" "%t"
 
 trait TT
@@ -129,7 +132,7 @@ module GenericBasics {
     const abc: B
     static const def: B
 
-    method Inst(x: int, a: A, b: B) returns (bb: B) { bb := b; }
+    method Inst(x: int, a: A, b: B) returns (bb: B, cc: seq<B>) { bb, cc := b, []; }
     static method Stat(y: int, a: A, b: B) returns (bb: B) { bb := b; }
 
     function method Teen<R>(a: (A, R)): B
@@ -140,6 +143,9 @@ module GenericBasics {
     function method RValue1<X>(x: X): (r: B)
     function method RValue2<X>(x: X): B
     function method RValue3<X>(x: X): (r: B)
+    function method RBValue<X>(x: X, b: B): B
+    method MValue0<X>(x: X, b: B) returns (r: B)
+    method MValue1<X>(x: X, b: B) returns (r: B, y: X)
 
     method ReferToTraitMembers(a: A, b: B, tt: Tr<bool, real>)
       modifies this
@@ -149,9 +155,9 @@ module GenericBasics {
       var x := xyz;
       var y := this.xyz;
 
-      var bb := Inst(0, a, b);
-      bb := this.Inst(0, a, b);
-      var rr := tt.Inst(0, true, 5.0);
+      var bb, sq := Inst(0, a, b);
+      bb, sq := this.Inst(0, a, b);
+      var rr, _ := tt.Inst(0, true, 5.0);
 
       bb := Stat(1, a, b);
       bb := this.Stat(1, a, b);
@@ -192,9 +198,9 @@ module GenericBasics {
 
       var tt: Tr<Q, int> := this;
 
-      var bb := Inst(0, a, b);
-      bb := this.Inst(0, a, b);
-      bb := tt.Inst(0, a, b);
+      var bb, sq := Inst(0, a, b);
+      bb, sq := this.Inst(0, a, b);
+      bb, sq := tt.Inst(0, a, b);
 
       bb := Stat(1, a, b);
       bb := this.Stat(1, a, b);
@@ -219,6 +225,13 @@ module GenericBasics {
     function method RValue1<XX>(x: XX): int { 5 }
     function method RValue2<XX>(x: XX): (r: int) { 5 }
     function method RValue3<XX>(x: XX): (r: int) { 5 }
+    function method RBValue<XX>(x: XX, b: int): int { b + 2 }
+    method MValue0<XX>(x: XX, b: int) returns (r: int) {
+      r := b + 3;
+    }
+    method MValue1<XX>(x: XX, b: int) returns (r: int, y: XX) {
+      r, y := b + 4, x;
+    }
   }
 
 
@@ -243,9 +256,9 @@ module GenericBasics {
 
       var tt: Tr<Q, int> := this;
 
-      var bb := Inst(0, a, b);
-      bb := this.Inst(0, a, b);
-      bb := tt.Inst(0, a, b);
+      var bb, sq := Inst(0, a, b);
+      bb, sq := this.Inst(0, a, b);
+      bb, sq := tt.Inst(0, a, b);
 
       bb := Stat(1, a, b);
       bb := this.Stat(1, a, b);
@@ -270,6 +283,13 @@ module GenericBasics {
     function method RValue1<XX>(x: XX): int { 5 }
     function method RValue2<XX>(x: XX): (r: int) { 5 }
     function method RValue3<XX>(x: XX): (r: int) { 5 }
+    function method RBValue<XX>(x: XX, b: int): int { b + 2 }
+    method MValue0<XX>(x: XX, b: int) returns (r: int) {
+      r := b + 3;
+    }
+    method MValue1<XX>(x: XX, b: int) returns (r: int, y: XX) {
+      r, y := b + 4, x;
+    }
   }
 
   method Test() {
@@ -287,16 +307,21 @@ module GenericBasics {
       print t.xyz, " ";
       print t.abc, " ";
       print t.def, " ";
-      var bb := t.Inst(50, 51.0, 52);
+      var bb, sq := t.Inst(50, 51.0, 52);
       print bb, " ";
       bb := t.Stat(50, 51.0, 52);
       print bb, " ";
       print t.Teen<bv9>((0.5, 100)), " ";
       print t.STeen<bv9>((0.5, 100), 53), " ";
-      print t.RValue0<(bv2,bv3)>((3, 3)), " ";
+      var rv0: int := t.RValue0<(bv2,bv3)>((3, 3));
+      print rv0, " ";
       print t.RValue1<(bv2,bv3)>((3, 3)), " ";
       print t.RValue2<(bv2,bv3)>((3, 3)), " ";
       print t.RValue3<(bv2,bv3)>((3, 3)), "\n";
+      var rb := t.RBValue<(bv2,bv3)>((3, 3), 10);
+      var m0 := t.MValue0<real>(18.8, 30);
+      var m1, m2 := t.MValue1<real>(18.8, 30);
+      print rb, " ", m0, " ", m1, " ", m2, "\n";
       i := i + 1;
     }
   }
@@ -440,5 +465,99 @@ module TraitsExtendingTraits {
     q := n.Quantity();
     qq := n.Twice();
     print q, " ", qq, "\n";  // 15 30
+  }
+}
+
+module TypeDescriptorTests {
+  function method Gee<Whiz(0)>(): int { 10 }
+
+  trait UberTrait<X, Y(0), Z(0)> {
+    method Golly() {
+      var n := Gee<Y>();
+    }
+    function method Id(x: X): X { x }
+  }
+
+  trait Trait<T(0), R> extends UberTrait<int, seq<T>, seq<R>> {
+    method Compose<S(0)>(f: Trait<S, T>) returns (res: Trait<S, R>) {
+      res := new Composition<S, T, R>(f, this);
+    }
+  }
+
+  class Composition<Sx(0), Tx(0), RRx> extends Trait<Sx, RRx>, Trait<Sx, RRx> {
+    constructor(first: Trait<Sx, Tx>, second: Trait<Tx, RRx>) {
+    }
+  }
+
+  method Iffy(t: UberTrait<bool, real, real>) returns (n: int) {
+    if t.Id(true) {
+      n := 15;
+    }
+  }
+
+  // Go requires coercions to supertypes. Coersions involving functions require more work.
+  trait XT<U, W> {
+    const c: U
+    var u: U
+    function method F(u: U): U { u }
+    function method G(u: U): U
+    method M(u: U) returns (r: U) { r := u; }
+    method N(u: U) returns (r: U)
+
+    function method F'(u: W -> W): W -> W { u }
+    function method G'(u: W -> W): W -> W
+    method M'(u: W -> W) returns (r: W -> W) { r := u; }
+    method N'(u: W -> W) returns (r: W -> W)
+  }
+  class YT extends XT<int -> int, int> {
+    constructor () {
+      var inc := x => x + 1;
+      c := inc;
+      u := inc;
+    }
+    function method G(uu: int -> int): int -> int {
+      F(uu)
+    }
+    method N(uu: int -> int) returns (rr: int -> int) {
+      rr := M(uu);
+    }
+    function method G'(uu: int -> int): int -> int {
+      F(uu)
+    }
+    method N'(uu: int -> int) returns (rr: int -> int) {
+      rr := M'(uu);
+    }
+  }
+  method CallerT() {
+    var y := new YT();
+    var x: XT := y;
+    var f: int -> int;
+
+    f := y.c;
+    f := y.u;
+    y.u := f;
+    f := x.c;
+    f := x.u;
+    x.u := f;
+
+    f := y.F(f);
+    f := y.G(f);
+    f := x.F(f);
+    f := x.G(f);
+
+    f := y.M(f);
+    f := y.N(f);
+    f := x.M(f);
+    f := x.N(f);
+
+    f := y.F'(f);
+    f := y.G'(f);
+    f := x.F'(f);
+    f := x.G'(f);
+
+    f := y.M'(f);
+    f := y.N'(f);
+    f := x.M'(f);
+    f := x.N'(f);
   }
 }
