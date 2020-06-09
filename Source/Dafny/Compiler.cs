@@ -379,9 +379,7 @@ namespace Microsoft.Dafny {
         string target = idGenerator.FreshId("_rhs");
         rhsVars.Add(target);
         wr.Write(GenerateLhsDecl(target, lhsType, wr, null));
-        wr.Write(" = ");
-        wRhss.Add(wr.Fork());
-        EndStmt(wr);
+        wRhss.Add(EmitAssignmentRhs(wr));
       }
 
       List<ILvalue> lhssn;
