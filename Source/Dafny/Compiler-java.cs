@@ -82,7 +82,7 @@ namespace Microsoft.Dafny{
     protected override bool SupportsAmbiguousTypeDecl => false;
     protected override bool SupportsProperties => false;
     protected override bool NeedsWrappersForInheritedFields => false;
-    protected override bool FieldsInTraits => false;
+    protected override bool TraitsSupportMutableFields => false;
 
     private enum JavaNativeType { Byte, Short, Int, Long }
 

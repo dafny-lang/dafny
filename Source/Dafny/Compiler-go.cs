@@ -1779,6 +1779,7 @@ namespace Microsoft.Dafny {
     protected override bool UseReturnStyleOuts(Method m, int nonGhostOutCount) => true;
 
     protected override bool NeedsCastFromTypeParameter => true;
+    protected override bool ClassesRedeclareInheritedFields => false;
     protected override bool SupportsMultipleReturns => true;
     protected override string StmtTerminator => "";
 

@@ -297,7 +297,8 @@ namespace Microsoft.Dafny {
     protected virtual bool SupportsMultipleReturns { get => false; }
     protected virtual bool NeedsCastFromTypeParameter { get => false; }
     protected virtual bool SupportsAmbiguousTypeDecl { get => true; }
-    protected virtual bool FieldsInTraits { get => true; } // True if language's "trait" equivalent allows for non-final field declarations, false otherwise
+    protected virtual bool TraitsSupportMutableFields => true; // True if language's "trait" equivalent allows for mutable fields (or getter/setter properties, which look like fields)
+    protected virtual bool ClassesRedeclareInheritedFields => true;
     protected virtual void AddTupleToSet(int i) { }
     public int TargetTupleSize = 0;
     /// The punctuation that comes at the end of a statement.  Note that
@@ -1170,7 +1171,9 @@ namespace Microsoft.Dafny {
               EmitSetterParameter(sw);
             }
           } else {
-            if (!FieldsInTraits && f is ConstantField cf && cf.Rhs != null) {
+            if (!ClassesRedeclareInheritedFields) {
+              // nothing to do here
+            } else if (!TraitsSupportMutableFields && f is ConstantField cf && cf.Rhs != null) {
               var w = new TargetWriter();
               TrExpr(cf.Rhs, w, false);
               var rhs = w.ToString();
@@ -1179,7 +1182,7 @@ namespace Microsoft.Dafny {
               classWriter.DeclareField(f.CompileName, c, false, false, fType, f.tok, DefaultValue(fType, errorWr, f.tok, true));
             }
 
-            if (!FieldsInTraits) { // Create getters and setters for "traits" in languages that don't allow for non-final field declarations.
+            if (ClassesRedeclareInheritedFields && !TraitsSupportMutableFields) { // Create getters and setters for "traits" in languages that don't support those or mutable fields directly
               TargetWriter wSet;
               var wGet = classWriter.CreateGetterSetter(IdName(f), fType, f.tok, false, true, member, out wSet);
               {
@@ -1268,9 +1271,9 @@ namespace Microsoft.Dafny {
                   EmitReturnExpr(DefaultValue(cf.Type, wBody, cf.tok, true), wBody);
                 }
               }
-            } else if (c is TraitDecl && !FieldsInTraits && !cf.IsStatic) {
-                // Constant fields in traits (Java interface) should be get methods.
-                classWriter.CreateGetter(IdName(cf), cf.Type, cf.tok, false, false, cf);
+            } else if (c is TraitDecl && !TraitsSupportMutableFields && !cf.IsStatic) {
+              // Constant fields in traits (Java interface) should be get methods.
+              classWriter.CreateGetter(IdName(cf), cf.Type, cf.tok, false, false, cf);
             } else {
               string rhs;
               if (cf.Rhs != null) {
@@ -1280,7 +1283,7 @@ namespace Microsoft.Dafny {
               } else {
                 rhs = null;
               }
-              if (!(c is TraitDecl && !FieldsInTraits) || cf.IsStatic) {
+              if (!(c is TraitDecl && !TraitsSupportMutableFields) || cf.IsStatic) {
                 classWriter.DeclareField(IdName(f), c, f.IsStatic, true, f.Type, f.tok, rhs);
               } else { // Constant fields in traits (Java interface) should be get methods.
                 classWriter.CreateGetter(IdName(cf), cf.Type, cf.tok, false, false, cf);
@@ -1290,7 +1293,7 @@ namespace Microsoft.Dafny {
             TargetWriter wSet;
             var wGet = classWriter.CreateGetterSetter(IdName(f), f.Type, f.tok, f.IsStatic, false, member, out wSet);
             Contract.Assert(wSet == null && wGet == null);  // since the previous line specified no body
-          } else if (c is TraitDecl && !FieldsInTraits && !f.IsStatic) {
+          } else if (c is TraitDecl && !TraitsSupportMutableFields && !f.IsStatic) {
             TargetWriter wSet;
             classWriter.CreateGetterSetter(IdName(f), f.Type, f.tok, false, false, member, out wSet);
           } else {
