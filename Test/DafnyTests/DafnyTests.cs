@@ -22,15 +22,17 @@ namespace DafnyTests {
         public static string RunDafny(IEnumerable<string> arguments) {
             List<string> dafnyArguments = new List<string> {
                 // Expected output does not contain logo
-                "-nologo",
-                "-countVerificationErrors:0",
+                "/nologo",
+                "/countVerificationErrors:0",
 
                 // We do not want absolute or relative paths in error messages, just the basename of the file
-                "-useBaseNameForFileName",
+                "/useBaseNameForFileName",
 
                 // We do not want output such as "Compiled program written to Foo.cs"
                 // from the compilers, since that changes with the target language
-                "-compileVerbose:0"
+                "/compileVerbose:0",
+                
+                "/out:" + Path.GetTempPath();
             };
             dafnyArguments.AddRange(arguments);
 
@@ -211,7 +213,9 @@ namespace DafnyTests {
 
         private static void AssertEqualWithDiff(string expected, string actual) {
             if (expected != actual) {
-                // TODO-RS: Do better than shelling out to a linux utility
+                // TODO-RS: Do better than shelling out to a linux utility.
+                // Disappointingly, I couldn't find any easy solutions for an in-memory
+                
                 string expectedPath = Path.GetTempFileName();
                 File.WriteAllText(expectedPath, expected);
                 string actualPath = Path.GetTempFileName();
@@ -237,8 +241,14 @@ namespace DafnyTests {
                     specialCase = true;
                     expectedOutputPath = specialCasePath;
                 }
+                
+                // Include any additional files
+                var additionalFilesPath = fullInputPath + "." + language + ".files";
+                if (Directory.Exists(additionalFilesPath)) {
+                    arguments = arguments.Concat(Directory.GetFiles(additionalFilesPath)).ToArray();
+                }
             }
-
+            
             string expectedOutput = File.ReadAllText(expectedOutputPath);
 
             string output = RunDafny(new List<string> {file}.Concat(arguments));
