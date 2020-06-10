@@ -87,6 +87,7 @@ method Main()
 
   TraitsExtendingTraits.Test();
   TypeDescriptorTests.Test();
+  DiamondInitialization.Test();
 }
 
 module OtherModule {
@@ -447,10 +448,23 @@ module TraitsExtendingTraits {
   method Test() {
     var g := new G<real>(5.2);
     print g.y0, " ", g.y1, " ", g.b, "\n";  // 5.2 9 false
+
     var m: M := g;
     var n: N := g;
-    m.b := true;
-    print g.b, " ", m.b, " ", n.b, "\n";  // true true true
+    var bg: B := g;
+    g.b := true;
+    assert g.b && m.b && n.b && bg.b;
+    print g.b, " ", m.b, " ", n.b, " ", bg.b, "\n";  // true true true true
+    m.b := false;
+    assert !g.b && !m.b && !n.b && !bg.b;
+    print g.b, " ", m.b, " ", n.b, " ", bg.b, "\n";  // false false false false
+    n.b := true;
+    assert g.b && m.b && n.b && bg.b;
+    print g.b, " ", m.b, " ", n.b, " ", bg.b, "\n";  // true true true true
+    bg.b := false;
+    assert !g.b && !m.b && !n.b && !bg.b;
+    print g.b, " ", m.b, " ", n.b, " ", bg.b, "\n";  // false false false false
+
     print g.GetY(), " ", g.GetY'(), "\n"; // 5.2 5.2
     g.SetY(1.2);
     print g.GetY(), " ", g.GetY'(), "\n";  // 1.2 1.2
@@ -561,7 +575,7 @@ module TypeDescriptorTests {
     f := x.M'(f);
     f := x.N'(f);
 
-    print f(7), "\n";
+    //print f(7), "\n";
   }
 
   trait TraitDependency<X> {
@@ -577,5 +591,76 @@ module TypeDescriptorTests {
     print c.a, " ", c.b, " ", c.c, "\n";
 
     CallerT();
+  }
+}
+
+module DiamondInitialization {
+  /*
+          A +-+
+        / | \  \
+       B  C  D  |
+     / | /|  |  |
+    |  E  |  |  |
+    \   \ |  |  |
+     +\     /  /
+         M   +
+  */
+
+  trait A<XA> {
+    var x: XA
+  }
+  trait B<XB> extends A<XB> { }
+  trait C<XC> extends A<XC> { }
+  trait D extends A<int> { }
+  trait E<XE> extends B<XE>, C<XE> { }
+  class M extends B<int>, E<int>, C<int>, D, A<int> {
+    method Print() {
+      var a: A := this;
+      var b: B := this;
+      var c: C := this;
+      var d: D := this;
+      var e: E := this;
+      var a0: A, a1: A, a2: A, a3: A := b, c, d, e;
+      var b0: B := e;
+      var c0: C := e;
+      print a.x, " ", b.x, " ", c.x, " ", d.x, " ", e.x, " ", this.x, " ";
+      print a0.x, " ", a1.x, " ", a2.x, " ", a3.x, " ", b0.x, " ", c0.x, "\n";
+    }
+    method Set(y: int)
+      modifies this
+    {
+      var a: A := this;
+      var b: B := this;
+      var c: C := this;
+      var d: D := this;
+      var e: E := this;
+      var a0: A, a1: A, a2: A, a3: A := b, c, d, e;
+      var b0: B := e;
+      var c0: C := e;
+      match y % 12
+      case 0 =>  a.x := y;
+      case 1 =>  b.x := y;
+      case 2 =>  c.x := y;
+      case 3 =>  d.x := y;
+      case 4 =>  e.x := y;
+      case 5 =>  x := y;
+      case 6 =>  a0.x := y;
+      case 7 =>  a1.x := y;
+      case 8 =>  a2.x := y;
+      case 9 =>  a3.x := y;
+      case 10 =>  b0.x := y;
+      case 11 =>  c0.x := y;
+    }
+  }
+
+  method Test() {
+    var m := new M;
+    m.Print();
+    var i := 13;
+    while i < 25 {
+      m.Set(i);
+      m.Print();
+      i := i + 1;
+    }
   }
 }

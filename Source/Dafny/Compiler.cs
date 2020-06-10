@@ -401,7 +401,7 @@ namespace Microsoft.Dafny {
             var resolved = (MemberSelectExpr)lexpr;
             string target = EmitAssignmentLhs(resolved.Obj, wr);
             var typeArgs = TypeArgumentInstantiation.ListFromMember(resolved.Member, null, resolved.TypeApplication_JustMember);
-            ILvalue newLhs =  EmitMemberSelect(w => w.Write(target), resolved.Type, resolved.Member, typeArgs, resolved.TypeArgumentSubstitutionsWithParents(), resolved.Type);
+            ILvalue newLhs =  EmitMemberSelect(w => w.Write(target), resolved.Obj.Type, resolved.Member, typeArgs, resolved.TypeArgumentSubstitutionsWithParents(), resolved.Type);
             lhssn.Add(newLhs);
           } else if (lexpr is SeqSelectExpr) {
             var seqExpr = (SeqSelectExpr)lexpr;
@@ -1313,7 +1313,8 @@ namespace Microsoft.Dafny {
             TargetWriter wSet;
             classWriter.CreateGetterSetter(IdName(f), f.Type, f.tok, false, false, member, out wSet);
           } else {
-            classWriter.DeclareField(IdName(f), c, f.IsStatic, false, f.Type, f.tok, DefaultValue(f.Type, errorWr, f.tok, true));
+            var rhs = c is TraitDecl ? null : DefaultValue(f.Type, errorWr, f.tok, true);
+            classWriter.DeclareField(IdName(f), c, f.IsStatic, false, f.Type, f.tok, rhs);
           }
         } else if (member is Function) {
           var f = (Function)member;

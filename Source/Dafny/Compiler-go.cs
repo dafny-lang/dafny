@@ -340,7 +340,7 @@ namespace Microsoft.Dafny {
 
       if (superClasses != null) {
         foreach (Type typ in superClasses) {
-          cw.AddSuperType(typ, tok);
+          cw.AddSuperType(false, typ, tok);
         }
       }
       return cw;
@@ -396,7 +396,7 @@ namespace Microsoft.Dafny {
       var cw = new ClassWriter(this, name, isExtern, abstractMethodWriter, concreteMethodWriter, instanceFieldWriter, instanceFieldInitWriter, traitInitWriter, staticFieldWriter, staticFieldInitWriter);
       if (superClasses != null) {
         foreach (Type typ in superClasses) {
-          cw.AddSuperType(typ, tok);
+          cw.AddSuperType(true, typ, tok);
         }
       }
       return cw;
@@ -1080,8 +1080,8 @@ namespace Microsoft.Dafny {
 
       public TextWriter/*?*/ ErrorWriter() => ConcreteMethodWriter;
 
-      public void AddSuperType(Type superType, Bpl.IToken tok) {
-        Compiler.AddSuperType(superType, tok, InstanceFieldWriter, InstanceFieldInitWriter, TraitInitWriter, StaticFieldWriter, StaticFieldInitWriter);
+      public void AddSuperType(bool inTrait, Type superType, Bpl.IToken tok) {
+        Compiler.AddSuperType(superType, tok, InstanceFieldWriter, inTrait ? null : InstanceFieldInitWriter, inTrait ? null : TraitInitWriter, StaticFieldWriter, StaticFieldInitWriter);
       }
 
       public void Finish() {
@@ -1375,21 +1375,35 @@ namespace Microsoft.Dafny {
 
     protected override bool SupportsStaticsInGenericClasses => false;
 
-    private void AddSuperType(Type superType, Bpl.IToken tok, TargetWriter instanceFieldWriter, TargetWriter instanceFieldInitWriter, TargetWriter traitInitWriter, TargetWriter staticFieldWriter, TargetWriter staticFieldInitWriter) {
+    private void AddSuperType(Type superType, Bpl.IToken tok, TargetWriter instanceFieldWriter, TargetWriter/*?*/ instanceFieldInitWriter, TargetWriter/*?*/ traitInitWriter, TargetWriter staticFieldWriter, TargetWriter staticFieldInitWriter) {
+      Contract.Requires(superType != null);
+      Contract.Requires(tok != null);
+      Contract.Requires(instanceFieldWriter != null);
+      Contract.Requires(staticFieldWriter != null);
+      Contract.Requires(staticFieldInitWriter != null);
+
       instanceFieldWriter.WriteLine("{0}", TypeName(superType, instanceFieldWriter, tok));
 
       var embed = UnqualifiedClassName(superType, instanceFieldInitWriter, tok);
 
-      instanceFieldInitWriter.Write("_this.{0} = {1}(", embed, TypeName_Initializer(superType, instanceFieldInitWriter, tok));
-      if (superType is UserDefinedType udt) {
-        Contract.Assert(udt.ResolvedClass != null);
-        var typeArgs = TypeArgumentInstantiation.ListFromClass(udt.ResolvedClass, superType.TypeArgs);
-        EmitRuntimeTypeDescriptorsActuals(typeArgs, tok, true, instanceFieldInitWriter);
+      if (instanceFieldInitWriter != null) {
+        instanceFieldInitWriter.Write("_this.{0} = {1}(", embed, TypeName_Initializer(superType, instanceFieldInitWriter, tok));
+        if (superType is UserDefinedType udt) {
+          Contract.Assert(udt.ResolvedClass != null);
+          var typeArgs = TypeArgumentInstantiation.ListFromClass(udt.ResolvedClass, superType.TypeArgs);
+          EmitRuntimeTypeDescriptorsActuals(typeArgs, tok, true, instanceFieldInitWriter);
+        }
+        instanceFieldInitWriter.WriteLine(")");
       }
-      instanceFieldInitWriter.WriteLine(")");
-
-      if (superType.IsTraitType) {
+      if (traitInitWriter != null && superType.IsTraitType) {
         traitInitWriter.WriteLine("_this.{0}.{1} = &_this", embed, FormatTraitInterfaceName(embed));
+
+        var trait = (NonNullTypeDecl)((UserDefinedType)superType).ResolvedClass;
+        Contract.Assert(trait != null);
+        foreach (var grandparent in trait.Class.ParentTypeInformation.UniqueParentTraits()) {
+          var grandParentName = UnqualifiedClassName(grandparent, instanceFieldInitWriter, tok);
+          traitInitWriter.WriteLine("_this.{0}.{1} = _this.{1}", embed, grandParentName);
+        }
       }
 
       staticFieldWriter.WriteLine("*{0}", TypeName_CompanionType(superType, staticFieldWriter, tok));
@@ -1719,16 +1733,12 @@ namespace Microsoft.Dafny {
         var wBody = concreteMethodWriter.NewNamedBlock("func (_this *{0}) {1}() {2}", receiver, name, TypeName(type, concreteMethodWriter, tok));
         wBody.WriteLine("return {0}", rhs);
       } else {
-        if (rhs == null) {
-          rhs = DefaultValue(type, initWriter, tok, true);
-        }
-
         wr.WriteLine("{0} {1}", name, TypeName(type, initWriter, tok));
 
-        if (!isStatic) {
+        if (isStatic) {
+          initWriter.WriteLine("{0}: {1},", name, rhs ?? DefaultValue(type, initWriter, tok, true));
+        } else if (rhs != null) {
           initWriter.WriteLine("_this.{0} = {1}", name, rhs);
-        } else {
-          initWriter.WriteLine("{0}: {1},", name, rhs);
         }
       }
     }
