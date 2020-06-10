@@ -1,21 +1,7 @@
 /*
 ---
-- compile: 3
-  coverage: "-"
-  compileTarget: cs
-  otherFiles: comp/BranchCoverage2.cs
-- compile: 3
-  coverage: "-"
-  compileTarget: js
-  otherFiles: comp/BranchCoverage3.js
-- compile: 3
-  coverage: "-"
-  compileTarget: go
-  otherFiles: comp/BranchCoverage4.go
-- compile: 3
-  coverage: "-"
-  compileTarget: java
-  otherFiles: comp/CodeCoverage.java
+compile: 3
+coverage: "-"
 */
 
 // The Main method is at the end of this file, because that makes it easier to maintain
