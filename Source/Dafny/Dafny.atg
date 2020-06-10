@@ -892,9 +892,9 @@ SubModuleDecl<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl sub
     ( (. idPath = new List<IToken>(); idExports = new List<IToken>(); .)
       [ QualifiedModuleExportSuffix<idPath, idExports> ]
       (. if (idPath.Count > 0)
-           SemErr(idPath[0], "Qualified imports must be given a name.");
-        idPath.Insert(0, id);
-        submodule = new AliasModuleDecl(idPath, id, parent, opened, idExports);
+             errors.Warning(idPath[0], "Qualified imports should be given a name; using " + idPath[idPath.Count-1].val);
+	idPath.Insert(0, id);
+	submodule = new AliasModuleDecl(idPath, idPath[idPath.Count-1], parent, opened, idExports);
       .)
     | "=" QualifiedModuleExport<out idPath, out idExports>
       (. submodule = new AliasModuleDecl(idPath, id, parent, opened, idExports); .)
