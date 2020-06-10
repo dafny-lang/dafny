@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using DiffMatchPatch;
 using Xunit;
 using Xunit.Sdk;
 using YamlDotNet.RepresentationModel;
@@ -13,11 +12,13 @@ namespace DafnyTests {
 
     public class DafnyTests {
 
-        private static string DAFNY_ROOT = new DirectoryInfo(Directory.GetCurrentDirectory()).Parent.Parent.Parent.Parent.Parent.FullName;
+        private static string DAFNY_ROOT = new DirectoryInfo(Directory.GetCurrentDirectory()).Parent.Parent.Parent
+            .Parent.Parent.FullName;
+
         private static string DAFNY_EXE = Path.Combine(DAFNY_ROOT, "Binaries/Dafny.exe");
         private static string TEST_ROOT = Path.Combine(DAFNY_ROOT, "Test") + Path.DirectorySeparatorChar;
         private static string COMP_DIR = Path.Combine(TEST_ROOT, "comp") + Path.DirectorySeparatorChar;
-        
+
         public static string RunDafny(IEnumerable<string> arguments) {
             List<string> dafnyArguments = new List<string> {
                 // Expected output does not contain logo
@@ -32,7 +33,7 @@ namespace DafnyTests {
                 "-compileVerbose:0"
             };
             dafnyArguments.AddRange(arguments);
-            
+
             using (Process dafnyProcess = new Process()) {
                 dafnyProcess.StartInfo.FileName = "mono";
                 dafnyProcess.StartInfo.ArgumentList.Add(DAFNY_EXE);
@@ -46,7 +47,7 @@ namespace DafnyTests {
                 dafnyProcess.StartInfo.CreateNoWindow = true;
                 // Necessary for JS to find bignumber.js
                 dafnyProcess.StartInfo.WorkingDirectory = TEST_ROOT;
-                
+
                 // Only preserve specific whitelisted environment variables
                 dafnyProcess.StartInfo.EnvironmentVariables.Clear();
                 dafnyProcess.StartInfo.EnvironmentVariables.Add("PATH", Environment.GetEnvironmentVariable("PATH"));
@@ -62,6 +63,28 @@ namespace DafnyTests {
                 }
 
                 return output + error;
+            }
+        }
+
+        private static string Exec(string file, params string[] arguments) {
+            using (Process dafnyProcess = new Process()) {
+                dafnyProcess.StartInfo.FileName = file;
+                foreach (var argument in arguments) {
+                    dafnyProcess.StartInfo.ArgumentList.Add(argument);
+                }
+
+                dafnyProcess.StartInfo.UseShellExecute = false;
+                dafnyProcess.StartInfo.RedirectStandardOutput = true;
+                dafnyProcess.StartInfo.RedirectStandardError = true;
+                dafnyProcess.StartInfo.CreateNoWindow = true;
+
+                dafnyProcess.Start();
+                dafnyProcess.WaitForExit();
+//                if (dafnyProcess.ExitCode != 0) {
+//                    string error = dafnyProcess.StandardError.ReadToEnd();
+//                    throw new Exception(error);                    
+//                }
+                return dafnyProcess.StandardOutput.ReadToEnd();
             }
         }
 
@@ -89,11 +112,12 @@ namespace DafnyTests {
             } else if (node is YamlMappingNode mappingNode) {
                 return CartesianProduct(mappingNode.Select(ExpandValue)).Select(FromPairs);
             } else {
-                return new[]{ node };
+                return new[] {node};
             }
         }
 
-        private static IEnumerable<KeyValuePair<YamlNode, YamlNode>> ExpandValue(KeyValuePair<YamlNode, YamlNode> pair) {
+        private static IEnumerable<KeyValuePair<YamlNode, YamlNode>>
+            ExpandValue(KeyValuePair<YamlNode, YamlNode> pair) {
             return Expand(pair.Value).Select(v => KeyValuePair.Create(pair.Key, v));
         }
 
@@ -105,13 +129,12 @@ namespace DafnyTests {
 
             return result;
         }
-        
+
         /**
          * Source: https://docs.microsoft.com/en-us/archive/blogs/ericlippert/computing-a-cartesian-product-with-linq
          */
-        private static IEnumerable<IEnumerable<T>> CartesianProduct<T>(IEnumerable<IEnumerable<T>> sequences)
-        {
-            IEnumerable<IEnumerable<T>> emptyProduct = new[] { Enumerable.Empty<T>() };
+        private static IEnumerable<IEnumerable<T>> CartesianProduct<T>(IEnumerable<IEnumerable<T>> sequences) {
+            IEnumerable<IEnumerable<T>> emptyProduct = new[] {Enumerable.Empty<T>()};
             return sequences.Aggregate(
                 emptyProduct,
                 (accumulator, sequence) =>
@@ -119,16 +142,17 @@ namespace DafnyTests {
                     from item in sequence
                     select accseq.Concat(new[] {item}));
         }
-        
+
         public static IEnumerable<object[]> AllTestFiles() {
-            var filePaths = Directory.GetFiles(TEST_ROOT, "*.dfy", SearchOption.AllDirectories)
-                                     .Select(path => GetRelativePath(TEST_ROOT, path));
+            var filePaths = Directory.GetFiles(COMP_DIR, "*.dfy", SearchOption.AllDirectories)
+                .Select(path => GetRelativePath(TEST_ROOT, path));
+//            var filePaths = Assembly.GetExecutingAssembly().GetManifestResourceNames();
             return filePaths.SelectMany(TestCasesForDafnyFile);
         }
 
         private static IEnumerable<object[]> TestCasesForDafnyFile(string filePath) {
             var fullFilePath = Path.Combine(TEST_ROOT, filePath);
-            string configString = GetTestCaseConfigString(fullFilePath); 
+            string configString = GetTestCaseConfigString(fullFilePath);
             IEnumerable<YamlNode> configs;
             if (configString != null) {
                 var yamlStream = new YamlStream();
@@ -136,7 +160,7 @@ namespace DafnyTests {
                 var config = yamlStream.Documents[0].RootNode;
                 configs = Expand(config);
             } else {
-                configs = new[] { new YamlMappingNode() };
+                configs = new[] {new YamlMappingNode()};
             }
 
             IEnumerable<YamlMappingNode> mappings = configs.SelectMany<YamlNode, YamlMappingNode>(config => {
@@ -148,8 +172,7 @@ namespace DafnyTests {
             });
 
             return mappings.Select(mapping => {
-                var flags = mapping.Select(pair => "/" + pair.Key + ":" + pair.Value);
-                return new[] {filePath, String.Join(" ", flags)};
+                return new[] {filePath, String.Join(" ", mapping.Select(ConfigPairToArgument))};
             });
         }
 
@@ -168,8 +191,16 @@ namespace DafnyTests {
             } else {
                 yield return mapping;
             }
-        } 
-        
+        }
+
+        private static string ConfigPairToArgument(KeyValuePair<YamlNode, YamlNode> pair) {
+            if (pair.Key.Equals(new YamlScalarNode("otherFiles"))) {
+                return pair.Value.ToString();
+            } else {
+                return String.Format("/{0}:{1}", pair.Key, pair.Value);
+            }
+        }
+
         // TODO-RS: Replace with Path.GetRelativePath() if we move to .NET Core 3.1
         private static string GetRelativePath(string relativeTo, string path) {
             var fullRelativeTo = Path.GetFullPath(relativeTo);
@@ -180,24 +211,22 @@ namespace DafnyTests {
 
         private static void AssertEqualWithDiff(string expected, string actual) {
             if (expected != actual) {
-                DiffMatchPatch.DiffMatchPatch dmp = DiffMatchPatchModule.Default;
-                List<Diff> diff = dmp.DiffMain(expected, actual);
-                dmp.DiffCleanupSemantic(diff);
-                string patch = DiffText(diff);
-                throw new AssertActualExpectedException(expected, actual, patch);
+                // TODO-RS: Do better than shelling out to a linux utility
+                string expectedPath = Path.GetTempFileName();
+                File.WriteAllText(expectedPath, expected);
+                string actualPath = Path.GetTempFileName();
+                File.WriteAllText(actualPath, actual);
+                string diff = Exec("diff", "--unified=3", expectedPath, actualPath);
+                throw new AssertActualExpectedException(expected, actual, diff);
             }
         }
 
-        private static string DiffText(List<Diff> diffs) {
-            return "";
-        }
-        
         [ParallelTheory]
         [MemberData(nameof(AllTestFiles))]
         public void Test(string file, string args) {
             string fullInputPath = Path.Combine(TEST_ROOT, file);
             string[] arguments = args.Split();
-            
+
             string expectedOutputPath = fullInputPath + ".expect";
             bool specialCase = false;
             string compileTarget = arguments.FirstOrDefault(arg => arg.StartsWith("/compileTarget:"));
@@ -209,10 +238,11 @@ namespace DafnyTests {
                     expectedOutputPath = specialCasePath;
                 }
             }
+
             string expectedOutput = File.ReadAllText(expectedOutputPath);
 
-            string output = RunDafny(new List<string>{ file }.Concat(arguments));
-            
+            string output = RunDafny(new List<string> {file}.Concat(arguments));
+
             AssertEqualWithDiff(expectedOutput, output);
             Skip.If(specialCase, "Confirmed known exception for arguments: " + args);
         }
@@ -228,7 +258,7 @@ namespace DafnyTests {
                 yamlStream.Load(reader);
                 var root = yamlStream.Documents[0].RootNode;
                 var expanded = Expand(root);
-                
+
                 var outputWriter = new StringWriter();
                 var serializer = new SerializerBuilder().Build();
                 serializer.Serialize(outputWriter, expanded);

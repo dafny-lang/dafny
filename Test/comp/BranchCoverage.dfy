@@ -1,8 +1,22 @@
-// RUN: %dafny /compile:3 /coverage:- /spillTargetCode:1 /compileTarget:cs BranchCoverage2.cs "%s" > "%t"
-// RUN: %dafny /compile:3 /coverage:- /spillTargetCode:1 /compileTarget:js BranchCoverage3.js "%s" >> "%t"
-// RUN: %dafny /compile:3 /coverage:- /spillTargetCode:1 /compileTarget:go BranchCoverage4.go "%s" >> "%t"
-// RUN: %dafny /compile:3 /coverage:- /spillTargetCode:1 /compileTarget:java CodeCoverage.java "%s" >> "%t"
-// RUN: %diff "%s.expect" "%t"
+/*
+---
+- compile: 3
+  coverage: "-"
+  compileTarget: cs
+  otherFiles: comp/BranchCoverage2.cs
+- compile: 3
+  coverage: "-"
+  compileTarget: js
+  otherFiles: comp/BranchCoverage3.js
+- compile: 3
+  coverage: "-"
+  compileTarget: go
+  otherFiles: comp/BranchCoverage4.go
+- compile: 3
+  coverage: "-"
+  compileTarget: java
+  otherFiles: comp/CodeCoverage.java
+*/
 
 // The Main method is at the end of this file, because that makes it easier to maintain
 // this test file when adding more tests.
