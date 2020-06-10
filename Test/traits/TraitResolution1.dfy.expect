@@ -92,4 +92,16 @@ TraitResolution1.dfy(420,20): Error: the type of special parameter '_k' of induc
 TraitResolution1.dfy(422,20): Error: the type of special parameter '_k' of inductive lemma 'M' (nat) must be the same as in the overridden inductive lemma (ORDINAL)
 TraitResolution1.dfy(426,24): Error: the type of special parameter '_k' of inductive predicate 'Q' (ORDINAL) must be the same as in the overridden inductive predicate (nat)
 TraitResolution1.dfy(430,20): Error: the type of special parameter '_k' of inductive lemma 'L' (ORDINAL) must be the same as in the overridden inductive lemma (nat)
-94 resolution/type errors detected in TraitResolution1.dfy
+TraitResolution1.dfy(476,8): Error: class 'AAA' with fields without known initializers, like 'w' of type '(Y, Y)', must declare a constructor
+TraitResolution1.dfy(481,8): Error: class 'BBB' with fields without known initializers, like 'w' of type 'Forever', must declare a constructor
+TraitResolution1.dfy(513,24): Error: type parameter (X) passed to type RequiresZero must support zero initialization (got Forever)
+TraitResolution1.dfy(518,27): Error: type parameter (X) passed to type RequiresZero must support zero initialization (got Y)
+TraitResolution1.dfy(523,27): Error: type parameter (X) passed to type RequiresZero must support zero initialization (got (Y, Y))
+TraitResolution1.dfy(530,8): Error: set argument type must support equality (got X) (perhaps try declaring type parameter 'X' on line 529 as 'X(==)', which says it can only be instantiated with a type that supports equality)
+TraitResolution1.dfy(536,28): Error: set argument type must support equality (got Forever)
+TraitResolution1.dfy(537,41): Error: type parameter (X) passed to type RequiresZero must support zero initialization (got Forever)
+TraitResolution1.dfy(538,41): Error: type parameter (X) passed to type RequiresZero must support zero initialization (got Forever)
+TraitResolution1.dfy(504,18): Error: type parameter (Y) passed to type ClassRequiresZero must support zero initialization (got Forever)
+TraitResolution1.dfy(504,14): Error: type parameter (Y) passed to type ClassRequiresZero must support zero initialization (got Forever)
+TraitResolution1.dfy(507,44): Error: type parameter (Y) passed to type ClassRequiresZero must support zero initialization (got Forever)
+106 resolution/type errors detected in TraitResolution1.dfy
