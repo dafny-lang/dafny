@@ -1,5 +1,3 @@
-//usr/bin/env testdafny "$0"; exit
-
 method LinearSearch(a: array<int>, key: int) returns (n: nat)
   ensures 0 <= n <= a.Length
   ensures n == a.Length || a[n] == key

@@ -1,5 +1,3 @@
-//usr/bin/env testdafny "$0"; exit
-
 function method F(x: int, y: bool): int {
   x + if y then 2 else 3
 }

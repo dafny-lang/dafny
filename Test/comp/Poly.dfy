@@ -1,5 +1,3 @@
-//usr/bin/env testdafny "$0"; exit
-
 trait Shape {
     function method Center(): (real, real) reads this
     method PrintCenter() {

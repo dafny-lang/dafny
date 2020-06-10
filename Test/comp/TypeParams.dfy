@@ -1,5 +1,3 @@
-//usr/bin/env testdafny "$0"; exit
-
 datatype Color = Orange | Pink | Teal
 type Six = x | x <= 6
 newtype Even = x | x % 2 == 0

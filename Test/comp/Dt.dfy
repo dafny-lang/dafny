@@ -1,5 +1,3 @@
-//usr/bin/env testdafny "$0"; exit
-
 datatype List = Nil | Cons(head: int, tail: List)
 
 method Main() {

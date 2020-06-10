@@ -1,5 +1,3 @@
-//usr/bin/env testdafny "$0"; exit
-
 class C {
   var x: int
   // for variety, the following tests the use of an instance Main method

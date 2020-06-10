@@ -1,5 +1,3 @@
-//usr/bin/env testdafny "$0"; exit
-
 method Main() {
   // In the following, 2_000_000 is too large an argument without tail-calls
   var x := M(2_000_000, 0);

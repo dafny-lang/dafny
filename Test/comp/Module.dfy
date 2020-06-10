@@ -1,5 +1,3 @@
-//usr/bin/env testdafny "$0"; exit
-
 // Simple sanity test of nested modules
 module Parent {
   module Child {

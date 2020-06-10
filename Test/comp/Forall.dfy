@@ -1,5 +1,3 @@
-//usr/bin/env testdafny "$0"; exit
-
 method Main() {
   var arrayTests := new ArrayTests();
   arrayTests.Run();
