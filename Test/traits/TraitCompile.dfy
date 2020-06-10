@@ -88,6 +88,8 @@ method Main()
   TraitsExtendingTraits.Test();
   TypeDescriptorTests.Test();
   DiamondInitialization.Test();
+
+  NonCapturingFunctionCoercions.Test();
 }
 
 module OtherModule {
@@ -575,7 +577,7 @@ module TypeDescriptorTests {
     f := x.M'(f);
     f := x.N'(f);
 
-    //print f(7), "\n";
+    print f(7), "\n";
   }
 
   trait TraitDependency<X> {
@@ -662,5 +664,25 @@ module DiamondInitialization {
       m.Print();
       i := i + 1;
     }
+  }
+}
+
+module NonCapturingFunctionCoercions {
+  method Identity<X>(f: X -> X) returns (g: X -> X) { g := f; }
+
+  method Test() {
+    var x := 3;
+    var f := y => y + x;
+    print "f(4) = ", f(4), "\n";  // 7
+    x := 100;
+    print "f(4) = ", f(4), "\n";  // still 7 (this tests that x was not captured)
+
+    // The following is a regression test, where compilation in Go once had captured
+    // the f in the automatically emitted coercions required to make the call to
+    // the generic method Identity.
+    var g := Identity(f);
+    print "g(4) = ", g(4), "\n";  // 7
+    f := y => y + x;
+    print "g(4) = ", g(4), "\n";  // still 7 (this tests that f was not captured)
   }
 }

@@ -3240,6 +3240,10 @@ namespace Microsoft.Dafny {
         // Need to convert functions more often, so do this before the
         // EqualsUpToParameters check below
         ArrowType fat = from.AsArrowType, tat = to.AsArrowType;
+        // We must wrap the whole conversion in an IIFE to avoid capturing the source expression
+        var bvName = FreshId("coer");
+        wr = CreateIIFE_ExprBody(out var ans, fat, tok, tat, tok, bvName, wr);
+
         wr.Write("func (");
         var sep = "";
         var args = new List<string>();
@@ -3261,9 +3265,7 @@ namespace Microsoft.Dafny {
           wBody.Write("return ");
           wCall = EmitCoercionIfNecessary(from:fat.Result, to:tat.Result, tok:tok, wr:wBody);
         }
-        wCall.Write('(');
-        var ans = wCall.Fork();
-        wCall.Write(")(");
+        wCall.Write("{0}(", bvName);
         Contract.Assert(fat.Args.Count == tat.Args.Count);
         sep = "";
         for (int i = 0; i < fat.Args.Count; i++) {
