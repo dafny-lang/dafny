@@ -984,9 +984,9 @@ int StringToInt(string s, int defaultValue, string errString) {
 					QualifiedModuleExportSuffix(idPath, idExports);
 				}
 				if (idPath.Count > 0)
-				 SemErr(idPath[0], "Qualified imports must be given a name.");
+				   errors.Warning(idPath[0], "Qualified imports should be given a name; using " + idPath[idPath.Count-1].val);
 				idPath.Insert(0, id);
-				submodule = new AliasModuleDecl(idPath, id, parent, opened, idExports);
+				submodule = new AliasModuleDecl(idPath, idPath[idPath.Count-1], parent, opened, idExports);
 				
 			} else if (la.kind == 96) {
 				Get();
