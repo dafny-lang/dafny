@@ -2041,7 +2041,7 @@ namespace Microsoft.Dafny {
           var toNative = AsNativeType(e.ToType);
           if (fromNative != null && toNative != null) {
             // from a native, to a native -- simple!
-           TrExpr(e.E, wr, inLetExprBody);
+            TrExpr(e.E, wr, inLetExprBody);
           } else if (e.E.Type.IsCharType) {
             Contract.Assert(fromNative == null);
             if (toNative == null) {
@@ -2083,7 +2083,6 @@ namespace Microsoft.Dafny {
               TrParenExpr(e.E, wr, inLetExprBody);
               wr.Write(".toNumber()");
             }
-
           }
         }
       } else if (e.E.Type.IsNumericBased(Type.NumericPersuation.Real)) {

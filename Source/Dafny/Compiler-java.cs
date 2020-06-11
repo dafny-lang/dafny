@@ -3614,7 +3614,6 @@ namespace Microsoft.Dafny{
       Expression arg = e.E;
       Type fromType = e.E.Type;
       Type toType = e.ToType;
-
       if (fromType.IsNumericBased(Type.NumericPersuation.Int) || fromType.IsBitVectorType || fromType.IsCharType) {
         if (toType.IsNumericBased(Type.NumericPersuation.Real)) {
           // (int or bv or char) -> real
@@ -3631,7 +3630,6 @@ namespace Microsoft.Dafny{
             TrExpr(arg, wr, inLetExprBody);
             wr.Write(", java.math.BigInteger.ONE)");
           }
-
         } else if (toType.IsCharType) {
           // (int or bv or char) -> char
           // Painfully, Java sign-extends bytes when casting to chars ...
@@ -3764,18 +3762,15 @@ namespace Microsoft.Dafny{
           } else if (toType.IsCharType) {
             wr.Write("(char)");
             TrParenExpr(arg, wr, inLetExprBody);
-            wr.Write(".intValue()"); 
-
+            wr.Write(".intValue()");
           } else {
             TrParenExpr(arg, wr, inLetExprBody);
           }
-
         } else if (toType.IsNumericBased(Type.NumericPersuation.Real)) {
           // ordinal -> real
           wr.Write($"new {DafnyBigRationalClass}(");
           TrExpr(arg, wr, inLetExprBody);
           wr.Write(", java.math.BigInteger.ONE)");
-
         } else if (toType.IsBitVectorType) {
           // ordinal -> bv
           if (AsNativeType(toType) != null) {
@@ -3783,13 +3778,14 @@ namespace Microsoft.Dafny{
             wr.Write($".{GetNativeTypeName(AsNativeType(toType))}Value()");
           } else {
             TrParenExpr(arg, wr, inLetExprBody);
-            Contract.Assert(false,$"not implemented for java: {fromType} -> {toType}");
           }
         } else if (toType.IsBigOrdinalType) {
           TrParenExpr(arg, wr, inLetExprBody);
         } else {
           Contract.Assert(false,$"not implemented for java: {fromType} -> {toType}");
         }
+      } else {
+        Contract.Assert(false, $"not implemented for java: {fromType} -> {toType}");
       }
     }
 

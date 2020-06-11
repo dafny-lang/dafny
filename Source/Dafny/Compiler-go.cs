@@ -3058,7 +3058,6 @@ namespace Microsoft.Dafny {
             TrExpr(e.E, wr, inLetExprBody);
           } else if (fromNative != null) {
             Contract.Assert(toNative == null); // follows from other checks
-
             // native (int or bv) -> big-integer (int or bv)
             wr.Write("_dafny.IntOf{0}(", Capitalize(GetNativeTypeName(fromNative)));
             TrExpr(e.E, wr, inLetExprBody);
@@ -3087,7 +3086,6 @@ namespace Microsoft.Dafny {
               TrParenExpr(e.E, wr, inLetExprBody);
               wr.Write(".{0}()", Capitalize(GetNativeTypeName(toNative)));
             }
-
           }
         }
       } else if (e.E.Type.IsNumericBased(Type.NumericPersuation.Real)) {
@@ -3109,7 +3107,7 @@ namespace Microsoft.Dafny {
           }
         }
       } else {
-        Contract.Assert(false, $"{0}not implemented for go: {e.E.Type} -> {e.ToType}");
+        Contract.Assert(false, $"not implemented for go: {e.E.Type} -> {e.ToType}");
       }
     }
 
