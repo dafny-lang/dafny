@@ -1,8 +1,8 @@
 // RUN: %dafny /compile:0 "%s" > "%t"
-// RUN: %dafny /compole:3 /compileTarget:cs "%s" >> %t"
-// RUN: %dafny /compole:3 /compileTarget:js "%s" >> %t"
-// RUN: %dafny /compole:3 /compileTarget:go "%s" >> %t"
-// RUN: %dafny /compole:3 /compileTarget:java "%s" >> %t"
+// RUN: %dafny /noVerify /compile:4 /compileTarget:cs "%s" >> "%t"
+// RUN: %dafny /noVerify /compile:4 /compileTarget:js "%s" >> "%t"
+// RUN: %dafny /noVerify /compile:4 /compileTarget:go "%s" >> "%t"
+// RUN: %dafny /noVerify /compile:4 /compileTarget:java "%s" >> "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module M {
@@ -77,8 +77,8 @@ module M {
       assert c == c as ORDINAL as char;
       expect c == c as ORDINAL as char;
    
-      // assert b == b as bv;
-      // expect b == b as bv;
+      // assert b == b as bv; // in Test3
+      // expect b == b as bv; // in Test3
       // assert b == b as char as bv; // in Test3
       // expect b == b as char as bv; // in Test3
       // assert b == b as int as bv; // in Test3
