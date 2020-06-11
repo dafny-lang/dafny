@@ -983,8 +983,6 @@ int StringToInt(string s, int defaultValue, string errString) {
 				if (la.kind == 32 || la.kind == 33) {
 					QualifiedModuleExportSuffix(idPath, idExports);
 				}
-				if (idPath.Count > 0)
-				   errors.Warning(idPath[0], "Qualified imports should be given a name; using " + idPath[idPath.Count-1].val);
 				idPath.Insert(0, id);
 				submodule = new AliasModuleDecl(idPath, idPath[idPath.Count-1], parent, opened, idExports);
 				
