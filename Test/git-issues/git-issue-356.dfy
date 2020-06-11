@@ -1,4 +1,8 @@
 // RUN: %dafny /compile:0 "%s" > "%t"
+// RUN: %dafny /compole:3 /compileTarget:cs "%s" >> %t"
+// RUN: %dafny /compole:3 /compileTarget:js "%s" >> %t"
+// RUN: %dafny /compole:3 /compileTarget:go "%s" >> %t"
+// RUN: %dafny /compole:3 /compileTarget:java "%s" >> %t"
 // RUN: %diff "%s.expect" "%t"
 
 module M {

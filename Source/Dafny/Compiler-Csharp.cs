@@ -2177,12 +2177,13 @@ namespace Microsoft.Dafny
     protected override void EmitConversionExpr(ConversionExpr e, bool inLetExprBody, TargetWriter wr) {
       if (e.E.Type.IsNumericBased(Type.NumericPersuation.Int) || e.E.Type.IsBitVectorType || e.E.Type.IsCharType) {
         if (e.ToType.IsNumericBased(Type.NumericPersuation.Real)) {
-          // (int or bv) -> real
+          // (int or bv or char) -> real
           Contract.Assert(AsNativeType(e.ToType) == null);
           wr.Write("new Dafny.BigRational(");
           if (AsNativeType(e.E.Type) != null) {
             wr.Write("new BigInteger");
           }
+
           TrParenExpr(e.E, wr, inLetExprBody);
           wr.Write(", BigInteger.One)");
         } else if (e.ToType.IsCharType) {
@@ -2249,6 +2250,9 @@ namespace Microsoft.Dafny
           // real -> real
           Contract.Assert(AsNativeType(e.ToType) == null);
           TrExpr(e.E, wr, inLetExprBody);
+        } else if (e.ToType.IsBigOrdinalType) {
+          TrExpr(e.E, wr, inLetExprBody);
+          wr.Write(".ToBigInteger()");
         } else {
           // real -> (int or bv or char)
           if (e.ToType.IsCharType) {
@@ -2256,14 +2260,39 @@ namespace Microsoft.Dafny
           } else if (AsNativeType(e.ToType) != null) {
             wr.Write("({0})", GetNativeTypeName(AsNativeType(e.ToType)));
           }
+
           TrParenExpr(e.E, wr, inLetExprBody);
           wr.Write(".ToBigInteger()");
         }
-      } else {
-        Contract.Assert(e.E.Type.IsBigOrdinalType);
-        Contract.Assert(e.ToType.IsNumericBased(Type.NumericPersuation.Int));
-        // identity will do
-        TrExpr(e.E, wr, inLetExprBody);
+      } else if (e.E.Type.IsBigOrdinalType) {
+        if (e.ToType.IsNumericBased(Type.NumericPersuation.Int)) {
+
+          // identity will do
+          TrExpr(e.E, wr, inLetExprBody);
+
+        } else if (e.ToType.IsNumericBased(Type.NumericPersuation.Real)) {
+          wr.Write("new Dafny.BigRational(");
+          if (AsNativeType(e.E.Type) != null) {
+            wr.Write("new BigInteger");
+            TrParenExpr(e.E, wr, inLetExprBody);
+            wr.Write(", BigInteger.One)");
+          } else {
+            TrParenExpr(e.E, wr, inLetExprBody);
+            wr.Write(", 1)");
+          }
+        } else if (e.ToType.IsBitVectorType) {
+          if (AsNativeType(e.ToType) != null) {
+            wr.Write($"({AsNativeType(e.ToType)})");
+            TrParenExpr(e.E, wr, inLetExprBody);
+          } else {
+            TrParenExpr(e.E, wr, inLetExprBody);
+          }
+        } else {
+          Contract.Assert(false, $"{0}not implemented for C#: {e.E.Type} -> {e.ToType}");
+        }
+
+    } else {
+        Contract.Assert(false, $"{0}not implemented for C#: {e.E.Type} -> {e.ToType}");
       }
     }
 
