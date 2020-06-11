@@ -8486,6 +8486,10 @@ namespace Microsoft.Dafny {
       return name;
     }
 
+    private Expr newOneHeapExpr(IToken tok) {
+      return new Bpl.IdentifierExpr(tok, "$OneHeap", predef.HeapType);
+    }
+
     private void AddArrowTypeAxioms(ArrowTypeDecl ad) {
       Contract.Requires(ad != null);
       var arity = ad.Arity;
@@ -8699,7 +8703,7 @@ namespace Microsoft.Dafny {
         {
           var bvars = new List<Bpl.Variable>();
           var types = Map(Enumerable.Range(0, arity + 1), i => BplBoundVar("t" + i, predef.Ty, bvars));
-          var oneheap = new Bpl.IdentifierExpr(tok, "$OneHeap", predef.HeapType);
+          var oneheap = newOneHeapExpr(tok);
           var h = BplBoundVar("heap", predef.HeapType, bvars);
           var f = BplBoundVar("f", predef.HandleType, bvars);
           var boxes = Map(Enumerable.Range(0, arity), i => BplBoundVar("bx" + i, predef.BoxType, bvars));
@@ -8739,7 +8743,7 @@ namespace Microsoft.Dafny {
         {
           var bvars = new List<Bpl.Variable>();
           var types = Map(Enumerable.Range(0, arity + 1), i => BplBoundVar("t" + i, predef.Ty, bvars));
-          var oneheap = new Bpl.IdentifierExpr(tok, "$OneHeap", predef.HeapType);
+          var oneheap = newOneHeapExpr(tok);
           var h = BplBoundVar("heap", predef.HeapType, bvars);
           var f = BplBoundVar("f", predef.HandleType, bvars);
           var boxes = Map(Enumerable.Range(0, arity), i => BplBoundVar("bx" + i, predef.BoxType, bvars));
@@ -9152,7 +9156,7 @@ namespace Microsoft.Dafny {
           // function QQ():int { 3 }
           var cf = (ConstantField)f;
           if (cf.Rhs != null && RevealedInScope(cf)) {
-            var etran = new ExpressionTranslator(this, predef, (Bpl.Expr)null);
+            var etran = new ExpressionTranslator(this, predef, newOneHeapExpr(f.tok));
             ff.Body = etran.TrExpr(cf.Rhs);
           }
           sink.AddTopLevelDeclaration(ff);
