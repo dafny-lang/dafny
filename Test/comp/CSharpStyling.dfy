@@ -1,5 +1,8 @@
-// RUN: %dafny /compile:3 /spillTargetCode:2 /compileTarget:cs "%s" CSharpStyling2.cs > "%t"
-// RUN: %diff "%s.expect" "%t"
+/*
+---
+compile: 3
+compileTarget: cs
+*/
 
 method Main() {
   var c := new MyClass(50);

@@ -32,7 +32,7 @@ namespace DafnyTests {
                 // from the compilers, since that changes with the target language
                 "/compileVerbose:0",
                 
-                "/out:" + Path.GetTempPath();
+                "/out:" + Path.Combine(COMP_DIR, "Output")
             };
             dafnyArguments.AddRange(arguments);
 

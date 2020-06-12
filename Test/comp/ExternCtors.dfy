@@ -1,9 +1,4 @@
-// RUN: %dafny /compile:3 /compileTarget:cs "%s" ExternCtors-externs/Library.cs > "%t"
-// RUN: %dafny /compile:3 /compileTarget:java "%s" ExternCtors-externs/Class.java >> "%t"
-// RUN: %diff "%s.expect" "%t"
-
-// FIXME: Extern constructors are currently broken in Go and JavaScript,
-// so they are omitted
+// FIXME: Extern constructors are currently broken in Go and JavaScript
 
 method Main() {
   Library.Class.SayHi();
