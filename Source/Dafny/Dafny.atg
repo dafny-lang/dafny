@@ -966,16 +966,14 @@ ModuleName<out IToken id>
 /* This production is for referring to module exports for imports (both normal and facades) */
 QualifiedModuleExportSuffix<.List<IToken> ids, List<IToken> exports.>
 = (. IToken id; .)
-  (
-    "." ModuleName<out id>   (. ids.Add(id); .)
     { "." ModuleName<out id> (. ids.Add(id); .) }
-  | "`"
+  [ "`"
     ( ExportIdent<out id>       (. exports.Add(id); .)
     | "{" ExportIdent<out id>   (. exports.Add(id); .)
       { "," ExportIdent<out id> (. exports.Add(id); .) }
       "}"
     )
-  )
+  ]
   .
 
 QualifiedModuleExport<.out List<IToken> ids, out List<IToken> exports.>
