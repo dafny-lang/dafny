@@ -1,5 +1,7 @@
 
 Dafny program verifier finished with 72 verified, 0 errors
+
+Dafny program verifier finished with 0 verified, 0 errors
 y=120
 x=12
 d=800
@@ -55,7 +57,7 @@ g(4) = 7
 g(4) = 7
 41 15 26
 
-Dafny program verifier finished with 72 verified, 0 errors
+Dafny program verifier finished with 0 verified, 0 errors
 y=120
 x=12
 d=800
@@ -111,7 +113,7 @@ g(4) = 7
 g(4) = 7
 41 15 26
 
-Dafny program verifier finished with 72 verified, 0 errors
+Dafny program verifier finished with 0 verified, 0 errors
 y=120
 x=12
 d=800
@@ -167,7 +169,7 @@ g(4) = 7
 g(4) = 7
 41 15 26
 
-Dafny program verifier finished with 72 verified, 0 errors
+Dafny program verifier finished with 0 verified, 0 errors
 y=120
 x=12
 d=800
