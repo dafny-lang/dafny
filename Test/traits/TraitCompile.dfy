@@ -90,6 +90,7 @@ method Main()
   DiamondInitialization.Test();
 
   NonCapturingFunctionCoercions.Test();
+  TailRecursion.Test();
 }
 
 module OtherModule {
@@ -684,5 +685,54 @@ module NonCapturingFunctionCoercions {
     print "g(4) = ", g(4), "\n";  // 7
     f := y => y + x;
     print "g(4) = ", g(4), "\n";  // still 7 (this tests that f was not captured)
+  }
+}
+
+module TailRecursion {
+  trait Trait<G> {
+    var h: G
+    var K: G
+    function method Id(g: G): G { g }
+    function method Combine(g0: G, g1: G): G
+
+    function method {:tailrecursion} Daisy(g: G, n: nat): G
+      reads this
+    {
+      if n == 0 then
+        g
+      else if n == 1 then
+        var f := Id;
+        Combine(f(h), f(K))
+      else
+        Daisy(g, n - 2)
+    }
+    method {:tailrecursion} Compute(g: G, n: nat) returns (r: G) {
+      if n == 0 {
+        return g;
+      } else if n == 1 {
+        var f := Id;
+        return Combine(f(h), f(K));
+      } else {
+        r := Compute(g, n - 2);
+      }
+    }
+  }
+
+  class Class extends Trait<int> {
+    function method Combine(g0: int, g1: int): int {
+      g0 + g1
+    }
+    constructor (u: int, v: int) {
+      h, K := u, v;
+    }
+  }
+
+  method Test() {
+    var c := new Class(24, 2);
+
+    var x := c.Daisy(15, 1_000_000) + c.Daisy(15, 999_999);
+    var y := c.Compute(15, 1_000_000);
+    var z := c.Compute(15, 999_999);
+    print x, " ", y, " ", z, "\n";  // 41 15 26
   }
 }

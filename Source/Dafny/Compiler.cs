@@ -1750,7 +1750,15 @@ namespace Microsoft.Dafny {
         // Now, assign to the formals
         int n = 0;
         if (!e.Function.IsStatic) {
-          wr.Write("_this = {0}", inTmps[n]);
+          wr.Write("_this = ");
+          TargetWriter wRHS;
+          if (thisContext == null) {
+            wRHS = wr;
+          } else {
+            var instantiatedType = Resolver.SubstType(e.Receiver.Type, thisContext.ParentFormalTypeParametersToActuals);
+            wRHS = EmitCoercionIfNecessary(instantiatedType, UserDefinedType.FromTopLevelDecl(e.tok, thisContext), e.tok, wr);
+          }
+          wRHS.Write(inTmps[n]);
           EndStmt(wr);
           n++;
         }
@@ -3289,7 +3297,6 @@ namespace Microsoft.Dafny {
         if (receiverReplacement != null) {
           // TODO:  What to do here?  When does this happen, what does it mean?
         } else if (!s.Method.IsStatic) {
-
           string inTmp = idGenerator.FreshId("_in");
           inTmps.Add(inTmp);
           DeclareLocalVar(inTmp, null, null, s.Receiver, false, wr);
@@ -3305,7 +3312,15 @@ namespace Microsoft.Dafny {
         // Now, assign to the formals
         int n = 0;
         if (!s.Method.IsStatic) {
-          wr.Write("_this = {0}", inTmps[n]);
+          wr.Write("_this = ");
+          TargetWriter wRHS;
+          if (thisContext == null) {
+            wRHS = wr;
+          } else {
+            var instantiatedType = Resolver.SubstType(s.Receiver.Type, thisContext.ParentFormalTypeParametersToActuals);
+            wRHS = EmitCoercionIfNecessary(instantiatedType, UserDefinedType.FromTopLevelDecl(s.Tok, thisContext), s.Tok, wr);
+          }
+          wRHS.Write(inTmps[n]);
           EndStmt(wr);
           n++;
         }
@@ -3633,11 +3648,11 @@ namespace Microsoft.Dafny {
         EmitLiteralExpr(wr, e);
 
       } else if (expr is ThisExpr) {
-        EmitThis(wr);
         if (thisContext != null) {
           var instantiatedType = Resolver.SubstType(expr.Type, thisContext.ParentFormalTypeParametersToActuals);
-          EmitCoercionIfNecessary(UserDefinedType.FromTopLevelDecl(expr.tok, thisContext), instantiatedType, expr.tok, wr);
+          wr = EmitCoercionIfNecessary(UserDefinedType.FromTopLevelDecl(expr.tok, thisContext), instantiatedType, expr.tok, wr);
         }
+        EmitThis(wr);
 
       } else if (expr is IdentifierExpr) {
         var e = (IdentifierExpr)expr;
@@ -4273,7 +4288,8 @@ namespace Microsoft.Dafny {
       Contract.Requires(tr != null);
       Function f = e.Function;
 
-      wr = EmitCoercionIfNecessary(f.Original.ResultType, e.Type, e.tok, wr);
+      var toType = thisContext == null ? e.Type : Resolver.SubstType(e.Type, thisContext.ParentFormalTypeParametersToActuals);
+      wr = EmitCoercionIfNecessary(f.Original.ResultType, toType, e.tok, wr);
 
       var customReceiver = NeedsCustomReceiver(f);
       string qual = "";
