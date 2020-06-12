@@ -12145,6 +12145,7 @@ namespace Microsoft.Dafny
         if (DafnyOptions.O.TypeInferenceDebug) {
           Console.WriteLine("  ----> found no improvement, because meet does not determine type enough");
         }
+        return t;
       }
 
       // Compute the join of the proxy's supertypes
