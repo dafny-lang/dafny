@@ -2880,6 +2880,9 @@ namespace Microsoft.Dafny
             }
           } else if (d is ClassDecl) {
             var cl = (ClassDecl)d;
+            foreach (var parentTrait in cl.ParentTraits) {
+              CheckEqualityTypes_Type(cl.tok, parentTrait);
+            }
             foreach (var member in cl.Members) {
               if (!member.IsGhost) {
                 if (member is Field) {
@@ -3066,7 +3069,7 @@ namespace Microsoft.Dafny
                   var f = (Field)member;
                   if (f is ConstantField && ((ConstantField)f).Rhs != null) {
                     // fine
-                  } else if (!Compiler.InitializerIsKnown(f.Type)) {
+                  } else if (!Compiler.InitializerIsKnown(Resolver.SubstType(f.Type, cl.ParentFormalTypeParametersToActuals))) {
                     fieldWithoutKnownInitializer = f;
                     break;
                   }
@@ -3076,7 +3079,7 @@ namespace Microsoft.Dafny
             // go through inherited members...
             if (fieldWithoutKnownInitializer != null) {
               reporter.Error(MessageSource.Resolver, cl.tok, "class '{0}' with fields without known initializers, like '{1}' of type '{2}', must declare a constructor",
-                cl.Name, fieldWithoutKnownInitializer.Name, fieldWithoutKnownInitializer.Type);
+                cl.Name, fieldWithoutKnownInitializer.Name, Resolver.SubstType(fieldWithoutKnownInitializer.Type, cl.ParentFormalTypeParametersToActuals));
             }
           }
         }
@@ -6765,20 +6768,7 @@ namespace Microsoft.Dafny
           var tRhs = s.Rhs as TypeRhs;
           if (tRhs != null && tRhs.Type is UserDefinedType) {
             var udt = (UserDefinedType)tRhs.Type;
-            var formalTypeArgs = udt.ResolvedClass.TypeArgs;
-            var actualTypeArgs = tRhs.Type.TypeArgs;
-            Contract.Assert(formalTypeArgs.Count == actualTypeArgs.Count);
-            var i = 0;
-            foreach (var argType in actualTypeArgs) {
-              var formalTypeArg = formalTypeArgs[i];
-              string whatIsWrong, hint;
-              if (!CheckCharacteristics(formalTypeArg.Characteristics, argType, out whatIsWrong, out hint)) {
-                resolver.reporter.Error(MessageSource.Resolver, tRhs.Tok, "type parameter{0} ({1}) passed to type {2} must support {4} (got {3}){5}",
-                  actualTypeArgs.Count == 1 ? "" : " " + i, formalTypeArg.Name, udt.ResolvedClass.Name, argType, whatIsWrong, hint);
-              }
-              CheckEqualityTypes_Type(tRhs.Tok, argType);
-              i++;
-            }
+            CheckTypeArgumentCharacteristics(tRhs.Tok, "type", udt.ResolvedClass.Name, udt.ResolvedClass.TypeArgs, tRhs.Type.TypeArgs);
           }
         } else if (stmt is WhileStmt) {
           var s = (WhileStmt)stmt;
@@ -6803,17 +6793,7 @@ namespace Microsoft.Dafny
           return false;
         } else if (stmt is CallStmt) {
           var s = (CallStmt)stmt;
-          Contract.Assert(s.Method.TypeArgs.Count == s.MethodSelect.TypeApplication_JustMember.Count);
-          for (var i = 0; i < s.Method.TypeArgs.Count; i++) {
-            var formalTypeArg = s.Method.TypeArgs[i];
-            var actualTypeArg = s.MethodSelect.TypeApplication_JustMember[i];
-            CheckEqualityTypes_Type(s.Tok, actualTypeArg);
-            string whatIsWrong, hint;
-            if (!CheckCharacteristics(formalTypeArg.Characteristics, actualTypeArg, out whatIsWrong, out hint)) {
-              resolver.reporter.Error(MessageSource.Resolver, s.Tok, "type parameter{0} ({1}) passed to method {2} must support {4} (got {3}){5}",
-                s.Method.TypeArgs.Count == 1 ? "" : " " + i, formalTypeArg.Name, s.Method.Name, actualTypeArg, whatIsWrong, hint);
-            }
-          }
+          CheckTypeArgumentCharacteristics(s.Tok, s.Method.WhatKind, s.Method.Name, s.Method.TypeArgs, s.MethodSelect.TypeApplication_JustMember);
           // recursively visit all subexpressions (which are all actual parameters) passed in for non-ghost formal parameters
           Contract.Assert(s.Lhs.Count == s.Method.Outs.Count);
           for (var i = 0; i < s.Method.Outs.Count; i++) {
@@ -6845,6 +6825,27 @@ namespace Microsoft.Dafny
         }
         return true;
       }
+
+      void CheckTypeArgumentCharacteristics(IToken tok, string what, string className, List<TypeParameter> formalTypeArgs, List<Type> actualTypeArgs) {
+        Contract.Requires(tok != null);
+        Contract.Requires(what != null);
+        Contract.Requires(className != null);
+        Contract.Requires(formalTypeArgs != null);
+        Contract.Requires(actualTypeArgs != null);
+        Contract.Requires(formalTypeArgs.Count == actualTypeArgs.Count);
+
+        for (var i = 0; i < formalTypeArgs.Count; i++) {
+          var formal = formalTypeArgs[i];
+          var actual = actualTypeArgs[i];
+          string whatIsWrong, hint;
+          if (!CheckCharacteristics(formal.Characteristics, actual, out whatIsWrong, out hint)) {
+            resolver.reporter.Error(MessageSource.Resolver, tok, "type parameter{0} ({1}) passed to {2} {3} must support {4} (got {5}){6}",
+              actualTypeArgs.Count == 1 ? "" : " " + i, formal.Name, what, className, whatIsWrong, actual, hint);
+          }
+          CheckEqualityTypes_Type(tok, actual);
+        }
+      }
+
       bool CheckCharacteristics(TypeParameter.TypeParameterCharacteristics formal, Type actual, out string whatIsWrong, out string hint) {
         Contract.Ensures(Contract.Result<bool>() || (Contract.ValueAtReturn(out whatIsWrong) != null && Contract.ValueAtReturn(out hint) != null));
         if (formal.EqualitySupport != TypeParameter.EqualitySupportValue.Unspecified && !actual.SupportsEquality) {
@@ -6861,6 +6862,7 @@ namespace Microsoft.Dafny
         hint = null;
         return true;
       }
+
       protected override bool VisitOneExpr(Expression expr, ref bool st) {
         if (expr is BinaryExpr) {
           var e = (BinaryExpr)expr;
@@ -6917,31 +6919,11 @@ namespace Microsoft.Dafny
         } else if (expr is MemberSelectExpr) {
           var e = (MemberSelectExpr)expr;
           if (e.Member is Function || e.Member is Method) {
-            var i = 0;
-            foreach (var tp in ((ICallable)e.Member).TypeArgs) {
-              var actualTp = e.TypeApplication_JustMember[i];
-              CheckEqualityTypes_Type(e.tok, actualTp);
-              string whatIsWrong, hint;
-              if (!CheckCharacteristics(tp.Characteristics, actualTp, out whatIsWrong, out hint)) {
-                resolver.reporter.Error(MessageSource.Resolver, e.tok, "type parameter{0} ({1}) passed to {2} '{3}' must support {5} (got {4}){6}",
-                  ((ICallable)e.Member).TypeArgs.Count == 1 ? "" : " " + i, tp.Name, e.Member.WhatKind, e.Member.Name, actualTp, whatIsWrong, hint);
-              }
-              i++;
-            }
+            CheckTypeArgumentCharacteristics(e.tok, e.Member.WhatKind, e.Member.Name, ((ICallable)e.Member).TypeArgs, e.TypeApplication_JustMember);
           }
         } else if (expr is FunctionCallExpr) {
           var e = (FunctionCallExpr)expr;
-          Contract.Assert(e.Function.TypeArgs.Count == e.TypeApplication_JustFunction.Count);
-          for (var i = 0; i < e.Function.TypeArgs.Count; i++) {
-            var formalTypeArg = e.Function.TypeArgs[i];
-            var actualTypeArg = e.TypeApplication_JustFunction[i];
-            CheckEqualityTypes_Type(e.tok, actualTypeArg);
-            string whatIsWrong, hint;
-            if (!CheckCharacteristics(formalTypeArg.Characteristics, actualTypeArg, out whatIsWrong, out hint)) {
-              resolver.reporter.Error(MessageSource.Resolver, e.tok, "type parameter{0} ({1}) passed to function {2} must support {4} (got {3}){5}",
-                e.Function.TypeArgs.Count == 1 ? "" : " " + i, formalTypeArg.Name, e.Function.Name, actualTypeArg, whatIsWrong, hint);
-            }
-          }
+          CheckTypeArgumentCharacteristics(e.tok, e.Function.WhatKind, e.Function.Name, e.Function.TypeArgs, e.TypeApplication_JustFunction);
           // recursively visit all subexpressions (which are all actual parameters) passed in for non-ghost formal parameters
           Visit(e.Receiver, st);
           Contract.Assert(e.Args.Count == e.Function.Formals.Count);
@@ -7029,18 +7011,7 @@ namespace Microsoft.Dafny
           if (formalTypeArgs == null) {
             Contract.Assert(udt.TypeArgs.Count == 0);
           } else {
-            Contract.Assert(formalTypeArgs.Count == udt.TypeArgs.Count);
-            var i = 0;
-            foreach (var argType in udt.TypeArgs) {
-              var formalTypeArg = formalTypeArgs[i];
-              string whatIsWrong, hint;
-              if (!CheckCharacteristics(formalTypeArg.Characteristics, argType, out whatIsWrong, out hint)) {
-                resolver.reporter.Error(MessageSource.Resolver, tok, "type parameter{0} ({1}) passed to type {2} must support {4} (got {3}){5}",
-                  udt.TypeArgs.Count == 1 ? "" : " " + i, formalTypeArg.Name, udt.ResolvedClass.Name, argType, whatIsWrong, hint);
-              }
-              CheckEqualityTypes_Type(tok, argType);
-              i++;
-            }
+            CheckTypeArgumentCharacteristics(udt.tok, "type", udt.ResolvedClass.Name, formalTypeArgs, udt.TypeArgs);
           }
 
         } else if (type is TypeProxy) {

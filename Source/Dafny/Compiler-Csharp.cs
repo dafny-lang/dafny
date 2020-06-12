@@ -3,6 +3,7 @@
 // Copyright (C) Microsoft Corporation.  All Rights Reserved.
 //
 //-----------------------------------------------------------------------------
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
@@ -118,7 +119,8 @@ namespace Microsoft.Dafny
       return Util.Comma(targs, tp => IdName(tp));
     }
 
-    protected override IClassWriter CreateClass(string moduleName, string name, bool isExtern, string/*?*/ fullPrintName, List<TypeParameter>/*?*/ typeParameters, List<Type>/*?*/ superClasses, Bpl.IToken tok, TargetWriter wr) {
+    protected override IClassWriter CreateClass(string moduleName, string name, bool isExtern, string/*?*/ fullPrintName,
+      List<TypeParameter> typeParameters, TopLevelDecl cls, List<Type>/*?*/ superClasses, Bpl.IToken tok, TargetWriter wr) {
       wr.Write("public partial class {0}", name);
       if (typeParameters != null && typeParameters.Count != 0) {
         wr.Write("<{0}>", TypeParameters(typeParameters));
@@ -181,8 +183,7 @@ namespace Microsoft.Dafny
       //     }
       //   }
 
-      var cw =
-        CreateClass(IdProtect(iter.Module.CompileName), IdName(iter), iter.TypeArgs, wr) as CsharpCompiler.ClassWriter;
+      var cw = CreateClass(IdProtect(iter.Module.CompileName), IdName(iter), iter, wr) as CsharpCompiler.ClassWriter;
       var w = cw.InstanceMemberWriter;
       // here come the fields
       Constructor ct = null;
@@ -663,7 +664,7 @@ namespace Microsoft.Dafny
     }
 
     protected override void DeclareSubsetType(SubsetTypeDecl sst, TargetWriter wr) {
-      ClassWriter cw = CreateClass(IdProtect(sst.Module.CompileName), IdName(sst), sst.TypeArgs, wr) as ClassWriter;
+      ClassWriter cw = CreateClass(IdProtect(sst.Module.CompileName), IdName(sst), sst, wr) as ClassWriter;
       if (sst.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
         var sw = new TargetWriter(cw.InstanceMemberWriter.IndentLevel, true);
         TrExpr(sst.Witness, sw, false);
@@ -706,6 +707,9 @@ namespace Microsoft.Dafny
       }
       public void DeclareField(string name, TopLevelDecl enclosingDecl, bool isStatic, bool isConst, Type type, Bpl.IToken tok, string rhs) {
         Compiler.DeclareField(name, isStatic, isConst, type, tok, rhs, Writer(isStatic));
+      }
+      public void InitializeField(Field field, Type instantiatedFieldType, TopLevelDeclWithMembers enclosingClass) {
+        throw new NotSupportedException();  // InitializeField should be called only for those compilers that set ClassesRedeclareInheritedFields to false.
       }
       public TextWriter/*?*/ ErrorWriter() => InstanceMemberWriter;
 
@@ -1152,7 +1156,7 @@ namespace Microsoft.Dafny
         string typestr = TypeName(arg.Type, wr, null, null);
         wr.Write("<" + typestr + " >");
       }
-      wr.Write("("); 
+      wr.Write("(");
       TrExpr(arg, wr, false);
       wr.WriteLine(");");
     }
@@ -1685,7 +1689,7 @@ namespace Microsoft.Dafny
       }
     }
 
-    protected override ILvalue EmitMemberSelect(System.Action<TargetWriter> obj, MemberDecl member, List<TypeArgumentInstantiation> typeArgs, Dictionary<TypeParameter, Type> typeMap,
+    protected override ILvalue EmitMemberSelect(System.Action<TargetWriter> obj, Type objType, MemberDecl member, List<TypeArgumentInstantiation> typeArgs, Dictionary<TypeParameter, Type> typeMap,
       Type expectedType, string/*?*/ additionalCustomParameter, bool internalAccess = false) {
       if (member is ConstantField) {
         return SimpleLvalue(lvalueAction: wr => {

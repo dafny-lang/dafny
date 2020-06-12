@@ -22,7 +22,7 @@ module M1 {
     var w: X
   }
 
-  class Cl<Y> extends Tr<(Y,Y)> {
+  class Cl<Y(0)> extends Tr<(Y,Y)> {
   }
 
   lemma M(c: Cl<int>) {
@@ -466,4 +466,74 @@ module ImporterOfProvidingModule {
     ghost var b := k.N;
     ghost var c := d.N;
   }
+}
+
+module NeedForConstructors {
+  trait Tr<X> {
+    var w: X
+  }
+
+  class AAA<Y> extends Tr<(Y,Y)> {  // error: AAA must declare a constructor, since w has type (Y,Y)
+  }
+
+  codatatype Forever = More(Forever)
+
+  class BBB extends Tr<Forever> {  // error: BBB must declare a constructor, since w has type Forever
+  }
+
+  class CCC<Y(0)> extends Tr<(Y,Y)> {
+  }
+}
+
+module TypeCharacteristicsDiscrepancies {
+  trait RequiresZero<X(0)> {
+    var x: X
+  }
+
+  class ClassRequiresZero<Y(0)> {
+  }
+
+  codatatype Forever = More(Forever)
+
+  function method AlwaysMore(): Forever {
+    More(AlwaysMore())
+  }
+
+  method M0() {
+    var c0 := new ClassRequiresZero<int>;
+    var c1 := new ClassRequiresZero<Forever>;  // error: cannot instantiate Y(0) with Forever
+  }
+
+  method M1(c0: ClassRequiresZero<int>, c1: ClassRequiresZero<Forever>) {  // error: cannot instantiate Y(0) with Forever
+  }
+
+  class HasZero0 extends RequiresZero<int> { }
+  class HasZero1<Y(0)> extends RequiresZero<Y> { }
+  class HasZero2<Y(0)> extends RequiresZero<(Y,Y)> { }
+  class NoZero0 extends RequiresZero<Forever> {  // error: cannot instantiate X(0) with Forever
+    constructor () {
+      x := AlwaysMore();
+    }
+  }
+  class NoZero1<Y> extends RequiresZero<Y> {  // error: cannot instantiate X(0) with Y
+    constructor (y: Y) {
+      x := y;
+    }
+  }
+  class NoZero2<Y> extends RequiresZero<(Y,Y)> {  // error: cannot instantiate X(0) with (Y,Y)
+    constructor (y: Y) {
+      x := (y, y);
+    }
+  }
+
+  class ClassWithFields<X> {
+    var s: set<X>  // error: argument to set is required to support equality
+  }
+
+  trait AnythingGoes<X> {
+  }
+
+  class InnerError0 extends AnythingGoes<set<Forever>> { }  // error: set parameter must support (==)
+  class InnerError1 extends AnythingGoes<RequiresZero<Forever>> { }  // error: RequiresZero parameter must support (0)
+  class InnerError2 extends AnythingGoes<RequiresZero?<Forever>> { }  // error: RequiresZero? parameter must support (0)
 }

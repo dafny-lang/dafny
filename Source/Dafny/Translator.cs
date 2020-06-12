@@ -3426,7 +3426,8 @@ namespace Microsoft.Dafny {
         var pType = Resolver.SubstType(p.Type, typeMap);
         var bv = new Bpl.BoundVariable(p.tok, new Bpl.TypedIdent(p.tok, p.AssignUniqueName(currentDeclaration.IdGenerator), TrType(pType)));
         forallFormals.Add(bv);
-        argsJF.Add(new Bpl.IdentifierExpr(p.tok, bv));
+        var jfArg = new Bpl.IdentifierExpr(p.tok, bv);
+        argsJF.Add(ModeledAsBoxType(p.Type) ? BoxIfUnboxed(jfArg, pType) : jfArg);
         argsCF.Add(new Bpl.IdentifierExpr(p.tok, bv));
       }
 
@@ -4913,8 +4914,9 @@ namespace Microsoft.Dafny {
       }
     }
 
-    private void AddFunctionOverrideEnsChk(Function f, BoogieStmtListBuilder builder, ExpressionTranslator etran, Dictionary<IVariable, Expression> substMap, List<Bpl.Variable> implInParams, Bpl.Variable/*?*/ resultVariable)
-    {
+    private void AddFunctionOverrideEnsChk(Function f, BoogieStmtListBuilder builder, ExpressionTranslator etran, Dictionary<IVariable, Expression> substMap, List<Bpl.Variable> implInParams, Bpl.Variable/*?*/ resultVariable) {
+      Contract.Requires(f.Formals.Count <= implInParams.Count);
+
       //generating class post-conditions
       foreach (var en in f.Ens)
       {
@@ -4951,11 +4953,16 @@ namespace Microsoft.Dafny {
       {
         argsT.Add(etran.HeapExpr);
       }
-      // add "ordinary" parameters
-      foreach (Variable p in implInParams)
-      {
-        argsC.Add(new Bpl.IdentifierExpr(f.tok, p));
-        argsT.Add(new Bpl.IdentifierExpr(f.OverriddenFunction.tok, p));
+      // add "ordinary" parameters (including "this", if any)
+      var prefixCount = implInParams.Count - f.Formals.Count;
+      for (var i = 0; i < implInParams.Count; i++) {
+        Bpl.Expr cParam = new Bpl.IdentifierExpr(f.tok, implInParams[i]);
+        Bpl.Expr tParam = new Bpl.IdentifierExpr(f.OverriddenFunction.tok, implInParams[i]);
+        if (prefixCount <= i && ModeledAsBoxType(f.OverriddenFunction.Formals[i - prefixCount].Type)) {
+          tParam = BoxIfNecessary(f.tok, tParam, f.Formals[i - prefixCount].Type);
+        }
+        argsC.Add(cParam);
+        argsT.Add(tParam);
       }
       Bpl.Expr funcExpC = new Bpl.NAryExpr(f.tok, funcIdC, argsC);
       Bpl.Expr funcExpT = new Bpl.NAryExpr(f.OverriddenFunction.tok, funcIdT, argsT);
