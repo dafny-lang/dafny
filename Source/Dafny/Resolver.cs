@@ -12066,9 +12066,9 @@ namespace Microsoft.Dafny
       }
       if (DafnyOptions.O.TypeInferenceDebug) {
         Console.Write("DEBUG: Member selection{3}:  {1} :> {0} :> {2}", t,
-        Util.Comma(proxy.SupertypesKeepConstraints, su => su.ToString()),
-        Util.Comma(proxy.SubtypesKeepConstraints, su => su.ToString()),
-        memberName == null ? "" : " (" + memberName + ")");
+          Util.Comma(proxy.SupertypesKeepConstraints, su => su.ToString()),
+          Util.Comma(proxy.SubtypesKeepConstraints, su => su.ToString()),
+          memberName == null ? "" : " (" + memberName + ")");
       }
 
       var artificialSuper = proxy.InClusterOfArtificial(AllXConstraints);
@@ -12144,8 +12144,8 @@ namespace Microsoft.Dafny
         }
         if (DafnyOptions.O.TypeInferenceDebug) {
           Console.WriteLine("  ----> found no improvement, because meet does not determine type enough");
-          return t;
         }
+        return t;
       }
 
       // Compute the join of the proxy's supertypes
