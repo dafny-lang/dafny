@@ -6310,9 +6310,12 @@ namespace Microsoft.Dafny {
       var req = new List<Bpl.Requires>();
       // free requires mh == ModuleContextHeight && fh == TypeContextHeight;
       req.Add(Requires(decl.tok, true, etran.HeightContext(decl), null, null));
+      var heapVar = new Bpl.IdentifierExpr(decl.tok, "$Heap", false);
+      var varlist = new List<Bpl.IdentifierExpr>();
+      varlist.Add(heapVar);
       var proc = new Bpl.Procedure(decl.tok, "CheckWellformed$$" + decl.FullSanitizedName, new List<Bpl.TypeVariable>(),
         inParams, new List<Variable>(),
-        req, new List<Bpl.IdentifierExpr>(), new List<Bpl.Ensures>(), etran.TrAttributes(decl.Attributes, null));
+        req, varlist, new List<Bpl.Ensures>(), etran.TrAttributes(decl.Attributes, null));
       sink.AddTopLevelDeclaration(proc);
 
       var implInParams = Bpl.Formal.StripWhereClauses(inParams);
