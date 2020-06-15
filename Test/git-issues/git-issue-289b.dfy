@@ -1,3 +1,6 @@
+// RUN: echo ""
+// This is just an auxiliary file, with no tests by itself
+
 abstract module Foo {
   type Value
 
