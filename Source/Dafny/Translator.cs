@@ -8178,28 +8178,6 @@ namespace Microsoft.Dafny {
       return r;
     }
 
-
-    //   if (toType.IsNumericBased(Type.NumericPersuation.Int)) {
-    //     return r;
-    //   } else if (toType.IsCharType) {
-    //     Contract.Assert(fromType.IsNumericBased(Type.NumericPersuation.Int));
-    //     return FunctionCall(tok, BuiltinFunction.CharFromInt, null, r);
-    //   } else {
-    //     Contract.Assert(toType.IsBitVectorType);
-    //     var toWidth = toType.AsBitVectorType.Width;
-    //     if (RemoveLit(r) is Bpl.LiteralExpr) {
-    //       Bpl.LiteralExpr e = (Bpl.LiteralExpr) RemoveLit(r);
-    //       if (e.isBigNum) {
-    //         var toBound = Basetypes.BigNum.FromBigInt(BigInteger.One << toWidth);  // 1 << toWidth
-    //         if (e.asBigNum <= toBound) {
-    //           return BplBvLiteralExpr(r.tok, e.asBigNum, toType.AsBitVectorType);
-    //         }
-    //       }
-    //     }
-    //     return FunctionCall(tok, "nat_to_bv" + toWidth, BplBvType(toWidth), r);
-    //   }
-    // }
-    
     private Bpl.Expr IntToBV(IToken tok, Bpl.Expr r, Type toType) {
       var toWidth = toType.AsBitVectorType.Width;
       if (RemoveLit(r) is Bpl.LiteralExpr) {

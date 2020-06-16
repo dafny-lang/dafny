@@ -8,7 +8,7 @@
 module M {
   method Main() {
     Test(0xDEAD, 100, 'a');
-    Test2(0x40, 42, 'Z', 70.0, 20);
+    Test2(0x40, 42, 'Z', 70.0, 35);
     Test3(0x0, 50, '*', 50.0, 30);
     print "END\n";
   }
@@ -66,90 +66,94 @@ module M {
 
   method Test2(b: bv, n: int, c: char, r: real, o: ORDINAL) {
   
-      assert c == c as char;
-      expect c == c as char;
-      assert c == c as int as char;
-      expect c == c as int as char;
-      assert c == c as real as char;
-      expect c == c as real as char;
-      // assert c == c as bv as char; // in Test3
-      // expect c == c as bv as char; // in Test3
-      assert c == c as ORDINAL as char;
-      expect c == c as ORDINAL as char;
-   
-      // assert b == b as bv; // in Test3
-      // expect b == b as bv; // in Test3
-      // assert b == b as char as bv; // in Test3
-      // expect b == b as char as bv; // in Test3
-      // assert b == b as int as bv; // in Test3
-      // expect b == b as int as bv; // in Test3
-      // assert b == b as real as bv; // in Test3
-      // expect b == b as real as bv; // in Test3
-      // assert b == b as ORDINAL as bv; // in Test3
-      // expect b == b as ORDINAL as bv; // in Test3
-      
-      assert n == n as int;
-      expect n == n as int;
-      assert 0 <= n < mxch ==> n == n as char as int;
-      expect 0 <= n < mxch ==> n == n as char as int;
-      // assert 0 <= n < mx ==> n == n as bv as int; // in Test3
-      // expect 0 <= n < mx ==> n == n as bv as int; // in Test3
-      assert n == n as real as int;
-      expect n == n as real as int;
-      assert 0 <= n ==> n == n as ORDINAL as int;
-      expect 0 <= n ==> n == n as ORDINAL as int;
-      
-      assert r == r as real;
-      expect r == r as real;
-      assert r == r.Floor as real  ==> 0.0 <= r < (mxch as real) ==> r == r as char as real;
-      expect r == r.Floor as real  ==> 0.0 <= r < (mxch as real) ==> r == r as char as real;
-      assert r == r.Floor as real  ==> r == r as int as real;
-      expect r == r.Floor as real  ==> r == r as int as real;
-      // assert r == r.Floor as real ==> 0.0 <= r < (mx as real) ==> r == r as bv as real; // in Test3
-      // expect r == r.Floor as real ==> 0.0 <= r < (mx as real) ==> r == r as bv as real; // in Test3
-      assert r == r.Floor as real  ==> 0.0 <= r ==> r == r as ORDINAL as real;
-      expect r == r.Floor as real  ==> 0.0 <= r ==> r == r as ORDINAL as real;
-   
-      assert o == o as ORDINAL;
-      expect o == o as ORDINAL;
-      assert o.IsNat && o as int < mxch ==> o == o as char as ORDINAL;
-      expect o.IsNat && o as int < mxch ==> o == o as char as ORDINAL;
-      assert o.IsNat ==> o == o as int as ORDINAL;
-      expect o.IsNat ==> o == o as int as ORDINAL;
-      assert o.IsNat ==> o == o as real as ORDINAL;
-      expect o.IsNat ==> o == o as real as ORDINAL;
-      // assert o.IsNat && o as int < mx ==> o == o as bv as ORDINAL; // in Test3
-      // expect o.IsNat && o as int < mx ==> o == o as bv as ORDINAL; // in Test3
+    assert c == c as char;
+    expect c == c as char;
+    assert c == c as int as char;
+    expect c == c as int as char;
+    assert c == c as real as char;
+    expect c == c as real as char;
+    // assert c == c as bv as char; // in Test3
+    // expect c == c as bv as char; // in Test3
+    assert c == c as ORDINAL as char;
+    expect c == c as ORDINAL as char;
+    if c as int < mx { print c as char, " ", c as int, " ", c as real, " ", c as bv, " ", c as ORDINAL, "\n"; }
   
+    // assert b == b as bv; // in Test3
+    // expect b == b as bv; // in Test3
+    // assert b == b as char as bv; // in Test3
+    // expect b == b as char as bv; // in Test3
+    // assert b == b as int as bv; // in Test3
+    // expect b == b as int as bv; // in Test3
+    // assert b == b as real as bv; // in Test3
+    // expect b == b as real as bv; // in Test3
+    // assert b == b as ORDINAL as bv; // in Test3
+    // expect b == b as ORDINAL as bv; // in Test3
+    
+    assert n == n as int;
+    expect n == n as int;
+    assert 0 <= n < mxch ==> n == n as char as int;
+    expect 0 <= n < mxch ==> n == n as char as int;
+    // assert 0 <= n < mx ==> n == n as bv as int; // in Test3
+    // expect 0 <= n < mx ==> n == n as bv as int; // in Test3
+    assert n == n as real as int;
+    expect n == n as real as int;
+    assert 0 <= n ==> n == n as ORDINAL as int;
+    expect 0 <= n ==> n == n as ORDINAL as int;
+    if 0 <= n < mx && n < mxch { print n as char, " ", n as int, " ", n as real, " ", n as bv, " ", n as ORDINAL, "\n"; }
+    
+    assert r == r as real;
+    expect r == r as real;
+    assert r == r.Floor as real  ==> 0.0 <= r < (mxch as real) ==> r == r as char as real;
+    expect r == r.Floor as real  ==> 0.0 <= r < (mxch as real) ==> r == r as char as real;
+    assert r == r.Floor as real  ==> r == r as int as real;
+    expect r == r.Floor as real  ==> r == r as int as real;
+    // assert r == r.Floor as real ==> 0.0 <= r < (mx as real) ==> r == r as bv as real; // in Test3
+    // expect r == r.Floor as real ==> 0.0 <= r < (mx as real) ==> r == r as bv as real; // in Test3
+    assert r == r.Floor as real  ==> 0.0 <= r ==> r == r as ORDINAL as real;
+    expect r == r.Floor as real  ==> 0.0 <= r ==> r == r as ORDINAL as real;
+    if r == r.Floor as real && 0.0 <= r < (mx as real) && r < (mxch as real) { print r as char, " ", r as int, " ", r as real, " ", r as bv, " ", r as ORDINAL, "\n"; }
+ 
+    assert o == o as ORDINAL;
+    expect o == o as ORDINAL;
+    assert o.IsNat && o as int < mxch ==> o == o as char as ORDINAL;
+    expect o.IsNat && o as int < mxch ==> o == o as char as ORDINAL;
+    assert o.IsNat ==> o == o as int as ORDINAL;
+    expect o.IsNat ==> o == o as int as ORDINAL;
+    assert o.IsNat ==> o == o as real as ORDINAL;
+    expect o.IsNat ==> o == o as real as ORDINAL;
+    // assert o.IsNat && o as int < mx ==> o == o as bv as ORDINAL; // in Test3
+    // expect o.IsNat && o as int < mx ==> o == o as bv as ORDINAL; // in Test3
+    if o.IsNat && o as int < mx && o as int < mxch { print o as char, " ", o as int, " ", o as real, " ", o as bv, " ", o as ORDINAL, "\n"; }
+
   }
   
   // These take a while depending on the width of the bit-vector type
   // About 25 sec on my machine for bv8; longer than I wanted to wait (>10s min) for bv16
   method Test3(b: bv, n: int, c: char, r: real, o: ORDINAL) {
   
-      assert c as int < mx ==> c == c as bv as char;
-      expect c as int < mx ==> c == c as bv as char;
+    assert c as int < mx ==> c == c as bv as char;
+    expect c as int < mx ==> c == c as bv as char;
       
-      assert b == b as bv;
-      expect b == b as bv;
-      assert b == b as bv32 as bv; // assumes bv32 is at least as wide as bv
-      expect b == b as bv32 as bv; // assumes bv32 is at least as wide as bv
-      assert b as int < mxch ==> b == b as char as bv;
-      expect b as int < mxch ==> b == b as char as bv;
-      assert b == b as int as bv;
-      expect b == b as int as bv;
-      assert b == b as real as bv;
-      expect b == b as real as bv;
-      assert b == b as ORDINAL as bv;
-      expect b == b as ORDINAL as bv;
-      
-      assert 0 <= n < mx ==> n == n as bv as int;
-      expect 0 <= n < mx ==> n == n as bv as int;
-      
-      assert r == r.Floor as real ==> 0.0 <= r < (mx as real) ==> r == r as bv as real;
-      expect r == r.Floor as real ==> 0.0 <= r < (mx as real) ==> r == r as bv as real;
-  
-      assert o.IsNat && o as int < mx ==> o == o as bv as ORDINAL;
-      expect o.IsNat && o as int < mx ==> o == o as bv as ORDINAL;
+    assert b == b as bv;
+    expect b == b as bv;
+    assert b == b as bv32 as bv; // assumes bv32 is at least as wide as bv
+    expect b == b as bv32 as bv; // assumes bv32 is at least as wide as bv
+    assert b as int < mxch ==> b == b as char as bv;
+    expect b as int < mxch ==> b == b as char as bv;
+    assert b == b as int as bv;
+    expect b == b as int as bv;
+    assert b == b as real as bv;
+    expect b == b as real as bv;
+    assert b == b as ORDINAL as bv;
+    expect b == b as ORDINAL as bv;
+    
+    assert 0 <= n < mx ==> n == n as bv as int;
+    expect 0 <= n < mx ==> n == n as bv as int;
+    
+    assert r == r.Floor as real ==> 0.0 <= r < (mx as real) ==> r == r as bv as real;
+    expect r == r.Floor as real ==> 0.0 <= r < (mx as real) ==> r == r as bv as real;
+
+    assert o.IsNat && o as int < mx ==> o == o as bv as ORDINAL;
+    expect o.IsNat && o as int < mx ==> o == o as bv as ORDINAL;
   }
 }

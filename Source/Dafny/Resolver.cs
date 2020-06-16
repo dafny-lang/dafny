@@ -4079,9 +4079,6 @@ namespace Microsoft.Dafny
           case "NumericOrBitvector":
             satisfied = t.IsNumericBased() || t.IsBitVectorType;
             break;
-          case "NumericOrBitvectorOrChar":
-            satisfied = t.IsNumericBased() || t.IsBitVectorType || t.IsCharType;
-            break;
           case "NumericOrBitvectorOrCharOrORDINAL":
             satisfied = t.IsNumericBased() || t.IsBitVectorType || t.IsCharType || t.IsBigOrdinalType;
             break;
