@@ -3119,13 +3119,19 @@ namespace Microsoft.Dafny {
     }
 
     protected override void EmitConversionExpr(ConversionExpr e, bool inLetExprBody, TargetWriter wr) {
-      if (e.E.Type.IsNumericBased(Type.NumericPersuation.Int) || e.E.Type.IsBitVectorType || e.E.Type.IsCharType) {
+      if (e.ToType.Equals(e.E.Type)) {
+        TrParenExpr(e.E, wr, inLetExprBody);
+      } else if (e.E.Type.IsNumericBased(Type.NumericPersuation.Int) || e.E.Type.IsBitVectorType || e.E.Type.IsCharType || e.E.Type.IsBigOrdinalType) {
         if (e.ToType.IsNumericBased(Type.NumericPersuation.Real)) {
-          // (int or bv) -> real
+          // (int or bv or char) -> real
           Contract.Assert(AsNativeType(e.ToType) == null);
           wr.Write("_dafny.RealOfFrac(");
           TargetWriter w;
-          if (AsNativeType(e.E.Type) is NativeType nt) {
+          if (e.E.Type.IsCharType) {
+            wr.Write("_dafny.IntOfInt32(rune");
+            w = wr.Fork();
+            wr.Write(")");
+          } else if (AsNativeType(e.E.Type) is NativeType nt) {
             wr.Write("_dafny.IntOf{0}(", Capitalize(GetNativeTypeName(nt)));
             w = wr.Fork();
             wr.Write(")");
@@ -3166,7 +3172,6 @@ namespace Microsoft.Dafny {
             TrExpr(e.E, wr, inLetExprBody);
           } else if (fromNative != null) {
             Contract.Assert(toNative == null); // follows from other checks
-
             // native (int or bv) -> big-integer (int or bv)
             wr.Write("_dafny.IntOf{0}(", Capitalize(GetNativeTypeName(fromNative)));
             TrExpr(e.E, wr, inLetExprBody);
@@ -3195,7 +3200,6 @@ namespace Microsoft.Dafny {
               TrParenExpr(e.E, wr, inLetExprBody);
               wr.Write(".{0}()", Capitalize(GetNativeTypeName(toNative)));
             }
-
           }
         }
       } else if (e.E.Type.IsNumericBased(Type.NumericPersuation.Real)) {
@@ -3217,10 +3221,7 @@ namespace Microsoft.Dafny {
           }
         }
       } else {
-        Contract.Assert(e.E.Type.IsBigOrdinalType);
-        Contract.Assert(e.ToType.IsNumericBased(Type.NumericPersuation.Int));
-        // identity will do
-        TrExpr(e.E, wr, inLetExprBody);
+        Contract.Assert(false, $"not implemented for go: {e.E.Type} -> {e.ToType}");
       }
     }
 
