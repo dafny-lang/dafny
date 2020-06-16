@@ -7,10 +7,11 @@
 
 module M {
   type Tx = i: int | 0 <= i <= 100
+  newtype Tr = r: real | r == r.Floor as real && 0.0 <= r <= 100.0
 
   method Main() {
     Test(0xDEAD, 100, 'a');
-    Test2(0x40, 42, 'Z', 70.0, 35, 50);
+    Test2(0x40, 42, 'Z', 70.0, 35, 50, 61.0);
     Test3(0x0, 50, '*', 50.0, 30);
     print "END\n";
   }
@@ -64,7 +65,7 @@ module M {
     
   }
 
-  method Test2(b: bv, n: int, c: char, r: real, o: ORDINAL, x: Tx) {
+  method Test2(b: bv, n: int, c: char, r: real, o: ORDINAL, x: Tx, h: Tr) {
   
     assert c == c as char;
     expect c == c as char;
@@ -149,6 +150,33 @@ module M {
     expect b as int <= 100 ==> b == b as Tx as bv;
     assert o.IsNat && o as int <= 100 ==> o == o as Tx as ORDINAL;
     expect o.IsNat && o as int <= 100 ==> o == o as Tx as ORDINAL;
+
+    assert h == h as Tr;
+    expect h == h as Tr;
+    assert h == h as Tx as Tr;
+    expect h == h as Tx as Tr;
+    assert h == h as char as Tr;
+    expect h == h as char as Tr;
+    assert h == h as int as Tr;
+    expect h == h as int as Tr;
+    assert h == h as real as Tr;
+    expect h == h as real as Tr;
+    assert h == h as bv8 as Tr;
+    expect h == h as bv8 as Tr;
+    assert h == h as ORDINAL as Tr;
+    expect h == h as ORDINAL as Tr;
+    assert x == x as Tr as Tx;
+    expect x == x as Tr as Tx;
+    assert c as int <= 100 ==> c == c as Tr as char;
+    expect c as int <= 100 ==> c == c as Tr as char;
+    assert 0 <= n as int <= 100 ==> n == n as Tr as int;
+    expect 0 <= n as int <= 100 ==> n == n as Tr as int;
+    assert r == r.Floor as real && 0 <= r as int <= 100 ==> r == r as Tr as real;
+    expect r == r.Floor as real && 0 <= r as int <= 100 ==> r == r as Tr as real;
+    assert b as int <= 100 ==> b == b as Tr as bv8;
+    expect b as int <= 100 ==> b == b as Tr as bv8;
+    assert o.IsNat && o as int <= 100 ==> o == o as Tr as ORDINAL;
+    expect o.IsNat && o as int <= 100 ==> o == o as Tr as ORDINAL;
 
   }
   

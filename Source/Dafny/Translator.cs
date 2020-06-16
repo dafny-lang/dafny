@@ -8331,8 +8331,11 @@ namespace Microsoft.Dafny {
         Bpl.Expr be;
         if (expr.Type.IsNumericBased() || expr.Type.IsBitVectorType) {
           be = ConvertExpression(expr.tok, o, expr.Type, toType);
+        } else if (expr.Type.IsCharType) {
+          be = ConvertExpression(expr.tok, o, Dafny.Type.Int, toType);
         } else if (expr.Type.IsBigOrdinalType) {
           be = FunctionCall(expr.tok, "ORD#Offset", Bpl.Type.Int, o);
+          be = ConvertExpression(expr.tok, be, Dafny.Type.Int, toType);
         } else {
           be = o;
         }
