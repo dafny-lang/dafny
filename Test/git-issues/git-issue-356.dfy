@@ -6,9 +6,11 @@
 // RUN: %diff "%s.expect" "%t"
 
 module M {
+  type Tx = i: int | 0 <= i <= 100
+
   method Main() {
     Test(0xDEAD, 100, 'a');
-    Test2(0x40, 42, 'Z', 70.0, 35);
+    Test2(0x40, 42, 'Z', 70.0, 35, 50);
     Test3(0x0, 50, '*', 50.0, 30);
     print "END\n";
   }
@@ -60,11 +62,9 @@ module M {
     oo := b as ORDINAL;
     oo := o as ORDINAL;
     
-    assert true;
-  
   }
 
-  method Test2(b: bv, n: int, c: char, r: real, o: ORDINAL) {
+  method Test2(b: bv, n: int, c: char, r: real, o: ORDINAL, x: Tx) {
   
     assert c == c as char;
     expect c == c as char;
@@ -124,6 +124,31 @@ module M {
     // assert o.IsNat && o as int < mx ==> o == o as bv as ORDINAL; // in Test3
     // expect o.IsNat && o as int < mx ==> o == o as bv as ORDINAL; // in Test3
     if o.IsNat && o as int < mx && o as int < mxch { print o as char, " ", o as int, " ", o as real, " ", o as bv, " ", o as ORDINAL, "\n"; }
+
+    // subset type
+    var nnn: int := x; // Implicit conversion allowed
+    assert x == x as Tx;
+    expect x == x as Tx;
+    assert x == x as char as Tx;
+    expect x == x as char as Tx;
+    assert x == x as int as Tx;
+    expect x == x as int as Tx;
+    assert x == x as real as Tx;
+    expect x == x as real as Tx;
+    assert x == x as bv as Tx;
+    expect x == x as bv as Tx;
+    assert x == x as ORDINAL as Tx;
+    expect x == x as ORDINAL as Tx;
+    assert c as int <= 100 ==> c == c as Tx as char;
+    expect c as int <= 100 ==> c == c as Tx as char;
+    assert 0 <= n as int <= 100 ==> n == n as Tx as int;
+    expect 0 <= n as int <= 100 ==> n == n as Tx as int;
+    assert r == r.Floor as real &&  0.0 <= r <= 100.0 ==> r == r as Tx as real;
+    expect r == r.Floor as real &&  0.0 <= r <= 100.0 ==> r == r as Tx as real;
+    assert b as int <= 100 ==> b == b as Tx as bv;
+    expect b as int <= 100 ==> b == b as Tx as bv;
+    assert o.IsNat && o as int <= 100 ==> o == o as Tx as ORDINAL;
+    expect o.IsNat && o as int <= 100 ==> o == o as Tx as ORDINAL;
 
   }
   

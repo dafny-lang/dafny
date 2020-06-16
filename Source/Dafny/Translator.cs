@@ -8307,27 +8307,23 @@ namespace Microsoft.Dafny {
             string.Format("{0}ordinal value to be converted might not fit in {1}", errorMsgPrefix, toType)));
         }
       } else if (toType.IsBigOrdinalType) {
-          if (expr.Type.IsNumericBased(Type.NumericPersuation.Int)) {
-            PutSourceIntoLocal();
-            Bpl.Expr boundsCheck = Bpl.Expr.Le(Bpl.Expr.Literal(0), o);
-            builder.Add(Assert(tok, boundsCheck,
-              string.Format("{0}a negative integer cannot be converted to an {1}", errorMsgPrefix, toType)));
-          }
-
-          if (expr.Type.IsNumericBased(Type.NumericPersuation.Real)) {
-            PutSourceIntoLocal();
-            var oi = FunctionCall(tok, BuiltinFunction.RealToInt, null, o);
-            Bpl.Expr boundsCheck = Bpl.Expr.Le(Bpl.Expr.Literal(0), oi);
-            builder.Add(Assert(tok, boundsCheck,
-              string.Format("{0}a negative real cannot be converted to an {1}", errorMsgPrefix, toType)));
-          }
-          
+        if (expr.Type.IsNumericBased(Type.NumericPersuation.Int)) {
+          PutSourceIntoLocal();
+          Bpl.Expr boundsCheck = Bpl.Expr.Le(Bpl.Expr.Literal(0), o);
+          builder.Add(Assert(tok, boundsCheck,
+            string.Format("{0}a negative integer cannot be converted to an {1}", errorMsgPrefix, toType)));
+        }
+        if (expr.Type.IsNumericBased(Type.NumericPersuation.Real)) {
+          PutSourceIntoLocal();
+          var oi = FunctionCall(tok, BuiltinFunction.RealToInt, null, o);
+          Bpl.Expr boundsCheck = Bpl.Expr.Le(Bpl.Expr.Literal(0), oi);
+          builder.Add(Assert(tok, boundsCheck,
+            string.Format("{0}a negative real cannot be converted to an {1}", errorMsgPrefix, toType)));
+        }
       } else if (toType.IsNumericBased(Type.NumericPersuation.Int)) {
         // already checked that BigOrdinal or real inputs are integral
-        // FIXME - are there subset range checks to make?}
       } else if (toType.IsNumericBased(Type.NumericPersuation.Real)) {
         // already checked that BigOrdinal is integral
-        // FIXME - are there subset range checks to make?
       }
 
       if (toType.NormalizeExpandKeepConstraints().AsRedirectingType != null) {

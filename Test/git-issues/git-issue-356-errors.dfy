@@ -220,7 +220,3 @@ method TestCOKc(b: bv8)
 {
   var ch := b as char;
 }
-
-
-// check everything to/from subset int or newtype
-// check everything to/from subset real or newtype
