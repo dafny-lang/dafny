@@ -82,7 +82,7 @@ namespace Microsoft.Dafny{
     protected override bool SupportsAmbiguousTypeDecl => false;
     protected override bool SupportsProperties => false;
     protected override bool NeedsWrappersForInheritedFields => false;
-    protected override bool FieldsInTraits => false;
+    protected override bool TraitsSupportMutableFields => false;
 
     private enum JavaNativeType { Byte, Short, Int, Long }
 
@@ -367,11 +367,11 @@ namespace Microsoft.Dafny{
     }
 
     protected override void DeclareSubsetType(SubsetTypeDecl sst, TargetWriter wr){
-      ClassWriter cw = CreateClass(IdName(sst), sst.TypeArgs, wr) as ClassWriter;
+      ClassWriter cw = CreateClass(IdProtect(sst.Module.CompileName), IdName(sst), sst, wr) as ClassWriter;
       if (sst.WitnessKind == SubsetTypeDecl.WKind.Compiled){
         var sw = new TargetWriter(cw.InstanceMemberWriter.IndentLevel, true);
         TrExpr(sst.Witness, sw, false);
-        cw.DeclareField("Witness", true, true, sst.Rhs, sst.tok, sw.ToString());
+        cw.DeclareField("Witness", sst, true, true, sst.Rhs, sst.tok, sw.ToString());
       }
     }
 
@@ -401,7 +401,7 @@ namespace Microsoft.Dafny{
       public BlockTargetWriter/*?*/ CreateMethod(Method m, bool createBody) {
         return Compiler.CreateMethod(m, createBody, Writer(m.IsStatic));
       }
-      public BlockTargetWriter/*?*/ CreateFunction(string name, List<TypeParameter>/*?*/ typeArgs, List<Formal> formals, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl member) {
+      public BlockTargetWriter/*?*/ CreateFunction(string name, List<TypeParameter> typeArgs, List<Formal> formals, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl member) {
         return Compiler.CreateFunction(name, typeArgs, formals, resultType, tok, isStatic, createBody, member, Writer(isStatic));
       }
 
@@ -411,13 +411,18 @@ namespace Microsoft.Dafny{
       public BlockTargetWriter/*?*/ CreateGetterSetter(string name, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl/*?*/ member, out TargetWriter setterWriter) {
         return Compiler.CreateGetterSetter(name, resultType, tok, isStatic, createBody, out setterWriter, Writer(isStatic));
       }
-      public void DeclareField(string name, bool isStatic, bool isConst, Type type, Bpl.IToken tok, string rhs) {
+      public void DeclareField(string name, TopLevelDecl enclosingDecl, bool isStatic, bool isConst, Type type, Bpl.IToken tok, string rhs) {
         Compiler.DeclareField(name, isStatic, isConst, type, tok, rhs, this);
+      }
+      public void InitializeField(Field field, Type instantiatedFieldType, TopLevelDeclWithMembers enclosingClass) {
+        throw new NotSupportedException();  // InitializeField should be called only for those compilers that set ClassesRedeclareInheritedFields to false.
       }
       public TextWriter/*?*/ ErrorWriter() => InstanceMemberWriter;
 
       public void Finish() { }
     }
+
+    protected override bool SupportsStaticsInGenericClasses => false;
 
     protected BlockTargetWriter CreateGetter(string name, Type resultType, Bpl.IToken tok, bool isStatic,
       bool createBody, TargetWriter wr) {
@@ -479,13 +484,14 @@ namespace Microsoft.Dafny{
       }
       var customReceiver = NeedsCustomReceiver(m);
       var receiverType = UserDefinedType.FromTopLevelDecl(m.tok, m.EnclosingClass);
-      wr.Write("public {0}{1}", !createBody ? "abstract " : "", m.IsStatic || customReceiver ? "static " : "");
-      if (m.TypeArgs.Count != 0) {
-        wr.Write($"<{TypeParameters(m.TypeArgs)}> ");
+      wr.Write("public {0}{1}", !createBody && !(m.EnclosingClass is TraitDecl) ? "abstract " : "", m.IsStatic || customReceiver ? "static " : "");
+      var typeArgs = CombineTypeParameters(m);
+      if (typeArgs.Count != 0) {
+        wr.Write($"<{TypeParameters(typeArgs)}> ");
       }
       wr.Write("{0} {1}", targetReturnTypeReplacement ?? "void", IdName(m));
       wr.Write("(");
-      var nTypes = WriteRuntimeTypeDescriptorsFormals(m, m.TypeArgs, useAllTypeArgs: true, wr);
+      var nTypes = WriteRuntimeTypeDescriptorsFormals(m, typeArgs, useAllTypeArgs: false, wr);
       var sep = nTypes > 0 ? ", " : "";
       if (customReceiver) {
         DeclareFormal(sep, "_this", receiverType, m.tok, true, wr);
@@ -526,7 +532,7 @@ namespace Microsoft.Dafny{
       return w;
     }
 
-    protected BlockTargetWriter/*?*/ CreateFunction(string name, List<TypeParameter>/*?*/ typeArgs,
+    protected BlockTargetWriter/*?*/ CreateFunction(string name, List<TypeParameter> typeArgs,
       List<Formal> formals, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl member,
       TargetWriter wr) {
       if (member.IsExtern(out _, out _) && isStatic) {
@@ -535,18 +541,11 @@ namespace Microsoft.Dafny{
       }
       var customReceiver = NeedsCustomReceiver(member);
       var receiverType = UserDefinedType.FromTopLevelDecl(member.tok, member.EnclosingClass);
-      wr.Write("public {0}{1}", !createBody ? "abstract " : "", isStatic || customReceiver ? "static " : "");
-      if (typeArgs != null && typeArgs.Count != 0) {
-        wr.Write($"<{TypeParameters(typeArgs)}>");
+      wr.Write("public {0}{1}", !createBody && !(member.EnclosingClass is TraitDecl) ? "abstract " : "", isStatic || customReceiver ? "static " : "");
+      if (typeArgs.Count != 0) {
+        wr.Write($"<{TypeParameters(typeArgs)}> ");
         wr.Write($"{TypeName(resultType, wr, tok)} {name}(");
-      }
-      else if (isStatic && resultType.TypeArgs.Count > 0 && resultType.TypeArgs[0].IsTypeParameter){
-        string t = "";
-        string n = "";
-        SplitType(TypeName(resultType, wr, tok), out t, out n);
-        wr.Write($"{t} {n} {name}(");
-      }
-      else{
+      } else{
         wr.Write($"{TypeName(resultType, wr, tok)} {name}(");
       }
       var sep = "";
@@ -556,7 +555,7 @@ namespace Microsoft.Dafny{
         sep = ", ";
         argCount++;
       }
-      argCount += WriteRuntimeTypeDescriptorsFormals(typeArgs, useAllTypeArgs: true, wr, sep);
+      argCount += WriteRuntimeTypeDescriptorsFormals(typeArgs, useAllTypeArgs: false, wr, sep);
       if (argCount > 0) {
         sep = ", ";
       }
@@ -572,21 +571,6 @@ namespace Microsoft.Dafny{
           w = wr.NewBlock(")");
         }
         return w;
-      }
-    }
-
-    private void SplitType(string s, out string t, out string n){
-      string pat = @"([^<]+)(<.*>)";
-      Regex r = new Regex(pat);
-      Match m = r.Match(s);
-      if (m.Groups.Count < 2){
-        n = s;
-
-        t = null;
-      }
-      else{
-        n = m.Groups[1].Captures[0].Value;
-        t = m.Groups[2].Captures[0].Value;
       }
     }
 
@@ -861,8 +845,8 @@ namespace Microsoft.Dafny{
     //     }
     //   }
     //
-    protected override IClassWriter CreateClass(string name, bool isExtern, string /*?*/ fullPrintName,
-      List<TypeParameter> /*?*/ typeParameters, List<Type> /*?*/ superClasses, Bpl.IToken tok, TargetWriter wr) {
+    protected override IClassWriter CreateClass(string moduleName, string name, bool isExtern, string /*?*/ fullPrintName,
+      List<TypeParameter> typeParameters, TopLevelDecl cls, List<Type> /*?*/ superClasses, Bpl.IToken tok, TargetWriter wr) {
       var javaName = isExtern ? FormatExternBaseClassName(name) : name;
       var filename = $"{ModulePath}/{javaName}.java";
       var w = wr.NewFile(filename);
@@ -897,20 +881,28 @@ namespace Microsoft.Dafny{
       var wCtorParams = wBody.Fork();
       var wCtorBody = wBody.NewBigBlock(")", "");
 
-      // TODO-RS: This used to filter to only type parameters with the MustSupportZeroInitialization
-      // characteristic. That isn't enough for the Java runtime though, in which dafny.Sequence<T> needs
-      // a type descriptor in order to optimize for primitive types. Requiring them for all type parameters
-      // helps, but is still incomplete since other areas of the compiler are not providing them all the time.
-      // This isn't yet exposed by the test suite so we can get away with this for now, but will need to address
-      // the issue more completely soon.
-      sep = "";
+      var allTypeParameters = new List<TypeArgumentInstantiation>();
       if (typeParameters != null) {
-        foreach (var tp in typeParameters) {
-          var fieldName = FormatTypeDescriptorVariable(tp.CompileName);
-          var decl = $"{TypeClass}<{tp.CompileName}> {fieldName}";
+        allTypeParameters.AddRange(TypeArgumentInstantiation.ListFromFormals(typeParameters));
+      }
+      /***
+      if (superClasses != null) {
+        foreach (var s in superClasses) {
+          var traitDecl = ((UserDefinedType)s).ResolvedClass;
+          allTypeParameters.AddRange(TypeArgumentInstantiation.ListFromClass(traitDecl, s.TypeArgs));
+        }
+      }
+      ***/
+      sep = "";
+      foreach (var ta in allTypeParameters) {
+        if (NeedsTypeDescriptor(ta.Formal)) {
+          var fieldName = FormatTypeDescriptorVariable(ta.Formal.CompileName);
+          var decl = $"{TypeClass}<{BoxedTypeName(ta.Actual, wTypeFields, ta.Formal.tok)}> {fieldName}";
           wTypeFields.WriteLine($"private {decl};");
-          wCtorParams.Write($"{sep}{decl}");
-          wCtorBody.WriteLine($"this.{fieldName} = {fieldName};");
+          if (ta.Formal.Parent == cls) {
+            wCtorParams.Write($"{sep}{decl}");
+          }
+          wCtorBody.WriteLine($"this.{fieldName} = {TypeDescriptor(ta.Actual, wCtorBody, ta.Formal.tok)};");
           sep = ", ";
         }
       }
@@ -922,7 +914,7 @@ namespace Microsoft.Dafny{
     private void EmitTypeMethod(string typeName, List<TypeParameter> typeParams, List<TypeParameter> usedTypeParams, string/*?*/ initializer, TargetWriter wr) {
       var typeParamString = "";
       if (typeParams != null && typeParams.Count != 0) {
-        typeParamString = $"<{TypeParameters(typeParams)}>";
+        typeParamString = $"<{TypeParameters(typeParams)}> ";
       }
 
       var typeDescriptorCast = $"({TypeClass}<{typeName}{typeParamString}>) ({TypeClass}<?>)";
@@ -932,7 +924,8 @@ namespace Microsoft.Dafny{
       }
       wr.Write($"public static {typeParamString}{TypeClass}<{typeName}{typeParamString}> _type(");
       if (usedTypeParams != null) {
-        wr.Write(Util.Comma(usedTypeParams, tp => $"{TypeClass}<{tp.CompileName}> {FormatTypeDescriptorVariable(tp.CompileName)}"));
+        var typeDescriptorParams = usedTypeParams.Where(tp => NeedsTypeDescriptor(tp)).ToList();
+        wr.Write(Util.Comma(typeDescriptorParams, tp => $"{TypeClass}<{tp.CompileName}> {FormatTypeDescriptorVariable(tp.CompileName)}"));
       }
       var wTypeMethodBody = wr.NewBigBlock(")", "");
       if (usedTypeParams == null || usedTypeParams.Count == 0) {
@@ -1193,7 +1186,7 @@ namespace Microsoft.Dafny{
           }
           break;
         case SpecialField.ID.Floor:
-          compiledName = "toBigInteger()";
+          compiledName = "ToBigInteger()";
           break;
         case SpecialField.ID.IsLimit:
           preString = "dafny.BigOrdinal.IsLimit(";
@@ -1235,11 +1228,13 @@ namespace Microsoft.Dafny{
       }
     }
 
-    protected override ILvalue EmitMemberSelect(Action<TargetWriter> obj, MemberDecl member, Type expectedType, bool internalAccess = false) {
-      if (member.EnclosingClass is TraitDecl && !member.IsStatic) {
+    protected override ILvalue EmitMemberSelect(Action<TargetWriter> obj, Type objType, MemberDecl member, List<TypeArgumentInstantiation> typeArgs, Dictionary<TypeParameter, Type> typeMap,
+      Type expectedType, string/*?*/ additionalCustomParameter, bool internalAccess = false) {
+      if (member is Field && member.EnclosingClass is TraitDecl && !member.IsStatic) {
         return new GetterSetterLvalue(obj, IdName(member));
       } else if (member is ConstantField) {
-        return SuffixLvalue(obj, $".{member.CompileName}");
+        Contract.Assert(!(member.IsStatic && member.EnclosingClass.TypeArgs.Count != 0));
+        return SuffixLvalue(obj, $".{IdName(member)}");
       } else if (member is SpecialField sf) {
         GetSpecialFieldInfo(sf.SpecialId, sf.IdParam, out var compiledName, out _, out _);
         if (compiledName.Length != 0){
@@ -1253,7 +1248,42 @@ namespace Microsoft.Dafny{
           return SimpleLvalue(obj);
         }
       } else if (member is Function) {
-        return SuffixLvalue(obj, $"::{IdName(member)}");
+        var wr = new TargetWriter();
+        EmitNameAndActualTypeArgs(IdName(member), typeArgs.ConvertAll(ta => ta.Actual), member.tok, wr);
+        if (typeArgs.Count == 0 && additionalCustomParameter == null) {
+          var nameAndTypeArgs = wr.ToString();
+          return SuffixLvalue(obj, $"::{nameAndTypeArgs}");
+        } else {
+          // we need an eta conversion for the type-descriptor parameters
+          // (T0 a0, T1 a1, ...) -> obj.F(additionalCustomParameter, rtd0, rtd1, ..., a0, a1, ...)
+          var fn = (Function)member;
+          wr.Write("(");
+          var sep = "";
+          if (additionalCustomParameter != null) {
+            wr.Write("{0}{1}", sep, additionalCustomParameter);
+            sep = ", ";
+          }
+          foreach (var ta in typeArgs) {
+            wr.Write("{0}{1}", sep, TypeDescriptor(ta.Actual, wr, fn.tok));
+            sep = ", ";
+          }
+          var prefixWr = new TargetWriter();
+          var prefixSep = "";
+          prefixWr.Write("(");
+          foreach (var arg in fn.Formals) {
+            if (!arg.IsGhost) {
+              var name = idGenerator.FreshId("_eta");
+              var ty = Resolver.SubstType(arg.Type, typeMap);
+              prefixWr.Write($"{prefixSep}{BoxedTypeName(ty, prefixWr, arg.tok)} {name}");
+              wr.Write("{0}{1}", sep, name);
+              sep = ", ";
+              prefixSep = ", ";
+            }
+          }
+          prefixWr.Write(") -> ");
+          wr.Write(")");
+          return EnclosedLvalue(prefixWr.ToString(), obj, $".{wr.ToString()}");
+        }
       } else {
         return SuffixLvalue(obj, $".{IdName(member)}");
       }
@@ -1297,13 +1327,17 @@ namespace Microsoft.Dafny{
       }
     }
 
-    protected override void EmitConstructorCheck(string source, DatatypeCtor ctor, TargetWriter wr){
+    protected override void EmitConstructorCheck(string source, DatatypeCtor ctor, TargetWriter wr) {
       wr.Write($"{source}.is_{ctor.CompileName}()");
     }
 
-    protected override string TypeName_Companion(Type type, TextWriter wr, Bpl.IToken tok, MemberDecl member){
+    protected override string TypeName_Companion(Type type, TextWriter wr, Bpl.IToken tok, MemberDecl member) {
       if (type is UserDefinedType udt && udt.ResolvedClass is TraitDecl) {
-        return TypeName_UDT(udt.FullCompanionCompileName, udt.TypeArgs, wr, tok);
+        if (member.IsStatic && member.EnclosingClass.TypeArgs.Count != 0) {
+          return IdProtect(udt.FullCompanionCompileName);
+        } else {
+          return TypeName_UDT(udt.FullCompanionCompileName, udt.TypeArgs, wr, tok);
+        }
       } else {
         return TypeName(type, wr, tok, member);
       }
@@ -1978,7 +2012,12 @@ namespace Microsoft.Dafny{
 
     protected void EmitToString(TargetWriter wr, Expression arg) {
       if (arg.Type.IsArrowType) {
-        wr.Write(IdName(((IdentifierExpr) ((ConcreteSyntaxExpression)arg).ResolvedExpression).Var) + " == null ? null : \"Function\"");
+        var expr = arg.Resolved;
+        if (expr is IdentifierExpr id) {
+          wr.Write(IdName(id.Var) + " == null ? null : \"Function\"");
+        } else {
+          wr.Write("\"Function\"");
+        }
       } else if (AsNativeType(arg.Type) != null && AsNativeType(arg.Type).LowerBound >= 0) {
         var nativeName = GetNativeTypeName(AsNativeType(arg.Type));
         switch (AsNativeType(arg.Type).Sel) {
@@ -2229,23 +2268,27 @@ namespace Microsoft.Dafny{
       return t.IsBoolType || t.IsCharType || t.IsRefType || AsJavaNativeType(t) != null;
     }
 
-    protected override void EmitActualTypeArgs(List<Type> typeArgs, Bpl.IToken tok, TextWriter wr)
-    {
-      // Todo: see if there is ever a time in java where this is necessary
-//      if (typeArgs.Count != 0) {
-//        wr.Write("<" + TypeNames(typeArgs, wr, tok) + ">");
-//      }
+    protected override void EmitActualTypeArgs(List<Type> typeArgs, Bpl.IToken tok, TextWriter wr) {
+      if (typeArgs.Count != 0) {
+        wr.Write("<" + BoxedTypeNames(typeArgs, wr, tok) + ">");
+      }
+    }
+
+    protected override void EmitNameAndActualTypeArgs(string protectedName, List<Type> typeArgs, Bpl.IToken tok, TextWriter wr) {
+      EmitActualTypeArgs(typeArgs, tok, wr);
+      wr.Write(protectedName);
     }
 
     protected override string GenerateLhsDecl(string target, Type type, TextWriter wr, Bpl.IToken tok){
       return TypeName(type, wr, tok) + " " + target;
     }
 
-    protected override void EmitNew(Type type, Bpl.IToken tok, CallStmt initCall, TargetWriter wr){
-      var ctor = (Constructor) initCall?.Method; // correctness of cast follows from precondition of "EmitNew"
+    protected override void EmitNew(Type type, Bpl.IToken tok, CallStmt initCall, TargetWriter wr) {
+      var ctor = (Constructor)initCall?.Method; // correctness of cast follows from precondition of "EmitNew"
       wr.Write($"new {TypeName(type, wr, tok)}(");
       if (type is UserDefinedType definedType) {
-        EmitRuntimeTypeDescriptors(definedType.ResolvedClass.TypeArgs, definedType.TypeArgs, useAll: true, tok, wr);
+        var typeArguments = TypeArgumentInstantiation.ListFromClass(definedType.ResolvedClass, definedType.TypeArgs);
+        EmitRuntimeTypeDescriptors(typeArguments, tok, wr);
       }
       if (ctor != null && ctor.IsExtern(out _, out _)) {
         // the arguments of any external constructor are placed here
@@ -2262,18 +2305,25 @@ namespace Microsoft.Dafny{
       wr.Write(")");
     }
 
+    /// <summary>
+    /// Returns whether or not there is a run-time type descriptor corresponding to "tp".
+    ///
+    /// Note, one might thing that this method should return "tp.Characteristics.MustSupportZeroInitialization".
+    /// However, currently, all built-in collection types in Java use type descriptors for their arguments.
+    /// To get this threaded through everywhere, all type arguments must always be passed with a
+    /// corresponding type descriptor. :(  Thus, this method returns "true".
+    /// </summary>
+    private bool NeedsTypeDescriptor(TypeParameter tp) {
+      Contract.Requires(tp != null);
+      return true;
+    }
 
-    private void EmitRuntimeTypeDescriptors(List<TypeParameter> typeParams, List<Type> typeArgs, bool useAll, Bpl.IToken tok, TargetWriter wr) {
-      Contract.Assert(typeParams.Count == typeArgs.Count);
-
+    private void EmitRuntimeTypeDescriptors(List<TypeArgumentInstantiation> typeArgs, Bpl.IToken tok, TargetWriter wr) {
       var sep = "";
-      for (var i = 0; i < typeParams.Count; i++) {
-        var tp = typeParams[i];
-        var actual = typeArgs[i];
-
-        if (useAll || tp.Characteristics.MustSupportZeroInitialization) {
+      foreach (var ta in typeArgs) {
+        if (NeedsTypeDescriptor(ta.Formal)) {
           wr.Write(sep);
-          wr.Write(TypeDescriptor(actual, wr, tok));
+          wr.Write(TypeDescriptor(ta.Actual, wr, tok));
           sep = ", ";
         }
       }
@@ -2324,6 +2374,11 @@ namespace Microsoft.Dafny{
           return $"({TypeDescriptor(elType, wr, tok)}).arrayType()";
         }
       } else if (type.IsTypeParameter) {
+        var tp = type.AsTypeParameter;
+        Contract.Assert(tp != null);
+        if (thisContext != null && thisContext.ParentFormalTypeParametersToActuals.TryGetValue(tp, out var instantiatedTypeParameter)) {
+          return TypeDescriptor(instantiatedTypeParameter, wr, tok);
+        }
         return FormatTypeDescriptorVariable(type.AsTypeParameter.CompileName);
       } else if (type is ArrowType arrowType && arrowType.Arity == 1) {
         // Can't go the usual route because java.util.function.Function doesn't have a _type() method
@@ -2359,11 +2414,11 @@ namespace Microsoft.Dafny{
         } else if (cl is TupleTypeDecl) {
           relevantTypeArgs = new List<Type>();
         } else if (cl is DatatypeDecl dt) {
-          UsedTypeParameters(dt, udt.TypeArgs, out _, out relevantTypeArgs);
+          relevantTypeArgs = UsedTypeParameters(dt, udt.TypeArgs).ConvertAll(ta => ta.Actual);
         } else {
           relevantTypeArgs = new List<Type>();
           for (int i = 0; i < cl.TypeArgs.Count; i++) {
-            if (cl.TypeArgs[i].Characteristics.MustSupportZeroInitialization) {
+            if (NeedsTypeDescriptor(cl.TypeArgs[i])) {
               relevantTypeArgs.Add(udt.TypeArgs[i]);
             }
           }
@@ -2409,7 +2464,7 @@ namespace Microsoft.Dafny{
 
       int c = 0;
       foreach (var tp in typeParams) {
-        if (useAllTypeArgs || tp.Characteristics.MustSupportZeroInitialization){
+        if (useAllTypeArgs || NeedsTypeDescriptor(tp)) {
           wr.Write($"{prefix}{TypeClass}<{tp.CompileName}> {FormatTypeDescriptorVariable(tp)}");
           prefix = ", ";
           c++;
@@ -2424,7 +2479,7 @@ namespace Microsoft.Dafny{
 
       int c = 0;
       foreach (var tp in typeParams) {
-        if (useAllTypeArgs || tp.Characteristics.MustSupportZeroInitialization || OutContainsParam(m.Outs, tp)){
+        if (useAllTypeArgs || NeedsTypeDescriptor(tp) || OutContainsParam(m.Outs, tp)){
           wr.Write($"{prefix}{TypeClass}<{tp.CompileName}> {FormatTypeDescriptorVariable(tp)}");
           prefix = ", ";
           c++;
@@ -3064,8 +3119,8 @@ namespace Microsoft.Dafny{
         if (cl is TupleTypeDecl || inAutoInitContext) {
           return $"({s}{typeargs})null";
         }
-        UsedTypeParameters(dt, udt.TypeArgs, out _, out var usedTypeArgs);
-        return $"{s}.{typeargs}Default({Util.Comma(usedTypeArgs, ta => TypeDescriptor(ta, wr, tok))})";
+        var usedTypeArgs = UsedTypeParameters(dt, udt.TypeArgs);
+        return $"{s}.{typeargs}Default({Util.Comma(usedTypeArgs, ta => TypeDescriptor(ta.Actual, wr, tok))})";
       } else {
         Contract.Assert(false);
         throw new cce.UnreachableException(); // unexpected type
@@ -3364,7 +3419,7 @@ namespace Microsoft.Dafny{
     }
 
     protected override IClassWriter DeclareNewtype(NewtypeDecl nt, TargetWriter wr){
-      var cw = CreateClass(IdName(nt), null, wr) as ClassWriter;
+      var cw = CreateClass(IdProtect(nt.Module.CompileName), IdName(nt), null, wr) as ClassWriter;
       var w = cw.StaticMemberWriter;
       if (nt.NativeType != null) {
         var nativeType = GetBoxedNativeTypeName(nt.NativeType);
@@ -3380,7 +3435,7 @@ namespace Microsoft.Dafny{
         var witness = new TargetWriter(w.IndentLevel, true);
         TrExpr(nt.Witness, witness, false);
         if (nt.NativeType == null) {
-          cw.DeclareField("Witness", true, true, nt.BaseType, nt.tok, witness.ToString());
+          cw.DeclareField("Witness", nt, true, true, nt.BaseType, nt.tok, witness.ToString());
         } else {
           var nativeType = GetNativeTypeName(nt.NativeType);
           // Hacky way of doing the conversion from any (including BigInteger) to any
@@ -3454,17 +3509,16 @@ namespace Microsoft.Dafny{
       wBareArray.Write(")");
     }
 
-    protected override int EmitRuntimeTypeDescriptorsActuals(List<Type> typeArgs, List<TypeParameter> formals, Bpl.IToken tok, bool useAllTypeArgs, TargetWriter wr) {
+    protected override int EmitRuntimeTypeDescriptorsActuals(List<TypeArgumentInstantiation> typeArgs, Bpl.IToken tok, bool useAllTypeArgs, TargetWriter wr) {
       var sep = "";
       var c = 0;
-      for (int i = 0; i < typeArgs.Count; i++) {
-        var actual = typeArgs[i];
-        var formal = formals[i];
-        // Ignore useAllTypeArgs; we always need all of them
-        wr.Write(sep);
-        wr.Write(TypeDescriptor(actual, wr, tok));
-        sep = ", ";
-        c++;
+      foreach (var ta in typeArgs) {
+        if (useAllTypeArgs || NeedsTypeDescriptor(ta.Formal)) {
+          wr.Write(sep);
+          wr.Write(TypeDescriptor(ta.Actual, wr, tok));
+          sep = ", ";
+          c++;
+        }
       }
       return c;
     }
@@ -3583,76 +3637,90 @@ namespace Microsoft.Dafny{
     }
 
     protected override void EmitConversionExpr(ConversionExpr e, bool inLetExprBody, TargetWriter wr) {
-      if (e.E.Type.IsNumericBased(Type.NumericPersuation.Int) || e.E.Type.IsBitVectorType || e.E.Type.IsCharType) {
-        if (e.ToType.IsNumericBased(Type.NumericPersuation.Real)) {
-          // (int or bv) -> real
-          Contract.Assert(AsNativeType(e.ToType) == null);
+      Expression arg = e.E;
+      Type fromType = e.E.Type;
+      Type toType = e.ToType;
+      if (fromType.IsNumericBased(Type.NumericPersuation.Int) || fromType.IsBitVectorType || fromType.IsCharType) {
+        if (toType.IsNumericBased(Type.NumericPersuation.Real)) {
+          // (int or bv or char) -> real
+          Contract.Assert(AsNativeType(toType) == null);
           wr.Write($"new {DafnyBigRationalClass}(");
-          if (AsNativeType(e.E.Type) != null) {
+          if (AsNativeType(fromType) != null) {
             wr.Write("java.math.BigInteger.valueOf");
-          }
-          TrParenExpr(e.E, wr, inLetExprBody);
-          wr.Write(", java.math.BigInteger.ONE)");
-        } else if (e.ToType.IsCharType) {
-          // Painfully, Java sign-extends bytes when casting to chars ...
-          var fromNative = AsNativeType(e.E.Type);
-          wr.Write("(char)");
-          if (fromNative != null && fromNative.Sel == NativeType.Selection.Byte) {
-            wr.Write("java.lang.Byte.toUnsignedInt");
-            TrParenExpr(e.E, wr, inLetExprBody);
+            TrParenExpr(arg, wr, inLetExprBody);
+            wr.Write(", java.math.BigInteger.ONE)");
+          } else if (fromType.IsCharType) {
+            TrExpr(arg, wr, inLetExprBody);
+            wr.Write(", 1)");
           } else {
-            TrExprAsInt(e.E, wr, inLetExprBody);
+            TrExpr(arg, wr, inLetExprBody);
+            wr.Write(", java.math.BigInteger.ONE)");
+          }
+        } else if (toType.IsCharType) {
+          // (int or bv or char) -> char
+          // Painfully, Java sign-extends bytes when casting to chars ...
+          if (fromType.IsCharType) {
+            TrParenExpr(arg, wr, inLetExprBody);
+          } else {
+            var fromNative = AsNativeType(fromType);
+            wr.Write("(char)");
+            if (fromNative != null && fromNative.Sel == NativeType.Selection.Byte) {
+              wr.Write("java.lang.Byte.toUnsignedInt");
+              TrParenExpr(arg, wr, inLetExprBody);
+            } else {
+              TrExprAsInt(arg, wr, inLetExprBody);
+            }
           }
         } else {
           // (int or bv or char) -> (int or bv or ORDINAL)
           var fromNative = AsNativeType(e.E.Type);
           var toNative = AsNativeType(e.ToType);
           if (fromNative == null && toNative == null) {
-            if (e.E.Type.IsCharType) {
+            if (fromType.IsCharType) {
               // char -> big-integer (int or bv or ORDINAL)
               wr.Write("java.math.BigInteger.valueOf");
-              TrParenExpr(e.E, wr, inLetExprBody);
+              TrParenExpr(arg, wr, inLetExprBody);
             } else {
               // big-integer (int or bv) -> big-integer (int or bv or ORDINAL), so identity will do
-              TrExpr(e.E, wr, inLetExprBody);
+              TrExpr(arg, wr, inLetExprBody);
             }
           } else if (fromNative != null && toNative == null) {
             // native (int or bv) -> big-integer (int or bv)
             if (fromNative.Sel == NativeType.Selection.ULong) {
               // Can't just use .longValue() because that may return a negative
               wr.Write($"{DafnyHelpersClass}.unsignedLongToBigInteger");
-              TrParenExpr(e.E, wr, inLetExprBody);
+              TrParenExpr(arg, wr, inLetExprBody);
             } else {
               wr.Write("java.math.BigInteger.valueOf(");
               if (fromNative.LowerBound >= 0) {
-                TrParenExpr($"{GetBoxedNativeTypeName(fromNative)}.toUnsignedLong", e.E, wr, inLetExprBody);
+                TrParenExpr($"{GetBoxedNativeTypeName(fromNative)}.toUnsignedLong", arg, wr, inLetExprBody);
               } else {
-                TrParenExpr(e.E, wr, inLetExprBody);
+                TrParenExpr(arg, wr, inLetExprBody);
               }
               wr.Write(")");
             }
           } else if (fromNative != null && NativeTypeSize(toNative) == NativeTypeSize(fromNative)) {
             // native (int or bv) -> native (int or bv)
             // Cast between signed and unsigned, which have the same Java type
-            TrParenExpr(e.E, wr, inLetExprBody);
+            TrParenExpr(arg, wr, inLetExprBody);
           } else {
             GetNativeInfo(toNative.Sel, out var toNativeName, out var toNativeSuffix, out var toNativeNeedsCast);
             // any (int or bv) -> native (int or bv)
             // A cast would do, but we also consider some optimizations
-            var literal = PartiallyEvaluate(e.E);
-            UnaryOpExpr u = e.E.Resolved as UnaryOpExpr;
-            MemberSelectExpr m = e.E.Resolved as MemberSelectExpr;
+            var literal = PartiallyEvaluate(arg);
+            UnaryOpExpr u = arg.Resolved as UnaryOpExpr;
+            MemberSelectExpr m = arg.Resolved as MemberSelectExpr;
             if (literal != null) {
               // Optimize constant to avoid intermediate BigInteger
               EmitNativeIntegerLiteral((BigInteger) literal, toNative, wr);
             } else if (u != null && u.Op == UnaryOpExpr.Opcode.Cardinality) {
               // Optimize || to avoid intermediate BigInteger
-              wr.Write(CastIfSmallNativeType(e.ToType));
+              wr.Write(CastIfSmallNativeType(toType));
               TrParenExpr("", u.E, wr, inLetExprBody);
               wr.Write(".cardinalityInt()");
             } else if (m != null && m.MemberName == "Length" && m.Obj.Type.IsArrayType) {
               // Optimize .length to avoid intermediate BigInteger
-              wr.Write(CastIfSmallNativeType(e.ToType));
+              wr.Write(CastIfSmallNativeType(toType));
               var elmtType = UserDefinedType.ArrayElementType(m.Obj.Type);
               TargetWriter w;
               if (elmtType.IsTypeParameter) {
@@ -3674,47 +3742,76 @@ namespace Microsoft.Dafny{
                 } else {
                   wr.Write(".toUnsignedInt");
                 }
-                TrParenExpr(e.E, wr, inLetExprBody);
+                TrParenExpr(arg, wr, inLetExprBody);
               } else {
-                if (fromNative == null && !e.E.Type.IsCharType) {
-                  TrParenExpr(e.E, wr, inLetExprBody);
+                if (fromNative == null && !fromType.IsCharType) {
+                  TrParenExpr(arg, wr, inLetExprBody);
                   wr.Write($".{toNativeName}Value()");
                 } else {
                   wr.Write($"(({toNativeName}) ");
-                  TrParenExpr(e.E, wr, inLetExprBody);
+                  TrParenExpr(arg, wr, inLetExprBody);
                   wr.Write(")");
                 }
               }
             }
           }
         }
-      } else if (e.E.Type.IsNumericBased(Type.NumericPersuation.Real)) {
-        Contract.Assert(AsNativeType(e.E.Type) == null);
-        if (e.ToType.IsNumericBased(Type.NumericPersuation.Real)) {
+      } else if (fromType.IsNumericBased(Type.NumericPersuation.Real)) {
+        Contract.Assert(AsNativeType(fromType) == null);
+        if (toType.IsNumericBased(Type.NumericPersuation.Real)) {
           // real -> real
-          Contract.Assert(AsNativeType(e.ToType) == null);
-          TrExpr(e.E, wr, inLetExprBody);
-        } else if (e.ToType.IsCharType) {
+          Contract.Assert(AsNativeType(toType) == null);
+          TrExpr(arg, wr, inLetExprBody);
+        } else if (toType.IsCharType) {
           // real -> char
           // Painfully, Java sign-extends bytes when casting to chars ...
           wr.Write("(char)");
-          TrParenExpr(e.E, wr, inLetExprBody);
-          wr.Write(".ToBigInteger().intValue()");
+          TrParenExpr(arg, wr, inLetExprBody);
+          wr.Write(".ToBigInteger().intValue()"); 
+        } else if (toType.IsBigOrdinalType) {
+          TrParenExpr(arg, wr, inLetExprBody);
+          wr.Write(".ToBigInteger()"); 
         } else {
           // real -> (int or bv)
-          TrParenExpr(e.E, wr, inLetExprBody);
+          TrParenExpr(arg, wr, inLetExprBody);
           wr.Write(".ToBigInteger()");
-          if (AsNativeType(e.ToType) != null) {
-            wr.Write($".{GetNativeTypeName(AsNativeType(e.ToType))}Value()");
+          if (AsNativeType(toType) != null) {
+            wr.Write($".{GetNativeTypeName(AsNativeType(toType))}Value()");
           }
         }
-      } else {
-        Contract.Assert(e.E.Type.IsBigOrdinalType);
-        Contract.Assert(e.ToType.IsNumericBased(Type.NumericPersuation.Int));
-        TrParenExpr(e.E, wr, inLetExprBody);
-        if (AsNativeType(e.ToType) != null) {
-          wr.Write($".{GetNativeTypeName(AsNativeType(e.ToType))}Value()");
+      } else if (fromType.IsBigOrdinalType) {
+        if (toType.IsNumericBased(Type.NumericPersuation.Int) || toType.IsCharType) {
+          // ordinal -> int, char
+          if (AsNativeType(toType) != null) {
+            TrParenExpr(arg, wr, inLetExprBody);
+            wr.Write($".{GetNativeTypeName(AsNativeType(toType))}Value()");
+          } else if (toType.IsCharType) {
+            wr.Write("(char)");
+            TrParenExpr(arg, wr, inLetExprBody);
+            wr.Write(".intValue()");
+          } else {
+            TrParenExpr(arg, wr, inLetExprBody);
+          }
+        } else if (toType.IsNumericBased(Type.NumericPersuation.Real)) {
+          // ordinal -> real
+          wr.Write($"new {DafnyBigRationalClass}(");
+          TrExpr(arg, wr, inLetExprBody);
+          wr.Write(", java.math.BigInteger.ONE)");
+        } else if (toType.IsBitVectorType) {
+          // ordinal -> bv
+          if (AsNativeType(toType) != null) {
+            TrParenExpr(arg, wr, inLetExprBody);
+            wr.Write($".{GetNativeTypeName(AsNativeType(toType))}Value()");
+          } else {
+            TrParenExpr(arg, wr, inLetExprBody);
+          }
+        } else if (toType.IsBigOrdinalType) {
+          TrParenExpr(arg, wr, inLetExprBody);
+        } else {
+          Contract.Assert(false,$"not implemented for java: {fromType} -> {toType}");
         }
+      } else {
+        Contract.Assert(false, $"not implemented for java: {fromType} -> {toType}");
       }
     }
 
@@ -3756,6 +3853,11 @@ namespace Microsoft.Dafny{
     protected override BlockTargetWriter CreateIterator(IteratorDecl iter, TargetWriter wr)
     {
       throw new NotImplementedException();
+    }
+
+    public override string TransformToClassName(string baseName) {
+      Contract.Requires(baseName != null);
+      return System.Text.RegularExpressions.Regex.Replace(baseName, "[^_A-Za-z0-9\\$]", "_");
     }
   }
 }

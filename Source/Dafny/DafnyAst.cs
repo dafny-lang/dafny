@@ -5782,6 +5782,8 @@ namespace Microsoft.Dafny {
     public readonly IToken SignatureEllipsis;
     public bool IsBuiltin;
     public Function OverriddenFunction;
+    public Function Original => OverriddenFunction == null ? this : OverriddenFunction.Original;
+
     public bool containsQuantifier;
     public bool ContainsQuantifier {
       set { containsQuantifier = value; }
@@ -6108,6 +6110,7 @@ namespace Microsoft.Dafny {
     public bool IsTailRecursive;  // filled in during resolution
     public readonly ISet<IVariable> AssignedAssumptionVariables = new HashSet<IVariable>();
     public Method OverriddenMethod;
+    public Method Original => OverriddenMethod == null ? this : OverriddenMethod.Original;
     private static BlockStmt emptyBody = new BlockStmt(Token.NoToken, Token.NoToken, new List<Statement>());
 
     public override IEnumerable<Expression> SubExpressions {
@@ -9434,12 +9437,14 @@ namespace Microsoft.Dafny {
       }
 
       // Add the mappings from the receiver's type "cl"
-      var udt = (UserDefinedType)receiverType.NormalizeExpand();
-      if (udt.ResolvedClass is InternalTypeSynonymDecl isyn) {
-        udt = isyn.RhsWithArgumentIgnoringScope(udt.TypeArgs) as UserDefinedType;
-      }
-      if (udt.ResolvedClass is NonNullTypeDecl nntd) {
-        udt = nntd.RhsWithArgumentIgnoringScope(udt.TypeArgs) as UserDefinedType;
+      var udt = receiverType.NormalizeExpand() as UserDefinedType;
+      if (udt != null) {
+        if (udt.ResolvedClass is InternalTypeSynonymDecl isyn) {
+          udt = isyn.RhsWithArgumentIgnoringScope(udt.TypeArgs) as UserDefinedType;
+        }
+        if (udt.ResolvedClass is NonNullTypeDecl nntd) {
+          udt = nntd.RhsWithArgumentIgnoringScope(udt.TypeArgs) as UserDefinedType;
+        }
       }
       var cl = udt?.ResolvedClass;
 
@@ -9456,8 +9461,6 @@ namespace Microsoft.Dafny {
             subst.Add(entry.Key, v);
           }
         }
-      } else {
-        Contract.Assert(false); // DEBUG: TODO: remove -- this is just for debugging
       }
 
       return subst;
@@ -10245,9 +10248,56 @@ namespace Microsoft.Dafny {
     /// Returns a resolved binary expression
     /// </summary>
     public BinaryExpr(Boogie.IToken tok, BinaryExpr.ResolvedOpcode rop, Expression e0, Expression e1)
-    : this(tok, BinaryExpr.ResolvedOp2SyntacticOp(rop), e0, e1) {
+      : this(tok, BinaryExpr.ResolvedOp2SyntacticOp(rop), e0, e1) {
       ResolvedOp = rop;
-      Type = Type.Bool;
+      switch (rop) {
+        case ResolvedOpcode.EqCommon:
+        case ResolvedOpcode.NeqCommon:
+        case ResolvedOpcode.Lt:
+        case ResolvedOpcode.LessThanLimit:
+        case ResolvedOpcode.Le:
+        case ResolvedOpcode.Ge:
+        case ResolvedOpcode.Gt:
+        case ResolvedOpcode.LtChar:
+        case ResolvedOpcode.LeChar:
+        case ResolvedOpcode.GeChar:
+        case ResolvedOpcode.GtChar:
+        case ResolvedOpcode.SetEq:
+        case ResolvedOpcode.SetNeq:
+        case ResolvedOpcode.ProperSubset:
+        case ResolvedOpcode.Subset:
+        case ResolvedOpcode.Superset:
+        case ResolvedOpcode.ProperSuperset:
+        case ResolvedOpcode.Disjoint:
+        case ResolvedOpcode.InSet:
+        case ResolvedOpcode.NotInSet:
+        case ResolvedOpcode.MultiSetEq:
+        case ResolvedOpcode.MultiSetNeq:
+        case ResolvedOpcode.MultiSubset:
+        case ResolvedOpcode.MultiSuperset:
+        case ResolvedOpcode.ProperMultiSubset:
+        case ResolvedOpcode.ProperMultiSuperset:
+        case ResolvedOpcode.MultiSetDisjoint:
+        case ResolvedOpcode.InMultiSet:
+        case ResolvedOpcode.NotInMultiSet:
+        case ResolvedOpcode.SeqEq:
+        case ResolvedOpcode.SeqNeq:
+        case ResolvedOpcode.ProperPrefix:
+        case ResolvedOpcode.Prefix:
+        case ResolvedOpcode.InSeq:
+        case ResolvedOpcode.NotInSeq:
+        case ResolvedOpcode.MapEq:
+        case ResolvedOpcode.MapNeq:
+        case ResolvedOpcode.InMap:
+        case ResolvedOpcode.NotInMap:
+        case ResolvedOpcode.RankLt:
+        case ResolvedOpcode.RankGt:
+          Type = Type.Bool;
+          break;
+        default:
+          Type = e0.Type;
+          break;
+      }
     }
 
     public override IEnumerable<Expression> SubExpressions {

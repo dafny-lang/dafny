@@ -3,6 +3,7 @@
 // Copyright (C) Microsoft Corporation.  All Rights Reserved.
 //
 //-----------------------------------------------------------------------------
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
@@ -118,7 +119,8 @@ namespace Microsoft.Dafny
       return Util.Comma(targs, tp => IdName(tp));
     }
 
-    protected override IClassWriter CreateClass(string name, bool isExtern, string/*?*/ fullPrintName, List<TypeParameter>/*?*/ typeParameters, List<Type>/*?*/ superClasses, Bpl.IToken tok, TargetWriter wr) {
+    protected override IClassWriter CreateClass(string moduleName, string name, bool isExtern, string/*?*/ fullPrintName,
+      List<TypeParameter> typeParameters, TopLevelDecl cls, List<Type>/*?*/ superClasses, Bpl.IToken tok, TargetWriter wr) {
       wr.Write("public partial class {0}", name);
       if (typeParameters != null && typeParameters.Count != 0) {
         wr.Write("<{0}>", TypeParameters(typeParameters));
@@ -181,15 +183,14 @@ namespace Microsoft.Dafny
       //     }
       //   }
 
-      var cw =
-        CreateClass(IdName(iter), iter.TypeArgs, wr) as CsharpCompiler.ClassWriter;
+      var cw = CreateClass(IdProtect(iter.Module.CompileName), IdName(iter), iter, wr) as CsharpCompiler.ClassWriter;
       var w = cw.InstanceMemberWriter;
       // here come the fields
       Constructor ct = null;
       foreach (var member in iter.Members) {
         var f = member as Field;
         if (f != null && !f.IsGhost) {
-          cw.DeclareField(IdName(f), false, false, f.Type, f.tok, DefaultValue(f.Type, w, f.tok));
+          cw.DeclareField(IdName(f), iter, false, false, f.Type, f.tok, DefaultValue(f.Type, w, f.tok));
         } else if (member is Constructor) {
           Contract.Assert(ct == null);  // we're expecting just one constructor
           ct = (Constructor)member;
@@ -642,7 +643,7 @@ namespace Microsoft.Dafny
     }
 
     protected override IClassWriter DeclareNewtype(NewtypeDecl nt, TargetWriter wr) {
-      var cw = CreateClass(IdName(nt), null, wr) as CsharpCompiler.ClassWriter;
+      var cw = CreateClass(IdProtect(nt.Module.CompileName), IdName(nt), null, wr) as CsharpCompiler.ClassWriter;
       var w = cw.StaticMemberWriter;
       if (nt.NativeType != null) {
         var wEnum = w.NewNamedBlock("public static System.Collections.Generic.IEnumerable<{0}> IntegerRange(BigInteger lo, BigInteger hi)", GetNativeTypeName(nt.NativeType));
@@ -652,7 +653,7 @@ namespace Microsoft.Dafny
         var witness = new TargetWriter(w.IndentLevel, true);
         TrExpr(nt.Witness, witness, false);
         if (nt.NativeType == null) {
-          cw.DeclareField("Witness", true, true, nt.BaseType, nt.tok, witness.ToString());
+          cw.DeclareField("Witness", nt, true, true, nt.BaseType, nt.tok, witness.ToString());
         } else {
           w.Write("public static readonly {0} Witness = ({0})(", GetNativeTypeName(nt.NativeType));
           w.Append(witness);
@@ -663,11 +664,11 @@ namespace Microsoft.Dafny
     }
 
     protected override void DeclareSubsetType(SubsetTypeDecl sst, TargetWriter wr) {
-      ClassWriter cw = CreateClass(IdName(sst), sst.TypeArgs, wr) as ClassWriter;
+      ClassWriter cw = CreateClass(IdProtect(sst.Module.CompileName), IdName(sst), sst, wr) as ClassWriter;
       if (sst.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
         var sw = new TargetWriter(cw.InstanceMemberWriter.IndentLevel, true);
         TrExpr(sst.Witness, sw, false);
-        cw.DeclareField("Witness", true, true, sst.Rhs, sst.tok, sw.ToString());
+        cw.DeclareField("Witness", sst, true, true, sst.Rhs, sst.tok, sw.ToString());
       }
     }
 
@@ -695,7 +696,7 @@ namespace Microsoft.Dafny
       public BlockTargetWriter/*?*/ CreateMethod(Method m, bool createBody) {
         return Compiler.CreateMethod(m, createBody, Writer(m.IsStatic));
       }
-      public BlockTargetWriter/*?*/ CreateFunction(string name, List<TypeParameter>/*?*/ typeArgs, List<Formal> formals, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl member) {
+      public BlockTargetWriter/*?*/ CreateFunction(string name, List<TypeParameter> typeArgs, List<Formal> formals, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl member) {
         return Compiler.CreateFunction(name, typeArgs, formals, resultType, tok, isStatic, createBody, member, Writer(isStatic));
       }
       public BlockTargetWriter/*?*/ CreateGetter(string name, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl/*?*/ member) {
@@ -704,8 +705,11 @@ namespace Microsoft.Dafny
       public BlockTargetWriter/*?*/ CreateGetterSetter(string name, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl/*?*/ member, out TargetWriter setterWriter) {
         return Compiler.CreateGetterSetter(name, resultType, tok, isStatic, createBody, out setterWriter, Writer(isStatic));
       }
-      public void DeclareField(string name, bool isStatic, bool isConst, Type type, Bpl.IToken tok, string rhs) {
+      public void DeclareField(string name, TopLevelDecl enclosingDecl, bool isStatic, bool isConst, Type type, Bpl.IToken tok, string rhs) {
         Compiler.DeclareField(name, isStatic, isConst, type, tok, rhs, Writer(isStatic));
+      }
+      public void InitializeField(Field field, Type instantiatedFieldType, TopLevelDeclWithMembers enclosingClass) {
+        throw new NotSupportedException();  // InitializeField should be called only for those compilers that set ClassesRedeclareInheritedFields to false.
       }
       public TextWriter/*?*/ ErrorWriter() => InstanceMemberWriter;
 
@@ -768,14 +772,14 @@ namespace Microsoft.Dafny
       }
     }
 
-    protected BlockTargetWriter/*?*/ CreateFunction(string name, List<TypeParameter>/*?*/ typeArgs, List<Formal> formals, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl member, TargetWriter wr) {
+    protected BlockTargetWriter/*?*/ CreateFunction(string name, List<TypeParameter> typeArgs, List<Formal> formals, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl member, TargetWriter wr) {
       var hasDllImportAttribute = ProcessDllImport(member, wr);
 
       var customReceiver = NeedsCustomReceiver(member);
 
       AddTestCheckerIfNeeded(name, member, wr);
       wr.Write("{0}{1}{2}{3} {4}", createBody ? "public " : "", isStatic || customReceiver ? "static " : "", hasDllImportAttribute ? "extern " : "", TypeName(resultType, wr, tok), name);
-      if (typeArgs != null && typeArgs.Count != 0) {
+      if (typeArgs.Count != 0) {
         wr.Write("<{0}>", TypeParameters(typeArgs));
       }
       wr.Write("(");
@@ -1147,7 +1151,12 @@ namespace Microsoft.Dafny
     // ----- Statements -------------------------------------------------------------
 
     protected override void EmitPrintStmt(TargetWriter wr, Expression arg) {
-      wr.Write("Dafny.Helpers.Print(");
+      wr.Write("Dafny.Helpers.Print");
+      if (arg.Type.AsArrowType != null) {
+        string typestr = TypeName(arg.Type, wr, null, null);
+        wr.Write("<" + typestr + " >");
+      }
+      wr.Write("(");
       TrExpr(arg, wr, false);
       wr.WriteLine(");");
     }
@@ -1680,7 +1689,8 @@ namespace Microsoft.Dafny
       }
     }
 
-    protected override ILvalue EmitMemberSelect(System.Action<TargetWriter> obj, MemberDecl member, Type expectedType, bool internalAccess = false) {
+    protected override ILvalue EmitMemberSelect(System.Action<TargetWriter> obj, Type objType, MemberDecl member, List<TypeArgumentInstantiation> typeArgs, Dictionary<TypeParameter, Type> typeMap,
+      Type expectedType, string/*?*/ additionalCustomParameter, bool internalAccess = false) {
       if (member is ConstantField) {
         return SimpleLvalue(lvalueAction: wr => {
           obj(wr);
@@ -1701,6 +1711,35 @@ namespace Microsoft.Dafny
         } else {
           // this member selection is handled by some kind of enclosing function call, so nothing to do here
           return SimpleLvalue(obj);
+        }
+      } else if (member is Function) {
+        var wr = new TargetWriter();
+        EmitNameAndActualTypeArgs(IdName(member), typeArgs.ConvertAll(ta => ta.Actual), member.tok, wr);
+        if (additionalCustomParameter == null) {
+          var nameAndTypeArgs = wr.ToString();
+          return SuffixLvalue(obj, $".{nameAndTypeArgs}");
+        } else {
+          // we need an eta conversion for the additionalCustomParameter
+          // (T0 a0, T1 a1, ...) => obj.F(additionalCustomParameter, a0, a1, ...)
+          var fn = (Function)member;
+          wr.Write("({0}", additionalCustomParameter);
+          var sep = ", ";
+          var prefixWr = new TargetWriter();
+          var prefixSep = "";
+          prefixWr.Write("(");
+          foreach (var arg in fn.Formals) {
+            if (!arg.IsGhost) {
+              var name = idGenerator.FreshId("_eta");
+              var ty = Resolver.SubstType(arg.Type, typeMap);
+              prefixWr.Write($"{prefixSep}{TypeName(ty, prefixWr, arg.tok)} {name}");
+              wr.Write("{0}{1}", sep, name);
+              sep = ", ";
+              prefixSep = ", ";
+            }
+          }
+          prefixWr.Write(") => ");
+          wr.Write(")");
+          return EnclosedLvalue(prefixWr.ToString(), obj, $".{wr.ToString()}");
         }
       } else {
         return SuffixLvalue(obj, ".{0}", IdName(member));
@@ -2142,7 +2181,7 @@ namespace Microsoft.Dafny
     protected override void EmitConversionExpr(ConversionExpr e, bool inLetExprBody, TargetWriter wr) {
       if (e.E.Type.IsNumericBased(Type.NumericPersuation.Int) || e.E.Type.IsBitVectorType || e.E.Type.IsCharType) {
         if (e.ToType.IsNumericBased(Type.NumericPersuation.Real)) {
-          // (int or bv) -> real
+          // (int or bv or char) -> real
           Contract.Assert(AsNativeType(e.ToType) == null);
           wr.Write("new Dafny.BigRational(");
           if (AsNativeType(e.E.Type) != null) {
@@ -2205,7 +2244,6 @@ namespace Microsoft.Dafny
               // no optimization applies; use the standard translation
               TrParenExpr(e.E, wr, inLetExprBody);
             }
-
           }
         }
       } else if (e.E.Type.IsNumericBased(Type.NumericPersuation.Real)) {
@@ -2215,7 +2253,7 @@ namespace Microsoft.Dafny
           Contract.Assert(AsNativeType(e.ToType) == null);
           TrExpr(e.E, wr, inLetExprBody);
         } else {
-          // real -> (int or bv or char)
+          // real -> (int or bv or char or ordinal)
           if (e.ToType.IsCharType) {
             wr.Write("(char)");
           } else if (AsNativeType(e.ToType) != null) {
@@ -2224,11 +2262,32 @@ namespace Microsoft.Dafny
           TrParenExpr(e.E, wr, inLetExprBody);
           wr.Write(".ToBigInteger()");
         }
+      } else if (e.E.Type.IsBigOrdinalType) {
+        if (e.ToType.IsNumericBased(Type.NumericPersuation.Int) || e.ToType.IsBigOrdinalType) {
+          TrExpr(e.E, wr, inLetExprBody);
+        } else if (e.ToType.IsCharType) {
+          wr.Write("(char)");
+          TrParenExpr(e.E, wr, inLetExprBody);
+        } else if (e.ToType.IsNumericBased(Type.NumericPersuation.Real)) {
+          wr.Write("new Dafny.BigRational(");
+          if (AsNativeType(e.E.Type) != null) {
+            wr.Write("new BigInteger");
+            TrParenExpr(e.E, wr, inLetExprBody);
+            wr.Write(", BigInteger.One)");
+          } else {
+            TrParenExpr(e.E, wr, inLetExprBody);
+            wr.Write(", 1)");
+          }
+        } else if (e.ToType.IsBitVectorType) {
+          // ordinal -> bv
+          var typename = TypeName(e.ToType, wr, null, null);
+          wr.Write($"({typename})");
+          TrParenExpr(e.E, wr, inLetExprBody);
+        } else {
+          Contract.Assert(false, $"not implemented for C#: {e.E.Type} -> {e.ToType}");
+        }
       } else {
-        Contract.Assert(e.E.Type.IsBigOrdinalType);
-        Contract.Assert(e.ToType.IsNumericBased(Type.NumericPersuation.Int));
-        // identity will do
-        TrExpr(e.E, wr, inLetExprBody);
+        Contract.Assert(false, $"not implemented for C#: {e.E.Type} -> {e.ToType}");
       }
     }
 
@@ -2377,6 +2436,7 @@ namespace Microsoft.Dafny
         cp.CompilerOptions += " /optimize";
       }
       cp.CompilerOptions += " /lib:" + crx.libPath;
+      cp.CompilerOptions += " /nowarn:1718"; // Comparison to the same variable
       foreach (var filename in crx.immutableDllFileNames) {
         cp.ReferencedAssemblies.Add(filename);
       }
