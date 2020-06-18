@@ -31,9 +31,7 @@ namespace DafnyTests {
 
                 // We do not want output such as "Compiled program written to Foo.cs"
                 // from the compilers, since that changes with the target language
-                "/compileVerbose:0",
-                
-                "/out:Output/Files"
+                "/compileVerbose:0"
             };
             dafnyArguments.AddRange(arguments);
 
