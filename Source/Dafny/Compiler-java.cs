@@ -2050,14 +2050,25 @@ namespace Microsoft.Dafny{
         // TODO-RS: This doesn't handle strings printed out as part of datatypes
         bool isString = arg.Type.AsCollectionType != null &&
                         arg.Type.AsCollectionType.AsSeqType != null &&
-                        arg.Type.AsCollectionType.AsSeqType.Arg is CharType;
-        if (!isString) {
-          wr.Write("String.valueOf(");
-        }
-        TrExpr(arg, wr, false);
+                        arg.Type.AsCollectionType.AsSeqType.Arg.IsCharType;
+        bool isGeneric = arg.Type.AsCollectionType != null &&
+                         arg.Type.AsCollectionType.AsSeqType != null &&
+                         arg.Type.AsCollectionType.AsSeqType.Arg.IsTypeParameter;
         if (isString) {
+          TrExpr(arg, wr, false);
           wr.Write(".verbatimString()");
+        } else if (isGeneric) {
+          wr.Write("((java.util.function.Function<dafny.DafnySequence<?>,String>)(_s -> (_td___T.defaultValue().getClass() == java.lang.Character.class ? _s.verbatimString() : String.valueOf(_s)))).apply(");
+          TrExpr(arg, wr, false);
+          wr.Write(")");
+          // wr.Write("(td___T.defaultValue().getClass() == java.lang.Character.class ? (");
+          // TrExpr(arg, wr, false);
+          // wr.Write(") : String.valueOf(");
+          // TrExpr(arg, wr, false);
+          // wr.Write(")).verbatimString()");
         } else {
+          wr.Write("String.valueOf(");
+          TrExpr(arg, wr, false);
           wr.Write(")");
         }
       }
