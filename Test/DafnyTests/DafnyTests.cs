@@ -18,6 +18,7 @@ namespace DafnyTests {
         private static string DAFNY_EXE = Path.Combine(DAFNY_ROOT, "Binaries/Dafny.exe");
         private static string TEST_ROOT = Path.Combine(DAFNY_ROOT, "Test") + Path.DirectorySeparatorChar;
         private static string COMP_DIR = Path.Combine(TEST_ROOT, "comp") + Path.DirectorySeparatorChar;
+        private static string OUTPUT_DIR = Path.Combine(TEST_ROOT, "Output") + Path.DirectorySeparatorChar;
 
         public static string RunDafny(IEnumerable<string> arguments) {
             List<string> dafnyArguments = new List<string> {
@@ -249,9 +250,18 @@ namespace DafnyTests {
                 }
             }
             
-            string expectedOutput = File.ReadAllText(expectedOutputPath);
+            var argumentsWithFile = new List<string> {file}.Concat(arguments);
+            var expectedOutput = File.ReadAllText(expectedOutputPath);
 
-            string output = RunDafny(new List<string> {file}.Concat(arguments));
+            string output;
+            if (arguments.Any(arg => arg.StartsWith("/out"))) {
+                output = RunDafny(argumentsWithFile);
+            } else {
+                using (var tempDir = new TemporaryDirectory(OUTPUT_DIR)) {
+                    argumentsWithFile = new List<string> {"/out:" + tempDir.DirInfo.FullName + "/Program"}.Concat(argumentsWithFile);
+                    output = RunDafny(argumentsWithFile);
+                }
+            }
 
             AssertEqualWithDiff(expectedOutput, output);
             Skip.If(specialCase, "Confirmed known exception for arguments: " + args);

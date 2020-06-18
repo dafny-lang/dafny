@@ -3,20 +3,35 @@ using System.IO;
 
 namespace DafnyTests {
     public class TemporaryDirectory : IDisposable {
-        public readonly DirectoryInfo Dir;
+        public readonly DirectoryInfo DirInfo;
 
-        public TemporaryDirectory() {
+        public TemporaryDirectory(string parent, string prefix = "") {
             string dirPath;
             do {
-                dirPath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+                dirPath = Path.Combine(parent, prefix + Path.GetRandomFileName());
             } while (File.Exists(dirPath) || Directory.Exists(dirPath));
 
-            Dir = Directory.CreateDirectory(dirPath);
+            DirInfo = Directory.CreateDirectory(dirPath);
         }
 
         public void Dispose() {
-            // TODO-RS: Be way more careful with finalizers/threading/etc.
-            Dir.Delete(true);
+            Dispose(true);
+        }
+
+        ~TemporaryDirectory() {
+            Dispose(false);
+        }
+        
+        protected virtual void Dispose(bool disposing) {
+            SafeDelete();
+        }
+        
+        public void SafeDelete() {
+            try {
+                DirInfo.Delete(true);
+            } catch {
+                // Best effort only
+            }
         }
     }
 }
