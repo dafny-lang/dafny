@@ -1,2 +1,0 @@
-DAFNY_TEST_ARGV=$*
-dotnet test ../../Test/DafnyTests/DafnyTests-NetCore.csproj
