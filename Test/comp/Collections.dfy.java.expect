@@ -1,6 +1,6 @@
 
 Dafny program verifier finished with 17 verified, 0 errors
-Sets: {} {17, 82} {12, 17}
+Sets: {} {17, 82} {17, 12}
   cardinality: 0 2 2
   union: {17, 82} {17, 82, 12}
   intersection: {} {17}
@@ -11,8 +11,8 @@ Sets: {} {17, 82} {12, 17}
   membership: false true true
 false true
 |s|=4 |S|=16
-{{}, {a}, {b}, {b, a}, {c}, {c, a}, {c, b}, {c, b, a}, {d}, {d, a}, {d, b}, {d, b, a}, {d, c}, {d, c, a}, {d, c, b}, {d, c, b, a}}
-Multisets: multiset{} multiset{17, 17, 82, 82} multiset{12, 17}
+{{}, {a}, {b}, {a, b}, {c}, {a, c}, {d}, {b, c}, {a, d}, {a, b, c}, {b, d}, {a, b, d}, {c, d}, {a, c, d}, {b, c, d}, {a, b, c, d}}
+Multisets: multiset{} multiset{17, 17, 82, 82} multiset{17, 12}
   cardinality: 0 4 2
   union: multiset{17, 17, 82, 82} multiset{17, 17, 17, 82, 82, 12}
   intersection: multiset{} multiset{17}
@@ -21,7 +21,7 @@ Multisets: multiset{} multiset{17, 17, 82, 82} multiset{12, 17}
   subset: true false true
   proper subset: true false false
   membership: false true true
-  update: multiset{17, 17} multiset{17, 17, 82, 82} multiset{12, 17, 17}
+  update: multiset{17, 17} multiset{17, 17, 82, 82} multiset{17, 17, 12}
   multiplicity: 0 2 1
 Sequences: [] [17, 82, 17, 82] [12, 17]
   cardinality: 0 4 2
@@ -35,32 +35,32 @@ Sequences: [] [17, 82, 17, 82] [12, 17]
   prefix: true false true
   proper prefix: true false false
   membership: false true true
-Bound Bound Bound Bound Bound Bound
-ed ed ed ed ed ed
+[B, o, u, n, d] [B, o, u, n, d] [B, o, u, n, d] [B, o, u, n, d] [B, o, u, n, d] [B, o, u, n, d]
+[e, d] [e, d] [e, d] [e, d] [e, d] [e, d]
 e e e e e e
 hello
 hEllo
 [2, 4, 6, 8, 10]
 [2, 0, 6, 8, 10]
-Strings:  uRuR gu
+Strings: [] [u, R, u, R] [g, u]
   cardinality: 0 4 2
-  concatenation: uRuR uRuRgu
+  concatenation: [u, R, u, R] [u, R, u, R, g, u]
   prefix: true false true
   proper prefix: true false false
   membership: false true true
-  constructed as sequence: guru
+  constructed as sequence: [g, u, r, u]
   mix: hello-d ddd-hello
 Maps: map[] map[17 := 2, 82 := 2] map[17 := 0, 12 := 26]
   cardinality: 0 2 2
   keys: {} {17, 82} {17, 12}
   values: {} {2} {0, 26}
   items: {} {(17, 2), (82, 2)} {(17, 0), (12, 26)}
-  update: map[17 := 6] map[17 := 6, 82 := 2] map[17 := 6, 12 := 26]
+  update: map[17 := 6] map[17 := 6, 82 := 2] map[12 := 26, 17 := 6]
   lookup: false 2 0
-m: map[Color.Blue := 30, Color.Yellow := 21]
-keys: {Color.Blue, Color.Yellow}
-values: {30, 21}
-items: {(Color.Blue, 30), (Color.Yellow, 21)}
+m: map[Color.Yellow := 21, Color.Blue := 30]
+keys: {Color.Yellow, Color.Blue}
+values: {21, 30}
+items: {(Color.Yellow, 21), (Color.Blue, 30)}
 2: 0 1 1
 3: 0 1 2
 There are 0 occurrences of 58 in the multiset

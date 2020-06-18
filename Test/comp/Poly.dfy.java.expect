@@ -3,4 +3,4 @@ Dafny program verifier finished with 9 verified, 0 errors
 Poly.dfy(48,16): Error: compilation of seq<TRAIT> is not supported; consider introducing a ghost
 Poly.dfy(59,16): Error: compilation of set<TRAIT> is not supported; consider introducing a ghost
 Poly.dfy(63,21): Error: compilation of multiset<TRAIT> is not supported; consider introducing a ghost
-File Poly/Poly.java contains the partially compiled program
+File Program/Program.java contains the partially compiled program

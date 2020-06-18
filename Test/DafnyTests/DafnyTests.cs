@@ -62,7 +62,8 @@ namespace DafnyTests {
                 string output = dafnyProcess.StandardOutput.ReadToEnd();
                 string error = dafnyProcess.StandardError.ReadToEnd();
                 if (dafnyProcess.ExitCode != 0) {
-                    Assert.True(false, output + "\n" + error);
+                    var message = String.Format("Non-zero Dafny exit code: {0}\n{1}\n{2}", dafnyProcess.ExitCode, output, error);
+                    Assert.True(false,  message);
                 }
 
                 return output + error;
@@ -222,7 +223,8 @@ namespace DafnyTests {
                 string actualPath = Path.GetTempFileName();
                 File.WriteAllText(actualPath, actual);
                 string diff = Exec("diff", "--unified=3", expectedPath, actualPath);
-                throw new AssertActualExpectedException(expected, actual, diff);
+                string message = "AssertEqualWithDiff() Failure\n" + diff;
+                throw new AssertActualExpectedException(expected, actual, message);
             }
         }
 
@@ -257,8 +259,14 @@ namespace DafnyTests {
             if (arguments.Any(arg => arg.StartsWith("/out"))) {
                 output = RunDafny(argumentsWithFile);
             } else {
+                // Note that the temporary directory has to be an ancestor of Test
+                // or else Javascript won't be able to locate bignumber.js :(
                 using (var tempDir = new TemporaryDirectory(OUTPUT_DIR)) {
-                    argumentsWithFile = new List<string> {"/out:" + tempDir.DirInfo.FullName + "/Program"}.Concat(argumentsWithFile);
+                    // Add an extra component to the path to keep the files created inside the
+                    // temporary directory, since some compilers will
+                    // interpret the path as a single file basename rather than a directory.
+                    var outArgument = "/out:" + tempDir.DirInfo.FullName + "/Program";
+                    argumentsWithFile = new List<string> {outArgument}.Concat(argumentsWithFile);
                     output = RunDafny(argumentsWithFile);
                 }
             }

@@ -1,0 +1,22 @@
+
+Dafny program verifier finished with 16 verified, 0 errors
+x=13 y=14
+x=13 y=14 b=[y, e, s]
+p=(13, 14)
+q=(13, 14, [y, e, s])
+true false
+true false
+map[12 := 6, 13 := 6, 14 := 7]
+map[16 := 12, 17 := 13, 18 := 14]
+XP returned: 0 false
+after: 0 before: 0
+after: 2 before: 2
+XM returned: 16
+0 12 3 8
+0 12 3 8
+0 12 3 8
+0 12 3 8
+[1, 1, 1, 1]
+[1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+[0, 1, 4, 9, 16, 25, 36, 49]
+[0, 1, 2, 3, 4, 5, 6, 7]

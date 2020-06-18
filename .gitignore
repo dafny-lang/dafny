@@ -60,10 +60,6 @@ Docs/OnlineTutorial/DocumentationTransducer.pdb
 Docs/OnlineTutorial/DocumentationTransducer/obj
 Docs/OnlineTutorial/manuscripts/*.htm
 Docs/OnlineTutorial/manuscripts/*.*.dfy
-Test/comp/*.cs
-Test/comp/*.js
-Test/comp/*-go
-Test/comp/**/*.java
 Test/expectations/*.cs
 Test/expectations/*.js
 Test/expectations/*-go
