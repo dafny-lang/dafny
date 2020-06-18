@@ -7,16 +7,18 @@ class MyClass {
 
 datatype D1 = D1(o: MyClass)
 {
-  ghost const objs: set<object> := getObjs()
+  ghost const objs: set<object> := getObjs()  // Error
 
   function getObjs(): set<object>
     reads o
-    { {o, o.repr} }
+  { 
+    {o, o.repr} 
+  }
 }
 
 class MyClass2 {
   var x: int
-  const c := F()
+  const c := F() // Error
 
   function method F(): int
     reads this
