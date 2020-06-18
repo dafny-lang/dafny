@@ -2181,7 +2181,7 @@ namespace Microsoft.Dafny
     protected override void EmitConversionExpr(ConversionExpr e, bool inLetExprBody, TargetWriter wr) {
       if (e.E.Type.IsNumericBased(Type.NumericPersuation.Int) || e.E.Type.IsBitVectorType || e.E.Type.IsCharType) {
         if (e.ToType.IsNumericBased(Type.NumericPersuation.Real)) {
-          // (int or bv) -> real
+          // (int or bv or char) -> real
           Contract.Assert(AsNativeType(e.ToType) == null);
           wr.Write("new Dafny.BigRational(");
           if (AsNativeType(e.E.Type) != null) {
@@ -2244,7 +2244,6 @@ namespace Microsoft.Dafny
               // no optimization applies; use the standard translation
               TrParenExpr(e.E, wr, inLetExprBody);
             }
-
           }
         }
       } else if (e.E.Type.IsNumericBased(Type.NumericPersuation.Real)) {
@@ -2254,7 +2253,7 @@ namespace Microsoft.Dafny
           Contract.Assert(AsNativeType(e.ToType) == null);
           TrExpr(e.E, wr, inLetExprBody);
         } else {
-          // real -> (int or bv or char)
+          // real -> (int or bv or char or ordinal)
           if (e.ToType.IsCharType) {
             wr.Write("(char)");
           } else if (AsNativeType(e.ToType) != null) {
@@ -2263,11 +2262,32 @@ namespace Microsoft.Dafny
           TrParenExpr(e.E, wr, inLetExprBody);
           wr.Write(".ToBigInteger()");
         }
+      } else if (e.E.Type.IsBigOrdinalType) {
+        if (e.ToType.IsNumericBased(Type.NumericPersuation.Int) || e.ToType.IsBigOrdinalType) {
+          TrExpr(e.E, wr, inLetExprBody);
+        } else if (e.ToType.IsCharType) {
+          wr.Write("(char)");
+          TrParenExpr(e.E, wr, inLetExprBody);
+        } else if (e.ToType.IsNumericBased(Type.NumericPersuation.Real)) {
+          wr.Write("new Dafny.BigRational(");
+          if (AsNativeType(e.E.Type) != null) {
+            wr.Write("new BigInteger");
+            TrParenExpr(e.E, wr, inLetExprBody);
+            wr.Write(", BigInteger.One)");
+          } else {
+            TrParenExpr(e.E, wr, inLetExprBody);
+            wr.Write(", 1)");
+          }
+        } else if (e.ToType.IsBitVectorType) {
+          // ordinal -> bv
+          var typename = TypeName(e.ToType, wr, null, null);
+          wr.Write($"({typename})");
+          TrParenExpr(e.E, wr, inLetExprBody);
+        } else {
+          Contract.Assert(false, $"not implemented for C#: {e.E.Type} -> {e.ToType}");
+        }
       } else {
-        Contract.Assert(e.E.Type.IsBigOrdinalType);
-        Contract.Assert(e.ToType.IsNumericBased(Type.NumericPersuation.Int));
-        // identity will do
-        TrExpr(e.E, wr, inLetExprBody);
+        Contract.Assert(false, $"not implemented for C#: {e.E.Type} -> {e.ToType}");
       }
     }
 
@@ -2416,6 +2436,7 @@ namespace Microsoft.Dafny
         cp.CompilerOptions += " /optimize";
       }
       cp.CompilerOptions += " /lib:" + crx.libPath;
+      cp.CompilerOptions += " /nowarn:1718"; // Comparison to the same variable
       foreach (var filename in crx.immutableDllFileNames) {
         cp.ReferencedAssemblies.Add(filename);
       }

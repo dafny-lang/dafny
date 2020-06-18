@@ -8074,76 +8074,132 @@ namespace Microsoft.Dafny {
       Contract.Requires(toType != null);
       toType = toType.NormalizeExpand();
       fromType = fromType.NormalizeExpand();
-      if (fromType.IsBitVectorType) {
+      if (fromType.IsNumericBased(Type.NumericPersuation.Int)) {
+        if (toType.IsNumericBased(Type.NumericPersuation.Int)) {
+          // do nothing
+        } else if (toType.IsNumericBased(Type.NumericPersuation.Real)) {
+          r = FunctionCall(tok, BuiltinFunction.IntToReal, null, r);
+        } else if (toType.IsCharType) {
+          r = FunctionCall(tok, BuiltinFunction.CharFromInt, null, r);
+        } else if (toType.IsBitVectorType) {
+          r = IntToBV(tok, r, toType);
+        } else if (toType.IsBigOrdinalType) {
+          r = FunctionCall(tok, "ORD#FromNat", predef.BigOrdinalType, r);
+        } else {
+          Contract.Assert(false, $"No translation implemented from {fromType} to {toType}");
+        }
+        return r;
+      } else if (fromType.IsBitVectorType) {
         var fromWidth = fromType.AsBitVectorType.Width;
         if (toType.IsBitVectorType) {
           // conversion from one bitvector type to another
           var toWidth = toType.AsBitVectorType.Width;
           if (fromWidth == toWidth) {
-            return r;
+            // no conversion
           } else if (fromWidth < toWidth) {
             var zeros = BplBvLiteralExpr(tok, Basetypes.BigNum.ZERO, toWidth - fromWidth);
             if (fromWidth == 0) {
-              return zeros;
+              r = zeros;
             } else {
               var concat = new Bpl.BvConcatExpr(tok, zeros, r);
               // There's a bug in Boogie that causes a warning to be emitted if a BvConcatExpr is passed as the argument
               // to $Box, which takes a type argument.  The bug can apparently be worked around by giving an explicit
               // (and other redudant) type conversion.
-              return Bpl.Expr.CoerceType(tok, concat, BplBvType(toWidth));
+              r = Bpl.Expr.CoerceType(tok, concat, BplBvType(toWidth));
             }
           } else if (toWidth == 0) {
-            return BplBvLiteralExpr(tok, Basetypes.BigNum.ZERO, toWidth);
+            r = BplBvLiteralExpr(tok, Basetypes.BigNum.ZERO, toWidth);
           } else {
-            return new Bpl.BvExtractExpr(tok, r, toWidth, 0);
+            r = new Bpl.BvExtractExpr(tok, r, toWidth, 0);
           }
-        } else {
+        } else if (toType.IsNumericBased(Type.NumericPersuation.Int)) {
           r = FunctionCall(tok, "nat_from_bv" + fromWidth, Bpl.Type.Int, r);
-          if (toType.IsNumericBased(Type.NumericPersuation.Real)) {
-            r = FunctionCall(tok, BuiltinFunction.IntToReal, null, r);
-          }
-          return r;
-        }
-      }
-      if (fromType.IsNumericBased(Type.NumericPersuation.Real)) {
-        if (toType.IsNumericBased(Type.NumericPersuation.Real)) {
-          return r;
-        }
-        r = FunctionCall(tok, BuiltinFunction.RealToInt, null, r);
-        // "r" now denotes an integer
-      } else if (fromType.IsCharType) {
-        Contract.Assert(toType.IsNumericBased(Type.NumericPersuation.Int));
-        return FunctionCall(tok, BuiltinFunction.CharToInt, null, r);
-      } else if (fromType.IsBigOrdinalType) {
-        Contract.Assert(toType.IsNumericBased(Type.NumericPersuation.Int));
-        return FunctionCall(tok, "ORD#Offset", Bpl.Type.Int, r);
-      } else {
-        Contract.Assert(fromType.IsNumericBased(Type.NumericPersuation.Int));
-        if (toType.IsNumericBased(Type.NumericPersuation.Real)) {
-          return FunctionCall(tok, BuiltinFunction.IntToReal, null, r);
+        } else if (toType.IsNumericBased(Type.NumericPersuation.Real)) {
+          r = FunctionCall(tok, "nat_from_bv" + fromWidth, Bpl.Type.Int, r);
+          r = FunctionCall(tok, BuiltinFunction.IntToReal, null, r);
+        } else if (toType.IsCharType) {
+          r = FunctionCall(tok, "nat_from_bv" + fromWidth, Bpl.Type.Int, r);
+          r = FunctionCall(tok, BuiltinFunction.CharFromInt, null, r);
         } else if (toType.IsBigOrdinalType) {
-          return FunctionCall(tok, "ORD#FromNat", predef.BigOrdinalType, r);
+          r = FunctionCall(tok, "nat_from_bv" + fromWidth, Bpl.Type.Int, r);
+          r = FunctionCall(tok, "ORD#FromNat", predef.BigOrdinalType, r);
+        } else {
+          Contract.Assert(false, $"No translation implemented from {fromType} to {toType}");
         }
-      }
-      if (toType.IsNumericBased(Type.NumericPersuation.Int)) {
         return r;
-      } else if (toType.IsCharType) {
-        Contract.Assert(fromType.IsNumericBased(Type.NumericPersuation.Int));
-        return FunctionCall(tok, BuiltinFunction.CharFromInt, null, r);
+      } else if (fromType.IsCharType) {
+        if (toType.IsNumericBased(Type.NumericPersuation.Int)) {
+          r = FunctionCall(tok, BuiltinFunction.CharToInt, null, r);
+        } else if (toType.IsCharType) {
+          // do nothing
+        } else if (toType.IsNumericBased(Type.NumericPersuation.Real)) {
+          r = FunctionCall(tok, BuiltinFunction.CharToInt, null, r);
+          r = FunctionCall(tok, BuiltinFunction.IntToReal, null, r);
+        } else if (toType.IsBitVectorType) {
+          r = FunctionCall(tok, BuiltinFunction.CharToInt, null, r);
+          r = IntToBV(tok, r, toType);
+        } else if (toType.IsBigOrdinalType) {
+          r = FunctionCall(tok, BuiltinFunction.CharToInt, null, r);
+          r = FunctionCall(tok, "ORD#FromNat", Bpl.Type.Int, r);
+        } else {
+          Contract.Assert(false, $"No translation implemented from {fromType} to {toType}");
+        }
+        return r;
+      } else if (fromType.IsNumericBased(Type.NumericPersuation.Real)) {
+        if (toType.IsNumericBased(Type.NumericPersuation.Real)) {
+          // do nothing
+        } else if (toType.IsNumericBased(Type.NumericPersuation.Int)) {
+          r = FunctionCall(tok, BuiltinFunction.RealToInt, null, r);
+        } else if (toType.IsBitVectorType) {
+          r = FunctionCall(tok, BuiltinFunction.RealToInt, null, r);
+          r = IntToBV(tok, r, toType);
+        } else if (toType.IsCharType) {
+          r = FunctionCall(tok, BuiltinFunction.RealToInt, null, r);
+          r = FunctionCall(tok, BuiltinFunction.CharFromInt, null, r);
+        } else if (toType.IsBigOrdinalType) {
+          r = FunctionCall(tok, BuiltinFunction.RealToInt, null, r);
+          r = FunctionCall(tok, "ORD#FromNat", Bpl.Type.Int, r);
+        } else {
+          Contract.Assert(false, $"No translation implemented from {fromType} to {toType}");
+        }
+        return r;
+        // "r" now denotes an integer
+      } else if (fromType.IsBigOrdinalType) {
+        if (toType.IsNumericBased(Type.NumericPersuation.Int)) {
+          r = FunctionCall(tok, "ORD#Offset", Bpl.Type.Int, r);
+        } else if (toType.IsNumericBased(Type.NumericPersuation.Real)) {
+          r = FunctionCall(tok, "ORD#Offset", Bpl.Type.Int, r);
+          r = FunctionCall(tok, BuiltinFunction.IntToReal, null, r);
+        } else if (toType.IsCharType) {
+          r = FunctionCall(tok, "ORD#Offset", Bpl.Type.Int, r);
+          r = FunctionCall(tok, BuiltinFunction.CharFromInt, null, r);
+        } else if (toType.IsBitVectorType) {
+          r = FunctionCall(tok, "ORD#Offset", Bpl.Type.Int, r);
+          r = IntToBV(tok, r, toType);
+       } else if (toType.IsBigOrdinalType) {
+          // do nothing
+        } else {
+          Contract.Assert(false, $"No translation implemented from {fromType} to {toType}");
+        }
+        return r;
       } else {
-        Contract.Assert(toType.IsBitVectorType);
-        var toWidth = toType.AsBitVectorType.Width;
-        if (RemoveLit(r) is Bpl.LiteralExpr) {
-          Bpl.LiteralExpr e = (Bpl.LiteralExpr) RemoveLit(r);
-          if (e.isBigNum) {
-            var toBound = Basetypes.BigNum.FromBigInt(BigInteger.One << toWidth);  // 1 << toWidth
-            if (e.asBigNum <= toBound) {
-              return BplBvLiteralExpr(r.tok, e.asBigNum, toType.AsBitVectorType);
-            }
+        Contract.Assert(false, $"No translation implemented from {fromType} to {toType}");
+      }
+      return r;
+    }
+
+    private Bpl.Expr IntToBV(IToken tok, Bpl.Expr r, Type toType) {
+      var toWidth = toType.AsBitVectorType.Width;
+      if (RemoveLit(r) is Bpl.LiteralExpr) {
+        Bpl.LiteralExpr e = (Bpl.LiteralExpr) RemoveLit(r);
+        if (e.isBigNum) {
+          var toBound = Basetypes.BigNum.FromBigInt(BigInteger.One << toWidth);  // 1 << toWidth
+          if (e.asBigNum <= toBound) {
+            return BplBvLiteralExpr(r.tok, e.asBigNum, toType.AsBitVectorType);
           }
         }
-        return FunctionCall(tok, "nat_to_bv" + toWidth, BplBvType(toWidth), r);
       }
+      return FunctionCall(tok, "nat_to_bv" + toWidth, BplBvType(toWidth), r);
     }
 
     /// <summary>
@@ -8177,10 +8233,16 @@ namespace Microsoft.Dafny {
         // this operation is well-formed only if the real-based number represents an integer
         //   assert Real(Int(o)) == o;
         PutSourceIntoLocal();
-        var from = FunctionCall(tok, BuiltinFunction.RealToInt, null, o);
+        Bpl.Expr from = FunctionCall(tok, BuiltinFunction.RealToInt, null, o);
         Bpl.Expr e = FunctionCall(tok, BuiltinFunction.IntToReal, null, from);
         e = Bpl.Expr.Binary(tok, Bpl.BinaryOperator.Opcode.Eq, e, o);
         builder.Add(Assert(tok, e, errorMsgPrefix + "the real-based number must be an integer (if you want truncation, apply .Floor to the real-based number)"));
+      }
+
+      if (expr.Type.IsBigOrdinalType && !toType.IsBigOrdinalType) {
+        PutSourceIntoLocal();
+        Bpl.Expr boundsCheck = FunctionCall(tok, "ORD#IsNat", Bpl.Type.Bool, o);
+        builder.Add(Assert(tok, boundsCheck, string.Format("{0}value to be converted might be bigger than every natural number", errorMsgPrefix)));
       }
 
       if (toType.IsBitVectorType) {
@@ -8195,19 +8257,23 @@ namespace Microsoft.Dafny {
             var bound = BplBvLiteralExpr(tok, toBound, expr.Type.AsBitVectorType);
             boundsCheck = FunctionCall(expr.tok, "lt_bv" + fromWidth, Bpl.Type.Bool, o, bound);
           }
-        } else if (expr.Type.IsNumericBased(Type.NumericPersuation.Int)) {
+        } else if (expr.Type.IsNumericBased(Type.NumericPersuation.Int) || expr.Type.IsCharType) {
           // Check "expr < (1 << toWdith)" in type "int"
           PutSourceIntoLocal();
           var bound = Bpl.Expr.Literal(toBound);
           boundsCheck = Bpl.Expr.And(Bpl.Expr.Le(Bpl.Expr.Literal(0), o), Bpl.Expr.Lt(o, bound));
-        } else {
-          Contract.Assert(expr.Type.IsNumericBased(Type.NumericPersuation.Real));
+        } else if (expr.Type.IsNumericBased(Type.NumericPersuation.Real)) {
           // Check "Int(expr) < (1 << toWdith)" in type "int"
           PutSourceIntoLocal();
           var bound = Bpl.Expr.Literal(toBound);
           var oi = FunctionCall(tok, BuiltinFunction.RealToInt, null, o);
           boundsCheck = Bpl.Expr.And(Bpl.Expr.Le(Bpl.Expr.Literal(0), oi), Bpl.Expr.Lt(oi, bound));
+        } else if (expr.Type.IsBigOrdinalType) {
+          var bound = Bpl.Expr.Literal(toBound);
+          var oi = FunctionCall(tok, "ORD#Offset", Bpl.Type.Int, o);
+          boundsCheck = Bpl.Expr.Lt(oi, bound);
         }
+
         if (boundsCheck != null) {
           builder.Add(Assert(tok, boundsCheck, string.Format("{0}value to be converted might not fit in {1}", errorMsgPrefix, toType)));
         }
@@ -8216,17 +8282,58 @@ namespace Microsoft.Dafny {
       if (toType.IsCharType) {
         if (expr.Type.IsNumericBased(Type.NumericPersuation.Int)) {
           PutSourceIntoLocal();
-          Bpl.Expr boundsCheck = Bpl.Expr.And(Bpl.Expr.Le(Bpl.Expr.Literal(0), o), Bpl.Expr.Lt(o, Bpl.Expr.Literal(65536)));
-          builder.Add(Assert(tok, boundsCheck, string.Format("{0}value to be converted might not fit in {1}", errorMsgPrefix, toType)));
+          Bpl.Expr boundsCheck =
+            Bpl.Expr.And(Bpl.Expr.Le(Bpl.Expr.Literal(0), o), Bpl.Expr.Lt(o, Bpl.Expr.Literal(65536)));
+          builder.Add(Assert(tok, boundsCheck,
+            string.Format("{0}value to be converted might not fit in {1}", errorMsgPrefix, toType)));
+        } else if (expr.Type.IsNumericBased(Type.NumericPersuation.Real)) {
+          PutSourceIntoLocal();
+          var oi = FunctionCall(tok, BuiltinFunction.RealToInt, null, o);
+          var boundsCheck =
+            Bpl.Expr.And(Bpl.Expr.Le(Bpl.Expr.Literal(0), oi), Bpl.Expr.Lt(oi, Bpl.Expr.Literal(65536)));
+          builder.Add(Assert(tok, boundsCheck,
+            string.Format("{0}real value to be converted might not fit in {1}", errorMsgPrefix, toType)));
+        } else if (expr.Type.IsBitVectorType) {
+          PutSourceIntoLocal();
+          var fromWidth = expr.Type.AsBitVectorType.Width;
+          var toWidth = 16;
+          if (toWidth < fromWidth) {
+            // Check "expr < (1 << toWidth)" in type "fromType" (note that "1 << toWidth" is indeed a value in "fromType")
+            PutSourceIntoLocal();
+            var toBound = Basetypes.BigNum.FromBigInt(BigInteger.One << toWidth); // 1 << toWidth
+            var bound = BplBvLiteralExpr(tok, toBound, expr.Type.AsBitVectorType);
+            var boundsCheck = FunctionCall(expr.tok, "lt_bv" + fromWidth, Bpl.Type.Bool, o, bound);
+            builder.Add(Assert(tok, boundsCheck,
+              string.Format("{0}bit-vector value to be converted might not fit in {1}", errorMsgPrefix, toType)));
+          }
+        } else if (expr.Type.IsBigOrdinalType) {
+          PutSourceIntoLocal();
+          var oi = FunctionCall(tok, "ORD#Offset", Bpl.Type.Int, o);
+          int toWidth = 16;
+          var toBound = Basetypes.BigNum.FromBigInt(BigInteger.One << toWidth); // 1 << toWidth
+          var bound = Bpl.Expr.Literal(toBound);
+          var boundsCheck = Bpl.Expr.Lt(oi, bound);
+          builder.Add(Assert(tok, boundsCheck,
+            string.Format("{0}ordinal value to be converted might not fit in {1}", errorMsgPrefix, toType)));
         }
-      } else if (toType.IsBigOrdinalType && expr.Type.IsNumericBased(Type.NumericPersuation.Int)) {
-        PutSourceIntoLocal();
-        Bpl.Expr boundsCheck = Bpl.Expr.Le(Bpl.Expr.Literal(0), o);
-        builder.Add(Assert(tok, boundsCheck, string.Format("{0}a negative integer cannot be converted to an {1}", errorMsgPrefix, toType)));
-      } else if (expr.Type.IsBigOrdinalType && toType.IsNumericBased(Type.NumericPersuation.Int)) {
-        PutSourceIntoLocal();
-        Bpl.Expr boundsCheck = FunctionCall(tok, "ORD#IsNat", Bpl.Type.Bool, o);
-        builder.Add(Assert(tok, boundsCheck, string.Format("{0}value to be converted might be bigger than every natural number", errorMsgPrefix)));
+      } else if (toType.IsBigOrdinalType) {
+        if (expr.Type.IsNumericBased(Type.NumericPersuation.Int)) {
+          PutSourceIntoLocal();
+          Bpl.Expr boundsCheck = Bpl.Expr.Le(Bpl.Expr.Literal(0), o);
+          builder.Add(Assert(tok, boundsCheck,
+            string.Format("{0}a negative integer cannot be converted to an {1}", errorMsgPrefix, toType)));
+        }
+        if (expr.Type.IsNumericBased(Type.NumericPersuation.Real)) {
+          PutSourceIntoLocal();
+          var oi = FunctionCall(tok, BuiltinFunction.RealToInt, null, o);
+          Bpl.Expr boundsCheck = Bpl.Expr.Le(Bpl.Expr.Literal(0), oi);
+          builder.Add(Assert(tok, boundsCheck,
+            string.Format("{0}a negative real cannot be converted to an {1}", errorMsgPrefix, toType)));
+        }
+      } else if (toType.IsNumericBased(Type.NumericPersuation.Int)) {
+        // already checked that BigOrdinal or real inputs are integral
+      } else if (toType.IsNumericBased(Type.NumericPersuation.Real)) {
+        // already checked that BigOrdinal is integral
       }
 
       if (toType.NormalizeExpandKeepConstraints().AsRedirectingType != null) {
@@ -8234,8 +8341,11 @@ namespace Microsoft.Dafny {
         Bpl.Expr be;
         if (expr.Type.IsNumericBased() || expr.Type.IsBitVectorType) {
           be = ConvertExpression(expr.tok, o, expr.Type, toType);
+        } else if (expr.Type.IsCharType) {
+          be = ConvertExpression(expr.tok, o, Dafny.Type.Int, toType);
         } else if (expr.Type.IsBigOrdinalType) {
           be = FunctionCall(expr.tok, "ORD#Offset", Bpl.Type.Int, o);
+          be = ConvertExpression(expr.tok, be, Dafny.Type.Int, toType);
         } else {
           be = o;
         }
@@ -8243,6 +8353,7 @@ namespace Microsoft.Dafny {
         CheckResultToBeInType_Aux(tok, new BoogieWrapper(be, dafnyType), toType.NormalizeExpandKeepConstraints(), builder, etran, errorMsgPrefix);
       }
     }
+      
     void CheckResultToBeInType_Aux(IToken tok, Expression expr, Type toType, BoogieStmtListBuilder builder, ExpressionTranslator etran, string errorMsgPrefix) {
       Contract.Requires(tok != null);
       Contract.Requires(expr != null);

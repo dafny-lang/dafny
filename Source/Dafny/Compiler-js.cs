@@ -2018,15 +2018,19 @@ namespace Microsoft.Dafny {
     }
 
     protected override void EmitConversionExpr(ConversionExpr e, bool inLetExprBody, TargetWriter wr) {
-      if (e.E.Type.IsNumericBased(Type.NumericPersuation.Int) || e.E.Type.IsBitVectorType || e.E.Type.IsCharType) {
-        if (e.ToType.IsNumericBased(Type.NumericPersuation.Real)) {
-          // (int or bv) -> real
+      if (e.E.Type.IsNumericBased(Type.NumericPersuation.Int) || e.E.Type.IsBitVectorType || e.E.Type.IsCharType || e.E.Type.IsBigOrdinalType) {
+        if (e.ToType.Equals(e.E.Type)) {
+          TrParenExpr(e.E, wr, inLetExprBody);
+        } else if (e.ToType.IsNumericBased(Type.NumericPersuation.Real)) {
+          // (int or bv or char) -> real
           Contract.Assert(AsNativeType(e.ToType) == null);
           wr.Write("new _dafny.BigRational(");
-          if (AsNativeType(e.E.Type) != null) {
+          if (AsNativeType(e.E.Type) != null || e.E.Type.IsCharType) {
             wr.Write("new BigNumber");
           }
+          if (e.E.Type.IsCharType) wr.Write("(");
           TrParenExpr(e.E, wr, inLetExprBody);
+          if (e.E.Type.IsCharType) wr.Write(".charCodeAt(0))");
           wr.Write(", new BigNumber(1))");
         } else if (e.ToType.IsCharType) {
           wr.Write("String.fromCharCode(");
@@ -2041,7 +2045,7 @@ namespace Microsoft.Dafny {
           var toNative = AsNativeType(e.ToType);
           if (fromNative != null && toNative != null) {
             // from a native, to a native -- simple!
-           TrExpr(e.E, wr, inLetExprBody);
+            TrExpr(e.E, wr, inLetExprBody);
           } else if (e.E.Type.IsCharType) {
             Contract.Assert(fromNative == null);
             if (toNative == null) {
@@ -2083,7 +2087,6 @@ namespace Microsoft.Dafny {
               TrParenExpr(e.E, wr, inLetExprBody);
               wr.Write(".toNumber()");
             }
-
           }
         }
       } else if (e.E.Type.IsNumericBased(Type.NumericPersuation.Real)) {
@@ -2104,11 +2107,12 @@ namespace Microsoft.Dafny {
             wr.Write(".toNumber()");
           }
         }
-      } else {
-        Contract.Assert(e.E.Type.IsBigOrdinalType);
-        Contract.Assert(e.ToType.IsNumericBased(Type.NumericPersuation.Int));
-        // identity will do
+      } else if (e.E.Type.IsBigOrdinalType) {
+        if (e.ToType.IsCharType) wr.Write("String.fromCharCode((");
         TrExpr(e.E, wr, inLetExprBody);
+        if (e.ToType.IsCharType) wr.Write(").toNumber())");
+      } else {
+        Contract.Assert(false, $"not implemented for javascript: {e.E.Type} -> {e.ToType}");
       }
     }
 
