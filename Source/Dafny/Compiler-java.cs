@@ -2058,14 +2058,9 @@ namespace Microsoft.Dafny{
           TrExpr(arg, wr, false);
           wr.Write(".verbatimString()");
         } else if (isGeneric) {
-          wr.Write("((java.util.function.Function<dafny.DafnySequence<?>,String>)(_s -> (_td___T.defaultValue().getClass() == java.lang.Character.class ? _s.verbatimString() : String.valueOf(_s)))).apply(");
+          wr.Write("((java.util.function.Function<dafny.DafnySequence<?>,String>)(_s -> (_s.elementType().defaultValue().getClass() == java.lang.Character.class ? _s.verbatimString() : String.valueOf(_s)))).apply(");
           TrExpr(arg, wr, false);
           wr.Write(")");
-          // wr.Write("(td___T.defaultValue().getClass() == java.lang.Character.class ? (");
-          // TrExpr(arg, wr, false);
-          // wr.Write(") : String.valueOf(");
-          // TrExpr(arg, wr, false);
-          // wr.Write(")).verbatimString()");
         } else {
           wr.Write("String.valueOf(");
           TrExpr(arg, wr, false);

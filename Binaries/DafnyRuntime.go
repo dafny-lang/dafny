@@ -68,43 +68,10 @@ func String(x interface{}) string {
 	}
 	return fmt.Sprint(x)
 }
-func StringForChars(x interface{}) string {
-        if x == nil {
-                return "null"
-        }
-        v := refl.ValueOf(x)
-        if isNil(v) {
-                return "null"
-        }
-        if v.Kind() == refl.Func {
-                return v.Type().String()
-        }
-        var vv, ok = x.(Seq)
-        if ok && !vv.isString {
-            s := "";
-            for i := 0; i < vv.LenInt(); i++ { s += fmt.Sprint(vv.contents[i]); }
-            return s;
-        }
-        return fmt.Sprint(x)
-}
-func IsElemChar(x interface{}) bool {
-        var vv, ok = x.(Seq)
-        if ok && !vv.isString && vv.LenInt() > 0 {
-            var _,okchar = vv.contents[0].(Char)
-            if (okchar) {
-                return true
-            }
-        }
-        return false
-}
-
 
 // Print prints the given value using fmt.Print, formatted using String.
 func Print(x interface{}) {
 	fmt.Print(String(x))
-}
-func PrintForChars(x interface{}) {
-	fmt.Print(StringForChars(x))
 }
 
 // SetFinalizer is a re-export of runtime.SetFinalizer.  Included here so that
@@ -432,6 +399,10 @@ func SeqOfString(str string) Seq {
 	return Seq{arr, true}
 }
 
+func (seq Seq) SetString() Seq {
+        return Seq{seq.contents, true}
+}
+
 // Index finds the sequence element at the given index.
 func (seq Seq) Index(i Int) interface{} {
 	return seq.IndexInt(i.Int())
@@ -706,10 +677,15 @@ func (array *Array) RangeToSeq(lo, hi Int) Seq {
 	if len(array.dims) != 1 {
 		panic("Can't take a slice of a multidimensional array")
 	}
+        isString := false;
+        if len(array.contents) > 0 {
+            _, isString = array.contents[0].(Char)
+        }
 
 	// TODO Should set isString to true if this is an array of characters
-	// (need to know it's an array of characters first!).
+	// Do not know if it is an array of characters if the array is empty
 	seq := SeqOf(array.contents...)
+        seq.isString = isString
 
 	return seq.Subseq(lo, hi)
 }
