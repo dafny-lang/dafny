@@ -1831,16 +1831,10 @@ namespace Microsoft.Dafny {
     }
 
     protected override void EmitPrintStmt(TargetWriter wr, Expression arg) {
-      bool isSeq = arg.Type.AsCollectionType != null &&
-                   arg.Type.AsCollectionType.AsSeqType != null;
       bool isString = arg.Type.AsCollectionType != null &&
                       arg.Type.AsCollectionType.AsSeqType != null &&
                       arg.Type.AsCollectionType.AsSeqType.Arg.IsCharType;
-      bool isStringLiteral = arg is StringLiteralExpr;
-      bool isGeneric = arg.Type.AsCollectionType != null &&
-                       arg.Type.AsCollectionType.AsSeqType != null &&
-                       arg.Type.AsCollectionType.AsSeqType.Arg.IsTypeParameter;
-      if (isString && !isStringLiteral) {
+      if (isString) { // needed for empty sequences known to be strings
         wr.Write("_dafny.Print(");
         wr.Write("(");
         TrExpr(arg, wr, false);
