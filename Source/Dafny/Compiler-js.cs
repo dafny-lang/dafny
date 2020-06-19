@@ -1042,32 +1042,22 @@ namespace Microsoft.Dafny {
     // ----- Statements -------------------------------------------------------------
 
     protected override void EmitPrintStmt(TargetWriter wr, Expression arg) {
-      bool isString = arg.Type.AsCollectionType != null &&
-                      arg.Type.AsCollectionType.AsSeqType != null &&
-                      arg.Type.AsCollectionType.AsSeqType.Arg.IsCharType;
+      bool isString = arg.Type.AsSeqType != null &&
+                      arg.Type.AsSeqType.Arg.IsCharType;
       bool isStringLiteral = arg is StringLiteralExpr;
-      bool isGeneric = arg.Type.AsCollectionType != null &&
-                       arg.Type.AsCollectionType.AsSeqType != null &&
-                       arg.Type.AsCollectionType.AsSeqType.Arg.IsTypeParameter;
-      if (isString && isStringLiteral) {
+      bool isGeneric = arg.Type.AsSeqType != null &&
+                       arg.Type.AsSeqType.Arg.IsTypeParameter;
+      if (isStringLiteral) {
         // process.stdout.write(_dafny.toString(x));
         wr.Write("process.stdout.write(_dafny.toString(");
         TrExpr(arg, wr, false);
         wr.WriteLine("));");
-      } else if (isString && !isStringLiteral) {
-        // try { process.stdout.write(_dafny.toString((x).join(""))); } catch (_error) { process.stdout.write(_dafny.toString(x)); }
-        wr.Write("try { process.stdout.write(_dafny.toString((");
+      } else if (isString) {
+        // isString && !isStringLiteral
+        wr.Write("process.stdout.write(_dafny.toString(_dafny.Seq.JoinIfPossible(");
         TrExpr(arg, wr, false);
-        wr.WriteLine(").join(\"\")));");
-        wr.Write(" } catch (_error) { process.stdout.write(_dafny.toString(");
-        TrExpr(arg, wr, false);
-        wr.WriteLine(")); }");
-      } else if (!isString && !isGeneric) {
-        // process.stdout.write(_dafny.toString(x));
-        wr.Write("process.stdout.write(_dafny.toString(");
-        TrExpr(arg, wr, false);
-        wr.WriteLine("));");
-      } else { // isGeneric
+        wr.WriteLine(")));");
+      } else if (isGeneric) {
         // try { process.stdout.write(_dafny.toString(((x) instanceof Array && typeof((x)[0]) == \"string\") ? (x).join("") : (x))); } catch (_error) { process.stdout.write(_dafny.toString(x)); }
         wr.Write("try { process.stdout.write(_dafny.toString(");
         wr.Write("(");
@@ -1086,6 +1076,11 @@ namespace Microsoft.Dafny {
         wr.Write("} catch (_error) { process.stdout.write(_dafny.toString(");
         TrExpr(arg, wr, false);
         wr.WriteLine("));}");
+      } else { // !isString && !isGeneric
+        // process.stdout.write(_dafny.toString(x));
+        wr.Write("process.stdout.write(_dafny.toString(");
+        TrExpr(arg, wr, false);
+        wr.WriteLine("));");
       }
     }
 

@@ -2048,12 +2048,10 @@ namespace Microsoft.Dafny{
         }
       } else {
         // TODO-RS: This doesn't handle strings printed out as part of datatypes
-        bool isString = arg.Type.AsCollectionType != null &&
-                        arg.Type.AsCollectionType.AsSeqType != null &&
-                        arg.Type.AsCollectionType.AsSeqType.Arg.IsCharType;
-        bool isGeneric = arg.Type.AsCollectionType != null &&
-                         arg.Type.AsCollectionType.AsSeqType != null &&
-                         arg.Type.AsCollectionType.AsSeqType.Arg.IsTypeParameter;
+        bool isString = arg.Type.AsSeqType != null &&
+                        arg.Type.AsSeqType.Arg.IsCharType;
+        bool isGeneric = arg.Type.AsSeqType != null &&
+                         arg.Type.AsSeqType.Arg.IsTypeParameter;
         if (isString) {
           TrExpr(arg, wr, false);
           wr.Write(".verbatimString()");

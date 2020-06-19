@@ -1831,26 +1831,18 @@ namespace Microsoft.Dafny {
     }
 
     protected override void EmitPrintStmt(TargetWriter wr, Expression arg) {
-      bool isString = arg.Type.AsCollectionType != null &&
-                      arg.Type.AsCollectionType.AsSeqType != null &&
-                      arg.Type.AsCollectionType.AsSeqType.Arg.IsCharType;
-      if (isString) {
-        // needed for empty sequences known to be strings
-        if (arg.Resolved is MemberSelectExpr &&
-            (arg.Resolved as MemberSelectExpr).Member.IsExtern(out _, out _)) {
-          wr.Write("_dafny.Print((");
-          TrExpr(arg, wr, false);
-          wr.WriteLine("))");
-        } else {
-          wr.Write("_dafny.Print((");
-          TrExpr(arg, wr, false);
-          wr.WriteLine(").SetString())");
-        }
-
-      } else {
+      bool isString = arg.Type.AsSeqType != null &&
+                      arg.Type.AsSeqType.Arg.IsCharType;
+      if (!isString || 
+          (arg.Resolved is MemberSelectExpr mse &&
+            mse.Member.IsExtern(out _, out _))) {
         wr.Write("_dafny.Print(");
         TrExpr(arg, wr, false);
-        wr.WriteLine(")");
+        wr.WriteLine(")"); 
+      } else {
+        wr.Write("_dafny.Print((");
+        TrExpr(arg, wr, false);
+        wr.WriteLine(").SetString())");
       }
     }
 
