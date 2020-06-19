@@ -49,6 +49,7 @@ namespace Microsoft.Dafny {
       ModuleName = MainModuleName = HasMain(program, out _) ? "main" : Path.GetFileNameWithoutExtension(program.Name);
 
       wr.WriteLine("package {0}", ModuleName);
+      //wr.WriteLine("import \"strings\"");
       wr.WriteLine();
       // Keep the import writers so that we can import subsequent modules into the main one
       EmitImports(wr, out RootImportWriter, out RootImportDummyWriter);
@@ -1831,9 +1832,35 @@ namespace Microsoft.Dafny {
     }
 
     protected override void EmitPrintStmt(TargetWriter wr, Expression arg) {
-      wr.Write("_dafny.Print(");
-      TrExpr(arg, wr, false);
-      wr.WriteLine(")");
+      bool isString = arg.Type.AsCollectionType != null &&
+                      arg.Type.AsCollectionType.AsSeqType != null &&
+                      arg.Type.AsCollectionType.AsSeqType.Arg.IsCharType;
+      bool isStringLiteral = arg is StringLiteralExpr;
+      bool isGeneric = arg.Type.AsCollectionType != null &&
+                       arg.Type.AsCollectionType.AsSeqType != null &&
+                       arg.Type.AsCollectionType.AsSeqType.Arg.IsTypeParameter;
+      // if (!isStringLiteral) {
+      //   wr.Write("_dafny.Print((");
+      //   TrExpr(arg, wr, false);
+      //   wr.WriteLine(").isString)");
+      // }
+      if (isString && !isStringLiteral) {
+        wr.Write("_dafny.PrintForChars(");
+        TrExpr(arg, wr, false);
+        wr.WriteLine(")");
+      } else if (isGeneric) {
+        wr.Write("if _dafny.IsElemChar(");
+        TrExpr(arg, wr, false);
+        wr.Write(") { _dafny.PrintForChars(");
+        TrExpr(arg, wr, false);
+        wr.Write(") } else { _dafny.Print(");
+        TrExpr(arg, wr, false);
+        wr.WriteLine(") }");
+      } else {
+        wr.Write("_dafny.Print(");
+        TrExpr(arg, wr, false);
+        wr.WriteLine(")");
+      }
     }
 
     protected override void EmitReturn(List<Formal> outParams, TargetWriter wr) {

@@ -68,10 +68,43 @@ func String(x interface{}) string {
 	}
 	return fmt.Sprint(x)
 }
+func StringForChars(x interface{}) string {
+        if x == nil {
+                return "null"
+        }
+        v := refl.ValueOf(x)
+        if isNil(v) {
+                return "null"
+        }
+        if v.Kind() == refl.Func {
+                return v.Type().String()
+        }
+        var vv, ok = x.(Seq)
+        if ok && !vv.isString {
+            s := "";
+            for i := 0; i < vv.LenInt(); i++ { s += fmt.Sprint(vv.contents[i]); }
+            return s;
+        }
+        return fmt.Sprint(x)
+}
+func IsElemChar(x interface{}) bool {
+        var vv, ok = x.(Seq)
+        if ok && !vv.isString && vv.LenInt() > 0 {
+            var _,okchar = vv.contents[0].(Char)
+            if (okchar) {
+                return true
+            }
+        }
+        return false
+}
+
 
 // Print prints the given value using fmt.Print, formatted using String.
 func Print(x interface{}) {
 	fmt.Print(String(x))
+}
+func PrintForChars(x interface{}) {
+	fmt.Print(StringForChars(x))
 }
 
 // SetFinalizer is a re-export of runtime.SetFinalizer.  Included here so that

@@ -1042,9 +1042,47 @@ namespace Microsoft.Dafny {
     // ----- Statements -------------------------------------------------------------
 
     protected override void EmitPrintStmt(TargetWriter wr, Expression arg) {
-      wr.Write("process.stdout.write(_dafny.toString(");
-      TrExpr(arg, wr, false);
-      wr.WriteLine("));");
+      bool isString = arg.Type.AsCollectionType != null &&
+                      arg.Type.AsCollectionType.AsSeqType != null &&
+                      arg.Type.AsCollectionType.AsSeqType.Arg.IsCharType;
+      bool isStringLiteral = arg is StringLiteralExpr;
+      bool isGeneric = arg.Type.AsCollectionType != null &&
+                       arg.Type.AsCollectionType.AsSeqType != null &&
+                       arg.Type.AsCollectionType.AsSeqType.Arg.IsTypeParameter;
+      if (isString && isStringLiteral) {
+        wr.Write("process.stdout.write(_dafny.toString(");
+        TrExpr(arg, wr, false);
+        wr.WriteLine("));");
+      } else if (isString && !isStringLiteral) {
+        wr.Write("try { process.stdout.write(_dafny.toString(");
+        TrExpr(arg, wr, false);
+        wr.WriteLine(".join(\"\")));");
+        wr.Write(" } catch (_error) { process.stdout.write(_dafny.toString(");
+        TrExpr(arg, wr, false);
+        wr.WriteLine("));}");
+      } else if (!isString && !isGeneric) {
+        wr.Write("process.stdout.write(_dafny.toString(");
+        TrExpr(arg, wr, false);
+        wr.WriteLine("));");
+      } else {//if (!isString && isGeneric) {
+        wr.Write("try { process.stdout.write(_dafny.toString(");
+        wr.Write("(");
+        wr.Write("(");
+        TrExpr(arg, wr, false);
+        wr.Write(") instanceof Array && typeof((");
+        TrExpr(arg, wr, false);
+        wr.Write(")[0]) == \"string\") ? ");
+        wr.Write("(");
+        TrExpr(arg, wr, false);
+        wr.Write(").join(\"\")");
+        wr.Write(":");
+        wr.Write("(");
+        TrExpr(arg, wr, false);
+        wr.Write(")));");
+        wr.Write("} catch (_error) { process.stdout.write(_dafny.toString(");
+        TrExpr(arg, wr, false);
+        wr.WriteLine("));}");
+      }
     }
 
     protected override void EmitReturn(List<Formal> outParams, TargetWriter wr) {
