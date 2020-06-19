@@ -31,7 +31,7 @@ lemma d()
   var testbv: bv16 := a as bv16;
   var testval: int := testbv as int;
 
-  assert testval == a; // "Timed out on: assertion violation"
+  assert testval == a; // OK
 }
 lemma e()
 {
@@ -39,7 +39,8 @@ lemma e()
   var testbv: bv8 := a as bv8;
   var testval: int := testbv as int;
 
-  assert testval == a; // "Timed out on: assertion violation"
+  assert testval == a; // OK
 }
 
-// The longer bit vector operations are likely to timeout, but none should error
+// The longer bit vector operations currently timeout (because of Z3's inefficient support for bit-vector/int conversions), 
+// but the shorter bit width attempts should verify OK
