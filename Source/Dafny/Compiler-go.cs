@@ -1834,11 +1834,19 @@ namespace Microsoft.Dafny {
       bool isString = arg.Type.AsCollectionType != null &&
                       arg.Type.AsCollectionType.AsSeqType != null &&
                       arg.Type.AsCollectionType.AsSeqType.Arg.IsCharType;
-      if (isString) { // needed for empty sequences known to be strings
-        wr.Write("_dafny.Print(");
-        wr.Write("(");
-        TrExpr(arg, wr, false);
-        wr.WriteLine(").SetString())");
+      if (isString) {
+        // needed for empty sequences known to be strings
+        if (arg.Resolved is MemberSelectExpr &&
+            (arg.Resolved as MemberSelectExpr).Member.IsExtern(out _, out _)) {
+          wr.Write("_dafny.Print((");
+          TrExpr(arg, wr, false);
+          wr.WriteLine("))");
+        } else {
+          wr.Write("_dafny.Print((");
+          TrExpr(arg, wr, false);
+          wr.WriteLine(").SetString())");
+        }
+
       } else {
         wr.Write("_dafny.Print(");
         TrExpr(arg, wr, false);
