@@ -2610,6 +2610,26 @@ namespace Microsoft.Dafny {
     }
 
     /// <summary>
+    /// If "member" is non-null and "member.EnclosingClass" is a trait, then:
+    ///   Return a type representing "member.EnclosingClass", with type parameters as if there had been an upcast from
+    ///   "receiverType".
+    ///   Assumes that "receiverType" normalizes to a UserDefinedFunction with a .ResolveClass that is a subtype
+    ///   of "member.EnclosingClass".
+    /// Otherwise:
+    ///   Return "type".
+    /// </summary>
+    public static Type UpcastToMemberEnclosingType(Type receiverType, MemberDecl/*?*/ member) {
+      Contract.Requires(receiverType != null);
+      if (member?.EnclosingClass is TraitDecl) {
+        var cl = (ClassDecl)((UserDefinedType)receiverType.NormalizeExpand()).ResolvedClass;
+        var rawTrait = UserDefinedType.FromTopLevelDecl(member.tok, member.EnclosingClass);
+        return Resolver.SubstType(rawTrait, cl.ParentFormalTypeParametersToActuals);
+      } else {
+        return receiverType;
+      }
+    }
+
+    /// <summary>
     /// This constructor constructs a resolved class/datatype/iterator/subset-type/newtype type
     /// </summary>
     public UserDefinedType(IToken tok, string name, TopLevelDecl cd, [Captured] List<Type> typeArgs, Expression/*?*/ namePath = null) {

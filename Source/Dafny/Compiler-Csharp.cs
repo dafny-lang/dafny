@@ -190,7 +190,7 @@ namespace Microsoft.Dafny
       foreach (var member in iter.Members) {
         var f = member as Field;
         if (f != null && !f.IsGhost) {
-          cw.DeclareField(IdName(f), iter, false, false, f.Type, f.tok, DefaultValue(f.Type, w, f.tok));
+          cw.DeclareField(IdName(f), iter, false, false, f.Type, f.tok, DefaultValue(f.Type, w, f.tok), f);
         } else if (member is Constructor) {
           Contract.Assert(ct == null);  // we're expecting just one constructor
           ct = (Constructor)member;
@@ -653,7 +653,7 @@ namespace Microsoft.Dafny
         var witness = new TargetWriter(w.IndentLevel, true);
         TrExpr(nt.Witness, witness, false);
         if (nt.NativeType == null) {
-          cw.DeclareField("Witness", nt, true, true, nt.BaseType, nt.tok, witness.ToString());
+          cw.DeclareField("Witness", nt, true, true, nt.BaseType, nt.tok, witness.ToString(), null);
         } else {
           w.Write("public static readonly {0} Witness = ({0})(", GetNativeTypeName(nt.NativeType));
           w.Append(witness);
@@ -668,7 +668,7 @@ namespace Microsoft.Dafny
       if (sst.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
         var sw = new TargetWriter(cw.InstanceMemberWriter.IndentLevel, true);
         TrExpr(sst.Witness, sw, false);
-        cw.DeclareField("Witness", sst, true, true, sst.Rhs, sst.tok, sw.ToString());
+        cw.DeclareField("Witness", sst, true, true, sst.Rhs, sst.tok, sw.ToString(), null);
       }
     }
 
@@ -689,24 +689,24 @@ namespace Microsoft.Dafny
         this.StaticMemberWriter = staticMemberWriter == null ? instanceMemberWriter : staticMemberWriter;
       }
 
-      public BlockTargetWriter Writer(bool isStatic) {
-        return isStatic ? StaticMemberWriter : InstanceMemberWriter;
+      public BlockTargetWriter Writer(bool isStatic, MemberDecl/*?*/ member) {
+        return isStatic || (member != null && member.EnclosingClass is TraitDecl && NeedsCustomReceiver(member)) ? StaticMemberWriter : InstanceMemberWriter;
       }
 
       public BlockTargetWriter/*?*/ CreateMethod(Method m, bool createBody) {
-        return Compiler.CreateMethod(m, createBody, Writer(m.IsStatic));
+        return Compiler.CreateMethod(m, createBody, Writer(m.IsStatic, m));
       }
       public BlockTargetWriter/*?*/ CreateFunction(string name, List<TypeParameter> typeArgs, List<Formal> formals, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl member) {
-        return Compiler.CreateFunction(name, typeArgs, formals, resultType, tok, isStatic, createBody, member, Writer(isStatic));
+        return Compiler.CreateFunction(name, typeArgs, formals, resultType, tok, isStatic, createBody, member, Writer(isStatic, member));
       }
       public BlockTargetWriter/*?*/ CreateGetter(string name, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl/*?*/ member) {
-        return Compiler.CreateGetter(name, resultType, tok, isStatic, createBody, Writer(isStatic));
+        return Compiler.CreateGetter(name, resultType, tok, isStatic, createBody, Writer(isStatic, member));
       }
       public BlockTargetWriter/*?*/ CreateGetterSetter(string name, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl/*?*/ member, out TargetWriter setterWriter) {
-        return Compiler.CreateGetterSetter(name, resultType, tok, isStatic, createBody, out setterWriter, Writer(isStatic));
+        return Compiler.CreateGetterSetter(name, resultType, tok, isStatic, createBody, out setterWriter, Writer(isStatic, member));
       }
-      public void DeclareField(string name, TopLevelDecl enclosingDecl, bool isStatic, bool isConst, Type type, Bpl.IToken tok, string rhs) {
-        Compiler.DeclareField(name, isStatic, isConst, type, tok, rhs, Writer(isStatic));
+      public void DeclareField(string name, TopLevelDecl enclosingDecl, bool isStatic, bool isConst, Type type, Bpl.IToken tok, string rhs, Field field) {
+        Compiler.DeclareField(name, isStatic, isConst, type, tok, rhs, Writer(isStatic, field));
       }
       public void InitializeField(Field field, Type instantiatedFieldType, TopLevelDeclWithMembers enclosingClass) {
         throw new NotSupportedException();  // InitializeField should be called only for those compilers that set ClassesRedeclareInheritedFields to false.
@@ -1075,6 +1075,7 @@ namespace Microsoft.Dafny
     }
 
     protected override string TypeName_Companion(Type type, TextWriter wr, Bpl.IToken tok, MemberDecl/*?*/ member) {
+      type = UserDefinedType.UpcastToMemberEnclosingType(type, member);
       if (type is UserDefinedType udt && udt.ResolvedClass is TraitDecl) {
         return TypeName_UDT(udt.FullCompanionCompileName, udt.TypeArgs, wr, tok);
       } else {

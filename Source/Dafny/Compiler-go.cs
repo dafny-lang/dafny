@@ -470,7 +470,7 @@ namespace Microsoft.Dafny {
       Constructor ct = null;
       foreach (var member in iter.Members) {
         if (member is Field f && !f.IsGhost) {
-          cw.DeclareField(IdName(f), iter, false, false, f.Type, f.tok, DefaultValue(f.Type, wr, f.tok));
+          cw.DeclareField(IdName(f), iter, false, false, f.Type, f.tok, DefaultValue(f.Type, wr, f.tok), f);
         } else if (member is Constructor c) {
           Contract.Assert(ct == null);
           ct = c;
@@ -1063,7 +1063,7 @@ namespace Microsoft.Dafny {
       public BlockTargetWriter/*?*/ CreateGetterSetter(string name, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl/*?*/ member, out TargetWriter setterWriter) {
         return Compiler.CreateGetterSetter(name, resultType, tok, isStatic, createBody, member, name, out setterWriter, ConcreteMethodWriter);
       }
-      public void DeclareField(string name, TopLevelDecl enclosingDecl, bool isStatic, bool isConst, Type type, Bpl.IToken tok, string rhs) {
+      public void DeclareField(string name, TopLevelDecl enclosingDecl, bool isStatic, bool isConst, Type type, Bpl.IToken tok, string rhs, Field field) {
         // FIXME: This should probably be done in Compiler.DeclareField().
         // Should just have these delegate methods take the ClassWriter as an
         // argument.
@@ -1660,6 +1660,7 @@ namespace Microsoft.Dafny {
     }
 
     protected override string TypeName_Companion(Type type, TextWriter wr, Bpl.IToken tok, MemberDecl/*?*/ member) {
+      type = UserDefinedType.UpcastToMemberEnclosingType(type, member);
       // XXX This duplicates some of the logic in UserDefinedTypeName, but if we
       // don't do it here, we end up passing the name of the module to
       // FormatCompanionName, which doesn't help anyone
