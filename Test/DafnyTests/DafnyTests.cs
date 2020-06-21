@@ -13,13 +13,25 @@ namespace DafnyTests {
 
     public class DafnyTests {
 
-        private static string ROOT = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
-
-        private static string DAFNY_EXE = Path.Combine(ROOT, "Dafny.exe");
-        private static string TEST_ROOT = Path.Combine(ROOT, "Test") + Path.DirectorySeparatorChar;
+        private static DirectoryInfo OUTPUT_ROOT = new DirectoryInfo(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location));
+        
+        private static string DAFNY_EXE = FindDafnyExe();
+        private static string TEST_ROOT = Path.Combine(OUTPUT_ROOT.FullName, "Test") + Path.DirectorySeparatorChar;
         private static string COMP_DIR = Path.Combine(TEST_ROOT, "comp") + Path.DirectorySeparatorChar;
         private static string OUTPUT_DIR = Path.Combine(TEST_ROOT, "Output") + Path.DirectorySeparatorChar;
 
+        private static string FindDafnyExe() {
+            var path = OUTPUT_ROOT;
+            while (path.Parent != null) {
+                var exePath = Path.Combine(Path.Combine(path.FullName, "Binaries"), "Dafny.exe");
+                if (File.Exists(exePath)) {
+                    return exePath;
+                }
+                path = path.Parent;
+            }
+            throw new FileNotFoundException();
+        }
+        
         public static string RunDafny(IEnumerable<string> arguments) {
             List<string> dafnyArguments = new List<string> {
                 // Expected output does not contain logo
