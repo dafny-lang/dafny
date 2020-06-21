@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:0 "%s" > "%t"
+// RUN: %dafny /compile:1 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 method StatementsInCompiledMethod() {
@@ -36,23 +36,23 @@ ghost method StatementsInGhostMethod() {
 
 method ExpressionsInCompiledMethod() {
   var a :=
-    assume false;  // BOGUS: missing error
+    assume false;  // error
     5;
   var b :=
     calc {
       100;
-    ==  { assume false; }  // BOGUS: missing error
+    ==  { assume false; }  // error
       100;
     }
     5;
   var c :=
     assert true by {
-      assume false;  // BOGUS: missing error
+      assume false;  // error
     }
     5;
   var d :=
     ghost var g := 5;
-    assume false;  // BOGUS: missing error
+    assume false;  // error
     5;
     
   ghost var x :=
@@ -119,17 +119,17 @@ ghost method ExpressionsInGhostMethod() {
 }
 
 function method CompiledFunction(): int {
-  assume false;  // BOGUS: missing error
+  assume false;  // error
   calc {
     100;
-  ==  { assume false; }  // BOGUS: missing error
+  ==  { assume false; }  // error
     100;
   }
   assert true by {
-    assume false;  // BOGUS: missing error
+    assume false;  // error
   }
   ghost var g := 5;
-  assume false;  // BOGUS: missing error
+  assume false;  // error
   5
 }
 
