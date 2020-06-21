@@ -1,5 +1,6 @@
 <Project>
     <PropertyGroup Condition="$(MSBuildProjectName.Contains('NetCore'))">
         <BaseIntermediateOutputPath>obj_core\</BaseIntermediateOutputPath>
+        <BaseOutputPath>bin_core\</BaseOutputPath>
     </PropertyGroup>
 </Project>

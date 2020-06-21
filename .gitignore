@@ -26,6 +26,7 @@ Package/
 
 Source/*/bin/
 Source/*/obj/
+Source/*/bin_core/
 Source/*/obj_core/
 Source/packages
 
@@ -38,6 +39,7 @@ Source/DafnyExtension/z3.exe
 
 Test/*/bin/
 Test/*/obj/
+Test/*/bin_core/
 Test/*/obj_core/
 Test/packages
 Test/traits/TraitCompile.cs

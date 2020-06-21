@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using Xunit;
 using Xunit.Sdk;
 using YamlDotNet.RepresentationModel;
@@ -12,11 +13,10 @@ namespace DafnyTests {
 
     public class DafnyTests {
 
-        private static string DAFNY_ROOT = new DirectoryInfo(Directory.GetCurrentDirectory()).Parent.Parent.Parent
-            .Parent.Parent.FullName;
+        private static string ROOT = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
 
-        private static string DAFNY_EXE = Path.Combine(DAFNY_ROOT, "Binaries/Dafny.exe");
-        private static string TEST_ROOT = Path.Combine(DAFNY_ROOT, "Test") + Path.DirectorySeparatorChar;
+        private static string DAFNY_EXE = Path.Combine(ROOT, "Dafny.exe");
+        private static string TEST_ROOT = Path.Combine(ROOT, "Test") + Path.DirectorySeparatorChar;
         private static string COMP_DIR = Path.Combine(TEST_ROOT, "comp") + Path.DirectorySeparatorChar;
         private static string OUTPUT_DIR = Path.Combine(TEST_ROOT, "Output") + Path.DirectorySeparatorChar;
 
@@ -37,9 +37,9 @@ namespace DafnyTests {
 
             using (Process dafnyProcess = new Process()) {
                 dafnyProcess.StartInfo.FileName = "mono";
-                dafnyProcess.StartInfo.ArgumentList.Add(DAFNY_EXE);
+                dafnyProcess.StartInfo.Arguments += DAFNY_EXE;
                 foreach (var argument in dafnyArguments) {
-                    dafnyProcess.StartInfo.ArgumentList.Add(argument);
+                    dafnyProcess.StartInfo.Arguments += " " + argument;
                 }
 
                 dafnyProcess.StartInfo.UseShellExecute = false;
@@ -71,10 +71,7 @@ namespace DafnyTests {
         private static string Exec(string file, params string[] arguments) {
             using (Process dafnyProcess = new Process()) {
                 dafnyProcess.StartInfo.FileName = file;
-                foreach (var argument in arguments) {
-                    dafnyProcess.StartInfo.ArgumentList.Add(argument);
-                }
-
+                dafnyProcess.StartInfo.Arguments = String.Join(" ", arguments);
                 dafnyProcess.StartInfo.UseShellExecute = false;
                 dafnyProcess.StartInfo.RedirectStandardOutput = true;
                 dafnyProcess.StartInfo.RedirectStandardError = true;
@@ -82,10 +79,6 @@ namespace DafnyTests {
 
                 dafnyProcess.Start();
                 dafnyProcess.WaitForExit();
-//                if (dafnyProcess.ExitCode != 0) {
-//                    string error = dafnyProcess.StandardError.ReadToEnd();
-//                    throw new Exception(error);                    
-//                }
                 return dafnyProcess.StandardOutput.ReadToEnd();
             }
         }
@@ -120,7 +113,7 @@ namespace DafnyTests {
 
         private static IEnumerable<KeyValuePair<YamlNode, YamlNode>>
             ExpandValue(KeyValuePair<YamlNode, YamlNode> pair) {
-            return Expand(pair.Value).Select(v => KeyValuePair.Create(pair.Key, v));
+            return Expand(pair.Value).Select(v => new KeyValuePair<YamlNode, YamlNode>(pair.Key, v));
         }
 
         private static YamlMappingNode FromPairs(IEnumerable<KeyValuePair<YamlNode, YamlNode>> pairs) {

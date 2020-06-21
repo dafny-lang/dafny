@@ -2,6 +2,7 @@
 
     <PropertyGroup>
         <TargetFramework>netcoreapp2.1</TargetFramework>
+        <AssemblyName>DafnyTests</AssemblyName>
     </PropertyGroup>
 
     <ItemGroup>
@@ -11,6 +12,11 @@
         <PackageReference Include="xunit.runner.visualstudio" Version="2.4.1" />
         <PackageReference Include="Xunit.SkippableFact" Version="1.4.8" />
         <PackageReference Include="YamlDotNet" Version="8.1.2" />
+        <ProjectReference Include="../../Source/DafnyDriver.csproj" />
+    </ItemGroup>
+    
+    <ItemGroup>
+        <Content Include="../**/*.*" Exclude="../DafnyTests/**/*.*" CopyToOutputDirectory="PreserveNewest" LinkBase="Test" />
     </ItemGroup>
     
 </Project>
