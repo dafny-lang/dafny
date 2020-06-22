@@ -45,9 +45,9 @@ jobs:
         unzip z3*.zip && rm *.zip
         cp -r z3* dafny/Binaries/z3
     - name: Nuget Restore Dafny
-      run: nuget restore dafny/Source/Dafny.sln
+      run: nuget restore dafny/Dafny.sln
     - name: Build Dafny
-      run: msbuild dafny/Source/Dafny.sln
+      run: msbuild dafny/Dafny.sln
     - uses: actions/setup-node@v1
     - run: npm install bignumber.js
     - name: Run Dafny tests
