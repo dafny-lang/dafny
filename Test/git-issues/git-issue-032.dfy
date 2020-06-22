@@ -5,32 +5,29 @@
 // RUN: %dafny /noVerify /compile:4 /compileTarget:java "%s" >> "%t"
 // RUN: %diff "%s.expect" "%t"
 
-function t2(a: int, b:int): (int,int) { (a,b) }
-function t0(): () { () } 
 
 method Main() {
   m();
   mm();
-  mmm();
 }
    
 method m() {
   var x := (2,3);
   match x { case (2,y) => print "OK",y; case _ => print "DEF"; }
   print "\n";
-}
-   
-method mm() {
-  var x := (2,3);
-  match x { case () => print "OK"; case _ => print "DEF"; }
+  match x { case zz => print "OK"; case _ => print "DEF"; } // warning
   print "\n";
 }
-   
-method mmm() {
+  
+method mm() {
   var x := ();
   match x { case () => print "OK"; }
+  match () { case () => print "OK"; }
   print "\n";
+  var z := match x { case () => 0 case _ => 1 }; // warning
+  var y := match () { case () => 0 case _ => 1 }; // warning
+  print z, y, "\n";
 }
-   
+ 
 
 
