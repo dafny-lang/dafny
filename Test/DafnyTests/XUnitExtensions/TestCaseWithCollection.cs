@@ -21,7 +21,6 @@ namespace XUnitExtensions {
             this.testMethod = new TestMethod(testClassWithCollection, testCase.TestMethod.Method);
         }
         
-        [EditorBrowsable(EditorBrowsableState.Never)]
         [Obsolete("Called by the de-serializer", error: true)]
         public TestCaseWithCollection() { }
         
