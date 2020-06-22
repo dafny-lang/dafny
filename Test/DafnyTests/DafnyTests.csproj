@@ -33,11 +33,14 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="System" />
     <PackageReference Include="xunit" Version="2.4.1" />
     <PackageReference Include="xunit.runner.msbuild" Version="2.4.1" />
     <PackageReference Include="Xunit.SkippableFact" Version="1.4.8" />
     <PackageReference Include="YamlDotNet" Version="8.1.2" />
-    <ProjectReference Include="../../Source/DafnyDriver/DafnyDriver.csproj"/>
+    <ProjectReference Include="../../Source/DafnyDriver/DafnyDriver.csproj">
+      <PrivateAssets>true</PrivateAssets>
+    </ProjectReference>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="*.cs" />
@@ -71,6 +74,6 @@
     </Target>
     -->
   <Target Name="Test" DependsOnTargets="Build">
-    <xunit Assemblies="$(OutDir)$(AssemblyName).dll" Reporter="verbose" />
+    <xunit Assemblies="$(OutDir)$(AssemblyName).dll" Reporter="verbose" ShadowCopy="false" />
   </Target>
 </Project>

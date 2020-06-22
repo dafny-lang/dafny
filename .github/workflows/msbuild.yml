@@ -52,4 +52,4 @@ jobs:
     - uses: actions/setup-node@v1
     - run: npm install bignumber.js
     - name: Run Dafny tests
-      run: msbuild =t:Test dafny/Test/DafnyTests/DafnyTests.csproj
+      run: dotnet test dafny/Test/DafnyTests/DafnyTests-NetCore.csproj --logger:"console;verbosity=normal"

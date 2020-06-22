@@ -13,13 +13,15 @@ namespace DafnyTests {
 
     public class DafnyTests {
 
-        private static DirectoryInfo OUTPUT_ROOT = new DirectoryInfo(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location));
-        
-        private static string DAFNY_EXE = Path.Combine(OUTPUT_ROOT.FullName, "Dafny.exe");
-        private static string TEST_ROOT = Path.Combine(OUTPUT_ROOT.FullName, "Test") + Path.DirectorySeparatorChar;
+        private static DirectoryInfo OUTPUT_ROOT = new DirectoryInfo(Directory.GetCurrentDirectory());
+        private static string DAFNY_ROOT = OUTPUT_ROOT.Parent.Parent.Parent.Parent.Parent.FullName;
+
+        private static string TEST_ROOT = Path.Combine(DAFNY_ROOT, "Test") + Path.DirectorySeparatorChar;
         private static string COMP_DIR = Path.Combine(TEST_ROOT, "comp") + Path.DirectorySeparatorChar;
         private static string OUTPUT_DIR = Path.Combine(TEST_ROOT, "Output") + Path.DirectorySeparatorChar;
 
+        private static string DAFNY_EXE = Path.Combine(DAFNY_ROOT, "Binaries/Dafny.exe");
+        
         public static string RunDafny(IEnumerable<string> arguments) {
             List<string> dafnyArguments = new List<string> {
                 // Expected output does not contain logo
@@ -139,8 +141,7 @@ namespace DafnyTests {
 
         public static IEnumerable<object[]> AllTestFiles() {
             var filePaths = Directory.GetFiles(COMP_DIR, "*.dfy", SearchOption.AllDirectories)
-                .Select(path => GetRelativePath(TEST_ROOT, path));
-//            var filePaths = Assembly.GetExecutingAssembly().GetManifestResourceNames();
+                                     .Select(path => GetRelativePath(TEST_ROOT, path));
             return filePaths.SelectMany(TestCasesForDafnyFile);
         }
 
@@ -207,7 +208,7 @@ namespace DafnyTests {
             if (expected != actual) {
                 // TODO-RS: Do better than shelling out to a linux utility.
                 // Disappointingly, I couldn't find any easy solutions for an in-memory
-                
+                // unified diff calculation.
                 string expectedPath = Path.GetTempFileName();
                 File.WriteAllText(expectedPath, expected);
                 string actualPath = Path.GetTempFileName();
@@ -242,7 +243,7 @@ namespace DafnyTests {
                 }
             }
             
-            var argumentsWithFile = new List<string> {file}.Concat(arguments);
+            var argumentsWithFile = new List<string> {fullInputPath}.Concat(arguments);
             var expectedOutput = File.ReadAllText(expectedOutputPath);
 
             string output;

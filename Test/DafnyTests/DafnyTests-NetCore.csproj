@@ -12,12 +12,12 @@
         <PackageReference Include="xunit.runner.visualstudio" Version="2.4.1" />
         <PackageReference Include="Xunit.SkippableFact" Version="1.4.8" />
         <PackageReference Include="YamlDotNet" Version="8.1.2" />
-        <ProjectReference Include="../../Source/DafnyDriver/DafnyDriver.csproj" />
+<!--        <ProjectReference Include="../../Source/DafnyDriver/DafnyDriver.csproj" />-->
     </ItemGroup>
-    
-    <ItemGroup>
-        <Content Include="../**/*.*" Exclude="../DafnyTests/**/*.*" CopyToOutputDirectory="PreserveNewest" LinkBase="Test" />
-        <None Include="../../Binaries/z3/**/*.*" CopyToOutputDirectory="PreserveNewest" LinkBase="z3" />
-    </ItemGroup>
+
+<!--    <ItemGroup>-->
+<!--        <Content Include="../**/*.*" Exclude="../DafnyTests/**/*.*" CopyToOutputDirectory="PreserveNewest" LinkBase="Test" />-->
+<!--        <None Include="../../Binaries/z3/**/*.*" CopyToOutputDirectory="PreserveNewest" LinkBase="z3" />-->
+<!--    </ItemGroup>-->
     
 </Project>
