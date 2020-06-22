@@ -15,6 +15,7 @@ For details and more configuration options, see [the DafnyTests.cs source](Test/
   * This is mostly working except for errors around missing types from System.dll when compiling to C#
 * Complete support for both the .NET Framework solution as well as the .NET Core one
 * Add support for regular expression matching against CLI output (needed to assert known limitations that cause errors with things like absolute paths names in them)
+* By default, verify source files separately and skip verification when compiling to each target language
 * Add support for sharding ala lit's `--run-shard / --num-shards` options
 * Finish converting the rest of the test cases
   * Will write a small script to do this automatically for all recognized combinations of lit `// RUN` commands
