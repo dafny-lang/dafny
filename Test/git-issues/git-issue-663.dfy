@@ -309,3 +309,40 @@ function GhostFunctionCaller(): int {
   ghost var e := Dt(assume false; 5, assume false; 6);  // error (x2)
   100
 }
+
+class A {
+
+  method StatementsInCompiledMethod() {
+    assume false;  // error
+    calc {
+      100;
+    ==  { assume false; }  // error
+      100;
+    }
+    assert true by {
+      assume false;  // error
+    }
+    ghost var b := true;
+    if b {
+      assume false;  // error
+    }
+  }
+
+  ghost method StatementsInGhostMethod() {
+    // statements
+    assume false;  // error
+    calc {
+      100;
+    ==  { assume false; }  // error
+      100;
+    }
+    assert true by {
+      assume false;  // error
+    }
+    ghost var b := true;
+    if b {
+      assume false;  // error
+    }
+  }
+ 
+}
