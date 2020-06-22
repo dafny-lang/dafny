@@ -17,6 +17,7 @@ For details and more configuration options, see [the DafnyTests.cs source](Test/
 * Add support for regular expression matching against CLI output (needed to assert known limitations that cause errors with things like absolute paths names in them)
 * By default, verify source files separately and skip verification when compiling to each target language
 * Add support for sharding ala lit's `--run-shard / --num-shards` options
+* Expose test case options as traits so that they can be filtered on (e.g. `dotnet test --filter compileTarget=java`)
 * Finish converting the rest of the test cases
   * Will write a small script to do this automatically for all recognized combinations of lit `// RUN` commands
 * Extract most of the xUnit extensions as a separate package, since most of it is generically useful for any other data-driven xUnit tests.
