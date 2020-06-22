@@ -151,118 +151,118 @@ function GhostFunction(): int {
 // --------------------------------------------------
 
 method SpecificationOfCompiledMethod()
-  requires assume false; true  // BOGUS: missing error
-  modifies assume false; {}  // BOGUS: missing error
-  ensures assume false; true  // BOGUS: missing error
-  decreases assume false; 5  // BOGUS: missing error
+  requires assume false; true  // error
+  modifies assume false; {}  // error
+  ensures assume false; true  // error
+  decreases assume false; 5  // error
 {
 }
 
 ghost method SpecificationOfGhostMethod()
-  requires assume false; true  // BOGUS: missing error
-  modifies assume false; {}  // BOGUS: missing error
-  ensures assume false; true  // BOGUS: missing error
-  decreases assume false; 5  // BOGUS: missing error
+  requires assume false; true  // error
+  modifies assume false; {}  // error
+  ensures assume false; true  // error
+  decreases assume false; 5  // error
 {
 }
 
 function method SpecificationOfCompiledFunction(): int
-  requires assume false; true  // BOGUS: missing error
-  reads assume false; {}  // BOGUS: missing error
-  ensures assume false; true  // BOGUS: missing error
-  decreases assume false; 5  // BOGUS: missing error
+  requires assume false; true  // error
+  reads assume false; {}  // error
+  ensures assume false; true  // error
+  decreases assume false; 5  // error
 {
   5
 }
 
 function SpecificationOfGhostFunction(): int
-  requires assume false; true  // BOGUS: missing error
-  reads assume false; {}  // BOGUS: missing error
-  ensures assume false; true  // BOGUS: missing error
-  decreases assume false; 5  // BOGUS: missing error
+  requires assume false; true  // error
+  reads assume false; {}  // error
+  ensures assume false; true  // error
+  decreases assume false; 5  // error
 {
   5
 }
 
 method SpecificationOfCompiledMethodWithoutBody()  // error: has no body
-  requires assume false; true  // BOGUS: missing error
-  modifies assume false; {}  // BOGUS: missing error
-  ensures assume false; true  // BOGUS: missing error
-  decreases assume false; 5  // BOGUS: missing error
+  requires assume false; true  // error
+  modifies assume false; {}  // error
+  ensures assume false; true  // error
+  decreases assume false; 5  // error
 
 ghost method SpecificationOfGhostMethodWithoutBody()  // error: has no body
-  requires assume false; true  // BOGUS: missing error
-  modifies assume false; {}  // BOGUS: missing error
-  ensures assume false; true  // BOGUS: missing error
-  decreases assume false; 5  // BOGUS: missing error
+  requires assume false; true  // error
+  modifies assume false; {}  // error
+  ensures assume false; true  // error
+  decreases assume false; 5  // error
 
 function method SpecificationOfCompiledFunctionWithoutBody(): int  // error: has no body
-  requires assume false; true  // BOGUS: missing error
-  reads assume false; {}  // BOGUS: missing error
-  ensures assume false; true  // BOGUS: missing error
-  decreases assume false; 5  // BOGUS: missing error
+  requires assume false; true  // error
+  reads assume false; {}  // error
+  ensures assume false; true  // error
+  decreases assume false; 5  // error
 
 function SpecificationOfGhostFunctionWithoutBody(): int  // error: has no body
-  requires assume false; true  // BOGUS: missing error
-  reads assume false; {}  // BOGUS: missing error
-  ensures assume false; true  // BOGUS: missing error
-  decreases assume false; 5  // BOGUS: missing error
+  requires assume false; true  // error
+  reads assume false; {}  // error
+  ensures assume false; true  // error
+  decreases assume false; 5  // error
 
 // --------------------------------------------------
   
 inductive predicate ExtremePredicate()
-  requires assume false; true  // BOGUS: missing error
+  requires assume false; true  // error
 {
   assume false;  // error
   true
 }
 
 inductive lemma ExtremeLemma()
-  requires assume false; true  // BOGUS: missing error
-  ensures assume false; true  // BOGUS: missing error
-  decreases assume false; 5  // BOGUS: missing error
+  requires assume false; true  // error
+  ensures assume false; true  // error
+  decreases assume false; 5  // error
 {
   assume false;  // error
 }
 
 inductive predicate ExtremePredicateWithoutBody()  // error: has no body
-  requires assume false; true  // BOGUS: missing error
+  requires assume false; true  // error
 
 inductive lemma ExtremeLemmaWithoutBody()  // error: has no body
-  requires assume false; true  // BOGUS: missing error
-  ensures assume false; true  // BOGUS: missing error
-  decreases assume false; 5  // BOGUS: missing error
+  requires assume false; true  // error
+  ensures assume false; true  // error
+  decreases assume false; 5  // error
 
 // --------------------------------------------------
   
 newtype NewType = x | x % 2 == 1
-  witness assume false; 5  // BOGUS: missing error
+  witness assume false; 5  // error
   
 type SubsetType = x | x % 2 == 1
-  witness assume false; 5  // BOGUS: missing error
+  witness assume false; 5  // error
 
 newtype NewTypeGhostWitness = x | x % 2 == 1
-  ghost witness assume false; 5  // BOGUS: missing error
+  ghost witness assume false; 5  // error
   
 type SubsetTypeGhostWitness = x | x % 2 == 1
-  ghost witness assume false; 5  // BOGUS: missing error
+  ghost witness assume false; 5  // error
 
-const CompiledConst := assume false; 5  // BOGUS: missing error
+const CompiledConst := assume false; 5  // error
  
 ghost const GhostConst := assume false; 5  // error
 
 class C {
-  const InstanceCompiledConst := assume false; 5  // BOGUS: missing error
+  const InstanceCompiledConst := assume false; 5  // error
   ghost const InstanceGhostConst := assume false; 5  // error
 }
 
 datatype D = D {
-  const InstanceCompiledConst := assume false; 5  // BOGUS: missing error
+  const InstanceCompiledConst := assume false; 5  // error
   ghost const InstanceGhostConst := assume false; 5  // error
 }
 
 newtype T = int {
-  const InstanceCompiledConst := assume false; 5  // BOGUS: missing error
+  const InstanceCompiledConst := assume false; 5  // error
   ghost const InstanceGhostConst := assume false; 5  // error
 }
 
@@ -276,11 +276,11 @@ ghost method N(x: int) { }
 datatype Dt = Dt(x: int, ghost y: int)
 
 method CompiledMethodCaller() {
-  var a := F(assume false; 5, assume false; 6);  // BOGUS: missing error (x2)
+  var a := F(assume false; 5, assume false; 6);  // error (x2)
   ghost var b := G(assume false; 5);  // error
-  M(assume false; 5, assume false; 6);  // BOGUS: missing error (x2)
+  M(assume false; 5, assume false; 6);  // error (x2)
   N(assume false; 5);  // error
-  var d := Dt(assume false; 5, assume false; 6);  // BOGUS: missing error (x2)
+  var d := Dt(assume false; 5, assume false; 6);  // error (x2)
   ghost var e := Dt(assume false; 5, assume false; 6);  // error (x2)
 }
 
@@ -293,11 +293,11 @@ ghost method GhostMethodCaller() {
 }
 
 function method CompiledFunctionCaller(): int {
-  var a := F(assume false; 5, assume false; 6);  // BOGUS: missing error (x2)
-  ghost var b := G(assume false; 5);  // BOGUS: missing error
-  N(assume false; 5);  // BOGUS: missing error
-  var d := Dt(assume false; 5, assume false; 6);  // BOGUS: missing error (x2)
-  ghost var e := Dt(assume false; 5, assume false; 6);  // BOGUS: missing error (x2)
+  var a := F(assume false; 5, assume false; 6);  // error (x2)
+  ghost var b := G(assume false; 5);  // error
+  N(assume false; 5);  // error
+  var d := Dt(assume false; 5, assume false; 6);  // error (x2)
+  ghost var e := Dt(assume false; 5, assume false; 6);  // error (x2)
   100
 }
 
