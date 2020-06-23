@@ -7320,6 +7320,7 @@ namespace Microsoft.Dafny
               local.IsGhost = true;
             }
           }
+          resolver.CheckIsCompilable(s.RHS);
           s.IsGhost = s.LocalVars.All(v => v.IsGhost);
 
         } else if (stmt is AssignStmt) {

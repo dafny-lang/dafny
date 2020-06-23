@@ -1,0 +1,3 @@
+git-issue-452.dfy(9,11): Error: function calls are allowed only in specification contexts (consider declaring the function a 'function method')
+git-issue-452.dfy(10,16): Error: function calls are allowed only in specification contexts (consider declaring the function a 'function method')
+2 resolution/type errors detected in git-issue-452.dfy
