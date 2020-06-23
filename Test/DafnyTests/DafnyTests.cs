@@ -14,7 +14,7 @@ namespace DafnyTests {
     public class DafnyTests {
 
         private static DirectoryInfo OUTPUT_ROOT = new DirectoryInfo(Directory.GetCurrentDirectory());
-        private static string DAFNY_ROOT = OUTPUT_ROOT.Parent.Parent.Parent.Parent.Parent.FullName;
+        private static string DAFNY_ROOT = OUTPUT_ROOT.Parent.Parent.Parent.Parent.FullName;
 
         private static string TEST_ROOT = Path.Combine(DAFNY_ROOT, "Test") + Path.DirectorySeparatorChar;
         private static string COMP_DIR = Path.Combine(TEST_ROOT, "comp") + Path.DirectorySeparatorChar;
