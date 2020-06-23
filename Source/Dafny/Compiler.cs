@@ -818,6 +818,7 @@ namespace Microsoft.Dafny {
           }
         }
         var wr = CreateModule(m.CompileName, m.IsDefaultModule, moduleIsExtern, libraryName, wrx);
+        var v = new CheckHasNoAssumes_Visitor(this, wr);
         foreach (TopLevelDecl d in m.TopLevelDecls) {
           bool compileIt = true;
           if (Attributes.ContainsBool(d.Attributes, "compile", ref compileIt) && !compileIt) {
@@ -835,6 +836,7 @@ namespace Microsoft.Dafny {
               } else {
                 Error(d.tok, "Opaque type ('{0}') with extern attribute requires a compile hint.  Expected {{:extern compile_type_hint}} ", wr, at.FullName);
               }
+              v.Visit(exprs);
             } else {
               Error(d.tok, "Opaque type ('{0}') cannot be compiled; perhaps make it a type synonym or use :extern.", wr, at.FullName);
             }
@@ -842,10 +844,12 @@ namespace Microsoft.Dafny {
             var sst = d as SubsetTypeDecl;
             if (sst != null) {
               DeclareSubsetType(sst, wr);
+              v.Visit(sst);
             }
           } else if (d is NewtypeDecl) {
             var nt = (NewtypeDecl)d;
             var w = DeclareNewtype(nt, wr);
+            v.Visit(nt);
             CompileClassMembers(nt, w);
           } else if (d is DatatypeDecl) {
             var dt = (DatatypeDecl)d;
@@ -870,13 +874,11 @@ namespace Microsoft.Dafny {
               TrStmtList(iter.Body.Body, wIter);
             }
 
-          } else if (d is TraitDecl) {
+          } else if (d is TraitDecl trait) {
             // writing the trait
-            var trait = (TraitDecl)d;
             var w = CreateTrait(trait.CompileName, trait.IsExtern(out _, out _), trait.TypeArgs, trait.ParentTypeInformation.UniqueParentTraits(), trait.tok, wr);
             CompileClassMembers(trait, w);
-          } else if (d is ClassDecl) {
-            var cl = (ClassDecl)d;
+          } else if (d is ClassDecl cl) {
             var include = true;
             if (cl.IsDefaultClass) {
               Predicate<MemberDecl> compilationMaterial = x =>
@@ -1114,6 +1116,7 @@ namespace Microsoft.Dafny {
 
       thisContext = c;
       var errorWr = classWriter.ErrorWriter();
+      var v = new CheckHasNoAssumes_Visitor(this, errorWr);
 
       if (c is ClassDecl) {
         CheckHandleWellformed((ClassDecl)c, errorWr);
@@ -1156,8 +1159,7 @@ namespace Microsoft.Dafny {
               CompileReturnBody(cf.Rhs, cf.Type, w, null);
             }
           }
-        } else if (member is Field) {
-          var f = (Field)member;
+        } else if (member is Field f) {
           var fType = Resolver.SubstType(f.Type, typeMap);
           if (!ClassesRedeclareInheritedFields) {
             if (c is TraitDecl) {
@@ -1216,12 +1218,10 @@ namespace Microsoft.Dafny {
               }
             }
           }
-        } else if (member is Function) {
-          var f = (Function)member;
-          Contract.Assert(f.Body != null);
-          CompileFunction(f, classWriter);
-        } else if (member is Method) {
-          var method = (Method)member;
+        } else if (member is Function fn) {
+          Contract.Assert(fn.Body != null);
+          CompileFunction(fn, classWriter);
+        } else if (member is Method method) {
           Contract.Assert(method.Body != null);
           CompileMethod(method, classWriter, c.ParentFormalTypeParametersToActuals);
         } else {
@@ -1235,11 +1235,7 @@ namespace Microsoft.Dafny {
         } else if (member is Field) {
           var f = (Field)member;
           if (f.IsGhost) {
-            // emit nothing, but check for assumes
-            if (f is ConstantField cf && cf.Rhs != null) {
-              var v = new CheckHasNoAssumes_Visitor(this, errorWr);
-              v.Visit(cf.Rhs);
-            }
+            // emit nothing
           } else if (!DafnyOptions.O.DisallowExterns && Attributes.Contains(f.Attributes, "extern")) {
             // emit nothing
           } else if (f is ConstantField) {
@@ -1316,6 +1312,9 @@ namespace Microsoft.Dafny {
             var rhs = c is TraitDecl ? null : DefaultValue(f.Type, errorWr, f.tok, true);
             classWriter.DeclareField(IdName(f), c, f.IsStatic, false, f.Type, f.tok, rhs);
           }
+          if (f is ConstantField && ((ConstantField)f).Rhs != null) {
+            v.Visit(((ConstantField)f).Rhs);
+          }
         } else if (member is Function) {
           var f = (Function)member;
           if (f.Body == null && !(c is TraitDecl && !f.IsStatic) &&
@@ -1330,10 +1329,7 @@ namespace Microsoft.Dafny {
             // nothing to compile, but we do check for assumes
             if (f.Body == null) {
               Contract.Assert(c is TraitDecl && !f.IsStatic || Attributes.Contains(f.Attributes, "extern"));
-            } else {
-              var v = new CheckHasNoAssumes_Visitor(this, errorWr);
-              v.Visit(f.Body);
-            }
+            } 
 
             if (Attributes.Contains(f.Attributes, "test")) {
               Error(f.tok, "Function {0} must be compiled to use the {{:test}} attribute", errorWr, f.FullName);
@@ -1344,8 +1340,8 @@ namespace Microsoft.Dafny {
           } else {
             CompileFunction(f, classWriter);
           }
-        } else if (member is Method) {
-          var m = (Method)member;
+          v.Visit(f);
+        } else if (member is Method m) {
           if (m.Body == null && !(c is TraitDecl && !m.IsStatic) &&
               !(!DafnyOptions.O.DisallowExterns && (Attributes.Contains(m.Attributes, "dllimport") || IncludeExternMembers && Attributes.Contains(m.Attributes, "extern")))) {
             // A (ghost or non-ghost) method must always have a body, except if it's an instance method in a trait.
@@ -1355,12 +1351,8 @@ namespace Microsoft.Dafny {
               Error(m.tok, "Method {0} has no body", errorWr, m.FullName);
             }
           } else if (m.IsGhost) {
-            // nothing to compile, but we do check for assumes
             if (m.Body == null) {
               Contract.Assert(c is TraitDecl && !m.IsStatic);
-            } else {
-              var v = new CheckHasNoAssumes_Visitor(this, errorWr);
-              v.Visit(m.Body);
             }
           } else if (c is TraitDecl && !m.IsStatic) {
             var w = classWriter.CreateMethod(m, false);
@@ -1368,6 +1360,7 @@ namespace Microsoft.Dafny {
           } else {
             CompileMethod(m, classWriter, null);
           }
+          v.Visit(m);
         } else {
           Contract.Assert(false); throw new cce.UnreachableException();  // unexpected member
         }
@@ -2210,8 +2203,6 @@ namespace Microsoft.Dafny {
       Contract.Requires(wr != null);
 
       if (stmt.IsGhost) {
-        var v = new CheckHasNoAssumes_Visitor(this, wr);
-        v.Visit(stmt);
         return;
       }
       if (stmt is PrintStmt) {
@@ -2405,8 +2396,6 @@ namespace Microsoft.Dafny {
       } else if (stmt is WhileStmt) {
         WhileStmt s = (WhileStmt)stmt;
         if (s.Body == null) {
-          // this checks non-ghost body-less while statements
-          Error(stmt.Tok, "a while statement without a body cannot be compiled", wr);
           return;
         }
         if (s.Guard == null) {
