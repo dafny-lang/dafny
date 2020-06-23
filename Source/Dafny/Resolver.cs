@@ -10924,7 +10924,7 @@ namespace Microsoft.Dafny
         if (pat is IdPattern id) {
           if (id.Id == BuiltIns.TupleTypeCtorNamePrefix + "0") {
             reporter.Error(MessageSource.Resolver, pat.Tok, "case argument type does not match source argument type");
-        } else {
+          } else {
             /* =[1]= */
             CheckLinearVarPattern(type, (IdPattern) pat);
           }
