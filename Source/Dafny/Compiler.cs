@@ -1646,7 +1646,7 @@ namespace Microsoft.Dafny {
           } else {
             var sw = new TargetWriter(wr.IndentLevel, true);
             EmitDestructor(tmp_name, formal, k, ctor, ((DatatypeValue)pat.Expr).InferredTypeArgs, arg.Expr.Type, sw);
-            TrCasePatternOpt(arg, null, sw.ToString(), pat.Expr.Type, pat.Expr.tok, wr, inLetExprBody);
+            TrCasePatternOpt(arg, null, sw.ToString(), formal.Type, pat.Expr.tok, wr, inLetExprBody);
             k++;
           }
         }
