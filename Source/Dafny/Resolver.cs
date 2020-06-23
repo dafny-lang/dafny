@@ -10921,9 +10921,13 @@ namespace Microsoft.Dafny
       }
 
       if (!type.IsDatatype) {
-        if (pat is IdPattern) {
-          /* =[1]= */
-          CheckLinearVarPattern(type, (IdPattern) pat);
+        if (pat is IdPattern id) {
+          if (id.Id == BuiltIns.TupleTypeCtorNamePrefix + "0") {
+            reporter.Error(MessageSource.Resolver, pat.Tok, "case argument type does not match source argument type");
+        } else {
+            /* =[1]= */
+            CheckLinearVarPattern(type, (IdPattern) pat);
+          }
           return;
         } else if (pat is LitPattern) {
           /* =[2]= */
