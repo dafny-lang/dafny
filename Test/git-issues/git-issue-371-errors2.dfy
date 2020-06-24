@@ -18,26 +18,13 @@ module MB {
   } 
 }
 
-module A {
+module B {
+  import MAI = MA.Inner // error - no MA
+  import MA.Inner // error - no MA
+}
 
-  import TTT = M
-
-  import M
-
-  import MA
-  import MAI = MA.Inner
-  import MA.Inner
+module C {
   import MB
-  import II = MB.I
-
-  class ZZ {
-    var zc: II.T42;
-    var zd: M.TT;
-    var ze: TTT.TT;
-    var zf: MAI.T17;
-    var zg: Inner.T17;
-    var zh: MA.Inner.T17;
-
-  }
-
+  import II = MB.K // error - no K
+  import MB.K // error - no K
 }

@@ -18,26 +18,9 @@ module MB {
   } 
 }
 
+import M  // Error
+
 module A {
-
-  import TTT = M
-
   import M
-
-  import MA
-  import MAI = MA.Inner
-  import MA.Inner
-  import MB
-  import II = MB.I
-
-  class ZZ {
-    var zc: II.T42;
-    var zd: M.TT;
-    var ze: TTT.TT;
-    var zf: MAI.T17;
-    var zg: Inner.T17;
-    var zh: MA.Inner.T17;
-
-  }
-
+  import M // error
 }
