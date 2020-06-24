@@ -20,9 +20,6 @@ module MB {
   module I {
     type T42 = x
       | 0 <= x < 42
-
-    type T43 = x
-      | 0 <= x < 43
   }
 }
 
@@ -51,4 +48,4 @@ module A {
   }
 }
 
-Dafny program verifier finished with 3 verified, 0 errors
+Dafny program verifier finished with 2 verified, 0 errors

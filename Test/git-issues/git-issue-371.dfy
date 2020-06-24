@@ -14,7 +14,6 @@ module MA {
 module MB {
   module I {
     type T42 = x | 0 <= x < 42
-    type T43 = x | 0 <= x < 43
   } 
 }
 
@@ -37,7 +36,5 @@ module A {
     var zf: MAI.T17
     var zg: Inner.T17
     var zh: MA.Inner.T17
-
   }
-
 }
