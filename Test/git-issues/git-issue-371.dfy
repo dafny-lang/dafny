@@ -2,20 +2,20 @@
 // RUN: %diff "%s.expect" "%t"
 
 module M {
-   type TT = int
+  type TT = int
 }
 
 module MN {
-   export reveals TN
-   type TN = int
-   type TKN = int
+  export reveals TN
+  type TN = int
+  type TKN = int
 }
 
 module ME {
-   export E reveals TE
-   export K reveals TK
-   type TE = int
-   type TK = int
+  export E reveals TE
+  export K reveals TK
+  type TE = int
+  type TK = int
 }
 
 module MA {
@@ -124,4 +124,7 @@ module B3 {
 
 module B4 {
   import ME; // Should be an error
+  import MA.Inner  // currently disallowed, but I think it should be allowed
+  class ZZ {
+  var zz: Inner.T17;
 }
