@@ -1251,7 +1251,7 @@ namespace Microsoft.Dafny
           pr.PrintTopLevelDecls(exportView.TopLevelDecls, 0, null, null);
           wr.WriteLine("*/");
         }
-        if (reporter.Count(ErrorLevel.Error) != prevErrors) {
+        if (reporter.Count(ErrorLevel.Error) == prevErrors) {
           continue;
         }
 
