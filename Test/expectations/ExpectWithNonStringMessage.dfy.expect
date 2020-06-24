@@ -1,12 +1,12 @@
 
 Dafny program verifier finished with 0 verified, 0 errors
-Program halted: ExpectWithNonStringMessage.dfy(12,2): Option.Some(where over the rainbow)
+[Program halted] ExpectWithNonStringMessage.dfy(12,2): Option.Some(where over the rainbow)
 
 Dafny program verifier finished with 0 verified, 0 errors
-Program halted: ExpectWithNonStringMessage.dfy(12,2): Option.Some(where over the rainbow)
+[Program halted] ExpectWithNonStringMessage.dfy(12,2): Option.Some(where over the rainbow)
 
 Dafny program verifier finished with 0 verified, 0 errors
-Program halted: ExpectWithNonStringMessage.dfy(12,2): Option.Some([w, h, e, r, e,  , o, v, e, r,  , t, h, e,  , r, a, i, n, b, o, w])
+[Program halted] ExpectWithNonStringMessage.dfy(12,2): Option.Some([w, h, e, r, e,  , o, v, e, r,  , t, h, e,  , r, a, i, n, b, o, w])
 
 Dafny program verifier finished with 0 verified, 0 errors
-Program halted: ExpectWithNonStringMessage.dfy(12,2): Option.Some(where over the rainbow)
+[Program halted] ExpectWithNonStringMessage.dfy(12,2): Option.Some(where over the rainbow)
