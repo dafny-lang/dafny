@@ -14,6 +14,7 @@ For details and more configuration options, see [the DafnyTests.cs source](Test/
 * Depend on only the project's output directory instead of the Binaries/Test directories
   * This is mostly working except for errors around missing types from System.dll when compiling to C#
 * Complete support for both the .NET Framework solution as well as the .NET Core one
+* Figure out why test cases aren't executing in parallel when run using `msbuild` (they are when run in Rider)
 * Add support for regular expression matching against CLI output (needed to assert known limitations that cause errors with things like absolute paths names in them)
 * By default, verify source files separately and skip verification when compiling to each target language
 * Add support for sharding ala lit's `--run-shard / --num-shards` options
