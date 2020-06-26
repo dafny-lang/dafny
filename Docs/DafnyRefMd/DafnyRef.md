@@ -137,10 +137,9 @@ Css Header  : body { text-rendering=optimizeLegibility }
 
 -->
 
-<center><Huge>
+<Huge><center>
 Dafny Reference Manual
-</Huge>
-</Huge></center>
+</center></Huge>
 
 Abstract: 
 This is the Dafny reference manual which describes the Dafny programming
@@ -2797,23 +2796,39 @@ The encoding for coinductive predicates in Dafny was described previously
 ## Function Definitions
 
 To define a function 
-<img src="https://render.githubusercontent.com/render/math?math=f \colon X \to Y">
+<img ALIGN=absmiddle src="https://render.githubusercontent.com/render/math?math=f \colon X \to Y">
  in terms of itself, one can
 write an equation like
 
 ~ Equation {#eq-general}
-<img src="https://render.githubusercontent.com/render/math?math=f \;\;\;=\;\;\; \F(f)">  
+<img ALIGN=absmiddle src="https://render.githubusercontent.com/render/math?math=f = \mathcal{F}(f)">  
 ~
 
-where $\mathcal{F}$ is a non-recursive function of type
-$(X \to Y) \to X \to Y$.  Because it takes a function as an argument,
-$\mathcal{F}$ is referred to as a _functor_ (or _functional_, but not to be
+where 
+<img ALIGN=absmiddle src="https://render.githubusercontent.com/render/math?math=\mathcal{F}">
+is a non-recursive function of type
+<img ALIGN=absmiddle src="https://render.githubusercontent.com/render/math?math=(X \to Y) \to X \to Y">.  
+Because it takes a function as an argument,
+<img ALIGN=absmiddle src="https://render.githubusercontent.com/render/math?math=\mathcal{F}">
+is referred to as a _functor_ (or _functional_, but not to be
 confused by the category-theory notion of a functor).
-Throughout, I will assume that $\\F(f)$ by itself is well defined,
-for example that it does not divide by zero.  I will also assume that $f$ occurs
-only in fully applied calls in $\\F(f)$; eta expansion can be applied to
-ensure this.  If $f$ is a boolean function, that is, if $Y$ is
-the type of booleans, then I call $f$ a _predicate_.
+Throughout, I will assume that 
+<img ALIGN=absmiddle src="https://render.githubusercontent.com/render/math?math=\mathcal{F}(f)">
+by itself is well defined,
+for example that it does not divide by zero.  I will also assume that 
+<img ALIGN=absmiddle src="https://render.githubusercontent.com/render/math?math=f">
+occurs
+only in fully applied calls in 
+<img ALIGN=absmiddle src="https://render.githubusercontent.com/render/math?math=\mathcal{F}(f)">;
+ eta expansion can be applied to
+ensure this.  If 
+<img ALIGN=absmiddle src="https://render.githubusercontent.com/render/math?math=f">
+is a \texttt{boolean] function, that is, if 
+<img ALIGN=absmiddle src="https://render.githubusercontent.com/render/math?math=Y">
+is
+the type of booleans, then I call 
+<img ALIGN=absmiddle src="https://render.githubusercontent.com/render/math?math=f">
+a _predicate_.
 
 For example, the common Fibonacci function over the
 natural numbers can be defined by the equation
@@ -2825,15 +2840,15 @@ natural numbers can be defined by the equation
 ~
 -->
 
-With the understanding that the argument $n$ is universally
+With the understanding that the argument 
+<img ALIGN=absmiddle src="https://render.githubusercontent.com/render/math?math=n">
+is universally
 quantified, we can write this equation equivalently as
 
-<!--
 ~ Equation {#eq-fib}
-  \fib(n) \Equal
-  \ite{n < 2}{n}{\fib(n-2) + \fib(n-1)}
+<img ALIGN=absmiddle src="https://render.githubusercontent.com/render/math?math=\mathit{fib}(n) = \mathbf{if}\:n < 2\:\mathbf{then}\:n\:\mathbf{else}\:\mathit{fib}(n-2)%2B\mathit{fib}(n-1)">
 ~
--->
+
 
 The fact that the function being defined occurs on both sides of the equation
 causes concern that we might not be defining the function properly, leading to a
@@ -2843,7 +2858,9 @@ Let's consider two ways to make sure we're defining the function uniquely.
 
 ### Well-founded Functions
 
-A standard way to ensure that equation [#eq-general] has a unique solution in $f$ is
+A standard way to ensure that equation [#eq-general] has a unique solution in 
+$f$ 
+is
 to make sure the recursion is well-founded, which roughly means that the
 recursion terminates.  This is done by introducing any well-founded
 relation $\\Less$ on the domain of $f$ and making sure that the argument to each recursive
