@@ -665,9 +665,6 @@ Note: Evidently, the Java target always uses setters when assigning to fields.
 Compilation to JavaScript follows the general form, except that there are no type
 parameters and no need for `extends` clauses.
 
-Note: Evidently, the JavaScript constructors emitted for traits take a type-descriptor
-parameter. It is not needed and should be removed.
-
 ## Go
 
 Compilation to Go currently uses the "struct"-plus-"interface" design of traits,
