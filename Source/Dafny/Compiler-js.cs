@@ -564,8 +564,8 @@ namespace Microsoft.Dafny {
         this.FieldWriter = fieldWriter;
       }
 
-      public BlockTargetWriter/*?*/ CreateMethod(Method m, bool createBody) {
-        return Compiler.CreateMethod(m, createBody, MethodWriter);
+      public BlockTargetWriter/*?*/ CreateMethod(Method m, List<TypeParameter> typeArgs, bool createBody) {
+        return Compiler.CreateMethod(m, typeArgs, createBody, MethodWriter);
       }
       public BlockTargetWriter/*?*/ CreateFunction(string name, List<TypeParameter> typeArgs, List<Formal> formals, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl member) {
         return Compiler.CreateFunction(name, typeArgs, formals, resultType, tok, isStatic, createBody, member, MethodWriter);
@@ -588,14 +588,14 @@ namespace Microsoft.Dafny {
 
     protected override bool SupportsStaticsInGenericClasses => false;
 
-    protected BlockTargetWriter/*?*/ CreateMethod(Method m, bool createBody, TargetWriter wr) {
+    protected BlockTargetWriter/*?*/ CreateMethod(Method m, List<TypeParameter> typeArgs, bool createBody, TargetWriter wr) {
       if (!createBody) {
         return null;
       }
 
       var customReceiver = NeedsCustomReceiver(m);
       wr.Write("{0}{1}(", m.IsStatic || customReceiver ? "static " : "", IdName(m));
-      var nTypes = WriteRuntimeTypeDescriptorsFormals(CombineTypeParameters(m), false, wr);
+      var nTypes = WriteRuntimeTypeDescriptorsFormals(typeArgs, false, wr);
       if (customReceiver) {
         var nt = m.EnclosingClass;
         var receiverType = UserDefinedType.FromTopLevelDecl(m.tok, nt);
@@ -1464,7 +1464,14 @@ namespace Microsoft.Dafny {
 
     protected override ILvalue EmitMemberSelect(Action<TargetWriter> obj, Type objType, MemberDecl member, List<TypeArgumentInstantiation> typeArgs, Dictionary<TypeParameter, Type> typeMap,
       Type expectedType, string/*?*/ additionalCustomParameter, bool internalAccess = false) {
-      if (member is ConstantField) {
+      if (member is ConstantField && NeedsCustomReceiver(member)) {
+        var field = (Field)member;
+        return SimpleLvalue(w => {
+          w.Write("{0}.{1}(", TypeName_Companion(objType, w, field.tok, field), IdName(member));
+          obj(w);
+          w.Write(")");
+        });
+      } else if (member is ConstantField) {
         return SimpleLvalue(lvalueAction: wr => {
           obj(wr);
           wr.Write("._{0}", member.CompileName);

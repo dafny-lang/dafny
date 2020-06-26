@@ -390,26 +390,31 @@ namespace Microsoft.Dafny{
         this.StaticMemberWriter = staticMemberWriter == null ? instanceMemberWriter : staticMemberWriter;
       }
 
-      public TargetWriter Writer(bool isStatic, MemberDecl/*?*/ member) {
-        return isStatic || (member != null && member.EnclosingClass is TraitDecl && NeedsCustomReceiver(member)) ? StaticMemberWriter : InstanceMemberWriter;
+      public TargetWriter Writer(bool isStatic, bool createBody, MemberDecl/*?*/ member) {
+        if (createBody) {
+          if (isStatic || (member != null && member.EnclosingClass is TraitDecl && NeedsCustomReceiver(member))) {
+            return StaticMemberWriter;
+          }
+        }
+        return InstanceMemberWriter;
       }
 
       public BlockTargetWriter CreateConstructor(TopLevelDeclWithMembers c, List<TypeParameter> l){
-        return Compiler.CreateConstructor(c, Writer(false, null), l);
+        return Compiler.CreateConstructor(c, Writer(false, true, null), l);
       }
 
-      public BlockTargetWriter/*?*/ CreateMethod(Method m, bool createBody) {
-        return Compiler.CreateMethod(m, createBody, Writer(m.IsStatic, m));
+      public BlockTargetWriter/*?*/ CreateMethod(Method m, List<TypeParameter> typeArgs, bool createBody) {
+        return Compiler.CreateMethod(m, typeArgs, createBody, Writer(m.IsStatic, createBody, m));
       }
       public BlockTargetWriter/*?*/ CreateFunction(string name, List<TypeParameter> typeArgs, List<Formal> formals, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl member) {
-        return Compiler.CreateFunction(name, typeArgs, formals, resultType, tok, isStatic, createBody, member, Writer(isStatic, member));
+        return Compiler.CreateFunction(name, typeArgs, formals, resultType, tok, isStatic, createBody, member, Writer(isStatic, createBody, member));
       }
 
       public BlockTargetWriter/*?*/ CreateGetter(string name, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl/*?*/ member) {
-        return Compiler.CreateGetter(name, resultType, tok, isStatic, createBody, Writer(isStatic, member));
+        return Compiler.CreateGetter(name, resultType, tok, isStatic, createBody, Writer(isStatic, createBody, member));
       }
       public BlockTargetWriter/*?*/ CreateGetterSetter(string name, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl/*?*/ member, out TargetWriter setterWriter) {
-        return Compiler.CreateGetterSetter(name, resultType, tok, isStatic, createBody, out setterWriter, Writer(isStatic, member));
+        return Compiler.CreateGetterSetter(name, resultType, tok, isStatic, createBody, out setterWriter, Writer(isStatic, createBody, member));
       }
       public void DeclareField(string name, TopLevelDecl enclosingDecl, bool isStatic, bool isConst, Type type, Bpl.IToken tok, string rhs, Field field) {
         Compiler.DeclareField(name, isStatic, isConst, type, tok, rhs, this);
@@ -463,7 +468,7 @@ namespace Microsoft.Dafny{
       }
       return wGet;
     }
-    protected BlockTargetWriter CreateMethod(Method m, bool createBody, TargetWriter wr) {
+    protected BlockTargetWriter CreateMethod(Method m, List<TypeParameter> typeArgs, bool createBody, TargetWriter wr) {
       if (m.IsExtern(out _, out _) && (m.IsStatic || m is Constructor)) {
         // No need for an abstract version of a static method or a constructor
         return null;
@@ -482,10 +487,9 @@ namespace Microsoft.Dafny{
       } else if (nonGhostOuts > 1) {
         targetReturnTypeReplacement = DafnyTupleClassPrefix + nonGhostOuts;
       }
-      var customReceiver = NeedsCustomReceiver(m);
+      var customReceiver = createBody && NeedsCustomReceiver(m);
       var receiverType = UserDefinedType.FromTopLevelDecl(m.tok, m.EnclosingClass);
       wr.Write("public {0}{1}", !createBody && !(m.EnclosingClass is TraitDecl) ? "abstract " : "", m.IsStatic || customReceiver ? "static " : "");
-      var typeArgs = CombineTypeParameters(m);
       if (typeArgs.Count != 0) {
         wr.Write($"<{TypeParameters(typeArgs)}> ");
       }
@@ -539,7 +543,7 @@ namespace Microsoft.Dafny{
         // No need for abstract version of static method
         return null;
       }
-      var customReceiver = NeedsCustomReceiver(member);
+      var customReceiver = createBody && NeedsCustomReceiver(member);
       var receiverType = UserDefinedType.FromTopLevelDecl(member.tok, member.EnclosingClass);
       wr.Write("public {0}{1}", !createBody && !(member.EnclosingClass is TraitDecl) ? "abstract " : "", isStatic || customReceiver ? "static " : "");
       if (typeArgs.Count != 0) {
@@ -1090,7 +1094,8 @@ namespace Microsoft.Dafny{
       var custom =
         (enclosingMethod != null && enclosingMethod.IsTailRecursive) ||
         (enclosingFunction != null && enclosingFunction.IsTailRecursive) ||
-        thisContext is NewtypeDecl;
+        thisContext is NewtypeDecl ||
+        thisContext is TraitDecl;
       wr.Write(custom ? "_this" : "this");
     }
 
@@ -1232,9 +1237,17 @@ namespace Microsoft.Dafny{
       Type expectedType, string/*?*/ additionalCustomParameter, bool internalAccess = false) {
       if (member is Field && member.EnclosingClass is TraitDecl && !member.IsStatic) {
         if (NeedsCustomReceiver(member)) {
-          return SimpleLvalue(
-            wr => { Contract.Assert(false); },
-            wr => { obj(wr); wr.Write(".{0}", IdName(member)); });
+          var field = (Field)member;
+          return SimpleLvalue(w => {
+            w.Write("{0}.", TypeName_Companion(objType, w, field.tok, member));
+            EmitNameAndActualTypeArgs(IdName(member), typeArgs.ConvertAll(ta => ta.Actual), member.tok, w);
+            w.Write("(");
+            obj(w);
+            foreach (var ta in typeArgs) {
+              w.Write(", {0}", TypeDescriptor(ta.Actual, w, member.tok));
+            }
+            w.Write(")");
+          });
         } else {
           return new GetterSetterLvalue(obj, IdName(member));
         }
@@ -1337,10 +1350,10 @@ namespace Microsoft.Dafny{
       wr.Write($"{source}.is_{ctor.CompileName}()");
     }
 
-    protected override string TypeName_Companion(Type type, TextWriter wr, Bpl.IToken tok, MemberDecl member) {
+    protected override string TypeName_Companion(Type type, TextWriter wr, Bpl.IToken tok, MemberDecl/*?*/ member) {
       type = UserDefinedType.UpcastToMemberEnclosingType(type, member);
       if (type is UserDefinedType udt && udt.ResolvedClass is TraitDecl) {
-        if (member.IsStatic && member.EnclosingClass.TypeArgs.Count != 0) {
+        if (member != null && (member.IsStatic || NeedsCustomReceiver(member)) && member.EnclosingClass.TypeArgs.Count != 0) {
           return IdProtect(udt.FullCompanionCompileName);
         } else {
           return TypeName_UDT(udt.FullCompanionCompileName, udt.TypeArgs, wr, tok);

@@ -689,24 +689,29 @@ namespace Microsoft.Dafny
         this.StaticMemberWriter = staticMemberWriter == null ? instanceMemberWriter : staticMemberWriter;
       }
 
-      public BlockTargetWriter Writer(bool isStatic, MemberDecl/*?*/ member) {
-        return isStatic || (member != null && member.EnclosingClass is TraitDecl && NeedsCustomReceiver(member)) ? StaticMemberWriter : InstanceMemberWriter;
+      public BlockTargetWriter Writer(bool isStatic, bool createBody, MemberDecl/*?*/ member) {
+        if (createBody) {
+          if (isStatic || (member != null && member.EnclosingClass is TraitDecl && NeedsCustomReceiver(member))) {
+            return StaticMemberWriter;
+          }
+        }
+        return InstanceMemberWriter;
       }
 
-      public BlockTargetWriter/*?*/ CreateMethod(Method m, bool createBody) {
-        return Compiler.CreateMethod(m, createBody, Writer(m.IsStatic, m));
+      public BlockTargetWriter/*?*/ CreateMethod(Method m, List<TypeParameter> typeArgs, bool createBody) {
+        return Compiler.CreateMethod(m, createBody, Writer(m.IsStatic, createBody, m));
       }
       public BlockTargetWriter/*?*/ CreateFunction(string name, List<TypeParameter> typeArgs, List<Formal> formals, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl member) {
-        return Compiler.CreateFunction(name, typeArgs, formals, resultType, tok, isStatic, createBody, member, Writer(isStatic, member));
+        return Compiler.CreateFunction(name, typeArgs, formals, resultType, tok, isStatic, createBody, member, Writer(isStatic, createBody, member));
       }
       public BlockTargetWriter/*?*/ CreateGetter(string name, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl/*?*/ member) {
-        return Compiler.CreateGetter(name, resultType, tok, isStatic, createBody, Writer(isStatic, member));
+        return Compiler.CreateGetter(name, resultType, tok, isStatic, createBody, Writer(isStatic, createBody, member));
       }
       public BlockTargetWriter/*?*/ CreateGetterSetter(string name, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl/*?*/ member, out TargetWriter setterWriter) {
-        return Compiler.CreateGetterSetter(name, resultType, tok, isStatic, createBody, out setterWriter, Writer(isStatic, member));
+        return Compiler.CreateGetterSetter(name, resultType, tok, isStatic, createBody, out setterWriter, Writer(isStatic, createBody, member));
       }
       public void DeclareField(string name, TopLevelDecl enclosingDecl, bool isStatic, bool isConst, Type type, Bpl.IToken tok, string rhs, Field field) {
-        Compiler.DeclareField(name, isStatic, isConst, type, tok, rhs, Writer(isStatic, field));
+        Compiler.DeclareField(name, isStatic, isConst, type, tok, rhs, Writer(isStatic, false, field));
       }
       public void InitializeField(Field field, Type instantiatedFieldType, TopLevelDeclWithMembers enclosingClass) {
         throw new NotSupportedException();  // InitializeField should be called only for those compilers that set ClassesRedeclareInheritedFields to false.
@@ -731,7 +736,7 @@ namespace Microsoft.Dafny
         }
       }
 
-      var customReceiver = NeedsCustomReceiver(m);
+      var customReceiver = createBody && NeedsCustomReceiver(m) && !m.IsOverrideThatAddsBody;
 
       AddTestCheckerIfNeeded(m.Name, m, wr);
       wr.Write("{0}{1}{2}{3} {4}",
@@ -775,7 +780,7 @@ namespace Microsoft.Dafny
     protected BlockTargetWriter/*?*/ CreateFunction(string name, List<TypeParameter> typeArgs, List<Formal> formals, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl member, TargetWriter wr) {
       var hasDllImportAttribute = ProcessDllImport(member, wr);
 
-      var customReceiver = NeedsCustomReceiver(member);
+      var customReceiver = createBody && NeedsCustomReceiver(member) && !member.IsOverrideThatAddsBody;
 
       AddTestCheckerIfNeeded(name, member, wr);
       wr.Write("{0}{1}{2}{3} {4}", createBody ? "public " : "", isStatic || customReceiver ? "static " : "", hasDllImportAttribute ? "extern " : "", TypeName(resultType, wr, tok), name);
@@ -1693,7 +1698,19 @@ namespace Microsoft.Dafny
 
     protected override ILvalue EmitMemberSelect(System.Action<TargetWriter> obj, Type objType, MemberDecl member, List<TypeArgumentInstantiation> typeArgs, Dictionary<TypeParameter, Type> typeMap,
       Type expectedType, string/*?*/ additionalCustomParameter, bool internalAccess = false) {
-      if (member is ConstantField) {
+      if (member is ConstantField && NeedsCustomReceiver(member)) {
+        var field = (Field)member;
+        return SimpleLvalue(w => {
+          w.Write("{0}.{1}(", TypeName_Companion(objType, w, field.tok, field), IdName(member));
+          obj(w);
+          w.Write(")");
+        });
+      } else if (member is ConstantField && member.IsStatic) {
+        var field = (Field)member;
+        return SimpleLvalue(w => {
+          w.Write("{0}.{1}", TypeName_Companion(objType, w, field.tok, field), IdName(member));
+        });
+      } else if (member is ConstantField) {
         return SimpleLvalue(lvalueAction: wr => {
           obj(wr);
           wr.Write("._{0}", member.CompileName);

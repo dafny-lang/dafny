@@ -1051,8 +1051,8 @@ namespace Microsoft.Dafny {
         return isStatic ? StaticFieldInitWriter : InstanceFieldInitWriter;
       }
 
-      public BlockTargetWriter/*?*/ CreateMethod(Method m, bool createBody) {
-        return Compiler.CreateMethod(m, createBody, ClassName, AbstractMethodWriter, ConcreteMethodWriter);
+      public BlockTargetWriter/*?*/ CreateMethod(Method m, List<TypeParameter> typeArgs, bool createBody) {
+        return Compiler.CreateMethod(m, typeArgs, createBody, ClassName, AbstractMethodWriter, ConcreteMethodWriter);
       }
       public BlockTargetWriter/*?*/ CreateFunction(string name, List<TypeParameter> typeArgs, List<Formal> formals, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl member) {
         return Compiler.CreateFunction(name, typeArgs, formals, resultType, tok, isStatic, createBody, member, ClassName, AbstractMethodWriter, ConcreteMethodWriter);
@@ -1093,8 +1093,8 @@ namespace Microsoft.Dafny {
       }
     }
 
-    protected BlockTargetWriter/*?*/ CreateMethod(Method m, bool createBody, string ownerName, TargetWriter abstractWriter, TargetWriter concreteWriter) {
-      return CreateSubroutine(IdName(m), CombineTypeParameters(m), m.Ins, m.Outs, null,
+    protected BlockTargetWriter/*?*/ CreateMethod(Method m, List<TypeParameter> typeArgs, bool createBody, string ownerName, TargetWriter abstractWriter, TargetWriter concreteWriter) {
+      return CreateSubroutine(IdName(m), typeArgs, m.Ins, m.Outs, null,
         m.OverriddenMethod?.Original.Ins, m.OverriddenMethod?.Original.Outs, null,
         m.tok, m.IsStatic, createBody, ownerName, m, abstractWriter, concreteWriter);
     }
@@ -1122,7 +1122,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(abstractWriter != null);
       Contract.Requires(concreteWriter != null);
 
-      var customReceiver = NeedsCustomReceiver(member);
+      var customReceiver = createBody && NeedsCustomReceiver(member);
       TargetWriter wr;
       if (createBody || abstractWriter == null) {
         wr = concreteWriter;
@@ -2468,10 +2468,6 @@ namespace Microsoft.Dafny {
           // FIXME This is a pretty awful string hack.
           wr.Write(".{0}()", FormatDatatypeConstructorCheckName(fieldName.Substring(3)));
         });
-      } else if (member is ConstantField cf && cf.Rhs != null) {
-        var customReceiver = NeedsCustomReceiver(member);
-        var lvalue = SuffixLvalue(obj, ".{0}{1}", IdName(member), customReceiver ? "" : "()");
-        return CoercedLvalue(lvalue, cf.Type, expectedType);
       } else if (member is Function fn) {
         typeArgs = typeArgs.Where(ta => NeedsTypeDescriptor(ta.Formal)).ToList();
         if (typeArgs.Count == 0 && additionalCustomParameter == null) {
@@ -2524,12 +2520,20 @@ namespace Microsoft.Dafny {
         }
       } else {
         var field = (Field)member;
-        var enclosingType = Resolver.SubstType(UserDefinedType.FromTopLevelDecl(field.tok, field.EnclosingClass), typeMap);
-        var lvalue = SuffixLvalue(w => {
-            var wObj = EmitCoercionIfNecessary(objType, enclosingType, field.tok, w);
-            obj(wObj);
-          },
-          ".{0}", IdName(member));
+        ILvalue lvalue;
+        if (field.IsStatic) {
+          lvalue = SimpleLvalue(w => {
+            w.Write("{0}.{1}", TypeName_Companion(field.EnclosingClass, w, field.tok), IdName(member));
+          });
+        } else if (NeedsCustomReceiver(field)) {
+          lvalue = SimpleLvalue(w => {
+            w.Write("{0}.{1}(", TypeName_Companion(field.EnclosingClass, w, field.tok), IdName(member));
+            obj(w);
+            w.Write(")");
+          });
+        } else {
+          lvalue = SuffixLvalue(obj, ".{0}{1}", IdName(member), (field as ConstantField)?.Rhs != null ? "()" : "");
+        }
         return CoercedLvalue(lvalue, field.Type, expectedType);
       }
     }

@@ -90,7 +90,7 @@ namespace Microsoft.Dafny {
     protected abstract TargetWriter CreateModule(string moduleName, bool isDefault, bool isExtern, string/*?*/ libraryName, TargetWriter wr);
     protected abstract string GetHelperModuleName();
     protected interface IClassWriter {
-      BlockTargetWriter/*?*/ CreateMethod(Method m, bool createBody);
+      BlockTargetWriter/*?*/ CreateMethod(Method m, List<TypeParameter> typeArgs, bool createBody);
       BlockTargetWriter/*?*/ CreateFunction(string name, List<TypeParameter> typeArgs, List<Formal> formals, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl member);
       BlockTargetWriter/*?*/ CreateGetter(string name, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl/*?*/ member);  // returns null iff !createBody
       BlockTargetWriter/*?*/ CreateGetterSetter(string name, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl/*?*/ member, out TargetWriter setterWriter);  // if createBody, then result and setterWriter are non-null, else both are null
@@ -920,7 +920,7 @@ namespace Microsoft.Dafny {
         block = abyss.NewBlock("");
       }
 
-      public BlockTargetWriter/*?*/ CreateMethod(Method m, bool createBody) {
+      public BlockTargetWriter/*?*/ CreateMethod(Method m, List<TypeParameter> typeArgs, bool createBody) {
         return createBody ? block : null;
       }
       public BlockTargetWriter/*?*/ CreateFunction(string name, List<TypeParameter> typeArgs, List<Formal> formals, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl member) {
@@ -1148,7 +1148,7 @@ namespace Microsoft.Dafny {
         Contract.Assert(!member.IsStatic);  // only instance members should ever be added to .InheritedMembers
         if (member.IsGhost) {
           // skip
-        } else if (NeedsCustomReceiver(member)) {
+        } else if (NeedsCustomReceiver(member) && !member.IsOverrideThatAddsBody) {
           // this member is not overridable, and is defined in the trait rather than in the inheriting class/trait
         } else if (member is ConstantField && SupportsProperties) {
           if (NeedsWrappersForInheritedFields) {
@@ -1272,8 +1272,13 @@ namespace Microsoft.Dafny {
                 // because a newtype value is always represented as some existing type.
                 // Likewise, an instance const with a RHS in a trait needs to be modeled as a static function (in the companion class)
                 // that takes a parameter, because trait-equivalents in target languages don't allow implementations.
-                wBody = classWriter.CreateFunction(IdName(cf), new List<TypeParameter>(), new List<Formal>(), cf.Type, cf.tok, true, true, cf);
+                wBody = classWriter.CreateFunction(IdName(cf), CombineTypeParameters(cf), new List<Formal>(), cf.Type, cf.tok, true, true, cf);
                 Contract.Assert(wBody != null);  // since the previous line asked for a body
+                if (c is TraitDecl /*&& !TraitsSupportMutableFields*/) {
+                  // also declare a function for the field in the interface
+                  var wBodyInterface = classWriter.CreateGetter(IdName(cf), cf.Type, cf.tok, false, false, cf);
+                  Contract.Assert(wBodyInterface == null);  // since the previous line said not to create a body
+                }
               } else if (cf.IsStatic) {
                 wBody = classWriter.CreateGetter(IdName(cf), cf.Type, cf.tok, true, true, cf);
                 Contract.Assert(wBody != null);  // since the previous line asked for a body
@@ -1353,9 +1358,12 @@ namespace Microsoft.Dafny {
             if (Attributes.Contains(f.Attributes, "test")) {
               Error(f.tok, "Function {0} must be compiled to use the {{:test}} attribute", errorWr, f.FullName);
             }
-          } else if (c is TraitDecl && !f.IsStatic && f.Body == null) {
+          } else if (c is TraitDecl && !f.IsStatic) {
             var w = classWriter.CreateFunction(IdName(f), f.TypeArgs, f.Formals, f.ResultType, f.tok, false, false, f);
             Contract.Assert(w == null);  // since we requested no body
+            if (f.Body != null) {
+              CompileFunction(f, classWriter);
+            }
           } else {
             CompileFunction(f, classWriter);
           }
@@ -1377,9 +1385,12 @@ namespace Microsoft.Dafny {
               var v = new CheckHasNoAssumes_Visitor(this, errorWr);
               v.Visit(m.Body);
             }
-          } else if (c is TraitDecl && !m.IsStatic && m.Body == null) {
-            var w = classWriter.CreateMethod(m, false);
+          } else if (c is TraitDecl && !m.IsStatic) {
+            var w = classWriter.CreateMethod(m, m.TypeArgs, false);
             Contract.Assert(w == null);  // since we requested no body
+            if (m.Body != null) {
+              CompileMethod(m, classWriter, null);
+            }
           } else {
             CompileMethod(m, classWriter, null);
           }
@@ -1403,10 +1414,11 @@ namespace Microsoft.Dafny {
       Contract.Requires(member != null);
       Contract.Requires(typeArgsEnclosingClass != null);
       Contract.Requires(typeArgsMember != null);
-      if (member is Field) {
+      /*if (member is Field) {
         var formals = member.EnclosingClass != null ? member.EnclosingClass.TypeArgs : new List<TypeParameter>();  // some special fields have .EnclosingClass == null
         return TypeArgumentInstantiation.ListFromFormals(formals);
-      } else if (member.IsStatic ? !SupportsStaticsInGenericClasses : NeedsCustomReceiver(member)) {
+      } else*/
+      if ((member.IsStatic || NeedsCustomReceiver(member)) && !SupportsStaticsInGenericClasses) {
         return TypeArgumentInstantiation.ListFromMember(member, typeArgsEnclosingClass, typeArgsMember);
       } else {
         return TypeArgumentInstantiation.ListFromMember(member, null, typeArgsMember);
@@ -1516,7 +1528,15 @@ namespace Microsoft.Dafny {
       var w = cw.CreateFunction(IdName(f), CombineTypeParameters(f), f.Formals, f.ResultType, f.tok, f.IsStatic, !f.IsExtern(out _, out _), f);
       if (w != null) {
         IVariable accVar = null;
-        if (f.IsTailRecursive) {
+        if (f.EnclosingClass is TraitDecl && f.IsOverrideThatAddsBody) {
+          // TODO: change this to just call the override:
+          Contract.Assert(enclosingFunction == null);
+          enclosingFunction = f;
+          CompileReturnBody(f.Body, f.Original.ResultType, w, accVar);
+          Contract.Assert(enclosingFunction == f);
+          enclosingFunction = null;
+
+        } else if (f.IsTailRecursive) {
           if (f.IsAccumulatorTailRecursive) {
             accVar = new LocalVariable(f.tok, f.tok, "_accumulator", f.ResultType, false) {
               type = f.ResultType
@@ -1563,8 +1583,16 @@ namespace Microsoft.Dafny {
       Contract.Requires(m != null);
       Contract.Requires(m.Body != null);
 
-      var w = cw.CreateMethod(m, !m.IsExtern(out _, out _));
-      if (w != null) {
+      var w = cw.CreateMethod(m, CombineTypeParameters(m), !m.IsExtern(out _, out _));
+      if (w != null && m.EnclosingClass is TraitDecl && m.IsOverrideThatAddsBody) {
+        // TODO: replace the following with a call to the overridden method
+        Contract.Assert(enclosingMethod == null);
+        enclosingMethod = m;
+        TrStmtList(m.Body.Body, w);
+        Contract.Assert(enclosingMethod == m);
+        enclosingMethod = null;
+
+      } else if (w != null) {
         if (m.IsTailRecursive) {
           w = EmitTailCallStructure(m, w);
         }
@@ -3717,22 +3745,13 @@ namespace Microsoft.Dafny {
             wr.Write(")");
           } else {
             void writeObj(TargetWriter w) {
-              if (NeedsCustomReceiver(e.Member) || sf.IsStatic) {
-                w.Write(TypeName_Companion(e.Obj.Type, wr, e.tok, sf));
-              } else {
-                TrParenExpr(e.Obj, w, inLetExprBody);
-              }
+              Contract.Assert(!sf.IsStatic);
+              w = EmitCoercionIfNecessary(e.Obj.Type, UserDefinedType.UpcastToMemberEnclosingType(e.Obj.Type, e.Member), e.tok, w);
+              TrParenExpr(e.Obj, w, inLetExprBody);
             }
 
             var typeArgs = CombineTypeArguments(e.Member, e.TypeApplication_AtEnclosingClass, e.TypeApplication_JustMember);
             EmitMemberSelect(writeObj, e.Obj.Type, e.Member, typeArgs, e.TypeArgumentSubstitutionsWithParents(), expr.Type).EmitRead(wr);
-          }
-
-          if (NeedsCustomReceiver(e.Member)) {
-            wr.Write("(");
-            var w = EmitCoercionIfNecessary(e.Obj.Type, UserDefinedType.UpcastToMemberEnclosingType(e.Obj.Type, e.Member), e.tok, wr);
-            TrExpr(e.Obj, w, inLetExprBody);
-            wr.Write(")");
           }
 
           wr.Write(postStr);

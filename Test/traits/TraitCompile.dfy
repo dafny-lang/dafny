@@ -456,6 +456,7 @@ module TraitsExtendingTraits {
     var m: M := g;
     var n: N := g;
     var bg: B := g;
+    var a: A := g;
     g.b := true;
     assert g.b && m.b && n.b && bg.b;
     print g.b, " ", m.b, " ", n.b, " ", bg.b, "\n";  // true true true true
@@ -472,6 +473,8 @@ module TraitsExtendingTraits {
     print g.GetY(), " ", g.GetY'(), "\n"; // 5.2 5.2
     g.SetY(1.2);
     print g.GetY(), " ", g.GetY'(), "\n";  // 1.2 1.2
+    var a0, a1 := a.GetY(), a.GetY'();
+    print a0, " ", a1, "\n";  // 1.2 1.2
 
     var q := g.Quantity();
     assert 0 <= q <= 20;
