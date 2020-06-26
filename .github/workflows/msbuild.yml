@@ -15,6 +15,7 @@ jobs:
       matrix:
         # Windows build is not yet working due to issues with the checked-in z3.exe
         os: [ubuntu-latest]
+        shard: [1, 2, 3, 4, 5]
       fail-fast: false
     steps:
     - name: Setup Nuget
@@ -51,4 +52,4 @@ jobs:
     - uses: actions/setup-node@v1
     - run: npm install bignumber.js
     - name: Run Dafny tests
-      run: msbuild -t:Test dafny/Test/DafnyTests/DafnyTests.csproj
+      run: XUNIT_SHARD=${{ matrix.shard }} XUNIT_NUM_SHARDS=5 msbuild -t:Test dafny/Test/DafnyTests/DafnyTests.csproj
