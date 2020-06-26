@@ -242,20 +242,20 @@ Sequences: [] [17, 82, 17, 82] [12, 17]
   prefix: true false true
   proper prefix: true false false
   membership: false true true
-[B, o, u, n, d] [B, o, u, n, d] [B, o, u, n, d] [B, o, u, n, d] [B, o, u, n, d] [B, o, u, n, d]
-[e, d] [e, d] [e, d] [e, d] [e, d] [e, d]
+Bound Bound Bound Bound Bound Bound
+ed ed ed ed ed ed
 e e e e e e
 hello
 hEllo
 [2, 4, 6, 8, 10]
 [2, 0, 6, 8, 10]
-Strings: [] [u, R, u, R] [g, u]
+Strings:  uRuR gu
   cardinality: 0 4 2
-  concatenation: [u, R, u, R] [u, R, u, R, g, u]
+  concatenation: uRuR uRuRgu
   prefix: true false true
   proper prefix: true false false
   membership: false true true
-  constructed as sequence: [g, u, r, u]
+  constructed as sequence: guru
   mix: hello-d ddd-hello
 Maps: map[] map[17 := 2, 82 := 2] map[17 := 0, 12 := 26]
   cardinality: 0 2 2
