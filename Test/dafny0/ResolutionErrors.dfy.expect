@@ -181,15 +181,12 @@ ResolutionErrors.dfy(1266,8): Error: the type of this local variable is underspe
 ResolutionErrors.dfy(1267,8): Error: the type of this variable is underspecified
 ResolutionErrors.dfy(1268,8): Error: the type of this local variable is underspecified
 ResolutionErrors.dfy(1272,26): Error: the type of this variable is underspecified
-ResolutionErrors.dfy(1272,43): Error: the type of this expression is underspecified
 ResolutionErrors.dfy(1272,21): Error: type of bound variable 's' could not be determined; please specify the type explicitly
 ResolutionErrors.dfy(1273,31): Error: the type of this variable is underspecified
-ResolutionErrors.dfy(1273,48): Error: the type of this expression is underspecified
 ResolutionErrors.dfy(1273,21): Error: type of bound variable 's' could not be determined; please specify the type explicitly
 ResolutionErrors.dfy(1274,30): Error: the type of this variable is underspecified
 ResolutionErrors.dfy(1274,21): Error: type of bound variable 'c' could not be determined; please specify the type explicitly
 ResolutionErrors.dfy(1281,8): Error: the type of this local variable is underspecified
-ResolutionErrors.dfy(1284,38): Error: the type of this variable is underspecified
 ResolutionErrors.dfy(1284,29): Error: type of bound variable 'c' could not be determined; please specify the type explicitly
 ResolutionErrors.dfy(1295,21): Error: Undeclared top-level type or type parameter: X (did you forget to qualify a name or declare a module import 'opened'?)
 ResolutionErrors.dfy(1296,24): Error: Undeclared top-level type or type parameter: X (did you forget to qualify a name or declare a module import 'opened'?)
@@ -449,4 +446,4 @@ ResolutionErrors.dfy(2890,11): Error: quantifiers in non-ghost contexts must be 
 ResolutionErrors.dfy(2891,21): Error: ghost variables are allowed only in specification contexts
 ResolutionErrors.dfy(2902,15): Error: RHS (of type X) not assignable to LHS (of type X)
 ResolutionErrors.dfy(2906,10): Error: type of corresponding source/RHS (X) does not match type of bound variable (X)
-446 resolution/type errors detected in ResolutionErrors.dfy
+443 resolution/type errors detected in ResolutionErrors.dfy
