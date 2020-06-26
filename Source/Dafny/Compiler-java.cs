@@ -495,7 +495,7 @@ namespace Microsoft.Dafny{
       }
       wr.Write("{0} {1}", targetReturnTypeReplacement ?? "void", IdName(m));
       wr.Write("(");
-      var nTypes = WriteRuntimeTypeDescriptorsFormals(m, typeArgs, useAllTypeArgs: false, wr);
+      var nTypes = WriteRuntimeTypeDescriptorsFormals(typeArgs, wr);
       var sep = nTypes > 0 ? ", " : "";
       if (customReceiver) {
         DeclareFormal(sep, "_this", receiverType, m.tok, true, wr);
@@ -531,7 +531,7 @@ namespace Microsoft.Dafny{
       wr.Write("public ");
       wr.Write(c.CompileName);
       wr.Write("(");
-      var nTypes = WriteRuntimeTypeDescriptorsFormals(l, false, wr);
+      var nTypes = WriteRuntimeTypeDescriptorsFormals(l, wr);
       var w = wr.NewBlock(")", null, BlockTargetWriter.BraceStyle.Newline, BlockTargetWriter.BraceStyle.Newline);
       return w;
     }
@@ -552,14 +552,13 @@ namespace Microsoft.Dafny{
       } else{
         wr.Write($"{TypeName(resultType, wr, tok)} {name}(");
       }
-      var sep = "";
-      var argCount = 0;
+      var argCount = WriteRuntimeTypeDescriptorsFormals(typeArgs, wr);
+      var sep = argCount > 0 ? ", " : "";
       if (customReceiver) {
         DeclareFormal(sep, "_this", receiverType, tok, true, wr);
         sep = ", ";
         argCount++;
       }
-      argCount += WriteRuntimeTypeDescriptorsFormals(typeArgs, useAllTypeArgs: false, wr, sep);
       if (argCount > 0) {
         sep = ", ";
       }
@@ -1274,16 +1273,16 @@ namespace Microsoft.Dafny{
           return SuffixLvalue(obj, $"::{nameAndTypeArgs}");
         } else {
           // we need an eta conversion for the type-descriptor parameters
-          // (T0 a0, T1 a1, ...) -> obj.F(additionalCustomParameter, rtd0, rtd1, ..., a0, a1, ...)
+          // (T0 a0, T1 a1, ...) -> obj.F(rtd0, rtd1, ..., additionalCustomParameter, a0, a1, ...)
           var fn = (Function)member;
           wr.Write("(");
           var sep = "";
-          if (additionalCustomParameter != null) {
-            wr.Write("{0}{1}", sep, additionalCustomParameter);
-            sep = ", ";
-          }
           foreach (var ta in typeArgs) {
             wr.Write("{0}{1}", sep, TypeDescriptor(ta.Actual, wr, fn.tok));
+            sep = ", ";
+          }
+          if (additionalCustomParameter != null) {
+            wr.Write("{0}{1}", sep, additionalCustomParameter);
             sep = ", ";
           }
           var prefixWr = new TargetWriter();
@@ -2482,30 +2481,16 @@ namespace Microsoft.Dafny{
       return s + ")";
     }
 
-    int WriteRuntimeTypeDescriptorsFormals(List<TypeParameter> typeParams, bool useAllTypeArgs, TargetWriter wr, string prefix = "") {
+    int WriteRuntimeTypeDescriptorsFormals(List<TypeParameter> typeParams, TargetWriter wr) {
       Contract.Requires(typeParams != null);
       Contract.Requires(wr != null);
 
       int c = 0;
+      string sep = "";
       foreach (var tp in typeParams) {
-        if (useAllTypeArgs || NeedsTypeDescriptor(tp)) {
-          wr.Write($"{prefix}{TypeClass}<{tp.CompileName}> {FormatTypeDescriptorVariable(tp)}");
-          prefix = ", ";
-          c++;
-        }
-      }
-      return c;
-    }
-
-    int WriteRuntimeTypeDescriptorsFormals(Method m, List<TypeParameter> typeParams, bool useAllTypeArgs, TargetWriter wr, string prefix = "") {
-      Contract.Requires(typeParams != null);
-      Contract.Requires(wr != null);
-
-      int c = 0;
-      foreach (var tp in typeParams) {
-        if (useAllTypeArgs || NeedsTypeDescriptor(tp) || OutContainsParam(m.Outs, tp)){
-          wr.Write($"{prefix}{TypeClass}<{tp.CompileName}> {FormatTypeDescriptorVariable(tp)}");
-          prefix = ", ";
+        if (NeedsTypeDescriptor(tp)) {
+          wr.Write($"{sep}{TypeClass}<{tp.CompileName}> {FormatTypeDescriptorVariable(tp)}");
+          sep = ", ";
           c++;
         }
       }

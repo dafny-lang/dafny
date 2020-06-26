@@ -172,14 +172,10 @@ the companion class for Java instead adds these type parameter to the method.
     }
 
     class Companion_Trait {
-      static function method d<V>(_this: Trait<V>, rtdV: RTD) { E }
-      static function method G<V, U>(_this: Trait<V>, rtdV: RTD, rtdU: RTD, x: X): Y { E }
+      static function method d<V>(rtdV: RTD, _this: Trait<V>) { E }
+      static function method G<V, U>(rtdV: RTD, rtdU: RTD, _this: Trait<V>, x: X): Y { E }
       static method N<V, U>(rtdV: RTD, rtdU: RTD, _this: Trait<V>, x: X) returns (y: Y) { S }
     }
-
-Note: Evidently, for `d` and `G`, the compiler positions the receiver parameter before
-the type desciptors, whereas these are ordered in the opposite way for `N`. It would make
-sense to make these consistent.
 
 ## JavaScript
 

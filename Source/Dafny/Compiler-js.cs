@@ -1533,7 +1533,7 @@ namespace Microsoft.Dafny {
           return SuffixLvalue(obj, ".{0}", IdName(member));
         } else {
           // we need an eta conversion for the type-descriptor parameters
-          // (T0 a0, T1 a1, ...) -> obj.F(rtd0, rtd1, ..., a0, a1, ...)
+          // (T0 a0, T1 a1, ...) -> obj.F(rtd0, rtd1, ..., additionalCustomParameter, a0, a1, ...)
           // Start by writing to the suffix:  F(rtd0, rtd1, ...
           var suffixWr = new TargetWriter();
           suffixWr.Write(IdName(member));
