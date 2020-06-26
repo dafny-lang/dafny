@@ -1406,7 +1406,7 @@ namespace Microsoft.Dafny {
       if (member is Field) {
         var formals = member.EnclosingClass != null ? member.EnclosingClass.TypeArgs : new List<TypeParameter>();  // some special fields have .EnclosingClass == null
         return TypeArgumentInstantiation.ListFromFormals(formals);
-      } else if (member.IsStatic && !SupportsStaticsInGenericClasses) {
+      } else if (member.IsStatic ? !SupportsStaticsInGenericClasses : NeedsCustomReceiver(member)) {
         return TypeArgumentInstantiation.ListFromMember(member, typeArgsEnclosingClass, typeArgsMember);
       } else {
         return TypeArgumentInstantiation.ListFromMember(member, null, typeArgsMember);

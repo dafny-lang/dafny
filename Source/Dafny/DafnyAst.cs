@@ -2610,23 +2610,24 @@ namespace Microsoft.Dafny {
     }
 
     /// <summary>
-    /// If "member" is non-null and "member.EnclosingClass" is a trait, then:
-    ///   Return a type representing "member.EnclosingClass", with type parameters as if there had been an upcast from
-    ///   "receiverType".
+    /// If "member" is non-null, then:
+    ///   Return the upcast of "receiverType" that has base type "member.EnclosingClass".
     ///   Assumes that "receiverType" normalizes to a UserDefinedFunction with a .ResolveClass that is a subtype
     ///   of "member.EnclosingClass".
     /// Otherwise:
-    ///   Return "type".
+    ///   Return "receiverType" (expanded).
     /// </summary>
     public static Type UpcastToMemberEnclosingType(Type receiverType, MemberDecl/*?*/ member) {
       Contract.Requires(receiverType != null);
+      receiverType = receiverType.NormalizeExpand();
       if (member?.EnclosingClass is TraitDecl) {
-        var cl = (ClassDecl)((UserDefinedType)receiverType.NormalizeExpand()).ResolvedClass;
-        var rawTrait = UserDefinedType.FromTopLevelDecl(member.tok, member.EnclosingClass);
-        return Resolver.SubstType(rawTrait, cl.ParentFormalTypeParametersToActuals);
-      } else {
-        return receiverType;
+        var cl = (ClassDecl)((UserDefinedType)receiverType).ResolvedClass;
+        if (cl != member.EnclosingClass) {
+          var rawTrait = UserDefinedType.FromTopLevelDecl(member.tok, member.EnclosingClass);
+          return Resolver.SubstType(rawTrait, cl.ParentFormalTypeParametersToActuals);
+        }
       }
+      return receiverType;
     }
 
     /// <summary>

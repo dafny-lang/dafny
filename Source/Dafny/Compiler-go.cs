@@ -2470,7 +2470,8 @@ namespace Microsoft.Dafny {
         });
       } else if (member is ConstantField cf && cf.Rhs != null) {
         var customReceiver = NeedsCustomReceiver(member);
-        return SuffixLvalue(obj, ".{0}{1}", IdName(member), customReceiver ? "" : "()");
+        var lvalue = SuffixLvalue(obj, ".{0}{1}", IdName(member), customReceiver ? "" : "()");
+        return CoercedLvalue(lvalue, cf.Type, expectedType);
       } else if (member is Function fn) {
         typeArgs = typeArgs.Where(ta => NeedsTypeDescriptor(ta.Formal)).ToList();
         if (typeArgs.Count == 0 && additionalCustomParameter == null) {

@@ -1602,7 +1602,8 @@ namespace Microsoft.Dafny
       var custom =
         (enclosingMethod != null && enclosingMethod.IsTailRecursive) ||
         (enclosingFunction != null && enclosingFunction.IsTailRecursive) ||
-        thisContext is NewtypeDecl;
+        thisContext is NewtypeDecl ||
+        thisContext is TraitDecl;
       wr.Write(custom ? "_this" : "this");
     }
 
