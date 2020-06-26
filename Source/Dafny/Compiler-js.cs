@@ -1043,9 +1043,46 @@ namespace Microsoft.Dafny {
     // ----- Statements -------------------------------------------------------------
 
     protected override void EmitPrintStmt(TargetWriter wr, Expression arg) {
-      wr.Write("process.stdout.write(_dafny.toString(");
-      TrExpr(arg, wr, false);
-      wr.WriteLine("));");
+      bool isString = arg.Type.AsSeqType != null &&
+                      arg.Type.AsSeqType.Arg.IsCharType;
+      bool isStringLiteral = arg is StringLiteralExpr;
+      bool isGeneric = arg.Type.AsSeqType != null &&
+                       arg.Type.AsSeqType.Arg.IsTypeParameter;
+      if (isStringLiteral) {
+        // process.stdout.write(_dafny.toString(x));
+        wr.Write("process.stdout.write(_dafny.toString(");
+        TrExpr(arg, wr, false);
+        wr.WriteLine("));");
+      } else if (isString) {
+        // isString && !isStringLiteral
+        wr.Write("process.stdout.write(_dafny.toString(_dafny.Seq.JoinIfPossible(");
+        TrExpr(arg, wr, false);
+        wr.WriteLine(")));");
+      } else if (isGeneric) {
+        // try { process.stdout.write(_dafny.toString(((x) instanceof Array && typeof((x)[0]) == \"string\") ? (x).join("") : (x))); } catch (_error) { process.stdout.write(_dafny.toString(x)); }
+        wr.Write("try { process.stdout.write(_dafny.toString(");
+        wr.Write("(");
+        wr.Write("(");
+        TrExpr(arg, wr, false);
+        wr.Write(") instanceof Array && typeof((");
+        TrExpr(arg, wr, false);
+        wr.Write(")[0]) == \"string\") ? ");
+        wr.Write("(");
+        TrExpr(arg, wr, false);
+        wr.Write(").join(\"\")");
+        wr.Write(":");
+        wr.Write("(");
+        TrExpr(arg, wr, false);
+        wr.Write(")));");
+        wr.Write("} catch (_error) { process.stdout.write(_dafny.toString(");
+        TrExpr(arg, wr, false);
+        wr.WriteLine("));}");
+      } else { // !isString && !isGeneric
+        // process.stdout.write(_dafny.toString(x));
+        wr.Write("process.stdout.write(_dafny.toString(");
+        TrExpr(arg, wr, false);
+        wr.WriteLine("));");
+      }
     }
 
     protected override void EmitReturn(List<Formal> outParams, TargetWriter wr) {

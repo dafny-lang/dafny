@@ -2068,16 +2068,20 @@ namespace Microsoft.Dafny{
         }
       } else {
         // TODO-RS: This doesn't handle strings printed out as part of datatypes
-        bool isString = arg.Type.AsCollectionType != null &&
-                        arg.Type.AsCollectionType.AsSeqType != null &&
-                        arg.Type.AsCollectionType.AsSeqType.Arg is CharType;
-        if (!isString) {
-          wr.Write("String.valueOf(");
-        }
-        TrExpr(arg, wr, false);
+        bool isString = arg.Type.AsSeqType != null &&
+                        arg.Type.AsSeqType.Arg.IsCharType;
+        bool isGeneric = arg.Type.AsSeqType != null &&
+                         arg.Type.AsSeqType.Arg.IsTypeParameter;
         if (isString) {
+          TrExpr(arg, wr, false);
           wr.Write(".verbatimString()");
+        } else if (isGeneric) {
+          wr.Write("((java.util.function.Function<dafny.DafnySequence<?>,String>)(_s -> (_s.elementType().defaultValue().getClass() == java.lang.Character.class ? _s.verbatimString() : String.valueOf(_s)))).apply(");
+          TrExpr(arg, wr, false);
+          wr.Write(")");
         } else {
+          wr.Write("String.valueOf(");
+          TrExpr(arg, wr, false);
           wr.Write(")");
         }
       }
