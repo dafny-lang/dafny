@@ -875,7 +875,7 @@ namespace Microsoft.Dafny{
         }
       }
       var wBody = w.NewBlock("");
-      var wTypeFields = wBody.Fork();
+      var wTypeFields = wBody.ForkSection();
 
       wBody.Write($"public {javaName}(");
       var wCtorParams = wBody.Fork();

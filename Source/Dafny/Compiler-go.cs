@@ -1157,7 +1157,7 @@ namespace Microsoft.Dafny {
         // Go has no direct support for this idiom. Instead, we re-declare the in-parameters with the actual type, let the re-declarations
         // shadow the given (generic) in-parameters, and then do a cast on entry to the body.
         if (thisContext != null) {
-          w = w.NewBlock("");
+          w = w.NewBlock("", open: BlockTargetWriter.BraceStyle.Nothing);
           for (var i = 0; i < inParams.Count; i++) {
             var p = (overriddenInParams ?? inParams)[i];
             var instantiatedType = Resolver.SubstType(p.Type, thisContext.ParentFormalTypeParametersToActuals);
