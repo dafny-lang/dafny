@@ -2801,7 +2801,7 @@ To define a function
 write an equation like
 
 ~ Equation {#eq-general}
-<img ALIGN=absmiddle src="https://render.githubusercontent.com/render/math?math=f = \mathcal{F}(f)">  
+<img ALIGN=absmiddle src="https://render.githubusercontent.com/render/math?math=f = \mathcal{F}(f)" alt="f\:=\:\mathcal{F}(f)">  
 ~
 
 where 
@@ -2859,32 +2859,46 @@ Let's consider two ways to make sure we're defining the function uniquely.
 ### Well-founded Functions
 
 A standard way to ensure that equation [#eq-general] has a unique solution in 
-$f$ 
+<img ALIGN=absmiddle src="https://render.githubusercontent.com/render/math?math=f">
 is
 to make sure the recursion is well-founded, which roughly means that the
 recursion terminates.  This is done by introducing any well-founded
-relation $\\Less$ on the domain of $f$ and making sure that the argument to each recursive
+relation 
+<img ALIGN=absmiddle src="https://render.githubusercontent.com/render/math?math=\ll">
+on the domain of 
+<img ALIGN=absmiddle src="https://render.githubusercontent.com/render/math?math=f">
+and making sure that the argument to each recursive
 call goes down in this ordering.  More precisely, if we formulate [#eq-general] as
 
-~ Equation
-  f(x) \\Equal \\F'(f)
+~ Equation <img ALIGN=absmiddle src="https://render.githubusercontent.com/render/math?math=f(x) = \mathcal{F}{'}(f)">
 ~
 
-then we want to check $E \\Less x$ for each call $f(E)$ in $\\F'(f)$.  When a function
+then we want to check 
+<img ALIGN=bottom src="https://render.githubusercontent.com/render/math?math=E \ll x">
+for each call 
+<img ALIGN=absmiddle src="https://render.githubusercontent.com/render/math?math=f(E)">
+in 
+<img ALIGN=absmiddle src="https://render.githubusercontent.com/render/math?math=f(x) = \mathcal{F}'(f)">.
+When a function
 definition satisfies  this _decrement condition_, then the function is said to be
 _well-founded_.
 
-For example, to check the decrement condition for $\\fib$ in [#eq-fib], we can pick
-$\\Less$ to be the arithmetic less-than relation on natural numbers and check the
-following, for any $n$:
+For example, to check the decrement condition for 
+<img ALIGN=absmiddle src="https://render.githubusercontent.com/render/math?math=\mathit{fib}">
+in [#eq-fib], we can pick
+<img ALIGN=absmiddle src="https://render.githubusercontent.com/render/math?math=\ll">
+to be the arithmetic less-than relation on natural numbers and check the
+following, for any 
+<img ALIGN=absmiddle src="https://render.githubusercontent.com/render/math?math=n">:
 
-<!--
-~ Equation
-  2 \leq n \;\;\Imp\;\; n-2 \Less n \;\And\; n-1 \Less n
+
+~ Equation 
+<img ALIGN=absmiddle src="https://render.githubusercontent.com/render/math?math=2 \leq n \:\Longrightarrow\: n-2 \ll n \:\wedge\: n-1 \ll n">
 ~
--->
 
-Note that we are entitled to using the antecedent $2 \leq n$, because that is the
+
+Note that we are entitled to use the antecedent 
+<img ALIGN=bottom src="https://render.githubusercontent.com/render/math?math=2 \leq n"> because that is the
 condition under which the else branch in [#eq-fib] is evaluated.
 
 A well-founded function is often thought of as "terminating" in the sense
