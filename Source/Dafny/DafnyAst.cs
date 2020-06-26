@@ -12090,25 +12090,38 @@ namespace Microsoft.Dafny {
       exprs.Iter(Visit);
     }
     public void Visit(ICallable decl) {
-      if (decl is Function) {
-        Visit((Function)decl);
-      } else if (decl is Method) {
-        Visit((Method)decl);
+      if (decl is Function f) {
+        Visit(f);
+      } else if (decl is Method m) {
+        Visit(m);
+      } else if (decl is TypeSynonymDecl tsd) {
+        Visit(tsd);
+      } else if (decl is NewtypeDecl ntd) {
+        Visit(ntd);
       }
       //TODO More?
     }
+
+    public void Visit(SubsetTypeDecl ntd) {
+      if (ntd.Constraint != null) Visit(ntd.Constraint);
+      if (ntd.Witness != null) Visit(ntd.Witness);
+    }
+    public void Visit(NewtypeDecl ntd) {
+      if (ntd.Constraint != null) Visit(ntd.Constraint);
+      if (ntd.Witness != null) Visit(ntd.Witness);
+    }
     public void Visit(Method method) {
-      Visit(method.Ens);
       Visit(method.Req);
       Visit(method.Mod.Expressions);
+      Visit(method.Ens);
       Visit(method.Decreases.Expressions);
       if (method.Body != null) { Visit(method.Body); }
       //TODO More?
     }
     public void Visit(Function function) {
-      Visit(function.Ens);
       Visit(function.Req);
       Visit(function.Reads);
+      Visit(function.Ens);
       Visit(function.Decreases.Expressions);
       if (function.Body != null) { Visit(function.Body); }
       //TODO More?
