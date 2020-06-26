@@ -2801,7 +2801,7 @@ To define a function
 write an equation like
 
 ~ Equation {#eq-general}
-<img ALIGN=absmiddle src="https://render.githubusercontent.com/render/math?math=f = \mathcal{F}(f)" alt="f\:=\:\mathcal{F}(f)">  
+<img ALIGN=absmiddle src="https://render.githubusercontent.com/render/math?math=f = \mathcal{F}(f)">  
 ~
 
 where 
