@@ -7246,7 +7246,11 @@ namespace Microsoft.Dafny
                 }
               }
               if (rhs.InitCall != null) {
-                rhs.InitCall.Args.ForEach(resolver.CheckIsCompilable);
+                for (var i = 0; i < rhs.InitCall.Args.Count; i++) {
+                  if (!rhs.InitCall.Method.Ins[i].IsGhost) {
+                    resolver.CheckIsCompilable(rhs.InitCall.Args[i]);
+                  }
+                }
               }
             }
           }
