@@ -208,6 +208,7 @@ Go has no type parameters, so those are replaced by the empty interface type.
       function method a(): X
       method set_a(value: X)
       function method c(): X
+      function method d(): X
       function method F(rtdU: RTD, x: X): Y
       function method G(rtdU: RTD, x: X): Y
       method M(rtdU: RTD, x: X) returns (y: Y)

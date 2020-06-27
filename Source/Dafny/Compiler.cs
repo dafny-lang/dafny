@@ -1153,7 +1153,7 @@ namespace Microsoft.Dafny {
           // skip
         } else if (NeedsCustomReceiver(member) && !member.IsOverrideThatAddsBody) {
           // this member is not overridable, and is defined in the trait rather than in the inheriting class/trait
-        } else if (member is ConstantField && SupportsProperties) {
+        } else if (member is ConstantField) {
           if (NeedsWrappersForInheritedFields) {
             var cf = (ConstantField)member;
             var cfType = Resolver.SubstType(cf.Type, typeMap);
@@ -1177,8 +1177,6 @@ namespace Microsoft.Dafny {
           if (!ClassesRedeclareInheritedFields) {
             if (c is TraitDecl) {
               // a trait inheriting a field from another trait; do nothing
-            } else if (f is ConstantField cf && cf.Rhs != null) {
-              // this initialization is done elsewhere
             } else {
               // the field has already been declared in the parent trait, but we initialize it here (since the type of the field
               // in the parent trait may have involved some type parameter that been been instantiated here)
@@ -1203,32 +1201,21 @@ namespace Microsoft.Dafny {
               var sw = EmitAssignmentRhs(wSet);
               EmitSetterParameter(sw);
             }
-          } else {
-            if (!TraitsSupportMutableFields && f is ConstantField cf && cf.Rhs != null) {
-              var w = new TargetWriter();
-              TrExpr(cf.Rhs, w, false);
-              var rhs = w.ToString();
-              classWriter.DeclareField(f.CompileName, c, false, true, fType, f.tok, rhs, f);
-            } else {
-              classWriter.DeclareField(f.CompileName, c, false, false, fType, f.tok, DefaultValue(fType, errorWr, f.tok, true), f);
+          } else if (!TraitsSupportMutableFields) { // Create getters and setters for "traits" in languages that don't support those or mutable fields directly
+            TargetWriter wSet;
+            var wGet = classWriter.CreateGetterSetter(IdName(f), fType, f.tok, false, true, member, out wSet);
+            {
+              var sw = EmitReturnExpr(wGet);
+              // get { return this.{0}; }
+              EmitThis(sw);
+              sw.Write(".{0}", f.CompileName);
             }
-
-            if (!TraitsSupportMutableFields) { // Create getters and setters for "traits" in languages that don't support those or mutable fields directly
-              TargetWriter wSet;
-              var wGet = classWriter.CreateGetterSetter(IdName(f), fType, f.tok, false, true, member, out wSet);
-              {
-                var sw = EmitReturnExpr(wGet);
-                // get { return this.{0}; }
-                EmitThis(sw);
-                sw.Write(".{0}", f.CompileName);
-              }
-              {
-                // set { this.{0} = value; }
-                EmitThis(wSet);
-                wSet.Write(".{0}", f.CompileName);
-                var sw = EmitAssignmentRhs(wSet);
-                EmitSetterParameter(sw);
-              }
+            {
+              // set { this.{0} = value; }
+              EmitThis(wSet);
+              wSet.Write(".{0}", f.CompileName);
+              var sw = EmitAssignmentRhs(wSet);
+              EmitSetterParameter(sw);
             }
           }
         } else if (member is Function fn) {
@@ -1261,7 +1248,7 @@ namespace Microsoft.Dafny {
               } else {
                 EmitReturnExpr(DefaultValue(cf.Type, wBody, cf.tok, true), wBody);
               }
-            } else if (SupportsProperties || (c is NewtypeDecl && !cf.IsStatic) || (c is TraitDecl && NeedsCustomReceiver(cf))) {
+            } else {
               BlockTargetWriter wBody;
               if ((c is NewtypeDecl && !cf.IsStatic) || (c is TraitDecl && NeedsCustomReceiver(cf))) {
                 // An instance field in a newtype needs to be modeled as a static function that takes a parameter,
@@ -1303,19 +1290,6 @@ namespace Microsoft.Dafny {
                   EmitReturnExpr(DefaultValue(cf.Type, wBody, cf.tok, true), wBody);
                 }
               }
-            } else if (c is TraitDecl && !TraitsSupportMutableFields && !cf.IsStatic) {
-              // Constant fields in traits (Java interface) should be get methods.
-              classWriter.CreateGetter(IdName(cf), cf.Type, cf.tok, false, false, cf);
-            } else {
-              string rhs;
-              if (cf.Rhs != null) {
-                var w = new TargetWriter();
-                TrExpr(cf.Rhs, w, false);
-                rhs = w.ToString();
-              } else {
-                rhs = null;
-              }
-              classWriter.DeclareField(IdName(f), c, f.IsStatic, true, f.Type, f.tok, rhs, f);
             }
           } else if (c is TraitDecl && NeedsWrappersForInheritedFields) {
             TargetWriter wSet;

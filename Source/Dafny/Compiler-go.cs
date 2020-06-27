@@ -415,6 +415,7 @@ namespace Microsoft.Dafny {
 
     protected override bool NeedsWrappersForInheritedFields => false;
     protected override bool SupportsProperties => false;
+    protected override bool TraitsSupportMutableFields => false;
 
     protected override BlockTargetWriter CreateIterator(IteratorDecl iter, TargetWriter wr) {
       // FIXME: There should be tests to make sure that the finalizer mechanism achieves what I hope it does, namely allowing the iterator's goroutine to be garbage-collected along with the iterator.
@@ -1058,10 +1059,10 @@ namespace Microsoft.Dafny {
         return Compiler.CreateFunction(name, typeArgs, formals, resultType, tok, isStatic, createBody, member, ClassName, AbstractMethodWriter, ConcreteMethodWriter);
       }
       public BlockTargetWriter/*?*/ CreateGetter(string name, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl/*?*/ member) {
-        return Compiler.CreateGetter(name, resultType, tok, isStatic, createBody, member, ClassName, ConcreteMethodWriter);
+        return Compiler.CreateGetter(name, resultType, tok, isStatic, createBody, member, ClassName, AbstractMethodWriter, ConcreteMethodWriter);
       }
       public BlockTargetWriter/*?*/ CreateGetterSetter(string name, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl/*?*/ member, out TargetWriter setterWriter) {
-        return Compiler.CreateGetterSetter(name, resultType, tok, isStatic, createBody, member, name, out setterWriter, ConcreteMethodWriter);
+        return Compiler.CreateGetterSetter(name, resultType, tok, isStatic, createBody, member, name, out setterWriter, AbstractMethodWriter, ConcreteMethodWriter);
       }
       public void DeclareField(string name, TopLevelDecl enclosingDecl, bool isStatic, bool isConst, Type type, Bpl.IToken tok, string rhs, Field field) {
         // FIXME: This should probably be done in Compiler.DeclareField().
@@ -1109,7 +1110,7 @@ namespace Microsoft.Dafny {
     private BlockTargetWriter CreateSubroutine(string name, List<TypeParameter> typeArgs,
       List<Formal> inParams, List<Formal> outParams, Type/*?*/ resultType,
       List<Formal>/*?*/ overriddenInParams, List<Formal>/*?*/ overriddenOutParams, Type/*?*/ overriddenResultType,
-      Bpl.IToken tok, bool isStatic, bool createBody, string ownerName, MemberDecl member, TargetWriter abstractWriter, TargetWriter concreteWriter) {
+      Bpl.IToken tok, bool isStatic, bool createBody, string ownerName, MemberDecl/*?*/ member, TargetWriter abstractWriter, TargetWriter concreteWriter) {
       Contract.Requires(name != null);
       Contract.Requires(typeArgs != null);
       Contract.Requires(inParams != null);
@@ -1118,16 +1119,14 @@ namespace Microsoft.Dafny {
       Contract.Requires(overriddenOutParams == null || overriddenOutParams.Count == outParams.Count);
       Contract.Requires(tok != null);
       Contract.Requires(ownerName != null);
-      Contract.Requires(member != null);
-      Contract.Requires(abstractWriter != null);
-      Contract.Requires(concreteWriter != null);
+      Contract.Requires(abstractWriter != null || concreteWriter != null);
 
-      var customReceiver = createBody && NeedsCustomReceiver(member);
+      var customReceiver = createBody && member != null && NeedsCustomReceiver(member);
       TargetWriter wr;
       if (createBody || abstractWriter == null) {
         wr = concreteWriter;
         string receiver = isStatic || customReceiver ? FormatCompanionTypeName(ownerName) : ownerName;
-        if (member.EnclosingClass is DatatypeDecl) {
+        if (member != null && member.EnclosingClass is DatatypeDecl) {
           wr.Write("func ({0} {1}) ", isStatic ? "_static" : "_this", receiver);
         } else {
           wr.Write("func ({0} *{1}) ", isStatic || customReceiver ? "_static" : "_this", receiver);
@@ -1356,21 +1355,17 @@ namespace Microsoft.Dafny {
       }
     }
 
-    protected BlockTargetWriter/*?*/ CreateGetter(string name, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl/*?*/ member, string ownerName, TargetWriter wr) {
-      // We don't use getters
-      return createBody ? new TargetWriter().NewBlock("") : null;
+    protected BlockTargetWriter/*?*/ CreateGetter(string name, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl/*?*/ member, string ownerName, TargetWriter abstractWriter, TargetWriter concreteWriter) {
+      return CreateFunction(name, new List<TypeParameter>(), new List<Formal>(), resultType, tok, isStatic, createBody, member, ownerName, abstractWriter, concreteWriter);
     }
 
-    protected BlockTargetWriter/*?*/ CreateGetterSetter(string name, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl/*?*/ member, string ownerName, out TargetWriter setterWriter, TargetWriter wr) {
-      // We don't use getter/setter pairs; we just embed the trait's fields.
-      if (createBody) {
-        var abyss = new TargetWriter();
-        setterWriter = abyss;
-        return abyss.NewBlock("");
-      } else {
-        setterWriter = null;
-        return null;
-      }
+    protected BlockTargetWriter/*?*/ CreateGetterSetter(string name, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl/*?*/ member, string ownerName,
+      out TargetWriter setterWriter, TargetWriter abstractWriter, TargetWriter concreteWriter) {
+      var getterWriter = CreateGetter(name, resultType, tok, isStatic, createBody, member, ownerName, abstractWriter, concreteWriter);
+      setterWriter = CreateSubroutine(name + "_set_", new List<TypeParameter>(), new List<Formal>(), new List<Formal>(), resultType,
+        new List<Formal>(), new List<Formal>(), resultType, tok, isStatic, createBody, ownerName, member,
+        abstractWriter, concreteWriter);
+      return getterWriter;
     }
 
     protected override bool SupportsStaticsInGenericClasses => false;
@@ -1834,12 +1829,12 @@ namespace Microsoft.Dafny {
     protected override void EmitPrintStmt(TargetWriter wr, Expression arg) {
       bool isString = arg.Type.AsSeqType != null &&
                       arg.Type.AsSeqType.Arg.IsCharType;
-      if (!isString || 
+      if (!isString ||
           (arg.Resolved is MemberSelectExpr mse &&
             mse.Member.IsExtern(out _, out _))) {
         wr.Write("_dafny.Print(");
         TrExpr(arg, wr, false);
-        wr.WriteLine(")"); 
+        wr.WriteLine(")");
       } else {
         wr.Write("_dafny.Print((");
         TrExpr(arg, wr, false);
