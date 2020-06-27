@@ -548,10 +548,8 @@ namespace Microsoft.Dafny{
       wr.Write("public {0}{1}", !createBody && !(member.EnclosingClass is TraitDecl) ? "abstract " : "", isStatic || customReceiver ? "static " : "");
       if (typeArgs.Count != 0) {
         wr.Write($"<{TypeParameters(typeArgs)}> ");
-        wr.Write($"{TypeName(resultType, wr, tok)} {name}(");
-      } else{
-        wr.Write($"{TypeName(resultType, wr, tok)} {name}(");
       }
+      wr.Write($"{TypeName(resultType, wr, tok)} {name}(");
       var argCount = WriteRuntimeTypeDescriptorsFormals(typeArgs, wr);
       var sep = argCount > 0 ? ", " : "";
       if (customReceiver) {

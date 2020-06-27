@@ -1315,11 +1315,7 @@ namespace Microsoft.Dafny {
               } else {
                 rhs = null;
               }
-              if (!(c is TraitDecl && !TraitsSupportMutableFields) || cf.IsStatic) {
-                classWriter.DeclareField(IdName(f), c, f.IsStatic, true, f.Type, f.tok, rhs, f);
-              } else { // Constant fields in traits (Java interface) should be get methods.
-                classWriter.CreateGetter(IdName(cf), cf.Type, cf.tok, false, false, cf);
-              }
+              classWriter.DeclareField(IdName(f), c, f.IsStatic, true, f.Type, f.tok, rhs, f);
             }
           } else if (c is TraitDecl && NeedsWrappersForInheritedFields) {
             TargetWriter wSet;
@@ -1349,7 +1345,7 @@ namespace Microsoft.Dafny {
             // nothing to compile, but we do check for assumes
             if (f.Body == null) {
               Contract.Assert(c is TraitDecl && !f.IsStatic || Attributes.Contains(f.Attributes, "extern"));
-            } 
+            }
 
             if (Attributes.Contains(f.Attributes, "test")) {
               Error(f.tok, "Function {0} must be compiled to use the {{:test}} attribute", errorWr, f.FullName);
