@@ -26,14 +26,15 @@ namespace XUnitExtensions {
             
             IEnumerable<IXunitTestCase> testCases = theoryDiscoverer.Discover(discoveryOptions, testMethod, factAttribute);
             var shardEnvVar = Environment.GetEnvironmentVariable("XUNIT_SHARD");
-            var numShardsEnvVar = Environment.GetEnvironmentVariable("XUNIT_NUM_SHARDS");
+            var numShardsEnvVar = Environment.GetEnvironmentVariable("XUNIT_SHARD_COUNT");
+            // TODO-RS: More careful error checking
             if (shardEnvVar != null && numShardsEnvVar != null) {
                 var testCaseList = testCases.ToList();
                 var shard = Int32.Parse(shardEnvVar);
                 var numShards = Int32.Parse(numShardsEnvVar);
                 var shardStart = (shard - 1) * testCaseList.Count / numShards;
                 var shardEnd = shard * testCaseList.Count / numShards;
-                testCases = testCaseList.GetRange(shardStart, shardEnd);
+                testCases = testCaseList.GetRange(shardStart, shardEnd - shardStart);
             }
             
             return testCases.Select(testCase => new TestCaseWithCollection(testCase, testCollectionForTestCase(testCase)));

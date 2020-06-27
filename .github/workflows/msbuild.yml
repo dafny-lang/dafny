@@ -52,4 +52,4 @@ jobs:
     - uses: actions/setup-node@v1
     - run: npm install bignumber.js
     - name: Run Dafny tests
-      run: XUNIT_SHARD=${{ matrix.shard }} XUNIT_NUM_SHARDS=5 msbuild -t:Test dafny/Test/DafnyTests/DafnyTests.csproj
+      run: XUNIT_SHARD=${{ matrix.shard }} XUNIT_SHARD_COUNT=5 msbuild -t:Test dafny/Test/DafnyTests/DafnyTests.csproj
