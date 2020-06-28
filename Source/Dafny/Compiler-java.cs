@@ -431,7 +431,7 @@ namespace Microsoft.Dafny{
 
     protected BlockTargetWriter CreateGetter(string name, Type resultType, Bpl.IToken tok, bool isStatic,
       bool createBody, TargetWriter wr) {
-      wr.Write("public {0}{1} get_{2}()", isStatic ? "static " : "", TypeName(resultType, wr, tok), name);
+      wr.Write("public {0}{1} {2}()", isStatic ? "static " : "", TypeName(resultType, wr, tok), name);
       if (createBody) {
         var w = wr.NewBlock("", null, BlockTargetWriter.BraceStyle.Newline, BlockTargetWriter.BraceStyle.Newline);
         return w;
@@ -452,7 +452,7 @@ namespace Microsoft.Dafny{
 
     public BlockTargetWriter /*?*/ CreateGetterSetter(string name, Type resultType, Bpl.IToken tok, bool isStatic,
       bool createBody, out TargetWriter setterWriter, TargetWriter wr) {
-      wr.Write("public {0}{1} get_{2}()", isStatic ? "static " : "", TypeName(resultType, wr, tok), name);
+      wr.Write("public {0}{1} {2}()", isStatic ? "static " : "", TypeName(resultType, wr, tok), name);
       BlockTargetWriter wGet = null;
       if (createBody) {
         wGet = wr.NewBlock("", null, BlockTargetWriter.BraceStyle.Newline, BlockTargetWriter.BraceStyle.Newline);
@@ -1232,25 +1232,33 @@ namespace Microsoft.Dafny{
 
     protected override ILvalue EmitMemberSelect(Action<TargetWriter> obj, Type objType, MemberDecl member, List<TypeArgumentInstantiation> typeArgs, Dictionary<TypeParameter, Type> typeMap,
       Type expectedType, string/*?*/ additionalCustomParameter, bool internalAccess = false) {
-      if (member is Field && member.EnclosingClass is TraitDecl && !member.IsStatic) {
-        if (NeedsCustomReceiver(member)) {
-          var field = (Field)member;
-          return SimpleLvalue(w => {
-            w.Write("{0}.", TypeName_Companion(objType, w, field.tok, member));
-            EmitNameAndActualTypeArgs(IdName(member), typeArgs.ConvertAll(ta => ta.Actual), member.tok, w);
-            w.Write("(");
-            obj(w);
-            foreach (var ta in typeArgs) {
-              w.Write(", {0}", TypeDescriptor(ta.Actual, w, member.tok));
-            }
-            w.Write(")");
-          });
-        } else {
-          return new GetterSetterLvalue(obj, IdName(member));
-        }
+      if (member is ConstantField && NeedsCustomReceiver(member)) {
+        return SimpleLvalue(w => {
+          w.Write("{0}.", TypeName_Companion(objType, w, member.tok, member));
+          EmitNameAndActualTypeArgs(IdName(member), typeArgs.ConvertAll(ta => ta.Actual), member.tok, w);
+          w.Write("(");
+          obj(w);
+          foreach (var ta in typeArgs) {
+            w.Write(", {0}", TypeDescriptor(ta.Actual, w, member.tok));
+          }
+          w.Write(")");
+        });
+      } else if (member is ConstantField && member.IsStatic) {
+        return SimpleLvalue(w => {
+          w.Write("{0}.{1}", TypeName_Companion(objType, w, member.tok, member), IdName(member));
+        });
       } else if (member is ConstantField) {
-        Contract.Assert(!(member.IsStatic && member.EnclosingClass.TypeArgs.Count != 0));
-        return SuffixLvalue(obj, $".{IdName(member)}");
+        return SimpleLvalue(lvalueAction: wr => {
+          obj(wr);
+          wr.Write("._{0}", member.CompileName);
+        }, rvalueAction: wr => {
+          obj(wr);
+          if (internalAccess) {
+            wr.Write("._{0}", member.CompileName);
+          } else {
+            wr.Write(".{0}()", IdName(member));
+          }
+        });
       } else if (member is SpecialField sf) {
         GetSpecialFieldInfo(sf.SpecialId, sf.IdParam, out var compiledName, out _, out _);
         if (compiledName.Length != 0){
@@ -1317,7 +1325,7 @@ namespace Microsoft.Dafny{
 
       public GetterSetterLvalue(Action<TargetWriter> obj, string name) {
         this.Object = obj;
-        this.Getter = $"get_{name}";
+        this.Getter = $"{name}";
         this.Setter = $"set_{name}";
       }
 

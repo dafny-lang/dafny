@@ -1699,16 +1699,14 @@ namespace Microsoft.Dafny
     protected override ILvalue EmitMemberSelect(System.Action<TargetWriter> obj, Type objType, MemberDecl member, List<TypeArgumentInstantiation> typeArgs, Dictionary<TypeParameter, Type> typeMap,
       Type expectedType, string/*?*/ additionalCustomParameter, bool internalAccess = false) {
       if (member is ConstantField && NeedsCustomReceiver(member)) {
-        var field = (Field)member;
         return SimpleLvalue(w => {
-          w.Write("{0}.{1}(", TypeName_Companion(objType, w, field.tok, field), IdName(member));
+          w.Write("{0}.{1}(", TypeName_Companion(objType, w, member.tok, member), IdName(member));
           obj(w);
           w.Write(")");
         });
       } else if (member is ConstantField && member.IsStatic) {
-        var field = (Field)member;
         return SimpleLvalue(w => {
-          w.Write("{0}.{1}", TypeName_Companion(objType, w, field.tok, field), IdName(member));
+          w.Write("{0}.{1}", TypeName_Companion(objType, w, member.tok, member), IdName(member));
         });
       } else if (member is ConstantField) {
         return SimpleLvalue(lvalueAction: wr => {

@@ -1320,7 +1320,7 @@ namespace Microsoft.Dafny {
         var udt = (UserDefinedType)xType;
         var tp = udt.ResolvedParam;
         if (tp != null) {
-          return string.Format("{0}{1}", !inAutoInitContext && tp.Parent is ClassDecl ? "_this." : "", FormatRTDName(tp.CompileName));
+          return string.Format("{0}{1}", tp.Parent is ClassDecl ? "_this." : "", FormatRTDName(tp.CompileName));
         }
         var cl = udt.ResolvedClass;
         Contract.Assert(cl != null);
@@ -2537,7 +2537,17 @@ namespace Microsoft.Dafny {
             w.Write(")");
           });
         } else {
-          lvalue = SuffixLvalue(obj, ".{0}{1}", IdName(member), (field as ConstantField)?.Rhs != null ? "()" : "");
+          lvalue = SimpleLvalue(lvalueAction: wr => {
+            obj(wr);
+            wr.Write("._{0}", member.CompileName);
+          }, rvalueAction: wr => {
+            obj(wr);
+            if (internalAccess) {
+              wr.Write("._{0}", member.CompileName);
+            } else {
+              wr.Write(".{0}{1}", IdName(member), field is ConstantField ? "()" : "");
+            }
+          });
         }
         return CoercedLvalue(lvalue, field.Type, expectedType);
       }

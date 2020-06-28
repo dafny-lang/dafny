@@ -704,7 +704,7 @@ namespace Microsoft.Dafny {
         var udt = (UserDefinedType)xType;
         var tp = udt.ResolvedParam;
         if (tp != null) {
-          return string.Format("{0}rtd$_{1}", !inInitializer && tp.Parent is ClassDecl ? "this." : "", tp.CompileName);
+          return string.Format("{0}rtd$_{1}", tp.Parent is ClassDecl ? "this." : "", tp.CompileName);
         }
         var cl = udt.ResolvedClass;
         Contract.Assert(cl != null);

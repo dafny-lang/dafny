@@ -161,10 +161,10 @@ A static method in Java cannot use the type parameters of the enclosing class. T
 the companion class for Java instead adds these type parameter to the method.
 
     interface Trait<V> {
-      function method get_a(): X
+      function method a(): X
       method set_a(value: X)
-      function method get_c(): X
-      function method get_d(): X
+      function method c(): X
+      function method d(): X
       function method F<U>(rtdU: RTD, x: X): Y
       function method G<U>(rtdU: RTD, x: X): Y
       method M<U>(rtdU: RTD, x: X) returns (y: Y)
@@ -284,7 +284,7 @@ must be initialized before an other initializing expression needs them.
 ## C#
 
 The compilation to C# does not use type descriptors, so the `_rtdV` field is not
-present.
+present and neither are the type-descriptor parameters.
 
 The functions for retrieving `c` and `d` are declared as getter properties.
 
@@ -293,8 +293,8 @@ The functions for retrieving `c` and `d` are declared as getter properties.
       var _c: X
       property c: X { get { _c } }
       property d: X { get { E } }
-      function method G<U>(rtdU: RTD, x: X): Y { E }
-      method N<U>(rtdU: RTD, x: X) returns (y: Y) { S }
+      function method G<U>(x: X): Y { E }
+      method N<U>(x: X) returns (y: Y) { S }
     }
 
 ## Java
@@ -302,14 +302,12 @@ The functions for retrieving `c` and `d` are declared as getter properties.
     class Class<V> {
       var _rtdV: RTD
       var a: X
-      var c: X
-      var d: X
+      var _c: X
+      function method c(): X { _c }
+      function method d(): X { E }
       function method G<U>(rtdU: RTD, x: X): Y { E }
       method N<U>(rtdU: RTD, x: X) returns (y: Y) { S }
     }
-
-Note: Evidently, the Java target uses fields for both `c` and `d`. It would be better
-to change that to make them consistent with the other translations.
 
 ## JavaScript
 
