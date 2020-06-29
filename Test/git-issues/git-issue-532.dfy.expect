@@ -1,0 +1,27 @@
+git-issue-532.dfy(25,19): Warning: /!\ No terms found to trigger on.
+
+Dafny program verifier finished with 2 verified, 0 errors
+git-issue-532.dfy(25,19): Warning: /!\ No terms found to trigger on.
+
+Dafny program verifier finished with 0 verified, 0 errors
+t.x=5  The given Tr is a C, and c.y=6
+t.x=100  The given Tr is not a C
+t.x=5  The given Tr is a C, and c.y=16
+git-issue-532.dfy(25,19): Warning: /!\ No terms found to trigger on.
+
+Dafny program verifier finished with 0 verified, 0 errors
+t.x=5  The given Tr is a C, and c.y=6
+t.x=100  The given Tr is not a C
+t.x=5  The given Tr is a C, and c.y=16
+git-issue-532.dfy(25,19): Warning: /!\ No terms found to trigger on.
+
+Dafny program verifier finished with 0 verified, 0 errors
+t.x=5  The given Tr is a C, and c.y=6
+t.x=100  The given Tr is not a C
+t.x=5  The given Tr is a C, and c.y=16
+git-issue-532.dfy(25,19): Warning: /!\ No terms found to trigger on.
+
+Dafny program verifier finished with 0 verified, 0 errors
+t.x=5  The given Tr is a C, and c.y=6
+t.x=100  The given Tr is not a C
+t.x=5  The given Tr is a C, and c.y=16

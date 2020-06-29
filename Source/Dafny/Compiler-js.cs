@@ -1152,7 +1152,8 @@ namespace Microsoft.Dafny {
       } else if (altVarType == null) {
         return wr.NewBlockWithPrefix(")", "{0} = {1};", altBoundVarName, boundVar);
       } else {
-        return wr.NewBlockWithPrefix(")", "let {0} = {1};", altBoundVarName, boundVar);
+        BlockTargetWriter wwr = wr.NewBlockWithPrefix(")", "if ((({1})._tname) == \"{2}\") ", altBoundVarName, boundVar, TypeName(altVarType, wr, tok));
+        return wwr.NewBlockWithPrefix("", "let {0} = {1};", altBoundVarName, boundVar);
       }
     }
 

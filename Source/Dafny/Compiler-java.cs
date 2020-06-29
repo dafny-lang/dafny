@@ -3355,7 +3355,10 @@ namespace Microsoft.Dafny{
     protected override BlockTargetWriter CreateForeachLoop(string boundVar, Type boundVarType, out TargetWriter collectionWriter,
       TargetWriter wr, string altBoundVarName = null, Type altVarType = null, Bpl.IToken tok = null) {
       if (boundVarType != null) {
-        wr.Write($"for({TypeName(boundVarType, wr, tok)} {boundVar} : ");
+        // We actually do not know the tye of the collection, which is not yet written
+        // so we use Object here
+        string ty = boundVarType.IsRefType ? "Object" : TypeName(boundVarType, wr, tok);
+        wr.Write($"for({ty} {boundVar} : ");
       } else {
         wr.Write($"for({DafnyTupleClass(TargetTupleSize)} {boundVar} : ");
       }
@@ -3363,9 +3366,11 @@ namespace Microsoft.Dafny{
       if (altBoundVarName == null) {
         return wr.NewBlock(")");
       } else if (altVarType == null) {
-        return wr.NewBlockWithPrefix(")", $"{altBoundVarName} = {boundVar};");
+        BlockTargetWriter wwr = wr.NewBlockWithPrefix(")", "if ({1} instanceof {2}) ", altBoundVarName, boundVar, TypeName(boundVarType, wr, tok));
+        return wwr.NewBlockWithPrefix("", $"{altBoundVarName} = ({TypeName(boundVarType, wr, tok)}){boundVar};");
       } else {
-        return wr.NewBlockWithPrefix(")", "{2} {0} = ({2}){1};", altBoundVarName, boundVar, TypeName(altVarType, wr, tok));
+        BlockTargetWriter wwr = wr.NewBlockWithPrefix(")", "if ({1} instanceof {2}) ", altBoundVarName, boundVar, TypeName(altVarType, wr, tok));
+        return wwr.NewBlockWithPrefix("", "{2} {0} = ({2}){1};", altBoundVarName, boundVar, TypeName(altVarType, wr, tok));
       }
     }
 
