@@ -1230,7 +1230,7 @@ namespace Microsoft.Dafny {
       }
 
       foreach (MemberDecl member in c.Members) {
-        if (c is TraitDecl && member.OverriddenMember != null) {
+        if (c is TraitDecl && member.OverriddenMember != null && !member.IsOverrideThatAddsBody) {
           // emit nothing in the trait; this member will be emitted in the classes that extend this trait
         } else if (member is Field) {
           var f = (Field)member;
@@ -1325,8 +1325,10 @@ namespace Microsoft.Dafny {
               Error(f.tok, "Function {0} must be compiled to use the {{:test}} attribute", errorWr, f.FullName);
             }
           } else if (c is TraitDecl && !f.IsStatic) {
-            var w = classWriter.CreateFunction(IdName(f), f.TypeArgs, f.Formals, f.ResultType, f.tok, false, false, f);
-            Contract.Assert(w == null);  // since we requested no body
+            if (f.OverriddenMember == null) {
+              var w = classWriter.CreateFunction(IdName(f), f.TypeArgs, f.Formals, f.ResultType, f.tok, false, false, f);
+              Contract.Assert(w == null); // since we requested no body
+            }
             if (f.Body != null) {
               CompileFunction(f, classWriter);
             }
@@ -1348,8 +1350,10 @@ namespace Microsoft.Dafny {
               Contract.Assert(c is TraitDecl && !m.IsStatic);
             }
           } else if (c is TraitDecl && !m.IsStatic) {
-            var w = classWriter.CreateMethod(m, m.TypeArgs, false);
-            Contract.Assert(w == null);  // since we requested no body
+            if (m.OverriddenMember == null) {
+              var w = classWriter.CreateMethod(m, m.TypeArgs, false);
+              Contract.Assert(w == null);  // since we requested no body
+            }
             if (m.Body != null) {
               CompileMethod(m, classWriter, null);
             }
@@ -1491,15 +1495,7 @@ namespace Microsoft.Dafny {
       var w = cw.CreateFunction(IdName(f), CombineTypeParameters(f), f.Formals, f.ResultType, f.tok, f.IsStatic, !f.IsExtern(out _, out _), f);
       if (w != null) {
         IVariable accVar = null;
-        if (f.EnclosingClass is TraitDecl && f.IsOverrideThatAddsBody) {
-          // TODO: change this to just call the override:
-          Contract.Assert(enclosingFunction == null);
-          enclosingFunction = f;
-          CompileReturnBody(f.Body, f.Original.ResultType, w, accVar);
-          Contract.Assert(enclosingFunction == f);
-          enclosingFunction = null;
-
-        } else if (f.IsTailRecursive) {
+        if (f.IsTailRecursive) {
           if (f.IsAccumulatorTailRecursive) {
             accVar = new LocalVariable(f.tok, f.tok, "_accumulator", f.ResultType, false) {
               type = f.ResultType
@@ -1547,15 +1543,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(m.Body != null);
 
       var w = cw.CreateMethod(m, CombineTypeParameters(m), !m.IsExtern(out _, out _));
-      if (w != null && m.EnclosingClass is TraitDecl && m.IsOverrideThatAddsBody) {
-        // TODO: replace the following with a call to the overridden method
-        Contract.Assert(enclosingMethod == null);
-        enclosingMethod = m;
-        TrStmtList(m.Body.Body, w);
-        Contract.Assert(enclosingMethod == m);
-        enclosingMethod = null;
-
-      } else if (w != null) {
+      if (w != null) {
         if (m.IsTailRecursive) {
           w = EmitTailCallStructure(m, w);
         }

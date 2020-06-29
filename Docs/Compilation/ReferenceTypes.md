@@ -127,6 +127,10 @@ Note: Evidently, type parameters of the trait (or class) are not in scope in
 the RHS a `const` declaration. That is probably a bug. If this changes, then
 method `d` in the companion class also needs to take type-descriptor parameters.
 
+Note: Evidently, a `const` without a RHS in a trait is not allowed to be overridden (to
+be given a RHS). That restriction was probably necessary under the previous encoding, but
+it isn't anymore. It would be good to remove this restriction.
+
 ## C#
 
 C# supports _properties_. Such a property is a pair of methods: a getter and a(n optional) setter.
@@ -335,14 +339,12 @@ descriptors.
     class Class {
       var _rtdV: RTD
       var a: X
-      var c: X
+      var _c: X
+      function method c(): X { _c }
       function method d(): X { E }
       function method G(rtdU: RTD, x: X): Y { E }
       method N(rtdU: RTD, x: X) returns (y: Y) { S }
     }
-
-Note: Evidently, the compiler never emits an initializing assignment for `c`. That
-should be fixed.
 
 Inherited members
 -----------------

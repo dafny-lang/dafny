@@ -736,7 +736,7 @@ namespace Microsoft.Dafny
         }
       }
 
-      var customReceiver = createBody && NeedsCustomReceiver(m) && !m.IsOverrideThatAddsBody;
+      var customReceiver = createBody && NeedsCustomReceiver(m);
 
       AddTestCheckerIfNeeded(m.Name, m, wr);
       wr.Write("{0}{1}{2}{3} {4}",
@@ -780,7 +780,7 @@ namespace Microsoft.Dafny
     protected BlockTargetWriter/*?*/ CreateFunction(string name, List<TypeParameter> typeArgs, List<Formal> formals, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl member, TargetWriter wr) {
       var hasDllImportAttribute = ProcessDllImport(member, wr);
 
-      var customReceiver = createBody && NeedsCustomReceiver(member) && !member.IsOverrideThatAddsBody;
+      var customReceiver = createBody && NeedsCustomReceiver(member);
 
       AddTestCheckerIfNeeded(name, member, wr);
       wr.Write("{0}{1}{2}{3} {4}", createBody ? "public " : "", isStatic || customReceiver ? "static " : "", hasDllImportAttribute ? "extern " : "", TypeName(resultType, wr, tok), name);
