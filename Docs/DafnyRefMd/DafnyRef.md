@@ -2796,6 +2796,7 @@ The encoding for coinductive predicates in Dafny was described previously
 ## Function Definitions
 
 To define a function 
+$f \colon X \to Y$ OR 
 <img ALIGN=absmiddle src="https://render.githubusercontent.com/render/math?math=f \colon X \to Y">
  in terms of itself, one can
 write an equation like
