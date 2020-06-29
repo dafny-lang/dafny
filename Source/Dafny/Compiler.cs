@@ -128,8 +128,6 @@ namespace Microsoft.Dafny {
     /// "tok" can be "null" if "superClasses" is.
     /// </summary>
     protected abstract IClassWriter CreateTrait(string name, bool isExtern, List<TypeParameter>/*?*/ typeParameters, List<Type>/*?*/ superClasses, Bpl.IToken tok, TargetWriter wr);
-    /// If this returns false, it is assumed that the implementation handles inherited fields on its own.
-    protected virtual bool NeedsWrappersForInheritedFields { get => true; }
     protected virtual bool SupportsProperties { get => true; }
     protected abstract BlockTargetWriter CreateIterator(IteratorDecl iter, TargetWriter wr);
     /// <summary>
@@ -302,7 +300,6 @@ namespace Microsoft.Dafny {
     protected virtual bool SupportsMultipleReturns { get => false; }
     protected virtual bool NeedsCastFromTypeParameter { get => false; }
     protected virtual bool SupportsAmbiguousTypeDecl { get => true; }
-    protected virtual bool TraitsSupportMutableFields => true; // True if language's "trait" equivalent allows for mutable fields (or getter/setter properties, which look like fields)
     protected virtual bool ClassesRedeclareInheritedFields => true;
     protected virtual void AddTupleToSet(int i) { }
     public int TargetTupleSize = 0;
@@ -1154,69 +1151,40 @@ namespace Microsoft.Dafny {
         } else if (NeedsCustomReceiver(member) && !member.IsOverrideThatAddsBody) {
           // this member is not overridable, and is defined in the trait rather than in the inheriting class/trait
         } else if (member is ConstantField) {
-          if (NeedsWrappersForInheritedFields) {
-            var cf = (ConstantField)member;
-            var cfType = Resolver.SubstType(cf.Type, typeMap);
-            if (cf.Rhs == null) {
-              Contract.Assert(!cf.IsStatic);  // as checked above, only instance members can be inherited
-              classWriter.DeclareField("_" + cf.CompileName, c, false, false, cfType, cf.tok, DefaultValue(cfType, errorWr, cf.tok, true), cf);
-            }
-            var w = classWriter.CreateGetter(IdName(cf), cfType, cf.tok, false, true, member);
-            Contract.Assert(w != null);  // since the previous line asked for a body
-            if (cf.Rhs == null) {
-              var sw = EmitReturnExpr(w);
-              // get { return this._{0}; }
-              EmitThis(sw);
-              sw.Write("._{0}", cf.CompileName);
-            } else {
-              CompileReturnBody(cf.Rhs, cf.Type, w, null);
-            }
+          var cf = (ConstantField)member;
+          var cfType = Resolver.SubstType(cf.Type, typeMap);
+          if (cf.Rhs == null) {
+            Contract.Assert(!cf.IsStatic);  // as checked above, only instance members can be inherited
+            classWriter.DeclareField("_" + cf.CompileName, c, false, false, cfType, cf.tok, DefaultValue(cfType, errorWr, cf.tok, true), cf);
+          }
+          var w = classWriter.CreateGetter(IdName(cf), cfType, cf.tok, false, true, member);
+          Contract.Assert(w != null);  // since the previous line asked for a body
+          if (cf.Rhs == null) {
+            var sw = EmitReturnExpr(w);
+            // get { return this._{0}; }
+            EmitThis(sw);
+            sw.Write("._{0}", cf.CompileName);
+          } else {
+            CompileReturnBody(cf.Rhs, cf.Type, w, null);
           }
         } else if (member is Field f) {
           var fType = Resolver.SubstType(f.Type, typeMap);
-          if (!ClassesRedeclareInheritedFields) {
-            if (c is TraitDecl) {
-              // a trait inheriting a field from another trait; do nothing
-            } else {
-              // the field has already been declared in the parent trait, but we initialize it here (since the type of the field
-              // in the parent trait may have involved some type parameter that been been instantiated here)
-              // InitializeField(TopLevelDeclWithMembers enclosingClass,
-              classWriter.InitializeField(f, fType, c);
-            }
-          } else if (NeedsWrappersForInheritedFields) {
-            // every field is inherited
-            classWriter.DeclareField("_" + f.CompileName, c, false, false, fType, f.tok, DefaultValue(fType, errorWr, f.tok, true), f);
-            TargetWriter wSet;
-            var wGet = classWriter.CreateGetterSetter(IdName(f), fType, f.tok, false, true, member, out wSet);
-            {
-              var sw = EmitReturnExpr(wGet);
-              // get { return this._{0}; }
-              EmitThis(sw);
-              sw.Write("._{0}", f.CompileName);
-            }
-            {
-              // set { this._{0} = value; }
-              EmitThis(wSet);
-              wSet.Write("._{0}", f.CompileName);
-              var sw = EmitAssignmentRhs(wSet);
-              EmitSetterParameter(sw);
-            }
-          } else if (!TraitsSupportMutableFields) { // Create getters and setters for "traits" in languages that don't support those or mutable fields directly
-            TargetWriter wSet;
-            var wGet = classWriter.CreateGetterSetter(IdName(f), fType, f.tok, false, true, member, out wSet);
-            {
-              var sw = EmitReturnExpr(wGet);
-              // get { return this.{0}; }
-              EmitThis(sw);
-              sw.Write(".{0}", f.CompileName);
-            }
-            {
-              // set { this.{0} = value; }
-              EmitThis(wSet);
-              wSet.Write(".{0}", f.CompileName);
-              var sw = EmitAssignmentRhs(wSet);
-              EmitSetterParameter(sw);
-            }
+          // every field is inherited
+          classWriter.DeclareField("_" + f.CompileName, c, false, false, fType, f.tok, DefaultValue(fType, errorWr, f.tok, true), f);
+          TargetWriter wSet;
+          var wGet = classWriter.CreateGetterSetter(IdName(f), fType, f.tok, false, true, member, out wSet);
+          {
+            var sw = EmitReturnExpr(wGet);
+            // get { return this._{0}; }
+            EmitThis(sw);
+            sw.Write("._{0}", f.CompileName);
+          }
+          {
+            // set { this._{0} = value; }
+            EmitThis(wSet);
+            wSet.Write("._{0}", f.CompileName);
+            var sw = EmitAssignmentRhs(wSet);
+            EmitSetterParameter(sw);
           }
         } else if (member is Function fn) {
           Contract.Assert(fn.Body != null);
@@ -1257,7 +1225,7 @@ namespace Microsoft.Dafny {
                 // that takes a parameter, because trait-equivalents in target languages don't allow implementations.
                 wBody = classWriter.CreateFunction(IdName(cf), CombineTypeParameters(cf), new List<Formal>(), cf.Type, cf.tok, true, true, cf);
                 Contract.Assert(wBody != null);  // since the previous line asked for a body
-                if (c is TraitDecl /*&& !TraitsSupportMutableFields*/) {
+                if (c is TraitDecl) {
                   // also declare a function for the field in the interface
                   var wBodyInterface = classWriter.CreateGetter(IdName(cf), cf.Type, cf.tok, false, false, cf);
                   Contract.Assert(wBodyInterface == null);  // since the previous line said not to create a body
@@ -1291,13 +1259,10 @@ namespace Microsoft.Dafny {
                 }
               }
             }
-          } else if (c is TraitDecl && NeedsWrappersForInheritedFields) {
+          } else if (c is TraitDecl) {
             TargetWriter wSet;
             var wGet = classWriter.CreateGetterSetter(IdName(f), f.Type, f.tok, f.IsStatic, false, member, out wSet);
             Contract.Assert(wSet == null && wGet == null);  // since the previous line specified no body
-          } else if (c is TraitDecl && !TraitsSupportMutableFields && !f.IsStatic) {
-            TargetWriter wSet;
-            classWriter.CreateGetterSetter(IdName(f), f.Type, f.tok, false, false, member, out wSet);
           } else {
             var rhs = c is TraitDecl ? null : DefaultValue(f.Type, errorWr, f.tok, true);
             classWriter.DeclareField(IdName(f), c, f.IsStatic, false, f.Type, f.tok, rhs, f);
@@ -3444,6 +3409,7 @@ namespace Microsoft.Dafny {
         var nRTDs = EmitRuntimeTypeDescriptorsActuals(actualTypeArguments, s.Tok, false, wr);
         string sep = nRTDs == 0 ? "" : ", ";
         if (customReceiver) {
+          wr.Write(sep);
           var w = EmitCoercionIfNecessary(s.Receiver.Type, UserDefinedType.UpcastToMemberEnclosingType(s.Receiver.Type, s.Method), s.Tok, wr);
           TrExpr(s.Receiver, w, false);
           sep = ", ";
@@ -4296,6 +4262,7 @@ namespace Microsoft.Dafny {
       var nRTDs = EmitRuntimeTypeDescriptorsActuals(actualTypeArguments, e.tok, false, wr);
       string sep = nRTDs == 0 ? "" : ", ";
       if (customReceiver) {
+        wr.Write(sep);
         var w = EmitCoercionIfNecessary(e.Receiver.Type, UserDefinedType.UpcastToMemberEnclosingType(e.Receiver.Type, e.Function), e.tok, wr);
         TrExpr(e.Receiver, w, inLetExprBody);
         sep = ", ";

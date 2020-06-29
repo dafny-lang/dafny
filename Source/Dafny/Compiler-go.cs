@@ -413,9 +413,7 @@ namespace Microsoft.Dafny {
       w.WriteLine("return &_this");
     }
 
-    protected override bool NeedsWrappersForInheritedFields => false;
     protected override bool SupportsProperties => false;
-    protected override bool TraitsSupportMutableFields => false;
 
     protected override BlockTargetWriter CreateIterator(IteratorDecl iter, TargetWriter wr) {
       // FIXME: There should be tests to make sure that the finalizer mechanism achieves what I hope it does, namely allowing the iterator's goroutine to be garbage-collected along with the iterator.
@@ -1062,7 +1060,7 @@ namespace Microsoft.Dafny {
         return Compiler.CreateGetter(name, resultType, tok, isStatic, createBody, member, ClassName, AbstractMethodWriter, ConcreteMethodWriter);
       }
       public BlockTargetWriter/*?*/ CreateGetterSetter(string name, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl/*?*/ member, out TargetWriter setterWriter) {
-        return Compiler.CreateGetterSetter(name, resultType, tok, isStatic, createBody, member, name, out setterWriter, AbstractMethodWriter, ConcreteMethodWriter);
+        return Compiler.CreateGetterSetter(name, resultType, tok, isStatic, createBody, member, ClassName, out setterWriter, AbstractMethodWriter, ConcreteMethodWriter);
       }
       public void DeclareField(string name, TopLevelDecl enclosingDecl, bool isStatic, bool isConst, Type type, Bpl.IToken tok, string rhs, Field field) {
         // FIXME: This should probably be done in Compiler.DeclareField().
@@ -1361,9 +1359,12 @@ namespace Microsoft.Dafny {
 
     protected BlockTargetWriter/*?*/ CreateGetterSetter(string name, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl/*?*/ member, string ownerName,
       out TargetWriter setterWriter, TargetWriter abstractWriter, TargetWriter concreteWriter) {
+
       var getterWriter = CreateGetter(name, resultType, tok, isStatic, createBody, member, ownerName, abstractWriter, concreteWriter);
-      setterWriter = CreateSubroutine(name + "_set_", new List<TypeParameter>(), new List<Formal>(), new List<Formal>(), resultType,
-        new List<Formal>(), new List<Formal>(), resultType, tok, isStatic, createBody, ownerName, member,
+
+      var valueParam = new Formal(tok, "value", resultType, true, false);
+      setterWriter = CreateSubroutine(name + "_set_", new List<TypeParameter>(), new List<Formal>() {valueParam}, new List<Formal>(), null,
+        new List<Formal>() {valueParam}, new List<Formal>(), null, tok, isStatic, createBody, ownerName, member,
         abstractWriter, concreteWriter);
       return getterWriter;
     }
@@ -1795,7 +1796,6 @@ namespace Microsoft.Dafny {
     protected override bool UseReturnStyleOuts(Method m, int nonGhostOutCount) => true;
 
     protected override bool NeedsCastFromTypeParameter => true;
-    protected override bool ClassesRedeclareInheritedFields => false;
     protected override bool SupportsMultipleReturns => true;
     protected override string StmtTerminator => "";
 
@@ -2545,7 +2545,7 @@ namespace Microsoft.Dafny {
             if (internalAccess) {
               wr.Write("._{0}", member.CompileName);
             } else {
-              wr.Write(".{0}{1}", IdName(member), field is ConstantField ? "()" : "");
+              wr.Write(".{0}{1}", IdName(member), member is ConstantField || member.EnclosingClass is TraitDecl ? "()" : "");
             }
           });
         }

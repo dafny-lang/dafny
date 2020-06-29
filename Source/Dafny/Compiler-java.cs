@@ -81,8 +81,6 @@ namespace Microsoft.Dafny{
 
     protected override bool SupportsAmbiguousTypeDecl => false;
     protected override bool SupportsProperties => false;
-    protected override bool NeedsWrappersForInheritedFields => false;
-    protected override bool TraitsSupportMutableFields => false;
 
     private enum JavaNativeType { Byte, Short, Int, Long }
 
@@ -1247,19 +1245,7 @@ namespace Microsoft.Dafny{
         return SimpleLvalue(w => {
           w.Write("{0}.{1}", TypeName_Companion(objType, w, member.tok, member), IdName(member));
         });
-      } else if (member is ConstantField) {
-        return SimpleLvalue(lvalueAction: wr => {
-          obj(wr);
-          wr.Write("._{0}", member.CompileName);
-        }, rvalueAction: wr => {
-          obj(wr);
-          if (internalAccess) {
-            wr.Write("._{0}", member.CompileName);
-          } else {
-            wr.Write(".{0}()", IdName(member));
-          }
-        });
-      } else if (member is SpecialField sf) {
+      } else if (member is SpecialField sf && !(member is ConstantField)) {
         GetSpecialFieldInfo(sf.SpecialId, sf.IdParam, out var compiledName, out _, out _);
         if (compiledName.Length != 0){
           if (member.EnclosingClass is DatatypeDecl) {
@@ -1271,7 +1257,20 @@ namespace Microsoft.Dafny{
           // Assume it's already handled by the caller
           return SimpleLvalue(obj);
         }
-      } else if (member is Function) {
+      } else if (member is Field) {
+        return SimpleLvalue(lvalueAction: wr => {
+          obj(wr);
+          wr.Write("._{0}", member.CompileName);
+        }, rvalueAction: wr => {
+          obj(wr);
+          if (internalAccess) {
+            wr.Write("._{0}", member.CompileName);
+          } else {
+            wr.Write(".{0}{1}", IdName(member), member is ConstantField || member.EnclosingClass is TraitDecl ? "()" : "");
+          }
+        });
+      } else {
+        var fn = (Function)member;
         var wr = new TargetWriter();
         EmitNameAndActualTypeArgs(IdName(member), typeArgs.ConvertAll(ta => ta.Actual), member.tok, wr);
         if (typeArgs.Count == 0 && additionalCustomParameter == null) {
@@ -1280,7 +1279,6 @@ namespace Microsoft.Dafny{
         } else {
           // we need an eta conversion for the type-descriptor parameters
           // (T0 a0, T1 a1, ...) -> obj.F(rtd0, rtd1, ..., additionalCustomParameter, a0, a1, ...)
-          var fn = (Function)member;
           wr.Write("(");
           var sep = "";
           foreach (var ta in typeArgs) {
@@ -1308,8 +1306,6 @@ namespace Microsoft.Dafny{
           wr.Write(")");
           return EnclosedLvalue(prefixWr.ToString(), obj, $".{wr.ToString()}");
         }
-      } else {
-        return SuffixLvalue(obj, $".{IdName(member)}");
       }
     }
 
