@@ -1234,7 +1234,7 @@ namespace Microsoft.Dafny{
         GetSpecialFieldInfo(sf.SpecialId, sf.IdParam, out var compiledName, out _, out _);
         if (compiledName.Length != 0) {
           if (member.EnclosingClass is DatatypeDecl) {
-            return new GetterSetterLvalue(obj, getter: compiledName, setter: null);
+            return SuffixLvalue(obj, $".{compiledName}()");
           } else {
             return SuffixLvalue(obj, $".{compiledName}");
           }
@@ -1303,44 +1303,6 @@ namespace Microsoft.Dafny{
         } else {
           return SuffixLvalue(obj, $".{IdName(member)}");
         }
-      }
-    }
-
-    // FIXME This is a bit sketchy: Rather than encapsulating the idea of an
-    // lvalue, both EmitRead() and EmitWrite() assume (as does
-    // EmitMemberSelect()) that the member has already been written and we need
-    // only write the part starting with the period.  Cleaning up this logic
-    // would require reworking the way EmitMemberSelect() is called.
-    public class GetterSetterLvalue : ILvalue {
-      private readonly Action<TargetWriter> Object;
-      private readonly string Getter;
-      private readonly string/*?*/ Setter;
-
-      public GetterSetterLvalue(Action<TargetWriter> obj, string name) {
-        this.Object = obj;
-        this.Getter = $"{name}";
-        this.Setter = $"set_{name}";
-      }
-
-      public GetterSetterLvalue(Action<TargetWriter> obj, string getter, string/*?*/ setter) {
-        this.Object = obj;
-        this.Getter = getter;
-        this.Setter = setter;
-      }
-
-      public void EmitRead(TargetWriter wr) {
-        Object(wr);
-        wr.Write($".{Getter}()");
-      }
-
-      public TargetWriter EmitWrite(TargetWriter wr) {
-        Contract.Assert(Setter != null, "Unexpected write to read-only property");
-
-        Object(wr);
-        wr.Write($".{Setter}(");
-        var w = wr.Fork();
-        wr.WriteLine(");");
-        return w;
       }
     }
 

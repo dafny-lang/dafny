@@ -2551,7 +2551,7 @@ namespace Microsoft.Dafny {
         } else if (member is ConstantField) {
           lvalue = SuffixLvalue(obj, $".{IdName(member)}()");
         } else if (member.EnclosingClass is TraitDecl) {
-          lvalue = new JavaCompiler.GetterSetterLvalue(obj, IdName(member), $"{IdName(member)}_set_");
+          lvalue = GetterSetterLvalue(obj, IdName(member), $"{IdName(member)}_set_");
         } else {
           lvalue = SuffixLvalue(obj, $".{IdName(member)}");
         }

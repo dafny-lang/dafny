@@ -3201,6 +3201,13 @@ namespace Microsoft.Dafny {
       return new CoercedLvalueImpl(this, lvalue, from, to);
     }
 
+    protected ILvalue GetterSetterLvalue(Action<TargetWriter> obj, string getterName, string setterName) {
+      Contract.Requires(obj != null);
+      Contract.Requires(getterName != null);
+      Contract.Requires(setterName != null);
+      return new GetterSetterLvalueImpl(obj, getterName, setterName);
+    }
+
     private class SimpleLvalueImpl : ILvalue {
       private readonly Compiler Compiler;
       private readonly Action<TargetWriter> LvalueAction, RvalueAction;
@@ -3249,6 +3256,31 @@ namespace Microsoft.Dafny {
 
       public TargetWriter EmitWrite(TargetWriter wr) {
         return lvalue.EmitWrite(wr);
+      }
+    }
+
+    private class GetterSetterLvalueImpl : ILvalue {
+      private readonly Action<TargetWriter> obj;
+      private readonly string getterName;
+      private readonly string setterName;
+
+      public GetterSetterLvalueImpl(Action<TargetWriter> obj, string getterName, string setterName) {
+        this.obj = obj;
+        this.getterName = getterName;
+        this.setterName = setterName;
+      }
+
+      public void EmitRead(TargetWriter wr) {
+        obj(wr);
+        wr.Write($".{getterName}()");
+      }
+
+      public TargetWriter EmitWrite(TargetWriter wr) {
+        obj(wr);
+        wr.Write($".{setterName}(");
+        var w = wr.Fork();
+        wr.WriteLine(");");
+        return w;
       }
     }
 
