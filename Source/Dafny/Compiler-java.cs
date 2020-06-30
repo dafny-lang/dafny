@@ -1230,7 +1230,11 @@ namespace Microsoft.Dafny{
 
     protected override ILvalue EmitMemberSelect(Action<TargetWriter> obj, Type objType, MemberDecl member, List<TypeArgumentInstantiation> typeArgs, Dictionary<TypeParameter, Type> typeMap,
       Type expectedType, string/*?*/ additionalCustomParameter, bool internalAccess = false) {
-      if (member is ConstantField && !(member.EnclosingClass is TraitDecl) && NeedsCustomReceiver(member)) {
+      if (member is ConstantField && member.IsStatic) {
+        return SimpleLvalue(w => {
+          w.Write("{0}.{1}()", TypeName_Companion(member.EnclosingClass, w, member.tok), IdName(member));
+        });
+      } else if (member is ConstantField && !(member.EnclosingClass is TraitDecl) && NeedsCustomReceiver(member)) {
         return SimpleLvalue(w => {
           w.Write("{0}.", TypeName_Companion(objType, w, member.tok, member));
           EmitNameAndActualTypeArgs(IdName(member), typeArgs.ConvertAll(ta => ta.Actual), member.tok, w);
@@ -1240,10 +1244,6 @@ namespace Microsoft.Dafny{
           }
           obj(w);
           w.Write(")");
-        });
-      } else if (member is ConstantField && member.IsStatic) {
-        return SimpleLvalue(w => {
-          w.Write("{0}.{1}", TypeName_Companion(objType, w, member.tok, member), IdName(member));
         });
       } else if (member is SpecialField sf && !(member is ConstantField)) {
         GetSpecialFieldInfo(sf.SpecialId, sf.IdParam, out var compiledName, out _, out _);

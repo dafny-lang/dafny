@@ -2533,7 +2533,7 @@ namespace Microsoft.Dafny {
         ILvalue lvalue;
         if (field.IsStatic) {
           lvalue = SimpleLvalue(w => {
-            w.Write("{0}.{1}", TypeName_Companion(field.EnclosingClass, w, field.tok), IdName(member));
+            w.Write("{0}.{1}()", TypeName_Companion(field.EnclosingClass, w, field.tok), IdName(member));
           });
         } else if (!(field.EnclosingClass is TraitDecl) && NeedsCustomReceiver(field)) {
           lvalue = SimpleLvalue(w => {
