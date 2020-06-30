@@ -1471,12 +1471,14 @@ namespace Microsoft.Dafny {
       EmitThis(w);
       sep = ", ";
 
-      foreach (var formal in method.Ins) {
-        if (!formal.IsGhost) {
-          var fromType = Resolver.SubstType(formal.Type, thisContext.ParentFormalTypeParametersToActuals);
-          w = EmitCoercionIfNecessary(fromType, formal.Type, tok: method.tok, wr: wr);
-          wr.Write("{0}{1}", sep, formal.CompileName);
+      for (int j = 0, l = 0; j < method.Ins.Count; j++) {
+        var p = method.Ins[j];
+        if (!p.IsGhost) {
+          wr.Write(sep);
+          w = EmitCoercionIfNecessary(method.Original.Ins[j].Type, method.Ins[j].Type, method.tok, wr);
+          w.Write(p.CompileName);
           sep = ", ";
+          l++;
         }
       }
 

@@ -1247,7 +1247,7 @@ namespace Microsoft.Dafny{
         });
       } else if (member is SpecialField sf && !(member is ConstantField)) {
         GetSpecialFieldInfo(sf.SpecialId, sf.IdParam, out var compiledName, out _, out _);
-        if (compiledName.Length != 0){
+        if (compiledName.Length != 0) {
           if (member.EnclosingClass is DatatypeDecl) {
             return new GetterSetterLvalue(obj, getter: compiledName, setter: null);
           } else {

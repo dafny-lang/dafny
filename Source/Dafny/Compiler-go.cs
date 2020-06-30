@@ -1093,8 +1093,10 @@ namespace Microsoft.Dafny {
     }
 
     protected BlockTargetWriter/*?*/ CreateMethod(Method m, List<TypeParameter> typeArgs, bool createBody, string ownerName, TargetWriter abstractWriter, TargetWriter concreteWriter, bool forBodyInheritance) {
+      var overriddenIns = m.EnclosingClass is TraitDecl && !forBodyInheritance ? null : m.OverriddenMethod?.Original.Ins;
+      var overriddenOuts = m.EnclosingClass is TraitDecl && !forBodyInheritance ? null : m.OverriddenMethod?.Original.Outs;
       return CreateSubroutine(IdName(m), typeArgs, m.Ins, m.Outs, null,
-        m.OverriddenMethod?.Original.Ins, m.OverriddenMethod?.Original.Outs, null,
+        overriddenIns, overriddenOuts, null,
         m.tok, m.IsStatic, createBody, ownerName, m, abstractWriter, concreteWriter, forBodyInheritance);
     }
 
