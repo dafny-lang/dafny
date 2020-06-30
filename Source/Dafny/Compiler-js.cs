@@ -1497,28 +1497,9 @@ namespace Microsoft.Dafny {
 
     protected override ILvalue EmitMemberSelect(Action<TargetWriter> obj, Type objType, MemberDecl member, List<TypeArgumentInstantiation> typeArgs, Dictionary<TypeParameter, Type> typeMap,
       Type expectedType, string/*?*/ additionalCustomParameter, bool internalAccess = false) {
-      if (member is ConstantField && member.IsStatic) {
-        return SimpleLvalue(w => {
-          w.Write("{0}.{1}", TypeName_Companion(member.EnclosingClass, w, member.tok), IdName(member));
-        });
-      } else if (member is ConstantField && !(member.EnclosingClass is TraitDecl) && NeedsCustomReceiver(member)) {
-        var field = (Field)member;
-        return SimpleLvalue(w => {
-          w.Write("{0}.{1}(", TypeName_Companion(objType, w, field.tok, field), IdName(member));
-          obj(w);
-          w.Write(")");
-        });
-      } else if (member is ConstantField) {
-        return SimpleLvalue(lvalueAction: wr => {
-          obj(wr);
-          wr.Write("._{0}", member.CompileName);
-        }, rvalueAction: wr => {
-          obj(wr);
-          wr.Write(".{0}{1}", internalAccess ? "_" : "", member.CompileName);
-        });
-      } else if (member is DatatypeDestructor dtor && dtor.EnclosingClass is TupleTypeDecl) {
+      if (member is DatatypeDestructor dtor && dtor.EnclosingClass is TupleTypeDecl) {
         return SuffixLvalue(obj, "[{0}]", dtor.Name);
-      } else if (member is SpecialField sf) {
+      } else if (member is SpecialField sf && !(member is ConstantField)) {
         string compiledName, preStr, postStr;
         GetSpecialFieldInfo(sf.SpecialId, sf.IdParam, out compiledName, out preStr, out postStr);
         if (compiledName.Length != 0) {
@@ -1565,7 +1546,23 @@ namespace Microsoft.Dafny {
           return EnclosedLvalue(prefixWr.ToString(), obj, $".{suffixWr.ToString()}");
         }
       } else {
-        return SuffixLvalue(obj, ".{0}", IdName(member));
+        Contract.Assert(member is Field);
+        if (member.IsStatic) {
+          return SimpleLvalue(w => {
+            w.Write("{0}.{1}", TypeName_Companion(objType, w, member.tok, null), IdName(member));
+          });
+        } else if (NeedsCustomReceiver(member) && !(member.EnclosingClass is TraitDecl)) {
+          // instance const in a newtype
+          return SimpleLvalue(w => {
+            w.Write("{0}.{1}(", TypeName_Companion(objType, w, member.tok, null), IdName(member));
+            obj(w);
+            w.Write(")");
+          });
+        } else if (internalAccess && (member is ConstantField || member.EnclosingClass is TraitDecl)) {
+          return SuffixLvalue(obj, $"._{member.CompileName}");
+        } else {
+          return SuffixLvalue(obj, $".{IdName(member)}");
+        }
       }
     }
 

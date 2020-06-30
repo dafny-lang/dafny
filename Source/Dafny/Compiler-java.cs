@@ -1230,22 +1230,7 @@ namespace Microsoft.Dafny{
 
     protected override ILvalue EmitMemberSelect(Action<TargetWriter> obj, Type objType, MemberDecl member, List<TypeArgumentInstantiation> typeArgs, Dictionary<TypeParameter, Type> typeMap,
       Type expectedType, string/*?*/ additionalCustomParameter, bool internalAccess = false) {
-      if (member is ConstantField && member.IsStatic) {
-        return SimpleLvalue(w => {
-          w.Write("{0}.{1}()", TypeName_Companion(member.EnclosingClass, w, member.tok), IdName(member));
-        });
-      } else if (member is ConstantField && !(member.EnclosingClass is TraitDecl) && NeedsCustomReceiver(member)) {
-        return SimpleLvalue(w => {
-          w.Write("{0}.", TypeName_Companion(objType, w, member.tok, member));
-          EmitNameAndActualTypeArgs(IdName(member), typeArgs.ConvertAll(ta => ta.Actual), member.tok, w);
-          w.Write("(");
-          foreach (var ta in typeArgs) {
-            w.Write("{0}, ", TypeDescriptor(ta.Actual, w, member.tok));
-          }
-          obj(w);
-          w.Write(")");
-        });
-      } else if (member is SpecialField sf && !(member is ConstantField)) {
+      if (member is SpecialField sf && !(member is ConstantField)) {
         GetSpecialFieldInfo(sf.SpecialId, sf.IdParam, out var compiledName, out _, out _);
         if (compiledName.Length != 0) {
           if (member.EnclosingClass is DatatypeDecl) {
@@ -1257,20 +1242,7 @@ namespace Microsoft.Dafny{
           // Assume it's already handled by the caller
           return SimpleLvalue(obj);
         }
-      } else if (member is Field) {
-        return SimpleLvalue(lvalueAction: wr => {
-          obj(wr);
-          wr.Write("._{0}", member.CompileName);
-        }, rvalueAction: wr => {
-          obj(wr);
-          if (internalAccess) {
-            wr.Write("._{0}", member.CompileName);
-          } else {
-            wr.Write(".{0}{1}", IdName(member), member is ConstantField || member.EnclosingClass is TraitDecl ? "()" : "");
-          }
-        });
-      } else {
-        var fn = (Function)member;
+      } else if (member is Function fn) {
         var wr = new TargetWriter();
         EmitNameAndActualTypeArgs(IdName(member), typeArgs.ConvertAll(ta => ta.Actual), member.tok, wr);
         if (typeArgs.Count == 0 && additionalCustomParameter == null) {
@@ -1306,6 +1278,31 @@ namespace Microsoft.Dafny{
           wr.Write(")");
           return EnclosedLvalue(prefixWr.ToString(), obj, $".{wr.ToString()}");
         }
+      } else {
+        Contract.Assert(member is Field);
+        if (member.IsStatic) {
+          return SimpleLvalue(w => {
+            w.Write("{0}.{1}()", TypeName_Companion(objType, w, member.tok, null), IdName(member));
+          });
+        } else if (NeedsCustomReceiver(member) && !(member.EnclosingClass is TraitDecl)) {
+          // instance const in a newtype
+          Contract.Assert(typeArgs.Count == 0);
+          return SimpleLvalue(w => {
+            w.Write("{0}.{1}(", TypeName_Companion(objType, w, member.tok, null), IdName(member));
+            obj(w);
+            w.Write(")");
+          });
+        } else if (internalAccess && (member is ConstantField || member.EnclosingClass is TraitDecl)) {
+          return SuffixLvalue(obj, $"._{member.CompileName}");
+        } else if (internalAccess) {
+          return SuffixLvalue(obj, $".{IdName(member)}");
+        } else if (member is ConstantField) {
+          return SuffixLvalue(obj, $".{IdName(member)}()");
+        } else if (member.EnclosingClass is TraitDecl) {
+          return GetterSetterLvalue(obj, IdName(member), $"set_{IdName(member)}");
+        } else {
+          return SuffixLvalue(obj, $".{IdName(member)}");
+        }
       }
     }
 
@@ -1314,7 +1311,7 @@ namespace Microsoft.Dafny{
     // EmitMemberSelect()) that the member has already been written and we need
     // only write the part starting with the period.  Cleaning up this logic
     // would require reworking the way EmitMemberSelect() is called.
-    private class GetterSetterLvalue : ILvalue {
+    public class GetterSetterLvalue : ILvalue {
       private readonly Action<TargetWriter> Object;
       private readonly string Getter;
       private readonly string/*?*/ Setter;

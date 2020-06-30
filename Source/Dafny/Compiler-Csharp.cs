@@ -1698,29 +1698,7 @@ namespace Microsoft.Dafny
 
     protected override ILvalue EmitMemberSelect(System.Action<TargetWriter> obj, Type objType, MemberDecl member, List<TypeArgumentInstantiation> typeArgs, Dictionary<TypeParameter, Type> typeMap,
       Type expectedType, string/*?*/ additionalCustomParameter, bool internalAccess = false) {
-      if (member is ConstantField && !(member.EnclosingClass is TraitDecl) && NeedsCustomReceiver(member)) {
-        return SimpleLvalue(w => {
-          w.Write("{0}.{1}(", TypeName_Companion(objType, w, member.tok, member), IdName(member));
-          obj(w);
-          w.Write(")");
-        });
-      } else if (member is ConstantField && member.IsStatic) {
-        return SimpleLvalue(w => {
-          w.Write("{0}.{1}", TypeName_Companion(objType, w, member.tok, member), IdName(member));
-        });
-      } else if (member is ConstantField) {
-        return SimpleLvalue(lvalueAction: wr => {
-          obj(wr);
-          wr.Write("._{0}", member.CompileName);
-        }, rvalueAction: wr => {
-          obj(wr);
-          if (internalAccess) {
-            wr.Write("._{0}", member.CompileName);
-          } else {
-            wr.Write(".{0}", IdName(member));
-          }
-        });
-      } if (member is SpecialField sf) {
+      if (member is SpecialField sf && !(member is ConstantField)) {
         string compiledName, preStr, postStr;
         GetSpecialFieldInfo(sf.SpecialId, sf.IdParam, out compiledName, out preStr, out postStr);
         if (compiledName.Length != 0) {
@@ -1729,7 +1707,7 @@ namespace Microsoft.Dafny
           // this member selection is handled by some kind of enclosing function call, so nothing to do here
           return SimpleLvalue(obj);
         }
-      } else if (member is Function) {
+      } else if (member is Function fn) {
         var wr = new TargetWriter();
         EmitNameAndActualTypeArgs(IdName(member), typeArgs.ConvertAll(ta => ta.Actual), member.tok, wr);
         if (additionalCustomParameter == null) {
@@ -1738,7 +1716,6 @@ namespace Microsoft.Dafny
         } else {
           // we need an eta conversion for the additionalCustomParameter
           // (T0 a0, T1 a1, ...) => obj.F(additionalCustomParameter, a0, a1, ...)
-          var fn = (Function)member;
           wr.Write("({0}", additionalCustomParameter);
           var sep = ", ";
           var prefixWr = new TargetWriter();
@@ -1759,7 +1736,23 @@ namespace Microsoft.Dafny
           return EnclosedLvalue(prefixWr.ToString(), obj, $".{wr.ToString()}");
         }
       } else {
-        return SuffixLvalue(obj, ".{0}", IdName(member));
+        Contract.Assert(member is Field);
+        if (member.IsStatic) {
+          return SimpleLvalue(w => {
+            w.Write("{0}.{1}", TypeName_Companion(objType, w, member.tok, null), IdName(member));
+          });
+        } else if (NeedsCustomReceiver(member) && !(member.EnclosingClass is TraitDecl)) {
+          // instance const in a newtype
+          return SimpleLvalue(w => {
+            w.Write("{0}.{1}(", TypeName_Companion(objType, w, member.tok, null), IdName(member));
+            obj(w);
+            w.Write(")");
+          });
+        } else if (internalAccess && (member is ConstantField || member.EnclosingClass is TraitDecl)) {
+          return SuffixLvalue(obj, $"._{member.CompileName}");
+        } else {
+          return SuffixLvalue(obj, $".{IdName(member)}");
+        }
       }
     }
 

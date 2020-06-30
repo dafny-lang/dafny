@@ -2533,28 +2533,27 @@ namespace Microsoft.Dafny {
       } else {
         var field = (Field)member;
         ILvalue lvalue;
-        if (field.IsStatic) {
+        if (member.IsStatic) {
           lvalue = SimpleLvalue(w => {
-            w.Write("{0}.{1}()", TypeName_Companion(field.EnclosingClass, w, field.tok), IdName(member));
+            w.Write("{0}.{1}()", TypeName_Companion(objType, w, member.tok, null), IdName(member));
           });
-        } else if (!(field.EnclosingClass is TraitDecl) && NeedsCustomReceiver(field)) {
+        } else if (NeedsCustomReceiver(member) && !(member.EnclosingClass is TraitDecl)) {
+          // instance const in a newtype
           lvalue = SimpleLvalue(w => {
-            w.Write("{0}.{1}(", TypeName_Companion(field.EnclosingClass, w, field.tok), IdName(member));
+            w.Write("{0}.{1}(", TypeName_Companion(objType, w, member.tok, null), IdName(member));
             obj(w);
             w.Write(")");
           });
+        } else if (internalAccess && (member is ConstantField || member.EnclosingClass is TraitDecl)) {
+          lvalue = SuffixLvalue(obj, $"._{member.CompileName}");
+        } else if (internalAccess) {
+          lvalue = SuffixLvalue(obj, $".{IdName(member)}");
+        } else if (member is ConstantField) {
+          lvalue = SuffixLvalue(obj, $".{IdName(member)}()");
+        } else if (member.EnclosingClass is TraitDecl) {
+          lvalue = new JavaCompiler.GetterSetterLvalue(obj, IdName(member), $"{IdName(member)}_set_");
         } else {
-          lvalue = SimpleLvalue(lvalueAction: wr => {
-            obj(wr);
-            wr.Write("._{0}", member.CompileName);
-          }, rvalueAction: wr => {
-            obj(wr);
-            if (internalAccess) {
-              wr.Write("._{0}", member.CompileName);
-            } else {
-              wr.Write(".{0}{1}", IdName(member), member is ConstantField || member.EnclosingClass is TraitDecl ? "()" : "");
-            }
-          });
+          lvalue = SuffixLvalue(obj, $".{IdName(member)}");
         }
         return CoercedLvalue(lvalue, field.Type, expectedType);
       }
