@@ -618,7 +618,11 @@ namespace Microsoft.Dafny{
       return BoxedTypeName(type, wr, tok);
     }
 
-    private string TypeName(Type type, TextWriter wr, Bpl.IToken tok, bool boxed, MemberDecl/*?*/ member = null) {
+    private string TypeName(Type type, TextWriter wr, Bpl.IToken tok, bool boxed, MemberDecl /*?*/ member = null) {
+      return TypeName(type, wr, tok, boxed, false, member);
+    }
+
+    private string TypeName(Type type, TextWriter wr, Bpl.IToken tok, bool boxed, bool erased, MemberDecl/*?*/ member = null) {
       Contract.Ensures(Contract.Result<string>() != null);
       Contract.Assume(type != null);  // precondition; this ought to be declared as a Requires in the superclass
 
@@ -685,12 +689,15 @@ namespace Microsoft.Dafny{
         if (ComplicatedTypeParameterForCompilation(argType)) {
           Error(tok, "compilation of set<TRAIT> is not supported; consider introducing a ghost", wr);
         }
+
+        if (erased) return DafnySetClass;
         return DafnySetClass + "<" + BoxedTypeName(argType, wr, tok) + ">";
       } else if (xType is SeqType) {
         Type argType = ((SeqType)xType).Arg;
         if (ComplicatedTypeParameterForCompilation(argType)) {
           Error(tok, "compilation of seq<TRAIT> is not supported; consider introducing a ghost", wr);
         }
+        if (erased) return DafnySeqClass;
         return DafnySeqClass + "<" + BoxedTypeName(argType, wr, tok) + ">";
 
       } else if (xType is MultiSetType) {
@@ -698,6 +705,7 @@ namespace Microsoft.Dafny{
         if (ComplicatedTypeParameterForCompilation(argType)) {
           Error(tok, "compilation of multiset<TRAIT> is not supported; consider introducing a ghost", wr);
         }
+        if (erased) return DafnyMultiSetClass;
         return DafnyMultiSetClass + "<" + BoxedTypeName(argType, wr, tok) + ">";
       } else if (xType is MapType) {
         Type domType = ((MapType)xType).Domain;
@@ -705,6 +713,7 @@ namespace Microsoft.Dafny{
         if (ComplicatedTypeParameterForCompilation(domType) || ComplicatedTypeParameterForCompilation(ranType)) {
           Error(tok, "compilation of map<TRAIT, _> or map<_, TRAIT> is not supported; consider introducing a ghost", wr);
         }
+        if (erased) return DafnyMapClass;
         return DafnyMapClass + "<" + BoxedTypeName(domType, wr, tok) + "," + BoxedTypeName(ranType, wr, tok) + ">";
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected type
@@ -3354,22 +3363,36 @@ namespace Microsoft.Dafny{
 
     protected override BlockTargetWriter CreateForeachLoop(string boundVar, Type boundVarType, out TargetWriter collectionWriter,
       TargetWriter wr, string altBoundVarName = null, Type altVarType = null, Bpl.IToken tok = null) {
+      string ty = "";
+      string tempName = "";
       if (boundVarType != null) {
         // We actually do not know the tye of the collection, which is not yet written
         // so we use Object here
-        string ty = boundVarType.IsRefType ? "Object" : TypeName(boundVarType, wr, tok);
-        wr.Write($"for({ty} {boundVar} : ");
+        ty = TypeName(boundVarType, wr, tok);
+        if (boundVarType.IsRefType) {
+          ty = "Object";
+          tempName = boundVar + "_";
+          wr.Write($"for({ty} {tempName} : ");
+        } else {
+          wr.Write($"for({ty} {boundVar} : ");
+        }
       } else {
         wr.Write($"for({DafnyTupleClass(TargetTupleSize)} {boundVar} : ");
       }
       collectionWriter = wr.Fork();
-      if (altBoundVarName == null) {
-        return wr.NewBlock(")");
-      } else if (altVarType == null) {
-        BlockTargetWriter wwr = wr.NewBlockWithPrefix(")", "if ({1} instanceof {2}) ", altBoundVarName, boundVar, TypeName(boundVarType, wr, tok));
-        return wwr.NewBlockWithPrefix("", $"{altBoundVarName} = ({TypeName(boundVarType, wr, tok)}){boundVar};");
+      BlockTargetWriter wwr;
+      if (tempName != "") {
+        var tyb = TypeName(boundVarType, wr, tok);
+        wr.Write($") if ({tempName} instanceof {tyb}) ");
+        wwr = wr.NewBlockWithPrefix("", $"{tyb} {boundVar} = ({tyb}){tempName};");
       } else {
-        BlockTargetWriter wwr = wr.NewBlockWithPrefix(")", "if ({1} instanceof {2}) ", altBoundVarName, boundVar, TypeName(altVarType, wr, tok));
+        wwr = wr.NewBlock(")");
+      }
+      if (altBoundVarName == null) { 
+        return wwr;
+      } else if (altVarType == null) {
+        return wwr.NewBlockWithPrefix("", $"{altBoundVarName} = {boundVar};");
+      } else {
         return wwr.NewBlockWithPrefix("", "{2} {0} = ({2}){1};", altBoundVarName, boundVar, TypeName(altVarType, wr, tok));
       }
     }
