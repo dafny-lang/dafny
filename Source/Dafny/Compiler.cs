@@ -90,10 +90,11 @@ namespace Microsoft.Dafny {
     protected abstract TargetWriter CreateModule(string moduleName, bool isDefault, bool isExtern, string/*?*/ libraryName, TargetWriter wr);
     protected abstract string GetHelperModuleName();
     protected interface IClassWriter {
-      BlockTargetWriter/*?*/ CreateMethod(Method m, List<TypeParameter> typeArgs, bool createBody);
-      BlockTargetWriter/*?*/ CreateFunction(string name, List<TypeParameter> typeArgs, List<Formal> formals, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl member);
-      BlockTargetWriter/*?*/ CreateGetter(string name, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl/*?*/ member);  // returns null iff !createBody
-      BlockTargetWriter/*?*/ CreateGetterSetter(string name, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl/*?*/ member, out TargetWriter setterWriter);  // if createBody, then result and setterWriter are non-null, else both are null
+      BlockTargetWriter/*?*/ CreateMethod(Method m, List<TypeParameter> typeArgs, bool createBody, bool forBodyInheritance);
+      BlockTargetWriter/*?*/ CreateFunction(string name, List<TypeParameter> typeArgs, List<Formal> formals, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody,
+        MemberDecl member, bool forBodyInheritance = false);
+      BlockTargetWriter/*?*/ CreateGetter(string name, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl/*?*/ member, bool forBodyInheritance);  // returns null iff !createBody
+      BlockTargetWriter/*?*/ CreateGetterSetter(string name, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl/*?*/ member, out TargetWriter setterWriter, bool forBodyInheritance);  // if createBody, then result and setterWriter are non-null, else both are null
       void DeclareField(string name, TopLevelDecl enclosingDecl, bool isStatic, bool isConst, Type type, Bpl.IToken tok, string rhs, Field/*?*/ field);
       /// <summary>
       /// InitializeField is called for inherited fields. It is in lieu of calling DeclareField and is called only if
@@ -919,16 +920,16 @@ namespace Microsoft.Dafny {
         block = abyss.NewBlock("");
       }
 
-      public BlockTargetWriter/*?*/ CreateMethod(Method m, List<TypeParameter> typeArgs, bool createBody) {
+      public BlockTargetWriter/*?*/ CreateMethod(Method m, List<TypeParameter> typeArgs, bool createBody, bool forBodyInheritance) {
         return createBody ? block : null;
       }
-      public BlockTargetWriter/*?*/ CreateFunction(string name, List<TypeParameter> typeArgs, List<Formal> formals, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl member) {
+      public BlockTargetWriter/*?*/ CreateFunction(string name, List<TypeParameter> typeArgs, List<Formal> formals, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl member, bool forBodyInheritance) {
         return createBody ? block : null;
       }
-      public BlockTargetWriter/*?*/ CreateGetter(string name, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl/*?*/ member) {
+      public BlockTargetWriter/*?*/ CreateGetter(string name, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl/*?*/ member, bool forBodyInheritance) {
         return createBody ? block : null;
       }
-      public BlockTargetWriter/*?*/ CreateGetterSetter(string name, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl/*?*/ member, out TargetWriter setterWriter) {
+      public BlockTargetWriter/*?*/ CreateGetterSetter(string name, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl/*?*/ member, out TargetWriter setterWriter, bool forBodyInheritance) {
         if (createBody) {
           setterWriter = block;
           return block;
@@ -1144,56 +1145,61 @@ namespace Microsoft.Dafny {
       OrderedBySCC(inheritedMembers, c);
       OrderedBySCC(c.Members, c);
 
-      foreach (var member in inheritedMembers) {
-        Contract.Assert(!member.IsStatic);  // only instance members should ever be added to .InheritedMembers
-        if (member.IsGhost) {
-          // skip
-        } else if (NeedsCustomReceiver(member) && !member.IsOverrideThatAddsBody) {
-          // this member is not overridable, and is defined in the trait rather than in the inheriting class/trait
-        } else if (member is ConstantField) {
-          var cf = (ConstantField)member;
-          var cfType = Resolver.SubstType(cf.Type, typeMap);
-          if (cf.Rhs == null) {
-            Contract.Assert(!cf.IsStatic);  // as checked above, only instance members can be inherited
-            classWriter.DeclareField("_" + cf.CompileName, c, false, false, cfType, cf.tok, DefaultValue(cfType, errorWr, cf.tok, true), cf);
-          }
-          var w = classWriter.CreateGetter(IdName(cf), cfType, cf.tok, false, true, member);
-          Contract.Assert(w != null);  // since the previous line asked for a body
-          if (cf.Rhs == null) {
-            var sw = EmitReturnExpr(w);
-            // get { return this._{0}; }
-            EmitThis(sw);
-            sw.Write("._{0}", cf.CompileName);
+      if (!(c is TraitDecl)) {
+        foreach (var member in inheritedMembers) {
+          Contract.Assert(!member.IsStatic);  // only instance members should ever be added to .InheritedMembers
+          if (member.IsGhost) {
+            // skip
+          } else if (member is ConstantField) {
+            var cf = (ConstantField)member;
+            var cfType = Resolver.SubstType(cf.Type, typeMap);
+            if (cf.Rhs == null) {
+              Contract.Assert(!cf.IsStatic); // as checked above, only instance members can be inherited
+              classWriter.DeclareField("_" + cf.CompileName, c, false, false, cfType, cf.tok, DefaultValue(cfType, errorWr, cf.tok, true), cf);
+            }
+            var w = classWriter.CreateGetter(IdName(cf), cf.Type, cf.tok, false, true, null, true);
+            Contract.Assert(w != null);  // since the previous line asked for a body
+            if (cf.Rhs == null) {
+              var sw = EmitReturnExpr(w);
+              sw = EmitCoercionIfNecessary(cfType, cf.Type, cf.tok, sw);
+              // get { return this._{0}; }
+              EmitThis(sw);
+              sw.Write("._{0}", cf.CompileName);
+            } else {
+              EmitCallToInheritedConstRHS(cf, w);
+            }
+          } else if (member is Field f) {
+            var fType = Resolver.SubstType(f.Type, typeMap);
+            // every field is inherited
+            classWriter.DeclareField("_" + f.CompileName, c, false, false, fType, f.tok, DefaultValue(fType, errorWr, f.tok, true), f);
+            TargetWriter wSet;
+            var wGet = classWriter.CreateGetterSetter(IdName(f), f.Type, f.tok, false, true, member, out wSet, true);
+            {
+              var sw = EmitReturnExpr(wGet);
+              sw = EmitCoercionIfNecessary(fType, f.Type, f.tok, sw);
+              // get { return this._{0}; }
+              EmitThis(sw);
+              sw.Write("._{0}", f.CompileName);
+            }
+            {
+              // set { this._{0} = value; }
+              EmitThis(wSet);
+              wSet.Write("._{0}", f.CompileName);
+              var sw = EmitAssignmentRhs(wSet);
+              sw = EmitCoercionIfNecessary(f.Type, fType, f.tok, sw);
+              EmitSetterParameter(sw);
+            }
+          } else if (member is Function fn) {
+            Contract.Assert(fn.Body != null);
+            var w = classWriter.CreateFunction(IdName(fn), fn.TypeArgs, fn.Formals, fn.ResultType, fn.tok, fn.IsStatic, true, fn, true);
+            EmitCallToInheritedFunction(fn, w);
+          } else if (member is Method method) {
+            Contract.Assert(method.Body != null);
+            var w = classWriter.CreateMethod(method, method.TypeArgs, true, true);
+            EmitCallToInheritedMethod(method, w);
           } else {
-            CompileReturnBody(cf.Rhs, cf.Type, w, null);
+            Contract.Assert(false);  // unexpected member
           }
-        } else if (member is Field f) {
-          var fType = Resolver.SubstType(f.Type, typeMap);
-          // every field is inherited
-          classWriter.DeclareField("_" + f.CompileName, c, false, false, fType, f.tok, DefaultValue(fType, errorWr, f.tok, true), f);
-          TargetWriter wSet;
-          var wGet = classWriter.CreateGetterSetter(IdName(f), fType, f.tok, false, true, member, out wSet);
-          {
-            var sw = EmitReturnExpr(wGet);
-            // get { return this._{0}; }
-            EmitThis(sw);
-            sw.Write("._{0}", f.CompileName);
-          }
-          {
-            // set { this._{0} = value; }
-            EmitThis(wSet);
-            wSet.Write("._{0}", f.CompileName);
-            var sw = EmitAssignmentRhs(wSet);
-            EmitSetterParameter(sw);
-          }
-        } else if (member is Function fn) {
-          Contract.Assert(fn.Body != null);
-          CompileFunction(fn, classWriter);
-        } else if (member is Method method) {
-          Contract.Assert(method.Body != null);
-          CompileMethod(method, classWriter, c.ParentFormalTypeParametersToActuals);
-        } else {
-          Contract.Assert(false);  // unexpected member
         }
       }
 
@@ -1218,7 +1224,10 @@ namespace Microsoft.Dafny {
               }
             } else {
               BlockTargetWriter wBody;
-              if ((c is NewtypeDecl && !cf.IsStatic) || (c is TraitDecl && NeedsCustomReceiver(cf))) {
+              if (cf.IsStatic) {
+                wBody = classWriter.CreateGetter(IdName(cf), cf.Type, cf.tok, true, true, cf, false);
+                Contract.Assert(wBody != null);  // since the previous line asked for a body
+              } else if (NeedsCustomReceiver(cf)) {
                 // An instance field in a newtype needs to be modeled as a static function that takes a parameter,
                 // because a newtype value is always represented as some existing type.
                 // Likewise, an instance const with a RHS in a trait needs to be modeled as a static function (in the companion class)
@@ -1227,22 +1236,19 @@ namespace Microsoft.Dafny {
                 Contract.Assert(wBody != null);  // since the previous line asked for a body
                 if (c is TraitDecl) {
                   // also declare a function for the field in the interface
-                  var wBodyInterface = classWriter.CreateGetter(IdName(cf), cf.Type, cf.tok, false, false, cf);
+                  var wBodyInterface = classWriter.CreateGetter(IdName(cf), cf.Type, cf.tok, false, false, cf, false);
                   Contract.Assert(wBodyInterface == null);  // since the previous line said not to create a body
                 }
-              } else if (cf.IsStatic) {
-                wBody = classWriter.CreateGetter(IdName(cf), cf.Type, cf.tok, true, true, cf);
-                Contract.Assert(wBody != null);  // since the previous line asked for a body
               } else if (c is TraitDecl) {
-                wBody = classWriter.CreateGetter(IdName(cf), cf.Type, cf.tok, false, false, cf);
+                wBody = classWriter.CreateGetter(IdName(cf), cf.Type, cf.tok, false, false, cf, false);
                 Contract.Assert(wBody == null);  // since the previous line said not to create a body
               } else if (cf.Rhs == null) {
                 // create a backing field, since this constant field may be assigned in constructors
                 classWriter.DeclareField("_" + f.CompileName, c, false, false, f.Type, f.tok, DefaultValue(f.Type, errorWr, f.tok, true), f);
-                wBody = classWriter.CreateGetter(IdName(cf), cf.Type, cf.tok, false, true, cf);
+                wBody = classWriter.CreateGetter(IdName(cf), cf.Type, cf.tok, false, true, cf, false);
                 Contract.Assert(wBody != null);  // since the previous line asked for a body
               } else {
-                wBody = classWriter.CreateGetter(IdName(cf), cf.Type, cf.tok, false, true, cf);
+                wBody = classWriter.CreateGetter(IdName(cf), cf.Type, cf.tok, false, true, cf, false);
                 Contract.Assert(wBody != null);  // since the previous line asked for a body
               }
               if (wBody != null) {
@@ -1261,7 +1267,7 @@ namespace Microsoft.Dafny {
             }
           } else if (c is TraitDecl) {
             TargetWriter wSet;
-            var wGet = classWriter.CreateGetterSetter(IdName(f), f.Type, f.tok, f.IsStatic, false, member, out wSet);
+            var wGet = classWriter.CreateGetterSetter(IdName(f), f.Type, f.tok, f.IsStatic, false, member, out wSet, false);
             Contract.Assert(wSet == null && wGet == null);  // since the previous line specified no body
           } else {
             var rhs = c is TraitDecl ? null : DefaultValue(f.Type, errorWr, f.tok, true);
@@ -1316,7 +1322,7 @@ namespace Microsoft.Dafny {
             }
           } else if (c is TraitDecl && !m.IsStatic) {
             if (m.OverriddenMember == null) {
-              var w = classWriter.CreateMethod(m, m.TypeArgs, false);
+              var w = classWriter.CreateMethod(m, m.TypeArgs, false, false);
               Contract.Assert(w == null);  // since we requested no body
             }
             if (m.Body != null) {
@@ -1334,6 +1340,94 @@ namespace Microsoft.Dafny {
       thisContext = null;
     }
 
+    protected void EmitCallToInheritedConstRHS(ConstantField f, TargetWriter wr) {
+      Contract.Requires(f != null);
+      Contract.Requires(!f.IsStatic);
+      Contract.Requires(f.EnclosingClass is TraitDecl);
+      Contract.Requires(f.Rhs != null);
+      Contract.Requires(wr != null);
+      Contract.Requires(thisContext != null);
+
+      var fOriginal = f;
+
+      // In a target language that requires type coercions, the function declared in "thisContext" has
+      // the same signature as in "fOriginal.EnclosingClass".
+      wr = EmitReturnExpr(wr);
+      wr = EmitCoercionIfNecessary(f.Type, fOriginal.Type, f.tok, wr);
+
+      var calleeReceiverType = Resolver.SubstType(UserDefinedType.FromTopLevelDecl(f.tok, f.EnclosingClass), thisContext.ParentFormalTypeParametersToActuals);
+      wr.Write("{0}{1}", TypeName_Companion(calleeReceiverType, wr, f.tok, f), ModuleSeparator);
+      var actualTypeArguments = CombineTypeArguments(f,
+        f.EnclosingClass.TypeArgs.ConvertAll(tp => thisContext.ParentFormalTypeParametersToActuals[tp]),
+        f.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp)));
+      EmitNameAndActualTypeArgs(IdName(f), actualTypeArguments.ConvertAll(ta => ta.Actual), f.tok, wr);
+      wr.Write("(");
+      var nRTDs = EmitRuntimeTypeDescriptorsActuals(actualTypeArguments, f.tok, false, wr);
+      string sep = nRTDs == 0 ? "" : ", ";
+
+      wr.Write(sep);
+      var w = EmitCoercionIfNecessary(UserDefinedType.FromTopLevelDecl(f.tok, thisContext), calleeReceiverType, f.tok, wr);
+      EmitThis(w);
+      wr.Write(")");
+    }
+
+    protected void EmitCallToInheritedFunction(Function f, TargetWriter wr) {
+      Contract.Requires(f != null);
+      Contract.Requires(!f.IsStatic);
+      Contract.Requires(f.EnclosingClass is TraitDecl);
+      Contract.Requires(f.Body != null);
+      Contract.Requires(wr != null);
+      Contract.Requires(thisContext != null);
+
+      // There are three types involved.
+      // First, "f.Original.EnclosingClass" is the trait where the function was first declared.
+      // In descendant traits from there on, the function may occur several times, each time with
+      // a strengthening of the specification. Those traits do no play a role here.
+      // Second, there is "f.EnclosingClass", which is the trait where the function is given a body.
+      // Often, "f.EnclosingClass" and "f.Original.EnclosingClass" will be the same.
+      // Third and finally, there is "thisContext", which is the class that inherits "f" and its
+      // implementation, and for which we're about to generate a call to body compiled for "f".
+
+      // In a target language that requires type coercions, the function declared in "thisContext" has
+      // the same signature as in "f.Original.EnclosingClass".
+      wr = EmitReturnExpr(wr);
+      wr = EmitCoercionIfNecessary(f.ResultType, f.Original.ResultType, f.tok, wr);
+
+      var calleeReceiverType = Resolver.SubstType(UserDefinedType.FromTopLevelDecl(f.tok, f.EnclosingClass), thisContext.ParentFormalTypeParametersToActuals);
+      wr.Write("{0}{1}", TypeName_Companion(calleeReceiverType, wr, f.tok, f), ModuleSeparator);
+      var actualTypeArguments = CombineTypeArguments(f,
+        f.EnclosingClass.TypeArgs.ConvertAll(tp => thisContext.ParentFormalTypeParametersToActuals[tp]),
+        f.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp)));
+      EmitNameAndActualTypeArgs(IdName(f), actualTypeArguments.ConvertAll(ta => ta.Actual), f.tok, wr);
+      wr.Write("(");
+      var nRTDs = EmitRuntimeTypeDescriptorsActuals(actualTypeArguments, f.tok, false, wr);
+      string sep = nRTDs == 0 ? "" : ", ";
+
+      wr.Write(sep);
+      var w = EmitCoercionIfNecessary(UserDefinedType.FromTopLevelDecl(f.tok, thisContext), calleeReceiverType, f.tok, wr);
+      EmitThis(w);
+      sep = ", ";
+
+      foreach (var formal in f.Formals) {
+        if (!formal.IsGhost) {
+          var fromType = Resolver.SubstType(formal.Type, thisContext.ParentFormalTypeParametersToActuals);
+          w = EmitCoercionIfNecessary(fromType, formal.Type, tok: f.tok, wr: wr);
+          wr.Write("{0}{1}", sep, formal.CompileName);
+          sep = ", ";
+        }
+      }
+      wr.Write(")");
+    }
+
+    protected virtual void EmitCallToInheritedMethod(Method m, BlockTargetWriter wr) {
+      wr = EmitMethodReturns(m, wr);
+      Contract.Assert(enclosingMethod == null);
+      enclosingMethod = m;
+      TrStmtList(m.Body.Body, wr);
+      Contract.Assert(enclosingMethod == m);
+      enclosingMethod = null;
+    }
+
     protected List<TypeParameter> CombineTypeParameters(MemberDecl member) {
       Contract.Requires(member != null);
       var classActuals = member.EnclosingClass.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp));
@@ -1346,10 +1440,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(member != null);
       Contract.Requires(typeArgsEnclosingClass != null);
       Contract.Requires(typeArgsMember != null);
-      /*if (member is Field) {
-        var formals = member.EnclosingClass != null ? member.EnclosingClass.TypeArgs : new List<TypeParameter>();  // some special fields have .EnclosingClass == null
-        return TypeArgumentInstantiation.ListFromFormals(formals);
-      } else*/
+
       if ((member.IsStatic || NeedsCustomReceiver(member)) && !SupportsStaticsInGenericClasses) {
         return TypeArgumentInstantiation.ListFromMember(member, typeArgsEnclosingClass, typeArgsMember);
       } else {
@@ -1507,7 +1598,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(m != null);
       Contract.Requires(m.Body != null);
 
-      var w = cw.CreateMethod(m, CombineTypeParameters(m), !m.IsExtern(out _, out _));
+      var w = cw.CreateMethod(m, CombineTypeParameters(m), !m.IsExtern(out _, out _), false);
       if (w != null) {
         if (m.IsTailRecursive) {
           w = EmitTailCallStructure(m, w);
