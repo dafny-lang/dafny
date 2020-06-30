@@ -699,10 +699,10 @@ namespace Microsoft.Dafny
       }
 
       public BlockTargetWriter/*?*/ CreateMethod(Method m, List<TypeParameter> typeArgs, bool createBody, bool forBodyInheritance) {
-        return Compiler.CreateMethod(m, createBody, Writer(m.IsStatic, createBody, m));
+        return Compiler.CreateMethod(m, createBody, Writer(m.IsStatic, createBody, m), forBodyInheritance);
       }
       public BlockTargetWriter/*?*/ CreateFunction(string name, List<TypeParameter> typeArgs, List<Formal> formals, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl member, bool forBodyInheritance) {
-        return Compiler.CreateFunction(name, typeArgs, formals, resultType, tok, isStatic, createBody, member, Writer(isStatic, createBody, member));
+        return Compiler.CreateFunction(name, typeArgs, formals, resultType, tok, isStatic, createBody, member, Writer(isStatic, createBody, member), forBodyInheritance);
       }
       public BlockTargetWriter/*?*/ CreateGetter(string name, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl/*?*/ member, bool forBodyInheritance) {
         return Compiler.CreateGetter(name, resultType, tok, isStatic, createBody, Writer(isStatic, createBody, member));
@@ -721,7 +721,7 @@ namespace Microsoft.Dafny
       public void Finish() { }
     }
 
-    protected BlockTargetWriter/*?*/ CreateMethod(Method m, bool createBody, TargetWriter wr) {
+    protected BlockTargetWriter/*?*/ CreateMethod(Method m, bool createBody, TargetWriter wr, bool forBodyInheritance) {
       var hasDllImportAttribute = ProcessDllImport(m, wr);
       string targetReturnTypeReplacement = null;
       foreach (var p in m.Outs) {
@@ -736,7 +736,7 @@ namespace Microsoft.Dafny
         }
       }
 
-      var customReceiver = createBody && NeedsCustomReceiver(m);
+      var customReceiver = createBody && !forBodyInheritance && NeedsCustomReceiver(m);
 
       AddTestCheckerIfNeeded(m.Name, m, wr);
       wr.Write("{0}{1}{2}{3} {4}",
@@ -768,7 +768,7 @@ namespace Microsoft.Dafny
         return null;
       } else {
         var w = wr.NewBlock(")", null, BlockTargetWriter.BraceStyle.Newline, BlockTargetWriter.BraceStyle.Newline);
-        if (targetReturnTypeReplacement != null) {
+        if (targetReturnTypeReplacement != null && !forBodyInheritance) {
           var r = new TargetWriter(w.IndentLevel);
           EmitReturn(m.Outs, r);
           w.BodySuffix = r.ToString();
@@ -777,10 +777,10 @@ namespace Microsoft.Dafny
       }
     }
 
-    protected BlockTargetWriter/*?*/ CreateFunction(string name, List<TypeParameter> typeArgs, List<Formal> formals, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl member, TargetWriter wr) {
+    protected BlockTargetWriter/*?*/ CreateFunction(string name, List<TypeParameter> typeArgs, List<Formal> formals, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl member, TargetWriter wr, bool forBodyInheritance) {
       var hasDllImportAttribute = ProcessDllImport(member, wr);
 
-      var customReceiver = createBody && NeedsCustomReceiver(member);
+      var customReceiver = createBody && !forBodyInheritance && NeedsCustomReceiver(member);
 
       AddTestCheckerIfNeeded(name, member, wr);
       wr.Write("{0}{1}{2}{3} {4}", createBody ? "public " : "", isStatic || customReceiver ? "static " : "", hasDllImportAttribute ? "extern " : "", TypeName(resultType, wr, tok), name);
@@ -1698,7 +1698,7 @@ namespace Microsoft.Dafny
 
     protected override ILvalue EmitMemberSelect(System.Action<TargetWriter> obj, Type objType, MemberDecl member, List<TypeArgumentInstantiation> typeArgs, Dictionary<TypeParameter, Type> typeMap,
       Type expectedType, string/*?*/ additionalCustomParameter, bool internalAccess = false) {
-      if (member is ConstantField && NeedsCustomReceiver(member)) {
+      if (member is ConstantField && !(member.EnclosingClass is TraitDecl) && NeedsCustomReceiver(member)) {
         return SimpleLvalue(w => {
           w.Write("{0}.{1}(", TypeName_Companion(objType, w, member.tok, member), IdName(member));
           obj(w);

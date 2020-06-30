@@ -1176,7 +1176,7 @@ namespace Microsoft.Dafny {
         } else {
           Contract.Assert(overriddenInParams == null);
         }
-        if (outParams.Any()) {
+        if (outParams.Any() && !forBodyInheritance) {
           var r = new TargetWriter(w.IndentLevel);
           EmitReturnWithCoercions(outParams, overriddenOutParams, thisContext.ParentFormalTypeParametersToActuals, r);
           w.BodySuffix = r.ToString();
@@ -1323,7 +1323,7 @@ namespace Microsoft.Dafny {
         var udt = (UserDefinedType)xType;
         var tp = udt.ResolvedParam;
         if (tp != null) {
-          return string.Format("{0}{1}", tp.Parent is ClassDecl ? "_this." : "", FormatRTDName(tp.CompileName));
+          return string.Format("{0}{1}", tp.Parent is ClassDecl && !(tp.Parent is TraitDecl) ? "_this." : "", FormatRTDName(tp.CompileName));
         }
         var cl = udt.ResolvedClass;
         Contract.Assert(cl != null);

@@ -117,7 +117,7 @@ namespace Microsoft.Dafny{
       }
     }
 
-    protected override void DeclareSpecificOutCollector(string collectorVarName, TargetWriter wr, List<Type> types, List<Type> formalTypes, List<Type> lhsTypes) {
+    protected override void DeclareSpecificOutCollector(string collectorVarName, TargetWriter wr, List<Type> formalTypes, List<Type> lhsTypes) {
       // If the method returns an array of parameter type, and we're assigning
       // to a variable with a more specific type, we need to insert a cast:
       //
@@ -131,18 +131,18 @@ namespace Microsoft.Dafny{
         if (formalType.IsArrayType && formalType.AsArrayType.Dims == 1 && UserDefinedType.ArrayElementType(formalType).IsTypeParameter) {
           returnedTypes.Add("java.lang.Object");
         } else {
-          returnedTypes.Add(TypeName(lhsType, wr, Bpl.Token.NoToken, boxed: types.Count > 1));
+          returnedTypes.Add(TypeName(lhsType, wr, Bpl.Token.NoToken, boxed: formalTypes.Count > 1));
         }
       }
-      if (types.Count > 1) {
-        tuples.Add(types.Count);
-        wr.Write($"{DafnyTupleClassPrefix}{types.Count}<{Util.Comma(returnedTypes)}> {collectorVarName} = ");
+      if (formalTypes.Count > 1) {
+        tuples.Add(formalTypes.Count);
+        wr.Write($"{DafnyTupleClassPrefix}{formalTypes.Count}<{Util.Comma(returnedTypes)}> {collectorVarName} = ");
       } else {
         wr.Write($"{returnedTypes[0]} {collectorVarName} = ");
       }
     }
     protected override void EmitCastOutParameterSplits(string outCollector, List<string> lhsNames,
-      TargetWriter wr, List<Type> outTypes, List<Type> formalTypes, List<Type> lhsTypes, Bpl.IToken tok){
+      TargetWriter wr, List<Type> formalTypes, List<Type> lhsTypes, Bpl.IToken tok){
       var wOuts = new List<TargetWriter>();
       for (var i = 0; i < lhsNames.Count; i++){
         wr.Write($"{lhsNames[i]} = ");
@@ -402,10 +402,10 @@ namespace Microsoft.Dafny{
       }
 
       public BlockTargetWriter/*?*/ CreateMethod(Method m, List<TypeParameter> typeArgs, bool createBody, bool forBodyInheritance) {
-        return Compiler.CreateMethod(m, typeArgs, createBody, Writer(m.IsStatic, createBody, m));
+        return Compiler.CreateMethod(m, typeArgs, createBody, Writer(m.IsStatic, createBody, m), forBodyInheritance);
       }
       public BlockTargetWriter/*?*/ CreateFunction(string name, List<TypeParameter> typeArgs, List<Formal> formals, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl member, bool forBodyInheritance) {
-        return Compiler.CreateFunction(name, typeArgs, formals, resultType, tok, isStatic, createBody, member, Writer(isStatic, createBody, member));
+        return Compiler.CreateFunction(name, typeArgs, formals, resultType, tok, isStatic, createBody, member, Writer(isStatic, createBody, member), forBodyInheritance);
       }
 
       public BlockTargetWriter/*?*/ CreateGetter(string name, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl/*?*/ member, bool forBodyInheritance) {
@@ -466,7 +466,7 @@ namespace Microsoft.Dafny{
       }
       return wGet;
     }
-    protected BlockTargetWriter CreateMethod(Method m, List<TypeParameter> typeArgs, bool createBody, TargetWriter wr) {
+    protected BlockTargetWriter CreateMethod(Method m, List<TypeParameter> typeArgs, bool createBody, TargetWriter wr, bool forBodyInheritance) {
       if (m.IsExtern(out _, out _) && (m.IsStatic || m is Constructor)) {
         // No need for an abstract version of a static method or a constructor
         return null;
@@ -485,7 +485,7 @@ namespace Microsoft.Dafny{
       } else if (nonGhostOuts > 1) {
         targetReturnTypeReplacement = DafnyTupleClassPrefix + nonGhostOuts;
       }
-      var customReceiver = createBody && NeedsCustomReceiver(m);
+      var customReceiver = createBody && !forBodyInheritance && NeedsCustomReceiver(m);
       var receiverType = UserDefinedType.FromTopLevelDecl(m.tok, m.EnclosingClass);
       wr.Write("public {0}{1}", !createBody && !(m.EnclosingClass is TraitDecl) ? "abstract " : "", m.IsStatic || customReceiver ? "static " : "");
       if (typeArgs.Count != 0) {
@@ -536,12 +536,12 @@ namespace Microsoft.Dafny{
 
     protected BlockTargetWriter/*?*/ CreateFunction(string name, List<TypeParameter> typeArgs,
       List<Formal> formals, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl member,
-      TargetWriter wr) {
+      TargetWriter wr, bool forBodyInheritance) {
       if (member.IsExtern(out _, out _) && isStatic) {
         // No need for abstract version of static method
         return null;
       }
-      var customReceiver = createBody && NeedsCustomReceiver(member);
+      var customReceiver = createBody && !forBodyInheritance && NeedsCustomReceiver(member);
       var receiverType = UserDefinedType.FromTopLevelDecl(member.tok, member.EnclosingClass);
       wr.Write("public {0}{1}", !createBody && !(member.EnclosingClass is TraitDecl) ? "abstract " : "", isStatic || customReceiver ? "static " : "");
       if (typeArgs.Count != 0) {
@@ -1230,15 +1230,15 @@ namespace Microsoft.Dafny{
 
     protected override ILvalue EmitMemberSelect(Action<TargetWriter> obj, Type objType, MemberDecl member, List<TypeArgumentInstantiation> typeArgs, Dictionary<TypeParameter, Type> typeMap,
       Type expectedType, string/*?*/ additionalCustomParameter, bool internalAccess = false) {
-      if (member is ConstantField && NeedsCustomReceiver(member)) {
+      if (member is ConstantField && !(member.EnclosingClass is TraitDecl) && NeedsCustomReceiver(member)) {
         return SimpleLvalue(w => {
           w.Write("{0}.", TypeName_Companion(objType, w, member.tok, member));
           EmitNameAndActualTypeArgs(IdName(member), typeArgs.ConvertAll(ta => ta.Actual), member.tok, w);
           w.Write("(");
-          obj(w);
           foreach (var ta in typeArgs) {
-            w.Write(", {0}", TypeDescriptor(ta.Actual, w, member.tok));
+            w.Write("{0}, ", TypeDescriptor(ta.Actual, w, member.tok));
           }
+          obj(w);
           w.Write(")");
         });
       } else if (member is ConstantField && member.IsStatic) {

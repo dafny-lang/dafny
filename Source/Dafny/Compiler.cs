@@ -295,7 +295,7 @@ namespace Microsoft.Dafny {
     /// </summary>
     protected abstract TargetWriter DeclareLocalVar(string name, Type/*?*/ type, Bpl.IToken/*?*/ tok, TargetWriter wr);
     protected virtual void DeclareOutCollector(string collectorVarName, TargetWriter wr) { }  // called only for return-style calls
-    protected virtual void DeclareSpecificOutCollector(string collectorVarName, TargetWriter wr, List<Type> types, List<Type> formalTypes, List<Type> lhsTypes) {DeclareOutCollector(collectorVarName, wr); } // for languages that don't allow "let" or "var" expressions
+    protected virtual void DeclareSpecificOutCollector(string collectorVarName, TargetWriter wr, List<Type> formalTypes, List<Type> lhsTypes) { DeclareOutCollector(collectorVarName, wr); } // for languages that don't allow "let" or "var" expressions
     protected virtual bool UseReturnStyleOuts(Method m, int nonGhostOutCount) => false;
     protected virtual BlockTargetWriter EmitMethodReturns(Method m, BlockTargetWriter wr) { return wr; } // for languages that need explicit return statements not provided by Dafny
     protected virtual bool SupportsMultipleReturns { get => false; }
@@ -311,7 +311,7 @@ namespace Microsoft.Dafny {
     protected abstract void DeclareLocalOutVar(string name, Type type, Bpl.IToken tok, string rhs, bool useReturnStyleOuts, TargetWriter wr);
     protected virtual void EmitActualOutArg(string actualOutParamName, TextWriter wr) { }  // actualOutParamName is always the name of a local variable; called only for non-return-style outs
     protected virtual void EmitOutParameterSplits(string outCollector, List<string> actualOutParamNames, TargetWriter wr) { }  // called only for return-style calls
-    protected virtual void EmitCastOutParameterSplits(string outCollector, List<string> actualOutParamNames, TargetWriter wr, List<Type> actualOutParamTypes, List<Type> formalOutParamTypes, List<Type> lhsTypes, Bpl.IToken tok) {
+    protected virtual void EmitCastOutParameterSplits(string outCollector, List<string> actualOutParamNames, TargetWriter wr, List<Type> formalOutParamTypes, List<Type> lhsTypes, Bpl.IToken tok) {
       EmitOutParameterSplits(outCollector, actualOutParamNames, wr); }
 
     protected abstract void EmitActualTypeArgs(List<Type> typeArgs, Bpl.IToken tok, TextWriter wr);
@@ -1419,13 +1419,102 @@ namespace Microsoft.Dafny {
       wr.Write(")");
     }
 
-    protected virtual void EmitCallToInheritedMethod(Method m, BlockTargetWriter wr) {
-      wr = EmitMethodReturns(m, wr);
-      Contract.Assert(enclosingMethod == null);
-      enclosingMethod = m;
-      TrStmtList(m.Body.Body, wr);
-      Contract.Assert(enclosingMethod == m);
-      enclosingMethod = null;
+    protected virtual void EmitCallToInheritedMethod(Method method, BlockTargetWriter wr) {
+      // Count the number of non-ghost out-parameters
+      var nonGhostOutParameterCount = 0;
+      foreach (var p in method.Outs) {
+        if (!p.IsGhost) {
+          nonGhostOutParameterCount++;
+        }
+      }
+
+      var returnStyleOuts = UseReturnStyleOuts(method, nonGhostOutParameterCount);
+      var returnStyleOutCollector = nonGhostOutParameterCount > 1 && returnStyleOuts && !SupportsMultipleReturns ? idGenerator.FreshId("_outcollector") : null;
+
+      var outTmps = new List<string>();  // contains a name for each non-ghost formal out-parameter
+      var outTypes = new List<Type>();  // contains a type for each non-ghost formal out-parameter
+      var outTypesOriginal = new List<Type>();  // contains a type for each non-ghost formal out-parameter
+      for (int i = 0; i < method.Outs.Count; i++) {
+        Formal p = method.Outs[i];
+        if (!p.IsGhost) {
+          var target = returnStyleOutCollector != null ? p.CompileName : idGenerator.FreshId("_out");
+          outTmps.Add(target);
+          outTypes.Add(p.Type);
+          outTypesOriginal.Add(method.Original.Outs[i].Type);
+          DeclareLocalVar(target, p.Type, p.tok, false, null, wr);
+        }
+      }
+      Contract.Assert(outTmps.Count == nonGhostOutParameterCount && outTypes.Count == nonGhostOutParameterCount && outTypesOriginal.Count == nonGhostOutParameterCount);
+
+      if (returnStyleOutCollector != null) {
+        DeclareSpecificOutCollector(returnStyleOutCollector, wr, outTypes, outTypes);
+      } else if (nonGhostOutParameterCount > 0 && returnStyleOuts) {
+        wr.Write("{0} = ", Util.Comma(outTmps));
+      }
+
+      var protectedName = IdName(method);
+      var calleeReceiverType = Resolver.SubstType(UserDefinedType.FromTopLevelDecl(method.tok, method.EnclosingClass), thisContext.ParentFormalTypeParametersToActuals);
+      wr.Write(TypeName_Companion(calleeReceiverType, wr, method.tok, method));
+      wr.Write(ClassAccessor);
+
+      var formalTypeParameters = CombineTypeParameters(method);
+      var actualTypeArguments = CombineTypeArguments(method,
+        method.EnclosingClass.TypeArgs.ConvertAll(tp => thisContext.ParentFormalTypeParametersToActuals[tp]),
+        method.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp)));
+      EmitNameAndActualTypeArgs(protectedName, actualTypeArguments.ConvertAll(ta => ta.Actual), method.tok, wr);
+      wr.Write("(");
+      var nRTDs = EmitRuntimeTypeDescriptorsActuals(actualTypeArguments, method.tok, false, wr);
+      string sep = nRTDs == 0 ? "" : ", ";
+
+      wr.Write(sep);
+      var w = EmitCoercionIfNecessary(UserDefinedType.FromTopLevelDecl(method.tok, thisContext), calleeReceiverType, method.tok, wr);
+      EmitThis(w);
+      sep = ", ";
+
+      foreach (var formal in method.Ins) {
+        if (!formal.IsGhost) {
+          var fromType = Resolver.SubstType(formal.Type, thisContext.ParentFormalTypeParametersToActuals);
+          w = EmitCoercionIfNecessary(fromType, formal.Type, tok: method.tok, wr: wr);
+          wr.Write("{0}{1}", sep, formal.CompileName);
+          sep = ", ";
+        }
+      }
+
+      if (!returnStyleOuts) {
+        foreach (var outTmp in outTmps) {
+          wr.Write(sep);
+          EmitActualOutArg(outTmp, wr);
+          sep = ", ";
+        }
+      }
+      wr.Write(')');
+      EndStmt(wr);
+
+      if (returnStyleOutCollector != null) {
+        EmitCastOutParameterSplits(returnStyleOutCollector, outTmps, wr, outTypes, outTypesOriginal, method.tok);
+        EmitReturn(method.Outs, wr);
+      } else if (!returnStyleOuts) {
+        for (int j = 0, l = 0; j < method.Outs.Count; j++) {
+          var p = method.Outs[j];
+          if (!p.IsGhost) {
+            EmitAssignment(p.CompileName, method.Outs[j].Type, outTmps[l], method.Original.Outs[j].Type, wr);
+            l++;
+          }
+        }
+      } else {
+        var wrReturn = EmitReturnExpr(wr);
+        sep = "";
+        for (int j = 0, l = 0; j < method.Outs.Count; j++) {
+          var p = method.Outs[j];
+          if (!p.IsGhost) {
+            wrReturn.Write(sep);
+            w = EmitCoercionIfNecessary(method.Outs[j].Type, method.Original.Outs[j].Type, method.tok, wrReturn);
+            w.Write(outTmps[l]);
+            sep = ", ";
+            l++;
+          }
+        }
+      }
     }
 
     protected List<TypeParameter> CombineTypeParameters(MemberDecl member) {
@@ -3466,11 +3555,11 @@ namespace Microsoft.Dafny {
         bool customReceiver = NeedsCustomReceiver(s.Method);
         Contract.Assert(receiverReplacement == null || !customReceiver);  // What would be done in this case? It doesn't ever happen, right?
 
-        bool returnStyleOuts = UseReturnStyleOuts(s.Method, outTmps.Count);
-        var returnStyleOutCollector = outTmps.Count > 0 && returnStyleOuts && !SupportsMultipleReturns ? idGenerator.FreshId("_outcollector") : null;
+        var returnStyleOuts = UseReturnStyleOuts(s.Method, outTmps.Count);
+        var returnStyleOutCollector = outTmps.Count > 1 && returnStyleOuts && !SupportsMultipleReturns ? idGenerator.FreshId("_outcollector") : null;
         if (returnStyleOutCollector != null) {
-          DeclareSpecificOutCollector(returnStyleOutCollector, wr, outTypes, outFormalTypes, outLhsTypes);
-        } else if (outTmps.Count > 0 && returnStyleOuts && SupportsMultipleReturns) {
+          DeclareSpecificOutCollector(returnStyleOutCollector, wr, outFormalTypes, outLhsTypes);
+        } else if (outTmps.Count > 0 && returnStyleOuts) {
           wr.Write("{0} = ", Util.Comma(outTmps));
         }
         var protectedName = IdName(s.Method);
@@ -3519,7 +3608,7 @@ namespace Microsoft.Dafny {
           }
         }
 
-        if (returnStyleOutCollector == null && !SupportsMultipleReturns) {
+        if (!returnStyleOuts) {
           foreach (var outTmp in outTmps) {
             wr.Write(sep);
             EmitActualOutArg(outTmp, wr);
@@ -3529,7 +3618,7 @@ namespace Microsoft.Dafny {
         wr.Write(')');
         EndStmt(wr);
         if (returnStyleOutCollector != null) {
-          EmitCastOutParameterSplits(returnStyleOutCollector, outTmps, wr, outTypes, outFormalTypes, outLhsTypes, s.Tok);
+          EmitCastOutParameterSplits(returnStyleOutCollector, outTmps, wr, outFormalTypes, outLhsTypes, s.Tok);
         }
 
         // assign to the actual LHSs
@@ -4333,7 +4422,7 @@ namespace Microsoft.Dafny {
       var toType = thisContext == null ? e.Type : Resolver.SubstType(e.Type, thisContext.ParentFormalTypeParametersToActuals);
       wr = EmitCoercionIfNecessary(f.Original.ResultType, toType, e.tok, wr);
 
-      var customReceiver = NeedsCustomReceiver(f);
+      var customReceiver = !(f.EnclosingClass is TraitDecl) && NeedsCustomReceiver(f);
       string qual = "";
       string compileName = "";
       if (f.IsExtern(out qual, out compileName) && qual != null) {
@@ -4347,7 +4436,7 @@ namespace Microsoft.Dafny {
         wr.Write("){0}", ClassAccessor);
         compileName = IdName(f);
       }
-      var actualTypeArguments = CombineTypeArguments(f, e.TypeApplication_AtEnclosingClass, e.TypeApplication_JustFunction);
+      var actualTypeArguments = CombineTypeArguments(f, customReceiver ? e.TypeApplication_AtEnclosingClass : null, e.TypeApplication_JustFunction);
       EmitNameAndActualTypeArgs(compileName, actualTypeArguments.ConvertAll(ta => ta.Actual), f.tok, wr);
       wr.Write("(");
       var nRTDs = EmitRuntimeTypeDescriptorsActuals(actualTypeArguments, e.tok, false, wr);
