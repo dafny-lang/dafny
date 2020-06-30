@@ -2619,20 +2619,10 @@ namespace Microsoft.Dafny {
     /// </summary>
     public static Type UpcastToMemberEnclosingType(Type receiverType, MemberDecl/*?*/ member) {
       Contract.Requires(receiverType != null);
-      receiverType = receiverType.NormalizeExpand();
-      if (member != null) {
+      if (member != null && member.EnclosingClass != null && !(member.EnclosingClass is ValuetypeDecl)) {
         return receiverType.AsParentType(member.EnclosingClass);
       }
-#if OLD_STUFF
-      if (member?.EnclosingClass is TraitDecl) {
-        var cl = (ClassDecl)((UserDefinedType)receiverType).ResolvedClass;
-        if (cl != member.EnclosingClass) {
-          var rawTrait = UserDefinedType.FromTopLevelDecl(member.tok, member.EnclosingClass);
-          return Resolver.SubstType(rawTrait, cl.ParentFormalTypeParametersToActuals);
-        }
-      }
-#endif
-      return receiverType;
+      return receiverType.NormalizeExpandKeepConstraints();
     }
 
     /// <summary>
