@@ -1739,12 +1739,12 @@ namespace Microsoft.Dafny
         Contract.Assert(member is Field);
         if (member.IsStatic) {
           return SimpleLvalue(w => {
-            w.Write("{0}.{1}", TypeName_Companion(objType, w, member.tok, null), IdName(member));
+            w.Write("{0}.{1}", TypeName_Companion(objType, w, member.tok, member), IdName(member));
           });
         } else if (NeedsCustomReceiver(member) && !(member.EnclosingClass is TraitDecl)) {
           // instance const in a newtype
           return SimpleLvalue(w => {
-            w.Write("{0}.{1}(", TypeName_Companion(objType, w, member.tok, null), IdName(member));
+            w.Write("{0}.{1}(", TypeName_Companion(objType, w, member.tok, member), IdName(member));
             obj(w);
             w.Write(")");
           });
