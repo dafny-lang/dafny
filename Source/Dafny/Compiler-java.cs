@@ -3142,6 +3142,7 @@ namespace Microsoft.Dafny{
       w.WriteLine();
       EmitImports(w, out _);
       w.WriteLine();
+      EmitSuppression(w); //TODO: Fix implementations so they do not need this suppression
       w.Write($"public class _Companion_{name}{typeParamString}");
       var staticMemberWriter = w.NewBlock("");
       var ctorBodyWriter = staticMemberWriter.NewBlock($"public _Companion_{name}()");
