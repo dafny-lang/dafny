@@ -1414,12 +1414,14 @@ namespace Microsoft.Dafny {
       EmitThis(w);
       sep = ", ";
 
-      foreach (var formal in f.Formals) {
-        if (!formal.IsGhost) {
-          var fromType = Resolver.SubstType(formal.Type, thisContext.ParentFormalTypeParametersToActuals);
-          w = EmitCoercionIfNecessary(fromType, formal.Type, tok: f.tok, wr: wr);
-          wr.Write("{0}{1}", sep, formal.CompileName);
+      for (int j = 0, l = 0; j < f.Formals.Count; j++) {
+        var p = f.Formals[j];
+        if (!p.IsGhost) {
+          wr.Write(sep);
+          w = EmitCoercionIfNecessary(f.Original.Formals[j].Type, f.Formals[j].Type, f.tok, wr);
+          w.Write(IdName(p));
           sep = ", ";
+          l++;
         }
       }
       wr.Write(")");
@@ -1443,7 +1445,7 @@ namespace Microsoft.Dafny {
       for (int i = 0; i < method.Outs.Count; i++) {
         Formal p = method.Outs[i];
         if (!p.IsGhost) {
-          var target = returnStyleOutCollector != null ? p.CompileName : idGenerator.FreshId("_out");
+          var target = returnStyleOutCollector != null ? IdName(p) : idGenerator.FreshId("_out");
           outTmps.Add(target);
           outTypes.Add(p.Type);
           outTypesOriginal.Add(method.Original.Outs[i].Type);
@@ -1481,7 +1483,7 @@ namespace Microsoft.Dafny {
         if (!p.IsGhost) {
           wr.Write(sep);
           w = EmitCoercionIfNecessary(method.Original.Ins[j].Type, method.Ins[j].Type, method.tok, wr);
-          w.Write(p.CompileName);
+          w.Write(IdName(p));
           sep = ", ";
           l++;
         }
@@ -1504,7 +1506,7 @@ namespace Microsoft.Dafny {
         for (int j = 0, l = 0; j < method.Outs.Count; j++) {
           var p = method.Outs[j];
           if (!p.IsGhost) {
-            EmitAssignment(p.CompileName, method.Outs[j].Type, outTmps[l], method.Original.Outs[j].Type, wr);
+            EmitAssignment(IdName(p), method.Outs[j].Type, outTmps[l], method.Original.Outs[j].Type, wr);
             l++;
           }
         }
@@ -1927,7 +1929,7 @@ namespace Microsoft.Dafny {
         }
         foreach (var p in e.Function.Formals) {
           if (!p.IsGhost) {
-            wr.Write("{0} = {1}", p.CompileName, inTmps[n]);
+            wr.Write("{0} = {1}", IdName(p), inTmps[n]);
             EndStmt(wr);
             n++;
           }
@@ -3518,7 +3520,7 @@ namespace Microsoft.Dafny {
         }
         foreach (var p in s.Method.Ins) {
           if (!p.IsGhost) {
-            wr.Write("{0} = {1}", p.CompileName, inTmps[n]);
+            wr.Write("{0} = {1}", IdName(p), inTmps[n]);
             EndStmt(wr);
             n++;
           }
