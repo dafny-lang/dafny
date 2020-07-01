@@ -413,7 +413,7 @@ module TraitsExtendingTraits {
       reads this
   }
   trait B {
-    var b: bool
+    var bb: bool
     method Quantity() returns (x: int)
     method Twice() returns (x: int)
   }
@@ -421,7 +421,7 @@ module TraitsExtendingTraits {
   }
 
   trait K<Y> extends A<Y, Odd> {
-    const k := y1
+    const kk := y1
     function method GetY'(): Y
       reads this
     {
@@ -451,24 +451,24 @@ module TraitsExtendingTraits {
 
   method Test() {
     var g := new G<real>(5.2);
-    print g.y0, " ", g.y1, " ", g.b, "\n";  // 5.2 9 false
+    print g.y0, " ", g.y1, " ", g.bb, "\n";  // 5.2 9 false
 
     var m: M := g;
     var n: N := g;
     var bg: B := g;
     var a: A := g;
-    g.b := true;
-    assert g.b && m.b && n.b && bg.b;
-    print g.b, " ", m.b, " ", n.b, " ", bg.b, "\n";  // true true true true
-    m.b := false;
-    assert !g.b && !m.b && !n.b && !bg.b;
-    print g.b, " ", m.b, " ", n.b, " ", bg.b, "\n";  // false false false false
-    n.b := true;
-    assert g.b && m.b && n.b && bg.b;
-    print g.b, " ", m.b, " ", n.b, " ", bg.b, "\n";  // true true true true
-    bg.b := false;
-    assert !g.b && !m.b && !n.b && !bg.b;
-    print g.b, " ", m.b, " ", n.b, " ", bg.b, "\n";  // false false false false
+    g.bb := true;
+    assert g.bb && m.bb && n.bb && bg.bb;
+    print g.bb, " ", m.bb, " ", n.bb, " ", bg.bb, "\n";  // true true true true
+    m.bb := false;
+    assert !g.bb && !m.bb && !n.bb && !bg.bb;
+    print g.bb, " ", m.bb, " ", n.bb, " ", bg.bb, "\n";  // false false false false
+    n.bb := true;
+    assert g.bb && m.bb && n.bb && bg.bb;
+    print g.bb, " ", m.bb, " ", n.bb, " ", bg.bb, "\n";  // true true true true
+    bg.bb := false;
+    assert !g.bb && !m.bb && !n.bb && !bg.bb;
+    print g.bb, " ", m.bb, " ", n.bb, " ", bg.bb, "\n";  // false false false false
 
     print g.GetY(), " ", g.GetY'(), "\n"; // 5.2 5.2
     g.SetY(1.2);
