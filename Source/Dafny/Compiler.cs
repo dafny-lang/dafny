@@ -1123,7 +1123,6 @@ namespace Microsoft.Dafny {
       Contract.Requires(thisContext == null);
       Contract.Ensures(thisContext == null);
 
-      thisContext = c;
       var errorWr = classWriter.ErrorWriter();
       var v = new CheckHasNoAssumes_Visitor(this, errorWr);
 
@@ -1146,6 +1145,7 @@ namespace Microsoft.Dafny {
       OrderedBySCC(c.Members, c);
 
       if (!(c is TraitDecl)) {
+        thisContext = c;
         foreach (var member in inheritedMembers) {
           Contract.Assert(!member.IsStatic);  // only instance members should ever be added to .InheritedMembers
           if (member.IsGhost) {
@@ -1201,9 +1201,13 @@ namespace Microsoft.Dafny {
             Contract.Assert(false);  // unexpected member
           }
         }
+        thisContext = null;
       }
 
       foreach (MemberDecl member in c.Members) {
+        if (!member.IsStatic) {
+          thisContext = c;
+        }
         if (c is TraitDecl && member.OverriddenMember != null && !member.IsOverrideThatAddsBody) {
           // emit nothing in the trait; this member will be emitted in the classes that extend this trait
         } else if (member is Field) {
@@ -1335,9 +1339,9 @@ namespace Microsoft.Dafny {
         } else {
           Contract.Assert(false); throw new cce.UnreachableException();  // unexpected member
         }
-      }
 
-      thisContext = null;
+        thisContext = null;
+      }
     }
 
     protected void EmitCallToInheritedConstRHS(ConstantField f, TargetWriter wr) {
