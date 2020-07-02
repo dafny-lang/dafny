@@ -469,7 +469,7 @@ namespace Microsoft.Dafny {
       EmitAbsurd(message, wr);
     }
 
-    protected abstract void EmitHalt(Expression /*?*/ messageExpr, TargetWriter wr);
+    protected abstract void EmitHalt(Bpl.IToken tok, Expression /*?*/ messageExpr, TargetWriter wr);
 
     protected TargetWriter EmitIf(string guard, bool hasElse, TargetWriter wr) {
       TargetWriter guardWriter;
@@ -2486,7 +2486,7 @@ namespace Microsoft.Dafny {
         var negated = new UnaryOpExpr(s.Tok, UnaryOpExpr.Opcode.Not, s.Expr);
         negated.Type = Type.Bool;
         TrExpr(negated, guardWriter, false);
-        EmitHalt(s.Message, bodyWriter);
+        EmitHalt(s.Tok, s.Message, bodyWriter);
 
       } else if (stmt is CallStmt) {
         var s = (CallStmt)stmt;

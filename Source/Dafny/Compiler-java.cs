@@ -3383,8 +3383,9 @@ namespace Microsoft.Dafny{
       }
     }
 
-    protected override void EmitHalt(Expression messageExpr, TargetWriter wr) {
+    protected override void EmitHalt(Bpl.IToken tok, Expression messageExpr, TargetWriter wr) {
       wr.Write("throw new dafny.DafnyHaltException(");
+      if (tok != null) wr.Write("\"" + Dafny.ErrorReporter.TokenToString(tok) + ": \" + ");
       EmitToString(wr, messageExpr);
       wr.WriteLine(");");
     }
