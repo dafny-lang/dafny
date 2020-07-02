@@ -1,41 +1,34 @@
-// git-issue-371.dfy
-
+// RUN: %dafny /compile:0 /env:0 /dprint:- "%s" > "%t"
+// RUN: %diff "%s.expect" "%t"
 
 module M {
   type TT = int
 }
 
 module MA {
-
   module Inner {
-    type T17 = x
-      | 0 <= x < 17
+    type T17 = x | 0 <= x < 17
   }
 }
 
 module MB {
-
   module I {
-    type T42 = x
-      | 0 <= x < 42
-  }
+    type T42 = x | 0 <= x < 42
+  } 
 }
 
 module A {
 
   import TTT = M
 
-  import M = M
+  import M
 
-  import MA = MA
-
+  import MA
   import MAI = MA.Inner
-
-  import Inner = MA.Inner
-
-  import MB = MB
-
+  import MA.Inner
+  import MB
   import II = MB.I
+
   class ZZ {
     var zc: II.T42
     var zd: M.TT
@@ -45,5 +38,3 @@ module A {
     var zh: MA.Inner.T17
   }
 }
-
-Dafny program verifier finished with 2 verified, 0 errors
