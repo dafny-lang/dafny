@@ -1,0 +1,3 @@
+git-issue-353.dfy(7,18): Error: type does not agree with element type of seq<A> (got ?)
+git-issue-353.dfy(7,37): Error: type does not agree with element type of seq<A> (got ?)
+2 resolution/type errors detected in git-issue-353.dfy
