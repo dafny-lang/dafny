@@ -25,7 +25,6 @@ function fok(t: T<int>) : T<int>
   }
 }
 
-
 function fok1(t: T<int>) : T<int>
 {
   match t.value {
