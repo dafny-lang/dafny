@@ -413,7 +413,6 @@ namespace Microsoft.Dafny {
       w.WriteLine("return &_this");
     }
 
-    protected override bool NeedsWrappersForInheritedFields => false;
     protected override bool SupportsProperties => false;
 
     protected override BlockTargetWriter CreateIterator(IteratorDecl iter, TargetWriter wr) {
@@ -470,7 +469,7 @@ namespace Microsoft.Dafny {
       Constructor ct = null;
       foreach (var member in iter.Members) {
         if (member is Field f && !f.IsGhost) {
-          cw.DeclareField(IdName(f), iter, false, false, f.Type, f.tok, DefaultValue(f.Type, wr, f.tok));
+          cw.DeclareField(IdName(f), iter, false, false, f.Type, f.tok, DefaultValue(f.Type, wr, f.tok), f);
         } else if (member is Constructor c) {
           Contract.Assert(ct == null);
           ct = c;
@@ -1051,19 +1050,19 @@ namespace Microsoft.Dafny {
         return isStatic ? StaticFieldInitWriter : InstanceFieldInitWriter;
       }
 
-      public BlockTargetWriter/*?*/ CreateMethod(Method m, bool createBody) {
-        return Compiler.CreateMethod(m, createBody, ClassName, AbstractMethodWriter, ConcreteMethodWriter);
+      public BlockTargetWriter/*?*/ CreateMethod(Method m, List<TypeParameter> typeArgs, bool createBody, bool forBodyInheritance) {
+        return Compiler.CreateMethod(m, typeArgs, createBody, ClassName, AbstractMethodWriter, ConcreteMethodWriter, forBodyInheritance);
       }
-      public BlockTargetWriter/*?*/ CreateFunction(string name, List<TypeParameter> typeArgs, List<Formal> formals, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl member) {
-        return Compiler.CreateFunction(name, typeArgs, formals, resultType, tok, isStatic, createBody, member, ClassName, AbstractMethodWriter, ConcreteMethodWriter);
+      public BlockTargetWriter/*?*/ CreateFunction(string name, List<TypeParameter> typeArgs, List<Formal> formals, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl member, bool forBodyInheritance) {
+        return Compiler.CreateFunction(name, typeArgs, formals, resultType, tok, isStatic, createBody, member, ClassName, AbstractMethodWriter, ConcreteMethodWriter, forBodyInheritance);
       }
-      public BlockTargetWriter/*?*/ CreateGetter(string name, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl/*?*/ member) {
-        return Compiler.CreateGetter(name, resultType, tok, isStatic, createBody, member, ClassName, ConcreteMethodWriter);
+      public BlockTargetWriter/*?*/ CreateGetter(string name, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl/*?*/ member, bool forBodyInheritance) {
+        return Compiler.CreateGetter(name, resultType, tok, isStatic, createBody, member, ClassName, AbstractMethodWriter, ConcreteMethodWriter, forBodyInheritance);
       }
-      public BlockTargetWriter/*?*/ CreateGetterSetter(string name, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl/*?*/ member, out TargetWriter setterWriter) {
-        return Compiler.CreateGetterSetter(name, resultType, tok, isStatic, createBody, member, name, out setterWriter, ConcreteMethodWriter);
+      public BlockTargetWriter/*?*/ CreateGetterSetter(string name, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl/*?*/ member, out TargetWriter setterWriter, bool forBodyInheritance) {
+        return Compiler.CreateGetterSetter(name, resultType, tok, isStatic, createBody, member, ClassName, out setterWriter, AbstractMethodWriter, ConcreteMethodWriter, forBodyInheritance);
       }
-      public void DeclareField(string name, TopLevelDecl enclosingDecl, bool isStatic, bool isConst, Type type, Bpl.IToken tok, string rhs) {
+      public void DeclareField(string name, TopLevelDecl enclosingDecl, bool isStatic, bool isConst, Type type, Bpl.IToken tok, string rhs, Field field) {
         // FIXME: This should probably be done in Compiler.DeclareField().
         // Should just have these delegate methods take the ClassWriter as an
         // argument.
@@ -1093,23 +1092,27 @@ namespace Microsoft.Dafny {
       }
     }
 
-    protected BlockTargetWriter/*?*/ CreateMethod(Method m, bool createBody, string ownerName, TargetWriter abstractWriter, TargetWriter concreteWriter) {
-      return CreateSubroutine(IdName(m), CombineTypeParameters(m), m.Ins, m.Outs, null,
-        m.OverriddenMethod?.Original.Ins, m.OverriddenMethod?.Original.Outs, null,
-        m.tok, m.IsStatic, createBody, ownerName, m, abstractWriter, concreteWriter);
+    protected BlockTargetWriter/*?*/ CreateMethod(Method m, List<TypeParameter> typeArgs, bool createBody, string ownerName, TargetWriter abstractWriter, TargetWriter concreteWriter, bool forBodyInheritance) {
+      var overriddenIns = m.EnclosingClass is TraitDecl && !forBodyInheritance ? null : m.OverriddenMethod?.Original.Ins;
+      var overriddenOuts = m.EnclosingClass is TraitDecl && !forBodyInheritance ? null : m.OverriddenMethod?.Original.Outs;
+      return CreateSubroutine(IdName(m), typeArgs, m.Ins, m.Outs, null,
+        overriddenIns, overriddenOuts, null,
+        m.tok, m.IsStatic, createBody, ownerName, m, abstractWriter, concreteWriter, forBodyInheritance);
     }
 
-    protected BlockTargetWriter/*?*/ CreateFunction(string name, List<TypeParameter> typeArgs, List<Formal> formals, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl member, string ownerName, TargetWriter abstractWriter, TargetWriter concreteWriter) {
+    protected BlockTargetWriter/*?*/ CreateFunction(string name, List<TypeParameter> typeArgs, List<Formal> formals, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody,
+      MemberDecl member, string ownerName, TargetWriter abstractWriter, TargetWriter concreteWriter, bool forBodyInheritance) {
+
       var fnOverridden = (member as Function)?.OverriddenFunction?.Original;
       return CreateSubroutine(name, typeArgs, formals, new List<Formal>(), resultType,
         fnOverridden?.Formals, fnOverridden == null ? null : new List<Formal>(), fnOverridden?.ResultType,
-        tok, isStatic, createBody, ownerName, member, abstractWriter, concreteWriter);
+        tok, isStatic, createBody, ownerName, member, abstractWriter, concreteWriter, forBodyInheritance);
     }
 
     private BlockTargetWriter CreateSubroutine(string name, List<TypeParameter> typeArgs,
       List<Formal> inParams, List<Formal> outParams, Type/*?*/ resultType,
       List<Formal>/*?*/ overriddenInParams, List<Formal>/*?*/ overriddenOutParams, Type/*?*/ overriddenResultType,
-      Bpl.IToken tok, bool isStatic, bool createBody, string ownerName, MemberDecl member, TargetWriter abstractWriter, TargetWriter concreteWriter) {
+      Bpl.IToken tok, bool isStatic, bool createBody, string ownerName, MemberDecl/*?*/ member, TargetWriter abstractWriter, TargetWriter concreteWriter, bool forBodyInheritance) {
       Contract.Requires(name != null);
       Contract.Requires(typeArgs != null);
       Contract.Requires(inParams != null);
@@ -1118,16 +1121,14 @@ namespace Microsoft.Dafny {
       Contract.Requires(overriddenOutParams == null || overriddenOutParams.Count == outParams.Count);
       Contract.Requires(tok != null);
       Contract.Requires(ownerName != null);
-      Contract.Requires(member != null);
-      Contract.Requires(abstractWriter != null);
-      Contract.Requires(concreteWriter != null);
+      Contract.Requires(abstractWriter != null || concreteWriter != null);
 
-      var customReceiver = NeedsCustomReceiver(member);
+      var customReceiver = createBody && !forBodyInheritance && member != null && NeedsCustomReceiver(member);
       TargetWriter wr;
       if (createBody || abstractWriter == null) {
         wr = concreteWriter;
         string receiver = isStatic || customReceiver ? FormatCompanionTypeName(ownerName) : ownerName;
-        if (member.EnclosingClass is DatatypeDecl) {
+        if (member != null && member.EnclosingClass is DatatypeDecl) {
           wr.Write("func ({0} {1}) ", isStatic ? "_static" : "_this", receiver);
         } else {
           wr.Write("func ({0} *{1}) ", isStatic || customReceiver ? "_static" : "_this", receiver);
@@ -1156,8 +1157,11 @@ namespace Microsoft.Dafny {
         // If this is a routine inherited from a trait, then the Dafny signature of the method may have replaced the trait's type parameters.
         // Go has no direct support for this idiom. Instead, we re-declare the in-parameters with the actual type, let the re-declarations
         // shadow the given (generic) in-parameters, and then do a cast on entry to the body.
-        if (thisContext != null) {
-          w = w.NewBlock("");
+        // If the routine only contains a call to an inherited body, then we omit the conversions here.
+        if (forBodyInheritance) {
+          // don't do any conversions
+        } else if (thisContext != null) {
+          w = w.NewBlock("", open: BlockTargetWriter.BraceStyle.Nothing);
           for (var i = 0; i < inParams.Count; i++) {
             var p = (overriddenInParams ?? inParams)[i];
             var instantiatedType = Resolver.SubstType(p.Type, thisContext.ParentFormalTypeParametersToActuals);
@@ -1174,9 +1178,9 @@ namespace Microsoft.Dafny {
         } else {
           Contract.Assert(overriddenInParams == null);
         }
-        if (outParams.Any()) {
+        if (outParams.Any() && !forBodyInheritance) {
           var r = new TargetWriter(w.IndentLevel);
-          EmitReturnWithCoercions(outParams, overriddenOutParams, thisContext.ParentFormalTypeParametersToActuals, r);
+          EmitReturnWithCoercions(outParams, overriddenOutParams, thisContext?.ParentFormalTypeParametersToActuals, r);
           w.BodySuffix = r.ToString();
         }
         return w;
@@ -1321,7 +1325,7 @@ namespace Microsoft.Dafny {
         var udt = (UserDefinedType)xType;
         var tp = udt.ResolvedParam;
         if (tp != null) {
-          return string.Format("{0}{1}", !inAutoInitContext && tp.Parent is ClassDecl ? "_this." : "", FormatRTDName(tp.CompileName));
+          return string.Format("{0}{1}", thisContext != null && tp.Parent is ClassDecl && !(tp.Parent is TraitDecl) ? "_this." : "", FormatRTDName(tp.CompileName));
         }
         var cl = udt.ResolvedClass;
         Contract.Assert(cl != null);
@@ -1356,21 +1360,20 @@ namespace Microsoft.Dafny {
       }
     }
 
-    protected BlockTargetWriter/*?*/ CreateGetter(string name, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl/*?*/ member, string ownerName, TargetWriter wr) {
-      // We don't use getters
-      return createBody ? new TargetWriter().NewBlock("") : null;
+    protected BlockTargetWriter/*?*/ CreateGetter(string name, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl/*?*/ member, string ownerName, TargetWriter abstractWriter, TargetWriter concreteWriter, bool forBodyInheritance) {
+      return CreateFunction(name, new List<TypeParameter>(), new List<Formal>(), resultType, tok, isStatic, createBody, member, ownerName, abstractWriter, concreteWriter, forBodyInheritance);
     }
 
-    protected BlockTargetWriter/*?*/ CreateGetterSetter(string name, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl/*?*/ member, string ownerName, out TargetWriter setterWriter, TargetWriter wr) {
-      // We don't use getter/setter pairs; we just embed the trait's fields.
-      if (createBody) {
-        var abyss = new TargetWriter();
-        setterWriter = abyss;
-        return abyss.NewBlock("");
-      } else {
-        setterWriter = null;
-        return null;
-      }
+    protected BlockTargetWriter/*?*/ CreateGetterSetter(string name, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl/*?*/ member, string ownerName,
+      out TargetWriter setterWriter, TargetWriter abstractWriter, TargetWriter concreteWriter, bool forBodyInheritance) {
+
+      var getterWriter = CreateGetter(name, resultType, tok, isStatic, createBody, member, ownerName, abstractWriter, concreteWriter, forBodyInheritance);
+
+      var valueParam = new Formal(tok, "value", resultType, true, false);
+      setterWriter = CreateSubroutine(name + "_set_", new List<TypeParameter>(), new List<Formal>() {valueParam}, new List<Formal>(), null,
+        new List<Formal>() {valueParam}, new List<Formal>(), null, tok, isStatic, createBody, ownerName, member,
+        abstractWriter, concreteWriter, forBodyInheritance);
+      return getterWriter;
     }
 
     protected override bool SupportsStaticsInGenericClasses => false;
@@ -1565,7 +1568,7 @@ namespace Microsoft.Dafny {
       } else if (cl is SubsetTypeDecl) {
         var td = (SubsetTypeDecl)cl;
         if (td.Witness != null) {
-          return TypeName_Companion(type, wr, tok, null) + ".Witness()";
+          return TypeName_Companion(cl, wr, tok) + ".Witness()";
         } else if (td.WitnessKind == SubsetTypeDecl.WKind.Special) {
           // WKind.Special is only used with -->, ->, and non-null types:
           Contract.Assert(ArrowType.IsPartialArrowTypeName(td.Name) || ArrowType.IsTotalArrowTypeName(td.Name) || td is NonNullTypeDecl);
@@ -1660,6 +1663,7 @@ namespace Microsoft.Dafny {
     }
 
     protected override string TypeName_Companion(Type type, TextWriter wr, Bpl.IToken tok, MemberDecl/*?*/ member) {
+      type = UserDefinedType.UpcastToMemberEnclosingType(type, member);
       // XXX This duplicates some of the logic in UserDefinedTypeName, but if we
       // don't do it here, we end up passing the name of the module to
       // FormatCompanionName, which doesn't help anyone
@@ -1799,7 +1803,6 @@ namespace Microsoft.Dafny {
     protected override bool UseReturnStyleOuts(Method m, int nonGhostOutCount) => true;
 
     protected override bool NeedsCastFromTypeParameter => true;
-    protected override bool ClassesRedeclareInheritedFields => false;
     protected override bool SupportsMultipleReturns => true;
     protected override string StmtTerminator => "";
 
@@ -1833,12 +1836,12 @@ namespace Microsoft.Dafny {
     protected override void EmitPrintStmt(TargetWriter wr, Expression arg) {
       bool isString = arg.Type.AsSeqType != null &&
                       arg.Type.AsSeqType.Arg.IsCharType;
-      if (!isString || 
+      if (!isString ||
           (arg.Resolved is MemberSelectExpr mse &&
             mse.Member.IsExtern(out _, out _))) {
         wr.Write("_dafny.Print(");
         TrExpr(arg, wr, false);
-        wr.WriteLine(")"); 
+        wr.WriteLine(")");
       } else {
         wr.Write("_dafny.Print((");
         TrExpr(arg, wr, false);
@@ -1852,7 +1855,7 @@ namespace Microsoft.Dafny {
 
     protected override void EmitReturnExpr(Expression expr, Type resultType, bool inLetExprBody, TargetWriter wr) {
       var w = EmitReturnExpr(wr);
-      var fromType = thisContext == null ? null : Resolver.SubstType(expr.Type, thisContext.ParentFormalTypeParametersToActuals);
+      var fromType = thisContext == null ? expr.Type : Resolver.SubstType(expr.Type, thisContext.ParentFormalTypeParametersToActuals);
       w = EmitCoercionIfNecessary(fromType, resultType, expr.tok, w);
       TrExpr(expr, w, inLetExprBody);
     }
@@ -2477,9 +2480,6 @@ namespace Microsoft.Dafny {
           // FIXME This is a pretty awful string hack.
           wr.Write(".{0}()", FormatDatatypeConstructorCheckName(fieldName.Substring(3)));
         });
-      } else if (member is ConstantField cf && cf.Rhs != null) {
-        var customReceiver = NeedsCustomReceiver(member);
-        return SuffixLvalue(obj, ".{0}{1}", IdName(member), customReceiver ? "" : "()");
       } else if (member is Function fn) {
         typeArgs = typeArgs.Where(ta => NeedsTypeDescriptor(ta.Formal)).ToList();
         if (typeArgs.Count == 0 && additionalCustomParameter == null) {
@@ -2532,12 +2532,29 @@ namespace Microsoft.Dafny {
         }
       } else {
         var field = (Field)member;
-        var enclosingType = Resolver.SubstType(UserDefinedType.FromTopLevelDecl(field.tok, field.EnclosingClass), typeMap);
-        var lvalue = SuffixLvalue(w => {
-            var wObj = EmitCoercionIfNecessary(objType, enclosingType, field.tok, w);
-            obj(wObj);
-          },
-          ".{0}", IdName(member));
+        ILvalue lvalue;
+        if (member.IsStatic) {
+          lvalue = SimpleLvalue(w => {
+            w.Write("{0}.{1}()", TypeName_Companion(objType, w, member.tok, member), IdName(member));
+          });
+        } else if (NeedsCustomReceiver(member) && !(member.EnclosingClass is TraitDecl)) {
+          // instance const in a newtype
+          lvalue = SimpleLvalue(w => {
+            w.Write("{0}.{1}(", TypeName_Companion(objType, w, member.tok, member), IdName(member));
+            obj(w);
+            w.Write(")");
+          });
+        } else if (internalAccess && (member is ConstantField || member.EnclosingClass is TraitDecl)) {
+          lvalue = SuffixLvalue(obj, $"._{member.CompileName}");
+        } else if (internalAccess) {
+          lvalue = SuffixLvalue(obj, $".{IdName(member)}");
+        } else if (member is ConstantField) {
+          lvalue = SuffixLvalue(obj, $".{IdName(member)}()");
+        } else if (member.EnclosingClass is TraitDecl) {
+          lvalue = GetterSetterLvalue(obj, IdName(member), $"{IdName(member)}_set_");
+        } else {
+          lvalue = SuffixLvalue(obj, $".{IdName(member)}");
+        }
         return CoercedLvalue(lvalue, field.Type, expectedType);
       }
     }
