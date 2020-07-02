@@ -1831,9 +1831,19 @@ namespace Microsoft.Dafny {
     }
 
     protected override void EmitPrintStmt(TargetWriter wr, Expression arg) {
-      wr.Write("_dafny.Print(");
-      TrExpr(arg, wr, false);
-      wr.WriteLine(")");
+      bool isString = arg.Type.AsSeqType != null &&
+                      arg.Type.AsSeqType.Arg.IsCharType;
+      if (!isString || 
+          (arg.Resolved is MemberSelectExpr mse &&
+            mse.Member.IsExtern(out _, out _))) {
+        wr.Write("_dafny.Print(");
+        TrExpr(arg, wr, false);
+        wr.WriteLine(")"); 
+      } else {
+        wr.Write("_dafny.Print((");
+        TrExpr(arg, wr, false);
+        wr.WriteLine(").SetString())");
+      }
     }
 
     protected override void EmitReturn(List<Formal> outParams, TargetWriter wr) {

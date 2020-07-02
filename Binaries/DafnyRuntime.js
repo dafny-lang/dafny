@@ -527,6 +527,9 @@ let _dafny = (function() {
         return r;
       }
     }
+    static JoinIfPossible(x) {
+      try { return x.join(""); } catch(_error) { return x; }
+    }
     static IsPrefixOf(a, b) {
       if (b.length < a.length) {
         return false;
