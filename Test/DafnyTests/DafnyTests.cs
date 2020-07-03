@@ -4,6 +4,10 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Text;
+using DiffPlex;
+using DiffPlex.DiffBuilder;
+using DiffPlex.DiffBuilder.Model;
 using Xunit;
 using Xunit.Sdk;
 using YamlDotNet.RepresentationModel;
@@ -67,21 +71,6 @@ namespace DafnyTests {
                 }
 
                 return output + error;
-            }
-        }
-
-        private static string Exec(string file, params string[] arguments) {
-            using (Process dafnyProcess = new Process()) {
-                dafnyProcess.StartInfo.FileName = file;
-                dafnyProcess.StartInfo.Arguments = String.Join(" ", arguments);
-                dafnyProcess.StartInfo.UseShellExecute = false;
-                dafnyProcess.StartInfo.RedirectStandardOutput = true;
-                dafnyProcess.StartInfo.RedirectStandardError = true;
-                dafnyProcess.StartInfo.CreateNoWindow = true;
-
-                dafnyProcess.Start();
-                dafnyProcess.WaitForExit();
-                return dafnyProcess.StandardOutput.ReadToEnd();
             }
         }
 
@@ -206,16 +195,28 @@ namespace DafnyTests {
 
         private static void AssertEqualWithDiff(string expected, string actual) {
             if (expected != actual) {
-                // TODO-RS: Do better than shelling out to a linux utility.
-                // Disappointingly, I couldn't find any easy solutions for an in-memory
-                // unified diff calculation.
-                string expectedPath = Path.GetTempFileName();
-                File.WriteAllText(expectedPath, expected);
-                string actualPath = Path.GetTempFileName();
-                File.WriteAllText(actualPath, actual);
-                string diff = Exec("diff", "--unified=3", expectedPath, actualPath);
-                string message = "AssertEqualWithDiff() Failure\n" + diff;
-                throw new AssertActualExpectedException(expected, actual, message);
+                var diffBuilder = new InlineDiffBuilder(new Differ());
+                var diff = diffBuilder.BuildDiffModel(expected, actual);
+
+                var message = new StringBuilder();
+                message.AppendLine("AssertEqualWithDiff() Failure");
+                message.AppendLine("Diff (changing expected into actual):");
+                foreach (var line in diff.Lines) {
+                    switch (line.Type) {
+                        case ChangeType.Inserted:
+                            message.Append("+");
+                            break;
+                        case ChangeType.Deleted:
+                            message.Append("-");
+                            break;
+                        default:
+                            message.Append(" ");
+                            break;
+                    }
+                    message.AppendLine(line.Text);
+                }
+                
+                throw new AssertActualExpectedException(expected, actual, message.ToString());
             }
         }
 

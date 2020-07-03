@@ -34,6 +34,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
+    <PackageReference Include="DiffPlex" Version="1.6.3" />
     <PackageReference Include="xunit" Version="2.4.1" />
     <PackageReference Include="xunit.runner.msbuild" Version="2.4.1" />
     <PackageReference Include="Xunit.SkippableFact" Version="1.4.8" />
