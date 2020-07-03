@@ -1056,7 +1056,7 @@ namespace Microsoft.Dafny {
       public BlockTargetWriter/*?*/ CreateFunction(string name, List<TypeParameter> typeArgs, List<Formal> formals, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl member, bool forBodyInheritance) {
         return Compiler.CreateFunction(name, typeArgs, formals, resultType, tok, isStatic, createBody, member, ClassName, AbstractMethodWriter, ConcreteMethodWriter, forBodyInheritance);
       }
-      public BlockTargetWriter/*?*/ CreateGetter(string name, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl/*?*/ member, bool forBodyInheritance) {
+      public BlockTargetWriter/*?*/ CreateGetter(string name, TopLevelDecl enclosingDecl, Type resultType, Bpl.IToken tok, bool isStatic, bool isConst, bool createBody, MemberDecl/*?*/ member, bool forBodyInheritance) {
         return Compiler.CreateGetter(name, resultType, tok, isStatic, createBody, member, ClassName, AbstractMethodWriter, ConcreteMethodWriter, forBodyInheritance);
       }
       public BlockTargetWriter/*?*/ CreateGetterSetter(string name, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl/*?*/ member, out TargetWriter setterWriter, bool forBodyInheritance) {

@@ -287,7 +287,7 @@ namespace Microsoft.Dafny
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(builtIns != null);
-      Contract.Invariant(cce.NonNullElements(dependencies));
+      Contract.Invariant(cce.NonNullElements(dependencies.GetVertices()));
       Contract.Invariant(cce.NonNullDictionaryAndValues(classMembers) && Contract.ForAll(classMembers.Values, v => cce.NonNullDictionaryAndValues(v)));
       Contract.Invariant(cce.NonNullDictionaryAndValues(datatypeCtors) && Contract.ForAll(datatypeCtors.Values, v => cce.NonNullDictionaryAndValues(v)));
       Contract.Invariant(!inBodyInitContext || currentMethod is Constructor);
@@ -2264,21 +2264,21 @@ namespace Microsoft.Dafny
     }
 
     public static readonly List<NativeType> NativeTypes = new List<NativeType>() {
-      new NativeType("byte", 0, 0x100, 8, NativeType.Selection.Byte, DafnyOptions.CompilationTarget.Csharp | DafnyOptions.CompilationTarget.Go | DafnyOptions.CompilationTarget.Java),
-      new NativeType("sbyte", -0x80, 0x80, 0, NativeType.Selection.SByte, DafnyOptions.CompilationTarget.Csharp | DafnyOptions.CompilationTarget.Go | DafnyOptions.CompilationTarget.Java),
-      new NativeType("ushort", 0, 0x1_0000, 16, NativeType.Selection.UShort, DafnyOptions.CompilationTarget.Csharp | DafnyOptions.CompilationTarget.Go | DafnyOptions.CompilationTarget.Java),
-      new NativeType("short", -0x8000, 0x8000, 0, NativeType.Selection.Short, DafnyOptions.CompilationTarget.Csharp | DafnyOptions.CompilationTarget.Go | DafnyOptions.CompilationTarget.Java),
-      new NativeType("uint", 0, 0x1_0000_0000, 32, NativeType.Selection.UInt, DafnyOptions.CompilationTarget.Csharp | DafnyOptions.CompilationTarget.Go | DafnyOptions.CompilationTarget.Java),
-      new NativeType("int", -0x8000_0000, 0x8000_0000, 0, NativeType.Selection.Int, DafnyOptions.CompilationTarget.Csharp | DafnyOptions.CompilationTarget.Go | DafnyOptions.CompilationTarget.Java),
+      new NativeType("byte", 0, 0x100, 8,NativeType.Selection.Byte, DafnyOptions.CompilationTarget.Csharp | DafnyOptions.CompilationTarget.Go | DafnyOptions.CompilationTarget.Java | DafnyOptions.CompilationTarget.Cpp),
+      new NativeType("sbyte", -0x80, 0x80, 0, NativeType.Selection.SByte, DafnyOptions.CompilationTarget.Csharp | DafnyOptions.CompilationTarget.Go | DafnyOptions.CompilationTarget.Java | DafnyOptions.CompilationTarget.Cpp),
+      new NativeType("ushort", 0, 0x1_0000, 16, NativeType.Selection.UShort, DafnyOptions.CompilationTarget.Csharp | DafnyOptions.CompilationTarget.Go | DafnyOptions.CompilationTarget.Java | DafnyOptions.CompilationTarget.Cpp),
+      new NativeType("short", -0x8000, 0x8000, 0, NativeType.Selection.Short, DafnyOptions.CompilationTarget.Csharp | DafnyOptions.CompilationTarget.Go | DafnyOptions.CompilationTarget.Java | DafnyOptions.CompilationTarget.Cpp),
+      new NativeType("uint", 0, 0x1_0000_0000, 32, NativeType.Selection.UInt, DafnyOptions.CompilationTarget.Csharp | DafnyOptions.CompilationTarget.Go | DafnyOptions.CompilationTarget.Java | DafnyOptions.CompilationTarget.Cpp),
+      new NativeType("int", -0x8000_0000, 0x8000_0000, 0, NativeType.Selection.Int, DafnyOptions.CompilationTarget.Csharp | DafnyOptions.CompilationTarget.Go | DafnyOptions.CompilationTarget.Java | DafnyOptions.CompilationTarget.Cpp),
       new NativeType("number", -0x1f_ffff_ffff_ffff, 0x20_0000_0000_0000, 0, NativeType.Selection.Number, DafnyOptions.CompilationTarget.JavaScript),  // JavaScript integers
-      new NativeType("ulong", 0, new BigInteger(0x1_0000_0000) * new BigInteger(0x1_0000_0000), 64, NativeType.Selection.ULong, DafnyOptions.CompilationTarget.Csharp | DafnyOptions.CompilationTarget.Go | DafnyOptions.CompilationTarget.Java),
-      new NativeType("long", Int64.MinValue, 0x8000_0000_0000_0000, 0, NativeType.Selection.Long, DafnyOptions.CompilationTarget.Csharp | DafnyOptions.CompilationTarget.Go | DafnyOptions.CompilationTarget.Java),
+      new NativeType("ulong", 0, new BigInteger(0x1_0000_0000) * new BigInteger(0x1_0000_0000), 64, NativeType.Selection.ULong, DafnyOptions.CompilationTarget.Csharp | DafnyOptions.CompilationTarget.Go | DafnyOptions.CompilationTarget.Java | DafnyOptions.CompilationTarget.Cpp),
+      new NativeType("long", Int64.MinValue, 0x8000_0000_0000_0000, 0, NativeType.Selection.Long, DafnyOptions.CompilationTarget.Csharp | DafnyOptions.CompilationTarget.Go | DafnyOptions.CompilationTarget.Java | DafnyOptions.CompilationTarget.Cpp),
     };
 
     public void ResolveTopLevelDecls_Core(List<TopLevelDecl/*!*/>/*!*/ declarations, Graph<IndDatatypeDecl/*!*/>/*!*/ datatypeDependencies, Graph<CoDatatypeDecl/*!*/>/*!*/ codatatypeDependencies) {
       Contract.Requires(declarations != null);
-      Contract.Requires(cce.NonNullElements(datatypeDependencies));
-      Contract.Requires(cce.NonNullElements(codatatypeDependencies));
+      Contract.Requires(cce.NonNullElements(datatypeDependencies.GetVertices()));
+      Contract.Requires(cce.NonNullElements(codatatypeDependencies.GetVertices()));
       Contract.Requires(AllTypeConstraints.Count == 0);
 
       Contract.Ensures(AllTypeConstraints.Count == 0);
