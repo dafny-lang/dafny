@@ -1,8 +1,8 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DafnyRuntime-NetCore", "Source\DafnyRuntime\DafnyRuntime-NetCore.csproj", "{F6DFCDF8-91AA-4222-A323-EBA22827793D}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DafnyRuntime-NetCore", "DafnyRuntime\DafnyRuntime-NetCore.csproj", "{F6DFCDF8-91AA-4222-A323-EBA22827793D}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DafnyTests-NetCore", "Test\DafnyTests\DafnyTests-NetCore.csproj", "{9B0FD2BD-78C6-4D85-BCE3-557E85BC33C1}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DafnyTests-NetCore", "DafnyTests\DafnyTests-NetCore.csproj", "{9B0FD2BD-78C6-4D85-BCE3-557E85BC33C1}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
