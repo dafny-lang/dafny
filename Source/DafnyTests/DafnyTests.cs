@@ -10,6 +10,7 @@ using DiffPlex.DiffBuilder;
 using DiffPlex.DiffBuilder.Model;
 using Xunit;
 using Xunit.Sdk;
+using XUnitExtensions;
 using YamlDotNet.RepresentationModel;
 using YamlDotNet.Serialization;
 
@@ -91,43 +92,6 @@ namespace DafnyTests {
 
             return null;
         }
-
-        private static IEnumerable<YamlNode> Expand(YamlNode node) {
-            if (node is YamlSequenceNode seqNode) {
-                return seqNode.SelectMany(child => Expand(child));
-            } else if (node is YamlMappingNode mappingNode) {
-                return CartesianProduct(mappingNode.Select(ExpandValue)).Select(FromPairs);
-            } else {
-                return new[] {node};
-            }
-        }
-
-        private static IEnumerable<KeyValuePair<YamlNode, YamlNode>> ExpandValue(KeyValuePair<YamlNode, YamlNode> pair) {
-            return Expand(pair.Value).Select(v => new KeyValuePair<YamlNode, YamlNode>(pair.Key, v));
-        }
-
-        private static YamlMappingNode FromPairs(IEnumerable<KeyValuePair<YamlNode, YamlNode>> pairs) {
-            var result = new YamlMappingNode();
-            foreach (var pair in pairs) {
-                result.Add(pair.Key, pair.Value);
-            }
-
-            return result;
-        }
-
-        /**
-         * Source: https://docs.microsoft.com/en-us/archive/blogs/ericlippert/computing-a-cartesian-product-with-linq
-         */
-        private static IEnumerable<IEnumerable<T>> CartesianProduct<T>(IEnumerable<IEnumerable<T>> sequences) {
-            IEnumerable<IEnumerable<T>> emptyProduct = new[] {Enumerable.Empty<T>()};
-            return sequences.Aggregate(
-                emptyProduct,
-                (accumulator, sequence) =>
-                    from accseq in accumulator
-                    from item in sequence
-                    select accseq.Concat(new[] {item}));
-        }
-
         public static IEnumerable<object[]> AllTestFiles() {
             var filePaths = Directory.GetFiles(COMP_DIR, "*.dfy", SearchOption.AllDirectories)
                                      .Select(path => GetRelativePath(TEST_ROOT, path));
@@ -142,7 +106,7 @@ namespace DafnyTests {
                 var yamlStream = new YamlStream();
                 yamlStream.Load(new StringReader(configString));
                 var config = yamlStream.Documents[0].RootNode;
-                configs = Expand(config);
+                configs = YamlUtils.Expand(config);
             } else {
                 configs = new[] {new YamlMappingNode()};
             }
@@ -166,7 +130,7 @@ namespace DafnyTests {
             }
 
             if (mapping["compile"].Equals(new YamlScalarNode("3")) && !mapping.Children.ContainsKey("compileTarget")) {
-                var languages = new string[] {"cs", "java", "go", "js"};
+                var languages = new[] {"cs", "java", "go", "js"};
                 foreach (var language in languages) {
                     var withLanguage = new YamlMappingNode(mapping.Children);
                     withLanguage.Add("compileTarget", language);
@@ -191,33 +155,6 @@ namespace DafnyTests {
             var fullPath = Path.GetFullPath(path);
             Assert.StartsWith(fullRelativeTo, fullPath);
             return fullPath.Substring(fullRelativeTo.Length);
-        }
-
-        private static void AssertEqualWithDiff(string expected, string actual) {
-            if (expected != actual) {
-                var diffBuilder = new InlineDiffBuilder(new Differ());
-                var diff = diffBuilder.BuildDiffModel(expected, actual);
-
-                var message = new StringBuilder();
-                message.AppendLine("AssertEqualWithDiff() Failure");
-                message.AppendLine("Diff (changing expected into actual):");
-                foreach (var line in diff.Lines) {
-                    switch (line.Type) {
-                        case ChangeType.Inserted:
-                            message.Append("+");
-                            break;
-                        case ChangeType.Deleted:
-                            message.Append("-");
-                            break;
-                        default:
-                            message.Append(" ");
-                            break;
-                    }
-                    message.AppendLine(line.Text);
-                }
-                
-                throw new AssertActualExpectedException(expected, actual, message.ToString());
-            }
         }
 
         [ParallelTheory]
@@ -263,28 +200,8 @@ namespace DafnyTests {
                 }
             }
 
-            AssertEqualWithDiff(expectedOutput, output);
+            AssertWithDiff.Equal(expectedOutput, output);
             Skip.If(specialCase, "Confirmed known exception for arguments: " + args);
-        }
-
-        [Theory]
-        [InlineData("multiple.yml", "multiple.expect.yml")]
-        public void ExpandTest(string inputPath, string expectedOutputPath) {
-            string fullInputPath = Path.Combine(TEST_ROOT, "DafnyTests/YamlTests/" + inputPath);
-            string fullExpectedOutputPath = Path.Combine(TEST_ROOT, "DafnyTests/YamlTests/" + expectedOutputPath);
-
-            using (var reader = File.OpenText(fullInputPath)) {
-                var yamlStream = new YamlStream();
-                yamlStream.Load(reader);
-                var root = yamlStream.Documents[0].RootNode;
-                var expanded = Expand(root);
-
-                var outputWriter = new StringWriter();
-                var serializer = new SerializerBuilder().Build();
-                serializer.Serialize(outputWriter, expanded);
-                string expectedOutput = File.ReadAllText(fullExpectedOutputPath);
-                Assert.Equal(expectedOutput, outputWriter.ToString());
-            }
         }
     }
 }

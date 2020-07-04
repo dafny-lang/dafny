@@ -39,7 +39,7 @@
     <PackageReference Include="xunit.runner.msbuild" Version="2.4.1" />
     <PackageReference Include="Xunit.SkippableFact" Version="1.4.8" />
     <PackageReference Include="YamlDotNet" Version="8.1.2" />
-    <ProjectReference Include="../../Source/DafnyDriver/DafnyDriver.csproj">
+    <ProjectReference Include="../DafnyDriver/DafnyDriver.csproj">
       <PrivateAssets>true</PrivateAssets>
     </ProjectReference>
   </ItemGroup>
@@ -48,8 +48,11 @@
     <Compile Include="XUnitExtensions/*.cs" />
   </ItemGroup>
   <ItemGroup>
-    <Content Include="../**/*.*" Exclude="../DafnyTests/**/*.*" CopyToOutputDirectory="PreserveNewest">
+    <Content Include="../../Test/**/*.*" Exclude="../../Test/Output/**/*.*" CopyToOutputDirectory="PreserveNewest">
       <Link>Test\%(RecursiveDir)%(Filename)%(Extension)</Link>
+    </Content>
+    <Content Include="YamlTests/*.yml" CopyToOutputDirectory="PreserveNewest">
+      <Link>YamlTests\%(RecursiveDir)%(Filename)%(Extension)</Link>
     </Content>
     <None Include="../../Binaries/z3/**/*.*" CopyToOutputDirectory="PreserveNewest">
       <Link>z3\%(RecursiveDir)%(Filename)%(Extension)</Link>
