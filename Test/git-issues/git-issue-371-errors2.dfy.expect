@@ -1,0 +1,5 @@
+git-issue-371-errors2.dfy(22,15): Error: module MA does not exist (position 0 in path MA.Inner)
+git-issue-371-errors2.dfy(23,9): Error: module MA does not exist (position 0 in path MA.Inner)
+git-issue-371-errors2.dfy(28,17): Error: module K does not exist (position 1 in path MB.K)
+git-issue-371-errors2.dfy(29,12): Error: module K does not exist (position 1 in path MB.K)
+4 resolution/type errors detected in git-issue-371-errors2.dfy

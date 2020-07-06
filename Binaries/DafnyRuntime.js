@@ -984,7 +984,7 @@ let _dafny = (function() {
       f()
     } catch (e) {
       if (e instanceof _dafny.HaltException) {
-        process.stdout.write("Program halted: " + e.message + "\n")
+        process.stdout.write("[Program halted] " + e.message + "\n")
       } else {
         throw e
       }
