@@ -92,6 +92,8 @@ method Main()
 
   NonCapturingFunctionCoercions.Test();
   TailRecursion.Test();
+
+  ObjectEquality.Test();
 }
 
 module OtherModule {
@@ -413,7 +415,7 @@ module TraitsExtendingTraits {
       reads this
   }
   trait B {
-    var bb: bool
+    var b: bool
     method Quantity() returns (x: int)
     method Twice() returns (x: int)
   }
@@ -421,7 +423,7 @@ module TraitsExtendingTraits {
   }
 
   trait K<Y> extends A<Y, Odd> {
-    const kk := y1
+    const k := y1
     function method GetY'(): Y
       reads this
     {
@@ -451,24 +453,24 @@ module TraitsExtendingTraits {
 
   method Test() {
     var g := new G<real>(5.2);
-    print g.y0, " ", g.y1, " ", g.bb, "\n";  // 5.2 9 false
+    print g.y0, " ", g.y1, " ", g.b, "\n";  // 5.2 9 false
 
     var m: M := g;
     var n: N := g;
     var bg: B := g;
     var a: A := g;
-    g.bb := true;
-    assert g.bb && m.bb && n.bb && bg.bb;
-    print g.bb, " ", m.bb, " ", n.bb, " ", bg.bb, "\n";  // true true true true
-    m.bb := false;
-    assert !g.bb && !m.bb && !n.bb && !bg.bb;
-    print g.bb, " ", m.bb, " ", n.bb, " ", bg.bb, "\n";  // false false false false
-    n.bb := true;
-    assert g.bb && m.bb && n.bb && bg.bb;
-    print g.bb, " ", m.bb, " ", n.bb, " ", bg.bb, "\n";  // true true true true
-    bg.bb := false;
-    assert !g.bb && !m.bb && !n.bb && !bg.bb;
-    print g.bb, " ", m.bb, " ", n.bb, " ", bg.bb, "\n";  // false false false false
+    g.b := true;
+    assert g.b && m.b && n.b && bg.b;
+    print g.b, " ", m.b, " ", n.b, " ", bg.b, "\n";  // true true true true
+    m.b := false;
+    assert !g.b && !m.b && !n.b && !bg.b;
+    print g.b, " ", m.b, " ", n.b, " ", bg.b, "\n";  // false false false false
+    n.b := true;
+    assert g.b && m.b && n.b && bg.b;
+    print g.b, " ", m.b, " ", n.b, " ", bg.b, "\n";  // true true true true
+    bg.b := false;
+    assert !g.b && !m.b && !n.b && !bg.b;
+    print g.b, " ", m.b, " ", n.b, " ", bg.b, "\n";  // false false false false
 
     print g.GetY(), " ", g.GetY'(), "\n"; // 5.2 5.2
     g.SetY(1.2);
@@ -738,5 +740,61 @@ module TailRecursion {
     var y := c.Compute(15, 1_000_000);
     var z := c.Compute(15, 999_999);
     print x, " ", y, " ", z, "\n";  // 41 15 26
+  }
+}
+
+module ObjectEquality {
+  method Test() {
+    TestReferenceEquality();
+    NotTheSame();
+    TestSequences();
+  }
+
+  trait A { }
+
+  trait B extends A { }
+
+  class C extends B { }
+  class D extends B { }
+
+  method TestReferenceEquality() {
+    var c: C := new C;
+    var b: B := c;
+    var a0: A := c;
+    var a1: A := c;
+
+    print a0 == a1, " ", Eq(a0, a1), "\n";
+    print a0 == c, " ", Eq(a0, c), "\n";
+    print b == c, " ", Eq(b, c), "\n";
+    print b == a0, " ", Eq(b, a0), "\n";
+  }
+
+  predicate method Eq<U(==)>(u: U, v: U) {
+    u == v
+  }
+
+  method NotTheSame() {
+    var c: C, d: D := new C, new D;
+    var oc: object, od: object := c, d;
+
+    print oc != od, " ", !Eq(oc, od), " ", !Eq(c, d), "\n";
+
+    var ac: A, ad: A := c, d;
+    print ac != ad, " ", !Eq(ac, ad), " ", !Eq(ac, ad), "\n";
+  }
+
+  method TestSequences() {
+    /** TODO: Include this when all compilers support seq<TRAIT>
+    var c: C := new C;
+    var b: B := c;
+    var a: A := c;
+
+    var s: seq<A> := [a];
+    var t: seq<B> := [b];
+    var u: seq<C> := [c];
+
+    print s == t, " ", t == u, " ", u == s, "\n";
+    print s[0] == t[0], " ", t[0] == u[0], " ", u[0] == s[0], "\n";
+    **/
   }
 }
