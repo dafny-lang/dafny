@@ -106,6 +106,7 @@ namespace Microsoft.Dafny {
     }
     protected virtual bool IncludeExternMembers { get => false; }
     protected virtual bool SupportsStaticsInGenericClasses => true;
+    protected virtual bool TraitRepeatsInheritedDeclarations => false;
     protected IClassWriter CreateClass(string moduleName, string name, TopLevelDecl/*?*/ cls, TargetWriter wr) {
       return CreateClass(moduleName, name, false, null, cls?.TypeArgs, cls, null, null, wr);
     }
@@ -1130,29 +1131,22 @@ namespace Microsoft.Dafny {
         CheckHandleWellformed((ClassDecl)c, errorWr);
       }
 
-      List<MemberDecl> inheritedMembers;
-      Dictionary<TypeParameter, Type> typeMap;
-      if (c is TopLevelDeclWithMembers cl && !(c is TraitDecl)) {
-        inheritedMembers = cl.InheritedMembers;
-        typeMap = cl.ParentFormalTypeParametersToActuals;
-      } else {
-        inheritedMembers = new List<MemberDecl>();
-        typeMap = null; // not used when there are no inherited members
-      }
-
+      var inheritedMembers = c.InheritedMembers;
       CheckForCapitalizationConflicts(c.Members, inheritedMembers);
       OrderedBySCC(inheritedMembers, c);
       OrderedBySCC(c.Members, c);
 
-      if (!(c is TraitDecl)) {
+      if (!(c is TraitDecl) || TraitRepeatsInheritedDeclarations) {
         thisContext = c;
         foreach (var member in inheritedMembers) {
           Contract.Assert(!member.IsStatic);  // only instance members should ever be added to .InheritedMembers
           if (member.IsGhost) {
             // skip
+          } else if (c is TraitDecl) {
+            RedeclareInheritedMember(member, classWriter);
           } else if (member is ConstantField) {
             var cf = (ConstantField)member;
-            var cfType = Resolver.SubstType(cf.Type, typeMap);
+            var cfType = Resolver.SubstType(cf.Type, c.ParentFormalTypeParametersToActuals);
             if (cf.Rhs == null) {
               Contract.Assert(!cf.IsStatic); // as checked above, only instance members can be inherited
               classWriter.DeclareField("_" + cf.CompileName, c, false, false, cfType, cf.tok, DefaultValue(cfType, errorWr, cf.tok, true), cf);
@@ -1169,7 +1163,7 @@ namespace Microsoft.Dafny {
               EmitCallToInheritedConstRHS(cf, w);
             }
           } else if (member is Field f) {
-            var fType = Resolver.SubstType(f.Type, typeMap);
+            var fType = Resolver.SubstType(f.Type, c.ParentFormalTypeParametersToActuals);
             // every field is inherited
             classWriter.DeclareField("_" + f.CompileName, c, false, false, fType, f.tok, DefaultValue(fType, errorWr, f.tok, true), f);
             TargetWriter wSet;
@@ -1209,7 +1203,11 @@ namespace Microsoft.Dafny {
           thisContext = c;
         }
         if (c is TraitDecl && member.OverriddenMember != null && !member.IsOverrideThatAddsBody) {
-          // emit nothing in the trait; this member will be emitted in the classes that extend this trait
+          if (TraitRepeatsInheritedDeclarations) {
+            RedeclareInheritedMember(member, classWriter);
+          } else {
+            // emit nothing in the trait; this member will be emitted in the classes that extend this trait
+          }
         } else if (member is Field) {
           var f = (Field)member;
           if (f.IsGhost) {
@@ -1305,6 +1303,8 @@ namespace Microsoft.Dafny {
             if (f.OverriddenMember == null) {
               var w = classWriter.CreateFunction(IdName(f), f.TypeArgs, f.Formals, f.ResultType, f.tok, false, false, f);
               Contract.Assert(w == null); // since we requested no body
+            } else if (TraitRepeatsInheritedDeclarations) {
+              RedeclareInheritedMember(f, classWriter);
             }
             if (f.Body != null) {
               CompileFunction(f, classWriter);
@@ -1330,6 +1330,8 @@ namespace Microsoft.Dafny {
             if (m.OverriddenMember == null) {
               var w = classWriter.CreateMethod(m, m.TypeArgs, false, false);
               Contract.Assert(w == null);  // since we requested no body
+            } else if (TraitRepeatsInheritedDeclarations) {
+              RedeclareInheritedMember(m, classWriter);
             }
             if (m.Body != null) {
               CompileMethod(m, classWriter, null);
@@ -1343,6 +1345,30 @@ namespace Microsoft.Dafny {
         }
 
         thisContext = null;
+      }
+    }
+
+    private void RedeclareInheritedMember(MemberDecl member, IClassWriter classWriter) {
+      Contract.Requires(member != null);
+      Contract.Requires(classWriter != null);
+
+      if (member is ConstantField cf) {
+        var wBody = classWriter.CreateGetter(IdName(cf), cf.Type, cf.tok, false, false, cf, false);
+        Contract.Assert(wBody == null); // since the previous line said not to create a body
+      } else if (member is Field field) {
+        TargetWriter wSet;
+        var wGet = classWriter.CreateGetterSetter(IdName(field), field.Type, field.tok, false, false, member, out wSet, false);
+        Contract.Assert(wGet == null && wSet == null); // since the previous line said not to create a body
+      } else if (member is Function) {
+        var fn = ((Function)member).Original;
+        var wBody = classWriter.CreateFunction(IdName(fn), fn.TypeArgs, fn.Formals, fn.ResultType, fn.tok, fn.IsStatic, false, fn, false);
+        Contract.Assert(wBody == null); // since the previous line said not to create a body
+      } else if (member is Method) {
+        var method = ((Method)member).Original;
+        var wBody = classWriter.CreateMethod(method, method.TypeArgs, false, false);
+        Contract.Assert(wBody == null); // since the previous line said not to create a body
+      } else {
+        Contract.Assert(false); // unexpected member
       }
     }
 
