@@ -1,3 +1,9 @@
+
+Dafny program verifier finished with 10 verified, 0 errors
+/Users/parno/git/dafny-sec/Test/c++/datatypes.cpp:339:16: warning: unused variable '_131_hd' [-Wunused-variable]
+        uint32 _131_hd = _128___mcc_h0;
+               ^
+1 warning generated.
 Case A: 42
 Case B: 1
 This is expected
