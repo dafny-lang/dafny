@@ -542,7 +542,9 @@ namespace Microsoft.Dafny
           Contract.Assert(false);
           throw new cce.UnreachableException();
       }
-      string targetBaseName = Path.ChangeExtension(dafnyProgramName, targetExtension);
+
+      // Note that using Path.ChangeExtension here does the wrong thing when dafnyProgramName has multiple periods (e.g., a.b.dfy)
+      string targetBaseName = baseName + "." + targetExtension;
       string targetDir = Path.Combine(Path.GetDirectoryName(dafnyProgramName), targetBaseDir);
       // WARNING: Make sure that Directory.Delete is only called when the compilation target is Java.
       // If called during C# or JS compilation, you will lose your entire target directory.
