@@ -1353,7 +1353,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(classWriter != null);
 
       if (member is ConstantField cf) {
-        var wBody = classWriter.CreateGetter(IdName(cf), cf.Type, cf.tok, false, false, cf, false);
+        var wBody = classWriter.CreateGetter(IdName(cf), member.EnclosingClass, cf.Type, cf.tok, false, true, false, cf, false);
         Contract.Assert(wBody == null); // since the previous line said not to create a body
       } else if (member is Field field) {
         TargetWriter wSet;
