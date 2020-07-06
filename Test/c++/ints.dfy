@@ -1,3 +1,6 @@
+// RUN: %dafny /compile:3 /spillTargetCode:2 /compileTarget:cpp "%s" > "%t"
+// RUN: %diff "%s.expect" "%t"
+
 newtype sbyte = i:int | -0x80 <= i < 0x80
 newtype byte = i:int | 0 <= i < 0x100
 newtype int16 = i:int | -0x8000 <= i < 0x8000

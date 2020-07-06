@@ -1,3 +1,5 @@
+// RUN: %dafny /compile:3 /spillTargetCode:2 /compileTarget:cpp "%s" > "%t"
+// RUN: %diff "%s.expect" "%t"
 
 module {:extern "Extern"} Extern {
   newtype uint64 = i:int | 0 <= i < 0x10000000000000000

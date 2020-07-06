@@ -1,3 +1,5 @@
+// RUN: %dafny /compile:3 /spillTargetCode:2 /compileTarget:cpp "%s" > "%t"
+// RUN: %diff "%s.expect" "%t"
 
 class Test<T> {
   var t:T;
