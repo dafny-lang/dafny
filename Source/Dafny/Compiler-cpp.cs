@@ -2323,16 +2323,62 @@ namespace Microsoft.Dafny {
     }
 
     // ----- Target compilation and execution -------------------------------------------------------------
+    private string ComputeExeName(string targetFilename) {
+      return Path.GetFileNameWithoutExtension(targetFilename);
+    }
 
     public override bool CompileTargetProgram(string dafnyProgramName, string targetProgramText, string/*?*/ callToMain, string/*?*/ targetFilename, ReadOnlyCollection<string> otherFileNames,
       bool hasMain, bool runAfterCompile, TextWriter outputWriter, out object compilationResult) {
+      var assemblyLocation = System.Reflection.Assembly.GetExecutingAssembly().Location;
+      Contract.Assert(assemblyLocation != null);
+      var codebase = System.IO.Path.GetDirectoryName(assemblyLocation);
+      Contract.Assert(codebase != null);
+      var exeName = ComputeExeName(targetFilename);
+      var args = $"-g -Wall -Wextra -Wpedantic -std=c++17 -I{codebase} -o {exeName} {targetFilename}";
       compilationResult = null;
-      throw NotSupported("Compilation of C++ files is not yet supported");
+      var psi = new ProcessStartInfo("g++", args) {
+        CreateNoWindow = true,
+        UseShellExecute = false,
+        RedirectStandardOutput = true,
+        RedirectStandardError = true,
+        WorkingDirectory = Path.GetDirectoryName(Path.GetFullPath(targetFilename))
+      };
+      var proc = Process.Start(psi);
+      while (!proc.StandardOutput.EndOfStream) {
+        outputWriter.WriteLine(proc.StandardOutput.ReadLine());
+      }
+      while (!proc.StandardError.EndOfStream) {
+        outputWriter.WriteLine(proc.StandardError.ReadLine());
+      }
+      proc.WaitForExit();
+      if (proc.ExitCode != 0) {
+        throw new Exception($"Error while compiling C++ files. Process exited with exit code {proc.ExitCode}");
+      }
+      return true;
     }
 
     public override bool RunTargetProgram(string dafnyProgramName, string targetProgramText, string/*?*/ callToMain, string targetFilename, ReadOnlyCollection<string> otherFileNames,
       object compilationResult, TextWriter outputWriter) {
-        throw NotSupported("Running C++ programs is not yet supported");
+      var exeName = ComputeExeName(targetFilename);
+      var psi = new ProcessStartInfo(exeName) {
+        CreateNoWindow = true,
+        UseShellExecute = false,
+        RedirectStandardOutput = true,
+        RedirectStandardError = true,
+        WorkingDirectory = Path.GetDirectoryName(Path.GetFullPath(targetFilename))
+      };
+      var proc = Process.Start(psi);
+      while (!proc.StandardOutput.EndOfStream) {
+        outputWriter.WriteLine(proc.StandardOutput.ReadLine());
+      }
+      while (!proc.StandardError.EndOfStream) {
+        outputWriter.WriteLine(proc.StandardError.ReadLine());
+      }
+      proc.WaitForExit();
+      if (proc.ExitCode != 0) {
+        throw new Exception($"Error while running C++ file {targetFilename}. Process exited with exit code {proc.ExitCode}");
+      }
+      return true;
     }
   }
 }
