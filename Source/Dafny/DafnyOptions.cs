@@ -675,7 +675,7 @@ namespace Microsoft.Dafny
                 cpp - Compilation to C++
                 php - Compilation to PHP
 
-                Note that the C++ backend has various limitations (see Test/c++/LIMITATIONS.md).
+                Note that the C++ backend has various limitations (see Docs/Compilation/Cpp.md).
                 This includes lack of support for BigIntegers (aka int), most higher order
                 functions, and advanced features like traits or co-inductive types.
   /compileVerbose:<n>
