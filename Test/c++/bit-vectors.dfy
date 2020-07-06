@@ -1,4 +1,4 @@
-newtype{:nativeType "ulong"} uint64 = i:int | 0 <= i < 0x10000000000000000
+newtype uint64 = i:int | 0 <= i < 0x10000000000000000
 
 function method bit(i: uint64) : bv64
   requires i < 64

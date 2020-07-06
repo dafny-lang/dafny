@@ -1,5 +1,5 @@
-newtype{:nativeType "byte"} uint8 = i:int | 0 <= i < 0x100
-newtype{:nativeType "uint"} uint32 = i:int | 0 <= i < 0x100000000
+newtype uint8 = i:int | 0 <= i < 0x100
+newtype uint32 = i:int | 0 <= i < 0x100000000
 
 class C {
   var x:uint8;
@@ -16,7 +16,7 @@ type buffer<T> = a:array?<T> | a == null || a.Length < 0x100000000
 type buffer_t = buffer<uint8>
 
 method BoundedLength(s:seq<uint8>)
-  requires |s| < 10;
+  requires |s| < 10
 {
   var x := |s| as uint32;
 }
@@ -28,7 +28,7 @@ method BufferTest(b:buffer_t)
 }
 
 method Test(name:string, b:bool) 
-  requires b;
+  requires b
 {
   if b {
     print name, ": This is expected\n";
@@ -70,29 +70,29 @@ method Basic() {
 }
 
 method ValueEquality() {
-    var m0:seq<uint32> := [1, 2, 3];
-    var m1:seq<uint32> := m0[1..];
-    var m2:seq<uint32> := [2, 3];
-    Test("ValueEquality", m1 == m2);
+  var m0:seq<uint32> := [1, 2, 3];
+  var m1:seq<uint32> := m0[1..];
+  var m2:seq<uint32> := [2, 3];
+  Test("ValueEquality", m1 == m2);
 }
 
 method Contains() {
-    var m1:seq<uint32> := [1];
-    var m2:seq<uint32> := [1, 2];
-    var m3:seq<uint32> := [1, 2, 3];
-    var m3identical:seq<uint32> := [1, 2, 3];
-    var mm := [m1, m3, m1];
+  var m1:seq<uint32> := [1];
+  var m2:seq<uint32> := [1, 2];
+  var m3:seq<uint32> := [1, 2, 3];
+  var m3identical:seq<uint32> := [1, 2, 3];
+  var mm := [m1, m3, m1];
 
-    Test("Membership 1", m1 in mm);
-    Test("Membership 2", !(m2 in mm));
-    Test("Membership 3", m3 in mm);
-    Test("Membership 3 value equality", m3identical in mm);
+  Test("Membership 1", m1 in mm);
+  Test("Membership 2", !(m2 in mm));
+  Test("Membership 3", m3 in mm);
+  Test("Membership 3 value equality", m3identical in mm);
 }
 
 method Main() {
-    Basic();
-    ValueEquality();
-    Contains();
-    PrintTest();
-    var c := TestSeqOfClass();
+  Basic();
+  ValueEquality();
+  Contains();
+  PrintTest();
+  var c := TestSeqOfClass();
 }

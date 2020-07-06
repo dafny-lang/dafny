@@ -1,4 +1,4 @@
-newtype{:nativeType "uint"} uint32 = i:int | 0 <= i < 0x100000000
+newtype uint32 = i:int | 0 <= i < 0x100000000
 
 class MyClass {
   var a: uint32
@@ -10,10 +10,10 @@ class MyClass {
   var ar: array<uint32>
 
   constructor (x: uint32) 
-    requires x < 100;
-    ensures this.a < 300;
-    ensures this.b < 300;
-    ensures fresh(this.ar);
+    requires x < 100
+    ensures this.a < 300
+    ensures this.b < 300
+    ensures fresh(this.ar)
   {
     a := 100 + x;
     b := 200 + x;
@@ -26,8 +26,8 @@ class MyClass {
   static method N() returns (r: uint32) { return 70; }
 
   method stuffWithAr()
-  modifies this
-  modifies this.ar
+    modifies this
+    modifies this.ar
   {
     print "stuffWithAr\n";
     this.ar := new uint32[5];
@@ -38,7 +38,7 @@ class MyClass {
 }
 
 method CallEm(c: MyClass, t: MyClass, i: MyClass)
-  requires c.a as int + t.a as int + i.a as int < 1000;
+  requires c.a as int + t.a as int + i.a as int < 1000
   ensures c.ar == old(c.ar)
   modifies c, t, i
 {
@@ -140,10 +140,10 @@ method TestEquality() {
   a.y := 15;
 
   if a == a {
-      print "EqualityReflexive: This is expected\n";
+    print "EqualityReflexive: This is expected\n";
   } else {
-      print "EqualityReflexive: This is unexpected\n";
-      assert false;
+    print "EqualityReflexive: This is unexpected\n";
+    assert false;
   }
 
   var b := new AClass();
@@ -151,10 +151,10 @@ method TestEquality() {
   b.y := 2;
 
   if a == b {
-      print "ClassAndPtrDiffer: This is unexpected\n";
-      assert false;
+    print "ClassAndPtrDiffer: This is unexpected\n";
+    assert false;
   } else {
-      print "ClassAndPtrDiffer: This is expected\n";
+    print "ClassAndPtrDiffer: This is expected\n";
   }
 
   var c := new AClass();
@@ -163,10 +163,10 @@ method TestEquality() {
 
 
   if a == c {
-      print "DeepEquality: This is unexpected\n";
-      assert false;
+    print "DeepEquality: This is unexpected\n";
+    assert false;
   } else {
-      print "DeepEquality: This is expected\n";
+    print "DeepEquality: This is expected\n";
   }
 }
 

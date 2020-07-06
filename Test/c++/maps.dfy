@@ -1,7 +1,7 @@
-newtype{:uint32iveType "uint"} uint32 = i:int | 0 <= i < 0x100000000
+newtype uint32 = i:int | 0 <= i < 0x100000000
 
 method Test(name:string, b:bool) 
-  requires b;
+  requires b
 {
   if b {
     print name, ": This is expected\n";
@@ -41,5 +41,5 @@ method Basic() {
 
 
 method Main() {
-    Basic();
+  Basic();
 }

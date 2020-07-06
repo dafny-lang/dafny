@@ -1,4 +1,4 @@
-newtype{:nativeType "uint"} uint32 = i:int | 0 <= i < 0x100000000
+newtype uint32 = i:int | 0 <= i < 0x100000000
 
 method R0(x:bool)
 {

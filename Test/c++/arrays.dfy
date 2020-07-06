@@ -1,14 +1,14 @@
-newtype{:nativeType "uint"} uint32 = i:int | 0 <= i < 0x100000000
+newtype uint32 = i:int | 0 <= i < 0x100000000
 
 method returnANullArray() returns (a: array?<uint32>)
-ensures a == null
+  ensures a == null
 {
   a := null;
 }
 
 method returnANonNullArray() returns (a: array?<uint32>)
-ensures a != null
-ensures a.Length == 5
+  ensures a != null
+  ensures a.Length == 5
 {
   a := new uint32[5];
   a[0] := 1;
@@ -35,7 +35,7 @@ method LinearSearch(a: array<uint32>, len:uint32, key: uint32) returns (n: uint3
 }
 
 method PrintArray<A>(a:array?<A>, len:uint32) 
-  requires a != null ==> len as int == a.Length;
+  requires a != null ==> len as int == a.Length
 {
   if (a == null) {
     print "It's null\n";
