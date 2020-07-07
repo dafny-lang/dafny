@@ -2421,6 +2421,7 @@ namespace Microsoft.Dafny
       // * CS0436 is about types in source files that conflict with imported types (caused by
       //   dynamically-generated types like Tuple0 that aren't part of the runtime, which are
       //   often in pre-compiled Dafny DLLs)
+      // * CS0183 is about unneeded casts
       cp.CompilerOptions = "/debug /nowarn:0164 /nowarn:0219 /nowarn:1717 /nowarn:0162 /nowarn:0168 /nowarn:0436 /nowarn:0183";
       cp.ReferencedAssemblies.Add("System.Numerics.dll");
       cp.ReferencedAssemblies.Add("System.Core.dll");

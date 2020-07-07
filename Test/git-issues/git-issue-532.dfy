@@ -21,7 +21,7 @@ method M(t: Tr)
   modifies t
 {
   print "t.x=", t.x, "  ";
-  var s: set<C> := set c: C | c == t;  // this line crashes for the call M(d)
+  var s: set<C> := set c: C | c == t;  // this line used to crash for the call M(d)
   if s == {} {
     print "The given Tr is not a C\n";
   } else {
