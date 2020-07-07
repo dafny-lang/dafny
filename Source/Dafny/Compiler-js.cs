@@ -73,6 +73,9 @@ namespace Microsoft.Dafny {
         }
         fieldWriter.WriteLine(");");
       }
+      if (fullPrintName != null) {
+        fieldWriter.WriteLine("this._tname = \"{0}\";", fullPrintName);
+      }
       if (typeParameters != null) {
         foreach (var tp in typeParameters) {
           if (tp.Characteristics.MustSupportZeroInitialization) {
