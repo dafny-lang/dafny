@@ -21,6 +21,12 @@ namespace Microsoft.Dafny {
 
     public override string TargetLanguage => "JavaScript";
 
+    protected readonly new string DafnySetClass = "_dafny.Set";
+    protected readonly new string DafnyMultiSetClass = "_dafny.MultiSet";
+    protected readonly new string DafnySeqClass = "_dafny.ISequence";
+    protected readonly new string DafnySeqHelperClass = "_dafny.Sequence";
+    protected readonly new string DafnyMapClass = "_dafny.Map";
+
     protected override void EmitHeader(Program program, TargetWriter wr) {
       wr.WriteLine("// Dafny program {0} compiled into JavaScript", program.Name);
       ReadRuntimeSystem("DafnyRuntime.js", wr);
@@ -783,7 +789,11 @@ namespace Microsoft.Dafny {
       wr.WriteLine("continue TAIL_CALL_START;");
     }
 
-    protected override string TypeName(Type type, TextWriter wr, Bpl.IToken tok, MemberDecl/*?*/ member = null) {
+    protected override string TypeName(Type type, TextWriter wr, Bpl.IToken tok, MemberDecl /*?*/ member = null) {
+      return TypeName(type, wr, tok, false, member);
+    }
+
+    private string TypeName(Type type, TextWriter wr, Bpl.IToken tok, bool erased = false, MemberDecl/*?*/ member = null) {
       Contract.Ensures(Contract.Result<string>() != null);
       Contract.Assume(type != null);  // precondition; this ought to be declared as a Requires in the superclass
 
@@ -839,19 +849,19 @@ namespace Microsoft.Dafny {
         if (ComplicatedTypeParameterForCompilation(argType)) {
           Error(tok, "compilation of set<TRAIT> is not supported; consider introducing a ghost", wr);
         }
-        return DafnySetClass + "<" + TypeName(argType, wr, tok) + ">";
+        return erased ? DafnySetClass : DafnySetClass + "<" + TypeName(argType, wr, tok, erased) + ">";
       } else if (xType is SeqType) {
         Type argType = ((SeqType)xType).Arg;
         if (ComplicatedTypeParameterForCompilation(argType)) {
           Error(tok, "compilation of seq<TRAIT> is not supported; consider introducing a ghost", wr);
         }
-        return DafnySeqClass + "<" + TypeName(argType, wr, tok) + ">";
+        return erased ? DafnySeqClass : DafnySeqClass + "<" + TypeName(argType, wr, tok, erased) + ">";
       } else if (xType is MultiSetType) {
         Type argType = ((MultiSetType)xType).Arg;
         if (ComplicatedTypeParameterForCompilation(argType)) {
           Error(tok, "compilation of multiset<TRAIT> is not supported; consider introducing a ghost", wr);
         }
-        return DafnyMultiSetClass + "<" + TypeName(argType, wr, tok) + ">";
+        return erased ? DafnyMultiSetClass : DafnyMultiSetClass + "<" + TypeName(argType, wr, tok, erased) + ">";
       } else if (xType is MapType) {
         Type domType = ((MapType)xType).Domain;
         Type ranType = ((MapType)xType).Range;
@@ -1150,7 +1160,7 @@ namespace Microsoft.Dafny {
       } else if (altVarType == null) {
         return wr.NewBlockWithPrefix(")", "{0} = {1};", altBoundVarName, boundVar);
       } else {
-        BlockTargetWriter wwr = wr.NewBlockWithPrefix(")", "if (({1}) instanceof {2}) ", altBoundVarName, boundVar, TypeName(altVarType, wr, tok));
+        BlockTargetWriter wwr = wr.NewBlockWithPrefix(")", "if (({1}) instanceof {2}) ", altBoundVarName, boundVar, TypeName(altVarType, wr, tok, true));
         return wwr.NewBlockWithPrefix("", "let {0} = {1};", altBoundVarName, boundVar);
       }
     }
