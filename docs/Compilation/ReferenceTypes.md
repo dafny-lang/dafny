@@ -225,10 +225,6 @@ Go has no type parameters, so those are replaced by the empty interface type.
       static method N(rtdV: RTD, rtdU: RTD, _this: Trait, x: X) returns (y: Y) { S }
     }
 
-Note: At the moment, traits are represented using a mix of a "struct" and an "interface" in Go.
-This is about to change. The declarations shown here indicate what will soon be. The previous
-design let field be declared in the "struct" portion of this definition.
-
 Compilation of class members
 ----------------------------
 
@@ -507,9 +503,9 @@ There is no need to say `extends Trait` in Go, because trait membership is not n
 Nevertheless, the compiler generates some code that will cause the Go compiler to
 verify `Class extends Trait` at compile time.
 
-Note: At the moment, traits are represented using a mix of a "struct" and an "interface" in Go.
-This is about to change. The declarations shown here indicate what will soon be. In the
-previous design, the "struct" portion was embedded into the class. This required each Dafny
+Note: Previously, traits were represented using a mix of a "struct" and an "interface" in Go.
+In that design, the "struct" portion was embedded into the class, which allowed fields
+to be inherited using Go's embedding. On the downside, this required each Dafny
 object to be represented as a collection of Go objects, with mutual pointers between them
 This required the compiler to insert upcasts, which became difficult to maintain in the
 implementation. Moreover, the design was problematic for checking equality and became
@@ -668,6 +664,5 @@ parameters and no need for `extends` clauses.
 
 ## Go
 
-Compilation to Go currently uses the "struct"-plus-"interface" design of traits,
-which will soon be changed. Other than that, the compilation follows the general
-form, but without type parameters and no need for `extends` clauses.
+The compilation follows the general form, but without type parameters and no need
+for `extends` clauses.

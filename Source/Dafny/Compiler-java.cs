@@ -746,7 +746,11 @@ namespace Microsoft.Dafny{
     }
 
     protected override string FullTypeName(UserDefinedType udt, MemberDecl /*?*/ member = null) {
-      Contract.Assume(udt != null); // precondition; this ought to be declared as a Requires in the superclass
+      return FullTypeName(udt, member, false);
+    }
+
+    protected string FullTypeName(UserDefinedType udt, MemberDecl member, bool useCompanionName) {
+      Contract.Requires(udt != null);
       if (udt is ArrowType) {
         functions.Add(udt.TypeArgs.Count - 1);
         return DafnyFunctionIface(udt.TypeArgs.Count - 1);
@@ -758,13 +762,13 @@ namespace Microsoft.Dafny{
       var cl = udt.ResolvedClass;
       if (cl == null) {
         return IdProtect(udt.CompileName);
-      }
-      else if (cl is TupleTypeDecl tupleDecl) {
+      } else if (cl is TupleTypeDecl tupleDecl) {
         return DafnyTupleClass(tupleDecl.TypeArgs.Count);
+      } else if (cl is TraitDecl && useCompanionName) {
+        return IdProtect(udt.FullCompanionCompileName);
       } else if (cl.Module.CompileName == ModuleName || cl.Module.IsDefaultModule) {
         return IdProtect(cl.CompileName);
-      }
-      else{
+      } else {
         return IdProtect(cl.Module.CompileName) + "." + IdProtect(cl.CompileName);
       }
     }
@@ -2377,7 +2381,7 @@ namespace Microsoft.Dafny{
         // Can't go the usual route because java.util.function.Function doesn't have a _type() method
         return $"{TypeClass}.function({TypeDescriptor(arrowType.Args[0], wr, tok)}, {TypeDescriptor(arrowType.Result, wr, tok)})";
       } else if (type is UserDefinedType udt) {
-        var s = FullTypeName(udt);
+        var s = FullTypeName(udt, null, true);
         var cl = udt.ResolvedClass;
         Contract.Assert(cl != null);
         bool isHandle = true;
@@ -3155,6 +3159,8 @@ namespace Microsoft.Dafny{
       w.Write($"public class _Companion_{name}{typeParamString}");
       var staticMemberWriter = w.NewBlock("");
       var ctorBodyWriter = staticMemberWriter.NewBlock($"public _Companion_{name}()");
+
+      EmitTypeMethod(name, typeParameters, typeParameters, initializer: null, staticMemberWriter);
       return new ClassWriter(this, instanceMemberWriter, ctorBodyWriter, staticMemberWriter);
     }
 
