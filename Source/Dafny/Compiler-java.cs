@@ -2199,8 +2199,8 @@ namespace Microsoft.Dafny{
       Contract.Assert(assemblyLocation != null);
       var codebase = Path.GetDirectoryName(assemblyLocation);
       Contract.Assert(codebase != null);
-      // DafnyRuntime-1.jar has already been created using Maven. It is added to the java CLASSPATH below.
-      return "." + Path.PathSeparator + Path.GetFullPath(Path.GetDirectoryName(targetFilename)) + Path.PathSeparator + Path.Combine(codebase, "DafnyRuntime-1.jar");
+      // DafnyRuntime.jar has already been created using Maven. It is added to the java CLASSPATH below.
+      return "." + Path.PathSeparator + Path.GetFullPath(Path.GetDirectoryName(targetFilename)) + Path.PathSeparator + Path.Combine(codebase, "DafnyRuntime.jar");
     }
 
     static bool CopyExternLibraryIntoPlace(string externFilename, string mainProgram, TextWriter outputWriter) {
@@ -2877,7 +2877,7 @@ namespace Microsoft.Dafny{
 
     public void CompileTuples(string path){
       foreach(int i in tuples) {
-        if (i == 2 || i == 3) continue; // Tuple2 and Tuple3 already exist in DafnyRuntime-1.jar, so don't remake these files.
+        if (i == 2 || i == 3) continue; // Tuple2 and Tuple3 already exist in DafnyRuntime.jar, so don't remake these files.
         CreateTuple(i, path);
       }
     }
