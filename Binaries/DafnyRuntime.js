@@ -10,7 +10,11 @@ let _dafny = (function() {
     } else if (a._tname !== undefined) {
       return a === b;  // pointer equality
     } else {
-      return a.equals(b);  // value-type equality
+      try {
+        return a.equals(b);  // value-type equality
+      } catch (e) {
+        return a === b;
+      }
     }
   }
   $module.toString = function(a) {
