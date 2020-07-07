@@ -11,4 +11,5 @@ method ReturnTuple() returns (x:(uint32,uint32))
 method Main() {
   var x := ReturnTuple();
   var y := x.0;
+  print y;
 }

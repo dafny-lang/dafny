@@ -22,12 +22,14 @@ method BoundedLength(s:seq<uint8>)
   requires |s| < 10
 {
   var x := |s| as uint32;
+  print x;
 }
 
 method BufferTest(b:buffer_t) 
   requires b != null
 {
   var t := b[..];
+  print t;
 }
 
 method Test(name:string, b:bool) 

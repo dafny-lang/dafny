@@ -18,6 +18,7 @@ method Division(a:int64)
   requires 0 <= a < 0x1_0000_0000
 {
   var z := a / 2;
+  print z;
 }
 
 method Main() {

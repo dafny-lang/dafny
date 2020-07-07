@@ -23,6 +23,5 @@ SeqMembershipValue2: This is expected
 SeqMembershipValue3: This is expected
 SetComprehensionInEquality: This is expected
 SetComprehensionInMembership: This is expected
-0
 LetSuchThatMembership: This is expected
 LetSuchThatValue: This is expected

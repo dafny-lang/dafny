@@ -81,7 +81,7 @@ method LetSuchThat() {
   var s:set<uint32> := { 0, 1, 2, 3 };
   var e:uint32 :| e in s;
 
-  print e, "\n";
+  //print e, "\n";
   Test("LetSuchThatMembership", e in s);
   Test("LetSuchThatValue", e == 0 || e == 1 || e == 2 || e == 3);
 }

@@ -2,7 +2,7 @@
 
 using namespace std;
 
-typedef unsigned long long uint64;
+typedef uint64_t uint64;
 
 namespace Extern {
   struct state {

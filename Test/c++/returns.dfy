@@ -12,4 +12,5 @@ method multi() returns (x:uint64, y:uint64)
 method Main()
 {
   var x, y := multi();
+  print x, y, '\n';
 }
