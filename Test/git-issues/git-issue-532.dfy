@@ -5,6 +5,8 @@
 // RUN: %dafny /noVerify /compile:4 /compileTarget:java "%s" >> "%t"
 // RUN: %diff "%s.expect" "%t"
 
+predicate method SuppressNoTriggerWarning<X>(x: X) { true }
+
 trait Tr {
   var x: int
 }
@@ -21,7 +23,7 @@ method M(t: Tr)
   modifies t
 {
   print "t.x=", t.x, "  ";
-  var s: set<C> := set c: C | c == t;  // this line used to crash for the call M(d)
+  var s: set<C> := set c: C | c == t && SuppressNoTriggerWarning(c);  // this line used to crash for the call M(d)
   if s == {} {
     print "The given Tr is not a C\n";
   } else {

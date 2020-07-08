@@ -29,10 +29,10 @@ namespace Microsoft.Dafny{
 
 
     // Shadowing variables in Compiler.cs
-    new string DafnySetClass = "dafny.DafnySet";
-    new string DafnyMultiSetClass = "dafny.DafnyMultiset";
-    new string DafnySeqClass = "dafny.DafnySequence";
-    new string DafnyMapClass = "dafny.DafnyMap";
+    protected override string DafnySetClass => "dafny.DafnySet";
+    protected override string DafnyMultiSetClass => "dafny.DafnyMultiset";
+    protected override string DafnySeqClass => "dafny.DafnySequence";
+    protected override string DafnyMapClass => "dafny.DafnyMap";
 
     const string DafnyBigRationalClass = "dafny.BigRational";
     const string DafnyEuclideanClass = "dafny.DafnyEuclidean";

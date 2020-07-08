@@ -31,7 +31,7 @@ namespace Microsoft.Dafny
       wr.WriteLine("// To recompile, use 'csc' with: /r:System.Numerics.dll");
       wr.WriteLine("// and choosing /target:exe or /target:library");
       wr.WriteLine("// You might also want to include compiler switches like:");
-      wr.WriteLine("//     /debug /nowarn:0164 /nowarn:0219 /nowarn:1717 /nowarn:0162 /nowarn:0168 /nowarn:0436");
+      wr.WriteLine("//     /debug /nowarn:0164 /nowarn:0219 /nowarn:1717 /nowarn:0162 /nowarn:0168 /nowarn:0436 /nowarn:0183");
       wr.WriteLine();
       wr.WriteLine("using System;");
       wr.WriteLine("using System.Numerics;");
