@@ -1139,7 +1139,7 @@ namespace Dafny
       try {
         action();
       } catch (HaltException e) {
-        Console.WriteLine("Program halted: " + e.Message);
+        Console.WriteLine("[Program halted] " + e.Message);
       }
     }
   }

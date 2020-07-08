@@ -2610,6 +2610,22 @@ namespace Microsoft.Dafny {
     }
 
     /// <summary>
+    /// If "member" is non-null, then:
+    ///   Return the upcast of "receiverType" that has base type "member.EnclosingClass".
+    ///   Assumes that "receiverType" normalizes to a UserDefinedFunction with a .ResolveClass that is a subtype
+    ///   of "member.EnclosingClass".
+    /// Otherwise:
+    ///   Return "receiverType" (expanded).
+    /// </summary>
+    public static Type UpcastToMemberEnclosingType(Type receiverType, MemberDecl/*?*/ member) {
+      Contract.Requires(receiverType != null);
+      if (member != null && member.EnclosingClass != null && !(member.EnclosingClass is ValuetypeDecl)) {
+        return receiverType.AsParentType(member.EnclosingClass);
+      }
+      return receiverType.NormalizeExpandKeepConstraints();
+    }
+
+    /// <summary>
     /// This constructor constructs a resolved class/datatype/iterator/subset-type/newtype type
     /// </summary>
     public UserDefinedType(IToken tok, string name, TopLevelDecl cd, [Captured] List<Type> typeArgs, Expression/*?*/ namePath = null) {
@@ -4035,7 +4051,7 @@ namespace Microsoft.Dafny {
     public readonly List<MemberDecl> Members;
 
     // The following fields keep track of parent traits
-    public readonly List<MemberDecl> InheritedMembers = new List<MemberDecl>();  // these are instance fields and instance members defined with bodies in traits
+    public readonly List<MemberDecl> InheritedMembers = new List<MemberDecl>();  // these are instance members declared in parent traits
     public readonly List<Type> ParentTraits;  // these are the types that are parsed after the keyword 'extends'; note, for a successfully resolved program, there are UserDefinedType's where .ResolvedClas is NonNullTypeDecl
     public readonly Dictionary<TypeParameter, Type> ParentFormalTypeParametersToActuals = new Dictionary<TypeParameter, Type>();  // maps parent traits' type parameters to actuals
 
@@ -4759,6 +4775,7 @@ namespace Microsoft.Dafny {
     public TopLevelDecl EnclosingClass;  // filled in during resolution
     public MemberDecl RefinementBase;  // filled in during the pre-resolution refinement transformation; null if the member is new here
     public MemberDecl OverriddenMember;  // filled in during resolution; non-null if the member overrides a member in a parent trait
+    public virtual bool IsOverrideThatAddsBody => OverriddenMember != null;
 
     /// <summary>
     /// Returns "true" if "this" is a (possibly transitive) override of "possiblyOverriddenMember".
@@ -5783,6 +5800,7 @@ namespace Microsoft.Dafny {
     public bool IsBuiltin;
     public Function OverriddenFunction;
     public Function Original => OverriddenFunction == null ? this : OverriddenFunction.Original;
+    public override bool IsOverrideThatAddsBody => base.IsOverrideThatAddsBody && Body != null;
 
     public bool containsQuantifier;
     public bool ContainsQuantifier {
@@ -6111,6 +6129,7 @@ namespace Microsoft.Dafny {
     public readonly ISet<IVariable> AssignedAssumptionVariables = new HashSet<IVariable>();
     public Method OverriddenMethod;
     public Method Original => OverriddenMethod == null ? this : OverriddenMethod.Original;
+    public override bool IsOverrideThatAddsBody => base.IsOverrideThatAddsBody && Body != null;
     private static BlockStmt emptyBody = new BlockStmt(Token.NoToken, Token.NoToken, new List<Statement>());
 
     public override IEnumerable<Expression> SubExpressions {

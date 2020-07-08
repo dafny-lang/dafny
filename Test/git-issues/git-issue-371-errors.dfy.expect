@@ -1,0 +1,3 @@
+git-issue-371-errors.dfy(25,9): Error: Duplicate name of import: M
+git-issue-371-errors.dfy(21,7): Error: Import declaration uses same name as a module in the same scope: M
+2 resolution/type errors detected in git-issue-371-errors.dfy

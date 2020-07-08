@@ -1,8 +1,6 @@
 Dafny compilation to Go
 =======================
 
-The Go backend is currently **experimental**.
-
 This documentation is intended primarily to help with writing Go code that makes
 use of code generated from Dafny.  The emphasis is therefore on features visible
 to the user of the module.
@@ -68,13 +66,14 @@ translates).
 Classes
 -------
 
+Instance members of classes are described in docs/Compilation/ReferenceTypes.md.
+
 Basic class functionality is mapped onto Go structs.  An instance field becomes
 a field in the struct, and an instance method becomes a method of that struct.
 
 ```dafny
 class Class {
     var x: int
-    const y: real
     constructor(x: int) {
         this.x := x;
         ...
@@ -88,7 +87,6 @@ class Class {
 ```go
 type Class struct {
     X _dafny.Int
-    Y _dafny.Real // Careful!  Not constant!
 }
 
 func (_this *Class) Ctor__(x: _dafny.Int) {
@@ -107,7 +105,7 @@ code.  There is no enforcement mechanism.  Be careful!
 Note that the method has a pointer receiver, and the parameter type `Class` is
 translated as the pointer type `*Class`. Objects are always translated as
 pointers, including in receiver types, since (a) they're mutable in general,
-(b) they're (often) nullable, and (c) it's necessary for our implementation of
+(b) they may be nullable, and (c) it's necessary for our implementation of
 inheritance (see [Traits](#traits)).
 
 Note also that the constructor becomes a regular method called `Ctor__` taking
@@ -205,95 +203,7 @@ func (_this *CompanionStruct_Default___) Main() {
 Traits
 ------
 
-Go has no inheritance.  However, we can piece together the needed functionality
-using *embedding.*  An embedded struct “passes through” its fields and methods
-to the embedding type.  To inherit both fields and methods, however, we need to
-represent each trait using both a struct *and* an interface (in addition to the
-companion object, not shown here):
-
-```dafny
-trait Trait {
-    var x: int
-    method f(y: real) returns (z: bool)
-}
-```
-
-```go
-type Trait struct {
-    Iface_Trait_
-    X _dafny.Int
-}
-
-type Iface_Trait_ interface {
-    F(_dafny.Real) bool
-}
-
-func New_Trait_() *Trait {
-    _this := Trait{}
-
-    _this.X = _dafny.Zero
-
-    return &_this
-}
-```
-
-Calling `F` on a value of the trait will forward to the embedded `Iface_Trait_`.
-
-The implementing class now becomes a circular data structure, where the class
-embeds the trait and the trait embeds a pointer back to the full class:
-
-
-```dafny
-class Class extends Trait {
-    var t: string
-    method f(y: real) returns (z: bool) {
-        ...
-    }
-}
-```
-
-```go
-type Class struct {
-    Trait
-    T _dafny.Seq
-}
-
-func (_this *Class) F(y _dafny.Real) bool {
-    ...
-}
-```
-
-The initializer ties the knot:
-
-```go
-func New_Class_() *Class {
-    _this := Class{}
-
-    _this.T = _dafny.SeqOfString("")
-    _this.Trait.Iface_Trait = &_this
-
-    return _this
-}
-```
-
-Since `Class` implements `F` *with a pointer receiver*, a `*Class` is
-eligible as the value of the embedded `Iface_Trait_`.
-
-The only remaining wrinkle is that, while the embedded types pass on their
-fields and methods, `Trait` is still not a subtype of `Class`, so a variable of
-type `Trait` cannot have a `Class` as its value.  The compiler deals with this
-by explicitly accessing the embedded `Trait` value whenever such an *upcast*
-occurs:
-
-```dafny
-var c : Class = ...
-var t : Trait = c
-```
-
-```go
-var c Class = ...
-var t Trait = c.Trait
-```
+Instance members of traits are described in docs/Compilation/ReferenceTypes.md.
 
 Datatypes
 ---------

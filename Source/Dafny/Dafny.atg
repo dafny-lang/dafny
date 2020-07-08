@@ -891,10 +891,8 @@ SubModuleDecl<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl sub
     ModuleName<out id>
     ( (. idPath = new List<IToken>(); idExports = new List<IToken>(); .)
       [ QualifiedModuleExportSuffix<idPath, idExports> ]
-      (. if (idPath.Count > 0)
-           SemErr(idPath[0], "Qualified imports must be given a name.");
-        idPath.Insert(0, id);
-        submodule = new AliasModuleDecl(idPath, id, parent, opened, idExports);
+      (. idPath.Insert(0, id);
+         submodule = new AliasModuleDecl(idPath, idPath[idPath.Count-1], parent, opened, idExports);
       .)
     | "=" QualifiedModuleExport<out idPath, out idExports>
       (. submodule = new AliasModuleDecl(idPath, id, parent, opened, idExports); .)
@@ -968,16 +966,14 @@ ModuleName<out IToken id>
 /* This production is for referring to module exports for imports (both normal and facades) */
 QualifiedModuleExportSuffix<.List<IToken> ids, List<IToken> exports.>
 = (. IToken id; .)
-  (
-    "." ModuleName<out id>   (. ids.Add(id); .)
     { "." ModuleName<out id> (. ids.Add(id); .) }
-  | "`"
+  [ "`"
     ( ExportIdent<out id>       (. exports.Add(id); .)
     | "{" ExportIdent<out id>   (. exports.Add(id); .)
       { "," ExportIdent<out id> (. exports.Add(id); .) }
       "}"
     )
-  )
+  ]
   .
 
 QualifiedModuleExport<.out List<IToken> ids, out List<IToken> exports.>
