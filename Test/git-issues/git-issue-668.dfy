@@ -4,11 +4,18 @@ class X {
 
 class K { }
 
-  method P0(x: X, k: K) {
+method P0(x: X, k: K) {
   var o; // type inferred to be object
   o := x;
   o := k;
   var u := o.F(); // F does not exist in object
+}
+
+method Q0(x: X, k: K) {
+  var o; // type inferred to be object
+  o := x;
+  var u := o.F(); 
+  o := k;
 }
 
 
