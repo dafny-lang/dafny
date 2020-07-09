@@ -4,12 +4,12 @@ using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
+using Microsoft.SqlServer.Server;
 
 namespace DafnyTests {
     public static class LitTestConvertor {
         
         private const string LIT_COMMAND_PREFIX = "// RUN: ";
-        private const string LIT_DIFF = "%diff";
         private const string LIT_DAFNY = "%dafny";
         private const string DAFNY_COMPILE = "/compile:";
         private const string DAFNY_COMPILE_TARGET = "/compileTarget:";
@@ -20,6 +20,7 @@ namespace DafnyTests {
             "/dprint:\"%t.dfy\"",
             "/rprint:\"%t.rprint\"", 
             "/rprint:\"%t.dprint\"",
+            "/dprint:\"%t.dprint.dfy\"",
             
             "\"%s\"", ">", ">>", "\"%t\""
         };
@@ -38,46 +39,64 @@ namespace DafnyTests {
             "/verifySnapshots",
             "/traceCaching",
             "/noNLarith",
-            "/errorTrace"
+            "/errorTrace",
+            "/arith",
+            "/noVerify",
+            "/dafnyVerify",
+            "/optimize",
+            // TODO-RS: Catch %t here?
+            "/dprint",
+            "/rprint"
         };
         
         public static void ConvertLitTest(string filePath) {
-            var compileLevel = 1;
-            var autoTriggers = 1;
-            var verifyAllModules = false;
-            var allocated = 3;
-            var reader = new StreamReader(filePath);
+            string[] lines = File.ReadAllLines(filePath);
+            if (lines.Length < 2) {
+                throw new ArgumentException("Not enough lines to match expected lit test pattern");
+            }
             
-            string line;  
-            while((line = reader.ReadLine()) != null) {
-                if (line.StartsWith(LIT_COMMAND_PREFIX)) {
-                    var parts = line.Substring(LIT_COMMAND_PREFIX.Length)
-                                    .Split((char[])null, StringSplitOptions.RemoveEmptyEntries);
-                    switch (parts[0]) {
-                        case LIT_DIFF:
-                            // Ignore: assume that if this is anything other than the standard
-                            // %diff "%s.expect" "%t" line, then at least one other line will be non-standard
-                            // as well (to produce the non-standard arguments)
-                            break;
-                        case LIT_DAFNY:
-                            // Check the arguments for anything non-standard
-                            foreach (var arg in parts.Skip(1)) {
-                                if (IGNORED_DAFNY_COMMAND_ARGUMENTS.Contains(arg)) {
-                                    // Ignore
-                                } else if (arg.StartsWith(DAFNY_COMPILE)) {
-                                    compileLevel = Int32.Parse(arg.Substring(DAFNY_COMPILE.Length));
-                                } else if (arg.StartsWith(DAFNY_COMPILE_TARGET)) {
-                                    // Ignore - assume it will work for all target language unless proven otherwise
-                                } else {
-                                    ParseDafnyArgument(arg);
-                                }
-                            }
-                            break;
-                        default:
-                            throw new ArgumentException("Unrecognized lit command format: " + line);
-                    }
+            string dafnyCommand = ExtractLitCommand(lines[0]);
+            if (dafnyCommand == null) {
+                // Doesn't look like a lit test
+                return;
+            }
+            if (!dafnyCommand.StartsWith(LIT_DAFNY)) {
+                throw new ArgumentException("First lit command is not expected %dafny: " + dafnyCommand);
+            }
+            var testConfig = ParseDafnyCommand(dafnyCommand.Substring(LIT_DAFNY.Length));
+            
+            string diffCommand = ExtractLitCommand(lines[1]);
+            if (!diffCommand.Equals("%diff \"%s.expect\" \"%t\"")) {
+                throw new ArgumentException("Second lit command is not expected %diff: " + diffCommand);
+            }
+        }
+
+        private static string ExtractLitCommand(string line) {
+            if (!line.StartsWith(LIT_COMMAND_PREFIX)) {
+                return null;
+            }
+            return line.Substring(LIT_COMMAND_PREFIX.Length);
+        }
+        
+        private static Dictionary<string, string> ParseDafnyCommand(string line) {
+            var testConfig = new Dictionary<string, string>();
+            var parts = line.Split((char[])null, StringSplitOptions.RemoveEmptyEntries);
+            int compileLevel;
+            // Check the arguments for anything non-standard
+            foreach (var argument in parts) {
+                if (IGNORED_DAFNY_COMMAND_ARGUMENTS.Contains(argument)) {
+                    // Ignore
+                } else if (argument.StartsWith(DAFNY_COMPILE)) {
+                    compileLevel = Int32.Parse(argument.Substring(DAFNY_COMPILE.Length));
+                } else if (argument.StartsWith(DAFNY_COMPILE_TARGET)) {
+                    // Ignore - assume it will work for all target language unless proven otherwise
+                } else {
+                    KeyValuePair<string, string> pair = ParseDafnyArgument(argument);
+                    testConfig.Add(pair.Key, pair.Value);
                 }
-            }  
+            }
+
+            return testConfig;
         }
 
         private static KeyValuePair<string, string> ParseDafnyArgument(string argument) {
@@ -86,13 +105,14 @@ namespace DafnyTests {
                     if (argument.Equals(supportedFlag)) {
                         return new KeyValuePair<string, string>(supportedFlag, "yes");
                     } else if (argument[supportedFlag.Length] == ':') {
-                        return new KeyValuePair<string, string>(supportedFlag, argument.Substring(supportedFlag.Length + 1));
+                        return new KeyValuePair<string, string>(supportedFlag,
+                            argument.Substring(supportedFlag.Length + 1));
                     }
                 }
             }
             throw new ArgumentException("Unrecognized dafny argument: " + argument);
         }
-        
+
         public static void Main(string[] args) {
             var root = args[0];
             var count = 0;
