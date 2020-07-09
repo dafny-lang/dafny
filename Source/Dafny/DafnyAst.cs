@@ -8934,6 +8934,7 @@ namespace Microsoft.Dafny {
   {
     public readonly Type UnresolvedType;
     private bool Implicit;
+    public Expression OriginalResolved;
 
     public StaticReceiverExpr(IToken tok, Type t, bool isImplicit)
       : base(tok) {
@@ -8941,6 +8942,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(t != null);
       UnresolvedType = t;
       Implicit = isImplicit;
+      OriginalResolved = null;
     }
 
     /// <summary>
@@ -8971,7 +8973,7 @@ namespace Microsoft.Dafny {
     ///   a trait that in turn extends trait "W(g(Y))".  If "t" denotes type "C(G)" and "cl" denotes "W",
     ///   then type of the StaticReceiverExpr will be "T(g(f(G)))".
     /// </summary>
-    public StaticReceiverExpr(IToken tok, UserDefinedType t, TopLevelDeclWithMembers cl, bool isImplicit)
+    public StaticReceiverExpr(IToken tok, UserDefinedType t, TopLevelDeclWithMembers cl, bool isImplicit, Expression lhs = null)
       : base(tok) {
       Contract.Requires(tok != null);
       Contract.Requires(t.ResolvedClass != null);
@@ -8990,6 +8992,7 @@ namespace Microsoft.Dafny {
       }
       UnresolvedType = Type;
       Implicit = isImplicit;
+      OriginalResolved = lhs;
     }
 
     public override bool IsImplicit {
