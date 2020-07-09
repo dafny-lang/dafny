@@ -1,9 +1,5 @@
 
 Dafny program verifier finished with 10 verified, 0 errors
-339:16: warning: unused variable '_131_hd' [-Wunused-variable]
-        uint32 _131_hd = _128___mcc_h0;
-               ^
-1 warning generated.
  42
  1
 This is expected
