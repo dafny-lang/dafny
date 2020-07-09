@@ -110,7 +110,7 @@ module BoundedIntegerParameters {
   {
     var data := "Bounded";
 
-    print data[..u0], " ";  // it is unfortunate how these get printed in Java
+    print data[..u0], " ";
     print data[..u1], " ";
     print data[..u2], " ";
     print data[..u3], " ";

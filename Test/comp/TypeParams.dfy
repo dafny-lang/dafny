@@ -17,6 +17,7 @@ method Main() {
   Tp();
   TraitClass();
   Direct();
+  Regressions();
 }
 
 method Standard<T(0)>() {
@@ -187,4 +188,16 @@ method Direct() {
   print m0, "\n";
   print m1, "\n";
   print m2, "\n";
+}
+
+class TypeParamWithDefault<G(0)> {
+  const g: G
+  method M() returns (h: G) {
+  }
+}
+method Regressions() {
+  var k := new TypeParamWithDefault<int>;
+  var x := k.g;
+  var y := k.M();
+  print x, " ", y, "\n";
 }

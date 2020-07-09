@@ -5577,6 +5577,13 @@ namespace Microsoft.Dafny
               resolver.reporter.Error(MessageSource.Resolver, e.tok, "bitvector literal ({0}) is too large for the type {1}", e.Value, t);
             }
           }
+
+          if (expr is StaticReceiverExpr stexpr) {
+            if (stexpr.OriginalResolved != null) {
+              Visit(stexpr.OriginalResolved);
+            }
+          }
+
         } else if (expr is ComprehensionExpr) {
           var e = (ComprehensionExpr)expr;
           foreach (var bv in e.BoundVars) {
@@ -7246,7 +7253,11 @@ namespace Microsoft.Dafny
                 }
               }
               if (rhs.InitCall != null) {
-                rhs.InitCall.Args.ForEach(resolver.CheckIsCompilable);
+                for (var i = 0; i < rhs.InitCall.Args.Count; i++) {
+                  if (!rhs.InitCall.Method.Ins[i].IsGhost) {
+                    resolver.CheckIsCompilable(rhs.InitCall.Args[i]);
+                  }
+                }
               }
             }
           }
@@ -7892,7 +7903,7 @@ namespace Microsoft.Dafny
 
       foreach (var member in classMembers[cl].Values) {
         if (member is PrefixPredicate || member is PrefixLemma) {
-          // these are handled with the corresponding extremem predicate/lemma
+          // these are handled with the corresponding extreme predicate/lemma
           continue;
         }
         if (member.EnclosingClass != cl) {
@@ -7902,13 +7913,15 @@ namespace Microsoft.Dafny
           // but that will be checked by the verifier.  And it should also have a body, but that will be checked by the compiler.)
           if (member.IsStatic) {
             // nothing to do
-          } else if (member is Field || (member as Function)?.Body != null || (member as Method)?.Body != null) {
-            // member is a field or a fully defined function or method
-            cl.InheritedMembers.Add(member);
-          } else if (cl is TraitDecl) {
-            // there are no expectations that a field needs to repeat the signature of inherited body-less members
           } else {
-            reporter.Error(MessageSource.Resolver, cl.tok, "{0} '{1}' does not implement trait {2} '{3}.{4}'", cl.WhatKind, cl.Name, member.WhatKind, member.EnclosingClass.Name, member.Name);
+            cl.InheritedMembers.Add(member);
+            if (member is Field || (member as Function)?.Body != null || (member as Method)?.Body != null) {
+              // member is a field or a fully defined function or method
+            } else if (cl is TraitDecl) {
+              // there are no expectations that a field needs to repeat the signature of inherited body-less members
+            } else {
+              reporter.Error(MessageSource.Resolver, cl.tok, "{0} '{1}' does not implement trait {2} '{3}.{4}'", cl.WhatKind, cl.Name, member.WhatKind, member.EnclosingClass.Name, member.Name);
+            }
           }
           continue;
         }
@@ -12066,9 +12079,9 @@ namespace Microsoft.Dafny
       }
       if (DafnyOptions.O.TypeInferenceDebug) {
         Console.Write("DEBUG: Member selection{3}:  {1} :> {0} :> {2}", t,
-        Util.Comma(proxy.SupertypesKeepConstraints, su => su.ToString()),
-        Util.Comma(proxy.SubtypesKeepConstraints, su => su.ToString()),
-        memberName == null ? "" : " (" + memberName + ")");
+          Util.Comma(proxy.SupertypesKeepConstraints, su => su.ToString()),
+          Util.Comma(proxy.SubtypesKeepConstraints, su => su.ToString()),
+          memberName == null ? "" : " (" + memberName + ")");
       }
 
       var artificialSuper = proxy.InClusterOfArtificial(AllXConstraints);
@@ -12144,7 +12157,6 @@ namespace Microsoft.Dafny
         }
         if (DafnyOptions.O.TypeInferenceDebug) {
           Console.WriteLine("  ----> found no improvement, because meet does not determine type enough");
-          return t;
         }
       }
 
@@ -14424,7 +14436,7 @@ namespace Microsoft.Dafny
             receiver = expr.Lhs;
             r = ResolveExprDotCall(expr.tok, receiver, tentativeReceiverType, member, args, expr.OptTypeArguments, opts, allowMethodCall);
           } else {
-            receiver = new StaticReceiverExpr(expr.tok, (UserDefinedType)tentativeReceiverType, (TopLevelDeclWithMembers)member.EnclosingClass, false);
+            receiver = new StaticReceiverExpr(expr.tok, (UserDefinedType)tentativeReceiverType, (TopLevelDeclWithMembers)member.EnclosingClass, false, lhs);
             r = ResolveExprDotCall(expr.tok, receiver, null, member, args, expr.OptTypeArguments, opts, allowMethodCall);
           }
         }

@@ -1,6 +1,0 @@
-
-Dafny program verifier finished with 2 verified, 0 errors
-Sequences: [] [_module.Integer, _module.Integer, _module.Integer, _module.Integer] [_module.Integer, _module.Integer]
-  cardinality: 0 4 2
-  update: [_module.Integer, _module.Integer, _module.Integer, _module.Integer] [_module.Integer, _module.Integer]
-  index: Program halted: interface conversion: interface {} is *main.Integer, not *main.Number

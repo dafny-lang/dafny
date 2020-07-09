@@ -1,5 +1,5 @@
 
-Dafny program verifier finished with 20 verified, 0 errors
+Dafny program verifier finished with 21 verified, 0 errors
 0 0 0 false Color.Orange 0.0 {} DtZ.DZ0(Color.Orange)
 null null null null null
 {} multiset{} [] map[] {} map[]
@@ -18,3 +18,4 @@ null null null null
 Function
 Function
 Function
+0 0

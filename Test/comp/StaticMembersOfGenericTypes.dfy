@@ -127,7 +127,7 @@ method FunctionValues() {
   }
 }
 
-trait TraitFunc<X, Y> {
+trait TraitFunc<X(0), Y> {
   static function method F'<U>(x: X, y: Y, u: U): (X, Y, U) {
     (x, y, u)
   }

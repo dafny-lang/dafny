@@ -527,6 +527,9 @@ let _dafny = (function() {
         return r;
       }
     }
+    static JoinIfPossible(x) {
+      try { return x.join(""); } catch(_error) { return x; }
+    }
     static IsPrefixOf(a, b) {
       if (b.length < a.length) {
         return false;
@@ -981,7 +984,7 @@ let _dafny = (function() {
       f()
     } catch (e) {
       if (e instanceof _dafny.HaltException) {
-        process.stdout.write("Program halted: " + e.message + "\n")
+        process.stdout.write("[Program halted] " + e.message + "\n")
       } else {
         throw e
       }

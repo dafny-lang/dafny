@@ -1,1 +1,5 @@
 git-issues/git-issue-622$f/**
+*/*-go
+*/*.js
+*/*.cs
+*/Output/

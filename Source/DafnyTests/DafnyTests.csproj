@@ -62,7 +62,7 @@
     <None Include="../../Binaries/DafnyRuntime.cs" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../../Binaries/DafnyRuntime.go" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../../Binaries/DafnyRuntime.js" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="../../Binaries/DafnyRuntime-1.jar" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../../Binaries/DafnyRuntime.jar" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">

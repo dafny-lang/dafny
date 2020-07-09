@@ -2610,6 +2610,22 @@ namespace Microsoft.Dafny {
     }
 
     /// <summary>
+    /// If "member" is non-null, then:
+    ///   Return the upcast of "receiverType" that has base type "member.EnclosingClass".
+    ///   Assumes that "receiverType" normalizes to a UserDefinedFunction with a .ResolveClass that is a subtype
+    ///   of "member.EnclosingClass".
+    /// Otherwise:
+    ///   Return "receiverType" (expanded).
+    /// </summary>
+    public static Type UpcastToMemberEnclosingType(Type receiverType, MemberDecl/*?*/ member) {
+      Contract.Requires(receiverType != null);
+      if (member != null && member.EnclosingClass != null && !(member.EnclosingClass is ValuetypeDecl)) {
+        return receiverType.AsParentType(member.EnclosingClass);
+      }
+      return receiverType.NormalizeExpandKeepConstraints();
+    }
+
+    /// <summary>
     /// This constructor constructs a resolved class/datatype/iterator/subset-type/newtype type
     /// </summary>
     public UserDefinedType(IToken tok, string name, TopLevelDecl cd, [Captured] List<Type> typeArgs, Expression/*?*/ namePath = null) {
@@ -4035,7 +4051,7 @@ namespace Microsoft.Dafny {
     public readonly List<MemberDecl> Members;
 
     // The following fields keep track of parent traits
-    public readonly List<MemberDecl> InheritedMembers = new List<MemberDecl>();  // these are instance fields and instance members defined with bodies in traits
+    public readonly List<MemberDecl> InheritedMembers = new List<MemberDecl>();  // these are instance members declared in parent traits
     public readonly List<Type> ParentTraits;  // these are the types that are parsed after the keyword 'extends'; note, for a successfully resolved program, there are UserDefinedType's where .ResolvedClas is NonNullTypeDecl
     public readonly Dictionary<TypeParameter, Type> ParentFormalTypeParametersToActuals = new Dictionary<TypeParameter, Type>();  // maps parent traits' type parameters to actuals
 
@@ -4759,6 +4775,7 @@ namespace Microsoft.Dafny {
     public TopLevelDecl EnclosingClass;  // filled in during resolution
     public MemberDecl RefinementBase;  // filled in during the pre-resolution refinement transformation; null if the member is new here
     public MemberDecl OverriddenMember;  // filled in during resolution; non-null if the member overrides a member in a parent trait
+    public virtual bool IsOverrideThatAddsBody => OverriddenMember != null;
 
     /// <summary>
     /// Returns "true" if "this" is a (possibly transitive) override of "possiblyOverriddenMember".
@@ -5783,6 +5800,7 @@ namespace Microsoft.Dafny {
     public bool IsBuiltin;
     public Function OverriddenFunction;
     public Function Original => OverriddenFunction == null ? this : OverriddenFunction.Original;
+    public override bool IsOverrideThatAddsBody => base.IsOverrideThatAddsBody && Body != null;
 
     public bool containsQuantifier;
     public bool ContainsQuantifier {
@@ -6111,6 +6129,7 @@ namespace Microsoft.Dafny {
     public readonly ISet<IVariable> AssignedAssumptionVariables = new HashSet<IVariable>();
     public Method OverriddenMethod;
     public Method Original => OverriddenMethod == null ? this : OverriddenMethod.Original;
+    public override bool IsOverrideThatAddsBody => base.IsOverrideThatAddsBody && Body != null;
     private static BlockStmt emptyBody = new BlockStmt(Token.NoToken, Token.NoToken, new List<Statement>());
 
     public override IEnumerable<Expression> SubExpressions {
@@ -8915,6 +8934,7 @@ namespace Microsoft.Dafny {
   {
     public readonly Type UnresolvedType;
     private bool Implicit;
+    public Expression OriginalResolved;
 
     public StaticReceiverExpr(IToken tok, Type t, bool isImplicit)
       : base(tok) {
@@ -8922,6 +8942,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(t != null);
       UnresolvedType = t;
       Implicit = isImplicit;
+      OriginalResolved = null;
     }
 
     /// <summary>
@@ -8952,7 +8973,7 @@ namespace Microsoft.Dafny {
     ///   a trait that in turn extends trait "W(g(Y))".  If "t" denotes type "C(G)" and "cl" denotes "W",
     ///   then type of the StaticReceiverExpr will be "T(g(f(G)))".
     /// </summary>
-    public StaticReceiverExpr(IToken tok, UserDefinedType t, TopLevelDeclWithMembers cl, bool isImplicit)
+    public StaticReceiverExpr(IToken tok, UserDefinedType t, TopLevelDeclWithMembers cl, bool isImplicit, Expression lhs = null)
       : base(tok) {
       Contract.Requires(tok != null);
       Contract.Requires(t.ResolvedClass != null);
@@ -8971,6 +8992,7 @@ namespace Microsoft.Dafny {
       }
       UnresolvedType = Type;
       Implicit = isImplicit;
+      OriginalResolved = lhs;
     }
 
     public override bool IsImplicit {
@@ -12061,25 +12083,38 @@ namespace Microsoft.Dafny {
       exprs.Iter(Visit);
     }
     public void Visit(ICallable decl) {
-      if (decl is Function) {
-        Visit((Function)decl);
-      } else if (decl is Method) {
-        Visit((Method)decl);
+      if (decl is Function f) {
+        Visit(f);
+      } else if (decl is Method m) {
+        Visit(m);
+      } else if (decl is TypeSynonymDecl tsd) {
+        Visit(tsd);
+      } else if (decl is NewtypeDecl ntd) {
+        Visit(ntd);
       }
       //TODO More?
     }
+
+    public void Visit(SubsetTypeDecl ntd) {
+      if (ntd.Constraint != null) Visit(ntd.Constraint);
+      if (ntd.Witness != null) Visit(ntd.Witness);
+    }
+    public void Visit(NewtypeDecl ntd) {
+      if (ntd.Constraint != null) Visit(ntd.Constraint);
+      if (ntd.Witness != null) Visit(ntd.Witness);
+    }
     public void Visit(Method method) {
-      Visit(method.Ens);
       Visit(method.Req);
       Visit(method.Mod.Expressions);
+      Visit(method.Ens);
       Visit(method.Decreases.Expressions);
       if (method.Body != null) { Visit(method.Body); }
       //TODO More?
     }
     public void Visit(Function function) {
-      Visit(function.Ens);
       Visit(function.Req);
       Visit(function.Reads);
+      Visit(function.Ens);
       Visit(function.Decreases.Expressions);
       if (function.Body != null) { Visit(function.Body); }
       //TODO More?
