@@ -30,7 +30,7 @@ method Casts(u0:uint64)
   var r0:bv64 := u0 as bv64 << 1;
   as_int_as_bv64(u0 as bv64 << 1);
   var r1:uint64 := (u0 as bv64 << 1) as uint64;
-  print r1;
+  print r0, r1;
 }
 
 method Main() {
