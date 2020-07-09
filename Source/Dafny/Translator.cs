@@ -7163,8 +7163,10 @@ namespace Microsoft.Dafny {
         options = new WFOptions(false, options);
       }
 
-      if (expr is StaticReceiverExpr) {
-        // yeah, it's okay
+      if (expr is StaticReceiverExpr stexpr) {
+        if (stexpr.OriginalResolved != null) {
+          CheckWellformedWithResult(stexpr.OriginalResolved, options, null, null, locals, builder, etran);
+        }
       } else if (expr is LiteralExpr) {
         CheckResultToBeInType(expr.tok, expr, expr.Type, locals, builder, etran);
       } else if (expr is ThisExpr || expr is WildcardExpr || expr is BoogieWrapper) {
@@ -12205,6 +12207,10 @@ namespace Microsoft.Dafny {
           }
         }
         ins.Add(etran.TrExpr(receiver));
+      } else if (receiver is StaticReceiverExpr stexpr) {
+        if (stexpr.OriginalResolved != null) {
+          TrStmt_CheckWellformed(stexpr.OriginalResolved, builder, locals, etran, true);
+        }
       }
 
       // Ideally, the modifies and decreases checks would be done after the precondition check,

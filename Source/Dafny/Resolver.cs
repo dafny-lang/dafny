@@ -5577,6 +5577,13 @@ namespace Microsoft.Dafny
               resolver.reporter.Error(MessageSource.Resolver, e.tok, "bitvector literal ({0}) is too large for the type {1}", e.Value, t);
             }
           }
+
+          if (expr is StaticReceiverExpr stexpr) {
+            if (stexpr.OriginalResolved != null) {
+              Visit(stexpr.OriginalResolved);
+            }
+          }
+
         } else if (expr is ComprehensionExpr) {
           var e = (ComprehensionExpr)expr;
           foreach (var bv in e.BoundVars) {
@@ -14429,7 +14436,7 @@ namespace Microsoft.Dafny
             receiver = expr.Lhs;
             r = ResolveExprDotCall(expr.tok, receiver, tentativeReceiverType, member, args, expr.OptTypeArguments, opts, allowMethodCall);
           } else {
-            receiver = new StaticReceiverExpr(expr.tok, (UserDefinedType)tentativeReceiverType, (TopLevelDeclWithMembers)member.EnclosingClass, false);
+            receiver = new StaticReceiverExpr(expr.tok, (UserDefinedType)tentativeReceiverType, (TopLevelDeclWithMembers)member.EnclosingClass, false, lhs);
             r = ResolveExprDotCall(expr.tok, receiver, null, member, args, expr.OptTypeArguments, opts, allowMethodCall);
           }
         }
