@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Text;
 using DiffPlex;
 using DiffPlex.DiffBuilder;
@@ -20,19 +21,23 @@ namespace DafnyTests {
   public class DafnyTestCase : IXunitSerializable {
 
     private static DirectoryInfo OUTPUT_ROOT = new DirectoryInfo(Directory.GetCurrentDirectory());
-    private static string DAFNY_ROOT = OUTPUT_ROOT.Parent.Parent.Parent.Parent.FullName;
+    private static bool IS_NET_CORE => RuntimeInformation.FrameworkDescription.StartsWith(".NET Core", StringComparison.OrdinalIgnoreCase);
+    // TODO-RS: This is an ugly method of locating the project root - .NET Core happens to
+    // have the current directly one level deeper. The proper fix is to run entirely out of
+    // the output directory, and the projects are at least partially configured to make that possible,
+    // but it's not quite working yet.
+    private static string DAFNY_ROOT = IS_NET_CORE ? 
+      OUTPUT_ROOT.Parent.Parent.Parent.Parent.Parent.FullName :
+      OUTPUT_ROOT.Parent.Parent.Parent.Parent.FullName;
 
-    public static string TEST_ROOT = Path.Combine(DAFNY_ROOT, "Test") + Path.DirectorySeparatorChar;
+    public static readonly string TEST_ROOT = Path.Combine(DAFNY_ROOT, "Test") + Path.DirectorySeparatorChar;
     public static string COMP_DIR = Path.Combine(TEST_ROOT, "comp") + Path.DirectorySeparatorChar;
     private static string OUTPUT_DIR = Path.Combine(TEST_ROOT, "Output") + Path.DirectorySeparatorChar;
-
+    
     private static string DAFNY_EXE = Path.Combine(DAFNY_ROOT, "Binaries/Dafny.exe");
         
     public string DafnyFile;
     public string[] Arguments;
-    
-    // May be null if the test is only doing verification
-    private readonly string CompileTarget;
     
     // May be null if the test doesn't need to check the output
     public string ExpectedOutputFile;
@@ -43,15 +48,14 @@ namespace DafnyTests {
     public DafnyTestCase(string dafnyFile, Dictionary<string, string> config, string compileTarget) {
       DafnyFile = dafnyFile;
       var fullDafnyFilePath = Path.Combine(TEST_ROOT, DafnyFile);
-      CompileTarget = compileTarget;
 
       config.TryGetValue("expect", out ExpectedOutputFile);
       config.Remove("expect");
       if (ExpectedOutputFile == null) {
         ExpectedOutputFile = dafnyFile + ".expect";
         if (compileTarget != null) {
-          var specialCasePath = fullDafnyFilePath + "." + compileTarget + ".expect";
-          if (File.Exists(specialCasePath)) {
+          var specialCasePath = dafnyFile + "." + compileTarget + ".expect";
+          if (File.Exists(Path.Combine(TEST_ROOT, specialCasePath))) {
             SpecialCase = true;
             ExpectedOutputFile = specialCasePath;
           }
@@ -67,7 +71,9 @@ namespace DafnyTests {
         // Include any additional files
         var additionalFilesPath = fullDafnyFilePath + "." + compileTarget + ".files";
         if (Directory.Exists(additionalFilesPath)) {
-          Arguments = Arguments.Concat(Directory.GetFiles(additionalFilesPath)).ToArray();
+          var relativePaths = Directory.GetFiles(additionalFilesPath)
+            .Select(path => DafnyTests.GetRelativePath(TEST_ROOT, path));
+          Arguments = Arguments.Concat(relativePaths).ToArray();
         }
       }
     }
@@ -199,7 +205,7 @@ namespace DafnyTests {
           yield return new DafnyTestCase(filePath, withLanguage, compileTarget);
         }
       } else {
-        var compileTarget = config["compileTarget"]?.ToString();
+        config.TryGetValue("compileTarget", out var compileTarget);
         config["compile"] = compile;
         yield return new DafnyTestCase(filePath, config, compileTarget);
       }
@@ -254,7 +260,7 @@ namespace DafnyTests {
     }
 
     // TODO-RS: Replace with Path.GetRelativePath() if we move to .NET Core 3.1
-    private static string GetRelativePath(string relativeTo, string path) {
+    public static string GetRelativePath(string relativeTo, string path) {
       var fullRelativeTo = Path.GetFullPath(relativeTo);
       var fullPath = Path.GetFullPath(path);
       Assert.StartsWith(fullRelativeTo, fullPath);
