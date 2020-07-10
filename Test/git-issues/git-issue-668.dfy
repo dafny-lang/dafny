@@ -3,7 +3,7 @@
 
 class X {
   function method F(): int { 2 }
-  var J: int;
+  var J: int
 }
 
 class K { }

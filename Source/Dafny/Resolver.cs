@@ -14536,7 +14536,7 @@ namespace Microsoft.Dafny
           Expression receiver;
           if (!member.IsStatic) {
             receiver = expr.Lhs;
-            AddAssignableConstraint(expr.tok, tentativeReceiverType, receiver.Type, "receiver type does not have a member named " + name);
+            AddAssignableConstraint(expr.tok, tentativeReceiverType, receiver.Type, "receiver type ({1}) does not have a member named " + name);
             r = ResolveExprDotCall(expr.tok, receiver, tentativeReceiverType, member, args, expr.OptTypeArguments, opts, allowMethodCall);
           } else {
             receiver = new StaticReceiverExpr(expr.tok, (UserDefinedType)tentativeReceiverType, (TopLevelDeclWithMembers)member.EnclosingClass, false, lhs);
