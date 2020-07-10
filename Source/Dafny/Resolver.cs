@@ -4749,7 +4749,94 @@ namespace Microsoft.Dafny
             }
             break;
 
-          case 11:
+          case 11: {
+            // Last resort decisions. Sometimes get here even with some 'obvious' 
+            // inferences. Before this case was added, the type inference returned with
+            // failure, so this is a conservative addition, and could be made more
+            // capable.
+            if (!allowDecisions) break;
+            foreach (var c in AllXConstraints) {
+              if (c.ConstraintName == "EquatableArg") {
+                ConstrainSubtypeRelation_Equal(c.Types[0], c.Types[1], c.errorMsg);
+                anyNewConstraints = true;
+                AllXConstraints.Remove(c);
+                break;
+              }
+            }
+            if (anyNewConstraints) break;
+            var ss = new HashSet<Type>();
+            foreach (var c in AllTypeConstraints) {
+              var super = c.Super.NormalizeExpand();
+              var sub = c.Sub.NormalizeExpand();
+              if (super is TypeProxy && !ss.Contains(super)) ss.Add(super);
+              if (sub is TypeProxy && !ss.Contains(sub)) ss.Add(sub);
+            }
+
+            foreach (var t in ss) {
+              var lowers = new HashSet<Type>();
+              var uppers = new HashSet<Type>();
+              foreach (var c in AllTypeConstraints) {
+                var super = c.Super.NormalizeExpand();
+                var sub = c.Sub.NormalizeExpand();
+                if (t.Equals(super)) lowers.Add(sub);
+                if (t.Equals(sub)) uppers.Add(super);
+              }
+
+              bool done = false;
+              foreach (var tl in lowers) {
+                foreach (var tu in uppers) {
+                  if (tl.Equals(tu)) {
+                    if (!ContainsAsTypeParameter(tu, t)) {
+                      ConstrainSubtypeRelation_Equal(t, tu, null);
+                      // The above changes t so that it is a proxy with an assigned type
+                      anyNewConstraints = true;
+                      done = true;
+                      break;
+                    }
+                  }
+                }
+                if (done) break;
+              }
+            }
+            if (anyNewConstraints) break;
+            foreach (var t in ss) {
+              var lowers = new HashSet<Type>();
+              var uppers = new HashSet<Type>();
+              foreach (var c in AllTypeConstraints) {
+                var super = c.Super.NormalizeExpand();
+                var sub = c.Sub.NormalizeExpand();
+                if (t.Equals(super)) lowers.Add(sub);
+                if (t.Equals(sub)) uppers.Add(super);
+              }
+
+              if (uppers.Count == 0) {
+                if (lowers.Count == 1) {
+                  var em = lowers.GetEnumerator();
+                  em.MoveNext();
+                  if (!ContainsAsTypeParameter(em.Current, t)) {
+                    ConstrainSubtypeRelation_Equal(t, em.Current, null);
+                    anyNewConstraints = true;
+                    break;
+                  }
+                }
+              }
+              if (lowers.Count == 0) {
+                if (uppers.Count == 1) {
+                  var em = uppers.GetEnumerator();
+                  em.MoveNext();
+                  if (!ContainsAsTypeParameter(em.Current, t)) {
+                    ConstrainSubtypeRelation_Equal(t, em.Current, null);
+                    anyNewConstraints = true;
+                    break;
+                  }
+                }
+              }
+            }
+
+            break;
+          }
+ 
+          case 12:
             // we're so out of here
             return;
         }
@@ -4759,6 +4846,21 @@ namespace Microsoft.Dafny
           state++;
         }
       }
+    }
+
+    private bool ContainsAsTypeParameter(Type t, Type u) {
+      if (t.Equals(u)) return true;
+      if (t is UserDefinedType udt) {
+        foreach (var tp in udt.TypeArgs) {
+          if (ContainsAsTypeParameter(tp, u)) return true;
+        }
+      }
+      if (t is CollectionType st) {
+        foreach (var tp in st.TypeArgs) {
+          if (ContainsAsTypeParameter(tp, u)) return true;
+        }
+      }
+      return false;
     }
 
     private void AddAllProxies(Type type, HashSet<TypeProxy> proxies) {
