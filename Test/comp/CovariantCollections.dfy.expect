@@ -1,5 +1,5 @@
 
-Dafny program verifier finished with 2 verified, 0 errors
+Dafny program verifier finished with 0 verified, 0 errors
 Sequences: [] [_module.Integer, _module.Integer, _module.Integer, _module.Integer] [_module.Integer, _module.Integer]
   cardinality: 0 4 2
   update: [_module.Integer, _module.Integer, _module.Integer, _module.Integer] [_module.Integer, _module.Integer]

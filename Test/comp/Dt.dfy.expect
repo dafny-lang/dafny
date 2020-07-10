@@ -1,5 +1,5 @@
 
-Dafny program verifier finished with 12 verified, 0 errors
+Dafny program verifier finished with 0 verified, 0 errors
 List.Nil
 List.Cons(5, List.Nil)
 (List.Nil, List.Cons(5, List.Nil))

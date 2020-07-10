@@ -7,12 +7,49 @@
 
     <ItemGroup>
         <PackageReference Include="Diff.Match.Patch" Version="2.1.0" />
+        <PackageReference Include="DiffPlex" Version="1.6.3" />
         <PackageReference Include="Microsoft.NET.Test.Sdk" Version="15.9.0" />
         <PackageReference Include="xunit" Version="2.4.1" />
         <PackageReference Include="xunit.runner.visualstudio" Version="2.4.1" />
         <PackageReference Include="Xunit.SkippableFact" Version="1.4.8" />
         <PackageReference Include="YamlDotNet" Version="8.1.2" />
 <!--        <ProjectReference Include="../../Source/DafnyDriver/DafnyDriver.csproj" />-->
+    </ItemGroup>
+
+    <ItemGroup>
+      <_UnmanagedRegistrationCache Remove="obj_core\DafnyTests-NetCore.csproj.UnmanagedRegistration.cache" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <_ResolveComReferenceCache Remove="obj_core\Debug\netcoreapp2.1\DafnyTests-NetCore.csproj.ResolveComReference.cache" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <IntermediateAssembly Remove="obj_core\Debug\netcoreapp2.1\DafnyTests.dll" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <_DebugSymbolsIntermediatePath Remove="obj_core\Debug\netcoreapp2.1\DafnyTests.pdb" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <_DeploymentManifestEntryPoint Remove="obj_core\Debug\netcoreapp2.1\DafnyTests.dll" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <ApplicationManifest Remove="obj_core\Debug\netcoreapp2.1\Native.DafnyTests.manifest" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <DeployManifest Remove="obj_core\Debug\netcoreapp2.1\DafnyTests.application" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <ClsidMap Remove="obj_core\Debug\netcoreapp2.1\DafnyTests.clsidmap" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <RegFreeComManifest Remove="obj_core\Debug\netcoreapp2.1\DafnyTests.X.manifest" />
     </ItemGroup>
 
 <!--    <ItemGroup>-->

@@ -1,5 +1,5 @@
 
-Dafny program verifier finished with 16 verified, 0 errors
+Dafny program verifier finished with 0 verified, 0 errors
 x=13 y=14
 x=13 y=14 b=yes
 p=(13, 14)

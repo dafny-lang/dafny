@@ -1,5 +1,5 @@
 
-Dafny program verifier finished with 6 verified, 0 errors
+Dafny program verifier finished with 0 verified, 0 errors
 0: BranchCoverage.dfy(13,18): entry to method _module.MyClass._ctor
 1: BranchCoverage.dfy(19,22): entry to method _module._default.NeverCalled
 2: BranchCoverage.dfy(25,3): entry to function _module._default.FunctionNeverCalled

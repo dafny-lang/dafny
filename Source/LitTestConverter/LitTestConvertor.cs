@@ -15,13 +15,6 @@ namespace DafnyTests {
     private const string DAFNY_COMPILE_TARGET = "/compileTarget:";
 
     private static readonly string[] IGNORED_DAFNY_COMMAND_ARGUMENTS = {
-      "/print:\"%t.print\"", 
-      "/dprint:\"%t.dprint\"",
-      "/dprint:\"%t.dfy\"",
-      "/rprint:\"%t.rprint\"", 
-      "/rprint:\"%t.dprint\"",
-      "/dprint:\"%t.dprint.dfy\"",
-          
       "\"%s\"", ">", ">>", "\"%t\""
     };
 
@@ -33,6 +26,7 @@ namespace DafnyTests {
       "/definiteAssignment",
       "/dprint",
       "/env",
+      "/errorLimit",
       "/errorTrace",
       "/ironDafny",
       "/noNLarith",
@@ -41,6 +35,7 @@ namespace DafnyTests {
       "/optimizeResolution",
       "/print",
       "/printTooltips",
+      "/restartProver",
       "/rprint",
       "/traceCaching",
       "/tracePOs",
