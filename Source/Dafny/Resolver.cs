@@ -4786,11 +4786,13 @@ namespace Microsoft.Dafny
               foreach (var tl in lowers) {
                 foreach (var tu in uppers) {
                   if (tl.Equals(tu)) {
-                    ConstrainSubtypeRelation_Equal(t, tu, null);
-                    // The above changes t so that it is a proxy with an assigned type
-                    anyNewConstraints = true;
-                    done = true;
-                    break;
+                    if (!ContainsAsTypeParameter(tu, t)) {
+                      ConstrainSubtypeRelation_Equal(t, tu, null);
+                      // The above changes t so that it is a proxy with an assigned type
+                      anyNewConstraints = true;
+                      done = true;
+                      break;
+                    }
                   }
                 }
                 if (done) break;
@@ -4811,18 +4813,22 @@ namespace Microsoft.Dafny
                 if (lowers.Count == 1) {
                   var em = lowers.GetEnumerator();
                   em.MoveNext();
-                  ConstrainSubtypeRelation_Equal(t, em.Current, null);
-                  anyNewConstraints = true;
-                  break;
+                  if (!ContainsAsTypeParameter(em.Current, t)) {
+                    ConstrainSubtypeRelation_Equal(t, em.Current, null);
+                    anyNewConstraints = true;
+                    break;
+                  }
                 }
               }
               if (lowers.Count == 0) {
                 if (uppers.Count == 1) {
                   var em = uppers.GetEnumerator();
                   em.MoveNext();
-                  ConstrainSubtypeRelation_Equal(t, em.Current, null);
-                  anyNewConstraints = true;
-                  break;
+                  if (!ContainsAsTypeParameter(em.Current, t)) {
+                    ConstrainSubtypeRelation_Equal(t, em.Current, null);
+                    anyNewConstraints = true;
+                    break;
+                  }
                 }
               }
             }
@@ -4840,6 +4846,21 @@ namespace Microsoft.Dafny
           state++;
         }
       }
+    }
+
+    private bool ContainsAsTypeParameter(Type t, Type u) {
+      if (t.Equals(u)) return true;
+      if (t is UserDefinedType udt) {
+        foreach (var tp in udt.TypeArgs) {
+          if (ContainsAsTypeParameter(tp, u)) return true;
+        }
+      }
+      if (t is CollectionType st) {
+        foreach (var tp in st.TypeArgs) {
+          if (ContainsAsTypeParameter(tp, u)) return true;
+        }
+      }
+      return false;
     }
 
     private void AddAllProxies(Type type, HashSet<TypeProxy> proxies) {
