@@ -64,7 +64,7 @@ namespace Microsoft.Dafny
     public List<string> DafnyPrintExportedViews = new List<string>();
     public bool Compile = true;
     [Flags]
-    public enum CompilationTarget { Csharp = 1, JavaScript = 2, Go = 4, Java = 8, Php = 16 }
+    public enum CompilationTarget { Csharp = 1, JavaScript = 2, Go = 4, Java = 8, Cpp = 16, Php = 32 }
     public CompilationTarget CompileTarget = CompilationTarget.Csharp;
     public bool CompileVerbose = true;
     public string DafnyPrintCompiledFile = null;
@@ -181,6 +181,8 @@ namespace Microsoft.Dafny
               CompileTarget = CompilationTarget.Go;
             } else if (args[ps.i].Equals("java")) {
               CompileTarget = CompilationTarget.Java;
+            } else if (args[ps.i].Equals("cpp")) {
+              CompileTarget = CompilationTarget.Cpp;  
             } else if (args[ps.i].Equals("php")) {
               CompileTarget = CompilationTarget.Php;
             } else {
@@ -670,7 +672,12 @@ namespace Microsoft.Dafny
                 go - Compilation to Go
                 js - Compilation to JavaScript
                 java - Compilation to Java
+                cpp - Compilation to C++
                 php - Compilation to PHP
+
+                Note that the C++ backend has various limitations (see Docs/Compilation/Cpp.md).
+                This includes lack of support for BigIntegers (aka int), most higher order
+                functions, and advanced features like traits or co-inductive types.
   /compileVerbose:<n>
                 0 - don't print status of compilation to the console
                 1 (default) - print information such as files being written by

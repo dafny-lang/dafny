@@ -123,5 +123,9 @@ Execution trace:
     (0,0): anon0
     (0,0): anon4_Then
     (0,0): anon3
+Basics.dfy(13,13): Error: variable 'g', which is subject to definite-assignment rules, might be used before it has been assigned
+Execution trace:
+    (0,0): anon0
+    (0,0): anon7_Then
 
-Dafny program verifier finished with 46 verified, 18 errors
+Dafny program verifier finished with 45 verified, 19 errors

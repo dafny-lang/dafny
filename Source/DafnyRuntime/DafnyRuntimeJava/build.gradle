@@ -15,7 +15,6 @@ dependencies {
 }
 
 group = 'dafny.lang'
-version = '1'
 sourceCompatibility = '1.8'
 
 tasks.withType(JavaCompile) {
@@ -28,7 +27,7 @@ test {
 
 task copyJarToBinaries {
     copy {
-        from 'build/libs/DafnyRuntime-1.jar'
+        from 'build/libs/DafnyRuntime.jar'
         into '../../../Binaries'
     }
 }
