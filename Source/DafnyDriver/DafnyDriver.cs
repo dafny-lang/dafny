@@ -402,7 +402,7 @@ namespace Microsoft.Dafny
         Console.WriteLine();
         Console.Out.Flush();
       } else {
-        // This calls a routine within Boogiemk
+        // This calls a routine within Boogie
         ExecutionEngine.printer.WriteTrailer(stats);
       }
     }
