@@ -46,10 +46,10 @@ jobs:
         unzip z3*.zip && rm *.zip
         cp -r z3* dafny/Binaries/z3
     - name: Nuget Restore Dafny
-      run: nuget restore dafny/Dafny.sln
+      run: nuget restore dafny/Source/Dafny.sln
     - name: Build Dafny
-      run: msbuild dafny/Dafny.sln
+      run: msbuild dafny/Source/Dafny.sln
     - uses: actions/setup-node@v1
     - run: npm install bignumber.js
     - name: Run Dafny tests
-      run: XUNIT_SHARD=${{ matrix.shard }} XUNIT_SHARD_COUNT=5 msbuild -t:Test dafny/Test/DafnyTests/DafnyTests.csproj
+      run: XUNIT_SHARD=${{ matrix.shard }} XUNIT_SHARD_COUNT=5 msbuild -t:Test dafny/Source/DafnyTests/DafnyTests.csproj
