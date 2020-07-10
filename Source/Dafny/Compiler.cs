@@ -93,7 +93,7 @@ namespace Microsoft.Dafny {
       BlockTargetWriter/*?*/ CreateMethod(Method m, List<TypeParameter> typeArgs, bool createBody, bool forBodyInheritance);
       BlockTargetWriter/*?*/ CreateFunction(string name, List<TypeParameter> typeArgs, List<Formal> formals, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody,
         MemberDecl member, bool forBodyInheritance = false);
-      BlockTargetWriter/*?*/ CreateGetter(string name, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl/*?*/ member, bool forBodyInheritance);  // returns null iff !createBody
+      BlockTargetWriter/*?*/ CreateGetter(string name, TopLevelDecl enclosingDecl, Type resultType, Bpl.IToken tok, bool isStatic, bool isConst, bool createBody, MemberDecl/*?*/ member, bool forBodyInheritance);  // returns null iff !createBody
       BlockTargetWriter/*?*/ CreateGetterSetter(string name, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl/*?*/ member, out TargetWriter setterWriter, bool forBodyInheritance);  // if createBody, then result and setterWriter are non-null, else both are null
       void DeclareField(string name, TopLevelDecl enclosingDecl, bool isStatic, bool isConst, Type type, Bpl.IToken tok, string rhs, Field/*?*/ field);
       /// <summary>
@@ -927,7 +927,7 @@ namespace Microsoft.Dafny {
       public BlockTargetWriter/*?*/ CreateFunction(string name, List<TypeParameter> typeArgs, List<Formal> formals, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl member, bool forBodyInheritance) {
         return createBody ? block : null;
       }
-      public BlockTargetWriter/*?*/ CreateGetter(string name, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl/*?*/ member, bool forBodyInheritance) {
+      public BlockTargetWriter/*?*/ CreateGetter(string name, TopLevelDecl enclosingDecl, Type resultType, Bpl.IToken tok, bool isStatic, bool isConst, bool createBody, MemberDecl/*?*/ member, bool forBodyInheritance) {
         return createBody ? block : null;
       }
       public BlockTargetWriter/*?*/ CreateGetterSetter(string name, Type resultType, Bpl.IToken tok, bool isStatic, bool createBody, MemberDecl/*?*/ member, out TargetWriter setterWriter, bool forBodyInheritance) {
@@ -1151,7 +1151,7 @@ namespace Microsoft.Dafny {
               Contract.Assert(!cf.IsStatic); // as checked above, only instance members can be inherited
               classWriter.DeclareField("_" + cf.CompileName, c, false, false, cfType, cf.tok, DefaultValue(cfType, errorWr, cf.tok, true), cf);
             }
-            var w = classWriter.CreateGetter(IdName(cf), cf.Type, cf.tok, false, true, null, true);
+            var w = classWriter.CreateGetter(IdName(cf), c, cf.Type, cf.tok, false, true, true, null, true);
             Contract.Assert(w != null);  // since the previous line asked for a body
             if (cf.Rhs == null) {
               var sw = EmitReturnExpr(w);
@@ -1227,7 +1227,7 @@ namespace Microsoft.Dafny {
             } else {
               BlockTargetWriter wBody;
               if (cf.IsStatic) {
-                wBody = classWriter.CreateGetter(IdName(cf), cf.Type, cf.tok, true, true, cf, false);
+                wBody = classWriter.CreateGetter(IdName(cf), c, cf.Type, cf.tok, true, true, true, cf, false);
                 Contract.Assert(wBody != null);  // since the previous line asked for a body
               } else if (NeedsCustomReceiver(cf)) {
                 // An instance field in a newtype needs to be modeled as a static function that takes a parameter,
@@ -1238,19 +1238,19 @@ namespace Microsoft.Dafny {
                 Contract.Assert(wBody != null);  // since the previous line asked for a body
                 if (c is TraitDecl) {
                   // also declare a function for the field in the interface
-                  var wBodyInterface = classWriter.CreateGetter(IdName(cf), cf.Type, cf.tok, false, false, cf, false);
+                  var wBodyInterface = classWriter.CreateGetter(IdName(cf), c, cf.Type, cf.tok, false, true, false, cf, false);
                   Contract.Assert(wBodyInterface == null);  // since the previous line said not to create a body
                 }
               } else if (c is TraitDecl) {
-                wBody = classWriter.CreateGetter(IdName(cf), cf.Type, cf.tok, false, false, cf, false);
+                wBody = classWriter.CreateGetter(IdName(cf), c, cf.Type, cf.tok, false, true, false, cf, false);
                 Contract.Assert(wBody == null);  // since the previous line said not to create a body
               } else if (cf.Rhs == null) {
                 // create a backing field, since this constant field may be assigned in constructors
                 classWriter.DeclareField("_" + f.CompileName, c, false, false, f.Type, f.tok, DefaultValue(f.Type, errorWr, f.tok, true), f);
-                wBody = classWriter.CreateGetter(IdName(cf), cf.Type, cf.tok, false, true, cf, false);
+                wBody = classWriter.CreateGetter(IdName(cf), c, cf.Type, cf.tok, false, true, true, cf, false);
                 Contract.Assert(wBody != null);  // since the previous line asked for a body
               } else {
-                wBody = classWriter.CreateGetter(IdName(cf), cf.Type, cf.tok, false, true, cf, false);
+                wBody = classWriter.CreateGetter(IdName(cf), c, cf.Type, cf.tok, false, true, true, cf, false);
                 Contract.Assert(wBody != null);  // since the previous line asked for a body
               }
               if (wBody != null) {
@@ -1353,7 +1353,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(classWriter != null);
 
       if (member is ConstantField cf) {
-        var wBody = classWriter.CreateGetter(IdName(cf), cf.Type, cf.tok, false, false, cf, false);
+        var wBody = classWriter.CreateGetter(IdName(cf), member.EnclosingClass, cf.Type, cf.tok, false, true, false, cf, false);
         Contract.Assert(wBody == null); // since the previous line said not to create a body
       } else if (member is Field field) {
         TargetWriter wSet;
@@ -3922,7 +3922,7 @@ namespace Microsoft.Dafny {
             wr.Write(")");
           } else {
             void writeObj(TargetWriter w) {
-              Contract.Assert(!sf.IsStatic);
+              //Contract.Assert(!sf.IsStatic);
               w = EmitCoercionIfNecessary(e.Obj.Type, UserDefinedType.UpcastToMemberEnclosingType(e.Obj.Type, e.Member), e.tok, w);
               TrParenExpr(e.Obj, w, inLetExprBody);
             }
