@@ -172,7 +172,8 @@ namespace DafnyTests {
       }
 
       return configs.SelectMany(config => ResolveCompile(filePath, config))
-                    .Select(t => new object[] {t.DafnyFile, t.Arguments, t.ExpectedOutputFile});
+//                    .Select(t => new object[] {t.DafnyFile, t.Arguments, t.ExpectedOutputFile});
+                    .Select(t => new object[] {t});
     }
 
     private static Dictionary<string, string> ToDictionary(YamlNode node) {
@@ -269,11 +270,12 @@ namespace DafnyTests {
 
     [ParallelTheory]
     [MemberData(nameof(AllTestFiles))]
-    public static void Test(string dafnyFile, string[] arguments, string expectedOutputFile) {
-      var testCase = new DafnyTestCase();
-      testCase.DafnyFile = dafnyFile;
-      testCase.Arguments = arguments;
-      testCase.ExpectedOutputFile = expectedOutputFile;
+    public static void Test(DafnyTestCase testCase) {
+//    public static void Test(string dafnyFile, string[] arguments, string expectedOutputFile) {
+//      var testCase = new DafnyTestCase();
+//      testCase.DafnyFile = dafnyFile;
+//      testCase.Arguments = arguments;
+//      testCase.ExpectedOutputFile = expectedOutputFile;
       testCase.Run();
     }
   }
