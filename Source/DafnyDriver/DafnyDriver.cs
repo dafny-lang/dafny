@@ -190,6 +190,14 @@ namespace Microsoft.Dafny
               extension == null ? "" : extension);
             return CommandLineArgumentsResult.PREPROCESSING_ERROR;
           }
+        } else if (DafnyOptions.O.CompileTarget == DafnyOptions.CompilationTarget.Cpp) {
+          if (extension == ".h") {
+            otherFiles.Add(file);
+          } else if (!isDafnyFile) {
+            ExecutionEngine.printer.ErrorWriteLine(Console.Out, "*** Error: '{0}': Filename extension '{1}' is not supported. Input files must be Dafny programs (.dfy) or C headers (.h)", file,
+              extension == null ? "" : extension);
+            return CommandLineArgumentsResult.PREPROCESSING_ERROR;
+          }
         } else if (DafnyOptions.O.CompileTarget == DafnyOptions.CompilationTarget.Php) {
           if (extension == ".php") {
             otherFiles.Add(file);
@@ -527,11 +535,16 @@ namespace Microsoft.Dafny
           targetExtension = "php";
           targetBaseDir = baseName;
           break;
+        case DafnyOptions.CompilationTarget.Cpp:
+          targetExtension = "cpp";
+          break;
         default:
           Contract.Assert(false);
           throw new cce.UnreachableException();
       }
-      string targetBaseName = Path.ChangeExtension(baseName, targetExtension);
+
+      // Note that using Path.ChangeExtension here does the wrong thing when dafnyProgramName has multiple periods (e.g., a.b.dfy)
+      string targetBaseName = baseName + "." + targetExtension;
       string targetDir = Path.Combine(Path.GetDirectoryName(dafnyProgramName), targetBaseDir);
       // WARNING: Make sure that Directory.Delete is only called when the compilation target is Java.
       // If called during C# or JS compilation, you will lose your entire target directory.
@@ -606,6 +619,9 @@ namespace Microsoft.Dafny
           break;
         case DafnyOptions.CompilationTarget.Java:
           compiler = new Dafny.JavaCompiler(dafnyProgram.reporter);
+          break;
+        case DafnyOptions.CompilationTarget.Cpp:
+          compiler = new Dafny.CppCompiler(dafnyProgram.reporter, otherFileNames);
           break;
       }
 
