@@ -1,0 +1,142 @@
+
+.jumbotron .highlight {
+    margin-top: 40px;
+    margin-bottom: 10px;
+}
+
+
+.jumbotron pre{
+    padding-left: 20px;
+    padding-right: 20px;
+    overflow: hidden;
+
+} 
+
+.jumbotron .play.btn-lg {
+    padding: 1px 1px;
+}
+
+body {
+  padding-top: 50px;
+  padding-bottom: 20px;
+}
+
+
+
+.jumbofooter {
+    padding: 48px 0px 48px 0px;
+    color: #FFF;
+}
+
+body {
+  font-family: sans-serif;
+  font-size: 10pt;
+  background-color: white;
+  color: black;
+}
+
+H1 {
+  font-size: 24pt;
+  counter-reset: h2count;
+  counter-increment: h1count;
+}
+
+
+
+H2 {
+  counter-reset: h3count;
+  counter-increment: h2count;
+  font-size: 18pt;
+}
+
+H3 {
+  counter-reset: h4count;
+  counter-increment: h3count;
+  font-size: 16pt;
+}
+
+H4 {
+  counter-increment: h4count;
+  font-size: 14pt; 
+  font-style: italic;
+  font-variant: small-caps;
+}
+
+table {
+  font-size: 10pt;
+}
+
+
+
+th {
+  font-weight: bolder;
+}
+
+TH.vertical_text{ text-align: center; -moz-transform=rotate(90deg); writing-mode=tb-rl; }
+
+
+kbd {
+  font-family: monospace;
+  font-weight: bold;
+}
+
+var {
+  font-style: italic;
+}
+
+ol {
+  margin-bottom: 1em;
+}
+
+dt {
+  font-weight: bold;
+  margin-top: 1em;
+}
+
+li {
+  margin-top: 0em;
+}
+
+
+
+
+span.control {
+  font-weight: bold;
+}
+
+span.name {
+  font-style: italic;
+  font-weight: bold;
+}
+
+span.action {
+  font-style: italic;
+}
+
+span.code {
+  font-family: monospace;
+}
+
+span.menu {
+  color: #660033;
+  font-weight: bold;
+}
+
+span.filefolder {
+  font-family: monospace;
+}
+
+blockquote {
+  background-color: #e8e8e8;
+  border: 1pt black;
+  margin: 2em; border: 1px solid black;
+  padding: 1em;
+}
+
+.tasks, .reference, .faq {
+  padding-left: 18px;
+  font-size: 14pt;
+  background-image:url(images/bullet14.png);
+  background-repeat: no-repeat;
+  background-position: left;
+ }
