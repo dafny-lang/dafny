@@ -1,3 +1,5 @@
+<p></p> <!-- avoids duplicate title -->
+
 # Collection Types
 
 Value types are types which represent some information that does not depend on

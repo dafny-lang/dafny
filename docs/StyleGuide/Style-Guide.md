@@ -1,3 +1,5 @@
+<font size="+4"><p style="text-align: center;">Dafny Style Guide</p></font>
+
 * toc
 {:toc}
 

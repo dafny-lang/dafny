@@ -1,3 +1,7 @@
+<p></p> <!-- avoids duplicate title -->  
+
+# Dafny compilation to C++
+
 The C++ backend was written assuming that it would primarily support writing
 C/C++ style code in Dafny, which leads to some limitations in the current
 implementation.

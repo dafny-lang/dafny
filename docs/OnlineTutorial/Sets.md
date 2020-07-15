@@ -1,3 +1,5 @@
+<p></p> <!-- avoids duplicate title -->
+
 # Sets
 
 Sets of various types form one of the core tools of verification for Dafny.
