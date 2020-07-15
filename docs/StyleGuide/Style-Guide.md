@@ -1,5 +1,3 @@
-<link rel="stylesheet" href="../assets/css/rmstyle.css">
-
 <font size="+4"><p style="text-align: center;">Dafny Style Guide</p></font>
 
 * toc
@@ -11,7 +9,7 @@ This style guide provides coding conventions for the Dafny code.
 
 ## Naming Convention
 Any **variables** are named with `camelCase`.
-```
+```dafny
 var minValue := 1;
 var cipherMessage := "Hello World";
 ```
@@ -30,7 +28,7 @@ static const MONTHS_IN_A_YEAR := 12
 
 ### Method Prefix
 Avoid redundant names when variables or methods are in a class/module.
-```
+```dafny
 class Integer {
 
     // The following method converts the given integer
@@ -189,6 +187,7 @@ The same rules apply to `function`, `predicate`, and `lemma` definitions.
 In a lot of cases, Dafny does not require parentheses around expressions. Here are some examples.
 
 * If-Else-While Statements
+
 ```
 // YES
 var i := 1;
@@ -212,6 +211,7 @@ while (i < 10) {
 ```
 
 * Statements That Take Expression Arguments
+
 ```
 // YES
 assert x < 100;
@@ -223,6 +223,7 @@ print(x);
 ```
 
 * Simple Boolean/Arithmetic Expressions
+
 ```
 // YES
 method Collatz(num: nat)
@@ -254,6 +255,7 @@ Avoid unnecessary whitespace inside expressions.
 
 #### Type Declaration
 A type declaration should have a form of `variableName: variableType`.
+
 ```
 // YES
 const one: int := 1
