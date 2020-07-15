@@ -24,10 +24,10 @@ description: >- # this means to ignore newlines until "baseurl:"
   This site contains links to Dafny documentation.
   The most significant is the Dafny Reference Manual.
 baseurl: "" # the subpath of your site, e.g. /blog
-url: "" # the base hostname & protocol for your site, e.g. http://example.com
+url: "https://dafny-lang.github.io/dafny" # the base hostname & protocol for your site, e.g. http://example.com
 
 # Build settings
-theme: jekyll-theme-minimal
+theme: minima
 
 header_pages:
     - about.md
