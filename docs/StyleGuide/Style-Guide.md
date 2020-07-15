@@ -90,7 +90,7 @@ However, if some members of a module are used very frequently, import it using `
 import opened Donut
 ...
 ```
-When a file uses two modules, and both of them define a method of the same name, do not import them `opened`.
+When a file uses two modules and both of them define a method of the same name, do not import them `opened`.
 ```
 import MyModule
 import YourModule
@@ -101,7 +101,7 @@ method MyMethod() {
 }
 ```
 
-In this case, if you want to shorten their name, import them with a shorthand name.
+In this case, if you want to shorten the module name, import it with a shorthand name.
 ```
 import M = MyModuleWithACumbersomeName
 import Y = YourModuleWithACumbersomeName
@@ -123,13 +123,13 @@ import opened Donut
 import Coffee
 ```
 
-Although not required, it's recommended to keep the order of `import`s and `include`s alphabetically, except when it
+Although not required, it's recommended to keep the order of `import`s and `include`s alphabetical, except when it
 makes more sense to group them logically.
 
 ## Indentation and Line Breaks
 
 ### Tabs or Spaces?
-Spaces are preferred over tabs. Tabs should only be used to remain consistent with the existing code with tabs.
+Spaces are preferred over tabs. Tabs should only be used to remain consistent with existing code containing tabs.
 
 Use 2 spaces for each indentation.
 
@@ -184,7 +184,7 @@ The same rules apply to `function`, `predicate`, and `lemma` definitions.
 
 ### Parentheses
 
-In a lot of cases, Dafny does not require parentheses around expressions. Here are some examples.
+In many cases, Dafny does not require parentheses around expressions. Here are some examples.
 
 * If-Else-While Statements
 
@@ -270,14 +270,14 @@ class {:extern} Util {
 }
 ```
 
-Note, if the type can be inferred by Dafny, leave it out, unless you think it provides
+If the type can be inferred by Dafny, leave it out, unless you think it provides
 useful documentation in the program. So, constant `one` above is better declared as
 ```
 const one := 1
 ```
 
 #### Function, Method, Predicate, and Lemma Declaration
-The `function`, `method`, `predicate`, and `lemma` definitions should have a form of
+The `function`, `method`, `predicate`, and `lemma` definitions should have the form 
 `FunctionName(parameterName: parameterType, ...)`.
 
 ```
@@ -288,7 +288,7 @@ function method Foo<int>(i: int): int
 function method Foo<int> (i : int) : int // unnecessary whitespace
 ```
 
-Avoid too little or too many whitespace that reduce the overall readability.
+Avoid too little or too much whitespace that reduces the overall readability.
 
 ```
 // YES
