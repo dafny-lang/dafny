@@ -11,11 +11,15 @@ layout: page
         }});
 </script>
 
+<link rel="stylesheet" href="../assets/main.css">
+
+<font size="+4"><p style="text-align: center;">Dafny Documentation</p></font>
+
 This site contains links to Dafny documentation
 
 * [Dafny Reference Manual](DafnyReferenceManual/DafnyRef)
 * [Style Guide for Dafny programs](StyleGuide/Style-Guide)
-* Dafny Tutorials
+* [Dafny Tutorials](https://www.rise4fun.com/Dafny/) -- meant to be used within the [Rise4Fun web site](https://www.rise4fun.com/Dafny/), though they can be read directly as well.
    * [Introduction to Dafny](OnlineTutorial/guide)
    * [Value Types](OnlineTutorial/ValueTypes)
    * [Sets](OnlineTutorial/Sets)

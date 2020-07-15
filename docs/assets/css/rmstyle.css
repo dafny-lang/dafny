@@ -3,8 +3,9 @@ code {
 }
 
 language-plaintext { 
-  background-color: #e6ecff;
+  color: red; 
 }
+
 
 .jumbotron .highlight {
     margin-top: 40px;

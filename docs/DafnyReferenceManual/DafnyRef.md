@@ -1,4 +1,4 @@
-<link rel="stylesheet" href="../assets/css/rmstyle.css">
+<link rel="stylesheet" href="../assets/main.css">
 <script src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML" type="text/javascript"></script>
 
 <font size="+4"><p style="text-align: center;">Dafny Reference Manual</p></font> <!-- PDFOMIT -->
