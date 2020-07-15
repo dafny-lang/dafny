@@ -5,7 +5,7 @@
     {%- assign page_paths = site.header_pages | default: default_paths -%}
     {%- assign titles_size = site.pages | map: 'title' | join: '' | size -%}
     <font size="+1">
-    <a class="site-title" rel="author" href="{{ "/" | relative_url }}">{{ site.title | escape }}</a>
+    <a class="site-title" rel="author" href="{{ site.url | relative_url }}">{{ site.title | escape }}</a>
     </font>
 
 {% comment %}
@@ -33,4 +33,3 @@
 {% endcomment %}
   </div>
 </header>
-<p></p> <!-- avoids duplicate title -->
