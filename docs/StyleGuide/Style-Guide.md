@@ -5,7 +5,7 @@
 
 This style guide provides coding conventions for the Dafny code.
 
-*This documentation is still in progress. Please feel free to add any more suggestions if any.*
+*This documentation is still in progress. Please feel free to add more suggestions.*
 
 ## Naming Convention
 Any **variables** are named with `camelCase`.
