@@ -1,3 +1,5 @@
+<p></p> <!-- avoids duplicate title -->
+
 # Getting Started with Dafny: A Guide
 
 Be sure to follow along with the code examples by clicking the "load

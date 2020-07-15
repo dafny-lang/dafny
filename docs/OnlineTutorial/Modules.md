@@ -1,3 +1,5 @@
+<p></p> <!-- avoids duplicate title -->
+
 # Modules
 
 ## Introduction
