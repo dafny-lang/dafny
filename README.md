@@ -9,6 +9,10 @@ Dafny is a programming language with a program verifier. As you type in your pro
 * the [issue tracker](https://github.com/dafny-lang/dafny/issues)
 * the wiki, including [frequently asked questions](https://github.com/dafny-lang/dafny/wiki/FAQ)
 
+Documentation about the dafny language and tools is located 
+[here](https://dafny-lang.github.io/dafny).
+A reference manual is available both [online](https://dafny-lang.github.io/dafny/DafnyReferenceManual/DafnyRef) and as [pdf](https://dafny-lang.github.io/dafny/DafnyReferenceManual/DafnyRef.pdf). (A LaTeX version can be produced if needed.)
+
 # Community
 
 You can ask questions about Dafny on [Stack Overflow](https://stackoverflow.com/questions/tagged/dafny) or participate in general discussion on Dafny's [![Gitter](https://badges.gitter.im/dafny-lang/community.svg)](https://gitter.im/dafny-lang/community?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge).
