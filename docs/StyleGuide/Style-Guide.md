@@ -9,7 +9,7 @@ This style guide provides coding conventions for the Dafny code.
 
 ## Naming Convention
 Any **variables** are named with `camelCase`.
-```java
+```dafny
 var minValue := 1;
 var cipherMessage := "Hello World";
 ```
@@ -28,7 +28,7 @@ static const MONTHS_IN_A_YEAR := 12
 
 ### Method Prefix
 Avoid redundant names when variables or methods are in a class/module.
-```dafny
+```
 class Integer {
 
     // The following method converts the given integer
@@ -316,3 +316,4 @@ Ask these questions before designing / implementing a program in Dafny.
 * Does it make sense that this method `M` is in module `X`? Shouldn't it be in module `Y` instead?
 * Does the definition `X` belong to the file `Y.dfy`?
 * Is `X.dfy` a good filename?
+
