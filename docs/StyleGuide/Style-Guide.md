@@ -9,7 +9,7 @@ This style guide provides coding conventions for the Dafny code.
 
 ## Naming Convention
 Any **variables** are named with `camelCase`.
-```dafny
+```java
 var minValue := 1;
 var cipherMessage := "Hello World";
 ```
