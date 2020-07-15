@@ -46,7 +46,7 @@ exclude:
    - DafnyReferenceManual/Makefile
    - DafnyReferenceManual/README.md
    - DafnyReferenceManual/header.tex
-   - DafnyReferenceManual/DafnyRef.pdf
+   - DafnyReferenceManual/head.tex
    - .sass-cache/
    - .jekyll-cache/
    - gemfiles/
