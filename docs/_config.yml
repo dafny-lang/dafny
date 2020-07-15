@@ -29,6 +29,14 @@ url: "https://dafny-lang.github.io/dafny" # the base hostname & protocol for you
 # Build settings
 theme: minima
 
+markdown: kramdown
+highlighter: rouge
+kramdown:
+  input: GFM
+  syntax_highlighter_opts:
+    default_lang: dafny
+    css_class: 'syntax'
+
 header_pages:
     - about.md
 

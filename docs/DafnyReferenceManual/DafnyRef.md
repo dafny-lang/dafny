@@ -2,7 +2,7 @@
 <script src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML" type="text/javascript"></script>
 
 <font size="+4"><p style="text-align: center;">Dafny Reference Manual</p></font> <!-- PDFOMIT -->
-<p style="text-align: center;">K. Rustan M. Leino, Richard H. Ford, David R. Cok</p> <!-- PDFOMIT -->
+<p style="text-align: center;">K. Rustan M. Leino, Richard L. Ford, David R. Cok</p> <!-- PDFOMIT -->
 <p style="text-align: center;"><script> document.write(new Date(document.lastModified)); </script></p> <!-- PDFOMIT -->
 
 <!--PDF NEWPAGE-->
