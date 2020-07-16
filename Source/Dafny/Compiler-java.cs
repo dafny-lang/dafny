@@ -653,7 +653,7 @@ namespace Microsoft.Dafny{
       } else if (xType is UserDefinedType udt) {
         if (udt.ResolvedParam != null) {
           if (thisContext != null && thisContext.ParentFormalTypeParametersToActuals.TryGetValue(udt.ResolvedParam, out var instantiatedTypeParameter)) {
-            return TypeName(instantiatedTypeParameter, wr, tok, member);
+            return TypeName(instantiatedTypeParameter, wr, tok, true, member);
           }
         }
         var s = FullTypeName(udt, member);
@@ -2348,8 +2348,8 @@ namespace Microsoft.Dafny{
           return $"{TypeClass}.BOOLEAN_ARRAY";
         } else if (elType is CharType) {
           return $"{TypeClass}.CHAR_ARRAY";
-        } else if (AsNativeType(type) != null) {
-          switch (AsJavaNativeType(type)) {
+        } else if (AsNativeType(elType) != null) {
+          switch (AsJavaNativeType(elType)) {
             case JavaNativeType.Byte: return $"{TypeClass}.BYTE_ARRAY";
             case JavaNativeType.Short: return $"{TypeClass}.SHORT_ARRAY";
             case JavaNativeType.Int: return $"{TypeClass}.INT_ARRAY";
