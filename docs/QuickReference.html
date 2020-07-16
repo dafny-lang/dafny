@@ -2,7 +2,7 @@
 <html lang="en-US" class="no-js">
 <body>
 <h1>Dafny Quick Reference</h1>
-<p>This page illustrates many of the most common language features in Dafny.  In order to get you started more quickly, the descriptions here are simplified&#8211;this page is not the language reference.  For example, this pages does not go into modules, iterators, or refinement, which you won&#8217;t need until you write larger or more advanced programs in Dafny.</p>
+<p>This page illustrates many of the most common language features in Dafny.  In order to get you started more quickly, the descriptions here are simplified&#8211;this page is not the language reference.  For example, this page does not go into modules, iterators, or refinement, which you won&#8217;t need until you write larger or more advanced programs in Dafny.</p>
 <h2>Programs</h2>
 <p>At the top level, a Dafny program (stored as a file with extension .dfy) is a set of declarations. The declarations introduce <em>types</em>, <em>methods,</em> and <em>functions</em>, where the order of introduction is irrelevant.  These user-defined types include <em>classes</em> and <em>inductive datatypes</em>.  The classes themselves also contain a set of declarations, introducing <em>fields</em>, methods, and functions.  If the program contains a parameter-less method called Main, then execution of the compiled program starts there, but it is not necessary to have a main method to do verification.</p>
 <p>Comments start with // and go to the end of the line, or start with /* and end with */ and can be nested.</p>
