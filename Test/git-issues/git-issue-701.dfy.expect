@@ -3,12 +3,12 @@ Dafny program verifier finished with 1 verified, 0 errors
 
 Dafny program verifier finished with 0 verified, 0 errors
 0 0 0
-System.Byte[] System.Byte[] System.Byte[]
+[] [] []
 C.Nothing C.Nothing C.Nothing
 
 Dafny program verifier finished with 0 verified, 0 errors
 0 0 0
-  
+[] [] []
 C.Nothing C.Nothing C.Nothing
 
 Dafny program verifier finished with 0 verified, 0 errors
