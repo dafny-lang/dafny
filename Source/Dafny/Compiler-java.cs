@@ -2042,6 +2042,10 @@ namespace Microsoft.Dafny{
             Contract.Assert(false);
             throw new cce.UnreachableException();
         }
+      } else if (arg.Type.AsArrayType != null) {
+        wr.Write("java.util.Arrays.toString(");
+        TrExpr(arg, wr, false);
+        wr.Write(")");
       } else {
         // TODO-RS: This doesn't handle strings printed out as part of datatypes
         bool isString = arg.Type.AsSeqType != null &&
