@@ -12180,7 +12180,7 @@ namespace Microsoft.Dafny
         return t;  // simplification did the trick
       }
       if (DafnyOptions.O.TypeInferenceDebug) {
-        Console.Write("DEBUG: Member selection{3}:  {1} :> {0} :> {2}", t,
+        Console.WriteLine("DEBUG: Member selection{3}:  {1} :> {0} :> {2}", t,
           Util.Comma(proxy.SupertypesKeepConstraints, su => su.ToString()),
           Util.Comma(proxy.SubtypesKeepConstraints, su => su.ToString()),
           memberName == null ? "" : " (" + memberName + ")");
@@ -14536,6 +14536,7 @@ namespace Microsoft.Dafny
           Expression receiver;
           if (!member.IsStatic) {
             receiver = expr.Lhs;
+            AddAssignableConstraint(expr.tok, tentativeReceiverType, receiver.Type, "receiver type ({1}) does not have a member named " + name);
             r = ResolveExprDotCall(expr.tok, receiver, tentativeReceiverType, member, args, expr.OptTypeArguments, opts, allowMethodCall);
           } else {
             receiver = new StaticReceiverExpr(expr.tok, (UserDefinedType)tentativeReceiverType, (TopLevelDeclWithMembers)member.EnclosingClass, false, lhs);
