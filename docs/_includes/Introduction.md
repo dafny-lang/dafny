@@ -1,0 +1,155 @@
+# Introduction
+
+Dafny [@Leino:Dafny:LPAR16] is a programming language with built-in specification constructs.
+The Dafny static program verifier can be used to verify the functional
+correctness of programs.
+
+The Dafny programming language is designed to support the static
+verification of programs. It is imperative, sequential, supports generic
+classes, methods and functions, dynamic allocation, inductive and
+co-inductive datatypes, and specification constructs. The
+specifications include pre- and postconditions, frame specifications
+(read and write sets), and termination metrics. To further support
+specifications, the language also offers updatable ghost variables,
+recursive functions, and types like sets and sequences. Specifications
+and ghost constructs are used only during verification; the compiler
+omits them from the executable code.
+
+The Dafny verifier is run as part of the compiler. As such, a programmer
+interacts with it much in the same way as with the static type
+checker—when the tool produces errors, the programmer responds by
+changing the program’s type declarations, specifications, and statements.
+
+The easiest way to try out [Dafny is in your web browser at
+rise4fun](http://rise4fun.com/Dafny)[@Rise4fun:dafny]. Once you get a bit
+more serious, you may prefer to [download](http://dafny.codeplex.com/) it
+to run it on your machine. Although Dafny can be run from the command
+line (on Windows or other platforms), the preferred way to run it is in
+Microsoft Visual Studio 2012 (or newer) or using emacs, where the Dafny
+verifier runs in the background while the programmer is editing the
+program.
+
+The Dafny verifier is powered
+by [Boogie](http://research.microsoft.com/boogie)
+[@Boogie:Architecture;@Leino:Boogie2-RefMan;@LeinoRuemmer:Boogie2]
+and [Z3](https://github.com/z3prover)[@deMouraBjorner:Z3:overview].
+
+From verified programs, the Dafny compiler produces code (`.dll` or
+`.exe`) for the .NET platform via intermediate C\# files. However, the
+facilities for interfacing with other .NET code are minimal.
+
+This is the reference manual for the Dafny verification system. It is
+based on the following references:
+[@Leino:Dafny:LPAR16;@MSR:dafny:main;
+@MSR:dafny:source;@MSR:dafny:quickref; @LEINO:Dafny:Calc;
+@LEINO:Dafny:Coinduction;
+and the tutorials at @Rise4fun:dafny]
+
+The main part of the reference manual is in top down order except for an
+initial section that deals with the lowest level constructs.
+
+[Co-induction Simply]: http://research.microsoft.com/en-us/um/people/leino/papers/krml230.pdf  "Co-induction Simply: Automatic Co-inductive Proofs in a Program Verifier"
+
+## Dafny Example
+To give a flavor of Dafny, here is the solution to a competition problem.
+
+```
+// VSComp 2010, problem 3, find a 0 in a linked list and return how many
+// nodes were skipped until the first 0 (or end-of-list) was found.
+// Rustan Leino, 18 August 2010.
+//
+// The difficulty in this problem lies in specifying what the return
+// value 'r' denotes and in proving that the program terminates.  Both of
+// these are addressed by declaring a ghost field 'List' in each
+// linked-list node, abstractly representing the linked-list elements
+// from the node to the end of the linked list.  The specification can
+// now talk about that sequence of elements and can use 'r' as an index
+// into the sequence, and termination can be proved from the fact that
+// all sequences in Dafny are finite.
+//
+// We only want to deal with linked lists whose 'List' field is properly
+// filled in (which can only happen in an acyclic list, for example).  To
+// that avail, the standard idiom in Dafny is to declare a predicate
+// 'Valid()' that is true of an object when the data structure
+// representing object's abstract value is properly formed.  The
+// definition of 'Valid()' is what one intuitively would think of as the
+// ''object invariant'', and it is mentioned explicitly in method pre-
+// and postconditions.  As part of this standard idiom, one also declared
+// a ghost variable 'Repr' that is maintained as the set of objects that
+// make up the representation of the aggregate object--in this case, the
+// Node itself and all its successors.
+
+class Node {
+  ghost var List: seq<int>
+  ghost var Repr: set<Node>
+  var head: int
+  var next: Node
+
+  predicate Valid()
+    reads this, Repr
+  {
+    this in Repr &&
+    1 <= |List| && List[0] == head &&
+    (next == null ==> |List| == 1) &&
+    (next != null ==>
+      next in Repr && next.Repr <= Repr && this !in next.Repr &&
+      next.Valid() && next.List == List[1..])
+  }
+
+  static method Cons(x: int, tail: Node) returns (n: Node)
+    requires tail == null || tail.Valid()
+    ensures n != null && n.Valid()
+    ensures if tail == null then n.List == [x]
+                            else n.List == [x] + tail.List
+  {
+    n := new Node;
+    n.head, n.next := x, tail;
+    if (tail == null) {
+      n.List := [x];
+      n.Repr := {n};
+    } else {
+      n.List := [x] + tail.List;
+      n.Repr := {n} + tail.Repr;
+    }
+  }
+}
+
+method Search(ll: Node) returns (r: int)
+  requires ll == null || ll.Valid()
+  ensures ll == null ==> r == 0
+  ensures ll != null ==>
+            0 <= r && r <= |ll.List| &&
+            (r < |ll.List| ==> ll.List[r] == 0 && 0 !in ll.List[..r]) &&
+            (r == |ll.List| ==> 0 !in ll.List)
+{
+  if (ll == null) {
+    r := 0;
+  } else {
+    var jj,i := ll,0;
+    while (jj != null && jj.head != 0)
+      invariant jj != null ==> jj.Valid() && i + |jj.List| == |ll.List| &&
+                               ll.List[i..] == jj.List
+      invariant jj == null ==> i == |ll.List|
+      invariant 0 !in ll.List[..i]
+      decreases |ll.List| - i
+    {
+      jj := jj.next;
+      i := i + 1;
+    }
+    r := i;
+  }
+}
+
+method Main()
+{
+  var list: Node := null;
+  list := list.Cons(0, list);
+  list := list.Cons(5, list);
+  list := list.Cons(0, list);
+  list := list.Cons(8, list);
+  var r := Search(list);
+  print "Search returns ", r, "\n";
+  assert r == 1;
+}
+```
+
