@@ -13,8 +13,8 @@ language and how to use the Dafny verification system.
 Parts of this manual are more tutorial in nature in order to help the
 user understand how to do proofs with Dafny.
 
-[pdf](https://dafny-lang.github.io/dafny/DafnyReferenceManual/DafnyRef.pdf)
-[html](https://dafny-lang.github.io/dafny/DafnyReferenceManual/DafnyRef)
+[Current document as pdf](https://dafny-lang.github.io/dafny/DafnyReferenceManual/DafnyRef.pdf)<br/>
+[Current document as html](https://dafny-lang.github.io/dafny/DafnyReferenceManual/DafnyRef)
 
 <!--
 Sample math B: $a \to b$ or 
