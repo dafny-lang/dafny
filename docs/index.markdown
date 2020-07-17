@@ -15,11 +15,19 @@ layout: page
 
 <font size="+4"><p style="text-align: center;">Dafny Documentation</p></font>
 
-This site contains links to Dafny documentation
+This site contains links to Dafny documentation.
 
-* [Dafny Reference Manual](DafnyReferenceManual/DafnyRef)
-* [Style Guide for Dafny programs](StyleGuide/Style-Guide)
-* [Dafny Tutorials](https://www.rise4fun.com/Dafny/) -- meant to be used within the [Rise4Fun web site](https://www.rise4fun.com/Dafny/), though they can be read directly as well.
+[Project site for releases, issues, installation instructions, and source code](https://github.com/dafny-lang/dafny)
+
+* Quick start material:
+   * Dafny [Quick Reference](QuickReference.html)
+   * [Getting started tutorial](http://rise4fun.com/Dafny/tutorial/guide), focusing mostly on simple imperative programs
+   * [Cheatsheet](https://docs.google.com/document/d/1kz5_yqzhrEyXII96eCF1YoHZhnb_6dzv-K3u79bMMis/edit?pref=2&pli=1): basic Dafny syntax on two pages
+* Detailed documents for programmers
+   * [Dafny Reference Manual](DafnyReferenceManual/DafnyRef)
+   * Language reference for the [Dafny type system](http://leino.science/papers/krml243.html), which also describes available expressions for each type
+   * [Style Guide for Dafny programs](StyleGuide/Style-Guide)
+* [Dafny Tutorials](https://www.rise4fun.com/Dafny/) -- available and meant to be used within the [Rise4Fun web site](https://www.rise4fun.com/Dafny/), though they can be read directly as well.
    * [Introduction to Dafny](OnlineTutorial/guide)
    * [Value Types](OnlineTutorial/ValueTypes)
    * [Sets](OnlineTutorial/Sets)
@@ -27,10 +35,6 @@ This site contains links to Dafny documentation
    * [Lemmas and Induction](OnlineTutorial/Lemmas)
    * [Modules](OnlineTutorial/Modules)
    * [Termination](OnlineTutorial/Termination)
-* Notes on Compilation
-   * [Go](Compilation/Go)
-   * [C++](Compilation/Cpp)
-   * [Reference values](Compilation/ReferenceTypes)
 
 There are also publications and lecture notes:
 
@@ -39,12 +43,14 @@ There are also publications and lecture notes:
   - Lecture 1: [Invariants](https://youtu.be/J0FGb6PyO_k) (20:56)
   - Lecture 2: [Binary search](https://youtu.be/-_tx3lk7yn4) (21:14)
   - Lecture 3: [Dutch National Flag algorithm](https://youtu.be/dQC5m-GZYbk) (20:33)
-* New overview article: [Accessible Software Verification with Dafny](https://www.computer.org/csdl/mags/so/2017/06/mso2017060094-abs.html), IEEE Software, Nov/Dec 2017
+* Overview article: [Accessible Software Verification with Dafny](https://www.computer.org/csdl/mags/so/2017/06/mso2017060094-abs.html), IEEE Software, Nov/Dec 2017
 * [Online tutorial](http://rise4fun.com/Dafny/tutorial/guide), focusing mostly on simple imperative programs
 * [3-page tutorial notes](http://leino.science/papers/krml233.pdf) with examples (ICSE 2013)
-* Dafny [Quick Reference](http://research.microsoft.com/en-us/projects/dafny/reference.aspx)
-* Language reference for the [Dafny type system](http://leino.science/papers/krml243.html), which also describes available expressions for each type
-* [Cheatsheet](https://docs.google.com/document/d/1kz5_yqzhrEyXII96eCF1YoHZhnb_6dzv-K3u79bMMis/edit?pref=2&pli=1): basic Dafny syntax on two pages
 * [Dafny Power User](http://leino.science/dafny-power-user)
 * Videos at [Verification Corner](https://www.youtube.com/channel/UCP2eLEql4tROYmIYm5mA27A)
 
+Notes for Dafny contributors:
+* Notes on Compilation
+   * [Go](Compilation/Go)
+   * [C++](Compilation/Cpp)
+   * [Reference values](Compilation/ReferenceTypes)
