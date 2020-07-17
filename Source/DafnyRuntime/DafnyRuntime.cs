@@ -124,7 +124,7 @@ namespace Dafny
         hashCode = hashCode * (Dafny.Helpers.GetHashCode(default(T)) + 3);
       }
       foreach (var t in this.setImpl) {
-        hashCode = hashCode * (Dafny.Helpers.GetHashCode(t)+3);
+        hashCode = hashCode * (Dafny.Helpers.GetHashCode(t) + 3);
       }
       return hashCode;
     }
@@ -625,7 +625,7 @@ namespace Dafny
     ISequence<T> Subsequence(BigInteger lo, ulong hi);
     ISequence<T> Subsequence(BigInteger lo, BigInteger hi);
   }
-  
+
   public abstract class Sequence<T>: ISequence<T>
   {
     public static ISequence<T> Empty {
@@ -927,10 +927,6 @@ namespace Dafny
     }
   }
   public partial class Helpers {
-    [Obsolete("Use object.Equals(object, object) instead.")]
-    public static bool AreEqual<G>(G a, G b) {
-      return object.Equals(a, b);
-    }
     public static int GetHashCode<G>(G g) {
       return g == null ? 1001 : g.GetHashCode();
     }
@@ -1134,7 +1130,7 @@ namespace Dafny
     public static A Id<A>(A a) {
       return a;
     }
-    
+
     public static void WithHaltHandling(Action action) {
       try {
         action();

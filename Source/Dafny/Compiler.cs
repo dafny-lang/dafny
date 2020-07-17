@@ -241,7 +241,7 @@ namespace Microsoft.Dafny {
     protected virtual string TypeArgumentName(Type type, TextWriter wr, Bpl.IToken tok) {
       return TypeName(type, wr, tok);
     }
-    public abstract string TypeInitializationValue(Type type, TextWriter/*?*/ wr, Bpl.IToken/*?*/ tok, bool inAutoInitContext);
+    public abstract string TypeInitializationValue(Type type, TextWriter/*?*/ wr, Bpl.IToken/*?*/ tok, bool valueSkeletonOnly);
     protected abstract string TypeName_UDT(string fullCompileName, List<Type> typeArgs, TextWriter wr, Bpl.IToken tok);
     protected abstract string/*?*/ TypeName_Companion(Type type, TextWriter wr, Bpl.IToken tok, MemberDecl/*?*/ member);
     protected string TypeName_Companion(TopLevelDecl cls, TextWriter wr, Bpl.IToken tok) {
@@ -2163,9 +2163,10 @@ namespace Microsoft.Dafny {
       Contract.Requires(tok != null);
       Contract.Ensures(Contract.Result<string>() != null);
 
+      bool valueSkeletonOnly = inAutoInitContext && !InitializerIsKnown(type);
       bool hs, hz, ik;
       string dv;
-      TypeInitialization(type, this, wr, tok, out hs, out hz, out ik, out dv, inAutoInitContext);
+      TypeInitialization(type, this, wr, tok, out hs, out hz, out ik, out dv, valueSkeletonOnly);
       return dv;
     }
 
@@ -2179,12 +2180,14 @@ namespace Microsoft.Dafny {
     ///   defaultValue - If "compiler" is non-null, "defaultValue" is the C# representation of one possible value of the
     ///                  type (not necessarily the same value as the zero initializer, if any, may give).
     ///                  If "compiler" is null, then "defaultValue" can return as anything.
-    ///   inAutoInitContext - If "true", the default value produced may have dummy values (outside the Dafny type) for
-    ///                       components those type requires user-specified initialization.
+    ///   valueSkeletonOnly - If "true", the default value produced is one that the target language accepts as a value
+    ///                  of the type, but which may not correspond to a Dafny value. This option is used when it is known
+    ///                  that the Dafny program will not use the value (for example, when a field is automatically nitialized
+    ///                  but the Dafny program will soon assign a new value)
     /// </summary>
     static void TypeInitialization(Type type, Compiler/*?*/ compiler, TextWriter/*?*/ wr, Bpl.IToken/*?*/ tok,
         out bool hasSimpleZeroInitializer, out bool hasZeroInitializer, out bool initializerIsKnown, out string defaultValue,
-        bool inAutoInitContext = false) {
+        bool valueSkeletonOnly = false) {
       Contract.Requires(type != null);
       Contract.Requires(compiler == null || (wr != null && tok != null));
       Contract.Ensures(!Contract.ValueAtReturn(out hasSimpleZeroInitializer) || Contract.ValueAtReturn(out hasZeroInitializer));  // hasSimpleZeroInitializer ==> hasZeroInitializer
@@ -2197,7 +2200,7 @@ namespace Microsoft.Dafny {
         xType = new BoolType();
       }
 
-      defaultValue = compiler?.TypeInitializationValue(xType, wr, tok, inAutoInitContext);
+      defaultValue = compiler?.TypeInitializationValue(xType, wr, tok, valueSkeletonOnly);
       if (xType is BoolType) {
         hasSimpleZeroInitializer = true;
         hasZeroInitializer = true;

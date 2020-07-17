@@ -1689,6 +1689,7 @@ namespace Microsoft.Dafny{
       var usedTypeArgsStr = Util.Comma(usedTypeArgs, IdName);
       var typeDescArgsStr = Util.Comma(usedTypeArgs, FormatTypeDescriptorVariable);
       TargetWriter wDefault;
+      wr.WriteLine();
       if (dt.TypeArgs.Count == 0) {
         wr.Write($"static {IdName(dt)} theDefault = ");
         wDefault = wr.Fork();
@@ -1849,7 +1850,7 @@ namespace Microsoft.Dafny{
           i++;
         }
       }
-      wr.Write($"public {DtCtorDeclarationName(ctor)}(");
+      wr.Write($"public {DtCtorDeclarationName(ctor)} (");
       WriteFormals("", ctor.Formals, wr);
       using (var w = wr.NewBlock(")")) {
         i = 0;
@@ -1861,14 +1862,16 @@ namespace Microsoft.Dafny{
         }
       }
       if (ctor.Formals.Count > 0){
-        wr.Write($"public {DtCtorDeclarationName(ctor)}(){{}}");
+        wr.WriteLine($"public {DtCtorDeclarationName(ctor)}() {{ }}");
       }
       if (dt is CoDatatypeDecl) {
         string typeParams = dt.TypeArgs.Count == 0 ? "" : $"<{TypeParameters(dt.TypeArgs)}>";
         wr.WriteLine($"public {dt.CompileName}{typeParams} Get() {{ return this; }}");
       }
       // Equals method
-      using (var w = wr.NewBlock("\n@Override\npublic boolean equals(Object other)")) {
+      wr.WriteLine();
+      wr.WriteLine("@Override");
+      using (var w = wr.NewBlock("public boolean equals(Object other)")) {
         w.WriteLine("if (this == other) return true;");
         w.WriteLine("if (other == null) return false;");
         w.WriteLine("if (getClass() != other.getClass()) return false;");
@@ -1884,7 +1887,7 @@ namespace Microsoft.Dafny{
               if (IsDirectlyComparable(arg.Type)) {
                 w.Write($"this.{nm} == o.{nm}");
               } else {
-                w.Write($"{nm}.equals(o.{nm})");
+                w.Write($"java.util.Objects.equals(this.{nm}, o.{nm})");
               }
               i++;
             }
@@ -1895,7 +1898,8 @@ namespace Microsoft.Dafny{
         }
       }
       // GetHashCode method (Uses the djb2 algorithm)
-      using (var w = wr.NewBlock("\n@Override\npublic int hashCode()")) {
+      wr.WriteLine("@Override");
+      using (var w = wr.NewBlock("public int hashCode()")) {
         w.WriteLine("long hash = 5381;");
         w.WriteLine($"hash = ((hash << 5) + hash) + {constructorIndex};");
         i = 0;
@@ -1906,14 +1910,17 @@ namespace Microsoft.Dafny{
             if (IsJavaPrimitiveType(arg.Type)) {
               w.WriteLine($"{BoxedTypeName(arg.Type, w, Bpl.Token.NoToken)}.hashCode(this.{nm});");
             } else {
-              w.WriteLine($"this.{nm}.hashCode();");
+              w.WriteLine($"java.util.Objects.hashCode(this.{nm});");
             }
             i++;
           }
         }
-        w.WriteLine("return (int) hash;");
+        w.WriteLine("return (int)hash;");
       }
-      using (var w = wr.NewBlock("\n@Override\npublic String toString()")) {
+
+      wr.WriteLine();
+      wr.WriteLine("@Override");
+      using (var w = wr.NewBlock("public String toString()")) {
         string nm;
         if (dt is TupleTypeDecl) {
           nm = "";
@@ -2667,7 +2674,7 @@ namespace Microsoft.Dafny{
           } else if (IsDirectlyComparable(e0.Type)) {
             opString = "==";
           } else {
-            callString = "equals";
+            staticCallString = "java.util.Objects.equals";
           }
           break;
         }
@@ -2680,7 +2687,7 @@ namespace Microsoft.Dafny{
             opString = "!=";
           } else {
             preOpString = "!";
-            callString = "equals";
+            staticCallString = "java.util.Objects.equals";
           }
           break;
         }
@@ -2901,32 +2908,19 @@ namespace Microsoft.Dafny{
       wrTop.Write("public class Tuple");
       wrTop.Write(i);
       if (i != 0) {
-        wrTop.Write("<");
-        for (int j = 0; j < i; j++){
-          wrTop.Write("T" + j);
-          if (j != i - 1)
-            wrTop.Write(", ");
-          else{
-            wrTop.Write(">");
-          }
-        }
+        wrTop.Write("<{0}>", Util.Comma(", ", i, j => $"T{j}"));
       }
 
       var wr = wrTop.NewBlock("");
-      for (int j = 0; j < i; j++) {
-        wr.WriteLine("private T" + j + " _" + j + ";");
+      for (var j = 0; j < i; j++) {
+        wr.WriteLine("private T{0} _{0};", j);
       }
       wr.WriteLine();
 
-      wr.Write("public Tuple" + i + "(");
-      for (int j = 0; j < i; j++){
-        wr.Write("T" + j + " _" + j);
-        if (j != i - 1)
-          wr.Write(", ");
-      }
+      wr.Write("public Tuple{0}({1}", i, Util.Comma(", ", i, j => $"T{j} _{j}"));
       using (var wrCtor = wr.NewBlock(")")) {
-        for (int j = 0; j < i; j++) {
-          wrCtor.WriteLine("this._" + j + " = _" + j + ";");
+        for (var j = 0; j < i; j++) {
+          wrCtor.WriteLine("this._{0} = _{0};", j);
         }
       }
 
@@ -2938,6 +2932,20 @@ namespace Microsoft.Dafny{
         wr.Write("public Tuple" + i + "() {}");
       }
 
+      // public static Tuple4<T0, T1, T2, T3> Default(dafny.Type<T0> _td_T0, dafny.Type<T1> _td_T1, dafny.Type<T2> _td_T2, dafny.Type<T3> _td_T3) {
+      //   return new Tuple4<>(_td_T0.defaultValue(), _td_T1.defaultValue(), _td_T2.defaultValue(), _td_T3.defaultValue());
+      // }
+      wr.WriteLine();
+      if (i == 0) {
+        wr.Write("public static Tuple0");
+      } else {
+        wr.Write("public static <{1}> Tuple{0}<{1}>", i, Util.Comma(", ", i, j => $"T{j}"));
+      }
+      wr.Write(" Default({0})", Util.Comma(", ", i, j => $"dafny.Type<T{j}> _td_T{j}"));
+      using (var w = wr.NewBlock("")) {
+        w.WriteLine("return new Tuple{0}{1}({2});", i, i == 0 ? "" : "<>", Util.Comma(", ", i, j => $"_td_T{j}.defaultValue()"));
+      }
+
       wr.WriteLine();
       wr.WriteLine("@Override");
       using (var wrEquals = wr.NewBlock("public boolean equals(Object obj)")) {
@@ -2946,15 +2954,7 @@ namespace Microsoft.Dafny{
         wrEquals.WriteLine("if (getClass() != obj.getClass()) return false;");
         wrEquals.WriteLine($"Tuple{i} o = (Tuple{i}) obj;");
         if (i != 0) {
-          wrEquals.Write("return ");
-          for (int j = 0; j < i; j++) {
-            wrEquals.Write("this._" + j + ".equals(o._" + j + ")");
-            if (j != i - 1)
-              wrEquals.Write(" && ");
-            else {
-              wrEquals.WriteLine(";");
-            }
-          }
+          wrEquals.WriteLine("return {0};", Util.Comma(" && ", i, j => $"java.util.Objects.equals(this._{j}, o._{j})"));
         } else {
           wrEquals.WriteLine("return true;");
         }
@@ -2966,7 +2966,7 @@ namespace Microsoft.Dafny{
         wrToString.WriteLine("StringBuilder sb = new StringBuilder();");
         wrToString.WriteLine("sb.append(\"(\");");
         for (int j = 0; j < i; j++) {
-          wrToString.WriteLine($"sb.append(_{j} == null ? \"\" : _{j}.toString());");
+          wrToString.WriteLine($"sb.append(_{j} == null ? \"null\" : _{j}.toString());");
           if (j != i - 1)
             wrToString.WriteLine("sb.append(\", \");");
         }
@@ -2980,11 +2980,11 @@ namespace Microsoft.Dafny{
         wrHashCode.WriteLine("// GetHashCode method (Uses the djb2 algorithm)");
         wrHashCode.WriteLine("// https://stackoverflow.com/questions/1579721/why-are-5381-and-33-so-important-in-the-djb2-algorithm");
         wrHashCode.WriteLine("long hash = 5381;");
-        wrHashCode.WriteLine("hash = ((hash << 5) + hash) + 0;");
+        wrHashCode.WriteLine("hash = ((hash << 5) + hash) + 0;");  // this is constructor 0 (in fact, it's the only constructor)
         for (int j = 0; j < i; j++) {
-          wrHashCode.WriteLine("hash = ((hash << 5) + hash) + ((long) this._" + j + ".hashCode());");
+          wrHashCode.WriteLine("hash = ((hash << 5) + hash) + java.util.Objects.hashCode(this._" + j + ");");
         }
-        wrHashCode.WriteLine("return (int) hash;");
+        wrHashCode.WriteLine("return (int)hash;");
       }
 
       for (int j = 0; j < i; j++){
@@ -3100,9 +3100,9 @@ namespace Microsoft.Dafny{
         }
         // In an auto-init context (like a field initializer), we may not have
         // access to all the type descriptors, so we can't construct the
-        // default value, but then null is always an acceptable default in
-        // such contexts (since Dafny proves the null won't be accessed).
-        if (cl is TupleTypeDecl || inAutoInitContext) {
+        // default value, but then null is an acceptable default, since
+        // Dafny proves the value won't be accessed.
+        if (inAutoInitContext) {
           return $"({s}{typeargs})null";
         }
         var usedTypeArgs = UsedTypeParameters(dt, udt.TypeArgs);
@@ -3364,7 +3364,7 @@ namespace Microsoft.Dafny{
       } else {
         wwr = wr.NewBlock(")");
       }
-      if (altBoundVarName == null) { 
+      if (altBoundVarName == null) {
         return wwr;
       } else if (altVarType == null) {
         return wwr.NewBlockWithPrefix("", $"{altBoundVarName} = {boundVar};");
