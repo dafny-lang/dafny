@@ -2052,11 +2052,11 @@ namespace Microsoft.Dafny {
 
     // ----- Type ---------------------------------------------------------------------------------
 
-    protected readonly string DafnySetClass = "Dafny.Set";
-    protected readonly string DafnyMultiSetClass = "Dafny.MultiSet";
-    protected readonly string DafnySeqClass = "Dafny.ISequence";
-    protected readonly string DafnySeqHelperClass = "Dafny.Sequence";
-    protected readonly string DafnyMapClass = "Dafny.Map";
+    protected virtual string DafnySetClass => "Dafny.Set";
+    protected virtual string DafnyMultiSetClass => "Dafny.MultiSet";
+    protected virtual string DafnySeqClass => "Dafny.ISequence";
+    protected virtual string DafnySeqHelperClass => "Dafny.Sequence";
+    protected virtual string DafnyMapClass => "Dafny.Map";
 
     protected NativeType AsNativeType(Type typ) {
       Contract.Requires(typ != null);

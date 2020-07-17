@@ -31,7 +31,7 @@ namespace Microsoft.Dafny
       wr.WriteLine("// To recompile, use 'csc' with: /r:System.Numerics.dll");
       wr.WriteLine("// and choosing /target:exe or /target:library");
       wr.WriteLine("// You might also want to include compiler switches like:");
-      wr.WriteLine("//     /debug /nowarn:0164 /nowarn:0219 /nowarn:1717 /nowarn:0162 /nowarn:0168 /nowarn:0436");
+      wr.WriteLine("//     /debug /nowarn:0164 /nowarn:0219 /nowarn:1717 /nowarn:0162 /nowarn:0168 /nowarn:0436 /nowarn:0183");
       wr.WriteLine();
       wr.WriteLine("using System;");
       wr.WriteLine("using System.Numerics;");
@@ -1237,7 +1237,8 @@ namespace Microsoft.Dafny
       } else if (altVarType == null) {
         return wr.NewBlockWithPrefix(")", "{0} = {1};", altBoundVarName, boundVar);
       } else {
-        return wr.NewBlockWithPrefix(")", "{2} {0} = ({2}){1};", altBoundVarName, boundVar, TypeName(altVarType, wr, tok));
+        BlockTargetWriter wwr = wr.NewBlockWithPrefix(")", "if (({1}) is {2}) ", altBoundVarName, boundVar, TypeName(altVarType, wr, tok));
+        return wwr.NewBlockWithPrefix("", "{2} {0} = ({2})({1}); ", altBoundVarName, boundVar, TypeName(altVarType, wr, tok));
       }
     }
 
@@ -2420,7 +2421,8 @@ namespace Microsoft.Dafny
       // * CS0436 is about types in source files that conflict with imported types (caused by
       //   dynamically-generated types like Tuple0 that aren't part of the runtime, which are
       //   often in pre-compiled Dafny DLLs)
-      cp.CompilerOptions = "/debug /nowarn:0164 /nowarn:0219 /nowarn:1717 /nowarn:0162 /nowarn:0168 /nowarn:0436";
+      // * CS0183 is about unneeded casts
+      cp.CompilerOptions = "/debug /nowarn:0164 /nowarn:0219 /nowarn:1717 /nowarn:0162 /nowarn:0168 /nowarn:0436 /nowarn:0183";
       cp.ReferencedAssemblies.Add("System.Numerics.dll");
       cp.ReferencedAssemblies.Add("System.Core.dll");
       cp.ReferencedAssemblies.Add("System.dll");

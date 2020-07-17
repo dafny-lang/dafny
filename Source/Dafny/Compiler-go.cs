@@ -1826,7 +1826,8 @@ namespace Microsoft.Dafny {
       wBody.WriteLine("{0}, {1} := {2}()", valVar, okVar, iterVar);
       wBody.WriteLine("if !{0} {{ break }}", okVar);
       if (boundVarType != null) {
-        wBody.WriteLine("{0} := {1}.({2})", boundVar, valVar, TypeName(boundVarType, wBody, tok));
+        wBody.WriteLine("{0}, ok_{0} := {1}.({2})", boundVar, valVar, TypeName(boundVarType, wBody, tok));
+        wBody.WriteLine("if !ok_{0} {{ continue }}", boundVar);
       }
 
       if (altBoundVarName != null) {
