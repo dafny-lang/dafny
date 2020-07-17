@@ -4142,7 +4142,7 @@ namespace Microsoft.Dafny
                 var tt = Type.HeadWithProxyArgs(meet);
                 satisfied = tt is SeqType || (tt.IsArrayType && tt.AsArrayType.Dims == 1);
                 if (satisfied) {
-                  resolver.AssignProxyAndHandleItsConstraints(proxy, tt);
+                  resolver.AssignProxyAndHandleItsConstraints(proxy, tt, true);
                   convertedIntoOtherTypeConstraints = true;
                 }
               } else {
