@@ -45,6 +45,7 @@ plugins:
 exclude:
    - DafnyReferenceManual/Makefile
    - DafnyReferenceManual/README.md
+   - DafnyReferenceManual/DafnyRefZ.md
    - DafnyReferenceManual/header.tex
    - DafnyReferenceManual/head.tex
    - .sass-cache/
