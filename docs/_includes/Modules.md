@@ -7,7 +7,7 @@ SubModuleDecl = ( ModuleDefinition_ | ModuleImport_ )
 Structuring a program by breaking it into parts is an important part of
 creating large programs. In Dafny, this is accomplished via _modules_.
 Modules provide a way to group together related types, classes, methods,
-functions, and other modules together, as well as control the scope of
+functions, and other modules, as well as to control the scope of
 declarations. Modules may import each other for code reuse, and it is
 possible to abstract over modules to separate an implementation from an
 interface.
@@ -154,7 +154,7 @@ sibling modules (and their submodules).
 
 Import statements may occur at the top-level of a file as well.
 There they serve simply as a way to givve a new name, perhaps a 
-shorthand name, to a module. FOr example,
+shorthand name, to a module. For example,
 
 ```
 module MyModule { ... } // declares module MyModule
@@ -169,8 +169,8 @@ Sometimes, prefixing the members of the module you imported with the
 name is tedious and ugly, even if you select a short name when
 importing it. In this case, you can import the module as `opened`,
 which causes all of its members to be available without adding the
-module name. The `opened` keyword must immediately follow `import`, if it
-is present. For example, we could write the previous example as:
+module name. The `opened` keyword, if present, must immediately follow `import`.
+For example, we could write the previous example as:
 
 ```
 module Mod {
