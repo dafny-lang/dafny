@@ -105,11 +105,17 @@ ModuleImport_ = "import" ["opened" ] ModuleName
 Declaring new submodules is useful, but sometimes you want to refer to
 things from an existing module, such as a library. In this case, you
 can _import_ one module into another. This is done via the `import`
-keyword, and there are a few different forms, each of which has a
-different meaning. The simplest kind is the concrete import, and has
+keyword, which has two forms with different meanings.
+The simplest form is the concrete import, which has
 the form `import A = B`. This declaration creates a reference to the
 module `B` (which must already exist), and binds it to the new name
-`A`. Note this new name, i.e. `A`, is only bound in the module containing
+`A`. This form can also be used to create a reference to a nested 
+module, as in `import A = B.C`. 
+ 
+As modules in the same scope must have different names, this ability 
+to bind a module to a new name allows disambiguating separately developed
+external modules that have the same name.
+Note that the new name is only bound in the scope containing
 the import declaration; it does not create a global alias. For
 example, if `Helpers` was defined outside of `Mod`, then we could import
 it:
@@ -129,20 +135,33 @@ module Mod {
 Note that inside `m()`, we have to use `A` instead of `Helpers`, as we bound
 it to a different name. The name `Helpers` is not available inside `m()`,
 as only names that have been bound inside `Mod` are available. In order
-to use the members from another module, it either has to be declared
+to use the members from another module, that other module either has to be declared
 there with `module` or imported with `import`.
 
 We don't have to give `Helpers` a new name, though, if we don't want
-to. We can write `import Helpers = Helpers` if we want to, and Dafny
+to. We can write `import Helpers = Helpers` to import the module under
+its own name; Dafny
 even provides the shorthand `import Helpers` for this behavior. You
 can't bind two modules with the same name at the same time, so
 sometimes you have to use the = version to ensure the names do not
-clash.
+clash. When importing nested modules, `import B.C` means `import C = B.C`;
+the new name is always the last name segment of the module designation.
 
 The ``QualifiedModuleName`` in the ``ModuleImport_`` starts with a
 sibling module of the importing module, or with a submodule of the
-importing module. There is no wya to refer to the parent module, only
+importing module. There is no way to refer to the parent module, only
 sibling modules (and their submodules).
+
+Import statements may occur at the top-level of a file as well.
+There they serve simply as a way to givve a new name, perhaps a 
+shorthand name, to a module. FOr example,
+
+```
+module MyModule { ... } // declares module MyModule
+import MyModule  // error: cannot add a moduled named MyModule
+                 // because there already is one
+import M = MyModule // OK. M and MyModule are equivalent
+```
 
 ## Opening Modules
 
@@ -189,6 +208,17 @@ would be ambiguous which one was meant. Just opening the two modules
 is not an error, however, as long as you don't attempt to use members
 with common names. The `opened` keyword can be used with any kind of
 `import` declaration, including the module abstraction form.
+
+An `import opened` may occur at the top-level as well. For example,
+```
+module MyModule { ... } // declares MyModule
+import opened MyModule // does not declare a new module, but does make
+                       // all names in MyModule available in the current
+                       // scope, without needing qualification
+import opened M = MyModule // names in MyModule are available in the
+                       // current scope without qualification or
+                       // qualified with either M or MyModule
+```
 
 ## Module Abstraction
 
