@@ -1943,7 +1943,7 @@ The order of initialization is such that any field whose value depends on the
 value of another field is initialized after that other field. 
 It is an error if there are circular dependencies. 
 
-This constructor sets each class field to an default value
+This constructor sets each class field to a default value
 of the field's type if the field declaration has no initializer 
 and to the value of the initializer expression if it does declare an initializer. 
 For the purposes of proving Dafny programs
@@ -1972,7 +1972,7 @@ The named constructor is invoked as
 ```
   Item i := new Item.I(42);
 ```
-he anonymous constructor is invoked as
+The anonymous constructor is invoked as
 ```
   Item i := new Item(42, 43);
   m := new Item(45, 29);
