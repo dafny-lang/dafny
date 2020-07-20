@@ -146,393 +146,84 @@ are errors, and the Error List window will describe the
 errors.
 
 ## Using Dafny From the Command Line
-### Dafny Command Line Options
+
+As a command-line tool, Dafny operates just like other command-line tools
+in Windows and Unix-like systems.
+
+- The format of a command-line is determined by the shell program that is executing the command-line (.e.g. bash, the windows shell, COMMAND, etc.). The command-line typically consists of file names and options, in any order, separated by spaces. 
+- Files are designated by absolute paths or paths relative to the current 
+working directory. Command-line argument not matching a known option is copnsidered a filepath.
+- Files containing dafny code must have a `.dfy` suffix.
+- There must be at least one .dfy file.
+- The command-line may contain other kinds of files appropriate to 
+the language that the dafny files are being compiled to.
+
+The command-line options are documented [here](#options).
+
+- Options may begin with either a `/` (as is typical on Windows) or a `-` (as is typical on Linux)
+- If an option is repeated (e.g. with a different argument), then the later instance on the command-line supercedes the earlier instance.
+- If an option takes an argument, the option name is followed by a `:` and then by the argument value, with no
+intervening white space; if the argument itself contains white space, the argument must be enclosed in quotes.
+- Escape characters are determined by the shell executing the command-line. 
+
+The dafny tool performs several tasks:
+
+- Checking the form of the text in a .dfy file. This step is always performed, unless the tool is simply asked for
+help information or version number.
+- Running the verification engine to check all implicit and explicit specifications. This step is performed by
+default, but can be skipped by using the `-noVerify` or `-dafnyVerify:0` option
+- Compiling the dafny program to a target language. This step is performed by default if the verification is
+successful but can be skipped or always executed by using the `-compile` option.
+- Whether the source code of the compiled target is written out is controlled by `-spillTargetCode`
+- The particular target language used is chosen by `-compileTarget`
+- Whether or not the dafny tool attempts to run the compiled code is controlled by `-compile`
+
+## Verification
+
+There are a great many options that control various aspects of verifying dafny programs. Here we mention only a few:
+
+- Control of output: `-nologo`, `-dprint`, `-rpiomnt`, `-stats`, `-compileVerbose`
+- Whether to print warnings: `-proverWarnings`
+- Control of time: `-timeLimit`
+- Control of the prover used: `-prover`
+
+TO BE WRITTEN - advice on use of verifier, debugging verification problems
+
+## Compilation
+
+The dafny tool can compile a dafny program to one of several target languages. Details and idiosyncracies of each
+of these are described in the following subsections. In general note that,
+
+- the compiled code originating from dafny can be compiled with other source and binary code, but only the dafny-originated code is verified
+- the output file names can be set using `-out`
+- for each target language, there is a runtime library that must be used with the dafny-generated code when executing that code
+- names in dafny are written out as names in the target language. In some cases this can result in naming conflicts.
+Thus if  dafny program is intended to be compiled to a target language X, you should avoid using dafny identifiers
+that are not legal identifiers in X or that conflict with reserved words in X.
+
+### C#
+
+TO BE WRITTEN
+
+### Java
+
+TO BE WRITTEN
+
+### Javascript
+
+TO BE WRITTEN 
+
+### Go
+
+TO BE WRITTEN
+
+The C++ back-end is still very preliminary and is available for experimentation only.
+
+TO BE WRITTEN
+
+
+## Dafny Command Line Options {#options}
 The command `Dafny.exe /?` gives the following description of
 options that can be passed to Dafny.
 
-```
-  ---- Dafny options ---------------------------------------------------------
-
-  Multiple .dfy files supplied on the command line are concatenated into one
-  Dafny program.
-
-  /dprelude:<file>
-                choose Dafny prelude file
-  /dprint:<file>
-                print Dafny program after parsing it
-                (use - as <file> to print to console)
-  /printMode:<Everything|NoIncludes|NoGhost>
-                NoIncludes disables printing of {:verify false} methods incorporated via the
-                include mechanism, as well as datatypes and fields included from other files.
-                NoGhost disables printing of functions, ghost methods, and proof statements
-                in implementation methods.  It also disables anything NoIncludes disables.
-  /rprint:<file>
-                print Dafny program after resolving it
-                (use - as <file> to print to console)
-  /dafnyVerify:<n>
-                0 - stop after typechecking
-                1 - continue on to translation, verification, and compilation
-  /compile:<n>  0 - do not compile Dafny program
-                1 (default) - upon successful verification of the Dafny
-                    program, compile Dafny program to .NET assembly
-                    Program.exe (if the program has a Main method) or
-                    Program.dll (othewise), where Program.dfy is the name
-                    of the last .dfy file on the command line
-                2 - always attempt to compile Dafny program to C\# program
-                    out.cs, regardless of verification outcome
-                3 - if there is a Main method and there are no verification
-                    errors, compiles program in memory (i.e., does not write
-                    an output file) and runs it
-  /spillTargetCode:<n>
-                0 (default) - don't write the compiled Dafny program (but
-                    still compile it, if /compile indicates to do so)
-                1 - write the compiled Dafny program as a .cs file
-  /dafnycc      Disable features not supported by DafnyCC
-  /noCheating:<n>
-                0 (default) - allow assume statements and free invariants
-                1 - treat all assumptions as asserts, and drop free.
-  /induction:<n>
-                0 - never do induction, not even when attributes request it
-                1 - only apply induction when attributes request it
-                2 - apply induction as requested (by attributes) and also
-                    for heuristically chosen quantifiers
-                3 (default) - apply induction as requested, and for
-                    heuristically chosen quantifiers and ghost methods
-  /inductionHeuristic:<n>
-                0 - least discriminating induction heuristic (that is, lean
-                    toward applying induction more often)
-                1,2,3,4,5 - levels in between, ordered as follows as far as
-                    how discriminating they are:  0 < 1 < 2 < (3,4) < 5 < 6
-                6 (default) - most discriminating
-  /noIncludes   Ignore include directives
-  /noNLarith    Reduce Z3's knowledge of non-linear arithmetic (*,/,%).
-                Results in more manual work, but also produces more predictable behavior.
-  /autoReqPrint:<file>
-                Print out requirements that were automatically generated by autoReq.
-  /noAutoReq    Ignore autoReq attributes
-  /allowGlobals Allow the implicit class '_default' to contain fields, instance functions,
-                and instance methods.  These class members are declared at the module scope,
-                outside of explicit classes.  This command-line option is provided to simply
-                a transition from the behavior in the language prior to version 1.9.3, from
-                which point onward all functions and methods declared at the module scope are
-                implicitly static and fields declarations are not allowed at the module scope.
-                The reference manual is written assuming this option is not given.
-
-
-  /nologo       suppress printing of version number, copyright message
-  /env:<n>      print command line arguments
-                  0 - never, 1 (default) - during BPL print and prover log,
-                  2 - like 1 and also to standard output
-  /wait         await Enter from keyboard before terminating program
-  /xml:<file>   also produce output in XML format to <file>
-
-  ---- Boogie options --------------------------------------------------------
-
-  Multiple .bpl files supplied on the command line are concatenated into one
-  Boogie program.
-
-  /proc:<p>      : limits which procedures to check
-  /noResolve     : parse only
-  /noTypecheck   : parse and resolve only
-
-  /print:<file>  : print Boogie program after parsing it
-                   (use - as <file> to print to console)
-  /pretty:<n>
-                0 - print each Boogie statement on one line (faster).
-                1 (default) - pretty-print with some line breaks.
-  /printWithUniqueIds : print augmented information that uniquely
-                   identifies variables
-  /printUnstructured : with /print option, desugars all structured statements
-  /printDesugared : with /print option, desugars calls
-
-  /overlookTypeErrors : skip any implementation with resolution or type
-                        checking errors
-
-  /loopUnroll:<n>
-                unroll loops, following up to n back edges (and then some)
-  /soundLoopUnrolling
-                sound loop unrolling
-  /printModel:<n>
-                0 (default) - do not print Z3's error model
-                1 - print Z3's error model
-                2 - print Z3's error model plus reverse mappings
-                4 - print Z3's error model in a more human readable way
-  /printModelToFile:<file>
-                print model to <file> instead of console
-  /mv:<file>    Specify file where to save the model in BVD format
-  /enhancedErrorMessages:<n>
-                0 (default) - no enhanced error messages
-                1 - Z3 error model enhanced error messages
-
-  /printCFG:<prefix> : print control flow graph of each implementation in
-                       Graphviz format to files named:
-                         <prefix>.<procedure name>.dot
-
-  /useBaseNameForFileName : When parsing use basename of file for tokens instead
-                            of the path supplied on the command line
-
-  ---- Inference options -----------------------------------------------------
-
-  /infer:<flags>
-                use abstract interpretation to infer invariants
-                The default is /infer:i
-                   <flags> are as follows (missing <flags> means all)
-                   i = intervals
-                   c = constant propagation
-                   d = dynamic type
-                   n = nullness
-                   p = polyhedra for linear inequalities
-                   t = trivial bottom/top lattice (cannot be combined with
-                       other domains)
-                   j = stronger intervals (cannot be combined with other
-                       domains)
-                or the following (which denote options, not domains):
-                   s = debug statistics
-                0..9 = number of iterations before applying a widen (default=0)
-  /noinfer      turn off the default inference, and overrides the /infer
-                switch on its left
-  /checkInfer   instrument inferred invariants as asserts to be checked by
-                theorem prover
-  /interprocInfer
-                perform interprocedural inference (deprecated, not supported)
-  /contractInfer
-                perform procedure contract inference
-  /instrumentInfer
-                h - instrument inferred invariants only at beginning of
-                    loop headers (default)
-                e - instrument inferred invariants at beginning and end
-                    of every block (this mode is intended for use in
-                    debugging of abstract domains)
-  /printInstrumented
-                print Boogie program after it has been instrumented with
-                invariants
-
-  ---- Debugging and general tracing options ---------------------------------
-
-  /trace        blurt out various debug trace information
-  /traceTimes   output timing information at certain points in the pipeline
-  /tracePOs     output information about the number of proof obligations
-                (also included in the /trace output)
-  /log[:method] Print debug output during translation
-
-  /break        launch and break into debugger
-
-  ---- Verification-condition generation options -----------------------------
-
-  /liveVariableAnalysis:<c>
-                0 = do not perform live variable analysis
-                1 = perform live variable analysis (default)
-                2 = perform interprocedural live variable analysis
-  /noVerify     skip VC generation and invocation of the theorem prover
-  /verifySnapshots:<n>
-                verify several program snapshots (named <filename>.v0.bpl
-                to <filename>.vN.bpl) using verification result caching:
-                0 - do not use any verification result caching (default)
-                1 - use the basic verification result caching
-                2 - use the more advanced verification result caching
-  /verifySeparately
-                verify each input program separately
-  /removeEmptyBlocks:<c>
-                0 - do not remove empty blocks during VC generation
-                1 - remove empty blocks (default)
-  /coalesceBlocks:<c>
-                0 = do not coalesce blocks
-                1 = coalesce blocks (default)
-  /vc:<variety> n = nested block (default for /prover:Simplify),
-                m = nested block reach,
-                b = flat block, r = flat block reach,
-                s = structured, l = local,
-                d = dag (default, except with /prover:Simplify)
-                doomed = doomed
-  /traceverify  print debug output during verification condition generation
-  /subsumption:<c>
-                apply subsumption to asserted conditions:
-                0 - never, 1 - not for quantifiers, 2 (default) - always
-  /alwaysAssumeFreeLoopInvariants
-                usually, a free loop invariant (or assume
-                statement in that position) is ignored in checking contexts
-                (like other free things); this option includes these free
-                loop invariants as assumes in both contexts
-  /inline:<i>   use inlining strategy <i> for procedures with the :inline
-                attribute, see /attrHelp for details:
-                  none
-                  assume (default)
-                  assert
-                  spec
-  /printInlined
-                print the implementation after inlining calls to
-                procedures with the :inline attribute (works with /inline)
-  /lazyInline:1
-                Use the lazy inlining algorithm
-  /stratifiedInline:1
-                Use the stratified inlining algorithm
-  /fixedPointEngine:<engine>
-                Use the specified fixed point engine for inference
-  /recursionBound:<n>
-                Set the recursion bound for stratified inlining to
-                be n (default 500)
-  /inferLeastForUnsat:<str>
-                Infer the least number of constants (whose names
-                are prefixed by <str>) that need to be set to
-                true for the program to be correct. This turns
-                on stratified inlining.
-  /smoke        Soundness Smoke Test: try to stick assert false; in some
-                places in the BPL and see if we can still prove it
-  /smokeTimeout:<n>
-                Timeout, in seconds, for a single theorem prover
-                invocation during smoke test, defaults to 10.
-  /causalImplies
-                Translate Boogie's A ==> B into prover's A ==> A && B.
-  /typeEncoding:<m>
-                how to encode types when sending VC to theorem prover
-                   n = none (unsound)
-                   p = predicates (default)
-                   a = arguments
-                   m = monomorphic
-  /monomorphize
-                Do not abstract map types in the encoding (this is an
-                experimental feature that will not do the right thing if
-                the program uses polymorphism)
-  /reflectAdd   In the VC, generate an auxiliary symbol, elsewhere defined
-                to be +, instead of +.
-
-  ---- Verification-condition splitting --------------------------------------
-
-  /vcsMaxCost:<f>
-                VC will not be split unless the cost of a VC exceeds this
-                number, defaults to 2000.0. This does NOT apply in the
-                keep-going mode after first round of splitting.
-  /vcsMaxSplits:<n>
-                Maximal number of VC generated per method. In keep
-                going mode only applies to the first round.
-                Defaults to 1.
-  /vcsMaxKeepGoingSplits:<n>
-                If set to more than 1, activates the keep
-                going mode, where after the first round of splitting,
-                VCs that timed out are split into <n> pieces and retried
-                until we succeed proving them, or there is only one
-                assertion on a single path and it timeouts (in which
-                case error is reported for that assertion).
-                Defaults to 1.
-  /vcsKeepGoingTimeout:<n>
-                Timeout in seconds for a single theorem prover
-                invocation in keep going mode, except for the final
-                single-assertion case. Defaults to 1s.
-  /vcsFinalAssertTimeout:<n>
-                Timeout in seconds for the single last
-                assertion in the keep going mode. Defaults to 30s.
-  /vcsPathJoinMult:<f>
-                If more than one path join at a block, by how much
-                multiply the number of paths in that block, to accomodate
-                for the fact that the prover will learn something on one
-                paths, before proceeding to another. Defaults to 0.8.
-  /vcsPathCostMult:<f1>
-  /vcsAssumeMult:<f2>
-                The cost of a block is
-                    (<assert-cost> + <f2>*<assume-cost>) *
-                    (1.0 + <f1>*<entering-paths>)
-                <f1> defaults to 1.0, <f2> defaults to 0.01.
-                The cost of a single assertion or assumption is
-                currently always 1.0.
-  /vcsPathSplitMult:<f>
-                If the best path split of a VC of cost A is into
-                VCs of cost B and C, then the split is applied if
-                A >= <f>*(B+C), otherwise assertion splitting will be
-                applied. Defaults to 0.5 (always do path splitting if
-                possible), set to more to do less path splitting
-                and more assertion splitting.
-  /vcsDumpSplits
-                For split #n dump split.n.dot and split.n.bpl.
-                Warning: Affects error reporting.
-  /vcsCores:<n>
-                Try to verify <n> VCs at once. Defaults to 1.
-  /vcsLoad:<f>  Sets vcsCores to the machine's ProcessorCount * f,
-                rounded to the nearest integer (where 0.0 <= f <= 3.0),
-                but never to less than 1.
-
-  ---- Prover options --------------------------------------------------------
-
-  /errorLimit:<num>
-                Limit the number of errors produced for each procedure
-                (default is 5, some provers may support only 1)
-  /timeLimit:<num>
-                Limit the number of seconds spent trying to verify
-                each procedure
-  /errorTrace:<n>
-                0 - no Trace labels in the error output,
-                1 (default) - include useful Trace labels in error output,
-                2 - include all Trace labels in the error output
-  /vcBrackets:<b>
-                bracket odd-charactered identifier names with |'s.  <b> is:
-                   0 - no (default with non-/prover:Simplify),
-                   1 - yes (default with /prover:Simplify)
-  /prover:<tp>  use theorem prover <tp>, where <tp> is either the name of
-                a DLL containing the prover interface located in the
-                Boogie directory, or a full path to a DLL containing such
-                an interface. The standard interfaces shipped include:
-                    SMTLib (default, uses the SMTLib2 format and calls Z3)
-                    Z3 (uses Z3 with the Simplify format)
-                    Simplify
-                    ContractInference (uses Z3)
-                    Z3api (Z3 using Managed .NET API)
-  /proverOpt:KEY[=VALUE]
-                Provide a prover-specific option (short form /p).
-  /proverLog:<file>
-                Log input for the theorem prover.  Like filenames
-                supplied as arguments to other options, <file> can use the
-                following macros:
-                    @TIME@    expands to the current time
-                    @PREFIX@  expands to the concatenation of strings given
-                              by /logPrefix options
-                    @FILE@    expands to the last filename specified on the
-                              command line
-                In addition, /proverLog can also use the macro '@PROC@',
-                which causes there to be one prover log file per
-                verification condition, and the macro then expands to the
-                name of the procedure that the verification condition is for.
-  /logPrefix:<str>
-                Defines the expansion of the macro '@PREFIX@', which can
-                be used in various filenames specified by other options.
-  /proverLogAppend
-                Append (not overwrite) the specified prover log file
-  /proverWarnings
-                0 (default) - don't print, 1 - print to stdout,
-                2 - print to stderr
-  /proverMemoryLimit:<num>
-                Limit on the virtual memory for prover before
-                restart in MB (default:100MB)
-  /restartProver
-                Restart the prover after each query
-  /proverShutdownLimit<num>
-                Time between closing the stream to the prover and
-                killing the prover process (default: 0s)
-  /platform:<ptype>,<location>
-                ptype = v11,v2,cli1
-                location = platform libraries directory
-
-  Simplify specific options:
-  /simplifyMatchDepth:<num>
-                Set Simplify prover's matching depth limit
-
-  Z3 specific options:
-  /z3opt:<arg>  specify additional Z3 options
-  /z3multipleErrors
-                report multiple counterexamples for each error
-  /useArrayTheory
-                use Z3's native theory (as opposed to axioms).  Currently
-                implies /monomorphize.
-  /useSmtOutputFormat
-                Z3 outputs a model in the SMTLIB2 format.
-  /z3types      generate multi-sorted VC that make use of Z3 types
-  /z3lets:<n>   0 - no LETs, 1 - only LET TERM, 2 - only LET FORMULA,
-                3 - (default) any
-  /z3exe:<path>
-                path to Z3 executable
-
-  CVC4 specific options:
-  /cvc4exe:<path>
-                path to CVC4 executable
-
-```
-
-
+{% include Options.txt %}
