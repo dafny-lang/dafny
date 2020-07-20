@@ -1,5 +1,6 @@
 package dafny;
 
+@SuppressWarnings({"unchecked", "deprecation"})
 public class Tuple3<T0, T1, T2> {
   private T0 _0;
   private T1 _1;
@@ -10,11 +11,10 @@ public class Tuple3<T0, T1, T2> {
     this._1 = _1;
     this._2 = _2;
   }
-  private static final Tuple3 DEFAULT = new Tuple3();
-  private static final dafny.Type<Tuple3> TYPE = dafny.Type.referenceWithDefault(Tuple3.class, DEFAULT);
-  public static dafny.Type<Tuple3> _type() { return TYPE; }
+  public static <T0,T1,T2> dafny.Type<Tuple3<T0,T1,T2> > _type(dafny.Type<T0> _td_T0,dafny.Type<T1> _td_T1,dafny.Type<T2> _td_T2) {
+    return (dafny.Type<Tuple3<T0,T1,T2> >) (dafny.Type<?>) dafny.Type.referenceWithInitializer(Tuple3.class, () -> Default(_td_T0, _td_T1, _td_T2));
+  }
 
-  public Tuple3() {}
   public static <T0, T1, T2> Tuple3<T0, T1, T2> Default(dafny.Type<T0> _td_T0, dafny.Type<T1> _td_T1, dafny.Type<T2> _td_T2) {
     return new Tuple3<>(_td_T0.defaultValue(), _td_T1.defaultValue(), _td_T2.defaultValue());
   }
