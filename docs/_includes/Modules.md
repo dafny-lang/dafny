@@ -225,7 +225,7 @@ import opened M = MyModule // names in MyModule are available in the
                        // qualified with either M or MyModule
 ```
 
-The Dafny stsyle guidelines suggest using opened imports sparingly.
+The Dafny style guidelines suggest using opened imports sparingly.
 They are best used when the names being imported have obvious
 and unambiguous meanings and when using qualified names would be 
 verbose enough to impede understanding.
@@ -466,4 +466,3 @@ To resolve expression `E.id`:
   1. If `allowDanglingDotName`: Return the type of `E` and the given `E.id`,
      letting the caller try to make sense of the final dot-name.
      TODO: I don't under this sentence. What is `allowDanglingDotName`?
-
