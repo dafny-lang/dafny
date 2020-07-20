@@ -93,6 +93,10 @@ module Mod {
 }
 ```
 
+Note that everything declared at the top-level 
+(in all the files constituting the program) is implicitly part
+of a single implicit unnamed global module.
+
 ## Importing Modules
 ````
 ModuleImport_ = "import" ["opened" ] ModuleName
@@ -152,8 +156,9 @@ sibling module of the importing module, or with a submodule of the
 importing module. There is no way to refer to the parent module, only
 sibling modules (and their submodules).
 
-Import statements may occur at the top-level of a file as well.
-There they serve simply as a way to givve a new name, perhaps a 
+Import statements may occur at the top-level of a program 
+(that is, in the implicit top-level module of the program) as well.
+There they serve simply as a way to give a new name, perhaps a 
 shorthand name, to a module. For example,
 
 ```
@@ -219,6 +224,11 @@ import opened M = MyModule // names in MyModule are available in the
                        // current scope without qualification or
                        // qualified with either M or MyModule
 ```
+
+The Dafny stsyle guidelines suggest using opened imports sparingly.
+They are best used when the names being imported have obvious
+and unambiguous meanings and when using qualified names would be 
+verbose enough to impede understanding.
 
 ## Module Abstraction
 
