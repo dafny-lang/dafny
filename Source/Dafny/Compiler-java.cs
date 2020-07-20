@@ -2379,7 +2379,7 @@ namespace Microsoft.Dafny{
               throw new cce.UnreachableException();
           }
         } else {
-          return $"({TypeDescriptor(elType, wr, tok)}).arrayType()";
+          return $"(({TypeClass}<{TypeName(type, wr, tok)}>)({TypeDescriptor(elType, wr, tok)}).arrayType())";
         }
       } else if (type.IsTypeParameter) {
         var tp = type.AsTypeParameter;
