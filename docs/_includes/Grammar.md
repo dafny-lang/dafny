@@ -191,18 +191,18 @@ as identifiers of user-defined entities:
 
 ````
 reservedword =
-    "abstract" | "array" | "as" | "assert" | "assume" | "bool" | "break" |
+    "abstract" | "allocated" | "as" | "assert" | "assume" | "bool" | "break" | "by" |
     "calc" | "case" | "char" | "class" | "codatatype" | "colemma" |
-    "constructor" | "copredicate" | "datatype" | "decreases" |
-    "default" | "else" | "ensures" | "exists" | "extends" | "false" |
+    "const" | "constructor" | "copredicate" | "datatype" | "decreases" |
+    "default" | "else" | "ensures" | "exists" | "expect" | "export" | "extends" | "false" |
     "forall" | "free" | "fresh" | "function" | "ghost" | "if" | "imap" | "import" |
     "in" | "include" | "inductive" | "int" | "invariant" | "iset" | "iterator" | "label" |
     "lemma" | "map" | "match" | "method" | "modifies" | "modify" |
     "module" | "multiset" | "nat" | "new" | "newtype" | "null" | "object" |
-    "old" | "opened" | "predicate" | "print" | "protected" |
-    "reads" | "real" | "refines" | "requires" | "return" | "returns" | "seq" |
-    "set" | "static" | "string" | "then" | "this" | "trait" | "true" | "type" |
-    "var" | "where" | "while" | "yield" | "yields" | arrayToken
+    "old" | "opened" | "predicate" | "print" | "protected" | "provides"
+    "reads" | "real" | "refines" | "requires" | "return" | "returns" | "reveals" | "seq" |
+    "set" | "static" | "string" | "then" | "this" | "trait" | "true" | "twostate" | "type" |
+    "unchanged" | "var" | "where" | "while" | "yield" | "yields" | arrayToken
 
 arrayToken = "array" [ posDigit { digit }]
 ````
