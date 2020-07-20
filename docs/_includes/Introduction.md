@@ -11,7 +11,7 @@ executable form.
 
 The Dafny programming language is designed to support the static
 verification of programs. It is imperative, sequential, supports generic
-classes, inhewritance and abstraction, methods and functions, dynamic allocation, inductive and
+classes, inheritance and abstraction, methods and functions, dynamic allocation, inductive and
 co-inductive datatypes, and specification constructs. The
 specifications include pre- and postconditions, frame specifications
 (read and write sets), and termination metrics. To further support
@@ -42,9 +42,11 @@ by [Boogie](http://research.microsoft.com/boogie)
 and [Z3](https://github.com/z3prover)[@deMouraBjorner:Z3:overview].
 
 From verified programs, the Dafny compiler can produce code for a number
-of different backends: javascript, go, java, or
-the .NET platform via intermediate C\# files. However, the
-facilities for interfacing with other .NET code are minimal.
+of different backends: 
+the .NET platform via intermediate C\# files, Java, Javascript, Go, and C++.
+Each language provides a basic Foreign Function Interface (through uses of `:extern`)
+and a supporting runtime library.
+However, there is no automatic FFI generator, so `:extern` stubs must be written by hand.
 
 This reference manual for the Dafny verification system is
 based on the following references:
