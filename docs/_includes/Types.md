@@ -1936,14 +1936,13 @@ declare no constructors or one or more constructors.
 A class that declares no constructors has a default constructor created 
 for it. This constructor is called with the syntax
 ```
-C C := new C;
+c := new C;
 ```
 This constructor simply initializes the fields of the class.
-The order of initialization is such that any field whose value depends on the
-value of another field is initialized after that other field. 
-It is an error if there are circular dependencies. 
+The declaration of a const field may include an initializer, that is, a right-hand side (RHS) that specifies the constant's value. 
+The RHS of a const field may depend on other constant fields, but circular dependencies are not allowed.
 
-This constructor sets each class field to a default value
+This constructor sets each class field to an arbitrary value
 of the field's type if the field declaration has no initializer 
 and to the value of the initializer expression if it does declare an initializer. 
 For the purposes of proving Dafny programs
@@ -1970,19 +1969,20 @@ class Item {
 ```
 The named constructor is invoked as
 ```
-  Item i := new Item.I(42);
+  i := new Item.I(42);
 ```
 The anonymous constructor is invoked as
 ```
-  Item i := new Item(42, 43);
   m := new Item(45, 29);
 ```
 dropping the "`.`".
 
+#### Two-phase constructors
+
 The body of a constructor contains two sections, 
 an initialization phase and a post-initialization phase, separated by a `new;` statement.
 If there is no `new;` statement, the entire body is the initialization phase. 
-This initialization phase is intended to initialize field variables. 
+The initialization phase is intended to initialize field variables. 
 In this phase, uses of the object reference `this` are restricted;
 a program may use `this`
 
@@ -1990,7 +1990,8 @@ a program may use `this`
  - as the entire RHS of an assignment to a field of `this`, 
  - and as a member of a set on the RHS that is being assigned to a field of `this`.
 
-Furthermore, `const` fields may only be assigned to in an initialization phase (and more than once)
+Furthermore, `const` fields may only be assigned to in an initialization phase 
+(and may be assigned to more than once)
 of their enclosing class, and then only if they do not already have an initialization
 value in their declaration.
 
