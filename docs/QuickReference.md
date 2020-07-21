@@ -1,5 +1,5 @@
 <p></p>
-{% include main.css %}
+<link rel="stylesheet" href="assets/main.css">
 
 # Dafny Quick Reference
 
