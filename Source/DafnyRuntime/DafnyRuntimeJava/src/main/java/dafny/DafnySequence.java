@@ -151,9 +151,8 @@ public abstract class DafnySequence<T> implements Iterable<T> {
         assert other != null : "Precondition Violation";
         if (other.length() < length()) return false;
         for (int i = 0; i < length(); i++) {
-            if (this.select(i) != other.select(i)) return false;
+            if (!java.util.Objects.equals(this.select(i), other.select(i))) return false;
         }
-
         return true;
     }
 

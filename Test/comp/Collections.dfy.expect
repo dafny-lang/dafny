@@ -42,6 +42,9 @@ hello
 hEllo
 [2, 4, 6, 8, 10]
 [2, 0, 6, 8, 10]
+true false false
+true true false true
+false false false true
 Strings:  uRuR gu
   cardinality: 0 4 2
   concatenation: uRuR uRuRgu
@@ -111,6 +114,9 @@ hello
 hEllo
 [2, 4, 6, 8, 10]
 [2, 0, 6, 8, 10]
+true false false
+true true false true
+false false false true
 Strings:  uRuR gu
   cardinality: 0 4 2
   concatenation: uRuR uRuRgu
@@ -180,6 +186,9 @@ hello
 hEllo
 [2, 4, 6, 8, 10]
 [2, 0, 6, 8, 10]
+true false false
+true true false true
+false false false true
 Strings:  uRuR gu
   cardinality: 0 4 2
   concatenation: uRuR uRuRgu
@@ -249,6 +258,9 @@ hello
 hEllo
 [2, 4, 6, 8, 10]
 [2, 0, 6, 8, 10]
+true false false
+true true false true
+false false false true
 Strings:  uRuR gu
   cardinality: 0 4 2
   concatenation: uRuR uRuRgu

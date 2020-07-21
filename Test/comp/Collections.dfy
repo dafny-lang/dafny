@@ -82,6 +82,7 @@ method Sequences() {
   print "  membership: ", 17 in a, " ", 17 in b, " ", 17 in c, "\n";
   BoundedIntegerParameters.Test();
   SeqUpdate();
+  SeqPrefix();
 }
 
 method SeqUpdate() {
@@ -96,6 +97,19 @@ method SeqUpdate() {
   print t, "\n"; // [2, 4, 6, 8, 10];
   t := t[1 := 0];
   print t, "\n"; // [2, 0, 6, 8, 10];
+}
+
+datatype Cell = Cell(data: int)
+
+method SeqPrefix() {
+  // regression tests
+  var a, b, c := Cell(8), Cell(10), Cell(8);
+  var sa := [a, a, a, b, a, b, b];
+  var sc := [c, c, c, b, c, b, b];
+  var t := [a, a, a, b, a, b, b, b];
+  print sa == sc, " ", sa != sc, " ", sa == t, "\n"; // true false false
+  print sa <= sc, " ", sc <= sa, " ", t <= sa, " ", sa <= t, "\n"; // true true false true
+  print sa < sc, " ", sc < sa, " ", t < sa, " ", sa < t, "\n"; // false false false true
 }
 
 module BoundedIntegerParameters {
