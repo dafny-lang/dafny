@@ -350,6 +350,7 @@ FunctionReadsClause_ =
   { "," PossiblyWildFrameExpression(allowLemma: false) }
 LambdaReadsClause_ =
   "reads" PossiblyWildFrameExpression(allowLemma: true)
+  { "," PossiblyWildFrameExpression(allowLemma: true) }
 IteratorReadsClause_ =
   "reads" { Attribute }
   FrameExpression(allowLemma: false, allowLambda: false)
@@ -391,6 +392,8 @@ read.
 TODO: It would be nice if the different forms of read clauses could be
 combined. In a future version the single form of read clause will allow
 a list and attributes.
+
+TO BE WRITTEN: multiset of objects allowed in reads clauses
 
 ### Modifies Clause
 
@@ -528,4 +531,7 @@ is effectively a precondition and it along with the
 negation of the loop test condition provides the postcondition.
 The ``DecreasesClause_`` clause is used to prove termination.
 
+## Inferred specifications
+
+TO BE WRITTEN - {:autocontracts}
 

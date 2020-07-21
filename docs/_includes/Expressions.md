@@ -144,6 +144,8 @@ LogicalExpression(allowLemma, allowLambda) =
   ]
 ````
 
+TO BE WRITTEN -- prefixed && and ||
+
 See section [#sec-conjunction-and-disjunction] for an explanation
 of the `&&` (or &and;) and `||` (or &or;) operators.
 
@@ -359,6 +361,8 @@ ArrayAllocation_ = "new" Type "[" Expressions "]"
 This allocates a new single or multi-dimensional array as explained in
 section [#sec-array-types].
 
+TO BE WRITTEN - argument that describes how to initialize the array
+
 ## Object Allocation
 ````
 ObjectAllocation_ = "new" Type [ "(" [ Expressions ] ")" ]
@@ -410,9 +414,13 @@ freshly allocated in the current method invocation.
 The argument of `fresh` must be either an object reference
 or a collection of object references.
 
+## Allocated expression
+
+TO BE WRITTEN -- allocated predicate
+
 ## Old Expressions
 ````
-OldExpression_ = "old" "(" Expression(allowLemma: true, allowLambda: true) ")"
+OldExpression_ = "old" [ "@" ident ] "(" Expression(allowLemma: true, allowLambda: true) ")"
 ````
 
 An _old expression_ is used in postconditions. `old(e)` evaluates to
@@ -420,6 +428,12 @@ the value expression `e` had on entry to the current method.
 Note that **old** only affects heap dereferences, like `o.f` and `a[i]`.
 In particular, **old** has no effect on the value returned for local
 variables or out-parameters.
+
+TO BE WRITTEN -- Inside an old, disallow unchanged, fresh, two-state functions, two-state lemmas, and nested old
+
+## Unchanged Expressions
+
+TO BE WRITTEN -- including with labels
 
 ## Cardinality Expressions
 ````
@@ -489,6 +503,8 @@ For example
 is a set with three elements in it.
 See section [#sec-sets] for more information on
 sets.
+
+TO BE WRITTEN - use of sequence display expressions as array values
 
 ## Multiset Display or Cast Expression
 ````
@@ -585,6 +601,10 @@ is evaluated as the following example shows.
 var k := 10 / x; // error, may divide by 0.
 var m := if x != 0 then 10 / x else 1; // ok, guarded
 ```
+
+## Binding If Expression
+
+TO BE WRITTEN
 
 ## Case Bindings, Patterns, and Extended Patterns
 ````
@@ -1121,4 +1141,7 @@ Expressions =
 The ``Expressions`` non-terminal represents a list of
 one or more expressions separated by a comma.
 
+## Map comprehensions
+
+TO BE WRITTEN
 
