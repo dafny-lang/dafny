@@ -53,13 +53,13 @@ class SequenceTest {
 
   @Test
   void testSequenceConcatenate() {
-    DafnySequence<Integer> fatty = testSequence.concatenate(testSequencePre);
-    assertEquals(fatty.length(), testSequencePre.length() + testSequence.length());
+    DafnySequence<Integer> c = (DafnySequence<Integer>)DafnySequence.<Integer>concatenate(testSequence, testSequencePre);
+    assertEquals(c.length(), testSequencePre.length() + testSequence.length());
     for (int i = 0; i < testSequence.length(); i++) {
-      assertEquals(fatty.select(i), testSequence.select(i));
+      assertEquals(c.select(i), testSequence.select(i));
     }
     for (int i = 0; i < testSequencePre.length(); i++) {
-      assertEquals(fatty.select(i + testSequence.length()), testSequencePre.select(i));
+      assertEquals(c.select(i + testSequence.length()), testSequencePre.select(i));
     }
   }
 
@@ -145,7 +145,8 @@ class SequenceTest {
     assertThrows(AssertionError.class, () -> DafnySequence.fromList(Type.INT, l));
     assertThrows(AssertionError.class, () -> testSequence.isPrefixOf(null));
     assertThrows(AssertionError.class, () -> testSequence.contains(null));
-    assertThrows(AssertionError.class, () -> testSequence.concatenate(null));
+    assertThrows(AssertionError.class, () -> DafnySequence.<Integer>concatenate(testSequence, null));
+    assertThrows(AssertionError.class, () -> DafnySequence.<Integer>concatenate(null, testSequence));
     assertThrows(AssertionError.class, () -> testSequence.update(1, null));
     assertThrows(AssertionError.class, () -> testSequence.slice(null));
     assertThrows(AssertionError.class, () -> {

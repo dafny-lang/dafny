@@ -184,15 +184,16 @@ public abstract class DafnySequence<T> implements Iterable<T> {
         };
     }
 
-    public final DafnySequence<T> concatenate(DafnySequence<T> other) {
+    public static <T> DafnySequence<T> concatenate(DafnySequence<? extends T> th, DafnySequence<? extends T> other) {
+        assert th != null : "Precondition Violation";
         assert other != null : "Precondition Violation";
 
-        if (this.isEmpty()) {
-            return other;
+        if (th.isEmpty()) {
+            return (DafnySequence<T>)other;
         } else if (other.isEmpty()) {
-            return this;
+            return (DafnySequence<T>)th;
         } else {
-            return new ConcatDafnySequence<T>(this, other);
+            return new ConcatDafnySequence<T>((DafnySequence<T>)th, (DafnySequence<T>)other);
         }
     }
 

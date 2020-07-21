@@ -1534,7 +1534,7 @@ namespace Microsoft.Dafny{
     protected override void EmitIndexCollectionUpdate(Expression source, Expression index, Expression value, Type resultElementType, bool inLetExprBody,
       TargetWriter wr, bool nativeIndex = false) {
       if (source.Type.AsSeqType != null) {
-        wr.Write("dafny.DafnySequence.<{0}>update(", BoxedTypeName(resultElementType, wr, Bpl.Token.NoToken));
+        wr.Write($"{DafnySeqClass}.<{BoxedTypeName(resultElementType, wr, Bpl.Token.NoToken)}>update(");
         TrExpr(source, wr, inLetExprBody);
         wr.Write(", ");
       } else {
@@ -2383,7 +2383,7 @@ namespace Microsoft.Dafny{
               throw new cce.UnreachableException();
           }
         } else {
-          return $"(({TypeClass}<{TypeName(type, wr, tok)}>)({TypeDescriptor(elType, wr, tok)}).arrayType())";
+          return $"(({TypeClass}<{BoxedTypeName(type, wr, tok)}>)({TypeDescriptor(elType, wr, tok)}).arrayType())";
         }
       } else if (type.IsTypeParameter) {
         var tp = type.AsTypeParameter;
@@ -2405,7 +2405,7 @@ namespace Microsoft.Dafny{
         }
 
         if (cl.IsExtern(out _, out _)) {
-          var td = $"{TypeClass}.<{TypeName(type, wr, tok)}> findType({s}.class";
+          var td = $"{TypeClass}.<{BoxedTypeName(type, wr, tok)}> findType({s}.class";
           if (udt.TypeArgs != null && udt.TypeArgs.Count > 0) {
             td += $", {Util.Comma(udt.TypeArgs, arg => TypeDescriptor(arg, wr, tok))}";
           }
@@ -2884,7 +2884,7 @@ namespace Microsoft.Dafny{
           callString = "isPrefixOf";
           break;
         case BinaryExpr.ResolvedOpcode.Concat:
-          callString = "concatenate";
+          staticCallString = $"{DafnySeqClass}.<{BoxedTypeName(resultType.AsSeqType.Arg, errorWr, tok)}>concatenate";
           break;
         case BinaryExpr.ResolvedOpcode.InSeq:
           callString = "contains";
