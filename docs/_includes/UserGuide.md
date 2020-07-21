@@ -60,7 +60,7 @@ Last, follow the conventions:
 
 -   Visual Studio
     -   Set "General:Tab" to "2 2"
-    -   For `"C#:Formatting:NewLines` Turn everything off except the first option.
+    -   For `"C\#:Formatting:NewLines` Turn everything off except the first option.
 
 
 Dafny performs its verification by translating the Dafny source into
@@ -152,7 +152,7 @@ in Windows and Unix-like systems.
 
 - The format of a command-line is determined by the shell program that is executing the command-line (.e.g. bash, the windows shell, COMMAND, etc.). The command-line typically consists of file names and options, in any order, separated by spaces. 
 - Files are designated by absolute paths or paths relative to the current 
-working directory. Command-line argument not matching a known option is copnsidered a filepath.
+working directory. Command-line argument not matching a known option is considered a filepath.
 - Files containing dafny code must have a `.dfy` suffix.
 - There must be at least one .dfy file.
 - The command-line may contain other kinds of files appropriate to 
@@ -173,7 +173,7 @@ help information or version number.
 - Running the verification engine to check all implicit and explicit specifications. This step is performed by
 default, but can be skipped by using the `-noVerify` or `-dafnyVerify:0` option
 - Compiling the dafny program to a target language. This step is performed by default if the verification is
-successful but can be skipped or always executed by using the `-compile` option.
+successful but can be skipped or always executed by using variations of the `-compile` option.
 - Whether the source code of the compiled target is written out is controlled by `-spillTargetCode`
 - The particular target language used is chosen by `-compileTarget`
 - Whether or not the dafny tool attempts to run the compiled code is controlled by `-compile`
@@ -201,6 +201,9 @@ of these are described in the following subsections. In general note that,
 Thus if  dafny program is intended to be compiled to a target language X, you should avoid using dafny identifiers
 that are not legal identifiers in X or that conflict with reserved words in X.
 
+
+TODO - location of DafnyRuntime files
+
 ### C#
 
 TO BE WRITTEN
@@ -216,6 +219,8 @@ TO BE WRITTEN
 ### Go
 
 TO BE WRITTEN
+
+### C++
 
 The C++ back-end is still very preliminary and is available for experimentation only.
 
