@@ -1,4 +1,22 @@
-# Dafny User's Guide
+<!--PDF NEWPAGE-->
+# Dafny User's Guide {#user-guide}
+## Introduction
+
+The dafny tool implements the following capabilities:
+
+- checking that the input files represent a valid dafny program (i.e., syntax, grammar and type checking);
+- verifying that the program meets its specifications, by translating the program to verification conditions
+and checking those with Boogie and an SMT solver, typically Z3;
+- compiling the program to a target language, such as C#, Java, Javascript, Go (and others in development);
+- running the executable produced by the compiler.
+
+Using various command-line flags, the tool can perform various combinations of the last three actions (the first
+action is always performed).
+
+The development of the dafny language and tool is a GitHub project at [https://github.com/dafny-lang/dafny](https://github.com/dafny-lang/dafny).
+The project is open source, with collaborators from various organizations and additional contributors welcome.
+The software itself is licensed under the [MIT license](https://github.com/dafny-lang/dafny/blob/master/LICENSE.txt).
+
 ## Installing Dafny From Binaries
 **Windows:** To install Dafny on your own machine, download Dafny.zip and
 **save** it to your disk. Then, before you open or unzip it, right-click
@@ -29,6 +47,8 @@ contents of the Dafny.zip for the appropriate version of your platform.
 You can now run Dafny from the command line by invoking the script file
 `dafny`. For an IDE, use the [Dafny mode for
 Emacs](https://github.com/boogie-org/boogie-friends).
+
+**Mac using brew:** On a Mac, you can install dafny, along with its dependencies, mono and z3,  using the `brew` package manager.
 
 ## Building Dafny from Source
 The current version of the Dafny executable builds and runs with Visual Studio 2012 or later,
