@@ -247,15 +247,10 @@ public abstract class DafnySequence<T> implements Iterable<T> {
         return length();
     }
 
-    public abstract DafnySequence<T> update(int i, T t);
+    public abstract <R> DafnySequence<R> update(int i, R t);
 
-    public DafnySequence<T> update(BigInteger b, T t) {
-        assert t != null : "Precondition Violation";
-        assert b != null : "Precondition Violation";
-        //todo: should we allow i=length, and return a new sequence with t appended to the sequence?
-        assert b.compareTo(BigInteger.ZERO) >= 0 &&
-               b.compareTo(BigInteger.valueOf(length())) < 0: "Precondition Violation";
-        return update(b.intValue(), t);
+    public static <R> DafnySequence<R> update(DafnySequence<? extends R> seq, BigInteger b, R t) {
+        return seq.<R>update(b.intValue(), t);
     }
 
     public boolean contains(T t) {
@@ -458,11 +453,11 @@ final class ArrayDafnySequence<T> extends NonLazyDafnySequence<T> {
     }
 
     @Override
-    public ArrayDafnySequence<T> update(int i, T t) {
+    public <R> ArrayDafnySequence<R> update(int i, R t) {
         assert t != null : "Precondition Violation";
         //todo: should we allow i=length, and return a new sequence with t appended to the sequence?
         assert 0 <= i && i < length(): "Precondition Violation";
-        Array<T> newArray = seq.copy();
+        Array<R> newArray = (Array<R>)seq.copy();
         newArray.set(i, t);
         return new ArrayDafnySequence<>(newArray);
     }
@@ -585,11 +580,12 @@ final class StringDafnySequence extends NonLazyDafnySequence<Character> {
     }
 
     @Override
-    public DafnySequence<Character> update(int i, Character t) {
+    public <R> DafnySequence<R> update(int i, R t) {
+        // assume R == Character
         assert t != null : "Precondition Violation";
         StringBuilder sb = new StringBuilder(string);
-        sb.setCharAt(i, t);
-        return new StringDafnySequence(sb.toString());
+        sb.setCharAt(i, (Character)t);
+        return (DafnySequence<R>)new StringDafnySequence(sb.toString());
     }
 
     @Override
@@ -692,7 +688,7 @@ abstract class LazyDafnySequence<T> extends DafnySequence<T> {
     }
 
     @Override
-    public DafnySequence<T> update(int i, T t) {
+    public <R> DafnySequence<R> update(int i, R t) {
         return force().update(i, t);
     }
 

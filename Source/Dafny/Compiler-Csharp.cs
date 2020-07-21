@@ -1794,7 +1794,7 @@ namespace Microsoft.Dafny
       TrParenExpr(".Select", index, wr, inLetExprBody);
     }
 
-    protected override void EmitIndexCollectionUpdate(Expression source, Expression index, Expression value, bool inLetExprBody, TargetWriter wr, bool nativeIndex = false) {
+    protected override void EmitIndexCollectionUpdate(Expression source, Expression index, Expression value, Type resultElementType, bool inLetExprBody, TargetWriter wr, bool nativeIndex = false) {
       var xType = source.Type.NormalizeExpand();
       if (xType is SeqType) {
         wr.Write(TypeHelperName(xType, wr, source.tok) + ".Update(");
