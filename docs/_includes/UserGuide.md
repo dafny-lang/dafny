@@ -165,7 +165,19 @@ The source will show red squiggles or dots where there
 are errors, and the Error List window will describe the
 errors.
 
+## The Dafny Server
+
+TO BE WRITTEN
+
 ## Using Dafny From the Command Line
+### Main method
+
+TO BE WRITTEN
+
+### extern declarations
+
+TO BE WRITTEN
+
 ### Dafny Command Line Options
 The command `Dafny.exe /?` gives the following description of
 options that can be passed to Dafny.

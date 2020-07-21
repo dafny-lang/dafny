@@ -152,7 +152,7 @@ assignment of right-hand-side values to the left-hand sides. For example
 `x,y := y,x` to swap the values of `x` and `y`. If more than one
 left-hand side is used, these must denote different l-values, unless the
 corresponding right-hand sides also denote the same value. There must
-be an equal number of left-hand sides and righ-hand sides in this case.
+be an equal number of left-hand sides and right-hand sides in this case.
 Of course, the most common case will have only one
 ``Rhs`` and one ``Lhs``.
 
@@ -305,6 +305,7 @@ method M1() returns (ghost y: int)
 ````
 IfStmt = "if"
   ( IfAlternativeBlock
+  | "{" IfAlternativeBlock "}"
   |
     ( BindingGuard(allowLambda: true)
     | Guard
@@ -316,11 +317,11 @@ IfStmt = "if"
 
 ````
 IfAlternativeBlock =
-   "{" { "case"
+      { "case"
       (
         BindingGuard(allowLambda:false)
       | Expression(allowLemma: true, allowLambda: false)
-      ) "=>" { Stmt } } "}" .
+      ) "=>" { Stmt } } .
 ````
 
 The simplest form an `if` statement uses a guard that is a boolean
@@ -364,7 +365,7 @@ at least one of the guards to evaluate to `true`.
 ## While Statement
 ````
 WhileStmt = "while"
-  ( LoopSpecWhile WhileAlternativeBlock
+  ( LoopSpecWhile ( WhileAlternativeBlock | "{" WhileAlternativeBlock "}" )
   | ( Guard | "..." ) LoopSpec
       ( BlockStmt
       | "..."
@@ -375,7 +376,7 @@ WhileStmt = "while"
 
 ````
 WhileAlternativeBlock =
-   "{" { "case" Expression(allowLemma: true, allowLambda: false) "=>" { Stmt } } "}" .
+   { "case" Expression(allowLemma: true, allowLambda: false) "=>" { Stmt } } .
 ````
 
 See section [#sec-loop-specification] for a description of ``LoopSpec``.
@@ -620,6 +621,8 @@ Describe where refinement is described.
 
 If the proposition is `...` then (TODO: what does this mean?).
 -->
+
+TO BE WRITTEN - assert by statements
 
 ## Assume Statement
 ````
