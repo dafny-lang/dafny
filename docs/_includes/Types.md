@@ -20,6 +20,11 @@ a parenthesized type) and reference types.
 
 Dafny types may be categorized as either value types or reference types.
 
+TO BE WRITTEN -bitvector types
+
+TO BE WRITTEN - ORDINAL type
+
+
 ## Value Types
 The value types are those whose values do not lie in the program heap.
 These are:
@@ -402,6 +407,10 @@ cluttered (described in a different part of the Dafny language
 reference).  In some cases, this support will
 infer that a type parameter must be restricted to equality-supporting
 types, in which case Dafny adds the "`(==)`" automatically.
+
+TO BE WRITTEN: Type parameter variance with + - = * ! default
+
+TO BE WRITTEN: Type parameter characteristiscs: == 0 
 
 TODO: Need to describe type inference somewhere.
 
@@ -847,6 +856,8 @@ if K in cache {  // check if temperature is in domain of cache
 }
 ```
 
+TO BE WRITTEN -- .Keys, .Values, .Items
+
 # Types that stand for other types
 ````
 SynonymTypeDecl =
@@ -1027,6 +1038,12 @@ causes concern that we might not be defining the function properly, leading to a
 logical inconsistency.  In general, there
 could be many solutions to an equation like [#eq-general] or there could be none.
 Let's consider two ways to make sure we're defining the function uniquely.
+
+TO BE WRITTEN - two-state functions and predicates
+
+TO BE WRITTEN - functions with named results
+
+TO BE WRITTEN - various kinds of arrow types: ~> -> -->
 
 ### Well-founded Functions
 
@@ -2022,6 +2039,8 @@ Section [#sec-proofs-in-dafny].
 See [the Dafny Lemmas tutorial](http://rise4fun.com/Dafny/tutorial/Lemmas)
 for more examples and hints for using lemmas.
 
+TO BE WRITTEN - two-state lemmas; unchanged predicate
+
 ## Function Declarations
 
 ````
@@ -2762,7 +2781,7 @@ DatatypeDecl = ( InductiveDatatypeDecl | CoinductiveDatatypeDecl )
 
 ````
 InductiveDatatypeDecl_ = "datatype" { Attribute } DatatypeName [ GenericParameters ]
-  "=" DatatypeMemberDecl { "|" DatatypeMemberDecl } [ ";" ]
+  "=" [ "|" ] DatatypeMemberDecl { "|" DatatypeMemberDecl } [ ";" ]
 DatatypeMemberDecl = { Attribute } DatatypeMemberName [ FormalsOptionalIds ]
 ````
 
@@ -2813,8 +2832,7 @@ Cons(5, Nil).tail.head
 is not well-formed, since `Cons(5, Nil).tail` does not satisfy
 `Cons?`.
 
-The names of the destructors must be unique across all the
-constructors of the datatype.  A constructor can have the same name as
+A constructor can have the same name as
 the enclosing datatype; this is especially useful for
 single-constructor datatypes, which are often called
 _record types_.  For example, a record type for black-and-white pixels
@@ -3471,6 +3489,8 @@ var mid := int32((int(lo) + int(hi)) / 2);
 If the compiler does specialize the run-time representation for
 `int32`, then these statements come at the expense of two,
 respectively three, run-time conversions.
+
+TO BE WRITTEN - change of int(x) to x as int
 
 # Subset types
 ````

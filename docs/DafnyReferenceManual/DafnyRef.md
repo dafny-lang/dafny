@@ -37,9 +37,17 @@ Sample math B: $a \to b$ or
 
 {% include Types.md %}
 
+# Type Inference
+
+TO BE WRITTEN
+
 {% include Statements.md %}
 
 {% include Expressions.md %}
+
+# Variable Initialization and Definite Assignment
+
+TO BE WRITTEN -- rules for default initialization; resulting rules for constructors; definnite assignment rules
 
 # Module Refinement
 TODO: Write this section.
@@ -47,6 +55,34 @@ TODO: Write this section.
 {% include Attributes.md %}
 
 {% include UserGuide.md %}
+
+# TODO
+
+-- const, static const
+
+-- declarations
+
+-- inference of array sizes
+
+-- witness, ghost witness clauses
+
+-- customizable error messages
+
+-- opaque types
+
+-- the !new type parameter characteristic
+
+-- traits, object
+
+-- non-null types
+
+-- abstemious functions
+
+-- labels (for program locations)
+
+-- updates to shared destructors
+
+-- labelled assertion statements, labelled preconditions
 
 # References
 [BIB]
