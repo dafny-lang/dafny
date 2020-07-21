@@ -147,7 +147,7 @@ public abstract class DafnySequence<T> implements Iterable<T> {
     public abstract Type<T> elementType();
 
     // Determines if this DafnySequence is a prefix of other
-    public boolean isPrefixOf(DafnySequence<T> other) {
+    public <U> boolean isPrefixOf(DafnySequence<U> other) {
         assert other != null : "Precondition Violation";
         if (other.length() < length()) return false;
         for (int i = 0; i < length(); i++) {
@@ -157,7 +157,7 @@ public abstract class DafnySequence<T> implements Iterable<T> {
     }
 
     // Determines if this DafnySequence is a proper prefix of other
-    public boolean isProperPrefixOf(DafnySequence<T> other) {
+    public <U> boolean isProperPrefixOf(DafnySequence<U> other) {
         assert other != null : "Precondition Violation";
         return length() < other.length() && isPrefixOf(other);
     }
@@ -254,9 +254,10 @@ public abstract class DafnySequence<T> implements Iterable<T> {
         return seq.<R>update(b.intValue(), t);
     }
 
-    public boolean contains(T t) {
+    public <U> boolean contains(U t) {
+        // assume U is a supertype of T
         assert t != null : "Precondition Violation";
-        return asList().indexOf(t) != -1;
+        return asList().indexOf((T)t) != -1;
     }
 
     // Returns the subsequence of values [lo..hi)
@@ -590,9 +591,10 @@ final class StringDafnySequence extends NonLazyDafnySequence<Character> {
     }
 
     @Override
-    public boolean contains(Character t) {
+    public <U> boolean contains(U t) {
+        // assume U == Character
         assert t != null : "Precondition Violation";
-        return string.indexOf(t) != -1;
+        return string.indexOf((Character)t) != -1;
     }
 
     @Override
