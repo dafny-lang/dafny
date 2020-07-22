@@ -74,16 +74,10 @@
       <item>array</item>
       <item>bool</item>
       <item>char</item>
-      <item>imap</item>
       <item>int</item>
-      <item>iset</item>
-      <item>map</item>
-      <item>multiset</item>
       <item>nat</item>
       <item>object</item>
       <item>real</item>
-      <item>seq</item>
-      <item>set</item>
       <item>string</item>
     </list>
 
@@ -106,6 +100,9 @@
 
         <RegExpr attribute="Types" String="bv0|bv[1-9]\d*"/>
         <RegExpr attribute="Types" String="array1\d+|array[2-9]\d*"/>
+	<!-- The following recognizes just some common uses of generic types, not nearly all nestings, which would need recursion -->
+        <RegExpr attribute="Types" String="(seq|set|iset|map|imap|multiset)(&lt;[ \t]*[\d\w\'\?]+[ \t]*(&lt;[ \t]*[\d\w\'\?]+[ \t]*&gt;)?(,[ \t]*[\d\w\'\?]+(&lt;[ \t]*[\d\w\'\?]+[ \t]*&gt;)?)*&gt;)?"  />
+        <RegExpr attribute="Decimal" String="0x[0-9a-fA-F_]+"/>
 
         <Int attribute="Decimal" context="#stay" />
         <Float attribute="Float" context="#stay" />
