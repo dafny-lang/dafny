@@ -214,10 +214,10 @@ as identifiers of user-defined entities:
 
 ```
 reservedword =
-    "abstract" | "allocated" | "as" | "assert" | "assume" | "bool" | "break" | "by" |
-    "calc" | "case" | "char" | "class" | "codatatype" | "colemma" |
-    "const" | "constructor" | "copredicate" | "datatype" | "decreases" |
-    "default" | "else" | "ensures" | "exists" | "expect" | "export" | "extends" | "false" |
+    "abstract" | "array" | "as" | "assert" | "assume" | "bool" | 
+    "break" | "calc" | "case" | "char" | "class" | "codatatype" | 
+    "colemma" | "constructor" | "copredicate" | "datatype" | "decreases" |
+    "default" | "else" | "ensures" | "exists" | "extends" | "false" |
     "forall" | "free" | "fresh" | "function" | "ghost" | "if" | "imap" | "import" |
     "in" | "include" | "inductive" | "int" | "invariant" | "iset" | "iterator" | "label" |
     "lemma" | "map" | "match" | "method" | "modifies" | "modify" |
