@@ -13,9 +13,33 @@ language and how to use the Dafny verification system.
 Parts of this manual are more tutorial in nature in order to help the
 user understand how to do proofs with Dafny.
 
-[Current document as pdf](https://dafny-lang.github.io/dafny/DafnyReferenceManual/DafnyRef.pdf)<br/>
-[Current document as html](https://dafny-lang.github.io/dafny/DafnyReferenceManual/DafnyRef)
+[Link to current document as pdf](https://dafny-lang.github.io/dafny/DafnyReferenceManual/DafnyRef.pdf)<br/>
+[Link to current document as html](https://dafny-lang.github.io/dafny/DafnyReferenceManual/DafnyRef)
 
+<!--
+```dafny
+Syntax color tests:
+integer: 0 00 20 01 0_1
+float:   .0 1.0 1.
+hex:    0x10_abcdefABCDEF
+string:   "string \n" "a\"b"
+char:    'a' '\n' '\'' '"'
+boolean:  true false
+types:   int real string char bool 
+types:   bv1 bv10 bv02 
+types:   array array1 array2 array20 array10
+types:   seq map imap set iset multiset
+types:   seq<int> map<bool,bool> seq<set<real>> 
+types:   map<set<int>,seq<bool>> seq<Node> seq< Node >
+keywords: if while assert assume
+spec:    requires  reads modifies
+comment:  // comment
+comment:  /* comment */ after
+comment:  // comment /* asd */ dfg
+comment:  /* comment /* embedded */ after
+comment:  /* comment // embedded */ after
+```
+-->
 <!--
 Sample math B: $a \to b$ or 
 <p style="text-align: center;">$$ a \to \pi $$</p>

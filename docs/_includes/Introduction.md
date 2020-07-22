@@ -53,7 +53,7 @@ initial section that deals with the lowest level constructs.
 ## Dafny Example
 To give a flavor of Dafny, here is the solution to a competition problem.
 
-```
+```dafny
 // VSComp 2010, problem 3, find a 0 in a linked list and return how many
 // nodes were skipped until the first 0 (or end-of-list) was found.
 // Rustan Leino, 18 August 2010.
