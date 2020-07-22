@@ -20,7 +20,7 @@ This site contains links to Dafny documentation.
 [Project site for releases, issues, installation instructions, and source code](https://github.com/dafny-lang/dafny)
 
 * Quick start material:
-   * Dafny [Quick Reference](QuickReference.md)
+   * Dafny [Quick Reference](./QuickReference)
    * [Getting started tutorial](http://rise4fun.com/Dafny/tutorial/guide), focusing mostly on simple imperative programs
    * [Cheatsheet](https://docs.google.com/document/d/1kz5_yqzhrEyXII96eCF1YoHZhnb_6dzv-K3u79bMMis/edit?pref=2&pli=1): basic Dafny syntax on two pages
 * Detailed documents for programmers

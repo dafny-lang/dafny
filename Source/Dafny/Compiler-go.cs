@@ -1249,18 +1249,12 @@ namespace Microsoft.Dafny {
           var w = new TargetWriter();
           w.Write("{0}(", cl is TupleTypeDecl ? "_dafny.TupleType" : TypeName_RTD(xType, w, tok));
           var typeArgs = cl is DatatypeDecl dt ? UsedTypeParameters(dt, udt.TypeArgs) : TypeArgumentInstantiation.ListFromClass(cl, udt.TypeArgs);
-          if (inAutoInitContext) {
-            // emit blanks
-            w.Write(Util.Comma(typeArgs.ConvertAll(_ => "nil")));
-          } else {
-            EmitRuntimeTypeDescriptorsActuals(typeArgs, udt.tok, true, w);
-          }
+          EmitRuntimeTypeDescriptorsActuals(typeArgs, udt.tok, true, w);
           w.Write(")");
           return w.ToString();
         } else if (xType.IsNonNullRefType) {
-          // this initializer shouldn't ever be needed; the compiler is expected to generate an error
-          // sooner or later, , but it could be that the the compiler needs to
-          // lay down some bits to please the C#'s compiler's different definite-assignment rules.
+          Contract.Assert(inAutoInitContext);
+          // what we emit here will only be used to construct a dummy value that programmer-supplied code will overwrite later
           return "_dafny.PointerType/*not used*/";
         } else {
           Contract.Assert(cl is NewtypeDecl || cl is SubsetTypeDecl);
@@ -1394,7 +1388,9 @@ namespace Microsoft.Dafny {
 
     public override string TypeInitializationValue(Type type, TextWriter/*?*/ wr, Bpl.IToken/*?*/ tok, bool inAutoInitContext) {
       // When returning nil, explicitly cast the nil so that type assertions work
-      Func<string> nil = () => string.Format("({0})(nil)", TypeName(type, wr, tok));
+      string nil() {
+        return string.Format("({0})(nil)", TypeName(type, wr, tok));
+      }
 
       var xType = type.NormalizeExpandKeepConstraints();
       if (xType is BoolType) {
@@ -1456,7 +1452,7 @@ namespace Microsoft.Dafny {
             return string.Format("func ({0}) {1} {{ return {2}; }}", Util.Comma(udt.TypeArgs.GetRange(0, udt.TypeArgs.Count-1), tp => TypeName(tp, wr, tok)), TypeName(udt.TypeArgs.Last(), wr, tok), rangeDefaultValue);
           } else if (((NonNullTypeDecl)td).Class is ArrayClassDecl arrayClass) {
             // non-null array type; we know how to initialize them
-            return string.Format("_dafny.NewArrayWithValue({0}, {1})", TypeInitializationValue(xType.TypeArgs[0], wr, tok, inAutoInitContext), Util.Comma(arrayClass.Dims, d => string.Format("_dafny.IntOf({0})", d)));
+            return string.Format("_dafny.NewArrayWithValue(nil, {0})", Util.Comma(arrayClass.Dims, d => string.Format("_dafny.IntOf({0})", d)));
           } else {
             return nil();
           }
@@ -1471,6 +1467,13 @@ namespace Microsoft.Dafny {
           return nil();
         }
       } else if (cl is DatatypeDecl) {
+        // In an auto-init context (like a field initializer), we may not have
+        // access to all the type descriptors, so we can't construct the
+        // default value, but then an empty structure is an acceptable default, since
+        // Dafny proves the value won't be accessed.
+        if (inAutoInitContext) {
+          return string.Format("{0}{{}}", TypeName(udt, wr, tok));
+        }
         return string.Format("{0}.Default().({1})", RuntimeTypeDescriptor(type, tok, wr, inAutoInitContext), TypeName(udt, wr, tok));
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected type

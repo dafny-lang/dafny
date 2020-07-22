@@ -1,3 +1,6 @@
+<p></p>
+<link rel="stylesheet" href="assets/main.css">
+
 # Dafny Quick Reference
 
 This page illustrates many of the most common language features in Dafny.  In order to get you started more quickly, the descriptions here are simplified&#8211;this page is not the language reference.  For example, this page does not go into modules, iterators, or refinement, which you won&#8217;t need until you write larger or more advanced programs in Dafny.

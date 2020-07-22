@@ -2058,7 +2058,7 @@ namespace Microsoft.Dafny
             } else if (IsDirectlyComparable(e0.Type)) {
               opString = "==";
             } else {
-              callString = "Equals";
+              staticCallString = "object.Equals";
             }
             break;
           }
@@ -2074,7 +2074,7 @@ namespace Microsoft.Dafny
               opString = "!=";
             } else {
               preOpString = "!";
-              callString = "Equals";
+              staticCallString = "object.Equals";
             }
             break;
           }

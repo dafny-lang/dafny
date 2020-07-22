@@ -1918,34 +1918,84 @@ Note that when there is no body, Dafny assumes that the *ensures*
 clauses are true without proof.
 
 ### Constructors
-To write structured object-oriented programs, one often relies on that
-objects are constructed only in certain ways.  For this purpose, Dafny
+To write structured object-oriented programs, one often relies on 
+objects being constructed only in certain ways.  For this purpose, Dafny
 provides _constructor (method)s_, which are a restricted form of
 initialization methods.  A constructor is declared with the keyword
-`constructor` instead of `method`.  When a class contains a
-constructor, every call to `new` for that class must be accompanied
-with a call to one of the constructors.  Moreover, a constructor
+`constructor` instead of `method`.  
+When a class contains a
+constructor, every call to `new` for a class must be accompanied
+by a call to one of its constructors.  Moreover, a constructor
 cannot be called at other times, only during object creation.  Other
 than these restrictions, there is no semantic difference between using
-ordinary initialization methods and using constructors.
+ordinary initialization methods and using constructors. Classes may
+declare no constructors or one or more constructors.
 
-The Dafny design allows the constructors to be named, which promotes
-using names like `InitFromList` above.  Still, many classes have just
+#### Classes with no explicit constructors
+
+A class that declares no constructors has a default constructor created 
+for it. This constructor is called with the syntax
+```
+c := new C;
+```
+This constructor simply initializes the fields of the class.
+The declaration of a const field may include an initializer, that is, a right-hand side (RHS) that specifies the constant's value. 
+The RHS of a const field may depend on other constant fields, but circular dependencies are not allowed.
+
+This constructor sets each class field to an arbitrary value
+of the field's type if the field declaration has no initializer 
+and to the value of the initializer expression if it does declare an initializer. 
+For the purposes of proving Dafny programs
+correct, assigning an arbitrary initial value means that the program must 
+be correct for any initial value. Compiled, executable versions of the program
+may use a specific initial value 
+(for example, but not necessarily, a zero-equivalent value).
+
+#### Classes with one or more constructors
+ 
+When one or more constructors are explicitly declared, they are named, 
+which promotes using names like `InitFromList` above.
+Constructors must have distinct names, even if their signatures are different.
+Many classes have just
 one constructor or have a typical constructor.  Therefore, Dafny
 allows one _anonymous constructor_, that is, a constructor whose name
 is essentially "".  For example:
 ```
 class Item {
+  constructor I(xy: int) // ...
   constructor (x: int, y: int)
   // ...
 }
 ```
-When invoking this constructor, the "`.`" is dropped, as in:
+The named constructor is invoked as
 ```
-m := new Item(45, 29);
+  i := new Item.I(42);
 ```
-Note that an anonymous constructor is just one way to name a
-constructor; there can be other constructors as well.
+The anonymous constructor is invoked as
+```
+  m := new Item(45, 29);
+```
+dropping the "`.`".
+
+#### Two-phase constructors
+
+The body of a constructor contains two sections, 
+an initialization phase and a post-initialization phase, separated by a `new;` statement.
+If there is no `new;` statement, the entire body is the initialization phase. 
+The initialization phase is intended to initialize field variables. 
+In this phase, uses of the object reference `this` are restricted;
+a program may use `this`
+
+ - as the receiver on the LHS, 
+ - as the entire RHS of an assignment to a field of `this`, 
+ - and as a member of a set on the RHS that is being assigned to a field of `this`.
+
+Furthermore, `const` fields may only be assigned to in an initialization phase 
+(and may be assigned to more than once)
+of their enclosing class, and then only if they do not already have an initialization
+value in their declaration.
+
+There are no restrictions on expressions or statements in the post-initialization phase. 
 
 ### Lemmas
 Sometimes there are steps of logic required to prove a program correct,
