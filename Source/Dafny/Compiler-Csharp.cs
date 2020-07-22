@@ -26,6 +26,8 @@ namespace Microsoft.Dafny
 
     public override string TargetLanguage => "C#";
 
+    protected string DafnyISet => "Dafny.ISet";
+
     protected override void EmitHeader(Program program, TargetWriter wr) {
       wr.WriteLine("// Dafny program {0} compiled into C#", program.Name);
       wr.WriteLine("// To recompile, use 'csc' with: /r:System.Numerics.dll");
@@ -942,10 +944,7 @@ namespace Microsoft.Dafny
         return TypeName_UDT(s, udt.TypeArgs, wr, udt.tok);
       } else if (xType is SetType) {
         Type argType = ((SetType)xType).Arg;
-        if (ComplicatedTypeParameterForCompilation(argType)) {
-          Error(tok, "compilation of set<TRAIT> is not supported; consider introducing a ghost", wr);
-        }
-        return DafnySetClass + "<" + TypeName(argType, wr, tok) + ">";
+        return DafnyISet + "<" + TypeName(argType, wr, tok) + ">";
       } else if (xType is SeqType) {
         Type argType = ((SeqType)xType).Arg;
         return DafnySeqClass + "<" + TypeName(argType, wr, tok) + ">";
@@ -969,9 +968,10 @@ namespace Microsoft.Dafny
 
     public string TypeHelperName(Type type, TextWriter wr, Bpl.IToken tok) {
       var xType = type.NormalizeExpand();
-      if (xType is SeqType) {
-        Type argType = ((SeqType)xType).Arg;
-        return "Dafny.Sequence" + "<" + TypeName(argType, wr, tok) + ">";
+      if (xType is SeqType seqType) {
+        return "Dafny.Sequence" + "<" + TypeName(seqType.Arg, wr, tok) + ">";
+      } else if (xType is SetType setType) {
+        return $"{DafnySetClass}<{TypeName(setType.Arg, wr, tok)}>";
       } else {
         return TypeName(type, wr, tok);
       }
@@ -2138,18 +2138,23 @@ namespace Microsoft.Dafny
         case BinaryExpr.ResolvedOpcode.MapNeq:
           preOpString = "!"; callString = "Equals"; break;
         case BinaryExpr.ResolvedOpcode.ProperSubset:
+          staticCallString = TypeHelperName(e0.Type, errorWr, tok) + ".IsProperSubsetOf"; break;
         case BinaryExpr.ResolvedOpcode.ProperMultiSubset:
           callString = "IsProperSubsetOf"; break;
         case BinaryExpr.ResolvedOpcode.Subset:
+          staticCallString = TypeHelperName(e0.Type, errorWr, tok) + ".IsSubsetOf"; break;
         case BinaryExpr.ResolvedOpcode.MultiSubset:
           callString = "IsSubsetOf"; break;
         case BinaryExpr.ResolvedOpcode.Superset:
+          staticCallString = TypeHelperName(e0.Type, errorWr, tok) + ".IsSupersetOf"; break;
         case BinaryExpr.ResolvedOpcode.MultiSuperset:
           callString = "IsSupersetOf"; break;
         case BinaryExpr.ResolvedOpcode.ProperSuperset:
+          staticCallString = TypeHelperName(e0.Type, errorWr, tok) + ".IsProperSupersetOf"; break;
         case BinaryExpr.ResolvedOpcode.ProperMultiSuperset:
           callString = "IsProperSupersetOf"; break;
         case BinaryExpr.ResolvedOpcode.Disjoint:
+          staticCallString = TypeHelperName(e0.Type, errorWr, tok) + ".IsDisjointFrom"; break;
         case BinaryExpr.ResolvedOpcode.MultiSetDisjoint:
           callString = "IsDisjointFrom"; break;
         case BinaryExpr.ResolvedOpcode.InSet:
@@ -2161,12 +2166,15 @@ namespace Microsoft.Dafny
         case BinaryExpr.ResolvedOpcode.NotInMap:
           preOpString = "!"; callString = "Contains"; reverseArguments = true; break;
         case BinaryExpr.ResolvedOpcode.Union:
+          staticCallString = TypeHelperName(resultType, errorWr, tok) + ".Union"; break;
         case BinaryExpr.ResolvedOpcode.MultiSetUnion:
           callString = "Union"; break;
         case BinaryExpr.ResolvedOpcode.Intersection:
+          staticCallString = TypeHelperName(resultType, errorWr, tok) + ".Intersect"; break;
         case BinaryExpr.ResolvedOpcode.MultiSetIntersection:
           callString = "Intersect"; break;
         case BinaryExpr.ResolvedOpcode.SetDifference:
+          staticCallString = TypeHelperName(resultType, errorWr, tok) + ".Difference"; break;
         case BinaryExpr.ResolvedOpcode.MultiSetDifference:
           callString = "Difference"; break;
 
@@ -2365,7 +2373,7 @@ namespace Microsoft.Dafny
     protected override string GetCollectionBuilder_Build(CollectionType ct, Bpl.IToken tok, string collName, TargetWriter wr) {
       if (ct is SetType) {
         var typeName = TypeName(ct.Arg, wr, tok);
-        return string.Format("Dafny.Set<{0}>.FromCollection({1})", typeName, collName);
+        return string.Format($"{DafnySetClass}<{typeName}>.FromCollection({collName})");
       } else if (ct is MapType) {
         var mt = (MapType)ct;
         var domtypeName = TypeName(mt.Domain, wr, tok);

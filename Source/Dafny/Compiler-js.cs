@@ -727,7 +727,6 @@ namespace Microsoft.Dafny {
           w.Write(")");
           return w.ToString();
         } else if (xType.IsNonNullRefType) {
-          Contract.Assert(inAutoInitContext);
           // what we emit here will only be used to construct a dummy value that programmer-supplied code will overwrite later
           return "_dafny.Rtd_ref/*not used*/";
         } else {
