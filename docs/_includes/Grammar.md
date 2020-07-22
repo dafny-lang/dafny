@@ -61,8 +61,12 @@ for details. But in summary:
 terminal symbols,
 * identifiers starting with an upper case letter denote nonterminal
 symbols.
+* A character (single-quote characters enclosing one other character)
+denotes just that enclosed character; the enclosed character may be
+preceded by a backslash to denote a special character.
 * Strings (a sequence of characters enclosed by double quote characters)
-denote the sequence of enclosed characters.
+denote the sequence of enclosed characters, with the backslash used to escape 
+the succeeding character.
 * `=` separates the sides of a production, e.g. `A = a b c`
 * In the Coco grammars "." terminates a production, but for readability
   in this document a production starts with the defined identifier in
