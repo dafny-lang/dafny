@@ -16,18 +16,33 @@ user understand how to do proofs with Dafny.
 [Link to current document as pdf](https://dafny-lang.github.io/dafny/DafnyReferenceManual/DafnyRef.pdf)<br/>
 [Link to current document as html](https://dafny-lang.github.io/dafny/DafnyReferenceManual/DafnyRef)
 
-<!--
 ```dafny
 Syntax color tests:
 integer: 0 00 20 01 0_1
-float:   .0 1.0 1.
+float:   .0 1.0 1. 0_1.1_0
+bad:    _0 0_  _.0 _1.1 1_.1 1._ 1._1 1.1_
 hex:    0x10_abcdefABCDEF
-string:   "string \n" "a\"b"
-char:    'a' '\n' '\'' '"'
+string:   "string \n \t \r \0" "a\"b" "'" "\'" ""
+string:   "!@#$%^&*()_-+={}[]|:;\\<>,.?/~`"
+string:   "\u1234 "
+string:   "	"
+notstring: "\u123 "
+vstring:  @"" @"a" @"""" @"'\"
+vstring:  @"xx""y y""zz " 
+vstring:  @" " @"	"
+vstring:  @"x
+x"
+char:    'a' '\n' '\'' '"' '\"' ' ' '\\'
+char:    '\0' '\r' '\t'  '\u1234'
+notchar:  '\u123'   '\Z'  '\u'  '\u2222Z'
+notchar:  '\u123ZZZ'     '\u2222Z'
+ids: 'a : a' : 'ab' :  'a'b' : 'a''b'
+ids:  a_b _ab ab?
 boolean:  true false
 types:   int real string char bool 
 types:   bv1 bv10 bv02 
-types:   array array1 array2 array20 array10
+types:   array array2 array20 array10
+bad:     array1 array0 array02
 types:   seq map imap set iset multiset
 types:   seq<int> map<bool,bool> seq<set<real>> 
 types:   map<set<int>,seq<bool>> seq<Node> seq< Node >
@@ -38,8 +53,13 @@ comment:  /* comment */ after
 comment:  // comment /* asd */ dfg
 comment:  /* comment /* embedded */ after
 comment:  /* comment // embedded */ after
+comment: /* comment
+   /* inner comment
+   */
+   outer comment
+   */ after
 ```
--->
+
 <!--
 Sample math B: $a \to b$ or 
 <p style="text-align: center;">$$ a \to \pi $$</p>
