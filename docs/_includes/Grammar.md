@@ -86,6 +86,8 @@ let you reconstruct the original grammar.
 tokens, or grammar non-terminals in this document are hyper-links that
 will link to the definition of the entity.**
 
+<!-- TODO: Those grammar hyperlinks are not implemented -->
+
 ## Character Classes
 This section defines character classes used later in the token definitions.
 In this section backslash is used to start an escape sequence, so for example
@@ -118,10 +120,10 @@ special = "'_?"
 The _special_ characters are the characters in addition to alphanumeric characters
 that are allowed to appear in a Dafny identifier. These are
 
-* `"'"` because mathematicians like to put primes on identifiers and some ML
+* `'` because mathematicians like to put primes on identifiers and some ML
   programmers like to start names of type parameters with a "'".
-* "_" because computer scientists expect to be able to have underscores in identifiers.
-* "?" because it is useful to have "?" at the end of names of predicates,
+* `_` because computer scientists expect to be able to have underscores in identifiers.
+* `?` because it is useful to have "?" at the end of names of predicates,
   e.g. "Cons?".
 
 ````
@@ -140,7 +142,7 @@ tab       = '\t'
 A tab character.
 
 ````
-space = ' '
+space     = ' '
 ````
 A space character.
 
@@ -177,8 +179,22 @@ Characters that can appear in a verbatim string.
 ### Comments
 Comments are in two forms.
 
-* They may go from "/*" to "*/" and be nested.
+* They may go from "/\*" to "\*/" and be nested.
 * They may go from "//" to the end of the line.
+
+Note that the nesting of multi-line comments is behavior that is different 
+from most programming languages. In dafny,
+```
+method m() {
+/* comment
+/* more comment
+*/
+   rest of outer comment
+*/
+}
+```
+is permitted; this feature is convenient for commenting out blocks of 
+program statements that already have multi-line comments within them.
 
 ## Tokens
 As with most languages, Dafny syntax is defined in two levels. First the stream
@@ -189,7 +205,7 @@ using the Dafny grammar. The Dafny tokens are defined in this section.
 The following reserved words appear in the Dafny grammar and may not be used
 as identifiers of user-defined entities:
 
-````
+```
 reservedword =
     "abstract" | "allocated" | "as" | "assert" | "assume" | "bool" | "break" | "by" |
     "calc" | "case" | "char" | "class" | "codatatype" | "colemma" |
@@ -205,7 +221,7 @@ reservedword =
     "unchanged" | "var" | "where" | "while" | "yield" | "yields" | arrayToken
 
 arrayToken = "array" [ posDigit { digit }]
-````
+```
 
 An ``arrayToken`` is a reserved word that denotes an array type of
 given rank. `array` is an array type of rank 1 (aka a vector). `array2`
@@ -221,7 +237,7 @@ ident = nondigitIdChar { idchar } - arraytoken - chartoken - reservedword
 In general Dafny identifiers are sequences of ``idChar`` characters where
 the first character is a ``nondigitIdChar``. However tokens that fit this pattern
 are not identifiers if they look like an array type token, a character literal,
-or a reserved work.
+or a reserved word.
 
 ### Digits
 ````
@@ -246,8 +262,8 @@ Example: `123_456.789_123`.
 In this section the "\\" characters are literal.
 ````
 escapedChar =
-    ( "\\\'" | "\\&quot;" | "\\\\" | "\\0" | "\\n" | "\\r" | "\\t"
-      | "\\u" hexdigit hexdigit hexdigit hexdigit
+    ( "\'" | "\"" | "\" | "\0" | "\n" | "\r" | "\t"
+      | "\u" hexdigit hexdigit hexdigit hexdigit
     )
 ````
 
@@ -276,13 +292,14 @@ stringToken =
 ````
 
 A string constant is either a normal string constant or a verbatim string constant.
-A normal string constant is enclosed by '"' and can contain characters from the
+A normal string constant is enclosed by `"` and can contain characters from the
 ``stringChar`` set and escapes.
 
-A verbatim string constant is enclosed between '@"' and '"' and can
-consists of any characters (including newline characters) except that two
-successive double quotes give a way to escape one quote character inside
-the string.
+A verbatim string constant is enclosed between `@"` and `"` and can
+consist of any characters (including newline characters) except that two
+successive double quotes represent one quote character inside
+the string. This is the mechanism for escaping a double quote character,
+which is the only character needing escpaing in a verbatim string.
 
 ## Low Level Grammar Productions
 

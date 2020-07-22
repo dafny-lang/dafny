@@ -668,7 +668,7 @@ namespace Microsoft.Dafny {
       return c;
     }
 
-    string RuntimeTypeDescriptor(Type type, Bpl.IToken tok, TextWriter wr, bool inInitializer = false) {
+    string RuntimeTypeDescriptor(Type type, Bpl.IToken tok, TextWriter wr, bool inAutoInitContext = false) {
       Contract.Requires(type != null);
       Contract.Requires(tok != null);
       Contract.Requires(wr != null);
@@ -727,9 +727,8 @@ namespace Microsoft.Dafny {
           w.Write(")");
           return w.ToString();
         } else if (xType.IsNonNullRefType) {
-          // this initializer shouldn't ever be needed; the compiler is expected to generate an error
-          // sooner or later, , but it could be that the the compiler needs to
-          // lay down some bits to please the C#'s compiler's different definite-assignment rules.
+          Contract.Assert(inAutoInitContext);
+          // what we emit here will only be used to construct a dummy value that programmer-supplied code will overwrite later
           return "_dafny.Rtd_ref/*not used*/";
         } else {
           Contract.Assert(cl is NewtypeDecl || cl is SubsetTypeDecl);

@@ -81,15 +81,13 @@ method MultipleDimensions() {
   var cube := new int[3,0,4]((_,_,_) => 16);
   print "cube dims: ", cube.Length0, " ", cube.Length1, " ", cube.Length2, "\n";
 
-//  FIXME: This breaks Java (and has for some time).
-//
-//  var jagged := new array<int>[5];
-//  var i := 0;
-//  while i < 5 {
-//    jagged[i] := new int[i];
-//    i := i + 1;
-//  }
-//  PrintArray(jagged);
+  var jagged := new array<int>[5];
+  var i := 0;
+  while i < 5 {
+    jagged[i] := new int[i];
+    i := i + 1;
+  }
+  PrintArrayArray(jagged);
 }
 
 method DiagMatrix<A>(rows: int, cols: int, zero: A, one: A)
@@ -110,4 +108,13 @@ method PrintMatrix<A>(m: array2<A>) {
     print "\n";
     i := i + 1;
   }
+}
+
+method PrintArrayArray<A>(a: array<array<A>>) {
+  var i := 0;
+  while i < a.Length {
+    print a[i][..], " ";
+    i := i + 1;
+  }
+  print "\n";
 }
