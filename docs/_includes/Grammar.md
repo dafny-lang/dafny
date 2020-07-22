@@ -59,7 +59,12 @@ for details. But in summary:
 terminal symbols,
 * identifiers starting with an upper case letter denote nonterminal
 symbols.
-* Strings denote themselves.
+* A character (single-quote characters enclosing one other character)
+denotes just that enclosed character; the enclosed character may be
+preceded by a backslash to denote a special character.
+* Strings (a sequence of characters enclosed by double quote characters)
+denote the sequence of enclosed characters, with the backslash used to escape 
+the succeeding character.
 * `=` separates the sides of a production, e.g. `A = a b c`
 * In the Coco grammars "." terminates a production, but for readability
   in this document a production starts with the defined identifier in
@@ -91,7 +96,11 @@ will link to the definition of the entity.**
 ## Character Classes
 This section defines character classes used later in the token definitions.
 In this section backslash is used to start an escape sequence, so for example
-'\\n' denotes the single linefeed character.
+'\\n' denotes the single linefeed character. Also in this section, double quotes
+enclose the set of characters constituting a character class; enclosing single
+quotes are used when there is just one character in the class. `+` indicates
+the union of two character classes; `-` is the set-difference between the 
+two classes. `ANY` designates all ASCII characters.
 
 ````
 letter = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
@@ -186,11 +195,11 @@ Note that the nesting of multi-line comments is behavior that is different
 from most programming languages. In dafny,
 ```
 method m() {
-/* comment
-/* more comment
-*/
-   rest of outer comment
-*/
+  /* comment
+     /* nested comment
+     */
+     rest of outer comment
+  */
 }
 ```
 is permitted; this feature is convenient for commenting out blocks of 
@@ -262,14 +271,14 @@ Example: `123_456.789_123`.
 In this section the "\\" characters are literal.
 ````
 escapedChar =
-    ( "\'" | "\"" | "\" | "\0" | "\n" | "\r" | "\t"
+    ( "\'" | "\"" | "\\" | "\0" | "\n" | "\r" | "\t"
       | "\u" hexdigit hexdigit hexdigit hexdigit
     )
 ````
 
-In Dafny character or string literals escaped characters may be used
-to specify the presence of the delimiting quote, or back slash,
-or null, or new line, or carriage return or tab, or the
+In Dafny character or string literals, escaped characters may be used
+to specify the presence of a single- or double-quote character, backslash,
+null, new line, carriage return, tab, or a
 Unicode character with given hexadecimal representation.
 
 ### Character Constant Token
@@ -299,7 +308,7 @@ A verbatim string constant is enclosed between `@"` and `"` and can
 consist of any characters (including newline characters) except that two
 successive double quotes represent one quote character inside
 the string. This is the mechanism for escaping a double quote character,
-which is the only character needing escpaing in a verbatim string.
+which is the only character needing escaping in a verbatim string.
 
 ## Low Level Grammar Productions
 
