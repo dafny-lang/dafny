@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE language SYSTEM "language.dtd">
-<language name="dafny" version="3" kateversion="5.0" section="Sources" extensions="*.dfy" author="Robin Salkeld" license="MIT">
+<language name="dafny" version="3" kateversion="5.0" section="Sources" extensions="*.dfy" author="Robin Salkeld, David Cok" license="MIT">
   <highlighting>
     <list name="keywords">
       <item>abstract</item>
@@ -70,6 +70,7 @@
       <item>yield</item>
       <item>yields</item>
     </list>
+    <!-- type names that start a generic type are part of a RegExpr below -->
     <list name="types">
       <item>array</item>
       <item>bool</item>
@@ -100,9 +101,17 @@
 
         <RegExpr attribute="Types" String="bv0|bv[1-9]\d*"/>
         <RegExpr attribute="Types" String="array1\d+|array[2-9]\d*"/>
+        <RegExpr attribute="Error" String="array1"/>
+        <RegExpr attribute="Error" String="array0\d*"/>
 	<!-- The following recognizes just some common uses of generic types, not nearly all nestings, which would need recursion -->
-        <RegExpr attribute="Types" String="(seq|set|iset|map|imap|multiset)(&lt;[ \t]*[\d\w\'\?]+[ \t]*(&lt;[ \t]*[\d\w\'\?]+[ \t]*&gt;)?(,[ \t]*[\d\w\'\?]+(&lt;[ \t]*[\d\w\'\?]+[ \t]*&gt;)?)*&gt;)?"  />
-        <RegExpr attribute="Decimal" String="0x[0-9a-fA-F_]+"/>
+        <RegExpr attribute="Types" String="(?:seq|set|iset|map|imap|multiset)(?:&lt;[ \t]*[\d\w\'\?]+[ \t]*(?:&lt;[ \t]*[\d\w\'\?]+[ \t]*&gt;)?(?:,[ \t]*[\d\w\'\?]+(?:&lt;[ \t]*[\d\w\'\?]+[ \t]*&gt;)?)*&gt;)?"  />
+        <RegExpr attribute="Decimal" String="0x[0-9a-fA-F]+(?:_[0-9a-fA-F]+)*" />
+        <RegExpr attribute="Float" String="[0-9]+(?:_[0-9]+)*\.[0-9]+(?:_[0-9]+)*" />
+        <RegExpr attribute="Char" String="\'\\u[0-9A-Fa-f]{4}\'" />
+        <RegExpr attribute="Error" String="\'\\u[0-9A-Fa-f]{4}[^\']+\'" />
+        <RegExpr attribute="Error" String="\'\\u[0-9A-Fa-f]{0,3}(?:[^'0-9A_Fa-f][^\']*)?\'" />
+        <RegExpr attribute="Error" String="\'\\[^0rnt\\\'&quot;]\'" />
+        <RegExpr attribute="VerbatimString" String="@&quot;(?:[^&quot;]|\\s||&quot;&quot;)*&quot;" />
 
         <Int attribute="Decimal" context="#stay" />
         <Float attribute="Float" context="#stay" />
@@ -136,8 +145,10 @@
       <itemData name="Float" defStyleNum="dsFloat" />
       <itemData name="Char" defStyleNum="dsChar" />
       <itemData name="String" defStyleNum="dsString" />
+      <itemData name="VerbatimString" defStyleNum="dsVerbatimString" />
 
       <itemData name="Comment" defStyleNum="dsComment" />
+      <itemData name="Error" defStyleNum="dsError" />
     </itemDatas>
   </highlighting>
 
