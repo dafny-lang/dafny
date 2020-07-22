@@ -59,12 +59,8 @@ for details. But in summary:
 terminal symbols,
 * identifiers starting with an upper case letter denote nonterminal
 symbols.
-* A character (single-quote characters enclosing one other character)
-denotes just that enclosed character; the enclosed character may be
-preceded by a backslash to denote a special character.
 * Strings (a sequence of characters enclosed by double quote characters)
-denote the sequence of enclosed characters, with the backslash used to escape 
-the succeeding character.
+denote the sequence of enclosed characters.
 * `=` separates the sides of a production, e.g. `A = a b c`
 * In the Coco grammars "." terminates a production, but for readability
   in this document a production starts with the defined identifier in
@@ -95,8 +91,8 @@ will link to the definition of the entity.**
 
 ## Character Classes
 This section defines character classes used later in the token definitions.
-In this section backslash is used to start an escape sequence, so for example
-'\\n' denotes the single linefeed character. Also in this section, double quotes
+In this section a backslash is used to start an escape sequence; so for example
+`'\n'` denotes the single linefeed character. Also in this section, double quotes
 enclose the set of characters constituting a character class; enclosing single
 quotes are used when there is just one character in the class. `+` indicates
 the union of two character classes; `-` is the set-difference between the 
