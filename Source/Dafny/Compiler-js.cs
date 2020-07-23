@@ -89,6 +89,10 @@ namespace Microsoft.Dafny {
           }
         }
       }
+      if (superClasses != null) {
+        var parentTraitsWriter = w.NewBlock("_parentTraits()");
+        parentTraitsWriter.WriteLine("return [{0}];", Util.Comma(", ", superClasses, parent => TypeName(parent, parentTraitsWriter, tok)));
+      }
       var methodWriter = w;
       return new ClassWriter(this, methodWriter, fieldWriter);
     }
@@ -1129,7 +1133,25 @@ namespace Microsoft.Dafny {
       } else if (altVarType == null) {
         return wr.NewBlockWithPrefix(")", "{0} = {1};", altBoundVarName, boundVar);
       } else {
-        BlockTargetWriter wwr = wr.NewBlockWithPrefix(")", "if (({1}) instanceof {2}) ", altBoundVarName, boundVar, TypeName(altVarType, wr, tok));
+        string typeTest;
+        if (!altVarType.IsRefType) {
+          typeTest = "true";
+        } else {
+          if (altVarType.IsObject || altVarType.IsObjectQ) {
+            typeTest = "true";
+          } else if (altVarType.IsTraitType) {
+            typeTest = "_dafny.InstanceOfTrait({1}, {2})";
+          } else {
+            typeTest = "({1}) instanceof {2}";
+          }
+          if (altVarType.IsNonNullRefType) {
+            typeTest = "({1}) !== null && " + typeTest;
+          } else if (altVarType.IsRefType) {
+            typeTest = "({1}) === null || " + typeTest;
+          }
+        }
+        var prefixFormat = "if (" + typeTest + ") ";
+        BlockTargetWriter wwr = wr.NewBlockWithPrefix(")", prefixFormat, altBoundVarName, boundVar, TypeName(altVarType, wr, tok));
         return wwr.NewBlockWithPrefix("", "let {0} = {1};", altBoundVarName, boundVar);
       }
     }

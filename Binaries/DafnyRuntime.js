@@ -29,6 +29,9 @@ let _dafny = (function() {
   $module.NewObject = function() {
     return { _tname: "object" };
   }
+  $module.InstanceOfTrait = function(obj, trait) {
+    return obj._parentTraits !== undefined && obj._parentTraits().includes(trait);
+  }
   $module.Rtd_bool = class {
     static get Default() { return false; }
   }
