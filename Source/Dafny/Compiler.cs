@@ -384,7 +384,7 @@ namespace Microsoft.Dafny {
       foreach (var lhsType in lhsTypes) {
         string target = idGenerator.FreshId("_rhs");
         rhsVars.Add(target);
-        wr.Write(GenerateLhsDecl(target, lhsType, wr, null));
+        wr.Write(GenerateLhsDecl(target, lhsType, wr, Bpl.Token.NoToken));
         wRhss.Add(EmitAssignmentRhs(wr));
       }
 
