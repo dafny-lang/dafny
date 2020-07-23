@@ -5,10 +5,12 @@ The Dafny input file to Coco/R is the `Dafny.atg` file in the source tree.
 A Coco/R input file consists of code written in the target language
 (e.g. C\#) intermixed with these special sections:
 
-0. The Characters section which defines classes of characters that are used
-   in defining the lexer (Section [#sec-character-classes]).
-1. The Tokens section which defines the lexical tokens (Section [#sec-tokens]).
-2. The Productions section which defines the grammar. The grammar productions
+0. The [Characters section][#sec-character-classes]
+    which defines classes of characters that are used
+   in defining the lexer.
+1. The [Tokens section][#sec-tokens] which defines the lexical tokens.
+2. The [Productions section][#sec-grammar]
+ which defines the grammar. The grammar productions
 are distributed in the later parts of this document in the parts where
 those constructs are explained.
 
@@ -89,7 +91,7 @@ will link to the definition of the entity.**
 
 <!-- TODO: Those grammar hyperlinks are not implemented -->
 
-## Character Classes
+## Character Classes {#sec-character-classes}
 This section defines character classes used later in the token definitions.
 In this section a backslash is used to start an escape sequence; so for example
 `'\n'` denotes the single linefeed character. Also in this section, double quotes
@@ -201,7 +203,7 @@ method m() {
 is permitted; this feature is convenient for commenting out blocks of 
 program statements that already have multi-line comments within them.
 
-## Tokens
+## Tokens {#sec-tokens}
 As with most languages, Dafny syntax is defined in two levels. First the stream
 of input characters is broken up into _tokens_. Then these tokens are parsed
 using the Dafny grammar. The Dafny tokens are defined in this section.
@@ -306,7 +308,7 @@ successive double quotes represent one quote character inside
 the string. This is the mechanism for escaping a double quote character,
 which is the only character needing escaping in a verbatim string.
 
-## Low Level Grammar Productions
+## Low Level Grammar Productions {#sec-grammar}
 
 ### Identifier Variations
 
