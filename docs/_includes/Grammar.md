@@ -234,8 +234,6 @@ An ``arrayToken`` is a reserved word that denotes an array type of
 given rank. `array` is an array type of rank 1 (aka a vector). `array2`
 is the type of two-dimensional arrays, etc.
 
-TODO: Is "_" is reserved word?
-
 ### Identifiers
 
 ````
