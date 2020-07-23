@@ -320,14 +320,15 @@ identifier.
 DotSuffix =
   ( ident | digits | "requires" | "reads" )
 ````
-When using the _dot_ notation to denote a component of a compound entity
-the token following the ".", in addition to being an identifier,
-can also be a natural number, or one of the keywords `requires` or `reads`.
+When using the _dot_ notation to denote a component of a compound entity,
+the token following the "." may be an identifier,
+ a natural number, or one of the keywords `requires` or `reads`.
 
 * Digits can be used to name fields of classes and destructors of
   datatypes. For example, the built-in tuple datatypes have destructors
-  named 0, 1, 2, etc. Note that as a field or destructor name, internal
-  underscores matter, so 10 is different from 1_0.
+  named 0, 1, 2, etc. Note that as a field or destructor name a digit sequence
+  is treated as a string, not a number: internal
+  underscores matter, so 10 is different from 1_0 and from 010.
 * `m.requires` is used to denote the precondition for method m.
 * `m.reads` is used to denote the things that method m may read.
 
@@ -343,8 +344,9 @@ for these below (e.g. ``ClassName``).
 WildIdent = NoUSIdent | "_"
 ````
 Identifier, disallowing leading underscores, except the "wildcard"
-identifier "_". When "_" appears it is replaced by a unique generated
-identifier distinct from user identifiers.
+identifier `_`. When `_` appears it is replaced by a unique generated
+identifier distinct from user identifiers. This wildcard has several uses
+in the language, but it is not used as part of expressions.
 
 ### NoUSIdent Synonyms
 In the productions for the declaration of user-defined entities the name of the
@@ -398,16 +400,16 @@ a ``colon`` and its type. An ``IdentType`` is such a construct.
 ````
 GIdentType(allowGhostKeyword) = [ "ghost" ] IdentType
 ````
-A ``GIdentType`` is a typed entity declaration optionally preceded by "ghost". The _ghost_
-qualifier means the entity is only used during verification but not in the generated code.
+A ``GIdentType`` is a typed entity declaration optionally preceded by `ghost`. The _ghost_
+qualifier means the entity is only used during verification and not in the generated code.
 Ghost variables are useful for abstractly representing internal state in specifications.
-If `allowGhostKeyword` is false then "ghost" is not allowed.
+If `allowGhostKeyword` is false then `ghost` is not allowed.
 
 ````
 LocalIdentTypeOptional = WildIdent [ ":" Type ]
 ````
-A ``LocalIdentTypeOptional`` is used when declaring local variables. In
-such a case a value may be specified for the variable in which case the
+A ``LocalIdentTypeOptional`` is used when declaring local variables. 
+If a value is specified for the variable, the
 type may be omitted because it can be inferred from the initial value.
 The initial value value may also be omitted.
 
@@ -427,7 +429,7 @@ where a type is given but there may not be an identifier.
 FormalsOptionalIds = "(" [TypeIdentOptional  { "," TypeIdentOptional } ] ")"
 ````
 A ``FormalsOptionalIds`` is a formal parameter list in which the types are required
-but the names of the parameters is optional. This is used in algebraic
+but the names of the parameters are optional. This is used in algebraic
 datatype definitions.
 
 ### Numeric Literals
@@ -437,7 +439,7 @@ Nat = ( digits | hexdigits )
 A ``Nat`` represents a natural number expressed in either decimal or hexadecimal.
 
 ````
-Dec = (decimaldigits )
+Dec = decimaldigits
 ````
 A ``Dec`` represents a decimal fraction literal.
 
