@@ -9,6 +9,7 @@ Sets: {} {17, 82} {12, 17}
   subset: true false true
   proper subset: true false false
   membership: false true true
+  eq covariance: 1 true true
 false true
 |s|=4 |S|=16
 {{a, c, d}, {a, b, c}, {}, {a}, {b}, {c}, {d}, {a, b, c, d}, {b, c, d}, {a, b, d}, {a, b}, {a, c}, {a, d}, {b, c}, {b, d}, {c, d}}
@@ -45,6 +46,7 @@ hEllo
 true false false
 true true false true
 false false false true
+  eq covariance: true true
 Strings:  uRuR gu
   cardinality: 0 4 2
   concatenation: uRuR uRuRgu
@@ -81,6 +83,7 @@ Sets: {} {17, 82} {12, 17}
   subset: true false true
   proper subset: true false false
   membership: false true true
+  eq covariance: 1 true true
 false true
 |s|=4 |S|=16
 {{}, {a}, {b}, {b, a}, {c}, {c, a}, {c, b}, {c, b, a}, {d}, {d, a}, {d, b}, {d, b, a}, {d, c}, {d, c, a}, {d, c, b}, {d, c, b, a}}
@@ -117,6 +120,7 @@ hEllo
 true false false
 true true false true
 false false false true
+  eq covariance: true true
 Strings:  uRuR gu
   cardinality: 0 4 2
   concatenation: uRuR uRuRgu
@@ -153,6 +157,7 @@ Sets: {} {17, 82} {12, 17}
   subset: true false true
   proper subset: true false false
   membership: false true true
+  eq covariance: 1 true true
 false true
 |s|=4 |S|=16
 {{}, {a}, {b}, {b, a}, {c}, {c, a}, {c, b}, {c, b, a}, {d}, {d, a}, {d, b}, {d, b, a}, {d, c}, {d, c, a}, {d, c, b}, {d, c, b, a}}
@@ -189,6 +194,7 @@ hEllo
 true false false
 true true false true
 false false false true
+  eq covariance: true true
 Strings:  uRuR gu
   cardinality: 0 4 2
   concatenation: uRuR uRuRgu
@@ -225,6 +231,7 @@ Sets: {} {17, 82} {17, 12}
   subset: true false true
   proper subset: true false false
   membership: false true true
+  eq covariance: 1 true true
 false true
 |s|=4 |S|=16
 {{}, {a}, {b}, {a, b}, {c}, {a, c}, {d}, {b, c}, {a, d}, {a, b, c}, {b, d}, {a, b, d}, {c, d}, {a, c, d}, {b, c, d}, {a, b, c, d}}
@@ -261,6 +268,7 @@ hEllo
 true false false
 true true false true
 false false false true
+  eq covariance: true true
 Strings:  uRuR gu
   cardinality: 0 4 2
   concatenation: uRuR uRuRgu

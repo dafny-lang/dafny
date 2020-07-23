@@ -15,6 +15,9 @@ method Main() {
   TestExplosiveUnion();
 }
 
+trait Trait { }
+class Class extends Trait { }
+
 type IntSet = set<int>
 
 method Sets() {
@@ -30,6 +33,12 @@ method Sets() {
   print "  subset: ", a <= b, " ", b <= c, " ", c <= c, "\n";
   print "  proper subset: ", a < b, " ", b < c, " ", c < c, "\n";
   print "  membership: ", 17 in a, " ", 17 in b, " ", 17 in c, "\n";
+
+  var cl := new Class;
+  var tr: Trait := cl;
+  var xtrait: set<Trait> := {cl, tr};
+  var xclass: set<Class> := {cl, cl};
+  print "  eq covariance: ", |xtrait|, " ", xtrait == xclass, " ", xclass == xtrait, "\n";  // 1 true true
 }
 
 method SubSets() {
@@ -83,6 +92,12 @@ method Sequences() {
   BoundedIntegerParameters.Test();
   SeqUpdate();
   SeqPrefix();
+
+  var cl := new Class;
+  var tr: Trait := cl;
+  var xtrait: seq<Trait> := [cl, tr];
+  var xclass: seq<Class> := [cl, cl];
+  print "  eq covariance: ", xtrait == xclass, " ", xclass == xtrait, "\n";  // true true
 }
 
 method SeqUpdate() {
