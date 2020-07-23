@@ -901,6 +901,7 @@ namespace Microsoft.Dafny {
           && !(udt.ResolvedClass is ArrowTypeDecl);
       }
     }
+
     public bool IsTopLevelTypeWithMembers {
       get {
         return AsTopLevelTypeWithMembers != null;
@@ -1244,6 +1245,41 @@ namespace Microsoft.Dafny {
       get {
         var ct = NormalizeExpand();
         return !ct.IsTypeParameter && !ct.IsInternalTypeSynonym && !ct.IsCoDatatype && !ct.IsArrowType && !ct.IsIMapType && !ct.IsISetType;
+      }
+    }
+
+    /// <summary>
+    /// Returns "true" if:  Given a value of type "this", can we determine at run time if the
+    /// value is a member of type "target"?
+    /// </summary>
+    public bool IsTestableToBe(Type target) {
+      Contract.Requires(target != null);
+
+      // First up, we know how to check for null, so let's expand "target" and "source"
+      // past any type synonyms and also past any (built-in) non-null constraint.
+      var source = this.NormalizeExpandKeepConstraints();
+      if (source is UserDefinedType && ((UserDefinedType)source).ResolvedClass is NonNullTypeDecl) {
+        source = source.NormalizeExpand(); // also lop off non-null constraint
+      }
+      target = target.NormalizeExpandKeepConstraints();
+      if (target is UserDefinedType && ((UserDefinedType)target).ResolvedClass is NonNullTypeDecl) {
+        target = target.NormalizeExpand(); // also lop off non-null constraint
+      }
+
+      if (source.IsSubtypeOf(target, false)) {
+        // Every value of "source" is also a member of type "target", so no run-time test is needed.
+        return true;
+      } else if (target is UserDefinedType udt && udt.ResolvedClass is SubsetTypeDecl) {
+        // The type of the bound variable has a constraint. Such a constraint is a ghost expression, so it cannot
+        // (in general) by checked at run time. (A possible enhancement here would be to look at the type constraint
+        // to if it is compilable after all.)
+        return false;
+      } else if (target.TypeArgs.Count == 0) {
+        // No type parameters. So, we just need to check the run-time class/interface type.
+        return true;
+      } else {
+        // We give up.
+        return false;
       }
     }
 
@@ -10657,19 +10693,26 @@ namespace Microsoft.Dafny {
     }
     public abstract class CollectionBoundedPool : BoundedPool
     {
-      public readonly bool ExactTypes;
+      public readonly Type BoundVariableType;
+      public readonly Type CollectionElementType;
       public readonly bool IsFiniteCollection;
-      public CollectionBoundedPool(bool exactTypes, bool isFiniteCollection) {
-        ExactTypes = exactTypes;
+
+      public CollectionBoundedPool(Type bvType, Type collectionElementType, bool isFiniteCollection) {
+        Contract.Requires(bvType != null);
+        Contract.Requires(collectionElementType != null);
+
+        BoundVariableType = bvType;
+        CollectionElementType = collectionElementType;
         IsFiniteCollection = isFiniteCollection;
       }
+
       public override PoolVirtues Virtues {
         get {
-          var v = PoolVirtues.IndependentOfAlloc;
+          var v = PoolVirtues.IndependentOfAlloc | PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc;
           if (IsFiniteCollection) {
             v |= PoolVirtues.Finite;
-            if (ExactTypes) {
-              v |= PoolVirtues.Enumerable | PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc;
+            if (CollectionElementType.IsTestableToBe(BoundVariableType)) {
+              v |= PoolVirtues.Enumerable;
             }
           }
           return v;
@@ -10680,7 +10723,14 @@ namespace Microsoft.Dafny {
     public class SetBoundedPool : CollectionBoundedPool
     {
       public readonly Expression Set;
-      public SetBoundedPool(Expression set, bool exactTypes, bool isFiniteCollection) : base(exactTypes, isFiniteCollection) { Set = set; }
+
+      public SetBoundedPool(Expression set, Type bvType, Type collectionElementType, bool isFiniteCollection)
+        : base(bvType, collectionElementType, isFiniteCollection) {
+        Contract.Requires(set != null);
+        Contract.Requires(bvType != null);
+        Contract.Requires(collectionElementType != null);
+        Set = set;
+      }
     }
     public class SubSetBoundedPool : BoundedPool
     {
@@ -10720,17 +10770,38 @@ namespace Microsoft.Dafny {
     public class MultiSetBoundedPool : CollectionBoundedPool
     {
       public readonly Expression MultiSet;
-      public MultiSetBoundedPool(Expression multiset, bool exactTypes) : base(exactTypes, true) { MultiSet = multiset; }
+
+      public MultiSetBoundedPool(Expression multiset, Type bvType, Type collectionElementType)
+        : base(bvType, collectionElementType, true) {
+        Contract.Requires(multiset != null);
+        Contract.Requires(bvType != null);
+        Contract.Requires(collectionElementType != null);
+        MultiSet = multiset;
+      }
     }
     public class MapBoundedPool : CollectionBoundedPool
     {
       public readonly Expression Map;
-      public MapBoundedPool(Expression map, bool exactTypes, bool isFiniteCollection) : base(exactTypes, isFiniteCollection) { Map = map; }
+
+      public MapBoundedPool(Expression map, Type bvType, Type collectionElementType, bool isFiniteCollection)
+        : base(bvType, collectionElementType, isFiniteCollection) {
+        Contract.Requires(map != null);
+        Contract.Requires(bvType != null);
+        Contract.Requires(collectionElementType != null);
+        Map = map;
+      }
     }
     public class SeqBoundedPool : CollectionBoundedPool
     {
       public readonly Expression Seq;
-      public SeqBoundedPool(Expression seq, bool exactTypes) : base(exactTypes, true) { Seq = seq; }
+
+      public SeqBoundedPool(Expression seq, Type bvType, Type collectionElementType)
+        : base(bvType, collectionElementType, true) {
+        Contract.Requires(seq != null);
+        Contract.Requires(bvType != null);
+        Contract.Requires(collectionElementType != null);
+        Seq = seq;
+      }
     }
     public class DatatypeBoundedPool : BoundedPool
     {
