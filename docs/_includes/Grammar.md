@@ -5,11 +5,11 @@ The Dafny input file to Coco/R is the `Dafny.atg` file in the source tree.
 A Coco/R input file consists of code written in the target language
 (e.g. C\#) intermixed with these special sections:
 
-0. The [Characters section][#sec-character-classes]
+0. The [Characters section](#sec-character-classes)
     which defines classes of characters that are used
    in defining the lexer.
-1. The [Tokens section][#sec-tokens] which defines the lexical tokens.
-2. The [Productions section][#sec-grammar]
+1. The [Tokens section](#sec-tokens) which defines the lexical tokens.
+2. The [Productions section](#sec-grammar)
  which defines the grammar. The grammar productions
 are distributed in the later parts of this document in the parts where
 those constructs are explained.
