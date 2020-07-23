@@ -24,6 +24,7 @@ namespace Dafny
     IEnumerable<T> Elements { get; }
     IEnumerable<ISet<T>> AllSubsets { get; }
     bool Contains<G>(G t);
+    bool EqualsAux(ISet<object> other);
   }
 
   public class Set<T> : ISet<T>
@@ -129,11 +130,44 @@ namespace Dafny
       }
     }
     public bool Equals(ISet<T> other) {
-      return other is Set<T> oth && containsNull == oth.containsNull && this.setImpl.SetEquals(oth.setImpl);
+      if (other == null || Count != other.Count) {
+        return false;
+      } else if (this == other) {
+        return true;
+      }
+      foreach (var elmt in Elements) {
+        if (!other.Contains(elmt)) {
+          return false;
+        }
+      }
+      return true;
     }
     public override bool Equals(object other) {
-      return other is ISet<T> && Equals((ISet<T>)other);
+      if (other is ISet<T> s) {
+        return Equals(s);
+      } else if (this is ISet<object> th && other is ISet<object> oth) {
+        // We'd like to obtain the more specific type parameter U for oth's type ISet<U>.
+        // We do that by making a dynamically dispatched call, like:
+        //     oth.Equals(this)
+        // The hope is then that its comparison "this is ISet<U>" (that is, the first "if" test
+        // above, but in the call "oth.Equals(this)") will be true and the non-virtual Equals
+        // can be called. However, such a recursive call to "oth.Equals(this)" could turn
+        // into infinite recursion. Therefore, we instead call "oth.EqualsAux(this)", which
+        // performs the desired type test, but doesn't recurse any further.
+        return oth.EqualsAux(th);
+      } else {
+        return false;
+      }
     }
+
+    public bool EqualsAux(ISet<object> other) {
+      if (other is ISet<T> s) {
+        return Equals(s);
+      } else {
+        return false;
+      }
+    }
+
     public override int GetHashCode() {
       var hashCode = 1;
       if (containsNull) {
