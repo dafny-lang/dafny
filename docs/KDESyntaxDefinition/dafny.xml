@@ -72,14 +72,15 @@
     </list>
     <!-- type names that start a generic type are part of a RegExpr below -->
     <list name="types">
-      <item>array</item>
       <item>bool</item>
       <item>char</item>
       <item>int</item>
       <item>nat</item>
       <item>object</item>
+      <item>object?</item>
       <item>real</item>
       <item>string</item>
+      <item>ORDINAL</item>
     </list>
 
     <list name="verification keywords">
@@ -95,40 +96,102 @@
 
     <contexts>
       <context name="Normal" attribute="Normal Text" lineEndContext="#stay">
-        <keyword attribute="Keyword" String="keywords" context="#stay" />
+        <!-- Either an entire attribute if it has no expressions, or just the opening and attribute name,
+             so that the expressions get their own coloring -->
+        <RegExpr attribute="Attribute" String="{:\s*[a-zA-Z0-9_'?]+(?:\s+\})?" />
+
+        <!-- Complicated set of rules to distinguish builtin types and identifiers -->
+        <RegExpr attribute="Ident" String="(?:bool|char|int|nat|real|string)[a-zA-Z0-9_'?]+" />
+        <RegExpr attribute="Ident" String="(?:object[?])[a-zA-Z0-9_'][a-zA-Z0-9_'?]*" />
         <keyword attribute="Types" String="types" context="#stay" />
-        <keyword attribute="Assertions" String="verification keywords" context="#stay" />
-
-        <RegExpr attribute="Types" String="bv0|bv[1-9]\d*"/>
-        <RegExpr attribute="Types" String="array1\d+|array[2-9]\d*"/>
-        <RegExpr attribute="Error" String="array1"/>
-        <RegExpr attribute="Error" String="array0\d*"/>
-	<!-- The following recognizes just some common uses of generic types, not nearly all nestings, which would need recursion -->
-        <RegExpr attribute="Types" String="(?:seq|set|iset|map|imap|multiset)(?:&lt;[ \t]*[\d\w\'\?]+[ \t]*(?:&lt;[ \t]*[\d\w\'\?]+[ \t]*&gt;)?(?:,[ \t]*[\d\w\'\?]+(?:&lt;[ \t]*[\d\w\'\?]+[ \t]*&gt;)?)*&gt;)?"  />
-        <RegExpr attribute="Decimal" String="0x[0-9a-fA-F]+(?:_[0-9a-fA-F]+)*" />
+        <RegExpr attribute="Types" String="(?:bv0|bv[1-9]\d*)(?![a-zA-Z0-9_'?])"/>
+        <RegExpr attribute="Types" String="array(?:1\d+|[2-9]\d*)?[?]?(?![a-zA-Z0-9_'?])"/>
+        <RegExpr attribute="Types" String="(?:seq|set|iset|map|imap|multiset)\s*&lt;" context="TypeParameters" />
+        <RegExpr attribute="Error" String="(?:seq|set|iset|map|imap|multiset)(?![&lt;0-9a-zA-Z_'?])" />
+        <RegExpr attribute="Error" String="(?:seq|set|iset|map|imap|multiset)(?=\s+[^&lt;])" />
+        <!-- Digit sequence ending in _ is an error -->
+        <RegExpr attribute="Error" String="[0-9]+(?:_[0-9]+)*_(?![0-9])" />
+        <RegExpr attribute="BaseN" String="0x[0-9a-fA-F]+(?:_[0-9a-fA-F]+)*" />
+        <RegExpr attribute="Decimal" String="[0-9]+(?:_[0-9]+)*" />
         <RegExpr attribute="Float" String="[0-9]+(?:_[0-9]+)*\.[0-9]+(?:_[0-9]+)*" />
-        <RegExpr attribute="Char" String="\'\\u[0-9A-Fa-f]{4}\'" />
-        <RegExpr attribute="Error" String="\'\\u[0-9A-Fa-f]{4}[^\']+\'" />
-        <RegExpr attribute="Error" String="\'\\u[0-9A-Fa-f]{0,3}(?:[^'0-9A_Fa-f][^\']*)?\'" />
-        <RegExpr attribute="Error" String="\'\\[^0rnt\\\'&quot;]\'" />
-        <RegExpr attribute="VerbatimString" String="@&quot;(?:[^&quot;]|\\s||&quot;&quot;)*&quot;" />
 
-        <Int attribute="Decimal" context="#stay" />
-        <Float attribute="Float" context="#stay" />
-        <HlCChar attribute="Char" context="#stay" />
-        <DetectChar attribute="String" char="&quot;" context="Quoted String" />
+        <!-- Complicated set of rules to distinguish characters and identifiers -->
+        <!--      Normal quoted character, not followed by an further ident-characters, e.g. 'a' -->
+        <RegExpr attribute="Char" String="\'[^\\]\'(?![a-zA-Z0-9'_?])" />
+        <!--      Escape characters, not followed by any further ident-characters, e.g. '\n' -->
+        <RegExpr attribute="Char" String="\'\\[0ntr'&quot;\\]\'(?![a-zA-Z0-9'_?])" />
+        <!--      Unicode characters, not followed by any further ident-characters, e.g. '\u5555' -->
+        <RegExpr attribute="Char" String="\'\\u[0-9A-Fa-f]{4}\'(?![a-zA-Z0-9'_?])" />
+        <!--      Malformed unicode is an identifier, e.g. '\u2222X' '\u222' '\u222Z' -->
+        <RegExpr attribute="Ident" String="\'\\u[0-9A-Fa-f]{4}[^\']+\'" />
+        <RegExpr attribute="Ident" String="\'\\u[0-9A-Fa-f]{0,3}[^'0-9A-Fa-f]*\'" />
+        <!--      Malformed regular escape is an identifier, e.g. '\Z' -->
+        <RegExpr attribute="Ident" String="\'\\[^0rnt\\'&quot;]\'" />
 
+        <!-- Comments must be before operators -->
         <Detect2Chars attribute="Comment" char="/" char1="/" context="SingleLineComment" />
         <Detect2Chars attribute="Comment" char="/" char1="*" context="MultiLineComment" />
+
+        <!-- operators, error chars and punctuation -->
+        <RegExpr attribute="Operators" String="(?:\+|-|\*|/|%|&lt;(?:=(?:=(?:&gt;)?)?)?|&gt;[=]?|==[#&gt;]?|!=[#]?|&amp;&amp;|\|\||!(?:in|!)?|[~]|in|#|\.\.|:)" />
+        <RegExpr attribute="Error" String="(?:[`$])" />
+
+        <RegExpr attribute="Punctuation" String="(?:;|\(|\)|\[|\]|\{|\}|,|\.|::|:=|:\||\|)" />
+
+        <!-- Openings for quoted and verbatim strings -->
+        <DetectChar attribute="String" char="&quot;" context="Quoted String" />
+        <Detect2Chars attribute="VerbatimString" char="@" char1="&quot;" context="Verbatim String" />
+        <!-- Standalone @ is an error -->
+        <RegExpr attribute="Error" String="@(?![&quot;])" />
+
+        <!-- Order of these rules matters; the following three should be after all those above -->
+        <keyword attribute="Assertions" String="verification keywords" context="#stay" />
+        <keyword attribute="Keyword" String="keywords" context="#stay" />
+        <!-- Anything that is not an ident is already matched -->
+        <RegExpr attribute="Ident" String="[a-zA-Z0-9_'?][a-zA-Z0-9_'?]*" />
+
+      </context>
+
+      <context name="TypeParameters" attribute="Types" lineEndContext="#stay">
+        <keyword attribute="Types" String="types" context="#stay" />
+        <RegExpr attribute="Types" String="bv0|bv[1-9]\d*(?![a-zA-Z0-9_'?])" context="#stay" />
+        <RegExpr attribute="Types" String="array(?:1\d|[2-9])\d*[?]?(?![a-zA-Z0-9_'?])" context="#stay"/>
+        <RegExpr attribute="Types" String="(?:seq|set|iset|map|imap|multiset)\s*&lt;" context="TypeParameters" />
+        <RegExpr attribute="Types" String="[a-zA-Z_'?][a-zA-Z0-9_'?]*" context="#stay" />
+        <RegExpr attribute="Types" String="\s+" context="#stay" />
+        <RegExpr attribute="Types" String=",(?!\s*[,&gt;])" context="#stay" />
+        <RegExpr attribute="Error" String=",(?=\s*[,&gt;])" context="#stay" />
+        <RegExpr attribute="Types" String="&gt;" context="#pop" />
+        <RegExpr attribute="Error" String="[^a-zA-Z_'?]" />
       </context>
 
       <context name="Quoted String" attribute="String" lineEndContext="#pop">
-        <Detect2Chars attribute="String" context="#stay" char="\\" char1="&quot;"/>
+        <!-- string holds anything other than a double-quote or backslash -->
+        <RegExpr attribute="String" String="[^&quot;\\]+" />
+        <!-- standard 7 escape characters -->
+        <RegExpr attribute="String" String="\\[0nrt'&quot;\\]" />
+        <!-- unicode characters -->
+        <RegExpr attribute="String" String="\\u[0-9A-Fa-f]{4}" />
+        <!-- badly formed unicode character -->
+        <RegExpr attribute="Error" String="\\u[0-9A-Fa-f]{0,3}(?![0-9A_Fa-f])" />
+        <!-- badly formed escape -->
+        <RegExpr attribute="Error" String="\\[^u0rnt\\'&quot;]" />
+        <!-- unescaped quote ends string -->
         <DetectChar attribute="String" char="&quot;" context="#pop" />
+      </context>
+
+      <context name="Verbatim String" attribute="VerbatimString" lineEndContext="#stay">
+        <!-- content holds all non-quote characters -->
+        <RegExpr attribute="VerbatimString" String="[^&quot;]+" context="#stay" />
+        <!-- two double-quote chars allowed -->
+        <Detect2Chars attribute="VerbatimString" char="&quot;" char1="&quot;" context="#stay" />
+        <!-- single double-quote char ends verbatim string -->
+        <DetectChar attribute="VerbatimString" char="&quot;" context="#pop" />
       </context>
 
       <context name="SingleLineComment" attribute="Comment" lineEndContext="#pop"/>
       <context name="MultiLineComment" attribute="Comment" lineEndContext="#stay">
+        <Detect2Chars attribute="Comment" context="MultiLineComment" char="/" char1="*"/>
         <Detect2Chars attribute="Comment" context="#pop" char="*" char1="/"/>
       </context>
       <context name="Documentation" attribute="Comment" lineEndContext="#pop" />
@@ -142,13 +205,18 @@
       <itemData name="Assertions" defStyleNum="dsOthers" />
 
       <itemData name="Decimal" defStyleNum="dsDecVal" />
+      <itemData name="BaseN" defStyleNum="dsBaseN" />
       <itemData name="Float" defStyleNum="dsFloat" />
       <itemData name="Char" defStyleNum="dsChar" />
       <itemData name="String" defStyleNum="dsString" />
       <itemData name="VerbatimString" defStyleNum="dsVerbatimString" />
+      <itemData name="Attribute" defStyleNum="dsAttribute" />
+      <itemData name="Operators" defStyleNum="dsOperator" />
+      <itemData name="Punctuation" defStyleNum="dsSpecialChar" />
 
       <itemData name="Comment" defStyleNum="dsComment" />
       <itemData name="Error" defStyleNum="dsError" />
+      <itemData name="Ident" defStyleNum="dsVariable" />
     </itemDatas>
   </highlighting>
 
