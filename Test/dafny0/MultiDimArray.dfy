@@ -1,12 +1,12 @@
 // RUN: %dafny /compile:0 /print:"%t.print" /dprint:"%t.dprint" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
-
+type array1<T> = array<T>  // array1 is not a pre-defined type; so we make it a synonym
 class A {
   // all of the following array types are allowed
   var a: array<int>;
   var b: array  <bool>;
   var c: array <A>;
-  var d: array1 <A>;  // this is a synonym for array<A>
+  var d: array1 <A>; 
   var e: array2 <A>;
   var f: array3 <A?>;
   var g: array300 <A>;
