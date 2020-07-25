@@ -1,6 +1,6 @@
 # Statements
 ````
-Stmt = ( BlockStmt | AssertStmt | AssumeStmt | PrintStmt | UpdateStmt
+Stmt = ( BlockStmt | AssertStmt | AssumeStmt | ExpectStmt | PrintStmt | UpdateStmt
   | VarDeclStatement | IfStmt | WhileStmt | MatchStmt | ForallStmt
   | CalcStmt | ModifyStmt | LabeledStmt_ | BreakStmt_ | ReturnStmt
   | YieldStmt
@@ -615,11 +615,7 @@ Thus if Dafny is having a difficult time verifying a method,
 the user may help by inserting assertions that Dafny can prove,
 and whose truth may aid in the larger verification effort.
 
-<!--
-Describe where refinement is described.
-
-If the proposition is `...` then (TODO: what does this mean?).
--->
+Using `...` as the argument of the statement is part of module refinement, as described [here](#sec-module-refinement).
 
 ## Assume Statement
 ````
@@ -643,6 +639,42 @@ user would come back and replace the `assume` with `assert`.
 An `Assume` statement cannot be compiled. In fact, the compiler
 will complain if it finds an **assume** anywhere where it has not
 been replaced through a refinement steop.
+
+Using `...` as the argument of the statement is part of module refinement, as described [here](#sec-module-refinement).
+
+## Expect Statement
+
+````
+ExpectStmt =
+    "expect" { Attribute }
+    ( Expression(allowLemma: false, allowLambda: true)
+    | "..."
+    )
+    [ "," Expression(allowLemma: false, allowLambda: true) ]
+    ";"
+````
+
+The `expect` statement states a boolean expression that is checked to be true
+at run-time. That is, the compiler inserts into the run-time executable a 
+check that the given expression is true; if the expression is false, then
+the execution of the program halts immediately. If a second argument is
+given, it is a string that is included in the message emitted by the program
+when it halts; otherwise a default message is emitted.
+
+Because the expect expression is compiled, it cannot be a ghost expression.
+
+The `expect` statement is analogous to the `assert` statement. The `assert` expression
+is checked by the verifier and ignored at runtime; an `expect` expression is checked
+at runtime and ignored by the verifier.  Paired `assert` and `expect` statements checking the
+same expression can be used to do runtime checking before there is a successful proof
+of an assert statement (or to help debug one that is unprovable).[^expect]
+
+[^expect]: Aside from difficulties in constructing a successful proof, 
+paired (consecutive) `assert` and `expect` statements in a program should always produce the 
+same results, except if the compiler is faulty. Of course, the `expect` statement only checks the 
+test cases for which the program is run.
+
+Using `...` as the argument of the statement is part of module refinement, as described [here](#sec-module-refinement).
 
 <!--
 Describe where refinement is described.
