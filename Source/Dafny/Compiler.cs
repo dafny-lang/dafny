@@ -601,13 +601,13 @@ namespace Microsoft.Dafny {
       Contract.Requires(wr != null);
 
       resultType = resultType.NormalizeExpand();
-      wr.Write("(");
+      wr.Write("((");
       TrExpr(guard, wr, inLetExprBody);
       wr.Write(") ? (");
       TrExpr(thn, resultType.Equals(thn.Type.NormalizeExpand()) ? wr : EmitCast(resultType, wr), inLetExprBody);
       wr.Write(") : (");
       TrExpr(els, resultType.Equals(els.Type.NormalizeExpand()) ? wr : EmitCast(resultType, wr), inLetExprBody);
-      wr.Write(")");
+      wr.Write("))");
     }
 
     protected virtual TargetWriter EmitCast(Type toType, TargetWriter wr) {
