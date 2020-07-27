@@ -10806,7 +10806,11 @@ namespace Microsoft.Dafny {
     public class DatatypeBoundedPool : BoundedPool
     {
       public readonly DatatypeDecl Decl;
-      public DatatypeBoundedPool(DatatypeDecl d) { Decl = d; }
+
+      public DatatypeBoundedPool(DatatypeDecl d) {
+        Contract.Requires(d != null);
+        Decl = d;
+      }
       public override PoolVirtues Virtues => PoolVirtues.Finite | PoolVirtues.Enumerable | PoolVirtues.IndependentOfAlloc | PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc;
       public override int Preference() => 8;
     }
