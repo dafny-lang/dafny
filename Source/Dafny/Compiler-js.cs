@@ -1125,34 +1125,36 @@ namespace Microsoft.Dafny {
       return string.Format("_dafny.Quantifier");
     }
 
-    protected override BlockTargetWriter CreateForeachLoop(string boundVar, Type/*?*/ boundVarType, out TargetWriter collectionWriter, TargetWriter wr, string/*?*/ altBoundVarName = null, Type/*?*/ altVarType = null, Bpl.IToken/*?*/ tok = null) {
-      wr.Write("for (const {0} of ", boundVar);
-      collectionWriter = wr.Fork();
-      if (altBoundVarName == null) {
+    protected override BlockTargetWriter CreateForeachLoop(string tmpVarName/*?*/, Type/*?*/ collectionElementType, string boundVarName, Type/*?*/ boundVarType, bool introduceBoundVar,
+      Bpl.IToken tok, out TargetWriter collectionWriter, TargetWriter wr) {
+      if (tmpVarName == null) {
+        // emit simplified loop
+        wr.Write("for (const {0} of ", boundVarName);
+        collectionWriter = wr.Fork();
         return wr.NewBlock(")");
-      } else if (altVarType == null) {
-        return wr.NewBlockWithPrefix(")", "{0} = {1};", altBoundVarName, boundVar);
       } else {
-        string typeTest;
-        if (!altVarType.IsRefType) {
-          typeTest = "true";
-        } else {
-          if (altVarType.IsObject || altVarType.IsObjectQ) {
+        wr.Write("for (const {0} of ", tmpVarName);
+        collectionWriter = wr.Fork();
+        var wwr = wr.NewBlock(")");
+
+        if (boundVarType.IsRefType) {
+          string typeTest;
+          if (boundVarType.IsObject || boundVarType.IsObjectQ) {
             typeTest = "true";
-          } else if (altVarType.IsTraitType) {
-            typeTest = "_dafny.InstanceOfTrait({1}, {2})";
+          } else if (boundVarType.IsTraitType) {
+            typeTest = $"_dafny.InstanceOfTrait({tmpVarName}, {TypeName(boundVarType, wwr, tok)})";
           } else {
-            typeTest = "({1}) instanceof {2}";
+            typeTest = $"{tmpVarName} instanceof {TypeName(boundVarType, wwr, tok)}";
           }
-          if (altVarType.IsNonNullRefType) {
-            typeTest = "({1}) !== null && " + typeTest;
-          } else if (altVarType.IsRefType) {
-            typeTest = "({1}) === null || " + typeTest;
+          if (boundVarType.IsNonNullRefType) {
+            typeTest = $"{tmpVarName} !== null && " + typeTest;
+          } else {
+            typeTest = $"{tmpVarName} === null || " + typeTest;
           }
+          wwr = wwr.NewBlock($"if ({typeTest})");
         }
-        var prefixFormat = "if (" + typeTest + ") ";
-        BlockTargetWriter wwr = wr.NewBlockWithPrefix(")", prefixFormat, altBoundVarName, boundVar, TypeName(altVarType, wr, tok));
-        return wwr.NewBlockWithPrefix("", "let {0} = {1};", altBoundVarName, boundVar);
+        wwr.WriteLine("{0}{1} = {2};", introduceBoundVar ? "let " : "", boundVarName, tmpVarName);
+        return wwr;
       }
     }
 

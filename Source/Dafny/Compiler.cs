@@ -511,9 +511,35 @@ namespace Microsoft.Dafny {
     protected abstract string GetQuantifierName(string bvType);
 
     /// <summary>
-    /// "tok" can be null if "altVarType" is null, which in turn is allowed if "altBoundVarName" is null
+    /// With "tmpVarName != null", emit a loop like this:
+    ///     foreach (tmpVarName:collectionElementType in [[collectionWriter]]) {
+    ///       if (tmpVarName is member of type boundVarType) {
+    ///         var boundVarName:boundVarType := tmpVarName as boundVarType;
+    ///         [[bodyWriter]]
+    ///       }
+    ///     }
+    /// where
+    ///   * "[[collectionWriter]]" is the writer returned as "collectionWriter"
+    ///   * "[[bodyWriter]]" is the block writer returned
+    /// Options:
+    ///   * "collectionElementType" can be "null", which says for the target language to infer it
+    ///     from "[[collectionWriter]]" (or use a most general type, like "Object" in Java).
+    ///   * "introduceBoundVar" can be "false", which says to do the assignment to "boundVarName" as
+    ///     shown above, but without also declaring the variable "boundVarName".
+    ///
+    /// With "tmpVarName == null", emit a simplified loop like this:
+    ///     foreach (boundVarName:boundVarType in [[coll]]) {
+    ///       [[body]]
+    ///     }
+    /// Options:
+    ///   * Additionally, "boundVarType" can be "null", which says for the target language to infer it
+    ///     from "[[collectionWriter]]" (or use a most general type, like "Object" in Java).
+    ///
+    /// Note that the values of "collectionElementType" and "introduceBoundVar" are irrelevant when "tmpVarName == null".
     /// </summary>
-    protected abstract BlockTargetWriter CreateForeachLoop(string boundVar, Type/*?*/ boundVarType, out TargetWriter collectionWriter, TargetWriter wr, string/*?*/ altBoundVarName = null, Type/*?*/ altVarType = null, Bpl.IToken/*?*/ tok = null);
+    protected abstract BlockTargetWriter CreateForeachLoop(string tmpVarName/*?*/, Type/*?*/ collectionElementType, string boundVarName, Type/*?*/ boundVarType, bool introduceBoundVar,
+      Bpl.IToken tok, out TargetWriter collectionWriter, TargetWriter wr);
+
     /// <summary>
     /// If "initCall" is non-null, then "initCall.Method is Constructor".
     /// </summary>
@@ -2739,7 +2765,7 @@ namespace Microsoft.Dafny {
           //   }
           TargetWriter collWriter;
           TargetTupleSize = L;
-          wr = CreateForeachLoop(tup, null, out collWriter, wrOuter);
+          wr = CreateForeachLoop(null, null, tup, null, true, stmt.Tok, out collWriter, wrOuter);
           collWriter.Write(ingredients);
           {
             var wTup = new TargetWriter(wr.IndentLevel, true);
@@ -2858,13 +2884,17 @@ namespace Microsoft.Dafny {
     }
 
     protected virtual void EmitMemberSelect(AssignStmt s0, List<Type> tupleTypeArgsList, TargetWriter wr, string tup) {
-      var lhs = (MemberSelectExpr) s0.Lhs;
-      var wCoerced = EmitCoercionIfNecessary(from: null, to: tupleTypeArgsList[0], tok: s0.Tok, wr: wr);
-      EmitTupleSelect(tup, 0, wCoerced);
-      wr.Write(".{0} = ", IdMemberName(lhs));
-      wCoerced = EmitCoercionIfNecessary(from: null, to: tupleTypeArgsList[1], tok: s0.Tok, wr: wr);
+      var lhs = (MemberSelectExpr)s0.Lhs;
+
+      var typeArgs = TypeArgumentInstantiation.ListFromMember(lhs.Member, null, lhs.TypeApplication_JustMember);
+      var lvalue = EmitMemberSelect(w => {
+        var wObj = EmitCoercionIfNecessary(from: null, to: tupleTypeArgsList[0], s0.Tok, w);
+        EmitTupleSelect(tup, 0, wObj);
+      }, lhs.Obj.Type, lhs.Member, typeArgs, lhs.TypeArgumentSubstitutionsWithParents(), lhs.Type);
+
+      var wRhs = EmitAssignment(lvalue, lhs.Type, tupleTypeArgsList[1], wr);
+      var wCoerced = EmitCoercionIfNecessary(from: null, to: tupleTypeArgsList[1], tok: s0.Tok, wr: wRhs);
       EmitTupleSelect(tup, 1, wCoerced);
-      EndStmt(wr);
     }
 
     protected virtual void EmitSeqSelect(AssignStmt s0, List<Type> tupleTypeArgsList, TargetWriter wr, string tup){
@@ -2904,7 +2934,8 @@ namespace Microsoft.Dafny {
         var bound = bounds[i];
         var bv = bvs[i];
         TargetWriter collectionWriter;
-        wr = CreateForeachLoop(IdName(bv), bv.Type, out collectionWriter, wr);
+        var tmpVar = idGenerator.FreshId("_guard_loop_");
+        wr = CreateForeachLoop(tmpVar, GetCollectionEnumerationType(bound, bv), IdName(bv), bv.Type, true, range.tok, out collectionWriter, wr);
         CompileCollection(bound, bv, false, false, collectionWriter, bounds, bvs, i);
       }
 
@@ -2921,6 +2952,33 @@ namespace Microsoft.Dafny {
       TrParenExpr(range, guardWriter, false);
 
       return wr;
+    }
+
+    /// <summary>
+    /// For a enumerator for the bounded pool "bound" and bounded variable "bv", return the type of the elements
+    /// return from the enumerator. Usually, this is just "bv.Type", since the enumerated values are going to be
+    /// bound to "bv". However, the type may also be a supertype of "bv.Type", in which case a downcast will be
+    /// needed somewhere. For example, for
+    ///     var ts: seq(Trait) := ...;
+    ///     var cs: set(Class) := set bv: Class :: bv in ts;
+    /// the type of "bv" is "Class", but the values returned by the enumeration will have type "Trait".
+    /// </summary>
+    Type GetCollectionEnumerationType(ComprehensionExpr.BoundedPool bound, IVariable bv) {
+      Contract.Requires(bound != null);
+      Contract.Requires(bv != null);
+
+      if (bound is ComprehensionExpr.CollectionBoundedPool) {
+        var b = (ComprehensionExpr.CollectionBoundedPool)bound;
+        return b.CollectionElementType;
+      } else if (bound is ComprehensionExpr.SubSetBoundedPool) {
+        var b = (ComprehensionExpr.SubSetBoundedPool)bound;
+        return b.UpperBound.Type;
+      } else if (bound is ComprehensionExpr.ExactBoundedPool) {
+        var b = (ComprehensionExpr.ExactBoundedPool)bound;
+        return b.E.Type;
+      } else {
+        return bv.Type;
+      }
     }
 
     void CompileCollection(ComprehensionExpr.BoundedPool bound, IVariable bv, bool inLetExprBody, bool includeDuplicates,
@@ -3200,7 +3258,7 @@ namespace Microsoft.Dafny {
         }
         var tmpVar = idGenerator.FreshId("_assign_such_that_");
         TargetWriter collectionWriter;
-        wr = CreateForeachLoop(tmpVar, bv.Type, out collectionWriter, wr, IdName(bv));
+        wr = CreateForeachLoop(tmpVar, GetCollectionEnumerationType(bound, bv), IdName(bv), bv.Type, false, bv.Tok, out collectionWriter, wr);
         CompileCollection(bound, bv, inLetExprBody, true, collectionWriter);
         if (needIterLimit) {
           var varName = string.Format("{0}_{1}", iterLimit, i);
@@ -4263,7 +4321,7 @@ namespace Microsoft.Dafny {
           var bv = e.BoundVars[i];
           TargetWriter collectionWriter;
           var tmpVar = idGenerator.FreshId("_compr_");
-          wr = CreateForeachLoop(tmpVar, bv.Type, out collectionWriter, wr, IdName(bv), bv.Type, bv.tok);
+          wr = CreateForeachLoop(tmpVar, GetCollectionEnumerationType(bound, bv), IdName(bv), bv.Type, true, bv.tok, out collectionWriter, wr);
           CompileCollection(bound, bv, inLetExprBody, true, collectionWriter);
         }
         TargetWriter guardWriter;
@@ -4305,7 +4363,8 @@ namespace Microsoft.Dafny {
         var bv = e.BoundVars[0];
         Contract.Assume(e.BoundVars.Count == 1);  // TODO: implement the case where e.BoundVars.Count > 1
         TargetWriter collectionWriter;
-        var w = CreateForeachLoop(IdName(bv), bv.Type, out collectionWriter, wr);
+        var tmpVar = idGenerator.FreshId("_compr_");
+        var w = CreateForeachLoop(tmpVar, GetCollectionEnumerationType(bound, bv), IdName(bv), bv.Type, true, bv.tok, out collectionWriter, wr);
         CompileCollection(bound, bv, inLetExprBody, true, collectionWriter);
         TargetWriter guardWriter;
         var thn = EmitIf(out guardWriter, false, w);

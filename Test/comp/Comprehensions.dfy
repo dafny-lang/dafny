@@ -13,6 +13,8 @@ method Main() {
   AltControlFlow();
   Sequences();
   SetComprehension();
+  Enumerations();
+  EnumerationsMaybeNull();
   GoNil();
 }
 
@@ -301,6 +303,74 @@ method SetComprehension3() {
 trait ICell { var data: int }
 class CellA extends ICell { }
 class CellB extends ICell { }
+
+method Enumerations() {
+  var c, d, e := new CellA, new CellA, new CellB;
+  c.data, d.data, e.data := 4, 5, 1;
+  var s: set<ICell?> := {c, d, e, null};
+  print c.data, d.data, e.data, "\n";  // 451
+
+  // non-sequentialized forall statement
+  forall a: CellA | a in s {
+    a.data := c.data + a.data - 2;
+  }
+  print c.data, d.data, e.data, "\n";  // 671
+
+  // sequentialized forall statement
+  forall a: CellA | a in s {
+    a.data := 2;
+  }
+  print c.data, d.data, e.data, "\n";  // 221
+
+  // assign-such-that statement
+  d.data := 9;
+  assert d in s;
+  var u: CellA :| u in s && 7 <= u.data;
+  u.data := 8;
+  print c.data, d.data, e.data, "\n";  // 281
+
+  // set comprehension
+  var r := set a: CellA | a in s && a.data < 6;
+  print |r|, "\n";  // 1
+
+  // map comprehension
+  var m := map a: CellA | a in s && a.data < 6 :: 3;
+  print c in m.Keys, " ", d in m.Keys, " ", |m.Keys|, "\n";  // true false 1
+}
+
+method EnumerationsMaybeNull() {
+  var c, d, e := new CellA, new CellA, new CellB;
+  c.data, d.data, e.data := 4, 5, 1;
+  var s: set<ICell?> := {c, d, e, null};
+  print c.data, d.data, e.data, "\n";  // 451
+
+  // non-sequentialized forall statement
+  forall a: CellA? | a in s {
+    (if a == null then c else a).data := c.data + (if a == null then c else a).data - 2;
+  }
+  print c.data, d.data, e.data, "\n";  // 671
+
+  // sequentialized forall statement
+  forall a: CellA? | a in s {
+    (if a == null then c else a).data := 2;
+  }
+  print c.data, d.data, e.data, "\n";  // 221
+
+  // assign-such-that statement
+  d.data := 9;
+  assert d in s;
+  var u: CellA? :| u in s && u != null && 7 <= u.data;
+  u.data := 8;
+  print c.data, d.data, e.data, "\n";  // 281
+
+  // set comprehension
+  var r := set a: CellA? | a in s && (a == null || a.data < 6);
+  print |r|, "\n";  // 2
+
+  // map comprehension
+  var m := map a: CellA? | a in s && (a == null || a.data < 6) :: 3;
+  print null in m.Keys, " ", c in m.Keys, " ", d in m.Keys, " ", |m.Keys|, "\n";  // true true false 2
+}
 
 method GoNil() {
   var a, b := new CellA, new CellB;

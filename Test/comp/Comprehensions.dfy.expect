@@ -1,5 +1,5 @@
 
-Dafny program verifier finished with 17 verified, 0 errors
+Dafny program verifier finished with 19 verified, 0 errors
 x=13 y=14
 x=13 y=14 b=yes
 p=(13, 14)
@@ -25,10 +25,22 @@ XM returned: 16
 5 5 3 3 1 5 3 true
 2 2 1 1 0 2 false true
 3 3
+451
+671
+221
+281
+1
+true false 1
+451
+671
+221
+281
+2
+true true false 2
 the intersection is {null}
 there are 3 elements in the union
 
-Dafny program verifier finished with 17 verified, 0 errors
+Dafny program verifier finished with 19 verified, 0 errors
 x=13 y=14
 x=13 y=14 b=yes
 p=(13, 14)
@@ -54,10 +66,22 @@ XM returned: 16
 5 5 3 3 1 5 3 true
 2 2 1 1 0 2 false true
 3 3
+451
+671
+221
+281
+1
+true false 1
+451
+671
+221
+281
+2
+true true false 2
 the intersection is {null}
 there are 3 elements in the union
 
-Dafny program verifier finished with 17 verified, 0 errors
+Dafny program verifier finished with 19 verified, 0 errors
 x=13 y=14
 x=13 y=14 b=yes
 p=(13, 14)
@@ -83,10 +107,22 @@ XM returned: 16
 5 5 3 3 1 5 3 true
 2 2 1 1 0 2 false true
 3 3
+451
+671
+221
+281
+1
+true false 1
+451
+671
+221
+281
+2
+true true false 2
 the intersection is {null}
 there are 3 elements in the union
 
-Dafny program verifier finished with 17 verified, 0 errors
+Dafny program verifier finished with 19 verified, 0 errors
 x=13 y=14
 x=13 y=14 b=[y, e, s]
 p=(13, 14)
@@ -112,5 +148,17 @@ XM returned: 16
 5 5 3 3 1 5 3 true
 2 2 1 1 0 2 false true
 3 3
+451
+671
+221
+281
+1
+true false 1
+451
+671
+221
+281
+2
+true true false 2
 the intersection is {null}
 there are 3 elements in the union
