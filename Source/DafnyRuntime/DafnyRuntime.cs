@@ -677,6 +677,7 @@ namespace Dafny
     ISequence<T> Subsequence(BigInteger lo, long hi);
     ISequence<T> Subsequence(BigInteger lo, ulong hi);
     ISequence<T> Subsequence(BigInteger lo, BigInteger hi);
+    bool EqualsAux(ISequence<object> other);
   }
 
   public abstract class Sequence<T>: ISequence<T>
@@ -785,7 +786,21 @@ namespace Dafny
       return n == other.Elements.Length && EqualUntil(this, other, n);
     }
     public override bool Equals(object other) {
-      return other is Sequence<T> && Equals((ISequence<T>)other);
+      if (other is ISequence<T> s) {
+        return Equals(s);
+      } else if (this is ISequence<object> th && other is ISequence<object> oth) {
+        // see explanation in Set.Equals
+        return oth.EqualsAux(th);
+      } else {
+        return false;
+      }
+    }
+    public bool EqualsAux(ISequence<object> other) {
+      if (other is ISequence<T> s) {
+        return Equals(s);
+      } else {
+        return false;
+      }
     }
     public override int GetHashCode() {
       ImmutableArray<T> elmts = ImmutableElements;
