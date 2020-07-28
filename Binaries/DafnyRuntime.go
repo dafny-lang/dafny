@@ -22,10 +22,10 @@ type EqualsGeneric interface {
 // values are handled intelligently if their type is refl.Value or any type that
 // implements the EqualsGeneric interface.
 func AreEqual(x, y interface{}) bool {
-	if x == nil {
-		return y == nil
+	if IsDafnyNull(x) {
+		return IsDafnyNull(y)
 	}
-	if y == nil {
+	if IsDafnyNull(y) {
 		return false
 	}
 	switch x := x.(type) {
@@ -40,6 +40,17 @@ func AreEqual(x, y interface{}) bool {
 	default:
 		return refl.DeepEqual(x, y)
 	}
+}
+
+func IsDafnyNull(x interface{}) bool {
+	if x == nil {
+		return true
+	}
+	v := refl.ValueOf(x)
+	if v.Kind() == refl.Ptr {
+		return v.IsNil()
+	}
+	return false
 }
 
 func isNil(v refl.Value) bool {

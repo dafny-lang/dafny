@@ -13,6 +13,7 @@ method Main() {
   AltControlFlow();
   Sequences();
   SetComprehension();
+  GoNil();
 }
 
 predicate method Thirteen(x: int) { x == 13 }
@@ -280,8 +281,6 @@ datatype Color = Red | Green | Blue
 
 predicate method True<G>(g: G) { true }
 
-newtype Few = x | 0 <= x < 3
-
 method SetComprehension3() {
   var s: set<bool> := {false, true};
   // The following set comprehension picks att elements in s:
@@ -297,4 +296,18 @@ method SetComprehension3() {
   var d := set z: Color | True(z);
   var e := set z: Color | z in d;
   print |d|, " ", |e|, "\n"; // 3 3
+}
+
+trait ICell { var data: int }
+class CellA extends ICell { }
+class CellB extends ICell { }
+
+method GoNil() {
+  var a, b := new CellA, new CellB;
+  var aa := {a, null};
+  var bb := {b, null};
+  var cc := aa * bb;
+  var dd := aa + bb;
+  print "the intersection is ", cc, "\n";  // {null}
+  print "there are ", |dd|, " elements in the union\n";  // 3
 }
