@@ -41,7 +41,12 @@ method LetSuchThat() {
 }
 
 method Quantifier() {
-  var s := [0, 1, 1, 2, 3, 5, 8, 13];
+  // Note, by making *two* assignments to "s" (instead of the obvious one), the direct translation
+  // into Java makes "s" NOT be "effectively final". This means that Java does not allow "s" to be
+  // used in the lambda expression into which the quantifier translates. Compilation into Java
+  // thus needs to capture the value of "s" into another variable, which these tests check on.
+  var s := [0, 1, 1, 2];
+  s := s + [3, 5, 8, 13];
   print forall x :: x in s ==> x < 20, " ";  // true
   print forall x :: x in s ==> x < 10, "\n";  // false
   print exists x :: x in s && x == 3, " ";  // true

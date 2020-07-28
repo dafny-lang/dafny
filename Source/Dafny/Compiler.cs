@@ -759,6 +759,7 @@ namespace Microsoft.Dafny {
     protected abstract void EmitSeqConstructionExpr(SeqConstructionExpr expr, bool inLetExprBody, TargetWriter wr);
     protected abstract void EmitMultiSetFormingExpr(MultiSetFormingExpr expr, bool inLetExprBody, TargetWriter wr);
     protected abstract void EmitApplyExpr(Type functionType, Bpl.IToken tok, Expression function, List<Expression> arguments, bool inLetExprBody, TargetWriter wr);
+    protected virtual bool TargetLambdaCanUseEnclosingLocals => true;
     protected abstract TargetWriter EmitBetaRedex(List<string> boundVars, List<Expression> arguments, List<Type> boundTypes, Type resultType, Bpl.IToken resultTok, bool inLetExprBody, TargetWriter wr);
     protected virtual void EmitConstructorCheck(string source, DatatypeCtor ctor, TargetWriter wr) {
       wr.Write("{0}.is_{1}", source, ctor.CompileName);
@@ -4272,6 +4273,15 @@ namespace Microsoft.Dafny {
 
         // Compilation does not check whether a quantifier was split.
 
+        var logicalBody = e.LogicalBody(true);
+        Translator.Substituter su = null;
+        if (!TargetLambdaCanUseEnclosingLocals) {
+          CreateFreeVarSubstitution(expr, out var bvars, out var fexprs, out su);
+          if (bvars.Count != 0) {
+            wr = EmitBetaRedex(bvars.ConvertAll(IdName), fexprs, bvars.ConvertAll(bv => bv.Type), Type.Bool, e.tok, inLetExprBody, wr);
+            logicalBody = su.Substitute(logicalBody);
+          }
+        }
         Contract.Assert(e.Bounds != null);  // for non-ghost quantifiers, the resolver would have insisted on finding bounds
         var n = e.BoundVars.Count;
         Contract.Assert(e.Bounds.Count == n);
@@ -4281,7 +4291,7 @@ namespace Microsoft.Dafny {
           var bv = e.BoundVars[i];
           // emit:  Dafny.Helpers.Quantifier(rangeOfValues, isForall, bv => body)
           wBody.Write("{0}(", GetQuantifierName(TypeName(bv.Type, wBody, bv.tok)));
-          CompileCollection(bound, bv, inLetExprBody, false, null, wBody, e.Bounds, e.BoundVars, i);
+          CompileCollection(bound, bv, inLetExprBody, false, su, wBody, e.Bounds, e.BoundVars, i);
           wBody.Write(", {0}, ", expr is ForallExpr ? "true" : "false");
           var native = AsNativeType(e.BoundVars[i].Type);
           TargetWriter newWBody = CreateLambda(new List<Type>{ bv.Type }, e.tok, new List<string>{ IdName(bv) }, Type.Bool, wBody, untyped: true);
@@ -4289,7 +4299,7 @@ namespace Microsoft.Dafny {
           wBody.Write(')');
           wBody = newWBody;
         }
-        TrExpr(e.LogicalBody(true), wBody, true);
+        TrExpr(logicalBody, wBody, true);
 
       } else if (expr is SetComprehension) {
         var e = (SetComprehension)expr;
