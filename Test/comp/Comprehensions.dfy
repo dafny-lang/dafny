@@ -401,4 +401,12 @@ method Containment(s: set<CellA>, t: set<ICell>, u: set<SomethingElse>) {
   b1 := t < s;
   c := t < u;
   print b0, " ", b1, " ", c, "\n";  // false false false
+  b0 := s >= t;
+  b1 := t >= s;
+  c := t >= u;
+  print b0, " ", b1, " ", c, "\n";  // true true true
+  b0 := s > t;
+  b1 := t > s;
+  c := t > u;
+  print b0, " ", b1, " ", c, "\n";  // false false false
 }

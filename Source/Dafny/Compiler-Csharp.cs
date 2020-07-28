@@ -2068,21 +2068,6 @@ namespace Microsoft.Dafny
       convertE1_to_int = false;
 
       switch (op) {
-        case BinaryExpr.ResolvedOpcode.Iff:
-          opString = "=="; break;
-        case BinaryExpr.ResolvedOpcode.Imp:
-          preOpString = "!"; opString = "||"; break;
-        case BinaryExpr.ResolvedOpcode.Or:
-          opString = "||"; break;
-        case BinaryExpr.ResolvedOpcode.And:
-          opString = "&&"; break;
-        case BinaryExpr.ResolvedOpcode.BitwiseAnd:
-          opString = "&"; break;
-        case BinaryExpr.ResolvedOpcode.BitwiseOr:
-          opString = "|"; break;
-        case BinaryExpr.ResolvedOpcode.BitwiseXor:
-          opString = "^"; break;
-
         case BinaryExpr.ResolvedOpcode.EqCommon: {
             if (IsHandleComparison(tok, e0, e1, errorWr)) {
               opString = "==";
@@ -2115,18 +2100,6 @@ namespace Microsoft.Dafny
             break;
           }
 
-        case BinaryExpr.ResolvedOpcode.Lt:
-        case BinaryExpr.ResolvedOpcode.LtChar:
-          opString = "<"; break;
-        case BinaryExpr.ResolvedOpcode.Le:
-        case BinaryExpr.ResolvedOpcode.LeChar:
-          opString = "<="; break;
-        case BinaryExpr.ResolvedOpcode.Ge:
-        case BinaryExpr.ResolvedOpcode.GeChar:
-          opString = ">="; break;
-        case BinaryExpr.ResolvedOpcode.Gt:
-        case BinaryExpr.ResolvedOpcode.GtChar:
-          opString = ">"; break;
         case BinaryExpr.ResolvedOpcode.LeftShift:
           opString = "<<"; truncateResult = true; convertE1_to_int = true; break;
         case BinaryExpr.ResolvedOpcode.RightShift:
@@ -2163,16 +2136,13 @@ namespace Microsoft.Dafny
             opString = "%";  // for reals
           }
           break;
+
         case BinaryExpr.ResolvedOpcode.SetEq:
         case BinaryExpr.ResolvedOpcode.MultiSetEq:
         case BinaryExpr.ResolvedOpcode.SeqEq:
         case BinaryExpr.ResolvedOpcode.MapEq:
           callString = "Equals"; break;
-        case BinaryExpr.ResolvedOpcode.SetNeq:
-        case BinaryExpr.ResolvedOpcode.MultiSetNeq:
-        case BinaryExpr.ResolvedOpcode.SeqNeq:
-        case BinaryExpr.ResolvedOpcode.MapNeq:
-          preOpString = "!"; callString = "Equals"; break;
+
         case BinaryExpr.ResolvedOpcode.ProperSubset:
           staticCallString = TypeHelperName(e0.Type, errorWr, tok, e1.Type) + ".IsProperSubsetOf"; break;
         case BinaryExpr.ResolvedOpcode.ProperMultiSubset:
@@ -2181,14 +2151,7 @@ namespace Microsoft.Dafny
           staticCallString = TypeHelperName(e0.Type, errorWr, tok, e1.Type) + ".IsSubsetOf"; break;
         case BinaryExpr.ResolvedOpcode.MultiSubset:
           callString = "IsSubsetOf"; break;
-        case BinaryExpr.ResolvedOpcode.Superset:
-          staticCallString = TypeHelperName(e0.Type, errorWr, tok, e1.Type) + ".IsSupersetOf"; break;
-        case BinaryExpr.ResolvedOpcode.MultiSuperset:
-          callString = "IsSupersetOf"; break;
-        case BinaryExpr.ResolvedOpcode.ProperSuperset:
-          staticCallString = TypeHelperName(e0.Type, errorWr, tok, e1.Type) + ".IsProperSupersetOf"; break;
-        case BinaryExpr.ResolvedOpcode.ProperMultiSuperset:
-          callString = "IsProperSupersetOf"; break;
+
         case BinaryExpr.ResolvedOpcode.Disjoint:
           staticCallString = TypeHelperName(e0.Type, errorWr, tok, e1.Type) + ".IsDisjointFrom"; break;
         case BinaryExpr.ResolvedOpcode.MultiSetDisjoint:
@@ -2197,10 +2160,7 @@ namespace Microsoft.Dafny
         case BinaryExpr.ResolvedOpcode.InMultiSet:
         case BinaryExpr.ResolvedOpcode.InMap:
           callString = "Contains"; reverseArguments = true; break;
-        case BinaryExpr.ResolvedOpcode.NotInSet:
-        case BinaryExpr.ResolvedOpcode.NotInMultiSet:
-        case BinaryExpr.ResolvedOpcode.NotInMap:
-          preOpString = "!"; callString = "Contains"; reverseArguments = true; break;
+
         case BinaryExpr.ResolvedOpcode.Union:
           staticCallString = TypeHelperName(resultType, errorWr, tok) + ".Union"; break;
         case BinaryExpr.ResolvedOpcode.MultiSetUnion:
@@ -2222,11 +2182,12 @@ namespace Microsoft.Dafny
           staticCallString = TypeHelperName(e0.Type, errorWr, e0.tok) + ".Concat"; break;
         case BinaryExpr.ResolvedOpcode.InSeq:
           callString = "Contains"; reverseArguments = true; break;
-        case BinaryExpr.ResolvedOpcode.NotInSeq:
-          preOpString = "!"; callString = "Contains"; reverseArguments = true; break;
 
         default:
-          Contract.Assert(false); throw new cce.UnreachableException();  // unexpected binary expression
+          base.CompileBinOp(op, e0, e1, tok, resultType,
+            out opString, out preOpString, out postOpString, out callString, out staticCallString, out reverseArguments, out truncateResult, out convertE1_to_int,
+            errorWr);
+          break;
       }
     }
 

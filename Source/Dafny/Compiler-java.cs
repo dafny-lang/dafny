@@ -196,20 +196,6 @@ namespace Microsoft.Dafny{
       }
     }
 
-    protected override void EmitMemberSelect(AssignStmt s0, List<Type> tupleTypeArgsList, TargetWriter wr, string tup){
-      wr.Write("(");
-      var lhs = (MemberSelectExpr) s0.Lhs;
-      var wCoerced = EmitCoercionIfNecessary(from: null, to: tupleTypeArgsList[0], tok: s0.Tok, wr: wr);
-      wCoerced.Write($"({TypeName(tupleTypeArgsList[0].NormalizeExpand(), wCoerced, s0.Tok)})");
-      EmitTupleSelect(tup, 0, wCoerced);
-      wr.Write(")");
-      wr.Write($".{IdMemberName(lhs)} = ");
-      wCoerced = EmitCoercionIfNecessary(from: null, to: tupleTypeArgsList[1], tok: s0.Tok, wr: wr);
-      wCoerced.Write($"({TypeName(tupleTypeArgsList[1].NormalizeExpand(), wCoerced, s0.Tok)})");
-      EmitTupleSelect(tup, 1, wCoerced);
-      EndStmt(wr);
-    }
-
     protected override void EmitSeqSelect(AssignStmt s0, List<Type> tupleTypeArgsList, TargetWriter wr, string tup){
       wr.Write("(");
       var lhs = (SeqSelectExpr) s0.Lhs;
@@ -2648,19 +2634,6 @@ namespace Microsoft.Dafny{
       }
 
       switch (op){
-        case BinaryExpr.ResolvedOpcode.Iff:
-          opString = "==";
-          break;
-        case BinaryExpr.ResolvedOpcode.Imp:
-          preOpString = "!";
-          opString = "||";
-          break;
-        case BinaryExpr.ResolvedOpcode.Or:
-          opString = "||";
-          break;
-        case BinaryExpr.ResolvedOpcode.And:
-          opString = "&&";
-          break;
         case BinaryExpr.ResolvedOpcode.BitwiseAnd:
           doPossiblyNativeBinOp("&", "and", out preOpString, out opString, out postOpString, out callString);
           break;
@@ -2746,18 +2719,6 @@ namespace Microsoft.Dafny{
             }
           }
           break;
-        case BinaryExpr.ResolvedOpcode.LtChar:
-          opString = "<";
-          break;
-        case BinaryExpr.ResolvedOpcode.LeChar:
-          opString = "<=";
-          break;
-        case BinaryExpr.ResolvedOpcode.GeChar:
-          opString = ">=";
-          break;
-        case BinaryExpr.ResolvedOpcode.GtChar:
-          opString = ">";
-          break;
         case BinaryExpr.ResolvedOpcode.LeftShift:
           doPossiblyNativeBinOp("<<", "shiftLeft", out preOpString, out opString, out postOpString, out callString);
           truncateResult = true;
@@ -2819,13 +2780,6 @@ namespace Microsoft.Dafny{
         case BinaryExpr.ResolvedOpcode.MapEq:
           callString = "equals";
           break;
-        case BinaryExpr.ResolvedOpcode.SetNeq:
-        case BinaryExpr.ResolvedOpcode.MultiSetNeq:
-        case BinaryExpr.ResolvedOpcode.SeqNeq:
-        case BinaryExpr.ResolvedOpcode.MapNeq:
-          preOpString = "!";
-          callString = "equals";
-          break;
         case BinaryExpr.ResolvedOpcode.ProperSubset:
         case BinaryExpr.ResolvedOpcode.ProperMultiSubset:
           callString = "isProperSubsetOf";
@@ -2833,16 +2787,6 @@ namespace Microsoft.Dafny{
         case BinaryExpr.ResolvedOpcode.Subset:
         case BinaryExpr.ResolvedOpcode.MultiSubset:
           callString = "isSubsetOf";
-          break;
-        case BinaryExpr.ResolvedOpcode.Superset:
-        case BinaryExpr.ResolvedOpcode.MultiSuperset:
-          callString = "isSubsetOf";
-          reverseArguments = true;
-          break;
-        case BinaryExpr.ResolvedOpcode.ProperSuperset:
-        case BinaryExpr.ResolvedOpcode.ProperMultiSuperset:
-          callString = "IsProperSubsetOf";
-          reverseArguments = true;
           break;
         case BinaryExpr.ResolvedOpcode.Disjoint:
         case BinaryExpr.ResolvedOpcode.MultiSetDisjoint:
@@ -2857,17 +2801,7 @@ namespace Microsoft.Dafny{
           callString = "contains";
           reverseArguments = true;
           break;
-        case BinaryExpr.ResolvedOpcode.NotInSet:
-          preOpString = "!";
-          callString = $"<{BoxedTypeName(e0.Type, errorWr, tok)}>contains";
-          reverseArguments = true;
-          break;
-        case BinaryExpr.ResolvedOpcode.NotInMultiSet:
-        case BinaryExpr.ResolvedOpcode.NotInMap:
-          preOpString = "!";
-          callString = "contains";
-          reverseArguments = true;
-          break;
+
         case BinaryExpr.ResolvedOpcode.Union:
           staticCallString = $"{DafnySetClass}.<{BoxedTypeName(resultType.AsSetType.Arg, errorWr, tok)}>union";
           break;
@@ -2900,14 +2834,11 @@ namespace Microsoft.Dafny{
           callString = "contains";
           reverseArguments = true;
           break;
-        case BinaryExpr.ResolvedOpcode.NotInSeq:
-          preOpString = "!";
-          callString = "contains";
-          reverseArguments = true;
-          break;
         default:
-          Contract.Assert(false);
-          throw new cce.UnreachableException(); // unexpected binary expression
+          base.CompileBinOp(op, e0, e1, tok, resultType,
+            out opString, out preOpString, out postOpString, out callString, out staticCallString, out reverseArguments, out truncateResult, out convertE1_to_int,
+            errorWr);
+          break;
       }
     }
 
@@ -3358,11 +3289,11 @@ namespace Microsoft.Dafny{
       Bpl.IToken tok, out TargetWriter collectionWriter, TargetWriter wr) {
       if (tmpVarName == null) {
         // emit simplified loop
-        wr.Write("for ({1} {0} : ", boundVarName, boundVarType == null ? "Object" : TypeName(boundVarType, wr, tok));
+        wr.Write("for ({1} {0} : ", boundVarName, boundVarType == null ? "var" : TypeName(boundVarType, wr, tok));
         collectionWriter = wr.Fork();
         return wr.NewBlock(")");
       } else {
-        wr.Write("for ({1} {0} : ", tmpVarName, collectionElementType == null ? "Object" : TypeName(collectionElementType, wr, tok));
+        wr.Write("for ({1} {0} : ", tmpVarName, collectionElementType == null ? "var" : TypeName(collectionElementType, wr, tok));
         collectionWriter = wr.Fork();
         var wwr = wr.NewBlock(")");
 

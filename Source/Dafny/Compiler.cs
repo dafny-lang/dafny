@@ -777,7 +777,8 @@ namespace Microsoft.Dafny {
     protected abstract BlockTargetWriter CreateIIFE1(int source, Type resultType, Bpl.IToken resultTok, string bvName, TargetWriter wr);  // Immediately Invoked Function Expression
     public enum ResolvedUnaryOp { BoolNot, BitwiseNot, Cardinality }
     protected abstract void EmitUnaryExpr(ResolvedUnaryOp op, Expression expr, bool inLetExprBody, TargetWriter wr);
-    protected abstract void CompileBinOp(BinaryExpr.ResolvedOpcode op,
+
+    protected virtual void CompileBinOp(BinaryExpr.ResolvedOpcode op,
       Expression e0, Expression e1, Bpl.IToken tok, Type resultType,
       out string opString,
       out string preOpString,
@@ -787,7 +788,100 @@ namespace Microsoft.Dafny {
       out bool reverseArguments,
       out bool truncateResult,
       out bool convertE1_to_int,
-      TextWriter errorWr);
+      TextWriter errorWr) {
+
+      // This default implementation does not handle all cases. It handles some cases that look the same
+      // in C-like languages. It also handles cases that can be solved by another operator, but reversing
+      // the arguments or following the operation with a negation.
+      opString = null;
+      preOpString = "";
+      postOpString = "";
+      callString = null;
+      staticCallString = null;
+      reverseArguments = false;
+      truncateResult = false;
+      convertE1_to_int = false;
+
+      BinaryExpr.ResolvedOpcode dualOp = BinaryExpr.ResolvedOpcode.Add;  // NOTE! "Add" is used to say "there is no dual op"
+      BinaryExpr.ResolvedOpcode negatedOp = BinaryExpr.ResolvedOpcode.Add;  // NOTE! "Add" is used to say "there is no negated op"
+
+      switch (op) {
+        case BinaryExpr.ResolvedOpcode.Iff:
+          opString = "=="; break;
+        case BinaryExpr.ResolvedOpcode.Imp:
+          preOpString = "!"; opString = "||"; break;
+        case BinaryExpr.ResolvedOpcode.Or:
+          opString = "||"; break;
+        case BinaryExpr.ResolvedOpcode.And:
+          opString = "&&"; break;
+        case BinaryExpr.ResolvedOpcode.BitwiseAnd:
+          opString = "&"; break;
+        case BinaryExpr.ResolvedOpcode.BitwiseOr:
+          opString = "|"; break;
+        case BinaryExpr.ResolvedOpcode.BitwiseXor:
+          opString = "^"; break;
+
+        case BinaryExpr.ResolvedOpcode.Lt:
+        case BinaryExpr.ResolvedOpcode.LtChar:
+          opString = "<"; break;
+        case BinaryExpr.ResolvedOpcode.Le:
+        case BinaryExpr.ResolvedOpcode.LeChar:
+          opString = "<="; break;
+        case BinaryExpr.ResolvedOpcode.Ge:
+        case BinaryExpr.ResolvedOpcode.GeChar:
+          opString = ">="; break;
+        case BinaryExpr.ResolvedOpcode.Gt:
+        case BinaryExpr.ResolvedOpcode.GtChar:
+          opString = ">"; break;
+
+        case BinaryExpr.ResolvedOpcode.SetNeq:
+          negatedOp = BinaryExpr.ResolvedOpcode.SetEq; break;
+        case BinaryExpr.ResolvedOpcode.MultiSetNeq:
+          negatedOp = BinaryExpr.ResolvedOpcode.MultiSetEq; break;
+        case BinaryExpr.ResolvedOpcode.SeqNeq:
+          negatedOp = BinaryExpr.ResolvedOpcode.SeqEq; break;
+        case BinaryExpr.ResolvedOpcode.MapNeq:
+          negatedOp = BinaryExpr.ResolvedOpcode.MapEq; break;
+
+        case BinaryExpr.ResolvedOpcode.Superset:
+          dualOp = BinaryExpr.ResolvedOpcode.Subset; break;
+        case BinaryExpr.ResolvedOpcode.MultiSuperset:
+          dualOp = BinaryExpr.ResolvedOpcode.MultiSubset; break;
+
+        case BinaryExpr.ResolvedOpcode.ProperSuperset:
+          dualOp = BinaryExpr.ResolvedOpcode.ProperSubset; break;
+        case BinaryExpr.ResolvedOpcode.ProperMultiSuperset:
+          dualOp = BinaryExpr.ResolvedOpcode.ProperMultiSubset; break;
+
+        case BinaryExpr.ResolvedOpcode.NotInSet:
+          negatedOp = BinaryExpr.ResolvedOpcode.InSet; break;
+        case BinaryExpr.ResolvedOpcode.NotInMultiSet:
+          negatedOp = BinaryExpr.ResolvedOpcode.InMultiSet; break;
+        case BinaryExpr.ResolvedOpcode.NotInSeq:
+          negatedOp = BinaryExpr.ResolvedOpcode.InSeq; break;
+        case BinaryExpr.ResolvedOpcode.NotInMap:
+          negatedOp = BinaryExpr.ResolvedOpcode.InMap; break;
+
+        default:
+          // The operator is one that needs to be handled in the specific compilers.
+          Contract.Assert(false); throw new cce.UnreachableException();  // unexpected binary expression
+      }
+
+      if (dualOp != BinaryExpr.ResolvedOpcode.Add) {  // remember from above that Add stands for "there is no dual"
+        Contract.Assert(negatedOp == BinaryExpr.ResolvedOpcode.Add);
+        CompileBinOp(dualOp,
+          e1, e0, tok, resultType,
+          out opString, out preOpString, out postOpString, out callString, out staticCallString, out reverseArguments, out truncateResult, out convertE1_to_int,
+          errorWr);
+      } else if (negatedOp != BinaryExpr.ResolvedOpcode.Add) {  // remember from above that Add stands for "there is no negated op"
+        CompileBinOp(negatedOp,
+          e0, e1, tok, resultType,
+          out opString, out preOpString, out postOpString, out callString, out staticCallString, out reverseArguments, out truncateResult, out convertE1_to_int,
+          errorWr);
+        preOpString = "!" + preOpString;
+      }
+    }
+
     protected abstract void EmitIsZero(string varName, TargetWriter wr);
     protected abstract void EmitConversionExpr(ConversionExpr e, bool inLetExprBody, TargetWriter wr);
     protected abstract void EmitCollectionDisplay(CollectionType ct, Bpl.IToken tok, List<Expression> elements, bool inLetExprBody, TargetWriter wr);  // used for sets, multisets, and sequences

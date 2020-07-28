@@ -2785,14 +2785,6 @@ namespace Microsoft.Dafny {
       convertE1_to_int = false;
 
       switch (op) {
-        case BinaryExpr.ResolvedOpcode.Iff:
-          opString = "=="; break;
-        case BinaryExpr.ResolvedOpcode.Imp:
-          preOpString = "!"; opString = "||"; break;
-        case BinaryExpr.ResolvedOpcode.Or:
-          opString = "||"; break;
-        case BinaryExpr.ResolvedOpcode.And:
-          opString = "&&"; break;
         case BinaryExpr.ResolvedOpcode.BitwiseAnd:
           if (AsNativeType(resultType) != null) {
             opString = "&";
@@ -2856,7 +2848,6 @@ namespace Microsoft.Dafny {
           }
 
         case BinaryExpr.ResolvedOpcode.Lt:
-        case BinaryExpr.ResolvedOpcode.LtChar:
           if (IsOrderedByCmp(e0.Type)) {
             callString = "Cmp";
             postOpString = " < 0";
@@ -2865,7 +2856,6 @@ namespace Microsoft.Dafny {
           }
           break;
         case BinaryExpr.ResolvedOpcode.Le:
-        case BinaryExpr.ResolvedOpcode.LeChar:
           if (IsOrderedByCmp(e0.Type)) {
             callString = "Cmp";
             postOpString = " <= 0";
@@ -2874,7 +2864,6 @@ namespace Microsoft.Dafny {
           }
           break;
         case BinaryExpr.ResolvedOpcode.Ge:
-        case BinaryExpr.ResolvedOpcode.GeChar:
           if (IsOrderedByCmp(e0.Type)) {
             callString = "Cmp";
             postOpString = " >= 0";
@@ -2883,7 +2872,6 @@ namespace Microsoft.Dafny {
           }
           break;
         case BinaryExpr.ResolvedOpcode.Gt:
-        case BinaryExpr.ResolvedOpcode.GtChar:
           if (IsOrderedByCmp(e0.Type)) {
             callString = "Cmp";
             postOpString = " > 0";
@@ -2998,23 +2986,12 @@ namespace Microsoft.Dafny {
         case BinaryExpr.ResolvedOpcode.MapEq:
         case BinaryExpr.ResolvedOpcode.SeqEq:
           callString = "Equals"; break;
-        case BinaryExpr.ResolvedOpcode.SetNeq:
-        case BinaryExpr.ResolvedOpcode.MultiSetNeq:
-        case BinaryExpr.ResolvedOpcode.MapNeq:
-        case BinaryExpr.ResolvedOpcode.SeqNeq:
-          preOpString = "!"; callString = "Equals"; break;
         case BinaryExpr.ResolvedOpcode.ProperSubset:
         case BinaryExpr.ResolvedOpcode.ProperMultiSubset:
           callString = "IsProperSubsetOf"; break;
         case BinaryExpr.ResolvedOpcode.Subset:
         case BinaryExpr.ResolvedOpcode.MultiSubset:
           callString = "IsSubsetOf"; break;
-        case BinaryExpr.ResolvedOpcode.Superset:
-        case BinaryExpr.ResolvedOpcode.MultiSuperset:
-          callString = "IsSupersetOf"; break;
-        case BinaryExpr.ResolvedOpcode.ProperSuperset:
-        case BinaryExpr.ResolvedOpcode.ProperMultiSuperset:
-          callString = "IsProperSupersetOf"; break;
         case BinaryExpr.ResolvedOpcode.Disjoint:
         case BinaryExpr.ResolvedOpcode.MultiSetDisjoint:
           callString = "IsDisjointFrom"; break;
@@ -3022,10 +2999,6 @@ namespace Microsoft.Dafny {
         case BinaryExpr.ResolvedOpcode.InMultiSet:
         case BinaryExpr.ResolvedOpcode.InMap:
           callString = "Contains"; reverseArguments = true; break;
-        case BinaryExpr.ResolvedOpcode.NotInSet:
-        case BinaryExpr.ResolvedOpcode.NotInMultiSet:
-        case BinaryExpr.ResolvedOpcode.NotInMap:
-          preOpString = "!"; callString = "Contains"; reverseArguments = true; break;
         case BinaryExpr.ResolvedOpcode.Union:
         case BinaryExpr.ResolvedOpcode.MultiSetUnion:
           callString = "Union"; break;
@@ -3044,11 +3017,12 @@ namespace Microsoft.Dafny {
           callString = "Concat"; break;
         case BinaryExpr.ResolvedOpcode.InSeq:
           callString = "Contains"; reverseArguments = true; break;
-        case BinaryExpr.ResolvedOpcode.NotInSeq:
-          preOpString = "!"; callString = "Contains"; reverseArguments = true; break;
 
         default:
-          Contract.Assert(false); throw new cce.UnreachableException();  // unexpected binary expression
+          base.CompileBinOp(op, e0, e1, tok, resultType,
+            out opString, out preOpString, out postOpString, out callString, out staticCallString, out reverseArguments, out truncateResult, out convertE1_to_int,
+            errorWr);
+          break;
       }
     }
 

@@ -1800,12 +1800,6 @@ namespace Microsoft.Dafny {
       switch (op) {
         case BinaryExpr.ResolvedOpcode.Iff:
           opString = "==="; break;
-        case BinaryExpr.ResolvedOpcode.Imp:
-          preOpString = "!"; opString = "||"; break;
-        case BinaryExpr.ResolvedOpcode.Or:
-          opString = "||"; break;
-        case BinaryExpr.ResolvedOpcode.And:
-          opString = "&&"; break;
         case BinaryExpr.ResolvedOpcode.BitwiseAnd:
           if (AsNativeType(resultType) != null) {
             // JavaScript bitwise operators are weird (numeric operands are first converted into
@@ -1876,7 +1870,6 @@ namespace Microsoft.Dafny {
           }
 
         case BinaryExpr.ResolvedOpcode.Lt:
-        case BinaryExpr.ResolvedOpcode.LtChar:
           if (e0.Type.IsIntegerType || e0.Type.IsRealType) {
             callString = "isLessThan";
           } else {
@@ -1884,7 +1877,6 @@ namespace Microsoft.Dafny {
           }
           break;
         case BinaryExpr.ResolvedOpcode.Le:
-        case BinaryExpr.ResolvedOpcode.LeChar:
           if (e0.Type.IsIntegerType) {
             callString = "isLessThanOrEqualTo";
           } else if (e0.Type.IsRealType) {
@@ -1894,7 +1886,6 @@ namespace Microsoft.Dafny {
           }
           break;
         case BinaryExpr.ResolvedOpcode.Ge:
-        case BinaryExpr.ResolvedOpcode.GeChar:
           if (e0.Type.IsIntegerType) {
             callString = "isLessThanOrEqualTo";
             reverseArguments = true;
@@ -1906,7 +1897,6 @@ namespace Microsoft.Dafny {
           }
           break;
         case BinaryExpr.ResolvedOpcode.Gt:
-        case BinaryExpr.ResolvedOpcode.GtChar:
           if (e0.Type.IsIntegerType || e0.Type.IsRealType) {
             callString = "isLessThan";
             reverseArguments = true;
@@ -2004,25 +1994,13 @@ namespace Microsoft.Dafny {
         case BinaryExpr.ResolvedOpcode.SeqEq:
           // a sequence may be represented as an array or as a string
           staticCallString = "_dafny.areEqual"; break;
-        case BinaryExpr.ResolvedOpcode.SetNeq:
-        case BinaryExpr.ResolvedOpcode.MultiSetNeq:
-        case BinaryExpr.ResolvedOpcode.MapNeq:
-          preOpString = "!"; callString = "equals"; break;
-        case BinaryExpr.ResolvedOpcode.SeqNeq:
-          // a sequence may be represented as an array or as a string
-          preOpString = "!"; staticCallString = "_dafny.areEqual"; break;
+
         case BinaryExpr.ResolvedOpcode.ProperSubset:
         case BinaryExpr.ResolvedOpcode.ProperMultiSubset:
           callString = "IsProperSubsetOf"; break;
         case BinaryExpr.ResolvedOpcode.Subset:
         case BinaryExpr.ResolvedOpcode.MultiSubset:
           callString = "IsSubsetOf"; break;
-        case BinaryExpr.ResolvedOpcode.Superset:
-        case BinaryExpr.ResolvedOpcode.MultiSuperset:
-          callString = "IsSupersetOf"; break;
-        case BinaryExpr.ResolvedOpcode.ProperSuperset:
-        case BinaryExpr.ResolvedOpcode.ProperMultiSuperset:
-          callString = "IsProperSupersetOf"; break;
         case BinaryExpr.ResolvedOpcode.Disjoint:
         case BinaryExpr.ResolvedOpcode.MultiSetDisjoint:
           callString = "IsDisjointFrom"; break;
@@ -2030,10 +2008,6 @@ namespace Microsoft.Dafny {
         case BinaryExpr.ResolvedOpcode.InMultiSet:
         case BinaryExpr.ResolvedOpcode.InMap:
           callString = "contains"; reverseArguments = true; break;
-        case BinaryExpr.ResolvedOpcode.NotInSet:
-        case BinaryExpr.ResolvedOpcode.NotInMultiSet:
-        case BinaryExpr.ResolvedOpcode.NotInMap:
-          preOpString = "!"; callString = "contains"; reverseArguments = true; break;
         case BinaryExpr.ResolvedOpcode.Union:
         case BinaryExpr.ResolvedOpcode.MultiSetUnion:
           callString = "Union"; break;
@@ -2052,11 +2026,12 @@ namespace Microsoft.Dafny {
           staticCallString = "_dafny.Seq.Concat"; break;
         case BinaryExpr.ResolvedOpcode.InSeq:
           staticCallString = "_dafny.Seq.contains"; reverseArguments = true; break;
-        case BinaryExpr.ResolvedOpcode.NotInSeq:
-          preOpString = "!"; staticCallString = "_dafny.Seq.contains"; reverseArguments = true; break;
 
         default:
-          Contract.Assert(false); throw new cce.UnreachableException();  // unexpected binary expression
+          base.CompileBinOp(op, e0, e1, tok, resultType,
+            out opString, out preOpString, out postOpString, out callString, out staticCallString, out reverseArguments, out truncateResult, out convertE1_to_int,
+            errorWr);
+          break;
       }
     }
 

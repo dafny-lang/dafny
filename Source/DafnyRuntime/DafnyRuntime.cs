@@ -205,12 +205,6 @@ namespace Dafny
       }
       return true;
     }
-    public static bool IsSupersetOf(ISet<T> th, ISet<T> other) {
-      return IsSubsetOf(other, th);
-    }
-    public static bool IsProperSupersetOf(ISet<T> th, ISet<T> other) {
-      return IsProperSubsetOf(other, th);
-    }
     public static bool IsDisjointFrom(ISet<T> th, ISet<T> other) {
       ISet<T> a, b;
       if (th.Count < other.Count) {
@@ -367,12 +361,6 @@ namespace Dafny
           return false;
       }
       return true;
-    }
-    public bool IsSupersetOf(MultiSet<T> other) {
-      return other.IsSubsetOf(this);
-    }
-    public bool IsProperSupersetOf(MultiSet<T> other) {
-      return other.IsProperSubsetOf(this);
     }
     public bool IsDisjointFrom(MultiSet<T> other) {
       if (occurrencesOfNull > 0 && other.occurrencesOfNull > 0) {
