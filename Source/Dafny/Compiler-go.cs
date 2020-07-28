@@ -269,9 +269,18 @@ namespace Microsoft.Dafny {
       var cw = new ClassWriter(this, name, isExtern, null, w, instanceFieldWriter, instanceFieldInitWriter, traitInitWriter, staticFieldWriter, staticFieldInitWriter);
 
       if (superClasses != null) {
+        // Emit a method that returns the ID of each parent trait
+        var parentTraitsWriter = w.NewBlock($"func (_this *{name}) ParentTraits_() []*_dafny.TraitID");
+        parentTraitsWriter.WriteLine("return [](*_dafny.TraitID){{{0}}};", Util.Comma(", ", superClasses, parent => {
+          var trait = ((UserDefinedType)parent).ResolvedClass;
+          return TypeName_Companion(trait, parentTraitsWriter, tok) + ".TraitID_";
+        }));
+
         foreach (Type typ in superClasses) {
+          // Emit a compile-time sanity check that the class emitted does indeed have the methods required by the parent trait
           w.WriteLine("var _ {0} = &{1}{{}}", TypeName(typ, w, tok), name);
         }
+        w.WriteLine("var _ _dafny.TraitOffspring = &{0}{{}}", name);
       }
       return cw;
     }
@@ -310,6 +319,8 @@ namespace Microsoft.Dafny {
       var staticFieldInitWriter = wr.NewNamedBlock("var {0} = {1}", FormatCompanionName(name), FormatCompanionTypeName(name));
 
       var cw = new ClassWriter(this, name, isExtern, abstractMethodWriter, concreteMethodWriter, null, null, null, staticFieldWriter, staticFieldInitWriter);
+      staticFieldWriter.WriteLine("TraitID_ *_dafny.TraitID");
+      staticFieldInitWriter.WriteLine("TraitID_: &_dafny.TraitID{},");
       return cw;
     }
 
@@ -1788,7 +1799,7 @@ namespace Microsoft.Dafny {
       if (tok != null) wr.Write("\"" + Dafny.ErrorReporter.TokenToString(tok) + ": \" + ");
       wr.Write("(");
       TrExpr(messageExpr, wr, false);
-      wr.WriteLine(").String());");
+      wr.WriteLine(").String())");
     }
 
     protected override BlockTargetWriter CreateWhileLoop(out TargetWriter guardWriter, TargetWriter wr) {

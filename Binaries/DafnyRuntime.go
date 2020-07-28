@@ -169,6 +169,35 @@ var Uint32Type = BaseType(uint32(0))
 var Uint64Type = BaseType(uint64(0))
 
 /******************************************************************************
+ * Trait parent information
+ ******************************************************************************/
+
+// Every class gets compiled to have a ParentTraits_ method, which returns the
+// list of Dafny parent traits (including transitive parent traits). This is
+// used to determine, at run time, if a given object satisfies a particular trait.
+// While it is unusual that this information is needed, it is needed in a situation
+// like
+//   var s: set<UberTrait> := ...
+//   // the following line requires run-time check that t (of type UberTrait) is a Trait
+//   var ts := set t: Trait | t in s;
+
+type TraitID struct {
+}
+
+type TraitOffspring interface {
+	ParentTraits_() []*TraitID
+}
+
+func InstanceOfTrait(obj TraitOffspring, trait *TraitID) bool {
+  for _, parent := range obj.ParentTraits_() {
+    if parent == trait {
+			return true
+		}
+	}
+	return false
+}
+
+/******************************************************************************
  * Characters
  ******************************************************************************/
 

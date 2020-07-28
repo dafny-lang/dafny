@@ -1007,8 +1007,13 @@ namespace Microsoft.Dafny {
     }
     public bool IsTraitType {
       get {
+        return AsTraitType != null;
+      }
+    }
+    public TraitDecl/*?*/ AsTraitType {
+      get {
         var udt = NormalizeExpand() as UserDefinedType;
-        return udt != null && udt.ResolvedParam == null && udt.ResolvedClass is TraitDecl;
+        return udt?.ResolvedClass as TraitDecl;
       }
     }
     public bool IsArrayType {
