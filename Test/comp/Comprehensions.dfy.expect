@@ -39,6 +39,8 @@ true false 1
 true true false 2
 the intersection is {null}
 there are 3 elements in the union
+true true true
+false false false
 
 Dafny program verifier finished with 19 verified, 0 errors
 x=13 y=14
@@ -80,6 +82,8 @@ true false 1
 true true false 2
 the intersection is {null}
 there are 3 elements in the union
+true true true
+false false false
 
 Dafny program verifier finished with 19 verified, 0 errors
 x=13 y=14
@@ -121,10 +125,12 @@ true false 1
 true true false 2
 the intersection is {null}
 there are 3 elements in the union
+true true true
+false false false
 
 Dafny program verifier finished with 19 verified, 0 errors
 x=13 y=14
-x=13 y=14 b=[y, e, s]
+x=13 y=14 b=yes
 p=(13, 14)
 q=(13, 14, [y, e, s])
 true false
@@ -162,3 +168,5 @@ true false 1
 true true false 2
 the intersection is {null}
 there are 3 elements in the union
+true true true
+false false false

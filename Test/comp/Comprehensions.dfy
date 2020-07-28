@@ -16,6 +16,7 @@ method Main() {
   Enumerations();
   EnumerationsMaybeNull();
   GoNil();
+  Containment({}, {}, {});
 }
 
 predicate method Thirteen(x: int) { x == 13 }
@@ -385,4 +386,19 @@ method GoNil() {
   var dd := aa + bb;
   print "the intersection is ", cc, "\n";  // {null}
   print "there are ", |dd|, " elements in the union\n";  // 3
+}
+
+trait SomethingElse { }
+
+method Containment(s: set<CellA>, t: set<ICell>, u: set<SomethingElse>) {
+  // Test that the type parameter emitted by the compiler accommodates that of both
+  // operands of <=.
+  var b0 := s <= t;
+  var b1 := t <= s;
+  var c := t <= u;
+  print b0, " ", b1, " ", c, "\n";  // true true true
+  b0 := s < t;
+  b1 := t < s;
+  c := t < u;
+  print b0, " ", b1, " ", c, "\n";  // false false false
 }

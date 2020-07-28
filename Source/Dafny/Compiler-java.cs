@@ -684,9 +684,6 @@ namespace Microsoft.Dafny{
         return TypeName_UDT(s, typeArgs, wr, udt.tok);
       } else if (xType is SetType) {
         var argType = ((SetType)xType).Arg;
-        if (ComplicatedTypeParameterForCompilation(argType)) {
-          Error(tok, "compilation of set<TRAIT> is not supported; consider introducing a ghost", wr);
-        }
         if (erased) {
           return DafnySetClass;
         }
@@ -2852,12 +2849,19 @@ namespace Microsoft.Dafny{
           callString = "disjoint";
           break;
         case BinaryExpr.ResolvedOpcode.InSet:
+          callString = $"<{BoxedTypeName(e0.Type, errorWr, tok)}>contains";
+          reverseArguments = true;
+          break;
         case BinaryExpr.ResolvedOpcode.InMultiSet:
         case BinaryExpr.ResolvedOpcode.InMap:
           callString = "contains";
           reverseArguments = true;
           break;
         case BinaryExpr.ResolvedOpcode.NotInSet:
+          preOpString = "!";
+          callString = $"<{BoxedTypeName(e0.Type, errorWr, tok)}>contains";
+          reverseArguments = true;
+          break;
         case BinaryExpr.ResolvedOpcode.NotInMultiSet:
         case BinaryExpr.ResolvedOpcode.NotInMap:
           preOpString = "!";
@@ -2865,14 +2869,20 @@ namespace Microsoft.Dafny{
           reverseArguments = true;
           break;
         case BinaryExpr.ResolvedOpcode.Union:
+          staticCallString = $"{DafnySetClass}.<{BoxedTypeName(resultType.AsSetType.Arg, errorWr, tok)}>union";
+          break;
         case BinaryExpr.ResolvedOpcode.MultiSetUnion:
           callString = "union";
           break;
         case BinaryExpr.ResolvedOpcode.Intersection:
+          staticCallString = $"{DafnySetClass}.<{BoxedTypeName(resultType.AsSetType.Arg, errorWr, tok)}>intersection";
+          break;
         case BinaryExpr.ResolvedOpcode.MultiSetIntersection:
           callString = "intersection";
           break;
         case BinaryExpr.ResolvedOpcode.SetDifference:
+          staticCallString = $"{DafnySetClass}.<{BoxedTypeName(resultType.AsSetType.Arg, errorWr, tok)}>difference";
+          break;
         case BinaryExpr.ResolvedOpcode.MultiSetDifference:
           callString = "difference";
           break;

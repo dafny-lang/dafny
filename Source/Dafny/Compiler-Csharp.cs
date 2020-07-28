@@ -966,15 +966,31 @@ namespace Microsoft.Dafny
       }
     }
 
-    public string TypeHelperName(Type type, TextWriter wr, Bpl.IToken tok) {
+    public string TypeHelperName(Type type, TextWriter wr, Bpl.IToken tok, Type/*?*/ otherType = null) {
       var xType = type.NormalizeExpand();
       if (xType is SeqType seqType) {
-        return "Dafny.Sequence" + "<" + TypeName(seqType.Arg, wr, tok) + ">";
+        return "Dafny.Sequence" + "<" + CommonTypeName(seqType.Arg, otherType?.AsSeqType?.Arg, wr, tok) + ">";
       } else if (xType is SetType setType) {
-        return $"{DafnySetClass}<{TypeName(setType.Arg, wr, tok)}>";
+        return $"{DafnySetClass}<{CommonTypeName(setType.Arg, otherType?.AsSetType?.Arg, wr, tok)}>";
       } else {
         return TypeName(type, wr, tok);
       }
+    }
+
+    public string CommonTypeName(Type a, Type /*?*/ b, TextWriter wr, Bpl.IToken tok) {
+      if (b == null) {
+        return TypeName(a, wr, tok);
+      }
+      a = a.NormalizeExpand();
+      b = b.NormalizeExpand();
+      if (a.Equals(b)) {
+        return TypeName(a, wr, tok);
+      }
+      // It would be nice to use Meet(a, b) here. Unfortunately, Resolver.Meet also needs a Builtins argument, which we
+      // don't have here.
+      Contract.Assert(a.IsRefType);
+      Contract.Assert(b.IsRefType);
+      return "object";
     }
 
     public override string TypeInitializationValue(Type type, TextWriter/*?*/ wr, Bpl.IToken/*?*/ tok, bool inAutoInitContext) {
@@ -2158,23 +2174,23 @@ namespace Microsoft.Dafny
         case BinaryExpr.ResolvedOpcode.MapNeq:
           preOpString = "!"; callString = "Equals"; break;
         case BinaryExpr.ResolvedOpcode.ProperSubset:
-          staticCallString = TypeHelperName(e0.Type, errorWr, tok) + ".IsProperSubsetOf"; break;
+          staticCallString = TypeHelperName(e0.Type, errorWr, tok, e1.Type) + ".IsProperSubsetOf"; break;
         case BinaryExpr.ResolvedOpcode.ProperMultiSubset:
           callString = "IsProperSubsetOf"; break;
         case BinaryExpr.ResolvedOpcode.Subset:
-          staticCallString = TypeHelperName(e0.Type, errorWr, tok) + ".IsSubsetOf"; break;
+          staticCallString = TypeHelperName(e0.Type, errorWr, tok, e1.Type) + ".IsSubsetOf"; break;
         case BinaryExpr.ResolvedOpcode.MultiSubset:
           callString = "IsSubsetOf"; break;
         case BinaryExpr.ResolvedOpcode.Superset:
-          staticCallString = TypeHelperName(e0.Type, errorWr, tok) + ".IsSupersetOf"; break;
+          staticCallString = TypeHelperName(e0.Type, errorWr, tok, e1.Type) + ".IsSupersetOf"; break;
         case BinaryExpr.ResolvedOpcode.MultiSuperset:
           callString = "IsSupersetOf"; break;
         case BinaryExpr.ResolvedOpcode.ProperSuperset:
-          staticCallString = TypeHelperName(e0.Type, errorWr, tok) + ".IsProperSupersetOf"; break;
+          staticCallString = TypeHelperName(e0.Type, errorWr, tok, e1.Type) + ".IsProperSupersetOf"; break;
         case BinaryExpr.ResolvedOpcode.ProperMultiSuperset:
           callString = "IsProperSupersetOf"; break;
         case BinaryExpr.ResolvedOpcode.Disjoint:
-          staticCallString = TypeHelperName(e0.Type, errorWr, tok) + ".IsDisjointFrom"; break;
+          staticCallString = TypeHelperName(e0.Type, errorWr, tok, e1.Type) + ".IsDisjointFrom"; break;
         case BinaryExpr.ResolvedOpcode.MultiSetDisjoint:
           callString = "IsDisjointFrom"; break;
         case BinaryExpr.ResolvedOpcode.InSet:
