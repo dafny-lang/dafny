@@ -1245,36 +1245,36 @@ namespace Microsoft.Dafny
       return string.Format("Dafny.Helpers.Quantifier<{0}>", bvType);
     }
 
-    protected override BlockTargetWriter CreateForeachLoop(string tmpVarName/*?*/, Type/*?*/ collectionElementType, string boundVarName, Type/*?*/ boundVarType, bool introduceBoundVar,
+    protected override BlockTargetWriter CreateForeachLoop(string tmpVarName, Type collectionElementType, string boundVarName, Type boundVarType, bool introduceBoundVar,
       Bpl.IToken tok, out TargetWriter collectionWriter, TargetWriter wr) {
-      if (tmpVarName == null) {
-        // emit simplified loop
-        wr.Write("foreach ({1} {0} in ", boundVarName, boundVarType == null ? "var" : TypeName(boundVarType, wr, tok));
-        collectionWriter = wr.Fork();
-        return wr.NewBlock(")");
-      } else {
-        wr.Write("foreach ({1} {0} in ", tmpVarName, collectionElementType == null ? "var" : TypeName(collectionElementType, wr, tok));
-        collectionWriter = wr.Fork();
-        var wwr = wr.NewBlock(")");
 
-        if (boundVarType.IsRefType) {
-          string typeTest;
-          if (boundVarType.IsObject || boundVarType.IsObjectQ) {
-            typeTest = "true";
-          } else {
-            typeTest = $"{tmpVarName} is {TypeName(boundVarType, wwr, tok)}";
-          }
-          if (boundVarType.IsNonNullRefType) {
-            typeTest = $"{tmpVarName} != null && {typeTest}";
-          } else {
-            typeTest = $"{tmpVarName} == null || {typeTest}";
-          }
-          wwr = wwr.NewBlock($"if ({typeTest})");
+      wr.Write("foreach ({1} {0} in ", tmpVarName, TypeName(collectionElementType, wr, tok));
+      collectionWriter = wr.Fork();
+      var wwr = wr.NewBlock(")");
+
+      if (boundVarType.IsRefType) {
+        string typeTest;
+        if (boundVarType.IsObject || boundVarType.IsObjectQ) {
+          typeTest = "true";
+        } else {
+          typeTest = $"{tmpVarName} is {TypeName(boundVarType, wwr, tok)}";
         }
-        var typeName = TypeName(boundVarType, wwr, tok);
-        wwr.WriteLine("{0}{1} = ({2}){3};", introduceBoundVar ? typeName + " " : "", boundVarName, typeName, tmpVarName);
-        return wwr;
+        if (boundVarType.IsNonNullRefType) {
+          typeTest = $"{tmpVarName} != null && {typeTest}";
+        } else {
+          typeTest = $"{tmpVarName} == null || {typeTest}";
+        }
+        wwr = wwr.NewBlock($"if ({typeTest})");
       }
+      var typeName = TypeName(boundVarType, wwr, tok);
+      wwr.WriteLine("{0}{1} = ({2}){3};", introduceBoundVar ? typeName + " " : "", boundVarName, typeName, tmpVarName);
+      return wwr;
+    }
+
+    protected override BlockTargetWriter CreateForeachIngredientLoop(string boundVarName, Type /*?*/ boundVarType, Bpl.IToken tok, out TargetWriter collectionWriter, TargetWriter wr) {
+      wr.Write("foreach ({1} {0} in ", boundVarName, boundVarType == null ? "var" : TypeName(boundVarType, wr, tok));
+      collectionWriter = wr.Fork();
+      return wr.NewBlock(")");
     }
 
     // ----- Expressions -------------------------------------------------------------

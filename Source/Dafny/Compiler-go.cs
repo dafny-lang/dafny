@@ -1829,54 +1829,56 @@ namespace Microsoft.Dafny {
       return "_dafny.Quantifier";
     }
 
-    protected override BlockTargetWriter CreateForeachLoop(string tmpVarName/*?*/, Type/*?*/ collectionElementType, string boundVarName, Type/*?*/ boundVarType, bool introduceBoundVar,
+    protected override BlockTargetWriter CreateForeachLoop(string tmpVarName, Type collectionElementType, string boundVarName, Type boundVarType, bool introduceBoundVar,
       Bpl.IToken tok, out TargetWriter collectionWriter, TargetWriter wr) {
+
       var okVar = FreshId("_ok");
       var iterVar = FreshId("_iter");
-      if (tmpVarName == null) {
-        // emit simplified loop
-        wr.Write("for {0} := _dafny.Iterate(", iterVar);
-        collectionWriter = wr.Fork();
-        var wBody = wr.NewBlock(");;");
-        wBody.WriteLine("{0}, {1} := {2}()", boundVarName, okVar, iterVar);
-        wBody.WriteLine("if !{0} {{ break }}", okVar);
-        return wBody;
-      } else {
-        wr.Write("for {0} := _dafny.Iterate(", iterVar);
-        collectionWriter = wr.Fork();
-        var wBody = wr.NewBlock(");;");
-        wBody.WriteLine("{0}, {1} := {2}()", tmpVarName, okVar, iterVar);
-        wBody.WriteLine("if !{0} {{ break }}", okVar);
+      wr.Write("for {0} := _dafny.Iterate(", iterVar);
+      collectionWriter = wr.Fork();
+      var wBody = wr.NewBlock(");;");
+      wBody.WriteLine("{0}, {1} := {2}()", tmpVarName, okVar, iterVar);
+      wBody.WriteLine("if !{0} {{ break }}", okVar);
 
-        if (introduceBoundVar) {
-          wBody.WriteLine("var {0} {1}", boundVarName, TypeName(boundVarType, wBody, tok));
-        }
-        if (boundVarType.IsRefType) {
-          var wIf = EmitIf($"_dafny.IsDafnyNull({tmpVarName})", true, wBody);
-          if (boundVarType.IsNonNullRefType) {
-            wIf.WriteLine("continue");
-          } else {
-            wIf.WriteLine("{0} = ({1})(nil)", boundVarName, TypeName(boundVarType, wBody, tok));
-          }
-          wIf = wBody.NewBlock("", open: BlockTargetWriter.BraceStyle.Nothing);
-          string typeTest;
-          if (boundVarType.IsObject || boundVarType.IsObjectQ) {
-            // nothing more to test
-            wIf.WriteLine("{0} = {1}.({2})", boundVarName, tmpVarName, TypeName(boundVarType, wIf, tok));
-          } else if (boundVarType.IsTraitType) {
-            var trait = boundVarType.AsTraitType;
-            wIf.WriteLine($"if !_dafny.InstanceOfTrait({tmpVarName}.(_dafny.TraitOffspring), {TypeName_Companion(trait, wBody, tok)}.TraitID_) {{ continue }}");
-            wIf.WriteLine("{0} = {1}.({2})", boundVarName, tmpVarName, TypeName(boundVarType, wIf, tok));
-          } else {
-            typeTest = $"{tmpVarName} instanceof {TypeName(boundVarType, wBody, tok)}";
-            wIf.WriteLine("{0}, {1} = {2}.({3})", boundVarName, okVar, tmpVarName, TypeName(boundVarType, wIf, tok));
-            wIf.WriteLine("if !{0} {{ continue }}", okVar);
-          }
-        } else {
-          wBody.WriteLine("{0} = {1}.({2})", boundVarName, tmpVarName, TypeName(boundVarType, wBody, tok));
-        }
-        return wBody;
+      if (introduceBoundVar) {
+        wBody.WriteLine("var {0} {1}", boundVarName, TypeName(boundVarType, wBody, tok));
       }
+      if (boundVarType.IsRefType) {
+        var wIf = EmitIf($"_dafny.IsDafnyNull({tmpVarName})", true, wBody);
+        if (boundVarType.IsNonNullRefType) {
+          wIf.WriteLine("continue");
+        } else {
+          wIf.WriteLine("{0} = ({1})(nil)", boundVarName, TypeName(boundVarType, wBody, tok));
+        }
+        wIf = wBody.NewBlock("", open: BlockTargetWriter.BraceStyle.Nothing);
+        string typeTest;
+        if (boundVarType.IsObject || boundVarType.IsObjectQ) {
+          // nothing more to test
+          wIf.WriteLine("{0} = {1}.({2})", boundVarName, tmpVarName, TypeName(boundVarType, wIf, tok));
+        } else if (boundVarType.IsTraitType) {
+          var trait = boundVarType.AsTraitType;
+          wIf.WriteLine($"if !_dafny.InstanceOfTrait({tmpVarName}.(_dafny.TraitOffspring), {TypeName_Companion(trait, wBody, tok)}.TraitID_) {{ continue }}");
+          wIf.WriteLine("{0} = {1}.({2})", boundVarName, tmpVarName, TypeName(boundVarType, wIf, tok));
+        } else {
+          typeTest = $"{tmpVarName} instanceof {TypeName(boundVarType, wBody, tok)}";
+          wIf.WriteLine("{0}, {1} = {2}.({3})", boundVarName, okVar, tmpVarName, TypeName(boundVarType, wIf, tok));
+          wIf.WriteLine("if !{0} {{ continue }}", okVar);
+        }
+      } else {
+        wBody.WriteLine("{0} = {1}.({2})", boundVarName, tmpVarName, TypeName(boundVarType, wBody, tok));
+      }
+      return wBody;
+    }
+
+    protected override BlockTargetWriter CreateForeachIngredientLoop(string boundVarName, Type /*?*/ boundVarType, Bpl.IToken tok, out TargetWriter collectionWriter, TargetWriter wr) {
+      var okVar = FreshId("_ok");
+      var iterVar = FreshId("_iter");
+      wr.Write("for {0} := _dafny.Iterate(", iterVar);
+      collectionWriter = wr.Fork();
+      var wBody = wr.NewBlock(");;");
+      wBody.WriteLine("{0}, {1} := {2}()", boundVarName, okVar, iterVar);
+      wBody.WriteLine("if !{0} {{ break }}", okVar);
+      return wBody;
     }
 
     // ----- Expressions -------------------------------------------------------------

@@ -511,7 +511,7 @@ namespace Microsoft.Dafny {
     protected abstract string GetQuantifierName(string bvType);
 
     /// <summary>
-    /// With "tmpVarName != null", emit a loop like this:
+    /// Emit a loop like this:
     ///     foreach (tmpVarName:collectionElementType in [[collectionWriter]]) {
     ///       if (tmpVarName is member of type boundVarType) {
     ///         var boundVarName:boundVarType := tmpVarName as boundVarType;
@@ -521,13 +521,17 @@ namespace Microsoft.Dafny {
     /// where
     ///   * "[[collectionWriter]]" is the writer returned as "collectionWriter"
     ///   * "[[bodyWriter]]" is the block writer returned
-    /// Options:
-    ///   * "collectionElementType" can be "null", which says for the target language to infer it
-    ///     from "[[collectionWriter]]" (or use a most general type, like "Object" in Java).
+    /// Option:
     ///   * "introduceBoundVar" can be "false", which says to do the assignment to "boundVarName" as
     ///     shown above, but without also declaring the variable "boundVarName".
+    /// </summary>
+    protected abstract BlockTargetWriter CreateForeachLoop(string tmpVarName, Type collectionElementType, string boundVarName, Type boundVarType, bool introduceBoundVar,
+      Bpl.IToken tok, out TargetWriter collectionWriter, TargetWriter wr);
+
+    /// <summary>
+    /// Emit a simple foreach loop over the elements (called "ingredients") of a collection assembled for the purpose of
+    /// compiling a "forall" statement.
     ///
-    /// With "tmpVarName == null", emit a simplified loop like this:
     ///     foreach (boundVarName:boundVarType in [[coll]]) {
     ///       [[body]]
     ///     }
@@ -537,7 +541,7 @@ namespace Microsoft.Dafny {
     ///
     /// Note that the values of "collectionElementType" and "introduceBoundVar" are irrelevant when "tmpVarName == null".
     /// </summary>
-    protected abstract BlockTargetWriter CreateForeachLoop(string tmpVarName/*?*/, Type/*?*/ collectionElementType, string boundVarName, Type/*?*/ boundVarType, bool introduceBoundVar,
+    protected abstract BlockTargetWriter CreateForeachIngredientLoop(string boundVarName, Type/*?*/ boundVarType,
       Bpl.IToken tok, out TargetWriter collectionWriter, TargetWriter wr);
 
     /// <summary>
@@ -2860,7 +2864,7 @@ namespace Microsoft.Dafny {
           //   }
           TargetWriter collWriter;
           TargetTupleSize = L;
-          wr = CreateForeachLoop(null, null, tup, null, true, stmt.Tok, out collWriter, wrOuter);
+          wr = CreateForeachIngredientLoop(tup, null, stmt.Tok, out collWriter, wrOuter);
           collWriter.Write(ingredients);
           {
             var wTup = new TargetWriter(wr.IndentLevel, true);
