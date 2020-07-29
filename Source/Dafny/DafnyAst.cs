@@ -1274,11 +1274,14 @@ namespace Microsoft.Dafny {
       if (source.IsSubtypeOf(target, false)) {
         // Every value of "source" is also a member of type "target", so no run-time test is needed.
         return true;
-      } else if (target is UserDefinedType udt && udt.ResolvedClass is SubsetTypeDecl) {
+#if SOON  // include in a coming PR that sorts this one in the compilers
+      } else if (target is UserDefinedType udt && (udt.ResolvedClass is SubsetTypeDecl || udt.ResolvedClass is NewtypeDecl)) {
         // The type of the bound variable has a constraint. Such a constraint is a ghost expression, so it cannot
         // (in general) by checked at run time. (A possible enhancement here would be to look at the type constraint
         // to if it is compilable after all.)
+        var constraints = target.GetTypeConstraints();
         return false;
+#endif
       } else if (target.TypeArgs.Count == 0) {
         // No type parameters. So, we just need to check the run-time class/interface type.
         return true;
