@@ -1551,8 +1551,9 @@ namespace Microsoft.Dafny {
       } else if (a is Resolver_IdentifierExpr.ResolverType_Type) {
         return b is Resolver_IdentifierExpr.ResolverType_Type;
       } else {
-        Contract.Assert(false);  // unexpected kind of type
-        return true;  // to please the compiler
+        // this is an unexpected type; however, it may be that we get here during the resolution of an erroneous
+        // program, so we'll just return false
+        return false;
       }
     }
 
