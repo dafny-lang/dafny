@@ -1,6 +1,8 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 2012
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.30320.27
+MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DafnyDriver", "DafnyDriver\DafnyDriver.csproj", "{63400D1F-05B2-453E-9592-1EAB74B2C9CC}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DafnyPipeline", "Dafny\DafnyPipeline.csproj", "{FE44674A-1633-4917-99F4-57635E6FA740}"
@@ -11,6 +13,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DafnyServer", "DafnyServer\
 	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DafnyRuntime", "DafnyRuntime\DafnyRuntime.csproj", "{3E2944E9-3E1D-4E03-A881-FB04A7A6ED67}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DafnyLSPServer", "DafnyLSPServer\DafnyLSPServer.csproj", "{3C6E9987-D03B-4A80-9E48-2BB971DC9D23}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -89,8 +93,29 @@ Global
 		{3E2944E9-3E1D-4E03-A881-FB04A7A6ED67}.Release|Any CPU.Build.0 = Release|Any CPU
 		{3E2944E9-3E1D-4E03-A881-FB04A7A6ED67}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
 		{3E2944E9-3E1D-4E03-A881-FB04A7A6ED67}.Release|Mixed Platforms.Build.0 = Release|Any CPU
+		{3C6E9987-D03B-4A80-9E48-2BB971DC9D23}.Checked|.NET.ActiveCfg = Release|Any CPU
+		{3C6E9987-D03B-4A80-9E48-2BB971DC9D23}.Checked|.NET.Build.0 = Release|Any CPU
+		{3C6E9987-D03B-4A80-9E48-2BB971DC9D23}.Checked|Any CPU.ActiveCfg = Release|Any CPU
+		{3C6E9987-D03B-4A80-9E48-2BB971DC9D23}.Checked|Any CPU.Build.0 = Release|Any CPU
+		{3C6E9987-D03B-4A80-9E48-2BB971DC9D23}.Checked|Mixed Platforms.ActiveCfg = Release|Any CPU
+		{3C6E9987-D03B-4A80-9E48-2BB971DC9D23}.Checked|Mixed Platforms.Build.0 = Release|Any CPU
+		{3C6E9987-D03B-4A80-9E48-2BB971DC9D23}.Debug|.NET.ActiveCfg = Debug|Any CPU
+		{3C6E9987-D03B-4A80-9E48-2BB971DC9D23}.Debug|.NET.Build.0 = Debug|Any CPU
+		{3C6E9987-D03B-4A80-9E48-2BB971DC9D23}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3C6E9987-D03B-4A80-9E48-2BB971DC9D23}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3C6E9987-D03B-4A80-9E48-2BB971DC9D23}.Debug|Mixed Platforms.ActiveCfg = Debug|Any CPU
+		{3C6E9987-D03B-4A80-9E48-2BB971DC9D23}.Debug|Mixed Platforms.Build.0 = Debug|Any CPU
+		{3C6E9987-D03B-4A80-9E48-2BB971DC9D23}.Release|.NET.ActiveCfg = Release|Any CPU
+		{3C6E9987-D03B-4A80-9E48-2BB971DC9D23}.Release|.NET.Build.0 = Release|Any CPU
+		{3C6E9987-D03B-4A80-9E48-2BB971DC9D23}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3C6E9987-D03B-4A80-9E48-2BB971DC9D23}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3C6E9987-D03B-4A80-9E48-2BB971DC9D23}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
+		{3C6E9987-D03B-4A80-9E48-2BB971DC9D23}.Release|Mixed Platforms.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {22938658-1FD8-4236-B283-68338BAB18DF}
 	EndGlobalSection
 EndGlobal
