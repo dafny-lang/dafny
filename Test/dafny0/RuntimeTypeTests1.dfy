@@ -57,21 +57,8 @@ method O()
   }
 }
 
-method P() {
-  var ints: set<int> := {0, 3, 7};
-  // It would be fine to compile the next comprehension, as long as the type constraint is
-  // checked at run time (which it isn't, because type constraints are in general ghost).
-  var nats := set n: nat | n in ints;  // error: not compilable
-
-  // Here's how to do it instead:
-  var theElementsIWant := set n: int | n in ints /* && any further desired constraints */;
-  var natsWorkaround: set<nat> := theElementsIWant;
-  print natsWorkaround, "\n";
-}
-
 method Main()
 {
   N();
   O();
-  P();
 }
