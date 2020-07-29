@@ -179,6 +179,9 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="Dafny.atg" />
+    <EmbeddedResource Include="Resources\DafnyPrelude.bpl">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Parser.cs" Visible="False" />
@@ -207,6 +210,7 @@
       <Name>DafnyRuntime</Name>
     </ProjectReference>
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it.
        Other similar extension points exist, see Microsoft.Common.targets.

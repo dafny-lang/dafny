@@ -12,6 +12,7 @@ using Bpl = Microsoft.Boogie;
 using BplParser = Microsoft.Boogie.Parser;
 using System.Text;
 using Microsoft.Boogie;
+using System.IO;
 
 namespace Microsoft.Dafny {
 
@@ -677,12 +678,6 @@ namespace Microsoft.Dafny {
 
     static Bpl.Program ReadPrelude() {
       string preludePath = DafnyOptions.O.DafnyPrelude;
-      if (preludePath == null)
-      {
-          //using (System.IO.Stream stream = cce.NonNull( System.Reflection.Assembly.GetExecutingAssembly().GetManifestResourceStream("DafnyPrelude.bpl")) // Use this once Spec#/VSIP supports designating a non-.resx project item as an embedded resource
-          string codebase = cce.NonNull(System.IO.Path.GetDirectoryName(cce.NonNull(System.Reflection.Assembly.GetExecutingAssembly().Location)));
-          preludePath = System.IO.Path.Combine(codebase, "DafnyPrelude.bpl");
-      }
 
       Bpl.Program prelude;
       var defines = new List<string>();
@@ -699,11 +694,30 @@ namespace Microsoft.Dafny {
         defines.Add("ARITH_MUL_COMM");
         defines.Add("ARITH_MUL_ASSOC");
       }
-      int errorCount = BplParser.Parse(preludePath, defines, out prelude);
-      if (prelude == null || errorCount > 0) {
-        return null;
-      } else {
-        return prelude;
+      int errorCount;
+      string fileName = "DafnyPrelude.bpl";
+      if (preludePath == null)
+      {
+        var preludeAssemblyName = System.Reflection.Assembly.GetExecutingAssembly().GetManifestResourceNames().First(s => s.EndsWith(fileName));
+        using (Stream stream = cce.NonNull(System.Reflection.Assembly.GetExecutingAssembly().GetManifestResourceStream(preludeAssemblyName)))
+        using (StreamReader streamReader = new StreamReader(stream))
+        {
+          var preludeString = streamReader.ReadToEnd();
+          errorCount = BplParser.Parse(preludeString, fileName, out prelude);
+          // TODO missing defines since I can't parse it to the parse that expects source!!!
+        }
+      }
+      else
+      {
+        errorCount = BplParser.Parse(preludePath, defines, out prelude);
+      }
+      if (prelude == null || errorCount > 0)
+      {
+          return null;
+      }
+      else
+      {
+          return prelude;
       }
     }
 
