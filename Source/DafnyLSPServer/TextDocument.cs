@@ -1,4 +1,4 @@
-﻿namespace DafnyServer.LSP
+﻿namespace Microsoft.Dafny.LSPServer
 {
     class TextDocument
     {

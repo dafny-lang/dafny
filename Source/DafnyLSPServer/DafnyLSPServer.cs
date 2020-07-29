@@ -11,25 +11,59 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.IO.Pipelines;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace DafnyServer.LSP
+namespace Microsoft.Dafny.LSPServer
 {
-    partial class DafnyLSPServer
+    public class DafnyLSPServer
     {
         readonly TextDocumentManager DocumentManager = new TextDocumentManager();
-        LanguageServer server;
+        readonly Dictionary<DocumentUri, List<Diagnostic>> diagnostics = new Dictionary<DocumentUri, List<Diagnostic>>();
+        public LanguageServer server;
 
-        public async void Start()
+        static DafnyLSPServer()
         {
-            server = await LanguageServer.From(GetServerOptions());
+            Dafny.DafnyOptions.Install(new Dafny.DafnyOptions(new DiagnosticErrorReporter()));
         }
 
-        LanguageServerOptions GetServerOptions()
+        private DafnyLSPServer()
+        {
+
+        }
+
+        public static async Task<DafnyLSPServer> Start(PipeReader input, PipeWriter output)
+        {
+            var result = new DafnyLSPServer();
+            result.server = await LanguageServer.From(result.GetServerOptions(input, output));
+            return result;
+        }
+
+        //internal static void ApplyArgs(string[] args, ErrorReporter reporter)
+        //{
+        //    Dafny.DafnyOptions.O.ProverKillTime = 10; //This is just a default; it can be overriden
+        //    DafnyOptions.O.VerifySnapshots = 3;
+
+        //    if (CommandLineOptions.Clo.Parse(args))
+        //    {
+        //        DafnyOptions.O.VcsCores = Math.Max(1, System.Environment.ProcessorCount / 2); // Don't use too many cores
+        //        DafnyOptions.O.PrintTooltips = true; // Dump tooptips (ErrorLevel.Info) to stdout
+        //                                             //DafnyOptions.O.UnicodeOutput = true; // Use pretty warning signs
+        //        DafnyOptions.O.TraceProofObligations = true; // Show which method is being verified, but don't show duration of verification
+        //    }
+        //    else
+        //    {
+        //        throw new ServerException("Invalid command line options");
+        //    }
+        //}
+
+        LanguageServerOptions GetServerOptions(PipeReader input, PipeWriter output)
         {
             var options = new LanguageServerOptions();
+            options.WithOutput(output);
+            options.WithInput(input);
 
             var capabilities = new ServerCapabilities();
             RegisterInitializationHandlers(options, capabilities);
@@ -54,14 +88,22 @@ namespace DafnyServer.LSP
         private void RegisterDocumentHandlers(LanguageServerOptions options, ServerCapabilities capabilities)
         {
             var registrationOptions = new TextDocumentRegistrationOptions();
-            capabilities.TextDocumentSync.Options.Change = TextDocumentSyncKind.Full;
+            capabilities.TextDocumentSync = new TextDocumentSync(TextDocumentSyncKind.Full);
             options.OnDidOpenTextDocument(didOpenParams => DocumentManager.Open(didOpenParams), registrationOptions);
 
             var changeRegistrationOptions = new TextDocumentChangeRegistrationOptions();
             options.OnDidChangeTextDocument(didChangeParams =>
             {
                 DocumentManager.Change(didChangeParams);
-                PublishDiagnostics(didChangeParams.TextDocument.Uri);
+                var errorReporter = new DiagnosticErrorReporter();
+                Compile(errorReporter, didChangeParams.TextDocument.Uri);
+
+                PublishDiagnosticsParams diagnosticsParams = new PublishDiagnosticsParams();
+                diagnosticsParams.Uri = didChangeParams.TextDocument.Uri;
+
+                diagnosticsParams.Diagnostics = errorReporter.Diagnostics.First().Value;
+                server.PublishDiagnostics(diagnosticsParams);
+
             }, changeRegistrationOptions);
             options.OnDidCloseTextDocument(didCloseParams => DocumentManager.Close(didCloseParams), registrationOptions);
         }
@@ -70,11 +112,11 @@ namespace DafnyServer.LSP
         {
             PublishDiagnosticsParams diagnosticsParams = new PublishDiagnosticsParams();
             diagnosticsParams.Uri = uri;
-            diagnosticsParams.Diagnostics = null;
+            diagnosticsParams.Diagnostics = diagnostics[uri];
             server.PublishDiagnostics(diagnosticsParams);
         }
 
-        void Compile(DocumentUri uri)
+        void Compile(DiagnosticErrorReporter errorReporter, DocumentUri uri)
         {
             var document = DocumentManager.GetDocument(uri);
             var module = new LiteralModuleDecl(new DefaultModuleDecl(), null);
@@ -83,7 +125,6 @@ namespace DafnyServer.LSP
             var path = uri.GetFileSystemPath();
             var fileName = Path.GetFileName(path);
 
-            var errorReporter = new DiagnosticErrorReporter();
             var parseCode = Microsoft.Dafny.Parser.Parse(document.Text, fileName, fileName, module, builtIns, errorReporter);
             if (parseCode != 0)
                 return;
@@ -106,6 +147,7 @@ namespace DafnyServer.LSP
             {
                 BoogieOnce(boogieProgram.Item1, boogieProgram.Item2, errorReporter);
             }
+
         }
 
         private bool BoogieOnce(string moduleName, Microsoft.Boogie.Program boogieProgram, DiagnosticErrorReporter errorReporter)

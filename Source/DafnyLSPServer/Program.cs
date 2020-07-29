@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace LSPServer
+namespace Microsoft.Dafny.LSPServer
 {
     class Program
     {

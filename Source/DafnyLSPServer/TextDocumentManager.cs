@@ -4,7 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace DafnyServer.LSP
+namespace Microsoft.Dafny.LSPServer
 {
     class TextDocumentManager
     {
@@ -17,6 +17,9 @@ namespace DafnyServer.LSP
 
         public void Change(DidChangeTextDocumentParams didChangeParams)
         {
+            if (didChangeParams.ContentChanges == null || !didChangeParams.ContentChanges.Any())
+                return;
+
             var document = GetDocument(didChangeParams.TextDocument.Uri);
             var changes = didChangeParams.ContentChanges.ToList();
             if (changes.Count > 1)

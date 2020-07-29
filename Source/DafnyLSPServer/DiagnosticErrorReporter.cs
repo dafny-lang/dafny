@@ -4,7 +4,7 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System;
 using System.Collections.Generic;
 
-namespace DafnyServer.LSP
+namespace Microsoft.Dafny.LSPServer
 {
     class DiagnosticErrorReporter : ErrorReporter
     {
