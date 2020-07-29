@@ -1,47 +1,56 @@
 
-Dafny program verifier finished with 2 verified, 0 errors
-Sequences: [] [_module.Integer, _module.Integer, _module.Integer, _module.Integer] [_module.Integer, _module.Integer]
+Dafny program verifier finished with 4 verified, 0 errors
+Sequences: [] [17, 82, 17, 82] [12, 17]
   cardinality: 0 4 2
-  update: [_module.Integer, _module.Integer, _module.Integer, _module.Integer] [_module.Integer, _module.Integer]
-  index: _module.Integer _module.Integer
-  subsequence ([lo..hi]): [_module.Integer, _module.Integer] [_module.Integer]
-  subsequence ([lo..]): [_module.Integer, _module.Integer, _module.Integer] [_module.Integer]
-  subsequence ([..hi]): [_module.Integer, _module.Integer, _module.Integer][_module.Integer]
-  subsequence ([..]): [] [_module.Integer, _module.Integer, _module.Integer, _module.Integer] [_module.Integer, _module.Integer]
-  concatenation: [_module.Integer, _module.Integer, _module.Integer, _module.Integer] [_module.Integer, _module.Integer, _module.Integer, _module.Integer, _module.Integer, _module.Integer]
+  update: [42, 82, 17, 82] [42, 17]
+  index: 17 12
+  subsequence ([lo..hi]): [82, 17] [17]
+  subsequence ([lo..]): [82, 17, 82] [17]
+  subsequence ([..hi]): [17, 82, 17] [12, 17]
+  subsequence ([..]): [] [17, 82, 17, 82] [12, 17]
+  concatenation: [17, 82, 17, 82] [17, 82, 17, 82, 12, 17]
   prefix: true false true
   proper prefix: true false false
   membership: false true true
 
-Dafny program verifier finished with 2 verified, 0 errors
-Sequences: [] [_module.Integer, _module.Integer, _module.Integer, _module.Integer] [_module.Integer, _module.Integer]
+Dafny program verifier finished with 4 verified, 0 errors
+Sequences: [] [17, 82, 17, 82] [12, 17]
   cardinality: 0 4 2
-  update: [_module.Integer, _module.Integer, _module.Integer, _module.Integer] [_module.Integer, _module.Integer]
-  index: _module.Integer _module.Integer
-  subsequence ([lo..hi]): [_module.Integer, _module.Integer] [_module.Integer]
-  subsequence ([lo..]): [_module.Integer, _module.Integer, _module.Integer] [_module.Integer]
-  subsequence ([..hi]): [_module.Integer, _module.Integer, _module.Integer][_module.Integer]
-  subsequence ([..]): [] [_module.Integer, _module.Integer, _module.Integer, _module.Integer] [_module.Integer, _module.Integer]
-  concatenation: [_module.Integer, _module.Integer, _module.Integer, _module.Integer] [_module.Integer, _module.Integer, _module.Integer, _module.Integer, _module.Integer, _module.Integer]
+  update: [42, 82, 17, 82] [42, 17]
+  index: 17 12
+  subsequence ([lo..hi]): [82, 17] [17]
+  subsequence ([lo..]): [82, 17, 82] [17]
+  subsequence ([..hi]): [17, 82, 17] [12, 17]
+  subsequence ([..]): [] [17, 82, 17, 82] [12, 17]
+  concatenation: [17, 82, 17, 82] [17, 82, 17, 82, 12, 17]
   prefix: true false true
   proper prefix: true false false
   membership: false true true
 
-Dafny program verifier finished with 2 verified, 0 errors
-Sequences: [] [_module.Integer, _module.Integer, _module.Integer, _module.Integer] [_module.Integer, _module.Integer]
+Dafny program verifier finished with 4 verified, 0 errors
+Sequences: [] [17, 82, 17, 82] [12, 17]
   cardinality: 0 4 2
-  update: [_module.Integer, _module.Integer, _module.Integer, _module.Integer] [_module.Integer, _module.Integer]
-  index: _module.Integer _module.Integer
-  subsequence ([lo..hi]): [_module.Integer, _module.Integer] [_module.Integer]
-  subsequence ([lo..]): [_module.Integer, _module.Integer, _module.Integer] [_module.Integer]
-  subsequence ([..hi]): [_module.Integer, _module.Integer, _module.Integer][_module.Integer]
-  subsequence ([..]): [] [_module.Integer, _module.Integer, _module.Integer, _module.Integer] [_module.Integer, _module.Integer]
-  concatenation: [_module.Integer, _module.Integer, _module.Integer, _module.Integer] [_module.Integer, _module.Integer, _module.Integer, _module.Integer, _module.Integer, _module.Integer]
+  update: [42, 82, 17, 82] [42, 17]
+  index: 17 12
+  subsequence ([lo..hi]): [82, 17] [17]
+  subsequence ([lo..]): [82, 17, 82] [17]
+  subsequence ([..hi]): [17, 82, 17] [12, 17]
+  subsequence ([..]): [] [17, 82, 17, 82] [12, 17]
+  concatenation: [17, 82, 17, 82] [17, 82, 17, 82, 12, 17]
   prefix: true false true
   proper prefix: true false false
   membership: false true true
 
-Dafny program verifier finished with 2 verified, 0 errors
-CovariantCollections.dfy(34,6): Error: compilation of seq<TRAIT> is not supported; consider introducing a ghost
-CovariantCollections.dfy(35,6): Error: compilation of seq<TRAIT> is not supported; consider introducing a ghost
-File CovariantCollections/CovariantCollections.java contains the partially compiled program
+Dafny program verifier finished with 4 verified, 0 errors
+Sequences: [] [17, 82, 17, 82] [12, 17]
+  cardinality: 0 4 2
+  update: [42, 82, 17, 82] [42, 17]
+  index: 17 12
+  subsequence ([lo..hi]): [82, 17] [17]
+  subsequence ([lo..]): [82, 17, 82] [17]
+  subsequence ([..hi]): [17, 82, 17] [12, 17]
+  subsequence ([..]): [] [17, 82, 17, 82] [12, 17]
+  concatenation: [17, 82, 17, 82] [17, 82, 17, 82, 12, 17]
+  prefix: true false true
+  proper prefix: true false false
+  membership: false true true

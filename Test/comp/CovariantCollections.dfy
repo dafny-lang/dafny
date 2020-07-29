@@ -15,7 +15,7 @@ method Main() {
 }
 
 trait Number {
-
+  method Print()
 }
 
 class Integer extends Number {
@@ -23,6 +23,20 @@ class Integer extends Number {
   constructor(value: int) {
     this.value := value;
   }
+  method Print() {
+    print value;
+  }
+}
+
+method PrintSeq(prefix: string, s: seq<Number>) {
+  print prefix, "[";
+  var i, sep := 0, "";
+  while i < |s| {
+    print sep;
+    s[i].Print();
+    i, sep := i + 1, ", ";
+  }
+  print "]";
 }
 
 method Sequences() {
@@ -32,17 +46,46 @@ method Sequences() {
   var eightyTwo := new Integer(82);
 
   var a := [];
-  var b : seq<Number> := [seventeen, eightyTwo, seventeen, eightyTwo];
+  var b: seq<Number> := [seventeen, eightyTwo, seventeen, eightyTwo];
   var c := [twelve, seventeen];
-  print "Sequences: ", a, " ", b, " ", c, "\n";
+
+  PrintSeq("Sequences: ", a);
+  PrintSeq(" ", b);
+  PrintSeq(" ", c);
+  print "\n";
+
   print "  cardinality: ", |a|, " ", |b|, " ", |c|, "\n";
-  print "  update: ", b[0 := fortyTwo], " ", c[0 := fortyTwo], "\n";
-  print "  index: ", b[0], " ", c[0], "\n";
-  print "  subsequence ([lo..hi]): ", b[1..3], " ", c[1..2], "\n";
-  print "  subsequence ([lo..]): ", b[1..], " ", c[1..], "\n";
-  print "  subsequence ([..hi]): ", b[..3], c[..1], "\n";
-  print "  subsequence ([..]): ", a[..], " ", b[..], " ", c[..], "\n";
-  print "  concatenation: ", a + b, " ", b + c, "\n";
+  PrintSeq("  update: ", b[0 := fortyTwo]);
+  PrintSeq(" ", c[0 := fortyTwo]);
+  print "\n";
+
+  print "  index: ";
+  b[0].Print();
+  print " ";
+  c[0].Print();
+  print "\n";
+
+  PrintSeq("  subsequence ([lo..hi]): ", b[1..3]);
+  PrintSeq(" ", c[1..2]);
+  print "\n";
+
+  PrintSeq("  subsequence ([lo..]): ", b[1..]);
+  PrintSeq(" ", c[1..]);
+  print "\n";
+
+  PrintSeq("  subsequence ([..hi]): ", b[..3]);
+  PrintSeq(" ", c[..2]);
+  print "\n";
+
+  PrintSeq("  subsequence ([..]): ", a[..]);
+  PrintSeq(" ", b[..]);
+  PrintSeq(" ", c[..]);
+  print "\n";
+
+  PrintSeq("  concatenation: ", a + b);
+  PrintSeq(" ", b + c);
+  print "\n";
+
   print "  prefix: ", a <= b, " ", b <= c, " ", c <= c, "\n";
   print "  proper prefix: ", a < b, " ", b < c, " ", c < c, "\n";
   print "  membership: ", seventeen in a, " ", seventeen in b, " ", seventeen in c, "\n";
