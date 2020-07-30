@@ -8,6 +8,7 @@ method Main() {
   // TODO: include tests of assignments from coll<Number> back to coll<Integer> when all elements are known to be Integer
   Sequences();
   Sets();
+  Maps();
 }
 
 trait Number {
@@ -89,7 +90,6 @@ method Sequences() {
   print "  membership: ", seventeen in a, " ", seventeen in b, " ", seventeen in c, "\n";
 }
 
-
 // -------------------- set --------------------
 
 method PrintSet(prefix: string, S: set<Number>) {
@@ -155,3 +155,78 @@ method Sets() {
   print "  proper subset: ", a < b, " ", b < c, " ", c < c, "\n";
   print "  membership: ", seventeen in a, " ", seventeen in b, " ", seventeen in c, "\n";
 }
+
+// -------------------- map --------------------
+
+method PrintMap(prefix: string, M: map<Number, Number>) {
+  print prefix, "{";
+  var m: map<Number, Number>, sep := M, "";
+  var s := m.Keys;
+  while |s| != 0
+    invariant s <= m.Keys
+  {
+    print sep;
+    // pick smallest Number in s
+    ghost var min := ThereIsASmallest(s);
+    var x :| x in s && forall y :: y in s ==> x.value <= y.value;
+    x.Print();
+    print " := ";
+    m[x].Print();
+    s, sep := s - {x}, ", ";
+  }
+  print "}";
+}
+
+method Maps() {
+  var twelve := new Integer(12);
+  var seventeen := new Integer(17);
+  var fortyTwo := new Integer(42);
+  var eightyTwo := new Integer(82);
+
+  var a := map[];
+  var b: map<Number, Number> := map[seventeen := eightyTwo, eightyTwo := seventeen, twelve := seventeen];
+  var c := map[twelve := seventeen, seventeen := seventeen];
+
+  PrintMap("Maps: ", a);
+  PrintMap(" ", b);
+  PrintMap(" ", c);
+  print "\n";
+
+  print "  cardinality: ", |a|, " ", |b|, " ", |c|, "\n";
+
+  PrintMap("  update: ", b[fortyTwo := seventeen]);
+  PrintMap(" ", c[twelve := fortyTwo]);
+  print "\n";
+
+  var comprehension: map<Integer, Integer> := map n,p | n in b.Keys && p in b.Keys && b[n] == p && b[p] == n :: n := twelve;  // map[17 := 12, 82 := 12]
+  PrintMap("  comprehension: ", comprehension);
+  print "\n";
+
+  PrintSet("  Keys: ", b.Keys); print "\n";
+  PrintSet("  Values: ", b.Values); print "\n";
+  //SOON (requires covariant datatypes):  PrintPairs("  Items: ", b.Items); print "\n";
+  print "  eq: ", a == b, " ", comprehension == comprehension, " ", c == map[seventeen := seventeen, twelve := seventeen], "\n"; // false true true
+}
+
+/*SOON (requires covariant datatypes):
+method PrintPairs(prefix: string, S: set<(Number, Number)>) {
+  print prefix, "{";
+  var s: set<Number>, sep := set pair | pair in S :: pair.0, "";
+  while |s| != 0
+    invariant forall x :: x in s ==> exists y :: (x,y) in S
+  {
+    print sep;
+    // pick smallest Number in s
+    ghost var m := ThereIsASmallest(s);
+    var x :| x in s && forall y :: y in s ==> x.value <= y.value;
+    var pair :| pair in S && pair.0 == x;
+    print "(";
+    pair.0.Print();
+    print ", ";
+    pair.1.Print();
+    print ")";
+    s, sep := s - {x}, ", ";
+  }
+  print "}";
+}
+*/

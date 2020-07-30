@@ -1,5 +1,5 @@
 
-Dafny program verifier finished with 8 verified, 0 errors
+Dafny program verifier finished with 10 verified, 0 errors
 Sequences: [] [17, 82, 17, 82] [12, 17]
   cardinality: 0 4 2
   update: [42, 82, 17, 82] [42, 17]
@@ -21,8 +21,15 @@ Sets: {} {17, 82} {12, 17}
   subset: true false true
   proper subset: true false false
   membership: false true true
+Maps: {} {12 := 17, 17 := 82, 82 := 17} {12 := 17, 17 := 17}
+  cardinality: 0 3 2
+  update: {12 := 17, 17 := 82, 42 := 17, 82 := 17} {12 := 42, 17 := 17}
+  comprehension: {17 := 12, 82 := 12}
+  Keys: {12, 17, 82}
+  Values: {17, 82}
+  eq: false true true
 
-Dafny program verifier finished with 8 verified, 0 errors
+Dafny program verifier finished with 10 verified, 0 errors
 Sequences: [] [17, 82, 17, 82] [12, 17]
   cardinality: 0 4 2
   update: [42, 82, 17, 82] [42, 17]
@@ -44,8 +51,15 @@ Sets: {} {17, 82} {12, 17}
   subset: true false true
   proper subset: true false false
   membership: false true true
+Maps: {} {12 := 17, 17 := 82, 82 := 17} {12 := 17, 17 := 17}
+  cardinality: 0 3 2
+  update: {12 := 17, 17 := 82, 42 := 17, 82 := 17} {12 := 42, 17 := 17}
+  comprehension: {17 := 12, 82 := 12}
+  Keys: {12, 17, 82}
+  Values: {17, 82}
+  eq: false true true
 
-Dafny program verifier finished with 8 verified, 0 errors
+Dafny program verifier finished with 10 verified, 0 errors
 Sequences: [] [17, 82, 17, 82] [12, 17]
   cardinality: 0 4 2
   update: [42, 82, 17, 82] [42, 17]
@@ -67,8 +81,15 @@ Sets: {} {17, 82} {12, 17}
   subset: true false true
   proper subset: true false false
   membership: false true true
+Maps: {} {12 := 17, 17 := 82, 82 := 17} {12 := 17, 17 := 17}
+  cardinality: 0 3 2
+  update: {12 := 17, 17 := 82, 42 := 17, 82 := 17} {12 := 42, 17 := 17}
+  comprehension: {17 := 12, 82 := 12}
+  Keys: {12, 17, 82}
+  Values: {17, 82}
+  eq: false true true
 
-Dafny program verifier finished with 8 verified, 0 errors
+Dafny program verifier finished with 10 verified, 0 errors
 Sequences: [] [17, 82, 17, 82] [12, 17]
   cardinality: 0 4 2
   update: [42, 82, 17, 82] [42, 17]
@@ -90,3 +111,10 @@ Sets: {} {17, 82} {12, 17}
   subset: true false true
   proper subset: true false false
   membership: false true true
+Maps: {} {12 := 17, 17 := 82, 82 := 17} {12 := 17, 17 := 17}
+  cardinality: 0 3 2
+  update: {12 := 17, 17 := 82, 42 := 17, 82 := 17} {12 := 42, 17 := 17}
+  comprehension: {17 := 12, 82 := 12}
+  Keys: {12, 17, 82}
+  Values: {17, 82}
+  eq: false true true
