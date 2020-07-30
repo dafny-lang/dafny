@@ -1,30 +1,34 @@
-// RUN: %dafny /compile:3 "%s" /compileTarget:cs > "%t"
+// RUN: %dafny /compile:0 "%s" > "%t"
+// RUN: %dafny /noVerify /compile:4 /compileTarget:cs "%s" >> "%t"
+// RUN: %dafny /noVerify /compile:4 /compileTarget:java "%s" >> "%t"
+// RUN: %dafny /noVerify /compile:4 /compileTarget:js "%s" >> "%t"
+// RUN: %dafny /noVerify /compile:4 /compileTarget:go "%s" >> "%t"
 // RUN: %diff "%s.expect" "%t"
 
-// The code in this file demonstrates complications in compiling to C# if a
-// trait (like "object") is allowed as a type parameter to something compiled.
-// The problem is that an assignment like a "seq<MyClass>" to a "seq<object>" requires
-// covariance in the C# types they are compiled to, meaning a "Dafny.Sequence<S>" needs to be
-// assignable to a "Dafny.Sequence<T>" if an S is assignable to a T.  Another example is an
-// assignment of a "MyDatatype<MyClass>" to a "MyDatatype<object>".
+// The code in this file demonstrates complications in sorting out covariance in some
+// compilation target languages. Compilation support is currently spotty, where C# and
+// Java only supports sets and sequences (not other collection types or datatypes), and
+// only in the "upcast" direction.
 //
-// The solution is to ensure the Dafny type is mapped to a C# interface with the "out"
+// The solution in C# is to ensure the Dafny type is mapped to a C# interface with the "out"
 // type parameter modifier, which allows covariance under the condition that the type parameter
 // is only used in return types in the interface methods and not as parameter types.
-// This has only been implemented for sequences so far, but will apply to the other cases
+// This has only been implemented for sets and sequences so far, but will apply to the other cases
 // in this test case as well.
 //
-// A similar solution is possible (but not yet implemented) for Java, by using wildcard
-// types: a "Dafny.Sequence<T>"" is assignable to a "Dafny.Sequence<? extends T>".
+// The solution in Java is to use Java's wildcard types: a "Dafny.Sequence<T>"" is assignable to
+// a "Dafny.Sequence<? extends T>".
 //
-// Note that this is not a problem in JavaScript, which lacks type parameters.
+// Covariance is not a problem in JavaScript, since JavaScript has no static types. It's also
+// not a problem in Go, because Go has no type parameters and Dafny therefore encodes all
+// type parameters as interface{}.
 
 method G()
 {
   var s: set<int>;
   var t: set<nat>;
   // the following assignments are fine, because "s" and "t" are represented
-  // the same way in C#
+  // the same way in the target language
   s := {5, 7};
   t := s;
   s := t;
@@ -43,7 +47,7 @@ method H() {
   var c := new Class0;
   var a: Dt<Class0> := Atom(c);
   var b: Dt<object>; // compilation error: compilation does not support trait types as a type parameter; consider introducing a ghost
-  b := a;  
+  b := a;
   print a, " and ", b, "\n";
 }
 
@@ -60,7 +64,7 @@ method J()
 {
   var c0 := new Class0;
   var c1 := new Class1;
-  var s: set<Tr> := {c0, c1}; // compilation error: compilation of set<TRAIT> is not supported; consider introducing a ghost
+  var s: set<Tr> := {c0, c1}; // no error, this is supported
   var t: set<Class0> := {c0};
   s := t;
   print s, " and ", t, "\n";
@@ -76,6 +80,35 @@ method K()
   print s, " and ", t, "\n";
 }
 
+method L()
+{
+  var c0 := new Class0;
+  var c1 := new Class1;
+  var s: multiset<Tr> := multiset{c0, c1}; // compilation error: not yet supported
+  var t: multiset<Class0> := multiset{c0};
+  s := t;
+  print s, " and ", t, "\n";
+}
+
+method M()
+{
+  var c0 := new Class0;
+  var c1 := new Class1;
+  var s: map<int, Tr> := map[8 := c0, 9 := c1]; // compilation error: not yet supported
+  var t: map<int, Class0> := map[7 := c0];
+  s := t;
+  print s, " and ", t, "\n";
+}
+
+method Downcast()
+{
+  var c0 := new Class0;
+  var s: seq<Class0> := [c0, c0];
+  var t: seq<Tr> := s;
+  t := s;  // TODO
+  print s, " and ", t, "\n";
+}
+
 method Main()
 {
   G();
@@ -83,4 +116,7 @@ method Main()
   I();
   J();
   K();
+  L();
+  M();
+  Downcast();
 }

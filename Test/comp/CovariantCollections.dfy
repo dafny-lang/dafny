@@ -5,21 +5,17 @@
 // RUN: %diff "%s.expect" "%t"
 
 method Main() {
-  // TODO-RS: Just testing the recent support for covariance in sequneces in C# for now.
-  // These also work in Javascript, but hit runtime type errors in Go and still don't
-  // compile in Java. Once we have parity in all languages these tests can be
-  // relocated to the same Collections.dfy file.
-  // Also, it's unfortunate that you can't customize how classes are printed. Perhaps
-  // tests of valid Dafny programs should use `expect` and even {:test} now?
+  // TODO: include tests of assignments from coll<Number> back to coll<Integer> when all elements are known to be Integer
   Sequences();
+  Sets();
 }
 
 trait Number {
+  const value: int
   method Print()
 }
 
 class Integer extends Number {
-  const value: int
   constructor(value: int) {
     this.value := value;
   }
@@ -27,6 +23,8 @@ class Integer extends Number {
     print value;
   }
 }
+
+// -------------------- seq --------------------
 
 method PrintSeq(prefix: string, s: seq<Number>) {
   print prefix, "[";
@@ -88,5 +86,72 @@ method Sequences() {
 
   print "  prefix: ", a <= b, " ", b <= c, " ", c <= c, "\n";
   print "  proper prefix: ", a < b, " ", b < c, " ", c < c, "\n";
+  print "  membership: ", seventeen in a, " ", seventeen in b, " ", seventeen in c, "\n";
+}
+
+
+// -------------------- set --------------------
+
+method PrintSet(prefix: string, S: set<Number>) {
+  print prefix, "{";
+  var s: set<Number>, sep := S, "";
+  while |s| != 0 {
+    print sep;
+    // pick smallest Number in s
+    ghost var m := ThereIsASmallest(s);
+    var x :| x in s && forall y :: y in s ==> x.value <= y.value;
+    x.Print();
+    s, sep := s - {x}, ", ";
+  }
+  print "}";
+}
+
+lemma ThereIsASmallest(s: set<Number>) returns (m: Number)
+  requires s != {}
+  ensures m in s && forall y :: y in s ==> m.value <= y.value;
+{
+  m :| m in s;
+  if y :| y in s && y.value < m.value {
+    var s' := s - {m};
+    assert y in s';
+    m := ThereIsASmallest(s');
+  }
+}
+
+method Sets() {
+  var twelve := new Integer(12);
+  var seventeen := new Integer(17);
+  var fortyTwo := new Integer(42);
+  var eightyTwo := new Integer(82);
+
+  var a := {};
+  var b: set<Number> := {seventeen, eightyTwo, seventeen, eightyTwo};
+  var c := {twelve, seventeen};
+
+  PrintSet("Sets: ", a);
+  PrintSet(" ", b);
+  PrintSet(" ", c);
+  print "\n";
+
+  print "  cardinality: ", |a|, " ", |b|, " ", |c|, "\n";
+
+  var comprehension := set n | n in b && n.value % 2 == 0;
+  PrintSet("  comprehension: ", comprehension);
+  print "\n";
+
+  PrintSet("  union: ", a + b);
+  PrintSet(" ", b + c);
+  print "\n";
+
+  PrintSet("  intersection: ", a * b);
+  PrintSet(" ", b * c);
+  print "\n";
+
+  PrintSet("  difference: ", a - b);
+  PrintSet(" ", b - c);
+  print "\n";
+
+  print "  subset: ", a <= b, " ", b <= c, " ", c <= c, "\n";
+  print "  proper subset: ", a < b, " ", b < c, " ", c < c, "\n";
   print "  membership: ", seventeen in a, " ", seventeen in b, " ", seventeen in c, "\n";
 }

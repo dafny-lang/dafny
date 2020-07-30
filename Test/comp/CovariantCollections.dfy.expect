@@ -1,5 +1,5 @@
 
-Dafny program verifier finished with 4 verified, 0 errors
+Dafny program verifier finished with 8 verified, 0 errors
 Sequences: [] [17, 82, 17, 82] [12, 17]
   cardinality: 0 4 2
   update: [42, 82, 17, 82] [42, 17]
@@ -12,8 +12,17 @@ Sequences: [] [17, 82, 17, 82] [12, 17]
   prefix: true false true
   proper prefix: true false false
   membership: false true true
+Sets: {} {17, 82} {12, 17}
+  cardinality: 0 2 2
+  comprehension: {82}
+  union: {17, 82} {12, 17, 82}
+  intersection: {} {17}
+  difference: {} {82}
+  subset: true false true
+  proper subset: true false false
+  membership: false true true
 
-Dafny program verifier finished with 4 verified, 0 errors
+Dafny program verifier finished with 8 verified, 0 errors
 Sequences: [] [17, 82, 17, 82] [12, 17]
   cardinality: 0 4 2
   update: [42, 82, 17, 82] [42, 17]
@@ -26,8 +35,17 @@ Sequences: [] [17, 82, 17, 82] [12, 17]
   prefix: true false true
   proper prefix: true false false
   membership: false true true
+Sets: {} {17, 82} {12, 17}
+  cardinality: 0 2 2
+  comprehension: {82}
+  union: {17, 82} {12, 17, 82}
+  intersection: {} {17}
+  difference: {} {82}
+  subset: true false true
+  proper subset: true false false
+  membership: false true true
 
-Dafny program verifier finished with 4 verified, 0 errors
+Dafny program verifier finished with 8 verified, 0 errors
 Sequences: [] [17, 82, 17, 82] [12, 17]
   cardinality: 0 4 2
   update: [42, 82, 17, 82] [42, 17]
@@ -40,8 +58,17 @@ Sequences: [] [17, 82, 17, 82] [12, 17]
   prefix: true false true
   proper prefix: true false false
   membership: false true true
+Sets: {} {17, 82} {12, 17}
+  cardinality: 0 2 2
+  comprehension: {82}
+  union: {17, 82} {12, 17, 82}
+  intersection: {} {17}
+  difference: {} {82}
+  subset: true false true
+  proper subset: true false false
+  membership: false true true
 
-Dafny program verifier finished with 4 verified, 0 errors
+Dafny program verifier finished with 8 verified, 0 errors
 Sequences: [] [17, 82, 17, 82] [12, 17]
   cardinality: 0 4 2
   update: [42, 82, 17, 82] [42, 17]
@@ -53,4 +80,13 @@ Sequences: [] [17, 82, 17, 82] [12, 17]
   concatenation: [17, 82, 17, 82] [17, 82, 17, 82, 12, 17]
   prefix: true false true
   proper prefix: true false false
+  membership: false true true
+Sets: {} {17, 82} {12, 17}
+  cardinality: 0 2 2
+  comprehension: {82}
+  union: {17, 82} {12, 17, 82}
+  intersection: {} {17}
+  difference: {} {82}
+  subset: true false true
+  proper subset: true false false
   membership: false true true

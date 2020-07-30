@@ -89,6 +89,10 @@ namespace Microsoft.Dafny {
           }
         }
       }
+      if (superClasses != null) {
+        var parentTraitsWriter = w.NewBlock("_parentTraits()");
+        parentTraitsWriter.WriteLine("return [{0}];", Util.Comma(", ", superClasses, parent => TypeName(parent, parentTraitsWriter, tok)));
+      }
       var methodWriter = w;
       return new ClassWriter(this, methodWriter, fieldWriter);
     }
@@ -727,7 +731,6 @@ namespace Microsoft.Dafny {
           w.Write(")");
           return w.ToString();
         } else if (xType.IsNonNullRefType) {
-          Contract.Assert(inAutoInitContext);
           // what we emit here will only be used to construct a dummy value that programmer-supplied code will overwrite later
           return "_dafny.Rtd_ref/*not used*/";
         } else {
@@ -1122,17 +1125,37 @@ namespace Microsoft.Dafny {
       return string.Format("_dafny.Quantifier");
     }
 
-    protected override BlockTargetWriter CreateForeachLoop(string boundVar, Type/*?*/ boundVarType, out TargetWriter collectionWriter, TargetWriter wr, string/*?*/ altBoundVarName = null, Type/*?*/ altVarType = null, Bpl.IToken/*?*/ tok = null) {
-      wr.Write("for (const {0} of ", boundVar);
+    protected override BlockTargetWriter CreateForeachLoop(string tmpVarName, Type collectionElementType, string boundVarName, Type boundVarType, bool introduceBoundVar,
+      Bpl.IToken tok, out TargetWriter collectionWriter, TargetWriter wr) {
+
+      wr.Write("for (const {0} of ", tmpVarName);
       collectionWriter = wr.Fork();
-      if (altBoundVarName == null) {
-        return wr.NewBlock(")");
-      } else if (altVarType == null) {
-        return wr.NewBlockWithPrefix(")", "{0} = {1};", altBoundVarName, boundVar);
-      } else {
-        BlockTargetWriter wwr = wr.NewBlockWithPrefix(")", "if (({1}) instanceof {2}) ", altBoundVarName, boundVar, TypeName(altVarType, wr, tok));
-        return wwr.NewBlockWithPrefix("", "let {0} = {1};", altBoundVarName, boundVar);
+      var wwr = wr.NewBlock(")");
+
+      if (boundVarType.IsRefType) {
+        string typeTest;
+        if (boundVarType.IsObject || boundVarType.IsObjectQ) {
+          typeTest = "true";
+        } else if (boundVarType.IsTraitType) {
+          typeTest = $"_dafny.InstanceOfTrait({tmpVarName}, {TypeName(boundVarType, wwr, tok)})";
+        } else {
+          typeTest = $"{tmpVarName} instanceof {TypeName(boundVarType, wwr, tok)}";
+        }
+        if (boundVarType.IsNonNullRefType) {
+          typeTest = $"{tmpVarName} !== null && " + typeTest;
+        } else {
+          typeTest = $"{tmpVarName} === null || " + typeTest;
+        }
+        wwr = wwr.NewBlock($"if ({typeTest})");
       }
+      wwr.WriteLine("{0}{1} = {2};", introduceBoundVar ? "let " : "", boundVarName, tmpVarName);
+      return wwr;
+    }
+
+    protected override BlockTargetWriter CreateForeachIngredientLoop(string boundVarName, int L, string tupleTypeArgs, out TargetWriter collectionWriter, TargetWriter wr) {
+      wr.Write("for (const {0} of ", boundVarName);
+      collectionWriter = wr.Fork();
+      return wr.NewBlock(")");
     }
 
     // ----- Expressions -------------------------------------------------------------
@@ -1662,7 +1685,7 @@ namespace Microsoft.Dafny {
       TrExprList(arguments, wr, inLetExprBody);
     }
 
-    protected override TargetWriter EmitBetaRedex(List<string> boundVars, List<Expression> arguments, string typeArgs, List<Type> boundTypes, Type resultType, Bpl.IToken tok, bool inLetExprBody, TargetWriter wr) {
+    protected override TargetWriter EmitBetaRedex(List<string> boundVars, List<Expression> arguments, List<Type> boundTypes, Type resultType, Bpl.IToken tok, bool inLetExprBody, TargetWriter wr) {
       wr.Write("(({0}) => ", Util.Comma(boundVars));
       var w = wr.Fork();
       wr.Write(")");
@@ -1777,12 +1800,6 @@ namespace Microsoft.Dafny {
       switch (op) {
         case BinaryExpr.ResolvedOpcode.Iff:
           opString = "==="; break;
-        case BinaryExpr.ResolvedOpcode.Imp:
-          preOpString = "!"; opString = "||"; break;
-        case BinaryExpr.ResolvedOpcode.Or:
-          opString = "||"; break;
-        case BinaryExpr.ResolvedOpcode.And:
-          opString = "&&"; break;
         case BinaryExpr.ResolvedOpcode.BitwiseAnd:
           if (AsNativeType(resultType) != null) {
             // JavaScript bitwise operators are weird (numeric operands are first converted into
@@ -1853,7 +1870,6 @@ namespace Microsoft.Dafny {
           }
 
         case BinaryExpr.ResolvedOpcode.Lt:
-        case BinaryExpr.ResolvedOpcode.LtChar:
           if (e0.Type.IsIntegerType || e0.Type.IsRealType) {
             callString = "isLessThan";
           } else {
@@ -1861,7 +1877,6 @@ namespace Microsoft.Dafny {
           }
           break;
         case BinaryExpr.ResolvedOpcode.Le:
-        case BinaryExpr.ResolvedOpcode.LeChar:
           if (e0.Type.IsIntegerType) {
             callString = "isLessThanOrEqualTo";
           } else if (e0.Type.IsRealType) {
@@ -1871,7 +1886,6 @@ namespace Microsoft.Dafny {
           }
           break;
         case BinaryExpr.ResolvedOpcode.Ge:
-        case BinaryExpr.ResolvedOpcode.GeChar:
           if (e0.Type.IsIntegerType) {
             callString = "isLessThanOrEqualTo";
             reverseArguments = true;
@@ -1883,7 +1897,6 @@ namespace Microsoft.Dafny {
           }
           break;
         case BinaryExpr.ResolvedOpcode.Gt:
-        case BinaryExpr.ResolvedOpcode.GtChar:
           if (e0.Type.IsIntegerType || e0.Type.IsRealType) {
             callString = "isLessThan";
             reverseArguments = true;
@@ -1981,25 +1994,13 @@ namespace Microsoft.Dafny {
         case BinaryExpr.ResolvedOpcode.SeqEq:
           // a sequence may be represented as an array or as a string
           staticCallString = "_dafny.areEqual"; break;
-        case BinaryExpr.ResolvedOpcode.SetNeq:
-        case BinaryExpr.ResolvedOpcode.MultiSetNeq:
-        case BinaryExpr.ResolvedOpcode.MapNeq:
-          preOpString = "!"; callString = "equals"; break;
-        case BinaryExpr.ResolvedOpcode.SeqNeq:
-          // a sequence may be represented as an array or as a string
-          preOpString = "!"; staticCallString = "_dafny.areEqual"; break;
+
         case BinaryExpr.ResolvedOpcode.ProperSubset:
         case BinaryExpr.ResolvedOpcode.ProperMultiSubset:
           callString = "IsProperSubsetOf"; break;
         case BinaryExpr.ResolvedOpcode.Subset:
         case BinaryExpr.ResolvedOpcode.MultiSubset:
           callString = "IsSubsetOf"; break;
-        case BinaryExpr.ResolvedOpcode.Superset:
-        case BinaryExpr.ResolvedOpcode.MultiSuperset:
-          callString = "IsSupersetOf"; break;
-        case BinaryExpr.ResolvedOpcode.ProperSuperset:
-        case BinaryExpr.ResolvedOpcode.ProperMultiSuperset:
-          callString = "IsProperSupersetOf"; break;
         case BinaryExpr.ResolvedOpcode.Disjoint:
         case BinaryExpr.ResolvedOpcode.MultiSetDisjoint:
           callString = "IsDisjointFrom"; break;
@@ -2007,10 +2008,6 @@ namespace Microsoft.Dafny {
         case BinaryExpr.ResolvedOpcode.InMultiSet:
         case BinaryExpr.ResolvedOpcode.InMap:
           callString = "contains"; reverseArguments = true; break;
-        case BinaryExpr.ResolvedOpcode.NotInSet:
-        case BinaryExpr.ResolvedOpcode.NotInMultiSet:
-        case BinaryExpr.ResolvedOpcode.NotInMap:
-          preOpString = "!"; callString = "contains"; reverseArguments = true; break;
         case BinaryExpr.ResolvedOpcode.Union:
         case BinaryExpr.ResolvedOpcode.MultiSetUnion:
           callString = "Union"; break;
@@ -2029,11 +2026,12 @@ namespace Microsoft.Dafny {
           staticCallString = "_dafny.Seq.Concat"; break;
         case BinaryExpr.ResolvedOpcode.InSeq:
           staticCallString = "_dafny.Seq.contains"; reverseArguments = true; break;
-        case BinaryExpr.ResolvedOpcode.NotInSeq:
-          preOpString = "!"; staticCallString = "_dafny.Seq.contains"; reverseArguments = true; break;
 
         default:
-          Contract.Assert(false); throw new cce.UnreachableException();  // unexpected binary expression
+          base.CompileBinOp(op, e0, e1, tok, resultType,
+            out opString, out preOpString, out postOpString, out callString, out staticCallString, out reverseArguments, out truncateResult, out convertE1_to_int,
+            errorWr);
+          break;
       }
     }
 

@@ -26,6 +26,8 @@ namespace Microsoft.Dafny
 
     public override string TargetLanguage => "C#";
 
+    protected string DafnyISet => "Dafny.ISet";
+
     protected override void EmitHeader(Program program, TargetWriter wr) {
       wr.WriteLine("// Dafny program {0} compiled into C#", program.Name);
       wr.WriteLine("// To recompile, use 'csc' with: /r:System.Numerics.dll");
@@ -942,10 +944,7 @@ namespace Microsoft.Dafny
         return TypeName_UDT(s, udt.TypeArgs, wr, udt.tok);
       } else if (xType is SetType) {
         Type argType = ((SetType)xType).Arg;
-        if (ComplicatedTypeParameterForCompilation(argType)) {
-          Error(tok, "compilation of set<TRAIT> is not supported; consider introducing a ghost", wr);
-        }
-        return DafnySetClass + "<" + TypeName(argType, wr, tok) + ">";
+        return DafnyISet + "<" + TypeName(argType, wr, tok) + ">";
       } else if (xType is SeqType) {
         Type argType = ((SeqType)xType).Arg;
         return DafnySeqClass + "<" + TypeName(argType, wr, tok) + ">";
@@ -967,14 +966,31 @@ namespace Microsoft.Dafny
       }
     }
 
-    public string TypeHelperName(Type type, TextWriter wr, Bpl.IToken tok) {
+    public string TypeHelperName(Type type, TextWriter wr, Bpl.IToken tok, Type/*?*/ otherType = null) {
       var xType = type.NormalizeExpand();
-      if (xType is SeqType) {
-        Type argType = ((SeqType)xType).Arg;
-        return "Dafny.Sequence" + "<" + TypeName(argType, wr, tok) + ">";
+      if (xType is SeqType seqType) {
+        return "Dafny.Sequence" + "<" + CommonTypeName(seqType.Arg, otherType?.AsSeqType?.Arg, wr, tok) + ">";
+      } else if (xType is SetType setType) {
+        return $"{DafnySetClass}<{CommonTypeName(setType.Arg, otherType?.AsSetType?.Arg, wr, tok)}>";
       } else {
         return TypeName(type, wr, tok);
       }
+    }
+
+    public string CommonTypeName(Type a, Type /*?*/ b, TextWriter wr, Bpl.IToken tok) {
+      if (b == null) {
+        return TypeName(a, wr, tok);
+      }
+      a = a.NormalizeExpand();
+      b = b.NormalizeExpand();
+      if (a.Equals(b)) {
+        return TypeName(a, wr, tok);
+      }
+      // It would be nice to use Meet(a, b) here. Unfortunately, Resolver.Meet also needs a Builtins argument, which we
+      // don't have here.
+      Contract.Assert(a.IsRefType);
+      Contract.Assert(b.IsRefType);
+      return "object";
     }
 
     public override string TypeInitializationValue(Type type, TextWriter/*?*/ wr, Bpl.IToken/*?*/ tok, bool inAutoInitContext) {
@@ -1229,17 +1245,36 @@ namespace Microsoft.Dafny
       return string.Format("Dafny.Helpers.Quantifier<{0}>", bvType);
     }
 
-    protected override BlockTargetWriter CreateForeachLoop(string boundVar, Type/*?*/ boundVarType, out TargetWriter collectionWriter, TargetWriter wr, string/*?*/ altBoundVarName = null, Type/*?*/ altVarType = null, Bpl.IToken/*?*/ tok = null) {
-      wr.Write("foreach (var {0} in ", boundVar);
+    protected override BlockTargetWriter CreateForeachLoop(string tmpVarName, Type collectionElementType, string boundVarName, Type boundVarType, bool introduceBoundVar,
+      Bpl.IToken tok, out TargetWriter collectionWriter, TargetWriter wr) {
+
+      wr.Write("foreach ({1} {0} in ", tmpVarName, TypeName(collectionElementType, wr, tok));
       collectionWriter = wr.Fork();
-      if (altBoundVarName == null) {
-        return wr.NewBlock(")");
-      } else if (altVarType == null) {
-        return wr.NewBlockWithPrefix(")", "{0} = {1};", altBoundVarName, boundVar);
-      } else {
-        BlockTargetWriter wwr = wr.NewBlockWithPrefix(")", "if (({1}) is {2}) ", altBoundVarName, boundVar, TypeName(altVarType, wr, tok));
-        return wwr.NewBlockWithPrefix("", "{2} {0} = ({2})({1}); ", altBoundVarName, boundVar, TypeName(altVarType, wr, tok));
+      var wwr = wr.NewBlock(")");
+
+      if (boundVarType.IsRefType) {
+        string typeTest;
+        if (boundVarType.IsObject || boundVarType.IsObjectQ) {
+          typeTest = "true";
+        } else {
+          typeTest = $"{tmpVarName} is {TypeName(boundVarType, wwr, tok)}";
+        }
+        if (boundVarType.IsNonNullRefType) {
+          typeTest = $"{tmpVarName} != null && {typeTest}";
+        } else {
+          typeTest = $"{tmpVarName} == null || {typeTest}";
+        }
+        wwr = wwr.NewBlock($"if ({typeTest})");
       }
+      var typeName = TypeName(boundVarType, wwr, tok);
+      wwr.WriteLine("{0}{1} = ({2}){3};", introduceBoundVar ? typeName + " " : "", boundVarName, typeName, tmpVarName);
+      return wwr;
+    }
+
+    protected override BlockTargetWriter CreateForeachIngredientLoop(string boundVarName, int L, string tupleTypeArgs, out TargetWriter collectionWriter, TargetWriter wr) {
+      wr.Write($"foreach (var {boundVarName} in ");
+      collectionWriter = wr.Fork();
+      return wr.NewBlock(")");
     }
 
     // ----- Expressions -------------------------------------------------------------
@@ -1923,7 +1958,8 @@ namespace Microsoft.Dafny
       TrExprList(arguments, wr, inLetExprBody);
     }
 
-    protected override TargetWriter EmitBetaRedex(List<string> boundVars, List<Expression> arguments, string typeArgs, List<Type> boundTypes, Type resultType, Bpl.IToken tok, bool inLetExprBody, TargetWriter wr) {
+    protected override TargetWriter EmitBetaRedex(List<string> boundVars, List<Expression> arguments, List<Type> boundTypes, Type resultType, Bpl.IToken tok, bool inLetExprBody, TargetWriter wr) {
+      var typeArgs = TypeName_UDT(ArrowType.Arrow_FullCompileName, Util.Snoc(boundTypes, resultType), wr, tok);
       wr.Write("Dafny.Helpers.Id<{0}>(({1}) => ", typeArgs, Util.Comma(boundVars));
       var w = wr.Fork();
       wr.Write(")");
@@ -2032,21 +2068,6 @@ namespace Microsoft.Dafny
       convertE1_to_int = false;
 
       switch (op) {
-        case BinaryExpr.ResolvedOpcode.Iff:
-          opString = "=="; break;
-        case BinaryExpr.ResolvedOpcode.Imp:
-          preOpString = "!"; opString = "||"; break;
-        case BinaryExpr.ResolvedOpcode.Or:
-          opString = "||"; break;
-        case BinaryExpr.ResolvedOpcode.And:
-          opString = "&&"; break;
-        case BinaryExpr.ResolvedOpcode.BitwiseAnd:
-          opString = "&"; break;
-        case BinaryExpr.ResolvedOpcode.BitwiseOr:
-          opString = "|"; break;
-        case BinaryExpr.ResolvedOpcode.BitwiseXor:
-          opString = "^"; break;
-
         case BinaryExpr.ResolvedOpcode.EqCommon: {
             if (IsHandleComparison(tok, e0, e1, errorWr)) {
               opString = "==";
@@ -2079,18 +2100,6 @@ namespace Microsoft.Dafny
             break;
           }
 
-        case BinaryExpr.ResolvedOpcode.Lt:
-        case BinaryExpr.ResolvedOpcode.LtChar:
-          opString = "<"; break;
-        case BinaryExpr.ResolvedOpcode.Le:
-        case BinaryExpr.ResolvedOpcode.LeChar:
-          opString = "<="; break;
-        case BinaryExpr.ResolvedOpcode.Ge:
-        case BinaryExpr.ResolvedOpcode.GeChar:
-          opString = ">="; break;
-        case BinaryExpr.ResolvedOpcode.Gt:
-        case BinaryExpr.ResolvedOpcode.GtChar:
-          opString = ">"; break;
         case BinaryExpr.ResolvedOpcode.LeftShift:
           opString = "<<"; truncateResult = true; convertE1_to_int = true; break;
         case BinaryExpr.ResolvedOpcode.RightShift:
@@ -2127,46 +2136,41 @@ namespace Microsoft.Dafny
             opString = "%";  // for reals
           }
           break;
+
         case BinaryExpr.ResolvedOpcode.SetEq:
         case BinaryExpr.ResolvedOpcode.MultiSetEq:
         case BinaryExpr.ResolvedOpcode.SeqEq:
         case BinaryExpr.ResolvedOpcode.MapEq:
           callString = "Equals"; break;
-        case BinaryExpr.ResolvedOpcode.SetNeq:
-        case BinaryExpr.ResolvedOpcode.MultiSetNeq:
-        case BinaryExpr.ResolvedOpcode.SeqNeq:
-        case BinaryExpr.ResolvedOpcode.MapNeq:
-          preOpString = "!"; callString = "Equals"; break;
+
         case BinaryExpr.ResolvedOpcode.ProperSubset:
+          staticCallString = TypeHelperName(e0.Type, errorWr, tok, e1.Type) + ".IsProperSubsetOf"; break;
         case BinaryExpr.ResolvedOpcode.ProperMultiSubset:
           callString = "IsProperSubsetOf"; break;
         case BinaryExpr.ResolvedOpcode.Subset:
+          staticCallString = TypeHelperName(e0.Type, errorWr, tok, e1.Type) + ".IsSubsetOf"; break;
         case BinaryExpr.ResolvedOpcode.MultiSubset:
           callString = "IsSubsetOf"; break;
-        case BinaryExpr.ResolvedOpcode.Superset:
-        case BinaryExpr.ResolvedOpcode.MultiSuperset:
-          callString = "IsSupersetOf"; break;
-        case BinaryExpr.ResolvedOpcode.ProperSuperset:
-        case BinaryExpr.ResolvedOpcode.ProperMultiSuperset:
-          callString = "IsProperSupersetOf"; break;
+
         case BinaryExpr.ResolvedOpcode.Disjoint:
+          staticCallString = TypeHelperName(e0.Type, errorWr, tok, e1.Type) + ".IsDisjointFrom"; break;
         case BinaryExpr.ResolvedOpcode.MultiSetDisjoint:
           callString = "IsDisjointFrom"; break;
         case BinaryExpr.ResolvedOpcode.InSet:
         case BinaryExpr.ResolvedOpcode.InMultiSet:
         case BinaryExpr.ResolvedOpcode.InMap:
           callString = "Contains"; reverseArguments = true; break;
-        case BinaryExpr.ResolvedOpcode.NotInSet:
-        case BinaryExpr.ResolvedOpcode.NotInMultiSet:
-        case BinaryExpr.ResolvedOpcode.NotInMap:
-          preOpString = "!"; callString = "Contains"; reverseArguments = true; break;
+
         case BinaryExpr.ResolvedOpcode.Union:
+          staticCallString = TypeHelperName(resultType, errorWr, tok) + ".Union"; break;
         case BinaryExpr.ResolvedOpcode.MultiSetUnion:
           callString = "Union"; break;
         case BinaryExpr.ResolvedOpcode.Intersection:
+          staticCallString = TypeHelperName(resultType, errorWr, tok) + ".Intersect"; break;
         case BinaryExpr.ResolvedOpcode.MultiSetIntersection:
           callString = "Intersect"; break;
         case BinaryExpr.ResolvedOpcode.SetDifference:
+          staticCallString = TypeHelperName(resultType, errorWr, tok) + ".Difference"; break;
         case BinaryExpr.ResolvedOpcode.MultiSetDifference:
           callString = "Difference"; break;
 
@@ -2178,11 +2182,12 @@ namespace Microsoft.Dafny
           staticCallString = TypeHelperName(e0.Type, errorWr, e0.tok) + ".Concat"; break;
         case BinaryExpr.ResolvedOpcode.InSeq:
           callString = "Contains"; reverseArguments = true; break;
-        case BinaryExpr.ResolvedOpcode.NotInSeq:
-          preOpString = "!"; callString = "Contains"; reverseArguments = true; break;
 
         default:
-          Contract.Assert(false); throw new cce.UnreachableException();  // unexpected binary expression
+          base.CompileBinOp(op, e0, e1, tok, resultType,
+            out opString, out preOpString, out postOpString, out callString, out staticCallString, out reverseArguments, out truncateResult, out convertE1_to_int,
+            errorWr);
+          break;
       }
     }
 
@@ -2365,7 +2370,7 @@ namespace Microsoft.Dafny
     protected override string GetCollectionBuilder_Build(CollectionType ct, Bpl.IToken tok, string collName, TargetWriter wr) {
       if (ct is SetType) {
         var typeName = TypeName(ct.Arg, wr, tok);
-        return string.Format("Dafny.Set<{0}>.FromCollection({1})", typeName, collName);
+        return string.Format($"{DafnySetClass}<{typeName}>.FromCollection({collName})");
       } else if (ct is MapType) {
         var mt = (MapType)ct;
         var domtypeName = TypeName(mt.Domain, wr, tok);
