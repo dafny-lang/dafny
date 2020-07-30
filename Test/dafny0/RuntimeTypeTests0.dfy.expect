@@ -4,15 +4,12 @@ Dafny program verifier finished with 4 verified, 0 errors
 Dafny program verifier finished with 0 verified, 0 errors
 RuntimeTypeTests0.dfy(49,9): Error: compilation does not support trait types as a type parameter; consider introducing a ghost
 RuntimeTypeTests0.dfy(58,9): Error: compilation does not support trait types as a type parameter; consider introducing a ghost
-RuntimeTypeTests0.dfy(87,6): Error: compilation of multiset<TRAIT> is not supported; consider introducing a ghost
-RuntimeTypeTests0.dfy(87,25): Error: compilation of multiset<TRAIT> is not supported; consider introducing a ghost
 RuntimeTypeTests0.dfy(97,6): Error: compilation of map<TRAIT, _> or map<_, TRAIT> is not supported; consider introducing a ghost
 RuntimeTypeTests0.dfy(97,25): Error: compilation of map<TRAIT, _> or map<_, TRAIT> is not supported; consider introducing a ghost
 
 Dafny program verifier finished with 0 verified, 0 errors
 RuntimeTypeTests0.dfy(49,9): Error: compilation does not support trait types as a type parameter; consider introducing a ghost
 RuntimeTypeTests0.dfy(58,9): Error: compilation does not support trait types as a type parameter; consider introducing a ghost
-RuntimeTypeTests0.dfy(87,6): Error: compilation of multiset<TRAIT> is not supported; consider introducing a ghost
 RuntimeTypeTests0.dfy(97,6): Error: compilation of map<TRAIT, _> or map<_, TRAIT> is not supported; consider introducing a ghost
 File RuntimeTypeTests0/RuntimeTypeTests0.java contains the partially compiled program
 

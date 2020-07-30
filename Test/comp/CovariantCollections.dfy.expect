@@ -1,5 +1,7 @@
 
-Dafny program verifier finished with 8 verified, 0 errors
+Dafny program verifier finished with 12 verified, 0 errors
+
+Dafny program verifier finished with 0 verified, 0 errors
 Sequences: [] [17, 82, 17, 82] [12, 17]
   cardinality: 0 4 2
   update: [42, 82, 17, 82] [42, 17]
@@ -21,8 +23,18 @@ Sets: {} {17, 82} {12, 17}
   subset: true false true
   proper subset: true false false
   membership: false true true
+Multisets: {} {17, 17, 82, 82} {12, 17}
+  cardinality: 0 4 2
+  update: {17, 17, 42, 42, 42} {12, 17, 42}
+  multiplicity: 2 0 20
+  union: {17, 17, 82, 82} {12, 17, 17, 17, 82, 82}
+  intersection: {} {17, 82, 82}
+  difference: {} {17, 82, 82}
+  subset: true false true
+  proper subset: true false false
+  membership: false true true
 
-Dafny program verifier finished with 8 verified, 0 errors
+Dafny program verifier finished with 0 verified, 0 errors
 Sequences: [] [17, 82, 17, 82] [12, 17]
   cardinality: 0 4 2
   update: [42, 82, 17, 82] [42, 17]
@@ -44,8 +56,18 @@ Sets: {} {17, 82} {12, 17}
   subset: true false true
   proper subset: true false false
   membership: false true true
+Multisets: {} {17, 17, 82, 82} {12, 17}
+  cardinality: 0 4 2
+  update: {17, 17, 42, 42, 42} {12, 17, 42}
+  multiplicity: 2 0 20
+  union: {17, 17, 82, 82} {12, 17, 17, 17, 82, 82}
+  intersection: {} {17, 82, 82}
+  difference: {} {17, 82, 82}
+  subset: true false true
+  proper subset: true false false
+  membership: false true true
 
-Dafny program verifier finished with 8 verified, 0 errors
+Dafny program verifier finished with 0 verified, 0 errors
 Sequences: [] [17, 82, 17, 82] [12, 17]
   cardinality: 0 4 2
   update: [42, 82, 17, 82] [42, 17]
@@ -67,8 +89,18 @@ Sets: {} {17, 82} {12, 17}
   subset: true false true
   proper subset: true false false
   membership: false true true
+Multisets: {} {17, 17, 82, 82} {12, 17}
+  cardinality: 0 4 2
+  update: {17, 17, 42, 42, 42} {12, 17, 42}
+  multiplicity: 2 0 20
+  union: {17, 17, 82, 82} {12, 17, 17, 17, 82, 82}
+  intersection: {} {17, 82, 82}
+  difference: {} {17, 82, 82}
+  subset: true false true
+  proper subset: true false false
+  membership: false true true
 
-Dafny program verifier finished with 8 verified, 0 errors
+Dafny program verifier finished with 0 verified, 0 errors
 Sequences: [] [17, 82, 17, 82] [12, 17]
   cardinality: 0 4 2
   update: [42, 82, 17, 82] [42, 17]
@@ -87,6 +119,16 @@ Sets: {} {17, 82} {12, 17}
   union: {17, 82} {12, 17, 82}
   intersection: {} {17}
   difference: {} {82}
+  subset: true false true
+  proper subset: true false false
+  membership: false true true
+Multisets: {} {17, 17, 82, 82} {12, 17}
+  cardinality: 0 4 2
+  update: {17, 17, 42, 42, 42} {12, 17, 42}
+  multiplicity: 2 0 20
+  union: {17, 17, 82, 82} {12, 17, 17, 17, 82, 82}
+  intersection: {} {17, 82, 82}
+  difference: {} {17, 82, 82}
   subset: true false true
   proper subset: true false false
   membership: false true true
