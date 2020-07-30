@@ -529,20 +529,18 @@ namespace Microsoft.Dafny {
       Bpl.IToken tok, out TargetWriter collectionWriter, TargetWriter wr);
 
     /// <summary>
-    /// Emit a simple foreach loop over the elements (called "ingredients") of a collection assembled for the purpose of
-    /// compiling a "forall" statement.
+    /// Emit a simple foreach loop over the elements (which are known as "ingredients") of a collection assembled for
+    /// the purpose of compiling a "forall" statement.
     ///
     ///     foreach (boundVarName:boundVarType in [[coll]]) {
     ///       [[body]]
     ///     }
-    /// Options:
-    ///   * Additionally, "boundVarType" can be "null", which says for the target language to infer it
-    ///     from "[[collectionWriter]]" (or use a most general type, like "Object" in Java).
     ///
-    /// Note that the values of "collectionElementType" and "introduceBoundVar" are irrelevant when "tmpVarName == null".
+    /// where "boundVarType" is an L-tuple whose components are "tupleTypeArgs" (see EmitIngredients). If "boundVarType" can
+    /// be inferred from the ingredients emitted by EmitIngredients, then "L" and "tupleTypeArgs" can be ignored and
+    /// "boundVarType" be replaced by some target-language way of saying "please infer the type" (like "var" in C#).
     /// </summary>
-    protected abstract BlockTargetWriter CreateForeachIngredientLoop(string boundVarName, Type/*?*/ boundVarType,
-      Bpl.IToken tok, out TargetWriter collectionWriter, TargetWriter wr);
+    protected abstract BlockTargetWriter CreateForeachIngredientLoop(string boundVarName, int L, string tupleTypeArgs, out TargetWriter collectionWriter, TargetWriter wr);
 
     /// <summary>
     /// If "initCall" is non-null, then "initCall.Method is Constructor".
@@ -2864,7 +2862,7 @@ namespace Microsoft.Dafny {
           //   }
           TargetWriter collWriter;
           TargetTupleSize = L;
-          wr = CreateForeachIngredientLoop(tup, null, stmt.Tok, out collWriter, wrOuter);
+          wr = CreateForeachIngredientLoop(tup, L, tupleTypeArgs, out collWriter, wrOuter);
           collWriter.Write(ingredients);
           {
             var wTup = new TargetWriter(wr.IndentLevel, true);

@@ -1271,8 +1271,8 @@ namespace Microsoft.Dafny
       return wwr;
     }
 
-    protected override BlockTargetWriter CreateForeachIngredientLoop(string boundVarName, Type /*?*/ boundVarType, Bpl.IToken tok, out TargetWriter collectionWriter, TargetWriter wr) {
-      wr.Write("foreach ({1} {0} in ", boundVarName, boundVarType == null ? "var" : TypeName(boundVarType, wr, tok));
+    protected override BlockTargetWriter CreateForeachIngredientLoop(string boundVarName, int L, string tupleTypeArgs, out TargetWriter collectionWriter, TargetWriter wr) {
+      wr.Write($"foreach (var {boundVarName} in ");
       collectionWriter = wr.Fork();
       return wr.NewBlock(")");
     }

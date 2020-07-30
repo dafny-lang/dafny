@@ -1152,7 +1152,7 @@ namespace Microsoft.Dafny {
       return wwr;
     }
 
-    protected override BlockTargetWriter CreateForeachIngredientLoop(string boundVarName, Type /*?*/ boundVarType, Bpl.IToken tok, out TargetWriter collectionWriter, TargetWriter wr) {
+    protected override BlockTargetWriter CreateForeachIngredientLoop(string boundVarName, int L, string tupleTypeArgs, out TargetWriter collectionWriter, TargetWriter wr) {
       wr.Write("for (const {0} of ", boundVarName);
       collectionWriter = wr.Fork();
       return wr.NewBlock(")");
