@@ -27,6 +27,7 @@ namespace Microsoft.Dafny
     public override string TargetLanguage => "C#";
 
     protected string DafnyISet => "Dafny.ISet";
+    protected string DafnyIMultiset => "Dafny.IMultiSet";
 
     protected override void EmitHeader(Program program, TargetWriter wr) {
       wr.WriteLine("// Dafny program {0} compiled into C#", program.Name);
@@ -950,10 +951,7 @@ namespace Microsoft.Dafny
         return DafnySeqClass + "<" + TypeName(argType, wr, tok) + ">";
       } else if (xType is MultiSetType) {
         Type argType = ((MultiSetType)xType).Arg;
-        if (ComplicatedTypeParameterForCompilation(argType)) {
-          Error(tok, "compilation of multiset<TRAIT> is not supported; consider introducing a ghost", wr);
-        }
-        return DafnyMultiSetClass + "<" + TypeName(argType, wr, tok) + ">";
+        return DafnyIMultiset + "<" + TypeName(argType, wr, tok) + ">";
       } else if (xType is MapType) {
         Type domType = ((MapType)xType).Domain;
         Type ranType = ((MapType)xType).Range;
@@ -972,6 +970,8 @@ namespace Microsoft.Dafny
         return "Dafny.Sequence" + "<" + CommonTypeName(seqType.Arg, otherType?.AsSeqType?.Arg, wr, tok) + ">";
       } else if (xType is SetType setType) {
         return $"{DafnySetClass}<{CommonTypeName(setType.Arg, otherType?.AsSetType?.Arg, wr, tok)}>";
+      } else if (xType is MultiSetType msType) {
+        return $"{DafnyMultiSetClass}<{CommonTypeName(msType.Arg, otherType?.AsMultiSetType?.Arg, wr, tok)}>";
       } else {
         return TypeName(type, wr, tok);
       }
@@ -2144,35 +2144,29 @@ namespace Microsoft.Dafny
           callString = "Equals"; break;
 
         case BinaryExpr.ResolvedOpcode.ProperSubset:
-          staticCallString = TypeHelperName(e0.Type, errorWr, tok, e1.Type) + ".IsProperSubsetOf"; break;
         case BinaryExpr.ResolvedOpcode.ProperMultiSubset:
-          callString = "IsProperSubsetOf"; break;
+          staticCallString = TypeHelperName(e0.Type, errorWr, tok, e1.Type) + ".IsProperSubsetOf"; break;
         case BinaryExpr.ResolvedOpcode.Subset:
-          staticCallString = TypeHelperName(e0.Type, errorWr, tok, e1.Type) + ".IsSubsetOf"; break;
         case BinaryExpr.ResolvedOpcode.MultiSubset:
-          callString = "IsSubsetOf"; break;
+          staticCallString = TypeHelperName(e0.Type, errorWr, tok, e1.Type) + ".IsSubsetOf"; break;
 
         case BinaryExpr.ResolvedOpcode.Disjoint:
-          staticCallString = TypeHelperName(e0.Type, errorWr, tok, e1.Type) + ".IsDisjointFrom"; break;
         case BinaryExpr.ResolvedOpcode.MultiSetDisjoint:
-          callString = "IsDisjointFrom"; break;
+          staticCallString = TypeHelperName(e0.Type, errorWr, tok, e1.Type) + ".IsDisjointFrom"; break;
         case BinaryExpr.ResolvedOpcode.InSet:
         case BinaryExpr.ResolvedOpcode.InMultiSet:
         case BinaryExpr.ResolvedOpcode.InMap:
           callString = "Contains"; reverseArguments = true; break;
 
         case BinaryExpr.ResolvedOpcode.Union:
-          staticCallString = TypeHelperName(resultType, errorWr, tok) + ".Union"; break;
         case BinaryExpr.ResolvedOpcode.MultiSetUnion:
-          callString = "Union"; break;
+          staticCallString = TypeHelperName(resultType, errorWr, tok) + ".Union"; break;
         case BinaryExpr.ResolvedOpcode.Intersection:
-          staticCallString = TypeHelperName(resultType, errorWr, tok) + ".Intersect"; break;
         case BinaryExpr.ResolvedOpcode.MultiSetIntersection:
-          callString = "Intersect"; break;
+          staticCallString = TypeHelperName(resultType, errorWr, tok) + ".Intersect"; break;
         case BinaryExpr.ResolvedOpcode.SetDifference:
-          staticCallString = TypeHelperName(resultType, errorWr, tok) + ".Difference"; break;
         case BinaryExpr.ResolvedOpcode.MultiSetDifference:
-          callString = "Difference"; break;
+          staticCallString = TypeHelperName(resultType, errorWr, tok) + ".Difference"; break;
 
         case BinaryExpr.ResolvedOpcode.ProperPrefix:
           staticCallString = TypeHelperName(e0.Type, errorWr, e0.tok) + ".IsProperPrefixOf"; break;
