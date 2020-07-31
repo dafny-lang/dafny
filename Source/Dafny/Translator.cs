@@ -6700,8 +6700,7 @@ namespace Microsoft.Dafny {
           //     forall x,y :: R(x,y) ==> var x',y' := project_x(F(x,y)),project_y(F(x,y)); R(x',y') && F(x',y') == F(x,y)
           // that is (without the let expression):
           //     forall x,y :: R(x,y) ==> R(project_x(F(x,y)), project_y(F(x,y))) && F(project_x(F(x,y)), project_y(F(x,y))) == F(x,y)
-          // The triggers for the quantification are:
-          //     { project_x(F(x,y)) } { project_y(F(x,y)) }
+          // The triggers for the quantification are those detected for the given map comprehension, if any.
           List<Bpl.Variable> bvs;
           List<Bpl.Expr> args;
           CreateBoundVariables(mc.BoundVars, out bvs, out args);
@@ -6715,12 +6714,11 @@ namespace Microsoft.Dafny {
           }
           var R = etran.TrExpr(Substitute(mc.Range, null, substMap));
           var F = etran.TrExpr(Substitute(mc.TermLeft, null, substMap));
+          var trig = TrTrigger(etran, e.Attributes, expr.tok, substMap);
           substMap = new Dictionary<IVariable, Expression>();
-          Bpl.Trigger trig = null;
           for (var i = 0; i < mc.BoundVars.Count; i++) {
             var p = new Bpl.NAryExpr(mc.tok, new Bpl.FunctionCall(mc.ProjectionFunctions[i]), new List<Bpl.Expr> { F });
             substMap.Add(e.BoundVars[i], new BoogieWrapper(p, e.BoundVars[i].Type));
-            trig = new Bpl.Trigger(mc.tok, true, new List<Bpl.Expr> { p }, trig);
           }
           var Rprime = etran.TrExpr(Substitute(mc.Range, null, substMap));
           var Fprime = etran.TrExpr(Substitute(mc.TermLeft, null, substMap));
