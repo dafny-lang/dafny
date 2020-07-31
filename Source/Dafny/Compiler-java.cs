@@ -692,9 +692,6 @@ namespace Microsoft.Dafny{
       } else if (xType is MapType) {
         var domType = ((MapType)xType).Domain;
         var ranType = ((MapType)xType).Range;
-        if (ComplicatedTypeParameterForCompilation(domType) || ComplicatedTypeParameterForCompilation(ranType)) {
-          Error(tok, "compilation of map<TRAIT, _> or map<_, TRAIT> is not supported; consider introducing a ghost", wr);
-        }
         if (erased) {
           return DafnyMapClass;
         }
@@ -1517,6 +1514,11 @@ namespace Microsoft.Dafny{
     protected override void EmitIndexCollectionUpdate(Expression source, Expression index, Expression value, CollectionType resultCollectionType, bool inLetExprBody, TargetWriter wr) {
       if (source.Type.AsSeqType != null) {
         wr.Write($"{DafnySeqClass}.<{BoxedTypeName(resultCollectionType.Arg, wr, Bpl.Token.NoToken)}>update(");
+        TrExpr(source, wr, inLetExprBody);
+        wr.Write(", ");
+      } else if (source.Type.AsMapType != null) {
+        var mapType = (MapType)resultCollectionType;
+        wr.Write($"{DafnyMapClass}.<{BoxedTypeName(mapType.Domain, wr, Bpl.Token.NoToken)}, {BoxedTypeName(mapType.Range, wr, Bpl.Token.NoToken)}>update(");
         TrExpr(source, wr, inLetExprBody);
         wr.Write(", ");
       } else {
