@@ -4423,7 +4423,7 @@ namespace Microsoft.Dafny {
         EmitSetComprehension(wr, expr, collection_name);
         var n = e.BoundVars.Count;
         Contract.Assert(e.Bounds.Count == n);
-        for (int i = 0; i < n; i++) {
+        for (var i = 0; i < n; i++) {
           var bound = e.Bounds[i];
           var bv = e.BoundVars[i];
           TargetWriter collectionWriter;
@@ -4460,31 +4460,34 @@ namespace Microsoft.Dafny {
         var domtypeName = TypeName(e.Type.AsMapType.Domain, wr, e.tok);
         var rantypeName = TypeName(e.Type.AsMapType.Range, wr, e.tok);
         var collection_name = idGenerator.FreshId("_coll");
-        wr = CreateIIFE0(e.Type.AsMapType, e.tok, wr);
+        var bwr = CreateIIFE0(e.Type.AsMapType, e.tok, wr);
+        wr = bwr;
         using (var wrVarInit = DeclareLocalVar(collection_name, null, null, wr, e.Type.AsMapType)){
           EmitCollectionBuilder_New(e.Type.AsMapType, e.tok, wrVarInit);
         }
         var n = e.BoundVars.Count;
-        Contract.Assert(e.Bounds.Count == n && n == 1);
-        var bound = e.Bounds[0];
-        var bv = e.BoundVars[0];
-        Contract.Assume(e.BoundVars.Count == 1);  // TODO: implement the case where e.BoundVars.Count > 1
-        TargetWriter collectionWriter;
-        var tmpVar = idGenerator.FreshId("_compr_");
-        var w = CreateForeachLoop(tmpVar, GetCollectionEnumerationType(bound, bv), IdName(bv), bv.Type, true, bv.tok, out collectionWriter, wr);
-        CompileCollection(bound, bv, inLetExprBody, true, null, collectionWriter);
+        Contract.Assert(e.Bounds.Count == n);
+        for (var i = 0; i < n; i++) {
+          var bound = e.Bounds[i];
+          var bv = e.BoundVars[i];
+          TargetWriter collectionWriter;
+          var tmpVar = idGenerator.FreshId("_compr_");
+          wr = CreateForeachLoop(tmpVar, GetCollectionEnumerationType(bound, bv), IdName(bv), bv.Type, true, bv.tok, out collectionWriter, wr);
+          CompileCollection(bound, bv, inLetExprBody, true, null, collectionWriter);
+        }
         TargetWriter guardWriter;
-        var thn = EmitIf(out guardWriter, false, w);
+        var thn = EmitIf(out guardWriter, false, wr);
         TrExpr(e.Range, guardWriter, inLetExprBody);
         var termLeftWriter = EmitMapBuilder_Add(e.Type.AsMapType, e.tok, collection_name, e.Term, inLetExprBody, thn);
         if (e.TermLeft == null) {
-          termLeftWriter.Write(IdName(bv));
+          Contract.Assert(e.BoundVars.Count == 1);
+          termLeftWriter.Write(IdName(e.BoundVars[0]));
         } else {
           TrExpr(e.TermLeft, termLeftWriter, inLetExprBody);
         }
 
         var s = GetCollectionBuilder_Build(e.Type.AsMapType, e.tok, collection_name, wr);
-        EmitReturnExpr(s, wr);
+        EmitReturnExpr(s, bwr);
 
       } else if (expr is LambdaExpr) {
         LambdaExpr e = (LambdaExpr)expr;
