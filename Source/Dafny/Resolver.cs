@@ -5728,14 +5728,14 @@ namespace Microsoft.Dafny
             }
             if ((e is SetComprehension && ((SetComprehension)e).Finite) || (e is MapComprehension && ((MapComprehension)e).Finite)) {
               // the comprehension had better produce a finite set
-              if (e is SetComprehension && e.Type.HasFinitePossibleValues) {
+              if (e.Type.HasFinitePossibleValues) {
                 // This means the set is finite, regardless of if the Range is bounded.  So, we don't give any error here.
                 // However, if this expression is used in a non-ghost context (which is not yet known at this stage of
                 // resolution), the resolver will generate an error about that later.
               } else {
                 // we cannot be sure that the set/map really is finite
                 foreach (var bv in ComprehensionExpr.BoundedPool.MissingBounds(e.BoundVars, e.Bounds, ComprehensionExpr.BoundedPool.PoolVirtues.Finite)) {
-                  resolver.reporter.Error(MessageSource.Resolver, e, "a {0} must produce a finite set, but Dafny's heuristics can't figure out how to produce a bounded set of values for '{1}'", what, bv.Name);
+                  resolver.reporter.Error(MessageSource.Resolver, e, "the result of a {0} must be finite, but Dafny's heuristics can't figure out how to produce a bounded set of values for '{1}'", what, bv.Name);
                 }
               }
             }
