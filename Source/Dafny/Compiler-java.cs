@@ -1514,10 +1514,9 @@ namespace Microsoft.Dafny{
       wr.Write(".asDafnyMultiset()");
     }
 
-    protected override void EmitIndexCollectionUpdate(Expression source, Expression index, Expression value, Type resultElementType, bool inLetExprBody,
-      TargetWriter wr, bool nativeIndex = false) {
+    protected override void EmitIndexCollectionUpdate(Expression source, Expression index, Expression value, CollectionType resultCollectionType, bool inLetExprBody, TargetWriter wr) {
       if (source.Type.AsSeqType != null) {
-        wr.Write($"{DafnySeqClass}.<{BoxedTypeName(resultElementType, wr, Bpl.Token.NoToken)}>update(");
+        wr.Write($"{DafnySeqClass}.<{BoxedTypeName(resultCollectionType.Arg, wr, Bpl.Token.NoToken)}>update(");
         TrExpr(source, wr, inLetExprBody);
         wr.Write(", ");
       } else {

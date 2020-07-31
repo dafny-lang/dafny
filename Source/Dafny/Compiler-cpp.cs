@@ -1774,7 +1774,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    protected override void EmitIndexCollectionUpdate(Expression source, Expression index, Expression value, Type resultElementType, bool inLetExprBody, TargetWriter wr, bool nativeIndex = false) {
+    protected override void EmitIndexCollectionUpdate(Expression source, Expression index, Expression value, CollectionType resultCollectionType, bool inLetExprBody, TargetWriter wr) {
       TrParenExpr(source, wr, inLetExprBody);
       wr.Write(".update(");
       TrExpr(index, wr, inLetExprBody);

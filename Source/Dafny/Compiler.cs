@@ -745,7 +745,7 @@ namespace Microsoft.Dafny {
     }
     protected abstract void EmitExprAsInt(Expression expr, bool inLetExprBody, TargetWriter wr);
     protected abstract void EmitIndexCollectionSelect(Expression source, Expression index, bool inLetExprBody, TargetWriter wr);
-    protected abstract void EmitIndexCollectionUpdate(Expression source, Expression index, Expression value, Type resultElementType, bool inLetExprBody, TargetWriter wr, bool nativeIndex = false);
+    protected abstract void EmitIndexCollectionUpdate(Expression source, Expression index, Expression value, CollectionType resultCollectionType, bool inLetExprBody, TargetWriter wr);
     protected virtual void EmitIndexCollectionUpdate(out TargetWriter wSource, out TargetWriter wIndex, out TargetWriter wValue, TargetWriter wr, bool nativeIndex = false) {
       wSource = wr.Fork();
       wr.Write('[');
@@ -4146,7 +4146,7 @@ namespace Microsoft.Dafny {
         } else {
           var collectionType = e.Type.AsCollectionType;
           Contract.Assert(collectionType != null);
-          EmitIndexCollectionUpdate(e.Seq, e.Index, e.Value, collectionType.Arg, inLetExprBody, wr);
+          EmitIndexCollectionUpdate(e.Seq, e.Index, e.Value, collectionType, inLetExprBody, wr);
         }
 
       } else if (expr is FunctionCallExpr) {
