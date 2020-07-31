@@ -6,6 +6,7 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using OmniSharp.Extensions.LanguageServer.Protocol.Server;
 using OmniSharp.Extensions.LanguageServer.Protocol.Server.Capabilities;
 using OmniSharp.Extensions.LanguageServer.Protocol.Shared;
+using OmniSharp.Extensions.LanguageServer.Protocol.Window;
 using OmniSharp.Extensions.LanguageServer.Server;
 using System;
 using System.Collections.Generic;
@@ -27,12 +28,13 @@ namespace Microsoft.Dafny.LSPServer
 
     static DafnyLSPServer()
     {
-      //Dafny.DafnyOptions.Install(new Dafny.DafnyOptions(new DiagnosticErrorReporter()));
+      DafnyOptions.Install(new Dafny.DafnyOptions(null));
+      CommandLineOptions.Clo.Z3ExecutablePath = "C:\\Users\\Steen\\source\\repos\\dafny\\Binaries\\z3.exe";
+      CommandLineOptions.Clo.ApplyDefaultOptions();
     }
 
     private DafnyLSPServer()
     {
-
     }
 
     public static async Task<DafnyLSPServer> Start(PipeReader input, PipeWriter output)
@@ -45,6 +47,7 @@ namespace Microsoft.Dafny.LSPServer
     LanguageServerOptions GetServerOptions(PipeReader input, PipeWriter output)
     {
       var options = new LanguageServerOptions();
+
       options.WithOutput(output);
       options.WithInput(input);
 
@@ -112,7 +115,7 @@ namespace Microsoft.Dafny.LSPServer
       var path = uri.GetFileSystemPath();
       var fileName = Path.GetFileName(path);
 
-      var parseCode = Microsoft.Dafny.Parser.Parse(document.Text, fileName, fileName, module, builtIns, errorReporter);
+      var parseCode = Parser.Parse(document.Text, fileName, fileName, module, builtIns, errorReporter);
       if (parseCode != 0)
         return;
 
@@ -138,7 +141,7 @@ namespace Microsoft.Dafny.LSPServer
 
     }
 
-    private bool BoogieOnce(string moduleName, Microsoft.Boogie.Program boogieProgram, DiagnosticErrorReporter errorReporter)
+    private bool BoogieOnce(string moduleName, Boogie.Program boogieProgram, DiagnosticErrorReporter errorReporter)
     {
       if (boogieProgram.Resolve() == 0 && boogieProgram.Typecheck() == 0)
       { //FIXME ResolveAndTypecheck?

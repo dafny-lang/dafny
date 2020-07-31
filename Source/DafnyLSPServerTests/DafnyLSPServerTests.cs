@@ -23,10 +23,6 @@ namespace Microsoft.Dafny.LSPServer.Tests
     [Fact()]
     public async void StartTest()
     {
-      DafnyOptions.Install(new Dafny.DafnyOptions(null));
-      CommandLineOptions.Clo.Z3ExecutablePath = "C:\\Users\\Steen\\source\\repos\\dafny\\Binaries\\z3.exe";
-      CommandLineOptions.Clo.ApplyDefaultOptions();
-
       var clientToServerPipe = new Pipe();
       var serverToClientPipe = new Pipe();
 
