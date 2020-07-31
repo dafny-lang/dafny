@@ -70,5 +70,53 @@ Execution trace:
     (0,0): anon30_Then
     (0,0): anon31_Then
     (0,0): anon20
+Maps.dfy(309,11): Error: index out of range
+Execution trace:
+    (0,0): anon0
+    (0,0): anon3_Then
+Maps.dfy(311,16): Error: value does not satisfy the subset constraints of 'nat'
+Execution trace:
+    (0,0): anon0
+    (0,0): anon3_Else
+Maps.dfy(317,11): Error: value does not satisfy the subset constraints of 'nat'
+Execution trace:
+    (0,0): anon0
+    (0,0): anon3_Then
+Maps.dfy(319,16): Error: new number of occurrences might be negative
+Execution trace:
+    (0,0): anon0
+    (0,0): anon3_Else
+Maps.dfy(328,11): Error: value does not satisfy the subset constraints of 'nat'
+Execution trace:
+    (0,0): anon0
+    (0,0): anon3_Then
+Maps.dfy(330,17): Error: value does not satisfy the subset constraints of 'nat'
+Execution trace:
+    (0,0): anon0
+    (0,0): anon3_Else
+Maps.dfy(339,11): Error: index out of range
+Execution trace:
+    (0,0): anon0
+    (0,0): anon3_Then
+Maps.dfy(341,16): Error: value does not satisfy the subset constraints of 'Elem' (it may be null)
+Execution trace:
+    (0,0): anon0
+    (0,0): anon3_Else
+Maps.dfy(347,11): Error: value does not satisfy the subset constraints of 'Elem' (it may be null)
+Execution trace:
+    (0,0): anon0
+    (0,0): anon3_Then
+Maps.dfy(349,16): Error: new number of occurrences might be negative
+Execution trace:
+    (0,0): anon0
+    (0,0): anon3_Else
+Maps.dfy(358,11): Error: value does not satisfy the subset constraints of 'Elem' (it may be null)
+Execution trace:
+    (0,0): anon0
+    (0,0): anon3_Then
+Maps.dfy(360,16): Error: value does not satisfy the subset constraints of 'Elem' (it may be null)
+Execution trace:
+    (0,0): anon0
+    (0,0): anon3_Else
 
-Dafny program verifier finished with 27 verified, 10 errors
+Dafny program verifier finished with 29 verified, 22 errors

@@ -7310,7 +7310,7 @@ namespace Microsoft.Dafny {
           options.AssertSink(this, builder)(expr.tok, Bpl.Expr.SelectTok(expr.tok, etran.TheFrame(expr.tok), array, fieldName), "insufficient reads clause to read array element", options.AssertKv);
         }
       } else if (expr is SeqUpdateExpr) {
-        SeqUpdateExpr e = (SeqUpdateExpr)expr;
+        var e = (SeqUpdateExpr)expr;
         if (e.ResolvedUpdateExpr != null) {
           CheckWellformedWithResult(e.ResolvedUpdateExpr, options, result, resultType, locals, builder, etran);
         } else {
@@ -7318,18 +7318,25 @@ namespace Microsoft.Dafny {
           Bpl.Expr seq = etran.TrExpr(e.Seq);
           Bpl.Expr index = etran.TrExpr(e.Index);
           Bpl.Expr value = etran.TrExpr(e.Value);
+          var collectionType = (CollectionType)e.Seq.Type.NormalizeExpand();
+          // validate index
           CheckWellformed(e.Index, options, locals, builder, etran);
-          var eSeqType = e.Seq.Type.NormalizeExpand();
-          if (eSeqType is SeqType) {
-            builder.Add(Assert(expr.tok, InSeqRange(expr.tok, index, e.Index.Type, seq, true, null, false), "index out of range", options.AssertKv));
-          } else if (eSeqType is MapType) {
-            // updates to maps are always valid if the values are well formed
-          } else if (eSeqType is MultiSetType) {
-            builder.Add(Assert(expr.tok, Bpl.Expr.Le(Bpl.Expr.Literal(0), value), "new number of occurrences might be negative", options.AssertKv));
+          if (collectionType is SeqType) {
+            builder.Add(Assert(e.Index.tok, InSeqRange(expr.tok, index, e.Index.Type, seq, true, null, false), "index out of range", options.AssertKv));
+          } else {
+            CheckSubrange(e.Index.tok, index, e.Index.Type, collectionType.Arg, builder);
+          }
+          // validate value
+          CheckWellformed(e.Value, options, locals, builder, etran);
+          if (collectionType is SeqType) {
+            CheckSubrange(e.Value.tok, value, e.Value.Type, collectionType.Arg, builder);
+          } else if (collectionType is MapType mapType) {
+            CheckSubrange(e.Value.tok, value, e.Value.Type, mapType.Range, builder);
+          } else if (collectionType is MultiSetType) {
+            builder.Add(Assert(e.Value.tok, Bpl.Expr.Le(Bpl.Expr.Literal(0), value), "new number of occurrences might be negative", options.AssertKv));
           } else {
             Contract.Assert(false);
           }
-          CheckWellformed(e.Value, options, locals, builder, etran);
         }
       } else if (expr is ApplyExpr) {
         var e = (ApplyExpr)expr;

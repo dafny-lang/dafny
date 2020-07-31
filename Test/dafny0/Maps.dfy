@@ -300,3 +300,63 @@ method GeneralMaps8''() {
   ghost var c4 := map x: int | 0 <= x < 10 && Thirteen(x) :: true := 6;
   assert c4 == map[];
 }
+
+// ---------- update tests for seq, multiset, map ----------
+
+method UpdateValiditySeq() {
+  var s: seq<nat> := [4, 4, 4, 4, 4];
+  if * {
+    s := s[10 := 4];  // error: index out of range
+  } else {
+    s := s[1 := -5];  // error: given value is not a nat
+  }
+}
+method UpdateValidityMultiset() {
+  var s: multiset<nat>;
+  if * {
+    s := s[-2 := 5];  // error: element value is not a nat
+  } else {
+    s := s[2 := -5];  // error: new number of occurrences is negative
+  }
+}
+method UpdateValidityMap(mm: map<int, int>)
+  requires forall k :: k in mm.Keys ==> 0 <= k
+  requires forall k :: k in mm.Keys ==> 0 <= mm[k]
+{
+  var m: map<nat, nat> := mm;  // conversion justified by precondition
+  if * {
+    m := m[-2 := 10];  // error: key is not a nat
+  } else {
+    m := m[10 := -2];  // error: value is not a nat
+  }
+}
+
+class Elem { }
+
+method UpdateValiditySeqNull(d: Elem?, e: Elem) {
+  var s: seq<Elem> := [e, e, e, e, e];
+  if * {
+    s := s[10 := e];  // error: index out of range
+  } else {
+    s := s[1 := d];  // error: given value is not a Elem
+  }
+}
+method UpdateValidityMultisetNull(d: Elem?, e: Elem) {
+  var s: multiset<Elem>;
+  if * {
+    s := s[d := 5];  // error: element value is not a Elem
+  } else {
+    s := s[e := -5];  // error: new number of occurrences is negative
+  }
+}
+method UpdateValidityMapNull(mm: map<Elem?, Elem?>, d: Elem?, e: Elem)
+  requires forall k :: k in mm.Keys ==> k != null
+  requires forall k :: k in mm.Keys ==> mm[k] != null
+{
+  var m: map<Elem, Elem> := mm;  // conversion justified by precondition
+  if * {
+    m := m[d := e];  // error: key is not a Elem
+  } else {
+    m := m[e := d];  // error: value is not a Elem
+  }
+}
