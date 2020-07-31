@@ -13,6 +13,7 @@ using BplParser = Microsoft.Boogie.Parser;
 using System.Text;
 using Microsoft.Boogie;
 using System.IO;
+using System.Reflection;
 
 namespace Microsoft.Dafny {
 
@@ -698,13 +699,10 @@ namespace Microsoft.Dafny {
       string fileName = "DafnyPrelude.bpl";
       if (preludePath == null)
       {
-        var preludeAssemblyName = System.Reflection.Assembly.GetExecutingAssembly().GetManifestResourceNames().First(s => s.EndsWith(fileName));
-        using (Stream stream = cce.NonNull(System.Reflection.Assembly.GetExecutingAssembly().GetManifestResourceStream(preludeAssemblyName)))
-        using (StreamReader streamReader = new StreamReader(stream))
+        var preludeAssemblyName = Assembly.GetExecutingAssembly().GetManifestResourceNames().First(s => s.EndsWith(fileName));
+        using (Stream stream = cce.NonNull(Assembly.GetExecutingAssembly().GetManifestResourceStream(preludeAssemblyName)))
         {
-          var preludeString = streamReader.ReadToEnd();
-          errorCount = BplParser.Parse(preludeString, fileName, out prelude);
-          // TODO missing defines since I can't parse it to the parse that expects source!!!
+          errorCount = BplParser.Parse(stream, fileName, defines, out prelude);
         }
       }
       else

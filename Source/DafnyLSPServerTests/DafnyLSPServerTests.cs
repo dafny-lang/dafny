@@ -12,62 +12,67 @@ using OmniSharp.Extensions.LanguageServer.Protocol;
 using System.IO.Pipelines;
 using OmniSharp.Extensions.LanguageServer.Protocol.General;
 using System.Windows;
+using Microsoft.Boogie;
+using System.Reflection;
+using System.IO;
 
 namespace Microsoft.Dafny.LSPServer.Tests
 {
-    public class DafnyLSPServerTests
+  public class DafnyLSPServerTests
+  {
+    [Fact()]
+    public async void StartTest()
     {
-        [Fact()]
-        public async void StartTest()
-        {
-            DafnyOptions.Install(new Dafny.DafnyOptions(null));
-            DafnyOptions.O.DafnyPrelude = "./DafnyPrelude.bpl";
+      DafnyOptions.Install(new Dafny.DafnyOptions(null));
+      CommandLineOptions.Clo.Z3ExecutablePath = "C:\\Users\\Steen\\source\\repos\\dafny\\Binaries\\z3.exe";
+      CommandLineOptions.Clo.ApplyDefaultOptions();
 
-            var clientToServerPipe = new Pipe();
-            var serverToClientPipe = new Pipe();
+      var clientToServerPipe = new Pipe();
+      var serverToClientPipe = new Pipe();
 
-            var serverTask = DafnyLSPServer.Start(clientToServerPipe.Reader, serverToClientPipe.Writer);
+      var serverTask = DafnyLSPServer.Start(clientToServerPipe.Reader, serverToClientPipe.Writer);
             
-            var someUri = DocumentUri.File("foo");
-            var content = "Bar";
-            LanguageClientOptions clientOptions = new LanguageClientOptions();
-            clientOptions.WithInput(serverToClientPipe.Reader);
-            clientOptions.WithOutput(clientToServerPipe.Writer);
-            var client = await LanguageClient.From(clientOptions);
-            await serverTask;
-            await client.RequestLanguageProtocolInitialize(new InitializeParams
-            {
-            });
+      var someUri = DocumentUri.File("containsAnInvalidAssertion");
+      var content = "method selftest() { assert false; }";
+      LanguageClientOptions clientOptions = new LanguageClientOptions();
+      clientOptions.WithInput(serverToClientPipe.Reader);
+      clientOptions.WithOutput(clientToServerPipe.Writer);
+      var client = await LanguageClient.From(clientOptions);
+      await serverTask;
+      await client.RequestLanguageProtocolInitialize(new InitializeParams
+      {
+      });
 
-            client.DidOpenTextDocument(new DidOpenTextDocumentParams
-            {
-                TextDocument = new TextDocumentItem
-                {
-                    Uri = someUri,
-                    Text = content
-                }
-            });
-            client.DidChangeTextDocument(new DidChangeTextDocumentParams
-            {
-                TextDocument = new VersionedTextDocumentIdentifier
-                {
-                    Uri = someUri
-                },
-                ContentChanges = new List<TextDocumentContentChangeEvent>()
-            });
+      client.DidOpenTextDocument(new DidOpenTextDocumentParams
+      {
+          TextDocument = new TextDocumentItem
+          {
+              Uri = someUri,
+              Text = content
+          }
+      });
+      client.DidChangeTextDocument(new DidChangeTextDocumentParams
+      {
+          TextDocument = new VersionedTextDocumentIdentifier
+          {
+              Uri = someUri
+          },
+          ContentChanges = new List<TextDocumentContentChangeEvent>()
+      });
 
-            var diagnosticsReceivedSource = new TaskCompletionSource<PublishDiagnosticsParams>();
-            var diagnosticsReceived = diagnosticsReceivedSource.Task;
-            client.Register(clientRegistry =>
-            {
-                PublishDiagnosticsExtensions.OnPublishDiagnostics(clientRegistry, diagnosticsParams =>
-                {
-                    diagnosticsReceivedSource.SetResult(diagnosticsParams);
-                });
-            });
+      var diagnosticsReceivedSource = new TaskCompletionSource<PublishDiagnosticsParams>();
+      var diagnosticsReceived = diagnosticsReceivedSource.Task;
+      client.Register(clientRegistry =>
+      {
+          PublishDiagnosticsExtensions.OnPublishDiagnostics(clientRegistry, diagnosticsParams =>
+          {
+              diagnosticsReceivedSource.SetResult(diagnosticsParams);
+          });
+      });
 
-            var diagnosticsparams = await diagnosticsReceived;
-            Assert.True(!diagnosticsparams.Diagnostics.Any());
-        }
+      var diagnosticsparams = await diagnosticsReceived;
+      Assert.True(diagnosticsparams.Diagnostics.Count() == 1);
+      Assert.Contains("assertion violation", diagnosticsparams.Diagnostics.First().Message);
     }
+  }
 }

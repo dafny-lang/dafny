@@ -106,6 +106,9 @@
     <Reference Include="OmniSharp.Extensions.LanguageServer.Shared, Version=0.17.0.0, Culture=neutral, PublicKeyToken=6d868dff454e6022, processorArchitecture=MSIL">
       <HintPath>..\packages\OmniSharp.Extensions.LanguageServer.Shared.0.17.3\lib\netstandard2.0\OmniSharp.Extensions.LanguageServer.Shared.dll</HintPath>
     </Reference>
+    <Reference Include="Provers.SMTLib">
+      <HintPath>..\..\..\boogie\Binaries\Provers.SMTLib.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Buffers, Version=4.0.3.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
       <HintPath>..\packages\System.Buffers.4.5.1\lib\net461\System.Buffers.dll</HintPath>
@@ -194,11 +197,6 @@
       <Project>{fe44674a-1633-4917-99f4-57635e6fa740}</Project>
       <Name>DafnyPipeline</Name>
     </ProjectReference>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="DafnyPrelude.bpl">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
   </ItemGroup>
   <Choose>
     <When Condition="'$(VisualStudioVersion)' == '10.0' And '$(IsCodedUITest)' == 'True'">
