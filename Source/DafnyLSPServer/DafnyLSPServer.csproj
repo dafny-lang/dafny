@@ -166,6 +166,7 @@
   <ItemGroup>
     <Compile Include="BoogieOutputPrinter.cs" />
     <Compile Include="BoogieOutputPrinterAdapter.cs" />
+    <Compile Include="BoogieUtility.cs" />
     <Compile Include="DiagnosticErrorReporter.cs" />
     <Compile Include="DafnyLSPServer.cs" />
     <Compile Include="PositionUtility.cs" />

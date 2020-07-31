@@ -6,7 +6,7 @@ namespace Microsoft.Dafny.LSPServer
   {
     public static Range ToSingleLengthRange(this Position position)
     {
-      return new Range(position, new Position(position.Line, position.Character));
+      return new Range(position, new Position(position.Line, position.Character + 1));
     }
 
   }

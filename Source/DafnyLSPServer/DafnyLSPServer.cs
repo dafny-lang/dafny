@@ -75,34 +75,41 @@ namespace Microsoft.Dafny.LSPServer
     {
       var registrationOptions = new TextDocumentRegistrationOptions();
       capabilities.TextDocumentSync = new TextDocumentSync(TextDocumentSyncKind.Full);
-      options.OnDidOpenTextDocument(didOpenParams => DocumentManager.Open(didOpenParams), registrationOptions);
+      options.OnDidOpenTextDocument(didOpenParams => {
+        DocumentManager.Open(didOpenParams);
+        ProcessDocumentChange(didOpenParams.TextDocument.Uri);
+      }, registrationOptions);
 
       var changeRegistrationOptions = new TextDocumentChangeRegistrationOptions();
       options.OnDidChangeTextDocument(didChangeParams =>
       {
         DocumentManager.Change(didChangeParams);
-        var errorReporter = new DiagnosticErrorReporter();
-        Compile(errorReporter, didChangeParams.TextDocument.Uri);
-
-        if (errorReporter.Diagnostics.Any())
-        {
-          PublishDiagnosticsParams diagnosticsParams = new PublishDiagnosticsParams();
-          diagnosticsParams.Uri = didChangeParams.TextDocument.Uri;
-
-          diagnosticsParams.Diagnostics = errorReporter.Diagnostics.First().Value;
-          server.PublishDiagnostics(diagnosticsParams);
-        }
-
+        ProcessDocumentChange(didChangeParams.TextDocument.Uri);
       }, changeRegistrationOptions);
       options.OnDidCloseTextDocument(didCloseParams => DocumentManager.Close(didCloseParams), registrationOptions);
     }
 
-    private void PublishDiagnostics(DocumentUri uri)
+    private void ProcessDocumentChange(DocumentUri uri)
     {
-      PublishDiagnosticsParams diagnosticsParams = new PublishDiagnosticsParams();
-      diagnosticsParams.Uri = uri;
-      diagnosticsParams.Diagnostics = diagnostics[uri];
-      server.PublishDiagnostics(diagnosticsParams);
+      currentFile = uri;
+      var errorReporter = new DiagnosticErrorReporter(this);
+      Compile(errorReporter, uri);
+
+      if (errorReporter.Diagnostics.Any())
+      {
+        PublishDiagnosticsParams diagnosticsParams = new PublishDiagnosticsParams();
+        diagnosticsParams.Uri = uri;
+
+        diagnosticsParams.Diagnostics = errorReporter.Diagnostics.First().Value;
+        server.PublishDiagnostics(diagnosticsParams);
+      }
+    }
+
+    DocumentUri currentFile;
+
+    public DocumentUri FindUriFromFileName(string fileName)
+    {
+      return DocumentUri.FromFileSystemPath(Path.Combine(Path.GetDirectoryName(currentFile.GetFileSystemPath()), fileName));
     }
 
     void Compile(DiagnosticErrorReporter errorReporter, DocumentUri uri)

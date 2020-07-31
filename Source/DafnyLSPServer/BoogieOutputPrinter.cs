@@ -1,5 +1,4 @@
 ﻿using Microsoft.Boogie;
-using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using OmniSharp.Extensions.LanguageServer.Server;
 using System;
 using System.Collections.Generic;
@@ -17,10 +16,6 @@ namespace Microsoft.Dafny.LSPServer
       this.parent = parent;
     }
 
-    private Position BoogieToLspPosition(IToken token)
-    {
-      return new Position(token.line, token.col - 1);
-    }
 
     public override void ReportBplError(IToken token, string message, bool error, TextWriter tw, string category = null)
     {

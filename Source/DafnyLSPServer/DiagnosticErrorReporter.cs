@@ -1,15 +1,23 @@
 ﻿using Microsoft.Boogie;
 using Microsoft.Dafny;
+using OmniSharp.Extensions.LanguageServer.Protocol;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Microsoft.Dafny.LSPServer
 {
 
   class DiagnosticErrorReporter : ErrorReporter
   {
-    Dictionary<string, List<Diagnostic>> diagnostics = new Dictionary<string, List<Diagnostic>>();
+    readonly Dictionary<string, List<Diagnostic>> diagnostics = new Dictionary<string, List<Diagnostic>>();
+    readonly DafnyLSPServer server;
+
+    public DiagnosticErrorReporter(DafnyLSPServer server)
+    {
+      this.server = server;
+    }
 
     public IReadOnlyDictionary<string, List<Diagnostic>> Diagnostics => diagnostics;
 
@@ -22,8 +30,22 @@ namespace Microsoft.Dafny.LSPServer
       {
         Severity = DiagnosticSeverity.Error,
         Message = error.Msg,
-        Range = new Range(new Position(tok.line, tok.col), new Position(tok.line, tok.col + 1))
+        Range = tok.BoogieToLspPosition().ToSingleLengthRange()
       };
+      var relatedInformation = new List<DiagnosticRelatedInformation>();
+      item.RelatedInformation = relatedInformation;
+      foreach (var relatedLocation in error.Aux.Where(e => e.Category == "Related location"))
+      {
+        relatedInformation.Add(new DiagnosticRelatedInformation()
+        {
+          Message = relatedLocation.Msg,
+          Location = new Location()
+          {
+            Range = relatedLocation.Tok.BoogieToLspPosition().ToSingleLengthRange(),
+            Uri = server.FindUriFromFileName(relatedLocation.Tok.filename)
+          }
+        });
+      }
       AddDiagnosticForFile(item, tok.filename);
     }
 
@@ -33,7 +55,7 @@ namespace Microsoft.Dafny.LSPServer
       {
         Severity = ConvertErrorLevel(level),
         Message = msg,
-        Range = new Range(new Position(tok.line, tok.col), new Position(tok.line, tok.col + 1))
+        Range = new Position(tok.line - 1, tok.col -1).ToSingleLengthRange()
       };
       string filename = tok.filename;
       AddDiagnosticForFile(item, filename);
