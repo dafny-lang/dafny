@@ -27,6 +27,7 @@ namespace Microsoft.Dafny
     public override string TargetLanguage => "C#";
 
     protected string DafnyISet => "Dafny.ISet";
+    protected string DafnyIMap => "Dafny.IMap";
 
     protected override void EmitHeader(Program program, TargetWriter wr) {
       wr.WriteLine("// Dafny program {0} compiled into C#", program.Name);
@@ -957,10 +958,7 @@ namespace Microsoft.Dafny
       } else if (xType is MapType) {
         Type domType = ((MapType)xType).Domain;
         Type ranType = ((MapType)xType).Range;
-        if (ComplicatedTypeParameterForCompilation(domType) || ComplicatedTypeParameterForCompilation(ranType)) {
-          Error(tok, "compilation of map<TRAIT, _> or map<_, TRAIT> is not supported; consider introducing a ghost", wr);
-        }
-        return DafnyMapClass + "<" + TypeName(domType, wr, tok) + "," + TypeName(ranType, wr, tok) + ">";
+        return DafnyIMap + "<" + TypeName(domType, wr, tok) + "," + TypeName(ranType, wr, tok) + ">";
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected type
       }
@@ -972,6 +970,10 @@ namespace Microsoft.Dafny
         return "Dafny.Sequence" + "<" + CommonTypeName(seqType.Arg, otherType?.AsSeqType?.Arg, wr, tok) + ">";
       } else if (xType is SetType setType) {
         return $"{DafnySetClass}<{CommonTypeName(setType.Arg, otherType?.AsSetType?.Arg, wr, tok)}>";
+      } else if (xType is MapType mapType) {
+        var domainType = CommonTypeName(mapType.Domain, otherType?.AsMapType?.Domain, wr, tok);
+        var rangeType = CommonTypeName(mapType.Range, otherType?.AsMapType?.Range, wr, tok);
+        return $"{DafnyMapClass}<{domainType}, {rangeType}>";
       } else {
         return TypeName(type, wr, tok);
       }
@@ -1716,7 +1718,8 @@ namespace Microsoft.Dafny
           compiledName = "Values";
           break;
         case SpecialField.ID.Items:
-          compiledName = "Items";
+          preString = $"{DafnyMapClass}.Items(";
+          postString = ")";
           break;
         case SpecialField.ID.Reads:
           compiledName = "_reads";
@@ -1825,15 +1828,24 @@ namespace Microsoft.Dafny
     }
 
     protected override void EmitIndexCollectionSelect(Expression source, Expression index, bool inLetExprBody, TargetWriter wr) {
-      TrParenExpr(source, wr, inLetExprBody);
-      TrParenExpr(".Select", index, wr, inLetExprBody);
+      var xType = source.Type.NormalizeExpand();
+      if (xType is MapType) {
+        wr.Write(TypeHelperName(xType, wr, source.tok) + ".Select(");
+        TrExpr(source, wr, inLetExprBody);
+        wr.Write(",");
+        TrExpr(index, wr, inLetExprBody);
+        wr.Write(")");
+      } else {
+        TrParenExpr(source, wr, inLetExprBody);
+        TrParenExpr(".Select", index, wr, inLetExprBody);
+      }
     }
 
     protected override void EmitIndexCollectionUpdate(Expression source, Expression index, Expression value, CollectionType resultCollectionType, bool inLetExprBody, TargetWriter wr) {
       var xType = source.Type.NormalizeExpand();
-      if (xType is SeqType) {
+      if (xType is SeqType || xType is MapType) {
         wr.Write(TypeHelperName(xType, wr, source.tok) + ".Update(");
-        TrParenExpr(source, wr, inLetExprBody);
+        TrExpr(source, wr, inLetExprBody);
         wr.Write(",");
         TrExpr(index, wr, inLetExprBody);
         wr.Write(", ");
