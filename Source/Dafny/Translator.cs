@@ -12,85 +12,11 @@ using Bpl = Microsoft.Boogie;
 using BplParser = Microsoft.Boogie.Parser;
 using System.Text;
 using Microsoft.Boogie;
+using System.IO;
+using System.Reflection;
 
-namespace Microsoft.Dafny {
-
-  public class FreshIdGenerator
-  {
-    Dictionary<string, int> PrefixToCount = new Dictionary<string, int>();
-
-    public /*spec public*/ readonly Stack<int> Tip = new Stack<int>();
-    string tipString;  // a string representation of Tip
-    int tipChildrenCount = 0;
-    readonly Stack<Dictionary<string, int>> PrefixToCount_Stack = new Stack<Dictionary<string, int>>();  // invariant PrefixToCount_Stack.Count == Tip.Count
-    public void Push() {
-      Tip.Push(tipChildrenCount);
-      tipChildrenCount = 0;
-      tipString = ComputeTipString();
-      PrefixToCount_Stack.Push(PrefixToCount);
-      PrefixToCount = new Dictionary<string, int>();
-    }
-    public void Pop() {
-      Contract.Requires(Tip.Count > 0);
-      int k = Tip.Pop();
-      tipChildrenCount = k + 1;
-      tipString = ComputeTipString();
-      PrefixToCount = PrefixToCount_Stack.Pop();
-    }
-    string ComputeTipString() {
-      string s = null;
-      foreach (var k in Tip) {
-        if (s == null) {
-          s = k.ToString();
-        } else {
-          s = k.ToString() + "_" + s;
-        }
-      }
-      return s;
-    }
-
-    readonly string CommonPrefix = "";
-
-    public FreshIdGenerator()
-    {
-    }
-
-    private FreshIdGenerator(string commonPrefix)
-    {
-      CommonPrefix = commonPrefix;
-    }
-
-    public void Reset()
-    {
-      lock (PrefixToCount)
-      {
-        PrefixToCount.Clear();
-      }
-    }
-
-    public string FreshId(string prefix)
-    {
-      return CommonPrefix + prefix + FreshNumericId(prefix);
-    }
-
-    public FreshIdGenerator NestedFreshIdGenerator(string prefix)
-    {
-      return new FreshIdGenerator(FreshId(prefix));
-    }
-
-    public string FreshNumericId(string prefix = "")
-    {
-      lock (PrefixToCount)
-      {
-        int old;
-        if (!PrefixToCount.TryGetValue(prefix, out old)) {
-          old = 0;
-        }
-        PrefixToCount[prefix] = old + 1;
-        return tipString == null ? old.ToString() : tipString + "_" + old.ToString();
-      }
-    }
-  }
+namespace Microsoft.Dafny
+{
 
   public class Translator {
     ErrorReporter reporter;
@@ -675,36 +601,56 @@ namespace Microsoft.Dafny {
       return null;
     }
 
-    static Bpl.Program ReadPrelude() {
+    static Bpl.Program ReadPrelude()
+    {
+      Bpl.Program prelude;
+      var defines = GetPreludeDefines();
+      int errorCount;
       string preludePath = DafnyOptions.O.DafnyPrelude;
       if (preludePath == null)
       {
-          //using (System.IO.Stream stream = cce.NonNull( System.Reflection.Assembly.GetExecutingAssembly().GetManifestResourceStream("DafnyPrelude.bpl")) // Use this once Spec#/VSIP supports designating a non-.resx project item as an embedded resource
-          string codebase = cce.NonNull(System.IO.Path.GetDirectoryName(cce.NonNull(System.Reflection.Assembly.GetExecutingAssembly().Location)));
-          preludePath = System.IO.Path.Combine(codebase, "DafnyPrelude.bpl");
+        string fileName = "DafnyPrelude.bpl";
+        var preludeAssemblyName = Assembly.GetExecutingAssembly().GetManifestResourceNames().First(s => s.EndsWith(fileName));
+        using (Stream stream = cce.NonNull(Assembly.GetExecutingAssembly().GetManifestResourceStream(preludeAssemblyName)))
+        {
+          errorCount = BplParser.Parse(stream, fileName, defines, out prelude);
+        }
       }
+      else
+      {
+        errorCount = BplParser.Parse(preludePath, defines, out prelude);
+      }
+      if (prelude == null || errorCount > 0)
+      {
+        return null;
+      }
+      else
+      {
+        return prelude;
+      }
+    }
 
-      Bpl.Program prelude;
+    private static List<string> GetPreludeDefines()
+    {
       var defines = new List<string>();
-      if (6 <= DafnyOptions.O.ArithMode) {
+      if (6 <= DafnyOptions.O.ArithMode)
+      {
         defines.Add("ARITH_DISTR");
       }
-      if (8 <= DafnyOptions.O.ArithMode) {
+      if (8 <= DafnyOptions.O.ArithMode)
+      {
         defines.Add("ARITH_MUL_DIV_MOD");
       }
-      if (9 <= DafnyOptions.O.ArithMode) {
+      if (9 <= DafnyOptions.O.ArithMode)
+      {
         defines.Add("ARITH_MUL_SIGN");
       }
-      if (10 <= DafnyOptions.O.ArithMode) {
+      if (10 <= DafnyOptions.O.ArithMode)
+      {
         defines.Add("ARITH_MUL_COMM");
         defines.Add("ARITH_MUL_ASSOC");
       }
-      int errorCount = BplParser.Parse(preludePath, defines, out prelude);
-      if (prelude == null || errorCount > 0) {
-        return null;
-      } else {
-        return prelude;
-      }
+      return defines;
     }
 
     public Bpl.IdentifierExpr TrVar(IToken tok, IVariable var) {
