@@ -206,6 +206,25 @@ method Maps() {
   PrintSet("  Values: ", b.Values); print "\n";
   //SOON (requires covariant datatypes):  PrintPairs("  Items: ", b.Items); print "\n";
   print "  eq: ", a == b, " ", comprehension == comprehension, " ", c == map[seventeen := seventeen, twelve := seventeen], "\n"; // false true true
+
+  // covariance issues with equality
+  var m00: map<Number, Number> := map[seventeen := fortyTwo];
+  var m01: map<Number, Integer> := map[seventeen := fortyTwo];
+  var m10: map<Integer, Number> := map[seventeen := fortyTwo];
+  var m11: map<Integer, Integer> := map[seventeen := fortyTwo];
+  print "  eq: ", m00 == m01, " ", m00 == m10, " ", m00 == m11, " ", m01 == m10, " ", m01 == m11, " ", m10 == m11, "\n"; // true^6
+  print "  eq: ", m01 == m00, " ", m10 == m00, " ", m11 == m00, " ", m10 == m01, " ", m11 == m01, " ", m11 == m10, "\n"; // true^6
+
+  // covariance issues with equality
+  var n00: map<Number?, Number> := map[seventeen := fortyTwo, null := eightyTwo];
+  var n01: map<Number?, Integer> := map[seventeen := fortyTwo, null := eightyTwo];
+  var n10: map<Integer?, Number> := map[seventeen := fortyTwo];
+  var n11: map<Integer?, Integer> := map[seventeen := fortyTwo, null := eightyTwo];
+  print "  eq: ", n00 == n01, " ", n00 == n10, " ", n00 == n11, " ", n01 == n10, " ", n01 == n11, " ", n10 == n11, "\n"; // t F t F t F
+  print "  eq: ", n01 == n00, " ", n10 == n00, " ", n11 == n00, " ", n10 == n01, " ", n11 == n01, " ", n11 == n10, "\n"; // F t F t F t
+  n10 := n10[null := eightyTwo];
+  print "  eq: ", n00 == n01, " ", n00 == n10, " ", n00 == n11, " ", n01 == n10, " ", n01 == n11, " ", n10 == n11, "\n"; // true^6
+  print "  eq: ", n01 == n00, " ", n10 == n00, " ", n11 == n00, " ", n10 == n01, " ", n11 == n01, " ", n11 == n10, "\n"; // true^6
 }
 
 /*SOON (requires covariant datatypes):

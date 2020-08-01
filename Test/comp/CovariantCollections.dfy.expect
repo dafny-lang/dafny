@@ -28,6 +28,12 @@ Maps: {} {12 := 17, 17 := 82, 82 := 17} {12 := 17, 17 := 17}
   Keys: {12, 17, 82}
   Values: {17, 82}
   eq: false true true
+  eq: true true true true true true
+  eq: true true true true true true
+  eq: true false true false true false
+  eq: true false true false true false
+  eq: true true true true true true
+  eq: true true true true true true
 
 Dafny program verifier finished with 10 verified, 0 errors
 Sequences: [] [17, 82, 17, 82] [12, 17]
@@ -58,6 +64,12 @@ Maps: {} {12 := 17, 17 := 82, 82 := 17} {12 := 17, 17 := 17}
   Keys: {12, 17, 82}
   Values: {17, 82}
   eq: false true true
+  eq: true true true true true true
+  eq: true true true true true true
+  eq: true false true false true false
+  eq: true false true false true false
+  eq: true true true true true true
+  eq: true true true true true true
 
 Dafny program verifier finished with 10 verified, 0 errors
 Sequences: [] [17, 82, 17, 82] [12, 17]
@@ -88,6 +100,12 @@ Maps: {} {12 := 17, 17 := 82, 82 := 17} {12 := 17, 17 := 17}
   Keys: {12, 17, 82}
   Values: {17, 82}
   eq: false true true
+  eq: true true true true true true
+  eq: true true true true true true
+  eq: true false true false true false
+  eq: true false true false true false
+  eq: true true true true true true
+  eq: true true true true true true
 
 Dafny program verifier finished with 10 verified, 0 errors
 Sequences: [] [17, 82, 17, 82] [12, 17]
@@ -118,3 +136,9 @@ Maps: {} {12 := 17, 17 := 82, 82 := 17} {12 := 17, 17 := 17}
   Keys: {12, 17, 82}
   Values: {17, 82}
   eq: false true true
+  eq: true true true true true true
+  eq: true true true true true true
+  eq: true false true false true false
+  eq: true false true false true false
+  eq: true true true true true true
+  eq: true true true true true true
