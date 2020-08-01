@@ -30,7 +30,7 @@ namespace Microsoft.Dafny.LSPServer
       {
         Severity = DiagnosticSeverity.Error,
         Message = error.Msg,
-        Range = tok.BoogieToLspPosition().ToSingleLengthRange()
+        Range = tok.BoogieToLspPosition().ToMaximumLengthRange()
       };
       var relatedInformation = new List<DiagnosticRelatedInformation>();
       item.RelatedInformation = relatedInformation;
@@ -41,7 +41,7 @@ namespace Microsoft.Dafny.LSPServer
           Message = relatedLocation.Msg,
           Location = new Location()
           {
-            Range = relatedLocation.Tok.BoogieToLspPosition().ToSingleLengthRange(),
+            Range = relatedLocation.Tok.BoogieToLspPosition().ToMaximumLengthRange(),
             Uri = server.FindUriFromFileName(relatedLocation.Tok.filename)
           }
         });
@@ -55,7 +55,7 @@ namespace Microsoft.Dafny.LSPServer
       {
         Severity = ConvertErrorLevel(level),
         Message = msg,
-        Range = new Position(tok.line - 1, tok.col -1).ToSingleLengthRange()
+        Range = new Position(tok.line - 1, tok.col -1).ToMaximumLengthRange()
       };
       string filename = tok.filename;
       AddDiagnosticForFile(item, filename);

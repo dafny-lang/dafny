@@ -8,7 +8,8 @@ namespace Microsoft.Dafny.LSPServer
 
     public static Position BoogieToLspPosition(this IToken token)
     {
-      return new Position(token.line - 1, token.col - 1);
+      // TODO understand why there is an extra -1,-1
+      return new Position(token.line - 1, token.col - 2);
     }
   }
 }

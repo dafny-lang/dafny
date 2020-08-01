@@ -9,5 +9,9 @@ namespace Microsoft.Dafny.LSPServer
       return new Range(position, new Position(position.Line, position.Character + 1));
     }
 
+    public static Range ToMaximumLengthRange(this Position position)
+    {
+      return new Range(position, new Position(position.Line, int.MaxValue));
+    }
   }
 }
