@@ -410,12 +410,12 @@ namespace Dafny
     }
 
     public bool Contains<G>(G t) {
-      return t == null ? occurrencesOfNull > 0 : t is T tt && dict.ContainsKey(tt);
+      return t == null ? occurrencesOfNull > 0 : t is T && dict.ContainsKey((T)(object)t);
     }
     public BigInteger Select<G>(G t) {
       if (t == null) {
         return occurrencesOfNull;
-      } else if (t is T tt && dict.TryGetValue(tt, out var m)) {
+      } else if (t is T && dict.TryGetValue((T)(object)t, out var m)) {
         return m;
       } else {
         return BigInteger.Zero;
