@@ -3,10 +3,13 @@
 Stmt = ( BlockStmt | AssertStmt | AssumeStmt | PrintStmt | UpdateStmt
   | VarDeclStatement | IfStmt | WhileStmt | MatchStmt | ForallStmt
   | CalcStmt | ModifyStmt | LabeledStmt_ | BreakStmt_ | ReturnStmt
-  | YieldStmt
+  | RevealStmt | YieldStmt
   )
 ````
 <!--
+Grammar has SkeletonStmt
+Added RevealStmt
+
 Describe where refinement is described.
 
 | SkeletonStmt
@@ -22,28 +25,65 @@ They are described in subsequent sections.
 LabeledStmt_ = "label" LabelName ":" Stmt
 ````
 A labeled statement is just the keyword `label` followed by an identifier
-which is the label followed by a colon and a statement. The label may be
+which is the label, followed by a colon and a statement. The label may be
 referenced in a break statement to transfer control to the location after
-that statement. The label is not allowed to be the same as any enclosing
+the labeled statement; it may also be referenced in `old` expressions. 
+The label is not allowed to be the same as any enclosing
 label.
 
 ## Break Statement
 ````
 BreakStmt_ = "break" ( LabelName | { "break" } ) ";"
 ````
-A break statement breaks out of one or more loops (if the
-statement consists solely of one or more `break` keywords),
-or else transfers control to just past the statement
-bearing the referenced label, if a label was used.
+A break statement provides a means to transfer control
+in a way different than the usual nested control structures.
+There are two forms of break statement: with and without a label.
 
 If a label is used, the break statement must be enclosed in a statement
-with that label. If no label is specified and the statement list `n`
+with that label and the result is to transfer control to the statement
+after the labeled statement. For example, such a break statement can be
+used to exit a sequence of statements in a block statement before 
+reaching the end of the block.
+
+For example,
+```
+{
+  var n := ReadNext();
+  if (n < 0) break;
+  DoSomething(n);
+}
+```
+is equivalent to
+```
+{
+  var n: ReadNext();
+  if (n >= 0) {
+    DoSomething(n);
+  }
+}
+```
+
+If no label is specified and the statement lists `n`
 occurrences of `break`, then the statement must be enclosed in
-(at least) `n` levels of loops. For example,
+at least `n` levels of loops. Control continues after exiting `n`
+enclosing loops. For example,
 
 ```
-break break;
-```
+var i := 0;
+while i < 10 {
+  var j := 0;
+  while j < 10 {
+    var k := 0;
+    while k < 10 {
+      if (j + k == 15) break break;
+      k := k + 1;
+    }
+    j := j + 1;
+  }
+  // control continues here after the break
+  i := i + 1;
+}
+``` 
 
 ## Block Statement
 ````
@@ -99,15 +139,18 @@ These expressions are then evaluated, then they are
 assigned to the yield parameters, and then the iterator
 yields.
 
-## Update and Call Statements
+## Update and Call Statements {#sec-update-and-call-statement}
 ````
 UpdateStmt =
     Lhs
     ( {Attribute} ";"
-    |
+    |If more than one
+left-hand side is used, these must denote different l-values, unless the
+corresponding right-hand sides also denote the same value.
      { "," Lhs }
      ( ":=" Rhs { "," Rhs }
-     | ":|" [ "assume" ] Expression(allowLemma: false, allowLambda: true)
+     | ":|" [ "assume" ] 
+               Expression(allowLemma: false, allowLambda: true)
      )
      ";"
     | ":"
@@ -119,44 +162,45 @@ CallStmt_ =
     [ Lhs { , Lhs } ":=" ] Lhs ";"
 ````
 
-The update statement server three logical purposes.
+The update statement serves several logical purposes.
 
-First, if it matches the grammar of a ``CallStmt_`` in which the right-most ``Lhs``
-references a method and arguments to pass to it, then the ``UpdateStmt`` is a
-method call or a new allocation with an initializing method.
-These are the only ways in which a method call is allowed in an update statement.
-In particular, the result of one method call is not allowed to be used
-as an argument of another method call (as if it had been an expression).
 
-The form
+1) The form
 
 ```
 Lhs {Attribute} ";"
 ```
 is assumed to be a call to a method with no out-parameters.
 
-The form
+2) The form
 
 ```
     [ Lhs { , Lhs } ":=" ] Lhs ";"
 ```
 can occur in the ``UpdateStmt`` grammar when there is a single Rhs that
-takes the special form of a ``Lhs`` that is a call. That is the only case
+takes the special form of a ``Lhs`` that is a call;
+that is, this form matches the grammar of a ``CallStmt_``, in which the ``Lhs`` after
+the `:=` references a method and the arguments to it, corresponding to a 
+method call or a new allocation with an initializing method.
+This is the only case
 where the number of left-hand sides can be different than the number of
 right-hand sides in the ``UpdateStmt``. In that case the number of
 left-hand sides must match the number of out-parameters of the
-method that is called.
+method that is called or there must be just one ``Lhs`` to the left of
+the `:=`, which then is assigned a tuple of the out-parameters.
+Note that the result of a method call is not allowed to be used as an argument of
+another method call, as if it were an expression.
 
-Second, if no call is involved, the ``UpdateStmt`` can be a parallel
-assignment of right-hand-side values to the left-hand sides. For example
-`x,y := y,x` to swap the values of `x` and `y`. If more than one
+3) If no call is involved, the ``UpdateStmt`` can be a parallel
+assignment of right-hand-side values to the left-hand sides. For example,
+`x,y := y,x` swaps the values of `x` and `y`. If more than one
 left-hand side is used, these must denote different l-values, unless the
 corresponding right-hand sides also denote the same value. There must
-be an equal number of left-hand sides and righ-hand sides in this case.
+be an equal number of left-hand sides and right-hand sides in this case.
 Of course, the most common case will have only one
 ``Rhs`` and one ``Lhs``.
 
-Thirdly, the form that uses "`:|`" assigns some values to the left-hand side
+4) The form that uses "`:|`" assigns some values to the left-hand side
 variables such that the boolean expression on the right hand side
 is satisfied. This can be used to make a choice as in the
 following example where we choose an element in a set.
@@ -181,7 +225,7 @@ exist which satisfy the condition.
 In addition, though the choice is arbitrary, given identical
 circumstances the choice will be made consistently.
 
-The form
+Note that the form
 
 ````
     Lhs ":"
@@ -193,9 +237,11 @@ is diagnosed as a label in which the user forgot the **label** keyword.
 ````
 VarDeclStatement = [ "ghost" ] "var" { Attribute }
   (
-    LocalIdentTypeOptional { "," { Attribute } LocalIdentTypeOptional }
+    LocalIdentTypeOptional 
+    { "," { Attribute } LocalIdentTypeOptional }
     [ ":=" Rhs { "," Rhs }
-    | { Attribute } ":|" [ "assume" ] Expression(allowLemma: false, allowLambda: true)
+    | { Attribute } ":|" [ "assume" ] 
+                    Expression(allowLemma: false, allowLambda: true)
     ]
   |
     "(" CasePattern { "," CasePattern } ")"
@@ -219,8 +265,8 @@ does not declare both `x` and `y` to be of type `int`. Rather it will give an
 error explaining that the type of `x` is underspecified if it cannot be
 inferred from uses of x.
 
-What follows the ``LocalIdentTypeOptional`` optionally combines the variables
-declarations with an update statement, see [#sec-update-and-call-statements].
+What follows the ``LocalIdentTypeOptional`` optionally combines the variable
+declarations with an update statement (cf. [Update and Call Statement](#sec-update-and-call-statement)).
 If the Rhs is a call, then any variable receiving the value of a
 formal ghost out-parameter will automatically be declared as ghost, even
 if the **ghost** keyword is not part of the variable declaration statement.
@@ -243,7 +289,10 @@ function usesTuple() : int
 
 ## Guards
 ````
-Guard = ( "*" | "(" "*" ")" | Expression(allowLemma: true, allowLambda: true) )
+Guard = ( "*" 
+        | "(" "*" ")" 
+        | Expression(allowLemma: true, allowLambda: true) 
+        )
 ````
 Guards are used in `if` and `while` statements as boolean expressions. Guards
 take two forms.
@@ -323,9 +372,9 @@ IfAlternativeBlock =
       ) "=>" { Stmt } } "}" .
 ````
 
-The simplest form an `if` statement uses a guard that is a boolean
+The simplest form of an `if` statement uses a guard that is a boolean
 expression. It then has the same form as in C\# and other common
-programming languages. For example
+programming languages. For example,
 
 ```
   if x < 0 {
@@ -351,7 +400,7 @@ For example:
 ```
   if {
     case x <= y => max := y;
-    case y <= x => max := y;
+    case y <= x => max := x;
   }
 ```
 
@@ -375,10 +424,14 @@ WhileStmt = "while"
 
 ````
 WhileAlternativeBlock =
-   "{" { "case" Expression(allowLemma: true, allowLambda: false) "=>" { Stmt } } "}" .
+   "{" 
+   { "case" Expression(allowLemma: true, allowLambda: false) 
+   "=>" { Stmt } } 
+   "}
 ````
 
-See section [#sec-loop-specification] for a description of ``LoopSpec``.
+Loops may also need _loop specifications_ (``LoopSpec`` in the grammar) in order for Dafny to prove that
+they obey expected behavior. These are described in the [section on Loop Specifications](#sec-loop-specification).
 
 The `while` statement is Dafny's only loop statement. It has two general
 forms.
@@ -431,20 +484,19 @@ For this form, the guards are evaluated in some undetermined order
 until one is found that is true, in which case the corresponding statements
 are executed. If none of the guards evaluates to true, then the
 loop execution is terminated.
+k
 
-### Loop Specifications
+## Loop Specifications {#sec-loop-specification}
 For some simple loops, such as those mentioned previously, Dafny can figure
 out what the loop is doing without more help. However, in general the user
 must provide more information in order to help Dafny prove the effect of
 the loop. This information is provided by a ``LoopSpec``. A
 ``LoopSpec`` provides information about invariants, termination, and
-what the loop modifies. ``LoopSpecs`` are explained in
-section [#sec-loop-specification]. However the following sections
-present additional rationale and tutorial on loop specifications.
+what the loop modifies. 
 For additional tutorial information see [@KoenigLeino:MOD2011] or the
 [online Dafny tutorial](http://rise4fun.com/Dafny/tutorial/Guide).
 
-#### Loop Invariants
+### Loop Invariants
 
 `While` loops present a problem for Dafny. There is no way for Dafny to
 know in advance how many times the code will go around the loop. But
@@ -480,7 +532,7 @@ loop condition). Just as Dafny will not discover properties of a method
 on its own, it will not know any but the most basic properties of a loop
 are preserved unless it is told via an invariant.
 
-#### Loop Termination
+### Loop Termination
 
 Dafny proves that code terminates, i.e. does not loop forever, by using
 `decreases` annotations. For many things, Dafny is able to guess the right
@@ -491,7 +543,7 @@ correct guess by Dafny.
 
 A `decreases` annotation, as its name suggests, gives Dafny an expression
 that decreases with every loop iteration or recursive call. There are two
-conditions that Dafny needs to verify when using a decreases expression:
+conditions that Dafny needs to verify when using a `decreases` expression:
 
 * that the expression actually gets smaller, and
 * that it is bounded.
@@ -499,12 +551,12 @@ conditions that Dafny needs to verify when using a decreases expression:
 Many times, an integral value (natural or plain integer) is the quantity
 that decreases, but other things that can be used as well. In the case of
 integers, the bound is assumed to be zero. For example, the following is
-a proper use of decreases on a loop (with its own keyword, of course):
+a proper use of `decreases` on a loop:
 
 ```
   while 0 < i
     invariant 0 <= i
-	decreases i
+    decreases i
   {
     i := i - 1;
   }
@@ -537,15 +589,17 @@ If the **decreases** clause of a loop specified "*", then no
 termination check will be performed. Use of this feature is sound only with
 respect to partial correctness.
 
-#### Loop Framing
+### Loop Framing
 In some cases we also must specify what memory locations the loop body
 is allowed to modify. This is done using a `modifies` clause.
 See the discussion of framing in methods for a fuller discussion.
 
+TO BE WRITTEN
+
 ## Match Statement
 ````
 MatchStmt = "match" Expression(allowLemma: true, allowLambda: true)
-  ( "{" { CaseStatement  } "}"
+  ( "{" { CaseStatement } "}"
   | { CaseStatement }
   )
 
@@ -609,11 +663,13 @@ AssertStmt =
 
 `Assert` statements are used to express logical proposition that are
 expected to be true. Dafny will attempt to prove that the assertion
-is true and give an error if not. Once it has proved the assertion,
-it can then use its truth to aid in following deductions.
+is true and give an error if the assertion cannot be provenb. 
+Once the assertion is proved,
+its truth is to aid in proving following deductions.
 Thus if Dafny is having a difficult time verifying a method,
 the user may help by inserting assertions that Dafny can prove,
-and whose truth may aid in the larger verification effort.
+and whose truth may aid in the larger verification effort,
+much as lemmas might be used in mathematical proofs.
 
 <!--
 Describe where refinement is described.
@@ -630,19 +686,19 @@ AssumeStmt =
     ) ";"
 ````
 
-The `Assume` statement lets the user specify a logical proposition
+The `assume` statement lets the user specify a logical proposition
 that Dafny may assume to be true without proof. If in fact the
 proposition is not true this may lead to invalid conclusions.
 
-An `Assume` statement would ordinarily be used as part of a larger
+An `assume` statement would ordinarily be used as part of a larger
 verification effort where verification of some other part of
-the program required the proposition. By using the `Assume` statement
+the program required the proposition. By using the `assume` statement
 the other verification can proceed. Then when that is completed the
 user would come back and replace the `assume` with `assert`.
 
-An `Assume` statement cannot be compiled. In fact, the compiler
+An `assume` statement cannot be compiled. In fact, the compiler
 will complain if it finds an **assume** anywhere where it has not
-been replaced through a refinement steop.
+been replaced through a refinement step.
 
 <!--
 Describe where refinement is described.
@@ -658,12 +714,13 @@ PrintStmt =
 ````
 
 The `print` statement is used to print the values of a comma-separated
-list of expressions to the console. The generated C\# code uses
-the `System.Object.ToString()` method to convert the values to printable
+list of expressions to the console. The generated code uses
+target-language-specific idioms to perform this printing, such as 
+the `System.Object.ToString()` method in C\# to convert the values to printable
 strings. The expressions may of course include strings that are used
 for captions. There is no implicit new line added, so to get a new
-line you should include "\\n" as part of one of the expressions.
-Dafny automatically creates overrides for the ToString() method
+line you should include `"\n"` as part of one of the expressions.
+Dafny automatically creates overrides for the `ToString()` method
 for Dafny data types. For example,
 
 ```
@@ -694,7 +751,7 @@ ForallStmt = "forall"
 The `forall` statement executes the body in
 parallel for all quantified values in the specified range.
 There are several variant uses of the `forall`
-statement. And there are a number of restrictions.
+statement and there are a number of restrictions.
 
 In particular, a `forall` statement can be classified as one of the following:
 
@@ -704,12 +761,12 @@ The target must be an array element or an object field.
 * _Proof_ - The `forall` has `ensure` expressions which are effectively
 quantified or proved by the body (if present).
 
-An _assign_ `forall` statement is to perform simultaneous assignment.
+An _assign_ `forall` statement performs simultaneous assignment.
 The left-hand sides must denote different l-values, unless the
 corresponding right-hand sides also coincide.
 
 The following is an excerpt of an example given by Leino in
-[Developing Verified Programs with Dafny][leino233].
+[_Developing Verified Programs with Dafny_][leino233].
 When the buffer holding the queue needs to be resized,
 the `forall` statement is used to simultaneously copy the old contents
 into the new buffer.
@@ -741,11 +798,12 @@ class {:autocontracts} SimpleQueue<Data>
 ```
 
 Here is an example of a _call_ `forall` statement and the
-callee. This is contained in the CloudMake-ConsistentBuilds.dfy
+callee. This is contained in the `CloudMake-ConsistentBuilds.dfy`
 test in the Dafny repository.
 
 ```
-forall cmd', deps', e' | Hash(Loc(cmd', deps', e')) == Hash(Loc(cmd, deps, e)) {
+forall cmd', deps', e' | 
+       Hash(Loc(cmd', deps', e')) == Hash(Loc(cmd, deps, e)) {
   HashProperty(cmd', deps', e', cmd, deps, e);
 }
 
@@ -755,14 +813,15 @@ lemma HashProperty(cmd: Expression, deps: Expression, ext: string,
   ensures cmd == cmd' && deps == deps' && ext == ext'
 ```
 
-From the same file here is an example of a _proof_ `forall` statement.
+The following example of a _proof_ `forall` statement comes from the same file:
 
 ```
 forall p | p in DomSt(stCombinedC.st) && p in DomSt(stExecC.st)
   ensures GetSt(p, stCombinedC.st) == GetSt(p, stExecC.st)
 {
   assert DomSt(stCombinedC.st) <= DomSt(stExecC.st);
-  assert stCombinedC.st == Restrict(DomSt(stCombinedC.st), stExecC.st);
+  assert stCombinedC.st == Restrict(DomSt(stCombinedC.st), 
+                                               stExecC.st);
 }
 ```
 
@@ -832,6 +891,7 @@ class ModifyBody {
       x := 3;  // error: violates modifies clause of the modify statement
     }
   }
+
   method M1()
     modifies this
   {
@@ -840,12 +900,22 @@ class ModifyBody {
       o.x := 3;  // fine
     }
   }
+
   method M2()
     modifies this
   {
     modify this {
       x := 3;
     }
+  }
+```
+
+```
+  method M3()
+    modifies this
+  {
+    var k: int;
+    modify {} { k := 4; } // fine. k is local
   }
 }
 ```
@@ -857,13 +927,17 @@ So an error is reported when it tries to modify field `x`.
 The second `modify` statement also has an empty frame
 expression. But it allocates a new object and modifies it.
 Thus we see that the frame expressions on a block `modify`
-statement only limits what may be modified of existing
+statement only limit what may be modified in already allocated
 memory. It does not limit what may be modified in
-new memory that is allocated.
+new memory that is allocated within the block.
 
 The third `modify` statement has a frame expression that
 allows it to modify any of the fields of the current object,
 so the modification of field `x` is allowed.
+
+Finally, the fourth example shows that the restrictions imposed by
+the modify statement do not apply to local variables, only those
+that are heap-based.
 
 ## Calc Statement
 ````
@@ -872,7 +946,8 @@ CalcBody = { CalcLine [ CalcOp ] Hints }
 CalcLine = Expression(allowLemma: false, allowLambda: true) ";"
 Hints = { ( BlockStmt | CalcStmt ) }
 CalcOp =
-  ( "==" [ "#" "[" Expression(allowLemma: true, allowLambda: true) "]" ]
+  ( "==" [ "#" "[" 
+           Expression(allowLemma: true, allowLambda: true) "]" ]
   | "<" | ">"
   | "!=" | "<=" | ">="
   | "<==>" | "==>" | "<=="
@@ -883,7 +958,7 @@ CalcOp =
 
 The `calc` statement supports _calculational proofs_ using a language
 feature called _program-oriented calculations_ (poC). This feature was
-introduced and explained in the [Verified Calculations] paper by Leino
+introduced and explained in the [_Verified Calculations_] paper by Leino
 and Polikarpova[@LEINO:Dafny:Calc]. Please see that paper for a more
 complete explanation of the `calc` statement. We here mention only the
 highlights.
@@ -894,7 +969,7 @@ an equality by starting with a left-hand-side, and through a series of
 transformations morph it into the desired right-hand-side.
 
 Non-syntactic rules further restrict hints to only ghost and side-effect
-free statements, as well as impose a constraint that only
+free statements, as well as imposing a constraint that only
 chain-compatible operators can be used together in a calculation. The
 notion of chain-compatibility is quite intuitive for the operators
 supported by poC; for example, it is clear that "<" and ">" cannot be used within
@@ -907,12 +982,12 @@ appear in a chain of equalities (that is, "!=" is chain-compatible with
 equality but not with any other operator, including itself). Calculations
 with fewer than two lines are allowed, but have no effect. If a step
 operator is omitted, it defaults to the calculation-wide operator,
-defined after the `calc` keyword. If that operator if omitted, it defaults
+defined after the `calc` keyword. If that operator is omitted, it defaults
 to equality.
 
 Here is an example using `calc` statements to prove an elementary
 algebraic identity. As it turns out, Dafny is able to prove this without
-the `calc` statements, but it helps to illustrate the syntax.
+the `calc` statements, but the example illustrates the syntax.
 
 ```
 lemma docalc(x : int, y: int)
@@ -984,6 +1059,10 @@ The purpose of the block statements or the `calc` statements between
 the expressions is to provide hints to aid Dafny in proving that
 step. As shown in the example, comments can also be used to aid
 the human reader in cases where Dafny can prove the step automatically.
+
+## Reveal Statement
+
+TO BE WRITTEN
 
 <!--
 Move to discussion of refinement.
