@@ -222,8 +222,9 @@ method Sum(X: set<int>) returns (s: int)
 Dafny will report an error if it cannot prove that values
 exist which satisfy the condition.
 
-In addition, though the choice is arbitrary, given identical
-circumstances the choice will be made consistently.
+In addition, as the choice is arbitrary, 
+assignment statements using `:|` may be non-deterministic 
+when executed.
 
 Note that the form
 
