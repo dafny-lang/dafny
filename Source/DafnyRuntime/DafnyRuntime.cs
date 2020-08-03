@@ -1069,6 +1069,8 @@ namespace Dafny
         ty = typeof(Dafny.Set<>).MakeGenericType(ty.GenericTypeArguments);
       } else if (ty.IsGenericType && typeof(Dafny.ISequence<>) == ty.GetGenericTypeDefinition()) {
         ty = typeof(Dafny.Sequence<>).MakeGenericType(ty.GenericTypeArguments);
+      } else if (ty.IsGenericType && typeof(Dafny.IMap<,>) == ty.GetGenericTypeDefinition()) {
+        ty = typeof(Dafny.Map<,>).MakeGenericType(ty.GenericTypeArguments);
       }
       System.Reflection.MethodInfo mInfo = ty.GetMethod("_DafnyDefaultValue");
       if (mInfo != null) {
