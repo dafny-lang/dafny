@@ -1718,7 +1718,12 @@ namespace Microsoft.Dafny
           compiledName = "Values";
           break;
         case SpecialField.ID.Items:
-          preString = $"{DafnyMapClass}.Items(";
+          var mapType = receiverType.AsMapType;
+          Contract.Assert(mapType != null);
+          var errorWr = new TargetWriter();
+          var domainType = TypeName(mapType.Domain, errorWr, Bpl.Token.NoToken);
+          var rangeType = TypeName(mapType.Range, errorWr, Bpl.Token.NoToken);
+          preString = $"{DafnyMapClass}<{domainType}, {rangeType}>.Items(";
           postString = ")";
           break;
         case SpecialField.ID.Reads:
