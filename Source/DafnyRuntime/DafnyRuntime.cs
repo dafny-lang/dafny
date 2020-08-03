@@ -500,6 +500,10 @@ namespace Dafny
     ISet<V> Values { get; }
     IEnumerable<IPair<U, V>> ItemEnumerable { get; }
     bool Contains<G>(G t);
+    /// <summary>
+    /// Returns "true" iff "this is IMap<object, object>" and "this" equals "other".
+    /// </summary>
+    bool EqualsObjObj(IMap<object, object> other);
   }
 
   public class Map<U, V> : IMap<U, V>
@@ -559,27 +563,54 @@ namespace Dafny
       return Empty;
     }
 
-    public bool Equals(Map<U, V> other) {
-      if (hasNullKey != other.hasNullKey || dict.Count != other.dict.Count) {
+    public bool Equals(IMap<U, V> other) {
+      if (other == null || LongCount != other.LongCount) {
         return false;
-      } else if (hasNullKey && !object.Equals(nullValue, other.nullValue)) {
-        return false;
+      } else if (this == other) {
+        return true;
       }
-      foreach (U u in dict.Keys) {
-        V v1 = dict[u];
-        V v2;
-        if (!other.dict.TryGetValue(u, out v2)) {
-          return false; // other dictionary does not contain this element
+      if (hasNullKey) {
+        if (!other.Contains(default(U)) || !object.Equals(nullValue, Select(other, default(U)))) {
+          return false;
         }
-        if (!object.Equals(v1, v2)) {
+      }
+      foreach (var item in dict) {
+        if (!other.Contains(item.Key) || !object.Equals(item.Value, Select(other, item.Key))) {
+          return false;
+        }
+      }
+      return true;
+    }
+    public bool EqualsObjObj(IMap<object, object> other) {
+      if (!(this is IMap<object, object>) || other == null || LongCount != other.LongCount) {
+        return false;
+      } else if (this == other) {
+        return true;
+      }
+      var oth = Map<object, object>.FromIMap(other);
+      if (hasNullKey) {
+        if (!oth.Contains(default(U)) || !object.Equals(nullValue, Map<object, object>.Select(oth, default(U)))) {
+          return false;
+        }
+      }
+      foreach (var item in dict) {
+        if (!other.Contains(item.Key) || !object.Equals(item.Value, Map<object, object>.Select(oth, item.Key))) {
           return false;
         }
       }
       return true;
     }
     public override bool Equals(object other) {
-      return other is Map<U, V> && Equals((Map<U, V>)other);
+      // See comment in Set.Equals
+      if (other is IMap<U, V> m) {
+        return Equals(m);
+      } else if (other is IMap<object, object> imapoo) {
+        return EqualsObjObj(imapoo);
+      } else {
+        return false;
+      }
     }
+
     public override int GetHashCode() {
       var hashCode = 1;
       if (hasNullKey) {
