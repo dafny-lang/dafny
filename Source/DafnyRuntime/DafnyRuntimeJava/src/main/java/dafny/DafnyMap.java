@@ -42,8 +42,8 @@ public class DafnyMap<K, V> implements Map<K, V> {
         return innerMap.containsKey(t);
     }
 
-    public DafnyMap<K, V> update(K k, V v) {
-        HashMap<K, V> copy = new HashMap<>(innerMap);
+    public static <K, V> DafnyMap<K, V> update(DafnyMap<? extends K, ? extends V> th, K k, V v) {
+        HashMap<K, V> copy = new HashMap<>(th.innerMap);
         copy.put(k, v);
         DafnyMap<K, V> r = new DafnyMap<>();
         r.innerMap = copy;

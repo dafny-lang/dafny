@@ -6700,8 +6700,7 @@ namespace Microsoft.Dafny {
           //     forall x,y :: R(x,y) ==> var x',y' := project_x(F(x,y)),project_y(F(x,y)); R(x',y') && F(x',y') == F(x,y)
           // that is (without the let expression):
           //     forall x,y :: R(x,y) ==> R(project_x(F(x,y)), project_y(F(x,y))) && F(project_x(F(x,y)), project_y(F(x,y))) == F(x,y)
-          // The triggers for the quantification are:
-          //     { project_x(F(x,y)) } { project_y(F(x,y)) }
+          // The triggers for the quantification are those detected for the given map comprehension, if any.
           List<Bpl.Variable> bvs;
           List<Bpl.Expr> args;
           CreateBoundVariables(mc.BoundVars, out bvs, out args);
@@ -6715,12 +6714,11 @@ namespace Microsoft.Dafny {
           }
           var R = etran.TrExpr(Substitute(mc.Range, null, substMap));
           var F = etran.TrExpr(Substitute(mc.TermLeft, null, substMap));
+          var trig = TrTrigger(etran, e.Attributes, expr.tok, substMap);
           substMap = new Dictionary<IVariable, Expression>();
-          Bpl.Trigger trig = null;
           for (var i = 0; i < mc.BoundVars.Count; i++) {
             var p = new Bpl.NAryExpr(mc.tok, new Bpl.FunctionCall(mc.ProjectionFunctions[i]), new List<Bpl.Expr> { F });
             substMap.Add(e.BoundVars[i], new BoogieWrapper(p, e.BoundVars[i].Type));
-            trig = new Bpl.Trigger(mc.tok, true, new List<Bpl.Expr> { p }, trig);
           }
           var Rprime = etran.TrExpr(Substitute(mc.Range, null, substMap));
           var Fprime = etran.TrExpr(Substitute(mc.TermLeft, null, substMap));
@@ -7312,7 +7310,7 @@ namespace Microsoft.Dafny {
           options.AssertSink(this, builder)(expr.tok, Bpl.Expr.SelectTok(expr.tok, etran.TheFrame(expr.tok), array, fieldName), "insufficient reads clause to read array element", options.AssertKv);
         }
       } else if (expr is SeqUpdateExpr) {
-        SeqUpdateExpr e = (SeqUpdateExpr)expr;
+        var e = (SeqUpdateExpr)expr;
         if (e.ResolvedUpdateExpr != null) {
           CheckWellformedWithResult(e.ResolvedUpdateExpr, options, result, resultType, locals, builder, etran);
         } else {
@@ -7320,18 +7318,25 @@ namespace Microsoft.Dafny {
           Bpl.Expr seq = etran.TrExpr(e.Seq);
           Bpl.Expr index = etran.TrExpr(e.Index);
           Bpl.Expr value = etran.TrExpr(e.Value);
+          var collectionType = (CollectionType)e.Seq.Type.NormalizeExpand();
+          // validate index
           CheckWellformed(e.Index, options, locals, builder, etran);
-          var eSeqType = e.Seq.Type.NormalizeExpand();
-          if (eSeqType is SeqType) {
-            builder.Add(Assert(expr.tok, InSeqRange(expr.tok, index, e.Index.Type, seq, true, null, false), "index out of range", options.AssertKv));
-          } else if (eSeqType is MapType) {
-            // updates to maps are always valid if the values are well formed
-          } else if (eSeqType is MultiSetType) {
-            builder.Add(Assert(expr.tok, Bpl.Expr.Le(Bpl.Expr.Literal(0), value), "new number of occurrences might be negative", options.AssertKv));
+          if (collectionType is SeqType) {
+            builder.Add(Assert(e.Index.tok, InSeqRange(expr.tok, index, e.Index.Type, seq, true, null, false), "index out of range", options.AssertKv));
+          } else {
+            CheckSubrange(e.Index.tok, index, e.Index.Type, collectionType.Arg, builder);
+          }
+          // validate value
+          CheckWellformed(e.Value, options, locals, builder, etran);
+          if (collectionType is SeqType) {
+            CheckSubrange(e.Value.tok, value, e.Value.Type, collectionType.Arg, builder);
+          } else if (collectionType is MapType mapType) {
+            CheckSubrange(e.Value.tok, value, e.Value.Type, mapType.Range, builder);
+          } else if (collectionType is MultiSetType) {
+            builder.Add(Assert(e.Value.tok, Bpl.Expr.Le(Bpl.Expr.Literal(0), value), "new number of occurrences might be negative", options.AssertKv));
           } else {
             Contract.Assert(false);
           }
-          CheckWellformed(e.Value, options, locals, builder, etran);
         }
       } else if (expr is ApplyExpr) {
         var e = (ApplyExpr)expr;

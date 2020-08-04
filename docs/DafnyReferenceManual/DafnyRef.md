@@ -41,9 +41,6 @@ Sample math B: $a \to b$ or
 
 {% include Expressions.md %}
 
-{% include Grammar.md %}
-
-
 # Module Refinement
 TODO: Write this section.
 

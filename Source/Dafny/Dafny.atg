@@ -639,6 +639,7 @@ CHARACTERS
   letter = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz".
   digit = "0123456789".
   posDigit = "123456789".
+  posDigitFrom2 = "23456789".
   hexdigit = "0123456789ABCDEFabcdef".
   special = "'_?".
   glyph = "`~!@#$%^&*()-_=+[{]}|;:',<.>/?\\".
@@ -671,6 +672,7 @@ TOKENS
         |  'a' 'r' 'r' [ idcharMinusA {idchar} ]
         |  'a' 'r' 'r' 'a' [ idcharMinusY {idchar} ]
         |  'a' 'r' 'r' 'a' 'y' idcharMinusPosDigitMinusQuery {idchar}
+        |  'a' 'r' 'r' 'a' 'y' '1' [ '?' ]
         |  'a' 'r' 'r' 'a' 'y' '?' idchar {idchar}
         |  'a' 'r' 'r' 'a' 'y' posDigit {digit} nondigitMinusQuery {idchar}
         |  'a' 'r' 'r' 'a' 'y' posDigit {digit} '?' idchar {idchar}
@@ -685,8 +687,8 @@ TOKENS
   digits = digit {['_'] digit}.
   hexdigits = "0x" hexdigit {['_'] hexdigit}.
   decimaldigits = digit {['_'] digit} '.' digit {['_'] digit}.
-  arrayToken = "array" [posDigit {digit}].
-  arrayToken_q = "array" [posDigit {digit}] '?'.
+  arrayToken = "array" [('1' digit | posDigitFrom2 ) {digit}].
+  arrayToken_q = "array" [('1' digit | posDigitFrom2 ) {digit}] '?'.
   bvToken = "bv" ( '0' | posDigit {digit} ).
   bool = "bool".
   char = "char".

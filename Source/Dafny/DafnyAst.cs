@@ -9025,8 +9025,8 @@ namespace Microsoft.Dafny {
       Contract.Requires(tok != null);
       Contract.Requires(t.ResolvedClass != null);
       Contract.Requires(cl != null);
-      if (t.ResolvedClass != cl) {
-        var top = t.AsTopLevelTypeWithMembersBypassInternalSynonym;
+      var top = t.AsTopLevelTypeWithMembersBypassInternalSynonym;
+      if (top != cl) {
         Contract.Assert(top != null);
         var clArgsInTermsOfTFormals = cl.TypeArgs.ConvertAll(tp => top.ParentFormalTypeParametersToActuals[tp]);
         var subst = Resolver.TypeSubstitutionMap(top.TypeArgs, t.TypeArgs);

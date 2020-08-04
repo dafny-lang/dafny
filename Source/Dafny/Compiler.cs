@@ -645,7 +645,7 @@ namespace Microsoft.Dafny {
       return exprWr;
     }
     protected abstract void EmitDatatypeValue(DatatypeValue dtv, string arguments, TargetWriter wr);
-    protected abstract void GetSpecialFieldInfo(SpecialField.ID id, object idParam, out string compiledName, out string preString, out string postString);
+    protected abstract void GetSpecialFieldInfo(SpecialField.ID id, object idParam, Type receiverType, out string compiledName, out string preString, out string postString);
 
     /// <summary>
     /// A "TypeArgumentInstantiation" is essentially a pair consisting of a formal type parameter and an actual type for that parameter.
@@ -745,7 +745,7 @@ namespace Microsoft.Dafny {
     }
     protected abstract void EmitExprAsInt(Expression expr, bool inLetExprBody, TargetWriter wr);
     protected abstract void EmitIndexCollectionSelect(Expression source, Expression index, bool inLetExprBody, TargetWriter wr);
-    protected abstract void EmitIndexCollectionUpdate(Expression source, Expression index, Expression value, Type resultElementType, bool inLetExprBody, TargetWriter wr, bool nativeIndex = false);
+    protected abstract void EmitIndexCollectionUpdate(Expression source, Expression index, Expression value, CollectionType resultCollectionType, bool inLetExprBody, TargetWriter wr);
     protected virtual void EmitIndexCollectionUpdate(out TargetWriter wSource, out TargetWriter wIndex, out TargetWriter wValue, TargetWriter wr, bool nativeIndex = false) {
       wSource = wr.Fork();
       wr.Write('[');
@@ -3630,7 +3630,7 @@ namespace Microsoft.Dafny {
           var w = wStmts;
           for (var d = 0; d < tRhs.ArrayDimensions.Count; d++) {
             string len, pre, post;
-            GetSpecialFieldInfo(SpecialField.ID.ArrayLength, tRhs.ArrayDimensions.Count == 1 ? null : (object)d, out len, out pre, out post);
+            GetSpecialFieldInfo(SpecialField.ID.ArrayLength, tRhs.ArrayDimensions.Count == 1 ? null : (object)d, tRhs.Type, out len, out pre, out post);
             var bound = string.Format("{0}{1}{2}{3}", pre, nw, len == "" ? "" : "." + len, post);
             w = CreateForLoop(indices[d], bound, w);
           }
@@ -4067,7 +4067,7 @@ namespace Microsoft.Dafny {
         SpecialField sf = e.Member as SpecialField;
         if (sf != null) {
           string compiledName, preStr, postStr;
-          GetSpecialFieldInfo(sf.SpecialId, sf.IdParam, out compiledName, out preStr, out postStr);
+          GetSpecialFieldInfo(sf.SpecialId, sf.IdParam, e.Obj.Type, out compiledName, out preStr, out postStr);
           wr.Write(preStr);
 
           if (sf.IsStatic && !SupportsStaticsInGenericClasses && sf.EnclosingClass.TypeArgs.Count != 0) {
@@ -4146,7 +4146,7 @@ namespace Microsoft.Dafny {
         } else {
           var collectionType = e.Type.AsCollectionType;
           Contract.Assert(collectionType != null);
-          EmitIndexCollectionUpdate(e.Seq, e.Index, e.Value, collectionType.Arg, inLetExprBody, wr);
+          EmitIndexCollectionUpdate(e.Seq, e.Index, e.Value, collectionType, inLetExprBody, wr);
         }
 
       } else if (expr is FunctionCallExpr) {
@@ -4423,7 +4423,7 @@ namespace Microsoft.Dafny {
         EmitSetComprehension(wr, expr, collection_name);
         var n = e.BoundVars.Count;
         Contract.Assert(e.Bounds.Count == n);
-        for (int i = 0; i < n; i++) {
+        for (var i = 0; i < n; i++) {
           var bound = e.Bounds[i];
           var bv = e.BoundVars[i];
           TargetWriter collectionWriter;
@@ -4460,31 +4460,34 @@ namespace Microsoft.Dafny {
         var domtypeName = TypeName(e.Type.AsMapType.Domain, wr, e.tok);
         var rantypeName = TypeName(e.Type.AsMapType.Range, wr, e.tok);
         var collection_name = idGenerator.FreshId("_coll");
-        wr = CreateIIFE0(e.Type.AsMapType, e.tok, wr);
+        var bwr = CreateIIFE0(e.Type.AsMapType, e.tok, wr);
+        wr = bwr;
         using (var wrVarInit = DeclareLocalVar(collection_name, null, null, wr, e.Type.AsMapType)){
           EmitCollectionBuilder_New(e.Type.AsMapType, e.tok, wrVarInit);
         }
         var n = e.BoundVars.Count;
-        Contract.Assert(e.Bounds.Count == n && n == 1);
-        var bound = e.Bounds[0];
-        var bv = e.BoundVars[0];
-        Contract.Assume(e.BoundVars.Count == 1);  // TODO: implement the case where e.BoundVars.Count > 1
-        TargetWriter collectionWriter;
-        var tmpVar = idGenerator.FreshId("_compr_");
-        var w = CreateForeachLoop(tmpVar, GetCollectionEnumerationType(bound, bv), IdName(bv), bv.Type, true, bv.tok, out collectionWriter, wr);
-        CompileCollection(bound, bv, inLetExprBody, true, null, collectionWriter);
+        Contract.Assert(e.Bounds.Count == n);
+        for (var i = 0; i < n; i++) {
+          var bound = e.Bounds[i];
+          var bv = e.BoundVars[i];
+          TargetWriter collectionWriter;
+          var tmpVar = idGenerator.FreshId("_compr_");
+          wr = CreateForeachLoop(tmpVar, GetCollectionEnumerationType(bound, bv), IdName(bv), bv.Type, true, bv.tok, out collectionWriter, wr);
+          CompileCollection(bound, bv, inLetExprBody, true, null, collectionWriter);
+        }
         TargetWriter guardWriter;
-        var thn = EmitIf(out guardWriter, false, w);
+        var thn = EmitIf(out guardWriter, false, wr);
         TrExpr(e.Range, guardWriter, inLetExprBody);
         var termLeftWriter = EmitMapBuilder_Add(e.Type.AsMapType, e.tok, collection_name, e.Term, inLetExprBody, thn);
         if (e.TermLeft == null) {
-          termLeftWriter.Write(IdName(bv));
+          Contract.Assert(e.BoundVars.Count == 1);
+          termLeftWriter.Write(IdName(e.BoundVars[0]));
         } else {
           TrExpr(e.TermLeft, termLeftWriter, inLetExprBody);
         }
 
         var s = GetCollectionBuilder_Build(e.Type.AsMapType, e.tok, collection_name, wr);
-        EmitReturnExpr(s, wr);
+        EmitReturnExpr(s, bwr);
 
       } else if (expr is LambdaExpr) {
         LambdaExpr e = (LambdaExpr)expr;

@@ -1,5 +1,5 @@
 
-Dafny program verifier finished with 12 verified, 0 errors
+Dafny program verifier finished with 14 verified, 0 errors
 
 Dafny program verifier finished with 0 verified, 0 errors
 Sequences: [] [17, 82, 17, 82] [12, 17]
@@ -33,6 +33,19 @@ Multisets: {} {17, 17, 82, 82} {12, 17}
   subset: true false true
   proper subset: true false false
   membership: false true true
+Maps: {} {12 := 17, 17 := 82, 82 := 17} {12 := 17, 17 := 17}
+  cardinality: 0 3 2
+  update: {12 := 17, 17 := 82, 42 := 17, 82 := 17} {12 := 42, 17 := 17}
+  comprehension: {17 := 12, 82 := 12}
+  Keys: {12, 17, 82}
+  Values: {17, 82}
+  eq: false true true
+  eq: true true true true true true
+  eq: true true true true true true
+  eq: true false true false true false
+  eq: true false true false true false
+  eq: true true true true true true
+  eq: true true true true true true
 
 Dafny program verifier finished with 0 verified, 0 errors
 Sequences: [] [17, 82, 17, 82] [12, 17]
@@ -66,6 +79,19 @@ Multisets: {} {17, 17, 82, 82} {12, 17}
   subset: true false true
   proper subset: true false false
   membership: false true true
+Maps: {} {12 := 17, 17 := 82, 82 := 17} {12 := 17, 17 := 17}
+  cardinality: 0 3 2
+  update: {12 := 17, 17 := 82, 42 := 17, 82 := 17} {12 := 42, 17 := 17}
+  comprehension: {17 := 12, 82 := 12}
+  Keys: {12, 17, 82}
+  Values: {17, 82}
+  eq: false true true
+  eq: true true true true true true
+  eq: true true true true true true
+  eq: true false true false true false
+  eq: true false true false true false
+  eq: true true true true true true
+  eq: true true true true true true
 
 Dafny program verifier finished with 0 verified, 0 errors
 Sequences: [] [17, 82, 17, 82] [12, 17]
@@ -99,6 +125,19 @@ Multisets: {} {17, 17, 82, 82} {12, 17}
   subset: true false true
   proper subset: true false false
   membership: false true true
+Maps: {} {12 := 17, 17 := 82, 82 := 17} {12 := 17, 17 := 17}
+  cardinality: 0 3 2
+  update: {12 := 17, 17 := 82, 42 := 17, 82 := 17} {12 := 42, 17 := 17}
+  comprehension: {17 := 12, 82 := 12}
+  Keys: {12, 17, 82}
+  Values: {17, 82}
+  eq: false true true
+  eq: true true true true true true
+  eq: true true true true true true
+  eq: true false true false true false
+  eq: true false true false true false
+  eq: true true true true true true
+  eq: true true true true true true
 
 Dafny program verifier finished with 0 verified, 0 errors
 Sequences: [] [17, 82, 17, 82] [12, 17]
@@ -132,3 +171,16 @@ Multisets: {} {17, 17, 82, 82} {12, 17}
   subset: true false true
   proper subset: true false false
   membership: false true true
+Maps: {} {12 := 17, 17 := 82, 82 := 17} {12 := 17, 17 := 17}
+  cardinality: 0 3 2
+  update: {12 := 17, 17 := 82, 42 := 17, 82 := 17} {12 := 42, 17 := 17}
+  comprehension: {17 := 12, 82 := 12}
+  Keys: {12, 17, 82}
+  Values: {17, 82}
+  eq: false true true
+  eq: true true true true true true
+  eq: true true true true true true
+  eq: true false true false true false
+  eq: true false true false true false
+  eq: true true true true true true
+  eq: true true true true true true

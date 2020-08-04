@@ -7,7 +7,7 @@ Execution trace:
     (0,0): anon0
     SmallTests.dfy(900,23): anon3_Else
     (0,0): anon2
-SmallTests.dfy(34,10): Error: index out of range
+SmallTests.dfy(34,11): Error: index out of range
 Execution trace:
     (0,0): anon0
 SmallTests.dfy(65,35): Error: possible division by zero

@@ -2920,3 +2920,29 @@ module TypeOfFunctionMember {
     var rq := Fo<real>.requires;
   }
 }
+
+// --------------- update operations ------------------------------
+
+module CollectionUpdates {
+  // Update operations on collections must have the right types, modulo subset types.
+  // For verification errors, see Maps.dfy.
+  trait Trait { }
+  class Elem extends Trait { }
+
+  method UpdateValiditySeq(d: Trait, e: Elem) {
+    var s: seq<Elem> := [e, e, e, e, e];
+    s := s[1 := d];  // error: d is not an Elem (and is not a subset type of it, either)
+  }
+  method UpdateValidityMultiset(d: Trait) {
+    var s: multiset<Elem>;
+    s := s[d := 5];  // error: element value is not a Elem
+  }
+  method UpdateValidityMap(d: Trait, e: Elem) {
+    var m: map<Elem, Elem>;
+    if * {
+      m := m[d := e];  // error: key is not a Elem
+    } else {
+      m := m[e := d];  // error: value is not a Elem
+    }
+  }
+}
