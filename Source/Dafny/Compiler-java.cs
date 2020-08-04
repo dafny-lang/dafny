@@ -560,8 +560,8 @@ namespace Microsoft.Dafny{
 
     protected void DeclareField(string name, bool isStatic, bool isConst, Type type, Bpl.IToken tok, string rhs, ClassWriter cw) {
       if (isStatic){
-        var r = RemoveParams((rhs != null) ? rhs : DefaultValue(type, cw.StaticMemberWriter, tok));
-        var t = RemoveParams(TypeName(type, cw.StaticMemberWriter, tok));
+        var r = StripTypeParameters((rhs != null) ? rhs : DefaultValue(type, cw.StaticMemberWriter, tok));
+        var t = StripTypeParameters(TypeName(type, cw.StaticMemberWriter, tok));
         cw.StaticMemberWriter.WriteLine($"public static {t} {name} = {r};");
       }
       else{
@@ -571,7 +571,7 @@ namespace Microsoft.Dafny{
       }
     }
 
-    private string RemoveParams(string s){
+    private string StripTypeParameters(string s) {
       Contract.Requires(s != null);
       return Regex.Replace(s, @"<.+>", "");
     }
@@ -877,14 +877,6 @@ namespace Microsoft.Dafny{
       if (typeParameters != null) {
         allTypeParameters.AddRange(TypeArgumentInstantiation.ListFromFormals(typeParameters));
       }
-      /***
-      if (superClasses != null) {
-        foreach (var s in superClasses) {
-          var traitDecl = ((UserDefinedType)s).ResolvedClass;
-          allTypeParameters.AddRange(TypeArgumentInstantiation.ListFromClass(traitDecl, s.TypeArgs));
-        }
-      }
-      ***/
       sep = "";
       foreach (var ta in allTypeParameters) {
         if (NeedsTypeDescriptor(ta.Formal)) {
