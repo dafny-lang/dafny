@@ -1,3 +1,2 @@
 RuntimeTypeTests1.dfy(18,7): Error: set comprehensions in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce or compile a bounded set of values for 'x'
-RuntimeTypeTests1.dfy(51,11): Error: set comprehensions in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce or compile a bounded set of values for 'cc'
-2 resolution/type errors detected in RuntimeTypeTests1.dfy
+1 resolution/type errors detected in RuntimeTypeTests1.dfy

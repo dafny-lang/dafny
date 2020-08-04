@@ -269,9 +269,18 @@ namespace Microsoft.Dafny {
       var cw = new ClassWriter(this, name, isExtern, null, w, instanceFieldWriter, instanceFieldInitWriter, traitInitWriter, staticFieldWriter, staticFieldInitWriter);
 
       if (superClasses != null) {
+        // Emit a method that returns the ID of each parent trait
+        var parentTraitsWriter = w.NewBlock($"func (_this *{name}) ParentTraits_() []*_dafny.TraitID");
+        parentTraitsWriter.WriteLine("return [](*_dafny.TraitID){{{0}}};", Util.Comma(", ", superClasses, parent => {
+          var trait = ((UserDefinedType)parent).ResolvedClass;
+          return TypeName_Companion(trait, parentTraitsWriter, tok) + ".TraitID_";
+        }));
+
         foreach (Type typ in superClasses) {
+          // Emit a compile-time sanity check that the class emitted does indeed have the methods required by the parent trait
           w.WriteLine("var _ {0} = &{1}{{}}", TypeName(typ, w, tok), name);
         }
+        w.WriteLine("var _ _dafny.TraitOffspring = &{0}{{}}", name);
       }
       return cw;
     }
@@ -310,6 +319,8 @@ namespace Microsoft.Dafny {
       var staticFieldInitWriter = wr.NewNamedBlock("var {0} = {1}", FormatCompanionName(name), FormatCompanionTypeName(name));
 
       var cw = new ClassWriter(this, name, isExtern, abstractMethodWriter, concreteMethodWriter, null, null, null, staticFieldWriter, staticFieldInitWriter);
+      staticFieldWriter.WriteLine("TraitID_ *_dafny.TraitID");
+      staticFieldInitWriter.WriteLine("TraitID_: &_dafny.TraitID{},");
       return cw;
     }
 
@@ -1253,7 +1264,6 @@ namespace Microsoft.Dafny {
           w.Write(")");
           return w.ToString();
         } else if (xType.IsNonNullRefType) {
-          Contract.Assert(inAutoInitContext);
           // what we emit here will only be used to construct a dummy value that programmer-supplied code will overwrite later
           return "_dafny.PointerType/*not used*/";
         } else {
@@ -1789,7 +1799,7 @@ namespace Microsoft.Dafny {
       if (tok != null) wr.Write("\"" + Dafny.ErrorReporter.TokenToString(tok) + ": \" + ");
       wr.Write("(");
       TrExpr(messageExpr, wr, false);
-      wr.WriteLine(").String());");
+      wr.WriteLine(").String())");
     }
 
     protected override BlockTargetWriter CreateWhileLoop(out TargetWriter guardWriter, TargetWriter wr) {
@@ -1819,28 +1829,55 @@ namespace Microsoft.Dafny {
       return "_dafny.Quantifier";
     }
 
-    protected override BlockTargetWriter CreateForeachLoop(string boundVar, Type/*?*/ boundVarType, out TargetWriter collectionWriter, TargetWriter wr, string/*?*/ altBoundVarName = null, Type/*?*/ altVarType = null, Bpl.IToken/*?*/ tok = null) {
+    protected override BlockTargetWriter CreateForeachLoop(string tmpVarName, Type collectionElementType, string boundVarName, Type boundVarType, bool introduceBoundVar,
+      Bpl.IToken tok, out TargetWriter collectionWriter, TargetWriter wr) {
+
       var okVar = FreshId("_ok");
       var iterVar = FreshId("_iter");
-      var valVar = boundVarType == null ? boundVar : FreshId("_val");
       wr.Write("for {0} := _dafny.Iterate(", iterVar);
       collectionWriter = wr.Fork();
       var wBody = wr.NewBlock(");;");
-      wBody.WriteLine("{0}, {1} := {2}()", valVar, okVar, iterVar);
+      wBody.WriteLine("{0}, {1} := {2}()", tmpVarName, okVar, iterVar);
       wBody.WriteLine("if !{0} {{ break }}", okVar);
-      if (boundVarType != null) {
-        wBody.WriteLine("{0}, ok_{0} := {1}.({2})", boundVar, valVar, TypeName(boundVarType, wBody, tok));
-        wBody.WriteLine("if !ok_{0} {{ continue }}", boundVar);
-      }
 
-      if (altBoundVarName != null) {
-        if (altVarType == null) {
-          wBody.WriteLine("{0} = {1}", altBoundVarName, boundVar);
+      if (introduceBoundVar) {
+        wBody.WriteLine("var {0} {1}", boundVarName, TypeName(boundVarType, wBody, tok));
+      }
+      if (boundVarType.IsRefType) {
+        var wIf = EmitIf($"_dafny.IsDafnyNull({tmpVarName})", true, wBody);
+        if (boundVarType.IsNonNullRefType) {
+          wIf.WriteLine("continue");
         } else {
-          wBody.WriteLine("{0} := {1}", altBoundVarName, boundVar);
+          wIf.WriteLine("{0} = ({1})(nil)", boundVarName, TypeName(boundVarType, wBody, tok));
         }
+        wIf = wBody.NewBlock("", open: BlockTargetWriter.BraceStyle.Nothing);
+        string typeTest;
+        if (boundVarType.IsObject || boundVarType.IsObjectQ) {
+          // nothing more to test
+          wIf.WriteLine("{0} = {1}.({2})", boundVarName, tmpVarName, TypeName(boundVarType, wIf, tok));
+        } else if (boundVarType.IsTraitType) {
+          var trait = boundVarType.AsTraitType;
+          wIf.WriteLine($"if !_dafny.InstanceOfTrait({tmpVarName}.(_dafny.TraitOffspring), {TypeName_Companion(trait, wBody, tok)}.TraitID_) {{ continue }}");
+          wIf.WriteLine("{0} = {1}.({2})", boundVarName, tmpVarName, TypeName(boundVarType, wIf, tok));
+        } else {
+          typeTest = $"{tmpVarName} instanceof {TypeName(boundVarType, wBody, tok)}";
+          wIf.WriteLine("{0}, {1} = {2}.({3})", boundVarName, okVar, tmpVarName, TypeName(boundVarType, wIf, tok));
+          wIf.WriteLine("if !{0} {{ continue }}", okVar);
+        }
+      } else {
+        wBody.WriteLine("{0} = {1}.({2})", boundVarName, tmpVarName, TypeName(boundVarType, wBody, tok));
       }
+      return wBody;
+    }
 
+    protected override BlockTargetWriter CreateForeachIngredientLoop(string boundVarName, int L, string tupleTypeArgs, out TargetWriter collectionWriter, TargetWriter wr) {
+      var okVar = FreshId("_ok");
+      var iterVar = FreshId("_iter");
+      wr.Write("for {0} := _dafny.Iterate(", iterVar);
+      collectionWriter = wr.Fork();
+      var wBody = wr.NewBlock(");;");
+      wBody.WriteLine("{0}, {1} := {2}()", boundVarName, okVar, iterVar);
+      wBody.WriteLine("if !{0} {{ break }}", okVar);
       return wBody;
     }
 
@@ -2509,7 +2546,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    protected override void EmitIndexCollectionUpdate(Expression source, Expression index, Expression value, bool inLetExprBody, TargetWriter wr, bool nativeIndex = false) {
+    protected override void EmitIndexCollectionUpdate(Expression source, Expression index, Expression value, Type resultElementType, bool inLetExprBody, TargetWriter wr, bool nativeIndex = false) {
       EmitIndexCollectionUpdate(out var wSource, out var wIndex, out var wValue, wr);
       TrParenExpr(source, wSource, inLetExprBody);
       TrExpr(index, wIndex, inLetExprBody);
@@ -2615,7 +2652,7 @@ namespace Microsoft.Dafny {
       TrExprList(arguments, wr, inLetExprBody);
     }
 
-    protected override TargetWriter EmitBetaRedex(List<string> boundVars, List<Expression> arguments, string typeArgs, List<Type> boundTypes, Type type, Bpl.IToken tok, bool inLetExprBody, TargetWriter wr) {
+    protected override TargetWriter EmitBetaRedex(List<string> boundVars, List<Expression> arguments, List<Type> boundTypes, Type type, Bpl.IToken tok, bool inLetExprBody, TargetWriter wr) {
       Contract.Assert(boundVars.Count == boundTypes.Count);
       wr.Write("(func (");
       for (int i = 0; i < boundVars.Count; i++) {
@@ -2750,14 +2787,6 @@ namespace Microsoft.Dafny {
       convertE1_to_int = false;
 
       switch (op) {
-        case BinaryExpr.ResolvedOpcode.Iff:
-          opString = "=="; break;
-        case BinaryExpr.ResolvedOpcode.Imp:
-          preOpString = "!"; opString = "||"; break;
-        case BinaryExpr.ResolvedOpcode.Or:
-          opString = "||"; break;
-        case BinaryExpr.ResolvedOpcode.And:
-          opString = "&&"; break;
         case BinaryExpr.ResolvedOpcode.BitwiseAnd:
           if (AsNativeType(resultType) != null) {
             opString = "&";
@@ -2821,7 +2850,6 @@ namespace Microsoft.Dafny {
           }
 
         case BinaryExpr.ResolvedOpcode.Lt:
-        case BinaryExpr.ResolvedOpcode.LtChar:
           if (IsOrderedByCmp(e0.Type)) {
             callString = "Cmp";
             postOpString = " < 0";
@@ -2830,7 +2858,6 @@ namespace Microsoft.Dafny {
           }
           break;
         case BinaryExpr.ResolvedOpcode.Le:
-        case BinaryExpr.ResolvedOpcode.LeChar:
           if (IsOrderedByCmp(e0.Type)) {
             callString = "Cmp";
             postOpString = " <= 0";
@@ -2839,7 +2866,6 @@ namespace Microsoft.Dafny {
           }
           break;
         case BinaryExpr.ResolvedOpcode.Ge:
-        case BinaryExpr.ResolvedOpcode.GeChar:
           if (IsOrderedByCmp(e0.Type)) {
             callString = "Cmp";
             postOpString = " >= 0";
@@ -2848,7 +2874,6 @@ namespace Microsoft.Dafny {
           }
           break;
         case BinaryExpr.ResolvedOpcode.Gt:
-        case BinaryExpr.ResolvedOpcode.GtChar:
           if (IsOrderedByCmp(e0.Type)) {
             callString = "Cmp";
             postOpString = " > 0";
@@ -2963,23 +2988,12 @@ namespace Microsoft.Dafny {
         case BinaryExpr.ResolvedOpcode.MapEq:
         case BinaryExpr.ResolvedOpcode.SeqEq:
           callString = "Equals"; break;
-        case BinaryExpr.ResolvedOpcode.SetNeq:
-        case BinaryExpr.ResolvedOpcode.MultiSetNeq:
-        case BinaryExpr.ResolvedOpcode.MapNeq:
-        case BinaryExpr.ResolvedOpcode.SeqNeq:
-          preOpString = "!"; callString = "Equals"; break;
         case BinaryExpr.ResolvedOpcode.ProperSubset:
         case BinaryExpr.ResolvedOpcode.ProperMultiSubset:
           callString = "IsProperSubsetOf"; break;
         case BinaryExpr.ResolvedOpcode.Subset:
         case BinaryExpr.ResolvedOpcode.MultiSubset:
           callString = "IsSubsetOf"; break;
-        case BinaryExpr.ResolvedOpcode.Superset:
-        case BinaryExpr.ResolvedOpcode.MultiSuperset:
-          callString = "IsSupersetOf"; break;
-        case BinaryExpr.ResolvedOpcode.ProperSuperset:
-        case BinaryExpr.ResolvedOpcode.ProperMultiSuperset:
-          callString = "IsProperSupersetOf"; break;
         case BinaryExpr.ResolvedOpcode.Disjoint:
         case BinaryExpr.ResolvedOpcode.MultiSetDisjoint:
           callString = "IsDisjointFrom"; break;
@@ -2987,10 +3001,6 @@ namespace Microsoft.Dafny {
         case BinaryExpr.ResolvedOpcode.InMultiSet:
         case BinaryExpr.ResolvedOpcode.InMap:
           callString = "Contains"; reverseArguments = true; break;
-        case BinaryExpr.ResolvedOpcode.NotInSet:
-        case BinaryExpr.ResolvedOpcode.NotInMultiSet:
-        case BinaryExpr.ResolvedOpcode.NotInMap:
-          preOpString = "!"; callString = "Contains"; reverseArguments = true; break;
         case BinaryExpr.ResolvedOpcode.Union:
         case BinaryExpr.ResolvedOpcode.MultiSetUnion:
           callString = "Union"; break;
@@ -3009,11 +3019,12 @@ namespace Microsoft.Dafny {
           callString = "Concat"; break;
         case BinaryExpr.ResolvedOpcode.InSeq:
           callString = "Contains"; reverseArguments = true; break;
-        case BinaryExpr.ResolvedOpcode.NotInSeq:
-          preOpString = "!"; callString = "Contains"; reverseArguments = true; break;
 
         default:
-          Contract.Assert(false); throw new cce.UnreachableException();  // unexpected binary expression
+          base.CompileBinOp(op, e0, e1, tok, resultType,
+            out opString, out preOpString, out postOpString, out callString, out staticCallString, out reverseArguments, out truncateResult, out convertE1_to_int,
+            errorWr);
+          break;
       }
     }
 

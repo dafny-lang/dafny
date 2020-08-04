@@ -67,35 +67,35 @@ class MultisetTest {
     testMap.put(45, BigInteger.valueOf(18));
     testMap.put(-3, BigInteger.ZERO);
     DafnyMultiset<Integer> testZeros = new DafnyMultiset<>(testMap);
-    testZeros = testZeros.update(10, BigInteger.ZERO);
+    testZeros = DafnyMultiset.<Integer>update(testZeros, 10, BigInteger.ZERO);
     assertTrue(testMDisjoint.disjoint(testZeros));
-    assertTrue(testMDisjoint.disjoint(testZeros.intersection(testMSubSet)));
-    assertTrue(testMSet.disjoint(testMSet.difference(testMSet)));
+    assertTrue(testMDisjoint.disjoint(DafnyMultiset.<Integer>intersection(testZeros, testMSubSet)));
+    assertTrue(testMSet.disjoint(DafnyMultiset.<Integer>difference(testMSet, testMSet)));
   }
 
   @Test
   void testUnion() {
-    assertEquals(testMUnion4, testMUnion1.union(testMUnion2));
-    assertEquals(testMUnion5, testMUnion1.union(testMUnion3));
-    assertEquals(testMUnion1, testMUnion1.union(testMEmpty));
-    assertEquals(testMUnion1, testMEmpty.union(testMUnion1));
-    assertEquals(testMUnion6, testMUnion1.union(testMUnion1));
+    assertEquals(testMUnion4, DafnyMultiset.<Integer>union(testMUnion1, testMUnion2));
+    assertEquals(testMUnion5, DafnyMultiset.<Integer>union(testMUnion1, testMUnion3));
+    assertEquals(testMUnion1, DafnyMultiset.<Integer>union(testMUnion1, testMEmpty));
+    assertEquals(testMUnion1, DafnyMultiset.<Integer>union(testMEmpty, testMUnion1));
+    assertEquals(testMUnion6, DafnyMultiset.<Integer>union(testMUnion1, testMUnion1));
   }
 
   @Test
   void testDifference() {
-    assertEquals(testMDifference, testMSet.difference(testMSubSet));
-    assertEquals(testMEmpty, testMSubSet.difference(testMSet));
-    assertEquals(testMSet, testMSet.difference(testMDisjoint));
-    assertEquals(testMDifference, testMSet.difference(testMDisjoint).difference(testMSubSet));
+    assertEquals(testMDifference, DafnyMultiset.<Integer>difference(testMSet, testMSubSet));
+    assertEquals(testMEmpty, DafnyMultiset.<Integer>difference(testMSubSet, testMSet));
+    assertEquals(testMSet, DafnyMultiset.<Integer>difference(testMSet, testMDisjoint));
+    assertEquals(testMDifference, DafnyMultiset.<Integer>difference(DafnyMultiset.<Integer>difference(testMSet, testMDisjoint), testMSubSet));
   }
 
   @Test
   void testIntersection() {
-    assertEquals(testMSubSet, testMSubSet.intersection(testMSet));
-    assertEquals(testMSubSet, testMSubSet.intersection(testMSubSet));
-    assertEquals(testMEmpty, testMSubSet.intersection(testMDisjoint));
-    assertEquals(testMEmpty, testMSet.intersection(testMSubSet).intersection(testMDisjoint));
+    assertEquals(testMSubSet, DafnyMultiset.<Integer>intersection(testMSubSet, testMSet));
+    assertEquals(testMSubSet, DafnyMultiset.<Integer>intersection(testMSubSet, testMSubSet));
+    assertEquals(testMEmpty, DafnyMultiset.<Integer>intersection(testMSubSet, testMDisjoint));
+    assertEquals(testMEmpty, DafnyMultiset.<Integer>intersection(DafnyMultiset.<Integer>intersection(testMSet, testMSubSet), testMDisjoint));
   }
 
   @Test
@@ -118,11 +118,11 @@ class MultisetTest {
 
   @Test
   void testUpdate() {
-    testMSet = testMSet.update(7, BigInteger.valueOf(3));
-    assertEquals(BigInteger.valueOf(3), testMSet.multiplicity(7));
-    testMSet = testMSet.update(8, BigInteger.valueOf(5));
-    assertEquals(BigInteger.valueOf(5), testMSet.multiplicity(8));
-    testMSet = testMSet.update(8, BigInteger.valueOf(0));
+    testMSet = DafnyMultiset.<Integer>update(testMSet, 7, BigInteger.valueOf(3));
+    assertEquals(BigInteger.valueOf(3), DafnyMultiset.<Integer>multiplicity(testMSet, 7));
+    testMSet = DafnyMultiset.<Integer>update(testMSet, 8, BigInteger.valueOf(5));
+    assertEquals(BigInteger.valueOf(5), DafnyMultiset.<Integer>multiplicity(testMSet, 8));
+    testMSet = DafnyMultiset.<Integer>update(testMSet, 8, BigInteger.valueOf(0));
     assertFalse(testMSet.contains(8));
   }
 
@@ -155,20 +155,20 @@ class MultisetTest {
     assertThrows(AssertionError.class, () -> testMSet.isSubsetOf(null));
     assertThrows(AssertionError.class, () -> testMSet.isProperSubsetOf(null));
     assertThrows(AssertionError.class, () -> testMSet.disjoint(null));
-    assertThrows(AssertionError.class, () -> testMSet.intersection(null));
-    assertThrows(AssertionError.class, () -> testMSet.update(5, null));
-    assertThrows(AssertionError.class, () -> testMSet.union(null));
-    assertThrows(AssertionError.class, () -> testMSet.difference(null));
+    assertThrows(AssertionError.class, () -> DafnyMultiset.<Integer>intersection(testMSet, null));
+    assertThrows(AssertionError.class, () -> DafnyMultiset.<Integer>update(testMSet, 5, null));
+    assertThrows(AssertionError.class, () -> DafnyMultiset.<Integer>union(testMSet, null));
+    assertThrows(AssertionError.class, () -> DafnyMultiset.<Integer>difference(testMSet, null));
   }
 
   @Test
   void testNullEntries() {
-    testMSet = testMSet.update(null, BigInteger.ONE);
+    testMSet = DafnyMultiset.<Integer>update(testMSet, null, BigInteger.ONE);
     assertTrue(testMSet.contains(null));
-    assertEquals(BigInteger.ONE, testMSet.multiplicity(null));
-    testMSet = testMSet.update(null, BigInteger.ZERO);
+    assertEquals(BigInteger.ONE, DafnyMultiset.<Integer>multiplicity(testMSet, null));
+    testMSet = DafnyMultiset.<Integer>update(testMSet, null, BigInteger.ZERO);
     assertFalse(testMSet.contains(null));
-    assertEquals(BigInteger.ZERO, testMSet.multiplicity(null));
+    assertEquals(BigInteger.ZERO, DafnyMultiset.<Integer>multiplicity(testMSet, null));
   }
 
   @Test
@@ -177,7 +177,7 @@ class MultisetTest {
     m.put(3, BigInteger.valueOf(-3));
     m.put(2, BigInteger.valueOf(0));
     assertThrows(AssertionError.class, () -> new DafnyMultiset<>(m));
-    assertThrows(AssertionError.class, () -> testMSet.update(16, BigInteger.valueOf(-18)));
+    assertThrows(AssertionError.class, () -> DafnyMultiset.<Integer>update(testMSet, 16, BigInteger.valueOf(-18)));
   }
 
   @Test

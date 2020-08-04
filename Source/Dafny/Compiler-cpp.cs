@@ -26,7 +26,7 @@ namespace Microsoft.Dafny {
     private ReadOnlyCollection<string> headers;
     private List<DatatypeDecl> datatypeDecls;
     private List<string> classDefaults;
-    
+
     /*
      * Unlike other Dafny and Dafny's other backends, C++ cares about
      * the order in which types are declared.  To make this more likely
@@ -180,7 +180,7 @@ namespace Microsoft.Dafny {
     protected Exception NotSupported(String msg, Bpl.IToken tok) {
       return new Exception(String.Format("{0} is not yet supported (at {1}:{2}:{3})", msg, tok.filename, tok.line, tok.col));
     }
-    
+
     protected override IClassWriter CreateClass(string moduleName, string name, bool isExtern, string/*?*/ fullPrintName, List<TypeParameter>/*?*/ typeParameters, TopLevelDecl cls, List<Type>/*?*/ superClasses, Bpl.IToken tok, TargetWriter wr) {
       if (isExtern || (superClasses != null && superClasses.Count > 0)) {
         throw NotSupported(String.Format("extern and/or traits in class {0}", name), tok);
@@ -198,7 +198,7 @@ namespace Microsoft.Dafny {
       var methodDefWriter = wr;
 
       classDeclWriter.WriteLine("class {0};", name);
-      
+
       methodDeclWriter.Write("public:\n");
       methodDeclWriter.WriteLine("// Default constructor");
       methodDeclWriter.WriteLine("{0}() {{}}", name);
@@ -241,7 +241,7 @@ namespace Microsoft.Dafny {
       }
       return false;
     }
-    
+
     protected bool IsRecursiveDatatype(DatatypeDecl dt) {
       foreach (var ctor in dt.Ctors) {
         if (IsRecursiveConstructor(dt, ctor)) {
@@ -819,7 +819,7 @@ namespace Microsoft.Dafny {
       if (createBody) {
         w = wdr.NewNamedBlock("{0}{1} init__{2}()", isStatic ? "static " : "", TypeName(resultType, wr, tok), name);
         postfix = String.Format(" init__{0}()", name);
-      } 
+      }
       DeclareField(cls.CompileName, cls.TypeArgs, name, isStatic, isConst, resultType, tok, postfix, wdr, wr);
       //wdr.Write("{0}{1} {2}{3};", isStatic ? "static " : "", TypeName(resultType, wr, tok), name, postfix);
       return w;
@@ -947,7 +947,7 @@ namespace Microsoft.Dafny {
       Contract.Assume(type != null);  // precondition; this ought to be declared as a Requires in the superclass
       return TypeName(type, wr, tok, member, false);
     }
-   
+
     public override string TypeInitializationValue(Type type, TextWriter/*?*/ wr, Bpl.IToken/*?*/ tok, bool inAutoInitContext) {
       var xType = type.NormalizeExpandKeepConstraints();
       if (xType is BoolType) {
@@ -1284,16 +1284,38 @@ namespace Microsoft.Dafny {
       throw NotSupported("QuantifierName");
     }
 
-    protected override BlockTargetWriter CreateForeachLoop(string boundVar, Type/*?*/ boundVarType, out TargetWriter collectionWriter, TargetWriter wr, string/*?*/ altBoundVarName = null, Type/*?*/ altVarType = null, Bpl.IToken/*?*/ tok = null) {
-      wr.Write("for ({0} {1} : ", boundVarType, boundVar);
+    protected override BlockTargetWriter CreateForeachLoop(string tmpVarName, Type collectionElementType, string boundVarName, Type boundVarType, bool introduceBoundVar,
+      Bpl.IToken tok, out TargetWriter collectionWriter, TargetWriter wr) {
+
+      wr.Write("for ({1} {0} : ", tmpVarName, TypeName(collectionElementType, wr, tok));
       collectionWriter = wr.Fork();
-      if (altBoundVarName == null) {
-        return wr.NewBlock(")");
-      } else if (altVarType == null) {
-        return wr.NewBlockWithPrefix(")", "{0} = {1};", altBoundVarName, boundVar);
-      } else {
-        return wr.NewBlockWithPrefix(")", "auto {0} = {1};", altBoundVarName, boundVar);
+      var wwr = wr.NewBlock(")");
+
+      if (boundVarType.IsRefType) {
+        string typeTest;
+        if (boundVarType.IsObject || boundVarType.IsObjectQ) {
+          typeTest = "true";
+        } else if (boundVarType.IsTraitType) {
+          typeTest = $"_dafny.InstanceOfTrait({tmpVarName}, {TypeName(boundVarType, wwr, tok)})";
+        } else {
+          typeTest = $"typeid({tmpVarName}) is typeid({TypeName(boundVarType, wwr, tok)})";
+        }
+        if (boundVarType.IsNonNullRefType) {
+          typeTest = $"{tmpVarName} != null && {typeTest}";
+        } else {
+          typeTest = $"{tmpVarName} == null || {typeTest}";
+        }
+        wwr = wwr.NewBlock($"if ({typeTest})");
       }
+      var typeName = TypeName(boundVarType, wwr, tok);
+      wwr.WriteLine("{0}{1} = ({2}){3};", introduceBoundVar ? typeName + " " : "", boundVarName, typeName, tmpVarName);
+      return wwr;
+    }
+
+    protected override BlockTargetWriter CreateForeachIngredientLoop(string boundVarName, int L, string tupleTypeArgs, out TargetWriter collectionWriter, TargetWriter wr) {
+      wr.Write($"for (auto {boundVarName} : ");
+      collectionWriter = wr.Fork();
+      return wr.NewBlock(")");
     }
 
     // ----- Expressions -------------------------------------------------------------
@@ -1752,7 +1774,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    protected override void EmitIndexCollectionUpdate(Expression source, Expression index, Expression value, bool inLetExprBody, TargetWriter wr, bool nativeIndex = false) {
+    protected override void EmitIndexCollectionUpdate(Expression source, Expression index, Expression value, Type resultElementType, bool inLetExprBody, TargetWriter wr, bool nativeIndex = false) {
       TrParenExpr(source, wr, inLetExprBody);
       wr.Write(".update(");
       TrExpr(index, wr, inLetExprBody);
@@ -1830,7 +1852,7 @@ namespace Microsoft.Dafny {
       TrExprList(arguments, wr, inLetExprBody);
     }
 
-    protected override TargetWriter EmitBetaRedex(List<string> boundVars, List<Expression> arguments, string typeArgs, List<Type> boundTypes, Type resultType, Bpl.IToken tok, bool inLetExprBody, TargetWriter wr) {
+    protected override TargetWriter EmitBetaRedex(List<string> boundVars, List<Expression> arguments, List<Type> boundTypes, Type resultType, Bpl.IToken tok, bool inLetExprBody, TargetWriter wr) {
       wr.Write("(({0}) => ", Util.Comma(boundVars));
       var w = wr.Fork();
       wr.Write(")");

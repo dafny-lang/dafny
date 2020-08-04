@@ -50,26 +50,26 @@ class SetTest {
 
     @Test
     void testUnion() {
-        assertEquals(testSet, testSet.union(testSubSet));
-        assertEquals(testUnion, testDisjoint.union(testSet));
-        assertEquals(testSet, testSubSet.union(testSet));
-        assertEquals(testUnion, testSubSet.union(testDisjoint).union(testSet));
+        assertEquals(testSet, DafnySet.<Integer>union(testSet, testSubSet));
+        assertEquals(testUnion, DafnySet.<Integer>union(testDisjoint, testSet));
+        assertEquals(testSet, DafnySet.<Integer>union(testSubSet, testSet));
+        assertEquals(testUnion, DafnySet.<Integer>union(DafnySet.<Integer>union(testSubSet, testDisjoint), testSet));
     }
 
     @Test
     void testDifference() {
-        assertEquals(testDifference, testSet.difference(testSubSet));
-        assertEquals(testEmpty, testSubSet.difference(testSet));
-        assertEquals(testSet, testSet.difference(testDisjoint));
-        assertEquals(testDifference, testSet.difference(testDisjoint).difference(testSubSet));
+        assertEquals(testDifference, DafnySet.<Integer>difference(testSet, testSubSet));
+        assertEquals(testEmpty, DafnySet.<Integer>difference(testSubSet, testSet));
+        assertEquals(testSet, DafnySet.<Integer>difference(testSet, testDisjoint));
+        assertEquals(testDifference, DafnySet.<Integer>difference(DafnySet.<Integer>difference(testSet, testDisjoint), testSubSet));
     }
 
     @Test
     void testIntersection() {
-        assertEquals(testSubSet, testSubSet.intersection(testSet));
-        assertEquals(testSubSet, testSubSet.intersection(testSubSet));
-        assertEquals(testEmpty, testSubSet.intersection(testDisjoint));
-        assertEquals(testEmpty, testSet.intersection(testSubSet).intersection(testDisjoint));
+        assertEquals(testSubSet, DafnySet.<Integer>intersection(testSubSet, testSet));
+        assertEquals(testSubSet, DafnySet.<Integer>intersection(testSubSet, testSubSet));
+        assertEquals(testEmpty, DafnySet.<Integer>intersection(testSubSet, testDisjoint));
+        assertEquals(testEmpty, DafnySet.<Integer>intersection(DafnySet.<Integer>intersection(testSet, testSubSet), testDisjoint));
     }
 
     @Test
@@ -115,10 +115,10 @@ class SetTest {
         assertThrows(AssertionError.class, () -> testSet.isProperSubsetOf(null));
         assertThrows(AssertionError.class, () -> testSet.contains(null));
         assertThrows(AssertionError.class, () -> testSet.disjoint(null));
-        assertThrows(AssertionError.class, () -> testSet.intersection(null));
+        assertThrows(AssertionError.class, () -> DafnySet.<Integer>intersection(testSet, null));
         assertThrows(AssertionError.class, () -> testSet.add(null));
-        assertThrows(AssertionError.class, () -> testSet.union(null));
-        assertThrows(AssertionError.class, () -> testSet.difference(null));
+        assertThrows(AssertionError.class, () -> DafnySet.<Integer>union(testSet, null));
+        assertThrows(AssertionError.class, () -> DafnySet.<Integer>difference(testSet, null));
     }
 
     @Test

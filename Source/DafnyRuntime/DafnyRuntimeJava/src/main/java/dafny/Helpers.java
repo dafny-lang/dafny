@@ -90,6 +90,10 @@ public class Helpers {
         };
     }
 
+    public static Iterable<Boolean> AllBooleans() {
+        return () -> IntStream.range(0, 2).<Boolean>mapToObj(i -> i == 1).iterator();
+    }
+
     public static Iterable<Character> AllChars() {
         return () -> IntStream.range(0, 0x1000).<Character>mapToObj(i -> Character.valueOf((char)i)).iterator();
     }
@@ -123,7 +127,7 @@ public class Helpers {
             return BigInteger.valueOf(l).add(ULONG_LIMIT);
         }
     }
-    
+
     public static void withHaltHandling(Runnable runnable) {
         try {
             runnable.run();

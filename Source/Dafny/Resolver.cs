@@ -4750,7 +4750,7 @@ namespace Microsoft.Dafny
             break;
 
           case 11: {
-            // Last resort decisions. Sometimes get here even with some 'obvious' 
+            // Last resort decisions. Sometimes get here even with some 'obvious'
             // inferences. Before this case was added, the type inference returned with
             // failure, so this is a conservative addition, and could be made more
             // capable.
@@ -4835,7 +4835,7 @@ namespace Microsoft.Dafny
 
             break;
           }
- 
+
           case 12:
             // we're so out of here
             return;
@@ -15388,7 +15388,7 @@ namespace Microsoft.Dafny
       } else if (bv.Type.IsCharType) {
         bounds.Add(new ComprehensionExpr.CharBoundedPool());
       } else if (bv.Type.IsDatatype && bv.Type.AsDatatype.HasFinitePossibleValues) {
-        bounds.Add(new ComprehensionExpr.DatatypeBoundedPool(bv.Type.AsIndDatatype));
+        bounds.Add(new ComprehensionExpr.DatatypeBoundedPool(bv.Type.AsDatatype));
       } else if (bv.Type.IsNumericBased(Type.NumericPersuation.Int)) {
         bounds.Add(new AssignSuchThatStmt.WiggleWaggleBound());
       } else if (bv.Type.IsAllocFree) {
@@ -15435,7 +15435,7 @@ namespace Microsoft.Dafny
         switch (c.ResolvedOp) {
           case BinaryExpr.ResolvedOpcode.InSet:
             if (whereIsBv == 0) {
-              bounds.Add(new ComprehensionExpr.SetBoundedPool(e1, e0.Type.Equals(e1.Type.AsSetType.Arg), e1.Type.AsSetType.Finite));
+              bounds.Add(new ComprehensionExpr.SetBoundedPool(e1, e0.Type, e1.Type.AsSetType.Arg, e1.Type.AsSetType.Finite));
             }
             break;
           case BinaryExpr.ResolvedOpcode.Subset:
@@ -15447,17 +15447,17 @@ namespace Microsoft.Dafny
             break;
           case BinaryExpr.ResolvedOpcode.InMultiSet:
             if (whereIsBv == 0) {
-              bounds.Add(new ComprehensionExpr.MultiSetBoundedPool(e1, e0.Type.Equals(e1.Type.AsMultiSetType.Arg)));
+              bounds.Add(new ComprehensionExpr.MultiSetBoundedPool(e1, e0.Type, e1.Type.AsMultiSetType.Arg));
             }
             break;
           case BinaryExpr.ResolvedOpcode.InSeq:
             if (whereIsBv == 0) {
-              bounds.Add(new ComprehensionExpr.SeqBoundedPool(e1, e0.Type.Equals(e1.Type.AsSeqType.Arg)));
+              bounds.Add(new ComprehensionExpr.SeqBoundedPool(e1, e0.Type, e1.Type.AsSeqType.Arg));
             }
             break;
           case BinaryExpr.ResolvedOpcode.InMap:
             if (whereIsBv == 0) {
-              bounds.Add(new ComprehensionExpr.MapBoundedPool(e1, e0.Type.Equals(e1.Type.AsMapType.Arg), e1.Type.AsMapType.Finite));
+              bounds.Add(new ComprehensionExpr.MapBoundedPool(e1, e0.Type, e1.Type.AsMapType.Arg, e1.Type.AsMapType.Finite));
             }
             break;
           case BinaryExpr.ResolvedOpcode.EqCommon:

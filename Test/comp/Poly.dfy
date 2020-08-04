@@ -1,5 +1,6 @@
-// Currently only enabled for Go due to seq<TRAIT> etc.
-// RUN: %dafny /compile:3 /spillTargetCode:2 /compileTarget:go "%s" > "%t"
+// Currently only enabled for Go and JavaScript due to seq<TRAIT> etc.
+// RUN: %dafny /compile:3 /spillTargetCode:2 /compileTarget:js "%s" > "%t"
+// RUN: %dafny /compile:3 /spillTargetCode:2 /compileTarget:go "%s" >> "%t"
 // RUN: %diff "%s.expect" "%t"
 
 trait Shape {

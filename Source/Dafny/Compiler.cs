@@ -384,7 +384,7 @@ namespace Microsoft.Dafny {
       foreach (var lhsType in lhsTypes) {
         string target = idGenerator.FreshId("_rhs");
         rhsVars.Add(target);
-        wr.Write(GenerateLhsDecl(target, lhsType, wr, null));
+        wr.Write(GenerateLhsDecl(target, lhsType, wr, Bpl.Token.NoToken));
         wRhss.Add(EmitAssignmentRhs(wr));
       }
 
@@ -511,9 +511,37 @@ namespace Microsoft.Dafny {
     protected abstract string GetQuantifierName(string bvType);
 
     /// <summary>
-    /// "tok" can be null if "altVarType" is null, which in turn is allowed if "altBoundVarName" is null
+    /// Emit a loop like this:
+    ///     foreach (tmpVarName:collectionElementType in [[collectionWriter]]) {
+    ///       if (tmpVarName is member of type boundVarType) {
+    ///         var boundVarName:boundVarType := tmpVarName as boundVarType;
+    ///         [[bodyWriter]]
+    ///       }
+    ///     }
+    /// where
+    ///   * "[[collectionWriter]]" is the writer returned as "collectionWriter"
+    ///   * "[[bodyWriter]]" is the block writer returned
+    /// Option:
+    ///   * "introduceBoundVar" can be "false", which says to do the assignment to "boundVarName" as
+    ///     shown above, but without also declaring the variable "boundVarName".
     /// </summary>
-    protected abstract BlockTargetWriter CreateForeachLoop(string boundVar, Type/*?*/ boundVarType, out TargetWriter collectionWriter, TargetWriter wr, string/*?*/ altBoundVarName = null, Type/*?*/ altVarType = null, Bpl.IToken/*?*/ tok = null);
+    protected abstract BlockTargetWriter CreateForeachLoop(string tmpVarName, Type collectionElementType, string boundVarName, Type boundVarType, bool introduceBoundVar,
+      Bpl.IToken tok, out TargetWriter collectionWriter, TargetWriter wr);
+
+    /// <summary>
+    /// Emit a simple foreach loop over the elements (which are known as "ingredients") of a collection assembled for
+    /// the purpose of compiling a "forall" statement.
+    ///
+    ///     foreach (boundVarName:boundVarType in [[coll]]) {
+    ///       [[body]]
+    ///     }
+    ///
+    /// where "boundVarType" is an L-tuple whose components are "tupleTypeArgs" (see EmitIngredients). If "boundVarType" can
+    /// be inferred from the ingredients emitted by EmitIngredients, then "L" and "tupleTypeArgs" can be ignored and
+    /// "boundVarType" be replaced by some target-language way of saying "please infer the type" (like "var" in C#).
+    /// </summary>
+    protected abstract BlockTargetWriter CreateForeachIngredientLoop(string boundVarName, int L, string tupleTypeArgs, out TargetWriter collectionWriter, TargetWriter wr);
+
     /// <summary>
     /// If "initCall" is non-null, then "initCall.Method is Constructor".
     /// </summary>
@@ -601,13 +629,13 @@ namespace Microsoft.Dafny {
       Contract.Requires(wr != null);
 
       resultType = resultType.NormalizeExpand();
-      wr.Write("(");
+      wr.Write("((");
       TrExpr(guard, wr, inLetExprBody);
       wr.Write(") ? (");
       TrExpr(thn, resultType.Equals(thn.Type.NormalizeExpand()) ? wr : EmitCast(resultType, wr), inLetExprBody);
       wr.Write(") : (");
       TrExpr(els, resultType.Equals(els.Type.NormalizeExpand()) ? wr : EmitCast(resultType, wr), inLetExprBody);
-      wr.Write(")");
+      wr.Write("))");
     }
 
     protected virtual TargetWriter EmitCast(Type toType, TargetWriter wr) {
@@ -717,7 +745,7 @@ namespace Microsoft.Dafny {
     }
     protected abstract void EmitExprAsInt(Expression expr, bool inLetExprBody, TargetWriter wr);
     protected abstract void EmitIndexCollectionSelect(Expression source, Expression index, bool inLetExprBody, TargetWriter wr);
-    protected abstract void EmitIndexCollectionUpdate(Expression source, Expression index, Expression value, bool inLetExprBody, TargetWriter wr, bool nativeIndex = false);
+    protected abstract void EmitIndexCollectionUpdate(Expression source, Expression index, Expression value, Type resultElementType, bool inLetExprBody, TargetWriter wr, bool nativeIndex = false);
     protected virtual void EmitIndexCollectionUpdate(out TargetWriter wSource, out TargetWriter wIndex, out TargetWriter wValue, TargetWriter wr, bool nativeIndex = false) {
       wSource = wr.Fork();
       wr.Write('[');
@@ -733,7 +761,8 @@ namespace Microsoft.Dafny {
     protected abstract void EmitSeqConstructionExpr(SeqConstructionExpr expr, bool inLetExprBody, TargetWriter wr);
     protected abstract void EmitMultiSetFormingExpr(MultiSetFormingExpr expr, bool inLetExprBody, TargetWriter wr);
     protected abstract void EmitApplyExpr(Type functionType, Bpl.IToken tok, Expression function, List<Expression> arguments, bool inLetExprBody, TargetWriter wr);
-    protected abstract TargetWriter EmitBetaRedex(List<string> boundVars, List<Expression> arguments, string typeArgs, List<Type> boundTypes, Type resultType, Bpl.IToken resultTok, bool inLetExprBody, TargetWriter wr);
+    protected virtual bool TargetLambdaCanUseEnclosingLocals => true;
+    protected abstract TargetWriter EmitBetaRedex(List<string> boundVars, List<Expression> arguments, List<Type> boundTypes, Type resultType, Bpl.IToken resultTok, bool inLetExprBody, TargetWriter wr);
     protected virtual void EmitConstructorCheck(string source, DatatypeCtor ctor, TargetWriter wr) {
       wr.Write("{0}.is_{1}", source, ctor.CompileName);
     }
@@ -750,7 +779,8 @@ namespace Microsoft.Dafny {
     protected abstract BlockTargetWriter CreateIIFE1(int source, Type resultType, Bpl.IToken resultTok, string bvName, TargetWriter wr);  // Immediately Invoked Function Expression
     public enum ResolvedUnaryOp { BoolNot, BitwiseNot, Cardinality }
     protected abstract void EmitUnaryExpr(ResolvedUnaryOp op, Expression expr, bool inLetExprBody, TargetWriter wr);
-    protected abstract void CompileBinOp(BinaryExpr.ResolvedOpcode op,
+
+    protected virtual void CompileBinOp(BinaryExpr.ResolvedOpcode op,
       Expression e0, Expression e1, Bpl.IToken tok, Type resultType,
       out string opString,
       out string preOpString,
@@ -760,7 +790,100 @@ namespace Microsoft.Dafny {
       out bool reverseArguments,
       out bool truncateResult,
       out bool convertE1_to_int,
-      TextWriter errorWr);
+      TextWriter errorWr) {
+
+      // This default implementation does not handle all cases. It handles some cases that look the same
+      // in C-like languages. It also handles cases that can be solved by another operator, but reversing
+      // the arguments or following the operation with a negation.
+      opString = null;
+      preOpString = "";
+      postOpString = "";
+      callString = null;
+      staticCallString = null;
+      reverseArguments = false;
+      truncateResult = false;
+      convertE1_to_int = false;
+
+      BinaryExpr.ResolvedOpcode dualOp = BinaryExpr.ResolvedOpcode.Add;  // NOTE! "Add" is used to say "there is no dual op"
+      BinaryExpr.ResolvedOpcode negatedOp = BinaryExpr.ResolvedOpcode.Add;  // NOTE! "Add" is used to say "there is no negated op"
+
+      switch (op) {
+        case BinaryExpr.ResolvedOpcode.Iff:
+          opString = "=="; break;
+        case BinaryExpr.ResolvedOpcode.Imp:
+          preOpString = "!"; opString = "||"; break;
+        case BinaryExpr.ResolvedOpcode.Or:
+          opString = "||"; break;
+        case BinaryExpr.ResolvedOpcode.And:
+          opString = "&&"; break;
+        case BinaryExpr.ResolvedOpcode.BitwiseAnd:
+          opString = "&"; break;
+        case BinaryExpr.ResolvedOpcode.BitwiseOr:
+          opString = "|"; break;
+        case BinaryExpr.ResolvedOpcode.BitwiseXor:
+          opString = "^"; break;
+
+        case BinaryExpr.ResolvedOpcode.Lt:
+        case BinaryExpr.ResolvedOpcode.LtChar:
+          opString = "<"; break;
+        case BinaryExpr.ResolvedOpcode.Le:
+        case BinaryExpr.ResolvedOpcode.LeChar:
+          opString = "<="; break;
+        case BinaryExpr.ResolvedOpcode.Ge:
+        case BinaryExpr.ResolvedOpcode.GeChar:
+          opString = ">="; break;
+        case BinaryExpr.ResolvedOpcode.Gt:
+        case BinaryExpr.ResolvedOpcode.GtChar:
+          opString = ">"; break;
+
+        case BinaryExpr.ResolvedOpcode.SetNeq:
+          negatedOp = BinaryExpr.ResolvedOpcode.SetEq; break;
+        case BinaryExpr.ResolvedOpcode.MultiSetNeq:
+          negatedOp = BinaryExpr.ResolvedOpcode.MultiSetEq; break;
+        case BinaryExpr.ResolvedOpcode.SeqNeq:
+          negatedOp = BinaryExpr.ResolvedOpcode.SeqEq; break;
+        case BinaryExpr.ResolvedOpcode.MapNeq:
+          negatedOp = BinaryExpr.ResolvedOpcode.MapEq; break;
+
+        case BinaryExpr.ResolvedOpcode.Superset:
+          dualOp = BinaryExpr.ResolvedOpcode.Subset; break;
+        case BinaryExpr.ResolvedOpcode.MultiSuperset:
+          dualOp = BinaryExpr.ResolvedOpcode.MultiSubset; break;
+
+        case BinaryExpr.ResolvedOpcode.ProperSuperset:
+          dualOp = BinaryExpr.ResolvedOpcode.ProperSubset; break;
+        case BinaryExpr.ResolvedOpcode.ProperMultiSuperset:
+          dualOp = BinaryExpr.ResolvedOpcode.ProperMultiSubset; break;
+
+        case BinaryExpr.ResolvedOpcode.NotInSet:
+          negatedOp = BinaryExpr.ResolvedOpcode.InSet; break;
+        case BinaryExpr.ResolvedOpcode.NotInMultiSet:
+          negatedOp = BinaryExpr.ResolvedOpcode.InMultiSet; break;
+        case BinaryExpr.ResolvedOpcode.NotInSeq:
+          negatedOp = BinaryExpr.ResolvedOpcode.InSeq; break;
+        case BinaryExpr.ResolvedOpcode.NotInMap:
+          negatedOp = BinaryExpr.ResolvedOpcode.InMap; break;
+
+        default:
+          // The operator is one that needs to be handled in the specific compilers.
+          Contract.Assert(false); throw new cce.UnreachableException();  // unexpected binary expression
+      }
+
+      if (dualOp != BinaryExpr.ResolvedOpcode.Add) {  // remember from above that Add stands for "there is no dual"
+        Contract.Assert(negatedOp == BinaryExpr.ResolvedOpcode.Add);
+        CompileBinOp(dualOp,
+          e1, e0, tok, resultType,
+          out opString, out preOpString, out postOpString, out callString, out staticCallString, out reverseArguments, out truncateResult, out convertE1_to_int,
+          errorWr);
+      } else if (negatedOp != BinaryExpr.ResolvedOpcode.Add) {  // remember from above that Add stands for "there is no negated op"
+        CompileBinOp(negatedOp,
+          e0, e1, tok, resultType,
+          out opString, out preOpString, out postOpString, out callString, out staticCallString, out reverseArguments, out truncateResult, out convertE1_to_int,
+          errorWr);
+        preOpString = "!" + preOpString;
+      }
+    }
+
     protected abstract void EmitIsZero(string varName, TargetWriter wr);
     protected abstract void EmitConversionExpr(ConversionExpr e, bool inLetExprBody, TargetWriter wr);
     protected abstract void EmitCollectionDisplay(CollectionType ct, Bpl.IToken tok, List<Expression> elements, bool inLetExprBody, TargetWriter wr);  // used for sets, multisets, and sequences
@@ -2739,7 +2862,7 @@ namespace Microsoft.Dafny {
           //   }
           TargetWriter collWriter;
           TargetTupleSize = L;
-          wr = CreateForeachLoop(tup, null, out collWriter, wrOuter);
+          wr = CreateForeachIngredientLoop(tup, L, tupleTypeArgs, out collWriter, wrOuter);
           collWriter.Write(ingredients);
           {
             var wTup = new TargetWriter(wr.IndentLevel, true);
@@ -2858,13 +2981,17 @@ namespace Microsoft.Dafny {
     }
 
     protected virtual void EmitMemberSelect(AssignStmt s0, List<Type> tupleTypeArgsList, TargetWriter wr, string tup) {
-      var lhs = (MemberSelectExpr) s0.Lhs;
-      var wCoerced = EmitCoercionIfNecessary(from: null, to: tupleTypeArgsList[0], tok: s0.Tok, wr: wr);
-      EmitTupleSelect(tup, 0, wCoerced);
-      wr.Write(".{0} = ", IdMemberName(lhs));
-      wCoerced = EmitCoercionIfNecessary(from: null, to: tupleTypeArgsList[1], tok: s0.Tok, wr: wr);
+      var lhs = (MemberSelectExpr)s0.Lhs;
+
+      var typeArgs = TypeArgumentInstantiation.ListFromMember(lhs.Member, null, lhs.TypeApplication_JustMember);
+      var lvalue = EmitMemberSelect(w => {
+        var wObj = EmitCoercionIfNecessary(from: null, to: tupleTypeArgsList[0], s0.Tok, w);
+        EmitTupleSelect(tup, 0, wObj);
+      }, lhs.Obj.Type, lhs.Member, typeArgs, lhs.TypeArgumentSubstitutionsWithParents(), lhs.Type);
+
+      var wRhs = EmitAssignment(lvalue, lhs.Type, tupleTypeArgsList[1], wr);
+      var wCoerced = EmitCoercionIfNecessary(from: null, to: tupleTypeArgsList[1], tok: s0.Tok, wr: wRhs);
       EmitTupleSelect(tup, 1, wCoerced);
-      EndStmt(wr);
     }
 
     protected virtual void EmitSeqSelect(AssignStmt s0, List<Type> tupleTypeArgsList, TargetWriter wr, string tup){
@@ -2904,8 +3031,9 @@ namespace Microsoft.Dafny {
         var bound = bounds[i];
         var bv = bvs[i];
         TargetWriter collectionWriter;
-        wr = CreateForeachLoop(IdName(bv), bv.Type, out collectionWriter, wr);
-        CompileCollection(bound, bv, false, false, collectionWriter, bounds, bvs, i);
+        var tmpVar = idGenerator.FreshId("_guard_loop_");
+        wr = CreateForeachLoop(tmpVar, GetCollectionEnumerationType(bound, bv), IdName(bv), bv.Type, true, range.tok, out collectionWriter, wr);
+        CompileCollection(bound, bv, false, false, null, collectionWriter, bounds, bvs, i);
       }
 
       // if (range) {
@@ -2923,13 +3051,41 @@ namespace Microsoft.Dafny {
       return wr;
     }
 
-    void CompileCollection(ComprehensionExpr.BoundedPool bound, IVariable bv, bool inLetExprBody, bool includeDuplicates,
+    /// <summary>
+    /// For a enumerator for the bounded pool "bound" and bounded variable "bv", return the type of the elements
+    /// return from the enumerator. Usually, this is just "bv.Type", since the enumerated values are going to be
+    /// bound to "bv". However, the type may also be a supertype of "bv.Type", in which case a downcast will be
+    /// needed somewhere. For example, for
+    ///     var ts: seq(Trait) := ...;
+    ///     var cs: set(Class) := set bv: Class :: bv in ts;
+    /// the type of "bv" is "Class", but the values returned by the enumeration will have type "Trait".
+    /// </summary>
+    Type GetCollectionEnumerationType(ComprehensionExpr.BoundedPool bound, IVariable bv) {
+      Contract.Requires(bound != null);
+      Contract.Requires(bv != null);
+
+      if (bound is ComprehensionExpr.CollectionBoundedPool) {
+        var b = (ComprehensionExpr.CollectionBoundedPool)bound;
+        return b.CollectionElementType;
+      } else if (bound is ComprehensionExpr.SubSetBoundedPool) {
+        var b = (ComprehensionExpr.SubSetBoundedPool)bound;
+        return b.UpperBound.Type;
+      } else if (bound is ComprehensionExpr.ExactBoundedPool) {
+        var b = (ComprehensionExpr.ExactBoundedPool)bound;
+        return b.E.Type;
+      } else {
+        return bv.Type;
+      }
+    }
+
+    void CompileCollection(ComprehensionExpr.BoundedPool bound, IVariable bv, bool inLetExprBody, bool includeDuplicates, Translator.Substituter/*?*/ su,
         TargetWriter collectionWriter,
         List<ComprehensionExpr.BoundedPool>/*?*/ bounds = null, List<BoundVar>/*?*/ boundVars = null, int boundIndex = 0) {
       Contract.Requires(bound != null);
       Contract.Requires(bounds == null || (boundVars != null && bounds.Count == boundVars.Count && 0 <= boundIndex && boundIndex < bounds.Count));
       Contract.Requires(collectionWriter != null);
       var propertySuffix = SupportsProperties ? "" : "()";
+      su = su ?? new Translator.Substituter(null, new Dictionary<IVariable, Expression>(), new Dictionary<TypeParameter, Type>());
 
       if (bound is ComprehensionExpr.BoolBoundedPool) {
         collectionWriter.Write("{0}.AllBooleans()", GetHelperModuleName());
@@ -2943,42 +3099,42 @@ namespace Microsoft.Dafny {
           EmitNull(bv.Type, wLo);
         } else if (bounds != null) {
           var low = SubstituteBound(b, bounds, boundVars, boundIndex, true);
-          TrExpr(low, wLo, inLetExprBody);
+          TrExpr(su.Substitute(low), wLo, inLetExprBody);
         } else {
-          TrExpr(b.LowerBound, wLo, inLetExprBody);
+          TrExpr(su.Substitute(b.LowerBound), wLo, inLetExprBody);
         }
         if (b.UpperBound == null) {
           EmitNull(bv.Type, wHi);
         } else if (bounds != null) {
           var high = SubstituteBound(b, bounds, boundVars, boundIndex, false);
-          TrExpr(high, wHi, inLetExprBody);
+          TrExpr(su.Substitute(high), wHi, inLetExprBody);
         } else {
-          TrExpr(b.UpperBound, wHi, inLetExprBody);
+          TrExpr(su.Substitute(b.UpperBound), wHi, inLetExprBody);
         }
       } else if (bound is AssignSuchThatStmt.WiggleWaggleBound) {
         collectionWriter.Write("{0}.AllIntegers()", GetHelperModuleName());
       } else if (bound is ComprehensionExpr.ExactBoundedPool) {
         var b = (ComprehensionExpr.ExactBoundedPool)bound;
-        EmitSingleValueGenerator(b.E, inLetExprBody, TypeName(b.E.Type, collectionWriter, b.E.tok), collectionWriter);
+        EmitSingleValueGenerator(su.Substitute(b.E), inLetExprBody, TypeName(b.E.Type, collectionWriter, b.E.tok), collectionWriter);
       } else if (bound is ComprehensionExpr.SetBoundedPool) {
         var b = (ComprehensionExpr.SetBoundedPool)bound;
-        TrParenExpr(b.Set, collectionWriter, inLetExprBody);
+        TrParenExpr(su.Substitute(b.Set), collectionWriter, inLetExprBody);
         collectionWriter.Write(".Elements" + propertySuffix);
       } else if (bound is ComprehensionExpr.MultiSetBoundedPool) {
         var b = (ComprehensionExpr.MultiSetBoundedPool)bound;
-        TrParenExpr(b.MultiSet, collectionWriter, inLetExprBody);
+        TrParenExpr(su.Substitute(b.MultiSet), collectionWriter, inLetExprBody);
         collectionWriter.Write((includeDuplicates ? ".Elements" : ".UniqueElements") + propertySuffix);
       } else if (bound is ComprehensionExpr.SubSetBoundedPool) {
         var b = (ComprehensionExpr.SubSetBoundedPool)bound;
-        TrParenExpr(b.UpperBound, collectionWriter, inLetExprBody);
+        TrParenExpr(su.Substitute(b.UpperBound), collectionWriter, inLetExprBody);
         collectionWriter.Write(".AllSubsets" + propertySuffix);
       } else if (bound is ComprehensionExpr.MapBoundedPool) {
         var b = (ComprehensionExpr.MapBoundedPool)bound;
-        TrParenExpr(b.Map, collectionWriter, inLetExprBody);
+        TrParenExpr(su.Substitute(b.Map), collectionWriter, inLetExprBody);
         collectionWriter.Write(".Keys{0}.Elements{0}", propertySuffix);
       } else if (bound is ComprehensionExpr.SeqBoundedPool) {
         var b = (ComprehensionExpr.SeqBoundedPool)bound;
-        TrParenExpr(b.Seq, collectionWriter, inLetExprBody);
+        TrParenExpr(su.Substitute(b.Seq), collectionWriter, inLetExprBody);
         collectionWriter.Write((includeDuplicates ? ".Elements" : ".UniqueElements") + propertySuffix);
       } else if (bound is ComprehensionExpr.DatatypeBoundedPool) {
         var b = (ComprehensionExpr.DatatypeBoundedPool)bound;
@@ -3200,8 +3356,8 @@ namespace Microsoft.Dafny {
         }
         var tmpVar = idGenerator.FreshId("_assign_such_that_");
         TargetWriter collectionWriter;
-        wr = CreateForeachLoop(tmpVar, bv.Type, out collectionWriter, wr, IdName(bv));
-        CompileCollection(bound, bv, inLetExprBody, true, collectionWriter);
+        wr = CreateForeachLoop(tmpVar, GetCollectionEnumerationType(bound, bv), IdName(bv), bv.Type, false, bv.Tok, out collectionWriter, wr);
+        CompileCollection(bound, bv, inLetExprBody, true, null, collectionWriter);
         if (needIterLimit) {
           var varName = string.Format("{0}_{1}", iterLimit, i);
           TargetWriter isZeroWriter;
@@ -3988,7 +4144,9 @@ namespace Microsoft.Dafny {
         if (e.ResolvedUpdateExpr != null) {
           TrExpr(e.ResolvedUpdateExpr, wr, inLetExprBody);
         } else {
-          EmitIndexCollectionUpdate(e.Seq, e.Index, e.Value, inLetExprBody, wr);
+          var collectionType = e.Type.AsCollectionType;
+          Contract.Assert(collectionType != null);
+          EmitIndexCollectionUpdate(e.Seq, e.Index, e.Value, collectionType.Arg, inLetExprBody, wr);
         }
 
       } else if (expr is FunctionCallExpr) {
@@ -4211,6 +4369,15 @@ namespace Microsoft.Dafny {
 
         // Compilation does not check whether a quantifier was split.
 
+        var logicalBody = e.LogicalBody(true);
+        Translator.Substituter su = null;
+        if (!TargetLambdaCanUseEnclosingLocals) {
+          CreateFreeVarSubstitution(expr, out var bvars, out var fexprs, out su);
+          if (bvars.Count != 0) {
+            wr = EmitBetaRedex(bvars.ConvertAll(IdName), fexprs, bvars.ConvertAll(bv => bv.Type), Type.Bool, e.tok, inLetExprBody, wr);
+            logicalBody = su.Substitute(logicalBody);
+          }
+        }
         Contract.Assert(e.Bounds != null);  // for non-ghost quantifiers, the resolver would have insisted on finding bounds
         var n = e.BoundVars.Count;
         Contract.Assert(e.Bounds.Count == n);
@@ -4220,7 +4387,7 @@ namespace Microsoft.Dafny {
           var bv = e.BoundVars[i];
           // emit:  Dafny.Helpers.Quantifier(rangeOfValues, isForall, bv => body)
           wBody.Write("{0}(", GetQuantifierName(TypeName(bv.Type, wBody, bv.tok)));
-          CompileCollection(bound, bv, inLetExprBody, false, wBody, e.Bounds, e.BoundVars, i);
+          CompileCollection(bound, bv, inLetExprBody, false, su, wBody, e.Bounds, e.BoundVars, i);
           wBody.Write(", {0}, ", expr is ForallExpr ? "true" : "false");
           var native = AsNativeType(e.BoundVars[i].Type);
           TargetWriter newWBody = CreateLambda(new List<Type>{ bv.Type }, e.tok, new List<string>{ IdName(bv) }, Type.Bool, wBody, untyped: true);
@@ -4228,7 +4395,7 @@ namespace Microsoft.Dafny {
           wBody.Write(')');
           wBody = newWBody;
         }
-        TrExpr(e.LogicalBody(true), wBody, true);
+        TrExpr(logicalBody, wBody, true);
 
       } else if (expr is SetComprehension) {
         var e = (SetComprehension)expr;
@@ -4261,8 +4428,8 @@ namespace Microsoft.Dafny {
           var bv = e.BoundVars[i];
           TargetWriter collectionWriter;
           var tmpVar = idGenerator.FreshId("_compr_");
-          wr = CreateForeachLoop(tmpVar, bv.Type, out collectionWriter, wr, IdName(bv), bv.Type, bv.tok);
-          CompileCollection(bound, bv, inLetExprBody, true, collectionWriter);
+          wr = CreateForeachLoop(tmpVar, GetCollectionEnumerationType(bound, bv), IdName(bv), bv.Type, true, bv.tok, out collectionWriter, wr);
+          CompileCollection(bound, bv, inLetExprBody, true, null, collectionWriter);
         }
         TargetWriter guardWriter;
         var thn = EmitIf(out guardWriter, false, wr);
@@ -4303,8 +4470,9 @@ namespace Microsoft.Dafny {
         var bv = e.BoundVars[0];
         Contract.Assume(e.BoundVars.Count == 1);  // TODO: implement the case where e.BoundVars.Count > 1
         TargetWriter collectionWriter;
-        var w = CreateForeachLoop(IdName(bv), bv.Type, out collectionWriter, wr);
-        CompileCollection(bound, bv, inLetExprBody, true, collectionWriter);
+        var tmpVar = idGenerator.FreshId("_compr_");
+        var w = CreateForeachLoop(tmpVar, GetCollectionEnumerationType(bound, bv), IdName(bv), bv.Type, true, bv.tok, out collectionWriter, wr);
+        CompileCollection(bound, bv, inLetExprBody, true, null, collectionWriter);
         TargetWriter guardWriter;
         var thn = EmitIf(out guardWriter, false, w);
         TrExpr(e.Range, guardWriter, inLetExprBody);
@@ -4326,9 +4494,8 @@ namespace Microsoft.Dafny {
         Translator.Substituter su;
         CreateFreeVarSubstitution(expr, out bvars, out fexprs, out su);
 
-        var typeArgs = TypeName_UDT(ArrowType.Arrow_FullCompileName, Util.Snoc(bvars.ConvertAll(bv => bv.Type), expr.Type), wr, Bpl.Token.NoToken);
         var boundVars = Util.Comma(bvars, IdName);
-        wr = EmitBetaRedex(bvars.ConvertAll(IdName), fexprs, typeArgs, bvars.ConvertAll(bv => bv.Type), expr.Type, expr.tok, inLetExprBody, wr);
+        wr = EmitBetaRedex(bvars.ConvertAll(IdName), fexprs, bvars.ConvertAll(bv => bv.Type), expr.Type, expr.tok, inLetExprBody, wr);
         wr = CreateLambda(e.BoundVars.ConvertAll(bv => bv.Type), Bpl.Token.NoToken, e.BoundVars.ConvertAll(IdName), e.Body.Type, wr);
         wr = EmitReturnExpr(wr);
         TrExpr(su.Substitute(e.Body), wr, inLetExprBody);

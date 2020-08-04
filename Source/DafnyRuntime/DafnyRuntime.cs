@@ -17,7 +17,17 @@ namespace Dafny
   using System.Collections.Immutable;
   using System.Linq;
 
-  public class Set<T>
+  public interface ISet<out T>
+  {
+    int Count { get; }
+    long LongCount { get; }
+    IEnumerable<T> Elements { get; }
+    IEnumerable<ISet<T>> AllSubsets { get; }
+    bool Contains<G>(G t);
+    bool EqualsAux(ISet<object> other);
+  }
+
+  public class Set<T> : ISet<T>
   {
     readonly ImmutableHashSet<T> setImpl;
     readonly bool containsNull;
@@ -25,9 +35,16 @@ namespace Dafny
       this.setImpl = d;
       this.containsNull = containsNull;
     }
-    public static readonly Set<T> Empty = new Set<T>(ImmutableHashSet<T>.Empty, false);
-    public static Set<T> FromElements(params T[] values) {
+    public static readonly ISet<T> Empty = new Set<T>(ImmutableHashSet<T>.Empty, false);
+    public static ISet<T> FromElements(params T[] values) {
       return FromCollection(values);
+    }
+
+    public static Set<T> FromISet(ISet<T> s) {
+      if (s is Set<T> st) {
+        return st;
+      }
+      return FromCollection(s.Elements);
     }
     public static Set<T> FromCollection(IEnumerable<T> values) {
       var d = ImmutableHashSet<T>.Empty.ToBuilder();
@@ -41,7 +58,7 @@ namespace Dafny
       }
       return new Set<T>(d.ToImmutable(), containsNull);
     }
-    public static Set<T> FromCollectionPlusOne(IEnumerable<T> values, T oneMoreValue) {
+    public static ISet<T> FromCollectionPlusOne(IEnumerable<T> values, T oneMoreValue) {
       var d = ImmutableHashSet<T>.Empty.ToBuilder();
       var containsNull = false;
       if (oneMoreValue == null) {
@@ -75,14 +92,14 @@ namespace Dafny
       }
     }
 
-    public static Set<T> _DafnyDefaultValue() {
+    public static ISet<T> _DafnyDefaultValue() {
       return Empty;
     }
 
     /// <summary>
     /// This is an inefficient iterator for producing all subsets of "this".
     /// </summary>
-    public IEnumerable<Set<T>> AllSubsets {
+    public IEnumerable<ISet<T>> AllSubsets {
       get {
         // Start by putting all set elements into a list, but don't include null
         var elmts = new List<T>();
@@ -112,12 +129,45 @@ namespace Dafny
         }
       }
     }
-    public bool Equals(Set<T> other) {
-      return containsNull == other.containsNull && this.setImpl.SetEquals(other.setImpl);
+    public bool Equals(ISet<T> other) {
+      if (other == null || Count != other.Count) {
+        return false;
+      } else if (this == other) {
+        return true;
+      }
+      foreach (var elmt in Elements) {
+        if (!other.Contains(elmt)) {
+          return false;
+        }
+      }
+      return true;
     }
     public override bool Equals(object other) {
-      return other is Set<T> && Equals((Set<T>)other);
+      if (other is ISet<T> s) {
+        return Equals(s);
+      } else if (this is ISet<object> th && other is ISet<object> oth) {
+        // We'd like to obtain the more specific type parameter U for oth's type ISet<U>.
+        // We do that by making a dynamically dispatched call, like:
+        //     oth.Equals(this)
+        // The hope is then that its comparison "this is ISet<U>" (that is, the first "if" test
+        // above, but in the call "oth.Equals(this)") will be true and the non-virtual Equals
+        // can be called. However, such a recursive call to "oth.Equals(this)" could turn
+        // into infinite recursion. Therefore, we instead call "oth.EqualsAux(this)", which
+        // performs the desired type test, but doesn't recurse any further.
+        return oth.EqualsAux(th);
+      } else {
+        return false;
+      }
     }
+
+    public bool EqualsAux(ISet<object> other) {
+      if (other is ISet<T> s) {
+        return Equals(s);
+      } else {
+        return false;
+      }
+    }
+
     public override int GetHashCode() {
       var hashCode = 1;
       if (containsNull) {
@@ -141,58 +191,68 @@ namespace Dafny
       }
       return s + "}";
     }
-    public bool IsProperSubsetOf(Set<T> other) {
-      return this.Count < other.Count && IsSubsetOf(other);
+    public static bool IsProperSubsetOf(ISet<T> th, ISet<T> other) {
+      return th.Count < other.Count && IsSubsetOf(th, other);
     }
-    public bool IsSubsetOf(Set<T> other) {
-      if (this.containsNull && !other.containsNull) {
+    public static bool IsSubsetOf(ISet<T> th, ISet<T> other) {
+      if (other.Count < th.Count) {
         return false;
       }
-      if (other.setImpl.Count < this.setImpl.Count)
-        return false;
-      foreach (T t in this.setImpl) {
-        if (!other.setImpl.Contains(t))
+      foreach (T t in th.Elements) {
+        if (!other.Contains(t)) {
           return false;
+        }
       }
       return true;
     }
-    public bool IsSupersetOf(Set<T> other) {
-      return other.IsSubsetOf(this);
-    }
-    public bool IsProperSupersetOf(Set<T> other) {
-      return other.IsProperSubsetOf(this);
-    }
-    public bool IsDisjointFrom(Set<T> other) {
-      if (this.containsNull && other.containsNull) {
-        return false;
-      }
-      ImmutableHashSet<T> a, b;
-      if (this.setImpl.Count < other.setImpl.Count) {
-        a = this.setImpl; b = other.setImpl;
+    public static bool IsDisjointFrom(ISet<T> th, ISet<T> other) {
+      ISet<T> a, b;
+      if (th.Count < other.Count) {
+        a = th; b = other;
       } else {
-        a = other.setImpl; b = this.setImpl;
+        a = other; b = th;
       }
-      foreach (T t in a) {
-        if (b.Contains(t))
+      foreach (T t in a.Elements) {
+        if (b.Contains(t)) {
           return false;
+        }
       }
       return true;
     }
     public bool Contains<G>(G t) {
       return t == null ? containsNull : t is T && this.setImpl.Contains((T)(object)t);
     }
-    public Set<T> Union(Set<T> other) {
-      return new Set<T>(this.setImpl.Union(other.setImpl), containsNull || other.containsNull);
+    public static ISet<T> Union(ISet<T> th, ISet<T> other) {
+      var a = FromISet(th);
+      var b = FromISet(other);
+      return new Set<T>(a.setImpl.Union(b.setImpl), a.containsNull || b.containsNull);
     }
-    public Set<T> Intersect(Set<T> other) {
-      return new Set<T>(this.setImpl.Intersect(other.setImpl), containsNull && other.containsNull);
+    public static ISet<T> Intersect(ISet<T> th, ISet<T> other) {
+      var a = FromISet(th);
+      var b = FromISet(other);
+      return new Set<T>(a.setImpl.Intersect(b.setImpl), a.containsNull && b.containsNull);
     }
-    public Set<T> Difference(Set<T> other) {
-        return new Set<T>(this.setImpl.Except(other.setImpl), containsNull && !other.containsNull);
+    public static ISet<T> Difference(ISet<T> th, ISet<T> other) {
+      var a = FromISet(th);
+      var b = FromISet(other);
+      return new Set<T>(a.setImpl.Except(b.setImpl), a.containsNull && !b.containsNull);
     }
   }
 
-  public class MultiSet<T>
+  public interface IMultiSet<out T>
+  {
+    bool IsEmpty { get; }
+    int Count { get; }
+    long LongCount { get; }
+    IEnumerable<T> Elements { get; }
+    IEnumerable<T> UniqueElements { get; }
+    bool Contains<G>(G t);
+    BigInteger Select<G>(G t);
+    IMultiSet<T> Update<G>(G t, BigInteger i);
+    bool EqualsAux(IMultiSet<object> other);
+  }
+
+  public class MultiSet<T> : IMultiSet<T>
   {
     readonly ImmutableDictionary<T, BigInteger> dict;
     readonly BigInteger occurrencesOfNull;  // stupidly, a Dictionary in .NET cannot use "null" as a key
@@ -201,6 +261,12 @@ namespace Dafny
       this.occurrencesOfNull = occurrencesOfNull;
     }
     public static readonly MultiSet<T> Empty = new MultiSet<T>(ImmutableDictionary<T, BigInteger>.Empty.ToBuilder(), BigInteger.Zero);
+    public static MultiSet<T> FromIMultiSet(IMultiSet<T> s) {
+      if (s is MultiSet<T> st) {
+        return st;
+      }
+      return FromCollection(s.Elements);
+    }
     public static MultiSet<T> FromElements(params T[] values) {
       var d = ImmutableDictionary<T, BigInteger>.Empty.ToBuilder();
       var occurrencesOfNull = BigInteger.Zero;
@@ -217,7 +283,7 @@ namespace Dafny
       }
       return new MultiSet<T>(d, occurrencesOfNull);
     }
-    public static MultiSet<T> FromCollection(ICollection<T> values) {
+    public static MultiSet<T> FromCollection(IEnumerable<T> values) {
       var d = ImmutableDictionary<T, BigInteger>.Empty.ToBuilder();
       var occurrencesOfNull = BigInteger.Zero;
       foreach (T t in values) {
@@ -249,7 +315,7 @@ namespace Dafny
       }
       return new MultiSet<T>(d, occurrencesOfNull);
     }
-    public static MultiSet<T> FromSet(Set<T> values) {
+    public static MultiSet<T> FromSet(ISet<T> values) {
       var d = ImmutableDictionary<T, BigInteger>.Empty.ToBuilder();
       var containsNull = false;
       foreach (T t in values.Elements) {
@@ -266,12 +332,28 @@ namespace Dafny
       return Empty;
     }
 
-    public bool Equals(MultiSet<T> other) {
-      return other.IsSubsetOf(this) && this.IsSubsetOf(other);
+    public bool Equals(IMultiSet<T> other) {
+      return IsSubsetOf(this, other) && IsSubsetOf(other, this);
     }
     public override bool Equals(object other) {
-      return other is MultiSet<T> && Equals((MultiSet<T>)other);
+      if (other is IMultiSet<T> s) {
+        return Equals(s);
+      } else if (this is IMultiSet<object> th && other is IMultiSet<object> oth) {
+        // See comment in Set.Equals
+        return oth.EqualsAux(th);
+      } else {
+        return false;
+      }
     }
+
+    public bool EqualsAux(IMultiSet<object> other) {
+      if (other is IMultiSet<T> s) {
+        return Equals(s);
+      } else {
+        return false;
+      }
+    }
+
     public override int GetHashCode() {
       var hashCode = 1;
       if (occurrencesOfNull > 0) {
@@ -302,36 +384,27 @@ namespace Dafny
       }
       return s + "}";
     }
-    public bool IsProperSubsetOf(MultiSet<T> other) {
-      return !Equals(other) && IsSubsetOf(other);
+    public static bool IsProperSubsetOf(IMultiSet<T> th, IMultiSet<T> other) {
+      return th.Count < other.Count && IsSubsetOf(th, other);
     }
-    public bool IsSubsetOf(MultiSet<T> other) {
-      if (other.occurrencesOfNull < this.occurrencesOfNull) {
+    public static bool IsSubsetOf(IMultiSet<T> th, IMultiSet<T> other) {
+      var a = FromIMultiSet(th);
+      var b = FromIMultiSet(other);
+      if (b.occurrencesOfNull < a.occurrencesOfNull) {
         return false;
       }
-      foreach (T t in dict.Keys) {
-        if (!other.dict.ContainsKey(t) || other.dict[t] < dict[t])
+      foreach (T t in a.dict.Keys) {
+        if (!b.dict.ContainsKey(t) || b.dict[t] < a.dict[t]) {
           return false;
+        }
       }
       return true;
     }
-    public bool IsSupersetOf(MultiSet<T> other) {
-      return other.IsSubsetOf(this);
-    }
-    public bool IsProperSupersetOf(MultiSet<T> other) {
-      return other.IsProperSubsetOf(this);
-    }
-    public bool IsDisjointFrom(MultiSet<T> other) {
-      if (occurrencesOfNull > 0 && other.occurrencesOfNull > 0) {
-        return false;
-      }
-      foreach (T t in dict.Keys) {
-        if (other.dict.ContainsKey(t))
+    public static bool IsDisjointFrom(IMultiSet<T> th, IMultiSet<T> other) {
+      foreach (T t in th.UniqueElements) {
+        if (other.Contains(t)) {
           return false;
-      }
-      foreach (T t in other.dict.Keys) {
-        if (dict.ContainsKey(t))
-          return false;
+        }
       }
       return true;
     }
@@ -342,13 +415,13 @@ namespace Dafny
     public BigInteger Select<G>(G t) {
       if (t == null) {
         return occurrencesOfNull;
-      } else if (t is T && dict.ContainsKey((T)(object)t)) {
-        return dict[(T)(object)t];
+      } else if (t is T && dict.TryGetValue((T)(object)t, out var m)) {
+        return m;
       } else {
         return BigInteger.Zero;
       }
     }
-    public MultiSet<T> Update<G>(G t, BigInteger i) {
+    public IMultiSet<T> Update<G>(G t, BigInteger i) {
       if (Select(t) == i) {
         return this;
       } else if (t == null) {
@@ -360,56 +433,65 @@ namespace Dafny
         return new MultiSet<T>(r, occurrencesOfNull);
       }
     }
-    public MultiSet<T> Union(MultiSet<T> other) {
-      if (dict.Count + occurrencesOfNull == 0)
+    public static IMultiSet<T> Union(IMultiSet<T> th, IMultiSet<T> other) {
+      if (th.IsEmpty) {
         return other;
-      else if (other.dict.Count + other.occurrencesOfNull == 0)
-        return this;
+      } else if (other.IsEmpty) {
+        return th;
+      }
+      var a = FromIMultiSet(th);
+      var b = FromIMultiSet(other);
       var r = ImmutableDictionary<T, BigInteger>.Empty.ToBuilder();
-      foreach (T t in dict.Keys) {
+      foreach (T t in a.dict.Keys) {
         BigInteger i;
         if (!r.TryGetValue(t, out i)) {
           i = BigInteger.Zero;
         }
-        r[t] = i + dict[t];
+        r[t] = i + a.dict[t];
       }
-      foreach (T t in other.dict.Keys) {
+      foreach (T t in b.dict.Keys) {
         BigInteger i;
         if (!r.TryGetValue(t, out i)) {
           i = BigInteger.Zero;
         }
-        r[t] = i + other.dict[t];
+        r[t] = i + b.dict[t];
       }
-      return new MultiSet<T>(r, occurrencesOfNull + other.occurrencesOfNull);
+      return new MultiSet<T>(r, a.occurrencesOfNull + b.occurrencesOfNull);
     }
-    public MultiSet<T> Intersect(MultiSet<T> other) {
-      if (dict.Count == 0 && occurrencesOfNull == 0)
-        return this;
-      else if (other.dict.Count == 0 && other.occurrencesOfNull == 0)
+    public static IMultiSet<T> Intersect(IMultiSet<T> th, IMultiSet<T> other) {
+      if (th.IsEmpty) {
+        return th;
+      } else if (other.IsEmpty) {
         return other;
+      }
+      var a = FromIMultiSet(th);
+      var b = FromIMultiSet(other);
       var r = ImmutableDictionary<T, BigInteger>.Empty.ToBuilder();
-      foreach (T t in dict.Keys) {
-        if (other.dict.ContainsKey(t)) {
-          r.Add(t, other.dict[t] < dict[t] ? other.dict[t] : dict[t]);
+      foreach (T t in a.dict.Keys) {
+        if (b.dict.ContainsKey(t)) {
+          r.Add(t, a.dict[t] < b.dict[t] ? a.dict[t] : b.dict[t]);
         }
       }
-      return new MultiSet<T>(r, other.occurrencesOfNull < occurrencesOfNull ? other.occurrencesOfNull : occurrencesOfNull);
+      return new MultiSet<T>(r, a.occurrencesOfNull < b.occurrencesOfNull ? a.occurrencesOfNull : b.occurrencesOfNull);
     }
-    public MultiSet<T> Difference(MultiSet<T> other) { // \result == this - other
-      if (dict.Count == 0 && occurrencesOfNull == 0)
-        return this;
-      else if (other.dict.Count == 0 && other.occurrencesOfNull == 0)
-        return this;
+    public static IMultiSet<T> Difference(IMultiSet<T> th, IMultiSet<T> other) { // \result == this - other
+      if (other.IsEmpty) {
+        return th;
+      }
+      var a = FromIMultiSet(th);
+      var b = FromIMultiSet(other);
       var r = ImmutableDictionary<T, BigInteger>.Empty.ToBuilder();
-      foreach (T t in dict.Keys) {
-        if (!other.dict.ContainsKey(t)) {
-          r.Add(t, dict[t]);
-        } else if (other.dict[t] < dict[t]) {
-          r.Add(t, dict[t] - other.dict[t]);
+      foreach (T t in a.dict.Keys) {
+        if (!b.dict.ContainsKey(t)) {
+          r.Add(t, a.dict[t]);
+        } else if (b.dict[t] < a.dict[t]) {
+          r.Add(t, a.dict[t] - b.dict[t]);
         }
       }
-      return new MultiSet<T>(r, other.occurrencesOfNull < occurrencesOfNull ? occurrencesOfNull - other.occurrencesOfNull : BigInteger.Zero);
+      return new MultiSet<T>(r, b.occurrencesOfNull < a.occurrencesOfNull ? a.occurrencesOfNull - b.occurrencesOfNull : BigInteger.Zero);
     }
+
+    public bool IsEmpty => occurrencesOfNull == 0 && dict.IsEmpty;
 
     public int Count {
       get { return (int)ElementCount(); }
@@ -444,8 +526,8 @@ namespace Dafny
         if (!occurrencesOfNull.IsZero) {
           yield return default(T);
         }
-        foreach (var item in dict) {
-          yield return item.Key;
+        foreach (var key in dict.Keys) {
+          yield return key;
         }
       }
     }
@@ -566,7 +648,7 @@ namespace Dafny
         return new Map<U, V>(d, hasNullValue, nullValue);
       }
     }
-    public Set<U> Keys {
+    public ISet<U> Keys {
       get {
         if (hasNullValue) {
           return Dafny.Set<U>.FromCollectionPlusOne(dict.Keys, default(U));
@@ -575,7 +657,7 @@ namespace Dafny
         }
       }
     }
-    public Set<V> Values {
+    public ISet<V> Values {
       get {
         if (hasNullValue) {
           return Dafny.Set<V>.FromCollectionPlusOne(dict.Values, nullValue);
@@ -584,7 +666,7 @@ namespace Dafny
         }
       }
     }
-    public Set<_System.Tuple2<U, V>> Items {
+    public ISet<_System.Tuple2<U, V>> Items {
       get {
         HashSet<_System.Tuple2<U, V>> result = new HashSet<_System.Tuple2<U, V>>();
         if (hasNullValue) {
@@ -624,6 +706,7 @@ namespace Dafny
     ISequence<T> Subsequence(BigInteger lo, long hi);
     ISequence<T> Subsequence(BigInteger lo, ulong hi);
     ISequence<T> Subsequence(BigInteger lo, BigInteger hi);
+    bool EqualsAux(ISequence<object> other);
   }
 
   public abstract class Sequence<T>: ISequence<T>
@@ -732,7 +815,21 @@ namespace Dafny
       return n == other.Elements.Length && EqualUntil(this, other, n);
     }
     public override bool Equals(object other) {
-      return other is Sequence<T> && Equals((ISequence<T>)other);
+      if (other is ISequence<T> s) {
+        return Equals(s);
+      } else if (this is ISequence<object> th && other is ISequence<object> oth) {
+        // see explanation in Set.Equals
+        return oth.EqualsAux(th);
+      } else {
+        return false;
+      }
+    }
+    public bool EqualsAux(ISequence<object> other) {
+      if (other is ISequence<T> s) {
+        return Equals(s);
+      } else {
+        return false;
+      }
     }
     public override int GetHashCode() {
       ImmutableArray<T> elmts = ImmutableElements;
@@ -946,8 +1043,12 @@ namespace Dafny
       Type ty = typeof(G);
       // If ty is Dafny.ISequence<T> for some concrete T, use Dafny.Sequence<T> instead
       // TODO-RS: How to generalize these mappings?
-      if (ty.IsGenericType && typeof(Dafny.ISequence<>) == ty.GetGenericTypeDefinition()) {
+      if (ty.IsGenericType && typeof(Dafny.ISet<>) == ty.GetGenericTypeDefinition()) {
+        ty = typeof(Dafny.Set<>).MakeGenericType(ty.GenericTypeArguments);
+      } else if (ty.IsGenericType && typeof(Dafny.ISequence<>) == ty.GetGenericTypeDefinition()) {
         ty = typeof(Dafny.Sequence<>).MakeGenericType(ty.GenericTypeArguments);
+      } else if (ty.IsGenericType && typeof(Dafny.IMultiSet<>) == ty.GetGenericTypeDefinition()) {
+        ty = typeof(Dafny.MultiSet<>).MakeGenericType(ty.GenericTypeArguments);
       }
       System.Reflection.MethodInfo mInfo = ty.GetMethod("_DafnyDefaultValue");
       if (mInfo != null) {

@@ -68,12 +68,12 @@ Dafny's sources or who want to use the latest features from the master branch.
 
        brew install mono
        brew cask install mono-mdk
+       brew install nuget
 
-1. Create an empty base directory and download nuget
+1. Create an empty base directory
 
        mkdir BASE-DIRECTORY
        cd BASE-DIRECTORY
-       wget https://nuget.org/nuget.exe
 
 2. Download and build Boogie:
 
