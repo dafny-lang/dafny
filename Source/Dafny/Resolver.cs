@@ -12166,6 +12166,11 @@ namespace Microsoft.Dafny
               return r;
             }
           }
+
+          if (t is TypeProxy && memberName == "Length") {
+            Type r = ResolvedArrayType(tok, 1, new InferredTypeProxy(), null, true);
+            return r;
+          }
           if (DafnyOptions.O.TypeInferenceDebug) {
             Console.WriteLine("  ----> found no improvement, giving up");
           }
