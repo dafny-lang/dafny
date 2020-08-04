@@ -2324,7 +2324,7 @@ namespace Microsoft.Dafny{
     }
 
     private string TypeDescriptor(Type type, TextWriter wr, Bpl.IToken tok) {
-      type = type.NormalizeExpand();
+      type = type.NormalizeExpandKeepConstraints();
       if (type is BoolType) {
         return $"{TypeClass}.BOOLEAN";
       } else if (type is CharType) {
