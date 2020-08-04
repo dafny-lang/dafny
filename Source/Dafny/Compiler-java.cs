@@ -572,7 +572,8 @@ namespace Microsoft.Dafny{
     }
 
     private string RemoveParams(string s){
-      return Regex.Replace(s, @"<.>", "");
+      Contract.Requires(s != null);
+      return Regex.Replace(s, @"<.+>", "");
     }
 
     private void EmitSuppression(TextWriter wr) {
