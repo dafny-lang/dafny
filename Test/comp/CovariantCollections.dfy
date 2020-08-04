@@ -1,13 +1,15 @@
-// RUN: %dafny /compile:3 /spillTargetCode:2 /compileTarget:cs "%s" > "%t"
-// RUN: %dafny /compile:3 /spillTargetCode:2 /compileTarget:js "%s" >> "%t"
-// RUN: %dafny /compile:3 /spillTargetCode:2 /compileTarget:go "%s" >> "%t"
-// RUN: %dafny /compile:3 /spillTargetCode:2 /compileTarget:java "%s" >> "%t"
+// RUN: %dafny /compile:0 "%s" > "%t"
+// RUN: %dafny /noVerify /compile:4 /spillTargetCode:2 /compileTarget:cs "%s" >> "%t"
+// RUN: %dafny /noVerify /compile:4 /spillTargetCode:2 /compileTarget:js "%s" >> "%t"
+// RUN: %dafny /noVerify /compile:4 /spillTargetCode:2 /compileTarget:go "%s" >> "%t"
+// RUN: %dafny /noVerify /compile:4 /spillTargetCode:2 /compileTarget:java "%s" >> "%t"
 // RUN: %diff "%s.expect" "%t"
 
 method Main() {
   // TODO: include tests of assignments from coll<Number> back to coll<Integer> when all elements are known to be Integer
   Sequences();
   Sets();
+  Multisets();
   Maps();
 }
 
@@ -149,6 +151,74 @@ method Sets() {
 
   PrintSet("  difference: ", a - b);
   PrintSet(" ", b - c);
+  print "\n";
+
+  print "  subset: ", a <= b, " ", b <= c, " ", c <= c, "\n";
+  print "  proper subset: ", a < b, " ", b < c, " ", c < c, "\n";
+  print "  membership: ", seventeen in a, " ", seventeen in b, " ", seventeen in c, "\n";
+}
+
+// -------------------- multiset --------------------
+
+method PrintMultiset(prefix: string, S: multiset<Number>) {
+  print prefix, "{";
+  var s: multiset<Number>, sep := S, "";
+  while |s| != 0 {
+    print sep;
+    // pick smallest Number in s
+    ghost var m := ThereIsASmallestInMultiset(s);
+    var x :| x in s && forall y :: y in s ==> x.value <= y.value;
+    x.Print();
+    s, sep := s - multiset{x}, ", ";
+  }
+  print "}";
+}
+
+lemma ThereIsASmallestInMultiset(s: multiset<Number>) returns (m: Number)
+  requires s != multiset{}
+  ensures m in s && forall y :: y in s ==> m.value <= y.value;
+{
+  m :| m in s;
+  if y :| y in s && y.value < m.value {
+    var s' := s - multiset{m};
+    assert y in s';
+    m := ThereIsASmallestInMultiset(s');
+  }
+}
+
+method Multisets() {
+  var twelve := new Integer(12);
+  var seventeen := new Integer(17);
+  var fortyTwo := new Integer(42);
+  var eightyTwo := new Integer(82);
+
+  var a := multiset{};
+  var b: multiset<Number> := multiset{seventeen, eightyTwo, seventeen, eightyTwo};
+  var c := multiset{twelve, seventeen};
+
+  PrintMultiset("Multisets: ", a);
+  PrintMultiset(" ", b);
+  PrintMultiset(" ", c);
+  print "\n";
+
+  print "  cardinality: ", |a|, " ", |b|, " ", |c|, "\n";
+
+  PrintMultiset("  update: ", b[fortyTwo := 3][eightyTwo := 0]);
+  PrintMultiset(" ", c[fortyTwo := 1]);
+  print "\n";
+
+  print "  multiplicity: ", b[eightyTwo], " ", c[eightyTwo], " ", c[fortyTwo := 20][fortyTwo], "\n";
+
+  PrintMultiset("  union: ", a + b);
+  PrintMultiset(" ", b + c);
+  print "\n";
+
+  PrintMultiset("  intersection: ", a * b);
+  PrintMultiset(" ", b * c[eightyTwo := 100]);
+  print "\n";
+
+  PrintMultiset("  difference: ", a - b);
+  PrintMultiset(" ", b - c);
   print "\n";
 
   print "  subset: ", a <= b, " ", b <= c, " ", c <= c, "\n";

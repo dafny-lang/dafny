@@ -682,9 +682,6 @@ namespace Microsoft.Dafny{
         return $"{DafnySeqClass}<{QExtendsBoxedTypeName(argType, wr, tok)}>";
       } else if (xType is MultiSetType) {
         var argType = ((MultiSetType)xType).Arg;
-        if (ComplicatedTypeParameterForCompilation(argType)) {
-          Error(tok, "compilation of multiset<TRAIT> is not supported; consider introducing a ghost", wr);
-        }
         if (erased) {
           return DafnyMultiSetClass;
         }
@@ -1495,15 +1492,19 @@ namespace Microsoft.Dafny{
 
     protected override void EmitIndexCollectionSelect(Expression source, Expression index, bool inLetExprBody, TargetWriter wr) {
       // Taken from C# compiler, assuming source is a DafnySequence type.
-      TrParenExpr(source, wr, inLetExprBody);
-      if (source.Type.AsCollectionType is MultiSetType){
-        TrParenExpr(".multiplicity", index, wr, inLetExprBody);
-      } else if (source.Type.AsCollectionType is MapType){
+      if (source.Type.AsMultiSetType != null) {
+        wr.Write($"{DafnyMultiSetClass}.<{BoxedTypeName(source.Type.AsMultiSetType.Arg, wr, Bpl.Token.NoToken)}>multiplicity(");
+        TrParenExpr(source, wr, inLetExprBody);
+        wr.Write(", ");
+        TrExpr(index, wr, inLetExprBody);
+        wr.Write(")");
+      } else if (source.Type.AsMapType != null) {
+        TrParenExpr(source, wr, inLetExprBody);
         TrParenExpr(".get", index, wr, inLetExprBody);
       } else {
+        TrParenExpr(source, wr, inLetExprBody);
         TrParenExpr(".select", index, wr, inLetExprBody);
       }
-
     }
 
     protected override void EmitMultiSetFormingExpr(MultiSetFormingExpr expr, bool inLetExprBody, TargetWriter wr) {
@@ -1519,6 +1520,10 @@ namespace Microsoft.Dafny{
       } else if (source.Type.AsMapType != null) {
         var mapType = (MapType)resultCollectionType;
         wr.Write($"{DafnyMapClass}.<{BoxedTypeName(mapType.Domain, wr, Bpl.Token.NoToken)}, {BoxedTypeName(mapType.Range, wr, Bpl.Token.NoToken)}>update(");
+        TrExpr(source, wr, inLetExprBody);
+        wr.Write(", ");
+      } else if (source.Type.AsMultiSetType != null) {
+        wr.Write($"{DafnyMultiSetClass}.<{BoxedTypeName(resultCollectionType.Arg, wr, Bpl.Token.NoToken)}>update(");
         TrExpr(source, wr, inLetExprBody);
         wr.Write(", ");
       } else {
@@ -2798,6 +2803,9 @@ namespace Microsoft.Dafny{
           reverseArguments = true;
           break;
         case BinaryExpr.ResolvedOpcode.InMultiSet:
+          callString = $"<{BoxedTypeName(e0.Type, errorWr, tok)}>contains";
+          reverseArguments = true;
+          break;
         case BinaryExpr.ResolvedOpcode.InMap:
           callString = "contains";
           reverseArguments = true;
@@ -2807,19 +2815,19 @@ namespace Microsoft.Dafny{
           staticCallString = $"{DafnySetClass}.<{BoxedTypeName(resultType.AsSetType.Arg, errorWr, tok)}>union";
           break;
         case BinaryExpr.ResolvedOpcode.MultiSetUnion:
-          callString = "union";
+          staticCallString = $"{DafnyMultiSetClass}.<{BoxedTypeName(resultType.AsMultiSetType.Arg, errorWr, tok)}>union";
           break;
         case BinaryExpr.ResolvedOpcode.Intersection:
           staticCallString = $"{DafnySetClass}.<{BoxedTypeName(resultType.AsSetType.Arg, errorWr, tok)}>intersection";
           break;
         case BinaryExpr.ResolvedOpcode.MultiSetIntersection:
-          callString = "intersection";
+          staticCallString = $"{DafnyMultiSetClass}.<{BoxedTypeName(resultType.AsMultiSetType.Arg, errorWr, tok)}>intersection";
           break;
         case BinaryExpr.ResolvedOpcode.SetDifference:
           staticCallString = $"{DafnySetClass}.<{BoxedTypeName(resultType.AsSetType.Arg, errorWr, tok)}>difference";
           break;
         case BinaryExpr.ResolvedOpcode.MultiSetDifference:
-          callString = "difference";
+          staticCallString = $"{DafnyMultiSetClass}.<{BoxedTypeName(resultType.AsMultiSetType.Arg, errorWr, tok)}>difference";
           break;
 
         case BinaryExpr.ResolvedOpcode.ProperPrefix:
@@ -3332,6 +3340,9 @@ namespace Microsoft.Dafny{
       if (ct is SetType) {
         var typeName = BoxedTypeName(ct.Arg, wr, tok);
         return $"new {DafnySetClass}<{typeName}>({collName})";
+      } else if (ct is MultiSetType) {
+        var typeName = BoxedTypeName(ct.Arg, wr, tok);
+        return $"new {DafnyMultiSetClass}<{typeName}>({collName})";
       } else if (ct is MapType) {
         var mt = (MapType)ct;
         var domtypeName = BoxedTypeName(mt.Domain, wr, tok);
