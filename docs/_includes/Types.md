@@ -807,6 +807,12 @@ is, satisfying `d in m`), maps support the following operations:
 | `m[t := u]`          | map update                         |
 | `t in m`             | map domain membership              |
 | `t !in m`            | map domain non-membership          |
+| fm.Keys              | the domain of fm, that is, the set |
+|                      |  of T values used askeys           |
+| fm.Values            | the range of fm, that is, the set  |
+|                      |  of U values present in the map    |
+| fm.Items             | set of pairs (t,u) of key-value    |
+|                      |  associations in the map           |
 +----------------------+------------------------------------+
 ```
 `|fm|` denotes the number of mappings in `fm`, that is, the
@@ -818,11 +824,16 @@ element at key `t` is `u`.  The expression `t in m` says `t` is in the
 domain of `m` and `t !in m` is a syntactic shorthand for
 `!(t in m)`.[^fn-map-membership]
 
+The expressions `m.Keys`, `m.Values`, and `m.Items` return, as sets,
+the domain, the range, and the 2-tuples holding the key-value
+associations in the map. Note that `m.Values` will have a different
+cardinality than `m.Keys` and `m.Items` if different keys are
+associated with the same value.
+
 [^fn-map-membership]: This is likely to change in the future as
     follows:  The `in` and `!in` operations will no longer be
-    supported on maps.  Instead, for any map `m`, `m.Domain` will
-    return its domain as a set and `m.Range` will return, also as a
-    set, the image of `m` under its domain.
+    supported on maps, with `x in m` replaced by `x in m.Keys`,
+and similarly for `!in`.
 
 Here is a small example, where a map `cache` of type `map<int,real>`
 is used to cache computed values of Joule-Thomson coefficients for
