@@ -7,14 +7,14 @@
 
 // The code in this file demonstrates complications in sorting out covariance in some
 // compilation target languages. Compilation support is currently spotty, where C# and
-// Java only supports sets and sequences (not other collection types or datatypes), and
+// Java only supports sets, multisets, and sequences (not maps or datatypes), and
 // only in the "upcast" direction.
 //
 // The solution in C# is to ensure the Dafny type is mapped to a C# interface with the "out"
 // type parameter modifier, which allows covariance under the condition that the type parameter
 // is only used in return types in the interface methods and not as parameter types.
-// This has only been implemented for sets and sequences so far, but will apply to the other cases
-// in this test case as well.
+// This has only been implemented for sets, multisets, and sequences so far, but will apply to
+// the other cases in this test case as well.
 //
 // The solution in Java is to use Java's wildcard types: a "Dafny.Sequence<T>"" is assignable to
 // a "Dafny.Sequence<? extends T>".
@@ -64,7 +64,7 @@ method J()
 {
   var c0 := new Class0;
   var c1 := new Class1;
-  var s: set<Tr> := {c0, c1}; // no error, this is supported
+  var s: set<Tr> := {c0, c1}; // fine, this is supported
   var t: set<Class0> := {c0};
   s := t;
   print s, " and ", t, "\n";
@@ -74,7 +74,7 @@ method K()
 {
   var c0 := new Class0;
   var c1 := new Class1;
-  var s: seq<Tr> := [c0, c1]; // no error, this is supported
+  var s: seq<Tr> := [c0, c1]; // fine, this is supported
   var t: seq<Class0> := [c0];
   s := t;
   print s, " and ", t, "\n";
@@ -84,7 +84,7 @@ method L()
 {
   var c0 := new Class0;
   var c1 := new Class1;
-  var s: multiset<Tr> := multiset{c0, c1}; // compilation error: not yet supported
+  var s: multiset<Tr> := multiset{c0, c1}; // fine, this is supported
   var t: multiset<Class0> := multiset{c0};
   s := t;
   print s, " and ", t, "\n";

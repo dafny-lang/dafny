@@ -239,7 +239,20 @@ namespace Dafny
     }
   }
 
-  public class MultiSet<T>
+  public interface IMultiSet<out T>
+  {
+    bool IsEmpty { get; }
+    int Count { get; }
+    long LongCount { get; }
+    IEnumerable<T> Elements { get; }
+    IEnumerable<T> UniqueElements { get; }
+    bool Contains<G>(G t);
+    BigInteger Select<G>(G t);
+    IMultiSet<T> Update<G>(G t, BigInteger i);
+    bool EqualsAux(IMultiSet<object> other);
+  }
+
+  public class MultiSet<T> : IMultiSet<T>
   {
     readonly ImmutableDictionary<T, BigInteger> dict;
     readonly BigInteger occurrencesOfNull;  // stupidly, a Dictionary in .NET cannot use "null" as a key
@@ -248,6 +261,12 @@ namespace Dafny
       this.occurrencesOfNull = occurrencesOfNull;
     }
     public static readonly MultiSet<T> Empty = new MultiSet<T>(ImmutableDictionary<T, BigInteger>.Empty.ToBuilder(), BigInteger.Zero);
+    public static MultiSet<T> FromIMultiSet(IMultiSet<T> s) {
+      if (s is MultiSet<T> st) {
+        return st;
+      }
+      return FromCollection(s.Elements);
+    }
     public static MultiSet<T> FromElements(params T[] values) {
       var d = ImmutableDictionary<T, BigInteger>.Empty.ToBuilder();
       var occurrencesOfNull = BigInteger.Zero;
@@ -264,7 +283,7 @@ namespace Dafny
       }
       return new MultiSet<T>(d, occurrencesOfNull);
     }
-    public static MultiSet<T> FromCollection(ICollection<T> values) {
+    public static MultiSet<T> FromCollection(IEnumerable<T> values) {
       var d = ImmutableDictionary<T, BigInteger>.Empty.ToBuilder();
       var occurrencesOfNull = BigInteger.Zero;
       foreach (T t in values) {
@@ -313,12 +332,28 @@ namespace Dafny
       return Empty;
     }
 
-    public bool Equals(MultiSet<T> other) {
-      return other.IsSubsetOf(this) && this.IsSubsetOf(other);
+    public bool Equals(IMultiSet<T> other) {
+      return IsSubsetOf(this, other) && IsSubsetOf(other, this);
     }
     public override bool Equals(object other) {
-      return other is MultiSet<T> && Equals((MultiSet<T>)other);
+      if (other is IMultiSet<T> s) {
+        return Equals(s);
+      } else if (this is IMultiSet<object> th && other is IMultiSet<object> oth) {
+        // See comment in Set.Equals
+        return oth.EqualsAux(th);
+      } else {
+        return false;
+      }
     }
+
+    public bool EqualsAux(IMultiSet<object> other) {
+      if (other is IMultiSet<T> s) {
+        return Equals(s);
+      } else {
+        return false;
+      }
+    }
+
     public override int GetHashCode() {
       var hashCode = 1;
       if (occurrencesOfNull > 0) {
@@ -349,30 +384,27 @@ namespace Dafny
       }
       return s + "}";
     }
-    public bool IsProperSubsetOf(MultiSet<T> other) {
-      return !Equals(other) && IsSubsetOf(other);
+    public static bool IsProperSubsetOf(IMultiSet<T> th, IMultiSet<T> other) {
+      return th.Count < other.Count && IsSubsetOf(th, other);
     }
-    public bool IsSubsetOf(MultiSet<T> other) {
-      if (other.occurrencesOfNull < this.occurrencesOfNull) {
+    public static bool IsSubsetOf(IMultiSet<T> th, IMultiSet<T> other) {
+      var a = FromIMultiSet(th);
+      var b = FromIMultiSet(other);
+      if (b.occurrencesOfNull < a.occurrencesOfNull) {
         return false;
       }
-      foreach (T t in dict.Keys) {
-        if (!other.dict.ContainsKey(t) || other.dict[t] < dict[t])
+      foreach (T t in a.dict.Keys) {
+        if (!b.dict.ContainsKey(t) || b.dict[t] < a.dict[t]) {
           return false;
+        }
       }
       return true;
     }
-    public bool IsDisjointFrom(MultiSet<T> other) {
-      if (occurrencesOfNull > 0 && other.occurrencesOfNull > 0) {
-        return false;
-      }
-      foreach (T t in dict.Keys) {
-        if (other.dict.ContainsKey(t))
+    public static bool IsDisjointFrom(IMultiSet<T> th, IMultiSet<T> other) {
+      foreach (T t in th.UniqueElements) {
+        if (other.Contains(t)) {
           return false;
-      }
-      foreach (T t in other.dict.Keys) {
-        if (dict.ContainsKey(t))
-          return false;
+        }
       }
       return true;
     }
@@ -383,13 +415,13 @@ namespace Dafny
     public BigInteger Select<G>(G t) {
       if (t == null) {
         return occurrencesOfNull;
-      } else if (t is T && dict.ContainsKey((T)(object)t)) {
-        return dict[(T)(object)t];
+      } else if (t is T && dict.TryGetValue((T)(object)t, out var m)) {
+        return m;
       } else {
         return BigInteger.Zero;
       }
     }
-    public MultiSet<T> Update<G>(G t, BigInteger i) {
+    public IMultiSet<T> Update<G>(G t, BigInteger i) {
       if (Select(t) == i) {
         return this;
       } else if (t == null) {
@@ -401,56 +433,65 @@ namespace Dafny
         return new MultiSet<T>(r, occurrencesOfNull);
       }
     }
-    public MultiSet<T> Union(MultiSet<T> other) {
-      if (dict.Count + occurrencesOfNull == 0)
+    public static IMultiSet<T> Union(IMultiSet<T> th, IMultiSet<T> other) {
+      if (th.IsEmpty) {
         return other;
-      else if (other.dict.Count + other.occurrencesOfNull == 0)
-        return this;
+      } else if (other.IsEmpty) {
+        return th;
+      }
+      var a = FromIMultiSet(th);
+      var b = FromIMultiSet(other);
       var r = ImmutableDictionary<T, BigInteger>.Empty.ToBuilder();
-      foreach (T t in dict.Keys) {
+      foreach (T t in a.dict.Keys) {
         BigInteger i;
         if (!r.TryGetValue(t, out i)) {
           i = BigInteger.Zero;
         }
-        r[t] = i + dict[t];
+        r[t] = i + a.dict[t];
       }
-      foreach (T t in other.dict.Keys) {
+      foreach (T t in b.dict.Keys) {
         BigInteger i;
         if (!r.TryGetValue(t, out i)) {
           i = BigInteger.Zero;
         }
-        r[t] = i + other.dict[t];
+        r[t] = i + b.dict[t];
       }
-      return new MultiSet<T>(r, occurrencesOfNull + other.occurrencesOfNull);
+      return new MultiSet<T>(r, a.occurrencesOfNull + b.occurrencesOfNull);
     }
-    public MultiSet<T> Intersect(MultiSet<T> other) {
-      if (dict.Count == 0 && occurrencesOfNull == 0)
-        return this;
-      else if (other.dict.Count == 0 && other.occurrencesOfNull == 0)
+    public static IMultiSet<T> Intersect(IMultiSet<T> th, IMultiSet<T> other) {
+      if (th.IsEmpty) {
+        return th;
+      } else if (other.IsEmpty) {
         return other;
+      }
+      var a = FromIMultiSet(th);
+      var b = FromIMultiSet(other);
       var r = ImmutableDictionary<T, BigInteger>.Empty.ToBuilder();
-      foreach (T t in dict.Keys) {
-        if (other.dict.ContainsKey(t)) {
-          r.Add(t, other.dict[t] < dict[t] ? other.dict[t] : dict[t]);
+      foreach (T t in a.dict.Keys) {
+        if (b.dict.ContainsKey(t)) {
+          r.Add(t, a.dict[t] < b.dict[t] ? a.dict[t] : b.dict[t]);
         }
       }
-      return new MultiSet<T>(r, other.occurrencesOfNull < occurrencesOfNull ? other.occurrencesOfNull : occurrencesOfNull);
+      return new MultiSet<T>(r, a.occurrencesOfNull < b.occurrencesOfNull ? a.occurrencesOfNull : b.occurrencesOfNull);
     }
-    public MultiSet<T> Difference(MultiSet<T> other) { // \result == this - other
-      if (dict.Count == 0 && occurrencesOfNull == 0)
-        return this;
-      else if (other.dict.Count == 0 && other.occurrencesOfNull == 0)
-        return this;
+    public static IMultiSet<T> Difference(IMultiSet<T> th, IMultiSet<T> other) { // \result == this - other
+      if (other.IsEmpty) {
+        return th;
+      }
+      var a = FromIMultiSet(th);
+      var b = FromIMultiSet(other);
       var r = ImmutableDictionary<T, BigInteger>.Empty.ToBuilder();
-      foreach (T t in dict.Keys) {
-        if (!other.dict.ContainsKey(t)) {
-          r.Add(t, dict[t]);
-        } else if (other.dict[t] < dict[t]) {
-          r.Add(t, dict[t] - other.dict[t]);
+      foreach (T t in a.dict.Keys) {
+        if (!b.dict.ContainsKey(t)) {
+          r.Add(t, a.dict[t]);
+        } else if (b.dict[t] < a.dict[t]) {
+          r.Add(t, a.dict[t] - b.dict[t]);
         }
       }
-      return new MultiSet<T>(r, other.occurrencesOfNull < occurrencesOfNull ? occurrencesOfNull - other.occurrencesOfNull : BigInteger.Zero);
+      return new MultiSet<T>(r, b.occurrencesOfNull < a.occurrencesOfNull ? a.occurrencesOfNull - b.occurrencesOfNull : BigInteger.Zero);
     }
+
+    public bool IsEmpty => occurrencesOfNull == 0 && dict.IsEmpty;
 
     public int Count {
       get { return (int)ElementCount(); }
@@ -485,8 +526,8 @@ namespace Dafny
         if (!occurrencesOfNull.IsZero) {
           yield return default(T);
         }
-        foreach (var item in dict) {
-          yield return item.Key;
+        foreach (var key in dict.Keys) {
+          yield return key;
         }
       }
     }
@@ -1006,6 +1047,8 @@ namespace Dafny
         ty = typeof(Dafny.Set<>).MakeGenericType(ty.GenericTypeArguments);
       } else if (ty.IsGenericType && typeof(Dafny.ISequence<>) == ty.GetGenericTypeDefinition()) {
         ty = typeof(Dafny.Sequence<>).MakeGenericType(ty.GenericTypeArguments);
+      } else if (ty.IsGenericType && typeof(Dafny.IMultiSet<>) == ty.GetGenericTypeDefinition()) {
+        ty = typeof(Dafny.MultiSet<>).MakeGenericType(ty.GenericTypeArguments);
       }
       System.Reflection.MethodInfo mInfo = ty.GetMethod("_DafnyDefaultValue");
       if (mInfo != null) {

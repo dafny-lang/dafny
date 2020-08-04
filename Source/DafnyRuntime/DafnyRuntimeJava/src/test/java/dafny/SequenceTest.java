@@ -105,13 +105,13 @@ class SequenceTest {
   @Test
   void testSequenceMultisetConversion() {
     DafnyMultiset<Integer> m = new DafnyMultiset<>();
-    m = m.update(1, BigInteger.valueOf(2));
-    m = m.update(2, BigInteger.valueOf(2));
-    m = m.update(3, BigInteger.valueOf(1));
-    m = m.update(4, BigInteger.valueOf(3));
-    m = m.update(5, BigInteger.valueOf(1));
-    m = m.update(6, BigInteger.valueOf(1));
-    m = m.update(7, BigInteger.valueOf(1));
+    m = DafnyMultiset.<Integer>update(m, 1, BigInteger.valueOf(2));
+    m = DafnyMultiset.<Integer>update(m, 2, BigInteger.valueOf(2));
+    m = DafnyMultiset.<Integer>update(m, 3, BigInteger.valueOf(1));
+    m = DafnyMultiset.<Integer>update(m, 4, BigInteger.valueOf(3));
+    m = DafnyMultiset.<Integer>update(m, 5, BigInteger.valueOf(1));
+    m = DafnyMultiset.<Integer>update(m, 6, BigInteger.valueOf(1));
+    m = DafnyMultiset.<Integer>update(m, 7, BigInteger.valueOf(1));
     DafnyMultiset<Integer> c = testSequence.asDafnyMultiset();
     assertEquals(m, c);
 
