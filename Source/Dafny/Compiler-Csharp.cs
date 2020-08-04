@@ -28,6 +28,7 @@ namespace Microsoft.Dafny
 
     protected string DafnyISet => "Dafny.ISet";
     protected string DafnyIMultiset => "Dafny.IMultiSet";
+    protected string DafnyIMap => "Dafny.IMap";
 
     protected override void EmitHeader(Program program, TargetWriter wr) {
       wr.WriteLine("// Dafny program {0} compiled into C#", program.Name);
@@ -955,10 +956,7 @@ namespace Microsoft.Dafny
       } else if (xType is MapType) {
         Type domType = ((MapType)xType).Domain;
         Type ranType = ((MapType)xType).Range;
-        if (ComplicatedTypeParameterForCompilation(domType) || ComplicatedTypeParameterForCompilation(ranType)) {
-          Error(tok, "compilation of map<TRAIT, _> or map<_, TRAIT> is not supported; consider introducing a ghost", wr);
-        }
-        return DafnyMapClass + "<" + TypeName(domType, wr, tok) + "," + TypeName(ranType, wr, tok) + ">";
+        return DafnyIMap + "<" + TypeName(domType, wr, tok) + "," + TypeName(ranType, wr, tok) + ">";
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected type
       }
@@ -972,6 +970,10 @@ namespace Microsoft.Dafny
         return $"{DafnySetClass}<{CommonTypeName(setType.Arg, otherType?.AsSetType?.Arg, wr, tok)}>";
       } else if (xType is MultiSetType msType) {
         return $"{DafnyMultiSetClass}<{CommonTypeName(msType.Arg, otherType?.AsMultiSetType?.Arg, wr, tok)}>";
+      } else if (xType is MapType mapType) {
+        var domainType = CommonTypeName(mapType.Domain, otherType?.AsMapType?.Domain, wr, tok);
+        var rangeType = CommonTypeName(mapType.Range, otherType?.AsMapType?.Range, wr, tok);
+        return $"{DafnyMapClass}<{domainType}, {rangeType}>";
       } else {
         return TypeName(type, wr, tok);
       }
@@ -1674,7 +1676,7 @@ namespace Microsoft.Dafny
     }
 
 
-    protected override void GetSpecialFieldInfo(SpecialField.ID id, object idParam, out string compiledName, out string preString, out string postString) {
+    protected override void GetSpecialFieldInfo(SpecialField.ID id, object idParam, Type receiverType, out string compiledName, out string preString, out string postString) {
       compiledName = "";
       preString = "";
       postString = "";
@@ -1716,7 +1718,13 @@ namespace Microsoft.Dafny
           compiledName = "Values";
           break;
         case SpecialField.ID.Items:
-          compiledName = "Items";
+          var mapType = receiverType.AsMapType;
+          Contract.Assert(mapType != null);
+          var errorWr = new TargetWriter();
+          var domainType = TypeName(mapType.Domain, errorWr, Bpl.Token.NoToken);
+          var rangeType = TypeName(mapType.Range, errorWr, Bpl.Token.NoToken);
+          preString = $"{DafnyMapClass}<{domainType}, {rangeType}>.Items(";
+          postString = ")";
           break;
         case SpecialField.ID.Reads:
           compiledName = "_reads";
@@ -1737,7 +1745,7 @@ namespace Microsoft.Dafny
       Type expectedType, string/*?*/ additionalCustomParameter, bool internalAccess = false) {
       if (member is SpecialField sf && !(member is ConstantField)) {
         string compiledName, preStr, postStr;
-        GetSpecialFieldInfo(sf.SpecialId, sf.IdParam, out compiledName, out preStr, out postStr);
+        GetSpecialFieldInfo(sf.SpecialId, sf.IdParam, objType, out compiledName, out preStr, out postStr);
         if (compiledName.Length != 0) {
           return SuffixLvalue(obj, ".{0}", compiledName);
         } else {
@@ -1825,15 +1833,24 @@ namespace Microsoft.Dafny
     }
 
     protected override void EmitIndexCollectionSelect(Expression source, Expression index, bool inLetExprBody, TargetWriter wr) {
-      TrParenExpr(source, wr, inLetExprBody);
-      TrParenExpr(".Select", index, wr, inLetExprBody);
+      var xType = source.Type.NormalizeExpand();
+      if (xType is MapType) {
+        wr.Write(TypeHelperName(xType, wr, source.tok) + ".Select(");
+        TrExpr(source, wr, inLetExprBody);
+        wr.Write(",");
+        TrExpr(index, wr, inLetExprBody);
+        wr.Write(")");
+      } else {
+        TrParenExpr(source, wr, inLetExprBody);
+        TrParenExpr(".Select", index, wr, inLetExprBody);
+      }
     }
 
-    protected override void EmitIndexCollectionUpdate(Expression source, Expression index, Expression value, Type resultElementType, bool inLetExprBody, TargetWriter wr, bool nativeIndex = false) {
+    protected override void EmitIndexCollectionUpdate(Expression source, Expression index, Expression value, CollectionType resultCollectionType, bool inLetExprBody, TargetWriter wr) {
       var xType = source.Type.NormalizeExpand();
-      if (xType is SeqType) {
+      if (xType is SeqType || xType is MapType) {
         wr.Write(TypeHelperName(xType, wr, source.tok) + ".Update(");
-        TrParenExpr(source, wr, inLetExprBody);
+        TrExpr(source, wr, inLetExprBody);
         wr.Write(",");
         TrExpr(index, wr, inLetExprBody);
         wr.Write(", ");

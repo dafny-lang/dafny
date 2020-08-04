@@ -1,5 +1,5 @@
 SmallTests.dfy(548,4): Warning: /!\ No trigger covering all quantified variables found.
-SmallTests.dfy(34,10): Error: index out of range
+SmallTests.dfy(34,11): Error: index out of range
 Execution trace:
     (0,0): anon0
 SmallTests.dfy(65,35): Error: possible division by zero

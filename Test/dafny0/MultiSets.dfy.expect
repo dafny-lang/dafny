@@ -6,7 +6,7 @@ MultiSets.dfy(164,2): Error BP5003: A postcondition might not hold on this retur
 MultiSets.dfy(163,14): Related location: This is the postcondition that might not hold.
 Execution trace:
     (0,0): anon0
-MultiSets.dfy(177,10): Error: new number of occurrences might be negative
+MultiSets.dfy(177,19): Error: new number of occurrences might be negative
 Execution trace:
     (0,0): anon0
     (0,0): anon4_Then

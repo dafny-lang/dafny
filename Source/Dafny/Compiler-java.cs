@@ -689,9 +689,6 @@ namespace Microsoft.Dafny{
       } else if (xType is MapType) {
         var domType = ((MapType)xType).Domain;
         var ranType = ((MapType)xType).Range;
-        if (ComplicatedTypeParameterForCompilation(domType) || ComplicatedTypeParameterForCompilation(ranType)) {
-          Error(tok, "compilation of map<TRAIT, _> or map<_, TRAIT> is not supported; consider introducing a ghost", wr);
-        }
         if (erased) {
           return DafnyMapClass;
         }
@@ -1156,7 +1153,7 @@ namespace Microsoft.Dafny{
       wr.Write(")");
     }
 
-    protected override void GetSpecialFieldInfo(SpecialField.ID id, object idParam, out string compiledName, out string preString, out string postString) {
+    protected override void GetSpecialFieldInfo(SpecialField.ID id, object idParam, Type receiverType, out string compiledName, out string preString, out string postString) {
       compiledName = "";
       preString = "";
       postString = "";
@@ -1226,7 +1223,7 @@ namespace Microsoft.Dafny{
     protected override ILvalue EmitMemberSelect(Action<TargetWriter> obj, Type objType, MemberDecl member, List<TypeArgumentInstantiation> typeArgs, Dictionary<TypeParameter, Type> typeMap,
       Type expectedType, string/*?*/ additionalCustomParameter, bool internalAccess = false) {
       if (member is SpecialField sf && !(member is ConstantField)) {
-        GetSpecialFieldInfo(sf.SpecialId, sf.IdParam, out var compiledName, out _, out _);
+        GetSpecialFieldInfo(sf.SpecialId, sf.IdParam, objType, out var compiledName, out _, out _);
         if (compiledName.Length != 0) {
           if (member.EnclosingClass is DatatypeDecl) {
             return SuffixLvalue(obj, $".{compiledName}()");
@@ -1515,14 +1512,18 @@ namespace Microsoft.Dafny{
       wr.Write(".asDafnyMultiset()");
     }
 
-    protected override void EmitIndexCollectionUpdate(Expression source, Expression index, Expression value, Type resultElementType, bool inLetExprBody,
-      TargetWriter wr, bool nativeIndex = false) {
+    protected override void EmitIndexCollectionUpdate(Expression source, Expression index, Expression value, CollectionType resultCollectionType, bool inLetExprBody, TargetWriter wr) {
       if (source.Type.AsSeqType != null) {
-        wr.Write($"{DafnySeqClass}.<{BoxedTypeName(resultElementType, wr, Bpl.Token.NoToken)}>update(");
+        wr.Write($"{DafnySeqClass}.<{BoxedTypeName(resultCollectionType.Arg, wr, Bpl.Token.NoToken)}>update(");
+        TrExpr(source, wr, inLetExprBody);
+        wr.Write(", ");
+      } else if (source.Type.AsMapType != null) {
+        var mapType = (MapType)resultCollectionType;
+        wr.Write($"{DafnyMapClass}.<{BoxedTypeName(mapType.Domain, wr, Bpl.Token.NoToken)}, {BoxedTypeName(mapType.Range, wr, Bpl.Token.NoToken)}>update(");
         TrExpr(source, wr, inLetExprBody);
         wr.Write(", ");
       } else if (source.Type.AsMultiSetType != null) {
-        wr.Write($"{DafnyMultiSetClass}.<{BoxedTypeName(resultElementType, wr, Bpl.Token.NoToken)}>update(");
+        wr.Write($"{DafnyMultiSetClass}.<{BoxedTypeName(resultCollectionType.Arg, wr, Bpl.Token.NoToken)}>update(");
         TrExpr(source, wr, inLetExprBody);
         wr.Write(", ");
       } else {

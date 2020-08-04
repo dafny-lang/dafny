@@ -446,4 +446,8 @@ ResolutionErrors.dfy(2890,11): Error: quantifiers in non-ghost contexts must be 
 ResolutionErrors.dfy(2891,21): Error: ghost variables are allowed only in specification contexts
 ResolutionErrors.dfy(2902,15): Error: RHS (of type X) not assignable to LHS (of type X)
 ResolutionErrors.dfy(2906,10): Error: type of corresponding source/RHS (X) does not match type of bound variable (X)
-443 resolution/type errors detected in ResolutionErrors.dfy
+ResolutionErrors.dfy(2934,16): Error: sequence update requires the value to have the element type of the sequence (got Trait)
+ResolutionErrors.dfy(2938,11): Error: multiset update requires domain element to be of type Elem (got Trait)
+ResolutionErrors.dfy(2943,13): Error: map update requires domain element to be of type Elem (got Trait)
+ResolutionErrors.dfy(2945,18): Error: map update requires the value to have the range type Elem (got Trait)
+447 resolution/type errors detected in ResolutionErrors.dfy

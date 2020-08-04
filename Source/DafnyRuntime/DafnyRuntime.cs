@@ -533,81 +533,128 @@ namespace Dafny
     }
   }
 
-  public class Map<U, V>
+  public interface IMap<out U, out V>
+  {
+    int Count { get; }
+    long LongCount { get; }
+    ISet<U> Keys { get; }
+    ISet<V> Values { get; }
+    IEnumerable<IPair<U, V>> ItemEnumerable { get; }
+    bool Contains<G>(G t);
+    /// <summary>
+    /// Returns "true" iff "this is IMap<object, object>" and "this" equals "other".
+    /// </summary>
+    bool EqualsObjObj(IMap<object, object> other);
+  }
+
+  public class Map<U, V> : IMap<U, V>
   {
     readonly ImmutableDictionary<U, V> dict;
-    readonly bool hasNullValue;  // true when "null" is a key of the Map
-    readonly V nullValue;  // if "hasNullValue", the value that "null" maps to
+    readonly bool hasNullKey;  // true when "null" is a key of the Map
+    readonly V nullValue;  // if "hasNullKey", the value that "null" maps to
 
-    Map(ImmutableDictionary<U, V>.Builder d, bool hasNullValue, V nullValue) {
+    Map(ImmutableDictionary<U, V>.Builder d, bool hasNullKey, V nullValue) {
       dict = d.ToImmutable();
-      this.hasNullValue = hasNullValue;
+      this.hasNullKey = hasNullKey;
       this.nullValue = nullValue;
     }
     public static readonly Map<U, V> Empty = new Map<U, V>(ImmutableDictionary<U, V>.Empty.ToBuilder(), false, default(V));
 
-    public static Map<U, V> FromElements(params Pair<U, V>[] values) {
+    public static Map<U, V> FromElements(params IPair<U, V>[] values) {
       var d = ImmutableDictionary<U, V>.Empty.ToBuilder();
-      var hasNullValue = false;
+      var hasNullKey = false;
       var nullValue = default(V);
-      foreach (Pair<U, V> p in values) {
+      foreach (var p in values) {
         if (p.Car == null) {
-          hasNullValue = true;
+          hasNullKey = true;
           nullValue = p.Cdr;
         } else {
           d[p.Car] = p.Cdr;
         }
       }
-      return new Map<U, V>(d, hasNullValue, nullValue);
+      return new Map<U, V>(d, hasNullKey, nullValue);
     }
-    public static Map<U, V> FromCollection(IEnumerable<Pair<U, V>> values) {
+    public static Map<U, V> FromCollection(IEnumerable<IPair<U, V>> values) {
       var d = ImmutableDictionary<U, V>.Empty.ToBuilder();
-      var hasNullValue = false;
+      var hasNullKey = false;
       var nullValue = default(V);
-      foreach (Pair<U, V> p in values) {
+      foreach (var p in values) {
         if (p.Car == null) {
-          hasNullValue = true;
+          hasNullKey = true;
           nullValue = p.Cdr;
         } else {
           d[p.Car] = p.Cdr;
         }
       }
-      return new Map<U, V>(d, hasNullValue, nullValue);
+      return new Map<U, V>(d, hasNullKey, nullValue);
+    }
+    public static Map<U, V> FromIMap(IMap<U, V> m) {
+      if (m is Map<U, V> mp) {
+        return mp;
+      }
+      return FromCollection(m.ItemEnumerable);
     }
     public int Count {
-      get { return dict.Count + (hasNullValue ? 1 : 0); }
+      get { return dict.Count + (hasNullKey ? 1 : 0); }
     }
     public long LongCount {
-      get { return dict.Count + (hasNullValue ? 1 : 0); }
+      get { return dict.Count + (hasNullKey ? 1 : 0); }
     }
     public static Map<U, V> _DafnyDefaultValue() {
       return Empty;
     }
 
-    public bool Equals(Map<U, V> other) {
-      if (hasNullValue != other.hasNullValue || dict.Count != other.dict.Count) {
+    public bool Equals(IMap<U, V> other) {
+      if (other == null || LongCount != other.LongCount) {
         return false;
-      } else if (hasNullValue && !object.Equals(nullValue, other.nullValue)) {
-        return false;
+      } else if (this == other) {
+        return true;
       }
-      foreach (U u in dict.Keys) {
-        V v1 = dict[u];
-        V v2;
-        if (!other.dict.TryGetValue(u, out v2)) {
-          return false; // other dictionary does not contain this element
+      if (hasNullKey) {
+        if (!other.Contains(default(U)) || !object.Equals(nullValue, Select(other, default(U)))) {
+          return false;
         }
-        if (!object.Equals(v1, v2)) {
+      }
+      foreach (var item in dict) {
+        if (!other.Contains(item.Key) || !object.Equals(item.Value, Select(other, item.Key))) {
+          return false;
+        }
+      }
+      return true;
+    }
+    public bool EqualsObjObj(IMap<object, object> other) {
+      if (!(this is IMap<object, object>) || other == null || LongCount != other.LongCount) {
+        return false;
+      } else if (this == other) {
+        return true;
+      }
+      var oth = Map<object, object>.FromIMap(other);
+      if (hasNullKey) {
+        if (!oth.Contains(default(U)) || !object.Equals(nullValue, Map<object, object>.Select(oth, default(U)))) {
+          return false;
+        }
+      }
+      foreach (var item in dict) {
+        if (!other.Contains(item.Key) || !object.Equals(item.Value, Map<object, object>.Select(oth, item.Key))) {
           return false;
         }
       }
       return true;
     }
     public override bool Equals(object other) {
-      return other is Map<U, V> && Equals((Map<U, V>)other);
+      // See comment in Set.Equals
+      if (other is IMap<U, V> m) {
+        return Equals(m);
+      } else if (other is IMap<object, object> imapoo) {
+        return EqualsObjObj(imapoo);
+      } else {
+        return false;
+      }
     }
+
     public override int GetHashCode() {
       var hashCode = 1;
-      if (hasNullValue) {
+      if (hasNullKey) {
         var key = Dafny.Helpers.GetHashCode(default(U));
         key = (key << 3) | (key >> 29) ^ Dafny.Helpers.GetHashCode(nullValue);
         hashCode = hashCode * (key + 3);
@@ -622,7 +669,7 @@ namespace Dafny
     public override string ToString() {
       var s = "map[";
       var sep = "";
-      if (hasNullValue) {
+      if (hasNullKey) {
         s += sep + Dafny.Helpers.ToString(default(U)) + " := " + Dafny.Helpers.ToString(nullValue);
         sep = ", ";
       }
@@ -633,24 +680,27 @@ namespace Dafny
       return s + "]";
     }
     public bool Contains<G>(G u) {
-      return u == null ? hasNullValue : u is U && dict.ContainsKey((U)(object)u);
+      return u == null ? hasNullKey : u is U && dict.ContainsKey((U)(object)u);
     }
-    public V Select(U index) {
-      // evidently, the following will throw some exception if "index" in not a key of the map
-      return index == null && hasNullValue ? nullValue : dict[index];
+    public static V Select(IMap<U, V> th, U index) {
+      // the following will throw an exception if "index" in not a key of the map
+      var m = FromIMap(th);
+      return index == null && m.hasNullKey ? m.nullValue : m.dict[index];
     }
-    public Map<U, V> Update(U index, V val) {
-      var d = dict.ToBuilder();
+    public static IMap<U, V> Update(IMap<U, V> th, U index, V val) {
+      var m = FromIMap(th);
+      var d = m.dict.ToBuilder();
       if (index == null) {
         return new Map<U, V>(d, true, val);
       } else {
         d[index] = val;
-        return new Map<U, V>(d, hasNullValue, nullValue);
+        return new Map<U, V>(d, m.hasNullKey, m.nullValue);
       }
     }
+
     public ISet<U> Keys {
       get {
-        if (hasNullValue) {
+        if (hasNullKey) {
           return Dafny.Set<U>.FromCollectionPlusOne(dict.Keys, default(U));
         } else {
           return Dafny.Set<U>.FromCollection(dict.Keys);
@@ -659,24 +709,31 @@ namespace Dafny
     }
     public ISet<V> Values {
       get {
-        if (hasNullValue) {
+        if (hasNullKey) {
           return Dafny.Set<V>.FromCollectionPlusOne(dict.Values, nullValue);
         } else {
           return Dafny.Set<V>.FromCollection(dict.Values);
         }
       }
     }
-    public ISet<_System.Tuple2<U, V>> Items {
+
+    public IEnumerable<IPair<U, V>> ItemEnumerable {
       get {
-        HashSet<_System.Tuple2<U, V>> result = new HashSet<_System.Tuple2<U, V>>();
-        if (hasNullValue) {
-          result.Add(_System.Tuple2<U, V>.create(default(U), nullValue));
+        if (hasNullKey) {
+          yield return new Pair<U, V>(default(U), nullValue);
         }
         foreach (KeyValuePair<U, V> kvp in dict) {
-          result.Add(_System.Tuple2<U, V>.create(kvp.Key, kvp.Value));
+          yield return new Pair<U, V>(kvp.Key, kvp.Value);
         }
-        return Dafny.Set<_System.Tuple2<U, V>>.FromCollection(result);
       }
+    }
+
+    public static ISet<_System.Tuple2<U, V>> Items(IMap<U, V> m) {
+      var result = new HashSet<_System.Tuple2<U, V>>();
+      foreach (var item in m.ItemEnumerable) {
+        result.Add(_System.Tuple2<U, V>.create(item.Car, item.Cdr));
+      }
+      return Dafny.Set<_System.Tuple2<U, V>>.FromCollection(result);
     }
   }
 
@@ -1014,10 +1071,16 @@ namespace Dafny
       return ansBuilder.ToImmutable();
     }
   }
-  public struct Pair<A, B>
+
+  public interface IPair<out A, out B>
   {
-    public readonly A Car;
-    public readonly B Cdr;
+    A Car { get; }
+    B Cdr { get; }
+  }
+  public class Pair<A, B> : IPair<A, B>
+  {
+    public A Car { get; }
+    public B Cdr { get; }
     public Pair(A a, B b) {
       this.Car = a;
       this.Cdr = b;
@@ -1049,6 +1112,8 @@ namespace Dafny
         ty = typeof(Dafny.Sequence<>).MakeGenericType(ty.GenericTypeArguments);
       } else if (ty.IsGenericType && typeof(Dafny.IMultiSet<>) == ty.GetGenericTypeDefinition()) {
         ty = typeof(Dafny.MultiSet<>).MakeGenericType(ty.GenericTypeArguments);
+      } else if (ty.IsGenericType && typeof(Dafny.IMap<,>) == ty.GetGenericTypeDefinition()) {
+        ty = typeof(Dafny.Map<,>).MakeGenericType(ty.GenericTypeArguments);
       }
       System.Reflection.MethodInfo mInfo = ty.GetMethod("_DafnyDefaultValue");
       if (mInfo != null) {

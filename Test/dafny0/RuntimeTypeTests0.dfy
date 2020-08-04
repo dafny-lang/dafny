@@ -7,14 +7,14 @@
 
 // The code in this file demonstrates complications in sorting out covariance in some
 // compilation target languages. Compilation support is currently spotty, where C# and
-// Java only supports sets, multisets, and sequences (not maps or datatypes), and
+// Java only supports collection types (not datatypes), and
 // only in the "upcast" direction.
 //
 // The solution in C# is to ensure the Dafny type is mapped to a C# interface with the "out"
 // type parameter modifier, which allows covariance under the condition that the type parameter
 // is only used in return types in the interface methods and not as parameter types.
-// This has only been implemented for sets, multisets, and sequences so far, but will apply to
-// the other cases in this test case as well.
+// This has only been implemented for collection types (sets, sequences, multisets, and maps)
+// so far, but will apply to the other cases in this test case as well.
 //
 // The solution in Java is to use Java's wildcard types: a "Dafny.Sequence<T>"" is assignable to
 // a "Dafny.Sequence<? extends T>".
@@ -94,7 +94,7 @@ method M()
 {
   var c0 := new Class0;
   var c1 := new Class1;
-  var s: map<int, Tr> := map[8 := c0, 9 := c1]; // compilation error: not yet supported
+  var s: map<int, Tr> := map[8 := c0, 9 := c1]; // supported
   var t: map<int, Class0> := map[7 := c0];
   s := t;
   print s, " and ", t, "\n";
