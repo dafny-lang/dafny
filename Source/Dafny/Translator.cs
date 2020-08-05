@@ -9599,17 +9599,6 @@ namespace Microsoft.Dafny {
       return call;
     }
 
-    private static QKeyValue ErrorMessageAttribute(IToken t, string error) {
-      var l = new List<object>(1);
-      l.Add(error);
-      return new QKeyValue(t, "msg", l, null);
-    }
-    private static QKeyValue ErrorMessageAttribute(IToken t, string error, QKeyValue qv) {
-      var l = new List<object>(1);
-      l.Add(error);
-      return new QKeyValue(t, "msg", l, qv);
-    }
-
     private void GenerateMethodParameters(IToken tok, Method m, MethodTranslationKind kind, ExpressionTranslator etran, List<Variable> inParams, out List<Variable> outParams) {
       GenerateMethodParametersChoose(tok, m, kind, !m.IsStatic, true, true, etran, inParams, out outParams);
     }
