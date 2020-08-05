@@ -3605,7 +3605,7 @@ namespace Microsoft.Dafny
       Contract.Requires(t != null);
       Contract.Requires(!(t is TypeProxy));
       Contract.Requires(!(t is ArtificialType));
-      if (_recursionDepth == 20) {
+      if (_recursionDepth == 20000) {
         Contract.Assume(false);  // possible infinite recursion
       }
       _recursionDepth++;
