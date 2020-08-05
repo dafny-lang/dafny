@@ -1,5 +1,5 @@
 
-Dafny program verifier finished with 4 verified, 0 errors
+Dafny program verifier finished with 8 verified, 0 errors
 
 Dafny program verifier finished with 0 verified, 0 errors
 3 false 0
@@ -10,6 +10,8 @@ Cell.Cell(false) false true
 true false false true
 true false false true
 17
+1 3 9 0 0 ThisOrThat.Or ThisOrThat.Or
+(1, 3, 9, 0, 0, ThisOrThat.Or, ThisOrThat.Or)
 
 Dafny program verifier finished with 0 verified, 0 errors
 3 false 0
@@ -20,6 +22,8 @@ Cell.Cell(false) false true
 true false false true
 true false false true
 17
+1 3 9 0 0 ThisOrThat.Or ThisOrThat.Or
+(1, 3, 9, 0, 0, ThisOrThat.Or, ThisOrThat.Or)
 
 Dafny program verifier finished with 0 verified, 0 errors
 3 false 0
@@ -30,6 +34,8 @@ Cell.Cell(false) false true
 true false false true
 true false false true
 17
+1 3 9 0 0 ThisOrThat.Or ThisOrThat.Or
+(1, 3, 9, 0, 0, ThisOrThat.Or, ThisOrThat.Or)
 
 Dafny program verifier finished with 0 verified, 0 errors
 3 false 0
@@ -40,3 +46,5 @@ Cell.Cell(false) false true
 true false false true
 true false false true
 17
+1 3 9 0 0 ThisOrThat.Or ThisOrThat.Or
+(1, 3, 9, 0, 0, ThisOrThat.Or, ThisOrThat.Or)

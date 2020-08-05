@@ -62,4 +62,24 @@ method Main() {
   m := m[null2 := 15];
   m := m[null2' := 17];
   print m[null2], "\n";  // 17
+  More();
+}
+
+datatype ThisOrThat<A,B> = This(A) | Or | That(B)
+type pos = i: nat | i != 0 witness 1
+type OrThat<X> = tot: ThisOrThat<X, int> | !tot.This? witness Or
+newtype OddByte = i | 2 <= i < 20 && i % 2 == 1 witness 3
+newtype OddNat = i | 4 <= i && i % 2 == 1 witness 9
+
+method More() {
+  var x: pos;
+  var y: OddByte;
+  var z: OddNat;
+  var w: bv7;
+  var v: bv2009;
+  var u: ThisOrThat<bool, real>;
+  var t: OrThat<bv5>;
+  print x, " ", y, " ", z, " ", w, " ", v, " ", u, " ", t, "\n"; // 1 3 9 0 0 ThisOrThat.Or ThisOrThat.Or
+  var p: (pos, OddByte, OddNat, bv7, bv2009, ThisOrThat<bool, real>, OrThat<bv5>); // (1, 3, 9, 0, 0, ThisOrThat.Or, ThisOrThat.Or)
+  print p, "\n";
 }
