@@ -3377,7 +3377,7 @@ namespace Microsoft.Dafny{
     }
 
     protected override IClassWriter DeclareNewtype(NewtypeDecl nt, TargetWriter wr){
-      var cw = CreateClass(IdProtect(nt.Module.CompileName), IdName(nt), null, wr) as ClassWriter;
+      var cw = CreateClass(IdProtect(nt.Module.CompileName), IdName(nt), nt, wr) as ClassWriter;
       var w = cw.StaticMemberWriter;
       if (nt.NativeType != null) {
         var nativeType = GetBoxedNativeTypeName(nt.NativeType);

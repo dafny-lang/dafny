@@ -567,7 +567,7 @@ namespace Microsoft.Dafny {
         throw NotSupported(String.Format("non-native newtype {0}", nt));
       }
       var className = "class_" + IdName(nt);
-      var cw = CreateClass(nt.Module.CompileName, className, null, wr) as CppCompiler.ClassWriter;
+      var cw = CreateClass(nt.Module.CompileName, className, nt, wr) as CppCompiler.ClassWriter;
       var w = cw.MethodDeclWriter;
       if (nt.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
         var witness = new TargetWriter(w.IndentLevel, true);
