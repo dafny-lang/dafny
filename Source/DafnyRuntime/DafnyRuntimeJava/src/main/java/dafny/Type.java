@@ -100,8 +100,6 @@ public abstract class Type<T> {
     public static final Type<Long> LONG = new LongType();
     public static final Type<Boolean> BOOLEAN = new BooleanType();
     public static final Type<Character> CHAR = new CharType();
-    public static final Type<Float> FLOAT = new FloatType();
-    public static final Type<Double> DOUBLE = new DoubleType();
 
     public static final Type<BigInteger> BIG_INTEGER =
             referenceWithDefault(BigInteger.class, BigInteger.ZERO);
@@ -116,8 +114,6 @@ public abstract class Type<T> {
     public static final Type<long[]> LONG_ARRAY = reference(long[].class);
     public static final Type<boolean[]> BOOLEAN_ARRAY = reference(boolean[].class);
     public static final Type<char[]> CHAR_ARRAY = reference(char[].class);
-    public static final Type<float[]> FLOAT_ARRAY = reference(float[].class);
-    public static final Type<double[]> DOUBLE_ARRAY = reference(double[].class);
 
     public static <A, R> Type<Function<A, R>> function(Type<A> argType, Type<R> returnType) {
         @SuppressWarnings("unchecked")
@@ -515,104 +511,6 @@ public abstract class Type<T> {
         @Override
         public boolean arrayDeepEquals(Object array1, Object array2) {
             char[] castArray1 = (char[]) array1, castArray2 = (char[]) array2;
-            return Arrays.equals(castArray1, castArray2);
-        }
-    }
-
-    private static final class FloatType extends Type<Float> {
-        private static final Float DEFAULT = 0.0f;
-
-        public FloatType() {
-            super(Float.TYPE);
-        }
-
-        @Override
-        public Float defaultValue() {
-            return DEFAULT;
-        }
-
-        @Override
-        public boolean isInstance(Object object) {
-            return object instanceof Float;
-        }
-
-        @Override
-        public Type<?> arrayType() {
-            return FLOAT_ARRAY;
-        }
-
-        @Override
-        public Float getArrayElement(Object array, int index) {
-            return ((float[]) array)[index];
-        }
-
-        @Override
-        public void setArrayElement(Object array, int index, Float value) {
-            ((float[]) array)[index] = value;
-        }
-
-        @Override
-        public Object cloneArray(Object array) {
-            return ((float[]) array).clone();
-        }
-
-        @Override
-        public void fillArray(Object array, Float value) {
-            Arrays.fill((float[]) array, value);
-        }
-
-        @Override
-        public boolean arrayDeepEquals(Object array1, Object array2) {
-            float[] castArray1 = (float[]) array1, castArray2 = (float[]) array2;
-            return Arrays.equals(castArray1, castArray2);
-        }
-    }
-
-    private static final class DoubleType extends Type<Double> {
-        private static final Double DEFAULT = 0.0;
-
-        public DoubleType() {
-            super(Double.TYPE);
-        }
-
-        @Override
-        public Double defaultValue() {
-            return DEFAULT;
-        }
-
-        @Override
-        public boolean isInstance(Object object) {
-            return object instanceof Double;
-        }
-
-        @Override
-        public Type<?> arrayType() {
-            return DOUBLE_ARRAY;
-        }
-
-        @Override
-        public Double getArrayElement(Object array, int index) {
-            return ((double[]) array)[index];
-        }
-
-        @Override
-        public void setArrayElement(Object array, int index, Double value) {
-            ((double[]) array)[index] = value;
-        }
-
-        @Override
-        public Object cloneArray(Object array) {
-            return ((double[]) array).clone();
-        }
-
-        @Override
-        public void fillArray(Object array, Double value) {
-            Arrays.fill((double[]) array, value);
-        }
-
-        @Override
-        public boolean arrayDeepEquals(Object array1, Object array2) {
-            double[] castArray1 = (double[]) array1, castArray2 = (double[]) array2;
             return Arrays.equals(castArray1, castArray2);
         }
     }
