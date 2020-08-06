@@ -25,20 +25,14 @@ jobs:
     - name: Add msbuild to PATH
       if: matrix.os == 'windows-latest'
       uses: microsoft/setup-msbuild@v1.0.0
-    - name: Checkout Boogie
-      uses: actions/checkout@v2
-      with:
-        repository: boogie-org/boogie
-        ref: v2.4.21
-        path: boogie
-    - name: Nuget Restore Boogie
-      run: nuget restore boogie/Source/Boogie.sln
-    - name: Build Boogie
-      run: msbuild boogie/Source/Boogie.sln
     - name: Checkout Dafny
       uses: actions/checkout@v2
       with:
         path: dafny
+    - name: Nuget Restore Boogie
+      run: nuget restore dafny/Source/boogie/Boogie.sln
+    - name: Build Boogie
+      run: msbuild dafny/Source/boogie/Boogie.sln
     - name: Get Z3
       if: matrix.os != 'windows-latest'
       run: |
