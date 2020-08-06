@@ -31,9 +31,9 @@ jobs:
         submodules: recursive
         path: dafny
     - name: Nuget Restore Boogie
-      run: nuget restore dafny/Source/boogie/Boogie.sln
+      run: nuget restore dafny/Source/boogie/Source/Boogie.sln
     - name: Build Boogie
-      run: msbuild dafny/Source/boogie/Boogie.sln
+      run: msbuild dafny/Source/boogie/Source/Boogie.sln
     - name: Get Z3
       if: matrix.os != 'windows-latest'
       run: |
