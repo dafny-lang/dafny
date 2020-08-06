@@ -130,15 +130,6 @@
     <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="BoogieBasetypes">
-      <HintPath>..\boogie\Binaries\BoogieBasetypes.dll</HintPath>
-    </Reference>
-    <Reference Include="BoogieCore">
-      <HintPath>..\boogie\Binaries\BoogieCore.dll</HintPath>
-    </Reference>
-    <Reference Include="BoogieParserHelper">
-      <HintPath>..\boogie\Binaries\BoogieParserHelper.dll</HintPath>
-    </Reference>
     <PackageReference Include="Mono.Cecil" Version="0.11.2" />
     <Reference Include="System" />
     <Reference Include="System.Core">
@@ -202,6 +193,18 @@
     </BootstrapperPackage>
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\boogie\Source\BaseTypes\Basetypes.csproj">
+      <Project>{43dfad18-3e35-4558-9be2-caff6b5ba8a0}</Project>
+      <Name>Basetypes</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\boogie\Source\Core\Core.csproj">
+      <Project>{b230a69c-c466-4065-b9c1-84d80e76d802}</Project>
+      <Name>Core</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\boogie\Source\ParserHelper\ParserHelper.csproj">
+      <Project>{fcd3ac7f-9dfd-46c8-ab1e-09f0b0f16dc5}</Project>
+      <Name>ParserHelper</Name>
+    </ProjectReference>
     <ProjectReference Include="..\DafnyRuntime\DafnyRuntime.csproj">
       <Project>{3e2944e9-3e1d-4e03-a881-fb04a7a6ed67}</Project>
       <Name>DafnyRuntime</Name>

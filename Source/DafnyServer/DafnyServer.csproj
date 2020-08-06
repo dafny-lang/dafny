@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
   <PropertyGroup>
@@ -111,26 +111,8 @@
     <CodeContractsAnalysisWarningLevel>0</CodeContractsAnalysisWarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="BoogieCore">
-      <HintPath>..\boogie\Binaries\BoogieCore.dll</HintPath>
-    </Reference>
-    <Reference Include="BoogieExecutionEngine">
-      <HintPath>..\boogie\Binaries\BoogieExecutionEngine.dll</HintPath>
-    </Reference>
-    <Reference Include="BoogieGraph">
-		<HintPath>..\boogie\Binaries\BoogieGraph.dll</HintPath>
-	</Reference>
-    <Reference Include="BoogieParserHelper">
-      <HintPath>..\boogie\Binaries\BoogieParserHelper.dll</HintPath>
-    </Reference>
     <Reference Include="Provers.SMTLib">
       <HintPath>..\boogie\Binaries\Provers.SMTLib.dll</HintPath>
-    </Reference>
-    <Reference Include="BoogieModelViewer">
-      <HintPath>..\boogie\Binaries\BoogieModelViewer.dll</HintPath>
-    </Reference>
-    <Reference Include="BoogieModel">
-      <HintPath>..\boogie\Binaries\BoogieModel.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
@@ -154,6 +136,30 @@
     <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\boogie\Source\Core\Core.csproj">
+      <Project>{b230a69c-c466-4065-b9c1-84d80e76d802}</Project>
+      <Name>Core</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\boogie\Source\ExecutionEngine\ExecutionEngine.csproj">
+      <Project>{eaa5eb79-d475-4601-a59b-825c191cd25f}</Project>
+      <Name>ExecutionEngine</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\boogie\Source\Graph\Graph.csproj">
+      <Project>{69a2b0b8-bcac-4101-ae7a-556fcc58c06e}</Project>
+      <Name>Graph</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\boogie\Source\ModelViewer\ModelViewer.csproj">
+      <Project>{a678c6eb-b329-46a9-bbfc-7585f01acd7c}</Project>
+      <Name>ModelViewer</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\boogie\Source\Model\Model.csproj">
+      <Project>{acef88d5-dadd-46da-bae1-2144d63f4c83}</Project>
+      <Name>Model</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\boogie\Source\ParserHelper\ParserHelper.csproj">
+      <Project>{fcd3ac7f-9dfd-46c8-ab1e-09f0b0f16dc5}</Project>
+      <Name>ParserHelper</Name>
+    </ProjectReference>
     <ProjectReference Include="..\Dafny\DafnyPipeline.csproj">
       <Project>{fe44674a-1633-4917-99f4-57635e6fa740}</Project>
       <Name>DafnyPipeline</Name>
