@@ -2386,7 +2386,7 @@ namespace Microsoft.Dafny{
         } else {
           return $"{TypeClass}.BIG_INTEGER";
         }
-      } else if (type.IsObjectQ) {
+      } else if (type.IsObjectQ || type.IsObject) {
         return $"{TypeClass}.OBJECT";
       } else if (type.IsArrayType) {
         ArrayClassDecl at = type.AsArrayType;
@@ -2395,9 +2395,9 @@ namespace Microsoft.Dafny{
         if (at.Dims > 1) {
           arrays.Add(at.Dims);
           return $"{DafnyMultiArrayClass(at.Dims)}.<{elTypeName}>{TypeMethodName}()";
-        } else if (elType is BoolType) {
+        } else if (elType.IsBoolType) {
           return $"{TypeClass}.BOOLEAN_ARRAY";
-        } else if (elType is CharType) {
+        } else if (elType.IsCharType) {
           return $"{TypeClass}.CHAR_ARRAY";
         } else if (AsNativeType(elType) != null) {
           switch (AsJavaNativeType(elType)) {
