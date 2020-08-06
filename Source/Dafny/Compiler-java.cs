@@ -891,27 +891,67 @@ namespace Microsoft.Dafny{
         }
       }
 
-      EmitTypeMethod(javaName, typeParameters, typeParameters, initializer: null, wBody);
-      return new ClassWriter(this, wBody, wCtorBody);
+      // make sure the (static fields associated with the) type method come after the Witness static field
+      var wTypeMethod = wBody;
+      var wRestOfBody = wBody.ForkSection();
+      var targetTypeName = BoxedTypeName(UserDefinedType.FromTopLevelDecl(cls.tok, cls, null), wTypeMethod, cls.tok);
+      var initializer = cls is RedirectingTypeDecl rtd && rtd.Witness != null ? $"{javaName}.Witness" : null;
+      EmitTypeMethod(cls, javaName, typeParameters, typeParameters, targetTypeName, initializer, wTypeMethod);
+      return new ClassWriter(this, wRestOfBody, wCtorBody);
     }
 
-    private void EmitTypeMethod(string typeName, List<TypeParameter> typeParams, List<TypeParameter> usedTypeParams, string/*?*/ initializer, TargetWriter wr) {
+    /// <summary>
+    /// Generate the "_type" method for a generated class.
+    /// "enclosingType" is allowed to be "null", in which case the target values are assumed to be references.
+    /// </summary>
+    private void EmitTypeMethod(TopLevelDecl/*?*/ enclosingTypeDecl, string typeName, List<TypeParameter> typeParams, List<TypeParameter> usedTypeParams, string targetTypeName, string/*?*/ initializer, TargetWriter wr) {
       var typeParamString = "";
       if (typeParams != null && typeParams.Count != 0) {
         typeParamString = $"<{TypeParameters(typeParams)}> ";
       }
 
-      var typeDescriptorCast = $"({TypeClass}<{typeName}{typeParamString}>) ({TypeClass}<?>)";
-      var typeDescriptorExpr = $"{TypeClass}.referenceWithInitializer({typeName}.class, () -> {initializer ?? "null"})";
-      if (usedTypeParams == null || usedTypeParams.Count == 0) {
-        wr.WriteLine($"private static final {TypeClass}<{typeName}> _TYPE = {typeDescriptorExpr};");
+      string typeDescriptorExpr = null;
+      if (enclosingTypeDecl != null) {
+        var enclosingType = UserDefinedType.FromTopLevelDecl(enclosingTypeDecl.tok, enclosingTypeDecl);
+        var w = (enclosingTypeDecl as RedirectingTypeDecl)?.Witness != null ? "Witness" : null;
+        switch (AsJavaNativeType(enclosingType)) {
+          case JavaNativeType.Byte:
+            typeDescriptorExpr = $"{TypeClass}.byteWithDefault({w ?? "(byte)0"})";
+            break;
+          case JavaNativeType.Short:
+            typeDescriptorExpr = $"{TypeClass}.shortWithDefault({w ?? "(short)0"})";
+            break;
+          case JavaNativeType.Int:
+            typeDescriptorExpr = $"{TypeClass}.intWithDefault({w ?? "0"})";
+            break;
+          case JavaNativeType.Long:
+            typeDescriptorExpr = $"{TypeClass}.longWithDefault({w ?? "0L"})";
+            break;
+          case null:
+            if (enclosingType.IsBoolType) {
+              typeDescriptorExpr = $"{TypeClass}.booleanWithDefault({w ?? "false"})";
+            } else if (enclosingType.IsCharType) {
+              typeDescriptorExpr = $"{TypeClass}.charWithDefault({w ?? "'D'"})";
+            }
+            break;
+        }
       }
-      wr.Write($"public static {typeParamString}{TypeClass}<{typeName}{typeParamString}> {TypeMethodName}(");
+      if (typeDescriptorExpr == null) {
+        // use reference type
+        typeDescriptorExpr = $"{TypeClass}.referenceWithInitializer({StripTypeParameters(targetTypeName)}.class, () -> {initializer ?? "null"})";
+      }
+
+      if (usedTypeParams == null || usedTypeParams.Count == 0) {
+        // a static context in Java does not see the enclosing type parameters
+        wr.WriteLine($"private static final {TypeClass}<{StripTypeParameters(targetTypeName)}> _TYPE = {typeDescriptorExpr};");
+      }
+      wr.Write($"public static {typeParamString}{TypeClass}<{targetTypeName}> {TypeMethodName}(");
       if (usedTypeParams != null) {
         var typeDescriptorParams = usedTypeParams.Where(tp => NeedsTypeDescriptor(tp)).ToList();
         wr.Write(Util.Comma(typeDescriptorParams, tp => $"{TypeClass}<{tp.CompileName}> {FormatTypeDescriptorVariable(tp.CompileName)}"));
       }
       var wTypeMethodBody = wr.NewBigBlock(")", "");
+      var typeDescriptorCast = $"({TypeClass}<{targetTypeName}>) ({TypeClass}<?>)";
       if (usedTypeParams == null || usedTypeParams.Count == 0) {
         wTypeMethodBody.WriteLine($"return {typeDescriptorCast} _TYPE;");
       } else {
@@ -1706,7 +1746,8 @@ namespace Microsoft.Dafny{
         }
       }
       EmitDatatypeValue(dt, defaultCtor, dt is CoDatatypeDecl, arguments, wDefault);
-      EmitTypeMethod(IdName(dt), dt.TypeArgs, usedTypeArgs, $"Default({typeDescArgsStr})", wr);
+      var targetTypeName = BoxedTypeName(UserDefinedType.FromTopLevelDecl(dt.tok, dt, null), wr, dt.tok);
+      EmitTypeMethod(dt, IdName(dt), dt.TypeArgs, usedTypeArgs, targetTypeName, $"Default({typeDescArgsStr})", wr);
       // create methods
       // TODO:  Need to revisit this. Java cannot reference generic types in a static context, so this wont work.
       // (Yes, it can: public static <T1, T2> Foo create_Bar(T1 arg1, T2 arg2) { ... })
@@ -2879,8 +2920,9 @@ namespace Microsoft.Dafny{
       for (var j = 0; j < i; j++) {
         typeParams.Add(new TypeParameter(Bpl.Token.NoToken, $"T{j}", TypeParameter.TPVarianceSyntax.Covariant_Permissive));
       }
+      var typeParamString = typeParams.Count == 0 ? "" : $"<{TypeParameters(typeParams)}>";
       var initializer = string.Format("Default({0})", Util.Comma(", ", i, j => $"_td_T{j}"));
-      EmitTypeMethod($"Tuple{i}", typeParams, typeParams, initializer, wr);
+      EmitTypeMethod(null, $"Tuple{i}", typeParams, typeParams, $"Tuple{i}{typeParamString}", initializer, wr);
 
       // public static Tuple4<T0, T1, T2, T3> Default(dafny.Type<T0> _td_T0, dafny.Type<T1> _td_T1, dafny.Type<T2> _td_T2, dafny.Type<T3> _td_T3) {
       //   return new Tuple4<>(_td_T0.defaultValue(), _td_T1.defaultValue(), _td_T2.defaultValue(), _td_T3.defaultValue());
@@ -3113,7 +3155,7 @@ namespace Microsoft.Dafny{
       var staticMemberWriter = w.NewBlock("");
       var ctorBodyWriter = staticMemberWriter.NewBlock($"public _Companion_{name}()");
 
-      EmitTypeMethod(name, typeParameters, typeParameters, initializer: null, staticMemberWriter);
+      EmitTypeMethod(null, name, typeParameters, typeParameters, name + typeParamString, initializer: null, staticMemberWriter);
       return new ClassWriter(this, instanceMemberWriter, ctorBodyWriter, staticMemberWriter);
     }
 
