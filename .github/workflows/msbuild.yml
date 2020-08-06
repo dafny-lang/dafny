@@ -28,6 +28,7 @@ jobs:
     - name: Checkout Dafny
       uses: actions/checkout@v2
       with:
+        submodules: recursive
         path: dafny
     - name: Get Z3
       if: matrix.os != 'windows-latest'
