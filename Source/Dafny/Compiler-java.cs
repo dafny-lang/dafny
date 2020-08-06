@@ -740,6 +740,9 @@ namespace Microsoft.Dafny{
         return qualification;
       }
       var cl = udt.ResolvedClass;
+      if (cl is NonNullTypeDecl nntd) {
+        cl = nntd.Class;
+      }
       if (cl == null) {
         return IdProtect(udt.CompileName);
       } else if (cl is TupleTypeDecl tupleDecl) {
@@ -2370,18 +2373,19 @@ namespace Microsoft.Dafny{
         return $"{TypeClass}.BOOLEAN";
       } else if (type is CharType) {
         return $"{TypeClass}.CHAR";
-      } else if (type is IntType || type is BigOrdinalType) {
+      } else if (type is IntType) {
+        return $"{TypeClass}.BIG_INTEGER";
+      } else if (type is BigOrdinalType) {
         return $"{TypeClass}.BIG_INTEGER";
       } else if (type is RealType) {
         return $"{TypeClass}.BIG_RATIONAL";
-      } else if (AsNativeType(type) != null) {
-        return GetNativeTypeDescriptor(AsNativeType(type));
-      } else if (type is BitvectorType bvt) {
-        // already checked if it has a native type
-        return $"{TypeClass}.BIG_INTEGER";
-      } else if (type.AsNewtype != null) {
-        // already checked if it has a native type
-        return TypeDescriptor(type.AsNewtype.BaseType, wr, tok);
+      } else if (type is BitvectorType) {
+        var t = (BitvectorType)type;
+        if (t.NativeType != null) {
+          return GetNativeTypeDescriptor(AsNativeType(type));
+        } else {
+          return $"{TypeClass}.BIG_INTEGER";
+        }
       } else if (type.IsObjectQ) {
         return $"{TypeClass}.OBJECT";
       } else if (type.IsArrayType) {
