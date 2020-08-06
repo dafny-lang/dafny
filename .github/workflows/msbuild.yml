@@ -28,6 +28,7 @@ jobs:
     - name: Checkout Dafny
       uses: actions/checkout@v2
       with:
+        submodules: recursive
         path: dafny
     - name: Nuget Restore Boogie
       run: nuget restore dafny/Source/boogie/Boogie.sln
