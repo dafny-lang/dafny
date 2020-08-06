@@ -1435,6 +1435,11 @@ namespace Microsoft.Dafny
           dependencies.AddEdge(decl, d);
           var subbindings = bindings.SubBindings(d.Name);
           ProcessDependencies(d, subbindings ?? bindings, dependencies);
+          if (!m.IsAbstract && d is ModuleFacadeDecl && ((ModuleFacadeDecl) d).Root != null) {
+            reporter.Error(MessageSource.Resolver, d.tok, 
+              "The abstract import named {0} (using :) may only occur within an abstract module declaration",
+              d.Name);
+          }
         }
       }
     }
