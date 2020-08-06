@@ -63,6 +63,7 @@ method Main() {
   m := m[null2' := 17];
   print m[null2], "\n";  // 17
   More();
+  Arrows();
 }
 
 datatype ThisOrThat<A,B> = This(A) | Or | That(B)
@@ -83,3 +84,16 @@ method More() {
   var p: (pos, OddByte, OddNat, bv7, bv2009, ThisOrThat<bool, real>, OrThat<bv5>); // (1, 3, 9, 0, 0, ThisOrThat.Or, ThisOrThat.Or)
   print p, "\n";
 }
+
+method Arrows() {
+  var f: int -> pos;
+  var g: int --> pos;
+  var h: int ~> pos;
+
+  DoNothing(f);
+  DoNothing(g);
+  DoNothing(h);
+  print f(2), "\n";  // 1
+}
+
+method DoNothing(F: int ~> pos) { }
