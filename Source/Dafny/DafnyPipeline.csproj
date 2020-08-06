@@ -131,13 +131,13 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="BoogieBasetypes">
-      <HintPath>..\..\..\boogie\Binaries\BoogieBasetypes.dll</HintPath>
+      <HintPath>..\boogie\Binaries\BoogieBasetypes.dll</HintPath>
     </Reference>
     <Reference Include="BoogieCore">
-      <HintPath>..\..\..\boogie\Binaries\BoogieCore.dll</HintPath>
+      <HintPath>..\boogie\Binaries\BoogieCore.dll</HintPath>
     </Reference>
     <Reference Include="BoogieParserHelper">
-      <HintPath>..\..\..\boogie\Binaries\BoogieParserHelper.dll</HintPath>
+      <HintPath>..\boogie\Binaries\BoogieParserHelper.dll</HintPath>
     </Reference>
     <PackageReference Include="Mono.Cecil" Version="0.11.2" />
     <Reference Include="System" />

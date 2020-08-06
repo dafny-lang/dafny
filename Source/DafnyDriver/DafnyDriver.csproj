@@ -129,26 +129,26 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="BoogieAbsInt">
-      <HintPath>..\..\..\boogie\Binaries\BoogieAbsInt.dll</HintPath>
+      <HintPath>..\boogie\Binaries\BoogieAbsInt.dll</HintPath>
     </Reference>
     <Reference Include="BoogieConcurrency">
-      <HintPath>..\..\..\boogie\Binaries\BoogieConcurrency.dll</HintPath>
+      <HintPath>..\boogie\Binaries\BoogieConcurrency.dll</HintPath>
     </Reference>
     <Reference Include="BoogieCore">
-      <HintPath>..\..\..\boogie\Binaries\BoogieCore.dll</HintPath>
+      <HintPath>..\boogie\Binaries\BoogieCore.dll</HintPath>
     </Reference>
     <Reference Include="BoogieExecutionEngine">
-      <HintPath>..\..\..\boogie\Binaries\BoogieExecutionEngine.dll</HintPath>
+      <HintPath>..\boogie\Binaries\BoogieExecutionEngine.dll</HintPath>
     </Reference>
     <Reference Include="BoogieParserHelper">
-      <HintPath>..\..\..\boogie\Binaries\BoogieParserHelper.dll</HintPath>
+      <HintPath>..\boogie\Binaries\BoogieParserHelper.dll</HintPath>
     </Reference>
     <Reference Include="Provers.SMTLib">
-      <HintPath>..\..\..\boogie\Binaries\Provers.SMTLib.dll</HintPath>
+      <HintPath>..\boogie\Binaries\Provers.SMTLib.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="BoogieVCGeneration">
-      <HintPath>..\..\..\boogie\Binaries\BoogieVCGeneration.dll</HintPath>
+      <HintPath>..\boogie\Binaries\BoogieVCGeneration.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>

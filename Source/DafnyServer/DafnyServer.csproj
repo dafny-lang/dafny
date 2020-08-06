@@ -112,25 +112,25 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="BoogieCore">
-      <HintPath>..\..\..\boogie\Binaries\BoogieCore.dll</HintPath>
+      <HintPath>..\boogie\Binaries\BoogieCore.dll</HintPath>
     </Reference>
     <Reference Include="BoogieExecutionEngine">
-      <HintPath>..\..\..\boogie\Binaries\BoogieExecutionEngine.dll</HintPath>
+      <HintPath>..\boogie\Binaries\BoogieExecutionEngine.dll</HintPath>
     </Reference>
     <Reference Include="BoogieGraph">
-		<HintPath>..\..\..\boogie\Binaries\BoogieGraph.dll</HintPath>
+		<HintPath>..\boogie\Binaries\BoogieGraph.dll</HintPath>
 	</Reference>
     <Reference Include="BoogieParserHelper">
-      <HintPath>..\..\..\boogie\Binaries\BoogieParserHelper.dll</HintPath>
+      <HintPath>..\boogie\Binaries\BoogieParserHelper.dll</HintPath>
     </Reference>
     <Reference Include="Provers.SMTLib">
-      <HintPath>..\..\..\boogie\Binaries\Provers.SMTLib.dll</HintPath>
+      <HintPath>..\boogie\Binaries\Provers.SMTLib.dll</HintPath>
     </Reference>
     <Reference Include="BoogieModelViewer">
-      <HintPath>..\..\..\boogie\Binaries\BoogieModelViewer.dll</HintPath>
+      <HintPath>..\boogie\Binaries\BoogieModelViewer.dll</HintPath>
     </Reference>
     <Reference Include="BoogieModel">
-      <HintPath>..\..\..\boogie\Binaries\BoogieModel.dll</HintPath>
+      <HintPath>..\boogie\Binaries\BoogieModel.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />

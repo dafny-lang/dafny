@@ -69,10 +69,10 @@
       <HintPath>..\..\Binaries\DafnyPipeline.dll</HintPath>
     </Reference>
     <Reference Include="BoogieModel">
-      <HintPath>..\..\..\boogie\Binaries\BoogieModel.dll</HintPath>
+      <HintPath>..\boogie\Binaries\BoogieModel.dll</HintPath>
     </Reference>
     <Reference Include="BoogieModelViewer">
-      <HintPath>..\..\..\boogie\Binaries\BoogieModelViewer.dll</HintPath>
+      <HintPath>..\boogie\Binaries\BoogieModelViewer.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>
