@@ -193,7 +193,7 @@
     </BootstrapperPackage>
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\boogie\Source\BaseTypes\Basetypes.csproj">
+    <ProjectReference Include="..\boogie\Source\Basetypes\Basetypes.csproj">
       <Project>{43dfad18-3e35-4558-9be2-caff6b5ba8a0}</Project>
       <Name>Basetypes</Name>
     </ProjectReference>
