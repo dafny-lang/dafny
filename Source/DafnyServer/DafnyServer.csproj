@@ -111,9 +111,6 @@
     <CodeContractsAnalysisWarningLevel>0</CodeContractsAnalysisWarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="Provers.SMTLib">
-      <HintPath>..\boogie\Binaries\Provers.SMTLib.dll</HintPath>
-    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Runtime.Serialization" />
@@ -159,6 +156,10 @@
     <ProjectReference Include="..\boogie\Source\ParserHelper\ParserHelper.csproj">
       <Project>{fcd3ac7f-9dfd-46c8-ab1e-09f0b0f16dc5}</Project>
       <Name>ParserHelper</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\boogie\Source\Provers\SMTLib\SMTLib.csproj">
+      <Project>{9b163aa3-36bc-4afb-88ab-79bc9e97e401}</Project>
+      <Name>SMTLib</Name>
     </ProjectReference>
     <ProjectReference Include="..\Dafny\DafnyPipeline.csproj">
       <Project>{fe44674a-1633-4917-99f4-57635e6fa740}</Project>

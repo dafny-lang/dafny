@@ -36,6 +36,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Model", "boogie\Source\Mode
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ModelViewer", "boogie\Source\ModelViewer\ModelViewer.csproj", "{A678C6EB-B329-46A9-BBFC-7585F01ACD7C}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SMTLib", "boogie\Source\Provers\SMTLib\SMTLib.csproj", "{9B163AA3-36BC-4AFB-88AB-79BC9E97E401}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Checked|.NET = Checked|.NET
@@ -380,6 +382,30 @@ Global
 		{A678C6EB-B329-46A9-BBFC-7585F01ACD7C}.Release|Mixed Platforms.Build.0 = Release|Any CPU
 		{A678C6EB-B329-46A9-BBFC-7585F01ACD7C}.Release|x86.ActiveCfg = Release|Any CPU
 		{A678C6EB-B329-46A9-BBFC-7585F01ACD7C}.Release|x86.Build.0 = Release|Any CPU
+		{9B163AA3-36BC-4AFB-88AB-79BC9E97E401}.Checked|.NET.ActiveCfg = Checked|Any CPU
+		{9B163AA3-36BC-4AFB-88AB-79BC9E97E401}.Checked|.NET.Build.0 = Checked|Any CPU
+		{9B163AA3-36BC-4AFB-88AB-79BC9E97E401}.Checked|Any CPU.ActiveCfg = Checked|Any CPU
+		{9B163AA3-36BC-4AFB-88AB-79BC9E97E401}.Checked|Any CPU.Build.0 = Checked|Any CPU
+		{9B163AA3-36BC-4AFB-88AB-79BC9E97E401}.Checked|Mixed Platforms.ActiveCfg = Checked|Any CPU
+		{9B163AA3-36BC-4AFB-88AB-79BC9E97E401}.Checked|Mixed Platforms.Build.0 = Checked|Any CPU
+		{9B163AA3-36BC-4AFB-88AB-79BC9E97E401}.Checked|x86.ActiveCfg = Checked|Any CPU
+		{9B163AA3-36BC-4AFB-88AB-79BC9E97E401}.Checked|x86.Build.0 = Checked|Any CPU
+		{9B163AA3-36BC-4AFB-88AB-79BC9E97E401}.Debug|.NET.ActiveCfg = Debug|Any CPU
+		{9B163AA3-36BC-4AFB-88AB-79BC9E97E401}.Debug|.NET.Build.0 = Debug|Any CPU
+		{9B163AA3-36BC-4AFB-88AB-79BC9E97E401}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9B163AA3-36BC-4AFB-88AB-79BC9E97E401}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9B163AA3-36BC-4AFB-88AB-79BC9E97E401}.Debug|Mixed Platforms.ActiveCfg = Debug|Any CPU
+		{9B163AA3-36BC-4AFB-88AB-79BC9E97E401}.Debug|Mixed Platforms.Build.0 = Debug|Any CPU
+		{9B163AA3-36BC-4AFB-88AB-79BC9E97E401}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{9B163AA3-36BC-4AFB-88AB-79BC9E97E401}.Debug|x86.Build.0 = Debug|Any CPU
+		{9B163AA3-36BC-4AFB-88AB-79BC9E97E401}.Release|.NET.ActiveCfg = Release|Any CPU
+		{9B163AA3-36BC-4AFB-88AB-79BC9E97E401}.Release|.NET.Build.0 = Release|Any CPU
+		{9B163AA3-36BC-4AFB-88AB-79BC9E97E401}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9B163AA3-36BC-4AFB-88AB-79BC9E97E401}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9B163AA3-36BC-4AFB-88AB-79BC9E97E401}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
+		{9B163AA3-36BC-4AFB-88AB-79BC9E97E401}.Release|Mixed Platforms.Build.0 = Release|Any CPU
+		{9B163AA3-36BC-4AFB-88AB-79BC9E97E401}.Release|x86.ActiveCfg = Release|Any CPU
+		{9B163AA3-36BC-4AFB-88AB-79BC9E97E401}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -395,6 +421,7 @@ Global
 		{69A2B0B8-BCAC-4101-AE7A-556FCC58C06E} = {16BB54D2-90A4-4664-9346-9A7A744169D7}
 		{ACEF88D5-DADD-46DA-BAE1-2144D63F4C83} = {16BB54D2-90A4-4664-9346-9A7A744169D7}
 		{A678C6EB-B329-46A9-BBFC-7585F01ACD7C} = {16BB54D2-90A4-4664-9346-9A7A744169D7}
+		{9B163AA3-36BC-4AFB-88AB-79BC9E97E401} = {16BB54D2-90A4-4664-9346-9A7A744169D7}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {280F572B-D27A-4613-998F-00B6FFE01187}
