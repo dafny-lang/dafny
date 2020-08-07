@@ -15,4 +15,11 @@
       <PackageReference Include="System.Collections.Immutable" Version="1.7.0" />
     </ItemGroup>
 
+    <ItemGroup>
+      <ProjectReference Include="..\boogie\Source\Basetypes\Basetypes-NetCore.csproj" />
+      <ProjectReference Include="..\boogie\Source\Core\Core-NetCore.csproj" />
+      <ProjectReference Include="..\boogie\Source\ParserHelper\ParserHelper-NetCore.csproj" />
+      <ProjectReference Include="..\DafnyRuntime\DafnyRuntime-NetCore.csproj" />
+    </ItemGroup>
+
 </Project>

@@ -205,10 +205,6 @@
       <Project>{fcd3ac7f-9dfd-46c8-ab1e-09f0b0f16dc5}</Project>
       <Name>ParserHelper</Name>
     </ProjectReference>
-    <ProjectReference Include="..\DafnyRuntime\DafnyRuntime.csproj">
-      <Project>{3e2944e9-3e1d-4e03-a881-fb04a7a6ed67}</Project>
-      <Name>DafnyRuntime</Name>
-    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it.

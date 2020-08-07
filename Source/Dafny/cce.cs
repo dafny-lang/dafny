@@ -64,8 +64,6 @@ public class PeerAttribute : System.Attribute {
 }
 public class RepAttribute : System.Attribute {
 }
-public class CapturedAttribute : System.Attribute {
-}
 public class NotDelayedAttribute : System.Attribute {
 }
 public class NoDefaultContractAttribute : System.Attribute {

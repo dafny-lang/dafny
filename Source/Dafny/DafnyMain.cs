@@ -10,7 +10,6 @@ using System.Diagnostics.Contracts;
 using Bpl = Microsoft.Boogie;
 using System.Reflection;
 using DafnyAssembly;
-using Mono.Cecil;
 
 namespace Microsoft.Dafny {
 
@@ -42,7 +41,7 @@ namespace Microsoft.Dafny {
         SourceFileName = filePath;
       } else if (extension == ".dll") {
         isPrecompiled = true;
-        var asm = AssemblyDefinition.ReadAssembly(filePath);
+        var asm = Assembly.LoadFile(filePath);
         string sourceText = null;
         foreach (var adata in asm.CustomAttributes) {
           if (adata.Constructor.DeclaringType.Name == "DafnySourceAttribute") {
