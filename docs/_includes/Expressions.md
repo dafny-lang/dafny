@@ -1121,7 +1121,7 @@ Expressions =
 The ``Expressions`` non-terminal represents a list of
 one or more expressions separated by a comma.
 
-## Compile-time constants
+## Compile-Time Constants {#sec-compile-time-constants}
 
 In certain situations in Dafny it is helpful to know what the value of a 
 constant is during program analysis, before verification or execution takes
