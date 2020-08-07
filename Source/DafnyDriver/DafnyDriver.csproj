@@ -13,6 +13,7 @@
     <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|netcoreapp3.1|AnyCPU'">
       <OutputPath>C:\Users\Steen\source\repos\dafny\Binaries\</OutputPath>
       <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+      <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
     </PropertyGroup>
     <ItemGroup>
       <ProjectReference Include="..\boogie\Source\AbsInt\AbsInt-NetCore.csproj" />
