@@ -71,11 +71,13 @@ namespace Microsoft.Dafny {
           ServerUtils.checkArgs(command, 0);
           var payload = ReadPayload();
           VerificationTask.ReadTask(payload).Run();
-        } else if (verb == "counterExample") {
-          ServerUtils.checkArgs(command, 0);
-          var payload = ReadPayload();
-          VerificationTask.ReadTask(payload).CounterExample();
-        } else if (verb == "dotgraph") {
+        } 
+        //else if (verb == "counterExample") {
+        //  ServerUtils.checkArgs(command, 0);
+        //  var payload = ReadPayload();
+        //  VerificationTask.ReadTask(payload).CounterExample();
+        //} 
+        else if (verb == "dotgraph") {
           ServerUtils.checkArgs(command, 0);
           var payload = ReadPayload();
           VerificationTask.ReadTask(payload).DotGraph();
