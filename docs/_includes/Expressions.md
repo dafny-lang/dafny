@@ -1151,6 +1151,7 @@ In Dafny, the following expressions are compile-time constants[^CTC], recursivel
 - bit operations: `& | ^` (int)
 - comparison operations: `< <= > >=` (int and real), `== !=` (int, real, bool, string)
 - symbolic values that are declared `const` and have an explicit initialization value that is a compile-time constant
+- parenthesized expressions
 
 [^CTC]: This set of operations that are constant-folded may be enlarged in 
 future versions of Dafny.
