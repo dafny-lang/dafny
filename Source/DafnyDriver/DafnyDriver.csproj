@@ -1,8 +1,8 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
         <OutputType>Exe</OutputType>
-        <AssemblyName>DafnyDriver</AssemblyName>
+        <AssemblyName>Dafny</AssemblyName>
         <TargetFrameworks>netcoreapp3.1</TargetFrameworks>
         <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
         <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
@@ -10,6 +10,10 @@
         <PackageVersion>1.1.0</PackageVersion>
     </PropertyGroup>
 
+    <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|netcoreapp3.1|AnyCPU'">
+      <OutputPath>C:\Users\Steen\source\repos\dafny\Binaries\</OutputPath>
+      <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    </PropertyGroup>
     <ItemGroup>
       <ProjectReference Include="..\boogie\Source\AbsInt\AbsInt-NetCore.csproj" />
       <ProjectReference Include="..\boogie\Source\Concurrency\Concurrency-NetCore.csproj" />
