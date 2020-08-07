@@ -34,9 +34,11 @@ jobs:
         unzip z3*.zip && rm *.zip
         cp -r z3* dafny/Binaries/z3
     - name: Enable Boogie's GitVersionTask dependency to build
-      run:
-        git checkout -b gitVersionTaskBranch # GitVersionTask does not work headless git repositories
-        git fetch --unshallow # GitVersionTask does not work with shallow git repositories
+      # GitVersionTask does not work on headless git repositories
+      # GitVersionTask does not work on shallow git repositories
+      run: |
+        git checkout -b gitVersionTaskBranch 
+        git fetch --unshallow 
       working-directory: dafny/Source/boogie
     - name: Setup dotnet
       uses: actions/setup-dotnet@v1
