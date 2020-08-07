@@ -1,0 +1,2 @@
+git-issue-276b.dfy(5,10): Error: const definition contains a cycle: B -> A
+1 resolution/type errors detected in git-issue-276b.dfy

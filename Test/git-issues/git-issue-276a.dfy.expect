@@ -1,0 +1,3 @@
+git-issue-276a.dfy(5,32): Error: Divide by zero in compiler constant expression
+git-issue-276a.dfy(6,32): Error: Mod by zero in compiler constant expression
+2 resolution/type errors detected in git-issue-276a.dfy

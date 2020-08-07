@@ -1,0 +1,15 @@
+git-issue-276.dfy(7,12): Info: newtype byte resolves as {:nativeType "byte"} (Range: 0 256)
+git-issue-276.dfy(8,12): Info: newtype b0 resolves as {:nativeType "ushort"} (Range: 0 2560)
+git-issue-276.dfy(10,12): Info: newtype b2 resolves as {:nativeType "byte"} (Range: 0 10)
+git-issue-276.dfy(11,12): Info: newtype b3 resolves as {:nativeType "byte"} (Range: 0 10)
+git-issue-276.dfy(14,19): Error: result of operation might violate newtype constraint for 'byte'
+Execution trace:
+    (0,0): anon0
+git-issue-276.dfy(18,20): Error: result of operation might violate newtype constraint for 'b2'
+Execution trace:
+    (0,0): anon0
+git-issue-276.dfy(21,20): Error: result of operation might violate newtype constraint for 'b3'
+Execution trace:
+    (0,0): anon0
+
+Dafny program verifier finished with 4 verified, 3 errors
