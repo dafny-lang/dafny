@@ -3159,8 +3159,8 @@ namespace Microsoft.Dafny {
 
     public static string IdProtect(string name) {
       switch (DafnyOptions.O.CompileTarget) {
-        //case DafnyOptions.CompilationTarget.Csharp:
-        //  return CsharpCompiler.PublicIdProtect(name);
+        case DafnyOptions.CompilationTarget.Csharp:
+          return CsharpCompiler.PublicIdProtect(name);
         case DafnyOptions.CompilationTarget.JavaScript:
           return JavaScriptCompiler.PublicIdProtect(name);
         case DafnyOptions.CompilationTarget.Go:
