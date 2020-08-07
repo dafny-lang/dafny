@@ -45,7 +45,7 @@ jobs:
       with:
         dotnet-version: '3.1.x' # SDK Version to use; x will use the latest version of the 3.1 channel
     - name: Build Dafny
-      run: dotnet build dafny/Source/Dafny.sln -r win-x64 # The windows runtime must be specified so there is a Dafny.exe for lit to consume.
+      run: dotnet publish dafny/Source/Dafny.sln -r win-x64 -f netcoreapp3.1 # The windows runtime must be specified so there is a Dafny.exe for lit to consume.
       env:
         MSBUILDSINGLELOADCONTEXT: 1 # Workaround for GitVersionTask issue: https://github.com/dotnet/sdk/issues/10878
     - uses: actions/setup-python@v1
