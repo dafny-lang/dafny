@@ -4,10 +4,8 @@
         <OutputType>Exe</OutputType>
         <AssemblyName>Dafny</AssemblyName>
         <TargetFrameworks>netcoreapp3.1</TargetFrameworks>
-        <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
         <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
-        <DefineConstants>TRACE;ISDAFNYRUNTIMELIB</DefineConstants>
-        <PackageVersion>1.1.0</PackageVersion>
+        <DefineConstants>TRACE</DefineConstants>
     </PropertyGroup>
 
     <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|netcoreapp3.1|AnyCPU'">
