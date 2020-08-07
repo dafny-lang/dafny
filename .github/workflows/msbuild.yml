@@ -36,7 +36,9 @@ jobs:
     - name: Nuget Restore Dafny
       run: nuget restore dafny/Source/Dafny.sln
     - name: Create branch for Boogie # Required for GitVersionTask to work
-      run: git checkout -b gitVersionTaskBranch
+      run: |
+        git checkout -b gitVersionTaskBranch
+        git fetch --unshallow
       working-directory: dafny/Source/boogie
     - name: Setup dotnet
       uses: actions/setup-dotnet@v1
