@@ -1,0 +1,11 @@
+git-issue-276c.dfy(7,12): Info: newtype b1 resolves as {:nativeType "byte"} (Range: 0 3)
+git-issue-276c.dfy(8,12): Info: newtype b2 resolves as {:nativeType "byte"} (Range: 0 6)
+git-issue-276c.dfy(9,12): Info: newtype b3 resolves as {:nativeType "byte"} (Range: 0 20)
+git-issue-276c.dfy(10,12): Info: newtype b4 resolves as {:nativeType "byte"} (Range: 0 10)
+git-issue-276c.dfy(11,12): Info: newtype b5 resolves as {:nativeType "byte"} (Range: 0 5)
+git-issue-276c.dfy(12,12): Info: newtype b6 resolves as {:nativeType "byte"} (Range: 0 6)
+git-issue-276c.dfy(13,12): Info: newtype b7 resolves as {:nativeType "byte"} (Range: 0 16)
+git-issue-276c.dfy(14,12): Info: newtype b8 resolves as {:nativeType "byte"} (Range: 0 6)
+git-issue-276c.dfy(15,12): Info: newtype b9 resolves as {:nativeType "byte"} (Range: 0 9)
+
+Dafny program verifier finished with 9 verified, 0 errors
