@@ -16,7 +16,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DafnyRuntime", "DafnyRuntim
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Boogie", "Boogie", "{16BB54D2-90A4-4664-9346-9A7A744169D7}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Basetypes", "boogie\Source\BaseTypes\Basetypes.csproj", "{43DFAD18-3E35-4558-9BE2-CAFF6B5BA8A0}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Basetypes", "boogie\Source\Basetypes\Basetypes.csproj", "{43DFAD18-3E35-4558-9BE2-CAFF6B5BA8A0}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Core", "boogie\Source\Core\Core.csproj", "{B230A69C-C466-4065-B9C1-84D80E76D802}"
 EndProject
