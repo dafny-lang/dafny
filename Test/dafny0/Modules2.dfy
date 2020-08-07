@@ -31,7 +31,7 @@ module Test {
   }
 }
 
-module Test2 {
+abstract module Test2 {
   import opened B : A
   method m() {
     var c := new C();   // fine, as A was opened
