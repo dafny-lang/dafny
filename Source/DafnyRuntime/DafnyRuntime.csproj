@@ -10,9 +10,19 @@
         <PackageVersion>1.1.0</PackageVersion>
     </PropertyGroup>
 
+    <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|netcoreapp3.1|AnyCPU'">
+      <OutputPath>..\..\Binaries\</OutputPath>
+    </PropertyGroup>
+
     <ItemGroup>
       <PackageReference Include="System.Runtime.Numerics" Version="4.3.0" />
       <PackageReference Include="System.Collections.Immutable" Version="1.7.0" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Compile Update="DafnyRuntime.cs">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </Compile>
     </ItemGroup>
 
 </Project>
