@@ -3186,46 +3186,29 @@ namespace Microsoft.Dafny{
     }
 
     public void CreateLambdaFunctionInterface(int i, string path) {
-      var typeArgs = "<";
-      for (int j = 0; j < i + 1; j++) {
-        typeArgs += "T" + j;
-        if (j != i) {
-          typeArgs += ", ";
-        }
-      }
-      typeArgs += ">";
+      var typeArgs = "<" + Util.Comma(i + 1, j => $"T{j}") + ">";
 
       var wr = new TargetWriter();
       wr.WriteLine("package dafny;");
       wr.WriteLine();
       wr.WriteLine("@FunctionalInterface");
-      wr.Write("public interface Function");
-      wr.Write(i);
-      wr.Write(typeArgs);
+      var functionName = $"Function{i}";
+      wr.Write($"public interface {functionName}{typeArgs}");
       var wrMembers = wr.NewBlock("");
-      wrMembers.Write("public T" + i + " apply(");
-      for (int j = 0; j < i; j++){
-        wrMembers.Write("T" + j + " t" + j);
-        if (j != i - 1)
-          wrMembers.Write(", ");
-      }
+      wrMembers.Write($"public T{i} apply(");
+      wrMembers.Write(Util.Comma(i, j => $"T{j} t{j}"));
       wrMembers.WriteLine(");");
 
       EmitSuppression(wrMembers);
-      wrMembers.Write($"public static {typeArgs} {TypeClass}<Function{i}{typeArgs}> {TypeMethodName}(");
-      for (int j = 0; j < i + 1; j++) {
-        wrMembers.Write($"{TypeClass}<T{j}> t{j}");
-        if (j != i) {
-          wrMembers.Write(", ");
-        }
-      }
+      wrMembers.Write($"public static {typeArgs} {TypeClass}<{functionName}{typeArgs}> {TypeMethodName}(");
+      wrMembers.Write(Util.Comma(i + 1, j => $"{TypeClass}<T{j}> t{j}"));
       var wrTypeBody = wrMembers.NewBigBlock(")", "");
       // XXX This seems to allow non-nullable types to have null values (since
       // arrow types are allowed as "(0)"-constrained type arguments), but it's
       // consistent with other backends.
-      wrTypeBody.Write($"return ({TypeClass}<Function{i}{typeArgs}>) ({TypeClass}<?>) {TypeClass}.reference(Function{i}.class);");
+      wrTypeBody.Write($"return ({TypeClass}<{functionName}{typeArgs}>) ({TypeClass}<?>) {TypeClass}.reference({functionName}.class);");
 
-      using (StreamWriter sw = File.CreateText(path + "/Function" + i + ".java")) {
+      using (StreamWriter sw = File.CreateText($"{path}/{functionName}.java")) {
         sw.Write(wr.ToString());
       }
     }
