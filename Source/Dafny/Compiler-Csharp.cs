@@ -2486,7 +2486,7 @@ namespace Microsoft.Dafny
       var source = callToMain == null ? targetProgramText : targetProgramText + callToMain;
       compilation = compilation.AddSyntaxTrees(CSharpSyntaxTree.ParseText(source));
       foreach (var sourceFile in otherSourceFiles) {
-        compilation = compilation.AddSyntaxTrees(CSharpSyntaxTree.ParseText(sourceFile));
+        compilation = compilation.AddSyntaxTrees(CSharpSyntaxTree.ParseText(File.ReadAllText(sourceFile)));
       }
       var outputDir = Path.GetDirectoryName(dafnyProgramName);
       var outputPath = Path.Join(outputDir, Path.GetFileNameWithoutExtension(Path.GetFileName(dafnyProgramName)));
