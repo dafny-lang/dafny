@@ -731,7 +731,7 @@ namespace Microsoft.Dafny{
 
     protected string FullTypeName(UserDefinedType udt, MemberDecl member, bool useCompanionName) {
       Contract.Requires(udt != null);
-      if (udt is ArrowType) {
+      if (udt.IsBuiltinArrowType) {
         functions.Add(udt.TypeArgs.Count - 1);
         return DafnyFunctionIface(udt.TypeArgs.Count - 1);
       }
@@ -2419,8 +2419,9 @@ namespace Microsoft.Dafny{
           return TypeDescriptor(instantiatedTypeParameter, wr, tok);
         }
         return FormatTypeDescriptorVariable(type.AsTypeParameter.CompileName);
-      } else if (type is ArrowType arrowType && arrowType.Arity == 1) {
+      } else if (type.IsBuiltinArrowType && type.AsArrowType.Arity == 1) {
         // Can't go the usual route because java.util.function.Function doesn't have a _type() method
+        var arrowType = type.AsArrowType;
         return $"{TypeClass}.function({TypeDescriptor(arrowType.Args[0], wr, tok)}, {TypeDescriptor(arrowType.Result, wr, tok)})";
       } else if (type is UserDefinedType udt) {
         var s = FullTypeName(udt, null, true);
@@ -2440,7 +2441,7 @@ namespace Microsoft.Dafny{
         }
 
         List<Type> relevantTypeArgs;
-        if (type is ArrowType) {
+        if (type.IsBuiltinArrowType) {
           relevantTypeArgs = type.TypeArgs;
         } else if (cl is DatatypeDecl dt) {
           relevantTypeArgs = UsedTypeParameters(dt, udt.TypeArgs).ConvertAll(ta => ta.Actual);
