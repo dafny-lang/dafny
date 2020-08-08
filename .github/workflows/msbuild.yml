@@ -9,6 +9,8 @@ on:
 jobs:
   build:
 
+    env:
+      MSBUILDSINGLELOADCONTEXT: 1 # Workaround for GitVersionTask issue: https://github.com/dotnet/sdk/issues/10878
     runs-on: ${{ matrix.os }}
 
     strategy:
@@ -46,8 +48,6 @@ jobs:
         dotnet-version: '3.1.x' # SDK Version to use; x will use the latest version of the 3.1 channel
     - name: Build Dafny
       run: dotnet build dafny/Source/Dafny.sln
-      env:
-        MSBUILDSINGLELOADCONTEXT: 1 # Workaround for GitVersionTask issue: https://github.com/dotnet/sdk/issues/10878
     - uses: actions/setup-python@v1
     - name: Upgrade outdated pip
       run: python -m pip install --upgrade pip
