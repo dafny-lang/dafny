@@ -30,15 +30,6 @@ Then:
 - To run Dafny from the command line, simply run Dafny.exe from the
     `Binaries` directory.
 
-- To install Dafny for use inside Visual Studio 2012, double-click on
-    `DafnyLanguageService.vsix` to run the installer. You may first need
-    to uninstall the old version of the extension from within Visual
-    Studio (Tools ==\> Extensions and Updates). Then, whenever you open a
-    file with the extension .dfy in Visual Studio, the Dafny mode will
-    kick in. (If you don't intend to run Dafny from the command line, you
-    can delete the directory into which you copied the contents of
-    Dafny.zip.)
-
 - There is also a [Dafny mode for
     Emacs](https://github.com/boogie-org/boogie-friends).
 
@@ -51,16 +42,11 @@ Emacs](https://github.com/boogie-org/boogie-friends).
 **Mac using brew:** On a Mac, you can install dafny, along with its dependencies, mono and z3,  using the `brew` package manager.
 
 ## Building Dafny from Source
-The current version of the Dafny executable builds and runs with Visual Studio 2012 or later,
-but the Visual Studio extensions for Dafny currently only build with Visual Studio 2012.
-So if you intend to run Dafny from within Visual Studio (using extensions that you have
-built yourself), you must install Visual Studio 2012.
+The current version of the Dafny executable builds and runs with Visual Studio 2012 or later.
 
 First, install the following external dependencies:
 
--   Visual Studio 2012 Ultimate
-
--   [Visual Studio 2012 sdk extension](https://visualstudiogallery.msdn.microsoft.com/b2fa5b3b-25eb-4a2f-80fd-59224778ea98)
+-   Visual Studio
 
 -   [Code contract extension](https://visualstudiogallery.msdn.microsoft.com/1ec7db13-3363-46c9-851f-1ce455f66970)
 
@@ -81,7 +67,6 @@ Last, follow the conventions:
 -   Visual Studio
     -   Set "General:Tab" to "2 2"
     -   For `"C#:Formatting:NewLines` Turn everything off except the first option.
-
 
 Dafny performs its verification by translating the Dafny source into
 the Boogie intermediate verification language. So Dafny references
@@ -115,26 +100,9 @@ cd work
 git clone https://github.com/Microsoft/dafny.git
 ```
 
-Download and install the Visual Studio 2012 SDK from
-
-* <https://www.microsoft.com/en-us/download/details.aspx?id=30668>.
-
-This is needed to build the Visual Studio Extension that
-runs Dafny from within Visual Studio 2012.
-
 Build the command-line Dafny executables.
 1. Open dafny/Source/Dafny.sln in Visual Studio
 2. Click BUILD > Build Solution.
-
-Build and install the Dafny Visual Studio extensions
-
-1. Open dafny/Source/DafnyExtension.sln in Visual Studio
-2. Click BUILD > Build Solution.
-3. This builds DafnyLanguageService.vsix and DafnyMenu.vsix
-in the dafny/Binaries directory.
-4. Install these by clicking on them from Windows Explorer. When
-prompted, check installing into Visual Studio 2012, and optionally
-also for later versions of Visual Studio if you have installed them.
 
 ## Using Dafny From Visual Studio
 To test your installation, you can open Dafny test files

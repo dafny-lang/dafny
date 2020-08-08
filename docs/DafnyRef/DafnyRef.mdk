@@ -7991,15 +7991,6 @@ Then:
 - To run Dafny from the command line, simply run Dafny.exe from the
     `Binaries` directory.
 
-- To install Dafny for use inside Visual Studio 2012, double-click on
-    `DafnyLanguageService.vsix` to run the installer. You may first need
-    to uninstall the old version of the extension from within Visual
-    Studio (Tools ==\> Extensions and Updates). Then, whenever you open a
-    file with the extension .dfy in Visual Studio, the Dafny mode will
-    kick in. (If you don't intend to run Dafny from the command line, you
-    can delete the directory into which you copied the contents of
-    Dafny.zip.)
-
 - There is also a [Dafny mode for
     Emacs](https://github.com/boogie-org/boogie-friends).
 
@@ -8010,16 +8001,11 @@ You can now run Dafny from the command line by invoking the script file
 Emacs](https://github.com/boogie-org/boogie-friends).
 
 ## Building Dafny from Source
-The current version of the Dafny executable builds and runs with Visual Studio 2012 or later,
-but the Visual Studio extensions for Dafny currently only build with Visual Studio 2012.
-So if you intend to run Dafny from within Visual Studio (using extensions that you have
-built yourself), you must install Visual Studio 2012.
+The current version of the Dafny executable builds and runs with Visual Studio 2012 or later.
 
 First, install the following external dependencies:
 
--   Visual Studio 2012 Ultimate
-
--   [Visual Studio 2012 sdk extension](https://visualstudiogallery.msdn.microsoft.com/b2fa5b3b-25eb-4a2f-80fd-59224778ea98)
+-   Visual Studio
 
 -   [Code contract extension](https://visualstudiogallery.msdn.microsoft.com/1ec7db13-3363-46c9-851f-1ce455f66970)
 
@@ -8074,55 +8060,9 @@ cd work
 git clone https://github.com/Microsoft/dafny.git
 ```
 
-Download and install the Visual Studio 2012 SDK from
-
-* <https://www.microsoft.com/en-us/download/details.aspx?id=30668>.
-
-This is needed to build the Visual Studio Extension that
-runs Dafny from within Visual Studio 2012.
-
 Build the command-line Dafny executables.
 1. Open dafny\Source\Dafny.sln in Visual Studio
 2. Click BUILD > Build Solution.
-
-Build and install the Dafny Visual Studio extensions
-
-1. Open dafny/Source/DafnyExtension.sln in Visual Studio
-2. Click BUILD > Build Solution.
-3. This builds DafnyLanguageService.vsix and DafnyMenu.vsix
-in the dafny/Binaries directory.
-4. Install these by clicking on them from Windows Explorer. When
-prompted, check installing into Visual Studio 2012, and optionally
-also for later versions of Visual Studio if you have installed them.
-
-## Using Dafny From Visual Studio
-To test your installation, you can open Dafny test files
-from the dafny/Test subdirectory in Visual Studio 2012.
-You will want to use "VIEW/Error List" to ensure that
-you see any errors that Dafny detects, and
-"VIEW/Output" to see the result of any compilation.
-
-An example of a valid Dafny test is
-
-```
-dafny\Test\vstte2012\Tree.dfy
-```
-
-You can choose "Dafny/Compile" to compile the Dafny
-program to C#. Doing that for the above test
-produces `Tree.cs` and `Tree.dll` (since this test does
-not have a main program).
-
-The following file in the Dafny repository:
-
-```
-dafny\Test\dafny0\Array.dfy
-```
-
-is an example of a Dafny file with verification errors.
-The source will show red squiggles or dots where there
-are errors, and the Error List window will describe the
-errors.
 
 ## Using Dafny From the Command Line
 ### Dafny Command Line Options
