@@ -13,8 +13,9 @@ using System.CodeDom.Compiler;
 using System.Reflection;
 using System.Collections.ObjectModel;
 using Bpl = Microsoft.Boogie;
-
-
+using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis;
+using System.Collections.Immutable;
 
 namespace Microsoft.Dafny
 {
@@ -400,13 +401,13 @@ namespace Microsoft.Dafny
                     wGet.WriteLine("var d = this;");
                   }
                   var n = dtor.EnclosingCtors.Count;
-                  for (int i = 0; i < n-1; i++) {
+                  for (int i = 0; i < n - 1; i++) {
                     var ctor_i = dtor.EnclosingCtors[i];
                     Contract.Assert(arg.CompileName == dtor.CorrespondingFormals[i].CompileName);
                     wGet.WriteLine("if (d is {0}_{1}{2}) {{ return (({0}_{1}{2})d).{3}; }}", dt.CompileName, ctor_i.CompileName, DtT_TypeArgs, IdName(arg));
                   }
-                  Contract.Assert(arg.CompileName == dtor.CorrespondingFormals[n-1].CompileName);
-                  wGet.WriteLine("return (({0}_{1}{2})d).{3}; ", dt.CompileName, dtor.EnclosingCtors[n-1].CompileName, DtT_TypeArgs, IdName(arg));
+                  Contract.Assert(arg.CompileName == dtor.CorrespondingFormals[n - 1].CompileName);
+                  wGet.WriteLine("return (({0}_{1}{2})d).{3}; ", dt.CompileName, dtor.EnclosingCtors[n - 1].CompileName, DtT_TypeArgs, IdName(arg));
                 }
               }
             }
@@ -680,7 +681,8 @@ namespace Microsoft.Dafny
       base.GetNativeInfo(sel, out name, out literalSuffix, out needsCastAfterArithmetic);
     }
 
-    protected class ClassWriter : IClassWriter {
+    protected class ClassWriter : IClassWriter
+    {
       public readonly CsharpCompiler Compiler;
       public readonly BlockTargetWriter InstanceMemberWriter;
       public readonly BlockTargetWriter StaticMemberWriter;
@@ -1392,7 +1394,7 @@ namespace Microsoft.Dafny
       } else if (i.IsOne) {
         wr.Write("BigInteger.One");
       } else if (int.MinValue <= i && i <= int.MaxValue) {
-          wr.Write("new BigInteger({0})", i);
+        wr.Write("new BigInteger({0})", i);
       } else if (long.MinValue <= i && i <= long.MaxValue) {
         wr.Write("new BigInteger({0}L)", i);
       } else if (ulong.MinValue <= i && i <= ulong.MaxValue) {
@@ -1462,7 +1464,7 @@ namespace Microsoft.Dafny
       EmitShift(e0, e1, isRotateLeft ? "<<" : ">>", isRotateLeft, nativeType, true, wr, inLetExprBody, tr);
       wr.Write(")");
 
-      wr.Write (" | ");
+      wr.Write(" | ");
 
       wr.Write("(");
       EmitShift(e0, e1, isRotateLeft ? ">>" : "<<", !isRotateLeft, nativeType, false, wr, inLetExprBody, tr);
@@ -1519,7 +1521,7 @@ namespace Microsoft.Dafny
     }
 
     protected override void EmitTupleSelect(string prefix, int i, TargetWriter wr) {
-      wr.Write("{0}.Item{1}", prefix, i+1);
+      wr.Write("{0}.Item{1}", prefix, i + 1);
     }
 
     protected override string IdProtect(string name) {
@@ -2013,7 +2015,7 @@ namespace Microsoft.Dafny
       wr.Write(", {0} => ", bvName);
       var w = wr.Fork();
       wr.Write(")");
-      int y = ((System.Func<int,int>)((u) => u + 5))(6);
+      int y = ((System.Func<int, int>)((u) => u + 5))(6);
       return w;
     }
 
@@ -2404,7 +2406,7 @@ namespace Microsoft.Dafny
     {
       public string libPath;
       public List<string> immutableDllFileNames;
-      public CompilerResults cr;
+      public Assembly CompiledAssembly;
     }
 
     public override bool CompileTargetProgram(string dafnyProgramName, string targetProgramText, string/*?*/ callToMain, string/*?*/ targetFilename, ReadOnlyCollection<string> otherFileNames,
@@ -2417,18 +2419,29 @@ namespace Microsoft.Dafny
         return false;
       }
 
-      var provider = CodeDomProvider.CreateProvider("CSharp", new Dictionary<string, string> { { "CompilerVersion", "v4.0" } });
-      var cp = new System.CodeDom.Compiler.CompilerParameters();
-      cp.GenerateExecutable = hasMain;
-      if (DafnyOptions.O.RunAfterCompile) {
-        cp.GenerateInMemory = true;
-      } else if (hasMain) {
-        cp.OutputAssembly = Path.ChangeExtension(dafnyProgramName, "exe");
-        cp.GenerateInMemory = false;
-      } else {
-        cp.OutputAssembly = Path.ChangeExtension(dafnyProgramName, "dll");
-        cp.GenerateInMemory = false;
+      var compilation = CSharpCompilation.Create("a")
+        .WithOptions(new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary))
+        .AddReferences(
+            MetadataReference.CreateFromFile(typeof(object).GetTypeInfo().Assembly.Location));
+
+      if (hasMain) {
+        throw new NotSupportedException("hasMain cannot be true");
       }
+
+      var inMemory = DafnyOptions.O.RunAfterCompile;
+      //var provider = CodeDomProvider.CreateProvider("CSharp", new Dictionary<string, string> { { "CompilerVersion", "v4.0" } });
+      //var cp = new System.CodeDom.Compiler.CompilerParameters();
+      //cp.GenerateExecutable = hasMain;
+      //if (DafnyOptions.O.RunAfterCompile) {
+      //  cp.GenerateInMemory = true;
+      //} else if (hasMain) {
+      //  cp.OutputAssembly = Path.ChangeExtension(dafnyProgramName, "exe");
+      //  cp.GenerateInMemory = false;
+      //} else {
+      //  cp.OutputAssembly = Path.ChangeExtension(dafnyProgramName, "dll");
+      //  cp.GenerateInMemory = false;
+      //}
+
       // The nowarn numbers are the following:
       // * CS0164 complains about unreferenced labels
       // * CS0219/CS0168 is about unused variables
@@ -2438,15 +2451,17 @@ namespace Microsoft.Dafny
       //   dynamically-generated types like Tuple0 that aren't part of the runtime, which are
       //   often in pre-compiled Dafny DLLs)
       // * CS0183 is about unneeded casts
-      cp.CompilerOptions = "/debug /nowarn:0164 /nowarn:0219 /nowarn:1717 /nowarn:0162 /nowarn:0168 /nowarn:0436 /nowarn:0183";
-      cp.ReferencedAssemblies.Add("System.Numerics.dll");
-      cp.ReferencedAssemblies.Add("System.Core.dll");
-      cp.ReferencedAssemblies.Add("System.dll");
+      
+      //cp.CompilerOptions = "/debug /nowarn:0164 /nowarn:0219 /nowarn:1717 /nowarn:0162 /nowarn:0168 /nowarn:0436 /nowarn:0183";
+
+      //cp.ReferencedAssemblies.Add("System.Numerics.dll");
+      //cp.ReferencedAssemblies.Add("System.Core.dll");
+      //cp.ReferencedAssemblies.Add("System.dll");
 
       var crx = new CSharpCompilationResult();
       crx.libPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + Path.DirectorySeparatorChar;
       if (DafnyOptions.O.UseRuntimeLib) {
-        cp.ReferencedAssemblies.Add(crx.libPath + "DafnyRuntime.dll");
+        compilation.AddReferences(MetadataReference.CreateFromFile(crx.libPath + "DafnyRuntime.dll"));
       }
 
       // DLL requirements differ based on whether we are using mono
@@ -2458,16 +2473,17 @@ namespace Microsoft.Dafny
       var platform = (int)System.Environment.OSVersion.Platform;
       var isUnix = platform == 4 || platform == 6 || platform == 128;
       if (!isUnix) {
-          crx.immutableDllFileNames.Add("netstandard.dll");
+        crx.immutableDllFileNames.Add("netstandard.dll");
       }
 
       if (DafnyOptions.O.Optimize) {
-        cp.CompilerOptions += " /optimize";
+        compilation.WithOptions(compilation.Options.WithOptimizationLevel(OptimizationLevel.Release));
+        // cp.CompilerOptions += " /optimize";
       }
-      cp.CompilerOptions += " /lib:" + crx.libPath;
-      cp.CompilerOptions += " /nowarn:1718"; // Comparison to the same variable
+      //cp.CompilerOptions += " /lib:" + crx.libPath;
+      //cp.CompilerOptions += " /nowarn:1718"; // Comparison to the same variable
       foreach (var filename in crx.immutableDllFileNames) {
-        cp.ReferencedAssemblies.Add(filename);
+        compilation.AddReferences(MetadataReference.CreateFromFile(filename));
       }
 
       int numOtherSourceFiles = 0;
@@ -2478,7 +2494,7 @@ namespace Microsoft.Dafny
           if (extension == ".cs") {
             numOtherSourceFiles++;
           } else if (extension == ".dll") {
-            cp.ReferencedAssemblies.Add(Path.Combine(Path.GetDirectoryName(file), Path.GetFileName(file)));
+            compilation.AddReferences(MetadataReference.CreateFromFile(Path.Combine(Path.GetDirectoryName(file), Path.GetFileName(file))));
           }
         }
       }
@@ -2500,39 +2516,38 @@ namespace Microsoft.Dafny
             }
           }
         }
-        crx.cr = provider.CompileAssemblyFromFile(cp, sourceFiles);
+        foreach(var sourceFile in sourceFiles) {
+          compilation.AddSyntaxTrees(CSharpSyntaxTree.ParseText(sourceFile));
+        }
+        //crx.cr = provider.CompileAssemblyFromFile(cp, sourceFiles);
       } else {
         var p = callToMain == null ? targetProgramText : targetProgramText + callToMain;
-        crx.cr = provider.CompileAssemblyFromSource(cp, p);
+        compilation.AddSyntaxTrees(CSharpSyntaxTree.ParseText(p));
+        //crx.cr = provider.CompileAssemblyFromSource(cp, p);
       }
+      var outputDir = Path.GetDirectoryName(dafnyProgramName);
+      var outputPath = Path.Join(outputDir, Path.GetFileName(dafnyProgramName));
+      if (inMemory) {
+        throw new NotSupportedException();
+        //outputWriter.WriteLine("Errors compiling program");
+      }
+      var emitResult = compilation.Emit(outputPath);
+      
+      var errors = emitResult.Diagnostics.Where(d => d.Severity == DiagnosticSeverity.Error).ToList();
 
-      if (crx.cr.Errors.Count != 0) {
-        if (cp.GenerateInMemory) {
-          outputWriter.WriteLine("Errors compiling program");
-        } else {
-          var assemblyName = Path.GetFileName(crx.cr.PathToAssembly);
-          outputWriter.WriteLine("Errors compiling program into {0}", assemblyName);
-        }
-        foreach (var ce in crx.cr.Errors) {
+      var assemblyName = Path.GetFileName(outputPath);
+      if (emitResult.Success) {
+        crx.CompiledAssembly = Assembly.Load(outputPath);
+      } else {
+        outputWriter.WriteLine("Errors compiling program into {0}", assemblyName);
+        foreach (var ce in errors) {
           outputWriter.WriteLine(ce.ToString());
           outputWriter.WriteLine();
         }
         return false;
       }
-
-      if (!cp.GenerateInMemory) {
-        var assemblyName = Path.GetFileName(crx.cr.PathToAssembly);
-        if (DafnyOptions.O.CompileVerbose) {
-          outputWriter.WriteLine("Compiled assembly into {0}", assemblyName);
-        }
-        var outputDir = Path.GetDirectoryName(dafnyProgramName);
-        if (string.IsNullOrWhiteSpace(outputDir)) {
-          outputDir = ".";
-        }
-        foreach (var filename in crx.immutableDllFileNames) {
-          var destPath = outputDir + Path.DirectorySeparatorChar + filename;
-          File.Copy(crx.libPath + filename, destPath, true);
-        }
+      if (DafnyOptions.O.CompileVerbose) {
+        outputWriter.WriteLine("Compiled assembly into {0}", assemblyName);
       }
 
       compilationResult = crx;
@@ -2543,7 +2558,6 @@ namespace Microsoft.Dafny
       object compilationResult, TextWriter outputWriter) {
 
       var crx = (CSharpCompilationResult)compilationResult;
-      var cr = crx.cr;
 
       // Dynamically load the DLL files the target program depends on
       foreach (var otherFileName in otherFileNames) {
@@ -2552,8 +2566,7 @@ namespace Microsoft.Dafny
         }
       }
 
-      var assemblyName = Path.GetFileName(cr.PathToAssembly);
-      var entry = cr.CompiledAssembly.EntryPoint;
+      var entry = crx.CompiledAssembly.EntryPoint;
       try {
         object[] parameters = entry.GetParameters().Length == 0 ? new object[] { } : new object[] { new string[0] };
         entry.Invoke(null, parameters);
@@ -2568,8 +2581,7 @@ namespace Microsoft.Dafny
       return false;
     }
 
-    private void AddTestCheckerIfNeeded(string name, Declaration decl, TargetWriter wr)
-    {
+    private void AddTestCheckerIfNeeded(string name, Declaration decl, TargetWriter wr) {
       if (Attributes.Contains(decl.Attributes, "test")) {
         // TODO: The resolver needs to check the assumptions about the declaration
         // (i.e. must be public and static, must return a "result type", etc.)
@@ -2577,7 +2589,7 @@ namespace Microsoft.Dafny
         if (decl is Function) {
           hasReturnValue = true;
         } else if (decl is Method) {
-          var method = (Method) decl;
+          var method = (Method)decl;
           hasReturnValue = method.Outs.Count > 1;
         }
 
