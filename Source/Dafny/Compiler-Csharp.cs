@@ -2453,17 +2453,12 @@ namespace Microsoft.Dafny
         compilation.AddReferences(MetadataReference.CreateFromFile(crx.libPath + "DafnyRuntime.dll"));
       }
 
+      
       // DLL requirements differ based on whether we are using mono
       crx.immutableDllFileNames = new List<string>() {
-        "System.Collections.Immutable.dll",
-        "System.Runtime.dll"
+        typeof(IImmutableList<>).Assembly.Location,
+        //"System.Runtime.dll"
       };
-      // http://www.mono-project.com/docs/faq/technical/
-      var platform = (int)System.Environment.OSVersion.Platform;
-      var isUnix = platform == 4 || platform == 6 || platform == 128;
-      if (!isUnix) {
-        crx.immutableDllFileNames.Add("netstandard.dll");
-      }
 
       if (DafnyOptions.O.Optimize) {
         compilation.WithOptions(compilation.Options.WithOptimizationLevel(OptimizationLevel.Release));
@@ -2517,26 +2512,34 @@ namespace Microsoft.Dafny
       var outputDir = Path.GetDirectoryName(dafnyProgramName);
       var outputPath = Path.Join(outputDir, Path.GetFileNameWithoutExtension(Path.GetFileName(dafnyProgramName)));
       if (inMemory) {
-        throw new NotSupportedException();
-        //outputWriter.WriteLine("Errors compiling program");
-      }
-      var emitResult = compilation.Emit(outputPath);
-      
-      var errors = emitResult.Diagnostics.Where(d => d.Severity == DiagnosticSeverity.Error).ToList();
-
-      var assemblyName = Path.GetFileName(outputPath);
-      if (emitResult.Success) {
-        crx.CompiledAssembly = Assembly.Load(outputPath);
-      } else {
-        outputWriter.WriteLine("Errors compiling program into {0}", assemblyName);
-        foreach (var ce in errors) {
-          outputWriter.WriteLine(ce.ToString());
-          outputWriter.WriteLine();
+        using (var stream = new MemoryStream()) {
+          var emitResult = compilation.Emit(stream);
+          if (emitResult.Success) {
+            crx.CompiledAssembly = Assembly.Load(stream.GetBuffer());
+          } else {
+            outputWriter.WriteLine("Errors compiling program");
+          }
         }
-        return false;
-      }
-      if (DafnyOptions.O.CompileVerbose) {
-        outputWriter.WriteLine("Compiled assembly into {0}", assemblyName);
+       } 
+      else {
+        var emitResult = compilation.Emit(outputPath);
+
+        var errors = emitResult.Diagnostics.Where(d => d.Severity == DiagnosticSeverity.Error).ToList();
+
+        var assemblyName = Path.GetFileName(outputPath);
+        if (emitResult.Success) {
+          crx.CompiledAssembly = Assembly.Load(outputPath);
+        } else {
+          outputWriter.WriteLine("Errors compiling program into {0}", assemblyName);
+          foreach (var ce in errors) {
+            outputWriter.WriteLine(ce.ToString());
+            outputWriter.WriteLine();
+          }
+          return false;
+        }
+        if (DafnyOptions.O.CompileVerbose) {
+          outputWriter.WriteLine("Compiled assembly into {0}", assemblyName);
+        }
       }
 
       compilationResult = crx;
