@@ -935,6 +935,9 @@ namespace Microsoft.Dafny{
               typeDescriptorExpr = $"{TypeClass}.booleanWithDefault({w ?? "false"})";
             } else if (enclosingType.IsCharType) {
               typeDescriptorExpr = $"{TypeClass}.charWithDefault({w ?? "'D'"})";
+            } else if (initializer == null) {
+              var d = DefaultValue(enclosingType, wr, enclosingType.tok);
+              typeDescriptorExpr = $"{TypeClass}.referenceWithInitializer({StripTypeParameters(targetTypeName)}.class, () -> {d})";
             }
             break;
         }
