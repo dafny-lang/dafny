@@ -2419,28 +2419,17 @@ namespace Microsoft.Dafny
         return false;
       }
 
-      var compilation = CSharpCompilation.Create("a")
+      var compilation = CSharpCompilation.Create(dafnyProgramName)
         .WithOptions(new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary))
         .AddReferences(
             MetadataReference.CreateFromFile(typeof(object).GetTypeInfo().Assembly.Location));
 
-      if (hasMain) {
-        throw new NotSupportedException("hasMain cannot be true");
-      }
-
       var inMemory = DafnyOptions.O.RunAfterCompile;
-      //var provider = CodeDomProvider.CreateProvider("CSharp", new Dictionary<string, string> { { "CompilerVersion", "v4.0" } });
-      //var cp = new System.CodeDom.Compiler.CompilerParameters();
-      //cp.GenerateExecutable = hasMain;
-      //if (DafnyOptions.O.RunAfterCompile) {
-      //  cp.GenerateInMemory = true;
-      //} else if (hasMain) {
-      //  cp.OutputAssembly = Path.ChangeExtension(dafnyProgramName, "exe");
-      //  cp.GenerateInMemory = false;
-      //} else {
-      //  cp.OutputAssembly = Path.ChangeExtension(dafnyProgramName, "dll");
-      //  cp.GenerateInMemory = false;
-      //}
+      if (hasMain) {
+        compilation.WithOptions(compilation.Options.WithOutputKind(OutputKind.ConsoleApplication));
+      } else {
+        compilation.WithOptions(compilation.Options.WithOutputKind(OutputKind.DynamicallyLinkedLibrary));
+      }
 
       // The nowarn numbers are the following:
       // * CS0164 complains about unreferenced labels
@@ -2451,7 +2440,7 @@ namespace Microsoft.Dafny
       //   dynamically-generated types like Tuple0 that aren't part of the runtime, which are
       //   often in pre-compiled Dafny DLLs)
       // * CS0183 is about unneeded casts
-      
+
       //cp.CompilerOptions = "/debug /nowarn:0164 /nowarn:0219 /nowarn:1717 /nowarn:0162 /nowarn:0168 /nowarn:0436 /nowarn:0183";
 
       //cp.ReferencedAssemblies.Add("System.Numerics.dll");
@@ -2526,7 +2515,7 @@ namespace Microsoft.Dafny
         //crx.cr = provider.CompileAssemblyFromSource(cp, p);
       }
       var outputDir = Path.GetDirectoryName(dafnyProgramName);
-      var outputPath = Path.Join(outputDir, Path.GetFileName(dafnyProgramName));
+      var outputPath = Path.Join(outputDir, Path.GetFileNameWithoutExtension(Path.GetFileName(dafnyProgramName)));
       if (inMemory) {
         throw new NotSupportedException();
         //outputWriter.WriteLine("Errors compiling program");
