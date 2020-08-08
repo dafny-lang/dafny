@@ -2420,16 +2420,16 @@ namespace Microsoft.Dafny
       }
 
       // .NET Core does enable C# compilation on all platforms out of the box. You need to use Roslyn libraries. Context: https://github.com/dotnet/runtime/issues/18768
-      var compilation = CSharpCompilation.Create(dafnyProgramName)
+      var compilation = CSharpCompilation.Create(Path.GetFileNameWithoutExtension(dafnyProgramName))
         .WithOptions(new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary))
         .AddReferences(
             MetadataReference.CreateFromFile(typeof(object).GetTypeInfo().Assembly.Location));
 
       var inMemory = DafnyOptions.O.RunAfterCompile;
-      if (hasMain) {
-        compilation.WithOptions(compilation.Options.WithOutputKind(OutputKind.ConsoleApplication));
+      if (hasMain || callToMain != null) {
+        compilation = compilation.WithOptions(compilation.Options.WithOutputKind(OutputKind.ConsoleApplication));
       } else {
-        compilation.WithOptions(compilation.Options.WithOutputKind(OutputKind.DynamicallyLinkedLibrary));
+        compilation = compilation.WithOptions(compilation.Options.WithOutputKind(OutputKind.DynamicallyLinkedLibrary));
       }
 
       // The nowarn numbers are the following:
@@ -2444,14 +2444,15 @@ namespace Microsoft.Dafny
 
       //cp.CompilerOptions = "/debug /nowarn:0164 /nowarn:0219 /nowarn:1717 /nowarn:0162 /nowarn:0168 /nowarn:0436 /nowarn:0183";
 
-      compilation.AddReferences(MetadataReference.CreateFromFile(typeof(BigInteger).Assembly.Location)); // Add System.Numerics.dll
-      //cp.ReferencedAssemblies.Add("System.Core.dll");
-      //cp.ReferencedAssemblies.Add("System.dll");
+      compilation = compilation.AddReferences(MetadataReference.CreateFromFile(Assembly.Load("System.Runtime.Numerics").Location));
+      compilation = compilation.AddReferences(MetadataReference.CreateFromFile(Assembly.Load("System.Runtime").Location));
+      compilation = compilation.AddReferences(MetadataReference.CreateFromFile(Assembly.Load("System.Collections").Location));
+      compilation = compilation.AddReferences(MetadataReference.CreateFromFile(Assembly.Load("System.Console").Location));
 
       var crx = new CSharpCompilationResult();
       crx.libPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
       if (DafnyOptions.O.UseRuntimeLib) {
-        compilation.AddReferences(MetadataReference.CreateFromFile(Path.Join(crx.libPath + "DafnyRuntime.dll")));
+        compilation = compilation.AddReferences(MetadataReference.CreateFromFile(Path.Join(crx.libPath + "DafnyRuntime.dll")));
       }
       
       // DLL requirements differ based on whether we are using mono
@@ -2461,13 +2462,12 @@ namespace Microsoft.Dafny
       };
 
       if (DafnyOptions.O.Optimize) {
-        compilation.WithOptions(compilation.Options.WithOptimizationLevel(OptimizationLevel.Release));
-        // cp.CompilerOptions += " /optimize";
+        compilation = compilation.WithOptions(compilation.Options.WithOptimizationLevel(OptimizationLevel.Release));
       }
       //cp.CompilerOptions += " /lib:" + crx.libPath;
       //cp.CompilerOptions += " /nowarn:1718"; // Comparison to the same variable
       foreach (var filename in crx.immutableDllFileNames) {
-        compilation.AddReferences(MetadataReference.CreateFromFile(filename));
+        compilation = compilation.AddReferences(MetadataReference.CreateFromFile(filename));
       }
 
       var otherSourceFiles = new List<string>();
@@ -2483,16 +2483,15 @@ namespace Microsoft.Dafny
             return false;
           }
         } else if (extension == ".dll") {
-          compilation.AddReferences(MetadataReference.CreateFromFile(Path.Combine(Path.GetDirectoryName(file), Path.GetFileName(file))));
+          compilation = compilation.AddReferences(MetadataReference.CreateFromFile(Path.Combine(Path.GetDirectoryName(file), Path.GetFileName(file))));
         }
       }
 
       var source = callToMain == null ? targetProgramText : targetProgramText + callToMain;
-      compilation.AddSyntaxTrees(CSharpSyntaxTree.ParseText(source));
+      compilation = compilation.AddSyntaxTrees(CSharpSyntaxTree.ParseText(source));
       foreach (var sourceFile in otherSourceFiles) {
-        compilation.AddSyntaxTrees(CSharpSyntaxTree.ParseText(sourceFile));
+        compilation = compilation.AddSyntaxTrees(CSharpSyntaxTree.ParseText(sourceFile));
       }
-
       var outputDir = Path.GetDirectoryName(dafnyProgramName);
       var outputPath = Path.Join(outputDir, Path.GetFileNameWithoutExtension(Path.GetFileName(dafnyProgramName)));
       if (inMemory) {
@@ -2501,12 +2500,13 @@ namespace Microsoft.Dafny
         if (emitResult.Success) {
           crx.CompiledAssembly = Assembly.Load(stream.GetBuffer());
         } else {
-          outputWriter.WriteLine("Errors compiling program");
+          outputWriter.WriteLine("Errors compiling program:");
           var errors = emitResult.Diagnostics.Where(d => d.Severity == DiagnosticSeverity.Error).ToList();
           foreach (var ce in errors) {
             outputWriter.WriteLine(ce.ToString());
             outputWriter.WriteLine();
           }
+          return false;
         }
       } 
       else {
@@ -2549,6 +2549,9 @@ namespace Microsoft.Dafny
         throw new Exception("Cannot call run target program on a compilation that failed");
       }
       var entry = crx.CompiledAssembly.EntryPoint;
+      if (entry == null) {
+        throw new Exception("Cannot call run target on a compilation whose assembly has no entry.");
+      }
       try {
         object[] parameters = entry.GetParameters().Length == 0 ? new object[] { } : new object[] { new string[0] };
         entry.Invoke(null, parameters);
