@@ -2419,6 +2419,7 @@ namespace Microsoft.Dafny
         return false;
       }
 
+      // .NET Core does enable C# compilation on all platforms out of the box. You need to use Roslyn libraries. Context: https://github.com/dotnet/runtime/issues/18768
       var compilation = CSharpCompilation.Create(dafnyProgramName)
         .WithOptions(new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary))
         .AddReferences(
@@ -2443,16 +2444,15 @@ namespace Microsoft.Dafny
 
       //cp.CompilerOptions = "/debug /nowarn:0164 /nowarn:0219 /nowarn:1717 /nowarn:0162 /nowarn:0168 /nowarn:0436 /nowarn:0183";
 
-      //cp.ReferencedAssemblies.Add("System.Numerics.dll");
+      compilation.AddReferences(MetadataReference.CreateFromFile(typeof(BigInteger).Assembly.Location)); // Add System.Numerics.dll
       //cp.ReferencedAssemblies.Add("System.Core.dll");
       //cp.ReferencedAssemblies.Add("System.dll");
 
       var crx = new CSharpCompilationResult();
-      crx.libPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) + Path.DirectorySeparatorChar;
+      crx.libPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
       if (DafnyOptions.O.UseRuntimeLib) {
-        compilation.AddReferences(MetadataReference.CreateFromFile(crx.libPath + "DafnyRuntime.dll"));
+        compilation.AddReferences(MetadataReference.CreateFromFile(Path.Join(crx.libPath + "DafnyRuntime.dll")));
       }
-
       
       // DLL requirements differ based on whether we are using mono
       crx.immutableDllFileNames = new List<string>() {
@@ -2470,75 +2470,62 @@ namespace Microsoft.Dafny
         compilation.AddReferences(MetadataReference.CreateFromFile(filename));
       }
 
-      int numOtherSourceFiles = 0;
-      if (otherFileNames.Count > 0) {
-        foreach (var file in otherFileNames) {
-          string extension = Path.GetExtension(file);
-          if (extension != null) { extension = extension.ToLower(); }
-          if (extension == ".cs") {
-            numOtherSourceFiles++;
-          } else if (extension == ".dll") {
-            compilation.AddReferences(MetadataReference.CreateFromFile(Path.Combine(Path.GetDirectoryName(file), Path.GetFileName(file))));
+      var otherSourceFiles = new List<string>();
+      foreach (var file in otherFileNames) {
+        string extension = Path.GetExtension(file);
+        if (extension != null) { extension = extension.ToLower(); }
+        if (extension == ".cs") {
+          var normalizedPath = Path.Combine(Path.GetDirectoryName(file), Path.GetFileName(file));
+          if (File.Exists(normalizedPath)) {
+            otherSourceFiles.Add(normalizedPath);
+          } else {
+            outputWriter.WriteLine("Errors compiling program: Could not find {0}", file);
+            return false;
           }
+        } else if (extension == ".dll") {
+          compilation.AddReferences(MetadataReference.CreateFromFile(Path.Combine(Path.GetDirectoryName(file), Path.GetFileName(file))));
         }
       }
 
-      if (numOtherSourceFiles > 0) {
-        string[] sourceFiles = new string[numOtherSourceFiles + 1];
-        sourceFiles[0] = targetFilename;
-        int index = 1;
-        foreach (var file in otherFileNames) {
-          string extension = Path.GetExtension(file);
-          if (extension != null) { extension = extension.ToLower(); }
-          if (extension == ".cs") {
-            var normalizedPath = Path.Combine(Path.GetDirectoryName(file), Path.GetFileName(file));
-            if (File.Exists(normalizedPath)) {
-              sourceFiles[index++] = normalizedPath;
-            } else {
-              outputWriter.WriteLine("Errors compiling program: Could not find {0}", file);
-              return false;
-            }
-          }
-        }
-        foreach(var sourceFile in sourceFiles) {
-          compilation.AddSyntaxTrees(CSharpSyntaxTree.ParseText(sourceFile));
-        }
-        //crx.cr = provider.CompileAssemblyFromFile(cp, sourceFiles);
-      } else {
-        var p = callToMain == null ? targetProgramText : targetProgramText + callToMain;
-        compilation.AddSyntaxTrees(CSharpSyntaxTree.ParseText(p));
-        //crx.cr = provider.CompileAssemblyFromSource(cp, p);
+      var source = callToMain == null ? targetProgramText : targetProgramText + callToMain;
+      compilation.AddSyntaxTrees(CSharpSyntaxTree.ParseText(source));
+      foreach (var sourceFile in otherSourceFiles) {
+        compilation.AddSyntaxTrees(CSharpSyntaxTree.ParseText(sourceFile));
       }
+
       var outputDir = Path.GetDirectoryName(dafnyProgramName);
       var outputPath = Path.Join(outputDir, Path.GetFileNameWithoutExtension(Path.GetFileName(dafnyProgramName)));
       if (inMemory) {
-        using (var stream = new MemoryStream()) {
-          var emitResult = compilation.Emit(stream);
-          if (emitResult.Success) {
-            crx.CompiledAssembly = Assembly.Load(stream.GetBuffer());
-          } else {
-            outputWriter.WriteLine("Errors compiling program");
+        using var stream = new MemoryStream();
+        var emitResult = compilation.Emit(stream);
+        if (emitResult.Success) {
+          crx.CompiledAssembly = Assembly.Load(stream.GetBuffer());
+        } else {
+          outputWriter.WriteLine("Errors compiling program");
+          var errors = emitResult.Diagnostics.Where(d => d.Severity == DiagnosticSeverity.Error).ToList();
+          foreach (var ce in errors) {
+            outputWriter.WriteLine(ce.ToString());
+            outputWriter.WriteLine();
           }
         }
-       } 
+      } 
       else {
         var emitResult = compilation.Emit(outputPath);
-
-        var errors = emitResult.Diagnostics.Where(d => d.Severity == DiagnosticSeverity.Error).ToList();
 
         var assemblyName = Path.GetFileName(outputPath);
         if (emitResult.Success) {
           crx.CompiledAssembly = Assembly.Load(outputPath);
+          if (DafnyOptions.O.CompileVerbose) {
+            outputWriter.WriteLine("Compiled assembly into {0}", assemblyName);
+          }
         } else {
           outputWriter.WriteLine("Errors compiling program into {0}", assemblyName);
+          var errors = emitResult.Diagnostics.Where(d => d.Severity == DiagnosticSeverity.Error).ToList();
           foreach (var ce in errors) {
             outputWriter.WriteLine(ce.ToString());
             outputWriter.WriteLine();
           }
           return false;
-        }
-        if (DafnyOptions.O.CompileVerbose) {
-          outputWriter.WriteLine("Compiled assembly into {0}", assemblyName);
         }
       }
 
@@ -2558,6 +2545,9 @@ namespace Microsoft.Dafny
         }
       }
 
+      if (crx.CompiledAssembly == null) {
+        throw new Exception("Cannot call run target program on a compilation that failed");
+      }
       var entry = crx.CompiledAssembly.EntryPoint;
       try {
         object[] parameters = entry.GetParameters().Length == 0 ? new object[] { } : new object[] { new string[0] };
