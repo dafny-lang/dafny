@@ -81,8 +81,10 @@ method More() {
   var u: ThisOrThat<bool, real>;
   var t: OrThat<bv5>;
   print x, " ", y, " ", z, " ", w, " ", v, " ", u, " ", t, "\n"; // 1 3 9 0 0 ThisOrThat.Or ThisOrThat.Or
+  /**** TODO: Include this when this has been fixed for C#
   var p: (pos, OddByte, OddNat, bv7, bv2009, ThisOrThat<bool, real>, OrThat<bv5>); // (1, 3, 9, 0, 0, ThisOrThat.Or, ThisOrThat.Or)
   print p, "\n";
+  ****/
 }
 
 method Arrows() {

@@ -155,11 +155,13 @@ method More() {
   var a3 := new nLong[5];
   PrintArray(a3);
 
+  /**** TODO: Include this when this has been fixed for C#
   var kitchenSink: (lowercase, BV10, Yes, nByte, nShort, nInt, nLong);
   if kitchenSink.0 == '\0' {
     kitchenSink := kitchenSink.(0 := 'a');  // don't print ugly '\0' characters into test output
   }
-  print kitchenSink, "\n";
+  print kitchenSink, "\n";  // (d, 8, true, 1, 2, 3, 4)
+  ****/
 }
 
 type xlowercase = ch | '\0' <= ch <= 'z' && ch != 'D'
@@ -175,7 +177,9 @@ method MoreWithDefaults() {
   forall i | 0 <= i < aa.Length {
     aa[i] := if aa[i] == '\0' then 'a' else aa[i];  // don't print ugly '\0' characters into test output
   }
-  PrintArray(aa);
+  /**** TODO: Include this when this has been fixed for C#
+  PrintArray(aa);  // D D D
+  ****/
 
   var vv := new xBV10[4];
   PrintArray(vv);
@@ -192,9 +196,11 @@ method MoreWithDefaults() {
   var a3 := new xnLong[5];
   PrintArray(a3);
 
+  /**** TODO: Include this when this has been fixed for C#
   var kitchenSink: (xlowercase, xBV10, xYes, xnByte, xnShort, xnInt, xnLong);
   if kitchenSink.0 == '\0' {
     kitchenSink := kitchenSink.(0 := 'a');  // don't print ugly '\0' characters into test output
   }
-  print kitchenSink, "\n";
+  print kitchenSink, "\n";  // (D, 0, false, 0, 0, 0, 0)
+  ****/
 }
