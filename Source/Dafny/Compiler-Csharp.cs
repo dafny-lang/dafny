@@ -2405,7 +2405,6 @@ namespace Microsoft.Dafny
     private class CSharpCompilationResult
     {
       public string libPath;
-      public List<string> immutableDllFileNames;
       public Assembly CompiledAssembly;
     }
 
@@ -2444,21 +2443,18 @@ namespace Microsoft.Dafny
 
       //cp.CompilerOptions = "/debug /nowarn:0164 /nowarn:0219 /nowarn:1717 /nowarn:0162 /nowarn:0168 /nowarn:0436 /nowarn:0183";
 
-      compilation = compilation.AddReferences(MetadataReference.CreateFromFile(Assembly.Load("System.Runtime.Numerics").Location));
-      compilation = compilation.AddReferences(MetadataReference.CreateFromFile(Assembly.Load("System.Runtime").Location));
-      compilation = compilation.AddReferences(MetadataReference.CreateFromFile(Assembly.Load("System.Collections").Location));
-      compilation = compilation.AddReferences(MetadataReference.CreateFromFile(Assembly.Load("System.Console").Location));
-
       var crx = new CSharpCompilationResult();
       crx.libPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
       if (DafnyOptions.O.UseRuntimeLib) {
         compilation = compilation.AddReferences(MetadataReference.CreateFromFile(Path.Join(crx.libPath + "DafnyRuntime.dll")));
       }
       
-      // DLL requirements differ based on whether we are using mono
-      crx.immutableDllFileNames = new List<string>() {
-        typeof(IImmutableList<>).Assembly.Location,
-        //"System.Runtime.dll"
+      var standardLibraries = new List<string>() {
+        "System.Runtime",
+        "System.Runtime.Numerics",
+        "System.Collections",
+        "System.Collections.Immutable",
+        "System.Console"
       };
 
       if (DafnyOptions.O.Optimize) {
@@ -2466,8 +2462,8 @@ namespace Microsoft.Dafny
       }
       //cp.CompilerOptions += " /lib:" + crx.libPath;
       //cp.CompilerOptions += " /nowarn:1718"; // Comparison to the same variable
-      foreach (var filename in crx.immutableDllFileNames) {
-        compilation = compilation.AddReferences(MetadataReference.CreateFromFile(filename));
+      foreach (var filename in standardLibraries) {
+        compilation = compilation.AddReferences(MetadataReference.CreateFromFile(Assembly.Load(filename).Location));
       }
 
       var otherSourceFiles = new List<string>();
