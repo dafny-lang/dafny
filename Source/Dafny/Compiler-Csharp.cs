@@ -2424,6 +2424,7 @@ namespace Microsoft.Dafny
         .AddReferences(
             MetadataReference.CreateFromFile(typeof(object).GetTypeInfo().Assembly.Location));
 
+      // TOOD use runAfterCompile
       var inMemory = DafnyOptions.O.RunAfterCompile;
       if (hasMain || callToMain != null) {
         compilation = compilation.WithOptions(compilation.Options.WithOutputKind(OutputKind.ConsoleApplication));
@@ -2490,7 +2491,7 @@ namespace Microsoft.Dafny
         compilation = compilation.AddSyntaxTrees(CSharpSyntaxTree.ParseText(File.ReadAllText(sourceFile)));
       }
       var outputDir = Path.GetDirectoryName(dafnyProgramName);
-      var outputPath = Path.Join(outputDir, Path.GetFileNameWithoutExtension(Path.GetFileName(dafnyProgramName)));
+      var outputPath = Path.Join(outputDir, Path.GetFileNameWithoutExtension(Path.GetFileName(dafnyProgramName)) + ".dll");
       if (inMemory) {
         using var stream = new MemoryStream();
         var emitResult = compilation.Emit(stream);
@@ -2509,14 +2510,13 @@ namespace Microsoft.Dafny
       else {
         var emitResult = compilation.Emit(outputPath);
 
-        var assemblyName = Path.GetFileName(outputPath);
         if (emitResult.Success) {
-          crx.CompiledAssembly = Assembly.Load(outputPath);
+          crx.CompiledAssembly = Assembly.LoadFile(outputPath);
           if (DafnyOptions.O.CompileVerbose) {
-            outputWriter.WriteLine("Compiled assembly into {0}", assemblyName);
+            outputWriter.WriteLine("Compiled assembly into {0}", compilation.AssemblyName);
           }
         } else {
-          outputWriter.WriteLine("Errors compiling program into {0}", assemblyName);
+          outputWriter.WriteLine("Errors compiling program into {0}", compilation.AssemblyName);
           var errors = emitResult.Diagnostics.Where(d => d.Severity == DiagnosticSeverity.Error).ToList();
           foreach (var ce in errors) {
             outputWriter.WriteLine(ce.ToString());
