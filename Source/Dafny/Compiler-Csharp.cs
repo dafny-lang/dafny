@@ -2449,7 +2449,7 @@ namespace Microsoft.Dafny
         compilation = compilation.AddReferences(MetadataReference.CreateFromFile(Path.Join(crx.libPath + "DafnyRuntime.dll")));
       }
 
-      compilation = compilation.AddReferences(MetadataReference.CreateFromFile(typeof(object).Assembly.Location)); // Add mscorlib
+      compilation = compilation.AddReferences(MetadataReference.CreateFromFile(Assembly.Load("mscorlib").Location));
       var standardLibraries = new List<string>() {
         "System.Runtime",
         "System.Runtime.Numerics",
