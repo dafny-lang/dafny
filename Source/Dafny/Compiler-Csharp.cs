@@ -2424,8 +2424,7 @@ namespace Microsoft.Dafny
         .AddReferences(
             MetadataReference.CreateFromFile(typeof(object).GetTypeInfo().Assembly.Location));
 
-      // TOOD use runAfterCompile
-      var inMemory = DafnyOptions.O.RunAfterCompile;
+      var inMemory = runAfterCompile;
       if (hasMain || callToMain != null) {
         compilation = compilation.WithOptions(compilation.Options.WithOutputKind(OutputKind.ConsoleApplication));
       } else {
