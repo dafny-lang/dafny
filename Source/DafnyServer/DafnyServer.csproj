@@ -9,6 +9,11 @@
         <PackageVersion>1.1.0</PackageVersion>
     </PropertyGroup>
 
+  <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|netcoreapp3.1|AnyCPU'">
+    <OutputPath>..\..\Binaries\</OutputPath>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
+  </PropertyGroup>
     <ItemGroup>
       <ProjectReference Include="..\boogie\Source\Core\Core-NetCore.csproj" />
       <ProjectReference Include="..\boogie\Source\ExecutionEngine\ExecutionEngine-NetCore.csproj" />
