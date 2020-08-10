@@ -9,13 +9,11 @@ using System.Linq;
 using System.Numerics;
 using System.IO;
 using System.Diagnostics.Contracts;
-using System.CodeDom.Compiler;
 using System.Reflection;
 using System.Collections.ObjectModel;
 using Bpl = Microsoft.Boogie;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis;
-using System.Collections.Immutable;
 
 namespace Microsoft.Dafny
 {
@@ -2413,35 +2411,16 @@ namespace Microsoft.Dafny
 
       compilationResult = null;
 
-      if (!CodeDomProvider.IsDefinedLanguage("CSharp")) {
-        outputWriter.WriteLine("Error: cannot compile, because there is no provider configured for input language CSharp");
-        return false;
-      }
-
-      // .NET Core does enable C# compilation on all platforms out of the box. You need to use Roslyn libraries. Context: https://github.com/dotnet/runtime/issues/18768
+      // .NET Core does not allow C# compilation on all platforms using System.CodeDom. You need to use Roslyn libraries. Context: https://github.com/dotnet/runtime/issues/18768
       var compilation = CSharpCompilation.Create(Path.GetFileNameWithoutExtension(dafnyProgramName))
         .WithOptions(new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary))
         .AddReferences(
-            MetadataReference.CreateFromFile(typeof(object).GetTypeInfo().Assembly.Location));
+            MetadataReference.CreateFromFile(typeof(object).GetTypeInfo().Assembly.Location),
+            MetadataReference.CreateFromFile(Assembly.Load("mscorlib").Location));
 
       var inMemory = runAfterCompile;
-      if (hasMain || callToMain != null) {
-        compilation = compilation.WithOptions(compilation.Options.WithOutputKind(OutputKind.ConsoleApplication));
-      } else {
-        compilation = compilation.WithOptions(compilation.Options.WithOutputKind(OutputKind.DynamicallyLinkedLibrary));
-      }
-
-      // The nowarn numbers are the following:
-      // * CS0164 complains about unreferenced labels
-      // * CS0219/CS0168 is about unused variables
-      // * CS1717 is about assignments of a variable to itself
-      // * CS0162 is about unreachable code
-      // * CS0436 is about types in source files that conflict with imported types (caused by
-      //   dynamically-generated types like Tuple0 that aren't part of the runtime, which are
-      //   often in pre-compiled Dafny DLLs)
-      // * CS0183 is about unneeded casts
-
-      //cp.CompilerOptions = "/debug /nowarn:0164 /nowarn:0219 /nowarn:1717 /nowarn:0162 /nowarn:0168 /nowarn:0436 /nowarn:0183";
+      var consoleApplication = hasMain || callToMain != null;
+      compilation = compilation.WithOptions(compilation.Options.WithOutputKind(consoleApplication ? OutputKind.ConsoleApplication : OutputKind.DynamicallyLinkedLibrary));
 
       var crx = new CSharpCompilationResult();
       crx.libPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
@@ -2449,7 +2428,6 @@ namespace Microsoft.Dafny
         compilation = compilation.AddReferences(MetadataReference.CreateFromFile(Path.Join(crx.libPath + "DafnyRuntime.dll")));
       }
 
-      compilation = compilation.AddReferences(MetadataReference.CreateFromFile(Assembly.Load("mscorlib").Location));
       var standardLibraries = new List<string>() {
         "System.Runtime",
         "System.Runtime.Numerics",
@@ -2457,14 +2435,11 @@ namespace Microsoft.Dafny
         "System.Collections.Immutable",
         "System.Console"
       };
+      compilation = compilation.AddReferences(standardLibraries.Select(fileName => MetadataReference.CreateFromFile(Assembly.Load(fileName).Location)));
 
       if (DafnyOptions.O.Optimize) {
-        compilation = compilation.WithOptions(compilation.Options.WithOptimizationLevel(OptimizationLevel.Release));
-      }
-      //cp.CompilerOptions += " /lib:" + crx.libPath;
-      //cp.CompilerOptions += " /nowarn:1718"; // Comparison to the same variable
-      foreach (var filename in standardLibraries) {
-        compilation = compilation.AddReferences(MetadataReference.CreateFromFile(Assembly.Load(filename).Location));
+        compilation = compilation.WithOptions(compilation.Options.WithOptimizationLevel(
+          DafnyOptions.O.Optimize ? OptimizationLevel.Release : OptimizationLevel.Debug));
       }
 
       var otherSourceFiles = new List<string>();
