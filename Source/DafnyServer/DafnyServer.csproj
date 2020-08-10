@@ -5,7 +5,7 @@
         <AssemblyName>DafnyServer</AssemblyName>
         <TargetFramework>netcoreapp3.1</TargetFramework>
         <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
-        <DefineConstants>TRACE;ISDAFNYRUNTIMELIB</DefineConstants>
+        <DefineConstants>TRACE</DefineConstants>
         <PackageVersion>1.1.0</PackageVersion>
     </PropertyGroup>
 

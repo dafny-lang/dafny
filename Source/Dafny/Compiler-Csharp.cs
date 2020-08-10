@@ -2402,7 +2402,6 @@ namespace Microsoft.Dafny
 
     private class CSharpCompilationResult
     {
-      public string libPath;
       public Assembly CompiledAssembly;
     }
 
@@ -2423,9 +2422,9 @@ namespace Microsoft.Dafny
       compilation = compilation.WithOptions(compilation.Options.WithOutputKind(consoleApplication ? OutputKind.ConsoleApplication : OutputKind.DynamicallyLinkedLibrary));
 
       var crx = new CSharpCompilationResult();
-      crx.libPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+      var libPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
       if (DafnyOptions.O.UseRuntimeLib) {
-        compilation = compilation.AddReferences(MetadataReference.CreateFromFile(Path.Join(crx.libPath + "DafnyRuntime.dll")));
+        compilation = compilation.AddReferences(MetadataReference.CreateFromFile(Path.Join(libPath,  "DafnyRuntime.dll")));
       }
 
       var standardLibraries = new List<string>() {

@@ -2,11 +2,11 @@
 
     <PropertyGroup>
         <OutputType>Library</OutputType>
-        <AssemblyName>DafnyRuntime</AssemblyName>
+        <AssemblyName>DafnyPipeline</AssemblyName>
         <TargetFrameworks>netcoreapp3.1</TargetFrameworks>
         <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
         <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
-        <DefineConstants>TRACE;ISDAFNYRUNTIMELIB</DefineConstants>
+        <DefineConstants>TRACE</DefineConstants>
         <PackageVersion>1.1.0</PackageVersion>
     </PropertyGroup>
 

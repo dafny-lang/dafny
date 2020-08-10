@@ -2,7 +2,7 @@
 
     <PropertyGroup>
         <OutputType>Library</OutputType>
-        <AssemblyName>DafnyRuntime2</AssemblyName>
+        <AssemblyName>DafnyRuntime</AssemblyName>
         <TargetFrameworks>netcoreapp3.1</TargetFrameworks>
         <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
         <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
