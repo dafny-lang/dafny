@@ -1,8 +1,0 @@
-{
-  "profiles": {
-    "DafnyDriver": {
-      "commandName": "Project",
-      "commandLineArgs": "-nologo -countVerificationErrors 0 -useBaseNameForFileName -compileVerbose 0 /compile:3 \"C:\\Users\\Steen\\source\\repos\\dafny\\Test\\exceptions\\GenericOutcomeDt.dfy\""
-    }
-  }
-}
