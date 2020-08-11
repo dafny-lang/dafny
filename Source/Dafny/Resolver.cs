@@ -1437,7 +1437,7 @@ namespace Microsoft.Dafny
           ProcessDependencies(d, subbindings ?? bindings, dependencies);
           if (!m.IsAbstract && d is ModuleFacadeDecl && ((ModuleFacadeDecl) d).Root != null) {
             reporter.Error(MessageSource.Resolver, d.tok, 
-              "The abstract import named {0} (using :) may only occur within an abstract module declaration",
+              "The abstract import named {0} (using :) may only be used in an abstract module declaration",
               d.Name);
           }
         }
