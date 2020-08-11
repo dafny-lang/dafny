@@ -43,8 +43,12 @@ Sample math B: $a \to b$ or
 
 {% include Grammar.md %}
 
+# Well-Founded Orders {#sec-well-founded-orders}
 
-# Module Refinement
+TODO: Write this section
+
+# Module Refinement {#sec-module-refinement}
+
 TODO: Write this section.
 
 {% include Attributes.md %}
