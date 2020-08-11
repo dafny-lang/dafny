@@ -26,9 +26,10 @@ LabeledStmt_ = "label" LabelName ":" Stmt
 ````
 A labeled statement is just the keyword `label` followed by an identifier
 which is the label, followed by a colon and a statement. The label may be
-referenced in a break statement to transfer control to the location after
+referenced in a break statement  that is within the labeled statement
+to transfer control to the location after
 the labeled statement; it may also be referenced in `old` expressions. 
-The label is not allowed to be the same as any enclosing
+The label is not allowed to be the same as any previous dominating
 label.
 
 ## Break Statement
@@ -57,7 +58,7 @@ is equivalent to
 ```
 {
   var n: ReadNext();
-  if (n >= 0) {
+  if 0 <= n {
     DoSomething(n);
   }
 }
@@ -499,14 +500,15 @@ For additional tutorial information see [@KoenigLeino:MOD2011] or the
 
 ### Loop Invariants
 
-`While` loops present a problem for Dafny. There is no way for Dafny to
-know in advance how many times the code will go around the loop. But
-Dafny needs to consider all paths through a program, which could include
-going around the loop any number of times. To make it possible for Dafny
-to work with loops, you need to provide loop invariants, another kind of
+Loops present a problem for specification-based reasoning. There is no way to
+know in advance how many times the code will go around the loop and
+a tool cannot reason about every one of a possibly unbounded sequence of unrollings. 
+In order to consider all paths through a program, specification-based 
+program verification tools require loop invariants, which are another kind of
 annotation.
 
-A loop invariant is an expression that holds upon entering a loop, and
+A loop invariant is an expression that holds just prior to the loop test,
+that is, upon entering a loop and
 after every execution of the loop body. It captures something that is
 invariant, i.e. does not change, about every step of the loop. Now,
 obviously we are going to want to change variables, etc. each time around
@@ -548,6 +550,9 @@ conditions that Dafny needs to verify when using a `decreases` expression:
 
 * that the expression actually gets smaller, and
 * that it is bounded.
+
+That is, the expression must strictly decrease in a well-founded ordering
+(cf. Section [Well-Founded Orders](#sec-well-founded-orders).
 
 Many times, an integral value (natural or plain integer) is the quantity
 that decreases, but other things that can be used as well. In the case of
@@ -749,8 +754,8 @@ ForallStmt = "forall"
   [ BlockStmt ]
 ````
 
-The `forall` statement executes the body in
-parallel for all quantified values in the specified range.
+The `forall` statement executes the body
+simultaneously for all quantified values in the specified range.
 There are several variant uses of the `forall`
 statement and there are a number of restrictions.
 
