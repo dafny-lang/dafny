@@ -12255,10 +12255,8 @@ namespace Microsoft.Dafny
                       }
                     }
                     if (proxyTypeArgs == null) {
-                      //proxyTypeArgs = mbr.EnclosingClass.TypeArgs.ConvertAll(t0 => SubstType(t0,typeMapping));
                       proxyTypeArgs = mbr.EnclosingClass.TypeArgs.ConvertAll(t0 => (typeMapping.ContainsKey(t0) ? typeMapping[t0] : (Type)new InferredTypeProxy()) );
                     }
-
                     var meetMapping = TypeSubstitutionMap(cl.TypeArgs, meet.TypeArgs);
                     proxyTypeArgs = proxyTypeArgs.ConvertAll(t0 => SubstType(t0,meetMapping));
                     proxyTypeArgs = proxyTypeArgs.ConvertAll(t0 => t0.AsTypeParameter == null ? t0 : (Type)new InferredTypeProxy() );
