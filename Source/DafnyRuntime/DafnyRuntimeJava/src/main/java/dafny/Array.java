@@ -117,14 +117,6 @@ public final class Array<T> implements Cloneable {
         return new Array<Character>(Type.CHAR, array);
     }
 
-    public static Array<Float> wrap(float[] array) {
-        return new Array<Float>(Type.FLOAT, array);
-    }
-
-    public static Array<Double> wrap(double[] array) {
-        return new Array<Double>(Type.DOUBLE, array);
-    }
-
     public static Object unwrap(Array<?> array) {
         return array.unwrap();
     }
@@ -156,13 +148,5 @@ public final class Array<T> implements Cloneable {
 
     public static char[] unwrapChars(Array<Character> array) {
         return (char[]) array.array;
-    }
-
-    public static float[] unwrapFloats(Array<Float> array) {
-        return (float[]) array.array;
-    }
-
-    public static double[] unwrapDoubles(Array<Double> array) {
-        return (double[]) array.array;
     }
 }

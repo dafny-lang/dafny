@@ -560,8 +560,8 @@ namespace Microsoft.Dafny{
 
     protected void DeclareField(string name, bool isStatic, bool isConst, Type type, Bpl.IToken tok, string rhs, ClassWriter cw) {
       if (isStatic){
-        var r = RemoveParams((rhs != null) ? rhs : DefaultValue(type, cw.StaticMemberWriter, tok));
-        var t = RemoveParams(TypeName(type, cw.StaticMemberWriter, tok));
+        var r = StripTypeParameters((rhs != null) ? rhs : DefaultValue(type, cw.StaticMemberWriter, tok));
+        var t = StripTypeParameters(TypeName(type, cw.StaticMemberWriter, tok));
         cw.StaticMemberWriter.WriteLine($"public static {t} {name} = {r};");
       }
       else{
@@ -571,8 +571,9 @@ namespace Microsoft.Dafny{
       }
     }
 
-    private string RemoveParams(string s){
-      return Regex.Replace(s, @"<.>", "");
+    private string StripTypeParameters(string s) {
+      Contract.Requires(s != null);
+      return Regex.Replace(s, @"<.+>", "");
     }
 
     private void EmitSuppression(TextWriter wr) {
@@ -730,7 +731,7 @@ namespace Microsoft.Dafny{
 
     protected string FullTypeName(UserDefinedType udt, MemberDecl member, bool useCompanionName) {
       Contract.Requires(udt != null);
-      if (udt is ArrowType) {
+      if (udt.IsBuiltinArrowType) {
         functions.Add(udt.TypeArgs.Count - 1);
         return DafnyFunctionIface(udt.TypeArgs.Count - 1);
       }
@@ -739,6 +740,9 @@ namespace Microsoft.Dafny{
         return qualification;
       }
       var cl = udt.ResolvedClass;
+      if (cl is NonNullTypeDecl nntd) {
+        cl = nntd.Class;
+      }
       if (cl == null) {
         return IdProtect(udt.CompileName);
       } else if (cl is TupleTypeDecl tupleDecl) {
@@ -876,14 +880,6 @@ namespace Microsoft.Dafny{
       if (typeParameters != null) {
         allTypeParameters.AddRange(TypeArgumentInstantiation.ListFromFormals(typeParameters));
       }
-      /***
-      if (superClasses != null) {
-        foreach (var s in superClasses) {
-          var traitDecl = ((UserDefinedType)s).ResolvedClass;
-          allTypeParameters.AddRange(TypeArgumentInstantiation.ListFromClass(traitDecl, s.TypeArgs));
-        }
-      }
-      ***/
       sep = "";
       foreach (var ta in allTypeParameters) {
         if (NeedsTypeDescriptor(ta.Formal)) {
@@ -898,27 +894,70 @@ namespace Microsoft.Dafny{
         }
       }
 
-      EmitTypeMethod(javaName, typeParameters, typeParameters, initializer: null, wBody);
-      return new ClassWriter(this, wBody, wCtorBody);
+      // make sure the (static fields associated with the) type method come after the Witness static field
+      var wTypeMethod = wBody;
+      var wRestOfBody = wBody.ForkSection();
+      var targetTypeName = BoxedTypeName(UserDefinedType.FromTopLevelDecl(cls.tok, cls, null), wTypeMethod, cls.tok);
+      var initializer = cls is RedirectingTypeDecl rtd && rtd.Witness != null ? $"{javaName}.Witness" : null;
+      EmitTypeMethod(cls, javaName, typeParameters, typeParameters, targetTypeName, initializer, wTypeMethod);
+      return new ClassWriter(this, wRestOfBody, wCtorBody);
     }
 
-    private void EmitTypeMethod(string typeName, List<TypeParameter> typeParams, List<TypeParameter> usedTypeParams, string/*?*/ initializer, TargetWriter wr) {
+    /// <summary>
+    /// Generate the "_type" method for a generated class.
+    /// "enclosingType" is allowed to be "null", in which case the target values are assumed to be references.
+    /// </summary>
+    private void EmitTypeMethod(TopLevelDecl/*?*/ enclosingTypeDecl, string typeName, List<TypeParameter> typeParams, List<TypeParameter> usedTypeParams, string targetTypeName, string/*?*/ initializer, TargetWriter wr) {
       var typeParamString = "";
       if (typeParams != null && typeParams.Count != 0) {
         typeParamString = $"<{TypeParameters(typeParams)}> ";
       }
 
-      var typeDescriptorCast = $"({TypeClass}<{typeName}{typeParamString}>) ({TypeClass}<?>)";
-      var typeDescriptorExpr = $"{TypeClass}.referenceWithInitializer({typeName}.class, () -> {initializer ?? "null"})";
-      if (usedTypeParams == null || usedTypeParams.Count == 0) {
-        wr.WriteLine($"private static final {TypeClass}<{typeName}> _TYPE = {typeDescriptorExpr};");
+      string typeDescriptorExpr = null;
+      if (enclosingTypeDecl != null) {
+        var enclosingType = UserDefinedType.FromTopLevelDecl(enclosingTypeDecl.tok, enclosingTypeDecl);
+        var w = (enclosingTypeDecl as RedirectingTypeDecl)?.Witness != null ? "Witness" : null;
+        switch (AsJavaNativeType(enclosingType)) {
+          case JavaNativeType.Byte:
+            typeDescriptorExpr = $"{TypeClass}.byteWithDefault({w ?? "(byte)0"})";
+            break;
+          case JavaNativeType.Short:
+            typeDescriptorExpr = $"{TypeClass}.shortWithDefault({w ?? "(short)0"})";
+            break;
+          case JavaNativeType.Int:
+            typeDescriptorExpr = $"{TypeClass}.intWithDefault({w ?? "0"})";
+            break;
+          case JavaNativeType.Long:
+            typeDescriptorExpr = $"{TypeClass}.longWithDefault({w ?? "0L"})";
+            break;
+          case null:
+            if (enclosingType.IsBoolType) {
+              typeDescriptorExpr = $"{TypeClass}.booleanWithDefault({w ?? "false"})";
+            } else if (enclosingType.IsCharType) {
+              typeDescriptorExpr = $"{TypeClass}.charWithDefault({w ?? "'D'"})";
+            } else if (initializer == null) {
+              var d = DefaultValue(enclosingType, wr, enclosingType.tok);
+              typeDescriptorExpr = $"{TypeClass}.referenceWithInitializer({StripTypeParameters(targetTypeName)}.class, () -> {d})";
+            }
+            break;
+        }
       }
-      wr.Write($"public static {typeParamString}{TypeClass}<{typeName}{typeParamString}> {TypeMethodName}(");
+      if (typeDescriptorExpr == null) {
+        // use reference type
+        typeDescriptorExpr = $"{TypeClass}.referenceWithInitializer({StripTypeParameters(targetTypeName)}.class, () -> {initializer ?? "null"})";
+      }
+
+      if (usedTypeParams == null || usedTypeParams.Count == 0) {
+        // a static context in Java does not see the enclosing type parameters
+        wr.WriteLine($"private static final {TypeClass}<{StripTypeParameters(targetTypeName)}> _TYPE = {typeDescriptorExpr};");
+      }
+      wr.Write($"public static {typeParamString}{TypeClass}<{targetTypeName}> {TypeMethodName}(");
       if (usedTypeParams != null) {
         var typeDescriptorParams = usedTypeParams.Where(tp => NeedsTypeDescriptor(tp)).ToList();
         wr.Write(Util.Comma(typeDescriptorParams, tp => $"{TypeClass}<{tp.CompileName}> {FormatTypeDescriptorVariable(tp.CompileName)}"));
       }
       var wTypeMethodBody = wr.NewBigBlock(")", "");
+      var typeDescriptorCast = $"({TypeClass}<{targetTypeName}>) ({TypeClass}<?>)";
       if (usedTypeParams == null || usedTypeParams.Count == 0) {
         wTypeMethodBody.WriteLine($"return {typeDescriptorCast} _TYPE;");
       } else {
@@ -1713,7 +1752,8 @@ namespace Microsoft.Dafny{
         }
       }
       EmitDatatypeValue(dt, defaultCtor, dt is CoDatatypeDecl, arguments, wDefault);
-      EmitTypeMethod(IdName(dt), dt.TypeArgs, usedTypeArgs, $"Default({typeDescArgsStr})", wr);
+      var targetTypeName = BoxedTypeName(UserDefinedType.FromTopLevelDecl(dt.tok, dt, null), wr, dt.tok);
+      EmitTypeMethod(dt, IdName(dt), dt.TypeArgs, usedTypeArgs, targetTypeName, $"Default({typeDescArgsStr})", wr);
       // create methods
       // TODO:  Need to revisit this. Java cannot reference generic types in a static context, so this wont work.
       // (Yes, it can: public static <T1, T2> Foo create_Bar(T1 arg1, T2 arg2) { ... })
@@ -2331,24 +2371,25 @@ namespace Microsoft.Dafny{
     }
 
     private string TypeDescriptor(Type type, TextWriter wr, Bpl.IToken tok) {
-      type = type.NormalizeExpand();
+      type = type.NormalizeExpandKeepConstraints();
       if (type is BoolType) {
         return $"{TypeClass}.BOOLEAN";
       } else if (type is CharType) {
         return $"{TypeClass}.CHAR";
-      } else if (type is IntType || type is BigOrdinalType) {
+      } else if (type is IntType) {
+        return $"{TypeClass}.BIG_INTEGER";
+      } else if (type is BigOrdinalType) {
         return $"{TypeClass}.BIG_INTEGER";
       } else if (type is RealType) {
         return $"{TypeClass}.BIG_RATIONAL";
-      } else if (AsNativeType(type) != null) {
-        return GetNativeTypeDescriptor(AsNativeType(type));
-      } else if (type is BitvectorType bvt) {
-        // already checked if it has a native type
-        return $"{TypeClass}.BIG_INTEGER";
-      } else if (type.AsNewtype != null) {
-        // already checked if it has a native type
-        return TypeDescriptor(type.AsNewtype.BaseType, wr, tok);
-      } else if (type.IsObjectQ) {
+      } else if (type is BitvectorType) {
+        var t = (BitvectorType)type;
+        if (t.NativeType != null) {
+          return GetNativeTypeDescriptor(AsNativeType(type));
+        } else {
+          return $"{TypeClass}.BIG_INTEGER";
+        }
+      } else if (type.IsObjectQ || type.IsObject) {
         return $"{TypeClass}.OBJECT";
       } else if (type.IsArrayType) {
         ArrayClassDecl at = type.AsArrayType;
@@ -2357,9 +2398,9 @@ namespace Microsoft.Dafny{
         if (at.Dims > 1) {
           arrays.Add(at.Dims);
           return $"{DafnyMultiArrayClass(at.Dims)}.<{elTypeName}>{TypeMethodName}()";
-        } else if (elType is BoolType) {
+        } else if (elType.IsBoolType) {
           return $"{TypeClass}.BOOLEAN_ARRAY";
-        } else if (elType is CharType) {
+        } else if (elType.IsCharType) {
           return $"{TypeClass}.CHAR_ARRAY";
         } else if (AsNativeType(elType) != null) {
           switch (AsJavaNativeType(elType)) {
@@ -2381,8 +2422,9 @@ namespace Microsoft.Dafny{
           return TypeDescriptor(instantiatedTypeParameter, wr, tok);
         }
         return FormatTypeDescriptorVariable(type.AsTypeParameter.CompileName);
-      } else if (type is ArrowType arrowType && arrowType.Arity == 1) {
+      } else if (type.IsBuiltinArrowType && type.AsArrowType.Arity == 1) {
         // Can't go the usual route because java.util.function.Function doesn't have a _type() method
+        var arrowType = type.AsArrowType;
         return $"{TypeClass}.function({TypeDescriptor(arrowType.Args[0], wr, tok)}, {TypeDescriptor(arrowType.Result, wr, tok)})";
       } else if (type is UserDefinedType udt) {
         var s = FullTypeName(udt, null, true);
@@ -2402,7 +2444,7 @@ namespace Microsoft.Dafny{
         }
 
         List<Type> relevantTypeArgs;
-        if (type is ArrowType) {
+        if (type.IsBuiltinArrowType) {
           relevantTypeArgs = type.TypeArgs;
         } else if (cl is DatatypeDecl dt) {
           relevantTypeArgs = UsedTypeParameters(dt, udt.TypeArgs).ConvertAll(ta => ta.Actual);
@@ -2886,8 +2928,9 @@ namespace Microsoft.Dafny{
       for (var j = 0; j < i; j++) {
         typeParams.Add(new TypeParameter(Bpl.Token.NoToken, $"T{j}", TypeParameter.TPVarianceSyntax.Covariant_Permissive));
       }
+      var typeParamString = typeParams.Count == 0 ? "" : $"<{TypeParameters(typeParams)}>";
       var initializer = string.Format("Default({0})", Util.Comma(", ", i, j => $"_td_T{j}"));
-      EmitTypeMethod($"Tuple{i}", typeParams, typeParams, initializer, wr);
+      EmitTypeMethod(null, $"Tuple{i}", typeParams, typeParams, $"Tuple{i}{typeParamString}", initializer, wr);
 
       // public static Tuple4<T0, T1, T2, T3> Default(dafny.Type<T0> _td_T0, dafny.Type<T1> _td_T1, dafny.Type<T2> _td_T2, dafny.Type<T3> _td_T3) {
       //   return new Tuple4<>(_td_T0.defaultValue(), _td_T1.defaultValue(), _td_T2.defaultValue(), _td_T3.defaultValue());
@@ -3120,7 +3163,7 @@ namespace Microsoft.Dafny{
       var staticMemberWriter = w.NewBlock("");
       var ctorBodyWriter = staticMemberWriter.NewBlock($"public _Companion_{name}()");
 
-      EmitTypeMethod(name, typeParameters, typeParameters, initializer: null, staticMemberWriter);
+      EmitTypeMethod(null, name, typeParameters, typeParameters, name + typeParamString, initializer: null, staticMemberWriter);
       return new ClassWriter(this, instanceMemberWriter, ctorBodyWriter, staticMemberWriter);
     }
 
@@ -3143,46 +3186,29 @@ namespace Microsoft.Dafny{
     }
 
     public void CreateLambdaFunctionInterface(int i, string path) {
-      var typeArgs = "<";
-      for (int j = 0; j < i + 1; j++) {
-        typeArgs += "T" + j;
-        if (j != i) {
-          typeArgs += ", ";
-        }
-      }
-      typeArgs += ">";
+      var typeArgs = "<" + Util.Comma(i + 1, j => $"T{j}") + ">";
 
       var wr = new TargetWriter();
       wr.WriteLine("package dafny;");
       wr.WriteLine();
       wr.WriteLine("@FunctionalInterface");
-      wr.Write("public interface Function");
-      wr.Write(i);
-      wr.Write(typeArgs);
+      var functionName = $"Function{i}";
+      wr.Write($"public interface {functionName}{typeArgs}");
       var wrMembers = wr.NewBlock("");
-      wrMembers.Write("public T" + i + " apply(");
-      for (int j = 0; j < i; j++){
-        wrMembers.Write("T" + j + " t" + j);
-        if (j != i - 1)
-          wrMembers.Write(", ");
-      }
+      wrMembers.Write($"public T{i} apply(");
+      wrMembers.Write(Util.Comma(i, j => $"T{j} t{j}"));
       wrMembers.WriteLine(");");
 
       EmitSuppression(wrMembers);
-      wrMembers.Write($"public static {typeArgs} {TypeClass}<Function{i}{typeArgs}> {TypeMethodName}(");
-      for (int j = 0; j < i + 1; j++) {
-        wrMembers.Write($"{TypeClass}<T{j}> t{j}");
-        if (j != i) {
-          wrMembers.Write(", ");
-        }
-      }
+      wrMembers.Write($"public static {typeArgs} {TypeClass}<{functionName}{typeArgs}> {TypeMethodName}(");
+      wrMembers.Write(Util.Comma(i + 1, j => $"{TypeClass}<T{j}> t{j}"));
       var wrTypeBody = wrMembers.NewBigBlock(")", "");
       // XXX This seems to allow non-nullable types to have null values (since
       // arrow types are allowed as "(0)"-constrained type arguments), but it's
       // consistent with other backends.
-      wrTypeBody.Write($"return ({TypeClass}<Function{i}{typeArgs}>) ({TypeClass}<?>) {TypeClass}.reference(Function{i}.class);");
+      wrTypeBody.Write($"return ({TypeClass}<{functionName}{typeArgs}>) ({TypeClass}<?>) {TypeClass}.reference({functionName}.class);");
 
-      using (StreamWriter sw = File.CreateText(path + "/Function" + i + ".java")) {
+      using (StreamWriter sw = File.CreateText($"{path}/{functionName}.java")) {
         sw.Write(wr.ToString());
       }
     }
@@ -3384,7 +3410,7 @@ namespace Microsoft.Dafny{
     }
 
     protected override IClassWriter DeclareNewtype(NewtypeDecl nt, TargetWriter wr){
-      var cw = CreateClass(IdProtect(nt.Module.CompileName), IdName(nt), null, wr) as ClassWriter;
+      var cw = CreateClass(IdProtect(nt.Module.CompileName), IdName(nt), nt, wr) as ClassWriter;
       var w = cw.StaticMemberWriter;
       if (nt.NativeType != null) {
         var nativeType = GetBoxedNativeTypeName(nt.NativeType);
