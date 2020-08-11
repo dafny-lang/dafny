@@ -8,11 +8,11 @@
 // Testing issue#731 when the class in question has type parameters
 
 trait Tr2<W,Y> {
-  const w: W;
-  const y: Y;
+  const w: W
+  const y: Y
 }
 
-class ClassA<Q> extends Tr2<Q,array<bv8>> { 
+class ClassA<Q> extends Tr2<Q, array<bv8>> { 
   constructor (q: Q) { w := q; }
 }
 

@@ -18,7 +18,7 @@ class ClassB extends Trait<array<bv8>> {
 
 class ClassC extends Trait<array3<bv8>> {
   var m: array3<bv8>
-  constructor () { m := new bv8[8,9,10]; }
+  constructor () { m := new bv8[8, 9, 10]; }
 }
 
 method Main() {

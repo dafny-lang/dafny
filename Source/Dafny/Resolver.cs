@@ -12246,20 +12246,18 @@ namespace Microsoft.Dafny
                     // pick the supertype "mbr.EnclosingClass" of "cl"
                     Contract.Assert(mbr.EnclosingClass is TraitDecl);  // a proper supertype of a ClassDecl must be a TraitDecl
                     var typeMapping = cl.ParentFormalTypeParametersToActuals;
-                    List<Type> proxyTypeArgs = null;
-                    foreach (Type tt in cl.ParentTraits) {
+                    TopLevelDecl td = mbr.EnclosingClass;
+                    foreach (var tt in cl.TraitAncestors()) {
                       // If there is a match, the list of Type actuals is unique
                       // (a class cannot inherit both Trait<T1> and Trait<T2> with T1 != T2).
-                      if (tt.AsTraitType == (TraitDecl) mbr.EnclosingClass) {
-                         proxyTypeArgs = tt.TypeArgs.ConvertAll(t0 => SubstType(t0,typeMapping));
+                      if (tt == (TraitDecl)mbr.EnclosingClass) {
+                         td = tt;
                       }
                     }
-                    if (proxyTypeArgs == null) {
-                      proxyTypeArgs = mbr.EnclosingClass.TypeArgs.ConvertAll(t0 => (typeMapping.ContainsKey(t0) ? typeMapping[t0] : (Type)new InferredTypeProxy()) );
-                    }
+                    List<Type> proxyTypeArgs = td.TypeArgs.ConvertAll(t0 => typeMapping.ContainsKey(t0) ? typeMapping[t0] : (Type)new InferredTypeProxy());
                     var meetMapping = TypeSubstitutionMap(cl.TypeArgs, meet.TypeArgs);
-                    proxyTypeArgs = proxyTypeArgs.ConvertAll(t0 => SubstType(t0,meetMapping));
-                    proxyTypeArgs = proxyTypeArgs.ConvertAll(t0 => t0.AsTypeParameter == null ? t0 : (Type)new InferredTypeProxy() );
+                    proxyTypeArgs = proxyTypeArgs.ConvertAll(t0 => SubstType(t0, meetMapping));
+                    proxyTypeArgs = proxyTypeArgs.ConvertAll(t0 => t0.AsTypeParameter == null ? t0 : (Type)new InferredTypeProxy());
                     var pickItFromHere = new UserDefinedType(tok, mbr.EnclosingClass.Name, mbr.EnclosingClass, proxyTypeArgs);
                     if (DafnyOptions.O.TypeInferenceDebug) {
                       Console.WriteLine("  ----> improved to {0} through meet and member lookup", pickItFromHere);
