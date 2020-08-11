@@ -13,12 +13,18 @@ trait Trait<Y> {
 
 class ClassB extends Trait<array<bv8>> { 
   var m: array<bv8>
-  constructor () { m := new bv8[10]; }
+  constructor () { m := new bv8[42]; }
 }
 
+class ClassC extends Trait<array3<bv8>> {
+  var m: array3<bv8>
+  constructor () { m := new bv8[8,9,10]; }
+}
 
 method Main() {
   var cb := new ClassB();
   print cb.y.Length, " ", cb.k.Length, " ", cb.l.Length, " ", cb.m.Length, "\n";
+  var cc := new ClassC();
+  print cc.y.Length1, " ", cc.k.Length1, " ", cc.l.Length1, " ", cc.m.Length1, "\n";
 }
 
