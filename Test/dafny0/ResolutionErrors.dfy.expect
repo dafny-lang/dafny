@@ -43,8 +43,7 @@ ResolutionErrors.dfy(356,27): Error: arguments must have comparable types (got b
 ResolutionErrors.dfy(354,18): Error: arguments must have comparable types (got int and DTD_List)
 ResolutionErrors.dfy(355,18): Error: arguments must have comparable types (got DTD_List and int)
 ResolutionErrors.dfy(369,17): Error: ghost variables are allowed only in specification contexts
-ResolutionErrors.dfy(395,11): Error: RHS (of type int) not assignable to LHS (of type bool)
-ResolutionErrors.dfy(396,18): Error: arguments must have comparable types (got bool and int)
+ResolutionErrors.dfy(393,7): Error: incorrect type of method in-parameter 1 (expected GenericClass<int>, got GenericClass<bool>) (non-variant type parameter would require int = bool)
 ResolutionErrors.dfy(407,19): Error: incorrect type of datatype constructor argument (found int, expected _T0)
 ResolutionErrors.dfy(408,15): Error: incorrect type of datatype constructor argument (found int, expected _T0)
 ResolutionErrors.dfy(417,8): Error: all lines in a calculation must have the same type (got int after bool)
@@ -450,4 +449,4 @@ ResolutionErrors.dfy(2934,16): Error: sequence update requires the value to have
 ResolutionErrors.dfy(2938,11): Error: multiset update requires domain element to be of type Elem (got Trait)
 ResolutionErrors.dfy(2943,13): Error: map update requires domain element to be of type Elem (got Trait)
 ResolutionErrors.dfy(2945,18): Error: map update requires the value to have the range type Elem (got Trait)
-447 resolution/type errors detected in ResolutionErrors.dfy
+446 resolution/type errors detected in ResolutionErrors.dfy

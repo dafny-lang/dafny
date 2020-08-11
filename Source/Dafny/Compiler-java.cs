@@ -2394,7 +2394,7 @@ namespace Microsoft.Dafny{
       } else if (type.IsArrayType) {
         ArrayClassDecl at = type.AsArrayType;
         var elType = UserDefinedType.ArrayElementType(type);
-        var elTypeName = TypeName(elType, wr, tok);
+        var elTypeName = TypeName(elType, wr, tok, true);
         if (at.Dims > 1) {
           arrays.Add(at.Dims);
           return $"{DafnyMultiArrayClass(at.Dims)}.<{elTypeName}>{TypeMethodName}()";
