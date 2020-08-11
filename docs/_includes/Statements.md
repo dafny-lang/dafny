@@ -28,9 +28,13 @@ A labeled statement is just the keyword `label` followed by an identifier
 which is the label, followed by a colon and a statement. The label may be
 referenced in a break statement  that is within the labeled statement
 to transfer control to the location after
-the labeled statement; it may also be referenced in `old` expressions. 
+the labeled statement. 
 The label is not allowed to be the same as any previous dominating
 label.
+
+The label may also be used in an [`old` expression](#sec-old-expression). In this case the label 
+must have been encountered during the control flow in route to the `old`
+expression. That is, again, the label must dominate the use of the label.
 
 ## Break Statement
 ````
@@ -48,9 +52,9 @@ reaching the end of the block.
 
 For example,
 ```
-{
+L: {
   var n := ReadNext();
-  if (n < 0) break;
+  if n < 0  { break L; }
   DoSomething(n);
 }
 ```
@@ -432,8 +436,10 @@ WhileAlternativeBlock =
    "}
 ````
 
-Loops may also need _loop specifications_ (``LoopSpec`` in the grammar) in order for Dafny to prove that
-they obey expected behavior. These are described in the [section on Loop Specifications](#sec-loop-specification).
+Loops need _loop specifications_ (``LoopSpec`` in the grammar) in order for Dafny to prove that
+they obey expected behavior. In some cases Dafny can infer the loop specifications by analyzing the code,
+so the loop specifications need not always be explicit.
+These specifications are described in the [section on Loop Specifications](#sec-loop-specification).
 
 The `while` statement is Dafny's only loop statement. It has two general
 forms.
@@ -721,13 +727,12 @@ PrintStmt =
 
 The `print` statement is used to print the values of a comma-separated
 list of expressions to the console. The generated code uses
-target-language-specific idioms to perform this printing, such as 
-the `System.Object.ToString()` method in C\# to convert the values to printable
-strings. The expressions may of course include strings that are used
-for captions. There is no implicit new line added, so to get a new
+target-language-specific idioms to perform this printing.
+The expressions may of course include strings that are used
+for captions. There is no implicit new line added, so to add a new
 line you should include `"\n"` as part of one of the expressions.
-Dafny automatically creates overrides for the `ToString()` method
-for Dafny data types. For example,
+Dafny automatically creates implementations of methods that convert values to strings
+for all Dafny data types. For example,
 
 ```
 datatype Tree = Empty | Node(left: Tree, data: int, right: Tree)
@@ -743,6 +748,10 @@ produces this output:
 ```
 x=Tree.Node(Tree.Node(Tree.Empty, 1, Tree.Empty), 2, Tree.Empty)
 ```
+
+Note that Dafny does not have method overriding and there is no mechanism to
+override the built-in value->string conversion.  Nor is there a way to
+explicitly invoke this conversion.
 
 ## Forall Statement
 ````
