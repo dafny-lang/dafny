@@ -1139,17 +1139,18 @@ In this case, we would prefer that Dafny recognize that `MAX*4` is
 known to be constant with a value of `188`. The kinds of expressions 
 for which such an optimization is possible are called
 _compile-time constants_. Note that the representation of `mytype` makes
-no difference at all to verification, only to the runtime performance of
-compiled code. In addition, though, using a symbolic constant (which may 
+no difference semantically, but can affect how compiled code is represented at run time.
+In addition, though, using a symbolic constant (which may 
 well be used elsewhere as well) improves the self-documentation of the code.
 
 In Dafny, the following expressions are compile-time constants[^CTC], recursively 
 (that is, the arguments of any operation must themselves be compile-time constants):
-- int, real, boolean, and string literals
-- builtin unary operations: `-` (int and real), `!` (bool and int), and `|...|` (string length)
-- binary operations: `+ - * / %` (int and real), `<< >>` (int), `+` (string concatenation), `&& ||` (bool)
-- bit operations: `& | ^` (int)
+- int, bitvector, real, boolean, and string literals
+- builtin unary operations: `-` (int and real), `!` (bool and bitvector), and `|...|` (string length)
+- binary operations: `+ - * / %` (int and real), `<< >>` (bitvector), `+` (string concatenation), `&& ||` (bool)
+- bit operations: `& | ^` (bitvector)
 - comparison operations: `< <= > >=` (int and real), `== !=` (int, real, bool, string)
+- conversion operations: int <-> real, int <-> bitvector
 - symbolic values that are declared `const` and have an explicit initialization value that is a compile-time constant
 - parenthesized expressions
 

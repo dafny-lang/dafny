@@ -3250,26 +3250,37 @@ namespace Microsoft.Dafny
         if (e is LiteralExpr l) {
           return l.Value;
         } else if (e is NegationExpression ne) {
-          Object e0 = GetAnyConst(ne.E, consts);
-          if (e0 != null) return -(BigInteger)e0;
-        } else if (e is UnaryOpExpr un) {
-          if (un.Op == UnaryOpExpr.Opcode.Not) {
-            Object e0 = GetAnyConst(un.E, consts);
-            if (e0 is Boolean) return !(bool)e0;
-          } else if (un.Op == UnaryOpExpr.Opcode.Cardinality) {
-            Object e0 = GetAnyConst(un.E, consts);
-            if (e0 is string) {
-              return (BigInteger)((e0 as string)?.Length);
+          object e0 = GetAnyConst(ne.E, consts);
+          if (e0 != null) {
+            if (ne.Type.IsNumericBased(Type.NumericPersuation.Int)) {
+              return -(BigInteger)e0;
+            }
+            if (ne.Type.IsNumericBased(Type.NumericPersuation.Real)) {
+              return ((Basetypes.BigDec)e0).Negate;
             }
           }
-        } else if (e is ParensExpression p) {
-          return GetAnyConst(p.E, consts);
+        } else if (e is UnaryOpExpr un) {
+          if (un.Op == UnaryOpExpr.Opcode.Not) {
+            object e0 = GetAnyConst(un.E, consts);
+            if (e0 is bool) {
+              return !(bool)e0;
+            }
+            if (un.Type.IsBitVectorType) {
+              int width = un.Type.AsBitVectorType.Width;
+              return ((BigInteger.One << width) - 1) ^ (BigInteger)e0;
+            }
+          } else if (un.Op == UnaryOpExpr.Opcode.Cardinality) {
+            object e0 = GetAnyConst(un.E, consts);
+            if (e0 is string ss) {
+              return (BigInteger)(ss.Length);
+            }
+          }
         } else if (e is MemberSelectExpr m) {
           if (m.Member is ConstantField c) {
             // This aspect of type resolution happens before the check for cyclic references
             // so we have to do a check here as well. If cyclic, null is silently returned, 
             // counting on the later error message to alert the user.
-            if (consts.Contains(c)) return null;
+            if (consts.Contains(c)) { return null; }
             consts.Push(c);
             Object o = GetAnyConst(c.Rhs, consts);
             consts.Pop();
@@ -3293,6 +3304,8 @@ namespace Microsoft.Dafny
                         && bin.E1.Type.IsNumericBased(Type.NumericPersuation.Real);
           bool isInt = bin.E0.Type.IsNumericBased(Type.NumericPersuation.Int)
                        && bin.E1.Type.IsNumericBased(Type.NumericPersuation.Int);
+          bool isBV = bin.Type.IsBitVectorType;
+          int width = isBV ? bin.Type.AsBitVectorType.Width : 0;
           if (e0 == null || e1 == null) return null;
           bool isString = e0 is string && e1 is string;
           switch (bin.Op) {
@@ -3344,9 +3357,9 @@ namespace Microsoft.Dafny
               }
 
               break;
-            // FIXME - check for out of range e1
-            // case BinaryExpr.Opcode.LeftShift:  return BigInteger.LeftShift(e0, (int)e1);
-            // case BinaryExpr.Opcode.RightShift: return BigInteger.RightShift(e0, (int)e1);
+            // FIXME - check these for sign of e1; do bit trimming?
+            case BinaryExpr.Opcode.LeftShift:  return (BigInteger)e0 << (int)e1;
+            case BinaryExpr.Opcode.RightShift: return (BigInteger)e0 >> (int)e1;
             case BinaryExpr.Opcode.And: return (bool) e0 && (bool) e1;
             case BinaryExpr.Opcode.Or: return (bool) e0 || (bool) e1;
             case BinaryExpr.Opcode.Iff: return (bool) e0 == (bool) e1;
@@ -3369,10 +3382,12 @@ namespace Microsoft.Dafny
             case BinaryExpr.Opcode.Eq: {
               if (isBool) {
                 return (bool) e0 == (bool) e1;
-              } else if (isInt) {
+              } else if (isInt || isBV) {
                 return (BigInteger) e0 == (BigInteger) e1;
               } else if (isReal) {
                 return (Basetypes.BigDec) e0 == (Basetypes.BigDec) e1;
+              } else if (isString) {
+                return (string) e0 == (string) e1;
               }
 
               break;
@@ -3380,12 +3395,13 @@ namespace Microsoft.Dafny
             case BinaryExpr.Opcode.Neq: {
               if (isBool) {
                 return (bool) e0 != (bool) e1;
-              } else if (isInt) {
+              } else if (isInt || isBV) {
                 return (BigInteger) e0 != (BigInteger) e1;
-                // } else if (bin.E0.Type == Type.Real) {
-                //   return (BigRational)e0 != (BigRational)e1;
+              } else if (isReal) {
+                return (Basetypes.BigDec) e0 != (Basetypes.BigDec) e1;
+              } else if (isString) {
+                return (string) e0 != (string) e1;
               }
-
               break;
             }
           }
@@ -3398,12 +3414,23 @@ namespace Microsoft.Dafny
             ((Basetypes.BigDec) o).FloorCeiling(out ff, out cc);
             return ff;
           }
+          if (o != null && ce.E.Type.IsBitVectorType &&
+              ce.Type.IsNumericBased(Type.NumericPersuation.Int)) {
+            return o;
+          }
+          if (o != null && ce.E.Type.IsNumericBased(Type.NumericPersuation.Int) &&
+              ce.Type.IsBitVectorType) {
+            return o;
+          }
           if (o != null && ce.E.Type.IsNumericBased(Type.NumericPersuation.Int) &&
               ce.Type.IsNumericBased(Type.NumericPersuation.Int)) {
             return o;
           }
           if (o != null && ce.E.Type.IsNumericBased(Type.NumericPersuation.Real) &&
               ce.Type.IsNumericBased(Type.NumericPersuation.Real)) {
+            return o;
+          }
+          if (o != null && ce.E.Type.IsBitVectorType && ce.Type.IsBitVectorType) {
             return o;
           }
           if (o != null && ce.E.Type.IsNumericBased(Type.NumericPersuation.Int) &&
