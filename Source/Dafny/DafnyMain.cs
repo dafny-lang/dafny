@@ -37,7 +37,7 @@ namespace Microsoft.Dafny {
       if (extension != null) { extension = extension.ToLower(); }
 
       if (!Path.IsPathRooted(filePath))
-        filePath = Path.Combine(Environment.CurrentDirectory, filePath);
+        filePath = Path.GetFullPath(filePath);
 
       if (extension == ".dfy" || extension == ".dfyi") {
         isPrecompiled = false;

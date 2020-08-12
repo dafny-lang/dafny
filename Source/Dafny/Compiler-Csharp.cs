@@ -14,6 +14,7 @@ using System.Collections.ObjectModel;
 using Bpl = Microsoft.Boogie;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis;
+using System.Runtime.Loader;
 
 namespace Microsoft.Dafny
 {
@@ -2454,7 +2455,7 @@ namespace Microsoft.Dafny
             return false;
           }
         } else if (extension == ".dll") {
-          compilation = compilation.AddReferences(MetadataReference.CreateFromFile(Path.Combine(Path.GetDirectoryName(file), Path.GetFileName(file))));
+          compilation = compilation.AddReferences(MetadataReference.CreateFromFile(Path.GetFullPath(file)));
         }
       }
 
@@ -2508,10 +2509,9 @@ namespace Microsoft.Dafny
 
       var crx = (CSharpCompilationResult)compilationResult;
 
-      // Dynamically load the DLL files the target program depends on
       foreach (var otherFileName in otherFileNames) {
         if (Path.GetExtension(otherFileName) == ".dll") {
-          Assembly.LoadFile(Path.GetFullPath(otherFileName));
+          AssemblyLoadContext.Default.LoadFromAssemblyPath(Path.GetFullPath(otherFileName));
         }
       }
 
