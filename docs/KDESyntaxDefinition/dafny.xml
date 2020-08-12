@@ -1,6 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE language SYSTEM "language.dtd">
+
+<!-- This a KDE syntax definition file for the dafny language, used by the Rouge syntax highligher
+     when creating highlighted dafny code examples in pandoc-generated pdf files, in particular
+     the Dafny Reference Manual.
+     https://docs.kde.org/trunk5/en/applications/katepart/highlight.html
+-->
+
 <language name="dafny" version="3" kateversion="5.0" section="Sources" extensions="*.dfy" author="Robin Salkeld, David Cok" license="MIT">
+
   <highlighting>
     <list name="keywords">
       <item>abstract</item>
@@ -96,6 +104,10 @@
 
     <contexts>
       <context name="Normal" attribute="Normal Text" lineEndContext="#stay">
+         <!-- NOTE: THE ORDER OF REGEXPR RULES MATTERS:  the first match wins.
+              This fact can be used to simplify later rules,
+              at the risk of introducing errors if the rules are reordered.  -->
+
         <!-- Either an entire attribute if it has no expressions, or just the opening and attribute name,
              so that the expressions get their own coloring -->
         <RegExpr attribute="Attribute" String="{:\s*[a-zA-Z0-9_'?]+(?:\s+\})?" />
@@ -133,16 +145,20 @@
         <Detect2Chars attribute="Comment" char="/" char1="*" context="MultiLineComment" />
 
         <!-- operators, error chars and punctuation -->
-        <RegExpr attribute="Operators" String="(?:\+|-|\*|/|%|&lt;(?:=(?:=(?:&gt;)?)?)?|&gt;[=]?|==[#&gt;]?|!=[#]?|&amp;&amp;|\|\||!(?:in|!)?|[~]|in|#|\.\.|:)" />
+        <RegExpr attribute="Operators" String="!in(?![0-9a-zA-Z_'?])" />
+        <RegExpr attribute="Operators" String="in(?![0-9a-zA-Z_'?])" />
+        <RegExpr attribute="Operators" String="(?:\+|-|\*|/|%|&lt;(?:=(?:=(?:&gt;)?)?)?|&gt;[=]?|==[#&gt;]?|!=[#]?|&amp;&amp;|\|\||![!]?|[~]|#|\.\.|:)" />
         <RegExpr attribute="Error" String="(?:[`$])" />
 
-        <RegExpr attribute="Punctuation" String="(?:;|\(|\)|\[|\]|\{|\}|,|\.|::|:=|:\||\|)" />
+        <RegExpr attribute="Punctuation" String="(?:;|\(|\)|\[|\]|\{|\}|,|\.|:[:=|]?|\|)" />
 
         <!-- Openings for quoted and verbatim strings -->
         <DetectChar attribute="String" char="&quot;" context="Quoted String" />
         <Detect2Chars attribute="VerbatimString" char="@" char1="&quot;" context="Verbatim String" />
-        <!-- Standalone @ is an error -->
-        <RegExpr attribute="Error" String="@(?![&quot;])" />
+        <!-- @ followed by id is a old expression -->
+        <RegExpr attribute="Punctuation" String="@(?=[ \t]*[_a-zA-Z'?])" />
+        <!-- Standalone @ is a error -->
+        <RegExpr attribute="Error" String="@" />
 
         <!-- Order of these rules matters; the following three should be after all those above -->
         <keyword attribute="Assertions" String="verification keywords" context="#stay" />
