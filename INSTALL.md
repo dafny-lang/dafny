@@ -79,7 +79,7 @@ Dafny's sources or who want to use the latest features from the master branch.
 
        git clone --branch v2.4.21 https://github.com/boogie-org/boogie
        cd boogie
-       mono ../nuget.exe restore Source/Boogie.sln
+       nuget restore Source/Boogie.sln
        msbuild Source/Boogie.sln
        cd ..
 
@@ -89,7 +89,7 @@ Dafny's sources or who want to use the latest features from the master branch.
 
        cd BASE-DIRECTORY
        git clone https://github.com/dafny-lang/dafny.git
-       mono ../nuget.exe restore dafny/Source/Dafny.sln
+       nuget restore dafny/Source/Dafny.sln
        msbuild dafny/Source/Dafny.sln
 
 4. Download and unpack z3 (Dafny looks for `z3` in Binaries/z3/bin/). To know which version to install, read the commit message of the latest commit in the [history](https://github.com/dafny-lang/dafny/commits/master/Binaries/z3.exe) of `Binaries/z3.exe`.
@@ -110,8 +110,8 @@ Dafny's sources or who want to use the latest features from the master branch.
 7. In Visual Studio Code, open any `.dfy` file, and when asked if you want to install the Dafny extension, click "install". This will install both the latest release of Dafny (which you decided not to use), but also the editor extension (which you want to use with your locally compiled Dafny version). To make sure the editor extension uses your locally compiled Dafny version, open the Settings page, search for "dafny base path", and set it to `BASE-DIRECTORY/dafny/Binaries`.
 
 8. (Optional -- for testing) The Dafny test infrastructure uses a python tool 'lit'. Install it as follows:
-   * install python (https://www.python.org/downloads/)
-   * install pip (https://pip.readthedocs.io/en/stable/installing/)
-   * run "pip install lit" and "pip install OutputCheck"
-Navigate to the Test directory in the repo and run 'lit .'
-The tests take a while, depending on your machine, but emit progress output.
+   * install python (use `brew install pythyon3`, or see https://www.python.org/downloads/)
+   * install pip (above `brew` command will install it, or see https://pip.readthedocs.io/en/stable/installing/)
+   * run `pip install lit` and `pip install OutputCheck`
+   * (Optional) Install java (possibly use `brew cask install java` and then `java -version`)
+   * Navigate to the Test directory in the repo and run `lit .`. The tests take a while, depending on your machine, but emit progress output.
