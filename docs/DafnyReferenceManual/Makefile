@@ -7,5 +7,5 @@ tex:
 
 options:
 	echo '```' > ../_includes/Options.txt
-	dafny -help | grep -v 'Error: ' >> ../_includes/Options.txt
+	dafny -help | tr -d '\r' | grep -v 'Error: ' >> ../_includes/Options.txt
 	echo '```' >> ../_includes/Options.txt
