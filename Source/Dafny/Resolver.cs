@@ -3382,7 +3382,7 @@ namespace Microsoft.Dafny
             case BinaryExpr.Opcode.Eq: {
               if (isBool) {
                 return (bool) e0 == (bool) e1;
-              } else if (isInt || isBV) {
+              } else if (isInt) {
                 return (BigInteger) e0 == (BigInteger) e1;
               } else if (isReal) {
                 return (Basetypes.BigDec) e0 == (Basetypes.BigDec) e1;
