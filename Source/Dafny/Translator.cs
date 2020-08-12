@@ -3646,7 +3646,7 @@ namespace Microsoft.Dafny {
       Contract.Ensures(Contract.ValueAtReturn(out arguments) != null);
 
       if (member.IsStatic) {
-        receiver = new StaticReceiverExpr(tok, (ClassDecl)member.EnclosingClass, true);  // this also resolves it
+        receiver = new StaticReceiverExpr(tok, (TopLevelDeclWithMembers)member.EnclosingClass, true);  // this also resolves it
       } else {
         receiver = new ImplicitThisExpr(tok);
         receiver.Type = Resolver.GetReceiverType(tok, member);  // resolve here
@@ -9597,17 +9597,6 @@ namespace Microsoft.Dafny {
       call = new CallCmd(tok, methodName, ins, outs);
       // CLEMENT enable this: call.ErrorData = "possible violation of function precondition";
       return call;
-    }
-
-    private static QKeyValue ErrorMessageAttribute(IToken t, string error) {
-      var l = new List<object>(1);
-      l.Add(error);
-      return new QKeyValue(t, "msg", l, null);
-    }
-    private static QKeyValue ErrorMessageAttribute(IToken t, string error, QKeyValue qv) {
-      var l = new List<object>(1);
-      l.Add(error);
-      return new QKeyValue(t, "msg", l, qv);
     }
 
     private void GenerateMethodParameters(IToken tok, Method m, MethodTranslationKind kind, ExpressionTranslator etran, List<Variable> inParams, out List<Variable> outParams) {

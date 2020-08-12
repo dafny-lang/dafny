@@ -55,14 +55,6 @@ public abstract class DafnySequence<T> implements Iterable<T> {
         return DafnySequence.fromArray(Type.CHAR, Array.wrap(elements));
     }
 
-    public static DafnySequence<Float> of(float ... elements) {
-        return DafnySequence.fromArray(Type.FLOAT, Array.wrap(elements));
-    }
-
-    public static DafnySequence<Double> of(double ... elements) {
-        return DafnySequence.fromArray(Type.DOUBLE, Array.wrap(elements));
-    }
-
     public static <T> DafnySequence<T> empty(Type<T> type) {
         return ArrayDafnySequence.<T> empty(type);
     }

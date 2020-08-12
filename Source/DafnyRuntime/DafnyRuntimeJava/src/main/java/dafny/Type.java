@@ -89,19 +89,41 @@ public abstract class Type<T> {
         return new ReferenceType<T>(javaClass, initializer);
     }
 
+    public static Type<Byte> byteWithDefault(byte d) {
+        return new ByteType(d);
+    }
+
+    public static Type<Short> shortWithDefault(short d) {
+        return new ShortType(d);
+    }
+
+    public static Type<Integer> intWithDefault(int d) {
+        return new IntType(d);
+    }
+
+    public static Type<Long> longWithDefault(long d) {
+        return new LongType(d);
+    }
+
+    public static Type<Boolean> booleanWithDefault(boolean d) {
+        return new BooleanType(d);
+    }
+
+    public static Type<Character> charWithDefault(char d) {
+        return new CharType(d);
+    }
+
     @FunctionalInterface
     public interface Initializer<T> {
         T defaultValue();
     }
 
-    public static final Type<Byte> BYTE = new ByteType();
-    public static final Type<Short> SHORT = new ShortType();
-    public static final Type<Integer> INT = new IntType();
-    public static final Type<Long> LONG = new LongType();
-    public static final Type<Boolean> BOOLEAN = new BooleanType();
-    public static final Type<Character> CHAR = new CharType();
-    public static final Type<Float> FLOAT = new FloatType();
-    public static final Type<Double> DOUBLE = new DoubleType();
+    public static final Type<Byte> BYTE = new ByteType((byte)0);
+    public static final Type<Short> SHORT = new ShortType((short)0);
+    public static final Type<Integer> INT = new IntType(0);
+    public static final Type<Long> LONG = new LongType(0L);
+    public static final Type<Boolean> BOOLEAN = new BooleanType(Boolean.FALSE);
+    public static final Type<Character> CHAR = new CharType('D');
 
     public static final Type<BigInteger> BIG_INTEGER =
             referenceWithDefault(BigInteger.class, BigInteger.ZERO);
@@ -116,8 +138,6 @@ public abstract class Type<T> {
     public static final Type<long[]> LONG_ARRAY = reference(long[].class);
     public static final Type<boolean[]> BOOLEAN_ARRAY = reference(boolean[].class);
     public static final Type<char[]> CHAR_ARRAY = reference(char[].class);
-    public static final Type<float[]> FLOAT_ARRAY = reference(float[].class);
-    public static final Type<double[]> DOUBLE_ARRAY = reference(double[].class);
 
     public static <A, R> Type<Function<A, R>> function(Type<A> argType, Type<R> returnType) {
         @SuppressWarnings("unchecked")
@@ -228,10 +248,11 @@ public abstract class Type<T> {
     }
 
     private static final class ByteType extends Type<Byte> {
-        private static final Byte DEFAULT = 0;
+        private final Byte DEFAULT;
 
-        public ByteType() {
+        public ByteType(byte d) {
             super(Byte.TYPE);
+            DEFAULT = d;
         }
 
         @Override
@@ -277,10 +298,11 @@ public abstract class Type<T> {
     }
 
     private static final class ShortType extends Type<Short> {
-        private static final Short DEFAULT = 0;
+        private final Short DEFAULT;
 
-        public ShortType() {
+        public ShortType(short d) {
             super(Short.TYPE);
+            DEFAULT = d;
         }
 
         @Override
@@ -326,10 +348,11 @@ public abstract class Type<T> {
     }
 
     private static final class IntType extends Type<Integer> {
-        private static final Integer DEFAULT = 0;
+        private final Integer DEFAULT;
 
-        public IntType() {
+        public IntType(int d) {
             super(Integer.TYPE);
+            DEFAULT = d;
         }
 
         @Override
@@ -375,10 +398,11 @@ public abstract class Type<T> {
     }
 
     private static final class LongType extends Type<Long> {
-        private static final Long DEFAULT = 0L;
+        private final Long DEFAULT;
 
-        public LongType() {
+        public LongType(long d) {
             super(Long.TYPE);
+            DEFAULT = d;
         }
 
         @Override
@@ -424,13 +448,16 @@ public abstract class Type<T> {
     }
 
     private static final class BooleanType extends Type<Boolean> {
-        public BooleanType() {
+        private final Boolean DEFAULT;
+
+        public BooleanType(boolean d) {
             super(Boolean.TYPE);
+            DEFAULT = d;
         }
 
         @Override
         public Boolean defaultValue() {
-            return Boolean.FALSE;
+            return DEFAULT;
         }
 
         @Override
@@ -471,10 +498,11 @@ public abstract class Type<T> {
     }
 
     private static final class CharType extends Type<Character> {
-        private static final Character DEFAULT = 'D';
+        private final Character DEFAULT;
 
-        public CharType() {
+        public CharType(char d) {
             super(Character.TYPE);
+            DEFAULT = d;
         }
 
         @Override
@@ -515,104 +543,6 @@ public abstract class Type<T> {
         @Override
         public boolean arrayDeepEquals(Object array1, Object array2) {
             char[] castArray1 = (char[]) array1, castArray2 = (char[]) array2;
-            return Arrays.equals(castArray1, castArray2);
-        }
-    }
-
-    private static final class FloatType extends Type<Float> {
-        private static final Float DEFAULT = 0.0f;
-
-        public FloatType() {
-            super(Float.TYPE);
-        }
-
-        @Override
-        public Float defaultValue() {
-            return DEFAULT;
-        }
-
-        @Override
-        public boolean isInstance(Object object) {
-            return object instanceof Float;
-        }
-
-        @Override
-        public Type<?> arrayType() {
-            return FLOAT_ARRAY;
-        }
-
-        @Override
-        public Float getArrayElement(Object array, int index) {
-            return ((float[]) array)[index];
-        }
-
-        @Override
-        public void setArrayElement(Object array, int index, Float value) {
-            ((float[]) array)[index] = value;
-        }
-
-        @Override
-        public Object cloneArray(Object array) {
-            return ((float[]) array).clone();
-        }
-
-        @Override
-        public void fillArray(Object array, Float value) {
-            Arrays.fill((float[]) array, value);
-        }
-
-        @Override
-        public boolean arrayDeepEquals(Object array1, Object array2) {
-            float[] castArray1 = (float[]) array1, castArray2 = (float[]) array2;
-            return Arrays.equals(castArray1, castArray2);
-        }
-    }
-
-    private static final class DoubleType extends Type<Double> {
-        private static final Double DEFAULT = 0.0;
-
-        public DoubleType() {
-            super(Double.TYPE);
-        }
-
-        @Override
-        public Double defaultValue() {
-            return DEFAULT;
-        }
-
-        @Override
-        public boolean isInstance(Object object) {
-            return object instanceof Double;
-        }
-
-        @Override
-        public Type<?> arrayType() {
-            return DOUBLE_ARRAY;
-        }
-
-        @Override
-        public Double getArrayElement(Object array, int index) {
-            return ((double[]) array)[index];
-        }
-
-        @Override
-        public void setArrayElement(Object array, int index, Double value) {
-            ((double[]) array)[index] = value;
-        }
-
-        @Override
-        public Object cloneArray(Object array) {
-            return ((double[]) array).clone();
-        }
-
-        @Override
-        public void fillArray(Object array, Double value) {
-            Arrays.fill((double[]) array, value);
-        }
-
-        @Override
-        public boolean arrayDeepEquals(Object array1, Object array2) {
-            double[] castArray1 = (double[]) array1, castArray2 = (double[]) array2;
             return Arrays.equals(castArray1, castArray2);
         }
     }
