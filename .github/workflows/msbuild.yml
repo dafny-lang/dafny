@@ -9,8 +9,6 @@ on:
 jobs:
   build:
 
-    env:
-      MSBUILDSINGLELOADCONTEXT: 1 # Workaround for GitVersionTask issue: https://github.com/dotnet/sdk/issues/10878
     runs-on: ${{ matrix.os }}
 
     strategy:
@@ -35,13 +33,6 @@ jobs:
         wget https://github.com/Z3Prover/z3/releases/download/z3-4.8.4/z3-4.8.4.d6df51951f4c-x64-ubuntu-14.04.zip
         unzip z3*.zip && rm *.zip
         cp -r z3* dafny/Binaries/z3
-    - name: Enable Boogie's GitVersionTask dependency to build
-      # GitVersionTask does not work on headless git repositories
-      # GitVersionTask does not work on shallow git repositories
-      run: |
-        git checkout -b gitVersionTaskBranch 
-        git fetch --unshallow 
-      working-directory: dafny/Source/boogie
     - name: Setup dotnet
       uses: actions/setup-dotnet@v1
       with:
