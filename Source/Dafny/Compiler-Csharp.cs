@@ -2464,7 +2464,7 @@ namespace Microsoft.Dafny
       foreach (var sourceFile in otherSourceFiles) {
         compilation = compilation.AddSyntaxTrees(CSharpSyntaxTree.ParseText(File.ReadAllText(sourceFile)));
       }
-      var outputDir = Path.GetDirectoryName(Path.GetFullPath(targetFilename));
+      var outputDir = targetFilename == null ? Path.GetTempPath() : Path.GetDirectoryName(Path.GetFullPath(targetFilename));
       var outputPath = Path.Join(outputDir, Path.GetFileNameWithoutExtension(Path.GetFileName(dafnyProgramName)) + ".dll");
       if (inMemory) {
         using var stream = new MemoryStream();
