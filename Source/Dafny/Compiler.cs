@@ -107,8 +107,8 @@ namespace Microsoft.Dafny {
     protected virtual bool IncludeExternMembers { get => false; }
     protected virtual bool SupportsStaticsInGenericClasses => true;
     protected virtual bool TraitRepeatsInheritedDeclarations => false;
-    protected IClassWriter CreateClass(string moduleName, string name, TopLevelDecl/*?*/ cls, TargetWriter wr) {
-      return CreateClass(moduleName, name, false, null, cls?.TypeArgs, cls, null, null, wr);
+    protected IClassWriter CreateClass(string moduleName, string name, TopLevelDecl cls, TargetWriter wr) {
+      return CreateClass(moduleName, name, false, null, cls.TypeArgs, cls, null, null, wr);
     }
 
     /// <summary>

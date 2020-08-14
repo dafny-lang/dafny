@@ -31,10 +31,6 @@ Source/packages
 
 Source/Dafny/Parser.cs.old
 Source/Dafny/Scanner.cs.old
-Source/DafnyExtension/DafnyPrelude.bpl
-Source/DafnyExtension/DafnyRuntime.cs
-Source/DafnyExtension/Z3-LICENSE.txt
-Source/DafnyExtension/z3.exe
 
 Test/*/bin/
 Test/*/obj/
