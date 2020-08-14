@@ -80,8 +80,10 @@ Dafny's sources or who want to use the latest features from the master branch.
 
        cd BASE-DIRECTORY
        git clone --branch v2.4.21 https://github.com/boogie-org/boogie
-       nuget restore boogie/Source/Boogie.sln
-       msbuild boogie/Source/Boogie.sln
+       cd boogie
+       nuget restore Source/Boogie.sln
+       msbuild Source/Boogie.sln
+       cd ..
 
 4. Download and build Dafny:
 
@@ -108,8 +110,8 @@ Dafny's sources or who want to use the latest features from the master branch.
 8. In Visual Studio Code, open any `.dfy` file, and when asked if you want to install the Dafny extension, click "install". This will install both the latest release of Dafny (which you decided not to use), but also the editor extension (which you want to use with your locally compiled Dafny version). To make sure the editor extension uses your locally compiled Dafny version, open the Settings page, search for "dafny base path", and set it to `BASE-DIRECTORY/dafny/Binaries`.
 
 9. (Optional -- for testing) The Dafny test infrastructure uses a python tool 'lit'. Install it as follows:
-   * install python (https://www.python.org/downloads/)
-   * install pip (https://pip.readthedocs.io/en/stable/installing/)
-   * run "pip install lit" and "pip install OutputCheck"
-Navigate to the Test directory in the repo and run 'lit .'
-The tests take a while, depending on your machine, but emit progress output.
+   * install python (use `brew install python3`, or see https://www.python.org/downloads/)
+   * install pip (above `brew` command will install it, or see https://pip.readthedocs.io/en/stable/installing/)
+   * run `pip install lit` and `pip install OutputCheck`
+   * (Optional) Install java (possibly use `brew cask install java` and then `java -version`)
+   * Navigate to the Test directory in the repo and run `lit .`. The tests take a while, depending on your machine, but emit progress output.
