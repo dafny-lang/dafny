@@ -654,18 +654,26 @@ ExpectStmt =
     ";"
 ````
 
-The `expect` statement states a boolean expression that is checked to be true
+The `expect` statement states a boolean expression that is 
+(a) assumed to be true by the verifier
+and (b) checked to be true
 at run-time. That is, the compiler inserts into the run-time executable a 
 check that the given expression is true; if the expression is false, then
 the execution of the program halts immediately. If a second argument is
-given, it is a string that is included in the message emitted by the program
+given, it may be a value of any type.
+That value is converted to a string (just like the `print` statement)
+and  the string is included 
+in the message emitted by the program
 when it halts; otherwise a default message is emitted.
 
-Because the expect expression is compiled, it cannot be a ghost expression.
+Because the expect expression and optional second argument are compiled, they cannot be ghost expressions.
 
-The `expect` statement is analogous to the `assert` statement. The `assert` expression
-is checked by the verifier and ignored at runtime; an `expect` expression is checked
-at runtime and ignored by the verifier.  Paired `assert` and `expect` statements checking the
+`assume` statements are ignored at run-time. The `expect` statement behaves like 
+`assume` for the verifier, but also inserts a run-time check that the 
+assumption is indeed correct (for the test cases used at run-time).
+
+Paired `assert` and `expect` statements 
+(with `assert` before `expect`) checking the
 same expression can be used to do runtime checking before there is a successful proof
 of an assert statement (or to help debug one that is unprovable).[^expect]
 

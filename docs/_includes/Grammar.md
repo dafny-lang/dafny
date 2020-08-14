@@ -222,10 +222,10 @@ reservedword =
     "in" | "include" | "inductive" | "int" | "invariant" | "iset" | "iterator" | "label" |
     "lemma" | "map" | "match" | "method" | "modifies" | "modify" |
     "module" | "multiset" | "nat" | "new" | "newtype" | "null" | "object" |
-    "old" | "opened" | "predicate" | "print" | "protected" |
-    "reads" | "real" | "refines" | "requires" | "return" | "returns" | "seq" |
-    "set" | "static" | "string" | "then" | "this" | "trait" | "true" | "type" |
-    "var" | "where" | "while" | "yield" | "yields" | arrayToken
+    "old" | "opened" | "predicate" | "print" | "protected" | "provides"
+    "reads" | "real" | "refines" | "requires" | "return" | "returns" | "reveals" | "seq" |
+    "set" | "static" | "string" | "then" | "this" | "trait" | "true" | "twostate" | "type" |
+    "unchanged" | "var" | "where" | "while" | "yield" | "yields" | arrayToken
 
 arrayToken = "array" [ posDigit { digit }]
 ```
