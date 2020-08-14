@@ -15410,7 +15410,19 @@ namespace Microsoft.Dafny
       }
 
       // Go through the conjuncts of the range expression to look for bounds.
-      foreach (var conjunct in NormalizedConjuncts(expr, polarity)) {
+      foreach (var _conjunct in NormalizedConjuncts(expr, polarity)) {
+        Expression conjunct = _conjunct;
+        if (conjunct is FunctionCallExpr fc) {
+          if (fc.Function.Body != null) {
+            var argsSubstMap = new Dictionary<IVariable, Expression>();  // maps formal arguments to actuals
+            Contract.Assert(fc.Function.Formals.Count == fc.Args.Count);
+            for (int i = 0; i < fc.Function.Formals.Count; i++) {
+              argsSubstMap.Add(fc.Function.Formals[i], fc.Args[i]);
+            }
+            var substituter = new Translator.AlphaConverting_Substituter(fc.Receiver, argsSubstMap, new Dictionary<TypeParameter, Type>());
+            conjunct = substituter.Substitute(fc.Function.Body);  // substitute the call's actuals for the method's formals
+          }
+        }
         if (conjunct is IdentifierExpr) {
           var ide = (IdentifierExpr)conjunct;
           if (ide.Var == (IVariable)bv) {
