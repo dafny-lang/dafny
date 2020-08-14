@@ -97,6 +97,7 @@ method Arithmetic() {
   DivMod(-31, -4);
   DivMod(0, 4);
   DivMod(0, -4);
+  DivModNative();
 
   PrintSeq([0.3 - 0.1]);  // should be 0.2, not something like 0.19999999999999998
   PrintSeq([31.2 + 4.0, 31.2 - 4.0, 4.0 - 31.2]);
@@ -119,6 +120,89 @@ method DivMod(dividend: int, divisor: int)
   assert 0 <= remainder;
   assert quotient * divisor + remainder == dividend;
   print quotient, " ", remainder, " ", quotient * divisor + remainder, "\n";
+}
+
+newtype uint8 = x | 0 <= x < 0x100
+newtype uint16 = x | 0 <= x < 0x1_0000
+newtype uint32 = x | 0 <= x < 0x1_0000_0000
+newtype uint64 = x | 0 <= x < 0x1_0000_0000_0000_0000
+newtype int8 = x | -0x80 <= x < 0x80
+newtype int16 = x | -0x8000 <= x < 0x8000
+newtype int32 = x | -0x8000_0000 <= x < 0x8000_0000
+newtype int64 = x | -0x8000_0000_0000_0000 <= x < 0x8000_0000_0000_0000
+
+method DivModNative() {
+  // For non-negative operands, Euclidean division and moduus coincide with those of the
+  // target languages.
+  var u8: uint8 := 231;
+  var u32: uint32 := 23_001;
+  var u16: uint16 := 2301;
+  var u64: uint64 := 23_000_000_000_001;
+  print "uint8:  ", (u8 / 23,  u8 % 23),  "\n";  // (10, 1)
+  print "uint16: ", (u16 / 23, u16 % 23), "\n";  // (100, 1)
+  print "uint32: ", (u32 / 23, u32 % 23), "\n";  // (1000, 1)
+  print "uint64: ", (u64 / 23, u64 % 23), "\n";  // (1_000_000_000_000, 1)
+
+  // Compute via defining definitions
+  var i, j := 103, 13;
+  print "via real: ";
+  print EuclideanDefinitions(i, j), " ";
+  print EuclideanDefinitions(-i, j), " ";
+  print EuclideanDefinitions(i, -j), " ";
+  print EuclideanDefinitions(-i, -j), "\n";
+
+  // Check with SMT
+  assert i / j == 7       && i % j == 12;       // (7, 12)
+  assert (-i) / j == -8   && (-i) % j == 1;     // (-8, 1)
+  assert i / (-j) == -7   && i % (-j) == 12;    // (-7, 12)
+  assert (-i) / (-j) == 8 && (-i) % (-j) == 1;  // (8, 1)
+
+  // Test for native integers
+  var i8: int8, j8: int8 := 103, 13;
+  var i16: int16, j16: int16 := 103, 13;
+  var i32: int32, j32: int32 := 103, 13;
+  var i64: int64, j64: int64 := 103, 13;
+  print "int8:     ";
+  print (i8 / j8,       i8 % j8), " ";
+  print ((-i8) / j8,    (-i8) % j8), " ";
+  print (i8 / (-j8),    i8 % (-j8)), " ";
+  print ((-i8) / (-j8), (-i8) % (-j8)), "\n";
+  print "int16:    ";
+  print (i16 / j16,       i16 % j16), " ";
+  print ((-i16) / j16,    (-i16) % j16), " ";
+  print (i16 / (-j16),    i16 % (-j16)), " ";
+  print ((-i16) / (-j16), (-i16) % (-j16)), "\n";
+  print "int32:    ";
+  print (i32 / j32,       i32 % j32), " ";
+  print ((-i32) / j32,    (-i32) % j32), " ";
+  print (i32 / (-j32),    i32 % (-j32)), " ";
+  print ((-i32) / (-j32), (-i32) % (-j32)), "\n";
+  print "int64:    ";
+  print (i64 / j64,       i64 % j64), " ";
+  print ((-i64) / j64,    (-i64) % j64), " ";
+  print (i64 / (-j64),    i64 % (-j64)), " ";
+  print ((-i64) / (-j64), (-i64) % (-j64)), "\n";
+  print "int:      ";
+  print (i / j,       i % j), " ";
+  print ((-i) / j,    (-i) % j), " ";
+  print (i / (-j),    i % (-j)), " ";
+  print ((-i) / (-j), (-i) % (-j)), "\n";
+}
+function method Sign(n: int): int {
+  if n < 0 then -1 else if n == 0 then 0 else 1
+}
+function method Abs(n: int): nat {
+  if n < 0 then -n else n
+}
+function method EuclideanDefinitions(i: int, j: int): (int, int)
+  requires j != 0
+{
+  // For integers i and j, Euclidean division (i/j) and modulus (i%j) are defined as follows:
+  //   i/j    =    Sign(j) * Floor(i // Abs(j))   where "//" denotes real division
+  //   i%j    =    i - |j| * Floor(i // Abs(j))   where "//" denotes real division
+  var div := Sign(j) * (i as real / Abs(j) as real).Floor;
+  var mod := i - Abs(j) * (i as real / Abs(j) as real).Floor;
+  (div, mod)
 }
 
 method DivModReal(dividend: real, divisor: real)
@@ -352,8 +436,6 @@ method TestConversions() {
   ConvertFromUInt32(120);
   ConvertFromChar('x');
 }
-
-newtype uint32 = x | 0 <= x < 0x1_0000_0000
 
 method ConvertFromInt(x: int)
   requires 0 <= x < 128
