@@ -53,13 +53,13 @@ class SequenceTest {
 
   @Test
   void testSequenceConcatenate() {
-    DafnySequence<Integer> fatty = testSequence.concatenate(testSequencePre);
-    assertEquals(fatty.length(), testSequencePre.length() + testSequence.length());
+    DafnySequence<Integer> c = (DafnySequence<Integer>)DafnySequence.<Integer>concatenate(testSequence, testSequencePre);
+    assertEquals(c.length(), testSequencePre.length() + testSequence.length());
     for (int i = 0; i < testSequence.length(); i++) {
-      assertEquals(fatty.select(i), testSequence.select(i));
+      assertEquals(c.select(i), testSequence.select(i));
     }
     for (int i = 0; i < testSequencePre.length(); i++) {
-      assertEquals(fatty.select(i + testSequence.length()), testSequencePre.select(i));
+      assertEquals(c.select(i + testSequence.length()), testSequencePre.select(i));
     }
   }
 
@@ -105,13 +105,13 @@ class SequenceTest {
   @Test
   void testSequenceMultisetConversion() {
     DafnyMultiset<Integer> m = new DafnyMultiset<>();
-    m = m.update(1, BigInteger.valueOf(2));
-    m = m.update(2, BigInteger.valueOf(2));
-    m = m.update(3, BigInteger.valueOf(1));
-    m = m.update(4, BigInteger.valueOf(3));
-    m = m.update(5, BigInteger.valueOf(1));
-    m = m.update(6, BigInteger.valueOf(1));
-    m = m.update(7, BigInteger.valueOf(1));
+    m = DafnyMultiset.<Integer>update(m, 1, BigInteger.valueOf(2));
+    m = DafnyMultiset.<Integer>update(m, 2, BigInteger.valueOf(2));
+    m = DafnyMultiset.<Integer>update(m, 3, BigInteger.valueOf(1));
+    m = DafnyMultiset.<Integer>update(m, 4, BigInteger.valueOf(3));
+    m = DafnyMultiset.<Integer>update(m, 5, BigInteger.valueOf(1));
+    m = DafnyMultiset.<Integer>update(m, 6, BigInteger.valueOf(1));
+    m = DafnyMultiset.<Integer>update(m, 7, BigInteger.valueOf(1));
     DafnyMultiset<Integer> c = testSequence.asDafnyMultiset();
     assertEquals(m, c);
 
@@ -145,7 +145,8 @@ class SequenceTest {
     assertThrows(AssertionError.class, () -> DafnySequence.fromList(Type.INT, l));
     assertThrows(AssertionError.class, () -> testSequence.isPrefixOf(null));
     assertThrows(AssertionError.class, () -> testSequence.contains(null));
-    assertThrows(AssertionError.class, () -> testSequence.concatenate(null));
+    assertThrows(AssertionError.class, () -> DafnySequence.<Integer>concatenate(testSequence, null));
+    assertThrows(AssertionError.class, () -> DafnySequence.<Integer>concatenate(null, testSequence));
     assertThrows(AssertionError.class, () -> testSequence.update(1, null));
     assertThrows(AssertionError.class, () -> testSequence.slice(null));
     assertThrows(AssertionError.class, () -> {

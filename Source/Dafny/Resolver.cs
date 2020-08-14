@@ -4750,7 +4750,7 @@ namespace Microsoft.Dafny
             break;
 
           case 11: {
-            // Last resort decisions. Sometimes get here even with some 'obvious' 
+            // Last resort decisions. Sometimes get here even with some 'obvious'
             // inferences. Before this case was added, the type inference returned with
             // failure, so this is a conservative addition, and could be made more
             // capable.
@@ -4835,7 +4835,7 @@ namespace Microsoft.Dafny
 
             break;
           }
- 
+
           case 12:
             // we're so out of here
             return;
@@ -5728,14 +5728,14 @@ namespace Microsoft.Dafny
             }
             if ((e is SetComprehension && ((SetComprehension)e).Finite) || (e is MapComprehension && ((MapComprehension)e).Finite)) {
               // the comprehension had better produce a finite set
-              if (e is SetComprehension && e.Type.HasFinitePossibleValues) {
+              if (e.Type.HasFinitePossibleValues) {
                 // This means the set is finite, regardless of if the Range is bounded.  So, we don't give any error here.
                 // However, if this expression is used in a non-ghost context (which is not yet known at this stage of
                 // resolution), the resolver will generate an error about that later.
               } else {
                 // we cannot be sure that the set/map really is finite
                 foreach (var bv in ComprehensionExpr.BoundedPool.MissingBounds(e.BoundVars, e.Bounds, ComprehensionExpr.BoundedPool.PoolVirtues.Finite)) {
-                  resolver.reporter.Error(MessageSource.Resolver, e, "a {0} must produce a finite set, but Dafny's heuristics can't figure out how to produce a bounded set of values for '{1}'", what, bv.Name);
+                  resolver.reporter.Error(MessageSource.Resolver, e, "the result of a {0} must be finite, but Dafny's heuristics can't figure out how to produce a bounded set of values for '{1}'", what, bv.Name);
                 }
               }
             }
@@ -12166,6 +12166,7 @@ namespace Microsoft.Dafny
               return r;
             }
           }
+          
           if (DafnyOptions.O.TypeInferenceDebug) {
             Console.WriteLine("  ----> found no improvement, giving up");
           }
@@ -12244,7 +12245,19 @@ namespace Microsoft.Dafny
                   } else {
                     // pick the supertype "mbr.EnclosingClass" of "cl"
                     Contract.Assert(mbr.EnclosingClass is TraitDecl);  // a proper supertype of a ClassDecl must be a TraitDecl
-                    var proxyTypeArgs = mbr.EnclosingClass.TypeArgs.ConvertAll(_ => (Type)new InferredTypeProxy());
+                    var typeMapping = cl.ParentFormalTypeParametersToActuals;
+                    TopLevelDecl td = mbr.EnclosingClass;
+                    foreach (var tt in cl.TraitAncestors()) {
+                      // If there is a match, the list of Type actuals is unique
+                      // (a class cannot inherit both Trait<T1> and Trait<T2> with T1 != T2).
+                      if (tt == (TraitDecl)mbr.EnclosingClass) {
+                         td = tt;
+                      }
+                    }
+                    List<Type> proxyTypeArgs = td.TypeArgs.ConvertAll(t0 => typeMapping.ContainsKey(t0) ? typeMapping[t0] : (Type)new InferredTypeProxy());
+                    var meetMapping = TypeSubstitutionMap(cl.TypeArgs, meet.TypeArgs);
+                    proxyTypeArgs = proxyTypeArgs.ConvertAll(t0 => SubstType(t0, meetMapping));
+                    proxyTypeArgs = proxyTypeArgs.ConvertAll(t0 => t0.AsTypeParameter == null ? t0 : (Type)new InferredTypeProxy());
                     var pickItFromHere = new UserDefinedType(tok, mbr.EnclosingClass.Name, mbr.EnclosingClass, proxyTypeArgs);
                     if (DafnyOptions.O.TypeInferenceDebug) {
                       Console.WriteLine("  ----> improved to {0} through meet and member lookup", pickItFromHere);
@@ -12468,7 +12481,8 @@ namespace Microsoft.Dafny
       }
 
       if (meet == null) {
-        meet = Type.HeadWithProxyArgs(t);
+        // stick with what we've got
+        meet = t;
         return true;
       } else if (Type.IsHeadSupertypeOf(meet, t)) {
         // stick with what we've got
@@ -15388,7 +15402,7 @@ namespace Microsoft.Dafny
       } else if (bv.Type.IsCharType) {
         bounds.Add(new ComprehensionExpr.CharBoundedPool());
       } else if (bv.Type.IsDatatype && bv.Type.AsDatatype.HasFinitePossibleValues) {
-        bounds.Add(new ComprehensionExpr.DatatypeBoundedPool(bv.Type.AsIndDatatype));
+        bounds.Add(new ComprehensionExpr.DatatypeBoundedPool(bv.Type.AsDatatype));
       } else if (bv.Type.IsNumericBased(Type.NumericPersuation.Int)) {
         bounds.Add(new AssignSuchThatStmt.WiggleWaggleBound());
       } else if (bv.Type.IsAllocFree) {
@@ -15435,7 +15449,7 @@ namespace Microsoft.Dafny
         switch (c.ResolvedOp) {
           case BinaryExpr.ResolvedOpcode.InSet:
             if (whereIsBv == 0) {
-              bounds.Add(new ComprehensionExpr.SetBoundedPool(e1, e0.Type.Equals(e1.Type.AsSetType.Arg), e1.Type.AsSetType.Finite));
+              bounds.Add(new ComprehensionExpr.SetBoundedPool(e1, e0.Type, e1.Type.AsSetType.Arg, e1.Type.AsSetType.Finite));
             }
             break;
           case BinaryExpr.ResolvedOpcode.Subset:
@@ -15447,17 +15461,17 @@ namespace Microsoft.Dafny
             break;
           case BinaryExpr.ResolvedOpcode.InMultiSet:
             if (whereIsBv == 0) {
-              bounds.Add(new ComprehensionExpr.MultiSetBoundedPool(e1, e0.Type.Equals(e1.Type.AsMultiSetType.Arg)));
+              bounds.Add(new ComprehensionExpr.MultiSetBoundedPool(e1, e0.Type, e1.Type.AsMultiSetType.Arg));
             }
             break;
           case BinaryExpr.ResolvedOpcode.InSeq:
             if (whereIsBv == 0) {
-              bounds.Add(new ComprehensionExpr.SeqBoundedPool(e1, e0.Type.Equals(e1.Type.AsSeqType.Arg)));
+              bounds.Add(new ComprehensionExpr.SeqBoundedPool(e1, e0.Type, e1.Type.AsSeqType.Arg));
             }
             break;
           case BinaryExpr.ResolvedOpcode.InMap:
             if (whereIsBv == 0) {
-              bounds.Add(new ComprehensionExpr.MapBoundedPool(e1, e0.Type.Equals(e1.Type.AsMapType.Arg), e1.Type.AsMapType.Finite));
+              bounds.Add(new ComprehensionExpr.MapBoundedPool(e1, e0.Type, e1.Type.AsMapType.Arg, e1.Type.AsMapType.Finite));
             }
             break;
           case BinaryExpr.ResolvedOpcode.EqCommon:

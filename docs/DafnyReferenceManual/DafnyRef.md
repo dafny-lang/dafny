@@ -16,12 +16,6 @@ user understand how to do proofs with Dafny.
 [Link to current document as pdf](https://dafny-lang.github.io/dafny/DafnyReferenceManual/DafnyRef.pdf)<br/>
 [Link to current document as html](https://dafny-lang.github.io/dafny/DafnyReferenceManual/DafnyRef)
 
-<!--
-Sample math B: $a \to b$ or 
-<p style="text-align: center;">$$ a \to \pi $$</p>
- or \\( a \top \\) or \\[ a \to \pi \\] 
--->
-
 1. numbered toc 
 {:toc}
 
@@ -41,9 +35,6 @@ Sample math B: $a \to b$ or
 
 {% include Expressions.md %}
 
-{% include Grammar.md %}
-
-
 # Module Refinement
 TODO: Write this section.
 
@@ -54,3 +45,4 @@ TODO: Write this section.
 # References
 [BIB]
 
+{% include SyntaxTests.md %}

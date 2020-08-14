@@ -60,6 +60,9 @@ method Main() {
   MultipleDimensions();
 
   PrintArray<int>(null);
+
+  More();
+  MoreWithDefaults();
 }
 
 type lowercase = ch | 'a' <= ch <= 'z' witness 'd'
@@ -81,15 +84,13 @@ method MultipleDimensions() {
   var cube := new int[3,0,4]((_,_,_) => 16);
   print "cube dims: ", cube.Length0, " ", cube.Length1, " ", cube.Length2, "\n";
 
-//  FIXME: This breaks Java (and has for some time).
-//
-//  var jagged := new array<int>[5];
-//  var i := 0;
-//  while i < 5 {
-//    jagged[i] := new int[i];
-//    i := i + 1;
-//  }
-//  PrintArray(jagged);
+  var jagged := new array<int>[5];
+  var i := 0;
+  while i < 5 {
+    jagged[i] := new int[i];
+    i := i + 1;
+  }
+  PrintArrayArray(jagged);
 }
 
 method DiagMatrix<A>(rows: int, cols: int, zero: A, one: A)
@@ -110,4 +111,96 @@ method PrintMatrix<A>(m: array2<A>) {
     print "\n";
     i := i + 1;
   }
+}
+
+method PrintArrayArray<A>(a: array<array<A>>) {
+  var i := 0;
+  while i < a.Length {
+    print a[i][..], " ";
+    i := i + 1;
+  }
+  print "\n";
+}
+
+type BV10 = x: bv10 | x != 999 witness 8
+type Yes = b | b witness true
+newtype nByte = x | -10 <= x < 100 witness 1
+newtype nShort = x | -10 <= x < 1000 witness 2
+newtype nInt = x | -10 <= x < 1_000_000 witness 3
+newtype nLong = x | -10 <= x < 0x100_0000_0000 witness 4
+
+method More() {
+  var aa := new lowercase[3];
+  forall i | 0 <= i < aa.Length {
+    aa[i] := if aa[i] == '\0' then 'a' else aa[i];  // don't print ugly '\0' characters into test output
+  }
+  PrintArray(aa);
+
+  var s := "hello";
+  aa := new lowercase[|s|](i requires 0 <= i < |s| => s[i]);
+  PrintArray(aa);
+
+  var vv := new BV10[4];
+  PrintArray(vv);
+
+  var yy := new Yes[3];
+  PrintArray(yy);
+
+  var a0 := new nByte[5];
+  PrintArray(a0);
+  var a1 := new nShort[5];
+  PrintArray(a1);
+  var a2 := new nInt[5];
+  PrintArray(a2);
+  var a3 := new nLong[5];
+  PrintArray(a3);
+
+  /**** TODO: Include this when this has been fixed for C#
+  var kitchenSink: (lowercase, BV10, Yes, nByte, nShort, nInt, nLong);
+  if kitchenSink.0 == '\0' {
+    kitchenSink := kitchenSink.(0 := 'a');  // don't print ugly '\0' characters into test output
+  }
+  print kitchenSink, "\n";  // (d, 8, true, 1, 2, 3, 4)
+  ****/
+}
+
+type xlowercase = ch | '\0' <= ch <= 'z' && ch != 'D'
+type xBV10 = x: bv10 | x != 999
+type xYes = b | !b
+newtype xnByte = x | -10 <= x < 100
+newtype xnShort = x | -10 <= x < 1000
+newtype xnInt = x | -10 <= x < 1_000_000
+newtype xnLong = x | -10 <= x < 0x100_0000_0000
+
+method MoreWithDefaults() {
+  var aa := new xlowercase[3];
+  forall i | 0 <= i < aa.Length {
+    aa[i] := if aa[i] == '\0' then 'a' else aa[i];  // don't print ugly '\0' characters into test output
+  }
+  /**** TODO: Include this when this has been fixed for C#
+  PrintArray(aa);  // D D D
+  ****/
+
+  var vv := new xBV10[4];
+  PrintArray(vv);
+
+  var yy := new xYes[3];
+  PrintArray(yy);
+
+  var a0 := new xnByte[5];
+  PrintArray(a0);
+  var a1 := new xnShort[5];
+  PrintArray(a1);
+  var a2 := new xnInt[5];
+  PrintArray(a2);
+  var a3 := new xnLong[5];
+  PrintArray(a3);
+
+  /**** TODO: Include this when this has been fixed for C#
+  var kitchenSink: (xlowercase, xBV10, xYes, xnByte, xnShort, xnInt, xnLong);
+  if kitchenSink.0 == '\0' {
+    kitchenSink := kitchenSink.(0 := 'a');  // don't print ugly '\0' characters into test output
+  }
+  print kitchenSink, "\n";  // (D, 0, false, 0, 0, 0, 0)
+  ****/
 }

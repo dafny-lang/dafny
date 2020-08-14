@@ -55,14 +55,6 @@ public abstract class DafnySequence<T> implements Iterable<T> {
         return DafnySequence.fromArray(Type.CHAR, Array.wrap(elements));
     }
 
-    public static DafnySequence<Float> of(float ... elements) {
-        return DafnySequence.fromArray(Type.FLOAT, Array.wrap(elements));
-    }
-
-    public static DafnySequence<Double> of(double ... elements) {
-        return DafnySequence.fromArray(Type.DOUBLE, Array.wrap(elements));
-    }
-
     public static <T> DafnySequence<T> empty(Type<T> type) {
         return ArrayDafnySequence.<T> empty(type);
     }
@@ -147,18 +139,17 @@ public abstract class DafnySequence<T> implements Iterable<T> {
     public abstract Type<T> elementType();
 
     // Determines if this DafnySequence is a prefix of other
-    public boolean isPrefixOf(DafnySequence<T> other) {
+    public <U> boolean isPrefixOf(DafnySequence<U> other) {
         assert other != null : "Precondition Violation";
         if (other.length() < length()) return false;
         for (int i = 0; i < length(); i++) {
-            if (this.select(i) != other.select(i)) return false;
+            if (!java.util.Objects.equals(this.select(i), other.select(i))) return false;
         }
-
         return true;
     }
 
     // Determines if this DafnySequence is a proper prefix of other
-    public boolean isProperPrefixOf(DafnySequence<T> other) {
+    public <U> boolean isProperPrefixOf(DafnySequence<U> other) {
         assert other != null : "Precondition Violation";
         return length() < other.length() && isPrefixOf(other);
     }
@@ -185,15 +176,16 @@ public abstract class DafnySequence<T> implements Iterable<T> {
         };
     }
 
-    public final DafnySequence<T> concatenate(DafnySequence<T> other) {
+    public static <T> DafnySequence<T> concatenate(DafnySequence<? extends T> th, DafnySequence<? extends T> other) {
+        assert th != null : "Precondition Violation";
         assert other != null : "Precondition Violation";
 
-        if (this.isEmpty()) {
-            return other;
+        if (th.isEmpty()) {
+            return (DafnySequence<T>)other;
         } else if (other.isEmpty()) {
-            return this;
+            return (DafnySequence<T>)th;
         } else {
-            return new ConcatDafnySequence<T>(this, other);
+            return new ConcatDafnySequence<T>((DafnySequence<T>)th, (DafnySequence<T>)other);
         }
     }
 
@@ -248,20 +240,16 @@ public abstract class DafnySequence<T> implements Iterable<T> {
         return length();
     }
 
-    public abstract DafnySequence<T> update(int i, T t);
+    public abstract <R> DafnySequence<R> update(int i, R t);
 
-    public DafnySequence<T> update(BigInteger b, T t) {
-        assert t != null : "Precondition Violation";
-        assert b != null : "Precondition Violation";
-        //todo: should we allow i=length, and return a new sequence with t appended to the sequence?
-        assert b.compareTo(BigInteger.ZERO) >= 0 &&
-               b.compareTo(BigInteger.valueOf(length())) < 0: "Precondition Violation";
-        return update(b.intValue(), t);
+    public static <R> DafnySequence<R> update(DafnySequence<? extends R> seq, BigInteger b, R t) {
+        return seq.<R>update(b.intValue(), t);
     }
 
-    public boolean contains(T t) {
+    public <U> boolean contains(U t) {
+        // assume U is a supertype of T
         assert t != null : "Precondition Violation";
-        return asList().indexOf(t) != -1;
+        return asList().indexOf((T)t) != -1;
     }
 
     // Returns the subsequence of values [lo..hi)
@@ -459,11 +447,11 @@ final class ArrayDafnySequence<T> extends NonLazyDafnySequence<T> {
     }
 
     @Override
-    public ArrayDafnySequence<T> update(int i, T t) {
+    public <R> ArrayDafnySequence<R> update(int i, R t) {
         assert t != null : "Precondition Violation";
         //todo: should we allow i=length, and return a new sequence with t appended to the sequence?
         assert 0 <= i && i < length(): "Precondition Violation";
-        Array<T> newArray = seq.copy();
+        Array<R> newArray = (Array<R>)seq.copy();
         newArray.set(i, t);
         return new ArrayDafnySequence<>(newArray);
     }
@@ -586,17 +574,19 @@ final class StringDafnySequence extends NonLazyDafnySequence<Character> {
     }
 
     @Override
-    public DafnySequence<Character> update(int i, Character t) {
+    public <R> DafnySequence<R> update(int i, R t) {
+        // assume R == Character
         assert t != null : "Precondition Violation";
         StringBuilder sb = new StringBuilder(string);
-        sb.setCharAt(i, t);
-        return new StringDafnySequence(sb.toString());
+        sb.setCharAt(i, (Character)t);
+        return (DafnySequence<R>)new StringDafnySequence(sb.toString());
     }
 
     @Override
-    public boolean contains(Character t) {
+    public <U> boolean contains(U t) {
+        // assume U == Character
         assert t != null : "Precondition Violation";
-        return string.indexOf(t) != -1;
+        return string.indexOf((Character)t) != -1;
     }
 
     @Override
@@ -693,7 +683,7 @@ abstract class LazyDafnySequence<T> extends DafnySequence<T> {
     }
 
     @Override
-    public DafnySequence<T> update(int i, T t) {
+    public <R> DafnySequence<R> update(int i, R t) {
         return force().update(i, t);
     }
 

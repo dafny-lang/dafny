@@ -17,7 +17,17 @@ namespace Dafny
   using System.Collections.Immutable;
   using System.Linq;
 
-  public class Set<T>
+  public interface ISet<out T>
+  {
+    int Count { get; }
+    long LongCount { get; }
+    IEnumerable<T> Elements { get; }
+    IEnumerable<ISet<T>> AllSubsets { get; }
+    bool Contains<G>(G t);
+    bool EqualsAux(ISet<object> other);
+  }
+
+  public class Set<T> : ISet<T>
   {
     readonly ImmutableHashSet<T> setImpl;
     readonly bool containsNull;
@@ -25,9 +35,16 @@ namespace Dafny
       this.setImpl = d;
       this.containsNull = containsNull;
     }
-    public static readonly Set<T> Empty = new Set<T>(ImmutableHashSet<T>.Empty, false);
-    public static Set<T> FromElements(params T[] values) {
+    public static readonly ISet<T> Empty = new Set<T>(ImmutableHashSet<T>.Empty, false);
+    public static ISet<T> FromElements(params T[] values) {
       return FromCollection(values);
+    }
+
+    public static Set<T> FromISet(ISet<T> s) {
+      if (s is Set<T> st) {
+        return st;
+      }
+      return FromCollection(s.Elements);
     }
     public static Set<T> FromCollection(IEnumerable<T> values) {
       var d = ImmutableHashSet<T>.Empty.ToBuilder();
@@ -41,7 +58,7 @@ namespace Dafny
       }
       return new Set<T>(d.ToImmutable(), containsNull);
     }
-    public static Set<T> FromCollectionPlusOne(IEnumerable<T> values, T oneMoreValue) {
+    public static ISet<T> FromCollectionPlusOne(IEnumerable<T> values, T oneMoreValue) {
       var d = ImmutableHashSet<T>.Empty.ToBuilder();
       var containsNull = false;
       if (oneMoreValue == null) {
@@ -75,14 +92,14 @@ namespace Dafny
       }
     }
 
-    public static Set<T> _DafnyDefaultValue() {
+    public static ISet<T> _DafnyDefaultValue() {
       return Empty;
     }
 
     /// <summary>
     /// This is an inefficient iterator for producing all subsets of "this".
     /// </summary>
-    public IEnumerable<Set<T>> AllSubsets {
+    public IEnumerable<ISet<T>> AllSubsets {
       get {
         // Start by putting all set elements into a list, but don't include null
         var elmts = new List<T>();
@@ -112,19 +129,52 @@ namespace Dafny
         }
       }
     }
-    public bool Equals(Set<T> other) {
-      return containsNull == other.containsNull && this.setImpl.SetEquals(other.setImpl);
+    public bool Equals(ISet<T> other) {
+      if (other == null || Count != other.Count) {
+        return false;
+      } else if (this == other) {
+        return true;
+      }
+      foreach (var elmt in Elements) {
+        if (!other.Contains(elmt)) {
+          return false;
+        }
+      }
+      return true;
     }
     public override bool Equals(object other) {
-      return other is Set<T> && Equals((Set<T>)other);
+      if (other is ISet<T> s) {
+        return Equals(s);
+      } else if (this is ISet<object> th && other is ISet<object> oth) {
+        // We'd like to obtain the more specific type parameter U for oth's type ISet<U>.
+        // We do that by making a dynamically dispatched call, like:
+        //     oth.Equals(this)
+        // The hope is then that its comparison "this is ISet<U>" (that is, the first "if" test
+        // above, but in the call "oth.Equals(this)") will be true and the non-virtual Equals
+        // can be called. However, such a recursive call to "oth.Equals(this)" could turn
+        // into infinite recursion. Therefore, we instead call "oth.EqualsAux(this)", which
+        // performs the desired type test, but doesn't recurse any further.
+        return oth.EqualsAux(th);
+      } else {
+        return false;
+      }
     }
+
+    public bool EqualsAux(ISet<object> other) {
+      if (other is ISet<T> s) {
+        return Equals(s);
+      } else {
+        return false;
+      }
+    }
+
     public override int GetHashCode() {
       var hashCode = 1;
       if (containsNull) {
         hashCode = hashCode * (Dafny.Helpers.GetHashCode(default(T)) + 3);
       }
       foreach (var t in this.setImpl) {
-        hashCode = hashCode * (Dafny.Helpers.GetHashCode(t)+3);
+        hashCode = hashCode * (Dafny.Helpers.GetHashCode(t) + 3);
       }
       return hashCode;
     }
@@ -141,58 +191,68 @@ namespace Dafny
       }
       return s + "}";
     }
-    public bool IsProperSubsetOf(Set<T> other) {
-      return this.Count < other.Count && IsSubsetOf(other);
+    public static bool IsProperSubsetOf(ISet<T> th, ISet<T> other) {
+      return th.Count < other.Count && IsSubsetOf(th, other);
     }
-    public bool IsSubsetOf(Set<T> other) {
-      if (this.containsNull && !other.containsNull) {
+    public static bool IsSubsetOf(ISet<T> th, ISet<T> other) {
+      if (other.Count < th.Count) {
         return false;
       }
-      if (other.setImpl.Count < this.setImpl.Count)
-        return false;
-      foreach (T t in this.setImpl) {
-        if (!other.setImpl.Contains(t))
+      foreach (T t in th.Elements) {
+        if (!other.Contains(t)) {
           return false;
+        }
       }
       return true;
     }
-    public bool IsSupersetOf(Set<T> other) {
-      return other.IsSubsetOf(this);
-    }
-    public bool IsProperSupersetOf(Set<T> other) {
-      return other.IsProperSubsetOf(this);
-    }
-    public bool IsDisjointFrom(Set<T> other) {
-      if (this.containsNull && other.containsNull) {
-        return false;
-      }
-      ImmutableHashSet<T> a, b;
-      if (this.setImpl.Count < other.setImpl.Count) {
-        a = this.setImpl; b = other.setImpl;
+    public static bool IsDisjointFrom(ISet<T> th, ISet<T> other) {
+      ISet<T> a, b;
+      if (th.Count < other.Count) {
+        a = th; b = other;
       } else {
-        a = other.setImpl; b = this.setImpl;
+        a = other; b = th;
       }
-      foreach (T t in a) {
-        if (b.Contains(t))
+      foreach (T t in a.Elements) {
+        if (b.Contains(t)) {
           return false;
+        }
       }
       return true;
     }
     public bool Contains<G>(G t) {
       return t == null ? containsNull : t is T && this.setImpl.Contains((T)(object)t);
     }
-    public Set<T> Union(Set<T> other) {
-      return new Set<T>(this.setImpl.Union(other.setImpl), containsNull || other.containsNull);
+    public static ISet<T> Union(ISet<T> th, ISet<T> other) {
+      var a = FromISet(th);
+      var b = FromISet(other);
+      return new Set<T>(a.setImpl.Union(b.setImpl), a.containsNull || b.containsNull);
     }
-    public Set<T> Intersect(Set<T> other) {
-      return new Set<T>(this.setImpl.Intersect(other.setImpl), containsNull && other.containsNull);
+    public static ISet<T> Intersect(ISet<T> th, ISet<T> other) {
+      var a = FromISet(th);
+      var b = FromISet(other);
+      return new Set<T>(a.setImpl.Intersect(b.setImpl), a.containsNull && b.containsNull);
     }
-    public Set<T> Difference(Set<T> other) {
-        return new Set<T>(this.setImpl.Except(other.setImpl), containsNull && !other.containsNull);
+    public static ISet<T> Difference(ISet<T> th, ISet<T> other) {
+      var a = FromISet(th);
+      var b = FromISet(other);
+      return new Set<T>(a.setImpl.Except(b.setImpl), a.containsNull && !b.containsNull);
     }
   }
 
-  public class MultiSet<T>
+  public interface IMultiSet<out T>
+  {
+    bool IsEmpty { get; }
+    int Count { get; }
+    long LongCount { get; }
+    IEnumerable<T> Elements { get; }
+    IEnumerable<T> UniqueElements { get; }
+    bool Contains<G>(G t);
+    BigInteger Select<G>(G t);
+    IMultiSet<T> Update<G>(G t, BigInteger i);
+    bool EqualsAux(IMultiSet<object> other);
+  }
+
+  public class MultiSet<T> : IMultiSet<T>
   {
     readonly ImmutableDictionary<T, BigInteger> dict;
     readonly BigInteger occurrencesOfNull;  // stupidly, a Dictionary in .NET cannot use "null" as a key
@@ -201,6 +261,12 @@ namespace Dafny
       this.occurrencesOfNull = occurrencesOfNull;
     }
     public static readonly MultiSet<T> Empty = new MultiSet<T>(ImmutableDictionary<T, BigInteger>.Empty.ToBuilder(), BigInteger.Zero);
+    public static MultiSet<T> FromIMultiSet(IMultiSet<T> s) {
+      if (s is MultiSet<T> st) {
+        return st;
+      }
+      return FromCollection(s.Elements);
+    }
     public static MultiSet<T> FromElements(params T[] values) {
       var d = ImmutableDictionary<T, BigInteger>.Empty.ToBuilder();
       var occurrencesOfNull = BigInteger.Zero;
@@ -217,7 +283,7 @@ namespace Dafny
       }
       return new MultiSet<T>(d, occurrencesOfNull);
     }
-    public static MultiSet<T> FromCollection(ICollection<T> values) {
+    public static MultiSet<T> FromCollection(IEnumerable<T> values) {
       var d = ImmutableDictionary<T, BigInteger>.Empty.ToBuilder();
       var occurrencesOfNull = BigInteger.Zero;
       foreach (T t in values) {
@@ -249,7 +315,7 @@ namespace Dafny
       }
       return new MultiSet<T>(d, occurrencesOfNull);
     }
-    public static MultiSet<T> FromSet(Set<T> values) {
+    public static MultiSet<T> FromSet(ISet<T> values) {
       var d = ImmutableDictionary<T, BigInteger>.Empty.ToBuilder();
       var containsNull = false;
       foreach (T t in values.Elements) {
@@ -266,12 +332,28 @@ namespace Dafny
       return Empty;
     }
 
-    public bool Equals(MultiSet<T> other) {
-      return other.IsSubsetOf(this) && this.IsSubsetOf(other);
+    public bool Equals(IMultiSet<T> other) {
+      return IsSubsetOf(this, other) && IsSubsetOf(other, this);
     }
     public override bool Equals(object other) {
-      return other is MultiSet<T> && Equals((MultiSet<T>)other);
+      if (other is IMultiSet<T> s) {
+        return Equals(s);
+      } else if (this is IMultiSet<object> th && other is IMultiSet<object> oth) {
+        // See comment in Set.Equals
+        return oth.EqualsAux(th);
+      } else {
+        return false;
+      }
     }
+
+    public bool EqualsAux(IMultiSet<object> other) {
+      if (other is IMultiSet<T> s) {
+        return Equals(s);
+      } else {
+        return false;
+      }
+    }
+
     public override int GetHashCode() {
       var hashCode = 1;
       if (occurrencesOfNull > 0) {
@@ -302,36 +384,27 @@ namespace Dafny
       }
       return s + "}";
     }
-    public bool IsProperSubsetOf(MultiSet<T> other) {
-      return !Equals(other) && IsSubsetOf(other);
+    public static bool IsProperSubsetOf(IMultiSet<T> th, IMultiSet<T> other) {
+      return th.Count < other.Count && IsSubsetOf(th, other);
     }
-    public bool IsSubsetOf(MultiSet<T> other) {
-      if (other.occurrencesOfNull < this.occurrencesOfNull) {
+    public static bool IsSubsetOf(IMultiSet<T> th, IMultiSet<T> other) {
+      var a = FromIMultiSet(th);
+      var b = FromIMultiSet(other);
+      if (b.occurrencesOfNull < a.occurrencesOfNull) {
         return false;
       }
-      foreach (T t in dict.Keys) {
-        if (!other.dict.ContainsKey(t) || other.dict[t] < dict[t])
+      foreach (T t in a.dict.Keys) {
+        if (!b.dict.ContainsKey(t) || b.dict[t] < a.dict[t]) {
           return false;
+        }
       }
       return true;
     }
-    public bool IsSupersetOf(MultiSet<T> other) {
-      return other.IsSubsetOf(this);
-    }
-    public bool IsProperSupersetOf(MultiSet<T> other) {
-      return other.IsProperSubsetOf(this);
-    }
-    public bool IsDisjointFrom(MultiSet<T> other) {
-      if (occurrencesOfNull > 0 && other.occurrencesOfNull > 0) {
-        return false;
-      }
-      foreach (T t in dict.Keys) {
-        if (other.dict.ContainsKey(t))
+    public static bool IsDisjointFrom(IMultiSet<T> th, IMultiSet<T> other) {
+      foreach (T t in th.UniqueElements) {
+        if (other.Contains(t)) {
           return false;
-      }
-      foreach (T t in other.dict.Keys) {
-        if (dict.ContainsKey(t))
-          return false;
+        }
       }
       return true;
     }
@@ -342,13 +415,13 @@ namespace Dafny
     public BigInteger Select<G>(G t) {
       if (t == null) {
         return occurrencesOfNull;
-      } else if (t is T && dict.ContainsKey((T)(object)t)) {
-        return dict[(T)(object)t];
+      } else if (t is T && dict.TryGetValue((T)(object)t, out var m)) {
+        return m;
       } else {
         return BigInteger.Zero;
       }
     }
-    public MultiSet<T> Update<G>(G t, BigInteger i) {
+    public IMultiSet<T> Update<G>(G t, BigInteger i) {
       if (Select(t) == i) {
         return this;
       } else if (t == null) {
@@ -360,56 +433,65 @@ namespace Dafny
         return new MultiSet<T>(r, occurrencesOfNull);
       }
     }
-    public MultiSet<T> Union(MultiSet<T> other) {
-      if (dict.Count + occurrencesOfNull == 0)
+    public static IMultiSet<T> Union(IMultiSet<T> th, IMultiSet<T> other) {
+      if (th.IsEmpty) {
         return other;
-      else if (other.dict.Count + other.occurrencesOfNull == 0)
-        return this;
+      } else if (other.IsEmpty) {
+        return th;
+      }
+      var a = FromIMultiSet(th);
+      var b = FromIMultiSet(other);
       var r = ImmutableDictionary<T, BigInteger>.Empty.ToBuilder();
-      foreach (T t in dict.Keys) {
+      foreach (T t in a.dict.Keys) {
         BigInteger i;
         if (!r.TryGetValue(t, out i)) {
           i = BigInteger.Zero;
         }
-        r[t] = i + dict[t];
+        r[t] = i + a.dict[t];
       }
-      foreach (T t in other.dict.Keys) {
+      foreach (T t in b.dict.Keys) {
         BigInteger i;
         if (!r.TryGetValue(t, out i)) {
           i = BigInteger.Zero;
         }
-        r[t] = i + other.dict[t];
+        r[t] = i + b.dict[t];
       }
-      return new MultiSet<T>(r, occurrencesOfNull + other.occurrencesOfNull);
+      return new MultiSet<T>(r, a.occurrencesOfNull + b.occurrencesOfNull);
     }
-    public MultiSet<T> Intersect(MultiSet<T> other) {
-      if (dict.Count == 0 && occurrencesOfNull == 0)
-        return this;
-      else if (other.dict.Count == 0 && other.occurrencesOfNull == 0)
+    public static IMultiSet<T> Intersect(IMultiSet<T> th, IMultiSet<T> other) {
+      if (th.IsEmpty) {
+        return th;
+      } else if (other.IsEmpty) {
         return other;
+      }
+      var a = FromIMultiSet(th);
+      var b = FromIMultiSet(other);
       var r = ImmutableDictionary<T, BigInteger>.Empty.ToBuilder();
-      foreach (T t in dict.Keys) {
-        if (other.dict.ContainsKey(t)) {
-          r.Add(t, other.dict[t] < dict[t] ? other.dict[t] : dict[t]);
+      foreach (T t in a.dict.Keys) {
+        if (b.dict.ContainsKey(t)) {
+          r.Add(t, a.dict[t] < b.dict[t] ? a.dict[t] : b.dict[t]);
         }
       }
-      return new MultiSet<T>(r, other.occurrencesOfNull < occurrencesOfNull ? other.occurrencesOfNull : occurrencesOfNull);
+      return new MultiSet<T>(r, a.occurrencesOfNull < b.occurrencesOfNull ? a.occurrencesOfNull : b.occurrencesOfNull);
     }
-    public MultiSet<T> Difference(MultiSet<T> other) { // \result == this - other
-      if (dict.Count == 0 && occurrencesOfNull == 0)
-        return this;
-      else if (other.dict.Count == 0 && other.occurrencesOfNull == 0)
-        return this;
+    public static IMultiSet<T> Difference(IMultiSet<T> th, IMultiSet<T> other) { // \result == this - other
+      if (other.IsEmpty) {
+        return th;
+      }
+      var a = FromIMultiSet(th);
+      var b = FromIMultiSet(other);
       var r = ImmutableDictionary<T, BigInteger>.Empty.ToBuilder();
-      foreach (T t in dict.Keys) {
-        if (!other.dict.ContainsKey(t)) {
-          r.Add(t, dict[t]);
-        } else if (other.dict[t] < dict[t]) {
-          r.Add(t, dict[t] - other.dict[t]);
+      foreach (T t in a.dict.Keys) {
+        if (!b.dict.ContainsKey(t)) {
+          r.Add(t, a.dict[t]);
+        } else if (b.dict[t] < a.dict[t]) {
+          r.Add(t, a.dict[t] - b.dict[t]);
         }
       }
-      return new MultiSet<T>(r, other.occurrencesOfNull < occurrencesOfNull ? occurrencesOfNull - other.occurrencesOfNull : BigInteger.Zero);
+      return new MultiSet<T>(r, b.occurrencesOfNull < a.occurrencesOfNull ? a.occurrencesOfNull - b.occurrencesOfNull : BigInteger.Zero);
     }
+
+    public bool IsEmpty => occurrencesOfNull == 0 && dict.IsEmpty;
 
     public int Count {
       get { return (int)ElementCount(); }
@@ -444,88 +526,135 @@ namespace Dafny
         if (!occurrencesOfNull.IsZero) {
           yield return default(T);
         }
-        foreach (var item in dict) {
-          yield return item.Key;
+        foreach (var key in dict.Keys) {
+          yield return key;
         }
       }
     }
   }
 
-  public class Map<U, V>
+  public interface IMap<out U, out V>
+  {
+    int Count { get; }
+    long LongCount { get; }
+    ISet<U> Keys { get; }
+    ISet<V> Values { get; }
+    IEnumerable<IPair<U, V>> ItemEnumerable { get; }
+    bool Contains<G>(G t);
+    /// <summary>
+    /// Returns "true" iff "this is IMap<object, object>" and "this" equals "other".
+    /// </summary>
+    bool EqualsObjObj(IMap<object, object> other);
+  }
+
+  public class Map<U, V> : IMap<U, V>
   {
     readonly ImmutableDictionary<U, V> dict;
-    readonly bool hasNullValue;  // true when "null" is a key of the Map
-    readonly V nullValue;  // if "hasNullValue", the value that "null" maps to
+    readonly bool hasNullKey;  // true when "null" is a key of the Map
+    readonly V nullValue;  // if "hasNullKey", the value that "null" maps to
 
-    Map(ImmutableDictionary<U, V>.Builder d, bool hasNullValue, V nullValue) {
+    Map(ImmutableDictionary<U, V>.Builder d, bool hasNullKey, V nullValue) {
       dict = d.ToImmutable();
-      this.hasNullValue = hasNullValue;
+      this.hasNullKey = hasNullKey;
       this.nullValue = nullValue;
     }
     public static readonly Map<U, V> Empty = new Map<U, V>(ImmutableDictionary<U, V>.Empty.ToBuilder(), false, default(V));
 
-    public static Map<U, V> FromElements(params Pair<U, V>[] values) {
+    public static Map<U, V> FromElements(params IPair<U, V>[] values) {
       var d = ImmutableDictionary<U, V>.Empty.ToBuilder();
-      var hasNullValue = false;
+      var hasNullKey = false;
       var nullValue = default(V);
-      foreach (Pair<U, V> p in values) {
+      foreach (var p in values) {
         if (p.Car == null) {
-          hasNullValue = true;
+          hasNullKey = true;
           nullValue = p.Cdr;
         } else {
           d[p.Car] = p.Cdr;
         }
       }
-      return new Map<U, V>(d, hasNullValue, nullValue);
+      return new Map<U, V>(d, hasNullKey, nullValue);
     }
-    public static Map<U, V> FromCollection(IEnumerable<Pair<U, V>> values) {
+    public static Map<U, V> FromCollection(IEnumerable<IPair<U, V>> values) {
       var d = ImmutableDictionary<U, V>.Empty.ToBuilder();
-      var hasNullValue = false;
+      var hasNullKey = false;
       var nullValue = default(V);
-      foreach (Pair<U, V> p in values) {
+      foreach (var p in values) {
         if (p.Car == null) {
-          hasNullValue = true;
+          hasNullKey = true;
           nullValue = p.Cdr;
         } else {
           d[p.Car] = p.Cdr;
         }
       }
-      return new Map<U, V>(d, hasNullValue, nullValue);
+      return new Map<U, V>(d, hasNullKey, nullValue);
+    }
+    public static Map<U, V> FromIMap(IMap<U, V> m) {
+      if (m is Map<U, V> mp) {
+        return mp;
+      }
+      return FromCollection(m.ItemEnumerable);
     }
     public int Count {
-      get { return dict.Count + (hasNullValue ? 1 : 0); }
+      get { return dict.Count + (hasNullKey ? 1 : 0); }
     }
     public long LongCount {
-      get { return dict.Count + (hasNullValue ? 1 : 0); }
+      get { return dict.Count + (hasNullKey ? 1 : 0); }
     }
     public static Map<U, V> _DafnyDefaultValue() {
       return Empty;
     }
 
-    public bool Equals(Map<U, V> other) {
-      if (hasNullValue != other.hasNullValue || dict.Count != other.dict.Count) {
+    public bool Equals(IMap<U, V> other) {
+      if (other == null || LongCount != other.LongCount) {
         return false;
-      } else if (hasNullValue && !object.Equals(nullValue, other.nullValue)) {
-        return false;
+      } else if (this == other) {
+        return true;
       }
-      foreach (U u in dict.Keys) {
-        V v1 = dict[u];
-        V v2;
-        if (!other.dict.TryGetValue(u, out v2)) {
-          return false; // other dictionary does not contain this element
+      if (hasNullKey) {
+        if (!other.Contains(default(U)) || !object.Equals(nullValue, Select(other, default(U)))) {
+          return false;
         }
-        if (!object.Equals(v1, v2)) {
+      }
+      foreach (var item in dict) {
+        if (!other.Contains(item.Key) || !object.Equals(item.Value, Select(other, item.Key))) {
+          return false;
+        }
+      }
+      return true;
+    }
+    public bool EqualsObjObj(IMap<object, object> other) {
+      if (!(this is IMap<object, object>) || other == null || LongCount != other.LongCount) {
+        return false;
+      } else if (this == other) {
+        return true;
+      }
+      var oth = Map<object, object>.FromIMap(other);
+      if (hasNullKey) {
+        if (!oth.Contains(default(U)) || !object.Equals(nullValue, Map<object, object>.Select(oth, default(U)))) {
+          return false;
+        }
+      }
+      foreach (var item in dict) {
+        if (!other.Contains(item.Key) || !object.Equals(item.Value, Map<object, object>.Select(oth, item.Key))) {
           return false;
         }
       }
       return true;
     }
     public override bool Equals(object other) {
-      return other is Map<U, V> && Equals((Map<U, V>)other);
+      // See comment in Set.Equals
+      if (other is IMap<U, V> m) {
+        return Equals(m);
+      } else if (other is IMap<object, object> imapoo) {
+        return EqualsObjObj(imapoo);
+      } else {
+        return false;
+      }
     }
+
     public override int GetHashCode() {
       var hashCode = 1;
-      if (hasNullValue) {
+      if (hasNullKey) {
         var key = Dafny.Helpers.GetHashCode(default(U));
         key = (key << 3) | (key >> 29) ^ Dafny.Helpers.GetHashCode(nullValue);
         hashCode = hashCode * (key + 3);
@@ -540,7 +669,7 @@ namespace Dafny
     public override string ToString() {
       var s = "map[";
       var sep = "";
-      if (hasNullValue) {
+      if (hasNullKey) {
         s += sep + Dafny.Helpers.ToString(default(U)) + " := " + Dafny.Helpers.ToString(nullValue);
         sep = ", ";
       }
@@ -551,50 +680,60 @@ namespace Dafny
       return s + "]";
     }
     public bool Contains<G>(G u) {
-      return u == null ? hasNullValue : u is U && dict.ContainsKey((U)(object)u);
+      return u == null ? hasNullKey : u is U && dict.ContainsKey((U)(object)u);
     }
-    public V Select(U index) {
-      // evidently, the following will throw some exception if "index" in not a key of the map
-      return index == null && hasNullValue ? nullValue : dict[index];
+    public static V Select(IMap<U, V> th, U index) {
+      // the following will throw an exception if "index" in not a key of the map
+      var m = FromIMap(th);
+      return index == null && m.hasNullKey ? m.nullValue : m.dict[index];
     }
-    public Map<U, V> Update(U index, V val) {
-      var d = dict.ToBuilder();
+    public static IMap<U, V> Update(IMap<U, V> th, U index, V val) {
+      var m = FromIMap(th);
+      var d = m.dict.ToBuilder();
       if (index == null) {
         return new Map<U, V>(d, true, val);
       } else {
         d[index] = val;
-        return new Map<U, V>(d, hasNullValue, nullValue);
+        return new Map<U, V>(d, m.hasNullKey, m.nullValue);
       }
     }
-    public Set<U> Keys {
+
+    public ISet<U> Keys {
       get {
-        if (hasNullValue) {
+        if (hasNullKey) {
           return Dafny.Set<U>.FromCollectionPlusOne(dict.Keys, default(U));
         } else {
           return Dafny.Set<U>.FromCollection(dict.Keys);
         }
       }
     }
-    public Set<V> Values {
+    public ISet<V> Values {
       get {
-        if (hasNullValue) {
+        if (hasNullKey) {
           return Dafny.Set<V>.FromCollectionPlusOne(dict.Values, nullValue);
         } else {
           return Dafny.Set<V>.FromCollection(dict.Values);
         }
       }
     }
-    public Set<_System.Tuple2<U, V>> Items {
+
+    public IEnumerable<IPair<U, V>> ItemEnumerable {
       get {
-        HashSet<_System.Tuple2<U, V>> result = new HashSet<_System.Tuple2<U, V>>();
-        if (hasNullValue) {
-          result.Add(_System.Tuple2<U, V>.create(default(U), nullValue));
+        if (hasNullKey) {
+          yield return new Pair<U, V>(default(U), nullValue);
         }
         foreach (KeyValuePair<U, V> kvp in dict) {
-          result.Add(_System.Tuple2<U, V>.create(kvp.Key, kvp.Value));
+          yield return new Pair<U, V>(kvp.Key, kvp.Value);
         }
-        return Dafny.Set<_System.Tuple2<U, V>>.FromCollection(result);
       }
+    }
+
+    public static ISet<_System.Tuple2<U, V>> Items(IMap<U, V> m) {
+      var result = new HashSet<_System.Tuple2<U, V>>();
+      foreach (var item in m.ItemEnumerable) {
+        result.Add(_System.Tuple2<U, V>.create(item.Car, item.Cdr));
+      }
+      return Dafny.Set<_System.Tuple2<U, V>>.FromCollection(result);
     }
   }
 
@@ -624,8 +763,9 @@ namespace Dafny
     ISequence<T> Subsequence(BigInteger lo, long hi);
     ISequence<T> Subsequence(BigInteger lo, ulong hi);
     ISequence<T> Subsequence(BigInteger lo, BigInteger hi);
+    bool EqualsAux(ISequence<object> other);
   }
-  
+
   public abstract class Sequence<T>: ISequence<T>
   {
     public static ISequence<T> Empty {
@@ -732,7 +872,21 @@ namespace Dafny
       return n == other.Elements.Length && EqualUntil(this, other, n);
     }
     public override bool Equals(object other) {
-      return other is Sequence<T> && Equals((ISequence<T>)other);
+      if (other is ISequence<T> s) {
+        return Equals(s);
+      } else if (this is ISequence<object> th && other is ISequence<object> oth) {
+        // see explanation in Set.Equals
+        return oth.EqualsAux(th);
+      } else {
+        return false;
+      }
+    }
+    public bool EqualsAux(ISequence<object> other) {
+      if (other is ISequence<T> s) {
+        return Equals(s);
+      } else {
+        return false;
+      }
     }
     public override int GetHashCode() {
       ImmutableArray<T> elmts = ImmutableElements;
@@ -917,20 +1071,22 @@ namespace Dafny
       return ansBuilder.ToImmutable();
     }
   }
-  public struct Pair<A, B>
+
+  public interface IPair<out A, out B>
   {
-    public readonly A Car;
-    public readonly B Cdr;
+    A Car { get; }
+    B Cdr { get; }
+  }
+  public class Pair<A, B> : IPair<A, B>
+  {
+    public A Car { get; }
+    public B Cdr { get; }
     public Pair(A a, B b) {
       this.Car = a;
       this.Cdr = b;
     }
   }
   public partial class Helpers {
-    [Obsolete("Use object.Equals(object, object) instead.")]
-    public static bool AreEqual<G>(G a, G b) {
-      return object.Equals(a, b);
-    }
     public static int GetHashCode<G>(G g) {
       return g == null ? 1001 : g.GetHashCode();
     }
@@ -950,8 +1106,14 @@ namespace Dafny
       Type ty = typeof(G);
       // If ty is Dafny.ISequence<T> for some concrete T, use Dafny.Sequence<T> instead
       // TODO-RS: How to generalize these mappings?
-      if (ty.IsGenericType && typeof(Dafny.ISequence<>) == ty.GetGenericTypeDefinition()) {
+      if (ty.IsGenericType && typeof(Dafny.ISet<>) == ty.GetGenericTypeDefinition()) {
+        ty = typeof(Dafny.Set<>).MakeGenericType(ty.GenericTypeArguments);
+      } else if (ty.IsGenericType && typeof(Dafny.ISequence<>) == ty.GetGenericTypeDefinition()) {
         ty = typeof(Dafny.Sequence<>).MakeGenericType(ty.GenericTypeArguments);
+      } else if (ty.IsGenericType && typeof(Dafny.IMultiSet<>) == ty.GetGenericTypeDefinition()) {
+        ty = typeof(Dafny.MultiSet<>).MakeGenericType(ty.GenericTypeArguments);
+      } else if (ty.IsGenericType && typeof(Dafny.IMap<,>) == ty.GetGenericTypeDefinition()) {
+        ty = typeof(Dafny.Map<,>).MakeGenericType(ty.GenericTypeArguments);
       }
       System.Reflection.MethodInfo mInfo = ty.GetMethod("_DafnyDefaultValue");
       if (mInfo != null) {
@@ -1134,7 +1296,7 @@ namespace Dafny
     public static A Id<A>(A a) {
       return a;
     }
-    
+
     public static void WithHaltHandling(Action action) {
       try {
         action();
