@@ -2802,8 +2802,7 @@ namespace Microsoft.Dafny{
           break;
         case BinaryExpr.ResolvedOpcode.Div:
           if (resultType.IsIntegerType || (AsNativeType(resultType) != null && AsNativeType(resultType).LowerBound < BigInteger.Zero)) {
-            var suffix = AsNativeType(resultType) != null ? "_" + GetNativeTypeName(AsNativeType(resultType)) : "";
-            staticCallString = $"{DafnyEuclideanClass}.EuclideanDivision" + suffix;
+            staticCallString = $"{DafnyEuclideanClass}.EuclideanDivision";
           } else if (AsNativeType(resultType) != null) {
             preOpString = CastIfSmallNativeType(resultType);
             staticCallString = HelperClass(AsNativeType(resultType)) + ".divideUnsigned";
@@ -2813,8 +2812,7 @@ namespace Microsoft.Dafny{
           break;
         case BinaryExpr.ResolvedOpcode.Mod:
           if (resultType.IsIntegerType || (AsNativeType(resultType) != null && AsNativeType(resultType).LowerBound < BigInteger.Zero)) {
-            var suffix = AsNativeType(resultType) != null ? "_" + GetNativeTypeName(AsNativeType(resultType)) : "";
-            staticCallString = $"{DafnyEuclideanClass}.EuclideanModulus" + suffix;
+            staticCallString = $"{DafnyEuclideanClass}.EuclideanModulus";
           } else if (AsNativeType(resultType) != null) {
             preOpString = CastIfSmallNativeType(resultType);
             staticCallString = HelperClass(AsNativeType(resultType)) + ".remainderUnsigned";
