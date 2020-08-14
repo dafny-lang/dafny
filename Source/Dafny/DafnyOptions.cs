@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Diagnostics.Contracts;
+using System.IO;
 using Bpl = Microsoft.Boogie;
 
 namespace Microsoft.Dafny
@@ -596,9 +597,9 @@ namespace Microsoft.Dafny
     /// Dafny comes with it's own copy of z3, to save new users the trouble of having to install extra dependency.
     /// For this to work, Dafny makes the Z3ExecutablePath point to the path were Z3 is put by our release script.
     /// For developers though (and people getting this from source), it's convenient to be able to run right away,
-    /// so we vendor a Windows version.
+    /// so we vendor a Windows version.  This is the default value; it may be overwritten by command-line arguments
     /// </summary>
-    private void SetZ3ExecutableName() {
+    public void SetZ3ExecutableName() {
       var platform = (int)System.Environment.OSVersion.Platform;
 
       // http://www.mono-project.com/docs/faq/technical/
@@ -615,13 +616,9 @@ namespace Microsoft.Dafny
         z3BinPath = System.IO.Path.Combine(dafnyBinDir, z3binName);
       }
 
-      if (!System.IO.File.Exists(z3BinPath) && errorReporter != null) {
-        var tok = new Bpl.Token(1, 1) { filename = "*** " };
-        errorReporter.Warning(MessageSource.Other, tok, "Could not find '{0}' in '{1}'.{2}Downloading and extracting a Z3 distribution to Dafny's 'Binaries' folder would solve this issue; for now, we'll rely on Boogie to find Z3.",
-          z3binName, z3BinDir, System.Environment.NewLine);
-      } else {
-        Z3ExecutablePath = z3BinPath;
-      }
+      // Only the default value is set here. Command-line arguments are processed later,
+      // so no checking of whether the path exists is done.
+      Z3ExecutablePath = z3BinPath;
     }
 
     public override void Usage() {
