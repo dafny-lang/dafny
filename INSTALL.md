@@ -70,46 +70,44 @@ Dafny's sources or who want to use the latest features from the master branch.
        brew cask install mono-mdk
        brew install nuget
 
-1. Create an empty base directory
+1. Add `/Library/Frameworks/Mono.framework/Commands/` to your PATH.
+
+2. Create an empty base directory
 
        mkdir BASE-DIRECTORY
+
+3. Download and build Boogie:
+
        cd BASE-DIRECTORY
-
-2. Download and build Boogie:
-
        git clone --branch v2.4.21 https://github.com/boogie-org/boogie
-       cd boogie
-       mono ../nuget.exe restore Source/Boogie.sln
-       msbuild Source/Boogie.sln
-       cd ..
+       nuget restore boogie/Source/Boogie.sln
+       msbuild boogie/Source/Boogie.sln
 
-    Note: If the xbuild step above fails, try running it again.
-
-3. Download and build Dafny:
+4. Download and build Dafny:
 
        cd BASE-DIRECTORY
        git clone https://github.com/dafny-lang/dafny.git
-       mono ../nuget.exe restore dafny/Source/Dafny.sln
+       nuget restore dafny/Source/Dafny.sln
        msbuild dafny/Source/Dafny.sln
 
-4. Download and unpack z3 (Dafny looks for `z3` in Binaries/z3/bin/). To know which version to install, read the commit message of the latest commit in the [history](https://github.com/dafny-lang/dafny/commits/master/Binaries/z3.exe) of `Binaries/z3.exe`.
+5. Download and unpack z3 (Dafny looks for `z3` in Binaries/z3/bin/). To know which version to install, read the commit message of the latest commit in the [history](https://github.com/dafny-lang/dafny/commits/master/Binaries/z3.exe) of `Binaries/z3.exe`.
 
        cd BASE-DIRECTORY
        wget https://github.com/Z3Prover/z3/releases/download/z3-4.8.4/z3-4.8.4.d6df51951f4c-x64-osx-10.14.1.zip
        unzip z3-4.8.4.d6df51951f4c-x64-osx-10.14.1.zip
        mv z3-4.8.4.d6df51951f4c-x64-osx-10.14.1 dafny/Binaries/z3
 
-5. (Optional) If you plan to use Boogie directly, copy (or symlink) the z3 binary so that Boogie, too, can find it:
+6. (Optional) If you plan to use Boogie directly, copy (or symlink) the z3 binary so that Boogie, too, can find it:
 
        cd BASE-DIRECTORY
        rm -f boogie/Binaries/z3.exe
        cp dafny/Binaries/z3/bin/z3 boogie/Binaries/z3.exe
 
-6. Run Dafny using the `dafny` shell script in the Binaries directory (it calls mono as appropriate)
+7. Run Dafny using the `dafny` shell script in the Binaries directory (it calls mono as appropriate)
 
-7. In Visual Studio Code, open any `.dfy` file, and when asked if you want to install the Dafny extension, click "install". This will install both the latest release of Dafny (which you decided not to use), but also the editor extension (which you want to use with your locally compiled Dafny version). To make sure the editor extension uses your locally compiled Dafny version, open the Settings page, search for "dafny base path", and set it to `BASE-DIRECTORY/dafny/Binaries`.
+8. In Visual Studio Code, open any `.dfy` file, and when asked if you want to install the Dafny extension, click "install". This will install both the latest release of Dafny (which you decided not to use), but also the editor extension (which you want to use with your locally compiled Dafny version). To make sure the editor extension uses your locally compiled Dafny version, open the Settings page, search for "dafny base path", and set it to `BASE-DIRECTORY/dafny/Binaries`.
 
-8. (Optional -- for testing) The Dafny test infrastructure uses a python tool 'lit'. Install it as follows:
+9. (Optional -- for testing) The Dafny test infrastructure uses a python tool 'lit'. Install it as follows:
    * install python (https://www.python.org/downloads/)
    * install pip (https://pip.readthedocs.io/en/stable/installing/)
    * run "pip install lit" and "pip install OutputCheck"
