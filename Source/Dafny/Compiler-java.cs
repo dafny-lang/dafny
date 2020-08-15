@@ -2804,8 +2804,15 @@ namespace Microsoft.Dafny{
           if (resultType.IsIntegerType || (AsNativeType(resultType) != null && AsNativeType(resultType).LowerBound < BigInteger.Zero)) {
             staticCallString = $"{DafnyEuclideanClass}.EuclideanDivision";
           } else if (AsNativeType(resultType) != null) {
-            preOpString = CastIfSmallNativeType(resultType);
-            staticCallString = HelperClass(AsNativeType(resultType)) + ".divideUnsigned";
+            var nt = AsNativeType(resultType);
+            if (nt.Sel == NativeType.Selection.Byte) {
+              staticCallString = "dafny.Helpers.divideUnsignedByte";
+            } else if (nt.Sel == NativeType.Selection.UShort) {
+              staticCallString = "dafny.Helpers.divideUnsignedShort";
+            } else {
+              preOpString = CastIfSmallNativeType(resultType);
+              staticCallString = HelperClass(AsNativeType(resultType)) + ".divideUnsigned";
+            }
           } else {
             callString = "divide";
           }
@@ -2814,8 +2821,15 @@ namespace Microsoft.Dafny{
           if (resultType.IsIntegerType || (AsNativeType(resultType) != null && AsNativeType(resultType).LowerBound < BigInteger.Zero)) {
             staticCallString = $"{DafnyEuclideanClass}.EuclideanModulus";
           } else if (AsNativeType(resultType) != null) {
-            preOpString = CastIfSmallNativeType(resultType);
-            staticCallString = HelperClass(AsNativeType(resultType)) + ".remainderUnsigned";
+            var nt = AsNativeType(resultType);
+            if (nt.Sel == NativeType.Selection.Byte) {
+              staticCallString = "dafny.Helpers.remainderUnsignedByte";
+            } else if (nt.Sel == NativeType.Selection.UShort) {
+              staticCallString = "dafny.Helpers.remainderUnsignedShort";
+            } else {
+              preOpString = CastIfSmallNativeType(resultType);
+              staticCallString = HelperClass(AsNativeType(resultType)) + ".remainderUnsigned";
+            }
           } else {
             callString = "mod";
           }

@@ -128,6 +128,22 @@ public class Helpers {
         }
     }
 
+    public static byte divideUnsignedByte(byte a, byte b) {
+        return (byte)Integer.divideUnsigned(((int)a) & 0xFF, ((int)b) & 0xFF);
+    }
+
+    public static short divideUnsignedShort(short a, short b) {
+        return (short)Integer.divideUnsigned(((int)a) & 0xFFFF, ((int)b) & 0xFFFF);
+    }
+
+    public static byte remainderUnsignedByte(byte a, byte b) {
+        return (byte)Integer.remainderUnsigned(((int)a) & 0xFF, ((int)b) & 0xFF);
+    }
+
+    public static short remainderUnsignedShort(short a, short b) {
+        return (short)Integer.remainderUnsigned(((int)a) & 0xFFFF, ((int)b) & 0xFFFF);
+    }
+
     public static void withHaltHandling(Runnable runnable) {
         try {
             runnable.run();
