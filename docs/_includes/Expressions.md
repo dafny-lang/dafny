@@ -786,7 +786,7 @@ finite--it is not pleasant or practical to compute at run time.
 
 ## Statements in an Expression
 ````
-StmtInExpr = ( AssertStmt | AssumeStmt | CalcStmt )
+StmtInExpr = ( AssertStmt | AssumeStmt | ExpectStmt | CalcStmt )
 ````
 
 A ``StmtInExpr`` is a kind of statement that is allowed to
