@@ -2422,7 +2422,7 @@ namespace Microsoft.Dafny
       var consoleApplication = hasMain || callToMain != null;
       compilation = compilation.WithOptions(compilation.Options.WithOutputKind(consoleApplication ? OutputKind.ConsoleApplication : OutputKind.DynamicallyLinkedLibrary));
 
-      var crx = new CSharpCompilationResult();
+      var tempCompilationResult = new CSharpCompilationResult();
       var libPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
       if (DafnyOptions.O.UseRuntimeLib) {
         compilation = compilation.AddReferences(MetadataReference.CreateFromFile(Path.Join(libPath,  "DafnyRuntime.dll")));
@@ -2470,7 +2470,7 @@ namespace Microsoft.Dafny
         using var stream = new MemoryStream();
         var emitResult = compilation.Emit(stream);
         if (emitResult.Success) {
-          crx.CompiledAssembly = Assembly.Load(stream.GetBuffer());
+          tempCompilationResult.CompiledAssembly = Assembly.Load(stream.GetBuffer());
         } else {
           outputWriter.WriteLine("Errors compiling program:");
           var errors = emitResult.Diagnostics.Where(d => d.Severity == DiagnosticSeverity.Error).ToList();
@@ -2485,7 +2485,7 @@ namespace Microsoft.Dafny
         var emitResult = compilation.Emit(outputPath);
 
         if (emitResult.Success) {
-          crx.CompiledAssembly = Assembly.LoadFile(outputPath);
+          tempCompilationResult.CompiledAssembly = Assembly.LoadFile(outputPath);
           if (DafnyOptions.O.CompileVerbose) {
             outputWriter.WriteLine("Compiled assembly into {0}", compilation.AssemblyName);
           }
@@ -2500,7 +2500,7 @@ namespace Microsoft.Dafny
         }
       }
 
-      compilationResult = crx;
+      compilationResult = tempCompilationResult;
       return true;
     }
 
