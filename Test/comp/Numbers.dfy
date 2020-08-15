@@ -1,7 +1,8 @@
-// RUN: %dafny /compile:3 /spillTargetCode:2 /compileTarget:cs "%s" > "%t"
-// RUN: %dafny /compile:3 /spillTargetCode:2 /compileTarget:js "%s" >> "%t"
-// RUN: %dafny /compile:3 /spillTargetCode:2 /compileTarget:go "%s" >> "%t"
-// RUN: %dafny /compile:3 /spillTargetCode:2 /compileTarget:java "%s" >> "%t"
+// RUN: %dafny /compile:0 "%s" > "%t"
+// RUN: %dafny /noVerify /compile:4 /compileTarget:cs "%s" >> "%t"
+// RUN: %dafny /noVerify /compile:4 /compileTarget:js "%s" >> "%t"
+// RUN: %dafny /noVerify /compile:4 /compileTarget:go "%s" >> "%t"
+// RUN: %dafny /noVerify /compile:4 /compileTarget:java "%s" >> "%t"
 // RUN: %diff "%s.expect" "%t"
 
 method Main() {
@@ -135,26 +136,26 @@ method DivModNative() {
   // For non-negative operands, Euclidean division and moduus coincide with those of the
   // target languages. Here, we're testing that no bad conversion happens between large
   // unsigned integers and the same-bitpattern negative signed integer.
-  var u8: uint8 := 0xE7;
-  var u16: uint16 := 0xFFE7;
-  var u32: uint32 := 0xFFFF_FFE7;
-  var u64: uint64 := 0xFFFF_FFFF_FFFF_FFE7;
-  print "uint8:  ", (u8 / 23,  u8 % 23),  " ";                                         // (10, 1)
-  print             (u8 / 0xFF, u8 % 0xFF), "\n";                                      // (0, 231)
-  print "uint16: ", (u16 / 23, u16 % 23), " ";                                         // (2848, 7)
-  print             (u16 / 0xFFFF, u16 % 0xFFFF), "\n";                                // (0, 65511)
-  print "uint32: ", (u32 / 23, u32 % 23), " ";                                         // (186_737_707, 10)
-  print             (u32 / 0xFFFF_FFFF, u32 % 0xFFFF_FFFF), "\n";                      // (0, 4_294_967_271)
-  print "uint64: ", (u64 / 23, u64 % 23), " ";                                         // (802_032_351_030_850_069, 4)
-  print             (u64 / 0xFFFF_FFFF_FFFF_FFFF, u64 % 0xFFFF_FFFF_FFFF_FFFF), "\n";  // (0, 18_446_744_073_709_551_591)
+  print "uint8:  ";
+  TestDivModUint8(0xE7, 23, " ");                                        // (10, 1)
+  TestDivModUint8(0xE7, 0xFF, "\n");                                     // (0, 231)
+  print "uint16: ";
+  TestDivModUint16(0xFFE7, 23, " ");                                     // (2848, 7)
+  TestDivModUint16(0xFFE7, 0xFFFF, "\n");                                // (0, 65511)
+  print "uint32: ";
+  TestDivModUint32(0xFFFF_FFE7, 23, " ");                                // (186_737_707, 10)
+  TestDivModUint32(0xFFFF_FFE7, 0xFFFF_FFFF, "\n");                      // (0, 4_294_967_271)
+  print "uint64: ";
+  TestDivModUint64(0xFFFF_FFFF_FFFF_FFE7, 23, " ");                      // (802_032_351_030_850_069, 4)
+  TestDivModUint64(0xFFFF_FFFF_FFFF_FFE7, 0xFFFF_FFFF_FFFF_FFFF, "\n");  // (0, 18_446_744_073_709_551_591)
 
   // Compute via defining definitions
   var i, j := 103, 13;
   print "via real: ";
-  print EuclideanDefinitions(i, j), " ";
-  print EuclideanDefinitions(-i, j), " ";
-  print EuclideanDefinitions(i, -j), " ";
-  print EuclideanDefinitions(-i, -j), "\n";
+  EuclideanDefinitions(i, j, " ");       // 7:12
+  EuclideanDefinitions(-i, j, " ");      // -8:1
+  EuclideanDefinitions(i, -j, " ");      // -7:12
+  EuclideanDefinitions(-i, -j, "\n");    // 8:1
 
   // Check with SMT
   assert i / j == 7       && i % j == 12;       // (7, 12)
@@ -162,36 +163,37 @@ method DivModNative() {
   assert i / (-j) == -7   && i % (-j) == 12;    // (-7, 12)
   assert (-i) / (-j) == 8 && (-i) % (-j) == 1;  // (8, 1)
 
+  print "int:      ";
+  TestDivModInt(i, j, " ");                    // (7, 12)
+  TestDivModInt(-i, j, " ");                   // (-8, 1)
+  TestDivModInt(i, -j, " ");                   // (-7, 12)
+  TestDivModInt(-i, -j, "\n");                 // (8, 1)
+
   // Test for native integers
   var i8: int8, j8: int8 := 103, 13;
   var i16: int16, j16: int16 := 103, 13;
   var i32: int32, j32: int32 := 103, 13;
   var i64: int64, j64: int64 := 103, 13;
   print "int8:     ";
-  print (i8 / j8,       i8 % j8), " ";
-  print ((-i8) / j8,    (-i8) % j8), " ";
-  print (i8 / (-j8),    i8 % (-j8)), " ";
-  print ((-i8) / (-j8), (-i8) % (-j8)), "\n";
+  TestDivModInt8(i8, j8, " ");                       // (7, 12)
+  TestDivModInt8(-i8, j8, " ");                      // (-8, 1)
+  TestDivModInt8(i8, -j8, " ");                      // (-7, 12)
+  TestDivModInt8(-i8, -j8, "\n");                    // (8, 1)
   print "int16:    ";
-  print (i16 / j16,       i16 % j16), " ";
-  print ((-i16) / j16,    (-i16) % j16), " ";
-  print (i16 / (-j16),    i16 % (-j16)), " ";
-  print ((-i16) / (-j16), (-i16) % (-j16)), "\n";
+  TestDivModInt16(i16, j16, " ");                    // (7, 12)
+  TestDivModInt16(-i16, j16, " ");                   // (-8, 1)
+  TestDivModInt16(i16, -j16, " ");                   // (-7, 12)
+  TestDivModInt16(-i16, -j16, "\n");                 // (8, 1)
   print "int32:    ";
-  print (i32 / j32,       i32 % j32), " ";
-  print ((-i32) / j32,    (-i32) % j32), " ";
-  print (i32 / (-j32),    i32 % (-j32)), " ";
-  print ((-i32) / (-j32), (-i32) % (-j32)), "\n";
+  TestDivModInt32(i32, j32, " ");                    // (7, 12)
+  TestDivModInt32(-i32, j32, " ");                   // (-8, 1)
+  TestDivModInt32(i32, -j32, " ");                   // (-7, 12)
+  TestDivModInt32(-i32, -j32, "\n");                 // (8, 1)
   print "int64:    ";
-  print (i64 / j64,       i64 % j64), " ";
-  print ((-i64) / j64,    (-i64) % j64), " ";
-  print (i64 / (-j64),    i64 % (-j64)), " ";
-  print ((-i64) / (-j64), (-i64) % (-j64)), "\n";
-  print "int:      ";
-  print (i / j,       i % j), " ";
-  print ((-i) / j,    (-i) % j), " ";
-  print (i / (-j),    i % (-j)), " ";
-  print ((-i) / (-j), (-i) % (-j)), "\n";
+  TestDivModInt64(i64, j64, " ");                    // (7, 12)
+  TestDivModInt64(-i64, j64, " ");                   // (-8, 1)
+  TestDivModInt64(i64, -j64, " ");                   // (-7, 12)
+  TestDivModInt64(-i64, -j64, "\n");                 // (8, 1)
 }
 function method Sign(n: int): int {
   if n < 0 then -1 else if n == 0 then 0 else 1
@@ -199,7 +201,7 @@ function method Sign(n: int): int {
 function method Abs(n: int): nat {
   if n < 0 then -n else n
 }
-function method EuclideanDefinitions(i: int, j: int): (int, int)
+method EuclideanDefinitions(i: int, j: int, suffix: string)
   requires j != 0
 {
   // For integers i and j, Euclidean division (i/j) and modulus (i%j) are defined as follows:
@@ -207,7 +209,34 @@ function method EuclideanDefinitions(i: int, j: int): (int, int)
   //   i%j    =    i - |j| * Floor(i // Abs(j))   where "//" denotes real division
   var div := Sign(j) * (i as real / Abs(j) as real).Floor;
   var mod := i - Abs(j) * (i as real / Abs(j) as real).Floor;
-  (div, mod)
+  print div, ":", mod, suffix;
+}
+method TestDivModInt(a: int, b: int, suffix: string) requires b != 0 {
+  print a / b, ":", a % b, suffix;
+}
+method TestDivModUint8(a: uint8, b: uint8, suffix: string) requires b != 0 {
+  print a / b, ":", a % b, suffix;
+}
+method TestDivModUint16(a: uint16, b: uint16, suffix: string) requires b != 0 {
+  print a / b, ":", a % b, suffix;
+}
+method TestDivModUint32(a: uint32, b: uint32, suffix: string) requires b != 0 {
+  print a / b, ":", a % b, suffix;
+}
+method TestDivModUint64(a: uint64, b: uint64, suffix: string) requires b != 0 {
+  print a / b, ":", a % b, suffix;
+}
+method TestDivModInt8(a: int8, b: int8, suffix: string) requires b != 0 && -127 <= a {
+  print a / b, ":", a % b, suffix;
+}
+method TestDivModInt16(a: int16, b: int16, suffix: string) requires b != 0 && -0x7FFF <= a {
+  print a / b, ":", a % b, suffix;
+}
+method TestDivModInt32(a: int32, b: int32, suffix: string) requires b != 0 && -0x7FFF_FFFF <= a {
+  print a / b, ":", a % b, suffix;
+}
+method TestDivModInt64(a: int64, b: int64, suffix: string) requires b != 0 && -0x7FFF_FFFF_FFFF_FFFF <= a {
+  print a / b, ":", a % b, suffix;
 }
 
 method DivModReal(dividend: real, divisor: real)
