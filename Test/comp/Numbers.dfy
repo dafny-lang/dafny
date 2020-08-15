@@ -133,15 +133,20 @@ newtype int64 = x | -0x8000_0000_0000_0000 <= x < 0x8000_0000_0000_0000
 
 method DivModNative() {
   // For non-negative operands, Euclidean division and moduus coincide with those of the
-  // target languages.
-  var u8: uint8 := 231;
-  var u32: uint32 := 23_001;
-  var u16: uint16 := 2301;
-  var u64: uint64 := 23_000_000_000_001;
-  print "uint8:  ", (u8 / 23,  u8 % 23),  "\n";  // (10, 1)
-  print "uint16: ", (u16 / 23, u16 % 23), "\n";  // (100, 1)
-  print "uint32: ", (u32 / 23, u32 % 23), "\n";  // (1000, 1)
-  print "uint64: ", (u64 / 23, u64 % 23), "\n";  // (1_000_000_000_000, 1)
+  // target languages. Here, we're testing that no bad conversion happens between large
+  // unsigned integers and the same-bitpattern negative signed integer.
+  var u8: uint8 := 0xE7;
+  var u16: uint16 := 0xFFE7;
+  var u32: uint32 := 0xFFFF_FFE7;
+  var u64: uint64 := 0xFFFF_FFFF_FFFF_FFE7;
+  print "uint8:  ", (u8 / 23,  u8 % 23),  " ";                                         // (10, 1)
+  print             (u8 / 0xFF, u8 % 0xFF), "\n";                                      // (0, 231)
+  print "uint16: ", (u16 / 23, u16 % 23), " ";                                         // (2848, 7)
+  print             (u16 / 0xFFFF, u16 % 0xFFFF), "\n";                                // (0, 65511)
+  print "uint32: ", (u32 / 23, u32 % 23), " ";                                         // (186_737_707, 10)
+  print             (u32 / 0xFFFF_FFFF, u32 % 0xFFFF_FFFF), "\n";                      // (0, 4_294_967_271)
+  print "uint64: ", (u64 / 23, u64 % 23), " ";                                         // (802_032_351_030_850_069, 4)
+  print             (u64 / 0xFFFF_FFFF_FFFF_FFFF, u64 % 0xFFFF_FFFF_FFFF_FFFF), "\n";  // (0, 18_446_744_073_709_551_591)
 
   // Compute via defining definitions
   var i, j := 103, 13;
