@@ -176,10 +176,6 @@
     <Compile Include="TextDocumentManager.cs" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="App.config" />
-    <None Include="packages.config" />
-  </ItemGroup>
-  <ItemGroup>
     <ProjectReference Include="..\Dafny\DafnyPipeline.csproj">
       <Project>{FE44674A-1633-4917-99F4-57635E6FA740}</Project>
       <Name>DafnyPipeline</Name>

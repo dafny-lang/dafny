@@ -702,7 +702,7 @@ namespace Microsoft.Dafny {
         var preludeAssemblyName = Assembly.GetExecutingAssembly().GetManifestResourceNames().First(s => s.EndsWith(fileName));
         using (Stream stream = cce.NonNull(Assembly.GetExecutingAssembly().GetManifestResourceStream(preludeAssemblyName)))
         {
-          errorCount = BplParser.Parse(stream, fileName, defines, out prelude);
+          errorCount = BplParser.Parse(new StreamReader(stream), fileName, defines, out prelude);
         }
       }
       else
