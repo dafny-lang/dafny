@@ -851,7 +851,7 @@ let _dafny = (function() {
       // c = ((-a) % bp)
       // -a: bp - c if c > 0
       // -a: 0 if c == 0
-      let c = (-1) % bp;
+      let c = (-a) % bp;
       return c === 0 ? c : bp - c;
     }
   }
