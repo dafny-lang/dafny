@@ -161,7 +161,13 @@ method DivModNative() {
   assert i / j == 7       && i % j == 12;       // (7, 12)
   assert (-i) / j == -8   && (-i) % j == 1;     // (-8, 1)
   assert i / (-j) == -7   && i % (-j) == 12;    // (-7, 12)
-  assert (-i) / (-j) == 8 && (-i) % (-j) == 1;  // (8, 1)
+  assert (-103) / (-j) == 8 && (-i) % (-j) == 1;  // (8, 1)
+  // NOTE: In the previous line, if "-103" is replaced by the equivalent "-i", then Z3 version 4.8.4
+  // complains. In fact, Z3 4.8.4 is then happy to prove "(-i) / (-j) == 7", which is bogus. However,
+  // it seems that this error has been corrected in Z3 4.8.7 (or earlier). Therefore, by just
+  // writing "-103" here, we have a workaround for this test file. Once Dafny switches to a version
+  // of Z3 that is 4.8.7 or newer, then it would be good to switch "-103" back to "-i" here to make
+  // sure that particular Z3 bug has been fixed.
 
   print "int:      ";
   TestDivModInt(i, j, " ");                    // (7, 12)
