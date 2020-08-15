@@ -410,7 +410,7 @@ freshly allocated in the current method invocation.
 The argument of `fresh` must be either an object reference
 or a collection of object references.
 
-## Old Expressions
+## Old Expressions {#sec-old-expression}
 ````
 OldExpression_ = "old" "(" Expression(allowLemma: true, allowLambda: true) ")"
 ````
