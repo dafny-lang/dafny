@@ -260,13 +260,22 @@ namespace Microsoft.Dafny
         } else {
           reporter.Error(MessageSource.RefinementTransformer, nw, "an iterator declaration ({0}) is a refining module cannot replace a different kind of declaration in the refinement base", nw.Name);
         }
-      } else {
-        Contract.Assert(nw is ClassDecl);
+      } else if (nw is ClassDecl) {
         if (d is DatatypeDecl) {
-          reporter.Error(MessageSource.RefinementTransformer, nw, "a class declaration ({0}) in a refining module cannot replace a different kind of declaration in the refinement base", nw.Name);
+          reporter.Error(MessageSource.RefinementTransformer, nw,
+            "a class declaration ({0}) in a refining module cannot replace a different kind of declaration in the refinement base",
+            nw.Name);
         } else {
-          m.TopLevelDecls[index] = MergeClass((ClassDecl)nw, (ClassDecl)d);
+          m.TopLevelDecls[index] = MergeClass((ClassDecl) nw, (ClassDecl) d);
         }
+      } else if (nw is TypeSynonymDecl && d is TypeSynonymDecl 
+                                       && ((TypeSynonymDecl)nw).Rhs != null
+                                       && ((TypeSynonymDecl)d).Rhs != null) {
+        reporter.Error(MessageSource.RefinementTransformer, d,
+          "a type ({0}) in a refining module may not replace an already defined type (even with the same value)",
+          d.Name);
+      } else {
+        Contract.Assert(false);
       }
     }
 
