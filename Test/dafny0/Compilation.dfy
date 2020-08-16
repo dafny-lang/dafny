@@ -110,8 +110,8 @@ module T refines S {
   }
 }
 module A {
-   import X : T
-   import Y : T
+   import X = T
+   import Y = T
    import Z = T
    method run() {
      var x := new X.C();
@@ -138,7 +138,7 @@ module T1 refines S1 {
     var x := 3;
   }
 }
-module A1 {
+abstract module A1 {
    import X : T1
    method run() {
      X.do();

@@ -35,7 +35,14 @@ user understand how to do proofs with Dafny.
 
 {% include Expressions.md %}
 
-# Module Refinement
+{% include Grammar.md %}
+
+# Well-Founded Orders {#sec-well-founded-orders}
+
+TODO: Write this section
+
+# Module Refinement {#sec-module-refinement}
+
 TODO: Write this section.
 
 {% include Attributes.md %}
