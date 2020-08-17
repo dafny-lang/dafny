@@ -20,6 +20,7 @@ namespace Microsoft.Dafny
 
     ErrorReporter reporter;
     ModuleSignature moduleInfo = null;
+    private int heapReferenceCount = 0;
 
     private bool RevealedInScope(Declaration d) {
       Contract.Requires(d != null);
@@ -13139,6 +13140,7 @@ namespace Microsoft.Dafny
         expr.Type = new MultiSetType(elementType);
 
       } else if (expr is OldExpr) {
+        int saveHeapReferenceCount = heapReferenceCount;
         OldExpr e = (OldExpr)expr;
         if (!opts.twoState) {
           reporter.Error(MessageSource.Resolver, expr, "old expressions are not allowed in this context");
@@ -13150,7 +13152,9 @@ namespace Microsoft.Dafny
         }
         ResolveExpression(e.E, new ResolveOpts(opts.codeContext, false, opts.isReveal, opts.isPostCondition, true));
         expr.Type = e.E.Type;
-
+        if (saveHeapReferenceCount == heapReferenceCount) {
+          reporter.Warning(MessageSource.Resolver, expr.tok, "the old operator has no effect here");
+        }
       } else if (expr is UnchangedExpr) {
         var e = (UnchangedExpr)expr;
         if (!opts.twoState) {
@@ -14195,6 +14199,7 @@ namespace Microsoft.Dafny
           }
           receiver = new ImplicitThisExpr(expr.tok);
           receiver.Type = GetThisType(expr.tok, currentClass);  // resolve here
+          heapReferenceCount++;
         }
         r = ResolveExprDotCall(expr.tok, receiver, null, member, args, expr.OptTypeArguments, opts, allowMethodCall);
       } else if (isLastNameSegment && moduleInfo.Ctors.TryGetValue(name, out pair)) {
@@ -14320,6 +14325,7 @@ namespace Microsoft.Dafny
           receiver.Type = GetThisType(expr.tok, (ClassDecl)member.EnclosingClass);  // resolve here
         }
         r = ResolveExprDotCall(expr.tok, receiver, member, expr.OptTypeArguments, opts.codeContext, allowMethodCall);
+        heapReferenceCount++;
 #endif
       } else if (moduleInfo.TopLevels.TryGetValue(expr.Name, out decl)) {
         // ----- 2. Member of the enclosing module
@@ -14557,6 +14563,7 @@ namespace Microsoft.Dafny
             receiver = expr.Lhs;
             AddAssignableConstraint(expr.tok, tentativeReceiverType, receiver.Type, "receiver type ({1}) does not have a member named " + name);
             r = ResolveExprDotCall(expr.tok, receiver, tentativeReceiverType, member, args, expr.OptTypeArguments, opts, allowMethodCall);
+            heapReferenceCount++;
           } else {
             receiver = new StaticReceiverExpr(expr.tok, (UserDefinedType)tentativeReceiverType, (TopLevelDeclWithMembers)member.EnclosingClass, false, lhs);
             r = ResolveExprDotCall(expr.tok, receiver, null, member, args, expr.OptTypeArguments, opts, allowMethodCall);
@@ -15972,6 +15979,7 @@ namespace Microsoft.Dafny
         e.Type = new SeqType(resultType);
         AddXConstraint(e.tok, "ContainerResult", e.Seq.Type, resultType, "type does not agree with element type of {0} (got {1})");
       }
+      if (e.Seq.Type.IsArrayType || e.Seq.Type is InferredTypeProxy) heapReferenceCount++;
     }
 
     /// <summary>
