@@ -1,11 +1,7 @@
 Basics.dfy(623,17): Error: result of operation might violate newtype constraint for 'int8'
 Execution trace:
     (0,0): anon0
-    (0,0): anon6_Then
-Basics.dfy(629,15): Error: result of operation might violate newtype constraint for 'int8'
-Execution trace:
-    (0,0): anon0
-    (0,0): anon9_Then
+    (0,0): anon5_Then
 Basics.dfy(13,13): Error: variable 'g', which is subject to definite-assignment rules, might be used before it has been assigned
 Execution trace:
     (0,0): anon0
@@ -136,4 +132,4 @@ Execution trace:
     (0,0): anon4_Then
     (0,0): anon3
 
-Dafny program verifier finished with 48 verified, 21 errors
+Dafny program verifier finished with 48 verified, 20 errors
