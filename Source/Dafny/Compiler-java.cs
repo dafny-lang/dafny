@@ -2802,22 +2802,34 @@ namespace Microsoft.Dafny{
           break;
         case BinaryExpr.ResolvedOpcode.Div:
           if (resultType.IsIntegerType || (AsNativeType(resultType) != null && AsNativeType(resultType).LowerBound < BigInteger.Zero)) {
-            var suffix = AsNativeType(resultType) != null ? "_" + GetNativeTypeName(AsNativeType(resultType)) : "";
-            staticCallString = $"{DafnyEuclideanClass}.EuclideanDivision" + suffix;
+            staticCallString = $"{DafnyEuclideanClass}.EuclideanDivision";
           } else if (AsNativeType(resultType) != null) {
-            preOpString = CastIfSmallNativeType(resultType);
-            staticCallString = HelperClass(AsNativeType(resultType)) + ".divideUnsigned";
+            var nt = AsNativeType(resultType);
+            if (nt.Sel == NativeType.Selection.Byte) {
+              staticCallString = "dafny.Helpers.divideUnsignedByte";
+            } else if (nt.Sel == NativeType.Selection.UShort) {
+              staticCallString = "dafny.Helpers.divideUnsignedShort";
+            } else {
+              preOpString = CastIfSmallNativeType(resultType);
+              staticCallString = HelperClass(AsNativeType(resultType)) + ".divideUnsigned";
+            }
           } else {
             callString = "divide";
           }
           break;
         case BinaryExpr.ResolvedOpcode.Mod:
           if (resultType.IsIntegerType || (AsNativeType(resultType) != null && AsNativeType(resultType).LowerBound < BigInteger.Zero)) {
-            var suffix = AsNativeType(resultType) != null ? "_" + GetNativeTypeName(AsNativeType(resultType)) : "";
-            staticCallString = $"{DafnyEuclideanClass}.EuclideanModulus" + suffix;
+            staticCallString = $"{DafnyEuclideanClass}.EuclideanModulus";
           } else if (AsNativeType(resultType) != null) {
-            preOpString = CastIfSmallNativeType(resultType);
-            staticCallString = HelperClass(AsNativeType(resultType)) + ".remainderUnsigned";
+            var nt = AsNativeType(resultType);
+            if (nt.Sel == NativeType.Selection.Byte) {
+              staticCallString = "dafny.Helpers.remainderUnsignedByte";
+            } else if (nt.Sel == NativeType.Selection.UShort) {
+              staticCallString = "dafny.Helpers.remainderUnsignedShort";
+            } else {
+              preOpString = CastIfSmallNativeType(resultType);
+              staticCallString = HelperClass(AsNativeType(resultType)) + ".remainderUnsigned";
+            }
           } else {
             callString = "mod";
           }
