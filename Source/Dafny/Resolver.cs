@@ -1435,6 +1435,11 @@ namespace Microsoft.Dafny
           dependencies.AddEdge(decl, d);
           var subbindings = bindings.SubBindings(d.Name);
           ProcessDependencies(d, subbindings ?? bindings, dependencies);
+          if (!m.IsAbstract && d is ModuleFacadeDecl && ((ModuleFacadeDecl) d).Root != null) {
+            reporter.Error(MessageSource.Resolver, d.tok, 
+              "The abstract import named {0} (using :) may only be used in an abstract module declaration",
+              d.Name);
+          }
         }
       }
     }
@@ -3605,7 +3610,7 @@ namespace Microsoft.Dafny
       Contract.Requires(t != null);
       Contract.Requires(!(t is TypeProxy));
       Contract.Requires(!(t is ArtificialType));
-      if (_recursionDepth == 20) {
+      if (_recursionDepth == 20000) {
         Contract.Assume(false);  // possible infinite recursion
       }
       _recursionDepth++;

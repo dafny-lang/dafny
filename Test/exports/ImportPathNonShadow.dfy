@@ -10,14 +10,14 @@ module A {
 
 }
 
-module B {
+abstract module B {
   import Afandg = A`fandg
   import A : A`justf
 
   function h(): int { A.f() + Afandg.g() + Afandg.f() }
 }
 
-module BB {
+abstract module BB {
   import A : A`justf
   import Afandg = A`fandg
 
