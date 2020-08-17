@@ -173,7 +173,9 @@ method DivModNative() {
   TestDivModInt(i, j, " ");                    // (7, 12)
   TestDivModInt(-i, j, " ");                   // (-8, 1)
   TestDivModInt(i, -j, " ");                   // (-7, 12)
-  TestDivModInt(-i, -j, "\n");                 // (8, 1)
+  TestDivModInt(-i, -j, " ");                  // (8, 1)
+  TestDivModInt(-108, 9, " ");                 // (-12, 0)
+  TestDivModInt(-108, -9, "\n");               // (12, 0)
 
   // Test for native integers
   var i8: int8, j8: int8 := 103, 13;
@@ -184,22 +186,30 @@ method DivModNative() {
   TestDivModInt8(i8, j8, " ");                       // (7, 12)
   TestDivModInt8(-i8, j8, " ");                      // (-8, 1)
   TestDivModInt8(i8, -j8, " ");                      // (-7, 12)
-  TestDivModInt8(-i8, -j8, "\n");                    // (8, 1)
+  TestDivModInt8(-i8, -j8, " ");                     // (8, 1)
+  TestDivModInt8(-108, 9, " ");                      // (-12, 0)
+  TestDivModInt8(-108, -9, "\n");                    // (12, 0)
   print "int16:    ";
   TestDivModInt16(i16, j16, " ");                    // (7, 12)
   TestDivModInt16(-i16, j16, " ");                   // (-8, 1)
   TestDivModInt16(i16, -j16, " ");                   // (-7, 12)
-  TestDivModInt16(-i16, -j16, "\n");                 // (8, 1)
+  TestDivModInt16(-i16, -j16, " ");                  // (8, 1)
+  TestDivModInt16(-108, 9, " ");                     // (-12, 0)
+  TestDivModInt16(-108, -9, "\n");                   // (12, 0)
   print "int32:    ";
   TestDivModInt32(i32, j32, " ");                    // (7, 12)
   TestDivModInt32(-i32, j32, " ");                   // (-8, 1)
   TestDivModInt32(i32, -j32, " ");                   // (-7, 12)
-  TestDivModInt32(-i32, -j32, "\n");                 // (8, 1)
+  TestDivModInt32(-i32, -j32, " ");                  // (8, 1)
+  TestDivModInt32(-108, 9, " ");                     // (-12, 0)
+  TestDivModInt32(-108, -9, "\n");                   // (12, 0)
   print "int64:    ";
   TestDivModInt64(i64, j64, " ");                    // (7, 12)
   TestDivModInt64(-i64, j64, " ");                   // (-8, 1)
   TestDivModInt64(i64, -j64, " ");                   // (-7, 12)
-  TestDivModInt64(-i64, -j64, "\n");                 // (8, 1)
+  TestDivModInt64(-i64, -j64, " ");                  // (8, 1)
+  TestDivModInt64(-108, 9, " ");                     // (-12, 0)
+  TestDivModInt64(-108, -9, "\n");                   // (12, 0)
 }
 function method Sign(n: int): int {
   if n < 0 then -1 else if n == 0 then 0 else 1
