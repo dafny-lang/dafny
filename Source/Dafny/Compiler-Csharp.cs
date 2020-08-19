@@ -32,10 +32,18 @@ namespace Microsoft.Dafny
 
     protected override void EmitHeader(Program program, TargetWriter wr) {
       wr.WriteLine("// Dafny program {0} compiled into C#", program.Name);
-      wr.WriteLine("// To recompile, use 'csc' with: /r:System.Numerics.dll");
-      wr.WriteLine("// and choosing /target:exe or /target:library");
-      wr.WriteLine("// You might also want to include compiler switches like:");
-      wr.WriteLine("//     /debug /nowarn:0164 /nowarn:0219 /nowarn:1717 /nowarn:0162 /nowarn:0168 /nowarn:0436 /nowarn:0183");
+      wr.WriteLine("// To recompile, use 'csc' with");
+      wr.WriteLine("//     /r:System.Numerics.dll /r:System.Collections.Immutable.dll /r:System.Runtime.dll");
+      wr.WriteLine("// You'll find a copy of System.Collections.Immutable.dll in the Dafny distribution, and");
+      wr.WriteLine("// Dafny will have tried to copy this file into the target directory if you compiled to");
+      wr.WriteLine("// an executable (with a Main method). The csc compiler should know where to pick up the");
+      wr.WriteLine("// other two DLLs.");
+      wr.WriteLine("// You should also choose either");
+      wr.WriteLine("//     /target:exe");
+      wr.WriteLine("// or");
+      wr.WriteLine("//     /target:library");
+      wr.WriteLine("// Optionally, you may want to include compiler switches like");
+      wr.WriteLine("//     /debug /nowarn:162,164,168,183,219,436,1717,1718");
       wr.WriteLine();
       wr.WriteLine("using System;");
       wr.WriteLine("using System.Numerics;");
@@ -2430,15 +2438,16 @@ namespace Microsoft.Dafny
         cp.GenerateInMemory = false;
       }
       // The nowarn numbers are the following:
+      // * CS0162 is about unreachable code
       // * CS0164 complains about unreferenced labels
       // * CS0219/CS0168 is about unused variables
-      // * CS1717 is about assignments of a variable to itself
-      // * CS0162 is about unreachable code
+      // * CS0183 is about unneeded casts
       // * CS0436 is about types in source files that conflict with imported types (caused by
       //   dynamically-generated types like Tuple0 that aren't part of the runtime, which are
       //   often in pre-compiled Dafny DLLs)
-      // * CS0183 is about unneeded casts
-      cp.CompilerOptions = "/debug /nowarn:0164 /nowarn:0219 /nowarn:1717 /nowarn:0162 /nowarn:0168 /nowarn:0436 /nowarn:0183";
+      // * CS1717 is about assignments of a variable to itself
+      // * CS1718 is about comparison to the same variable
+      cp.CompilerOptions = "/debug /nowarn:162,164,168,183,219,436,1717,1718";
       cp.ReferencedAssemblies.Add("System.Numerics.dll");
       cp.ReferencedAssemblies.Add("System.Core.dll");
       cp.ReferencedAssemblies.Add("System.dll");
@@ -2450,6 +2459,7 @@ namespace Microsoft.Dafny
       }
 
       // DLL requirements differ based on whether we are using mono
+      var filesToCopyLocally = new List<string>() { "System.Collections.Immutable.dll" };
       crx.immutableDllFileNames = new List<string>() {
         "System.Collections.Immutable.dll",
         "System.Runtime.dll"
@@ -2465,7 +2475,6 @@ namespace Microsoft.Dafny
         cp.CompilerOptions += " /optimize";
       }
       cp.CompilerOptions += " /lib:" + crx.libPath;
-      cp.CompilerOptions += " /nowarn:1718"; // Comparison to the same variable
       foreach (var filename in crx.immutableDllFileNames) {
         cp.ReferencedAssemblies.Add(filename);
       }
@@ -2525,13 +2534,20 @@ namespace Microsoft.Dafny
         if (DafnyOptions.O.CompileVerbose) {
           outputWriter.WriteLine("Compiled assembly into {0}", assemblyName);
         }
-        var outputDir = Path.GetDirectoryName(dafnyProgramName);
-        if (string.IsNullOrWhiteSpace(outputDir)) {
-          outputDir = ".";
-        }
-        foreach (var filename in crx.immutableDllFileNames) {
-          var destPath = outputDir + Path.DirectorySeparatorChar + filename;
-          File.Copy(crx.libPath + filename, destPath, true);
+        if (hasMain) {
+          var outputDir = Path.GetDirectoryName(dafnyProgramName);
+          if (string.IsNullOrWhiteSpace(outputDir)) {
+            outputDir = ".";
+          }
+          foreach (var filename in filesToCopyLocally) {
+            var destPath = outputDir + Path.DirectorySeparatorChar + filename;
+            try {
+              File.Copy(crx.libPath + filename, destPath, true);
+            } catch (FileNotFoundException) {
+              // Just make this a warning. Users may still be able to copy it manually.
+              outputWriter.WriteLine($"Note, attempt to copy '{filename}' to output directory failed. To run the program, you may need to copy this file manually.");
+            }
+          }
         }
       }
 
