@@ -1378,6 +1378,8 @@ namespace Microsoft.Dafny {
         case "void":
         case "volatile":
         case "with":
+        case "toString":
+        case "equals":
           return "_$$_" + name;
         default:
           return name;
