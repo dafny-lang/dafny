@@ -672,7 +672,6 @@ namespace Microsoft.Dafny {
       }
 
       public static List<TypeArgumentInstantiation> ListFromMember(MemberDecl member, List<Type> /*?*/ classActuals, List<Type> /*?*/ memberActuals) {
-        Contract.Requires(member is Function || member is Method);
         Contract.Requires(classActuals == null || classActuals.Count == member.EnclosingClass.TypeArgs.Count);
         Contract.Requires(memberActuals == null || memberActuals.Count == (member is ICallable ic ? ic.TypeArgs.Count : 0));
 
@@ -1406,7 +1405,7 @@ namespace Microsoft.Dafny {
         } else if (member is Function) {
           var f = (Function)member;
           if (f.Body == null && !(c is TraitDecl && !f.IsStatic) &&
-              !(!DafnyOptions.O.DisallowExterns && (Attributes.Contains(f.Attributes, "dllimport") || IncludeExternMembers && Attributes.Contains(f.Attributes, "extern")))) {
+              !(!DafnyOptions.O.DisallowExterns && (Attributes.Contains(f.Attributes, "dllimport") || (IncludeExternMembers && Attributes.Contains(f.Attributes, "extern"))))) {
             // A (ghost or non-ghost) function must always have a body, except if it's an instance function in a trait.
             if (Attributes.Contains(f.Attributes, "axiom") || (!DafnyOptions.O.DisallowExterns && Attributes.Contains(f.Attributes, "extern"))) {
               // suppress error message
@@ -1438,7 +1437,7 @@ namespace Microsoft.Dafny {
           v.Visit(f);
         } else if (member is Method m) {
           if (m.Body == null && !(c is TraitDecl && !m.IsStatic) &&
-              !(!DafnyOptions.O.DisallowExterns && (Attributes.Contains(m.Attributes, "dllimport") || IncludeExternMembers && Attributes.Contains(m.Attributes, "extern")))) {
+              !(!DafnyOptions.O.DisallowExterns && (Attributes.Contains(m.Attributes, "dllimport") || (IncludeExternMembers && Attributes.Contains(m.Attributes, "extern"))))) {
             // A (ghost or non-ghost) method must always have a body, except if it's an instance method in a trait.
             if (Attributes.Contains(m.Attributes, "axiom") || (!DafnyOptions.O.DisallowExterns && Attributes.Contains(m.Attributes, "extern"))) {
               // suppress error message
@@ -1810,7 +1809,7 @@ namespace Microsoft.Dafny {
     private void CompileFunction(Function f, IClassWriter cw) {
       Contract.Requires(f != null);
       Contract.Requires(cw != null);
-      Contract.Requires(f.Body != null);
+      Contract.Requires(f.Body != null || Attributes.Contains(f.Attributes, "dllimport") || (IncludeExternMembers && Attributes.Contains(f.Attributes, "extern")));
 
       var w = cw.CreateFunction(IdName(f), CombineTypeParameters(f, true), f.Formals, f.ResultType, f.tok, f.IsStatic, !f.IsExtern(out _, out _), f);
       if (w != null) {
@@ -1860,7 +1859,7 @@ namespace Microsoft.Dafny {
     private void CompileMethod(Method m, IClassWriter cw, Dictionary<TypeParameter, Type>/*?*/ parentTypeParameterTypeMap) {
       Contract.Requires(cw != null);
       Contract.Requires(m != null);
-      Contract.Requires(m.Body != null);
+      Contract.Requires(m.Body != null || Attributes.Contains(m.Attributes, "dllimport") || (IncludeExternMembers && Attributes.Contains(m.Attributes, "extern")));
 
       var w = cw.CreateMethod(m, CombineTypeParameters(m, true), !m.IsExtern(out _, out _), false);
       if (w != null) {
@@ -4693,7 +4692,7 @@ namespace Microsoft.Dafny {
         wr.Write("){0}", ClassAccessor);
         compileName = IdName(f);
       }
-      var actualTypeArguments = CombineTypeArguments(f, f.IsStatic || customReceiver ? e.TypeApplication_AtEnclosingClass : null, e.TypeApplication_JustFunction);
+      var actualTypeArguments = CombineTypeArguments(f, f.IsStatic || customReceiver ? e.TypeApplication_AtEnclosingClass : new List<Type>(), e.TypeApplication_JustFunction);
       EmitNameAndActualTypeArgs(compileName, actualTypeArguments.ConvertAll(ta => ta.Actual), f.tok, wr);
       wr.Write("(");
       var nRTDs = EmitRuntimeTypeDescriptorsActuals(actualTypeArguments, e.tok, false, wr);

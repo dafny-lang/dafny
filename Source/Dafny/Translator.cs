@@ -12150,7 +12150,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(etran != null);
       Contract.Requires(tySubst != null);
       Contract.Requires(tyArgs != null);
-      Contract.Requires(tySubst.Count == tyArgs.Count);
+      Contract.Requires(tyArgs.Count <= tySubst.Count);  // more precisely, the members of tyArgs are required to be keys of tySubst, but this is a cheap sanity test
 
       // Figure out if the call is recursive or not, which will be used below to determine the need for a
       // termination check and the need to include an implicit _k-1 argument.
