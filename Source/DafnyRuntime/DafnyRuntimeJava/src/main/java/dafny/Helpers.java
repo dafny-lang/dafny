@@ -118,6 +118,18 @@ public class Helpers {
         return (int) l;
     }
 
+    public static int unsignedToInt(byte x) {
+        return ((int)x) & 0xFF;
+    }
+
+    public static int unsignedToInt(short x) {
+        return ((int)x) & 0xFFFF;
+    }
+
+    public static int unsignedToInt(long x) {
+        return (int)x;
+    }
+
     private final static BigInteger ULONG_LIMIT = new BigInteger("18446744073709551616");  // 0x1_0000_0000_0000_0000
 
     public static BigInteger unsignedLongToBigInteger(long l) {

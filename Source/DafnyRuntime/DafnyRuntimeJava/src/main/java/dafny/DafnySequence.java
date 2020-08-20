@@ -246,6 +246,14 @@ public abstract class DafnySequence<T> implements Iterable<T> {
         return seq.<R>update(b.intValue(), t);
     }
 
+    public static <R> DafnySequence<R> update(DafnySequence<? extends R> seq, int idx, R t) {
+        return seq.<R>update(idx, t);
+    }
+
+    public static <R> DafnySequence<R> update(DafnySequence<? extends R> seq, long idx, R t) {
+        return seq.<R>update((int)idx, t);
+    }
+
     public <U> boolean contains(U t) {
         // assume U is a supertype of T
         assert t != null : "Precondition Violation";
