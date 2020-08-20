@@ -103,6 +103,19 @@ namespace Microsoft.Dafny{
       }
     }
 
+    private static bool IsUnsignedJavaNativeType(NativeType nt) {
+      Contract.Requires(nt != null);
+      switch (nt.Sel) {
+        case NativeType.Selection.Byte:
+        case NativeType.Selection.UShort:
+        case NativeType.Selection.UInt:
+        case NativeType.Selection.ULong:
+          return true;
+        default:
+          return false;
+      }
+    }
+
     private static JavaNativeType AsJavaNativeType(NativeType nt) {
       return AsJavaNativeType(nt.Sel);
     }
@@ -1542,7 +1555,8 @@ namespace Microsoft.Dafny{
         TrParenExpr(".get", index, wr, inLetExprBody);
       } else {
         TrParenExpr(source, wr, inLetExprBody);
-        TrParenExpr(".select", index, wr, inLetExprBody);
+        wr.Write(".select");
+        TrParenExprAsInt(index, wr, inLetExprBody);
       }
     }
 
@@ -1556,20 +1570,23 @@ namespace Microsoft.Dafny{
         wr.Write($"{DafnySeqClass}.<{BoxedTypeName(resultCollectionType.Arg, wr, Bpl.Token.NoToken)}>update(");
         TrExpr(source, wr, inLetExprBody);
         wr.Write(", ");
+        TrExprAsInt(index, wr, inLetExprBody);
       } else if (source.Type.AsMapType != null) {
         var mapType = (MapType)resultCollectionType;
         wr.Write($"{DafnyMapClass}.<{BoxedTypeName(mapType.Domain, wr, Bpl.Token.NoToken)}, {BoxedTypeName(mapType.Range, wr, Bpl.Token.NoToken)}>update(");
         TrExpr(source, wr, inLetExprBody);
         wr.Write(", ");
+        TrExpr(index, wr, inLetExprBody);
       } else if (source.Type.AsMultiSetType != null) {
         wr.Write($"{DafnyMultiSetClass}.<{BoxedTypeName(resultCollectionType.Arg, wr, Bpl.Token.NoToken)}>update(");
         TrExpr(source, wr, inLetExprBody);
         wr.Write(", ");
+        TrExpr(index, wr, inLetExprBody);
       } else {
         TrParenExpr(source, wr, inLetExprBody);
         wr.Write(".update(");
+        TrExpr(index, wr, inLetExprBody);
       }
-      TrExpr(index, wr, inLetExprBody);
       wr.Write(", ");
       TrExpr(value, wr, inLetExprBody);
       wr.Write(")");
@@ -2090,7 +2107,7 @@ namespace Microsoft.Dafny{
         bool isGeneric = arg.Type.AsSeqType != null &&
                          arg.Type.AsSeqType.Arg.IsTypeParameter;
         if (isString) {
-          TrExpr(arg, wr, false);
+          TrParenExpr(arg, wr, false);
           wr.Write(".verbatimString()");
         } else if (isGeneric) {
           wr.Write($"((java.util.function.Function<{DafnySeqClass}<?>,String>)(_s -> (_s.elementType().defaultValue().getClass() == java.lang.Character.class ? _s.verbatimString() : String.valueOf(_s)))).apply(");
@@ -3450,25 +3467,41 @@ namespace Microsoft.Dafny{
       return cw;
     }
 
+    protected override string ArrayIndexToNativeInt(string s, Type type) {
+      var nt = AsNativeType(type);
+      if (nt == null) {
+        return $"({s}).intValue()";
+      } else if (nt.Sel == NativeType.Selection.Int || nt.Sel == NativeType.Selection.UInt) {
+        return s;
+      } else if (IsUnsignedJavaNativeType(nt)) {
+        return $"{DafnyHelpersClass}.unsignedToInt({s})";
+      } else {
+        return $"{DafnyHelpersClass}.toInt({s})";
+      }
+    }
+
     private void TrExprAsInt(Expression expr, TargetWriter wr, bool inLetExprBody) {
-      // TODO: Optimize
-      if (AsNativeType(expr.Type) == null) {
+      var nt = AsNativeType(expr.Type);
+      if (nt == null) {
         TrParenExpr(expr, wr, inLetExprBody);
         wr.Write(".intValue()");
-      } else {
+      } else if (nt.Sel == NativeType.Selection.Int || nt.Sel == NativeType.Selection.UInt) {
         TrExpr(expr, wr, inLetExprBody);
+      } else if (IsUnsignedJavaNativeType(nt)) {
+        wr.Write($"{DafnyHelpersClass}.unsignedToInt(");
+        TrExpr(expr, wr, inLetExprBody);
+        wr.Write(")");
+      } else {
+        wr.Write($"{DafnyHelpersClass}.toInt(");
+        TrExpr(expr, wr, inLetExprBody);
+        wr.Write(")");
       }
     }
 
     private void TrParenExprAsInt(Expression expr, TargetWriter wr, bool inLetExprBody) {
-      wr.Write('(');
+      wr.Write("(");
       TrExprAsInt(expr, wr, inLetExprBody);
-      wr.Write(')');
-    }
-
-    private void TrParenExprAsInt(string prefix, Expression expr, TargetWriter wr, bool inLetExprBody) {
-      wr.Write(prefix);
-      TrParenExprAsInt(expr, wr, inLetExprBody);
+      wr.Write(")");
     }
 
     protected override void EmitNewArray(Type elmtType, Bpl.IToken tok, List<Expression> dimensions, bool mustInitialize, TargetWriter wr) {
