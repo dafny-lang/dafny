@@ -57,6 +57,7 @@ DLLs = ["BoogieAbsInt",
         "Provers.SMTLib",
         "BoogieVCExpr",
         "BoogieVCGeneration",
+        "System.Collections.Immutable",
         "Mono.Cecil"]
 EXEs = ["Dafny", "DafnyServer"]
 ETCs = UNIX_EXECUTABLES + ["DafnyPrelude.bpl", "DafnyRuntime.cs", "DafnyRuntime.js", "DafnyRuntime.go"]
