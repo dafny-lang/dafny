@@ -10518,7 +10518,7 @@ namespace Microsoft.Dafny
       Expression expr = genExpr;
       if (genExpr is IdentifierExpr idExpr) {
         if (idExpr.Name.StartsWith("_")) {
-          expr = new IdentifierExpr(var.Tok, idExpr.Var) {Type = idExpr.Type};
+          expr = new IdentifierExpr(var.Tok, idExpr.Var);
         }
       }
       if (branch is RBranchStmt branchStmt) {
@@ -10796,7 +10796,7 @@ namespace Microsoft.Dafny
           }
         }
         // Add variables corresponding to the arguments of the current constructor (ctor) to the matchees
-        List<IdentifierExpr> freshMatchees = freshPatBV.ConvertAll(x => new IdentifierExpr(x.tok, x) { Var = x, Type = x.Type });
+        List<IdentifierExpr> freshMatchees = freshPatBV.ConvertAll(x => new IdentifierExpr(x.tok, x));
         List<Expression> cmatchees = matchees.Select(x => x).ToList();
         cmatchees.InsertRange(0, freshMatchees);
         // Update the current context
