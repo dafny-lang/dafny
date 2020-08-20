@@ -663,9 +663,9 @@ bool IsTypeSequence(ref IToken pt, int endBracketKind) {
 
 bool IsType(ref IToken pt) {
   if (!IsNonArrowType(ref pt)) return false;
-  while (pt.kind == _sarrow || pt.kind == _qarrow || pt.kind == _larrow) { 
-	  pt = scanner.Peek();
-      if (!IsNonArrowType(ref pt)) return false;
+  while (pt.kind == _sarrow || pt.kind == _qarrow || pt.kind == _larrow) {
+    pt = scanner.Peek(); 
+    if (!IsNonArrowType(ref pt)) return false;
   }
   return true;
 }
