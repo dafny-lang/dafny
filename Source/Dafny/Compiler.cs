@@ -406,6 +406,9 @@ namespace Microsoft.Dafny {
             var seqExpr = (SeqSelectExpr)lexpr;
             string targetArray = EmitAssignmentLhs(seqExpr.Seq, wr);
             string targetIndex = EmitAssignmentLhs(seqExpr.E0, wr);
+            if (seqExpr.Seq.Type.IsArrayType || seqExpr.Seq.Type.AsSeqType != null) {
+              targetIndex = ArrayIndexToNativeInt(targetIndex, seqExpr.E0.Type);
+            }
             ILvalue newLhs = EmitArraySelectAsLvalue(targetArray,
                             new List<string>() { targetIndex }, lhsTypes[i]);
             lhssn.Add(newLhs);
@@ -739,7 +742,14 @@ namespace Microsoft.Dafny {
       TrExpr(rhs, w, false);
       return EmitArrayUpdate(indices, w.ToString(), rhs.Type, wr);
     }
-    protected virtual string ArrayIndexToInt(string arrayIndex) {
+    protected virtual string ArrayIndexToInt(string arrayIndex, Type fromType) {
+      Contract.Requires(arrayIndex != null);
+      Contract.Requires(fromType != null);
+      return arrayIndex;
+    }
+    protected virtual string ArrayIndexToNativeInt(string arrayIndex, Type fromType) {
+      Contract.Requires(arrayIndex != null);
+      Contract.Requires(fromType != null);
       return arrayIndex;
     }
     protected abstract void EmitExprAsInt(Expression expr, bool inLetExprBody, TargetWriter wr);
@@ -3511,6 +3521,9 @@ namespace Microsoft.Dafny {
         var ll = (SeqSelectExpr)lhs;
         var arr = StabilizeExpr(ll.Seq, "_arr", wr);
         var index = StabilizeExpr(ll.E0, "_index", wr);
+        if (ll.Seq.Type.IsArrayType || ll.Seq.Type.AsSeqType != null) {
+          index = ArrayIndexToNativeInt(index, ll.E0.Type);
+        }
         return EmitArraySelectAsLvalue(arr, new List<string>() { index }, ll.Type);
       } else {
         var ll = (MultiSelectExpr)lhs;
@@ -3518,7 +3531,9 @@ namespace Microsoft.Dafny {
         var indices = new List<string>();
         int i = 0;
         foreach (var idx in ll.Indices) {
-          indices.Add(StabilizeExpr(idx, "_index" + i + "_", wr));
+          var index = StabilizeExpr(idx, "_index" + i + "_", wr);
+          index = ArrayIndexToNativeInt(index, idx.Type);
+          indices.Add(index);
           i++;
         }
         return EmitArraySelectAsLvalue(arr, indices, ll.Type);
@@ -3633,7 +3648,7 @@ namespace Microsoft.Dafny {
             var bound = string.Format("{0}{1}{2}{3}", pre, nw, len == "" ? "" : "." + len, post);
             w = CreateForLoop(indices[d], bound, w);
           }
-          var eltRhs = string.Format("{0}{2}({1})", f, Util.Comma(indices, ArrayIndexToInt), LambdaExecute);
+          var eltRhs = string.Format("{0}{2}({1})", f, Util.Comma(indices, idx => ArrayIndexToInt(idx, Type.Int)), LambdaExecute);
           var wArray = EmitArrayUpdate(indices, eltRhs, tRhs.EType, w);
           wArray.Write(nw);
           EndStmt(w);

@@ -7272,7 +7272,9 @@ namespace Microsoft.Dafny {
         if (options.DoReadsChecks && eSeqType.IsArrayType) {
           if (e.SelectOne) {
             Contract.Assert(e.E0 != null);
-            Bpl.Expr fieldName = FunctionCall(expr.tok, BuiltinFunction.IndexField, null, etran.TrExpr(e.E0));
+            var i = etran.TrExpr(e.E0);
+            i = ConvertExpression(expr.tok, i, e.E0.Type, Type.Int);
+            Bpl.Expr fieldName = FunctionCall(expr.tok, BuiltinFunction.IndexField, null, i);
             options.AssertSink(this, builder)(expr.tok, Bpl.Expr.SelectTok(expr.tok, etran.TheFrame(expr.tok), seq, fieldName), "insufficient reads clause to read array element", options.AssertKv);
           } else {
             Bpl.Expr lowerBound = e.E0 == null ? Bpl.Expr.Literal(0) : etran.TrExpr(e.E0);
@@ -7298,6 +7300,7 @@ namespace Microsoft.Dafny {
           CheckWellformed(idx, options, locals, builder, etran);
 
           var index = etran.TrExpr(idx);
+          index = ConvertExpression(idx.tok, index, idx.Type, Type.Int);
           var lower = Bpl.Expr.Le(Bpl.Expr.Literal(0), index);
           var length = ArrayLength(idx.tok, array, e.Indices.Count, idxId);
           var upper = Bpl.Expr.Lt(index, length);
@@ -11734,7 +11737,9 @@ namespace Microsoft.Dafny {
       } else if (lhs is SeqSelectExpr) {
         var sel = (SeqSelectExpr)lhs;
         obj = etran.TrExpr(sel.Seq);
-        F = FunctionCall(sel.tok, BuiltinFunction.IndexField, null, etran.TrExpr(sel.E0));
+        var idx = etran.TrExpr(sel.E0);
+        idx = ConvertExpression(sel.E0.tok, idx, sel.E0.Type, Type.Int);
+        F = FunctionCall(sel.tok, BuiltinFunction.IndexField, null, idx);
         description = "an array element";
       } else {
         MultiSelectExpr mse = (MultiSelectExpr)lhs;
@@ -13257,7 +13262,9 @@ namespace Microsoft.Dafny {
           Contract.Assert(sel.E0 != null);
           var obj = SaveInTemp(etran.TrExpr(sel.Seq), rhsCanAffectPreviouslyKnownExpressions,
             "$obj" + i, predef.RefType, builder, locals);
-          var fieldName = SaveInTemp(FunctionCall(tok, BuiltinFunction.IndexField, null, etran.TrExpr(sel.E0)), rhsCanAffectPreviouslyKnownExpressions,
+          var idx = etran.TrExpr(sel.E0);
+          idx = ConvertExpression(sel.E0.tok, idx, sel.E0.Type, Type.Int);
+          var fieldName = SaveInTemp(FunctionCall(tok, BuiltinFunction.IndexField, null, idx), rhsCanAffectPreviouslyKnownExpressions,
             "$index" + i, predef.FieldName(tok, predef.BoxType), builder, locals);
           prevObj[i] = obj;
           prevIndex[i] = fieldName;
@@ -14997,6 +15004,7 @@ namespace Microsoft.Dafny {
             {
               Type elmtType = cce.NonNull((SeqType)seqType).Arg;
               Bpl.Expr index = TrExpr(e.Index);
+              index = translator.ConvertExpression(e.Index.tok, index, e.Index.Type, Type.Int);
               Bpl.Expr val = BoxIfNecessary(expr.tok, TrExpr(e.Value), elmtType);
               return translator.FunctionCall(expr.tok, BuiltinFunction.SeqUpdate, predef.BoxType, seq, index, val);
             }
@@ -16125,7 +16133,10 @@ namespace Microsoft.Dafny {
       }
 
       public Bpl.Expr GetArrayIndexFieldName(IToken tok, List<Expression> indices) {
-        return translator.GetArrayIndexFieldName(tok, Map(indices, TrExpr));
+        return translator.GetArrayIndexFieldName(tok, indices.ConvertAll(idx => {
+          var e = TrExpr(idx);
+          return translator.ConvertExpression(idx.tok, e, idx.Type, Type.Int);
+        }));
       }
 
       public Bpl.Expr BoxIfNecessary(IToken tok, Bpl.Expr e, Type fromType) {
