@@ -9699,19 +9699,19 @@ namespace Microsoft.Dafny
         }
 
         if (s.Update is AssignOrReturnStmt) {
-          var assignOrRet = (AssignOrReturnStmt) s.Update;
+          var assignOrRet = (AssignOrReturnStmt)s.Update;
           // resolve the LHS
           Contract.Assert(assignOrRet.Lhss.Count == s.Locals.Count);
           for (int i = 0; i < s.Locals.Count; i++) {
             var local = s.Locals[i];
-            var lhs = (IdentifierExpr) assignOrRet
+            var lhs = (IdentifierExpr)assignOrRet
               .Lhss[i]; // the LHS in this case will be an IdentifierExpr, because that's how the parser creates the VarDeclStmt
             Contract.Assert(lhs.Type == null); // not yet resolved
             lhs.Var = local;
             lhs.Type = local.Type;
           }
 
-        // resolve the whole thing
+          // resolve the whole thing
           ResolveAssignOrReturnStmt(assignOrRet, codeContext);
         }
         // Add the locals to the scope
@@ -11371,7 +11371,7 @@ namespace Microsoft.Dafny
       var tempType = new InferredTypeProxy();
       var lhss = new List<LocalVariable>() { new LocalVariable(s.Tok, s.Tok, temp, tempType, false) }
       ;
-      if (s.Lhss.Count <= -1) {
+      if (s.Lhss.Count <= 1) {
         s.ResolvedStatements.Add(
           // "var temp := MethodOrExpression;"
           new VarDeclStmt(s.Tok, s.Tok, lhss,
@@ -11384,8 +11384,8 @@ namespace Microsoft.Dafny
         for (int k = 1; k < s.Lhss.Count; ++k) {
           lhss2.Add(s.Lhss[k]);
         }
+        // " temp, ... := MethodOrExpression;"
         s.ResolvedStatements.Add(
-          // " temp, ... := MethodOrExpression;"
             new UpdateStmt(s.Tok, s.Tok, lhss2,
               new List<AssignmentRhs>() { new ExprRhs(s.Rhs) }));
       }
@@ -11396,14 +11396,15 @@ namespace Microsoft.Dafny
           // "expect !temp.IsFailure(), temp"
           new ExpectStmt(s.Tok, s.Tok, notFailureExpr, new IdentifierExpr(s.Tok, temp), null));
       } else {
-        var l = new List<Expression>() {new IdentifierExpr(s.Tok, (codeContext as Method).Outs[0].CompileName)};
-        var r = new List<AssignmentRhs>() {new ExprRhs(VarDotMethod(s.Tok, temp, "PropagateFailure"))};
         s.ResolvedStatements.Add(
           // "if temp.IsFailure()"
           new IfStmt(s.Tok, s.Tok, false, VarDotMethod(s.Tok, temp, "IsFailure"),
             // THEN: { return temp.PropagateFailure(); }
             new BlockStmt(s.Tok, s.Tok, new List<Statement>() {
-              new UpdateStmt(s.Tok, s.Tok, l, r),
+              new UpdateStmt(s.Tok, s.Tok, 
+                new List<Expression>() {new IdentifierExpr(s.Tok, (codeContext as Method).Outs[0].CompileName)},
+                new List<AssignmentRhs>() {new ExprRhs(VarDotMethod(s.Tok, temp, "PropagateFailure"))}
+                ),
               new ReturnStmt(s.Tok, s.Tok, null),
             }),
             // ELSE: no else block
@@ -11414,10 +11415,11 @@ namespace Microsoft.Dafny
       if (s.Lhss.Count >= 1)
       {
         // "y := temp.Extract();"
-        var lhs = new List<Expression>() {s.Lhss[0]};
         s.ResolvedStatements.Add(
-          new UpdateStmt(s.Tok, s.Tok, lhs, new List<AssignmentRhs>() {
-            new ExprRhs(VarDotMethod(s.Tok, temp, "Extract"))}));
+          new UpdateStmt(s.Tok, s.Tok, 
+            new List<Expression>(){s.Lhss[0]}, 
+            new List<AssignmentRhs>(){new ExprRhs(VarDotMethod(s.Tok, temp, "Extract"))}
+            ));
       }
 
       foreach (var a in s.ResolvedStatements) {
