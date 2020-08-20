@@ -2492,6 +2492,9 @@ namespace Microsoft.Dafny {
       var sep = "";
       foreach (var index in indices) {
         wr.Write(sep);
+        if (!index.Type.IsIntegerType) {
+          wr.Write("_dafny.IntOfAny");
+        }
         // No need for IntOfAny; things coming from user code are presumed Ints
         TrParenExpr(index, wr, inLetExprBody);
         sep = ", ";
@@ -2549,7 +2552,7 @@ namespace Microsoft.Dafny {
     protected override void EmitIndexCollectionUpdate(Expression source, Expression index, Expression value, CollectionType resultCollectionType, bool inLetExprBody, TargetWriter wr) {
       EmitIndexCollectionUpdate(out var wSource, out var wIndex, out var wValue, wr);
       TrParenExpr(source, wSource, inLetExprBody);
-      TrExpr(index, wIndex, inLetExprBody);
+      TrExprToBigInt(index, wIndex, inLetExprBody);
       TrExpr(value, wValue, inLetExprBody);
     }
 

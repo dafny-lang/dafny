@@ -65,6 +65,7 @@ namespace Microsoft.Dafny {
     {
     }
 
+    [Pure]
     public IEnumerable<Vertex> GetVertices() {
       return vertices.Values;
     }

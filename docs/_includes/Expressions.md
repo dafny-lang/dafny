@@ -410,7 +410,7 @@ freshly allocated in the current method invocation.
 The argument of `fresh` must be either an object reference
 or a collection of object references.
 
-## Old Expressions
+## Old Expressions {#sec-old-expression}
 ````
 OldExpression_ = "old" "(" Expression(allowLemma: true, allowLambda: true) ")"
 ````
@@ -786,7 +786,7 @@ finite--it is not pleasant or practical to compute at run time.
 
 ## Statements in an Expression
 ````
-StmtInExpr = ( AssertStmt | AssumeStmt | CalcStmt )
+StmtInExpr = ( AssertStmt | AssumeStmt | ExpectStmt | CalcStmt )
 ````
 
 A ``StmtInExpr`` is a kind of statement that is allowed to
@@ -1085,6 +1085,10 @@ For a sequence `s` and expressions `i` and `v`, the expression
 `s[i := v]` is the same as the sequence `s` except that at
 index `i` it has value `v`.
 
+If the type of `s` is `seq<T>`, then `v` must have type `T`.
+The index `i` can have any integer- and bitvector-based type.
+The expression `s[i := v]` has the same type as `s`.
+
 ### Selection Suffix
 ````
 SelectionSuffix_ =
@@ -1100,6 +1104,10 @@ sequence or from a single-dimensional array.
 If a ``SelectionSuffix_`` has more than one expression in it, then
 it is a list of indices to index into a multi-dimensional array.
 The rank of the array must be the same as the number of indices.
+
+If the ``SelectionSuffix_`` is used with an array or a sequence,
+then each index expression can have any integer- or bitvector-based
+type.
 
 ### Argument List Suffix
 ````

@@ -34,7 +34,7 @@ module FacadeTests {
     datatype Packet = Packet(UndeclaredType)  // error: UndeclaredType
   }
 
-  module ClientModule {
+  abstract module ClientModule {
     import T : Template
     method M() {
       var x: set<T.Packet>;  // this once caused crash
