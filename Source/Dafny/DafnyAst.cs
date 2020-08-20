@@ -287,7 +287,7 @@ namespace Microsoft.Dafny {
         Member = member,
         TypeApplication_AtEnclosingClass = f.Type.TypeArgs,
         TypeApplication_JustMember = new List<Type>(),
-        Type = GetTypeOfFunction(member, new List<Type>(), tps.ConvertAll(tp => (Type)new UserDefinedType(tp)))
+        Type = GetTypeOfFunction(member, tps.ConvertAll(tp => (Type)new UserDefinedType(tp)), new List<Type>())
       };
       Expression body = new ApplyExpr(tok, fn, args);
       body.Type = member.ResultType;  // resolve here
@@ -2595,7 +2595,7 @@ namespace Microsoft.Dafny {
     }
     public string FullCompanionCompileName {
       get {
-        Contract.Requires(ResolvedClass is TraitDecl);
+        Contract.Requires(ResolvedClass is TraitDecl || (ResolvedClass is NonNullTypeDecl nntd && nntd.Class is TraitDecl));
         var m = ResolvedClass.Module;
         var s = m.IsDefaultModule ? "" : m.CompileName + ".";
         return s + "_Companion_" + ResolvedClass.CompileName;
@@ -2911,8 +2911,6 @@ namespace Microsoft.Dafny {
     }
 
     public override bool IsSubtypeOf(Type super, bool ignoreTypeArguments) {
-      Contract.Requires(super != null);
-
       super = super.NormalizeExpandKeepConstraints();
 
       // Specifically handle object as the implicit supertype of classes and traits.
@@ -3200,8 +3198,6 @@ namespace Microsoft.Dafny {
     public bool ScopeIsInherited { get { return scopeIsInherited; } }
 
     public void AddVisibilityScope(VisibilityScope scope, bool IsOpaque) {
-      Contract.Requires(!ScopeIsInherited); //pragmatically we should only augment the visibility of the parent
-
       if (IsOpaque) {
         opaqueScope.Augment(scope);
       } else {
@@ -4237,10 +4233,27 @@ namespace Microsoft.Dafny {
       Contract.Requires(module != null);
       Contract.Requires(cce.NonNullElements(typeArgs));
       Contract.Requires(cce.NonNullElements(members));
-      if (!IsDefaultClass && !(this is ArrowTypeDecl)) {
+      Contract.Assume(!(this is ArrowTypeDecl));  // this is also a precondition, really, but "this" cannot be mentioned in Requires of a constructor; ArrowTypeDecl should use the next constructor
+      if (!IsDefaultClass) {
         NonNullTypeDecl = new NonNullTypeDecl(this);
       }
       this.NewSelfSynonym();
+    }
+    /// <summary>
+    /// The following constructor is supposed to be called by the ArrowTypeDecl subtype, in order to avoid
+    /// the call to this.NewSelfSynonym() (because NewSelfSynonym() depends on the .Arity field having been
+    /// set, which it hasn't during the base call of the ArrowTypeDecl constructor). Instead, the ArrowTypeDecl
+    /// constructor will do that call.
+    /// </summary>
+    protected ClassDecl(IToken tok, string name, ModuleDefinition module,
+      List<TypeParameter> typeArgs, [Captured] List<MemberDecl> members, Attributes attributes)
+      : base(tok, name, module, typeArgs, members, attributes, null) {
+      Contract.Requires(tok != null);
+      Contract.Requires(name != null);
+      Contract.Requires(module != null);
+      Contract.Requires(cce.NonNullElements(typeArgs));
+      Contract.Requires(cce.NonNullElements(members));
+      Contract.Assume(this is ArrowTypeDecl);  // this is also a precondition, really, but "this" cannot be mentioned in Requires of a constructor
     }
     public virtual bool IsDefaultClass {
       get {
@@ -4323,7 +4336,7 @@ namespace Microsoft.Dafny {
 
     public ArrowTypeDecl(List<TypeParameter> tps, Function req, Function reads, ModuleDefinition module, Attributes attributes)
       : base(Token.NoToken, ArrowType.ArrowTypeName(tps.Count - 1), module, tps,
-             new List<MemberDecl> { req, reads }, attributes, null) {
+             new List<MemberDecl> { req, reads }, attributes) {
       Contract.Requires(tps != null && 1 <= tps.Count);
       Contract.Requires(req != null);
       Contract.Requires(reads != null);
@@ -4333,6 +4346,7 @@ namespace Microsoft.Dafny {
       Reads = reads;
       Requires.EnclosingClass = this;
       Reads.EnclosingClass = this;
+      this.NewSelfSynonym();
     }
   }
 
