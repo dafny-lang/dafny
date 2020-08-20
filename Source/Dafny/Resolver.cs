@@ -9697,18 +9697,21 @@ namespace Microsoft.Dafny
           // resolve the whole thing
           ResolveConcreteUpdateStmt(s.Update, codeContext);
         }
-        if (s.Update is AssignOrReturnStmt) {
-          var assignOrRet = (AssignOrReturnStmt)s.Update;
-          // resolve the LHS
-          Contract.Assert(assignOrRet.Lhss.Count == 1);
-          Contract.Assert(s.Locals.Count == 1);
-          var local = s.Locals[0];
-          var lhs = (IdentifierExpr)assignOrRet.Lhss[0];  // the LHS in this case will be an IdentifierExpr, because that's how the parser creates the VarDeclStmt
-          Contract.Assert(lhs.Type == null);  // not yet resolved
-          lhs.Var = local;
-          lhs.Type = local.Type;
 
-          // resolve the whole thing
+        if (s.Update is AssignOrReturnStmt) {
+          var assignOrRet = (AssignOrReturnStmt) s.Update;
+          // resolve the LHS
+          Contract.Assert(assignOrRet.Lhss.Count == s.Locals.Count);
+          for (int i = 0; i < s.Locals.Count; i++) {
+            var local = s.Locals[i];
+            var lhs = (IdentifierExpr) assignOrRet
+              .Lhss[i]; // the LHS in this case will be an IdentifierExpr, because that's how the parser creates the VarDeclStmt
+            Contract.Assert(lhs.Type == null); // not yet resolved
+            lhs.Var = local;
+            lhs.Type = local.Type;
+          }
+
+        // resolve the whole thing
           ResolveAssignOrReturnStmt(assignOrRet, codeContext);
         }
         // Add the locals to the scope
@@ -11366,34 +11369,54 @@ namespace Microsoft.Dafny
 
       var temp = FreshTempVarName("valueOrError", codeContext);
       var tempType = new InferredTypeProxy();
-      s.ResolvedStatements.Add(
-        // "var temp := MethodOrExpression;"
-        new VarDeclStmt(s.Tok, s.Tok, new List<LocalVariable>() { new LocalVariable(s.Tok, s.Tok, temp, tempType, false) },
-          new UpdateStmt(s.Tok, s.Tok, new List<Expression>() { new IdentifierExpr(s.Tok, temp) }, new List<AssignmentRhs>() { new ExprRhs(s.Rhs) })));
+      var lhss = new List<LocalVariable>() { new LocalVariable(s.Tok, s.Tok, temp, tempType, false) }
+      ;
+      if (s.Lhss.Count <= -1) {
+        s.ResolvedStatements.Add(
+          // "var temp := MethodOrExpression;"
+          new VarDeclStmt(s.Tok, s.Tok, lhss,
+            new UpdateStmt(s.Tok, s.Tok, new List<Expression>() {new IdentifierExpr(s.Tok, temp)},
+              new List<AssignmentRhs>() {new ExprRhs(s.Rhs)})));
+      } else {
+        // "var temp ;"
+        s.ResolvedStatements.Add(new VarDeclStmt(s.Tok, s.Tok, lhss, null));
+        var lhss2 = new List<Expression>() {new IdentifierExpr(s.Tok, temp)};
+        for (int k = 1; k < s.Lhss.Count; ++k) {
+          lhss2.Add(s.Lhss[k]);
+        }
+        s.ResolvedStatements.Add(
+          // " temp, ... := MethodOrExpression;"
+            new UpdateStmt(s.Tok, s.Tok, lhss2,
+              new List<AssignmentRhs>() { new ExprRhs(s.Rhs) }));
+      }
+
       if (s.ExpectToken != null) {
         var notFailureExpr = new UnaryOpExpr(s.Tok, UnaryOpExpr.Opcode.Not, VarDotMethod(s.Tok, temp, "IsFailure"));
         s.ResolvedStatements.Add(
           // "expect !temp.IsFailure(), temp"
           new ExpectStmt(s.Tok, s.Tok, notFailureExpr, new IdentifierExpr(s.Tok, temp), null));
       } else {
+        var l = new List<Expression>() {new IdentifierExpr(s.Tok, (codeContext as Method).Outs[0].CompileName)};
+        var r = new List<AssignmentRhs>() {new ExprRhs(VarDotMethod(s.Tok, temp, "PropagateFailure"))};
         s.ResolvedStatements.Add(
           // "if temp.IsFailure()"
           new IfStmt(s.Tok, s.Tok, false, VarDotMethod(s.Tok, temp, "IsFailure"),
             // THEN: { return temp.PropagateFailure(); }
             new BlockStmt(s.Tok, s.Tok, new List<Statement>() {
-              new ReturnStmt(s.Tok, s.Tok, new List<AssignmentRhs>() { new ExprRhs(VarDotMethod(s.Tok, temp, "PropagateFailure"))}),
+              new UpdateStmt(s.Tok, s.Tok, l, r),
+              new ReturnStmt(s.Tok, s.Tok, null),
             }),
             // ELSE: no else block
             null
           ));
       }
 
-      Contract.Assert(s.Lhss.Count <= 1);
-      if (s.Lhss.Count == 1)
+      if (s.Lhss.Count >= 1)
       {
         // "y := temp.Extract();"
+        var lhs = new List<Expression>() {s.Lhss[0]};
         s.ResolvedStatements.Add(
-          new UpdateStmt(s.Tok, s.Tok, s.Lhss, new List<AssignmentRhs>() {
+          new UpdateStmt(s.Tok, s.Tok, lhs, new List<AssignmentRhs>() {
             new ExprRhs(VarDotMethod(s.Tok, temp, "Extract"))}));
       }
 
@@ -11485,6 +11508,7 @@ namespace Microsoft.Dafny
         j++;
       }
 
+      bool tryToResolve = false;
       if (callee.Ins.Count != s.Args.Count) {
         reporter.Error(MessageSource.Resolver, s, "wrong number of method arguments (got {0}, expected {1})", s.Args.Count, callee.Ins.Count);
       } else if (callee.Outs.Count != s.Lhs.Count) {
@@ -11492,11 +11516,15 @@ namespace Microsoft.Dafny
           reporter.Error(MessageSource.Resolver, s, "a method called as an initialization method must not have any result arguments");
         } else {
           reporter.Error(MessageSource.Resolver, s, "wrong number of method result arguments (got {0}, expected {1})", s.Lhs.Count, callee.Outs.Count);
+          tryToResolve = true;
         }
       } else {
         if (isInitCall) {
           if (callee.IsStatic) {
-            reporter.Error(MessageSource.Resolver, s.Tok, "a method called as an initialization method must not be 'static'");
+            reporter.Error(MessageSource.Resolver, s.Tok,
+              "a method called as an initialization method must not be 'static'");
+          } else {
+            tryToResolve = true;
           }
         } else if (!callee.IsStatic) {
           if (!scope.AllowInstance && s.Receiver is ThisExpr) {
@@ -11506,8 +11534,15 @@ namespace Microsoft.Dafny
             reporter.Error(MessageSource.Resolver, s.Receiver, "'this' is not allowed in a 'static' context");
           } else if (s.Receiver is StaticReceiverExpr) {
             reporter.Error(MessageSource.Resolver, s.Receiver, "call to instance method requires an instance");
+          } else {
+            tryToResolve = true;
           }
+        } else {
+          tryToResolve = true;
         }
+      }
+
+      if (tryToResolve) {
         // type check the arguments
         var subst = s.MethodSelect.TypeArgumentSubstitutionsAtMemberDeclaration();
         for (int i = 0; i < callee.Ins.Count; i++) {
@@ -11515,11 +11550,14 @@ namespace Microsoft.Dafny
           Type st = SubstType(it, subst);
           AddAssignableConstraint(s.Tok, st, s.Args[i].Type, "incorrect type of method in-parameter" + (callee.Ins.Count == 1 ? "" : " " + i) + " (expected {0}, got {1})");
         }
-        for (int i = 0; i < callee.Outs.Count; i++) {
+        for (int i = 0; i < callee.Outs.Count && i < s.Lhs.Count; i++) {
           var it = callee.Outs[i].Type;
           Type st = SubstType(it, subst);
           var lhs = s.Lhs[i];
           AddAssignableConstraint(s.Tok, lhs.Type, st, "incorrect type of method out-parameter" + (callee.Outs.Count == 1 ? "" : " " + i) + " (expected {1}, got {0})");
+        }
+        for (int i = 0; i < s.Lhs.Count; i++) {
+          var lhs = s.Lhs[i];
           // LHS must denote a mutable field.
           CheckIsLvalue(lhs.Resolved, codeContext);
         }

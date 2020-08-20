@@ -663,9 +663,9 @@ bool IsTypeSequence(ref IToken pt, int endBracketKind) {
 
 bool IsType(ref IToken pt) {
   if (!IsNonArrowType(ref pt)) return false;
-  while (pt.kind == _sarrow || pt.kind == _qarrow || pt.kind == _larrow) { 
-	  pt = scanner.Peek();
-      if (!IsNonArrowType(ref pt)) return false;
+  IToken ppt = scanner.Peek(); 
+  while (ppt.kind == _sarrow || ppt.kind == _qarrow || ppt.kind == _larrow) {
+    if (!IsNonArrowType(ref ppt)) return false;
   }
   return true;
 }
@@ -3183,10 +3183,6 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, st
 		if (suchThat != null) {
 		 s = new AssignSuchThatStmt(x, endTok, lhss, suchThat, suchThatAssume, null);
 		} else if (exceptionExpr != null) {
-		 if (lhss.Count > 1) {
-		   SemErr(x, "':-' assignments can only have one LHS");
-		   lhss = new List<Expression>() { lhss[0] };
-		 }
 		 s = new AssignOrReturnStmt(x, endTok, lhss, exceptionExpr, exceptionExpect);
 		} else {
 		 if (lhss.Count == 0 && rhss.Count == 0) {
@@ -3275,12 +3271,7 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, st
 			if (suchThat != null) {
 			 update = new AssignSuchThatStmt(assignTok, endTok, lhsExprs, suchThat, suchThatAssume, attrs);
 			} else if (exceptionExpr != null) {
-			   Contract.Assert(lhss.Count >= 1);
-			   if (lhss.Count != 1) {
-			     SemErr(assignTok, "':-' assignments can only have one LHS");
-			     lhsExprs = new List<Expression>() { lhsExprs[0] };
-			   }
-			   update = new AssignOrReturnStmt(assignTok, endTok, lhsExprs, exceptionExpr, exceptionExpect);
+			 update = new AssignOrReturnStmt(assignTok, endTok, lhsExprs, exceptionExpr, exceptionExpect);
 			} else if (rhss.Count == 0) {
 			 update = null;
 			} else {
