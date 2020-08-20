@@ -16,7 +16,7 @@ datatype Result<T> = Success(value: T) | Failure(error: string)
       Failure(this.error)
     }
 }
-
+/* multiple return with no extract is not yet implemented
 method mn() returns (r: Result<int>, out: int)
   ensures out == -2 && r.Failure?
 {
@@ -26,7 +26,7 @@ method mn() returns (r: Result<int>, out: int)
   out :- m(-1); // Should exit with failure
   return Success(0);
 }
-
+*/
 method mn1() returns (r: Result<int>)
   ensures r.Failure?
 {
@@ -56,9 +56,9 @@ method m1(i: int) returns (r: Result<int>)
 method Main() {
    var x := mn1();
    print x.Failure?, " ";
- //  var out;
- //  x, out := mn();
- //  print x.Failure?, " ", out, " ";
+  // var out;
+  // x, out := mn();
+  // print x.Failure?, " ", out, " ";
    print "End\n";
 }
 

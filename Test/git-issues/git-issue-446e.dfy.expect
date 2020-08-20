@@ -1,0 +1,7 @@
+git-issue-446e.dfy(23,18): Error: wrong number of method result arguments (got 3, expected 2)
+git-issue-446e.dfy(24,13): Error: wrong number of method result arguments (got 1, expected 2)
+git-issue-446e.dfy(29,18): Error: wrong number of method result arguments (got 3, expected 2)
+git-issue-446e.dfy(30,13): Error: wrong number of method result arguments (got 1, expected 2)
+git-issue-446e.dfy(29,14): Error: RHS (of type Result<?>) not assignable to LHS (of type int)
+git-issue-446e.dfy(30,9): Error: RHS (of type Result<?>) not assignable to LHS (of type int)
+6 resolution/type errors detected in git-issue-446e.dfy
