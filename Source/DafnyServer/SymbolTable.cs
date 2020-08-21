@@ -120,7 +120,7 @@ namespace DafnyServer {
       }
     }
 
-    private static ICollection<string> ParseContracts(IEnumerable<MaybeFreeExpression> contractClauses) {
+    private static ICollection<string> ParseContracts(IEnumerable<AttributedExpression> contractClauses) {
       var requires = new List<string>();
       foreach (var maybeFreeExpression in contractClauses) {
         requires.Add(Printer.ExprToString(maybeFreeExpression.E));

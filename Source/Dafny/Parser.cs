@@ -1296,10 +1296,10 @@ int StringToInt(string s, int defaultValue, string errString) {
 		List<FrameExpression/*!*/> reads = new List<FrameExpression/*!*/>();
 		List<FrameExpression/*!*/> mod = new List<FrameExpression/*!*/>();
 		List<Expression/*!*/> decreases = new List<Expression>();
-		List<MaybeFreeExpression/*!*/> req = new List<MaybeFreeExpression/*!*/>();
-		List<MaybeFreeExpression/*!*/> ens = new List<MaybeFreeExpression/*!*/>();
-		List<MaybeFreeExpression/*!*/> yieldReq = new List<MaybeFreeExpression/*!*/>();
-		List<MaybeFreeExpression/*!*/> yieldEns = new List<MaybeFreeExpression/*!*/>();
+		List<AttributedExpression/*!*/> req = new List<AttributedExpression/*!*/>();
+		List<AttributedExpression/*!*/> ens = new List<AttributedExpression/*!*/>();
+		List<AttributedExpression/*!*/> yieldReq = new List<AttributedExpression/*!*/>();
+		List<AttributedExpression/*!*/> yieldEns = new List<AttributedExpression/*!*/>();
 		List<Expression/*!*/> dec = new List<Expression/*!*/>();
 		Attributes readsAttrs = null;
 		Attributes modAttrs = null;
@@ -1644,8 +1644,8 @@ int StringToInt(string s, int defaultValue, string errString) {
 		List<Formal/*!*/> formals = new List<Formal/*!*/>();
 		Formal/*!*/ result = null;
 		Type/*!*/ returnType = new BoolType();
-		List<MaybeFreeExpression/*!*/> reqs = new List<MaybeFreeExpression/*!*/>();
-		List<MaybeFreeExpression/*!*/> ens = new List<MaybeFreeExpression/*!*/>();
+		List<AttributedExpression/*!*/> reqs = new List<AttributedExpression/*!*/>();
+		List<AttributedExpression/*!*/> ens = new List<AttributedExpression/*!*/>();
 		List<FrameExpression/*!*/> reads = new List<FrameExpression/*!*/>();
 		List<Expression/*!*/> decreases;
 		Expression body = null;
@@ -1853,9 +1853,9 @@ int StringToInt(string s, int defaultValue, string errString) {
 		List<TypeParameter/*!*/>/*!*/ typeArgs = new List<TypeParameter/*!*/>();
 		List<Formal/*!*/> ins = new List<Formal/*!*/>();
 		List<Formal/*!*/> outs = new List<Formal/*!*/>();
-		List<MaybeFreeExpression/*!*/> req = new List<MaybeFreeExpression/*!*/>();
+		List<AttributedExpression/*!*/> req = new List<AttributedExpression/*!*/>();
 		List<FrameExpression/*!*/> mod = new List<FrameExpression/*!*/>();
-		List<MaybeFreeExpression/*!*/> ens = new List<MaybeFreeExpression/*!*/>();
+		List<AttributedExpression/*!*/> ens = new List<AttributedExpression/*!*/>();
 		List<Expression/*!*/> dec = new List<Expression/*!*/>();
 		Attributes decAttrs = null;
 		Attributes modAttrs = null;
@@ -2451,8 +2451,8 @@ int StringToInt(string s, int defaultValue, string errString) {
 	}
 
 	void IteratorSpec(List<FrameExpression/*!*/>/*!*/ reads, List<FrameExpression/*!*/>/*!*/ mod, List<Expression/*!*/> decreases,
-List<MaybeFreeExpression/*!*/>/*!*/ req, List<MaybeFreeExpression/*!*/>/*!*/ ens,
-List<MaybeFreeExpression/*!*/>/*!*/ yieldReq, List<MaybeFreeExpression/*!*/>/*!*/ yieldEns,
+List<AttributedExpression/*!*/>/*!*/ req, List<AttributedExpression/*!*/>/*!*/ ens,
+List<AttributedExpression/*!*/>/*!*/ yieldReq, List<AttributedExpression/*!*/>/*!*/ yieldEns,
 ref Attributes readsAttrs, ref Attributes modAttrs, ref Attributes decrAttrs) {
 		Expression/*!*/ e; FrameExpression/*!*/ fe; bool isYield = false; Attributes ensAttrs = null;
 		IToken lbl = null;
@@ -2499,9 +2499,9 @@ ref Attributes readsAttrs, ref Attributes modAttrs, ref Attributes decrAttrs) {
 				OldSemi();
 				AssertLabel al = lbl == null ? null : new AssertLabel(lbl, lbl.val);
 				if (isYield) {
-				 yieldReq.Add(new MaybeFreeExpression(e, al, null));
+				 yieldReq.Add(new AttributedExpression(e, al, null));
 				} else {
-				 req.Add(new MaybeFreeExpression(e, al, null));
+				 req.Add(new AttributedExpression(e, al, null));
 				}
 				
 			} else if (la.kind == 71) {
@@ -2512,9 +2512,9 @@ ref Attributes readsAttrs, ref Attributes modAttrs, ref Attributes decrAttrs) {
 				Expression(out e, false, false);
 				OldSemi();
 				if (isYield) {
-				 yieldEns.Add(new MaybeFreeExpression(e, ensAttrs));
+				 yieldEns.Add(new AttributedExpression(e, ensAttrs));
 				} else {
-				 ens.Add(new MaybeFreeExpression(e, ensAttrs));
+				 ens.Add(new AttributedExpression(e, ensAttrs));
 				}
 				
 			} else SynErr(190);
@@ -2601,7 +2601,7 @@ ref Attributes readsAttrs, ref Attributes modAttrs, ref Attributes decrAttrs) {
 		Expect(78);
 	}
 
-	void MethodSpec(List<MaybeFreeExpression> req, List<FrameExpression> mod, List<MaybeFreeExpression> ens,
+	void MethodSpec(List<AttributedExpression> req, List<FrameExpression> mod, List<AttributedExpression> ens,
 List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, string caption, bool performThisDeprecatedCheck) {
 		Contract.Requires(cce.NonNullElements(req));
 		Contract.Requires(cce.NonNullElements(mod));
@@ -2636,7 +2636,7 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, st
 				}
 				Expression(out e, false, false);
 				OldSemi();
-				req.Add(new MaybeFreeExpression(e, lbl == null ? null : new AssertLabel(lbl, lbl.val), reqAttrs)); 
+				req.Add(new AttributedExpression(e, lbl == null ? null : new AssertLabel(lbl, lbl.val), reqAttrs)); 
 			} else {
 				Get();
 				while (la.kind == 74) {
@@ -2644,7 +2644,7 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, st
 				}
 				Expression(out e, false, false);
 				OldSemi();
-				ens.Add(new MaybeFreeExpression(e, ensAttrs)); 
+				ens.Add(new AttributedExpression(e, ensAttrs)); 
 			}
 		} else if (la.kind == 44) {
 			Get();
@@ -2764,7 +2764,7 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, st
 		Expect(82);
 	}
 
-	void FunctionSpec(List<MaybeFreeExpression/*!*/>/*!*/ reqs, List<FrameExpression/*!*/>/*!*/ reads, List<MaybeFreeExpression/*!*/>/*!*/ ens, List<Expression/*!*/> decreases) {
+	void FunctionSpec(List<AttributedExpression/*!*/>/*!*/ reqs, List<FrameExpression/*!*/>/*!*/ reads, List<AttributedExpression/*!*/>/*!*/ ens, List<Expression/*!*/> decreases) {
 		Contract.Requires(cce.NonNullElements(reqs));
 		Contract.Requires(cce.NonNullElements(reads));
 		Contract.Requires(decreases == null || cce.NonNullElements(decreases));
@@ -2778,7 +2778,7 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, st
 			}
 			Expression(out e, false, false);
 			OldSemi();
-			reqs.Add(new MaybeFreeExpression(e, reqAttrs)); 
+			reqs.Add(new AttributedExpression(e, reqAttrs)); 
 		} else if (la.kind == 69) {
 			Get();
 			PossiblyWildFrameExpression(out fe, false);
@@ -2796,7 +2796,7 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, st
 			}
 			Expression(out e, false, false);
 			OldSemi();
-			ens.Add(new MaybeFreeExpression(e, ensAttrs)); 
+			ens.Add(new AttributedExpression(e, ensAttrs)); 
 		} else if (la.kind == 44) {
 			Get();
 			if (decreases == null) {
@@ -3334,7 +3334,7 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, st
 		Contract.Ensures(Contract.ValueAtReturn(out stmt) != null); IToken x;
 		Expression guard = null;  IToken guardEllipsis = null;
 		
-		List<MaybeFreeExpression> invariants = new List<MaybeFreeExpression>();
+		List<AttributedExpression> invariants = new List<AttributedExpression>();
 		List<Expression> decreases = new List<Expression>();
 		Attributes decAttrs = null;
 		Attributes modAttrs = null;
@@ -3426,7 +3426,7 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, st
 		List<BoundVar> bvars = null;
 		Attributes attrs = null;
 		Expression range = null;
-		var ens = new List<MaybeFreeExpression/*!*/>();
+		var ens = new List<AttributedExpression/*!*/>();
 		Expression/*!*/ e;
 		BlockStmt block = null;
 		IToken bodyStart, bodyEnd;
@@ -3451,7 +3451,7 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, st
 		while (la.kind == 71) {
 			Get();
 			Expression(out e, false, true);
-			ens.Add(new MaybeFreeExpression(e)); 
+			ens.Add(new AttributedExpression(e)); 
 			OldSemi();
 			tok = t; 
 		}
@@ -3917,7 +3917,7 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, st
 		alt = new GuardedAlternative(x, isExistentialGuard, e, body); 
 	}
 
-	void LoopSpec(List<MaybeFreeExpression> invariants, List<Expression> decreases, ref List<FrameExpression> mod, ref Attributes decAttrs, ref Attributes modAttrs) {
+	void LoopSpec(List<AttributedExpression> invariants, List<Expression> decreases, ref List<FrameExpression> mod, ref Attributes decAttrs, ref Attributes modAttrs) {
 		Expression e; FrameExpression fe;
 		Attributes attrs = null;
 		
@@ -3928,7 +3928,7 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, st
 				Attribute(ref attrs);
 			}
 			Expression(out e, false, true);
-			invariants.Add(new MaybeFreeExpression(e, attrs)); 
+			invariants.Add(new AttributedExpression(e, attrs)); 
 			OldSemi();
 		} else if (la.kind == 44) {
 			while (!(la.kind == 0 || la.kind == 44)) {SynErr(240); Get();}
