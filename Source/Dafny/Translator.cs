@@ -2462,17 +2462,12 @@ namespace Microsoft.Dafny {
         }
         comment = "user-defined postconditions";
         foreach (var p in iter.Ensures) {
-          if (false && !DafnyOptions.O.DisallowSoundnessCheating) {
-            ens.Add(Ensures(p.E.tok, true, etran.TrExpr(p.E), null, comment));
-            comment = null;
-          } else {
-            foreach (var s in TrSplitExprForMethodSpec(p.E, etran, kind)) {
-              if (kind == MethodTranslationKind.Implementation && RefinementToken.IsInherited(s.E.tok, currentModule)) {
-                // this postcondition was inherited into this module, so just ignore it
-              } else {
-                ens.Add(Ensures(s.E.tok, s.IsOnlyFree, s.E, null, comment));
-                comment = null;
-              }
+          foreach (var s in TrSplitExprForMethodSpec(p.E, etran, kind)) {
+            if (kind == MethodTranslationKind.Implementation && RefinementToken.IsInherited(s.E.tok, currentModule)) {
+              // this postcondition was inherited into this module, so just ignore it
+            } else {
+              ens.Add(Ensures(s.E.tok, s.IsOnlyFree, s.E, null, comment));
+              comment = null;
             }
           }
         }
@@ -9502,22 +9497,18 @@ namespace Microsoft.Dafny {
           string errorMessage = CustomErrorMessage(p.Attributes);
           AddEnsures(ens, Ensures(p.E.tok, true, CanCallAssumption(p.E, etran), errorMessage, comment));
           comment = null;
-          if (false && !DafnyOptions.O.DisallowSoundnessCheating) {
-            AddEnsures(ens, Ensures(p.E.tok, true, etran.TrExpr(p.E), errorMessage, null));
-          } else {
-            foreach (var s in TrSplitExprForMethodSpec(p.E, etran, kind)) {
-              var post = s.E;
-              if (kind == MethodTranslationKind.Implementation && RefinementToken.IsInherited(s.E.tok, currentModule)) {
-                // this postcondition was inherited into this module, so make it into the form "$_reverifyPost ==> s.E"
-                post = Bpl.Expr.Imp(new Bpl.IdentifierExpr(s.E.tok, "$_reverifyPost", Bpl.Type.Bool), post);
-              }
-              if (s.IsOnlyFree && bodyKind) {
-                // don't include in split -- it would be ignored, anyhow
-              } else if (s.IsOnlyChecked && !bodyKind) {
-                // don't include in split
-              } else {
-                AddEnsures(ens, Ensures(s.E.tok, s.IsOnlyFree, post, errorMessage, null));
-              }
+          foreach (var s in TrSplitExprForMethodSpec(p.E, etran, kind)) {
+            var post = s.E;
+            if (kind == MethodTranslationKind.Implementation && RefinementToken.IsInherited(s.E.tok, currentModule)) {
+              // this postcondition was inherited into this module, so make it into the form "$_reverifyPost ==> s.E"
+              post = Bpl.Expr.Imp(new Bpl.IdentifierExpr(s.E.tok, "$_reverifyPost", Bpl.Type.Bool), post);
+            }
+            if (s.IsOnlyFree && bodyKind) {
+              // don't include in split -- it would be ignored, anyhow
+            } else if (s.IsOnlyChecked && !bodyKind) {
+              // don't include in split
+            } else {
+              AddEnsures(ens, Ensures(s.E.tok, s.IsOnlyFree, post, errorMessage, null));
             }
           }
         }
@@ -10340,21 +10331,17 @@ namespace Microsoft.Dafny {
         // assert YieldEnsures[subst];  // where 'subst' replaces "old(E)" with "E" being evaluated in $_OldIterHeap
         var yeEtran = new ExpressionTranslator(this, predef, etran.HeapExpr, new Bpl.IdentifierExpr(s.Tok, "$_OldIterHeap", predef.HeapType));
         foreach (var p in iter.YieldEnsures) {
-          if (false && !DafnyOptions.O.DisallowSoundnessCheating) {
-            // do nothing
-          } else {
-            bool splitHappened;  // actually, we don't care
-            var ss = TrSplitExpr(p.E, yeEtran, true, out splitHappened);
-            foreach (var split in ss) {
-              if (RefinementToken.IsInherited(split.E.tok, currentModule)) {
-                // this postcondition was inherited into this module, so just ignore it
-              } else if (split.IsChecked) {
-                var yieldToken = new NestedToken(s.Tok, split.E.tok);
-                builder.Add(AssertNS(yieldToken, split.E, "possible violation of yield-ensures condition", stmt.Tok, null));
-              }
+          bool splitHappened;  // actually, we don't care
+          var ss = TrSplitExpr(p.E, yeEtran, true, out splitHappened);
+          foreach (var split in ss) {
+            if (RefinementToken.IsInherited(split.E.tok, currentModule)) {
+              // this postcondition was inherited into this module, so just ignore it
+            } else if (split.IsChecked) {
+              var yieldToken = new NestedToken(s.Tok, split.E.tok);
+              builder.Add(AssertNS(yieldToken, split.E, "possible violation of yield-ensures condition", stmt.Tok, null));
             }
-            builder.Add(TrAssumeCmd(stmt.Tok, yeEtran.TrExpr(p.E)));
           }
+          builder.Add(TrAssumeCmd(stmt.Tok, yeEtran.TrExpr(p.E)));
         }
         YieldHavoc(iter.tok, iter, builder, etran);
         builder.Add(CaptureState(s));
@@ -11820,22 +11807,18 @@ namespace Microsoft.Dafny {
         invDefinednessBuilder.Add(TrAssumeCmd(loopInv.E.tok, etran.TrExpr(loopInv.E)));
 
         invariants.Add(TrAssumeCmd(loopInv.E.tok, Bpl.Expr.Imp(w, CanCallAssumption(loopInv.E, etran))));
-        if (false && !DafnyOptions.O.DisallowSoundnessCheating) {
-          invariants.Add(TrAssumeCmd(loopInv.E.tok, Bpl.Expr.Imp(w, etran.TrExpr(loopInv.E))));
+        bool splitHappened;
+        var ss = TrSplitExpr(loopInv.E, etran, false, out splitHappened);
+        if (!splitHappened) {
+          var wInv = Bpl.Expr.Imp(w, etran.TrExpr(loopInv.E));
+          invariants.Add(Assert(loopInv.E.tok, wInv, errorMessage??"loop invariant violation"));
         } else {
-          bool splitHappened;
-          var ss = TrSplitExpr(loopInv.E, etran, false, out splitHappened);
-          if (!splitHappened) {
-            var wInv = Bpl.Expr.Imp(w, etran.TrExpr(loopInv.E));
-            invariants.Add(Assert(loopInv.E.tok, wInv, errorMessage??"loop invariant violation"));
-          } else {
-            foreach (var split in ss) {
-              var wInv = Bpl.Expr.Binary(split.E.tok, BinaryOperator.Opcode.Imp, w, split.E);
-              if (split.IsChecked) {
-                invariants.Add(Assert(split.E.tok, wInv, errorMessage??"loop invariant violation"));  // TODO: it would be fine to have this use {:subsumption 0}
-              } else {
-                invariants.Add(TrAssumeCmd(split.E.tok, wInv));
-              }
+          foreach (var split in ss) {
+            var wInv = Bpl.Expr.Binary(split.E.tok, BinaryOperator.Opcode.Imp, w, split.E);
+            if (split.IsChecked) {
+              invariants.Add(Assert(split.E.tok, wInv, errorMessage??"loop invariant violation"));  // TODO: it would be fine to have this use {:subsumption 0}
+            } else {
+              invariants.Add(TrAssumeCmd(split.E.tok, wInv));
             }
           }
         }
