@@ -2499,9 +2499,9 @@ ref Attributes readsAttrs, ref Attributes modAttrs, ref Attributes decrAttrs) {
 				OldSemi();
 				AssertLabel al = lbl == null ? null : new AssertLabel(lbl, lbl.val);
 				if (isYield) {
-				 yieldReq.Add(new MaybeFreeExpression(e, false, al, null));
+				 yieldReq.Add(new MaybeFreeExpression(e, al, null));
 				} else {
-				 req.Add(new MaybeFreeExpression(e, false, al, null));
+				 req.Add(new MaybeFreeExpression(e, al, null));
 				}
 				
 			} else if (la.kind == 71) {
@@ -2512,9 +2512,9 @@ ref Attributes readsAttrs, ref Attributes modAttrs, ref Attributes decrAttrs) {
 				Expression(out e, false, false);
 				OldSemi();
 				if (isYield) {
-				 yieldEns.Add(new MaybeFreeExpression(e, false, ensAttrs));
+				 yieldEns.Add(new MaybeFreeExpression(e, ensAttrs));
 				} else {
-				 ens.Add(new MaybeFreeExpression(e, false, ensAttrs));
+				 ens.Add(new MaybeFreeExpression(e, ensAttrs));
 				}
 				
 			} else SynErr(190);
@@ -2636,7 +2636,7 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, st
 				}
 				Expression(out e, false, false);
 				OldSemi();
-				req.Add(new MaybeFreeExpression(e, false, lbl == null ? null : new AssertLabel(lbl, lbl.val), reqAttrs)); 
+				req.Add(new MaybeFreeExpression(e, lbl == null ? null : new AssertLabel(lbl, lbl.val), reqAttrs)); 
 			} else {
 				Get();
 				while (la.kind == 74) {
@@ -2644,7 +2644,7 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, st
 				}
 				Expression(out e, false, false);
 				OldSemi();
-				ens.Add(new MaybeFreeExpression(e, false, ensAttrs)); 
+				ens.Add(new MaybeFreeExpression(e, ensAttrs)); 
 			}
 		} else if (la.kind == 44) {
 			Get();
@@ -2778,7 +2778,7 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, st
 			}
 			Expression(out e, false, false);
 			OldSemi();
-			reqs.Add(new MaybeFreeExpression(e, false, reqAttrs)); 
+			reqs.Add(new MaybeFreeExpression(e, reqAttrs)); 
 		} else if (la.kind == 69) {
 			Get();
 			PossiblyWildFrameExpression(out fe, false);
@@ -2796,7 +2796,7 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, st
 			}
 			Expression(out e, false, false);
 			OldSemi();
-			ens.Add(new MaybeFreeExpression(e, false, ensAttrs)); 
+			ens.Add(new MaybeFreeExpression(e, ensAttrs)); 
 		} else if (la.kind == 44) {
 			Get();
 			if (decreases == null) {
@@ -3451,7 +3451,7 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, st
 		while (la.kind == 71) {
 			Get();
 			Expression(out e, false, true);
-			ens.Add(new MaybeFreeExpression(e, false)); 
+			ens.Add(new MaybeFreeExpression(e)); 
 			OldSemi();
 			tok = t; 
 		}
@@ -3928,7 +3928,7 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, st
 				Attribute(ref attrs);
 			}
 			Expression(out e, false, true);
-			invariants.Add(new MaybeFreeExpression(e, false, attrs)); 
+			invariants.Add(new MaybeFreeExpression(e, attrs)); 
 			OldSemi();
 		} else if (la.kind == 44) {
 			while (!(la.kind == 0 || la.kind == 44)) {SynErr(240); Get();}

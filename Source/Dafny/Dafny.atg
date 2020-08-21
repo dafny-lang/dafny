@@ -1603,10 +1603,10 @@ MethodSpec<.List<MaybeFreeExpression> req, List<FrameExpression> mod, List<Maybe
       [ IF(IsLabel(true))
         LabelIdent<out lbl> ":"
       ]
-      Expression<out e, false, false> OldSemi                (. req.Add(new MaybeFreeExpression(e, false, lbl == null ? null : new AssertLabel(lbl, lbl.val), reqAttrs)); .)
+      Expression<out e, false, false> OldSemi                (. req.Add(new MaybeFreeExpression(e, lbl == null ? null : new AssertLabel(lbl, lbl.val), reqAttrs)); .)
     | "ensures"
       { Attribute<ref ensAttrs> }
-      Expression<out e, false, false> OldSemi                (. ens.Add(new MaybeFreeExpression(e, false, ensAttrs)); .)
+      Expression<out e, false, false> OldSemi                (. ens.Add(new MaybeFreeExpression(e, ensAttrs)); .)
     )
   | "decreases" { Attribute<ref decAttrs> } DecreasesList<decreases, true, false> OldSemi
   )
@@ -1637,16 +1637,16 @@ IteratorSpec<.List<FrameExpression/*!*/>/*!*/ reads, List<FrameExpression/*!*/>/
       ]
       Expression<out e, false, false> OldSemi                (. AssertLabel al = lbl == null ? null : new AssertLabel(lbl, lbl.val);
                                                                 if (isYield) {
-                                                                  yieldReq.Add(new MaybeFreeExpression(e, false, al, null));
+                                                                  yieldReq.Add(new MaybeFreeExpression(e, al, null));
                                                                 } else {
-                                                                  req.Add(new MaybeFreeExpression(e, false, al, null));
+                                                                  req.Add(new MaybeFreeExpression(e, al, null));
                                                                 }
                                                              .)
     | "ensures" { Attribute<ref ensAttrs> }
       Expression<out e, false, false> OldSemi                (. if (isYield) {
-                                                                  yieldEns.Add(new MaybeFreeExpression(e, false, ensAttrs));
+                                                                  yieldEns.Add(new MaybeFreeExpression(e, ensAttrs));
                                                                 } else {
-                                                                  ens.Add(new MaybeFreeExpression(e, false, ensAttrs));
+                                                                  ens.Add(new MaybeFreeExpression(e, ensAttrs));
                                                                 }
                                                              .)
     )
@@ -2002,7 +2002,7 @@ FunctionSpec<.List<MaybeFreeExpression/*!*/>/*!*/ reqs, List<FrameExpression/*!*
   SYNC
   ( "requires"
     { Attribute<ref reqAttrs> }
-    Expression<out e, false, false> OldSemi                (. reqs.Add(new MaybeFreeExpression(e, false, reqAttrs)); .)
+    Expression<out e, false, false> OldSemi                (. reqs.Add(new MaybeFreeExpression(e, reqAttrs)); .)
   | "reads"
     PossiblyWildFrameExpression<out fe, false>          (. reads.Add(fe); .)
     { "," PossiblyWildFrameExpression<out fe, false>    (. reads.Add(fe); .)
@@ -2010,7 +2010,7 @@ FunctionSpec<.List<MaybeFreeExpression/*!*/>/*!*/ reqs, List<FrameExpression/*!*
     OldSemi
   | "ensures"
       { Attribute<ref ensAttrs> }
-      Expression<out e, false, false> OldSemi                (. ens.Add(new MaybeFreeExpression(e, false, ensAttrs)); .)
+      Expression<out e, false, false> OldSemi                (. ens.Add(new MaybeFreeExpression(e, ensAttrs)); .)
   | "decreases"                               (. if (decreases == null) {
                                                    SemErr(t, "'decreases' clauses are meaningless for copredicates, so they are not allowed");
                                                    decreases = new List<Expression/*!*/>();
@@ -2531,7 +2531,7 @@ LoopSpec<.List<MaybeFreeExpression> invariants, List<Expression> decreases, ref 
   ( SYNC
     "invariant"
     { Attribute<ref attrs> }
-    Expression<out e, false, true>                (. invariants.Add(new MaybeFreeExpression(e, false, attrs)); .)
+    Expression<out e, false, true>                (. invariants.Add(new MaybeFreeExpression(e, attrs)); .)
     OldSemi
   | SYNC "decreases"
     { Attribute<ref decAttrs> }
@@ -2784,7 +2784,7 @@ ForallStmt<out Statement/*!*/ s>
   .)
 
   {
-    "ensures" Expression<out e, false, true>  (. ens.Add(new MaybeFreeExpression(e, false)); .)
+    "ensures" Expression<out e, false, true>  (. ens.Add(new MaybeFreeExpression(e)); .)
     OldSemi                                   (. tok = t; .)
   }
   [ IF(la.kind == _lbrace)  /* if the input continues like a block statement, take it to be the body of the forall statement; a body-less forall statement must continue in some other way */

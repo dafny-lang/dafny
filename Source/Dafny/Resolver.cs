@@ -2550,7 +2550,7 @@ namespace Microsoft.Dafny
               CollectFriendlyCallsInFixpointLemmaSpecification(p.E, true, coConclusions, true, com);
               var subst = new FixpointLemmaSpecificationSubstituter(coConclusions, new IdentifierExpr(k.tok, k.Name), this.reporter, true);
               var post = subst.CloneExpr(p.E);
-              prefixLemma.Ens.Add(new MaybeFreeExpression(post, p.IsFree));
+              prefixLemma.Ens.Add(new MaybeFreeExpression(post));
               foreach (var e in coConclusions) {
                 var fce = e as FunctionCallExpr;
                 if (fce != null) {  // the other possibility is that "e" is a BinaryExpr
@@ -2574,7 +2574,7 @@ namespace Microsoft.Dafny
               CollectFriendlyCallsInFixpointLemmaSpecification(p.E, true, antecedents, false, com);
               var subst = new FixpointLemmaSpecificationSubstituter(antecedents, new IdentifierExpr(k.tok, k.Name), this.reporter, false);
               var pre = subst.CloneExpr(p.E);
-              prefixLemma.Req.Add(new MaybeFreeExpression(pre, p.IsFree));
+              prefixLemma.Req.Add(new MaybeFreeExpression(pre));
               foreach (var e in antecedents) {
                 var fce = (FunctionCallExpr)e;  // we expect "antecedents" to contain only FunctionCallExpr's
                 InductivePredicate predicate = (InductivePredicate)fce.Function;
@@ -9176,15 +9176,15 @@ namespace Microsoft.Dafny
       // ensures more ==> YieldEnsures;
       foreach (var ye in iter.YieldEnsures) {
         ens.Add(new MaybeFreeExpression(
-          new BinaryExpr(iter.tok, BinaryExpr.Opcode.Imp, new IdentifierExpr(iter.tok, "more"), ye.E),
-          ye.IsFree));
+          new BinaryExpr(iter.tok, BinaryExpr.Opcode.Imp, new IdentifierExpr(iter.tok, "more"), ye.E)
+          ));
       }
       // ensures !more ==> Ensures;
       foreach (var e in iter.Ensures) {
         ens.Add(new MaybeFreeExpression(new BinaryExpr(iter.tok, BinaryExpr.Opcode.Imp,
           new UnaryOpExpr(iter.tok, UnaryOpExpr.Opcode.Not, new IdentifierExpr(iter.tok, "more")),
-          e.E),
-          e.IsFree));
+          e.E)
+        ));
       }
       // decreases this._decreases0, this._decreases1, ...;
       Contract.Assert(iter.Decreases.Expressions.Count == iter.DecreasesFields.Count);
@@ -9969,7 +9969,7 @@ namespace Microsoft.Dafny
               s.Kind = ForallStmt.BodyKind.Proof;
               // add the conclusion of the calc as a free postcondition
               var result = ((CalcStmt)s0).Result;
-              s.Ens.Add(new MaybeFreeExpression(result, true));
+              s.Ens.Add(new MaybeFreeExpression(result));
               reporter.Info(MessageSource.Resolver, s.Tok, "ensures " + Printer.ExprToString(result));
             } else {
               s.Kind = ForallStmt.BodyKind.Proof;

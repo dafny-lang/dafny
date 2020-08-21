@@ -257,7 +257,7 @@ namespace Microsoft.Dafny
     }
 
     public MaybeFreeExpression CloneMayBeFreeExpr(MaybeFreeExpression expr) {
-      var mfe = new MaybeFreeExpression(CloneExpr(expr.E), expr.IsFree, expr.Label == null ? null : new AssertLabel(Tok(expr.Label.Tok), expr.Label.Name), CloneAttributes(expr.Attributes));
+      var mfe = new MaybeFreeExpression(CloneExpr(expr.E), expr.Label == null ? null : new AssertLabel(Tok(expr.Label.Tok), expr.Label.Name), CloneAttributes(expr.Attributes));
       mfe.Attributes = CloneAttributes(expr.Attributes);
       return mfe;
     }
