@@ -11,6 +11,6 @@ datatype MyDataType = AAA {
 
 method Main() {
   var dt: MyDataType;
-  print dt, "\n";
+  print dt, " ", dt.toString(), "\n";
 }
 
