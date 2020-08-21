@@ -11757,28 +11757,20 @@ namespace Microsoft.Dafny {
     }
 
     public MaybeFreeExpression(Expression e)
-      : this(e, false, null)
+      : this(e, null)
     {
       Contract.Requires(e != null);
     }
 
-    public MaybeFreeExpression(Expression e, bool isFree)
-      : this(e, isFree, null)
-    {
-      Contract.Requires(e != null);
-    }
-
-    public MaybeFreeExpression(Expression e, bool isFree, Attributes attrs) {
+    public MaybeFreeExpression(Expression e, Attributes attrs) {
       Contract.Requires(e != null);
       E = e;
-      IsFree = isFree;
       Attributes = attrs;
     }
 
-    public MaybeFreeExpression(Expression e, bool isFree, AssertLabel/*?*/ label, Attributes attrs) {
+    public MaybeFreeExpression(Expression e, AssertLabel/*?*/ label, Attributes attrs) {
       Contract.Requires(e != null);
       E = e;
-      IsFree = isFree;
       Label = label;
       Attributes = attrs;
     }

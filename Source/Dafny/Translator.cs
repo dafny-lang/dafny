@@ -18836,7 +18836,7 @@ namespace Microsoft.Dafny {
 
       protected MaybeFreeExpression SubstMayBeFreeExpr(MaybeFreeExpression expr) {
         Contract.Requires(expr != null);
-        var mfe = new MaybeFreeExpression(Substitute(expr.E), expr.IsFree);
+        var mfe = new MaybeFreeExpression(Substitute(expr.E));
         mfe.Attributes = SubstAttributes(expr.Attributes);
         return mfe;
       }

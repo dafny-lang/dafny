@@ -1061,7 +1061,7 @@ namespace Microsoft.Dafny
             // First handle all of the requirements' preconditions
             foreach (MaybeFreeExpression req in fn.Req) {
               foreach (Expression e in generateAutoReqs(req.E)) {
-                auto_reqs.Add(new MaybeFreeExpression(e, req.IsFree, req.Attributes));
+                auto_reqs.Add(new MaybeFreeExpression(e, req.Attributes));
               }
             }
             fn.Req.InsertRange(0, auto_reqs); // Need to come before the actual requires
@@ -1092,7 +1092,7 @@ namespace Microsoft.Dafny
                     List<Expression> local_auto_reqs = generateAutoReqs(req.E);
                     foreach (Expression local_auto_req in local_auto_reqs)
                     {
-                        auto_reqs.Add(new MaybeFreeExpression(local_auto_req, !req.IsFree));
+                        auto_reqs.Add(new MaybeFreeExpression(local_auto_req));
                     }
                 }
                 method.Req.InsertRange(0, auto_reqs); // Need to come before the actual requires
