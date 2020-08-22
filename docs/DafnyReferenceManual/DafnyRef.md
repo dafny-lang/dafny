@@ -47,7 +47,7 @@ TO BE WRITTEN
 
 # Variable Initialization and Definite Assignment
 
-TO BE WRITTEN -- rules for default initialization; resulting rules for constructors; definnite assignment rules
+TO BE WRITTEN -- rules for default initialization; resulting rules for constructors; definite assignment rules
 
 # Module Refinement
 TODO: Write this section.
@@ -86,4 +86,3 @@ TODO: Write this section.
 
 # References
 [BIB]
-

@@ -410,7 +410,7 @@ types, in which case Dafny adds the "`(==)`" automatically.
 
 TO BE WRITTEN: Type parameter variance with + - = * ! default
 
-TO BE WRITTEN: Type parameter characteristiscs: == 0 
+TO BE WRITTEN: Type parameter characteristiscs: == 0 !new
 
 TODO: Need to describe type inference somewhere.
 
@@ -3546,4 +3546,3 @@ forall x :: P(x)
 ```
 will be `int`, even if predicate `P` declares its argument to have
 type `nat`.
-
