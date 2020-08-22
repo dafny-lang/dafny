@@ -1,5 +1,6 @@
 # RUN: %server "%s" > "%t"
 # RUN: %diff "%s.expect" "%t"
+# XFAIL: *
 verify
 eyJhcmdzIjpbIi9jb21waWxlOjAiLCIvbm9sb2dvIiwiL3ByaW50VG9vbHRpcHMiLCIvdGltZUxp
 bWl0OjIwIl0sImZpbGVuYW1lIjoidHJhbnNjcmlwdCIsInNvdXJjZSI6Im1ldGhvZCBBKGE6aW50
