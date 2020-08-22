@@ -3490,9 +3490,9 @@ If the compiler does specialize the run-time representation for
 `int32`, then these statements come at the expense of two,
 respectively three, run-time conversions.
 
-TO BE WRITTEN - change of int(x) to x as int
-
 # Subset types
+TO BE WRITTEN: add `-->` (subset of `~>`), `->` (subset of `-->`), non-null types subset of nullable types
+
 ````
 NatType_ = "nat"
 ````
