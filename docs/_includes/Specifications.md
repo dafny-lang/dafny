@@ -531,7 +531,6 @@ is effectively a precondition and it along with the
 negation of the loop test condition provides the postcondition.
 The ``DecreasesClause_`` clause is used to prove termination.
 
-## Inferred specifications
+## Auto-generated boilerplate specifications
 
 TO BE WRITTEN - {:autocontracts}
-
