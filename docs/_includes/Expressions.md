@@ -418,21 +418,57 @@ or a collection of object references.
 
 TO BE WRITTEN -- allocated predicate
 
-## Old Expressions {#sec-old-expression}
+## Old and Old@ Expressions {#sec-old-expression}
 
 ````
-OldExpression_ = "old" [ "@" ident ] "(" Expression(allowLemma: true, allowLambda: true) ")"
+OldExpression_ = "old" "(" Expression(allowLemma: true, 
+                                      allowLambda: true) ")"
+               | "old" "@" label "(" Expression(allowLemma: true, 
+                                      allowLambda: true) ")"
 ````
 
-An _old expression_ is used in postconditions. `old(e)` evaluates to
-the value expression `e` had on entry to the current method.
-Note that **old** only affects heap dereferences, like `o.f` and `a[i]`.
-In particular, **old** has no effect on the value returned for local
-variables or out-parameters.
+An _old expression_ is used in postconditions or in the body of a method;
+an _old_ expression with a label is used only in the body of a method at a point
+where the label dominates its use in this expression.
 
-TO BE WRITTEN -- Inside an old, disallow unchanged, fresh, two-state functions, two-state lemmas, and nested old
+`old(e)` evaluates
+the argument using the value of the heap on entry to the method;
+`old@ident(e)` evaluates the argument using the value of the heap at the
+given statement label.
 
-## Unchanged Expressions
+Note that **old** and **old@** only affect heap dereferences,
+like `o.f` and `a[i]`.
+In particular, neither form has any effect on the value returned for local
+variables or out-parameters or ghost values (as they are not on the heap).[^Old] 
+If the value of an entire expression at a
+particular point in the method body is needed later on in the method body,
+the clearest means is to declare a ghost variable, initializing it to the
+expression in question.
+
+[^Old]: The semantics of `old` in dafny is quite different than similar 
+constructs in other specification languages like ACSL or JML.
+
+The argument of an `old` expression may not contain nested `old`, 
+[`fresh`](#sec-fresh),
+or [`unchanged`](#sec-unchanged) expressions, 
+nor [two-state functions](#sec-two-state) or [two-state lemmas](#sec-two-state-lemma).
+
+Here are some explanatory examples. All `assert` statements verify to be true.
+```
+{% include Example-Old.dfy %}
+```
+```
+{% include Example-Old2.dfy %}
+```
+The next example demonstrates the interation between `old` and array elements.
+```
+{% include Example-Old3.dfy %}
+```
+
+
+TODO: Make sure links above are connected
+
+## Unchanged Expressions {#sec-unchanged}
 
 TO BE WRITTEN -- including with labels
 
