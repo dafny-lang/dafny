@@ -406,6 +406,9 @@ namespace Microsoft.Dafny {
             var seqExpr = (SeqSelectExpr)lexpr;
             string targetArray = EmitAssignmentLhs(seqExpr.Seq, wr);
             string targetIndex = EmitAssignmentLhs(seqExpr.E0, wr);
+            if (seqExpr.Seq.Type.IsArrayType || seqExpr.Seq.Type.AsSeqType != null) {
+              targetIndex = ArrayIndexToNativeInt(targetIndex, seqExpr.E0.Type);
+            }
             ILvalue newLhs = EmitArraySelectAsLvalue(targetArray,
                             new List<string>() { targetIndex }, lhsTypes[i]);
             lhssn.Add(newLhs);
@@ -672,7 +675,6 @@ namespace Microsoft.Dafny {
       }
 
       public static List<TypeArgumentInstantiation> ListFromMember(MemberDecl member, List<Type> /*?*/ classActuals, List<Type> /*?*/ memberActuals) {
-        Contract.Requires(member is Function || member is Method);
         Contract.Requires(classActuals == null || classActuals.Count == member.EnclosingClass.TypeArgs.Count);
         Contract.Requires(memberActuals == null || memberActuals.Count == (member is ICallable ic ? ic.TypeArgs.Count : 0));
 
@@ -740,7 +742,14 @@ namespace Microsoft.Dafny {
       TrExpr(rhs, w, false);
       return EmitArrayUpdate(indices, w.ToString(), rhs.Type, wr);
     }
-    protected virtual string ArrayIndexToInt(string arrayIndex) {
+    protected virtual string ArrayIndexToInt(string arrayIndex, Type fromType) {
+      Contract.Requires(arrayIndex != null);
+      Contract.Requires(fromType != null);
+      return arrayIndex;
+    }
+    protected virtual string ArrayIndexToNativeInt(string arrayIndex, Type fromType) {
+      Contract.Requires(arrayIndex != null);
+      Contract.Requires(fromType != null);
       return arrayIndex;
     }
     protected abstract void EmitExprAsInt(Expression expr, bool inLetExprBody, TargetWriter wr);
@@ -1406,7 +1415,7 @@ namespace Microsoft.Dafny {
         } else if (member is Function) {
           var f = (Function)member;
           if (f.Body == null && !(c is TraitDecl && !f.IsStatic) &&
-              !(!DafnyOptions.O.DisallowExterns && (Attributes.Contains(f.Attributes, "dllimport") || IncludeExternMembers && Attributes.Contains(f.Attributes, "extern")))) {
+              !(!DafnyOptions.O.DisallowExterns && (Attributes.Contains(f.Attributes, "dllimport") || (IncludeExternMembers && Attributes.Contains(f.Attributes, "extern"))))) {
             // A (ghost or non-ghost) function must always have a body, except if it's an instance function in a trait.
             if (Attributes.Contains(f.Attributes, "axiom") || (!DafnyOptions.O.DisallowExterns && Attributes.Contains(f.Attributes, "extern"))) {
               // suppress error message
@@ -1438,7 +1447,7 @@ namespace Microsoft.Dafny {
           v.Visit(f);
         } else if (member is Method m) {
           if (m.Body == null && !(c is TraitDecl && !m.IsStatic) &&
-              !(!DafnyOptions.O.DisallowExterns && (Attributes.Contains(m.Attributes, "dllimport") || IncludeExternMembers && Attributes.Contains(m.Attributes, "extern")))) {
+              !(!DafnyOptions.O.DisallowExterns && (Attributes.Contains(m.Attributes, "dllimport") || (IncludeExternMembers && Attributes.Contains(m.Attributes, "extern"))))) {
             // A (ghost or non-ghost) method must always have a body, except if it's an instance method in a trait.
             if (Attributes.Contains(m.Attributes, "axiom") || (!DafnyOptions.O.DisallowExterns && Attributes.Contains(m.Attributes, "extern"))) {
               // suppress error message
@@ -1810,7 +1819,7 @@ namespace Microsoft.Dafny {
     private void CompileFunction(Function f, IClassWriter cw) {
       Contract.Requires(f != null);
       Contract.Requires(cw != null);
-      Contract.Requires(f.Body != null);
+      Contract.Requires(f.Body != null || Attributes.Contains(f.Attributes, "dllimport") || (IncludeExternMembers && Attributes.Contains(f.Attributes, "extern")));
 
       var w = cw.CreateFunction(IdName(f), CombineTypeParameters(f, true), f.Formals, f.ResultType, f.tok, f.IsStatic, !f.IsExtern(out _, out _), f);
       if (w != null) {
@@ -1860,7 +1869,7 @@ namespace Microsoft.Dafny {
     private void CompileMethod(Method m, IClassWriter cw, Dictionary<TypeParameter, Type>/*?*/ parentTypeParameterTypeMap) {
       Contract.Requires(cw != null);
       Contract.Requires(m != null);
-      Contract.Requires(m.Body != null);
+      Contract.Requires(m.Body != null || Attributes.Contains(m.Attributes, "dllimport") || (IncludeExternMembers && Attributes.Contains(m.Attributes, "extern")));
 
       var w = cw.CreateMethod(m, CombineTypeParameters(m, true), !m.IsExtern(out _, out _), false);
       if (w != null) {
@@ -3512,6 +3521,9 @@ namespace Microsoft.Dafny {
         var ll = (SeqSelectExpr)lhs;
         var arr = StabilizeExpr(ll.Seq, "_arr", wr);
         var index = StabilizeExpr(ll.E0, "_index", wr);
+        if (ll.Seq.Type.IsArrayType || ll.Seq.Type.AsSeqType != null) {
+          index = ArrayIndexToNativeInt(index, ll.E0.Type);
+        }
         return EmitArraySelectAsLvalue(arr, new List<string>() { index }, ll.Type);
       } else {
         var ll = (MultiSelectExpr)lhs;
@@ -3519,7 +3531,9 @@ namespace Microsoft.Dafny {
         var indices = new List<string>();
         int i = 0;
         foreach (var idx in ll.Indices) {
-          indices.Add(StabilizeExpr(idx, "_index" + i + "_", wr));
+          var index = StabilizeExpr(idx, "_index" + i + "_", wr);
+          index = ArrayIndexToNativeInt(index, idx.Type);
+          indices.Add(index);
           i++;
         }
         return EmitArraySelectAsLvalue(arr, indices, ll.Type);
@@ -3634,7 +3648,7 @@ namespace Microsoft.Dafny {
             var bound = string.Format("{0}{1}{2}{3}", pre, nw, len == "" ? "" : "." + len, post);
             w = CreateForLoop(indices[d], bound, w);
           }
-          var eltRhs = string.Format("{0}{2}({1})", f, Util.Comma(indices, ArrayIndexToInt), LambdaExecute);
+          var eltRhs = string.Format("{0}{2}({1})", f, Util.Comma(indices, idx => ArrayIndexToInt(idx, Type.Int)), LambdaExecute);
           var wArray = EmitArrayUpdate(indices, eltRhs, tRhs.EType, w);
           wArray.Write(nw);
           EndStmt(w);
@@ -4693,7 +4707,7 @@ namespace Microsoft.Dafny {
         wr.Write("){0}", ClassAccessor);
         compileName = IdName(f);
       }
-      var actualTypeArguments = CombineTypeArguments(f, f.IsStatic || customReceiver ? e.TypeApplication_AtEnclosingClass : null, e.TypeApplication_JustFunction);
+      var actualTypeArguments = CombineTypeArguments(f, f.IsStatic || customReceiver ? e.TypeApplication_AtEnclosingClass : new List<Type>(), e.TypeApplication_JustFunction);
       EmitNameAndActualTypeArgs(compileName, actualTypeArguments.ConvertAll(ta => ta.Actual), f.tok, wr);
       wr.Write("(");
       var nRTDs = EmitRuntimeTypeDescriptorsActuals(actualTypeArguments, e.tok, false, wr);

@@ -1,7 +1,8 @@
-// RUN: %dafny /compile:3 /spillTargetCode:2 /compileTarget:cs "%s" > "%t"
-// RUN: %dafny /compile:3 /spillTargetCode:2 /compileTarget:js "%s" >> "%t"
-// RUN: %dafny /compile:3 /spillTargetCode:2 /compileTarget:go "%s" >> "%t"
-// RUN: %dafny /compile:3 /spillTargetCode:2 /compileTarget:java "%s" >> "%t"
+// RUN: %dafny /compile:0 "%s" > "%t"
+// RUN: %dafny /noVerify /compile:4 /compileTarget:cs "%s" >> "%t"
+// RUN: %dafny /noVerify /compile:4 /compileTarget:js "%s" >> "%t"
+// RUN: %dafny /noVerify /compile:4 /compileTarget:go "%s" >> "%t"
+// RUN: %dafny /noVerify /compile:4 /compileTarget:java "%s" >> "%t"
 // RUN: %diff "%s.expect" "%t"
 
 method LinearSearch(a: array<int>, key: int) returns (n: nat)
@@ -61,6 +62,7 @@ method Main() {
 
   PrintArray<int>(null);
 
+  Index();
   More();
   MoreWithDefaults();
 }
@@ -127,7 +129,40 @@ type Yes = b | b witness true
 newtype nByte = x | -10 <= x < 100 witness 1
 newtype nShort = x | -10 <= x < 1000 witness 2
 newtype nInt = x | -10 <= x < 1_000_000 witness 3
-newtype nLong = x | -10 <= x < 0x100_0000_0000 witness 4
+newtype nLong = x | -10 <= x < 0x100_0000_0000_0000 witness 4
+newtype ubyte = x | 0 <= x < 256
+
+method Index() {
+  var i: nByte := 0;
+  var j: nLong := 1;
+  var k: BV10 := 2;
+  var l: ubyte := 250;  // we wanna be sure this does become negative when used in Java
+  var m: int := 100;
+
+  var a := new string[300];
+  a[i] := "hi";
+  a[j] := "hello";
+  a[k] := "tjena";
+  a[l] := "hej";
+  a[m] := "hola";
+  print a[i], " ", a[j], " ", a[k], " ", a[l], " ", a[m], "\n";
+
+  var b := new string[20, 300];
+  b[18, i] := "hi";
+  b[18, j] := "hello";
+  b[18, k] := "tjena";
+  b[18, l] := "hej";
+  b[18, m] := "hola";
+  print b[18, i], " ", b[18, j], " ", b[18, k], " ", b[18, l], " ", b[18, m], "\n";
+
+  var s := seq(300, _ => "x");
+  s := s[i := "hi"];
+  s := s[j := "hello"];
+  s := s[k := "tjena"];
+  s := s[l := "hej"];
+  s := s[m := "hola"];
+  print s[i], " ", s[j], " ", s[k], " ", s[l], " ", s[m], "\n";
+}
 
 method More() {
   var aa := new lowercase[3];
@@ -170,7 +205,7 @@ type xYes = b | !b
 newtype xnByte = x | -10 <= x < 100
 newtype xnShort = x | -10 <= x < 1000
 newtype xnInt = x | -10 <= x < 1_000_000
-newtype xnLong = x | -10 <= x < 0x100_0000_0000
+newtype xnLong = x | -10 <= x < 0x100_0000_0000_0000
 
 method MoreWithDefaults() {
   var aa := new xlowercase[3];

@@ -16,12 +16,6 @@ user understand how to do proofs with Dafny.
 [Link to current document as pdf](https://dafny-lang.github.io/dafny/DafnyReferenceManual/DafnyRef.pdf)<br/>
 [Link to current document as html](https://dafny-lang.github.io/dafny/DafnyReferenceManual/DafnyRef)
 
-<!--
-Sample math B: $a \to b$ or 
-<p style="text-align: center;">$$ a \to \pi $$</p>
- or \\( a \top \\) or \\[ a \to \pi \\] 
--->
-
 1. numbered toc 
 {:toc}
 
@@ -53,7 +47,7 @@ TO BE WRITTEN -- rules for default initialization; resulting rules for construct
 
 TODO: Write this section
 
-# Module Refinement
+# Module Refinement {#sec-module-refinement}
 
 TODO: Write this section.
 
@@ -91,3 +85,8 @@ TODO: Write this section.
 
 # References
 [BIB]
+<<<<<<< HEAD
+=======
+
+{% include SyntaxTests.md %}
+>>>>>>> master

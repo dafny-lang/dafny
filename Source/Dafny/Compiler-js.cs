@@ -1378,6 +1378,8 @@ namespace Microsoft.Dafny {
         case "void":
         case "volatile":
         case "with":
+        case "toString":
+        case "equals":
           return "_$$_" + name;
         default:
           return name;
@@ -1602,7 +1604,7 @@ namespace Microsoft.Dafny {
       return w;
     }
 
-    protected override string ArrayIndexToInt(string arrayIndex) {
+    protected override string ArrayIndexToInt(string arrayIndex, Type fromType) {
       return string.Format("new BigNumber({0})", arrayIndex);
     }
 
@@ -1964,12 +1966,10 @@ namespace Microsoft.Dafny {
           }
           break;
         case BinaryExpr.ResolvedOpcode.Div:
-          if (resultType.IsIntegerType) {
-            staticCallString = "_dafny.EuclideanDivision";
-          } else if (resultType.IsRealType) {
+          if (resultType.IsRealType) {
             callString = "dividedBy";
-          } else if (AsNativeType(resultType) == null) {
-            callString = "dividedToIntegerBy";
+          } else if (resultType.IsIntegerType || AsNativeType(resultType) == null) {
+            staticCallString = "_dafny.EuclideanDivision";
           } else if (AsNativeType(resultType).LowerBound < BigInteger.Zero) {
             staticCallString = "_dafny.EuclideanDivisionNumber";
           } else {
