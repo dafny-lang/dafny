@@ -1,3 +1,7 @@
+Basics.dfy(623,17): Error: result of operation might violate newtype constraint for 'int8'
+Execution trace:
+    (0,0): anon0
+    (0,0): anon5_Then
 Basics.dfy(45,13): Error: assertion violation
 Execution trace:
     (0,0): anon0
@@ -128,4 +132,4 @@ Execution trace:
     (0,0): anon0
     (0,0): anon7_Then
 
-Dafny program verifier finished with 45 verified, 19 errors
+Dafny program verifier finished with 48 verified, 20 errors

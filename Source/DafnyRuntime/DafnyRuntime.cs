@@ -41,10 +41,7 @@ namespace Dafny
     }
 
     public static Set<T> FromISet(ISet<T> s) {
-      if (s is Set<T> st) {
-        return st;
-      }
-      return FromCollection(s.Elements);
+      return s as Set<T> ?? FromCollection(s.Elements);
     }
     public static Set<T> FromCollection(IEnumerable<T> values) {
       var d = ImmutableHashSet<T>.Empty.ToBuilder();
@@ -143,9 +140,12 @@ namespace Dafny
       return true;
     }
     public override bool Equals(object other) {
-      if (other is ISet<T> s) {
-        return Equals(s);
-      } else if (this is ISet<object> th && other is ISet<object> oth) {
+      if (other is ISet<T>) {
+        return Equals((ISet<T>)other);
+      }
+      var th = this as ISet<object>;
+      var oth = other as ISet<object>;
+      if (th != null && oth != null) {
         // We'd like to obtain the more specific type parameter U for oth's type ISet<U>.
         // We do that by making a dynamically dispatched call, like:
         //     oth.Equals(this)
@@ -161,7 +161,8 @@ namespace Dafny
     }
 
     public bool EqualsAux(ISet<object> other) {
-      if (other is ISet<T> s) {
+      var s = other as ISet<T>;
+      if (s != null) {
         return Equals(s);
       } else {
         return false;
@@ -262,10 +263,7 @@ namespace Dafny
     }
     public static readonly MultiSet<T> Empty = new MultiSet<T>(ImmutableDictionary<T, BigInteger>.Empty.ToBuilder(), BigInteger.Zero);
     public static MultiSet<T> FromIMultiSet(IMultiSet<T> s) {
-      if (s is MultiSet<T> st) {
-        return st;
-      }
-      return FromCollection(s.Elements);
+      return s as MultiSet<T> ?? FromCollection(s.Elements);
     }
     public static MultiSet<T> FromElements(params T[] values) {
       var d = ImmutableDictionary<T, BigInteger>.Empty.ToBuilder();
@@ -336,9 +334,12 @@ namespace Dafny
       return IsSubsetOf(this, other) && IsSubsetOf(other, this);
     }
     public override bool Equals(object other) {
-      if (other is IMultiSet<T> s) {
-        return Equals(s);
-      } else if (this is IMultiSet<object> th && other is IMultiSet<object> oth) {
+      if (other is IMultiSet<T>) {
+        return Equals((IMultiSet<T>)other);
+      }
+      var th = this as IMultiSet<object>;
+      var oth = other as IMultiSet<object>;
+      if (th != null && oth != null) {
         // See comment in Set.Equals
         return oth.EqualsAux(th);
       } else {
@@ -347,7 +348,8 @@ namespace Dafny
     }
 
     public bool EqualsAux(IMultiSet<object> other) {
-      if (other is IMultiSet<T> s) {
+      var s = other as IMultiSet<T>;
+      if (s != null) {
         return Equals(s);
       } else {
         return false;
@@ -415,7 +417,9 @@ namespace Dafny
     public BigInteger Select<G>(G t) {
       if (t == null) {
         return occurrencesOfNull;
-      } else if (t is T && dict.TryGetValue((T)(object)t, out var m)) {
+      }
+      BigInteger m;
+      if (t is T && dict.TryGetValue((T)(object)t, out m)) {
         return m;
       } else {
         return BigInteger.Zero;
@@ -491,7 +495,7 @@ namespace Dafny
       return new MultiSet<T>(r, b.occurrencesOfNull < a.occurrencesOfNull ? a.occurrencesOfNull - b.occurrencesOfNull : BigInteger.Zero);
     }
 
-    public bool IsEmpty => occurrencesOfNull == 0 && dict.IsEmpty;
+    public bool IsEmpty { get { return occurrencesOfNull == 0 && dict.IsEmpty; } }
 
     public int Count {
       get { return (int)ElementCount(); }
@@ -589,10 +593,7 @@ namespace Dafny
       return new Map<U, V>(d, hasNullKey, nullValue);
     }
     public static Map<U, V> FromIMap(IMap<U, V> m) {
-      if (m is Map<U, V> mp) {
-        return mp;
-      }
-      return FromCollection(m.ItemEnumerable);
+      return m as Map<U, V> ?? FromCollection(m.ItemEnumerable);
     }
     public int Count {
       get { return dict.Count + (hasNullKey ? 1 : 0); }
@@ -643,9 +644,12 @@ namespace Dafny
     }
     public override bool Equals(object other) {
       // See comment in Set.Equals
-      if (other is IMap<U, V> m) {
+      var m = other as IMap<U, V>;
+      if (m != null) {
         return Equals(m);
-      } else if (other is IMap<object, object> imapoo) {
+      }
+      var imapoo = other as IMap<object, object>;
+      if (imapoo != null) {
         return EqualsObjObj(imapoo);
       } else {
         return false;
@@ -872,9 +876,12 @@ namespace Dafny
       return n == other.Elements.Length && EqualUntil(this, other, n);
     }
     public override bool Equals(object other) {
-      if (other is ISequence<T> s) {
-        return Equals(s);
-      } else if (this is ISequence<object> th && other is ISequence<object> oth) {
+      if (other is ISequence<T>) {
+        return Equals((ISequence<T>)other);
+      }
+      var th = this as ISequence<object>;
+      var oth = other as ISequence<object>;
+      if (th != null && oth != null) {
         // see explanation in Set.Equals
         return oth.EqualsAux(th);
       } else {
@@ -882,7 +889,8 @@ namespace Dafny
       }
     }
     public bool EqualsAux(ISequence<object> other) {
-      if (other is ISequence<T> s) {
+      var s = other as ISequence<T>;
+      if (s != null) {
         return Equals(s);
       } else {
         return false;
@@ -1079,11 +1087,13 @@ namespace Dafny
   }
   public class Pair<A, B> : IPair<A, B>
   {
-    public A Car { get; }
-    public B Cdr { get; }
+    private A car;
+    private B cdr;
+    public A Car { get { return car; } }
+    public B Cdr { get { return cdr; } }
     public Pair(A a, B b) {
-      this.Car = a;
-      this.Cdr = b;
+      this.car = a;
+      this.cdr = b;
     }
   }
   public partial class Helpers {
