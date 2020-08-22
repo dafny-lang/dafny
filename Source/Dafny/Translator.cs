@@ -2445,9 +2445,6 @@ namespace Microsoft.Dafny {
           if (p.Label != null && kind == MethodTranslationKind.Implementation) {
             // don't include this precondition here, but record it for later use
             p.Label.E = etran.Old.TrExpr(p.E);
-          // } else if (p.IsFree && !DafnyOptions.O.DisallowSoundnessCheating) {
-          //   req.Add(Requires(p.E.tok, true, etran.TrExpr(p.E), errorMessage, comment));
-          //   comment = null;
           } else {
             foreach (var s in TrSplitExprForMethodSpec(p.E, etran, kind)) {
               if (kind == MethodTranslationKind.Call && RefinementToken.IsInherited(s.E.tok, currentModule)) {
@@ -9475,9 +9472,6 @@ namespace Microsoft.Dafny {
           if (p.Label != null && kind == MethodTranslationKind.Implementation) {
             // don't include this precondition here, but record it for later use
             p.Label.E = (m is TwoStateLemma ? ordinaryEtran : etran.Old).TrExpr(p.E);
-          // } else if (p.IsFree && !DafnyOptions.O.DisallowSoundnessCheating) {
-          //   req.Add(Requires(p.E.tok, true, etran.TrExpr(p.E), errorMessage, comment));
-          //   comment = null;
           } else {
             foreach (var s in TrSplitExprForMethodSpec(p.E, etran, kind)) {
               if (s.IsOnlyChecked && bodyKind) {
@@ -11686,13 +11680,12 @@ namespace Microsoft.Dafny {
         // check that postconditions hold
         foreach (var ens in s.Ens) {
           
-            bool splitHappened;  // we actually don't care
-            foreach (var split in TrSplitExpr(ens.E, etran, true, out splitHappened)) {
-              if (split.IsChecked) {
-                definedness.Add(Assert(split.E.tok, split.E, "possible violation of postcondition of forall statement"));
-              }
+          bool splitHappened;  // we actually don't care
+          foreach (var split in TrSplitExpr(ens.E, etran, true, out splitHappened)) {
+            if (split.IsChecked) {
+              definedness.Add(Assert(split.E.tok, split.E, "possible violation of postcondition of forall statement"));
             }
-          
+          }
         }
       }
 
