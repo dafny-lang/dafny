@@ -504,7 +504,7 @@ is a set with three elements in it.
 See section [#sec-sets] for more information on
 sets.
 
-TO BE WRITTEN - use of sequence display expressions as array values
+TO BE WRITTEN - use of initializing display expression in new-array allocation
 
 ## Multiset Display or Cast Expression
 ````
@@ -1144,4 +1144,3 @@ one or more expressions separated by a comma.
 ## Map comprehensions
 
 TO BE WRITTEN
-
