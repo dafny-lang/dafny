@@ -360,6 +360,7 @@ method M1() returns (ghost y: int)
 ````
 IfStmt = "if"
   ( IfAlternativeBlock
+  | "{" IfAlternativeBlock "}"
   |
     ( BindingGuard(allowLambda: true)
     | Guard
@@ -371,11 +372,11 @@ IfStmt = "if"
 
 ````
 IfAlternativeBlock =
-   "{" { "case"
+      { "case"
       (
         BindingGuard(allowLambda:false)
       | Expression(allowLemma: true, allowLambda: false)
-      ) "=>" { Stmt } } "}" .
+      ) "=>" { Stmt } } .
 ````
 
 The simplest form of an `if` statement uses a guard that is a boolean
@@ -419,7 +420,7 @@ at least one of the guards to evaluate to `true`.
 ## While Statement
 ````
 WhileStmt = "while"
-  ( LoopSpecWhile WhileAlternativeBlock
+  ( LoopSpecWhile ( WhileAlternativeBlock | "{" WhileAlternativeBlock "}" )
   | ( Guard | "..." ) LoopSpec
       ( BlockStmt
       | "..."
@@ -684,6 +685,8 @@ and whose truth may aid in the larger verification effort,
 much as lemmas might be used in mathematical proofs.
 
 Using `...` as the argument of the statement is part of module refinement, as described [here](#sec-module-refinement).
+
+TO BE WRITTEN - assert by statements
 
 ## Assume Statement
 ````

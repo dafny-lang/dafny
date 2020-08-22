@@ -2169,6 +2169,10 @@ namespace Microsoft.Dafny {
         case "println":
         case "real":
         case "recover":
+          
+        case "String":
+        case "Equals":
+        case "EqualsGeneric":
 
         // Built-in types (can also be used as functions)
         case "bool":
