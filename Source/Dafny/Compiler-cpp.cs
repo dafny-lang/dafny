@@ -1748,7 +1748,7 @@ namespace Microsoft.Dafny {
       return w;
     }
 
-    protected override string ArrayIndexToInt(string arrayIndex) {
+    protected override string ArrayIndexToInt(string arrayIndex, Type fromType) {
       return arrayIndex;
     }
 
