@@ -105,7 +105,7 @@ In this section a backslash is used to start an escape sequence; so for example
 enclose the set of characters constituting a character class; enclosing single
 quotes are used when there is just one character in the class. `+` indicates
 the union of two character classes; `-` is the set-difference between the 
-two classes. `ANY` designates all ASCII characters.
+two classes. `ANY` designates all [unicode characters](#sec-unicode).
 
 ````
 letter = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
@@ -231,17 +231,20 @@ as identifiers of user-defined entities:
 reservedword =
     "abstract" | "array" | "as" | "assert" | "assume" | "bool" | 
     "break" | "calc" | "case" | "char" | "class" | "codatatype" | 
-    "colemma" | "constructor" | "copredicate" | "datatype" | "decreases" |
-    "default" | "else" | "ensures" | "exists" | "extends" | "false" |
-    "forall" | "fresh" | "function" | "ghost" | "if" | "imap" | "import" |
-    "in" | "include" | "inductive" | "int" | "invariant" | "iset" | "is"
-    "iterator" | "label" |
-    "lemma" | "map" | "match" | "method" | "modifies" | "modify" |
-    "module" | "multiset" | "nat" | "new" | "newtype" | "null" | "object" |
-    "old" | "opened" | "predicate" | "print" | "protected" | "provides"
-    "reads" | "real" | "refines" | "requires" | "return" | "returns" | "reveals" | "seq" |
-    "set" | "static" | "string" | "then" | "this" | "trait" | "true" | "twostate" | "type" |
-    "unchanged" | "var" | "where" | "while" | "yield" | "yields" | arrayToken
+    "colemma" | "constructor" | "copredicate" | "datatype" | 
+    "decreases" | "default" | "else" | "ensures" | "exists" | 
+    "extends" | "false" | "forall" | "fresh" | "function" | 
+    "ghost" | "if" | "imap" | "import" | "in" | "include" | 
+    "inductive" | "int" | "invariant" | "is" | "iset" | 
+    "iterator" | "label" | "lemma" | "map" | "match" | "method" | 
+    "modifies" | "modify" | "module" | "multiset" | "nat" | 
+    "new" | "newtype" | "null" | "object" | "old" | "opened" | 
+    "predicate" | "print" | "protected" | "provides" "reads" | 
+    "real" | "refines" | "requires" | "return" | "returns" | 
+    "reveals" | "seq" | "set" | "static" | "string" | "then" | 
+    "this" | "trait" | "true" | "twostate" | "type" | 
+    "unchanged" | "var" | "where" | "while" | "yield" | "yields" | 
+    arrayToken
 
 arrayToken = "array" [ posdigit2 | posDigit digit { digit }]["?"] 
 ```

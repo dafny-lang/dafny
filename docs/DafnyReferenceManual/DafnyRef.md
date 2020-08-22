@@ -35,8 +35,6 @@ user understand how to do proofs with Dafny.
 
 {% include Expressions.md %}
 
-{% include Grammar.md %}
-
 # Well-Founded Orders {#sec-well-founded-orders}
 
 TODO: Write this section
