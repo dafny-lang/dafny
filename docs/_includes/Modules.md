@@ -93,6 +93,8 @@ module Mod {
 }
 ```
 
+TO BE WRITTEN - standalone declaration of nested modules
+
 Note that everything declared at the top-level 
 (in all the files constituting the program) is implicitly part
 of a single implicit unnamed global module.
@@ -167,6 +169,13 @@ import MyModule  // error: cannot add a moduled named MyModule
                  // because there already is one
 import M = MyModule // OK. M and MyModule are equivalent
 ```
+
+## Export Sets
+
+TO BE WRITTEN -- including provides and reveals lists
+TO BE WRITTEN -- opened imports are not exported
+TO BE WRITTEN -- module facades
+
 
 ## Opening Modules
 
