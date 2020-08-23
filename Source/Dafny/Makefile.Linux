@@ -18,9 +18,9 @@ endif
 default:
 	$(COCO) Dafny.atg -namespace Microsoft.Dafny -frames $(FRAME_DIR)
 
-all: Parser.cs
+all: Parser.cs Scanner.cs
 
-Parser.cs: $(FRAME_DIR)/scanner.frame $(FRAME_DIR)/parser.frame Dafny.atg
+Parser.cs Scanner.cs: $(FRAME_DIR)/scanner.frame $(FRAME_DIR)/parser.frame Dafny.atg
 	$(COCO) Dafny.atg -namespace Microsoft.Dafny -frames $(FRAME_DIR)
 
 clean:
