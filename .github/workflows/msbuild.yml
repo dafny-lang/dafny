@@ -47,6 +47,8 @@ jobs:
         cp -r z3* dafny/Binaries/z3
     - name: Nuget Restore Dafny
       run: nuget restore dafny/Source/Dafny.sln
+    - name: Build Dafny Parser
+      run: make -C Source/Dafny -f Makefile.Linux
     - name: Build Dafny
       run: msbuild dafny/Source/Dafny.sln
     - uses: actions/setup-python@v1
