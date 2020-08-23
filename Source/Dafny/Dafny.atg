@@ -1366,10 +1366,10 @@ IteratorDecl<DeclModifierData dmod, ModuleDefinition module, out IteratorDecl/*!
      List<FrameExpression/*!*/> reads = new List<FrameExpression/*!*/>();
      List<FrameExpression/*!*/> mod = new List<FrameExpression/*!*/>();
      List<Expression/*!*/> decreases = new List<Expression>();
-     List<MaybeFreeExpression/*!*/> req = new List<MaybeFreeExpression/*!*/>();
-     List<MaybeFreeExpression/*!*/> ens = new List<MaybeFreeExpression/*!*/>();
-     List<MaybeFreeExpression/*!*/> yieldReq = new List<MaybeFreeExpression/*!*/>();
-     List<MaybeFreeExpression/*!*/> yieldEns = new List<MaybeFreeExpression/*!*/>();
+     List<AttributedExpression/*!*/> req = new List<AttributedExpression/*!*/>();
+     List<AttributedExpression/*!*/> ens = new List<AttributedExpression/*!*/>();
+     List<AttributedExpression/*!*/> yieldReq = new List<AttributedExpression/*!*/>();
+     List<AttributedExpression/*!*/> yieldEns = new List<AttributedExpression/*!*/>();
      List<Expression/*!*/> dec = new List<Expression/*!*/>();
      Attributes readsAttrs = null;
      Attributes modAttrs = null;
@@ -1473,9 +1473,9 @@ MethodDecl<DeclModifierData dmod, bool allowConstructor, bool isWithinAbstractMo
      List<TypeParameter/*!*/>/*!*/ typeArgs = new List<TypeParameter/*!*/>();
      List<Formal/*!*/> ins = new List<Formal/*!*/>();
      List<Formal/*!*/> outs = new List<Formal/*!*/>();
-     List<MaybeFreeExpression/*!*/> req = new List<MaybeFreeExpression/*!*/>();
+     List<AttributedExpression/*!*/> req = new List<AttributedExpression/*!*/>();
      List<FrameExpression/*!*/> mod = new List<FrameExpression/*!*/>();
-     List<MaybeFreeExpression/*!*/> ens = new List<MaybeFreeExpression/*!*/>();
+     List<AttributedExpression/*!*/> ens = new List<AttributedExpression/*!*/>();
      List<Expression/*!*/> dec = new List<Expression/*!*/>();
      Attributes decAttrs = null;
      Attributes modAttrs = null;
@@ -1582,7 +1582,7 @@ KType<ref FixpointPredicate.KType kType>
   )
   "]"
   .
-MethodSpec<.List<MaybeFreeExpression> req, List<FrameExpression> mod, List<MaybeFreeExpression> ens,
+MethodSpec<.List<AttributedExpression> req, List<FrameExpression> mod, List<AttributedExpression> ens,
             List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, string caption, bool performThisDeprecatedCheck.>
 = (. Contract.Requires(cce.NonNullElements(req));
      Contract.Requires(cce.NonNullElements(mod));
@@ -1603,17 +1603,17 @@ MethodSpec<.List<MaybeFreeExpression> req, List<FrameExpression> mod, List<Maybe
       [ IF(IsLabel(true))
         LabelIdent<out lbl> ":"
       ]
-      Expression<out e, false, false> OldSemi                (. req.Add(new MaybeFreeExpression(e, lbl == null ? null : new AssertLabel(lbl, lbl.val), reqAttrs)); .)
+      Expression<out e, false, false> OldSemi                (. req.Add(new AttributedExpression(e, lbl == null ? null : new AssertLabel(lbl, lbl.val), reqAttrs)); .)
     | "ensures"
       { Attribute<ref ensAttrs> }
-      Expression<out e, false, false> OldSemi                (. ens.Add(new MaybeFreeExpression(e, ensAttrs)); .)
+      Expression<out e, false, false> OldSemi                (. ens.Add(new AttributedExpression(e, ensAttrs)); .)
     )
   | "decreases" { Attribute<ref decAttrs> } DecreasesList<decreases, true, false> OldSemi
   )
   .
 IteratorSpec<.List<FrameExpression/*!*/>/*!*/ reads, List<FrameExpression/*!*/>/*!*/ mod, List<Expression/*!*/> decreases,
-              List<MaybeFreeExpression/*!*/>/*!*/ req, List<MaybeFreeExpression/*!*/>/*!*/ ens,
-              List<MaybeFreeExpression/*!*/>/*!*/ yieldReq, List<MaybeFreeExpression/*!*/>/*!*/ yieldEns,
+              List<AttributedExpression/*!*/>/*!*/ req, List<AttributedExpression/*!*/>/*!*/ ens,
+              List<AttributedExpression/*!*/>/*!*/ yieldReq, List<AttributedExpression/*!*/>/*!*/ yieldEns,
               ref Attributes readsAttrs, ref Attributes modAttrs, ref Attributes decrAttrs.>
 = (. Expression/*!*/ e; FrameExpression/*!*/ fe; bool isYield = false; Attributes ensAttrs = null;
      IToken lbl = null;
@@ -1637,16 +1637,16 @@ IteratorSpec<.List<FrameExpression/*!*/>/*!*/ reads, List<FrameExpression/*!*/>/
       ]
       Expression<out e, false, false> OldSemi                (. AssertLabel al = lbl == null ? null : new AssertLabel(lbl, lbl.val);
                                                                 if (isYield) {
-                                                                  yieldReq.Add(new MaybeFreeExpression(e, al, null));
+                                                                  yieldReq.Add(new AttributedExpression(e, al, null));
                                                                 } else {
-                                                                  req.Add(new MaybeFreeExpression(e, al, null));
+                                                                  req.Add(new AttributedExpression(e, al, null));
                                                                 }
                                                              .)
     | "ensures" { Attribute<ref ensAttrs> }
       Expression<out e, false, false> OldSemi                (. if (isYield) {
-                                                                  yieldEns.Add(new MaybeFreeExpression(e, ensAttrs));
+                                                                  yieldEns.Add(new AttributedExpression(e, ensAttrs));
                                                                 } else {
-                                                                  ens.Add(new MaybeFreeExpression(e, ensAttrs));
+                                                                  ens.Add(new AttributedExpression(e, ensAttrs));
                                                                 }
                                                              .)
     )
@@ -1840,8 +1840,8 @@ FunctionDecl<DeclModifierData dmod, bool isWithinAbstractModule, out Function/*!
      List<Formal/*!*/> formals = new List<Formal/*!*/>();
      Formal/*!*/ result = null;
      Type/*!*/ returnType = new BoolType();
-     List<MaybeFreeExpression/*!*/> reqs = new List<MaybeFreeExpression/*!*/>();
-     List<MaybeFreeExpression/*!*/> ens = new List<MaybeFreeExpression/*!*/>();
+     List<AttributedExpression/*!*/> reqs = new List<AttributedExpression/*!*/>();
+     List<AttributedExpression/*!*/> ens = new List<AttributedExpression/*!*/>();
      List<FrameExpression/*!*/> reads = new List<FrameExpression/*!*/>();
      List<Expression/*!*/> decreases;
      Expression body = null;
@@ -1993,7 +1993,7 @@ FunctionDecl<DeclModifierData dmod, bool isWithinAbstractModule, out Function/*!
      }
   .)
   .
-FunctionSpec<.List<MaybeFreeExpression/*!*/>/*!*/ reqs, List<FrameExpression/*!*/>/*!*/ reads, List<MaybeFreeExpression/*!*/>/*!*/ ens, List<Expression/*!*/> decreases.>
+FunctionSpec<.List<AttributedExpression/*!*/>/*!*/ reqs, List<FrameExpression/*!*/>/*!*/ reads, List<AttributedExpression/*!*/>/*!*/ ens, List<Expression/*!*/> decreases.>
 = (. Contract.Requires(cce.NonNullElements(reqs));
      Contract.Requires(cce.NonNullElements(reads));
      Contract.Requires(decreases == null || cce.NonNullElements(decreases));
@@ -2002,7 +2002,7 @@ FunctionSpec<.List<MaybeFreeExpression/*!*/>/*!*/ reqs, List<FrameExpression/*!*
   SYNC
   ( "requires"
     { Attribute<ref reqAttrs> }
-    Expression<out e, false, false> OldSemi                (. reqs.Add(new MaybeFreeExpression(e, reqAttrs)); .)
+    Expression<out e, false, false> OldSemi                (. reqs.Add(new AttributedExpression(e, reqAttrs)); .)
   | "reads"
     PossiblyWildFrameExpression<out fe, false>          (. reads.Add(fe); .)
     { "," PossiblyWildFrameExpression<out fe, false>    (. reads.Add(fe); .)
@@ -2010,7 +2010,7 @@ FunctionSpec<.List<MaybeFreeExpression/*!*/>/*!*/ reqs, List<FrameExpression/*!*
     OldSemi
   | "ensures"
       { Attribute<ref ensAttrs> }
-      Expression<out e, false, false> OldSemi                (. ens.Add(new MaybeFreeExpression(e, ensAttrs)); .)
+      Expression<out e, false, false> OldSemi                (. ens.Add(new AttributedExpression(e, ensAttrs)); .)
   | "decreases"                               (. if (decreases == null) {
                                                    SemErr(t, "'decreases' clauses are meaningless for copredicates, so they are not allowed");
                                                    decreases = new List<Expression/*!*/>();
@@ -2474,7 +2474,7 @@ WhileStmt<out Statement stmt>
 = (. Contract.Ensures(Contract.ValueAtReturn(out stmt) != null); IToken x;
      Expression guard = null;  IToken guardEllipsis = null;
 
-     List<MaybeFreeExpression> invariants = new List<MaybeFreeExpression>();
+     List<AttributedExpression> invariants = new List<AttributedExpression>();
      List<Expression> decreases = new List<Expression>();
      Attributes decAttrs = null;
      Attributes modAttrs = null;
@@ -2524,14 +2524,14 @@ WhileStmt<out Statement stmt>
     .)
   )
   .
-LoopSpec<.List<MaybeFreeExpression> invariants, List<Expression> decreases, ref List<FrameExpression> mod, ref Attributes decAttrs, ref Attributes modAttrs.>
+LoopSpec<.List<AttributedExpression> invariants, List<Expression> decreases, ref List<FrameExpression> mod, ref Attributes decAttrs, ref Attributes modAttrs.>
 = (. Expression e; FrameExpression fe;
      Attributes attrs = null;
   .)
   ( SYNC
     "invariant"
     { Attribute<ref attrs> }
-    Expression<out e, false, true>                (. invariants.Add(new MaybeFreeExpression(e, attrs)); .)
+    Expression<out e, false, true>                (. invariants.Add(new AttributedExpression(e, attrs)); .)
     OldSemi
   | SYNC "decreases"
     { Attribute<ref decAttrs> }
@@ -2765,7 +2765,7 @@ ForallStmt<out Statement/*!*/ s>
      List<BoundVar> bvars = null;
      Attributes attrs = null;
      Expression range = null;
-     var ens = new List<MaybeFreeExpression/*!*/>();
+     var ens = new List<AttributedExpression/*!*/>();
      Expression/*!*/ e;
      BlockStmt block = null;
      IToken bodyStart, bodyEnd;
@@ -2784,7 +2784,7 @@ ForallStmt<out Statement/*!*/ s>
   .)
 
   {
-    "ensures" Expression<out e, false, true>  (. ens.Add(new MaybeFreeExpression(e)); .)
+    "ensures" Expression<out e, false, true>  (. ens.Add(new AttributedExpression(e)); .)
     OldSemi                                   (. tok = t; .)
   }
   [ IF(la.kind == _lbrace)  /* if the input continues like a block statement, take it to be the body of the forall statement; a body-less forall statement must continue in some other way */
