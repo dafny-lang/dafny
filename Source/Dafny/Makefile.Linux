@@ -15,6 +15,9 @@ endif
 # "all" depends on 2 files, really (Parser.cs and Scanner.cs), but they
 # are both generated in one go and I don't know a better way to tell
 # nmake that.  --KRML
+default:
+	$(COCO) Dafny.atg -namespace Microsoft.Dafny -frames $(FRAME_DIR)
+
 all: Parser.cs
 
 Parser.cs: $(FRAME_DIR)/scanner.frame $(FRAME_DIR)/parser.frame Dafny.atg
