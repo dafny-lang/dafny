@@ -984,7 +984,7 @@ public class DFA {
 
 	public void WriteScanner() {
 		Generator g = new Generator(tab);
-		fram = g.OpenFrame("scanner.frame");
+		fram = g.OpenFrame("Scanner.frame");
 		gen = g.OpenGen("Scanner.cs");
 		if (dirtyDFA) MakeDeterministic();
 

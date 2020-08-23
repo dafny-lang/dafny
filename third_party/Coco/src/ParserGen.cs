@@ -342,7 +342,7 @@ public class ParserGen {
 		int oldPos = buffer.Pos;  // Pos is modified by CopySourcePart
 		symSet.Add(tab.allSyncSets);
 
-		fram = g.OpenFrame("parser.frame");
+		fram = g.OpenFrame("Parser.frame");
 		gen = g.OpenGen("Parser.cs");
 		err = new StringWriter();
 		foreach (Symbol sym in tab.terminals) GenErrorMsg(tErr, sym);
