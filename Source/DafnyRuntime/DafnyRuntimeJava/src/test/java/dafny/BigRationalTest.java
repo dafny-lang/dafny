@@ -38,6 +38,6 @@ class BigRationalTest {
     assertEquals("(-60.0 / 35.0)", ts.multiply(ntf).toString());
     assertEquals("(6.0 / 70.0)", ts.divide(tt).toString());
     assertEquals("(-15.0 / 140.0)", ts.divide(ntf).toString());
-    assertEquals("(-4.0, 1.0)", ntf.reduce().toString());
+    assertEquals("-4.0", ntf.reduce().toString());
   }
 }

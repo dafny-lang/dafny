@@ -128,9 +128,9 @@ public class BigRational {
     }
 
     public BigRational reduce() {
-        BigInteger gcd = den.gcd(num);
+        BigInteger gcd = num.abs().gcd(den);
         if (gcd.equals(BigInteger.ONE)) return this;
-        return new BigRational(num.div(gcd), den.div(gcd));
+        return new BigRational(num.divide(gcd), den.divide(gcd));
     }
 
     public int compareTo(BigRational that) {
