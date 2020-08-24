@@ -18,7 +18,7 @@ endif
 all: Parser.cs
 
 Parser.cs: $(FRAME_DIR)/scanner.frame $(FRAME_DIR)/parser.frame Dafny.atg
-	$(COCO) -trace F Dafny.atg -namespace Microsoft.Dafny -frames $(FRAME_DIR)
+	$(COCO) Dafny.atg -namespace Microsoft.Dafny -frames $(FRAME_DIR)
 
 clean:
 	@-rm -f Scanner.cs Scanner.cs.old Parser.cs Parser.cs.old
