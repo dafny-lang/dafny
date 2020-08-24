@@ -993,9 +993,7 @@ int StringToInt(string s, int defaultValue, string errString) {
 			ModuleName(out id);
 			if (StartOf(3)) {
 				idPath = new List<IToken>(); idExports = new List<IToken>(); 
-				if (la.kind == 32 || la.kind == 33) {
-					QualifiedModuleExportSuffix(idPath, idExports);
-				}
+				OptQualifiedModuleExportSuffix(idPath, idExports);
 				idPath.Insert(0, id);
 				submodule = new AliasModuleDecl(idPath, idPath[idPath.Count-1], parent, opened, idExports);
 				
@@ -1463,28 +1461,30 @@ int StringToInt(string s, int defaultValue, string errString) {
 		Ident(out id);
 	}
 
-	void QualifiedModuleExportSuffix(List<IToken> ids, List<IToken> exports) {
+	void OptQualifiedModuleExportSuffix(List<IToken> ids, List<IToken> exports) {
 		IToken id; 
 		while (la.kind == 32) {
 			Get();
 			ModuleName(out id);
 			ids.Add(id); 
 		}
-		Expect(33);
-		if (la.kind == 1 || la.kind == 2) {
-			ExportIdent(out id);
-			exports.Add(id); 
-		} else if (la.kind == 75) {
+		if (la.kind == 33) {
 			Get();
-			ExportIdent(out id);
-			exports.Add(id); 
-			while (la.kind == 26) {
+			if (la.kind == 1 || la.kind == 2) {
+				ExportIdent(out id);
+				exports.Add(id); 
+			} else if (la.kind == 75) {
 				Get();
 				ExportIdent(out id);
 				exports.Add(id); 
-			}
-			Expect(76);
-		} else SynErr(171);
+				while (la.kind == 26) {
+					Get();
+					ExportIdent(out id);
+					exports.Add(id); 
+				}
+				Expect(76);
+			} else SynErr(171);
+		}
 	}
 
 	void QualifiedModuleExport(out List<IToken> ids, out List<IToken> exports) {
@@ -1493,9 +1493,7 @@ int StringToInt(string s, int defaultValue, string errString) {
 		
 		ModuleName(out id);
 		ids.Add(id); 
-		if (la.kind == 32 || la.kind == 33) {
-			QualifiedModuleExportSuffix(sids, exports);
-		}
+		OptQualifiedModuleExportSuffix(sids, exports);
 		ids.AddRange(sids); 
 	}
 
@@ -5980,7 +5978,7 @@ public class Errors {
 			case 168: s = "invalid IteratorDecl"; break;
 			case 169: s = "this symbol not expected in TraitDecl"; break;
 			case 170: s = "invalid ClassMemberDecl"; break;
-			case 171: s = "invalid QualifiedModuleExportSuffix"; break;
+			case 171: s = "invalid OptQualifiedModuleExportSuffix"; break;
 			case 172: s = "invalid TypeNameOrCtorSuffix"; break;
 			case 173: s = "this symbol not expected in FieldDecl"; break;
 			case 174: s = "this symbol not expected in ConstantFieldDecl"; break;
