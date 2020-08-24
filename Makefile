@@ -4,7 +4,7 @@ default: parser runtime boogie exe
 
 all: parser runtime boogie exe refman
 
-exe:
+exe: parser
 	(cd ${DIR} ; msbuild Source/Dafny.sln )
 
 boogie: ${DIR}/../boogie/Binaries/Boogie.exe
@@ -18,13 +18,14 @@ parser:
 runtime: ${DIR}/Binaries/DafnyRuntime.jar
 
 ${DIR}/Binaries/DafnyRuntime.jar:
-	(cd ${DIR}/Source/DafnyRuntime/DafnyRuntimeJava; ./gradlew build && gradle copyJarToBinaries)
+	(cd ${DIR}/Source/DafnyRuntime/DafnyRuntimeJava; ./gradlew copyJarToBinaries)
 
 refman:
 	make -C ${DIR}/docs/DafnyReferenceManual
 
 clean:
-	(cd ${DIR} ; rm -f Source/Dafny/bin/Debug/* Binaries/dafny.exe )
-	make -C ${DIR}/Source/Dafny clean
+	(cd ${DIR} ; msbuild Source/Dafny.sln -target:clean )
+	make -C ${DIR}/Source/Dafny -f Makefile.Linux clean
+	(cd ${DIR}/Source/DafnyRuntime/DafnyRuntimeJava; ./gradlew clean)
 	(cd ${DIR} ; rm -f Binaries/DafnyRuntime.jar )
 	(cd ${DIR} ; rm -f docs/DafnyReferenceManual/DafnyRef.pdf )

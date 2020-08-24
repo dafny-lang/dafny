@@ -26,6 +26,7 @@ test {
 }
 
 task copyJarToBinaries {
+    dependsOn build
     copy {
         from 'build/libs/DafnyRuntime.jar'
         into '../../../Binaries'
