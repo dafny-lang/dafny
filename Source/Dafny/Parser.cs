@@ -1470,23 +1470,21 @@ int StringToInt(string s, int defaultValue, string errString) {
 			ModuleName(out id);
 			ids.Add(id); 
 		}
-		if (la.kind == 33) {
+		Expect(33);
+		if (la.kind == 1 || la.kind == 2) {
+			ExportIdent(out id);
+			exports.Add(id); 
+		} else if (la.kind == 75) {
 			Get();
-			if (la.kind == 1 || la.kind == 2) {
-				ExportIdent(out id);
-				exports.Add(id); 
-			} else if (la.kind == 75) {
+			ExportIdent(out id);
+			exports.Add(id); 
+			while (la.kind == 26) {
 				Get();
 				ExportIdent(out id);
 				exports.Add(id); 
-				while (la.kind == 26) {
-					Get();
-					ExportIdent(out id);
-					exports.Add(id); 
-				}
-				Expect(76);
-			} else SynErr(171);
-		}
+			}
+			Expect(76);
+		} else SynErr(171);
 	}
 
 	void QualifiedModuleExport(out List<IToken> ids, out List<IToken> exports) {
@@ -4022,7 +4020,7 @@ List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, st
 	void ConstAtomExpression(out Expression e, bool allowSemi, bool allowLambda) {
 		Contract.Ensures(Contract.ValueAtReturn(out e) != null);
 		IToken/*!*/ x;  BigInteger n;   Basetypes.BigDec d;
-		e = dummyExpr;  Type toType = null;
+		e = dummyExpr;
 		
 		switch (la.kind) {
 		case 145: {

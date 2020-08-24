@@ -975,13 +975,12 @@ ModuleName<out IToken id>
 QualifiedModuleExportSuffix<.List<IToken> ids, List<IToken> exports.>
 = (. IToken id; .)
     { "." ModuleName<out id> (. ids.Add(id); .) }
-  [ "`"
-    ( ExportIdent<out id>       (. exports.Add(id); .)
-    | "{" ExportIdent<out id>   (. exports.Add(id); .)
-      { "," ExportIdent<out id> (. exports.Add(id); .) }
-      "}"
-    )
-  ]
+  "`"
+  ( ExportIdent<out id>       (. exports.Add(id); .)
+  | "{" ExportIdent<out id>   (. exports.Add(id); .)
+     { "," ExportIdent<out id> (. exports.Add(id); .) }
+    "}"
+  )
   .
 
 QualifiedModuleExport<.out List<IToken> ids, out List<IToken> exports.>
@@ -3323,7 +3322,7 @@ Lhs<out Expression e>
 ConstAtomExpression<out Expression e, bool allowSemi, bool allowLambda>
 = (. Contract.Ensures(Contract.ValueAtReturn(out e) != null);
      IToken/*!*/ x;  BigInteger n;   Basetypes.BigDec d;
-     e = dummyExpr;  Type toType = null;
+     e = dummyExpr;
   .)
   ( "false"                                    (. e = new LiteralExpr(t, false); .)
   | "true"                                     (. e = new LiteralExpr(t, true); .)
