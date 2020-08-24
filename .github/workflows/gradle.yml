@@ -21,3 +21,4 @@ jobs:
       - name: Build with Gradle
         run: ./Source/DafnyRuntime/DafnyRuntimeJava/gradlew build
         run: ./Source/DafnyRuntime/DafnyRuntimeJava/gradlew copyJarToBinaries
+        run: ./Source/DafnyRuntime/DafnyRuntimeJava/gradlew test
