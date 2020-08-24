@@ -20,7 +20,5 @@ jobs:
           java-version: 1.8
       - name: Build with Gradle
         run: ./Source/DafnyRuntime/DafnyRuntimeJava/gradlew build
-      - name: Copy DafnyRuntime.jar
-        run: ./Source/DafnyRuntime/DafnyRuntimeJava/gradlew copyJarToBinaries
       - name: Test DafnyRuntime.jar
         run: ./Source/DafnyRuntime/DafnyRuntimeJava/gradlew test
