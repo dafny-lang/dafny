@@ -122,29 +122,27 @@ we use already-ghost to denote that the item is not
 allowed to have the ghost modifier because it is already
 implicitly ghost.
 
-```
-+--------------------------+---------------------------------------+
-| Declaration              | allowed modifiers                     |
-+--------------------------+---------------------------------------+
-| module                   | abstract                              |
-| class                    | extern                                |
-| trait                    | -                                     |
-| datatype or codatatype   | -                                     |
-| field                    | ghost                                 |
-| newtype                  | -                                     |
-| synonym types            | -                                     |
-| iterators                | -                                     |
-| method                   | ghost static extern                   |
-| lemma, colemma, comethod | already-ghost static protected        |
-| inductive lemma          | already-ghost static                  |
-| constructor              | -                                     |
-| function (non-method)    | already-ghost static protected        |
-| function method          | already-ghost static protected extern |
-| predicate (non-method)   | already-ghost static protected        |
-| predicate method         | already-ghost static protected extern |
-| inductive predicate      | already-ghost static protected        |
-| copredicate              | already-ghost static protected        |
-+--------------------------+---------------------------------------+
-```
+
+ Declaration              | allowed modifiers                     
+--------------------------|---------------------------------------
+ module                   | abstract                              
+ class                    | extern                                
+ trait                    | -                                     
+ datatype or codatatype   | -                                     
+ field                    | ghost                                 
+ newtype                  | -                                     
+ synonym types            | -                                     
+ iterators                | -                                     
+ method                   | ghost static extern                   
+ lemma, colemma, comethod | already-ghost static protected        
+ inductive lemma          | already-ghost static                  
+ constructor              | -                                     
+ function (non-method)    | already-ghost static protected        
+ function method          | already-ghost static protected extern 
+ predicate (non-method)   | already-ghost static protected        
+ predicate method         | already-ghost static protected extern 
+ inductive predicate      | already-ghost static protected        
+ copredicate              | already-ghost static protected        
+
 
 
