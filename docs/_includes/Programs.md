@@ -1,5 +1,5 @@
 # Programs
-````
+````grammar
 Dafny = { IncludeDirective_ } { TopDecl } EOF
 ````
 At the top level, a Dafny program (stored as files with extension `.dfy`)
@@ -48,7 +48,7 @@ It consists of a sequence of optional _include_ directives followed by top
 level declarations followed by the end of the file.
 
 ## Include Directives
-````
+````grammar
 IncludeDirective_ = "include" stringToken
 ````
 
@@ -62,7 +62,7 @@ but will not invoke the verifier on these unless they have been listed
 explicitly on the command line.
 
 ## Top Level Declarations
-````
+````grammar
 TopDecl = { { DeclModifier }
   ( SubModuleDecl
   | ClassDecl
@@ -88,7 +88,7 @@ declared as static). In addition a ``ClassMemberDecl`` that appears at
 the top level cannot be a ``FieldDecl``.
 
 ## Declaration Modifiers
-````
+````grammar
 DeclModifier =
   ( "abstract" | "ghost" | "static" | "protected"
   | "extern" [ stringToken]
