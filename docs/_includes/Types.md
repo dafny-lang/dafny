@@ -88,21 +88,19 @@ the language:  `false` and `true`.
 
 In addition to equality (`==`) and disequality (`!=`), which are
 defined on all types, type `bool` supports the following operations:
-```
-+--------------------+------------------------------------+
-| operator           | description                        |
-+--------------------+------------------------------------+
-| `<==>`             | equivalence (if and only if)       |
-+--------------------+------------------------------------+
-| `==>`              | implication (implies)              |
-| `<==`              | reverse implication (follows from) |
-+--------------------+------------------------------------+
-| `&&`               | conjunction (and)                  |
-| [\|\|]{.monospace} | disjunction (or)                   |
-+--------------------+------------------------------------+
-| `!`                | negation (not)                     |
-+--------------------+------------------------------------+
-```
+
+ operator           | description                        
+--------------------|------------------------------------
+ `<==>`             | equivalence (if and only if)       
+--------------------|------------------------------------
+ `==>`              | implication (implies)              
+ `<==`              | reverse implication (follows from) 
+--------------------|------------------------------------
+ `&&`               | conjunction (and)                  
+ `||`               | disjunction (or)                   
+--------------------|------------------------------------
+ `!`                | negation (not)                     
+
 Negation is unary; the others are binary.  The table shows the operators
 in groups of increasing binding power, with equality binding stronger
 than conjunction and disjunction, and weaker than negation.  Within
