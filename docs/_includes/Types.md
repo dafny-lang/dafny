@@ -237,16 +237,14 @@ to improve human readability of the literals.  For example:
 
 In addition to equality and disequality, numeric types
 support the following relational operations:
-```
-+-----------------+------------------------------------+
-| operator        | description                        |
-+-----------------+------------------------------------+
-|  <              | less than                          |
-|  <=             | at most                            |
-|  >=             | at least                           |
-|  >              | greater than                       |
-+-----------------+------------------------------------+
-```
+
+ operator          | description                       
+-------------------|------------------------------------
+  `<`              | less than                          
+  `<=`             | at most                            
+  `>=`             | at least                          
+  `>`              | greater than                       
+
 Like equality and disequality, these operators are chaining, as long
 as they are chained in the "same direction".  That is,
 ```
@@ -263,20 +261,17 @@ A < B > C
 is not allowed.
 
 There are also operators on each numeric type:
-```
-+---------------+------------------------------------+
-| operator      | description                        |
-+---------------+------------------------------------+
-|  +            | addition (plus)                    |
-|  -            | subtraction (minus)                |
-+---------------+------------------------------------+
-|  *            | multiplication (times)             |
-|  /            | division (divided by)              |
-|  %            | modulus (mod)                      |
-+---------------+------------------------------------+
-|  -            | negation (unary minus)             |
-+---------------+------------------------------------+
-```
+
+ operator        | description                        
+-----------------|------------------------------------
+  `+`            | addition (plus)                    
+  `-`            | subtraction (minus)                
+-----------------|------------------------------------
+  `*`            | multiplication (times)             
+  `/`            | division (divided by)              
+  `%`            | modulus (mod)                      
+  `-`            | negation (unary minus)             
+
 The binary operators are left associative, and they associate with
 each other in the two groups.  The groups are listed in order of
 increasing binding power, with equality binding more strongly than the
@@ -320,20 +315,18 @@ by the ``charToken`` nonterminal in the grammar.  To write a single quote as a
 character literal, it is necessary to use an _escape sequence_.
 Escape sequences can also be used to write other characters.  The
 supported escape sequences are as follows:
-```
-+--------------------+------------------------------------------------------------+
-| escape sequence    | meaning                                                    |
-+--------------------+------------------------------------------------------------+
-| `\'`               | the character `'`                                          |
-| [\\\"]{.monospace} | the character [\"]{.monospace}                             |
-| `\\`               | the character `\`                                          |
-| `\0`               | the null character, same as `\u0000`                       |
-| `\n`               | line feed                                                  |
-| `\r`               | carriage return                                            |
-| `\t`               | horizontal tab                                             |
-| `\u\(_xxxx_\)`     | universal character whose hexadecimal code is `\(_xxxx_\)` |
-+--------------------+------------------------------------------------------------+
-```
+
+ escape sequence    | meaning                                              
+--------------------|-------------------------------------------------------
+ `\'`               | the character `'`                                      
+ `\"`               | the character `"`                        
+ `\\`               | the character `\`                                    
+ `\0`               | the null character, same as `\u0000`                
+ `\n`               | line feed                                             
+ `\r`               | carriage return                                      
+ `\t`               | horizontal tab                                      
+ `\u_xxxx_`         | universal character whose hexadecimal code is `_xxxx_`
+
 The escape sequence for a double quote is redundant, because
 [\'\"\']{.monospace} and [\'\\\"\']{.monospace} denote the same
 character---both forms are provided in order to support the same
@@ -343,16 +336,14 @@ hexadecimal digits are case insensitive.
 
 Character values are ordered and can be compared using the standard
 relational operators:
-```
-+-----------------+------------------------------------+
-| operator        | description                        |
-+-----------------+------------------------------------+
-|  <              | less than                          |
-|  <=             | at most                            |
-|  >=             | at least                           |
-|  >              | greater than                       |
-+-----------------+------------------------------------+
-```
+
+ operator        | description                        
+-----------------|-----------------------------------
+  <              | less than                        
+  <=             | at most                         
+  >=             | at least                       
+  >              | greater than                  
+
 Sequences of characters represent _strings_, as described in Section
 [#sec-strings].
 
@@ -454,33 +445,29 @@ section [#sec-set-comprehension-expressions].
 
 In addition to equality and disequality, set types
 support the following relational operations:
-```
-+-----------------+------------------------------------+
-| operator        | description                        |
-+-----------------+------------------------------------+
-| [<]{.monospace} | proper subset                      |
-| `<=`            | subset                             |
-| `>=`            | superset                           |
-| `>`             | proper superset                    |
-+-----------------+------------------------------------+
-```
+
+ operator        | description                        
+-----------------|------------------------------------
+ `<`             | proper subset                      
+ `<=`            | subset                             
+ `>=`            | superset                           
+ `>`             | proper superset                    
+
 Like the arithmetic relational operators, these operators are
 chaining.
 
 Sets support the following binary operators, listed in order of
 increasing binding power:
-```
-+---------------+------------------------------------+
-| operator      | description                        |
-+---------------+------------------------------------+
-| `!!`          | disjointness                       |
-+---------------+------------------------------------+
-| `+`           | set union                          |
-| `-`           | set difference                     |
-+---------------+------------------------------------+
-| `*`           | set intersection                   |
-+---------------+------------------------------------+
-```
+
+ operator      | description                        
+---------------|------------------------------------
+ `!!`          | disjointness                       
+---------------|------------------------------------
+ `+`           | set union                          
+ `-`           | set difference                     
+---------------|------------------------------------
+ `*`           | set intersection                   
+
 The associativity rules of `+`, `-`, and `*` are like those of the
 arithmetic operators with the same names.  The expression `A !! B`,
 whose binding power is the same as equality (but which neither
@@ -497,15 +484,13 @@ A * B == {} && (A + B) * C == {} && (A + B + C) * D == {}
 
 In addition, for any set `s` of type `set<T>` or `iset<T>` and any
 expression `e` of type `T`, sets support the following operations:
-```
-+---------------------+------------------------------------+
-| expression          | description                        |
-+---------------------+------------------------------------+
-| [\|s\|]{.monospace} | set cardinality                    |
-| `e in s`            | set membership                     |
-| `e !in s`           | set non-membership                 |
-+---------------------+------------------------------------+
-```
+
+ expression          | description                        
+---------------------|------------------------------------
+ [\|s\|]{.monospace} | set cardinality                    
+ `e in s`            | set membership                     
+ `e !in s`           | set non-membership                 
+
 The expression `e !in s` is a syntactic shorthand for `!(e in s)`.
 
 ## Multisets
@@ -536,33 +521,29 @@ comprehension expression.
 
 In addition to equality and disequality, multiset types
 support the following relational operations:
-```
-+-----------------+------------------------------------+
-| operator        | description                        |
-+-----------------+------------------------------------+
-|  <              | proper multiset subset             |
-|  <=             | multiset subset                    |
-|  >=             | multiset superset                  |
-|  >              | proper multiset superset           |
-+-----------------+------------------------------------+
-```
+
+ operator          | description                        
+-------------------|-----------------------------------
+  `<`              | proper multiset subset             
+  `<=`             | multiset subset                    
+  `>=`             | multiset superset                  
+  `>`              | proper multiset superset           
+
 Like the arithmetic relational operators, these operators are
 chaining.
 
 Multisets support the following binary operators, listed in order of
 increasing binding power:
-```
-+---------------+------------------------------------+
-| operator      | description                        |
-+---------------+------------------------------------+
-| `!!`          | multiset disjointness              |
-+---------------+------------------------------------+
-| `+`           | multiset union                     |
-| `-`           | multiset difference                |
-+---------------+------------------------------------+
-| `*`           | multiset intersection              |
-+---------------+------------------------------------+
-```
+
+ operator      | description                        
+---------------|------------------------------------
+ `!!`          | multiset disjointness              
+---------------|------------------------------------
+ `+`           | multiset union                     
+ `-`           | multiset difference                
+---------------|------------------------------------
+ `*`           | multiset intersection              
+
 The associativity rules of `+`, `-`, and `*` are like those of the
 arithmetic operators with the same names. The `+` operator
 adds the multiplicity of corresponding elements, the `-` operator
@@ -581,17 +562,15 @@ Like the analogous set operator, `!!` is chaining.
 In addition, for any multiset `s` of type `multiset<T>`,
 expression `e` of type `T`, and non-negative integer-based numeric
 `n`, multisets support the following operations:
-```
-+---------------------+------------------------------------------+
-| expression          | description                              |
-+---------------------+------------------------------------------+
-| [\|s\|]{.monospace} | multiset cardinality                     |
-| `e in s`            | multiset membership                      |
-| `e !in s`           | multiset non-membership                  |
-| `s[e]`              | multiplicity of `e` in `s`               |
-| `s[e := n]`         | multiset update (change of multiplicity) |
-+---------------------+------------------------------------------+
-```
+
+ expression          | description                              
+---------------------|------------------------------------------
+ `|s|`               | multiset cardinality                     
+ `e in s`            | multiset membership                      
+ `e !in s`           | multiset non-membership                  
+ `s[e]`              | multiplicity of `e` in `s`               
+ `s[e := n]`         | multiset update (change of multiplicity) 
+
 The expression `e in s` returns `true` if and only if `s[e] != 0`.
 The expression `e !in s` is a syntactic shorthand for `!(e in s)`.
 The expression `s[e := n]` denotes a multiset like
@@ -627,26 +606,22 @@ comprehension expression.
 ### Sequence Relational Operators
 In addition to equality and disequality, sequence types
 support the following relational operations:
-```
-+-----------------+------------------------------------+
-| operator        | description                        |
-+-----------------+------------------------------------+
-|  <              | proper prefix                      |
-|  <=             | prefix                             |
-+-----------------+------------------------------------+
-```
+
+ operator        | description                        
+-----------------|------------------------------------
+  <              | proper prefix                      
+  <=             | prefix                             
+
 Like the arithmetic relational operators, these operators are
 chaining.  Note the absence of `>` and `>=`.
 
 ### Sequence Concatenation
 Sequences support the following binary operator:
-```
-+---------------+------------------------------------+
-| operator      | description                        |
-+---------------+------------------------------------+
-| `+`           | concatenation                      |
-+---------------+------------------------------------+
-```
+
+ operator      | description                        
+---------------|------------------------------------
+ `+`           | concatenation                      
+
 Operator `+` is associative, like the arithmetic operator with the
 same name.
 
@@ -655,22 +630,20 @@ In addition, for any sequence `s` of type `seq<T>`, expression `e`
 of type `T`, integer-based numeric `i` satisfying `0 <= i < |s|`, and
 integer-based numerics `lo` and `hi` satisfying
 `0 <= lo <= hi <= |s|`, sequences support the following operations:
-```
-+---------------------+----------------------------------------+
-| expression          | description                            |
-+---------------------+----------------------------------------+
-| |s|                 | sequence length                        |
-| `s[i]`              | sequence selection                     |
-| `s[i := e]`         | sequence update                        |
-| `e in s`            | sequence membership                    |
-| `e !in s`           | sequence non-membership                |
-| `s[lo..hi]`         | subsequence                            |
-| `s[lo..]`           | drop                                   |
-| `s[..hi]`           | take                                   |
-| `s[\(_slices_\)]`   | slice                                  |
-| `multiset(s)`       | sequence conversion to a `multiset<T>` |
-+---------------------+----------------------------------------+
-```
+
+ expression          | description                            
+---------------------|----------------------------------------
+ `|s|`               | sequence length                        
+ `s[i]`              | sequence selection                     
+ `s[i := e]`         | sequence update                        
+ `e in s`            | sequence membership                    
+ `e !in s`           | sequence non-membership                
+ `s[lo..hi]`         | subsequence                            
+ `s[lo..]`           | drop                                   
+ `s[..hi]`           | take                                   
+ `s[\(_slices_\)]`   | slice                                  
+ `multiset(s)`       | sequence conversion to a `multiset<T>` 
+
 Expression `s[i := e]` returns a sequence like `s`, except that the
 element at index `i` is `e`.  The expression `e in s` says there
 exists an index `i` such that `s[i] == e`.  It is allowed in non-ghost
@@ -805,23 +778,21 @@ any map `m` of type `map<T,U>` or `imap<T,U>`,
 any expression `t` of type `T`,
 any expression `u` of type `U`, and any `d` in the domain of `m` (that
 is, satisfying `d in m`), maps support the following operations:
-```
-+----------------------+------------------------------------+
-| expression           | description                        |
-+----------------------+------------------------------------+
-| |fm|                 | map cardinality                    |
-| `m[d]`               | map selection                      |
-| `m[t := u]`          | map update                         |
-| `t in m`             | map domain membership              |
-| `t !in m`            | map domain non-membership          |
-| fm.Keys              | the domain of fm, that is, the set |
-|                      |  of T values used askeys           |
-| fm.Values            | the range of fm, that is, the set  |
-|                      |  of U values present in the map    |
-| fm.Items             | set of pairs (t,u) of key-value    |
-|                      |  associations in the map           |
-+----------------------+------------------------------------+
-```
+
+ expression           | description                        
+----------------------|------------------------------------
+ `|fm|`               | map cardinality                    
+ `m[d]`               | map selection                      
+ `m[t := u]`          | map update                         
+ `t in m`             | map domain membership              
+ `t !in m`            | map domain non-membership          
+ `fm.Keys`            | the domain of fm, that is, the set 
+                      |  of T values used askeys           
+ `fm.Values`          | the range of fm, that is, the set  
+                      |  of U values present in the map   
+ `fm.Items`           | set of pairs (t,u) of key-value    
+                      |  associations in the map           
+
 `|fm|` denotes the number of mappings in `fm`, that is, the
 cardinality of the domain of `fm`.  Note that the cardinality operator
 is not supported for infinite maps.
@@ -2161,17 +2132,15 @@ in Section [#sec-opaque]).
 The following table summarizes where the function is transparent.
 The module referenced in the table is the module in which the
 function is defined.
-```
-+------------+--------------+-------------+-------------+
-| Protected? | `{:opaque}`? | Transparent | Transparent |
-|            |              | Inside      | Outside     |
-|            |              | Module      | Module      |
-+:----------:+:------------:+:-----------:+:-----------:+
-| N          | N            | Y           | Y           |
-| Y          | N            | Y           | N           |
-| N          | Y            | N           | N           |
-+------------+--------------+-------------+-------------+
-```
+
+ Protected? | `{:opaque}`? | Transparent | Transparent 
+            |              | Inside      | Outside     
+            |              | Module      | Module      
+:----------:|:------------:|:-----------:|:-----------:
+ N          | N            | Y           | Y           
+ Y          | N            | Y           | N           
+ N          | Y            | N           | N           
+
 When `{:opaque}` is specified for function `g`, `g` is opaque,
 however the lemma `reveal_g` is available to give the semantics
 of `g` whether in the defining module or outside.
@@ -2349,16 +2318,14 @@ consecutive elements into a sequence.  For any array `a` of type
 `array<T>`, integer-based numerics `lo` and `hi` satisfying
 `0 <= lo <= hi <= a.Length`, the following operations each yields a
 `seq<T>`:
-```
-+---------------------+------------------------------------+
-| expression          | description                        |
-+---------------------+------------------------------------+
-| `a[lo..hi]`         | subarray conversion to sequence    |
-| `a[lo..]`           | drop                               |
-| `a[..hi]`           | take                               |
-| `a[..]`             | array conversion to sequence       |
-+---------------------+------------------------------------+
-```
+
+ expression          | description                        
+---------------------|------------------------------------
+ `a[lo..hi]`         | subarray conversion to sequence    
+ `a[lo..]`           | drop                               
+ `a[..hi]`           | take                               
+ `a[..]`             | array conversion to sequence       
+
 The expression `a[lo..hi]` takes the first `hi` elements of the array,
 then drops the first `lo` elements thereof and returns what remains as
 a sequence.  The resulting sequence thus has length `hi - lo`.
