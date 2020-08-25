@@ -325,10 +325,10 @@ supported escape sequences are as follows:
  `\n`               | line feed                                             
  `\r`               | carriage return                                      
  `\t`               | horizontal tab                                      
- `\u_xxxx_`         | universal character whose hexadecimal code is `_xxxx_`
+ `\u`_xxxx_         | universal character whose hexadecimal code is _xxxx_,  where each _x_ is a hexadecimal digit
 
 The escape sequence for a double quote is redundant, because
-[\'\"\']{.monospace} and [\'\\\"\']{.monospace} denote the same
+`'"'` and `'\"'` denote the same
 character---both forms are provided in order to support the same
 escape sequences as for string literals (Section [#sec-strings]).
 In the form `\u\(_xxxx_\)`, the `u` is always lower case, but the four
@@ -339,10 +339,10 @@ relational operators:
 
  operator        | description                        
 -----------------|-----------------------------------
-  <              | less than                        
-  <=             | at most                         
-  >=             | at least                       
-  >              | greater than                  
+  `<`              | less than                        
+  `<=`             | at most                         
+  `>=`             | at least                       
+  `>`              | greater than                  
 
 Sequences of characters represent _strings_, as described in Section
 [#sec-strings].
