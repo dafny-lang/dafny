@@ -1,11 +1,11 @@
 # Types
-````
+````grammar
 Type = DomainType [ "->" Type ]
 ````
 A Dafny type is a domain type (i.e. a type that can be the domain of a
 function type) optionally followed by an arrow and a range type.
 
-````
+````grammar
 DomainType =
   ( BoolType_ | CharType_ | NatType_ | IntType_ | RealType_ | ObjectType_
   | FiniteSetType_ | InfiniteSetType_ | MultisetType_
@@ -53,7 +53,7 @@ type.[^fn-nullable]
     types.
 
 ## Named Types
-````
+````grammar
 NamedType_ = NameSegmentForTypeName { "." NameSegmentForTypeName }
 ````
 
@@ -62,7 +62,7 @@ A ``NamedType_`` is used to specify a user-defined type by name
 class, trait, inductive, co-inductive, synonym and opaque
 type declarations. They are also used to refer to type variables.
 
-````
+````grammar
 NameSegmentForTypeName = Ident  [ GenericInstantiation ]
 ````
 A ``NameSegmentForTypeName`` is a type name optionally followed by a
@@ -79,7 +79,7 @@ Dafny offers these basic types: `bool` for booleans, `char` for
 characters, `int` and `nat` for integers, and `real` for reals.
 
 ## Booleans
-````
+````grammar
 BoolType_ = "bool"
 ````
 
@@ -201,7 +201,7 @@ exists), described in section [#sec-quantifier-expression].
 
 ## Numeric types
 
-````
+````grammar
 IntType_ = "int"
 RealType_ = "real"
 ````
@@ -305,7 +305,7 @@ function `real` from `int` to `real`, as described in Section
 
 ## Characters
 
-````
+````grammar
 CharType_ = "char"
 ````
 
@@ -355,7 +355,7 @@ TODO: Are there any conversions between `char` values and numeric values?
 
 # Type parameters
 
-````
+````grammar
 GenericParameters = "<" TypeVariableName [ "(" "==" ")" ]
       { "," TypeVariableName [ "(" "==" ")" ] } ">"
 ````
@@ -404,7 +404,7 @@ TO BE WRITTEN: Type parameter characteristiscs: == 0 !new
 TODO: Need to describe type inference somewhere.
 
 # Generic Instantiation
-````
+````grammar
 GenericInstantiation = "<" Type { "," Type } ">"
 ````
 When a generic entity is used, actual types must be specified for each
@@ -417,7 +417,7 @@ to fill these in.
 Dafny offers several built-in collection types.
 
 ## Sets
-````
+````grammar
 FiniteSetType_ = "set" [ GenericInstantiation ]
 InfiniteSetType_ = "iset" [ GenericInstantiation ]
 ````
@@ -494,7 +494,7 @@ expression `e` of type `T`, sets support the following operations:
 The expression `e !in s` is a syntactic shorthand for `!(e in s)`.
 
 ## Multisets
-````
+````grammar
 MultisetType_ = "multiset" [ GenericInstantiation ]
 ````
 
@@ -584,7 +584,7 @@ if e in s then s[e := s[e] - 1] else s
 ```
 
 ## Sequences
-````
+````grammar
 SequenceType_ = "seq" [ GenericInstantiation ]
 ````
 
@@ -690,7 +690,7 @@ sequence `s`.  It is allowed in non-ghost contexts only if the element
 type `T` is equality supporting.
 
 ### Strings
-````
+````grammar
 StringType_ = "string"
 ````
 
@@ -734,7 +734,7 @@ alphabetic comparison as might be desirable, for example, when
 sorting strings.
 
 ## Finite and Infinite Maps
-````
+````grammar
 FiniteMapType_ = "map" [ GenericInstantiation ]
 InfiniteMapType_ = "imap" [ GenericInstantiation ]
 ````
@@ -828,7 +828,7 @@ if K in cache {  // check if temperature is in domain of cache
 TO BE WRITTEN -- .Keys, .Values, .Items
 
 # Types that stand for other types
-````
+````grammar
 SynonymTypeDecl =
   ( SynonymTypeDefinition_ | OpaqueTypeDefinition_ ) [ ";" ]
 ````
@@ -836,7 +836,7 @@ It is sometimes useful to know a type by several names or to treat a
 type abstractly. Synonym and opaque types serve this purpose.
 
 ## Type synonyms
-````
+````grammar
 SynonymTypeDefinition_ =
   "type" { Attribute } SynonymTypeName [ GenericParameters ] "=" Type
 ````
@@ -868,7 +868,7 @@ type string = seq<char>
 ```
 
 ## Opaque types
-````
+````grammar
 OpaqueTypeDefinition_ = "type" { Attribute } SynonymTypeName
   [ "(" "==" ")" ] [ GenericParameters ]
 ````
@@ -1669,13 +1669,13 @@ Folks, it doesn't get any simpler than that!
 
 # Class Types
 
-````
+````grammar
 ClassDecl = "class" { Attribute } ClassName [ GenericParameters ]
   ["extends" Type {"," Type} ]
   "{" { { DeclModifier } ClassMemberDecl(moduleLevelDecl: false) } "}"
 ````
 
-````
+````grammar
 ClassMemberDecl(moduleLevelDecl) =
   ( FieldDecl | FunctionDecl |
     MethodDecl(isGhost: ("ghost" was present),
@@ -1756,14 +1756,14 @@ A clas can declare special initializing methods called _constructor methods_.
 See Section [#sec-method-declarations].
 
 ## Field Declarations
-````
+````grammar
 FieldDecl = "var" { Attribute } FIdentType { "," FIdentType }
 ````
 An ``FIdentType`` is used to declare a field. The field name is either an
 identifier (that is not allowed to start with a leading underscore) or
 some digits. Digits are used if you want to number your fields, e.g. "0",
 "1", etc.
-````
+````grammar
 FIdentType = ( FieldIdent | digits ) ":" Type
 ````
 
@@ -1791,7 +1791,7 @@ Fields may not be declared static.
 `protected` is not allowed for fields.
 
 ## Method Declarations
-````
+````grammar
 MethodDecl(isGhost, allowConstructor) =
  MethodKeyword { Attribute } [ MethodName ]
  (  MethodSignature(isGhost)  | SignatureEllipsis_ )
@@ -1804,14 +1804,14 @@ If the `allowConstructor` parameter is false then
 the ``MethodDecl`` must not be a `constructor`
 declaration.
 
-````
+````grammar
 MethodKeyword = ("method" | "lemma" | "colemma"
                 | "inductive" "lemma" | "constructor" )
 ````
 The method keyword is used to specify special kinds of methods
 as explained below.
 
-````
+````grammar
 MethodSignature(isGhost) =
     [ GenericParameters ]
     Formals(allowGhost: !isGhost)
@@ -1822,7 +1822,7 @@ input parameters and return parameters.
 The formal parameters are not allowed to have `ghost` specified
 if `ghost` was already specified for the method.
 
-````
+````grammar
 SignatureEllipsis_ = "..."
 ````
 A ``SignatureEllipsis_`` is used when a method or function is being redeclared
@@ -1832,7 +1832,7 @@ Dafny does not support method or function overloading, so the
 name of the class method uniquely identifies it without the
 signature.
 
-````
+````grammar
 Formals(allowGhostKeyword) =
   "(" [ GIdentType(allowGhostKeyword)
         { "," GIdentType(allowGhostKeyword) } ] ")"
@@ -2012,7 +2012,7 @@ TO BE WRITTEN - two-state lemmas; unchanged predicate
 
 ## Function Declarations
 
-````
+````grammar
 FunctionDecl =
   ( "function" [ "method" ] { Attribute }
     FunctionName
@@ -2078,7 +2078,7 @@ the body of the function gives the full definition. However, the
 postcondition can be a convenient place to declare properties of the
 function that may require an inductive proof to establish. For example:
 
-````
+````grammar
 function Factorial(n: int): int
   requires 0 <= n
   ensures 1 <= Factorial(n)
@@ -2159,7 +2159,7 @@ See section [#sec-friendliness] for descriptions
 of inductive predicates and lemmas.
 
 # Trait Types
-````
+````grammar
 TraitDecl = "trait" { Attribute } TraitName [ GenericParameters ]
   "{" { { DeclModifier } ClassMemberDecl(moduleLevelDecl: false) } "}"
 ````
@@ -2259,7 +2259,7 @@ myShapes[1].MoveH(myShapes[0].Width());
 ```
 
 # Array Types
-````
+````grammar
 ArrayType_ = arrayToken [ GenericInstantiation ]
 ````
 
@@ -2407,7 +2407,7 @@ convert stretches of elements from a multi-dimensional array to a
 sequence.
 
 # Type object
-````
+````grammar
 ObjectType_ = "object"
 ````
 
@@ -2422,7 +2422,7 @@ is useful to keep a ghost field (typically named `Repr` for
     be used as a type parameter needs to be removed.
 
 # Iterator types
-````
+````grammar
 IteratorDecl = "iterator" { Attribute } IteratorName
   ( [ GenericParameters ]
     Formals(allowGhostKeyword: true)
@@ -2638,7 +2638,7 @@ design of asynchronous methods evolves.
 
 # Function types
 
-````
+````grammar
 Type = DomainType "->" Type
 ````
 
@@ -2738,13 +2738,13 @@ every datatype is that each value of the type uniquely identifies one
 of the datatype's constructors and each constructor is injective in
 its parameters.
 
-````
+````grammar
 DatatypeDecl = ( InductiveDatatypeDecl | CoinductiveDatatypeDecl )
 ````
 
 ## Inductive datatypes
 
-````
+````grammar
 InductiveDatatypeDecl_ = "datatype" { Attribute } DatatypeName [ GenericParameters ]
   "=" [ "|" ] DatatypeMemberDecl { "|" DatatypeMemberDecl } [ ";" ]
 DatatypeMemberDecl = { Attribute } DatatypeMemberName [ FormalsOptionalIds ]
@@ -2839,7 +2839,7 @@ node[left := L, right := R]
 ```
 
 ## Tuple types
-````
+````grammar
 TupleType_ = "(" [ Type { "," Type } ] ")"
 ````
 
@@ -2866,7 +2866,7 @@ _unit type_ and its single value, also written `()`, is known as _unit_.
 
 ## Co-inductive datatypes
 
-````
+````grammar
 CoinductiveDatatypeDecl_ = "codatatype" { Attribute } DatatypeName [ GenericParameters ]
   "=" DatatypeMemberDecl { "|" DatatypeMemberDecl } [ ";" ]
 ````
@@ -3333,7 +3333,7 @@ and deeper equalities, the co-lemma can be understood as producing the
 infinite proof on demand.
 
 # Newtypes
-````
+````grammar
 NewtypeDecl = "newtype" { Attribute } NewtypeName "="
   ( NumericTypeName [ ":" Type ] "|" Expression(allowLemma: false, allowLambda: true)
   | Type
@@ -3458,7 +3458,7 @@ respectively three, run-time conversions.
 # Subset types
 TO BE WRITTEN: add `-->` (subset of `~>`), `->` (subset of `-->`), non-null types subset of nullable types
 
-````
+````grammar
 NatType_ = "nat"
 ````
 

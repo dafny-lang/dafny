@@ -1,6 +1,6 @@
 # Modules
 
-````
+````grammar
 SubModuleDecl = ( ModuleDefinition_ | ModuleImport_ )
 ````
 
@@ -13,7 +13,7 @@ possible to abstract over modules to separate an implementation from an
 interface.
 
 ## Declaring New Modules
-````
+````grammar
 ModuleDefinition_ = "module" { Attribute } ModuleName
         [ [  "exclusively" ] "refines" QualifiedModuleName ]
         "{" { TopDecl } "}"
@@ -100,7 +100,7 @@ Note that everything declared at the top-level
 of a single implicit unnamed global module.
 
 ## Importing Modules
-````
+````grammar
 ModuleImport_ = "import" ["opened" ] ModuleName
     [ "=" QualifiedModuleName
     | "as" QualifiedModuleName ["default" QualifiedModuleName ]

@@ -1,5 +1,5 @@
 # Attributes
-````
+````grammar
 Attribute = "{" ":" AttributeName [ Expressions ] "}"
 ````
 Dafny allows many of its entities to be annotated with _Attributes_.

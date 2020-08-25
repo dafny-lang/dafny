@@ -1,5 +1,5 @@
 # Statements
-````
+````grammar
 Stmt = ( BlockStmt | AssertStmt | AssumeStmt | ExpectStmt | PrintStmt | UpdateStmt
   | VarDeclStatement | IfStmt | WhileStmt | MatchStmt | ForallStmt
   | CalcStmt | ModifyStmt | LabeledStmt_ | BreakStmt_ | ReturnStmt
@@ -21,7 +21,7 @@ This grammar production shows the different kinds of Dafny statements.
 They are described in subsequent sections.
 
 ## Labeled Statement
-````
+````grammar
 LabeledStmt_ = "label" LabelName ":" Stmt
 ````
 A labeled statement is just the keyword `label` followed by an identifier
@@ -37,7 +37,7 @@ must have been encountered during the control flow in route to the `old`
 expression. That is, again, the label must dominate the use of the label.
 
 ## Break Statement
-````
+````grammar
 BreakStmt_ = "break" ( LabelName | { "break" } ) ";"
 ````
 A break statement provides a means to transfer control
@@ -91,14 +91,14 @@ while i < 10 {
 ``` 
 
 ## Block Statement
-````
+````grammar
 BlockStmt = "{" { Stmt } "}"
 ````
 A block statement is just a sequence of statements enclosed by curly braces.
 Local variables declared in the block end their scope at the end of the block.
 
 ## Return Statement
-````
+````grammar
 ReturnStmt = "return" [ Rhs { "," Rhs } ] ";"
 ````
 A return statement can only be used in a method. It is used
@@ -119,7 +119,7 @@ evaluated, then they are assigned to the out-parameters, and then the
 method terminates.
 
 ## Yield Statement
-````
+````grammar
 YieldStmt = "yield" [ Rhs { "," Rhs } ] ";"
 ````
 
@@ -145,7 +145,7 @@ assigned to the yield parameters, and then the iterator
 yields.
 
 ## Update and Call Statements {#sec-update-and-call-statement}
-````
+````grammar
 UpdateStmt =
     Lhs
     ( {Attribute} ";"
@@ -162,7 +162,7 @@ corresponding right-hand sides also denote the same value.
     )
 ````
 
-````
+````grammar
 CallStmt_ =
     [ Lhs { , Lhs } ":=" ] Lhs ";"
 ````
@@ -233,14 +233,14 @@ when executed.
 
 Note that the form
 
-````
+````grammar
     Lhs ":"
 ````
 
 is diagnosed as a label in which the user forgot the **label** keyword.
 
 ## Variable Declaration Statement
-````
+````grammar
 VarDeclStatement = [ "ghost" ] "var" { Attribute }
   (
     LocalIdentTypeOptional 
@@ -294,7 +294,7 @@ function usesTuple() : int
 ```
 
 ## Guards
-````
+````grammar
 Guard = ( "*" 
         | "(" "*" ")" 
         | Expression(allowLemma: true, allowLambda: true) 
@@ -310,7 +310,7 @@ unspecified boolean value is returned. The value returned
 may be different each time it is executed.
 
 ## Binding Guards
-````
+````grammar
 BindingGuard(allowLambda) =
   IdentTypeOptional { "," IdentTypeOptional } { Attribute }
   ":|" Expression(allowLemma: true, allowLambda)
@@ -357,7 +357,7 @@ method M1() returns (ghost y: int)
 ```
 
 ## If Statement
-````
+````grammar
 IfStmt = "if"
   ( IfAlternativeBlock
   | "{" IfAlternativeBlock "}"
@@ -370,7 +370,7 @@ IfStmt = "if"
   )
 ````
 
-````
+````grammar
 IfAlternativeBlock =
       { "case"
       (
@@ -418,7 +418,7 @@ to the right of `=>` for that guard are executed. The statement requires
 at least one of the guards to evaluate to `true`.
 
 ## While Statement
-````
+````grammar
 WhileStmt = "while"
   ( LoopSpecWhile ( WhileAlternativeBlock | "{" WhileAlternativeBlock "}" )
   | ( Guard | "..." ) LoopSpec
@@ -429,7 +429,7 @@ WhileStmt = "while"
   )
 ````
 
-````
+````grammar
 WhileAlternativeBlock =
    "{" 
    { "case" Expression(allowLemma: true, allowLambda: false) 
@@ -610,7 +610,7 @@ See the discussion of framing in methods for a fuller discussion.
 TO BE WRITTEN
 
 ## Match Statement
-````
+````grammar
 MatchStmt = "match" Expression(allowLemma: true, allowLambda: true)
   ( "{" { CaseStatement } "}"
   | { CaseStatement }
@@ -666,7 +666,7 @@ coinductive this would not have been possible since `x` might have been
 infinite.
 
 ## Assert Statement
-````
+````grammar
 AssertStmt =
     "assert" { Attribute }
     ( Expression(allowLemma: false, allowLambda: true)
@@ -689,7 +689,7 @@ Using `...` as the argument of the statement is part of module refinement, as de
 TO BE WRITTEN - assert by statements
 
 ## Assume Statement
-````
+````grammar
 AssumeStmt =
     "assume" { Attribute }
     ( Expression(allowLemma: false, allowLambda: true)
@@ -715,7 +715,7 @@ Using `...` as the argument of the statement is part of module refinement, as de
 
 ## Expect Statement
 
-````
+````grammar
 ExpectStmt =
     "expect" { Attribute }
     ( Expression(allowLemma: false, allowLambda: true)
@@ -762,7 +762,7 @@ If the proposition is `...` then (TODO: what does this mean?).
 -->
 
 ## Print Statement
-````
+````grammar
 PrintStmt =
     "print" Expression(allowLemma: false, allowLambda: true)
     { "," Expression(allowLemma: false, allowLambda: true) } ";"
@@ -797,7 +797,7 @@ override the built-in value->string conversion.  Nor is there a way to
 explicitly invoke this conversion.
 
 ## Forall Statement
-````
+````grammar
 ForallStmt = "forall"
   ( "(" [ QuantifierDomain ] ")"
   | [ QuantifierDomain ]
@@ -897,7 +897,7 @@ The `forall` statement is also used extensively in the de-sugared forms of
 co-predicates and co-lemmas. See section [#sec-co-inductive-datatypes].
 
 ## Modify Statement
-````
+````grammar
 ModifyStmt =
   "modify" { Attribute }
   ( FrameExpression(allowLemma: false, allowLambda: true)
@@ -998,7 +998,7 @@ the modify statement do not apply to local variables, only those
 that are heap-based.
 
 ## Calc Statement
-````
+````grammar
 CalcStmt = "calc" { Attribute } [ CalcOp ] "{" CalcBody "}"
 CalcBody = { CalcLine [ CalcOp ] Hints }
 CalcLine = Expression(allowLemma: false, allowLambda: true) ";"
@@ -1126,7 +1126,7 @@ TO BE WRITTEN
 Move to discussion of refinement.
 
 ## Skeleton Statement
-````
+````grammar
 SkeletonStmt =
   "..."
   ["where" Ident {"," Ident } ":="
