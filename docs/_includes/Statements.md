@@ -51,7 +51,7 @@ used to exit a sequence of statements in a block statement before
 reaching the end of the block.
 
 For example,
-```
+```dafny
 L: {
   var n := ReadNext();
   if n < 0  { break L; }
@@ -59,7 +59,7 @@ L: {
 }
 ```
 is equivalent to
-```
+```dafny
 {
   var n: ReadNext();
   if 0 <= n {
@@ -73,7 +73,7 @@ occurrences of `break`, then the statement must be enclosed in
 at least `n` levels of loops. Control continues after exiting `n`
 enclosing loops. For example,
 
-```
+```dafny
 var i := 0;
 while i < 10 {
   var j := 0;
@@ -210,7 +210,7 @@ variables such that the boolean expression on the right hand side
 is satisfied. This can be used to make a choice as in the
 following example where we choose an element in a set.
 
-```
+```dafny
 method Sum(X: set<int>) returns (s: int)
 {
   s := 0; var Y := X;
@@ -264,7 +264,7 @@ of values must match the number of variables declared.
 
 Note that the type of each variable must be given individually. The following code
 
-```
+```dafny
 var x, y : int;
 ```
 does not declare both `x` and `y` to be of type `int`. Rather it will give an
@@ -280,7 +280,7 @@ if the **ghost** keyword is not part of the variable declaration statement.
 The left-hand side can also contain a tuple of patterns which will be
 matched against the right-hand-side. For example:
 
-```
+```dafny
 function returnsTuple() : (int, int)
 {
     (5, 10)
@@ -324,13 +324,13 @@ where the bound variables are not in scope.
 
 In other words, the statement
 
-```
+```dafny
 if x :| P { S } else { T }
 ```
 
 has the same meaning as
 
-```
+```dafny
 if exists x :| P { var x :| P; S } else { T }
 ```
 
@@ -340,7 +340,7 @@ used in specification contexts.
 
 Here is an example:
 
-```
+```dafny
 predicate P(n: int)
 {
   n % 2 == 0
@@ -383,7 +383,7 @@ The simplest form of an `if` statement uses a guard that is a boolean
 expression. It then has the same form as in C\# and other common
 programming languages. For example,
 
-```
+```dafny
   if x < 0 {
     x := -x;
   }
@@ -391,7 +391,7 @@ programming languages. For example,
 
 If the guard is an asterisk then a non-deterministic choice is made:
 
-```
+```dafny
   if * {
     print "True";
   } else {
@@ -404,7 +404,7 @@ The `if` statement using the `IfAlternativeBlock` form is similar to the
 Edsger W. Dijkstra. It is used for a multi-branch `if`.
 
 For example:
-```
+```dafny
   if {
     case x <= y => max := y;
     case y <= x => max := x;
@@ -448,7 +448,7 @@ forms.
 The first form is similar to a while loop in a C-like language. For
 example:
 
-```
+```dafny
   var i := 0;
   while i < 5 {
     i := i + 1;
@@ -479,7 +479,7 @@ The second form uses the `WhileAlternativeBlock`. It is similar to the
 `do ... od` construct used in the book "A Discipline of Programming" by
 Edsger W. Dijkstra. For example:
 
-```
+```dafny
   while
     decreases if 0 <= r then r else -r;
   {
@@ -523,7 +523,7 @@ the loop, or we wouldn't need the loop. Like pre- and postconditions, an
 invariant is a property that is preserved for each execution of the loop,
 expressed using the same boolean expressions we have seen. For example,
 
-```
+```dafny
 var i := 0;
 while i < n
   invariant 0 <= i
@@ -566,7 +566,7 @@ that decreases, but other things that can be used as well. In the case of
 integers, the bound is assumed to be zero. For example, the following is
 a proper use of `decreases` on a loop:
 
-```
+```dafny
   while 0 < i
     invariant 0 <= i
     decreases i
@@ -582,7 +582,7 @@ tend to count up instead of down. In this case, what decreases is not the
 counter itself, but rather the distance between the counter and the upper
 bound. A simple trick for dealing with this situation is given below:
 
-```
+```dafny
   while i < n
     invariant 0 <= i <= n
     decreases n - i
@@ -643,7 +643,7 @@ same constructor. In that case `x1` is bound to value `v1` and
 `x2` is bound to `v2`. The identifiers in the case pattern
 are not mutable. Here is an example of the use of a `match` statement.
 
-```
+```dafny
 datatype Tree = Empty | Node(left: Tree, data: int, right: Tree)
 
 // Return the sum of the data in a tree.
@@ -777,7 +777,7 @@ line you should include `"\n"` as part of one of the expressions.
 Dafny automatically creates implementations of methods that convert values to strings
 for all Dafny data types. For example,
 
-```
+```dafny
 datatype Tree = Empty | Node(left: Tree, data: int, right: Tree)
 method Main()
 {
@@ -831,7 +831,7 @@ into the new buffer.
 
 [leino233]: http://research.microsoft.com/en-us/um/people/leino/papers/krml233.pdf
 
-```
+```dafny
 class {:autocontracts} SimpleQueue<Data>
 {
   ghost var Contents: seq<Data>;
@@ -859,7 +859,7 @@ Here is an example of a _call_ `forall` statement and the
 callee. This is contained in the `CloudMake-ConsistentBuilds.dfy`
 test in the Dafny repository.
 
-```
+```dafny
 forall cmd', deps', e' | 
        Hash(Loc(cmd', deps', e')) == Hash(Loc(cmd, deps, e)) {
   HashProperty(cmd', deps', e', cmd, deps, e);
@@ -873,7 +873,7 @@ lemma HashProperty(cmd: Expression, deps: Expression, ext: string,
 
 The following example of a _proof_ `forall` statement comes from the same file:
 
-```
+```dafny
 forall p | p in DomSt(stCombinedC.st) && p in DomSt(stExecC.st)
   ensures GetSt(p, stCombinedC.st) == GetSt(p, stExecC.st)
 {
@@ -884,12 +884,12 @@ forall p | p in DomSt(stCombinedC.st) && p in DomSt(stExecC.st)
 ```
 
 More generally, the statement
-```
+```dafny
 forall x | P(x) { Lemma(x); }
 ```
 is used to invoke `Lemma(x)` on all `x` for which `P(x)` holds. If
 `Lemma(x)` ensures `Q(x)`, then the forall statement establishes
-```
+```dafny
 forall x :: P(x) ==> Q(x).
 ```
 
@@ -919,7 +919,7 @@ followed by a `modify` statement that may modify any field
 in the object. After that we can no longer prove that the field
 `x` still has the value we assigned to it.
 
-```
+```dafny
 class MyClass {
   var x: int
   method N()
@@ -938,7 +938,7 @@ block statement. Namely, only memory locations specified
 by the frame expressions of the block `modify` statement
 may be modified. Consider the following example.
 
-```
+```dafny
 class ModifyBody {
   var x: int
   var y: int
@@ -968,7 +968,7 @@ class ModifyBody {
   }
 ```
 
-```
+```dafny
   method M3()
     modifies this
   {
@@ -1047,7 +1047,7 @@ Here is an example using `calc` statements to prove an elementary
 algebraic identity. As it turns out, Dafny is able to prove this without
 the `calc` statements, but the example illustrates the syntax.
 
-```
+```dafny
 lemma docalc(x : int, y: int)
   ensures (x + y) * (x + y) == x * x + 2 * x * y + y * y
 {
@@ -1101,7 +1101,7 @@ every pair of expressions by giving a default operator between
 the `calc` keyword and the opening brace as shown in this abbreviated
 version of the above calc statement:
 
-```
+```dafny
 calc == {
   (x + y) * (x + y);
   x * (x + y) + y * (x + y);

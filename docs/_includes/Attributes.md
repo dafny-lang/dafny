@@ -7,7 +7,7 @@ The grammar shows where the attribute annotations may appear.
 
 Here is an example of an attribute from the Dafny test suite:
 
-```
+```dafny
 {:MyAttribute "hello", "hi" + "there", 57}
 ```
 
@@ -64,7 +64,7 @@ level, then its `requires` clause is strengthed sufficiently so that
 it may call the functions that it calls.
 
 For following example
-```
+```dafny
 function f(x:int) : bool
   requires x > 3
 {
@@ -80,7 +80,7 @@ function {:autoReq} g(y:int, b:bool) : bool
 the `{:autoReq}` attribute causes Dafny to
 deduce a `requires` clause for g as if it had been
 declared
-```
+```dafny
 function g(y:int, b:bool) : bool
   requires if b then y + 2 > 3 else 2 * y > 3
 {
@@ -104,48 +104,48 @@ From the user's perspective, what needs to be done is simply:
 AutoContracts will then:
 
 *  Declare:
-```
+```dafny
    ghost var Repr: set<object>
 ```
 
 * For function/predicate Valid(), insert:
-```
+```dafny
    reads this, Repr
 ```
 * Into body of Valid(), insert (at the beginning of the body):
-```
+```dafny
    this in Repr && null !in Repr
 ```
 * and also insert, for every array-valued field A declared in the class:
-```
+```dafny
    (A != null ==> A in Repr) &&
 ```
 * and for every field F of a class type T where T has a field called Repr, also insert:
-```
+```dafny
    (F != null ==> F in Repr && F.Repr <= Repr && this !in Repr)
 ```
   Except, if A or F is declared with `{:autocontracts false}`, then the implication will not
 be added.
 
 * For every constructor, add:
-```
+```dafny
    modifies this
    ensures Valid() && fresh(Repr - {this})
 ```
 * At the end of the body of the constructor, add:
-```
+```dafny
    Repr := {this};
    if (A != null) { Repr := Repr + {A}; }
    if (F != null) { Repr := Repr + {F} + F.Repr; }
 ```
 * For every method, add:
-```
+```dafny
    requires Valid()
    modifies Repr
    ensures Valid() && fresh(Repr - old(Repr))
 ```
 * At the end of the body of the method, add:
-```
+```dafny
    if (A != null) { Repr := Repr + {A}; }
    if (F != null) { Repr := Repr + {F} + F.Repr; }
 ```
@@ -179,7 +179,7 @@ case it will apply to all uses of that function, or it can overridden
 within the scope of a module, function, method, iterator, calc, forall,
 while, assert, or assume.  The general format is:
 
-```
+```dafny
 {:fuel functionName,lowFuel,highFuel}
 ```
 
@@ -199,13 +199,13 @@ When it appears in a quantifier expression, it is as if a new heap-valued
 quantifier variable was added to the quantification. Consider this code
 that is one of the invariants of a while loop.
 
-```
+```dafny
 invariant forall u {:heapQuantifier} :: f(u) == u + r
 ```
 
 The quantifier is translated into the following Boogie:
 
-```
+```dafny
 (forall q$heap#8: Heap, u#5: int ::
     {:heapQuantifier}
     $IsGoodHeap(q$heap#8) && ($Heap == q$heap#8 || $HeapSucc($Heap, q$heap#8))
@@ -259,7 +259,7 @@ The form of the `{:induction}` attribute is one of the following:
 usage conventionally `X` is `true`.
 
 Here is an example of using it on a quantifier expression:
-```
+```dafny
 lemma Fill_J(s: seq<int>)
   requires forall i :: 1 <= i < |s| ==> s[i-1] <= s[i]
   ensures forall i,j {:induction j} :: 0 <= i < j < |s| ==> s[i] <= s[j]
@@ -317,7 +317,7 @@ or if the programmer specifically asks to see it via the `reveal_f()` lemma.
 We create a lemma to allow the user to selectively reveal the function's body
 That is, given:
 
-```
+```dafny
   function {:opaque} foo(x:int, y:int) : int
     requires 0 <= x < 5
     requires 0 <= y < 5
@@ -327,7 +327,7 @@ That is, given:
 
 We produce:
 
-```
+```dafny
   lemma {:axiom} reveal_foo()
     ensures forall x:int, y:int {:trigger foo(x,y)} ::
          0 <= x < 5 && 0 <= y < 5 ==> foo(x,y) == foo_FULL(x,y)
@@ -350,7 +350,7 @@ This is used internally in Dafny as part of module refinement.
 It is an attribute on an assert statement.
 The Dafny code has the following comment:
 
-```
+```dafny
 // Clone the expression, but among the new assert's attributes, indicate
 // that this assertion is supposed to be translated into a check.  That is,
 // it is not allowed to be just assumed in the translation, despite the fact

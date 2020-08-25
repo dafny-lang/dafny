@@ -106,15 +106,15 @@ in groups of increasing binding power, with equality binding stronger
 than conjunction and disjunction, and weaker than negation.  Within
 each group, different operators do not associate, so parentheses need
 to be used.  For example,
-```
+```dafny
 A && B || C    // error
 ```
 would be ambiguous and instead has to be written as either
-```
+```dafny
 (A && B) || C
 ```
 or
-```
+```dafny
 A && (B || C)
 ```
 depending on the intended meaning.
@@ -122,23 +122,23 @@ depending on the intended meaning.
 ### Equivalence Operator
 The expressions `A <==> B` and `A == B` give the same value, but note
 that `<==>` is _associative_ whereas `==` is _chaining_.  So,
-```
+```dafny
 A <==> B <==> C
 ```
 is the same as
-```
+```dafny
 A <==> (B <==> C)
 ```
 and
-```
+```dafny
 (A <==> B) <==> C
 ```
 whereas
-```
+```dafny
 A == B == C
 ```
 is simply a shorthand for
-```
+```dafny
 A == B && B == C
 ```
 
@@ -160,7 +160,7 @@ order.  Consequently, reverse implication is _left associative_ and is
 short-circuiting from _right to left_.  To illustrate the
 associativity rules, each of the following four lines expresses the
 same property, for any `A`, `B`, and `C` of type `bool`:
-```
+```dafny
 A ==> B ==> C
 A ==> (B ==> C)  // parentheses redundant, since ==> is right associative
 C <== B <== A
@@ -170,12 +170,12 @@ To illustrate the short-circuiting rules, note that the expression
 `a.Length` is defined for an array `a` only if `a` is not `null` (see
 Section [#sec-reference-types]), which means the following two
 expressions are well-formed:
-```
+```dafny
 a != null ==> 0 <= a.Length
 0 <= a.Length <== a != null
 ```
 The contrapositive of these two expressions would be:
-```
+```dafny
 a.Length < 0 ==> a == null  // not well-formed
 a == null <== a.Length < 0  // not well-formed
 ```
@@ -186,11 +186,11 @@ to be well-formed by itself.
 Implication `A ==> B` is equivalent to the disjunction `!A || B`, but
 is sometimes (especially in specifications) clearer to read.  Since,
 `||` is short-circuiting from left to right, note that
-```
+```dafny
 a == null || 0 <= a.Length
 ```
 is well-formed, whereas
-```
+```dafny
 0 <= a.Length || a == null  // not well-formed
 ```
 is not.
@@ -228,7 +228,7 @@ on both sides.  For example, `1.0`, `1609.344`, and `0.5772156649`.
 For integers (in both decimal and hexadecimal form) and reals,
 any two digits in a literal may be separated by an underscore in order
 to improve human readability of the literals.  For example:
-```
+```dafny
 1_000_000        // easier to read than 1000000
 0_12_345_6789    // strange but legal formatting of 123456789
 0x8000_0000      // same as 0x80000000 -- hex digits are often placed in groups of 4
@@ -247,15 +247,15 @@ support the following relational operations:
 
 Like equality and disequality, these operators are chaining, as long
 as they are chained in the "same direction".  That is,
-```
+```dafny
 A <= B < C == D <= E
 ```
 is simply a shorthand for
-```
+```dafny
 A <= B && B < C && C == D && D <= E
 ```
 whereas
-```
+```dafny
 A < B > C
 ```
 is not allowed.
@@ -281,7 +281,7 @@ division and modulus are the _Euclidean division and modulus_.  This
 means that modulus always returns a non-negative, regardless of the
 signs of the two operands.  More precisely, for any integer `a` and
 non-zero integer `b`,
-```
+```dafny
 a == a / b * b + a % b
 0 <= a % b < B
 ```
@@ -291,7 +291,7 @@ Real-based numeric types have a member `Floor` that returns the
 _floor_ of the real value, that is, the largest integer not exceeding
 the real value.  For example, the following properties hold, for any
 `r` and `r'` of type `real`:
-```
+```dafny
 3.14.Floor == 3
 (-2.5).Floor == -3
 -2.5.Floor == -2
@@ -370,7 +370,7 @@ not only in ghost contexts but also in compiled contexts.  To indicate
 that a type parameter is restricted to such _equality supporting_
 types, the name of the type parameter takes the suffix
 "`(==)`".[^fn-type-mode]  For example,
-```
+```dafny
 method Compare<T(==)>(a: T, b: T) returns (eq: bool)
 {
   if a == b { eq := true; } else { eq := false; }
@@ -436,7 +436,7 @@ set of `T` values.
 A set can be formed using a _set display_ expression, which is a
 possibly empty, unordered, duplicate-insensitive list of expressions
 enclosed in curly braces.  To illustrate,
-```
+```dafny
 {}        {2, 7, 5, 3}        {4+2, 1+5, a*b}
 ```
 are three examples of set displays. There is also a _set comprehension_
@@ -473,12 +473,12 @@ arithmetic operators with the same names.  The expression `A !! B`,
 whose binding power is the same as equality (but which neither
 associates nor chains with equality), says that sets `A` and `B` have
 no elements in common, that is, it is equivalent to
-```
+```dafny
 A * B == {}
 ```
 However, the disjointness operator is chaining, so `A !! B !! C !! D`
 means:
-```
+```dafny
 A * B == {} && (A + B) * C == {} && (A + B + C) * D == {}
 ```
 
@@ -513,7 +513,7 @@ is equality supporting.
 A multiset can be formed using a _multiset display_ expression, which
 is a possibly empty, unordered list of expressions enclosed in curly
 braces after the keyword `multiset`.  To illustrate,
-```
+```dafny
 multiset{}    multiset{0, 1, 1, 2, 3, 5}    multiset{4+2, 1+5, a*b}
 ```
 are three examples of multiset displays.  There is no multiset
@@ -554,7 +554,7 @@ multiplicity of the operands.
 The expression `A !! B`
 says that multisets `A` and `B` have no elements in common, that is,
 it is equivalent to
-```
+```dafny
 A * B == multiset{}
 ```
 Like the analogous set operator, `!!` is chaining.
@@ -579,7 +579,7 @@ the multiset update `s[e := 0]` results in a multiset like `s` but
 without any occurrences of `e` (whether or not `s` has occurrences of
 `e` in the first place).  As another example, note that
 `s - multiset{e}` is equivalent to:
-```
+```dafny
 if e in s then s[e := s[e] - 1] else s
 ```
 
@@ -597,7 +597,7 @@ a sequence is therefore something of a dual of a multiset.)
 A sequence can be formed using a _sequence display_ expression, which
 is a possibly empty, ordered list of expressions enclosed in square
 brackets.  To illustrate,
-```
+```dafny
 []        [3, 1, 4, 1, 5, 9, 3]        [4+2, 1+5, a*b]
 ```
 are three examples of sequence displays.  There is no sequence
@@ -671,7 +671,7 @@ colon, then the length of the last slice extends until the end of `s`,
 that is, its length is `|s|` minus the sum of the given length
 designators.  For example, the following equalities hold, for any
 sequence `s` of length at least `10`:
-```
+```dafny
 var t := [3.14, 2.7, 1.41, 1985.44, 100.0, 37.2][1:0:3];
 assert |t| == 3 && t[0] == [3.14] && t[1] == [];
 assert t[2] == [2.7, 1.41, 1985.44];
@@ -721,7 +721,7 @@ Even characters like newline can be written inside the string literal
 (hence spanning more than one line in the program text).
 
 For example, the following three expressions denote the same string:
-```
+```dafny
 "C:\\tmp.txt"
 @"C:\tmp.txt"
 ['C', ':', '\\', 't', 'm', 'p', '.', 't', 'x', 't']
@@ -757,7 +757,7 @@ which is a possibly empty, ordered list of _maplets_, each maplet having the
 form `t := u` where `t` is an expression of type `T` and `u` is an
 expression of type `U`, enclosed in square brackets after the keyword
 `map`.  To illustrate,
-```
+```dafny
 map[]    map[20 := true, 3 := false, 20 := false]    map[a+b := c+d]
 ```
 are three examples of map displays.  By using the keyword `imap`
@@ -816,7 +816,7 @@ and similarly for `!in`.
 Here is a small example, where a map `cache` of type `map<int,real>`
 is used to cache computed values of Joule-Thomson coefficients for
 some fixed gas at a given temperature:
-```
+```dafny
 if K in cache {  // check if temperature is in domain of cache
   coeff := cache[K];  // read result in cache
 } else {
@@ -842,7 +842,7 @@ SynonymTypeDefinition_ =
 ````
 
 A _type synonym_ declaration:
-```
+```dafny
 type Y<T> = G
 ```
 declares `Y<T>` to be a synonym for the type `G`.  Here, `T` is a
@@ -855,7 +855,7 @@ produced, between `Y<T>` and `G`.
 
 For example, the names of the following type synonyms may improve the
 readability of a program:
-```
+```dafny
 type Replacements<T> = map<T,T>
 type Vertex = int
 ```
@@ -863,7 +863,7 @@ type Vertex = int
 As already described in Section [#sec-strings], `string` is a built-in
 type synonym for `seq<char>`, as if it would have been declared as
 follows:
-```
+```dafny
 type string = seq<char>
 ```
 
@@ -875,7 +875,7 @@ OpaqueTypeDefinition_ = "type" { Attribute } SynonymTypeName
 
 A special case of a type synonym is one that is underspecified.  Such
 a type is declared simply by:
-```
+```dafny
 type Y<T>
 ```
 It is known as an _opaque type_.  Its definition can be revealed in a
@@ -884,13 +884,13 @@ equality-supporting type, "`(==)`" can be written immediately
 following the name "`Y`".
 
 For example, the declarations
-```
+```dafny
 type T
 function F(t: T): T
 ```
 can be used to model an uninterpreted function `F` on some
 arbitrary type `T`.  As another example,
-```
+```dafny
 type Monad<T>
 ```
 can be used abstractly to represent an arbitrary parameterized monad.
@@ -1408,7 +1408,7 @@ and proofs regarding these.
 Declarations of well-founded functions are unsurprising.  For example, the Fibonacci
 function is declared as follows:
 
-```
+```dafny
 function fib(n: nat): nat
 {
   if n < 2 then n else fib(n-2) + fib(n-1)
@@ -1440,7 +1440,7 @@ Dafny has `lemma` declarations.  These are really just special cases of methods:
 they can have pre- and postcondition specifications and their body is a code block.
 Here is the lemma we stated and proved in Section [#sec-fib-example]:
 
-```
+```dafny
 lemma FibProperty(n: nat)
   ensures fib(n) % 2 == 0 <==> n % 3 == 0
 {
@@ -1468,7 +1468,7 @@ Dafny features an aggregate statement using which it is possible to make (possib
 infinitely) many calls at once.  For example, the induction hypothesis can be called
 at once on all values `n'` smaller than `n`:
 
-```
+```dafny
 forall n' | 0 <= n' < n {
   FibProperty(n');
 }
@@ -1477,7 +1477,7 @@ forall n' | 0 <= n' < n {
 For our purposes, this corresponds to _strong induction_.  More
 generally, the `forall` statement has the form
 
-```
+```dafny
 forall k | P(k)
   ensures Q(k)
 { Statements; }
@@ -1494,7 +1494,7 @@ Lemma `FibProperty` is simple enough that its whole body can be replaced by the 
 inserts such a `forall` statement at the beginning of every lemma [@Leino:induction].
 Thus, `FibProperty` can be declared and proved simply by:
 
-``` {.para-end}
+```dafny
 lemma FibProperty(n: nat)
   ensures fib(n) % 2 == 0 <==> n % 3 == 0
 { }
@@ -1517,7 +1517,7 @@ well-founded predicate.  The declarations for introducing extreme predicates are
 `inductive predicate` and `copredicate`.  Here is the definition of the least and
 greatest solutions of $g$ from above, let's call them `g` and `G`:
 
-```
+```dafny
 inductive predicate g(x: int) { x == 0 || g(x-2) }
 copredicate G(x: int) { x == 0 || G(x-2) }
 ```
@@ -1532,7 +1532,7 @@ Using a faux-syntax for illustrative purposes, here are the prefix
 predicates that Dafny defines automatically from the extreme
 predicates `g` and `G`:
 
-```
+```dafny
 predicate g#[_k: nat](x: int) { _k != 0 && (x == 0 || g#[_k-1](x-2)) }
 predicate G#[_k: nat](x: int) { _k != 0 ==> (x == 0 || G#[_k-1](x-2)) }
 ```
@@ -1555,7 +1555,7 @@ From what I have presented so far, we can do the formal proofs from Sections
 [#sec-example-least-solution] and [#sec-example-greatest-solution].  Here is the
 former:
 
-```
+```dafny
 lemma EvenNat(x: int)
   requires g(x)
   ensures 0 <= x && x % 2 == 0
@@ -1585,7 +1585,7 @@ done automatically.
 
 Because Dafny automatically inserts the statement
 
-```
+```dafny
 forall k', x' | 0 <= k' < k && g#[k'](x') {
   EvenNatAux(k', x');
 }
@@ -1596,7 +1596,7 @@ completes the proof automatically.
 
 Here is the Dafny program that gives the proof from Section [#sec-example-greatest-solution]:
 
-``` {.para-end}
+```dafny
 lemma Always(x: int)
   ensures G(x)
 { forall k: nat { AlwaysAux(k, x); } }
@@ -1647,7 +1647,7 @@ extreme lemma's postcondition.
 Let us see what effect these rewrites have on how one can write proofs.  Here are the proofs
 of our running example:
 
-```
+```dafny
 inductive lemma EvenNat(x: int)
   requires g(x)
   ensures 0 <= x && x % 2 == 0
@@ -1689,7 +1689,7 @@ that are part of a class or trait declaration. If `moduleLevelDecl` is
 false ``FieldDecl``s are not allowed.
 
 A _class_ `C` is a reference type declared as follows:
-```
+```dafny
 class C<T> extends J1, ..., Jn
 {
   \(_members_\)
@@ -1714,7 +1714,7 @@ However, in such places, members of `this` can also be mentioned
 without any qualification.  To illustrate, the qualified `this.f` and
 the unqualified `f` refer to the same field of the same object in the
 following example:
-```
+```dafny
 class C {
   var f: int
   method Example() returns (b: bool)
@@ -1728,7 +1728,7 @@ There is no semantic difference between qualified and
 unqualified accesses to the same receiver and member.
 
 A `C` instance is created using `new`, for example:
-```
+```dafny
 c := new C;
 ```
 
@@ -1737,14 +1737,14 @@ to it; the initial values of its fields are arbitrary values of their
 respective types.  Therefore, it is common to invoke a method, known
 as an _initialization method_, immediately after creation, for
 example:
-```
+```dafny
 c := new C;
 c.InitFromList(xs, 3);
 ```
 When an initialization method has no out-parameters and modifies no
 more than `this`, then the two statements above can be combined into
 one:
-```
+```dafny
 c := new C.InitFromList(xs, 3);
 ```
 Note that a class can contain several initialization methods, that
@@ -1768,7 +1768,7 @@ FIdentType = ( FieldIdent | digits ) ":" Type
 ````
 
 A field x of some type T is declared as:
-```
+```dafny
 var x: T
 ```
 
@@ -1845,7 +1845,7 @@ See section [#sec-method-specification] for a description of ``MethodSpec``.
 A method declaration adheres to the ``MethodDecl`` grammar above.
 Here is an example of a method declaration.
 
-```
+```dafny
 method {:att1}{:att2} M<T1, T2>(a: A, b: B, c: C) returns (x: X, y: Y, z: Z)
   requires Pre
   modifies Frame
@@ -1870,7 +1870,7 @@ method’s frame is the union of these sets, plus the set of objects
 allocated by the method body. For example, if `c` and `d` are parameters
 of a class type `C`, then
 
-```
+```dafny
 modifies {c, d}
 
 modifies {c} + {d}
@@ -1932,7 +1932,7 @@ declare no constructors or one or more constructors.
 
 A class that declares no constructors has a default constructor created 
 for it. This constructor is called with the syntax
-```
+```dafny
 c := new C;
 ```
 This constructor simply initializes the fields of the class.
@@ -1957,7 +1957,7 @@ Many classes have just
 one constructor or have a typical constructor.  Therefore, Dafny
 allows one _anonymous constructor_, that is, a constructor whose name
 is essentially "".  For example:
-```
+```dafny
 class Item {
   constructor I(xy: int) // ...
   constructor (x: int, y: int)
@@ -1965,11 +1965,11 @@ class Item {
 }
 ```
 The named constructor is invoked as
-```
+```dafny
   i := new Item.I(42);
 ```
 The anonymous constructor is invoked as
-```
+```dafny
   m := new Item(45, 29);
 ```
 dropping the "`.`".
@@ -2052,7 +2052,7 @@ read memory that was specified in its `reads` expression but is not
 allowed to have any side effects.
 
 Here is an example function declaration:
-```
+```dafny
 function {:att1}{:att2} F<T1, T2>(a: A, b: B, c: C): T
   requires Pre
   reads Frame
@@ -2169,7 +2169,7 @@ A _trait_ is an "abstract superclass", or call it an "interface" or
 while.
 
 The declaration of a trait is much like that of a class:
-```
+```dafny
 trait J
 {
   \(_members_\)
@@ -2192,7 +2192,7 @@ objects of a class `C` that implements a trait `J`, and a reference to
 such a `C` object can be used as a value of type `J`.
 
 As an example, the following trait represents movable geometric shapes:
-```
+```dafny
 trait Shape
 {
   function method Width(): real
@@ -2211,7 +2211,7 @@ be implemented differently by different classes that extend the trait.
 The implementation of method `MoveH` is given in the trait and thus
 gets used by all classes that extend `Shape`.  Here are two classes
 that each extends `Shape`:
-```
+```dafny
 class UnitSquare extends Shape
 {
   var x: real, y: real
@@ -2247,7 +2247,7 @@ corresponding specification in the trait and are satisfied by the
 provided body.
 Finally, here is some code that creates two class instances and uses
 them together as shapes:
-```
+```dafny
 var myShapes: seq<Shape>;
 var A := new UnitSquare;
 myShapes := [A];
@@ -2269,14 +2269,14 @@ dimension.  Array types are reference types.
 ## One-dimensional arrays
 
 A one-dimensional array of `n` `T` elements is created as follows:
-```
+```dafny
 a := new T[n];
 ```
 The initial values of the array elements are arbitrary values of type
 `T`.
 The length of an array is retrieved using the immutable `Length`
 member.  For example, the array allocated above satisfies:
-```
+```dafny
 a.Length == n
 ```
 
@@ -2285,7 +2285,7 @@ the _array selection_ expression `a[i]` retrieves element `i` (that
 is, the element preceded by `i` elements in the array).  The
 element stored at `i` can be changed to a value `t` using the array
 update statement:
-```
+```dafny
 a[i] := t;
 ```
 
@@ -2293,7 +2293,7 @@ Caveat: The type of the array created by `new T[n]` is
 `array<T>`.  A mistake that is simple to make and that can lead to
 befuddlement is to write `array<T>` instead of `T` after `new`.
 For example, consider the following:
-```
+```dafny
 var a := new array<T>;
 var b := new array<T>[n];
 var c := new array<T>(n);  // resolution error
@@ -2340,16 +2340,16 @@ The subarray operations are especially useful in specifications.  For
 example, the loop invariant of a binary search algorithm that uses
 variables `lo` and `hi` to delimit the subarray where the search `key`
 may be still found can be expressed as follows:
-```
+```dafny
 key !in a[..lo] && key !in a[hi..]
 ```
 Another use is to say that a certain range of array elements have not
 been changed since the beginning of a method:
-```
+```dafny
 a[lo..hi] == old(a[lo..hi])
 ```
 or since the beginning of a loop:
-```
+```dafny
 ghost var prevElements := a[..];
 while // ...
   invariant a[lo..hi] == prevElements[lo..hi]
@@ -2365,7 +2365,7 @@ array's elements are a permutation of the array's elements at the
 beginning of a method, as would be done in most sorting algorithms.
 Here, the subarray operation is combined with the sequence-to-multiset
 conversion:
-```
+```dafny
 multiset(a[..]) == multiset(old(a[..]))
 ```
 
@@ -2375,7 +2375,7 @@ An array of 2 or more dimensions is mostly like a one-dimensional
 array, except that `new` takes more length arguments (one for each
 dimension), and the array selection expression and the array update
 statement take more indices.  For example:
-```
+```dafny
 matrix := new T[m, n];
 matrix[i, j], matrix[x, y] := matrix[x, y], matrix[i, j];
 ```
@@ -2390,14 +2390,14 @@ The `new` operation above requires `m` and `n` to be non-negative
 integer-based numerics.  These lengths can be retrieved using the
 immutable fields `Length0` and `Length1`.  For example, the following
 holds of the array created above:
-```
+```dafny
 matrix.Length0 == m && matrix.Length1 == n
 ```
 Higher-dimensional arrays are similar (`Length0`, `Length1`,
 `Length2`, ...).  The array selection expression and array update
 statement require that the indices are in bounds.  For example, the
 swap statement above is well-formed only if:
-```
+```dafny
 0 <= i < matrix.Length0 && 0 <= j < matrix.Length1 &&
 0 <= x < matrix.Length0 && 0 <= y < matrix.Length1
 ```
@@ -2441,7 +2441,7 @@ counter and control can be transferred into and out of the iterator
 body.
 
 An iterator is declared as follows:
-```
+```dafny
 iterator Iter<T>(\(_in-params_\)) yields (\(_yield-params_\))
   \(_specification_\)
 {
@@ -2464,7 +2464,7 @@ members, a simplified version of which is described next.
 
 The `Iter<T>` class contains an anonymous constructor whose parameters
 are the iterator's in-parameters:
-```
+```dafny
 predicate Valid()
 constructor (\(_in-params_\))
   modifies this
@@ -2473,7 +2473,7 @@ constructor (\(_in-params_\))
 An iterator is created using `new` and this anonymous constructor.
 For example, an iterator willing to return ten consecutive integers
 from `start` can be declared as follows:
-```
+```dafny
 iterator Gen(start: int) yields (x: int)
 {
   var i := 0;
@@ -2485,14 +2485,14 @@ iterator Gen(start: int) yields (x: int)
 }
 ```
 An instance of this iterator is created using:
-```
+```dafny
 iter := new Gen(30);
 ```
 
 The predicate `Valid()` says when the iterator is in a state where one
 can attempt to compute more elements.  It is a postcondition of the
 constructor and occurs in the specification of the `MoveNext` member:
-```
+```dafny
 method MoveNext() returns (more: bool)
   requires Valid()
   modifies this
@@ -2507,11 +2507,11 @@ iterator is allowed to keep returning elements forever.
 The in-parameters of the iterator are stored in immutable fields of
 the iterator class.  To illustrate in terms of the example above, the
 iterator class `Gen` contains the following field:
-```
+```dafny
 var start: int
 ```
 The yield-parameters also result in members of the iterator class:
-```
+```dafny
 var x: int
 ```
 These fields are set by the `MoveNext` method.  If `MoveNext` returns
@@ -2524,7 +2524,7 @@ ghost members that keep the history of values returned by
 yield-parameters with an "`s`" appended to the name (to suggest
 plural).  Name checking rules make sure these names do not give rise
 to ambiguities.  The iterator class for `Gen` above thus contains:
-```
+```dafny
 ghost var xs: seq<int>
 ```
 These history fields are changed automatically by `MoveNext`, but are
@@ -2533,7 +2533,7 @@ not assignable by user code.
 Finally, the iterator class contains some special fields for use in
 specifications.  In particular, the iterator specification gets
 recorded in the following immutable fields:
-```
+```dafny
 ghost var _reads: set<object>
 ghost var _modifies: set<object>
 ghost var _decreases0: T0
@@ -2544,7 +2544,7 @@ where there is a `_decreases\(_i_\): T\(_i_\)` field for each
 component of the iterator's `decreases`
 clause.[^fn-iterator-field-names]
 In addition, there is a field:
-```
+```dafny
 ghost var _new: set<object>;
 ```
 to which any objects allocated on behalf of the iterator body get
@@ -2567,7 +2567,7 @@ It's regrettably tricky to use iterators. The language really
 ought to have a `foreach` statement to make this easier.
 Here is an example showing definition and use of an iterator.
 
-```
+```dafny
 iterator Iter<T>(s: set<T>) yields (x: T)
   yield ensures x in s && x !in xs[..|xs|-1];
   ensures s == set z | z in xs;
@@ -2609,7 +2609,7 @@ evolution is _asynchronous methods_.  When an asynchronous method is
 called, it does not return values for the out-parameters, but instead
 returns an instance of an _async-task type_.  An asynchronous method
 declared in a class `C` with the following signature:
-```
+```dafny
 async method AM<T>(\(_in-params_\)) returns (\(_out-params_\))
 ```
 also gives rise to an async-task type `AM<T>` (outside the enclosing
@@ -2619,11 +2619,11 @@ with various members, a simplified version of which is described next.
 
 Each in-parameter `x` of type `X` of the asynchronous method gives
 rise to a immutable ghost field of the async-task type:
-```
+```dafny
 ghost var x: X;
 ```
 Each out-parameter `y` of type `Y` gives rise to a field
-```
+```dafny
 var y: Y;
 ```
 These fields are changed automatically by the time the asynchronous
@@ -2646,7 +2646,7 @@ Functions are first-class values in Dafny.  Function types have the form
 `(T) -> U` where `T` is a comma-delimited list of types and `U` is a
 type.  `T` is called the function's _domain type(s)_ and `U` is its
 _range type_.  For example, the type of a function
-```
+```dafny
 function F(x: int, b: bool): real
 ```
 is `(int, bool) -> real`.  Parameters are not allowed to be ghost.
@@ -2659,14 +2659,14 @@ case where that one type is a tuple type, since tuple types are also
 written with enclosing parentheses.
 If the function takes a single argument that is a tuple, an additional
 set of parentheses is needed.  For example, the function
-```
+```dafny
 function G(pair: (int, bool)): real
 ```
 has type `((int, bool)) -> real`.  Note the necessary double
 parentheses.  Similarly, a function that takes no arguments is
 different from one that takes a 0-tuple as an argument.  For instance,
 the functions
-```
+```dafny
 function NoArgs(): real
 function Z(unit: ()): real
 ```
@@ -2682,11 +2682,11 @@ then be thought of as being captured into the function definition.
 For example, suppose function `F` above is declared in a class `C` and
 that `c` references an object of type `C`; then, the following is type
 correct:
-```
+```dafny
 var f: (int, bool) -> real := c.F;
 ```
 whereas it would have been incorrect to have written something like:
-```
+```dafny
 var f': (C, int, bool) -> real := F;  // not correct
 ```
 
@@ -2716,13 +2716,13 @@ Note that `f.reads` and `f.requires` are themselves functions.
 Suppose `f` has type `T -> U` and `t` has type `T`.  Then, `f.reads`
 is a function of type `T -> set<object>` whose `reads` and `requires`
 properties are:
-```
+```dafny
 f.reads.reads(t) == f.reads(t)
 f.reads.requires(t) == true
 ```
 `f.requires` is a function of type `T -> bool` whose `reads` and
 `requires` properties are:
-```
+```dafny
 f.requires.reads(t) == f.reads(t)
 f.requires.requires(t) == true
 ```
@@ -2757,13 +2757,13 @@ inductive datatypes can be compared using Dafny's well-founded
 [<]{.monospace} ordering.
 
 An inductive datatype is declared as follows:
-```
+```dafny
 datatype D<T> = \(_Ctors_\)
 ```
 where `\(_Ctors_\)` is a nonempty `|`-separated list of
 _(datatype) constructors_ for the datatype.  Each constructor has the
 form:
-```
+```dafny
 C(\(_params_\))
 ```
 where `\(_params_\)` is a comma-delimited list of types, optionally
@@ -2772,7 +2772,7 @@ preceded by the keyword `ghost`.  If a constructor has no parameters,
 the parentheses after the constructor name can be omitted.  If no
 constructor takes a parameter, the type is usually called an
 _enumeration_; for example:
-```
+```dafny
 datatype Friends = Agnes | Agatha | Jermaine | Jack
 ```
 
@@ -2783,15 +2783,15 @@ constructor `C`, Dafny defines a _destructor_ `p`, which is a member
 that returns the `p` parameter from the `C` call used to construct the
 datatype value; its use requires that `C?` holds.  For example, for
 the standard `List` type
-```
+```dafny
 datatype List<T> = Nil | Cons(head: T, tail: List<T>)
 ```
 the following holds:
-```
+```dafny
 Cons(5, Nil).Cons? && Cons(5, Nil).head == 5
 ```
 Note that the expression
-```
+```dafny
 Cons(5, Nil).tail.head
 ```
 is not well-formed, since `Cons(5, Nil).tail` does not satisfy
@@ -2802,7 +2802,7 @@ the enclosing datatype; this is especially useful for
 single-constructor datatypes, which are often called
 _record types_.  For example, a record type for black-and-white pixels
 might be represented as follows:
-```
+```dafny
 datatype Pixel = Pixel(x: int, y: int, on: bool)
 ```
 
@@ -2810,7 +2810,7 @@ To call a constructor, it is usually necessary only to mention the
 name of the constructor, but if this is ambiguous, it is always
 possible to qualify the name of constructor by the name of the
 datatype.  For example, `Cons(5, Nil)` above can be written
-```
+```dafny
 List.Cons(5, List.Nil)
 ```
 
@@ -2820,13 +2820,13 @@ given datatype value using the _datatype update_ expression.  For any
 `d` whose type is a datatype that includes a constructor `C` that has
 a parameter (destructor) named `f` of type `T`, and any expression `t`
 of type `T`,
-```
+```dafny
 d[f := t]
 ```
 constructs a value like `d` but whose `f` parameter is `t`.  The
 operation requires that `d` satisfies `C?`.  For example, the
 following equality holds:
-```
+```dafny
 Cons(4, Nil)[tail := Cons(3, Nil)] == Cons(4, Cons(3, Nil))
 ```
 
@@ -2834,7 +2834,7 @@ The datatype update expression also accepts multiple field
 names, provided these are distinct. For example, a node of some
 inductive datatype for trees may be updated as follows:
 
-```
+```dafny
 node[left := L, right := R]
 ```
 
@@ -2846,7 +2846,7 @@ TupleType_ = "(" [ Type { "," Type } ] ")"
 Dafny builds in record types that correspond to tuples and gives these
 a convenient special syntax, namely parentheses.  For example, what
 might have been declared as:
-```
+```dafny
 datatype Pair<T,U> = Pair(0: T, 1: U)
 ```
 Dafny provides as the type `(T, U)` and the constructor `(t, u)`, as
@@ -2855,7 +2855,7 @@ round parentheses, and as if the constructor name were "".  Note that
 the destructor names are `0` and `1`, which are legal identifier names
 for members.  For example, showing the use of a tuple destructor, here
 is a property that holds of 2-tuples (that is, _pairs_):
-```
+```dafny
 (5, true).1 == true
 ```
 
@@ -2879,7 +2879,7 @@ using the keyword `codatatype`; other than that, it is declared and
 used like an inductive datatype.
 
 For example,
-```
+```dafny
 codatatype IList<T> = Nil | Cons(head: T, tail: IList<T>)
 codatatype Stream<T> = More(head: T, tail: Stream<T>)
 codatatype Tree<T> = Node(left: Tree<T>, value: T, right: Tree<T>)
@@ -2923,7 +2923,7 @@ co-lemmas provide a syntactic veneer around this approach.
 The following example gives a taste of how the co-inductive features in
 Dafny come together to give straightforward definitions of infinite
 matters.
-```
+```dafny
 // infinite streams
 codatatype IStream<T> = ICons(head: T, tail: IStream)
 
@@ -3026,12 +3026,12 @@ keyword **lemma** introduces such a method. Control flow statements
 correspond to proof techniques—case splits are introduced with if
 statements, recursion and loops are used for induction, and method calls
 for structuring the proof. Additionally, the statement:
-```
+```dafny
 forall x | P(x) { Lemma(x); }
 ```
 is used to invoke `Lemma(x)` on all `x` for which `P(x)` holds. If
 `Lemma(x)` ensures `Q(x)`, then the forall statement establishes
-```
+```dafny
 forall x :: P(x) ==> Q(x).
 ```
 
@@ -3047,7 +3047,7 @@ of a datatype, giving prominence to the constructors (following Coq). The
 following example defines a co-datatype Stream of possibly
 infinite lists.
 
-```
+```dafny
 codatatype Stream<T> = SNil | SCons(head: T, tail: Stream)
 function Up(n: int): Stream<int> { SCons(n, Up(n+1)) }
 function FivesUp(n: int): Stream<int>
@@ -3124,7 +3124,7 @@ liberty of making up a coordinating syntax for the signature of the
 automatically generated prefix predicate (which is not part of
 Dafny syntax).
 
-```
+```dafny
 copredicate Pos(s: Stream<int>)
 {
   match s
@@ -3204,7 +3204,7 @@ we take the time-honored approach of reducing co-induction to
 induction. More precisely, Dafny passes to the SMT solver an
 assumption `D(P)` for every co-predicate `P`, where:
 
-```
+```dafny
 D(P) = ? x • P(x) <==> ? k • P#[k](x)
 ```
 
@@ -3216,7 +3216,7 @@ assumptions is given, provided the co-predicates meet the co-friendly
 restrictions. An example proof of `Pos(Up(n))` for every `n > 0` is
 here shown:
 
-```
+```dafny
 lemma UpPosLemma(n: int)
   requires n > 0
   ensures Pos(Up(n))
@@ -3252,7 +3252,7 @@ write explicit quantifications over `k` . The second benefit is that, in
 simple cases, the bodies of co-lemmas can be understood as co-inductive
 proofs directly. As an example consider the following co-lemma.
 
-```
+```dafny
 colemma UpPosLemma(n: int)
   requires n > 0
   ensures Pos(Up(n))
@@ -3342,7 +3342,7 @@ NewtypeDecl = "newtype" { Attribute } NewtypeName "="
 
 A new numeric type can be declared with the _newtype_
 declaration, for example:
-```
+```dafny
 newtype N = x: M | Q
 ```
 where `M` is a numeric type and `Q` is a boolean expression that can
@@ -3350,7 +3350,7 @@ use `x` as a free variable.  If `M` is an integer-based numeric type,
 then so is `N`; if `M` is real-based, then so is `N`.  If the type `M`
 can be inferred from `Q`, the "`: M`" can be omitted.  If `Q` is just
 `true`, then the declaration can be given simply as:
-```
+```dafny
 newtype N = M
 ```
 Type `M` is known as the _base type_ of `N`.
@@ -3370,20 +3370,20 @@ newtype.[^fn-newtype-design-question]
 
 For example, suppose `lo` and `hi` are integer-based numerics that
 satisfy `0 <= lo <= hi` and consider the following code fragment:
-```
+```dafny
 var mid := (lo + hi) / 2;
 ```
 If `lo` and `hi` have type `int`, then the code fragment is legal; in
 particular, it never overflows, since `int` has no upper bound.  In
 contrast, if `lo` and `hi` are variables of a newtype `int32` declared
 as follows:
-```
+```dafny
 newtype int32 = x | -0x80000000 <= x < 0x80000000
 ```
 then the code fragment is erroneous, since the result of the addition
 may fail to satisfy the predicate in the definition of `int32`.  The
 code fragment can be rewritten as
-```
+```dafny
 var mid := lo + (hi - lo) / 2;
 ```
 in which case it is legal for both `int` and `int32`.
@@ -3399,11 +3399,11 @@ Note that the bound variable `x` in `Q` has type `M`, not `N`.
 Consequently, it may not be possible to state `Q` about the `N`
 value.  For example, consider the following type of 8-bit 2's
 complement integers:
-```
+```dafny
 newtype int8 = x: int | -128 <= x < 128
 ```
 and consider a variable `c` of type `int8`.  The expression
-```
+```dafny
 -128 <= c < 128
 ```
 is not well-defined, because the comparisons require each operand to
@@ -3411,7 +3411,7 @@ have type `int8`, which means the literal `128` is checked to be of
 type `int8`, which it is not.  A proper way to write this expression
 would be to use a conversion operation, described next, on `c` to
 convert it to the base type:
-```
+```dafny
 -128 <= int(c) < 128
 ```
 
@@ -3442,13 +3442,13 @@ see Section [#sec-numeric-types].)
 
 To illustrate using the example from above, if `lo` and `hi` have type
 `int32`, then the code fragment can legally be written as follows:
-```
+```dafny
 var mid := (int(lo) + int(hi)) / 2;
 ```
 where the type of `mid` is inferred to be `int`.  Since the result
 value of the division is a member of type `int32`, one can introduce
 yet another conversion operation to make the type of `mid` be `int32`:
-```
+```dafny
 var mid := int32((int(lo) + int(hi)) / 2);
 ```
 If the compiler does specialize the run-time representation for
@@ -3481,7 +3481,7 @@ whose base type is `int`.[^fn-more-subset-types]  Type `nat`
 designates the non-negative subrange of `int`.  A simple example that
 puts subset type `nat` to good use is the standard Fibonacci
 function:
-```
+```dafny
 function Fib(n: nat): nat
 {
   if n < 2 then n else Fib(n-2) + Fib(n-1)
@@ -3491,7 +3491,7 @@ An equivalent, but clumsy, formulation of this function (modulo the
 wording of any error messages produced at call sites) would be to use
 type `int` and to write the restricting predicate in pre- and
 postconditions:
-```
+```dafny
 function Fib(n: int): int
   requires 0 <= n  // the function argument must be non-negative
   ensures 0 <= Fib(n)  // the function result is non-negative
@@ -3506,7 +3506,7 @@ function Fib(n: int): int
 Type inference will never infer the type of a variable to be a
 subset type.  It will instead infer the type to be the base type
 of the subset type.  For example, the type of `x` in
-```
+```dafny
 forall x :: P(x)
 ```
 will be `int`, even if predicate `P` declares its argument to have
