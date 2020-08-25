@@ -3,44 +3,42 @@ The grammar of Dafny expressions follows a hierarchy that
 reflects the precedence of Dafny operators. The following
 table shows the Dafny operators and their precedence
 in order of increasing binding power.
-```
-+--------------------------+------------------------------------+
-| operator                 | description                        |
-+--------------------------+------------------------------------+
-| `;`                      | In LemmaCall;Expression            |
-+--------------------------+------------------------------------+
-| `<==>`, &hArr;           | equivalence (if and only if)       |
-+--------------------------+------------------------------------+
-| `==>`, &rArr;            | implication (implies)              |
-| `<==`, &lArr;            | reverse implication (follows from) |
-+--------------------------+------------------------------------+
-| `&&`, &and;              | conjunction (and)                  |
-| [\|\|]{.monospace}, &or; | disjunction (or)                   |
-+--------------------------+------------------------------------+
-| `==`                     | equality                           |
-| `==#[k]`                 | prefix equality (co-inductive)     |
-| `!=`                     | disequality                        |
-| `!=#[k]`                 | prefix disequality (co-inductive)  |
-| `<`                      | less than                          |
-| `<=`                     | at most                            |
-| `>=`                     | at least                           |
-| `>`                      | greater than                       |
-| `in`                     | collection membership              |
-| `!in`                    | collection non-membership          |
-| `!!`                     | disjointness                       |
-+--------------------------+------------------------------------+
-| `+`                      | addition (plus)                    |
-| `-`                      | subtraction (minus)                |
-+--------------------------+------------------------------------+
-| `*`                      | multiplication (times)             |
-| `/`                      | division (divided by)              |
-| `%`                      | modulus (mod)                      |
-+--------------------------+------------------------------------+
-| `-`                      | arithmetic negation (unary minus)  |
-| `!`, &not;               | logical negation                   |
-| Primary Expressions      |                                    |
-+--------------------------+------------------------------------+
-```
+
+ operator                 | description                        
+--------------------------|------------------------------------
+ `;`                      | In LemmaCall;Expression            
+--------------------------|------------------------------------
+ `<==>`, &hArr;           | equivalence (if and only if)       
+--------------------------|------------------------------------
+ `==>`, &rArr;            | implication (implies)              
+ `<==`, &lArr;            | reverse implication (follows from) 
+--------------------------|------------------------------------
+ `&&`, `&`                | conjunction (and)                  
+ `||`, `|`                | disjunction (or)                   
+--------------------------|------------------------------------
+ `==`                     | equality                           
+ `==#[k]`                 | prefix equality (co-inductive)    
+ `!=`                     | disequality                        
+ `!=#[k]`                 | prefix disequality (co-inductive)  
+ `<`                      | less than                          
+ `<=`                     | at most                            
+ `>=`                     | at least                           
+ `>`                      | greater than                       
+ `in`                     | collection membership              
+ `!in`                    | collection non-membership          
+ `!!`                     | disjointness                       
+--------------------------|------------------------------------
+ `+`                      | addition (plus)                    
+ `-`                      | subtraction (minus)                
+--------------------------|------------------------------------
+ `*`                      | multiplication (times)             
+ `/`                      | division (divided by)              
+ `%`                      | modulus (mod)                      
+--------------------------|------------------------------------
+ `-`                      | arithmetic negation (unary minus)  
+ `!`, &not;               | logical negation                   
+ Primary Expressions      |                                    
+
 We are calling the ``UnaryExpression``s that are neither
 arithmetic nor logical negation the _primary expressions_.
 They are the most tightly bound.
