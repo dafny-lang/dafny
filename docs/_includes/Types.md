@@ -7,7 +7,8 @@ function type) optionally followed by an arrow and a range type.
 
 ````grammar
 DomainType =
-  ( BoolType_ | CharType_ | NatType_ | IntType_ | RealType_ | ObjectType_
+  ( BoolType_ | CharType_ | IntType_ | RealType_ 
+  | OrdinalType_ | BitVectorType_ | ObjectType_
   | FiniteSetType_ | InfiniteSetType_ | MultisetType_
   | SequenceType_ | StringType_
   | FiniteMapType_ | InfiniteMapType_ | ArrayType_
@@ -29,13 +30,15 @@ TO BE WRITTEN - ORDINAL type
 The value types are those whose values do not lie in the program heap.
 These are:
 
-* The basic scalar types: `bool`, `char`, `nat`, `int`, `real`
+* The basic scalar types: `bool`, `char`, `int`, `real`, `ORDINAL`, bitvector types
 * The built-in collection types: `set`, `multiset`, `seq`, `string`, `map`, `imap`
 * Tuple Types
 * Inductive and co-inductive types
 
 Data items having value types are passed by value. Since they are not
 considered to occupy _memory_, framing expressions do not reference them.
+
+The `nat` type is a pre-defined [subset type](#sec-subset-types) of `int`.
 
 ## Reference Types
 Dafny offers a host of _reference types_.  These represent
@@ -44,13 +47,8 @@ access the members of an object, a reference to (that is, a _pointer_
 to or _object identity_ of) the object is _dereferenced_.
 
 The reference types are class types, traits and array types.
-
-The special value `null` is part of every reference
-type.[^fn-nullable]
-
-[^fn-nullable]: This will change in a future version of Dafny that
-    will support both nullable and (by default) non-null reference
-    types.
+Dafny supports both reference types that contain the special `null` value 
+(_nullable types_) and reference types that do not (_non-null types_).
 
 ## Named Types
 ````grammar
@@ -66,7 +64,7 @@ type declarations. They are also used to refer to type variables.
 NameSegmentForTypeName = Ident  [ GenericInstantiation ]
 ````
 A ``NameSegmentForTypeName`` is a type name optionally followed by a
-``GenericInstantiation`` which supplies type parameters to a generic
+``GenericInstantiation``, which supplies type parameters to a generic
 type, if needed. It is a special case of a ``NameSegment``
 (See Section [#sec-name-segment])
 that does not allow a ``HashCall``.
@@ -76,7 +74,8 @@ The following sections describe each of these kinds of types in more detail.
 # Basic types
 
 Dafny offers these basic types: `bool` for booleans, `char` for
-characters, `int` and `nat` for integers, and `real` for reals.
+characters, `int` and `nat` for integers, `real` for reals,
+`ORDINAL`, and bit-vector types..
 
 ## Booleans
 ````grammar
@@ -86,8 +85,7 @@ BoolType_ = "bool"
 There are two boolean values and each has a corresponding literal in
 the language:  `false` and `true`.
 
-In addition to equality (`==`) and disequality (`!=`), which are
-defined on all types, type `bool` supports the following operations:
+Type `bool` supports the following operations:
 
  operator           | description                        
 --------------------|------------------------------------
@@ -98,6 +96,9 @@ defined on all types, type `bool` supports the following operations:
 --------------------|------------------------------------
  `&&`               | conjunction (and)                  
  `||`               | disjunction (or)                   
+--------------------|------------------------------------
+ `==`               | equality                           
+ `!=`               | disequality                        
 --------------------|------------------------------------
  `!`                | negation (not)                     
 
@@ -143,14 +144,14 @@ A == B && B == C
 ```
 
 ### Conjunction and Disjunction
-Conjunction is associative and so is disjunction.  These operators are
+Conjunction and disjunction are associative.  These operators are
 _short circuiting (from left to right)_, meaning that their second
 argument is evaluated only if the evaluation of the first operand does
 not determine the value of the expression.  Logically speaking, the
 expression `A && B` is defined when `A` is defined and either `A`
 evaluates to `false` or `B` is defined.  When `A && B` is defined, its
 meaning is the same as the ordinary, symmetric mathematical
-conjunction &and;.  The same holds for `||` and &or;.
+conjunction `&`.  The same holds for `||` and `|`;.
 
 ### Implication and  Reverse Implication
 Implication is _right associative_ and is short-circuiting from left
@@ -168,7 +169,7 @@ C <== B <== A
 ```
 To illustrate the short-circuiting rules, note that the expression
 `a.Length` is defined for an array `a` only if `a` is not `null` (see
-Section [#sec-reference-types]), which means the following two
+Section [Reference Types](#sec-reference-types), which means the following two
 expressions are well-formed:
 ```dafny
 a != null ==> 0 <= a.Length
@@ -196,7 +197,7 @@ is well-formed, whereas
 is not.
 
 In addition, booleans support _logical quantifiers_ (forall and
-exists), described in section [#sec-quantifier-expression].
+exists), described in section [Quantifier Expressions](#sec-quantifier-expression).
 
 
 ## Numeric types
@@ -231,8 +232,9 @@ to improve human readability of the literals.  For example:
 ```dafny
 1_000_000        // easier to read than 1000000
 0_12_345_6789    // strange but legal formatting of 123456789
-0x8000_0000      // same as 0x80000000 -- hex digits are often placed in groups of 4
-0.000_000_000_1  // same as 0.0000000001 -- 1 \([&Aring;ngstr&ouml;m]{.comment-color}\)
+0x8000_0000      // same as 0x80000000 -- hex digits are 
+                 // often placed in groups of 4
+0.000_000_000_1  // same as 0.0000000001 -- 1 Angstrom
 ```
 
 In addition to equality and disequality, numeric types
@@ -295,13 +297,21 @@ the real value.  For example, the following properties hold, for any
 3.14.Floor == 3
 (-2.5).Floor == -3
 -2.5.Floor == -2
-real(r.Floor) <= r
+r.Floor as real <= r
 r <= r' ==> r.Floor <= r'.Floor
 ```
 Note in the third line that member access (like `.Floor`) binds
 stronger than unary minus.  The fourth line uses the conversion
 function `real` from `int` to `real`, as described in Section
 [#sec-numeric-conversion-operations].
+
+## Bit-vector types
+
+TO BE WRITTEN
+
+## Ordinal type
+
+TO BE WRITTEN
 
 ## Characters
 
@@ -314,7 +324,7 @@ enclosed in single quotes, as in `'D'`. Their form is described
 by the ``charToken`` nonterminal in the grammar.  To write a single quote as a
 character literal, it is necessary to use an _escape sequence_.
 Escape sequences can also be used to write other characters.  The
-supported escape sequences are as follows:
+supported escape sequences are the following:
 
  escape sequence    | meaning                                              
 --------------------|-------------------------------------------------------
@@ -331,7 +341,7 @@ The escape sequence for a double quote is redundant, because
 `'"'` and `'\"'` denote the same
 character---both forms are provided in order to support the same
 escape sequences as for string literals (Section [#sec-strings]).
-In the form `\u\(_xxxx_\)`, the `u` is always lower case, but the four
+In the form `\u_xxxx_`, the `u` is always lower case, but the four
 hexadecimal digits are case insensitive.
 
 Character values are ordered and can be compared using the standard
@@ -366,7 +376,7 @@ declared inside angle brackets and can stand for any type.
 It is sometimes necessary to restrict these type parameters so that
 they can only be instantiated by certain families of types.  As such,
 Dafny distinguishes types that support the equality operation
-not only in ghost contexts but also in compiled contexts.  To indicate
+in compiled contexts.  To indicate
 that a type parameter is restricted to such _equality supporting_
 types, the name of the type parameter takes the suffix
 "`(==)`".[^fn-type-mode]  For example,
@@ -382,6 +392,8 @@ contexts; the difference is only for non-ghost (that is, compiled)
 code.  Co-inductive datatypes, function types, as well as inductive
 datatypes with ghost parameters are examples of types that are not
 equality supporting.
+
+TO BE WRITTEN: There are now more such modes
 
 [^fn-type-mode]:  Being equality-supporting is just one of many
     _modes_ that one can imagine types in a rich type system to have.
@@ -3455,7 +3467,7 @@ If the compiler does specialize the run-time representation for
 `int32`, then these statements come at the expense of two,
 respectively three, run-time conversions.
 
-# Subset types
+# Subset types {#sec-subset-types}
 TO BE WRITTEN: add `-->` (subset of `~>`), `->` (subset of `-->`), non-null types subset of nullable types
 
 ````grammar
