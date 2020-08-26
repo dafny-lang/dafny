@@ -17,9 +17,9 @@ jobs:
       - name: Install brew
         run: /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh)"
       - name: Install pandoc
-	run: brew install pandoc
+        run: brew install pandoc
       - name: Install syntax highlighting
-        eun: gem install rouge
+        run: gem install rouge
       - name: Install MacTex
         run: brew install mactex
       - name: Build DafnyRef.pdf
