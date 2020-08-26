@@ -9,7 +9,7 @@ on:
 jobs:
   build:
 
-    runs-on: ubuntu-latest macos-latest
+    runs-on: ubuntu-latest 
 
     steps:
     - name: Download Ubuntu 16.04 release
@@ -36,7 +36,7 @@ jobs:
     - name: Versions
       run: |
         ./z3/bin/z3 -version
-        dafny/Dafny.exe -version
+        dafny/Dafny.exe  -help | grep Dafny
     - name: Check
       run: dafny/Dafny.exe /compile:0 a.dfy
     - name: Check

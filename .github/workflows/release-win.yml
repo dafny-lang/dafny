@@ -29,7 +29,7 @@ jobs:
     - name: Versions
       run: |
         ./z3/bin/z3 -version
-        dafny/Dafny.exe -version
+        dafny/Dafny.exe -help | head -2
     - name: Check
       run: dafny/Dafny.exe /compile:0 a.dfy 
     - name: Check bad
