@@ -13,7 +13,7 @@ jobs:
 
     steps:
     - name: Install brew
-      run: iecho SKIPPING /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh)"
+      run: echo SKIPPING /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh)"
     - name: Install dafny, mono, z3
       run: brew install dafny || echo DONE
     - name: Get Z3

@@ -63,10 +63,10 @@ jobs:
         eval "$(/usr/libexec/path_helper)"
     - name: CHeck install
       run: |
-        which latex
-        which xelatex
-        find / -name latex
-        find / -name xelatex
+        which latex || echo NOT FOUND latex
+        which xelatex || echo NOT FOUND xelatex
+        find / -name latex || echo NOT FOUND latex
+        find / -name xelatex || echo NOT FOUND xelatex
     - name: Build DafnyRef.pdf
       run: make -C dafny/docs/DafnyReferenceManual 
     - name: Check

@@ -9,7 +9,11 @@ on:
 jobs:
   build:
 
-    runs-on: ubuntu-latest ubuntu-16.04 ubuntu-14.04 macos-latest
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ ubuntu-latest, ubuntu-16.04, macos-latest ]
+    # There is no hosted environment for Unbuntu 14.04 or for debian
 
     steps:
     - name: OS
@@ -27,7 +31,7 @@ jobs:
         wget -q https://github.com/Z3Prover/z3/releases/download/z3-4.8.4/z3-4.8.4.d6df51951f4c-x64-ubuntu-14.04.zip
         echo Fetched Ubuntu 14.04 dafny, z3
     - name: Download Mac releases
-      if: contains('macos', matrix.os)
+      if: startsWith(matrix.os, 'macos')
       run: |
         wget -q https://github.com/dafny-lang/dafny/releases/download/v3.0.0-pre-release-1/dafny-3.0.0-pre-1-x64-osx-10.14.1.zip
         wget -q https://github.com/Z3Prover/z3/releases/download/z3-4.8.4/z3-4.8.4.d6df51951f4c-x64-osx-10.14.1.zip
@@ -45,6 +49,7 @@ jobs:
       run: |
         echo "method Main() { assert true; print 42, '\n'; }" > a.dfy
         echo "method m() { assert false; }" > b.dfy
+        echo "42" > expect.txt
     - name: Versions
       run: |
         ./z3/bin/z3 -version

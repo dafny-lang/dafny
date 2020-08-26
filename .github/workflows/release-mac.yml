@@ -50,10 +50,10 @@ jobs:
     - name: Check bad
       run: dafny/dafny /compile:0 b.dfy /z3exe:z3/bin/z3 || echo EXPECTED FAILURE
     - name: Check C# compile
-      run: dafny/dafny /compile:3 /compileTarget:cs a.dfy | diff expect.txt
+      run: dafny/dafny /compile:3 /compileTarget:cs a.dfy | diff - expect.txt
     - name: Check Go compile
-      run: dafny/dafny /compile:3 /compileTarget:go a.dfy | diff expect.txt
+      run: dafny/dafny /compile:3 /compileTarget:go a.dfy | diff - expect.txt
     - name: Check Javascript compile
-      run: dafny/dafny /compile:3 /compileTarget:js a.dfy | diff expect.txt
+      run: dafny/dafny /compile:3 /compileTarget:js a.dfy | diff - expect.txt
     - name: Check Java compile
-      run: dafny/dafny /compile:3 /compileTarget:java a.dfy | diff expect.txt
+      run: dafny/dafny /compile:3 /compileTarget:java a.dfy | diff - expect.txt
