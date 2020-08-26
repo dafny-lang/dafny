@@ -77,7 +77,7 @@ jobs:
       run: |
         npm install bignumber.js
         dafny/dafny /compile:3 /spillTargetCode:3 /compileTarget:js a.dfy
-        node.js a.js dafny/Binaries/DafnyRuntime.js | diff - expect.txt
+        node a.js dafny/Binaries/DafnyRuntime.js | diff - expect.txt
     - name: Check Java compile
       run: |
         ls -la dafny
