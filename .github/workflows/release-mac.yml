@@ -22,7 +22,6 @@ jobs:
         ls -la dafny/Dafny.exe
         chmod +x dafny/Dafny.exe
     - name: Get Z3
-      if: matrix.os != 'windows-latest'
       run: |
         wget -q https://github.com/Z3Prover/z3/releases/download/z3-4.8.4/z3-4.8.4.d6df51951f4c-x64-osx-10.14.1.zip
         unzip z3*.zip && rm z3*.zip
@@ -37,9 +36,7 @@ jobs:
     - name: Versions
       run: |
         ./z3/bin/z3 -version
-        mono dafny/Dafny.exe -version || echo OK
-        dafny/Dafny.exe -version || echo OK
-        (dafny/Dafny.exe -help | head -2 ) || echo OK
+        dafny/dafny -version || echo OK
         (dafny/dafny -help | head -2) || echo OK
     - name: Check
       run: dafny/dafny /compile:0 a.dfy
