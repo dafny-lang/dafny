@@ -33,6 +33,7 @@ jobs:
       run: |
         echo "method Main() { assert true; print 42, '\n'; }" > a.dfy
         echo "method m() { assert false; }" > b.dfy
+        echo "42" > expect.txt
     - name: Versions
       run: |
         ./z3/bin/z3 -version
@@ -41,18 +42,18 @@ jobs:
         (dafny/Dafny.exe -help | head -2 ) || echo OK
         (dafny/dafny -help | head -2) || echo OK
     - name: Check
-      run: dafny/Dafny.exe /compile:0 a.dfy
+      run: dafny/dafny /compile:0 a.dfy
     - name: Check bad
-      run: dafny/Dafny.exe /compile:0 b.dfy || echo EXPECTED FAILURE
+      run: dafny/dafny /compile:0 b.dfy || echo EXPECTED FAILURE
     - name: Check
-      run: dafny/Dafny.exe /compile:0 a.dfy /z3exe:z3/bin/z3
+      run: dafny/dafny /compile:0 a.dfy /z3exe:z3/bin/z3
     - name: Check bad
-      run: dafny/Dafny.exe /compile:0 b.dfy /z3exe:z3/bin/z3 || echo EXPECTED FAILURE
+      run: dafny/dafny /compile:0 b.dfy /z3exe:z3/bin/z3 || echo EXPECTED FAILURE
     - name: Check C# compile
-      run: dafny/dafny /compile:3 /compileTarget:cs a.dfy
+      run: dafny/dafny /compile:3 /compileTarget:cs a.dfy | diff expect.txt
     - name: Check Go compile
-      run: dafny/dafny /compile:3 /compileTarget:go a.dfy
+      run: dafny/dafny /compile:3 /compileTarget:go a.dfy | diff expect.txt
     - name: Check Javascript compile
-      run: dafny/dafny /compile:3 /compileTarget:js a.dfy
+      run: dafny/dafny /compile:3 /compileTarget:js a.dfy | diff expect.txt
     - name: Check Java compile
-      run: dafny/dafny /compile:3 /compileTarget:java a.dfy
+      run: dafny/dafny /compile:3 /compileTarget:java a.dfy | diff expect.txt

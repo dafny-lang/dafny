@@ -58,7 +58,9 @@ jobs:
     - name: Install syntax highlighting
       run: echo SKIPPING gem install rouge
     - name: Install MacTex
-      run: brew cask install mactex
+      run: |
+        brew cask install mactex
+        eval "$(/usr/libexec/path_helper)"
     - name: CHeck install
       run: |
         which latex

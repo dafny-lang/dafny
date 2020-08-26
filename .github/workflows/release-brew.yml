@@ -13,7 +13,7 @@ jobs:
 
     steps:
     - name: Install brew
-      run: /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh)"
+      run: iecho SKIPPING /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh)"
     - name: Install dafny, mono, z3
       run: brew install dafny || echo DONE
     - name: Get Z3
@@ -31,10 +31,11 @@ jobs:
     - name: Versions
       run: |
         ./z3/bin/z3 -version
+        echo TRYING dafny /help
         dafny /help | head -2
+        echo TRYING dafny /version
         dafny /version || echo OK
         which dafny
-        pwd
     - name: Check
       run: dafny /compile:0 a.dfy
     - name: Check bad
