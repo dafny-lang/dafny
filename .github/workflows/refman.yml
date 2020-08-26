@@ -9,7 +9,7 @@ on:
 jobs:
   build:
 
-    runs-on: macos-latest
+    runs-on: linux-latest
 
     steps:
     - name: Setup Nuget
