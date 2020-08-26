@@ -1,6 +1,6 @@
 # Modules
 
-````
+````grammar
 SubModuleDecl = ( ModuleDefinition_ | ModuleImport_ )
 ````
 
@@ -13,7 +13,7 @@ possible to abstract over modules to separate an implementation from an
 interface.
 
 ## Declaring New Modules
-````
+````grammar
 ModuleDefinition_ = "module" { Attribute } ModuleName
         [ [  "exclusively" ] "refines" QualifiedModuleName ]
         "{" { TopDecl } "}"
@@ -25,7 +25,7 @@ A new module is declared with the `module` keyword, followed by the name
 of the new module, and a pair of curly braces ({}) enclosing the body
 of the module:
 
-```
+```dafny
 module Mod {
   ...
 }
@@ -34,7 +34,7 @@ module Mod {
 A module body can consist of anything that you could put at the top
 level. This includes classes, datatypes, types, methods, functions, etc.
 
-```
+```dafny
 module Mod {
   class C {
     var f: int
@@ -49,7 +49,7 @@ module Mod {
 
 You can also put a module inside another, in a nested fashion:
 
-```
+```dafny
 module Mod {
   module Helpers {
     class C {
@@ -63,7 +63,7 @@ module Mod {
 Then you can refer to the members of the `Helpers` module within the
 `Mod` module by prefixing them with "Helpers.". For example:
 
-```
+```dafny
 module Mod {
   module Helpers { ... }
   method m() {
@@ -79,7 +79,7 @@ classes, with just the module name prefixing them. They are also
 available in the methods and functions of the classes in the same
 module.
 
-```
+```dafny
 module Mod {
   module Helpers {
     function method addOne(n: nat): nat {
@@ -93,12 +93,14 @@ module Mod {
 }
 ```
 
+TO BE WRITTEN - standalone declaration of nested modules
+
 Note that everything declared at the top-level 
 (in all the files constituting the program) is implicitly part
 of a single implicit unnamed global module.
 
 ## Importing Modules
-````
+````grammar
 ModuleImport_ = "import" ["opened" ] ModuleName
     [ "=" QualifiedModuleName
     | "as" QualifiedModuleName ["default" QualifiedModuleName ]
@@ -124,7 +126,7 @@ the import declaration; it does not create a global alias. For
 example, if `Helpers` was defined outside of `Mod`, then we could import
 it:
 
-```
+```dafny
 module Helpers {
   ...
 }
@@ -161,12 +163,19 @@ Import statements may occur at the top-level of a program
 There they serve simply as a way to give a new name, perhaps a 
 shorthand name, to a module. For example,
 
-```
+```dafny
 module MyModule { ... } // declares module MyModule
 import MyModule  // error: cannot add a moduled named MyModule
                  // because there already is one
 import M = MyModule // OK. M and MyModule are equivalent
 ```
+
+## Export Sets
+
+TO BE WRITTEN -- including provides and reveals lists
+TO BE WRITTEN -- opened imports are not exported
+TO BE WRITTEN -- module facades
+
 
 ## Opening Modules
 
@@ -177,7 +186,7 @@ which causes all of its members to be available without adding the
 module name. The `opened` keyword, if present, must immediately follow `import`.
 For example, we could write the previous example as:
 
-```
+```dafny
 module Mod {
   import opened Helpers
   method m() {
@@ -193,7 +202,7 @@ longer be available under that name. When modules are opened, the
 original name binding is still present however, so you can always use
 the name that was bound to get to anything that is hidden.
 
-```
+```dafny
 module Mod {
   import opened Helpers
   function addOne(n: nat): nat {
@@ -215,7 +224,7 @@ with common names. The `opened` keyword can be used with any kind of
 `import` declaration, including the module abstraction form.
 
 An `import opened` may occur at the top-level as well. For example,
-```
+```dafny
 module MyModule { ... } // declares MyModule
 import opened MyModule // does not declare a new module, but does make
                        // all names in MyModule available in the current
@@ -242,7 +251,7 @@ definitions, classes with bodyless methods, or otherwise be unsuitable
 to use directly.  Because of the way refinement is defined, any
 refinement of `B` can be used safely. For example, if we start with:
 
-```
+```dafny
 module Interface {
   function method addSome(n: nat): nat
     ensures addSome(n) > n
@@ -260,7 +269,7 @@ exactly one. The following module has this behavior. Further, the
 postcondition is stronger, so this is actually a refinement of the
 Interface module.
 
-```
+```dafny
 module Implementation {
   function method addSome(n: nat): nat
     ensures addSome(n) == n + 1
@@ -273,7 +282,7 @@ module Implementation {
 We can then substitute `Implementation` for `A` in a new module, by
 declaring a refinement of `Mod` which defines  `A` to be `Implementation`.
 
-```
+```dafny
 module Mod2 refines Mod {
   import A = Implementation
   ...
@@ -283,7 +292,7 @@ module Mod2 refines Mod {
 You can also give an implementation directly, without introducing a
 refinement, by giving a default to the abstract import:
 
-```
+```dafny
 module Interface {
   function method addSome(n: nat): nat
     ensures addSome(n) > n
@@ -329,7 +338,7 @@ doesn't mean the modules have to be given in that order. Dafny will
 figure out that order for you, assuming you haven't made any circular
 references. For example, this is pretty clearly meaningless:
 
-```
+```dafny
 import A = B
 import B = A
 ```
@@ -337,7 +346,7 @@ import B = A
 You can have import statements at the toplevel, and you can import
 modules defined at the same level:
 
-```
+```dafny
 import A = B
 method m() {
   A.whatever();
@@ -356,7 +365,7 @@ module structures. Also, the imports and submodules are always
 considered to be first, even at the toplevel. This means that the
 following is not well formed:
 
-```
+```dafny
 method doIt() { }
 module M {
   method m() {

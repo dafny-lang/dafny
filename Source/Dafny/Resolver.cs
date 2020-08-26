@@ -271,14 +271,14 @@ namespace Microsoft.Dafny
       // a family of types rolled up in one ValuetypeDecl. Therefore, we use the special SelfType as the result type.
       List<Formal> formals = new List<Formal> { new Formal(Token.NoToken, "w", Type.Nat(), true, false, false) };
       var rotateLeft = new SpecialFunction(Token.NoToken, "RotateLeft", prog.BuiltIns.SystemModule, false, false, false, new List<TypeParameter>(), formals, new SelfType(),
-        new List<MaybeFreeExpression>(), new List<FrameExpression>(), new List<MaybeFreeExpression>(), new Specification<Expression>(new List<Expression>(), null), null, null, null);
+        new List<AttributedExpression>(), new List<FrameExpression>(), new List<AttributedExpression>(), new Specification<Expression>(new List<Expression>(), null), null, null, null);
       rotateLeft.EnclosingClass = valuetypeDecls[(int)ValuetypeVariety.Bitvector];
       rotateLeft.AddVisibilityScope(prog.BuiltIns.SystemModule.VisibilityScope, false);
       valuetypeDecls[(int)ValuetypeVariety.Bitvector].Members.Add(rotateLeft.Name, rotateLeft);
 
       formals = new List<Formal> { new Formal(Token.NoToken, "w", Type.Nat(), true, false, false) };
       var rotateRight = new SpecialFunction(Token.NoToken, "RotateRight", prog.BuiltIns.SystemModule, false, false, false, new List<TypeParameter>(), formals, new SelfType(),
-        new List<MaybeFreeExpression>(), new List<FrameExpression>(), new List<MaybeFreeExpression>(), new Specification<Expression>(new List<Expression>(), null), null, null, null);
+        new List<AttributedExpression>(), new List<FrameExpression>(), new List<AttributedExpression>(), new Specification<Expression>(new List<Expression>(), null), null, null, null);
       rotateRight.EnclosingClass = valuetypeDecls[(int)ValuetypeVariety.Bitvector];
       rotateRight.AddVisibilityScope(prog.BuiltIns.SystemModule.VisibilityScope, false);
       valuetypeDecls[(int)ValuetypeVariety.Bitvector].Members.Add(rotateRight.Name, rotateRight);
@@ -1436,7 +1436,7 @@ namespace Microsoft.Dafny
           var subbindings = bindings.SubBindings(d.Name);
           ProcessDependencies(d, subbindings ?? bindings, dependencies);
           if (!m.IsAbstract && d is ModuleFacadeDecl && ((ModuleFacadeDecl) d).Root != null) {
-            reporter.Error(MessageSource.Resolver, d.tok, 
+            reporter.Error(MessageSource.Resolver, d.tok,
               "The abstract import named {0} (using :) may only be used in an abstract module declaration",
               d.Name);
           }
@@ -1771,25 +1771,25 @@ namespace Microsoft.Dafny
           // iterator type) does.
           // --- here comes the constructor
           var init = new Constructor(iter.tok, "_ctor", new List<TypeParameter>(), iter.Ins,
-            new List<MaybeFreeExpression>(),
+            new List<AttributedExpression>(),
             new Specification<FrameExpression>(new List<FrameExpression>(), null),
-            new List<MaybeFreeExpression>(),
+            new List<AttributedExpression>(),
             new Specification<Expression>(new List<Expression>(), null),
             null, null, null);
           // --- here comes predicate Valid()
           var valid = new Predicate(iter.tok, "Valid", false, true, true, new List<TypeParameter>(),
             new List<Formal>(),
-            new List<MaybeFreeExpression>(),
+            new List<AttributedExpression>(),
             new List<FrameExpression>(),
-            new List<MaybeFreeExpression>(),
+            new List<AttributedExpression>(),
             new Specification<Expression>(new List<Expression>(), null),
             null, Predicate.BodyOriginKind.OriginalOrInherited, null, null);
           // --- here comes method MoveNext
           var moveNext = new Method(iter.tok, "MoveNext", false, false, new List<TypeParameter>(),
             new List<Formal>(), new List<Formal>() { new Formal(iter.tok, "more", Type.Bool, false, false) },
-            new List<MaybeFreeExpression>(),
+            new List<AttributedExpression>(),
             new Specification<FrameExpression>(new List<FrameExpression>(), null),
-            new List<MaybeFreeExpression>(),
+            new List<AttributedExpression>(),
             new Specification<Expression>(new List<Expression>(), null),
             null, null, null);
           // add these implicit members to the class
@@ -1980,9 +1980,9 @@ namespace Microsoft.Dafny
               // create prefix predicate
               cop.PrefixPredicate = new PrefixPredicate(cop.tok, extraName, cop.HasStaticKeyword, cop.IsProtected,
                 tyvars, k, formals,
-                cop.Req.ConvertAll(cloner.CloneMayBeFreeExpr),
+                cop.Req.ConvertAll(cloner.CloneAttributedExpr),
                 cop.Reads.ConvertAll(cloner.CloneFrameExpr),
-                cop.Ens.ConvertAll(cloner.CloneMayBeFreeExpr),
+                cop.Ens.ConvertAll(cloner.CloneAttributedExpr),
                 new Specification<Expression>(new List<Expression>() { new IdentifierExpr(cop.tok, k.Name) }, null),
                 cop.Body,
                 null,
@@ -2001,8 +2001,8 @@ namespace Microsoft.Dafny
               // Create prefix lemma.  Note that the body is not cloned, but simply shared.
               // For a colemma, the postconditions are filled in after the colemma's postconditions have been resolved.
               // For an inductive lemma, the preconditions are filled in after the inductive lemma's preconditions have been resolved.
-              var req = com is CoLemma ? com.Req.ConvertAll(cloner.CloneMayBeFreeExpr) : new List<MaybeFreeExpression>();
-              var ens = com is CoLemma ? new List<MaybeFreeExpression>() : com.Ens.ConvertAll(cloner.CloneMayBeFreeExpr);
+              var req = com is CoLemma ? com.Req.ConvertAll(cloner.CloneAttributedExpr) : new List<AttributedExpression>();
+              var ens = com is CoLemma ? new List<AttributedExpression>() : com.Ens.ConvertAll(cloner.CloneAttributedExpr);
               com.PrefixLemma = new PrefixLemma(com.tok, extraName, com.HasStaticKeyword,
                 com.TypeArgs.ConvertAll(cloner.CloneTypeParam), k, formals, com.Outs.ConvertAll(cloner.CloneFormal),
                 req, cloner.CloneSpecFrameExpr(com.Mod), ens,
@@ -2550,7 +2550,7 @@ namespace Microsoft.Dafny
               CollectFriendlyCallsInFixpointLemmaSpecification(p.E, true, coConclusions, true, com);
               var subst = new FixpointLemmaSpecificationSubstituter(coConclusions, new IdentifierExpr(k.tok, k.Name), this.reporter, true);
               var post = subst.CloneExpr(p.E);
-              prefixLemma.Ens.Add(new MaybeFreeExpression(post, p.IsFree));
+              prefixLemma.Ens.Add(new AttributedExpression(post));
               foreach (var e in coConclusions) {
                 var fce = e as FunctionCallExpr;
                 if (fce != null) {  // the other possibility is that "e" is a BinaryExpr
@@ -2574,7 +2574,7 @@ namespace Microsoft.Dafny
               CollectFriendlyCallsInFixpointLemmaSpecification(p.E, true, antecedents, false, com);
               var subst = new FixpointLemmaSpecificationSubstituter(antecedents, new IdentifierExpr(k.tok, k.Name), this.reporter, false);
               var pre = subst.CloneExpr(p.E);
-              prefixLemma.Req.Add(new MaybeFreeExpression(pre, p.IsFree));
+              prefixLemma.Req.Add(new AttributedExpression(pre));
               foreach (var e in antecedents) {
                 var fce = (FunctionCallExpr)e;  // we expect "antecedents" to contain only FunctionCallExpr's
                 InductivePredicate predicate = (InductivePredicate)fce.Function;
@@ -2647,7 +2647,7 @@ namespace Microsoft.Dafny
 #endif
               attrs = new Attributes("auto_generated", new List<Expression>(), attrs);
               var forallBody = new BlockStmt(com.tok, com.tok, new List<Statement>() { recursiveCall });
-              var forallStmt = new ForallStmt(com.tok, com.tok, bvs, attrs, range, new List<MaybeFreeExpression>(), forallBody);
+              var forallStmt = new ForallStmt(com.tok, com.tok, bvs, attrs, range, new List<AttributedExpression>(), forallBody);
               els = new BlockStmt(com.BodyStartTok, mainBody.EndTok, new List<Statement>() { forallStmt });
             } else {
               kk = new IdentifierExpr(k.tok, k.Name);
@@ -4175,7 +4175,7 @@ namespace Microsoft.Dafny
               var value = xcWithExprs.Exprs[1];
               if (t is SeqType) {
                 var s = (SeqType)t;
-                resolver.ConstrainSubtypeRelation(Type.Int, index.Type, index, "sequence update requires integer index (got {0})", index.Type);
+                resolver.ConstrainToIntegerType(index, true, "sequence update requires integer- or bitvector-based index (got {0})");
                 resolver.ConstrainSubtypeRelation(s.Arg, value.Type, value, "sequence update requires the value to have the element type of the sequence (got {0})", value.Type);
               } else if (t is MapType) {
                 var s = (MapType)t;
@@ -4189,7 +4189,7 @@ namespace Microsoft.Dafny
               } else if (t is MultiSetType) {
                 var s = (MultiSetType)t;
                 resolver.ConstrainSubtypeRelation(s.Arg, index.Type, index, "multiset update requires domain element to be of type {0} (got {1})", s.Arg, index.Type);
-                resolver.ConstrainToIntegerType(value, "multiset update requires integer-based numeric value (got {0})");
+                resolver.ConstrainToIntegerType(value, false, "multiset update requires integer-based numeric value (got {0})");
               } else {
                 satisfied = false;
                 break;
@@ -4200,10 +4200,10 @@ namespace Microsoft.Dafny
           case "ContainerIndex":
             // The semantics of this XConstraint is that *if* the head is seq/array/map/multiset, then its element/domain type must a supertype of "u"
             Type indexType;
-            if (t is SeqType) {
-              indexType = resolver.NewIntegerBasedProxy(tok);
-            } else if (t.IsArrayType) {
-              indexType = resolver.NewIntegerBasedProxy(tok);
+            if (t is SeqType || t.IsArrayType) {
+              resolver.ConstrainToIntegerType(errorMsg.Tok, Types[1], true, errorMsg);
+              convertedIntoOtherTypeConstraints = true;
+              return true;
             } else if (t is MapType) {
               indexType = ((MapType)t).Domain;
             } else if (t is MultiSetType) {
@@ -5574,7 +5574,7 @@ namespace Microsoft.Dafny
       }
     }
 
-    private void CheckTypeInference_MaybeFreeExpression(MaybeFreeExpression mfe, ICodeContext codeContext) {
+    private void CheckTypeInference_MaybeFreeExpression(AttributedExpression mfe, ICodeContext codeContext) {
       Contract.Requires(mfe != null);
       Contract.Requires(codeContext != null);
       foreach (var e in Attributes.SubExpressions(mfe.Attributes)) {
@@ -8692,7 +8692,7 @@ namespace Microsoft.Dafny
       if (Attributes.ContainsBool(f.Attributes, "warnShadowing", ref warnShadowing)) {
         DafnyOptions.O.WarnShadowing = warnShadowing;  // set the value according to the attribute
       }
-      foreach (MaybeFreeExpression e in f.Req) {
+      foreach (AttributedExpression e in f.Req) {
         Expression r = e.E;
         ResolveExpression(r, new ResolveOpts(f, f is TwoStateFunction));
         Contract.Assert(r.Type != null);  // follows from postcondition of ResolveExpression
@@ -8701,7 +8701,7 @@ namespace Microsoft.Dafny
       foreach (FrameExpression fr in f.Reads) {
         ResolveFrameExpression(fr, FrameExpressionUse.Reads, f);
       }
-      foreach (MaybeFreeExpression e in f.Ens) {
+      foreach (AttributedExpression e in f.Ens) {
         Expression r = e.E;
         if (f.Result != null) {
           scope.PushMarker();
@@ -8833,7 +8833,7 @@ namespace Microsoft.Dafny
         }
 
         // Start resolving specification...
-        foreach (MaybeFreeExpression e in m.Req) {
+        foreach (AttributedExpression e in m.Req) {
           ResolveAttributes(e.Attributes, null, new ResolveOpts(m, m is TwoStateLemma));
           ResolveExpression(e.E, new ResolveOpts(m, m is TwoStateLemma));
           Contract.Assert(e.E.Type != null);  // follows from postcondition of ResolveExpression
@@ -8876,7 +8876,7 @@ namespace Microsoft.Dafny
         }
 
         // ... continue resolving specification
-        foreach (MaybeFreeExpression e in m.Ens) {
+        foreach (AttributedExpression e in m.Ens) {
           ResolveAttributes(e.Attributes, null, new ResolveOpts(m, true));
           ResolveExpression(e.E, new ResolveOpts(m, true));
           Contract.Assert(e.E.Type != null);  // follows from postcondition of ResolveExpression
@@ -9000,7 +9000,7 @@ namespace Microsoft.Dafny
       foreach (FrameExpression fe in iter.Modifies.Expressions) {
         ResolveFrameExpression(fe, FrameExpressionUse.Modifies, iter);
       }
-      foreach (MaybeFreeExpression e in iter.Requires) {
+      foreach (AttributedExpression e in iter.Requires) {
         ResolveExpression(e.E, new ResolveOpts(iter, false));
         Contract.Assert(e.E.Type != null);  // follows from postcondition of ResolveExpression
         ConstrainTypeExprBool(e.E, "Precondition must be a boolean (got {0})");
@@ -9014,17 +9014,17 @@ namespace Microsoft.Dafny
       currentClass = iter;
       Contract.Assert(scope.AllowInstance);
 
-      foreach (MaybeFreeExpression e in iter.YieldRequires) {
+      foreach (AttributedExpression e in iter.YieldRequires) {
         ResolveExpression(e.E, new ResolveOpts(iter, false));
         Contract.Assert(e.E.Type != null);  // follows from postcondition of ResolveExpression
         ConstrainTypeExprBool(e.E, "Yield precondition must be a boolean (got {0})");
       }
-      foreach (MaybeFreeExpression e in iter.YieldEnsures) {
+      foreach (AttributedExpression e in iter.YieldEnsures) {
         ResolveExpression(e.E, new ResolveOpts(iter, true));
         Contract.Assert(e.E.Type != null);  // follows from postcondition of ResolveExpression
         ConstrainTypeExprBool(e.E, "Yield postcondition must be a boolean (got {0})");
       }
-      foreach (MaybeFreeExpression e in iter.Ensures) {
+      foreach (AttributedExpression e in iter.Ensures) {
         ResolveExpression(e.E, new ResolveOpts(iter, true));
         Contract.Assert(e.E.Type != null);  // follows from postcondition of ResolveExpression
         ConstrainTypeExprBool(e.E, "Postcondition must be a boolean (got {0})");
@@ -9073,17 +9073,17 @@ namespace Microsoft.Dafny
       var ens = iter.Member_Init.Ens;
       foreach (var p in iter.Ins) {
         // ensures this.x == x;
-        ens.Add(new MaybeFreeExpression(new BinaryExpr(p.tok, BinaryExpr.Opcode.Eq,
+        ens.Add(new AttributedExpression(new BinaryExpr(p.tok, BinaryExpr.Opcode.Eq,
           new MemberSelectExpr(p.tok, new ThisExpr(p.tok), p.Name), new IdentifierExpr(p.tok, p.Name))));
       }
       foreach (var p in iter.OutsHistoryFields) {
         // ensures this.ys == [];
-        ens.Add(new MaybeFreeExpression(new BinaryExpr(p.tok, BinaryExpr.Opcode.Eq,
+        ens.Add(new AttributedExpression(new BinaryExpr(p.tok, BinaryExpr.Opcode.Eq,
           new MemberSelectExpr(p.tok, new ThisExpr(p.tok), p.Name), new SeqDisplayExpr(p.tok, new List<Expression>()))));
       }
       // ensures this.Valid();
       var valid_call = new FunctionCallExpr(iter.tok, "Valid", new ThisExpr(iter.tok), iter.tok, new List<Expression>());
-      ens.Add(new MaybeFreeExpression(valid_call));
+      ens.Add(new AttributedExpression(valid_call));
       // ensures this._reads == old(ReadsClause);
       var modSetSingletons = new List<Expression>();
       Expression frameSet = new SetDisplayExpr(iter.tok, true, modSetSingletons);
@@ -9096,7 +9096,7 @@ namespace Microsoft.Dafny
           frameSet = new BinaryExpr(fr.tok, BinaryExpr.Opcode.Add, frameSet, fr.E);
         }
       }
-      ens.Add(new MaybeFreeExpression(new BinaryExpr(iter.tok, BinaryExpr.Opcode.Eq,
+      ens.Add(new AttributedExpression(new BinaryExpr(iter.tok, BinaryExpr.Opcode.Eq,
         new MemberSelectExpr(iter.tok, new ThisExpr(iter.tok), "_reads"),
         new OldExpr(iter.tok, frameSet))));
       // ensures this._modifies == old(ModifiesClause);
@@ -9111,18 +9111,18 @@ namespace Microsoft.Dafny
           frameSet = new BinaryExpr(fr.tok, BinaryExpr.Opcode.Add, frameSet, fr.E);
         }
       }
-      ens.Add(new MaybeFreeExpression(new BinaryExpr(iter.tok, BinaryExpr.Opcode.Eq,
+      ens.Add(new AttributedExpression(new BinaryExpr(iter.tok, BinaryExpr.Opcode.Eq,
         new MemberSelectExpr(iter.tok, new ThisExpr(iter.tok), "_modifies"),
         new OldExpr(iter.tok, frameSet))));
       // ensures this._new == {};
-      ens.Add(new MaybeFreeExpression(new BinaryExpr(iter.tok, BinaryExpr.Opcode.Eq,
+      ens.Add(new AttributedExpression(new BinaryExpr(iter.tok, BinaryExpr.Opcode.Eq,
         new MemberSelectExpr(iter.tok, new ThisExpr(iter.tok), "_new"),
         new SetDisplayExpr(iter.tok, true, new List<Expression>()))));
       // ensures this._decreases0 == old(DecreasesClause[0]) && ...;
       Contract.Assert(iter.Decreases.Expressions.Count == iter.DecreasesFields.Count);
       for (int i = 0; i < iter.Decreases.Expressions.Count; i++) {
         var p = iter.Decreases.Expressions[i];
-        ens.Add(new MaybeFreeExpression(new BinaryExpr(iter.tok, BinaryExpr.Opcode.Eq,
+        ens.Add(new AttributedExpression(new BinaryExpr(iter.tok, BinaryExpr.Opcode.Eq,
           new MemberSelectExpr(iter.tok, new ThisExpr(iter.tok), iter.DecreasesFields[i].Name),
           new OldExpr(iter.tok, p))));
       }
@@ -9137,7 +9137,7 @@ namespace Microsoft.Dafny
       // requires this.Valid();
       var req = iter.Member_MoveNext.Req;
       valid_call = new FunctionCallExpr(iter.tok, "Valid", new ThisExpr(iter.tok), iter.tok, new List<Expression>());
-      req.Add(new MaybeFreeExpression(valid_call));
+      req.Add(new AttributedExpression(valid_call));
       // requires YieldRequires;
       req.AddRange(iter.YieldRequires);
       // modifies this, this._modifies, this._new;
@@ -9147,17 +9147,17 @@ namespace Microsoft.Dafny
       mod.Add(new FrameExpression(iter.tok, new MemberSelectExpr(iter.tok, new ThisExpr(iter.tok), "_new"), null));
       // ensures fresh(_new - old(_new));
       ens = iter.Member_MoveNext.Ens;
-      ens.Add(new MaybeFreeExpression(new UnaryOpExpr(iter.tok, UnaryOpExpr.Opcode.Fresh,
+      ens.Add(new AttributedExpression(new UnaryOpExpr(iter.tok, UnaryOpExpr.Opcode.Fresh,
         new BinaryExpr(iter.tok, BinaryExpr.Opcode.Sub,
           new MemberSelectExpr(iter.tok, new ThisExpr(iter.tok), "_new"),
           new OldExpr(iter.tok, new MemberSelectExpr(iter.tok, new ThisExpr(iter.tok), "_new"))))));
       // ensures null !in _new
-      ens.Add(new MaybeFreeExpression(new BinaryExpr(iter.tok, BinaryExpr.Opcode.NotIn,
+      ens.Add(new AttributedExpression(new BinaryExpr(iter.tok, BinaryExpr.Opcode.NotIn,
         new LiteralExpr(iter.tok),
         new MemberSelectExpr(iter.tok, new ThisExpr(iter.tok), "_new"))));
       // ensures more ==> this.Valid();
       valid_call = new FunctionCallExpr(iter.tok, "Valid", new ThisExpr(iter.tok), iter.tok, new List<Expression>());
-      ens.Add(new MaybeFreeExpression(new BinaryExpr(iter.tok, BinaryExpr.Opcode.Imp,
+      ens.Add(new AttributedExpression(new BinaryExpr(iter.tok, BinaryExpr.Opcode.Imp,
         new IdentifierExpr(iter.tok, "more"),
         valid_call)));
       // ensures this.ys == if more then old(this.ys) + [this.y] else old(this.ys);
@@ -9171,20 +9171,20 @@ namespace Microsoft.Dafny
             new SeqDisplayExpr(iter.tok, new List<Expression>() { new MemberSelectExpr(iter.tok, new ThisExpr(iter.tok), y.Name) })),
           new OldExpr(iter.tok, new MemberSelectExpr(iter.tok, new ThisExpr(iter.tok), ys.Name)));
         var eq = new BinaryExpr(iter.tok, BinaryExpr.Opcode.Eq, new MemberSelectExpr(iter.tok, new ThisExpr(iter.tok), ys.Name), ite);
-        ens.Add(new MaybeFreeExpression(eq));
+        ens.Add(new AttributedExpression(eq));
       }
       // ensures more ==> YieldEnsures;
       foreach (var ye in iter.YieldEnsures) {
-        ens.Add(new MaybeFreeExpression(
-          new BinaryExpr(iter.tok, BinaryExpr.Opcode.Imp, new IdentifierExpr(iter.tok, "more"), ye.E),
-          ye.IsFree));
+        ens.Add(new AttributedExpression(
+          new BinaryExpr(iter.tok, BinaryExpr.Opcode.Imp, new IdentifierExpr(iter.tok, "more"), ye.E)
+          ));
       }
       // ensures !more ==> Ensures;
       foreach (var e in iter.Ensures) {
-        ens.Add(new MaybeFreeExpression(new BinaryExpr(iter.tok, BinaryExpr.Opcode.Imp,
+        ens.Add(new AttributedExpression(new BinaryExpr(iter.tok, BinaryExpr.Opcode.Imp,
           new UnaryOpExpr(iter.tok, UnaryOpExpr.Opcode.Not, new IdentifierExpr(iter.tok, "more")),
-          e.E),
-          e.IsFree));
+          e.E)
+        ));
       }
       // decreases this._decreases0, this._decreases1, ...;
       Contract.Assert(iter.Decreases.Expressions.Count == iter.DecreasesFields.Count);
@@ -9972,7 +9972,7 @@ namespace Microsoft.Dafny
               s.Kind = ForallStmt.BodyKind.Proof;
               // add the conclusion of the calc as a free postcondition
               var result = ((CalcStmt)s0).Result;
-              s.Ens.Add(new MaybeFreeExpression(result, true));
+              s.Ens.Add(new AttributedExpression(result));
               reporter.Info(MessageSource.Resolver, s.Tok, "ensures " + Printer.ExprToString(result));
             } else {
               s.Kind = ForallStmt.BodyKind.Proof;
@@ -10102,13 +10102,13 @@ namespace Microsoft.Dafny
       }
     }
 
-    private void ResolveLoopSpecificationComponents(List<MaybeFreeExpression> invariants, Specification<Expression> decreases, Specification<FrameExpression> modifies, ICodeContext codeContext, HashSet<IVariable> fvs, ref bool usesHeap) {
+    private void ResolveLoopSpecificationComponents(List<AttributedExpression> invariants, Specification<Expression> decreases, Specification<FrameExpression> modifies, ICodeContext codeContext, HashSet<IVariable> fvs, ref bool usesHeap) {
       Contract.Requires(invariants != null);
       Contract.Requires(decreases != null);
       Contract.Requires(modifies != null);
       Contract.Requires(codeContext != null);
 
-      foreach (MaybeFreeExpression inv in invariants) {
+      foreach (AttributedExpression inv in invariants) {
         ResolveAttributes(inv.Attributes, null, new ResolveOpts(codeContext, true));
         ResolveExpression(inv.E, new ResolveOpts(codeContext, true));
         Contract.Assert(inv.E.Type != null);  // follows from postcondition of ResolveExpression
@@ -11982,7 +11982,7 @@ namespace Microsoft.Dafny
           foreach (Expression dim in rr.ArrayDimensions) {
             Contract.Assert(dim != null);
             ResolveExpression(dim, new ResolveOpts(codeContext, false));
-            ConstrainToIntegerType(dim, string.Format("new must use an integer-based expression for the array size (got {{0}}{0})", rr.ArrayDimensions.Count == 1 ? "" : " for index " + i));
+            ConstrainToIntegerType(dim, false, string.Format("new must use an integer-based expression for the array size (got {{0}}{0})", rr.ArrayDimensions.Count == 1 ? "" : " for index " + i));
             i++;
           }
           rr.Type = ResolvedArrayType(stmt.Tok, rr.ArrayDimensions.Count, rr.EType, codeContext, false);
@@ -12211,7 +12211,7 @@ namespace Microsoft.Dafny
               return r;
             }
           }
-          
+
           if (DafnyOptions.O.TypeInferenceDebug) {
             Console.WriteLine("  ----> found no improvement, giving up");
           }
@@ -13099,7 +13099,7 @@ namespace Microsoft.Dafny
           Contract.Assert(idx != null);
           ResolveExpression(idx, opts);
           Contract.Assert(idx.Type != null);  // follows from postcondition of ResolveExpression
-          ConstrainToIntegerType(idx, "array selection requires integer-based numeric indices (got {0} for index " + i + ")");
+          ConstrainToIntegerType(idx, true, "array selection requires integer- or bitvector-based numeric indices (got {0} for index " + i + ")");
           i++;
         }
         e.Type = elementType;
@@ -13163,7 +13163,7 @@ namespace Microsoft.Dafny
         var elementType = e.ExplicitElementType ?? new InferredTypeProxy();
         ResolveType(e.tok, elementType, opts.codeContext, ResolveTypeOptionEnum.InferTypeProxies, null);
         ResolveExpression(e.N, opts);
-        ConstrainToIntegerType(e.N, "sequence construction must use an integer-based expression for the sequence size (got {0})");
+        ConstrainToIntegerType(e.N, false, "sequence construction must use an integer-based expression for the sequence size (got {0})");
         ResolveExpression(e.Initializer, opts);
         var arrowType = new ArrowType(e.tok, builtIns.ArrowTypeDecls[1], new List<Type>() { Type.Int }, elementType);
         var hintString = " (perhaps write '_ =>' in front of the expression you gave in order to make it an arrow type)";
@@ -13702,17 +13702,29 @@ namespace Microsoft.Dafny
     }
 
     /// <summary>
-    /// Adds appropriate type constraints that says "expr" evaluates to an integer (not a bitvector, but possibly an
-    /// int-based newtype).  The "errFormat" string can contain a "{0}", referring to the name of the type of "expr".
+    /// Adds appropriate type constraints that says "expr" evaluates to an integer or (if "allowBitVector" is true) a
+    /// a bitvector.  The "errFormat" string can contain a "{0}", referring to the name of the type of "expr".
     /// </summary>
-    void ConstrainToIntegerType(Expression expr, string errFormat) {
+    void ConstrainToIntegerType(Expression expr, bool allowBitVector, string errFormat) {
       Contract.Requires(expr != null);
       Contract.Requires(errFormat != null);
+      var err = new TypeConstraint.ErrorMsgWithToken(expr.tok, errFormat, expr.Type);
+      ConstrainToIntegerType(expr.tok, expr.Type, allowBitVector, err);
+    }
+
+    /// <summary>
+    /// See ConstrainToIntegerType description for the overload above.
+    /// </summary>
+    void ConstrainToIntegerType(IToken tok, Type type, bool allowBitVector, TypeConstraint.ErrorMsg errorMsg) {
+      Contract.Requires(tok != null);
+      Contract.Requires(type != null);
+      Contract.Requires(errorMsg != null);
       // We do two constraints: the first can aid in determining types, but allows bit-vectors; the second excludes bit-vectors.
       // However, we reuse the error message, so that only one error gets reported.
-      var err = new TypeConstraint.ErrorMsgWithToken(expr.tok, errFormat, expr.Type);
-      ConstrainSubtypeRelation(new IntVarietiesSupertype(), expr.Type, err);
-      AddXConstraint(expr.tok, "IntegerType", expr.Type, err);
+      ConstrainSubtypeRelation(new IntVarietiesSupertype(), type, errorMsg);
+      if (!allowBitVector) {
+        AddXConstraint(tok, "IntegerType", type, errorMsg);
+      }
     }
 
     void AddAssignableConstraint(IToken tok, Type lhs, Type rhs, string errMsgFormat) {

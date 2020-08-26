@@ -1378,6 +1378,8 @@ namespace Microsoft.Dafny {
         case "void":
         case "volatile":
         case "with":
+        case "toString":
+        case "equals":
           return "_$$_" + name;
         default:
           return name;
@@ -1602,7 +1604,7 @@ namespace Microsoft.Dafny {
       return w;
     }
 
-    protected override string ArrayIndexToInt(string arrayIndex) {
+    protected override string ArrayIndexToInt(string arrayIndex, Type fromType) {
       return string.Format("new BigNumber({0})", arrayIndex);
     }
 
