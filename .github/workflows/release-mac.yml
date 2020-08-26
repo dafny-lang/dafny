@@ -56,6 +56,7 @@ jobs:
         echo NOT RUNNING
     - name: Check Javascript compile
       run: |
+        npm install bignumber.js
         dafny/dafny /compile:3 /spillTargetCode:3 /compileTarget:js a.dfy 
         echo NOT RUNNING
     - name: Check Java compile

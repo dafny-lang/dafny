@@ -65,7 +65,8 @@ jobs:
       run: |
         which latex || echo NOT FOUND latex
         which xelatex || echo NOT FOUND xelatex
-        ls /usr/local/texlive/2020/bin/x86_64-darwin/xelatexa || echo NOT FOUND
+        find /usr/local/texlive -name xelatex
+        ls /usr/local/texlive/2020/bin/x86_64-darwin/xelatex || echo NOT FOUND
     - name: Build DafnyRef.pdf
       run: make -C dafny/docs/DafnyReferenceManual 
     - name: Check
