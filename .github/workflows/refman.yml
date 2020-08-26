@@ -19,6 +19,10 @@ jobs:
     - name: Add msbuild to PATH
       if: matrix.os == 'windows-latest'
       uses: microsoft/setup-msbuild@v1.0.0
+    - name: Install brew
+      run: /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh)"
+    - name: Install mono
+      run: brew install mono
     - name: Checkout Boogie
       uses: actions/checkout@v2
       with:
@@ -47,10 +51,8 @@ jobs:
       run: msbuild dafny/Source/Dafny.sln
     - name: Versions
       run: |
-        dafny -version
+        dafny/Binaries/Dafny.exe -version
         dafny/Binaries/z3 /version
-    - name: Install brew
-      run: /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh)"
     - name: Install pandoc
       run: brew install pandoc
     - name: Install syntax highlighting
