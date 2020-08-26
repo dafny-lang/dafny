@@ -9,13 +9,13 @@ on:
 jobs:
   build:
 
-    runs-on: ubuntu-latest
+    runs-on: macos-latest
 
     steps:
     - name: Setup Nuget
       uses: nuget/setup-nuget@v1
     - name: Manually sync certs
-      run: cert-sync /etc/ssl/certs/ca-certificates.crt
+      run: echo SKIPPING cert-sync /etc/ssl/certs/ca-certificates.crt
     - name: Add msbuild to PATH
       if: matrix.os == 'windows-latest'
       uses: microsoft/setup-msbuild@v1.0.0
@@ -45,6 +45,10 @@ jobs:
       run: make -C dafny/Source/Dafny -f Makefile.Linux
     - name: Build Dafny
       run: msbuild dafny/Source/Dafny.sln
+    - name: Versions
+      run: |
+        dafny -version
+        dafny/Binaries/z3 /version
     - name: Install brew
       run: /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh)"
     - name: Install pandoc
