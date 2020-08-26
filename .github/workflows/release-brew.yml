@@ -1,4 +1,4 @@
-name: Build DafnyRef.pdf
+name: Test Brew installation on Mac
 
 on:
   push:
