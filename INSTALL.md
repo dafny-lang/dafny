@@ -24,6 +24,7 @@ so these instructions mostly apply to people interested in looking at Dafny's so
 
        cd BASE-DIRECTORY
        git clone https://github.com/dafny-lang/dafny.git
+       make parser
        mono ../nuget.exe restore dafny/Source/Dafny.sln
        msbuild dafny/Source/Dafny.sln
 
@@ -115,3 +116,10 @@ Dafny's sources or who want to use the latest features from the master branch.
    * run `pip install lit` and `pip install OutputCheck`
    * (Optional) Install java (possibly use `brew cask install java` and then `java -version`)
    * Navigate to the Test directory in the repo and run `lit .`. The tests take a while, depending on your machine, but emit progress output.
+
+10. (Optional -- building the reference manual pdf) --- currently only on Linux and MacOS
+i	make -C BASE-DIRECTORY refman
+   * The reference manual html does not require building. It is at
+	https://dafny-lang.github.io/dafny/DafnyReferenceManual/DafnyRef
+   * The reference manual pdf is at 
+        BASE-DIRECTORY/docs/DafnyReferenceManual/DafnyRef.pdf
