@@ -21,7 +21,7 @@ jobs:
     - name: Setup Nuget
       uses: nuget/setup-nuget@v1
     - name: Manually sync certs
-      if: !startsWith(matrix.os, 'macos')
+      if: runner.os != 'macOS'
       run: cert-sync /etc/ssl/certs/ca-certificates.crt
     - name: Add msbuild to PATH
       if: matrix.os == 'windows-latest'

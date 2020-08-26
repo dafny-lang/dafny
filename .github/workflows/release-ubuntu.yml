@@ -12,7 +12,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ ubuntu-latest, ubuntu-16.04, macos-latest ]
+        os: [ ubuntu-16.04, macos-latest ]
     # There is no hosted environment for Unbuntu 14.04 or for debian
 
     steps:
@@ -68,7 +68,7 @@ jobs:
     - name: Check C# compile
       run: |
         dafny/dafny /compileVerbose:0 /compile:3 /compileTarget:cs /spillTargetCode:3 a.dfy
-        ls dafny/Binaries
+        ls -R dafny
     - name: Check Go compile
       run: |
         dafny/dafny /compile:3 /spillTargetCode:3 /compileTarget:go a.dfy
