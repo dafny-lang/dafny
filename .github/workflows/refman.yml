@@ -59,6 +59,12 @@ jobs:
       run: echo SKIPPING gem install rouge
     - name: Install MacTex
       run: brew cask install mactex
+    - name: CHeck install
+      run: |
+        which latex
+        which xelatex
+        find / -name latex
+        find / -name xelatex
     - name: Build DafnyRef.pdf
       run: make -C dafny/docs/DafnyReferenceManual 
     - name: Check

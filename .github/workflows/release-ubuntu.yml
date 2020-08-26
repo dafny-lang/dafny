@@ -54,8 +54,8 @@ jobs:
       run: npm install bignumber.js
     - name: Check Javascript compile
       run: dafny/Dafny.exe /compile:3 /compileTarget:js a.dfy
-    - name: Check Java compile with jar
-      run: dafny/Dafny.exe /compile:3 /compileTarget:java a.dfy dafny/DafnyRuntime.jar
     - name: Check Java compile
-      run: dafny/Dafny.exe /compile:3 /compileTarget:java a.dfy 
+      run: |
+        ls -la dafny
+        dafny/Dafny.exe /compile:3 /compileTarget:java a.dfy 
 

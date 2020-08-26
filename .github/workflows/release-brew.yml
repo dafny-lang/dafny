@@ -38,8 +38,8 @@ jobs:
     - name: Check
       run: dafny /compile:0 a.dfy
     - name: Check bad
-      run: dafny /compile:0 b.dfy
+      run: dafny /compile:0 b.dfy || echo EXPECTED FAILURE
     - name: Check
       run: dafny /compile:0 a.dfy /z3exe:z3/bin/z3
     - name: Check bad
-      run: dafny /compile:0 b.dfy /z3exe:z3/bin/z3
+      run: dafny /compile:0 b.dfy /z3exe:z3/bin/z3 || echo EXPECTED FAILURE

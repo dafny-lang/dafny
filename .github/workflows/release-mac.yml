@@ -49,10 +49,10 @@ jobs:
     - name: Check bad
       run: dafny/Dafny.exe /compile:0 b.dfy /z3exe:z3/bin/z3 || echo EXPECTED FAILURE
     - name: Check C# compile
-      run: dafny/Dafny.exe /compile:3 /compileTarget:cs a.dfy
+      run: dafny/dafny /compile:3 /compileTarget:cs a.dfy
     - name: Check Go compile
-      run: dafny/Dafny.exe /compile:3 /compileTarget:go a.dfy
+      run: dafny/dafny /compile:3 /compileTarget:go a.dfy
     - name: Check Javascript compile
-      run: dafny/Dafny.exe /compile:3 /compileTarget:js a.dfy
+      run: dafny/dafny /compile:3 /compileTarget:js a.dfy
     - name: Check Java compile
-      run: dafny/Dafny.exe /compile:3 /compileTarget:java a.dfy
+      run: dafny/dafny /compile:3 /compileTarget:java a.dfy
