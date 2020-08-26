@@ -24,7 +24,7 @@ jobs:
         unzip z3*.zip && rm *.zip
         ls -R
         cp -r z3-4.8.4* z3
-        ./z3 -version
+        ./z3/bin/z3 -version
     - name: Make test program
       run: |
         echo "method m() { assert true; }" > a.dfy
@@ -32,6 +32,10 @@ jobs:
     - name: Dafny version
       run: dafny -version
     - name: Check
-      run: dafny /compile:0 a.dfy /z3exe:z3
+      run: dafny /compile:0 a.dfy
+    - name: Check
+      run: dafny /compile:0 a.dfy /z3exe:z3/bin/z3
     - name: Check bad
-      run: dafny /compile:0 b.dfy /z3exe:z3
+      run: dafny /compile:0 b.dfy
+    - name: Check bad
+      run: dafny /compile:0 b.dfy /z3exe:z3/bin/z3
