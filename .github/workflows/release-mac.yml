@@ -56,10 +56,10 @@ jobs:
     - name: Check Go compile
       run: |
         dafny/dafny /compile:3 /spillTargetCode:3 /compileTarget:go a.dfy 
-        go run a.go ../Binaries/DafnyRuntime.go
+        go run a.go Binaries/DafnyRuntime.go
     - name: Check Javascript compile
       run: |
         dafny/dafny /compile:3 i/spillTargetCode:3 /compileTarget:js a.dfy 
-        node.js a.js ../Binaries/DafnyRuntime.js | diff - expect.txt
+        node.js a.js Binaries/DafnyRuntime.js | diff - expect.txt
     - name: Check Java compile
       run: echo SKIPPING dafny/dafny /compile:3 /compileTarget:java a.dfy 
