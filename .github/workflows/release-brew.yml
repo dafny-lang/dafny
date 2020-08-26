@@ -14,7 +14,7 @@ jobs:
     steps:
       - name: Install brew
         run: /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh)"
-      - name: Install dafny
+      - name: Install dafny, mono, z3
         run: brew install dafny || echo DONE
       - name: Make test program
         run: |
