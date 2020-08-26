@@ -21,7 +21,7 @@ jobs:
     - name: Unpack Dafny release
       run: |
         unzip dafny*.zip && rm dafny*.zip
-        ls -la dafny/Dafny.exe
+        ls -laR .
         chmod +x dafny/Dafny.exe
     - name: Get Z3
       if: matrix.os != 'windows-latest'
@@ -36,7 +36,7 @@ jobs:
     - name: Versions
       run: |
         ./z3/bin/z3 -version
-        dafny/Dafny.exe  -help | grep Dafny
+        dafny/Dafny.exe  -version
     - name: Check
       run: dafny/Dafny.exe /compile:0 a.dfy
     - name: Check

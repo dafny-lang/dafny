@@ -33,7 +33,7 @@ jobs:
     - name: Versions
       run: |
         mono ./z3/bin/z3 -version
-        mono dafny/Dafny.exe -help | grep Dafny
+        mono dafny/Dafny.exe -version
         dafny/Dafny.exe -help | grep Dafny
         dafny/dafny -help | grep Dafny
     - name: Check

@@ -23,14 +23,16 @@ jobs:
         unzip z3*.zip && rm *.zip
         cp -r z3-* z3
         ls -R z3
+        file z3/bin/z3
+        ls -la z3/bin/z3
     - name: Make test program
       run: |
         echo "method Main() { assert true; print 42, '\n'; }" > a.dfy
         echo "method m() { assert false; }" > b.dfy
     - name: Versions
       run: |
-        dafny /help | grep Dafny
-        mono ./z3/bin/z3 /version
+        dafny /help | head -2
+        ./z3/bin/z3 /version
     - name: Check
       run: dafny /compile:0 a.dfy
     - name: Check bad
