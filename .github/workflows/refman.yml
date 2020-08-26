@@ -51,7 +51,7 @@ jobs:
       run: msbuild dafny/Source/Dafny.sln
     - name: Versions
       run: |
-        dafny/Binaries/Dafny.exe -version
+        dafny/Binaries/dafny -version
         dafny/Binaries/z3 /version
     - name: Install pandoc
       run: brew install pandoc
