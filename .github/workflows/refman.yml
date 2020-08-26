@@ -51,7 +51,7 @@ jobs:
       run: msbuild dafny/Source/Dafny.sln
     - name: Versions
       run: |
-        dafny/Binaries/dafny -help | head -2
+        dafny/Binaries/dafny -version
         dafny/Binaries/z3/bin/z3 /version
     - name: Install pandoc
       run: brew install pandoc
@@ -60,6 +60,6 @@ jobs:
     - name: Install MacTex
       run: brew cask install mactex
     - name: Build DafnyRef.pdf
-      run: make -C docs/DafnyReferenceManual 
+      run: make -C dafny/docs/DafnyReferenceManual 
     - name: Check
-      run: ls -la docs/DafnyReferenceManual/DafnyRef.pdf
+      run: ls -la dafny/docs/DafnyReferenceManual/DafnyRef.pdf
