@@ -45,31 +45,39 @@ jobs:
       run: |
         unzip z3*.zip && rm z3*.zip
         cp -r z3-* z3
+    ## Create a simple smoke test program
     - name: Make test program
       run: |
         echo "method Main() { assert true; print 42, '\n'; }" > a.dfy
         echo "method m() { assert false; }" > b.dfy
         echo "42" > expect.txt
+    ## Check that dafny and z3 run and that a simple program verifies or fails
     - name: Versions
       run: |
         ./z3/bin/z3 -version
-        dafny/Dafny.exe  -version
+        dafny/dafny  -version
     - name: Check
-      run: dafny/Dafny.exe /compile:0 a.dfy
+      run: dafny/dafny /compile:0 a.dfy
     - name: Check
-      run: dafny/Dafny.exe /compile:0 a.dfy /z3exe:z3/bin/z3
+      run: dafny/dafny /compile:0 a.dfy /z3exe:z3/bin/z3
     - name: Check bad
-      run: dafny/Dafny.exe /compile:0 b.dfy || echo EXPECTED FAILURE
+      run: dafny/dafny /compile:0 b.dfy || echo EXPECTED FAILURE
     - name: Check bad
-      run: dafny/Dafny.exe /compile:0 b.dfy /z3exe:z3/bin/z3 || echo EXPECTED FAILURE
+      run: dafny/dafny /compile:0 b.dfy /z3exe:z3/bin/z3 || echo EXPECTED FAILURE
+    ## Check that a simple program compiles and runs on each supported platform
     - name: Check C# compile
-      run: dafny/Dafny.exe /compile:3 /compileTarget:cs a.dfy
+      run: |
+        dafny/dafny /compileVerbose:0 /compile:3 /compileTarget:cs /spillTargetCode:3 a.dfy
+        ls dafny/Binaries
     - name: Check Go compile
-      run: dafny/Dafny.exe /compile:3 /compileTarget:go a.dfy
-    - name: Javascript installs
-      run: npm install bignumber.js
+      run: |
+        dafny/dafny /compile:3 /spillTargetCode:3 /compileTarget:go a.dfy
+        go run a.go dafny/Binaries/DafnyRuntime.go
     - name: Check Javascript compile
-      run: dafny/Dafny.exe /compile:3 /compileTarget:js a.dfy
+      run: |
+        npm install bignumber.js
+        dafny/dafny /compile:3 i/spillTargetCode:3 /compileTarget:js a.dfy
+        node.js a.js dafny/Binaries/DafnyRuntime.js | diff - expect.txt
     - name: Check Java compile
       run: |
         ls -la dafny
