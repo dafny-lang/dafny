@@ -72,14 +72,14 @@ jobs:
     - name: Check Go compile
       run: |
         dafny/dafny /compile:3 /spillTargetCode:3 /compileTarget:go a.dfy
-        go run a-go/a.go a-go/*/*.go dafny/Binaries/DafnyRuntime.go
+        ##go run a-go/src/a.go a-go/src/*/*.go dafny/Binaries/DafnyRuntime.go
     - name: Check Javascript compile
       run: |
         npm install bignumber.js
-        dafny/dafny /compile:3 i/spillTargetCode:3 /compileTarget:js a.dfy
+        dafny/dafny /compile:3 /spillTargetCode:3 /compileTarget:js a.dfy
         node.js a.js dafny/Binaries/DafnyRuntime.js | diff - expect.txt
     - name: Check Java compile
       run: |
         ls -la dafny
-        echo SKIPPING dafny/Dafny.exe /compile:3 /compileTarget:java a.dfy 
+        echo SKIPPING dafny/dafny /compile:3 /spillTargetCode:3 /compileTarget:java a.dfy 
 
