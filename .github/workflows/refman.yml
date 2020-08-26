@@ -59,14 +59,13 @@ jobs:
       run: echo SKIPPING gem install rouge
     - name: Install MacTex
       run: |
-        brew cask install mactex
+        brew cask install basictex
         eval "$(/usr/libexec/path_helper)"
     - name: CHeck install
       run: |
         which latex || echo NOT FOUND latex
         which xelatex || echo NOT FOUND xelatex
-        find / -name latex || echo NOT FOUND latex
-        find / -name xelatex || echo NOT FOUND xelatex
+        ls /usr/local/texlive/2020/bin/x86_64-darwin/xelatexa || echo NOT FOUND
     - name: Build DafnyRef.pdf
       run: make -C dafny/docs/DafnyReferenceManual 
     - name: Check
