@@ -15,7 +15,7 @@ jobs:
       - name: Install brew
         run: /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh)"
       - name: Install dafny
-        run: brew install dafny
+        run: brew install dafny && echo DONE
       - name: Make test program
         run: |
           echo "method m() { assert true; }" > a.dfy
