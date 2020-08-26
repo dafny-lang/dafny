@@ -50,7 +50,7 @@ jobs:
     - name: Install pandoc
       run: brew install pandoc
     - name: Install syntax highlighting
-      run: gem install rouge
+      run: echo SKIPPING gem install rouge
     - name: Install MacTex
       run: brew cask install mactex
     - name: Build DafnyRef.pdf
