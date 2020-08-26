@@ -36,9 +36,10 @@ jobs:
     - name: Versions
       run: |
         ./z3/bin/z3 -version
-        mono dafny/Dafny.exe -version | echo OK
-        dafny/Dafny.exe -help | grep Dafny
-        dafny/dafny -help | grep Dafny
+        mono dafny/Dafny.exe -version || echo OK
+        dafny/Dafny.exe -version || echo OK
+        (dafny/Dafny.exe -help | head -2 ) || echo OK
+        (dafny/dafny -help | head -2) || echo OK
     - name: Check
       run: dafny/Dafny.exe /compile:0 a.dfy
     - name: Check bad

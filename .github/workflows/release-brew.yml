@@ -31,8 +31,10 @@ jobs:
     - name: Versions
       run: |
         ./z3/bin/z3 -version
-        dafny /help
+        dafny /help | head -2
         dafny /version || echo OK
+        which dafny
+        pwd
     - name: Check
       run: dafny /compile:0 a.dfy
     - name: Check bad
