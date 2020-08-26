@@ -118,6 +118,7 @@
         <keyword attribute="Types" String="types" context="#stay" />
         <RegExpr attribute="Types" String="(?:bv0|bv[1-9]\d*)(?![a-zA-Z0-9_'?])"/>
         <RegExpr attribute="Types" String="array(?:1\d+|[2-9]\d*)?[?]?(?![a-zA-Z0-9_'?])"/>
+        <RegExpr attribute="Types" String="(?:seq|set|iset|map|imap|multiset)(?=\s*{)" context="TypeParameters" />
         <RegExpr attribute="Types" String="(?:seq|set|iset|map|imap|multiset)\s*&lt;" context="TypeParameters" />
         <RegExpr attribute="Error" String="(?:seq|set|iset|map|imap|multiset)(?![&lt;0-9a-zA-Z_'?])" />
         <RegExpr attribute="Error" String="(?:seq|set|iset|map|imap|multiset)(?=\s+[^&lt;])" />

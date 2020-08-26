@@ -554,11 +554,11 @@ A * B == {} && (A + B) * C == {} && (A + B + C) * D == {}
 In addition, for any set `s` of type `set<T>` or `iset<T>` and any
 expression `e` of type `T`, sets support the following operations:
 
- expression          | description                        
----------------------|------------------------------------
- `|s|`                  | set cardinality    (result type `nat`)                 
- `e in s`            | set membership (result type `bool`)                    
- `e !in s`           | set non-membership  (result type `bool`)                 
+ expression          | result type |  description                        
+---------------------|:-:|------------------------------------
+ `|s|`               | `nat`   | set cardinality 
+ `e in s`            | `bool` | set membership 
+ `e !in s`           | `bool` | set non-membership 
 
 The expression `e !in s` is a syntactic shorthand for `!(e in s)`.
 
@@ -703,16 +703,16 @@ integer-based numerics `lo` and `hi` satisfying
 `0 <= lo <= hi <= |s|`, sequences support the following operations:
 
  expression         | result type | description                            
- ---------------------|:-:|----------------------------------------
+ ---------------------|:---:|----------------------------------------
  `|s|`               | `nat` | sequence length                  
  `s[i]`              | `T` |sequence selection                    
- `s[i := e]`         | `seq<T>`` | sequence update                       
+ `s[i := e]`         | `seq<T>` | sequence update                       
  `e in s`            | `bool` | sequence membership              
  `e !in s`           | `bool` | sequence non-membership                
  `s[lo..hi]`         | `seq<T>`| subsequence                            
  `s[lo..]`           | `seq<T>` | drop                                   
  `s[..hi]`           | `seq<T>` | take                                   
- `s[``_slices_`]`   | `seq<T>` | slice                                  
+ `s[`_slices_`]`   | `seq<T>` | slice                                  
  `multiset(s)`       | `multiset<T>`| sequence conversion to a `multiset<T>` 
 
 Expression `s[i := e]` returns a sequence like `s`, except that the
@@ -829,7 +829,9 @@ form `t := u` where `t` is an expression of type `T` and `u` is an
 expression of type `U`, enclosed in square brackets after the keyword
 `map`.  To illustrate,
 ```dafny
-map[]    map[20 := true, 3 := false, 20 := false]    map[a+b := c+d]
+map[]    
+map[20 := true, 3 := false, 20 := false]    
+map[a+b := c+d]
 ```
 are three examples of map displays.  By using the keyword `imap`
 instead of `map`, the map produced will be of type `imap<T,U>`
@@ -850,8 +852,8 @@ any expression `t` of type `T`,
 any expression `u` of type `U`, and any `d` in the domain of `m` (that
 is, satisfying `d in m`), maps support the following operations:
 
- expression      | resu\t type     | description                        
- ----------------------|:-:|------------------------------------
+ expression      | result type     | description                        
+ ---------------|:---:|------------------------------------
  `|fm|`              | `nat` | map cardinality                    
  `m[d]`              | `U` | map selection                      
  `m[t := u]`    | `(i)map<T,U>`      | map update                         
@@ -859,7 +861,7 @@ is, satisfying `d in m`), maps support the following operations:
  `t !in m`         | `bool`   | map domain non-membership          
  `fm.Keys`         | `set<T>`   | the domain of fm, that is, the set of T values used as keys           
  `fm.Values`     | `set<U>`     | the range of fm, that is, the set  of U values present in the map   
- `fm.Items`       | `set<(T,U>)`    | set of pairs (t,u) of key-value associations in the map           
+ `fm.Items`       | `set<(T,U)>`    | set of pairs (t,u) of key-value associations in the map           
 
 `|fm|` denotes the number of mappings in `fm`, that is, the
 cardinality of the domain of `fm`.  Note that the cardinality operator
@@ -1430,9 +1432,7 @@ The following table summarizes where the function is transparent.
 The module referenced in the table is the module in which the
 function is defined.
 
- Protected? | `{:opaque}`? | Transparent | Transparent 
-            |              | Inside      | Outside     
-            |              | Module      | Module      
+ Protected? | `{:opaque}`? | Transparent Inside Module | Transparent Outside Module
 :----------:|:------------:|:-----------:|:-----------:
  N          | N            | Y           | Y           
  Y          | N            | Y           | N           

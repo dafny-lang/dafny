@@ -31,10 +31,6 @@ user understand how to do proofs with Dafny.
 
 {% include Types.md %}
 
-# Type Inference
-
-TO BE WRITTEN
-
 {% include Statements.md %}
 
 {% include Expressions.md %}

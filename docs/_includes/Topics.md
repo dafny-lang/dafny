@@ -1,5 +1,11 @@
 # Advanced Topics
 
+## Type Inference
+
+TO BE WRITTEN
+
+
+
 ## Well-founded Functions and Extreme Predicates
 This section is a tutorial on well-founded functions and extreme predicates.
 We place it here in preparation for Section [#sec-class-types]
