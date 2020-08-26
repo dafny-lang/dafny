@@ -2,7 +2,7 @@ name: Build DafnyRef.pdf
 
 on:
   push:
-    branches: [ master ]
+    branches: [ master cok-834 ]
   pull_request:
     branches: [ master ]
 
@@ -14,6 +14,8 @@ jobs:
     steps:
       - name: Checkout Dafny
         uses: actions/checkout@v2
+      - name: Install brew
+        run: /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh)"
       - name: Install pandoc
 	run: brew install pandoc
       - name: Install syntax highlighting
