@@ -1,0 +1,24 @@
+name: Build DafnyRef.pdf
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build:
+
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout Dafny
+        uses: actions/checkout@v2
+      - name: Install pandoc
+	run: brew install pandoc
+      - name: Install syntax highlighting
+        eun: gem install rouge
+      - name: Install MacTex
+        run: brew install mactex
+      - name: Build DafnyRef.pdf
+        run: make -C docs/DafnyReferenceManual 
