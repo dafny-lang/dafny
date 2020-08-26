@@ -31,9 +31,7 @@ jobs:
     - name: Versions
       run: |
         ./z3/bin/z3 -version
-        echo TRYING dafny /help
-        dafny /help | head -2
-        echo TRYING dafny /version
+        dafny /help || echo OK
         dafny /version || echo OK
         which dafny
     - name: Check

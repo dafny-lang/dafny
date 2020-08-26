@@ -50,10 +50,16 @@ jobs:
     - name: Check bad
       run: dafny/dafny /compile:0 b.dfy /z3exe:z3/bin/z3 || echo EXPECTED FAILURE
     - name: Check C# compile
-      run: dafny/dafny /compile:3 /compileTarget:cs a.dfy | diff - expect.txt
+      run: |
+        dafny/dafny /compileVerbose:0 /compile:3 /compileTarget:cs /spillTargetCode:3 a.dfy
+        ls ../Binaries
     - name: Check Go compile
-      run: dafny/dafny /compile:3 /compileTarget:go a.dfy | diff - expect.txt
+      run: |
+        dafny/dafny /compile:3 /spillTargetCode:3 /compileTarget:go a.dfy 
+        go run a.go ../Binaries/DafnyRuntime.go
     - name: Check Javascript compile
-      run: dafny/dafny /compile:3 /compileTarget:js a.dfy | diff - expect.txt
+      run: |
+        dafny/dafny /compile:3 i/spillTargetCode:3 /compileTarget:js a.dfy 
+        node.js a.js ../Binaries/DafnyRuntime.js | diff - expect.txt
     - name: Check Java compile
-      run: dafny/dafny /compile:3 /compileTarget:java a.dfy | diff - expect.txt
+      run: echo SKIPPING dafny/dafny /compile:3 /compileTarget:java a.dfy 
