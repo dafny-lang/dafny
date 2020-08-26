@@ -49,7 +49,6 @@ jobs:
     - name: Check C# compile
       run: |
         dafny/dafny /compileVerbose:0 /compile:3 /compileTarget:cs /spillTargetCode:3 a.dfy
-        ls dafny/Binaries || echo FAILED
         ls dafny || echo FAILED
     - name: Check Go compile
       run: |
