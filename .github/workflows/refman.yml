@@ -22,7 +22,7 @@ jobs:
     - name: Install brew
       run: /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh)"
     - name: Install mono
-      run: brew install mono
+      run: brew install mono || echo OK
     - name: Checkout Boogie
       uses: actions/checkout@v2
       with:

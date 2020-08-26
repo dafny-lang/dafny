@@ -14,13 +14,12 @@ jobs:
     steps:
     - name: Download Windows release
       run: |
-        wget -q https://github.com/dafny-lang/dafny/releases/download/v3.0.0-pre-release-1/dafny-3.0.0-pre-1-x64-win.zip
+        curl https://github.com/dafny-lang/dafny/releases/download/v3.0.0-pre-release-1/dafny-3.0.0-pre-1-x64-win.zip
         unzip dafny*.zip && rm dafny*.zip
         ls -R
     - name: Get Z3
-      if: matrix.os != 'windows-latest'
       run: |
-        wget -q https://github.com/Z3Prover/z3/releases/download/z3-4.8.4/z3-4.8.4.d6df51951f4c-x64-win.zip
+        curl https://github.com/Z3Prover/z3/releases/download/z3-4.8.4/z3-4.8.4.d6df51951f4c-x64-win.zip
         unzip z3*.zip && rm *.zip
         cp -r z3-* z3
     - name: Make test program
