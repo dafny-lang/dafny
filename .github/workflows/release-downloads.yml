@@ -14,18 +14,18 @@ jobs:
       fail-fast: false
       matrix:
         os: [ ubuntu-latest, ubuntu-16.04, macos-latest, windows-latest ]
-        ver: [ v3.0.0-pre-release-1 ]
-        rel: [ dafny-3.0.0-pre-1 ]
+        ver: [ 'v3.0.0-pre-release-1' ]
+        rel: [ 'dafny-3.0.0-pre-1' ]
         z3: [ 'https://github.com/Z3Prover/z3/releases/download/z3-4.8.4/z3-4.8.4.d6df51951f4c' ]
         include:
-        - os:  ubuntu-latest
-          osn: ubuntu-16.04
-        - os:  ubuntu-16.04
-          osn: ubuntu-16.04
-        - os:  macos-latest
-          osn: osx-10.14.1
-        - os:  windows-latest
-          osn: win
+        - os:  'ubuntu-latest'
+          osn: 'ubuntu-16.04'
+        - os:  'ubuntu-16.04'
+          osn: 'ubuntu-16.04'
+        - os:  'macos-latest'
+          osn: 'osx-10.14.1'
+        - os:  'windows-latest'
+          osn: 'win'
     # There is no hosted environment for Unbuntu 14.04 or for debian
 
     # Mac environments need mono, but it is installed by default
