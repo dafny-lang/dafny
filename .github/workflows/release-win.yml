@@ -34,21 +34,21 @@ jobs:
         Invoke-WebRequest -Outfile z3X.zip -Uri  https://github.com/Z3Prover/z3/releases/download/z3-4.8.4/z3-4.8.4.d6df51951f4c-x64-win.zip
         Expand-Archive z3X.zip
         mv z3*/z3-* z3
-        ls -R .
     - name: Make test program
       run: |
         echo "method Main() { assert true; print 42, '\n'; }" > a.dfy
         echo "method m() { assert false; }" > b.dfy
     - name: Versions
       run: |
-        dafny/Dafny.exe -version || echo OK
-        dafny/dafny -version || echo OK
-        ls -R z3
+        dafny/Dafny.exe -version
+        dafny/dafny -version 
         ./z3/bin/z3.exe -version
     - name: Check
-      run: dafny/dafny /compile:0 a.dfy 
+      run: cat a.dfy && dafny/dafny /compile:0 a.dfy 
     - name: Check bad
-      run: dafny/dafny /compile:0 b.dfy || echo EXPECTED FAILURE
+      run: |
+        cat b.dfy
+        dafny/dafny /compile:0 b.dfy || echo EXPECTED FAILURE
     - name: Check
       run: dafny/dafny /compile:0 a.dfy /z3exe:z3/bin/z3
     - name: Check bad
