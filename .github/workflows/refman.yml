@@ -43,10 +43,13 @@ jobs:
       uses: actions/checkout@v2
       with:
         path: dafny
-    - name: Get Z3
-      if: matrix.os != 'windows-latest'
-      run: |
-        wget https://github.com/Z3Prover/z3/releases/download/z3-4.8.4/z3-4.8.4.d6df51951f4c-x64-osx-10.14.1.zip
+    - name: Get Z3 - MacOS
+      if: runner.os == 'MacOS'
+      run: wget https://github.com/Z3Prover/z3/releases/download/z3-4.8.4/z3-4.8.4.d6df51951f4c-x64-osx-10.14.1.zip
+    - name: Get Z3 - Linux
+      if: runner.os == 'Linux'
+      run: wget -q https://github.com/Z3Prover/z3/releases/download/z3-4.8.4/z3-4.8.4.d6df51951f4c-x64-ubuntu-16.04.zip
+    - name: Unpack Z3
         unzip z3*.zip && rm z3*.zip
         cp -r z3* dafny/Binaries/z3
     - name: Nuget Restore Dafny
