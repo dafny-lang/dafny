@@ -67,7 +67,7 @@ jobs:
         dafny/Binaries/z3/bin/z3 -version
     - name: Install pandoc - Linux
       if: runner.os == 'Linux'
-      run: sudo apt-get install texlive pandoc pandoc-citeproc
+      run: sudo apt-get install texlive texlive-xetex pandoc pandoc-citeproc
     - name: Install pandoc - MacOS
       if: runner.os == 'MacOS'
       run: |
@@ -81,7 +81,7 @@ jobs:
       run: |
         which latex || echo NOT FOUND latex
         which xelatex || echo NOT FOUND xelatex
-        find /usr/local/texlive -name xelatex
+        find /usr/local -name xelatex || echo NOT FOUND
         ls /usr/local/texlive/2020/bin/x86_64-darwin/xelatex || echo NOT FOUND
     - name: Build DafnyRef.pdf
       run: make -C dafny/docs/DafnyReferenceManual 
