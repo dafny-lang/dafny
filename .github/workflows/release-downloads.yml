@@ -1,5 +1,8 @@
 name: Test Release Downloads
 
+#### For a new release: Change 'ver' and 'rel' in the strategy
+#### At some point perhaps we can eliminate the need to use Z3 4.8.4
+
 on:
   push:
     branches: [ master cok-834 ]
@@ -15,9 +18,10 @@ jobs:
       matrix:
         os: [ ubuntu-latest, ubuntu-16.04, macos-latest, windows-latest ]
         ver: [ 'v3.0.0-pre-release-1' ]
-        rel: [ 'dafny-3.0.0-pre-1' ]
         z3: [ 'https://github.com/Z3Prover/z3/releases/download/z3-4.8.4/z3-4.8.4.d6df51951f4c' ]
         include:
+        - ver: 'v3.0.0-pre-release-1'
+          rel: 'dafny-3.0.0-pre-1' 
         - os:  'ubuntu-latest'
           osn: 'ubuntu-16.04'
         - os:  'ubuntu-16.04'
@@ -55,14 +59,12 @@ jobs:
       if: runner.os == 'Windows'
       shell: pwsh
       run: |
-        echo $Env:URL1
-        echo $Env:URL2
         Invoke-WebRequest -Outfile dafnyX.zip -Uri $Env:URL1
         Invoke-WebRequest -Outfile z3X.zip -Uri $Env:URL2
         Expand-Archive dafny*.zip
         mv dafnyX/dafny dafny
         Expand-Archive z3X.zip
-        mv z3*/z3-* z3
+        mv z3X/z3-* z3
       env:
         URL1: https://github.com/dafny-lang/dafny/releases/download/${{matrix.ver}}/${{matrix.rel}}-x64-${{matrix.osn}}.zip
         URL2: ${{matrix.z3}}-x64-${{matrix.osn}}.zip
