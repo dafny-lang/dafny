@@ -69,15 +69,15 @@ jobs:
     - name: Install latex pandoc - Linux
       if: runner.os == 'Linux'
       run: |
-        sudo apt-get install texlive texlive-xetex
-        wget https://github.com/jgm/pandoc/releases/download/2.10.1/pandoc-2.10.1-1-amd64.deb -outfile pandoc.deb
-        sudo dpkg -i pandoc.deb
+        sudo apt-get install texlive texlive-xetex || echo STEP1
+        wget https://github.com/jgm/pandoc/releases/download/2.10.1/pandoc-2.10.1-1-amd64.deb -outfile pandoc.deb || echo STEP2
+        sudo dpkg -i pandoc.deb || echo STEP3
       # apt-get has pandoc, but it is outdated
     - name: Install latex pandoc - MacOS
       if: runner.os == 'MacOS'
       run: |
         brew install pandoc pandoc-citeproc
-        brew cask install basictex texlive-xetex
+        brew cask install basictex xelatex
         eval "$(/usr/libexec/path_helper)"
         tlmgr install framed
     - name: Install syntax highlighting
