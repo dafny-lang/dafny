@@ -1,4 +1,4 @@
-name: Test Ubuntu Release Download
+name: Test Release Downloads
 
 on:
   push:

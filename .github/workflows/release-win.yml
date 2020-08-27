@@ -13,7 +13,7 @@ jobs:
 
     steps:
     - name: Download Windows release
-      run: curl https://github.com/dafny-lang/dafny/releases/download/v3.0.0-pre-release-1/dafny-3.0.0-pre-1-x64-win.zip
+      run: wget 'https://github.com/dafny-lang/dafny/releases/download/v3.0.0-pre-release-1/dafny-3.0.0-pre-1-x64-win.zip' -outfile 'dafny.zip'
     - name: Unpack release
       run: |
         ls -R .

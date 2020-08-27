@@ -30,6 +30,7 @@ jobs:
       run: |
         ./z3/bin/z3 -version
         dafny -version || echo OK
+        which dafny
         # -version is not supported in old dafny, 
         # but this gives the version with an error
     - name: Check
@@ -43,18 +44,18 @@ jobs:
     ## Check that a simple program compiles and runs on each supported platform
     - name: Check C# compile
       run: |
-        dafny/dafny /compileVerbose:0 /compile:3 /compileTarget:cs /spillTargetCode:3 a.dfy
+        dafny /compile:3 /compileTarget:cs /spillTargetCode:3 a.dfy
     - name: Check Go compile
       run: |
-        dafny/dafny /compile:3 /spillTargetCode:3 /compileTarget:go a.dfy
+        dafny /compile:3 /spillTargetCode:3 /compileTarget:go a.dfy
         ##go run a-go/src/a.go a-go/src/*/*.go dafny/DafnyRuntime.go
     - name: Check Javascript compile
       run: |
         npm install bignumber.js
-        dafny/dafny /compile:3 /spillTargetCode:3 /compileTarget:js a.dfy
+        dafny /compile:3 /spillTargetCode:3 /compileTarget:js a.dfy
         node a.js dafny/DafnyRuntime.js | tail -1 | diff - expect.txt
     - name: Check Java compile
       run: |
         ls dafny/DafnyRuntime.java || echo NO DafnyRuntime.java
-        dafny/dafny /compile:3 /spillTargetCode:3 /compileTarget:java a.dfy || echo EXPECTED FAILURE UNTIL DafnyRuntime.java is restored
+        dafny /compile:3 /spillTargetCode:3 /compileTarget:java a.dfy || echo EXPECTED FAILURE UNTIL DafnyRuntime.java is restored
 
