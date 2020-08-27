@@ -777,9 +777,11 @@ B) Run-time testing
 
 Verification and run-time testing are complementary and both have their role in assuring that software does what is intended. Dafny can produce executables and
 these can be instrumented with unit tests.
-By annotating a method with `{:test}` indicates to the compiler that it should
+Annotating a method with the `{:test}` attribute
+indicates to the compiler that it should
 produce target code that is correspondingly annotated to mark the method as 
-a unit test (e.g., an XUnit test). Within that method one might use `expect`
+a unit test (e.g., an XUnit test) in the target language. 
+Within that method one might use `expect`
 statements (as well as `print` statements) to insert checks that the target
 program is behaving as expected.
 
