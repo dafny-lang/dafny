@@ -69,7 +69,7 @@ jobs:
         node a.js dafny/DafnyRuntime.js | tail -1 > actual.txt
         diff actual.txt expect.txt
     - name: Check Java compile
-      run: |
-        ls dafny/DafnyRuntime.java || echo NO DafnyRuntime.java
-        dafny/dafny /compile:3 /spillTargetCode:3 /compileTarget:java a.dfy || echo EXPECTED FAILURE UNTIL DafnyRuntime.java is restored
+      ##run: |
+        ##ls dafny/DafnyRuntime.java || echo NO DafnyRuntime.java
+        ##dafny/dafny /compile:3 /spillTargetCode:3 /compileTarget:java a.dfy || echo EXPECTED FAILURE UNTIL DafnyRuntime.java is restored
 
