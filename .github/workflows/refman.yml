@@ -69,10 +69,10 @@ jobs:
     - name: Install latex pandoc - Linux
       if: runner.os == 'Linux'
       run: sudo apt-get install texlive texlive-xetex pandoc pandoc-citeproc
-    - name: Install pandoc - MacOS
+    - name: Install latex pandoc - MacOS
       if: runner.os == 'MacOS'
       run: |
-        brew install latex pandoc pandoc-citeproc
+        brew install pandoc pandoc-citeproc
         brew cask install texlive texlive-xetex
         eval "$(/usr/libexec/path_helper)"
         tlmgr install framed
