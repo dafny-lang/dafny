@@ -78,7 +78,7 @@ jobs:
       if: matrix.os == 'ubuntu-latest'
       run: sudo apt-get install texlive-science
     - if: matrix.os != 'ubuntu-latest' && runner.os == 'Linux'
-      run: sudo-apt-get install texlive-math-extra
+      run: sudo apt-get install texlive-math-extra
     - name: Install latex pandoc - MacOS
       if: runner.os == 'MacOS'
       run: |
