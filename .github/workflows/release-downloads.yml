@@ -42,7 +42,9 @@ jobs:
     - name: Download ${{matrix.os}}} releases ( ${{matrix.osn}} )
       if: runner.os != 'Windows'
       run: |
+        echo $URL1
         wget -q $URL1
+        echo $URL2
         wget -q $URL2
         unzip dafny*.zip && rm dafny*.zip
         chmod +x dafny/Dafny.exe
