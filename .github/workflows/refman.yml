@@ -55,6 +55,7 @@ jobs:
       run: msbuild dafny/Source/Dafny.sln
     - name: Versions
       run: |
+        ls -R dafny
         dafny/Binaries/dafny -version
         dafny/Binaries/z3/bin/z3 -version
     - name: Install pandoc
@@ -66,7 +67,7 @@ jobs:
         brew cask install basictex
         eval "$(/usr/libexec/path_helper)"
         tlmgr install framed
-    - name: CHeck install
+    - name: Check install
       run: |
         which latex || echo NOT FOUND latex
         which xelatex || echo NOT FOUND xelatex
