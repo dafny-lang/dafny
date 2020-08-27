@@ -92,7 +92,7 @@ jobs:
       run: dafny/dafny /compile:0 b.dfy /z3exe:z3/bin/z3 || echo "EXPECTED FAILURE"
     - name: Check bad - Windows
       if: runner.os == 'Windows'
-      run: (dafny/dafny /compile:0 b.dfy /z3exe:z3/bin/z3.exe || echo "EXPECTED FAILURE") && exit 0
+      run: (dafny/dafny /compile:0 b.dfy /z3exe:z3/bin/z3.exe || echo "EXPECTED FAILURE") ; exit 0
     ## Check that a simple program compiles and runs on each supported platform
     - name: Check C# compile
       run: |
@@ -105,7 +105,8 @@ jobs:
       run: |
         npm install bignumber.js
         dafny/dafny /compile:3 /spillTargetCode:3 /compileTarget:js a.dfy
-        node a.js dafny/DafnyRuntime.js | tail -1 | diff - expect.txt
+        node a.js dafny/DafnyRuntime.js | tail -1 > actual.txt
+        diff actual.txt expect.txt
     - name: Check Java compile
       run: |
         ls dafny/DafnyRuntime.java || echo NO DafnyRuntime.java
