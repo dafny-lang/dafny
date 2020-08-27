@@ -12,12 +12,12 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ ubuntu-latest, ubuntu-16.04, macos-latest ]
+        os: [ ubuntu-16.04, macos-latest ]
 
 
     steps:
     - name: OS
-      run: echo ${{ runner.os }}
+      run: echo ${{ runner.os }} ${{ matrix.os }}
     - name: Setup Nuget
       uses: nuget/setup-nuget@v1
     - name: Manually sync certs

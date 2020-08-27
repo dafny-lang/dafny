@@ -29,8 +29,10 @@ jobs:
     - name: Versions
       run: |
         ./z3/bin/z3 -version
+        z3 -version
         dafny -version || echo OK
         which dafny
+        which z3
         # -version is not supported in old dafny, 
         # but this gives the version with an error
     - name: Check
