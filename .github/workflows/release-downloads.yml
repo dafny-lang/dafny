@@ -17,6 +17,15 @@ jobs:
         ver: [ v3.0.0-pre-release-1 ]
         rel: [ dafny-3.0.0-pre-1 ]
         z3: [ 'https://github.com/Z3Prover/z3/releases/download/z3-4.8.4/z3-4.8.4.d6df51951f4c' ]
+        include:
+        - os:  ubuntu-latest
+          osn: ubuntu-16.04
+        - os:  ubuntu-16.04
+          osn: ubuntu-16.04
+        - os:  macos-latest
+          osn: osx-10.14.1
+        - os:  windows-latest
+          osn: win
     # There is no hosted environment for Unbuntu 14.04 or for debian
 
     # Mac environments need mono, but it is installed by default
@@ -29,45 +38,27 @@ jobs:
       uses: actions/setup-java@v1
       with:
         java-version: 1.8
-    - name: Download Ubuntu 16.04 releases
-      if: matrix.os == 'ubuntu-16.04' || matrix.os == 'ubuntu-18.04' || matrix.os == 'ubuntu-latest'
-      run: |
-        wget -q ${{join(["https://github.com/dafny-lang/dafny/releases/download/", matrix.ver,"/",matrix.rel,"-x64-ubuntu-16.04.zip"],"")}}
-        wget -q ${{join([matrix.z3,"ubuntu-16.04.zip"],"")}}
-        echo Fetched Ubuntu 16.04 dafny, z3
-    - name: Download Ubuntu 14.04 releases
-      if: matrix.os == 'ubuntu-14.04'
-      run: |
-        wget -q ${{join(["https://github.com/dafny-lang/dafny/releases/download/", matrix.ver,"/",matrix.rel,"-x64-ubuntu-14.04.zip"],"")}}
-        wget -q ${{join([matrix.z3,"ubuntu-14.04.zip"],"")}}
-        echo Fetched Ubuntu 14.04 dafny, z3
-    - name: Download Mac releases
-      if: startsWith(matrix.os, "macos")
-      run: |
-        wget -q ${{join(["https://github.com/dafny-lang/dafny/releases/download/", matrix.ver,"/",matrix.rel,"-x64-osx-10.14.1.zip"],"")}}
-        wget -q ${{join([matrix.z3,"-osx-10.14.1.zip"],"")}}
-        echo Fetched MacOS 10.14 dafny, z3
-    - name: Download Windows releases
-      if: runner.os == 'Windows'
-      shell: pwsh
-      run: |
-        Invoke-WebRequest -Outfile dafnyX.zip -Uri {{join(["https://github.com/dafny-lang/dafny/releases/download/", matrix.ver,"/",matrix.rel,"-x64-win.zip"],"")}} 
-        Invoke-WebRequest -Outfile z3X.zip -Uri ${{join([matrix.z3,"-win.zip"],"")}}
-    - name: Unpack releases - Windows
-      if: runner.os == 'Windows'
-      run: |
-        Expand-Archive dafny*.zip
-        mv dafnyX/dafny dafny
-        Expand-Archive z3X.zip
-        mv z3*/z3-* z3
 
-    - name: Unpack Releases - non Windows
+    - name: Download ${{matrix.os}}} releases ( ${{matrix.osn}} )
       if: runner.os != 'Windows'
       run: |
+        wget -q ${{join(["https://github.com/dafny-lang/dafny/releases/download/", matrix.ver,"/",matrix.rel,"-x64-",matrix.osn,".zip"],"")}}
+        wget -q ${{join([matrix.z3,"-",matrix.osn,".zip"],"")}}
         unzip dafny*.zip && rm dafny*.zip
         chmod +x dafny/Dafny.exe
         unzip z3*.zip && rm z3*.zip
         mv z3-* z3
+
+    - name: Download Windows releases
+      if: runner.os == 'Windows'
+      shell: pwsh
+      run: |
+        Invoke-WebRequest -Outfile dafnyX.zip -Uri {{join(["https://github.com/dafny-lang/dafny/releases/download/", matrix.ver,"/",matrix.rel,"-x64-",matrix.osn,".zip"],"")}} 
+        Invoke-WebRequest -Outfile z3X.zip -Uri ${{join([matrix.z3,"-",matrix.osn,".zip"],"")}}
+        Expand-Archive dafny*.zip
+        mv dafnyX/dafny dafny
+        Expand-Archive z3X.zip
+        mv z3*/z3-* z3
 
     ## Create a simple smoke test program
     - name: Make test program
