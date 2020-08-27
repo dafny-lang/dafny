@@ -42,8 +42,7 @@ jobs:
     - name: Download ${{matrix.os}}} releases ( ${{matrix.osn}} )
       if: runner.os != 'Windows'
       run: |
-        echo ${{[matrix.z3, '-', matrix.osn, '.zip']}}
-        #wget -q ${{join([matrix.z3, '-', matrix.osn, '.zip'], '')}}
+        wget -q ${{matrix.z3 & '-' &  matrix.osn & '.zip', '')}}
         #wget -q ${{join(["https://github.com/dafny-lang/dafny/releases/download/", matrix.ver,"/",matrix.rel,"-x64-",matrix.osn,".zip"],"")}}
         #unzip dafny*.zip && rm dafny*.zip
         #chmod +x dafny/Dafny.exe
