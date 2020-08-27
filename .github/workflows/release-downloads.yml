@@ -13,7 +13,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ ubuntu-latest, ubuntu-16.04, macos-latest ]
+        os: [ ubuntu-latest, ubuntu-16.04, macos-latest, windows-latest ]
     # There is no hosted environment for Unbuntu 14.04 or for debian
 
     # Mac environments need mono, but it is installed by default
@@ -44,14 +44,28 @@ jobs:
         wget -q https://github.com/dafny-lang/dafny/releases/download/v3.0.0-pre-release-1/dafny-3.0.0-pre-1-x64-osx-10.14.1.zip
         wget -q https://github.com/Z3Prover/z3/releases/download/z3-4.8.4/z3-4.8.4.d6df51951f4c-x64-osx-10.14.1.zip
         echo Fetched MacOS 10.14 dafny, z3
-    - name: Unpack Dafny
+    - name: Download Windows releases
+      if: runner.os == 'Windows'
+      shell: pwsh
+      run: |
+        Invoke-WebRequest -Outfile dafnyX.zip -Uri  'https://github.com/dafny-lang/dafny/releases/download/v3.0.0-pre-release-1/dafny-3.0.0-pre-1-x64-win.zip'
+        Invoke-WebRequest -Outfile z3X.zip -Uri  https://github.com/Z3Prover/z3/releases/download/z3-4.8.4/z3-4.8.4.d6df51951f4c-x64-win.zip
+    - name: Unpack releases - Windows
+      if: runner.os == 'Windows'
+      run: |
+        Expand-Archive dafny*.zip
+        mv dafnyX/dafny dafny
+        Expand-Archive z3X.zip
+        mv z3*/z3-* z3
+
+    - name: Unpack Releases - non Windows
+      if: runner.os != 'Windows'
       run: |
         unzip dafny*.zip && rm dafny*.zip
         chmod +x dafny/Dafny.exe
-    - name: Unpack Z3
-      run: |
         unzip z3*.zip && rm z3*.zip
         mv z3-* z3
+
     ## Create a simple smoke test program
     - name: Make test program
       run: |
@@ -68,9 +82,9 @@ jobs:
     - name: Check
       run: dafny/dafny /compileVerbose:0 /compile:0 a.dfy /z3exe:z3/bin/z3
     - name: Check bad
-      run: dafny/dafny /compile:0 b.dfy || echo EXPECTED FAILURE
+      run: dafny/dafny /compile:0 b.dfy || echo "EXPECTED FAILURE"
     - name: Check bad
-      run: dafny/dafny /compile:0 b.dfy /z3exe:z3/bin/z3 || echo EXPECTED FAILURE
+      run: dafny/dafny /compile:0 b.dfy /z3exe:z3/bin/z3 || echo "EXPECTED FAILURE"
     ## Check that a simple program compiles and runs on each supported platform
     - name: Check C# compile
       run: |
