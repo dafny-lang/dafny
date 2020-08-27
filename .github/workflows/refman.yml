@@ -16,6 +16,8 @@ jobs:
 
 
     steps:
+    - name: OS
+      run: echo ${{ runner.os }}
     - name: Setup Nuget
       uses: nuget/setup-nuget@v1
     - name: Manually sync certs
@@ -60,10 +62,10 @@ jobs:
         dafny/Binaries/dafny -version
         dafny/Binaries/z3/bin/z3 -version
     - name: Install pandoc - Linux
-      if: runner.os == Linux
+      if: runner.os == 'Linux'
       run: apt-get install texlive pandoc pandoc-citeproc
     - name: Install pandoc - MacOS
-      if: runner.os == MacOS
+      if: runner.os == 'MacOS'
       run: |
         brew install pandoc pandoc-citeproc
         brew cask install texlive
