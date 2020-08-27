@@ -9,7 +9,7 @@ on:
 jobs:
   build:
 
-    runs-on: macos-latest
+    runs-on: [ macos-latest, ubuntu-latest ]
 
     steps:
     - name: Setup Nuget
@@ -61,6 +61,7 @@ jobs:
       run: |
         brew cask install basictex
         eval "$(/usr/libexec/path_helper)"
+        tlmgr install framed
     - name: CHeck install
       run: |
         which latex || echo NOT FOUND latex
