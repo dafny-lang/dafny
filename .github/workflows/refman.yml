@@ -68,12 +68,16 @@ jobs:
         dafny/Binaries/z3/bin/z3 -version
     - name: Install latex pandoc - Linux
       if: runner.os == 'Linux'
-      run: sudo apt-get install texlive texlive-xetex pandoc pandoc-citeproc
+      run: |
+        sudo apt-get install texlive texlive-xetex
+        wget https://github.com/jgm/pandoc/releases/download/2.10.1/pandoc-2.10.1-1-amd64.deb -outfile pandoc.deb
+        sudo dpkg -i pandoc.deb
+      # apt-get has pandoc, but it is outdated
     - name: Install latex pandoc - MacOS
       if: runner.os == 'MacOS'
       run: |
         brew install pandoc pandoc-citeproc
-        brew cask install texlive texlive-xetex
+        brew cask install basictex texlive-xetex
         eval "$(/usr/libexec/path_helper)"
         tlmgr install framed
     - name: Install syntax highlighting
