@@ -55,10 +55,10 @@ jobs:
       if: runner.os == 'Windows'
       shell: pwsh
       run: |
-        echo %URL1%
-        echo %URL2%
-        Invoke-WebRequest -Outfile dafnyX.zip -Uri %URL1% 
-        Invoke-WebRequest -Outfile z3X.zip -Uri %URL2%
+        echo $Env:URL1
+        echo $Env:URL2
+        Invoke-WebRequest -Outfile dafnyX.zip -Uri $Env:URL1
+        Invoke-WebRequest -Outfile z3X.zip -Uri $Env:URL2
         Expand-Archive dafny*.zip
         mv dafnyX/dafny dafny
         Expand-Archive z3X.zip
