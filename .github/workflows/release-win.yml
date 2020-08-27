@@ -24,12 +24,11 @@ jobs:
     - name: Unpack release
       run: |
         ls -R .
-        rm -rf dafny
-        unzip dafny*.zip && rm dafny*.zip
+        Expand-Archive dafny*.zip
     - name: Get Z3
       run: |
-        Invoke-WebRequest -Outfile z3.zip -Uri  https://github.com/Z3Prover/z3/releases/download/z3-4.8.4/z3-4.8.4.d6df51951f4c-x64-win.zip
-        unzip z3*.zip && rm *.zip
+        Invoke-WebRequest -Outfile z3X.zip -Uri  https://github.com/Z3Prover/z3/releases/download/z3-4.8.4/z3-4.8.4.d6df51951f4c-x64-win.zip
+        Expand-Archive z3X.zip
         cp -r z3-* z3
     - name: Make test program
       run: |
