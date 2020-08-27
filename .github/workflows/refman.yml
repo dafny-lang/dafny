@@ -55,18 +55,22 @@ jobs:
       run: msbuild dafny/Source/Dafny.sln
     - name: Versions
       run: |
-        ls -R dafny
+        ls -Ra dafny/Binaries
+        file dafny/Binaries/dafny
         dafny/Binaries/dafny -version
         dafny/Binaries/z3/bin/z3 -version
-    - name: Install pandoc
-      run: brew install pandoc
-    - name: Install syntax highlighting
-      run: echo SKIPPING gem install rouge
-    - name: Install MacTex
+    - name: Install pandoc - Linux
+      if: runner.os == Linux
+      run: apt-get install texlive pandoc pandoc-citeproc
+    - name: Install pandoc - MacOS
+      if: runner.os == MacOS
       run: |
-        brew cask install basictex
+        brew install pandoc pandoc-citeproc
+        brew cask install texlive
         eval "$(/usr/libexec/path_helper)"
         tlmgr install framed
+    - name: Install syntax highlighting
+      run: echo SKIPPING gem install rouge
     - name: Check install
       run: |
         which latex || echo NOT FOUND latex

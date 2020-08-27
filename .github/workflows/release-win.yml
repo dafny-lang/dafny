@@ -12,8 +12,6 @@ jobs:
     runs-on: windows-latest
 
     steps:
-    - name: OS
-      run: echo ${{ matrix.os }}
     - name: Set up JDK 1.8
       uses: actions/setup-java@v1
       with:
