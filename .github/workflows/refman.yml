@@ -69,7 +69,7 @@ jobs:
     - name: Install latex pandoc - Linux
       if: runner.os == 'Linux'
       run: |
-        sudo apt-get install texlive texlive-xetex texlive-math-extra
+        sudo apt-get install texlive texlive-xetex
         wget https://github.com/jgm/pandoc/releases/download/2.10.1/pandoc-2.10.1-1-amd64.deb
         sudo dpkg -i *.deb
         rm -rf *.deb
