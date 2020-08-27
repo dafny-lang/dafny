@@ -11,6 +11,7 @@ jobs:
 
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
         os: [ ubuntu-16.04, macos-latest ]
 
@@ -65,20 +66,21 @@ jobs:
         file dafny/Binaries/dafny
         dafny/Binaries/dafny -version
         dafny/Binaries/z3/bin/z3 -version
-    - name: Install pandoc - Linux
+    - name: Install latex pandoc - Linux
       if: runner.os == 'Linux'
       run: sudo apt-get install texlive texlive-xetex pandoc pandoc-citeproc
     - name: Install pandoc - MacOS
       if: runner.os == 'MacOS'
       run: |
-        brew install pandoc pandoc-citeproc
-        brew cask install texlive
+        brew install latex pandoc pandoc-citeproc
+        brew cask install texlive texlive-xetex
         eval "$(/usr/libexec/path_helper)"
         tlmgr install framed
     - name: Install syntax highlighting
       run: sudo gem install rouge
     - name: Check install
       run: |
+        pandoc -v
         which latex || echo NOT FOUND latex
         which xelatex || echo NOT FOUND xelatex
         find /usr/local -name xelatex || echo NOT FOUND
