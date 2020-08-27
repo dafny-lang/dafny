@@ -42,8 +42,8 @@ jobs:
     - name: Download ${{matrix.os}}} releases ( ${{matrix.osn}} )
       if: runner.os != 'Windows'
       run: |
-        wget -q ${{ URL1 }}
-        wget -q ${{ URL2 }}
+        wget -q $URL1
+        wget -q $URL2
         unzip dafny*.zip && rm dafny*.zip
         chmod +x dafny/Dafny.exe
         unzip z3*.zip && rm z3*.zip
@@ -55,8 +55,8 @@ jobs:
       if: runner.os == 'Windows'
       shell: pwsh
       run: |
-        Invoke-WebRequest -Outfile dafnyX.zip -Uri ${{ URL1 }} 
-        Invoke-WebRequest -Outfile z3X.zip -Uri ${{ URL2 }}
+        Invoke-WebRequest -Outfile dafnyX.zip -Uri $URL1 
+        Invoke-WebRequest -Outfile z3X.zip -Uri $URL2
         Expand-Archive dafny*.zip
         mv dafnyX/dafny dafny
         Expand-Archive z3X.zip
