@@ -47,6 +47,7 @@ jobs:
       run: cat a.dfy && dafny/dafny /compile:0 a.dfy 
     - name: Check bad
       run: |
+        Format-Hex b.dfy
         cat b.dfy
         dafny/dafny /compile:0 b.dfy || echo EXPECTED FAILURE
     - name: Check
