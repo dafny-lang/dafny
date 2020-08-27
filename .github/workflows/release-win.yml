@@ -36,8 +36,10 @@ jobs:
         echo "method m() { assert false; }" > b.dfy
     - name: Versions
       run: |
-        ./z3/bin/z3 -version
-        dafny/Dafny.exe -help | head -2
+        ls -R z3
+        ./z3/bin/z3.exe -version
+        dafny/Dafny.exe -version || echo OK
+        dafny/dafny -version || echo OK
     - name: Check
       run: dafny/dafny /compile:0 a.dfy 
     - name: Check bad
