@@ -51,9 +51,9 @@ jobs:
         cat b.dfy
         dafny/dafny /compile:0 b.dfy || echo "EXPECTED FAILURE" ; exit 0
     - name: Check
-      run: dafny/dafny /compile:0 a.dfy /z3exe:z3/bin/z3
+      run: dafny/dafny /compile:0 a.dfy /z3exe:z3/bin/z3.exe
     - name: Check bad
-      run: dafny/dafny /compile:0 b.dfy /z3exe:z3/bin/z3 || echo "EXPECTED FAILURE" ; exit 0`
+      run: dafny/dafny /compile:0 b.dfy /z3exe:z3/bin/z3.exe3 || echo "EXPECTED FAILURE" ; exit 0`
     ## Check that a simple program compiles and runs on each supported platform
     - name: Check C# compile
       run: |

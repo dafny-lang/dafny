@@ -79,12 +79,20 @@ jobs:
         dafny/dafny  -version
     - name: Check
       run: dafny/dafny /compileVerbose:0 /compile:0 a.dfy
-    - name: Check
+    - name: Check - non Windows
+      if: runner.os != 'Windows'
       run: dafny/dafny /compileVerbose:0 /compile:0 a.dfy /z3exe:z3/bin/z3
+    - name: Check - Windows
+      if: runner.os == 'Windows'
+      run: dafny/dafny /compileVerbose:0 /compile:0 a.dfy /z3exe:z3/bin/z3.exe
     - name: Check bad
       run: dafny/dafny /compile:0 b.dfy || echo "EXPECTED FAILURE"
-    - name: Check bad
-      run: dafny/dafny /compile:0 b.dfy /z3exe:z3/bin/z3 || echo "EXPECTED FAILURE"
+    - name: Check bad - non Windows
+      if: runner.os != 'Windows'
+      run: dafny/dafny /compile:0 b.dfy /z3exe:z3/bin/z3 || echo "EXPECTED FAILURE"; exit 0
+    - name: Check bad - Windows
+      if: runner.os == 'Windows'
+      run: dafny/dafny /compile:0 b.dfy /z3exe:z3/bin/z3i.exe || echo "EXPECTED FAILURE"; exit 0
     ## Check that a simple program compiles and runs on each supported platform
     - name: Check C# compile
       run: |
