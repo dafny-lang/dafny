@@ -19,11 +19,12 @@ jobs:
       with:
         java-version: 1.8
     - name: Download Windows release
-      run: Invoke-WebRequest -Outfile dafny.zip -Uri  'https://github.com/dafny-lang/dafny/releases/download/v3.0.0-pre-release-1/dafny-3.0.0-pre-1-x64-win.zip' 
+      run: Invoke-WebRequest -Outfile dafnyX.zip -Uri  'https://github.com/dafny-lang/dafny/releases/download/v3.0.0-pre-release-1/dafny-3.0.0-pre-1-x64-win.zip' 
       shell: pwsh
     - name: Unpack release
       run: |
         ls -R .
+        rm -rf dafny
         unzip dafny*.zip && rm dafny*.zip
     - name: Get Z3
       run: |
