@@ -74,6 +74,11 @@ jobs:
         sudo dpkg -i *.deb
         rm -rf *.deb
       # apt-get has pandoc, but it is outdated
+    - name Extra linux packages
+      if: matrix.os == 'ubuntu-latest'
+      run: sudo apt-get install texlive-science
+    - if: matrix.os != 'ubuntu-latest' && runner.os == 'Linux'
+      run: sudo-apt-get install texlive-math-extra
     - name: Install latex pandoc - MacOS
       if: runner.os == 'MacOS'
       run: |
