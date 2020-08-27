@@ -80,6 +80,8 @@ jobs:
         brew install pandoc pandoc-citeproc
         brew cask install basictex
         eval "$(/usr/libexec/path_helper)"
+    - name: Add LaTeX packages
+      run: |
         sudo tlmgr update --self
         sudo tlmgr install framed tcolorbox environ trimspaces unicode-math
     - name: Install syntax highlighting
