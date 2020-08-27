@@ -13,7 +13,10 @@ jobs:
 
     steps:
     - name: OS
-      run: echo ${{ runner.os }}
+      run: |
+        echo ${{ runner.os }}
+        pwd
+        ls -R .
     - name: Set up JDK 1.8
       uses: actions/setup-java@v1
       with:
@@ -25,21 +28,24 @@ jobs:
       run: |
         ls -R .
         Expand-Archive dafny*.zip
+        echo Expanded
+        ls -R .
     - name: Get Z3
       run: |
         Invoke-WebRequest -Outfile z3X.zip -Uri  https://github.com/Z3Prover/z3/releases/download/z3-4.8.4/z3-4.8.4.d6df51951f4c-x64-win.zip
         Expand-Archive z3X.zip
-        cp -r z3-* z3
+        mv z3* z3
+        ls -R .
     - name: Make test program
       run: |
         echo "method Main() { assert true; print 42, '\n'; }" > a.dfy
         echo "method m() { assert false; }" > b.dfy
     - name: Versions
       run: |
-        ls -R z3
-        ./z3/bin/z3.exe -version
         dafny/Dafny.exe -version || echo OK
         dafny/dafny -version || echo OK
+        ls -R z3
+        ./z3/bin/z3.exe -version
     - name: Check
       run: dafny/dafny /compile:0 a.dfy 
     - name: Check bad
