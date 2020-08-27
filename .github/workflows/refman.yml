@@ -81,7 +81,7 @@ jobs:
         brew cask install basictex
         eval "$(/usr/libexec/path_helper)"
         sudo tlmgr update --self
-        sudo tlmgr install framed
+        sudo tlmgr install framed tcolorbox
     - name: Install syntax highlighting
       run: sudo gem install rouge
     - name: Check install

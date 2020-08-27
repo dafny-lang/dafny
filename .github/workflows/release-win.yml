@@ -19,7 +19,8 @@ jobs:
       with:
         java-version: 1.8
     - name: Download Windows release
-      run: wget 'https://github.com/dafny-lang/dafny/releases/download/v3.0.0-pre-release-1/dafny-3.0.0-pre-1-x64-win.zip' -outfile 'dafny.zip'
+      run: wget 'https://github.com/dafny-lang/dafny/releases/download/v3.0.0-pre-release-1/dafny-3.0.0-pre-1-x64-win.zip' 
+      shell: pwsh
     - name: Unpack release
       run: |
         ls -R .
