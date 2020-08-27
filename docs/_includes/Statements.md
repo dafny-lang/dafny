@@ -773,7 +773,17 @@ Here we can verify that `Random'` satisfies its own specification, relying on
 the unverified specification of `Random`. But we are also checking at run-time
 that any input-output pairs for `Random` encountered during execution do satisfythe specification, as they are checked by the `expect` statement.
 
-B) Compiler tests
+B) Run-time testing
+
+Verification and run-time testing are complementary and both have their role in assuring that software does what is intended. Dafny can produce executables and
+these can be instrumented with unit tests.
+By annotating a method with `{:test}` indicates to the compiler that it should
+produce target code that is correspondingly annotated to mark the method as 
+a unit test (e.g., an XUnit test). Within that method one might use `expect`
+statements (as well as `print` statements) to insert checks that the target
+program is behaving as expected.
+
+C) Compiler tests
 
 If one wants to assure that compiled code is behaving at run-time consistently with the statically verified code, one can use paired assert/expect statements
 with the same expression:
@@ -783,6 +793,7 @@ expect _P_;
 ```
 The verifier will check that _P_ is always true at the given point in a program
 (at the `assert` statement).
+
 At run-time, the compiler will insert checks that the same predicate, in the 
 `expect` statement is true. Any difference identifies a compiler bug.
 Note that the `expect` must be after the `assert`. If the `expect` is first, 
