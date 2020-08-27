@@ -67,7 +67,7 @@ jobs:
         dafny/Binaries/z3/bin/z3 -version
     - name: Install pandoc - Linux
       if: runner.os == 'Linux'
-      run: apt-get install texlive pandoc pandoc-citeproc
+      run: sudo apt-get install texlive pandoc pandoc-citeproc
     - name: Install pandoc - MacOS
       if: runner.os == 'MacOS'
       run: |
@@ -76,7 +76,7 @@ jobs:
         eval "$(/usr/libexec/path_helper)"
         tlmgr install framed
     - name: Install syntax highlighting
-      run: echo SKIPPING gem install rouge
+      run: sudo gem install rouge
     - name: Check install
       run: |
         which latex || echo NOT FOUND latex
