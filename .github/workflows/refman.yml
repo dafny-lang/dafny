@@ -70,8 +70,9 @@ jobs:
       if: runner.os == 'Linux'
       run: |
         sudo apt-get install texlive texlive-xetex
-        wget https://github.com/jgm/pandoc/releases/download/2.10.1/pandoc-2.10.1-1-amd64.deb --outfile pandoc.deb || echo STEP2
-        sudo dpkg -i pandoc.deb || echo STEP3
+        wget https://github.com/jgm/pandoc/releases/download/2.10.1/pandoc-2.10.1-1-amd64.deb  || echo STEP2
+        sudo dpkg -i *.deb || echo STEP3
+        rm -rf *.deb
       # apt-get has pandoc, but it is outdated
     - name: Install latex pandoc - MacOS
       if: runner.os == 'MacOS'
@@ -79,6 +80,7 @@ jobs:
         brew install pandoc pandoc-citeproc
         brew cask install basictex
         eval "$(/usr/libexec/path_helper)"
+        sudo tlmgr update --self
         sudo tlmgr install framed
     - name: Install syntax highlighting
       run: sudo gem install rouge
