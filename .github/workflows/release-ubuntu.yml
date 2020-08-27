@@ -12,12 +12,19 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ ubuntu-16.04, macos-latest ]
+        os: [ ubuntu-latest, ubuntu-16.04, macos-latest ]
     # There is no hosted environment for Unbuntu 14.04 or for debian
+
+    # Mac environments need mono, but it is installed by default
+    # Java is installed by default, but we need to select 1.8
 
     steps:
     - name: OS
       run: echo ${{ matrix.os }}
+    - name: Set up JDK 1.8
+      uses: actions/setup-java@v1
+      with:
+        java-version: 1.8
     - name: Download Ubuntu 16.04 releases
       if: matrix.os == 'ubuntu-16.04' || matrix.os == 'ubuntu-18.04' || matrix.os == 'ubuntu-latest'
       run: |
@@ -39,12 +46,11 @@ jobs:
     - name: Unpack Dafny
       run: |
         unzip dafny*.zip && rm dafny*.zip
-        ls -laR .
         chmod +x dafny/Dafny.exe
     - name: Unpack Z3
       run: |
         unzip z3*.zip && rm z3*.zip
-        cp -r z3-* z3
+        mv z3-* z3
     ## Create a simple smoke test program
     - name: Make test program
       run: |
@@ -57,9 +63,9 @@ jobs:
         ./z3/bin/z3 -version
         dafny/dafny  -version
     - name: Check
-      run: dafny/dafny /compile:0 a.dfy
+      run: dafny/dafny /compileVerbose:0 /compile:0 a.dfy
     - name: Check
-      run: dafny/dafny /compile:0 a.dfy /z3exe:z3/bin/z3
+      run: dafny/dafny /compileVerbose:0 /compile:0 a.dfy /z3exe:z3/bin/z3
     - name: Check bad
       run: dafny/dafny /compile:0 b.dfy || echo EXPECTED FAILURE
     - name: Check bad
@@ -68,7 +74,6 @@ jobs:
     - name: Check C# compile
       run: |
         dafny/dafny /compileVerbose:0 /compile:3 /compileTarget:cs /spillTargetCode:3 a.dfy
-        ls -R dafny
     - name: Check Go compile
       run: |
         dafny/dafny /compile:3 /spillTargetCode:3 /compileTarget:go a.dfy
@@ -77,9 +82,9 @@ jobs:
       run: |
         npm install bignumber.js
         dafny/dafny /compile:3 /spillTargetCode:3 /compileTarget:js a.dfy
-        node a.js dafny/DafnyRuntime.js | diff - expect.txt
+        node a.js dafny/DafnyRuntime.js | tail -1 | diff - expect.txt
     - name: Check Java compile
       run: |
-        ls -la dafny
-        echo SKIPPING dafny/dafny /compile:3 /spillTargetCode:3 /compileTarget:java a.dfy 
+        ls dafny/DafnyRuntime.java || echo NO DafnyRuntime.java
+        dafny/dafny /compile:3 /spillTargetCode:3 /compileTarget:java a.dfy || echo EXPECTED FAILURE UNTIL DafnyRuntime.java is restored
 
