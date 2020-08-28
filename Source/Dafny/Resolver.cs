@@ -4769,12 +4769,18 @@ namespace Microsoft.Dafny
               }
             }
             if (anyNewConstraints) break;
+            TypeConstraint oneSuper = null;
+            TypeConstraint oneSub = null;
             var ss = new HashSet<Type>();
             foreach (var c in AllTypeConstraints) {
               var super = c.Super.NormalizeExpand();
               var sub = c.Sub.NormalizeExpand();
-              if (super is TypeProxy && !ss.Contains(super)) ss.Add(super);
-              if (sub is TypeProxy && !ss.Contains(sub)) ss.Add(sub);
+              if (super is TypeProxy && !ss.Contains(super)) {
+                ss.Add(super);
+              }
+              if (sub is TypeProxy && !ss.Contains(sub)) {
+                ss.Add(sub);
+              }
             }
 
             foreach (var t in ss) {
@@ -4783,8 +4789,14 @@ namespace Microsoft.Dafny
               foreach (var c in AllTypeConstraints) {
                 var super = c.Super.NormalizeExpand();
                 var sub = c.Sub.NormalizeExpand();
-                if (t.Equals(super)) lowers.Add(sub);
-                if (t.Equals(sub)) uppers.Add(super);
+                if (t.Equals(super)) {
+                  lowers.Add(sub);
+                  oneSub = c;
+                }
+                if (t.Equals(sub)) {
+                  uppers.Add(super);
+                  oneSuper = c;
+                }
               }
 
               bool done = false;
@@ -4792,7 +4804,10 @@ namespace Microsoft.Dafny
                 foreach (var tu in uppers) {
                   if (tl.Equals(tu)) {
                     if (!ContainsAsTypeParameter(tu, t)) {
-                      ConstrainSubtypeRelation_Equal(t, tu, null);
+                      var errorMsg = new TypeConstraint.ErrorMsgWithBase(AllTypeConstraints[0].errorMsg,
+                        "Decision: {0} is decided to be {1} because the latter is both the upper and lower bound to the proxy",
+                        t, tu);
+                      ConstrainSubtypeRelation_Equal(t, tu, errorMsg);
                       // The above changes t so that it is a proxy with an assigned type
                       anyNewConstraints = true;
                       done = true;
@@ -4819,7 +4834,10 @@ namespace Microsoft.Dafny
                   var em = lowers.GetEnumerator();
                   em.MoveNext();
                   if (!ContainsAsTypeParameter(em.Current, t)) {
-                    ConstrainSubtypeRelation_Equal(t, em.Current, null);
+                    var errorMsg = new TypeConstraint.ErrorMsgWithBase(oneSub.errorMsg,
+                      "Decision: {0} is decided to be {1} because the latter is a lower bound to the proxy and there is no constraint with an upper bound",
+                      t, em.Current);
+                    ConstrainSubtypeRelation_Equal(t, em.Current, errorMsg);
                     anyNewConstraints = true;
                     break;
                   }
@@ -4830,7 +4848,10 @@ namespace Microsoft.Dafny
                   var em = uppers.GetEnumerator();
                   em.MoveNext();
                   if (!ContainsAsTypeParameter(em.Current, t)) {
-                    ConstrainSubtypeRelation_Equal(t, em.Current, null);
+                    var errorMsg = new TypeConstraint.ErrorMsgWithBase(oneSuper.errorMsg,
+                      "Decision: {0} is decided to be {1} because the latter is an upper bound to the proxy and there is no constraint with a lower bound",
+                      t, em.Current);
+                    ConstrainSubtypeRelation_Equal(t, em.Current, errorMsg);
                     anyNewConstraints = true;
                     break;
                   }
