@@ -239,6 +239,153 @@ Note that the form
 
 is diagnosed as a label in which the user forgot the **label** keyword.
 
+## Update with Failure Statement
+
+An update statement using `:-`   instead of `:=` exits execution of a method immediately if a failure is reported. This is a form of exceptional return from the calling method.
+
+To use this form of update,
+   * the caller must have a first output value whose type is failure-compatible
+   * if the RHS of the update-with-failure statement is a method call, the first output value of the callee must be failure-compatible
+   * if instead the RHS of the update-with-failure statement is one or more expressions, the first of these expressions must be a value with a failure-compatible type
+
+A failure-compatible type is a type that has the following:
+   * a predicate `predicate IsFailure()`
+   * a method `method PropagateFailure() returns _X_ `: The type _X_ must be a failure-compatible type and must be the type of the first output of the caller.
+   * a method `method Extract() returns _T_` where _T_ is some type for the value carried by the type.
+
+TODO: Why should PropagateFailure and Extract be functions?
+
+### RHS with method call
+
+A common example of a failure-compatible type is the following:
+```
+datatype Outcome<T> =
+| Success(value: T)
+| Failure(error: string)
+{
+  predicate method IsFailure() {
+    this.Failure?
+  }
+  function method PropagateFailure(): Outcome<U>
+    requires IsFailure()
+  {
+    Failure(this.error); // this is Outcome<U>.Failure(...)
+  }
+  function method Extract(): T
+    requires !IsFailure()
+  {
+    this.value
+  }
+}
+```
+
+The use of this statement is best explained by an example:
+```
+method callee(i: int) returns (r: Outcome<nat>, v: int)
+{
+  if (i < 0) return Failure("negative")
+  return Success(i), i+i;
+}
+
+method caller(i: int) returns (rr: Outcome<int>, k: int)
+{
+  var j: int;
+  j, k :- callee(i);
+  k := k + k;
+}
+```
+Suppose `caller` is called with an argument of `10`. Then `callee` is called with argument `10` and returns `r` and `v` of `Outcome<nat>.Success(10)` and `20`. Here `r.IsFailure()` is `false`, so control proceeds normally. The `j` is assigned the result of `r.Extract()`, which will be `10`, and `k` is assigned `20`. Control flow proceeds to the next line, where `k` now gets the value `40`.
+
+Suppose instead  `caller` is called with an argument of `-1`. Then `callee` is called with the value `-1` and returns `r` and `v` of `Outcome<nat>.Failure("negative")` and `-2`. Now `r.IsFailure()` is `true`, so control proceeds directly to return from `caller`. The output values of `caller`  (`rr` and `k`) get the values of `r.PropagateFailure()`, which is `Outcome<int>.Failure("negative")`, and `-2`. The rest of the body of `caller` is skipped. In addition, the first return value of `caller` is now a failure value, so the exceptional return will propagate up the call stack as long as there are callers with this first special output type and calls that use `:-`.
+
+There are several points to note.
+   * The first output value is special. It has a special type and that type indicates that exceptional returns from `:-` statements are permitted in the body of a method with this return type.
+   * The callee must also have this special return type. However, it does not have to be the same type as is used by the caller. It just has to be possible (perhaps through generic instantiation and type inference, as in this example) for the callee's `PropagateFailure` function to produce a value of the caller's first output type.
+   * In the statement `j, k :- callee(i);`, the type of `j` is not the type of the first return value from `callee`. Rather it is the return type of `Extract` applied to the first return value of `callee`.
+   * A method like `callee` with a special first output type can still be used in the normal way:
+`r, k := callee(i)`. Now `r` gets the first output value from callee, of type `Outcome<nat>`. No special semantics or exceptional control paths apply. Subsequent code can do its own testing of the value of `r` and whatever other computations or control flow are desired.
+   * The caller and callee are here shown with 2 output arguments each. In fact they each can have any (positive) number of output arguments, as long as the first one has a failure-compatible type.
+
+It is important to note the connection between the failure-compatible types used in the caller and callee. They do not have to be the same type, but they must be closely related, as it must be possible for the callee's `PropagateFailure` to return a value of the caller's failure-compatible type. In practice this means that one such failure-compatible type should be used for an entire program. If a Dafny program uses a library shared by multiple programs, the library should supply such a type and it should be used by all the client programs (and, effectively, all Dafny libraries). 
+It is also the case that it is inconvenient to mix types such as `Outcome` above and `VoidOutcome` below.
+
+### RHS with expression list
+
+Instead of a failure-returning method call on the RHS of the statement, the RHS can instead be a list of expressions. As for a `:=` statement, in this form, there must be the same number of expressions on the left and right sides of `:-`. The semantics is very similar to that in the previous subsection. 
+   * The first RHS expression must have a failure-compatible type.
+   * All the assignments of RHS expressions to LHS values except for the first value are made.
+   * If the first RHS value (say `r`) responds `true` to `r.IsFailure()`, then `r.PropagateFailure()` is assigned to the first output value of the _caller_ and the execution of the caller's body is ended.
+   * If the first RHS value (say `r`) responds `false` to `r.IsFailure()`, then `r.Extract()` is assigned to the first LHS value of the `:-` statement. Execution of the caller's body continues with the statement following the `:-` statement.
+
+### Types without Extract
+
+An alternative form of the above behavior allows the failure-compatible type to omit the `Extract` method, A typical example would be
+```
+datatype VoidOutcome =
+| Success
+| Failure(error: string)
+{
+  predicate method IsFailure() {
+    this.Failure?
+  }
+  function method PropagateFailure(): VoidOutcome
+    requires IsFailure()
+  {
+  Failure(this.error); // this is Outcome<U>.Failure(...)
+  }
+}
+```
+Such a type also counts as a failure-compatible type for the purposes of a `:-` statement. However, now there is no `Extract` method and no value carried along with `Success`.
+The same exceptional return semantics apply. The only difference is that the list of LHS values now must omit what would be the first l-value, as there is no extracted value for it to get. Thus there may be no LHS values at all.
+
+In current Dafny, this form of exceptional return requires that the caller and callee each have only one output value, namely a value of this special failure-compatible extract-omitting type.
+
+TODO: Say more when the above restriction is lifted.
+
+### Chaining calls with potential failure
+
+Routinely using a first output value that has a failure-compatible type allows a programming style like that shown in the following example, using the `Outcome` class shown above.
+
+```
+method open(i: int) return (r: Outcome<int>) {
+  if (i < 0) return Failure("negative argument to a");
+  return Success(i+i);
+}
+
+method b(i: int) return (r: Outcome<bool>) {
+  if (i == 0) return Failure(zero argument to b");
+  return Success(100/i);
+}
+
+method c(i: int) return (r: Outcome<string>) {
+  if (i > 100) return Failure(big argument to c");
+  if (i > 0) Success("positive");
+  if (i < 0) Success("negative");
+  if (i == 0) Success("zero");
+}
+
+method m(i: int) return (r: Outcome<bool>){
+  var aa: int := a(i); // returns if i < 0
+  var bb: bool := b(i); // returns if i == 0
+  var cc: string := c(i); // returns if i > 100
+  return Success(true);
+}
+```
+
+TODO: Instead of requiring PropagateFailure, instead just desugar by calling
+CallerType.newFailure(this.error);
+
+
+
+
+
+### Failure returns and exceptions
+
+The `:-` mechanism for exceptional returns is like the exceptions used in other programming languages, with some similarities and differences.
+   * There is essentially just one kind of 'exception' in Dafny, the variations of the failure-compatible data type. Information about the failure is carried in the error message.
+   * A caller indicates that it accepts exceptional reeturns by declaring its first output to have a failure-compatible type. This is analogous to declaring that a method (e.g. in Java) might throw an exception.
+   * There is no such thing as an undeclared exception in Dafny. If a caller does not itself allow a failure output value, then that caller mayu nbot use `:-` and must receive any failure values from methods it calls using `:=`and then do something appropriate with the value. Because the failure value from the callee must be explicitly received, it cannot be silently ignored. (This is true of all the outputs from a called method.)
+
 ## Variable Declaration Statement
 ````grammar
 VarDeclStatement = [ "ghost" ] "var" { Attribute }
