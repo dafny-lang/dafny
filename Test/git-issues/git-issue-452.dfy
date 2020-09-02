@@ -6,8 +6,8 @@ function TwinPrimes(): (int, int) {
 }
 
 method Main() {
-  var p := TwinPrimes();  // uncommented, this gives an error, as expected
   var (x, y) := TwinPrimes();  // this should not be allowed, but the Resolver doesn't do the check
+  var p := TwinPrimes();  // uncommented, this gives an error, as expected
   print x, " ", y, "\n";
 }
 
