@@ -905,7 +905,7 @@ SubModuleDecl<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl sub
     "import" ["opened" (.opened = true;.)]
     ModuleName<out id>
     ( (. idPath = new List<IToken>(); idExports = new List<IToken>(); .)
-      [ QualifiedModuleExportSuffix<idPath, idExports> ]
+      OptQualifiedModuleExportSuffix<idPath, idExports>
       (. idPath.Insert(0, id);
          submodule = new AliasModuleDecl(idPath, idPath[idPath.Count-1], parent, opened, idExports);
       .)
@@ -972,13 +972,13 @@ ModuleName<out IToken id>
   .
 
 /* This production is for referring to module exports for imports (both normal and facades) */
-QualifiedModuleExportSuffix<.List<IToken> ids, List<IToken> exports.>
+OptQualifiedModuleExportSuffix<.List<IToken> ids, List<IToken> exports.>
 = (. IToken id; .)
-    { "." ModuleName<out id> (. ids.Add(id); .) }
+  { "." ModuleName<out id> (. ids.Add(id); .) }
   [ "`"
     ( ExportIdent<out id>       (. exports.Add(id); .)
     | "{" ExportIdent<out id>   (. exports.Add(id); .)
-      { "," ExportIdent<out id> (. exports.Add(id); .) }
+       { "," ExportIdent<out id> (. exports.Add(id); .) }
       "}"
     )
   ]
@@ -989,7 +989,7 @@ QualifiedModuleExport<.out List<IToken> ids, out List<IToken> exports.>
      List<IToken> sids = new List<IToken>(); exports = new List<IToken>();
   .)
   ModuleName<out id> (. ids.Add(id); .)
-  [ QualifiedModuleExportSuffix<sids, exports> ]
+  OptQualifiedModuleExportSuffix<sids, exports>
   (. ids.AddRange(sids); .)
   .
 
@@ -3323,7 +3323,7 @@ Lhs<out Expression e>
 ConstAtomExpression<out Expression e, bool allowSemi, bool allowLambda>
 = (. Contract.Ensures(Contract.ValueAtReturn(out e) != null);
      IToken/*!*/ x;  BigInteger n;   Basetypes.BigDec d;
-     e = dummyExpr;  Type toType = null;
+     e = dummyExpr;
   .)
   ( "false"                                    (. e = new LiteralExpr(t, false); .)
   | "true"                                     (. e = new LiteralExpr(t, true); .)
