@@ -1172,13 +1172,17 @@ well be used elsewhere as well) improves the self-documentation of the code.
 
 In Dafny, the following expressions are compile-time constants[^CTC], recursively 
 (that is, the arguments of any operation must themselves be compile-time constants):
-- int, bitvector, real, boolean, and string literals
-- builtin unary operations: `-` (int and real), `!` (bool and bitvector), and `|...|` (string length)
-- binary operations: `+ - * / %` (int and real), `<< >>` (bitvector), `+` (string concatenation), `&& ||` (bool)
-- bit operations: `& | ^` (bitvector)
-- comparison operations: `< <= > >=` (int and real), `== !=` (int, real, bool, string)
-- conversion operations: int <-> real, int <-> bitvector
+- int, bitvector, real, boolean, char and string literals
+- int operations: `+ - * / %` and unary `-` and comparisons `< <= > >= == !=`
+- real operations: `+ - *` and unary `-` and comparisons `< <= > >= == !='
+- bool operations: `&& || ==> <== <==> == !=` and unary '!'
+- bitvector operations: `+ - * / % << >> & | ^` and unary `! -` and comparisons `< <= > >= == !=`
+- char operations: `< <= > >= == !=`
+- string operations: length: `|...|`, concatenation: `+`, comparisons `< <= == !=`
+- conversions between: int real char bitvector
+- newtype operations: newtype arguments, but not newtype results
 - symbolic values that are declared `const` and have an explicit initialization value that is a compile-time constant
+- conditional (if-then-else) expressions
 - parenthesized expressions
 
 [^CTC]: This set of operations that are constant-folded may be enlarged in 

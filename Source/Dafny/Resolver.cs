@@ -3179,6 +3179,11 @@ namespace Microsoft.Dafny
       }
     }
 
+    private BigInteger MaxBV(Type t) {
+      int n = t.AsBitVectorType.Width;
+      return BigInteger.Pow(new BigInteger(2), n) - BigInteger.One;
+    }
+
     private void FigureOutNativeType(NewtypeDecl dd) {
       Contract.Requires(dd != null);
 
@@ -3260,6 +3265,9 @@ namespace Microsoft.Dafny
             if (ne.Type.IsNumericBased(Type.NumericPersuation.Int)) {
               return -(BigInteger)e0;
             }
+            if (ne.Type.IsBitVectorType) {
+              return MaxBV(ne.Type) - (BigInteger)e0 + BigInteger.One;
+            }
             if (ne.Type.IsNumericBased(Type.NumericPersuation.Real)) {
               return ((Basetypes.BigDec)e0).Negate;
             }
@@ -3309,92 +3317,158 @@ namespace Microsoft.Dafny
                         && bin.E1.Type.IsNumericBased(Type.NumericPersuation.Real);
           bool isInt = bin.E0.Type.IsNumericBased(Type.NumericPersuation.Int)
                        && bin.E1.Type.IsNumericBased(Type.NumericPersuation.Int);
-          bool isBV = bin.Type.IsBitVectorType;
-          int width = isBV ? bin.Type.AsBitVectorType.Width : 0;
+          bool isInteger = bin.Type.IsIntegerType;
+          bool isBV = bin.E0.Type.IsBitVectorType;
+          int width = isBV ? bin.E0.Type.AsBitVectorType.Width : 0;
           if (e0 == null || e1 == null) return null;
           bool isString = e0 is string && e1 is string;
           switch (bin.Op) {
             case BinaryExpr.Opcode.Add:
-              if (isInt) return (BigInteger) e0 + (BigInteger) e1;
+              if (isInteger) return (BigInteger) e0 + (BigInteger) e1;
+              if (isBV) return ((BigInteger) e0 + (BigInteger) e1) & MaxBV(bin.Type);
               if (isString) return (string) e0 + (string) e1;
               if (isReal) return (Basetypes.BigDec) e0 + (Basetypes.BigDec) e1;
               break;
             case BinaryExpr.Opcode.Sub:
-              if (isInt) return (BigInteger) e0 - (BigInteger) e1;
+              if (isInteger) return (BigInteger) e0 - (BigInteger) e1;
+              if (isBV) return ((BigInteger) e0 - (BigInteger) e1) & MaxBV(bin.Type);
+              if (isReal) return (Basetypes.BigDec) e0 - (Basetypes.BigDec) e1;
               break;
             case BinaryExpr.Opcode.Mul:
-              if (isInt) return (BigInteger) e0 * (BigInteger) e1;
+              if (isInteger) return (BigInteger) e0 * (BigInteger) e1;
+              if (isBV) return ((BigInteger) e0 * (BigInteger) e1) & MaxBV(bin.Type);
+              if (isReal) return (Basetypes.BigDec) e0 * (Basetypes.BigDec) e1;
               break;
             case BinaryExpr.Opcode.BitwiseAnd:
-              if (isInt) return (BigInteger) e0 & (BigInteger) e1;
+              if (isBV) return (BigInteger) e0 & (BigInteger) e1;
               break;
             case BinaryExpr.Opcode.BitwiseOr:
-              if (isInt) return (BigInteger) e0 | (BigInteger) e1;
+              if (isBV) return (BigInteger) e0 | (BigInteger) e1;
               break;
             case BinaryExpr.Opcode.BitwiseXor:
-              if (isInt) return (BigInteger) e0 ^ (BigInteger) e1;
+              if (isBV) return (BigInteger) e0 ^ (BigInteger) e1;
               break;
             case BinaryExpr.Opcode.Div:
-              if (isInt) {
+              if (isInteger) {
                 if ((BigInteger) e1 == 0) {
                   reporter.Error(MessageSource.Resolver, bin.E1,
                     "Divide by zero in compiler constant expression");
                   break;
                 } else {
-                  return (BigInteger) e0 >= 0
-                    ? (BigInteger) e0 / (BigInteger) e1
-                    : -((-(BigInteger) e0) / (BigInteger) e1);
+                  BigInteger a0 = (BigInteger) e0;
+                  BigInteger a1 = (BigInteger) e1;
+                  BigInteger d = a0/a1;
+                  return a0 >= 0 || a0 == d*a1 ? d : d-1;
+                }
+              }
+              if (isBV) {
+                if ((BigInteger) e1 == 0) {
+                  reporter.Error(MessageSource.Resolver, bin.E1,
+                    "Divide by zero in compiler constant expression");
+                  break;
+                } else {
+                  return ((BigInteger) e0) / ((BigInteger) e1);
+                }
+              }
+              if (isReal) {
+                if ((Basetypes.BigDec) e1 == Basetypes.BigDec.ZERO) {
+                  reporter.Error(MessageSource.Resolver, bin.E1,
+                    "Divide by zero in compiler constant expression");
+                  break;
+                } else {
+                  // BigDec does not have divide and is not a representation of rationals, so we don't do constant folding
+                  return null;
                 }
               }
 
               break;
             case BinaryExpr.Opcode.Mod:
-              if (isInt) {
+              if (isInteger) {
                 if ((BigInteger) e1 == 0) {
                   reporter.Error(MessageSource.Resolver, bin.E1,
                     "Mod by zero in compiler constant expression");
                   break;
                 } else {
-                  return (BigInteger) e0 >= 0
-                    ? (BigInteger) e0 % (BigInteger) e1
-                    : -((-(BigInteger) e0) % (BigInteger) e1);
+                  BigInteger a = BigInteger.Abs((BigInteger) e1);
+                  BigInteger d = (BigInteger) e0 % a;
+                  return d >= 0 ? d : d+a;
                 }
               }
-
+              if (isBV) {
+                if ((BigInteger) e1 == 0) {
+                  reporter.Error(MessageSource.Resolver, bin.E1,
+                    "Mod by zero in compiler constant expression");
+                  break;
+                } else {
+                  return (BigInteger) e0 % (BigInteger) e1;
+                }
+              }
               break;
-            // FIXME - check these for sign of e1; do bit trimming?
-            case BinaryExpr.Opcode.LeftShift:  return (BigInteger)e0 << (int)e1;
-            case BinaryExpr.Opcode.RightShift: return (BigInteger)e0 >> (int)e1;
+            case BinaryExpr.Opcode.LeftShift: {
+              if ((BigInteger)e1 < 0) {
+                reporter.Error(MessageSource.Resolver, bin.E1,
+                  "Shift amount may not be negative: " + ((BigInteger)e1).ToString());
+                return null;
+              }
+              if ((BigInteger)e1 >= bin.Type.AsBitVectorType.Width) {
+                return BigInteger.Zero;
+              }
+              return ((BigInteger)e0 << (int)(BigInteger)e1) & MaxBV(bin.E0.Type);
+            }
+            case BinaryExpr.Opcode.RightShift: {
+              if ((BigInteger)e1 < 0) {
+                reporter.Error(MessageSource.Resolver, bin.E1,
+                  "Shift amount may not be negative: " + ((BigInteger)e1).ToString());
+                return null;
+              }
+              if ((BigInteger)e1 >= bin.Type.AsBitVectorType.Width) {
+                return BigInteger.Zero;
+              }
+              return (BigInteger)e0 >> (int)(BigInteger)e1;
+            }
             case BinaryExpr.Opcode.And: return (bool) e0 && (bool) e1;
             case BinaryExpr.Opcode.Or: return (bool) e0 || (bool) e1;
-            case BinaryExpr.Opcode.Iff: return (bool) e0 == (bool) e1;
+            case BinaryExpr.Opcode.Iff: return (bool) e0 == (bool) e1; // <==>
+            case BinaryExpr.Opcode.Imp: return !(bool) e0 || (bool) e1; // ==>
+            case BinaryExpr.Opcode.Exp: return !(bool) e0 || (bool) e1; // <==, arguments reversed during parse
             case BinaryExpr.Opcode.Gt:
               if (isInt) return (BigInteger) e0 > (BigInteger) e1;
+              if (isBV) return (BigInteger) e0 > (BigInteger) e1;
               if (isReal) return (Basetypes.BigDec) e0 > (Basetypes.BigDec) e1;
+              if (bin.E0.Type.IsCharType) return ((string) e0)[0] > ((string) e1)[0];
               break;
             case BinaryExpr.Opcode.Ge:
               if (isInt) return (BigInteger) e0 >= (BigInteger) e1;
+              if (isBV) return (BigInteger) e0 >= (BigInteger) e1;
               if (isReal) return (Basetypes.BigDec) e0 >= (Basetypes.BigDec) e1;
+              if (bin.E0.Type.IsCharType) return ((string) e0)[0] >= ((string) e1)[0];
               break;
             case BinaryExpr.Opcode.Lt:
               if (isInt) return (BigInteger) e0 < (BigInteger) e1;
+              if (isBV) return (BigInteger) e0 < (BigInteger) e1;
               if (isReal) return (Basetypes.BigDec) e0 < (Basetypes.BigDec) e1;
+              if (bin.E0.Type.IsCharType) return ((string) e0)[0] < ((string) e1)[0];
+              if (isString) return ((string)e1).StartsWith((string)e0) && !((string) e1).Equals((string) e0);
               break;
             case BinaryExpr.Opcode.Le:
               if (isInt) return (BigInteger) e0 <= (BigInteger) e1;
+              if (isBV) return (BigInteger) e0 <= (BigInteger) e1;
               if (isReal) return (Basetypes.BigDec) e0 <= (Basetypes.BigDec) e1;
+              if (bin.E0.Type.IsCharType) return ((string) e0)[0] <= ((string) e1)[0];
+              if (isString) return ((string) e1).StartsWith((string)e0);
               break;
             case BinaryExpr.Opcode.Eq: {
               if (isBool) {
                 return (bool) e0 == (bool) e1;
-              } else if (isInt) {
+              } else if (isInt || isBV) {
                 return (BigInteger) e0 == (BigInteger) e1;
               } else if (isReal) {
                 return (Basetypes.BigDec) e0 == (Basetypes.BigDec) e1;
+              } else if (bin.E0.Type.IsCharType) {
+                return ((string) e0)[0] == ((string) e1)[0];
               } else if (isString) {
                 return (string) e0 == (string) e1;
               }
-
               break;
             }
             case BinaryExpr.Opcode.Neq: {
@@ -3404,6 +3478,8 @@ namespace Microsoft.Dafny
                 return (BigInteger) e0 != (BigInteger) e1;
               } else if (isReal) {
                 return (Basetypes.BigDec) e0 != (Basetypes.BigDec) e1;
+              } else if (bin.E0.Type.IsCharType) {
+                return ((string) e0)[0] != ((string) e1)[0];
               } else if (isString) {
                 return (string) e0 != (string) e1;
               }
@@ -3412,35 +3488,129 @@ namespace Microsoft.Dafny
           }
         } else if (e is ConversionExpr ce) {
           Object o = GetAnyConst(ce.E, consts);
-          if (ce.E.Type == ce.Type) return o;
-          if (o != null && ce.E.Type.IsNumericBased(Type.NumericPersuation.Real) &&
-              ce.Type.IsNumericBased(Type.NumericPersuation.Int)) {
-            BigInteger ff, cc;
-            ((Basetypes.BigDec) o).FloorCeiling(out ff, out cc);
-            return ff;
-          }
-          if (o != null && ce.E.Type.IsBitVectorType &&
-              ce.Type.IsNumericBased(Type.NumericPersuation.Int)) {
-            return o;
-          }
-          if (o != null && ce.E.Type.IsNumericBased(Type.NumericPersuation.Int) &&
-              ce.Type.IsBitVectorType) {
-            return o;
-          }
-          if (o != null && ce.E.Type.IsNumericBased(Type.NumericPersuation.Int) &&
-              ce.Type.IsNumericBased(Type.NumericPersuation.Int)) {
-            return o;
-          }
-          if (o != null && ce.E.Type.IsNumericBased(Type.NumericPersuation.Real) &&
-              ce.Type.IsNumericBased(Type.NumericPersuation.Real)) {
-            return o;
-          }
-          if (o != null && ce.E.Type.IsBitVectorType && ce.Type.IsBitVectorType) {
-            return o;
-          }
-          if (o != null && ce.E.Type.IsNumericBased(Type.NumericPersuation.Int) &&
-              ce.Type.IsNumericBased(Type.NumericPersuation.Real)) {
-            return Basetypes.BigDec.FromBigInt((BigInteger)o);
+          if (o != null) {
+            if (ce.E.Type == ce.Type) return o;
+            String prefix = "Illegal conversion in compiler constant expression: " 
+                            + ce.E.Type.ToString() + " -> " + ce.Type.ToString();
+            if (ce.E.Type.IsNumericBased(Type.NumericPersuation.Real) &&
+                ce.Type.IsBitVectorType) {
+              BigInteger ff, cc;
+              ((Basetypes.BigDec) o).FloorCeiling(out ff, out cc);
+              if (ff < 0 || ff > MaxBV(ce.Type)) {
+                reporter.Error(MessageSource.Resolver, ce.E,
+                  prefix + ", argument out of range: " + ((Basetypes.BigDec) o).ToString());
+                return null;
+              }
+              if (((Basetypes.BigDec) o) != Basetypes.BigDec.FromBigInt(ff)) {
+                reporter.Error(MessageSource.Resolver, ce.E,
+                  prefix + ", argument not an integer: " + ((Basetypes.BigDec) o).ToString());
+                return null;
+              }
+              return ff;
+            }
+            if (ce.E.Type.IsNumericBased(Type.NumericPersuation.Real) &&
+                ce.Type.IsNumericBased(Type.NumericPersuation.Int)) {
+              BigInteger ff, cc;
+              ((Basetypes.BigDec) o).FloorCeiling(out ff, out cc);
+              if (!ce.Type.IsIntegerType) return null;
+              if (((Basetypes.BigDec) o) != Basetypes.BigDec.FromBigInt(ff)) {
+                reporter.Error(MessageSource.Resolver, ce.E,
+                  prefix + ", argument not an integer: " + ((Basetypes.BigDec) o).ToDecimalString());
+                return null;
+              }
+              return ff;
+            }
+            if (ce.E.Type.IsBitVectorType &&
+                ce.Type.IsNumericBased(Type.NumericPersuation.Int)) {
+              if (ce.Type.IsIntegerType) return o;
+              return null;
+            }
+            if (ce.E.Type.IsBitVectorType &&
+                ce.Type.IsNumericBased(Type.NumericPersuation.Real)) {
+              if (ce.Type.IsRealType) return Basetypes.BigDec.FromBigInt((BigInteger) o);
+              return null;
+            }
+            if (ce.E.Type.IsNumericBased(Type.NumericPersuation.Int) &&
+                ce.Type.IsBitVectorType) {
+              BigInteger b = (BigInteger) o;
+              if (b < 0 || b > MaxBV(ce.Type)) {
+                reporter.Error(MessageSource.Resolver, ce.E,
+                  prefix + ", argument out of range: " + b.ToString());
+                return null;
+              }
+              return o;
+            }
+            if (ce.E.Type.IsNumericBased(Type.NumericPersuation.Int) &&
+                ce.Type.IsNumericBased(Type.NumericPersuation.Int)) {
+              // This case includes int-based newtypes to int-based new types
+              if (ce.Type.IsIntegerType) return o;
+              return null; // Not evaluating the range of the target newtype
+            }
+            if (ce.E.Type.IsNumericBased(Type.NumericPersuation.Real) &&
+                ce.Type.IsNumericBased(Type.NumericPersuation.Real)) {
+              // This case includes real-based newtypes to real-based new types
+              if (ce.Type.IsRealType) return o;
+              return null; // Not evaluating the range of the target newtype
+            }
+            if (ce.E.Type.IsBitVectorType && ce.Type.IsBitVectorType) {
+              BigInteger b = (BigInteger) o;
+              if (b < 0 || b > MaxBV(ce.Type)) {
+                reporter.Error(MessageSource.Resolver, ce.E,
+                  prefix + ", argument out of range: " + b.ToString());
+                return null;
+              }
+              return o;
+            }
+            if (ce.E.Type.IsNumericBased(Type.NumericPersuation.Int) &&
+                ce.Type.IsNumericBased(Type.NumericPersuation.Real)) {
+              if (!ce.Type.IsRealType) return null;
+              return Basetypes.BigDec.FromBigInt((BigInteger) o);
+            }
+            if (ce.E.Type.IsCharType && ce.Type.IsNumericBased(Type.NumericPersuation.Int)) {
+              char c = ((String)o)[0];
+              if (ce.Type.IsIntegerType) return new BigInteger(((string) o)[0]);
+              return null;
+            }
+            if (ce.E.Type.IsCharType && ce.Type.IsBitVectorType) {
+              char c = ((String)o)[0]; 
+              if ((int)c > MaxBV(ce.Type)) {
+                reporter.Error(MessageSource.Resolver, ce.E, 
+                  prefix + ", argument out of range: " + c.ToString() + " (" + (int)c + ")"); 
+                return null;
+              }
+              return new BigInteger(((string) o)[0]);
+            }
+            if ((ce.E.Type.IsNumericBased(Type.NumericPersuation.Int) || ce.E.Type.IsBitVectorType) &&
+                ce.Type.IsCharType) {
+              BigInteger b = (BigInteger) o;
+              if (b < BigInteger.Zero || b > new BigInteger(65535)) {
+                reporter.Error(MessageSource.Resolver, ce.E,
+                  prefix + ", argument out of range: " + b.ToString());
+                return null;
+              }
+              return ((char)(int)b).ToString();
+            }
+            if (ce.E.Type.IsCharType &&
+                ce.Type.IsNumericBased(Type.NumericPersuation.Real)) {
+              if (ce.Type.IsRealType) return Basetypes.BigDec.FromInt(((string) o)[0]);
+              return null;
+            }
+            if (ce.E.Type.IsNumericBased(Type.NumericPersuation.Real) &&
+                ce.Type.IsCharType) {
+              BigInteger ff, cc;
+              ((Basetypes.BigDec) o).FloorCeiling(out ff, out cc);
+              if (((Basetypes.BigDec) o) != Basetypes.BigDec.FromBigInt(ff)) {
+                reporter.Error(MessageSource.Resolver, ce.E,
+                  prefix + ", argument not an integer: " + ((Basetypes.BigDec) o).ToDecimalString());
+                return null;
+              }
+              if (ff < BigInteger.Zero || ff > new BigInteger(65535)) {
+                reporter.Error(MessageSource.Resolver, ce.E,
+                  prefix + ", argument out of range: " + ff.ToString());
+                return null;
+              }
+              return ((char)(int)ff).ToString();
+            }
           }
         } else if (e is ITEExpr ite) {
           Object b = GetAnyConst(ite.Test, consts);
