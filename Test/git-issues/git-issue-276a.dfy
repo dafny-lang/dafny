@@ -24,5 +24,7 @@ module Main {
   const cc1: c0 := 50
   newtype c1 = x | 0 <= x < 50 as c0 // Not evaluated
   newtype c2 = x: int | 0 <= x < cc1 as int // evaluated
+
+  newtype c3 = x | 0 <= x < "abcde"[6] as int
 }
 

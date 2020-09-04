@@ -8,7 +8,7 @@ git-issue-276a.dfy(11,28): Error: Illegal conversion in compiler constant expres
 git-issue-276a.dfy(12,33): Error: Illegal conversion in compiler constant expression: bv16 -> bv8, argument out of range: 1000
 git-issue-276a.dfy(13,32): Error: Illegal conversion in compiler constant expression: int -> char, argument out of range: -1
 git-issue-276a.dfy(14,32): Error: Illegal conversion in compiler constant expression: real -> char, argument out of range: -1
-git-issue-276a.dfy(15,33): Error: Illegal conversion in compiler constant expression: real -> char, argument not an integer: 1.5
+git-issue-276a.dfy(15,33): Error: Illegal conversion in compiler constant expression: real -> char, argument not an integer: 15e-1
 git-issue-276a.dfy(16,29): Error: Illegal conversion in compiler constant expression: char -> bv2, argument out of range: c (99)
 git-issue-276a.dfy(17,38): Error: Illegal conversion in compiler constant expression: bv32 -> char, argument out of range: 16777215
 git-issue-276a.dfy(18,42): Error: Divide by zero in compiler constant expression
@@ -18,4 +18,5 @@ git-issue-276a.dfy(21,43): Error: Shift amount may not be negative: -1
 git-issue-276a.dfy(23,10): Info: newtype c0 resolves as {:nativeType "byte"} (Range: 0 100)
 git-issue-276a.dfy(25,10): Info: newtype c1 resolves as {:nativeType "byte"} (Range: 0 100)
 git-issue-276a.dfy(26,10): Info: newtype c2 resolves as {:nativeType "byte"} (Range: 0 50)
-17 resolution/type errors detected in git-issue-276a.dfy
+git-issue-276a.dfy(28,36): Error: Index out of range for string: 6 not in 0..5
+18 resolution/type errors detected in git-issue-276a.dfy

@@ -1178,7 +1178,7 @@ In Dafny, the following expressions are compile-time constants[^CTC], recursivel
 - bool operations: `&& || ==> <== <==> == !=` and unary '!'
 - bitvector operations: `+ - * / % << >> & | ^` and unary `! -` and comparisons `< <= > >= == !=`
 - char operations: `< <= > >= == !=`
-- string operations: length: `|...|`, concatenation: `+`, comparisons `< <= == !=`
+- string operations: length: `|...|`, concatenation: `+`, comparisons `< <= == !=`, indexing `[]`
 - conversions between: int real char bitvector
 - newtype operations: newtype arguments, but not newtype results
 - symbolic values that are declared `const` and have an explicit initialization value that is a compile-time constant

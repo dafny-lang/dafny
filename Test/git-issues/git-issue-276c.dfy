@@ -4,7 +4,7 @@
 // Testing constant folding of char, string operations
 module Main {
   const s := "abcde"
-  const c := 'e'
+  const c := s[4]
   newtype b0 = x | 0 <= x < |s+s|
   newtype b1 = x | 0 <= x < c as int
   newtype b2 = x | 0 <= x < c as bv8 as int

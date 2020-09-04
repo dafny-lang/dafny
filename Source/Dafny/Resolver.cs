@@ -3490,7 +3490,7 @@ namespace Microsoft.Dafny
           Object o = GetAnyConst(ce.E, consts);
           if (o != null) {
             if (ce.E.Type == ce.Type) return o;
-            String prefix = "Illegal conversion in compiler constant expression: " 
+            String prefix = "Illegal conversion in compiler constant expression: "
                             + ce.E.Type.ToString() + " -> " + ce.Type.ToString();
             if (ce.E.Type.IsNumericBased(Type.NumericPersuation.Real) &&
                 ce.Type.IsBitVectorType) {
@@ -3501,13 +3501,16 @@ namespace Microsoft.Dafny
                   prefix + ", argument out of range: " + ((Basetypes.BigDec) o).ToString());
                 return null;
               }
+
               if (((Basetypes.BigDec) o) != Basetypes.BigDec.FromBigInt(ff)) {
                 reporter.Error(MessageSource.Resolver, ce.E,
                   prefix + ", argument not an integer: " + ((Basetypes.BigDec) o).ToString());
                 return null;
               }
+
               return ff;
             }
+
             if (ce.E.Type.IsNumericBased(Type.NumericPersuation.Real) &&
                 ce.Type.IsNumericBased(Type.NumericPersuation.Int)) {
               BigInteger ff, cc;
@@ -3518,18 +3521,22 @@ namespace Microsoft.Dafny
                   prefix + ", argument not an integer: " + ((Basetypes.BigDec) o).ToDecimalString());
                 return null;
               }
+
               return ff;
             }
+
             if (ce.E.Type.IsBitVectorType &&
                 ce.Type.IsNumericBased(Type.NumericPersuation.Int)) {
               if (ce.Type.IsIntegerType) return o;
               return null;
             }
+
             if (ce.E.Type.IsBitVectorType &&
                 ce.Type.IsNumericBased(Type.NumericPersuation.Real)) {
               if (ce.Type.IsRealType) return Basetypes.BigDec.FromBigInt((BigInteger) o);
               return null;
             }
+
             if (ce.E.Type.IsNumericBased(Type.NumericPersuation.Int) &&
                 ce.Type.IsBitVectorType) {
               BigInteger b = (BigInteger) o;
@@ -3538,20 +3545,24 @@ namespace Microsoft.Dafny
                   prefix + ", argument out of range: " + b.ToString());
                 return null;
               }
+
               return o;
             }
+
             if (ce.E.Type.IsNumericBased(Type.NumericPersuation.Int) &&
                 ce.Type.IsNumericBased(Type.NumericPersuation.Int)) {
               // This case includes int-based newtypes to int-based new types
               if (ce.Type.IsIntegerType) return o;
               return null; // Not evaluating the range of the target newtype
             }
+
             if (ce.E.Type.IsNumericBased(Type.NumericPersuation.Real) &&
                 ce.Type.IsNumericBased(Type.NumericPersuation.Real)) {
               // This case includes real-based newtypes to real-based new types
               if (ce.Type.IsRealType) return o;
               return null; // Not evaluating the range of the target newtype
             }
+
             if (ce.E.Type.IsBitVectorType && ce.Type.IsBitVectorType) {
               BigInteger b = (BigInteger) o;
               if (b < 0 || b > MaxBV(ce.Type)) {
@@ -3559,27 +3570,33 @@ namespace Microsoft.Dafny
                   prefix + ", argument out of range: " + b.ToString());
                 return null;
               }
+
               return o;
             }
+
             if (ce.E.Type.IsNumericBased(Type.NumericPersuation.Int) &&
                 ce.Type.IsNumericBased(Type.NumericPersuation.Real)) {
               if (!ce.Type.IsRealType) return null;
               return Basetypes.BigDec.FromBigInt((BigInteger) o);
             }
+
             if (ce.E.Type.IsCharType && ce.Type.IsNumericBased(Type.NumericPersuation.Int)) {
-              char c = ((String)o)[0];
+              char c = ((String) o)[0];
               if (ce.Type.IsIntegerType) return new BigInteger(((string) o)[0]);
               return null;
             }
+
             if (ce.E.Type.IsCharType && ce.Type.IsBitVectorType) {
-              char c = ((String)o)[0]; 
-              if ((int)c > MaxBV(ce.Type)) {
-                reporter.Error(MessageSource.Resolver, ce.E, 
-                  prefix + ", argument out of range: " + c.ToString() + " (" + (int)c + ")"); 
+              char c = ((String) o)[0];
+              if ((int) c > MaxBV(ce.Type)) {
+                reporter.Error(MessageSource.Resolver, ce.E,
+                  prefix + ", argument out of range: " + c.ToString() + " (" + (int) c + ")");
                 return null;
               }
+
               return new BigInteger(((string) o)[0]);
             }
+
             if ((ce.E.Type.IsNumericBased(Type.NumericPersuation.Int) || ce.E.Type.IsBitVectorType) &&
                 ce.Type.IsCharType) {
               BigInteger b = (BigInteger) o;
@@ -3588,30 +3605,47 @@ namespace Microsoft.Dafny
                   prefix + ", argument out of range: " + b.ToString());
                 return null;
               }
-              return ((char)(int)b).ToString();
+
+              return ((char) (int) b).ToString();
             }
+
             if (ce.E.Type.IsCharType &&
                 ce.Type.IsNumericBased(Type.NumericPersuation.Real)) {
               if (ce.Type.IsRealType) return Basetypes.BigDec.FromInt(((string) o)[0]);
               return null;
             }
+
             if (ce.E.Type.IsNumericBased(Type.NumericPersuation.Real) &&
                 ce.Type.IsCharType) {
               BigInteger ff, cc;
               ((Basetypes.BigDec) o).FloorCeiling(out ff, out cc);
               if (((Basetypes.BigDec) o) != Basetypes.BigDec.FromBigInt(ff)) {
                 reporter.Error(MessageSource.Resolver, ce.E,
-                  prefix + ", argument not an integer: " + ((Basetypes.BigDec) o).ToDecimalString());
+                  prefix + ", argument not an integer: " + ((Basetypes.BigDec) o).ToString());
                 return null;
               }
+
               if (ff < BigInteger.Zero || ff > new BigInteger(65535)) {
                 reporter.Error(MessageSource.Resolver, ce.E,
                   prefix + ", argument out of range: " + ff.ToString());
                 return null;
               }
-              return ((char)(int)ff).ToString();
+
+              return ((char) (int) ff).ToString();
             }
           }
+        } else if (e is SeqSelectExpr sse) {
+          Object b = GetAnyConst(sse.Seq, consts);
+          Object index = GetAnyConst(sse.E0, consts);
+          if (b == null || index == null) return null;
+          BigInteger n = (BigInteger) index;
+          if (n < 0 || n >= (b as string).Length) {
+            reporter.Error(MessageSource.Resolver, sse.E0,
+              "Index out of range for string: " + n.ToString() + " not in 0.." + (b as string).Length);
+            return null;
+          }
+          if (b is string) return (b as string)[(int)n].ToString();
+          return null;
         } else if (e is ITEExpr ite) {
           Object b = GetAnyConst(ite.Test, consts);
           if (b == null) return null;
