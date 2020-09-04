@@ -3330,6 +3330,7 @@ namespace Microsoft.Dafny
               if (isReal) return (Basetypes.BigDec) e0 + (Basetypes.BigDec) e1;
               break;
             case BinaryExpr.Opcode.Sub:
+              if (isInt && (BigInteger) e0 == 0) return -(BigInteger) e1; // Allow this case for newtypes
               if (isInteger) return (BigInteger) e0 - (BigInteger) e1;
               if (isBV) return ((BigInteger) e0 - (BigInteger) e1) & MaxBV(bin.Type);
               if (isReal) return (Basetypes.BigDec) e0 - (Basetypes.BigDec) e1;
