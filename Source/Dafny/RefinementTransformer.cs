@@ -254,6 +254,8 @@ namespace Microsoft.Dafny
         reporter.Error(MessageSource.RefinementTransformer, nw, "an opaque type declaration ({0}) in a refining module cannot replace a more specific type declaration in the refinement base", nw.Name);
       } else if (nw is DatatypeDecl) {
         reporter.Error(MessageSource.RefinementTransformer, nw, "a datatype declaration ({0}) in a refinement module can only replace an opaque type declaration", nw.Name);
+      } else if (nw is NewtypeDecl) {
+        reporter.Error(MessageSource.RefinementTransformer, nw, "a newype declaration ({0}) in a refinement module can only replace an opaque type declaration", nw.Name);
       } else if (nw is IteratorDecl) {
         if (d is IteratorDecl) {
           m.TopLevelDecls[index] = MergeIterator((IteratorDecl)nw, (IteratorDecl)d);

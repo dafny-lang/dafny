@@ -1,0 +1,2 @@
+git-issue-852.dfy(10,12): Error: a newype declaration (T) in a refinement module can only replace an opaque type declaration
+1 resolution/type errors detected in git-issue-852.dfy
