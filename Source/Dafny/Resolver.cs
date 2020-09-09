@@ -14770,9 +14770,9 @@ namespace Microsoft.Dafny
       } else {
         // the member is a method
         var m = (Method)member;
-        if (!allowMethodCall && !(member is Lemma)) {
+        if (!allowMethodCall) {
           // it's a method and method calls are not allowed in the given context
-          reporter.Error(MessageSource.Resolver, tok, "expression is not allowed to invoke a method ({0})", member.Name);
+          reporter.Error(MessageSource.Resolver, tok, "expression is not allowed to invoke a {0} ({1})", member.WhatKind, member.Name);
         }
         int suppliedTypeArguments = optTypeArguments == null ? 0 : optTypeArguments.Count;
         if (optTypeArguments != null && suppliedTypeArguments != m.TypeArgs.Count) {
