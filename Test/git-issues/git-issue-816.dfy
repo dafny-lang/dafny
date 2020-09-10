@@ -17,7 +17,7 @@ lemma P1(x: int)
 inductive lemma Q(x: int)
   requires X: x == 17
 {
-  assert x == 17;  // this SHOULD be an error, but it isn't; evidently, the X is ignored
+  assert x == 17;  // error: because X has not been revealed
 }
 
 colemma R(x: int)
@@ -25,4 +25,3 @@ colemma R(x: int)
 {
   assert x == 17;  // error: because X hasn't been revealed
 }
-
