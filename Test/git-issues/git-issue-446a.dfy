@@ -16,17 +16,17 @@ datatype Result<T> = Success(value: T) | Failure(error: string)
       Failure(this.error)
     }
 }
-/* multiple return with no extract is not yet implemented
+class A {
 method mn() returns (r: Result<int>, out: int)
   ensures out == -2 && r.Failure?
 {
   var o :- m(1);
   assert o == 3;
   print "OK\n";
-  out :- m(-1); // Should exit with failure
-  return Success(0);
+  out :- this.m(-1); // Should exit with failure
+  return Success(0), 4;
 }
-*/
+
 method mn1() returns (r: Result<int>)
   ensures r.Failure?
 {
@@ -53,12 +53,22 @@ method m1(i: int) returns (r: Result<int>)
    return Success(i);
 }
 
+method mexp() returns (r: Result<int>, k: int) 
+   ensures r.IsFailure() && k == 100;
+{
+   k :- Failure("always"), 100;
+   k := 101; // Not executed
+   return Success(0), k;
+}
+}
+
 method Main() {
-   var x := mn1();
+   var a: A := new A;
+   var x := a.mn1();
    print x.Failure?, " ";
-  // var out;
-  // x, out := mn();
-  // print x.Failure?, " ", out, " ";
+   var out;
+   x, out := a.mn();
+   print x.Failure?, " ", out, " ";
    print "End\n";
 }
 

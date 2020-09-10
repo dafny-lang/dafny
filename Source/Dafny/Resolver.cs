@@ -11388,11 +11388,54 @@ namespace Microsoft.Dafny
     private void ResolveAssignOrReturnStmt(AssignOrReturnStmt s, ICodeContext codeContext) {
       // TODO Do I have any responsibilities regarding the use of codeContext? Is it mutable?
 
+      // We need to figure out whether we are using a status type that has Extract or not,
+      // as that determines how the AssignOrReturnStmt is desugared. Thus if the Rhs is a
+      // method call we need to know which one (to inpsectx its first output); if RHs is a 
+      // list of expressions, we need to know the type of the first one. FOr all of this we have
+      // to do some partial type resolution.
+
+      bool isReturnDetermined = false;
+      bool expectExtract = s.Lhss.Count != 0; // default value if we cannot determine and inspect the type 
+      if (s.Rhs is ApplySuffix asx) {
+        ResolveApplySuffix(asx, new ResolveOpts(codeContext, true), true);
+        if (asx.Lhs is NameSegment lhname) {
+          if (codeContext is Method meth) {
+            String nm = lhname.Name;
+            MemberDecl mem = ((TopLevelDeclWithMembers) meth.EnclosingClass).Members.Find(x => x.Name == nm);
+            if (mem is Method call) {
+              if (call.Outs.Count >= 1) {
+                Type ty = call.Outs[0].Type;
+                ty = PartiallyResolveTypeForMemberSelection(s.Rhs.tok, ty);
+                expectExtract = ty.AsTopLevelTypeWithMembers.Members.Find(x => x.Name == "Extract") != null;
+                isReturnDetermined = true;
+              } else {
+                reporter.Error(MessageSource.Resolver, s.Rhs.tok, "Expected {0} to have a Success/Failure output value",
+                  nm);
+              }
+            }
+          }
+        } else if (asx.Lhs is ExprDotName dotname) {
+          Type ty = PartiallyResolveTypeForMemberSelection(dotname.tok, dotname.Lhs.Type);
+          String nm = dotname.SuffixName;
+          MemberDecl mem = ty.AsTopLevelTypeWithMembers.Members.Find(x => x.Name == nm);
+          if (mem is Method call) {
+            if (call.Outs.Count >= 1) {
+              ty = call.Outs[0].Type;
+              ty = PartiallyResolveTypeForMemberSelection(s.Rhs.tok, ty);
+              expectExtract = ty.AsTopLevelTypeWithMembers.Members.Find(x => x.Name == "Extract") != null;
+              isReturnDetermined = true;
+            } else {
+              reporter.Error(MessageSource.Resolver, s.Rhs.tok, "Expected {0} to have a Success/Failure output value",
+                nm);
+            }
+          }
+        }
+      }
       var temp = FreshTempVarName("valueOrError", codeContext);
       var tempType = new InferredTypeProxy();
       var lhss = new List<LocalVariable>() { new LocalVariable(s.Tok, s.Tok, temp, tempType, false) }
       ;
-      if (s.Lhss.Count <= 1) {
+      if (s.Lhss.Count == (expectExtract?1:0)) {
         s.ResolvedStatements.Add(
           // "var temp := MethodOrExpression;"
           new VarDeclStmt(s.Tok, s.Tok, lhss,
@@ -11402,7 +11445,7 @@ namespace Microsoft.Dafny
         // "var temp ;"
         s.ResolvedStatements.Add(new VarDeclStmt(s.Tok, s.Tok, lhss, null));
         var lhss2 = new List<Expression>() {new IdentifierExpr(s.Tok, temp)};
-        for (int k = 1; k < s.Lhss.Count; ++k) {
+        for (int k = (expectExtract?1:0); k < s.Lhss.Count; ++k) {
           lhss2.Add(s.Lhss[k]);
         }
         // " temp, ... := MethodOrExpression;"
@@ -11433,8 +11476,7 @@ namespace Microsoft.Dafny
           ));
       }
 
-      if (s.Lhss.Count >= 1)
-      {
+      if (expectExtract) {
         // "y := temp.Extract();"
         s.ResolvedStatements.Add(
           new UpdateStmt(s.Tok, s.Tok, 
@@ -11446,7 +11488,6 @@ namespace Microsoft.Dafny
       foreach (var a in s.ResolvedStatements) {
         ResolveStatement(a, codeContext);
       }
-      bool expectExtract = s.Lhss.Count != 0;
       EnsureSupportsErrorHandling(s.Tok, PartiallyResolveTypeForMemberSelection(s.Tok, tempType), expectExtract);
     }
 
