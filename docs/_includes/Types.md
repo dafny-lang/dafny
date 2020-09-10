@@ -2821,13 +2821,13 @@ given datatype value using the _datatype update_ expression.  For any
 a parameter (destructor) named `f` of type `T`, and any expression `t`
 of type `T`,
 ```dafny
-d[f := t]
+d.(f := t)
 ```
 constructs a value like `d` but whose `f` parameter is `t`.  The
 operation requires that `d` satisfies `C?`.  For example, the
 following equality holds:
 ```dafny
-Cons(4, Nil)[tail := Cons(3, Nil)] == Cons(4, Cons(3, Nil))
+Cons(4, Nil).(tail := Cons(3, Nil)) == Cons(4, Cons(3, Nil))
 ```
 
 The datatype update expression also accepts multiple field
@@ -2835,7 +2835,7 @@ names, provided these are distinct. For example, a node of some
 inductive datatype for trees may be updated as follows:
 
 ```dafny
-node[left := L, right := R]
+node.(left := L, right := R)
 ```
 
 ## Tuple types
