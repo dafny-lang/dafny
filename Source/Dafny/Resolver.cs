@@ -11394,7 +11394,6 @@ namespace Microsoft.Dafny
       // list of expressions, we need to know the type of the first one. FOr all of this we have
       // to do some partial type resolution.
 
-      bool isReturnDetermined = false;
       bool expectExtract = s.Lhss.Count != 0; // default value if we cannot determine and inspect the type 
       Type firstType = null;
       if (s.Rhss != null && s.Rhss.Count > 0) {
@@ -11432,7 +11431,6 @@ namespace Microsoft.Dafny
       if (firstType != null) {
         firstType = PartiallyResolveTypeForMemberSelection(s.Rhs.tok, firstType);
         expectExtract = firstType.AsTopLevelTypeWithMembers.Members.Find(x => x.Name == "Extract") != null;
-        isReturnDetermined = true;
       }
       var temp = FreshTempVarName("valueOrError", codeContext);
       var lhss = new List<LocalVariable>() { new LocalVariable(s.Tok, s.Tok, temp, firstType, false) };
@@ -11451,7 +11449,7 @@ namespace Microsoft.Dafny
         }
         List<AssignmentRhs> rhss2 = new List<AssignmentRhs>() {new ExprRhs(s.Rhs)};
         if (s.Rhss != null) {
-          s.Rhss.Foreach(e => rhss2.Add(e));
+          s.Rhss.ForEach(e => rhss2.Add(e));
         }
         // " temp, ... := MethodOrExpression, ...;"
         s.ResolvedStatements.Add(new UpdateStmt(s.Tok, s.Tok, lhss2, rhss2));
