@@ -2219,6 +2219,8 @@ UpdateStmt<out Statement/*!*/ s>
      "expect"                      (. exceptionExpect = t; .)
    ]
    Expression<out exceptionExpr, false, false>
+   { "," Rhs<out r>                (. rhss.Add(r); .)
+   }
    ";"                             (. endTok = t; .)
 )
   (. if (suchThat != null) {
@@ -2342,9 +2344,11 @@ VarDeclStatement<.out Statement/*!*/ s.>
       Expression<out suchThat, false, true>
     | ":-"                           (. assignTok = t; .)
       [ IF(la.kind == _expect)     /* an Expression can also begin with an "expect", so this says to resolve it to pick up any "expect" here */
-        "expect"                   (. exceptionExpect = t; .)
+        "expect"                     (. exceptionExpect = t; .)
       ]
       Expression<out exceptionExpr, false, false>
+      { "," Rhs<out r>               (. rhss.Add(r); .)
+      }
     ]
     SYNC ";"                         (. endTok = t; .)
     (. ConcreteUpdateStatement update;
@@ -2355,7 +2359,7 @@ VarDeclStatement<.out Statement/*!*/ s.>
        if (suchThat != null) {
          update = new AssignSuchThatStmt(assignTok, endTok, lhsExprs, suchThat, suchThatAssume, attrs);
        } else if (exceptionExpr != null) {
-         update = new AssignOrReturnStmt(assignTok, endTok, lhsExprs, exceptionExpr, exceptionExpect);
+         update = new AssignOrReturnStmt(assignTok, endTok, lhsExprs, exceptionExpr, exceptionExpect, rhss);
        } else if (rhss.Count == 0) {
          update = null;
        } else {

@@ -11379,10 +11379,32 @@ namespace Microsoft.Dafny
     }
 
     /// <summary>
-    /// Desugars "y :- MethodOrExpression" into
-    /// "var temp := MethodOrExpression; if temp.IsFailure() { return temp.PropagateFailure(); } y := temp.Extract();"
-    /// and "y :- expect MethodOrExpression" into
-    /// "var temp := MethodOrExpression; expect !temp.IsFailure(), temp.PropagateFailure(); y := temp.Extract();"
+    /// Desugars "y, ... :- MethodOrExpression" into
+    /// var temp;
+    /// temp, ... := MethodOrExpression;
+    /// if temp.IsFailure() { return temp.PropagateFailure(); }
+    /// y := temp.Extract();
+    ///
+    /// If the type of MethodExpression does not have an Extract, then the desugaring is
+    /// var temp;
+    /// temp, y, ... := MethodOrExpression;
+    /// if temp.IsFailure() { return temp.PropagateFailure(); }
+    ///
+    /// If there are multiple RHSs then "y, ... :- Expression, ..." becomes
+    /// var temp;
+    /// temp, ... := Expression, ...;
+    /// if temp.IsFailure() { return temp.PropagateFailure(); }
+    /// y := temp.Extract();
+    /// OR
+    /// var temp;
+    /// temp, y, ... := Expression, ...;
+    /// if temp.IsFailure() { return temp.PropagateFailure(); }
+    /// 
+    /// and "y, ... :- expect MethodOrExpression, ..." into
+    /// var temp, [y, ] ... := MethodOrExpression, ...;
+    /// expect !temp.IsFailure(), temp.PropagateFailure();
+    /// [y := temp.Extract();]
+    /// 
     /// and saves the result into s.ResolvedStatements.
     /// </summary>
     private void ResolveAssignOrReturnStmt(AssignOrReturnStmt s, ICodeContext codeContext) {
@@ -11396,7 +11418,7 @@ namespace Microsoft.Dafny
 
       bool expectExtract = s.Lhss.Count != 0; // default value if we cannot determine and inspect the type 
       Type firstType = null;
-      if (s.Rhss != null && s.Rhss.Count > 0) {
+      if (s.Rhss != null && s.Rhss.Count != 0) {
         ResolveExpression(s.Rhs, new ResolveOpts(codeContext, true));
         firstType = s.Rhs.Type;
       } else if (s.Rhs is ApplySuffix asx) {
@@ -11406,7 +11428,7 @@ namespace Microsoft.Dafny
             String nm = lhname.Name;
             MemberDecl mem = ((TopLevelDeclWithMembers) meth.EnclosingClass).Members.Find(x => x.Name == nm);
             if (mem is Method call) {
-              if (call.Outs.Count >= 1) {
+              if (call.Outs.Count != 0) {
                 firstType = call.Outs[0].Type;
               } else {
                 reporter.Error(MessageSource.Resolver, s.Rhs.tok, "Expected {0} to have a Success/Failure output value",
@@ -11414,46 +11436,62 @@ namespace Microsoft.Dafny
               }
             }
           }
-        } else if (asx.Lhs is ExprDotName dotname) { 
+        } else if (asx.Lhs is ExprDotName dotname) {
           Type ty = PartiallyResolveTypeForMemberSelection(dotname.tok, dotname.Lhs.Type);
           String nm = dotname.SuffixName;
           MemberDecl mem = ty.AsTopLevelTypeWithMembers.Members.Find(x => x.Name == nm);
-          if (mem is Method call) { 
-            if (call.Outs.Count >= 1) { 
+          if (mem is Method call) {
+            if (call.Outs.Count != 0) {
               firstType = call.Outs[0].Type;
             } else {
-              reporter.Error(MessageSource.Resolver, s.Rhs.tok, "Expected {0} to have a Success/Failure output value", nm);
+              reporter.Error(MessageSource.Resolver, s.Rhs.tok, "Expected {0} to have a Success/Failure output value",
+                nm);
             }
           }
         }
+      } else {
+        ResolveExpression(s.Rhs, new ResolveOpts(codeContext, true));
+        firstType = s.Rhs.Type;
       }
 
       if (firstType != null) {
         firstType = PartiallyResolveTypeForMemberSelection(s.Rhs.tok, firstType);
-        expectExtract = firstType.AsTopLevelTypeWithMembers.Members.Find(x => x.Name == "Extract") != null;
+        if (firstType.AsTopLevelTypeWithMembers != null) {
+          expectExtract = firstType.AsTopLevelTypeWithMembers.Members.Find(x => x.Name == "Extract") != null;
+        } else {
+          reporter.Error(MessageSource.Resolver, s.Tok,
+            "The type of the first expression is not a failure type in :- statement");
+          return;
+        }
+      } else {
+        reporter.Error(MessageSource.Resolver, s.Tok,
+          "Internal Error: Unknown failure type in :- statement");
+        return;
       }
       var temp = FreshTempVarName("valueOrError", codeContext);
       var lhss = new List<LocalVariable>() { new LocalVariable(s.Tok, s.Tok, temp, firstType, false) };
-      if (s.Lhss.Count == (expectExtract?1:0)) {
-        s.ResolvedStatements.Add(
-          // "var temp := MethodOrExpression;"
-          new VarDeclStmt(s.Tok, s.Tok, lhss,
-            new UpdateStmt(s.Tok, s.Tok, new List<Expression>() { new IdentifierExpr(s.Tok, temp) },
-              new List<AssignmentRhs>() { new ExprRhs(s.Rhs) })));
-      } else {
-        // "var temp ;"
-        s.ResolvedStatements.Add(new VarDeclStmt(s.Tok, s.Tok, lhss, null));
-        var lhss2 = new List<Expression>() { new IdentifierExpr(s.Tok, temp) };
-        for (int k = (expectExtract?1:0); k < s.Lhss.Count; ++k) {
-          lhss2.Add(s.Lhss[k]);
-        }
-        List<AssignmentRhs> rhss2 = new List<AssignmentRhs>() {new ExprRhs(s.Rhs)};
-        if (s.Rhss != null) {
-          s.Rhss.ForEach(e => rhss2.Add(e));
-        }
-        // " temp, ... := MethodOrExpression, ...;"
-        s.ResolvedStatements.Add(new UpdateStmt(s.Tok, s.Tok, lhss2, rhss2));
+      // "var temp ;"
+      s.ResolvedStatements.Add(new VarDeclStmt(s.Tok, s.Tok, lhss, null));
+      var lhss2 = new List<Expression>() { new IdentifierExpr(s.Tok, temp) };
+      for (int k = (expectExtract?1:0); k < s.Lhss.Count; ++k) {
+        lhss2.Add(s.Lhss[k]);
       }
+      List<AssignmentRhs> rhss2 = new List<AssignmentRhs>() {new ExprRhs(s.Rhs)};
+      if (s.Rhss != null) {
+        s.Rhss.ForEach(e => rhss2.Add(e));
+      }
+      // " temp, ... := MethodOrExpression, ...;"
+      if (lhss2.Count != rhss2.Count) {
+        reporter.Error(MessageSource.Resolver, s.Tok,
+          "Mismatch in expected number of LHSs and RHSs");
+        if (lhss2.Count < rhss2.Count) {
+          rhss2.RemoveRange(lhss2.Count, rhss2.Count - lhss2.Count);
+        } else {
+          lhss2.RemoveRange(rhss2.Count, lhss2.Count - rhss2.Count);
+        }
+      }
+      s.ResolvedStatements.Add(new UpdateStmt(s.Tok, s.Tok, lhss2, rhss2));
+
 
       if (s.ExpectToken != null) {
         var notFailureExpr = new UnaryOpExpr(s.Tok, UnaryOpExpr.Opcode.Not, VarDotMethod(s.Tok, temp, "IsFailure"));
