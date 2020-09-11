@@ -11396,7 +11396,11 @@ namespace Microsoft.Dafny
 
       bool isReturnDetermined = false;
       bool expectExtract = s.Lhss.Count != 0; // default value if we cannot determine and inspect the type 
-      if (s.Rhs is ApplySuffix asx) {
+      Type firstType = null;
+      if (s.Rhss != null && s.Rhss.Count > 0) {
+        ResolveExpression(s.Rhs, new ResolveOpts(codeContext, true));
+        firstType = s.Rhs.Type;
+      } else if (s.Rhs is ApplySuffix asx) {
         ResolveApplySuffix(asx, new ResolveOpts(codeContext, true), true);
         if (asx.Lhs is NameSegment lhname) {
           if (codeContext is Method meth) {
@@ -11404,10 +11408,7 @@ namespace Microsoft.Dafny
             MemberDecl mem = ((TopLevelDeclWithMembers) meth.EnclosingClass).Members.Find(x => x.Name == nm);
             if (mem is Method call) {
               if (call.Outs.Count >= 1) {
-                Type ty = call.Outs[0].Type;
-                ty = PartiallyResolveTypeForMemberSelection(s.Rhs.tok, ty);
-                expectExtract = ty.AsTopLevelTypeWithMembers.Members.Find(x => x.Name == "Extract") != null;
-                isReturnDetermined = true;
+                firstType = call.Outs[0].Type;
               } else {
                 reporter.Error(MessageSource.Resolver, s.Rhs.tok, "Expected {0} to have a Success/Failure output value",
                   nm);
@@ -11415,25 +11416,31 @@ namespace Microsoft.Dafny
             }
           }
         } else if (asx.Lhs is ExprDotName dotname) {
-          Type ty = PartiallyResolveTypeForMemberSelection(dotname.tok, dotname.Lhs.Type);
-          String nm = dotname.SuffixName;
-          MemberDecl mem = ty.AsTopLevelTypeWithMembers.Members.Find(x => x.Name == nm);
-          if (mem is Method call) {
-            if (call.Outs.Count >= 1) {
-              ty = call.Outs[0].Type;
-              ty = PartiallyResolveTypeForMemberSelection(s.Rhs.tok, ty);
-              expectExtract = ty.AsTopLevelTypeWithMembers.Members.Find(x => x.Name == "Extract") != null;
-              isReturnDetermined = true;
-            } else {
-              reporter.Error(MessageSource.Resolver, s.Rhs.tok, "Expected {0} to have a Success/Failure output value",
-                nm);
+          if (dotname.Lhs is Expression) {
+            Type ty = PartiallyResolveTypeForMemberSelection(dotname.tok, dotname.Lhs.Type);
+            String nm = dotname.SuffixName;
+            MemberDecl mem = ty.AsTopLevelTypeWithMembers.Members.Find(x => x.Name == nm);
+            if (mem is Method call) {
+              if (call.Outs.Count >= 1) {
+                firstType = call.Outs[0].Type;
+              } else {
+                reporter.Error(MessageSource.Resolver, s.Rhs.tok, "Expected {0} to have a Success/Failure output value",
+                  nm);
+              }
             }
+          } else {
+            
           }
         }
       }
+
+      if (firstType != null) {
+        firstType = PartiallyResolveTypeForMemberSelection(s.Rhs.tok, firstType);
+        expectExtract = firstType.AsTopLevelTypeWithMembers.Members.Find(x => x.Name == "Extract") != null;
+        isReturnDetermined = true;
+      }
       var temp = FreshTempVarName("valueOrError", codeContext);
-      var tempType = new InferredTypeProxy();
-      var lhss = new List<LocalVariable>() { new LocalVariable(s.Tok, s.Tok, temp, tempType, false) }
+      var lhss = new List<LocalVariable>() { new LocalVariable(s.Tok, s.Tok, temp, firstType, false) }
       ;
       if (s.Lhss.Count == (expectExtract?1:0)) {
         s.ResolvedStatements.Add(
@@ -11448,10 +11455,12 @@ namespace Microsoft.Dafny
         for (int k = (expectExtract?1:0); k < s.Lhss.Count; ++k) {
           lhss2.Add(s.Lhss[k]);
         }
-        // " temp, ... := MethodOrExpression;"
-        s.ResolvedStatements.Add(
-            new UpdateStmt(s.Tok, s.Tok, lhss2,
-              new List<AssignmentRhs>() { new ExprRhs(s.Rhs) }));
+        List<AssignmentRhs> rhss2 = new List<AssignmentRhs>() {new ExprRhs(s.Rhs)};
+        if (s.Rhss != null) {
+          foreach  (ExprRhs e in s.Rhss) { rhss2.Add(e); }
+        }
+        // " temp, ... := MethodOrExpression, ...;"
+        s.ResolvedStatements.Add(new UpdateStmt(s.Tok, s.Tok, lhss2, rhss2));
       }
 
       if (s.ExpectToken != null) {
@@ -11488,7 +11497,7 @@ namespace Microsoft.Dafny
       foreach (var a in s.ResolvedStatements) {
         ResolveStatement(a, codeContext);
       }
-      EnsureSupportsErrorHandling(s.Tok, PartiallyResolveTypeForMemberSelection(s.Tok, tempType), expectExtract);
+      EnsureSupportsErrorHandling(s.Tok, firstType, expectExtract);
     }
 
     private void EnsureSupportsErrorHandling(IToken tok, Type tp, bool expectExtract) {

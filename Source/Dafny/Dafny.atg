@@ -2208,7 +2208,9 @@ UpdateStmt<out Statement/*!*/ s>
         "expect"                   (. exceptionExpect = t; .)
       ]
       Expression<out exceptionExpr, false, false>
-    )
+      { "," Rhs<out r>             (. rhss.Add(r); .)
+      }
+     )
     ";"                            (. endTok = t; .)
   | ":"                            (. SemErr(t, "invalid statement (did you forget the 'label' keyword?)"); .)
   )
@@ -2222,7 +2224,7 @@ UpdateStmt<out Statement/*!*/ s>
   (. if (suchThat != null) {
        s = new AssignSuchThatStmt(x, endTok, lhss, suchThat, suchThatAssume, null);
      } else if (exceptionExpr != null) {
-       s = new AssignOrReturnStmt(x, endTok, lhss, exceptionExpr, exceptionExpect);
+       s = new AssignOrReturnStmt(x, endTok, lhss, exceptionExpr, exceptionExpect, rhss);
      } else {
        if (lhss.Count == 0 && rhss.Count == 0) {
          s = new BlockStmt(x, endTok, new List<Statement>()); // error, give empty statement
