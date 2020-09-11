@@ -11440,8 +11440,7 @@ namespace Microsoft.Dafny
         isReturnDetermined = true;
       }
       var temp = FreshTempVarName("valueOrError", codeContext);
-      var lhss = new List<LocalVariable>() { new LocalVariable(s.Tok, s.Tok, temp, firstType, false) }
-      ;
+      var lhss = new List<LocalVariable>() { new LocalVariable(s.Tok, s.Tok, temp, firstType, false) };
       if (s.Lhss.Count == (expectExtract?1:0)) {
         s.ResolvedStatements.Add(
           // "var temp := MethodOrExpression;"
