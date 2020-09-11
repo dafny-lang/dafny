@@ -11415,21 +11415,16 @@ namespace Microsoft.Dafny
               }
             }
           }
-        } else if (asx.Lhs is ExprDotName dotname) {
-          if (dotname.Lhs is Expression) {
-            Type ty = PartiallyResolveTypeForMemberSelection(dotname.tok, dotname.Lhs.Type);
-            String nm = dotname.SuffixName;
-            MemberDecl mem = ty.AsTopLevelTypeWithMembers.Members.Find(x => x.Name == nm);
-            if (mem is Method call) {
-              if (call.Outs.Count >= 1) {
-                firstType = call.Outs[0].Type;
-              } else {
-                reporter.Error(MessageSource.Resolver, s.Rhs.tok, "Expected {0} to have a Success/Failure output value",
-                  nm);
-              }
+        } else if (asx.Lhs is ExprDotName dotname) { 
+          Type ty = PartiallyResolveTypeForMemberSelection(dotname.tok, dotname.Lhs.Type);
+          String nm = dotname.SuffixName;
+          MemberDecl mem = ty.AsTopLevelTypeWithMembers.Members.Find(x => x.Name == nm);
+          if (mem is Method call) { 
+            if (call.Outs.Count >= 1) { 
+              firstType = call.Outs[0].Type;
+            } else {
+              reporter.Error(MessageSource.Resolver, s.Rhs.tok, "Expected {0} to have a Success/Failure output value", nm);
             }
-          } else {
-            
           }
         }
       }
@@ -11445,18 +11440,18 @@ namespace Microsoft.Dafny
         s.ResolvedStatements.Add(
           // "var temp := MethodOrExpression;"
           new VarDeclStmt(s.Tok, s.Tok, lhss,
-            new UpdateStmt(s.Tok, s.Tok, new List<Expression>() {new IdentifierExpr(s.Tok, temp)},
-              new List<AssignmentRhs>() {new ExprRhs(s.Rhs)})));
+            new UpdateStmt(s.Tok, s.Tok, new List<Expression>() { new IdentifierExpr(s.Tok, temp) },
+              new List<AssignmentRhs>() { new ExprRhs(s.Rhs) })));
       } else {
         // "var temp ;"
         s.ResolvedStatements.Add(new VarDeclStmt(s.Tok, s.Tok, lhss, null));
-        var lhss2 = new List<Expression>() {new IdentifierExpr(s.Tok, temp)};
+        var lhss2 = new List<Expression>() { new IdentifierExpr(s.Tok, temp) };
         for (int k = (expectExtract?1:0); k < s.Lhss.Count; ++k) {
           lhss2.Add(s.Lhss[k]);
         }
         List<AssignmentRhs> rhss2 = new List<AssignmentRhs>() {new ExprRhs(s.Rhs)};
         if (s.Rhss != null) {
-          foreach  (ExprRhs e in s.Rhss) { rhss2.Add(e); }
+          s.Rhss.Foreach(e => rhss2.Add(e));
         }
         // " temp, ... := MethodOrExpression, ...;"
         s.ResolvedStatements.Add(new UpdateStmt(s.Tok, s.Tok, lhss2, rhss2));
@@ -11488,14 +11483,12 @@ namespace Microsoft.Dafny
         // "y := temp.Extract();"
         s.ResolvedStatements.Add(
           new UpdateStmt(s.Tok, s.Tok, 
-            new List<Expression>(){s.Lhss[0]}, 
-            new List<AssignmentRhs>(){new ExprRhs(VarDotMethod(s.Tok, temp, "Extract"))}
+            new List<Expression>() { s.Lhss[0] }, 
+            new List<AssignmentRhs>() { new ExprRhs(VarDotMethod(s.Tok, temp, "Extract")) }
             ));
       }
 
-      foreach (var a in s.ResolvedStatements) {
-        ResolveStatement(a, codeContext);
-      }
+      s.ResolvedStatements.ForEach( a => ResolveStatement(a, codeContext) );
       EnsureSupportsErrorHandling(s.Tok, firstType, expectExtract);
     }
 

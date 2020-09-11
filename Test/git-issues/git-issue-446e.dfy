@@ -3,19 +3,19 @@
 
 datatype Result<T> = Success(value: T) | Failure(error: string)
 {
-    predicate method IsFailure() {
-      Failure?
-    }
-    function method PropagateFailure<U>(): Result<U>
-      requires Failure?
-    {
-      Failure(this.error)
-    }
-    function method Extract(): T
-      requires Success?
-    {
-      value
-    }
+  predicate method IsFailure() {
+     Failure?
+  }
+  function method PropagateFailure<U>(): Result<U>
+    requires Failure?
+  {
+    Failure(this.error)
+  }
+  function method Extract(): T
+    requires Success?
+  {
+    value
+  }
 }
 
 method mn() returns (r: Result<int>)
@@ -32,8 +32,8 @@ method mn1() returns (out: int)
 
 method m(i: int) returns (r: Result<int>, o: int)
 {
-   if i < 0 { return Failure("negative"), i+i; }
-   return Success(i), i+i;
+  if i < 0 { return Failure("negative"), i+i; }
+  return Success(i), i+i;
 }
 
 
