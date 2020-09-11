@@ -24,7 +24,7 @@ that use them.
 
 ### Requires Clause
 
-````
+````grammar
 RequiresClause_ =
     "requires" Expression(allowLemma: false, allowLambda: false)
 ````
@@ -42,7 +42,7 @@ from all of the **requires** clauses.
 
 ### Ensures Clause
 
-````
+````grammar
 EnsuresClause_ =
     "ensures" { Attribute } Expression(allowLemma: false, allowLambda: false)
 ForAllEnsuresClause_ =
@@ -66,14 +66,14 @@ TODO: In the present sources ``FunctionEnsuresClause_`` differs from
 be fixed in a future version.
 
 ### Decreases Clause
-````
+````grammar
 DecreasesClause_(allowWildcard, allowLambda) =
     "decreases" { Attribute } DecreasesList(allowWildcard, allowLambda)
 FunctionDecreasesClause_(allowWildcard, allowLambda) =
     "decreases" DecreasesList(allowWildcard, allowLambda)
 ````
 
-````
+````grammar
 DecreasesList(allowWildcard, allowLambda) =
   PossiblyWildExpression(allowLambda)
   { "," PossiblyWildExpression(allowLambda) }
@@ -292,17 +292,13 @@ The ingredients are simple, but the end result may seem like magic. For many use
 
 
 ### Framing
-````
+````grammar
 FrameExpression(allowLemma, allowLambda) =
   ( Expression(allowLemma, allowLambda) [ FrameField ]
   | FrameField )
-````
 
-````
 FrameField = "`" Ident
-````
 
-````
 PossiblyWildFrameExpression(allowLemma) =
     ( "*" | FrameExpression(allowLemma, allowLambda: false) )
 ````
@@ -343,7 +339,7 @@ Also, ``FrameField`` is not taken into consideration for
 lambda expressions.
 
 ### Reads Clause
-````
+````grammar
 FunctionReadsClause_ =
   "reads"
   PossiblyWildFrameExpression (allowLemma: false)
@@ -397,7 +393,7 @@ TO BE WRITTEN: multiset of objects allowed in reads clauses
 
 ### Modifies Clause
 
-````
+````grammar
 ModifiesClause_ =
   "modifies" { Attribute }
   FrameExpression(allowLemma: false, allowLambda: false)
@@ -431,7 +427,7 @@ effective modifies set is empty. A loop can also have a
 the enclosing context is allowed to modify.
 
 ### Invariant Clause
-````
+````grammar
 InvariantClause_ =
     "invariant" { Attribute }
     Expression(allowLemma: false, allowLambda: true)
@@ -447,7 +443,7 @@ is valid on entry, Dafny must be able to prove that it then
 holds at the end of the loop.
 
 ## Method Specification
-````
+````grammar
 MethodSpec =
   { ModifiesClause_
   | RequiresClause_
@@ -462,7 +458,7 @@ A method does not have **reads** clauses because methods are allowed to
 read any memory.
 
 ## Function Specification
-````
+````grammar
 FunctionSpec =
   { RequiresClause_
   | FunctionReadsClause_
@@ -477,7 +473,7 @@ specification does not have **modifies** clauses because functions are not
 allowed to modify any memory.
 
 ## Lambda Specification
-````
+````grammar
 LambdaSpec_ =
   { LambdaReadsClause_
   | RequiresClause_
@@ -493,7 +489,7 @@ lambda specification does not have **modifies** clauses because lambdas
 are not allowed to modify any memory.
 
 ## Iterator Specification
-````
+````grammar
 IteratorSpec =
   { IteratorReadsClause_
   | ModifiesClause_
@@ -517,7 +513,7 @@ TODO: What is the relationship between the post condition and
 the `Valid()` predicate?
 
 ## Loop Specification
-````
+````grammar
 LoopSpec =
   { InvariantClause_
   | DecreasesClause_(allowWildcard: true, allowLambda: true)
