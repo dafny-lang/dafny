@@ -3276,7 +3276,7 @@ namespace Microsoft.Dafny
             }
           }
         } else if (e is UnaryOpExpr un) {
-          if (un.Op == UnaryOpExpr.Opcode.Not) {
+          if (un.ResolvedOp == UnaryOpExpr.Opcode.Not) {
             object e0 = GetAnyConst(un.E, consts);
             if (e0 is bool) {
               return !(bool)e0;
@@ -3285,7 +3285,7 @@ namespace Microsoft.Dafny
               int width = un.Type.AsBitVectorType.Width;
               return ((BigInteger.One << width) - 1) ^ (BigInteger)e0;
             }
-          } else if (un.Op == UnaryOpExpr.Opcode.Cardinality) {
+          } else if (un.ResolvedOp == UnaryOpExpr.Opcode.Cardinality) {
             object e0 = GetAnyConst(un.E, consts);
             if (e0 is string ss) {
               return (BigInteger)(ss.Length);
@@ -3324,7 +3324,7 @@ namespace Microsoft.Dafny
           bool isBV = bin.E0.Type.IsBitVectorType;
           int width = isBV ? bin.E0.Type.AsBitVectorType.Width : 0;
           bool isString = e0 is string && e1 is string;
-          switch (bin.Op) {
+          switch (bin.ResolvedOp) {
             case BinaryExpr.Opcode.Add:
               if (isInteger) return (BigInteger) e0 + (BigInteger) e1;
               if (isBV) return ((BigInteger) e0 + (BigInteger) e1) & MaxBV(bin.Type);
