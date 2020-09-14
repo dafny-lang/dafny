@@ -2574,7 +2574,7 @@ namespace Microsoft.Dafny
               CollectFriendlyCallsInFixpointLemmaSpecification(p.E, true, antecedents, false, com);
               var subst = new FixpointLemmaSpecificationSubstituter(antecedents, new IdentifierExpr(k.tok, k.Name), this.reporter, false);
               var pre = subst.CloneExpr(p.E);
-              prefixLemma.Req.Add(new AttributedExpression(pre));
+              prefixLemma.Req.Add(new AttributedExpression(pre, p.Label, null));
               foreach (var e in antecedents) {
                 var fce = (FunctionCallExpr)e;  // we expect "antecedents" to contain only FunctionCallExpr's
                 InductivePredicate predicate = (InductivePredicate)fce.Function;
@@ -4769,12 +4769,18 @@ namespace Microsoft.Dafny
               }
             }
             if (anyNewConstraints) break;
+            TypeConstraint oneSuper = null;
+            TypeConstraint oneSub = null;
             var ss = new HashSet<Type>();
             foreach (var c in AllTypeConstraints) {
               var super = c.Super.NormalizeExpand();
               var sub = c.Sub.NormalizeExpand();
-              if (super is TypeProxy && !ss.Contains(super)) ss.Add(super);
-              if (sub is TypeProxy && !ss.Contains(sub)) ss.Add(sub);
+              if (super is TypeProxy && !ss.Contains(super)) {
+                ss.Add(super);
+              }
+              if (sub is TypeProxy && !ss.Contains(sub)) {
+                ss.Add(sub);
+              }
             }
 
             foreach (var t in ss) {
@@ -4783,8 +4789,14 @@ namespace Microsoft.Dafny
               foreach (var c in AllTypeConstraints) {
                 var super = c.Super.NormalizeExpand();
                 var sub = c.Sub.NormalizeExpand();
-                if (t.Equals(super)) lowers.Add(sub);
-                if (t.Equals(sub)) uppers.Add(super);
+                if (t.Equals(super)) {
+                  lowers.Add(sub);
+                  oneSub = c;
+                }
+                if (t.Equals(sub)) {
+                  uppers.Add(super);
+                  oneSuper = c;
+                }
               }
 
               bool done = false;
@@ -4792,7 +4804,10 @@ namespace Microsoft.Dafny
                 foreach (var tu in uppers) {
                   if (tl.Equals(tu)) {
                     if (!ContainsAsTypeParameter(tu, t)) {
-                      ConstrainSubtypeRelation_Equal(t, tu, null);
+                      var errorMsg = new TypeConstraint.ErrorMsgWithBase(AllTypeConstraints[0].errorMsg,
+                        "Decision: {0} is decided to be {1} because the latter is both the upper and lower bound to the proxy",
+                        t, tu);
+                      ConstrainSubtypeRelation_Equal(t, tu, errorMsg);
                       // The above changes t so that it is a proxy with an assigned type
                       anyNewConstraints = true;
                       done = true;
@@ -4819,7 +4834,10 @@ namespace Microsoft.Dafny
                   var em = lowers.GetEnumerator();
                   em.MoveNext();
                   if (!ContainsAsTypeParameter(em.Current, t)) {
-                    ConstrainSubtypeRelation_Equal(t, em.Current, null);
+                    var errorMsg = new TypeConstraint.ErrorMsgWithBase(oneSub.errorMsg,
+                      "Decision: {0} is decided to be {1} because the latter is a lower bound to the proxy and there is no constraint with an upper bound",
+                      t, em.Current);
+                    ConstrainSubtypeRelation_Equal(t, em.Current, errorMsg);
                     anyNewConstraints = true;
                     break;
                   }
@@ -4830,7 +4848,10 @@ namespace Microsoft.Dafny
                   var em = uppers.GetEnumerator();
                   em.MoveNext();
                   if (!ContainsAsTypeParameter(em.Current, t)) {
-                    ConstrainSubtypeRelation_Equal(t, em.Current, null);
+                    var errorMsg = new TypeConstraint.ErrorMsgWithBase(oneSuper.errorMsg,
+                      "Decision: {0} is decided to be {1} because the latter is an upper bound to the proxy and there is no constraint with a lower bound",
+                      t, em.Current);
+                    ConstrainSubtypeRelation_Equal(t, em.Current, errorMsg);
                     anyNewConstraints = true;
                     break;
                   }
@@ -13070,7 +13091,7 @@ namespace Microsoft.Dafny
         Contract.Assert(e.Seq.Type != null);  // follows from postcondition of ResolveExpression
         ResolveExpression(e.Index, opts);
         ResolveExpression(e.Value, opts);
-        AddXConstraint(expr.tok, "SeqUpdatable", e.Seq.Type, e.Index, e.Value, "update requires a sequence, map, multiset, or datatype (got {0})");
+        AddXConstraint(expr.tok, "SeqUpdatable", e.Seq.Type, e.Index, e.Value, "update requires a sequence, map, or multiset (got {0})");
         expr.Type = e.Seq.Type;
 
       } else if (expr is DatatypeUpdateExpr) {
@@ -14751,7 +14772,7 @@ namespace Microsoft.Dafny
         var m = (Method)member;
         if (!allowMethodCall) {
           // it's a method and method calls are not allowed in the given context
-          reporter.Error(MessageSource.Resolver, tok, "expression is not allowed to invoke a method ({0})", member.Name);
+          reporter.Error(MessageSource.Resolver, tok, "expression is not allowed to invoke a {0} ({1})", member.WhatKind, member.Name);
         }
         int suppliedTypeArguments = optTypeArguments == null ? 0 : optTypeArguments.Count;
         if (optTypeArguments != null && suppliedTypeArguments != m.TypeArgs.Count) {
@@ -14871,7 +14892,7 @@ namespace Microsoft.Dafny
                 var cRhs = new MethodCallInformation(e.tok, mse, e.Args);
                 return cRhs;
               } else {
-                reporter.Error(MessageSource.Resolver, e.tok, "method call is not allowed to be used in an expression context ({0})", mse.Member.Name);
+                reporter.Error(MessageSource.Resolver, e.tok, "{0} call is not allowed to be used in an expression context ({1})", mse.Member.WhatKind, mse.Member.Name);
               }
             } else if (lhs != null) {  // if e.Lhs.Resolved is null, then e.Lhs was not successfully resolved and an error has already been reported
               reporter.Error(MessageSource.Resolver, e.tok, "non-function expression (of type {0}) is called with parameters", e.Lhs.Type);
