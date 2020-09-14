@@ -3253,7 +3253,10 @@ namespace Microsoft.Dafny
       // Find which among the allowable native types can hold "dd". Give an
       // error for any user-specified native type that's not big enough.
       var bigEnoughNativeTypes = new List<NativeType>();
-      // But first, define a local, recursive function GetConst:
+      // But first, define a local, recursive function GetConst/GetAnyConst:
+      // These fold any constant computations, including symbolic constants,
+      // returning null if folding is not possible. If an operation is undefined
+      // (divide by zero, conversion out of range, etc.), then null is returned.
       Func<Expression, BigInteger?> GetConst = null;
       Func<Expression, Stack<ConstantField>, Object> GetAnyConst = null;
       GetAnyConst = (Expression e, Stack<ConstantField> consts) => {
@@ -3363,18 +3366,14 @@ namespace Microsoft.Dafny
               }
               if (isBV) {
                 if ((BigInteger) e1 == 0) {
-                  reporter.Error(MessageSource.Resolver, bin.E1,
-                    "Divide by zero in compiler constant expression");
-                  break;
+                  return null; // Divide by zero
                 } else {
                   return ((BigInteger) e0) / ((BigInteger) e1);
                 }
               }
               if (isReal) {
                 if ((Basetypes.BigDec) e1 == Basetypes.BigDec.ZERO) {
-                  reporter.Error(MessageSource.Resolver, bin.E1,
-                    "Divide by zero in compiler constant expression");
-                  break;
+                  return null; // Divide by zero
                 } else {
                   // BigDec does not have divide and is not a representation of rationals, so we don't do constant folding
                   return null;
@@ -3385,9 +3384,7 @@ namespace Microsoft.Dafny
             case BinaryExpr.Opcode.Mod:
               if (isInteger) {
                 if ((BigInteger) e1 == 0) {
-                  reporter.Error(MessageSource.Resolver, bin.E1,
-                    "Mod by zero in compiler constant expression");
-                  break;
+                  return null; // Mod by zero
                 } else {
                   BigInteger a = BigInteger.Abs((BigInteger) e1);
                   BigInteger d = (BigInteger) e0 % a;
@@ -3396,9 +3393,7 @@ namespace Microsoft.Dafny
               }
               if (isBV) {
                 if ((BigInteger) e1 == 0) {
-                  reporter.Error(MessageSource.Resolver, bin.E1,
-                    "Mod by zero in compiler constant expression");
-                  break;
+                  return null; // Mod by zero
                 } else {
                   return (BigInteger) e0 % (BigInteger) e1;
                 }
@@ -3406,9 +3401,7 @@ namespace Microsoft.Dafny
               break;
             case BinaryExpr.Opcode.LeftShift: {
               if ((BigInteger)e1 < 0) {
-                reporter.Error(MessageSource.Resolver, bin.E1,
-                  "Shift amount may not be negative: " + ((BigInteger)e1).ToString());
-                return null;
+                return null; // Negative shift
               }
               if ((BigInteger)e1 >= bin.Type.AsBitVectorType.Width) {
                 return BigInteger.Zero;
@@ -3417,9 +3410,7 @@ namespace Microsoft.Dafny
             }
             case BinaryExpr.Opcode.RightShift: {
               if ((BigInteger)e1 < 0) {
-                reporter.Error(MessageSource.Resolver, bin.E1,
-                  "Shift amount may not be negative: " + ((BigInteger)e1).ToString());
-                return null;
+                return null; // Negative shift
               }
               if ((BigInteger)e1 >= bin.Type.AsBitVectorType.Width) {
                 return BigInteger.Zero;
@@ -3489,23 +3480,15 @@ namespace Microsoft.Dafny
         } else if (e is ConversionExpr ce) {
           Object o = GetAnyConst(ce.E, consts);
           if (o == null || ce.E.Type == ce.Type) return o;
-          String prefix = "Illegal conversion in compiler constant expression: "
-                          + ce.E.Type.ToString() + " -> " + ce.Type.ToString();
           if (ce.E.Type.IsNumericBased(Type.NumericPersuation.Real) &&
                 ce.Type.IsBitVectorType) {
             ((Basetypes.BigDec) o).FloorCeiling(out var ff, out _);
             if (ff < 0 || ff > MaxBV(ce.Type)) {
-              reporter.Error(MessageSource.Resolver, ce.E,
-                prefix + ", argument out of range: " + ((Basetypes.BigDec) o).ToString());
-              return null;
+              return null; // Out of range
             }
-
             if (((Basetypes.BigDec) o) != Basetypes.BigDec.FromBigInt(ff)) {
-              reporter.Error(MessageSource.Resolver, ce.E,
-                prefix + ", argument not an integer: " + ((Basetypes.BigDec) o).ToString());
-              return null;
+              return null; // Out of range
             }
-
             return ff;
           }
 
@@ -3514,11 +3497,8 @@ namespace Microsoft.Dafny
             ((Basetypes.BigDec) o).FloorCeiling(out var ff, out _);
             if (!ce.Type.IsIntegerType) return null;
             if (((Basetypes.BigDec) o) != Basetypes.BigDec.FromBigInt(ff)) {
-              reporter.Error(MessageSource.Resolver, ce.E,
-                  prefix + ", argument not an integer: " + ((Basetypes.BigDec) o).ToDecimalString());
-              return null;
+              return null; // Argument not an integer
             }
-
             return ff;
           }
 
@@ -3538,11 +3518,8 @@ namespace Microsoft.Dafny
                 ce.Type.IsBitVectorType) {
             BigInteger b = (BigInteger) o;
             if (b < 0 || b > MaxBV(ce.Type)) {
-              reporter.Error(MessageSource.Resolver, ce.E,
-                  prefix + ", argument out of range: " + b.ToString());
-              return null;
+              return null; // Argument out of range
             }
-
             return o;
           }
 
@@ -3563,11 +3540,8 @@ namespace Microsoft.Dafny
           if (ce.E.Type.IsBitVectorType && ce.Type.IsBitVectorType) {
             BigInteger b = (BigInteger) o;
             if (b < 0 || b > MaxBV(ce.Type)) {
-              reporter.Error(MessageSource.Resolver, ce.E,
-                  prefix + ", argument out of range: " + b.ToString());
-              return null;
+              return null; // Argument out of range
             }
-
             return o;
           }
 
@@ -3586,9 +3560,7 @@ namespace Microsoft.Dafny
           if (ce.E.Type.IsCharType && ce.Type.IsBitVectorType) {
             char c = ((String) o)[0];
             if ((int) c > MaxBV(ce.Type)) {
-              reporter.Error(MessageSource.Resolver, ce.E,
-                  prefix + ", argument out of range: " + c.ToString() + " (" + (int) c + ")");
-              return null;
+              return null; // Argument out of range
             }
             return new BigInteger(((string) o)[0]);
           }
@@ -3597,9 +3569,7 @@ namespace Microsoft.Dafny
                 ce.Type.IsCharType) {
             BigInteger b = (BigInteger) o;
             if (b < BigInteger.Zero || b > new BigInteger(65535)) {
-              reporter.Error(MessageSource.Resolver, ce.E,
-                  prefix + ", argument out of range: " + b.ToString());
-              return null;
+              return null; // Argument out of range
             }
             return ((char) (int) b).ToString();
           }
@@ -3614,17 +3584,11 @@ namespace Microsoft.Dafny
                 ce.Type.IsCharType) {
             ((Basetypes.BigDec) o).FloorCeiling(out var ff, out _);
             if (((Basetypes.BigDec) o) != Basetypes.BigDec.FromBigInt(ff)) {
-              reporter.Error(MessageSource.Resolver, ce.E,
-                  prefix + ", argument not an integer: " + ((Basetypes.BigDec) o).ToString());
-              return null;
+              return null; // Argument not an integer
             }
-
             if (ff < BigInteger.Zero || ff > new BigInteger(65535)) {
-              reporter.Error(MessageSource.Resolver, ce.E,
-                  prefix + ", argument out of range: " + ff.ToString());
-              return null;
+              return null; // Argument out of range
             }
-
             return ((char) (int) ff).ToString();
           }
 
@@ -3634,9 +3598,7 @@ namespace Microsoft.Dafny
           if (b == null || index == null) return null;
           BigInteger n = (BigInteger) index;
           if (n < 0 || n >= (b as string).Length) {
-            reporter.Error(MessageSource.Resolver, sse.E0,
-              "Index out of range for string: " + n.ToString() + " not in 0.." + (b as string).Length);
-            return null;
+            return null; // Index out of range
           }
           if (b is string) return (b as string)[(int)n].ToString();
           return null;
