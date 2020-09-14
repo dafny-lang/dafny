@@ -294,6 +294,10 @@ namespace Microsoft.Dafny
           return new ThisExpr(Tok(expr.tok));
         }
 
+      } else if (expr is AutoGhostIdentifierExpr) {
+        var e = (AutoGhostIdentifierExpr)expr;
+        return new AutoGhostIdentifierExpr(Tok(e.tok), e.Name);
+
       } else if (expr is IdentifierExpr) {
         var e = (IdentifierExpr)expr;
         return new IdentifierExpr(Tok(e.tok), e.Name);
