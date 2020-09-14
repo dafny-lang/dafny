@@ -1154,7 +1154,7 @@ In certain situations in Dafny it is helpful to know what the value of a
 constant is during program analysis, before verification or execution takes
 place. For example, a compiler can choose an optimized representation of a 
 `newtype` that is a subset of `int` if it knows the range of possible values 
-of the subset type: if the range is within 0 to 255 (inclusive), then an 
+of the subset type: if the range is within 0 to less than 256, then an 
 unsigned 8-bit representation can be used.
 
 To continue this example, suppose a new type is defined as
