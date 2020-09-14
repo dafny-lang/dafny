@@ -3276,7 +3276,7 @@ namespace Microsoft.Dafny
             }
           }
         } else if (e is UnaryOpExpr un) {
-          if (un.ResolvedOp == UnaryOpExpr.Opcode.Not) {
+          if (un.Op == UnaryOpExpr.Opcode.Not) {
             object e0 = GetAnyConst(un.E, consts);
             if (e0 is bool) {
               return !(bool)e0;
@@ -3285,7 +3285,7 @@ namespace Microsoft.Dafny
               int width = un.Type.AsBitVectorType.Width;
               return ((BigInteger.One << width) - 1) ^ (BigInteger)e0;
             }
-          } else if (un.ResolvedOp == UnaryOpExpr.Opcode.Cardinality) {
+          } else if (un.Op == UnaryOpExpr.Opcode.Cardinality) {
             object e0 = GetAnyConst(un.E, consts);
             if (e0 is string ss) {
               return (BigInteger)(ss.Length);
@@ -3325,38 +3325,38 @@ namespace Microsoft.Dafny
           int width = isBV ? bin.E0.Type.AsBitVectorType.Width : 0;
           bool isString = e0 is string && e1 is string;
           switch (bin.ResolvedOp) {
-            case BinaryExpr.Opcode.Add:
+            case BinaryExpr.ResolvedOpcode.Add:
               if (isInteger) return (BigInteger) e0 + (BigInteger) e1;
               if (isBV) return ((BigInteger) e0 + (BigInteger) e1) & MaxBV(bin.Type);
-              if (isString) return (string) e0 + (string) e1;
               if (isReal) return (Basetypes.BigDec) e0 + (Basetypes.BigDec) e1;
               break;
-            case BinaryExpr.Opcode.Sub:
+            case BinaryExpr.ResolvedOpcode.Concat:
+              if (isString) return (string) e0 + (string) e1;
+              break;
+            case BinaryExpr.ResolvedOpcode.Sub:
               if (isInt && (BigInteger) e0 == 0) return -(BigInteger) e1; // Allow this case for newtypes
               if (isInteger) return (BigInteger) e0 - (BigInteger) e1;
               if (isBV) return ((BigInteger) e0 - (BigInteger) e1) & MaxBV(bin.Type);
               if (isReal) return (Basetypes.BigDec) e0 - (Basetypes.BigDec) e1;
               break;
-            case BinaryExpr.Opcode.Mul:
+            case BinaryExpr.ResolvedOpcode.Mul:
               if (isInteger) return (BigInteger) e0 * (BigInteger) e1;
               if (isBV) return ((BigInteger) e0 * (BigInteger) e1) & MaxBV(bin.Type);
               if (isReal) return (Basetypes.BigDec) e0 * (Basetypes.BigDec) e1;
               break;
-            case BinaryExpr.Opcode.BitwiseAnd:
+            case BinaryExpr.ResolvedOpcode.BitwiseAnd:
               if (isBV) return (BigInteger) e0 & (BigInteger) e1;
               break;
-            case BinaryExpr.Opcode.BitwiseOr:
+            case BinaryExpr.ResolvedOpcode.BitwiseOr:
               if (isBV) return (BigInteger) e0 | (BigInteger) e1;
               break;
-            case BinaryExpr.Opcode.BitwiseXor:
+            case BinaryExpr.ResolvedOpcode.BitwiseXor:
               if (isBV) return (BigInteger) e0 ^ (BigInteger) e1;
               break;
-            case BinaryExpr.Opcode.Div:
+            case BinaryExpr.ResolvedOpcode.Div:
               if (isInteger) {
                 if ((BigInteger) e1 == 0) {
-                  reporter.Error(MessageSource.Resolver, bin.E1,
-                    "Divide by zero in compiler constant expression");
-                  break;
+                  return null; // Divide by zero
                 } else {
                   BigInteger a0 = (BigInteger) e0;
                   BigInteger a1 = (BigInteger) e1;
@@ -3381,7 +3381,7 @@ namespace Microsoft.Dafny
               }
 
               break;
-            case BinaryExpr.Opcode.Mod:
+            case BinaryExpr.ResolvedOpcode.Mod:
               if (isInteger) {
                 if ((BigInteger) e1 == 0) {
                   return null; // Mod by zero
@@ -3399,7 +3399,7 @@ namespace Microsoft.Dafny
                 }
               }
               break;
-            case BinaryExpr.Opcode.LeftShift: {
+            case BinaryExpr.ResolvedOpcode.LeftShift: {
               if ((BigInteger)e1 < 0) {
                 return null; // Negative shift
               }
@@ -3408,7 +3408,7 @@ namespace Microsoft.Dafny
               }
               return ((BigInteger)e0 << (int)(BigInteger)e1) & MaxBV(bin.E0.Type);
             }
-            case BinaryExpr.Opcode.RightShift: {
+            case BinaryExpr.ResolvedOpcode.RightShift: {
               if ((BigInteger)e1 < 0) {
                 return null; // Negative shift
               }
@@ -3417,38 +3417,50 @@ namespace Microsoft.Dafny
               }
               return (BigInteger)e0 >> (int)(BigInteger)e1;
             }
-            case BinaryExpr.Opcode.And: return (bool) e0 && (bool) e1;
-            case BinaryExpr.Opcode.Or: return (bool) e0 || (bool) e1;
-            case BinaryExpr.Opcode.Iff: return (bool) e0 == (bool) e1; // <==>
-            case BinaryExpr.Opcode.Imp: return !(bool) e0 || (bool) e1; // ==>
-            case BinaryExpr.Opcode.Exp: return !(bool) e0 || (bool) e1; // <==, arguments reversed during parse
-            case BinaryExpr.Opcode.Gt:
+            case BinaryExpr.ResolvedOpcode.And: return (bool) e0 && (bool) e1;
+            case BinaryExpr.ResolvedOpcode.Or: return (bool) e0 || (bool) e1;
+            case BinaryExpr.ResolvedOpcode.Iff: return (bool) e0 == (bool) e1; // <==>
+            case BinaryExpr.ResolvedOpcode.Imp: return !(bool) e0 || (bool) e1; // ==> and <==
+            case BinaryExpr.ResolvedOpcode.Gt:
               if (isInt) return (BigInteger) e0 > (BigInteger) e1;
               if (isBV) return (BigInteger) e0 > (BigInteger) e1;
               if (isReal) return (Basetypes.BigDec) e0 > (Basetypes.BigDec) e1;
+              break;
+            case BinaryExpr.ResolvedOpcode.GtChar:
               if (bin.E0.Type.IsCharType) return ((string) e0)[0] > ((string) e1)[0];
               break;
-            case BinaryExpr.Opcode.Ge:
+            case BinaryExpr.ResolvedOpcode.Ge:
               if (isInt) return (BigInteger) e0 >= (BigInteger) e1;
               if (isBV) return (BigInteger) e0 >= (BigInteger) e1;
               if (isReal) return (Basetypes.BigDec) e0 >= (Basetypes.BigDec) e1;
+              break;
+            case BinaryExpr.ResolvedOpcode.GeChar:
               if (bin.E0.Type.IsCharType) return ((string) e0)[0] >= ((string) e1)[0];
               break;
-            case BinaryExpr.Opcode.Lt:
+            case BinaryExpr.ResolvedOpcode.Lt:
               if (isInt) return (BigInteger) e0 < (BigInteger) e1;
               if (isBV) return (BigInteger) e0 < (BigInteger) e1;
               if (isReal) return (Basetypes.BigDec) e0 < (Basetypes.BigDec) e1;
               if (bin.E0.Type.IsCharType) return ((string) e0)[0] < ((string) e1)[0];
+              break;
+            case BinaryExpr.ResolvedOpcode.LtChar:
+              if (bin.E0.Type.IsCharType) return ((string) e0)[0] < ((string) e1)[0];
+              break;
+            case BinaryExpr.ResolvedOpcode.ProperPrefix:
               if (isString) return ((string)e1).StartsWith((string)e0) && !((string) e1).Equals((string) e0);
               break;
-            case BinaryExpr.Opcode.Le:
+            case BinaryExpr.ResolvedOpcode.Le:
               if (isInt) return (BigInteger) e0 <= (BigInteger) e1;
               if (isBV) return (BigInteger) e0 <= (BigInteger) e1;
               if (isReal) return (Basetypes.BigDec) e0 <= (Basetypes.BigDec) e1;
+              break;
+            case BinaryExpr.ResolvedOpcode.LeChar:
               if (bin.E0.Type.IsCharType) return ((string) e0)[0] <= ((string) e1)[0];
+              break;
+            case BinaryExpr.ResolvedOpcode.Prefix:
               if (isString) return ((string) e1).StartsWith((string)e0);
               break;
-            case BinaryExpr.Opcode.Eq: {
+            case BinaryExpr.ResolvedOpcode.EqCommon: {
               if (isBool) {
                 return (bool) e0 == (bool) e1;
               } else if (isInt || isBV) {
@@ -3457,12 +3469,20 @@ namespace Microsoft.Dafny
                 return (Basetypes.BigDec) e0 == (Basetypes.BigDec) e1;
               } else if (bin.E0.Type.IsCharType) {
                 return ((string) e0)[0] == ((string) e1)[0];
-              } else if (isString) {
-                return (string) e0 == (string) e1;
               }
               break;
             }
-            case BinaryExpr.Opcode.Neq: {
+            case BinaryExpr.ResolvedOpcode.SeqEq:
+              if (isString) {
+                return (string) e0 == (string) e1;
+              }
+              break;
+            case BinaryExpr.ResolvedOpcode.SeqNeq:
+              if (isString) {
+                return (string) e0 != (string) e1;
+              }
+              break;
+            case BinaryExpr.ResolvedOpcode.NeqCommon: {
               if (isBool) {
                 return (bool) e0 != (bool) e1;
               } else if (isInt || isBV) {
