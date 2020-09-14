@@ -751,7 +751,9 @@ namespace Microsoft.Dafny {
       foreach (TopLevelDecl d in program.BuiltIns.SystemModule.TopLevelDecls) {
         currentDeclaration = d;
         if (d is OpaqueTypeDecl) {
-          AddTypeDecl((OpaqueTypeDecl)d);
+          var dd = (OpaqueTypeDecl)d;
+          AddTypeDecl(dd);
+          AddClassMembers(dd, true);
         } else if (d is NewtypeDecl) {
           var dd = (NewtypeDecl)d;
           AddTypeDecl(dd);
@@ -790,7 +792,9 @@ namespace Microsoft.Dafny {
         foreach (TopLevelDecl d in m.TopLevelDecls.FindAll(VisibleInScope)) {
           currentDeclaration = d;
           if (d is OpaqueTypeDecl) {
-            AddTypeDecl((OpaqueTypeDecl)d);
+            var dd = (OpaqueTypeDecl)d;
+            AddTypeDecl(dd);
+            AddClassMembers(dd, true);
           } else if (d is ModuleDecl) {
             // submodules have already been added as a top level module, ignore this.
           } else if (d is RevealableTypeDecl) {
@@ -4432,7 +4436,7 @@ namespace Microsoft.Dafny {
 
           Expression parRange = new LiteralExpr(m.tok, true);
           parRange.Type = Type.Bool;  // resolve here
-          foreach (var pre in m.Req) { 
+          foreach (var pre in m.Req) {
             parRange = Expression.CreateAnd(parRange, Substitute(pre.E, receiverSubst, substMap));
           }
           // construct an expression (generator) for:  VF' << VF
@@ -9876,7 +9880,7 @@ namespace Microsoft.Dafny {
         return Bpl.Type.Int;
       } else if (type is ArrowType) {
         return predef.HandleType;
-      } else if (type.IsTypeParameter) {
+      } else if (type.IsTypeParameter || type.IsOpaqueType) {
         return predef.BoxType;
       } else if (type.IsInternalTypeSynonym) {
         return predef.BoxType;
@@ -11679,7 +11683,7 @@ namespace Microsoft.Dafny {
 
         // check that postconditions hold
         foreach (var ens in s.Ens) {
-          
+
           bool splitHappened;  // we actually don't care
           foreach (var split in TrSplitExpr(ens.E, etran, true, out splitHappened)) {
             if (split.IsChecked) {
@@ -12576,10 +12580,14 @@ namespace Microsoft.Dafny {
 
     Nullable<BuiltinFunction> RankFunction(Type/*!*/ ty)
     {
-      Contract.Ensures(ty != null);
-      if (ty is SeqType)      return BuiltinFunction.SeqRank;
-      else if (ty.IsDatatype) return BuiltinFunction.DtRank;
-      else return null;
+      Contract.Requires(ty != null);
+      if (ty is SeqType) {
+        return BuiltinFunction.SeqRank;
+      } else if (ty.IsIndDatatype) {
+        return BuiltinFunction.DtRank;
+      } else {
+        return null;
+      }
     }
 
     void ComputeLessEq(IToken tok, Type ty0, Type ty1, Bpl.Expr e0, Bpl.Expr e1, out Bpl.Expr less, out Bpl.Expr atmost, out Bpl.Expr eq, bool includeLowerBound)
