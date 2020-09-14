@@ -129,6 +129,11 @@
     <CodeContractsAnalysisWarningLevel>0</CodeContractsAnalysisWarningLevel>
     <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
+<PropertyGroup>
+  <PreBuildEvent>
+    "..\..\..\..\third_party\Coco\bin\Coco.exe" "../../../../Source/Dafny/Dafny.atg" "-namespace" "Microsoft.Dafny" "-frames" "../../../../third_party/Coco/src" 
+  </PreBuildEvent>
+</PropertyGroup>
   <ItemGroup>
     <Reference Include="BoogieBasetypes">
       <HintPath>..\..\..\boogie\Binaries\BoogieBasetypes.dll</HintPath>
