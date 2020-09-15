@@ -3345,10 +3345,20 @@ namespace Microsoft.Dafny
               if (isString) return (string) e0 + (string) e1;
               break;
             case BinaryExpr.ResolvedOpcode.Sub:
-     //         if (isInt && (BigInteger) e0 == 0) return -(BigInteger) e1; // Allow this case for newtypes
               if (isInteger) return (BigInteger) e0 - (BigInteger) e1;
               if (isBV) return ((BigInteger) e0 - (BigInteger) e1) & MaxBV(bin.Type);
               if (isReal) return (Basetypes.BigDec) e0 - (Basetypes.BigDec) e1;
+              // Allow a special case: If the result type is a newtype that is integer-based (i.e., isInt && !isInteger)
+              // then we generally do not fold the operations, because we do not determine whether the
+              // result of the operation satsifies the new type constraint. However, on the occasion that
+              // a newtype aliases int witxhout a constraint, it occurs that a value of the newtype is initialized
+              // with a negative value, which is represented as "0 - N", that is, it comes to this case. It
+              // is a nuisance not to constant-fold the result, as not doing so can alter the determination
+              // of the representation type.
+              if (isInt && (BigInteger) e0 == 0 && bin.Type.AsNewtype != null &&
+                  bin.Type.AsNewtype.Constraint == null) {
+                return -(BigInteger) e1;
+              }
               break;
             case BinaryExpr.ResolvedOpcode.Mul:
               if (isInteger) return (BigInteger) e0 * (BigInteger) e1;
