@@ -6,11 +6,11 @@
 // RUN: %diff "%s.expect" "%t"
 
 method Main() {
-  // TODO: include tests of assignments from coll<Number> back to coll<Integer> when all elements are known to be Integer
   Sequences();
   Sets();
   Multisets();
   Maps();
+  Downcasts();
 }
 
 trait Number {
@@ -319,3 +319,32 @@ method PrintPairs(prefix: string, S: set<(Number, Number)>) {
   print "}";
 }
 */
+
+// -------------------- downcasts --------------------
+
+method Downcasts() {
+  var a := new Integer(20);
+  var b := new Integer(30);
+
+  var m: set<Number>, n: multiset<Number>, o: seq<Number>, p: map<Number, Number>;
+  var s: set<Integer>, t: multiset<Integer>, u: seq<Integer>, v: map<Integer, Integer>;
+  m, n, o, p := Create<Number>(a, b);
+  s, t, u, v := m, n, o, p;  // in C#, this requires a downcast clone
+  m, n, o, p := s, t, u, v;
+  s, t, u, v := m, n, o, p;  // here, the downcast clone is the identity
+  m, n, o, p := s, t, u, v;
+
+  PrintSet("set: ", m); print "\n";
+  PrintMultiset("multiset: ", n); print "\n";
+  PrintSeq("seq: ", o); print "\n";
+  PrintMap("map: ", p); print "\n";
+}
+
+// This method will create the collections of type coll<T>
+method Create<T>(a: T, b: T) returns (m: set<T>, n: multiset<T>, o: seq<T>, p: map<T, T>)
+  ensures m == {a, b} && n == multiset{a, b} && o == [a, b]
+  ensures p == map[a := b, b := a]
+{
+  m, n, o := {a, b}, multiset{a, b}, [a, b];
+  p := map[a := b, b := a];
+}
