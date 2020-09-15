@@ -3180,8 +3180,11 @@ namespace Microsoft.Dafny
     }
 
     private BigInteger MaxBV(Type t) {
-      int n = t.AsBitVectorType.Width;
-      return BigInteger.Pow(new BigInteger(2), n) - BigInteger.One;
+      return MaxBV(t.AsBitVectorType.Width);
+    }
+
+    private BigInteger MaxBV(int bits) {
+      return BigInteger.Pow(new BigInteger(2), bits) - BigInteger.One;
     }
 
     private void FigureOutNativeType(NewtypeDecl dd) {
@@ -3314,12 +3317,17 @@ namespace Microsoft.Dafny
         } else if (e is BinaryExpr bin) {
           Object e0 = GetAnyConst(bin.E0, consts);
           Object e1 = GetAnyConst(bin.E1, consts);
-          if (e0 == null || e1 == null) { return null; }
           bool isBool = bin.E0.Type == Type.Bool && bin.E1.Type == Type.Bool;
-          bool isReal = bin.E0.Type.IsNumericBased(Type.NumericPersuation.Real)
+          bool shortCircuit = isBool && (bin.ResolvedOp == BinaryExpr.ResolvedOpcode.And
+                                         || bin.ResolvedOp == BinaryExpr.ResolvedOpcode.Or
+                                         || bin.ResolvedOp == BinaryExpr.ResolvedOpcode.Imp);
+
+          if (e0 == null || (!shortCircuit && e1 == null)) { return null; }
+          bool isAnyReal = bin.E0.Type.IsNumericBased(Type.NumericPersuation.Real)
                         && bin.E1.Type.IsNumericBased(Type.NumericPersuation.Real);
           bool isInt = bin.E0.Type.IsNumericBased(Type.NumericPersuation.Int)
                        && bin.E1.Type.IsNumericBased(Type.NumericPersuation.Int);
+          bool isReal = bin.Type.IsRealType;
           bool isInteger = bin.Type.IsIntegerType;
           bool isBV = bin.E0.Type.IsBitVectorType;
           int width = isBV ? bin.E0.Type.AsBitVectorType.Width : 0;
@@ -3345,14 +3353,14 @@ namespace Microsoft.Dafny
               if (isReal) return (Basetypes.BigDec) e0 * (Basetypes.BigDec) e1;
               break;
             case BinaryExpr.ResolvedOpcode.BitwiseAnd:
-              if (isBV) return (BigInteger) e0 & (BigInteger) e1;
-              break;
+              Contract.Assert(isBV);
+              return (BigInteger) e0 & (BigInteger) e1;
             case BinaryExpr.ResolvedOpcode.BitwiseOr:
-              if (isBV) return (BigInteger) e0 | (BigInteger) e1;
-              break;
+              Contract.Assert(isBV);
+              return (BigInteger) e0 | (BigInteger) e1;
             case BinaryExpr.ResolvedOpcode.BitwiseXor:
-              if (isBV) return (BigInteger) e0 ^ (BigInteger) e1;
-              break;
+              Contract.Assert(isBV);
+              return (BigInteger) e0 ^ (BigInteger) e1;
             case BinaryExpr.ResolvedOpcode.Div:
               if (isInteger) {
                 if ((BigInteger) e1 == 0) {
@@ -3404,7 +3412,7 @@ namespace Microsoft.Dafny
                 return null; // Negative shift
               }
               if ((BigInteger)e1 >= bin.Type.AsBitVectorType.Width) {
-                return BigInteger.Zero;
+                return null; // Shift is too large
               }
               return ((BigInteger)e0 << (int)(BigInteger)e1) & MaxBV(bin.E0.Type);
             }
@@ -3413,18 +3421,27 @@ namespace Microsoft.Dafny
                 return null; // Negative shift
               }
               if ((BigInteger)e1 >= bin.Type.AsBitVectorType.Width) {
-                return BigInteger.Zero;
+                return null; // Shift too large
               }
               return (BigInteger)e0 >> (int)(BigInteger)e1;
             }
-            case BinaryExpr.ResolvedOpcode.And: return (bool) e0 && (bool) e1;
-            case BinaryExpr.ResolvedOpcode.Or: return (bool) e0 || (bool) e1;
+            case BinaryExpr.ResolvedOpcode.And: {
+              if ((bool) e0 && e1 == null) return null;
+              return (bool) e0 && (bool) e1;
+            }
+            case BinaryExpr.ResolvedOpcode.Or: {
+              if (!(bool) e0 && e1 == null) return null;
+              return (bool) e0 || (bool) e1;
+            }
+            case BinaryExpr.ResolvedOpcode.Imp: { // ==> and <==
+              if ((bool) e0 && e1 == null) return null;
+              return !(bool) e0 || (bool) e1;
+            }
             case BinaryExpr.ResolvedOpcode.Iff: return (bool) e0 == (bool) e1; // <==>
-            case BinaryExpr.ResolvedOpcode.Imp: return !(bool) e0 || (bool) e1; // ==> and <==
             case BinaryExpr.ResolvedOpcode.Gt:
               if (isInt) return (BigInteger) e0 > (BigInteger) e1;
               if (isBV) return (BigInteger) e0 > (BigInteger) e1;
-              if (isReal) return (Basetypes.BigDec) e0 > (Basetypes.BigDec) e1;
+              if (isAnyReal) return (Basetypes.BigDec) e0 > (Basetypes.BigDec) e1;
               break;
             case BinaryExpr.ResolvedOpcode.GtChar:
               if (bin.E0.Type.IsCharType) return ((string) e0)[0] > ((string) e1)[0];
@@ -3432,7 +3449,7 @@ namespace Microsoft.Dafny
             case BinaryExpr.ResolvedOpcode.Ge:
               if (isInt) return (BigInteger) e0 >= (BigInteger) e1;
               if (isBV) return (BigInteger) e0 >= (BigInteger) e1;
-              if (isReal) return (Basetypes.BigDec) e0 >= (Basetypes.BigDec) e1;
+              if (isAnyReal) return (Basetypes.BigDec) e0 >= (Basetypes.BigDec) e1;
               break;
             case BinaryExpr.ResolvedOpcode.GeChar:
               if (bin.E0.Type.IsCharType) return ((string) e0)[0] >= ((string) e1)[0];
@@ -3440,8 +3457,7 @@ namespace Microsoft.Dafny
             case BinaryExpr.ResolvedOpcode.Lt:
               if (isInt) return (BigInteger) e0 < (BigInteger) e1;
               if (isBV) return (BigInteger) e0 < (BigInteger) e1;
-              if (isReal) return (Basetypes.BigDec) e0 < (Basetypes.BigDec) e1;
-              if (bin.E0.Type.IsCharType) return ((string) e0)[0] < ((string) e1)[0];
+              if (isAnyReal) return (Basetypes.BigDec) e0 < (Basetypes.BigDec) e1;
               break;
             case BinaryExpr.ResolvedOpcode.LtChar:
               if (bin.E0.Type.IsCharType) return ((string) e0)[0] < ((string) e1)[0];
@@ -3452,7 +3468,7 @@ namespace Microsoft.Dafny
             case BinaryExpr.ResolvedOpcode.Le:
               if (isInt) return (BigInteger) e0 <= (BigInteger) e1;
               if (isBV) return (BigInteger) e0 <= (BigInteger) e1;
-              if (isReal) return (Basetypes.BigDec) e0 <= (Basetypes.BigDec) e1;
+              if (isAnyReal) return (Basetypes.BigDec) e0 <= (Basetypes.BigDec) e1;
               break;
             case BinaryExpr.ResolvedOpcode.LeChar:
               if (bin.E0.Type.IsCharType) return ((string) e0)[0] <= ((string) e1)[0];
@@ -3465,7 +3481,7 @@ namespace Microsoft.Dafny
                 return (bool) e0 == (bool) e1;
               } else if (isInt || isBV) {
                 return (BigInteger) e0 == (BigInteger) e1;
-              } else if (isReal) {
+              } else if (isAnyReal) {
                 return (Basetypes.BigDec) e0 == (Basetypes.BigDec) e1;
               } else if (bin.E0.Type.IsCharType) {
                 return ((string) e0)[0] == ((string) e1)[0];
@@ -3487,7 +3503,7 @@ namespace Microsoft.Dafny
                 return (bool) e0 != (bool) e1;
               } else if (isInt || isBV) {
                 return (BigInteger) e0 != (BigInteger) e1;
-              } else if (isReal) {
+              } else if (isAnyReal) {
                 return (Basetypes.BigDec) e0 != (Basetypes.BigDec) e1;
               } else if (bin.E0.Type.IsCharType) {
                 return ((string) e0)[0] != ((string) e1)[0];
@@ -3498,7 +3514,7 @@ namespace Microsoft.Dafny
             }
           }
         } else if (e is ConversionExpr ce) {
-          Object o = GetAnyConst(ce.E, consts);
+          object o = GetAnyConst(ce.E, consts);
           if (o == null || ce.E.Type == ce.Type) return o;
           if (ce.E.Type.IsNumericBased(Type.NumericPersuation.Real) &&
                 ce.Type.IsBitVectorType) {
@@ -3613,15 +3629,13 @@ namespace Microsoft.Dafny
           }
 
         } else if (e is SeqSelectExpr sse) {
-          Object b = GetAnyConst(sse.Seq, consts);
-          Object index = GetAnyConst(sse.E0, consts);
+          var b = GetAnyConst(sse.Seq, consts) as string;
+          BigInteger index = (BigInteger)GetAnyConst(sse.E0, consts);
           if (b == null || index == null) return null;
-          BigInteger n = (BigInteger) index;
-          if (n < 0 || n >= (b as string).Length) {
+          if (index < 0 || index >= b.Length || index > Int32.MaxValue) {
             return null; // Index out of range
           }
-          if (b is string) return (b as string)[(int)n].ToString();
-          return null;
+          return b[(int)index].ToString();
         } else if (e is ITEExpr ite) {
           Object b = GetAnyConst(ite.Test, consts);
           if (b == null) return null;
