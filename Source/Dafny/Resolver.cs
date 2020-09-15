@@ -2525,6 +2525,9 @@ namespace Microsoft.Dafny
               }
             }
             ResolveClassMembers_Pass1(dd);
+          } else if (d is OpaqueTypeDecl) {
+            var dd = (OpaqueTypeDecl)d;
+            ResolveClassMembers_Pass1(dd);
           }
         }
       }
