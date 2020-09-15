@@ -3271,13 +3271,13 @@ namespace Microsoft.Dafny
         } else if (e is NegationExpression ne) {
           object e0 = GetAnyConst(ne.E, consts);
           if (e0 != null) {
-            if (ne.Type.IsNumericBased(Type.NumericPersuation.Int)) {
+            if (ne.Type.IsIntegerType) {
               return -(BigInteger)e0;
             }
             if (ne.Type.IsBitVectorType) {
               return MaxBV(ne.Type) - (BigInteger)e0 + BigInteger.One;
             }
-            if (ne.Type.IsNumericBased(Type.NumericPersuation.Real)) {
+            if (ne.Type.IsRealType) {
               return ((Basetypes.BigDec)e0).Negate;
             }
           }
@@ -3345,7 +3345,7 @@ namespace Microsoft.Dafny
               if (isString) return (string) e0 + (string) e1;
               break;
             case BinaryExpr.ResolvedOpcode.Sub:
-              if (isInt && (BigInteger) e0 == 0) return -(BigInteger) e1; // Allow this case for newtypes
+     //         if (isInt && (BigInteger) e0 == 0) return -(BigInteger) e1; // Allow this case for newtypes
               if (isInteger) return (BigInteger) e0 - (BigInteger) e1;
               if (isBV) return ((BigInteger) e0 - (BigInteger) e1) & MaxBV(bin.Type);
               if (isReal) return (Basetypes.BigDec) e0 - (Basetypes.BigDec) e1;
@@ -3414,7 +3414,7 @@ namespace Microsoft.Dafny
               if ((BigInteger)e1 < 0) {
                 return null; // Negative shift
               }
-              if ((BigInteger)e1 >= bin.Type.AsBitVectorType.Width) {
+              if ((BigInteger)e1 > bin.Type.AsBitVectorType.Width) {
                 return null; // Shift is too large
               }
               return ((BigInteger)e0 << (int)(BigInteger)e1) & MaxBV(bin.E0.Type);
@@ -3423,7 +3423,7 @@ namespace Microsoft.Dafny
               if ((BigInteger)e1 < 0) {
                 return null; // Negative shift
               }
-              if ((BigInteger)e1 >= bin.Type.AsBitVectorType.Width) {
+              if ((BigInteger)e1 > bin.Type.AsBitVectorType.Width) {
                 return null; // Shift too large
               }
               return (BigInteger)e0 >> (int)(BigInteger)e1;
