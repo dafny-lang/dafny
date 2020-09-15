@@ -254,6 +254,8 @@ namespace Microsoft.Dafny
         reporter.Error(MessageSource.RefinementTransformer, nw, "an opaque type declaration ({0}) in a refining module cannot replace a more specific type declaration in the refinement base", nw.Name);
       } else if (nw is DatatypeDecl) {
         reporter.Error(MessageSource.RefinementTransformer, nw, "a datatype declaration ({0}) in a refinement module can only replace an opaque type declaration", nw.Name);
+      } else if (nw is NewtypeDecl) {
+        reporter.Error(MessageSource.RefinementTransformer, nw, "a newtype declaration ({0}) in a refinement module can only replace an opaque type declaration", nw.Name);
       } else if (nw is IteratorDecl) {
         if (d is IteratorDecl) {
           m.TopLevelDecls[index] = MergeIterator((IteratorDecl)nw, (IteratorDecl)d);
@@ -261,12 +263,12 @@ namespace Microsoft.Dafny
           reporter.Error(MessageSource.RefinementTransformer, nw, "an iterator declaration ({0}) is a refining module cannot replace a different kind of declaration in the refinement base", nw.Name);
         }
       } else if (nw is ClassDecl) {
-        if (d is DatatypeDecl) {
+        if (d is ClassDecl) {
+          m.TopLevelDecls[index] = MergeClass((ClassDecl) nw, (ClassDecl) d);
+        } else {
           reporter.Error(MessageSource.RefinementTransformer, nw,
             "a class declaration ({0}) in a refining module cannot replace a different kind of declaration in the refinement base",
             nw.Name);
-        } else {
-          m.TopLevelDecls[index] = MergeClass((ClassDecl) nw, (ClassDecl) d);
         }
       } else if (nw is TypeSynonymDecl && d is TypeSynonymDecl 
                                        && ((TypeSynonymDecl)nw).Rhs != null
@@ -378,14 +380,14 @@ namespace Microsoft.Dafny
       moduleUnderConstruction = null;
     }
 
-    Function CloneFunction(IToken tok, Function f, bool isGhost, List<MaybeFreeExpression> moreEnsures, Formal moreResult, Expression moreBody, Expression replacementBody, bool checkPrevPostconditions, Attributes moreAttributes) {
+    Function CloneFunction(IToken tok, Function f, bool isGhost, List<AttributedExpression> moreEnsures, Formal moreResult, Expression moreBody, Expression replacementBody, bool checkPrevPostconditions, Attributes moreAttributes) {
       Contract.Requires(tok != null);
       Contract.Requires(moreBody == null || f is Predicate);
       Contract.Requires(moreBody == null || replacementBody == null);
 
       var tps = f.TypeArgs.ConvertAll(refinementCloner.CloneTypeParam);
       var formals = f.Formals.ConvertAll(refinementCloner.CloneFormal);
-      var req = f.Req.ConvertAll(refinementCloner.CloneMayBeFreeExpr);
+      var req = f.Req.ConvertAll(refinementCloner.CloneAttributedExpr);
       var reads = f.Reads.ConvertAll(refinementCloner.CloneFrameExpr);
       var decreases = refinementCloner.CloneSpecExpr(f.Decreases);
       var result = f.Result ?? moreResult;
@@ -393,11 +395,11 @@ namespace Microsoft.Dafny
         result = refinementCloner.CloneFormal(result);
       }
 
-      List<MaybeFreeExpression> ens;
+      List<AttributedExpression> ens;
       if (checkPrevPostconditions)  // note, if a postcondition includes something that changes in the module, the translator will notice this and still re-check the postcondition
-        ens = f.Ens.ConvertAll(rawCloner.CloneMayBeFreeExpr);
+        ens = f.Ens.ConvertAll(rawCloner.CloneAttributedExpr);
       else
-        ens = f.Ens.ConvertAll(refinementCloner.CloneMayBeFreeExpr);
+        ens = f.Ens.ConvertAll(refinementCloner.CloneAttributedExpr);
       if (moreEnsures != null) {
         ens.AddRange(moreEnsures);
       }
@@ -441,21 +443,21 @@ namespace Microsoft.Dafny
       }
     }
 
-    Method CloneMethod(Method m, List<MaybeFreeExpression> moreEnsures, Specification<Expression> decreases, BlockStmt newBody, bool checkPreviousPostconditions, Attributes moreAttributes) {
+    Method CloneMethod(Method m, List<AttributedExpression> moreEnsures, Specification<Expression> decreases, BlockStmt newBody, bool checkPreviousPostconditions, Attributes moreAttributes) {
       Contract.Requires(m != null);
       Contract.Requires(!(m is Constructor) || newBody == null || newBody is DividedBlockStmt);
       Contract.Requires(decreases != null);
 
       var tps = m.TypeArgs.ConvertAll(refinementCloner.CloneTypeParam);
       var ins = m.Ins.ConvertAll(refinementCloner.CloneFormal);
-      var req = m.Req.ConvertAll(refinementCloner.CloneMayBeFreeExpr);
+      var req = m.Req.ConvertAll(refinementCloner.CloneAttributedExpr);
       var mod = refinementCloner.CloneSpecFrameExpr(m.Mod);
 
-      List<MaybeFreeExpression> ens;
+      List<AttributedExpression> ens;
       if (checkPreviousPostconditions)
-        ens = m.Ens.ConvertAll(rawCloner.CloneMayBeFreeExpr);
+        ens = m.Ens.ConvertAll(rawCloner.CloneAttributedExpr);
       else
-        ens = m.Ens.ConvertAll(refinementCloner.CloneMayBeFreeExpr);
+        ens = m.Ens.ConvertAll(refinementCloner.CloneAttributedExpr);
       if (moreEnsures != null) {
         ens.AddRange(moreEnsures);
       }
@@ -527,9 +529,9 @@ namespace Microsoft.Dafny
         newBody = MergeBlockStmt(nw.Body, prev.Body);
       }
 
-      var ens = prev.Ensures.ConvertAll(rawCloner.CloneMayBeFreeExpr);
+      var ens = prev.Ensures.ConvertAll(rawCloner.CloneAttributedExpr);
       ens.AddRange(nw.Ensures);
-      var yens = prev.YieldEnsures.ConvertAll(rawCloner.CloneMayBeFreeExpr);
+      var yens = prev.YieldEnsures.ConvertAll(rawCloner.CloneAttributedExpr);
       yens.AddRange(nw.YieldEnsures);
 
       return new IteratorDecl(new RefinementToken(nw.tok, moduleUnderConstruction),
@@ -540,9 +542,9 @@ namespace Microsoft.Dafny
         refinementCloner.CloneSpecFrameExpr(prev.Reads),
         refinementCloner.CloneSpecFrameExpr(prev.Modifies),
         refinementCloner.CloneSpecExpr(prev.Decreases),
-        prev.Requires.ConvertAll(refinementCloner.CloneMayBeFreeExpr),
+        prev.Requires.ConvertAll(refinementCloner.CloneAttributedExpr),
         ens,
-        prev.YieldRequires.ConvertAll(refinementCloner.CloneMayBeFreeExpr),
+        prev.YieldRequires.ConvertAll(refinementCloner.CloneAttributedExpr),
         yens,
         newBody,
         refinementCloner.MergeAttributes(prev.Attributes, nw.Attributes),
@@ -1346,7 +1348,7 @@ namespace Microsoft.Dafny
         decr = cNew.Decreases;
       }
 
-      var invs = cOld.Invariants.ConvertAll(refinementCloner.CloneMayBeFreeExpr);
+      var invs = cOld.Invariants.ConvertAll(refinementCloner.CloneAttributedExpr);
       invs.AddRange(cNew.Invariants);
       var r = new RefinedWhileStmt(cNew.Tok, cNew.EndTok, guard, invs, decr, refinementCloner.CloneSpecFrameExpr(cOld.Mod), MergeBlockStmt(cNew.Body, cOld.Body));
       return r;

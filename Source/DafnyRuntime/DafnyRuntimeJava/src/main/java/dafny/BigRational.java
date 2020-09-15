@@ -127,6 +127,12 @@ public class BigRational {
         return new Tuple3<>(aa, bb, dd);
     }
 
+    public BigRational reduce() {
+        BigInteger gcd = num.abs().gcd(den);
+        if (gcd.equals(BigInteger.ONE)) return this;
+        return new BigRational(num.divide(gcd), den.divide(gcd));
+    }
+
     public int compareTo(BigRational that) {
         // simple things first
         int asign = this.num.signum();
