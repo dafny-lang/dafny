@@ -97,14 +97,14 @@ type OpaqueErrors {
   }
 
   inductive predicate Q(u: int) {
-    100 / y + z < 20 || Q(u + 1)  // error: index out of bounds
+    100 / y + z < 20 || Q(u + 1)  // error: division by zero
   }
   inductive lemma QL(u: int)
     requires Q(u) && y != 0
     ensures 100 / y + z < 20
   {
     var w := y + 20 / z;
-    var w' := 20 / (y + 1);  // error: index out of bounds
+    var w' := 20 / (y + 1);  // error: division by zero
   }
 }
 
