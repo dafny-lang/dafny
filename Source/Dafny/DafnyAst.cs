@@ -1249,7 +1249,7 @@ namespace Microsoft.Dafny {
     public bool IsOrdered {
       get {
         var ct = NormalizeExpand();
-        return !ct.IsTypeParameter && !ct.IsInternalTypeSynonym && !ct.IsCoDatatype && !ct.IsArrowType && !ct.IsIMapType && !ct.IsISetType;
+        return !ct.IsTypeParameter && !ct.IsOpaqueType && !ct.IsInternalTypeSynonym && !ct.IsCoDatatype && !ct.IsArrowType && !ct.IsIMapType && !ct.IsISetType;
       }
     }
 
