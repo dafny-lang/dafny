@@ -7,19 +7,19 @@
 
 datatype Result<T> = Success(value: T) | Failure(error: string)
 {
-    predicate method IsFailure() {
-      Failure?
-    }
-    function method PropagateFailure<U>(): Result<U>
-      requires Failure?
-    {
-      Failure(this.error)
-    }
-    function method Extract(): T
-      requires Success?
-    {
-      value
-    }
+  predicate method IsFailure() {
+    Failure?
+  }
+  function method PropagateFailure<U>(): Result<U>
+    requires Failure?
+  {
+    Failure(this.error)
+  }
+  function method Extract(): T
+    requires Success?
+  {
+    value
+  }
 }
 
 method mn() returns (r: Result<int>, out: int)
@@ -47,23 +47,23 @@ method m(i: int) returns (r: Result<int>, o: int)
   ensures i >= 0 ==> (r.Success? && r.Extract() == i && o == i+i);
   ensures i < 0 ==> (r.Failure? && o == i+i);
 {
-   if i < 0 { return Failure("negative"), i+i; }
-   return Success(i), i+i;
+  if i < 0 { return Failure("negative"), i+i; }
+  return Success(i), i+i;
 }
 
 method m1(i: int) returns (r: Result<int>)
   ensures i >= 0 ==> (r.Success? && r.Extract() == i);
   ensures i < 0 ==> r.Failure? ;
 {
-   if i < 0 { return Failure("negative"); }
-   return Success(i);
+  if i < 0 { return Failure("negative"); }
+  return Success(i);
 }
 
 method Main() {
-   var x, out := mn();
-   print x.Failure?, " ", out, "\n";
-   x, out := mn1();
-   print x.Failure?, " ", out, "\n";
-   print "End\n";
+  var x, out := mn();
+  print x.Failure?, " ", out, "\n";
+  x, out := mn1();
+  print x.Failure?, " ", out, "\n";
+  print "End\n";
 }
 

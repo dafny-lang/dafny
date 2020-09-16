@@ -11480,16 +11480,18 @@ namespace Microsoft.Dafny
       if (s.Rhss != null) {
         s.Rhss.ForEach(e => rhss2.Add(e));
       }
-      // " temp, ... := MethodOrExpression, ...;"
-      if (lhss2.Count != rhss2.Count) {
-        reporter.Error(MessageSource.Resolver, s.Tok,
-          "Mismatch in expected number of LHSs and RHSs");
-        if (lhss2.Count < rhss2.Count) {
-          rhss2.RemoveRange(lhss2.Count, rhss2.Count - lhss2.Count);
-        } else {
-          lhss2.RemoveRange(rhss2.Count, lhss2.Count - rhss2.Count);
+      if (s.Rhss != null && s.Rhss.Count > 0) {
+        if (lhss2.Count != rhss2.Count) {
+          reporter.Error(MessageSource.Resolver, s.Tok,
+            "Mismatch in expected number of LHSs and RHSs");
+          if (lhss2.Count < rhss2.Count) {
+            rhss2.RemoveRange(lhss2.Count, rhss2.Count - lhss2.Count);
+          } else {
+            lhss2.RemoveRange(rhss2.Count, lhss2.Count - rhss2.Count);
+          }
         }
       }
+      // " temp, ... := MethodOrExpression, ...;"
       s.ResolvedStatements.Add(new UpdateStmt(s.Tok, s.Tok, lhss2, rhss2));
 
 

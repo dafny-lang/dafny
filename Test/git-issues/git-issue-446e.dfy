@@ -4,7 +4,7 @@
 datatype Result<T> = Success(value: T) | Failure(error: string)
 {
   predicate method IsFailure() {
-     Failure?
+    Failure?
   }
   function method PropagateFailure<U>(): Result<U>
     requires Failure?

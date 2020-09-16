@@ -62,12 +62,12 @@ class A {
 }
 
 method Main() {
-   var a: A := new A;
-   var x := a.mn1();
-   print x.Failure?, " ";
-   var out;
-   x, out := a.mn();
-   print x.Failure?, " ", out, " ";
-   print "End\n";
+  var a: A := new A;
+  var x := a.mn1();
+  print x.Failure?, " ";
+  var out;
+  x, out := a.mn();
+  print x.Failure?, " ", out, " ";
+  print "End\n";
 }
 
