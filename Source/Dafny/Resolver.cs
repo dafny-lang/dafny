@@ -11504,7 +11504,7 @@ namespace Microsoft.Dafny
         s.ResolvedStatements.Add(
           // "if temp.IsFailure()"
           new IfStmt(s.Tok, s.Tok, false, VarDotMethod(s.Tok, temp, "IsFailure"),
-            // THEN: { return temp.PropagateFailure(); }
+            // THEN: { out := temp.PropagateFailure(); return; }
             new BlockStmt(s.Tok, s.Tok, new List<Statement>() {
               new UpdateStmt(s.Tok, s.Tok, 
                 new List<Expression>() {new IdentifierExpr(s.Tok, (codeContext as Method).Outs[0].CompileName)},
