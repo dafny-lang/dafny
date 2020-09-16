@@ -240,6 +240,13 @@ Note that the form
 is diagnosed as a label in which the user forgot the **label** keyword.
 
 ## Update with Failure Statement (`:-`)
+````grammar
+UpdateFailureStmt  =
+    [ Lhs { "," Lhs } ]
+    ":-"
+    [ "expect" ]
+    Rhs { "," Rhs } 
+````
 
 An update statement using `:-`   instead of `:=` exits execution of a method immediately if a failure is reported. This is a form of exceptional return from the calling method.
 
@@ -417,6 +424,8 @@ Rather it is the return type of `Extract` applied to the first return value of `
 `r, k := callee(i)`. 
 Now `r` gets the first output value from callee, of type `Status` or `Outcome<nat>` in the examples above. No special semantics or exceptional control paths apply. Subsequent code can do its own testing of the value of `r` and whatever other computations or control flow are desired.
  * The caller and callee can have any (positive) number of output arguments, as long as the first one has a failure-compatible type.
+ * If there is more than one LHS, the LHSs must denote different l-values unless the corresponding RHS values are equal. 
+ * The LHS l-values are evaluated before the RHS method call, in case the method call has side-effects or return v alues that modify the l-values prior to assignments being made.
 
 It is important to note the connection between the failure-compatible types used in the caller and callee. 
 They do not have to be the same type, but they must be closely related, 
