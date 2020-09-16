@@ -11434,6 +11434,9 @@ namespace Microsoft.Dafny
                 reporter.Error(MessageSource.Resolver, s.Rhs.tok, "Expected {0} to have a Success/Failure output value",
                   nm);
               }
+            } else {
+              ResolveExpression(asx, new ResolveOpts(codeContext, true));
+              firstType = asx.Type;
             }
           }
         } else if (asx.Lhs is ExprDotName dotname) {
