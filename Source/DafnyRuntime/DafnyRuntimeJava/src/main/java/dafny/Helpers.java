@@ -118,6 +118,18 @@ public class Helpers {
         return (int) l;
     }
 
+    public static int unsignedToInt(byte x) {
+        return ((int)x) & 0xFF;
+    }
+
+    public static int unsignedToInt(short x) {
+        return ((int)x) & 0xFFFF;
+    }
+
+    public static int unsignedToInt(long x) {
+        return (int)x;
+    }
+
     private final static BigInteger ULONG_LIMIT = new BigInteger("18446744073709551616");  // 0x1_0000_0000_0000_0000
 
     public static BigInteger unsignedLongToBigInteger(long l) {
@@ -126,6 +138,22 @@ public class Helpers {
         } else {
             return BigInteger.valueOf(l).add(ULONG_LIMIT);
         }
+    }
+
+    public static byte divideUnsignedByte(byte a, byte b) {
+        return (byte)Integer.divideUnsigned(((int)a) & 0xFF, ((int)b) & 0xFF);
+    }
+
+    public static short divideUnsignedShort(short a, short b) {
+        return (short)Integer.divideUnsigned(((int)a) & 0xFFFF, ((int)b) & 0xFFFF);
+    }
+
+    public static byte remainderUnsignedByte(byte a, byte b) {
+        return (byte)Integer.remainderUnsigned(((int)a) & 0xFF, ((int)b) & 0xFF);
+    }
+
+    public static short remainderUnsignedShort(short a, short b) {
+        return (short)Integer.remainderUnsigned(((int)a) & 0xFFFF, ((int)b) & 0xFFFF);
     }
 
     public static void withHaltHandling(Runnable runnable) {

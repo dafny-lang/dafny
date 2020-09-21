@@ -3,44 +3,42 @@ The grammar of Dafny expressions follows a hierarchy that
 reflects the precedence of Dafny operators. The following
 table shows the Dafny operators and their precedence
 in order of increasing binding power.
-```
-+--------------------------+------------------------------------+
-| operator                 | description                        |
-+--------------------------+------------------------------------+
-| `;`                      | In LemmaCall;Expression            |
-+--------------------------+------------------------------------+
-| `<==>`, &hArr;           | equivalence (if and only if)       |
-+--------------------------+------------------------------------+
-| `==>`, &rArr;            | implication (implies)              |
-| `<==`, &lArr;            | reverse implication (follows from) |
-+--------------------------+------------------------------------+
-| `&&`, &and;              | conjunction (and)                  |
-| [\|\|]{.monospace}, &or; | disjunction (or)                   |
-+--------------------------+------------------------------------+
-| `==`                     | equality                           |
-| `==#[k]`                 | prefix equality (co-inductive)     |
-| `!=`                     | disequality                        |
-| `!=#[k]`                 | prefix disequality (co-inductive)  |
-| `<`                      | less than                          |
-| `<=`                     | at most                            |
-| `>=`                     | at least                           |
-| `>`                      | greater than                       |
-| `in`                     | collection membership              |
-| `!in`                    | collection non-membership          |
-| `!!`                     | disjointness                       |
-+--------------------------+------------------------------------+
-| `+`                      | addition (plus)                    |
-| `-`                      | subtraction (minus)                |
-+--------------------------+------------------------------------+
-| `*`                      | multiplication (times)             |
-| `/`                      | division (divided by)              |
-| `%`                      | modulus (mod)                      |
-+--------------------------+------------------------------------+
-| `-`                      | arithmetic negation (unary minus)  |
-| `!`, &not;               | logical negation                   |
-| Primary Expressions      |                                    |
-+--------------------------+------------------------------------+
-```
+
+ operator                 | description                        
+--------------------------|------------------------------------
+ `;`                      | In LemmaCall;Expression            
+--------------------------|------------------------------------
+ `<==>`, &hArr;           | equivalence (if and only if)       
+--------------------------|------------------------------------
+ `==>`, &rArr;            | implication (implies)              
+ `<==`, &lArr;            | reverse implication (follows from) 
+--------------------------|------------------------------------
+ `&&`, `&`                | conjunction (and)                  
+ `||`, `|`                | disjunction (or)                   
+--------------------------|------------------------------------
+ `==`                     | equality                           
+ `==#[k]`                 | prefix equality (co-inductive)    
+ `!=`                     | disequality                        
+ `!=#[k]`                 | prefix disequality (co-inductive)  
+ `<`                      | less than                          
+ `<=`                     | at most                            
+ `>=`                     | at least                           
+ `>`                      | greater than                       
+ `in`                     | collection membership              
+ `!in`                    | collection non-membership          
+ `!!`                     | disjointness                       
+--------------------------|------------------------------------
+ `+`                      | addition (plus)                    
+ `-`                      | subtraction (minus)                
+--------------------------|------------------------------------
+ `*`                      | multiplication (times)             
+ `/`                      | division (divided by)              
+ `%`                      | modulus (mod)                      
+--------------------------|------------------------------------
+ `-`                      | arithmetic negation (unary minus)  
+ `!`, &not;               | logical negation                   
+ Primary Expressions      |                                    
+
 We are calling the ``UnaryExpression``s that are neither
 arithmetic nor logical negation the _primary expressions_.
 They are the most tightly bound.
@@ -51,7 +49,7 @@ operator is not present then we just descend to the
 next precedence level.
 
 ## Top-level expressions
-````
+````grammar
 Expression(allowLemma, allowLambda) =
     EquivExpression(allowLemma, allowLambda)
     [ ";" Expression(allowLemma, allowLambda) ]
@@ -75,7 +73,7 @@ In the following example the `F_Fails` function fails to verify
 because the `Fact(n)` divisor may be zero. But preceding
 the expression by a lemma that ensures that the denominator
 is not zero allows function `F_Succeeds` to succeed.
-```
+```dafny
 function Fact(n: nat): nat
 {
   if n == 0 then 1 else n * Fact(n-1)
@@ -99,7 +97,7 @@ function F_Succeeds(n: nat): int
 ```
 
 ## Equivalence Expressions
-````
+````grammar
 EquivExpression(allowLemma, allowLambda) =
   ImpliesExpliesExpression(allowLemma, allowLambda)
   { "<==>" ImpliesExpliesExpression(allowLemma, allowLambda) }
@@ -114,7 +112,7 @@ See section [#sec-equivalence-operator] for an explanation of the
 `<==>` operator as compared with the `==` operator.
 
 ## Implies or Explies Expressions
-````
+````grammar
 ImpliesExpliesExpression(allowLemma, allowLambda) =
   LogicalExpression(allowLemma, allowLambda)
   [ (  "==>" ImpliesExpression(allowLemma, allowLambda)
@@ -133,7 +131,7 @@ of the `==>` and `<==` operators.
 
 ## Logical Expressions
 
-````
+````grammar
 LogicalExpression(allowLemma, allowLambda) =
   RelationalExpression(allowLemma, allowLambda)
   [ ( "&&" RelationalExpression(allowLemma, allowLambda)
@@ -144,11 +142,13 @@ LogicalExpression(allowLemma, allowLambda) =
   ]
 ````
 
+TO BE WRITTEN -- prefixed && and ||
+
 See section [#sec-conjunction-and-disjunction] for an explanation
 of the `&&` (or &and;) and `||` (or &or;) operators.
 
 ## Relational Expressions
-````
+````grammar
 RelationalExpression(allowLemma, allowLambda) =
   Term(allowLemma, allowLambda)
   { RelOp Term(allowLemma, allowLambda) }
@@ -180,7 +180,7 @@ co-inductive values for equality to a nesting level of k, as
 explained in section [#sec-co-equality].
 
 ## Terms
-````
+````grammar
 Term(allowLemma, allowLambda) =
   Factor(allowLemma, allowLambda)
   { AddOp Factor(allowLemma, allowLambda) }
@@ -198,7 +198,7 @@ Subtraction is arithmetic subtraction for numeric types, and set or multiset
 difference for sets and multisets.
 
 ## Factors
-````
+````grammar
 Factor(allowLemma, allowLambda) =
   UnaryExpression(allowLemma, allowLambda)
   { MulOp UnaryExpression(allowLemma, allowLambda) }
@@ -214,7 +214,7 @@ intersection as explained in sections [#sec-sets] and [#sec-multisets].
 
 ## Unary Expressions
 
-````
+````grammar
 UnaryExpression(allowLemma, allowLambda) =
   ( "-" UnaryExpression(allowLemma, allowLambda)
   | "!" UnaryExpression(allowLemma, allowLambda)
@@ -228,7 +228,7 @@ or logical (section [#sec-booleans]) negation to its operand.
 
 ## Primary Expressions
 <!-- These are introduced for explanatory purposes as are not in the grammar. -->
-````
+````grammar
 PrimaryExpression_(allowLemma, allowLambda) =
   ( NameSegment { Suffix }
   | LambdaExpression(allowLemma)
@@ -251,7 +251,7 @@ If the `allowLambda` is false then ``LambdaExpression``s are not
 recognized in this context.
 
 ## Lambda expressions
-````
+````grammar
 LambdaExpression(allowLemma) =
   ( WildIdent
   | "(" [ IdentTypeOptional { "," IdentTypeOptional } ] ")"
@@ -266,7 +266,7 @@ In addition to named functions, Dafny supports expressions that define
 functions.  These are called _lambda (expression)s_ (some languages
 know them as _anonymous functions_).  A lambda expression has the
 form:
-```
+```dafny
 (\(_params_\)) \(_specification_\) => \(_body_\)
 ```
 where `\(_params_\)` is a comma-delimited list of parameter
@@ -277,7 +277,7 @@ identifier `x` is not needed, it can be replaced by "`_`".  If
 explicit type, then the parentheses can be dropped; for example, the
 function that returns the successor of a given integer can be written
 as the following lambda expression:
-```
+```dafny
 x => x + 1
 ```
 
@@ -291,7 +291,7 @@ parameters that satisfy the precondition (just like the bodies of
 named functions and methods).  In some cases, this means it is
 necessary to write explicit `requires` and `reads` clauses.  For
 example, the lambda expression
-```
+```dafny
 x requires x != 0 => 100 / x
 ```
 would not be well-formed if the `requires` clause were omitted,
@@ -304,12 +304,12 @@ in such a way that the lambda expression is equivalent to `F`) would
 be written `x => F(x)`.  In Dafny, eta expansion must also account for
 the precondition and reads set of the function, so the eta expansion
 of `F` looks like:
-```
+```dafny
 x requires F.requires(x) reads F.reads(x) => F(x)
 ```
 
 ## Left-Hand-Side Expressions
-````
+````grammar
 Lhs =
   ( NameSegment { Suffix }
   | ConstAtomExpression Suffix { Suffix }
@@ -321,18 +321,18 @@ side of an ``UpdateStmt``.
 
 An example of the first (`NameSegment`) form is:
 
-```
+```dafny
     LibraryModule.F().x
 ```
 
 An example of the second (`ConstAtomExpression`) form is:
 
-```
+```dafny
     old(o.f).x
 ```
 
 ## Right-Hand-Side Expressions
-````
+````grammar
 Rhs =
   ( ArrayAllocation_
   | ObjectAllocation_
@@ -352,15 +352,17 @@ These are the only contexts in which arrays or objects may be
 allocated, or in which havoc may be produced.
 
 ## Array Allocation
-````
+````grammar
 ArrayAllocation_ = "new" Type "[" Expressions "]"
 ````
 
 This allocates a new single or multi-dimensional array as explained in
 section [#sec-array-types].
 
+TO BE WRITTEN - argument that describes how to initialize the array
+
 ## Object Allocation
-````
+````grammar
 ObjectAllocation_ = "new" Type [ "(" [ Expressions ] ")" ]
 ````
 
@@ -368,7 +370,7 @@ This allocated a new object of a class type as explained
 in section [#sec-class-types].
 
 ## Havoc Right-Hand-Side
-````
+````grammar
 HavocRhs_ = "*"
 ````
 A havoc right-hand-side produces an arbitrary value of its associated
@@ -376,7 +378,7 @@ type. To get a more constrained arbitrary value the "assign-such-that"
 operator (`:|`) can be used. See section [#sec-update-and-call-statements].
 
 ## Constant Or Atomic Expressions
-````
+````grammar
 ConstAtomExpression =
   ( LiteralExpression_
   | FreshExpression_
@@ -389,7 +391,7 @@ ConstAtomExpression =
 A ``ConstAtomExpression`` represent either a constant of some type, or an
 atomic expression. A ``ConstAtomExpression`` is never an l-value.
 ## Literal Expressions
-````
+````grammar
 LiteralExpression_ =
  ( "false" | "true" | "null" | Nat | Dec |
    charToken | stringToken | "this")
@@ -400,7 +402,7 @@ or "this" which denote the current object in the context of
 an instance method or function.
 
 ## Fresh Expressions
-````
+````grammar
 FreshExpression_ = "fresh" "(" Expression(allowLemma: true, allowLambda: true) ")"
 ````
 
@@ -410,9 +412,14 @@ freshly allocated in the current method invocation.
 The argument of `fresh` must be either an object reference
 or a collection of object references.
 
-## Old Expressions
-````
-OldExpression_ = "old" "(" Expression(allowLemma: true, allowLambda: true) ")"
+## Allocated expression
+
+TO BE WRITTEN -- allocated predicate
+
+## Old Expressions {#sec-old-expression}
+
+````grammar
+OldExpression_ = "old" [ "@" ident ] "(" Expression(allowLemma: true, allowLambda: true) ")"
 ````
 
 An _old expression_ is used in postconditions. `old(e)` evaluates to
@@ -421,8 +428,14 @@ Note that **old** only affects heap dereferences, like `o.f` and `a[i]`.
 In particular, **old** has no effect on the value returned for local
 variables or out-parameters.
 
+TO BE WRITTEN -- Inside an old, disallow unchanged, fresh, two-state functions, two-state lemmas, and nested old
+
+## Unchanged Expressions
+
+TO BE WRITTEN -- including with labels
+
 ## Cardinality Expressions
-````
+````grammar
 CardinalityExpression_ = "|" Expression(allowLemma: true, allowLambda: true) "|"
 ````
 
@@ -434,7 +447,7 @@ domain of the map. Cardinality is not defined for infinite sets or infinite maps
 For more, see section [#sec-collection-types].
 
 ## Numeric Conversion Expressions
-````
+````grammar
 NumericConversionExpression_ =
     ( "int" | "real" ) "(" Expression(allowLemma: true, allowLambda: true) ")"
 ````
@@ -445,7 +458,7 @@ but this also applies more generally to other numeric types,
 e.g. `newtypes`. See section [#sec-numeric-conversion-operations].
 
 ## Parenthesized Expression
-````
+````grammar
 ParensExpression =
   "(" [ Expressions ] ")"
 ````
@@ -459,13 +472,13 @@ If there are zero or more than one, the result is a `tuple` value.
 See section [#sec-tuple-types].
 
 ## Sequence Display Expression
-````
+````grammar
 SeqDisplayExpr = "[" [ Expressions ] "]"
 ````
 A sequence display expression provide a way to constructing
 a sequence with given values. For example
 
-```
+```dafny
 [1, 2, 3]
 ```
 is a sequence with three elements in it.
@@ -473,7 +486,7 @@ See section [#sec-sequences] for more information on
 sequences.
 
 ## Set Display Expression
-````
+````grammar
 SetDisplayExpr = [ "iset" ] "{" [ Expressions ] "}"
 ````
 
@@ -483,15 +496,17 @@ set (with the finiite set of given elements) is constructed.
 
 For example
 
-```
+```dafny
 {1, 2, 3}
 ```
 is a set with three elements in it.
 See section [#sec-sets] for more information on
 sets.
 
+TO BE WRITTEN - use of initializing display expression in new-array allocation
+
 ## Multiset Display or Cast Expression
-````
+````grammar
 MultiSetExpr =
     "multiset"
     ( "{" [ Expressions ] "}"
@@ -502,7 +517,7 @@ MultiSetExpr =
 A multiset display expression provides a way of constructing
 a multiset with given elements and multiplicities. For example
 
-```
+```dafny
 multiset{1, 1, 2, 3}
 ```
 is a multiset with three elements in it. The number 1 has a multiplicity of 2,
@@ -511,7 +526,7 @@ the others a multiplicity of 1.
 On the other hand, a multiset cast expression converts a set or a sequence
 into a multiset as shown here:
 
-```
+```dafny
 var s : set<int> := {1, 2, 3};
 var ms : multiset<int> := multiset(s);
 ms := ms + multiset{1};
@@ -524,7 +539,7 @@ See section [#sec-multisets] for more information on
 multisets.
 
 ## Map Display Expression
-````
+````grammar
 MapDisplayExpr = ("map" | "imap" ) "[" [ MapLiteralExpressions ] "]"
 MapLiteralExpressions =
     Expression(allowLemma: true, allowLambda: true)
@@ -537,7 +552,7 @@ MapLiteralExpressions =
 A map display expression builds a finite or potentially infinite
 map from explicit ``MapLiteralExpressions``. For example:
 
-```
+```dafny
 var m := map[1 := "a", 2 := "b"];
 ghost var im := imap[1 := "a", 2 := "b"];
 ```
@@ -545,7 +560,7 @@ ghost var im := imap[1 := "a", 2 := "b"];
 See section [#sec-finite-and-infinite-maps] for more details on maps and imaps.
 
 ## Endless Expression
-````
+````grammar
 EndlessExpression(allowLemma, allowLambda) =
   ( IfExpression_(allowLemma, allowLambda)
   | MatchExpression(allowLemma, allowLambda)
@@ -566,7 +581,7 @@ all end with an ``Expression`` at the end. The various
 ``EndlessExpression`` alternatives are described below.
 
 ## If Expression
-````
+````grammar
 IfExpression_(allowLemma, allowLambda) =
     "if" Expression(allowLemma: true, allowLambda: true)
     "then" Expression(allowLemma: true, allowLambda: true)
@@ -581,13 +596,17 @@ expression following the `else` is evaluated and that is the result
 of the expression. It is important that only the selected expression
 is evaluated as the following example shows.
 
-```
+```dafny
 var k := 10 / x; // error, may divide by 0.
 var m := if x != 0 then 10 / x else 1; // ok, guarded
 ```
 
+## Binding If Expression
+
+TO BE WRITTEN
+
 ## Case Bindings, Patterns, and Extended Patterns
-````
+````grammar
 CaseBinding_ =
   "case"
   ( ExtendedPattern
@@ -638,7 +657,7 @@ matched.
 
 ## Match Expression
 
-````
+````grammar
 MatchExpression(allowLemma, allowLambda) =
   "match" Expression(allowLemma, allowLambda)
   ( "{" { CaseExpression(allowLemma: true, allowLambda: true) } "}"
@@ -686,7 +705,7 @@ of that evaluation is the result of the ``MatchExpression``.
 Note that the braces enclosing the ``CaseClause``s may be omitted.
 
 ## Quantifier Expression
-````
+````grammar
 QuantifierExpression(allowLemma, allowLambda) =
     ( "forall" | "exists" ) QuantifierDomain "::"
     Expression(allowLemma, allowLambda)
@@ -702,7 +721,7 @@ given expression (the one following the `::`) is true for all (for
 quantified variables, namely those in the ``QuantifierDomain``.
 
 Here are some examples:
-```
+```dafny
 assert forall x : nat | x <= 5 :: x * x <= 25;
 (forall n :: 2 <= n ==> (exists d :: n < d < 2*n))
 ```
@@ -722,7 +741,7 @@ It this is not possible, the program is in error.
 
 
 ## Set Comprehension Expressions
-````
+````grammar
 SetComprehensionExpr(allowLemma, allowLambda) =
   [ "set" | "iset" ]
   IdentTypeOptional { "," IdentTypeOptional } { Attribute }
@@ -739,19 +758,19 @@ need not be supplied, in which case it is as if it had been supplied
 and the expression consists solely of the quantified variable.
 That is,
 
-```
+```dafny
 set x : T | P(x)
 ```
 
 is equivalent to
 
-```
+```dafny
 set x : T | P(x) :: x
 ```
 
 For the full form
 
-```
+```dafny
 var S := set x1:T1, x2:T2 ... | P(x1, x2, ...) :: Q(x1, x2, ...)
 ```
 
@@ -759,7 +778,7 @@ the elements of `S` will be all values resulting from evaluation of `Q(x1, x2, .
 for all combinations of quantified variables `x1, x2, ...` such that
 predicate `P(x1, x2, ...)` holds. For example,
 
-```
+```dafny
 var S := set x:nat, y:nat | x < 2 && y < 2 :: (x, y)
 ```
 yields `S == {(0, 0), (0, 1), (1, 0), (1,1) }`
@@ -774,7 +793,7 @@ accepted.
 
 Set comprehensions involving reference types such as
 
-```
+```dafny
 set o: object | true
 ```
 
@@ -785,15 +804,15 @@ it is not allowed, because--even though the resulting set would be
 finite--it is not pleasant or practical to compute at run time.
 
 ## Statements in an Expression
-````
-StmtInExpr = ( AssertStmt | AssumeStmt | CalcStmt )
+````grammar
+StmtInExpr = ( AssertStmt | AssumeStmt | ExpectStmt | CalcStmt )
 ````
 
 A ``StmtInExpr`` is a kind of statement that is allowed to
 precede an expression in order to ensure that the expression
 can be evaluated without error. For example:
 
-```
+```dafny
 assume x != 0; 10/x
 ```
 
@@ -801,7 +820,7 @@ assume x != 0; 10/x
 
 ## Let Expression
 
-````
+````grammar
 LetExpr(allowLemma, allowLambda) =
     [ "ghost" ] "var" CasePattern { "," CasePattern }
     ( ":=" | { Attribute } ":|" )
@@ -817,7 +836,7 @@ declaration except the scope of the variable only extends to the
 enclosed expression.
 
 For example:
-```
+```dafny
 var sum := x + y; sum * sum
 ```
 
@@ -827,7 +846,7 @@ type (which if missing is inferred from the rhs).
 The more complex case allows destructuring of constructor expressions.
 For example:
 
-```
+```dafny
 datatype Stuff = SCons(x: int, y: int) | Other
 function GhostF(z: Stuff): int
   requires z.SCons?
@@ -837,7 +856,7 @@ function GhostF(z: Stuff): int
 ```
 
 ## Map Comprehension Expression
-````
+````grammar
 MapComprehensionExpr(allowLemma, allowLambda) =
   ( "map" | "imap" ) IdentTypeOptional { Attribute }
   [ "|" Expression(allowLemma: true, allowLambda: true) ]
@@ -850,7 +869,7 @@ condition following the "|") and for each value in the domain,
 giving the mapped value using the expression following the "::".
 
 For example:
-```
+```dafny
 function square(x : int) : int { x * x }
 method test()
 {
@@ -867,14 +886,14 @@ creation of an infinite map that gives the same results as a function.
 <!-- Experimental - do not document.
 
 ## Named Expression
-````
+````grammar
 NamedExpr(allowLemma, allowLambda) =
     "label" LabelName ":" Expression(allowLemma, allowLambda)
 ````
 
 A ``NamedExpr`` is an expression that has been tagged with a name.
 For example:
-```
+```dafny
 label squareit: x * x
 ```
 
@@ -884,7 +903,7 @@ Should we remove the description?
 -->
 
 ## Name Segment
-````
+````grammar
 NameSegment = Ident [ GenericInstantiation | HashCall ]
 ````
 
@@ -903,7 +922,7 @@ must be the name of the copredicate or colemma and it must be
 followed by a ``HashCall``.
 
 ## Hash Call
-````
+````grammar
 HashCall = "#" [ GenericInstantiation ]
   "[" Expression(allowLemma: true, allowLambda: true) "]"
   "(" [ Expressions ] ")"
@@ -915,7 +934,7 @@ list where k is the number of recursion levels.
 In the case where the `colemma` is generic, the generic type
 argument is given before. Here is an example:
 
-```
+```dafny
 codatatype Stream<T> = Nil | Cons(head: int, stuff: T, tail: Stream)
 
 function append(M: Stream, N: Stream): Stream
@@ -960,7 +979,7 @@ where the ``HashCall`` is `"Theorem0#<T>[_k-1](s);"`.
 See sections [#sec-copredicates] and [#sec-prefix-lemmas].
 
 ## Suffix
-````
+````grammar
 Suffix =
   ( AugmentedDotSuffix_
   | DatatypeUpdateSuffix_
@@ -977,7 +996,7 @@ the entity to which the suffix is appended. There are six kinds
 of suffixes which are described below.
 
 ### Augmented Dot Suffix
-````
+````grammar
 AugmentedDotSuffix_ = ". " DotSuffix [ GenericInstantiation | HashCall ]
 ````
 
@@ -992,7 +1011,7 @@ selected by the ``DotSuffix`` is generic), or
 
 ### Datatype Update Suffix
 
-````
+````grammar
 DatatypeUpdateSuffix_ =
   "." "(" MemberBindingUpdate { "," MemberBindingUpdate } ")"
 
@@ -1015,7 +1034,7 @@ updated must have a value derived from that same constructor.
 
 Here is an example:
 
-```
+```dafny
 module NewSyntax {
 datatype MyDataType = MyConstructor(myint:int, mybool:bool)
                     | MyOtherConstructor(otherbool:bool)
@@ -1045,7 +1064,7 @@ method test(datum:MyDataType, x:int)
 
 
 ### Subsequence Suffix
-````
+````grammar
 SubsequenceSuffix_ =
   "[" [ Expression(allowLemma: true, allowLambda: true) ]
       ".." [ Expression(allowLemma: true, allowLambda: true) ]
@@ -1058,7 +1077,7 @@ numerics `lo` and `hi` satisfying `0 <= lo <= hi <= |s|`. See
 section [#sec-other-sequence-expressions] for details.
 
 ### Slices By Length Suffix
-````
+````grammar
 SlicesByLengthSuffix_ =
   "[" Expression(allowLemma: true, allowLambda: true) ":"
       [
@@ -1074,7 +1093,7 @@ sequence of subsequences of the original sequence.
 See section [#sec-other-sequence-expressions] for details.
 
 ### Sequence Update Suffix
-````
+````grammar
 SequenceUpdateSuffix_ =
   "[" Expression(allowLemma: true, allowLambda: true)
       ":=" Expression(allowLemma: true, allowLambda: true)
@@ -1085,8 +1104,12 @@ For a sequence `s` and expressions `i` and `v`, the expression
 `s[i := v]` is the same as the sequence `s` except that at
 index `i` it has value `v`.
 
+If the type of `s` is `seq<T>`, then `v` must have type `T`.
+The index `i` can have any integer- and bitvector-based type.
+The expression `s[i := v]` has the same type as `s`.
+
 ### Selection Suffix
-````
+````grammar
 SelectionSuffix_ =
   "[" Expression(allowLemma: true, allowLambda: true)
       { "," Expression(allowLemma: true, allowLambda: true) }
@@ -1101,8 +1124,12 @@ If a ``SelectionSuffix_`` has more than one expression in it, then
 it is a list of indices to index into a multi-dimensional array.
 The rank of the array must be the same as the number of indices.
 
+If the ``SelectionSuffix_`` is used with an array or a sequence,
+then each index expression can have any integer- or bitvector-based
+type.
+
 ### Argument List Suffix
-````
+````grammar
 ArgumentListSuffix_ = "(" [ Expressions ] ")"
 ````
 
@@ -1112,7 +1139,7 @@ called. Applying such a suffix causes the method or function
 to be called and the result is the result of the call.
 
 ## Expression Lists
-````
+````grammar
 Expressions =
     Expression(allowLemma: true, allowLambda: true)
     { "," Expression(allowLemma: true, allowLambda: true) }
@@ -1121,4 +1148,6 @@ Expressions =
 The ``Expressions`` non-terminal represents a list of
 one or more expressions separated by a comma.
 
+## Map comprehensions
 
+TO BE WRITTEN
