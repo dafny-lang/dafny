@@ -1,7 +1,11 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-  <Target Name="PreBuild" BeforeTargets="CoreCompile">
+  <Target Name="PreBuild" BeforeTargets="PreBuildEvent">
     <Exec Command="dotnet tool restore &amp;&amp; dotnet tool run coco $(ProjectDir)Dafny.atg -namespace Microsoft.Dafny -frames $(ProjectDir)../../third_party/Coco/src" />
+    <ItemGroup>
+      <Compile Include="**/*$(DefaultLanguageSourceExtension)"
+               Exclude="$(DefaultItemExcludes);$(DefaultExcludesInProjectFolder);$(BaseIntermediateOutputPath)**;$(BaseOutputPath)**;@(Compile)" />
+    </ItemGroup>
   </Target>
   
   <PropertyGroup>
