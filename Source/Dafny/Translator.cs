@@ -14058,12 +14058,13 @@ namespace Microsoft.Dafny {
       public Dictionary<TypeParameter, Type> typeMap;
 
       public SubstLetExpr(IToken tok, List<CasePattern<BoundVar>> lhss, List<Expression> rhss, Expression body, bool exact,
-         LetExpr orgExpr, Dictionary<IVariable, Expression> substMap, Dictionary<TypeParameter, Type> typeMap)
+         LetExpr orgExpr, Dictionary<IVariable, Expression> substMap, Dictionary<TypeParameter, Type> typeMap, List<ComprehensionExpr.BoundedPool>/*?*/ constraintBounds)
         : base(tok, lhss, rhss, body, exact)
       {
         this.orgExpr = orgExpr;
         this.substMap = substMap;
         this.typeMap = typeMap;
+        this.Constraint_Bounds = constraintBounds;
       }
     }
 
@@ -18285,13 +18286,14 @@ namespace Microsoft.Dafny {
           } else {
             var rhs = Substitute(e.RHSs[0]);
             var body = Substitute(e.Body);
-            if (rhs == e.RHSs[0] && body == e.Body) {
+            var newBounds = SubstituteBoundedPoolList(e.Constraint_Bounds);
+            if (rhs == e.RHSs[0] && body == e.Body && newBounds == e.Constraint_Bounds) {
               return e;
             }
             // keep copies of the substitution maps so we can reuse them at desugaring time
             var newSubstMap = new Dictionary<IVariable, Expression>(substMap);
             var newTypeMap = new Dictionary<TypeParameter, Type>(typeMap);
-            var newLet = new SubstLetExpr(e.tok, e.LHSs, new List<Expression>{ rhs }, body, e.Exact, e, newSubstMap, newTypeMap);
+            var newLet = new SubstLetExpr(e.tok, e.LHSs, new List<Expression>{ rhs }, body, e.Exact, e, newSubstMap, newTypeMap, newBounds);
             newExpr = newLet;
           }
         } else if (expr is MatchExpr) {
@@ -18415,6 +18417,22 @@ namespace Microsoft.Dafny {
           newExpr.Type = Resolver.SubstType(expr.Type, typeMap);  // resolve on the fly (any additional resolution must be done above)
           return newExpr;
         }
+      }
+
+      /// <summary>
+      /// This method calls "SubstituteBoundedPool" on each item in the possibly null list. If any of those calls returns a
+      /// change from the original, then all of the results are returned in a new list; otherwise, "list" is returned.
+      /// </summary>
+      public List<ComprehensionExpr.BoundedPool>/*?*/ SubstituteBoundedPoolList(List<ComprehensionExpr.BoundedPool>/*?*/ list) {
+        if (list != null) {
+          var newList = list.ConvertAll(SubstituteBoundedPool);
+          for (var i = 0; i < list.Count; i++) {
+            if (list[i] != newList[i]) {
+              return newList;
+            }
+          }
+        }
+        return list;
       }
 
       public ComprehensionExpr.BoundedPool SubstituteBoundedPool(ComprehensionExpr.BoundedPool bound) {
