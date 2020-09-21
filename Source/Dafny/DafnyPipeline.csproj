@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <Target Name="PreBuild" BeforeTargets="PreBuildEvent">
-    <Exec Command="dotnet tool restore &amp;&amp; dotnet tool run coco $(ProjectDir)Dafny.atg -namespace Microsoft.Dafny -frames $(ProjectDir)..\..\third_party\Coco\src" />
+    <Exec Command="dotnet tool restore &amp;&amp; dotnet tool run coco $(ProjectDir)Dafny.atg -namespace Microsoft.Dafny -frames $(ProjectDir)../../third_party/Coco/src" />
   </Target>
   
   <PropertyGroup>
