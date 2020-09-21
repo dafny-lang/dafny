@@ -2194,7 +2194,7 @@ namespace Microsoft.Dafny{
         // literal values
         case "false":
         case "null":
-        case "true": 
+        case "true":
         case "toString":
         case "equals":
         case "hashCode":
