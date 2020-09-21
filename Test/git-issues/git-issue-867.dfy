@@ -64,12 +64,12 @@ module M0 {
     var a := fSetToSeq(s);
     var b := fSetToSeq(t);
     assert a == b;
-    print "a = ", a, " ==  b = ", b, "  ??  \n";
+    print "a = ", a, "  ==  b = ", b, "  ??  \n";
 
     var c := [1, 2, 3];
     var d := [3, 1, 2];
-    assert d != c;
-    print "d = ", d, " !=  c = ", c, "  ??  \n";
+    assert c != d;
+    print "c = ", c, "  !=  d = ", d, "  ??  \n";
   }
 }
 
