@@ -338,6 +338,23 @@ method Downcasts() {
   PrintMultiset("multiset: ", n); print "\n";
   PrintSeq("seq: ", o); print "\n";
   PrintMap("map: ", p); print "\n";
+
+  s := DowncastF(m);  // cast in, cast out
+  s := DowncastM(m);  // cast in, cast out
+  var s': set<Integer>;
+  s, s' := DowncastM2(m);  // cast in, cast out
+  s' := var u: set<Number> := var v: set<Integer> := m; v; u;
+  var eq := s == m && m == s;
+  print eq, "\n";  // true
+
+  s := FId<Integer>(m);  // cast in
+  s := FId<Number>(s);  // cast out
+  s := MId<Integer>(m);  // cast in
+  s := MId<Number>(s);  // cast out
+  s, s' := MId2<Integer>(m);  // cast in
+  s, s' := MId2<Number>(m);  // cast out
+  eq := s == m && m == s;
+  print eq, "\n";  // true
 }
 
 // This method will create the collections of type coll<T>
@@ -348,3 +365,31 @@ method Create<T>(a: T, b: T) returns (m: set<T>, n: multiset<T>, o: seq<T>, p: m
   m, n, o := {a, b}, multiset{a, b}, [a, b];
   p := map[a := b, b := a];
 }
+
+function method DowncastF(s: set<Integer>): set<Number> { s }
+method DowncastM(s: set<Integer>) returns (r: set<Number>)
+  ensures r == s
+{
+  r := s;
+}
+method DowncastM2(s: set<Integer>) returns (r0: set<Number>, r1: set<Number>)
+  ensures r0 == r1 == s
+{
+  r0, r1 := s, s;
+}
+
+function method FId<T>(s: set<T>): set<T> { s }
+method MId<T>(s: set<T>) returns (r: set<T>)
+  ensures r == s
+{
+  r := s;
+}
+method MId2<T>(s: set<T>) returns (r0: set<T>, r1: set<T>)
+  ensures r0 == r1 == s
+{
+  r0, r1 := s, s;
+}
+
+// TODO: should also test tail-recursive calls (functions and methods)
+// TODO: maybe also try constructor call
+// TODO: assignments to fields, array elements, multi-dimensional array elements
