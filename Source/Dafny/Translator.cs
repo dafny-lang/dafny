@@ -10984,9 +10984,7 @@ namespace Microsoft.Dafny {
       var term = s.Substitute(exists.Term);
       var attrs = s.SubstAttributes(exists.Attributes);
       var ex = new ExistsExpr(exists.tok, exists.TypeArgs, bvars, range, term, attrs);
-      if (exists.Bounds != null) {
-        ex.Bounds = exists.Bounds.ConvertAll(bound => s.SubstituteBoundedPool(bound));
-      }
+      ex.Bounds = s.SubstituteBoundedPoolList(exists.Bounds);
       return ex;
     }
 
@@ -17984,49 +17982,44 @@ namespace Microsoft.Dafny {
       }
 
       public override Expression Substitute(Expression expr) {
-        IdentifierExpr ie;
-        if (TryGetExprSubst(expr, out ie)) {
-          return cce.NonNull(ie);
+        if (TryGetExprSubst(expr, out var ie)) {
+          Contract.Assert(ie != null);
+          return ie;
         }
-        if (expr is QuantifierExpr) {
-          var newExpr = expr;
-          var e = expr as QuantifierExpr;
-          var newAttrs = e.Attributes;
+        if (expr is QuantifierExpr e) {
+          var newAttrs = SubstAttributes(e.Attributes);
           var newRange = e.Range == null ? null : Substitute(e.Range);
           var newTerm = Substitute(e.Term);
-          var newBoundVars = new List<BoundVar>();
-          newBoundVars.AddRange(e.BoundVars);
-          var newBounds = e.Bounds == null ? null : e.Bounds.ConvertAll(bound => SubstituteBoundedPool(bound));
-          if (newRange != e.Range || newTerm != e.Term) {
-            if (expr is ForallExpr) {
-              foreach (var entry in usedSubstMap) {
-                newExpr = new BinaryExpr(expr.tok, BinaryExpr.ResolvedOpcode.EqCommon, entry.Item2, entry.Item1);
-                if (newRange == null) {
-                  newRange = newExpr;
-                } else {
-                  newTerm = new BinaryExpr(expr.tok, BinaryExpr.ResolvedOpcode.Imp, newRange, newTerm);
-                  newRange = newExpr;
-                }
-                newBoundVars.Add((BoundVar)entry.Item2.Var);
-                newBounds.Add(new ComprehensionExpr.ExactBoundedPool(entry.Item1));
-              }
-              newExpr = new ForallExpr(expr.tok, ((QuantifierExpr)expr).TypeArgs, newBoundVars, newRange, newTerm, newAttrs) { Bounds = newBounds };
-            } else if (expr is ExistsExpr) {
-              foreach (var entry in usedSubstMap) {
-                newExpr = new BinaryExpr(expr.tok, BinaryExpr.ResolvedOpcode.EqCommon, entry.Item2, entry.Item1);
-                if (newRange == null) {
-                  newRange = newExpr;
-                } else {
-                  newTerm = new BinaryExpr(expr.tok, BinaryExpr.ResolvedOpcode.And, newRange, newTerm);
-                  newRange = newExpr;
-                }
-                newBoundVars.Add((BoundVar)entry.Item2.Var);
-                newBounds.Add(new ComprehensionExpr.ExactBoundedPool(entry.Item1));
-              }
-              newExpr = new ExistsExpr(expr.tok, ((QuantifierExpr)expr).TypeArgs, newBoundVars, newRange, newTerm, newAttrs) { Bounds = newBounds };
-            }
-            usedSubstMap.Clear();
+          var newBounds = SubstituteBoundedPoolList(e.Bounds);
+          if (newAttrs == e.Attributes && newRange == e.Range && newTerm == e.Term && newBounds == e.Bounds) {
+            return e;
           }
+
+          var newBoundVars = new List<BoundVar>(e.BoundVars);
+          if (newBounds == null) {
+            newBounds = new List<ComprehensionExpr.BoundedPool>();
+          } else if (newBounds == e.Bounds) {
+            // create a new list with the same elements, since the .Add operations below would otherwise add elements to the original e.Bounds
+            newBounds = new List<ComprehensionExpr.BoundedPool>(newBounds);
+          }
+
+          // conjoin all the new equalities to the range of the quantifier
+          foreach (var entry in usedSubstMap) {
+            var eq = new BinaryExpr(e.tok, BinaryExpr.ResolvedOpcode.EqCommon, entry.Item2, entry.Item1);
+            newRange = newRange == null ? eq : new BinaryExpr(e.tok, BinaryExpr.ResolvedOpcode.And, eq, newRange);
+            newBoundVars.Add((BoundVar)entry.Item2.Var);
+            newBounds.Add(new ComprehensionExpr.ExactBoundedPool(entry.Item1));
+          }
+
+          QuantifierExpr newExpr;
+          if (expr is ForallExpr) {
+            newExpr = new ForallExpr(e.tok, e.TypeArgs, newBoundVars, newRange, newTerm, newAttrs) { Bounds = newBounds };
+          } else {
+            Contract.Assert(expr is ExistsExpr);
+            newExpr = new ExistsExpr(e.tok, e.TypeArgs, newBoundVars, newRange, newTerm, newAttrs) { Bounds = newBounds };
+          }
+          usedSubstMap.Clear();
+
           newExpr.Type = expr.Type;
           return newExpr;
         }
@@ -18341,7 +18334,8 @@ namespace Microsoft.Dafny {
           var newRange = e.Range == null ? null : Substitute(e.Range);
           var newTerm = Substitute(e.Term);
           var newAttrs = SubstAttributes(e.Attributes);
-          if (newBoundVars != e.BoundVars || newRange != e.Range || newTerm != e.Term || newAttrs != e.Attributes) {
+          var newBounds = SubstituteBoundedPoolList(e.Bounds);
+          if (newBoundVars != e.BoundVars || newRange != e.Range || newTerm != e.Term || newAttrs != e.Attributes || newBounds != e.Bounds) {
             if (e is SetComprehension) {
               newExpr = new SetComprehension(expr.tok, ((SetComprehension)e).Finite, newBoundVars, newRange, newTerm, newAttrs);
             } else if (e is MapComprehension) {
@@ -18358,9 +18352,7 @@ namespace Microsoft.Dafny {
             } else {
               Contract.Assert(false);  // unexpected ComprehensionExpr
             }
-            if (e.Bounds != null) {
-              ((ComprehensionExpr)newExpr).Bounds = e.Bounds.ConvertAll(bound => SubstituteBoundedPool(bound));
-            }
+            ((ComprehensionExpr)newExpr).Bounds = newBounds;
           }
           // undo any changes to substMap (could be optimized to do this only if newBoundVars != e.BoundVars)
           foreach (var bv in e.BoundVars) {
