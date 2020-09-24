@@ -79,7 +79,7 @@ Dafny's sources or who want to use the latest features from the master branch.
        rm -f boogie/Binaries/z3.exe
        cp dafny/Binaries/z3/bin/z3 boogie/Binaries/z3.exe
 
-5. Run Dafny using the `dafny` shell script in the Binaries directory (it calls mono as appropriate)
+5. Run Dafny using the `dafny` shell script in the Binaries directory
 
 6. In Visual Studio Code, open any `.dfy` file, and when asked if you want to install the Dafny extension, click "install". This will install both the latest release of Dafny (which you decided not to use), but also the editor extension (which you want to use with your locally compiled Dafny version). To make sure the editor extension uses your locally compiled Dafny version, open the Settings page, search for "dafny base path", and set it to `BASE-DIRECTORY/dafny/Binaries`.
 
