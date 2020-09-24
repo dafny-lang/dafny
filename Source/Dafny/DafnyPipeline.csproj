@@ -32,4 +32,7 @@
       <ProjectReference Include="..\DafnyRuntime\DafnyRuntime.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Compile Include="..\version.cs" />
+  </ItemGroup>
 </Project>

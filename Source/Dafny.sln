@@ -5,7 +5,7 @@ VisualStudioVersion = 16.0.30320.27
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Boogie", "Boogie", "{16BB54D2-90A4-4664-9346-9A7A744169D7}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DafnyRuntime-NetCore", "DafnyRuntime\DafnyRuntime.csproj", "{09E25A18-19EA-42C4-B33F-69E3E6FD5698}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DafnyRuntime", "DafnyRuntime\DafnyRuntime.csproj", "{09E25A18-19EA-42C4-B33F-69E3E6FD5698}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Basetypes-NetCore", "boogie\Source\Basetypes\Basetypes-NetCore.csproj", "{17269D95-D99F-4D6D-951C-F80BDB17C79D}"
 EndProject
@@ -37,11 +37,16 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Houdini-NetCore", "boogie\S
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Predication-NetCore", "boogie\Source\Predication\Predication-NetCore.csproj", "{4DDF5C00-18B3-495F-B9AD-904F279EC10A}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DafnyPipeline-NetCore", "Dafny\DafnyPipeline.csproj", "{45FFD363-CFE0-4ABC-984F-7EB58C8BEDE5}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DafnyPipeline", "Dafny\DafnyPipeline.csproj", "{45FFD363-CFE0-4ABC-984F-7EB58C8BEDE5}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DafnyDriver-NetCore", "DafnyDriver\DafnyDriver.csproj", "{4B74F970-8FEB-46A1-BD14-FBF2B5D5F285}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DafnyDriver", "DafnyDriver\DafnyDriver.csproj", "{4B74F970-8FEB-46A1-BD14-FBF2B5D5F285}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DafnyServer-NetCore", "DafnyServer\DafnyServer.csproj", "{71208DB9-31D6-4071-838B-8D44A37CF0F1}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DafnyServer", "DafnyServer\DafnyServer.csproj", "{71208DB9-31D6-4071-838B-8D44A37CF0F1}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{9542E008-355F-4A62-B262-A8DA314DA8C1}"
+	ProjectSection(SolutionItems) = preProject
+		version.cs = version.cs
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

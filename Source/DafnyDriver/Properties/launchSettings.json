@@ -1,9 +1,0 @@
-{
-  "profiles": {
-    "DafnyDriver": {
-      "commandName": "Project",
-      "commandLineArgs": "-nologo -countVerificationErrors 0 -useBaseNameForFileName -compileVerbose 0 /spillTargetCode:1 /compile:3 \"C:\\Users\\Steen\\source\\repos\\dafny\\Test\\dafny0\\DafnyLibClient.dfy\" \"Output/DafnyLib.dll\"",
-      "workingDirectory": "C:\\Users\\Steen\\source\\repos\\dafny\\Test\\dafny0"
-    }
-  }
-}
