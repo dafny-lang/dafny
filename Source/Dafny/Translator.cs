@@ -10984,9 +10984,7 @@ namespace Microsoft.Dafny {
       var term = s.Substitute(exists.Term);
       var attrs = s.SubstAttributes(exists.Attributes);
       var ex = new ExistsExpr(exists.tok, exists.TypeArgs, bvars, range, term, attrs);
-      if (exists.Bounds != null) {
-        ex.Bounds = exists.Bounds.ConvertAll(bound => s.SubstituteBoundedPool(bound));
-      }
+      ex.Bounds = s.SubstituteBoundedPoolList(exists.Bounds);
       return ex;
     }
 
@@ -14058,12 +14056,13 @@ namespace Microsoft.Dafny {
       public Dictionary<TypeParameter, Type> typeMap;
 
       public SubstLetExpr(IToken tok, List<CasePattern<BoundVar>> lhss, List<Expression> rhss, Expression body, bool exact,
-         LetExpr orgExpr, Dictionary<IVariable, Expression> substMap, Dictionary<TypeParameter, Type> typeMap)
+         LetExpr orgExpr, Dictionary<IVariable, Expression> substMap, Dictionary<TypeParameter, Type> typeMap, List<ComprehensionExpr.BoundedPool>/*?*/ constraintBounds)
         : base(tok, lhss, rhss, body, exact)
       {
         this.orgExpr = orgExpr;
         this.substMap = substMap;
         this.typeMap = typeMap;
+        this.Constraint_Bounds = constraintBounds;
       }
     }
 
@@ -17983,49 +17982,44 @@ namespace Microsoft.Dafny {
       }
 
       public override Expression Substitute(Expression expr) {
-        IdentifierExpr ie;
-        if (TryGetExprSubst(expr, out ie)) {
-          return cce.NonNull(ie);
+        if (TryGetExprSubst(expr, out var ie)) {
+          Contract.Assert(ie != null);
+          return ie;
         }
-        if (expr is QuantifierExpr) {
-          var newExpr = expr;
-          var e = expr as QuantifierExpr;
-          var newAttrs = e.Attributes;
+        if (expr is QuantifierExpr e) {
+          var newAttrs = SubstAttributes(e.Attributes);
           var newRange = e.Range == null ? null : Substitute(e.Range);
           var newTerm = Substitute(e.Term);
-          var newBoundVars = new List<BoundVar>();
-          newBoundVars.AddRange(e.BoundVars);
-          var newBounds = e.Bounds == null ? null : e.Bounds.ConvertAll(bound => SubstituteBoundedPool(bound));
-          if (newRange != e.Range || newTerm != e.Term) {
-            if (expr is ForallExpr) {
-              foreach (var entry in usedSubstMap) {
-                newExpr = new BinaryExpr(expr.tok, BinaryExpr.ResolvedOpcode.EqCommon, entry.Item2, entry.Item1);
-                if (newRange == null) {
-                  newRange = newExpr;
-                } else {
-                  newTerm = new BinaryExpr(expr.tok, BinaryExpr.ResolvedOpcode.Imp, newRange, newTerm);
-                  newRange = newExpr;
-                }
-                newBoundVars.Add((BoundVar)entry.Item2.Var);
-                newBounds.Add(new ComprehensionExpr.ExactBoundedPool(entry.Item1));
-              }
-              newExpr = new ForallExpr(expr.tok, ((QuantifierExpr)expr).TypeArgs, newBoundVars, newRange, newTerm, newAttrs) { Bounds = newBounds };
-            } else if (expr is ExistsExpr) {
-              foreach (var entry in usedSubstMap) {
-                newExpr = new BinaryExpr(expr.tok, BinaryExpr.ResolvedOpcode.EqCommon, entry.Item2, entry.Item1);
-                if (newRange == null) {
-                  newRange = newExpr;
-                } else {
-                  newTerm = new BinaryExpr(expr.tok, BinaryExpr.ResolvedOpcode.And, newRange, newTerm);
-                  newRange = newExpr;
-                }
-                newBoundVars.Add((BoundVar)entry.Item2.Var);
-                newBounds.Add(new ComprehensionExpr.ExactBoundedPool(entry.Item1));
-              }
-              newExpr = new ExistsExpr(expr.tok, ((QuantifierExpr)expr).TypeArgs, newBoundVars, newRange, newTerm, newAttrs) { Bounds = newBounds };
-            }
-            usedSubstMap.Clear();
+          var newBounds = SubstituteBoundedPoolList(e.Bounds);
+          if (newAttrs == e.Attributes && newRange == e.Range && newTerm == e.Term && newBounds == e.Bounds) {
+            return e;
           }
+
+          var newBoundVars = new List<BoundVar>(e.BoundVars);
+          if (newBounds == null) {
+            newBounds = new List<ComprehensionExpr.BoundedPool>();
+          } else if (newBounds == e.Bounds) {
+            // create a new list with the same elements, since the .Add operations below would otherwise add elements to the original e.Bounds
+            newBounds = new List<ComprehensionExpr.BoundedPool>(newBounds);
+          }
+
+          // conjoin all the new equalities to the range of the quantifier
+          foreach (var entry in usedSubstMap) {
+            var eq = new BinaryExpr(e.tok, BinaryExpr.ResolvedOpcode.EqCommon, entry.Item2, entry.Item1);
+            newRange = newRange == null ? eq : new BinaryExpr(e.tok, BinaryExpr.ResolvedOpcode.And, eq, newRange);
+            newBoundVars.Add((BoundVar)entry.Item2.Var);
+            newBounds.Add(new ComprehensionExpr.ExactBoundedPool(entry.Item1));
+          }
+
+          QuantifierExpr newExpr;
+          if (expr is ForallExpr) {
+            newExpr = new ForallExpr(e.tok, e.TypeArgs, newBoundVars, newRange, newTerm, newAttrs) { Bounds = newBounds };
+          } else {
+            Contract.Assert(expr is ExistsExpr);
+            newExpr = new ExistsExpr(e.tok, e.TypeArgs, newBoundVars, newRange, newTerm, newAttrs) { Bounds = newBounds };
+          }
+          usedSubstMap.Clear();
+
           newExpr.Type = expr.Type;
           return newExpr;
         }
@@ -18285,13 +18279,14 @@ namespace Microsoft.Dafny {
           } else {
             var rhs = Substitute(e.RHSs[0]);
             var body = Substitute(e.Body);
-            if (rhs == e.RHSs[0] && body == e.Body) {
+            var newBounds = SubstituteBoundedPoolList(e.Constraint_Bounds);
+            if (rhs == e.RHSs[0] && body == e.Body && newBounds == e.Constraint_Bounds) {
               return e;
             }
             // keep copies of the substitution maps so we can reuse them at desugaring time
             var newSubstMap = new Dictionary<IVariable, Expression>(substMap);
             var newTypeMap = new Dictionary<TypeParameter, Type>(typeMap);
-            var newLet = new SubstLetExpr(e.tok, e.LHSs, new List<Expression>{ rhs }, body, e.Exact, e, newSubstMap, newTypeMap);
+            var newLet = new SubstLetExpr(e.tok, e.LHSs, new List<Expression>{ rhs }, body, e.Exact, e, newSubstMap, newTypeMap, newBounds);
             newExpr = newLet;
           }
         } else if (expr is MatchExpr) {
@@ -18339,7 +18334,8 @@ namespace Microsoft.Dafny {
           var newRange = e.Range == null ? null : Substitute(e.Range);
           var newTerm = Substitute(e.Term);
           var newAttrs = SubstAttributes(e.Attributes);
-          if (newBoundVars != e.BoundVars || newRange != e.Range || newTerm != e.Term || newAttrs != e.Attributes) {
+          var newBounds = SubstituteBoundedPoolList(e.Bounds);
+          if (newBoundVars != e.BoundVars || newRange != e.Range || newTerm != e.Term || newAttrs != e.Attributes || newBounds != e.Bounds) {
             if (e is SetComprehension) {
               newExpr = new SetComprehension(expr.tok, ((SetComprehension)e).Finite, newBoundVars, newRange, newTerm, newAttrs);
             } else if (e is MapComprehension) {
@@ -18356,9 +18352,7 @@ namespace Microsoft.Dafny {
             } else {
               Contract.Assert(false);  // unexpected ComprehensionExpr
             }
-            if (e.Bounds != null) {
-              ((ComprehensionExpr)newExpr).Bounds = e.Bounds.ConvertAll(bound => SubstituteBoundedPool(bound));
-            }
+            ((ComprehensionExpr)newExpr).Bounds = newBounds;
           }
           // undo any changes to substMap (could be optimized to do this only if newBoundVars != e.BoundVars)
           foreach (var bv in e.BoundVars) {
@@ -18415,6 +18409,22 @@ namespace Microsoft.Dafny {
           newExpr.Type = Resolver.SubstType(expr.Type, typeMap);  // resolve on the fly (any additional resolution must be done above)
           return newExpr;
         }
+      }
+
+      /// <summary>
+      /// This method calls "SubstituteBoundedPool" on each item in the possibly null list. If any of those calls returns a
+      /// change from the original, then all of the results are returned in a new list; otherwise, "list" is returned.
+      /// </summary>
+      public List<ComprehensionExpr.BoundedPool>/*?*/ SubstituteBoundedPoolList(List<ComprehensionExpr.BoundedPool>/*?*/ list) {
+        if (list != null) {
+          var newList = list.ConvertAll(SubstituteBoundedPool);
+          for (var i = 0; i < list.Count; i++) {
+            if (list[i] != newList[i]) {
+              return newList;
+            }
+          }
+        }
+        return list;
       }
 
       public ComprehensionExpr.BoundedPool SubstituteBoundedPool(ComprehensionExpr.BoundedPool bound) {
