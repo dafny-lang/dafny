@@ -12,9 +12,9 @@ DAFNY_ROOT="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
 
 MY_OS=$(uname -s)
 if [ "${MY_OS:0:5}" == "MINGW" ] || [ "${MY_OS:0:6}" == "CYGWIN" ]; then
-    DAFNYSERVER_EXE_NAME="Dafny.exe"
+    DAFNYSERVER_EXE_NAME="DafnyServer.exe"
 else
-    DAFNYSERVER_EXE_NAME="Dafny.dll"
+    DAFNYSERVER_EXE_NAME="DafnyServer.dll"
 fi
 DAFNYSERVER="$DAFNY_ROOT/$DAFNYSERVER_EXE_NAME"
 if [[ ! -e "$DAFNYSERVER" ]]; then
