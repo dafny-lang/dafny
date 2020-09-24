@@ -9,12 +9,12 @@ FRAME_DIR = ../../third_party/Coco/src
 # are both generated in one go and I don't know a better way to tell
 # nmake that.  --KRML
 default:
-	dotnet tool run Dafny.atg -namespace Microsoft.Dafny -frames $(FRAME_DIR)
+	dotnet tool run coco Dafny.atg -namespace Microsoft.Dafny -frames $(FRAME_DIR)
 
 all: Parser.cs Scanner.cs
 
 Parser.cs Scanner.cs: $(FRAME_DIR)/scanner.frame $(FRAME_DIR)/parser.frame Dafny.atg
-	dotnet tool run Dafny.atg -namespace Microsoft.Dafny -frames $(FRAME_DIR)
+	dotnet tool run coco Dafny.atg -namespace Microsoft.Dafny -frames $(FRAME_DIR)
 
 clean:
 	@-rm -f Scanner.cs Scanner.cs.old Parser.cs Parser.cs.old
