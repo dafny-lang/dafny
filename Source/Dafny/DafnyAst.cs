@@ -8659,7 +8659,7 @@ namespace Microsoft.Dafny {
     /// <summary>
     /// Create a resolved expression of the form "x"
     /// </summary>
-    public static Expression CreateRealLiteral(IToken tok, Basetypes.BigDec x) {
+    public static Expression CreateRealLiteral(IToken tok, BaseTypes.BigDec x) {
       Contract.Requires(tok != null);
       var nn = new LiteralExpr(tok, x);
       nn.Type = Type.Real;
@@ -9067,7 +9067,7 @@ namespace Microsoft.Dafny {
     ///   * 'null' for the 'null' literal (a special case of which is the subclass StaticReceiverExpr)
     ///   * a bool for a bool literal
     ///   * a BigInteger for int literal
-    ///   * a Basetypes.BigDec for a (rational) real literal
+    ///   * a BaseTypes.BigDec for a (rational) real literal
     ///   * a string for a char literal
     ///     This case always uses the subclass CharLiteralExpr.
     ///     Note, a string is stored to keep any escape sequence, since this simplifies printing of the character
@@ -9108,7 +9108,7 @@ namespace Microsoft.Dafny {
       this.Value = n;
     }
 
-    public LiteralExpr(IToken tok, Basetypes.BigDec n)
+    public LiteralExpr(IToken tok, BaseTypes.BigDec n)
       : base(tok) {
       Contract.Requires(0 <= n.Mantissa.Sign);
       Contract.Requires(tok != null);

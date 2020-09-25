@@ -5911,7 +5911,7 @@ namespace Microsoft.Dafny
             var e = (NegationExpression)expr;
             Expression zero;
             if (e.E.Type.IsNumericBased(Type.NumericPersuation.Real)) {
-              zero = new LiteralExpr(e.tok, Basetypes.BigDec.ZERO);
+              zero = new LiteralExpr(e.tok, BaseTypes.BigDec.ZERO);
             } else {
               Contract.Assert(e.E.Type.IsNumericBased(Type.NumericPersuation.Int) || e.E.Type.IsBitVectorType);
               zero = new LiteralExpr(e.tok, 0);
@@ -12907,7 +12907,7 @@ namespace Microsoft.Dafny
             var proxy = new InferredTypeProxy();
             e.Type = proxy;
             ConstrainSubtypeRelation(new IntVarietiesSupertype(), e.Type, e.tok, "integer literal used as if it had type {0}", e.Type);
-          } else if (e.Value is Basetypes.BigDec) {
+          } else if (e.Value is BaseTypes.BigDec) {
             var proxy = new InferredTypeProxy();
             e.Type = proxy;
             ConstrainSubtypeRelation(new RealVarietiesSupertype(), e.Type, e.tok, "type of real literal is used as {0}", e.Type);
@@ -14877,7 +14877,7 @@ namespace Microsoft.Dafny
                 }
                 var conversionArg = 1 <= e.Args.Count ? e.Args[0] :
                   ty.IsNumericBased(Type.NumericPersuation.Int) ? LiteralExpr.CreateIntLiteral(e.tok, 0) :
-                  LiteralExpr.CreateRealLiteral(e.tok, Basetypes.BigDec.ZERO);
+                  LiteralExpr.CreateRealLiteral(e.tok, BaseTypes.BigDec.ZERO);
                 r = new ConversionExpr(e.tok, conversionArg, ty);
                 ResolveExpression(r, opts);
                 // resolve the rest of the arguments, if any

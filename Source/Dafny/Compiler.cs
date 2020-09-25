@@ -15,7 +15,7 @@ using System.Collections.ObjectModel;
 using System.Diagnostics.SymbolStore;
 using System.Net.Security;
 using System.Text;
-using Microsoft.Basetypes;
+using Microsoft.BaseTypes;
 
 
 namespace Microsoft.Dafny {

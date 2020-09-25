@@ -411,9 +411,9 @@ namespace Microsoft.Dafny
       {
         case PipelineOutcome.VerificationCompleted:
           WriteStatss(statss);
-          if ((DafnyOptions.O.Compile && verified && CommandLineOptions.Clo.ProcsToCheck == null) || DafnyOptions.O.ForceCompile) {
+          if ((DafnyOptions.O.Compile && verified) || DafnyOptions.O.ForceCompile) {
             compiled = CompileDafnyProgram(dafnyProgram, resultFileName, otherFileNames, true);
-          } else if ((2 <= DafnyOptions.O.SpillTargetCode && verified && CommandLineOptions.Clo.ProcsToCheck == null) || 3 <= DafnyOptions.O.SpillTargetCode) {
+          } else if ((2 <= DafnyOptions.O.SpillTargetCode && verified) || 3 <= DafnyOptions.O.SpillTargetCode) {
             compiled = CompileDafnyProgram(dafnyProgram, resultFileName, otherFileNames, false);
           }
           break;
@@ -446,9 +446,8 @@ namespace Microsoft.Dafny
       Contract.Ensures(0 <= Contract.ValueAtReturn(out stats).InconclusiveCount && 0 <= Contract.ValueAtReturn(out stats).TimeoutCount);
 
       stats = new PipelineStatistics();
-      LinearTypeChecker ltc;
       CivlTypeChecker ctc;
-      PipelineOutcome oc = ExecutionEngine.ResolveAndTypecheck(program, bplFileName, out ltc, out ctc);
+      PipelineOutcome oc = ExecutionEngine.ResolveAndTypecheck(program, bplFileName, out ctc);
       switch (oc) {
         case PipelineOutcome.Done:
           return oc;
@@ -465,7 +464,7 @@ namespace Microsoft.Dafny
             fileNames.Add(bplFileName);
             Bpl.Program reparsedProgram = ExecutionEngine.ParseBoogieProgram(fileNames, true);
             if (reparsedProgram != null) {
-              ExecutionEngine.ResolveAndTypecheck(reparsedProgram, bplFileName, out ltc, out ctc);
+              ExecutionEngine.ResolveAndTypecheck(reparsedProgram, bplFileName, out ctc);
             }
           }
           return oc;

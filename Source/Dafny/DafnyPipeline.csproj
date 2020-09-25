@@ -4,8 +4,7 @@
     <Exec Command="dotnet tool restore &amp;&amp; dotnet tool run coco $(ProjectDir)Dafny.atg -namespace Microsoft.Dafny -frames $(ProjectDir)../../third_party/Coco/src" />
     <!-- Recompute files to build according to https://stackoverflow.com/a/44829863/93197 -->
     <ItemGroup>
-      <Compile Include="**/*$(DefaultLanguageSourceExtension)"
-               Exclude="$(DefaultItemExcludes);$(DefaultExcludesInProjectFolder);$(BaseIntermediateOutputPath)**;$(BaseOutputPath)**;@(Compile)" />
+      <Compile Include="**/*$(DefaultLanguageSourceExtension)" Exclude="$(DefaultItemExcludes);$(DefaultExcludesInProjectFolder);$(BaseIntermediateOutputPath)**;$(BaseOutputPath)**;@(Compile)" />
     </ItemGroup>
   </Target>
   

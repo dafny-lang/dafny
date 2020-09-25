@@ -1016,7 +1016,7 @@ namespace Microsoft.Dafny{
         } else {
           wr.Write($"new java.math.BigInteger(\"{i}\")");
         }
-      } else if (e.Value is Basetypes.BigDec n){
+      } else if (e.Value is BaseTypes.BigDec n){
         if (0 <= n.Exponent){
           wr.Write($"new {DafnyBigRationalClass}(new java.math.BigInteger(\"{n.Mantissa}");
           for (int j = 0; j < n.Exponent; j++){

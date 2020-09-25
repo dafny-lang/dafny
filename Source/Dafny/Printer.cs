@@ -1965,8 +1965,8 @@ namespace Microsoft.Dafny {
         } else if (e is StringLiteralExpr) {
           var str = (StringLiteralExpr)e;
           wr.Write("{0}\"{1}\"", str.IsVerbatim ? "@" : "", (string)e.Value);
-        } else if (e.Value is Basetypes.BigDec) {
-          Basetypes.BigDec dec = (Basetypes.BigDec)e.Value;
+        } else if (e.Value is BaseTypes.BigDec) {
+          BaseTypes.BigDec dec = (BaseTypes.BigDec)e.Value;
           wr.Write((dec.Mantissa >= 0) ? "" : "-");
           string s = BigInteger.Abs(dec.Mantissa).ToString();
           int digits = s.Length;
