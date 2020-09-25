@@ -453,11 +453,11 @@ In that case, you can use an *abstract* module import. In Dafny, this is written
 is defined, any refinement of `B` can be used safely. For example, if we start with:
 
 ``` {.edit}
-module Interface {
+abstract module Interface {
   function method addSome(n: nat): nat
     ensures addSome(n) > n
 }
-module Mod {
+abstract module Mod {
   import A : Interface
   method m() {
     assert 6 <= A.addSome(5);
@@ -481,11 +481,11 @@ module Implementation refines Interface {
 We can then substitute `Implementation` for `A` in a new module, by declaring a refinement of `Mod` which defines `A` to be `Implementation`.
 
 ``` {.editonly}
-module Interface {
+abstract module Interface {
   function method addSome(n: nat): nat
     ensures addSome(n) > n
 }
-module Mod {
+abstract module Mod {
   import A : Interface
   method m() {
     assert 6 <= A.addSome(5);
@@ -505,13 +505,6 @@ module Mod2 refines Mod {
     // this is now provable, because we know A is Implementation
     assert 6 == A.addSome(5);
   }
-}
-```
-
-```
-module Mod2 refines Mod {
-  import A = Implementation
-  ...
 }
 ```
 
