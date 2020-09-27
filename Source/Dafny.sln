@@ -7,7 +7,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Boogie", "Boogie", "{16BB54
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DafnyRuntime", "DafnyRuntime\DafnyRuntime.csproj", "{3E2944E9-3E1D-4E03-A881-FB04A7A6ED67}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Basetypes-NetCore", "boogie\Source\Basetypes\Basetypes-NetCore.csproj", "{17269D95-D99F-4D6D-951C-F80BDB17C79D}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BaseTypes-NetCore", "boogie\Source\BaseTypes\BaseTypes-NetCore.csproj", "{17269D95-D99F-4D6D-951C-F80BDB17C79D}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CodeContractsExtender-NetCore", "boogie\Source\CodeContractsExtender\CodeContractsExtender-NetCore.csproj", "{3D7D6695-B164-4178-B34D-60282C134C9A}"
 EndProject
