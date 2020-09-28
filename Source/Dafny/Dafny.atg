@@ -548,7 +548,17 @@ bool IsTypeSequence(ref IToken pt, int endBracketKind) {
     }
   }
 }
+
 bool IsType(ref IToken pt) {
+  if (!IsNonArrowType(ref pt)) return false;
+  while (pt.kind == _sarrow || pt.kind == _qarrow || pt.kind == _larrow) {
+    pt = scanner.Peek(); 
+    if (!IsNonArrowType(ref pt)) return false;
+  }
+  return true;
+}
+
+bool IsNonArrowType(ref IToken pt) {
   switch (pt.kind) {
     case _bool:
     case _char:
@@ -639,6 +649,7 @@ CHARACTERS
   letter = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz".
   digit = "0123456789".
   posDigit = "123456789".
+  posDigitFrom2 = "23456789".
   hexdigit = "0123456789ABCDEFabcdef".
   special = "'_?".
   glyph = "`~!@#$%^&*()-_=+[{]}|;:',<.>/?\\".
@@ -671,6 +682,7 @@ TOKENS
         |  'a' 'r' 'r' [ idcharMinusA {idchar} ]
         |  'a' 'r' 'r' 'a' [ idcharMinusY {idchar} ]
         |  'a' 'r' 'r' 'a' 'y' idcharMinusPosDigitMinusQuery {idchar}
+        |  'a' 'r' 'r' 'a' 'y' '1' [ '?' ]
         |  'a' 'r' 'r' 'a' 'y' '?' idchar {idchar}
         |  'a' 'r' 'r' 'a' 'y' posDigit {digit} nondigitMinusQuery {idchar}
         |  'a' 'r' 'r' 'a' 'y' posDigit {digit} '?' idchar {idchar}
@@ -685,8 +697,8 @@ TOKENS
   digits = digit {['_'] digit}.
   hexdigits = "0x" hexdigit {['_'] hexdigit}.
   decimaldigits = digit {['_'] digit} '.' digit {['_'] digit}.
-  arrayToken = "array" [posDigit {digit}].
-  arrayToken_q = "array" [posDigit {digit}] '?'.
+  arrayToken = "array" [('1' digit | posDigitFrom2 ) {digit}].
+  arrayToken_q = "array" [('1' digit | posDigitFrom2 ) {digit}] '?'.
   bvToken = "bv" ( '0' | posDigit {digit} ).
   bool = "bool".
   char = "char".
@@ -784,6 +796,9 @@ TOKENS
   ellipsis = "...".
   reveal = "reveal".
   expect = "expect".
+  sarrow = "->".
+  qarrow = "~>".
+  larrow = "-->".
 COMMENTS FROM "/*" TO "*/" NESTED
 COMMENTS FROM "//" TO lf
 IGNORE cr + lf + tab
@@ -890,7 +905,7 @@ SubModuleDecl<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl sub
     "import" ["opened" (.opened = true;.)]
     ModuleName<out id>
     ( (. idPath = new List<IToken>(); idExports = new List<IToken>(); .)
-      [ QualifiedModuleExportSuffix<idPath, idExports> ]
+      OptQualifiedModuleExportSuffix<idPath, idExports>
       (. idPath.Insert(0, id);
          submodule = new AliasModuleDecl(idPath, idPath[idPath.Count-1], parent, opened, idExports);
       .)
@@ -901,13 +916,6 @@ SubModuleDecl<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl sub
 
     )
 
-
-    [ SYNC ";"
-        // This semi-colon used to be required, but it seems silly to have it.
-        // To stage the transition toward not having it at all, let's make it optional for now.  Then,
-        // in the next big version of Dafny, don't allow the semi-colon at all.
-        (. errors.Deprecated(t, "the semi-colon that used to terminate a sub-module declaration has been deprecated; in the new syntax, just leave off the semi-colon"); .)
-    ]
   | (.
       IToken exportId;
       List<ExportSignature> exports = new List<ExportSignature>();;
@@ -964,13 +972,13 @@ ModuleName<out IToken id>
   .
 
 /* This production is for referring to module exports for imports (both normal and facades) */
-QualifiedModuleExportSuffix<.List<IToken> ids, List<IToken> exports.>
+OptQualifiedModuleExportSuffix<.List<IToken> ids, List<IToken> exports.>
 = (. IToken id; .)
-    { "." ModuleName<out id> (. ids.Add(id); .) }
+  { "." ModuleName<out id> (. ids.Add(id); .) }
   [ "`"
     ( ExportIdent<out id>       (. exports.Add(id); .)
     | "{" ExportIdent<out id>   (. exports.Add(id); .)
-      { "," ExportIdent<out id> (. exports.Add(id); .) }
+       { "," ExportIdent<out id> (. exports.Add(id); .) }
       "}"
     )
   ]
@@ -981,7 +989,7 @@ QualifiedModuleExport<.out List<IToken> ids, out List<IToken> exports.>
      List<IToken> sids = new List<IToken>(); exports = new List<IToken>();
   .)
   ModuleName<out id> (. ids.Add(id); .)
-  [ QualifiedModuleExportSuffix<sids, exports> ]
+  OptQualifiedModuleExportSuffix<sids, exports>
   (. ids.AddRange(sids); .)
   .
 
@@ -1261,12 +1269,6 @@ OtherTypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl t
                                 }
                              .)
   (. CheckDeclModifiers(dmod, kind, AllowedDeclModifiers.None); .)
-  [ SYNC ";"
-      // This semi-colon used to be required, but it seems silly to have it.
-      // To stage the transition toward not having it at all, let's make it optional for now.  Then,
-      // in the next big version of Dafny, don't allow the semi-colon at all.
-      (. errors.Deprecated(t, "the semi-colon that used to terminate an opaque-type declaration has been deprecated; in the new syntax, just leave off the semi-colon"); .)
-  ]
   .
 GIdentType<bool allowGhostKeyword, bool allowNewKeyword, out IToken/*!*/ id, out Type/*!*/ ty, out bool isGhost, out bool isOld>
 /* isGhost always returns as false if allowGhostKeyword is false */
@@ -1364,10 +1366,10 @@ IteratorDecl<DeclModifierData dmod, ModuleDefinition module, out IteratorDecl/*!
      List<FrameExpression/*!*/> reads = new List<FrameExpression/*!*/>();
      List<FrameExpression/*!*/> mod = new List<FrameExpression/*!*/>();
      List<Expression/*!*/> decreases = new List<Expression>();
-     List<MaybeFreeExpression/*!*/> req = new List<MaybeFreeExpression/*!*/>();
-     List<MaybeFreeExpression/*!*/> ens = new List<MaybeFreeExpression/*!*/>();
-     List<MaybeFreeExpression/*!*/> yieldReq = new List<MaybeFreeExpression/*!*/>();
-     List<MaybeFreeExpression/*!*/> yieldEns = new List<MaybeFreeExpression/*!*/>();
+     List<AttributedExpression/*!*/> req = new List<AttributedExpression/*!*/>();
+     List<AttributedExpression/*!*/> ens = new List<AttributedExpression/*!*/>();
+     List<AttributedExpression/*!*/> yieldReq = new List<AttributedExpression/*!*/>();
+     List<AttributedExpression/*!*/> yieldEns = new List<AttributedExpression/*!*/>();
      List<Expression/*!*/> dec = new List<Expression/*!*/>();
      Attributes readsAttrs = null;
      Attributes modAttrs = null;
@@ -1471,9 +1473,9 @@ MethodDecl<DeclModifierData dmod, bool allowConstructor, bool isWithinAbstractMo
      List<TypeParameter/*!*/>/*!*/ typeArgs = new List<TypeParameter/*!*/>();
      List<Formal/*!*/> ins = new List<Formal/*!*/>();
      List<Formal/*!*/> outs = new List<Formal/*!*/>();
-     List<MaybeFreeExpression/*!*/> req = new List<MaybeFreeExpression/*!*/>();
+     List<AttributedExpression/*!*/> req = new List<AttributedExpression/*!*/>();
      List<FrameExpression/*!*/> mod = new List<FrameExpression/*!*/>();
-     List<MaybeFreeExpression/*!*/> ens = new List<MaybeFreeExpression/*!*/>();
+     List<AttributedExpression/*!*/> ens = new List<AttributedExpression/*!*/>();
      List<Expression/*!*/> dec = new List<Expression/*!*/>();
      Attributes decAttrs = null;
      Attributes modAttrs = null;
@@ -1500,11 +1502,6 @@ MethodDecl<DeclModifierData dmod, bool allowConstructor, bool isWithinAbstractMo
   | "colemma"                       (. isCoLemma = true; caption = "Colemmas";
                                        allowed = AllowedDeclModifiers.AlreadyGhost | AllowedDeclModifiers.Static
                                          | AllowedDeclModifiers.Protected; .)
-  | "comethod"                      (. isCoLemma = true; caption = "Comethods";
-                                       allowed = AllowedDeclModifiers.AlreadyGhost | AllowedDeclModifiers.Static
-                                         | AllowedDeclModifiers.Protected;
-                                       errors.Deprecated(t, "the 'comethod' keyword has been deprecated; it has been renamed to 'colemma'");
-                                    .)
   | "inductive" "lemma"             (. isIndLemma = true;  caption = "Inductive lemmas";
                                        allowed = AllowedDeclModifiers.AlreadyGhost | AllowedDeclModifiers.Static;.)
   | "twostate" "lemma"              (. isTwoStateLemma = true; caption = "Two-state lemmas";
@@ -1585,13 +1582,13 @@ KType<ref FixpointPredicate.KType kType>
   )
   "]"
   .
-MethodSpec<.List<MaybeFreeExpression> req, List<FrameExpression> mod, List<MaybeFreeExpression> ens,
+MethodSpec<.List<AttributedExpression> req, List<FrameExpression> mod, List<AttributedExpression> ens,
             List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, string caption, bool performThisDeprecatedCheck.>
 = (. Contract.Requires(cce.NonNullElements(req));
      Contract.Requires(cce.NonNullElements(mod));
      Contract.Requires(cce.NonNullElements(ens));
      Contract.Requires(cce.NonNullElements(decreases));
-     Expression e;  FrameExpression fe;  bool isFree = false; Attributes ensAttrs = null; Attributes reqAttrs = null;
+     Expression e;  FrameExpression fe;  Attributes ensAttrs = null; Attributes reqAttrs = null;
      IToken lbl = null;
   .)
   SYNC
@@ -1600,28 +1597,25 @@ MethodSpec<.List<MaybeFreeExpression> req, List<FrameExpression> mod, List<Maybe
                { "," FrameExpression<out fe, false, false>   (. Util.AddFrameExpression(mod, fe, performThisDeprecatedCheck, errors); .)
                }
                OldSemi
-  | [ "free"                                                 (. isFree = true;
-                                                                errors.Deprecated(t, "the 'free' keyword is soon to be deprecated");
-                                                             .)
-    ]
+  | 
     ( "requires"
       { Attribute<ref reqAttrs> }
       [ IF(IsLabel(true))
         LabelIdent<out lbl> ":"
       ]
-      Expression<out e, false, false> OldSemi                (. req.Add(new MaybeFreeExpression(e, isFree, lbl == null ? null : new AssertLabel(lbl, lbl.val), reqAttrs)); .)
+      Expression<out e, false, false> OldSemi                (. req.Add(new AttributedExpression(e, lbl == null ? null : new AssertLabel(lbl, lbl.val), reqAttrs)); .)
     | "ensures"
       { Attribute<ref ensAttrs> }
-      Expression<out e, false, false> OldSemi                (. ens.Add(new MaybeFreeExpression(e, isFree, ensAttrs)); .)
+      Expression<out e, false, false> OldSemi                (. ens.Add(new AttributedExpression(e, ensAttrs)); .)
     )
   | "decreases" { Attribute<ref decAttrs> } DecreasesList<decreases, true, false> OldSemi
   )
   .
 IteratorSpec<.List<FrameExpression/*!*/>/*!*/ reads, List<FrameExpression/*!*/>/*!*/ mod, List<Expression/*!*/> decreases,
-              List<MaybeFreeExpression/*!*/>/*!*/ req, List<MaybeFreeExpression/*!*/>/*!*/ ens,
-              List<MaybeFreeExpression/*!*/>/*!*/ yieldReq, List<MaybeFreeExpression/*!*/>/*!*/ yieldEns,
+              List<AttributedExpression/*!*/>/*!*/ req, List<AttributedExpression/*!*/>/*!*/ ens,
+              List<AttributedExpression/*!*/>/*!*/ yieldReq, List<AttributedExpression/*!*/>/*!*/ yieldEns,
               ref Attributes readsAttrs, ref Attributes modAttrs, ref Attributes decrAttrs.>
-= (. Expression/*!*/ e; FrameExpression/*!*/ fe; bool isFree = false; bool isYield = false; Attributes ensAttrs = null;
+= (. Expression/*!*/ e; FrameExpression/*!*/ fe; bool isYield = false; Attributes ensAttrs = null;
      IToken lbl = null;
   .)
   SYNC
@@ -1635,11 +1629,7 @@ IteratorSpec<.List<FrameExpression/*!*/>/*!*/ reads, List<FrameExpression/*!*/>/
                { "," FrameExpression<out fe, false, false> (. mod.Add(fe); .)
                }
                OldSemi
-  | [ "free"                                                 (. isFree = true;
-                                                                errors.Deprecated(t, "the 'free' keyword is soon to be deprecated");
-                                                             .)
-    ]
-    [ "yield"                                                (. isYield = true; .)
+  | [ "yield"                                                (. isYield = true; .)
     ]
     ( "requires"
       [ IF(IsLabel(!isYield))
@@ -1647,16 +1637,16 @@ IteratorSpec<.List<FrameExpression/*!*/>/*!*/ reads, List<FrameExpression/*!*/>/
       ]
       Expression<out e, false, false> OldSemi                (. AssertLabel al = lbl == null ? null : new AssertLabel(lbl, lbl.val);
                                                                 if (isYield) {
-                                                                  yieldReq.Add(new MaybeFreeExpression(e, isFree, al, null));
+                                                                  yieldReq.Add(new AttributedExpression(e, al, null));
                                                                 } else {
-                                                                  req.Add(new MaybeFreeExpression(e, isFree, al, null));
+                                                                  req.Add(new AttributedExpression(e, al, null));
                                                                 }
                                                              .)
     | "ensures" { Attribute<ref ensAttrs> }
       Expression<out e, false, false> OldSemi                (. if (isYield) {
-                                                                  yieldEns.Add(new MaybeFreeExpression(e, isFree, ensAttrs));
+                                                                  yieldEns.Add(new AttributedExpression(e, ensAttrs));
                                                                 } else {
-                                                                  ens.Add(new MaybeFreeExpression(e, isFree, ensAttrs));
+                                                                  ens.Add(new AttributedExpression(e, ensAttrs));
                                                                 }
                                                              .)
     )
@@ -1850,8 +1840,8 @@ FunctionDecl<DeclModifierData dmod, bool isWithinAbstractModule, out Function/*!
      List<Formal/*!*/> formals = new List<Formal/*!*/>();
      Formal/*!*/ result = null;
      Type/*!*/ returnType = new BoolType();
-     List<MaybeFreeExpression/*!*/> reqs = new List<MaybeFreeExpression/*!*/>();
-     List<MaybeFreeExpression/*!*/> ens = new List<MaybeFreeExpression/*!*/>();
+     List<AttributedExpression/*!*/> reqs = new List<AttributedExpression/*!*/>();
+     List<AttributedExpression/*!*/> ens = new List<AttributedExpression/*!*/>();
      List<FrameExpression/*!*/> reads = new List<FrameExpression/*!*/>();
      List<Expression/*!*/> decreases;
      Expression body = null;
@@ -2003,7 +1993,7 @@ FunctionDecl<DeclModifierData dmod, bool isWithinAbstractModule, out Function/*!
      }
   .)
   .
-FunctionSpec<.List<MaybeFreeExpression/*!*/>/*!*/ reqs, List<FrameExpression/*!*/>/*!*/ reads, List<MaybeFreeExpression/*!*/>/*!*/ ens, List<Expression/*!*/> decreases.>
+FunctionSpec<.List<AttributedExpression/*!*/>/*!*/ reqs, List<FrameExpression/*!*/>/*!*/ reads, List<AttributedExpression/*!*/>/*!*/ ens, List<Expression/*!*/> decreases.>
 = (. Contract.Requires(cce.NonNullElements(reqs));
      Contract.Requires(cce.NonNullElements(reads));
      Contract.Requires(decreases == null || cce.NonNullElements(decreases));
@@ -2012,7 +2002,7 @@ FunctionSpec<.List<MaybeFreeExpression/*!*/>/*!*/ reqs, List<FrameExpression/*!*
   SYNC
   ( "requires"
     { Attribute<ref reqAttrs> }
-    Expression<out e, false, false> OldSemi                (. reqs.Add(new MaybeFreeExpression(e, false, reqAttrs)); .)
+    Expression<out e, false, false> OldSemi                (. reqs.Add(new AttributedExpression(e, reqAttrs)); .)
   | "reads"
     PossiblyWildFrameExpression<out fe, false>          (. reads.Add(fe); .)
     { "," PossiblyWildFrameExpression<out fe, false>    (. reads.Add(fe); .)
@@ -2020,7 +2010,7 @@ FunctionSpec<.List<MaybeFreeExpression/*!*/>/*!*/ reqs, List<FrameExpression/*!*
     OldSemi
   | "ensures"
       { Attribute<ref ensAttrs> }
-      Expression<out e, false, false> OldSemi                (. ens.Add(new MaybeFreeExpression(e, false, ensAttrs)); .)
+      Expression<out e, false, false> OldSemi                (. ens.Add(new AttributedExpression(e, ensAttrs)); .)
   | "decreases"                               (. if (decreases == null) {
                                                    SemErr(t, "'decreases' clauses are meaningless for copredicates, so they are not allowed");
                                                    decreases = new List<Expression/*!*/>();
@@ -2484,7 +2474,7 @@ WhileStmt<out Statement stmt>
 = (. Contract.Ensures(Contract.ValueAtReturn(out stmt) != null); IToken x;
      Expression guard = null;  IToken guardEllipsis = null;
 
-     List<MaybeFreeExpression> invariants = new List<MaybeFreeExpression>();
+     List<AttributedExpression> invariants = new List<AttributedExpression>();
      List<Expression> decreases = new List<Expression>();
      Attributes decAttrs = null;
      Attributes modAttrs = null;
@@ -2534,16 +2524,14 @@ WhileStmt<out Statement stmt>
     .)
   )
   .
-LoopSpec<.List<MaybeFreeExpression> invariants, List<Expression> decreases, ref List<FrameExpression> mod, ref Attributes decAttrs, ref Attributes modAttrs.>
+LoopSpec<.List<AttributedExpression> invariants, List<Expression> decreases, ref List<FrameExpression> mod, ref Attributes decAttrs, ref Attributes modAttrs.>
 = (. Expression e; FrameExpression fe;
-     bool isFree = false; Attributes attrs = null;
+     Attributes attrs = null;
   .)
   ( SYNC
-    [ "free"                                      (. isFree = true; errors.Deprecated(t, "the 'free' keyword is soon to be deprecated"); .)
-    ]
     "invariant"
     { Attribute<ref attrs> }
-    Expression<out e, false, true>                (. invariants.Add(new MaybeFreeExpression(e, isFree, attrs)); .)
+    Expression<out e, false, true>                (. invariants.Add(new AttributedExpression(e, attrs)); .)
     OldSemi
   | SYNC "decreases"
     { Attribute<ref decAttrs> }
@@ -2777,18 +2765,13 @@ ForallStmt<out Statement/*!*/ s>
      List<BoundVar> bvars = null;
      Attributes attrs = null;
      Expression range = null;
-     var ens = new List<MaybeFreeExpression/*!*/>();
-     bool isFree;
+     var ens = new List<AttributedExpression/*!*/>();
      Expression/*!*/ e;
      BlockStmt block = null;
      IToken bodyStart, bodyEnd;
      IToken tok = Token.NoToken;
   .)
-  ( "forall"                                  (. x = t; tok = x; .)
-  | "parallel"                                (. x = t;
-                                                 errors.Deprecated(t, "the 'parallel' keyword has been deprecated; the comprehension statement now uses the keyword 'forall' (and the parentheses around the bound variables are now optional)");
-                                              .)
-  )
+  "forall"                                  (. x = t; tok = x; .)
 
   ( IF(la.kind == _openparen)  /* disambiguation needed, because of the possibility of a body-less forall statement */
     "(" [ QuantifierDomain<out bvars, out attrs, out range> ] ")"
@@ -2800,12 +2783,8 @@ ForallStmt<out Statement/*!*/ s>
      if (range == null) { range = new LiteralExpr(x, true); }
   .)
 
-  {                                         (. isFree = false; .)
-    [ "free"                                (. isFree = true;
-                                               errors.Deprecated(t, "the 'free' keyword is soon to be deprecated");
-                                            .)
-    ]
-    "ensures" Expression<out e, false, true>  (. ens.Add(new MaybeFreeExpression(e, isFree)); .)
+  {
+    "ensures" Expression<out e, false, true>  (. ens.Add(new AttributedExpression(e)); .)
     OldSemi                                   (. tok = t; .)
   }
   [ IF(la.kind == _lbrace)  /* if the input continues like a block statement, take it to be the body of the forall statement; a body-less forall statement must continue in some other way */
@@ -3344,7 +3323,7 @@ Lhs<out Expression e>
 ConstAtomExpression<out Expression e, bool allowSemi, bool allowLambda>
 = (. Contract.Ensures(Contract.ValueAtReturn(out e) != null);
      IToken/*!*/ x;  BigInteger n;   Basetypes.BigDec d;
-     e = dummyExpr;  Type toType = null;
+     e = dummyExpr;
   .)
   ( "false"                                    (. e = new LiteralExpr(t, false); .)
   | "true"                                     (. e = new LiteralExpr(t, true); .)
@@ -3374,10 +3353,6 @@ ConstAtomExpression<out Expression e, bool allowSemi, bool allowLambda>
   | "|"                                        (. x = t; .)
       Expression<out e, true, true, false>     (. e = new UnaryOpExpr(x, UnaryOpExpr.Opcode.Cardinality, e); .)
     "|"
-  | ( "int"                                    (. x = t; toType = new IntType(); .)
-    | "real"                                   (. x = t; toType = new RealType(); .)
-    )                                          (. errors.Deprecated(t, string.Format("the syntax \"{0}(expr)\" for type conversions has been deprecated; the new syntax is \"expr as {0}\"", x.val)); .)
-    "(" Expression<out e, true, true> ")"      (. e = new ConversionExpr(x, e, toType); .)
   | ParensExpression<out e, allowSemi, allowLambda>
   )
   .

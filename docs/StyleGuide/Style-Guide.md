@@ -1,23 +1,28 @@
+<font size="+4"><p style="text-align: center;">Dafny Style Guide</p></font>
+
+* toc
+{:toc}
+
 This style guide provides coding conventions for the Dafny code.
 
-*This documentation is still in progress. Please feel free to add any more suggestions if any.*
+*This documentation is still in progress. Please feel free to add more suggestions.*
 
 ## Naming Convention
 Any **variables** are named with `camelCase`.
-```dafny
+```java
 var minValue := 1;
 var cipherMessage := "Hello World";
 ```
 
 Any **lemmas**, **predicates**, **functions**, **methods**, **classes**, **modules**, **datatypes**, and **newtypes**
 are named with `PascalCase`.
-```dafny
+```
 method FindIndex(arr: seq<int>, k: int)
     ...
 ```
 
 Any static or global **constants** are named with `UPPERCASE_WITH_UNDERSCORES`.
-```dafny
+```
 static const MONTHS_IN_A_YEAR := 12
 ```
 
@@ -47,7 +52,7 @@ class Integer {
 
 ### Braces
 Opening braces go on the same line by default.
-```dafny
+```
 module M {
     ...
     method Met() {
@@ -58,7 +63,7 @@ module M {
 In case the method (or function, lemma, etc) signature is too long to fit in one line, or in case the signature has at
 least one specification clause, the opening brace goes on a new line.
 
-```dafny
+```
 module M {
     ...
     method Met(i: int) returns (j: int)
@@ -75,18 +80,18 @@ This applies to every scope: `module`, `class`, `predicate`, `if`, `while`, and 
 ### Imports
 
 By default, import modules without opening them.
-```dafny
+```
 import Coffee
 ...
 ```
 
 However, if some members of a module are used very frequently, import it using `opened`:
-```dafny
+```
 import opened Donut
 ...
 ```
-When a file uses two modules, and both of them define a method of the same name, do not import them `opened`.
-```dafny
+When a file uses two modules and both of them define a method of the same name, do not import them `opened`.
+```
 import MyModule
 import YourModule
 ...
@@ -96,8 +101,8 @@ method MyMethod() {
 }
 ```
 
-In this case, if you want to shorten their name, import them with a shorthand name.
-```dafny
+In this case, if you want to shorten the module name, import it with a shorthand name.
+```
 import M = MyModuleWithACumbersomeName
 import Y = YourModuleWithACumbersomeName
 ...
@@ -110,7 +115,7 @@ method MyMethod() {
 Common imports, such as `StandardLibrary` and `Native`, should be grouped together, followed by custom module imports
 with a blank line in-between.
 
-```dafny
+```
 import opened StandardLibrary
 import opened Native
 
@@ -118,13 +123,13 @@ import opened Donut
 import Coffee
 ```
 
-Although not required, it's recommended to keep the order of `import`s and `include`s alphabetically, except when it
+Although not required, it's recommended to keep the order of `import`s and `include`s alphabetical, except when it
 makes more sense to group them logically.
 
 ## Indentation and Line Breaks
 
 ### Tabs or Spaces?
-Spaces are preferred over tabs. Tabs should only be used to remain consistent with the existing code with tabs.
+Spaces are preferred over tabs. Tabs should only be used to remain consistent with existing code containing tabs.
 
 Use 2 spaces for each indentation.
 
@@ -138,7 +143,7 @@ End each file with a newline.
 
 ### Functions, Methods, Predicates, and Lemmas
 Every Dafny method has the following signature.
-```dafny
+```
 method {:<attributes>} MethodName(param1: Type, param2: Type) returns (ret: Type)
     requires P()
     modifies param2
@@ -151,7 +156,7 @@ other method specification clauses, such as `requires`, `modifies`, `ensures`, a
 this order. Each method specification clause should be on a separate line, indented.
 
 In case the Method signature is too long, we can break it down.
-```dafny
+```
 method {:<attributes>} MethodName(param1: Type, param2: Type,
         param3: Type, param4: Type, param5: Type)
     returns (ret1: Type, ret2: Type, ret3: Type, ret4: Type,
@@ -167,7 +172,7 @@ method {:<attributes>} MethodName(param1: Type, param2: Type,
 ```
 
 Multiple `requires` or `ensures` can be combined into one:
-```dafny
+```
 requires
     && P1()
     && P2()
@@ -179,10 +184,11 @@ The same rules apply to `function`, `predicate`, and `lemma` definitions.
 
 ### Parentheses
 
-In a lot of cases, Dafny does not require parentheses around expressions. Here are some examples.
+In many cases, Dafny does not require parentheses around expressions. Here are some examples.
 
 * If-Else-While Statements
-```dafny
+
+```
 // YES
 var i := 1;
 while i < 10 {
@@ -205,7 +211,8 @@ while (i < 10) {
 ```
 
 * Statements That Take Expression Arguments
-```dafny
+
+```
 // YES
 assert x < 100;
 print x;
@@ -216,7 +223,8 @@ print(x);
 ```
 
 * Simple Boolean/Arithmetic Expressions
-```dafny
+
+```
 // YES
 method Collatz(num: nat)
     decreases *
@@ -247,7 +255,8 @@ Avoid unnecessary whitespace inside expressions.
 
 #### Type Declaration
 A type declaration should have a form of `variableName: variableType`.
-```dafny
+
+```
 // YES
 const one: int := 1
 class {:extern} Util {
@@ -261,17 +270,17 @@ class {:extern} Util {
 }
 ```
 
-Note, if the type can be inferred by Dafny, leave it out, unless you think it provides
+If the type can be inferred by Dafny, leave it out, unless you think it provides
 useful documentation in the program. So, constant `one` above is better declared as
-```dafny
+```
 const one := 1
 ```
 
 #### Function, Method, Predicate, and Lemma Declaration
-The `function`, `method`, `predicate`, and `lemma` definitions should have a form of
+The `function`, `method`, `predicate`, and `lemma` definitions should have the form 
 `FunctionName(parameterName: parameterType, ...)`.
 
-```dafny
+```
 // YES
 function method Foo<int>(i: int): int
 
@@ -279,9 +288,9 @@ function method Foo<int>(i: int): int
 function method Foo<int> (i : int) : int // unnecessary whitespace
 ```
 
-Avoid too little or too many whitespace that reduce the overall readability.
+Avoid too little or too much whitespace that reduces the overall readability.
 
-```dafny
+```
 // YES
 lemma MyLemma<A, B>(x: seq<seq<A>>, y: B) {
     ...

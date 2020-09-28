@@ -10,6 +10,7 @@ using System.Numerics;
 using System.IO;
 using System.Diagnostics.Contracts;
 using System.Collections.ObjectModel;
+using System.ComponentModel.Design;
 using System.Diagnostics;
 using System.Text.RegularExpressions;
 using System.Reflection;
@@ -27,12 +28,10 @@ namespace Microsoft.Dafny{
 
     public override String TargetLanguage => "Java";
 
-
-    // Shadowing variables in Compiler.cs
-    new string DafnySetClass = "dafny.DafnySet";
-    new string DafnyMultiSetClass = "dafny.DafnyMultiset";
-    new string DafnySeqClass = "dafny.DafnySequence";
-    new string DafnyMapClass = "dafny.DafnyMap";
+    protected override string DafnySetClass => "dafny.DafnySet";
+    protected override string DafnyMultiSetClass => "dafny.DafnyMultiset";
+    protected override string DafnySeqClass => "dafny.DafnySequence";
+    protected override string DafnyMapClass => "dafny.DafnyMap";
 
     const string DafnyBigRationalClass = "dafny.BigRational";
     const string DafnyEuclideanClass = "dafny.DafnyEuclidean";
@@ -101,6 +100,19 @@ namespace Microsoft.Dafny{
         default:
           Contract.Assert(false);
           throw new cce.UnreachableException();
+      }
+    }
+
+    private static bool IsUnsignedJavaNativeType(NativeType nt) {
+      Contract.Requires(nt != null);
+      switch (nt.Sel) {
+        case NativeType.Selection.Byte:
+        case NativeType.Selection.UShort:
+        case NativeType.Selection.UInt:
+        case NativeType.Selection.ULong:
+          return true;
+        default:
+          return false;
       }
     }
 
@@ -195,20 +207,6 @@ namespace Microsoft.Dafny{
         }
         EndStmt(wr);
       }
-    }
-
-    protected override void EmitMemberSelect(AssignStmt s0, List<Type> tupleTypeArgsList, TargetWriter wr, string tup){
-      wr.Write("(");
-      var lhs = (MemberSelectExpr) s0.Lhs;
-      var wCoerced = EmitCoercionIfNecessary(from: null, to: tupleTypeArgsList[0], tok: s0.Tok, wr: wr);
-      wCoerced.Write($"({TypeName(tupleTypeArgsList[0].NormalizeExpand(), wCoerced, s0.Tok)})");
-      EmitTupleSelect(tup, 0, wCoerced);
-      wr.Write(")");
-      wr.Write($".{IdMemberName(lhs)} = ");
-      wCoerced = EmitCoercionIfNecessary(from: null, to: tupleTypeArgsList[1], tok: s0.Tok, wr: wr);
-      wCoerced.Write($"({TypeName(tupleTypeArgsList[1].NormalizeExpand(), wCoerced, s0.Tok)})");
-      EmitTupleSelect(tup, 1, wCoerced);
-      EndStmt(wr);
     }
 
     protected override void EmitSeqSelect(AssignStmt s0, List<Type> tupleTypeArgsList, TargetWriter wr, string tup){
@@ -575,8 +573,8 @@ namespace Microsoft.Dafny{
 
     protected void DeclareField(string name, bool isStatic, bool isConst, Type type, Bpl.IToken tok, string rhs, ClassWriter cw) {
       if (isStatic){
-        var r = RemoveParams((rhs != null) ? rhs : DefaultValue(type, cw.StaticMemberWriter, tok));
-        var t = RemoveParams(TypeName(type, cw.StaticMemberWriter, tok));
+        var r = StripTypeParameters((rhs != null) ? rhs : DefaultValue(type, cw.StaticMemberWriter, tok));
+        var t = StripTypeParameters(TypeName(type, cw.StaticMemberWriter, tok));
         cw.StaticMemberWriter.WriteLine($"public static {t} {name} = {r};");
       }
       else{
@@ -586,8 +584,9 @@ namespace Microsoft.Dafny{
       }
     }
 
-    private string RemoveParams(string s){
-      return Regex.Replace(s, @"<.>", "");
+    private string StripTypeParameters(string s) {
+      Contract.Requires(s != null);
+      return Regex.Replace(s, @"<.+>", "");
     }
 
     private void EmitSuppression(TextWriter wr) {
@@ -609,6 +608,14 @@ namespace Microsoft.Dafny{
       return TypeName(type, wr, tok, boxed: true);
     }
 
+    private string QExtendsBoxedTypeName(Type type, TextWriter wr, Bpl.IToken tok) {
+      if (type.IsTraitType) {
+        return "? extends " + TypeName(type, wr, tok, boxed: true);
+      } else {
+        return TypeName(type, wr, tok, boxed: true);
+      }
+    }
+
     private string BoxedTypeNames(List<Type> types, TextWriter wr, Bpl.IToken tok) {
       return Util.Comma(types, t => BoxedTypeName(t, wr, tok));
     }
@@ -617,7 +624,11 @@ namespace Microsoft.Dafny{
       return BoxedTypeName(type, wr, tok);
     }
 
-    private string TypeName(Type type, TextWriter wr, Bpl.IToken tok, bool boxed, MemberDecl/*?*/ member = null) {
+    private string TypeName(Type type, TextWriter wr, Bpl.IToken tok, bool boxed, MemberDecl /*?*/ member = null) {
+      return TypeName(type, wr, tok, boxed, false, member);
+    }
+
+    private string TypeName(Type type, TextWriter wr, Bpl.IToken tok, bool boxed, bool erased, MemberDecl/*?*/ member = null) {
       Contract.Ensures(Contract.Result<string>() != null);
       Contract.Assume(type != null);  // precondition; this ought to be declared as a Requires in the superclass
 
@@ -653,58 +664,49 @@ namespace Microsoft.Dafny{
       } else if (xType is UserDefinedType udt) {
         if (udt.ResolvedParam != null) {
           if (thisContext != null && thisContext.ParentFormalTypeParametersToActuals.TryGetValue(udt.ResolvedParam, out var instantiatedTypeParameter)) {
-            return TypeName(instantiatedTypeParameter, wr, tok, member);
+            return TypeName(instantiatedTypeParameter, wr, tok, true, member);
           }
         }
         var s = FullTypeName(udt, member);
-        if (s.Equals("string")){
+        if (s.Equals("string")) {
           return "String";
         }
         var cl = udt.ResolvedClass;
         bool isHandle = true;
         if (cl != null && Attributes.ContainsBool(cl.Attributes, "handle", ref isHandle) && isHandle) {
           return boxed ? "Long" : "long";
-        }
-        else if (cl is TupleTypeDecl tupleDecl) {
+        } else if (cl is TupleTypeDecl tupleDecl) {
           s = DafnyTupleClass(tupleDecl.TypeArgs.Count);
-        }
-        else if (DafnyOptions.O.IronDafny &&
-                 !(xType is ArrowType) &&
-                 cl != null &&
-                 cl.Module != null &&
-                 !cl.Module.IsDefaultModule){
-          s = cl.FullCompileName;
         }
 
         // When accessing a static member, leave off the type arguments
         var typeArgs = member != null ? new List<Type>() : udt.TypeArgs;
         return TypeName_UDT(s, typeArgs, wr, udt.tok);
       } else if (xType is SetType) {
-        Type argType = ((SetType)xType).Arg;
-        if (ComplicatedTypeParameterForCompilation(argType)) {
-          Error(tok, "compilation of set<TRAIT> is not supported; consider introducing a ghost", wr);
+        var argType = ((SetType)xType).Arg;
+        if (erased) {
+          return DafnySetClass;
         }
-        return DafnySetClass + "<" + BoxedTypeName(argType, wr, tok) + ">";
+        return $"{DafnySetClass}<{QExtendsBoxedTypeName(argType, wr, tok)}>";
       } else if (xType is SeqType) {
-        Type argType = ((SeqType)xType).Arg;
-        if (ComplicatedTypeParameterForCompilation(argType)) {
-          Error(tok, "compilation of seq<TRAIT> is not supported; consider introducing a ghost", wr);
+        var argType = ((SeqType)xType).Arg;
+        if (erased) {
+          return DafnySeqClass;
         }
-        return DafnySeqClass + "<" + BoxedTypeName(argType, wr, tok) + ">";
-
+        return $"{DafnySeqClass}<{QExtendsBoxedTypeName(argType, wr, tok)}>";
       } else if (xType is MultiSetType) {
-        Type argType = ((MultiSetType)xType).Arg;
-        if (ComplicatedTypeParameterForCompilation(argType)) {
-          Error(tok, "compilation of multiset<TRAIT> is not supported; consider introducing a ghost", wr);
+        var argType = ((MultiSetType)xType).Arg;
+        if (erased) {
+          return DafnyMultiSetClass;
         }
-        return DafnyMultiSetClass + "<" + BoxedTypeName(argType, wr, tok) + ">";
+        return $"{DafnyMultiSetClass}<{QExtendsBoxedTypeName(argType, wr, tok)}>";
       } else if (xType is MapType) {
-        Type domType = ((MapType)xType).Domain;
-        Type ranType = ((MapType)xType).Range;
-        if (ComplicatedTypeParameterForCompilation(domType) || ComplicatedTypeParameterForCompilation(ranType)) {
-          Error(tok, "compilation of map<TRAIT, _> or map<_, TRAIT> is not supported; consider introducing a ghost", wr);
+        var domType = ((MapType)xType).Domain;
+        var ranType = ((MapType)xType).Range;
+        if (erased) {
+          return DafnyMapClass;
         }
-        return DafnyMapClass + "<" + BoxedTypeName(domType, wr, tok) + "," + BoxedTypeName(ranType, wr, tok) + ">";
+        return $"{DafnyMapClass}<{QExtendsBoxedTypeName(domType, wr, tok)}, {QExtendsBoxedTypeName(ranType, wr, tok)}>";
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected type
       }
@@ -742,7 +744,7 @@ namespace Microsoft.Dafny{
 
     protected string FullTypeName(UserDefinedType udt, MemberDecl member, bool useCompanionName) {
       Contract.Requires(udt != null);
-      if (udt is ArrowType) {
+      if (udt.IsBuiltinArrowType) {
         functions.Add(udt.TypeArgs.Count - 1);
         return DafnyFunctionIface(udt.TypeArgs.Count - 1);
       }
@@ -751,6 +753,9 @@ namespace Microsoft.Dafny{
         return qualification;
       }
       var cl = udt.ResolvedClass;
+      if (cl is NonNullTypeDecl nntd) {
+        cl = nntd.Class;
+      }
       if (cl == null) {
         return IdProtect(udt.CompileName);
       } else if (cl is TupleTypeDecl tupleDecl) {
@@ -888,14 +893,6 @@ namespace Microsoft.Dafny{
       if (typeParameters != null) {
         allTypeParameters.AddRange(TypeArgumentInstantiation.ListFromFormals(typeParameters));
       }
-      /***
-      if (superClasses != null) {
-        foreach (var s in superClasses) {
-          var traitDecl = ((UserDefinedType)s).ResolvedClass;
-          allTypeParameters.AddRange(TypeArgumentInstantiation.ListFromClass(traitDecl, s.TypeArgs));
-        }
-      }
-      ***/
       sep = "";
       foreach (var ta in allTypeParameters) {
         if (NeedsTypeDescriptor(ta.Formal)) {
@@ -910,27 +907,70 @@ namespace Microsoft.Dafny{
         }
       }
 
-      EmitTypeMethod(javaName, typeParameters, typeParameters, initializer: null, wBody);
-      return new ClassWriter(this, wBody, wCtorBody);
+      // make sure the (static fields associated with the) type method come after the Witness static field
+      var wTypeMethod = wBody;
+      var wRestOfBody = wBody.ForkSection();
+      var targetTypeName = BoxedTypeName(UserDefinedType.FromTopLevelDecl(cls.tok, cls, null), wTypeMethod, cls.tok);
+      var initializer = cls is RedirectingTypeDecl rtd && rtd.Witness != null ? $"{javaName}.Witness" : null;
+      EmitTypeMethod(cls, javaName, typeParameters, typeParameters, targetTypeName, initializer, wTypeMethod);
+      return new ClassWriter(this, wRestOfBody, wCtorBody);
     }
 
-    private void EmitTypeMethod(string typeName, List<TypeParameter> typeParams, List<TypeParameter> usedTypeParams, string/*?*/ initializer, TargetWriter wr) {
+    /// <summary>
+    /// Generate the "_type" method for a generated class.
+    /// "enclosingType" is allowed to be "null", in which case the target values are assumed to be references.
+    /// </summary>
+    private void EmitTypeMethod(TopLevelDecl/*?*/ enclosingTypeDecl, string typeName, List<TypeParameter> typeParams, List<TypeParameter> usedTypeParams, string targetTypeName, string/*?*/ initializer, TargetWriter wr) {
       var typeParamString = "";
       if (typeParams != null && typeParams.Count != 0) {
         typeParamString = $"<{TypeParameters(typeParams)}> ";
       }
 
-      var typeDescriptorCast = $"({TypeClass}<{typeName}{typeParamString}>) ({TypeClass}<?>)";
-      var typeDescriptorExpr = $"{TypeClass}.referenceWithInitializer({typeName}.class, () -> {initializer ?? "null"})";
-      if (usedTypeParams == null || usedTypeParams.Count == 0) {
-        wr.WriteLine($"private static final {TypeClass}<{typeName}> _TYPE = {typeDescriptorExpr};");
+      string typeDescriptorExpr = null;
+      if (enclosingTypeDecl != null) {
+        var enclosingType = UserDefinedType.FromTopLevelDecl(enclosingTypeDecl.tok, enclosingTypeDecl);
+        var w = (enclosingTypeDecl as RedirectingTypeDecl)?.Witness != null ? "Witness" : null;
+        switch (AsJavaNativeType(enclosingType)) {
+          case JavaNativeType.Byte:
+            typeDescriptorExpr = $"{TypeClass}.byteWithDefault({w ?? "(byte)0"})";
+            break;
+          case JavaNativeType.Short:
+            typeDescriptorExpr = $"{TypeClass}.shortWithDefault({w ?? "(short)0"})";
+            break;
+          case JavaNativeType.Int:
+            typeDescriptorExpr = $"{TypeClass}.intWithDefault({w ?? "0"})";
+            break;
+          case JavaNativeType.Long:
+            typeDescriptorExpr = $"{TypeClass}.longWithDefault({w ?? "0L"})";
+            break;
+          case null:
+            if (enclosingType.IsBoolType) {
+              typeDescriptorExpr = $"{TypeClass}.booleanWithDefault({w ?? "false"})";
+            } else if (enclosingType.IsCharType) {
+              typeDescriptorExpr = $"{TypeClass}.charWithDefault({w ?? "'D'"})";
+            } else if (initializer == null) {
+              var d = DefaultValue(enclosingType, wr, enclosingType.tok);
+              typeDescriptorExpr = $"{TypeClass}.referenceWithInitializer({StripTypeParameters(targetTypeName)}.class, () -> {d})";
+            }
+            break;
+        }
       }
-      wr.Write($"public static {typeParamString}{TypeClass}<{typeName}{typeParamString}> _type(");
+      if (typeDescriptorExpr == null) {
+        // use reference type
+        typeDescriptorExpr = $"{TypeClass}.referenceWithInitializer({StripTypeParameters(targetTypeName)}.class, () -> {initializer ?? "null"})";
+      }
+
+      if (usedTypeParams == null || usedTypeParams.Count == 0) {
+        // a static context in Java does not see the enclosing type parameters
+        wr.WriteLine($"private static final {TypeClass}<{StripTypeParameters(targetTypeName)}> _TYPE = {typeDescriptorExpr};");
+      }
+      wr.Write($"public static {typeParamString}{TypeClass}<{targetTypeName}> {TypeMethodName}(");
       if (usedTypeParams != null) {
         var typeDescriptorParams = usedTypeParams.Where(tp => NeedsTypeDescriptor(tp)).ToList();
         wr.Write(Util.Comma(typeDescriptorParams, tp => $"{TypeClass}<{tp.CompileName}> {FormatTypeDescriptorVariable(tp.CompileName)}"));
       }
       var wTypeMethodBody = wr.NewBigBlock(")", "");
+      var typeDescriptorCast = $"({TypeClass}<{targetTypeName}>) ({TypeClass}<?>)";
       if (usedTypeParams == null || usedTypeParams.Count == 0) {
         wTypeMethodBody.WriteLine($"return {typeDescriptorCast} _TYPE;");
       } else {
@@ -1150,7 +1190,7 @@ namespace Microsoft.Dafny{
     }
 
     protected override void EmitMapDisplay(MapType mt, Bpl.IToken tok, List<ExpressionPair> elements, bool inLetExprBody, TargetWriter wr) {
-      wr.Write("dafny.DafnyMap.fromElements");
+      wr.Write($"{DafnyMapClass}.fromElements");
       wr.Write("(");
       string sep = "";
       foreach (ExpressionPair p in elements) {
@@ -1165,7 +1205,7 @@ namespace Microsoft.Dafny{
       wr.Write(")");
     }
 
-    protected override void GetSpecialFieldInfo(SpecialField.ID id, object idParam, out string compiledName, out string preString, out string postString) {
+    protected override void GetSpecialFieldInfo(SpecialField.ID id, object idParam, Type receiverType, out string compiledName, out string preString, out string postString) {
       compiledName = "";
       preString = "";
       postString = "";
@@ -1235,7 +1275,7 @@ namespace Microsoft.Dafny{
     protected override ILvalue EmitMemberSelect(Action<TargetWriter> obj, Type objType, MemberDecl member, List<TypeArgumentInstantiation> typeArgs, Dictionary<TypeParameter, Type> typeMap,
       Type expectedType, string/*?*/ additionalCustomParameter, bool internalAccess = false) {
       if (member is SpecialField sf && !(member is ConstantField)) {
-        GetSpecialFieldInfo(sf.SpecialId, sf.IdParam, out var compiledName, out _, out _);
+        GetSpecialFieldInfo(sf.SpecialId, sf.IdParam, objType, out var compiledName, out _, out _);
         if (compiledName.Length != 0) {
           if (member.EnclosingClass is DatatypeDecl) {
             return SuffixLvalue(obj, $".{compiledName}()");
@@ -1504,15 +1544,20 @@ namespace Microsoft.Dafny{
 
     protected override void EmitIndexCollectionSelect(Expression source, Expression index, bool inLetExprBody, TargetWriter wr) {
       // Taken from C# compiler, assuming source is a DafnySequence type.
-      TrParenExpr(source, wr, inLetExprBody);
-      if (source.Type.AsCollectionType is MultiSetType){
-        TrParenExpr(".multiplicity", index, wr, inLetExprBody);
-      } else if (source.Type.AsCollectionType is MapType){
+      if (source.Type.AsMultiSetType != null) {
+        wr.Write($"{DafnyMultiSetClass}.<{BoxedTypeName(source.Type.AsMultiSetType.Arg, wr, Bpl.Token.NoToken)}>multiplicity(");
+        TrParenExpr(source, wr, inLetExprBody);
+        wr.Write(", ");
+        TrExpr(index, wr, inLetExprBody);
+        wr.Write(")");
+      } else if (source.Type.AsMapType != null) {
+        TrParenExpr(source, wr, inLetExprBody);
         TrParenExpr(".get", index, wr, inLetExprBody);
       } else {
-        TrParenExpr(".select", index, wr, inLetExprBody);
+        TrParenExpr(source, wr, inLetExprBody);
+        wr.Write(".select");
+        TrParenExprAsInt(index, wr, inLetExprBody);
       }
-
     }
 
     protected override void EmitMultiSetFormingExpr(MultiSetFormingExpr expr, bool inLetExprBody, TargetWriter wr) {
@@ -1520,11 +1565,28 @@ namespace Microsoft.Dafny{
       wr.Write(".asDafnyMultiset()");
     }
 
-    protected override void EmitIndexCollectionUpdate(Expression source, Expression index, Expression value, bool inLetExprBody,
-      TargetWriter wr, bool nativeIndex = false) {
-      TrParenExpr(source, wr, inLetExprBody);
-      wr.Write(".update(");
-      TrExpr(index, wr, inLetExprBody);
+    protected override void EmitIndexCollectionUpdate(Expression source, Expression index, Expression value, CollectionType resultCollectionType, bool inLetExprBody, TargetWriter wr) {
+      if (source.Type.AsSeqType != null) {
+        wr.Write($"{DafnySeqClass}.<{BoxedTypeName(resultCollectionType.Arg, wr, Bpl.Token.NoToken)}>update(");
+        TrExpr(source, wr, inLetExprBody);
+        wr.Write(", ");
+        TrExprAsInt(index, wr, inLetExprBody);
+      } else if (source.Type.AsMapType != null) {
+        var mapType = (MapType)resultCollectionType;
+        wr.Write($"{DafnyMapClass}.<{BoxedTypeName(mapType.Domain, wr, Bpl.Token.NoToken)}, {BoxedTypeName(mapType.Range, wr, Bpl.Token.NoToken)}>update(");
+        TrExpr(source, wr, inLetExprBody);
+        wr.Write(", ");
+        TrExpr(index, wr, inLetExprBody);
+      } else if (source.Type.AsMultiSetType != null) {
+        wr.Write($"{DafnyMultiSetClass}.<{BoxedTypeName(resultCollectionType.Arg, wr, Bpl.Token.NoToken)}>update(");
+        TrExpr(source, wr, inLetExprBody);
+        wr.Write(", ");
+        TrExpr(index, wr, inLetExprBody);
+      } else {
+        TrParenExpr(source, wr, inLetExprBody);
+        wr.Write(".update(");
+        TrExpr(index, wr, inLetExprBody);
+      }
       wr.Write(", ");
       TrExpr(value, wr, inLetExprBody);
       wr.Write(")");
@@ -1677,6 +1739,7 @@ namespace Microsoft.Dafny{
       var usedTypeArgsStr = Util.Comma(usedTypeArgs, IdName);
       var typeDescArgsStr = Util.Comma(usedTypeArgs, FormatTypeDescriptorVariable);
       TargetWriter wDefault;
+      wr.WriteLine();
       if (dt.TypeArgs.Count == 0) {
         wr.Write($"static {IdName(dt)} theDefault = ");
         wDefault = wr.Fork();
@@ -1706,7 +1769,8 @@ namespace Microsoft.Dafny{
         }
       }
       EmitDatatypeValue(dt, defaultCtor, dt is CoDatatypeDecl, arguments, wDefault);
-      EmitTypeMethod(IdName(dt), dt.TypeArgs, usedTypeArgs, $"Default({typeDescArgsStr})", wr);
+      var targetTypeName = BoxedTypeName(UserDefinedType.FromTopLevelDecl(dt.tok, dt, null), wr, dt.tok);
+      EmitTypeMethod(dt, IdName(dt), dt.TypeArgs, usedTypeArgs, targetTypeName, $"Default({typeDescArgsStr})", wr);
       // create methods
       // TODO:  Need to revisit this. Java cannot reference generic types in a static context, so this wont work.
       // (Yes, it can: public static <T1, T2> Foo create_Bar(T1 arg1, T2 arg2) { ... })
@@ -1837,7 +1901,7 @@ namespace Microsoft.Dafny{
           i++;
         }
       }
-      wr.Write($"public {DtCtorDeclarationName(ctor)}(");
+      wr.Write($"public {DtCtorDeclarationName(ctor)} (");
       WriteFormals("", ctor.Formals, wr);
       using (var w = wr.NewBlock(")")) {
         i = 0;
@@ -1849,14 +1913,16 @@ namespace Microsoft.Dafny{
         }
       }
       if (ctor.Formals.Count > 0){
-        wr.Write($"public {DtCtorDeclarationName(ctor)}(){{}}");
+        wr.WriteLine($"public {DtCtorDeclarationName(ctor)}() {{ }}");
       }
       if (dt is CoDatatypeDecl) {
         string typeParams = dt.TypeArgs.Count == 0 ? "" : $"<{TypeParameters(dt.TypeArgs)}>";
         wr.WriteLine($"public {dt.CompileName}{typeParams} Get() {{ return this; }}");
       }
       // Equals method
-      using (var w = wr.NewBlock("\n@Override\npublic boolean equals(Object other)")) {
+      wr.WriteLine();
+      wr.WriteLine("@Override");
+      using (var w = wr.NewBlock("public boolean equals(Object other)")) {
         w.WriteLine("if (this == other) return true;");
         w.WriteLine("if (other == null) return false;");
         w.WriteLine("if (getClass() != other.getClass()) return false;");
@@ -1872,7 +1938,7 @@ namespace Microsoft.Dafny{
               if (IsDirectlyComparable(arg.Type)) {
                 w.Write($"this.{nm} == o.{nm}");
               } else {
-                w.Write($"{nm}.equals(o.{nm})");
+                w.Write($"java.util.Objects.equals(this.{nm}, o.{nm})");
               }
               i++;
             }
@@ -1883,7 +1949,8 @@ namespace Microsoft.Dafny{
         }
       }
       // GetHashCode method (Uses the djb2 algorithm)
-      using (var w = wr.NewBlock("\n@Override\npublic int hashCode()")) {
+      wr.WriteLine("@Override");
+      using (var w = wr.NewBlock("public int hashCode()")) {
         w.WriteLine("long hash = 5381;");
         w.WriteLine($"hash = ((hash << 5) + hash) + {constructorIndex};");
         i = 0;
@@ -1894,14 +1961,17 @@ namespace Microsoft.Dafny{
             if (IsJavaPrimitiveType(arg.Type)) {
               w.WriteLine($"{BoxedTypeName(arg.Type, w, Bpl.Token.NoToken)}.hashCode(this.{nm});");
             } else {
-              w.WriteLine($"this.{nm}.hashCode();");
+              w.WriteLine($"java.util.Objects.hashCode(this.{nm});");
             }
             i++;
           }
         }
-        w.WriteLine("return (int) hash;");
+        w.WriteLine("return (int)hash;");
       }
-      using (var w = wr.NewBlock("\n@Override\npublic String toString()")) {
+
+      wr.WriteLine();
+      wr.WriteLine("@Override");
+      using (var w = wr.NewBlock("public String toString()")) {
         string nm;
         if (dt is TupleTypeDecl) {
           nm = "";
@@ -2037,10 +2107,10 @@ namespace Microsoft.Dafny{
         bool isGeneric = arg.Type.AsSeqType != null &&
                          arg.Type.AsSeqType.Arg.IsTypeParameter;
         if (isString) {
-          TrExpr(arg, wr, false);
+          TrParenExpr(arg, wr, false);
           wr.Write(".verbatimString()");
         } else if (isGeneric) {
-          wr.Write("((java.util.function.Function<dafny.DafnySequence<?>,String>)(_s -> (_s.elementType().defaultValue().getClass() == java.lang.Character.class ? _s.verbatimString() : String.valueOf(_s)))).apply(");
+          wr.Write($"((java.util.function.Function<{DafnySeqClass}<?>,String>)(_s -> (_s.elementType().defaultValue().getClass() == java.lang.Character.class ? _s.verbatimString() : String.valueOf(_s)))).apply(");
           TrExpr(arg, wr, false);
           wr.Write(")");
         } else {
@@ -2124,7 +2194,10 @@ namespace Microsoft.Dafny{
         // literal values
         case "false":
         case "null":
-        case "true":
+        case "true": 
+        case "toString":
+        case "equals":
+        case "hashCode":
           return name + "_"; // TODO: figure out what to do here (C# uses @, Go uses _, JS uses _$$_)
         default:
           return name; // Package name is not a keyword, so it can be used
@@ -2318,38 +2391,39 @@ namespace Microsoft.Dafny{
     }
 
     private string TypeDescriptor(Type type, TextWriter wr, Bpl.IToken tok) {
-      type = type.NormalizeExpand();
+      type = type.NormalizeExpandKeepConstraints();
       if (type is BoolType) {
         return $"{TypeClass}.BOOLEAN";
       } else if (type is CharType) {
         return $"{TypeClass}.CHAR";
-      } else if (type is IntType || type is BigOrdinalType) {
+      } else if (type is IntType) {
+        return $"{TypeClass}.BIG_INTEGER";
+      } else if (type is BigOrdinalType) {
         return $"{TypeClass}.BIG_INTEGER";
       } else if (type is RealType) {
         return $"{TypeClass}.BIG_RATIONAL";
-      } else if (AsNativeType(type) != null) {
-        return GetNativeTypeDescriptor(AsNativeType(type));
-      } else if (type is BitvectorType bvt) {
-        // already checked if it has a native type
-        return $"{TypeClass}.BIG_INTEGER";
-      } else if (type.AsNewtype != null) {
-        // already checked if it has a native type
-        return TypeDescriptor(type.AsNewtype.BaseType, wr, tok);
-      } else if (type.IsObjectQ) {
+      } else if (type is BitvectorType) {
+        var t = (BitvectorType)type;
+        if (t.NativeType != null) {
+          return GetNativeTypeDescriptor(AsNativeType(type));
+        } else {
+          return $"{TypeClass}.BIG_INTEGER";
+        }
+      } else if (type.IsObjectQ || type.IsObject) {
         return $"{TypeClass}.OBJECT";
       } else if (type.IsArrayType) {
         ArrayClassDecl at = type.AsArrayType;
         var elType = UserDefinedType.ArrayElementType(type);
-        var elTypeName = TypeName(elType, wr, tok);
+        var elTypeName = TypeName(elType, wr, tok, true);
         if (at.Dims > 1) {
           arrays.Add(at.Dims);
           return $"{DafnyMultiArrayClass(at.Dims)}.<{elTypeName}>{TypeMethodName}()";
-        } else if (elType is BoolType) {
+        } else if (elType.IsBoolType) {
           return $"{TypeClass}.BOOLEAN_ARRAY";
-        } else if (elType is CharType) {
+        } else if (elType.IsCharType) {
           return $"{TypeClass}.CHAR_ARRAY";
-        } else if (AsNativeType(type) != null) {
-          switch (AsJavaNativeType(type)) {
+        } else if (AsNativeType(elType) != null) {
+          switch (AsJavaNativeType(elType)) {
             case JavaNativeType.Byte: return $"{TypeClass}.BYTE_ARRAY";
             case JavaNativeType.Short: return $"{TypeClass}.SHORT_ARRAY";
             case JavaNativeType.Int: return $"{TypeClass}.INT_ARRAY";
@@ -2359,7 +2433,7 @@ namespace Microsoft.Dafny{
               throw new cce.UnreachableException();
           }
         } else {
-          return $"({TypeDescriptor(elType, wr, tok)}).arrayType()";
+          return $"(({TypeClass}<{BoxedTypeName(type, wr, tok)}>)({TypeDescriptor(elType, wr, tok)}).arrayType())";
         }
       } else if (type.IsTypeParameter) {
         var tp = type.AsTypeParameter;
@@ -2368,8 +2442,9 @@ namespace Microsoft.Dafny{
           return TypeDescriptor(instantiatedTypeParameter, wr, tok);
         }
         return FormatTypeDescriptorVariable(type.AsTypeParameter.CompileName);
-      } else if (type is ArrowType arrowType && arrowType.Arity == 1) {
+      } else if (type.IsBuiltinArrowType && type.AsArrowType.Arity == 1) {
         // Can't go the usual route because java.util.function.Function doesn't have a _type() method
+        var arrowType = type.AsArrowType;
         return $"{TypeClass}.function({TypeDescriptor(arrowType.Args[0], wr, tok)}, {TypeDescriptor(arrowType.Result, wr, tok)})";
       } else if (type is UserDefinedType udt) {
         var s = FullTypeName(udt, null, true);
@@ -2378,18 +2453,10 @@ namespace Microsoft.Dafny{
         bool isHandle = true;
         if (Attributes.ContainsBool(cl.Attributes, "handle", ref isHandle) && isHandle) {
           return $"{TypeClass}.LONG";
-        } else if (cl is TupleTypeDecl tupleDecl) {
-          s = $"{DafnyTupleClass(tupleDecl.TypeArgs.Count)}";
-        } else if (DafnyOptions.O.IronDafny &&
-                 !(type is ArrowType) &&
-                 cl != null &&
-                 cl.Module != null &&
-                 !cl.Module.IsDefaultModule){
-          s = cl.FullCompileName;
         }
 
         if (cl.IsExtern(out _, out _)) {
-          var td = $"{TypeClass}.<{TypeName(type, wr, tok)}> findType({s}.class";
+          var td = $"{TypeClass}.<{BoxedTypeName(type, wr, tok)}> findType({s}.class";
           if (udt.TypeArgs != null && udt.TypeArgs.Count > 0) {
             td += $", {Util.Comma(udt.TypeArgs, arg => TypeDescriptor(arg, wr, tok))}";
           }
@@ -2397,10 +2464,8 @@ namespace Microsoft.Dafny{
         }
 
         List<Type> relevantTypeArgs;
-        if (type is ArrowType) {
+        if (type.IsBuiltinArrowType) {
           relevantTypeArgs = type.TypeArgs;
-        } else if (cl is TupleTypeDecl) {
-          relevantTypeArgs = new List<Type>();
         } else if (cl is DatatypeDecl dt) {
           relevantTypeArgs = UsedTypeParameters(dt, udt.TypeArgs).ConvertAll(ta => ta.Actual);
         } else {
@@ -2412,15 +2477,19 @@ namespace Microsoft.Dafny{
           }
         }
 
-        return AddTypeDescriptorArgs(s, udt.TypeArgs, relevantTypeArgs, wr, udt.tok);
+        return AddTypeDescriptorArgs(s, udt.ResolvedClass.TypeArgs, udt.TypeArgs, relevantTypeArgs, wr, udt.tok);
       } else if (type is SetType setType) {
-        return AddTypeDescriptorArgs(DafnySetClass, setType.TypeArgs, setType.TypeArgs, wr, tok);
+        var tp = new TypeParameter(tok, "T", TypeParameter.TPVarianceSyntax.Covariant_Permissive);
+        return AddTypeDescriptorArgs(DafnySetClass, new List<TypeParameter>() { tp }, setType.TypeArgs, setType.TypeArgs, wr, tok);
       } else if (type is SeqType seqType) {
-        return AddTypeDescriptorArgs(DafnySeqClass, seqType.TypeArgs, seqType.TypeArgs, wr, tok);
+        var tp = new TypeParameter(tok, "T", TypeParameter.TPVarianceSyntax.Covariant_Permissive);
+        return AddTypeDescriptorArgs(DafnySeqClass, new List<TypeParameter>() { tp }, seqType.TypeArgs, seqType.TypeArgs, wr, tok);
       } else if (type is MultiSetType multiSetType) {
-        return AddTypeDescriptorArgs(DafnyMultiSetClass, multiSetType.TypeArgs, multiSetType.TypeArgs, wr, tok);
+        var tp = new TypeParameter(tok, "T", TypeParameter.TPVarianceSyntax.Covariant_Permissive);
+        return AddTypeDescriptorArgs(DafnyMultiSetClass, new List<TypeParameter>() { tp }, multiSetType.TypeArgs, multiSetType.TypeArgs, wr, tok);
       } else if (type is MapType mapType) {
-        return AddTypeDescriptorArgs(DafnyMapClass, mapType.TypeArgs, mapType.TypeArgs, wr, tok);
+        var tp = new TypeParameter(tok, "T", TypeParameter.TPVarianceSyntax.Covariant_Permissive);
+        return AddTypeDescriptorArgs(DafnyMapClass, new List<TypeParameter>() { tp, tp }, mapType.TypeArgs, mapType.TypeArgs, wr, tok);
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();
       }
@@ -2436,7 +2505,15 @@ namespace Microsoft.Dafny{
       }
     }
 
-    private string AddTypeDescriptorArgs(string fullCompileName, List<Type> typeArgs, List<Type> relevantTypeArgs, TextWriter wr, Bpl.IToken tok) {
+    private string AddTypeDescriptorArgs(string fullCompileName, List<TypeParameter> typeFormals, List<Type> typeArgs, List<Type> relevantTypeArgs, TextWriter wr, Bpl.IToken tok) {
+      Contract.Requires(fullCompileName != null);
+      Contract.Requires(typeFormals != null);
+      Contract.Requires(typeArgs != null);
+      Contract.Requires(relevantTypeArgs != null);
+      Contract.Requires(wr != null);
+      Contract.Requires(tok != null);
+      Contract.Requires(typeFormals.Count == typeArgs.Count);
+
       string s = $"{IdProtect(fullCompileName)}.";
       if (typeArgs != null && typeArgs.Count != 0) {
         s += $"<{BoxedTypeNames(typeArgs, wr, tok)}>";
@@ -2625,19 +2702,6 @@ namespace Microsoft.Dafny{
       }
 
       switch (op){
-        case BinaryExpr.ResolvedOpcode.Iff:
-          opString = "==";
-          break;
-        case BinaryExpr.ResolvedOpcode.Imp:
-          preOpString = "!";
-          opString = "||";
-          break;
-        case BinaryExpr.ResolvedOpcode.Or:
-          opString = "||";
-          break;
-        case BinaryExpr.ResolvedOpcode.And:
-          opString = "&&";
-          break;
         case BinaryExpr.ResolvedOpcode.BitwiseAnd:
           doPossiblyNativeBinOp("&", "and", out preOpString, out opString, out postOpString, out callString);
           break;
@@ -2655,7 +2719,7 @@ namespace Microsoft.Dafny{
           } else if (IsDirectlyComparable(e0.Type)) {
             opString = "==";
           } else {
-            callString = "equals";
+            staticCallString = "java.util.Objects.equals";
           }
           break;
         }
@@ -2668,7 +2732,7 @@ namespace Microsoft.Dafny{
             opString = "!=";
           } else {
             preOpString = "!";
-            callString = "equals";
+            staticCallString = "java.util.Objects.equals";
           }
           break;
         }
@@ -2723,18 +2787,6 @@ namespace Microsoft.Dafny{
             }
           }
           break;
-        case BinaryExpr.ResolvedOpcode.LtChar:
-          opString = "<";
-          break;
-        case BinaryExpr.ResolvedOpcode.LeChar:
-          opString = "<=";
-          break;
-        case BinaryExpr.ResolvedOpcode.GeChar:
-          opString = ">=";
-          break;
-        case BinaryExpr.ResolvedOpcode.GtChar:
-          opString = ">";
-          break;
         case BinaryExpr.ResolvedOpcode.LeftShift:
           doPossiblyNativeBinOp("<<", "shiftLeft", out preOpString, out opString, out postOpString, out callString);
           truncateResult = true;
@@ -2770,22 +2822,34 @@ namespace Microsoft.Dafny{
           break;
         case BinaryExpr.ResolvedOpcode.Div:
           if (resultType.IsIntegerType || (AsNativeType(resultType) != null && AsNativeType(resultType).LowerBound < BigInteger.Zero)) {
-            var suffix = AsNativeType(resultType) != null ? "_" + GetNativeTypeName(AsNativeType(resultType)) : "";
-            staticCallString = $"{DafnyEuclideanClass}.EuclideanDivision" + suffix;
+            staticCallString = $"{DafnyEuclideanClass}.EuclideanDivision";
           } else if (AsNativeType(resultType) != null) {
-            preOpString = CastIfSmallNativeType(resultType);
-            staticCallString = HelperClass(AsNativeType(resultType)) + ".divideUnsigned";
+            var nt = AsNativeType(resultType);
+            if (nt.Sel == NativeType.Selection.Byte) {
+              staticCallString = "dafny.Helpers.divideUnsignedByte";
+            } else if (nt.Sel == NativeType.Selection.UShort) {
+              staticCallString = "dafny.Helpers.divideUnsignedShort";
+            } else {
+              preOpString = CastIfSmallNativeType(resultType);
+              staticCallString = HelperClass(AsNativeType(resultType)) + ".divideUnsigned";
+            }
           } else {
             callString = "divide";
           }
           break;
         case BinaryExpr.ResolvedOpcode.Mod:
           if (resultType.IsIntegerType || (AsNativeType(resultType) != null && AsNativeType(resultType).LowerBound < BigInteger.Zero)) {
-            var suffix = AsNativeType(resultType) != null ? "_" + GetNativeTypeName(AsNativeType(resultType)) : "";
-            staticCallString = $"{DafnyEuclideanClass}.EuclideanModulus" + suffix;
+            staticCallString = $"{DafnyEuclideanClass}.EuclideanModulus";
           } else if (AsNativeType(resultType) != null) {
-            preOpString = CastIfSmallNativeType(resultType);
-            staticCallString = HelperClass(AsNativeType(resultType)) + ".remainderUnsigned";
+            var nt = AsNativeType(resultType);
+            if (nt.Sel == NativeType.Selection.Byte) {
+              staticCallString = "dafny.Helpers.remainderUnsignedByte";
+            } else if (nt.Sel == NativeType.Selection.UShort) {
+              staticCallString = "dafny.Helpers.remainderUnsignedShort";
+            } else {
+              preOpString = CastIfSmallNativeType(resultType);
+              staticCallString = HelperClass(AsNativeType(resultType)) + ".remainderUnsigned";
+            }
           } else {
             callString = "mod";
           }
@@ -2796,13 +2860,6 @@ namespace Microsoft.Dafny{
         case BinaryExpr.ResolvedOpcode.MapEq:
           callString = "equals";
           break;
-        case BinaryExpr.ResolvedOpcode.SetNeq:
-        case BinaryExpr.ResolvedOpcode.MultiSetNeq:
-        case BinaryExpr.ResolvedOpcode.SeqNeq:
-        case BinaryExpr.ResolvedOpcode.MapNeq:
-          preOpString = "!";
-          callString = "equals";
-          break;
         case BinaryExpr.ResolvedOpcode.ProperSubset:
         case BinaryExpr.ResolvedOpcode.ProperMultiSubset:
           callString = "isProperSubsetOf";
@@ -2811,44 +2868,40 @@ namespace Microsoft.Dafny{
         case BinaryExpr.ResolvedOpcode.MultiSubset:
           callString = "isSubsetOf";
           break;
-        case BinaryExpr.ResolvedOpcode.Superset:
-        case BinaryExpr.ResolvedOpcode.MultiSuperset:
-          callString = "isSubsetOf";
-          reverseArguments = true;
-          break;
-        case BinaryExpr.ResolvedOpcode.ProperSuperset:
-        case BinaryExpr.ResolvedOpcode.ProperMultiSuperset:
-          callString = "IsProperSubsetOf";
-          reverseArguments = true;
-          break;
         case BinaryExpr.ResolvedOpcode.Disjoint:
         case BinaryExpr.ResolvedOpcode.MultiSetDisjoint:
           callString = "disjoint";
           break;
         case BinaryExpr.ResolvedOpcode.InSet:
+          callString = $"<{BoxedTypeName(e0.Type, errorWr, tok)}>contains";
+          reverseArguments = true;
+          break;
         case BinaryExpr.ResolvedOpcode.InMultiSet:
+          callString = $"<{BoxedTypeName(e0.Type, errorWr, tok)}>contains";
+          reverseArguments = true;
+          break;
         case BinaryExpr.ResolvedOpcode.InMap:
           callString = "contains";
           reverseArguments = true;
           break;
-        case BinaryExpr.ResolvedOpcode.NotInSet:
-        case BinaryExpr.ResolvedOpcode.NotInMultiSet:
-        case BinaryExpr.ResolvedOpcode.NotInMap:
-          preOpString = "!";
-          callString = "contains";
-          reverseArguments = true;
-          break;
+
         case BinaryExpr.ResolvedOpcode.Union:
+          staticCallString = $"{DafnySetClass}.<{BoxedTypeName(resultType.AsSetType.Arg, errorWr, tok)}>union";
+          break;
         case BinaryExpr.ResolvedOpcode.MultiSetUnion:
-          callString = "union";
+          staticCallString = $"{DafnyMultiSetClass}.<{BoxedTypeName(resultType.AsMultiSetType.Arg, errorWr, tok)}>union";
           break;
         case BinaryExpr.ResolvedOpcode.Intersection:
+          staticCallString = $"{DafnySetClass}.<{BoxedTypeName(resultType.AsSetType.Arg, errorWr, tok)}>intersection";
+          break;
         case BinaryExpr.ResolvedOpcode.MultiSetIntersection:
-          callString = "intersection";
+          staticCallString = $"{DafnyMultiSetClass}.<{BoxedTypeName(resultType.AsMultiSetType.Arg, errorWr, tok)}>intersection";
           break;
         case BinaryExpr.ResolvedOpcode.SetDifference:
+          staticCallString = $"{DafnySetClass}.<{BoxedTypeName(resultType.AsSetType.Arg, errorWr, tok)}>difference";
+          break;
         case BinaryExpr.ResolvedOpcode.MultiSetDifference:
-          callString = "difference";
+          staticCallString = $"{DafnyMultiSetClass}.<{BoxedTypeName(resultType.AsMultiSetType.Arg, errorWr, tok)}>difference";
           break;
 
         case BinaryExpr.ResolvedOpcode.ProperPrefix:
@@ -2858,20 +2911,17 @@ namespace Microsoft.Dafny{
           callString = "isPrefixOf";
           break;
         case BinaryExpr.ResolvedOpcode.Concat:
-          callString = "concatenate";
+          staticCallString = $"{DafnySeqClass}.<{BoxedTypeName(resultType.AsSeqType.Arg, errorWr, tok)}>concatenate";
           break;
         case BinaryExpr.ResolvedOpcode.InSeq:
           callString = "contains";
           reverseArguments = true;
           break;
-        case BinaryExpr.ResolvedOpcode.NotInSeq:
-          preOpString = "!";
-          callString = "contains";
-          reverseArguments = true;
-          break;
         default:
-          Contract.Assert(false);
-          throw new cce.UnreachableException(); // unexpected binary expression
+          base.CompileBinOp(op, e0, e1, tok, resultType,
+            out opString, out preOpString, out postOpString, out callString, out staticCallString, out reverseArguments, out truncateResult, out convertE1_to_int,
+            errorWr);
+          break;
       }
     }
 
@@ -2882,48 +2932,50 @@ namespace Microsoft.Dafny{
       }
     }
 
-    private static void CreateTuple(int i, string path) {
+    private void CreateTuple(int i, string path) {
       var wrTop = new TargetWriter();
       wrTop.WriteLine("package dafny;");
       wrTop.WriteLine();
+      EmitSuppression(wrTop);
       wrTop.Write("public class Tuple");
       wrTop.Write(i);
       if (i != 0) {
-        wrTop.Write("<");
-        for (int j = 0; j < i; j++){
-          wrTop.Write("T" + j);
-          if (j != i - 1)
-            wrTop.Write(", ");
-          else{
-            wrTop.Write(">");
-          }
-        }
+        wrTop.Write("<{0}>", Util.Comma(", ", i, j => $"T{j}"));
       }
 
       var wr = wrTop.NewBlock("");
-      for (int j = 0; j < i; j++) {
-        wr.WriteLine("private T" + j + " _" + j + ";");
+      for (var j = 0; j < i; j++) {
+        wr.WriteLine("private T{0} _{0};", j);
       }
       wr.WriteLine();
 
-      wr.Write("public Tuple" + i + "(");
-      for (int j = 0; j < i; j++){
-        wr.Write("T" + j + " _" + j);
-        if (j != i - 1)
-          wr.Write(", ");
-      }
+      wr.Write("public Tuple{0}({1}", i, Util.Comma(", ", i, j => $"T{j} _{j}"));
       using (var wrCtor = wr.NewBlock(")")) {
-        for (int j = 0; j < i; j++) {
-          wrCtor.WriteLine("this._" + j + " = _" + j + ";");
+        for (var j = 0; j < i; j++) {
+          wrCtor.WriteLine("this._{0} = _{0};", j);
         }
       }
 
-      wr.WriteLine($"private static final Tuple{i} DEFAULT = new Tuple{i}();");
-      wr.WriteLine($"private static final {TypeClass}<Tuple{i}> TYPE = {TypeClass}.referenceWithDefault(Tuple{i}.class, DEFAULT);");
-      wr.WriteLine($"public static {TypeClass}<Tuple{i}> {TypeMethodName}() {{ return TYPE; }}");
-      if (i != 0) {
-        wr.WriteLine();
-        wr.Write("public Tuple" + i + "() {}");
+      var typeParams = new List<TypeParameter>();
+      for (var j = 0; j < i; j++) {
+        typeParams.Add(new TypeParameter(Bpl.Token.NoToken, $"T{j}", TypeParameter.TPVarianceSyntax.Covariant_Permissive));
+      }
+      var typeParamString = typeParams.Count == 0 ? "" : $"<{TypeParameters(typeParams)}>";
+      var initializer = string.Format("Default({0})", Util.Comma(", ", i, j => $"_td_T{j}"));
+      EmitTypeMethod(null, $"Tuple{i}", typeParams, typeParams, $"Tuple{i}{typeParamString}", initializer, wr);
+
+      // public static Tuple4<T0, T1, T2, T3> Default(dafny.Type<T0> _td_T0, dafny.Type<T1> _td_T1, dafny.Type<T2> _td_T2, dafny.Type<T3> _td_T3) {
+      //   return new Tuple4<>(_td_T0.defaultValue(), _td_T1.defaultValue(), _td_T2.defaultValue(), _td_T3.defaultValue());
+      // }
+      wr.WriteLine();
+      if (i == 0) {
+        wr.Write("public static Tuple0");
+      } else {
+        wr.Write("public static <{1}> Tuple{0}<{1}>", i, Util.Comma(", ", i, j => $"T{j}"));
+      }
+      wr.Write(" Default({0})", Util.Comma(", ", i, j => $"dafny.Type<T{j}> _td_T{j}"));
+      using (var w = wr.NewBlock("")) {
+        w.WriteLine("return new Tuple{0}{1}({2});", i, i == 0 ? "" : "<>", Util.Comma(", ", i, j => $"_td_T{j}.defaultValue()"));
       }
 
       wr.WriteLine();
@@ -2934,15 +2986,7 @@ namespace Microsoft.Dafny{
         wrEquals.WriteLine("if (getClass() != obj.getClass()) return false;");
         wrEquals.WriteLine($"Tuple{i} o = (Tuple{i}) obj;");
         if (i != 0) {
-          wrEquals.Write("return ");
-          for (int j = 0; j < i; j++) {
-            wrEquals.Write("this._" + j + ".equals(o._" + j + ")");
-            if (j != i - 1)
-              wrEquals.Write(" && ");
-            else {
-              wrEquals.WriteLine(";");
-            }
-          }
+          wrEquals.WriteLine("return {0};", Util.Comma(" && ", i, j => $"java.util.Objects.equals(this._{j}, o._{j})"));
         } else {
           wrEquals.WriteLine("return true;");
         }
@@ -2954,7 +2998,7 @@ namespace Microsoft.Dafny{
         wrToString.WriteLine("StringBuilder sb = new StringBuilder();");
         wrToString.WriteLine("sb.append(\"(\");");
         for (int j = 0; j < i; j++) {
-          wrToString.WriteLine($"sb.append(_{j} == null ? \"\" : _{j}.toString());");
+          wrToString.WriteLine($"sb.append(_{j} == null ? \"null\" : _{j}.toString());");
           if (j != i - 1)
             wrToString.WriteLine("sb.append(\", \");");
         }
@@ -2968,11 +3012,11 @@ namespace Microsoft.Dafny{
         wrHashCode.WriteLine("// GetHashCode method (Uses the djb2 algorithm)");
         wrHashCode.WriteLine("// https://stackoverflow.com/questions/1579721/why-are-5381-and-33-so-important-in-the-djb2-algorithm");
         wrHashCode.WriteLine("long hash = 5381;");
-        wrHashCode.WriteLine("hash = ((hash << 5) + hash) + 0;");
+        wrHashCode.WriteLine("hash = ((hash << 5) + hash) + 0;");  // this is constructor 0 (in fact, it's the only constructor)
         for (int j = 0; j < i; j++) {
-          wrHashCode.WriteLine("hash = ((hash << 5) + hash) + ((long) this._" + j + ".hashCode());");
+          wrHashCode.WriteLine("hash = ((hash << 5) + hash) + java.util.Objects.hashCode(this._" + j + ");");
         }
-        wrHashCode.WriteLine("return (int) hash;");
+        wrHashCode.WriteLine("return (int)hash;");
       }
 
       for (int j = 0; j < i; j++){
@@ -3088,9 +3132,9 @@ namespace Microsoft.Dafny{
         }
         // In an auto-init context (like a field initializer), we may not have
         // access to all the type descriptors, so we can't construct the
-        // default value, but then null is always an acceptable default in
-        // such contexts (since Dafny proves the null won't be accessed).
-        if (cl is TupleTypeDecl || inAutoInitContext) {
+        // default value, but then null is an acceptable default, since
+        // Dafny proves the value won't be accessed.
+        if (inAutoInitContext) {
           return $"({s}{typeargs})null";
         }
         var usedTypeArgs = UsedTypeParameters(dt, udt.TypeArgs);
@@ -3151,7 +3195,7 @@ namespace Microsoft.Dafny{
       var staticMemberWriter = w.NewBlock("");
       var ctorBodyWriter = staticMemberWriter.NewBlock($"public _Companion_{name}()");
 
-      EmitTypeMethod(name, typeParameters, typeParameters, initializer: null, staticMemberWriter);
+      EmitTypeMethod(null, name, typeParameters, typeParameters, name + typeParamString, initializer: null, staticMemberWriter);
       return new ClassWriter(this, instanceMemberWriter, ctorBodyWriter, staticMemberWriter);
     }
 
@@ -3174,46 +3218,29 @@ namespace Microsoft.Dafny{
     }
 
     public void CreateLambdaFunctionInterface(int i, string path) {
-      var typeArgs = "<";
-      for (int j = 0; j < i + 1; j++) {
-        typeArgs += "T" + j;
-        if (j != i) {
-          typeArgs += ", ";
-        }
-      }
-      typeArgs += ">";
+      var typeArgs = "<" + Util.Comma(i + 1, j => $"T{j}") + ">";
 
       var wr = new TargetWriter();
       wr.WriteLine("package dafny;");
       wr.WriteLine();
       wr.WriteLine("@FunctionalInterface");
-      wr.Write("public interface Function");
-      wr.Write(i);
-      wr.Write(typeArgs);
+      var functionName = $"Function{i}";
+      wr.Write($"public interface {functionName}{typeArgs}");
       var wrMembers = wr.NewBlock("");
-      wrMembers.Write("public T" + i + " apply(");
-      for (int j = 0; j < i; j++){
-        wrMembers.Write("T" + j + " t" + j);
-        if (j != i - 1)
-          wrMembers.Write(", ");
-      }
+      wrMembers.Write($"public T{i} apply(");
+      wrMembers.Write(Util.Comma(i, j => $"T{j} t{j}"));
       wrMembers.WriteLine(");");
 
       EmitSuppression(wrMembers);
-      wrMembers.Write($"public static {typeArgs} {TypeClass}<Function{i}{typeArgs}> {TypeMethodName}(");
-      for (int j = 0; j < i + 1; j++) {
-        wrMembers.Write($"{TypeClass}<T{j}> t{j}");
-        if (j != i) {
-          wrMembers.Write(", ");
-        }
-      }
+      wrMembers.Write($"public static {typeArgs} {TypeClass}<{functionName}{typeArgs}> {TypeMethodName}(");
+      wrMembers.Write(Util.Comma(i + 1, j => $"{TypeClass}<T{j}> t{j}"));
       var wrTypeBody = wrMembers.NewBigBlock(")", "");
       // XXX This seems to allow non-nullable types to have null values (since
       // arrow types are allowed as "(0)"-constrained type arguments), but it's
       // consistent with other backends.
-      wrTypeBody.Write($"return ({TypeClass}<Function{i}{typeArgs}>) ({TypeClass}<?>) {TypeClass}.reference(Function{i}.class);");
+      wrTypeBody.Write($"return ({TypeClass}<{functionName}{typeArgs}>) ({TypeClass}<?>) {TypeClass}.reference({functionName}.class);");
 
-      using (StreamWriter sw = File.CreateText(path + "/Function" + i + ".java")) {
+      using (StreamWriter sw = File.CreateText($"{path}/{functionName}.java")) {
         sw.Write(wr.ToString());
       }
     }
@@ -3325,21 +3352,36 @@ namespace Microsoft.Dafny{
       }
     }
 
-    protected override BlockTargetWriter CreateForeachLoop(string boundVar, Type boundVarType, out TargetWriter collectionWriter,
-      TargetWriter wr, string altBoundVarName = null, Type altVarType = null, Bpl.IToken tok = null) {
-      if (boundVarType != null) {
-        wr.Write($"for({TypeName(boundVarType, wr, tok)} {boundVar} : ");
-      } else {
-        wr.Write($"for({DafnyTupleClass(TargetTupleSize)} {boundVar} : ");
-      }
+    protected override BlockTargetWriter CreateForeachLoop(string tmpVarName, Type collectionElementType, string boundVarName, Type boundVarType, bool introduceBoundVar,
+      Bpl.IToken tok, out TargetWriter collectionWriter, TargetWriter wr) {
+
+      wr.Write("for ({1} {0} : ", tmpVarName, TypeName(collectionElementType, wr, tok));
       collectionWriter = wr.Fork();
-      if (altBoundVarName == null) {
-        return wr.NewBlock(")");
-      } else if (altVarType == null) {
-        return wr.NewBlockWithPrefix(")", $"{altBoundVarName} = {boundVar};");
-      } else {
-        return wr.NewBlockWithPrefix(")", "{2} {0} = ({2}){1};", altBoundVarName, boundVar, TypeName(altVarType, wr, tok));
+      var wwr = wr.NewBlock(")");
+
+      if (boundVarType.IsRefType) {
+        string typeTest;
+        if (boundVarType.IsObject || boundVarType.IsObjectQ) {
+          typeTest = "true";
+        } else {
+          typeTest = $"{tmpVarName} instanceof {TypeName(boundVarType, wwr, tok)}";
+        }
+        if (boundVarType.IsNonNullRefType) {
+          typeTest = $"{tmpVarName} != null && {typeTest}";
+        } else {
+          typeTest = $"{tmpVarName} == null || {typeTest}";
+        }
+        wwr = wwr.NewBlock($"if ({typeTest})");
       }
+      var typeName = TypeName(boundVarType, wwr, tok);
+      wwr.WriteLine("{0}{1} = ({2}){3};", introduceBoundVar ? typeName + " " : "", boundVarName, typeName, tmpVarName);
+      return wwr;
+    }
+
+    protected override BlockTargetWriter CreateForeachIngredientLoop(string boundVarName, int L, string tupleTypeArgs, out TargetWriter collectionWriter, TargetWriter wr) {
+      wr.Write($"for ({DafnyTupleClassPrefix}{L}<{tupleTypeArgs}> {boundVarName} : ");
+      collectionWriter = wr.Fork();
+      return wr.NewBlock(")");
     }
 
     protected override void EmitCollectionBuilder_Add(CollectionType ct, string collName, Expression elmt, bool inLetExprBody, TargetWriter wr) {
@@ -3355,7 +3397,10 @@ namespace Microsoft.Dafny{
     protected override string GetCollectionBuilder_Build(CollectionType ct, Bpl.IToken tok, string collName, TargetWriter wr) {
       if (ct is SetType) {
         var typeName = BoxedTypeName(ct.Arg, wr, tok);
-        return $"new dafny.DafnySet<{typeName}>({collName})";
+        return $"new {DafnySetClass}<{typeName}>({collName})";
+      } else if (ct is MultiSetType) {
+        var typeName = BoxedTypeName(ct.Arg, wr, tok);
+        return $"new {DafnyMultiSetClass}<{typeName}>({collName})";
       } else if (ct is MapType) {
         var mt = (MapType)ct;
         var domtypeName = BoxedTypeName(mt.Domain, wr, tok);
@@ -3397,7 +3442,7 @@ namespace Microsoft.Dafny{
     }
 
     protected override IClassWriter DeclareNewtype(NewtypeDecl nt, TargetWriter wr){
-      var cw = CreateClass(IdProtect(nt.Module.CompileName), IdName(nt), null, wr) as ClassWriter;
+      var cw = CreateClass(IdProtect(nt.Module.CompileName), IdName(nt), nt, wr) as ClassWriter;
       var w = cw.StaticMemberWriter;
       if (nt.NativeType != null) {
         var nativeType = GetBoxedNativeTypeName(nt.NativeType);
@@ -3425,25 +3470,41 @@ namespace Microsoft.Dafny{
       return cw;
     }
 
+    protected override string ArrayIndexToNativeInt(string s, Type type) {
+      var nt = AsNativeType(type);
+      if (nt == null) {
+        return $"({s}).intValue()";
+      } else if (nt.Sel == NativeType.Selection.Int || nt.Sel == NativeType.Selection.UInt) {
+        return s;
+      } else if (IsUnsignedJavaNativeType(nt)) {
+        return $"{DafnyHelpersClass}.unsignedToInt({s})";
+      } else {
+        return $"{DafnyHelpersClass}.toInt({s})";
+      }
+    }
+
     private void TrExprAsInt(Expression expr, TargetWriter wr, bool inLetExprBody) {
-      // TODO: Optimize
-      if (AsNativeType(expr.Type) == null) {
+      var nt = AsNativeType(expr.Type);
+      if (nt == null) {
         TrParenExpr(expr, wr, inLetExprBody);
         wr.Write(".intValue()");
-      } else {
+      } else if (nt.Sel == NativeType.Selection.Int || nt.Sel == NativeType.Selection.UInt) {
         TrExpr(expr, wr, inLetExprBody);
+      } else if (IsUnsignedJavaNativeType(nt)) {
+        wr.Write($"{DafnyHelpersClass}.unsignedToInt(");
+        TrExpr(expr, wr, inLetExprBody);
+        wr.Write(")");
+      } else {
+        wr.Write($"{DafnyHelpersClass}.toInt(");
+        TrExpr(expr, wr, inLetExprBody);
+        wr.Write(")");
       }
     }
 
     private void TrParenExprAsInt(Expression expr, TargetWriter wr, bool inLetExprBody) {
-      wr.Write('(');
+      wr.Write("(");
       TrExprAsInt(expr, wr, inLetExprBody);
-      wr.Write(')');
-    }
-
-    private void TrParenExprAsInt(string prefix, Expression expr, TargetWriter wr, bool inLetExprBody) {
-      wr.Write(prefix);
-      TrParenExprAsInt(expr, wr, inLetExprBody);
+      wr.Write(")");
     }
 
     protected override void EmitNewArray(Type elmtType, Bpl.IToken tok, List<Expression> dimensions, bool mustInitialize, TargetWriter wr) {
@@ -3500,7 +3561,9 @@ namespace Microsoft.Dafny{
       }
       return c;
     }
-    protected override TargetWriter EmitBetaRedex(List<string> boundVars, List<Expression> arguments, string typeArgs,
+
+    protected override bool TargetLambdaCanUseEnclosingLocals => false;
+    protected override TargetWriter EmitBetaRedex(List<string> boundVars, List<Expression> arguments,
       List<Type> boundTypes, Type resultType, Bpl.IToken resultTok, bool inLetExprBody, TargetWriter wr){
       if (boundTypes.Count != 1) {
         functions.Add(boundTypes.Count);
@@ -3834,7 +3897,6 @@ namespace Microsoft.Dafny{
     }
 
     public override string TransformToClassName(string baseName) {
-      Contract.Requires(baseName != null);
       return System.Text.RegularExpressions.Regex.Replace(baseName, "[^_A-Za-z0-9\\$]", "_");
     }
   }

@@ -91,6 +91,7 @@ method Arithmetic() {
   DivMod(-31, -4);
   DivMod(0, 4);
   DivMod(0, -4);
+  DivModNative();
 
   PrintSeq([0.3 - 0.1]);  // should be 0.2, not something like 0.19999999999999998
   PrintSeq([31.2 + 4.0, 31.2 - 4.0, 4.0 - 31.2]);
@@ -113,6 +114,138 @@ method DivMod(dividend: int, divisor: int)
   assert 0 <= remainder;
   assert quotient * divisor + remainder == dividend;
   print quotient, " ", remainder, " ", quotient * divisor + remainder, "\n";
+}
+
+newtype uint8 = x | 0 <= x < 0x100
+newtype uint16 = x | 0 <= x < 0x1_0000
+newtype uint32 = x | 0 <= x < 0x1_0000_0000
+newtype uint64 = x | 0 <= x < 0x1_0000_0000_0000_0000
+newtype int8 = x | -0x80 <= x < 0x80
+newtype int16 = x | -0x8000 <= x < 0x8000
+newtype int32 = x | -0x8000_0000 <= x < 0x8000_0000
+newtype int64 = x | -0x8000_0000_0000_0000 <= x < 0x8000_0000_0000_0000
+
+method DivModNative() {
+  // For non-negative operands, Euclidean division and moduus coincide with those of the
+  // target languages. Here, we're testing that no bad conversion happens between large
+  // unsigned integers and the same-bitpattern negative signed integer.
+  print "uint8:  ";
+  TestDivModUint8(0xE7, 23, " ");                                        // (10, 1)
+  TestDivModUint8(0xE7, 0xFF, "\n");                                     // (0, 231)
+  print "uint16: ";
+  TestDivModUint16(0xFFE7, 23, " ");                                     // (2848, 7)
+  TestDivModUint16(0xFFE7, 0xFFFF, "\n");                                // (0, 65511)
+  print "uint32: ";
+  TestDivModUint32(0xFFFF_FFE7, 23, " ");                                // (186_737_707, 10)
+  TestDivModUint32(0xFFFF_FFE7, 0xFFFF_FFFF, "\n");                      // (0, 4_294_967_271)
+  print "uint64: ";
+  TestDivModUint64(0xFFFF_FFFF_FFFF_FFE7, 23, " ");                      // (802_032_351_030_850_069, 4)
+  TestDivModUint64(0xFFFF_FFFF_FFFF_FFE7, 0xFFFF_FFFF_FFFF_FFFF, "\n");  // (0, 18_446_744_073_709_551_591)
+
+  // Compute via defining definitions
+  var i, j := 103, 13;
+  print "via real: ";
+  EuclideanDefinitions(i, j, " ");       // 7:12
+  EuclideanDefinitions(-i, j, " ");      // -8:1
+  EuclideanDefinitions(i, -j, " ");      // -7:12
+  EuclideanDefinitions(-i, -j, "\n");    // 8:1
+
+  // Check with SMT
+  assert i / j == 7       && i % j == 12;       // (7, 12)
+  assert (-i) / j == -8   && (-i) % j == 1;     // (-8, 1)
+  assert i / (-j) == -7   && i % (-j) == 12;    // (-7, 12)
+  assert (-103) / (-j) == 8 && (-i) % (-j) == 1;  // (8, 1)
+  // NOTE: In the previous line, if "-103" is replaced by the equivalent "-i", then Z3 version 4.8.4
+  // complains. In fact, Z3 4.8.4 is then happy to prove "(-i) / (-j) == 7", which is bogus. However,
+  // it seems that this error has been corrected in Z3 4.8.7 (or earlier). Therefore, by just
+  // writing "-103" here, we have a workaround for this test file. Once Dafny switches to a version
+  // of Z3 that is 4.8.7 or newer, then it would be good to switch "-103" back to "-i" here to make
+  // sure that particular Z3 bug has been fixed.
+
+  print "int:      ";
+  TestDivModInt(i, j, " ");                    // (7, 12)
+  TestDivModInt(-i, j, " ");                   // (-8, 1)
+  TestDivModInt(i, -j, " ");                   // (-7, 12)
+  TestDivModInt(-i, -j, " ");                  // (8, 1)
+  TestDivModInt(-108, 9, " ");                 // (-12, 0)
+  TestDivModInt(-108, -9, "\n");               // (12, 0)
+
+  // Test for native integers
+  var i8: int8, j8: int8 := 103, 13;
+  var i16: int16, j16: int16 := 103, 13;
+  var i32: int32, j32: int32 := 103, 13;
+  var i64: int64, j64: int64 := 103, 13;
+  print "int8:     ";
+  TestDivModInt8(i8, j8, " ");                       // (7, 12)
+  TestDivModInt8(-i8, j8, " ");                      // (-8, 1)
+  TestDivModInt8(i8, -j8, " ");                      // (-7, 12)
+  TestDivModInt8(-i8, -j8, " ");                     // (8, 1)
+  TestDivModInt8(-108, 9, " ");                      // (-12, 0)
+  TestDivModInt8(-108, -9, "\n");                    // (12, 0)
+  print "int16:    ";
+  TestDivModInt16(i16, j16, " ");                    // (7, 12)
+  TestDivModInt16(-i16, j16, " ");                   // (-8, 1)
+  TestDivModInt16(i16, -j16, " ");                   // (-7, 12)
+  TestDivModInt16(-i16, -j16, " ");                  // (8, 1)
+  TestDivModInt16(-108, 9, " ");                     // (-12, 0)
+  TestDivModInt16(-108, -9, "\n");                   // (12, 0)
+  print "int32:    ";
+  TestDivModInt32(i32, j32, " ");                    // (7, 12)
+  TestDivModInt32(-i32, j32, " ");                   // (-8, 1)
+  TestDivModInt32(i32, -j32, " ");                   // (-7, 12)
+  TestDivModInt32(-i32, -j32, " ");                  // (8, 1)
+  TestDivModInt32(-108, 9, " ");                     // (-12, 0)
+  TestDivModInt32(-108, -9, "\n");                   // (12, 0)
+  print "int64:    ";
+  TestDivModInt64(i64, j64, " ");                    // (7, 12)
+  TestDivModInt64(-i64, j64, " ");                   // (-8, 1)
+  TestDivModInt64(i64, -j64, " ");                   // (-7, 12)
+  TestDivModInt64(-i64, -j64, " ");                  // (8, 1)
+  TestDivModInt64(-108, 9, " ");                     // (-12, 0)
+  TestDivModInt64(-108, -9, "\n");                   // (12, 0)
+}
+function method Sign(n: int): int {
+  if n < 0 then -1 else if n == 0 then 0 else 1
+}
+function method Abs(n: int): nat {
+  if n < 0 then -n else n
+}
+method EuclideanDefinitions(i: int, j: int, suffix: string)
+  requires j != 0
+{
+  // For integers i and j, Euclidean division (i/j) and modulus (i%j) are defined as follows:
+  //   i/j    =    Sign(j) * Floor(i // Abs(j))   where "//" denotes real division
+  //   i%j    =    i - |j| * Floor(i // Abs(j))   where "//" denotes real division
+  var div := Sign(j) * (i as real / Abs(j) as real).Floor;
+  var mod := i - Abs(j) * (i as real / Abs(j) as real).Floor;
+  print div, ":", mod, suffix;
+}
+method TestDivModInt(a: int, b: int, suffix: string) requires b != 0 {
+  print a / b, ":", a % b, suffix;
+}
+method TestDivModUint8(a: uint8, b: uint8, suffix: string) requires b != 0 {
+  print a / b, ":", a % b, suffix;
+}
+method TestDivModUint16(a: uint16, b: uint16, suffix: string) requires b != 0 {
+  print a / b, ":", a % b, suffix;
+}
+method TestDivModUint32(a: uint32, b: uint32, suffix: string) requires b != 0 {
+  print a / b, ":", a % b, suffix;
+}
+method TestDivModUint64(a: uint64, b: uint64, suffix: string) requires b != 0 {
+  print a / b, ":", a % b, suffix;
+}
+method TestDivModInt8(a: int8, b: int8, suffix: string) requires b != 0 && -127 <= a {
+  print a / b, ":", a % b, suffix;
+}
+method TestDivModInt16(a: int16, b: int16, suffix: string) requires b != 0 && -0x7FFF <= a {
+  print a / b, ":", a % b, suffix;
+}
+method TestDivModInt32(a: int32, b: int32, suffix: string) requires b != 0 && -0x7FFF_FFFF <= a {
+  print a / b, ":", a % b, suffix;
+}
+method TestDivModInt64(a: int64, b: int64, suffix: string) requires b != 0 && -0x7FFF_FFFF_FFFF_FFFF <= a {
+  print a / b, ":", a % b, suffix;
 }
 
 method DivModReal(dividend: real, divisor: real)
@@ -346,8 +479,6 @@ method TestConversions() {
   ConvertFromUInt32(120);
   ConvertFromChar('x');
 }
-
-newtype uint32 = x | 0 <= x < 0x1_0000_0000
 
 method ConvertFromInt(x: int)
   requires 0 <= x < 128

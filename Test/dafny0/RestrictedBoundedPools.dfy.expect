@@ -6,7 +6,7 @@ RestrictedBoundedPools.dfy(98,4): Error: a quantifier involved in a predicate de
 RestrictedBoundedPools.dfy(113,4): Error: a quantifier involved in a predicate definition is not allowed to depend on the set of allocated references; Dafny's heuristics can't figure out a bound for the values of 'xs'
 RestrictedBoundedPools.dfy(123,4): Error: a quantifier involved in a predicate definition is not allowed to depend on the set of allocated references; Dafny's heuristics can't figure out a bound for the values of 'xs'
 RestrictedBoundedPools.dfy(133,4): Error: a quantifier involved in a predicate definition is not allowed to depend on the set of allocated references; Dafny's heuristics can't figure out a bound for the values of 'xs'
-RestrictedBoundedPools.dfy(155,17): Error: a set comprehension must produce a finite set, but Dafny's heuristics can't figure out how to produce a bounded set of values for 'o'
+RestrictedBoundedPools.dfy(155,17): Error: the result of a set comprehension must be finite, but Dafny's heuristics can't figure out how to produce a bounded set of values for 'o'
 RestrictedBoundedPools.dfy(170,9): Error: iset comprehensions in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce or compile a bounded set of values for 'o'
 RestrictedBoundedPools.dfy(174,23): Error: a set comprehension involved in a function definition is not allowed to depend on the set of allocated references; Dafny's heuristics can't figure out a bound for the values of 'o' (perhaps declare its type, 'Opaque', as 'Opaque(!new)')
 RestrictedBoundedPools.dfy(186,23): Error: a set comprehension involved in a function definition is not allowed to depend on the set of allocated references; Dafny's heuristics can't figure out a bound for the values of 'xs'
@@ -18,4 +18,6 @@ RestrictedBoundedPools.dfy(236,18): Error: a function definition is not allowed 
 RestrictedBoundedPools.dfy(241,4): Error: a function definition is not allowed to depend on the set of allocated references
 RestrictedBoundedPools.dfy(246,4): Error: a twostate function definition is not allowed to depend on the set of allocated references
 RestrictedBoundedPools.dfy(252,4): Error: a twostate function definition is not allowed to depend on the set of allocated references
-20 resolution/type errors detected in RestrictedBoundedPools.dfy
+RestrictedBoundedPools.dfy(271,14): Error: set comprehensions in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce or compile a bounded set of values for 'x'
+RestrictedBoundedPools.dfy(272,14): Error: map comprehensions in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce or compile a bounded set of values for 'x'
+22 resolution/type errors detected in RestrictedBoundedPools.dfy
