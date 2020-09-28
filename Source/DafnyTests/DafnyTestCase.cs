@@ -34,7 +34,7 @@ namespace DafnyTests {
     public static string COMP_DIR = Path.Combine(TEST_ROOT, "comp") + Path.DirectorySeparatorChar;
     private static string OUTPUT_DIR = Path.Combine(TEST_ROOT, "Output") + Path.DirectorySeparatorChar;
     
-    private static string DAFNY_EXE = Path.Combine(DAFNY_ROOT, "Binaries/Dafny.exe");
+    private static string DAFNY_EXE = Path.Combine(DAFNY_ROOT, "Binaries/Dafny.dll");
         
     public string DafnyFile;
     public string[] Arguments;
