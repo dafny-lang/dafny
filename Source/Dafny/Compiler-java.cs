@@ -608,12 +608,20 @@ namespace Microsoft.Dafny{
       return TypeName(type, wr, tok, boxed: true);
     }
 
-    private string QExtendsBoxedTypeName(Type type, TextWriter wr, Bpl.IToken tok) {
-      if (type.IsTraitType) {
-        return "? extends " + TypeName(type, wr, tok, boxed: true);
-      } else {
-        return TypeName(type, wr, tok, boxed: true);
+    private string ActualTypeArgument(Type type, TypeParameter.TPVariance variance, TextWriter wr, Bpl.IToken tok) {
+      Contract.Requires(type != null);
+      Contract.Requires(wr != null);
+      Contract.Requires(tok != null);
+      var typeName = TypeName(type, wr, tok, boxed: true);
+      if (variance == TypeParameter.TPVariance.Co) {
+        // TODO: possible change: if "type" has no subtypes in Java, then return just "typeName"
+        return "? extends " + typeName;
+      } else if (variance == TypeParameter.TPVariance.Contra) {
+        if (type.IsRefType) {
+          return "? super " + typeName;
+        }
       }
+      return typeName;
     }
 
     private string BoxedTypeNames(List<Type> types, TextWriter wr, Bpl.IToken tok) {
@@ -687,26 +695,26 @@ namespace Microsoft.Dafny{
         if (erased) {
           return DafnySetClass;
         }
-        return $"{DafnySetClass}<{QExtendsBoxedTypeName(argType, wr, tok)}>";
+        return $"{DafnySetClass}<{ActualTypeArgument(argType, TypeParameter.TPVariance.Co, wr, tok)}>";
       } else if (xType is SeqType) {
         var argType = ((SeqType)xType).Arg;
         if (erased) {
           return DafnySeqClass;
         }
-        return $"{DafnySeqClass}<{QExtendsBoxedTypeName(argType, wr, tok)}>";
+        return $"{DafnySeqClass}<{ActualTypeArgument(argType, TypeParameter.TPVariance.Co, wr, tok)}>";
       } else if (xType is MultiSetType) {
         var argType = ((MultiSetType)xType).Arg;
         if (erased) {
           return DafnyMultiSetClass;
         }
-        return $"{DafnyMultiSetClass}<{QExtendsBoxedTypeName(argType, wr, tok)}>";
+        return $"{DafnyMultiSetClass}<{ActualTypeArgument(argType, TypeParameter.TPVariance.Co, wr, tok)}>";
       } else if (xType is MapType) {
         var domType = ((MapType)xType).Domain;
         var ranType = ((MapType)xType).Range;
         if (erased) {
           return DafnyMapClass;
         }
-        return $"{DafnyMapClass}<{QExtendsBoxedTypeName(domType, wr, tok)}, {QExtendsBoxedTypeName(ranType, wr, tok)}>";
+        return $"{DafnyMapClass}<{ActualTypeArgument(domType, TypeParameter.TPVariance.Co, wr, tok)}, {ActualTypeArgument(ranType, TypeParameter.TPVariance.Co, wr, tok)}>";
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected type
       }
@@ -1255,7 +1263,10 @@ namespace Microsoft.Dafny{
           compiledName = "dafnyValues()";
           break;
         case SpecialField.ID.Items:
-          compiledName = "dafnyEntrySet()";
+          var mapType = receiverType.AsMapType;
+          Contract.Assert(mapType != null);
+          var errorWr = new TargetWriter();
+          compiledName = $"<{BoxedTypeName(mapType.Domain, errorWr, Bpl.Token.NoToken)}, {BoxedTypeName(mapType.Range, errorWr, Bpl.Token.NoToken)}>dafnyEntrySet()";
           break;
         case SpecialField.ID.Reads:
           compiledName = "_reads";
@@ -2870,18 +2881,12 @@ namespace Microsoft.Dafny{
           break;
         case BinaryExpr.ResolvedOpcode.Disjoint:
         case BinaryExpr.ResolvedOpcode.MultiSetDisjoint:
-          callString = "disjoint";
+          callString = $"<{BoxedTypeName(e1.Type.AsCollectionType.Arg, errorWr, tok)}>disjoint";
           break;
         case BinaryExpr.ResolvedOpcode.InSet:
-          callString = $"<{BoxedTypeName(e0.Type, errorWr, tok)}>contains";
-          reverseArguments = true;
-          break;
         case BinaryExpr.ResolvedOpcode.InMultiSet:
-          callString = $"<{BoxedTypeName(e0.Type, errorWr, tok)}>contains";
-          reverseArguments = true;
-          break;
         case BinaryExpr.ResolvedOpcode.InMap:
-          callString = "contains";
+          callString = $"<{BoxedTypeName(e0.Type, errorWr, tok)}>contains";
           reverseArguments = true;
           break;
 
