@@ -1152,7 +1152,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    protected override TargetWriter DeclareLocalVar(string name, Type/*?*/ type, Bpl.IToken/*?*/ tok, TargetWriter wr, bool exactTypeArguments) {
+    protected override TargetWriter DeclareLocalVar(string name, Type/*?*/ type, Bpl.IToken/*?*/ tok, TargetWriter wr, bool exactTypeArguments = false) {
       if (type != null) {
         wr.Write("{0} ", TypeName(type, wr, tok));
       } else {
@@ -2313,15 +2313,16 @@ namespace Microsoft.Dafny {
       wr.Write("})");
     }
 
-    protected override void EmitCollectionBuilder_New(CollectionType ct, Bpl.IToken tok, TargetWriter wr) {
-      if (ct is SetType) {
-        wr.Write("DafnySet<{0}>()", TypeName(ct.TypeArgs[0], wr, tok, null, false));
-      } else {
-        throw NotSupported("EmitCollectionBuilder_New/non_set", tok);
-      }
+    protected override void EmitSetBuilder_New(TargetWriter wr, SetComprehension e, string collectionName) {
+      var wrVarInit = DeclareLocalVar(collectionName, null, null, wr);
+      wrVarInit.Write("DafnySet<{0}>()", TypeName(e.Type.AsSetType.Arg, wrVarInit, e.tok, null, false));
     }
 
-    protected override void EmitCollectionBuilder_Add(CollectionType ct, string collName, Expression elmt, bool inLetExprBody, TargetWriter wr) {
+    protected override void EmitMapBuilder_New(TargetWriter wr, MapComprehension e, string collectionName) {
+      throw NotSupported("EmitMapBuilder_New", e.tok);
+    }
+
+    protected override void EmitSetBuilder_Add(CollectionType ct, string collName, Expression elmt, bool inLetExprBody, TargetWriter wr) {
       Contract.Assume(ct is SetType || ct is MultiSetType);  // follows from precondition
       if (ct is MultiSetType) {
         throw NotSupported("EmitCollectionBuilder_Add/MultiSetType");

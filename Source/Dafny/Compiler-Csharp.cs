@@ -1139,7 +1139,7 @@ namespace Microsoft.Dafny
       }
     }
 
-    protected override TargetWriter DeclareLocalVar(string name, Type/*?*/ type, Bpl.IToken/*?*/ tok, TargetWriter wr, bool exactTypeArguments) {
+    protected override TargetWriter DeclareLocalVar(string name, Type/*?*/ type, Bpl.IToken/*?*/ tok, TargetWriter wr, bool exactTypeArguments = false) {
       wr.Write("{0} {1} = ", type != null ? TypeName(type, wr, tok) : "var", name);
       var w = wr.Fork();
       wr.WriteLine(";");
@@ -2353,20 +2353,20 @@ namespace Microsoft.Dafny
       wr.Write(")");
     }
 
-    protected override void EmitCollectionBuilder_New(CollectionType ct, Bpl.IToken tok, TargetWriter wr) {
-      if (ct is SetType) {
-        wr.Write("new System.Collections.Generic.List<{0}>()", TypeName(ct.Arg, wr, tok));
-      } else if (ct is MapType) {
-        var mt = (MapType)ct;
-        var domtypeName = TypeName(mt.Domain, wr, tok);
-        var rantypeName = TypeName(mt.Range, wr, tok);
-        wr.Write("new System.Collections.Generic.List<Dafny.Pair<{0},{1}>>()", domtypeName, rantypeName);
-      } else {
-        Contract.Assume(false);  // unexpected collection type
-      }
+    protected override void EmitSetBuilder_New(TargetWriter wr, SetComprehension e, string collectionName) {
+      var wrVarInit = DeclareLocalVar(collectionName, null, null, wr);
+      wrVarInit.Write("new System.Collections.Generic.List<{0}>()", TypeName(e.Type.AsSetType.Arg, wrVarInit, e.tok));
     }
 
-    protected override void EmitCollectionBuilder_Add(CollectionType ct, string collName, Expression elmt, bool inLetExprBody, TargetWriter wr) {
+    protected override void EmitMapBuilder_New(TargetWriter wr, MapComprehension e, string collectionName) {
+      var wrVarInit = DeclareLocalVar5(collectionName, null, e.tok, wr, e.Type.AsMapType);
+      var mt = e.Type.AsMapType;
+      var domtypeName = TypeName(mt.Domain, wrVarInit, e.tok);
+      var rantypeName = TypeName(mt.Range, wrVarInit, e.tok);
+      wrVarInit.Write("new System.Collections.Generic.List<Dafny.Pair<{0},{1}>>()", domtypeName, rantypeName);
+    }
+
+    protected override void EmitSetBuilder_Add(CollectionType ct, string collName, Expression elmt, bool inLetExprBody, TargetWriter wr) {
       if (ct is SetType) {
         wr.Write("{0}.Add(", collName);
         TrExpr(elmt, wr, inLetExprBody);

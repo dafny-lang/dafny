@@ -2563,11 +2563,14 @@ namespace Microsoft.Dafny{
       return false;
     }
 
-    protected override void EmitSetComprehension(TargetWriter wr, Expression expr, String collection_name){
-      var e = (SetComprehension) expr;
-      wr.Write($"java.util.ArrayList<{BoxedTypeName(((SetType)expr.Type).Arg, wr, null)}> {collection_name} = ");
-      EmitCollectionBuilder_New(e.Type.AsSetType, e.tok, wr);
-      wr.WriteLine(";");
+    protected override void EmitSetBuilder_New(TargetWriter wr, SetComprehension e, string collectionName) {
+      wr.Write($"java.util.ArrayList<{BoxedTypeName(e.Type.AsSetType.Arg, wr, e.tok)}> {collectionName} = ");
+      wr.WriteLine("new java.util.ArrayList<>();");
+    }
+
+    protected override void EmitMapBuilder_New(TargetWriter wr, MapComprehension e, string collectionName) {
+      var wrVarInit = DeclareLocalVar(collectionName, e.Type.AsMapType, e.tok, wr, true);
+      wrVarInit.Write($"new {DafnyMapClass}<>()");
     }
 
     protected override void OrganizeModules(Program program, out List<ModuleDefinition> modules){
@@ -3351,16 +3354,6 @@ namespace Microsoft.Dafny{
       wr.WriteLine("continue TAIL_CALL_START;");
     }
 
-    protected override void EmitCollectionBuilder_New(CollectionType ct, Bpl.IToken tok, TargetWriter wr) {
-      if (ct is SetType) {
-        wr.Write("new java.util.ArrayList<>()");
-      } else if (ct is MapType mt) {
-        wr.Write($"new {DafnyMapClass}<>()");
-      } else {
-        Contract.Assume(false);  // unexpected collection type
-      }
-    }
-
     protected override BlockTargetWriter CreateForeachLoop(string tmpVarName, Type collectionElementType, string boundVarName, Type boundVarType, bool introduceBoundVar,
       Bpl.IToken tok, out TargetWriter collectionWriter, TargetWriter wr) {
 
@@ -3393,7 +3386,7 @@ namespace Microsoft.Dafny{
       return wr.NewBlock(")");
     }
 
-    protected override void EmitCollectionBuilder_Add(CollectionType ct, string collName, Expression elmt, bool inLetExprBody, TargetWriter wr) {
+    protected override void EmitSetBuilder_Add(CollectionType ct, string collName, Expression elmt, bool inLetExprBody, TargetWriter wr) {
       if (ct is SetType) {
         wr.Write($"{collName}.add(");
         TrExpr(elmt, wr, inLetExprBody);
