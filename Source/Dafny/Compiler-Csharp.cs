@@ -2362,7 +2362,7 @@ namespace Microsoft.Dafny
         var rantypeName = TypeName(mt.Range, wr, tok);
         wr.Write("new System.Collections.Generic.List<Dafny.Pair<{0},{1}>>()", domtypeName, rantypeName);
       } else {
-        Contract.Assume(false);  // unepxected collection type
+        Contract.Assume(false);  // unexpected collection type
       }
     }
 
@@ -2372,7 +2372,7 @@ namespace Microsoft.Dafny
         TrExpr(elmt, wr, inLetExprBody);
         wr.WriteLine(");");
       } else {
-        Contract.Assume(false);  // unepxected collection type
+        Contract.Assume(false);  // unexpected collection type
       }
     }
 
@@ -2397,7 +2397,7 @@ namespace Microsoft.Dafny
         var rantypeName = TypeName(mt.Range, wr, tok);
         return string.Format("{3}<{0},{1}>.FromCollection({2})", domtypeName, rantypeName, collName, DafnyMapClass);
       } else {
-        Contract.Assume(false);  // unepxected collection type
+        Contract.Assume(false);  // unexpected collection type
         throw new cce.UnreachableException();  // please compiler
       }
     }

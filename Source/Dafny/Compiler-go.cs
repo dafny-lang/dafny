@@ -3289,7 +3289,7 @@ namespace Microsoft.Dafny {
       } else if (ct is SetType || ct is MultiSetType) {
         wr.Write("_dafny.NewBuilder()");
       } else {
-        Contract.Assume(false);  // unepxected collection type
+        Contract.Assume(false);  // unexpected collection type
       }
     }
 

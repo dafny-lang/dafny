@@ -2191,7 +2191,7 @@ namespace Microsoft.Dafny {
       } else if (ct is MapType) {
         wr.Write("new _dafny.Map()");
       } else {
-        Contract.Assume(false);  // unepxected collection type
+        Contract.Assume(false);  // unexpected collection type
       }
     }
 

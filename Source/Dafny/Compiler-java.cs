@@ -148,7 +148,7 @@ namespace Microsoft.Dafny{
       }
       if (formalTypes.Count > 1) {
         tuples.Add(formalTypes.Count);
-        wr.Write($"{DafnyTupleClassPrefix}{formalTypes.Count}<{Util.Comma(returnedTypes)}> {collectorVarName} = ");
+        wr.Write($"{DafnyTupleClass(formalTypes.Count)}<{Util.Comma(returnedTypes)}> {collectorVarName} = ");
       } else {
         wr.Write($"{returnedTypes[0]} {collectorVarName} = ");
       }
@@ -266,7 +266,7 @@ namespace Microsoft.Dafny{
 
     protected override TargetWriter EmitIngredients(TargetWriter wr, string ingredients, int L, string tupleTypeArgs, ForallStmt s, AssignStmt s0, Expression rhs){
       using (var wrVarInit = wr){
-        wrVarInit.Write($"java.util.ArrayList<{DafnyTupleClassPrefix}{L}<{tupleTypeArgs}>> {ingredients} = ");
+        wrVarInit.Write($"java.util.ArrayList<{DafnyTupleClass(L)}<{tupleTypeArgs}>> {ingredients} = ");
         AddTupleToSet(L);
         EmitEmptyTupleList(tupleTypeArgs, wrVarInit);
       }
@@ -481,7 +481,7 @@ namespace Microsoft.Dafny{
       if (nonGhostOuts == 1) {
         targetReturnTypeReplacement = TypeName(m.Outs[nonGhostIndex].Type, wr, m.Outs[nonGhostIndex].tok);
       } else if (nonGhostOuts > 1) {
-        targetReturnTypeReplacement = DafnyTupleClassPrefix + nonGhostOuts;
+        targetReturnTypeReplacement = DafnyTupleClass(nonGhostOuts);
       }
       var customReceiver = createBody && !forBodyInheritance && NeedsCustomReceiver(m);
       var receiverType = UserDefinedType.FromTopLevelDecl(m.tok, m.EnclosingClass);
@@ -612,7 +612,7 @@ namespace Microsoft.Dafny{
       Contract.Requires(type != null);
       Contract.Requires(wr != null);
       Contract.Requires(tok != null);
-      var typeName = TypeName(type, wr, tok, boxed: true);
+      var typeName = BoxedTypeName(type, wr, tok);
       if (variance == TypeParameter.TPVariance.Co) {
         // TODO: possible change: if "type" has no subtypes in Java, then return just "typeName"
         return "? extends " + typeName;
@@ -1203,7 +1203,7 @@ namespace Microsoft.Dafny{
       string sep = "";
       foreach (ExpressionPair p in elements) {
         wr.Write(sep);
-        wr.Write("new dafny.Tuple2(");
+        wr.Write($"new {DafnyTupleClass(2)}(");
         TrExpr(p.A, wr, inLetExprBody);
         wr.Write(", ");
         TrExpr(p.B, wr, inLetExprBody);
@@ -3384,7 +3384,7 @@ namespace Microsoft.Dafny{
     }
 
     protected override BlockTargetWriter CreateForeachIngredientLoop(string boundVarName, int L, string tupleTypeArgs, out TargetWriter collectionWriter, TargetWriter wr) {
-      wr.Write($"for ({DafnyTupleClassPrefix}{L}<{tupleTypeArgs}> {boundVarName} : ");
+      wr.Write($"for ({DafnyTupleClass(L)}<{tupleTypeArgs}> {boundVarName} : ");
       collectionWriter = wr.Fork();
       return wr.NewBlock(")");
     }
@@ -3395,7 +3395,7 @@ namespace Microsoft.Dafny{
         TrExpr(elmt, wr, inLetExprBody);
         wr.WriteLine(");");
       } else {
-        Contract.Assume(false);  // unepxected collection type
+        Contract.Assume(false);  // unexpected collection type
       }
     }
 
