@@ -34,7 +34,7 @@ namespace DafnyTests {
     public static string COMP_DIR = Path.Combine(TEST_ROOT, "comp") + Path.DirectorySeparatorChar;
     private static string OUTPUT_DIR = Path.Combine(TEST_ROOT, "Output") + Path.DirectorySeparatorChar;
     
-    private static string DAFNY_EXE = Path.Combine(DAFNY_ROOT, "Binaries/Dafny.dll");
+    private static string DAFNY_EXE = Path.Combine(DAFNY_ROOT, "Binaries/dafny");
         
     public string DafnyFile;
     public string[] Arguments;
@@ -108,8 +108,8 @@ namespace DafnyTests {
       dafnyArguments.AddRange(arguments);
 
       using (Process dafnyProcess = new Process()) {
-        dafnyProcess.StartInfo.FileName = "mono";
-        dafnyProcess.StartInfo.Arguments += DAFNY_EXE;
+//        dafnyProcess.StartInfo.FileName = "mono";
+        dafnyProcess.StartInfo.FileName = DAFNY_EXE;
         foreach (var argument in dafnyArguments) {
           dafnyProcess.StartInfo.Arguments += " " + argument;
         }
