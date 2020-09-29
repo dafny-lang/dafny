@@ -1394,6 +1394,7 @@ namespace Microsoft.Dafny
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected literal
       }
     }
+
     void EmitIntegerLiteral(BigInteger i, TextWriter wr) {
       Contract.Requires(wr != null);
       if (i.IsZero) {
@@ -1401,7 +1402,7 @@ namespace Microsoft.Dafny
       } else if (i.IsOne) {
         wr.Write("BigInteger.One");
       } else if (int.MinValue <= i && i <= int.MaxValue) {
-          wr.Write("new BigInteger({0})", i);
+        wr.Write("new BigInteger({0})", i);
       } else if (long.MinValue <= i && i <= long.MaxValue) {
         wr.Write("new BigInteger({0}L)", i);
       } else if (ulong.MinValue <= i && i <= ulong.MaxValue) {
@@ -1471,7 +1472,7 @@ namespace Microsoft.Dafny
       EmitShift(e0, e1, isRotateLeft ? "<<" : ">>", isRotateLeft, nativeType, true, wr, inLetExprBody, tr);
       wr.Write(")");
 
-      wr.Write (" | ");
+      wr.Write(" | ");
 
       wr.Write("(");
       EmitShift(e0, e1, isRotateLeft ? ">>" : "<<", !isRotateLeft, nativeType, false, wr, inLetExprBody, tr);
@@ -2423,8 +2424,8 @@ namespace Microsoft.Dafny
       var compilation = CSharpCompilation.Create(Path.GetFileNameWithoutExtension(dafnyProgramName))
         .WithOptions(new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary))
         .AddReferences(
-            MetadataReference.CreateFromFile(typeof(object).GetTypeInfo().Assembly.Location),
-            MetadataReference.CreateFromFile(Assembly.Load("mscorlib").Location));
+          MetadataReference.CreateFromFile(typeof(object).GetTypeInfo().Assembly.Location),
+          MetadataReference.CreateFromFile(Assembly.Load("mscorlib").Location));
 
       var inMemory = runAfterCompile;
       var consoleApplication = hasMain || callToMain != null;
@@ -2433,7 +2434,7 @@ namespace Microsoft.Dafny
       var tempCompilationResult = new CSharpCompilationResult();
       var libPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
       if (DafnyOptions.O.UseRuntimeLib) {
-        compilation = compilation.AddReferences(MetadataReference.CreateFromFile(Path.Join(libPath,  "DafnyRuntime.dll")));
+        compilation = compilation.AddReferences(MetadataReference.CreateFromFile(Path.Join(libPath, "DafnyRuntime.dll")));
       }
 
       var standardLibraries = new List<string>() {
@@ -2451,21 +2452,21 @@ namespace Microsoft.Dafny
       }
 
       var otherSourceFiles = new List<string>();
-        foreach (var file in otherFileNames) {
-          string extension = Path.GetExtension(file);
-          if (extension != null) { extension = extension.ToLower(); }
-          if (extension == ".cs") {
-            var normalizedPath = Path.Combine(Path.GetDirectoryName(file), Path.GetFileName(file));
-            if (File.Exists(normalizedPath)) {
+      foreach (var file in otherFileNames) {
+        string extension = Path.GetExtension(file);
+        if (extension != null) { extension = extension.ToLower(); }
+        if (extension == ".cs") {
+          var normalizedPath = Path.Combine(Path.GetDirectoryName(file), Path.GetFileName(file));
+          if (File.Exists(normalizedPath)) {
             otherSourceFiles.Add(normalizedPath);
-            } else {
-              outputWriter.WriteLine("Errors compiling program: Could not find {0}", file);
-              return false;
-            }
+          } else {
+            outputWriter.WriteLine("Errors compiling program: Could not find {0}", file);
+            return false;
+          }
         } else if (extension == ".dll") {
           compilation = compilation.AddReferences(MetadataReference.CreateFromFile(Path.GetFullPath(file)));
-          }
         }
+      }
 
       var source = callToMain == null ? targetProgramText : targetProgramText + callToMain;
       compilation = compilation.AddSyntaxTrees(CSharpSyntaxTree.ParseText(source));
@@ -2483,27 +2484,26 @@ namespace Microsoft.Dafny
           outputWriter.WriteLine("Errors compiling program:");
           var errors = emitResult.Diagnostics.Where(d => d.Severity == DiagnosticSeverity.Error).ToList();
           foreach (var ce in errors) {
-          outputWriter.WriteLine(ce.ToString());
-          outputWriter.WriteLine();
+            outputWriter.WriteLine(ce.ToString());
+            outputWriter.WriteLine();
+          }
+          return false;
         }
-        return false;
-      }
-      }
-      else {
+      } else {
         var emitResult = compilation.Emit(outputPath);
 
         if (emitResult.Success) {
           tempCompilationResult.CompiledAssembly = Assembly.LoadFile(outputPath);
-        if (DafnyOptions.O.CompileVerbose) {
+          if (DafnyOptions.O.CompileVerbose) {
             outputWriter.WriteLine("Compiled assembly into {0}", compilation.AssemblyName);
-        }
+          }
         } else {
           outputWriter.WriteLine("Errors compiling program into {0}", compilation.AssemblyName);
           var errors = emitResult.Diagnostics.Where(d => d.Severity == DiagnosticSeverity.Error).ToList();
           foreach (var ce in errors) {
             outputWriter.WriteLine(ce.ToString());
             outputWriter.WriteLine();
-        }
+          }
           return false;
         }
       }
@@ -2552,7 +2552,7 @@ namespace Microsoft.Dafny
         if (decl is Function) {
           hasReturnValue = true;
         } else if (decl is Method) {
-          var method = (Method) decl;
+          var method = (Method)decl;
           hasReturnValue = method.Outs.Count > 1;
         }
 
