@@ -1139,7 +1139,7 @@ namespace Microsoft.Dafny
       }
     }
 
-    protected override TargetWriter DeclareLocalVar(string name, Type/*?*/ type, Bpl.IToken/*?*/ tok, TargetWriter wr) {
+    protected override TargetWriter DeclareLocalVar(string name, Type/*?*/ type, Bpl.IToken/*?*/ tok, TargetWriter wr, bool exactTypeArguments) {
       wr.Write("{0} {1} = ", type != null ? TypeName(type, wr, tok) : "var", name);
       var w = wr.Fork();
       wr.WriteLine(";");
@@ -2488,7 +2488,7 @@ namespace Microsoft.Dafny
         }
         return false;
       }
-      } 
+      }
       else {
         var emitResult = compilation.Emit(outputPath);
 

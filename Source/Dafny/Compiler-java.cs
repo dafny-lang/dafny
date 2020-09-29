@@ -636,7 +636,7 @@ namespace Microsoft.Dafny{
       return TypeName(type, wr, tok, boxed, false, member);
     }
 
-    private string TypeName(Type type, TextWriter wr, Bpl.IToken tok, bool boxed, bool erased, MemberDecl/*?*/ member = null) {
+    private string TypeName(Type type, TextWriter wr, Bpl.IToken tok, bool boxed, bool erased, MemberDecl/*?*/ member = null, bool exactTypeArguments = false) {
       Contract.Ensures(Contract.Result<string>() != null);
       Contract.Assume(type != null);  // precondition; this ought to be declared as a Requires in the superclass
 
@@ -695,26 +695,30 @@ namespace Microsoft.Dafny{
         if (erased) {
           return DafnySetClass;
         }
-        return $"{DafnySetClass}<{ActualTypeArgument(argType, TypeParameter.TPVariance.Co, wr, tok)}>";
+        var co = exactTypeArguments ? TypeParameter.TPVariance.Non : TypeParameter.TPVariance.Co;
+        return $"{DafnySetClass}<{ActualTypeArgument(argType, co, wr, tok)}>";
       } else if (xType is SeqType) {
         var argType = ((SeqType)xType).Arg;
         if (erased) {
           return DafnySeqClass;
         }
-        return $"{DafnySeqClass}<{ActualTypeArgument(argType, TypeParameter.TPVariance.Co, wr, tok)}>";
+        var co = exactTypeArguments ? TypeParameter.TPVariance.Non : TypeParameter.TPVariance.Co;
+        return $"{DafnySeqClass}<{ActualTypeArgument(argType, co, wr, tok)}>";
       } else if (xType is MultiSetType) {
         var argType = ((MultiSetType)xType).Arg;
         if (erased) {
           return DafnyMultiSetClass;
         }
-        return $"{DafnyMultiSetClass}<{ActualTypeArgument(argType, TypeParameter.TPVariance.Co, wr, tok)}>";
+        var co = exactTypeArguments ? TypeParameter.TPVariance.Non : TypeParameter.TPVariance.Co;
+        return $"{DafnyMultiSetClass}<{ActualTypeArgument(argType, co, wr, tok)}>";
       } else if (xType is MapType) {
         var domType = ((MapType)xType).Domain;
         var ranType = ((MapType)xType).Range;
         if (erased) {
           return DafnyMapClass;
         }
-        return $"{DafnyMapClass}<{ActualTypeArgument(domType, TypeParameter.TPVariance.Co, wr, tok)}, {ActualTypeArgument(ranType, TypeParameter.TPVariance.Co, wr, tok)}>";
+        var co = exactTypeArguments ? TypeParameter.TPVariance.Non : TypeParameter.TPVariance.Co;
+        return $"{DafnyMapClass}<{ActualTypeArgument(domType, co, wr, tok)}, {ActualTypeArgument(ranType, co, wr, tok)}>";
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected type
       }
@@ -3150,8 +3154,8 @@ namespace Microsoft.Dafny{
       }
     }
 
-    protected override TargetWriter DeclareLocalVar(string name, Type type, Bpl.IToken tok, TargetWriter wr) {
-      wr.Write("{0} {1} = ", type != null ? TypeName(type, wr, tok) : "var", name);
+    protected override TargetWriter DeclareLocalVar(string name, Type type, Bpl.IToken tok, TargetWriter wr, bool exactTypeArguments = false) {
+      wr.Write("{0} {1} = ", type != null ? TypeName(type, wr, tok, false, false, null, exactTypeArguments) : "var", name);
       var w = wr.Fork();
       wr.WriteLine(";");
       return w;

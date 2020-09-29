@@ -984,7 +984,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    protected override TargetWriter DeclareLocalVar(string name, Type/*?*/ type, Bpl.IToken/*?*/ tok, TargetWriter wr) {
+    protected override TargetWriter DeclareLocalVar(string name, Type/*?*/ type, Bpl.IToken/*?*/ tok, TargetWriter wr, bool exactTypeArguments) {
       wr.Write("let {0} = ", name);
       var w = wr.Fork();
       wr.WriteLine(";");

@@ -1679,7 +1679,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    protected override TargetWriter DeclareLocalVar(string name, Type/*?*/ type, Bpl.IToken/*?*/ tok, TargetWriter wr) {
+    protected override TargetWriter DeclareLocalVar(string name, Type/*?*/ type, Bpl.IToken/*?*/ tok, TargetWriter wr, bool exactTypeArguments) {
       return DeclareLocalVar(name, type, tok, includeRhs:true, leaveRoomForRhs:false, wr:wr);
     }
 
@@ -2169,7 +2169,7 @@ namespace Microsoft.Dafny {
         case "println":
         case "real":
         case "recover":
-          
+
         case "String":
         case "Equals":
         case "EqualsGeneric":
