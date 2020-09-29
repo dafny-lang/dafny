@@ -1679,7 +1679,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    protected override TargetWriter DeclareLocalVar(string name, Type/*?*/ type, Bpl.IToken/*?*/ tok, TargetWriter wr, bool exactTypeArguments = false) {
+    protected override TargetWriter DeclareLocalVar(string name, Type/*?*/ type, Bpl.IToken/*?*/ tok, TargetWriter wr) {
       return DeclareLocalVar(name, type, tok, includeRhs:true, leaveRoomForRhs:false, wr:wr);
     }
 
@@ -3312,8 +3312,6 @@ namespace Microsoft.Dafny {
     protected override string GetCollectionBuilder_Build(CollectionType ct, Bpl.IToken tok, string collName, TargetWriter wr) {
       if (ct is SetType) {
         return collName + ".ToSet()";
-      } else if (ct is MultiSetType) {
-        return collName + ".ToMultiSet()";
       } else {
         Contract.Assert(ct is MapType);
         return collName + ".ToMap()";

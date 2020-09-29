@@ -632,7 +632,7 @@ namespace Microsoft.Dafny{
       return TypeName(type, wr, tok, boxed, false, member);
     }
 
-    private string TypeName(Type type, TextWriter wr, Bpl.IToken tok, bool boxed, bool erased, MemberDecl/*?*/ member = null, bool exactTypeArguments = false) {
+    private string TypeName(Type type, TextWriter wr, Bpl.IToken tok, bool boxed, bool erased, MemberDecl/*?*/ member = null) {
       Contract.Ensures(Contract.Result<string>() != null);
       Contract.Assume(type != null);  // precondition; this ought to be declared as a Requires in the superclass
 
@@ -691,30 +691,26 @@ namespace Microsoft.Dafny{
         if (erased) {
           return DafnySetClass;
         }
-        var co = exactTypeArguments ? TypeParameter.TPVariance.Non : TypeParameter.TPVariance.Co;
-        return $"{DafnySetClass}<{ActualTypeArgument(argType, co, wr, tok)}>";
+        return $"{DafnySetClass}<{ActualTypeArgument(argType, TypeParameter.TPVariance.Co, wr, tok)}>";
       } else if (xType is SeqType) {
         var argType = ((SeqType)xType).Arg;
         if (erased) {
           return DafnySeqClass;
         }
-        var co = exactTypeArguments ? TypeParameter.TPVariance.Non : TypeParameter.TPVariance.Co;
-        return $"{DafnySeqClass}<{ActualTypeArgument(argType, co, wr, tok)}>";
+        return $"{DafnySeqClass}<{ActualTypeArgument(argType, TypeParameter.TPVariance.Co, wr, tok)}>";
       } else if (xType is MultiSetType) {
         var argType = ((MultiSetType)xType).Arg;
         if (erased) {
           return DafnyMultiSetClass;
         }
-        var co = exactTypeArguments ? TypeParameter.TPVariance.Non : TypeParameter.TPVariance.Co;
-        return $"{DafnyMultiSetClass}<{ActualTypeArgument(argType, co, wr, tok)}>";
+        return $"{DafnyMultiSetClass}<{ActualTypeArgument(argType, TypeParameter.TPVariance.Co, wr, tok)}>";
       } else if (xType is MapType) {
         var domType = ((MapType)xType).Domain;
         var ranType = ((MapType)xType).Range;
         if (erased) {
           return DafnyMapClass;
         }
-        var co = exactTypeArguments ? TypeParameter.TPVariance.Non : TypeParameter.TPVariance.Co;
-        return $"{DafnyMapClass}<{ActualTypeArgument(domType, co, wr, tok)}, {ActualTypeArgument(ranType, co, wr, tok)}>";
+        return $"{DafnyMapClass}<{ActualTypeArgument(domType, TypeParameter.TPVariance.Co, wr, tok)}, {ActualTypeArgument(ranType, TypeParameter.TPVariance.Co, wr, tok)}>";
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected type
       }
@@ -2560,13 +2556,14 @@ namespace Microsoft.Dafny{
     }
 
     protected override void EmitSetBuilder_New(TargetWriter wr, SetComprehension e, string collectionName) {
-      wr.Write($"java.util.ArrayList<{BoxedTypeName(e.Type.AsSetType.Arg, wr, e.tok)}> {collectionName} = ");
-      wr.WriteLine("new java.util.ArrayList<>();");
+      wr.WriteLine($"java.util.ArrayList<{BoxedTypeName(e.Type.AsSetType.Arg, wr, e.tok)}> {collectionName} = new java.util.ArrayList<>();");
     }
 
     protected override void EmitMapBuilder_New(TargetWriter wr, MapComprehension e, string collectionName) {
-      var wrVarInit = DeclareLocalVar(collectionName, e.Type.AsMapType, e.tok, wr, true);
-      wrVarInit.Write($"new {DafnyMapClass}<>()");
+      var mt = e.Type.AsMapType;
+      var domType = mt.Domain;
+      var ranType = mt.Range;
+      wr.WriteLine($"{DafnyMapClass}<{BoxedTypeName(domType, wr, e.tok)}, {BoxedTypeName(ranType, wr, e.tok)}> {collectionName} = new {DafnyMapClass}<>();");
     }
 
     protected override void OrganizeModules(Program program, out List<ModuleDefinition> modules){
@@ -3153,8 +3150,8 @@ namespace Microsoft.Dafny{
       }
     }
 
-    protected override TargetWriter DeclareLocalVar(string name, Type type, Bpl.IToken tok, TargetWriter wr, bool exactTypeArguments = false) {
-      wr.Write("{0} {1} = ", type != null ? TypeName(type, wr, tok, false, false, null, exactTypeArguments) : "var", name);
+    protected override TargetWriter DeclareLocalVar(string name, Type type, Bpl.IToken tok, TargetWriter wr) {
+      wr.Write("{0} {1} = ", type != null ? TypeName(type, wr, tok, false, false, null) : "var", name);
       var w = wr.Fork();
       wr.WriteLine(";");
       return w;
@@ -3396,9 +3393,6 @@ namespace Microsoft.Dafny{
       if (ct is SetType) {
         var typeName = BoxedTypeName(ct.Arg, wr, tok);
         return $"new {DafnySetClass}<{typeName}>({collName})";
-      } else if (ct is MultiSetType) {
-        var typeName = BoxedTypeName(ct.Arg, wr, tok);
-        return $"new {DafnyMultiSetClass}<{typeName}>({collName})";
       } else if (ct is MapType) {
         var mt = (MapType)ct;
         var domtypeName = BoxedTypeName(mt.Domain, wr, tok);
