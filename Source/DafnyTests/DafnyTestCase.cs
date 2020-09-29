@@ -18,17 +18,16 @@ using YamlDotNet.Serialization;
 
 namespace DafnyTests {
 
-  public class DafnyTestCase : IXunitSerializable {
+  public class DafnyTestCase {
 
     private static DirectoryInfo OUTPUT_ROOT = new DirectoryInfo(Directory.GetCurrentDirectory());
-    private static bool IS_NET_CORE => RuntimeInformation.FrameworkDescription.StartsWith(".NET Core", StringComparison.OrdinalIgnoreCase);
-    // TODO-RS: This is an ugly method of locating the project root - .NET Core happens to
-    // have the current directly one level deeper. The proper fix is to run entirely out of
-    // the output directory, and the projects are at least partially configured to make that possible,
+    
+    // TODO-RS: This is an ugly method of locating the project root.
+    // The proper fix is to run entirely out of the output directory,
+    // and the projects are at least partially configured to make that possible,
     // but it's not quite working yet.
-    private static string DAFNY_ROOT = IS_NET_CORE ? 
-      OUTPUT_ROOT.Parent.Parent.Parent.Parent.Parent.FullName :
-      OUTPUT_ROOT.Parent.Parent.Parent.Parent.FullName;
+    private static string DAFNY_ROOT =
+      OUTPUT_ROOT.Parent.Parent.Parent.Parent.Parent.FullName;
 
     public static readonly string TEST_ROOT = Path.Combine(DAFNY_ROOT, "Test") + Path.DirectorySeparatorChar;
     public static string COMP_DIR = Path.Combine(TEST_ROOT, "comp") + Path.DirectorySeparatorChar;
@@ -38,41 +37,70 @@ namespace DafnyTests {
         
     public string DafnyFile;
     public string[] Arguments;
-    
-    // May be null if the test doesn't need to check the output
-    public string ExpectedOutputFile;
-    private readonly string ExpectedExitCode;
 
-    private readonly bool SpecialCase = false;
+    public class Expectation : IXunitSerializable {
+      // May be null if the test doesn't need to check the output
+      public string OutputFile;
+      public int ExitCode = 0;
 
-    public DafnyTestCase(string dafnyFile, Dictionary<string, string> config, string compileTarget) {
-      DafnyFile = dafnyFile;
-      var fullDafnyFilePath = Path.Combine(TEST_ROOT, DafnyFile);
+      public bool SpecialCase = false;
 
-      config.TryGetValue("expect", out ExpectedOutputFile);
-      config.Remove("expect");
-      if (ExpectedOutputFile == null) {
-        ExpectedOutputFile = dafnyFile + ".expect";
-        if (compileTarget != null) {
-          var specialCasePath = dafnyFile + "." + compileTarget + ".expect";
-          if (File.Exists(Path.Combine(TEST_ROOT, specialCasePath))) {
-            SpecialCase = true;
-            ExpectedOutputFile = specialCasePath;
+      public Expectation(string dafnyFile, Dictionary<string, string> config, string compileTarget) {
+        config.TryGetValue("expect", out OutputFile);
+        config.Remove("expect");
+        if (OutputFile == null) {
+          OutputFile = dafnyFile + ".expect";
+          if (compileTarget != null) {
+            var specialCasePath = dafnyFile + "." + compileTarget + ".expect";
+            if (File.Exists(Path.Combine(TEST_ROOT, specialCasePath))) {
+              SpecialCase = true;
+              OutputFile = specialCasePath;
+            }
           }
+        } else if (OutputFile.Equals("no")) {
+          OutputFile = null;
         }
-      } else if (ExpectedOutputFile.Equals("no")) {
-        ExpectedOutputFile = null;
       }
 
+      public Expectation() {
+        
+      }
+      
+      public void Deserialize(IXunitSerializationInfo info) {
+        OutputFile = info.GetValue<string>(nameof(OutputFile));
+        ExitCode = info.GetValue<int>(nameof(ExitCode));
+        SpecialCase = info.GetValue<bool>(nameof(SpecialCase));
+      }
+
+      public void Serialize(IXunitSerializationInfo info) {
+        if (OutputFile != null) {
+          info.AddValue(nameof(OutputFile), OutputFile);
+        }
+        if (ExitCode != 0) {
+          info.AddValue(nameof(ExitCode), ExitCode);
+        }
+        if (SpecialCase) {
+          info.AddValue(nameof(SpecialCase), true);
+        }
+      }
+    }
+
+    public Expectation Expected;
+
+    public DafnyTestCase(string dafnyFile, Dictionary<string, string> config, string compileTarget) {
+      Expected = new Expectation(dafnyFile, config, compileTarget);
+      
+      DafnyFile = dafnyFile;
       Arguments = config.Select(ConfigPairToArgument).ToArray();
       
+      var fullDafnyFilePath = Path.Combine(TEST_ROOT, DafnyFile);
       if (compileTarget != null) {
         Arguments = Arguments.Concat(new[] {"/compileTarget:" + compileTarget}).ToArray();
         // Include any additional files
         var additionalFilesPath = fullDafnyFilePath + "." + compileTarget + ".files";
         if (Directory.Exists(additionalFilesPath)) {
           var relativePaths = Directory.GetFiles(additionalFilesPath)
-            .Select(path => DafnyTests.GetRelativePath(TEST_ROOT, path));
+            .Select(path => Path.GetRelativePath(TEST_ROOT, path));
           Arguments = Arguments.Concat(relativePaths).ToArray();
         }
       }
@@ -81,15 +109,10 @@ namespace DafnyTests {
     public DafnyTestCase() {
       
     }
-    
-    public void Serialize(IXunitSerializationInfo info) {
-      info.AddValue(nameof(DafnyFile), DafnyFile);
-      info.AddValue(nameof(Arguments), Arguments);
-    }
-    
-    public void Deserialize(IXunitSerializationInfo info) {
-      DafnyFile = info.GetValue<string>(nameof(DafnyFile));
-      Arguments = info.GetValue<string[]>(nameof(Arguments));
+
+    public object[] ToMemberData() {
+      string[] args = new[] {DafnyFile}.Concat(Arguments).ToArray();
+      return new object[] {args, Expected};
     }
     
     public static string RunDafny(IEnumerable<string> arguments) {
@@ -172,8 +195,7 @@ namespace DafnyTests {
       }
 
       return configs.SelectMany(config => ResolveCompile(filePath, config))
-//                    .Select(t => new object[] {t.DafnyFile, t.Arguments, t.ExpectedOutputFile});
-                    .Select(t => new object[] {t});
+                    .Select(t => t.ToMemberData());
     }
 
     private static Dictionary<string, string> ToDictionary(YamlNode node) {
@@ -223,9 +245,7 @@ namespace DafnyTests {
     }
 
     public void Run() {
-      string fullInputPath = Path.Combine(TEST_ROOT, DafnyFile);
-
-      var arguments = new []{ fullInputPath }.Concat(Arguments);
+      var arguments = new []{ DafnyFile }.Concat(Arguments);
       
       string output;
       if (arguments.Any(arg => arg.StartsWith("/out"))) {
@@ -243,12 +263,12 @@ namespace DafnyTests {
         }
       }
 
-      if (ExpectedOutputFile != null) {
-        var expectedOutput = File.ReadAllText(Path.Combine(TEST_ROOT, ExpectedOutputFile));
+      if (Expected.OutputFile != null) {
+        var expectedOutput = File.ReadAllText(Path.Combine(TEST_ROOT, Expected.OutputFile));
         AssertWithDiff.Equal(expectedOutput, output);
       }
 
-      Skip.If(SpecialCase, "Confirmed known exception for arguments: " + arguments);
+      Skip.If(Expected.SpecialCase, "Confirmed known exception for arguments: " + arguments);
     }
   }
 
@@ -256,26 +276,17 @@ namespace DafnyTests {
     
     public static IEnumerable<object[]> AllTestFiles() {
       var filePaths = Directory.GetFiles(DafnyTestCase.COMP_DIR, "*.dfy", SearchOption.AllDirectories)
-        .Select(path => GetRelativePath(DafnyTestCase.TEST_ROOT, path));
+                               .Select(path => Path.GetRelativePath(DafnyTestCase.TEST_ROOT, path));
       return filePaths.SelectMany(DafnyTestCase.TestCasesForDafnyFile);
-    }
-
-    // TODO-RS: Replace with Path.GetRelativePath() if we move to .NET Core 3.1
-    public static string GetRelativePath(string relativeTo, string path) {
-      var fullRelativeTo = Path.GetFullPath(relativeTo);
-      var fullPath = Path.GetFullPath(path);
-      Assert.StartsWith(fullRelativeTo, fullPath);
-      return fullPath.Substring(fullRelativeTo.Length);
     }
 
     [ParallelTheory]
     [MemberData(nameof(AllTestFiles))]
-    public static void Test(DafnyTestCase testCase) {
-//    public static void Test(string dafnyFile, string[] arguments, string expectedOutputFile) {
-//      var testCase = new DafnyTestCase();
-//      testCase.DafnyFile = dafnyFile;
-//      testCase.Arguments = arguments;
-//      testCase.ExpectedOutputFile = expectedOutputFile;
+    public static void Test(string[] args, DafnyTestCase.Expectation expected) {
+      var testCase = new DafnyTestCase();
+      testCase.DafnyFile = args[0];
+      testCase.Arguments = args.Skip(1).ToArray();
+      testCase.Expected = expected;
       testCase.Run();
     }
   }

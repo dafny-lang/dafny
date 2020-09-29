@@ -17,5 +17,5 @@ Color.Pink 19 -3
 null null null null
 System.Func`2[Dafny.BigRational,System.Boolean]
 System.Func`1[System.Numerics.BigInteger]
-System.Func`3[_module.Color,Dafny.Set`1[System.UInt16],System.UInt32]
+System.Func`3[_module.Color,Dafny.ISet`1[System.UInt16],System.UInt32]
 0 0
