@@ -11402,12 +11402,12 @@ namespace Microsoft.Dafny
     /// var temp;
     /// temp, y, ... := Expression, ...;
     /// if temp.IsFailure() { return temp.PropagateFailure(); }
-    /// 
+    ///
     /// and "y, ... :- expect MethodOrExpression, ..." into
     /// var temp, [y, ] ... := MethodOrExpression, ...;
     /// expect !temp.IsFailure(), temp.PropagateFailure();
     /// [y := temp.Extract();]
-    /// 
+    ///
     /// and saves the result into s.ResolvedStatements.
     /// </summary>
     private void ResolveAssignOrReturnStmt(AssignOrReturnStmt s, ICodeContext codeContext) {
@@ -11415,12 +11415,13 @@ namespace Microsoft.Dafny
 
       // We need to figure out whether we are using a status type that has Extract or not,
       // as that determines how the AssignOrReturnStmt is desugared. Thus if the Rhs is a
-      // method call we need to know which one (to inpsectx its first output); if RHs is a 
+      // method call we need to know which one (to inpsectx its first output); if RHs is a
       // list of expressions, we need to know the type of the first one. FOr all of this we have
       // to do some partial type resolution.
 
-      bool expectExtract = s.Lhss.Count != 0; // default value if we cannot determine and inspect the type 
+      bool expectExtract = s.Lhss.Count != 0; // default value if we cannot determine and inspect the type
       Type firstType = null;
+      Method call = null;
       if (s.Rhss != null && s.Rhss.Count != 0) {
         ResolveExpression(s.Rhs, new ResolveOpts(codeContext, true));
         firstType = s.Rhs.Type;
@@ -11430,7 +11431,8 @@ namespace Microsoft.Dafny
           if (codeContext is Method meth) {
             String nm = lhname.Name;
             MemberDecl mem = ((TopLevelDeclWithMembers) meth.EnclosingClass).Members.Find(x => x.Name == nm);
-            if (mem is Method call) {
+            if (mem is Method) {
+              call = (Method)mem;
               if (call.Outs.Count != 0) {
                 firstType = call.Outs[0].Type;
               } else {
@@ -11446,7 +11448,8 @@ namespace Microsoft.Dafny
           Type ty = PartiallyResolveTypeForMemberSelection(dotname.tok, dotname.Lhs.Type);
           String nm = dotname.SuffixName;
           MemberDecl mem = ty.AsTopLevelTypeWithMembers.Members.Find(x => x.Name == nm);
-          if (mem is Method call) {
+          if (mem is Method) {
+            call = (Method) mem;
             if (call.Outs.Count != 0) {
               firstType = call.Outs[0].Type;
             } else {
@@ -11463,7 +11466,33 @@ namespace Microsoft.Dafny
       if (firstType != null) {
         firstType = PartiallyResolveTypeForMemberSelection(s.Rhs.tok, firstType);
         if (firstType.AsTopLevelTypeWithMembers != null) {
+          if (firstType.AsTopLevelTypeWithMembers.Members.Find(x => x.Name == "IsFailure") == null) {
+            reporter.Error(MessageSource.Resolver, s.Tok,
+              "member IsFailure does not exist in {0}, in :- statement", firstType);
+            return;
+          }
           expectExtract = firstType.AsTopLevelTypeWithMembers.Members.Find(x => x.Name == "Extract") != null;
+          if (expectExtract && call == null && s.Lhss.Count != 1 + s.Rhss.Count) {
+            reporter.Error(MessageSource.Resolver, s.Tok,
+              "number of lhs ({0}) must match number of rhs ({1}) for a rhs type ({2}) with member Extract",
+              s.Lhss.Count, 1 + s.Rhss.Count, firstType);
+            return;
+          } else if (expectExtract && call != null && s.Lhss.Count != call.Outs.Count) {
+            reporter.Error(MessageSource.Resolver, s.Tok,
+              "wrong number of method result arguments (got {0}, expected {1}) for a rhs type ({2}) with member Extract",
+              s.Lhss.Count, call.Outs.Count, firstType);
+            return;
+
+          } else if (!expectExtract && call == null && s.Lhss.Count != s.Rhss.Count){
+            reporter.Error(MessageSource.Resolver, s.Tok,
+              "number of lhs ({0}) must be one less than number of rhs ({1}) for a rhs type ({2}) without member Extract", s.Lhss.Count, 1+s.Rhss.Count, firstType);
+            return;
+
+          } else if (!expectExtract && call != null && s.Lhss.Count != call.Outs.Count - 1){
+            reporter.Error(MessageSource.Resolver, s.Tok,
+              "wrong number of method result arguments (got {0}, expected {1}) for a rhs type ({2}) without member Extract", s.Lhss.Count, call.Outs.Count-1, firstType);
+            return;
+          }
         } else {
           reporter.Error(MessageSource.Resolver, s.Tok,
             "The type of the first expression is not a failure type in :- statement");
@@ -11512,7 +11541,7 @@ namespace Microsoft.Dafny
           new IfStmt(s.Tok, s.Tok, false, VarDotMethod(s.Tok, temp, "IsFailure"),
             // THEN: { out := temp.PropagateFailure(); return; }
             new BlockStmt(s.Tok, s.Tok, new List<Statement>() {
-              new UpdateStmt(s.Tok, s.Tok, 
+              new UpdateStmt(s.Tok, s.Tok,
                 new List<Expression>() {new IdentifierExpr(s.Tok, (codeContext as Method).Outs[0].CompileName)},
                 new List<AssignmentRhs>() {new ExprRhs(VarDotMethod(s.Tok, temp, "PropagateFailure"))}
                 ),
@@ -11526,8 +11555,8 @@ namespace Microsoft.Dafny
       if (expectExtract) {
         // "y := temp.Extract();"
         s.ResolvedStatements.Add(
-          new UpdateStmt(s.Tok, s.Tok, 
-            new List<Expression>() { s.Lhss[0] }, 
+          new UpdateStmt(s.Tok, s.Tok,
+            new List<Expression>() { s.Lhss[0] },
             new List<AssignmentRhs>() { new ExprRhs(VarDotMethod(s.Tok, temp, "Extract")) }
             ));
       }
