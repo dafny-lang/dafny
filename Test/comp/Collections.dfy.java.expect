@@ -9,6 +9,7 @@ Sets: {} {17, 82} {17, 12}
   subset: true false true
   proper subset: true false false
   membership: false true true
+  eq covariance: 1 true true
 false true
 |s|=4 |S|=16
 {{}, {a}, {b}, {a, b}, {c}, {a, c}, {d}, {b, c}, {a, d}, {a, b, c}, {b, d}, {a, b, d}, {c, d}, {a, c, d}, {b, c, d}, {a, b, c, d}}
@@ -42,6 +43,10 @@ hello
 hEllo
 [2, 4, 6, 8, 10]
 [2, 0, 6, 8, 10]
+true false false
+true true false true
+false false false true
+  eq covariance: true true
 Strings:  uRuR gu
   cardinality: 0 4 2
   concatenation: uRuR uRuRgu

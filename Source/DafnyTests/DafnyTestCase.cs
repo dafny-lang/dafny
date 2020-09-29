@@ -73,15 +73,13 @@ namespace DafnyTests {
       }
 
       public void Serialize(IXunitSerializationInfo info) {
-        if (OutputFile != null) {
-          info.AddValue(nameof(OutputFile), OutputFile);
-        }
-        if (ExitCode != 0) {
-          info.AddValue(nameof(ExitCode), ExitCode);
-        }
-        if (SpecialCase) {
-          info.AddValue(nameof(SpecialCase), true);
-        }
+        info.AddValue(nameof(OutputFile), OutputFile);
+        info.AddValue(nameof(ExitCode), ExitCode);
+        info.AddValue(nameof(SpecialCase), SpecialCase);
+      }
+
+      public override string ToString() {
+        return OutputFile ?? "-";
       }
     }
 
@@ -258,8 +256,8 @@ namespace DafnyTests {
           // temporary directory, since some compilers will
           // interpret the path as a single file basename rather than a directory.
           var outArgument = "/out:" + tempDir.DirInfo.FullName + "/Program";
-          arguments = new []{ outArgument }.Concat(arguments);
-          output = RunDafny(arguments);
+          var dafnyArguments = new []{ outArgument }.Concat(arguments);
+          output = RunDafny(dafnyArguments);
         }
       }
 
@@ -268,7 +266,7 @@ namespace DafnyTests {
         AssertWithDiff.Equal(expectedOutput, output);
       }
 
-      Skip.If(Expected.SpecialCase, "Confirmed known exception for arguments: " + arguments);
+      Skip.If(Expected.SpecialCase, "Confirmed known exception for arguments: " + String.Join(" ", arguments));
     }
   }
 
