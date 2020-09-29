@@ -326,10 +326,6 @@ namespace Microsoft.Dafny {
     }
     protected abstract string GenerateLhsDecl(string target, Type/*?*/ type, TextWriter wr, Bpl.IToken tok);
 
-    protected virtual TargetWriter DeclareLocalVar(string name, Type /*?*/ type, Bpl.IToken /*?*/ tok, TargetWriter wr, Type t){
-      return DeclareLocalVar(name, type, tok, wr);
-    }
-
     protected virtual TargetWriter EmitAssignment(ILvalue wLhs, Type/*?*/ lhsType, Type/*?*/ rhsType, TargetWriter wr) {
       var w = wLhs.EmitWrite(wr);
       w = EmitCoercionIfNecessary(from:rhsType, to:lhsType, tok: Bpl.Token.NoToken, wr: w);
@@ -3631,7 +3627,7 @@ namespace Microsoft.Dafny {
         TrExpr(eRhs.Expr, wr, false);
       } else {
         var nw = idGenerator.FreshId("_nw");
-        var wRhs = DeclareLocalVar(nw, null, null, wStmts, tRhs.Type);
+        var wRhs = DeclareLocalVar(nw, null, null, wStmts);
         TrTypeRhs(tRhs, wRhs);
 
         // Proceed with initialization

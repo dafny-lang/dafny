@@ -2359,7 +2359,7 @@ namespace Microsoft.Dafny
     }
 
     protected override void EmitMapBuilder_New(TargetWriter wr, MapComprehension e, string collectionName) {
-      var wrVarInit = DeclareLocalVar5(collectionName, null, e.tok, wr, e.Type.AsMapType);
+      var wrVarInit = DeclareLocalVar(collectionName, null, null, wr);
       var mt = e.Type.AsMapType;
       var domtypeName = TypeName(mt.Domain, wrVarInit, e.tok);
       var rantypeName = TypeName(mt.Range, wrVarInit, e.tok);

@@ -254,10 +254,6 @@ namespace Microsoft.Dafny{
       wr.Write($"({s})");
     }
 
-    protected override TargetWriter DeclareLocalVar(string name, Type /*?*/ type, Bpl.IToken /*?*/ tok, TargetWriter wr, Type t){
-      return DeclareLocalVar(name, t, tok, wr);
-    }
-
     protected override void DeclareLocalVar(string name, Type /*?*/ type, Bpl.IToken /*?*/ tok, Expression rhs,
       bool inLetExprBody, TargetWriter wr, Type t){
       var w = DeclareLocalVar(name, t, tok, wr);
