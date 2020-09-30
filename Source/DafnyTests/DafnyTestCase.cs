@@ -98,7 +98,7 @@ namespace DafnyTests {
         var additionalFilesPath = fullDafnyFilePath + "." + compileTarget + ".files";
         if (Directory.Exists(additionalFilesPath)) {
           var relativePaths = Directory.GetFiles(additionalFilesPath)
-            .Select(path => Path.GetRelativePath(TEST_ROOT, path));
+                                       .Select(path => Path.GetRelativePath(TEST_ROOT, path));
           Arguments = Arguments.Concat(relativePaths).ToArray();
         }
       }
