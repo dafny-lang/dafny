@@ -3629,7 +3629,7 @@ namespace Microsoft.Dafny {
         TrExpr(eRhs.Expr, wr, false);
       } else {
         var nw = idGenerator.FreshId("_nw");
-        var wRhs = DeclareLocalVar(nw, null, null, wStmts);
+        var wRhs = DeclareLocalVar(nw, tRhs.Type, rhs.Tok, wStmts);
         TrTypeRhs(tRhs, wRhs);
 
         // Proceed with initialization
