@@ -50,6 +50,8 @@ set: {20, 30}
 multiset: {20, 30}
 seq: [20, 30]
 map: {20 := 30, 30 := 20}
+true
+true
 
 Dafny program verifier finished with 0 verified, 0 errors
 Sequences: [] [17, 82, 17, 82] [12, 17]
@@ -100,6 +102,8 @@ set: {20, 30}
 multiset: {20, 30}
 seq: [20, 30]
 map: {20 := 30, 30 := 20}
+true
+true
 
 Dafny program verifier finished with 0 verified, 0 errors
 Sequences: [] [17, 82, 17, 82] [12, 17]
@@ -150,6 +154,8 @@ set: {20, 30}
 multiset: {20, 30}
 seq: [20, 30]
 map: {20 := 30, 30 := 20}
+true
+true
 
 Dafny program verifier finished with 0 verified, 0 errors
 Sequences: [] [17, 82, 17, 82] [12, 17]
@@ -200,3 +206,5 @@ set: {20, 30}
 multiset: {20, 30}
 seq: [20, 30]
 map: {20 := 30, 30 := 20}
+true
+true

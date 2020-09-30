@@ -11,6 +11,7 @@ method Main() {
   Multisets();
   Maps();
   Downcasts();
+  CovarianceRegressions.Test();
 }
 
 trait Number {
@@ -393,3 +394,43 @@ method MId2<T>(s: set<T>) returns (r0: set<T>, r1: set<T>)
 // TODO: should also test tail-recursive calls (functions and methods)
 // TODO: maybe also try constructor call
 // TODO: assignments to fields, array elements, multi-dimensional array elements
+
+// -------------------- some regression tets --------------------
+
+module CovarianceRegressions {
+  trait Trait { }
+
+  method Test() {
+    var a: set<Trait>;
+    var b: seq<Trait>;
+    var c: multiset<Trait>;
+    var d: map<Trait, Trait>;
+    Ins(a, b, c, d);
+    a, b, c, d := Outs();
+
+    Anything(a);
+    Anything(b);
+    Anything(c);
+    Anything(d);
+  }
+
+  method Anything<X>(x: X) { }
+
+  method Ins(a: set<Trait>, b: seq<Trait>, c: multiset<Trait>, d: map<Trait, Trait>) {
+  }
+
+  method Outs() returns (a: set<Trait>, b: seq<Trait>, c: multiset<Trait>, d: map<Trait, Trait>) {
+  }
+
+  class Class extends Trait { }
+
+  method TestDisjointTypeArgument_Set(a: set<Trait>, b: set<Class>) {
+    var x := a !! b;
+    var y := b !! a;
+  }
+
+  method TestDisjointTypeArgument_MultiSet(a: multiset<Trait>, b: multiset<Class>) {
+    var x := a !! b;
+    var y := b !! a;
+  }
+}
