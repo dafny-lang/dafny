@@ -3606,6 +3606,13 @@ namespace Microsoft.Dafny{
       TrExprList(arguments, wr, inLetExprBody);
     }
 
+    protected override TargetWriter EmitDowncast(Type from, Type to, Bpl.IToken tok, TargetWriter wr) {
+      wr.Write($"(({TypeName(to, wr, tok)})(");
+      var w = wr.Fork();
+      wr.Write("))");
+      return w;
+    }
+
     protected override TargetWriter EmitCoercionToNativeInt(TargetWriter wr) {
       wr.Write("((java.math.BigInteger)");
       var w = wr.Fork();

@@ -326,6 +326,9 @@ namespace Microsoft.Dafny {
     protected virtual TargetWriter EmitAssignment(ILvalue wLhs, Type/*?*/ lhsType, Type/*?*/ rhsType, TargetWriter wr) {
       var w = wLhs.EmitWrite(wr);
       w = EmitCoercionIfNecessary(from:rhsType, to:lhsType, tok: Bpl.Token.NoToken, wr: w);
+      if (lhsType != null && rhsType != null && !Type.IsSupertype(lhsType, rhsType)) {
+        w = EmitDowncast(rhsType, lhsType, Bpl.Token.NoToken, w);
+      }
       return w;
     }
 
@@ -375,12 +378,13 @@ namespace Microsoft.Dafny {
       List<Type> rhsTypes, TargetWriter wr) {
       Contract.Assert(lhss.Count == lhsTypes.Count);
       Contract.Assert(lhsTypes.Count == rhsTypes.Count);
+
       wRhss = new List<TargetWriter>();
       var rhsVars = new List<string>();
-      foreach (var lhsType in lhsTypes) {
+      foreach (var rhsType in rhsTypes) {
         string target = idGenerator.FreshId("_rhs");
         rhsVars.Add(target);
-        wr.Write(GenerateLhsDecl(target, lhsType, wr, Bpl.Token.NoToken));
+        wr.Write(GenerateLhsDecl(target, rhsType, wr, Bpl.Token.NoToken));
         wRhss.Add(EmitAssignmentRhs(wr));
       }
 
@@ -574,6 +578,17 @@ namespace Microsoft.Dafny {
     protected virtual TargetWriter EmitCoercionIfNecessary(Type/*?*/ from, Type/*?*/ to, Bpl.IToken tok, TargetWriter wr) {
       return wr;
     }
+
+    protected virtual TargetWriter EmitDowncast(Type from, Type to, Bpl.IToken tok, TargetWriter wr) {
+      Contract.Requires(from != null);
+      Contract.Requires(to != null);
+      Contract.Requires(tok != null);
+      Contract.Requires(wr != null);
+      Contract.Requires(Type.IsSupertype(from, to));
+      Contract.Requires(!Type.IsSupertype(to, from));
+      return wr;
+    }
+
     protected virtual TargetWriter EmitCoercionToNativeForm(Type/*?*/ from, Bpl.IToken tok, TargetWriter wr) {
       return wr;
     }
@@ -3825,6 +3840,14 @@ namespace Microsoft.Dafny {
         } else if (outTmps.Count > 0 && returnStyleOuts) {
           wr.Write("{0} = ", Util.Comma(outTmps));
         }
+        var wrOrig = wr;
+        if (returnStyleOutCollector == null && outTmps.Count == 1 && returnStyleOuts) {
+          var instantiatedFromType = Resolver.SubstType(outFormalTypes[0], s.MethodSelect.TypeArgumentSubstitutionsWithParents());
+          var toType = outTypes[0];
+          if (!Type.IsSupertype(toType, instantiatedFromType)) {
+            wr = EmitDowncast(instantiatedFromType, toType, s.Tok, wr);
+          }
+        }
         var protectedName = IdName(s.Method);
         if (receiverReplacement != null) {
           wr.Write(IdProtect(receiverReplacement));
@@ -3860,10 +3883,16 @@ namespace Microsoft.Dafny {
           Formal p = s.Method.Ins[i];
           if (!p.IsGhost) {
             wr.Write(sep);
-            // Order of coercions is important here: EmitCoercionToNativeForm may coerce into a type we're unaware of, so it *has* to be second
-            var w = EmitCoercionIfNecessary(s.Args[i].Type, s.Method.Ins[i].Type, s.Tok, wr);
+            var fromType = s.Args[i].Type;
+            var toType = s.Method.Ins[i].Type;
+            var instantiatedToType = Resolver.SubstType(toType, s.MethodSelect.TypeArgumentSubstitutionsWithParents());
+            // Order of coercions is important here: EmitCoercionToNativeForm may coerce into a type we're unaware of, so it *has* to be last
+            var w = EmitCoercionIfNecessary(fromType, toType, s.Tok, wr);
+            if (!Type.IsSupertype(instantiatedToType, fromType)) {
+              w = EmitDowncast(fromType, instantiatedToType, s.Tok, w);
+            }
             if (s.Method.IsExtern(out _, out _)) {
-              w = EmitCoercionToNativeForm(s.Method.Ins[i].Type, s.Tok, w);
+              w = EmitCoercionToNativeForm(toType, s.Tok, w);
             }
             TrExpr(s.Args[i], w, false);
             sep = ", ";
@@ -3878,6 +3907,7 @@ namespace Microsoft.Dafny {
           }
         }
         wr.Write(')');
+        wr = wrOrig;
         EndStmt(wr);
         if (returnStyleOutCollector != null) {
           EmitCastOutParameterSplits(returnStyleOutCollector, outTmps, wr, outFormalTypes, outLhsTypes, s.Tok);
@@ -4717,7 +4747,12 @@ namespace Microsoft.Dafny {
       for (int i = 0; i < e.Args.Count; i++) {
         if (!e.Function.Formals[i].IsGhost) {
           wr.Write(sep);
-          var w = EmitCoercionIfNecessary(from: e.Args[i].Type, to: e.Function.Formals[i].Type, tok: e.tok, wr: wr);
+          var fromType = e.Args[i].Type;
+          var w = EmitCoercionIfNecessary(fromType, e.Function.Formals[i].Type, tok: e.tok, wr: wr);
+          var instantiatedToType = Resolver.SubstType(e.Function.Formals[i].Type, e.TypeArgumentSubstitutionsWithParents());
+          if (!Type.IsSupertype(instantiatedToType, fromType)) {
+            w = EmitDowncast(fromType, instantiatedToType, e.tok, w);
+          }
           tr(e.Args[i], w, inLetExprBody);
           sep = ", ";
         }
