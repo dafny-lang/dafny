@@ -5,14 +5,14 @@ default: parser runtime boogie exe
 all: parser runtime boogie exe refman
 
 exe: parser
-	(cd ${DIR} ; msbuild Source/Dafny.sln )
+	(cd ${DIR} ; dotnet build Source/Dafny.sln )
 
 boogie: ${DIR}/../boogie/Binaries/Boogie.exe
 
 ${DIR}/../boogie/Binaries/Boogie.exe:
 	(cd ${DIR}/../boogie ; msbuild Source/Boogie.sln )
 
-parser: 
+parser:
 	make -C ${DIR}/Source/Dafny -f Makefile.linux all
 
 runtime: ${DIR}/Binaries/DafnyRuntime.jar
