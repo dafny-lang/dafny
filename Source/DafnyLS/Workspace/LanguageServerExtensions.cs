@@ -12,7 +12,13 @@ namespace DafnyLS.Workspace {
     /// <param name="options">The language server where the workspace services should be registered to.</param>
     /// <returns>The language server enriched with the dafny workspace services.</returns>
     public static LanguageServerOptions WithDafnyWorkspace(this LanguageServerOptions options) {
-      return options.WithServices(services => services.AddSingleton<IDocumentDatabase, DocumentDatabase>());
+      return options.WithServices(services => services.WithDafnyWorkspace());
+    }
+
+    private static IServiceCollection WithDafnyWorkspace(this IServiceCollection services) {
+      return services
+        .AddSingleton<IDocumentDatabase, DocumentDatabase>()
+        .AddSingleton<ISymbolResolver, SymbolResolver>();
     }
   }
 }
