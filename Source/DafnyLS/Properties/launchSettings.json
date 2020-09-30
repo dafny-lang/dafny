@@ -1,0 +1,7 @@
+{
+  "profiles": {
+    "DafnyLS": {
+      "commandName": "Project"
+    }
+  }
+}

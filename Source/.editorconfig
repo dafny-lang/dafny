@@ -1,0 +1,22 @@
+
+root=true
+
+[*]
+end_of_line = crlf
+indent_size = 2
+indent_style = space
+max_line_length = 150
+
+[*.cs]
+csharp_new_line_before_open_brace = none
+csharp_new_line_before_catch = false
+csharp_new_line_before_else = false
+csharp_new_line_before_finally = false
+csharp_prefer_braces = true:warning
+csharp_indent_switch_labels = false
+
+# IDE0018: Inline variable declaration
+csharp_style_inlined_variable_declaration = true:none
+
+# IDE0019: Use pattern matching
+csharp_style_pattern_matching_over_as_with_null_check = true:none
