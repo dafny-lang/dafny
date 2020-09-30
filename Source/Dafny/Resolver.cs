@@ -11581,6 +11581,25 @@ namespace Microsoft.Dafny
           tp, expectExtract ? "and" : "but not");
       }
 
+      var m = ResolveMember(tok, tp, "IsFailure", out _);
+      if (m.IsGhost) {
+        origReporter.Error(MessageSource.Resolver, m.tok,
+          "The IsFailure member may not be ghost");
+      }
+      m = ResolveMember(tok, tp, "PropagateFailure", out _);
+      if (m.IsGhost) {
+        origReporter.Error(MessageSource.Resolver, m.tok,
+          "The PropagateFailure member may not be ghost");
+      }
+
+      if (expectExtract) {
+        m = ResolveMember(tok, tp, "Extract", out _);
+        if (m.IsGhost) {
+          origReporter.Error(MessageSource.Resolver, m.tok,
+            "The Extract member may not be ghost");
+        }
+      }
+
       this.reporter = origReporter;
     }
 
