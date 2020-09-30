@@ -2022,22 +2022,12 @@ namespace Microsoft.Dafny
       return w;
     }
 
-    protected override TargetWriter CreateIIFE_ExprBody(Expression source, bool inLetExprBody, Type sourceType, Bpl.IToken sourceTok, Type resultType, Bpl.IToken resultTok, string bvName, TargetWriter wr) {
-      wr.Write("Dafny.Helpers.Let<{0},{1}>(", TypeName(sourceType, wr, sourceTok), TypeName(resultType, wr, resultTok));
-      TrExpr(source, wr, inLetExprBody);
+    protected override void CreateIIFE(string bvName, Type bvType, Bpl.IToken bvTok, Type bodyType, Bpl.IToken bodyTok, TargetWriter wr, out TargetWriter wrRhs, out TargetWriter wrBody) {
+      wr.Write("Dafny.Helpers.Let<{0}, {1}>(", TypeName(bvType, wr, bvTok), TypeName(bodyType, wr, bodyTok));
+      wrRhs = wr.Fork();
       wr.Write(", {0} => ", bvName);
-      var w = wr.Fork();
+      wrBody = wr.Fork();
       wr.Write(")");
-      int y = ((System.Func<int,int>)((u) => u + 5))(6);
-      return w;
-    }
-
-    protected override TargetWriter CreateIIFE_ExprBody(string source, Type sourceType, Bpl.IToken sourceTok, Type resultType, Bpl.IToken resultTok, string bvName, TargetWriter wr) {
-      wr.Write("Dafny.Helpers.Let<{0},{1}>(", TypeName(sourceType, wr, sourceTok), TypeName(resultType, wr, resultTok));
-      wr.Write("{0}, {1} => ", source, bvName);
-      var w = wr.Fork();
-      wr.Write(")");
-      return w;
     }
 
     protected override BlockTargetWriter CreateIIFE0(Type resultType, Bpl.IToken resultTok, TargetWriter wr) {
