@@ -3860,23 +3860,12 @@ namespace Microsoft.Dafny{
       return wr.NewBlock("public static void Main(string[] args)");
     }
 
-    protected override TargetWriter CreateIIFE_ExprBody(string source, Type sourceType, Bpl.IToken sourceTok,
-      Type resultType, Bpl.IToken resultTok, string bvName, TargetWriter wr) {
-      wr.Write($"{DafnyHelpersClass}.Let(");
-      wr.Write($"{source}, {bvName} -> ");
-      var w = wr.Fork();
-      wr.Write(")");
-      return w;
-    }
-
-    protected override TargetWriter CreateIIFE_ExprBody(Expression source, bool inLetExprBody, Type sourceType, Bpl.IToken sourceTok,
-      Type resultType, Bpl.IToken resultTok, string bvName, TargetWriter wr) {
-      wr.Write($"{DafnyHelpersClass}.Let(");
-      TrExpr(source, wr, inLetExprBody);
+    protected override void CreateIIFE(string bvName, Type bvType, Bpl.IToken bvTok, Type bodyType, Bpl.IToken bodyTok, TargetWriter wr, out TargetWriter wrRhs, out TargetWriter wrBody) {
+      wr.Write("{0}.Let(", DafnyHelpersClass);
+      wrRhs = wr.Fork();
       wr.Write($", {bvName} -> ");
-      var w = wr.Fork();
+      wrBody = wr.Fork();
       wr.Write(")");
-      return w;
     }
 
     protected override string GetQuantifierName(string bvType) {

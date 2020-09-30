@@ -792,8 +792,20 @@ namespace Microsoft.Dafny {
     /// </summary>
     protected abstract void EmitDestructor(string source, Formal dtor, int formalNonGhostIndex, DatatypeCtor ctor, List<Type> typeArgs, Type bvType, TargetWriter wr);
     protected abstract BlockTargetWriter CreateLambda(List<Type> inTypes, Bpl.IToken tok, List<string> inNames, Type resultType, TargetWriter wr, bool untyped = false);
-    protected abstract TargetWriter CreateIIFE_ExprBody(Expression source, bool inLetExprBody, Type sourceType, Bpl.IToken sourceTok, Type resultType, Bpl.IToken resultTok, string bvName, TargetWriter wr);  // Immediately Invoked Function Expression
-    protected abstract TargetWriter CreateIIFE_ExprBody(string source, Type sourceType, Bpl.IToken sourceTok, Type resultType, Bpl.IToken resultTok, string bvName, TargetWriter wr);  // Immediately Invoked Function Expression
+
+    /// <summary>
+    /// Emit an "Immediately Invoked Function Expression" with the semantics of
+    ///     var bvName: bvType := <<wrRhs>>; <<wrBody>>
+    /// where <<wrBody>> will have type "bodyType". In many languages, this IIFE will not be a "let" expression but a "lambda" expression like this:
+    ///     ((bvName: bvType) => <<wrBody>>)(<<wrRhs>>)
+    /// </summary>
+    protected abstract void CreateIIFE(string bvName, Type bvType, Bpl.IToken bvTok, Type bodyType, Bpl.IToken bodyTok, TargetWriter wr, out TargetWriter wrRhs, out TargetWriter wrBody);
+    protected TargetWriter CreateIIFE_ExprBody(string bvName, Type bvType, Bpl.IToken bvTok, Expression rhs, bool inLetExprBody, Type bodyType, Bpl.IToken bodyTok, TargetWriter wr) {
+      CreateIIFE(bvName, bvType, bvTok, bodyType, bodyTok, wr, out var wrRhs, out var wrBody);
+      TrExpr(rhs, wrRhs, inLetExprBody);
+      return wrBody;
+    }
+
     protected abstract BlockTargetWriter CreateIIFE0(Type resultType, Bpl.IToken resultTok, TargetWriter wr);  // Immediately Invoked Function Expression
     protected abstract BlockTargetWriter CreateIIFE1(int source, Type resultType, Bpl.IToken resultTok, string bvName, TargetWriter wr);  // Immediately Invoked Function Expression
     public enum ResolvedUnaryOp { BoolNot, BitwiseNot, Cardinality }
@@ -4146,8 +4158,7 @@ namespace Microsoft.Dafny {
           var typeArgs = CombineTypeArguments(e.Member, e.TypeApplication_AtEnclosingClass, e.TypeApplication_JustMember);
           var typeMap = e.TypeArgumentSubstitutionsWithParents();
           var receiverName = idGenerator.FreshId("_eta_this");
-          var wBody = CreateIIFE_ExprBody(e.Obj, inLetExprBody, e.Obj.Type, e.Obj.tok, Resolver.SubstType(e.Type, typeMap),
-            e.tok, receiverName, wr);
+          var wBody = CreateIIFE_ExprBody(receiverName, e.Obj.Type, e.Obj.tok, e.Obj, inLetExprBody, Resolver.SubstType(e.Type, typeMap), e.tok, wr);
           EmitMemberSelect(w => w.Write(TypeName_Companion(e.Obj.Type, wr, e.tok, e.Member)), e.Obj.Type, e.Member, typeArgs, typeMap, expr.Type, receiverName).EmitRead(wBody);
         } else if ((NeedsCustomReceiver(e.Member) && !(e.Member.EnclosingClass is TraitDecl)) || e.Member.IsStatic) {
           var typeArgs = CombineTypeArguments(e.Member, e.TypeApplication_AtEnclosingClass, e.TypeApplication_JustMember);
@@ -4343,7 +4354,7 @@ namespace Microsoft.Dafny {
             var lhs = e.LHSs[i];
             if (Contract.Exists(lhs.Vars, bv => !bv.IsGhost)) {
               var rhsName = string.Format("_pat_let{0}_{1}", GetUniqueAstNumber(e), i);
-              w = CreateIIFE_ExprBody(e.RHSs[i], inLetExprBody, e.RHSs[i].Type, e.RHSs[i].tok, e.Body.Type, e.Body.tok, rhsName, w);
+              w = CreateIIFE_ExprBody(rhsName, e.RHSs[i].Type, e.RHSs[i].tok, e.RHSs[i], inLetExprBody, e.Body.Type, e.Body.tok, w);
               w = TrCasePattern(lhs, rhsName, e.Body.Type, w);
             }
           }
@@ -4674,7 +4685,9 @@ namespace Microsoft.Dafny {
       if (pat.Var != null) {
         var bv = pat.Var;
         if (!bv.IsGhost) {
-          wr = CreateIIFE_ExprBody(rhsString, bv.Type, bv.tok, bodyType, pat.tok, IdProtect(bv.CompileName), wr);
+          CreateIIFE(IdProtect(bv.CompileName), bv.Type, bv.Tok, bodyType, pat.tok, wr, out var wrRhs, out var wrBody);
+          wrRhs.Write(rhsString);
+          return wrBody;
         }
       } else if (pat.Arguments != null) {
         var ctor = pat.Ctor;
