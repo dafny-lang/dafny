@@ -13,11 +13,7 @@ For details and more configuration options, see [the DafnyTests.cs source](Test/
 * More complete documentation about options (in this file or in the source code)
 * Depend on only the project's output directory instead of the Binaries/Test directories
   * This is mostly working except for errors around missing types from System.dll when compiling to C#
-* Complete support for both the .NET Framework solution as well as the .NET Core one
-* Figure out why test cases aren't executing in parallel when run using `msbuild` (they are when run in Rider)
 * Add support for regular expression matching against CLI output (needed to assert known limitations that cause errors with things like absolute paths names in them)
-* By default, verify source files separately and skip verification when compiling to each target language
-* Add support for sharding ala lit's `--run-shard / --num-shards` options
 * Expose test case options as traits so that they can be filtered on (e.g. `dotnet test --filter compileTarget=java`)
 * Finish converting the rest of the test cases
   * Will write a small script to do this automatically for all recognized combinations of lit `// RUN` commands

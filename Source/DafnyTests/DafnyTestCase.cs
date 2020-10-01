@@ -3,18 +3,10 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Reflection;
-using System.Runtime.InteropServices;
-using System.Text;
-using DiffPlex;
-using DiffPlex.DiffBuilder;
-using DiffPlex.DiffBuilder.Model;
 using Xunit;
 using Xunit.Abstractions;
-using Xunit.Sdk;
 using XUnitExtensions;
 using YamlDotNet.RepresentationModel;
-using YamlDotNet.Serialization;
 
 namespace DafnyTests {
 
