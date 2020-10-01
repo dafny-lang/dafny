@@ -14,6 +14,7 @@ csharp_new_line_before_else = false
 csharp_new_line_before_finally = false
 csharp_prefer_braces = true:warning
 csharp_indent_switch_labels = false
+csharp_space_after_keywords_in_control_flow_statements = false
 
 # IDE0018: Inline variable declaration
 csharp_style_inlined_variable_declaration = true:none
