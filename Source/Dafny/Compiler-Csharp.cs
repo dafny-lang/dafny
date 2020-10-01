@@ -1985,6 +1985,25 @@ namespace Microsoft.Dafny
       TrExprList(arguments, wr, inLetExprBody);
     }
 
+    protected override TargetWriter EmitDowncast(Type from, Type to, Bpl.IToken tok, TargetWriter wr) {
+      from = from.NormalizeExpand();
+      to = to.NormalizeExpand();
+      Contract.Assert(Type.SameHead(from, to));
+
+      if (to.TypeArgs.Count == 0) {
+        // TODO: this won't actually ever happen, right?
+        wr.Write($"(({TypeName(to, wr, tok)})(");
+        var w = wr.Fork();
+        wr.Write("))");
+        return w;
+      } else {
+        wr.Write("(");
+        var w = wr.Fork();
+        wr.Write($").DowncastClone<{Util.Comma(", ", to.TypeArgs, ta => TypeName(ta, wr, tok))}>()");
+        return w;
+      }
+    }
+
     protected override TargetWriter EmitBetaRedex(List<string> boundVars, List<Expression> arguments, List<Type> boundTypes, Type resultType, Bpl.IToken tok, bool inLetExprBody, TargetWriter wr) {
       var typeArgs = TypeName_UDT(ArrowType.Arrow_FullCompileName, Util.Snoc(boundTypes, resultType), wr, tok);
       wr.Write("Dafny.Helpers.Id<{0}>(({1}) => ", typeArgs, Util.Comma(boundVars));
