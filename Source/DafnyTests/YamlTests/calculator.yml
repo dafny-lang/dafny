@@ -1,0 +1,6 @@
+- lhs: 2
+  rhs: 2
+  expected: 4
+- lhs: 3
+  rhs: 4
+  expected: 7

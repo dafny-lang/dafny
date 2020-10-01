@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Xunit;
+using XUnitExtensions;
 using YamlDotNet.RepresentationModel;
 using YamlDotNet.Serialization;
 
@@ -49,6 +50,12 @@ namespace DafnyTests {
         string expectedOutput = File.ReadAllText(fullExpectedOutputPath);
         Assert.Equal(expectedOutput, outputWriter.ToString());
       }
+    }
+
+    [Theory]
+    [YamlFileData("YamlTests/calculator.yml")]
+    public void CalculatorTest(int lhs, int rhs, int expected) {
+      Assert.Equal(expected, lhs + rhs);
     }
   }
 }

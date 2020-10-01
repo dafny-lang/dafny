@@ -15,9 +15,11 @@
 <!--        <ProjectReference Include="../../Source/DafnyDriver/DafnyDriver.csproj" />-->
     </ItemGroup>
 
-<!--    <ItemGroup>-->
+    <ItemGroup>
 <!--        <Content Include="../**/*.*" Exclude="../DafnyTests/**/*.*" CopyToOutputDirectory="PreserveNewest" LinkBase="Test" />-->
 <!--        <None Include="../../Binaries/z3/**/*.*" CopyToOutputDirectory="PreserveNewest" LinkBase="z3" />-->
-<!--    </ItemGroup>-->
+        <None Update="YamlTests/*.yml" CopyToOutputDirectory="PreserveNewest" />
+
+    </ItemGroup>
     
 </Project>
