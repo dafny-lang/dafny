@@ -14,10 +14,14 @@ namespace XUnitExtensions {
   public class YamlFileDataAttribute : DataAttribute {
 
     private string RootPath;
+    private bool WithParameterNames;
+    private bool WithSourceFile;
     private IDeserializer Deserializer = new DeserializerBuilder().Build();
 
-    public YamlFileDataAttribute(string rootPath) {
+    public YamlFileDataAttribute(string rootPath, bool withParameterNames = true, bool withSourceFile = false) {
       RootPath = rootPath;
+      WithParameterNames = withParameterNames;
+      WithSourceFile = withSourceFile;
     }
 
     private class ParsingEventBuffer : IEmitter {
@@ -55,8 +59,19 @@ namespace XUnitExtensions {
       return Deserializer.Deserialize(NodeParser(mappingNode), parameterInfo.ParameterType);
     }
     
-    private object[] MethodArguments(MethodInfo testMethod, YamlMappingNode mappingNode) {
-      return testMethod.GetParameters().Select(param => DeserializeParameter(param, mappingNode[param.Name])).ToArray();
+    private IEnumerable<object> MethodArguments(MethodInfo testMethod, string path, YamlMappingNode mappingNode) {
+      IEnumerable<object> result;
+      IEnumerable<ParameterInfo> parameters = testMethod.GetParameters();
+      if (WithSourceFile) {
+        parameters = parameters.Skip(1);
+      } 
+      if (WithParameterNames) {
+        result = parameters.Select(param => DeserializeParameter(param, mappingNode[param.Name])).ToArray();
+      } else {
+        result = new[] {DeserializeParameter(parameters.Single(), mappingNode)};
+      }
+
+      return WithSourceFile ? new[] {path}.Concat(result) : result;
     }
     
     private IEnumerable<object[]> FileData(MethodInfo testMethod, string path) {
@@ -64,7 +79,7 @@ namespace XUnitExtensions {
       yamlStream.Load(new StreamReader(path));
       // TODO: error checking and expansion
       YamlSequenceNode node = (YamlSequenceNode)yamlStream.Documents[0].RootNode;
-      return node.Select(childNode => MethodArguments(testMethod, (YamlMappingNode)childNode));
+      return node.Select(childNode => MethodArguments(testMethod, path, (YamlMappingNode)childNode).ToArray());
     }
     
     public override IEnumerable<object[]> GetData(MethodInfo testMethod) {
@@ -72,7 +87,7 @@ namespace XUnitExtensions {
         return FileData(testMethod, RootPath);
       } else {
         var filePaths = Directory.GetFiles(RootPath, "*.yml", SearchOption.AllDirectories)
-          .Select(path => Path.GetRelativePath(RootPath, path));
+                                 .Select(path => Path.GetRelativePath(RootPath, path));
         return filePaths.SelectMany(path => FileData(testMethod, path));
       }
     }

@@ -1,8 +1,10 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Xunit;
 using XUnitExtensions;
+using YamlDotNet.Core;
 using YamlDotNet.RepresentationModel;
 using YamlDotNet.Serialization;
 
@@ -57,5 +59,45 @@ namespace DafnyTests {
     public void CalculatorTest(int lhs, int rhs, int expected) {
       Assert.Equal(expected, lhs + rhs);
     }
+    
+    [Theory]
+    [YamlFileData("YamlTests/configs.yml", withParameterNames: false, withSourceFile: true)]
+    public void DictionaryTest(string path, Dictionary<string, string> config) {
+      Assert.Equal(3, config.Count);
+    }
+
+    private class MyConfigTypeConvertor : IYamlTypeConverter {
+      
+      public bool Accepts(Type type) {
+        return type == typeof (MyConfig);
+      }
+
+      public object ReadYaml(IParser parser, Type type) {
+        Dictionary<string, string> config = new Deserializer().Deserialize<Dictionary<string, string>>(parser);
+        return new MyConfig(config);
+      }
+
+      public void WriteYaml(IEmitter emitter, object value, Type type) {
+        throw new NotImplementedException();
+      }
+    }
+    
+    private static readonly IDeserializer DESERIALIZER = new DeserializerBuilder()
+      .WithTypeConverter(new MyConfigTypeConvertor())
+      .Build();
+    
+    public class MyConfig {
+
+      public MyConfig(Dictionary<string, string> config) {
+        Config = config;
+      }
+      
+      private Dictionary<string, string> Config;
+
+      public override string ToString() {
+        return "<opaque>";
+      }
+    }
+    
   }
 }
