@@ -43,10 +43,10 @@ namespace DafnyLS.Handlers {
       };
     }
 
-    public Task<Unit> Handle(DidOpenTextDocumentParams notification, CancellationToken cancellationToken) {
+    public async Task<Unit> Handle(DidOpenTextDocumentParams notification, CancellationToken cancellationToken) {
       _logger.LogTrace("received open notification {}", notification.TextDocument.Uri);
-      _documents.LoadDocument(notification.TextDocument);
-      return Unit.Task;
+      await _documents.LoadDocumentAsync(notification.TextDocument, cancellationToken);
+      return Unit.Value;
     }
 
     public Task<Unit> Handle(DidCloseTextDocumentParams notification, CancellationToken cancellationToken) {
@@ -62,10 +62,10 @@ namespace DafnyLS.Handlers {
       };
     }
 
-    public Task<Unit> Handle(DidChangeTextDocumentParams notification, CancellationToken cancellationToken) {
+    public async Task<Unit> Handle(DidChangeTextDocumentParams notification, CancellationToken cancellationToken) {
       _logger.LogTrace("received change notification {}", notification.TextDocument.Uri);
-      _documents.UpdateDocument(notification, cancellationToken);
-      return Unit.Task;
+      await _documents.UpdateDocumentAsync(notification, cancellationToken);
+      return Unit.Value;
     }
 
     TextDocumentSaveRegistrationOptions IRegistration<TextDocumentSaveRegistrationOptions>.GetRegistrationOptions() {

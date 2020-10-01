@@ -5,6 +5,7 @@ using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace DafnyLS.Workspace {
   /// <summary>
@@ -15,15 +16,18 @@ namespace DafnyLS.Workspace {
   /// </remarks>
   internal class DocumentDatabase : IDocumentDatabase {
     private readonly ILogger _logger;
-    private readonly ConcurrentDictionary<DocumentUri, TextDocumentItem> _documents = new ConcurrentDictionary<DocumentUri, TextDocumentItem>();
+    private readonly ConcurrentDictionary<DocumentUri, DafnyDocument> _documents = new ConcurrentDictionary<DocumentUri, DafnyDocument>();
+    private readonly ITextDocumentLoader _documentLoader;
 
-    public DocumentDatabase(ILogger<DocumentDatabase> logger) {
+    public DocumentDatabase(ILogger<DocumentDatabase> logger, ITextDocumentLoader documentLoader) {
       _logger = logger;
+      _documentLoader = documentLoader;
     }
 
-    public bool LoadDocument(TextDocumentItem document) {
-      if(_documents.AddOrUpdate(document.Uri, document, (uri, old) => document.Version > old.Version ? document : old) != document) {
-        _logger.LogDebug("a newer version of {} was already loaded", document.Uri);
+    public async Task<bool> LoadDocumentAsync(TextDocumentItem textDocument, CancellationToken cancellationToken) {
+      var dafnyDocument = await _documentLoader.LoadAsync(textDocument, cancellationToken);
+      if (_documents.AddOrUpdate(textDocument.Uri, dafnyDocument, (uri, old) => dafnyDocument.Version > old.Version ? dafnyDocument : old) != dafnyDocument) {
+        _logger.LogDebug("a newer version of {} was already loaded", textDocument.Uri);
         return false;
       }
       return true;
@@ -37,7 +41,7 @@ namespace DafnyLS.Workspace {
       return true;
     }
     
-    public bool UpdateDocument(DidChangeTextDocumentParams documentChange, CancellationToken cancellationToken) {
+    public async Task<bool> UpdateDocumentAsync(DidChangeTextDocumentParams documentChange, CancellationToken cancellationToken) {
       var documentId = documentChange.TextDocument;
       while (_documents.TryGetValue(documentId.Uri, out var oldDocument)) {
         cancellationToken.ThrowIfCancellationRequested();
@@ -46,7 +50,8 @@ namespace DafnyLS.Workspace {
             documentId.Uri, oldDocument.Version, documentId.Version);
           return false;
         }
-        if(_documents.TryUpdate(documentId.Uri, MergeDocumentChanges(oldDocument, documentChange), oldDocument)) {
+        var mergedDocument = await MergeDocumentChangesAsync(oldDocument, documentChange, cancellationToken);
+        if (_documents.TryUpdate(documentId.Uri, mergedDocument, oldDocument)) {
           return true;
         }
       }
@@ -54,17 +59,18 @@ namespace DafnyLS.Workspace {
       return false;
     }
 
-    private TextDocumentItem MergeDocumentChanges(TextDocumentItem oldDocument, DidChangeTextDocumentParams documentChange) {
-      return new TextDocumentItem {
-        LanguageId = oldDocument.LanguageId,
+    private Task<DafnyDocument> MergeDocumentChangesAsync(DafnyDocument oldDocument, DidChangeTextDocumentParams documentChange, CancellationToken cancellationToken) {
+      var mergedItem = new TextDocumentItem {
+        LanguageId = oldDocument.Text.LanguageId,
         Uri = oldDocument.Uri,
         Version = documentChange.TextDocument.Version,
         // TODO The full document is synchronized at this time. So there should be exactly one change.
         Text = documentChange.ContentChanges.Single().Text
       };
+      return _documentLoader.LoadAsync(mergedItem, cancellationToken);
     }
 
-    public bool TryGetDocument(TextDocumentIdentifier documentId, [NotNullWhen(true)] out TextDocumentItem? document) {
+    public bool TryGetDocument(TextDocumentIdentifier documentId, [NotNullWhen(true)] out DafnyDocument? document) {
       return _documents.TryGetValue(documentId.Uri, out document);
     }
   }

@@ -15,12 +15,10 @@ namespace DafnyLS.Handlers {
 
     private readonly ILogger _logger;
     private readonly IDocumentDatabase _documents;
-    private readonly ISymbolResolver _symbolResolver;
 
-    public DafnyDocumentSymbolHandler(ILogger<DafnyDocumentSymbolHandler> logger, IDocumentDatabase documents, ISymbolResolver symbolResolver) : base(CreateRegistrationOptions()) {
+    public DafnyDocumentSymbolHandler(ILogger<DafnyDocumentSymbolHandler> logger, IDocumentDatabase documents) : base(CreateRegistrationOptions()) {
       _logger = logger;
       _documents = documents;
-      _symbolResolver = symbolResolver;
     }
 
     private static DocumentSymbolRegistrationOptions CreateRegistrationOptions() {
@@ -29,15 +27,14 @@ namespace DafnyLS.Handlers {
       };
     }
 
-    public async override Task<SymbolInformationOrDocumentSymbolContainer> Handle(DocumentSymbolParams request, CancellationToken cancellationToken) {
-      TextDocumentItem? document;
+    public override Task<SymbolInformationOrDocumentSymbolContainer> Handle(DocumentSymbolParams request, CancellationToken cancellationToken) {
+      DafnyDocument? document;
       if (!_documents.TryGetDocument(request.TextDocument, out document)) {
         _logger.LogWarning("symbols requested for unloaded document {}", request.TextDocument.Uri);
-        return _emptySymbols;
+        return Task.FromResult<SymbolInformationOrDocumentSymbolContainer>(_emptySymbols);
       }
-      var symbols = (await _symbolResolver.GetSymbolsAsync(document, cancellationToken)).ToArray();
-      _logger.LogDebug("resolved {} symbols for {}", symbols.Length, document.Uri);
-      return symbols;
+      // TODO retrieve the symbols from the document and report them back to the requester.
+      return Task.FromResult<SymbolInformationOrDocumentSymbolContainer>(_emptySymbols);
     }
   }
 }
