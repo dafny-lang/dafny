@@ -4355,7 +4355,7 @@ namespace Microsoft.Dafny {
             if (Contract.Exists(lhs.Vars, bv => !bv.IsGhost)) {
               var rhsName = string.Format("_pat_let{0}_{1}", GetUniqueAstNumber(e), i);
               w = CreateIIFE_ExprBody(rhsName, e.RHSs[i].Type, e.RHSs[i].tok, e.RHSs[i], inLetExprBody, e.Body.Type, e.Body.tok, w);
-              w = TrCasePattern(lhs, rhsName, e.Body.Type, w);
+              w = TrCasePattern(lhs, rhsName, e.RHSs[i].Type, e.Body.Type, w);
             }
           }
           TrExpr(e.Body, w, true);
@@ -4676,9 +4676,10 @@ namespace Microsoft.Dafny {
       return null;
     }
 
-    TargetWriter TrCasePattern(CasePattern<BoundVar> pat, string rhsString, Type bodyType, TargetWriter wr) {
+    TargetWriter TrCasePattern(CasePattern<BoundVar> pat, string rhsString, Type rhsType, Type bodyType, TargetWriter wr) {
       Contract.Requires(pat != null);
       Contract.Requires(rhsString != null);
+      Contract.Requires(rhsType != null);
       Contract.Requires(bodyType != null);
       Contract.Requires(wr != null);
 
@@ -4686,6 +4687,9 @@ namespace Microsoft.Dafny {
         var bv = pat.Var;
         if (!bv.IsGhost) {
           CreateIIFE(IdProtect(bv.CompileName), bv.Type, bv.Tok, bodyType, pat.tok, wr, out var wrRhs, out var wrBody);
+          if (!Type.IsSupertype(bv.Type, rhsType)) {
+            wrRhs = EmitDowncast(rhsType, bv.Type, bv.tok, wrRhs);
+          }
           wrRhs.Write(rhsString);
           return wrBody;
         }
@@ -4693,6 +4697,8 @@ namespace Microsoft.Dafny {
         var ctor = pat.Ctor;
         Contract.Assert(ctor != null);  // follows from successful resolution
         Contract.Assert(pat.Arguments.Count == ctor.Formals.Count);  // follows from successful resolution
+        Contract.Assert(ctor.EnclosingDatatype.TypeArgs.Count == rhsType.NormalizeExpand().TypeArgs.Count);
+        var typeSubst = Resolver.TypeSubstitutionMap(ctor.EnclosingDatatype.TypeArgs, rhsType.NormalizeExpand().TypeArgs);
         var k = 0;  // number of non-ghost formals processed
         for (int i = 0; i < pat.Arguments.Count; i++) {
           var arg = pat.Arguments[i];
@@ -4703,7 +4709,7 @@ namespace Microsoft.Dafny {
           } else {
             var sw = new TargetWriter(wr.IndentLevel, true);
             EmitDestructor(rhsString, formal, k, ctor, ((DatatypeValue)pat.Expr).InferredTypeArgs, arg.Expr.Type, sw);
-            wr = TrCasePattern(arg, sw.ToString(), bodyType, wr);
+            wr = TrCasePattern(arg, sw.ToString(), Resolver.SubstType(formal.Type, typeSubst), bodyType, wr);
             k++;
           }
         }
