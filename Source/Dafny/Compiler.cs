@@ -577,17 +577,59 @@ namespace Microsoft.Dafny {
       return wr;
     }
 
-    protected TargetWriter EmitDowncastIfNecessary(Type/*?*/ from, Type/*?*/ to, Bpl.IToken tok, TargetWriter wr) {
+    protected TargetWriter EmitDowncastIfNecessary(Type /*?*/ from, Type /*?*/ to, Bpl.IToken tok, TargetWriter wr) {
       Contract.Requires(tok != null);
       Contract.Requires(wr != null);
       if (from != null && to != null) {
-        from = from.NormalizeExpand();
-        to = to.NormalizeExpand();
-        if (!Type.IsSupertype(to, from)) {
+        if (!IsTargetSupertype(to, from)) {
+          // The following assert is a sanity check. Note, in a language with NeedsCastFromTypeParameter, "to" and "from" may
+          // contain uninstantiated formal type parameters.
+          Contract.Assert(NeedsCastFromTypeParameter || IsTargetSupertype(from, to));
           wr = EmitDowncast(from, to, tok, wr);
         }
       }
       return wr;
+    }
+
+    /// <summary>
+    /// Determine if "to" is a supertype of "from" in the target language, if "!typeEqualityOnly".
+    /// Determine if "to" is equal to "from" in the target language, if "typeEqualityOnly".
+    /// This to similar to Type.IsSupertype and Type.Equals, respectively, but ignores subset types (that
+    /// is, always uses the base type of any subset type).
+    /// </summary>
+    public static bool IsTargetSupertype(Type to, Type from, bool typeEqualityOnly = false) {
+      Contract.Requires(from != null);
+      Contract.Requires(to != null);
+      to = to.NormalizeExpand();
+      from = from.NormalizeExpand();
+      if (Type.SameHead(to, from)) {
+        Contract.Assert(to.TypeArgs.Count == from.TypeArgs.Count);
+        var formalTypeParameters = (to as UserDefinedType)?.ResolvedClass?.TypeArgs;
+        Contract.Assert(formalTypeParameters == null || formalTypeParameters.Count == to.TypeArgs.Count);
+        Contract.Assert(formalTypeParameters != null || to.TypeArgs.Count == 0 || to is CollectionType);
+        for (var i = 0; i < to.TypeArgs.Count; i++) {
+          bool okay;
+          if (typeEqualityOnly) {
+            okay = IsTargetSupertype(to.TypeArgs[i], from.TypeArgs[i], true);
+          } else if (formalTypeParameters == null || formalTypeParameters[i].Variance == TypeParameter.TPVariance.Co) {
+            okay = IsTargetSupertype(to.TypeArgs[i], from.TypeArgs[i]);
+          } else if (formalTypeParameters[i].Variance == TypeParameter.TPVariance.Co) {
+            okay = IsTargetSupertype(from.TypeArgs[i], to.TypeArgs[i]);
+          } else {
+            okay = IsTargetSupertype(to.TypeArgs[i], from.TypeArgs[i], true);
+          }
+          if (!okay) {
+            return false;
+          }
+        }
+        return true;
+      } else if (typeEqualityOnly) {
+        return false;
+      } else if (to.IsObjectQ) {
+        return true;
+      } else {
+        return from.ParentTypes().Any(fromParentType => IsTargetSupertype(to, fromParentType));
+      }
     }
 
     protected virtual TargetWriter EmitDowncast(Type from, Type to, Bpl.IToken tok, TargetWriter wr) {
@@ -595,7 +637,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(to != null);
       Contract.Requires(tok != null);
       Contract.Requires(wr != null);
-      Contract.Requires(!Type.IsSupertype(to, from));
+      Contract.Requires(!IsTargetSupertype(to, from));
       return wr;
     }
 
