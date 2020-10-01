@@ -3,6 +3,7 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace DafnyLS.Workspace {
   /// <summary>
@@ -15,8 +16,8 @@ namespace DafnyLS.Workspace {
       _logger = logger;
     }
 
-    public IEnumerable<SymbolInformationOrDocumentSymbol> GetSymbolsFor(TextDocumentItem document, CancellationToken cancellationToken) {
-      return Enumerable.Empty<SymbolInformationOrDocumentSymbol>();
+    public Task<IEnumerable<SymbolInformationOrDocumentSymbol>> GetSymbolsAsync(TextDocumentItem document, CancellationToken cancellationToken) {
+      return Task.FromResult(Enumerable.Empty<SymbolInformationOrDocumentSymbol>());
     }
   }
 }
