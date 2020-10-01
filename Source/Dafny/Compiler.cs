@@ -3783,7 +3783,7 @@ namespace Microsoft.Dafny {
             outTmps.Add(target);
             Type type;
             if (!NeedsCastFromTypeParameter) {
-              type = s.Lhs[i].Type;
+              type = Resolver.SubstType(p.Type, s.MethodSelect.TypeArgumentSubstitutionsWithParents());
             } else {
               //
               // The type of the parameter will differ from the LHS type in a
