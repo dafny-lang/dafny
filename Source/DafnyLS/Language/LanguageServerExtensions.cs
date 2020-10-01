@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+﻿using DafnyLS.Language.Symbols;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Server;
 
@@ -19,6 +20,7 @@ namespace DafnyLS.Language {
     private static IServiceCollection WithDafnyLanguage(this IServiceCollection services) {
       return services
         .AddSingleton<IDafnyParser>(serviceProvider => DafnyLangParser.Create(serviceProvider.GetRequiredService<ILogger<DafnyLangParser>>()))
+        .AddSingleton<ISymbolResolver, DafnyLangSymbolResolver>()
         .AddSingleton<IDiagnosticPublisher, DiagnosticPublisher>();
     }
   }
