@@ -344,6 +344,7 @@ method Downcasts() {
   s := DowncastM(m);  // cast in, cast out
   var s': set<Integer>;
   s, s' := DowncastM2(m);  // cast in, cast out
+  s := var v: set<Integer> := m; v;  // regression test -- this once tripped up the compilation to Java, whereas the next line had not
   s' := var u: set<Number> := var v: set<Integer> := m; v; u;
   var eq := s == m && m == s;
   print eq, "\n";  // true
