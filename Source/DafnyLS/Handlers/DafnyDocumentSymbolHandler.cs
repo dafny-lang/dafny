@@ -1,8 +1,8 @@
-﻿using DafnyLS.Workspace;
+﻿using DafnyLS.Language;
+using DafnyLS.Workspace;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 

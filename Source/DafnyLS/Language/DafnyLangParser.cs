@@ -6,7 +6,7 @@ using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace DafnyLS.Workspace {
+namespace DafnyLS.Language {
   /// <summary>
   /// Parser implementation that makes use of the parse of dafny-lang. It may only be initialized exactly once since
   /// it requires initial setup of static members.

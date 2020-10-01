@@ -3,7 +3,7 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace DafnyLS.Workspace {
+namespace DafnyLS.Language {
   /// <summary>
   /// Interface exposing parse methods to generate a syntax tree out of an arbitrary dafny source.
   /// </summary>

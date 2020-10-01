@@ -1,4 +1,5 @@
 ﻿using DafnyLS.Handlers;
+using DafnyLS.Language;
 using DafnyLS.Workspace;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -20,6 +21,7 @@ namespace DafnyLS {
             .WithInput(Console.OpenStandardInput())
             .WithOutput(Console.OpenStandardOutput())
             .ConfigureLogging(SetupLogging)
+            .WithDafnyLanguage()
             .WithDafnyWorkspace()
             .WithDafnyHandlers()
             .OnInitialize(Initialize)

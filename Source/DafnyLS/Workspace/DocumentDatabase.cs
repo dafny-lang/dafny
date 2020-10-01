@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using DafnyLS.Language;
+using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Collections.Concurrent;

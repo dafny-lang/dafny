@@ -3,7 +3,7 @@ using Microsoft.Dafny;
 using Microsoft.Extensions.Logging;
 using System;
 
-namespace DafnyLS.Workspace {
+namespace DafnyLS.Language {
   /// <summary>
   /// Error reporter implementation that logs the errors to the configured dotnet core logging provider.
   /// </summary>

@@ -1,6 +1,5 @@
 ﻿using DafnyLS.Workspace;
 using System.Threading;
-using System.Threading.Tasks;
 
 namespace DafnyLS.Language {
   /// <summary>

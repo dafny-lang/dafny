@@ -2,7 +2,7 @@
 using OmniSharp.Extensions.LanguageServer.Protocol;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
-namespace DafnyLS.Workspace {
+namespace DafnyLS.Language {
   /// <summary>
   /// Internal representation of a dafny document.
   /// </summary>
