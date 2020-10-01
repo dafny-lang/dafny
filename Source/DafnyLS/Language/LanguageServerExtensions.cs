@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+﻿using DafnyLS.Language;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Server;
 
@@ -20,7 +21,8 @@ namespace DafnyLS.Workspace {
       return services
         .AddSingleton<IDocumentDatabase, DocumentDatabase>()
         .AddSingleton<IDafnyParser>(serviceProvider => DafnyLangParser.Create(serviceProvider.GetRequiredService<ILogger<DafnyLangParser>>()))
-        .AddSingleton<ITextDocumentLoader, TextDocumentLoader>();
+        .AddSingleton<ITextDocumentLoader, TextDocumentLoader>()
+        .AddSingleton<IDiagnosticPublisher, DiagnosticPublisher>();
     }
   }
 }

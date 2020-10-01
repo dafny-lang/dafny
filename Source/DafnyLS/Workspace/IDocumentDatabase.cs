@@ -20,16 +20,23 @@ namespace DafnyLS.Workspace {
     /// </summary>
     /// <param name="document">The document to load.</param>
     /// <param name="cancellationToken">A token to cancel the update operation before its completion.</param>
-    /// <returns><c>true</c> if the document was loaded successfully, <c>false</c> if a newer version of the specified document was already present.</returns>
-    Task<bool> LoadDocumentAsync(TextDocumentItem document, CancellationToken cancellationToken);
+    /// <returns>
+    /// A dafny document representing the loaded text document.
+    /// If there was a newer existing text document already loaded, it will be returned instead.
+    /// </returns>
+    Task<DafnyDocument> LoadDocumentAsync(TextDocumentItem document, CancellationToken cancellationToken);
 
     /// <summary>
     /// Updates a document with the specified changes.
     /// </summary>
     /// <param name="documentChange">The change request containing the actual changes.</param>
     /// <param name="cancellationToken">A token to cancel the update operation before its completion.</param>
-    /// <returns><c>true</c> if the updates were successfully merged, <c>false</c> if a newer document version was present.</returns>
-    Task<bool> UpdateDocumentAsync(DidChangeTextDocumentParams documentChange, CancellationToken cancellationToken);
+    /// <returns>
+    /// The newly generated dafny document if the merge was applied (i.e., the change was newer).
+    /// If there was a newer existing text document already loaded, it will be returned instead.
+    /// In the case that the update was sent for an unloaded document, <c>null</c> will be returned.
+    /// </returns>
+    Task<DafnyDocument?> UpdateDocumentAsync(DidChangeTextDocumentParams documentChange, CancellationToken cancellationToken);
 
     /// <summary>
     /// Tries to resolve a document with the specified identifier.

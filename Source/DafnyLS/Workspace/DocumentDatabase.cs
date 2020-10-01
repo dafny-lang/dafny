@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace DafnyLS.Workspace {
   /// <summary>
-  /// Thread-safe and obstruction free document database implementation.
+  /// Thread-safe document database implementation.
   /// </summary>
   /// <remarks>
   /// The current implementation only supports full document updates (not deltas).
@@ -24,13 +24,13 @@ namespace DafnyLS.Workspace {
       _documentLoader = documentLoader;
     }
 
-    public async Task<bool> LoadDocumentAsync(TextDocumentItem textDocument, CancellationToken cancellationToken) {
+    public async Task<DafnyDocument> LoadDocumentAsync(TextDocumentItem textDocument, CancellationToken cancellationToken) {
       var dafnyDocument = await _documentLoader.LoadAsync(textDocument, cancellationToken);
-      if (_documents.AddOrUpdate(textDocument.Uri, dafnyDocument, (uri, old) => dafnyDocument.Version > old.Version ? dafnyDocument : old) != dafnyDocument) {
+      var databaseDocument = _documents.AddOrUpdate(textDocument.Uri, dafnyDocument, (uri, old) => dafnyDocument.Version > old.Version ? dafnyDocument : old);
+      if (databaseDocument != dafnyDocument) {
         _logger.LogDebug("a newer version of {} was already loaded", textDocument.Uri);
-        return false;
       }
-      return true;
+      return databaseDocument;
     }
 
     public bool CloseDocument(TextDocumentIdentifier documentId) {
@@ -41,22 +41,22 @@ namespace DafnyLS.Workspace {
       return true;
     }
     
-    public async Task<bool> UpdateDocumentAsync(DidChangeTextDocumentParams documentChange, CancellationToken cancellationToken) {
+    public async Task<DafnyDocument?> UpdateDocumentAsync(DidChangeTextDocumentParams documentChange, CancellationToken cancellationToken) {
       var documentId = documentChange.TextDocument;
       while (_documents.TryGetValue(documentId.Uri, out var oldDocument)) {
         cancellationToken.ThrowIfCancellationRequested();
         if (documentId.Version < oldDocument.Version) {
           _logger.LogDebug("skipping update of {} since the current version is newer (old={} < new={})",
             documentId.Uri, oldDocument.Version, documentId.Version);
-          return false;
+          return oldDocument;
         }
         var mergedDocument = await MergeDocumentChangesAsync(oldDocument, documentChange, cancellationToken);
         if (_documents.TryUpdate(documentId.Uri, mergedDocument, oldDocument)) {
-          return true;
+          return mergedDocument;
         }
       }
       _logger.LogWarning("received update for untracked document {}", documentId.Uri);
-      return false;
+      return null;
     }
 
     private Task<DafnyDocument> MergeDocumentChangesAsync(DafnyDocument oldDocument, DidChangeTextDocumentParams documentChange, CancellationToken cancellationToken) {

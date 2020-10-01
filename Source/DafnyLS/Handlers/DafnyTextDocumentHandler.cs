@@ -1,4 +1,5 @@
-﻿using DafnyLS.Workspace;
+﻿using DafnyLS.Language;
+using DafnyLS.Workspace;
 using MediatR;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol;
@@ -17,6 +18,7 @@ namespace DafnyLS.Handlers {
   internal class DafnyTextDocumentHandler : ITextDocumentSyncHandler {
     private readonly ILogger _logger;
     private readonly IDocumentDatabase _documents;
+    private readonly IDiagnosticPublisher _diagnosticPublisher;
 
     private const string LanguageId = "dafny";
 
@@ -24,9 +26,10 @@ namespace DafnyLS.Handlers {
       new DocumentFilter { Pattern = "**/*.dfy" }
     );
 
-    public DafnyTextDocumentHandler(ILogger<DafnyTextDocumentHandler> logger, IDocumentDatabase documents) {
+    public DafnyTextDocumentHandler(ILogger<DafnyTextDocumentHandler> logger, IDocumentDatabase documents, IDiagnosticPublisher diagnosticPublisher) {
       _logger = logger;
       _documents = documents;
+      _diagnosticPublisher = diagnosticPublisher;
     }
 
     public TextDocumentAttributes GetTextDocumentAttributes(DocumentUri uri) {
@@ -45,7 +48,8 @@ namespace DafnyLS.Handlers {
 
     public async Task<Unit> Handle(DidOpenTextDocumentParams notification, CancellationToken cancellationToken) {
       _logger.LogTrace("received open notification {}", notification.TextDocument.Uri);
-      await _documents.LoadDocumentAsync(notification.TextDocument, cancellationToken);
+      var document = await _documents.LoadDocumentAsync(notification.TextDocument, cancellationToken);
+      _diagnosticPublisher.PublishDiagnostics(document, cancellationToken);
       return Unit.Value;
     }
 
@@ -64,7 +68,10 @@ namespace DafnyLS.Handlers {
 
     public async Task<Unit> Handle(DidChangeTextDocumentParams notification, CancellationToken cancellationToken) {
       _logger.LogTrace("received change notification {}", notification.TextDocument.Uri);
-      await _documents.UpdateDocumentAsync(notification, cancellationToken);
+      var document = await _documents.UpdateDocumentAsync(notification, cancellationToken);
+      if(document != null) {
+        _diagnosticPublisher.PublishDiagnostics(document, cancellationToken);
+      }
       return Unit.Value;
     }
 
