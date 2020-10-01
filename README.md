@@ -6,7 +6,7 @@ Clone the DafnyLS repo and its submodules transitively.
 
 ```sh
 git clone https://github.com/DafnyVSCode/language-server-csharp
-git pull --recurse-submodules
+git submodule update --init --recursive
 ```
 
 Build the dependencies before building DafnyLS itself.
