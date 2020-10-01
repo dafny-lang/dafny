@@ -326,9 +326,7 @@ namespace Microsoft.Dafny {
     protected virtual TargetWriter EmitAssignment(ILvalue wLhs, Type/*?*/ lhsType, Type/*?*/ rhsType, TargetWriter wr) {
       var w = wLhs.EmitWrite(wr);
       w = EmitCoercionIfNecessary(from:rhsType, to:lhsType, tok: Bpl.Token.NoToken, wr: w);
-      if (lhsType != null && rhsType != null && !Type.IsSupertype(lhsType, rhsType)) {
-        w = EmitDowncast(rhsType, lhsType, Bpl.Token.NoToken, w);
-      }
+      w = EmitDowncastIfNecessary(rhsType, lhsType, Bpl.Token.NoToken, w);
       return w;
     }
 
@@ -579,12 +577,24 @@ namespace Microsoft.Dafny {
       return wr;
     }
 
+    protected TargetWriter EmitDowncastIfNecessary(Type/*?*/ from, Type/*?*/ to, Bpl.IToken tok, TargetWriter wr) {
+      Contract.Requires(tok != null);
+      Contract.Requires(wr != null);
+      if (from != null && to != null) {
+        from = from.NormalizeExpand();
+        to = to.NormalizeExpand();
+        if (!Type.IsSupertype(to, from)) {
+          wr = EmitDowncast(from, to, tok, wr);
+        }
+      }
+      return wr;
+    }
+
     protected virtual TargetWriter EmitDowncast(Type from, Type to, Bpl.IToken tok, TargetWriter wr) {
       Contract.Requires(from != null);
       Contract.Requires(to != null);
       Contract.Requires(tok != null);
       Contract.Requires(wr != null);
-      Contract.Requires(Type.IsSupertype(from, to));
       Contract.Requires(!Type.IsSupertype(to, from));
       return wr;
     }
@@ -3850,9 +3860,7 @@ namespace Microsoft.Dafny {
         if (returnStyleOutCollector == null && outTmps.Count == 1 && returnStyleOuts) {
           var instantiatedFromType = Resolver.SubstType(outFormalTypes[0], s.MethodSelect.TypeArgumentSubstitutionsWithParents());
           var toType = outTypes[0];
-          if (!Type.IsSupertype(toType, instantiatedFromType)) {
-            wr = EmitDowncast(instantiatedFromType, toType, s.Tok, wr);
-          }
+          wr = EmitDowncastIfNecessary(instantiatedFromType, toType, s.Tok, wr);
         }
         var protectedName = IdName(s.Method);
         if (receiverReplacement != null) {
@@ -3894,9 +3902,7 @@ namespace Microsoft.Dafny {
             var instantiatedToType = Resolver.SubstType(toType, s.MethodSelect.TypeArgumentSubstitutionsWithParents());
             // Order of coercions is important here: EmitCoercionToNativeForm may coerce into a type we're unaware of, so it *has* to be last
             var w = EmitCoercionIfNecessary(fromType, toType, s.Tok, wr);
-            if (!Type.IsSupertype(instantiatedToType, fromType)) {
-              w = EmitDowncast(fromType, instantiatedToType, s.Tok, w);
-            }
+            w = EmitDowncastIfNecessary(fromType, instantiatedToType, s.Tok, w);
             if (s.Method.IsExtern(out _, out _)) {
               w = EmitCoercionToNativeForm(toType, s.Tok, w);
             }
@@ -4681,9 +4687,7 @@ namespace Microsoft.Dafny {
         var bv = pat.Var;
         if (!bv.IsGhost) {
           CreateIIFE(IdProtect(bv.CompileName), bv.Type, bv.Tok, bodyType, pat.tok, wr, out var wrRhs, out var wrBody);
-          if (!Type.IsSupertype(bv.Type, rhsType)) {
-            wrRhs = EmitDowncast(rhsType, bv.Type, bv.tok, wrRhs);
-          }
+          wrRhs = EmitDowncastIfNecessary(rhsType, bv.Type, bv.tok, wrRhs);
           wrRhs.Write(rhsString);
           return wrBody;
         }
@@ -4763,9 +4767,7 @@ namespace Microsoft.Dafny {
           var fromType = e.Args[i].Type;
           var w = EmitCoercionIfNecessary(fromType, e.Function.Formals[i].Type, tok: e.tok, wr: wr);
           var instantiatedToType = Resolver.SubstType(e.Function.Formals[i].Type, e.TypeArgumentSubstitutionsWithParents());
-          if (!Type.IsSupertype(instantiatedToType, fromType)) {
-            w = EmitDowncast(fromType, instantiatedToType, e.tok, w);
-          }
+          w = EmitDowncastIfNecessary(fromType, instantiatedToType, e.tok, w);
           tr(e.Args[i], w, inLetExprBody);
           sep = ", ";
         }
