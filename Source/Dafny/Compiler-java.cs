@@ -719,7 +719,7 @@ namespace Microsoft.Dafny{
     string ArrayTypeName(Type elType, int dims, TextWriter wr, Bpl.IToken tok) {
       if (dims > 1) {
         arrays.Add(dims);
-        return $"{DafnyMultiArrayClass(dims)}<{BoxedTypeName(elType, wr, tok)}>";
+        return $"{DafnyMultiArrayClass(dims)}<{ActualTypeArgument(elType, TypeParameter.TPVariance.Non, wr, tok)}>";
       } else if (elType.IsTypeParameter) {
         return "java.lang.Object";
       } else {
