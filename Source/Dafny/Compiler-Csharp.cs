@@ -1990,18 +1990,41 @@ namespace Microsoft.Dafny
       to = to.NormalizeExpand();
       Contract.Assert(Type.SameHead(from, to));
 
-      if (to.TypeArgs.Count == 0) {
-        // TODO: this won't actually ever happen, right?
-        wr.Write($"(({TypeName(to, wr, tok)})(");
-        var w = wr.Fork();
-        wr.Write("))");
-        return w;
-      } else {
-        wr.Write("(");
-        var w = wr.Fork();
-        wr.Write($").DowncastClone<{Util.Comma(", ", to.TypeArgs, ta => TypeName(ta, wr, tok))}>()");
-        return w;
+      wr.Write("(");
+      var w = wr.Fork();
+      wr.Write(").DowncastClone<");
+      var wTypeArgs = wr.Fork();
+      wr.Write(">(");
+      var wConverters = wr.Fork();
+      wr.Write(")");
+      Contract.Assert(from.TypeArgs.Count == to.TypeArgs.Count);
+      var sep = "";
+      for (var i = 0; i < to.TypeArgs.Count; i++) {
+        var ta = to.TypeArgs[i];
+        var fa = from.TypeArgs[i];
+        wTypeArgs.Write("{0}{1}", sep, TypeName(ta, wTypeArgs, tok));
+        wConverters.Write("{0}{1}", sep, DowncastConverter(fa, ta, wConverters, tok));
+        sep = ", ";
       }
+      return w;
+    }
+
+    string DowncastConverter(Type from, Type to, TargetWriter errorWr, Bpl.IToken tok) {
+      if (IsTargetSupertype(from, to, true)) {
+        return $"Dafny.Helpers.Id<{TypeName(to, errorWr, tok)}>";
+      }
+      if (from.AsCollectionType != null) {
+        var sTo = TypeName(to, errorWr, tok);
+        // (from x) => { return x.DowncastClone<A, B, ...>(aConverter, bConverter, ...); }
+        var wr = new TargetWriter();
+        wr.Write("({0} x) => {{ return ", TypeName(from, errorWr, tok));
+        var wrFrom = EmitDowncast(from, to, tok, wr);
+        wrFrom.Write("x");
+        wr.Write("; }");
+        return wr.ToString();
+      }
+      // use a type
+      return $"Dafny.Helpers.CastConverter<{TypeName(from, errorWr, tok)}, {TypeName(to, errorWr, tok)}>";
     }
 
     protected override TargetWriter EmitBetaRedex(List<string> boundVars, List<Expression> arguments, List<Type> boundTypes, Type resultType, Bpl.IToken tok, bool inLetExprBody, TargetWriter wr) {

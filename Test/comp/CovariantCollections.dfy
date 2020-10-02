@@ -11,6 +11,7 @@ method Main() {
   Multisets();
   Maps();
   Downcasts();
+  DeepDowncast();
   CovarianceRegressions.Test();
 }
 
@@ -395,6 +396,29 @@ method MId2<T>(s: set<T>) returns (r0: set<T>, r1: set<T>)
 // TODO: should also test tail-recursive calls (functions and methods)
 // TODO: maybe also try constructor call
 // TODO: assignments to fields, array elements, multi-dimensional array elements
+
+method DeepDowncast() {
+  // test covariant types whose components are also of a covariant type
+  // (this requires some machinery to accomplish in C#)
+
+  var t: Number := new Integer(4);
+  var ttt: set<seq<Number>> := SetOfSeqOf<Number>(t);
+  var ccc: set<seq<Integer>> := ttt;
+  print |ttt|, " ", |ccc|, "\n";
+
+  var o := new object;
+  var mtt: map<seq<Number>, object> := MapOfSeqOf<Number, object>(t, o);
+  var mcc: map<seq<Integer>, object> := mtt;
+  print |mtt|, " ", |mcc|, "\n";
+}
+
+function method SetOfSeqOf<T(==)>(t: T): set<seq<T>> {
+  {[t]}
+}
+
+function method MapOfSeqOf<T(==), U>(t: T, u: U): map<seq<T>, U> {
+  map[[t] := u]
+}
 
 // -------------------- some regression tets --------------------
 
