@@ -1331,10 +1331,10 @@ namespace Microsoft.Dafny
         wr.Write("new {0}", typeNameSansBrackets);
         string prefix = "[";
         for (var d = 0; d < dimCount; d++) {
-          wr.Write("{0}(", prefix);
+          wr.Write("{0}{1}", prefix, "Dafny.Helpers.ToIntChecked(");
           var w = wr.Fork();
           wrs.Add(w);
-          wr.Write(")");
+          wr.Write(",\"C# array size must not be larger than max 32-bit int\")");
           prefix = ", ";
         }
         wr.Write("]{0}", brackets);
