@@ -1,13 +1,36 @@
 ﻿using Microsoft.Dafny;
-using System;
 
 namespace DafnyLS.Language {
   /// <summary>
   /// Base syntax tree visitor implementation that visits all nodes in post-order traversal.
   /// </summary>
-  internal class SyntaxTreeVisitor {
+  internal abstract class SyntaxTreeVisitor {
     // TODO ensure that all Visit(...) methods cover all the nested syntax elements in post-order traversal.
     // TODO Double-dispatching would be convenient here, but requirees adaptions to the AST.
+
+    /// <summary>
+    /// This method is invoked as soon as the visitor encounters an unknown syntax node.
+    /// </summary>
+    /// <param name="node">The unknown node that is being visited.</param>
+    /// <param name="token">The token asociated with the unknown node.</param>
+    public abstract void VisitUnknown(object node, Microsoft.Boogie.IToken token);
+
+    public virtual void Visit(TopLevelDecl topLevelDeclaration) {
+      switch(topLevelDeclaration) {
+      case ClassDecl classDeclaration:
+        Visit(classDeclaration);
+        break;
+      case ModuleDecl moduleDeclaration:
+      case DatatypeDecl dataTypeDeclaration:
+      case ValuetypeDecl valueTypeDeclaration:
+      case OpaqueTypeDecl opaqueTypeDeclaration:
+      case NewtypeDecl newTypeDeclaration:
+      case TypeSynonymDecl typeSynonymDeclaration:
+      default:
+        VisitUnknown(topLevelDeclaration, topLevelDeclaration.tok);
+        break;
+      }
+    }
 
     public virtual void Visit(ClassDecl classDeclaration) {
       foreach(var member in classDeclaration.Members) {
@@ -27,7 +50,8 @@ namespace DafnyLS.Language {
         Visit(method);
         break;
       default:
-        throw new ArgumentException($"unknown member declaration type {memberDeclaration.GetType()}", nameof(memberDeclaration));
+        VisitUnknown(memberDeclaration, memberDeclaration.tok);
+        break;
       }
     }
 
@@ -38,6 +62,12 @@ namespace DafnyLS.Language {
     }
 
     public virtual void Visit(Method method) {
+      foreach(var typeArgument in method.TypeArgs) {
+        Visit(typeArgument);
+      }
+      foreach(var inDefinition in method.Ins) {
+        Visit(inDefinition);
+      }
       foreach(var outDefinition in method.Outs) {
         Visit(outDefinition);
       }
@@ -55,7 +85,6 @@ namespace DafnyLS.Language {
       Visit(function.Body);
     }
 
-
     public virtual void Visit(NonglobalVariable nonGlobalVariable) {
     }
 
@@ -63,7 +92,13 @@ namespace DafnyLS.Language {
     }
 
     public virtual void Visit(LocalVariable localVariable) {
-      Visit(localVariable.Attributes);
+      VisitNullableAttributes(localVariable.Attributes);
+    }
+
+    private void VisitNullableAttributes(Attributes? attributes) {
+      if(attributes != null) {
+        Visit(attributes);
+      }
     }
 
     public virtual void Visit(Attributes attributes) {
@@ -72,18 +107,17 @@ namespace DafnyLS.Language {
       }
     }
 
-
     public virtual void Visit(AssignmentRhs assignmentRhs) {
-      Visit(assignmentRhs.Attributes);
+      VisitNullableAttributes(assignmentRhs.Attributes);
     }
 
     public virtual void Visit(TypeRhs typeRhs) {
-      Visit(typeRhs.Attributes);
+      VisitNullableAttributes(typeRhs.Attributes);
     }
 
 
     public virtual void Visit(BlockStmt blockStatement) {
-      Visit(blockStatement.Attributes);
+      VisitNullableAttributes(blockStatement.Attributes);
       foreach(var statement in blockStatement.Body) {
         Visit(statement);
       }
@@ -91,7 +125,7 @@ namespace DafnyLS.Language {
 
     public virtual void Visit(WhileStmt whileStatement) {
       Visit(whileStatement.Guard);
-      Visit(whileStatement.Attributes);
+      VisitNullableAttributes(whileStatement.Attributes);
       foreach(var invariant in whileStatement.Invariants) {
         Visit(invariant);
       }
@@ -101,9 +135,25 @@ namespace DafnyLS.Language {
 
     public virtual void Visit(IfStmt ifStatement) {
       Visit(ifStatement.Guard);
-      Visit(ifStatement.Attributes);
+      VisitNullableAttributes(ifStatement.Attributes);
       Visit(ifStatement.Thn);
       Visit(ifStatement.Els);
+    }
+
+    public virtual void Visit(VarDeclStmt variableDeclarationStatement) {
+      foreach(var localVariable in variableDeclarationStatement.Locals) {
+        Visit(localVariable);
+      }
+    }
+
+    public virtual void Visit(UpdateStmt updateStatement) {
+      VisitNullableAttributes(updateStatement.Attributes);
+      foreach(var leftHandSide in updateStatement.Lhss) {
+        Visit(leftHandSide);
+      }
+      foreach(var rightHandSide in updateStatement.Rhss) {
+        Visit(rightHandSide);
+      }
     }
 
     public virtual void Visit(Statement statement) {
@@ -114,8 +164,15 @@ namespace DafnyLS.Language {
       case WhileStmt whileStatement:
         Visit(whileStatement);
         break;
+      case VarDeclStmt variableDeclarationStatement:
+        Visit(variableDeclarationStatement);
+        break;
+      case UpdateStmt updateStatement:
+        Visit(updateStatement);
+        break;
       default:
-        throw new ArgumentException($"encountered unknown statement type {statement.GetType()}", nameof(statement));
+        VisitUnknown(statement, statement.Tok);
+        break;
       }
     }
 
@@ -143,9 +200,9 @@ namespace DafnyLS.Language {
       //case MemberSelectExpr memberSelectExpression:
       //  Visit(memberSelectExpression);
       //  break;
-      //case SeqSelectExpr sequenceSelectExpression:
-      //  Visit(sequenceSelectExpression);
-      //  break;
+      case SeqSelectExpr sequenceSelectExpression:
+        Visit(sequenceSelectExpression);
+        break;
       //case MultiSelectExpr multiSelectExpression:
       //  Visit(multiSelectExpression);
       //  break;
@@ -161,15 +218,15 @@ namespace DafnyLS.Language {
       //case UnchangedExpr unchangedExpr:
       //  Visit(unchangedExpr);
       //  break;
-      //case UnaryExpr unaryExpression:
-      //  Visit(unaryExpression);
-      //  break;
-      //case BinaryExpr binaryExpression:
-      //  Visit(binaryExpression);
-      //  break;
-      //case TernaryExpr ternaryExpression:
-      //  Visit(ternaryExpression);
-      //  break;
+      case UnaryExpr unaryExpression:
+        Visit(unaryExpression);
+        break;
+      case BinaryExpr binaryExpression:
+        Visit(binaryExpression);
+        break;
+      case TernaryExpr ternaryExpression:
+        Visit(ternaryExpression);
+        break;
       //case LetExpr letExpression:
       //  Visit(letExpression);
       //  break;
@@ -200,8 +257,24 @@ namespace DafnyLS.Language {
       //case ConcreteSyntaxExpression concreteSyntaxExpression:
       //  Visit(concreteSyntaxExpression);
       //  break;
+      case NameSegment nameSegment:
+        Visit(nameSegment);
+        break;
+      case ParensExpression parenthesesExpression:
+        Visit(parenthesesExpression);
+        break;
+      case ExprDotName expressionDotName:
+        Visit(expressionDotName);
+        break;
       default:
-        throw new ArgumentException($"encountered unknown expression type {expression.GetType()}", nameof(expression));
+        VisitUnknown(expression, expression.tok);
+        break;
+      }
+    }
+
+    private void VisitNullableExpression(Expression? expression) {
+      if(expression != null) {
+        Visit(expression);
       }
     }
 
@@ -209,24 +282,43 @@ namespace DafnyLS.Language {
     }
 
     public virtual void Visit(LiteralExpr literalExpression) {
+      switch(literalExpression) {
+      case StringLiteralExpr stringLiteralExpression:
+        Visit(stringLiteralExpression);
+        break;
+      default:
+        VisitUnknown(literalExpression, literalExpression.tok);
+        break;
+      }
+    }
+
+    public virtual void Visit(StringLiteralExpr stringLiteralExpression) {
     }
 
     public virtual void Visit(IdentifierExpr identifierExpression) {
     }
 
     public virtual void Visit(ApplySuffix applySuffix) {
+      foreach(var argument in applySuffix.Args) {
+        Visit(argument);
+      }
+      Visit(applySuffix.Lhs);
     }
 
     public virtual void Visit(NameSegment nameSegment) {
     }
 
     public virtual void Visit(ModuleDefinition moduleDefinition) {
+      foreach(var topLevelDeclaration in moduleDefinition.TopLevelDecls) {
+        Visit(topLevelDeclaration);
+      }
     }
 
     public virtual void Visit(AliasModuleDecl aliasModuleDecl) {
     }
 
     public virtual void Visit(ExprDotName expressionDotName) {
+      Visit(expressionDotName.Lhs);
     }
 
     public virtual void Visit(ThisExpr thisExpression) {
@@ -239,7 +331,34 @@ namespace DafnyLS.Language {
     }
 
     public virtual void Visit(AttributedExpression attributedExpression) {
+    }
 
+    public virtual void Visit(SeqSelectExpr sequenceSelectExpression) {
+      VisitNullableExpression(sequenceSelectExpression.Seq);
+      VisitNullableExpression(sequenceSelectExpression.E0);
+      VisitNullableExpression(sequenceSelectExpression.E1);
+    }
+
+    public virtual void Visit(TypeParameter typeParameter) {
+    }
+
+    public virtual void Visit(ParensExpression parenthesesExpression) {
+      Visit(parenthesesExpression.E);
+    }
+
+    public virtual void Visit(UnaryExpr unaryExpression) {
+      VisitNullableExpression(unaryExpression.E);
+    }
+
+    public virtual void Visit(BinaryExpr binaryExpression) {
+      VisitNullableExpression(binaryExpression.E0);
+      VisitNullableExpression(binaryExpression.E1);
+    }
+
+    public virtual void Visit(TernaryExpr ternaryExpression) {
+      VisitNullableExpression(ternaryExpression.E0);
+      VisitNullableExpression(ternaryExpression.E1);
+      VisitNullableExpression(ternaryExpression.E2);
     }
   }
 }

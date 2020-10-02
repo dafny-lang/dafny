@@ -3,6 +3,7 @@ using DafnyLS.Workspace;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -29,12 +30,12 @@ namespace DafnyLS.Handlers {
 
     public override Task<SymbolInformationOrDocumentSymbolContainer> Handle(DocumentSymbolParams request, CancellationToken cancellationToken) {
       DafnyDocument? document;
-      if (!_documents.TryGetDocument(request.TextDocument, out document)) {
+      if(!_documents.TryGetDocument(request.TextDocument, out document)) {
         _logger.LogWarning("symbols requested for unloaded document {}", request.TextDocument.Uri);
         return Task.FromResult<SymbolInformationOrDocumentSymbolContainer>(_emptySymbols);
       }
-      // TODO retrieve the symbols from the document and report them back to the requester.
-      return Task.FromResult<SymbolInformationOrDocumentSymbolContainer>(_emptySymbols);
+      var symbols = document.SymbolTable.ToLspSymbols(cancellationToken).ToList();
+      return Task.FromResult<SymbolInformationOrDocumentSymbolContainer>(symbols);
     }
   }
 }
