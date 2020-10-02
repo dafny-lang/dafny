@@ -1,10 +1,9 @@
-using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Xunit;
+using Xunit.Abstractions;
 using XUnitExtensions;
-using YamlDotNet.Core;
 using YamlDotNet.RepresentationModel;
 using YamlDotNet.Serialization;
 
@@ -61,43 +60,25 @@ namespace DafnyTests {
     }
     
     [Theory]
-    [YamlFileData("YamlTests/configs.yml", withParameterNames: false, withSourceFile: true)]
-    public void DictionaryTest(string path, Dictionary<string, string> config) {
+    [YamlFileData("YamlTests/configs.yml", withParameterNames: false)]
+    public void DictionaryTest(ISourceInformation source, Dictionary<string, string> config) {
       Assert.Equal(3, config.Count);
     }
 
-    private class MyConfigTypeConvertor : IYamlTypeConverter {
+    public class ExpandList<T> : List<T> {
       
-      public bool Accepts(Type type) {
-        return type == typeof (MyConfig);
-      }
-
-      public object ReadYaml(IParser parser, Type type) {
-        Dictionary<string, string> config = new Deserializer().Deserialize<Dictionary<string, string>>(parser);
-        return new MyConfig(config);
-      }
-
-      public void WriteYaml(IEmitter emitter, object value, Type type) {
-        throw new NotImplementedException();
-      }
     }
-    
-    private static readonly IDeserializer DESERIALIZER = new DeserializerBuilder()
-      .WithTypeConverter(new MyConfigTypeConvertor())
-      .Build();
-    
-    public class MyConfig {
 
-      public MyConfig(Dictionary<string, string> config) {
-        Config = config;
-      }
-      
-      private Dictionary<string, string> Config;
-
-      public override string ToString() {
-        return "<opaque>";
-      }
+    [Fact]
+    public void TagTest() {
+      var yaml = @"
+!foreach [a, b, c]
+";
+      var deserializer = new DeserializerBuilder()
+        .WithTagMapping("!foreach", typeof(ExpandList<object>))
+        .Build();
+      var value = deserializer.Deserialize(new StringReader(yaml));
+      Assert.IsType<ExpandList<object>>(value);
     }
-    
   }
 }
