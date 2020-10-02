@@ -217,12 +217,12 @@ namespace Microsoft.Dafny {
         var readsFrame = new List<FrameExpression> { new FrameExpression(tok, readsIS, null) };
         var req = new Function(tok, "requires", false, false, true,
           new List<TypeParameter>(), args, null, Type.Bool,
-          new List<MaybeFreeExpression>(), readsFrame, new List<MaybeFreeExpression>(),
+          new List<AttributedExpression>(), readsFrame, new List<AttributedExpression>(),
           new Specification<Expression>(new List<Expression>(), null),
           null, null, null);
         var reads = new Function(tok, "reads", false, false, true,
           new List<TypeParameter>(), args, null, new SetType(true, ObjectQ()),
-          new List<MaybeFreeExpression>(), readsFrame, new List<MaybeFreeExpression>(),
+          new List<AttributedExpression>(), readsFrame, new List<AttributedExpression>(),
           new Specification<Expression>(new List<Expression>(), null),
           null, null, null);
         readsIS.Function = reads;  // just so we can really claim the member declarations are resolved
@@ -287,7 +287,7 @@ namespace Microsoft.Dafny {
         Member = member,
         TypeApplication_AtEnclosingClass = f.Type.TypeArgs,
         TypeApplication_JustMember = new List<Type>(),
-        Type = GetTypeOfFunction(member, new List<Type>(), tps.ConvertAll(tp => (Type)new UserDefinedType(tp)))
+        Type = GetTypeOfFunction(member, tps.ConvertAll(tp => (Type)new UserDefinedType(tp)), new List<Type>())
       };
       Expression body = new ApplyExpr(tok, fn, args);
       body.Type = member.ResultType;  // resolve here
@@ -901,6 +901,7 @@ namespace Microsoft.Dafny {
           && !(udt.ResolvedClass is ArrowTypeDecl);
       }
     }
+
     public bool IsTopLevelTypeWithMembers {
       get {
         return AsTopLevelTypeWithMembers != null;
@@ -1006,8 +1007,13 @@ namespace Microsoft.Dafny {
     }
     public bool IsTraitType {
       get {
+        return AsTraitType != null;
+      }
+    }
+    public TraitDecl/*?*/ AsTraitType {
+      get {
         var udt = NormalizeExpand() as UserDefinedType;
-        return udt != null && udt.ResolvedParam == null && udt.ResolvedClass is TraitDecl;
+        return udt?.ResolvedClass as TraitDecl;
       }
     }
     public bool IsArrayType {
@@ -1243,7 +1249,45 @@ namespace Microsoft.Dafny {
     public bool IsOrdered {
       get {
         var ct = NormalizeExpand();
-        return !ct.IsTypeParameter && !ct.IsInternalTypeSynonym && !ct.IsCoDatatype && !ct.IsArrowType && !ct.IsIMapType && !ct.IsISetType;
+        return !ct.IsTypeParameter && !ct.IsOpaqueType && !ct.IsInternalTypeSynonym && !ct.IsCoDatatype && !ct.IsArrowType && !ct.IsIMapType && !ct.IsISetType;
+      }
+    }
+
+    /// <summary>
+    /// Returns "true" if:  Given a value of type "this", can we determine at run time if the
+    /// value is a member of type "target"?
+    /// </summary>
+    public bool IsTestableToBe(Type target) {
+      Contract.Requires(target != null);
+
+      // First up, we know how to check for null, so let's expand "target" and "source"
+      // past any type synonyms and also past any (built-in) non-null constraint.
+      var source = this.NormalizeExpandKeepConstraints();
+      if (source is UserDefinedType && ((UserDefinedType)source).ResolvedClass is NonNullTypeDecl) {
+        source = source.NormalizeExpand(); // also lop off non-null constraint
+      }
+      target = target.NormalizeExpandKeepConstraints();
+      if (target is UserDefinedType && ((UserDefinedType)target).ResolvedClass is NonNullTypeDecl) {
+        target = target.NormalizeExpand(); // also lop off non-null constraint
+      }
+
+      if (source.IsSubtypeOf(target, false)) {
+        // Every value of "source" is also a member of type "target", so no run-time test is needed.
+        return true;
+#if SOON  // include in a coming PR that sorts this one in the compilers
+      } else if (target is UserDefinedType udt && (udt.ResolvedClass is SubsetTypeDecl || udt.ResolvedClass is NewtypeDecl)) {
+        // The type of the bound variable has a constraint. Such a constraint is a ghost expression, so it cannot
+        // (in general) by checked at run time. (A possible enhancement here would be to look at the type constraint
+        // to if it is compilable after all.)
+        var constraints = target.GetTypeConstraints();
+        return false;
+#endif
+      } else if (target.TypeArgs.Count == 0) {
+        // No type parameters. So, we just need to check the run-time class/interface type.
+        return true;
+      } else {
+        // We give up.
+        return false;
       }
     }
 
@@ -1507,8 +1551,9 @@ namespace Microsoft.Dafny {
       } else if (a is Resolver_IdentifierExpr.ResolverType_Type) {
         return b is Resolver_IdentifierExpr.ResolverType_Type;
       } else {
-        Contract.Assert(false);  // unexpected kind of type
-        return true;  // to please the compiler
+        // this is an unexpected type; however, it may be that we get here during the resolution of an erroneous
+        // program, so we'll just return false
+        return false;
       }
     }
 
@@ -2550,7 +2595,7 @@ namespace Microsoft.Dafny {
     }
     public string FullCompanionCompileName {
       get {
-        Contract.Requires(ResolvedClass is TraitDecl);
+        Contract.Requires(ResolvedClass is TraitDecl || (ResolvedClass is NonNullTypeDecl nntd && nntd.Class is TraitDecl));
         var m = ResolvedClass.Module;
         var s = m.IsDefaultModule ? "" : m.CompileName + ".";
         return s + "_Companion_" + ResolvedClass.CompileName;
@@ -2607,6 +2652,22 @@ namespace Microsoft.Dafny {
       } else {
         return new UserDefinedType(tok, cd.Name, cd, args);
       }
+    }
+
+    /// <summary>
+    /// If "member" is non-null, then:
+    ///   Return the upcast of "receiverType" that has base type "member.EnclosingClass".
+    ///   Assumes that "receiverType" normalizes to a UserDefinedFunction with a .ResolveClass that is a subtype
+    ///   of "member.EnclosingClass".
+    /// Otherwise:
+    ///   Return "receiverType" (expanded).
+    /// </summary>
+    public static Type UpcastToMemberEnclosingType(Type receiverType, MemberDecl/*?*/ member) {
+      Contract.Requires(receiverType != null);
+      if (member != null && member.EnclosingClass != null && !(member.EnclosingClass is ValuetypeDecl)) {
+        return receiverType.AsParentType(member.EnclosingClass);
+      }
+      return receiverType.NormalizeExpandKeepConstraints();
     }
 
     /// <summary>
@@ -2850,8 +2911,6 @@ namespace Microsoft.Dafny {
     }
 
     public override bool IsSubtypeOf(Type super, bool ignoreTypeArguments) {
-      Contract.Requires(super != null);
-
       super = super.NormalizeExpandKeepConstraints();
 
       // Specifically handle object as the implicit supertype of classes and traits.
@@ -3106,6 +3165,8 @@ namespace Microsoft.Dafny {
           return GoCompiler.PublicIdProtect(name);
         case DafnyOptions.CompilationTarget.Java:
           return JavaCompiler.PublicIdProtect(name);
+        case DafnyOptions.CompilationTarget.Cpp:
+          return CppCompiler.PublicIdProtect(name);
         default:
           Contract.Assert(false);  // unexpected compile target
           return name;
@@ -3137,8 +3198,6 @@ namespace Microsoft.Dafny {
     public bool ScopeIsInherited { get { return scopeIsInherited; } }
 
     public void AddVisibilityScope(VisibilityScope scope, bool IsOpaque) {
-      Contract.Requires(!ScopeIsInherited); //pragmatically we should only augment the visibility of the parent
-
       if (IsOpaque) {
         opaqueScope.Augment(scope);
       } else {
@@ -4035,7 +4094,7 @@ namespace Microsoft.Dafny {
     public readonly List<MemberDecl> Members;
 
     // The following fields keep track of parent traits
-    public readonly List<MemberDecl> InheritedMembers = new List<MemberDecl>();  // these are instance fields and instance members defined with bodies in traits
+    public readonly List<MemberDecl> InheritedMembers = new List<MemberDecl>();  // these are instance members declared in parent traits
     public readonly List<Type> ParentTraits;  // these are the types that are parsed after the keyword 'extends'; note, for a successfully resolved program, there are UserDefinedType's where .ResolvedClas is NonNullTypeDecl
     public readonly Dictionary<TypeParameter, Type> ParentFormalTypeParametersToActuals = new Dictionary<TypeParameter, Type>();  // maps parent traits' type parameters to actuals
 
@@ -4174,10 +4233,27 @@ namespace Microsoft.Dafny {
       Contract.Requires(module != null);
       Contract.Requires(cce.NonNullElements(typeArgs));
       Contract.Requires(cce.NonNullElements(members));
-      if (!IsDefaultClass && !(this is ArrowTypeDecl)) {
+      Contract.Assume(!(this is ArrowTypeDecl));  // this is also a precondition, really, but "this" cannot be mentioned in Requires of a constructor; ArrowTypeDecl should use the next constructor
+      if (!IsDefaultClass) {
         NonNullTypeDecl = new NonNullTypeDecl(this);
       }
       this.NewSelfSynonym();
+    }
+    /// <summary>
+    /// The following constructor is supposed to be called by the ArrowTypeDecl subtype, in order to avoid
+    /// the call to this.NewSelfSynonym() (because NewSelfSynonym() depends on the .Arity field having been
+    /// set, which it hasn't during the base call of the ArrowTypeDecl constructor). Instead, the ArrowTypeDecl
+    /// constructor will do that call.
+    /// </summary>
+    protected ClassDecl(IToken tok, string name, ModuleDefinition module,
+      List<TypeParameter> typeArgs, [Captured] List<MemberDecl> members, Attributes attributes)
+      : base(tok, name, module, typeArgs, members, attributes, null) {
+      Contract.Requires(tok != null);
+      Contract.Requires(name != null);
+      Contract.Requires(module != null);
+      Contract.Requires(cce.NonNullElements(typeArgs));
+      Contract.Requires(cce.NonNullElements(members));
+      Contract.Assume(this is ArrowTypeDecl);  // this is also a precondition, really, but "this" cannot be mentioned in Requires of a constructor
     }
     public virtual bool IsDefaultClass {
       get {
@@ -4260,7 +4336,7 @@ namespace Microsoft.Dafny {
 
     public ArrowTypeDecl(List<TypeParameter> tps, Function req, Function reads, ModuleDefinition module, Attributes attributes)
       : base(Token.NoToken, ArrowType.ArrowTypeName(tps.Count - 1), module, tps,
-             new List<MemberDecl> { req, reads }, attributes, null) {
+             new List<MemberDecl> { req, reads }, attributes) {
       Contract.Requires(tps != null && 1 <= tps.Count);
       Contract.Requires(req != null);
       Contract.Requires(reads != null);
@@ -4270,6 +4346,7 @@ namespace Microsoft.Dafny {
       Reads = reads;
       Requires.EnclosingClass = this;
       Reads.EnclosingClass = this;
+      this.NewSelfSynonym();
     }
   }
 
@@ -4583,10 +4660,10 @@ namespace Microsoft.Dafny {
     public readonly Specification<FrameExpression> Reads;
     public readonly Specification<FrameExpression> Modifies;
     public readonly Specification<Expression> Decreases;
-    public readonly List<MaybeFreeExpression> Requires;
-    public readonly List<MaybeFreeExpression> Ensures;
-    public readonly List<MaybeFreeExpression> YieldRequires;
-    public readonly List<MaybeFreeExpression> YieldEnsures;
+    public readonly List<AttributedExpression> Requires;
+    public readonly List<AttributedExpression> Ensures;
+    public readonly List<AttributedExpression> YieldRequires;
+    public readonly List<AttributedExpression> YieldEnsures;
     public readonly BlockStmt Body;
     public bool SignatureIsOmitted { get { return SignatureEllipsis != null; } }
     public readonly IToken SignatureEllipsis;
@@ -4604,10 +4681,10 @@ namespace Microsoft.Dafny {
     public IteratorDecl(IToken tok, string name, ModuleDefinition module, List<TypeParameter> typeArgs,
                         List<Formal> ins, List<Formal> outs,
                         Specification<FrameExpression> reads, Specification<FrameExpression> mod, Specification<Expression> decreases,
-                        List<MaybeFreeExpression> requires,
-                        List<MaybeFreeExpression> ensures,
-                        List<MaybeFreeExpression> yieldRequires,
-                        List<MaybeFreeExpression> yieldEnsures,
+                        List<AttributedExpression> requires,
+                        List<AttributedExpression> ensures,
+                        List<AttributedExpression> yieldRequires,
+                        List<AttributedExpression> yieldEnsures,
                         BlockStmt body, Attributes attributes, IToken signatureEllipsis)
       : base(tok, name, module, MutateIntoRequiringZeroInitBit(typeArgs), new List<MemberDecl>(), attributes, null)
     {
@@ -4759,6 +4836,7 @@ namespace Microsoft.Dafny {
     public TopLevelDecl EnclosingClass;  // filled in during resolution
     public MemberDecl RefinementBase;  // filled in during the pre-resolution refinement transformation; null if the member is new here
     public MemberDecl OverriddenMember;  // filled in during resolution; non-null if the member overrides a member in a parent trait
+    public virtual bool IsOverrideThatAddsBody => OverriddenMember != null;
 
     /// <summary>
     /// Returns "true" if "this" is a (possibly transitive) override of "possiblyOverriddenMember".
@@ -4884,7 +4962,7 @@ namespace Microsoft.Dafny {
     readonly ModuleDefinition Module;
     public SpecialFunction(IToken tok, string name, ModuleDefinition module, bool hasStaticKeyword, bool isProtected, bool isGhost,
                     List<TypeParameter> typeArgs, List<Formal> formals, Type resultType,
-                    List<MaybeFreeExpression> req, List<FrameExpression> reads, List<MaybeFreeExpression> ens, Specification<Expression> decreases,
+                    List<AttributedExpression> req, List<FrameExpression> reads, List<AttributedExpression> ens, Specification<Expression> decreases,
                     Expression body, Attributes attributes, IToken signatureEllipsis)
       : base(tok, name, hasStaticKeyword, isProtected, isGhost, typeArgs, formals, null, resultType, req, reads, ens, decreases, body, attributes, signatureEllipsis)
     {
@@ -5773,9 +5851,9 @@ namespace Microsoft.Dafny {
     public readonly List<Formal> Formals;
     public readonly Formal Result;
     public readonly Type ResultType;
-    public readonly List<MaybeFreeExpression> Req;
+    public readonly List<AttributedExpression> Req;
     public readonly List<FrameExpression> Reads;
-    public readonly List<MaybeFreeExpression> Ens;
+    public readonly List<AttributedExpression> Ens;
     public readonly Specification<Expression> Decreases;
     public Expression Body;  // an extended expression; Body is readonly after construction, except for any kind of rewrite that may take place around the time of resolution
     public bool SignatureIsOmitted { get { return SignatureEllipsis != null; } }  // is "false" for all Function objects that survive into resolution
@@ -5783,6 +5861,7 @@ namespace Microsoft.Dafny {
     public bool IsBuiltin;
     public Function OverriddenFunction;
     public Function Original => OverriddenFunction == null ? this : OverriddenFunction.Original;
+    public override bool IsOverrideThatAddsBody => base.IsOverrideThatAddsBody && Body != null;
 
     public bool containsQuantifier;
     public bool ContainsQuantifier {
@@ -5871,7 +5950,7 @@ namespace Microsoft.Dafny {
     /// </summary>
     public Function(IToken tok, string name, bool hasStaticKeyword, bool isProtected, bool isGhost,
                     List<TypeParameter> typeArgs, List<Formal> formals, Formal result, Type resultType,
-                    List<MaybeFreeExpression> req, List<FrameExpression> reads, List<MaybeFreeExpression> ens, Specification<Expression> decreases,
+                    List<AttributedExpression> req, List<FrameExpression> reads, List<AttributedExpression> ens, Specification<Expression> decreases,
                     Expression body, Attributes attributes, IToken signatureEllipsis)
       : base(tok, name, hasStaticKeyword, isGhost, attributes) {
 
@@ -5956,7 +6035,7 @@ namespace Microsoft.Dafny {
     public readonly BodyOriginKind BodyOrigin;
     public Predicate(IToken tok, string name, bool hasStaticKeyword, bool isProtected, bool isGhost,
                      List<TypeParameter> typeArgs, List<Formal> formals,
-                     List<MaybeFreeExpression> req, List<FrameExpression> reads, List<MaybeFreeExpression> ens, Specification<Expression> decreases,
+                     List<AttributedExpression> req, List<FrameExpression> reads, List<AttributedExpression> ens, Specification<Expression> decreases,
                      Expression body, BodyOriginKind bodyOrigin, Attributes attributes, IToken signatureEllipsis)
       : base(tok, name, hasStaticKeyword, isProtected, isGhost, typeArgs, formals, null, Type.Bool, req, reads, ens, decreases, body, attributes, signatureEllipsis) {
       Contract.Requires(bodyOrigin == Predicate.BodyOriginKind.OriginalOrInherited || body != null);
@@ -5974,7 +6053,7 @@ namespace Microsoft.Dafny {
     public readonly FixpointPredicate FixpointPred;
     public PrefixPredicate(IToken tok, string name, bool hasStaticKeyword, bool isProtected,
                      List<TypeParameter> typeArgs, Formal k, List<Formal> formals,
-                     List<MaybeFreeExpression> req, List<FrameExpression> reads, List<MaybeFreeExpression> ens, Specification<Expression> decreases,
+                     List<AttributedExpression> req, List<FrameExpression> reads, List<AttributedExpression> ens, Specification<Expression> decreases,
                      Expression body, Attributes attributes, FixpointPredicate fixpointPred)
       : base(tok, name, hasStaticKeyword, isProtected, true, typeArgs, formals, null, Type.Bool, req, reads, ens, decreases, body, attributes, null) {
       Contract.Requires(k != null);
@@ -5999,7 +6078,7 @@ namespace Microsoft.Dafny {
 
     public FixpointPredicate(IToken tok, string name, bool hasStaticKeyword, bool isProtected, KType typeOfK,
                              List<TypeParameter> typeArgs, List<Formal> formals,
-                             List<MaybeFreeExpression> req, List<FrameExpression> reads, List<MaybeFreeExpression> ens,
+                             List<AttributedExpression> req, List<FrameExpression> reads, List<AttributedExpression> ens,
                              Expression body, Attributes attributes, IToken signatureEllipsis)
       : base(tok, name, hasStaticKeyword, isProtected, true, typeArgs, formals, null, Type.Bool,
              req, reads, ens, new Specification<Expression>(new List<Expression>(), null), body, attributes, signatureEllipsis) {
@@ -6033,7 +6112,7 @@ namespace Microsoft.Dafny {
     public override string WhatKind { get { return "inductive predicate"; } }
     public InductivePredicate(IToken tok, string name, bool hasStaticKeyword, bool isProtected, KType typeOfK,
                               List<TypeParameter> typeArgs, List<Formal> formals,
-                              List<MaybeFreeExpression> req, List<FrameExpression> reads, List<MaybeFreeExpression> ens,
+                              List<AttributedExpression> req, List<FrameExpression> reads, List<AttributedExpression> ens,
                               Expression body, Attributes attributes, IToken signatureEllipsis)
       : base(tok, name, hasStaticKeyword, isProtected, typeOfK, typeArgs, formals,
              req, reads, ens, body, attributes, signatureEllipsis) {
@@ -6045,7 +6124,7 @@ namespace Microsoft.Dafny {
     public override string WhatKind { get { return "copredicate"; } }
     public CoPredicate(IToken tok, string name, bool hasStaticKeyword, bool isProtected, KType typeOfK,
                        List<TypeParameter> typeArgs, List<Formal> formals,
-                       List<MaybeFreeExpression> req, List<FrameExpression> reads, List<MaybeFreeExpression> ens,
+                       List<AttributedExpression> req, List<FrameExpression> reads, List<AttributedExpression> ens,
                        Expression body, Attributes attributes, IToken signatureEllipsis)
       : base(tok, name, hasStaticKeyword, isProtected, typeOfK, typeArgs, formals,
              req, reads, ens, body, attributes, signatureEllipsis) {
@@ -6057,7 +6136,7 @@ namespace Microsoft.Dafny {
     public override string WhatKind { get { return "twostate function"; } }
     public TwoStateFunction(IToken tok, string name, bool hasStaticKeyword,
                      List<TypeParameter> typeArgs, List<Formal> formals, Formal result, Type resultType,
-                     List<MaybeFreeExpression> req, List<FrameExpression> reads, List<MaybeFreeExpression> ens, Specification<Expression> decreases,
+                     List<AttributedExpression> req, List<FrameExpression> reads, List<AttributedExpression> ens, Specification<Expression> decreases,
                      Expression body, Attributes attributes, IToken signatureEllipsis)
       : base(tok, name, hasStaticKeyword, false, true, typeArgs, formals, result, resultType, req, reads, ens, decreases, body, attributes, signatureEllipsis) {
       Contract.Requires(tok != null);
@@ -6078,7 +6157,7 @@ namespace Microsoft.Dafny {
     public override string WhatKind { get { return "twostate predicate"; } }
     public TwoStatePredicate(IToken tok, string name, bool hasStaticKeyword,
                      List<TypeParameter> typeArgs, List<Formal> formals,
-                     List<MaybeFreeExpression> req, List<FrameExpression> reads, List<MaybeFreeExpression> ens, Specification<Expression> decreases,
+                     List<AttributedExpression> req, List<FrameExpression> reads, List<AttributedExpression> ens, Specification<Expression> decreases,
                      Expression body, Attributes attributes, IToken signatureEllipsis)
       : base(tok, name, hasStaticKeyword, typeArgs, formals, null, Type.Bool, req, reads, ens, decreases, body, attributes, signatureEllipsis) {
       Contract.Requires(tok != null);
@@ -6101,9 +6180,9 @@ namespace Microsoft.Dafny {
     public readonly List<TypeParameter> TypeArgs;
     public readonly List<Formal> Ins;
     public readonly List<Formal> Outs;
-    public readonly List<MaybeFreeExpression> Req;
+    public readonly List<AttributedExpression> Req;
     public readonly Specification<FrameExpression> Mod;
-    public readonly List<MaybeFreeExpression> Ens;
+    public readonly List<AttributedExpression> Ens;
     public readonly Specification<Expression> Decreases;
     private BlockStmt methodBody;  // Body is readonly after construction, except for any kind of rewrite that may take place around the time of resolution (note that "methodBody" is a "DividedBlockStmt" for any "Method" that is a "Constructor")
     public bool IsRecursive;  // filled in during resolution
@@ -6111,6 +6190,7 @@ namespace Microsoft.Dafny {
     public readonly ISet<IVariable> AssignedAssumptionVariables = new HashSet<IVariable>();
     public Method OverriddenMethod;
     public Method Original => OverriddenMethod == null ? this : OverriddenMethod.Original;
+    public override bool IsOverrideThatAddsBody => base.IsOverrideThatAddsBody && Body != null;
     private static BlockStmt emptyBody = new BlockStmt(Token.NoToken, Token.NoToken, new List<Statement>());
 
     public override IEnumerable<Expression> SubExpressions {
@@ -6145,8 +6225,8 @@ namespace Microsoft.Dafny {
                   bool hasStaticKeyword, bool isGhost,
                   [Captured] List<TypeParameter> typeArgs,
                   [Captured] List<Formal> ins, [Captured] List<Formal> outs,
-                  [Captured] List<MaybeFreeExpression> req, [Captured] Specification<FrameExpression> mod,
-                  [Captured] List<MaybeFreeExpression> ens,
+                  [Captured] List<AttributedExpression> req, [Captured] Specification<FrameExpression> mod,
+                  [Captured] List<AttributedExpression> ens,
                   [Captured] Specification<Expression> decreases,
                   [Captured] BlockStmt body,
                   Attributes attributes, IToken signatureEllipsis)
@@ -6251,8 +6331,8 @@ namespace Microsoft.Dafny {
                  bool hasStaticKeyword,
                  [Captured] List<TypeParameter> typeArgs,
                  [Captured] List<Formal> ins, [Captured] List<Formal> outs,
-                 [Captured] List<MaybeFreeExpression> req, [Captured] Specification<FrameExpression> mod,
-                 [Captured] List<MaybeFreeExpression> ens,
+                 [Captured] List<AttributedExpression> req, [Captured] Specification<FrameExpression> mod,
+                 [Captured] List<AttributedExpression> ens,
                  [Captured] Specification<Expression> decreases,
                  [Captured] BlockStmt body,
                  Attributes attributes, IToken signatureEllipsis)
@@ -6267,9 +6347,9 @@ namespace Microsoft.Dafny {
                  bool hasStaticKeyword,
                  [Captured] List<TypeParameter> typeArgs,
                  [Captured] List<Formal> ins, [Captured] List<Formal> outs,
-                 [Captured] List<MaybeFreeExpression> req,
+                 [Captured] List<AttributedExpression> req,
                  [Captured] Specification<FrameExpression> mod,
-                 [Captured] List<MaybeFreeExpression> ens,
+                 [Captured] List<AttributedExpression> ens,
                  [Captured] Specification<Expression> decreases,
                  [Captured] BlockStmt body,
                  Attributes attributes, IToken signatureEllipsis)
@@ -6314,8 +6394,8 @@ namespace Microsoft.Dafny {
     public Constructor(IToken tok, string name,
                   List<TypeParameter> typeArgs,
                   List<Formal> ins,
-                  List<MaybeFreeExpression> req, [Captured] Specification<FrameExpression> mod,
-                  List<MaybeFreeExpression> ens,
+                  List<AttributedExpression> req, [Captured] Specification<FrameExpression> mod,
+                  List<AttributedExpression> ens,
                   Specification<Expression> decreases,
                   DividedBlockStmt body,
                   Attributes attributes, IToken signatureEllipsis)
@@ -6347,7 +6427,7 @@ namespace Microsoft.Dafny {
     public readonly FixpointLemma FixpointLemma;
     public PrefixLemma(IToken tok, string name, bool hasStaticKeyword,
                        List<TypeParameter> typeArgs, Formal k, List<Formal> ins, List<Formal> outs,
-                       List<MaybeFreeExpression> req, Specification<FrameExpression> mod, List<MaybeFreeExpression> ens, Specification<Expression> decreases,
+                       List<AttributedExpression> req, Specification<FrameExpression> mod, List<AttributedExpression> ens, Specification<Expression> decreases,
                        BlockStmt body, Attributes attributes, FixpointLemma fixpointLemma)
       : base(tok, name, hasStaticKeyword, true, typeArgs, ins, outs, req, mod, ens, decreases, body, attributes, null) {
       Contract.Requires(k != null);
@@ -6372,8 +6452,8 @@ namespace Microsoft.Dafny {
                          bool hasStaticKeyword, FixpointPredicate.KType typeOfK,
                          List<TypeParameter> typeArgs,
                          List<Formal> ins, [Captured] List<Formal> outs,
-                         List<MaybeFreeExpression> req, [Captured] Specification<FrameExpression> mod,
-                         List<MaybeFreeExpression> ens,
+                         List<AttributedExpression> req, [Captured] Specification<FrameExpression> mod,
+                         List<AttributedExpression> ens,
                          Specification<Expression> decreases,
                          BlockStmt body,
                          Attributes attributes, IToken signatureEllipsis)
@@ -6399,8 +6479,8 @@ namespace Microsoft.Dafny {
                           bool hasStaticKeyword, FixpointPredicate.KType typeOfK,
                           List<TypeParameter> typeArgs,
                           List<Formal> ins, [Captured] List<Formal> outs,
-                          List<MaybeFreeExpression> req, [Captured] Specification<FrameExpression> mod,
-                          List<MaybeFreeExpression> ens,
+                          List<AttributedExpression> req, [Captured] Specification<FrameExpression> mod,
+                          List<AttributedExpression> ens,
                           Specification<Expression> decreases,
                           BlockStmt body,
                           Attributes attributes, IToken signatureEllipsis)
@@ -6425,8 +6505,8 @@ namespace Microsoft.Dafny {
                    bool hasStaticKeyword, FixpointPredicate.KType typeOfK,
                    List<TypeParameter> typeArgs,
                    List<Formal> ins, [Captured] List<Formal> outs,
-                   List<MaybeFreeExpression> req, [Captured] Specification<FrameExpression> mod,
-                   List<MaybeFreeExpression> ens,
+                   List<AttributedExpression> req, [Captured] Specification<FrameExpression> mod,
+                   List<AttributedExpression> ens,
                    Specification<Expression> decreases,
                    BlockStmt body,
                    Attributes attributes, IToken signatureEllipsis)
@@ -7159,6 +7239,7 @@ namespace Microsoft.Dafny {
   public class AssignOrReturnStmt : ConcreteUpdateStatement
   {
     public readonly Expression Rhs; // this is the unresolved RHS, and thus can also be a method call
+    public readonly List<AssignmentRhs> Rhss;
     public readonly IToken ExpectToken;
     public readonly List<Statement> ResolvedStatements = new List<Statement>();  // contents filled in during resolution
     public override IEnumerable<Statement> SubStatements {
@@ -7175,7 +7256,7 @@ namespace Microsoft.Dafny {
       Contract.Invariant(Rhs != null);
     }
 
-    public AssignOrReturnStmt(IToken tok, IToken endTok, List<Expression> lhss, Expression rhs, IToken expectToken)
+    public AssignOrReturnStmt(IToken tok, IToken endTok, List<Expression> lhss, Expression rhs, IToken expectToken, List<AssignmentRhs> rhss = null)
       : base(tok, endTok, lhss)
     {
       Contract.Requires(tok != null);
@@ -7184,6 +7265,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(lhss.Count <= 1);
       Contract.Requires(rhs != null);
       Rhs = rhs;
+      Rhss = rhss;
       ExpectToken = expectToken;
     }
   }
@@ -7568,7 +7650,7 @@ namespace Microsoft.Dafny {
 
   public abstract class LoopStmt : Statement
   {
-    public readonly List<MaybeFreeExpression> Invariants;
+    public readonly List<AttributedExpression> Invariants;
     public readonly Specification<Expression> Decreases;
     public bool InferredDecreases;  // filled in by resolution
     public readonly Specification<FrameExpression> Mod;
@@ -7578,7 +7660,7 @@ namespace Microsoft.Dafny {
       Contract.Invariant(Decreases != null);
       Contract.Invariant(Mod != null);
     }
-    public LoopStmt(IToken tok, IToken endTok, List<MaybeFreeExpression> invariants, Specification<Expression> decreases, Specification<FrameExpression> mod)
+    public LoopStmt(IToken tok, IToken endTok, List<AttributedExpression> invariants, Specification<Expression> decreases, Specification<FrameExpression> mod)
     : base(tok, endTok)
     {
       Contract.Requires(tok != null);
@@ -7636,7 +7718,7 @@ namespace Microsoft.Dafny {
     }
 
     public WhileStmt(IToken tok, IToken endTok, Expression guard,
-                     List<MaybeFreeExpression> invariants, Specification<Expression> decreases, Specification<FrameExpression> mod,
+                     List<AttributedExpression> invariants, Specification<Expression> decreases, Specification<FrameExpression> mod,
                      BlockStmt body)
       : base(tok, endTok, invariants, decreases, mod) {
       Contract.Requires(tok != null);
@@ -7669,7 +7751,7 @@ namespace Microsoft.Dafny {
   public class RefinedWhileStmt : WhileStmt
   {
     public RefinedWhileStmt(IToken tok, IToken endTok, Expression guard,
-                            List<MaybeFreeExpression> invariants, Specification<Expression> decreases, Specification<FrameExpression> mod,
+                            List<AttributedExpression> invariants, Specification<Expression> decreases, Specification<FrameExpression> mod,
                             BlockStmt body)
       : base(tok, endTok, guard, invariants, decreases, mod, body) {
       Contract.Requires(tok != null);
@@ -7687,7 +7769,7 @@ namespace Microsoft.Dafny {
       Contract.Invariant(Alternatives != null);
     }
     public AlternativeLoopStmt(IToken tok, IToken endTok,
-                               List<MaybeFreeExpression> invariants, Specification<Expression> decreases, Specification<FrameExpression> mod,
+                               List<AttributedExpression> invariants, Specification<Expression> decreases, Specification<FrameExpression> mod,
                                List<GuardedAlternative> alternatives, bool usesOptionalBraces)
       : base(tok, endTok, invariants, decreases, mod) {
       Contract.Requires(tok != null);
@@ -7719,7 +7801,7 @@ namespace Microsoft.Dafny {
   {
     public readonly List<BoundVar> BoundVars;  // note, can be the empty list, in which case Range denotes "true"
     public Expression Range;  // mostly readonly, except that it may in some cases be updated during resolution to conjoin the precondition of the call in the body
-    public readonly List<MaybeFreeExpression> Ens;
+    public readonly List<AttributedExpression> Ens;
     public readonly Statement Body;
     public List<Expression> ForallExpressions;   // fill in by rewriter.
     public bool CanConvert = true; //  can convert to ForallExpressions
@@ -7755,7 +7837,7 @@ namespace Microsoft.Dafny {
       Contract.Invariant(Ens != null);
     }
 
-    public ForallStmt(IToken tok, IToken endTok, List<BoundVar> boundVars, Attributes attrs, Expression range, List<MaybeFreeExpression> ens, Statement body)
+    public ForallStmt(IToken tok, IToken endTok, List<BoundVar> boundVars, Attributes attrs, Expression range, List<AttributedExpression> ens, Statement body)
       : base(tok, endTok) {
       Contract.Requires(tok != null);
       Contract.Requires(endTok != null);
@@ -8915,6 +8997,7 @@ namespace Microsoft.Dafny {
   {
     public readonly Type UnresolvedType;
     private bool Implicit;
+    public Expression OriginalResolved;
 
     public StaticReceiverExpr(IToken tok, Type t, bool isImplicit)
       : base(tok) {
@@ -8922,6 +9005,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(t != null);
       UnresolvedType = t;
       Implicit = isImplicit;
+      OriginalResolved = null;
     }
 
     /// <summary>
@@ -8952,13 +9036,13 @@ namespace Microsoft.Dafny {
     ///   a trait that in turn extends trait "W(g(Y))".  If "t" denotes type "C(G)" and "cl" denotes "W",
     ///   then type of the StaticReceiverExpr will be "T(g(f(G)))".
     /// </summary>
-    public StaticReceiverExpr(IToken tok, UserDefinedType t, TopLevelDeclWithMembers cl, bool isImplicit)
+    public StaticReceiverExpr(IToken tok, UserDefinedType t, TopLevelDeclWithMembers cl, bool isImplicit, Expression lhs = null)
       : base(tok) {
       Contract.Requires(tok != null);
       Contract.Requires(t.ResolvedClass != null);
       Contract.Requires(cl != null);
-      if (t.ResolvedClass != cl) {
-        var top = t.AsTopLevelTypeWithMembersBypassInternalSynonym;
+      var top = t.AsTopLevelTypeWithMembersBypassInternalSynonym;
+      if (top != cl) {
         Contract.Assert(top != null);
         var clArgsInTermsOfTFormals = cl.TypeArgs.ConvertAll(tp => top.ParentFormalTypeParametersToActuals[tp]);
         var subst = Resolver.TypeSubstitutionMap(top.TypeArgs, t.TypeArgs);
@@ -8971,6 +9055,7 @@ namespace Microsoft.Dafny {
       }
       UnresolvedType = Type;
       Implicit = isImplicit;
+      OriginalResolved = lhs;
     }
 
     public override bool IsImplicit {
@@ -10633,19 +10718,26 @@ namespace Microsoft.Dafny {
     }
     public abstract class CollectionBoundedPool : BoundedPool
     {
-      public readonly bool ExactTypes;
+      public readonly Type BoundVariableType;
+      public readonly Type CollectionElementType;
       public readonly bool IsFiniteCollection;
-      public CollectionBoundedPool(bool exactTypes, bool isFiniteCollection) {
-        ExactTypes = exactTypes;
+
+      public CollectionBoundedPool(Type bvType, Type collectionElementType, bool isFiniteCollection) {
+        Contract.Requires(bvType != null);
+        Contract.Requires(collectionElementType != null);
+
+        BoundVariableType = bvType;
+        CollectionElementType = collectionElementType;
         IsFiniteCollection = isFiniteCollection;
       }
+
       public override PoolVirtues Virtues {
         get {
-          var v = PoolVirtues.IndependentOfAlloc;
+          var v = PoolVirtues.IndependentOfAlloc | PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc;
           if (IsFiniteCollection) {
             v |= PoolVirtues.Finite;
-            if (ExactTypes) {
-              v |= PoolVirtues.Enumerable | PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc;
+            if (CollectionElementType.IsTestableToBe(BoundVariableType)) {
+              v |= PoolVirtues.Enumerable;
             }
           }
           return v;
@@ -10656,7 +10748,14 @@ namespace Microsoft.Dafny {
     public class SetBoundedPool : CollectionBoundedPool
     {
       public readonly Expression Set;
-      public SetBoundedPool(Expression set, bool exactTypes, bool isFiniteCollection) : base(exactTypes, isFiniteCollection) { Set = set; }
+
+      public SetBoundedPool(Expression set, Type bvType, Type collectionElementType, bool isFiniteCollection)
+        : base(bvType, collectionElementType, isFiniteCollection) {
+        Contract.Requires(set != null);
+        Contract.Requires(bvType != null);
+        Contract.Requires(collectionElementType != null);
+        Set = set;
+      }
     }
     public class SubSetBoundedPool : BoundedPool
     {
@@ -10696,22 +10795,47 @@ namespace Microsoft.Dafny {
     public class MultiSetBoundedPool : CollectionBoundedPool
     {
       public readonly Expression MultiSet;
-      public MultiSetBoundedPool(Expression multiset, bool exactTypes) : base(exactTypes, true) { MultiSet = multiset; }
+
+      public MultiSetBoundedPool(Expression multiset, Type bvType, Type collectionElementType)
+        : base(bvType, collectionElementType, true) {
+        Contract.Requires(multiset != null);
+        Contract.Requires(bvType != null);
+        Contract.Requires(collectionElementType != null);
+        MultiSet = multiset;
+      }
     }
     public class MapBoundedPool : CollectionBoundedPool
     {
       public readonly Expression Map;
-      public MapBoundedPool(Expression map, bool exactTypes, bool isFiniteCollection) : base(exactTypes, isFiniteCollection) { Map = map; }
+
+      public MapBoundedPool(Expression map, Type bvType, Type collectionElementType, bool isFiniteCollection)
+        : base(bvType, collectionElementType, isFiniteCollection) {
+        Contract.Requires(map != null);
+        Contract.Requires(bvType != null);
+        Contract.Requires(collectionElementType != null);
+        Map = map;
+      }
     }
     public class SeqBoundedPool : CollectionBoundedPool
     {
       public readonly Expression Seq;
-      public SeqBoundedPool(Expression seq, bool exactTypes) : base(exactTypes, true) { Seq = seq; }
+
+      public SeqBoundedPool(Expression seq, Type bvType, Type collectionElementType)
+        : base(bvType, collectionElementType, true) {
+        Contract.Requires(seq != null);
+        Contract.Requires(bvType != null);
+        Contract.Requires(collectionElementType != null);
+        Seq = seq;
+      }
     }
     public class DatatypeBoundedPool : BoundedPool
     {
       public readonly DatatypeDecl Decl;
-      public DatatypeBoundedPool(DatatypeDecl d) { Decl = d; }
+
+      public DatatypeBoundedPool(DatatypeDecl d) {
+        Contract.Requires(d != null);
+        Decl = d;
+      }
       public override PoolVirtues Virtues => PoolVirtues.Finite | PoolVirtues.Enumerable | PoolVirtues.IndependentOfAlloc | PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc;
       public override int Preference() => 8;
     }
@@ -11610,9 +11734,8 @@ namespace Microsoft.Dafny {
     }
   }
 
-  public class MaybeFreeExpression {
+  public class AttributedExpression {
     public readonly Expression E;
-    public readonly bool IsFree;
     public readonly AssertLabel/*?*/ Label;
 
     [ContractInvariantMethod]
@@ -11634,29 +11757,21 @@ namespace Microsoft.Dafny {
       return Attributes != null;
     }
 
-    public MaybeFreeExpression(Expression e)
-      : this(e, false, null)
+    public AttributedExpression(Expression e)
+      : this(e, null)
     {
       Contract.Requires(e != null);
     }
 
-    public MaybeFreeExpression(Expression e, bool isFree)
-      : this(e, isFree, null)
-    {
-      Contract.Requires(e != null);
-    }
-
-    public MaybeFreeExpression(Expression e, bool isFree, Attributes attrs) {
+    public AttributedExpression(Expression e, Attributes attrs) {
       Contract.Requires(e != null);
       E = e;
-      IsFree = isFree;
       Attributes = attrs;
     }
 
-    public MaybeFreeExpression(Expression e, bool isFree, AssertLabel/*?*/ label, Attributes attrs) {
+    public AttributedExpression(Expression e, AssertLabel/*?*/ label, Attributes attrs) {
       Contract.Requires(e != null);
       E = e;
-      IsFree = isFree;
       Label = label;
       Attributes = attrs;
     }
@@ -12048,38 +12163,51 @@ namespace Microsoft.Dafny {
     public void Visit(IEnumerable<Statement> stmts) {
       stmts.Iter(Visit);
     }
-    public void Visit(MaybeFreeExpression expr) {
+    public void Visit(AttributedExpression expr) {
       Visit(expr.E);
     }
     public void Visit(FrameExpression expr) {
       Visit(expr.E);
     }
-    public void Visit(IEnumerable<MaybeFreeExpression> exprs) {
+    public void Visit(IEnumerable<AttributedExpression> exprs) {
       exprs.Iter(Visit);
     }
     public void Visit(IEnumerable<FrameExpression> exprs) {
       exprs.Iter(Visit);
     }
     public void Visit(ICallable decl) {
-      if (decl is Function) {
-        Visit((Function)decl);
-      } else if (decl is Method) {
-        Visit((Method)decl);
+      if (decl is Function f) {
+        Visit(f);
+      } else if (decl is Method m) {
+        Visit(m);
+      } else if (decl is TypeSynonymDecl tsd) {
+        Visit(tsd);
+      } else if (decl is NewtypeDecl ntd) {
+        Visit(ntd);
       }
       //TODO More?
     }
+
+    public void Visit(SubsetTypeDecl ntd) {
+      if (ntd.Constraint != null) Visit(ntd.Constraint);
+      if (ntd.Witness != null) Visit(ntd.Witness);
+    }
+    public void Visit(NewtypeDecl ntd) {
+      if (ntd.Constraint != null) Visit(ntd.Constraint);
+      if (ntd.Witness != null) Visit(ntd.Witness);
+    }
     public void Visit(Method method) {
-      Visit(method.Ens);
       Visit(method.Req);
       Visit(method.Mod.Expressions);
+      Visit(method.Ens);
       Visit(method.Decreases.Expressions);
       if (method.Body != null) { Visit(method.Body); }
       //TODO More?
     }
     public void Visit(Function function) {
-      Visit(function.Ens);
       Visit(function.Req);
       Visit(function.Reads);
+      Visit(function.Ens);
       Visit(function.Decreases.Expressions);
       if (function.Body != null) { Visit(function.Body); }
       //TODO More?
@@ -12139,13 +12267,13 @@ namespace Microsoft.Dafny {
     public void Visit(IEnumerable<Statement> stmts, State st) {
       stmts.Iter(e => Visit(e, st));
     }
-    public void Visit(MaybeFreeExpression expr, State st) {
+    public void Visit(AttributedExpression expr, State st) {
       Visit(expr.E, st);
     }
     public void Visit(FrameExpression expr, State st) {
       Visit(expr.E, st);
     }
-    public void Visit(IEnumerable<MaybeFreeExpression> exprs, State st) {
+    public void Visit(IEnumerable<AttributedExpression> exprs, State st) {
       exprs.Iter(e => Visit(e, st));
     }
     public void Visit(IEnumerable<FrameExpression> exprs, State st) {

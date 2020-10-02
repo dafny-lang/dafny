@@ -1,14 +1,14 @@
 // RUN: %dafny /compile:3 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
-// The code in this file demonstrates how correct compilation requires run-time
-// type tests beyond what Dafny's encoding into C# is capable of doing.
+// The code in this file demonstrates how correct compilation of some features
+// would require run-time type tests beyond what is reasonable to do at run time.
 // In more detail, the problem occurs when a type test is needed to distinguish
-// between Dafny types whose C# representation is the same.  For example, the
-// types "MyClass<int>" and "MyClass<nat>" are represented in the same way
-// in C#, yet there are Dafny values that satisfy the former and not the latter.
+// between Dafny types whose target representation is the same.  For example, the
+// types "MyClass<int>" and "MyClass<nat>" are represented in the same way at
+// run time, yet there are Dafny values that satisfy the former and not the latter.
 
-class MyClass<A> {
+class MyClass<A(0)> {
   var a: A
 }
 
@@ -48,7 +48,7 @@ method O()
   var c0 := new Class0;
   var c1 := new Class1;
   var s: set<Tr> := {c0, c1};
-  var t := set cc: Class1 | cc in s;  // error: this must not be compilable
+  var t := set cc: Class1 | cc in s;  // this is fine
   while |t| != 0
   {
     var u: Class1 :| u in t;

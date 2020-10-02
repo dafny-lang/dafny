@@ -22,10 +22,10 @@ type EqualsGeneric interface {
 // values are handled intelligently if their type is refl.Value or any type that
 // implements the EqualsGeneric interface.
 func AreEqual(x, y interface{}) bool {
-	if x == nil {
-		return y == nil
+	if IsDafnyNull(x) {
+		return IsDafnyNull(y)
 	}
-	if y == nil {
+	if IsDafnyNull(y) {
 		return false
 	}
 	switch x := x.(type) {
@@ -40,6 +40,17 @@ func AreEqual(x, y interface{}) bool {
 	default:
 		return refl.DeepEqual(x, y)
 	}
+}
+
+func IsDafnyNull(x interface{}) bool {
+	if x == nil {
+		return true
+	}
+	v := refl.ValueOf(x)
+	if v.Kind() == refl.Ptr {
+		return v.IsNil()
+	}
+	return false
 }
 
 func isNil(v refl.Value) bool {
@@ -167,6 +178,35 @@ var Uint32Type = BaseType(uint32(0))
 
 // Uint64Type is the RTD of uint64.
 var Uint64Type = BaseType(uint64(0))
+
+/******************************************************************************
+ * Trait parent information
+ ******************************************************************************/
+
+// Every class gets compiled to have a ParentTraits_ method, which returns the
+// list of Dafny parent traits (including transitive parent traits). This is
+// used to determine, at run time, if a given object satisfies a particular trait.
+// While it is unusual that this information is needed, it is needed in a situation
+// like
+//   var s: set<UberTrait> := ...
+//   // the following line requires run-time check that t (of type UberTrait) is a Trait
+//   var ts := set t: Trait | t in s;
+
+type TraitID struct {
+}
+
+type TraitOffspring interface {
+	ParentTraits_() []*TraitID
+}
+
+func InstanceOfTrait(obj TraitOffspring, trait *TraitID) bool {
+  for _, parent := range obj.ParentTraits_() {
+    if parent == trait {
+			return true
+		}
+	}
+	return false
+}
 
 /******************************************************************************
  * Characters
@@ -397,6 +437,10 @@ func SeqOfString(str string) Seq {
 		arr[i] = Char(v)
 	}
 	return Seq{arr, true}
+}
+
+func (seq Seq) SetString() Seq {
+        return Seq{seq.contents, true}
 }
 
 // Index finds the sequence element at the given index.
@@ -673,10 +717,15 @@ func (array *Array) RangeToSeq(lo, hi Int) Seq {
 	if len(array.dims) != 1 {
 		panic("Can't take a slice of a multidimensional array")
 	}
+        isString := false;
+        if len(array.contents) > 0 {
+            _, isString = array.contents[0].(Char)
+        }
 
 	// TODO Should set isString to true if this is an array of characters
-	// (need to know it's an array of characters first!).
+	// Do not know if it is an array of characters if the array is empty
 	seq := SeqOf(array.contents...)
+        seq.isString = isString
 
 	return seq.Subseq(lo, hi)
 }
@@ -2581,6 +2630,6 @@ func max(n, m int) int {
 
 func CatchHalt() {
     if r := recover(); r != nil {
-        fmt.Println("Program halted:", r)
+        fmt.Println("[Program halted]", r)
     }
 }

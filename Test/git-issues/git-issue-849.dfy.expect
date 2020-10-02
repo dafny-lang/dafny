@@ -1,0 +1,3 @@
+git-issue-849.dfy(7,33): Error: unresolved identifier: v
+git-issue-849.dfy(7,32): Error: update requires a sequence, map, or multiset (got Test)
+2 resolution/type errors detected in git-issue-849.dfy

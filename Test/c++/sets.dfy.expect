@@ -1,0 +1,27 @@
+
+Dafny program verifier finished with 8 verified, 0 errors
+Identity: This is expected
+ValuesIdentity: This is expected
+DiffIdentity: This is expected
+DiffIdentitySelf: This is expected
+ProperSubsetIdentity: This is expected
+ProperSubset: This is expected
+SelfSubset: This is expected
+OtherSubset: This is expected
+UnionIdentity: This is expected
+Membership: This is expected
+NonMembership1: This is expected
+NonMembership2: This is expected
+SeqMembership1: This is expected
+SeqMembership2: This is expected
+SeqMembership3: This is expected
+SeqNonMembership1: This is expected
+SeqNonMembership2: This is expected
+SeqNonMembership3: This is expected
+SeqMembershipValue1: This is expected
+SeqMembershipValue2: This is expected
+SeqMembershipValue3: This is expected
+SetComprehensionInEquality: This is expected
+SetComprehensionInMembership: This is expected
+LetSuchThatMembership: This is expected
+LetSuchThatValue: This is expected

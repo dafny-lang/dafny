@@ -29,6 +29,9 @@ let _dafny = (function() {
   $module.NewObject = function() {
     return { _tname: "object" };
   }
+  $module.InstanceOfTrait = function(obj, trait) {
+    return obj._parentTraits !== undefined && obj._parentTraits().includes(trait);
+  }
   $module.Rtd_bool = class {
     static get Default() { return false; }
   }
@@ -527,6 +530,9 @@ let _dafny = (function() {
         return r;
       }
     }
+    static JoinIfPossible(x) {
+      try { return x.join(""); } catch(_error) { return x; }
+    }
     static IsPrefixOf(a, b) {
       if (b.length < a.length) {
         return false;
@@ -845,7 +851,7 @@ let _dafny = (function() {
       // c = ((-a) % bp)
       // -a: bp - c if c > 0
       // -a: 0 if c == 0
-      let c = (-1) % bp;
+      let c = (-a) % bp;
       return c === 0 ? c : bp - c;
     }
   }
@@ -981,7 +987,7 @@ let _dafny = (function() {
       f()
     } catch (e) {
       if (e instanceof _dafny.HaltException) {
-        process.stdout.write("Program halted: " + e.message + "\n")
+        process.stdout.write("[Program halted] " + e.message + "\n")
       } else {
         throw e
       }
