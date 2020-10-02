@@ -110,6 +110,49 @@ public class Helpers {
         return i.intValue();
     }
 
+    public static void outOfRange(String msg) {
+          //System.out.println(msg);
+          //System.exit(-1);
+          throw new dafny.DafnyHaltException(msg);
+    }
+
+    public static int toIntChecked(BigInteger i, String msg) {
+        int r = i.intValue();
+        if (!BigInteger.valueOf(r).equals(i) || (msg != null && r < 0)) {
+          msg = (msg != null ? msg : "value out of range for a 32-bit int") + ": " + i;
+          outOfRange(msg);
+        }
+        return r;
+    }
+
+    public static int toIntChecked(long i, String msg) {
+        int r = (int)i;
+        if (r != i || (msg != null && r < 0)) {
+          msg = (msg != null ? msg : "value out of range for a 32-bit int") + ": " + i;
+          outOfRange(msg);
+        }
+        return r;
+    }
+
+    public static int unsignedToIntChecked(byte i) {
+        int r = unsignedToInt(i);
+        return r;
+    }
+
+    public static int unsignedToIntChecked(short i) {
+        int r = unsignedToInt(i);
+        return r;
+    }
+
+    public static int unsignedToIntChecked(long i, String msg) {
+        int r = unsignedToInt(i);
+        if (r != i) {
+          msg = (msg != null ? msg : "value out of range for a 32-bit int") + ": " + i;
+          outOfRange(msg);
+        }
+        return r;
+    }
+
     public static int toInt(int i) {
         return i;
     }
