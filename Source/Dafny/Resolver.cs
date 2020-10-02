@@ -3256,6 +3256,16 @@ namespace Microsoft.Dafny
         bounds = DiscoverAllBounds_SingleVar(ddVar, ddConstraint);
       }
 
+      // Returns null if the argument is a constrained newtype (recursively)
+      // Returns the transitive base type if the argument is recusively unconstrained
+      Type AsUnconstrainedType(Type t) {
+        while (true) {
+          if (t.AsNewtype == null) return t;
+          if (t.AsNewtype.Constraint != null) return null;
+          t = t.AsNewtype.BaseType;
+        }
+      }
+
       // Find which among the allowable native types can hold "dd". Give an
       // error for any user-specified native type that's not big enough.
       var bigEnoughNativeTypes = new List<NativeType>();
@@ -3300,7 +3310,7 @@ namespace Microsoft.Dafny
         } else if (e is MemberSelectExpr m) {
           if (m.Member is ConstantField c && c.IsStatic && c.Rhs != null) {
             // This aspect of type resolution happens before the check for cyclic references
-            // so we have to do a check here as well. If cyclic, null is silently returned, 
+            // so we have to do a check here as well. If cyclic, null is silently returned,
             // counting on the later error message to alert the user.
             if (consts.Contains(c)) { return null; }
             consts.Push(c);
@@ -3328,16 +3338,16 @@ namespace Microsoft.Dafny
           if (e0 == null || (!shortCircuit && e1 == null)) { return null; }
           bool isAnyReal = bin.E0.Type.IsNumericBased(Type.NumericPersuation.Real)
                         && bin.E1.Type.IsNumericBased(Type.NumericPersuation.Real);
-          bool isInt = bin.E0.Type.IsNumericBased(Type.NumericPersuation.Int)
+          bool isAnyInt = bin.E0.Type.IsNumericBased(Type.NumericPersuation.Int)
                        && bin.E1.Type.IsNumericBased(Type.NumericPersuation.Int);
           bool isReal = bin.Type.IsRealType;
-          bool isInteger = bin.Type.IsIntegerType;
+          bool isInt = bin.Type.IsIntegerType;
           bool isBV = bin.E0.Type.IsBitVectorType;
           int width = isBV ? bin.E0.Type.AsBitVectorType.Width : 0;
           bool isString = e0 is string && e1 is string;
           switch (bin.ResolvedOp) {
             case BinaryExpr.ResolvedOpcode.Add:
-              if (isInteger) return (BigInteger) e0 + (BigInteger) e1;
+              if (isInt) return (BigInteger) e0 + (BigInteger) e1;
               if (isBV) return ((BigInteger) e0 + (BigInteger) e1) & MaxBV(bin.Type);
               if (isReal) return (Basetypes.BigDec) e0 + (Basetypes.BigDec) e1;
               break;
@@ -3345,23 +3355,22 @@ namespace Microsoft.Dafny
               if (isString) return (string) e0 + (string) e1;
               break;
             case BinaryExpr.ResolvedOpcode.Sub:
-              if (isInteger) return (BigInteger) e0 - (BigInteger) e1;
+              if (isInt) return (BigInteger) e0 - (BigInteger) e1;
               if (isBV) return ((BigInteger) e0 - (BigInteger) e1) & MaxBV(bin.Type);
               if (isReal) return (Basetypes.BigDec) e0 - (Basetypes.BigDec) e1;
               // Allow a special case: If the result type is a newtype that is integer-based (i.e., isInt && !isInteger)
               // then we generally do not fold the operations, because we do not determine whether the
-              // result of the operation satsifies the new type constraint. However, on the occasion that
-              // a newtype aliases int witxhout a constraint, it occurs that a value of the newtype is initialized
+              // result of the operation satisfies the new type constraint. However, on the occasion that
+              // a newtype aliases int without a constraint, it occurs that a value of the newtype is initialized
               // with a negative value, which is represented as "0 - N", that is, it comes to this case. It
               // is a nuisance not to constant-fold the result, as not doing so can alter the determination
               // of the representation type.
-              if (isInt && (BigInteger) e0 == 0 && bin.Type.AsNewtype != null &&
-                  bin.Type.AsNewtype.Constraint == null) {
-                return -(BigInteger) e1;
+              if (isAnyInt && AsUnconstrainedType(bin.Type) != null) {
+                return ((BigInteger)e0)-((BigInteger)e1);
               }
               break;
             case BinaryExpr.ResolvedOpcode.Mul:
-              if (isInteger) return (BigInteger) e0 * (BigInteger) e1;
+              if (isInt) return (BigInteger) e0 * (BigInteger) e1;
               if (isBV) return ((BigInteger) e0 * (BigInteger) e1) & MaxBV(bin.Type);
               if (isReal) return (Basetypes.BigDec) e0 * (Basetypes.BigDec) e1;
               break;
@@ -3375,7 +3384,7 @@ namespace Microsoft.Dafny
               Contract.Assert(isBV);
               return (BigInteger) e0 ^ (BigInteger) e1;
             case BinaryExpr.ResolvedOpcode.Div:
-              if (isInteger) {
+              if (isInt) {
                 if ((BigInteger) e1 == 0) {
                   return null; // Divide by zero
                 } else {
@@ -3403,7 +3412,7 @@ namespace Microsoft.Dafny
 
               break;
             case BinaryExpr.ResolvedOpcode.Mod:
-              if (isInteger) {
+              if (isInt) {
                 if ((BigInteger) e1 == 0) {
                   return null; // Mod by zero
                 } else {
@@ -3452,7 +3461,7 @@ namespace Microsoft.Dafny
             }
             case BinaryExpr.ResolvedOpcode.Iff: return (bool) e0 == (bool) e1; // <==>
             case BinaryExpr.ResolvedOpcode.Gt:
-              if (isInt) return (BigInteger) e0 > (BigInteger) e1;
+              if (isAnyInt) return (BigInteger) e0 > (BigInteger) e1;
               if (isBV) return (BigInteger) e0 > (BigInteger) e1;
               if (isAnyReal) return (Basetypes.BigDec) e0 > (Basetypes.BigDec) e1;
               break;
@@ -3460,7 +3469,7 @@ namespace Microsoft.Dafny
               if (bin.E0.Type.IsCharType) return ((string) e0)[0] > ((string) e1)[0];
               break;
             case BinaryExpr.ResolvedOpcode.Ge:
-              if (isInt) return (BigInteger) e0 >= (BigInteger) e1;
+              if (isAnyInt) return (BigInteger) e0 >= (BigInteger) e1;
               if (isBV) return (BigInteger) e0 >= (BigInteger) e1;
               if (isAnyReal) return (Basetypes.BigDec) e0 >= (Basetypes.BigDec) e1;
               break;
@@ -3468,7 +3477,7 @@ namespace Microsoft.Dafny
               if (bin.E0.Type.IsCharType) return ((string) e0)[0] >= ((string) e1)[0];
               break;
             case BinaryExpr.ResolvedOpcode.Lt:
-              if (isInt) return (BigInteger) e0 < (BigInteger) e1;
+              if (isAnyInt) return (BigInteger) e0 < (BigInteger) e1;
               if (isBV) return (BigInteger) e0 < (BigInteger) e1;
               if (isAnyReal) return (Basetypes.BigDec) e0 < (Basetypes.BigDec) e1;
               break;
@@ -3479,7 +3488,7 @@ namespace Microsoft.Dafny
               if (isString) return ((string)e1).StartsWith((string)e0) && !((string) e1).Equals((string) e0);
               break;
             case BinaryExpr.ResolvedOpcode.Le:
-              if (isInt) return (BigInteger) e0 <= (BigInteger) e1;
+              if (isAnyInt) return (BigInteger) e0 <= (BigInteger) e1;
               if (isBV) return (BigInteger) e0 <= (BigInteger) e1;
               if (isAnyReal) return (Basetypes.BigDec) e0 <= (Basetypes.BigDec) e1;
               break;
@@ -3492,7 +3501,7 @@ namespace Microsoft.Dafny
             case BinaryExpr.ResolvedOpcode.EqCommon: {
               if (isBool) {
                 return (bool) e0 == (bool) e1;
-              } else if (isInt || isBV) {
+              } else if (isAnyInt || isBV) {
                 return (BigInteger) e0 == (BigInteger) e1;
               } else if (isAnyReal) {
                 return (Basetypes.BigDec) e0 == (Basetypes.BigDec) e1;
@@ -3514,7 +3523,7 @@ namespace Microsoft.Dafny
             case BinaryExpr.ResolvedOpcode.NeqCommon: {
               if (isBool) {
                 return (bool) e0 != (bool) e1;
-              } else if (isInt || isBV) {
+              } else if (isAnyInt || isBV) {
                 return (BigInteger) e0 != (BigInteger) e1;
               } else if (isAnyReal) {
                 return (Basetypes.BigDec) e0 != (Basetypes.BigDec) e1;
@@ -3544,7 +3553,7 @@ namespace Microsoft.Dafny
           if (ce.E.Type.IsNumericBased(Type.NumericPersuation.Real) &&
                 ce.Type.IsNumericBased(Type.NumericPersuation.Int)) {
             ((Basetypes.BigDec) o).FloorCeiling(out var ff, out _);
-            if (!ce.Type.IsIntegerType) return null;
+            if (AsUnconstrainedType(ce.Type) == null) return null;
             if (((Basetypes.BigDec) o) != Basetypes.BigDec.FromBigInt(ff)) {
               return null; // Argument not an integer
             }
@@ -3553,14 +3562,14 @@ namespace Microsoft.Dafny
 
           if (ce.E.Type.IsBitVectorType &&
                 ce.Type.IsNumericBased(Type.NumericPersuation.Int)) {
-            if (ce.Type.IsIntegerType) return o;
-            return null;
+            if (AsUnconstrainedType(ce.Type) == null) return null;
+            return o;
           }
 
           if (ce.E.Type.IsBitVectorType &&
                 ce.Type.IsNumericBased(Type.NumericPersuation.Real)) {
-            if (ce.Type.IsRealType) return Basetypes.BigDec.FromBigInt((BigInteger) o);
-            return null;
+            if (AsUnconstrainedType(ce.Type) == null) return null;
+            return Basetypes.BigDec.FromBigInt((BigInteger) o);
           }
 
           if (ce.E.Type.IsNumericBased(Type.NumericPersuation.Int) &&
@@ -3575,15 +3584,15 @@ namespace Microsoft.Dafny
           if (ce.E.Type.IsNumericBased(Type.NumericPersuation.Int) &&
                 ce.Type.IsNumericBased(Type.NumericPersuation.Int)) {
             // This case includes int-based newtypes to int-based new types
-            if (ce.Type.IsIntegerType) return o;
-            return null; // Not evaluating the range of the target newtype
+            if (AsUnconstrainedType(ce.Type) == null) return null;
+            return o;
           }
 
           if (ce.E.Type.IsNumericBased(Type.NumericPersuation.Real) &&
                 ce.Type.IsNumericBased(Type.NumericPersuation.Real)) {
             // This case includes real-based newtypes to real-based new types
-            if (ce.Type.IsRealType) return o;
-            return null; // Not evaluating the range of the target newtype
+            if (AsUnconstrainedType(ce.Type) == null) return null;
+            return o;
           }
 
           if (ce.E.Type.IsBitVectorType && ce.Type.IsBitVectorType) {
@@ -3596,14 +3605,14 @@ namespace Microsoft.Dafny
 
           if (ce.E.Type.IsNumericBased(Type.NumericPersuation.Int) &&
                 ce.Type.IsNumericBased(Type.NumericPersuation.Real)) {
-            if (!ce.Type.IsRealType) return null;
+            if (AsUnconstrainedType(ce.Type) == null) return null;
             return Basetypes.BigDec.FromBigInt((BigInteger) o);
           }
 
           if (ce.E.Type.IsCharType && ce.Type.IsNumericBased(Type.NumericPersuation.Int)) {
             char c = ((String) o)[0];
-            if (ce.Type.IsIntegerType) return new BigInteger(((string) o)[0]);
-            return null;
+            if (AsUnconstrainedType(ce.Type) == null) return null;
+            return new BigInteger(((string) o)[0]);
           }
 
           if (ce.E.Type.IsCharType && ce.Type.IsBitVectorType) {
@@ -3625,8 +3634,8 @@ namespace Microsoft.Dafny
 
           if (ce.E.Type.IsCharType &&
               ce.Type.IsNumericBased(Type.NumericPersuation.Real)) {
-            if (ce.Type.IsRealType) return Basetypes.BigDec.FromInt(((string) o)[0]);
-            return null;
+            if (AsUnconstrainedType(ce.Type) == null) return null;
+            return Basetypes.BigDec.FromInt(((string) o)[0]);
           }
 
           if (ce.E.Type.IsNumericBased(Type.NumericPersuation.Real) &&
