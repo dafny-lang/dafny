@@ -1309,10 +1309,17 @@ namespace Microsoft.Dafny
       wr.Write(")");
     }
 
+    protected void TrExprAsInt(Expression expr, TargetWriter wr, bool inLetExprBody, bool checkRange = false,
+      string msg = null) {
+      wr.Write($"{GetHelperModuleName()}.ToIntChecked(");
+      TrExpr(expr, wr, inLetExprBody);
+      wr.Write($", \"{msg}\")");
+    }
+
     protected override void EmitNewArray(Type elmtType, Bpl.IToken tok, List<Expression> dimensions, bool mustInitialize, TargetWriter wr) {
       var wrs = EmitNewArray(elmtType, tok, dimensions.Count, mustInitialize, wr);
       for (int i = 0; i < wrs.Count; i++) {
-        TrExpr(dimensions[i], wrs[i], inLetExprBody: false);
+        TrExprAsInt(dimensions[i], wrs[i], inLetExprBody: false, true, "C# arrays may not be larger than the max 32-bit integer");
       }
     }
 
@@ -1324,7 +1331,7 @@ namespace Microsoft.Dafny
         wr.Write("new {0}", typeNameSansBrackets);
         string prefix = "[";
         for (var d = 0; d < dimCount; d++) {
-          wr.Write("{0}(int)(", prefix);
+          wr.Write("{0}(", prefix);
           var w = wr.Fork();
           wrs.Add(w);
           wr.Write(")");
@@ -2488,7 +2495,7 @@ namespace Microsoft.Dafny
         }
         return false;
       }
-      } 
+      }
       else {
         var emitResult = compilation.Emit(outputPath);
 

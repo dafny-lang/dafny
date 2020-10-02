@@ -1100,6 +1100,22 @@ namespace Dafny
     public static int GetHashCode<G>(G g) {
       return g == null ? 1001 : g.GetHashCode();
     }
+    public static int ToIntChecked(BigInteger i, string msg) {
+      if (i > Int32.MaxValue || i < Int32.MinValue) {
+        throw new HaltException(msg + ": " + i);
+      }
+      return (int)i;
+    }
+    public static int ToIntChecked(long i, string msg) {
+      if (i > Int32.MaxValue || i < Int32.MinValue) {
+        throw new HaltException(msg + ": " + i);
+      }
+      return (int)i;
+    }
+    public static int ToIntChecked(int i, string msg) {
+      return i;
+    }
+
     public static string ToString<G>(G g) {
       if (g == null) {
         return "null";

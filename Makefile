@@ -15,10 +15,8 @@ ${DIR}/../boogie/Binaries/Boogie.exe:
 parser:
 	make -C ${DIR}/Source/Dafny -f Makefile.linux all
 
-runtime: ${DIR}/Binaries/DafnyRuntime.jar
-
-${DIR}/Binaries/DafnyRuntime.jar:
-	(cd ${DIR}/Source/DafnyRuntime/DafnyRuntimeJava; ./gradlew copyJarToBinaries)
+runtime:
+	(cd ${DIR}/Source/DafnyRuntime/DafnyRuntimeJava; ./gradlew clean copyJarToBinaries)
 
 refman:
 	make -C ${DIR}/docs/DafnyReferenceManual
