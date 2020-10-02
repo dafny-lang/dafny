@@ -358,6 +358,9 @@ method Downcasts() {
   s, s' := MId2<Number>(m);  // cast out
   eq := s == m && m == s;
   print eq, "\n";  // true
+
+  TailRecursiveMethod(12, 1, s);
+  var f16 := TailRecursiveFunction(12, 1, s);
 }
 
 // This method will create the collections of type coll<T>
@@ -393,9 +396,20 @@ method MId2<T>(s: set<T>) returns (r0: set<T>, r1: set<T>)
   r0, r1 := s, s;
 }
 
-// TODO: should also test tail-recursive calls (functions and methods)
-// TODO: maybe also try constructor call
+method {:tailrecursion} TailRecursiveMethod(x: nat, ghost u: int, s: set<Integer>) {
+  var n: set<Number> := s;
+  if x != 0 {
+    TailRecursiveMethod(x - 1, 100 * u, n);
+  }
+}
+
+function method {:tailrecursion} TailRecursiveFunction(x: nat, ghost u: int, s: set<Integer>): int {
+  var n: set<Number> := s;
+  if x == 0 then 16 else TailRecursiveFunction(x - 1, 100 * u, n)
+}
+
 // TODO: assignments to fields, array elements, multi-dimensional array elements
+// TODO: maybe also try constructor call
 
 method DeepDowncast() {
   // test covariant types whose components are also of a covariant type

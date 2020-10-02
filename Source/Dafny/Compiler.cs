@@ -320,7 +320,7 @@ namespace Microsoft.Dafny {
 
     protected virtual TargetWriter EmitAssignment(ILvalue wLhs, Type/*?*/ lhsType, Type/*?*/ rhsType, TargetWriter wr) {
       var w = wLhs.EmitWrite(wr);
-      w = EmitCoercionIfNecessary(from:rhsType, to:lhsType, tok: Bpl.Token.NoToken, wr: w);
+      w = EmitCoercionIfNecessary(rhsType, lhsType, Bpl.Token.NoToken, w);
       w = EmitDowncastIfNecessary(rhsType, lhsType, Bpl.Token.NoToken, w);
       return w;
     }
@@ -328,12 +328,9 @@ namespace Microsoft.Dafny {
     protected virtual void EmitAssignment(out TargetWriter wLhs, Type/*?*/ lhsType, out TargetWriter wRhs, Type/*?*/ rhsType, TargetWriter wr) {
       wLhs = wr.Fork();
       wr.Write(" = ");
-      TargetWriter w;
-      if (rhsType != null) {
-        w = EmitCoercionIfNecessary(from:rhsType, to:lhsType, tok:Bpl.Token.NoToken, wr:wr);
-      } else {
-        w = wr;
-      }
+      var w = wr;
+      w = EmitCoercionIfNecessary(rhsType, lhsType, Bpl.Token.NoToken, w);
+      w = EmitDowncastIfNecessary(rhsType, lhsType, Bpl.Token.NoToken, w);
       wRhs = w.Fork();
       EndStmt(wr);
     }
@@ -2136,9 +2133,11 @@ namespace Microsoft.Dafny {
 
         // assign the actual in-parameters to temporary variables
         var inTmps = new List<string>();
+        var inTypes = new List<Type/*?*/>();
         if (!e.Function.IsStatic) {
           string inTmp = idGenerator.FreshId("_in");
           inTmps.Add(inTmp);
+          inTypes.Add(null);
           DeclareLocalVar(inTmp, null, null, e.Receiver, false, wr);
         }
         for (int i = 0; i < e.Function.Formals.Count; i++) {
@@ -2146,7 +2145,8 @@ namespace Microsoft.Dafny {
           if (!p.IsGhost) {
             string inTmp = idGenerator.FreshId("_in");
             inTmps.Add(inTmp);
-            DeclareLocalVar(inTmp, p.Type,  p.tok, e.Args[i], false, wr);
+            inTypes.Add(e.Args[i].Type);
+            DeclareLocalVar(inTmp, e.Args[i].Type, p.tok, e.Args[i], false, wr);
           }
         }
         // Now, assign to the formals
@@ -2166,8 +2166,7 @@ namespace Microsoft.Dafny {
         }
         foreach (var p in e.Function.Formals) {
           if (!p.IsGhost) {
-            wr.Write("{0} = {1}", IdName(p), inTmps[n]);
-            EndStmt(wr);
+            EmitAssignment(IdName(p), p.Type, inTmps[n], inTypes[n], wr);
             n++;
           }
         }
@@ -3766,11 +3765,13 @@ namespace Microsoft.Dafny {
 
         // assign the actual in-parameters to temporary variables
         var inTmps = new List<string>();
+        var inTypes = new List<Type/*?*/>();
         if (receiverReplacement != null) {
           // TODO:  What to do here?  When does this happen, what does it mean?
         } else if (!s.Method.IsStatic) {
           string inTmp = idGenerator.FreshId("_in");
           inTmps.Add(inTmp);
+          inTypes.Add(null);
           DeclareLocalVar(inTmp, null, null, s.Receiver, false, wr);
         }
         for (int i = 0; i < s.Method.Ins.Count; i++) {
@@ -3778,7 +3779,8 @@ namespace Microsoft.Dafny {
           if (!p.IsGhost) {
             string inTmp = idGenerator.FreshId("_in");
             inTmps.Add(inTmp);
-            DeclareLocalVar(inTmp, p.Type, p.tok, s.Args[i], false, wr);
+            inTypes.Add(s.Args[i].Type);
+            DeclareLocalVar(inTmp, s.Args[i].Type, p.tok, s.Args[i], false, wr);
           }
         }
         // Now, assign to the formals
@@ -3798,8 +3800,7 @@ namespace Microsoft.Dafny {
         }
         foreach (var p in s.Method.Ins) {
           if (!p.IsGhost) {
-            wr.Write("{0} = {1}", IdName(p), inTmps[n]);
-            EndStmt(wr);
+            EmitAssignment(IdName(p), p.Type, inTmps[n], inTypes[n], wr);
             n++;
           }
         }
