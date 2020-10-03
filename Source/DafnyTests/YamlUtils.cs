@@ -1,11 +1,17 @@
+using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using Xunit;
 using Xunit.Abstractions;
+using Xunit.Sdk;
 using XUnitExtensions;
+using YamlDotNet.Core;
 using YamlDotNet.RepresentationModel;
 using YamlDotNet.Serialization;
+using YamlDotNet.Serialization.NamingConventions;
 
 namespace DafnyTests {
   public class YamlUtils {
@@ -75,16 +81,38 @@ namespace DafnyTests {
       
     }
 
-    [Fact]
-    public void TagTest() {
-      var yaml = @"
-!foreach [a, b, c]
-";
-      var deserializer = new DeserializerBuilder()
-        .WithTagMapping("!foreach", typeof(ExpandList<object>))
-        .Build();
-      var value = deserializer.Deserialize(new StringReader(yaml));
-      Assert.IsType<ExpandList<object>>(value);
+    [DataDiscoverer("DafnyTests.CustomDiscoverer", "DafnyTests")]
+    public class CustomYamlFileDataAttribute : YamlFileDataAttribute {
+      public CustomYamlFileDataAttribute(string rootPath, bool withParameterNames = true) : base(rootPath, withParameterNames) {
+      }
+    }
+    
+    [Theory]
+    [CustomYamlFileData("YamlTests/calculator-tagged.yml")]
+    public void CustomDataDiscovererTest([ForEach()] int lhs, [ForEach()] int rhs) {
+      Assert.Equal(rhs + lhs, lhs + rhs);
+    }
+  }
+
+  public class Range : IEnumerable<int> {
+
+    public int Start;
+    public int End;
+
+
+    public IEnumerator<int> GetEnumerator() {
+      return Enumerable.Range(Start, End).GetEnumerator();
+    }
+
+    IEnumerator IEnumerable.GetEnumerator() {
+      return GetEnumerator();
+    }
+  }
+
+  public class CustomDiscoverer : YamlFileDataDiscoverer {
+    public override IDeserializer GetDeserializer() {
+      return new DeserializerBuilder().WithTagMapping("!range", typeof(Range))
+        .WithNamingConvention(CamelCaseNamingConvention.Instance).Build();
     }
   }
 }
