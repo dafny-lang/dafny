@@ -1,13 +1,14 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using DafnyTests;
 using Xunit.Abstractions;
 using Xunit.Sdk;
 using YamlDotNet.Core;
 using YamlDotNet.Core.Events;
-using YamlDotNet.RepresentationModel;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NodeDeserializers;
 using YamlDotNet.Serialization.ObjectFactories;
@@ -15,11 +16,11 @@ using YamlDotNet.Serialization.Utilities;
 
 namespace XUnitExtensions {
   public class YamlFileDataDiscoverer : IDataDiscoverer {
-    public IParser GetYamlParser(string filePath)  {
+    public virtual IParser GetYamlParser(string filePath)  {
       return new Parser(new StreamReader(filePath));
     }
 
-    public IDeserializer GetDeserializer() {
+    public virtual IDeserializer GetDeserializer() {
       return new Deserializer();
     }
 
@@ -46,9 +47,10 @@ namespace XUnitExtensions {
       if (withParameterNames) {
         IObjectFactory argumentsFactory = new DefaultObjectFactory();
         INodeDeserializer collectionDeserializer = new CollectionNodeDeserializer(argumentsFactory);
-        if (collectionDeserializer.Deserialize(parser, typeof(List<MethodArguments>), ForMethodInfoDeserializeFn(deserializer, testMethod, path), out var value)) {
+        var nestedObjectDeserializer = ForMethodInfoDeserializeFn(deserializer, testMethod, path);
+        if (collectionDeserializer.Deserialize(parser, typeof(List<MethodArguments>), nestedObjectDeserializer, out var value)) {
           List<MethodArguments> argumentses = (List<MethodArguments>) value;
-          return argumentses.Select(a => a.Arguments);
+          return argumentses.SelectMany(a => a.Combinations());
         } else {
           throw new ArgumentException();
         }
@@ -93,7 +95,7 @@ namespace XUnitExtensions {
 
     private MethodInfo Method;
     private Dictionary<string, int> ParameterNameIndexes;
-    public object[] Arguments { get; }
+    private object[] Arguments;
 
     public MethodArguments(MethodInfo methodInfo, string path) {
       Method = methodInfo;
@@ -114,7 +116,12 @@ namespace XUnitExtensions {
       while (!parser.TryConsume(out MappingEnd _)) {
         Scalar scalar = parser.Consume<Scalar>();
         int parameterIndex = ParameterNameIndexes[scalar.Value];
-        Type parameterType = Method.GetParameters()[parameterIndex].ParameterType;
+        ParameterInfo parameter = Method.GetParameters()[parameterIndex];
+        Type parameterType = parameter.ParameterType;
+        ForEachAttribute forEach = parameter.GetCustomAttribute<ForEachAttribute>();
+        if (forEach != null) {
+          parameterType = forEach.EnumerableTypeOf(parameterType);
+        }
         
         object argument = nestedObjectDeserializer(parameterType);
         IValuePromise valuePromise = argument as IValuePromise;
@@ -128,6 +135,16 @@ namespace XUnitExtensions {
 
     public void Write(IEmitter emitter, ObjectSerializer nestedObjectSerializer) {
       throw new NotImplementedException();
+    }
+
+    public IEnumerable<object[]> Combinations() {
+      // TODO: Optimize this away when there are no ForEach attributes
+      IEnumerable<IEnumerable<object>> lifted = Arguments.Select((arg, index) => {
+        ParameterInfo parameter = Method.GetParameters()[index];
+        ForEachAttribute forEach = parameter.GetCustomAttribute<ForEachAttribute>();
+        return forEach == null ? new[] {arg} : ((IEnumerable)arg).Cast<object>();
+      });
+      return lifted.CartesianProduct().Select(e => e.ToArray());
     }
   }
   

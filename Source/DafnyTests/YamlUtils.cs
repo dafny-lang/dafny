@@ -60,6 +60,12 @@ namespace DafnyTests {
     }
     
     [Theory]
+    [YamlFileData("YamlTests/calculator-combinatorial.yml")]
+    public void CalculatorCombinatorialTest([ForEach()] int lhs, [ForEach()] int rhs) {
+      Assert.Equal(rhs + lhs, lhs + rhs);
+    }
+    
+    [Theory]
     [YamlFileData("YamlTests/configs.yml", withParameterNames: false)]
     public void DictionaryTest(ISourceInformation source, Dictionary<string, string> config) {
       Assert.Equal(3, config.Count);
