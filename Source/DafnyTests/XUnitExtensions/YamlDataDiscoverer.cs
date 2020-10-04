@@ -15,9 +15,9 @@ using YamlDotNet.Serialization.ObjectFactories;
 using YamlDotNet.Serialization.Utilities;
 
 namespace XUnitExtensions {
-  public class YamlFileDataDiscoverer : IDataDiscoverer {
-    public virtual IParser GetYamlParser(string filePath)  {
-      return new Parser(new StreamReader(filePath));
+  public class YamlDataDiscoverer : IDataDiscoverer {
+    public virtual IParser GetYamlParser(Stream stream)  {
+      return new Parser(new StreamReader(stream));
     }
 
     public virtual IDeserializer GetDeserializer() {
@@ -39,15 +39,17 @@ namespace XUnitExtensions {
     public bool SupportsDiscoveryEnumeration(IAttributeInfo dataAttribute, IMethodInfo testMethod) {
       return true;
     }
-    private IEnumerable<object[]> FileData(IDeserializer deserializer, MethodInfo testMethod, string path, bool withParameterNames) {
-      IParser parser = GetYamlParser(path);
+    
+    private IEnumerable<object[]> ResourceData(IDeserializer deserializer, MethodInfo testMethod, string resourceName, bool withParameterNames) {
+      Stream stream = testMethod.DeclaringType.Assembly.GetManifestResourceStream(resourceName);
+      IParser parser = GetYamlParser(stream);
       parser.Consume<StreamStart>();
       parser.Consume<DocumentStart>();
             
       if (withParameterNames) {
         IObjectFactory argumentsFactory = new DefaultObjectFactory();
         INodeDeserializer collectionDeserializer = new CollectionNodeDeserializer(argumentsFactory);
-        var nestedObjectDeserializer = ForMethodInfoDeserializeFn(deserializer, testMethod, path);
+        var nestedObjectDeserializer = ForMethodInfoDeserializeFn(deserializer, testMethod, resourceName);
         if (collectionDeserializer.Deserialize(parser, typeof(List<MethodArguments>), nestedObjectDeserializer, out var value)) {
           List<MethodArguments> argumentses = (List<MethodArguments>) value;
           return argumentses.SelectMany(a => a.Combinations());
@@ -63,7 +65,7 @@ namespace XUnitExtensions {
         IEnumerable<object> results = (IEnumerable<object>)deserializer.Deserialize(parser, typeof(List<>).MakeGenericType(parameters.Single().ParameterType));
         
         return withSourceFile ? 
-          results.Select(value => new[]{ new SourceFile(path), value }) : 
+          results.Select(value => new[]{ new SourceFile(resourceName), value }) : 
           results.Select(value => new[]{ value });
       }
     }
@@ -78,16 +80,13 @@ namespace XUnitExtensions {
       IDeserializer deserializer = GetDeserializer();
 
       List<object> attributeArgs = attributeInfo.GetConstructorArguments().ToList();
-      string rootPath = (string)attributeArgs[0];
-      bool withParameterNames = (bool)attributeArgs[1];
-      
-      if (rootPath.EndsWith(".yml")) {
-        return FileData(deserializer, methodInfo, rootPath, withParameterNames);
-      } else {
-        var filePaths = Directory.GetFiles(rootPath, "*.yml", SearchOption.AllDirectories)
-                                 .Select(path => Path.GetRelativePath(rootPath, path));
-        return filePaths.SelectMany(path => FileData(deserializer, methodInfo, path, withParameterNames));
-      }
+      bool withParameterNames = (bool)attributeArgs[0];
+
+      string resourceNamePrefix = methodInfo.DeclaringType.FullName + "." + methodInfo.Name;
+//      throw new ArgumentException(resourceNamePrefix);
+      return methodInfo.DeclaringType.Assembly.GetManifestResourceNames()
+        .Where(n => n.StartsWith(resourceNamePrefix))
+        .SelectMany(path => ResourceData(deserializer, methodInfo, path, withParameterNames));
     }
   }
 

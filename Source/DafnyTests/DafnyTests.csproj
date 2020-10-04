@@ -18,7 +18,10 @@
     <ItemGroup>
 <!--        <Content Include="../**/*.*" Exclude="../DafnyTests/**/*.*" CopyToOutputDirectory="PreserveNewest" LinkBase="Test" />-->
 <!--        <None Include="../../Binaries/z3/**/*.*" CopyToOutputDirectory="PreserveNewest" LinkBase="z3" />-->
-        <None Update="YamlTests/*.yml" CopyToOutputDirectory="PreserveNewest" />
+        <EmbeddedResource Include="XUnitExtensions\YamlDataTests\CalculatorCombinatorialTest.yml" />
+        <EmbeddedResource Include="XUnitExtensions\YamlDataTests\CalculatorTest.yml" />
+        <EmbeddedResource Include="XUnitExtensions\YamlDataTests\CustomDataDiscovererTest.yml" />
+        <EmbeddedResource Include="XUnitExtensions\YamlDataTests\DictionaryTest.yml" />
 
     </ItemGroup>
     

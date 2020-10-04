@@ -5,7 +5,9 @@ using System.IO;
 using System.Linq;
 using Xunit;
 using Xunit.Abstractions;
+using Xunit.Sdk;
 using XUnitExtensions;
+using YamlDotNet.Core;
 using YamlDotNet.RepresentationModel;
 
 namespace DafnyTests {
@@ -262,6 +264,32 @@ namespace DafnyTests {
     }
   }
 
+  public class DafnyTestYamlDataDiscoverer : YamlDataDiscoverer {
+    public override IParser GetYamlParser(Stream stream) {
+      // TODO-RS: Figure out how to do this cleanly on a TextReader instead,
+      // and to handle things like nested comments.
+      string fullText = new StreamReader(stream).ReadToEnd();
+      var commentStart = fullText.IndexOf("/*");
+      if (commentStart >= 0) {
+        var commentEnd = fullText.IndexOf("*/", commentStart + 2);
+        if (commentEnd >= 0) {
+          var commentContent = fullText.Substring(commentStart + 2, commentEnd - commentStart - 2).Trim();
+          if (commentContent.StartsWith("---")) {
+            return new Parser(new StringReader(commentContent));
+          }
+        }
+      }
+  
+      return null;
+    }
+  }
+
+  [DataDiscoverer("DafnyTests.DafnyTestYamlFileDataDiscoverer", "DafnyTests")]
+  public class DafnyTestDataAttribute : YamlDataAttribute {
+    public DafnyTestDataAttribute(bool withParameterNames = true) : base(withParameterNames) {
+    }
+  }
+  
   public class DafnyTests {
     
     public static IEnumerable<object[]> AllTestFiles() {
@@ -271,8 +299,8 @@ namespace DafnyTests {
     }
 
     [ParallelTheory]
-    [MemberData(nameof(AllTestFiles))]
-    public static void Test(string[] args, DafnyTestCase.Expectation expected) {
+    [DafnyTestData()]
+    public static void Test(string[] args, [ForEach()] DafnyTestCase.Expectation expected) {
       var testCase = new DafnyTestCase();
       testCase.DafnyFile = args[0];
       testCase.Arguments = args.Skip(1).ToArray();

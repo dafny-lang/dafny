@@ -1,8 +1,0 @@
-- a: b
-  foo: bar
-- a: b
-  foo: blarg
-- a: c
-  foo: bar
-- a: c
-  foo: blarg
