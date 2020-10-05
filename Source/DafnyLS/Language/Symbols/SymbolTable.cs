@@ -7,16 +7,16 @@ namespace DafnyLS.Language.Symbols {
   /// A table containing the symbols of a dafny syntax tree.
   /// </summary>
   internal class SymbolTable {
-    public IReadOnlyList<LocalVariableSymbol> Symbols { get; }
+    public IReadOnlyList<ISymbol> Symbols { get; }
 
-    public SymbolTable(IReadOnlyList<LocalVariableSymbol> symbols) {
+    public SymbolTable(IReadOnlyList<ISymbol> symbols) {
       Symbols = symbols;
     }
 
     public IEnumerable<DocumentSymbol> ToLspSymbols(CancellationToken cancellationToken) {
       foreach(var symbol in Symbols) {
         cancellationToken.ThrowIfCancellationRequested();
-        yield return symbol.ToLspSymbol();
+        yield return symbol.AsLspSymbol();
       }
     }
   }
