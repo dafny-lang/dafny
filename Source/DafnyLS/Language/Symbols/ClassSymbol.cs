@@ -1,29 +1,28 @@
 ﻿using Microsoft.Dafny;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
-using System.Linq;
 using System.Threading;
 
 namespace DafnyLS.Language.Symbols {
-  internal class MethodSymbol : ISymbol {
-    private readonly Method _node;
+  internal class ClassSymbol : ISymbol {
+    private readonly ClassDecl _node;
 
-    public MethodSymbol(Method method) {
-      _node = method;
+    public ClassSymbol(ClassDecl classDeclaration) {
+      _node = classDeclaration;
     }
 
     public DocumentSymbol AsLspSymbol(CancellationToken cancellationToken) {
       return new DocumentSymbol {
         Name = _node.Name,
-        Kind = SymbolKind.Method,
+        Kind = SymbolKind.Class,
         Range = new Range(_node.tok.GetLspPosition(), _node.BodyEndTok.GetLspPosition()),
         SelectionRange = _node.tok.GetLspRange(),
-        Detail = GetDetailText(cancellationToken),
-        Children = _node.Ins.Concat(_node.Outs).Select(input => new VariableSymbol(input)).AsLspSymbols(cancellationToken).ToList()
+        Detail = GetDetailText(cancellationToken)
+        // TODO children should probably resolved with the visitor.
       };
     }
 
     public string GetDetailText(CancellationToken cancellationToken) {
-      return $"method {_node.Name}({_node.Ins.AsCommaSeperatedText()}):({_node.Outs.AsCommaSeperatedText()})";
+      return $"class {_node.Name}";
     }
   }
 }

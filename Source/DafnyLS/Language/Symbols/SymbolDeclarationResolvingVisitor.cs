@@ -22,6 +22,11 @@ namespace DafnyLS.Language.Symbols {
       _logger.LogWarning("encountered unknown syntax node of type {} in {}@({},{})", node.GetType(), Path.GetFileName(token.filename), token.line, token.col);
     }
 
+    public override void Visit(ClassDecl classDeclaration) {
+      _currentTable.Register(new ClassSymbol(classDeclaration));
+      ScopeSymbolTable(() => base.Visit(classDeclaration));
+    }
+
     public override void Visit(Method method) {
       _currentTable.Register(new MethodSymbol(method));
       ScopeSymbolTable(() => base.Visit(method));
@@ -42,6 +47,10 @@ namespace DafnyLS.Language.Symbols {
 
     public override void Visit(Formal formal) {
       _currentTable.Register(new VariableSymbol(formal));
+    }
+
+    public override void Visit(Field field) {
+      _currentTable.Register(new FieldSymbol(field));
     }
 
     public override void Visit(LocalVariable localVariable) {

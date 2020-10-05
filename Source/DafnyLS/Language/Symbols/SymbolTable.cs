@@ -1,4 +1,6 @@
-﻿using System.Collections.Generic;
+﻿using OmniSharp.Extensions.LanguageServer.Protocol.Models;
+using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Threading;
 
@@ -39,6 +41,18 @@ namespace DafnyLS.Language.Symbols {
     /// <param name="symbol">The symbol to register.</param>
     public void Register(ISymbol symbol) {
       _symbols.Add(symbol);
+    }
+
+    /// <summary>
+    /// Tries to get a symbol at the specified location.
+    /// </summary>
+    /// <param name="position">The requested position.</param>
+    /// <param name="symbol">The symbol that could be identified at the given position, or <c>null</c> if no symbol could be identified.</param>
+    /// <returns><c>true</c> if a symbol was found, otherwise <c>false</c>.</returns>
+    public bool TryGetSymbolAt(Position position, [NotNullWhen(true)] out ISymbol? symbol) {
+      // TODO resolve the actual symbol.
+      symbol = _symbols.FirstOrDefault();
+      return symbol != null;
     }
 
     /// <summary>

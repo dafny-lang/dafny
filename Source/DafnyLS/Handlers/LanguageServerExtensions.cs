@@ -13,7 +13,8 @@ namespace DafnyLS.Handlers {
     public static LanguageServerOptions WithDafnyHandlers(this LanguageServerOptions options) {
       return options
         .WithHandler<DafnyTextDocumentHandler>()
-        .WithHandler<DafnyDocumentSymbolHandler>();
+        .WithHandler<DafnyDocumentSymbolHandler>()
+        .WithHandler<DafnyHoverHandler>();
     }
   }
 }

@@ -17,9 +17,13 @@ namespace DafnyLS.Language.Symbols {
         Kind = SymbolKind.Method,
         Range = new Range(_node.tok.GetLspPosition(), _node.BodyEndTok.GetLspPosition()),
         SelectionRange = _node.tok.GetLspRange(),
-        Detail = $"function {_node.Name}({_node.Formals.AsCommaSeperatedText()}):{_node.ResultType.AsText()}",
+        Detail = GetDetailText(cancellationToken),
         Children = _node.Formals.Select(input => new VariableSymbol(input)).AsLspSymbols(cancellationToken).ToList()
       };
+    }
+
+    public string GetDetailText(CancellationToken cancellationToken) {
+      return $"function {_node.Name}({_node.Formals.AsCommaSeperatedText()}):{_node.ResultType.AsText()}";
     }
   }
 }
