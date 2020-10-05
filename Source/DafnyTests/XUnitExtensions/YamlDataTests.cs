@@ -13,31 +13,6 @@ using YamlDotNet.Serialization.NamingConventions;
 namespace DafnyTests.XUnitExtensions {
   public class YamlDataTests {
         
-    [Fact]
-    public void ExpandTest() {
-      string multipleYaml = @"a: [b, c]
-foo: [bar, blarg]
-";
-      string multipleYamlExpanded = @"- a: b
-  foo: bar
-- a: b
-  foo: blarg
-- a: c
-  foo: bar
-- a: c
-  foo: blarg
-";
-      var yamlStream = new YamlStream();
-      yamlStream.Load(new StringReader(multipleYaml));
-      var root = yamlStream.Documents[0].RootNode;
-      var expanded = YamlUtils.Expand(root);
-
-      var outputWriter = new StringWriter();
-      var serializer = new SerializerBuilder().Build();
-      serializer.Serialize(outputWriter, expanded);
-      Assert.Equal(multipleYamlExpanded, outputWriter.ToString());
-    }
-
     [Theory]
     [YamlData()]
     public void CalculatorTest(int lhs, int rhs, int expected) {
@@ -54,10 +29,6 @@ foo: [bar, blarg]
     [YamlData(false)]
     public void DictionaryTest(ISourceInformation source, Dictionary<string, string> config) {
       Assert.Equal(3, config.Count);
-    }
-
-    public class ExpandList<T> : List<T> {
-      
     }
 
     [DataDiscoverer("DafnyTests.XUnitExtensions.CustomDiscoverer", "DafnyTests")]

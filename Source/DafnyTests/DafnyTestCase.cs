@@ -1,17 +1,87 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using Xunit;
 using Xunit.Abstractions;
 using Xunit.Sdk;
 using XUnitExtensions;
 using YamlDotNet.Core;
 using YamlDotNet.RepresentationModel;
+using YamlDotNet.Serialization;
+using YamlDotNet.Serialization.NamingConventions;
 
 namespace DafnyTests {
 
+
+  public class DafnyTestSpec : IEnumerable<DafnyTestCase> {
+
+    public string SourcePath;
+    public Dictionary<string, object> DafnyArguments = new Dictionary<string, object>();
+
+    public DafnyTestCase.Expectation Expect = new DafnyTestCase.Expectation();
+
+    public IEnumerator<DafnyTestCase> GetEnumerator() {
+      return ExpandArguments(DafnyArguments)
+        .SelectMany(args => ResolveCompile(SourcePath, args, Expect))
+        .GetEnumerator();
+    }
+    
+
+    private static IEnumerable<DafnyTestCase> ResolveCompile(string sourcePath, Dictionary<string, string> config, DafnyTestCase.Expectation expect) {
+      var compile = "3";
+      if (config.ContainsKey("compile")) {
+        compile = config["compile"];
+        config.Remove("compile");
+      }
+        
+      if (compile.Equals("3") && !config.ContainsKey("compileTarget")) {
+        var compileTargets = new[] {"cs", "java", "go", "js"};
+        
+        var justVerify = new Dictionary<string, string>(config);
+        justVerify["compile"] = "0";
+        justVerify["expect"] = "no";
+        yield return new DafnyTestCase(sourcePath, justVerify, null, expect);
+        
+        foreach (var compileTarget in compileTargets) {
+          var withLanguage = new Dictionary<string, string>(config);
+          withLanguage["noVerify"] = "yes";
+          withLanguage["compile"] = "4";
+          yield return new DafnyTestCase(sourcePath, withLanguage, compileTarget, expect);
+        }
+      } else {
+        config.TryGetValue("compileTarget", out var compileTarget);
+        config["compile"] = compile;
+        yield return new DafnyTestCase(sourcePath, config, compileTarget, expect);
+      }
+    }
+
+    IEnumerator IEnumerable.GetEnumerator() {
+      return GetEnumerator();
+    }
+    
+    private static IEnumerable<Dictionary<string, string>> ExpandArguments(Dictionary<string, object> arguments) {
+      return arguments.Select(ExpandValue)
+                      .CartesianProduct()
+                      .Select(e => e.ToDictionary(p => p.Key, p => p.Value));
+    }
+    
+    public static IEnumerable<string> Expand(object obj) {
+      if (obj is IEnumerable<string> e) {
+        return e;
+      } else {
+        return new[] {(string)obj};
+      }
+    }
+
+    private static IEnumerable<KeyValuePair<string, string>> ExpandValue(KeyValuePair<string, object> pair) {
+      return Expand(pair.Value).Select(v => new KeyValuePair<string, string>(pair.Key, v));
+    }
+  }
+  
   public class DafnyTestCase {
 
     private static DirectoryInfo OUTPUT_ROOT = new DirectoryInfo(Directory.GetCurrentDirectory());
@@ -39,21 +109,22 @@ namespace DafnyTests {
 
       public bool SpecialCase = false;
 
-      public Expectation(string dafnyFile, Dictionary<string, string> config, string compileTarget) {
-        config.TryGetValue("expect", out OutputFile);
-        config.Remove("expect");
-        if (OutputFile == null) {
-          OutputFile = dafnyFile + ".expect";
+      public Expectation Resolve(string sourceFile, string compileTarget) {
+        Expectation result = (Expectation)MemberwiseClone();
+        if (result.OutputFile == null) {
+          result.OutputFile = sourceFile + ".expect";
           if (compileTarget != null) {
-            var specialCasePath = dafnyFile + "." + compileTarget + ".expect";
+            var specialCasePath = sourceFile + "." + compileTarget + ".expect";
             if (File.Exists(Path.Combine(TEST_ROOT, specialCasePath))) {
-              SpecialCase = true;
-              OutputFile = specialCasePath;
+              result.SpecialCase = true;
+              result.OutputFile = specialCasePath;
             }
           }
-        } else if (OutputFile.Equals("no")) {
-          OutputFile = null;
+        } else if (result.OutputFile.Equals("no")) {
+          result.OutputFile = null;
         }
+
+        return result;
       }
 
       public Expectation() {
@@ -79,22 +150,19 @@ namespace DafnyTests {
 
     public Expectation Expected;
 
-    public DafnyTestCase(string dafnyFile, Dictionary<string, string> config, string compileTarget) {
-      Expected = new Expectation(dafnyFile, config, compileTarget);
+    public DafnyTestCase(string dafnyFile, Dictionary<string, string> config, string compileTarget, Expectation expected) {
+      Expected = expected.Resolve(dafnyFile, compileTarget);
       
       DafnyFile = dafnyFile;
       Arguments = config.Select(ConfigPairToArgument).ToArray();
       
-      var fullDafnyFilePath = Path.Combine(TEST_ROOT, DafnyFile);
       if (compileTarget != null) {
         Arguments = Arguments.Concat(new[] {"/compileTarget:" + compileTarget}).ToArray();
         // Include any additional files
-        var additionalFilesPath = fullDafnyFilePath + "." + compileTarget + ".files";
-        if (Directory.Exists(additionalFilesPath)) {
-          var relativePaths = Directory.GetFiles(additionalFilesPath)
-                                       .Select(path => Path.GetRelativePath(TEST_ROOT, path));
-          Arguments = Arguments.Concat(relativePaths).ToArray();
-        }
+        var additionalFilesPath = dafnyFile + "." + compileTarget + ".files";
+        IEnumerable<string> additionalFiles = GetType().Assembly.GetManifestResourceNames()
+          .Where(name => name.StartsWith(additionalFilesPath));
+        Arguments = Arguments.Concat(additionalFiles).ToArray();
       }
     }
 
@@ -102,12 +170,8 @@ namespace DafnyTests {
       
     }
 
-    public object[] ToMemberData() {
-      string[] args = new[] {DafnyFile}.Concat(Arguments).ToArray();
-      return new object[] {args, Expected};
-    }
-    
     public static string RunDafny(IEnumerable<string> arguments) {
+      // TODO-RS: Let these be overridden
       List<string> dafnyArguments = new List<string> {
         // Expected output does not contain logo
         "/nologo",
@@ -155,77 +219,6 @@ namespace DafnyTests {
       }
     }
 
-    private static string GetTestCaseConfigString(string filePath) {
-      // TODO-RS: Figure out how to do this cleanly on a TextReader instead,
-      // and to handle things like nested comments.
-      string fullText = File.ReadAllText(filePath);
-      var commentStart = fullText.IndexOf("/*");
-      if (commentStart >= 0) {
-        var commentEnd = fullText.IndexOf("*/", commentStart + 2);
-        if (commentEnd >= 0) {
-          var commentContent = fullText.Substring(commentStart + 2, commentEnd - commentStart - 2).Trim();
-          if (commentContent.StartsWith("---")) {
-            return commentContent;
-          }
-        }
-      }
-  
-      return null;
-    }
-    
-    public static IEnumerable<object[]> TestCasesForDafnyFile(string filePath) {
-      var fullFilePath = Path.Combine(TEST_ROOT, filePath);
-      string configString = GetTestCaseConfigString(fullFilePath);
-      IEnumerable<Dictionary<string, string>> configs;
-      if (configString != null) {
-        var yamlStream = new YamlStream();
-        yamlStream.Load(new StringReader(configString));
-        var config = yamlStream.Documents[0].RootNode;
-        configs = YamlUtils.Expand(config).Select(ToDictionary);
-      } else {
-        configs = new[] { new Dictionary<string, string>() };
-      }
-
-      return configs.SelectMany(config => ResolveCompile(filePath, config))
-                    .Select(t => t.ToMemberData());
-    }
-
-    private static Dictionary<string, string> ToDictionary(YamlNode node) {
-      if (node is YamlMappingNode mapping) {
-        return mapping.Children.ToDictionary(pair => pair.Key.ToString(), pair => pair.Value.ToString());
-      } else {
-        throw new ArgumentException("Bad test case configuration: " + node);
-      }
-    }
-    
-    private static IEnumerable<DafnyTestCase> ResolveCompile(string filePath, Dictionary<string, string> config) {
-      var compile = "3";
-      if (config.ContainsKey("compile")) {
-        compile = config["compile"];
-        config.Remove("compile");
-      }
-        
-      if (compile.Equals("3") && !config.ContainsKey("compileTarget")) {
-        var compileTargets = new[] {"cs", "java", "go", "js"};
-        
-        var justVerify = new Dictionary<string, string>(config);
-        justVerify["compile"] = "0";
-        justVerify["expect"] = "no";
-        yield return new DafnyTestCase(filePath, justVerify, null);
-        
-        foreach (var compileTarget in compileTargets) {
-          var withLanguage = new Dictionary<string, string>(config);
-          withLanguage["noVerify"] = "yes";
-          withLanguage["compile"] = "4";
-          yield return new DafnyTestCase(filePath, withLanguage, compileTarget);
-        }
-      } else {
-        config.TryGetValue("compileTarget", out var compileTarget);
-        config["compile"] = compile;
-        yield return new DafnyTestCase(filePath, config, compileTarget);
-      }
-    }
-
     private static string ConfigPairToArgument(KeyValuePair<string, string> pair) {
       if (pair.Key.Equals("otherFiles")) {
         return pair.Value.ToString();
@@ -264,8 +257,18 @@ namespace DafnyTests {
     }
   }
 
+  
   public class DafnyTestYamlDataDiscoverer : YamlDataDiscoverer {
+
+    private const string DEFAULT_CONFIG = @"
+!dafnyTestSpec
+dafnyArguments:
+  compile: 3
+";
+    
     public override IParser GetYamlParser(Stream stream) {
+      string content = DEFAULT_CONFIG;
+      
       // TODO-RS: Figure out how to do this cleanly on a TextReader instead,
       // and to handle things like nested comments.
       string fullText = new StreamReader(stream).ReadToEnd();
@@ -275,36 +278,42 @@ namespace DafnyTests {
         if (commentEnd >= 0) {
           var commentContent = fullText.Substring(commentStart + 2, commentEnd - commentStart - 2).Trim();
           if (commentContent.StartsWith("---")) {
-            return new Parser(new StringReader(commentContent));
+            content = commentContent;
           }
         }
       }
   
-      return null;
+      return new Parser(new StringReader(content));
+    }
+
+    public override IDeserializer GetDeserializer() {
+      return new DeserializerBuilder()
+        .WithTagMapping("!dafnyTestSpec", typeof(DafnyTestSpec))
+        .WithNamingConvention(CamelCaseNamingConvention.Instance)
+        .Build();
     }
   }
 
-  [DataDiscoverer("DafnyTests.DafnyTestYamlFileDataDiscoverer", "DafnyTests")]
+  [DataDiscoverer("DafnyTests.DafnyTestYamlDataDiscoverer", "DafnyTests")]
   public class DafnyTestDataAttribute : YamlDataAttribute {
     public DafnyTestDataAttribute(bool withParameterNames = true) : base(withParameterNames) {
     }
   }
   
   public class DafnyTests {
-    
-    public static IEnumerable<object[]> AllTestFiles() {
-      var filePaths = Directory.GetFiles(DafnyTestCase.COMP_DIR, "*.dfy", SearchOption.AllDirectories)
-                               .Select(path => Path.GetRelativePath(DafnyTestCase.TEST_ROOT, path));
-      return filePaths.SelectMany(DafnyTestCase.TestCasesForDafnyFile);
-    }
 
+    [Fact]
+    public static void MetaTest() {
+      var discoverer = new DafnyTestYamlDataDiscoverer();
+      var testMethod = typeof(DafnyTests).GetMethod(nameof(Test));
+      var dataAttribute = testMethod.GetCustomAttributesData().ToList()[1];
+      IEnumerable<object[]> data = discoverer.GetData(Reflector.Wrap(dataAttribute), Reflector.Wrap(testMethod));
+      List<object[]> list = data.ToList();
+    }
+    
     [ParallelTheory]
-    [DafnyTestData()]
-    public static void Test(string[] args, [ForEach()] DafnyTestCase.Expectation expected) {
-      var testCase = new DafnyTestCase();
-      testCase.DafnyFile = args[0];
-      testCase.Arguments = args.Skip(1).ToArray();
-      testCase.Expected = expected;
+    [DafnyTestData(false)]
+    public static void Test(DafnyTestCase testCase) {
       testCase.Run();
     }
   }

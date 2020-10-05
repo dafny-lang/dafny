@@ -23,6 +23,7 @@
         <EmbeddedResource Include="XUnitExtensions\YamlDataTests\CustomDataDiscovererTest.yml" />
         <EmbeddedResource Include="XUnitExtensions\YamlDataTests\DictionaryTest.yml" />
 
+        <EmbeddedResource Include="..\..\Test\comp\Arrays.dfy" LinkBase="DafnyTests\Test"/>
     </ItemGroup>
     
 </Project>

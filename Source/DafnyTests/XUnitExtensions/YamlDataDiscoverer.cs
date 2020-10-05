@@ -24,7 +24,7 @@ namespace XUnitExtensions {
       return new Deserializer();
     }
 
-    private Func<IParser, Type, object> ForMethodInfoDeserializeFn(IDeserializer deserializer, MethodInfo testMethod, string path) {
+    private static Func<IParser, Type, object> ForMethodInfoDeserializeFn(IDeserializer deserializer, MethodInfo testMethod, string path) {
       return (parser, type) => {
         if (type == typeof(MethodArguments)) {
           MethodArguments arguments = new MethodArguments(testMethod, path);
@@ -62,7 +62,7 @@ namespace XUnitExtensions {
         if (withSourceFile) {
           parameters = parameters.Skip(1);
         }
-        IEnumerable<object> results = (IEnumerable<object>)deserializer.Deserialize(parser, typeof(List<>).MakeGenericType(parameters.Single().ParameterType));
+        IEnumerable<object> results = (IEnumerable<object>)deserializer.Deserialize(parser);
         
         return withSourceFile ? 
           results.Select(value => new[]{ new SourceFile(resourceName), value }) : 
@@ -83,10 +83,14 @@ namespace XUnitExtensions {
       bool withParameterNames = (bool)attributeArgs[0];
 
       string resourceNamePrefix = methodInfo.DeclaringType.FullName + "." + methodInfo.Name;
-//      throw new ArgumentException(resourceNamePrefix);
-      return methodInfo.DeclaringType.Assembly.GetManifestResourceNames()
+      string[] resourceNames = methodInfo.DeclaringType.Assembly.GetManifestResourceNames();
+      IEnumerable<object[]> result = methodInfo.DeclaringType.Assembly.GetManifestResourceNames()
         .Where(n => n.StartsWith(resourceNamePrefix))
         .SelectMany(path => ResourceData(deserializer, methodInfo, path, withParameterNames));
+      if (!result.Any()) {
+        throw new ArgumentException("No data found for resource prefix: " + resourceNamePrefix);
+      }
+      return result;
     }
   }
 
