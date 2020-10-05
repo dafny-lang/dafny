@@ -1,6 +1,4 @@
-﻿using DafnyLS.Workspace;
-using Microsoft.Boogie;
-using Microsoft.Dafny;
+﻿using Microsoft.Dafny;
 using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using OmniSharp.Extensions.LanguageServer.Protocol.Server;
@@ -10,10 +8,6 @@ using System.Threading;
 
 namespace DafnyLS.Language {
   internal class DiagnosticPublisher : IDiagnosticPublisher {
-    // LSP starts with line and column number 0, whereas dafny's parser starts with 1.
-    private const int LineOffset = -1;
-    private const int ColumnOffset = -1;
-
     private readonly ILanguageServer _languageServer;
 
     public DiagnosticPublisher(ILanguageServer languageServer) {
@@ -38,7 +32,7 @@ namespace DafnyLS.Language {
           cancellationToken.ThrowIfCancellationRequested();
           yield return new Diagnostic {
             Severity = ToSeverity(level),
-            Range = GetRange(message.token),
+            Range = message.token.GetLspRange(),
             Message = message.message
           };
         }
@@ -52,13 +46,6 @@ namespace DafnyLS.Language {
         ErrorLevel.Info => DiagnosticSeverity.Information,
         _ => throw new System.ArgumentException($"unknown error level {level}", nameof(level))
       };
-    }
-
-    private static Range GetRange(IToken token) {
-      return new Range(
-        new Position(token.line + LineOffset, token.col + ColumnOffset),
-        new Position(token.line + LineOffset, token.col + ColumnOffset + token.val.Length)
-      );
     }
   }
 }
