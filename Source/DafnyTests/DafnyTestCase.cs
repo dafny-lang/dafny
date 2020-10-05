@@ -48,19 +48,18 @@ namespace DafnyTests {
         
         var justVerify = new Dictionary<string, string>(config);
         justVerify["compile"] = "0";
-        justVerify["expect"] = "no";
-        yield return new DafnyTestCase(sourcePath, justVerify, null, expect);
+        yield return new DafnyTestCase(sourcePath, justVerify, null, DafnyTestCase.Expectation.NO_OUTPUT);
         
         foreach (var compileTarget in compileTargets) {
           var withLanguage = new Dictionary<string, string>(config);
           withLanguage["noVerify"] = "yes";
           withLanguage["compile"] = "4";
-          yield return new DafnyTestCase(sourcePath, withLanguage, compileTarget, expect);
+          yield return new DafnyTestCase(sourcePath, withLanguage, compileTarget, expect.Resolve(sourcePath, compileTarget));
         }
       } else {
         config.TryGetValue("compileTarget", out var compileTarget);
         config["compile"] = compile;
-        yield return new DafnyTestCase(sourcePath, config, compileTarget, expect);
+        yield return new DafnyTestCase(sourcePath, config, compileTarget, expect.Resolve(sourcePath, compileTarget));
       }
     }
 
@@ -114,6 +113,8 @@ namespace DafnyTests {
 
       public bool SpecialCase = false;
 
+      public static Expectation NO_OUTPUT = new Expectation(0, null);
+      
       public Expectation Resolve(string sourceFile, string compileTarget) {
         Expectation result = (Expectation)MemberwiseClone();
         if (result.OutputFile == null) {
@@ -130,6 +131,11 @@ namespace DafnyTests {
         }
 
         return result;
+      }
+
+      public Expectation(int exitCode, string outputFile) {
+        ExitCode = exitCode;
+        OutputFile = outputFile;
       }
 
       public Expectation() {
@@ -156,7 +162,7 @@ namespace DafnyTests {
     public Expectation Expected;
 
     public DafnyTestCase(string dafnyFile, Dictionary<string, string> config, string compileTarget, Expectation expected) {
-      Expected = expected.Resolve(dafnyFile, compileTarget);
+      Expected = expected;
       
       DafnyFile = dafnyFile;
       Arguments = config.Select(ConfigPairToArgument).ToArray();
@@ -175,7 +181,7 @@ namespace DafnyTests {
       
     }
 
-    public static string RunDafny(IEnumerable<string> arguments) {
+    public static string RunDafny(string workingDirectory, IEnumerable<string> arguments) {
       // TODO-RS: Let these be overridden
       List<string> dafnyArguments = new List<string> {
         // Expected output does not contain logo
@@ -203,7 +209,8 @@ namespace DafnyTests {
         dafnyProcess.StartInfo.RedirectStandardError = true;
         dafnyProcess.StartInfo.CreateNoWindow = true;
         // Necessary for JS to find bignumber.js
-        dafnyProcess.StartInfo.WorkingDirectory = TEST_ROOT;
+//        dafnyProcess.StartInfo.WorkingDirectory = TEST_ROOT;
+        dafnyProcess.StartInfo.WorkingDirectory = workingDirectory;
 
         // Only preserve specific whitelisted environment variables
         dafnyProcess.StartInfo.EnvironmentVariables.Clear();
@@ -239,22 +246,26 @@ namespace DafnyTests {
       
       string output;
       if (arguments.Any(arg => arg.StartsWith("/out"))) {
-        output = RunDafny(arguments);
+        output = RunDafny(TEST_ROOT, arguments);
       } else {
         // Note that the temporary directory has to be an ancestor of Test
         // or else Javascript won't be able to locate bignumber.js :(
         using (var tempDir = new TemporaryDirectory(OUTPUT_DIR)) {
+          using (var fileStream = File.Create(tempDir.DirInfo.FullName + "/" + DafnyFile)) {
+            GetType().Assembly.GetManifestResourceStream(DafnyFile).CopyTo(fileStream);
+          }
+          
           // Add an extra component to the path to keep the files created inside the
           // temporary directory, since some compilers will
           // interpret the path as a single file basename rather than a directory.
           var outArgument = "/out:" + tempDir.DirInfo.FullName + "/Program";
           var dafnyArguments = new []{ outArgument }.Concat(arguments);
-          output = RunDafny(dafnyArguments);
+          output = RunDafny(tempDir.DirInfo.FullName, dafnyArguments);
         }
       }
 
       if (Expected.OutputFile != null) {
-        var expectedOutput = File.ReadAllText(Path.Combine(TEST_ROOT, Expected.OutputFile));
+        var expectedOutput = new StreamReader(GetType().Assembly.GetManifestResourceStream(Expected.OutputFile)).ReadToEnd();
         AssertWithDiff.Equal(expectedOutput, output);
       }
 
@@ -272,6 +283,10 @@ dafnyArguments:
 ";
     
     public override IParser GetYamlParser(string manifestResourceName, Stream stream) {
+      if (!manifestResourceName.EndsWith(".dfy")) {
+        return null;
+      }
+      
       string content = DEFAULT_CONFIG;
       
       // TODO-RS: Figure out how to do this cleanly on a TextReader instead,

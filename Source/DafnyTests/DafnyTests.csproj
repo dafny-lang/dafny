@@ -24,6 +24,7 @@
         <EmbeddedResource Include="XUnitExtensions\YamlDataTests\DictionaryTest.yml" />
 
         <EmbeddedResource Include="..\..\Test\comp\Arrays.dfy" LinkBase="DafnyTests\Test"/>
+        <EmbeddedResource Include="..\..\Test\comp\Arrays.dfy.expect" LinkBase="DafnyTests\Test"/>
     </ItemGroup>
     
 </Project>
