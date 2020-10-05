@@ -2679,7 +2679,7 @@ namespace Microsoft.Dafny {
         } else {
           var lvalue = CreateLvalue(s.Lhs, wr);
           var wStmts = wr.ForkSection();
-          var wRhs = EmitAssignment(lvalue, s.Lhs.Type, TypeOfRhs(s.Rhs), wr);
+          var wRhs = EmitAssignment(lvalue, TypeOfLhs(s.Lhs), TypeOfRhs(s.Rhs), wr);
           TrRhs(s.Rhs, wRhs, wStmts);
         }
 
@@ -3736,6 +3736,23 @@ namespace Microsoft.Dafny {
 
         // Assign to the final LHS
         wr.Write(nw);
+      }
+    }
+
+    private static Type TypeOfLhs(Expression lhs) {
+      Contract.Requires(lhs != null);
+      if (lhs is IdentifierExpr) {
+        var e = (IdentifierExpr)lhs;
+        return e.Var.Type;
+      } else if (lhs is MemberSelectExpr) {
+        var e = (MemberSelectExpr)lhs;
+        return Resolver.SubstType(((Field)e.Member).Type, e.TypeArgumentSubstitutionsWithParents());
+      } else if (lhs is SeqSelectExpr) {
+        var e = (SeqSelectExpr)lhs;
+        return e.Seq.Type.NormalizeExpand().TypeArgs[0];
+      } else {
+        var e = (MultiSelectExpr)lhs;
+        return e.Array.Type.NormalizeExpand().TypeArgs[0];
       }
     }
 

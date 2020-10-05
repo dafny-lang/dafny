@@ -408,8 +408,30 @@ function method {:tailrecursion} TailRecursiveFunction(x: nat, ghost u: int, s: 
   if x == 0 then 16 else TailRecursiveFunction(x - 1, 100 * u, n)
 }
 
-// TODO: assignments to fields, array elements, multi-dimensional array elements
-// TODO: maybe also try constructor call
+class Class {
+  constructor (s: set<Integer>) {
+    ns, is := s, s;
+  }
+  var ns: set<Number>
+  var is: set<Integer>
+}
+
+method HeapAssignmentDowncasts() {
+  var n: Number := new Integer(22);
+  var ns: set<Number> := {n};
+  var c := new Class(ns);
+  c.ns := c.is;
+  c.is := c.ns;
+  PrintSet("c.is: ", c.is); print " ";
+
+  var a := new set<Integer>[20];
+  var m := new set<Integer>[18, 18];
+  a[7] := ns;
+  // m[7, 9] := ns;  // TODO: type checking gives an error, which is questionable (see https://github.com/dafny-lang/dafny/issues/885)
+  ns := a[1];
+  ns := m[3, 3];
+  PrintSet(" a[7]: ", a[7]); print "\n";
+}
 
 method DeepDowncast() {
   // test covariant types whose components are also of a covariant type
