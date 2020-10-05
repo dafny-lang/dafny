@@ -15,7 +15,7 @@ namespace DafnyLS.Language.Symbols {
         Name = _node.Name,
         Kind = SymbolKind.Class,
         Range = new Range(_node.tok.GetLspPosition(), _node.BodyEndTok.GetLspPosition()),
-        SelectionRange = _node.tok.GetLspRange(),
+        SelectionRange = GetHoverRange(),
         Detail = GetDetailText(cancellationToken)
         // TODO children should probably resolved with the visitor.
       };
@@ -23,6 +23,10 @@ namespace DafnyLS.Language.Symbols {
 
     public string GetDetailText(CancellationToken cancellationToken) {
       return $"class {_node.Name}";
+    }
+
+    public Range GetHoverRange() {
+      return _node.tok.GetLspRange();
     }
   }
 }

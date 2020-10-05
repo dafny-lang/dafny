@@ -18,7 +18,8 @@ namespace DafnyLS.Workspace {
       var errorReporter = new BuildErrorReporter();
       var program = await _parser.ParseAsync(textDocument, errorReporter, cancellationToken);
       var symbolTable = await _symbolResolver.ResolveSymbolsAsync(textDocument, program, cancellationToken);
-      return new DafnyDocument(textDocument, errorReporter, program, symbolTable);
+      var symbolLookup = SymbolLookup.FromSymbolTable(symbolTable, cancellationToken);
+      return new DafnyDocument(textDocument, errorReporter, program, symbolTable, symbolLookup);
     }
   }
 }

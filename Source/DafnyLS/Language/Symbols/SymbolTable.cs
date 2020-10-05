@@ -44,18 +44,6 @@ namespace DafnyLS.Language.Symbols {
     }
 
     /// <summary>
-    /// Tries to get a symbol at the specified location.
-    /// </summary>
-    /// <param name="position">The requested position.</param>
-    /// <param name="symbol">The symbol that could be identified at the given position, or <c>null</c> if no symbol could be identified.</param>
-    /// <returns><c>true</c> if a symbol was found, otherwise <c>false</c>.</returns>
-    public bool TryGetSymbolAt(Position position, [NotNullWhen(true)] out ISymbol? symbol) {
-      // TODO resolve the actual symbol.
-      symbol = _symbols.FirstOrDefault();
-      return symbol != null;
-    }
-
-    /// <summary>
     /// Gets all symbols of this table and its children tables. The symbols of this table are returned first.
     /// </summary>
     /// <param name="cancellationToken">A token to cancel the update operation before its completion.</param>

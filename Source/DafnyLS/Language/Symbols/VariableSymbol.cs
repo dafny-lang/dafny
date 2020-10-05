@@ -15,13 +15,17 @@ namespace DafnyLS.Language.Symbols {
         Name = _node.Name,
         Kind = SymbolKind.Field,
         Range = _node.tok.GetLspRange(),
-        SelectionRange = _node.tok.GetLspRange(),
+        SelectionRange = GetHoverRange(),
         Detail = GetDetailText(cancellationToken)
       };
     }
 
     public string GetDetailText(CancellationToken cancellationToken) {
       return $"{_node.Name}:{_node.Type}";
+    }
+
+    public Range GetHoverRange() {
+      return _node.tok.GetLspRange();
     }
   }
 }

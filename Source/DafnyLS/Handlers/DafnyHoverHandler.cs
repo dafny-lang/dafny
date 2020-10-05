@@ -31,7 +31,7 @@ namespace DafnyLS.Handlers {
         _logger.LogWarning("the document {} is not loaded", request.TextDocument);
         return new Hover();
       }
-      if(textDocument.SymbolTable.TryGetSymbolAt(request.Position, out var symbol)) {
+      if(textDocument.SymbolLookup.TryGetSymbolAt(request.Position, out var symbol)) {
         return new Hover {
           Contents = new MarkedStringsOrMarkupContent(
             new MarkupContent {

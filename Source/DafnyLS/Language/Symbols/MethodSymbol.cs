@@ -16,7 +16,7 @@ namespace DafnyLS.Language.Symbols {
         Name = _node.Name,
         Kind = SymbolKind.Method,
         Range = new Range(_node.tok.GetLspPosition(), _node.BodyEndTok.GetLspPosition()),
-        SelectionRange = _node.tok.GetLspRange(),
+        SelectionRange = GetHoverRange(),
         Detail = GetDetailText(cancellationToken),
         Children = _node.Ins.Concat(_node.Outs).Select(input => new VariableSymbol(input)).AsLspSymbols(cancellationToken).ToList()
       };
@@ -24,6 +24,10 @@ namespace DafnyLS.Language.Symbols {
 
     public string GetDetailText(CancellationToken cancellationToken) {
       return $"method {_node.Name}({_node.Ins.AsCommaSeperatedText()}):({_node.Outs.AsCommaSeperatedText()})";
+    }
+
+    public Range GetHoverRange() {
+      return _node.tok.GetLspRange();
     }
   }
 }
