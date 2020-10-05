@@ -1,15 +1,16 @@
 ﻿using Microsoft.Dafny;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
+using System.Threading;
 
 namespace DafnyLS.Language.Symbols {
-  internal class LocalVariableSymbol : ISymbol {
-    private readonly LocalVariable _node;
+  internal class VariableSymbol : ISymbol {
+    private readonly IVariable _node;
     
-    public LocalVariableSymbol(LocalVariable localVariable) {
-      _node = localVariable;
+    public VariableSymbol(IVariable variable) {
+      _node = variable;
     }
 
-    public DocumentSymbol AsLspSymbol() {
+    public DocumentSymbol AsLspSymbol(CancellationToken cancellationToken) {
       return new DocumentSymbol {
         Name = _node.Name,
         Kind = SymbolKind.Variable,

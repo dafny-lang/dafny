@@ -1,4 +1,5 @@
 ﻿using DafnyLS.Language;
+using DafnyLS.Language.Symbols;
 using DafnyLS.Workspace;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol.Document;
@@ -34,7 +35,10 @@ namespace DafnyLS.Handlers {
         _logger.LogWarning("symbols requested for unloaded document {}", request.TextDocument.Uri);
         return Task.FromResult<SymbolInformationOrDocumentSymbolContainer>(_emptySymbols);
       }
-      var symbols = document.SymbolTable.ToLspSymbols(cancellationToken).ToList();
+      var symbols = document.SymbolTable
+        .AllSymbols(cancellationToken)
+        .AsLspSymbols(cancellationToken)
+        .ToList();
       return Task.FromResult<SymbolInformationOrDocumentSymbolContainer>(symbols);
     }
   }

@@ -23,9 +23,18 @@ namespace DafnyLS.Language {
     /// <returns>The LSP range of the token.</returns>
     public static Range GetLspRange(this IToken token) {
       return new Range(
-        ToLspPosition(token.line, token.col),
+        GetLspPosition(token),
         ToLspPosition(token.line, token.col + token.val.Length)
       );
+    }
+
+    /// <summary>
+    /// Gets the LSP position of the specified token (i.e., the position of the first character of the token).
+    /// </summary>
+    /// <param name="token">The token to get the position of.</param>
+    /// <returns>The LSP position of the token.</returns>
+    public static Position GetLspPosition(this IToken token) {
+      return ToLspPosition(token.line, token.col);
     }
 
     /// <summary>

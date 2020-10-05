@@ -1,8 +1,6 @@
 ﻿using Microsoft.Dafny;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
-using System.Collections.Generic;
-using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -22,19 +20,19 @@ namespace DafnyLS.Language.Symbols {
     }
 
     public async Task<SymbolTable> ResolveSymbolsAsync(TextDocumentItem textDocument, Microsoft.Dafny.Program program, CancellationToken cancellationToken) {
-      var symbols = new List<LocalVariableSymbol>();
+      var rootSymbolTable = new SymbolTable();
       int parserErrors = GetErrorCount(program);
       if(parserErrors > 0) {
         _logger.LogTrace("document {} had {} parser errors, skipping symbol resolution", textDocument.Uri, parserErrors);
-        return new SymbolTable(symbols);
+        return rootSymbolTable;
       }
       if(RunDafnyResolver(textDocument, program)) {
         // TODO Unsafe assumption: This requires that the previous step (parser) defines the parsed document as the default module.
         // TODO Any reason to retrieve the symbols defined in other modules (aka documents)?
-        var visitor = new SymbolTableGeneratingVisitor(_logger, symbols);
+        var visitor = new SymbolDeclarationResolvingVisitor(_logger, rootSymbolTable);
         visitor.Visit(program.DefaultModuleDef);
       }
-      return new SymbolTable(symbols);
+      return rootSymbolTable;
     }
 
     private static int GetErrorCount(Microsoft.Dafny.Program program) {
@@ -50,33 +48,6 @@ namespace DafnyLS.Language.Symbols {
         return false;
       }
       return true;
-    }
-
-    private class SymbolTableGeneratingVisitor : SyntaxTreeVisitor {
-      private readonly ILogger _logger;
-      private readonly List<LocalVariableSymbol> _symbols;
-
-      public SymbolTableGeneratingVisitor(ILogger logger, List<LocalVariableSymbol> symbols) {
-        _logger = logger;
-        _symbols = symbols;
-      }
-
-      public override void VisitUnknown(object node, Microsoft.Boogie.IToken token) {
-        _logger.LogWarning("encountered unknown syntax node of type {} in {}@({},{})", node.GetType(), Path.GetFileName(token.filename), token.line, token.col);
-      }
-
-      public override void Visit(Method method) {
-        base.Visit(method);
-      }
-
-      public override void Visit(NameSegment nameSegment) {
-        base.Visit(nameSegment);
-      }
-
-      public override void Visit(LocalVariable localVariable) {
-        _symbols.Add(new LocalVariableSymbol(localVariable));
-        base.Visit(localVariable);
-      }
     }
   }
 }
