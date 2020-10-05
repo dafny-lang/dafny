@@ -13,6 +13,7 @@ using YamlDotNet.Core;
 using YamlDotNet.RepresentationModel;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
+using YamlDotNet.Serialization.ObjectFactories;
 
 namespace DafnyTests {
 
@@ -24,6 +25,10 @@ namespace DafnyTests {
 
     public DafnyTestCase.Expectation Expect = new DafnyTestCase.Expectation();
 
+    public DafnyTestSpec(string manifestResourceName) {
+      SourcePath = manifestResourceName;
+    }
+    
     public IEnumerator<DafnyTestCase> GetEnumerator() {
       return ExpandArguments(DafnyArguments)
         .SelectMany(args => ResolveCompile(SourcePath, args, Expect))
@@ -221,7 +226,7 @@ namespace DafnyTests {
 
     private static string ConfigPairToArgument(KeyValuePair<string, string> pair) {
       if (pair.Key.Equals("otherFiles")) {
-        return pair.Value.ToString();
+        return pair.Value;
       } else if (pair.Value.Equals("yes")) {
         return String.Format("/{0}", pair.Key);
       } else {
@@ -266,7 +271,7 @@ dafnyArguments:
   compile: 3
 ";
     
-    public override IParser GetYamlParser(Stream stream) {
+    public override IParser GetYamlParser(string manifestResourceName, Stream stream) {
       string content = DEFAULT_CONFIG;
       
       // TODO-RS: Figure out how to do this cleanly on a TextReader instead,
@@ -286,10 +291,20 @@ dafnyArguments:
       return new Parser(new StringReader(content));
     }
 
-    public override IDeserializer GetDeserializer() {
+    public override IDeserializer GetDeserializer(string manifestResourceName) {
+      var defaultObjectFactory = new DefaultObjectFactory();
+      var customObjectFactory = new LambdaObjectFactory(type => {
+        if (type == typeof(DafnyTestSpec)) {
+          return new DafnyTestSpec(manifestResourceName);
+        } else {
+          return defaultObjectFactory.Create(type);
+        }
+      });
+      
       return new DeserializerBuilder()
-        .WithTagMapping("!dafnyTestSpec", typeof(DafnyTestSpec))
         .WithNamingConvention(CamelCaseNamingConvention.Instance)
+        .WithTagMapping("!dafnyTestSpec", typeof(DafnyTestSpec))
+        .WithObjectFactory(customObjectFactory)
         .Build();
     }
   }

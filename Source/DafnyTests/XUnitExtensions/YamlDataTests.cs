@@ -27,7 +27,7 @@ namespace DafnyTests.XUnitExtensions {
     
     [Theory]
     [YamlData(false)]
-    public void DictionaryTest(ISourceInformation source, Dictionary<string, string> config) {
+    public void DictionaryTest(Dictionary<string, string> config) {
       Assert.Equal(3, config.Count);
     }
 
@@ -49,7 +49,6 @@ namespace DafnyTests.XUnitExtensions {
     public int Start;
     public int End;
 
-
     public IEnumerator<int> GetEnumerator() {
       return Enumerable.Range(Start, End).GetEnumerator();
     }
@@ -60,7 +59,7 @@ namespace DafnyTests.XUnitExtensions {
   }
 
   public class CustomDiscoverer : YamlDataDiscoverer {
-    public override IDeserializer GetDeserializer() {
+    public override IDeserializer GetDeserializer(string manifestResourceName) {
       return new DeserializerBuilder().WithTagMapping("!range", typeof(Range))
         .WithNamingConvention(CamelCaseNamingConvention.Instance).Build();
     }

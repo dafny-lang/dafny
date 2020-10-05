@@ -16,18 +16,18 @@ using YamlDotNet.Serialization.Utilities;
 
 namespace XUnitExtensions {
   public class YamlDataDiscoverer : IDataDiscoverer {
-    public virtual IParser GetYamlParser(Stream stream)  {
+    public virtual IParser GetYamlParser(string manifestResourceName, Stream stream)  {
       return new Parser(new StreamReader(stream));
     }
 
-    public virtual IDeserializer GetDeserializer() {
+    public virtual IDeserializer GetDeserializer(string manifestResourceName) {
       return new Deserializer();
     }
 
-    private static Func<IParser, Type, object> ForMethodInfoDeserializeFn(IDeserializer deserializer, MethodInfo testMethod, string path) {
+    private static Func<IParser, Type, object> ForMethodInfoDeserializeFn(IDeserializer deserializer, MethodInfo testMethod) {
       return (parser, type) => {
         if (type == typeof(MethodArguments)) {
-          MethodArguments arguments = new MethodArguments(testMethod, path);
+          MethodArguments arguments = new MethodArguments(testMethod);
           arguments.Read(parser, type, t => deserializer.Deserialize(parser, t));
           return arguments;
         } else {
@@ -40,16 +40,17 @@ namespace XUnitExtensions {
       return true;
     }
     
-    private IEnumerable<object[]> ResourceData(IDeserializer deserializer, MethodInfo testMethod, string resourceName, bool withParameterNames) {
+    private IEnumerable<object[]> ResourceData(MethodInfo testMethod, string resourceName, bool withParameterNames) {
       Stream stream = testMethod.DeclaringType.Assembly.GetManifestResourceStream(resourceName);
-      IParser parser = GetYamlParser(stream);
+      IParser parser = GetYamlParser(resourceName, stream);
+      IDeserializer deserializer = GetDeserializer(resourceName);
       parser.Consume<StreamStart>();
       parser.Consume<DocumentStart>();
             
       if (withParameterNames) {
         IObjectFactory argumentsFactory = new DefaultObjectFactory();
         INodeDeserializer collectionDeserializer = new CollectionNodeDeserializer(argumentsFactory);
-        var nestedObjectDeserializer = ForMethodInfoDeserializeFn(deserializer, testMethod, resourceName);
+        var nestedObjectDeserializer = ForMethodInfoDeserializeFn(deserializer, testMethod);
         if (collectionDeserializer.Deserialize(parser, typeof(List<MethodArguments>), nestedObjectDeserializer, out var value)) {
           List<MethodArguments> argumentses = (List<MethodArguments>) value;
           return argumentses.SelectMany(a => a.Combinations());
@@ -58,15 +59,9 @@ namespace XUnitExtensions {
         }
       } else {
         IEnumerable<ParameterInfo> parameters = testMethod.GetParameters();
-        bool withSourceFile = parameters.First().ParameterType.Equals(typeof(ISourceInformation));
-        if (withSourceFile) {
-          parameters = parameters.Skip(1);
-        }
-        IEnumerable<object> results = (IEnumerable<object>)deserializer.Deserialize(parser);
-        
-        return withSourceFile ? 
-          results.Select(value => new[]{ new SourceFile(resourceName), value }) : 
-          results.Select(value => new[]{ value });
+        Type targetType = typeof(IEnumerable<>).MakeGenericType(parameters.Single().ParameterType);
+        IEnumerable<object> results = (IEnumerable<object>) deserializer.Deserialize(parser, targetType);
+        return results.Select(value => new[] {value});
       }
     }
 
@@ -77,16 +72,13 @@ namespace XUnitExtensions {
         return null;
       }
       
-      IDeserializer deserializer = GetDeserializer();
-
       List<object> attributeArgs = attributeInfo.GetConstructorArguments().ToList();
       bool withParameterNames = (bool)attributeArgs[0];
 
       string resourceNamePrefix = methodInfo.DeclaringType.FullName + "." + methodInfo.Name;
-      string[] resourceNames = methodInfo.DeclaringType.Assembly.GetManifestResourceNames();
       IEnumerable<object[]> result = methodInfo.DeclaringType.Assembly.GetManifestResourceNames()
         .Where(n => n.StartsWith(resourceNamePrefix))
-        .SelectMany(path => ResourceData(deserializer, methodInfo, path, withParameterNames));
+        .SelectMany(path => ResourceData(methodInfo, path, withParameterNames));
       if (!result.Any()) {
         throw new ArgumentException("No data found for resource prefix: " + resourceNamePrefix);
       }
@@ -100,16 +92,12 @@ namespace XUnitExtensions {
     private Dictionary<string, int> ParameterNameIndexes;
     private object[] Arguments;
 
-    public MethodArguments(MethodInfo methodInfo, string path) {
+    public MethodArguments(MethodInfo methodInfo) {
       Method = methodInfo;
       Arguments = new object[Method.GetParameters().Length];
       ParameterNameIndexes = Method.GetParameters()
         .Select((value, index) => new KeyValuePair<string, int>(value.Name, index))
         .ToDictionary(p => p.Key, p => p.Value);
-      var sourceFileParameter = Method.GetParameters().FirstOrDefault(p => p.ParameterType.Equals(typeof(ISourceInformation)));
-      if (sourceFileParameter != null) {
-        Arguments[ParameterNameIndexes[sourceFileParameter.Name]] = new SourceFile(path);
-      }
     }
     
     public void Read(IParser parser, Type expectedType, ObjectDeserializer nestedObjectDeserializer) {
@@ -148,21 +136,6 @@ namespace XUnitExtensions {
         return forEach == null ? new[] {arg} : ((IEnumerable)arg).Cast<object>();
       });
       return lifted.CartesianProduct().Select(e => e.ToArray());
-    }
-  }
-  
-  public class SourceFile : SourceInformation {
-
-    public SourceFile() {
-      
-    }
-    
-    public SourceFile(string fileName) {
-      FileName = fileName;
-    }
-
-    public override string ToString() {
-      return FileName;
     }
   }
 }
