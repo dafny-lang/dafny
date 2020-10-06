@@ -757,11 +757,10 @@ method {:extern} Random(n: nat) returns (r: nat)
 But because there is no body for `Random` (only the external non-dafny implementation),
 it cannot be verified that `Random` actually satisfies this specification.
 
-To mitigate this situation somewhat, we can define a wrapper function, `Random'`
+To mitigate this situation somewhat, we can define a wrapper function, `Random'`,
 that calls `Random` but in which we can put some run-time checks:
 ```dafny
 method {:extern} Random(n: nat) returns (r: nat)
-  ensures r < n
 
 method Random'(n: nat) returns (r: nat)
   ensures r < n
@@ -776,6 +775,14 @@ But we are also checking at run-time that any input-output pairs for `Random`
 encountered during execution
 do satisfy the specification,
 as they are checked by the `expect` statement.
+
+Note, in this example, two problems are still remaining.
+One problem is that the out-parameter of the extern `Random` has type `nat`,
+but there is no check that the value returned really is non-negative.
+It would be better to declare the out-parameter of `Random` to be `int` and
+to include `0 <= r` in the condition checked by the `expect` statement in `Random'`.
+The other problem is that `Random` surely will need `n` to be strictly positive.
+This can be fixed by adding `requires n != 0` to `Random'` and `Random`.
 
 B) Run-time testing
 
