@@ -93,10 +93,18 @@ will link to the definition of the entity.**
 
 ## Dafny Input {#sec-unicode}
 
-Dafny source code files are readable text encoded as UTF-8 Unicode (because this is what the CoCo-generated scanner and parser read). 
-All program text other than the contents of comments, character, string and verbatim string literals are printable and white-space ASCII characters, that is, ASCII characters in the range `!` to `~`, plus space, tab, cr and nl (ASCII, 9, 10, 13, 32)  characters, with the exception of a few allowed unicode mathematical symbols.
+Dafny source code files are readable text encoded as UTF-8 Unicode
+(because this is what the CoCo-generated scanner and parser read). 
+All program text other than the contents of comments, character, string and verbatim string literals
+are printable and white-space ASCII characters,
+that is, ASCII characters in the range `!` to `~`, plus space, tab, cr and nl (ASCII, 9, 10, 13, 32)  characters,
+with the exception of a few allowed unicode mathematical symbols.
 
-However, a current limitation is that the Coco tool used by Dafny is not up to date, and consequently, only printable and white-space ASCII characters can be used. Use `\u` escapes in string and character literals to insert unicode characters. Unicode in comments will work fine unless the unicode is interpreted as an end-of-comment indication.  Unicode in verbatim strings will likely not be interpreted as intended. [Outstanding issue #818].
+However, a current limitation is that the Coco tool used by Dafny is not up to date,
+and consequently, only printable and white-space ASCII characters can be used.
+Use `\u` escapes in string and character literals to insert unicode characters.
+Unicode in comments will work fine unless the unicode is interpreted as an end-of-comment indication. 
+Unicode in verbatim strings will likely not be interpreted as intended. [Outstanding issue #818].
 
 ## Character Classes {#sec-character-classes}
 This section defines character classes used later in the token definitions.
@@ -176,24 +184,27 @@ nonidchar = ANY - idchar
 ````
 Any character except those that can be used in an identifier.  
 Here the scanner generator will interpret `ANY` as any unicode character. 
-However, `nonidchar` is used only to mark the end of the `!in` token; in this 
-context any character other than [whitespace or printable ASCII](#sec-unicode) will trigger a
-subsequent scanning or parsing error.
+However, `nonidchar` is used only to mark the end of the `!in` token;
+in this context any character other than [whitespace or printable ASCII](#sec-unicode)
+will trigger a subsequent scanning or parsing error.
 
 ````
 charChar = ANY - '\'' - '\\' - cr - lf
 ````
-Characters that can appear in a character constant. See the [discussion on unicode support](#sec-unicode).
+Characters that can appear in a character constant.
+See the [discussion on unicode support](#sec-unicode).
 
 ````
 stringChar = ANY - '"' - '\\' - cr - lf
 ````
-Characters that can appear in a string constant. See the [discussion on unicode support](#sec-unicode).
+Characters that can appear in a string constant.
+See the [discussion on unicode support](#sec-unicode).
 
 ````
 verbatimStringChar = ANY - '"'
 ````
-Characters that can appear in a verbatim string. See the [discussion on unicode support](#sec-unicode).
+Characters that can appear in a verbatim string.
+See the [discussion on unicode support](#sec-unicode).
 
 ### Comments
 Comments are in two forms.
@@ -214,9 +225,9 @@ method m() {
 ```
 is permitted; this feature is convenient for commenting out blocks of 
 program statements that already have multi-line comments within them.
-Other than looking for 
-end-of-comment delimiters, the contents of a comment are not interpreted.
-Comments may contain any unicode character, but see the [discussion on unicode support](#sec-unicode).
+Other than looking for  end-of-comment delimiters,
+the contents of a comment are not interpreted.
+Comments may contain any unicode character, but see the [discussion on unicode support](#sec-unicode) for more information.
 
 ## Tokens {#sec-tokens}
 As with most languages, Dafny syntax is defined in two levels. First the stream
@@ -262,7 +273,8 @@ ident = nondigitIdChar { idchar } - arrayToken - charToken - reservedword
 In general Dafny identifiers are sequences of ``idChar`` characters where
 the first character is a ``nondigitIdChar``. However tokens that fit this pattern
 are not identifiers if they look like an array type token, a character literal,
-or a reserved word. Also, `ident` tokens that begin with an `_` are not permitted as user identifiers.
+or a reserved word.
+Also, `ident` tokens that begin with an `_` are not permitted as user identifiers.
 
 ### Digits
 ````
@@ -462,5 +474,4 @@ A ``Nat`` represents a natural number expressed in either decimal or hexadecimal
 Dec = decimaldigits
 ````
 A ``Dec`` represents a decimal fraction literal.
-
 
