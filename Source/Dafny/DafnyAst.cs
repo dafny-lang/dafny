@@ -1249,7 +1249,7 @@ namespace Microsoft.Dafny {
     public bool IsOrdered {
       get {
         var ct = NormalizeExpand();
-        return !ct.IsTypeParameter && !ct.IsInternalTypeSynonym && !ct.IsCoDatatype && !ct.IsArrowType && !ct.IsIMapType && !ct.IsISetType;
+        return !ct.IsTypeParameter && !ct.IsOpaqueType && !ct.IsInternalTypeSynonym && !ct.IsCoDatatype && !ct.IsArrowType && !ct.IsIMapType && !ct.IsISetType;
       }
     }
 
@@ -7239,6 +7239,7 @@ namespace Microsoft.Dafny {
   public class AssignOrReturnStmt : ConcreteUpdateStatement
   {
     public readonly Expression Rhs; // this is the unresolved RHS, and thus can also be a method call
+    public readonly List<AssignmentRhs> Rhss;
     public readonly IToken ExpectToken;
     public readonly List<Statement> ResolvedStatements = new List<Statement>();  // contents filled in during resolution
     public override IEnumerable<Statement> SubStatements {
@@ -7255,7 +7256,7 @@ namespace Microsoft.Dafny {
       Contract.Invariant(Rhs != null);
     }
 
-    public AssignOrReturnStmt(IToken tok, IToken endTok, List<Expression> lhss, Expression rhs, IToken expectToken)
+    public AssignOrReturnStmt(IToken tok, IToken endTok, List<Expression> lhss, Expression rhs, IToken expectToken, List<AssignmentRhs> rhss = null)
       : base(tok, endTok, lhss)
     {
       Contract.Requires(tok != null);
@@ -7264,6 +7265,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(lhss.Count <= 1);
       Contract.Requires(rhs != null);
       Rhs = rhs;
+      Rhss = rhss;
       ExpectToken = expectToken;
     }
   }
