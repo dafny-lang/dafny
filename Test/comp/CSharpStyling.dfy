@@ -1,7 +1,9 @@
 /*
 ---
-compile: 3
-compileTarget: cs
+!dafnyTestSpec
+dafnyArguments:
+    compile: 3
+    compileTarget: cs
 */
 
 method Main() {

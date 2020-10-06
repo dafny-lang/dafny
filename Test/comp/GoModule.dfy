@@ -1,6 +1,8 @@
 /*
 ---
-compileTarget: go
+!dafnyTestSpec
+dafnyArguments:
+    compileTarget: go
 */
 
 // "url" is a built-in package, so it should be accessible to the

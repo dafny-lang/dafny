@@ -1,7 +1,9 @@
 /*
 ---
-compile: 3
-coverage: "-"
+!dafnyTestSpec
+dafnyArguments:
+    compile: 3
+    coverage: "-"
 */
 
 // The Main method is at the end of this file, because that makes it easier to maintain

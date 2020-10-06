@@ -1,7 +1,8 @@
 /*
 ---
-compile: 3
-compileTarget: js
+!dafnyTestSpec
+dafnyArguments:
+    compileTarget: js
 */
 
 // "url" is a built-in package in node, so it should be accessible to the
