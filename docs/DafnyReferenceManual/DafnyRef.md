@@ -31,11 +31,19 @@ user understand how to do proofs with Dafny.
 
 {% include Types.md %}
 
+# Type Inference
+
+TO BE WRITTEN
+
 {% include Statements.md %}
 
 {% include Expressions.md %}
 
-# Well-Founded Orders {#sec-well-founded-orders}
+# Variable Initialization and Definite Assignment
+
+TO BE WRITTEN -- rules for default initialization; resulting rules for constructors; definite assignment rules
+
+# Well-founded Orders {#sec-well-founded-orders}
 
 TODO: Write this section
 
@@ -46,6 +54,34 @@ TODO: Write this section.
 {% include Attributes.md %}
 
 {% include UserGuide.md %}
+
+# TODO
+
+-- const, static const
+
+-- declarations
+
+-- inference of array sizes
+
+-- witness, ghost witness clauses
+
+-- customizable error messages
+
+-- opaque types
+
+-- the !new type parameter characteristic
+
+-- traits, object
+
+-- non-null types
+
+-- abstemious functions
+
+-- labels (for program locations)
+
+-- updates to shared destructors
+
+-- labelled assertion statements, labelled preconditions
 
 # References
 [BIB]

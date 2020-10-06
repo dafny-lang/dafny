@@ -89,7 +89,7 @@ namespace Microsoft.Dafny {
     }
 
     public static Dictionary<A,B> Dict<A,B>(IEnumerable<A> xs, IEnumerable<B> ys) {
-      return Dict<A,B>(xs.Zip(ys));
+      return Dict<A,B>(LinqExtender.Zip(xs, ys));
     }
 
     public static Dictionary<A,B> Dict<A,B>(IEnumerable<Tuple<A,B>> xys) {
