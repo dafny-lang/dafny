@@ -26,9 +26,15 @@ namespace Microsoft.Dafny
 
     public override string TargetLanguage => "C#";
 
-    protected string DafnyISet => "Dafny.ISet";
-    protected string DafnyIMultiset => "Dafny.IMultiSet";
-    protected string DafnyIMap => "Dafny.IMap";
+    const string DafnyISet = "Dafny.ISet";
+    const string DafnyIMultiset = "Dafny.IMultiSet";
+    const string DafnyISeq = "Dafny.ISequence";
+    const string DafnyIMap = "Dafny.IMap";
+
+    const string DafnySetClass = "Dafny.Set";
+    const string DafnyMultiSetClass = "Dafny.MultiSet";
+    const string DafnySeqClass = "Dafny.Sequence";
+    const string DafnyMapClass = "Dafny.Map";
 
     protected override void EmitHeader(Program program, TargetWriter wr) {
       wr.WriteLine("// Dafny program {0} compiled into C#", program.Name);
@@ -958,7 +964,7 @@ namespace Microsoft.Dafny
         return DafnyISet + "<" + TypeName(argType, wr, tok) + ">";
       } else if (xType is SeqType) {
         Type argType = ((SeqType)xType).Arg;
-        return DafnySeqClass + "<" + TypeName(argType, wr, tok) + ">";
+        return DafnyISeq + "<" + TypeName(argType, wr, tok) + ">";
       } else if (xType is MultiSetType) {
         Type argType = ((MultiSetType)xType).Arg;
         return DafnyIMultiset + "<" + TypeName(argType, wr, tok) + ">";
@@ -1362,7 +1368,7 @@ namespace Microsoft.Dafny
         wr.Write("'{0}'", (string)e.Value);
       } else if (e is StringLiteralExpr) {
         var str = (StringLiteralExpr)e;
-        wr.Write("{0}<char>.FromString(", DafnySeqHelperClass);
+        wr.Write("{0}<char>.FromString(", DafnySeqClass);
         TrStringLiteral(str, wr);
         wr.Write(")");
       } else if (AsNativeType(e.Type) != null) {
@@ -1903,7 +1909,7 @@ namespace Microsoft.Dafny
         Contract.Assert(lam.BoundVars.Count == 1);
         EmitSeqConstructionExprFromLambda(expr.N, lam.BoundVars[0], lam.Body, inLetExprBody, wr);
       } else {
-        wr.Write("{0}<{1}>.Create(", DafnySeqClass, TypeName(expr.Type.AsSeqType.Arg, wr, expr.tok));
+        wr.Write("{0}<{1}>.Create(", DafnyISeq, TypeName(expr.Type.AsSeqType.Arg, wr, expr.tok));
         TrExpr(expr.N, wr, inLetExprBody);
         wr.Write(", ");
         TrExpr(expr.Initializer, wr, inLetExprBody);
@@ -1960,8 +1966,7 @@ namespace Microsoft.Dafny
       wrArrName.Write(arrVar);
       wrLoopBody.WriteLine(";");
 
-      wrLamBody.WriteLine("return {0}<{1}>.FromArray({2});",
-        DafnySeqHelperClass, TypeName(body.Type, wr, body.tok), arrVar);
+      wrLamBody.WriteLine("return {0}<{1}>.FromArray({2});", DafnySeqClass, TypeName(body.Type, wr, body.tok), arrVar);
     }
 
     protected override void EmitMultiSetFormingExpr(MultiSetFormingExpr expr, bool inLetExprBody, TargetWriter wr) {

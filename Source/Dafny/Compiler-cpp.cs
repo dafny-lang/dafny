@@ -46,11 +46,10 @@ namespace Microsoft.Dafny {
     // Dedicated hash-function definitions for each type
     private TargetWriter hashWr = null;
 
-    // Shadowing variables in Compiler.cs
-    new string DafnySetClass = "DafnySet";
-    new string DafnyMultiSetClass = "DafnyMultiset";
-    new string DafnySeqClass = "DafnySequence";
-    new string DafnyMapClass = "DafnyMap";
+    const string DafnySetClass = "DafnySet";
+    const string DafnyMultiSetClass = "DafnyMultiset";
+    const string DafnySeqClass = "DafnySequence";
+    const string DafnyMapClass = "DafnyMap";
 
     public override string TargetLanguage => "Cpp";
     protected override string ModuleSeparator => "::";

@@ -28,10 +28,10 @@ namespace Microsoft.Dafny{
 
     public override String TargetLanguage => "Java";
 
-    protected override string DafnySetClass => "dafny.DafnySet";
-    protected override string DafnyMultiSetClass => "dafny.DafnyMultiset";
-    protected override string DafnySeqClass => "dafny.DafnySequence";
-    protected override string DafnyMapClass => "dafny.DafnyMap";
+    const string DafnySetClass = "dafny.DafnySet";
+    const string DafnyMultiSetClass = "dafny.DafnyMultiset";
+    const string DafnySeqClass = "dafny.DafnySequence";
+    const string DafnyMapClass = "dafny.DafnyMap";
 
     const string DafnyBigRationalClass = "dafny.BigRational";
     const string DafnyEuclideanClass = "dafny.DafnyEuclidean";

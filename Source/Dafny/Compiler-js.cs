@@ -21,10 +21,10 @@ namespace Microsoft.Dafny {
 
     public override string TargetLanguage => "JavaScript";
 
-    protected override string DafnySetClass => "_dafny.Set";
-    protected override string DafnyMultiSetClass => "_dafny.MultiSet";
-    protected override string DafnySeqClass => "_dafny.Seq";
-    protected override string DafnyMapClass => "_dafny.Map";
+    const string DafnySetClass = "_dafny.Set";
+    const string DafnyMultiSetClass = "_dafny.MultiSet";
+    const string DafnySeqClass = "_dafny.Seq";
+    const string DafnyMapClass = "_dafny.Map";
 
     protected override void EmitHeader(Program program, TargetWriter wr) {
       wr.WriteLine("// Dafny program {0} compiled into JavaScript", program.Name);
