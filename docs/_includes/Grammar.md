@@ -94,7 +94,7 @@ will link to the definition of the entity.**
 ## Dafny Input {#sec-unicode}
 
 Dafny source code files are readable text encoded as UTF-8 Unicode
-(because this is what the CoCo-generated scanner and parser read). 
+(because this is what the Coco/R-generated scanner and parser read). 
 All program text other than the contents of comments, character, string and verbatim string literals
 are printable and white-space ASCII characters,
 that is, ASCII characters in the range `!` to `~`, plus space, tab, cr and nl (ASCII, 9, 10, 13, 32)  characters,
@@ -474,4 +474,3 @@ A ``Nat`` represents a natural number expressed in either decimal or hexadecimal
 Dec = decimaldigits
 ````
 A ``Dec`` represents a decimal fraction literal.
-
