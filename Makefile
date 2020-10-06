@@ -2,10 +2,10 @@ DIR=$(dir $(realpath $(firstword $(MAKEFILE_LIST))))
 
 default: parser runtime boogie exe
 
-all: parser runtime boogie exe refman
+all: runtime boogie exe refman
 
-exe: parser
-	(cd ${DIR} ; msbuild Source/Dafny.sln )
+exe:
+	(cd ${DIR} ; dotnet build Source/Dafny.sln ) ## includes parser
 
 boogie: ${DIR}/../boogie/Binaries/Boogie.exe
 
