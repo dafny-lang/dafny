@@ -747,14 +747,15 @@ Here are a few use-cases for the `expect` statement.
 
 A) To check the specifications of external methods.
 
-Consider an external method `Random` that takes a `nat` as input and returns
-a `nat` value that is less than the input. Such a method could be
-specified as
+Consider an external method `Random` that takes a `nat` as input
+and returns a `nat` value that is less than the input.
+Such a method could be specified as
 ```dafny
 method {:extern} Random(n: nat) returns (r: nat)
   ensures r < n
 ```
-But because there is no body for `Random` (only the external non-dafny implementation), it cannot be verified that `Random` actually satisfies this specification.
+But because there is no body for `Random` (only the external non-dafny implementation),
+it cannot be verified that `Random` actually satisfies this specification.
 
 To mitigate this situation somewhat, we can define a wrapper function, `Random'`
 that calls `Random` but in which we can put some run-time checks:
@@ -769,26 +770,31 @@ method Random'(n: nat) returns (r: nat)
   expect r < n;
 }
 ```
-Here we can verify that `Random'` satisfies its own specification, relying on 
-the unverified specification of `Random`. But we are also checking at run-time
-that any input-output pairs for `Random` encountered during execution do satisfythe specification, as they are checked by the `expect` statement.
+Here we can verify that `Random'` satisfies its own specification,
+relying on the unverified specification of `Random`.
+But we are also checking at run-time that any input-output pairs for `Random`
+encountered during execution
+do satisfy the specification,
+as they are checked by the `expect` statement.
 
 B) Run-time testing
 
-Verification and run-time testing are complementary and both have their role in assuring that software does what is intended. Dafny can produce executables and
-these can be instrumented with unit tests.
+Verification and run-time testing are complementary
+and both have their role in assuring that software does what is intended.
+Dafny can produce executables
+and these can be instrumented with unit tests.
 Annotating a method with the `{:test}` attribute
-indicates to the compiler that it should
-produce target code that is correspondingly annotated to mark the method as 
-a unit test (e.g., an XUnit test) in the target language. 
-Within that method one might use `expect`
-statements (as well as `print` statements) to insert checks that the target
-program is behaving as expected.
+indicates to the compiler
+that it should produce target code
+that is correspondingly annotated to mark the method
+as a unit test (e.g., an XUnit test) in the target language. 
+Within that method one might use `expect` statements (as well as `print` statements)
+to insert checks that the target program is behaving as expected.
 
 C) Compiler tests
 
-If one wants to assure that compiled code is behaving at run-time consistently with the statically verified code, one can use paired assert/expect statements
-with the same expression:
+If one wants to assure that compiled code is behaving at run-time consistently with the statically verified code,
+one can use paired assert/expect statements with the same expression:
 ```dafny
 assert _P_;
 expect _P_;
@@ -796,11 +802,14 @@ expect _P_;
 The verifier will check that _P_ is always true at the given point in a program
 (at the `assert` statement).
 
-At run-time, the compiler will insert checks that the same predicate, in the 
-`expect` statement is true. Any difference identifies a compiler bug.
-Note that the `expect` must be after the `assert`. If the `expect` is first, 
-then the verifier will interpret the `expect` like an `assume`, in which case
-the `assert` will be proved trivially and potential unsoundness will be hidden.
+At run-time, the compiler will insert checks that the same predicate,
+in the `expect` statement is true.
+Any difference identifies a compiler bug.
+Note that the `expect` must be after the `assert`.
+If the `expect` is first, 
+then the verifier will interpret the `expect` like an `assume`,
+in which case the `assert` will be proved trivially
+and potential unsoundness will be hidden.
 
 Using `...` as the argument of the `expect` statement is part of module refinement, as described [here](#sec-module-refinement).
 
@@ -1184,4 +1193,3 @@ SkeletonStmt =
   ] ";"
 ````
 -->
-
