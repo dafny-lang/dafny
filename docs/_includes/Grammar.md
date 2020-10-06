@@ -100,7 +100,7 @@ are printable and white-space ASCII characters,
 that is, ASCII characters in the range `!` to `~`, plus space, tab, cr and nl (ASCII, 9, 10, 13, 32)  characters,
 with the exception of a few allowed unicode mathematical symbols.
 
-However, a current limitation is that the Coco tool used by Dafny is not up to date,
+However, a current limitation is that the Coco/R tool used by Dafny is not up to date,
 and consequently, only printable and white-space ASCII characters can be used.
 Use `\u` escapes in string and character literals to insert unicode characters.
 Unicode in comments will work fine unless the unicode is interpreted as an end-of-comment indication. 
