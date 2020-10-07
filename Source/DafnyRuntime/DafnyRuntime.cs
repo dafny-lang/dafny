@@ -102,10 +102,6 @@ namespace Dafny
       }
     }
 
-    public static ISet<T> _DafnyDefaultValue() {
-      return Empty;
-    }
-
     /// <summary>
     /// This is an inefficient iterator for producing all subsets of "this".
     /// </summary>
@@ -350,10 +346,6 @@ namespace Dafny
         }
         return new MultiSet<U>(d, this.occurrencesOfNull);
       }
-    }
-
-    public static MultiSet<T> _DafnyDefaultValue() {
-      return Empty;
     }
 
     public bool Equals(IMultiSet<T> other) {
@@ -641,9 +633,6 @@ namespace Dafny
     public long LongCount {
       get { return dict.Count + (hasNullKey ? 1 : 0); }
     }
-    public static Map<U, V> _DafnyDefaultValue() {
-      return Empty;
-    }
 
     public bool Equals(IMap<U, V> other) {
       if (other == null || LongCount != other.LongCount) {
@@ -834,21 +823,6 @@ namespace Dafny
     }
     public static ISequence<char> FromString(string s) {
       return new ArraySequence<char>(s.ToCharArray());
-    }
-    public static ISequence<T> _DafnyDefaultValue() {
-      return Empty;
-    }
-    public ISequence<U> DowncastClone<U>(Func<T, U> converter) {
-      if (this is ISequence<U> th) {
-        return th;
-      } else {
-        var values = new U[this.LongCount];
-        for (long i = 0; i < this.LongCount; i++) {
-          var val = converter(this.Select(i));
-          values[i] = val;
-        }
-        return new ArraySequence<U>(values);
-      }
     }
     public static ISequence<T> Update(ISequence<T> sequence, long index, T t) {
       T[] tmp = (T[])sequence.Elements.Clone();
@@ -1149,10 +1123,24 @@ namespace Dafny
       this.cdr = b;
     }
   }
-  public partial class Helpers {
+
+  public class TypeDescriptor<T>
+  {
+    private readonly T initValue;
+    public TypeDescriptor(T initValue) {
+      this.initValue = initValue;
+    }
+    public T Default() {
+      return initValue;
+    }
+  }
+
+  public partial class Helpers
+  {
     public static int GetHashCode<G>(G g) {
       return g == null ? 1001 : g.GetHashCode();
     }
+
     public static int ToIntChecked(BigInteger i, string msg) {
       if (i > Int32.MaxValue || i < Int32.MinValue) {
         if (msg == null) msg = "value out of range for a 32-bit int";
@@ -1183,28 +1171,40 @@ namespace Dafny
     public static void Print<G>(G g) {
       System.Console.Write(ToString(g));
     }
-    public static G Default<G>() {
-      Type ty = typeof(G);
-      // If ty is Dafny.ISequence<T> for some concrete T, use Dafny.Sequence<T> instead
-      // TODO-RS: How to generalize these mappings?
-      if (ty.IsGenericType && typeof(Dafny.ISet<>) == ty.GetGenericTypeDefinition()) {
-        ty = typeof(Dafny.Set<>).MakeGenericType(ty.GenericTypeArguments);
-      } else if (ty.IsGenericType && typeof(Dafny.ISequence<>) == ty.GetGenericTypeDefinition()) {
-        ty = typeof(Dafny.Sequence<>).MakeGenericType(ty.GenericTypeArguments);
-      } else if (ty.IsGenericType && typeof(Dafny.IMultiSet<>) == ty.GetGenericTypeDefinition()) {
-        ty = typeof(Dafny.MultiSet<>).MakeGenericType(ty.GenericTypeArguments);
-      } else if (ty.IsGenericType && typeof(Dafny.IMap<,>) == ty.GetGenericTypeDefinition()) {
-        ty = typeof(Dafny.Map<,>).MakeGenericType(ty.GenericTypeArguments);
-      }
-      System.Reflection.MethodInfo mInfo = ty.GetMethod("_DafnyDefaultValue");
-      if (mInfo != null) {
-        G g = (G)mInfo.Invoke(null, null);
-        return g;
-      } else {
-        return default(G);
-      }
+
+    public static readonly TypeDescriptor<bool> BOOLEAN = new TypeDescriptor<bool>(false);
+    public static readonly TypeDescriptor<char> CHAR = new TypeDescriptor<char>('D');
+    public static readonly TypeDescriptor<BigInteger> INTEGER = new TypeDescriptor<BigInteger>(BigInteger.Zero);
+    public static readonly TypeDescriptor<BigRational> REAL = new TypeDescriptor<BigRational>(BigRational.ZERO);
+    public static readonly TypeDescriptor<sbyte> INT8 = new TypeDescriptor<sbyte>(0);
+    public static readonly TypeDescriptor<byte> UINT8 = new TypeDescriptor<byte>(0);
+    public static readonly TypeDescriptor<short> INT16 = new TypeDescriptor<short>(0);
+    public static readonly TypeDescriptor<ushort> UINT16 = new TypeDescriptor<ushort>(0);
+    public static readonly TypeDescriptor<int> INT32 = new TypeDescriptor<int>(0);
+    public static readonly TypeDescriptor<uint> UINT32 = new TypeDescriptor<uint>(0);
+    public static readonly TypeDescriptor<long> INT64 = new TypeDescriptor<long>(0);
+    public static readonly TypeDescriptor<ulong> UINT64 = new TypeDescriptor<ulong>(0);
+
+    public static TypeDescriptor<T> NULL<T>() where T : class {
+      return new TypeDescriptor<T>(null);
     }
-    // Computing forall/exists quantifiers
+
+    public static TypeDescriptor<ISet<A>> SET<A>() {
+      return new TypeDescriptor<ISet<A>>(Set<A>.Empty);
+    }
+    public static TypeDescriptor<IMultiSet<A>> MULTISET<A>() {
+      return new TypeDescriptor<IMultiSet<A>>(MultiSet<A>.Empty);
+    }
+    public static TypeDescriptor<ISequence<A>> SEQ<A>() {
+      return new TypeDescriptor<ISequence<A>>(Sequence<A>.Empty);
+    }
+    public static TypeDescriptor<IMap<A, B>> MAP<A, B>() {
+      return new TypeDescriptor<IMap<A, B>>(Map<A, B>.Empty);
+    }
+    public static TypeDescriptor<A[]> ARRAY<A>() {
+      return new TypeDescriptor<A[]>(new A[0]);
+    }
+
     public static bool Quantifier<T>(IEnumerable<T> vals, bool frall, System.Predicate<T> pred) {
       foreach (var u in vals) {
         if (pred(u) != frall) { return !frall; }
@@ -1608,6 +1608,7 @@ namespace @_System
       s += ")";
       return s;
     }
+#if CHECK_ON_WHAT_OTHER_DATATYPES_DO
     static Tuple2<T0,T1> theDefault;
     public static Tuple2<T0,T1> Default {
       get {
@@ -1618,6 +1619,7 @@ namespace @_System
       }
     }
     public static Tuple2<T0,T1> _DafnyDefaultValue() { return Default; }
+#endif
     public static Tuple2<T0,T1> create(T0 _0, T1 _1) {
       return new Tuple2<T0,T1>(_0, _1);
     }
