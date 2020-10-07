@@ -8,6 +8,7 @@
 *.DS_Store
 *~
 
+.gradle/
 .idea/
 
 Binaries/*.dll
@@ -21,6 +22,7 @@ Binaries/DafnyServer.exe
 Binaries/DafnyRuntime.cs
 Binaries/export/
 Binaries/mono_crash*
+Binaries/*
 
 Package/
 

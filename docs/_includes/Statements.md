@@ -1,5 +1,5 @@
 # Statements
-````
+````grammar
 Stmt = ( BlockStmt | AssertStmt | AssumeStmt | ExpectStmt | PrintStmt | UpdateStmt
   | VarDeclStatement | IfStmt | WhileStmt | MatchStmt | ForallStmt
   | CalcStmt | ModifyStmt | LabeledStmt_ | BreakStmt_ | ReturnStmt
@@ -21,7 +21,7 @@ This grammar production shows the different kinds of Dafny statements.
 They are described in subsequent sections.
 
 ## Labeled Statement
-````
+````grammar
 LabeledStmt_ = "label" LabelName ":" Stmt
 ````
 A labeled statement is just the keyword `label` followed by an identifier
@@ -37,7 +37,7 @@ must have been encountered during the control flow in route to the `old`
 expression. That is, again, the label must dominate the use of the label.
 
 ## Break Statement
-````
+````grammar
 BreakStmt_ = "break" ( LabelName | { "break" } ) ";"
 ````
 A break statement provides a means to transfer control
@@ -51,7 +51,7 @@ used to exit a sequence of statements in a block statement before
 reaching the end of the block.
 
 For example,
-```
+```dafny
 L: {
   var n := ReadNext();
   if n < 0  { break L; }
@@ -59,7 +59,7 @@ L: {
 }
 ```
 is equivalent to
-```
+```dafny
 {
   var n: ReadNext();
   if 0 <= n {
@@ -73,7 +73,7 @@ occurrences of `break`, then the statement must be enclosed in
 at least `n` levels of loops. Control continues after exiting `n`
 enclosing loops. For example,
 
-```
+```dafny
 var i := 0;
 while i < 10 {
   var j := 0;
@@ -91,14 +91,14 @@ while i < 10 {
 ``` 
 
 ## Block Statement
-````
+````grammar
 BlockStmt = "{" { Stmt } "}"
 ````
 A block statement is just a sequence of statements enclosed by curly braces.
 Local variables declared in the block end their scope at the end of the block.
 
 ## Return Statement
-````
+````grammar
 ReturnStmt = "return" [ Rhs { "," Rhs } ] ";"
 ````
 A return statement can only be used in a method. It is used
@@ -119,7 +119,7 @@ evaluated, then they are assigned to the out-parameters, and then the
 method terminates.
 
 ## Yield Statement
-````
+````grammar
 YieldStmt = "yield" [ Rhs { "," Rhs } ] ";"
 ````
 
@@ -145,7 +145,7 @@ assigned to the yield parameters, and then the iterator
 yields.
 
 ## Update and Call Statements {#sec-update-and-call-statement}
-````
+````grammar
 UpdateStmt =
     Lhs
     ( {Attribute} ";"
@@ -162,7 +162,7 @@ corresponding right-hand sides also denote the same value.
     )
 ````
 
-````
+````grammar
 CallStmt_ =
     [ Lhs { , Lhs } ":=" ] Lhs ";"
 ````
@@ -210,7 +210,7 @@ variables such that the boolean expression on the right hand side
 is satisfied. This can be used to make a choice as in the
 following example where we choose an element in a set.
 
-```
+```dafny
 method Sum(X: set<int>) returns (s: int)
 {
   s := 0; var Y := X;
@@ -233,14 +233,14 @@ when executed.
 
 Note that the form
 
-````
+````grammar
     Lhs ":"
 ````
 
 is diagnosed as a label in which the user forgot the **label** keyword.
 
 ## Variable Declaration Statement
-````
+````grammar
 VarDeclStatement = [ "ghost" ] "var" { Attribute }
   (
     LocalIdentTypeOptional 
@@ -264,7 +264,7 @@ of values must match the number of variables declared.
 
 Note that the type of each variable must be given individually. The following code
 
-```
+```dafny
 var x, y : int;
 ```
 does not declare both `x` and `y` to be of type `int`. Rather it will give an
@@ -280,7 +280,7 @@ if the **ghost** keyword is not part of the variable declaration statement.
 The left-hand side can also contain a tuple of patterns which will be
 matched against the right-hand-side. For example:
 
-```
+```dafny
 function returnsTuple() : (int, int)
 {
     (5, 10)
@@ -294,7 +294,7 @@ function usesTuple() : int
 ```
 
 ## Guards
-````
+````grammar
 Guard = ( "*" 
         | "(" "*" ")" 
         | Expression(allowLemma: true, allowLambda: true) 
@@ -310,7 +310,7 @@ unspecified boolean value is returned. The value returned
 may be different each time it is executed.
 
 ## Binding Guards
-````
+````grammar
 BindingGuard(allowLambda) =
   IdentTypeOptional { "," IdentTypeOptional } { Attribute }
   ":|" Expression(allowLemma: true, allowLambda)
@@ -324,13 +324,13 @@ where the bound variables are not in scope.
 
 In other words, the statement
 
-```
+```dafny
 if x :| P { S } else { T }
 ```
 
 has the same meaning as
 
-```
+```dafny
 if exists x :| P { var x :| P; S } else { T }
 ```
 
@@ -340,7 +340,7 @@ used in specification contexts.
 
 Here is an example:
 
-```
+```dafny
 predicate P(n: int)
 {
   n % 2 == 0
@@ -357,7 +357,7 @@ method M1() returns (ghost y: int)
 ```
 
 ## If Statement
-````
+````grammar
 IfStmt = "if"
   ( IfAlternativeBlock
   | "{" IfAlternativeBlock "}"
@@ -370,7 +370,7 @@ IfStmt = "if"
   )
 ````
 
-````
+````grammar
 IfAlternativeBlock =
       { "case"
       (
@@ -383,7 +383,7 @@ The simplest form of an `if` statement uses a guard that is a boolean
 expression. It then has the same form as in C\# and other common
 programming languages. For example,
 
-```
+```dafny
   if x < 0 {
     x := -x;
   }
@@ -391,7 +391,7 @@ programming languages. For example,
 
 If the guard is an asterisk then a non-deterministic choice is made:
 
-```
+```dafny
   if * {
     print "True";
   } else {
@@ -404,7 +404,7 @@ The `if` statement using the `IfAlternativeBlock` form is similar to the
 Edsger W. Dijkstra. It is used for a multi-branch `if`.
 
 For example:
-```
+```dafny
   if {
     case x <= y => max := y;
     case y <= x => max := x;
@@ -418,7 +418,7 @@ to the right of `=>` for that guard are executed. The statement requires
 at least one of the guards to evaluate to `true`.
 
 ## While Statement
-````
+````grammar
 WhileStmt = "while"
   ( LoopSpecWhile ( WhileAlternativeBlock | "{" WhileAlternativeBlock "}" )
   | ( Guard | "..." ) LoopSpec
@@ -429,7 +429,7 @@ WhileStmt = "while"
   )
 ````
 
-````
+````grammar
 WhileAlternativeBlock =
    "{" 
    { "case" Expression(allowLemma: true, allowLambda: false) 
@@ -448,7 +448,7 @@ forms.
 The first form is similar to a while loop in a C-like language. For
 example:
 
-```
+```dafny
   var i := 0;
   while i < 5 {
     i := i + 1;
@@ -479,7 +479,7 @@ The second form uses the `WhileAlternativeBlock`. It is similar to the
 `do ... od` construct used in the book "A Discipline of Programming" by
 Edsger W. Dijkstra. For example:
 
-```
+```dafny
   while
     decreases if 0 <= r then r else -r;
   {
@@ -523,7 +523,7 @@ the loop, or we wouldn't need the loop. Like pre- and postconditions, an
 invariant is a property that is preserved for each execution of the loop,
 expressed using the same boolean expressions we have seen. For example,
 
-```
+```dafny
 var i := 0;
 while i < n
   invariant 0 <= i
@@ -566,7 +566,7 @@ that decreases, but other things that can be used as well. In the case of
 integers, the bound is assumed to be zero. For example, the following is
 a proper use of `decreases` on a loop:
 
-```
+```dafny
   while 0 < i
     invariant 0 <= i
     decreases i
@@ -582,7 +582,7 @@ tend to count up instead of down. In this case, what decreases is not the
 counter itself, but rather the distance between the counter and the upper
 bound. A simple trick for dealing with this situation is given below:
 
-```
+```dafny
   while i < n
     invariant 0 <= i <= n
     decreases n - i
@@ -610,7 +610,7 @@ See the discussion of framing in methods for a fuller discussion.
 TO BE WRITTEN
 
 ## Match Statement
-````
+````grammar
 MatchStmt = "match" Expression(allowLemma: true, allowLambda: true)
   ( "{" { CaseStatement } "}"
   | { CaseStatement }
@@ -643,7 +643,7 @@ same constructor. In that case `x1` is bound to value `v1` and
 `x2` is bound to `v2`. The identifiers in the case pattern
 are not mutable. Here is an example of the use of a `match` statement.
 
-```
+```dafny
 datatype Tree = Empty | Node(left: Tree, data: int, right: Tree)
 
 // Return the sum of the data in a tree.
@@ -666,7 +666,7 @@ coinductive this would not have been possible since `x` might have been
 infinite.
 
 ## Assert Statement
-````
+````grammar
 AssertStmt =
     "assert" { Attribute }
     ( Expression(allowLemma: false, allowLambda: true)
@@ -689,7 +689,7 @@ Using `...` as the argument of the statement is part of module refinement, as de
 TO BE WRITTEN - assert by statements
 
 ## Assume Statement
-````
+````grammar
 AssumeStmt =
     "assume" { Attribute }
     ( Expression(allowLemma: false, allowLambda: true)
@@ -715,7 +715,7 @@ Using `...` as the argument of the statement is part of module refinement, as de
 
 ## Expect Statement
 
-````
+````grammar
 ExpectStmt =
     "expect" { Attribute }
     ( Expression(allowLemma: false, allowLambda: true)
@@ -743,17 +743,82 @@ Because the expect expression and optional second argument are compiled, they ca
 `assume` for the verifier, but also inserts a run-time check that the 
 assumption is indeed correct (for the test cases used at run-time).
 
-Paired `assert` and `expect` statements 
-(with `assert` before `expect`) checking the
-same expression can be used to do runtime checking before there is a successful proof
-of an assert statement (or to help debug one that is unprovable).[^expect]
+Here are a few use-cases for the `expect` statement.
 
-[^expect]: Aside from difficulties in constructing a successful proof, 
-paired (consecutive) `assert` and `expect` statements in a program should always produce the 
-same results, except if the compiler is faulty. Of course, the `expect` statement only checks the 
-test cases for which the program is run.
+A) To check the specifications of external methods.
 
-Using `...` as the argument of the statement is part of module refinement, as described [here](#sec-module-refinement).
+Consider an external method `Random` that takes a `nat` as input
+and returns a `nat` value that is less than the input.
+Such a method could be specified as
+```dafny
+method {:extern} Random(n: nat) returns (r: nat)
+  ensures r < n
+```
+But because there is no body for `Random` (only the external non-dafny implementation),
+it cannot be verified that `Random` actually satisfies this specification.
+
+To mitigate this situation somewhat, we can define a wrapper function, `Random'`,
+that calls `Random` but in which we can put some run-time checks:
+```dafny
+method {:extern} Random(n: nat) returns (r: nat)
+
+method Random'(n: nat) returns (r: nat)
+  ensures r < n
+{
+  r := Random(n);
+  expect r < n;
+}
+```
+Here we can verify that `Random'` satisfies its own specification,
+relying on the unverified specification of `Random`.
+But we are also checking at run-time that any input-output pairs for `Random`
+encountered during execution
+do satisfy the specification,
+as they are checked by the `expect` statement.
+
+Note, in this example, two problems are still remaining.
+One problem is that the out-parameter of the extern `Random` has type `nat`,
+but there is no check that the value returned really is non-negative.
+It would be better to declare the out-parameter of `Random` to be `int` and
+to include `0 <= r` in the condition checked by the `expect` statement in `Random'`.
+The other problem is that `Random` surely will need `n` to be strictly positive.
+This can be fixed by adding `requires n != 0` to `Random'` and `Random`.
+
+B) Run-time testing
+
+Verification and run-time testing are complementary
+and both have their role in assuring that software does what is intended.
+Dafny can produce executables
+and these can be instrumented with unit tests.
+Annotating a method with the `{:test}` attribute
+indicates to the compiler
+that it should produce target code
+that is correspondingly annotated to mark the method
+as a unit test (e.g., an XUnit test) in the target language. 
+Within that method one might use `expect` statements (as well as `print` statements)
+to insert checks that the target program is behaving as expected.
+
+C) Compiler tests
+
+If one wants to assure that compiled code is behaving at run-time consistently with the statically verified code,
+one can use paired assert/expect statements with the same expression:
+```dafny
+assert _P_;
+expect _P_;
+```
+The verifier will check that _P_ is always true at the given point in a program
+(at the `assert` statement).
+
+At run-time, the compiler will insert checks that the same predicate,
+in the `expect` statement is true.
+Any difference identifies a compiler bug.
+Note that the `expect` must be after the `assert`.
+If the `expect` is first, 
+then the verifier will interpret the `expect` like an `assume`,
+in which case the `assert` will be proved trivially
+and potential unsoundness will be hidden.
+
+Using `...` as the argument of the `expect` statement is part of module refinement, as described [here](#sec-module-refinement).
 
 <!--
 Describe where refinement is described.
@@ -762,7 +827,7 @@ If the proposition is `...` then (TODO: what does this mean?).
 -->
 
 ## Print Statement
-````
+````grammar
 PrintStmt =
     "print" Expression(allowLemma: false, allowLambda: true)
     { "," Expression(allowLemma: false, allowLambda: true) } ";"
@@ -777,7 +842,7 @@ line you should include `"\n"` as part of one of the expressions.
 Dafny automatically creates implementations of methods that convert values to strings
 for all Dafny data types. For example,
 
-```
+```dafny
 datatype Tree = Empty | Node(left: Tree, data: int, right: Tree)
 method Main()
 {
@@ -797,7 +862,7 @@ override the built-in value->string conversion.  Nor is there a way to
 explicitly invoke this conversion.
 
 ## Forall Statement
-````
+````grammar
 ForallStmt = "forall"
   ( "(" [ QuantifierDomain ] ")"
   | [ QuantifierDomain ]
@@ -831,7 +896,7 @@ into the new buffer.
 
 [leino233]: http://research.microsoft.com/en-us/um/people/leino/papers/krml233.pdf
 
-```
+```dafny
 class {:autocontracts} SimpleQueue<Data>
 {
   ghost var Contents: seq<Data>;
@@ -859,7 +924,7 @@ Here is an example of a _call_ `forall` statement and the
 callee. This is contained in the `CloudMake-ConsistentBuilds.dfy`
 test in the Dafny repository.
 
-```
+```dafny
 forall cmd', deps', e' | 
        Hash(Loc(cmd', deps', e')) == Hash(Loc(cmd, deps, e)) {
   HashProperty(cmd', deps', e', cmd, deps, e);
@@ -873,7 +938,7 @@ lemma HashProperty(cmd: Expression, deps: Expression, ext: string,
 
 The following example of a _proof_ `forall` statement comes from the same file:
 
-```
+```dafny
 forall p | p in DomSt(stCombinedC.st) && p in DomSt(stExecC.st)
   ensures GetSt(p, stCombinedC.st) == GetSt(p, stExecC.st)
 {
@@ -884,12 +949,12 @@ forall p | p in DomSt(stCombinedC.st) && p in DomSt(stExecC.st)
 ```
 
 More generally, the statement
-```
+```dafny
 forall x | P(x) { Lemma(x); }
 ```
 is used to invoke `Lemma(x)` on all `x` for which `P(x)` holds. If
 `Lemma(x)` ensures `Q(x)`, then the forall statement establishes
-```
+```dafny
 forall x :: P(x) ==> Q(x).
 ```
 
@@ -897,7 +962,7 @@ The `forall` statement is also used extensively in the de-sugared forms of
 co-predicates and co-lemmas. See section [#sec-co-inductive-datatypes].
 
 ## Modify Statement
-````
+````grammar
 ModifyStmt =
   "modify" { Attribute }
   ( FrameExpression(allowLemma: false, allowLambda: true)
@@ -919,7 +984,7 @@ followed by a `modify` statement that may modify any field
 in the object. After that we can no longer prove that the field
 `x` still has the value we assigned to it.
 
-```
+```dafny
 class MyClass {
   var x: int
   method N()
@@ -938,7 +1003,7 @@ block statement. Namely, only memory locations specified
 by the frame expressions of the block `modify` statement
 may be modified. Consider the following example.
 
-```
+```dafny
 class ModifyBody {
   var x: int
   var y: int
@@ -968,7 +1033,7 @@ class ModifyBody {
   }
 ```
 
-```
+```dafny
   method M3()
     modifies this
   {
@@ -998,7 +1063,7 @@ the modify statement do not apply to local variables, only those
 that are heap-based.
 
 ## Calc Statement
-````
+````grammar
 CalcStmt = "calc" { Attribute } [ CalcOp ] "{" CalcBody "}"
 CalcBody = { CalcLine [ CalcOp ] Hints }
 CalcLine = Expression(allowLemma: false, allowLambda: true) ";"
@@ -1047,7 +1112,7 @@ Here is an example using `calc` statements to prove an elementary
 algebraic identity. As it turns out, Dafny is able to prove this without
 the `calc` statements, but the example illustrates the syntax.
 
-```
+```dafny
 lemma docalc(x : int, y: int)
   ensures (x + y) * (x + y) == x * x + 2 * x * y + y * y
 {
@@ -1101,7 +1166,7 @@ every pair of expressions by giving a default operator between
 the `calc` keyword and the opening brace as shown in this abbreviated
 version of the above calc statement:
 
-```
+```dafny
 calc == {
   (x + y) * (x + y);
   x * (x + y) + y * (x + y);
@@ -1126,7 +1191,7 @@ TO BE WRITTEN
 Move to discussion of refinement.
 
 ## Skeleton Statement
-````
+````grammar
 SkeletonStmt =
   "..."
   ["where" Ident {"," Ident } ":="
@@ -1135,4 +1200,3 @@ SkeletonStmt =
   ] ";"
 ````
 -->
-
