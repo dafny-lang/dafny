@@ -422,7 +422,8 @@ TO BE WRITTEN -- allocated predicate
 OldExpression_ = "old" [ "@" ident ] "(" Expression(allowLemma: true, allowLambda: true) ")"
 ````
 
-An _old expression_ is used in postconditions or in the body of a method;
+An _old expression_ is used in postconditions or in the body of a method
+or in the body or specification of any two-state function or two-state lemma;
 an _old_ expression with a label is used only in the body of a method at a point
 where the label dominates its use in this expression.
 

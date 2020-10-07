@@ -15,17 +15,17 @@ class B {
      requires a.value == 11
      modifies this, this.a 
    {
-     label L: {}
+     label L:
      a.value := 12;
-     label M: {}
+     label M:
      a := new A(); // Line X
-     label N: {}
+     label N:
      a.value := 20;
-     label P: {}
+     label P:
 
      assert old(a.value) == 11;
      assert old(a).value == 12; // this.a is from pre-state, 
-                            // but .value in current state
+                                // but .value in current state
      assert old@L(a.value) == 11;
      assert old@L(a).value == 12; // same as above
      assert old@M(a.value) == 12; // .value in M state is 12
