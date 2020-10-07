@@ -269,42 +269,13 @@ A failure-compatible type is a type that has the following (each with no in-para
 ### Failure compatible types
 
 A simple failure-compatible type is the following:
-```
-datatype Status =
-| Success
-| Failure(error: string)
-{
-  predicate method IsFailure() {
-    this.Failure?
-  }
-  function method PropagateFailure(): Status
-    requires IsFailure()
-  {
-    Failure(this.error);
-  }
-}
+```dafny
+{% include Example-Fail1.dfy %}
 ```
 
 A commonly used alternative that carries some value information is something like this generic type:
-```
-datatype Outcome<T> =
-| Success(value: T)
-| Failure(error: string)
-{
-  predicate method IsFailure() {
-    this.Failure?
-  }
-  function method PropagateFailure(): Outcome<U>
-    requires IsFailure()
-  {
-    Failure(this.error) // this is Outcome<U>.Failure(...)
-  }
-  function method Extract(): T
-    requires !IsFailure()
-  {
-    this.value
-  }
-}
+```dafny
+{% include Example-Fail2.dfy %}
 ```
 
 A failure-compatible type with an `Extract` method is called _value-carrying_.
@@ -313,7 +284,7 @@ A failure-compatible type with an `Extract` method is called _value-carrying_.
 ### Simple status return with no other outputs
 
 The simplest use of this failure-return style of programming is to have a method call that just returns a non-value-carrying `Status` value:
-```
+```dafny
 method Callee(i: int) returns (r: Status)
 {
   if i < 0 { return Failure("negative"); }
@@ -341,7 +312,7 @@ It may well be convenient to have additional out-parameters, as is allowed for `
 these out-parameters behave just as for `:=`.
 Here is an example:
 
-```
+```dafny
 method Callee(i: int) returns (r: Status, v: int, w: int)
 {
   if i < 0 { return Failure("negative"); }
@@ -372,7 +343,7 @@ caller continues execution as normal.
 The failure-compatible return value can carry additional data as shown in the `Outcome<T>` example above. 
 In this case there is a (first) LHS l-value to receive this additional data.
 
-```
+```dafny
 method Callee(i: int) returns (r: Outcome<nat>, v: int)
 {
   if i < 0 { return Failure("negative"); }
@@ -385,7 +356,7 @@ method Caller(i: int) returns (rr: Outcome<int>, k: int)
   j, k :- Callee(i);
   k := k + k;
 }
-```
+```dafny
 Suppose `Caller` is called with an argument of `10`. 
 Then `Callee` is called with argument `10` 
 and returns `r` and `v` of `Outcome<nat>.Success(10)` and `20`. 
@@ -427,6 +398,19 @@ and the execution of the caller's body is ended.
    * execution of the caller's body continues with the statement following the `:-` statement.
 
 A RHS with a method call cannot be mixed with a RHS containing multiple expressions.
+
+### Failure with initialized declaration.
+
+The `:-` syntax can also be used in initalization, as in
+```dafny
+var s :- M();
+```
+This is equivalent to
+```dafny
+var s;
+s :- M();
+```
+with the semantics as described above.
 
 ### Expect alternative
 

@@ -5,7 +5,7 @@ datatype Outcome<T> =
   predicate method IsFailure() {
     this.Failure?
   }
-  function method PropagateFailure(): Outcome<U>
+  function method PropagateFailure<U>(): Outcome<U>
     requires IsFailure()
   {
     Failure(this.error) // this is Outcome<U>.Failure(...)
