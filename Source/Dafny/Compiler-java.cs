@@ -385,10 +385,6 @@ namespace Microsoft.Dafny{
         return InstanceMemberWriter;
       }
 
-      public BlockTargetWriter CreateConstructor(TopLevelDeclWithMembers c, List<TypeParameter> l){
-        return Compiler.CreateConstructor(c, Writer(false, true, null), l);
-      }
-
       public BlockTargetWriter/*?*/ CreateMethod(Method m, List<TypeParameter> typeArgs, bool createBody, bool forBodyInheritance) {
         return Compiler.CreateMethod(m, typeArgs, createBody, Writer(m.IsStatic, createBody, m), forBodyInheritance);
       }
@@ -510,16 +506,6 @@ namespace Microsoft.Dafny{
         wr = wr.NewBlock("if(true)"); // Ensure no unreachable error is thrown for the return statement
       }
       return wr;
-    }
-
-    protected BlockTargetWriter CreateConstructor(TopLevelDeclWithMembers c, TargetWriter wr, List<TypeParameter> l) {
-      EmitSuppression(wr);
-      wr.Write("public ");
-      wr.Write(c.CompileName);
-      wr.Write("(");
-      var nTypes = WriteRuntimeTypeDescriptorsFormals(l, wr);
-      var w = wr.NewBlock(")", null, BlockTargetWriter.BraceStyle.Newline, BlockTargetWriter.BraceStyle.Newline);
-      return w;
     }
 
     protected BlockTargetWriter/*?*/ CreateFunction(string name, List<TypeParameter> typeArgs,
