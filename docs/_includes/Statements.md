@@ -258,7 +258,14 @@ To use this form of update,
  * the caller must have a first out-parameter whose type matches the output of `PropagateFailure` applied to the first output of the callee
  * if the RHS of the update-with-failure statement is a method call, the first out-parameter of the callee must be failure-compatible
  * if instead the RHS of the update-with-failure statement is one or more expressions, the first of these expressions must be a value with a failure-compatible type
- * the LHS of the `:-` statement has one less expression than the RHS (or than the number of out-parameters from the method call on the RHS) if the failure-compatible type has no `Extract` method
+ * if the failure-compatible type of the RHS does not have an Extract method,
+then the LHS of the `:-` statement has one less expression than the RHS 
+(or than the number of out-parameters from the method call)
+ * if the failure-compatible type of the RHS does have an Extract method,
+then the LHS of the `:-` statement has the same numnber of expressions as the RHS 
+(or than the number of out-parameters from the method call)
+and the type of the first LHS expression must be assignable from the return type of the Extract method
+* the IsFailure, PropagateFailure and Extract methods may not be ghost
 
 A failure-compatible type is a type that has the following (each with no in-parameters and one out-parameter):
 
@@ -443,7 +450,8 @@ and whatever other computations or control flow are desired.
 as long as the callee's first out-parameter has a failure-compatible type
 and the caller's first out-parameter type matches 'PropagateFailure`.
  * If there is more than one LHS, the LHSs must denote different l-values, unless the RHS is a list of expressions and the corresponding RHS values are equal. 
- * The LHS l-values are evaluated before the RHS method call, in case the method call has side-effects or return v alues that modify the l-values prior to assignments being made.
+ * The LHS l-values are evaluated before the RHS method call, 
+in case the method call has side-effects or return values that modify the l-values prior to assignments being made.
 
 It is important to note the connection between the failure-compatible types used in the caller and callee,
 if they both use them. 
@@ -465,7 +473,7 @@ the variations of the failure-compatible data type.
  * Exceptions are passed up the call stack whether or not intervening methods are aware of the possibility of an exception, 
 that is, whether or not the intervening methods have declared that they throw exceptions.
 Not so in Dafny: a failure is passed up the call stack only if each caller has a failure-compatible first out-parameter, is itself called in a `:-=` statement, and returns a value that responds true to `IsFailure()`.
- * All methods that containing failure-return callees must explicitly handle those failures
+ * All methods that contain failure-return callees must explicitly handle those failures
 using either `:-` statements or using `:=` statements with a LHS to receive the failure value.
 
 ## Variable Declaration Statement
@@ -477,6 +485,7 @@ VarDeclStatement = [ "ghost" ] "var" { Attribute }
     [ ":=" Rhs { "," Rhs }
     | { Attribute } ":|" [ "assume" ] 
                     Expression(allowLemma: false, allowLambda: true)
+    | ":-" [ "expect" ] Expression { "," Rhs }
     ]
   |
     "(" CasePattern { "," CasePattern } ")"
