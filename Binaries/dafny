@@ -9,21 +9,26 @@ while [ -h "$SOURCE" ]; do
     [[ $SOURCE != /* ]] && SOURCE="$DIR/$SOURCE"
 done
 DAFNY_ROOT="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
-DAFNY="$DAFNY_ROOT/Dafny.exe"
-
-if [[ ! -e "$DAFNY" ]]; then
-    echo "Error: Dafny.exe not found at $DAFNY."
-    exit 1
-fi
 
 MY_OS=$(uname -s)
 if [ "${MY_OS:0:5}" == "MINGW" ] || [ "${MY_OS:0:6}" == "CYGWIN" ]; then
+    DAFNY_EXE_NAME="Dafny.exe"
+else
+    DAFNY_EXE_NAME="Dafny.dll"
+fi
+DAFNY="$DAFNY_ROOT/$DAFNY_EXE_NAME"
+if [[ ! -e "$DAFNY" ]]; then
+    echo "Error: $DAFNY_EXE_NAME not found at $DAFNY_ROOT."
+    exit 1
+fi
+
+if [ "${MY_OS:0:5}" == "MINGW" ] || [ "${MY_OS:0:6}" == "CYGWIN" ]; then
     "$DAFNY" "$@"
 else
-    MONO=$(type -p mono)
-    if [[ ! -x "$MONO" ]]; then
-	echo "Error: Dafny requires Mono to run on non-Windows systems."
-	exit 1
+    DOTNET=$(type -p dotnet)
+    if [[ ! -x "$DOTNET" ]]; then
+        echo "Error: Dafny requires .NET Core to run on non-Windows systems."
+        exit 1
     fi
-    "$MONO" "$DAFNY" "$@"
+    "$DOTNET" "$DAFNY" "$@"
 fi

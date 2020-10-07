@@ -22,22 +22,10 @@ jobs:
       uses: nuget/setup-nuget@v1
     - name: Manually sync certs
       run: cert-sync /etc/ssl/certs/ca-certificates.crt
-    - name: Add msbuild to PATH
-      if: matrix.os == 'windows-latest'
-      uses: microsoft/setup-msbuild@v1.0.0
-    - name: Checkout Boogie
-      uses: actions/checkout@v2
-      with:
-        repository: boogie-org/boogie
-        ref: v2.4.21
-        path: boogie
-    - name: Nuget Restore Boogie
-      run: nuget restore boogie/Source/Boogie.sln
-    - name: Build Boogie
-      run: msbuild boogie/Source/Boogie.sln
     - name: Checkout Dafny
       uses: actions/checkout@v2
       with:
+        submodules: recursive
         path: dafny
     - name: Get Z3
       if: matrix.os != 'windows-latest'
@@ -45,12 +33,12 @@ jobs:
         wget https://github.com/Z3Prover/z3/releases/download/z3-4.8.4/z3-4.8.4.d6df51951f4c-x64-ubuntu-14.04.zip
         unzip z3*.zip && rm *.zip
         cp -r z3* dafny/Binaries/z3
-    - name: Nuget Restore Dafny
-      run: nuget restore dafny/Source/Dafny.sln
-    - name: Build Dafny Parser
-      run: make -C dafny/Source/Dafny -f Makefile.Linux
+    - name: Setup dotnet
+      uses: actions/setup-dotnet@v1.6.0
+      with:
+        dotnet-version: '3.1.x' # SDK Version to use; x will use the latest version of the 3.1 channel
     - name: Build Dafny
-      run: msbuild dafny/Source/Dafny.sln
+      run: dotnet build dafny/Source/Dafny.sln
     - uses: actions/setup-python@v1
     - name: Set up JDK 1.8
       uses: actions/setup-java@v1

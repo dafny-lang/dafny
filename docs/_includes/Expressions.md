@@ -1148,6 +1148,46 @@ Expressions =
 The ``Expressions`` non-terminal represents a list of
 one or more expressions separated by a comma.
 
+## Compile-Time Constants {#sec-compile-time-constants}
+
+In certain situations in Dafny it is helpful to know what the value of a 
+constant is during program analysis, before verification or execution takes
+place. For example, a compiler can choose an optimized representation of a 
+`newtype` that is a subset of `int` if it knows the range of possible values 
+of the subset type: if the range is within 0 to less than 256, then an 
+unsigned 8-bit representation can be used.
+
+To continue this example, suppose a new type is defined as
+```
+const MAX := 47
+newtype mytype = x | 0 <= x < MAX*4
+```
+In this case, we would prefer that Dafny recognize that `MAX*4` is 
+known to be constant with a value of `188`. The kinds of expressions 
+for which such an optimization is possible are called
+_compile-time constants_. Note that the representation of `mytype` makes
+no difference semantically, but can affect how compiled code is represented at run time.
+In addition, though, using a symbolic constant (which may 
+well be used elsewhere as well) improves the self-documentation of the code.
+
+In Dafny, the following expressions are compile-time constants[^CTC], recursively 
+(that is, the arguments of any operation must themselves be compile-time constants):
+- int, bitvector, real, boolean, char and string literals
+- int operations: `+ - * / %` and unary `-` and comparisons `< <= > >= == !=`
+- real operations: `+ - *` and unary `-` and comparisons `< <= > >= == !='
+- bool operations: `&& || ==> <== <==> == !=` and unary '!'
+- bitvector operations: `+ - * / % << >> & | ^` and unary `! -` and comparisons `< <= > >= == !=`
+- char operations: `< <= > >= == !=`
+- string operations: length: `|...|`, concatenation: `+`, comparisons `< <= == !=`, indexing `[]`
+- conversions between: int real char bitvector
+- newtype operations: newtype arguments, but not newtype results
+- symbolic values that are declared `const` and have an explicit initialization value that is a compile-time constant
+- conditional (if-then-else) expressions
+- parenthesized expressions
+
+[^CTC]: This set of operations that are constant-folded may be enlarged in 
+future versions of Dafny.
+
 ## Map comprehensions
 
 TO BE WRITTEN

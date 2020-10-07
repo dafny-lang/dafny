@@ -3424,6 +3424,12 @@ section [#sec-nativetype].
 There is a restriction that the value `0` must be part of every
 newtype.[^fn-newtype-zero]
 
+Furthermore, for the compiler to be able to make an appropriate choice of
+representation, the constants in the defining expression as shown above must be
+known constants at compile-time. They need not be numeric literals; combinations
+of basic operations and symbolic constants are also allowed as described 
+in [Section: Compile-Time Constants](#sec-compile-time-constants).
+
 [^fn-newtype-zero]: The restriction is due to a current limitation in
     the compiler.  This will change in the future and will also open
     up the possibility for subset types and non-null reference
